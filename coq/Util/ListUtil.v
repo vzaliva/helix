@@ -43,3 +43,10 @@ Proof.
     contradict H.
     apply app_cons_not_nil.
 Qed.
+
+(* List elements unique wrt projection [p] using [eq] *)
+Definition list_uniq {A B:Type} (p: A -> B) (l:list A): Prop
+  := forall x y a b,
+    List.nth_error l x = Some a ->
+    List.nth_error l y = Some b ->
+    (p a) = (p b) -> x=y.

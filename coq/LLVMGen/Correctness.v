@@ -1,3 +1,6 @@
+Require Import Coq.Arith.Arith.
+Require Import Psatz.
+
 Require Import Coq.Strings.String.
 Require Import Coq.Lists.List.
 Require Import Coq.Numbers.BinNums. (* for Z scope *)
@@ -9,7 +12,8 @@ Require Import Helix.LLVMGen.Compiler.
 Require Import Helix.LLVMGen.Externals.
 Require Import Helix.LLVMGen.Data.
 Require Import Helix.Util.ErrorSetoid.
-Require Import Helix.Tactics.StructTactics.
+Require Import Helix.Util.ListUtil.
+Require Import Helix.Tactics.HelixTactics.
 
 Require Import ExtLib.Structures.Monads.
 
@@ -219,6 +223,7 @@ Record injection_Fin (A:Type) (domain : nat) :=
           inj_f x ≡ inj_f y ->
           x ≡ y
     }.
+
 
 Definition memory_invariant : Type_R_memory :=
   fun σ mem_helix '(mem_llvm, x) =>
@@ -475,7 +480,7 @@ Proof.
 Qed.
 
 Fact initFSHGlobals_globals_sigma_len_eq
-     {mem mem' data data' globals σ}:
+     {mem mem' data data'} globals σ:
   initFSHGlobals data mem globals ≡ inr (mem', data', σ) ->
   List.length globals ≡ List.length σ.
 Proof.
@@ -496,6 +501,45 @@ Proof.
     cbn.
     erewrite IHglobals; eauto.
 Qed.
+
+(* Maps indices from [σ] to [raw_id].
+   Currently [σ := [globals;Y;X]]
+   Where globals mapped by name, while [X-> Anon 0] and [Y->Anon 1]
+*)
+Definition memory_invariant_map (globals : list (string * FSHValType)): nat -> raw_id
+  := fun j =>
+       let n := List.length globals in
+       if Nat.eqb j n then Anon 0%Z (* X *)
+       else if Nat.eqb j (S n) then Anon 1%Z (* Y *)
+            else
+              match nth_error globals j with
+              | None => Anon 0%Z (* default value *)
+              | Some (name,_) => Name name
+              end.
+
+Lemma memory_invariant_map_injectivity (globals : list (string * FSHValType)):
+  list_uniq fst globals ->
+  forall (x y : nat),
+    x < (Datatypes.length globals + 2)%nat ∧ y < (Datatypes.length globals + 2)%nat
+    → memory_invariant_map globals x ≡ memory_invariant_map globals y → x ≡ y.
+Proof.
+  intros U x y [Hx Hy] E.
+  unfold lt, peano_naturals.nat_lt in *.
+  unfold memory_invariant_map in E.
+  repeat break_if; repeat break_match; bool_to_nat; subst; try inv E; auto.
+  - apply nth_error_None in Heqo; lia.
+  - apply nth_error_None in Heqo; lia.
+  -
+    unfold list_uniq in U.
+    eapply U; eauto.
+  - apply nth_error_None in Heqo; lia.
+Qed.
+
+(* If [initIRGlobals] suceeds, the names of variables in [globals] were unique *)
+Lemma initIRGlobals_names_unique globals data res:
+  initIRGlobals data globals ≡ inr res → list_uniq fst globals.
+Proof.
+Admitted.
 
 (** [memory_invariant] relation must holds after initalization of global variables *)
 Lemma memory_invariant_after_init
@@ -562,7 +606,20 @@ Proof.
   }
   subst l; cbn in *.
 
-  eexists.
+  unshelve eexists.
+  exists (memory_invariant_map globals).
+
+  (* Injectivity proof *)
+  {
+    rewrite app_length.
+    erewrite <- initFSHGlobals_globals_sigma_len_eq with (globals0:=globals).
+    2: eauto.
+    simpl.
+    apply memory_invariant_map_injectivity.
+    eapply initIRGlobals_names_unique.
+    eauto.
+  }
+
   intros x v Hn.
   break_match.
   -
