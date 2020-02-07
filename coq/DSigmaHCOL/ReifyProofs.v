@@ -1991,13 +1991,12 @@ Global Instance Assign_DSH_pure
   :
     DSH_pure (DSHAssign (x_p, x_n) (y_p, y_n)) ts x_p y_p.
 Proof.
-  (*
   split.
   -
     intros.
     destruct fuel; [inversion H |].
     cbn in H.
-    repeat break_match; try inl_inr.
+    repeat break_match; repeat some_inv; try inl_inr.
     inl_inr_inv; rewrite <-H.
     split; intros.
     +
@@ -2010,60 +2009,13 @@ Proof.
       apply memory_lookup_err_inr_is_Some in Heqe2.
       assumption.
   -
-    intros until fuel; intros CE BEx BEy.
-    eapply evalNExpr_context_equiv_at_TypeSig in XN;
-      [inversion XN; clear XN; rename H into XN0, H0 into XN1; [rename H1 into XN | ]
-      | eassumption].
-    all: eapply evalNExpr_context_equiv_at_TypeSig in YN;
-      [inversion YN; clear YN; rename H into YN0, H0 into YN1; [rename H1 into YN | ]
-      | eassumption].
-
-    all: unfold blocks_equiv_at_Pexp in *;
-      inversion BEx; clear BEx; inversion H1; clear H1;
-      inversion BEy; clear BEy; inversion H6; clear H6.
-    all: destruct (evalDSHOperator σ0) eqn:OE1,
-             (evalDSHOperator σ1) eqn:OE2.
-    all: repeat constructor.
-    all: destruct fuel; try (cbn in *; some_none; fail).
-    all: cbn in *.
-    all: try inl_inr.
-    all: unfold memory_lookup_err, mem_lookup_err, trywith in *.
-    all: rewrite <-H, <-H0, <-H1, <-H2, <-H3, <-H5, <-H7, <-H8, <-XN0, <-XN1 in *.
-    all: try rewrite <-YN0, <-YN1 in *.
-    all: repeat break_match; try some_none; try inl_inr.
-    all: repeat some_inv; repeat inl_inr_inv; subst.
-    +
-      enough (C : mem_lookup a m4 = mem_lookup b m2)
-        by (rewrite Heqo0, Heqo in C; some_none).
-      rewrite XN.
-      apply H4.
-    +
-      enough (C : mem_lookup a m4 = mem_lookup b m2)
-        by (rewrite Heqo0, Heqo in C; some_none).
-      rewrite XN.
-      apply H4.
-    +
-      unfold memory_lookup, memory_set.
-      repeat (rewrite NP.F.add_eq_o by reflexivity).
-      constructor.
-      unfold mem_add, equiv, mem_block_Equiv; intros.
-      inversion XN; subst.
-      inversion YN; subst.
-      destruct (Nat.eq_dec b0 k).
-      *
-        repeat (rewrite NP.F.add_eq_o with (x := b0) by assumption).
-        rewrite <-Heqo, <-Heqo0.
-        apply H4.
-      *
-        repeat (rewrite NP.F.add_neq_o with (x := b0) by assumption).
-        apply H9.
-  -
     intros.
     unfold memory_equiv_except, memory_lookup; intros.
     destruct fuel; [inversion H |].
     cbn in H.
-    repeat break_match; try some_none; try inl_inr.
-    repeat some_inv; repeat inl_inr_inv; subst.
+    repeat break_match;
+      try some_none; repeat some_inv;
+      try inl_inr; repeat inl_inr_inv.
     unfold equiv, memory_Equiv, memory_set, mem_add in H.
     specialize (H k).
     rewrite <-H.
@@ -2076,8 +2028,7 @@ Proof.
     all: subst.
     all: try congruence.
     all: reflexivity.
-  *)
-Abort.
+Qed.
 
 Global Instance Embed_MSH_DSH_compat
        {o b: nat}
