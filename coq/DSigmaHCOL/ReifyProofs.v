@@ -1893,31 +1893,21 @@ Lemma blocks_equiv_at_Pexp_add_mem
                          (memory_set m0 t0 foo0)
                          (memory_set m1 t1 foo1).
 Proof.
-  (*
   intros E0 E1 EE.
   unfold blocks_equiv_at_Pexp in *.
-  destruct (evalPexp σ0 p), (evalPexp σ1 p).
-  -
-    constructor.
-    inversion_clear EE.
-    inversion H. clear H.
-    symmetry in H0, H1.
-    rewrite Some_neq in E0.
-    rewrite Some_neq in E1.
-    unfold memory_lookup, memory_set in *.
-    rewrite 2!NP.F.add_neq_o; auto.
-    rewrite H0, H1.
-    constructor.
-    apply H2.
-  -
-    inversion EE.
-  -
-    inversion EE.
-  -
-    inversion EE.
-  *)
-Admitted.
-
+  destruct (evalPexp σ0 p), (evalPexp σ1 p); try (inversion EE; fail).
+  constructor.
+  inversion_clear EE.
+  inversion H. clear H.
+  symmetry in H0, H1.
+  rewrite inr_neq in E0.
+  rewrite inr_neq in E1.
+  unfold memory_lookup, memory_set in *.
+  rewrite 2!NP.F.add_neq_o; auto.
+  rewrite H0, H1.
+  constructor.
+  apply H2.
+Qed.
 
 (* Also could be proven in other direction *)
 Lemma SHCOL_DSHCOL_mem_block_equiv_mem_empty {a b: mem_block}:
