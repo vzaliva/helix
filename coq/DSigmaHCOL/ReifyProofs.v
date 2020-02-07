@@ -237,13 +237,6 @@ Proof.
   intros; inversion H; auto.
 Qed.
 
-Global Instance EnvMemoryConsistent_proper :
-  Proper ((=) ==> (=) ==> (iff)) EnvMemoryConsistent.
-Proof.
-  intros σ0 σ1 SE mem0 mem1 ME.
-  inversion SE; [split; constructor |].
-Abort.
-
 Lemma EnvMemoryConsistent_memory_lookup
       {σ : evalContext}
       {mem : memory}
