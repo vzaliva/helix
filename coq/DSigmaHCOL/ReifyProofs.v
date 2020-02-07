@@ -1353,16 +1353,15 @@ Section DSHBinOp.
     (exists a b, is_OK (evalIBinCType mem σ df n a b)) ->
     forall c d, is_OK (evalIBinCType mem σ df n c d).
   Proof.
-    (*
     intros.
     destruct H as [a [b H]].
     induction df; cbn in *.
     
     (* base case 1 *)
     destruct v.
-    reflexivity.
+    constructor.
     destruct v.
-    reflexivity.
+    constructor.
     apply H.
     
     (* base case 2 *)
@@ -1370,12 +1369,43 @@ Section DSHBinOp.
     
     (* base case 3 *)
     {
-      repeat break_match; try some_none; exfalso.
+      repeat break_match; try some_none; try inl_inr; exfalso.
       -
-        contradict Heqo0.
-        apply is_Some_ne_None.
-        apply eq_Some_is_Some in Heqo2.
-        clear - Heqo2; rename Heqo2 into H,
+        apply err_equiv_eq in Heqe.
+        contradict Heqe.
+        apply is_OK_neq_inl.
+        apply eq_inr_is_OK in Heqe0.
+        clear - Heqe0; rename Heqe0 into H.
+        destruct m; cbn in *.
+        +
+          destruct p.
+          destruct v; [| destruct v].
+          inversion H.
+          inversion H.
+          apply H.
+        +
+          trivial.
+      -
+        apply err_equiv_eq in Heqe.
+        contradict Heqe.
+        apply is_OK_neq_inl.
+        apply eq_inr_is_OK in Heqe0.
+        clear - Heqe0; rename Heqe0 into H.
+        destruct m; cbn in *.
+        +
+          destruct p.
+          destruct v; [| destruct v].
+          inversion H.
+          inversion H.
+          apply H.
+        +
+          trivial.
+      -
+        apply err_equiv_eq in Heqe0.
+        contradict Heqe0.
+        apply is_OK_neq_inl.
+        apply eq_inr_is_OK in Heqe2.
+        clear - Heqe2; rename Heqe2 into H,
                                  n0 into e.
         induction e; cbn in *.
         (* base 1 *)
@@ -1386,14 +1416,15 @@ Section DSHBinOp.
         (* base 2 *)
         trivial.
         (* inductive *)
-        all: repeat break_match; try reflexivity; try some_none.
+        all: repeat break_match; try reflexivity; try some_none; try inl_inr.
         all: try apply IHe; try apply IHe1; try apply IHe2.
-        all: trivial.
+        all: constructor.
       -
-        contradict Heqo0.
-        apply is_Some_ne_None.
-        apply eq_Some_is_Some in Heqo2.
-        clear - Heqo2; rename Heqo2 into H,
+        apply err_equiv_eq in Heqe0.
+        contradict Heqe0.
+        apply is_OK_neq_inl.
+        apply eq_inr_is_OK in Heqe2.
+        clear - Heqe2; rename Heqe2 into H,
                                  n0 into e.
         induction e; cbn in *.
         (* base 1 *)
@@ -1404,44 +1435,17 @@ Section DSHBinOp.
         (* base 2 *)
         trivial.
         (* inductive *)
-        all: repeat break_match; try reflexivity; try some_none.
+        all: repeat break_match; try reflexivity; try some_none; try inl_inr.
         all: try apply IHe; try apply IHe1; try apply IHe2.
-        all: trivial.
-      -
-        contradict Heqo.
-        apply is_Some_ne_None.
-        apply eq_Some_is_Some in Heqo0.
-        clear - Heqo0; rename Heqo0 into H.
-        destruct m; cbn in *.
-        +
-          destruct v; [| destruct v].
-          inversion H.
-          inversion H.
-          apply H.
-        +
-          trivial.
-      -
-        contradict Heqo.
-        apply is_Some_ne_None.
-        apply eq_Some_is_Some in Heqo0.
-        clear - Heqo0; rename Heqo0 into H.
-        destruct m; cbn in *.
-        +
-          destruct v; [| destruct v].
-          inversion H.
-          inversion H.
-          apply H.
-        +
-          trivial.
+        all: constructor.
     }
     
     (* inductive cases *)
     all: unfold evalIBinCType in *.
-    all: repeat break_match; try reflexivity; try some_none.
+    all: repeat break_match; try reflexivity; try some_none; try inl_inr.
     all: try apply IHdf; try apply IHdf1; try apply IHdf2.
-    all: trivial.
-     *)
-  Admitted.
+    all: constructor.
+  Qed.
   
   Lemma evalDSHBinOp_is_OK_inv
         {mem : memory}
