@@ -1250,7 +1250,6 @@ Section DSHBinOp.
                evalIBinCType mem σ df k a b = inr c))
     ).
   Proof.
-    (*
     intros E k kc.
     pose proof (evalDSHBinOp_mem_lookup_mx E) as [A B] ; eauto.
     apply is_Some_equiv_def in A.
@@ -1267,29 +1266,34 @@ Section DSHBinOp.
       inversion kc.
     -
       simpl in *.
-      repeat break_match_hyp; try some_none.
+      repeat break_match_hyp; try some_none; try inl_inr.
       destruct (Nat.eq_dec k n).
       +
         clear IHn.
         subst k.
-        rewrite Heqo in A. clear Heqo.
-        rewrite Heqo0 in B. clear Heqo0.
-        repeat some_inv.
-  
-        opt_hyp_to_equiv.
-        rewrite B in Heqo1; clear B c0.
-        rewrite A in Heqo1; clear A c.
+        unfold mem_lookup_err, trywith in *.
+        repeat break_match; try inl_inr.
+        repeat some_inv; repeat inl_inr_inv; subst.
+        eq_to_equiv_hyp.
+        err_eq_to_equiv_hyp.
+        rewrite A in *; clear A c.
+        rewrite B in *; clear B c0.
         exists c1.
-        rewrite Heqo1. clear Heqo1.
-        clear - E dft.
-        split; try reflexivity.
-        unshelve eapply (evalDSHBinOp_preservation E).
-        lia.
+
+        assert (mem_lookup n ma = Some c1).
+        {
+          eapply evalDSHBinOp_preservation.
+          eassumption.
+          Unshelve.
+          reflexivity.
+        }
+
+        rewrite Heqe1, H.
+        auto.
       +
         apply IHn with (mb:=mem_add n c1 mb); auto.
         lia.
-     *)
-  Admitted.
+  Qed.
   
   (* TODO: generalize this *)
   Lemma is_OK_evalDSHBinOp_mem_equiv
