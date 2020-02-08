@@ -543,8 +543,6 @@ Proof.
   cbn in H.
   break_let; subst.
   break_match_hyp ; [inl_inr|].
-  repeat break_let; subst.
-  break_if ; [inl_inr|].
   break_match_hyp; inv H; eauto.
 Qed.
 
@@ -554,11 +552,22 @@ Fact initIRGlobals_cons_head_uniq:
                                   list (toplevel_entity typ (list (LLVMAst.block typ)))),
     initIRGlobals data (a :: globals) ≡ inr res ->
     forall (j : nat) (n : string) (v : FSHValType),
-      (nth_error globals j ≡ Some (n, v) → n ≡ fst a) → False.
+      (nth_error globals j ≡ Some (n, v) /\ n ≡ fst a) → False.
 Proof.
   intros a globals data res H j n v C.
-  destruct res as [data' globals'].
-Admitted.
+  cbn in H.
+  break_let;subst.
+  assert(globals_name_present s globals ≡ true).
+  {
+    clear -C.
+    apply nth_to_globals_name_present.
+    exists (n,v).
+    exists j.
+    apply C.
+  }
+  rewrite H0 in H.
+  inl_inr.
+Qed.
 
 (* If [initIRGlobals] suceeds, the names of variables in [globals] were unique *)
 Lemma initIRGlobals_names_unique globals data res:

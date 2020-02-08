@@ -64,7 +64,7 @@ Qed.
 
 Lemma list_uniq_cons {A B:Type} (p: A -> B) (a:A) (l:list A):
   list_uniq p l /\
-  not (exists j x, nth_error l j = Some x -> p x = p a) ->
+  not (exists j x, nth_error l j = Some x /\ p x = p a) ->
   list_uniq p (a :: l).
 Proof.
   intros [U E].

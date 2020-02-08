@@ -1,3 +1,4 @@
+Require Import Coq.Bool.Bool.
 Require Import Coq.Strings.String.
 Require Import Coq.Lists.List.
 
@@ -5,6 +6,7 @@ Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Helix.LLVMGen.Utils.
 Require Import Helix.LLVMGen.Externals.
 Require Import Helix.Util.Misc.
+Require Import Helix.Tactics.HelixTactics.
 
 Require Import Vellvm.Numeric.Fappli_IEEE_extra.
 Require Import Vellvm.IntrinsicsDefinitions.
@@ -1101,21 +1103,6 @@ Definition LLVMGen
       ).
 
 
-Fixpoint TLE_Global_name_present (name:string) (l:list (toplevel_entity typ (list (block typ)))) : bool :=
-  match l with
-  | [] => false
-  | (t::ts) =>
-    orb (match t with
-         | TLE_Global g =>
-           match g.(g_ident) with
-           | Name s => string_beq s name
-           | _ => false
-           end
-         | _ => false
-         end)
-        (TLE_Global_name_present name ts)
-  end.
-
 Definition initOneIRGlobal
            (t: FSHValType)
            (data: list binary64)
@@ -1163,6 +1150,47 @@ Definition initOneIRGlobal
     end.
 
 
+Definition globals_name_present
+           (name:string)
+           (l:list (string * FSHValType)) : bool
+  :=
+    List.fold_right (fun v f => orb f (string_beq (fst v) name)) false l.
+
+Fact nth_to_globals_name_present (globals:list (string * FSHValType)) nm :
+  (exists res j, (nth_error globals j = Some res /\ fst res = nm))
+  ->
+  globals_name_present nm globals = true.
+Proof.
+  revert nm.
+  unfold globals_name_present.
+  induction globals.
+  -
+    cbn.
+    intros.
+    exfalso.
+    destruct H as [res [j [H0 H1]]].
+    rewrite Util.nth_error_nil in H0.
+    inv H0.
+  -
+    intros.
+    destruct H as [res [j H]].
+    specialize (IHglobals nm).
+    cbn.
+    apply orb_true_iff.
+    destruct j.
+    +
+      right.
+      cbn in H.
+      destruct H.
+      inv H.
+      unfold Misc.string_beq.
+      break_if; auto.
+    +
+      left.
+      apply IHglobals.
+      eauto.
+Qed.
+
 Fixpoint initIRGlobals
          (data: list binary64)
          (x: list (string * FSHValType))
@@ -1171,11 +1199,11 @@ Fixpoint initIRGlobals
     match x with
     | nil => ret (data,[])
     | cons (nm, t) xs =>
-      '(data,gs) <- initIRGlobals data xs ;;
-      if TLE_Global_name_present nm gs
+      if globals_name_present nm xs
       then
         inl ("duplicate global name: " ++ nm)%string
       else
+        '(data,gs) <- initIRGlobals data xs ;;
         '(data,g) <- initOneIRGlobal t data nm ;;
         ret (data,g::gs)
     end.
