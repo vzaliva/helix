@@ -1116,6 +1116,53 @@ Fixpoint TLE_Global_name_present (name:string) (l:list (toplevel_entity typ (lis
         (TLE_Global_name_present name ts)
   end.
 
+Definition initOneIRGlobal
+           (t: FSHValType)
+           (data: list binary64)
+           (nm: string)
+  : err (list binary64 * (toplevel_entity typ (list (block typ))))
+  :=
+    match t with
+    | FSHnatValType => raise "FSHnatValType global type not supported"
+    | FSHFloatValType =>
+      let '(x, data) := rotate Float64Zero data in
+      let g := TLE_Global {|
+                   g_ident        := Name nm;
+                   g_typ          := getIRType t ;
+                   g_constant     := true ;
+                   g_exp          := Some (EXP_Double x);
+                   g_linkage      := Some LINKAGE_Internal ;
+                   g_visibility   := None ;
+                   g_dll_storage  := None ;
+                   g_thread_local := None ;
+                   g_unnamed_addr := true ;
+                   g_addrspace    := None ;
+                   g_externally_initialized := false ;
+                   g_section      := None ;
+                   g_align        := None ; (* TODO: maybe need to alight to 64-bit boundary? *)
+                 |} in
+      ret (data, g)
+    | FSHvecValType n =>
+      let (data, arr) := constArray n data in
+      let g := TLE_Global {|
+                   g_ident        := Name nm;
+                   g_typ          := getIRType t ;
+                   g_constant     := true ;
+                   g_exp          := Some (EXP_Array arr);
+                   g_linkage      := Some LINKAGE_Internal ;
+                   g_visibility   := None ;
+                   g_dll_storage  := None ;
+                   g_thread_local := None ;
+                   g_unnamed_addr := true ;
+                   g_addrspace    := None ;
+                   g_externally_initialized := false ;
+                   g_section      := None ;
+                   g_align        := Some Utils.PtrAlignment ;
+                 |} in
+      ret (data, g)
+    end.
+
+
 Fixpoint initIRGlobals
          (data: list binary64)
          (x: list (string * FSHValType))
@@ -1129,43 +1176,8 @@ Fixpoint initIRGlobals
       then
         inl ("duplicate global name: " ++ nm)%string
       else
-        match t with
-        | FSHnatValType => raise "FSHnatValType global type not supported"
-        | FSHFloatValType =>
-          let '(x, data) := rotate Float64Zero data in
-          ret (data, TLE_Global {|
-                         g_ident        := Name nm;
-                         g_typ          := getIRType t ;
-                         g_constant     := true ;
-                         g_exp          := Some (EXP_Double x);
-                         g_linkage      := Some LINKAGE_Internal ;
-                         g_visibility   := None ;
-                         g_dll_storage  := None ;
-                         g_thread_local := None ;
-                         g_unnamed_addr := true ;
-                         g_addrspace    := None ;
-                         g_externally_initialized := false ;
-                         g_section      := None ;
-                         g_align        := None ; (* TODO: maybe need to alight to 64-bit boundary? *)
-                       |} :: gs)
-        | FSHvecValType n =>
-          let (data, arr) := constArray n data in
-          ret (data, TLE_Global {|
-                         g_ident        := Name nm;
-                         g_typ          := getIRType t ;
-                         g_constant     := true ;
-                         g_exp          := Some (EXP_Array arr);
-                         g_linkage      := Some LINKAGE_Internal ;
-                         g_visibility   := None ;
-                         g_dll_storage  := None ;
-                         g_thread_local := None ;
-                         g_unnamed_addr := true ;
-                         g_addrspace    := None ;
-                         g_externally_initialized := false ;
-                         g_section      := None ;
-                         g_align        := Some Utils.PtrAlignment ;
-                       |} :: gs)
-        end
+        '(data,g) <- initOneIRGlobal t data nm ;;
+        ret (data,g::gs)
     end.
 
 (*
