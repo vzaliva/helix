@@ -32,6 +32,7 @@ Require Import Ceres.Ceres.
 Require Import ITree.ITree.
 Require Import ITree.Eq.Eq.
 Require Import ITree.Basics.Basics.
+Require Import ITree.Interp.InterpFacts.
 
 Require Import Flocq.IEEE754.Binary.
 Require Import Flocq.IEEE754.Bits.
@@ -46,28 +47,13 @@ Import MDSHCOLOnFloat64.
 
 Definition model_llvm' := model_to_L3 helix_intrinsics.
 
-Definition E: Type -> Type := (StaticFailE +' DynamicFailE) +' (IO.CallE +' IO.ExternalCallE +' IO.PickE +' UBE +' DebugE +' FailureE).
+Definition E_mcfg: Type -> Type := (IO.ExternalCallE +' IO.PickE +' UBE +' DebugE +' FailureE) +' (StaticFailE +' DynamicFailE).
+Definition E_cfg: Type -> Type := (IO.CallE +' IO.PickE +' UBE +' DebugE +' FailureE) +' (StaticFailE +' DynamicFailE).
 
-Definition semantics_llvm_mcfg p: itree E _ := translate (@subevent _ E _) (model_llvm' p).
-
-(* MOVE TO VELLVM *)
-Definition lift_sem_to_mcfg {E X} `{FailureE -< E}
-           (sem: (CFG.mcfg DynamicTypes.dtyp) -> itree E X):
-  list (toplevel_entity typ (list (LLVMAst.block typ))) -> itree E X :=
-  fun prog =>
-    let scfg := Vellvm.AstLib.modul_of_toplevel_entities _ prog in
-
-    match CFG.mcfg_of_modul _ scfg with
-    | Some ucfg =>
-      let mcfg := TopLevelEnv.normalize_types ucfg in
-
-      sem mcfg
-
-    | None => raise "Ill-formed program: mcfg_of_modul failed."
-    end.
+Definition semantics_llvm_mcfg p: itree E_mcfg _ := translate inl_ (model_llvm' p).
 
 Definition semantics_llvm (prog: list (toplevel_entity typ (list (LLVMAst.block typ)))) :=
-  lift_sem_to_mcfg semantics_llvm_mcfg prog.
+  TopLevelEnv.lift_sem_to_mcfg semantics_llvm_mcfg prog.
 
 Import ListNotations.
 Import MonadNotation.
@@ -112,8 +98,8 @@ Definition denote_FSHCOL (p:FSHCOLProgram) (data:list binary64)
   bk <- trigger (MemLU "denote_FSHCOL" yindex);;
   lift_Derr (mem_to_list "Invalid output memory block" p.(o) bk).
 
-Definition semantics_FSHCOL p data: itree E (memory * list binary64) :=
-  translate (@subevent _ E _) (interp_Mem (denote_FSHCOL p data) memory_empty).
+Definition semantics_FSHCOL p data: itree E_mcfg (memory * list binary64) :=
+  translate (@subevent _ E_mcfg _) (interp_Mem (denote_FSHCOL p data) memory_empty).
 
 (* MOVE TO VELLVM *)
 Definition normalize_types_blocks (env: list _) (bks: list (LLVMAst.block typ))
@@ -122,14 +108,21 @@ Definition normalize_types_blocks (env: list _) (bks: list (LLVMAst.block typ))
     (TransformTypes.fmap_block _ _ (TypeUtil.normalize_type_dtyp env)) bks.
 Import IO TopLevelEnv Global Local.
 
-(* TO FIX *)
-Definition interp_to_L3': forall (R: Type), IS.intrinsic_definitions -> itree (CallE +' ExternalCallE +' IntrinsicE +' LLVMGEnvE +' LLVMEnvE +' MemoryE +' PickE +' UBE +' DebugE +' FailureE) R ->
-                        (global_env) ->
-                        (local_env) ->
-                        memory ->
-itree (CallE +' PickE +' UBE +' DebugE +' FailureE)
-              (memory * (local_env * (global_env * R))) :=
-  fun R _ _ a b c => raise "".
+Definition interp_cfg_to_L3:
+  forall (R: Type),
+    IS.intrinsic_definitions ->
+    itree instr_E R ->
+    global_env ->
+    local_env ->
+    memory ->
+    itree (CallE +' PickE +' UBE +' DebugE +' FailureE)
+          (memory * (local_env * (global_env * R))) :=
+  fun R defs t g l m =>
+    let L0_trace := INT.interpret_intrinsics defs t in
+    let L1_trace       := Util.runState (interp_global L0_trace) g in
+    let L2_trace       := Util.runState (interp_local  L1_trace) l in
+    let L3_trace       := Util.runState (M.interp_memory L2_trace) m in
+    L3_trace.
 
 Section StateTypes.
 
@@ -333,26 +326,126 @@ Definition bisim_partial: Type_R_partial
       let '(ρ, (g, bid_or_v)) := x in
       memory_invariant σ mem_helix (mem_llvm, (ρ, g)).
 
+(* Definition interp_cfg'_to_L3: *)
+(*   forall (R: Type), *)
+(*     IS.intrinsic_definitions -> *)
+(*     itree (instr_E +' (StaticFailE +' DynamicFailE)) R -> *)
+(*     global_env -> *)
+(*     local_env -> *)
+(*     memory -> *)
+(*     itree E_cfg *)
+(*           (memory * (local_env * (global_env * R))).  *)
+(*   fun R defs t g l m => *)
+(*     let L0_trace := INT.interpret_intrinsics defs t in *)
+(*     let L1_trace       := Util.runState (interp_global L0_trace) g in *)
+(*     let L2_trace       := Util.runState (interp_local  L1_trace) l in *)
+(*     let L3_trace       := Util.runState (M.interp_memory L2_trace) m in *)
+(*     L3_trace. *)
+
+
+(* Changed my mind, I think we don't need this if we work under the translation rather than try to commute it first *)
+  Section PARAMS.
+    Variable (E F G : Type -> Type).
+    Context `{FailureE -< F} `{UBE -< F} `{PickE -< F}.
+    Notation Effin := ((E +' IntrinsicE +' MemoryE +' F) +' G).
+    Notation Effout := ((E +' F) +' G).
+
+    Definition E_trigger {M} : forall R, E R -> (Monads.stateT M (itree Effout) R) :=
+      fun R e m => r <- trigger e ;; ret (m, r).
+
+    Definition F_trigger {M} : forall R, F R -> (Monads.stateT M (itree Effout) R) :=
+      fun R e m => r <- trigger e ;; ret (m, r).
+
+    Definition G_trigger {M} : forall R, G R -> (Monads.stateT M (itree Effout) R) :=
+      fun R e m => r <- trigger e ;; ret (m, r).
+
+    Definition interp_memory'' :
+      itree Effin ~> Monads.stateT M.memory_stack (itree Effout)  :=
+      State.interp_state (case_ (case_ E_trigger (case_ M.handle_intrinsic (case_ M.handle_memory F_trigger))) G_trigger).
+
+    (* Lemma interp_memory_bind : *)
+    (*   forall (R S : Type) (t : itree Effin R) (k : R -> itree Effin S) m, *)
+    (*     runState (interp_memory (ITree.bind t k)) m ≅ *)
+    (*      ITree.bind (runState (interp_memory t) m) (fun '(m',r) => runState (interp_memory (k r)) m'). *)
+    (* Proof. *)
+    (*   intros. *)
+    (*   unfold interp_memory. *)
+    (*   setoid_rewrite interp_state_bind. *)
+    (*   apply eq_itree_clo_bind with (UU := Logic.eq). *)
+    (*   reflexivity. *)
+    (*   intros [] [] EQ; inv EQ; reflexivity. *)
+    (* Qed. *)
+
+    (* Lemma interp_memory_ret : *)
+    (*   forall (R : Type) g (x: R), *)
+    (*     runState (interp_memory (Ret x: itree Effin R)) g ≅ Ret (g,x). *)
+    (* Proof. *)
+    (*   intros; apply interp_state_ret. *)
+    (* Qed. *)
+
+  End PARAMS.
+
+  Instance eutt_interp_cfg_to_L3 (defs: IS.intrinsic_definitions) {T}: Proper (eutt Logic.eq ==> Logic.eq ==> Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_cfg_to_L3 T defs).
+  Proof.
+    repeat intro.
+    unfold interp_cfg_to_L3, Util.runState.
+    subst; rewrite H.
+    reflexivity.
+  Qed.
+
+  From Vellvm Require Import Util.
+  Require Import State.
+
+  Lemma interp_cfg_to_L3_ret (defs: IS.intrinsic_definitions):
+    forall {T} (x: T) g l m,
+      interp_cfg_to_L3 defs (Ret x) g l m ≅ Ret (m,(l,(g,x))).
+  Proof.
+    intros.
+    unfold interp_cfg_to_L3.
+    (* setoid_rewrite INT.interp_intrinsics_ret. *)
+    (* interp_global_ret. *)
+  Admitted. (* YZ: Likely a missing instance for runState, easy to fix *)
+
+  Lemma interp_cfg_to_L3_bind (defs: IS.intrinsic_definitions):
+      forall (R S : Type) (t : itree _ R) (k : R -> itree _ S) g l m,
+        interp_cfg_to_L3 defs (ITree.bind t k) g l m ≅
+        ITree.bind (interp_cfg_to_L3 defs t g l m) (fun '(m', (l', (g',r))) => interp_cfg_to_L3 defs (k r) g' l' m').
+  Proof.
+    intros.
+    unfold interp_cfg_to_L3.
+    (* setoid_rewrite INT.interp_intrinsics_ret. *)
+    (* interp_global_ret. *)
+  Admitted. (* YZ: Likely a missing instance for runState, easy to fix *)
+
 (*
-    for an opeartor, in initized state
+    for an opeartor, in initialized state
     TODO: We could probably fix [env] to be [nil]
 *)
 Lemma compile_FSHCOL_correct (op: DSHOperator) st bid_out st' bid_in bks σ env mem g ρ mem_llvm:
   bisim_partial σ (mem,tt) (mem_llvm, (ρ, (g, (inl bid_in)))) ->
   genIR op st bid_out ≡ inr (st',(bid_in,bks)) ->
   eutt (bisim_partial σ)
-       (translate (@subevent _ E _) (interp_Mem (denoteDSHOperator σ op) mem))
-       (translate (@subevent _ E _)
-                  (interp_to_L3' helix_intrinsics
-                                 (D.denote_bks (normalize_types_blocks env bks) bid_in)
-                                 g ρ mem_llvm)).
+       (translate inr_
+                  (interp_Mem (denoteDSHOperator σ op) mem))
+       (translate inl_
+                  (interp_cfg_to_L3 helix_intrinsics
+                                    (D.denote_bks (normalize_types_blocks env bks) bid_in)
+                                    g ρ mem_llvm)).
+Proof.
   intros P.
   induction op; intros; rename H into HCompile.
   - inv HCompile.
-    unfold interp_Mem. simpl denoteDSHOperator.
+
+    unfold interp_Mem; simpl denoteDSHOperator.
     rewrite interp_state_ret, translate_ret.
+
     simpl normalize_types_blocks.
+    rewrite denote_bks_nil.
+    cbn. rewrite interp_cfg_to_L3_ret, translate_ret.
+    apply eqit_Ret.
+    (* Purely semantics *)
     admit.
+
   - destruct src, dst.
     simpl in HCompile.
     repeat break_match_hyp; try inl_inr.
@@ -360,7 +453,11 @@ Lemma compile_FSHCOL_correct (op: DSHOperator) st bid_out st' bid_in bks σ env 
     match goal with
     | |- context[add_comment _ ?ss] => generalize ss; intros ls
     end.
-    unfold interp_Mem. simpl denoteDSHOperator.
+    unfold interp_Mem.
+    simpl denoteDSHOperator.
+    rewrite interp_state_bind, translate_bind.
+
+
 Admitted.
 
 Definition llvm_empty_memory_state_partial: LLVM_memory_state_partial
@@ -594,7 +691,7 @@ Proof.
       eapply initIRGlobals_cons_head_uniq; eauto.
 Qed.
 
-(** [memory_invariant] relation must holds after initalization of global variables *)
+(** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
       (data: list binary64) :

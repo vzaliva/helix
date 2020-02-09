@@ -56,7 +56,7 @@ Ltac state_step :=
   | |- context[interp_state _ (Ret _) _] => rewrite interp_state_ret
   | |- context[interp_state _ (trigger _) _] => rewrite interp_state_trigger
   | |- context[interp_state _ (vis _ _) _] => rewrite interp_state_vis
-  | |- context[Tau _] => rewrite tau_eutt
+  | |- context[Tau _] => rewrite tau_euttge
   end.
 
 Ltac state_steps' := cbn; repeat (state_step; cbn).
@@ -654,8 +654,8 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       - ebind. econstructor; [reflexivity|].
         intros; subst.
         etau. ebase.
-      - rewrite tau_eutt, unfold_interp_state; eauto.
-      - rewrite tau_eutt, unfold_interp_state; eauto.
+      - rewrite tau_euttge, unfold_interp_state; eauto.
+      - rewrite tau_euttge, unfold_interp_state; eauto.
     Qed.
 
     Lemma evalDSHOperator_fuel_monotone:
