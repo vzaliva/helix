@@ -40,62 +40,62 @@ Import MDSHCOLOnFloat64.
 
 Definition model_llvm' := model_to_L3 helix_intrinsics.
 
-Definition E: Type -> Type := (StaticFailE +' DynamicFailE) +' (IO.CallE +' IO.ExternalCallE +' IO.PickE +' UBE +' DebugE +' FailureE).
+Definition E: Type -> Type := StaticFailE +' DynamicFailE +' IO.CallE +' IO.ExternalCallE +' IO.PickE +' UBE +' DebugE +' FailureE.
 
-Definition semantics_llvm_mcfg p: itree E _ := translate (@subevent _ E _) (model_llvm' p).
+(* Definition semantics_llvm_mcfg p: itree E _ := translate (@subevent _ E _) (model_llvm' p). *)
 
-(* MOVE TO VELLVM *)
-Definition lift_sem_to_mcfg {E X} `{FailureE -< E}
-           (sem: (CFG.mcfg DynamicTypes.dtyp) -> itree E X):
-  list (toplevel_entity typ (list (LLVMAst.block typ))) -> itree E X :=
-  fun prog =>
-    let scfg := Vellvm.AstLib.modul_of_toplevel_entities _ prog in
+(* (* MOVE TO VELLVM *) *)
+(* Definition lift_sem_to_mcfg {E X} `{FailureE -< E} *)
+(*            (sem: (CFG.mcfg DynamicTypes.dtyp) -> itree E X): *)
+(*   list (toplevel_entity typ (list (LLVMAst.block typ))) -> itree E X := *)
+(*   fun prog => *)
+(*     let scfg := Vellvm.AstLib.modul_of_toplevel_entities _ prog in *)
 
-    match CFG.mcfg_of_modul _ scfg with
-    | Some ucfg =>
-      let mcfg := TopLevelEnv.normalize_types ucfg in
+(*     match CFG.mcfg_of_modul _ scfg with *)
+(*     | Some ucfg => *)
+(*       let mcfg := TopLevelEnv.normalize_types ucfg in *)
 
-      sem mcfg
+(*       sem mcfg *)
 
-    | None => raise "Ill-formed program: mcfg_of_modul failed."
-    end.
+(*     | None => raise "Ill-formed program: mcfg_of_modul failed." *)
+(*     end. *)
 
-Definition semantics_llvm (prog: list (toplevel_entity typ (list (LLVMAst.block typ)))) :=
-  lift_sem_to_mcfg semantics_llvm_mcfg prog.
+(* Definition semantics_llvm (prog: list (toplevel_entity typ (list (LLVMAst.block typ)))) := *)
+(*   lift_sem_to_mcfg semantics_llvm_mcfg prog. *)
 
 Import ListNotations.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
-Fixpoint denote_initFSHGlobals
+Fixpoint denote_initFSHGlobals 
          (data: list binary64)
          (globals: list (string * FSHValType))
-  : itree Event (list binary64 * evalContext) :=
-    match globals with
-    | [] => ret (data, [])
-    | (_,gt)::gs =>
-      match gt with
-      | FSHnatValType => Sfail "Unsupported global type: nat"
-      | FSHFloatValType =>
-        '(data,σ) <- denote_initFSHGlobals data gs ;;
-         let '(x, data) := rotate Float64Zero data in
-         ret (data, (DSHCTypeVal x)::σ)
-      | FSHvecValType n =>
-        '(data,σ) <- denote_initFSHGlobals data gs ;;
-         let (data,mb) := constMemBlock n data in
-         k <- trigger (MemAlloc n);;
-         trigger (MemSet k mb);;
-         let p := DSHPtrVal k n in
-         ret (data, (p::σ))
-      end
-    end.
+  : itree E (list binary64 * evalContext) :=
+  match globals with
+  | [] => ret (data, [])
+  | (_,gt)::gs =>
+    match gt with
+    | FSHnatValType => Sfail "Unsupported global type: nat"
+    | FSHFloatValType =>
+      '(data,σ) <- denote_initFSHGlobals data gs ;;
+      let '(x, data) := rotate Float64Zero data in
+      ret (data, (DSHCTypeVal x)::σ)
+    | FSHvecValType n =>
+      '(data,σ) <- denote_initFSHGlobals data gs ;;
+      let (data,mb) := constMemBlock n data in
+      k <- trigger (MemAlloc n);;
+      trigger (MemSet k mb);;
+      let p := DSHPtrVal k n in
+      ret (data, (p::σ))
+    end
+  end.
 
 Definition mem_to_list (msg:string) (n:nat) (mb:mem_block) : err (list binary64) :=
   ListSetoid.monadic_Lbuild n (fun j _ => trywith msg (mem_lookup j mb)).
 
 Definition denote_FSHCOL (p:FSHCOLProgram) (data:list binary64)
-  : itree Event (list binary64) :=
-  '(data, σ) <- denote_initFSHGlobals data p.(globals) ;;
+  : itree E (list binary64). 
+  refine ('(data, σ) <- denote_initFSHGlobals data p.(globals) ;; _).
   xindex <- trigger (MemAlloc p.(i));;
   yindex <- trigger (MemAlloc p.(o));;
   let '(data, x) := constMemBlock p.(i) data in
@@ -107,7 +107,7 @@ Definition denote_FSHCOL (p:FSHCOLProgram) (data:list binary64)
   lift_Derr (mem_to_list "Invalid output memory block" p.(o) bk).
 
 Definition semantics_FSHCOL p data: itree E (memory * list binary64) :=
-  translate (@subevent _ E _) (interp_Mem (denote_FSHCOL p data) memory_empty).
+  interp_Mem (denote_FSHCOL p data) memory_empty.
 
 (* MOVE TO VELLVM *)
 Definition normalize_types_blocks (env: list _) (bks: list (LLVMAst.block typ))
