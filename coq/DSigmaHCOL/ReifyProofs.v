@@ -2289,7 +2289,7 @@ Global Instance BinOp_MSH_DSH_compat
        (σ: evalContext)
        (TC: typecheck_env 3 dfs σ)
        (m: memory)
-       `{MSH_DSH_BinCarrierA_compat _ f σ df}
+       `{MSH_DSH_BinCarrierA_compat _ f σ df m}
        `{BP: DSH_pure (DSHBinOp o x_p y_p df) dfs x_p y_p}
   :
     @MSH_DSH_compat _ _ (MSHBinOp f) (DSHBinOp o x_p y_p df) dfs σ m x_p y_p BP.
