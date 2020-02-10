@@ -2155,23 +2155,46 @@ Global Instance Pick_MSH_DSH_compat
   :
     @MSH_DSH_compat _ _ (MSHPick bc) (DSHAssign (x_p, x_n) (y_p, NConst 0)) dfs σ m x_p y_p BP.
 Proof.
-  (*
   constructor; intros mx mb MX MB.
   destruct mem_op as [md |] eqn:MD, evalDSHOperator as [fma |] eqn:FMA; try constructor.
-  2,3: exfalso.
+  2: exfalso.
   all: unfold lookup_Pexp in MX, MB.
   all: cbn in *.
-  all: destruct evalPexp eqn:XP in MX; try some_none; rewrite XP in *.
-  all: destruct evalPexp eqn:YP in MB; try some_none; rewrite YP in *.
+  all: destruct evalPexp eqn:XP in MX; try some_none; try inl_inr; rewrite XP in *.
+  all: destruct evalPexp eqn:YP in MB; try some_none; try inl_inr; rewrite YP in *.
   all: unfold Pick_mem,
               map_mem_block_elt,
               MMemoryOfCarrierA.mem_lookup,
               MMemoryOfCarrierA.mem_add,
               MMemoryOfCarrierA.mem_empty
          in MD.
-  all: repeat break_match; try some_none.
-  all: repeat some_inv.
-  all: inversion X; subst; clear X.
+  all: unfold memory_lookup_err, trywith in *.
+  all: repeat break_match;
+    try some_none; repeat some_inv;
+    try inl_inr; repeat inl_inr_inv.
+  all: try (inversion MX; fail).
+  all: try (inversion MB; fail).
+  all: subst.
+  all: repeat constructor.
+  1,3: exfalso.
+  -
+    enough (None = Some c) by some_none.
+    unfold mem_lookup_err, trywith in Heqe2.
+    break_match; try inl_inr.
+    rewrite <-Heqo1, <-Heqo2.
+    unfold mem_lookup.
+    rewrite X.
+    inversion MX.
+    apply H1.
+  -
+    unfold mem_lookup_err, trywith in Heqe2.
+    break_match; try inl_inr.
+    enough (Some c0 = None) by some_none.
+    rewrite <-Heqo1, <-Heqo2.
+    unfold mem_lookup.
+    rewrite X.
+    inversion MX.
+    apply H1.
   -
     unfold SHCOL_DSHCOL_mem_block_equiv,
       memory_lookup, memory_set, mem_add, mem_lookup.
@@ -2183,21 +2206,19 @@ Proof.
       | repeat rewrite NP.F.add_neq_o by assumption ].
     +
       constructor 2; [reflexivity |].
-      rewrite <-Heqo2, <-Heqo3.
-      apply MX.
+      unfold mem_lookup_err, trywith in Heqe2.
+      break_match; try inl_inr.
+      inversion Heqe2; subst.
+      rewrite <-Heqo2, <-Heqo1.
+      inversion MX.
+      rewrite X.
+      apply H1.
     +
       constructor 1; [reflexivity |].
-      symmetry; apply MB.
-  -
-    enough (None = Some c) by some_none.
-    rewrite <-Heqo2, <-Heqo3.
-    apply MX.
-  -
-    enough (Some c = None) by some_none.
-    rewrite <-Heqo2, <-Heqo3.
-    apply MX.
-  *)
-Abort.
+      symmetry.
+      inversion MB.
+      apply H1.
+Qed.
 
 
 (** * MSHPointwise  *)
