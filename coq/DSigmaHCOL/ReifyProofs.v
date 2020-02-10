@@ -2054,7 +2054,6 @@ Proof.
     destruct (Nat.eq_dec m1 k), (Nat.eq_dec n0 k);
         try (rewrite NP.F.add_eq_o with (x := m1) by assumption);
         try (rewrite NP.F.add_eq_o with (x := n0) by assumption);
-
         try (rewrite NP.F.add_neq_o with (x := m1) by assumption);
         try (rewrite NP.F.add_neq_o with (x := n0) by assumption).
     all: subst.
@@ -2076,23 +2075,37 @@ Global Instance Embed_MSH_DSH_compat
   :
     @MSH_DSH_compat _ _ (MSHEmbed bc) (DSHAssign (x_p, NConst 0) (y_p, y_n)) dfs σ m x_p y_p BP.
 Proof.
-  (*
   constructor; intros mx mb MX MB.
   destruct mem_op as [md |] eqn:MD, evalDSHOperator as [fma |] eqn:FMA; try constructor.
-  2,3: exfalso.
+  2: exfalso.
   all: unfold lookup_Pexp in MX, MB.
   all: cbn in *.
-  all: destruct evalPexp eqn:XP in MX; try some_none; rewrite XP in *.
-  all: destruct evalPexp eqn:YP in MB; try some_none; rewrite YP in *.
+  all: destruct evalPexp eqn:XP in MX; try some_none; try inl_inr; rewrite XP in *.
+  all: destruct evalPexp eqn:YP in MB; try some_none; try inl_inr; rewrite YP in *.
   all: unfold Embed_mem,
               map_mem_block_elt,
               MMemoryOfCarrierA.mem_lookup,
               MMemoryOfCarrierA.mem_add,
               MMemoryOfCarrierA.mem_empty
          in MD.
-  all: repeat break_match; try some_none.
-  all: repeat some_inv.
+  all: unfold memory_lookup_err, trywith in *.
+  all: repeat break_match;
+    try some_none; repeat some_inv;
+    try inl_inr; repeat inl_inr_inv.
+  all: try (inversion MX; fail).
+  all: try (inversion MB; fail).
+  all: subst.
   -
+    exfalso.
+    unfold mem_lookup_err, trywith in *.
+    break_match; try inl_inr.
+    enough (None = Some c) by some_none.
+    rewrite <-Heqo2, <-Heqo3.
+    unfold mem_lookup.
+    inversion MX.
+    apply H1.
+  -
+    repeat constructor.
     inversion Y; subst; clear Y.
     unfold SHCOL_DSHCOL_mem_block_equiv,
       memory_lookup, memory_set, mem_add, mem_lookup.
@@ -2104,22 +2117,29 @@ Proof.
       | repeat rewrite NP.F.add_neq_o by assumption ].
     +
       constructor 2; [reflexivity |].
-      rewrite <-Heqo3, <-Heqo4.
+      unfold mem_lookup_err, trywith in Heqe2.
+      break_match_hyp; try inl_inr; inl_inr_inv; subst.
+      rewrite <-Heqo2, <-Heqo3.
       unfold mem_lookup.
-      apply MX.
+      inversion MX.
+      apply H1.
     +
       constructor 1; [reflexivity |].
-      symmetry; apply MB.
+      symmetry.
+      inversion MB.
+      apply H1.
   -
-    enough (None = Some c) by some_none.
-    rewrite <-Heqo3, <-Heqo4.
-    apply MX.
+    constructor.
   -
-    enough (Some c = None) by some_none.
-    rewrite <-Heqo3, <-Heqo4.
-    apply MX.
-  *)
-Abort.
+    exfalso.
+    unfold mem_lookup_err, trywith in Heqe2.
+    break_match; try inl_inr.
+    enough (Some c0 = None) by some_none.
+    rewrite <-Heqo2, <-Heqo3.
+    unfold mem_lookup.
+    inversion MX.
+    apply H1.
+Qed.
 
 Global Instance Pick_MSH_DSH_compat
        {i b: nat}
