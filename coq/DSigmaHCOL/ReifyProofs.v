@@ -2294,7 +2294,6 @@ Global Instance BinOp_MSH_DSH_compat
   :
     @MSH_DSH_compat _ _ (MSHBinOp f) (DSHBinOp o x_p y_p df) dfs σ m x_p y_p BP.
 Proof.
-  (*
   split.
   intros mx mb MX MB.
   simpl.
@@ -2302,20 +2301,87 @@ Proof.
   -
     unfold lookup_Pexp in *.
     simpl in *.
-    repeat break_match; subst; try some_none.
+    repeat break_match;
+      try some_none; repeat some_inv;
+      try inl_inr; repeat inl_inr_inv;
+      subst.
+    1-3: exfalso.
+    +
+      clear - MX Heqe1.
+      err_eq_to_equiv_hyp.
+      rewrite memory_lookup_err_inr_Some in *.
+      rewrite memory_lookup_err_inl_None in *.
+      rewrite MX in Heqe1.
+      some_none.
+    +
+      clear - MB Heqe2.
+      err_eq_to_equiv_hyp.
+      rewrite memory_lookup_err_inr_Some in *.
+      rewrite memory_lookup_err_inl_None in *.
+      rewrite MB in Heqe2.
+      some_none.
+    +
+      (* mem_op succeeded with [Some md] while evaluation of DHS failed *)
+
+      eq_to_equiv_hyp; err_eq_to_equiv_hyp.
+      rewrite memory_lookup_err_inr_Some in *.
+      rewrite MB, MX in *.
+      repeat some_inv.
+      rewrite <-Heqe1, <-Heqe2 in *.
+      clear Heqe1 Heqe2 m2 m3.
+
+      rename Heqe3 into E.
+
+      apply equiv_Some_is_Some in MD.
+      pose proof (mem_op_of_hop_x_density MD) as DX.
+      clear MD pF.
+
+      inversion_clear H as [_ FV].
+
+      contradict E.
+      apply is_OK_neq_inl.
+
+
+      assert (TS : AExprTypeSigIncludes df dfs)
+        by (unfold AExprTypeSigIncludes; exists dfs;
+            split; [assumption | apply TypeSigIncluded_reflexive]).
+      apply evalDSHBinOp_is_OK_inv; [assumption |].
+
+      intros k kc.
+
+      assert(DX1:=DX).
+      assert(kc1: k < o + o) by lia.
+      specialize (DX k kc1).
+      apply is_Some_equiv_def in DX.
+      destruct DX as [a DX].
+
+      assert(kc2: k + o < o + o) by lia.
+      specialize (DX1 (k+o) kc2).
+      apply is_Some_equiv_def in DX1.
+      destruct DX1 as [b DX1].
+      exists a.
+      exists b.
+      repeat split; eauto.
+
+      specialize (FV (FinNat.mkFinNat kc) a b).
+      cbn in FV.
+      eapply inr_is_OK.
+      eassumption.
     +
       constructor.
-      unfold memory_lookup, memory_set.
+      unfold memory_lookup_err, trywith, memory_lookup, memory_set.
       rewrite NP.F.add_eq_o by reflexivity.
       constructor.
       repeat some_inv.
 
-      opt_hyp_to_equiv.
+      eq_to_equiv_hyp; err_eq_to_equiv_hyp.
+      rewrite memory_lookup_err_inr_Some in *.
+      rewrite MB, MX in *.
+      repeat some_inv.
+      rewrite <-Heqe1, <-Heqe2 in *.
+      clear Heqe1 Heqe2 m2 m3.
 
-      rewrite MB in Heqo3, Heqo4; clear MB m3. (* poor man's subst *)
-      rewrite MX in Heqo2, Heqo4; clear MX m2. (* poor man's subst *)
-
-      rename Heqo4 into ME.
+      rename Heqe3 into ME.
       intros k.
 
       unfold mem_op_of_hop in MD.
@@ -2353,17 +2419,26 @@ Proof.
           apply is_Some_equiv_def in A. destruct A as [a A].
           apply is_Some_equiv_def in B. destruct B as [b B].
 
-          rewrite (evalDSHBinOp_nth k kc A B ME).
+
           specialize FV with (nc:=mkFinNat kc) (a:=a) (b:=b).
-          simpl in FV.
-          rewrite FV.
+          cbn in FV.
 
-          pose proof (mem_block_to_avector_nth Heqo4 (kc:=kc1)) as MVA.
-          pose proof (mem_block_to_avector_nth Heqo4 (kc:=kc2)) as MVB.
-
-          repeat f_equiv.
-          apply Some_inj_equiv ; rewrite <- A; apply Option_equiv_eq; apply MVA.
-          apply Some_inj_equiv; rewrite <- B; apply Option_equiv_eq; apply MVB.
+          pose proof (evalDSHBinOp_nth m k kc A B ME) as T.
+          inversion T; [rewrite <-H in FV; inl_inr | clear T].
+          unfold mem_lookup in H.
+          rewrite <-H.
+          rewrite <-H0 in FV.
+          inversion FV.
+          subst.
+          
+          pose proof (mem_block_to_avector_nth Heqo0 (kc:=kc1)) as MVA.
+          pose proof (mem_block_to_avector_nth Heqo0 (kc:=kc2)) as MVB.
+          rewrite MVA, MVB in *.
+          repeat some_inv.
+          rewrite A, B.
+          rewrite <-H4.
+          rewrite H1.
+          reflexivity.
       *
         (* k >= 0 *)
         simpl in *.
@@ -2375,105 +2450,65 @@ Proof.
           tauto.
         --
           specialize (OD k kc).
-          apply (evalDSHBinOp_oob_preservation ME),kc.
-    +
-      (* mem_op succeeded with [Some md] while evaluation of DHS failed *)
-      exfalso.
-      repeat some_inv.
-
-
-      opt_hyp_to_equiv.
-      rewrite MB in Heqo3, Heqo4; clear MB m3. (* poor man's subst *)
-      rewrite MX in Heqo2, Heqo4; clear MX m2. (* poor man's subst *)
-
-      rename Heqo4 into E.
-
-      (* TODO may be not needed *)
-      apply equiv_Some_is_Some in MD.
-      pose proof (mem_op_of_hop_x_density MD) as DX.
-      clear MD pF.
-
-      inversion_clear H as [_ FV].
-
-      contradict E.
-      apply is_Some_nequiv_None.
-
-      eapply evalDSHBinOp_is_OK_inv; try eauto.
-      intros k kc.
-
-      assert(DX1:=DX).
-      assert(kc1: k < o + o) by lia.
-      specialize (DX k kc1).
-      apply is_Some_equiv_def in DX.
-      destruct DX as [a DX].
-
-      assert(kc2: k + o < o + o) by lia.
-      specialize (DX1 (k+o) kc2).
-      apply is_Some_equiv_def in DX1.
-      destruct DX1 as [b DX1].
-      exists a.
-      exists b.
-      repeat split; eauto.
-
-      specialize (FV (FinNat.mkFinNat kc) a b).
-      apply equiv_Some_is_Some in FV.
-      apply FV.
+          apply (evalDSHBinOp_oob_preservation m ME), kc.
   -
     unfold lookup_Pexp in *.
     simpl in *.
-    repeat break_match; try some_none.
-    +
-      apply Some_ne_None in Heqo2.
-      contradict Heqo2.
-      repeat some_inv.
+    repeat break_match;
+      try some_none; repeat some_inv;
+      try inl_inr; repeat inl_inr_inv.
+    all: try constructor.
+    exfalso.
 
-      opt_hyp_to_equiv.
-      rewrite MB in Heqo3, Heqo4; clear MB m3. (* poor man's subst *)
-      rewrite MX in Heqo4; clear MX m2. (* poor man's subst *)
 
-      unfold mem_op_of_hop in MD.
-      break_match_hyp; try some_none.
-      clear MD.
-      rename Heqo2 into MX.
-      unfold mem_block_to_avector in MX.
-      apply vsequence_Vbuild_eq_None in MX.
-      apply is_None_def.
-      destruct o.
-      *
-        destruct MX as [k [kc MX]].
-        inversion kc.
-      *
-        contradict Heqo4.
-        apply None_nequiv_Some.
-        apply is_None_equiv_def.
-        apply mem_block_Equiv_Equivalence.
+    eq_to_equiv_hyp; err_eq_to_equiv_hyp.
+    rewrite memory_lookup_err_inr_Some in *.
+    rewrite MB, MX in *.
+    repeat some_inv.
+    rewrite <-Heqe1, <-Heqe2 in *.
+    clear Heqe1 Heqe2 m2 m3.
 
-        apply evalDSHBinOp_is_Err; try typeclasses eauto.
+    apply Some_nequiv_None in MX.
+    contradict MX.
+
+    unfold mem_op_of_hop in MD.
+    break_match_hyp; try some_none.
+    clear MD.
+    rename Heqo0 into MX.
+    unfold mem_block_to_avector in MX.
+    apply vsequence_Vbuild_eq_None in MX.
+    apply is_None_equiv_def; [typeclasses eauto |].
+    destruct o.
+    *
+      destruct MX as [k [kc MX]].
+      inversion kc.
+    *
+      contradict Heqe3.
+      enough (T : is_Err (evalDSHBinOp m (S o) (S o) df σ mx mb))
+        by (destruct (evalDSHBinOp m (S o) (S o) df σ mx mb);
+            [intros C; inl_inr | inversion T ]).
+      apply evalDSHBinOp_is_Err; try typeclasses eauto.
+      lia.
+      destruct MX as [k MX].
+      destruct (NatUtil.lt_ge_dec k (S o)) as [kc1 | kc2].
+      --
+        exists k.
+        exists kc1.
+        left.
+        destruct MX as [kc MX].
+        apply is_None_def in MX.
+        eapply MX.
+      --
+        exists (k-(S o)).
+        destruct MX as [kc MX].
+        assert(kc3: k - S o < S o) by lia.
+        exists kc3.
+        right.
+        apply is_None_def in MX.
+        replace (k - S o + S o) with k.
+        apply MX.
         lia.
-        destruct MX as [k MX].
-        destruct (NatUtil.lt_ge_dec k (S o)) as [kc1 | kc2].
-        --
-          exists k.
-          exists kc1.
-          left.
-          destruct MX as [kc MX].
-          apply is_None_def in MX.
-          eapply MX.
-        --
-          exists (k-(S o)).
-          destruct MX as [kc MX].
-          assert(kc3: k - S o < S o) by lia.
-          exists kc3.
-          right.
-          apply is_None_def in MX.
-          replace (k - S o + S o) with k.
-          apply MX.
-          lia.
-    +
-      constructor.
-  *)
-Abort.
-
+Qed.
 
 (** * MSHInductor *)
 
