@@ -1979,6 +1979,38 @@ Proof.
     reflexivity.
 Qed.
 
+Lemma memory_lookup_err_inl_None
+      (msg msg' : string)
+      (mem : memory)
+      (n : mem_block_id)
+  :
+    memory_lookup_err msg mem n = inl msg' <->
+    memory_lookup mem n = None.
+Proof.
+  unfold memory_lookup_err, trywith.
+  split; intros.
+  all: break_match.
+  all: inversion H.
+  all: constructor.
+Qed.
+
+Lemma memory_lookup_err_inr_Some
+      (msg : string)
+      (mem : memory)
+      (n : mem_block_id)
+      (mb : mem_block)
+  :
+    memory_lookup_err msg mem n = inr mb <->
+    memory_lookup mem n = Some mb.
+Proof.
+  unfold memory_lookup_err, trywith.
+  split; intros.
+  all: break_match.
+  all: inversion H.
+  all: rewrite H2.
+  all: reflexivity.
+Qed.
+
 
 (** * MSHEmbed, MSHPick **)
 
