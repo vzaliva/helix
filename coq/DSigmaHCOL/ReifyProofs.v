@@ -2526,14 +2526,15 @@ Global Instance Power_DSH_pure
   :
     DSH_pure (DSHPower n (x_p, x_n) (y_p, y_n) a initial) ts x_p y_p.
 Proof.
-  (*
   split.
   -
     intros.
     destruct fuel; [inversion H |].
     cbn in H.
-    repeat break_match; try some_none; try inl_inr.
-    inl_inr_inv; rewrite <-H.
+    repeat break_match;
+      try some_none; repeat some_inv;
+      try inl_inr; repeat inl_inr_inv.
+    rewrite <-H.
     split; intros.
     +
       apply mem_block_exists_memory_set; assumption.
@@ -2545,132 +2546,14 @@ Proof.
       apply memory_lookup_err_inr_is_Some in Heqe2.
       assumption.
   -
-    intros until fuel; intros CE BEx BEy.
-    pose proof (evalNExpr_context_equiv_at_TypeSig n CE) as NE.
-    pose proof (evalNExpr_context_equiv_at_TypeSig x_n CE) as XNE.
-    pose proof (evalNExpr_context_equiv_at_TypeSig y_n CE) as YNE.
-    (* rewrite eq_equiv_err_nat in NE, XNE, YNE. *)
-
-    unfold blocks_equiv_at_Pexp in *;
-      inversion BEx; clear BEx; inversion H1; clear H1;
-      inversion BEy; clear BEy; inversion H6; clear H6.
-    destruct (evalDSHOperator σ0) eqn:OE1,
-             (evalDSHOperator σ1) eqn:OE2.
-    all: repeat constructor.
-    all: destruct fuel; try (cbn in *; some_none; fail).
-    all: cbn in *.
-    all: try inl_inr.
-    all: unfold memory_lookup_err, mem_lookup_err, trywith in *.
-    all: rewrite <-H, <-H0, <-H1, <-H2, <-H3, <-H5, <-H7, <-H8, XNE, YNE, NE in *.
-    all: repeat break_match; try some_none; try inl_inr.
-    all: repeat some_inv; repeat inl_inr_inv; subst.
-    +
-      exfalso.
-      enough (inr m4 = inl s) by inl_inr.
-      rewrite <-Heqe7, <-Heqe4; clear Heqe7 Heqe4.
-      clear H7; generalize dependent x2.
-      clear H8; generalize dependent y2.
-      generalize dependent initial.
-      clear Heqo NE.
-      induction n0;
-        [intros; cbn in *; repeat some_inv; rewrite H9; reflexivity |].
-      intros.
-      cbn.
-      repeat rewrite NM.Raw.Proofs.add_find by apply NM.is_bst; cbn.
-      replace (mem_lookup 0 x0) with (mem_lookup 0 y0)
-        by (rewrite <-eq_equiv_option_CarrierA, H4; reflexivity).
-      break_match; [| reflexivity].
-      assert (evalBinCType σ0 a c initial ≡ evalBinCType σ1 a c initial).
-      {
-        rewrite <-eq_equiv_option_CarrierA.
-        unfold evalBinCType.
-        eapply evalAExpr_context_equiv_at_TypeSig.
-        eassumption.
-        repeat (rewrite TypeSig_incr_TypeSig_incr_n;
-                apply context_equiv_at_TypeSig_widening).
-        rewrite TypeSig_incr_n_0.
-        assumption.
-      }
-      rewrite H6.
-      break_match; [| reflexivity].
-      eapply IHn0.
-      rewrite H9.
-      reflexivity.
-    +
-      (* TODO: this is copy-paste from previous bullet *)
-      exfalso.
-      enough (Some m2 = None) by some_none.
-      rewrite <-Heqo2, <-Heqo3; clear Heqo2 Heqo3.
-      clear H7; generalize dependent x2.
-      clear H8; generalize dependent y2.
-      generalize dependent initial.
-      clear Heqo NE.
-      induction n0;
-        [intros; cbn in *; repeat some_inv; rewrite H9; reflexivity |].
-      intros.
-      cbn.
-      repeat rewrite NM.Raw.Proofs.add_find by apply NM.is_bst; cbn.
-      replace (mem_lookup 0 x0) with (mem_lookup 0 y0)
-        by (rewrite <-eq_equiv_option_CarrierA, H4; reflexivity).
-      break_match; [| reflexivity].
-      assert (evalBinCType σ0 a c initial ≡ evalBinCType σ1 a c initial).
-      {
-        rewrite <-eq_equiv_option_CarrierA.
-        unfold evalBinCType.
-        eapply evalAExpr_context_equiv_at_TypeSig.
-        eassumption.
-        repeat (rewrite TypeSig_incr_TypeSig_incr_n;
-                apply context_equiv_at_TypeSig_widening).
-        rewrite TypeSig_incr_n_0.
-        assumption.
-      }
-      rewrite H6.
-      break_match; [| reflexivity].
-      eapply IHn0.
-      rewrite H9.
-      reflexivity.
-    +
-      unfold memory_lookup, memory_set.
-      repeat (rewrite NP.F.add_eq_o by reflexivity).
-      constructor.
-      enough (Some m4 = Some m3) by (some_inv; assumption).
-      rewrite <-Heqo2, <-Heqo3; clear Heqo2 Heqo3.
-
-      clear H7; generalize dependent x2.
-      clear H8; generalize dependent y2.
-      generalize dependent initial.
-      clear Heqo NE.
-      induction n0;
-        [intros; cbn in *; repeat some_inv; rewrite H9; reflexivity |].
-      intros.
-      cbn.
-      repeat rewrite NM.Raw.Proofs.add_find by apply NM.is_bst; cbn.
-      replace (mem_lookup 0 x0) with (mem_lookup 0 y0)
-        by (rewrite <-eq_equiv_option_CarrierA, H4; reflexivity).
-      break_match; [| reflexivity].
-      assert (evalBinCType σ0 a c initial ≡ evalBinCType σ1 a c initial).
-      {
-        rewrite <-eq_equiv_option_CarrierA.
-        unfold evalBinCType.
-        eapply evalAExpr_context_equiv_at_TypeSig.
-        eassumption.
-        repeat (rewrite TypeSig_incr_TypeSig_incr_n;
-                apply context_equiv_at_TypeSig_widening).
-        rewrite TypeSig_incr_n_0.
-        assumption.
-      }
-      rewrite H6.
-      break_match; [| reflexivity].
-      eapply IHn0.
-      rewrite H9.
-      reflexivity.
-  -
     intros.
     unfold memory_equiv_except, memory_lookup; intros.
     destruct fuel; [inversion H |].
     cbn in H.
-    repeat break_match; try some_none.
-    repeat some_inv; subst.
+    repeat break_match;
+      try some_none; repeat some_inv;
+      try inl_inr; repeat inl_inr_inv.
+    subst.
     unfold equiv, memory_Equiv, memory_set, mem_add in H.
     specialize (H k).
     rewrite <-H.
@@ -2682,8 +2565,7 @@ Proof.
     all: subst.
     all: try congruence.
     all: reflexivity.
-  *)
-Abort.
+Qed.
 
 (* TODO: Inductor_MSH_DSH_compat *)
 
@@ -4401,8 +4283,3 @@ Proof.
       break_match; inversion Y_M.
       rewrite H1; reflexivity.
 Qed.
-
-
-
-
-
