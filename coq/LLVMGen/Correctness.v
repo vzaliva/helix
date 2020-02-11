@@ -385,11 +385,13 @@ Definition bisim_partial: Type_R_partial
 
   End PARAMS.
 
-  Instance eutt_interp_cfg_to_L3 (defs: IS.intrinsic_definitions) {T}: Proper (eutt Logic.eq ==> Logic.eq ==> Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_cfg_to_L3 T defs).
+  Instance eutt_interp_cfg_to_L3 (defs: IS.intrinsic_definitions) {T}:
+    Proper (eutt Logic.eq ==> Logic.eq ==> Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_cfg_to_L3 T defs).
   Proof.
     repeat intro.
     unfold interp_cfg_to_L3, Util.runState.
     subst; rewrite H.
+    Show Proof.
     reflexivity.
   Qed.
 
@@ -417,11 +419,21 @@ Definition bisim_partial: Type_R_partial
     (* interp_global_ret. *)
   Admitted. (* YZ: Likely a missing instance for runState, easy to fix *)
 
+  Ltac eutt_hide_left :=
+    match goal with
+      |- eutt _ ?t _ => remember t
+    end.
+
+  Ltac eutt_hide_right :=
+    match goal with
+      |- eutt _ _ ?t => remember t
+    end.
+
 (*
     for an opeartor, in initialized state
     TODO: We could probably fix [env] to be [nil]
 *)
-Lemma compile_FSHCOL_correct (op: DSHOperator) st bid_out st' bid_in bks σ env mem g ρ mem_llvm:
+Lemma compile_FSHCOL_correct (op: DSHOperator): forall st bid_out st' bid_in bks σ env mem g ρ mem_llvm,
   bisim_partial σ (mem,tt) (mem_llvm, (ρ, (g, (inl bid_in)))) ->
   genIR op st bid_out ≡ inr (st',(bid_in,bks)) ->
   eutt (bisim_partial σ)
@@ -432,21 +444,26 @@ Lemma compile_FSHCOL_correct (op: DSHOperator) st bid_out st' bid_in bks σ env 
                                     (D.denote_bks (normalize_types_blocks env bks) bid_in)
                                     g ρ mem_llvm)).
 Proof.
-  intros P.
-  induction op; intros; rename H into HCompile.
+  induction op; intros; rename H0 into HCompile.
   - inv HCompile.
 
     unfold interp_Mem; simpl denoteDSHOperator.
     rewrite interp_state_ret, translate_ret.
-
     simpl normalize_types_blocks.
     rewrite denote_bks_nil.
     cbn. rewrite interp_cfg_to_L3_ret, translate_ret.
     apply eqit_Ret.
-    (* Purely semantics *)
+    (* Purely semantics, should be trivial *)
     admit.
 
-  - destruct src, dst.
+  - (*
+      Assign case.
+       Need some reasoning about
+       - resolve_PVar
+       - genFSHAssign
+       - D.denote_bks over singletons
+     *)
+    destruct src, dst.
     simpl in HCompile.
     repeat break_match_hyp; try inl_inr.
     inv Heqs; inv HCompile.
@@ -456,7 +473,115 @@ Proof.
     unfold interp_Mem.
     simpl denoteDSHOperator.
     rewrite interp_state_bind, translate_bind.
+    match goal with
+      |- eutt _ ?t _ => remember t
+    end.
+    (* Need a lemma to invert Heqs2.
+       Should allow us to know that the list of blocks is a singleton in this case.
+       Need then probably a lemma to reduce proofs about `D.denote_bks [x]` to something like the denotation of x,
+       avoiding having to worry about iter.
+     *)
+    cbn; rewrite interp_cfg_to_L3_bind, interp_cfg_to_L3_ret, bind_ret_l.
+    admit.
 
+  - (*
+      Map case.
+      Need some reasoning about
+      - denotePexp
+      - nat_eq_or_cerr
+      - genIMapBody
+      - 
+     *)
+    simpl genIR in HCompile.
+    repeat break_match_hyp; try inl_inr.
+    repeat inv_sum.
+    cbn.
+    (* Need to solve the issue with the display of strings, it's just absurd *)
+    eutt_hide_right.
+    unfold interp_Mem.
+    rewrite interp_state_bind.
+    admit.
+
+  - admit.
+
+  - admit.
+
+  - admit.
+
+  - admit.
+
+  - admit.
+
+  - admit.
+
+  - admit.
+
+  - (* Sequence case.
+
+     *)
+
+    cbn in HCompile.
+    break_match_hyp; try inv_sum.
+    break_match_hyp; try inv_sum.
+    destruct p, s.
+    break_match_hyp; try inv_sum.
+    destruct p, s; try inv_sum.
+    eapply IHop1 with (env := env) (σ := σ) in Heqs1; eauto.
+    eapply IHop2 with (env := env) (σ := σ) in Heqs0; eauto.
+    clear IHop2 IHop1.
+    eutt_hide_right.
+    cbn; unfold interp_Mem in *.
+    rewrite interp_state_bind.
+
+    rewrite translate_bind.
+    (* Opaque D.denote_bks. *)
+
+    (* Set Nested Proofs Allowed. *)
+
+    (* Lemma add_comment_app: forall bs1 bs2 s, *)
+    (*     add_comment (bs1 ++ bs2)%list s ≡ (add_comment bs1 s ++ add_comment bs2 s)%list. *)
+    (* Proof. *)
+    (*   induction bs1 as [| b bs1 IH]; cbn; auto; intros bs2 s. *)
+    (*   f_equal. rewrite IH; auto. *)
+
+    (*   subst i0. *)
+    (*   eutt_hide_left. *)
+    (*   cbn. rewrite bind_ret_l. *)
+
+
+(* Definition respectful_eutt {E F : Type -> Type} *)
+(*   : (itree E ~> itree F) -> (itree E ~> itree F) -> Prop *)
+(*   := i_respectful (fun _ => eutt eq) (fun _ => eutt eq). *)
+
+
+(* Instance eutt_translate {E F R} *)
+(*   : @Proper (IFun E F -> (itree E ~> itree F)) *)
+(*             (eq2 ==> eutt RR ==> eutt RR) *)
+(*             translate. *)
+(* Proof. *)
+(*   repeat red. *)
+(*   intros until T. *)
+(*   ginit. gcofix CIH. intros. *)
+(*   rewrite !unfold_translate. punfold H1. red in H1. *)
+(*   induction H1; intros; subst; simpl. *)
+(*   - gstep. econstructor. eauto. *)
+(*   - gstep. econstructor. pclearbot. eauto with paco. *)
+(*   - gstep. rewrite H. econstructor. pclearbot. red. eauto 7 with paco. *)
+(*   - rewrite tau_euttge, unfold_translate. eauto. *)
+(*   - rewrite tau_euttge, unfold_translate. eauto. *)
+(* Qed. *)
+
+(* Instance eutt_translate' {E F : Type -> Type} {R : Type} (f : E ~> F) : *)
+(*   Proper (eutt eq ==> eutt eq) *)
+(*          (@translate E F f R). *)
+(* Proof. *)
+(*   repeat red. *)
+(*   apply eutt_translate. *)
+(*   reflexivity. *)
+(* Qed. *)
+
+(*     rewrite Heqs1. *)
+(* eutt_translate' *)
 
 Admitted.
 
