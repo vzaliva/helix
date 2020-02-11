@@ -2567,7 +2567,83 @@ Proof.
     all: reflexivity.
 Qed.
 
-(* TODO: Inductor_MSH_DSH_compat *)
+(* likely to change *)
+Global Instance Inductor_MSH_DSH_compat
+       {o : nat}
+       (σ : evalContext)
+       (m : memory)
+       (f : CarrierA -> CarrierA -> CarrierA)
+       (ts : TypeSig)
+       (init : CarrierA)
+       (a : AExpr)
+       (x_p y_p : PExpr)
+       `{PD : DSH_pure (DSHPower n (x_p, NConst 0) (y_p, NConst 0) a init) ts x_p y_p}
+       `{PF : !Proper ((=) ==> (=) ==> (=)) f}
+  :
+    @MSH_DSH_compat _ _
+      (MSHInductor o f init)
+      (DSHPower n (x_p, NConst 0) (y_p, NConst 0) a init)
+      ts σ m x_p y_p PD.
+Proof.
+  constructor; intros x_m y_m X_M Y_M.
+
+  destruct (evalPexp σ x_p) as [| x_id] eqn:X;
+    [unfold lookup_Pexp in X_M; rewrite X in X_M; inversion X_M |].
+  destruct (evalPexp σ y_p) as [| y_id] eqn:Y;
+    [unfold lookup_Pexp in Y_M; rewrite Y in Y_M; inversion Y_M |].
+  destruct mem_op as [mma |] eqn:MOP.
+  all: destruct evalDSHOperator as [r |] eqn:DOP; [destruct r as [msg | dma] |].
+  all: repeat constructor.
+  1,3,4: exfalso; admit.
+  -
+    unfold lookup_Pexp; cbn.
+    rewrite Y.
+    unfold memory_lookup_err.
+    destruct (memory_lookup dma y_id) as [y_dma |] eqn:Y_DMA.
+    +
+      constructor.
+      unfold SHCOL_DSHCOL_mem_block_equiv.
+      intro k.
+
+      cbn in X_M; rewrite X in X_M.
+      cbn in Y_M; rewrite Y in Y_M.
+
+      unfold memory_lookup_err, trywith in X_M, Y_M.
+      assert (X_M' : memory_lookup m x_id = Some x_m)
+        by (clear - X_M; break_match; inversion X_M; rewrite H1; reflexivity).
+      assert (Y_M' : memory_lookup m y_id = Some y_m)
+        by (clear - Y_M; break_match; inversion Y_M; rewrite H1; reflexivity).
+      clear X_M Y_M; rename X_M' into X_M, Y_M' into Y_M.
+
+      cbn in DOP; some_inv; rename H0 into DOP.
+      rewrite X, Y in DOP.
+
+      do 2 (break_match; try inl_inr).
+      unfold memory_lookup_err, trywith in *.
+      destruct memory_lookup eqn:X_M' in Heqe; try inl_inr.
+      destruct memory_lookup eqn:Y_M' in Heqe0; try inl_inr.
+      repeat inl_inr_inv; subst.
+      rewrite X_M' in X_M; inversion X_M; clear X_M; subst;
+        rename H1 into X_ME, m0 into x_m'.
+      rewrite Y_M' in Y_M; inversion Y_M; clear Y_M; subst;
+        rename H1 into Y_ME, m1 into y_m'.
+
+      repeat break_match; try inl_inr.
+      inl_inr_inv.
+
+
+
+      cbn in MOP.
+      unfold mem_op_of_hop in MOP.
+      cbn in MOP.
+      admit.
+
+
+    +
+      exfalso.
+      admit.
+
+Admitted.
 
 
 (** * MSHIUnion *)
