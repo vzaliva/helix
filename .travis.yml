@@ -49,7 +49,14 @@ install:
 script:
   - eval $(opam config env)
   - opam config var root
-  - git clone --recurse-submodules https://github.com/vellvm/vellvm.git lib/vellvm && (pusdh lib/vellvm; git checkout cca4b0c28b16e62bd4c293550e7856b72a6996d1; popd) && make -j ${NJOBS} -C lib/vellvm/src
+  - git clone --recurse-submodules https://github.com/vellvm/vellvm.git lib/vellvm
+  - pushd lib/vellvm
+  - git checkout cca4b0c28b16e62bd4c293550e7856b72a6996d1
+  - sed -i '53d' src/Makefile
+  - pushd lib/InteractionTrees
+  - git checkout a94d1a60d0c355f3b170482a5c795de148024711
+  - popd; popd
+  - make -j ${NJOBS} -C lib/vellvm/src
   - ln -s `pwd`/lib/vellvm/src/ml/libvellvm/ ml/
   - make -j ${NJOBS}
   - make test
