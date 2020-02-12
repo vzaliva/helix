@@ -816,6 +816,82 @@ Proof.
       eapply initIRGlobals_cons_head_uniq; eauto.
 Qed.
 
+Fact fold_init_one_global_app
+     (lm0 lm1 : memory)
+     (g0 g : global_env)
+     (d0 d1 : list (toplevel_entity typ (list (LLVMAst.block typ))))
+     (s0: LLVM_memory_state_partial)
+     (m1 m0 : local_env)
+     (H0: ListSetoid.monadic_fold_left init_one_global s0 d0 ≡ inr (lm0, (m0, g0)))
+     (H1: ListSetoid.monadic_fold_left init_one_global (lm0, (m0, g0)) d1 ≡ inr (lm1, (m1, g)))
+  : ∃ g', g ≡ app g0 g'.
+Proof.
+  revert H1 H0.
+  revert lm1 lm0 g d0 g0 s0 m0 m1.
+  induction d1; intros.
+  -
+    cbn in H1.
+    inv H1.
+    exists [].
+    symmetry.
+    apply app_nil_r.
+  -
+    cbn in H1.
+    break_match_hyp; [inl_inr|].
+    destruct l as [lm' [m' g']].
+
+Admitted.
+
+(* TODO: This is general-purpose. Move elsewhere? *)
+Lemma mapsto_alist_app_1st
+      {K V: Type}
+      (R : K → K → Prop)
+      `{RD: RelDec.RelDec _ R}
+      `{RDC: @RelDec.RelDec_Correct K R RD}
+      (g g' : alist K V)
+      (v : V)
+      (n : K):
+  mapsto_alist RD g n v ->
+  mapsto_alist RD (g ++ g')%list n v.
+Proof.
+  revert v n.
+  induction g; intros.
+  -
+    inversion H.
+  -
+    cbn.
+    destruct a as [k0 v0].
+    apply mapsto_alist_cons; [apply RDC|].
+    destruct (RelDec.rel_dec n k0) eqn:K0.
+    +
+      right.
+      split.
+      *
+        rewrite RelDec.rel_dec_correct in K0.
+        apply K0.
+      *
+        apply mapsto_alist_cons in H ; [| auto].
+        destruct H.
+        destruct H.
+        rewrite RelDec.rel_dec_correct in K0.
+        congruence.
+        apply H.
+    +
+      left.
+      split.
+      *
+        apply IHg.
+        apply mapsto_alist_cons in H ; [| auto].
+        destruct H.
+        apply H.
+        destruct H.
+        apply RelDec.rel_dec_correct in H.
+        congruence.
+      *
+        apply RelDec.neg_rel_dec_correct in K0.
+        apply K0.
+Qed.
+
 Fact init_one_global_fold_in_1st
      (lm0 lm1 : memory)
      (g0 g : global_env)
@@ -830,8 +906,13 @@ Fact init_one_global_fold_in_1st
     mapsto_alist AstLib.eq_dec_raw_id g n v.
 Proof.
   intros H.
-
-Admitted.
+  pose proof (fold_init_one_global_app _ _ _ H0 H1) as [g' G].
+  clear - G H.
+  subst g.
+  apply mapsto_alist_app_1st.
+  typeclasses eauto.
+  apply H.
+Qed.
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
