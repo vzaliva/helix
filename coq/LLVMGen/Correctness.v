@@ -217,7 +217,6 @@ Record injection_Fin (A:Type) (domain : nat) :=
           x ≡ y
     }.
 
-
 Definition memory_invariant : Type_R_memory :=
   fun σ mem_helix '(mem_llvm, x) =>
     let σ_len := List.length σ in
@@ -688,8 +687,8 @@ Definition init_llvm_memory
 
     let xyinit := global_XY p.(i) p.(o) data x xtyp y ytyp in
 
-    post_xy <- ListSetoid.monadic_fold_left init_one_global llvm_empty_memory_state_partial xyinit ;;
-    ListSetoid.monadic_fold_left init_one_global post_xy ginit.
+    post_globals <- ListSetoid.monadic_fold_left init_one_global llvm_empty_memory_state_partial ginit ;;
+    ListSetoid.monadic_fold_left init_one_global post_globals xyinit.
 
 
 (** Empty memories and environments should satisfy [memory_invariant] *)
@@ -730,9 +729,9 @@ Qed.
 *)
 Definition memory_invariant_map (globals : list (string * FSHValType)): nat -> raw_id
   := fun j =>
-       let n := List.length globals in
-       if Nat.eqb j n then Anon 0%Z (* X *)
-       else if Nat.eqb j (S n) then Anon 1%Z (* Y *)
+       let l := List.length globals in
+       if Nat.eqb j l then Anon 0%Z (* X *)
+       else if Nat.eqb j (S l) then Anon 1%Z (* Y *)
             else
               match nth_error globals j with
               | None => Anon 0%Z (* default value *)
@@ -816,6 +815,9 @@ Proof.
       eapply initIRGlobals_cons_head_uniq; eauto.
 Qed.
 
+ (* Fact memory_invariant_map_cons: *)
+ (*  memory_invariant_map (x :: xs) <-> *)
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -847,16 +849,16 @@ Proof.
   rename Heqe into HIRG, l0 into ldata', l1 into gdecls.
   remember (global_XY i o ldata' (Anon 0%Z) (TYPE_Array (Z.of_nat i) TYPE_Double)
                       (Anon 1%Z) (TYPE_Array (Z.of_nat o) TYPE_Double)) as xydecls eqn:HXY.
-  rename Heqe0 into HFXY, l2 into lm0.
-  rename H0 into HG.
+  rename Heqe0 into HG, l2 into lm0.
+  rename H0 into HFXY.
   rename m into lm1, l4 into fdata'', data into fdata'''.
 
   (* No local variables initialize in init stage *)
   assert(L: l ≡ []).
   {
-    pose proof (monadic_fold_left_err_app HFXY HG) as HFGXY.
+    pose proof (monadic_fold_left_err_app HG HFXY) as HFGXY.
     unfold llvm_empty_memory_state_partial in HFGXY.
-    generalize dependent (app xydecls gdecls).
+    generalize dependent (app gdecls xydecls).
     generalize dependent M.empty_memory_stack.
     intros m x.
     generalize (@nil (prod raw_id dvalue)).
@@ -901,7 +903,7 @@ Proof.
     (* [DSHnatVal] must end up in globals *)
     right.
     split; [trivial|].
-    (* but currently natval constants not implemented so we
+    (* but currently nat constants are not implemented so we
        shortcut this branch *)
     exfalso.
     clear - Hn HFSHG.
@@ -950,7 +952,40 @@ Proof.
   -
     (* [DSHCTypeVal] must end up in globals *)
     right.
-    split; [trivial|].
+    split; [trivial|cbn].
+    apply ListUtil.nth_app in Hn.
+    rename HFSHG into F.
+    destruct Hn as [[Hn Hx] | [Hn Hx]].
+    2:{
+      remember (x - Datatypes.length σ)%nat as k.
+      destruct k; inv Hn.
+      destruct k; inv H0.
+      rewrite Util.nth_error_nil in H1.
+      inv H1.
+    }
+    clear v Heqd.
+
+    (* Deal with X,Y first *)
+    pose proof (initFSHGlobals_globals_sigma_len_eq globals F) as GSL.
+    unfold memory_invariant_map.
+    repeat break_if; bool_to_nat; try lia.
+
+    (* X,Y eliminated, [x] somewhere in globals *)
+    break_match.
+    2:{
+      (* impossible case *)
+      apply ListNth.nth_error_length_lt in Hn.
+      apply ListUtil.nth_beyond_idx in Heqo0.
+      lia.
+    }
+    destruct p as (gname, gval).
+
+    (* unify lengths *)
+    remember (Datatypes.length σ) as l eqn:SL; symmetry in SL.
+    clear Heqb Heqb0.
+
+    pose proof (monadic_fold_left_err_app HG HFXY) as HFGXY.
+    clear HFXY HG lm0.
     admit.
   -
     (* [DSHPtrVal] must end up in memory *)
