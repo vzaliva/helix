@@ -391,7 +391,7 @@ Definition bisim_partial: Type_R_partial
     repeat intro.
     unfold interp_cfg_to_L3, Util.runState.
     subst; rewrite H.
-    Show Proof.
+    (* Show Proof. *)
     reflexivity.
   Qed.
 
