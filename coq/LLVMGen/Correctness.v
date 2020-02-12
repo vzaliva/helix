@@ -653,8 +653,8 @@ Definition eval_const_arr_exp (typed_expr:typ*exp typ): err dvalue :=
 
 Definition eval_const_exp (typed_expr:typ*exp typ): err dvalue :=
   match typed_expr with
-  | (TYPE_Array _ TYPE_Double, EXP_Array a) => eval_const_double_exp typed_expr
-  | (TYPE_Double, EXP_Double v) =>  eval_const_arr_exp typed_expr
+  | (TYPE_Array _ TYPE_Double, EXP_Array a) => eval_const_arr_exp typed_expr
+  | (TYPE_Double, EXP_Double v) =>  eval_const_double_exp typed_expr
   | (_, c_typ) => inl ("Unsupported constant expression type: " ++ (to_string c_typ))
   end.
 
@@ -976,6 +976,8 @@ Proof.
         repeat break_match_hyp; subst; try inl_inr.
         inv Heqe.
         repeat break_match_hyp; subst; try inl_inr.
+        inv H1.
+        inv H1.
   }
   subst l; cbn in *.
 
