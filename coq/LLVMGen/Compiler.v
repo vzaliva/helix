@@ -1217,40 +1217,38 @@ Definition global_XY (i o:nat) (data:list binary64) x xtyp y ytyp:
   :=
     let '(data,xdata) := constArray i data in
     let '(_,ydata) := constArray o data in
-    [TLE_Comment " X data"
-     ; TLE_Global
-         {|
-           g_ident        := x;
-           g_typ          := xtyp;
-           g_constant     := true;
-           g_exp          := Some (EXP_Array xdata);
-           g_linkage      := None;
-           g_visibility   := None;
-           g_dll_storage  := None;
-           g_thread_local := None;
-           g_unnamed_addr := false;
-           g_addrspace    := None;
-           g_externally_initialized := false;
-           g_section      := None;
-           g_align        := None;
-         |}
-     ; TLE_Comment " Y placeholder"
-     ; TLE_Global
-         {|
-           g_ident        := y;
-           g_typ          := ytyp;
-           g_constant     := true;
-           g_exp          := Some (EXP_Array ydata);
-           g_linkage      := None;
-           g_visibility   := None;
-           g_dll_storage  := None;
-           g_thread_local := None;
-           g_unnamed_addr := false;
-           g_addrspace    := None;
-           g_externally_initialized := false;
-           g_section      := None;
-           g_align        := None;
-         |}
+    [ TLE_Global
+        {|
+          g_ident        := y;
+          g_typ          := ytyp;
+          g_constant     := true;
+          g_exp          := Some (EXP_Array ydata);
+          g_linkage      := None;
+          g_visibility   := None;
+          g_dll_storage  := None;
+          g_thread_local := None;
+          g_unnamed_addr := false;
+          g_addrspace    := None;
+          g_externally_initialized := false;
+          g_section      := None;
+          g_align        := None;
+        |}
+      ; TLE_Global
+          {|
+            g_ident        := x;
+            g_typ          := xtyp;
+            g_constant     := true;
+            g_exp          := Some (EXP_Array xdata);
+            g_linkage      := None;
+            g_visibility   := None;
+            g_dll_storage  := None;
+            g_thread_local := None;
+            g_unnamed_addr := false;
+            g_addrspace    := None;
+            g_externally_initialized := false;
+            g_section      := None;
+            g_align        := None;
+          |}
     ].
 
 Definition genMain
