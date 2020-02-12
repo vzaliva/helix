@@ -16,6 +16,7 @@ Require Import Helix.Util.ListUtil.
 Require Import Helix.Tactics.HelixTactics.
 
 Require Import ExtLib.Structures.Monads.
+Require Import ExtLib.Data.Map.FMapAList.
 
 Require Import Vellvm.Numeric.Fappli_IEEE_extra.
 Require Import Vellvm.LLVMEvents.
@@ -228,20 +229,20 @@ Definition memory_invariant : Type_R_memory :=
         match v with
         | DSHnatVal v   =>
           (* check local env first *)
-          FMapAList.alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v))) \/
+          alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v))) \/
           (* if not found, check global *)
-          (FMapAList.alist_find _ (inj_f ι x) ρ ≡ None /\ FMapAList.alist_find _ (inj_f ι x) g ≡ Some (DVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v))))
+          (alist_find _ (inj_f ι x) ρ ≡ None /\ alist_find _ (inj_f ι x) g ≡ Some (DVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v))))
         | DSHCTypeVal v =>
           (* check local env first *)
-          FMapAList.alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Double v) \/
+          alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Double v) \/
           (* if not found, check global *)
-          (FMapAList.alist_find _ (inj_f ι x) ρ ≡ None /\
-           FMapAList.alist_find _ (inj_f ι x) g ≡ Some (DVALUE_Double v))
+          (alist_find _ (inj_f ι x) ρ ≡ None /\
+           alist_find _ (inj_f ι x) g ≡ Some (DVALUE_Double v))
         | DSHPtrVal ptr_helix ptr_size_helix =>
           forall bk_helix,
             memory_lookup mem_helix ptr_helix ≡ Some bk_helix ->
             exists ptr_llvm bk_llvm,
-              FMapAList.alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Addr ptr_llvm) /\
+              alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Addr ptr_llvm) /\
               get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm /\
               (fun bk_helix bk_llvm =>
                  forall i, i < ptr_size_helix ->
@@ -609,7 +610,7 @@ Section LLVM_Memory_Init.
     | [] => inl "No stack frame for alloca."%string
     | frame :: stack_rest =>
       let new_stack := (key :: frame) :: stack_rest in
-      (*  global_env = FMapAList.alist raw_id dvalue *)
+      (*  global_env = alist raw_id dvalue *)
       let a := DVALUE_Addr (key, 0%Z) in
       ret (new_mem, new_stack, (Name c_name, a) :: genv, a)
     end.
@@ -825,10 +826,11 @@ Fact init_one_global_fold_in_1st
      (v: dvalue)
      (n: raw_id)
   :
-    FMapAList.alist_find AstLib.eq_dec_raw_id n g0 ≡ Some v ->
-    FMapAList.alist_find AstLib.eq_dec_raw_id n g ≡ Some v.
+    mapsto_alist AstLib.eq_dec_raw_id g0 n v ->
+    mapsto_alist AstLib.eq_dec_raw_id g n v.
 Proof.
   intros H.
+
 Admitted.
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
