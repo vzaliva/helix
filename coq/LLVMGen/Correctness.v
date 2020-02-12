@@ -815,8 +815,21 @@ Proof.
       eapply initIRGlobals_cons_head_uniq; eauto.
 Qed.
 
- (* Fact memory_invariant_map_cons: *)
- (*  memory_invariant_map (x :: xs) <-> *)
+Fact init_one_global_fold_in_1st
+     (lm0 lm1 : memory)
+     (g0 g : global_env)
+     (d0 d1 : list (toplevel_entity typ (list (LLVMAst.block typ))))
+     (m0 : local_env)
+     (H0: ListSetoid.monadic_fold_left init_one_global llvm_empty_memory_state_partial d0 ≡ inr (lm0, (m0, g0)))
+     (H1: ListSetoid.monadic_fold_left init_one_global (lm0, (m0, g0)) d1 ≡ inr (lm1, ([ ], g)))
+     (v: dvalue)
+     (n: raw_id)
+  :
+    FMapAList.alist_find AstLib.eq_dec_raw_id n g0 ≡ Some v ->
+    FMapAList.alist_find AstLib.eq_dec_raw_id n g ≡ Some v.
+Proof.
+  intros H.
+Admitted.
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
@@ -984,8 +997,12 @@ Proof.
     remember (Datatypes.length σ) as l eqn:SL; symmetry in SL.
     clear Heqb Heqb0.
 
-    pose proof (monadic_fold_left_err_app HG HFXY) as HFGXY.
-    clear HFXY HG lm0.
+    rename m0 into fm0.
+    destruct lm0 as [lm0 [m0 g0]].
+
+    (* we know, [gname] is in [gdecls] and not in [xydecls] *)
+    eapply init_one_global_fold_in_1st;eauto.
+    clear HXY xydecls HFXY HCX HCY xdata ydata hdata.
     admit.
   -
     (* [DSHPtrVal] must end up in memory *)
