@@ -3,6 +3,7 @@ Require Import Coq.Lists.List.
 
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Helix.Util.ErrorSetoid.
+Require Import Helix.Util.ListUtil.
 
 Require Import Vellvm.LLVMAst.
 
@@ -74,19 +75,23 @@ Record FSHCOLProgram :=
       op: DSHOperator;
     }.
 
-Definition initOneFSHGlobal (gt:FSHValType) mem data
+Definition initOneFSHGlobal
+           (st:memory * list binary64 * evalContext)
+           (gp:string*FSHValType) : err (memory * list binary64 * evalContext)
   :=
+    let (_,gt) := gp in
+    let '(mem,data,gs) := st in
     match gt with
     | FSHnatValType => raise "Unsupported global type: nat"
     | FSHFloatValType =>
       let '(x, data) := rotate Float64Zero data in
-      ret (mem, data, DSHCTypeVal x)
+      ret (mem, data, snoc gs (DSHCTypeVal x))
     | FSHvecValType n =>
       let (data,mb) := constMemBlock n data in
       let k := memory_next_key mem in
       let mem := memory_set mem k mb in
       let p := DSHPtrVal k n in
-      ret (mem, data, p)
+      ret (mem, data, snoc gs p)
     end.
 
 Fixpoint initFSHGlobals
@@ -94,14 +99,10 @@ Fixpoint initFSHGlobals
          (mem: memory)
          (globals: list (string * FSHValType))
 : err (memory * list binary64 * evalContext)
-:=
-  match globals with
-  | [] => ret (mem, data, [])
-  | (_,gt)::gs =>
-    '(mem,data,σ) <- initFSHGlobals data mem gs ;;
-    '(mem,data,σ0) <- initOneFSHGlobal gt mem data ;;
-    ret (mem,data,σ0::σ)
-  end.
+  :=
+    ListSetoid.monadic_fold_left initOneFSHGlobal
+                                 (mem, data, [])
+                                 globals.
 
 Definition helix_empty_memory := memory_empty.
 
@@ -112,8 +113,8 @@ Definition helix_intial_memory
   := match p with
      | mkFSHCOLProgram i o name globals op =>
        '(mem, data, σ) <- initFSHGlobals data helix_empty_memory globals ;;
-       let '(data, x) := constMemBlock i data in
        let '(data, y) := constMemBlock o data in
+       let '(data, x) := constMemBlock i data in
        (* over-estimating id, as some globals may not alocate memory (e.g. scalars) *)
        let X_mem_block_id : mem_block_id := length globals  in
        let Y_mem_block_id : mem_block_id := S (length globals) in

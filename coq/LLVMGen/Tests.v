@@ -160,26 +160,14 @@ Definition test_interpreter := TopLevelEnv.interpreter_user helix_intrinsics.
 *)
 Definition runFSHCOLTest (t:FSHCOLProgram) (just_compile:bool) (data:list binary64)
   :=
-    match t return (list binary64 -> _) with
-    | mkFSHCOLProgram i o name globals op =>
-      fun data' =>
-        match initIRGlobals data' globals with
-        | inl msg => (None,None,msg)
-        | inr (data'', ginit) =>
-          let ginit := app [TLE_Comment "Global variables"] ginit in
-          let main := genMain i o name globals data'' in
-          let eres := evalErrS (LLVMGen i o globals just_compile op name) newState in
-          match eres with
-          | inl msg => (None, None, msg)
-          | inr prog =>
-            if just_compile then
-              (Some prog, None, "")
-            else
-              let code := app (app ginit prog) main in
-              (Some prog, Some (test_interpreter code), "")
-          end
-        end
-    end data.
+    match compile t just_compile data with
+    | inl msg => (None, None, msg)
+    | inr prog =>
+      if just_compile then
+        (Some prog, None, "")
+      else
+        (Some prog, Some (test_interpreter prog), "")
+    end.
 
 Require Import Helix.Util.ListSetoid.
 Require Import Helix.Util.ErrorSetoid.

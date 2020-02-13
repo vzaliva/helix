@@ -1191,32 +1191,32 @@ Proof.
       eauto.
 Qed.
 
+(* Could not use [monadic_fold_left] here because of error check. *)
 Fixpoint initIRGlobals
          (data: list binary64)
          (x: list (string * FSHValType))
   : err (list binary64 * list (toplevel_entity typ (list (block typ))))
-  :=
-    match x with
-    | nil => ret (data,[])
-    | cons (nm, t) xs =>
-      if globals_name_present nm xs
-      then
-        inl ("duplicate global name: " ++ nm)%string
-      else
-        '(data,gs) <- initIRGlobals data xs ;;
-        '(data,g) <- initOneIRGlobal t data nm ;;
-        ret (data,g::gs)
-    end.
+  :=  match x with
+      | nil => ret (data,[])
+      | cons (nm, t) xs =>
+        if globals_name_present nm xs
+        then
+          inl ("duplicate global name: " ++ nm)%string
+        else
+          '(data,g) <- initOneIRGlobal t data nm ;;
+          '(data,gs) <- initIRGlobals data xs ;;
+          ret (data,g::gs)
+      end.
 
 (*
    When code genration generates [main], the input
    will be stored in pre-initialized [X] global variable.
  *)
-Definition global_XY (i o:nat) (data:list binary64) x xtyp y ytyp:
+Definition global_YX (i o:nat) (data:list binary64) x xtyp y ytyp:
   LLVMAst.toplevel_entities _ (list (LLVMAst.block typ))
   :=
-    let '(data,xdata) := constArray i data in
-    let '(_,ydata) := constArray o data in
+    let '(data,ydata) := constArray o data in
+    let '(_,xdata) := constArray i data in
     [ TLE_Global
         {|
           g_ident        := y;
@@ -1254,70 +1254,77 @@ Definition global_XY (i o:nat) (data:list binary64) x xtyp y ytyp:
 Definition genMain
            (i o: nat)
            (op_name: string)
+           (x:raw_id)
+           (xptyp:typ)
+           (y:raw_id)
+           (ytyp:typ)
+           (yptyp:typ)
            (globals: list (string * FSHValType))
            (data:list binary64)
   : LLVMAst.toplevel_entities _ (list (LLVMAst.block typ))
   :=
-    let x := Anon 0%Z in
-    let xtyp := getIRType (FSHvecValType i) in
-    let xptyp := TYPE_Pointer xtyp in
-
-    let y := Anon 1%Z in
-    let ytyp := getIRType (FSHvecValType o) in
-    let yptyp := TYPE_Pointer ytyp in
-
-    let xyblocks := global_XY i o data x xtyp y ytyp in
-
     let z := Name "z" in
-    xyblocks ++
-            [
-              TLE_Comment " Main function"
-              ; TLE_Definition
-                  {|
-                    df_prototype   :=
-                      {|
-                        dc_name        := Name ("main") ;
-                        dc_type        := TYPE_Function ytyp [] ;
-                        dc_param_attrs := ([],
-                                           []);
-                        dc_linkage     := None ;
-                        dc_visibility  := None ;
-                        dc_dll_storage := None ;
-                        dc_cconv       := None ;
-                        dc_attrs       := []   ;
-                        dc_section     := None ;
-                        dc_align       := None ;
-                        dc_gc          := None
-                      |} ;
-                    df_args        := [];
-                    df_instrs      := [
-                                       {|
-                                         blk_id    := Name "main_block" ;
-                                         blk_phis  := [];
-                                         blk_code  :=
-                                           [
-                                             (IVoid 0%Z, INSTR_Call (TYPE_Void, EXP_Ident (ID_Global (Name op_name))) [(xptyp, EXP_Ident (ID_Global x)); (yptyp, EXP_Ident (ID_Global y))]) ;
-                                                    (IId z, INSTR_Load false ytyp (yptyp, EXP_Ident (ID_Global y)) None )
-                                                    ]
-                                         ;
+    [
+      TLE_Comment " Main function"
+      ; TLE_Definition
+          {|
+            df_prototype   :=
+              {|
+                dc_name        := Name ("main") ;
+                dc_type        := TYPE_Function ytyp [] ;
+                dc_param_attrs := ([],
+                                   []);
+                dc_linkage     := None ;
+                dc_visibility  := None ;
+                dc_dll_storage := None ;
+                dc_cconv       := None ;
+                dc_attrs       := []   ;
+                dc_section     := None ;
+                dc_align       := None ;
+                dc_gc          := None
+              |} ;
+            df_args        := [];
+            df_instrs      := [
+                               {|
+                                 blk_id    := Name "main_block" ;
+                                 blk_phis  := [];
+                                 blk_code  :=
+                                   [
+                                     (IVoid 0%Z, INSTR_Call (TYPE_Void, EXP_Ident (ID_Global (Name op_name))) [(xptyp, EXP_Ident (ID_Global x)); (yptyp, EXP_Ident (ID_Global y))]) ;
+                                   (IId z, INSTR_Load false ytyp (yptyp, EXP_Ident (ID_Global y)) None )
+                                   ]
+                                 ;
 
-                                         blk_term  := (IId (Name "main_ret"), TERM_Ret (ytyp, EXP_Ident (ID_Local z))) ;
-                                         blk_comments := None
-                                       |}
+                                 blk_term  := (IId (Name "main_ret"), TERM_Ret (ytyp, EXP_Ident (ID_Local z))) ;
+                                 blk_comments := None
+                               |}
 
-                                     ]
-                  |}].
+                             ]
+          |}].
 
-Definition compile (p: FSHCOLProgram): list binary64 -> err (toplevel_entities typ (list (block typ))) :=
-  match p return (list binary64 -> _) with
+Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): err (toplevel_entities typ (list (block typ))) :=
+  match p with
   | mkFSHCOLProgram i o name globals op =>
-    fun data' =>
-      '(data'',ginit) <- initIRGlobals data' globals ;;
-      let ginit := app [TLE_Comment "Global variables"] ginit in
-      let main := genMain i o name globals data'' in
-      prog <- evalErrS (LLVMGen i o globals false op name) newState ;;
-      let code := app (app ginit prog) main in
-      ret code
+    '(data,ginit) <- initIRGlobals data globals ;;
+    let ginit := app [TLE_Comment "Global variables"] ginit in
+
+    if just_compile then
+      evalErrS (LLVMGen i o globals just_compile op name) newState
+    else
+      let x := Anon 0%Z in
+      let xtyp := getIRType (FSHvecValType i) in
+      let xptyp := TYPE_Pointer xtyp in
+
+      let y := Anon 1%Z in
+      let ytyp := getIRType (FSHvecValType o) in
+      let yptyp := TYPE_Pointer ytyp in
+
+      let yxinit := global_YX i o data x xtyp y ytyp in
+      let main := genMain i o name x xptyp y ytyp yptyp globals data in
+
+      prog <- evalErrS (LLVMGen i o globals just_compile op name) newState ;;
+      ret (ginit ++ yxinit ++ prog ++ main)%list
   end.
 
-
+Definition compile_w_main (p: FSHCOLProgram): list binary64 -> err (toplevel_entities typ (list (block typ))) :=
+  compile p false.

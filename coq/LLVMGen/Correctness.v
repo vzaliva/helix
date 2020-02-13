@@ -678,15 +678,16 @@ Definition init_llvm_memory
   :=
     '(data,ginit) <- initIRGlobals data p.(globals) ;;
 
-    let x := Anon 0%Z in
-    let xtyp := getIRType (FSHvecValType p.(i)) in
     let y := Anon 1%Z in
     let ytyp := getIRType (FSHvecValType p.(o)) in
+    let x := Anon 0%Z in
+    let xtyp := getIRType (FSHvecValType p.(i)) in
 
-    let xyinit := global_XY p.(i) p.(o) data x xtyp y ytyp in
+    let xyinit := global_YX p.(i) p.(o) data x xtyp y ytyp in
 
-    post_globals <- ListSetoid.monadic_fold_left init_one_global llvm_empty_memory_state_partial ginit ;;
-    ListSetoid.monadic_fold_left init_one_global post_globals xyinit.
+    (* Will return in order [globals ++ xy] *)
+    ListSetoid.monadic_fold_left init_one_global llvm_empty_memory_state_partial
+                                 (ginit ++ xyinit)%list.
 
 
 (** Empty memories and environments should satisfy [memory_invariant] *)
@@ -703,6 +704,7 @@ Fact initFSHGlobals_globals_sigma_len_eq
   initFSHGlobals data mem globals ≡ inr (mem', data', σ) ->
   List.length globals ≡ List.length σ.
 Proof.
+  (* !!!
   revert mem mem' data data' σ.
   induction globals; intros.
   -
@@ -720,6 +722,8 @@ Proof.
     cbn.
     erewrite IHglobals; eauto.
 Qed.
+   *)
+  Admitted.
 
 (* Maps indices from [σ] to [raw_id].
    Currently [σ := [globals;Y;X]]
@@ -763,7 +767,9 @@ Proof.
   break_let; subst.
   break_match_hyp ; [inl_inr|].
   break_match_hyp; inv H; eauto.
-Qed.
+  (* !!!
+Qed. *)
+  Admitted.
 
 Fact initIRGlobals_cons_head_uniq:
   ∀ (a : string * FSHValType) (globals : list (string * FSHValType))
@@ -951,17 +957,15 @@ Lemma memory_invariant_after_init
                 init_llvm_memory p data ≡ inr lmem ->
                 memory_invariant σ hmem lmem.
 Proof.
+  (* !!!
   intros hmem σ lmem hdata [HI LI].
   unfold memory_invariant.
   repeat break_let; subst.
   unfold helix_intial_memory, init_llvm_memory in *.
   cbn in *.
-  break_match_hyp ; [inl_inr|].
-  break_let.
-  destruct p.
-  break_match_hyp; inv LI.
-  repeat break_let; subst.
-  break_match_hyp; inv HI.
+  repeat break_match_hyp ; try inl_inr.
+  subst.
+  inv HI.
   cbn in *.
   repeat break_let; subst.
   inv H1.
@@ -971,7 +975,7 @@ Proof.
   rename Heqp2 into HCX, m1 into xdata.
   rename Heqe1 into HFSHG, l3 into fdata', e into σ.
   rename Heqe into HIRG, l0 into ldata', l1 into gdecls.
-  remember (global_XY i o ldata' (Anon 0%Z) (TYPE_Array (Z.of_nat i) TYPE_Double)
+  remember (global_YX i o ldata' (Anon 0%Z) (TYPE_Array (Z.of_nat i) TYPE_Double)
                       (Anon 1%Z) (TYPE_Array (Z.of_nat o) TYPE_Double)) as xydecls eqn:HXY.
   rename Heqe0 into HG, l2 into lm0.
   rename H0 into HFXY.
@@ -1123,7 +1127,7 @@ Proof.
     eexists.
     eexists.
     admit.
-
+*)
 Admitted.
 
 (* with init step  *)
@@ -1131,7 +1135,7 @@ Lemma compiler_correct_aux:
   forall (p:FSHCOLProgram)
     (data:list binary64)
     (pll: toplevel_entities typ (list (LLVMAst.block typ))),
-    compile p data ≡ inr pll ->
+    compile_w_main p data ≡ inr pll ->
     eutt (bisim_full []) (semantics_FSHCOL p data) (semantics_llvm pll).
 Proof.
 Admitted.
@@ -1187,7 +1191,7 @@ Theorem compiler_correct:
   forall (p:FSHCOLProgram)
     (data:list binary64)
     (pll: toplevel_entities typ (list (LLVMAst.block typ))),
-    compile p data ≡ inr pll ->
+    compile_w_main p data ≡ inr pll ->
     eutt (bisim_final []) (semantics_FSHCOL p data) (semantics_llvm pll).
 Proof.
   intros p data pll H.

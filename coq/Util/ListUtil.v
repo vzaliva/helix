@@ -87,3 +87,6 @@ Proof.
     apply eq_S.
     eapply U; eauto.
 Qed.
+
+Definition snoc {A:Type} (l:list A) (a:A) : list A
+  := List.app l [a].
