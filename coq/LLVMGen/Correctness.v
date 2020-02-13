@@ -2,7 +2,54 @@ Require Import Coq.Arith.Arith.
 Require Import Psatz.
 
 Require Import Coq.Strings.String.
+
+Notation "x @@ y" := (String.append x y) (right associativity, at level 60) : string_scope.
+
+  Lemma string_cons_app :
+    forall x y,
+      String x y = ((String x "") @@ y)%string.
+  Proof.
+    reflexivity.
+  Qed.
+
+  Lemma string_app_assoc :
+    forall (a b c : string),
+      eq (a @@ (b @@ c))%string ((a @@ b) @@ c)%string.
+  Proof.
+    intros a b c.
+    induction a.
+    - reflexivity.
+    - simpl. rewrite IHa.
+      reflexivity.
+  Qed.
+
+Import Coq.Strings.String Strings.Ascii.
+Open Scope string_scope.
+Open Scope char_scope.
+
 Require Import Coq.Lists.List.
+
+  (* Lemma blah : *)
+  (*   forall (b : bool), *)
+  (*   (String "y" (String "a" (String "a" (if b then "!" else "?")))) = "yay"%string. *)
+  (* Proof. *)
+  (*   intros b. *)
+  (*   replace (String "y" (String "a" (String "a" (if b then "!"%string else "?"%string)))) with ("yaa" @@ (if b then "!"%string else "?"%string)). *)
+  (*   Focus 2. *)
+
+  (*   Ltac rewrite_str acc s := *)
+  (*     match s with *)
+  (*     | (String ?x EmptyString) => idtac acc; idtac x *)
+  (*     | (String ?x ?y) => rewrite_str (acc ++ )%list y *)
+  (*     end. *)
+
+  (*   match goal with *)
+  (*   | [ |- context [String ?x ?y] ] => rewrite_str (@nil ascii) (String x y) *)
+  (*   end. *)
+
+
+  (* Qed. *)
+
 Require Import Coq.Numbers.BinNums. (* for Z scope *)
 Require Import Coq.ZArith.BinInt.
 
@@ -429,13 +476,40 @@ Definition bisim_partial: Type_R_partial
       |- eutt _ _ ?t => remember t
     end.
 
+  (* TODO: Move this to Vellvm *)
+  Definition TT {A} : relation A := fun _ _ => True.
+
+  Lemma denote_bks_singleton :
+    forall (b : LLVMAst.block dtyp) (bid : block_id) (nextblock : block_id),
+      (blk_id b) ≡ bid ->
+      (snd (blk_term b)) ≡ (TERM_Br_1 nextblock) ->
+      (blk_id b) <> nextblock ->
+      eutt TT (D.denote_bks [b] bid) (D.denote_block b).
+  Proof.
+    intros b bid nextblock Heqid Heqterm Hneq.
+    cbn.
+    rewrite bind_ret_l.
+    rewrite KTreeFacts.unfold_iter_ktree.
+    cbn.
+    destruct (Eqv.eqv_dec_p (blk_id b) bid) eqn:Heq'; try contradiction.
+    repeat rewrite bind_bind.
+    rewrite Heqterm.
+    cbn.
+    setoid_rewrite translate_ret.
+    setoid_rewrite bind_ret_l.
+    destruct (Eqv.eqv_dec_p (blk_id b) nextblock); try contradiction.
+    repeat setoid_rewrite bind_ret_l. unfold Datatypes.id.
+    reflexivity.
+  Qed.
+
+  (* Should probably be in itrees? *)
 (*
     for an opeartor, in initialized state
     TODO: We could probably fix [env] to be [nil]
 *)
-Lemma compile_FSHCOL_correct (op: DSHOperator): forall st bid_out st' bid_in bks σ env mem g ρ mem_llvm,
+Lemma compile_FSHCOL_correct (op: DSHOperator): forall nextblock bid_out st' bid_in bks σ env mem g ρ mem_llvm,
   bisim_partial σ (mem,tt) (mem_llvm, (ρ, (g, (inl bid_in)))) ->
-  genIR op st bid_out ≡ inr (st',(bid_in,bks)) ->
+  genIR op nextblock bid_out ≡ inr (st',(bid_in,bks)) ->
   eutt (bisim_partial σ)
        (translate inr_
                   (interp_Mem (denoteDSHOperator σ op) mem))
@@ -446,16 +520,14 @@ Lemma compile_FSHCOL_correct (op: DSHOperator): forall st bid_out st' bid_in bks
 Proof.
   induction op; intros; rename H0 into HCompile.
   - inv HCompile.
-
+    eutt_hide_right; cbn.
     unfold interp_Mem; simpl denoteDSHOperator.
     rewrite interp_state_ret, translate_ret.
+    subst i.
     simpl normalize_types_blocks.
     rewrite denote_bks_nil.
     cbn. rewrite interp_cfg_to_L3_ret, translate_ret.
-    apply eqit_Ret.
-    (* Purely semantics, should be trivial *)
-    admit.
-
+    apply eqit_Ret; auto.
   - (*
       Assign case.
        Need some reasoning about
@@ -476,6 +548,7 @@ Proof.
     match goal with
       |- eutt _ ?t _ => remember t
     end.
+
     (* Need a lemma to invert Heqs2.
        Should allow us to know that the list of blocks is a singleton in this case.
        Need then probably a lemma to reduce proofs about `D.denote_bks [x]` to something like the denotation of x,
@@ -493,6 +566,8 @@ Proof.
       - 
      *)
     simpl genIR in HCompile.
+    repeat rewrite string_cons_app in HCompile.
+
     repeat break_match_hyp; try inl_inr.
     repeat inv_sum.
     cbn.
@@ -508,9 +583,32 @@ Proof.
 
   - admit.
 
-  - admit.
+  - eutt_hide_right.
+    cbn. unfold interp_Mem.
+    Check interp_state_bind.
+    Check interp_bind.
 
-  - admit.
+interp_state_bind
+     : ∀ (f : ∀ T : Type, ?E T → ?S → itree ?F (?S * T)) (t : itree ?E ?A) (k : ?A → itree ?E ?B) (s : ?S),
+         interp_state f (ITree.bind t k) s
+         ≅ ITree.bind (interp_state f t s) (λ st0 : ?S * ?A, interp_state f (k (snd st0)) (fst st0))
+
+interp_bind
+     : ∀ (f : ∀ T : Type, ?E T → itree ?F T) (t : itree ?E ?R) (k : ?R → itree ?E ?S),
+         interp f (ITree.bind t k) ≅ ITree.bind (interp f t) (λ r : ?R, interp f (k r))
+
+    rewrite interp_state_bind.
+    rewrite interp_iter.
+    admit.
+
+  - eutt_hide_right.
+    cbn.
+    unfold interp_Mem.
+    rewrite interp_state_bind.
+    rewrite bind_trigger.
+    
+    Locate ITree.bind.
+    rewrite
 
   - admit.
 
