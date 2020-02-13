@@ -83,9 +83,6 @@ Fixpoint denote_initFSHGlobals
       end
     end.
 
-Definition mem_to_list (msg:string) (n:nat) (mb:mem_block) : err (list binary64) :=
-  ListSetoid.monadic_Lbuild n (fun j _ => trywith msg (mem_lookup j mb)).
-
 Definition denote_FSHCOL (p:FSHCOLProgram) (data:list binary64)
   : itree Event (list binary64) :=
   '(data, σ) <- denote_initFSHGlobals data p.(globals) ;;

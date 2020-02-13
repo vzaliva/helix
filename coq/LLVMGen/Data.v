@@ -122,3 +122,6 @@ Definition helix_intial_memory
        let σ := List.app σ [DSHPtrVal Y_mem_block_id o; DSHPtrVal X_mem_block_id i] in
        ret (mem, data, σ)
      end.
+
+Definition mem_to_list (msg:string) (n:nat) (mb:mem_block) : err (list binary64) :=
+  ListSetoid.monadic_Lbuild n (fun j _ => trywith msg (mem_lookup j mb)).

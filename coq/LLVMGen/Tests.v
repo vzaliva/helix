@@ -17,14 +17,10 @@ Require Import Vellvm.Handlers.Memory.
 Require Import Vellvm.TopLevel.
 Require Import Vellvm.LLVMAst.
 
-Require Import ITree.ITree.
-
 Require Import Flocq.IEEE754.Binary.
 Require Import Flocq.IEEE754.Bits.
 
 Require Import ExtLib.Structures.Monads.
-
-Require Import Helix.LLVMGen.Correctness.
 
 Import ListNotations.
 
