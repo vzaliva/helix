@@ -63,6 +63,7 @@ Require Import Helix.Util.ListUtil.
 Require Import Helix.Tactics.HelixTactics.
 
 Require Import ExtLib.Structures.Monads.
+Require Import ExtLib.Data.Map.FMapAList.
 
 Require Import Vellvm.Numeric.Fappli_IEEE_extra.
 Require Import Vellvm.LLVMEvents.
@@ -264,7 +265,6 @@ Record injection_Fin (A:Type) (domain : nat) :=
           x ≡ y
     }.
 
-
 Definition memory_invariant : Type_R_memory :=
   fun σ mem_helix '(mem_llvm, x) =>
     let σ_len := List.length σ in
@@ -276,20 +276,20 @@ Definition memory_invariant : Type_R_memory :=
         match v with
         | DSHnatVal v   =>
           (* check local env first *)
-          FMapAList.alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v))) \/
+          alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v))) \/
           (* if not found, check global *)
-          (FMapAList.alist_find _ (inj_f ι x) ρ ≡ None /\ FMapAList.alist_find _ (inj_f ι x) g ≡ Some (DVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v))))
+          (alist_find _ (inj_f ι x) ρ ≡ None /\ alist_find _ (inj_f ι x) g ≡ Some (DVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v))))
         | DSHCTypeVal v =>
           (* check local env first *)
-          FMapAList.alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Double v) \/
+          alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Double v) \/
           (* if not found, check global *)
-          (FMapAList.alist_find _ (inj_f ι x) ρ ≡ None /\
-           FMapAList.alist_find _ (inj_f ι x) g ≡ Some (DVALUE_Double v))
+          (alist_find _ (inj_f ι x) ρ ≡ None /\
+           alist_find _ (inj_f ι x) g ≡ Some (DVALUE_Double v))
         | DSHPtrVal ptr_helix ptr_size_helix =>
           forall bk_helix,
             memory_lookup mem_helix ptr_helix ≡ Some bk_helix ->
             exists ptr_llvm bk_llvm,
-              FMapAList.alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Addr ptr_llvm) /\
+              alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Addr ptr_llvm) /\
               get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm /\
               (fun bk_helix bk_llvm =>
                  forall i, i < ptr_size_helix ->
@@ -438,7 +438,7 @@ Definition bisim_partial: Type_R_partial
     repeat intro.
     unfold interp_cfg_to_L3, Util.runState.
     subst; rewrite H.
-    Show Proof.
+    (* Show Proof. *)
     reflexivity.
   Qed.
 
@@ -708,7 +708,7 @@ Section LLVM_Memory_Init.
     | [] => inl "No stack frame for alloca."%string
     | frame :: stack_rest =>
       let new_stack := (key :: frame) :: stack_rest in
-      (*  global_env = FMapAList.alist raw_id dvalue *)
+      (*  global_env = alist raw_id dvalue *)
       let a := DVALUE_Addr (key, 0%Z) in
       ret (new_mem, new_stack, (Name c_name, a) :: genv, a)
     end.
@@ -751,8 +751,8 @@ Definition eval_const_arr_exp (typed_expr:typ*exp typ): err dvalue :=
 
 Definition eval_const_exp (typed_expr:typ*exp typ): err dvalue :=
   match typed_expr with
-  | (TYPE_Array _ TYPE_Double, EXP_Array a) => eval_const_double_exp typed_expr
-  | (TYPE_Double, EXP_Double v) =>  eval_const_arr_exp typed_expr
+  | (TYPE_Array _ TYPE_Double, EXP_Array a) => eval_const_arr_exp typed_expr
+  | (TYPE_Double, EXP_Double v) =>  eval_const_double_exp typed_expr
   | (_, c_typ) => inl ("Unsupported constant expression type: " ++ (to_string c_typ))
   end.
 
@@ -786,8 +786,8 @@ Definition init_llvm_memory
 
     let xyinit := global_XY p.(i) p.(o) data x xtyp y ytyp in
 
-    post_xy <- ListSetoid.monadic_fold_left init_one_global llvm_empty_memory_state_partial xyinit ;;
-    ListSetoid.monadic_fold_left init_one_global post_xy ginit.
+    post_globals <- ListSetoid.monadic_fold_left init_one_global llvm_empty_memory_state_partial ginit ;;
+    ListSetoid.monadic_fold_left init_one_global post_globals xyinit.
 
 
 (** Empty memories and environments should satisfy [memory_invariant] *)
@@ -828,9 +828,9 @@ Qed.
 *)
 Definition memory_invariant_map (globals : list (string * FSHValType)): nat -> raw_id
   := fun j =>
-       let n := List.length globals in
-       if Nat.eqb j n then Anon 0%Z (* X *)
-       else if Nat.eqb j (S n) then Anon 1%Z (* Y *)
+       let l := List.length globals in
+       if Nat.eqb j l then Anon 0%Z (* X *)
+       else if Nat.eqb j (S l) then Anon 1%Z (* Y *)
             else
               match nth_error globals j with
               | None => Anon 0%Z (* default value *)
@@ -914,6 +914,135 @@ Proof.
       eapply initIRGlobals_cons_head_uniq; eauto.
 Qed.
 
+Fact fold_init_one_global_app
+     (lm0 lm1 : memory)
+     (g0 g : global_env)
+     (d: list (toplevel_entity typ (list (LLVMAst.block typ))))
+     (m1 m0 : local_env)
+     (H1: ListSetoid.monadic_fold_left init_one_global (lm0, (m0, g0)) d ≡ inr (lm1, (m1, g)))
+  : ∃ g', g ≡ app g' g0.
+Proof.
+  revert H1.
+  revert lm1 lm0 g g0 m0 m1.
+  induction d; intros.
+  -
+    cbn in H1.
+    inv H1.
+    exists [].
+    symmetry.
+    apply app_nil_l.
+  -
+    cbn in H1.
+    break_match_hyp; [inl_inr|].
+    destruct l as [lm' [m' g']].
+    (*
+    apply IHd1 in H1.
+    destruct H1. *)
+    unfold init_one_global in Heqe.
+    repeat (break_match_hyp; try inl_inr).
+    subst.
+    cbn in Heqe.
+    repeat (break_match_hyp; try inl_inr); subst.
+    +
+      repeat inl_inr_inv.
+      subst.
+      unfold alloc_global in Heqs0.
+      break_match_hyp; try inl_inr.
+      inv Heqs0.
+      apply IHd in H1.
+      destruct H1.
+      exists (app x [(Name s, DVALUE_Addr (M.next_logical_key m, 0%Z))]).
+      subst. clear.
+      symmetry.
+      apply ListUtil.list_app_first_last.
+    +
+      repeat inl_inr_inv.
+      subst.
+      unfold alloc_global in Heqs0.
+      break_match_hyp; try inl_inr.
+      inv Heqs0.
+      apply IHd in H1.
+      destruct H1.
+      exists (app x [(Name s, DVALUE_Addr (M.next_logical_key m, 0%Z))]).
+      subst. clear.
+      symmetry.
+      apply ListUtil.list_app_first_last.
+Qed.
+
+(* TODO: This is general-purpose. Move elsewhere? *)
+Lemma mapsto_alist_app_1st
+      {K V: Type}
+      (R : K → K → Prop)
+      `{RD: RelDec.RelDec _ R}
+      `{RDC: @RelDec.RelDec_Correct K R RD}
+      (g g' : alist K V)
+      (v : V)
+      (n : K):
+  mapsto_alist RD g n v ->
+  mapsto_alist RD (g ++ g')%list n v.
+Proof.
+  revert v n.
+  induction g; intros.
+  -
+    inversion H.
+  -
+    cbn.
+    destruct a as [k0 v0].
+    apply mapsto_alist_cons; [apply RDC|].
+    destruct (RelDec.rel_dec n k0) eqn:K0.
+    +
+      right.
+      split.
+      *
+        rewrite RelDec.rel_dec_correct in K0.
+        apply K0.
+      *
+        apply mapsto_alist_cons in H ; [| auto].
+        destruct H.
+        destruct H.
+        rewrite RelDec.rel_dec_correct in K0.
+        congruence.
+        apply H.
+    +
+      left.
+      split.
+      *
+        apply IHg.
+        apply mapsto_alist_cons in H ; [| auto].
+        destruct H.
+        apply H.
+        destruct H.
+        apply RelDec.rel_dec_correct in H.
+        congruence.
+      *
+        apply RelDec.neg_rel_dec_correct in K0.
+        apply K0.
+Qed.
+
+(*
+Fact init_one_global_fold_in_1st
+     (lm0 lm1 : memory)
+     (g0 g : global_env)
+     (d0 d1 : list (toplevel_entity typ (list (LLVMAst.block typ))))
+     (m0 : local_env)
+     (H0: ListSetoid.monadic_fold_left init_one_global llvm_empty_memory_state_partial d0 ≡ inr (lm0, (m0, g0)))
+     (H1: ListSetoid.monadic_fold_left init_one_global (lm0, (m0, g0)) d1 ≡ inr (lm1, ([ ], g)))
+     (v: dvalue)
+     (n: raw_id)
+  :
+    mapsto_alist AstLib.eq_dec_raw_id g0 n v ->
+    mapsto_alist AstLib.eq_dec_raw_id g n v.
+Proof.
+  intros H.
+  pose proof (fold_init_one_global_app _ _ _ _ H1) as [g' G].
+  clear - G H.
+  subst g.
+  apply mapsto_alist_app_1st.
+  typeclasses eauto.
+  apply H.
+Qed.
+ *)
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -945,16 +1074,16 @@ Proof.
   rename Heqe into HIRG, l0 into ldata', l1 into gdecls.
   remember (global_XY i o ldata' (Anon 0%Z) (TYPE_Array (Z.of_nat i) TYPE_Double)
                       (Anon 1%Z) (TYPE_Array (Z.of_nat o) TYPE_Double)) as xydecls eqn:HXY.
-  rename Heqe0 into HFXY, l2 into lm0.
-  rename H0 into HG.
+  rename Heqe0 into HG, l2 into lm0.
+  rename H0 into HFXY.
   rename m into lm1, l4 into fdata'', data into fdata'''.
 
   (* No local variables initialize in init stage *)
   assert(L: l ≡ []).
   {
-    pose proof (monadic_fold_left_err_app HFXY HG) as HFGXY.
+    pose proof (monadic_fold_left_err_app HG HFXY) as HFGXY.
     unfold llvm_empty_memory_state_partial in HFGXY.
-    generalize dependent (app xydecls gdecls).
+    generalize dependent (app gdecls xydecls).
     generalize dependent M.empty_memory_stack.
     intros m x.
     generalize (@nil (prod raw_id dvalue)).
@@ -976,6 +1105,8 @@ Proof.
         repeat break_match_hyp; subst; try inl_inr.
         inv Heqe.
         repeat break_match_hyp; subst; try inl_inr.
+        inv H1.
+        inv H1.
   }
   subst l; cbn in *.
 
@@ -999,7 +1130,7 @@ Proof.
     (* [DSHnatVal] must end up in globals *)
     right.
     split; [trivial|].
-    (* but currently natval constants not implemented so we
+    (* but currently nat constants are not implemented so we
        shortcut this branch *)
     exfalso.
     clear - Hn HFSHG.
@@ -1048,7 +1179,44 @@ Proof.
   -
     (* [DSHCTypeVal] must end up in globals *)
     right.
-    split; [trivial|].
+    split; [trivial|cbn].
+    apply ListUtil.nth_app in Hn.
+    rename HFSHG into F.
+    destruct Hn as [[Hn Hx] | [Hn Hx]].
+    2:{
+      remember (x - Datatypes.length σ)%nat as k.
+      destruct k; inv Hn.
+      destruct k; inv H0.
+      rewrite Util.nth_error_nil in H1.
+      inv H1.
+    }
+    clear v Heqd.
+
+    (* Deal with X,Y first *)
+    pose proof (initFSHGlobals_globals_sigma_len_eq globals F) as GSL.
+    unfold memory_invariant_map.
+    repeat break_if; bool_to_nat; try lia.
+
+    (* X,Y eliminated, [x] somewhere in globals *)
+    break_match.
+    2:{
+      (* impossible case *)
+      apply ListNth.nth_error_length_lt in Hn.
+      apply ListUtil.nth_beyond_idx in Heqo0.
+      lia.
+    }
+    destruct p as (gname, gval).
+
+    (* unify lengths *)
+    remember (Datatypes.length σ) as l eqn:SL; symmetry in SL.
+    clear Heqb Heqb0.
+
+    rename m0 into fm0.
+    destruct lm0 as [lm0 [m0 g0]].
+
+    (* we know, [gname] is in [gdecls] and not in [xydecls] *)
+    (* eapply init_one_global_fold_in_1st;eauto. *)
+    clear HXY xydecls HFXY HCX HCY xdata ydata hdata.
     admit.
   -
     (* [DSHPtrVal] must end up in memory *)
