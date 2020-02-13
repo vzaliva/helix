@@ -563,7 +563,8 @@ Proof.
       - 
      *)
     simpl genIR in HCompile.
-    repeat rewrite string_cons_app in HCompile.
+
+    (* repeat rewrite string_cons_app in HCompile. *)
 
     repeat break_match_hyp; try inl_inr.
     repeat inv_sum.
@@ -582,6 +583,8 @@ Proof.
 
   - eutt_hide_right.
     cbn. unfold interp_Mem.
+
+    (*
     Check interp_state_bind.
     Check interp_bind.
 
@@ -596,17 +599,18 @@ interp_bind
 
     rewrite interp_state_bind.
     rewrite interp_iter.
+*)
     admit.
 
   - eutt_hide_right.
     cbn.
     unfold interp_Mem.
     rewrite interp_state_bind.
-    rewrite bind_trigger.
+    (* rewrite bind_trigger.
     
     Locate ITree.bind.
-    rewrite
-
+    rewrite *)
+    admit.
   - admit.
 
   - admit.
