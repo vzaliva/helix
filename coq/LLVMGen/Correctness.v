@@ -819,28 +819,57 @@ Qed.
 Fact fold_init_one_global_app
      (lm0 lm1 : memory)
      (g0 g : global_env)
-     (d0 d1 : list (toplevel_entity typ (list (LLVMAst.block typ))))
-     (s0: LLVM_memory_state_partial)
+     (d: list (toplevel_entity typ (list (LLVMAst.block typ))))
      (m1 m0 : local_env)
-     (H0: ListSetoid.monadic_fold_left init_one_global s0 d0 ≡ inr (lm0, (m0, g0)))
-     (H1: ListSetoid.monadic_fold_left init_one_global (lm0, (m0, g0)) d1 ≡ inr (lm1, (m1, g)))
-  : ∃ g', g ≡ app g0 g'.
+     (H1: ListSetoid.monadic_fold_left init_one_global (lm0, (m0, g0)) d ≡ inr (lm1, (m1, g)))
+  : ∃ g', g ≡ app g' g0.
 Proof.
-  revert H1 H0.
-  revert lm1 lm0 g d0 g0 s0 m0 m1.
-  induction d1; intros.
+  revert H1.
+  revert lm1 lm0 g g0 m0 m1.
+  induction d; intros.
   -
     cbn in H1.
     inv H1.
     exists [].
     symmetry.
-    apply app_nil_r.
+    apply app_nil_l.
   -
     cbn in H1.
     break_match_hyp; [inl_inr|].
     destruct l as [lm' [m' g']].
-
-Admitted.
+    (*
+    apply IHd1 in H1.
+    destruct H1. *)
+    unfold init_one_global in Heqe.
+    repeat (break_match_hyp; try inl_inr).
+    subst.
+    cbn in Heqe.
+    repeat (break_match_hyp; try inl_inr); subst.
+    +
+      repeat inl_inr_inv.
+      subst.
+      unfold alloc_global in Heqs0.
+      break_match_hyp; try inl_inr.
+      inv Heqs0.
+      apply IHd in H1.
+      destruct H1.
+      exists (app x [(Name s, DVALUE_Addr (M.next_logical_key m, 0%Z))]).
+      subst. clear.
+      symmetry.
+      apply ListUtil.list_app_first_last.
+    +
+      repeat inl_inr_inv.
+      subst.
+      unfold alloc_global in Heqs0.
+      break_match_hyp; try inl_inr.
+      inv Heqs0.
+      apply IHd in H1.
+      destruct H1.
+      exists (app x [(Name s, DVALUE_Addr (M.next_logical_key m, 0%Z))]).
+      subst. clear.
+      symmetry.
+      apply ListUtil.list_app_first_last.
+Qed.
 
 (* TODO: This is general-purpose. Move elsewhere? *)
 Lemma mapsto_alist_app_1st
@@ -892,6 +921,7 @@ Proof.
         apply K0.
 Qed.
 
+(*
 Fact init_one_global_fold_in_1st
      (lm0 lm1 : memory)
      (g0 g : global_env)
@@ -906,13 +936,14 @@ Fact init_one_global_fold_in_1st
     mapsto_alist AstLib.eq_dec_raw_id g n v.
 Proof.
   intros H.
-  pose proof (fold_init_one_global_app _ _ _ H0 H1) as [g' G].
+  pose proof (fold_init_one_global_app _ _ _ _ H1) as [g' G].
   clear - G H.
   subst g.
   apply mapsto_alist_app_1st.
   typeclasses eauto.
   apply H.
 Qed.
+ *)
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
@@ -1086,7 +1117,7 @@ Proof.
     destruct lm0 as [lm0 [m0 g0]].
 
     (* we know, [gname] is in [gdecls] and not in [xydecls] *)
-    eapply init_one_global_fold_in_1st;eauto.
+    (* eapply init_one_global_fold_in_1st;eauto. *)
     clear HXY xydecls HFXY HCX HCY xdata ydata hdata.
     admit.
   -
