@@ -153,6 +153,13 @@ Definition normalize_types_blocks (env: list _) (bks: list (LLVMAst.block typ))
     (TransformTypes.fmap_block _ _ (TypeUtil.normalize_type_dtyp env)) bks.
 Import IO TopLevelEnv Global Local.
 
+Definition
+
+Definition normalize_types_blocks_bids :
+  forall env (bks: list (LLVMAst.block typ)),
+  forall b, In b bks ->
+       exists b'normalize_types_blocks env bks.
+
 Definition interp_cfg_to_L3:
   forall (R: Type),
     IS.intrinsic_definitions ->
@@ -493,7 +500,7 @@ Definition bisim_partial: Type_R_partial
     rewrite Heqterm.
     cbn.
     setoid_rewrite translate_ret.
-    setoid_rewrite bind_ret_l.
+    setoid_rewrite bind_ret_l. 
     destruct (Eqv.eqv_dec_p (blk_id b) nextblock); try contradiction.
     repeat setoid_rewrite bind_ret_l. unfold Datatypes.id.
     reflexivity.
@@ -503,10 +510,29 @@ Definition bisim_partial: Type_R_partial
 (*
     for an opeartor, in initialized state
     TODO: We could probably fix [env] to be [nil]
-*)
-Lemma compile_FSHCOL_correct (op: DSHOperator): forall nextblock bid_out st' bid_in bks σ env mem g ρ mem_llvm,
+ *)
+
+  Lemma DSHAssign_singleton :
+    forall (nextblock : block_id) (src dst : MemVarRef) (st st' : IRState) (bid_in : block_id) 
+      (bks : list (LLVMAst.block typ)),
+      genIR (DSHAssign src dst) nextblock st ≡ inr (st', (bid_in, bks)) ->
+      exists b,
+        genIR (DSHAssign src dst) nextblock st ≡ inr (st', (bid_in, [b])) /\ snd (blk_term b) ≡ TERM_Br_1 nextblock /\ blk_id b ≡ bid_in /\ bks ≡ [b].
+  Proof.
+    intros nextblock src dst st st' bid_in bks HCompile.
+    simpl in HCompile. destruct src, dst.
+    simpl in HCompile.
+    repeat break_match_hyp; try inl_inr.
+    inv Heqs; inv HCompile.
+    unfold genFSHAssign in Heqs2.
+    cbn in Heqs2.
+  Admitted.
+
+Lemma compile_FSHCOL_correct
+      (op: DSHOperator): forall (nextblock bid_in : block_id) (st st' : IRState) (bks : list (LLVMAst.block typ)) (σ : evalContext) (env : list (ident * typ)) (mem : MDSHCOLOnFloat64.memory) (g : global_env) (ρ : local_env) (mem_llvm : memory),
+  nextblock ≢ bid_in ->    
   bisim_partial σ (mem,tt) (mem_llvm, (ρ, (g, (inl bid_in)))) ->
-  genIR op nextblock bid_out ≡ inr (st',(bid_in,bks)) ->
+  genIR op nextblock st ≡ inr (st',(bid_in,bks)) ->
   eutt (bisim_partial σ)
        (translate inr_
                   (interp_Mem (denoteDSHOperator σ op) mem))
@@ -515,7 +541,7 @@ Lemma compile_FSHCOL_correct (op: DSHOperator): forall nextblock bid_out st' bid
                                     (D.denote_bks (normalize_types_blocks env bks) bid_in)
                                     g ρ mem_llvm)).
 Proof.
-  induction op; intros; rename H0 into HCompile.
+  induction op; intros; rename H1 into HCompile.
   - inv HCompile.
     eutt_hide_right; cbn.
     unfold interp_Mem; simpl denoteDSHOperator.
@@ -532,6 +558,33 @@ Proof.
        - genFSHAssign
        - D.denote_bks over singletons
      *)
+    apply DSHAssign_singleton in HCompile.
+    destruct HCompile as (b & HCompile & Hterm & Hbid & Hbksbk).
+    subst. unfold normalize_types_blocks.
+    eutt_hide_left.
+    simpl.
+    pose proof (denote_bks_singleton (TransformTypes.fmap_block typ dtyp (TypeUtil.normalize_type_dtyp env) b)) (blk_id b) nextblock.
+    replace (D.denote_bks [TransformTypes.fmap_block typ dtyp (TypeUtil.normalize_type_dtyp env) b] (blk_id b)) with (D.denote_block (TransformTypes.fmap_block typ dtyp (TypeUtil.normalize_type_dtyp env) b)).
+    rewrite normalize_types_blocks.
+    destruct src, dst.
+    simpl in HCompile.
+    repeat break_match_hyp; try inl_inr.
+    inv Heqs; inv HCompile.
+    match goal with
+    | |- context[add_comment _ ?ss] => generalize ss; intros ls
+    end.
+    match goal with
+    | |- context[add_comment _ ?ss] => generalize ss; intros ls1
+    end.
+
+    subst. eutt_hide_right.
+    cbn.
+    unfold interp_Mem.
+    rewrite interp_state_bind.
+    unfold denotePexp, evalPexp.
+    cbn.
+    repeat setoid_rewrite interp_state_bind.
+    rewrite denote_bks_singleton.
     destruct src, dst.
     simpl in HCompile.
     repeat break_match_hyp; try inl_inr.
@@ -552,6 +605,7 @@ Proof.
        avoiding having to worry about iter.
      *)
     cbn; rewrite interp_cfg_to_L3_bind, interp_cfg_to_L3_ret, bind_ret_l.
+    
     admit.
 
   - (*
