@@ -153,13 +153,6 @@ Definition normalize_types_blocks (env: list _) (bks: list (LLVMAst.block typ))
     (TransformTypes.fmap_block _ _ (TypeUtil.normalize_type_dtyp env)) bks.
 Import IO TopLevelEnv Global Local.
 
-Definition
-
-Definition normalize_types_blocks_bids :
-  forall env (bks: list (LLVMAst.block typ)),
-  forall b, In b bks ->
-       exists b'normalize_types_blocks env bks.
-
 Definition interp_cfg_to_L3:
   forall (R: Type),
     IS.intrinsic_definitions ->
@@ -449,6 +442,27 @@ Definition bisim_partial: Type_R_partial
   From Vellvm Require Import Util.
   Require Import State.
 
+  (* Move to vellvm *)
+  (* ************************************************** *)
+  Lemma normalize_types_block_bid :
+    forall (env : list (ident * typ)) (b: LLVMAst.block typ),
+      blk_id (TransformTypes.fmap_block _ _ (TypeUtil.normalize_type_dtyp env) b) ≡ blk_id b.
+  Proof.
+    intros env b.
+    destruct b. reflexivity.
+  Qed.
+
+  Lemma normalize_types_block_term :
+    forall (env : list (ident * typ)) (b: LLVMAst.block typ) (nextblock : block_id),
+      snd (blk_term b) ≡ TERM_Br_1 nextblock ->
+      snd (blk_term (TransformTypes.fmap_block typ dtyp (TypeUtil.normalize_type_dtyp env) b)) ≡ TERM_Br_1 nextblock.
+  Proof.
+    intros env b nextblock Hterm.
+    destruct b. cbn in *. rewrite Hterm.
+    reflexivity.
+  Qed.
+  (* ************************************************** *)
+
   Lemma interp_cfg_to_L3_ret (defs: IS.intrinsic_definitions):
     forall {T} (x: T) g l m,
       interp_cfg_to_L3 defs (Ret x) g l m ≅ Ret (m,(l,(g,x))).
@@ -488,7 +502,7 @@ Definition bisim_partial: Type_R_partial
       (blk_id b) ≡ bid ->
       (snd (blk_term b)) ≡ (TERM_Br_1 nextblock) ->
       (blk_id b) <> nextblock ->
-      eutt TT (D.denote_bks [b] bid) (D.denote_block b).
+      eutt (Logic.eq) (D.denote_bks [b] bid) (D.denote_block b).
   Proof.
     intros b bid nextblock Heqid Heqterm Hneq.
     cbn.
@@ -563,48 +577,62 @@ Proof.
     subst. unfold normalize_types_blocks.
     eutt_hide_left.
     simpl.
-    pose proof (denote_bks_singleton (TransformTypes.fmap_block typ dtyp (TypeUtil.normalize_type_dtyp env) b)) (blk_id b) nextblock.
-    replace (D.denote_bks [TransformTypes.fmap_block typ dtyp (TypeUtil.normalize_type_dtyp env) b] (blk_id b)) with (D.denote_block (TransformTypes.fmap_block typ dtyp (TypeUtil.normalize_type_dtyp env) b)).
-    rewrite normalize_types_blocks.
-    destruct src, dst.
-    simpl in HCompile.
-    repeat break_match_hyp; try inl_inr.
-    inv Heqs; inv HCompile.
-    match goal with
-    | |- context[add_comment _ ?ss] => generalize ss; intros ls
-    end.
-    match goal with
-    | |- context[add_comment _ ?ss] => generalize ss; intros ls1
-    end.
 
-    subst. eutt_hide_right.
-    cbn.
-    unfold interp_Mem.
-    rewrite interp_state_bind.
-    unfold denotePexp, evalPexp.
-    cbn.
-    repeat setoid_rewrite interp_state_bind.
-    rewrite denote_bks_singleton.
+    pose proof (denote_bks_singleton (TransformTypes.fmap_block typ dtyp (TypeUtil.normalize_type_dtyp env) b)) (blk_id b) nextblock.
+    assert (eutt (Logic.eq) (D.denote_bks [TransformTypes.fmap_block typ dtyp (TypeUtil.normalize_type_dtyp env) b] (blk_id b)) (D.denote_block (TransformTypes.fmap_block typ dtyp (TypeUtil.normalize_type_dtyp env) b))).
+    {
+      rewrite (@denote_bks_singleton (TransformTypes.fmap_block typ dtyp (TypeUtil.normalize_type_dtyp env) b) (blk_id b) nextblock (normalize_types_block_bid env b)).
+      reflexivity.
+      apply normalize_types_block_term; auto.
+      rewrite (normalize_types_block_bid env b); auto.
+    }
+    rewrite H2.
+    subst i.
+    eutt_hide_right.
+    subst i.
+    unfold interp_Mem; cbn.
     destruct src, dst.
     simpl in HCompile.
     repeat break_match_hyp; try inl_inr.
     inv Heqs; inv HCompile.
-    match goal with
-    | |- context[add_comment _ ?ss] => generalize ss; intros ls
-    end.
-    unfold interp_Mem.
-    simpl denoteDSHOperator.
-    rewrite interp_state_bind, translate_bind.
-    match goal with
-      |- eutt _ ?t _ => remember t
-    end.
+    unfold denotePexp, evalPexp, lift_Serr.
+    subst.
+    unfold interp_Mem. (* cbn *)
+    (* match goal with *)
+    (* | |- context[add_comment _ ?ss] => generalize ss; intros ls *)
+    (* end. *)
+    (* match goal with *)
+    (* | |- context[add_comment _ ?ss] => generalize ss; intros ls1 *)
+    (* end. *)
+
+    (* subst. eutt_hide_right. *)
+    (* cbn. *)
+    (* unfold interp_Mem. *)
+    (* rewrite interp_state_bind. *)
+    (* unfold denotePexp, evalPexp. *)
+    (* cbn. *)
+    (* repeat setoid_rewrite interp_state_bind. *)
+    (* rewrite denote_bks_singleton. *)
+    (* destruct src, dst. *)
+    (* simpl in HCompile. *)
+    (* repeat break_match_hyp; try inl_inr. *)
+    (* inv Heqs; inv HCompile. *)
+    (* match goal with *)
+    (* | |- context[add_comment _ ?ss] => generalize ss; intros ls *)
+    (* end. *)
+    (* unfold interp_Mem. *)
+    (* simpl denoteDSHOperator. *)
+    (* rewrite interp_state_bind, translate_bind. *)
+    (* match goal with *)
+    (*   |- eutt _ ?t _ => remember t *)
+    (* end. *)
 
     (* Need a lemma to invert Heqs2.
        Should allow us to know that the list of blocks is a singleton in this case.
        Need then probably a lemma to reduce proofs about `D.denote_bks [x]` to something like the denotation of x,
        avoiding having to worry about iter.
      *)
-    cbn; rewrite interp_cfg_to_L3_bind, interp_cfg_to_L3_ret, bind_ret_l.
+    (* cbn; rewrite interp_cfg_to_L3_bind, interp_cfg_to_L3_ret, bind_ret_l. *)
     
     admit.
 
