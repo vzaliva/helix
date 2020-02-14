@@ -85,16 +85,16 @@ Definition initOneFSHGlobal
     | FSHnatValType => raise "Unsupported global type: nat"
     | FSHFloatValType =>
       let '(x, data) := rotate Float64Zero data in
-      ret (mem, data, snoc gs (DSHCTypeVal x))
+      ret (mem, data, Snoc gs (DSHCTypeVal x))
     | FSHvecValType n =>
       let (data,mb) := constMemBlock n data in
       let k := memory_next_key mem in
       let mem := memory_set mem k mb in
       let p := DSHPtrVal k n in
-      ret (mem, data, snoc gs p)
+      ret (mem, data, Snoc gs p)
     end.
 
-Fixpoint initFSHGlobals
+Definition initFSHGlobals
          (data: list binary64)
          (mem: memory)
          (globals: list (string * FSHValType))

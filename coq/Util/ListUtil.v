@@ -88,5 +88,6 @@ Proof.
     eapply U; eauto.
 Qed.
 
-Definition snoc {A:Type} (l:list A) (a:A) : list A
+(* Using upper-case to avoid name clash with [Vellvm.Util.snoc] *)
+Definition Snoc {A:Type} (l:list A) (a:A) : list A
   := List.app l [a].
