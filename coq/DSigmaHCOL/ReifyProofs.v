@@ -2625,16 +2625,6 @@ Proof.
     reflexivity.
 Qed.
 
-Lemma inductor_step:
-  ∀ (n : nat) (f : CarrierA → CarrierA → CarrierA) (x_v : vector CarrierA 1) 
-    (init : CarrierA),
-    HCOLImpl.Inductor n f (f (Vnth x_v (le_n 1)) init) (HCOLImpl.Scalarize x_v) =
-    HCOLImpl.Inductor (S n) f init (HCOLImpl.Scalarize x_v).
-Proof.
-  intros n f x_v init.
-  unfold HCOLImpl.Inductor.
-  rewrite nat_rect_succ_r.
-
 (* likely to change *)
 Global Instance Inductor_MSH_DSH_compat
        (σ : evalContext)
