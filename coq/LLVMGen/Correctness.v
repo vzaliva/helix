@@ -991,6 +991,34 @@ Proof.
       apply ListUtil.list_app_first_last.
 Qed.
 
+Lemma monadic_fold_left_err_app
+         {A B : Type}
+         (f : A -> B -> err A)
+         (s0 s2 : A)
+         (l0 l1 : list B):
+  ListSetoid.monadic_fold_left f s0 (l0++l1) ≡ inr s2
+  ->
+  ∃ s1,
+  ListSetoid.monadic_fold_left f s0 l0 ≡ inr s1 /\
+  ListSetoid.monadic_fold_left f s1 l1 ≡ inr s2.
+Proof.
+  revert l0 l1 s0 s2 f.
+  induction l0; intros.
+  -
+    cbn in *.
+    eexists; auto.
+  -
+    cbn in H.
+    break_match_hyp; [inl_inr|].
+    eapply IHl0 in H.
+    destruct H as [s1 [H1 H2]].
+    eexists.
+    split; [|eauto].
+    cbn.
+    rewrite Heqe.
+    apply H1.
+Qed.
+
 (* TODO: This is general-purpose. Move elsewhere? *)
 Lemma mapsto_alist_app_1st
       {K V: Type}
