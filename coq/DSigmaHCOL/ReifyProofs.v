@@ -1006,8 +1006,25 @@ Inductive AExpr_typecheck: AExpr -> evalContext -> Prop
       AExpr_typecheck b σ ->
       AExpr_typecheck (AZless a b) σ.
 
-Section DSHBinOp.
+Section BinCarrierA.
+
   Class MSH_DSH_BinCarrierA_compat
+        (f : CarrierA -> CarrierA -> CarrierA)
+        (σ : evalContext)
+        (df : AExpr)
+        (mem : memory)
+        `{dft : DSHBinCarrierA df}
+    :=
+      {
+        bin_typechecks:
+          forall a b,
+            AExpr_typecheck df (DSHCTypeVal b :: DSHCTypeVal a :: σ);
+  
+        bin_equiv:
+          forall a b, evalBinCType mem σ df a b = inr (f a b)
+      }.
+  
+  Class MSH_DSH_IBinCarrierA_compat
         {o: nat}
         (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
         (σ: evalContext)
@@ -1046,10 +1063,10 @@ Section DSHBinOp.
       contradict f; reflexivity.
   Qed.
   
-  Instance Abs_MSH_DSH_BinCarrierA_compat
+  Instance Abs_MSH_DSH_IBinCarrierA_compat
     :
       forall σ mem,
-        MSH_DSH_BinCarrierA_compat
+        MSH_DSH_IBinCarrierA_compat
           (λ i (a b : CarrierA),
            IgnoreIndex abs i
                        (HCOL.Fin1SwapIndex2 (n:=2)
@@ -1824,7 +1841,7 @@ Section DSHBinOp.
           all: do 3 constructor; assumption.
   Qed.
 
-End DSHBinOp.
+End BinCarrierA.
 
 (* Simple wrapper. *)
 Definition memory_alloc_empty m i :=
@@ -2289,7 +2306,7 @@ Global Instance BinOp_MSH_DSH_compat
        (σ: evalContext)
        (TC: typecheck_env 3 dfs σ)
        (m: memory)
-       `{MSH_DSH_BinCarrierA_compat _ f σ df m}
+       `{MSH_DSH_IBinCarrierA_compat _ f σ df m}
        `{BP: DSH_pure (DSHBinOp o x_p y_p df) dfs x_p y_p}
   :
     @MSH_DSH_compat _ _ (MSHBinOp f) (DSHBinOp o x_p y_p df) dfs σ m x_p y_p BP.
@@ -2567,6 +2584,57 @@ Proof.
     all: reflexivity.
 Qed.
 
+Global Instance evalDSHPower_Proper :
+  Proper ((=) ==> (=) ==> (=) ==> (=) ==> (=) ==> (=) ==> (=) ==> (=) ==> (=)) evalDSHPower.
+Proof.
+  unfold Proper, respectful.
+  intros m m' M σ σ' Σ n n' N
+         f f' F x x' X y y' Y
+         xo xo' XO yo yo' YO.
+  inversion_clear N; inversion_clear XO; inversion_clear YO.
+  clear n xo yo.
+  rename n' into n, xo' into xo, yo' into yo.
+  generalize dependent y.
+  generalize dependent y'.
+  induction n; intros.
+  -
+    cbn.
+    rewrite Y.
+    reflexivity.
+  -
+    cbn.
+    repeat break_match; try constructor.
+    all: err_eq_to_equiv_hyp.
+
+    (* memory lookups *)
+    all: try rewrite X in Heqe.
+    all: try rewrite Y in Heqe0.
+    all: try rewrite Heqe in *.
+    all: try rewrite Heqe0 in *.
+    all: try inl_inr; repeat inl_inr_inv.
+    all: rewrite Heqe2 in *.
+    all: rewrite Heqe3 in *.
+
+    (* AExp evaluation (evalBinCType *)
+    all: rewrite M, Σ, F in Heqe1.
+    all: rewrite Heqe1 in Heqe4.
+    all: try inl_inr; repeat inl_inr_inv.
+
+    eapply IHn.
+    rewrite Y, Heqe4.
+    reflexivity.
+Qed.
+
+Lemma inductor_step:
+  ∀ (n : nat) (f : CarrierA → CarrierA → CarrierA) (x_v : vector CarrierA 1) 
+    (init : CarrierA),
+    HCOLImpl.Inductor n f (f (Vnth x_v (le_n 1)) init) (HCOLImpl.Scalarize x_v) =
+    HCOLImpl.Inductor (S n) f init (HCOLImpl.Scalarize x_v).
+Proof.
+  intros n f x_v init.
+  unfold HCOLImpl.Inductor.
+  rewrite nat_rect_succ_r.
+
 (* likely to change *)
 Global Instance Inductor_MSH_DSH_compat
        (σ : evalContext)
@@ -2579,6 +2647,7 @@ Global Instance Inductor_MSH_DSH_compat
        (ts : TypeSig)
        (init : CarrierA)
        (a : AExpr)
+       `{FA : MSH_DSH_BinCarrierA_compat f σ a m}
        (x_p y_p : PExpr)
        `{PD : DSH_pure (DSHPower nx (x_p, NConst 0) (y_p, NConst 0) a init) ts x_p y_p}
   :
@@ -2610,6 +2679,7 @@ Proof.
       unfold SHCOL_DSHCOL_mem_block_equiv.
       intro k.
 
+
       cbn in X_M; rewrite X in X_M.
       cbn in Y_M; rewrite Y in Y_M.
 
@@ -2638,7 +2708,6 @@ Proof.
       break_match; try some_none.
       some_inv.
       rename t into x_v, Heqo into X_V.
-      clear H0.
 
       destruct (Nat.eq_dec k 0) as [KO | KO].
       * (* the changed part of the block*)
@@ -2647,17 +2716,60 @@ Proof.
         constructor 2; [reflexivity |].
         destruct (mem_lookup 0 y_dma) as [ydma0 |] eqn:YDMA0.
         --
-          induction n.
-          ++ cbn in Y_DMA.
-             inl_inr_inv.
-             rewrite <-YDMA0.
-             clear ydma0 YDMA0.
-             rewrite <-H0; clear H0.
-             unfold mem_lookup, mem_add.
-             rewrite NP.F.add_eq_o by reflexivity.
-             reflexivity.
+          clear N PD.
+          err_eq_to_equiv_hyp.
+          generalize dependent y_dma.
+          generalize dependent init.
+          induction n; intros.
           ++
-            admit.
+            cbn in Y_DMA.
+            inl_inr_inv.
+            rewrite <-YDMA0.
+            clear ydma0 YDMA0.
+            rewrite <-Y_DMA; clear Y_DMA.
+            unfold mem_lookup, mem_add.
+            rewrite NP.F.add_eq_o by reflexivity.
+            reflexivity.
+          ++
+            cbn in Y_DMA.
+            unfold mem_lookup_err in Y_DMA.
+            replace (mem_lookup 0 (mem_add 0 init y_m'))
+              with (Some init)
+              in Y_DMA
+              by (unfold mem_lookup, mem_add;
+                  rewrite NP.F.add_eq_o by reflexivity;
+                  reflexivity).
+            cbn in Y_DMA.
+
+            destruct (mem_lookup 0 x_m') as [xm'0|] eqn:XM'0;
+              cbn in Y_DMA; try inl_inr.
+
+            inversion FA; clear bin_typechecks0 FA;
+              rename bin_equiv0 into FA; specialize (FA xm'0 init).
+
+            break_match; try inl_inr; inl_inr_inv.
+            destruct (evalBinCType m σ a xm'0 init) as [|df] eqn:DF;
+              try inl_inr; inl_inr_inv; subst c.
+            rewrite mem_add_overwrite in Y_DMA.
+            apply IHn in Y_DMA; [| assumption].
+            rewrite Y_DMA.
+            f_equiv.
+            rewrite FA.
+            eapply mem_block_to_avector_nth with (k := 0) in X_V.
+            Unshelve.
+            2 : constructor.
+            assert (xm'0 = Vnth x_v (le_n 1)).
+            {
+              enough (Some xm'0 = Some (Vnth x_v (le_n 1))) by (some_inv; assumption).
+              rewrite <-X_V, <-XM'0, XME; reflexivity.
+            }
+
+            rewrite H.
+            unfold HCOLImpl.Inductor.
+            rewrite nat_rect_succ_r.
+            f_equiv.
+            f_equiv.
+            all: admit.
         --
           admit.
       * (* the preserved part of the block *)
