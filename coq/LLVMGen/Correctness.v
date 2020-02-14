@@ -881,19 +881,6 @@ Proof.
   - apply nth_error_None in Heqo; lia.
 Qed.
 
-Fact initIRGlobals_cons_exists d a l r:
-  initIRGlobals d (a :: l) ≡ inr r -> ∃ r', initIRGlobals d l ≡ inr r'.
-Proof.
-  intros H.
-  cbn in H.
-  cbn in H.
-  break_let; subst.
-  break_match_hyp ; [inl_inr|].
-  break_match_hyp; inv H; eauto.
-  (* !!!
-Qed. *)
-  Admitted.
-
 Fact initIRGlobals_cons_head_uniq:
   ∀ (a : string * FSHValType) (globals : list (string * FSHValType))
     (data : list binary64) (res : list binary64 *
@@ -921,7 +908,7 @@ Qed.
 Lemma initIRGlobals_names_unique globals data res:
   initIRGlobals data globals ≡ inr res → list_uniq fst globals.
 Proof.
-  revert res.
+  revert res data.
   induction globals; intros.
   -
     cbn in H.
@@ -931,9 +918,16 @@ Proof.
     apply list_uniq_cons.
     split.
     +
-      apply initIRGlobals_cons_exists in H.
-      destruct H.
-      eapply IHglobals, H.
+      cbn in H.
+      break_let; subst.
+      break_match_hyp;[inl_inr|].
+      break_match_hyp;[inl_inr|].
+      break_let; subst.
+      break_match_hyp;[inl_inr|].
+      break_let; subst.
+      inv H.
+      eapply IHglobals.
+      eauto.
     +
       (* [a] must not be present in [globals] *)
       unfold not.
