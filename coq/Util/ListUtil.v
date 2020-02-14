@@ -91,3 +91,12 @@ Qed.
 (* Using upper-case to avoid name clash with [Vellvm.Util.snoc] *)
 Definition Snoc {A:Type} (l:list A) (a:A) : list A
   := List.app l [a].
+
+Lemma Snoc_length {A:Type} {l:list A} {v:A}:
+  length (Snoc l v) = S (length l).
+Proof.
+  unfold Snoc.
+  rewrite app_length.
+  cbn.
+  apply Nat.add_1_r.
+Qed.

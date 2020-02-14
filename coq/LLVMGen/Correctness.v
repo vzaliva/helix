@@ -806,26 +806,47 @@ Fact initFSHGlobals_globals_sigma_len_eq
   initFSHGlobals data mem globals ≡ inr (mem', data', σ) ->
   List.length globals ≡ List.length σ.
 Proof.
-  (* !!!
-  revert mem mem' data data' σ.
+  unfold initFSHGlobals.
+
+  remember [] as pz.
+  replace (Datatypes.length globals) with (List.length pz + List.length globals)%nat
+    by (subst pz; reflexivity).
+  clear Heqpz. (* poor man generalize *)
+  revert mem mem' data data' σ pz.
   induction globals; intros.
   -
-    cbn in *.
+    cbv in H.
     inv H.
+    cbn.
+    rewrite Nat.add_0_r.
     reflexivity.
   -
     cbn in H.
+    break_match;[inl_inr|].
+    rename Heqe into H1.
+    unfold initOneFSHGlobal in H1.
     break_let; subst.
-    break_match;[inl_inr|].
-    repeat break_let; subst.
-    break_match;[inl_inr|].
-    repeat break_let; subst.
-    inv H.
-    cbn.
-    erewrite IHglobals; eauto.
+    break_match_hyp.
+    +
+      inl_inr.
+    +
+      break_let;subst.
+      inv H1.
+      eapply IHglobals in H.
+      rewrite <- H.
+      cbn.
+      rewrite Snoc_length.
+      lia.
+    +
+      break_let;subst.
+      inv H1.
+      eapply IHglobals in H.
+      rewrite <- H.
+      cbn.
+      rewrite Snoc_length.
+      lia.
 Qed.
-   *)
-  Admitted.
+
 
 (* Maps indices from [σ] to [raw_id].
    Currently [σ := [globals;Y;X]]
