@@ -1281,17 +1281,24 @@ Proof.
       rewrite Util.nth_error_nil in H1.
       inv H1.
     }
+    clear i o.
     clear Hx.
     revert F Hn.
     revert data fdata' m0 σ x.
     generalize helix_empty_memory as mem.
-    (* !!!
+
+    intros mem data fdata' m0 σ x F Hn.
+    contradict Hn.
+    revert x n.
+    revert F.
+    revert σ m0 data fdata' mem.
     induction globals; intros.
     +
       cbn in F.
       inv F.
-      rewrite Util.nth_error_nil in Hn.
-      inv Hn.
+      rewrite Util.nth_error_nil.
+      intros N.
+      inversion N.
     +
       cbn in F.
       break_match_hyp; [inl_inr|].
@@ -1303,15 +1310,10 @@ Proof.
         symmetry in Heqe.
         inl_inr_inv.
         subst p.
-        HERE.
+        revert x n.
+        (* TODO: from [F] split [\sigma] *)
+        admit.
       *
-        break_match_hyp; [inl_inr|].
-        repeat break_let; subst.
-        destruct σ as [| σ0 σs]; inv F.
-        destruct x; [inv Hn|].
-        rewrite ListUtil.nth_error_Sn in Hn.
-        eapply IHglobals; eauto.
-     *)
     admit.
   -
     (* [DSHCTypeVal] must end up in globals *)
