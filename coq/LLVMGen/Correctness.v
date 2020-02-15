@@ -1175,6 +1175,39 @@ Proof.
 Qed.
  *)
 
+Fact fold_init_one_global_empty_local
+     (gdecls : list (toplevel_entity typ (list (LLVMAst.block typ))))
+     (m m1 : memory)
+     (l1 : local_env)
+     (g g1 : global_env)
+  :
+    ListSetoid.monadic_fold_left init_one_global (m, ([], g)) gdecls ≡ inr (m1, (l1, g1))
+    → l1 ≡ [].
+Proof.
+  revert g g1 l1 m m1.
+  induction gdecls; intros.
+  -
+    cbn in H.
+    inv H.
+    reflexivity.
+  -
+    cbn in H.
+    break_match_hyp; [inl_inr|].
+    unfold init_one_global in Heqe.
+    repeat break_match_hyp; subst; try inl_inr.
+    cbn in Heqe.
+    repeat break_match_hyp; subst; try inl_inr.
+    repeat inl_inr_inv.
+    destruct l as [m' [l' g']].
+    tuple_inversion.
+    eapply IHgdecls; clear IHgdecls.
+    repeat inl_inr_inv.
+    eauto.
+    destruct l as [m' [l' g']].
+    inv Heqe.
+    eauto.
+Qed.
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -1184,7 +1217,6 @@ Lemma memory_invariant_after_init
                 init_llvm_memory p data ≡ inr lmem ->
                 memory_invariant σ hmem lmem.
 Proof.
-  (* !!!
   intros hmem σ lmem hdata [HI LI].
   unfold memory_invariant.
   repeat break_let; subst.
@@ -1195,50 +1227,24 @@ Proof.
   inv HI.
   cbn in *.
   repeat break_let; subst.
-  inv H1.
-  right. (* as [σ] is never empty after init *)
 
-  rename Heqp3 into HCY, m2 into ydata.
-  rename Heqp2 into HCX, m1 into xdata.
-  rename Heqe1 into HFSHG, l3 into fdata', e into σ.
+  right. (* as [σ] is never empty after init *)
+  rename Heqp0 into HCY, m1 into ydata.
+  rename Heqp4 into HCX, m2 into xdata.
+  rename Heqe0 into HFSHG, l2 into fdata', e into σ.
   rename Heqe into HIRG, l0 into ldata', l1 into gdecls.
   remember (global_YX i o ldata' (Anon 0%Z) (TYPE_Array (Z.of_nat i) TYPE_Double)
                       (Anon 1%Z) (TYPE_Array (Z.of_nat o) TYPE_Double)) as xydecls eqn:HXY.
-  rename Heqe0 into HG, l2 into lm0.
-  rename H0 into HFXY.
-  rename m into lm1, l4 into fdata'', data into fdata'''.
+  rename l3 into fdata''.
+
+  pose proof (monadic_fold_left_err_app _ _ _ _ LI) as [s1 [HG HFXY]].
+  destruct s1 as [m1 [l1 g1]].
 
   (* No local variables initialize in init stage *)
-  assert(L: l ≡ []).
-  {
-    pose proof (monadic_fold_left_err_app HG HFXY) as HFGXY.
-    unfold llvm_empty_memory_state_partial in HFGXY.
-    generalize dependent (app gdecls xydecls).
-    generalize dependent M.empty_memory_stack.
-    intros m x.
-    generalize (@nil (prod raw_id dvalue)).
-    intros g0 H.
-    clear - H.
+  assert(L1: l1 ≡ []) by eapply fold_init_one_global_empty_local, HG; subst l1.
+  assert(L: l ≡ []) by eapply fold_init_one_global_empty_local, HFXY; subst l.
 
-    unfold llvm_empty_memory_state_partial in H.
-    revert g0 m g l H.
-    induction x; intros; cbn in H.
-    -
-      inv H; reflexivity.
-    -
-      break_match_hyp; [inl_inr|].
-      destruct l0 as [m' [l' g']].
-      destruct l'.
-      + eapply IHx, H.
-      +
-        unfold init_one_global in Heqe.
-        repeat break_match_hyp; subst; try inl_inr.
-        inv Heqe.
-        repeat break_match_hyp; subst; try inl_inr.
-        inv H1.
-        inv H1.
-  }
-  subst l; cbn in *.
+  cbn in *.
 
   unshelve eexists.
   exists (memory_invariant_map globals).
@@ -1277,8 +1283,9 @@ Proof.
     }
     clear Hx.
     revert F Hn.
-    revert fdata''' m0 fdata' σ x.
+    revert data fdata' m0 σ x.
     generalize helix_empty_memory as mem.
+    (* !!!
     induction globals; intros.
     +
       cbn in F.
@@ -1287,11 +1294,16 @@ Proof.
       inv Hn.
     +
       cbn in F.
-      destruct a; destruct f; cbn in F.
+      break_match_hyp; [inl_inr|].
+      destruct a; destruct f; cbn in *.
       *
-        break_match_hyp.
         inl_inr.
-        repeat break_let; subst. inl_inr.
+      *
+        break_let; subst.
+        symmetry in Heqe.
+        inl_inr_inv.
+        subst p.
+        HERE.
       *
         break_match_hyp; [inl_inr|].
         repeat break_let; subst.
@@ -1299,13 +1311,8 @@ Proof.
         destruct x; [inv Hn|].
         rewrite ListUtil.nth_error_Sn in Hn.
         eapply IHglobals; eauto.
-      *
-        break_match_hyp; [inl_inr|].
-        repeat break_let; subst.
-        destruct σ as [| σ0 σs]; inv F.
-        destruct x; [inv Hn|].
-        rewrite ListUtil.nth_error_Sn in Hn.
-        eapply IHglobals; eauto.
+     *)
+    admit.
   -
     (* [DSHCTypeVal] must end up in globals *)
     right.
@@ -1342,11 +1349,10 @@ Proof.
     clear Heqb Heqb0.
 
     rename m0 into fm0.
-    destruct lm0 as [lm0 [m0 g0]].
 
     (* we know, [gname] is in [gdecls] and not in [xydecls] *)
     (* eapply init_one_global_fold_in_1st;eauto. *)
-    clear HXY xydecls HFXY HCX HCY xdata ydata hdata.
+    clear LI HXY xydecls HFXY HCX HCY xdata ydata hdata.
     admit.
   -
     (* [DSHPtrVal] must end up in memory *)
@@ -1354,7 +1360,6 @@ Proof.
     eexists.
     eexists.
     admit.
-*)
 Admitted.
 
 (* with init step  *)
