@@ -100,3 +100,47 @@ Proof.
   cbn.
   apply Nat.add_1_r.
 Qed.
+
+Lemma app_nth_error2 :
+  forall {A: Type} (l:list A) l' n, n >= List.length l -> nth_error (l++l') n = nth_error l' (n-length l).
+Proof.
+  induction l; intros l' d [|n]; auto;
+    cbn; rewrite IHl; auto with arith.
+Qed.
+
+Lemma app_nth_error1 :
+  forall {A:Type} (l:list A) l' n, n < length l -> nth_error (l++l') n = nth_error l n.
+Proof.
+  induction l.
+  - inversion 1.
+  - intros l' n H.
+    cbn.
+    destruct n; [reflexivity|].
+    rewrite 2!nth_error_Sn.
+    apply IHl.
+    cbn in H.
+    auto with arith.
+Qed.
+
+Lemma rev_nth_error : forall {A:Type} (l:list A) n,
+    (n < List.length l)%nat ->
+    nth_error (rev l) n = nth_error l (List.length l - S n) .
+Proof.
+  induction l.
+  intros; inversion H.
+  intros.
+  simpl in H.
+  simpl (rev (a :: l)).
+  simpl (List.length (a :: l) - S n).
+  inversion H.
+  rewrite <- minus_n_n; simpl.
+  rewrite <- rev_length.
+  rewrite app_nth_error2; auto.
+  rewrite <- minus_n_n; auto.
+  rewrite app_nth_error1; auto.
+  rewrite (minus_plus_simpl_l_reverse (length l) n 1).
+  replace (1 + length l) with (S (length l)); auto with arith.
+  rewrite <- minus_Sn_m; auto with arith.
+  apply IHl ; auto with arith.
+  rewrite rev_length; auto.
+Qed.
