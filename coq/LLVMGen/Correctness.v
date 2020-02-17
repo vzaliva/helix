@@ -1039,9 +1039,6 @@ Proof.
     cbn in H1.
     break_match_hyp; [inl_inr|].
     destruct l as [lm' [m' g']].
-    (*
-    apply IHd1 in H1.
-    destruct H1. *)
     unfold init_one_global in Heqe.
     repeat (break_match_hyp; try inl_inr).
     subst.
