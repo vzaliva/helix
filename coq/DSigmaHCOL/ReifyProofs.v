@@ -2711,7 +2711,7 @@ Proof.
           generalize dependent y_dma.
           generalize dependent init.
           induction n; intros.
-          ++
+          ++ (* induction base *)
             cbn in Y_DMA.
             inl_inr_inv.
             rewrite <-YDMA0.
@@ -2720,7 +2720,9 @@ Proof.
             unfold mem_lookup, mem_add.
             rewrite NP.F.add_eq_o by reflexivity.
             reflexivity.
-          ++
+          ++ (* inductive step *)
+
+            (* simplify Y_DMA *)
             cbn in Y_DMA.
             unfold mem_lookup_err in Y_DMA.
             replace (mem_lookup 0 (mem_add 0 init y_m'))
@@ -2730,35 +2732,34 @@ Proof.
                   rewrite NP.F.add_eq_o by reflexivity;
                   reflexivity).
             cbn in Y_DMA.
-
             destruct (mem_lookup 0 x_m') as [xm'0|] eqn:XM'0;
               cbn in Y_DMA; try inl_inr.
-
             inversion FA; clear bin_typechecks0 FA;
               rename bin_equiv0 into FA; specialize (FA xm'0 init).
-
-            break_match; try inl_inr; inl_inr_inv.
             destruct (evalBinCType m σ a xm'0 init) as [|df] eqn:DF;
-              try inl_inr; inl_inr_inv; subst c.
+              try inl_inr; inl_inr_inv.
+            (* abstract: this gets Y_DMA to "the previous step" for induction *)
             rewrite mem_add_overwrite in Y_DMA.
-            apply IHn in Y_DMA; [| assumption].
-            rewrite Y_DMA.
-            f_equiv.
-            rewrite FA.
-            eapply mem_block_to_avector_nth with (k := 0) in X_V.
-            Unshelve.
-            2 : constructor.
-            assert (xm'0 = Vnth x_v (le_n 1)).
+
+            apply mem_block_to_avector_nth with (kc:=le_n 1) (k := 0) in X_V.
+            rewrite Vnth_1_Vhead in X_V.
+            assert (T : xm'0 = Vhead x_v).
             {
-              enough (Some xm'0 = Some (Vnth x_v (le_n 1))) by (some_inv; assumption).
+              enough (Some xm'0 = Some (Vhead x_v)) by (some_inv; assumption).
               rewrite <-X_V, <-XM'0, XME; reflexivity.
             }
+            rewrite T in FA; clear T.
+            
+            (* applying induction hypothesis *)
+            apply IHn in Y_DMA; [| assumption].
 
-            rewrite H.
+            rewrite Y_DMA, FA.
+
             unfold HCOLImpl.Inductor.
             rewrite nat_rect_succ_r.
             f_equiv.
             f_equiv.
+            unfold HCOLImpl.Scalarize.
             all: admit.
         --
           admit.
