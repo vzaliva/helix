@@ -1092,7 +1092,42 @@ Fact init_with_data_init_one_global_empty_local
      m g m' l g':
   init_with_data init_one_global no_chk (m, [ ]) g ≡ inr (m', l, g') -> l ≡ [].
 Proof.
-Admitted.
+  revert g' l m m'.
+  induction g; intros.
+  -
+    cbn in H.
+    inv H.
+    reflexivity.
+  -
+    cbn in H.
+    break_match_hyp; try inl_inr.
+    break_let; subst.
+    break_match_hyp; try inl_inr.
+    break_let; subst.
+    inl_inr_inv.
+    destruct p2.
+    tuple_inversion.
+    destruct p0.
+    destruct p.
+
+    unfold init_one_global in Heqs.
+    repeat break_match_hyp; try inl_inr.
+    subst.
+    inv Heqs.
+    break_match_hyp; try inl_inr.
+    repeat break_let; subst.
+    repeat break_match_hyp; try inl_inr.
+    +
+      repeat inl_inr_inv.
+      subst.
+      eapply IHg.
+      eauto.
+    +
+      repeat inl_inr_inv.
+      subst.
+      eapply IHg.
+      eauto.
+Qed.
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
