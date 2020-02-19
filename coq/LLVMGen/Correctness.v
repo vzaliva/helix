@@ -1221,9 +1221,8 @@ Proof.
     (* but currently nat constants are not implemented so we
        shortcut this branch *)
     exfalso.
-    (*
-    clear - Hn HFSHG.
-    rename HFSHG into F.
+    clear - Hn Heqe1.
+    rename Heqe1 into F.
 
     apply ListUtil.nth_app in Hn.
     destruct Hn as [[Hn Hx] | [Hn Hx]].
@@ -1254,20 +1253,34 @@ Proof.
     +
       cbn in F.
       break_match_hyp; [inl_inr|].
-      destruct a; destruct f; cbn in *.
+      break_let; subst.
+      break_match_hyp; [inl_inr|].
+      break_let; subst.
+      inv F.
+      destruct a.
+      destruct f; cbn in *.
       *
         inl_inr.
       *
-        break_let; subst.
+        repeat break_let; subst.
         symmetry in Heqe.
         inl_inr_inv.
-        subst p.
-        revert x n.
-        (* TODO: from [F] split [\sigma] *)
-        admit.
+        subst.
+        destruct x.
+        cbn.
+        intros C. inv C.
+        cbn.
+        eapply IHglobals, Heqe0.
       *
-      *)
-    admit.
+        repeat break_let; subst.
+        symmetry in Heqe.
+        inl_inr_inv.
+        subst.
+        destruct x.
+        cbn.
+        intros C. inv C.
+        cbn.
+        eapply IHglobals, Heqe0.
   -
     (* [DSHCTypeVal] must end up in globals *)
     right.
