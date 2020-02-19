@@ -88,62 +88,6 @@ Proof.
     eapply U; eauto.
 Qed.
 
-Section Snoc.
-
-  Context {A:Type}.
-
-  (* Using upper-case to avoid name clash with [Vellvm.Util.snoc] *)
-  Fixpoint Snoc (l:list A) (a:A) : list A
-    :=
-      match l with
-      | [] => [a]
-      | h :: t => h :: (Snoc t a)
-      end.
-
-  Theorem Snoc_append : forall (l:list A) (a:A),
-      Snoc l a = l ++ [a].
-  Proof.
-    intros l a.
-    induction l.
-    reflexivity.
-    simpl.
-    rewrite IHl.
-    reflexivity.
-  Qed.
-
-  Lemma Snoc_length {l:list A} {v:A}:
-    length (Snoc l v) = S (length l).
-  Proof.
-    rewrite Snoc_append.
-    rewrite app_length.
-    cbn.
-    apply Nat.add_1_r.
-  Qed.
-
-  Theorem rev_Snoc: forall (a:A) (l:list A),
-      rev (Snoc l a)   = a :: (rev l).
-  Proof.
-    intros a l.
-    induction l as [| a' l'].
-    reflexivity.
-    simpl.
-    rewrite -> IHl'.
-    reflexivity.
-  Qed.
-
-  Lemma Snoc_app: forall (l1 l2:list A) (a:A),
-      Snoc (l1 ++ l2) a = l1 ++ Snoc l2 a.
-  Proof.
-    intros l1 l2 a.
-    induction l1.
-    reflexivity.
-    simpl.
-    rewrite IHl1.
-    reflexivity.
-  Qed.
-
-End Snoc.
-
 Lemma app_nth_error2 :
   forall {A: Type} (l:list A) l' n, n >= List.length l -> nth_error (l++l') n = nth_error l' (n-length l).
 Proof.

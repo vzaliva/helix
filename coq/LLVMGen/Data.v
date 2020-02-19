@@ -4,6 +4,7 @@ Require Import Coq.Lists.List.
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Helix.Util.ErrorSetoid.
 Require Import Helix.Util.ListUtil.
+Require Import Helix.Tactics.HelixTactics.
 
 Require Import Vellvm.LLVMAst.
 
@@ -75,23 +76,82 @@ Record FSHCOLProgram :=
       op: DSHOperator;
     }.
 
+(*
+   This is a special variant of monadic fold,
+   which explicitly build a list.
+
+   It is written to generalize 2 variable initialization
+   functions: [initFSHGlobals], [initIRGlobals], and
+   [init_llvm_memory].
+ *)
+Fixpoint init_with_data
+         {A: Type} (* input values *)
+         {B: Type} (* output values we collect *)
+         {C: Type} (* data *)
+         (f: C -> A -> err (C*B))
+         (chk: A -> list A -> err unit) (* check function *)
+         (c: C) (* initial data *)
+         (l: list A)
+  : err (C * list B)
+  :=  match l with
+      | nil => ret (c,[])
+      | cons x xs =>
+        _ <- chk x xs ;;
+        '(c,b) <- f c x ;;
+        '(c,bs) <- init_with_data f chk c xs ;;
+        ret (c, b::bs)
+      end.
+
+(* Check for [init_with_data] which always succeeds *)
+Definition no_chk {A:Type}: A -> list A -> err unit
+  := fun _ _ => ret tt.
+
+Lemma init_with_data_len
+      {A: Type} (* input values *)
+      {B: Type} (* output values we collect *)
+      {C: Type} (* data *)
+      (f: C -> A -> err (C*B))
+      (chk: A -> list A -> err unit) (* check function *)
+      (c c': C) (* initial data *)
+      (l: list A)
+      (bs: list B)
+  :
+    init_with_data f chk c l = inr (c', bs) ->
+    List.length l = List.length bs.
+Proof.
+  revert bs c c'.
+  induction l; intros.
+  -
+    cbn in H.
+    inversion H.
+    reflexivity.
+  -
+    cbn in H.
+    repeat break_match_hyp; try inl_inr.
+    inl_inr_inv.
+    subst.
+    apply IHl in Heqe1.
+    cbn.
+    auto.
+Qed.
+
 Definition initOneFSHGlobal
-           (st:memory * list binary64 * evalContext)
-           (gp:string*FSHValType) : err (memory * list binary64 * evalContext)
+           (st: memory * list binary64)
+           (gp: string*FSHValType) : err (memory * list binary64 * DSHVal)
   :=
     let (_,gt) := gp in
-    let '(mem,data,gs) := st in
+    let '(mem,data) := st in
     match gt with
     | FSHnatValType => raise "Unsupported global type: nat"
     | FSHFloatValType =>
       let '(x, data) := rotate Float64Zero data in
-      ret (mem, data, Snoc gs (DSHCTypeVal x))
+      ret (mem, data, DSHCTypeVal x)
     | FSHvecValType n =>
       let (data,mb) := constMemBlock n data in
       let k := memory_next_key mem in
       let mem := memory_set mem k mb in
       let p := DSHPtrVal k n in
-      ret (mem, data, Snoc gs p)
+      ret (mem, data, p)
     end.
 
 Definition initFSHGlobals
@@ -99,10 +159,7 @@ Definition initFSHGlobals
          (mem: memory)
          (globals: list (string * FSHValType))
 : err (memory * list binary64 * evalContext)
-  :=
-    ListSetoid.monadic_fold_left initOneFSHGlobal
-                                 (mem, data, [])
-                                 globals.
+  := init_with_data initOneFSHGlobal no_chk (mem, data) globals.
 
 Definition helix_empty_memory := memory_empty.
 

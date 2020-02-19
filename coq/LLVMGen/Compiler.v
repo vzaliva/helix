@@ -1104,11 +1104,11 @@ Definition LLVMGen
 
 
 Definition initOneIRGlobal
-           (t: FSHValType)
            (data: list binary64)
-           (nm: string)
+           (nmt:string * FSHValType)
   : err (list binary64 * (toplevel_entity typ (list (block typ))))
   :=
+    let (nm,t) := nmt in
     match t with
     | FSHnatValType => raise "FSHnatValType global type not supported"
     | FSHFloatValType =>
@@ -1156,6 +1156,7 @@ Definition globals_name_present
   :=
     List.fold_right (fun v f => orb f (string_beq (fst v) name)) false l.
 
+
 Fact nth_to_globals_name_present (globals:list (string * FSHValType)) nm :
   (exists res j, (nth_error globals j = Some res /\ fst res = nm))
   ->
@@ -1192,21 +1193,19 @@ Proof.
 Qed.
 
 (* Could not use [monadic_fold_left] here because of error check. *)
-Fixpoint initIRGlobals
+Definition initIRGlobals
          (data: list binary64)
          (x: list (string * FSHValType))
   : err (list binary64 * list (toplevel_entity typ (list (block typ))))
-  :=  match x with
-      | nil => ret (data,[])
-      | cons (nm, t) xs =>
-        if globals_name_present nm xs
-        then
-          inl ("duplicate global name: " ++ nm)%string
-        else
-          '(data,g) <- initOneIRGlobal t data nm ;;
-          '(data,gs) <- initIRGlobals data xs ;;
-          ret (data,g::gs)
-      end.
+  := init_with_data initOneIRGlobal
+                    (fun x xs =>
+                       let nm := (fst x) in
+                       assert_false_to_err
+                         ("duplicate global name: " @@ nm)
+                         (globals_name_present nm xs)
+                         tt
+                    )
+                    (data) x.
 
 (*
    When code genration generates [main], the input

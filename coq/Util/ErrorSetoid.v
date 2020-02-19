@@ -218,3 +218,11 @@ Proof.
     break_match_goal;[inl_inr|].
     eapply IH; eauto.
 Qed.
+
+(* raise [err] if boolean flag is false *)
+Definition assert_true_to_err {A:Type} (msg:string) (b:bool) (v:A) : err A
+  := if b then inr v else inl msg.
+
+(* raise [err] if boolean flag is true *)
+Definition assert_false_to_err {A:Type} (msg:string) (b:bool) (v:A) : err A
+  := if b then inl msg else inr v.
