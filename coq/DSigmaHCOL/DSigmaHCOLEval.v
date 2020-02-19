@@ -283,7 +283,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       | S p =>
         xv <- mem_lookup_err "Error reading 'xv' memory in evalDSHBinOp" 0 x ;;
            yv <- mem_lookup_err "Error reading 'yv' memory in evalDSHBinOp" 0 y ;;
-           v' <- evalBinCType mem σ f xv yv ;;
+           v' <- evalBinCType mem σ f yv xv ;;
            evalDSHPower mem σ p f x (mem_add 0 v' y) xoffset yoffset
       end.
 
