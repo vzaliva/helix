@@ -46,6 +46,13 @@ Definition IMap_plusD_test :=
 Definition Compose_pointwise_test :=
   DSHSeq IMap_plus1_test IMap_plus1_test.
 
+Definition Inductor_test :=
+  DSHPower (NConst 42)
+           ((PVar 1), (NConst 0))
+           ((PVar 0), (NConst 0))
+           (AMinus (AConst Float64Zero) (AConst Float64One))
+           Float64One.
+
 Definition IReduction_test :=
   DSHAlloc 1
            (DSHSeq (DSHMemInit 1 (PVar 0) FSigmaHCOL.Float64Zero)
@@ -148,8 +155,8 @@ Definition all_tests :=
       {| i:=2; o:=1; name:="ireduction"; op:=IReduction_test; globals:=[] |} ;
       (*
       {| name:="iunion"; op:=IUnion_test; globals:=[] |} ;
-      {| name:="inductor"; op:=Inductor_test; globals:=[] |} ;
        *)
+      {| i:=1; o:=1; name:="inductor"; op:=Inductor_test; globals:=[] |} ;
       {| i:=4; o:=4; name:="sumunion"; op:=SUMUnion_test; globals:=[("D", FSHvecValType 4)] |} ;
       {| i:=8; o:=8; name:="pointwise_plus1"; op:=IMap_plus1_test; globals:=[] |} ;
       {| i:=8; o:=8; name:="pointwise_plusD"; op:=IMap_plusD_test; globals:=[("D", FSHFloatValType)] |} ;
