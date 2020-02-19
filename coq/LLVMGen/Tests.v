@@ -50,7 +50,7 @@ Definition Inductor_test :=
   DSHPower (NConst 42)
            ((PVar 1), (NConst 0))
            ((PVar 0), (NConst 0))
-           (AMinus (AConst Float64Zero) (AConst Float64One))
+           (AMinus (AVar 1) (AVar 0))
            Float64One.
 
 Definition IReduction_test :=

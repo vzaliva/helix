@@ -912,13 +912,13 @@ Definition genPower
                                                  (IntType,EXP_Integer 0%Z)]
 
                         ));
-                          (IId yv, INSTR_Load false TYPE_Double
-                                              (TYPE_Pointer TYPE_Double,
-                                               (EXP_Ident (ID_Local py)))
-                                              (ret 8%Z));
                           (IId xv, INSTR_Load false TYPE_Double
                                               (TYPE_Pointer TYPE_Double,
                                                (EXP_Ident (ID_Local px)))
+                                              (ret 8%Z));
+                          (IId yv, INSTR_Load false TYPE_Double
+                                              (TYPE_Pointer TYPE_Double,
+                                               (EXP_Ident (ID_Local py)))
                                               (ret 8%Z))
                       ]
                          ++ fexpcode ++
