@@ -991,23 +991,48 @@ Proof.
       eapply initIRGlobals_cons_head_uniq; eauto.
 Qed.
 
+(* Note: this could not be proben for arbitrary [chk] function,
+   so we prove this only for [no_chk] *)
 Lemma init_with_data_app
       {A: Type} (* input values *)
       {B: Type} (* output values we collect *)
       {C: Type} (* data *)
       (f: C -> A -> err (C*B))
-      (chk: A -> list A -> err unit) (* check function *)
       (c c': C) (* initial data *)
       (l0 l1: list A)
       (b: list B)
   :
-    init_with_data f chk c (l0++l1) ≡ inr (c',b) ->
-    ∃ c1 b1 c2 b2,
-      (init_with_data f chk c' l0 ≡ inr (c1,b1) /\
-      init_with_data f chk c1 l1 ≡ inr (c2,b2) /\
-      b ≡ (b1 ++ b2)%list).
+    init_with_data f no_chk c (l0++l1) ≡ inr (c',b) ->
+    ∃ c1 b1 b2,
+      (init_with_data f no_chk c l0 ≡ inr (c1,b1) /\
+       init_with_data f no_chk c1 l1 ≡ inr (c',b2) /\
+       b ≡ (b1 ++ b2)%list).
 Proof.
-Admitted.
+  revert l0 l1 c c' b.
+  induction l0; intros.
+  -
+    cbn in H.
+    repeat eexists.
+    eauto.
+  -
+    cbn in H.
+    repeat break_match_hyp; try inl_inr.
+    inl_inr_inv.
+    subst.
+    apply IHl0 in Heqe0; clear IHl0.
+    destruct Heqe0 as (c1 & b1 & b2 & H1 & H2 & E).
+    repeat eexists; cbn.
+    +
+      rewrite Heqe.
+      rewrite H1.
+      eauto.
+    +
+      eauto.
+    +
+      cbn.
+      f_equiv.
+      auto.
+Qed.
 
 Lemma monadic_fold_left_err_app
          {A B : Type}
@@ -1164,13 +1189,12 @@ Proof.
   destruct p.
   tuple_inversion.
 
-  pose proof (init_with_data_app _ _ _ _ _ HFSHG)
-    as ([m1 l1] & g1 & [m2 l2] & g2 & HG & HFXY & E).
+  pose proof (init_with_data_app _ _ _ _ HFSHG)
+    as ([m1 l1] & g1 & g2 & HG & HFXY & E).
 
   (* No local variables initialize in init stage *)
-  assert(L0: l ≡ []) by eapply init_with_data_init_one_global_empty_local, HFSHG; subst l.
   assert(L1: l1 ≡ []) by eapply init_with_data_init_one_global_empty_local, HG; subst l1.
-  assert(L2: l2 ≡ []) by eapply init_with_data_init_one_global_empty_local, HFXY; subst l2.
+  assert(L2: l ≡ []) by eapply init_with_data_init_one_global_empty_local, HFXY; subst l.
 
   cbn in *.
 
