@@ -218,7 +218,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       | S p =>
         xv <- lift_Derr (mem_lookup_err "Error reading 'xv' memory in denoteDSHBinOp" 0 x) ;;
         yv <- lift_Derr (mem_lookup_err "Error reading 'yv' memory in denoteDSHBinOp" 0 y) ;;
-        v' <- denoteBinCType σ f xv yv ;;
+        v' <- denoteBinCType σ f yv xv ;;
         denoteDSHPower σ p f x (mem_add 0 v' y) xoffset yoffset
       end.
 
