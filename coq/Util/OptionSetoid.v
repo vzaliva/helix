@@ -332,6 +332,17 @@ Proof.
     reflexivity.
 Qed.
 
+Lemma option_eq_to_opt_r {A:Type} {a b: option A}:
+  a ≡ b <-> RelUtil.opt_r eq a b.
+Proof.
+  split; intros H.
+  -
+    rewrite <- H.
+    destruct a; constructor.
+    reflexivity.
+  -
+    inv H; auto.
+Qed.
 
 Ltac destruct_opt_r_equiv :=
   match goal with

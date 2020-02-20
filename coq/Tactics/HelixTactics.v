@@ -94,3 +94,9 @@ Ltac assert_match_eq H :=
   | [|- match ?a with _ => _  end ≡ match ?b with _ => _  end] =>
     assert(a ≡ b) as H
   end.
+
+Ltac bool_to_nat :=
+  repeat match goal with
+  | [H: Nat.eqb _ _ ≡ true |- _ ] => apply EqNat.beq_nat_true in H
+  | [H: Nat.eqb _ _ ≡ false |- _ ] => apply EqNat.beq_nat_false in H
+  end.

@@ -6,6 +6,7 @@ Require Import Coq.ZArith.BinInt.
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Helix.LLVMGen.Compiler.
 Require Import Helix.LLVMGen.Externals.
+Require Import Helix.LLVMGen.Data.
 Require Import Helix.Util.ErrorSetoid.
 Require Import Helix.Util.ErrorWithState.
 
@@ -16,14 +17,10 @@ Require Import Vellvm.Handlers.Memory.
 Require Import Vellvm.TopLevel.
 Require Import Vellvm.LLVMAst.
 
-Require Import ITree.ITree.
-
 Require Import Flocq.IEEE754.Binary.
 Require Import Flocq.IEEE754.Bits.
 
 Require Import ExtLib.Structures.Monads.
-
-Require Import Helix.LLVMGen.Correctness.
 
 Import ListNotations.
 
@@ -135,16 +132,6 @@ DSHAlloc 2
 Local Close Scope nat_scope.
 
 
-Record FSHCOLTest :=
-  mkFSHCOLTest
-    {
-      i: nat;
-      o: nat;
-      name: string;
-      globals: list (string * FSHValType) ;
-      op: DSHOperator;
-    }.
-
 Local Open Scope string_scope.
 
 Definition all_tests :=
@@ -178,55 +165,19 @@ Definition test_interpreter := TopLevelEnv.interpreter_user helix_intrinsics.
    - d: results of evaluation of LLVM program
    - e: error string (applicable if either of first two tuple's elements are [None]
 *)
-Definition runFSHCOLTest (t:FSHCOLTest) (just_compile:bool) (data:list binary64)
+Definition runFSHCOLTest (t:FSHCOLProgram) (just_compile:bool) (data:list binary64)
   :=
-    match t return (list binary64 -> _) with
-    | mkFSHCOLTest i o name globals op =>
-      fun data' =>
-        match initIRGlobals data' globals with
-        | inl msg => (None,None,msg)
-        | inr (data'', ginit) =>
-          let ginit := app [TLE_Comment "Global variables"] ginit in
-          let main := genMain i o name globals data'' in
-          let eres := evalErrS (LLVMGen i o globals just_compile op name) newState in
-          match eres with
-          | inl msg => (None, None, msg)
-          | inr prog =>
-            if just_compile then
-              (Some prog, None, "")
-            else
-              let code := app (app ginit prog) main in
-              (Some prog, Some (test_interpreter code), "")
-          end
-        end
-    end data.
+    match compile t just_compile data with
+    | inl msg => (None, None, msg)
+    | inr prog =>
+      if just_compile then
+        (Some prog, None, "")
+      else
+        (Some prog, Some (test_interpreter prog), "")
+    end.
 
 Require Import Helix.Util.ListSetoid.
 Require Import Helix.Util.ErrorSetoid.
-
-Fixpoint initFSHGlobals
-         (data: list binary64)
-         (mem: memory)
-         (globals: list (string * FSHValType))
-  : err (memory * list binary64 * evalContext)
-  :=
-    match globals with
-    | [] => ret (mem,data, [])
-    | (_,gt)::gs => match gt with
-                  | FSHnatValType => raise "Unsupported global type: nat"
-                  | FSHFloatValType =>
-                    '(mem,data,σ) <- initFSHGlobals data mem gs ;;
-                    let '(x, data) := rotate Float64Zero data in
-                    ret (mem, data, (DSHCTypeVal x)::σ)
-                  | FSHvecValType n =>
-                    '(mem,data,σ) <- initFSHGlobals data mem gs ;;
-                     let (data,mb) := constMemBlock n data in
-                     let k := memory_next_key mem in
-                     let mem := memory_set mem k mb in
-                     let p := DSHPtrVal k n in
-                     ret (mem, data, (p::σ))
-                  end
-    end.
 
 Definition evalFSHCOLOperator
            (i o: nat)
@@ -236,28 +187,19 @@ Definition evalFSHCOLOperator
            (data:list binary64)
   : err (list binary64)
   :=
-
-    let mem := memory_empty in
-    (* Initializes the input address *)
-    '(mem, data, σ) <- initFSHGlobals data mem globals ;;
-    let xindex := memory_next_key mem in
-    let '(data, x) := constMemBlock i data in
-    let mem := memory_set mem xindex x in
-    (* Initializes the output address *)
-    let yindex :=  memory_next_key mem in
-    let mem := memory_set mem yindex mem_empty in
-
-     let σ := List.app σ [DSHPtrVal yindex o; DSHPtrVal xindex i] in
-     match evalDSHOperator σ op mem (estimateFuel op) with
-     | Some (inr mem) =>
-       yb <- trywith "No output memory block" (memory_lookup mem yindex) ;;
-          mem_to_list "Invalid output memory block" o yb
-     | Some (inl msg) => inl msg
-     | None => raise "evalDSHOperator returns None"
-     end.
+    let p := mkFSHCOLProgram i o name globals op in
+    '(mem, data, σ) <- helix_intial_memory p data ;;
+    match evalDSHOperator σ op mem (estimateFuel op) with
+    | Some (inr mem) =>
+      let Y_mem_block_id : mem_block_id := S (length globals) in
+      yb <- trywith "No output memory block" (memory_lookup mem Y_mem_block_id) ;;
+      mem_to_list "Invalid output memory block" o yb
+    | Some (inl msg) => inl msg
+    | None => raise "evalDSHOperator run out of fuel!"
+    end.
 
 (* Returns [sum string (list binary64)] *)
-Definition evalFSHCOLTest (t:FSHCOLTest) (data:list binary64)
+Definition evalFSHCOLTest (t:FSHCOLProgram) (data:list binary64)
   : err (list binary64)
   :=
     @evalFSHCOLOperator t.(i) t.(o) t.(name) t.(globals) t.(op) data.

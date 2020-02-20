@@ -142,7 +142,7 @@ Section SvectorBasics.
   Qed.
 
   Section WithMonoid.
-    Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
+    Variable fml:@MonoidLaws RthetaFlags fm.
 
     Lemma sparsify_non_coll: forall n (x:avector n),
         svector_is_non_collision (sparsify x).

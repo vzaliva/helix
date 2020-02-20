@@ -28,7 +28,7 @@ all: .depend Makefile.coq
 	$(MAKE) extracted
 	$(MAKE) $(EXE)
 
-extracted: $(TSTAMP)
+extracted: $(TSTAMP) .depend Makefile.coq
 
 .depend: $(VFILES) 
 	@echo "Analyzing Coq dependencies in" $(VFILES)
