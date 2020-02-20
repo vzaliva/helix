@@ -281,10 +281,10 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       match n with
       | O => ret y
       | S p =>
-        xv <- mem_lookup_err "Error reading 'xv' memory in evalDSHBinOp" 0 x ;;
-           yv <- mem_lookup_err "Error reading 'yv' memory in evalDSHBinOp" 0 y ;;
+        xv <- mem_lookup_err "Error reading 'xv' memory in evalDSHBinOp" xoffset x ;;
+           yv <- mem_lookup_err "Error reading 'yv' memory in evalDSHBinOp" yoffset y ;;
            v' <- evalBinCType mem σ f yv xv ;;
-           evalDSHPower mem σ p f x (mem_add 0 v' y) xoffset yoffset
+           evalDSHPower mem σ p f x (mem_add yoffset v' y) xoffset yoffset
       end.
 
   (* Estimates fuel requirement for [evalDSHOperator] *)
@@ -362,12 +362,12 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
               x <- memory_lookup_err "Error looking up 'x' in DSHPower" mem x_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHPower" mem y_i ;;
               n <- evalNexp σ ne ;; (* [n] evaluated once at the beginning *)
-              let y' := mem_add 0 initial y in
               xoff <- evalNexp σ xoffset ;;
-                   yoff <- evalNexp σ yoffset ;;
-                   y'' <- evalDSHPower mem σ n f x y' xoff yoff ;;
-                   ret (memory_set mem y_i y'')
-                   )
+              yoff <- evalNexp σ yoffset ;;
+              let y' := mem_add yoff initial y in
+              y'' <- evalDSHPower mem σ n f x y' xoff yoff ;;
+              ret (memory_set mem y_i y'')
+            )
         | DSHLoop O body => Some (ret mem)
         | DSHLoop (S n) body =>
           match evalDSHOperator σ (DSHLoop n body) mem fuel with
