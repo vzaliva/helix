@@ -18,7 +18,6 @@ Global Instance List_equiv
   : Equiv (list A)
   := @List.Forall2 A A Ae.
 
-
 Global Instance Forall2_Reflexive
        {A: Type} {R: relation A} `{RR: Reflexive A R}:
   Reflexive (Forall2 R).

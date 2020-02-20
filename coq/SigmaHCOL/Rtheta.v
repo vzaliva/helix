@@ -5,7 +5,6 @@ Require Export Helix.HCOL.CarrierType.
 Require Import Coq.Bool.Bool.
 Require Import Ring.
 
-Require Import ExtLib.Core.Type.
 Require Import ExtLib.Structures.Monads.
 Require Import ExtLib.Structures.MonadLaws.
 Require Import ExtLib.Data.Monads.WriterMonad.
@@ -99,40 +98,16 @@ Proof.
   apply RthetaFlags_Equivalence_equiv.
 Qed.
 
-Global Instance RthetaFlags_type:
-  type RthetaFlags := type_libniz RthetaFlags.
-
 (* our [equal] definition for [RthetaFlags] is actually same as [eq] *)
-Lemma RthetaFlags_equal_eq
-      {a b:RthetaFlags}:
-  @equal RthetaFlags RthetaFlags_type a b <-> a≡b.
-Proof.
-  split;intros H.
-  -
-    inversion H.
-    reflexivity.
-  -
-    subst.
-    reflexivity.
-Qed.
+Global Instance RthetaFlags_Equiv: Equiv (RthetaFlags) := eq.
 
 (* our [equiv] definition for [RthetaFlags] is actually same as [eq] *)
 Lemma RthetaFlags_equiv_eq
       {a b:RthetaFlags}:
   a = b <-> a ≡ b.
 Proof.
-  split;intros H.
-  -
-    destruct a,b.
-    inversion H.
-    simpl in *.
-    rewrite H0, H1.
-    reflexivity.
-  -
-    subst.
-    reflexivity.
+  split; auto.
 Qed.
-
 
 (* mzero *)
 Definition RthetaFlagsZero := mkRthetaFlags true false.
@@ -280,7 +255,7 @@ Section RMonad.
   Lemma mkRtheta'_execWriter
         (val: CarrierA)
         (flags:RthetaFlags)
-        {fml:@MonoidLaws RthetaFlags RthetaFlags_type fm}:
+        {fml:@MonoidLaws RthetaFlags fm}:
     execWriter (mkRtheta' val flags) ≡ flags.
   Proof.
     unfold mkRtheta', execWriter, compose.
@@ -290,7 +265,7 @@ Section RMonad.
 
   Lemma mkRtheta'_id
         {r: Rtheta'}
-        {fml:@MonoidLaws RthetaFlags RthetaFlags_type fm}
+        {fml:@MonoidLaws RthetaFlags fm}
     :
       r ≡ mkRtheta' (evalWriter r) (execWriter r).
   Proof.
@@ -300,7 +275,6 @@ Section RMonad.
     f_equiv.
     pose proof monoid_runit as U.
     unfold BinOps.RightUnit in U.
-    setoid_rewrite RthetaFlags_equal_eq in U.
     rewrite U.
     destruct runWriterT.
     inversion unIdent.
@@ -309,7 +283,7 @@ Section RMonad.
 
   Lemma Rtheta'_alt_eq
         {a b : Rtheta'}
-        {fml:@MonoidLaws RthetaFlags RthetaFlags_type fm}:
+        {fml:@MonoidLaws RthetaFlags fm}:
     evalWriter a ≡ evalWriter b ->
     execWriter a ≡ execWriter b ->
     a ≡ b.
@@ -501,7 +475,7 @@ Section Rtheta'Utils.
 
   Lemma execWriter_mkStruct
         (c: CarrierA)
-        {fml:@MonoidLaws RthetaFlags RthetaFlags_type fm}:
+        {fml:@MonoidLaws RthetaFlags fm}:
     WriterMonadNoT.execWriter (mkStruct c) ≡ RthetaFlagsZero.
   Proof.
     unfold RthetaFlagsZero.
@@ -519,7 +493,7 @@ Section Rtheta'Utils.
   Qed.
 
   Section WithMonoidLaws.
-    Context {fml:@MonoidLaws RthetaFlags RthetaFlags_type fm}.
+    Context {fml:@MonoidLaws RthetaFlags fm}.
 
     Lemma Is_Val_mkValue:
       ∀ (v:CarrierA), Is_Val (mkValue v).

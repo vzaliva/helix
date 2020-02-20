@@ -45,6 +45,9 @@ install:
   - opam install -y --verbose -j ${NJOBS} core
   - opam install -y --verbose -j ${NJOBS} core_kernel
   - opam install -y --verbose -j ${NJOBS} dune
+  - opam update -y
+  - opam upgrade -y
+  
 
 script:
   - eval $(opam config env)
