@@ -46,7 +46,7 @@ install:
   - opam install -y --verbose -j 1 core_kernel
   - opam install -y --verbose -j 1 dune
   - opam update -y
-  - opam upgrade -y
+  - opam upgrade -j 1 -y
   
 
 script:
