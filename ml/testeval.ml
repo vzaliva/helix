@@ -160,14 +160,14 @@ let process_test t =
                  else
                    begin
                      AT.printf [AT.white; AT.on_red] "Error" ;
-                     AT.printf [] " Value comparison failed: values differ" ;
+                     AT.printf [] " Value comparison failed: values differ\n" ;
                      print_dv (UVALUE_Array arr) ;
                      print_eres v ;
                      false
                    end
               | Unequal_lengths ->
                  AT.printf [AT.white; AT.on_red] "Error" ;
-                 AT.printf [] " Value comparison failed: different vector length" ;
+                 AT.printf [] " Value comparison failed: different vector length\n" ;
                  print_dv (UVALUE_Array arr) ;
                  print_eres v ;
                  false
