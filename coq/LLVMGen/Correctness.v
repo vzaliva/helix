@@ -942,7 +942,7 @@ Fact initIRGlobals_cons_head_uniq:
       (nth_error globals j ≡ Some (n, v) /\ n ≡ fst a) → False.
 Proof.
   intros a globals data res H j n v C.
-  unfold initIRGlobals in H.
+  unfold initIRGlobals, global_uniq_chk in H.
   cbn in H.
   repeat break_match_hyp; try inl_inr.
   unfold assert_false_to_err in Heqe.
@@ -1285,18 +1285,20 @@ Proof.
     (* [DSHCTypeVal] must end up in globals *)
     right.
     split; [trivial|cbn].
-    (*
+
     apply ListUtil.nth_app in Hn.
-    rename HFSHG into F.
     destruct Hn as [[Hn Hx] | [Hn Hx]].
     2:{
+      (* X,Y are pointers, not CType, so [Hn] is [False] *)
       remember (x - Datatypes.length σ)%nat as k.
       destruct k; inv Hn.
       destruct k; inv H0.
       rewrite Util.nth_error_nil in H1.
       inv H1.
     }
-    clear v Heqd.
+    clear v Heqd HFXY.
+
+    rename Heqe1 into F.
 
     (* Deal with X,Y first *)
     pose proof (initFSHGlobals_globals_sigma_len_eq globals F) as GSL.
@@ -1306,7 +1308,7 @@ Proof.
     (* X,Y eliminated, [x] somewhere in globals *)
     break_match.
     2:{
-      (* impossible case *)
+      (* impossible case, [Anon 0] used for missing value in [memory_invariant_map] *)
       apply ListNth.nth_error_length_lt in Hn.
       apply ListUtil.nth_beyond_idx in Heqo0.
       lia.
@@ -1320,9 +1322,7 @@ Proof.
     rename m0 into fm0.
 
     (* we know, [gname] is in [gdecls] and not in [xydecls] *)
-    (* eapply init_one_global_fold_in_1st;eauto. *)
-    clear LI HXY xydecls HFXY HCX HCY xdata ydata hdata.
-    *)
+    clear HCX HCY xdata ydata hdata.
     admit.
   -
     (* [DSHPtrVal] must end up in memory *)
