@@ -216,10 +216,10 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       match n with
       | O => ret y
       | S p =>
-        xv <- lift_Derr (mem_lookup_err "Error reading 'xv' memory in denoteDSHBinOp" 0 x) ;;
-        yv <- lift_Derr (mem_lookup_err "Error reading 'yv' memory in denoteDSHBinOp" 0 y) ;;
+        xv <- lift_Derr (mem_lookup_err "Error reading 'xv' memory in denoteDSHBinOp" xoffset x) ;;
+        yv <- lift_Derr (mem_lookup_err "Error reading 'yv' memory in denoteDSHBinOp" yoffset y) ;;
         v' <- denoteBinCType σ f yv xv ;;
-        denoteDSHPower σ p f x (mem_add 0 v' y) xoffset yoffset
+        denoteDSHPower σ p f x (mem_add yoffset v' y) xoffset yoffset
       end.
 
   Notation iter := (@iter _ (ktree _) sum _ _ _).
@@ -271,9 +271,9 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
           x <- trigger (MemLU "Error looking up 'x' in DSHPower" x_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHPower" y_i) ;;
           n <- denoteNexp σ ne ;; (* [n] denoteuated once at the beginning *)
-          let y' := mem_add 0 initial y in
           xoff <- denoteNexp σ xoffset ;;
           yoff <- denoteNexp σ yoffset ;;
+          let y' := mem_add yoff initial y in
           y'' <- denoteDSHPower σ n f x y' xoff yoff ;;
           trigger (MemSet y_i y'')
 
