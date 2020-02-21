@@ -855,7 +855,9 @@ Definition genMemInit
     genWhileLoop "MemInit_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock init_block_id [init_block] [] nextblock.
 
 Definition genPower
+           (i o: nat)
            (x y: ident)
+           (src dst: NExpr)
            (n: NExpr)
            (f: AExpr)
            (initial: binary64)
@@ -863,18 +865,23 @@ Definition genPower
   :=
     loopcontblock <- incBlockNamed "Power_lcont" ;;
     loopvar <- incLocalNamed "Power_i" ;;
-    let xytyp := getIRType (FSHvecValType 1) in
-    let xyptyp := TYPE_Pointer xytyp in
+
+    let xtyp := getIRType (FSHvecValType i) in
+    let xptyp := TYPE_Pointer xtyp in
+    let ytyp := getIRType (FSHvecValType o) in
+    let yptyp := TYPE_Pointer ytyp in
+    '(src_nexpr, src_nexpcode) <- genNExpr src  ;;
+    '(dst_nexpr, dst_nexpcode) <- genNExpr dst  ;;
     py <- incLocal ;;
     storeid0 <- incVoid ;;
     void1 <- incVoid ;;
     '(nexp, ncode) <- genNExpr n ;;
     let ini := genFloatV initial in
-    let init_code := ncode ++ [
+    let init_code := src_nexpcode ++ dst_nexpcode ++ ncode ++ [
                              (IId py,  INSTR_Op (OP_GetElementPtr
-                                                   xytyp (xyptyp, (EXP_Ident y))
+                                                   ytyp (yptyp, (EXP_Ident y))
                                                    [(IntType, EXP_Integer 0%Z);
-                                                      (IntType,EXP_Integer 0%Z)]
+                                                      (IntType,dst_nexpr)]
 
                              ));
 
@@ -900,9 +907,9 @@ Definition genPower
           blk_phis  := [];
           blk_code  := [
                         (IId px,  INSTR_Op (OP_GetElementPtr
-                                              xytyp (xyptyp, (EXP_Ident x))
+                                              xtyp (xtyp, (EXP_Ident x))
                                               [(IntType, EXP_Integer 0%Z);
-                                                 (IntType,EXP_Integer 0%Z)]
+                                                 (IntType, src_nexpr)]
 
                         ));
                           (IId xv, INSTR_Load false TYPE_Double
@@ -998,7 +1005,7 @@ Fixpoint genIR
           '(x,i) <- resolve_PVar src_p ;;
           '(y,o) <- resolve_PVar dst_p ;;
           add_comment
-            (genPower x y n f initial nextblock)
+            (genPower i o x y src_n dst_n n f initial nextblock)
         | DSHLoop n body =>
           loopcontblock <- incBlockNamed "Loop_lcont" ;;
 
