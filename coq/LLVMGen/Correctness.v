@@ -942,7 +942,7 @@ Fact initIRGlobals_cons_head_uniq:
       (nth_error globals j ≡ Some (n, v) /\ n ≡ fst a) → False.
 Proof.
   intros a globals data res H j n v C.
-  unfold initIRGlobals in H.
+  unfold initIRGlobals, global_uniq_chk in H.
   cbn in H.
   repeat break_match_hyp; try inl_inr.
   unfold assert_false_to_err in Heqe.

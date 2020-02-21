@@ -1192,20 +1192,21 @@ Proof.
       eauto.
 Qed.
 
+
+Definition global_uniq_chk: string * FSHValType -> list (string * FSHValType) -> err unit
+  := fun x xs =>
+       let nm := (fst x) in
+       assert_false_to_err
+         ("duplicate global name: " @@ nm)
+         (globals_name_present nm xs)
+         tt.
+
 (* Could not use [monadic_fold_left] here because of error check. *)
 Definition initIRGlobals
          (data: list binary64)
          (x: list (string * FSHValType))
   : err (list binary64 * list (toplevel_entity typ (list (block typ))))
-  := init_with_data initOneIRGlobal
-                    (fun x xs =>
-                       let nm := (fst x) in
-                       assert_false_to_err
-                         ("duplicate global name: " @@ nm)
-                         (globals_name_present nm xs)
-                         tt
-                    )
-                    (data) x.
+  := init_with_data initOneIRGlobal global_uniq_chk (data) x.
 
 (*
    When code genration generates [main], the input
