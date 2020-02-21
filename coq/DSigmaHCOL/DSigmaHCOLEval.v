@@ -188,10 +188,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     | AMult a b => liftM2 CTypeMult (evalAexp mem σ a) (evalAexp mem σ b)
     | AMin a b => liftM2 CTypeMin (evalAexp mem σ a) (evalAexp mem σ b)
     | AMax a b => liftM2 CTypeMax (evalAexp mem σ a) (evalAexp mem σ b)
-    | AMinus a b =>
-      a' <- (evalAexp mem σ a) ;;
-         b' <- (evalAexp mem σ b) ;;
-         ret (CTypeSub a' b')
+    | AMinus a b => liftM2 CTypeSub (evalAexp mem σ a) (evalAexp mem σ b)
     | ANth m i =>
       m' <- (evalMexp mem σ m) ;;
          i' <- (evalNexp σ i) ;;
