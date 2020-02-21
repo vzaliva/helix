@@ -30,21 +30,23 @@ install:
   - opam config var root
   # this somehow fails the second time...
   - opam repo add coq-released http://coq.inria.fr/opam/released || true
-  - opam install -y --verbose -j ${NJOBS} coq.${TEST_TARGET} && opam pin add coq ${TEST_TARGET} -y
-  - opam install -y --verbose -j ${NJOBS} ocamlfind camlp5 ${EXTRA_OPAM} 
-  - opam install -y --verbose -j ${NJOBS} coq-color
-  - opam install -y --verbose -j ${NJOBS} coq-ext-lib=0.10.3
-  - opam install -y --verbose -j ${NJOBS} coq-math-classes
-  - opam install -y --verbose -j ${NJOBS} coq-metacoq-template
-  - opam install -y --verbose -j ${NJOBS} coq-switch
-  - opam install -y --verbose -j ${NJOBS} ANSITerminal
-  - opam install -y --verbose -j ${NJOBS} coq-flocq
-  - opam install -y --verbose -j ${NJOBS} coq-paco
-  - opam install -y --verbose -j ${NJOBS} coq-ceres
-  - opam install -y --verbose -j ${NJOBS} menhir
-  - opam install -y --verbose -j ${NJOBS} core
-  - opam install -y --verbose -j ${NJOBS} core_kernel
-  - opam install -y --verbose -j ${NJOBS} dune
+  - opam install -y --verbose -j 1 coq.${TEST_TARGET} && opam pin add coq ${TEST_TARGET} -y
+  - opam install -y --verbose -j 1 ocamlfind camlp5 ${EXTRA_OPAM} 
+  - opam install -y --verbose -j 1 coq-color
+  - opam install -y --verbose -j 1 coq-ext-lib
+  - opam install -y --verbose -j 1 coq-math-classes
+  - opam install -y --verbose -j 1 coq-metacoq-template
+  - opam install -y --verbose -j 1 coq-switch
+  - opam install -y --verbose -j 1 ANSITerminal
+  - opam install -y --verbose -j 1 coq-flocq
+  - opam install -y --verbose -j 1 coq-paco
+  - opam install -y --verbose -j 1 coq-ceres
+  - opam install -y --verbose -j 1 menhir
+  - opam install -y --verbose -j 1 core
+  - opam install -y --verbose -j 1 core_kernel
+  - opam install -y --verbose -j 1 dune
+  - opam update -y
+  - opam upgrade -j 1 -y
 
 script:
   - eval $(opam config env)

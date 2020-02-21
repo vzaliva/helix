@@ -543,7 +543,7 @@ Section OperatorPairwiseProofs.
   Section WithMonoid.
 
     Variable fm: Monoid RthetaFlags.
-    Variable fml: @MonoidLaws RthetaFlags RthetaFlags_type fm.
+    Variable fml: @MonoidLaws RthetaFlags fm.
 
     Global Instance SHCompose_SH_MSH_Operator_compat
            {svalue: CarrierA}
@@ -2900,7 +2900,7 @@ Section OperatorPairwiseProofs.
 
     Lemma vector_val_index_set_Vconst_Empty
           {fm}
-          {fml: @MonoidLaws RthetaFlags RthetaFlags_type fm}
+          {fml: @MonoidLaws RthetaFlags fm}
           {n:nat}
           {svalue: CarrierA}
       :

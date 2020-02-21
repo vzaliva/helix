@@ -41,6 +41,13 @@ proof assistant.
      opam remove coq-itree # conflicts with submodule copy from Vellvm
 #+END_SRC
 
+ To install *optional* dependencies:
+
+#+BEGIN_SRC sh
+     opam install coq-dpdgraph
+#+END_SRC
+
+
 ** Bulding and Running 
 
 *** Install VELLVM dependency:

@@ -2295,7 +2295,7 @@ Section StructuralProperies.
 
   Section FlagsMonoidGenericStructuralProperties.
     Variable fm:Monoid RthetaFlags.
-    Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
+    Variable fml:@MonoidLaws RthetaFlags fm.
     Variable svalue : CarrierA.
 
     Global Instance liftM_HOperator_Facts

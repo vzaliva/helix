@@ -1,4 +1,4 @@
-
+Require Import Coq.Bool.Bool.
 Require Import Coq.Strings.String.
 Require Import Coq.Lists.List.
 
@@ -6,6 +6,7 @@ Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Helix.LLVMGen.Utils.
 Require Import Helix.LLVMGen.Externals.
 Require Import Helix.Util.Misc.
+Require Import Helix.Tactics.HelixTactics.
 
 Require Import Vellvm.Numeric.Fappli_IEEE_extra.
 Require Import Vellvm.IntrinsicsDefinitions.
@@ -21,6 +22,7 @@ Require Import Coq.ZArith.BinInt.
 
 Require Import ExtLib.Structures.Monads.
 Require Import Helix.Util.ErrorWithState.
+Require Import Helix.LLVMGen.Data.
 
 Import ListNotations.
 Import MonadNotation.
@@ -78,15 +80,8 @@ Section withErrorStateMonad.
 
 End withErrorStateMonad.
 
-
 (* 64-bit IEEE floats *)
 Definition SizeofFloatT := 8.
-
-(* Type of values. Used for global variables *)
-Inductive FSHValType :=
-| FSHnatValType       :FSHValType
-| FSHFloatValType     :FSHValType
-| FSHvecValType (n:nat) :FSHValType.
 
 Definition getIRType (t: FSHValType): typ :=
   match t with
@@ -817,8 +812,6 @@ Definition genMemMap2Body
            |}
         ]).
 
-Definition genFloatV (fv:binary64) : (exp typ) :=  EXP_Double fv.
-
 Definition genMemInit
            (o n: nat)
            (y: ident)
@@ -862,7 +855,9 @@ Definition genMemInit
     genWhileLoop "MemInit_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock init_block_id [init_block] [] nextblock.
 
 Definition genPower
+           (i o: nat)
            (x y: ident)
+           (src dst: NExpr)
            (n: NExpr)
            (f: AExpr)
            (initial: binary64)
@@ -870,18 +865,23 @@ Definition genPower
   :=
     loopcontblock <- incBlockNamed "Power_lcont" ;;
     loopvar <- incLocalNamed "Power_i" ;;
-    let xytyp := getIRType (FSHvecValType 1) in
-    let xyptyp := TYPE_Pointer xytyp in
+
+    let xtyp := getIRType (FSHvecValType i) in
+    let xptyp := TYPE_Pointer xtyp in
+    let ytyp := getIRType (FSHvecValType o) in
+    let yptyp := TYPE_Pointer ytyp in
+    '(src_nexpr, src_nexpcode) <- genNExpr src  ;;
+    '(dst_nexpr, dst_nexpcode) <- genNExpr dst  ;;
     py <- incLocal ;;
     storeid0 <- incVoid ;;
     void1 <- incVoid ;;
     '(nexp, ncode) <- genNExpr n ;;
     let ini := genFloatV initial in
-    let init_code := ncode ++ [
+    let init_code := src_nexpcode ++ dst_nexpcode ++ ncode ++ [
                              (IId py,  INSTR_Op (OP_GetElementPtr
-                                                   xytyp (xyptyp, (EXP_Ident y))
+                                                   ytyp (yptyp, (EXP_Ident y))
                                                    [(IntType, EXP_Integer 0%Z);
-                                                      (IntType,EXP_Integer 0%Z)]
+                                                      (IntType,dst_nexpr)]
 
                              ));
 
@@ -899,7 +899,7 @@ Definition genPower
     px <- incLocal ;;
     yv <- incLocal ;;
     xv <- incLocal ;;
-    addVars [(ID_Local yv, TYPE_Double); (ID_Local xv, TYPE_Double)] ;;
+    addVars [(ID_Local xv, TYPE_Double); (ID_Local yv, TYPE_Double)] ;;
     '(fexpr, fexpcode) <- genAExpr f ;;
     dropVars 2 ;;
     let body_block := {|
@@ -907,18 +907,18 @@ Definition genPower
           blk_phis  := [];
           blk_code  := [
                         (IId px,  INSTR_Op (OP_GetElementPtr
-                                              xytyp (xyptyp, (EXP_Ident x))
+                                              xtyp (xtyp, (EXP_Ident x))
                                               [(IntType, EXP_Integer 0%Z);
-                                                 (IntType,EXP_Integer 0%Z)]
+                                                 (IntType, src_nexpr)]
 
                         ));
-                          (IId yv, INSTR_Load false TYPE_Double
-                                              (TYPE_Pointer TYPE_Double,
-                                               (EXP_Ident (ID_Local py)))
-                                              (ret 8%Z));
                           (IId xv, INSTR_Load false TYPE_Double
                                               (TYPE_Pointer TYPE_Double,
                                                (EXP_Ident (ID_Local px)))
+                                              (ret 8%Z));
+                          (IId yv, INSTR_Load false TYPE_Double
+                                              (TYPE_Pointer TYPE_Double,
+                                               (EXP_Ident (ID_Local py)))
                                               (ret 8%Z))
                       ]
                          ++ fexpcode ++
@@ -1005,7 +1005,7 @@ Fixpoint genIR
           '(x,i) <- resolve_PVar src_p ;;
           '(y,o) <- resolve_PVar dst_p ;;
           add_comment
-            (genPower x y n f initial nextblock)
+            (genPower i o x y src_n dst_n n f initial nextblock)
         | DSHLoop n body =>
           loopcontblock <- incBlockNamed "Loop_lcont" ;;
 
@@ -1109,121 +1109,127 @@ Definition LLVMGen
                       ]
       ).
 
-Record FSHCOLProgram :=
-  mkFSHCOLProgram
-    {
-      i: nat;
-      o: nat;
-      name: string;
-      globals: list (string * FSHValType) ;
-      op: DSHOperator;
-    }.
 
-(* To move to Utils? *)
-Definition rotate {A:Type} (default:A) (lst:list (A)): (A*(list A))
-  := match lst with
-     | [] => (default,[])
-     | (x::xs) => (x,app xs [x])
-     end.
-
-Fixpoint constList
-         (len: nat)
-         (data:list binary64) :
-  ((list binary64) * (list binary64))
+Definition initOneIRGlobal
+           (data: list binary64)
+           (nmt:string * FSHValType)
+  : err (list binary64 * (toplevel_entity typ (list (block typ))))
   :=
-    match len with
-    | O => (data,[])
-    | S len' => let '(x, data') := rotate Float64Zero data in
-                let '(data'',res) := constList len' data' in
-                (data'', x :: res)
+    let (nm,t) := nmt in
+    match t with
+    | FSHnatValType => raise "FSHnatValType global type not supported"
+    | FSHFloatValType =>
+      let '(x, data) := rotate Float64Zero data in
+      let g := TLE_Global {|
+                   g_ident        := Name nm;
+                   g_typ          := getIRType t ;
+                   g_constant     := true ;
+                   g_exp          := Some (EXP_Double x);
+                   g_linkage      := Some LINKAGE_Internal ;
+                   g_visibility   := None ;
+                   g_dll_storage  := None ;
+                   g_thread_local := None ;
+                   g_unnamed_addr := true ;
+                   g_addrspace    := None ;
+                   g_externally_initialized := false ;
+                   g_section      := None ;
+                   g_align        := None ; (* TODO: maybe need to alight to 64-bit boundary? *)
+                 |} in
+      ret (data, g)
+    | FSHvecValType n =>
+      let (data, arr) := constArray n data in
+      let g := TLE_Global {|
+                   g_ident        := Name nm;
+                   g_typ          := getIRType t ;
+                   g_constant     := true ;
+                   g_exp          := Some (EXP_Array arr);
+                   g_linkage      := Some LINKAGE_Internal ;
+                   g_visibility   := None ;
+                   g_dll_storage  := None ;
+                   g_thread_local := None ;
+                   g_unnamed_addr := true ;
+                   g_addrspace    := None ;
+                   g_externally_initialized := false ;
+                   g_section      := None ;
+                   g_align        := Some Utils.PtrAlignment ;
+                 |} in
+      ret (data, g)
     end.
 
-Definition constArray
-           (len: nat)
-           (data:list binary64)
-  : ((list binary64)*(list (texp typ)))
-  :=  let (data, l) := constList len data in
-      (data,List.map (fun x => (TYPE_Double, genFloatV x)) l).
 
-Definition constMemBlock
-           (len: nat)
-           (data:list binary64)
-  : ((list binary64)*mem_block)
-  := let (data, l) := constList len data in
-     (data, mem_block_of_list l).
+Definition globals_name_present
+           (name:string)
+           (l:list (string * FSHValType)) : bool
+  :=
+    List.fold_right (fun v f => orb f (string_beq (fst v) name)) false l.
 
-Fixpoint initIRGlobals
+
+Fact nth_to_globals_name_present (globals:list (string * FSHValType)) nm :
+  (exists res j, (nth_error globals j = Some res /\ fst res = nm))
+  ->
+  globals_name_present nm globals = true.
+Proof.
+  revert nm.
+  unfold globals_name_present.
+  induction globals.
+  -
+    cbn.
+    intros.
+    exfalso.
+    destruct H as [res [j [H0 H1]]].
+    rewrite Util.nth_error_nil in H0.
+    inv H0.
+  -
+    intros.
+    destruct H as [res [j H]].
+    specialize (IHglobals nm).
+    cbn.
+    apply orb_true_iff.
+    destruct j.
+    +
+      right.
+      cbn in H.
+      destruct H.
+      inv H.
+      unfold Misc.string_beq.
+      break_if; auto.
+    +
+      left.
+      apply IHglobals.
+      eauto.
+Qed.
+
+
+Definition global_uniq_chk: string * FSHValType -> list (string * FSHValType) -> err unit
+  := fun x xs =>
+       let nm := (fst x) in
+       assert_false_to_err
+         ("duplicate global name: " @@ nm)
+         (globals_name_present nm xs)
+         tt.
+
+(* Could not use [monadic_fold_left] here because of error check. *)
+Definition initIRGlobals
          (data: list binary64)
          (x: list (string * FSHValType))
   : err (list binary64 * list (toplevel_entity typ (list (block typ))))
-  :=
-    match x with
-    | nil => ret (data,[])
-    | cons (nm, t) xs =>
-      '(data,gs) <- initIRGlobals data xs ;;
-      match t with
-      | FSHnatValType => raise "FSHnatValType global type not supported"
-      | FSHFloatValType =>
-        let '(x, data) := rotate Float64Zero data in
-        ret (data, TLE_Global {|
-                       g_ident        := Name nm;
-                       g_typ          := getIRType t ;
-                       g_constant     := true ;
-                       g_exp          := Some (EXP_Double x);
-                       g_linkage      := Some LINKAGE_Internal ;
-                       g_visibility   := None ;
-                       g_dll_storage  := None ;
-                       g_thread_local := None ;
-                       g_unnamed_addr := true ;
-                       g_addrspace    := None ;
-                       g_externally_initialized := false ;
-                       g_section      := None ;
-                       g_align        := None ; (* TODO: maybe need to alight to 64-bit boundary? *)
-                     |} :: gs)
-      | FSHvecValType n =>
-        let (data, arr) := constArray n data in
-        ret (data, TLE_Global {|
-                       g_ident        := Name nm;
-                       g_typ          := getIRType t ;
-                       g_constant     := true ;
-                       g_exp          := Some (EXP_Array arr);
-                       g_linkage      := Some LINKAGE_Internal ;
-                       g_visibility   := None ;
-                       g_dll_storage  := None ;
-                       g_thread_local := None ;
-                       g_unnamed_addr := true ;
-                       g_addrspace    := None ;
-                       g_externally_initialized := false ;
-                       g_section      := None ;
-                       g_align        := Some Utils.PtrAlignment ;
-                     |} :: gs)
-      end
-    end.
+  := init_with_data initOneIRGlobal global_uniq_chk (data) x.
 
-Definition genMain
-           (i o: nat)
-           (op_name: string)
-           (globals: list (string * FSHValType))
-           (data:list binary64)
-  :
-    LLVMAst.toplevel_entities _ (list (LLVMAst.block typ)) :=
-  let x := Name "X" in
-  let xtyp := getIRType (FSHvecValType i) in
-  let xptyp := TYPE_Pointer xtyp in
-  let '(_,xdata) := constArray i data in
-  let y := Name "Y" in
-  let ytyp := getIRType (FSHvecValType o) in
-  let yptyp := TYPE_Pointer ytyp in
-  let ftyp := TYPE_Function TYPE_Void [xptyp; yptyp] in
-  let z := Name "z" in
-  [
-    TLE_Comment " X data" ;
-      TLE_Global
+(*
+   When code genration generates [main], the input
+   will be stored in pre-initialized [X] global variable.
+ *)
+Definition global_YX (i o:nat) (data:list binary64) x xtyp y ytyp:
+  LLVMAst.toplevel_entities _ (list (LLVMAst.block typ))
+  :=
+    let '(data,ydata) := constArray o data in
+    let '(_,xdata) := constArray i data in
+    [ TLE_Global
         {|
-          g_ident        := x;
-          g_typ          := xtyp;
+          g_ident        := y;
+          g_typ          := ytyp;
           g_constant     := true;
-          g_exp          := Some (EXP_Array xdata);
+          g_exp          := Some (EXP_Array ydata);
           g_linkage      := None;
           g_visibility   := None;
           g_dll_storage  := None;
@@ -1233,53 +1239,99 @@ Definition genMain
           g_externally_initialized := false;
           g_section      := None;
           g_align        := None;
-        |} ;
-      TLE_Comment " Main function" ;
-      TLE_Definition
-        {|
-          df_prototype   :=
-            {|
-              dc_name        := Name ("main") ;
-              dc_type        := TYPE_Function ytyp [] ;
-              dc_param_attrs := ([],
-                                 []);
-              dc_linkage     := None ;
-              dc_visibility  := None ;
-              dc_dll_storage := None ;
-              dc_cconv       := None ;
-              dc_attrs       := []   ;
-              dc_section     := None ;
-              dc_align       := None ;
-              dc_gc          := None
-            |} ;
-          df_args        := [];
-          df_instrs      := [
-                             {|
-                               blk_id    := Name "main_block" ;
-                               blk_phis  := [];
-                               blk_code  :=
-                                 List.app (allocTempArrayCode y o)
-                                          [
-                                            (IVoid 0%Z, INSTR_Call (TYPE_Void, EXP_Ident (ID_Global (Name op_name))) [(xptyp, EXP_Ident (ID_Global x)); (yptyp, EXP_Ident (ID_Local y))]) ;
-                                              (IId z, INSTR_Load false ytyp (yptyp, EXP_Ident (ID_Local y)) None )
-                                          ]
-                               ;
+        |}
+      ; TLE_Global
+          {|
+            g_ident        := x;
+            g_typ          := xtyp;
+            g_constant     := true;
+            g_exp          := Some (EXP_Array xdata);
+            g_linkage      := None;
+            g_visibility   := None;
+            g_dll_storage  := None;
+            g_thread_local := None;
+            g_unnamed_addr := false;
+            g_addrspace    := None;
+            g_externally_initialized := false;
+            g_section      := None;
+            g_align        := None;
+          |}
+    ].
 
-                               blk_term  := (IId (Name "main_ret"), TERM_Ret (ytyp, EXP_Ident (ID_Local z))) ;
-                               blk_comments := None
-                             |}
+Definition genMain
+           (i o: nat)
+           (op_name: string)
+           (x:raw_id)
+           (xptyp:typ)
+           (y:raw_id)
+           (ytyp:typ)
+           (yptyp:typ)
+           (globals: list (string * FSHValType))
+           (data:list binary64)
+  : LLVMAst.toplevel_entities _ (list (LLVMAst.block typ))
+  :=
+    let z := Name "z" in
+    [
+      TLE_Comment " Main function"
+      ; TLE_Definition
+          {|
+            df_prototype   :=
+              {|
+                dc_name        := Name ("main") ;
+                dc_type        := TYPE_Function ytyp [] ;
+                dc_param_attrs := ([],
+                                   []);
+                dc_linkage     := None ;
+                dc_visibility  := None ;
+                dc_dll_storage := None ;
+                dc_cconv       := None ;
+                dc_attrs       := []   ;
+                dc_section     := None ;
+                dc_align       := None ;
+                dc_gc          := None
+              |} ;
+            df_args        := [];
+            df_instrs      := [
+                               {|
+                                 blk_id    := Name "main_block" ;
+                                 blk_phis  := [];
+                                 blk_code  :=
+                                   [
+                                     (IVoid 0%Z, INSTR_Call (TYPE_Void, EXP_Ident (ID_Global (Name op_name))) [(xptyp, EXP_Ident (ID_Global x)); (yptyp, EXP_Ident (ID_Global y))]) ;
+                                   (IId z, INSTR_Load false ytyp (yptyp, EXP_Ident (ID_Global y)) None )
+                                   ]
+                                 ;
 
-                           ]
-        |}].
+                                 blk_term  := (IId (Name "main_ret"), TERM_Ret (ytyp, EXP_Ident (ID_Local z))) ;
+                                 blk_comments := None
+                               |}
 
-Definition compile (p: FSHCOLProgram): list binary64 -> err (toplevel_entities typ (list (block typ))) :=
-  match p return (list binary64 -> _) with
+                             ]
+          |}].
+
+Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): err (toplevel_entities typ (list (block typ))) :=
+  match p with
   | mkFSHCOLProgram i o name globals op =>
-    fun data' =>
-      '(data'',ginit) <- initIRGlobals data' globals ;;
-      let ginit := app [TLE_Comment "Global variables"] ginit in
-      let main := genMain i o name globals data'' in
-      prog <- evalErrS (LLVMGen i o globals false op name) newState ;;
-      let code := app (app ginit prog) main in
-      ret code
+    '(data,ginit) <- initIRGlobals data globals ;;
+    let ginit := app [TLE_Comment "Global variables"] ginit in
+
+    if just_compile then
+      evalErrS (LLVMGen i o globals just_compile op name) newState
+    else
+      let x := Anon 0%Z in
+      let xtyp := getIRType (FSHvecValType i) in
+      let xptyp := TYPE_Pointer xtyp in
+
+      let y := Anon 1%Z in
+      let ytyp := getIRType (FSHvecValType o) in
+      let yptyp := TYPE_Pointer ytyp in
+
+      let yxinit := global_YX i o data x xtyp y ytyp in
+      let main := genMain i o name x xptyp y ytyp yptyp globals data in
+
+      prog <- evalErrS (LLVMGen i o globals just_compile op name) newState ;;
+      ret (ginit ++ yxinit ++ prog ++ main)%list
   end.
+
+Definition compile_w_main (p: FSHCOLProgram): list binary64 -> err (toplevel_entities typ (list (block typ))) :=
+  compile p false.

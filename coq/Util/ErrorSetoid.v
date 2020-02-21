@@ -340,3 +340,36 @@ Arguments h_opt_err {A B} R.
 Arguments h_opt_err_c {A B} R.
 Arguments h_opt_opterr_c {A B} R.
 Arguments h_opt_err_i {A B} R.
+
+Require Import Helix.Util.ListSetoid.
+
+Lemma monadic_fold_left_err_app
+      {A B : Type}
+      {f : A -> B -> err A}
+      {a a':A}
+      {l l': list B}
+      {x: err A}
+  :
+    monadic_fold_left f a l ≡ inr a' ->
+    monadic_fold_left f a' l' ≡ x ->
+    monadic_fold_left f a (l++l') ≡ x.
+Proof.
+  revert a a'.
+  induction l as [|l0 ls IH]; intros.
+  -
+    cbn in *.
+    inv H.
+    auto.
+  -
+    cbn in *.
+    break_match_goal;[inl_inr|].
+    eapply IH; eauto.
+Qed.
+
+(* raise [err] if boolean flag is false *)
+Definition assert_true_to_err {A:Type} (msg:string) (b:bool) (v:A) : err A
+  := if b then inr v else inl msg.
+
+(* raise [err] if boolean flag is true *)
+Definition assert_false_to_err {A:Type} (msg:string) (b:bool) (v:A) : err A
+  := if b then inl msg else inr v.

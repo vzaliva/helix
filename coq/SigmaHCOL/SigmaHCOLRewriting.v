@@ -1059,7 +1059,7 @@ Section SigmaHCOLExpansionRules.
     (* This could be generalized for `Monoid (plus, zero)` *)
     Theorem expand_HTDirectSum
             {fm: Monoid RthetaFlags}
-            {fml: @MonoidLaws RthetaFlags RthetaFlags_type fm}
+            {fml: @MonoidLaws RthetaFlags fm}
             {i1 o1 i2 o2}
             (f: avector i1 -> avector o1)
             (g: avector i2 -> avector o2)

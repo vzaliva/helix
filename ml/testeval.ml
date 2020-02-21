@@ -2,6 +2,7 @@ open Arg
 open Camlcoq
 open Core (* Jane Street Core, not ITree.Core! *)
 open Tests
+open Data
 open Format
 
 let verbose = ref false
@@ -22,7 +23,6 @@ let output_ll_file filename ast =
   Out_channel.close channel
 
 let gsize t =
-  let open Compiler in
   match t with
   | FSHnatValType -> 1
   | FSHFloatValType -> 1
@@ -160,14 +160,14 @@ let process_test t =
                  else
                    begin
                      AT.printf [AT.white; AT.on_red] "Error" ;
-                     AT.printf [] " Value comparison failed: values differ" ;
+                     AT.printf [] " Value comparison failed: values differ\n" ;
                      print_dv (UVALUE_Array arr) ;
                      print_eres v ;
                      false
                    end
               | Unequal_lengths ->
                  AT.printf [AT.white; AT.on_red] "Error" ;
-                 AT.printf [] " Value comparison failed: different vector length" ;
+                 AT.printf [] " Value comparison failed: different vector length\n" ;
                  print_dv (UVALUE_Array arr) ;
                  print_eres v ;
                  false
