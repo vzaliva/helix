@@ -892,7 +892,7 @@ Definition genPower
     px <- incLocal ;;
     yv <- incLocal ;;
     xv <- incLocal ;;
-    addVars [(ID_Local yv, TYPE_Double); (ID_Local xv, TYPE_Double)] ;;
+    addVars [(ID_Local xv, TYPE_Double); (ID_Local yv, TYPE_Double)] ;;
     '(fexpr, fexpcode) <- genAExpr f ;;
     dropVars 2 ;;
     let body_block := {|
