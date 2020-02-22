@@ -2735,8 +2735,8 @@ Proof.
             destruct (mem_lookup 0 x_m') as [xm'0|] eqn:XM'0;
               cbn in Y_DMA; try inl_inr.
             inversion FA; clear bin_typechecks0 FA;
-              rename bin_equiv0 into FA; specialize (FA xm'0 init).
-            destruct (evalBinCType m σ a xm'0 init) as [|df] eqn:DF;
+              rename bin_equiv0 into FA; specialize (FA init xm'0 ).
+            destruct (evalBinCType m σ a init xm'0 ) as [|df] eqn:DF;
               try inl_inr; inl_inr_inv.
             (* abstract: this gets Y_DMA to "the previous step" for induction *)
             rewrite mem_add_overwrite in Y_DMA.
@@ -2757,10 +2757,7 @@ Proof.
 
             unfold HCOLImpl.Inductor.
             rewrite nat_rect_succ_r.
-            f_equiv.
-            f_equiv.
-            unfold HCOLImpl.Scalarize.
-            all: admit.
+            reflexivity.
         --
           admit.
       * (* the preserved part of the block *)
