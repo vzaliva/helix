@@ -1762,11 +1762,17 @@ Section OperatorPairwiseProofs.
         +
           inversion S.
           unfold Is_Val, compose, IsVal, Is_true, not in *.
-          repeat break_if; try crush.
+          repeat break_if.
+          1,3,4: intuition.
+          rewrite H0 in *.
+          congruence.
         +
           inversion S.
           unfold Is_Val, compose, IsVal, Is_true, not in *.
-          repeat break_if; try crush.
+          repeat break_if.
+          1,2,4: intuition.
+          rewrite H0 in *.
+          congruence.
         +
           apply not_iff_compat in Ia.
           apply not_iff_compat in Ib.
