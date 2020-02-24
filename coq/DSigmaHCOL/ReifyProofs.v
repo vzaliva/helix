@@ -216,6 +216,13 @@ Class DSHIUnCarrierA (a:AExpr) : Prop :=
 Class DSHBinCarrierA (a:AExpr) : Prop :=
   DSHBinCarrierA_atypesigincl :> AExprTypeSigIncludes a DSHBinCarrierA_TypeSig.
 
+(** Instances of this class ensures that given [AExpr] typchecks in under given [TypeSig] *)
+Class AExpr_typechecks
+      (a:AExpr)
+      (ts:TypeSig) : Prop
+  := bincarrieratypechecks: exists dfs, (TypeSigAExpr a = Some dfs) /\ TypeSigIncluded dfs ts.
+
+
 (* This relations represents consistent memory/envirnment combinations.
    That means all pointer variables should resolve to existing memory blocks *)
 Inductive EnvMemoryConsistent: evalContext -> memory -> Prop :=
@@ -2266,7 +2273,6 @@ Global Instance Pointwise_MSH_DSH_compat
     MSH_DSH_compat (@MSHPointwise n f pF) (DSHIMap n x_p y_p a) σ m x_p y_p.
 Admitted.
 
-
 (** * MSHBinOp  *)
 
 Global Instance BinOp_DSH_pure
@@ -2275,9 +2281,9 @@ Global Instance BinOp_DSH_pure
        (a: AExpr)
        `{dft : DSHIBinCarrierA a}
        {ts: TypeSig}
-       `{TSI: AExprTypeSigIncludes a ts}
+       (TCA: AExpr_typechecks a (TypeSig_append DSHIBinCarrierA_TypeSig ts))
   :
-    DSH_pure (DSHBinOp o x_p y_p a) (TypeSig_decr_n ts 3) x_p y_p.
+    DSH_pure (DSHBinOp o x_p y_p a) ts x_p y_p.
 Proof.
   split.
   -
@@ -2902,16 +2908,14 @@ Admitted.
       
 
 (** * MSHCompose *)
-
 Global Instance Compose_DSH_pure
          {n: nat}
          {x_p y_p: PExpr}
          {dop1 dop2: DSHOperator}
-         {dsig1 dsig2: TypeSig}
-         (TC: TypeSigCompat dsig1 dsig2)
-         `{P2: DSH_pure dop2 (TypeSig_incr dsig1) (incrPVar 0 x_p) (PVar 0)}
-         `{P1: DSH_pure dop1 (TypeSig_incr dsig2) (PVar 0) (incrPVar 0 y_p)}
-  : DSH_pure (DSHAlloc n (DSHSeq dop2 dop1)) (TypeSigUnion dsig1 dsig2) x_p y_p.
+         {ts: TypeSig}
+         (P2: DSH_pure dop2 (TypeSig_add ts DSHnat) (incrPVar 0 x_p) (PVar 0))
+         (P1: DSH_pure dop1 (TypeSig_add ts DSHnat) (PVar 0) (incrPVar 0 y_p))
+  : DSH_pure (DSHAlloc n (DSHSeq dop2 dop1)) ts x_p y_p.
 Proof.
   split.
   - (* mem_stable *)
@@ -4174,10 +4178,13 @@ Qed.
 (** * MHTSUMUnioin *)
 
 Global Instance DSHSeq_DSH_pure
-         `{P1: DSH_pure dop1 dsig1 x_p y_p}
-         `{P2: DSH_pure dop2 dsig2 x_p y_p}
+       {ts: TypeSig}
+       {dop1 dop2}
+       {x_p y_p}
+       (P1: DSH_pure dop1 ts x_p y_p)
+       (P2: DSH_pure dop2 ts x_p y_p)
   :
-    DSH_pure (DSHSeq dop1 dop2) (TypeSigUnion dsig1 dsig2) x_p y_p.
+    DSH_pure (DSHSeq dop1 dop2) ts x_p y_p.
 Proof.
   split.
   -

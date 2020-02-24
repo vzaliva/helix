@@ -379,7 +379,6 @@ Module Type MDSigmaHCOL (Import CT : CType).
        | DSHSeq f g => DSHSeq (incrOp skip f) (incrOp skip g)
        end.
 
-
   Section Printing.
 
     (* List of keys of elements in memblock as string.

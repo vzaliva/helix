@@ -238,6 +238,17 @@ End SHCOL_to_MSHCOL.
 
 Require Import Helix.DSigmaHCOL.ReifyMSHCOL.
 Require Import Helix.DSigmaHCOL.DSHCOLOnCarrierA.
+Require Import Helix.DSigmaHCOL.ReifyProofs.
+Require Import Helix.DSigmaHCOL.TypeSig.
+
+Definition TypeSig_of_varbindings (v:varbindings): TypeSig
+  :=
+    let fix TypeSig_of_varbindings' n v :=
+      match v with
+      | [] => TM.empty _
+      | (x::xs) => TM.add n (snd x) (TypeSig_of_varbindings' (S n) xs)
+      end
+    in TypeSig_of_varbindings' 0 v.
 
 Section MSHCOL_to_DSHCOL.
 
@@ -245,8 +256,31 @@ Section MSHCOL_to_DSHCOL.
 
   Run TemplateProgram (reifyMSHCOL dynwin_MSHCOL1 ["dynwin_MSHCOL1"] "dynwin_DSHCOL1" "dynwin_DSHCOL1_globals").
 
-  (* Import DSHNotation.
-  Print dynwin_DSHCOL1. *)
+  (* Import DSHNotation. *)
+
+  Global Instance DynWin_Pure
+       (x_p y_p : PExpr)
+  :
+    DSH_pure (dynwin_DSHCOL1) (TypeSig_of_varbindings dynwin_DSHCOL1_globals) x_p y_p.
+  Proof.
+    unfold dynwin_DSHCOL1.
+
+    remember (TypeSig_of_varbindings dynwin_DSHCOL1_globals) as ts.
+    Opaque TM.add TM.empty.
+    cbv in Heqts.
+    subst ts.
+
+    apply Compose_DSH_pure.
+    {
+      apply DSHSeq_DSH_pure.
+      admit.
+      admit.
+    }
+    {
+      Fail eapply BinOp_DSH_pure.
+      admit.
+    }
+  Admitted.
 
 End MSHCOL_to_DSHCOL.
 

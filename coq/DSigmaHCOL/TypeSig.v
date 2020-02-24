@@ -454,6 +454,21 @@ TODO: Should be defined as := TypeSig_incr_n t 1.
 Definition TypeSig_incr (t:TypeSig) : TypeSig :=
   TP.of_list (List.map (fun '(k,v) => (S k, v)) (TP.to_list t)).
 
+Definition TypeSig_add (t:TypeSig) (x:DSHType) : TypeSig :=
+  TM.add 0 x (TypeSig_incr t).
+
+Definition TypeSig_append (t0 t1: TypeSig) : TypeSig :=
+  let l0 := TP.to_list t0 in
+  let k0 := List.map fst l0 in
+  let off :=
+      match k0 with
+      | [] => 0%nat
+      | _ =>  S (List.fold_left max k0 0%nat)
+      end
+  in
+  let l1 := TP.to_list (TypeSig_incr_n t1 off) in
+  TP.of_list (l0++l1).
+
 Lemma InA_map_1 {A : Type}
                 (eqA : A -> A -> Prop)
                 (x : A)
@@ -1522,30 +1537,30 @@ Proof.
       *
         apply H12 in F21.
         eapply TP.F.MapsTo_fun; eassumption.
-        eapply TypeSig.MapsTo_In; eassumption.
+        eapply MapsTo_In; eassumption.
       *
         eapply TP.F.MapsTo_fun; eassumption.
       *
         eapply TP.F.MapsTo_fun; eassumption.
       *
         contradict F12'.
-        eapply TypeSig.MapsTo_In; eassumption.
+        eapply MapsTo_In; eassumption.
     +
       rewrite <-TP.F.not_find_in_iff in F21.
       contradict F21.
       apply TP.update_in_iff.
       rewrite <-TP.F.find_mapsto_iff, ->TP.update_mapsto_iff in *.
       destruct F12 as [F12 | [F12 F12']].
-      left; eapply TypeSig.MapsTo_In; eassumption.
-      right; eapply TypeSig.MapsTo_In; eassumption.
+      left; eapply MapsTo_In; eassumption.
+      right; eapply MapsTo_In; eassumption.
     +
       rewrite <-TP.F.not_find_in_iff in F12.
       contradict F12.
       apply TP.update_in_iff.
       rewrite <-TP.F.find_mapsto_iff, ->TP.update_mapsto_iff in *.
       destruct F21 as [F21 | [F21 F21']].
-      left; eapply TypeSig.MapsTo_In; eassumption.
-      right; eapply TypeSig.MapsTo_In; eassumption.
+      left; eapply MapsTo_In; eassumption.
+      right; eapply MapsTo_In; eassumption.
   -
     clear - t n.
     contradict n.
@@ -1581,11 +1596,11 @@ Proof.
       pose proof TP.F.MapsTo_fun H1 H2.
       subst; reflexivity.
     +
-      apply TypeSig.MapsTo_In in H1.
+      apply MapsTo_In in H1.
       congruence.
     +
       contradict H1.
       apply TP.update_in_iff.
       right.
-      eapply TypeSig.MapsTo_In; eassumption.
+      eapply MapsTo_In; eassumption.
 Qed.
