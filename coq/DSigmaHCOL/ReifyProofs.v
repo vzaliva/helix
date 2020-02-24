@@ -2844,8 +2844,62 @@ Admitted.
 
 (** * MSHIReduction *)
 
-(* TODO: ??? *)
+(* NOTE : this might require additional instances, e.g. [MemMap2_DSH_pure] *)
+(* NOTE: is [mem_stable] provable here at all? Given the Alloc and Init *)
+Global Instance Reduction_DSH_pure
+       (no nn : nat)
+       (x_p y_p t_i : PExpr)
+       (init : CarrierA)
+       (rr : DSHOperator)
+       (df : AExpr)
+       (ts : TypeSig)
+       {P : DSH_pure rr ts x_p y_p}
+  :
+    DSH_pure (DSHAlloc no
+                       (DSHSeq
+                          (DSHMemInit no t_i init)
+                          (DSHLoop nn
+                                   (DSHSeq
+                                      rr
+                                      (DSHMemMap2 no t_i y_p y_p df)))))
+             ts x_p y_p.
+Admitted.
 
+Global Instance IReduction_MSH_DSH_compat
+       {i o n no nn : nat}
+       (initial: CarrierA)
+       (dot: CarrierA -> CarrierA -> CarrierA)
+       `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+       (op_family: @MSHOperatorFamily i o n)
+       (df : AExpr)
+       (ts : TypeSig)
+       (x_p y_p t_i : PExpr)
+       (rr : DSHOperator)
+       {P : DSH_pure 
+              (DSHAlloc no
+                        (DSHSeq
+                           (DSHMemInit no t_i initial)
+                           (DSHLoop nn
+                                    (DSHSeq
+                                       rr
+                                       (DSHMemMap2 no t_i y_p y_p df)))))
+              ts x_p y_p}
+       (σ : evalContext)
+       (m : memory)
+  :
+    @MSH_DSH_compat
+      _ _
+      (@MSHIReduction i o n initial dot pdot op_family)
+      (DSHAlloc no
+                (DSHSeq
+                   (DSHMemInit no t_i initial)
+                   (DSHLoop nn
+                            (DSHSeq
+                               rr
+                               (DSHMemMap2 no t_i y_p y_p df)))))
+      ts σ m x_p y_p P.
+Admitted.
+      
 
 (** * MSHCompose *)
 
