@@ -1198,11 +1198,19 @@ Proof.
 
   cbn in *.
 
-  unshelve eexists.
-  exists (memory_invariant_map globals).
-
-  (* Injectivity proof *)
+  assert(∀ x y : nat,
+            x < Datatypes.length
+                  (σ ++
+                     [DSHPtrVal (S (Datatypes.length globals)) o;
+                      DSHPtrVal (Datatypes.length globals) i])
+            ∧ y <
+              Datatypes.length
+                (σ ++
+                   [DSHPtrVal (S (Datatypes.length globals)) o;
+                    DSHPtrVal (Datatypes.length globals) i])
+            → memory_invariant_map globals x ≡ memory_invariant_map globals y → x ≡ y) as INJ.
   {
+    (* Injectivity proof *)
     rewrite app_length.
     erewrite <- initFSHGlobals_globals_sigma_len_eq with (globals0:=globals).
     2: eauto.
@@ -1211,6 +1219,9 @@ Proof.
     eapply initIRGlobals_names_unique.
     eauto.
   }
+  unshelve eexists.
+  exists (memory_invariant_map globals).
+  apply INJ.
 
   intros x v Hn.
   break_match.
@@ -1323,6 +1334,48 @@ Proof.
 
     (* we know, [gname] is in [gdecls] and not in [xydecls] *)
     clear HCX HCY xdata ydata hdata.
+
+    (* switching to stronger, positional, relation *)
+    cut(nth_error g x ≡ Some (Name gname, DVALUE_Double a)).
+    {
+      (* this seems to be provable from INJ *)
+
+      (*
+      clear -INJ Hx SL GSL.
+
+      revert INJ Hx.
+      revert x gname.
+      induction g; intros.
+      -
+        rewrite Util.nth_error_nil in H.
+        inv H.
+      -
+        destruct x.
+        +
+          cbn in *.
+          inv H.
+          break_if; auto.
+          inv Heqb.
+          break_if.
+          inv H0.
+          unfold sumbool_rec, sumbool_rect in Heqs.
+          break_match; congruence.
+        +
+          cbn in H.
+          apply IHg in H;[|auto|lia]. clear IHg.
+          cbn.
+          rewrite_clear H.
+          break_let; subst.
+          break_if.
+          *
+            unfold RelDec.rel_dec in Heqb.
+            inv Heqb.
+            break_if; [|inv H0].
+          *
+            apply H.
+       *)
+      admit.
+    }
     admit.
   -
     (* [DSHPtrVal] must end up in memory *)
