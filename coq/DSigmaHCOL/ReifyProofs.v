@@ -2240,8 +2240,32 @@ Qed.
 
 (** * MSHPointwise  *)
 
-(* TODO: IMap_DSH_pure *)
-(* TODO: Pointwise_MSH_DSH_compat *)
+Global Instance IMap_DSH_pure
+       (nn : nat)
+       (x_p y_p : PExpr)
+       (a : AExpr)
+       `{dft : DSHIBinCarrierA a}
+       {ts : TypeSig}
+       `{TSI : AExprTypeSigIncludes a ts}
+  :
+    DSH_pure (DSHIMap nn x_p y_p a) ts x_p y_p.
+Admitted.
+
+Global Instance Pointwise_MSH_DSH_compat
+       {n: nat}
+       (f: FinNat n -> CarrierA -> CarrierA)
+       `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+       (a : AExpr)
+       (x_p y_p : PExpr)
+       (σ : evalContext)
+       (m : memory)
+       (ts: TypeSig)
+       `{TSI: AExprTypeSigIncludes a ts}
+       {P : DSH_pure (DSHIMap n x_p y_p a) ts x_p y_p}
+  :
+    MSH_DSH_compat (@MSHPointwise n f pF) (DSHIMap n x_p y_p a) σ m x_p y_p.
+Admitted.
+
 
 (** * MSHBinOp  *)
 
