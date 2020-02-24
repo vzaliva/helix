@@ -2687,7 +2687,7 @@ Proof.
       inl_inr_inv.
       rename m0 into pm, Heqe into PM,
              H0 into DMA.
-      rewrite <-DMA in *; clear DMA dma.
+      rewrite <-DMA in *.
       unfold memory_lookup, memory_set in Y_DMA.
       rewrite NP.F.add_eq_o in Y_DMA by reflexivity.
       replace pm with y_dma in * by congruence; clear Y_DMA; rename PM into Y_DMA.
@@ -2759,11 +2759,33 @@ Proof.
             rewrite nat_rect_succ_r.
             reflexivity.
         --
-          admit.
+          clear - Y_DMA YDMA0.
+          eq_to_equiv_hyp.
+          err_eq_to_equiv_hyp.
+          contradict YDMA0.
+          generalize dependent init.
+          induction n; cbn in *.
+          ++
+            intros.
+            inversion Y_DMA; subst.
+            rewrite <-H1.
+            unfold mem_lookup, mem_add.
+            rewrite NP.F.add_eq_o by reflexivity.
+            intros C; inversion C.
+          ++
+            intros.
+            repeat break_match; try inl_inr.
+            eapply IHn.
+            rewrite <-Y_DMA.
+            f_equiv.
+            rewrite mem_add_overwrite.
+            reflexivity.
       * (* the preserved part of the block *)
         constructor 1;
           [cbn; break_match; try reflexivity;
            contradict KO; rewrite e; reflexivity |].
+        inversion PD; clear PD mem_stable0; rename mem_write_safe0 into MWS.
+        specialize (MWS σ m dma).
         admit.
     +
       exfalso.
