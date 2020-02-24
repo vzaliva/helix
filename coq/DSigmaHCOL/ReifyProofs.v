@@ -2819,8 +2819,27 @@ Admitted.
 
 (** * MSHIUnion *)
 
-(* TODO: Loop_DSH_pure *)
-(* TODO: IUnion_MSH_DSH_compat *)
+Global Instance Loop_DSH_pure
+       (n : nat)
+       (dop : DSHOperator)
+       (ts : TypeSig)
+       (x_p y_p : PExpr)
+       {P : DSH_pure dop ts x_p y_p}
+  :
+    DSH_pure (DSHLoop n dop) ts x_p y_p.
+Admitted.
+
+Global Instance IUnion_MSH_DSH_compat
+       (n : nat)
+       (dop : DSHOperator)
+       (ts : TypeSig)
+       (x_p y_p : PExpr)
+       {P : DSH_pure (DSHLoop n dop) ts x_p y_p}
+       (σ : evalContext)
+       (m : memory)
+  :
+    @MSH_DSH_compat _ _ (@MSHIUnion i o n opf) (DSHLoop n dop) ts σ m x_p y_p P.
+Admitted.
 
 
 (** * MSHIReduction *)
