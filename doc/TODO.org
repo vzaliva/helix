@@ -67,6 +67,20 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    - Need more precise matching of goals
    - can use eauto instead of matching
    - can use =typeclasses_eauto= to find some instances
+** Automation for proofs like ~DynWin_pure~.
+
+   May not be possible to follow the structure of DSHCOL, as ~DSH_pure~
+   are associated with MSCHOL, not DSHCOL operators.
+
+   One way around this is to follow MSHCOL structure. Another solution, is
+   to build proof as we compile MSHCOL via template-coq.
+
+   Finally, it /might/ be possible to follow the structure of DSHCOL
+   if the mapping of MSHCOL to DSHCOL is injective. Here we will take
+   advantage of LTAC patter matching which provides us with look-ahead
+   parser to match DHSCOL fragments to MSHCOL operators.
+
+   
 * Unfinished
 ** Division by zero in DSHCOL
    [[file:../coq/DSigmaHCOL/DSigmaHCOL.v::33][NExpr]] ([[file:../coq/DSigmaHCOL/DSigmaHCOLEval.v::61][evalNexpr]])

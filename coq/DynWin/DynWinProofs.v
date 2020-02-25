@@ -262,6 +262,7 @@ Section MSHCOL_to_DSHCOL.
   Definition DSH_x_p := PVar (nglobals+1).
   Definition DSH_y_p := PVar (nglobals+0).
 
+  (* TODO: This is a manual proof. To be automated in future. See [[../../doc/TODO.org]] for details *)
   Global Instance DynWin_pure
     :
       DSH_pure (dynwin_DSHCOL1) (TypeSig_of_varbindings dynwin_DSHCOL1_globals) DSH_x_p DSH_y_p.
