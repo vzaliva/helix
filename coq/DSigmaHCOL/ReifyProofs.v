@@ -2281,7 +2281,6 @@ Global Instance BinOp_DSH_pure
        (a: AExpr)
        `{dft : DSHIBinCarrierA a}
        {ts: TypeSig}
-       (TCA: AExpr_typechecks a (TypeSig_append DSHIBinCarrierA_TypeSig ts))
   :
     DSH_pure (DSHBinOp o x_p y_p a) ts x_p y_p.
 Proof.
