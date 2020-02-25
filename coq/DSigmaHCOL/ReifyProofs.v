@@ -1645,18 +1645,18 @@ Section BinCarrierA.
         clear dfs' DE TS'.
   
         apply typecheck_env_S.
-        apply MaybeMapsTo_Included with (haystack:=DSHIBinCarrierA_TypeSig); eauto.
+        apply MaybeMapsTo_Compat with (t1:=DSHIBinCarrierA_TypeSig); eauto.
         cbn; unfold TP.uncurry; simpl.
         apply TM.add_1; reflexivity.
   
         apply typecheck_env_S.
-        apply MaybeMapsTo_Included with (haystack:=DSHIBinCarrierA_TypeSig); eauto.
+        apply MaybeMapsTo_Compat with (t1:=DSHIBinCarrierA_TypeSig); eauto.
         cbn; unfold TP.uncurry; simpl.
         repeat (apply TM.add_2; [lia|]).
         apply TM.add_1; reflexivity.
   
         apply typecheck_env_S.
-        apply MaybeMapsTo_Included with (haystack:=DSHIBinCarrierA_TypeSig); eauto.
+        apply MaybeMapsTo_Compat with (t1:=DSHIBinCarrierA_TypeSig); eauto.
         cbn; unfold TP.uncurry; simpl.
         repeat (apply TM.add_2; [lia|]).
         apply TM.add_1; reflexivity.
@@ -1790,7 +1790,7 @@ Section BinCarrierA.
           rename k into nv.
           unfold context_equiv_at_TypeSig_head.
           intros k t kc M.
-          apply TypeSigIncluded_at with (k:=k) (v:=t) in D1; eauto.
+          apply TypeSigCompat_at with (k:=k) (e:=t) in D1; eauto.
           clear dfs M.
   
           unfold contextEnsureType.
@@ -1858,6 +1858,12 @@ Section BinCarrierA.
                 auto.
               **
                 lia.
+          --
+            destruct k; [| destruct k; [| destruct k; [| lia]]].
+            all: clear; cbv; eexists.
+            do 2 constructor 2; repeat constructor.
+            constructor 2; repeat constructor.
+            repeat constructor.
         *
           apply evalDSHBinOp_oob_preservation with (k0:=k) in Ha; try lia.
           apply evalDSHBinOp_oob_preservation with (k0:=k) in Hb; try lia.
