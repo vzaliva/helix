@@ -279,17 +279,16 @@ Section MSHCOL_to_DSHCOL.
       apply DSHSeq_DSH_pure. (* HTSumunion *)
       -
         apply Compose_DSH_pure.
-        Fail apply Reduction_DSH_pure.
+        apply IReduction_DSH_pure; [reflexivity|].
         admit.
         admit.
       -
         apply Compose_DSH_pure.
-        Fail apply Reduction_DSH_pure.
+        apply IReduction_DSH_pure; [reflexivity|].
         admit.
         admit.
     }
     {
-      cbn.
       eapply BinOp_DSH_pure.
     }
   Admitted.

@@ -3009,22 +3009,28 @@ Admitted.
 
 (* NOTE : this might require additional instances, e.g. [MemMap2_DSH_pure] *)
 (* NOTE: is [mem_stable] provable here at all? Given the Alloc and Init *)
-Global Instance Reduction_DSH_pure
+Global Instance IReduction_DSH_pure
        {no nn : nat}
-       {x_p y_p t_i : PExpr}
+       {x_p y_p y_p'': PExpr}
        {init : CarrierA}
        {rr : DSHOperator}
        {df : AExpr}
        {ts : TypeSig}
-       (P : DSH_pure rr ts x_p y_p)
+       (Y: y_p'' ≡ incrPVar 0 (incrPVar 0 y_p))
+       (P: DSH_pure rr
+                    (TypeSig_add (TypeSig_add ts DSHnat) DSHPtr)
+                    y_p'' y_p'')
   :
     DSH_pure (DSHAlloc no
                        (DSHSeq
-                          (DSHMemInit no t_i init)
+                          (DSHMemInit no (PVar 0) init)
                           (DSHLoop nn
                                    (DSHSeq
                                       rr
-                                      (DSHMemMap2 no t_i y_p y_p df)))))
+                                      (DSHMemMap2 no (PVar 1)
+                                                  y_p''
+                                                  y_p''
+                                                  df)))))
              ts x_p y_p.
 Proof.
   constructor.
