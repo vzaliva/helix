@@ -258,8 +258,9 @@ Section MSHCOL_to_DSHCOL.
 
   (* Import DSHNotation. *)
 
-  Definition DSH_x_p := PVar 1.
-  Definition DSH_y_p := PVar 0.
+  Definition nglobals := List.length (dynwin_DSHCOL1_globals).
+  Definition DSH_x_p := PVar (nglobals+1).
+  Definition DSH_y_p := PVar (nglobals+0).
 
   Global Instance DynWin_Pure
   :
@@ -281,8 +282,7 @@ Section MSHCOL_to_DSHCOL.
     }
     {
       cbn.
-      Fail eapply BinOp_DSH_pure.
-      admit.
+      eapply BinOp_DSH_pure.
     }
   Admitted.
 
