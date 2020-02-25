@@ -1330,6 +1330,21 @@ Proof.
     congruence.
 Qed.
 
+Lemma MaybeMapsTo_Compat (t0 t1 : TypeSig):
+  forall k t,
+    TM.MapsTo k t t1 ->
+    TypeSigCompat t0 t1 ->
+    TypeSig_MaybeMapsTo k t t0.
+Proof.
+  intros k t M C.
+  unfold TypeSig_MaybeMapsTo in *.
+  break_match; try trivial.
+  apply TM.find_2 in Heqo.
+  copy_apply MapsTo_In M.
+  apply TypeSigCompat_at with (t0:=t0) (e:=d) in H; try assumption.
+  eapply F.MapsTo_fun; eassumption.
+Qed.
+
 Lemma typecheck_env_TypeSigUnion
       (σ : evalContext)
       (t0 t1 : TypeSig) (off : nat)
@@ -1604,3 +1619,9 @@ Proof.
       right.
       eapply MapsTo_In; eassumption.
 Qed.
+
+Global Instance TypeSigCompat_proper:
+  Proper ((=) ==> (=) ==> (iff)) TypeSigCompat.
+Proof.
+  unfold TypeSigCompat.
+Admitted.

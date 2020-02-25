@@ -189,12 +189,13 @@ Definition DSHIUnCarrierA_TypeSig :=
 Definition DSHBinCarrierA_TypeSig :=
   TP.of_list [(0,DSHCType) ; (1,DSHCType)].
 
-(* Instances of this class ensure that given [*Expr]
-   could be propely typed, and it's type signaure includes
+(* Instances of following classes ensure that given [*Expr]
+   could be propely typed, and its type signaure includes
    given [TypeSig].
 
    This could be viewed as a subtyping relation...
-*)
+ *)
+
 Class AExprTypeSigIncludes (a:AExpr) (ts:TypeSig) : Prop
   := atypesigincl: exists dfs, (TypeSigAExpr a = Some dfs) /\ TypeSigIncluded dfs ts.
 
@@ -204,23 +205,39 @@ Class NExprTypeSigIncludes (n:NExpr) (ts:TypeSig) : Prop
 Class MExprTypeSigIncludes (m:MExpr) (ts:TypeSig) : Prop
   := mtypesigincl: exists dfs, (TypeSigMExpr m = Some dfs) /\ TypeSigIncluded dfs ts.
 
+(* The following classes ensure expression type signature compatibility with given signature *)
+
+Class AExprTypeSigCompat (a:AExpr) (ts:TypeSig) : Prop
+  := atypesigcompat: exists dfs, (TypeSigAExpr a = Some dfs) /\ TypeSigCompat dfs ts.
+
+Class NExprTypeSigCompat (n:NExpr) (ts:TypeSig) : Prop
+  := ntypesigcompat: exists dfs, (TypeSigNExpr n = Some dfs) /\ TypeSigCompat dfs ts.
+
+Class MExprTypeSigCompat (m:MExpr) (ts:TypeSig) : Prop
+  := mtypesigcompat: exists dfs, (TypeSigMExpr m = Some dfs) /\ TypeSigCompat dfs ts.
+
+
+(* Instances of following classes ensure that given expression could
+   be used as a function of specified arity. In particular it ensures
+   that arguments, if used, have expected types.
+
+   This implementation allows function to ignore arguments.
+
+   This implementation only check types expected function
+   arguments. The expression may reference other arbitrary variables.
+*)
+
 Class DSHIBinCarrierA (a:AExpr) : Prop :=
-  DSHIBinCarrierA_atypesigincl :> AExprTypeSigIncludes a DSHIBinCarrierA_TypeSig.
+  DSHIBinCarrierA_atypesigincl :> AExprTypeSigCompat a DSHIBinCarrierA_TypeSig.
 
 Class DSHUnCarrierA (a:AExpr) : Prop :=
-  DSHUnCarrierA_atypesigincl :> AExprTypeSigIncludes a DSHUnCarrierA_TypeSig.
+  DSHUnCarrierA_atypesigincl :> AExprTypeSigCompat a DSHUnCarrierA_TypeSig.
 
 Class DSHIUnCarrierA (a:AExpr) : Prop :=
-  DSHIUnCarrierA_atypesigincl :> AExprTypeSigIncludes a DSHIUnCarrierA_TypeSig.
+  DSHIUnCarrierA_atypesigincl :> AExprTypeSigCompat a DSHIUnCarrierA_TypeSig.
 
 Class DSHBinCarrierA (a:AExpr) : Prop :=
-  DSHBinCarrierA_atypesigincl :> AExprTypeSigIncludes a DSHBinCarrierA_TypeSig.
-
-(** Instances of this class ensures that given [AExpr] typchecks in under given [TypeSig] *)
-Class AExpr_typechecks
-      (a:AExpr)
-      (ts:TypeSig) : Prop
-  := bincarrieratypechecks: exists dfs, (TypeSigAExpr a = Some dfs) /\ TypeSigIncluded dfs ts.
+  DSHBinCarrierA_atypesigincl :> AExprTypeSigCompat a DSHBinCarrierA_TypeSig.
 
 
 (* This relations represents consistent memory/envirnment combinations.
@@ -1065,10 +1082,13 @@ Section BinCarrierA.
       intros.
       inversion H.
     -
+      unfold DSHIBinCarrierA_TypeSig.
+      (*
       cbv.
       repeat break_match; try congruence.
       contradict f; reflexivity.
-  Qed.
+       *)
+  Admitted.
   
   Instance Abs_MSH_DSH_IBinCarrierA_compat
     :
@@ -1625,18 +1645,18 @@ Section BinCarrierA.
         clear dfs' DE TS'.
   
         apply typecheck_env_S.
-        apply MaybeMapsTo_Included with (haystack:=DSHIBinCarrierA_TypeSig); eauto.
+        apply MaybeMapsTo_Compat with (t1:=DSHIBinCarrierA_TypeSig); eauto.
         cbn; unfold TP.uncurry; simpl.
         apply TM.add_1; reflexivity.
   
         apply typecheck_env_S.
-        apply MaybeMapsTo_Included with (haystack:=DSHIBinCarrierA_TypeSig); eauto.
+        apply MaybeMapsTo_Compat with (t1:=DSHIBinCarrierA_TypeSig); eauto.
         cbn; unfold TP.uncurry; simpl.
         repeat (apply TM.add_2; [lia|]).
         apply TM.add_1; reflexivity.
   
         apply typecheck_env_S.
-        apply MaybeMapsTo_Included with (haystack:=DSHIBinCarrierA_TypeSig); eauto.
+        apply MaybeMapsTo_Compat with (t1:=DSHIBinCarrierA_TypeSig); eauto.
         cbn; unfold TP.uncurry; simpl.
         repeat (apply TM.add_2; [lia|]).
         apply TM.add_1; reflexivity.
@@ -1770,7 +1790,7 @@ Section BinCarrierA.
           rename k into nv.
           unfold context_equiv_at_TypeSig_head.
           intros k t kc M.
-          apply TypeSigIncluded_at with (k:=k) (v:=t) in D1; eauto.
+          apply TypeSigCompat_at with (k:=k) (e:=t) in D1; eauto.
           clear dfs M.
   
           unfold contextEnsureType.
@@ -1838,6 +1858,12 @@ Section BinCarrierA.
                 auto.
               **
                 lia.
+          --
+            destruct k; [| destruct k; [| destruct k; [| lia]]].
+            all: clear; cbv; eexists.
+            do 2 constructor 2; repeat constructor.
+            constructor 2; repeat constructor.
+            repeat constructor.
         *
           apply evalDSHBinOp_oob_preservation with (k0:=k) in Ha; try lia.
           apply evalDSHBinOp_oob_preservation with (k0:=k) in Hb; try lia.
