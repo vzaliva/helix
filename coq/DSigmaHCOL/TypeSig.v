@@ -1623,5 +1623,78 @@ Qed.
 Global Instance TypeSigCompat_proper:
   Proper ((=) ==> (=) ==> (iff)) TypeSigCompat.
 Proof.
-  unfold TypeSigCompat.
-Admitted.
+  intros x x' XE y y' YE.
+  split; intros.
+  -
+    unfold TypeSigCompat, findTypeSigConflicts in *.
+    remember (λ a b : option DSHType,
+                      match a with
+                      | Some x =>
+                        match b with
+                        | Some y => if bool_decide (x = y) then None else Some (a, b)
+                        | None => None
+                        end
+                      | None => None
+                      end)
+      as f.
+    unfold TM.Empty, TM.Raw.Proofs.Empty in *.
+    intros; intros C.
+    specialize (H a e); contradict H.
+
+    assert (TM.MapsTo a e (TM.map2 f x' y')) by assumption; clear C.
+    enough (TM.MapsTo a e (TM.map2 f x y)) by assumption.
+    apply F.find_mapsto_iff.
+    apply F.find_mapsto_iff in H.
+
+    rewrite F.map2_1bis in * by (subst; reflexivity).
+    rewrite <-H.
+    f_equal; [clear - XE | clear - YE].
+    +
+      specialize (XE a).
+      unfold equiv, option_Equiv in XE.
+      inversion XE.
+      reflexivity.
+      inversion H1; reflexivity.
+    +
+      specialize (YE a).
+      unfold equiv, option_Equiv in YE.
+      inversion YE.
+      reflexivity.
+      inversion H1; reflexivity.
+  -
+    unfold TypeSigCompat, findTypeSigConflicts in *.
+    remember (λ a b : option DSHType,
+                      match a with
+                      | Some x =>
+                        match b with
+                        | Some y => if bool_decide (x = y) then None else Some (a, b)
+                        | None => None
+                        end
+                      | None => None
+                      end)
+      as f.
+    unfold TM.Empty, TM.Raw.Proofs.Empty in *.
+    intros; intros C.
+    specialize (H a e); contradict H.
+
+    assert (TM.MapsTo a e (TM.map2 f x y)) by assumption; clear C.
+    enough (TM.MapsTo a e (TM.map2 f x' y')) by assumption.
+    apply F.find_mapsto_iff.
+    apply F.find_mapsto_iff in H.
+
+    rewrite F.map2_1bis in * by (subst; reflexivity).
+    rewrite <-H.
+    f_equal; [clear - XE | clear - YE].
+    +
+      specialize (XE a).
+      unfold equiv, option_Equiv in XE.
+      inversion XE.
+      reflexivity.
+      inversion H1; reflexivity.
+    +
+      specialize (YE a).
+      unfold equiv, option_Equiv in YE.
+      inversion YE.
+      reflexivity.
+      inversion H1; reflexivity.
+Qed.
