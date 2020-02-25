@@ -258,12 +258,15 @@ Section MSHCOL_to_DSHCOL.
 
   (* Import DSHNotation. *)
 
+  Definition DSH_x_p := PVar 1.
+  Definition DSH_y_p := PVar 0.
+
   Global Instance DynWin_Pure
-       (x_p y_p : PExpr)
   :
-    DSH_pure (dynwin_DSHCOL1) (TypeSig_of_varbindings dynwin_DSHCOL1_globals) x_p y_p.
+    DSH_pure (dynwin_DSHCOL1) (TypeSig_of_varbindings dynwin_DSHCOL1_globals) DSH_x_p DSH_y_p.
   Proof.
     unfold dynwin_DSHCOL1.
+    unfold DSH_y_p, DSH_x_p.
 
     remember (TypeSig_of_varbindings dynwin_DSHCOL1_globals) as ts.
     Opaque TM.add TM.empty.
@@ -277,6 +280,7 @@ Section MSHCOL_to_DSHCOL.
       admit.
     }
     {
+      cbn.
       Fail eapply BinOp_DSH_pure.
       admit.
     }
