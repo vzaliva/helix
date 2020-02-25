@@ -2065,11 +2065,9 @@ Qed.
 (** * MSHEmbed, MSHPick **)
 
 Global Instance Assign_DSH_pure
-       (x_n y_n : NExpr)
-       (x_p y_p : PExpr)
+       {x_n y_n : NExpr}
+       {x_p y_p : PExpr}
        {ts : TypeSig}
-       `{XN : NExprTypeSigIncludes x_n ts}
-       `{YN : NExprTypeSigIncludes y_n ts}
   :
     DSH_pure (DSHAssign (x_p, x_n) (y_p, y_n)) ts x_p y_p.
 Proof.
@@ -2274,15 +2272,45 @@ Qed.
 (** * MSHPointwise  *)
 
 Global Instance IMap_DSH_pure
-       (nn : nat)
-       (x_p y_p : PExpr)
-       (a : AExpr)
-       `{dft : DSHIBinCarrierA a}
+       {nn : nat}
+       {x_p y_p : PExpr}
+       {a : AExpr}
        {ts : TypeSig}
-       `{TSI : AExprTypeSigIncludes a ts}
   :
     DSH_pure (DSHIMap nn x_p y_p a) ts x_p y_p.
-Admitted.
+Proof.
+  constructor.
+  -
+    intros.
+    destruct fuel; [inversion H |].
+    cbn in H.
+    repeat break_match; repeat some_inv; try inl_inr.
+    inl_inr_inv; rewrite <-H.
+    split; intros.
+    +
+      apply mem_block_exists_memory_set; assumption.
+    +
+      apply mem_block_exists_memory_set_inv in H0.
+      destruct H0; [assumption |].
+      subst.
+      apply memory_is_set_is_Some.
+      apply memory_lookup_err_inr_is_Some in Heqe2.
+      assumption.
+  -
+    intros.
+    unfold memory_equiv_except, memory_lookup; intros.
+    destruct fuel; [inversion H |].
+    cbn in H.
+    repeat break_match;
+      try some_none; repeat some_inv;
+      try inl_inr; repeat inl_inr_inv.
+    unfold equiv, memory_Equiv, memory_set, mem_add in H.
+    specialize (H k).
+    rewrite <-H.
+    cbv in H0; subst.
+    rewrite NP.F.add_neq_o by congruence.
+    reflexivity.
+Qed.
 
 Global Instance Pointwise_MSH_DSH_compat
        {n: nat}
@@ -2302,10 +2330,9 @@ Admitted.
 (** * MSHBinOp  *)
 
 Global Instance BinOp_DSH_pure
-       (o : nat)
-       (x_p y_p : PExpr)
-       (a: AExpr)
-       `{dft : DSHIBinCarrierA a}
+       {o : nat}
+       {x_p y_p : PExpr}
+       {a: AExpr}
        {ts: TypeSig}
   :
     DSH_pure (DSHBinOp o x_p y_p a) ts x_p y_p.
@@ -2585,16 +2612,12 @@ Qed.
 (** * MSHInductor *)
 
 Global Instance Power_DSH_pure
-       (n : NExpr)
-       (x_n y_n : NExpr)
-       (x_p y_p : PExpr)
-       (a : AExpr)
-       (ts : TypeSig)
-       `{AI : AExprTypeSigIncludes a (TypeSig_incr_n ts 2)}
-       `{NI : NExprTypeSigIncludes n ts}
-       `{XNI : NExprTypeSigIncludes x_n ts}
-       `{YNI : NExprTypeSigIncludes y_n ts}
-       (initial : CarrierA)
+       {n : NExpr}
+       {x_n y_n : NExpr}
+       {x_p y_p : PExpr}
+       {a : AExpr}
+       {ts : TypeSig}
+       {initial : CarrierA}
   :
     DSH_pure (DSHPower n (x_p, x_n) (y_p, y_n) a initial) ts x_p y_p.
 Proof.
@@ -2851,13 +2874,72 @@ Admitted.
 (** * MSHIUnion *)
 
 Global Instance Loop_DSH_pure
-       (n : nat)
-       (dop : DSHOperator)
-       (ts : TypeSig)
-       (x_p y_p : PExpr)
-       {P : DSH_pure dop ts x_p y_p}
+       {n : nat}
+       {dop : DSHOperator}
+       {ts : TypeSig}
+       {x_p y_p : PExpr}
+       (P : DSH_pure dop ts x_p y_p)
   :
     DSH_pure (DSHLoop n dop) ts x_p y_p.
+Proof.
+  split.
+  -
+    intros.
+    destruct fuel; [inversion H |].
+    generalize dependent fuel.
+    generalize dependent m'.
+    induction n.
+    +
+      intros.
+      cbn in *.
+      some_inv; inl_inr_inv.
+      rewrite H; reflexivity.
+    +
+      intros.
+      cbn in H.
+      repeat break_match;
+        try some_none; repeat some_inv;
+        try inl_inr; repeat inl_inr_inv.
+      subst.
+      destruct fuel; [inversion Heqo |].
+      eq_to_equiv_hyp.
+      apply IHn in Heqo.
+      rewrite Heqo.
+      clear - P H.
+      inversion P.
+      eapply mem_stable0.
+      eassumption.
+  -
+    intros.
+    destruct fuel; [inversion H |].
+    generalize dependent fuel.
+    generalize dependent m'.
+    induction n.
+    +
+      intros.
+      cbn in *.
+      some_inv; inl_inr_inv.
+      unfold memory_equiv_except.
+      intros.
+      rewrite H.
+      reflexivity.
+    +
+      intros.
+      cbn in H.
+      repeat break_match;
+        try some_none; repeat some_inv;
+        try inl_inr; repeat inl_inr_inv.
+      subst.
+      destruct fuel; [inversion Heqo |].
+      eq_to_equiv_hyp.
+      apply IHn in Heqo.
+      unfold memory_equiv_except in *.
+      intros.
+      rewrite Heqo by assumption.
+      inversion P.
+      unfold memory_equiv_except in *.
+      eapply mem_write_safe0.
+      eassumption.
 Admitted.
 
 Global Instance IUnion_MSH_DSH_compat
@@ -2878,13 +2960,13 @@ Admitted.
 (* NOTE : this might require additional instances, e.g. [MemMap2_DSH_pure] *)
 (* NOTE: is [mem_stable] provable here at all? Given the Alloc and Init *)
 Global Instance Reduction_DSH_pure
-       (no nn : nat)
-       (x_p y_p t_i : PExpr)
-       (init : CarrierA)
-       (rr : DSHOperator)
-       (df : AExpr)
-       (ts : TypeSig)
-       {P : DSH_pure rr ts x_p y_p}
+       {no nn : nat}
+       {x_p y_p t_i : PExpr}
+       {init : CarrierA}
+       {rr : DSHOperator}
+       {df : AExpr}
+       {ts : TypeSig}
+       (P : DSH_pure rr ts x_p y_p)
   :
     DSH_pure (DSHAlloc no
                        (DSHSeq
@@ -2894,6 +2976,37 @@ Global Instance Reduction_DSH_pure
                                       rr
                                       (DSHMemMap2 no t_i y_p y_p df)))))
              ts x_p y_p.
+Proof.
+  constructor.
+  -
+    intros.
+    destruct fuel; [inversion H |].
+    cbn in *.
+    repeat break_match;
+      try some_none; repeat some_inv;
+      try inl_inr; repeat inl_inr_inv.
+    subst.
+
+    destruct fuel; [inversion Heqo |].
+    cbn in *.
+    repeat break_match;
+      try some_none; repeat some_inv;
+      try inl_inr; repeat inl_inr_inv.
+    subst.
+
+    destruct fuel; [inversion Heqo |].
+    induction nn.
+    +
+      cbn in *.
+      repeat break_match;
+        try some_none; repeat some_inv;
+        try inl_inr; repeat inl_inr_inv.
+      subst.
+      admit.
+    +
+      admit.
+  -
+    admit.
 Admitted.
 
 Global Instance IReduction_MSH_DSH_compat
@@ -4204,8 +4317,8 @@ Qed.
 
 Global Instance DSHSeq_DSH_pure
        {ts: TypeSig}
-       {dop1 dop2}
-       {x_p y_p}
+       {dop1 dop2 : DSHOperator}
+       {x_p y_p : PExpr}
        (P1: DSH_pure dop1 ts x_p y_p)
        (P2: DSH_pure dop2 ts x_p y_p)
   :
