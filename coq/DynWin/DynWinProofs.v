@@ -273,13 +273,14 @@ Section MSHCOL_to_DSHCOL.
     Opaque TM.add TM.empty.
     cbv in Heqts.
     subst ts.
+    cbn.
 
     apply Compose_DSH_pure.
     apply DSHSeq_DSH_pure. (* HTSumunion *)
     apply Compose_DSH_pure.
     apply IReduction_DSH_pure; [reflexivity|].
     apply Compose_DSH_pure.
-    Fail apply Assign_DSH_pure. admit.
+    apply Assign_DSH_pure.
     apply Compose_DSH_pure.
     apply Power_DSH_pure.
     apply IMap_DSH_pure.
@@ -288,13 +289,13 @@ Section MSHCOL_to_DSHCOL.
     apply IReduction_DSH_pure; [reflexivity|].
     apply Compose_DSH_pure.
     apply Loop_DSH_pure.
-    apply Compose_DSH_pure; cbn.
-    Fail apply Assign_DSH_pure. admit.
+    apply Compose_DSH_pure.
+    apply Assign_DSH_pure.
     apply Assign_DSH_pure.
     apply BinOp_DSH_pure.
     apply Assign_DSH_pure.
     eapply BinOp_DSH_pure.
-  Admitted.
+  Qed.
 
 End MSHCOL_to_DSHCOL.
 
