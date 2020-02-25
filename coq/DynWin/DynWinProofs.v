@@ -276,9 +276,17 @@ Section MSHCOL_to_DSHCOL.
 
     apply Compose_DSH_pure.
     {
-      apply DSHSeq_DSH_pure.
-      admit.
-      admit.
+      apply DSHSeq_DSH_pure. (* HTSumunion *)
+      -
+        apply Compose_DSH_pure.
+        Fail apply Reduction_DSH_pure.
+        admit.
+        admit.
+      -
+        apply Compose_DSH_pure.
+        Fail apply Reduction_DSH_pure.
+        admit.
+        admit.
     }
     {
       cbn.
