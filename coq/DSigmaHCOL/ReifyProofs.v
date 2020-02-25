@@ -2878,7 +2878,7 @@ Global Instance Loop_DSH_pure
        {dop : DSHOperator}
        {ts : TypeSig}
        {x_p y_p : PExpr}
-       (P : DSH_pure dop ts x_p y_p)
+       (P : DSH_pure dop ts (incrPVar 0 x_p) (incrPVar 0 y_p))
   :
     DSH_pure (DSHLoop n dop) ts x_p y_p.
 Proof.

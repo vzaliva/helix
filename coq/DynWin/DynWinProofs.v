@@ -262,9 +262,9 @@ Section MSHCOL_to_DSHCOL.
   Definition DSH_x_p := PVar (nglobals+1).
   Definition DSH_y_p := PVar (nglobals+0).
 
-  Global Instance DynWin_Pure
-  :
-    DSH_pure (dynwin_DSHCOL1) (TypeSig_of_varbindings dynwin_DSHCOL1_globals) DSH_x_p DSH_y_p.
+  Global Instance DynWin_pure
+    :
+      DSH_pure (dynwin_DSHCOL1) (TypeSig_of_varbindings dynwin_DSHCOL1_globals) DSH_x_p DSH_y_p.
   Proof.
     unfold dynwin_DSHCOL1.
     unfold DSH_y_p, DSH_x_p.
@@ -275,22 +275,25 @@ Section MSHCOL_to_DSHCOL.
     subst ts.
 
     apply Compose_DSH_pure.
-    {
-      apply DSHSeq_DSH_pure. (* HTSumunion *)
-      -
-        apply Compose_DSH_pure.
-        apply IReduction_DSH_pure; [reflexivity|].
-        admit.
-        admit.
-      -
-        apply Compose_DSH_pure.
-        apply IReduction_DSH_pure; [reflexivity|].
-        admit.
-        admit.
-    }
-    {
-      eapply BinOp_DSH_pure.
-    }
+    apply DSHSeq_DSH_pure. (* HTSumunion *)
+    apply Compose_DSH_pure.
+    apply IReduction_DSH_pure; [reflexivity|].
+    apply Compose_DSH_pure.
+    Fail apply Assign_DSH_pure. admit.
+    apply Compose_DSH_pure.
+    apply Power_DSH_pure.
+    apply IMap_DSH_pure.
+    apply Assign_DSH_pure.
+    apply Compose_DSH_pure.
+    apply IReduction_DSH_pure; [reflexivity|].
+    apply Compose_DSH_pure.
+    apply Loop_DSH_pure.
+    apply Compose_DSH_pure; cbn.
+    Fail apply Assign_DSH_pure. admit.
+    apply Assign_DSH_pure.
+    apply BinOp_DSH_pure.
+    apply Assign_DSH_pure.
+    eapply BinOp_DSH_pure.
   Admitted.
 
 End MSHCOL_to_DSHCOL.
