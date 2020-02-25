@@ -2878,7 +2878,7 @@ Global Instance Loop_DSH_pure
        {dop : DSHOperator}
        {ts : TypeSig}
        {x_p y_p : PExpr}
-       (P : DSH_pure dop ts (incrPVar 0 x_p) (incrPVar 0 y_p))
+       (P : DSH_pure dop (TypeSig_add ts DSHnat) (incrPVar 0 x_p) (incrPVar 0 y_p))
   :
     DSH_pure (DSHLoop n dop) ts x_p y_p.
 Proof.
@@ -3018,7 +3018,7 @@ Global Instance IReduction_DSH_pure
        {ts : TypeSig}
        (Y: y_p'' ≡ incrPVar 0 (incrPVar 0 y_p))
        (P: DSH_pure rr
-                    (TypeSig_add (TypeSig_add ts DSHnat) DSHPtr)
+                    (TypeSig_add (TypeSig_add ts DSHPtr) DSHnat)
                     y_p'' y_p'')
   :
     DSH_pure (DSHAlloc no
