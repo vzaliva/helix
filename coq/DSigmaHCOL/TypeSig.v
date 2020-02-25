@@ -1604,3 +1604,9 @@ Proof.
       right.
       eapply MapsTo_In; eassumption.
 Qed.
+
+Global Instance TypeSigCompat_proper:
+  Proper ((=) ==> (=) ==> (iff)) TypeSigCompat.
+Proof.
+  unfold TypeSigCompat.
+Admitted.
