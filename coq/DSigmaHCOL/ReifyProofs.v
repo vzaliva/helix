@@ -2942,18 +2942,68 @@ Proof.
       eassumption.
 Admitted.
 
+(* NOTE: requires connection between [opf] and [dop] *)
 Global Instance IUnion_MSH_DSH_compat
-       (n : nat)
-       (dop : DSHOperator)
-       (ts : TypeSig)
-       (x_p y_p : PExpr)
-       {P : DSH_pure (DSHLoop n dop) ts x_p y_p}
-       (σ : evalContext)
-       (m : memory)
+       {i o n : nat}
+       {dop : DSHOperator}
+       {ts : TypeSig}
+       {x_p y_p : PExpr}
+       {σ : evalContext}
+       {m : memory}
+       {opf : MSHOperatorFamily}
+       (P : DSH_pure (DSHLoop n dop) ts x_p y_p)
   :
     @MSH_DSH_compat _ _ (@MSHIUnion i o n opf) (DSHLoop n dop) ts σ m x_p y_p P.
-Admitted.
+Proof.
+  constructor.
+  intros x_m y_m XM YM.
+  destruct (mem_op (MSHIUnion opf) x_m) as [mm |] eqn:MM.
+  all: destruct (evalDSHOperator σ (DSHLoop n dop) m (estimateFuel (DSHLoop n dop)))
+    as [dm |] eqn:DM; [destruct dm as [| dm] |].
+  all: repeat constructor.
+  1,3,4: exfalso; admit.
+  -
+    destruct (lookup_Pexp σ dm y_p) as [| y_dm] eqn:YDM.
+    +
+      exfalso. admit.
+    +
+      constructor.
+      unfold SHCOL_DSHCOL_mem_block_equiv.
+      intro k.
+      destruct (mem_lookup k mm) as [kmm |] eqn:KMM.
+      *
+        constructor 2; [reflexivity |].
+        cbn in MM.
+        break_match; [some_inv | some_none].
+        rename l into xmbl, Heqo0 into XMBL, H0 into MM.
 
+
+        induction n.
+        --
+          cbn in *.
+          repeat some_inv; repeat inl_inr_inv; subst.
+          cbn in *.
+          inversion KMM.
+        --
+          cbn in DM.
+          repeat break_match;
+            try some_none; repeat some_inv;
+            try inl_inr; repeat inl_inr_inv.
+          subst.
+          rewrite <-KMM in *; clear KMM.
+          admit.
+          (*
+          specialize (IHn opf).
+          eapply IHn.
+          admit.
+          instantiate (1 := opf).
+          eapply XMBL.
+          assumption.
+           *)
+      *
+        constructor 1; [reflexivity |].
+        admit.
+Admitted.
 
 (** * MSHIReduction *)
 
