@@ -905,16 +905,15 @@ Class DSH_pure
                    memory_equiv_except m m' y_i)
     }.
 
-(* Given MSHCOL and DSHCOL operators are quivalent, if wrt [x_i] and
-  input memory block addres and [y_i] as output.
+(** Given MSHCOL and DSHCOL operators are quivalent, if wrt [x_i] and
+    input memory block addres and [y_i] as output.
 
-  It is assumed that we know what memory blocks are used as input
-  [x_i] and output [y_i], of the operator. They both must exists (be
-  allocated) prior to execution.
+    It is assumed that we know what memory blocks are used as input
+    [x_i] and output [y_i], of the operator. They both must exists (be
+    allocated) prior to execution.
 
-  We do not require input block to be structurally correct, because
-  [mem_op] will just return an error in this case.  *)
-
+    We do not require input block to be structurally correct, because
+    [mem_op] will just return an error in this case.  *)
 Class MSH_DSH_compat
       {i o: nat}
       (mop: @MSHOperator i o)
