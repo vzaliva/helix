@@ -1113,6 +1113,27 @@ Proof.
 Qed.
 
 
+(* TODO: brute-force proof is slow. Could be optimized *)
+Fact init_one_global_empty_local
+      (a0 : toplevel_entity typ (list (LLVMAst.block typ)))
+      (m0 : M.memory_stack)
+      (p : M.memory * M.mem_stack)
+      (l0 : local_env)
+      (p1 : raw_id * dvalue):
+  init_one_global (m0, [ ]) a0 ≡ inr (p, l0, p1) → l0 ≡ [ ].
+Proof.
+  intros H.
+  unfold init_one_global in H.
+  repeat (break_match_hyp; try inl_inr).
+  cbn in *.
+  subst.
+  repeat (break_match_hyp; try inl_inr).
+  inl_inr_inv.
+  reflexivity.
+  inl_inr_inv.
+  reflexivity.
+Qed.
+
 Fact init_with_data_init_one_global_empty_local
      m g m' l g':
   init_with_data init_one_global no_chk (m, [ ]) g ≡ inr (m', l, g') -> l ≡ [].
@@ -1324,7 +1345,7 @@ Proof.
       apply ListUtil.nth_beyond_idx in Heqo0.
       lia.
     }
-    destruct p as (gname, gval).
+    destruct p as (gname, gtyp).
 
     (* unify lengths *)
     remember (Datatypes.length σ) as l eqn:SL; symmetry in SL.
@@ -1334,6 +1355,13 @@ Proof.
 
     (* we know, [gname] is in [gdecls] and not in [xydecls] *)
     clear HCX HCY xdata ydata hdata.
+
+
+    assert(exists gd, nth_error gdecls x ≡ Some (TLE_Global gd) /\ g_exp gd ≡ Some (EXP_Double a)) as [gd [NGD VGD]].
+    {
+      clear - F HIRG Hn.
+      admit.
+    }
 
     (* switching to stronger, positional, relation *)
     cut(nth_error g x ≡ Some (Name gname, DVALUE_Double a)).
@@ -1376,7 +1404,45 @@ Proof.
        *)
       admit.
     }
-    admit.
+    clear INJ.
+    (*  swtich from [g] to [g1] *)
+    assert(List.length gdecls ≡ List.length g1) as GL
+        by eapply init_with_data_len, HG.
+    subst g.
+    rewrite ListUtil.nth_app_left; [|apply init_with_data_len in HIRG; lia].
+    clear g2 HFSHG.
+
+    {
+      clear - HG NGD VGD.
+      revert HG NGD VGD.
+      revert x g1.
+      generalize M.empty_memory_stack as m0.
+      induction gdecls; intros.
+      -
+        rewrite nth_error_nil in NGD.
+        inversion NGD.
+      -
+        cbn in HG.
+        break_match_hyp; try inl_inr.
+        break_let.
+        break_match_hyp; try inl_inr.
+        break_let.
+        subst.
+        inl_inr_inv.
+        subst.
+        destruct x.
+        +
+          cbn in *.
+          inv NGD.
+          admit.
+        +
+          cbn.
+          destruct p0.
+          apply IHgdecls with (m0:=p); auto.
+          assert(l0 ≡ []) by (eapply init_one_global_empty_local; eauto).
+          subst l0.
+          auto.
+    }
   -
     (* [DSHPtrVal] must end up in memory *)
     intros bk_helix HMH.
