@@ -1082,13 +1082,36 @@ Section BinCarrierA.
       intros.
       inversion H.
     -
-      unfold DSHIBinCarrierA_TypeSig.
-      (*
-      cbv.
-      repeat break_match; try congruence.
-      contradict f; reflexivity.
-       *)
-  Admitted.
+      unfold DSHIBinCarrierA_TypeSig, TypeSigCompat,
+        TM.Empty, TM.Raw.Proofs.Empty, findTypeSigConflicts.
+      remember (λ a b : option DSHType,
+                        match a with
+                        | Some x =>
+                          match b with
+                          | Some y => if bool_decide (x = y) then None else Some (a, b)
+                          | None => None
+                          end
+                        | None => None
+                        end)
+        as f.
+      intros; intros C.
+
+  assert (TM.MapsTo a e
+           (TM.map2 f (TP.of_list [(0, DSHCType); (1, DSHCType)])
+                    (TP.of_list [(0, DSHCType); (1, DSHCType); (2, DSHnat)])))
+         by assumption; clear C.
+  rewrite TP.F.find_mapsto_iff in H.
+  rewrite TP.F.map2_1bis in H by (subst; reflexivity).
+  subst.
+  repeat break_match; try some_none.
+  destruct a; [| destruct a; [| destruct a]].
+  all: cbv in Heqo, Heqo0.
+  all: try some_none.
+  all: repeat some_inv; subst.
+  all: cbv in Heqb.
+  all: break_match; try discriminate.
+  all: clear - n; contradict n; reflexivity.
+  Qed.
   
   Instance Abs_MSH_DSH_IBinCarrierA_compat
     :
@@ -2945,7 +2968,6 @@ Proof.
       assumption.
 Qed.
 
-(* NOTE: requires connection between [opf] and [dop] *)
 Global Instance IUnion_MSH_DSH_compat
        {i o n : nat}
        {dop : DSHOperator}
@@ -2954,48 +2976,59 @@ Global Instance IUnion_MSH_DSH_compat
        {σ : evalContext}
        {m : memory}
        {opf : MSHOperatorFamily}
-       (P : DSH_pure (DSHLoop n dop) ts x_p y_p)
+       (DP : DSH_pure dop (TypeSig_add ts DSHnat) (incrPVar 0 x_p) (incrPVar 0 y_p))
+       (LP : DSH_pure (DSHLoop n dop) ts x_p y_p)
+       (FC : forall t, @MSH_DSH_compat _ _ (opf t) dop
+                                  (TypeSig_add ts DSHnat)
+                                  ((DSHnatVal (proj1_sig t)) :: σ)
+                                  m (incrPVar 0 x_p) (incrPVar 0 y_p) DP)
   :
     @MSH_DSH_compat _ _ (@MSHIUnion i o n opf) (DSHLoop n dop) ts σ m x_p y_p P.
 Proof.
   constructor.
-  intros x_m y_m XM YM.
-  destruct (mem_op (MSHIUnion opf) x_m) as [mm |] eqn:MM.
+  intros x_m y_m X_M Y_M.
+  destruct (mem_op (MSHIUnion opf) x_m) as [mmb |] eqn:MMB.
   all: destruct (evalDSHOperator σ (DSHLoop n dop) m (estimateFuel (DSHLoop n dop)))
     as [dm |] eqn:DM; [destruct dm as [| dm] |].
   all: repeat constructor.
   1,3,4: exfalso; admit.
   -
-    destruct (lookup_Pexp σ dm y_p) as [| y_dm] eqn:YDM.
+    destruct (lookup_Pexp σ dm y_p) as [| y_dm] eqn:Y_DM.
     +
       exfalso. admit.
     +
       constructor.
       unfold SHCOL_DSHCOL_mem_block_equiv.
       intro k.
-      destruct (mem_lookup k mm) as [kmm |] eqn:KMM.
+      destruct (mem_lookup k mmb) as [k_mmb |] eqn:K_MMB.
       *
         constructor 2; [reflexivity |].
-        cbn in MM.
+        cbn in MMB.
         break_match; [some_inv | some_none].
-        rename l into xmbl, Heqo0 into XMBL, H0 into MM.
+        rename l into mmb_l, Heqo0 into MMB_L, H0 into MM.
+        subst.
 
 
+        remember (estimateFuel (DSHLoop n dop)) as fuel; clear Heqfuel.
+        generalize dependent fuel.
+        generalize dependent dm.
         induction n.
         --
           cbn in *.
           repeat some_inv; repeat inl_inr_inv; subst.
           cbn in *.
-          inversion KMM.
+          inversion K_MMB.
         --
+          admit.
+          (*
           cbn in DM.
           repeat break_match;
             try some_none; repeat some_inv;
             try inl_inr; repeat inl_inr_inv.
+
+          
+
           subst.
-          rewrite <-KMM in *; clear KMM.
-          admit.
-          (*
           specialize (IHn opf).
           eapply IHn.
           admit.
@@ -3070,23 +3103,26 @@ Admitted.
 
 Global Instance IReduction_MSH_DSH_compat
        {i o n no nn : nat}
-       (initial: CarrierA)
+       (init : CarrierA)
        (dot: CarrierA -> CarrierA -> CarrierA)
        `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
        (op_family: @MSHOperatorFamily i o n)
        (df : AExpr)
        (ts : TypeSig)
-       (x_p y_p t_i : PExpr)
+       {x_p y_p y_p'': PExpr}
+       (Y: y_p'' ≡ incrPVar 0 (incrPVar 0 y_p))
        (rr : DSHOperator)
-       {P : DSH_pure 
-              (DSHAlloc no
-                        (DSHSeq
-                           (DSHMemInit no t_i initial)
-                           (DSHLoop nn
-                                    (DSHSeq
-                                       rr
-                                       (DSHMemMap2 no t_i y_p y_p df)))))
-              ts x_p y_p}
+       (P : DSH_pure (DSHAlloc no
+                               (DSHSeq
+                                  (DSHMemInit no (PVar 0) init)
+                                  (DSHLoop nn
+                                           (DSHSeq
+                                              rr
+                                              (DSHMemMap2 no (PVar 1)
+                                                          y_p''
+                                                          y_p''
+                                                          df)))))
+                     ts x_p y_p)
        (σ : evalContext)
        (m : memory)
   :
@@ -3095,14 +3131,17 @@ Global Instance IReduction_MSH_DSH_compat
       (@MSHIReduction i o n initial dot pdot op_family)
       (DSHAlloc no
                 (DSHSeq
-                   (DSHMemInit no t_i initial)
+                   (DSHMemInit no (PVar 0) init)
                    (DSHLoop nn
                             (DSHSeq
                                rr
-                               (DSHMemMap2 no t_i y_p y_p df)))))
+                               (DSHMemMap2 no (PVar 1)
+                                           y_p''
+                                           y_p''
+                                           df)))))
       ts σ m x_p y_p P.
 Admitted.
-      
+
 
 (** * MSHCompose *)
 Global Instance Compose_DSH_pure
