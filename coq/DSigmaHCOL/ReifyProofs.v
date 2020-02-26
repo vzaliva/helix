@@ -2134,15 +2134,15 @@ Qed.
 
 Global Instance Embed_MSH_DSH_compat
        {o b: nat}
-       (bc: b < o)
-       (σ: evalContext)
-       (y_n : NExpr)
-       (x_p y_p : PExpr)
-       (tm' : TypeSig)
-       (dfs : TypeSig)
-       (m : memory)
-       (BP : DSH_pure (DSHAssign (x_p, NConst 0) (y_p, y_n)) dfs x_p y_p)
+       {bc: b < o}
+       {σ: evalContext}
+       {y_n : NExpr}
+       {x_p y_p : PExpr}
+       {tm' : TypeSig}
+       {dfs : TypeSig}
+       {m : memory}
        (Y: evalNexp σ y_n = inr b)
+       (BP : DSH_pure (DSHAssign (x_p, NConst 0) (y_p, y_n)) dfs x_p y_p)
   :
     @MSH_DSH_compat _ _ (MSHEmbed bc) (DSHAssign (x_p, NConst 0) (y_p, y_n)) dfs σ m x_p y_p BP.
 Proof.
@@ -2214,15 +2214,15 @@ Qed.
 
 Global Instance Pick_MSH_DSH_compat
        {i b: nat}
-       (bc: b < i)
-       (σ: evalContext)
-       (x_n : NExpr)
-       (x_p y_p : PExpr)
-       (tm' : TypeSig)
-       (dfs : TypeSig)
-       (m : memory)
-       (BP : DSH_pure (DSHAssign (x_p, x_n) (y_p, NConst 0)) dfs x_p y_p)
+       {bc: b < i}
+       {σ: evalContext}
+       {x_n : NExpr}
+       {x_p y_p : PExpr}
+       {tm' : TypeSig}
+       {dfs : TypeSig}
+       {m : memory}
        (X: evalNexp σ x_n = inr b)
+       (BP : DSH_pure (DSHAssign (x_p, x_n) (y_p, NConst 0)) dfs x_p y_p)
   :
     @MSH_DSH_compat _ _ (MSHPick bc) (DSHAssign (x_p, x_n) (y_p, NConst 0)) dfs σ m x_p y_p BP.
 Proof.
@@ -2337,15 +2337,15 @@ Qed.
 
 Global Instance Pointwise_MSH_DSH_compat
        {n: nat}
-       (f: FinNat n -> CarrierA -> CarrierA)
-       `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-       (a : AExpr)
-       (x_p y_p : PExpr)
-       (σ : evalContext)
-       (m : memory)
-       (ts: TypeSig)
-       `{TSI: AExprTypeSigIncludes a ts}
-       {P : DSH_pure (DSHIMap n x_p y_p a) ts x_p y_p}
+       {f: FinNat n -> CarrierA -> CarrierA}
+       {pF: Proper ((=) ==> (=) ==> (=)) f}
+       {a : AExpr}
+       {x_p y_p : PExpr}
+       {σ : evalContext}
+       {m : memory}
+       {ts: TypeSig}
+       (TSI: AExprTypeSigIncludes a ts)
+       (P : DSH_pure (DSHIMap n x_p y_p a) ts x_p y_p)
   :
     MSH_DSH_compat (@MSHPointwise n f pF) (DSHIMap n x_p y_p a) σ m x_p y_p.
 Admitted.
@@ -2401,18 +2401,18 @@ Qed.
 
 Global Instance BinOp_MSH_DSH_compat
        {o: nat}
-       (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
-       `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-       (x_p y_p : PExpr)
-       (df : AExpr)
-       `{dft : DSHIBinCarrierA df}
+       {f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA}
+       {pF: Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+       {x_p y_p : PExpr}
+       {df : AExpr}
+       {dft : DSHIBinCarrierA df}
        {dfs: TypeSig}
        {DTS: TypeSigAExpr df = Some dfs}
-       (σ: evalContext)
-       (TC: typecheck_env 3 dfs σ)
+       {σ: evalContext}
+       {TC: typecheck_env 3 dfs σ}
        (m: memory)
-       `{MSH_DSH_IBinCarrierA_compat _ f σ df m}
-       `{BP: DSH_pure (DSHBinOp o x_p y_p df) dfs x_p y_p}
+       (FDF : MSH_DSH_IBinCarrierA_compat f σ df m)
+       (BP: DSH_pure (DSHBinOp o x_p y_p df) dfs x_p y_p)
   :
     @MSH_DSH_compat _ _ (MSHBinOp f) (DSHBinOp o x_p y_p df) dfs σ m x_p y_p BP.
 Proof.
@@ -2458,7 +2458,7 @@ Proof.
       pose proof (mem_op_of_hop_x_density MD) as DX.
       clear MD pF.
 
-      inversion_clear H as [_ FV].
+      inversion_clear FDF as [_ FV].
 
       contradict E.
       apply is_OK_neq_inl.
@@ -2530,7 +2530,7 @@ Proof.
           unfold is_Some.
           tauto.
         --
-          inversion_clear H as [_ FV].
+          inversion_clear FDF as [_ FV].
 
           assert (k < o + o)%nat as kc1 by omega.
           assert (k + o < o + o)%nat as kc2 by omega.
@@ -2726,21 +2726,21 @@ Proof.
     reflexivity.
 Qed.
 
-(* likely to change *)
 Global Instance Inductor_MSH_DSH_compat
-       (σ : evalContext)
-       (n : nat)
-       (nx : NExpr)
-       (N : evalNexp σ nx = inr n)
-       (m : memory)
-       (f : CarrierA -> CarrierA -> CarrierA)
-       `{PF : !Proper ((=) ==> (=) ==> (=)) f}
-       (ts : TypeSig)
-       (init : CarrierA)
-       (a : AExpr)
-       `{FA : MSH_DSH_BinCarrierA_compat f σ a m}
-       (x_p y_p : PExpr)
-       `{PD : DSH_pure (DSHPower nx (x_p, NConst 0) (y_p, NConst 0) a init) ts x_p y_p}
+       {σ : evalContext}
+       {n : nat}
+       {nx : NExpr}
+       {N : evalNexp σ nx = inr n}
+       {m : memory}
+       {f : CarrierA -> CarrierA -> CarrierA}
+       {PF : Proper ((=) ==> (=) ==> (=)) f}
+       {ts : TypeSig}
+       {init : CarrierA}
+       {a : AExpr}
+       {x_p y_p : PExpr}
+       {BA : DSHBinCarrierA a}
+       (FA : MSH_DSH_BinCarrierA_compat f σ a m)
+       (PD : DSH_pure (DSHPower nx (x_p, NConst 0) (y_p, NConst 0) a init) ts x_p y_p)
   :
     @MSH_DSH_compat _ _
       (MSHInductor n f init)
@@ -2902,6 +2902,7 @@ Global Instance Loop_DSH_pure
        {ts : TypeSig}
        {x_p y_p : PExpr}
        (P : DSH_pure dop (TypeSig_add ts DSHnat) (incrPVar 0 x_p) (incrPVar 0 y_p))
+
   :
     DSH_pure (DSHLoop n dop) ts x_p y_p.
 Proof.
@@ -3103,15 +3104,17 @@ Admitted.
 
 Global Instance IReduction_MSH_DSH_compat
        {i o n no nn : nat}
-       (init : CarrierA)
-       (dot: CarrierA -> CarrierA -> CarrierA)
-       `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-       (op_family: @MSHOperatorFamily i o n)
-       (df : AExpr)
-       (ts : TypeSig)
+       {init : CarrierA}
+       {dot: CarrierA -> CarrierA -> CarrierA}
+       {pdot: Proper ((=) ==> (=) ==> (=)) dot}
+       {op_family: @MSHOperatorFamily i o n}
+       {df : AExpr}
+       {ts : TypeSig}
        {x_p y_p y_p'': PExpr}
-       (Y: y_p'' ≡ incrPVar 0 (incrPVar 0 y_p))
-       (rr : DSHOperator)
+       {Y : y_p'' ≡ incrPVar 0 (incrPVar 0 y_p)}
+       {rr : DSHOperator}
+       {σ : evalContext}
+       {m : memory}
        (P : DSH_pure (DSHAlloc no
                                (DSHSeq
                                   (DSHMemInit no (PVar 0) init)
@@ -3123,8 +3126,6 @@ Global Instance IReduction_MSH_DSH_compat
                                                           y_p''
                                                           df)))))
                      ts x_p y_p)
-       (σ : evalContext)
-       (m : memory)
   :
     @MSH_DSH_compat
       _ _
@@ -3328,26 +3329,25 @@ Global Instance Compose_MSH_DSH_compat
          {i1 o2 o3: nat}
          {mop1: @MSHOperator o2 o3}
          {mop2: @MSHOperator i1 o2}
-         (* {compat: Included _ (in_index_set fm op1) (out_index_set fm op2)} *)
          {σ: evalContext}
          {m: memory}
          {dop1 dop2: DSHOperator}
          {dsig1 dsig2: TypeSig}
          {x_p y_p: PExpr}
-         `{P: DSH_pure (DSHAlloc o2 (DSHSeq dop2 dop1)) (TypeSigUnion dsig1 dsig2) x_p y_p}
-         `{P2: DSH_pure dop2 (TypeSig_incr dsig2) (incrPVar 0 x_p) (PVar 0)}
-         `{P1: DSH_pure dop1 (TypeSig_incr dsig1) (PVar 0) (incrPVar 0 y_p)}
-         `{C2: @MSH_DSH_compat _ _ mop2 dop2 (TypeSig_incr dsig2)
+         (P: DSH_pure (DSHAlloc o2 (DSHSeq dop2 dop1)) (TypeSigUnion dsig1 dsig2) x_p y_p)
+         (P2: DSH_pure dop2 (TypeSig_incr dsig2) (incrPVar 0 x_p) (PVar 0))
+         (P1: DSH_pure dop1 (TypeSig_incr dsig1) (PVar 0) (incrPVar 0 y_p))
+         (C2: @MSH_DSH_compat _ _ mop2 dop2 (TypeSig_incr dsig2)
                               (DSHPtrVal (memory_next_key m) o2 :: σ)
                               (memory_alloc_empty m (memory_next_key m))
                               (incrPVar 0 x_p) (PVar 0)
                               P2
-          }
-         `{C1: forall m'', memory_equiv_except m m'' (memory_next_key m) ->
+          )
+         (C1: forall m'', memory_equiv_except m m'' (memory_next_key m) ->
                       MSH_DSH_compat mop1 dop1
                                      (DSHPtrVal (memory_next_key m) o2 :: σ)
                                      m''
-                                     (PVar 0) (incrPVar 0 y_p)}
+                                     (PVar 0) (incrPVar 0 y_p))
   :
     MSH_DSH_compat
       (MSHCompose mop1 mop2)
@@ -4473,13 +4473,14 @@ Global Instance HTSUMUnion_MSH_DSH_compat
          {σ: evalContext}
          {dop1 dop2: DSHOperator}
          {dsig1 dsig2: TypeSig}
-         `{P: DSH_pure (DSHSeq dop1 dop2) (TypeSigUnion dsig1 dsig2) x_p y_p}
-         `{D : herr_f nat nat (compose2 not equiv) (evalPexp σ x_p) (evalPexp σ y_p)}
-         `{P1: DSH_pure dop1 dsig1 x_p y_p}
-         `{P2: DSH_pure dop2 dsig2 x_p y_p}
-         `{C1: @MSH_DSH_compat _ _ mop1 dop1 dsig1 σ m x_p y_p P1}
-         `{C2: forall m', lookup_Pexp σ m x_p = lookup_Pexp σ m' x_p ->
-                      @MSH_DSH_compat _ _ mop2 dop2 dsig2 σ m' x_p y_p P2}
+         {x_p y_p : PExpr}
+         (P: DSH_pure (DSHSeq dop1 dop2) (TypeSigUnion dsig1 dsig2) x_p y_p)
+         (D : herr_f nat nat (compose2 not equiv) (evalPexp σ x_p) (evalPexp σ y_p))
+         (P1: DSH_pure dop1 dsig1 x_p y_p)
+         (P2: DSH_pure dop2 dsig2 x_p y_p)
+         (C1: @MSH_DSH_compat _ _ mop1 dop1 dsig1 σ m x_p y_p P1)
+         (C2: forall m', lookup_Pexp σ m x_p = lookup_Pexp σ m' x_p ->
+                      @MSH_DSH_compat _ _ mop2 dop2 dsig2 σ m' x_p y_p P2)
   :
     MSH_DSH_compat
       (MHTSUMUnion dot mop2 mop1)
