@@ -2,6 +2,7 @@ Require Import Helix.Util.VecUtil.
 Require Import Helix.Util.Matrix.
 Require Import Helix.Util.FinNat.
 Require Import Helix.Util.VecSetoid.
+Require Import Helix.Util.OptionSetoid.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.Util.Misc.
 Require Import Helix.Util.FinNatSet.
@@ -262,21 +263,12 @@ Section MSHCOL_to_DSHCOL.
   Definition DSH_x_p := PVar (nglobals+1).
   Definition DSH_y_p := PVar (nglobals+0).
 
-  Definition dynwin_typsig := TypeSig_of_varbindings dynwin_DSHCOL1_globals.
-
   (* TODO: This is a manual proof. To be automated in future. See [[../../doc/TODO.org]] for details *)
   Instance DynWin_pure
     :
       DSH_pure (dynwin_DSHCOL1) DSH_x_p DSH_y_p.
   Proof.
-    unfold dynwin_DSHCOL1.
-    unfold DSH_y_p, DSH_x_p.
-
-    remember (TypeSig_of_varbindings dynwin_DSHCOL1_globals) as ts.
-    Opaque TM.add TM.empty.
-    cbv in Heqts.
-    subst ts.
-    cbn.
+    unfold dynwin_DSHCOL1, DSH_y_p, DSH_x_p.
 
     apply Compose_DSH_pure.
     apply DSHSeq_DSH_pure. (* HTSumunion *)
@@ -300,21 +292,114 @@ Section MSHCOL_to_DSHCOL.
     eapply BinOp_DSH_pure.
   Qed.
 
-  Instance DynWin_MSH_DSH_compat
-           (σ: evalContext)
-           (m: memory)
+  Section DummyEnv.
 
-           {a}
-           {σ}
+    Definition dynwin_i := (1 + 4).
+    Definition dynwin_o := 1.
+
+    (* Will be automatically universally quantified on these *)
+    Parameter a:vector CarrierA 3.
+    Parameter x:mem_block.
+
+    (* will be auto-generated *)
+    Definition dynwin_typsig :=
+      TM.add (nglobals+1) DSHPtr (* X *)
+             (TM.add (nglobals+0) DSHPtr (* Y *)
+                     (TypeSig_of_varbindings dynwin_DSHCOL1_globals)).
+
+    Definition dynwin_a_addr:mem_block_id := 1.
+    Definition dynwin_x_addr:mem_block_id := 2.
+    Definition dynwin_y_addr:mem_block_id := 3.
+
+    Definition dynwin_globals_mem :=
+      (memory_set memory_empty dynwin_a_addr (avector_to_mem_block a)).
+
+    (* Initialize memory with X and placeholder for Y.
+       TODO: globals
+     *)
+    Definition dynwin_memory :=
+      memory_set
+        (memory_set dynwin_globals_mem dynwin_x_addr x)
+        dynwin_y_addr mem_empty.
+
+    (* TODO: globals *)
+    Definition dynwin_σ:evalContext :=
+      [
+        DSHPtrVal dynwin_a_addr 3
+        ; DSHPtrVal dynwin_y_addr dynwin_o
+        ; DSHPtrVal dynwin_x_addr dynwin_i
+      ].
+
+    (* TODO: this lemma needs to be auto-generated *)
+    Instance DynWin_MSH_DSH_compat
+             (TC: typecheck_env 0 dynwin_typsig dynwin_σ)
     :
       @MSH_DSH_compat _ _ (dynwin_MSHCOL1 a) (dynwin_DSHCOL1)
                       dynwin_typsig
-                      σ
-                      m
+                      dynwin_σ
+                      dynwin_memory
                       DSH_x_p DSH_y_p
                       DynWin_pure.
-  Proof.
-  Admitted.
+    Proof.
+      unfold dynwin_DSHCOL1, DSH_y_p, DSH_x_p.
+      unfold dynwin_typsig, dynwin_σ in *.
+      unfold dynwin_x_addr, dynwin_y_addr, dynwin_a_addr in *.
+      cbn in *.
+
+      eapply Compose_MSH_DSH_compat.
+      -
+        eapply HTSUMUnion_MSH_DSH_compat.
+        {
+          (* obligation which should be solved automatically *)
+          cbn; constructor.
+          unfold dynwin_y_addr.
+          cbv.
+          intros H.
+          inversion H.
+        }
+        eapply Compose_MSH_DSH_compat.
+        +
+          eapply IReduction_MSH_DSH_compat; admit.
+        +
+          intros m'' H.
+          apply Embed_MSH_DSH_compat.
+          {
+            (* obligation which should be solved automatically *)
+            cbn.
+            (* TODO: problem! *)
+            admit.
+          }
+        +
+          intros m' H.
+          eapply Compose_MSH_DSH_compat.
+          *
+            eapply IReduction_MSH_DSH_compat.
+          *
+            cbn.
+            intros m'' H0.
+            apply Embed_MSH_DSH_compat.
+            {
+              (* obligation which should be solved automatically *)
+              cbn.
+              (* TODO: problem! *)
+              admit.
+            }
+      -
+        intros m'' H.
+        eapply BinOp_MSH_DSH_compat.
+        {
+          (* obligation which should be solved automatically *)
+          cbn.
+          constructor; intros.
+          -
+            repeat constructor.
+          -
+            cbn.
+            reflexivity.
+        }
+    Admitted.
+
+  End DummyEnv.
 
 End MSHCOL_to_DSHCOL.
 
