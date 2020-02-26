@@ -267,7 +267,7 @@ Section MSHCOL_to_DSHCOL.
   (* TODO: This is a manual proof. To be automated in future. See [[../../doc/TODO.org]] for details *)
   Instance DynWin_pure
     :
-      DSH_pure (dynwin_DSHCOL1) dynwin_typsig DSH_x_p DSH_y_p.
+      DSH_pure (dynwin_DSHCOL1) DSH_x_p DSH_y_p.
   Proof.
     unfold dynwin_DSHCOL1.
     unfold DSH_y_p, DSH_x_p.
