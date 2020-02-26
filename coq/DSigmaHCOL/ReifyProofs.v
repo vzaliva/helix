@@ -2940,7 +2940,10 @@ Proof.
       unfold memory_equiv_except in *.
       eapply mem_write_safe0.
       eassumption.
-Admitted.
+      rewrite evalPexp_incrPVar.
+      eassumption.
+      assumption.
+Qed.
 
 (* NOTE: requires connection between [opf] and [dop] *)
 Global Instance IUnion_MSH_DSH_compat
