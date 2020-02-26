@@ -262,10 +262,12 @@ Section MSHCOL_to_DSHCOL.
   Definition DSH_x_p := PVar (nglobals+1).
   Definition DSH_y_p := PVar (nglobals+0).
 
+  Definition dynwin_typsig := TypeSig_of_varbindings dynwin_DSHCOL1_globals.
+
   (* TODO: This is a manual proof. To be automated in future. See [[../../doc/TODO.org]] for details *)
-  Global Instance DynWin_pure
+  Instance DynWin_pure
     :
-      DSH_pure (dynwin_DSHCOL1) (TypeSig_of_varbindings dynwin_DSHCOL1_globals) DSH_x_p DSH_y_p.
+      DSH_pure (dynwin_DSHCOL1) dynwin_typsig DSH_x_p DSH_y_p.
   Proof.
     unfold dynwin_DSHCOL1.
     unfold DSH_y_p, DSH_x_p.
@@ -297,6 +299,22 @@ Section MSHCOL_to_DSHCOL.
     apply Assign_DSH_pure.
     eapply BinOp_DSH_pure.
   Qed.
+
+  Instance DynWin_MSH_DSH_compat
+           (σ: evalContext)
+           (m: memory)
+
+           {a}
+           {σ}
+    :
+      @MSH_DSH_compat _ _ (dynwin_MSHCOL1 a) (dynwin_DSHCOL1)
+                      dynwin_typsig
+                      σ
+                      m
+                      DSH_x_p DSH_y_p
+                      DynWin_pure.
+  Proof.
+  Admitted.
 
 End MSHCOL_to_DSHCOL.
 
