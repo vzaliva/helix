@@ -334,7 +334,7 @@ Section MSHCOL_to_DSHCOL.
     Instance DynWin_MSH_DSH_compat
              (TC: typecheck_env 0 dynwin_typsig dynwin_σ)
     :
-      @MSH_DSH_compat _ _ (dynwin_MSHCOL1 a) (dynwin_DSHCOL1)
+      @MSH_DSH_compat dynwin_i dynwin_o (dynwin_MSHCOL1 a) (dynwin_DSHCOL1)
                       dynwin_typsig
                       dynwin_σ
                       dynwin_memory
@@ -359,7 +359,7 @@ Section MSHCOL_to_DSHCOL.
         }
         eapply Compose_MSH_DSH_compat.
         +
-          eapply IReduction_MSH_DSH_compat; admit.
+          eapply IReduction_MSH_DSH_compat.
         +
           intros m'' H.
           apply Embed_MSH_DSH_compat.
