@@ -347,56 +347,103 @@ Section MSHCOL_to_DSHCOL.
       cbn in *.
 
       eapply Compose_MSH_DSH_compat.
-      -
-        eapply HTSUMUnion_MSH_DSH_compat.
-        {
-          (* obligation which should be solved automatically *)
-          cbn; constructor.
-          unfold dynwin_y_addr.
-          cbv.
-          intros H.
-          inversion H.
-        }
-        eapply Compose_MSH_DSH_compat.
-        +
-          eapply IReduction_MSH_DSH_compat.
-        +
-          intros m'' H.
-          apply Embed_MSH_DSH_compat.
-          {
-            (* obligation which should be solved automatically *)
-            cbn.
-            (* TODO: problem! *)
-            admit.
-          }
-        +
-          intros m' H.
-          eapply Compose_MSH_DSH_compat.
-          *
-            eapply IReduction_MSH_DSH_compat.
-          *
-            cbn.
-            intros m'' H0.
-            apply Embed_MSH_DSH_compat.
-            {
-              (* obligation which should be solved automatically *)
-              cbn.
-              (* TODO: problem! *)
-              admit.
-            }
-      -
-        intros m'' H.
-        eapply BinOp_MSH_DSH_compat.
-        {
-          (* obligation which should be solved automatically *)
-          cbn.
-          constructor; intros.
-          -
-            repeat constructor.
-          -
-            cbn.
-            reflexivity.
-        }
+      eapply HTSUMUnion_MSH_DSH_compat.
+      {
+        (* obligation which should be solved automatically *)
+        cbn; constructor.
+        unfold dynwin_y_addr.
+        cbv.
+        intros H.
+        inversion H.
+      }
+      eapply Compose_MSH_DSH_compat.
+
+      unshelve eapply IReduction_MSH_DSH_compat.
+      {
+        (* obligation which should be solved automatically *)
+        unfold incrPVar.
+        reflexivity.
+      }
+
+      intros.
+      eapply Compose_MSH_DSH_compat.
+      apply Pick_MSH_DSH_compat.
+      {
+        (* obligation which should be solved automatically *)
+        cbn.
+        reflexivity.
+      }
+      intros.
+      eapply Compose_MSH_DSH_compat.
+      eapply Inductor_MSH_DSH_compat.
+      {
+        (* obligation which should be solved automatically *)
+        constructor; intros.
+        -
+          repeat constructor.
+        -
+          reflexivity.
+      }
+      intros.
+      apply Pointwise_MSH_DSH_compat.
+      intros.
+      apply Embed_MSH_DSH_compat.
+      {
+        (* obligation which should be solved automatically *)
+        reflexivity.
+      }
+
+      intros.
+      eapply Compose_MSH_DSH_compat.
+
+      unshelve eapply IReduction_MSH_DSH_compat.
+      {
+        (* obligation which should be solved automatically *)
+        unfold incrPVar.
+        reflexivity.
+      }
+      intros.
+      eapply Compose_MSH_DSH_compat.
+      eapply IUnion_MSH_DSH_compat.
+      intros.
+      eapply Compose_MSH_DSH_compat.
+      apply Pick_MSH_DSH_compat.
+      {
+        (* obligation which should be solved automatically *)
+        reflexivity.
+      }
+      intros.
+      apply Embed_MSH_DSH_compat.
+      {
+        (* obligation which should be solved automatically *)
+        reflexivity.
+      }
+      intros.
+      eapply BinOp_MSH_DSH_compat.
+      {
+        (* obligation which should be solved automatically *)
+        constructor; intros.
+        -
+          repeat constructor.
+        -
+          reflexivity.
+      }
+      intros.
+      apply Embed_MSH_DSH_compat.
+      {
+        (* obligation which should be solved automatically *)
+        reflexivity.
+      }
+      intros.
+      eapply BinOp_MSH_DSH_compat.
+      {
+        (* obligation which should be solved automatically *)
+        constructor; intros.
+        -
+          repeat constructor.
+        -
+          reflexivity.
+      }
     Admitted.
 
   End DummyEnv.
