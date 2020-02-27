@@ -3091,7 +3091,7 @@ Proof.
 Admitted.
 
 Global Instance IReduction_MSH_DSH_compat
-       {i o n no nn : nat}
+       {i o n: nat}
        {init : CarrierA}
        {dot: CarrierA -> CarrierA -> CarrierA}
        {pdot: Proper ((=) ==> (=) ==> (=)) dot}
@@ -3103,32 +3103,30 @@ Global Instance IReduction_MSH_DSH_compat
        {rr : DSHOperator}
        {σ : evalContext}
        {m : memory}
-       (P : DSH_pure (DSHAlloc no
-                               (DSHSeq
-                                  (DSHMemInit no (PVar 0) init)
-                                  (DSHLoop nn
-                                           (DSHSeq
-                                              rr
-                                              (DSHMemMap2 no (PVar 1)
-                                                          y_p''
-                                                          y_p''
-                                                          df)))))
-                     x_p y_p)
+       {DP}
+       (P: DSH_pure rr (incrPVar 0 (incrPVar 0 x_p)) y_p'')
+       (FC : forall tmpk t,
+           tmpk ≡ memory_next_key m ->
+           @MSH_DSH_compat _ _ (op_family t) rr
+                           (TypeSig_add (TypeSig_add ts DSHPtr) DSHnat)
+                           (DSHnatVal (proj1_sig t) :: DSHPtrVal tmpk o :: σ)
+                           (memory_set m tmpk (mem_empty))
+                           (incrPVar 0 (incrPVar 0 x_p)) y_p'' P)
   :
     @MSH_DSH_compat
       _ _
       (@MSHIReduction i o n initial dot pdot op_family)
-      (DSHAlloc no
+      (DSHAlloc o
                 (DSHSeq
-                   (DSHMemInit no (PVar 0) init)
-                   (DSHLoop nn
+                   (DSHMemInit o (PVar 0) init)
+                   (DSHLoop n
                             (DSHSeq
                                rr
-                               (DSHMemMap2 no (PVar 1)
+                               (DSHMemMap2 o (PVar 1)
                                            y_p''
                                            y_p''
                                            df)))))
-      ts σ m x_p y_p P.
+      ts σ m x_p y_p DP.
 Admitted.
 
 
