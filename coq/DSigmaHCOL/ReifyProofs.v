@@ -2967,8 +2967,8 @@ Global Instance IUnion_MSH_DSH_compat
        {σ : evalContext}
        {m : memory}
        {opf : MSHOperatorFamily}
-       (DP : DSH_pure dop (incrPVar 0 x_p) (incrPVar 0 y_p))
-       (LP : DSH_pure (DSHLoop n dop) x_p y_p)
+       {DP : DSH_pure dop (incrPVar 0 x_p) (incrPVar 0 y_p)}
+       {LP : DSH_pure (DSHLoop n dop) x_p y_p}
        (FC : forall t, @MSH_DSH_compat _ _ (opf t) dop
                                   (TypeSig_add ts DSHnat)
                                   ((DSHnatVal (proj1_sig t)) :: σ)
