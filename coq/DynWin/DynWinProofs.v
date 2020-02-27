@@ -507,7 +507,7 @@ Section SigmaHCOL_rewriting.
         compute in xc.
         unfold In.
         unfold index_map_range_set.
-        repeat (destruct x; crush).
+        repeat (destruct x0; crush).
   Qed.
 
   Lemma DynWinSigmaHCOL_dense_output
@@ -662,12 +662,12 @@ Section SigmaHCOL_rewriting.
           (singleton (n:=2) 0).
       {
         destruct x.
-        destruct x.
+        destruct x0.
         apply Union_intror.
         unfold singleton, In.
         crush.
 
-        destruct x.
+        destruct x0.
         apply Union_introl.
         unfold singleton, In.
         crush.
@@ -682,12 +682,12 @@ Section SigmaHCOL_rewriting.
       intros x H.
 
       destruct x.
-      destruct x.
+      destruct x0.
       apply Union_introl.
       unfold singleton, In.
       crush.
 
-      destruct x.
+      destruct x0.
       apply Union_intror.
       unfold singleton, In.
       crush.
@@ -1054,7 +1054,7 @@ Section SigmaHCOL_rewriting.
 
       (* 1 *)
       compute in xc.
-      destruct x.
+      destruct x0.
       apply Union_intror.
       apply Union_intror.
       apply Union_introl.
@@ -1064,7 +1064,7 @@ Section SigmaHCOL_rewriting.
 
       (* 2 *)
       compute in xc.
-      destruct x.
+      destruct x0.
       apply Union_intror.
       apply Union_introl.
       apply Union_intror.
@@ -1073,7 +1073,7 @@ Section SigmaHCOL_rewriting.
 
       (* 3 *)
       compute in xc.
-      destruct x.
+      destruct x0.
       apply Union_intror.
       apply Union_intror.
       apply Union_introl.
@@ -1082,7 +1082,7 @@ Section SigmaHCOL_rewriting.
 
       (* 4 *)
       compute in xc.
-      destruct x.
+      destruct x0.
       apply Union_intror.
       apply Union_introl.
       apply Union_introl.
