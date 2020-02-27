@@ -562,7 +562,7 @@ Module MMSHCOL'
   Definition HTSUMUnion_mem
              (op1 op2: mem_block -> option mem_block)
     : mem_block -> option mem_block
-    := fun x => (liftM2 mem_union) (op1 x) (op2 x).
+    := fun x => (liftM2 mem_union) (op2 x) (op1 x).
 
   Definition IReduction_mem
              {n: nat}
@@ -2102,11 +2102,11 @@ Module MMSHCOL'
       apply Constructive_sets.Union_inv in H.
       destruct H.
       *
-        left.
-        eapply (out_mem_fill_pattern _ _ Heqo0); eauto.
-      *
         right.
         eapply (out_mem_fill_pattern _ _ Heqo1); eauto.
+      *
+        left.
+        eapply (out_mem_fill_pattern _ _ Heqo0); eauto.
     +
       simpl in *.
       unfold HTSUMUnion_mem in E. simpl in E.
@@ -2117,10 +2117,10 @@ Module MMSHCOL'
       specialize (E0 H). clear H E1.
       destruct E0 as [M1 | M2].
       *
-        apply Union_introl.
+        right.
         eapply (out_mem_fill_pattern _ _ Heqo0); eauto.
       *
-        right.
+        left.
         eapply (out_mem_fill_pattern _ _ Heqo1); eauto.
   Qed.
 
@@ -2151,7 +2151,7 @@ Module MMSHCOL'
         intros j jc H0.
         specialize (H j jc).
         apply H.
-        apply Union_intror.
+        left.
         apply H0.
       +
         clear Heqo0.
@@ -2161,7 +2161,7 @@ Module MMSHCOL'
         intros j jc H0.
         specialize (H j jc).
         apply H.
-        apply Union_introl.
+        right.
         apply H0.
     -
       (* out_mem_fill_pattern *)
