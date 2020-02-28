@@ -4471,7 +4471,6 @@ Global Instance HTSUMUnion_MSH_DSH_compat
       (DSHSeq dop1 dop2)
       ts σ m x_p y_p P.
 Proof.
-  (*
   constructor; intros x_m y_m X_M Y_M.
 
   destruct (evalPexp σ x_p) as [| x_id] eqn:X;
@@ -4832,5 +4831,3 @@ Proof.
       break_match; inversion Y_M.
       rewrite H1; reflexivity.
 Qed.
-   *)
-  Admitted.
