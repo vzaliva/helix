@@ -1357,7 +1357,11 @@ Proof.
     clear HCX HCY xdata ydata hdata.
 
 
-    assert(exists gd, nth_error gdecls x ≡ Some (TLE_Global gd) /\ g_exp gd ≡ Some (EXP_Double a)) as [gd [NGD VGD]].
+    assert(exists gd,
+              nth_error gdecls x ≡ Some (TLE_Global gd) /\
+              g_exp gd ≡ Some (EXP_Double a) /\
+              g_ident gd ≡ Name gname
+          ) as (gd & XGD & VGD & NGD).
     {
       clear - F HIRG Hn.
       admit.
@@ -1413,14 +1417,14 @@ Proof.
     clear g2 HFSHG.
 
     {
-      clear - HG NGD VGD.
-      revert HG NGD VGD.
+      clear - HG XGD NGD VGD.
+      revert XGD HG NGD VGD.
       revert x g1.
       generalize M.empty_memory_stack as m0.
       induction gdecls; intros.
       -
-        rewrite nth_error_nil in NGD.
-        inversion NGD.
+        rewrite nth_error_nil in XGD.
+        inversion XGD.
       -
         cbn in HG.
         break_match_hyp; try inl_inr.
@@ -1432,9 +1436,33 @@ Proof.
         subst.
         destruct x.
         +
+          clear IHgdecls.
           cbn in *.
-          inv NGD.
-          admit.
+          inv XGD.
+          f_equiv.
+          destruct p1.
+          unfold init_one_global in Heqs.
+          cbn in Heqs.
+          repeat (break_match_hyp; try inl_inr); subst.
+          *
+            (* single Double *)
+            cbn in *.
+            inv NGD.
+            inv VGD.
+            repeat inl_inr_inv.
+            destruct p3.
+            destruct p0.
+            repeat tuple_inversion.
+            clear Heqe m1 l.
+            unfold alloc_global in Heqs0.
+            break_match_hyp; try inl_inr.
+            inl_inr_inv.
+            subst.
+            (* TODO: Problem HERE. DVALUE type mismatch *)
+            admit.
+          *
+            (* Array of Doubles *)
+            admit.
         +
           cbn.
           destruct p0.
