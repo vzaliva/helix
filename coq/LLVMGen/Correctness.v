@@ -268,34 +268,41 @@ Definition memory_invariant : Type_R_memory :=
     σ_len ≡ 0 \/ (* empty env immediately allowed, as injection could not exists *)
     let '(ρ, g) := x in
     exists (ι: injection_Fin raw_id σ_len),
-      forall (x: nat) v,
-        nth_error σ x ≡ Some v ->
-        match v with
-        | DSHnatVal v   =>
-          (* check local env first *)
-          alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v))) \/
-          (* if not found, check global *)
-          (alist_find _ (inj_f ι x) ρ ≡ None /\ alist_find _ (inj_f ι x) g ≡ Some (DVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v))))
-        | DSHCTypeVal v =>
-          (* check local env first *)
-          alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Double v) \/
-          (* if not found, check global *)
+    forall (x: nat) v,
+      nth_error σ x ≡ Some v ->
+      match v with
+      | DSHnatVal v   =>
+        (* check local env first *)
+        alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v))) \/
+        (* if not found, check global *)
+        (alist_find _ (inj_f ι x) ρ ≡ None /\ alist_find _ (inj_f ι x) g ≡ Some (DVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v))))
+      | DSHCTypeVal v =>
+        exists ptr_llvm,
+        ( (* variable in local environment *)
+          (alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Addr ptr_llvm) /\
+           alist_find _ (inj_f ι x) g ≡ None) \/
+          (* variable in global environment *)
           (alist_find _ (inj_f ι x) ρ ≡ None /\
-           alist_find _ (inj_f ι x) g ≡ Some (DVALUE_Double v))
-        | DSHPtrVal ptr_helix ptr_size_helix =>
-          forall bk_helix,
-            memory_lookup mem_helix ptr_helix ≡ Some bk_helix ->
-            exists ptr_llvm bk_llvm,
-              alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Addr ptr_llvm) /\
-              get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm /\
-              (fun bk_helix bk_llvm =>
-                 forall i, i < ptr_size_helix ->
-                      exists v_helix v_llvm,
-                        mem_lookup i bk_helix ≡ Some v_helix /\
-                        mem_lookup_llvm_at_i bk_llvm i ptr_size_helix v_llvm /\
-                        v_llvm ≡ UVALUE_Double v_helix
-              ) bk_helix bk_llvm
-        end.
+           alist_find _ (inj_f ι x) g ≡ Some (DVALUE_Addr ptr_llvm))) /\
+        (* the block must exists *)
+        (exists  bk_llvm,
+            (get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm) /\
+            (* And value at this pointer must match *)
+            (exists v_llvm,  mem_lookup_llvm_at_i bk_llvm 0 1 v_llvm /\ v_llvm ≡ UVALUE_Double v))
+      | DSHPtrVal ptr_helix ptr_size_helix =>
+        forall bk_helix,
+          memory_lookup mem_helix ptr_helix ≡ Some bk_helix ->
+          exists ptr_llvm bk_llvm,
+            alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Addr ptr_llvm) /\
+            get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm /\
+            (fun bk_helix bk_llvm =>
+               forall i, i < ptr_size_helix ->
+                    exists v_helix v_llvm,
+                      mem_lookup i bk_helix ≡ Some v_helix /\
+                      mem_lookup_llvm_at_i bk_llvm i ptr_size_helix v_llvm /\
+                      v_llvm ≡ UVALUE_Double v_helix
+            ) bk_helix bk_llvm
+      end.
 
 Require Import ITree.Interp.TranslateFacts.
 Require Import ITree.Basics.CategoryFacts.
@@ -1314,7 +1321,9 @@ Proof.
         cbn.
         eapply IHglobals, Heqe0.
   -
-    (* [DSHCTypeVal] must end up in globals *)
+    (* [DSHCTypeVal] must end up in globals as  a pointer *)
+    eexists.
+    split.
     right.
     split; [trivial|cbn].
 
@@ -1367,12 +1376,12 @@ Proof.
       admit.
     }
 
+    (*
     (* switching to stronger, positional, relation *)
-    cut(nth_error g x ≡ Some (Name gname, DVALUE_Double a)).
+    cut(nth_error g x ≡ Some (Name gname, DVALUE_Addr _)).
     {
       (* this seems to be provable from INJ *)
 
-      (*
       clear -INJ Hx SL GSL.
 
       revert INJ Hx.
@@ -1405,9 +1414,8 @@ Proof.
             break_if; [|inv H0].
           *
             apply H.
-       *)
       admit.
-    }
+  }
     clear INJ.
     (*  swtich from [g] to [g1] *)
     assert(List.length gdecls ≡ List.length g1) as GL
@@ -1471,6 +1479,13 @@ Proof.
           subst l0.
           auto.
     }
+     *)
+    admit.
+
+    eexists.
+    split.
+    admit.
+    admit.
   -
     (* [DSHPtrVal] must end up in memory *)
     intros bk_helix HMH.
