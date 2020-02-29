@@ -272,10 +272,18 @@ Definition memory_invariant : Type_R_memory :=
       nth_error σ x ≡ Some v ->
       match v with
       | DSHnatVal v   =>
-        (* check local env first *)
-        alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v))) \/
-        (* if not found, check global *)
-        (alist_find _ (inj_f ι x) ρ ≡ None /\ alist_find _ (inj_f ι x) g ≡ Some (DVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v))))
+        exists ptr_llvm,
+        ( (* variable in local environment *)
+          (alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Addr ptr_llvm) /\
+           alist_find _ (inj_f ι x) g ≡ None) \/
+          (* variable in global environment *)
+          (alist_find _ (inj_f ι x) ρ ≡ None /\
+           alist_find _ (inj_f ι x) g ≡ Some (DVALUE_Addr ptr_llvm))) /\
+        (* the block must exists *)
+        (exists  bk_llvm,
+            (get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm) /\
+            (* And value at this pointer must match *)
+            (exists v_llvm,  mem_lookup_llvm_at_i bk_llvm 0 1 v_llvm /\ v_llvm ≡ UVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v))))
       | DSHCTypeVal v =>
         exists ptr_llvm,
         ( (* variable in local environment *)
@@ -1255,8 +1263,6 @@ Proof.
   break_match.
   -
     (* [DSHnatVal] must end up in globals *)
-    right.
-    split; [trivial|].
     (* but currently nat constants are not implemented so we
        shortcut this branch *)
     exfalso.
