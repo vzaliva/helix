@@ -1510,6 +1510,7 @@ Section BinCarrierA.
         {off n: nat}
         {df : AExpr}
         {σ : evalContext}
+        {dfs: TypeSig}
         {mx mb: mem_block}:
     (∀ k (kc: k < n),
         ∃ a b,
@@ -2449,7 +2450,7 @@ Proof.
       contradict E.
       apply is_OK_neq_inl.
 
-      eapply evalDSHBinOp_is_OK_inv.
+      apply evalDSHBinOp_is_OK_inv.
 
       intros k kc.
 
