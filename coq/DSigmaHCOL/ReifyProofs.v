@@ -1509,11 +1509,7 @@ Section BinCarrierA.
         {mem : memory}
         {off n: nat}
         {df : AExpr}
-        `{dft : DSHIBinCarrierA df}
         {σ : evalContext}
-        {dfs: TypeSig}
-        `{TS : AExprTypeSigIncludes df dfs}
-        (TC: typecheck_env 3 dfs σ)
         {mx mb: mem_block}:
     (∀ k (kc: k < n),
         ∃ a b,
@@ -2399,9 +2395,7 @@ Global Instance BinOp_MSH_DSH_compat
        {df : AExpr}
        {dft : DSHIBinCarrierA df}
        {dfs: TypeSig}
-       {DTS: TypeSigAExpr df = Some dfs}
        {σ: evalContext}
-       {TC: typecheck_env 3 dfs σ}
        (m: memory)
        (FDF : MSH_DSH_IBinCarrierA_compat f σ df m)
        (BP: DSH_pure (DSHBinOp o x_p y_p df) x_p y_p)
@@ -2455,11 +2449,7 @@ Proof.
       contradict E.
       apply is_OK_neq_inl.
 
-
-      assert (TS : AExprTypeSigIncludes df dfs)
-        by (unfold AExprTypeSigIncludes; exists dfs;
-            split; [assumption | apply TypeSigIncluded_reflexive]).
-      apply evalDSHBinOp_is_OK_inv; [assumption |].
+      eapply evalDSHBinOp_is_OK_inv.
 
       intros k kc.
 
