@@ -314,6 +314,110 @@ Section MSHCOL_to_DSHCOL.
         ; DSHPtrVal dynwin_x_addr dynwin_i
       ].
 
+    (* TODO: this lemma needs to be auto-generated *)
+    Instance DynWin_MSH_DSH_compat
+    :
+      @MSH_DSH_compat dynwin_i dynwin_o (dynwin_MSHCOL1 a) (dynwin_DSHCOL1)
+                      dynwin_σ
+                      dynwin_memory
+                      DSH_x_p DSH_y_p
+                      DynWin_pure.
+    Proof.
+      unfold dynwin_DSHCOL1, DSH_y_p, DSH_x_p.
+      unfold dynwin_x_addr, dynwin_y_addr, dynwin_a_addr in *.
+      cbn in *.
+
+      eapply Compose_MSH_DSH_compat.
+      eapply HTSUMUnion_MSH_DSH_compat.
+      {
+        (* obligation which should be solved automatically *)
+        cbn; constructor.
+        unfold dynwin_y_addr.
+        cbv.
+        intros H.
+        inversion H.
+      }
+      eapply Compose_MSH_DSH_compat.
+
+      unshelve eapply IReduction_MSH_DSH_compat.
+      {
+        (* obligation which should be solved automatically *)
+        unfold incrPVar.
+        reflexivity.
+      }
+
+      intros.
+      eapply Compose_MSH_DSH_compat.
+      apply Pick_MSH_DSH_compat.
+      {
+        (* obligation which should be solved automatically *)
+        cbn.
+        reflexivity.
+      }
+      intros.
+      eapply Compose_MSH_DSH_compat.
+      eapply Inductor_MSH_DSH_compat.
+      {
+        (* obligation which should be solved automatically *)
+        constructor; intros.
+        reflexivity.
+      }
+      intros.
+      apply Pointwise_MSH_DSH_compat.
+      intros.
+      apply Embed_MSH_DSH_compat.
+      {
+        (* obligation which should be solved automatically *)
+        reflexivity.
+      }
+
+      intros.
+      eapply Compose_MSH_DSH_compat.
+
+      unshelve eapply IReduction_MSH_DSH_compat.
+      {
+        (* obligation which should be solved automatically *)
+        unfold incrPVar.
+        reflexivity.
+      }
+      intros.
+      eapply Compose_MSH_DSH_compat.
+      eapply IUnion_MSH_DSH_compat.
+      intros.
+      eapply Compose_MSH_DSH_compat.
+      apply Pick_MSH_DSH_compat.
+      {
+        (* obligation which should be solved automatically *)
+        reflexivity.
+      }
+      intros.
+      apply Embed_MSH_DSH_compat.
+      {
+        (* obligation which should be solved automatically *)
+        reflexivity.
+      }
+      intros.
+      eapply BinOp_MSH_DSH_compat.
+      {
+        (* obligation which should be solved automatically *)
+        constructor; intros.
+        reflexivity.
+      }
+      intros.
+      apply Embed_MSH_DSH_compat.
+      {
+        (* obligation which should be solved automatically *)
+        reflexivity.
+      }
+      intros.
+      eapply BinOp_MSH_DSH_compat.
+      {
+        (* obligation which should be solved automatically *)
+        constructor; intros.
+        reflexivity.
+      }
+    Admitted.
+
   End DummyEnv.
 
 End MSHCOL_to_DSHCOL.
@@ -1120,6 +1224,5 @@ Section DHCOL_to_FHCOL.
       exact d.
     - inversion H.
   Defined.
-
 
 End DHCOL_to_FHCOL.
