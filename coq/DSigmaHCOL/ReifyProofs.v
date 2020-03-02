@@ -2399,7 +2399,9 @@ Global Instance BinOp_MSH_DSH_compat
        {df : AExpr}
        {dft : DSHIBinCarrierA df}
        {dfs: TypeSig}
+       {DTS: TypeSigAExpr df = Some dfs}
        {σ: evalContext}
+       {TC: typecheck_env 3 dfs σ}
        (m: memory)
        (FDF : MSH_DSH_IBinCarrierA_compat f σ df m)
        (BP: DSH_pure (DSHBinOp o x_p y_p df) x_p y_p)
@@ -2407,86 +2409,7 @@ Global Instance BinOp_MSH_DSH_compat
     @MSH_DSH_compat _ _ (MSHBinOp f) (DSHBinOp o x_p y_p df) dfs σ m x_p y_p BP.
 Proof.
   split.
-  intros x_m y_m X_M Y_M.
-  unfold estimateFuel.
-
-  destruct mem_op as [mmb |] eqn:MOP.
-  all: destruct evalDSHOperator as [r |] eqn:DOP; [destruct r as [msg | dm] |].
-  all: try constructor.
-  1,3,4: exfalso; admit.
-  - (* both MSH and DSH succeed *)
-    cbn in *.
-    unfold memory_lookup_err, trywith in *.
-    destruct (evalPexp σ x_p) as [|x_id] eqn:X_ID; try inl_inr.
-    destruct (evalPexp σ y_p) as [|y_id] eqn:Y_ID; try inl_inr.
-    destruct (memory_lookup m x_id) as [x_m'|] eqn:X_M'; try (inversion X_M; fail).
-    destruct (memory_lookup m y_id) as [y_m'|] eqn:Y_M'; try (inversion Y_M; fail).
-    cbn in *.
-    some_inv; break_match_hyp; try inl_inr; inl_inr_inv.
-    rename m0 into dmb, Heqe into DMB, H1 into DM.
-    unfold memory_lookup, memory_set.
-    rewrite NP.F.add_eq_o by reflexivity.
-    constructor.
-    repeat inl_inr_inv.
-
-    unfold SHCOL_DSHCOL_mem_block_equiv; intros k.
-    eq_to_equiv_hyp; err_eq_to_equiv_hyp.
-
-    
-    unfold mem_op_of_hop in MOP.
-    destruct (mem_block_to_avector x_m) as [xv |] eqn:XV; [some_inv | some_none].
-    unfold avector_to_mem_block in *.
-    avector_to_mem_block_to_spec md HD OD.
-    cbn in *.
-    specialize (HD k); specialize (OD k).
-
-    destruct (NatUtil.lt_ge_dec k o) as [KO | KO].
-    +
-      clear OD; specialize (HD KO).
-      rewrite <-MOP.
-      unfold mem_lookup;
-        unfold MMemoryOfCarrierA.mem_lookup in HD.
-      rewrite HD.
-      constructor 2; [reflexivity |].
-
-      eapply evalDSHBinOp_equiv_inr_spec with (k0:=k) in DMB; [| assumption].
-      destruct DMB as [k_xm [ko_xm DMB]].
-      destruct DMB as [K_XM [KO_XM [k_dmb [K_DMB IBC]]]].
-      rewrite X_M, Y_M in *; clear X_M Y_M.
-           
-      assert (kc1 : k < o + o) by omega.
-      assert (kc2 : k + o < o + o) by omega.
-      rewrite HBinOp_nth with (jc1:=kc1) (jc2:=kc2).
-      inversion_clear FDF as [T F]; clear T.
-      specialize (F (mkFinNat KO) k_xm ko_xm).
-      
-      rewrite IBC in F.
-      inl_inr_inv.
-      pose proof XV as XV'.
-      eapply mem_block_to_avector_nth in XV'.
-      eapply mem_block_to_avector_nth in XV.
-      eq_to_equiv_hyp.
-      erewrite K_XM in XV.
-      erewrite KO_XM in XV'.
-      repeat some_inv.
-      erewrite <-XV, <-XV'.
-      rewrite <-F.
-      apply K_DMB.
-    +
-      clear HD; specialize (OD KO).
-      rewrite <-MOP.
-      unfold mem_lookup;
-        unfold MMemoryOfCarrierA.mem_lookup in OD.
-      rewrite OD.
-      constructor 1; [reflexivity |].
-
-      rewrite X_M, Y_M in *; clear X_M Y_M.
-      eapply evalDSHBinOp_oob_preservation;
-        eassumption.
-Admitted.
-  
-(* FOR REFERENCE *)
-  (*
+  intros mx mb MX MB.
   simpl.
   destruct (mem_op_of_hop (HCOL.HBinOp f) mx) as [md|] eqn:MD.
   -
@@ -2700,7 +2623,6 @@ Admitted.
         apply MX.
         lia.
 Qed.
-   *)
 
 (** * MSHInductor *)
 
