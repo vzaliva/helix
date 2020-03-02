@@ -1510,7 +1510,6 @@ Section BinCarrierA.
         {off n: nat}
         {df : AExpr}
         {σ : evalContext}
-        {dfs: TypeSig}
         {mx mb: mem_block}:
     (∀ k (kc: k < n),
         ∃ a b,
