@@ -240,16 +240,6 @@ End SHCOL_to_MSHCOL.
 Require Import Helix.DSigmaHCOL.ReifyMSHCOL.
 Require Import Helix.DSigmaHCOL.DSHCOLOnCarrierA.
 Require Import Helix.DSigmaHCOL.ReifyProofs.
-Require Import Helix.DSigmaHCOL.TypeSig.
-
-Definition TypeSig_of_varbindings (v:varbindings): TypeSig
-  :=
-    let fix TypeSig_of_varbindings' n v :=
-      match v with
-      | [] => TM.empty _
-      | (x::xs) => TM.add n (snd x) (TypeSig_of_varbindings' (S n) xs)
-      end
-    in TypeSig_of_varbindings' 0 v.
 
 Section MSHCOL_to_DSHCOL.
 
@@ -301,12 +291,6 @@ Section MSHCOL_to_DSHCOL.
     Parameter a:vector CarrierA 3.
     Parameter x:mem_block.
 
-    (* will be auto-generated *)
-    Definition dynwin_typsig :=
-      TM.add (nglobals+1) DSHPtr (* X *)
-             (TM.add (nglobals+0) DSHPtr (* Y *)
-                     (TypeSig_of_varbindings dynwin_DSHCOL1_globals)).
-
     Definition dynwin_a_addr:mem_block_id := 1.
     Definition dynwin_x_addr:mem_block_id := 2.
     Definition dynwin_y_addr:mem_block_id := 3.
@@ -329,122 +313,6 @@ Section MSHCOL_to_DSHCOL.
         ; DSHPtrVal dynwin_y_addr dynwin_o
         ; DSHPtrVal dynwin_x_addr dynwin_i
       ].
-
-    (* TODO: this lemma needs to be auto-generated *)
-    Instance DynWin_MSH_DSH_compat
-             (TC: typecheck_env 0 dynwin_typsig dynwin_σ)
-    :
-      @MSH_DSH_compat dynwin_i dynwin_o (dynwin_MSHCOL1 a) (dynwin_DSHCOL1)
-                      dynwin_typsig
-                      dynwin_σ
-                      dynwin_memory
-                      DSH_x_p DSH_y_p
-                      DynWin_pure.
-    Proof.
-      unfold dynwin_DSHCOL1, DSH_y_p, DSH_x_p.
-      unfold dynwin_typsig, dynwin_σ in *.
-      unfold dynwin_x_addr, dynwin_y_addr, dynwin_a_addr in *.
-      cbn in *.
-
-      eapply Compose_MSH_DSH_compat.
-      eapply HTSUMUnion_MSH_DSH_compat.
-      {
-        (* obligation which should be solved automatically *)
-        cbn; constructor.
-        unfold dynwin_y_addr.
-        cbv.
-        intros H.
-        inversion H.
-      }
-      eapply Compose_MSH_DSH_compat.
-
-      unshelve eapply IReduction_MSH_DSH_compat.
-      {
-        (* obligation which should be solved automatically *)
-        unfold incrPVar.
-        reflexivity.
-      }
-
-      intros.
-      eapply Compose_MSH_DSH_compat.
-      apply Pick_MSH_DSH_compat.
-      {
-        (* obligation which should be solved automatically *)
-        cbn.
-        reflexivity.
-      }
-      intros.
-      eapply Compose_MSH_DSH_compat.
-      eapply Inductor_MSH_DSH_compat.
-      {
-        (* obligation which should be solved automatically *)
-        constructor; intros.
-        -
-          repeat constructor.
-        -
-          reflexivity.
-      }
-      intros.
-      apply Pointwise_MSH_DSH_compat.
-      intros.
-      apply Embed_MSH_DSH_compat.
-      {
-        (* obligation which should be solved automatically *)
-        reflexivity.
-      }
-
-      intros.
-      eapply Compose_MSH_DSH_compat.
-
-      unshelve eapply IReduction_MSH_DSH_compat.
-      {
-        (* obligation which should be solved automatically *)
-        unfold incrPVar.
-        reflexivity.
-      }
-      intros.
-      eapply Compose_MSH_DSH_compat.
-      eapply IUnion_MSH_DSH_compat.
-      intros.
-      eapply Compose_MSH_DSH_compat.
-      apply Pick_MSH_DSH_compat.
-      {
-        (* obligation which should be solved automatically *)
-        reflexivity.
-      }
-      intros.
-      apply Embed_MSH_DSH_compat.
-      {
-        (* obligation which should be solved automatically *)
-        reflexivity.
-      }
-      intros.
-      eapply BinOp_MSH_DSH_compat.
-      {
-        (* obligation which should be solved automatically *)
-        constructor; intros.
-        -
-          repeat constructor.
-        -
-          reflexivity.
-      }
-      intros.
-      apply Embed_MSH_DSH_compat.
-      {
-        (* obligation which should be solved automatically *)
-        reflexivity.
-      }
-      intros.
-      eapply BinOp_MSH_DSH_compat.
-      {
-        (* obligation which should be solved automatically *)
-        constructor; intros.
-        -
-          repeat constructor.
-        -
-          reflexivity.
-      }
-    Admitted.
 
   End DummyEnv.
 
