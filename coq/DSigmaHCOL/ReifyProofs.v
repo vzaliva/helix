@@ -2432,43 +2432,57 @@ Proof.
     unfold SHCOL_DSHCOL_mem_block_equiv; intros k.
     eq_to_equiv_hyp; err_eq_to_equiv_hyp.
 
-    destruct (mem_lookup k mmb) as [k_mmb |] eqn:K_MMB.
+    
+    unfold mem_op_of_hop in MOP.
+    destruct (mem_block_to_avector x_m) as [xv |] eqn:XV; [some_inv | some_none].
+    unfold avector_to_mem_block in *.
+    avector_to_mem_block_to_spec md HD OD.
+    cbn in *.
+    specialize (HD k); specialize (OD k).
+
+    destruct (NatUtil.lt_ge_dec k o) as [KO | KO].
     +
+      clear OD; specialize (HD KO).
+      rewrite <-MOP.
+      unfold mem_lookup;
+        unfold MMemoryOfCarrierA.mem_lookup in HD.
+      rewrite HD.
       constructor 2; [reflexivity |].
-      eapply evalDSHBinOp_equiv_inr_spec with (k0:=k) in DMB.
-      destruct DMB as [k_xm' [ko_xm' DMB]].
-      destruct DMB as [K_XM' [KO_XM' [k_dmb [K_DMB IBC]]]].
-      rewrite K_DMB.
-      enough (T : inr k_dmb = inr k_mmb) by (inl_inr_inv; rewrite T; reflexivity).
-      rewrite <-IBC.
-      inversion_clear FDF as [T1 T2].
-      clear T1; rename T2 into FDF.
-      assert (is_Some (mem_op_of_hop (HBinOp f) x_m))
-        by (unfold is_Some; break_match; try reflexivity; try inversion MOP).
-      eapply mem_op_of_hop_x_density in H.
 
-      assert (FK : (fun n => Nat.lt n o) k) by admit.
-      specialize (FDF (exist FK)).
-      cbn in FDF.
-      rewrite FDF.
-      f_equiv.
-
-      unfold mem_op_of_hop in MOP.
-      break_match; try some_none; some_inv.
-      unfold HBinOp in MOP.
-      cbn in MOP.
-      cbn in MOP.
-
-      eapply mem_block_to_avector_nth with (k0:=k) in Heqo0.
-      Unshelve.
-      admit.
-      admit.
-      admit.
-      admit.
-      admit.
+      eapply evalDSHBinOp_equiv_inr_spec with (k0:=k) in DMB; [| assumption].
+      destruct DMB as [k_xm [ko_xm DMB]].
+      destruct DMB as [K_XM [KO_XM [k_dmb [K_DMB IBC]]]].
+      rewrite X_M, Y_M in *; clear X_M Y_M.
+           
+      assert (kc1 : k < o + o) by omega.
+      assert (kc2 : k + o < o + o) by omega.
+      rewrite HBinOp_nth with (jc1:=kc1) (jc2:=kc2).
+      inversion_clear FDF as [T F]; clear T.
+      specialize (F (mkFinNat KO) k_xm ko_xm).
+      
+      rewrite IBC in F.
+      inl_inr_inv.
+      pose proof XV as XV'.
+      eapply mem_block_to_avector_nth in XV'.
+      eapply mem_block_to_avector_nth in XV.
+      eq_to_equiv_hyp.
+      erewrite K_XM in XV.
+      erewrite KO_XM in XV'.
+      repeat some_inv.
+      erewrite <-XV, <-XV'.
+      rewrite <-F.
+      apply K_DMB.
     +
+      clear HD; specialize (OD KO).
+      rewrite <-MOP.
+      unfold mem_lookup;
+        unfold MMemoryOfCarrierA.mem_lookup in OD.
+      rewrite OD.
       constructor 1; [reflexivity |].
-      admit.
+
+      rewrite X_M, Y_M in *; clear X_M Y_M.
+      eapply evalDSHBinOp_oob_preservation;
+        eassumption.
 Admitted.
   
 (* FOR REFERENCE *)
