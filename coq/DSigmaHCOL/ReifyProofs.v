@@ -2399,9 +2399,7 @@ Global Instance BinOp_MSH_DSH_compat
        {df : AExpr}
        {dft : DSHIBinCarrierA df}
        {dfs: TypeSig}
-       {DTS: TypeSigAExpr df = Some dfs}
        {σ: evalContext}
-       {TC: typecheck_env 3 dfs σ}
        (m: memory)
        (FDF : MSH_DSH_IBinCarrierA_compat f σ df m)
        (BP: DSH_pure (DSHBinOp o x_p y_p df) x_p y_p)
@@ -2409,7 +2407,72 @@ Global Instance BinOp_MSH_DSH_compat
     @MSH_DSH_compat _ _ (MSHBinOp f) (DSHBinOp o x_p y_p df) dfs σ m x_p y_p BP.
 Proof.
   split.
-  intros mx mb MX MB.
+  intros x_m y_m X_M Y_M.
+  unfold estimateFuel.
+
+  destruct mem_op as [mmb |] eqn:MOP.
+  all: destruct evalDSHOperator as [r |] eqn:DOP; [destruct r as [msg | dm] |].
+  all: try constructor.
+  1,3,4: exfalso; admit.
+  - (* both MSH and DSH succeed *)
+    cbn in *.
+    unfold memory_lookup_err, trywith in *.
+    destruct (evalPexp σ x_p) as [|x_id] eqn:X_ID; try inl_inr.
+    destruct (evalPexp σ y_p) as [|y_id] eqn:Y_ID; try inl_inr.
+    destruct (memory_lookup m x_id) as [x_m'|] eqn:X_M'; try (inversion X_M; fail).
+    destruct (memory_lookup m y_id) as [y_m'|] eqn:Y_M'; try (inversion Y_M; fail).
+    cbn in *.
+    some_inv; break_match_hyp; try inl_inr; inl_inr_inv.
+    rename m0 into dmb, Heqe into DMB, H1 into DM.
+    unfold memory_lookup, memory_set.
+    rewrite NP.F.add_eq_o by reflexivity.
+    constructor.
+    repeat inl_inr_inv.
+
+    unfold SHCOL_DSHCOL_mem_block_equiv; intros k.
+    eq_to_equiv_hyp; err_eq_to_equiv_hyp.
+
+    destruct (mem_lookup k mmb) as [k_mmb |] eqn:K_MMB.
+    +
+      constructor 2; [reflexivity |].
+      eapply evalDSHBinOp_equiv_inr_spec with (k0:=k) in DMB.
+      destruct DMB as [k_xm' [ko_xm' DMB]].
+      destruct DMB as [K_XM' [KO_XM' [k_dmb [K_DMB IBC]]]].
+      rewrite K_DMB.
+      enough (T : inr k_dmb = inr k_mmb) by (inl_inr_inv; rewrite T; reflexivity).
+      rewrite <-IBC.
+      inversion_clear FDF as [T1 T2].
+      clear T1; rename T2 into FDF.
+      assert (is_Some (mem_op_of_hop (HBinOp f) x_m))
+        by (unfold is_Some; break_match; try reflexivity; try inversion MOP).
+      eapply mem_op_of_hop_x_density in H.
+
+      assert (FK : (fun n => Nat.lt n o) k) by admit.
+      specialize (FDF (exist FK)).
+      cbn in FDF.
+      rewrite FDF.
+      f_equiv.
+
+      unfold mem_op_of_hop in MOP.
+      break_match; try some_none; some_inv.
+      unfold HBinOp in MOP.
+      cbn in MOP.
+      cbn in MOP.
+
+      eapply mem_block_to_avector_nth with (k0:=k) in Heqo0.
+      Unshelve.
+      admit.
+      admit.
+      admit.
+      admit.
+      admit.
+    +
+      constructor 1; [reflexivity |].
+      admit.
+Admitted.
+  
+(* FOR REFERENCE *)
+  (*
   simpl.
   destruct (mem_op_of_hop (HCOL.HBinOp f) mx) as [md|] eqn:MD.
   -
@@ -2623,6 +2686,7 @@ Proof.
         apply MX.
         lia.
 Qed.
+   *)
 
 (** * MSHInductor *)
 
