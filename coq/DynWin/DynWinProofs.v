@@ -253,32 +253,38 @@ Section MSHCOL_to_DSHCOL.
   Definition DSH_x_p := PVar (nglobals+1).
   Definition DSH_y_p := PVar (nglobals+0).
 
+  Ltac solve_pure :=
+    repeat match goal with
+           | [ |- DSH_pure (DSHSeq _ _) _ _] => apply DSHSeq_DSH_pure
+           | [ |- DSH_pure (DSHAssign _ _) _ _ ] => apply Assign_DSH_pure
+           | [ |- DSH_pure (DSHPower _ _ _ _ _) _ _] => apply Power_DSH_pure
+           | [ |- DSH_pure (DSHIMap _ _ _ _) _ _] => apply IMap_DSH_pure
+           | [ |- DSH_pure (DSHLoop _ _) _ _] => apply Loop_DSH_pure
+           | [ |- DSH_pure (DSHBinOp _ _ _ _) _ _] => apply BinOp_DSH_pure
+           | [ |-
+               DSH_pure (DSHAlloc _
+                                  (DSHSeq
+                                     (DSHMemInit _ _ _)
+                                     (DSHLoop _
+                                              (DSHSeq
+                                                 _
+                                                 (DSHMemMap2 _ _
+                                                             _
+                                                             _
+                                                             _)))))
+                        _ _] => apply IReduction_DSH_pure
+           | [ |- DSH_pure (DSHAlloc _ (DSHSeq _ _)) _ _ ] => apply Compose_DSH_pure
+           | [ |- PVar _ ≡ incrPVar 0 _] => auto
+           end.
+
+
   (* TODO: This is a manual proof. To be automated in future. See [[../../doc/TODO.org]] for details *)
   Instance DynWin_pure
     :
       DSH_pure (dynwin_DSHCOL1) DSH_x_p DSH_y_p.
   Proof.
     unfold dynwin_DSHCOL1, DSH_y_p, DSH_x_p.
-    apply Compose_DSH_pure.
-    apply DSHSeq_DSH_pure. (* HTSumunion *)
-    apply Compose_DSH_pure.
-    apply IReduction_DSH_pure; [reflexivity|].
-    apply Compose_DSH_pure.
-    apply Assign_DSH_pure.
-    apply Compose_DSH_pure.
-    apply Power_DSH_pure.
-    apply IMap_DSH_pure.
-    apply Assign_DSH_pure.
-    apply Compose_DSH_pure.
-    apply IReduction_DSH_pure; [reflexivity|].
-    apply Compose_DSH_pure.
-    apply Loop_DSH_pure.
-    apply Compose_DSH_pure.
-    apply Assign_DSH_pure.
-    apply Assign_DSH_pure.
-    apply BinOp_DSH_pure.
-    apply Assign_DSH_pure.
-    eapply BinOp_DSH_pure.
+    repeat solve_pure.
   Qed.
 
   Section DummyEnv.
