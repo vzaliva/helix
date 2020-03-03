@@ -319,6 +319,13 @@ Section MSHCOL_to_DSHCOL.
         ; DSHPtrVal dynwin_x_addr dynwin_i
       ].
 
+    Ltac solve_MSH_DSH_compat_obligatios :=
+      repeat match goal with
+             | [ |- MSH_DSH_IBinCarrierA_compat _ _ _ _] => constructor ; intros
+             | [ |- MSH_DSH_BinCarrierA_compat _ _ _ _] => constructor
+             | _ => reflexivity
+             end.
+
     (* TODO: this lemma needs to be auto-generated *)
     Instance DynWin_MSH_DSH_compat
     :
@@ -330,6 +337,7 @@ Section MSHCOL_to_DSHCOL.
     Proof.
       unfold dynwin_DSHCOL1, DSH_y_p, DSH_x_p.
       unfold dynwin_x_addr, dynwin_y_addr, dynwin_a_addr in *.
+      (* unfold dynwin_MSHCOL1. *)
       cbn in *.
 
       eapply Compose_MSH_DSH_compat.
@@ -344,80 +352,45 @@ Section MSHCOL_to_DSHCOL.
       eapply Compose_MSH_DSH_compat.
 
       unshelve eapply IReduction_MSH_DSH_compat.
-      {
-        (* obligation which should be solved automatically *)
-        reflexivity.
-      }
+      solve_MSH_DSH_compat_obligatios.
 
       intros.
       eapply Compose_MSH_DSH_compat.
       apply Pick_MSH_DSH_compat.
-      {
-        (* obligation which should be solved automatically *)
-        reflexivity.
-      }
+      solve_MSH_DSH_compat_obligatios.
       intros.
       eapply Compose_MSH_DSH_compat.
       unshelve eapply Inductor_MSH_DSH_compat.
-      {
-        (* obligation which should be solved automatically *)
-        constructor; reflexivity.
-      }
-      {
-        (* obligation which should be solved automatically *)
-        constructor; reflexivity.
-      }
+      solve_MSH_DSH_compat_obligatios.
+      solve_MSH_DSH_compat_obligatios.
       intros.
       apply Pointwise_MSH_DSH_compat.
       intros.
       apply Embed_MSH_DSH_compat.
-      {
-        (* obligation which should be solved automatically *)
-        reflexivity.
-      }
+      solve_MSH_DSH_compat_obligatios.
       intros.
       eapply Compose_MSH_DSH_compat.
       unshelve eapply IReduction_MSH_DSH_compat.
-      {
-        (* obligation which should be solved automatically *)
-        reflexivity.
-      }
+      solve_MSH_DSH_compat_obligatios.
       intros.
       eapply Compose_MSH_DSH_compat.
       eapply IUnion_MSH_DSH_compat.
       intros.
       eapply Compose_MSH_DSH_compat.
       apply Pick_MSH_DSH_compat.
-      {
-        (* obligation which should be solved automatically *)
-        reflexivity.
-      }
+      solve_MSH_DSH_compat_obligatios.
       intros.
       apply Embed_MSH_DSH_compat.
-      {
-        (* obligation which should be solved automatically *)
-        reflexivity.
-      }
+      solve_MSH_DSH_compat_obligatios.
       intros.
       apply BinOp_MSH_DSH_compat.
-      {
-        (* obligation which should be solved automatically *)
-        constructor; intros.
-        reflexivity.
-      }
+      solve_MSH_DSH_compat_obligatios.
       intros.
       apply Embed_MSH_DSH_compat.
-      {
-        (* obligation which should be solved automatically *)
-        reflexivity.
-      }
+      solve_MSH_DSH_compat_obligatios.
       intros.
       apply BinOp_MSH_DSH_compat.
-      {
-        (* obligation which should be solved automatically *)
-        constructor; intros.
-        reflexivity.
-      }
+      solve_MSH_DSH_compat_obligatios.
     Admitted.
 
   End DummyEnv.
