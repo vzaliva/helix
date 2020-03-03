@@ -259,7 +259,6 @@ Section MSHCOL_to_DSHCOL.
       DSH_pure (dynwin_DSHCOL1) DSH_x_p DSH_y_p.
   Proof.
     unfold dynwin_DSHCOL1, DSH_y_p, DSH_x_p.
-
     apply Compose_DSH_pure.
     apply DSHSeq_DSH_pure. (* HTSumunion *)
     apply Compose_DSH_pure.
@@ -331,8 +330,7 @@ Section MSHCOL_to_DSHCOL.
       eapply HTSUMUnion_MSH_DSH_compat.
       {
         (* obligation which should be solved automatically *)
-        cbn; constructor.
-        unfold dynwin_y_addr.
+        constructor.
         cbv.
         intros H.
         inversion H.
@@ -342,7 +340,6 @@ Section MSHCOL_to_DSHCOL.
       unshelve eapply IReduction_MSH_DSH_compat.
       {
         (* obligation which should be solved automatically *)
-        unfold incrPVar.
         reflexivity.
       }
 
@@ -351,16 +348,18 @@ Section MSHCOL_to_DSHCOL.
       apply Pick_MSH_DSH_compat.
       {
         (* obligation which should be solved automatically *)
-        cbn.
         reflexivity.
       }
       intros.
       eapply Compose_MSH_DSH_compat.
-      eapply Inductor_MSH_DSH_compat.
+      unshelve eapply Inductor_MSH_DSH_compat.
       {
         (* obligation which should be solved automatically *)
-        constructor; intros.
-        reflexivity.
+        constructor; reflexivity.
+      }
+      {
+        (* obligation which should be solved automatically *)
+        constructor; reflexivity.
       }
       intros.
       apply Pointwise_MSH_DSH_compat.
@@ -370,14 +369,11 @@ Section MSHCOL_to_DSHCOL.
         (* obligation which should be solved automatically *)
         reflexivity.
       }
-
       intros.
       eapply Compose_MSH_DSH_compat.
-
       unshelve eapply IReduction_MSH_DSH_compat.
       {
         (* obligation which should be solved automatically *)
-        unfold incrPVar.
         reflexivity.
       }
       intros.
@@ -397,7 +393,7 @@ Section MSHCOL_to_DSHCOL.
         reflexivity.
       }
       intros.
-      eapply BinOp_MSH_DSH_compat.
+      apply BinOp_MSH_DSH_compat.
       {
         (* obligation which should be solved automatically *)
         constructor; intros.
@@ -410,7 +406,7 @@ Section MSHCOL_to_DSHCOL.
         reflexivity.
       }
       intros.
-      eapply BinOp_MSH_DSH_compat.
+      apply BinOp_MSH_DSH_compat.
       {
         (* obligation which should be solved automatically *)
         constructor; intros.
