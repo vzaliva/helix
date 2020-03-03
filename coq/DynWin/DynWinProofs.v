@@ -323,8 +323,23 @@ Section MSHCOL_to_DSHCOL.
       repeat match goal with
              | [ |- MSH_DSH_IBinCarrierA_compat _ _ _ _] => constructor ; intros
              | [ |- MSH_DSH_BinCarrierA_compat _ _ _ _] => constructor
+             | [ |- ErrorSetoid.herr_f _ _ _ _ _] =>
+               let H := fresh "H" in
+               constructor;
+               cbv;
+               intros H;
+               inversion H
              | _ => reflexivity
              end.
+
+    Ltac solve_MSH_DSH_compat :=
+      match goal with
+        [ |-  @MSH_DSH_compat ?i ?o (@MSHBinOp ?p01 ?p02 ?p03) ?p1 ?p2 ?p3 ?p4 ?p5 ?p6] =>
+        replace
+          (@MSH_DSH_compat i o (@MSHBinOp p01 p02 p03) p1 p2 p3 p4 p5 p6) with
+        (@MSH_DSH_compat (o+o) o (@MSHBinOp p01 p02 p03) p1 p2 p3 p4 p5 p6)
+          by apply eq_refl ; eapply BinOp_MSH_DSH_compat
+      end.
 
     (* TODO: this lemma needs to be auto-generated *)
     Instance DynWin_MSH_DSH_compat
@@ -337,18 +352,12 @@ Section MSHCOL_to_DSHCOL.
     Proof.
       unfold dynwin_DSHCOL1, DSH_y_p, DSH_x_p.
       unfold dynwin_x_addr, dynwin_y_addr, dynwin_a_addr in *.
-      (* unfold dynwin_MSHCOL1. *)
+      unfold dynwin_MSHCOL1.
       cbn in *.
 
       eapply Compose_MSH_DSH_compat.
       eapply HTSUMUnion_MSH_DSH_compat.
-      {
-        (* obligation which should be solved automatically *)
-        constructor.
-        cbv.
-        intros H.
-        inversion H.
-      }
+      solve_MSH_DSH_compat_obligatios.
       eapply Compose_MSH_DSH_compat.
 
       unshelve eapply IReduction_MSH_DSH_compat.
@@ -383,13 +392,13 @@ Section MSHCOL_to_DSHCOL.
       apply Embed_MSH_DSH_compat.
       solve_MSH_DSH_compat_obligatios.
       intros.
-      apply BinOp_MSH_DSH_compat.
+      solve_MSH_DSH_compat.
       solve_MSH_DSH_compat_obligatios.
       intros.
       apply Embed_MSH_DSH_compat.
       solve_MSH_DSH_compat_obligatios.
       intros.
-      apply BinOp_MSH_DSH_compat.
+      solve_MSH_DSH_compat.
       solve_MSH_DSH_compat_obligatios.
     Admitted.
 
