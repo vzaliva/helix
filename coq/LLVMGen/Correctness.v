@@ -1351,9 +1351,21 @@ Proof.
     assert(List.length globals ≡ List.length gdecls) as GG
         by eapply init_with_data_len, HIRG.
 
+    rename Heqe1 into F.
+    pose proof (initFSHGlobals_globals_sigma_len_eq globals F) as GSL.
+
     assert(exists gname gtype, nth_error globals x ≡ Some (gname, gtype)).
     {
-      admit.
+      assert(L: x < Datatypes.length globals).
+      {
+        rewrite GSL.
+        apply Hx.
+      }
+      pose proof (nth_error_succeeds globals L) as H.
+      destruct H as ([gname gtype] & H).
+      exists gname.
+      exists gtype.
+      apply H.
     }
     destruct H as (gname & gtype & NG).
 
@@ -1368,10 +1380,7 @@ Proof.
     right.
     split; [trivial|cbn].
 
-    rename Heqe1 into F.
-
     (* Deal with X,Y first *)
-    pose proof (initFSHGlobals_globals_sigma_len_eq globals F) as GSL.
     unfold memory_invariant_map.
     repeat break_if; bool_to_nat; try lia.
 
@@ -1382,7 +1391,6 @@ Proof.
     (* unify lengths *)
     remember (Datatypes.length σ) as l eqn:SL; symmetry in SL.
     clear Heqb Heqb0.
-
     rename m0 into fm0.
 
     (* we know, [gname] is in [gdecls] and not in [xydecls] *)
