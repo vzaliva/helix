@@ -2075,58 +2075,55 @@ Global Instance IUnion_MSH_DSH_compat
 Proof.
   constructor.
   intros x_m y_m X_M Y_M.
-  destruct (mem_op (MSHIUnion opf) x_m) as [mmb |] eqn:MMB.
-  all: destruct (evalDSHOperator σ (DSHLoop n dop) m (estimateFuel (DSHLoop n dop)))
-    as [dm |] eqn:DM; [destruct dm as [| dm] |].
+  destruct mem_op as [mmb|] eqn:MOP,
+           evalDSHOperator as [[msg | dm] |] eqn:DOP.
   all: repeat constructor.
   1,3,4: exfalso; admit.
   -
-    destruct (lookup_Pexp σ dm y_p) as [| y_dm] eqn:Y_DM.
-    +
-      exfalso. admit.
+    (* destruct MOP *)
+    cbn in MOP.
+    break_match; try some_none; repeat some_inv.
+    rename l into mmbs, Heqo0 into MMBS, H0 into MMB.
+    
+    cbn; cbn in Y_M.
+    destruct (evalPexp σ y_p) as [| y_id] eqn:Y_ID; try inl_inr.
+    unfold memory_lookup_err in *.
+    destruct (memory_lookup m y_id) as [y_m'|] eqn:Y_M',
+             (memory_lookup dm y_id) as [y_dm|] eqn:Y_DM.
+    2-4: exfalso; admit.
     +
       constructor.
-      unfold SHCOL_DSHCOL_mem_block_equiv.
-      intro k.
-      destruct (mem_lookup k mmb) as [k_mmb |] eqn:K_MMB.
+
+      (* get rid of [y_m'] *)
+      cbn in Y_M; inl_inr_inv.
+      eq_to_equiv_hyp; err_eq_to_equiv_hyp.
+      rewrite Y_M in *; clear Y_M y_m'; rename Y_M' into Y_M.
+      (* get rid of [x_m'] *)
+      unfold lookup_Pexp, memory_lookup_err in X_M; cbn in X_M.
+      destruct (evalPexp σ x_p) as [|x_id] eqn:X_ID; try inl_inr.
+      destruct (memory_lookup m x_id) as [x_m'|] eqn:X_M';
+        cbn in X_M; try inl_inr; inl_inr_inv.
+      eq_to_equiv_hyp; err_eq_to_equiv_hyp.
+      rewrite X_M in *; clear X_M x_m'; rename X_M' into X_M.
+
+      induction n.
       *
-        constructor 2; [reflexivity |].
-        cbn in MMB.
-        break_match; [some_inv | some_none].
-        rename l into mmb_l, Heqo0 into MMB_L, H0 into MM.
-        subst.
-
-
-        remember (estimateFuel (DSHLoop n dop)) as fuel; clear Heqfuel.
-        generalize dependent fuel.
-        generalize dependent dm.
-        induction n.
-        --
-          cbn in *.
-          repeat some_inv; repeat inl_inr_inv; subst.
-          cbn in *.
-          inversion K_MMB.
-        --
-          admit.
-          (*
-          cbn in DM.
-          repeat break_match;
-            try some_none; repeat some_inv;
-            try inl_inr; repeat inl_inr_inv.
-
-          
-
-          subst.
-          specialize (IHn opf).
-          eapply IHn.
-          admit.
-          instantiate (1 := opf).
-          eapply XMBL.
-          assumption.
-           *)
-      *
-        constructor 1; [reflexivity |].
         admit.
+      *
+        (* specialize FC *)
+        assert (n < S n) by lia.
+        specialize (FC (mkFinNat H)).
+
+        (* destruct DOP: get to previous inductive step (kind of) *)
+        cbn in DOP.
+        destruct (evalDSHOperator σ (DSHLoop n dop) m (estimateFuel dop * S n))
+          as [[msg | pdm] |];
+          try some_none; repeat some_inv;
+          try inl_inr; repeat inl_inr_inv.
+        
+
+        
+
 Admitted.
 
 (** * MSHIReduction *)
