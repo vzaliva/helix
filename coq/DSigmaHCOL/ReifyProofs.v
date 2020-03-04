@@ -2067,63 +2067,76 @@ Global Instance IUnion_MSH_DSH_compat
        {opf : MSHOperatorFamily}
        {DP : DSH_pure dop (incrPVar 0 x_p) (incrPVar 0 y_p)}
        {LP : DSH_pure (DSHLoop n dop) x_p y_p}
-       (FC : forall t, @MSH_DSH_compat _ _ (opf t) dop
+       (FC : forall t m, @MSH_DSH_compat _ _ (opf t) dop
                                   ((DSHnatVal (proj1_sig t)) :: σ)
                                   m (incrPVar 0 x_p) (incrPVar 0 y_p) DP)
   :
     @MSH_DSH_compat _ _ (@MSHIUnion i o n opf) (DSHLoop n dop) σ m x_p y_p P.
 Proof.
   constructor.
-  intros x_m y_m X_M Y_M.
+  intros x_m y_m X_M' Y_M'.
+
+  (* all information about input/output blocks *)
+  unfold lookup_Pexp, memory_lookup_err in *.
+  destruct (evalPexp σ x_p) as [| x_id] eqn:X_ID; try (inversion X_M'; fail).
+  destruct (evalPexp σ y_p) as [| y_id] eqn:Y_ID; try (inversion Y_M'; fail).
+  cbn in X_M', Y_M'.
+  destruct (memory_lookup m x_id) as [x_m'|] eqn:X_M; try (cbn in X_M'; inl_inr).
+  destruct (memory_lookup m y_id) as [y_m'|] eqn:Y_M; try (cbn in Y_M'; inl_inr).
+  cbn in X_M', Y_M'.
+  repeat inl_inr_inv.
+
   destruct mem_op as [mmb|] eqn:MOP,
            evalDSHOperator as [[msg | dm] |] eqn:DOP.
   all: repeat constructor.
-  1,3,4: exfalso; admit.
+  1,3,4: exfalso; admit. (* MOP/DOP succeeded, DOP/MOP failed *)
   -
-    (* destruct MOP *)
-    cbn in MOP.
-    break_match; try some_none; repeat some_inv.
-    rename l into mmbs, Heqo0 into MMBS, H0 into MMB.
-    
-    cbn; cbn in Y_M.
-    destruct (evalPexp σ y_p) as [| y_id] eqn:Y_ID; try inl_inr.
-    unfold memory_lookup_err in *.
-    destruct (memory_lookup m y_id) as [y_m'|] eqn:Y_M',
-             (memory_lookup dm y_id) as [y_dm|] eqn:Y_DM.
-    2-4: exfalso; admit.
+    cbn.
+    destruct (memory_lookup dm y_id) as [y_dm|] eqn:Y_DM.
+    2: exfalso; admit.
     +
       constructor.
+      unfold SHCOL_DSHCOL_mem_block_equiv.
+      intros k.
 
-      (* get rid of [y_m'] *)
-      cbn in Y_M; inl_inr_inv.
-      eq_to_equiv_hyp; err_eq_to_equiv_hyp.
-      rewrite Y_M in *; clear Y_M y_m'; rename Y_M' into Y_M.
-      (* get rid of [x_m'] *)
-      unfold lookup_Pexp, memory_lookup_err in X_M; cbn in X_M.
-      destruct (evalPexp σ x_p) as [|x_id] eqn:X_ID; try inl_inr.
-      destruct (memory_lookup m x_id) as [x_m'|] eqn:X_M';
-        cbn in X_M; try inl_inr; inl_inr_inv.
-      eq_to_equiv_hyp; err_eq_to_equiv_hyp.
-      rewrite X_M in *; clear X_M x_m'; rename X_M' into X_M.
+      (* destruct MOP *)
+      cbn in MOP.
+      break_match; try some_none; repeat some_inv.
+      rename l into mmbs, Heqo0 into MMBS.
 
       induction n.
       *
         admit.
       *
-        (* specialize FC *)
-        assert (n < S n) by lia.
-        specialize (FC (mkFinNat H)).
-
         (* destruct DOP: get to previous inductive step (kind of) *)
         cbn in DOP.
         destruct (evalDSHOperator σ (DSHLoop n dop) m (estimateFuel dop * S n))
-          as [[msg | pdm] |];
+          as [[msg | dlm] |] eqn:DLM;
           try some_none; repeat some_inv;
           try inl_inr; repeat inl_inr_inv.
-        
 
-        
+        (* make use of FC *)
+        assert (n < S n) by lia.
+        specialize (FC (mkFinNat H) dm).
+        inversion_clear FC as [F].
+        specialize (F x_m y_dm).
+        assert (FT1 : lookup_Pexp (DSHnatVal (` (mkFinNat H)) :: σ)
+                                  dm
+                                  (incrPVar 0 x_p)
+                      = inr x_m)
+          by admit. (* should follow from Pure *)
+        assert (FT2 : lookup_Pexp (DSHnatVal (` (mkFinNat H)) :: σ)
+                                  dm
+                                  (incrPVar 0 y_p)
+                      = inr y_dm)
+          by (cbn; unfold memory_lookup_err;
+              rewrite evalPexp_incrPVar, Y_ID, Y_DM; reflexivity).
+        specialize (F FT1 FT2); clear FT1 FT2.
+        cbn in F.
+        rewrite evalPexp_incrPVar, Y_ID in F.
 
+        (* try combining F and DOP *)
+        inversion F.
 Admitted.
 
 (** * MSHIReduction *)
