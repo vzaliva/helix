@@ -58,6 +58,7 @@ Require Import Helix.DSigmaHCOL.DSigmaHCOLITree.
 Require Import Helix.LLVMGen.Compiler.
 Require Import Helix.LLVMGen.Externals.
 Require Import Helix.LLVMGen.Data.
+Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Util.ErrorSetoid.
 Require Import Helix.Util.ListUtil.
 Require Import Helix.Tactics.HelixTactics.
@@ -1190,6 +1191,8 @@ Proof.
       eauto.
 Qed.
 
+
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -1328,10 +1331,6 @@ Proof.
         eapply IHglobals, Heqe0.
   -
     (* [DSHCTypeVal] must end up in globals as  a pointer *)
-    eexists.
-    split.
-    right.
-    split; [trivial|cbn].
 
     apply ListUtil.nth_app in Hn.
     destruct Hn as [[Hn Hx] | [Hn Hx]].
@@ -1343,7 +1342,31 @@ Proof.
       rewrite Util.nth_error_nil in H1.
       inv H1.
     }
-    clear v Heqd HFXY.
+    subst v.
+    clear HFXY.
+
+    assert(List.length gdecls ≡ List.length g1) as GL
+        by eapply init_with_data_len, HG.
+
+    assert(List.length globals ≡ List.length gdecls) as GG
+        by eapply init_with_data_len, HIRG.
+
+    assert(exists gname gtype, nth_error globals x ≡ Some (gname, gtype)).
+    {
+      admit.
+    }
+    destruct H as (gname & gtype & NG).
+
+    assert(exists ptr_llvm, nth_error g x ≡ Some (Name gname, (DVALUE_Addr ptr_llvm))).
+    {
+      admit.
+    }
+    destruct H as (ptr_llvm & NGDECL).
+    exists ptr_llvm.
+
+    split.
+    right.
+    split; [trivial|cbn].
 
     rename Heqe1 into F.
 
@@ -1353,14 +1376,8 @@ Proof.
     repeat break_if; bool_to_nat; try lia.
 
     (* X,Y eliminated, [x] somewhere in globals *)
-    break_match.
-    2:{
-      (* impossible case, [Anon 0] used for missing value in [memory_invariant_map] *)
-      apply ListNth.nth_error_length_lt in Hn.
-      apply ListUtil.nth_beyond_idx in Heqo0.
-      lia.
-    }
-    destruct p as (gname, gtyp).
+    break_match_goal; try some_none.
+    some_inv. subst p.
 
     (* unify lengths *)
     remember (Datatypes.length σ) as l eqn:SL; symmetry in SL.
@@ -1370,7 +1387,6 @@ Proof.
 
     (* we know, [gname] is in [gdecls] and not in [xydecls] *)
     clear HCX HCY xdata ydata hdata.
-
 
     assert(exists gd,
               nth_error gdecls x ≡ Some (TLE_Global gd) /\
@@ -1382,25 +1398,22 @@ Proof.
       admit.
     }
 
-    (*
-    (* switching to stronger, positional, relation *)
-    cut(nth_error g x ≡ Some (Name gname, DVALUE_Addr _)).
+    (* rewrite app_nth_error1 in NGDECL by lia. *)
+
+    (* The goal is provable from NGDECL via INJ *)
     {
-      (* this seems to be provable from INJ *)
-
-      clear -INJ Hx SL GSL.
-
+      clear -INJ Hx SL GSL NGDECL.
       revert INJ Hx.
-      revert x gname.
+      revert x gname NGDECL.
       induction g; intros.
       -
-        rewrite Util.nth_error_nil in H.
-        inv H.
+        rewrite Util.nth_error_nil in NGDECL.
+        inv NGDECL.
       -
         destruct x.
         +
           cbn in *.
-          inv H.
+          inv NGDECL.
           break_if; auto.
           inv Heqb.
           break_if.
@@ -1408,24 +1421,24 @@ Proof.
           unfold sumbool_rec, sumbool_rect in Heqs.
           break_match; congruence.
         +
-          cbn in H.
-          apply IHg in H;[|auto|lia]. clear IHg.
+          cbn in NGDECL.
+          apply IHg in NGDECL;[|auto|lia]. clear IHg.
           cbn.
-          rewrite_clear H.
           break_let; subst.
+          rewrite_clear NGDECL.
           break_if.
           *
+            (*
             unfold RelDec.rel_dec in Heqb.
             inv Heqb.
             break_if; [|inv H0].
+            subst.
+             *)
+            admit.
           *
-            apply H.
-      admit.
-  }
-    clear INJ.
-    (*  swtich from [g] to [g1] *)
-    assert(List.length gdecls ≡ List.length g1) as GL
-        by eapply init_with_data_len, HG.
+            reflexivity.
+    }
+    (*
     subst g.
     rewrite ListUtil.nth_app_left; [|apply init_with_data_len in HIRG; lia].
     clear g2 HFSHG.
@@ -1486,11 +1499,6 @@ Proof.
           auto.
     }
      *)
-    admit.
-
-    eexists.
-    split.
-    admit.
     admit.
   -
     (* [DSHPtrVal] must end up in memory *)
