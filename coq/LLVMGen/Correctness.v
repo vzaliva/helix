@@ -1369,6 +1369,100 @@ Proof.
     }
     destruct H as (gname & gtype & NG).
 
+    assert(exists gd,
+              nth_error gdecls x ≡ Some (TLE_Global gd) /\
+              g_exp gd ≡ Some (EXP_Double a) /\
+              g_ident gd ≡ Name gname
+          ) as (gd & XGD & VGD & NGD).
+    {
+      rewrite <- GSL, GG in Hx.
+      clear - F HIRG Hn Hx NG F.
+      unfold initFSHGlobals in *.
+      pose proof (nth_error_succeeds gdecls Hx) as H.
+      destruct H as (te & H).
+
+      (* now prove [te] is [TLE_Global gd] *)
+      revert F HIRG Hn NG Hx H.
+      revert m0 fdata' σ data ldata' gdecls x.
+      generalize helix_empty_memory as m0.
+      induction globals; intros.
+      -
+        rewrite nth_error_nil in NG.
+        some_none.
+      -
+        cbn in F.
+        repeat break_match_hyp; try inl_inr.
+        repeat inl_inr_inv.
+        subst.
+        destruct p0.
+
+        destruct gdecls; [rewrite nth_error_nil in H; inversion H|].
+
+        cbn in HIRG.
+        repeat break_match_hyp; try inl_inr.
+        repeat inl_inr_inv.
+        subst.
+
+        unfold initOneIRGlobal in Heqe2.
+        repeat break_match_hyp; try inl_inr.
+        +
+          inl_inr_inv.
+          subst.
+          cbn in *.
+          destruct x.
+          *
+            cbn in *.
+            repeat some_inv.
+            subst.
+            break_let.
+            tuple_inversion.
+            inl_inr_inv.
+            subst.
+            eexists.
+            eauto.
+          *
+            cbn in *.
+            repeat some_inv.
+            subst.
+            break_let.
+            tuple_inversion.
+            inl_inr_inv.
+            subst.
+            eapply IHglobals; eauto.
+            lia.
+        +
+          (* Array *)
+          inl_inr_inv.
+          subst.
+          cbn in *.
+          destruct x.
+          *
+            cbn in *.
+            repeat some_inv.
+            subst.
+            break_let.
+            inl_inr_inv.
+          *
+            cbn in *.
+            break_let.
+            inv Heqe.
+            subst.
+            eapply IHglobals; eauto.
+            assert (LL: l0≡l1).
+            {
+              clear - Heqp Heqp0.
+              unfold constMemBlock in Heqp.
+              unfold constArray in Heqp0.
+              break_let.
+              tuple_inversion.
+              tuple_inversion.
+              reflexivity.
+            }
+            rewrite LL.
+            eapply Heqe3.
+            lia.
+    }
+
     assert(exists ptr_llvm, nth_error g x ≡ Some (Name gname, (DVALUE_Addr ptr_llvm))).
     {
       admit.
