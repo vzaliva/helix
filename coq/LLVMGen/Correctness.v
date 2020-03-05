@@ -1465,8 +1465,86 @@ Proof.
 
     assert(exists ptr_llvm, nth_error g x ≡ Some (Name gname, (DVALUE_Addr ptr_llvm))).
     {
-      admit.
+      assert (x < Datatypes.length g1) as L.
+      {
+        rewrite <- GL, <- GG, GSL.
+        apply Hx.
+      }
+      subst g.
+      rewrite app_nth_error1 in * by apply L.
+      pose proof (nth_error_succeeds g1 L) as H.
+      destruct H as ([did dv] & H).
+      clear - HG H NGD XGD.
+      revert x HG H XGD.
+      generalize M.empty_memory_stack as m0.
+      revert g1 did dv.
+      induction gdecls; intros.
+      -
+        cbn in *.
+        inv HG.
+        rewrite nth_error_nil in H.
+        some_none.
+      -
+        cbn in HG.
+        repeat break_match_hyp; try inl_inr.
+        repeat inl_inr_inv.
+        subst.
+        unfold init_one_global in Heqs.
+        repeat break_match_hyp; try inl_inr.
+        repeat inl_inr_inv.
+        cbn in *.
+        repeat break_match_hyp; try inl_inr.
+        repeat inl_inr_inv.
+        subst.
+        +
+          (* Double *)
+          destruct x.
+          *
+            clear IHgdecls.
+            cbn in *.
+            some_inv.
+            destruct p1.
+            some_inv.
+            unfold alloc_global in Heqs0.
+            repeat break_match_hyp; try inl_inr.
+            repeat inl_inr_inv.
+            exists (M.next_logical_key m, 0%Z).
+            subst.
+            f_equiv.
+            f_equiv.
+            apply NGD.
+          *
+            cbn.
+            eapply IHgdecls; eauto.
+        +
+          (* Array *)
+          destruct x.
+          *
+            clear IHgdecls.
+            cbn in *.
+            some_inv.
+            destruct p1.
+            some_inv.
+            unfold alloc_global in Heqs0.
+            repeat break_match_hyp; try inl_inr.
+            repeat inl_inr_inv.
+            exists (M.next_logical_key m, 0%Z).
+            subst.
+            f_equiv.
+            f_equiv.
+            cbn in *.
+            tuple_inversion.
+            apply NGD.
+            tuple_inversion.
+            eauto.
+          *
+            cbn.
+            destruct p0.
+            inl_inr_inv.
+            subst.
+            eapply IHgdecls; eauto.
     }
+
     destruct H as (ptr_llvm & NGDECL).
     exists ptr_llvm.
 
