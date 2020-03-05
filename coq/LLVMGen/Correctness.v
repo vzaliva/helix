@@ -977,7 +977,7 @@ Proof.
 Qed.
 
 (* If [initIRGlobals] suceeds, the names of variables in [globals] were unique *)
-Lemma initIRGlobals_names_unique globals data res:
+Lemma initIRGlobals_names_unique {globals data res}:
   initIRGlobals data globals ≡ inr res → list_uniq fst globals.
 Proof.
   revert res data.
@@ -1191,7 +1191,65 @@ Proof.
       eauto.
 Qed.
 
-
+Lemma alist_find_nth_error_list_uniq
+      (g : global_env)
+      (x : nat)
+      (n: raw_id)
+      (v : dvalue)
+      (U: list_uniq fst g):
+  nth_error g x ≡ Some (n, v) →
+  alist_find AstLib.eq_dec_raw_id n g ≡ Some v.
+Proof.
+  revert U.
+  revert x v n.
+  induction g; intros.
+  -
+    rewrite nth_error_nil in H.
+    some_none.
+  -
+    cbn.
+    break_let.
+    break_if.
+    +
+      unfold RelDec.rel_dec, AstLib.eq_dec_raw_id in Heqb.
+      cbn in Heqb.
+      break_match; [| inversion Heqb].
+      subst.
+      destruct x.
+      *
+        cbn in H.
+        some_inv.
+        reflexivity.
+      *
+        cbn in H.
+        clear - U H.
+        exfalso.
+        apply list_uniq_cons in U.
+        destruct U.
+        contradict H1.
+        eexists.
+        eexists.
+        eauto.
+    +
+      destruct x.
+      *
+        clear IHg.
+        cbn in *.
+        some_inv.
+        subst.
+        clear - Heqb.
+        unfold RelDec.rel_dec, AstLib.eq_dec_raw_id in Heqb.
+        cbn in Heqb.
+        break_if.
+        inversion Heqb.
+        contradict n0.
+        reflexivity.
+      *
+        cbn in H.
+        eapply IHg.
+        eapply list_uniq_de_cons; eauto.
+        eapply H.
+Qed.
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
@@ -1568,117 +1626,15 @@ Proof.
     (* we know, [gname] is in [gdecls] and not in [xydecls] *)
     clear HCX HCY xdata ydata hdata.
 
-    assert(exists gd,
-              nth_error gdecls x ≡ Some (TLE_Global gd) /\
-              g_exp gd ≡ Some (EXP_Double a) /\
-              g_ident gd ≡ Name gname
-          ) as (gd & XGD & VGD & NGD).
+
+    assert(list_uniq fst g) as GU.
     {
-      clear - F HIRG Hn.
+      pose proof (initIRGlobals_names_unique HIRG) as GLU.
       admit.
     }
 
-    (* rewrite app_nth_error1 in NGDECL by lia. *)
+    eapply alist_find_nth_error_list_uniq; eauto.
 
-    (* The goal is provable from NGDECL via INJ *)
-    {
-      clear -INJ Hx SL GSL NGDECL.
-      revert INJ Hx.
-      revert x gname NGDECL.
-      induction g; intros.
-      -
-        rewrite Util.nth_error_nil in NGDECL.
-        inv NGDECL.
-      -
-        destruct x.
-        +
-          cbn in *.
-          inv NGDECL.
-          break_if; auto.
-          inv Heqb.
-          break_if.
-          inv H0.
-          unfold sumbool_rec, sumbool_rect in Heqs.
-          break_match; congruence.
-        +
-          cbn in NGDECL.
-          apply IHg in NGDECL;[|auto|lia]. clear IHg.
-          cbn.
-          break_let; subst.
-          rewrite_clear NGDECL.
-          break_if.
-          *
-            (*
-            unfold RelDec.rel_dec in Heqb.
-            inv Heqb.
-            break_if; [|inv H0].
-            subst.
-             *)
-            admit.
-          *
-            reflexivity.
-    }
-    (*
-    subst g.
-    rewrite ListUtil.nth_app_left; [|apply init_with_data_len in HIRG; lia].
-    clear g2 HFSHG.
-
-    {
-      clear - HG XGD NGD VGD.
-      revert XGD HG NGD VGD.
-      revert x g1.
-      generalize M.empty_memory_stack as m0.
-      induction gdecls; intros.
-      -
-        rewrite nth_error_nil in XGD.
-        inversion XGD.
-      -
-        cbn in HG.
-        break_match_hyp; try inl_inr.
-        break_let.
-        break_match_hyp; try inl_inr.
-        break_let.
-        subst.
-        inl_inr_inv.
-        subst.
-        destruct x.
-        +
-          clear IHgdecls.
-          cbn in *.
-          inv XGD.
-          f_equiv.
-          destruct p1.
-          unfold init_one_global in Heqs.
-          cbn in Heqs.
-          repeat (break_match_hyp; try inl_inr); subst.
-          *
-            (* single Double *)
-            cbn in *.
-            inv NGD.
-            inv VGD.
-            repeat inl_inr_inv.
-            destruct p3.
-            destruct p0.
-            repeat tuple_inversion.
-            clear Heqe m1 l.
-            unfold alloc_global in Heqs0.
-            break_match_hyp; try inl_inr.
-            inl_inr_inv.
-            subst.
-            (* TODO: Problem HERE. DVALUE type mismatch *)
-            admit.
-          *
-            (* Array of Doubles *)
-            admit.
-        +
-          cbn.
-          destruct p0.
-          apply IHgdecls with (m0:=p); auto.
-          assert(l0 ≡ []) by (eapply init_one_global_empty_local; eauto).
-          subst l0.
-          auto.
-    }
-     *)
     admit.
   -
     (* [DSHPtrVal] must end up in memory *)

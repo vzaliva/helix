@@ -64,28 +64,43 @@ Qed.
 
 Lemma list_uniq_cons {A B:Type} (p: A -> B) (a:A) (l:list A):
   list_uniq p l /\
-  not (exists j x, nth_error l j = Some x /\ p x = p a) ->
+  not (exists j x, nth_error l j = Some x /\ p x = p a) <->
   list_uniq p (a :: l).
 Proof.
-  intros [U E].
+  split.
+  -
+    intros [U E].
+    unfold list_uniq in *.
+    intros x y a0 b H H0 H1.
+    destruct x,y; cbn in *.
+    +
+      reflexivity.
+    +
+      inversion H; subst.
+      contradict E.
+      exists y, b.
+      auto.
+    +
+      inversion H0; subst.
+      contradict E.
+      exists x, a0.
+      auto.
+    +
+      apply eq_S.
+      eapply U; eauto.
+  -
+    admit.
+Admitted.
+
+Lemma list_uniq_de_cons {A B:Type} (p: A -> B) (a:A) (l:list A):
+  list_uniq p (a :: l) ->
+  list_uniq p l.
+Proof.
+  intros H.
   unfold list_uniq in *.
-  intros x y a0 b H H0 H1.
-  destruct x,y; cbn in *.
-  -
-    reflexivity.
-  -
-    inversion H; subst.
-    contradict E.
-    exists y, b.
-    auto.
-  -
-    inversion H0; subst.
-    contradict E.
-    exists x, a0.
-    auto.
-  -
-    apply eq_S.
-    eapply U; eauto.
+  intros x y a0 b H0 H1 H2.
+  cut (S x = S y). auto.
+  eapply H; eauto.
 Qed.
 
 Lemma app_nth_error2 :
