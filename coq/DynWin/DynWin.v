@@ -10,8 +10,12 @@ Require Import Helix.SigmaHCOL.SigmaHCOLRewriting.
 
 Require Import MathClasses.interfaces.canonical_names.
 
+Definition dynwin_i:nat := (1 + (2 + 2)).
+Definition dynwin_o:nat := 1.
+
 (* Original dynamic window expression *)
-Definition dynwin_orig (a: avector 3) :=
+Definition dynwin_orig (a: avector 3) : avector dynwin_i -> avector dynwin_o
+  :=
   (HTLess
      (HEvalPolynomial a)
      (HChebyshevDistance 2)).
@@ -41,7 +45,8 @@ SUMUnion(
   )
 )
 *)
-Definition dynwin_SHCOL1 (a:avector 3) : @SHOperator Monoid_RthetaFlags (1+(2+2)) 1 zero
+Definition dynwin_SHCOL1 (a:avector 3) :
+  @SHOperator Monoid_RthetaFlags dynwin_i dynwin_o zero
   :=   (@SafeCast _ (Init.Nat.add (S O) (S O)) (S O)
                   (@SHBinOp Monoid_RthetaSafeFlags _ (S O)
                             (@IgnoreIndex2 CarrierA (@sig nat (fun n : nat => Peano.lt n (S O)))

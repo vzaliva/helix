@@ -253,30 +253,57 @@ Section MSHCOL_to_DSHCOL.
   Definition DSH_x_p := PVar (nglobals+1).
   Definition DSH_y_p := PVar (nglobals+0).
 
-  Ltac solve_pure :=
+  (* This tactics solves both [MSH_DSH_compat] and [DSH_pure] goals along with typical
+     obligations *)
+  Ltac solve_MSH_DSH_compat :=
     repeat match goal with
-           | [ |- DSH_pure (DSHSeq _ _) _ _] => apply DSHSeq_DSH_pure
-           | [ |- DSH_pure (DSHAssign _ _) _ _ ] => apply Assign_DSH_pure
-           | [ |- DSH_pure (DSHPower _ _ _ _ _) _ _] => apply Power_DSH_pure
-           | [ |- DSH_pure (DSHIMap _ _ _ _) _ _] => apply IMap_DSH_pure
-           | [ |- DSH_pure (DSHLoop _ _) _ _] => apply Loop_DSH_pure
-           | [ |- DSH_pure (DSHBinOp _ _ _ _) _ _] => apply BinOp_DSH_pure
-           | [ |-
-               DSH_pure (DSHAlloc _
-                                  (DSHSeq
-                                     (DSHMemInit _ _ _)
-                                     (DSHLoop _
-                                              (DSHSeq
-                                                 _
-                                                 (DSHMemMap2 _ _
-                                                             _
-                                                             _
-                                                             _)))))
-                        _ _] => apply IReduction_DSH_pure
-           | [ |- DSH_pure (DSHAlloc _ (DSHSeq _ _)) _ _ ] => apply Compose_DSH_pure
-           | [ |- PVar _ ≡ incrPVar 0 _] => auto
-           end.
+      [ |-  @MSH_DSH_compat ?i ?o (@MSHBinOp ?p01 ?p02 ?p03) ?p1 ?p2 ?p3 ?p4 ?p5 ?p6] =>
+      replace
+        (@MSH_DSH_compat i o (@MSHBinOp p01 p02 p03) p1 p2 p3 p4 p5 p6) with
+      (@MSH_DSH_compat (o+o) o (@MSHBinOp p01 p02 p03) p1 p2 p3 p4 p5 p6)
+        by apply eq_refl ; eapply BinOp_MSH_DSH_compat; intros
+    | |- MSH_DSH_compat (MSHCompose _ _) _ _ _ _ _ => unshelve eapply Compose_MSH_DSH_compat; intros
+    | |- MSH_DSH_compat (MHTSUMUnion _ _ _) _ _ _ _ _ => unshelve eapply HTSUMUnion_MSH_DSH_compat; intros
+    | |- MSH_DSH_compat (MSHIReduction _ _ _) _ _ _ _ _ => unshelve eapply IReduction_MSH_DSH_compat; intros
+    | |- MSH_DSH_compat (MSHPick  _) _ _ _ _ _ => apply Pick_MSH_DSH_compat
+    | |- MSH_DSH_compat (MSHInductor _ _ _) _ _ _ _ _ => unshelve eapply Inductor_MSH_DSH_compat; intros
+    | |- MSH_DSH_compat (MSHPointwise _) _ _ _ _ _ => apply Pointwise_MSH_DSH_compat; intros
+    | |- MSH_DSH_compat (MSHEmbed _) _ _ _ _ _ => apply Embed_MSH_DSH_compat; intros
+    | |- MSH_DSH_compat (MSHIUnion _) _ _ _ _ _ => unshelve eapply IUnion_MSH_DSH_compat; intros
 
+    (* DSH_Pure *)
+    | [ |- DSH_pure (DSHSeq _ _) _ _] => apply DSHSeq_DSH_pure
+    | [ |- DSH_pure (DSHAssign _ _) _ _ ] => apply Assign_DSH_pure
+    | [ |- DSH_pure (DSHPower _ _ _ _ _) _ _] => apply Power_DSH_pure
+    | [ |- DSH_pure (DSHIMap _ _ _ _) _ _] => apply IMap_DSH_pure
+    | [ |- DSH_pure (DSHLoop _ _) _ _] => apply Loop_DSH_pure
+    | [ |- DSH_pure (DSHBinOp _ _ _ _) _ _] => apply BinOp_DSH_pure
+    | [ |-
+        DSH_pure (DSHAlloc _
+                           (DSHSeq
+                              (DSHMemInit _ _ _)
+                              (DSHLoop _
+                                       (DSHSeq
+                                          _
+                                          (DSHMemMap2 _ _
+                                                      _
+                                                      _
+                                                      _)))))
+                 _ _] => apply IReduction_DSH_pure
+    | [ |- DSH_pure (DSHAlloc _ (DSHSeq _ _)) _ _ ] => apply Compose_DSH_pure
+    | [ |- PVar _ ≡ incrPVar 0 _] => auto
+
+    (* Compat Obligations *)
+    | [ |- MSH_DSH_IBinCarrierA_compat _ _ _ _] => constructor ; intros
+    | [ |- MSH_DSH_BinCarrierA_compat _ _ _ _] => constructor
+    | [ |- ErrorSetoid.herr_f _ _ _ _ _] =>
+      let H := fresh "H" in
+      constructor;
+      cbv;
+      intros H;
+      inversion H
+    | _ => try reflexivity
+    end.
 
   (* TODO: This is a manual proof. To be automated in future. See [[../../doc/TODO.org]] for details *)
   Instance DynWin_pure
@@ -284,15 +311,12 @@ Section MSHCOL_to_DSHCOL.
       DSH_pure (dynwin_DSHCOL1) DSH_x_p DSH_y_p.
   Proof.
     unfold dynwin_DSHCOL1, DSH_y_p, DSH_x_p.
-    repeat solve_pure.
+    solve_MSH_DSH_compat.
   Qed.
 
   Section DummyEnv.
 
-    Definition dynwin_i := (1 + 4).
-    Definition dynwin_o := 1.
-
-    (* Will be automatically universally quantified on these *)
+    (* Could be automatically universally quantified on these *)
     Parameter a:vector CarrierA 3.
     Parameter x:mem_block.
 
@@ -303,45 +327,25 @@ Section MSHCOL_to_DSHCOL.
     Definition dynwin_globals_mem :=
       (memory_set memory_empty dynwin_a_addr (avector_to_mem_block a)).
 
-    (* Initialize memory with X and placeholder for Y.
-       TODO: globals
-     *)
+    (* Initialize memory with X and placeholder for Y. *)
     Definition dynwin_memory :=
       memory_set
         (memory_set dynwin_globals_mem dynwin_x_addr x)
         dynwin_y_addr mem_empty.
 
-    (* TODO: globals *)
-    Definition dynwin_σ:evalContext :=
+    Definition dynwin_σ_globals:evalContext :=
       [
         DSHPtrVal dynwin_a_addr 3
-        ; DSHPtrVal dynwin_y_addr dynwin_o
+      ].
+
+    Definition dynwin_σ:evalContext :=
+      dynwin_σ_globals ++
+      [
+        DSHPtrVal dynwin_y_addr dynwin_o
         ; DSHPtrVal dynwin_x_addr dynwin_i
       ].
 
-    Ltac solve_MSH_DSH_compat_obligatios :=
-      repeat match goal with
-             | [ |- MSH_DSH_IBinCarrierA_compat _ _ _ _] => constructor ; intros
-             | [ |- MSH_DSH_BinCarrierA_compat _ _ _ _] => constructor
-             | [ |- ErrorSetoid.herr_f _ _ _ _ _] =>
-               let H := fresh "H" in
-               constructor;
-               cbv;
-               intros H;
-               inversion H
-             | _ => reflexivity
-             end.
-
-    Ltac solve_MSH_DSH_compat :=
-      match goal with
-        [ |-  @MSH_DSH_compat ?i ?o (@MSHBinOp ?p01 ?p02 ?p03) ?p1 ?p2 ?p3 ?p4 ?p5 ?p6] =>
-        replace
-          (@MSH_DSH_compat i o (@MSHBinOp p01 p02 p03) p1 p2 p3 p4 p5 p6) with
-        (@MSH_DSH_compat (o+o) o (@MSHBinOp p01 p02 p03) p1 p2 p3 p4 p5 p6)
-          by apply eq_refl ; eapply BinOp_MSH_DSH_compat
-      end.
-
-    (* TODO: this lemma needs to be auto-generated *)
+    (* This lemma could be auto-generated *)
     Instance DynWin_MSH_DSH_compat
     :
       @MSH_DSH_compat dynwin_i dynwin_o (dynwin_MSHCOL1 a) (dynwin_DSHCOL1)
@@ -355,52 +359,8 @@ Section MSHCOL_to_DSHCOL.
       unfold dynwin_MSHCOL1.
       cbn in *.
 
-      eapply Compose_MSH_DSH_compat.
-      eapply HTSUMUnion_MSH_DSH_compat.
-      solve_MSH_DSH_compat_obligatios.
-      eapply Compose_MSH_DSH_compat.
-
-      unshelve eapply IReduction_MSH_DSH_compat.
-      solve_MSH_DSH_compat_obligatios.
-
-      intros.
-      eapply Compose_MSH_DSH_compat.
-      apply Pick_MSH_DSH_compat.
-      solve_MSH_DSH_compat_obligatios.
-      intros.
-      eapply Compose_MSH_DSH_compat.
-      unshelve eapply Inductor_MSH_DSH_compat.
-      solve_MSH_DSH_compat_obligatios.
-      solve_MSH_DSH_compat_obligatios.
-      intros.
-      apply Pointwise_MSH_DSH_compat.
-      intros.
-      apply Embed_MSH_DSH_compat.
-      solve_MSH_DSH_compat_obligatios.
-      intros.
-      eapply Compose_MSH_DSH_compat.
-      unshelve eapply IReduction_MSH_DSH_compat.
-      solve_MSH_DSH_compat_obligatios.
-      intros.
-      eapply Compose_MSH_DSH_compat.
-      eapply IUnion_MSH_DSH_compat.
-      intros.
-      eapply Compose_MSH_DSH_compat.
-      apply Pick_MSH_DSH_compat.
-      solve_MSH_DSH_compat_obligatios.
-      intros.
-      apply Embed_MSH_DSH_compat.
-      solve_MSH_DSH_compat_obligatios.
-      intros.
       solve_MSH_DSH_compat.
-      solve_MSH_DSH_compat_obligatios.
-      intros.
-      apply Embed_MSH_DSH_compat.
-      solve_MSH_DSH_compat_obligatios.
-      intros.
-      solve_MSH_DSH_compat.
-      solve_MSH_DSH_compat_obligatios.
-    Admitted.
+    Qed.
 
   End DummyEnv.
 
@@ -1091,6 +1051,7 @@ Section SigmaHCOL_rewriting.
         pose proof (DynWinSigmaHCOL1_dense_input a) as E1.
         apply Extensionality_Ensembles in E.
         apply Extensionality_Ensembles in E1.
+        unfold dynwin_i, dynwin_o in *.
         rewrite E, E1.
         unfold Included.
         intros x H.
@@ -1100,6 +1061,7 @@ Section SigmaHCOL_rewriting.
         pose proof (DynWinSigmaHCOL1_dense_output a) as E1.
         apply Extensionality_Ensembles in E.
         apply Extensionality_Ensembles in E1.
+        unfold dynwin_i, dynwin_o in *.
         rewrite E, E1.
         unfold Same_set.
         split; unfold Included; auto.

@@ -196,4 +196,21 @@
 
     j*c_0 + i*c_1 + k*c_2
 
+** Proof Automation
+*** MSHOL -> DSHCOL proofs
+
+    May not be possible to follow the structure of DSHCOL, as ~DSH_pure~
+    are associated with MSCHOL, not DSHCOL operators.
+
+    One way around this is to follow MSHCOL structure. Another
+    solution, is to build proof as we compile MSHCOL via template-coq.
+
+    Finally, it /might/ be possible to follow the structure of DSHCOL if
+    the mapping of MSHCOL to DSHCOL is injective. Here we will take
+    advantage of LTAC pattern matching which provides us with
+    look-ahead parser to match DHSCOL fragments to MSHCOL operators.
+
+    For current language we implemented LTAC pattern matching approach
+    which seems to be working. With addition of more operators or
+    extensions of DSHCOL this may break.
 

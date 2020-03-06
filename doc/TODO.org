@@ -68,18 +68,22 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    - can use eauto instead of matching
    - can use =typeclasses_eauto= to find some instances
 ** Automation for proofs like ~DynWin_pure~.
+   Current proof automation of ~MSH_DSH_compat~ doesn not extend to some
+   steps of initializing memory and environment with global variables.
 
-   May not be possible to follow the structure of DSHCOL, as ~DSH_pure~
-   are associated with MSCHOL, not DSHCOL operators.
+   This is not done, because we need universally quantify all proofs
+   over globals. Now it is manually done (in a ~Section~). It is possible
+   to fully automate this by generating the lemma with Template-Coq.
 
-   One way around this is to follow MSHCOL structure. Another solution, is
-   to build proof as we compile MSHCOL via template-coq.
+   This step is trivial, and postponed for later. We also took the same
+   approch with SHCOL proofs.
 
-   Finally, it /might/ be possible to follow the structure of DSHCOL
-   if the mapping of MSHCOL to DSHCOL is injective. Here we will take
-   advantage of LTAC patter matching which provides us with look-ahead
-   parser to match DHSCOL fragments to MSHCOL operators.
-
+   ~DSH_Pure~ instances do not have this problem as do not depend on
+   globals, env, memory. They only depend on the DSH operator intself
+   and ~x_p~ and ~y_p~. Although due to memory layout, ~x_p~ and ~y_p~ do
+   depend on number of globals before them, but this is could be
+   computed by size of globals array returned by Template-Coq. This
+   step is fully automated now.
    
 * Unfinished
 ** Division by zero in DSHCOL
