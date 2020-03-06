@@ -25,12 +25,12 @@ before_script:
   -  ./ci/keep_alive.sh &
 
 install:
-  - opam init -n -y
+  - opam init -n -y --compiler=4.09.0
   - eval $(opam config env)
   - opam config var root
   # this somehow fails the second time...
   - opam repo add coq-released http://coq.inria.fr/opam/released || true
-  - opam install -y --verbose -j 1 --unlock-base coq.${TEST_TARGET} && opam pin add coq ${TEST_TARGET} -y
+  - opam install -y --verbose -j 1 coq.${TEST_TARGET} && opam pin add coq ${TEST_TARGET} -y
   - opam install -y --verbose -j 1 ocamlfind camlp5 ${EXTRA_OPAM} 
   - opam install -y --verbose -j 1 coq-color
   - opam install -y --verbose -j 1 coq-ext-lib
