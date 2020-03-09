@@ -1609,33 +1609,39 @@ Proof.
     split.
     right.
     split; [trivial|cbn].
+    +
+      (* Deal with X,Y first *)
+      unfold memory_invariant_map.
+      repeat break_if; bool_to_nat; try lia.
 
-    (* Deal with X,Y first *)
-    unfold memory_invariant_map.
-    repeat break_if; bool_to_nat; try lia.
+      (* X,Y eliminated, [x] somewhere in globals *)
+      break_match_goal; try some_none.
+      some_inv. subst p.
 
-    (* X,Y eliminated, [x] somewhere in globals *)
-    break_match_goal; try some_none.
-    some_inv. subst p.
+      (* unify lengths *)
+      remember (Datatypes.length σ) as l eqn:SL; symmetry in SL.
+      clear Heqb Heqb0.
+      rename m0 into fm0.
 
-    (* unify lengths *)
-    remember (Datatypes.length σ) as l eqn:SL; symmetry in SL.
-    clear Heqb Heqb0.
-    rename m0 into fm0.
+      (* we know, [gname] is in [gdecls] and not in [xydecls] *)
+      clear HCX HCY xdata ydata hdata.
 
-    (* we know, [gname] is in [gdecls] and not in [xydecls] *)
-    clear HCX HCY xdata ydata hdata.
+      assert(list_uniq fst g) as GU.
+      {
+        pose proof (initIRGlobals_names_unique HIRG) as GLU.
+        admit.
+      }
 
-
-    assert(list_uniq fst g) as GU.
-    {
-      pose proof (initIRGlobals_names_unique HIRG) as GLU.
-      admit.
-    }
-
-    eapply alist_find_nth_error_list_uniq; eauto.
-
-    admit.
+      eapply alist_find_nth_error_list_uniq; eauto.
+    +
+      eexists.
+      split.
+      *
+        admit.
+      *
+        eexists.
+        clear - NGDECL HFSHG Hn.
+        admit.
   -
     (* [DSHPtrVal] must end up in memory *)
     intros bk_helix HMH.
