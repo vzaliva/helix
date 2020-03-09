@@ -519,7 +519,19 @@ Section BinCarrierA.
         bin_equiv:
           forall a b, evalBinCType mem σ df a b = inr (f a b)
       }.
-  
+
+  Class MSH_DSH_IUnCarrierA_compat
+        {o: nat}
+        (f: {n:nat|n<o} -> CarrierA -> CarrierA)
+        (σ: evalContext)
+        (df : AExpr)
+        (mem : memory)
+    :=
+      {
+        iun_equiv:
+          forall nc a, evalIUnCType mem σ df (proj1_sig nc) a = inr (f nc a)
+      }.
+
   Class MSH_DSH_IBinCarrierA_compat
         {o: nat}
         (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
@@ -549,7 +561,43 @@ Section BinCarrierA.
     unfold evalIBinCType.
     f_equiv.
   Qed.
-  
+
+  Lemma evalDSHIMap_mem_lookup_mx
+        {n: nat}
+        {df : AExpr}
+        {σ : evalContext}
+        {mem : memory}
+        {mx mb ma : mem_block}
+        (E: evalDSHIMap mem n df σ mx mb = inr ma)
+        (k: nat)
+        (kc:k<n):
+    is_Some (mem_lookup k mx).
+  Proof.
+    apply inr_is_OK in E.
+    revert mb E k kc.
+    induction n; intros.
+    -
+      inversion kc.
+    -
+      destruct (Nat.eq_dec k n).
+      +
+        subst.
+        cbn in *.
+        unfold mem_lookup_err, trywith in *.
+        repeat break_match_hyp; try inl_inr.
+        split; reflexivity.
+      +
+        simpl in *.
+        repeat break_match_hyp; try inl_inr.
+        apply eq_inr_is_OK in Heqe. rename Heqe into H1.
+        apply eq_inr_is_OK in Heqe0. rename Heqe0 into H2.
+        apply IHn with (mb:=mem_add n c0 mb); clear IHn.
+        *
+          apply E.
+        *
+          lia.
+  Qed.
+
   Lemma evalDSHBinOp_mem_lookup_mx
         {n off: nat}
         {df : AExpr}
@@ -586,7 +634,37 @@ Section BinCarrierA.
         *
           lia.
   Qed.
-  
+
+  Fact evalDSHIMap_preservation
+       {n k: nat}
+       {kc: k>=n}
+       {df : AExpr}
+       {σ : evalContext}
+       {mem : memory}
+       {mx ma mb : mem_block}
+       {c : CarrierA}:
+    evalDSHIMap mem n df σ mx (mem_add k c mb) = inr ma
+    → mem_lookup k ma = Some c.
+  Proof.
+    revert mb k kc.
+    induction n; intros mb k kc E.
+    -
+      simpl in *.
+      inl_inr_inv.
+      unfold mem_lookup, mem_add in *.
+      rewrite <- E.
+      apply Option_equiv_eq.
+      apply NP.F.add_eq_o.
+      reflexivity.
+    -
+      simpl in E.
+      repeat break_match_hyp; try inl_inr.
+      apply IHn with (mb:=mem_add n c1 mb).
+      lia.
+      rewrite mem_add_comm by auto.
+      apply E.
+  Qed.
+
   Fact evalDSHBinOp_preservation
        {n off k: nat}
        {kc: k>=n}
@@ -616,7 +694,54 @@ Section BinCarrierA.
       rewrite mem_add_comm by auto.
       apply E.
   Qed.
- 
+
+  Lemma evalDSHIMap_nth
+        {n: nat}
+        {df : AExpr}
+        {σ : evalContext}
+        {mx mb ma : mem_block}
+        (mem : memory)
+        (k: nat)
+        (kc: k<n)
+        {a: CarrierA}:
+    (mem_lookup k mx = Some a) ->
+    (evalDSHIMap mem n df σ mx mb = inr ma) ->
+    h_opt_err_c (=) (mem_lookup k ma) (evalIUnCType mem σ df k a).
+  Proof.
+    intros A E.
+    revert mb a A E.
+    induction n; intros.
+    -
+      inversion kc.
+    -
+      simpl in *.
+      repeat break_match_hyp; try some_none; try inl_inr.
+      destruct (Nat.eq_dec k n).
+      +
+        clear IHn.
+        subst k.
+        unfold mem_lookup_err, trywith in *.
+        repeat break_match; try inl_inr.
+        repeat some_inv; repeat inl_inr_inv; subst.
+        eq_to_equiv_hyp.
+        err_eq_to_equiv_hyp.
+        rewrite A in *; clear A c.
+
+        assert (mem_lookup n ma = Some c0).
+        {
+          eapply evalDSHIMap_preservation.
+          eassumption.
+          Unshelve.
+          reflexivity.
+        }
+        rewrite Heqe0, H.
+        constructor.
+        reflexivity.
+      +
+        apply IHn with (mb:=mem_add n c0 mb); auto.
+        lia.
+  Qed.
+
   Lemma evalDSHBinOp_nth
         {n off: nat}
         {df : AExpr}
@@ -667,7 +792,37 @@ Section BinCarrierA.
         apply IHn with (mb:=mem_add n c1 mb); auto.
         lia.
   Qed.
-  
+
+  Lemma evalDSHIMap_oob_preservation
+        {n: nat}
+        {df : AExpr}
+        {σ : evalContext}
+        {mx mb ma : mem_block}
+        (mem : memory)
+        (ME: evalDSHIMap mem n df σ mx mb = inr ma):
+    ∀ (k : NM.key) (kc:k>=n), mem_lookup k mb = mem_lookup k ma.
+  Proof.
+    intros k kc.
+    revert mb ME.
+    induction n; intros.
+    -
+      inversion kc; simpl in ME; inl_inr_inv; rewrite ME; reflexivity.
+    -
+      simpl in *.
+      repeat break_match_hyp; try inl_inr.
+      destruct (Nat.eq_dec k n).
+      +
+        apply IHn; lia.
+      +
+        replace (mem_lookup k mb) with
+            (mem_lookup k (mem_add n c0 mb)).
+        apply IHn. clear IHn.
+        lia.
+        apply ME.
+        apply NP.F.add_neq_o.
+        auto.
+  Qed.
+
   Lemma evalDSHBinOp_oob_preservation
         {n off: nat}
         {df : AExpr}
@@ -764,8 +919,30 @@ Section BinCarrierA.
         apply IHn with (mb:=mem_add n c1 mb); auto.
         lia.
   Qed.
+
+  (* TODO: generalize this (look like Proper) *)
+  Lemma is_OK_evalDSHIMap_mem_equiv
+        (n: nat)
+        (df : AExpr)
+        (σ : evalContext)
+        (mem : memory)
+        (mx ma mb : mem_block) :
+    ma = mb ->
+    is_OK (evalDSHIMap mem n df σ mx ma) <->
+    is_OK (evalDSHIMap mem n df σ mx mb).
+  Proof.
+    intros.
+    pose proof evalDSHIMap_proper mem n df σ mx mx.
+    unfold Proper, respectful in H0.
+    assert (T : mx = mx) by reflexivity;
+      specialize (H0 T ma mb H); clear T.
+    unfold is_Some.
+    repeat break_match; try reflexivity; inversion H0.
+    split; constructor.
+    split; intros C; inversion C.
+  Qed.
   
-  (* TODO: generalize this *)
+  (* TODO: generalize this (look like Proper) *)
   Lemma is_OK_evalDSHBinOp_mem_equiv
         (n off : nat)
         (df : AExpr)
@@ -786,7 +963,34 @@ Section BinCarrierA.
     split; constructor.
     split; intros C; inversion C.
   Qed.
-  
+
+  Lemma is_OK_evalDSHIMap_mem_add
+        (n : nat)
+        (df : AExpr)
+        (mem : memory)
+        (σ : evalContext)
+        (mx mb : mem_block)
+        (k : NM.key)
+        (v : CarrierA) :
+    is_OK (evalDSHIMap mem n df σ mx (mem_add k v mb)) <->
+    is_OK (evalDSHIMap mem n df σ mx mb).
+  Proof.
+    dependent induction n; [split; constructor |].
+    cbn.
+    repeat break_match; try reflexivity.
+    destruct (Nat.eq_dec n k).
+    -
+      subst.
+      apply is_OK_evalDSHIMap_mem_equiv.
+      apply mem_add_overwrite.
+    -
+      rewrite is_OK_evalDSHIMap_mem_equiv
+        with (ma := mem_add n c0 (mem_add k v mb)).
+      apply IHn.
+      apply mem_add_comm.
+      assumption.
+  Qed.
+
   Lemma is_OK_evalDSHBinOp_mem_add
         (n off : nat)
         (df : AExpr)
@@ -814,7 +1018,17 @@ Section BinCarrierA.
       apply mem_add_comm.
       assumption.
   Qed.
-  
+
+  Lemma evalIUnCarrierA_value_independent
+        (mem : memory)
+        (σ : evalContext)
+        (df : AExpr)
+        (n : nat) :
+    (exists a, is_OK (evalIUnCType mem σ df n a)) ->
+    forall b, is_OK (evalIUnCType mem σ df n b).
+  Proof.
+  Admitted.
+
   Lemma evalIBinCarrierA_value_independent
         (mem : memory)
         (σ : evalContext)
@@ -916,7 +1130,47 @@ Section BinCarrierA.
     all: try apply IHdf; try apply IHdf1; try apply IHdf2.
     all: constructor.
   Qed.
-  
+
+  Lemma evalDSHIMap_is_OK_inv
+        {mem : memory}
+        {n: nat}
+        {df : AExpr}
+        {σ : evalContext}
+        {mx mb: mem_block}:
+    (∀ k (kc: k < n),
+        ∃ a, (mem_lookup k mx = Some a /\
+              is_OK (evalIUnCType mem σ df k a)))
+    -> (is_OK (evalDSHIMap mem n df σ mx mb)).
+  Proof.
+    intros H.
+    induction n; [constructor |].
+    simpl.
+    repeat break_match.
+    1-2: exfalso.
+    -
+      assert (T : n < S n) by omega.
+      specialize (H n T).
+      destruct H as [a [L1 S]].
+      unfold mem_lookup_err, trywith in Heqe.
+      break_match; try inversion Heqe; try some_none.
+    -
+      err_eq_to_equiv_hyp.
+      contradict Heqe0.
+      assert (T : n < S n) by omega.
+      specialize (H n T).
+      apply is_OK_neq_inl.
+      apply evalIUnCarrierA_value_independent.
+      destruct H as [a H].
+      exists a.
+      apply H.
+    -
+      rewrite is_OK_evalDSHIMap_mem_add.
+      apply IHn.
+      intros.
+      apply H.
+      lia.
+  Qed.
+
   Lemma evalDSHBinOp_is_OK_inv
         {mem : memory}
         {off n: nat}
@@ -963,8 +1217,21 @@ Section BinCarrierA.
       apply IHn.
       intros.
       apply H.
-      omega.
+      lia.
   Qed.
+
+  Lemma evalDSHIMap_is_Err
+        (mem : memory)
+        (n: nat)
+        (nz: n≢0)
+        (df : AExpr)
+        (σ : evalContext)
+        (mx mb : mem_block):
+    (exists k (kc:k<n), is_None (mem_lookup k mx))
+    ->
+    is_Err (evalDSHIMap mem n df σ mx mb).
+  Proof.
+  Admitted.
 
   Lemma evalDSHBinOp_is_Err
         (mem : memory)
@@ -1443,14 +1710,203 @@ Global Instance Pointwise_MSH_DSH_compat
        {n: nat}
        {f: FinNat n -> CarrierA -> CarrierA}
        {pF: Proper ((=) ==> (=) ==> (=)) f}
-       {a : AExpr}
+       {df : AExpr}
        {x_p y_p : PExpr}
        {σ : evalContext}
        {m : memory}
-       (P : DSH_pure (DSHIMap n x_p y_p a) x_p y_p)
+       (FDF : MSH_DSH_IUnCarrierA_compat f σ df m)
+       (P : DSH_pure (DSHIMap n x_p y_p df) x_p y_p)
   :
-    @MSH_DSH_compat _ _ (@MSHPointwise n f pF) (DSHIMap n x_p y_p a) σ m x_p y_p P.
-Admitted.
+    @MSH_DSH_compat _ _ (@MSHPointwise n f pF) (DSHIMap n x_p y_p df) σ m x_p y_p P.
+Proof.
+  split.
+  intros mx mb MX MB.
+  simpl.
+  destruct (mem_op_of_hop (HPointwise f) mx) as [md|] eqn:MD.
+  -
+    unfold lookup_Pexp in *.
+    simpl in *.
+    repeat break_match;
+      try some_none; repeat some_inv;
+        try inl_inr; repeat inl_inr_inv;
+          subst.
+    +
+      clear - MX Heqe1.
+      err_eq_to_equiv_hyp.
+      rewrite memory_lookup_err_inr_Some in *.
+      rewrite memory_lookup_err_inl_None in *.
+      rewrite MX in Heqe1.
+      some_none.
+    +
+      clear - MB Heqe2.
+      err_eq_to_equiv_hyp.
+      rewrite memory_lookup_err_inr_Some in *.
+      rewrite memory_lookup_err_inl_None in *.
+      rewrite MB in Heqe2.
+      some_none.
+    +
+      (* mem_op succeeded with [Some md] while evaluation of DHS failed *)
+
+      eq_to_equiv_hyp; err_eq_to_equiv_hyp.
+      rewrite memory_lookup_err_inr_Some in *.
+      rewrite MB, MX in *.
+      repeat some_inv.
+      rewrite <-Heqe1, <-Heqe2 in *.
+      clear Heqe1 Heqe2 m2 m3.
+
+      rename Heqe3 into E.
+
+      apply equiv_Some_is_Some in MD.
+      pose proof (mem_op_of_hop_x_density MD) as DX.
+      clear MD pF.
+
+      inversion_clear FDF as [FV].
+
+      contradict E.
+      apply is_OK_neq_inl.
+
+      eapply evalDSHIMap_is_OK_inv.
+
+      intros k kc.
+
+      specialize (DX k kc).
+      apply is_Some_equiv_def in DX.
+      destruct DX as [a DX].
+      exists a.
+      repeat split; eauto.
+
+      specialize (FV (FinNat.mkFinNat kc) a).
+      cbn in FV.
+      eapply inr_is_OK.
+      eassumption.
+    +
+      constructor.
+      unfold memory_lookup_err, trywith, memory_lookup, memory_set.
+      rewrite NP.F.add_eq_o by reflexivity.
+      constructor.
+      repeat some_inv.
+
+      eq_to_equiv_hyp; err_eq_to_equiv_hyp.
+      rewrite memory_lookup_err_inr_Some in *.
+      rewrite MB, MX in *.
+      repeat some_inv.
+      rewrite <-Heqe1, <-Heqe2 in *.
+      clear Heqe1 Heqe2 m2 m3.
+
+      rename Heqe3 into ME.
+      intros k.
+
+      unfold mem_op_of_hop in MD.
+      break_match_hyp; try some_none.
+      some_inv.
+      rewrite <- MD.
+      clear MD md.
+      rename t into vx.
+
+      unfold avector_to_mem_block.
+      avector_to_mem_block_to_spec md HD OD.
+      destruct (NatUtil.lt_ge_dec k n) as [kc | kc].
+      *
+        (* k<n, which is normal *)
+        clear OD.
+        simpl in *.
+        unfold MMemoryOfCarrierA.mem_lookup in HD.
+        unfold mem_lookup.
+        rewrite HD with (ip:=kc).
+        clear HD md.
+        apply MemExpected.
+        --
+          unfold is_Some.
+          tauto.
+        --
+          inversion_clear FDF as [FV].
+
+          rewrite HPointwise_nth with (jc:=kc).
+
+          pose proof (evalDSHIMap_mem_lookup_mx ME k kc) as A.
+
+          apply is_Some_equiv_def in A. destruct A as [a A].
+
+          specialize FV with (nc:=mkFinNat kc) (a:=a).
+          cbn in FV.
+
+          pose proof (evalDSHIMap_nth m k kc A ME) as T.
+          inversion T; [rewrite <-H in FV; inl_inr | clear T].
+          unfold mem_lookup in H.
+          rewrite <-H.
+          rewrite <-H0 in FV.
+          inversion FV.
+          subst.
+
+          pose proof (mem_block_to_avector_nth Heqo (kc:=kc)) as MVA.
+          rewrite MVA in *.
+          repeat some_inv.
+          rewrite A.
+          rewrite <-H4.
+          rewrite H1.
+          reflexivity.
+      *
+        (* k >= 0 *)
+        simpl in *.
+        clear HD.
+        rewrite OD by assumption.
+        apply MemPreserved.
+        --
+          unfold is_None.
+          tauto.
+        --
+          specialize (OD k kc).
+          apply (evalDSHIMap_oob_preservation m ME), kc.
+  -
+    unfold lookup_Pexp in *.
+    simpl in *.
+    repeat break_match;
+      try some_none; repeat some_inv;
+        try inl_inr; repeat inl_inr_inv.
+    all: try constructor.
+    exfalso.
+
+
+    eq_to_equiv_hyp; err_eq_to_equiv_hyp.
+    rewrite memory_lookup_err_inr_Some in *.
+    rewrite MB, MX in *.
+    repeat some_inv.
+    rewrite <-Heqe1, <-Heqe2 in *.
+    clear Heqe1 Heqe2 m2 m3.
+
+    apply Some_nequiv_None in MX.
+    contradict MX.
+
+    unfold mem_op_of_hop in MD.
+    break_match_hyp; try some_none.
+    clear MD.
+    rename Heqo into MX.
+    unfold mem_block_to_avector in MX.
+    apply vsequence_Vbuild_eq_None in MX.
+    apply is_None_equiv_def; [typeclasses eauto |].
+    destruct n.
+    *
+      destruct MX as [k [kc MX]].
+      inversion kc.
+    *
+      contradict Heqe3.
+      enough (T : is_Err (evalDSHIMap m (S n) df σ mx mb))
+        by (destruct (evalDSHIMap m (S n) df σ mx mb);
+            [intros C; inl_inr | inversion T ]).
+      apply evalDSHIMap_is_Err; try typeclasses eauto.
+      lia.
+      destruct MX as [k MX].
+      destruct (NatUtil.lt_ge_dec k (S n)) as [kc1 | kc2].
+      --
+        exists k.
+        exists kc1.
+        destruct MX as [kc MX].
+        apply is_None_def in MX.
+        eapply MX.
+      --
+        destruct MX as [kc MX].
+        lia.
+Qed.
 
 (** * MSHBinOp  *)
 

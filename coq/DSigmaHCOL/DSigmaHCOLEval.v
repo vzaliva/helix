@@ -590,6 +590,32 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     - proper_eval2 IHEe1 IHEe2.
   Qed.
 
+  Instance evalIUnCType_proper
+         (mem: memory)
+         (σ: evalContext)
+         (f: AExpr)
+         (i: nat):
+    Proper
+      ((=) ==> (=)) (evalIUnCType mem σ f i).
+  Proof.
+    simpl_relation.
+    unfold evalIUnCType.
+    apply evalAexp_proper.
+    -
+      reflexivity.
+    -
+      unfold equiv, ListSetoid.List_equiv.
+      constructor.
+      constructor.
+      assumption.
+      constructor.
+      constructor.
+      reflexivity.
+      reflexivity.
+    -
+      reflexivity.
+  Qed.
+
   Instance evalBinCType_proper:
     Proper ((=) ==> (=) ==> (=) ==> (=)) evalBinCType.
   Proof.
@@ -842,6 +868,112 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         auto.
         apply H.
         rewrite H7, H0.
+        reflexivity.
+  Qed.
+
+  Global Instance evalDSHIMap_proper
+         (mem:memory)
+         (n: nat)
+         (f: AExpr)
+         (σ: evalContext):
+    Proper
+      ((=) ==> (=) ==> (=)) (evalDSHIMap mem n f σ).
+  Proof.
+    intros x y H x0 y0 H0.
+    revert x y H x0 y0 H0.
+    induction n; intros.
+    -
+      constructor.
+      apply H0.
+    -
+      destruct_err_equiv.
+      +
+        err_eq_to_equiv_hyp.
+        simpl in *.
+        repeat break_match_hyp ; try (err_eq_to_equiv_hyp; rewrite H in Heqe0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
+          try rewrite H in Heqe0;
+          try rewrite H in Heqe1;
+          try rewrite H in Heqe2;
+          try rewrite H in Heqe3;
+          try solve_match_err_case;
+          try inl_inr.
+        *
+          rewrite Heqe in Heqe1.
+          clear Heqe.
+          repeat inl_inr_inv.
+          rewrite Heqe1 in Heqe0.
+          inl_inr.
+        *
+          rewrite Heqe in Heqe1.
+          clear Heqe.
+          repeat inl_inr_inv.
+          rewrite Heqe1 in Heqe0.
+          rewrite Heqe0 in Heqe2.
+          clear Heqe0.
+          inl_inr_inv.
+          rewrite IHn with (y:=y) (y0:=mem_add n t1 y0) in H2; auto.
+          symmetry in H1.
+          rewrite H1 in H2.
+          inl_inr.
+          rewrite Heqe2, H0.
+          reflexivity.
+      +
+        err_eq_to_equiv_hyp.
+        simpl in *.
+        repeat break_match_hyp ; try (err_eq_to_equiv_hyp; rewrite H in Heqe0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
+          try rewrite H in Heqe0;
+          try rewrite H in Heqe1;
+          try rewrite H in Heqe2;
+          try rewrite H in Heqe3;
+          try solve_match_err_case;
+          try inl_inr.
+        *
+          rewrite Heqe in Heqe1.
+          clear Heqe.
+          repeat inl_inr_inv.
+          rewrite Heqe1 in Heqe0.
+          inl_inr.
+        *
+          rewrite Heqe in Heqe1.
+          clear Heqe.
+          repeat inl_inr_inv.
+          rewrite Heqe1 in Heqe0.
+          rewrite Heqe0 in Heqe2.
+          clear Heqe0.
+          inl_inr_inv.
+          rewrite IHn with (y:=y) (y0:=mem_add n t1 y0) in H1; auto.
+          symmetry in H1.
+          rewrite H1 in H5.
+          inl_inr.
+          rewrite Heqe2, H0.
+          reflexivity.
+      +
+        err_eq_to_equiv_hyp.
+        simpl in *.
+        repeat break_match_hyp ; try (err_eq_to_equiv_hyp; rewrite H in Heqe0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
+          try rewrite H in Heqe0;
+          try rewrite H in Heqe1;
+          try rewrite H in Heqe2;
+          try rewrite H in Heqe3;
+          try solve_match_err_case;
+          try inl_inr.
+
+        rewrite Heqe in Heqe1.
+        clear Heqe.
+        repeat inl_inr_inv.
+        rewrite Heqe1 in Heqe0.
+        rewrite Heqe0 in Heqe2.
+        clear Heqe0.
+        inl_inr_inv.
+
+        symmetry in H1.
+        symmetry in H4.
+
+        rewrite IHn with (y:=y) (y0:=mem_add n t1 y0) in Ha; auto.
+        rewrite Ha in Hb.
+        inl_inr_inv.
+        auto.
+        rewrite Heqe2, H0.
         reflexivity.
   Qed.
 
