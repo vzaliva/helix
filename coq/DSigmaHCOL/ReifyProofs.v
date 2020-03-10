@@ -1231,7 +1231,33 @@ Section BinCarrierA.
     ->
     is_Err (evalDSHIMap mem n df σ mx mb).
   Proof.
-  Admitted.
+    revert mb.
+    induction n; intros mb DX.
+    +
+      lia.
+    +
+      destruct DX as [k [kc DX]].
+      destruct (Nat.eq_dec k n).
+      *
+        clear IHn.
+        subst k.
+        simpl.
+        repeat break_match; try constructor.
+        unfold is_None in DX.
+        break_match; inversion DX.
+        unfold mem_lookup_err in Heqe, Heqe0.
+        try rewrite Heqo in Heqe; try rewrite Heqo in Heqe0.
+        cbn in *; inl_inr.
+      *
+        simpl.
+        repeat break_match; try constructor.
+        apply IHn.
+        lia.
+        exists k.
+        assert(k < n) as kc1 by lia.
+        exists kc1.
+        apply DX.
+  Qed.
 
   Lemma evalDSHBinOp_is_Err
         (mem : memory)
