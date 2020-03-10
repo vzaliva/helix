@@ -1248,7 +1248,7 @@ Section BinCarrierA.
     revert mb.
     induction n; intros mb DX.
     +
-      crush.
+      lia.
     +
       destruct DX as [k [kc DX]].
       destruct (Nat.eq_dec k n).
@@ -1257,7 +1257,7 @@ Section BinCarrierA.
         subst k.
         simpl.
         repeat break_match; try constructor.
-        crush.
+        destruct DX.
         all: unfold is_None in H.
         all: break_match; inversion H.
         all: unfold mem_lookup_err in Heqe, Heqe0.
