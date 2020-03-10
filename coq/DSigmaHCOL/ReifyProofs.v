@@ -1027,30 +1027,20 @@ Section BinCarrierA.
     (exists a, is_OK (evalIUnCType mem σ df n a)) ->
     forall b, is_OK (evalIUnCType mem σ df n b).
   Proof.
-  Admitted.
-
-  Lemma evalIBinCarrierA_value_independent
-        (mem : memory)
-        (σ : evalContext)
-        (df : AExpr)
-        (n : nat) :
-    (exists a b, is_OK (evalIBinCType mem σ df n a b)) ->
-    forall c d, is_OK (evalIBinCType mem σ df n c d).
-  Proof.
     intros.
-    destruct H as [a [b H]].
+    destruct H as [a H].
     induction df; cbn in *.
-    
+
     (* base case 1 *)
-    destruct v.
-    constructor.
-    destruct v.
-    constructor.
-    apply H.
-    
+    {
+      destruct v.
+      constructor.
+      apply H.
+    }
+
     (* base case 2 *)
     trivial.
-    
+
     (* base case 3 *)
     {
       repeat break_match; try some_none; try inl_inr; exfalso.
@@ -1110,6 +1100,110 @@ Section BinCarrierA.
         apply eq_inr_is_OK in Heqe2.
         clear - Heqe2; rename Heqe2 into H,
                                  n0 into e.
+        induction e; cbn in *.
+        (* base 1 *)
+        destruct v; [| destruct v].
+        inversion H.
+        inversion H.
+        apply H.
+        (* base 2 *)
+        trivial.
+        (* inductive *)
+        all: repeat break_match; try reflexivity; try some_none; try inl_inr.
+        all: try apply IHe; try apply IHe1; try apply IHe2.
+        all: constructor.
+    }
+
+    (* inductive cases *)
+    all: unfold evalIUnCType in *.
+    all: repeat break_match; try reflexivity; try some_none; try inl_inr.
+    all: try apply IHdf; try apply IHdf1; try apply IHdf2.
+    all: constructor.
+  Qed.
+
+  Lemma evalIBinCarrierA_value_independent
+        (mem : memory)
+        (σ : evalContext)
+        (df : AExpr)
+        (n : nat) :
+    (exists a b, is_OK (evalIBinCType mem σ df n a b)) ->
+    forall c d, is_OK (evalIBinCType mem σ df n c d).
+  Proof.
+    intros.
+    destruct H as [a [b H]].
+    induction df; cbn in *.
+    
+    (* base case 1 *)
+    {
+      destruct v.
+      constructor.
+      destruct v.
+      constructor.
+      apply H.
+    }
+    
+    (* base case 2 *)
+    trivial.
+    
+    (* base case 3 *)
+    {
+      repeat break_match; try some_none; try inl_inr; exfalso.
+      -
+        apply err_equiv_eq in Heqe.
+        contradict Heqe.
+        apply is_OK_neq_inl.
+        apply eq_inr_is_OK in Heqe0.
+        clear - Heqe0; rename Heqe0 into H.
+        destruct m; cbn in *.
+        +
+          destruct p.
+          destruct v; [| destruct v].
+          inversion H.
+          inversion H.
+          apply H.
+        +
+          trivial.
+      -
+        apply err_equiv_eq in Heqe.
+        contradict Heqe.
+        apply is_OK_neq_inl.
+        apply eq_inr_is_OK in Heqe0.
+        clear - Heqe0; rename Heqe0 into H.
+        destruct m; cbn in *.
+        +
+          destruct p.
+          destruct v; [| destruct v].
+          inversion H.
+          inversion H.
+          apply H.
+        +
+          trivial.
+      -
+        apply err_equiv_eq in Heqe0.
+        contradict Heqe0.
+        apply is_OK_neq_inl.
+        apply eq_inr_is_OK in Heqe2.
+        clear - Heqe2; rename Heqe2 into H,
+                       n0 into e.
+        induction e; cbn in *.
+        (* base 1 *)
+        destruct v; [| destruct v].
+        inversion H.
+        inversion H.
+        apply H.
+        (* base 2 *)
+        trivial.
+        (* inductive *)
+        all: repeat break_match; try reflexivity; try some_none; try inl_inr.
+        all: try apply IHe; try apply IHe1; try apply IHe2.
+        all: constructor.
+      -
+        apply err_equiv_eq in Heqe0.
+        contradict Heqe0.
+        apply is_OK_neq_inl.
+        apply eq_inr_is_OK in Heqe2.
+        clear - Heqe2; rename Heqe2 into H,
+                       n0 into e.
         induction e; cbn in *.
         (* base 1 *)
         destruct v; [| destruct v].
