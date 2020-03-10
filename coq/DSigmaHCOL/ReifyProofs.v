@@ -2682,7 +2682,13 @@ Proof.
 
       induction n.
       *
-        admit.
+        cbn in *.
+        repeat some_inv; repeat inl_inr_inv; subst.
+        constructor 1; [cbn; trivial |].
+        rewrite Y_M in Y_DM.
+        some_inv.
+        rewrite <-H0, <-Y_M'.
+        reflexivity.
       *
         (* destruct DOP: get to previous inductive step (kind of) *)
         cbn in DOP.
@@ -2693,26 +2699,34 @@ Proof.
 
         (* make use of FC *)
         assert (n < S n) by lia.
-        specialize (FC (mkFinNat H) dm).
+        specialize (FC (mkFinNat H) dlm).
         inversion_clear FC as [F].
-        specialize (F x_m y_dm).
-        assert (FT1 : lookup_Pexp (DSHnatVal (` (mkFinNat H)) :: σ)
-                                  dm
-                                  (incrPVar 0 x_p)
-                      = inr x_m)
-          by admit. (* should follow from Pure *)
-        assert (FT2 : lookup_Pexp (DSHnatVal (` (mkFinNat H)) :: σ)
-                                  dm
-                                  (incrPVar 0 y_p)
-                      = inr y_dm)
-          by (cbn; unfold memory_lookup_err;
-              rewrite evalPexp_incrPVar, Y_ID, Y_DM; reflexivity).
-        specialize (F FT1 FT2); clear FT1 FT2.
+        destruct (memory_lookup dlm x_id) as [x_dlm|] eqn:X_DLM;
+          [| admit (* from Pure *) ].
+        destruct (memory_lookup dlm y_id) as [y_dlm|] eqn:Y_DLM;
+          [| admit (* from Pure *) ].
+        specialize (F x_dlm y_dlm).
+        cbn in F; unfold memory_lookup_err in F.
+        repeat rewrite evalPexp_incrPVar in F.
+        rewrite X_ID, Y_ID, X_DLM, Y_DLM in F.
         cbn in F.
-        rewrite evalPexp_incrPVar, Y_ID in F.
+        assert (T1 : inr x_dlm = inr x_dlm) by reflexivity.
+        assert (T2 : inr y_dlm = inr y_dlm) by reflexivity.
+        specialize (F T1 T2); clear T1 T2.
 
         (* try combining F and DOP *)
-        inversion F.
+        inversion F; clear F.
+        all: rewrite evalDSHOperator_estimateFuel_ge in DOP by nia; try congruence.
+        rewrite <-H2 in DOP; some_inv; subst.
+        rewrite Y_DM in H3.
+        cbn in H3.
+        inversion H3; clear H3; subst.
+
+        assert (x_dlm = x_m) by admit. (* from Pure *)
+        apply Option_equiv_eq in H1.
+        rewrite H0 in H1.
+
+        clear - H1 H4 MMBS.
 Admitted.
 
 (** * MSHIReduction *)
