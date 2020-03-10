@@ -347,12 +347,12 @@ Section MSHCOL_to_DSHCOL.
 
     (* This lemma could be auto-generated *)
     Instance DynWin_MSH_DSH_compat
-    :
-      @MSH_DSH_compat dynwin_i dynwin_o (dynwin_MSHCOL1 a) (dynwin_DSHCOL1)
-                      dynwin_σ
-                      dynwin_memory
-                      DSH_x_p DSH_y_p
-                      DynWin_pure.
+      :
+        @MSH_DSH_compat dynwin_i dynwin_o (dynwin_MSHCOL1 a) (dynwin_DSHCOL1)
+                        dynwin_σ
+                        dynwin_memory
+                        DSH_x_p DSH_y_p
+                        DynWin_pure.
     Proof.
       unfold dynwin_DSHCOL1, DSH_y_p, DSH_x_p.
       unfold dynwin_x_addr, dynwin_y_addr, dynwin_a_addr in *.
@@ -360,7 +360,27 @@ Section MSHCOL_to_DSHCOL.
       cbn in *.
 
       solve_MSH_DSH_compat.
-    Qed.
+
+      {
+        (* not yet automated *)
+        (* does not seems to be provable at the moment! *)
+        constructor; intros.
+        unfold evalIUnCType, Fin1SwapIndex.
+        cbn.
+        repeat break_match; inversion Heqs; subst.
+        -
+          exfalso.
+          admit.
+        -
+          f_equiv.
+          unfold mult_by_nth, const.
+          admit.
+        -
+          f_equiv.
+          unfold mult_by_nth, const.
+          admit.
+      }
+    Admitted.
 
   End DummyEnv.
 
