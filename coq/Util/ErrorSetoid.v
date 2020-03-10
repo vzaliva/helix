@@ -335,6 +335,40 @@ Section h_opt_err.
       apply H4.
   Qed.
 
+  Global Instance h_opt_opterr_c_proper
+         `{Ae : Equiv A}
+         `{Be : Equiv B}
+         {RP : Proper ((=) ==> (=) ==> (iff)) R}
+    :
+      Proper ((=) ==> (=) ==> (iff)) h_opt_opterr_c.
+  Proof.
+    split; intros.
+    -
+      destruct x, y, x0 as [[|]|], y0 as [[|]|].
+      all: try some_none; repeat some_inv.
+      all: try inl_inr.
+      all: try inversion H1.
+      all: constructor.
+      subst.
+      inl_inr_inv.
+      unfold Proper, respectful in RP.
+      specialize (RP a a0 H b b0 H0).
+      apply RP.
+      apply H4.
+    -
+      destruct x, y, x0 as [[|]|], y0 as [[|]|].
+      all: try some_none; repeat some_inv.
+      all: try inl_inr.
+      all: try inversion H1.
+      all: constructor.
+      subst.
+      inl_inr_inv.
+      unfold Proper, respectful in RP.
+      specialize (RP a a0 H b b0 H0).
+      apply RP.
+      apply H4.
+  Qed.
+
 End h_opt_err.
 Arguments h_opt_err {A B} R.
 Arguments h_opt_err_c {A B} R.
