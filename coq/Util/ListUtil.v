@@ -3,6 +3,8 @@ Require Import Coq.Lists.List.
 
 Require Import ExtLib.Data.ListNth.
 
+Require Import Helix.Tactics.HelixTactics.
+
 Import ListNotations.
 
 Fixpoint fold_left_rev
@@ -62,30 +64,55 @@ Proof.
   inversion H.
 Qed.
 
+Lemma list_uniq_de_cons {A B:Type} (p: A -> B) (a:A) (l:list A):
+  list_uniq p (a :: l) ->
+  list_uniq p l.
+Proof.
+  intros H.
+  unfold list_uniq in *.
+  intros x y a0 b H0 H1 H2.
+  cut (S x = S y). auto.
+  eapply H; eauto.
+Qed.
+
 Lemma list_uniq_cons {A B:Type} (p: A -> B) (a:A) (l:list A):
   list_uniq p l /\
-  not (exists j x, nth_error l j = Some x /\ p x = p a) ->
+  not (exists j x, nth_error l j = Some x /\ p x = p a) <->
   list_uniq p (a :: l).
 Proof.
-  intros [U E].
-  unfold list_uniq in *.
-  intros x y a0 b H H0 H1.
-  destruct x,y; cbn in *.
+  split.
   -
-    reflexivity.
+    intros [U E].
+    unfold list_uniq in *.
+    intros x y a0 b H H0 H1.
+    destruct x,y; cbn in *.
+    +
+      reflexivity.
+    +
+      inversion H; subst.
+      contradict E.
+      exists y, b.
+      auto.
+    +
+      inversion H0; subst.
+      contradict E.
+      exists x, a0.
+      auto.
+    +
+      apply eq_S.
+      eapply U; eauto.
   -
-    inversion H; subst.
-    contradict E.
-    exists y, b.
-    auto.
-  -
-    inversion H0; subst.
-    contradict E.
-    exists x, a0.
-    auto.
-  -
-    apply eq_S.
-    eapply U; eauto.
+    intros H.
+    split ; [eapply list_uniq_de_cons; eauto|].
+
+    intros C.
+    destruct C as (j & x & C0 & C1).
+    unfold list_uniq in H.
+    specialize (H 0 (S j)).
+    cbn in H.
+    specialize (H a x).
+    cut(0 = S j). intros. inv H0.
+    apply H; auto.
 Qed.
 
 Lemma app_nth_error2 :

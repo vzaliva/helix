@@ -58,6 +58,7 @@ Require Import Helix.DSigmaHCOL.DSigmaHCOLITree.
 Require Import Helix.LLVMGen.Compiler.
 Require Import Helix.LLVMGen.Externals.
 Require Import Helix.LLVMGen.Data.
+Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Util.ErrorSetoid.
 Require Import Helix.Util.ListUtil.
 Require Import Helix.Tactics.HelixTactics.
@@ -268,34 +269,49 @@ Definition memory_invariant : Type_R_memory :=
     σ_len ≡ 0 \/ (* empty env immediately allowed, as injection could not exists *)
     let '(ρ, g) := x in
     exists (ι: injection_Fin raw_id σ_len),
-      forall (x: nat) v,
-        nth_error σ x ≡ Some v ->
-        match v with
-        | DSHnatVal v   =>
-          (* check local env first *)
-          alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v))) \/
-          (* if not found, check global *)
-          (alist_find _ (inj_f ι x) ρ ≡ None /\ alist_find _ (inj_f ι x) g ≡ Some (DVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v))))
-        | DSHCTypeVal v =>
-          (* check local env first *)
-          alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Double v) \/
-          (* if not found, check global *)
+    forall (x: nat) v,
+      nth_error σ x ≡ Some v ->
+      match v with
+      | DSHnatVal v   =>
+        exists ptr_llvm,
+        ( (* variable in local environment *)
+          (alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Addr ptr_llvm) /\
+           alist_find _ (inj_f ι x) g ≡ None) \/
+          (* variable in global environment *)
           (alist_find _ (inj_f ι x) ρ ≡ None /\
-           alist_find _ (inj_f ι x) g ≡ Some (DVALUE_Double v))
-        | DSHPtrVal ptr_helix ptr_size_helix =>
-          forall bk_helix,
-            memory_lookup mem_helix ptr_helix ≡ Some bk_helix ->
-            exists ptr_llvm bk_llvm,
-              alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Addr ptr_llvm) /\
-              get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm /\
-              (fun bk_helix bk_llvm =>
-                 forall i, i < ptr_size_helix ->
-                      exists v_helix v_llvm,
-                        mem_lookup i bk_helix ≡ Some v_helix /\
-                        mem_lookup_llvm_at_i bk_llvm i ptr_size_helix v_llvm /\
-                        v_llvm ≡ UVALUE_Double v_helix
-              ) bk_helix bk_llvm
-        end.
+           alist_find _ (inj_f ι x) g ≡ Some (DVALUE_Addr ptr_llvm))) /\
+        (* the block must exists *)
+        (exists  bk_llvm,
+            (get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm) /\
+            (* And value at this pointer must match *)
+            (exists v_llvm,  mem_lookup_llvm_at_i bk_llvm 0 1 v_llvm /\ v_llvm ≡ UVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v))))
+      | DSHCTypeVal v =>
+        exists ptr_llvm,
+        ( (* variable in local environment *)
+          (alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Addr ptr_llvm) /\
+           alist_find _ (inj_f ι x) g ≡ None) \/
+          (* variable in global environment *)
+          (alist_find _ (inj_f ι x) ρ ≡ None /\
+           alist_find _ (inj_f ι x) g ≡ Some (DVALUE_Addr ptr_llvm))) /\
+        (* the block must exists *)
+        (exists  bk_llvm,
+            (get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm) /\
+            (* And value at this pointer must match *)
+            (exists v_llvm,  mem_lookup_llvm_at_i bk_llvm 0 1 v_llvm /\ v_llvm ≡ UVALUE_Double v))
+      | DSHPtrVal ptr_helix ptr_size_helix =>
+        forall bk_helix,
+          memory_lookup mem_helix ptr_helix ≡ Some bk_helix ->
+          exists ptr_llvm bk_llvm,
+            alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Addr ptr_llvm) /\
+            get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm /\
+            (fun bk_helix bk_llvm =>
+               forall i, i < ptr_size_helix ->
+                    exists v_helix v_llvm,
+                      mem_lookup i bk_helix ≡ Some v_helix /\
+                      mem_lookup_llvm_at_i bk_llvm i ptr_size_helix v_llvm /\
+                      v_llvm ≡ UVALUE_Double v_helix
+            ) bk_helix bk_llvm
+      end.
 
 Require Import ITree.Interp.TranslateFacts.
 Require Import ITree.Basics.CategoryFacts.
@@ -961,7 +977,7 @@ Proof.
 Qed.
 
 (* If [initIRGlobals] suceeds, the names of variables in [globals] were unique *)
-Lemma initIRGlobals_names_unique globals data res:
+Lemma initIRGlobals_names_unique {globals data res}:
   initIRGlobals data globals ≡ inr res → list_uniq fst globals.
 Proof.
   revert res data.
@@ -1113,6 +1129,27 @@ Proof.
 Qed.
 
 
+(* TODO: brute-force proof is slow. Could be optimized *)
+Fact init_one_global_empty_local
+      (a0 : toplevel_entity typ (list (LLVMAst.block typ)))
+      (m0 : M.memory_stack)
+      (p : M.memory * M.mem_stack)
+      (l0 : local_env)
+      (p1 : raw_id * dvalue):
+  init_one_global (m0, [ ]) a0 ≡ inr (p, l0, p1) → l0 ≡ [ ].
+Proof.
+  intros H.
+  unfold init_one_global in H.
+  repeat (break_match_hyp; try inl_inr).
+  cbn in *.
+  subst.
+  repeat (break_match_hyp; try inl_inr).
+  inl_inr_inv.
+  reflexivity.
+  inl_inr_inv.
+  reflexivity.
+Qed.
+
 Fact init_with_data_init_one_global_empty_local
      m g m' l g':
   init_with_data init_one_global no_chk (m, [ ]) g ≡ inr (m', l, g') -> l ≡ [].
@@ -1152,6 +1189,66 @@ Proof.
       subst.
       eapply IHg.
       eauto.
+Qed.
+
+Lemma alist_find_nth_error_list_uniq
+      (g : global_env)
+      (x : nat)
+      (n: raw_id)
+      (v : dvalue)
+      (U: list_uniq fst g):
+  nth_error g x ≡ Some (n, v) →
+  alist_find AstLib.eq_dec_raw_id n g ≡ Some v.
+Proof.
+  revert U.
+  revert x v n.
+  induction g; intros.
+  -
+    rewrite nth_error_nil in H.
+    some_none.
+  -
+    cbn.
+    break_let.
+    break_if.
+    +
+      unfold RelDec.rel_dec, AstLib.eq_dec_raw_id in Heqb.
+      cbn in Heqb.
+      break_match; [| inversion Heqb].
+      subst.
+      destruct x.
+      *
+        cbn in H.
+        some_inv.
+        reflexivity.
+      *
+        cbn in H.
+        clear - U H.
+        exfalso.
+        apply list_uniq_cons in U.
+        destruct U.
+        contradict H1.
+        eexists.
+        eexists.
+        eauto.
+    +
+      destruct x.
+      *
+        clear IHg.
+        cbn in *.
+        some_inv.
+        subst.
+        clear - Heqb.
+        unfold RelDec.rel_dec, AstLib.eq_dec_raw_id in Heqb.
+        cbn in Heqb.
+        break_if.
+        inversion Heqb.
+        contradict n0.
+        reflexivity.
+      *
+        cbn in H.
+        eapply IHg.
+        eapply list_uniq_de_cons; eauto.
+        eapply H.
 Qed.
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
@@ -1198,11 +1295,19 @@ Proof.
 
   cbn in *.
 
-  unshelve eexists.
-  exists (memory_invariant_map globals).
-
-  (* Injectivity proof *)
+  assert(∀ x y : nat,
+            x < Datatypes.length
+                  (σ ++
+                     [DSHPtrVal (S (Datatypes.length globals)) o;
+                      DSHPtrVal (Datatypes.length globals) i])
+            ∧ y <
+              Datatypes.length
+                (σ ++
+                   [DSHPtrVal (S (Datatypes.length globals)) o;
+                    DSHPtrVal (Datatypes.length globals) i])
+            → memory_invariant_map globals x ≡ memory_invariant_map globals y → x ≡ y) as INJ.
   {
+    (* Injectivity proof *)
     rewrite app_length.
     erewrite <- initFSHGlobals_globals_sigma_len_eq with (globals0:=globals).
     2: eauto.
@@ -1211,13 +1316,14 @@ Proof.
     eapply initIRGlobals_names_unique.
     eauto.
   }
+  unshelve eexists.
+  exists (memory_invariant_map globals).
+  apply INJ.
 
   intros x v Hn.
   break_match.
   -
     (* [DSHnatVal] must end up in globals *)
-    right.
-    split; [trivial|].
     (* but currently nat constants are not implemented so we
        shortcut this branch *)
     exfalso.
@@ -1282,9 +1388,7 @@ Proof.
         cbn.
         eapply IHglobals, Heqe0.
   -
-    (* [DSHCTypeVal] must end up in globals *)
-    right.
-    split; [trivial|cbn].
+    (* [DSHCTypeVal] must end up in globals as  a pointer *)
 
     apply ListUtil.nth_app in Hn.
     destruct Hn as [[Hn Hx] | [Hn Hx]].
@@ -1296,34 +1400,248 @@ Proof.
       rewrite Util.nth_error_nil in H1.
       inv H1.
     }
-    clear v Heqd HFXY.
+    subst v.
+    clear HFXY.
+
+    assert(List.length gdecls ≡ List.length g1) as GL
+        by eapply init_with_data_len, HG.
+
+    assert(List.length globals ≡ List.length gdecls) as GG
+        by eapply init_with_data_len, HIRG.
 
     rename Heqe1 into F.
-
-    (* Deal with X,Y first *)
     pose proof (initFSHGlobals_globals_sigma_len_eq globals F) as GSL.
-    unfold memory_invariant_map.
-    repeat break_if; bool_to_nat; try lia.
 
-    (* X,Y eliminated, [x] somewhere in globals *)
-    break_match.
-    2:{
-      (* impossible case, [Anon 0] used for missing value in [memory_invariant_map] *)
-      apply ListNth.nth_error_length_lt in Hn.
-      apply ListUtil.nth_beyond_idx in Heqo0.
-      lia.
+    assert(exists gname gtype, nth_error globals x ≡ Some (gname, gtype)).
+    {
+      assert(L: x < Datatypes.length globals).
+      {
+        rewrite GSL.
+        apply Hx.
+      }
+      pose proof (nth_error_succeeds globals L) as H.
+      destruct H as ([gname gtype] & H).
+      exists gname.
+      exists gtype.
+      apply H.
     }
-    destruct p as (gname, gval).
+    destruct H as (gname & gtype & NG).
 
-    (* unify lengths *)
-    remember (Datatypes.length σ) as l eqn:SL; symmetry in SL.
-    clear Heqb Heqb0.
+    assert(exists gd,
+              nth_error gdecls x ≡ Some (TLE_Global gd) /\
+              g_exp gd ≡ Some (EXP_Double a) /\
+              g_ident gd ≡ Name gname
+          ) as (gd & XGD & VGD & NGD).
+    {
+      rewrite <- GSL, GG in Hx.
+      clear - F HIRG Hn Hx NG F.
+      unfold initFSHGlobals in *.
+      pose proof (nth_error_succeeds gdecls Hx) as H.
+      destruct H as (te & H).
 
-    rename m0 into fm0.
+      (* now prove [te] is [TLE_Global gd] *)
+      revert F HIRG Hn NG Hx H.
+      revert m0 fdata' σ data ldata' gdecls x.
+      generalize helix_empty_memory as m0.
+      induction globals; intros.
+      -
+        rewrite nth_error_nil in NG.
+        some_none.
+      -
+        cbn in F.
+        repeat break_match_hyp; try inl_inr.
+        repeat inl_inr_inv.
+        subst.
+        destruct p0.
 
-    (* we know, [gname] is in [gdecls] and not in [xydecls] *)
-    clear HCX HCY xdata ydata hdata.
-    admit.
+        destruct gdecls; [rewrite nth_error_nil in H; inversion H|].
+
+        cbn in HIRG.
+        repeat break_match_hyp; try inl_inr.
+        repeat inl_inr_inv.
+        subst.
+
+        unfold initOneIRGlobal in Heqe2.
+        repeat break_match_hyp; try inl_inr.
+        +
+          inl_inr_inv.
+          subst.
+          cbn in *.
+          destruct x.
+          *
+            cbn in *.
+            repeat some_inv.
+            subst.
+            break_let.
+            tuple_inversion.
+            inl_inr_inv.
+            subst.
+            eexists.
+            eauto.
+          *
+            cbn in *.
+            repeat some_inv.
+            subst.
+            break_let.
+            tuple_inversion.
+            inl_inr_inv.
+            subst.
+            eapply IHglobals; eauto.
+            lia.
+        +
+          (* Array *)
+          inl_inr_inv.
+          subst.
+          cbn in *.
+          destruct x.
+          *
+            cbn in *.
+            repeat some_inv.
+            subst.
+            break_let.
+            inl_inr_inv.
+          *
+            cbn in *.
+            break_let.
+            inv Heqe.
+            subst.
+            eapply IHglobals; eauto.
+            assert (LL: l0≡l1).
+            {
+              clear - Heqp Heqp0.
+              unfold constMemBlock in Heqp.
+              unfold constArray in Heqp0.
+              break_let.
+              tuple_inversion.
+              tuple_inversion.
+              reflexivity.
+            }
+            rewrite LL.
+            eapply Heqe3.
+            lia.
+    }
+
+    assert(exists ptr_llvm, nth_error g x ≡ Some (Name gname, (DVALUE_Addr ptr_llvm))).
+    {
+      assert (x < Datatypes.length g1) as L.
+      {
+        rewrite <- GL, <- GG, GSL.
+        apply Hx.
+      }
+      subst g.
+      rewrite app_nth_error1 in * by apply L.
+      pose proof (nth_error_succeeds g1 L) as H.
+      destruct H as ([did dv] & H).
+      clear - HG H NGD XGD.
+      revert x HG H XGD.
+      generalize M.empty_memory_stack as m0.
+      revert g1 did dv.
+      induction gdecls; intros.
+      -
+        cbn in *.
+        inv HG.
+        rewrite nth_error_nil in H.
+        some_none.
+      -
+        cbn in HG.
+        repeat break_match_hyp; try inl_inr.
+        repeat inl_inr_inv.
+        subst.
+        unfold init_one_global in Heqs.
+        repeat break_match_hyp; try inl_inr.
+        repeat inl_inr_inv.
+        cbn in *.
+        repeat break_match_hyp; try inl_inr.
+        repeat inl_inr_inv.
+        subst.
+        +
+          (* Double *)
+          destruct x.
+          *
+            clear IHgdecls.
+            cbn in *.
+            some_inv.
+            destruct p1.
+            some_inv.
+            unfold alloc_global in Heqs0.
+            repeat break_match_hyp; try inl_inr.
+            repeat inl_inr_inv.
+            exists (M.next_logical_key m, 0%Z).
+            subst.
+            f_equiv.
+            f_equiv.
+            apply NGD.
+          *
+            cbn.
+            eapply IHgdecls; eauto.
+        +
+          (* Array *)
+          destruct x.
+          *
+            clear IHgdecls.
+            cbn in *.
+            some_inv.
+            destruct p1.
+            some_inv.
+            unfold alloc_global in Heqs0.
+            repeat break_match_hyp; try inl_inr.
+            repeat inl_inr_inv.
+            exists (M.next_logical_key m, 0%Z).
+            subst.
+            f_equiv.
+            f_equiv.
+            cbn in *.
+            tuple_inversion.
+            apply NGD.
+            tuple_inversion.
+            eauto.
+          *
+            cbn.
+            destruct p0.
+            inl_inr_inv.
+            subst.
+            eapply IHgdecls; eauto.
+    }
+
+    destruct H as (ptr_llvm & NGDECL).
+    exists ptr_llvm.
+
+    split.
+    right.
+    split; [trivial|cbn].
+    +
+      (* Deal with X,Y first *)
+      unfold memory_invariant_map.
+      repeat break_if; bool_to_nat; try lia.
+
+      (* X,Y eliminated, [x] somewhere in globals *)
+      break_match_goal; try some_none.
+      some_inv. subst p.
+
+      (* unify lengths *)
+      remember (Datatypes.length σ) as l eqn:SL; symmetry in SL.
+      clear Heqb Heqb0.
+      rename m0 into fm0.
+
+      (* we know, [gname] is in [gdecls] and not in [xydecls] *)
+      clear HCX HCY xdata ydata hdata.
+
+      assert(list_uniq fst g) as GU.
+      {
+        pose proof (initIRGlobals_names_unique HIRG) as GLU.
+        admit.
+      }
+
+      eapply alist_find_nth_error_list_uniq; eauto.
+    +
+      eexists.
+      split.
+      *
+        admit.
+      *
+        eexists.
+        clear - NGDECL HFSHG Hn.
+        admit.
   -
     (* [DSHPtrVal] must end up in memory *)
     intros bk_helix HMH.
