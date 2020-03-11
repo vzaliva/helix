@@ -2,6 +2,7 @@ Require Import Helix.Util.VecUtil.
 Require Import Helix.Util.Matrix.
 Require Import Helix.Util.FinNat.
 Require Import Helix.Util.VecSetoid.
+Require Import Helix.Util.ErrorSetoid.
 Require Import Helix.Util.OptionSetoid.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.Util.Misc.
@@ -21,10 +22,10 @@ Require Import Coq.Arith.Compare_dec.
 Require Import Coq.Arith.Peano_dec.
 Require Import Coq.Strings.String.
 
-
 Require Import Helix.Tactics.HelixTactics.
 Require Import Helix.HCOL.HCOLBreakdown.
 Require Import Helix.SigmaHCOL.SigmaHCOLRewriting.
+
 
 Require Import MathClasses.interfaces.canonical_names.
 
@@ -345,6 +346,19 @@ Section MSHCOL_to_DSHCOL.
         ; DSHPtrVal dynwin_x_addr dynwin_i
       ].
 
+    (* TODO: move, but not sure where. We do not have MemorySetoid.v *)
+    Lemma memory_lookup_not_next_equiv {m k v}:
+      memory_lookup m k = Some v ->
+      k ≢ memory_next_key m.
+    Proof.
+      intros H.
+      destruct (eq_nat_dec k (memory_next_key m)) as [E|NE]; [exfalso|auto].
+      rewrite E in H. clear E.
+      pose proof (memory_lookup_memory_next_key_is_None m) as N.
+      unfold util.is_None in N.
+      break_match_hyp; [trivial|some_none].
+    Qed.
+
     (* This lemma could be auto-generated *)
     Instance DynWin_MSH_DSH_compat
       :
@@ -361,26 +375,116 @@ Section MSHCOL_to_DSHCOL.
 
       solve_MSH_DSH_compat.
 
+      (* This remailing obligation proof is not yet automated *)
       {
-        (* not yet automated *)
-        (* does not seems to be provable at the moment! *)
+        (* [a] is defined in section *)
         constructor; intros.
         unfold evalIUnCType, Fin1SwapIndex.
         cbn.
+
+        unfold mult_by_nth, const.
+        subst tmpk.
+
         repeat break_match; inversion Heqs; subst.
         -
           exfalso.
-          admit.
+          destruct t as [t tc].
+
+          match goal with
+          | [H0: memory_equiv_except ?m m'' _ |- _] => remember m as m0
+          end.
+
+          assert(memory_lookup m0 dynwin_a_addr ≡ Some (avector_to_mem_block a)) as M0
+              by (subst m0;reflexivity).
+
+          assert(dynwin_a_addr ≢ memory_next_key m0) as NM0 by
+                (eapply memory_lookup_not_next; eauto).
+
+          specialize (H0 dynwin_a_addr NM0).
+
+          rewrite M0 in H0. symmetry in H0.
+
+          assert(dynwin_a_addr ≢ memory_next_key m'') as NM1
+              by (eapply memory_lookup_not_next_equiv; eauto).
+
+          specialize (H1 dynwin_a_addr NM1).
+          rewrite H0 in H1. symmetry in H1.
+
+          err_eq_to_equiv_hyp.
+          apply memory_lookup_err_inl_None in Heqe.
+          some_none.
         -
           f_equiv.
-          unfold mult_by_nth, const.
-          admit.
+          destruct t as [t tc].
+          cbn. cbn in Heqo.
+
+          match goal with
+          | [H0: memory_equiv_except ?m m'' _ |- _] => remember m as m0
+          end.
+
+          assert(memory_lookup m0 dynwin_a_addr ≡ Some (avector_to_mem_block a)) as M0
+              by (subst m0;reflexivity).
+
+          assert(dynwin_a_addr ≢ memory_next_key m0) as NM0 by
+                (eapply memory_lookup_not_next; eauto).
+
+          specialize (H0 dynwin_a_addr NM0).
+
+          rewrite M0 in H0. symmetry in H0.
+
+          assert(dynwin_a_addr ≢ memory_next_key m'') as NM1
+              by (eapply memory_lookup_not_next_equiv; eauto).
+
+          specialize (H1 dynwin_a_addr NM1).
+          rewrite H0 in H1. symmetry in H1.
+
+          err_eq_to_equiv_hyp.
+          apply memory_lookup_err_inr_Some in Heqe.
+          rewrite Heqe in  H1.
+          some_inv.
+
+          eq_to_equiv_hyp.
+          rewrite H1 in Heqo.
+          rewrite mem_lookup_avector_to_mem_block_equiv with (kc:=tc) in Heqo.
+          some_inv.
+          rewrite Heqo.
+          reflexivity.
         -
           f_equiv.
-          unfold mult_by_nth, const.
-          admit.
+          destruct t as [t tc].
+          cbn. cbn in Heqo.
+
+          match goal with
+          | [H0: memory_equiv_except ?m m'' _ |- _] => remember m as m0
+          end.
+
+          assert(memory_lookup m0 dynwin_a_addr ≡ Some (avector_to_mem_block a)) as M0
+              by (subst m0;reflexivity).
+
+          assert(dynwin_a_addr ≢ memory_next_key m0) as NM0 by
+                (eapply memory_lookup_not_next; eauto).
+
+          specialize (H0 dynwin_a_addr NM0).
+
+          rewrite M0 in H0. symmetry in H0.
+
+          assert(dynwin_a_addr ≢ memory_next_key m'') as NM1
+              by (eapply memory_lookup_not_next_equiv; eauto).
+
+          specialize (H1 dynwin_a_addr NM1).
+          rewrite H0 in H1. symmetry in H1.
+
+          err_eq_to_equiv_hyp.
+          apply memory_lookup_err_inr_Some in Heqe.
+          rewrite Heqe in  H1.
+          some_inv.
+
+          eq_to_equiv_hyp.
+          rewrite H1 in Heqo.
+          rewrite mem_lookup_avector_to_mem_block_equiv with (kc:=tc) in Heqo.
+          some_none.
       }
-    Admitted.
+    Qed.
 
   End DummyEnv.
 

@@ -322,6 +322,31 @@ Module MMSHCOL'
         omega.
   Qed.
 
+  
+  Lemma mem_lookup_avector_to_mem_block
+        {n:nat}
+        {v: avector n}:
+    forall (k:nat) (kc:lt k n), mem_lookup k (avector_to_mem_block v) ≡ Some (Vnth v kc).
+  Proof.
+    intros k kc.
+    unfold avector_to_mem_block.
+    destruct (avector_to_mem_block_spec v) as [m H0].
+    apply H0.
+  Qed.
+
+  Lemma mem_lookup_avector_to_mem_block_equiv
+        {n:nat}
+        {v: avector n}:
+    forall (k:nat) (kc:lt k n), mem_lookup k (avector_to_mem_block v) = Some (Vnth v kc).
+  Proof.
+    intros k kc.
+    unfold avector_to_mem_block.
+    destruct (avector_to_mem_block_spec v) as [m H0].
+    apply Option_equiv_eq.
+    apply H0.
+  Qed.
+
+
   Lemma mem_block_avector_id {n} {v:avector n}:
     (mem_block_to_avector (avector_to_mem_block v)) ≡ Some v.
   Proof.

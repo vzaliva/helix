@@ -963,6 +963,19 @@ Module Type MBasic (Import CT : CType).
       break_match; try some_none; auto.
     Qed.
 
+    (* Also there is an [equiv] version elsewhere *)
+    Lemma memory_lookup_not_next {m k v}:
+      memory_lookup m k = Some v ->
+      k <> memory_next_key m.
+    Proof.
+      intros H.
+      destruct (eq_nat_dec k (memory_next_key m)) as [E|NE]; [exfalso|auto].
+      rewrite E in H.
+      pose proof (memory_lookup_memory_next_key_is_None m) as N.
+      rewrite H in N.
+      some_none.
+    Qed.
+
   End Memory_Blocks.
 
 End MBasic.
