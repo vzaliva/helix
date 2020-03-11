@@ -2393,6 +2393,15 @@ Proof.
     reflexivity.
 Qed.
 
+Ltac mem_lookup_err_to_option :=
+  repeat
+    match goal with
+    | [ H: memory_lookup_err _ _ _ ≡ inr _ |- _] =>
+      apply memory_lookup_err_inr_is_Some in H
+    | [ H: memory_lookup_err _ _ _ = inr _ |- _] =>
+      apply memory_lookup_err_inr_Some in H
+    end.
+
 Global Instance Inductor_MSH_DSH_compat
        {σ : evalContext}
        {n : nat}
@@ -2420,7 +2429,7 @@ Proof.
   all: destruct evalDSHOperator as [r |] eqn:DOP; [destruct r as [msg | dma] |].
   all: repeat constructor.
   2:{
-        unfold lookup_Pexp; cbn.
+    unfold lookup_Pexp; cbn.
     cbn in DOP.
     destruct (evalPexp σ x_p) as [| x_id] eqn:X;
       [unfold lookup_Pexp in X_M; rewrite X in X_M; inversion X_M |].
@@ -2434,7 +2443,6 @@ Proof.
       unfold SHCOL_DSHCOL_mem_block_equiv.
       intro k.
 
-
       cbn in X_M; rewrite X in X_M.
       cbn in Y_M; rewrite Y in Y_M.
 
@@ -2442,7 +2450,7 @@ Proof.
 
       destruct (memory_lookup m x_id) eqn:X_M'; inversion X_M; subst;
         clear X_M; rename m0 into x_m', H1 into XME.
-      destruct (memory_lookup m y_id) eqn:y_M'; inversion Y_M; subst;
+      destruct (memory_lookup m y_id) eqn:Y_M'; inversion Y_M; subst;
         clear Y_M; rename m0 into y_m', H1 into YME.
 
       (* simplify DOP down to evalDSHPower *)
@@ -2576,41 +2584,74 @@ Proof.
        [mem_op] fails
        [evalDSHOperator] suceeds
      *)
-    cbn in MOP.
-    unfold mem_op_of_hop in MOP.
-    break_match_hyp; [some_none| clear MOP].
-    (* [x_m] is not dense *)
-    rename Heqo into XD.
-    apply mem_block_to_avector_eq_None in XD.
-
-    unfold lookup_Pexp.
-    cbn in DOP.
     destruct (evalPexp σ x_p) as [| x_id] eqn:X;
       [unfold lookup_Pexp in X_M; rewrite X in X_M; inversion X_M |].
     destruct (evalPexp σ y_p) as [| y_id] eqn:Y;
       [unfold lookup_Pexp in Y_M; rewrite Y in Y_M; inversion Y_M |].
-    cbn in X_M, Y_M.
+
+    cbn in X_M; rewrite X in X_M.
+    cbn in Y_M; rewrite Y in Y_M.
+
+    unfold memory_lookup_err, trywith in *.
+
+    destruct (memory_lookup m x_id) eqn:X_M'; inversion X_M; subst;
+      clear X_M; rename m0 into x_m', H1 into XME.
+    destruct (memory_lookup m y_id) eqn:Y_M'; inversion Y_M; subst;
+      clear Y_M; rename m0 into y_m', H1 into YME.
+
+    (* simplify DOP down to evalDSHPower *)
+    cbn in DOP; some_inv; rename H0 into DOP.
+    rewrite N in DOP.
+    repeat break_match; try inl_inr.
+
+    cbn in MOP.
+    unfold mem_op_of_hop in MOP.
     repeat break_match_hyp; try inl_inr;
-      repeat inl_inr_inv; repeat some_inv; subst.
+      repeat inl_inr_inv; repeat some_inv; try some_none; subst.
 
-    rename Heqe2 into EV.
+    rename Heqe3 into EV.
 
-    (* get rid of error messages *)
-    repeat
-      match goal with
-      | [ H: memory_lookup_err _ _ _ ≡ inr _ |- _] =>
-        apply memory_lookup_err_inr_is_Some in H
-      | [ H: memory_lookup_err _ _ _ = inr _ |- _] =>
-        apply memory_lookup_err_inr_Some in H
-      end.
+    unfold memory_lookup_err, trywith in *.
+    rewrite X_M' in Heqe1.
+    rewrite Y_M' in Heqe2.
+    repeat inl_inr_inv; subst.
 
-    destruct n.
-    +
-      (* this could not be proven! *)
+    assert(NZ:n≢0). admit.
+    destruct n; [lia|].
+
+    (* [x_m] is not dense *)
+    rename Heqo into XD.
+    apply mem_block_to_avector_eq_None in XD.
+    clear -EV XD XME.
+
+    destruct XD as (j & jc & XD).
+    destruct j; [clear jc|lia].
+
+    eq_to_equiv_hyp.
+    err_eq_to_equiv_hyp.
+    rewrite XME in EV.
+    clear m2 XME.
+    revert x_m XD EV.
+    generalize (mem_add 0 init m3) as m0.
+    clear_all.
+
+    induction n; intros.
+    *
+      cbn in *.
+      repeat break_match_hyp; try inl_inr;
+        repeat inl_inr_inv; repeat some_inv; try some_none; subst.
+      unfold mem_lookup_err,trywith in Heqe.
+      break_match_hyp; try inl_inr.
+      eq_to_equiv_hyp.
+      some_none.
+    *
+      revert IHn EV.
+      generalize (S n) as z.
+      intros z IHn EV.
       cbn in EV.
-      admit.
-    +
-      admit.
+      repeat break_match_hyp; try inl_inr;
+        repeat inl_inr_inv; repeat some_inv; try some_none; subst.
+      eapply IHn; eauto.
 Admitted.
 
 
