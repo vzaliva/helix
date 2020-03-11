@@ -322,7 +322,15 @@ Module MMSHCOL'
         omega.
   Qed.
 
-  
+  Lemma mem_block_to_avector_eq_None {n m}:
+    @mem_block_to_avector n m ≡ None ->
+    exists j (jc:j<n), mem_lookup j m ≡ None.
+  Proof.
+    intros H.
+    apply vsequence_Vbuild_eq_None.
+    apply H.
+  Qed.
+
   Lemma mem_lookup_avector_to_mem_block
         {n:nat}
         {v: avector n}:

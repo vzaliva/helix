@@ -128,7 +128,6 @@ Section memory_aux.
       reflexivity.
   Qed.
 
-  
   Lemma mem_block_to_avector_nth
         {n : nat}
         {mx : mem_block}
@@ -2420,9 +2419,8 @@ Proof.
   destruct mem_op as [mma |] eqn:MOP.
   all: destruct evalDSHOperator as [r |] eqn:DOP; [destruct r as [msg | dma] |].
   all: repeat constructor.
-  1,3,4: exfalso; admit.
-  -
-    unfold lookup_Pexp; cbn.
+  2:{
+        unfold lookup_Pexp; cbn.
     cbn in DOP.
     destruct (evalPexp σ x_p) as [| x_id] eqn:X;
       [unfold lookup_Pexp in X_M; rewrite X in X_M; inversion X_M |].
@@ -2516,7 +2514,7 @@ Proof.
               rewrite <-X_V, <-XM'0, XME; reflexivity.
             }
             rewrite T in FA; clear T.
-            
+
             (* applying induction hypothesis *)
             apply IHn in Y_DMA; [| assumption].
 
@@ -2556,6 +2554,62 @@ Proof.
         admit.
     +
       exfalso.
+      admit.
+  }
+  -
+    exfalso.
+    (*
+       [mem_op] suceeds
+       [evalDSHOperator] fails
+     *)
+    admit.
+  -
+    exfalso.
+    (*
+       [mem_op] suceeds
+       [evalDSHOperator] out of fuel
+     *)
+    admit.
+  -
+    exfalso.
+    (*
+       [mem_op] fails
+       [evalDSHOperator] suceeds
+     *)
+    cbn in MOP.
+    unfold mem_op_of_hop in MOP.
+    break_match_hyp; [some_none| clear MOP].
+    (* [x_m] is not dense *)
+    rename Heqo into XD.
+    apply mem_block_to_avector_eq_None in XD.
+
+    unfold lookup_Pexp.
+    cbn in DOP.
+    destruct (evalPexp σ x_p) as [| x_id] eqn:X;
+      [unfold lookup_Pexp in X_M; rewrite X in X_M; inversion X_M |].
+    destruct (evalPexp σ y_p) as [| y_id] eqn:Y;
+      [unfold lookup_Pexp in Y_M; rewrite Y in Y_M; inversion Y_M |].
+    cbn in X_M, Y_M.
+    repeat break_match_hyp; try inl_inr;
+      repeat inl_inr_inv; repeat some_inv; subst.
+
+    rename Heqe2 into EV.
+
+    (* get rid of error messages *)
+    repeat
+      match goal with
+      | [ H: memory_lookup_err _ _ _ ≡ inr _ |- _] =>
+        apply memory_lookup_err_inr_is_Some in H
+      | [ H: memory_lookup_err _ _ _ = inr _ |- _] =>
+        apply memory_lookup_err_inr_Some in H
+      end.
+
+    destruct n.
+    +
+      (* this could not be proven! *)
+      cbn in EV.
+      admit.
+    +
       admit.
 Admitted.
 
