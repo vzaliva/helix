@@ -2729,22 +2729,214 @@ Proof.
       assumption.
 Qed.
 
-Definition mkFinNat_in_superset {n : nat} (fn : FinNat n) : FinNat (S n) :=
-  let (x, l) := fn in
-  @exist _ _ x (Nat.lt_lt_succ_r l).
+(* TODO: move *)
+Global Instance mem_union_associative :
+  Associative MMemoryOfCarrierA.mem_union.
+Proof.
+  intros b1 b2 b3.
+  unfold equiv, mem_block_Equiv, MMemoryOfCarrierA.mem_union.
+  intro k.
+  repeat rewrite NP.F.map2_1bis by reflexivity.
+  repeat break_match; try some_none.
+  reflexivity.
+Qed.
 
-(* shink family by removing last operator
-   there exists [shrink_m_op_family_up], but that is not what's needed *)
-Definition mkOpFamilySubset {n i o : nat} (opf : @MSHOperatorFamily i o (S n))
-  : (@MSHOperatorFamily i o n) :=
-  fun fn => opf (mkFinNat_in_superset fn).
+(* TODO: move *)
+(* This is generalizeable to associtive functions on some types *)
+Lemma IUnion_mem_append (l : list mem_block) (mb : mem_block) :
+  ListUtil.fold_left_rev MMemoryOfCarrierA.mem_union
+                         MMemoryOfCarrierA.mem_empty
+                         (l ++ [mb])
+  =
+  MMemoryOfCarrierA.mem_union
+    mb
+    (ListUtil.fold_left_rev MMemoryOfCarrierA.mem_union
+                            MMemoryOfCarrierA.mem_empty
+                            l).
+Proof.
+  induction l; cbn.
+  -
+    unfold equiv, mem_block_Equiv, MMemoryOfCarrierA.mem_union, MMemoryOfCarrierA.mem_empty.
+    intro k.
+    repeat rewrite NP.F.map2_1bis by reflexivity.
+    repeat break_match; try some_none.
+    inversion Heqo.
+  -
+    rewrite IHl.
+    pose proof mem_union_associative.
+    unfold Associative, HeteroAssociative in H.
+    rewrite H.
+    reflexivity.
+Qed.
+
+(* TODO: move *)
+Lemma List_nth_nth_error {A : Type} (l1 l2 : list A) (n : nat) (d : A) :
+  List.nth_error l1 n ≡ List.nth_error l2 n ->
+  List.nth n l1 d ≡ List.nth n l2 d.
+Proof.
+  generalize dependent l1.
+  generalize dependent l2.
+  induction n.
+  -
+    intros.
+    cbn in *.
+    repeat break_match;
+      try some_none; repeat some_inv.
+    reflexivity.
+    reflexivity.
+  -
+    intros.
+    destruct l1.
+    +
+      cbn in *.
+      break_match; try discriminate.
+      reflexivity.
+Admitted.
 
 Lemma IUnion_step {i o n : nat} (mb : mem_block) (S_opf : @MSHOperatorFamily i o (S n)) :
-  let opf := mkOpFamilySubset S_opf in
+  let opf := shrink_m_op_family S_opf in
   let fn := mkFinNat (Nat.lt_succ_diag_r n) in
   mem_op (MSHIUnion S_opf) mb = mb' <- mem_op (MSHIUnion opf) mb ;;
-                                mem_op (S_opf fn) mb'.
-Admitted.
+                                mbn <- mem_op (S_opf fn) mb ;;
+                                Some (MMemoryOfCarrierA.mem_union mbn mb').
+Proof.
+  simpl.
+  unfold IUnion_mem.
+  simpl.
+  unfold Apply_mem_Family in *.
+  repeat break_match;
+    try discriminate; try reflexivity.
+  all: repeat some_inv; subst.
+  -
+    rename l into S_lb, l0 into lb.
+
+    (* poor man's apply to copy and avoid evars *)
+    assert (S_LB : ∀ (j : nat) (jc : (j < S n)%mc),
+               List.nth_error S_lb j ≡ get_family_mem_op S_opf j jc mb)
+      by (apply ListSetoid.monadic_Lbuild_op_eq_Some; assumption).
+    assert (LB : ∀ (j : nat) (jc : (j < n)%mc),
+               List.nth_error lb j ≡ get_family_mem_op (shrink_m_op_family S_opf) j jc mb)
+      by (apply ListSetoid.monadic_Lbuild_op_eq_Some; assumption).
+
+    apply ListSetoid.monadic_Lbuild_opt_length in Heqo0; rename Heqo0 into S_L.
+    apply ListSetoid.monadic_Lbuild_opt_length in Heqo3; rename Heqo3 into L.
+    rename m0 into mbn, Heqo2 into MBN.
+
+    unfold get_family_mem_op in *.
+    assert (H : forall j, j < n -> List.nth_error lb j ≡ List.nth_error S_lb j)
+      by (intros; erewrite S_LB, LB; reflexivity).
+    Unshelve. 2: assumption.
+
+    assert (N_MB : is_Some (mem_op (S_opf (mkFinNat (Nat.lt_succ_diag_r n))) mb)).
+    {
+      apply is_Some_ne_None.
+      intro C.
+      rewrite <-S_LB in C.
+      apply List.nth_error_None in C.
+      lia.
+    }
+    apply is_Some_def in N_MB.
+    destruct N_MB as [n_mb N_MB].
+
+    assert (H1 : S_lb ≡ lb ++ [n_mb]).
+    {
+      apply list_eq_nth;
+        [rewrite List.app_length; cbn; lia |].
+      intros k KC.
+      (* extensionality *)
+      enough (forall d, List.nth k S_lb d ≡ List.nth k (lb ++ [n_mb]) d)
+        by (apply Logic.FunctionalExtensionality.functional_extensionality; assumption).
+      rewrite S_L in KC.
+      destruct (Nat.eq_dec k n).
+      -
+        subst k.
+        intros.
+        apply List_nth_nth_error.
+        replace n with (0 + Datatypes.length lb).
+        rewrite ListNth.nth_error_length.
+        cbn.
+        rewrite L.
+        rewrite S_LB with (jc := (Nat.lt_succ_diag_r n)).
+        rewrite <-N_MB.
+        reflexivity.
+      -
+        assert (k < n) by lia; clear KC n0.
+        intros.
+        apply List_nth_nth_error.
+        rewrite <-H by lia.
+        rewrite List.nth_error_app1 by lia.
+        reflexivity.
+    }
+
+    rewrite H1.
+    rewrite IUnion_mem_append.
+
+    rewrite MBN in N_MB; some_inv.
+    reflexivity.
+  -
+    rename l into S_lb, l0 into lb.
+
+    (* poor man's apply to copy and avoid evars *)
+    assert (S_LB : ∀ (j : nat) (jc : (j < S n)%mc),
+               List.nth_error S_lb j ≡ get_family_mem_op S_opf j jc mb)
+      by (apply ListSetoid.monadic_Lbuild_op_eq_Some; assumption).
+    apply ListSetoid.monadic_Lbuild_opt_length in Heqo0; rename Heqo0 into S_L.
+
+    assert (N_MB : is_Some (mem_op (S_opf (mkFinNat (Nat.lt_succ_diag_r n))) mb)).
+    {
+      apply is_Some_ne_None.
+      intro C.
+      unfold get_family_mem_op in *.
+      rewrite <-S_LB in C.
+      apply List.nth_error_None in C.
+      lia.
+    }
+
+    rewrite Heqo2 in N_MB.
+    some_none.
+  -
+    exfalso; clear Heqo1.
+
+    pose proof Heqo0 as L; apply ListSetoid.monadic_Lbuild_opt_length in L.
+
+    apply ListSetoid.monadic_Lbuild_op_eq_None in Heqo2.
+    destruct Heqo2 as [k [KC N]].
+    apply ListSetoid.monadic_Lbuild_op_eq_Some
+      with (i0:=k) (ic:=le_S KC)
+      in Heqo0.
+    unfold get_family_mem_op, shrink_m_op_family in *.
+    cbn in *.
+    rewrite N in Heqo0.
+    apply ListNth.nth_error_length_ge in Heqo0.
+    assert (k < n) by assumption.
+    lia.
+  -
+    exfalso.
+
+    pose proof Heqo3 as S_L; apply ListSetoid.monadic_Lbuild_opt_length in S_L.
+
+    apply ListSetoid.monadic_Lbuild_op_eq_None in Heqo0.
+    destruct Heqo0 as [k [KC N]].
+    destruct (Nat.eq_dec k n).
+    +
+      subst k.
+      unfold get_family_mem_op in *.
+      assert (KC ≡ (Nat.lt_succ_diag_r n)) by (apply lt_unique).
+      rewrite <-H, N in Heqo2.
+      some_none.
+    +
+      assert (k < n) by (assert (k < S n) by assumption; lia); clear n0.
+      apply ListSetoid.monadic_Lbuild_op_eq_Some
+        with (i0:=k) (ic:=H)
+        in Heqo3.
+      unfold get_family_mem_op, shrink_m_op_family in *.
+      cbn in Heqo3.
+      assert (le_S H ≡ KC) by (apply lt_unique).
+      rewrite H0, N in Heqo3.
+      apply ListNth.nth_error_length_ge in Heqo3.
+      rewrite S_L in Heqo3.
+      omega.
+Qed.
 
 Global Instance IUnion_MSH_DSH_compat
        {i o n : nat}
@@ -2789,7 +2981,7 @@ Proof.
     +
       rename m0 into loop_m.
       
-      pose (opf' := mkOpFamilySubset opf).
+      pose (opf' := shrink_m_op_family opf).
       assert (T1 : DSH_pure (DSHLoop n dop) x_p y_p) by (apply Loop_DSH_pure; assumption).
       assert (T2: (∀ (t : FinNat n) (m : memory),
                       MSH_DSH_compat (opf' t) dop (DSHnatVal (` t) :: σ) m 
@@ -2798,13 +2990,14 @@ Proof.
         clear - FC.
         subst opf'.
         intros.
-        unfold mkOpFamilySubset.
-        specialize (FC (mkFinNat_in_superset t) m).
-        enough (T : (` (mkFinNat_in_superset t)) ≡ (` t)) by (rewrite T in FC; assumption).
+        unfold shrink_m_op_family.
+        specialize (FC (mkFinNat (le_S (proj2_sig t))) m).
+        enough (T : (` (mkFinNat (le_S (proj2_sig t)))) ≡ (` t)) by (rewrite T in FC; assumption).
         cbv.
         repeat break_match; congruence.
       }
       specialize (IHn opf' T1 T2 m X_M Y_M); clear T1 T2.
+      cbn.
       rewrite evalDSHOperator_estimateFuel_ge in Heqo0
         by (cbn; enough (1 <= (estimateFuel dop)) by lia;
             destruct dop; cbn; lia).
