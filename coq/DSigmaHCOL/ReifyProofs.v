@@ -2727,7 +2727,9 @@ Proof.
       [mem_op] suceeds
       [evalDSHOperator] out of fuel
      *)
-    admit.
+    contradict DOP.
+    apply is_Some_ne_None.
+    apply evalDSHOperator_estimateFuel.
   -
     exfalso.
     (*

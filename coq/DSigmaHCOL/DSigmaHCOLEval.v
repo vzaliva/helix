@@ -17,6 +17,7 @@ Require Import Helix.Util.ErrorSetoid.
 
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.misc.decision.
+Require Import MathClasses.misc.util.
 
 Global Open Scope nat_scope.
 
@@ -454,6 +455,11 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       reflexivity.
       reflexivity.
   Qed.
+
+  Lemma evalDSHOperator_estimateFuel {σ dop m}:
+    is_Some (evalDSHOperator σ dop m (estimateFuel dop)).
+  Proof.
+  Admitted.
 
   Local Ltac proper_eval2 IHe1 IHe2 :=
       repeat break_match;
