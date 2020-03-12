@@ -2429,7 +2429,6 @@ Proof.
   all: destruct evalDSHOperator as [r |] eqn:DOP; [destruct r as [msg | dma] |].
   all: repeat constructor.
   2:{
-    (*
     unfold lookup_Pexp; cbn.
     cbn in DOP.
     destruct (evalPexp σ x_p) as [| x_id] eqn:X;
@@ -2467,7 +2466,25 @@ Proof.
       replace pm with y_dma in * by congruence; clear Y_DMA; rename PM into Y_DMA.
 
       (* make use of MOP *)
+      destruct n as [|n'].
+      {
+        cbn in *.
+        some_inv; inl_inr_inv.
+        destruct (Nat.eq_dec 0 k).
+        -
+          subst.
+          unfold mem_lookup, mem_add, MMemoryOfCarrierA.mem_add.
+          repeat rewrite NP.F.add_eq_o by reflexivity.
+          constructor 2; reflexivity.
+        -
+          unfold mem_lookup, mem_add, MMemoryOfCarrierA.mem_add.
+          repeat rewrite NP.F.add_neq_o by assumption.
+          constructor 1; [reflexivity |].
+          rewrite YME.
+          reflexivity.
+      }
       cbn in MOP.
+      remember (S n') as n; clear Heqn.
       unfold mem_op_of_hop in MOP.
       break_match; try some_none.
       some_inv.
@@ -2564,8 +2581,6 @@ Proof.
     +
       exfalso.
       admit.
-     *)
-    admit.
   }
   -
     exfalso.
