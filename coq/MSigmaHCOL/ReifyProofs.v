@@ -930,108 +930,135 @@ Section OperatorPairwiseProofs.
         (SHInductor (svalue:=svalue) fm n f initial)
         (MSHInductor n f initial).
     Proof.
-      split.
+      destruct n.
       -
-        typeclasses eauto.
-      -
-        typeclasses eauto.
-      -
-        reflexivity.
-      -
-        reflexivity.
-      -
-        intros x H.
-        simpl.
-        unfold SHInductor_impl, HInductor, compose, mem_op_of_hop, HCOLImpl.Scalarize, Lst.
-        Opaque liftM.
-        simpl.
-        break_match.
+        split.
         +
+          typeclasses eauto.
+        +
+          typeclasses eauto.
+        +
+          reflexivity.
+        +
+          reflexivity.
+        +
+          intros x H.
+
+          cbn in H.
+          assert(0<1) as jc by lia.
+          assert(Full_set (FinNat 1) (mkFinNat jc)) as F by constructor.
+          specialize (H 0 jc F). clear F.
+
+          simpl.
+          unfold SHInductor_impl, HInductor, compose, mem_op_of_hop, HCOLImpl.Scalarize, Lst.
           f_equiv.
-          dep_destruct t.
-          dep_destruct x0. clear x0 t.
-          unfold svector_to_mem_block, avector_to_mem_block.
-          svector_to_mem_block_to_spec m0 H0 I0 O0.
-          avector_to_mem_block_to_spec m2 H2 O2.
-          simpl in *.
-          mem_index_equiv k.
-          destruct (lt_ge_dec k 1) as [kc | nkc].
-          *
-            clear O0 O2 I0.
-            unfold mem_lookup, mem_empty in *.
-            dep_destruct k; try lia.
-            specialize (H2 0 kc).
-            rewrite H2; clear H2.
-            rewrite Vnth_0.
-            simpl.
-            specialize (H0 0 kc).
-            rewrite Vnth_0 in H0.
-            destruct H0 as [H0 _].
-            unfold Is_Val, compose in H0.
-            simpl in H0.
-            rewrite execWriter_liftM in H0.
-            dep_destruct x.
-            dep_destruct x0. clear x.
-            simpl in H0.
-
-            destruct (IsVal_dec (execWriter h)) as [V|NV].
-            --
-              specialize (H0 V).
-              clear V H.
-              apply NM.find_1 in H0.
-              rewrite H0.
-              f_equiv.
-              rewrite evalWriter_Rtheta_liftM.
-              replace h0 with (evalWriter h).
-              reflexivity.
-
-              rename Heqo into C.
-              unfold svector_to_mem_block, mem_block_to_avector in C.
-              simpl in C.
-              break_match_hyp; try some_none.
-              unfold mem_lookup, mem_add, mem_empty in *.
-              break_if.
-              ++
-                erewrite NP.F.add_eq_o in Heqo by reflexivity.
-                repeat some_inv.
-                subst.
-                reflexivity.
-              ++
-                contradict Heqo.
-                apply None_ne_Some.
-                apply NP.F.empty_o.
-            --
-              contradict NV.
-              specialize (H 0 kc).
-              apply H.
-              apply Full_intro.
-          *
-            rewrite O0, O2; auto.
+          Opaque liftM.
+          (* Could not be proven, as [liftM] will evaluate [x]
+             even when [n=0]. This requires changes to [SHInductor_impl] *)
+          admit.
+      -
+        split.
         +
-          exfalso.
-          rename Heqo into C.
-          dep_destruct x.
-          dep_destruct x0.
-          unfold svector_to_mem_block, mem_block_to_avector in C.
-          simpl in C.
-          break_match_hyp; try some_none.
-          clear C; rename Heqo into C.
-          unfold mem_lookup, mem_add, mem_empty in *.
-          break_if.
+          typeclasses eauto.
+        +
+          typeclasses eauto.
+        +
+          reflexivity.
+        +
+          reflexivity.
+        +
+          intros x H.
+          simpl.
+          unfold SHInductor_impl, HInductor, compose, mem_op_of_hop, HCOLImpl.Scalarize, Lst.
+          Opaque liftM.
+          simpl.
+          break_match.
           *
-            erewrite NP.F.add_eq_o in C by reflexivity.
-            some_none.
-          *
-            clear C.
+            f_equiv.
+            dep_destruct t.
+            dep_destruct x0. clear x0 t.
+            unfold svector_to_mem_block, avector_to_mem_block.
+            svector_to_mem_block_to_spec m0 H0 I0 O0.
+            avector_to_mem_block_to_spec m2 H2 O2.
             simpl in *.
-            clear Heqd.
-            contradict n0.
-            specialize (H 0 Nat.lt_0_1).
-            rewrite Vnth_0 in H.
-            simpl in H.
-            eapply H.
-            apply Full_intro.
-    Qed.
+            mem_index_equiv k.
+            destruct (lt_ge_dec k 1) as [kc | nkc].
+            --
+              clear O0 O2 I0.
+              unfold mem_lookup, mem_empty in *.
+              dep_destruct k; try lia.
+              specialize (H2 0 kc).
+              rewrite H2; clear H2.
+              rewrite Vnth_0.
+              simpl.
+              specialize (H0 0 kc).
+              rewrite Vnth_0 in H0.
+              destruct H0 as [H0 _].
+              unfold Is_Val, compose in H0.
+              simpl in H0.
+              rewrite execWriter_liftM in H0.
+              dep_destruct x.
+              dep_destruct x0. clear x.
+              simpl in H0.
+
+              destruct (IsVal_dec (execWriter h)) as [V|NV].
+              ++
+                specialize (H0 V).
+                clear V H.
+                apply NM.find_1 in H0.
+                rewrite H0.
+                f_equiv.
+                rewrite evalWriter_Rtheta_liftM.
+                replace h0 with (evalWriter h).
+                reflexivity.
+
+                rename Heqo into C.
+                unfold svector_to_mem_block, mem_block_to_avector in C.
+                simpl in C.
+                break_match_hyp; try some_none.
+                unfold mem_lookup, mem_add, mem_empty in *.
+                break_if.
+                **
+                  erewrite NP.F.add_eq_o in Heqo by reflexivity.
+                  repeat some_inv.
+                  subst.
+                  reflexivity.
+                **
+                  contradict Heqo.
+                  apply None_ne_Some.
+                  apply NP.F.empty_o.
+              ++
+                contradict NV.
+                specialize (H 0 kc).
+                apply H.
+                apply Full_intro.
+            --
+              rewrite O0, O2; auto.
+          *
+            exfalso.
+            rename Heqo into C.
+            dep_destruct x.
+            dep_destruct x0.
+            unfold svector_to_mem_block, mem_block_to_avector in C.
+            simpl in C.
+            break_match_hyp; try some_none.
+            clear C; rename Heqo into C.
+            unfold mem_lookup, mem_add, mem_empty in *.
+            break_if.
+            --
+              erewrite NP.F.add_eq_o in C by reflexivity.
+              some_none.
+            --
+              clear C.
+              simpl in *.
+              clear Heqd.
+              contradict n0.
+              specialize (H 0 Nat.lt_0_1).
+              rewrite Vnth_0 in H.
+              simpl in H.
+              eapply H.
+              apply Full_intro.
+    Admitted.
 
   End WithMonoid.
 

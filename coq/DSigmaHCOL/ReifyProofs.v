@@ -2421,6 +2421,8 @@ Global Instance Inductor_MSH_DSH_compat
       (DSHPower nx (x_p, NConst 0) (y_p, NConst 0) a init)
       σ m x_p y_p PD.
 Proof.
+
+  (*
   constructor; intros x_m y_m X_M Y_M.
   assert (T : evalNexp σ nx ≡ inr n)
     by (inversion N; inversion H1; reflexivity);
@@ -2652,6 +2654,7 @@ Proof.
       repeat break_match_hyp; try inl_inr;
         repeat inl_inr_inv; repeat some_inv; try some_none; subst.
       eapply IHn; eauto.
+*)
 Admitted.
 
 
