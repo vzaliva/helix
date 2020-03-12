@@ -792,18 +792,21 @@ Section SigmaHCOLExpansionRules.
       apply SHOperator_ext_equiv_applied.
       intros v.
       simpl.
-      unfold SHInductor_impl.
-      unfold liftM_HOperator_impl, compose.
-      unfold sparsify, HInductor, compose, Lst.
-      simpl Vmap.
-      apply Vcons_proper. 2:reflexivity.
-      unfold_Rtheta_equiv.
-      rewrite evalWriter_Rtheta_liftM.
-      rewrite evalWriter_mkValue.
-      apply HCOLImpl.Inductor_proper; auto.
-      unfold HCOLImpl.Scalarize, densify.
-      rewrite Vhead_Vmap.
-      reflexivity.
+      destruct n.
+      -
+        reflexivity.
+      -
+        unfold SHInductor_impl.
+        unfold liftM_HOperator_impl, compose.
+        unfold sparsify, HInductor, compose, Lst.
+        simpl Vmap.
+        apply Vcons_proper. 2:reflexivity.
+        unfold_Rtheta_equiv.
+        rewrite evalWriter_Rtheta_liftM.
+        rewrite evalWriter_mkValue.
+        unfold HCOLImpl.Scalarize, densify.
+        rewrite Vhead_Vmap.
+        reflexivity.
     Qed.
 
     Lemma SHBinOp_equiv_lifted_HBinOp

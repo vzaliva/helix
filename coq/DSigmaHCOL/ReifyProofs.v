@@ -2466,7 +2466,25 @@ Proof.
       replace pm with y_dma in * by congruence; clear Y_DMA; rename PM into Y_DMA.
 
       (* make use of MOP *)
+      destruct n as [|n'].
+      {
+        cbn in *.
+        some_inv; inl_inr_inv.
+        destruct (Nat.eq_dec 0 k).
+        -
+          subst.
+          unfold mem_lookup, mem_add, MMemoryOfCarrierA.mem_add.
+          repeat rewrite NP.F.add_eq_o by reflexivity.
+          constructor 2; reflexivity.
+        -
+          unfold mem_lookup, mem_add, MMemoryOfCarrierA.mem_add.
+          repeat rewrite NP.F.add_neq_o by assumption.
+          constructor 1; [reflexivity |].
+          rewrite YME.
+          reflexivity.
+      }
       cbn in MOP.
+      remember (S n') as n; clear Heqn.
       unfold mem_op_of_hop in MOP.
       break_match; try some_none.
       some_inv.
@@ -2570,12 +2588,144 @@ Proof.
        [mem_op] suceeds
        [evalDSHOperator] fails
      *)
-    admit.
+    destruct (evalPexp σ x_p) as [| x_id] eqn:X;
+      [unfold lookup_Pexp in X_M; rewrite X in X_M; inversion X_M |].
+    destruct (evalPexp σ y_p) as [| y_id] eqn:Y;
+      [unfold lookup_Pexp in Y_M; rewrite Y in Y_M; inversion Y_M |].
+
+    cbn in X_M; rewrite X in X_M.
+    cbn in Y_M; rewrite Y in Y_M.
+
+    unfold memory_lookup_err, trywith in *.
+
+    destruct (memory_lookup m x_id) eqn:X_M'; inversion X_M; subst;
+      clear X_M; rename m0 into x_m', H1 into XME.
+    destruct (memory_lookup m y_id) eqn:Y_M'; inversion Y_M; subst;
+      clear Y_M; rename m0 into y_m', H1 into YME.
+
+    destruct n.
+    +
+      cbn in DOP.
+      repeat break_match_hyp; try inl_inr;
+        repeat inl_inr_inv; repeat some_inv; try some_none; subst.
+      *
+        repeat err_eq_to_equiv_hyp.
+        apply memory_lookup_err_inl_None in Heqe1.
+        repeat eq_to_equiv_hyp.
+        some_none.
+      *
+        repeat err_eq_to_equiv_hyp.
+        apply memory_lookup_err_inl_None in Heqe2.
+        repeat eq_to_equiv_hyp.
+        some_none.
+      *
+        unfold memory_lookup_err, trywith in *.
+        rewrite X_M' in Heqe1.
+        rewrite Y_M' in Heqe2.
+        repeat inl_inr_inv.
+        subst.
+        cbn in Heqe4.
+        inl_inr.
+    +
+      cbn in MOP.
+      unfold mem_op_of_hop in MOP.
+      repeat break_match_hyp; try inl_inr;
+        repeat inl_inr_inv; repeat some_inv; try some_none; subst.
+
+      (* [x_m] is dense *)
+      rename Heqo into XD.
+      assert(0<1) as jc by lia.
+      apply mem_block_to_avector_nth with (kc:=jc) in XD.
+
+      cbn in DOP.
+      rewrite N in DOP.
+      repeat break_match_hyp; try inl_inr;
+        repeat inl_inr_inv; repeat some_inv; try some_none; subst.
+      *
+        repeat err_eq_to_equiv_hyp.
+        apply memory_lookup_err_inl_None in Heqe1.
+        repeat eq_to_equiv_hyp.
+        some_none.
+      *
+        repeat err_eq_to_equiv_hyp.
+        apply memory_lookup_err_inl_None in Heqe2.
+        repeat eq_to_equiv_hyp.
+        some_none.
+      *
+        unfold memory_lookup_err, trywith in *.
+        rewrite X_M' in Heqe1.
+        rewrite Y_M' in Heqe2.
+        repeat inl_inr_inv.
+        subst.
+
+        rename Heqe3 into EV.
+        clear -EV XD XME FA.
+        apply eq_Some_is_Some in XD.
+        err_eq_to_equiv_hyp.
+        rewrite XME in EV.
+        clear m2 XME t.
+        revert x_m XD EV.
+        remember (mem_add 0 init m3) as y_m.
+        assert(is_Some (mem_lookup 0 y_m)) as YD.
+        {
+          subst y_m.
+          unfold mem_lookup, mem_add.
+          rewrite NP.F.add_eq_o.
+          some_none.
+          reflexivity.
+        }
+        clear Heqy_m m3.
+        revert y_m YD.
+
+        induction n; intros.
+        --
+          cbn in *.
+          repeat break_match_hyp; try inl_inr;
+            repeat inl_inr_inv; repeat some_inv; try some_none; subst.
+          ++
+            unfold mem_lookup_err,trywith in Heqe.
+            break_match_hyp; try inl_inr.
+            some_none.
+          ++
+            unfold mem_lookup_err,trywith in Heqe0.
+            break_match_hyp; try inl_inr.
+            some_none.
+          ++
+            destruct FA.
+            specialize (bin_equiv0 c0 c).
+            rewrite Heqe1 in bin_equiv0.
+            inl_inr.
+        --
+          revert IHn EV.
+          generalize (S n) as z.
+          intros z IHn EV.
+          cbn in EV.
+          repeat break_match_hyp; try inl_inr;
+            repeat inl_inr_inv; repeat some_inv; try some_none; subst.
+          ++
+            unfold mem_lookup_err,trywith in Heqe.
+            break_match_hyp; try inl_inr.
+            some_none.
+          ++
+            unfold mem_lookup_err,trywith in Heqe0.
+            break_match_hyp; try inl_inr.
+            some_none.
+          ++
+            destruct FA.
+            specialize (bin_equiv0 c0 c).
+            rewrite Heqe1 in bin_equiv0.
+            inl_inr.
+          ++
+            eapply IHn in EV; eauto.
+            unfold mem_lookup, mem_add.
+            rewrite NP.F.add_eq_o.
+            some_none.
+            reflexivity.
   -
     exfalso.
     (*
-       [mem_op] suceeds
-       [evalDSHOperator] out of fuel
+      [mem_op] suceeds
+      [evalDSHOperator] out of fuel
      *)
     admit.
   -
@@ -2604,6 +2754,7 @@ Proof.
     rewrite N in DOP.
     repeat break_match; try inl_inr.
 
+    destruct n;[cbn in MOP;some_none|].
     cbn in MOP.
     unfold mem_op_of_hop in MOP.
     repeat break_match_hyp; try inl_inr;
@@ -2615,9 +2766,6 @@ Proof.
     rewrite X_M' in Heqe1.
     rewrite Y_M' in Heqe2.
     repeat inl_inr_inv; subst.
-
-    assert(NZ:n≢0). admit.
-    destruct n; [lia|].
 
     (* [x_m] is not dense *)
     rename Heqo into XD.

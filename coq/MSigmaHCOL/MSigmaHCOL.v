@@ -1651,13 +1651,44 @@ Module MMSHCOL'
                       (Full_set _)
                       (Full_set _).
 
+  Definition Inductor_mem
+             (n:nat)
+             (f: CarrierA -> CarrierA -> CarrierA)
+             (initial: CarrierA):
+             mem_block -> option mem_block
+    :=
+      match n with
+      | O => fun _ =>
+              (* For [n=0] it always succeeds and do not event attempt
+                 to read input vector *)
+              Some (avector_to_mem_block (Lst initial))
+      | _ => mem_op_of_hop (HInductor n f initial)
+      end.
+
+  Global Instance Inductor_mem_proper
+         (n:nat)
+         (f: CarrierA -> CarrierA -> CarrierA)
+         `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+         (initial: CarrierA)
+    :
+      Proper (equiv ==> equiv) (Inductor_mem n f initial).
+  Proof.
+    destruct n.
+    -
+      cbn.
+      simpl_relation.
+    -
+      cbn.
+      typeclasses eauto.
+  Qed.
+
   Definition MSHInductor
              (n:nat)
              (f: CarrierA -> CarrierA -> CarrierA)
              `{pF: !Proper ((=) ==> (=) ==> (=)) f}
              (initial: CarrierA)
     := @mkMSHOperator 1 1
-                      (mem_op_of_hop (HInductor n f initial))
+                      (Inductor_mem n f initial)
                       _
                       (Full_set _)
                       (Full_set _).
@@ -2079,17 +2110,47 @@ Module MMSHCOL'
            (initial: CarrierA):
     MSHOperator_Facts (MSHInductor n f initial).
   Proof.
-    split.
+    destruct n.
     -
-      (* mem_out_some *)
-      intros v H.
-      apply mem_out_some_mem_op_of_hop, H.
+      split.
+      +
+        intros.
+        cbn.
+        trivial.
+      +
+        intros.
+        cbn in *.
+        some_inv.
+        destruct j;[|crush]. (* [lia] should work here instead of [crush] but it does not *)
+        split; intros.
+        *
+          apply NP.F.add_in_iff.
+          auto.
+        *
+          apply NP.F.add_in_iff in H.
+          destruct H; constructor.
+      +
+        intros.
+        cbn in *.
+        some_inv. clear H1 m.
+        intros C.
+        apply NP.F.add_in_iff in C.
+        destruct C.
+        lia.
+        apply NP.F.empty_in_iff in H.
+        trivial.
     -
-      intros m0 m H.
-      apply (out_mem_fill_pattern_mem_op_of_hop H).
-    -
-      intros m0 m H.
-      apply (out_mem_fill_pattern_mem_op_of_hop H).
+      split.
+      +
+        (* mem_out_some *)
+        intros v H.
+        apply mem_out_some_mem_op_of_hop, H.
+      +
+        intros m0 m H.
+        apply (out_mem_fill_pattern_mem_op_of_hop H).
+      +
+        intros m0 m H.
+        apply (out_mem_fill_pattern_mem_op_of_hop H).
   Qed.
 
   Instance SHBinOp_MFacts
