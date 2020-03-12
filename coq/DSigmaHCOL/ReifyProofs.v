@@ -2421,8 +2421,6 @@ Global Instance Inductor_MSH_DSH_compat
       (DSHPower nx (x_p, NConst 0) (y_p, NConst 0) a init)
       σ m x_p y_p PD.
 Proof.
-
-  (*
   constructor; intros x_m y_m X_M Y_M.
   assert (T : evalNexp σ nx ≡ inr n)
     by (inversion N; inversion H1; reflexivity);
@@ -2431,6 +2429,7 @@ Proof.
   all: destruct evalDSHOperator as [r |] eqn:DOP; [destruct r as [msg | dma] |].
   all: repeat constructor.
   2:{
+    (*
     unfold lookup_Pexp; cbn.
     cbn in DOP.
     destruct (evalPexp σ x_p) as [| x_id] eqn:X;
@@ -2565,6 +2564,8 @@ Proof.
     +
       exfalso.
       admit.
+     *)
+    admit.
   }
   -
     exfalso.
@@ -2606,6 +2607,7 @@ Proof.
     rewrite N in DOP.
     repeat break_match; try inl_inr.
 
+    destruct n;[cbn in MOP;some_none|].
     cbn in MOP.
     unfold mem_op_of_hop in MOP.
     repeat break_match_hyp; try inl_inr;
@@ -2617,9 +2619,6 @@ Proof.
     rewrite X_M' in Heqe1.
     rewrite Y_M' in Heqe2.
     repeat inl_inr_inv; subst.
-
-    assert(NZ:n≢0). admit.
-    destruct n; [lia|].
 
     (* [x_m] is not dense *)
     rename Heqo into XD.
@@ -2654,7 +2653,6 @@ Proof.
       repeat break_match_hyp; try inl_inr;
         repeat inl_inr_inv; repeat some_inv; try some_none; subst.
       eapply IHn; eauto.
-*)
 Admitted.
 
 
