@@ -2417,9 +2417,9 @@ Global Instance Inductor_MSH_DSH_compat
        (PD : DSH_pure (DSHPower nx (x_p, NConst 0) (y_p, NConst 0) a init) x_p y_p)
   :
     @MSH_DSH_compat _ _
-      (MSHInductor n f init)
-      (DSHPower nx (x_p, NConst 0) (y_p, NConst 0) a init)
-      σ m x_p y_p PD.
+                    (MSHInductor n f init)
+                    (DSHPower nx (x_p, NConst 0) (y_p, NConst 0) a init)
+                    σ m x_p y_p PD.
 Proof.
   constructor; intros x_m y_m X_M Y_M.
   assert (T : evalNexp σ nx ≡ inr n)
@@ -2459,7 +2459,7 @@ Proof.
       repeat break_match; try inl_inr.
       inl_inr_inv.
       rename m0 into pm, Heqe into PM,
-             H0 into DMA.
+      H0 into DMA.
       rewrite <-DMA in *.
       unfold memory_lookup, memory_set in Y_DMA.
       rewrite NP.F.add_eq_o in Y_DMA by reflexivity.
@@ -2607,7 +2607,11 @@ Proof.
           apply P.
     +
       exfalso.
-      admit.
+      repeat break_match_hyp; try inl_inr; try some_inv; try some_none.
+      repeat inl_inr_inv; subst.
+      unfold memory_lookup, memory_set in Y_DMA.
+      rewrite NP.F.add_eq_o in Y_DMA by reflexivity.
+      some_none.
   }
   -
     exfalso.
@@ -2829,7 +2833,7 @@ Proof.
       repeat break_match_hyp; try inl_inr;
         repeat inl_inr_inv; repeat some_inv; try some_none; subst.
       eapply IHn; eauto.
-Admitted.
+Qed.
 
 
 (** * MSHIUnion *)
