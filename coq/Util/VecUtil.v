@@ -376,12 +376,23 @@ Qed.
 
 Lemma Vbuild_0: forall B gen, @Vbuild B 0 gen = @Vnil B. Proof. reflexivity. Qed.
 
+(* workaround for https://github.com/fblanqui/color/issues/22 *)
+Ltac Vbuild_fix :=
+  let H := fresh in
+  match goal with
+  | [|- context[(@VecUtil.Vbuild_spec_obligation_5 _ _ (@eq_refl nat ?n))]] =>
+    assert (VecUtil.Vbuild_spec_obligation_5 (eq_refl n) = eq_refl n)
+      as H
+      by (apply CoLoR.Util.Nat.NatUtil.eq_unique);
+    rewrite H; clear H; cbn
+  end.
+
 Lemma Vbuild_1 B gen:
   @Vbuild B 1 gen = [gen 0 (lt_0_Sn 0)].
 Proof.
   unfold Vbuild.
-  simpl.
-
+  cbn.
+  Vbuild_fix.
   apply Vcons_eq.
   split.
   - apply f_equal, le_unique.
@@ -396,9 +407,8 @@ Lemma Vbuild_2 B gen:
   @Vbuild B 2 gen = [gen 0 (lt_0_SSn 0) ; gen 1 (lt_1_SSn 0)].
 Proof.
   unfold Vbuild.
-  simpl.
-
-
+  cbn.
+  repeat Vbuild_fix.
   apply Vcons_eq.
   split.
   - apply f_equal, le_unique.
