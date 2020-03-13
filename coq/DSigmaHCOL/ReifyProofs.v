@@ -2577,7 +2577,34 @@ Proof.
            contradict KO; rewrite e; reflexivity |].
         inversion PD; clear PD mem_stable0; rename mem_write_safe0 into MWS.
         specialize (MWS σ m dma).
-        admit.
+
+        clear - Y_DMA KO YME.
+        err_eq_to_equiv_hyp.
+        rewrite YME in Y_DMA.
+        clear YME y_m'.
+
+        assert(mem_lookup k y_m = mem_lookup k (mem_add 0 init y_m)) as P.
+        {
+          unfold mem_lookup, mem_add.
+          rewrite NP.F.add_neq_o by auto.
+          reflexivity.
+        }
+        revert Y_DMA P.
+        generalize (mem_add 0 init y_m) as m0.
+        induction n; intros.
+        --
+          cbn in *.
+          inl_inr_inv.
+          rewrite <- Y_DMA.
+          apply P.
+        --
+          cbn in Y_DMA.
+          repeat break_match_hyp; try inl_inr.
+          eapply IHn.
+          eauto.
+          unfold mem_lookup, mem_add.
+          rewrite NP.F.add_neq_o by auto.
+          apply P.
     +
       exfalso.
       admit.
