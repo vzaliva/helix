@@ -378,13 +378,19 @@ Lemma Vbuild_0: forall B gen, @Vbuild B 0 gen = @Vnil B. Proof. reflexivity. Qed
 
 (* workaround for https://github.com/fblanqui/color/issues/22 *)
 Ltac Vbuild_fix :=
-  let H := fresh in
   match goal with
   | [|- context[(@VecUtil.Vbuild_spec_obligation_5 _ _ (@eq_refl nat ?n))]] =>
+    let H := fresh in
     assert (VecUtil.Vbuild_spec_obligation_5 (eq_refl n) = eq_refl n)
       as H
       by (apply CoLoR.Util.Nat.NatUtil.eq_unique);
-    rewrite H; clear H; cbn
+    rewrite H; clear H; simpl
+  | [H1: context[(@VecUtil.Vbuild_spec_obligation_5 _ _ (@eq_refl nat ?n))] |- _ ] =>
+    let H := fresh in
+    assert (VecUtil.Vbuild_spec_obligation_5 (eq_refl n) = eq_refl n)
+      as H
+      by (apply CoLoR.Util.Nat.NatUtil.eq_unique);
+    rewrite H in H1; clear H; simpl in H1
   end.
 
 Lemma Vbuild_1 B gen:
@@ -528,7 +534,9 @@ Proof.
   intros B n gen.
   rewrite <- Vbuild_head.
   rewrite <- Vbuild_tail.
-  auto.
+  cbn.
+  repeat Vbuild_fix.
+  reflexivity.
 Qed.
 
 Lemma Vforall_Vbuild (T : Type) (P:T -> Prop) (n : nat) (gen : forall i : nat, i < n -> T):
@@ -1475,17 +1483,18 @@ Proof.
     intros H.
     induction n.
     +
-      simpl.
-      inversion H.
+      rewrite Vbuild_0.
       dep_destruct x.
-      crush.
+      reflexivity.
     +
       rewrite Vbuild_cons.
       dep_destruct x. rename x0 into xs, h into x0.
-      simpl.
+      cbn.
       apply Vcons_eq_intro.
       *
-        simpl in H.
+        unfold Vbuild in H.
+        cbn in H.
+        Vbuild_fix.
         repeat break_match_hyp; try inversion H.
         rewrite <- H1. clear H1.
         rewrite <- Heqo.
@@ -1497,7 +1506,9 @@ Proof.
         --
           f_equal.
         --
-          simpl in H.
+          unfold Vbuild in H.
+          cbn in H.
+          Vbuild_fix.
           repeat break_match_hyp; try inversion H.
           apply inj_pair2 in H2.
           rewrite <- H2.
