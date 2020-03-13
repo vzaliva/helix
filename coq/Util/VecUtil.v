@@ -374,12 +374,7 @@ Proof.
     + assumption.
 Qed.
 
-Lemma Vbuild_0:
-  forall B gen, @Vbuild B 0 gen = @Vnil B.
-Proof.
-  intros B gen.
-  auto.
-Qed.
+Lemma Vbuild_0: forall B gen, @Vbuild B 0 gen = @Vnil B. Proof. reflexivity. Qed.
 
 Lemma Vbuild_1 B gen:
   @Vbuild B 1 gen = [gen 0 (lt_0_Sn 0)].
