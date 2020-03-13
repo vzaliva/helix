@@ -3119,6 +3119,58 @@ Proof.
       omega.
 Qed.
 
+Global Instance SHCOL_DSHCOL_mem_block_equiv_proper :
+  Proper ((=) ==> (=) ==> (=) ==> iff) SHCOL_DSHCOL_mem_block_equiv.
+Proof.
+  intros mb mb' MBE ma ma' MAE md md' MDE.
+  unfold SHCOL_DSHCOL_mem_block_equiv.
+  split; intros.
+  all: specialize (H i).
+  -
+    rewrite MBE, MAE, MDE in H.
+    assumption.
+  -
+    rewrite <-MBE, <-MAE, <-MDE in H.
+    assumption.
+Qed.
+
+Global Instance lookup_Pexp_proper :
+  Proper ((=) ==> (=) ==> (=) ==> (=)) lookup_Pexp.
+Proof.
+  intros σ σ' Σ m m' M p p' P.
+  unfold lookup_Pexp, memory_lookup_err, trywith.
+  cbn.
+  repeat break_match.
+  all: eq_to_equiv_hyp; err_eq_to_equiv_hyp.
+  all: try rewrite Σ in *.
+  all: try rewrite M in *.
+  all: try rewrite P in *.
+  all: try constructor.
+  all: rewrite Heqe in *.
+  all: try inl_inr; inl_inr_inv.
+  all: rewrite Heqe0 in *.
+  all: rewrite Heqo in *.
+  all: inversion Heqo0.
+  assumption.
+Qed.
+
+Lemma lookup_Pexp_incrPVar (foo : DSHVal) (σ : evalContext) (m : memory) (p : PExpr) :
+  lookup_Pexp (foo :: σ) m (incrPVar 0 p) ≡
+  lookup_Pexp σ m p.
+Proof.
+  unfold lookup_Pexp.
+  rewrite evalPexp_incrPVar.
+  reflexivity.
+Qed.
+
+Lemma estimateFuel_positive (dop : DSHOperator) :
+  1 <= estimateFuel dop.
+Proof.
+  induction dop.
+  all: try (cbn; constructor; fail).
+  all: cbn; lia.
+Qed.
+
 Global Instance IUnion_MSH_DSH_compat
        {i o n : nat}
        {dop : DSHOperator}
@@ -3158,7 +3210,65 @@ Proof.
     repeat break_match; subst.
     +
       (* evalDSHOperator errors *)
-      admit.
+      pose (opf' := shrink_m_op_family opf).
+      assert (T1 : DSH_pure (DSHLoop n dop) x_p y_p) by (apply Loop_DSH_pure; assumption).
+      assert (T2: (∀ (t : FinNat n) (m : memory),
+                      MSH_DSH_compat (opf' t) dop (DSHnatVal (` t) :: σ) m 
+                                     (incrPVar 0 x_p) (incrPVar 0 y_p))).
+      {
+        clear - FC.
+        subst opf'.
+        intros.
+        unfold shrink_m_op_family.
+        specialize (FC (mkFinNat (le_S (proj2_sig t))) m).
+        enough (T : (` (mkFinNat (le_S (proj2_sig t)))) ≡ (` t))
+          by (rewrite T in FC; assumption).
+        cbv.
+        repeat break_match; congruence.
+      }
+      specialize (IHn opf' T1 T2 m X_M Y_M); clear T1 T2.
+      rewrite evalDSHOperator_estimateFuel_ge in Heqo0
+        by (pose proof estimateFuel_positive dop; cbn; lia).
+      rewrite Heqo0 in IHn; clear Heqo0.
+      rename opf into S_opf, opf' into opf.
+
+      subst opf.
+      remember (λ (md : mem_block) (m' : memory),
+             err_p (λ ma : mem_block, SHCOL_DSHCOL_mem_block_equiv y_m ma md)
+               (lookup_Pexp σ m' y_p))
+        as R.
+      assert (RP : Proper (equiv ==> equiv ==> iff) R).
+      {
+        subst; clear.
+        intros m1 m2 E1 m3 m4 E2.
+        split; intros H; inversion H; clear H; err_eq_to_equiv_hyp.
+        -
+          assert (Proper ((=) ==> iff)
+                         (λ ma : mem_block, SHCOL_DSHCOL_mem_block_equiv y_m ma m2))
+            by (intros m m' ME; rewrite ME; reflexivity).
+          rewrite <-E2.
+          rewrite <-H0.
+          constructor.
+          rewrite <-E1.
+          assumption.
+        -
+          assert (Proper ((=) ==> iff)
+                         (λ ma : mem_block, SHCOL_DSHCOL_mem_block_equiv y_m ma m1))
+            by (intros m m' ME; rewrite ME; reflexivity).
+          rewrite E2.
+          rewrite <-H0.
+          constructor.
+          rewrite E1.
+          assumption.
+      }
+
+      rewrite IUnion_step.
+      clear RP.
+
+      inversion IHn; clear IHn; subst.
+      simpl.
+      rewrite <-H0.
+      constructor.
     +
       rename m0 into loop_m.
       
@@ -3173,70 +3283,105 @@ Proof.
         intros.
         unfold shrink_m_op_family.
         specialize (FC (mkFinNat (le_S (proj2_sig t))) m).
-        enough (T : (` (mkFinNat (le_S (proj2_sig t)))) ≡ (` t)) by (rewrite T in FC; assumption).
+        enough (T : (` (mkFinNat (le_S (proj2_sig t)))) ≡ (` t))
+          by (rewrite T in FC; assumption).
         cbv.
         repeat break_match; congruence.
       }
       specialize (IHn opf' T1 T2 m X_M Y_M); clear T1 T2.
-      cbn.
       rewrite evalDSHOperator_estimateFuel_ge in Heqo0
-        by (cbn; enough (1 <= (estimateFuel dop)) by lia;
-            destruct dop; cbn; lia).
+        by (pose proof estimateFuel_positive dop; cbn; lia).
       rewrite Heqo0 in IHn.
       rename opf into S_opf, opf' into opf.
 
-      assert (T : n < S n) by lia.
-      assert (mem_op (MSHIUnion S_opf) x_m = x_m' <- mem_op (MSHIUnion opf) x_m ;;
-                                             mem_op (S_opf (mkFinNat T)) x_m').
+      subst opf.
+      remember (λ (md : mem_block) (m' : memory),
+             err_p (λ ma : mem_block, SHCOL_DSHCOL_mem_block_equiv y_m ma md)
+               (lookup_Pexp σ m' y_p))
+        as R.
+      assert (RP : Proper (equiv ==> equiv ==> iff) R).
       {
-        admit.
-        (*
-        clear.
-        simpl.
-        break_match.
+        subst; clear.
+        intros m1 m2 E1 m3 m4 E2.
+        split; intros H; inversion H; clear H; err_eq_to_equiv_hyp.
         -
-          cbn in Heqo0.
-          break_match; try some_none; some_inv.
-          eapply Apply_mem_Family_eq_Some in Heqo1.
-          admit.
+          assert (Proper ((=) ==> iff)
+                         (λ ma : mem_block, SHCOL_DSHCOL_mem_block_equiv y_m ma m2))
+            by (intros m m' ME; rewrite ME; reflexivity).
+          rewrite <-E2.
+          rewrite <-H0.
+          constructor.
+          rewrite <-E1.
+          assumption.
         -
-          cbn in *.
-          repeat break_match; try some_none.
-          exfalso.
-          some_inv; subst.
-          admit.
-         *)
+          assert (Proper ((=) ==> iff)
+                         (λ ma : mem_block, SHCOL_DSHCOL_mem_block_equiv y_m ma m1))
+            by (intros m m' ME; rewrite ME; reflexivity).
+          rewrite E2.
+          rewrite <-H0.
+          constructor.
+          rewrite E1.
+          assumption.
       }
-      inversion IHn; inversion H2; clear IHn H2; subst.
 
-      symmetry in H3, H0;
-      rename x into y_lm, H3 into Y_LM, a into mm, H0 into A, H into S. 
+      rewrite IUnion_step.
+      clear RP.
 
-      simpl in S.
-      rewrite A in S.
+      inversion IHn; clear IHn; subst.
+      inversion H1; clear H1; subst.
       cbn [mem_op MSHIUnion].
+      rewrite <-H.
+      simpl.
+      rename a into mm, H into MM, x into y_lm, H0 into Y_LM, H2 into LE.
+      symmetry in MM, Y_LM.
 
-      specialize (FC (mkFinNat T) loop_m) .
+      specialize (FC (mkFinNat (Nat.lt_succ_diag_r n)) loop_m).
+      cbn in FC.
       inversion_clear FC as [F].
-      specialize (F x_m y_lm).
 
-      assert (T1 : lookup_Pexp (DSHnatVal (` (mkFinNat T)) :: σ)
-                               loop_m
-                               (incrPVar 0 x_p)
-                   = inr x_m)
-             by admit. (* from Pure *)
-      assert (T2 : lookup_Pexp (DSHnatVal (` (mkFinNat T)) :: σ)
-                               loop_m
-                               (incrPVar 0 y_p)
-                   = inr y_lm)
-             by admit. (* from Y_LM *)
-      specialize (F T1 T2); clear T1 T2.
-      cbn [proj1_sig mkFinNat] in F.
+      assert (T1 : lookup_Pexp (DSHnatVal n :: σ) loop_m (incrPVar 0 x_p) = inr x_m).
+      {
+        rewrite lookup_Pexp_incrPVar.
+        clear - Heqo0 DP Y_M X_M.
+        pose proof @Loop_DSH_pure n dop x_p y_p DP.
+        inversion_clear H as [T C]; clear T.
+        eq_to_equiv_hyp.
+        specialize (C σ m loop_m (estimateFuel (DSHLoop n dop)) Heqo0).
+        unfold lookup_Pexp in Y_M.
+        cbn in Y_M; break_match; try inl_inr.
+        assert (T : inr m0 = inr m0) by reflexivity.
+        specialize (C m0 T); clear T.
+        unfold memory_equiv_except in *.
+        clear - X_M C.
+        admit.
+      }
+      
+      assert (T2 : lookup_Pexp (DSHnatVal n :: σ) loop_m (incrPVar 0 y_p) = inr y_lm)
+        by (rewrite lookup_Pexp_incrPVar, Y_LM; reflexivity).
+      specialize (F x_m y_lm T1 T2); clear T1 T2.
 
-      admit.
+      rewrite evalDSHOperator_estimateFuel_ge by nia.
+      remember (evalDSHOperator (DSHnatVal n :: σ) dop loop_m (estimateFuel dop)) as dm;
+        clear Heqdm.
+      remember (mem_op (S_opf (mkFinNat (Nat.lt_succ_diag_r n))) x_m) as mmb;
+        clear Heqmmb.
+
+      inversion F; clear F; try constructor.
+      subst.
+      inversion H; clear H.
+      rewrite lookup_Pexp_incrPVar in H0.
+      rewrite <-H0.
+      constructor.
+      clear - H1 LE.
+
+      eapply SHCOL_DSHCOL_mem_block_equiv_comp; eassumption.
     +
-      (* evalDSHOperator runs out of fuel *)
-      admit.
+      exfalso; clear - Heqo0.
+      contradict Heqo0.
+      apply is_Some_ne_None.
+      rewrite evalDSHOperator_estimateFuel_ge
+        by (pose proof estimateFuel_positive dop; cbn; lia).
+      apply evalDSHOperator_estimateFuel.
 Admitted.
 
 
