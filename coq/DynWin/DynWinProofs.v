@@ -2,6 +2,8 @@ Require Import Helix.Util.VecUtil.
 Require Import Helix.Util.Matrix.
 Require Import Helix.Util.FinNat.
 Require Import Helix.Util.VecSetoid.
+Require Import Helix.Util.ErrorSetoid.
+Require Import Helix.Util.OptionSetoid.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.Util.Misc.
 Require Import Helix.Util.FinNatSet.
@@ -20,10 +22,10 @@ Require Import Coq.Arith.Compare_dec.
 Require Import Coq.Arith.Peano_dec.
 Require Import Coq.Strings.String.
 
-
 Require Import Helix.Tactics.HelixTactics.
 Require Import Helix.HCOL.HCOLBreakdown.
 Require Import Helix.SigmaHCOL.SigmaHCOLRewriting.
+
 
 Require Import MathClasses.interfaces.canonical_names.
 
@@ -238,6 +240,7 @@ End SHCOL_to_MSHCOL.
 
 Require Import Helix.DSigmaHCOL.ReifyMSHCOL.
 Require Import Helix.DSigmaHCOL.DSHCOLOnCarrierA.
+Require Import Helix.DSigmaHCOL.ReifyProofs.
 
 Section MSHCOL_to_DSHCOL.
 
@@ -245,8 +248,245 @@ Section MSHCOL_to_DSHCOL.
 
   Run TemplateProgram (reifyMSHCOL dynwin_MSHCOL1 ["dynwin_MSHCOL1"] "dynwin_DSHCOL1" "dynwin_DSHCOL1_globals").
 
-  (* Import DSHNotation.
-  Print dynwin_DSHCOL1. *)
+  (* Import DSHNotation. *)
+
+  Definition nglobals := List.length (dynwin_DSHCOL1_globals).
+  Definition DSH_x_p := PVar (nglobals+1).
+  Definition DSH_y_p := PVar (nglobals+0).
+
+  (* This tactics solves both [MSH_DSH_compat] and [DSH_pure] goals along with typical
+     obligations *)
+  Ltac solve_MSH_DSH_compat :=
+    repeat match goal with
+      [ |-  @MSH_DSH_compat ?i ?o (@MSHBinOp ?p01 ?p02 ?p03) ?p1 ?p2 ?p3 ?p4 ?p5 ?p6] =>
+      replace
+        (@MSH_DSH_compat i o (@MSHBinOp p01 p02 p03) p1 p2 p3 p4 p5 p6) with
+      (@MSH_DSH_compat (o+o) o (@MSHBinOp p01 p02 p03) p1 p2 p3 p4 p5 p6)
+        by apply eq_refl ; eapply BinOp_MSH_DSH_compat; intros
+    | |- MSH_DSH_compat (MSHCompose _ _) _ _ _ _ _ => unshelve eapply Compose_MSH_DSH_compat; intros
+    | |- MSH_DSH_compat (MHTSUMUnion _ _ _) _ _ _ _ _ => unshelve eapply HTSUMUnion_MSH_DSH_compat; intros
+    | |- MSH_DSH_compat (MSHIReduction _ _ _) _ _ _ _ _ => unshelve eapply IReduction_MSH_DSH_compat; intros
+    | |- MSH_DSH_compat (MSHPick  _) _ _ _ _ _ => apply Pick_MSH_DSH_compat
+    | |- MSH_DSH_compat (MSHInductor _ _ _) _ _ _ _ _ => unshelve eapply Inductor_MSH_DSH_compat; intros
+    | |- MSH_DSH_compat (MSHPointwise _) _ _ _ _ _ => apply Pointwise_MSH_DSH_compat; intros
+    | |- MSH_DSH_compat (MSHEmbed _) _ _ _ _ _ => apply Embed_MSH_DSH_compat; intros
+    | |- MSH_DSH_compat (MSHIUnion _) _ _ _ _ _ => unshelve eapply IUnion_MSH_DSH_compat; intros
+
+    (* DSH_Pure *)
+    | [ |- DSH_pure (DSHSeq _ _) _ _] => apply DSHSeq_DSH_pure
+    | [ |- DSH_pure (DSHAssign _ _) _ _ ] => apply Assign_DSH_pure
+    | [ |- DSH_pure (DSHPower _ _ _ _ _) _ _] => apply Power_DSH_pure
+    | [ |- DSH_pure (DSHIMap _ _ _ _) _ _] => apply IMap_DSH_pure
+    | [ |- DSH_pure (DSHLoop _ _) _ _] => apply Loop_DSH_pure
+    | [ |- DSH_pure (DSHBinOp _ _ _ _) _ _] => apply BinOp_DSH_pure
+    | [ |-
+        DSH_pure (DSHAlloc _
+                           (DSHSeq
+                              (DSHMemInit _ _ _)
+                              (DSHLoop _
+                                       (DSHSeq
+                                          _
+                                          (DSHMemMap2 _ _
+                                                      _
+                                                      _
+                                                      _)))))
+                 _ _] => apply IReduction_DSH_pure
+    | [ |- DSH_pure (DSHAlloc _ (DSHSeq _ _)) _ _ ] => apply Compose_DSH_pure
+    | [ |- PVar _ ≡ incrPVar 0 _] => auto
+
+    (* Compat Obligations *)
+    | [ |- MSH_DSH_IBinCarrierA_compat _ _ _ _] => constructor ; intros
+    | [ |- MSH_DSH_BinCarrierA_compat _ _ _ _] => constructor
+    | [ |- ErrorSetoid.herr_f _ _ _ _ _] =>
+      let H := fresh "H" in
+      constructor;
+      cbv;
+      intros H;
+      inversion H
+    | _ => try reflexivity
+    end.
+
+  (* TODO: This is a manual proof. To be automated in future. See [[../../doc/TODO.org]] for details *)
+  Instance DynWin_pure
+    :
+      DSH_pure (dynwin_DSHCOL1) DSH_x_p DSH_y_p.
+  Proof.
+    unfold dynwin_DSHCOL1, DSH_y_p, DSH_x_p.
+    solve_MSH_DSH_compat.
+  Qed.
+
+  Section DummyEnv.
+
+    (* Could be automatically universally quantified on these *)
+    Parameter a:vector CarrierA 3.
+    Parameter x:mem_block.
+
+    Definition dynwin_a_addr:mem_block_id := 1.
+    Definition dynwin_x_addr:mem_block_id := 2.
+    Definition dynwin_y_addr:mem_block_id := 3.
+
+    Definition dynwin_globals_mem :=
+      (memory_set memory_empty dynwin_a_addr (avector_to_mem_block a)).
+
+    (* Initialize memory with X and placeholder for Y. *)
+    Definition dynwin_memory :=
+      memory_set
+        (memory_set dynwin_globals_mem dynwin_x_addr x)
+        dynwin_y_addr mem_empty.
+
+    Definition dynwin_σ_globals:evalContext :=
+      [
+        DSHPtrVal dynwin_a_addr 3
+      ].
+
+    Definition dynwin_σ:evalContext :=
+      dynwin_σ_globals ++
+      [
+        DSHPtrVal dynwin_y_addr dynwin_o
+        ; DSHPtrVal dynwin_x_addr dynwin_i
+      ].
+
+    (* TODO: move, but not sure where. We do not have MemorySetoid.v *)
+    Lemma memory_lookup_not_next_equiv {m k v}:
+      memory_lookup m k = Some v ->
+      k ≢ memory_next_key m.
+    Proof.
+      intros H.
+      destruct (eq_nat_dec k (memory_next_key m)) as [E|NE]; [exfalso|auto].
+      rewrite E in H. clear E.
+      pose proof (memory_lookup_memory_next_key_is_None m) as N.
+      unfold util.is_None in N.
+      break_match_hyp; [trivial|some_none].
+    Qed.
+
+    (* This lemma could be auto-generated *)
+    Instance DynWin_MSH_DSH_compat
+      :
+        @MSH_DSH_compat dynwin_i dynwin_o (dynwin_MSHCOL1 a) (dynwin_DSHCOL1)
+                        dynwin_σ
+                        dynwin_memory
+                        DSH_x_p DSH_y_p
+                        DynWin_pure.
+    Proof.
+      unfold dynwin_DSHCOL1, DSH_y_p, DSH_x_p.
+      unfold dynwin_x_addr, dynwin_y_addr, dynwin_a_addr in *.
+      unfold dynwin_MSHCOL1.
+      cbn in *.
+
+      solve_MSH_DSH_compat.
+
+      (* This remailing obligation proof is not yet automated *)
+      {
+        (* [a] is defined in section *)
+        constructor; intros.
+        unfold evalIUnCType, Fin1SwapIndex.
+        cbn.
+
+        unfold mult_by_nth, const.
+        subst tmpk.
+
+        repeat break_match; inversion Heqs; subst.
+        -
+          exfalso.
+          destruct t as [t tc].
+
+          match goal with
+          | [H0: memory_equiv_except ?m m'' _ |- _] => remember m as m0
+          end.
+
+          assert(memory_lookup m0 dynwin_a_addr ≡ Some (avector_to_mem_block a)) as M0
+              by (subst m0;reflexivity).
+
+          assert(dynwin_a_addr ≢ memory_next_key m0) as NM0 by
+                (eapply memory_lookup_not_next; eauto).
+
+          specialize (H0 dynwin_a_addr NM0).
+
+          rewrite M0 in H0. symmetry in H0.
+
+          assert(dynwin_a_addr ≢ memory_next_key m'') as NM1
+              by (eapply memory_lookup_not_next_equiv; eauto).
+
+          specialize (H1 dynwin_a_addr NM1).
+          rewrite H0 in H1. symmetry in H1.
+
+          err_eq_to_equiv_hyp.
+          apply memory_lookup_err_inl_None in Heqe.
+          some_none.
+        -
+          f_equiv.
+          destruct t as [t tc].
+          cbn. cbn in Heqo.
+
+          match goal with
+          | [H0: memory_equiv_except ?m m'' _ |- _] => remember m as m0
+          end.
+
+          assert(memory_lookup m0 dynwin_a_addr ≡ Some (avector_to_mem_block a)) as M0
+              by (subst m0;reflexivity).
+
+          assert(dynwin_a_addr ≢ memory_next_key m0) as NM0 by
+                (eapply memory_lookup_not_next; eauto).
+
+          specialize (H0 dynwin_a_addr NM0).
+
+          rewrite M0 in H0. symmetry in H0.
+
+          assert(dynwin_a_addr ≢ memory_next_key m'') as NM1
+              by (eapply memory_lookup_not_next_equiv; eauto).
+
+          specialize (H1 dynwin_a_addr NM1).
+          rewrite H0 in H1. symmetry in H1.
+
+          err_eq_to_equiv_hyp.
+          apply memory_lookup_err_inr_Some in Heqe.
+          rewrite Heqe in  H1.
+          some_inv.
+
+          eq_to_equiv_hyp.
+          rewrite H1 in Heqo.
+          rewrite mem_lookup_avector_to_mem_block_equiv with (kc:=tc) in Heqo.
+          some_inv.
+          rewrite Heqo.
+          reflexivity.
+        -
+          f_equiv.
+          destruct t as [t tc].
+          cbn. cbn in Heqo.
+
+          match goal with
+          | [H0: memory_equiv_except ?m m'' _ |- _] => remember m as m0
+          end.
+
+          assert(memory_lookup m0 dynwin_a_addr ≡ Some (avector_to_mem_block a)) as M0
+              by (subst m0;reflexivity).
+
+          assert(dynwin_a_addr ≢ memory_next_key m0) as NM0 by
+                (eapply memory_lookup_not_next; eauto).
+
+          specialize (H0 dynwin_a_addr NM0).
+
+          rewrite M0 in H0. symmetry in H0.
+
+          assert(dynwin_a_addr ≢ memory_next_key m'') as NM1
+              by (eapply memory_lookup_not_next_equiv; eauto).
+
+          specialize (H1 dynwin_a_addr NM1).
+          rewrite H0 in H1. symmetry in H1.
+
+          err_eq_to_equiv_hyp.
+          apply memory_lookup_err_inr_Some in Heqe.
+          rewrite Heqe in  H1.
+          some_inv.
+
+          eq_to_equiv_hyp.
+          rewrite H1 in Heqo.
+          rewrite mem_lookup_avector_to_mem_block_equiv with (kc:=tc) in Heqo.
+          some_none.
+      }
+    Qed.
+
+  End DummyEnv.
 
 End MSHCOL_to_DSHCOL.
 
@@ -307,7 +547,7 @@ Section SigmaHCOL_rewriting.
         compute in xc.
         unfold In.
         unfold index_map_range_set.
-        repeat (destruct x; crush).
+        repeat (destruct x0; crush).
   Qed.
 
   Lemma DynWinSigmaHCOL_dense_output
@@ -462,12 +702,12 @@ Section SigmaHCOL_rewriting.
           (singleton (n:=2) 0).
       {
         destruct x.
-        destruct x.
+        destruct x0.
         apply Union_intror.
         unfold singleton, In.
         crush.
 
-        destruct x.
+        destruct x0.
         apply Union_introl.
         unfold singleton, In.
         crush.
@@ -482,12 +722,12 @@ Section SigmaHCOL_rewriting.
       intros x H.
 
       destruct x.
-      destruct x.
+      destruct x0.
       apply Union_introl.
       unfold singleton, In.
       crush.
 
-      destruct x.
+      destruct x0.
       apply Union_intror.
       unfold singleton, In.
       crush.
@@ -854,7 +1094,7 @@ Section SigmaHCOL_rewriting.
 
       (* 1 *)
       compute in xc.
-      destruct x.
+      destruct x0.
       apply Union_intror.
       apply Union_intror.
       apply Union_introl.
@@ -864,7 +1104,7 @@ Section SigmaHCOL_rewriting.
 
       (* 2 *)
       compute in xc.
-      destruct x.
+      destruct x0.
       apply Union_intror.
       apply Union_introl.
       apply Union_intror.
@@ -873,7 +1113,7 @@ Section SigmaHCOL_rewriting.
 
       (* 3 *)
       compute in xc.
-      destruct x.
+      destruct x0.
       apply Union_intror.
       apply Union_intror.
       apply Union_introl.
@@ -882,7 +1122,7 @@ Section SigmaHCOL_rewriting.
 
       (* 4 *)
       compute in xc.
-      destruct x.
+      destruct x0.
       apply Union_intror.
       apply Union_introl.
       apply Union_introl.
@@ -935,6 +1175,7 @@ Section SigmaHCOL_rewriting.
         pose proof (DynWinSigmaHCOL1_dense_input a) as E1.
         apply Extensionality_Ensembles in E.
         apply Extensionality_Ensembles in E1.
+        unfold dynwin_i, dynwin_o in *.
         rewrite E, E1.
         unfold Included.
         intros x H.
@@ -944,6 +1185,7 @@ Section SigmaHCOL_rewriting.
         pose proof (DynWinSigmaHCOL1_dense_output a) as E1.
         apply Extensionality_Ensembles in E.
         apply Extensionality_Ensembles in E1.
+        unfold dynwin_i, dynwin_o in *.
         rewrite E, E1.
         unfold Same_set.
         split; unfold Included; auto.
@@ -1052,6 +1294,5 @@ Section DHCOL_to_FHCOL.
       exact d.
     - inversion H.
   Defined.
-
 
 End DHCOL_to_FHCOL.

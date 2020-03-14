@@ -1,6 +1,6 @@
 * HELIX
 
-[[https://travis-ci.com/vzaliva/helix][https://travis-ci.com/vzaliva/helix.svg?token=x87izvm44MdTPLHzuxzF&branch=master]]
+[[https://travis-ci.com/vzaliva/helix][https://travis-ci.com/vzaliva/helix.svg?token=x87izvm44MdTPLHzuxzF&branch=const-pointers]]
 
 HELIX is a formally verified operator language and rewriting engine
 for generation of highperformance implementation for a variety of
@@ -23,20 +23,21 @@ proof assistant.
 
 ** Dependencies
 
-   - [[https://coq.inria.fr/][Coq 8.9.1]]
+   - [[https://coq.inria.fr/][Coq]]
    - [[http://color.inria.fr/][CoLoR]]
    - [[https://github.com/coq-ext-lib/coq-ext-lib][ExtLib]]
    - [[https://github.com/math-classes/math-classes][math-classes]]
    - [[https://github.com/MetaCoq/metacoq][Template Coq]]
    - [[http://flocq.gforge.inria.fr/][Flocq]]
    - [[https://github.com/vellvm/vellvm][Vellvm]] (requires ~coq-ceres~, ~coq-ext-lib~, ~coq-paco~, and ~coq-flocq~) /(*manual installation instructions below)/
-   - [[https://opensource.janestreet.com/core/][Core]]
+   - [[https://opensource.janestreet.com/core/][Jane Street Core]]
    - [[https://github.com/Karmaki/coq-dpdgraph][coq-dpdgraph]] /(optional)/
 
  To install all required dependenceis:
 
 #+BEGIN_SRC sh
      opam repo add coq-released https://coq.inria.fr/opam/released
+     opam pin add coq 8.10.2 
      opam install --jobs=4 coq coq-color coq-ext-lib coq-math-classes coq-dpdgraph coq-metacoq-template coq-flocq coq-switch ANSITerminal coq-paco coq-ceres dune menhir core core_kernel
      opam remove coq-itree # conflicts with submodule copy from Vellvm
 #+END_SRC
@@ -46,7 +47,6 @@ proof assistant.
 #+BEGIN_SRC sh
      opam install coq-dpdgraph
 #+END_SRC
-
 
 ** Bulding and Running 
 

@@ -930,108 +930,135 @@ Section OperatorPairwiseProofs.
         (SHInductor (svalue:=svalue) fm n f initial)
         (MSHInductor n f initial).
     Proof.
-      split.
+      destruct n.
       -
-        typeclasses eauto.
-      -
-        typeclasses eauto.
-      -
-        reflexivity.
-      -
-        reflexivity.
-      -
-        intros x H.
-        simpl.
-        unfold SHInductor_impl, HInductor, compose, mem_op_of_hop, HCOLImpl.Scalarize, Lst.
-        Opaque liftM.
-        simpl.
-        break_match.
+        split.
         +
+          typeclasses eauto.
+        +
+          typeclasses eauto.
+        +
+          reflexivity.
+        +
+          reflexivity.
+        +
+          intros x H.
+
+          cbn in H.
+          assert(0<1) as jc by lia.
+          assert(Full_set (FinNat 1) (mkFinNat jc)) as F by constructor.
+          specialize (H 0 jc F). clear F.
+
+          simpl.
+          unfold SHInductor_impl, HInductor, compose, mem_op_of_hop, HCOLImpl.Scalarize, Lst.
           f_equiv.
-          dep_destruct t.
-          dep_destruct x0. clear x0 t.
-          unfold svector_to_mem_block, avector_to_mem_block.
-          svector_to_mem_block_to_spec m0 H0 I0 O0.
-          avector_to_mem_block_to_spec m2 H2 O2.
-          simpl in *.
-          mem_index_equiv k.
-          destruct (lt_ge_dec k 1) as [kc | nkc].
-          *
-            clear O0 O2 I0.
-            unfold mem_lookup, mem_empty in *.
-            dep_destruct k; try lia.
-            specialize (H2 0 kc).
-            rewrite H2; clear H2.
-            rewrite Vnth_0.
-            simpl.
-            specialize (H0 0 kc).
-            rewrite Vnth_0 in H0.
-            destruct H0 as [H0 _].
-            unfold Is_Val, compose in H0.
-            simpl in H0.
-            rewrite execWriter_liftM in H0.
-            dep_destruct x.
-            dep_destruct x0. clear x.
-            simpl in H0.
-
-            destruct (IsVal_dec (execWriter h)) as [V|NV].
-            --
-              specialize (H0 V).
-              clear V H.
-              apply NM.find_1 in H0.
-              rewrite H0.
-              f_equiv.
-              rewrite evalWriter_Rtheta_liftM.
-              replace h0 with (evalWriter h).
-              reflexivity.
-
-              rename Heqo into C.
-              unfold svector_to_mem_block, mem_block_to_avector in C.
-              simpl in C.
-              break_match_hyp; try some_none.
-              unfold mem_lookup, mem_add, mem_empty in *.
-              break_if.
-              ++
-                erewrite NP.F.add_eq_o in Heqo by reflexivity.
-                repeat some_inv.
-                subst.
-                reflexivity.
-              ++
-                contradict Heqo.
-                apply None_ne_Some.
-                apply NP.F.empty_o.
-            --
-              contradict NV.
-              specialize (H 0 kc).
-              apply H.
-              apply Full_intro.
-          *
-            rewrite O0, O2; auto.
+          Opaque liftM.
+          (* Could not be proven, as [liftM] will evaluate [x]
+             even when [n=0]. This requires changes to [SHInductor_impl] *)
+          admit.
+      -
+        split.
         +
-          exfalso.
-          rename Heqo into C.
-          dep_destruct x.
-          dep_destruct x0.
-          unfold svector_to_mem_block, mem_block_to_avector in C.
-          simpl in C.
-          break_match_hyp; try some_none.
-          clear C; rename Heqo into C.
-          unfold mem_lookup, mem_add, mem_empty in *.
-          break_if.
+          typeclasses eauto.
+        +
+          typeclasses eauto.
+        +
+          reflexivity.
+        +
+          reflexivity.
+        +
+          intros x H.
+          simpl.
+          unfold SHInductor_impl, HInductor, compose, mem_op_of_hop, HCOLImpl.Scalarize, Lst.
+          Opaque liftM.
+          simpl.
+          break_match.
           *
-            erewrite NP.F.add_eq_o in C by reflexivity.
-            some_none.
-          *
-            clear C.
+            f_equiv.
+            dep_destruct t.
+            dep_destruct x0. clear x0 t.
+            unfold svector_to_mem_block, avector_to_mem_block.
+            svector_to_mem_block_to_spec m0 H0 I0 O0.
+            avector_to_mem_block_to_spec m2 H2 O2.
             simpl in *.
-            clear Heqd.
-            contradict n0.
-            specialize (H 0 Nat.lt_0_1).
-            rewrite Vnth_0 in H.
-            simpl in H.
-            eapply H.
-            apply Full_intro.
-    Qed.
+            mem_index_equiv k.
+            destruct (lt_ge_dec k 1) as [kc | nkc].
+            --
+              clear O0 O2 I0.
+              unfold mem_lookup, mem_empty in *.
+              dep_destruct k; try lia.
+              specialize (H2 0 kc).
+              rewrite H2; clear H2.
+              rewrite Vnth_0.
+              simpl.
+              specialize (H0 0 kc).
+              rewrite Vnth_0 in H0.
+              destruct H0 as [H0 _].
+              unfold Is_Val, compose in H0.
+              simpl in H0.
+              rewrite execWriter_liftM in H0.
+              dep_destruct x.
+              dep_destruct x0. clear x.
+              simpl in H0.
+
+              destruct (IsVal_dec (execWriter h)) as [V|NV].
+              ++
+                specialize (H0 V).
+                clear V H.
+                apply NM.find_1 in H0.
+                rewrite H0.
+                f_equiv.
+                rewrite evalWriter_Rtheta_liftM.
+                replace h0 with (evalWriter h).
+                reflexivity.
+
+                rename Heqo into C.
+                unfold svector_to_mem_block, mem_block_to_avector in C.
+                unfold Vbuild in C; simpl in C; Vbuild_fix.
+                break_match_hyp; try some_none.
+                unfold mem_lookup, mem_add, mem_empty in *.
+                break_if.
+                **
+                  erewrite NP.F.add_eq_o in Heqo by reflexivity.
+                  repeat some_inv.
+                  subst.
+                  reflexivity.
+                **
+                  contradict Heqo.
+                  apply None_ne_Some.
+                  apply NP.F.empty_o.
+              ++
+                contradict NV.
+                specialize (H 0 kc).
+                apply H.
+                apply Full_intro.
+            --
+              rewrite O0, O2; auto.
+          *
+            exfalso.
+            rename Heqo into C.
+            dep_destruct x.
+            dep_destruct x0.
+            unfold svector_to_mem_block, mem_block_to_avector in C.
+            unfold Vbuild in C; simpl in C; Vbuild_fix.
+            break_match_hyp; try some_none.
+            clear C; rename Heqo into C.
+            unfold mem_lookup, mem_add, mem_empty in *.
+            break_if.
+            --
+              erewrite NP.F.add_eq_o in C by reflexivity.
+              some_none.
+            --
+              clear C.
+              simpl in *.
+              clear Heqd.
+              contradict n0.
+              specialize (H 0 Nat.lt_0_1).
+              rewrite Vnth_0 in H.
+              simpl in H.
+              eapply H.
+              apply Full_intro.
+    Admitted.
 
   End WithMonoid.
 
@@ -1308,8 +1335,8 @@ Section OperatorPairwiseProofs.
           break_match.
           *
             (* both mem_ops return Some *)
-            rename m into m1, m0 into m2. (* to match operator indices *)
-            destruct (mem_merge m1 m2) eqn:MM.
+            rename m into m2, m0 into m1. (* to match operator indices *)
+            destruct (mem_merge m2 m1) eqn:MM.
             --
               (* mem_merge succeeds *)
               apply RelUtil.opt_r_Some.
@@ -1346,7 +1373,7 @@ Section OperatorPairwiseProofs.
                 destruct (NP.F.In_dec m k) as [K | NK].
                 **
                   (* k in m *)
-                  pose proof (mem_union_key_dec m m1 m2 MM k) as [MD _].
+                  pose proof (mem_union_key_dec m m2 m1 MM k) as [MD _].
                   specialize (MD K).
                   clear H1.
                   apply P in K; clear P.
@@ -1376,11 +1403,12 @@ Section OperatorPairwiseProofs.
 
                   inversion MD.
                   ---
-                    (* k in m1 *)
+                    (* k in m2 *)
                     rename H into M1.
-                    assert(NM2: not (NM.In (elt:=CarrierA) k m2)).
+                    assert(NM1: not (NM.In (elt:=CarrierA) k m1)).
                     {
-                      apply mem_keys_disjoint_inr with (m1:=m1).
+                      apply mem_keys_disjoint_inr with (m1:=m2).
+                      rewrite is_disjoint_sym.
                       destruct Meq1.
                       apply Extensionality_Ensembles in out_pattern_compat0.
                       rewrite out_pattern_compat0 in compat.
@@ -1398,17 +1426,17 @@ Section OperatorPairwiseProofs.
                       eauto.
                     }
 
-                    break_match; try (apply NP.F.not_find_in_iff in Heqo0; congruence).
+                    break_match; try (apply NP.F.not_find_in_iff in Heqo2; congruence).
 
                     (* derive m1[k] *)
-                    assert (G1: (∀ (j : nat) (jc : (j < i)%nat), in_index_set Monoid_RthetaFlags op1 (mkFinNat jc) →  Is_Val (Vnth x jc))).
+                    assert (G1: (∀ (j : nat) (jc : (j < i)%nat), in_index_set Monoid_RthetaFlags op2 (mkFinNat jc) →  Is_Val (Vnth x jc))).
                     {
                       intros j jc H.
                       apply G.
-                      apply Union_introl.
+                      right.
                       apply H.
                     }
-                    apply Meq1 in G1.
+                    apply Meq2 in G1.
                     rewrite Heqo2 in G1.
                     some_inv.
                     unfold equiv, mem_block_Equiv, NM.Equal in G1.
@@ -1430,26 +1458,28 @@ Section OperatorPairwiseProofs.
                     rewrite evalWriter_Rtheta_liftM2.
 
                     unshelve epose proof (out_mem_fill_pattern _ _ Heqo3) as P2.
-                    apply Meq2.
+                    apply Meq1.
                     unfold mem_in in P2. specialize (P2 k kc).
                     apply not_iff_compat in P2.
-                    apply P2 in NM2.
-                    rewrite <- O2 in NM2.
-                    apply svalue_at_sparse with (v:=x) in NM2.
-                    rewrite NM2.
-                    apply monoid_right_id.
+                    apply P2 in NM1.
+                    rewrite <- O1 in NM1.
+                    apply svalue_at_sparse with (v:=x) in NM1.
+                    rewrite NM1.
+                    apply monoid_left_id.
                     apply af_mon.
+
+                    rewrite <-NP.F.not_find_in_iff in Heqo0.
+                    congruence.
                   ---
                     (* k in m2 *)
                     rename H into M2.
-                    assert(NM1: not (NM.In (elt:=CarrierA) k m1)).
+                    assert(NM2: not (NM.In (elt:=CarrierA) k m2)).
                     {
-                      apply mem_keys_disjoint_inr with (m1:=m2).
-                      rewrite is_disjoint_sym.
-                      destruct Meq1.
+                      apply mem_keys_disjoint_inr with (m1:=m1).
+                      destruct Meq2.
                       apply Extensionality_Ensembles in out_pattern_compat0.
                       rewrite out_pattern_compat0 in compat.
-                      destruct Meq2.
+                      destruct Meq1.
                       apply Extensionality_Ensembles in out_pattern_compat1.
                       rewrite out_pattern_compat1 in compat.
                       apply is_disjoint_Disjoint.
@@ -1462,18 +1492,18 @@ Section OperatorPairwiseProofs.
                       eauto.
                       eauto.
                     }
-                    break_match; try (apply NP.F.not_find_in_iff in NM1; congruence).
+                    break_match; try (apply NP.F.not_find_in_iff in NM2; congruence).
                     clear Heqo0.
 
                     (* derive m2[k] *)
-                    assert (G2: (∀ (j : nat) (jc : (j < i)%nat), in_index_set Monoid_RthetaFlags op2 (mkFinNat jc) →  Is_Val (Vnth x jc))).
+                    assert (G2: (∀ (j : nat) (jc : (j < i)%nat), in_index_set Monoid_RthetaFlags op1 (mkFinNat jc) →  Is_Val (Vnth x jc))).
                     {
                       intros j jc H.
                       apply G.
-                      apply Union_intror.
+                      left.
                       apply H.
                     }
-                    apply Meq2 in G2.
+                    apply Meq1 in G2.
                     rewrite Heqo3 in G2.
                     some_inv.
                     unfold equiv, mem_block_Equiv in G2.
@@ -1494,14 +1524,14 @@ Section OperatorPairwiseProofs.
                     rewrite evalWriter_Rtheta_liftM2.
 
                     unshelve epose proof (out_mem_fill_pattern _ _ Heqo2) as P1.
-                    apply Meq1.
+                    apply Meq2.
                     unfold mem_in in P1. specialize (P1 k kc).
                     apply not_iff_compat in P1.
-                    apply P1 in NM1.
-                    rewrite <- O1 in NM1.
-                    apply svalue_at_sparse with (v:=x) in NM1.
-                    rewrite NM1.
-                    apply monoid_left_id.
+                    apply P1 in NM2.
+                    rewrite <- O2 in NM2.
+                    apply svalue_at_sparse with (v:=x) in NM2.
+                    rewrite NM2.
+                    apply monoid_right_id.
                     apply af_mon.
                 **
                   (* k not in m *)
@@ -1536,21 +1566,21 @@ Section OperatorPairwiseProofs.
                 intros N.
                 apply mem_merge_to_mem_union in MM.
                 rewrite MM in N.
-                apply (mem_union_key_dec m m1 m2 MM k) in N.
+                apply (mem_union_key_dec m m2 m1 MM k) in N.
                 generalize dependent (svector_to_mem_block _ x).
                 intros m0 H1 H2.
                 destruct N as [IN1 | IN2].
                 **
                   (* prove contradiction in N1 *)
                   unshelve epose proof (out_mem_oob _ _ H1) as NP1.
-                  apply Meq1.
+                  apply Meq2.
                   specialize (NP1 k kc).
                   unfold mem_in in NP1.
                   congruence.
                 **
                   (* prove contradiction in N1 *)
                   unshelve epose proof (out_mem_oob _ _ H2) as NP2.
-                  apply Meq2.
+                  apply Meq1.
                   specialize (NP2 k kc).
                   unfold mem_in in NP2.
                   congruence.
@@ -1572,13 +1602,13 @@ Section OperatorPairwiseProofs.
               (* by `compat` hypothes, output index sets of op1 and op2 are disjoint.
                yet, but IN1 and IN2, 'k' belongs to both *)
               unshelve epose proof (out_mem_fill_pattern _ _ H1) as P1.
-              apply Meq1.
+              apply Meq2.
               unshelve epose proof (out_mem_oob _ _ H1) as NP1.
-              apply Meq1.
+              apply Meq2.
               unshelve epose proof (out_mem_fill_pattern _ _ H2) as P2.
-              apply Meq2.
+              apply Meq1.
               unshelve epose proof (out_mem_oob _ _ H2) as NP2.
-              apply Meq2.
+              apply Meq1.
               destruct (NatUtil.lt_ge_dec k o) as [kc | nkc].
               ++
                 clear NP1 NP2.
@@ -1597,24 +1627,24 @@ Section OperatorPairwiseProofs.
             contradict Heqo1.
             apply is_Some_ne_None.
             unshelve eapply mem_out_some; eauto.
-            apply Meq2.
+            apply Meq1.
             intros j jc H.
             apply svector_to_mem_block_In with (jc0:=jc).
             apply G.
             simpl.
-            apply Union_intror.
+            left.
             apply in_pattern_compat.
             apply H.
         +
           contradict Heqo0.
           apply is_Some_ne_None.
           unshelve eapply mem_out_some; eauto.
-          apply Meq1.
+          apply Meq2.
           intros j jc H.
           apply svector_to_mem_block_In with (jc0:=jc).
           apply G.
           simpl.
-          apply Union_introl.
+          right.
           apply in_pattern_compat.
           apply H.
     Qed.
@@ -1762,11 +1792,17 @@ Section OperatorPairwiseProofs.
         +
           inversion S.
           unfold Is_Val, compose, IsVal, Is_true, not in *.
-          repeat break_if; try crush.
+          repeat break_if.
+          1,3,4: intuition.
+          rewrite H0 in *.
+          congruence.
         +
           inversion S.
           unfold Is_Val, compose, IsVal, Is_true, not in *.
-          repeat break_if; try crush.
+          repeat break_if.
+          1,2,4: intuition.
+          rewrite H0 in *.
+          congruence.
         +
           apply not_iff_compat in Ia.
           apply not_iff_compat in Ib.

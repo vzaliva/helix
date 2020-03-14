@@ -322,6 +322,39 @@ Module MMSHCOL'
         omega.
   Qed.
 
+  Lemma mem_block_to_avector_eq_None {n m}:
+    @mem_block_to_avector n m ≡ None ->
+    exists j (jc:j<n), mem_lookup j m ≡ None.
+  Proof.
+    intros H.
+    apply vsequence_Vbuild_eq_None.
+    apply H.
+  Qed.
+
+  Lemma mem_lookup_avector_to_mem_block
+        {n:nat}
+        {v: avector n}:
+    forall (k:nat) (kc:lt k n), mem_lookup k (avector_to_mem_block v) ≡ Some (Vnth v kc).
+  Proof.
+    intros k kc.
+    unfold avector_to_mem_block.
+    destruct (avector_to_mem_block_spec v) as [m H0].
+    apply H0.
+  Qed.
+
+  Lemma mem_lookup_avector_to_mem_block_equiv
+        {n:nat}
+        {v: avector n}:
+    forall (k:nat) (kc:lt k n), mem_lookup k (avector_to_mem_block v) = Some (Vnth v kc).
+  Proof.
+    intros k kc.
+    unfold avector_to_mem_block.
+    destruct (avector_to_mem_block_spec v) as [m H0].
+    apply Option_equiv_eq.
+    apply H0.
+  Qed.
+
+
   Lemma mem_block_avector_id {n} {v:avector n}:
     (mem_block_to_avector (avector_to_mem_block v)) ≡ Some v.
   Proof.
@@ -562,7 +595,7 @@ Module MMSHCOL'
   Definition HTSUMUnion_mem
              (op1 op2: mem_block -> option mem_block)
     : mem_block -> option mem_block
-    := fun x => (liftM2 mem_union) (op1 x) (op2 x).
+    := fun x => (liftM2 mem_union) (op2 x) (op1 x).
 
   Definition IReduction_mem
              {n: nat}
@@ -1618,13 +1651,44 @@ Module MMSHCOL'
                       (Full_set _)
                       (Full_set _).
 
+  Definition Inductor_mem
+             (n:nat)
+             (f: CarrierA -> CarrierA -> CarrierA)
+             (initial: CarrierA):
+             mem_block -> option mem_block
+    :=
+      match n with
+      | O => fun _ =>
+              (* For [n=0] it always succeeds and do not event attempt
+                 to read input vector *)
+              Some (avector_to_mem_block (Lst initial))
+      | _ => mem_op_of_hop (HInductor n f initial)
+      end.
+
+  Global Instance Inductor_mem_proper
+         (n:nat)
+         (f: CarrierA -> CarrierA -> CarrierA)
+         `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+         (initial: CarrierA)
+    :
+      Proper (equiv ==> equiv) (Inductor_mem n f initial).
+  Proof.
+    destruct n.
+    -
+      cbn.
+      simpl_relation.
+    -
+      cbn.
+      typeclasses eauto.
+  Qed.
+
   Definition MSHInductor
              (n:nat)
              (f: CarrierA -> CarrierA -> CarrierA)
              `{pF: !Proper ((=) ==> (=) ==> (=)) f}
              (initial: CarrierA)
     := @mkMSHOperator 1 1
-                      (mem_op_of_hop (HInductor n f initial))
+                      (Inductor_mem n f initial)
                       _
                       (Full_set _)
                       (Full_set _).
@@ -2046,17 +2110,47 @@ Module MMSHCOL'
            (initial: CarrierA):
     MSHOperator_Facts (MSHInductor n f initial).
   Proof.
-    split.
+    destruct n.
     -
-      (* mem_out_some *)
-      intros v H.
-      apply mem_out_some_mem_op_of_hop, H.
+      split.
+      +
+        intros.
+        cbn.
+        trivial.
+      +
+        intros.
+        cbn in *.
+        some_inv.
+        destruct j;[|crush]. (* [lia] should work here instead of [crush] but it does not *)
+        split; intros.
+        *
+          apply NP.F.add_in_iff.
+          auto.
+        *
+          apply NP.F.add_in_iff in H.
+          destruct H; constructor.
+      +
+        intros.
+        cbn in *.
+        some_inv. clear H1 m.
+        intros C.
+        apply NP.F.add_in_iff in C.
+        destruct C.
+        lia.
+        apply NP.F.empty_in_iff in H.
+        trivial.
     -
-      intros m0 m H.
-      apply (out_mem_fill_pattern_mem_op_of_hop H).
-    -
-      intros m0 m H.
-      apply (out_mem_fill_pattern_mem_op_of_hop H).
+      split.
+      +
+        (* mem_out_some *)
+        intros v H.
+        apply mem_out_some_mem_op_of_hop, H.
+      +
+        intros m0 m H.
+        apply (out_mem_fill_pattern_mem_op_of_hop H).
+      +
+        intros m0 m H.
+        apply (out_mem_fill_pattern_mem_op_of_hop H).
   Qed.
 
   Instance SHBinOp_MFacts
@@ -2102,11 +2196,11 @@ Module MMSHCOL'
       apply Constructive_sets.Union_inv in H.
       destruct H.
       *
-        left.
-        eapply (out_mem_fill_pattern _ _ Heqo0); eauto.
-      *
         right.
         eapply (out_mem_fill_pattern _ _ Heqo1); eauto.
+      *
+        left.
+        eapply (out_mem_fill_pattern _ _ Heqo0); eauto.
     +
       simpl in *.
       unfold HTSUMUnion_mem in E. simpl in E.
@@ -2117,10 +2211,10 @@ Module MMSHCOL'
       specialize (E0 H). clear H E1.
       destruct E0 as [M1 | M2].
       *
-        apply Union_introl.
+        right.
         eapply (out_mem_fill_pattern _ _ Heqo0); eauto.
       *
-        right.
+        left.
         eapply (out_mem_fill_pattern _ _ Heqo1); eauto.
   Qed.
 
@@ -2151,7 +2245,7 @@ Module MMSHCOL'
         intros j jc H0.
         specialize (H j jc).
         apply H.
-        apply Union_intror.
+        left.
         apply H0.
       +
         clear Heqo0.
@@ -2161,7 +2255,7 @@ Module MMSHCOL'
         intros j jc H0.
         specialize (H j jc).
         apply H.
-        apply Union_introl.
+        right.
         apply H0.
     -
       (* out_mem_fill_pattern *)

@@ -124,7 +124,7 @@ Module Type MDSigmaHCOL (Import CT : CType).
   Instance DSHValType_Decision (v:DSHVal) (t:DSHType):
     Decision (DSHValType v t).
   Proof.
-    destruct v,t0; try (left;constructor); right; intros H; inversion H.
+    destruct v,t; try (left;constructor); right; intros H; inversion H.
   Qed.
 
   Definition DSHValType_bool (v:DSHVal) (t:DSHType) := bool_decide (DSHValType v t).
@@ -378,7 +378,6 @@ Module Type MDSigmaHCOL (Import CT : CType).
        | DSHMemCopy size x_p y_p => DSHMemCopy size (incrPVar skip x_p) (incrPVar skip y_p)
        | DSHSeq f g => DSHSeq (incrOp skip f) (incrOp skip g)
        end.
-
 
   Section Printing.
 

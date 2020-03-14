@@ -90,7 +90,7 @@ Proof.
 Qed.
 
 
-Global Instance compose_THOperator2 {o2 o3 i1 o2:nat}:
+Global Instance compose_THOperator2 {o3 i1 o2:nat}:
   @THOperator2 o2 o3 i1 o2 i1 o3 (compose).
 Proof.
   intros f f' Ef g g' Eg x y Ex.

@@ -42,26 +42,24 @@ Notation "' pat <- c1 ;; c2" := (@bind _ _ _ _ c1 (fun x => match x with pat => 
 Require Import Coq.Lists.List. Import ListNotations.
 Open Scope string_scope.
 
-Definition toDSHType (tmt: TemplateMonad term): TemplateMonad DSHType :=
-  t <- tmt ;;
-    match t with
-    | tInd {| inductive_mind := "Coq.Init.Datatypes.nat"; inductive_ind := 0 |} _ =>
-      tmReturn DSHnat
-    | (tApp(tInd {| inductive_mind := "Coq.Init.Specif.sig"; inductive_ind := 0 |} _)
-           [tInd
-              {| inductive_mind := "Coq.Init.Datatypes.nat"; inductive_ind := 0 |} _ ; _])
-      => tmReturn DSHnat (* `FinNat` is treated as `nat` *)
-    | tConst "Helix.HCOL.CarrierType.CarrierA" _ => tmReturn DSHCType
-    | tConst "Helix.SigmaHCOL.Memory.mem_block" _ => tmReturn DSHPtr (* pass by reference *)
-    | tApp
-        (tInd {| inductive_mind := "Coq.Vectors.VectorDef.t"; inductive_ind := 0 |} _)
-        [tConst "Helix.HCOL.CarrierType.CarrierA" _ ; nat_term] =>
-      (* n <- tmUnquoteTyped nat nat_term ;; *)
-        tmReturn DSHPtr (* mapping vectors to memory blocks pointers *)
-    | _ =>
-      (* tmPrint t ;; this print slows complilation down *)
-      tmFail "non-DSHCOL type encountered"
-    end.
+Definition toDSHType (t: term): TemplateMonad DSHType :=
+  match t with
+  | tInd {| inductive_mind := "Coq.Init.Datatypes.nat"; inductive_ind := 0 |} _ =>
+    tmReturn DSHnat
+  | (tApp(tInd {| inductive_mind := "Coq.Init.Specif.sig"; inductive_ind := 0 |} _)
+         [tInd
+            {| inductive_mind := "Coq.Init.Datatypes.nat"; inductive_ind := 0 |} _ ; _])
+    => tmReturn DSHnat (* `FinNat` is treated as `nat` *)
+  | tConst "Helix.HCOL.CarrierType.CarrierA" _ => tmReturn DSHCType
+  | tConst "Helix.SigmaHCOL.Memory.mem_block" _ => tmReturn DSHPtr (* pass by reference *)
+  | tApp
+      (tInd {| inductive_mind := "Coq.Vectors.VectorDef.t"; inductive_ind := 0 |} _)
+      [tConst "Helix.HCOL.CarrierType.CarrierA" _ ; nat_term] =>
+    tmReturn DSHPtr (* mapping vectors to memory blocks pointers *)
+  | _ =>
+    (* tmPrint t ;; this print slows complilation down *)
+    tmFail "non-DSHCOL type encountered"
+  end.
 
 (* DeBruijn indixed list variables. Each variable has name and type *)
 Definition varbindings:Type := list (string*DSHType).
@@ -194,7 +192,7 @@ Fixpoint compileMSHCOL2DSHCOL
   match t with
   | tLambda (nNamed n) vt b =>
     tmPrint ("lambda " ++ n)  ;;
-            dt <- toDSHType (tmReturn vt) ;; (* to enforce valid type *)
+            dt <- toDSHType vt ;; (* to enforce valid type *)
             compileMSHCOL2DSHCOL (Lambda_var_resolver res 1) ((n,dt)::vars) b (incrPVar 0 x_p) (incrPVar 0 y_p)
   | tApp (tConst opname _) args =>
     match parse_SHCOL_Op_Name opname, args with

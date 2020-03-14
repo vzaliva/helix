@@ -2670,28 +2670,44 @@ Section StructuralProperies.
         reflexivity.
       -
         intros v H j jc S.
-        dep_destruct j. 2: {omega. }
-        specialize (H 0 jc).
-        simpl op.
-        simpl in H, S.
-        unfold SHInductor_impl, Lst.
-        dep_destruct v.
-        Opaque liftM. simpl in *. Transparent liftM.
-        apply Is_Val_liftM.
-        apply H, S.
+
+        destruct n.
+        +
+          Opaque ret.
+          simpl in *.
+          dep_destruct j. 2: { omega. }
+          apply Is_Val_mkValue.
+        +
+          dep_destruct j. 2: {omega. }
+          specialize (H 0 jc).
+          simpl op.
+          simpl in H, S.
+          unfold SHInductor_impl, Lst.
+          dep_destruct v.
+          Opaque liftM. simpl in *. Transparent liftM.
+          apply Is_Val_liftM.
+          apply H, S.
       -
         intros v j jc S.
         contradict S.
         simpl.
         split.
       - intros v D j jc S.
-        dep_destruct j. 2: {omega. }
-        specialize (D 0 jc).
-        simpl in D, S.
-        dep_destruct v.
-        Opaque liftM. simpl in *. Transparent liftM.
-        apply Not_Collision_liftM.
-        apply D,S.
+
+        destruct n.
+        +
+          Opaque ret.
+          simpl in *.
+          dep_destruct j. 2: { omega. }
+          apply Not_Collision_mkValue.
+        +
+          dep_destruct j. 2: {omega. }
+          specialize (D 0 jc).
+          simpl in D, S.
+          dep_destruct v.
+          Opaque liftM. simpl in *. Transparent liftM.
+          apply Not_Collision_liftM.
+          apply D,S.
       - intros v D j jc S.
         simpl in *.
         destruct jc.

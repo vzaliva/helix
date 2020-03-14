@@ -251,21 +251,28 @@ Section FlagsMonoidGenericOperators.
                (f: CarrierA -> CarrierA -> CarrierA)
                (initial: CarrierA)
                (x: svector fm 1): svector fm 1
-      := Lst ((liftM (HCOLImpl.Inductor n f initial)) (Vhead x)).
+      := match n with
+         | O => Lst (mkValue initial)
+         | _ => Lst ((liftM (HCOLImpl.Inductor n f initial)) (Vhead x))
+         end.
 
     Global Instance SHInductor_impl_proper {n:nat}:
       Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) (@SHInductor_impl n).
     Proof.
-      intros f f' Ef.
-      intros ini ini' Eini.
-      intros x y E.
-      unfold SHInductor_impl.
-      apply Vcons_proper. 2:{ reflexivity. }
-      unfold_Rtheta_equiv.
-      rewrite 2!evalWriter_Rtheta_liftM.
-      apply HCOLImpl.Inductor_proper; auto.
-      f_equiv.
-      rewrite E;reflexivity.
+      destruct n.
+      -
+        simpl_relation.
+      -
+        intros f f' Ef.
+        intros ini ini' Eini.
+        intros x y E.
+        unfold SHInductor_impl.
+        apply Vcons_proper. 2:{ reflexivity. }
+        unfold_Rtheta_equiv.
+        rewrite 2!evalWriter_Rtheta_liftM.
+        apply HCOLImpl.Inductor_proper; auto.
+        f_equiv.
+        rewrite E;reflexivity.
     Qed.
 
     (** Apply family of functions to same vector and return matrix of results *)

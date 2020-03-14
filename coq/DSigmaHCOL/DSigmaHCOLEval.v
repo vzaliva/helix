@@ -17,6 +17,7 @@ Require Import Helix.Util.ErrorSetoid.
 
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.misc.decision.
+Require Import MathClasses.misc.util.
 
 Global Open Scope nat_scope.
 
@@ -409,9 +410,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     evalDSHOperator σ op m f ≡ evalDSHOperator σ op m (estimateFuel op).
   Proof.
     intro F.
-    generalize dependent f.
-    generalize dependent σ.
-    generalize dependent m.
+    revert f σ m F.
     induction op;
       try (intros; destruct F; auto; fail).
     -
@@ -453,6 +452,289 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       rewrite IHop2 with (f := Nat.max (estimateFuel op1) (estimateFuel op2)) by lia.
       reflexivity.
       reflexivity.
+  Qed.
+
+  Lemma evalDSHOperator_fuel_monotone:
+    forall op σ mem fuel res,
+      evalDSHOperator σ op mem fuel ≡ Some res ->
+      evalDSHOperator σ op mem (S fuel) ≡ Some res.
+  Proof.
+    intros op.
+    induction op; try (simpl; intros; destruct fuel; try inversion H; auto; fail).
+    -
+      (* Loop *)
+      induction n; intros.
+      +
+        cbn.
+        destruct fuel; simpl in H.
+        * some_none.
+        * assumption.
+      + cbn.
+        destruct fuel; simpl in H.
+        some_none.
+        repeat break_match_hyp; simpl in H; subst; try some_inv.
+        erewrite IHn; eauto; reflexivity.
+        erewrite IHn; eauto.
+        setoid_rewrite IHop; eauto.
+        some_none.
+    -
+      (* Alloc *)
+      intros.
+      destruct fuel.
+      +
+        simpl in H; some_none.
+      +
+        simpl in H.
+        repeat break_match_hyp.
+        * some_inv.
+          apply IHop in Heqo.
+          remember (S fuel) as fuel'.
+          cbn; rewrite Heqo.
+          reflexivity.
+        *
+          subst.
+          apply IHop in Heqo; clear IHop.
+          remember (S fuel) as fuel'.
+          cbn.
+          rewrite Heqo.
+          assumption.
+        *
+          some_none.
+    -
+      (* Seq *)
+      intros.
+      destruct fuel.
+      +
+        simpl in H; some_none.
+      +
+        simpl in H.
+        repeat break_match_hyp.
+        * subst.
+          apply IHop1 in Heqo; clear IHop1; some_inv.
+          remember (S fuel) as fuel'.
+          cbn.
+          rewrite Heqo.
+          reflexivity.
+        * subst.
+          apply IHop1 in Heqo; clear IHop1.
+          apply IHop2 in H; clear IHop2.
+          remember (S fuel) as fuel'.
+          cbn.
+          rewrite Heqo, H.
+          reflexivity.
+        *
+          some_none.
+  Qed.
+
+  Lemma evalDSHOperator_fuel_monotone_None:
+    ∀ (op : DSHOperator)  (σ : list DSHVal) (fuel : nat) (m : memory),
+      evalDSHOperator σ op m (S fuel) ≡ None
+      → evalDSHOperator σ op m fuel ≡ None.
+  Proof.
+    intros op.
+    induction op; intros; try (cbn in H; repeat break_let; subst; some_none).
+    -
+      (* Loop *)
+      destruct n.
+      +
+        cbn in H.
+        some_none.
+      + cbn in H.
+        destruct fuel; [reflexivity|].
+        repeat break_match_hyp; subst.
+        * some_none.
+        *
+          cbn.
+          repeat break_match_goal; subst.
+          --
+            exfalso.
+            apply evalDSHOperator_fuel_monotone in Heqo0.
+            rewrite Heqo in Heqo0.
+            inv Heqo0.
+          --
+            apply evalDSHOperator_fuel_monotone in Heqo0.
+            rewrite Heqo in Heqo0.
+            inv Heqo0.
+            apply IHop.
+            auto.
+          --
+            reflexivity.
+        *
+          clear H.
+          cbn.
+          repeat break_match_goal; subst.
+          --
+            exfalso.
+            apply evalDSHOperator_fuel_monotone in Heqo0.
+            rewrite Heqo in Heqo0.
+            inv Heqo0.
+          --
+            apply evalDSHOperator_fuel_monotone in Heqo0.
+            rewrite Heqo in Heqo0.
+            inv Heqo0.
+          --
+            reflexivity.
+    -
+      (* Alloc *)
+      cbn in H.
+      repeat break_match_hyp; subst.
+      + some_none.
+      + some_none.
+      + clear H.
+        destruct fuel; [reflexivity|].
+        eapply IHop in Heqo.
+        cbn.
+        rewrite Heqo.
+        reflexivity.
+    -
+      (* Seq *)
+      cbn in H.
+      destruct fuel; [reflexivity|].
+      repeat break_match_hyp; subst.
+      + some_none.
+      + (* [op1] succeeded [op2] fails *)
+        cbn.
+        repeat break_match_goal; subst.
+        *
+          exfalso.
+          apply evalDSHOperator_fuel_monotone in Heqo0.
+          rewrite Heqo in Heqo0.
+          inv Heqo0.
+        *
+          apply IHop2.
+          apply evalDSHOperator_fuel_monotone in Heqo0.
+          rewrite Heqo in Heqo0.
+          inv Heqo0.
+          apply H.
+        *
+          reflexivity.
+      + (* [op1] fails *)
+        clear H.
+        cbn.
+        apply IHop1 in Heqo.
+        rewrite Heqo.
+        reflexivity.
+  Qed.
+
+  (* Generalization of [evalDSHOperator_fuel_monotone] *)
+  Lemma evalDSHOperator_fuel_ge (f f':nat) {σ op m res}:
+    f' >= f ->
+    evalDSHOperator σ op m f ≡ Some res ->
+    evalDSHOperator σ op m f' ≡ Some res.
+  Proof.
+    intros F.
+    remember (f' - f) as k eqn:K.
+    assert(f' ≡ f + k) by lia.
+    clear K F.
+    revert k f f' H.
+    induction k; intros.
+    -
+      replace f' with f by nia.
+      assumption.
+    -
+      replace f' with (S (f+k)) by lia.
+      apply evalDSHOperator_fuel_monotone.
+      eapply IHk; eauto.
+  Qed.
+
+  Lemma evalDSHOperator_fuel_ge_is_Some (f f':nat) {σ op m}:
+    f' >= f ->
+    is_Some (evalDSHOperator σ op m f) ->
+    is_Some (evalDSHOperator σ op m f').
+  Proof.
+    intros F H.
+    apply is_Some_def in H.
+    destruct H as [res H].
+    apply evalDSHOperator_fuel_ge with (f':=f') in H.
+    apply is_Some_def.
+    exists res.
+    apply H.
+    apply F.
+  Qed.
+
+  Lemma evalDSHOperator_estimateFuel {σ dop m}:
+    is_Some (evalDSHOperator σ dop m (estimateFuel dop)).
+  Proof.
+    revert σ m.
+    dependent induction dop; intros; cbn; auto.
+    - repeat break_let; some_none.
+    - repeat break_let; some_none.
+    -
+      induction n; intros.
+      +
+        some_none.
+      +
+        remember (estimateFuel dop) as f.
+        destruct f; [crush|].
+
+        simpl (evalDSHOperator σ (DSHLoop n dop) m (S f * S n)).
+
+        apply is_Some_def in IHn.
+        destruct IHn as [y IHn].
+
+
+        repeat break_match; subst; try repeat some_none;
+          try (repeat some_inv; try inl_inr); subst.
+        *
+          replace (S f * 1) with (S f) by lia; eapply IHdop.
+        *
+          eapply evalDSHOperator_fuel_ge_is_Some in IHdop.
+          eapply IHdop.
+          nia.
+        *
+          eapply evalDSHOperator_fuel_ge_is_Some in IHdop.
+          eapply IHdop.
+          nia.
+        *
+          specialize (IHdop (DSHnatVal n0 :: σ) m0).
+          eapply evalDSHOperator_fuel_ge_is_Some with (f':=(S n0 + f * S (S n0)))
+            in IHdop.
+          norm_some_none.
+          some_none.
+          nia.
+        *
+          specialize (IHdop (DSHnatVal n0 :: σ) m0).
+          eapply evalDSHOperator_fuel_ge_is_Some with (f':=(S n0 + f * S (S n0)))
+            in IHdop.
+          norm_some_none.
+          some_none.
+          nia.
+        *
+          eapply evalDSHOperator_fuel_ge with (f':=(S n0 + f * S (S n0)))
+            in Heqo1.
+          norm_some_none.
+          some_none.
+          nia.
+        *
+          eapply evalDSHOperator_fuel_ge with (f':=(S n0 + f * S (S n0)))
+            in Heqo1.
+          norm_some_none.
+          some_none.
+          nia.
+    -
+      (* Alloc *)
+      repeat break_match_goal; try some_none.
+      exfalso.
+      specialize (IHdop (DSHPtrVal (memory_next_key m) size :: σ)
+                        (memory_set m (memory_next_key m) mem_empty)).
+
+      apply is_Some_ne_None in IHdop.
+      congruence.
+    -
+      (* Seq *)
+      repeat break_match_goal; try some_none; subst.
+      +
+        specialize (IHdop2 σ m0).
+        erewrite <- evalDSHOperator_estimateFuel_ge in IHdop2.
+        eauto.
+        nia.
+      +
+        specialize (IHdop1 σ m).
+        rewrite <- evalDSHOperator_estimateFuel_ge
+          with (f:=(Nat.max (estimateFuel dop1) (estimateFuel dop2)))
+          in IHdop1.
+        congruence.
+        nia.
   Qed.
 
   Local Ltac proper_eval2 IHe1 IHe2 :=
@@ -588,6 +870,32 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     - proper_eval2 IHEe1 IHEe2.
     - proper_eval2 IHEe1 IHEe2.
     - proper_eval2 IHEe1 IHEe2.
+  Qed.
+
+  Instance evalIUnCType_proper
+         (mem: memory)
+         (σ: evalContext)
+         (f: AExpr)
+         (i: nat):
+    Proper
+      ((=) ==> (=)) (evalIUnCType mem σ f i).
+  Proof.
+    simpl_relation.
+    unfold evalIUnCType.
+    apply evalAexp_proper.
+    -
+      reflexivity.
+    -
+      unfold equiv, ListSetoid.List_equiv.
+      constructor.
+      constructor.
+      assumption.
+      constructor.
+      constructor.
+      reflexivity.
+      reflexivity.
+    -
+      reflexivity.
   Qed.
 
   Instance evalBinCType_proper:
@@ -842,6 +1150,112 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         auto.
         apply H.
         rewrite H7, H0.
+        reflexivity.
+  Qed.
+
+  Global Instance evalDSHIMap_proper
+         (mem:memory)
+         (n: nat)
+         (f: AExpr)
+         (σ: evalContext):
+    Proper
+      ((=) ==> (=) ==> (=)) (evalDSHIMap mem n f σ).
+  Proof.
+    intros x y H x0 y0 H0.
+    revert x y H x0 y0 H0.
+    induction n; intros.
+    -
+      constructor.
+      apply H0.
+    -
+      destruct_err_equiv.
+      +
+        err_eq_to_equiv_hyp.
+        simpl in *.
+        repeat break_match_hyp ; try (err_eq_to_equiv_hyp; rewrite H in Heqe0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
+          try rewrite H in Heqe0;
+          try rewrite H in Heqe1;
+          try rewrite H in Heqe2;
+          try rewrite H in Heqe3;
+          try solve_match_err_case;
+          try inl_inr.
+        *
+          rewrite Heqe in Heqe1.
+          clear Heqe.
+          repeat inl_inr_inv.
+          rewrite Heqe1 in Heqe0.
+          inl_inr.
+        *
+          rewrite Heqe in Heqe1.
+          clear Heqe.
+          repeat inl_inr_inv.
+          rewrite Heqe1 in Heqe0.
+          rewrite Heqe0 in Heqe2.
+          clear Heqe0.
+          inl_inr_inv.
+          rewrite IHn with (y:=y) (y0:=mem_add n t1 y0) in H2; auto.
+          symmetry in H1.
+          rewrite H1 in H2.
+          inl_inr.
+          rewrite Heqe2, H0.
+          reflexivity.
+      +
+        err_eq_to_equiv_hyp.
+        simpl in *.
+        repeat break_match_hyp ; try (err_eq_to_equiv_hyp; rewrite H in Heqe0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
+          try rewrite H in Heqe0;
+          try rewrite H in Heqe1;
+          try rewrite H in Heqe2;
+          try rewrite H in Heqe3;
+          try solve_match_err_case;
+          try inl_inr.
+        *
+          rewrite Heqe in Heqe1.
+          clear Heqe.
+          repeat inl_inr_inv.
+          rewrite Heqe1 in Heqe0.
+          inl_inr.
+        *
+          rewrite Heqe in Heqe1.
+          clear Heqe.
+          repeat inl_inr_inv.
+          rewrite Heqe1 in Heqe0.
+          rewrite Heqe0 in Heqe2.
+          clear Heqe0.
+          inl_inr_inv.
+          rewrite IHn with (y:=y) (y0:=mem_add n t1 y0) in H1; auto.
+          symmetry in H1.
+          rewrite H1 in H5.
+          inl_inr.
+          rewrite Heqe2, H0.
+          reflexivity.
+      +
+        err_eq_to_equiv_hyp.
+        simpl in *.
+        repeat break_match_hyp ; try (err_eq_to_equiv_hyp; rewrite H in Heqe0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
+          try rewrite H in Heqe0;
+          try rewrite H in Heqe1;
+          try rewrite H in Heqe2;
+          try rewrite H in Heqe3;
+          try solve_match_err_case;
+          try inl_inr.
+
+        rewrite Heqe in Heqe1.
+        clear Heqe.
+        repeat inl_inr_inv.
+        rewrite Heqe1 in Heqe0.
+        rewrite Heqe0 in Heqe2.
+        clear Heqe0.
+        inl_inr_inv.
+
+        symmetry in H1.
+        symmetry in H4.
+
+        rewrite IHn with (y:=y) (y0:=mem_add n t1 y0) in Ha; auto.
+        rewrite Ha in Hb.
+        inl_inr_inv.
+        auto.
+        rewrite Heqe2, H0.
         reflexivity.
   Qed.
 

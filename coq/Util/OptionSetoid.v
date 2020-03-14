@@ -404,3 +404,75 @@ Next Obligation. f_equiv; assumption. Qed.
 Next Obligation. apply Some_nequiv; assumption. Qed.
 Next Obligation. some_none. Qed.
 Next Obligation. some_none. Qed.
+
+Section opt_p.
+
+  Variables (A : Type) (P : A -> Prop).
+
+  (* lifting Predicate to option. error is not allowed *)
+  Inductive opt_p : (option A) -> Prop :=
+  | opt_p_intro : forall x, P x -> opt_p (Some x).
+
+  (* lifting Predicate to option. errors is allowed *)
+  Inductive opt_p_n : (option A) -> Prop :=
+  | opt_p_None_intro: opt_p_n None
+  | opt_p_Some_intro : forall x, P x -> opt_p_n (Some x).
+
+  Global Instance opt_p_proper
+         `{Ae: Equiv A}
+         {Pp: Proper ((=) ==> (iff)) P}
+    :
+      Proper ((=) ==> (iff)) opt_p.
+  Proof.
+    intros a b E.
+    split.
+    -
+      intros H.
+      destruct a,b; try some_none.
+      inversion H.
+      subst x.
+      constructor.
+      some_inv.
+      rewrite <- E.
+      assumption.
+      inversion H.
+    -
+      intros H.
+      destruct a,b; try some_none.
+      inversion H.
+      subst x.
+      constructor.
+      some_inv.
+      rewrite E.
+      assumption.
+      inversion H.
+  Qed.
+
+End opt_p.
+Arguments opt_p {A} P.
+Arguments opt_p_n {A} P.
+
+(* Extension to [option _] of a heterogenous relation on [A] [B] *)
+Section hopt.
+
+  Variables (A B : Type) (R: A -> B -> Prop).
+
+  (** Reflexive on [None]. *)
+  Inductive hopt_r : (option A) -> (option B) -> Prop :=
+  | hopt_r_None : hopt_r None None
+  | hopt_r_Some : forall a b, R a b -> hopt_r (Some a) (Some b).
+
+  (** Non-Reflexive on [None]. *)
+  Inductive hopt : (option A) -> (option B) -> Prop :=
+  | hopt_Some : forall a b, R a b -> hopt (Some a) (Some b).
+
+  (** implication-like. *)
+  Inductive hopt_i : (option A) -> (option B) -> Prop :=
+  | hopt_i_None_None : hopt_i None None
+  | hopt_i_None_Some : forall a, hopt_i None (Some a)
+  | hopt_i_Some : forall a b, R a b -> hopt_i (Some a) (Some b).
+
+End hopt.
+Arguments hopt {A B} R.
+Arguments hopt_r {A B} R.
+Arguments hopt_i {A B} R.

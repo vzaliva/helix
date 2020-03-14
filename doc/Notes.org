@@ -1,24 +1,24 @@
 * List of all operators
 
-|-----------------+----------------+------------------+------------------------+-----------+---------------+--------------------|
-| SHCOL           | mem_op         | DSH_Pure         | MSH/DSH compat         | DSHCOL    | MSHoperator   | MFacts             |
-|-----------------+----------------+------------------+------------------------+-----------+---------------+--------------------|
-| IdOp            | Some ∘ id      |                  |                        |           |               |                    |
-| liftM_HOperator | mem_op_of_hop  |                  |                        |           |               |                    |
-| IUnion          | IUnion_mem     | TODO             | TODO                   | DSHLoop   | MSHIUnion     | IUnion_Mem         |
-| Scatter         | mem_op_of_op   |                  |                        |           |               |                    |
-| Gather          | mem_op_of_op   |                  |                        |           |               |                    |
-| SHInductor      | mem_op_of_hop  | TODO             | TODO                   | DSHPower  | MSHInductor   | SHInductor_MFacts  |
-| HTSUMUnion      | HTSUMUnion_mem | TODO             | TODO                   | ...       | MHTSUMUnion   | HTSUMUnion_MFacts  |
-| UnSafeCast      | mem_op         |                  |                        |           | /pass-through/  | /pass-through/       |
-| SafeCast        | mem_op         |                  |                        |           | /pass-through/  | /pass-through/       |
-| IReduction      | IReduction_mem |                  | TODO                   | ...       | MSHIReduction | IReduction_MFacts  |
-| SHBinOp         | mem_op_of_hop  | TODO             | BinOp_MSH_DSH_compat   | DSHBinOp  | MSHBinOp      | SHBinOp_MFacts     |
-| eT              | eT_mem         | TODO             | TODO                   | DSHAssign | MSHeT         | eT_MFacts          |
-| eUnion          | eUnion_mem     | TODO             | TODO                   | DSHAssign | MSHeUnion     | eUnion_MFacts      |
-| SHPointwise     | mem_op_of_hop  | TODO             | TODO                   | DSHIMap   | MSHPointwise  | SHPointwise_MFacts |
-| SHCompose       | option_compose | Compose_DSH_pure | Compose_MSH_DSH_compat | ...       | MSHCompose    | SHCompose_MFacts   |
-|-----------------+----------------+------------------+------------------------+-----------+---------------+--------------------|
+|-----------------+----------------+---------------------+---------------------------+-----------+---------------+--------------------|
+| SHCOL           | mem_op         | DSH_Pure            | MSH/DSH compat            | DSHCOL    | MSHoperator   | MFacts             |
+|-----------------+----------------+---------------------+---------------------------+-----------+---------------+--------------------|
+| IdOp            | Some ∘ id      |                     |                           |           |               |                    |
+| liftM_HOperator | mem_op_of_hop  |                     |                           |           |               |                    |
+| IUnion          | IUnion_mem     | Loop_DSH_pure       | TODO                      | DSHLoop   | MSHIUnion     | IUnion_Mem         |
+| Scatter         | mem_op_of_op   |                     |                           |           |               |                    |
+| Gather          | mem_op_of_op   |                     |                           |           |               |                    |
+| SHInductor      | mem_op_of_hop  | Power_DSH_pure      | TODO                      | DSHPower  | MSHInductor   | SHInductor_MFacts  |
+| HTSUMUnion      | HTSUMUnion_mem | DSHSeq_DSH_pure     | HTSUMUnion_MSH_DSH_compat | ...       | MHTSUMUnion   | HTSUMUnion_MFacts  |
+| UnSafeCast      | mem_op         |                     |                           |           | /pass-through/  | /pass-through/       |
+| SafeCast        | mem_op         |                     |                           |           | /pass-through/  | /pass-through/       |
+| IReduction      | IReduction_mem | IReduction_DSH_pure | TODO                      | ...       | MSHIReduction | IReduction_MFacts  |
+| SHBinOp         | mem_op_of_hop  | BinOp_DSH_pure      | BinOp_MSH_DSH_compat      | DSHBinOp  | MSHBinOp      | SHBinOp_MFacts     |
+| eT              | eT_mem         | Assign_DSH_pure     | Pick_MSH_DSH_compat       | DSHAssign | MSHeT         | eT_MFacts          |
+| eUnion          | eUnion_mem     | Assign_DSH_pure     | Embed_MSH_DSH_compat      | DSHAssign | MSHeUnion     | eUnion_MFacts      |
+| SHPointwise     | mem_op_of_hop  | IMap_DSH_pure       | Pointwise_MSH_DSH_compat  | DSHIMap   | MSHPointwise  | SHPointwise_MFacts |
+| SHCompose       | option_compose | Compose_DSH_pure    | Compose_MSH_DSH_compat    | ...       | MSHCompose    | SHCompose_MFacts   |
+|-----------------+----------------+---------------------+---------------------------+-----------+---------------+--------------------|
 
 * Errors in Helix:
 
@@ -196,4 +196,21 @@
 
     j*c_0 + i*c_1 + k*c_2
 
+** Proof Automation
+*** MSHOL -> DSHCOL proofs
+
+    May not be possible to follow the structure of DSHCOL, as ~DSH_pure~
+    are associated with MSCHOL, not DSHCOL operators.
+
+    One way around this is to follow MSHCOL structure. Another
+    solution, is to build proof as we compile MSHCOL via template-coq.
+
+    Finally, it /might/ be possible to follow the structure of DSHCOL if
+    the mapping of MSHCOL to DSHCOL is injective. Here we will take
+    advantage of LTAC pattern matching which provides us with
+    look-ahead parser to match DHSCOL fragments to MSHCOL operators.
+
+    For current language we implemented LTAC pattern matching approach
+    which seems to be working. With addition of more operators or
+    extensions of DSHCOL this may break.
 
