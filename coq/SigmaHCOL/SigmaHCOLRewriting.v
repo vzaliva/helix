@@ -2426,8 +2426,8 @@ Section SigmaHCOLRewritingRules.
           *
             rewrite <- IHn.
             clear IHn tmn'.
-            simpl.
-            replace (gen 0 (VecUtil.Vbuild_spec_obligation_4 gen eq_refl))
+            cbn; unfold Vbuild; Vbuild_fix; cbn.
+            replace (gen 0 (VecUtil.Vbuild_spec_obligation_4 eq_refl))
               with
                 (gen (n - n) (tmn 0 (Nat.lt_lt_add_r 0 (S n) (m * S n) (Nat.lt_0_succ n)))).
             replace (fun v1 v2 : vector A (S m) =>
@@ -2435,7 +2435,7 @@ Section SigmaHCOLRewritingRules.
               with (fun v1 v2 : vector A (S m) =>
                       Vcons (f (Vhead v1) (Vhead v2)) (Vmap2 f (Vtail v1) (Vtail v2))).
 
-            replace (` (Vbuild_spec (fun (i : nat) (ip : i < n) => gen (S i) (VecUtil.Vbuild_spec_obligation_3 gen eq_refl ip))))
+            replace (` (Vbuild_spec (fun (i : nat) (ip : i < n) => gen (S i) (VecUtil.Vbuild_spec_obligation_3 eq_refl ip))))
               with
                 (Vbuild gen').
             reflexivity.
@@ -2451,7 +2451,7 @@ Section SigmaHCOLRewritingRules.
               reflexivity.
             --
               generalize (tmn 0 (Nat.lt_lt_add_r 0 (S n) (m * S n) (Nat.lt_0_succ n))) as ic0.
-              generalize (VecUtil.Vbuild_spec_obligation_4 gen eq_refl) as ic1.
+              generalize (@VecUtil.Vbuild_spec_obligation_4 (S n) n (@eq_refl nat (S n))) as ic1.
               intros ic0 ic1.
               clear gen' tmn f z.
               revert ic0 ic1; simpl; rewrite Nat.sub_diag; intros ic0 ic1.
@@ -4169,6 +4169,9 @@ and `ISumReduction_PointWise` *)
         simpl.
         break_match; simpl.
         *
+          unfold Scatter_impl, Vbuild.
+          simpl.
+          Vbuild_fix.
           unfold decide.
           break_match; simpl.
           --

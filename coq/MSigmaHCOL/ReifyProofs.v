@@ -1014,7 +1014,7 @@ Section OperatorPairwiseProofs.
 
                 rename Heqo into C.
                 unfold svector_to_mem_block, mem_block_to_avector in C.
-                simpl in C.
+                unfold Vbuild in C; simpl in C; Vbuild_fix.
                 break_match_hyp; try some_none.
                 unfold mem_lookup, mem_add, mem_empty in *.
                 break_if.
@@ -1040,7 +1040,7 @@ Section OperatorPairwiseProofs.
             dep_destruct x.
             dep_destruct x0.
             unfold svector_to_mem_block, mem_block_to_avector in C.
-            simpl in C.
+            unfold Vbuild in C; simpl in C; Vbuild_fix.
             break_match_hyp; try some_none.
             clear C; rename Heqo into C.
             unfold mem_lookup, mem_add, mem_empty in *.

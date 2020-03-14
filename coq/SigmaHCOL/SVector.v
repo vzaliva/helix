@@ -816,7 +816,8 @@ Proof.
       simpl.
       apply Vcons_proper.
       *
-        simpl in H.
+        unfold Vbuild in H; cbn in H.
+        Vbuild_fix.
         repeat break_match_hyp; try some_none.
         some_inv.
         inversion H.
@@ -833,7 +834,8 @@ Proof.
           intros i ic.
           f_equiv.
         --
-          simpl in H.
+          unfold Vbuild in H; cbn in H.
+          Vbuild_fix.
           repeat break_match_hyp; try some_none.
           some_inv.
           inversion H.

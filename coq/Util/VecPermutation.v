@@ -28,7 +28,7 @@ Section VPermutation.
   | vperm_trans {n} l l' l'' :
       VPermutation n l l' -> VPermutation n l' l'' -> VPermutation n l l''.
 
-  Local Hint Constructors VPermutation.
+  Local Hint Constructors VPermutation : vperm_hints.
 
   (** Some facts about [VPermutation] *)
 
@@ -50,7 +50,7 @@ Section VPermutation.
       VPermutation n l l' -> VPermutation n l' l.
   Proof.
     intros n l l' Hperm.
-    induction Hperm; auto.
+    induction Hperm; auto with vperm_hints.
     apply vperm_trans with (l'0:=l'); auto.
   Qed.
 
@@ -63,13 +63,13 @@ Section VPermutation.
 
 End VPermutation.
 
-Hint Resolve VPermutation_refl vperm_nil vperm_skip.
+Hint Resolve VPermutation_refl vperm_nil vperm_skip : vperm_hints.
 
 (* These hints do not reduce the size of the problem to solve and they
    must be used with care to avoid combinatoric explosions *)
 
-Local Hint Resolve vperm_swap vperm_trans.
-Local Hint Resolve VPermutation_sym VPermutation_trans.
+Local Hint Resolve vperm_swap vperm_trans : vperm_hints.
+Local Hint Resolve VPermutation_sym VPermutation_trans : vperm_hints.
 
 (* This provides reflexivity, symmetry and transitivity and rewriting
    on morphims to come *)
@@ -207,7 +207,7 @@ Proof.
         auto.
     }
     (* Looks like a coq bug here. It should find H automatically *)
-    unshelve eauto.
+    unshelve eauto with vperm_hints.
     apply H.
 Qed.
 
