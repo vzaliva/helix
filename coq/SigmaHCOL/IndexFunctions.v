@@ -965,6 +965,7 @@ Section Function_Operators.
 
 End Function_Operators.
 
+Declare Scope index_f_scope.
 Notation "g ∘ f" := (index_map_compose g f) : index_f_scope.
 Notation "x ⊗ y" := (index_map_tensor_product x y) (at level 90) : index_f_scope.
 
