@@ -1,6 +1,6 @@
 * HELIX
 
-[[https://travis-ci.com/vzaliva/helix][https://travis-ci.com/vzaliva/helix.svg?token=x87izvm44MdTPLHzuxzF&branch=master
+[[https://travis-ci.com/vzaliva/helix][https://travis-ci.com/vzaliva/helix.svg?token=x87izvm44MdTPLHzuxzF&branch=master]]
 
 HELIX is a formally verified operator language and rewriting engine
 for generation of highperformance implementation for a variety of
