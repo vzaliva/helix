@@ -948,14 +948,18 @@ Section OperatorPairwiseProofs.
           assert(0<1) as jc by lia.
           assert(Full_set (FinNat 1) (mkFinNat jc)) as F by constructor.
           specialize (H 0 jc F). clear F.
-
           simpl.
           unfold SHInductor_impl, HInductor, compose, mem_op_of_hop, HCOLImpl.Scalarize, Lst.
           f_equiv.
           Opaque liftM.
-          (* Could not be proven, as [liftM] will evaluate [x]
-             even when [n=0]. This requires changes to [SHInductor_impl] *)
-          admit.
+          cbn.
+          break_if.
+          *
+            reflexivity.
+          *
+            clear Heqd H.
+            contradict n.
+            apply Is_Val_mkValue.
       -
         split.
         +
@@ -1058,7 +1062,7 @@ Section OperatorPairwiseProofs.
               simpl in H.
               eapply H.
               apply Full_intro.
-    Admitted.
+    Qed.
 
   End WithMonoid.
 
