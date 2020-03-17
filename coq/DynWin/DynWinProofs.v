@@ -484,7 +484,17 @@ Section MSHCOL_to_DSHCOL.
           rewrite mem_lookup_avector_to_mem_block_equiv with (kc:=tc) in Heqo.
           some_none.
       }
-    Qed.
+
+      {
+        cbn in *.
+        unfold dynwin_x_addr in *.
+        intros C.
+        inl_inr_inv.
+        subst.
+        admit. (* next key 3 times = 2 *)
+      }
+      
+    Admitted.
 
   End DummyEnv.
 
