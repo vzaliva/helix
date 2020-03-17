@@ -5037,57 +5037,6 @@ Qed.
 
 (** * MHTSUMUnioin *)
 
-Global Instance DSHSeq_DSH_pure
-       {dop1 dop2 : DSHOperator}
-       {x_p y_p : PExpr}
-       (P1: DSH_pure dop1 x_p y_p)
-       (P2: DSH_pure dop2 x_p y_p)
-  :
-    DSH_pure (DSHSeq dop1 dop2) x_p y_p.
-Proof.
-  split.
-  -
-    intros σ m0 m2 fuel M2 k.
-
-    destruct fuel; [inversion M2 |].
-    cbn in *.
-    repeat break_match;
-      try some_none; repeat some_inv;
-      try inl_inr; repeat inl_inr_inv.
-    subst.
-    rename m into m1, Heqo into M1.
-    eq_to_equiv_hyp.
-
-    inversion P1; clear P1 mem_write_safe0;
-      rename mem_stable0 into P1.
-    apply P1 with (k:=k) in M1; clear P1.
-    inversion P2; clear P2 mem_write_safe0;
-      rename mem_stable0 into P2.
-    apply P2 with (k:=k) in M2; clear P2.
-    rewrite M1, M2.
-    reflexivity.
-  -
-    intros σ m0 m2 fuel M2 y_i Y.
-
-    destruct fuel; [inversion M2 |].
-    cbn in *.
-    repeat break_match;
-      try some_none; repeat some_inv;
-      try inl_inr; repeat inl_inr_inv.
-    subst.
-    rename m into m1, Heqo into M1.
-    eq_to_equiv_hyp.
-
-    inversion P1; clear P1 mem_stable0;
-      rename mem_write_safe0 into P1.
-    eapply P1 with (y_i := y_i) in M1; [| assumption].
-    inversion P2; clear P2 mem_stable0;
-      rename mem_write_safe0 into P2.
-    eapply P2 with (y_i := y_i) in M2; [| assumption].
-    clear - M1 M2.
-    eapply memory_equiv_except_trans; eassumption.
-Qed.
-
 Global Instance HTSUMUnion_MSH_DSH_compat
          {i o : nat}
          {mop1: @MSHOperator i o}

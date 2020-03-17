@@ -273,7 +273,7 @@ Section MSHCOL_to_DSHCOL.
     | |- MSH_DSH_compat (MSHIUnion _) _ _ _ _ _ => unshelve eapply IUnion_MSH_DSH_compat; intros
 
     (* DSH_Pure *)
-    | [ |- DSH_pure (DSHSeq _ _) _ _] => apply DSHSeq_DSH_pure
+    | [ |- DSH_pure (DSHSeq _ _) _ _] => apply Seq_DSH_pure
     | [ |- DSH_pure (DSHAssign _ _) _ _ ] => apply Assign_DSH_pure
     | [ |- DSH_pure (DSHPower _ _ _ _ _) _ _] => apply Power_DSH_pure
     | [ |- DSH_pure (DSHIMap _ _ _ _) _ _] => apply IMap_DSH_pure
