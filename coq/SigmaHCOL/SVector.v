@@ -379,12 +379,12 @@ Section Union.
     - rewrite 2!Vbuild_0.
       apply Vnth_const.
     -
-      rewrite Vbuild_cons.
+      rewrite Vbuild_Sn.
       rewrite MUnion_cons.
       rewrite AbsorbUnionIndexBinary.
       rewrite IHn.
       rewrite <- UnionFold_cons.
-      rewrite Vbuild_cons.
+      rewrite Vbuild_Sn.
       reflexivity.
   Qed.
 
@@ -811,20 +811,18 @@ Proof.
       dep_destruct x.
       crush.
     +
-      rewrite Vbuild_cons.
+      rewrite Vbuild_Sn.
       dep_destruct x. rename x0 into xs, h into x0.
       simpl.
       apply Vcons_proper.
       *
-        unfold Vbuild in H; cbn in H.
-        Vbuild_fix.
+        rewrite Vbuild_Sn in H.
+        cbn in H.
         repeat break_match_hyp; try some_none.
         some_inv.
         inversion H.
         rewrite <- H0.
-        rewrite <- Heqo.
-        f_equiv.
-        apply NatUtil.lt_unique.
+        reflexivity.
       *
         specialize (IHn (shrink_vbuild_function_l f) xs).
         rewrite <- IHn; clear IHn.
@@ -834,20 +832,13 @@ Proof.
           intros i ic.
           f_equiv.
         --
-          unfold Vbuild in H; cbn in H.
-          Vbuild_fix.
+          rewrite Vbuild_Sn in H. cbn in H.
           repeat break_match_hyp; try some_none.
           some_inv.
           inversion H.
           rewrite <- H1.
-          clear a Heqo H H0 H1.
           rewrite <- Heqo0.
-          apply vsequence_option_proper.
-          apply Vbuild_proper.
-          intros i ic.
-          unfold shrink_vbuild_function_l.
           f_equiv.
-          apply NatUtil.lt_unique.
 Qed.
 
 Close Scope vector_scope.

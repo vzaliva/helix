@@ -1018,7 +1018,7 @@ Section OperatorPairwiseProofs.
 
                 rename Heqo into C.
                 unfold svector_to_mem_block, mem_block_to_avector in C.
-                unfold Vbuild in C; simpl in C; Vbuild_fix.
+                rewrite Vbuild_Sn in C; cbn in C.
                 break_match_hyp; try some_none.
                 unfold mem_lookup, mem_add, mem_empty in *.
                 break_if.
@@ -1044,7 +1044,7 @@ Section OperatorPairwiseProofs.
             dep_destruct x.
             dep_destruct x0.
             unfold svector_to_mem_block, mem_block_to_avector in C.
-            unfold Vbuild in C; simpl in C; Vbuild_fix.
+            rewrite Vbuild_Sn in C; cbn in C.
             break_match_hyp; try some_none.
             clear C; rename Heqo into C.
             unfold mem_lookup, mem_add, mem_empty in *.
@@ -2282,7 +2282,7 @@ Section OperatorPairwiseProofs.
         rewrite AbsorbUnionIndexBinary.
         apply ValUnionIsVal_Safe.
         right.
-        rewrite Vbuild_cons in V.
+        rewrite Vbuild_Sn in V.
         inversion V.
         apply op_family_facts.
         intros t tc H0.
@@ -2346,7 +2346,7 @@ Section OperatorPairwiseProofs.
                       (shrink_op_family_facts_up _ _ op_family_facts)
                    ).
 
-        rewrite Vbuild_cons in V;
+        rewrite Vbuild_Sn in V;
           apply Vcons_eq_elim in V;
           destruct V as [V0 V].
 
@@ -2531,7 +2531,7 @@ Section OperatorPairwiseProofs.
               eapply H0.
             }
             unfold Apply_Family' in A1.
-            rewrite Vbuild_cons in A1.
+            rewrite Vbuild_Sn in A1.
             dep_destruct v.
             clear v. rename h into v0, x0 into v.
             inversion A1 as [[V0 V]]. clear A1.
@@ -3054,7 +3054,7 @@ Section OperatorPairwiseProofs.
       -
         apply vector_val_index_set_Vconst_Empty.
       -
-        rewrite Vbuild_cons.
+        rewrite Vbuild_Sn.
         rewrite Vfold_left_rev_cons.
         simpl.
         rewrite Union_comm_eq.
@@ -3355,7 +3355,7 @@ Section OperatorPairwiseProofs.
               eapply H0.
             }
             unfold Apply_Family' in A1.
-            rewrite Vbuild_cons in A1.
+            rewrite Vbuild_Sn in A1.
             dep_destruct v.
             clear v. rename h into v0, x0 into v.
             inversion A1 as [[V0 V]]. clear A1.
