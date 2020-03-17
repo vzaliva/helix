@@ -3700,6 +3700,18 @@ Global Instance IReduction_DSH_pure
                                                   df)))))
              x_p y_p.
 Proof.
+  (*
+  subst.
+  apply Alloc_DSH_pure.
+  apply Seq_DSH_pure.
+  Fail apply MemInit_DSH_pure. admit. (* this is not true *)
+  apply Loop_DSH_pure.
+  apply Seq_DSH_pure.
+  assumption.
+  apply MemMap2_DSH_pure.
+   *)
+
+  (*
   constructor.
   -
     intros.
@@ -3725,11 +3737,47 @@ Proof.
         try some_none; repeat some_inv;
         try inl_inr; repeat inl_inr_inv.
       subst.
-      admit.
+
+      rewrite memory_set_overwrite in H.
+      unfold memory_lookup_err, memory_lookup, memory_set in Heqe.
+      rewrite NP.F.add_eq_o in Heqe by reflexivity.
+      cbn in Heqe; inl_inr_inv; subst.
+      rewrite memory_remove_memory_set in H.
+
+      split; intros.
+      *
+        rewrite <-H in *.
+        rewrite <-mem_block_exists_memory_remove_neq.
+        assumption.
+        intros C; subst.
+        apply mem_block_exists_memory_next_key in H0.
+        assumption.
+      *
+        rewrite <-H in *.
+        rewrite <-mem_block_exists_memory_remove_neq in H0.
+        assumption.
+        intros C; subst.
+        contradict H0.
+        apply mem_block_exists_memory_remove.
     +
-      admit.
+      cbn in *.
+      repeat break_match;
+        try some_none; repeat some_inv;
+        try inl_inr; repeat inl_inr_inv.
+      subst.
+
+      assert (DSH_pure (DSHSeq rr
+                               (DSHMemMap2 no (PVar 1) (incrPVar 0 (incrPVar 0 y_p))
+                                           (incrPVar 0 (incrPVar 0 y_p)) df))
+                       (incrPVar 0 (incrPVar 0 x_p))
+                       (incrPVar 0 (incrPVar 0 y_p))).
+      {
+        apply Seq_DSH_pure.
+        assumption.
+      pose proof Seq_DSH_pure.
   -
     admit.
+   *)
 Admitted.
 
 Global Instance IReduction_MSH_DSH_compat
