@@ -369,7 +369,7 @@ Definition blocks_equiv_at_Pexp (σ0 σ1:evalContext) (p:PExpr): rel (memory)
  *)
 Class DSH_pure
       (d: DSHOperator)
-      (x_p y_p: PExpr)
+      (y_p: PExpr)
   := {
 
       (* does not free or allocate any memory *)
@@ -400,7 +400,7 @@ Class MSH_DSH_compat
       (σ: evalContext)
       (m: memory)
       (x_p y_p: PExpr)
-      `{DSH_pure dop x_p y_p}
+      `{DSH_pure dop y_p}
   := {
       eval_equiv
       :
@@ -1587,7 +1587,7 @@ Global Instance Assign_DSH_pure
        {x_n y_n : NExpr}
        {x_p y_p : PExpr}
   :
-    DSH_pure (DSHAssign (x_p, x_n) (y_p, y_n)) x_p y_p.
+    DSH_pure (DSHAssign (x_p, x_n) (y_p, y_n)) y_p.
 Proof.
   split.
   -
@@ -1635,7 +1635,7 @@ Global Instance Embed_MSH_DSH_compat
        {x_p y_p : PExpr}
        {m : memory}
        (Y: evalNexp σ y_n = inr b)
-       (BP : DSH_pure (DSHAssign (x_p, NConst 0) (y_p, y_n)) x_p y_p)
+       (BP : DSH_pure (DSHAssign (x_p, NConst 0) (y_p, y_n)) y_p)
   :
     @MSH_DSH_compat _ _ (MSHEmbed bc) (DSHAssign (x_p, NConst 0) (y_p, y_n)) σ m x_p y_p BP.
 Proof.
@@ -1713,7 +1713,7 @@ Global Instance Pick_MSH_DSH_compat
        {x_p y_p : PExpr}
        {m : memory}
        (X: evalNexp σ x_n = inr b)
-       (BP : DSH_pure (DSHAssign (x_p, x_n) (y_p, NConst 0)) x_p y_p)
+       (BP : DSH_pure (DSHAssign (x_p, x_n) (y_p, NConst 0)) y_p)
   :
     @MSH_DSH_compat _ _ (MSHPick bc) (DSHAssign (x_p, x_n) (y_p, NConst 0)) σ m x_p y_p BP.
 Proof.
@@ -1790,7 +1790,7 @@ Global Instance IMap_DSH_pure
        {x_p y_p : PExpr}
        {a : AExpr}
   :
-    DSH_pure (DSHIMap nn x_p y_p a) x_p y_p.
+    DSH_pure (DSHIMap nn x_p y_p a) y_p.
 Proof.
   constructor.
   -
@@ -1834,7 +1834,7 @@ Global Instance Pointwise_MSH_DSH_compat
        {σ : evalContext}
        {m : memory}
        (FDF : MSH_DSH_IUnCarrierA_compat f σ df m)
-       (P : DSH_pure (DSHIMap n x_p y_p df) x_p y_p)
+       (P : DSH_pure (DSHIMap n x_p y_p df) y_p)
   :
     @MSH_DSH_compat _ _ (@MSHPointwise n f pF) (DSHIMap n x_p y_p df) σ m x_p y_p P.
 Proof.
@@ -2034,7 +2034,7 @@ Global Instance BinOp_DSH_pure
        {x_p y_p : PExpr}
        {a: AExpr}
   :
-    DSH_pure (DSHBinOp o x_p y_p a) x_p y_p.
+    DSH_pure (DSHBinOp o x_p y_p a) y_p.
 Proof.
   split.
   -
@@ -2084,7 +2084,7 @@ Global Instance BinOp_MSH_DSH_compat
        {σ: evalContext}
        (m: memory)
        (FDF : MSH_DSH_IBinCarrierA_compat f σ df m)
-       (BP: DSH_pure (DSHBinOp o x_p y_p df) x_p y_p)
+       (BP: DSH_pure (DSHBinOp o x_p y_p df) y_p)
   :
     @MSH_DSH_compat _ _ (MSHBinOp f) (DSHBinOp o x_p y_p df) σ m x_p y_p BP.
 Proof.
@@ -2309,7 +2309,7 @@ Global Instance Power_DSH_pure
        {a : AExpr}
        {initial : CarrierA}
   :
-    DSH_pure (DSHPower n (x_p, x_n) (y_p, y_n) a initial) x_p y_p.
+    DSH_pure (DSHPower n (x_p, x_n) (y_p, y_n) a initial) y_p.
 Proof.
   split.
   -
@@ -2414,7 +2414,7 @@ Global Instance Inductor_MSH_DSH_compat
        {a : AExpr}
        {x_p y_p : PExpr}
        (FA : MSH_DSH_BinCarrierA_compat f σ a m)
-       (PD : DSH_pure (DSHPower nx (x_p, NConst 0) (y_p, NConst 0) a init) x_p y_p)
+       (PD : DSH_pure (DSHPower nx (x_p, NConst 0) (y_p, NConst 0) a init) y_p)
   :
     @MSH_DSH_compat _ _
                     (MSHInductor n f init)
@@ -2841,11 +2841,11 @@ Qed.
 Global Instance Loop_DSH_pure
        {n : nat}
        {dop : DSHOperator}
-       {x_p y_p : PExpr}
-       (P : DSH_pure dop (incrPVar 0 x_p) (incrPVar 0 y_p))
+       {y_p : PExpr}
+       (P : DSH_pure dop (incrPVar 0 y_p))
 
   :
-    DSH_pure (DSHLoop n dop) x_p y_p.
+    DSH_pure (DSHLoop n dop) y_p.
 Proof.
   split.
   -
@@ -3198,8 +3198,8 @@ Global Instance IUnion_MSH_DSH_compat
        {m : memory}
        {XY : evalPexp σ x_p <> evalPexp σ y_p}
        {opf : MSHOperatorFamily}
-       {DP : DSH_pure dop (incrPVar 0 x_p) (incrPVar 0 y_p)}
-       {LP : DSH_pure (DSHLoop n dop) x_p y_p}
+       {DP : DSH_pure dop (incrPVar 0 y_p)}
+       {LP : DSH_pure (DSHLoop n dop) y_p}
        (FC : forall t m, @MSH_DSH_compat _ _ (opf t) dop
                                   ((DSHnatVal (proj1_sig t)) :: σ)
                                   m (incrPVar 0 x_p) (incrPVar 0 y_p) DP)
@@ -3231,7 +3231,7 @@ Proof.
     +
       (* evalDSHOperator errors *)
       pose (opf' := shrink_m_op_family opf).
-      assert (T1 : DSH_pure (DSHLoop n dop) x_p y_p) by (apply Loop_DSH_pure; assumption).
+      assert (T1 : DSH_pure (DSHLoop n dop) y_p) by (apply Loop_DSH_pure; assumption).
       assert (T2: (∀ (t : FinNat n) (m : memory),
                       MSH_DSH_compat (opf' t) dop (DSHnatVal (` t) :: σ) m 
                                      (incrPVar 0 x_p) (incrPVar 0 y_p))).
@@ -3293,7 +3293,7 @@ Proof.
       rename m0 into loop_m.
       
       pose (opf' := shrink_m_op_family opf).
-      assert (T1 : DSH_pure (DSHLoop n dop) x_p y_p) by (apply Loop_DSH_pure; assumption).
+      assert (T1 : DSH_pure (DSHLoop n dop) y_p) by (apply Loop_DSH_pure; assumption).
       assert (T2: (∀ (t : FinNat n) (m : memory),
                       MSH_DSH_compat (opf' t) dop (DSHnatVal (` t) :: σ) m 
                                      (incrPVar 0 x_p) (incrPVar 0 y_p))).
@@ -3363,7 +3363,7 @@ Proof.
       {
         rewrite lookup_Pexp_incrPVar.
         clear - Heqo0 DP Y_M X_M XY.
-        pose proof @Loop_DSH_pure n dop x_p y_p DP.
+        pose proof @Loop_DSH_pure n dop y_p DP.
         inversion_clear H as [T C]; clear T.
         eq_to_equiv_hyp.
         specialize (C σ m loop_m (estimateFuel (DSHLoop n dop)) Heqo0).
@@ -3462,11 +3462,11 @@ Qed.
 
 Global Instance Seq_DSH_pure
        {dop1 dop2 : DSHOperator}
-       {x_p y_p : PExpr}
-       (P1: DSH_pure dop1 x_p y_p)
-       (P2: DSH_pure dop2 x_p y_p)
+       {y_p : PExpr}
+       (P1: DSH_pure dop1 y_p)
+       (P2: DSH_pure dop2 y_p)
   :
-    DSH_pure (DSHSeq dop1 dop2) x_p y_p.
+    DSH_pure (DSHSeq dop1 dop2) y_p.
 Proof.
   split.
   -
@@ -3512,11 +3512,11 @@ Proof.
 Qed.
 
 Global Instance MemMap2_DSH_pure
-       {x_p x0_p x1_p y_p : PExpr}
+       {x0_p x1_p y_p : PExpr}
        {n : nat}
        {a : AExpr}
   :
-    DSH_pure (DSHMemMap2 n x0_p x1_p y_p a) x_p y_p.
+    DSH_pure (DSHMemMap2 n x0_p x1_p y_p a) y_p.
 Proof.
   constructor.
   -
@@ -3556,10 +3556,10 @@ Qed.
 Global Instance Alloc_DSH_pure
        {size : nat}
        {dop : DSHOperator}
-       {x_p y_p : PExpr}
-       (P : DSH_pure dop x_p (incrPVar 0 y_p))
+       {y_p : PExpr}
+       (P : DSH_pure dop (incrPVar 0 y_p))
   :
-  DSH_pure (DSHAlloc size dop) x_p y_p.
+  DSH_pure (DSHAlloc size dop) y_p.
 Proof.
   constructor.
   -
@@ -3638,10 +3638,10 @@ Qed.
 
 Global Instance MemInit_DSH_pure
        {size : nat}
-       {x_p y_p : PExpr}
+       {y_p : PExpr}
        {init : CarrierA}
   :
-    DSH_pure (DSHMemInit size y_p init) x_p y_p.
+    DSH_pure (DSHMemInit size y_p init) y_p.
 Proof.
   constructor.
   -
@@ -3680,13 +3680,12 @@ Qed.
 
 Global Instance IReduction_DSH_pure
        {no nn : nat}
-       {x_p y_p y_p'': PExpr}
+       {y_p y_p'': PExpr}
        {init : CarrierA}
        {rr : DSHOperator}
        {df : AExpr}
        (Y: y_p'' ≡ incrPVar 0 (incrPVar 0 y_p))
-       (P: DSH_pure rr
-                    (incrPVar 0 (incrPVar 0 x_p)) y_p'')
+       (P: DSH_pure rr y_p'')
   :
     DSH_pure (DSHAlloc no
                        (DSHSeq
@@ -3698,7 +3697,7 @@ Global Instance IReduction_DSH_pure
                                                   y_p''
                                                   y_p''
                                                   df)))))
-             x_p y_p.
+             y_p.
 Proof.
   (*
   subst.
@@ -3793,7 +3792,7 @@ Global Instance IReduction_MSH_DSH_compat
        {σ : evalContext}
        {m : memory}
        {DP}
-       (P: DSH_pure rr (incrPVar 0 (incrPVar 0 x_p)) y_p'')
+       (P: DSH_pure rr y_p'')
        (FC : forall tmpk t,
            tmpk ≡ memory_next_key m ->
            @MSH_DSH_compat _ _ (op_family t) rr
@@ -3821,11 +3820,11 @@ Admitted.
 (** * MSHCompose *)
 Global Instance Compose_DSH_pure
          {n: nat}
-         {x_p y_p: PExpr}
+         {y_p: PExpr}
          {dop1 dop2: DSHOperator}
-         (P2: DSH_pure dop2 (incrPVar 0 x_p) (PVar 0))
-         (P1: DSH_pure dop1 (PVar 0) (incrPVar 0 y_p))
-  : DSH_pure (DSHAlloc n (DSHSeq dop2 dop1)) x_p y_p.
+         (P2: DSH_pure dop2 (PVar 0))
+         (P1: DSH_pure dop1 (incrPVar 0 y_p))
+  : DSH_pure (DSHAlloc n (DSHSeq dop2 dop1)) y_p.
 Proof.
   split.
   - (* mem_stable *)
@@ -4006,9 +4005,9 @@ Global Instance Compose_MSH_DSH_compat
          {m: memory}
          {dop1 dop2: DSHOperator}
          {x_p y_p: PExpr}
-         (P: DSH_pure (DSHAlloc o2 (DSHSeq dop2 dop1)) x_p y_p)
-         (P2: DSH_pure dop2 (incrPVar 0 x_p) (PVar 0))
-         (P1: DSH_pure dop1 (PVar 0) (incrPVar 0 y_p))
+         (P: DSH_pure (DSHAlloc o2 (DSHSeq dop2 dop1)) y_p)
+         (P2: DSH_pure dop2 (PVar 0))
+         (P1: DSH_pure dop1 (incrPVar 0 y_p))
          (C2: @MSH_DSH_compat _ _ mop2 dop2
                               (DSHPtrVal (memory_next_key m) o2 :: σ)
                               (memory_alloc_empty m (memory_next_key m))
@@ -5093,10 +5092,10 @@ Global Instance HTSUMUnion_MSH_DSH_compat
          {σ: evalContext}
          {dop1 dop2: DSHOperator}
          {x_p y_p : PExpr}
-         (P: DSH_pure (DSHSeq dop1 dop2) x_p y_p)
+         (P: DSH_pure (DSHSeq dop1 dop2) y_p)
          (D : herr_f nat nat (compose2 not equiv) (evalPexp σ x_p) (evalPexp σ y_p))
-         (P1: DSH_pure dop1 x_p y_p)
-         (P2: DSH_pure dop2 x_p y_p)
+         (P1: DSH_pure dop1 y_p)
+         (P2: DSH_pure dop2 y_p)
          (C1: @MSH_DSH_compat _ _ mop1 dop1 σ m x_p y_p P1)
          (C2: forall m', lookup_Pexp σ m x_p = lookup_Pexp σ m' x_p ->
                       @MSH_DSH_compat _ _ mop2 dop2 σ m' x_p y_p P2)

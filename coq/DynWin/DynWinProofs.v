@@ -273,12 +273,12 @@ Section MSHCOL_to_DSHCOL.
     | |- MSH_DSH_compat (MSHIUnion _) _ _ _ _ _ => unshelve eapply IUnion_MSH_DSH_compat; intros
 
     (* DSH_Pure *)
-    | [ |- DSH_pure (DSHSeq _ _) _ _] => apply Seq_DSH_pure
-    | [ |- DSH_pure (DSHAssign _ _) _ _ ] => apply Assign_DSH_pure
-    | [ |- DSH_pure (DSHPower _ _ _ _ _) _ _] => apply Power_DSH_pure
-    | [ |- DSH_pure (DSHIMap _ _ _ _) _ _] => apply IMap_DSH_pure
-    | [ |- DSH_pure (DSHLoop _ _) _ _] => apply Loop_DSH_pure
-    | [ |- DSH_pure (DSHBinOp _ _ _ _) _ _] => apply BinOp_DSH_pure
+    | [ |- DSH_pure (DSHSeq _ _) _] => apply Seq_DSH_pure
+    | [ |- DSH_pure (DSHAssign _ _) _ ] => apply Assign_DSH_pure
+    | [ |- DSH_pure (DSHPower _ _ _ _ _) _] => apply Power_DSH_pure
+    | [ |- DSH_pure (DSHIMap _ _ _ _) _] => apply IMap_DSH_pure
+    | [ |- DSH_pure (DSHLoop _ _) _] => apply Loop_DSH_pure
+    | [ |- DSH_pure (DSHBinOp _ _ _ _) _] => apply BinOp_DSH_pure
     | [ |-
         DSH_pure (DSHAlloc _
                            (DSHSeq
@@ -290,8 +290,8 @@ Section MSHCOL_to_DSHCOL.
                                                       _
                                                       _
                                                       _)))))
-                 _ _] => apply IReduction_DSH_pure
-    | [ |- DSH_pure (DSHAlloc _ (DSHSeq _ _)) _ _ ] => apply Compose_DSH_pure
+                 _] => apply IReduction_DSH_pure
+    | [ |- DSH_pure (DSHAlloc _ (DSHSeq _ _)) _] => apply Compose_DSH_pure
     | [ |- PVar _ ≡ incrPVar 0 _] => auto
 
     (* Compat Obligations *)
@@ -309,7 +309,7 @@ Section MSHCOL_to_DSHCOL.
   (* TODO: This is a manual proof. To be automated in future. See [[../../doc/TODO.org]] for details *)
   Instance DynWin_pure
     :
-      DSH_pure (dynwin_DSHCOL1) DSH_x_p DSH_y_p.
+      DSH_pure (dynwin_DSHCOL1) DSH_y_p.
   Proof.
     unfold dynwin_DSHCOL1, DSH_y_p, DSH_x_p.
     solve_MSH_DSH_compat.
