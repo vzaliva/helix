@@ -2950,13 +2950,19 @@ Proof.
     reflexivity.
 Qed.
 
+Lemma nth_error_nil_None {A : Type} (n : nat) :
+  List.nth_error [] n ≡ @None A.
+Proof.
+  destruct n; reflexivity.
+Qed.
+
 (* TODO: move *)
 Lemma List_nth_nth_error {A : Type} (l1 l2 : list A) (n : nat) (d : A) :
   List.nth_error l1 n ≡ List.nth_error l2 n ->
   List.nth n l1 d ≡ List.nth n l2 d.
 Proof.
-  generalize dependent l1.
   generalize dependent l2.
+  generalize dependent l1.
   induction n.
   -
     intros.
@@ -2967,12 +2973,25 @@ Proof.
     reflexivity.
   -
     intros.
-    destruct l1.
+    destruct l1, l2; cbn in *.
     +
-      cbn in *.
-      break_match; try discriminate.
       reflexivity.
-Admitted.
+    +
+      specialize (IHn [] l2).
+      rewrite nth_error_nil_None in IHn.
+      specialize (IHn H).
+      rewrite <-IHn.
+      destruct n; reflexivity.
+    +
+      specialize (IHn l1 []).
+      rewrite nth_error_nil_None in IHn.
+      specialize (IHn H).
+      rewrite IHn.
+      destruct n; reflexivity.
+    +
+      apply IHn.
+      assumption.
+Qed.
 
 Lemma IUnion_step {i o n : nat} (mb : mem_block) (S_opf : @MSHOperatorFamily i o (S n)) :
   let opf := shrink_m_op_family S_opf in
@@ -3177,6 +3196,7 @@ Global Instance IUnion_MSH_DSH_compat
        {x_p y_p : PExpr}
        {σ : evalContext}
        {m : memory}
+       {XY : evalPexp σ x_p <> evalPexp σ y_p}
        {opf : MSHOperatorFamily}
        {DP : DSH_pure dop (incrPVar 0 x_p) (incrPVar 0 y_p)}
        {LP : DSH_pure (DSHLoop n dop) x_p y_p}
@@ -3342,7 +3362,7 @@ Proof.
       assert (T1 : lookup_Pexp (DSHnatVal n :: σ) loop_m (incrPVar 0 x_p) = inr x_m).
       {
         rewrite lookup_Pexp_incrPVar.
-        clear - Heqo0 DP Y_M X_M.
+        clear - Heqo0 DP Y_M X_M XY.
         pose proof @Loop_DSH_pure n dop x_p y_p DP.
         inversion_clear H as [T C]; clear T.
         eq_to_equiv_hyp.
@@ -3352,8 +3372,14 @@ Proof.
         assert (T : inr m0 = inr m0) by reflexivity.
         specialize (C m0 T); clear T.
         unfold memory_equiv_except in *.
-        clear - X_M C.
-        admit.
+        clear - X_M C XY.
+        unfold lookup_Pexp, memory_lookup_err in *; cbn in *.
+        destruct (evalPexp σ x_p); try inl_inr.
+        assert (m1 ≢ m0)
+          by (intros T; contradict XY; f_equal; assumption).
+        specialize (C m1 H).
+        rewrite <-C.
+        assumption.
       }
       
       assert (T2 : lookup_Pexp (DSHnatVal n :: σ) loop_m (incrPVar 0 y_p) = inr y_lm)
@@ -3382,7 +3408,7 @@ Proof.
       rewrite evalDSHOperator_estimateFuel_ge
         by (pose proof estimateFuel_positive dop; cbn; lia).
       apply evalDSHOperator_estimateFuel.
-Admitted.
+Qed.
 
 
 (** * MSHIReduction *)
