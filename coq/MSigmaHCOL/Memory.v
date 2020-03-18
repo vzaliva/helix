@@ -954,6 +954,44 @@ Module Type MBasic (Import CT : CType).
         congruence.
     Qed.
 
+    Lemma mem_block_exists_next_key_gt:
+      forall k m, mem_block_exists k m -> memory_next_key m > k.
+    Proof.
+      intros k m H.
+      unfold mem_block_exists in H.
+      unfold memory_next_key.
+      apply memory_keys_set_In in H.
+      generalize dependent (memory_keys_set m).
+      intros s H.
+      clear m.
+      break_match.
+      -
+        apply NS.max_elt_2 with (y:=k) in Heqo.
+        lia.
+        apply H.
+      -
+        rename Heqo into E.
+        apply NS.max_elt_3 in E.
+        apply empty_is_empty_1 in E.
+        rewrite E in H.
+        apply FM.empty_iff in H.
+        inversion H.
+    Qed.
+
+    Lemma memory_set_memory_next_key_gt m1 m2 b k:
+      m2 = memory_set m1 k b ->
+      memory_next_key m2 > k.
+    Proof.
+      intros H.
+
+      assert(mem_block_exists k m2) as E.
+      {
+        subst m2.
+        apply mem_block_exists_memory_set_eq; reflexivity.
+      }
+      apply mem_block_exists_next_key_gt, E.
+    Qed.
+
     Lemma memory_lookup_memory_next_key_is_None (m:memory):
       MathClasses.misc.util.is_None (memory_lookup m (memory_next_key m)).
     Proof.

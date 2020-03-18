@@ -21,6 +21,7 @@ Require Import Coq.Arith.Arith.
 Require Import Coq.Arith.Compare_dec.
 Require Import Coq.Arith.Peano_dec.
 Require Import Coq.Strings.String.
+Require Import Coq.micromega.Lia.
 
 Require Import Helix.Tactics.HelixTactics.
 Require Import Helix.HCOL.HCOLBreakdown.
@@ -491,10 +492,47 @@ Section MSHCOL_to_DSHCOL.
         intros C.
         inl_inr_inv.
         subst.
-        admit. (* next key 3 times = 2 *)
+
+        symmetry in H.
+        mem_lookup_err_to_option.
+        apply equiv_Some_is_Some in H.
+        apply memory_is_set_is_Some in H.
+
+        rename H into M0.
+        rename m' into m0.
+        remember (memory_alloc_empty m0 (memory_next_key m0)) as m1 eqn:M1.
+        remember (memory_set m1 (memory_next_key m1) mem_empty) as m2 eqn:M2.
+        unfold memory_alloc_empty in M1.
+
+        (*
+          Steps:
+
+          memory_next_key m0 > 2
+          memory_next_key m1 > 3
+          memory_next_key m2 > 4
+         *)
+
+        cut(memory_next_key m2 > 4).
+        {
+          intros C.
+          rewrite <- H2 in C.
+          lia.
+        }
+
+        clear H2.
+        cut(memory_next_key m1 > 3).
+        {
+          intros H.
+          apply memory_set_memory_next_key_gt in M2.
+          lia.
+        }
+
+        apply memory_set_memory_next_key_gt in M1.
+        apply mem_block_exists_next_key_gt in M0.
+        lia.
       }
       
-    Admitted.
+    Qed.
 
   End DummyEnv.
 
