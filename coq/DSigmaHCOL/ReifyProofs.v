@@ -3845,7 +3845,7 @@ Global Instance IReduction_MSH_DSH_compat
   :
     @MSH_DSH_compat
       _ _
-      (@MSHIReduction i o n initial dot pdot op_family)
+      (@MSHIReduction i o n init dot pdot op_family)
       (DSHAlloc o
                 (DSHSeq
                    (DSHMemInit o (PVar 0) init)
@@ -3858,6 +3858,7 @@ Global Instance IReduction_MSH_DSH_compat
                                            df)))))
       σ m x_p y_p DP.
 Admitted.
+
 
 
 (** * MSHCompose *)
