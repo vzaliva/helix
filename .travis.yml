@@ -58,5 +58,7 @@ script:
   - make test
 
 notifications:
-  slack: digamma-ai:UpxI6GZGpcU4NZi813AkDl0g
-  
+ slack:
+    rooms:
+	  - codemindersw:EqDgyov45kk75iskZ4lBLOhM#project-helix
+
