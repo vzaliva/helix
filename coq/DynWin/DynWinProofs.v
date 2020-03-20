@@ -494,7 +494,7 @@ Section MSHCOL_to_DSHCOL.
         subst.
 
         symmetry in H.
-        mem_lookup_err_to_option.
+        memory_lookup_err_to_option.
         apply equiv_Some_is_Some in H.
         apply memory_is_set_is_Some in H.
 
