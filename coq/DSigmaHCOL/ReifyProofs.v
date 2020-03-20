@@ -4000,7 +4000,10 @@ Global Instance IReduction_MSH_DSH_compat
        {m : memory}
        {DP}
        (P: DSH_pure rr y_p'')
-       (FC : forall m tmpk t,
+       (FC : forall m' tmpk t y_id,
+           evalPexp σ y_p ≡ inr y_id ->
+           (* this might need some tweaking given the [next_key] and [memory_set] *)
+           memory_equiv_except m m' y_id ->
            tmpk ≡ memory_next_key m ->
            @MSH_DSH_compat _ _ (op_family t) rr
                            (DSHnatVal (proj1_sig t) :: DSHPtrVal tmpk o :: σ)
@@ -4022,6 +4025,7 @@ Global Instance IReduction_MSH_DSH_compat
                                            df)))))
       σ m x_p y_p DP.
 Proof.
+  (*
   subst.
   constructor.
   intros x_m y_m X_M Y_M.
@@ -4214,6 +4218,7 @@ Proof.
       reflexivity.
     }
     specialize (IHn op_family' T1 T2 init_mem T3 T4); clear T1 T2 T3 T4.
+   *)
 Admitted.
 
 
