@@ -489,8 +489,6 @@ Section MSHCOL_to_DSHCOL.
       }
 
       {
-        admit.
-        (*
         cbn in *.
         unfold dynwin_x_addr in *.
         intros C.
@@ -519,11 +517,11 @@ Section MSHCOL_to_DSHCOL.
         cut(memory_next_key m2 > 4).
         {
           intros C.
-          rewrite <- H2 in C.
+          rewrite <- H4 in C.
           lia.
         }
 
-        clear H2.
+        clear H4.
         cut(memory_next_key m1 > 3).
         {
           intros H.
@@ -534,10 +532,9 @@ Section MSHCOL_to_DSHCOL.
         apply memory_set_memory_next_key_gt in M1.
         apply mem_block_exists_next_key_gt in M0.
         lia.
-         *)
       }
       
-    Admitted.
+    Qed.
 
   End DummyEnv.
 
