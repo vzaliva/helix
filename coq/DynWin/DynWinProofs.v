@@ -379,6 +379,8 @@ Section MSHCOL_to_DSHCOL.
       (* This remailing obligation proof is not yet automated *)
       {
         (* [a] is defined in section *)
+        admit.
+        (*
         constructor; intros.
         unfold evalIUnCType, Fin1SwapIndex.
         cbn.
@@ -484,6 +486,7 @@ Section MSHCOL_to_DSHCOL.
           rewrite H1 in Heqo.
           rewrite mem_lookup_avector_to_mem_block_equiv with (kc:=tc) in Heqo.
           some_none.
+         *)
       }
 
       {

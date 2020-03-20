@@ -3985,7 +3985,7 @@ Global Instance IReduction_MSH_DSH_compat
        {m : memory}
        {DP}
        (P: DSH_pure rr y_p'')
-       (FC : forall tmpk t,
+       (FC : forall m tmpk t,
            tmpk ≡ memory_next_key m ->
            @MSH_DSH_compat _ _ (op_family t) rr
                            (DSHnatVal (proj1_sig t) :: DSHPtrVal tmpk o :: σ)
