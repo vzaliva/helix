@@ -379,8 +379,7 @@ Section MSHCOL_to_DSHCOL.
       (* This remailing obligation proof is not yet automated *)
       {
         (* [a] is defined in section *)
-        admit.
-        (*
+
         constructor; intros.
         unfold evalIUnCType, Fin1SwapIndex.
         cbn.
@@ -391,6 +390,7 @@ Section MSHCOL_to_DSHCOL.
         repeat break_match; inversion Heqs; subst.
         -
           exfalso.
+          clear Heqs.
           destruct t as [t tc].
 
           match goal with
@@ -403,15 +403,15 @@ Section MSHCOL_to_DSHCOL.
           assert(dynwin_a_addr ≢ memory_next_key m0) as NM0 by
                 (eapply memory_lookup_not_next; eauto).
 
-          specialize (H0 dynwin_a_addr NM0).
+          specialize (H2 dynwin_a_addr NM0).
 
-          rewrite M0 in H0. symmetry in H0.
+          rewrite M0 in H2. symmetry in H2.
 
           assert(dynwin_a_addr ≢ memory_next_key m'') as NM1
               by (eapply memory_lookup_not_next_equiv; eauto).
 
-          specialize (H1 dynwin_a_addr NM1).
-          rewrite H0 in H1. symmetry in H1.
+          specialize (H3 dynwin_a_addr NM1).
+          rewrite H2 in H3. symmetry in H3.
 
           err_eq_to_equiv_hyp.
           apply memory_lookup_err_inl_None in Heqe.
@@ -431,23 +431,23 @@ Section MSHCOL_to_DSHCOL.
           assert(dynwin_a_addr ≢ memory_next_key m0) as NM0 by
                 (eapply memory_lookup_not_next; eauto).
 
-          specialize (H0 dynwin_a_addr NM0).
+          specialize (H2 dynwin_a_addr NM0).
 
-          rewrite M0 in H0. symmetry in H0.
+          rewrite M0 in H2. symmetry in H2.
 
           assert(dynwin_a_addr ≢ memory_next_key m'') as NM1
               by (eapply memory_lookup_not_next_equiv; eauto).
 
-          specialize (H1 dynwin_a_addr NM1).
-          rewrite H0 in H1. symmetry in H1.
+          specialize (H3 dynwin_a_addr NM1).
+          rewrite H2 in H3. symmetry in H3.
 
           err_eq_to_equiv_hyp.
           apply memory_lookup_err_inr_Some in Heqe.
-          rewrite Heqe in  H1.
+          rewrite Heqe in H3.
           some_inv.
 
           eq_to_equiv_hyp.
-          rewrite H1 in Heqo.
+          rewrite H3 in Heqo.
           rewrite mem_lookup_avector_to_mem_block_equiv with (kc:=tc) in Heqo.
           some_inv.
           rewrite Heqo.
@@ -467,26 +467,25 @@ Section MSHCOL_to_DSHCOL.
           assert(dynwin_a_addr ≢ memory_next_key m0) as NM0 by
                 (eapply memory_lookup_not_next; eauto).
 
-          specialize (H0 dynwin_a_addr NM0).
+          specialize (H2 dynwin_a_addr NM0).
 
-          rewrite M0 in H0. symmetry in H0.
+          rewrite M0 in H2. symmetry in H2.
 
           assert(dynwin_a_addr ≢ memory_next_key m'') as NM1
               by (eapply memory_lookup_not_next_equiv; eauto).
 
-          specialize (H1 dynwin_a_addr NM1).
-          rewrite H0 in H1. symmetry in H1.
+          specialize (H3 dynwin_a_addr NM1).
+          rewrite H2 in H3. symmetry in H3.
 
           err_eq_to_equiv_hyp.
           apply memory_lookup_err_inr_Some in Heqe.
-          rewrite Heqe in  H1.
+          rewrite Heqe in H3.
           some_inv.
 
           eq_to_equiv_hyp.
-          rewrite H1 in Heqo.
+          rewrite H3 in Heqo.
           rewrite mem_lookup_avector_to_mem_block_equiv with (kc:=tc) in Heqo.
           some_none.
-         *)
       }
 
       {
