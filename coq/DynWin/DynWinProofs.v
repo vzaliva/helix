@@ -379,9 +379,6 @@ Section MSHCOL_to_DSHCOL.
       (* This remailing obligation proof is not yet automated *)
       {
         (* [a] is defined in section *)
-
-        admit.
-        (*
         constructor; intros.
         unfold evalIUnCType, Fin1SwapIndex.
         cbn.
@@ -399,8 +396,38 @@ Section MSHCOL_to_DSHCOL.
           | [H0: memory_equiv_except ?m m'' _ |- _] => remember m as m0
           end.
 
-          assert(memory_lookup m0 dynwin_a_addr ≡ Some (avector_to_mem_block a)) as M0
-              by (subst m0;reflexivity).
+          assert(memory_lookup m0 dynwin_a_addr ≡ Some (avector_to_mem_block a)) as M0.
+          {
+            (* copy-paste from above *)
+            specialize (H0 dynwin_a_addr (avector_to_mem_block a)).
+            autospecialize H0.
+            {
+              cbn in H.
+              repeat inl_inr_inv.
+              subst y_id.
+              cbv.
+              lia.
+            }
+            autospecialize H0.
+            {
+              remember (avector_to_mem_block) as v.
+              unfold dynwin_memory, dynwin_globals_mem.
+              cbn.
+              unfold memory_alloc_empty.
+              apply memory_mapsto_memory_lookup.
+              do 4 (rewrite memory_lookup_memory_set_neq
+                by (unfold dynwin_a_addr,dynwin_y_addr; auto)).
+              rewrite memory_lookup_memory_set_eq by reflexivity.
+              subst v.
+              reflexivity.
+            }
+            subst m0.
+            rewrite memory_lookup_memory_set_neq.
+            apply memory_mapsto_memory_lookup, H0.
+            apply memory_mapsto_memory_lookup in H0.
+            apply memory_lookup_not_next in H0.
+            auto.
+          }
 
           assert(dynwin_a_addr ≢ memory_next_key m0) as NM0 by
                 (eapply memory_lookup_not_next; eauto).
@@ -427,8 +454,38 @@ Section MSHCOL_to_DSHCOL.
           | [H0: memory_equiv_except ?m m'' _ |- _] => remember m as m0
           end.
 
-          assert(memory_lookup m0 dynwin_a_addr ≡ Some (avector_to_mem_block a)) as M0
-              by (subst m0;reflexivity).
+          assert(memory_lookup m0 dynwin_a_addr ≡ Some (avector_to_mem_block a)) as M0.
+          {
+            specialize (H0 dynwin_a_addr (avector_to_mem_block a)).
+            autospecialize H0.
+            {
+              cbn in H.
+              repeat inl_inr_inv.
+              subst y_id.
+              cbv.
+              lia.
+            }
+            autospecialize H0.
+            {
+              remember (avector_to_mem_block) as v.
+              unfold dynwin_memory, dynwin_globals_mem.
+              cbn.
+              unfold memory_alloc_empty.
+              apply memory_mapsto_memory_lookup.
+              do 4 (rewrite memory_lookup_memory_set_neq
+                by (unfold dynwin_a_addr,dynwin_y_addr; auto)).
+              rewrite memory_lookup_memory_set_eq by reflexivity.
+              subst v.
+              reflexivity.
+            }
+            subst m0.
+            rewrite memory_lookup_memory_set_neq.
+            apply memory_mapsto_memory_lookup, H0.
+            apply memory_mapsto_memory_lookup in H0.
+            apply memory_lookup_not_next in H0.
+            auto.
+
+          }
 
           assert(dynwin_a_addr ≢ memory_next_key m0) as NM0 by
                 (eapply memory_lookup_not_next; eauto).
@@ -463,8 +520,38 @@ Section MSHCOL_to_DSHCOL.
           | [H0: memory_equiv_except ?m m'' _ |- _] => remember m as m0
           end.
 
-          assert(memory_lookup m0 dynwin_a_addr ≡ Some (avector_to_mem_block a)) as M0
-              by (subst m0;reflexivity).
+          assert(memory_lookup m0 dynwin_a_addr ≡ Some (avector_to_mem_block a)) as M0.
+          {
+            (* copy-paste from above *)
+            specialize (H0 dynwin_a_addr (avector_to_mem_block a)).
+            autospecialize H0.
+            {
+              cbn in H.
+              repeat inl_inr_inv.
+              subst y_id.
+              cbv.
+              lia.
+            }
+            autospecialize H0.
+            {
+              remember (avector_to_mem_block) as v.
+              unfold dynwin_memory, dynwin_globals_mem.
+              cbn.
+              unfold memory_alloc_empty.
+              apply memory_mapsto_memory_lookup.
+              do 4 (rewrite memory_lookup_memory_set_neq
+                by (unfold dynwin_a_addr,dynwin_y_addr; auto)).
+              rewrite memory_lookup_memory_set_eq by reflexivity.
+              subst v.
+              reflexivity.
+            }
+            subst m0.
+            rewrite memory_lookup_memory_set_neq.
+            apply memory_mapsto_memory_lookup, H0.
+            apply memory_mapsto_memory_lookup in H0.
+            apply memory_lookup_not_next in H0.
+            auto.
+          }
 
           assert(dynwin_a_addr ≢ memory_next_key m0) as NM0 by
                 (eapply memory_lookup_not_next; eauto).
@@ -488,7 +575,6 @@ Section MSHCOL_to_DSHCOL.
           rewrite H3 in Heqo.
           rewrite mem_lookup_avector_to_mem_block_equiv with (kc:=tc) in Heqo.
           some_none.
-         *)
       }
 
       {
