@@ -4014,11 +4014,11 @@ Global Instance IReduction_MSH_DSH_compat
        (FC : forall m' tmpk t y_id,
            evalPexp σ y_p ≡ inr y_id ->
            (* this might need some tweaking given the [next_key] and [memory_set] *)
-           memory_equiv_except m m' y_id ->
-           tmpk ≡ memory_next_key m ->
+           memory_subset_except m m' y_id ->
+           tmpk ≡ memory_next_key m' ->
            @MSH_DSH_compat _ _ (op_family t) rr
                            (DSHnatVal (proj1_sig t) :: DSHPtrVal tmpk o :: σ)
-                           (memory_set m tmpk (mem_empty))
+                           (memory_set m' tmpk (mem_empty))
                            (incrPVar 0 (incrPVar 0 x_p)) y_p'' P)
   :
     @MSH_DSH_compat

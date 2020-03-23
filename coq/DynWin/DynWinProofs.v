@@ -380,6 +380,8 @@ Section MSHCOL_to_DSHCOL.
       {
         (* [a] is defined in section *)
 
+        admit.
+        (*
         constructor; intros.
         unfold evalIUnCType, Fin1SwapIndex.
         cbn.
@@ -486,9 +488,12 @@ Section MSHCOL_to_DSHCOL.
           rewrite H3 in Heqo.
           rewrite mem_lookup_avector_to_mem_block_equiv with (kc:=tc) in Heqo.
           some_none.
+         *)
       }
 
       {
+        admit.
+        (*
         cbn in *.
         unfold dynwin_x_addr in *.
         intros C.
@@ -532,9 +537,10 @@ Section MSHCOL_to_DSHCOL.
         apply memory_set_memory_next_key_gt in M1.
         apply mem_block_exists_next_key_gt in M0.
         lia.
+         *)
       }
       
-    Qed.
+    Admitted.
 
   End DummyEnv.
 
