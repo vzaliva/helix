@@ -386,54 +386,54 @@ Section MSHCOL_to_DSHCOL.
         unfold mult_by_nth, const.
         subst tmpk.
 
+        match goal with
+        | [H0: memory_equiv_except ?m m'' _ |- _] => remember m as m0
+        end.
+
+        assert(memory_lookup m0 dynwin_a_addr ≡ Some (avector_to_mem_block a)) as M0.
+        {
+          (* copy-paste from above *)
+          specialize (H0 dynwin_a_addr (avector_to_mem_block a)).
+          autospecialize H0.
+          {
+            cbn in H.
+            repeat inl_inr_inv.
+            subst y_id.
+            cbv.
+            lia.
+          }
+          autospecialize H0.
+          {
+            remember (avector_to_mem_block) as v.
+            unfold dynwin_memory, dynwin_globals_mem.
+            cbn.
+            unfold memory_alloc_empty.
+            apply memory_mapsto_memory_lookup.
+            do 4 (rewrite memory_lookup_memory_set_neq
+                   by (unfold dynwin_a_addr,dynwin_y_addr; auto)).
+            rewrite memory_lookup_memory_set_eq by reflexivity.
+            subst v.
+            reflexivity.
+          }
+          subst m0.
+          rewrite memory_lookup_memory_set_neq.
+          apply memory_mapsto_memory_lookup, H0.
+          apply memory_mapsto_memory_lookup in H0.
+          apply memory_lookup_not_next in H0.
+          auto.
+        }
+
+        assert(dynwin_a_addr ≢ memory_next_key m0) as NM0 by
+              (eapply memory_lookup_not_next; eauto).
+
+        destruct t as [t tc].
+
         repeat break_match; inversion Heqs; subst.
         -
           exfalso.
           clear Heqs.
-          destruct t as [t tc].
-
-          match goal with
-          | [H0: memory_equiv_except ?m m'' _ |- _] => remember m as m0
-          end.
-
-          assert(memory_lookup m0 dynwin_a_addr ≡ Some (avector_to_mem_block a)) as M0.
-          {
-            (* copy-paste from above *)
-            specialize (H0 dynwin_a_addr (avector_to_mem_block a)).
-            autospecialize H0.
-            {
-              cbn in H.
-              repeat inl_inr_inv.
-              subst y_id.
-              cbv.
-              lia.
-            }
-            autospecialize H0.
-            {
-              remember (avector_to_mem_block) as v.
-              unfold dynwin_memory, dynwin_globals_mem.
-              cbn.
-              unfold memory_alloc_empty.
-              apply memory_mapsto_memory_lookup.
-              do 4 (rewrite memory_lookup_memory_set_neq
-                by (unfold dynwin_a_addr,dynwin_y_addr; auto)).
-              rewrite memory_lookup_memory_set_eq by reflexivity.
-              subst v.
-              reflexivity.
-            }
-            subst m0.
-            rewrite memory_lookup_memory_set_neq.
-            apply memory_mapsto_memory_lookup, H0.
-            apply memory_mapsto_memory_lookup in H0.
-            apply memory_lookup_not_next in H0.
-            auto.
-          }
-
-          assert(dynwin_a_addr ≢ memory_next_key m0) as NM0 by
-                (eapply memory_lookup_not_next; eauto).
 
           specialize (H2 dynwin_a_addr NM0).
-
           rewrite M0 in H2. symmetry in H2.
 
           assert(dynwin_a_addr ≢ memory_next_key m'') as NM1
@@ -447,51 +447,9 @@ Section MSHCOL_to_DSHCOL.
           some_none.
         -
           f_equiv.
-          destruct t as [t tc].
           cbn. cbn in Heqo.
 
-          match goal with
-          | [H0: memory_equiv_except ?m m'' _ |- _] => remember m as m0
-          end.
-
-          assert(memory_lookup m0 dynwin_a_addr ≡ Some (avector_to_mem_block a)) as M0.
-          {
-            specialize (H0 dynwin_a_addr (avector_to_mem_block a)).
-            autospecialize H0.
-            {
-              cbn in H.
-              repeat inl_inr_inv.
-              subst y_id.
-              cbv.
-              lia.
-            }
-            autospecialize H0.
-            {
-              remember (avector_to_mem_block) as v.
-              unfold dynwin_memory, dynwin_globals_mem.
-              cbn.
-              unfold memory_alloc_empty.
-              apply memory_mapsto_memory_lookup.
-              do 4 (rewrite memory_lookup_memory_set_neq
-                by (unfold dynwin_a_addr,dynwin_y_addr; auto)).
-              rewrite memory_lookup_memory_set_eq by reflexivity.
-              subst v.
-              reflexivity.
-            }
-            subst m0.
-            rewrite memory_lookup_memory_set_neq.
-            apply memory_mapsto_memory_lookup, H0.
-            apply memory_mapsto_memory_lookup in H0.
-            apply memory_lookup_not_next in H0.
-            auto.
-
-          }
-
-          assert(dynwin_a_addr ≢ memory_next_key m0) as NM0 by
-                (eapply memory_lookup_not_next; eauto).
-
           specialize (H2 dynwin_a_addr NM0).
-
           rewrite M0 in H2. symmetry in H2.
 
           assert(dynwin_a_addr ≢ memory_next_key m'') as NM1
@@ -513,48 +471,7 @@ Section MSHCOL_to_DSHCOL.
           reflexivity.
         -
           f_equiv.
-          destruct t as [t tc].
           cbn. cbn in Heqo.
-
-          match goal with
-          | [H0: memory_equiv_except ?m m'' _ |- _] => remember m as m0
-          end.
-
-          assert(memory_lookup m0 dynwin_a_addr ≡ Some (avector_to_mem_block a)) as M0.
-          {
-            (* copy-paste from above *)
-            specialize (H0 dynwin_a_addr (avector_to_mem_block a)).
-            autospecialize H0.
-            {
-              cbn in H.
-              repeat inl_inr_inv.
-              subst y_id.
-              cbv.
-              lia.
-            }
-            autospecialize H0.
-            {
-              remember (avector_to_mem_block) as v.
-              unfold dynwin_memory, dynwin_globals_mem.
-              cbn.
-              unfold memory_alloc_empty.
-              apply memory_mapsto_memory_lookup.
-              do 4 (rewrite memory_lookup_memory_set_neq
-                by (unfold dynwin_a_addr,dynwin_y_addr; auto)).
-              rewrite memory_lookup_memory_set_eq by reflexivity.
-              subst v.
-              reflexivity.
-            }
-            subst m0.
-            rewrite memory_lookup_memory_set_neq.
-            apply memory_mapsto_memory_lookup, H0.
-            apply memory_mapsto_memory_lookup in H0.
-            apply memory_lookup_not_next in H0.
-            auto.
-          }
-
-          assert(dynwin_a_addr ≢ memory_next_key m0) as NM0 by
-                (eapply memory_lookup_not_next; eauto).
 
           specialize (H2 dynwin_a_addr NM0).
 
