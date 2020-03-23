@@ -46,12 +46,8 @@ Local Open Scope nat_scope.
 Import DSHCOLOnCarrierA.
 
 (* TODO: move to Memory.v *)
-(* problem: these depend on MemSetoid.v, which depends on Memory.v *)
+(* problem: some of these depend on MemSetoid.v, which depends on Memory.v *)
 Section memory_aux.
-
-  (* memory [m] has block [b] under id [n] *)
-  Definition memory_mapsto (m : memory) (n : mem_block_id) (b : mem_block) :=
-    NM.MapsTo (elt:=mem_block) n b m.
 
   (* [m_sub] ⊆ [m_sup] *)
   Definition memory_subset (m_sub m_sup : memory) :=
