@@ -4036,7 +4036,6 @@ Global Instance IReduction_MSH_DSH_compat
                                            df)))))
       σ m x_p y_p DP.
 Proof.
-  (*
   subst.
   constructor.
   intros x_m y_m X_M Y_M.
@@ -4099,6 +4098,7 @@ Proof.
       constructor.
       constructor.
       reflexivity.
+
       reflexivity.
   -
     intros.
@@ -4177,31 +4177,20 @@ Proof.
 
     (* specialize IHn *)
     pose (op_family' := shrink_m_op_family op_family).
-    assert (T1 : ∀ m tmpk t,
-               tmpk ≡ memory_next_key m
-               → MSH_DSH_compat (op_family' t) rr (DSHnatVal (` t) :: DSHPtrVal tmpk o :: σ)
-                                (memory_set m tmpk mem_empty)
-                                (incrPVar 0 (incrPVar 0 x_p))
-                                (incrPVar 0 (incrPVar 0 y_p))).
-    {
-      intros m' tmpk t TE.
-      assert (T : memory_next_key m' ≡ memory_next_key m') by reflexivity.
-      specialize (FC m' (memory_next_key m') (mkFinNat (le_S (proj2_sig t))) T).
-      subst.
-      clear - FC.
-      cbn in *.
-      assumption.
-    }
-    assert (T2 : DSH_pure (DSHAlloc o (DSHSeq (DSHMemInit o (PVar 0) init)
-                                              (DSHLoop n dop))) y_p).
-    {
+    specialize IHn with (op_family := op_family') (m := init_mem).
+    full_autospecialize IHn.
+    +
       subst dop.
       apply IReduction_DSH_pure.
       reflexivity.
       assumption.
-    }
-    assert (T3 : lookup_Pexp σ init_mem x_p = inr x_m).
-    {
+    +
+      intros m' tmpk t y_id' YEQ ME TMPK.
+      eapply FC; eauto.
+      intros k b NEQ MKB.
+      apply ME; [assumption |].
+      admit.
+    +
       rewrite <-IM.
       unfold lookup_Pexp, memory_lookup_err, trywith.
       rewrite X_ID.
@@ -4213,9 +4202,7 @@ Proof.
       inversion Heqo0; subst.
       rewrite H2.
       reflexivity.
-    }
-    assert (T4 : lookup_Pexp σ init_mem y_p = inr y_m).
-    {
+    +
       rewrite <-IM.
       unfold lookup_Pexp, memory_lookup_err, trywith.
       rewrite Y_ID.
@@ -4227,9 +4214,8 @@ Proof.
       inversion Heqo0; subst.
       rewrite H2.
       reflexivity.
-    }
-    specialize (IHn op_family' T1 T2 init_mem T3 T4); clear T1 T2 T3 T4.
-   *)
+    +
+      admit.
 Admitted.
 
 
