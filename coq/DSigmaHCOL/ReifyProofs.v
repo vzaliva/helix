@@ -3744,7 +3744,7 @@ Qed.
 
 Lemma memory_lookup_memory_set_eq (m : memory) (k k' : mem_block_id) (mb : mem_block) :
   k = k' ->
-  memory_lookup (memory_set m k mb) k' = Some mb.
+  memory_lookup (memory_set m k mb) k' ≡ Some mb.
 Proof.
   intros.
   rewrite H; clear H.
@@ -3755,7 +3755,7 @@ Qed.
 
 Lemma memory_lookup_memory_set_neq (m : memory) (k k' : mem_block_id) (mb : mem_block) :
   k <> k' ->
-  memory_lookup (memory_set m k mb) k' = memory_lookup m k'.
+  memory_lookup (memory_set m k mb) k' ≡ memory_lookup m k'.
 Proof.
   intros.
   unfold memory_lookup, memory_set.
