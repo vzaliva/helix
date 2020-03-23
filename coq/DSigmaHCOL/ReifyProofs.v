@@ -49,6 +49,17 @@ Import DSHCOLOnCarrierA.
 (* problem: these depend on MemSetoid.v, which depends on Memory.v *)
 Section memory_aux.
 
+  (* memory [m] has block [b] under id [n] *)
+  Definition memory_mapsto (m : memory) (n : mem_block_id) (b : mem_block) :=
+    NM.MapsTo (elt:=mem_block) n b m.
+
+  (* [m_sub] ⊆ [m_sup] *)
+  Definition memory_subset (m_sub m_sup : memory) :=
+    forall k b, memory_mapsto m_sub k b -> memory_mapsto m_sup k b.
+
+  Definition memory_subset_except (m_sub m_sup : memory) (e : mem_block_id) :=
+    forall k b, k ≢ e -> memory_mapsto m_sub k b -> memory_mapsto m_sup k b.
+
   (* Two memory locations equivalent on all addresses except one *)
   Definition memory_equiv_except (m m': memory) (e:mem_block_id)
     := forall k, k ≢ e -> memory_lookup m k = memory_lookup m' k.
