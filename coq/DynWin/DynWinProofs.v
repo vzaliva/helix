@@ -360,6 +360,13 @@ Section MSHCOL_to_DSHCOL.
       break_match_hyp; [trivial|some_none].
     Qed.
 
+    Lemma memory_subset_except_next_keys m_sub m_sup e:
+      memory_subset_except m_sub m_sup e ->
+      (* S e ≢ memory_next_key m_sub -> *)
+      (memory_next_key m_sup) >= (memory_next_key m_sub).
+    Proof.
+    Admitted.
+
     (* This lemma could be auto-generated *)
     Instance DynWin_MSH_DSH_compat
       :
@@ -495,8 +502,6 @@ Section MSHCOL_to_DSHCOL.
       }
 
       {
-        admit.
-        (*
         cbn in *.
         unfold dynwin_x_addr in *.
         intros C.
@@ -513,34 +518,32 @@ Section MSHCOL_to_DSHCOL.
         remember (memory_alloc_empty m0 (memory_next_key m0)) as m1 eqn:M1.
         remember (memory_set m1 (memory_next_key m1) mem_empty) as m2 eqn:M2.
         unfold memory_alloc_empty in M1.
+        rename m'0 into m1_plus.
+        inl_inr_inv.
 
-        (*
-          Steps:
-
-          memory_next_key m0 > 2
-          memory_next_key m1 > 3
-          memory_next_key m2 > 4
-         *)
-
-        cut(memory_next_key m2 > 4).
+        assert(memory_next_key m0 > 2) as LM0.
         {
-          intros C.
-          rewrite <- H4 in C.
+            apply mem_block_exists_next_key_gt in M0.
+            apply M0.
+        }
+
+        assert(memory_next_key m1 > 3) as LM1.
+        {
+          apply memory_set_memory_next_key_gt in M1.
           lia.
         }
 
-        clear H4.
-        cut(memory_next_key m1 > 3).
-        {
-          intros H.
-          apply memory_set_memory_next_key_gt in M2.
-          lia.
-        }
+        remember (memory_set m1_plus (memory_next_key m1_plus) mem_empty) as
+            m1_plus'.
 
-        apply memory_set_memory_next_key_gt in M1.
-        apply mem_block_exists_next_key_gt in M0.
+        apply memory_set_memory_next_key_gt in Heqm1_plus'.
+        apply memory_subset_except_next_keys in H1.
+        subst_max.
+
+        remember (memory_next_key (memory_set m0 (memory_next_key m0) mem_empty)) as x.
+        clear Heqx.
+        rewrite <- H4 in Heqm1_plus'.
         lia.
-         *)
       }
       
     Admitted.
