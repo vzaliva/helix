@@ -58,7 +58,5 @@ script:
   - make test
 
 notifications:
- slack:
-    rooms:
-	  - codemindersw:EqDgyov45kk75iskZ4lBLOhM
+ slack: codemindersw:EqDgyov45kk75iskZ4lBLOhM
 
