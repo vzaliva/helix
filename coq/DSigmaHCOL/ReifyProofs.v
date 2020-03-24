@@ -54,7 +54,7 @@ Section memory_aux.
     forall k b, memory_mapsto m_sub k b -> memory_mapsto m_sup k b.
 
   Definition memory_subset_except (m_sub m_sup : memory) (e : mem_block_id) :=
-    forall k b, k ≢ e -> memory_mapsto m_sub k b -> memory_mapsto m_sup k b.
+    forall k v v', memory_lookup m_sub k = Some v -> (memory_lookup m_sup k = Some v' /\ (k ≢ e -> v=v')).
 
   (* Two memory locations equivalent on all addresses except one *)
   Definition memory_equiv_except (m m': memory) (e:mem_block_id)
@@ -175,6 +175,36 @@ Section memory_aux.
     break_match.
     reflexivity.
     inversion H.
+  Qed.
+
+  Lemma memory_subset_except_next_keys m_sub m_sup e:
+    memory_subset_except m_sub m_sup e ->
+    (memory_next_key m_sup) >= (memory_next_key m_sub).
+  Proof.
+    intros H.
+    destruct (memory_next_key m_sub) eqn:E.
+    -
+      lia.
+    -
+      rename m into k.
+      apply memory_next_key_S in E.
+      apply memory_is_set_is_Some in E.
+      apply util.is_Some_def in E.
+      destruct E as [v E].
+      specialize (H k).
+      cut (memory_next_key m_sup > k).
+      {
+        clear.
+        intros G.
+        lia.
+      }
+      apply mem_block_exists_next_key_gt.
+      eq_to_equiv_hyp.
+      specialize (H v v E).
+      destruct H as [H _].
+      apply mem_block_exists_exists_equiv.
+      exists v.
+      auto.
   Qed.
 
 End memory_aux.
@@ -4183,9 +4213,14 @@ Proof.
     +
       intros m' tmpk t y_id' YEQ ME TMPK.
       eapply FC; eauto.
-      intros k b NEQ MKB.
-      apply ME; [assumption |].
-      admit.
+      intros k v v' LM.
+      specialize (ME k v v').
+      eapply ME.
+      rewrite <- IM.
+      rewrite memory_lookup_memory_set_neq.
+      assumption.
+      apply memory_lookup_not_next_equiv in LM.
+      auto.
     +
       rewrite <-IM.
       unfold lookup_Pexp, memory_lookup_err, trywith.

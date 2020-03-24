@@ -360,13 +360,6 @@ Section MSHCOL_to_DSHCOL.
       break_match_hyp; [trivial|some_none].
     Qed.
 
-    Lemma memory_subset_except_next_keys m_sub m_sup e:
-      memory_subset_except m_sub m_sup e ->
-      (* S e ≢ memory_next_key m_sub -> *)
-      (memory_next_key m_sup) >= (memory_next_key m_sub).
-    Proof.
-    Admitted.
-
     (* This lemma could be auto-generated *)
     Instance DynWin_MSH_DSH_compat
       :
@@ -393,45 +386,68 @@ Section MSHCOL_to_DSHCOL.
         unfold mult_by_nth, const.
         subst tmpk.
 
-        match goal with
+        repeat match goal with
         | [H0: memory_equiv_except ?m m'' _ |- _] => remember m as m0
+        | [H0: memory_subset_except ?m m' _ |- _] => remember m as m1
         end.
-
-        assert(memory_lookup m0 dynwin_a_addr ≡ Some (avector_to_mem_block a)) as M0.
+        cbn in *.
+        assert(memory_lookup m0 dynwin_a_addr = Some (avector_to_mem_block a)) as M0.
         {
-          (* copy-paste from above *)
-          specialize (H0 dynwin_a_addr (avector_to_mem_block a)).
-          autospecialize H0.
+
+          specialize (H0 dynwin_a_addr).
+          assert(exists v', memory_lookup m' dynwin_a_addr = Some v').
           {
-            cbn in H.
-            repeat inl_inr_inv.
-            subst y_id.
-            cbv.
-            lia.
+            exists (avector_to_mem_block a).
+            eapply H0.
+            subst m1.
+            unfold dynwin_memory, dynwin_globals_mem.
+            unfold memory_alloc_empty.
+            do 4 (rewrite memory_lookup_memory_set_neq
+                   by (cbn;unfold dynwin_a_addr,dynwin_y_addr; auto)).
+            rewrite memory_lookup_memory_set_eq by reflexivity.
+            reflexivity.
           }
-          autospecialize H0.
+
+          specialize (H0 (avector_to_mem_block a)).
+
+          assert(L1: memory_lookup m1 dynwin_a_addr = Some (avector_to_mem_block a)).
           {
+            subst m1.
             remember (avector_to_mem_block) as v.
             unfold dynwin_memory, dynwin_globals_mem.
-            cbn.
             unfold memory_alloc_empty.
-            apply memory_mapsto_memory_lookup.
             do 4 (rewrite memory_lookup_memory_set_neq
-                   by (unfold dynwin_a_addr,dynwin_y_addr; auto)).
+                   by (cbn;unfold dynwin_a_addr,dynwin_y_addr; auto)).
             rewrite memory_lookup_memory_set_eq by reflexivity.
             subst v.
             reflexivity.
           }
-          subst m0.
-          rewrite memory_lookup_memory_set_neq.
-          apply memory_mapsto_memory_lookup, H0.
-          apply memory_mapsto_memory_lookup in H0.
-          apply memory_lookup_not_next in H0.
-          auto.
+          cut(memory_lookup m' dynwin_a_addr = Some (avector_to_mem_block a)).
+          {
+            intros.
+            subst m0.
+            eq_to_equiv_hyp.
+            rewrite memory_lookup_memory_set_neq.
+            auto.
+            apply memory_lookup_not_next_equiv in H4.
+            auto.
+          }
+
+          destruct H1 as [v' H1].
+          specialize (H0 v' L1).
+          destruct H0 as [H0 E].
+          autospecialize E.
+          -
+            inl_inr_inv.
+            cbn;unfold dynwin_a_addr,dynwin_y_addr; auto.
+          -
+            eq_to_equiv_hyp.
+            rewrite <- E in H0.
+            auto.
         }
 
         assert(dynwin_a_addr ≢ memory_next_key m0) as NM0 by
-              (eapply memory_lookup_not_next; eauto).
+              (eapply memory_lookup_not_next_equiv; eauto).
 
         destruct t as [t tc].
 
@@ -546,7 +562,7 @@ Section MSHCOL_to_DSHCOL.
         lia.
       }
       
-    Admitted.
+    Qed.
 
   End DummyEnv.
 

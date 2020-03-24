@@ -934,6 +934,18 @@ Module Type MBasic (Import CT : CType).
       apply NM_NS_In.
     Qed.
 
+    Lemma memory_next_key_S m n:
+      memory_next_key m = S n ->
+      mem_block_exists n m.
+    Proof.
+      intros H.
+      unfold memory_next_key in H.
+      break_match_hyp ; inv H.
+      apply memory_keys_set_In.
+      apply Memory.NS.max_elt_1.
+      auto.
+    Qed.
+
     Lemma mem_block_exists_memory_next_key
           (m : memory):
       not (mem_block_exists (memory_next_key m) m).
