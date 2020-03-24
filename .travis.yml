@@ -60,5 +60,5 @@ script:
 notifications:
  slack:
     rooms:
-	  - codemindersw:EqDgyov45kk75iskZ4lBLOhM#project-helix
+	  - codemindersw:EqDgyov45kk75iskZ4lBLOhM
 
