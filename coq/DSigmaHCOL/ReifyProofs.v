@@ -53,13 +53,60 @@ Section memory_aux.
   Definition memory_subset (m_sub m_sup : memory) :=
     forall k b, memory_mapsto m_sub k b -> memory_mapsto m_sup k b.
 
-  Definition memory_subset_except (m_sub m_sup : memory) (e : mem_block_id) :=
-    forall k v v', memory_lookup m_sub k = Some v -> (memory_lookup m_sup k = Some v' /\ (k ≢ e -> v=v')).
-
   (* Two memory locations equivalent on all addresses except one *)
   Definition memory_equiv_except (m m': memory) (e:mem_block_id)
     := forall k, k ≢ e -> memory_lookup m k = memory_lookup m' k.
-  
+
+  Definition memory_subset_except (m_sub m_sup : memory) (e : mem_block_id) :=
+    memory_equiv_except m_sub m_sup e /\
+    (mem_block_exists e m_sub -> mem_block_exists e m_sup).
+
+  (* Alternative definition. Maybe to be discarded later *)
+  Definition memory_subset_except' (m_sub m_sup : memory) (e : mem_block_id) :=
+    memory_equiv_except m_sub m_sup e /\
+    NS.Subset (memory_keys_set m_sub) (memory_keys_set m_sup).
+
+  Lemma memory_subset_variants m_sub m_sup e:
+    memory_subset_except' m_sub m_sup e <-> memory_subset_except m_sub m_sup e.
+  Proof.
+    unfold memory_subset_except, memory_subset_except'.
+    split.
+    -
+      intros [E S].
+      split; [apply E|].
+      intros H.
+      apply memory_keys_set_In.
+      apply memory_keys_set_In in H.
+      eapply NE.MP.in_subset; eauto.
+    -
+      intros [E S].
+      split; [apply E|].
+      unfold NS.Subset.
+      intros k.
+
+      destruct (Nat.eq_dec k e) as [EK|NEK].
+      +
+        subst.
+        rewrite <- 2!memory_keys_set_In.
+        apply S.
+      +
+        clear S.
+        specialize (E k NEK).
+        intros H.
+        destruct (memory_lookup m_sub k) eqn:L.
+        *
+          symmetry in E.
+          apply equiv_Some_is_Some, memory_is_set_is_Some in E.
+          apply memory_keys_set_In.
+          apply E.
+        *
+          exfalso.
+          clear E NEK.
+          apply memory_keys_set_In, memory_is_set_is_Some in H.
+          apply is_None_def in L.
+          some_none.
+  Qed.
+
   Lemma memory_equiv_except_memory_set {m m' b k}:
     m' ≡ memory_set m k b -> memory_equiv_except m m' k.
   Proof.
@@ -181,7 +228,7 @@ Section memory_aux.
     memory_subset_except m_sub m_sup e ->
     (memory_next_key m_sup) >= (memory_next_key m_sub).
   Proof.
-    intros H.
+    intros [H0 H1].
     destruct (memory_next_key m_sub) eqn:E.
     -
       lia.
@@ -191,7 +238,7 @@ Section memory_aux.
       apply memory_is_set_is_Some in E.
       apply util.is_Some_def in E.
       destruct E as [v E].
-      specialize (H k).
+      specialize (H0 k).
       cut (memory_next_key m_sup > k).
       {
         clear.
@@ -199,12 +246,22 @@ Section memory_aux.
         lia.
       }
       apply mem_block_exists_next_key_gt.
-      eq_to_equiv_hyp.
-      specialize (H v v E).
-      destruct H as [H _].
-      apply mem_block_exists_exists_equiv.
-      exists v.
-      auto.
+
+      destruct (Nat.eq_dec k e) as [EK|NEK].
+      +
+        subst.
+        apply eq_Some_is_Some, memory_is_set_is_Some in E.
+        apply H1 in E.
+        apply E.
+      +
+        full_autospecialize H0.
+        * apply NEK.
+        *
+          clear H1 NEK e.
+          rewrite E in H0.
+          symmetry in H0.
+          apply equiv_Some_is_Some, memory_is_set_is_Some in H0.
+          apply H0.
   Qed.
 
 End memory_aux.
@@ -4211,16 +4268,38 @@ Proof.
       reflexivity.
       assumption.
     +
-      intros m' tmpk t y_id' YEQ ME TMPK.
-      eapply FC; eauto.
-      intros k v v' LM.
-      specialize (ME k v v').
-      eapply ME.
-      rewrite <- IM.
-      rewrite memory_lookup_memory_set_neq.
-      assumption.
-      apply memory_lookup_not_next_equiv in LM.
-      auto.
+      intros m' tmpk t y_id' YEQ [ME MY] TMPK.
+      eapply FC ; eauto.
+      clear -IM ME MY YEQ.
+      split.
+      *
+        intros k NEK.
+        specialize (ME k NEK).
+        destruct (Nat.eq_dec k (memory_next_key m)) as [KN|NKN].
+        --
+          exfalso.
+          clear MY NEK y_id' YEQ.
+          rewrite <- IM in ME; clear IM init_mem.
+          rewrite memory_lookup_memory_set_eq in ME; auto.
+          admit.
+        --
+          rewrite <-ME, <-IM.
+          rewrite memory_lookup_memory_set_neq.
+          reflexivity.
+          auto.
+      *
+        intros H.
+        inv YEQ.
+        apply MY.
+        rewrite <- IM.
+        apply mem_block_exists_exists in H.
+        destruct H as [y H].
+        apply mem_block_exists_exists.
+        exists y.
+        rewrite memory_lookup_memory_set_neq.
+        eapply H.
+        apply memory_lookup_not_next in H.
+        auto.
     +
       rewrite <-IM.
       unfold lookup_Pexp, memory_lookup_err, trywith.

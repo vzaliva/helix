@@ -378,6 +378,8 @@ Section MSHCOL_to_DSHCOL.
 
       (* This remailing obligation proof is not yet automated *)
       {
+        admit.
+        (*
         (* [a] is defined in section *)
         constructor; intros.
         unfold evalIUnCType, Fin1SwapIndex.
@@ -515,9 +517,12 @@ Section MSHCOL_to_DSHCOL.
           rewrite H3 in Heqo.
           rewrite mem_lookup_avector_to_mem_block_equiv with (kc:=tc) in Heqo.
           some_none.
+          *)
       }
 
       {
+        admit.
+        (*
         cbn in *.
         unfold dynwin_x_addr in *.
         intros C.
@@ -560,9 +565,10 @@ Section MSHCOL_to_DSHCOL.
         clear Heqx.
         rewrite <- H4 in Heqm1_plus'.
         lia.
+         *)
       }
       
-    Qed.
+    Admitted.
 
   End DummyEnv.
 
