@@ -501,8 +501,6 @@ Section MSHCOL_to_DSHCOL.
       }
 
       {
-        admit.
-        (*
         cbn in *.
         unfold dynwin_x_addr in *.
         intros C.
@@ -524,8 +522,8 @@ Section MSHCOL_to_DSHCOL.
 
         assert(memory_next_key m0 > 2) as LM0.
         {
-            apply mem_block_exists_next_key_gt in M0.
-            apply M0.
+          apply mem_block_exists_next_key_gt in M0.
+          apply M0.
         }
 
         assert(memory_next_key m1 > 3) as LM1.
@@ -545,10 +543,9 @@ Section MSHCOL_to_DSHCOL.
         clear Heqx.
         rewrite <- H4 in Heqm1_plus'.
         lia.
-         *)
       }
       
-    Admitted.
+    Qed.
 
   End DummyEnv.
 
