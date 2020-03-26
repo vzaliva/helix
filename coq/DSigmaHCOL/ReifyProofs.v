@@ -53,7 +53,9 @@ Section memory_aux.
   Definition memory_subset (m_sub m_sup : memory) :=
     forall k b, memory_mapsto m_sub k b -> memory_mapsto m_sup k b.
 
-  (* Two memory locations equivalent on all addresses except one *)
+  (* Two memory locations equivalent on all addresses except one
+     TODO: make `e` 1st parameter to make this relation.
+   *)
   Definition memory_equiv_except (m m': memory) (e:mem_block_id)
     := forall k, k ≢ e -> memory_lookup m k = memory_lookup m' k.
 
