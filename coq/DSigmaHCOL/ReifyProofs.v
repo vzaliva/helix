@@ -3946,27 +3946,31 @@ Global Instance IReduction_DSH_pure
        {rr : DSHOperator}
        {df : AExpr}
        (Y: y_p'' ≡ incrPVar 0 (incrPVar 0 y_p))
-       (P: DSH_pure rr y_p'')
+       (P: DSH_pure rr (PVar 1))
   :
-    DSH_pure (DSHAlloc no
-                       (DSHSeq
-                          (DSHMemInit no (PVar 0) init)
-                          (DSHLoop nn
-                                   (DSHSeq
-                                      rr
-                                      (DSHMemMap2 no (PVar 1)
-                                                  y_p''
-                                                  y_p''
-                                                  df)))))
-             y_p.
+    DSH_pure
+      (DSHSeq
+         (DSHMemInit no y_p init)
+         (DSHAlloc no
+                   (DSHLoop nn
+                            (DSHSeq
+                               rr
+                               (DSHMemMap2 no (PVar 1)
+                                           y_p''
+                                           y_p''
+                                           df)))))
+      y_p.
 Proof.
+  (*
   subst.
+  apply Seq_DSH_pure.
   apply InitAlloc_DSH_pure.
   apply Loop_DSH_pure.
   apply Seq_DSH_pure.
   assumption.
   apply MemMap2_DSH_pure.
-Qed.
+   *)
+Admitted.
 
 Lemma memory_lookup_memory_remove_eq (m : memory) (k k' : mem_block_id) :
   k = k' ->
@@ -4080,7 +4084,7 @@ Global Instance IReduction_MSH_DSH_compat
        {σ : evalContext}
        {m : memory}
        {DP}
-       (P: DSH_pure rr y_p'')
+       (P: DSH_pure rr (PVar 1))
        (FC : forall m' tmpk t y_id,
            evalPexp σ y_p ≡ inr y_id ->
            (* this might need some tweaking given the [next_key] and [memory_set] *)
@@ -4089,14 +4093,14 @@ Global Instance IReduction_MSH_DSH_compat
            @MSH_DSH_compat _ _ (op_family t) rr
                            (DSHnatVal (proj1_sig t) :: DSHPtrVal tmpk o :: σ)
                            (memory_set m' tmpk (mem_empty))
-                           (incrPVar 0 (incrPVar 0 x_p)) y_p'' P)
+                           (incrPVar 0 (incrPVar 0 x_p)) (PVar 1) P)
   :
     @MSH_DSH_compat
       _ _
       (@MSHIReduction i o n init dot pdot op_family)
-      (DSHAlloc o
-                (DSHSeq
-                   (DSHMemInit o (PVar 0) init)
+      (DSHSeq
+         (DSHMemInit o y_p init)
+         (DSHAlloc o
                    (DSHLoop n
                             (DSHSeq
                                rr
@@ -4106,6 +4110,7 @@ Global Instance IReduction_MSH_DSH_compat
                                            df)))))
       σ m x_p y_p DP.
 Proof.
+  (*
   subst.
   constructor.
   intros x_m y_m X_M Y_M.
@@ -4296,6 +4301,7 @@ Proof.
       reflexivity.
     +
       admit.
+   *)
 Admitted.
 
 

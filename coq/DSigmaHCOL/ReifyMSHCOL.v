@@ -249,15 +249,16 @@ Fixpoint compileMSHCOL2DSHCOL
                  but we need [Fake_var_resolver] for alloc
                *)
               let res1 := Fake_var_resolver res 1 in
-              '(_, rr) <- compileMSHCOL2DSHCOL res1 vars op_family x_p' t_i' ;;
+              '(_, rr) <- compileMSHCOL2DSHCOL res1 vars op_family x_p' t_i ;;
                df <- compileDSHBinCarrierA res1 f ;;
-               tmReturn (vars, DSHAlloc no
-                                        (DSHSeq
-                                           (DSHMemInit no t_i zconst)
-                                           (DSHLoop nn
-                                                    (DSHSeq
-                                                       rr
-                                                       (DSHMemMap2 no t_i' y_p'' y_p'' df)))))
+               tmReturn (vars,
+                         DSHSeq
+                           (DSHMemInit no y_p zconst)
+                           (DSHAlloc no
+                                     (DSHLoop nn
+                                              (DSHSeq
+                                                 rr
+                                                 (DSHMemMap2 no t_i' y_p'' y_p'' df)))))
     | Some n_SHCompose, [i1 ; o2 ; o3 ; op1 ; op2] =>
       tmPrint "MSHCompose" ;;
               ni1 <- tmUnquoteTyped nat i1 ;;
