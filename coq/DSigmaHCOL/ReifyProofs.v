@@ -3833,112 +3833,6 @@ Proof.
   reflexivity.
 Qed.
 
-Global Instance InitAlloc_DSH_pure
-       {y_p : PExpr}
-       {size : nat}
-       {init : CarrierA}
-       {dop : DSHOperator}
-       (P : DSH_pure dop (incrPVar 0 y_p))
-  :
-  DSH_pure (DSHAlloc size (DSHSeq (DSHMemInit size (PVar 0) init) dop)) y_p.
-Proof.
-  constructor.
-  -
-    intros.
-    do 2 (destruct fuel; cbn in *; try some_none).
-    repeat break_match;
-      try some_none; repeat some_inv;
-      try inl_inr; repeat inl_inr_inv.
-    subst.
-
-    rewrite <-H; clear H m'.
-    inversion_clear P as [S T]; clear T.
-    eq_to_equiv_hyp; apply S with (k:=k) in Heqo.
-    clear S.
-
-    destruct fuel; cbn in *; try some_none.
-    unfold memory_lookup_err, trywith in *.
-    repeat break_match;
-      try some_none; repeat some_inv;
-      try inl_inr; repeat inl_inr_inv.
-    subst.
-
-    eq_to_equiv_hyp.
-    rewrite memory_lookup_memory_set_eq in * by reflexivity.
-    some_inv.
-    rewrite memory_set_overwrite in Heqo0 by reflexivity.
-    rewrite <-Heqo0 in Heqo.
-    clear - Heqo.
-
-    
-    destruct (Nat.eq_dec k (memory_next_key m)) as [EQ | NEQ].
-    +
-
-      subst.
-      clear.
-      split; intros.
-      *
-        contradict H.
-        apply mem_block_exists_memory_next_key.
-      *
-        contradict H.
-        apply mem_block_exists_memory_remove.
-    +
-      split; intros.
-      *
-        rewrite <-mem_block_exists_memory_remove_neq by assumption.
-        apply Heqo.
-        apply mem_block_exists_memory_set.
-        assumption.
-      *
-        rewrite <-mem_block_exists_memory_remove_neq in H by assumption.
-        apply Heqo in H.
-        eapply mem_block_exists_memory_set_neq; eassumption.
-  -
-    intros.
-    do 2 (destruct fuel; cbn in *; try some_none).
-    repeat break_match;
-      try some_none; repeat some_inv;
-      try inl_inr; repeat inl_inr_inv.
-    subst.
-
-    inversion_clear P as [T S]; clear T.
-    eq_to_equiv_hyp; apply S with (y_i:=y_i) in Heqo;
-      clear S; [| rewrite evalPexp_incrPVar; assumption].
-
-    unfold memory_equiv_except in *.
-    intros; specialize (Heqo k H1).
-
-    destruct fuel; cbn in Heqo0; try some_none.
-    unfold memory_lookup_err, trywith in *.
-    repeat break_match;
-      try some_none; repeat some_inv;
-      try inl_inr; repeat inl_inr_inv.
-    subst.
-
-    eq_to_equiv_hyp.
-    rewrite memory_lookup_memory_set_eq in * by reflexivity.
-    some_inv.
-    rewrite memory_set_overwrite in Heqo0 by reflexivity.
-    rewrite <-Heqo0, <-H in *; clear Heqo0 m1 H m'.
-    
-    destruct (Nat.eq_dec k (memory_next_key m)) as [EQ | NEQ].
-    +
-      subst.
-      unfold memory_lookup, memory_remove, memory_set in *.
-      rewrite NP.F.add_eq_o in Heqo by reflexivity.
-      rewrite NP.F.remove_eq_o by reflexivity.
-      pose proof memory_lookup_memory_next_key_is_None m.
-      apply is_None_def in H.
-      rewrite <-H.
-      reflexivity.
-    +
-      unfold memory_lookup, memory_remove, memory_set in *.
-      rewrite NP.F.add_neq_o in Heqo by congruence.
-      rewrite NP.F.remove_neq_o by congruence.
-      assumption.
-Qed.
-
 Global Instance IReduction_DSH_pure
        {no nn : nat}
        {y_p y_p'': PExpr}
@@ -3961,15 +3855,16 @@ Global Instance IReduction_DSH_pure
                                            df)))))
       y_p.
 Proof.
-  (*
   subst.
   apply Seq_DSH_pure.
-  apply InitAlloc_DSH_pure.
+  apply MemInit_DSH_pure.
+
+  apply Alloc_DSH_pure. (* This is not good, as it does not allow to modify newly allocated variable, making alloc useless. *)
+
   apply Loop_DSH_pure.
   apply Seq_DSH_pure.
-  assumption.
+  admit.
   apply MemMap2_DSH_pure.
-   *)
 Admitted.
 
 Lemma memory_lookup_memory_remove_eq (m : memory) (k k' : mem_block_id) :
