@@ -28,6 +28,10 @@ Import MDSHCOLOnFloat64.
 
 (* sample definition to be moved to DynWin.v *)
 Local Open Scope nat_scope.
+
+(* Nop is generated, for example, for `IReduction 0` *)
+Definition Nop_test := DSHNop.
+
 Definition BinOp_less_test :=
   DSHBinOp 2 (PVar 1) (PVar 0) (AZless (AVar 1) (AVar 0)).
 
@@ -140,6 +144,7 @@ Definition all_tests :=
       {| i:=4; o:=2; name:="binop_less"; op:=BinOp_less_test; globals:=[] |} ;
       {| i:=4; o:=2; name:="binop_plus"; op:=BinOp_plus_test; globals:=[] |} ;
       {| i:=2; o:=1; name:="ireduction"; op:=IReduction_test; globals:=[] |} ;
+      {| i:=5; o:=7; name:="nop"; op:=Nop_test; globals:=[] |} ;
       (*
       {| name:="iunion"; op:=IUnion_test; globals:=[] |} ;
        *)

@@ -231,45 +231,49 @@ Fixpoint compileMSHCOL2DSHCOL
       tmReturn (vars, DSHLoop nn rr )
     | Some n_IReduction, [i ; o ; n ; z; f ; _ ; op_family] =>
       tmPrint "MSHIReduction" ;;
-      ni <- tmUnquoteTyped nat i ;;
-      no <- tmUnquoteTyped nat o ;;
       nn <- tmUnquoteTyped nat n ;;
-      zconst <- tmUnquoteTyped CarrierA z ;;
-      tnt <- tmQuote DSHnat ;;
-      (* freshly allocated, inside alloc before loop *)
-      let t_i := PVar 0 in
-      (* single inc. inside loop *)
-      let t_i' := PVar 1 in
-      (* single inc. inside alloca before loop *)
-      let x_p' := incrPVar 0 x_p in
-      (* double inc. inside alloc and loop *)
-      let x_p'' := incrPVar 0 x_p' in
-      let y_p'' := incrPVar 0 (incrPVar 0 y_p) in
-      (* op_family will introduce [Lambda_var_resolver],
+      match nn with
+      | O => tmReturn (vars, DSHNop)
+      | S _ =>
+        ni <- tmUnquoteTyped nat i ;;
+        no <- tmUnquoteTyped nat o ;;
+        zconst <- tmUnquoteTyped CarrierA z ;;
+        tnt <- tmQuote DSHnat ;;
+        (* freshly allocated, inside alloc before loop *)
+        let t_i := PVar 0 in
+        (* single inc. inside loop *)
+        let t_i' := PVar 1 in
+        (* single inc. inside alloca before loop *)
+        let x_p' := incrPVar 0 x_p in
+        (* double inc. inside alloc and loop *)
+        let x_p'' := incrPVar 0 x_p' in
+        let y_p'' := incrPVar 0 (incrPVar 0 y_p) in
+        (* op_family will introduce [Lambda_var_resolver],
                  but we need [Fake_var_resolver] for alloc
-       *)
-      let res1 := Fake_var_resolver res 1 in
-      '(_, rr) <- compileMSHCOL2DSHCOL res1 vars op_family x_p' t_i ;;
-      df <- compileDSHBinCarrierA res1 f ;;
-      tmReturn (vars,
-                DSHSeq
-                  (DSHMemInit no y_p zconst)
-                  (DSHAlloc no
-                            (DSHLoop nn
-                                     (DSHSeq
-                                        rr
-                                        (DSHMemMap2 no t_i' y_p'' y_p'' df)))))
-    | Some n_SHCompose, [i1 ; o2 ; o3 ; op1 ; op2] =>
-      tmPrint "MSHCompose" ;;
-      ni1 <- tmUnquoteTyped nat i1 ;;
-      no2 <- tmUnquoteTyped nat o2 ;;
-      no3 <- tmUnquoteTyped nat o3 ;;
-      (* freshly allocated, inside alloc *)
-      let t_i := PVar 0 in
-      (* single inc. inside alloc *)
-      let x_p' := incrPVar 0 x_p in
-      let y_p' := incrPVar 0 y_p in
-      let res1 := Fake_var_resolver res 1 in
+         *)
+        let res1 := Fake_var_resolver res 1 in
+        '(_, rr) <- compileMSHCOL2DSHCOL res1 vars op_family x_p' t_i ;;
+        df <- compileDSHBinCarrierA res1 f ;;
+        tmReturn (vars,
+                  DSHSeq
+                    (DSHMemInit no y_p zconst)
+                    (DSHAlloc no
+                              (DSHLoop nn
+                                       (DSHSeq
+                                          rr
+                                          (DSHMemMap2 no t_i' y_p'' y_p'' df)))))
+      end
+      | Some n_SHCompose, [i1 ; o2 ; o3 ; op1 ; op2] =>
+        tmPrint "MSHCompose" ;;
+        ni1 <- tmUnquoteTyped nat i1 ;;
+        no2 <- tmUnquoteTyped nat o2 ;;
+        no3 <- tmUnquoteTyped nat o3 ;;
+        (* freshly allocated, inside alloc *)
+        let t_i := PVar 0 in
+        (* single inc. inside alloc *)
+        let x_p' := incrPVar 0 x_p in
+        let y_p' := incrPVar 0 y_p in
+        let res1 := Fake_var_resolver res 1 in
       '(_, cop2) <- compileMSHCOL2DSHCOL res1 vars op2 x_p' t_i ;;
       '(_, cop1) <- compileMSHCOL2DSHCOL res1 vars op1 t_i y_p' ;;
       tmReturn (vars, DSHAlloc no2 (DSHSeq cop2 cop1))
