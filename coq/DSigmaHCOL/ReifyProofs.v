@@ -4103,6 +4103,41 @@ Proof.
   some_none.
 Qed.
 
+Global Instance IReduction_MSH_DSH_compat_O
+       {i o : nat}
+       {init : CarrierA}
+       {dot : CarrierA -> CarrierA -> CarrierA}
+       {pdot : Proper ((=) ==> (=) ==> (=)) dot}
+       {op_family : @MSHOperatorFamily i o 0}
+       {df : AExpr}
+       {x_p y_p : PExpr}
+       {rr : DSHOperator}
+       {σ : evalContext}
+       {m : memory}
+       {DP}
+  :
+    @MSH_DSH_compat
+      _ _
+      (@MSHIReduction i o 0 init dot pdot op_family)
+      DSHNop
+      σ m x_p y_p DP.
+Proof.
+  constructor.
+  intros.
+  cbn.
+  constructor.
+  break_match.
+  all: unfold lookup_Pexp in H0.
+  all: rewrite Heqe in H0.
+  all: cbn in H0.
+  1: inl_inr.
+  destruct memory_lookup_err; try inl_inr; inl_inr_inv.
+  repeat constructor.
+  rewrite H0.
+  reflexivity.
+Qed.
+
+(*
 Global Instance IReduction_MSH_DSH_compat
        {i o n: nat}
        {init : CarrierA}
@@ -4142,7 +4177,6 @@ Global Instance IReduction_MSH_DSH_compat
                                            df)))))
       σ m x_p y_p DP.
 Proof.
-  (*
   subst.
   constructor.
   intros x_m y_m X_M Y_M.
