@@ -266,7 +266,8 @@ Section MSHCOL_to_DSHCOL.
         by apply eq_refl ; eapply BinOp_MSH_DSH_compat; intros
     | |- MSH_DSH_compat (MSHCompose _ _) _ _ _ _ _ => unshelve eapply Compose_MSH_DSH_compat; intros
     | |- MSH_DSH_compat (MHTSUMUnion _ _ _) _ _ _ _ _ => unshelve eapply HTSUMUnion_MSH_DSH_compat; intros
-    | |- MSH_DSH_compat (MSHIReduction _ _ _) _ _ _ _ _ => unshelve eapply IReduction_MSH_DSH_compat; intros
+    | |- MSH_DSH_compat (@MSHIReduction _ _ 0 _ _ _ _) _ _ _ _ _ => unshelve eapply IReduction_MSH_DSH_compat_O; intros
+    | |- MSH_DSH_compat (@MSHIReduction _ _ (S _) _ _ _ _) _ _ _ _ _ => unshelve eapply IReduction_MSH_DSH_compat_S; intros
     | |- MSH_DSH_compat (MSHPick  _) _ _ _ _ _ => apply Pick_MSH_DSH_compat
     | |- MSH_DSH_compat (MSHInductor _ _ _) _ _ _ _ _ => unshelve eapply Inductor_MSH_DSH_compat; intros
     | |- MSH_DSH_compat (MSHPointwise _) _ _ _ _ _ => apply Pointwise_MSH_DSH_compat; intros
@@ -284,6 +285,7 @@ Section MSHCOL_to_DSHCOL.
                                    _
                                    (DSHMemMap2 _ _ _ _ _)))))
           _] => apply IReduction_DSH_pure
+    | [ |- DSH_pure DSHNop _] => apply NOP_DSH_pure
     | [ |- DSH_pure (DSHSeq _ _) _] => apply Seq_DSH_pure
     | [ |- DSH_pure (DSHAssign _ _) _ ] => apply Assign_DSH_pure
     | [ |- DSH_pure (DSHPower _ _ _ _ _) _] => apply Power_DSH_pure
@@ -375,7 +377,7 @@ Section MSHCOL_to_DSHCOL.
       solve_MSH_DSH_compat.
 
       (* This remailing obligation proof is not yet automated *)
-      {
+      2: {
         (* [a] is defined in section *)
         constructor; intros.
         unfold evalIUnCType, Fin1SwapIndex.
@@ -497,6 +499,24 @@ Section MSHCOL_to_DSHCOL.
           rewrite mem_lookup_avector_to_mem_block_equiv with (kc:=tc) in Heqo.
           some_none.
       }
+
+      {
+        cbn.
+        discriminate.
+      }
+
+      {
+        cbn in *.
+        unfold dynwin_x_addr in *.
+        symmetry in H.
+        memory_lookup_err_to_option.
+        apply ReifyProofs.memory_lookup_not_next_equiv in H.
+        intros C.
+        contradict H.
+        inl_inr_inv.
+        reflexivity.
+      }
+
 
       {
         cbn in *.
