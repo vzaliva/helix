@@ -3886,6 +3886,26 @@ Ltac simplify_memory_hyp :=
     try rewrite memory_remove_memory_set_eq in H by congruence
   end.
 
+Global Instance NOP_DSH_pure
+       {y_p : PExpr}
+  :
+    DSH_pure DSHNop y_p.
+Proof.
+  constructor.
+  -
+    intros.
+    destruct fuel; cbn in *; try some_none.
+    some_inv; inl_inr_inv.
+    rewrite H.
+    reflexivity.
+  -
+    intros.
+    destruct fuel; cbn in *; try some_none.
+    some_inv; inl_inr_inv.
+    intros k NE.
+    rewrite H.
+    reflexivity.
+Qed.
 
 Global Instance IReduction_DSH_pure
        {no nn : nat}
