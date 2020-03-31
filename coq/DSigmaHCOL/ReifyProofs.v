@@ -4183,9 +4183,7 @@ Proof.
 *)
 Admitted.
 
-Search AExpr CarrierA.
-
-Global Instance IReduction_MSH_DSH_compat
+Global Instance IReduction_MSH_DSH_compat_S
        {i o n: nat}
        {init : CarrierA}
        {dot: CarrierA -> CarrierA -> CarrierA}
