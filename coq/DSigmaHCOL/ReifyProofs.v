@@ -4198,6 +4198,10 @@ Global Instance IReduction_MSH_DSH_compat_S
        {m : memory}
        {DP}
        (P: DSH_pure rr (PVar 1))
+       (DC : forall m' y_id d1 d2,
+           evalPexp σ y_p ≡ inr y_id ->
+           memory_subset_except y_id m m'  ->
+           MSH_DSH_BinCarrierA_compat dot (d1 :: d2 :: σ) df m')
        (FC : forall m' tmpk t y_id,
            evalPexp σ y_p ≡ inr y_id ->
            memory_subset_except y_id m m'  ->
