@@ -266,7 +266,8 @@ Section MSHCOL_to_DSHCOL.
         by apply eq_refl ; eapply BinOp_MSH_DSH_compat; intros
     | |- MSH_DSH_compat (MSHCompose _ _) _ _ _ _ _ => unshelve eapply Compose_MSH_DSH_compat; intros
     | |- MSH_DSH_compat (MHTSUMUnion _ _ _) _ _ _ _ _ => unshelve eapply HTSUMUnion_MSH_DSH_compat; intros
-    | |- MSH_DSH_compat (MSHIReduction _ _ _) _ _ _ _ _ => unshelve eapply IReduction_MSH_DSH_compat; intros
+    | |- MSH_DSH_compat (@MSHIReduction _ _ 0 _ _ _ _) _ _ _ _ _ => unshelve eapply IReduction_MSH_DSH_compat_O; intros
+    | |- MSH_DSH_compat (@MSHIReduction _ _ (S _) _ _ _ _) _ _ _ _ _ => unshelve eapply IReduction_MSH_DSH_compat_S; intros
     | |- MSH_DSH_compat (MSHPick  _) _ _ _ _ _ => apply Pick_MSH_DSH_compat
     | |- MSH_DSH_compat (MSHInductor _ _ _) _ _ _ _ _ => unshelve eapply Inductor_MSH_DSH_compat; intros
     | |- MSH_DSH_compat (MSHPointwise _) _ _ _ _ _ => apply Pointwise_MSH_DSH_compat; intros
@@ -274,24 +275,23 @@ Section MSHCOL_to_DSHCOL.
     | |- MSH_DSH_compat (MSHIUnion _) _ _ _ _ _ => unshelve eapply IUnion_MSH_DSH_compat; intros
 
     (* DSH_Pure *)
+    |  [ |-
+        DSH_pure
+          (DSHSeq
+             (DSHMemInit ?o _ _)
+             (DSHAlloc ?o
+                       (DSHLoop _
+                                (DSHSeq
+                                   _
+                                   (DSHMemMap2 _ _ _ _ _)))))
+          _] => apply IReduction_DSH_pure
+    | [ |- DSH_pure DSHNop _] => apply NOP_DSH_pure
     | [ |- DSH_pure (DSHSeq _ _) _] => apply Seq_DSH_pure
     | [ |- DSH_pure (DSHAssign _ _) _ ] => apply Assign_DSH_pure
     | [ |- DSH_pure (DSHPower _ _ _ _ _) _] => apply Power_DSH_pure
     | [ |- DSH_pure (DSHIMap _ _ _ _) _] => apply IMap_DSH_pure
     | [ |- DSH_pure (DSHLoop _ _) _] => apply Loop_DSH_pure
     | [ |- DSH_pure (DSHBinOp _ _ _ _) _] => apply BinOp_DSH_pure
-    | [ |-
-        DSH_pure (DSHAlloc _
-                           (DSHSeq
-                              (DSHMemInit _ _ _)
-                              (DSHLoop _
-                                       (DSHSeq
-                                          _
-                                          (DSHMemMap2 _ _
-                                                      _
-                                                      _
-                                                      _)))))
-                 _] => apply IReduction_DSH_pure
     | [ |- DSH_pure (DSHAlloc _ (DSHSeq _ _)) _] => apply Compose_DSH_pure
     | [ |- PVar _ ≡ incrPVar 0 _] => auto
 
@@ -377,7 +377,7 @@ Section MSHCOL_to_DSHCOL.
       solve_MSH_DSH_compat.
 
       (* This remailing obligation proof is not yet automated *)
-      {
+      2: {
         (* [a] is defined in section *)
         constructor; intros.
         unfold evalIUnCType, Fin1SwapIndex.
@@ -386,105 +386,137 @@ Section MSHCOL_to_DSHCOL.
         unfold mult_by_nth, const.
         subst tmpk.
 
-        repeat break_match; inversion Heqs; subst.
+        repeat match goal with
+               | [H: memory_equiv_except ?m m'' _ |- _] => remember m as m0
+               | [H: memory_subset_except _ ?m m' |- _] => remember m as m1
+               end.
+        cbn in *.
+
+        inversion H. subst y_id; clear H.
+
+        remember (avector_to_mem_block a) as v.
+        assert(LM: memory_lookup m1 dynwin_a_addr = Some v).
+        {
+          subst m1.
+          unfold dynwin_memory, dynwin_globals_mem.
+          unfold memory_alloc_empty.
+          do 4 (rewrite memory_lookup_memory_set_neq
+                 by (cbn;unfold dynwin_a_addr,dynwin_y_addr; auto)).
+          rewrite memory_lookup_memory_set_eq by reflexivity.
+          subst v.
+          reflexivity.
+        }
+
+        assert(LM': memory_lookup m' dynwin_a_addr = Some v).
+        {
+          clear - LM H0 Heqv.
+          specialize (H0 dynwin_a_addr v LM).
+          destruct H0 as [v' [L E]].
+          autospecialize E ; [cbv;lia|].
+          rewrite E.
+          apply L.
+        }
+
+        assert(LM0: memory_lookup m0 dynwin_a_addr = Some v).
+        {
+          subst m0.
+          rewrite memory_lookup_memory_set_neq.
+          auto.
+          apply memory_lookup_not_next_equiv in LM'.
+          auto.
+        }
+
+        assert(LM'': memory_lookup m'' dynwin_a_addr = Some v).
+        {
+          clear -LM0 H2 Heqv.
+          specialize (H2 dynwin_a_addr).
+          full_autospecialize H2.
+          -
+            apply memory_lookup_not_next_equiv in LM0.
+            auto.
+          -
+            rewrite <- H2.
+            apply LM0.
+        }
+
+        assert(LM''0: memory_lookup m''0 dynwin_a_addr = Some v).
+        {
+          clear - LM'' H3 Heqv.
+          specialize (H3 dynwin_a_addr).
+          full_autospecialize H3.
+          -
+            apply memory_lookup_not_next_equiv in LM''.
+            auto.
+          -
+            rewrite <- H3.
+            apply LM''.
+        }
+
+        repeat break_match; try inl_inr; try some_none.
         -
           exfalso.
-          destruct t as [t tc].
-
-          match goal with
-          | [H0: memory_equiv_except ?m m'' _ |- _] => remember m as m0
-          end.
-
-          assert(memory_lookup m0 dynwin_a_addr ≡ Some (avector_to_mem_block a)) as M0
-              by (subst m0;reflexivity).
-
-          assert(dynwin_a_addr ≢ memory_next_key m0) as NM0 by
-                (eapply memory_lookup_not_next; eauto).
-
-          specialize (H0 dynwin_a_addr NM0).
-
-          rewrite M0 in H0. symmetry in H0.
-
-          assert(dynwin_a_addr ≢ memory_next_key m'') as NM1
-              by (eapply memory_lookup_not_next_equiv; eauto).
-
-          specialize (H1 dynwin_a_addr NM1).
-          rewrite H0 in H1. symmetry in H1.
-
-          err_eq_to_equiv_hyp.
-          apply memory_lookup_err_inl_None in Heqe.
+          memory_lookup_err_to_option.
+          eq_to_equiv_hyp.
           some_none.
         -
-          f_equiv.
+          memory_lookup_err_to_option.
+          inl_inr_inv.
+          subst c0.
           destruct t as [t tc].
-          cbn. cbn in Heqo.
-
-          match goal with
-          | [H0: memory_equiv_except ?m m'' _ |- _] => remember m as m0
-          end.
-
-          assert(memory_lookup m0 dynwin_a_addr ≡ Some (avector_to_mem_block a)) as M0
-              by (subst m0;reflexivity).
-
-          assert(dynwin_a_addr ≢ memory_next_key m0) as NM0 by
-                (eapply memory_lookup_not_next; eauto).
-
-          specialize (H0 dynwin_a_addr NM0).
-
-          rewrite M0 in H0. symmetry in H0.
-
-          assert(dynwin_a_addr ≢ memory_next_key m'') as NM1
-              by (eapply memory_lookup_not_next_equiv; eauto).
-
-          specialize (H1 dynwin_a_addr NM1).
-          rewrite H0 in H1. symmetry in H1.
-
-          err_eq_to_equiv_hyp.
-          apply memory_lookup_err_inr_Some in Heqe.
-          rewrite Heqe in  H1.
-          some_inv.
-
+          cbn in *.
+          assert(m = avector_to_mem_block a) as C.
+          {
+            eq_to_equiv_hyp.
+            rewrite LM''0 in Heqe.
+            some_inv.
+            rewrite <- Heqe.
+            rewrite Heqv.
+            reflexivity.
+          }
           eq_to_equiv_hyp.
-          rewrite H1 in Heqo.
+          rewrite C in Heqo.
           rewrite mem_lookup_avector_to_mem_block_equiv with (kc:=tc) in Heqo.
           some_inv.
           rewrite Heqo.
-          reflexivity.
-        -
           f_equiv.
+        -
+          memory_lookup_err_to_option.
+          inl_inr_inv.
+          subst c.
           destruct t as [t tc].
-          cbn. cbn in Heqo.
-
-          match goal with
-          | [H0: memory_equiv_except ?m m'' _ |- _] => remember m as m0
-          end.
-
-          assert(memory_lookup m0 dynwin_a_addr ≡ Some (avector_to_mem_block a)) as M0
-              by (subst m0;reflexivity).
-
-          assert(dynwin_a_addr ≢ memory_next_key m0) as NM0 by
-                (eapply memory_lookup_not_next; eauto).
-
-          specialize (H0 dynwin_a_addr NM0).
-
-          rewrite M0 in H0. symmetry in H0.
-
-          assert(dynwin_a_addr ≢ memory_next_key m'') as NM1
-              by (eapply memory_lookup_not_next_equiv; eauto).
-
-          specialize (H1 dynwin_a_addr NM1).
-          rewrite H0 in H1. symmetry in H1.
-
-          err_eq_to_equiv_hyp.
-          apply memory_lookup_err_inr_Some in Heqe.
-          rewrite Heqe in  H1.
-          some_inv.
-
+          cbn in *.
+          assert(m = avector_to_mem_block a) as C.
+          {
+            eq_to_equiv_hyp.
+            rewrite LM''0 in Heqe.
+            some_inv.
+            rewrite <- Heqe.
+            rewrite Heqv.
+            reflexivity.
+          }
           eq_to_equiv_hyp.
-          rewrite H1 in Heqo.
+          rewrite C in Heqo.
           rewrite mem_lookup_avector_to_mem_block_equiv with (kc:=tc) in Heqo.
           some_none.
       }
+
+      {
+        cbn.
+        discriminate.
+      }
+
+      {
+        cbn in *.
+        unfold dynwin_x_addr in *.
+        symmetry in H.
+        memory_lookup_err_to_option.
+        apply ReifyProofs.memory_lookup_not_next_equiv in H.
+        intros C.
+        contradict H.
+        inl_inr_inv.
+        reflexivity.
+      }
+
 
       {
         cbn in *.
@@ -503,32 +535,31 @@ Section MSHCOL_to_DSHCOL.
         remember (memory_alloc_empty m0 (memory_next_key m0)) as m1 eqn:M1.
         remember (memory_set m1 (memory_next_key m1) mem_empty) as m2 eqn:M2.
         unfold memory_alloc_empty in M1.
+        rename m'0 into m1_plus.
+        inl_inr_inv.
 
-        (*
-          Steps:
-
-          memory_next_key m0 > 2
-          memory_next_key m1 > 3
-          memory_next_key m2 > 4
-         *)
-
-        cut(memory_next_key m2 > 4).
+        assert(memory_next_key m0 > 2) as LM0.
         {
-          intros C.
-          rewrite <- H2 in C.
+          apply mem_block_exists_next_key_gt in M0.
+          apply M0.
+        }
+
+        assert(memory_next_key m1 > 3) as LM1.
+        {
+          apply memory_set_memory_next_key_gt in M1.
           lia.
         }
 
-        clear H2.
-        cut(memory_next_key m1 > 3).
-        {
-          intros H.
-          apply memory_set_memory_next_key_gt in M2.
-          lia.
-        }
+        remember (memory_set m1_plus (memory_next_key m1_plus) mem_empty) as
+            m1_plus'.
 
-        apply memory_set_memory_next_key_gt in M1.
-        apply mem_block_exists_next_key_gt in M0.
+        apply memory_set_memory_next_key_gt in Heqm1_plus'.
+        apply memory_subset_except_next_keys in H1.
+        subst_max.
+
+        remember (memory_next_key (memory_set m0 (memory_next_key m0) mem_empty)) as x.
+        clear Heqx.
+        rewrite <- H4 in Heqm1_plus'.
         lia.
       }
       

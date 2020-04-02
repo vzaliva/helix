@@ -781,6 +781,11 @@ Module Type MBasic (Import CT : CType).
       :=
         NM.remove n m.
 
+
+    (* memory [m] has block [b] under id [n] *)
+    Definition memory_mapsto (m : memory) (n : mem_block_id) (b : mem_block) :=
+      NM.MapsTo (elt:=mem_block) n b m.
+
     Definition mem_block_exists: mem_block_id -> memory -> Prop
       := NM.In (elt:=mem_block).
 
@@ -929,6 +934,18 @@ Module Type MBasic (Import CT : CType).
       apply NM_NS_In.
     Qed.
 
+    Lemma memory_next_key_S m n:
+      memory_next_key m = S n ->
+      mem_block_exists n m.
+    Proof.
+      intros H.
+      unfold memory_next_key in H.
+      break_match_hyp ; inv H.
+      apply memory_keys_set_In.
+      apply Memory.NS.max_elt_1.
+      auto.
+    Qed.
+
     Lemma mem_block_exists_memory_next_key
           (m : memory):
       not (mem_block_exists (memory_next_key m) m).
@@ -1012,6 +1029,15 @@ Module Type MBasic (Import CT : CType).
       pose proof (memory_lookup_memory_next_key_is_None m) as N.
       rewrite H in N.
       some_none.
+    Qed.
+
+    Lemma memory_mapsto_memory_lookup k v m:
+      memory_mapsto m k v <-> memory_lookup m k = Some v.
+    Proof.
+      unfold memory_mapsto, memory_lookup.
+      split.
+      - apply NM.find_1.
+      - apply NM.find_2.
     Qed.
 
   End Memory_Blocks.

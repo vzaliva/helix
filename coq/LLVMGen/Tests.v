@@ -28,6 +28,10 @@ Import MDSHCOLOnFloat64.
 
 (* sample definition to be moved to DynWin.v *)
 Local Open Scope nat_scope.
+
+(* Nop is generated, for example, for `IReduction 0` *)
+Definition Nop_test := DSHNop.
+
 Definition BinOp_less_test :=
   DSHBinOp 2 (PVar 1) (PVar 0) (AZless (AVar 1) (AVar 0)).
 
@@ -49,6 +53,9 @@ Definition Inductor_test :=
            ((PVar 0), (NConst 0))
            (AMinus (AVar 1) (AVar 0))
            Float64One.
+
+Definition IUnion_test :=
+  DSHLoop 5 (DSHBinOp 2 (PVar 2) (PVar 1) (APlus (AVar 1) (AVar 0))).
 
 Definition IReduction_test :=
   DSHAlloc 1
@@ -140,9 +147,8 @@ Definition all_tests :=
       {| i:=4; o:=2; name:="binop_less"; op:=BinOp_less_test; globals:=[] |} ;
       {| i:=4; o:=2; name:="binop_plus"; op:=BinOp_plus_test; globals:=[] |} ;
       {| i:=2; o:=1; name:="ireduction"; op:=IReduction_test; globals:=[] |} ;
-      (*
-      {| name:="iunion"; op:=IUnion_test; globals:=[] |} ;
-       *)
+      {| i:=5; o:=7; name:="nop"; op:=Nop_test; globals:=[] |} ;
+      {| i:=4; o:=2; name:="iunion"; op:=IUnion_test; globals:=[] |} ;
       {| i:=1; o:=1; name:="inductor"; op:=Inductor_test; globals:=[] |} ;
       {| i:=4; o:=4; name:="sumunion"; op:=SUMUnion_test; globals:=[("D", FSHvecValType 4)] |} ;
       {| i:=8; o:=8; name:="pointwise_plus1"; op:=IMap_plus1_test; globals:=[] |} ;

@@ -98,7 +98,7 @@ Module Type MDSigmaHCOL (Import CT : CType).
   Definition MemVarRef: Set := (PExpr * NExpr).
 
   Inductive DSHOperator :=
-  | DSHNop (* no-op. Used for testing *)
+  | DSHNop (* no-op. *)
   | DSHAssign (src dst: MemVarRef) (* formerly [Pick] and [Embed] *)
   | DSHIMap (n: nat) (x_p y_p: PExpr) (f: AExpr) (* formerly [Pointwise] *)
   | DSHBinOp (n: nat) (x_p y_p: PExpr) (f: AExpr) (* formerly [BinOp] *)
