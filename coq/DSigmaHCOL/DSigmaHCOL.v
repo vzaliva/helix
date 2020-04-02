@@ -16,9 +16,11 @@ Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.implementations.peano_naturals.
 Require Import MathClasses.misc.decision.
 
+Require Import Helix.DSigmaHCOL.NType.
+
 Global Open Scope nat_scope.
 
-Module Type MDSigmaHCOL (Import CT : CType).
+Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
 
   Include MMemSetoid CT.
 
@@ -31,13 +33,13 @@ Module Type MDSigmaHCOL (Import CT : CType).
   | DSHPtr : DSHType.
 
   Inductive DSHVal :=
-  | DSHnatVal (n:nat): DSHVal
-  | DSHCTypeVal (a:t): DSHVal
+  | DSHnatVal (n:NT.t): DSHVal
+  | DSHCTypeVal (a:CT.t): DSHVal
   | DSHPtrVal (a:mem_block_id) (size:nat): DSHVal.
 
   Inductive DSHValType: DSHVal -> DSHType -> Prop :=
-  | DSHnatVal_type (n:nat): DSHValType (DSHnatVal n) DSHnat
-  | DSHCTypeVal_type (a:t): DSHValType (DSHCTypeVal a) DSHCType
+  | DSHnatVal_type (n:NT.t): DSHValType (DSHnatVal n) DSHnat
+  | DSHCTypeVal_type (a:CT.t): DSHValType (DSHCTypeVal a) DSHCType
   | DSHDSHPtrVal_type (a:mem_block_id) (size:nat): DSHValType (DSHPtrVal a size) (DSHPtr).
 
   (* Functional version. *)
@@ -59,7 +61,7 @@ Module Type MDSigmaHCOL (Import CT : CType).
   (* Expressions which evaluate to `nat` *)
   Inductive NExpr : Type :=
   | NVar  : var_id -> NExpr
-  | NConst: nat -> NExpr
+  | NConst: NT.t -> NExpr
   | NDiv  : NExpr -> NExpr -> NExpr
   | NMod  : NExpr -> NExpr -> NExpr
   | NPlus : NExpr -> NExpr -> NExpr
@@ -83,7 +85,7 @@ Module Type MDSigmaHCOL (Import CT : CType).
   (* Expressions which evaluate to `CType` *)
   Inductive AExpr : Type :=
   | AVar  : var_id -> AExpr
-  | AConst: t -> AExpr
+  | AConst: CT.t -> AExpr
   | ANth  : MExpr -> NExpr -> AExpr
   | AAbs  : AExpr -> AExpr
   | APlus : AExpr -> AExpr -> AExpr
@@ -95,7 +97,7 @@ Module Type MDSigmaHCOL (Import CT : CType).
 
 
   (* Memory variable along with offset *)
-  Definition MemVarRef: Set := (PExpr * NExpr).
+  Definition MemVarRef: Type := (PExpr * NExpr).
 
   Inductive DSHOperator :=
   | DSHNop (* no-op. *)
@@ -103,10 +105,10 @@ Module Type MDSigmaHCOL (Import CT : CType).
   | DSHIMap (n: nat) (x_p y_p: PExpr) (f: AExpr) (* formerly [Pointwise] *)
   | DSHBinOp (n: nat) (x_p y_p: PExpr) (f: AExpr) (* formerly [BinOp] *)
   | DSHMemMap2 (n: nat) (x0_p x1_p y_p: PExpr) (f: AExpr) (* No direct correspondance in SHCOL *)
-  | DSHPower (n:NExpr) (src dst: MemVarRef) (f: AExpr) (initial: t) (* formely [Inductor] *)
+  | DSHPower (n:NExpr) (src dst: MemVarRef) (f: AExpr) (initial: CT.t) (* formely [Inductor] *)
   | DSHLoop (n:nat) (body: DSHOperator) (* Formerly [IUnion] *)
   | DSHAlloc (size:nat) (body: DSHOperator) (* allocates new uninitialized memory block and puts pointer to it on stack. The new block will be visible in the scope of [body] *)
-  | DSHMemInit (size:nat) (y_p: PExpr) (value: t) (* Initialize memory block indices [0-size] with given value *)
+  | DSHMemInit (size:nat) (y_p: PExpr) (value: CT.t) (* Initialize memory block indices [0-size] with given value *)
   | DSHMemCopy (size:nat) (x_p y_p: PExpr)(* copy memory blocks. Overwrites output block values, if present *)
   | DSHSeq (f g: DSHOperator) (* execute [g] after [f] *)
   .
@@ -130,8 +132,8 @@ Module Type MDSigmaHCOL (Import CT : CType).
   Definition DSHValType_bool (v:DSHVal) (t:DSHType) := bool_decide (DSHValType v t).
 
   Inductive DSHVal_equiv: DSHVal -> DSHVal -> Prop :=
-  | DSHnatVal_equiv {n0 n1:nat}: n0=n1 -> DSHVal_equiv (DSHnatVal n0) (DSHnatVal n1)
-  | DSHCTypeVal_equiv {a b: t}: a=b -> DSHVal_equiv (DSHCTypeVal a) (DSHCTypeVal b)
+  | DSHnatVal_equiv {n0 n1:NT.t}: n0=n1 -> DSHVal_equiv (DSHnatVal n0) (DSHnatVal n1)
+  | DSHCTypeVal_equiv {a b: CT.t}: a=b -> DSHVal_equiv (DSHCTypeVal a) (DSHCTypeVal b)
   | DSHPtr_equiv {p0 p1: mem_block_id} {s0 s1:nat}: s0 ≡ s1 /\ p0=p1 -> DSHVal_equiv (DSHPtrVal p0 s0) (DSHPtrVal p1 s1).
 
   Instance DSHVar_Equivalence:
@@ -397,7 +399,7 @@ Module Type MDSigmaHCOL (Import CT : CType).
     Definition string_of_NExpr (n:NExpr) : string :=
       match n with
       | NVar x => "(NVar " ++ string_of_nat x ++ ")"
-      | NConst x => string_of_nat x
+      | NConst x => NT.to_string x
       | _ => "?"
       end.
 
@@ -468,4 +470,3 @@ Module Type MDSigmaHCOL (Import CT : CType).
   End DSHNotation.
 
 End MDSigmaHCOL.
-
