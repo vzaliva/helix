@@ -4183,6 +4183,226 @@ Proof.
 *)
 Admitted.
 
+Lemma lookup_Pexp_eval_lookup (σ : evalContext) (m : memory) (x : PExpr) (mb : mem_block) :
+  lookup_Pexp σ m x = inr mb ->
+  exists x_id, evalPexp σ x = inr x_id /\ memory_lookup m x_id = Some mb.
+Proof.
+  intros.
+  unfold lookup_Pexp, memory_lookup_err, trywith in H.
+  cbn in *.
+  repeat break_match; try inl_inr; inl_inr_inv.
+  exists m0.
+  intuition.
+  rewrite Heqo, H.
+  reflexivity.
+Qed.
+
+Global Instance evalDSHMap2_proper :
+  Proper ((=) ==> (=) ==> (=) ==> (=) ==> (=) ==> (=) ==> (=)) evalDSHMap2.
+Proof.
+  intros m1 m2 M n1 n2 N df1 df2 DF σ1 σ2 Σ l1 l2 L r1 r2 R y1 y2 Y.
+  cbv in N; subst; rename n2 into n.
+  generalize dependent y2.
+  generalize dependent y1.
+  induction n.
+  -
+    intros.
+    cbn.
+    rewrite Y.
+    reflexivity.
+  -
+    intros.
+    cbn [evalDSHMap2].
+    generalize ("Error reading 2nd arg memory in evalDSHMap2 @" ++
+     Misc.string_of_nat n ++ " in " ++ string_of_mem_block_keys r1)%string.
+    generalize ("Error reading 2nd arg memory in evalDSHMap2 @" ++
+     Misc.string_of_nat n ++ " in " ++ string_of_mem_block_keys r2)%string.
+    generalize ("Error reading 1st arg memory in evalDSHMap2 @" ++
+     Misc.string_of_nat n ++ " in " ++ string_of_mem_block_keys l1)%string.
+    generalize ("Error reading 1st arg memory in evalDSHMap2 @" ++
+     Misc.string_of_nat n ++ " in " ++ string_of_mem_block_keys l2)%string.
+    intros.
+    cbn.
+    assert (mem_lookup_err s0 n l1 = mem_lookup_err s n l2).
+    {
+      clear - L.
+      unfold mem_lookup_err, trywith.
+      repeat break_match; try constructor.
+      all: eq_to_equiv.
+      all: rewrite L in *.
+      all: rewrite Heqo in Heqo0; try some_none.
+      some_inv.
+      assumption.
+    }
+    assert (mem_lookup_err s2 n r1 = mem_lookup_err s1 n r2).
+    {
+      clear - R.
+      unfold mem_lookup_err, trywith.
+      repeat break_match; try constructor.
+      all: eq_to_equiv.
+      all: rewrite R in *.
+      all: rewrite Heqo in Heqo0; try some_none.
+      some_inv.
+      assumption.
+    }
+    repeat break_match; try inl_inr; repeat inl_inr_inv; try constructor.
+    +
+      eq_to_equiv.
+      rewrite H, H0, DF, M, Σ in Heqe1.
+      inl_inr.
+    +
+      eq_to_equiv.
+      rewrite H, H0, DF, M, Σ in Heqe1.
+      inl_inr.
+    +
+      apply IHn.
+      eq_to_equiv.
+      rewrite H, H0, DF, M, Σ in Heqe1.
+      rewrite Heqe1 in Heqe4.
+      inl_inr_inv.
+      rewrite Heqe4, Y.
+      reflexivity.
+Qed.
+
+Global Instance memory_set_proper :
+  Proper ((=) ==> (=) ==> (=)) memory_set.
+Proof.
+  intros m1 m2 M k1 k2 K mb1 mb2 MB.
+  cbv in K; subst; rename k2 into k.
+  unfold equiv, memory_Equiv, memory_set.
+  intros k'.
+  destruct (Nat.eq_dec k' k).
+  -
+    repeat rewrite NP.F.add_eq_o by congruence.
+    f_equiv.
+    assumption.
+  -
+    repeat rewrite NP.F.add_neq_o by congruence.
+    apply M.
+Qed.
+
+(*
+  MSH_DSH_compat for reference:
+
+  h_opt_opterr_c
+     (λ (md : mem_block) (m' : memory),
+        err_p (λ ma : mem_block, SHCOL_DSHCOL_mem_block_equiv mb ma md)
+          (lookup_Pexp σ m' y_p)) (mem_op mop mx)
+     (evalDSHOperator σ dop m (estimateFuel dop)) }
+*)
+
+Lemma MemMap2_fold_with_def
+      (x1_p x2_p y_p : PExpr)
+      (x1_m x2_m y_m: mem_block)
+      (y_id : mem_block_id)
+      (σ : evalContext)
+      (m : memory)
+      (dot : CarrierA -> CarrierA -> CarrierA)
+      (df : AExpr)
+      (DC : MSH_DSH_BinCarrierA_compat dot σ df m)
+
+      (init : CarrierA)
+      (o : nat)
+      (LX1 : lookup_Pexp σ m x1_p = inr x1_m)
+      (LX2 : lookup_Pexp σ m x2_p = inr x2_m)
+      (D : forall k, k < o -> is_Some (mem_lookup k x1_m) /\ is_Some (mem_lookup k x2_m))
+      (Y_ID : evalPexp σ y_p = inr y_id)
+      (Y_M : memory_lookup m y_id = Some y_m)
+  :
+    (* this is incorrect: the [equiv] has to be replaced by something with [MemOpDelta] *)
+    evalDSHOperator σ (DSHMemMap2 o x1_p x2_p y_p df) m
+                    (estimateFuel (DSHMemMap2 o x1_p x2_p y_p df)) =
+    Some (inr (memory_set m y_id
+                          (MMemoryOfCarrierA.mem_merge_with_def dot init x1_m x2_m))).
+Proof.
+  intros.
+  apply lookup_Pexp_eval_lookup in LX1.
+  destruct LX1 as [x1_id [X1_ID X1_M]].
+  apply lookup_Pexp_eval_lookup in LX2.
+  destruct LX2 as [x2_id [X2_ID X2_M]].
+  cbn.
+  unfold memory_lookup_err, trywith.
+  repeat break_match;
+    try some_none; repeat some_inv;
+    try inl_inr; repeat inl_inr_inv.
+  all: eq_to_equiv.
+  all: rewrite X1_ID, X2_ID, Y_ID in *; clear X1_ID X2_ID Y_ID m0 m1 m2.
+  all: rename Heqe into X1_ID, Heqe0 into X2_ID, Heqe1 into Y_ID.
+  all: try some_none.
+  all: subst.
+  all: rewrite Heqo2, Heqo1, Heqo0 in *; repeat some_inv.
+  all: rewrite X1_M, X2_M, Y_M in *; clear X1_M X2_M Y_M m3 m4 m5.
+  all: rename Heqo2 into X1_M, Heqo1 into X2_M, Heqo0 into Y_M.
+  all: rename Heqe5 into M.
+  - (* evalDSHMap2 fails *)
+    exfalso.
+    contradict M; generalize s; apply is_OK_neq_inl.
+
+    clear Y_M.
+    generalize dependent y_m.
+    induction o.
+    +
+      constructor.
+    +
+      cbn [evalDSHMap2].
+      generalize ("Error reading 2nd arg memory in evalDSHMap2 @" ++
+       Misc.string_of_nat o ++ " in " ++ string_of_mem_block_keys x2_m)%string.
+      generalize ("Error reading 1st arg memory in evalDSHMap2 @" ++
+       Misc.string_of_nat o ++ " in " ++ string_of_mem_block_keys x1_m)%string.
+      intros.
+      cbn.
+      unfold mem_lookup_err.
+      autospecialize IHo; [intros; apply D; lia |].
+      specialize (D o).
+      autospecialize D; [lia |].
+      repeat rewrite is_Some_def in D.
+      destruct D as [[x1b X1B] [x2b X2B]].
+      rewrite X1B, X2B.
+      cbn.
+      inversion_clear DC as [D].
+      specialize (D x1b x2b).
+      break_match; try inl_inr.
+      apply IHo.
+  - (* evalDSHMap2 succeeds *)
+    rename m6 into y_m'.
+    repeat f_equiv.
+
+    clear Y_M.
+    generalize dependent y_m.
+    induction o.
+    +
+      intros.
+      cbn in *.
+      inl_inr_inv.
+      rewrite <-M; clear M y_m'.
+      inversion_clear DC as [B].
+      admit.
+    +
+      cbn [evalDSHMap2].
+      generalize ("Error reading 2nd arg memory in evalDSHMap2 @" ++
+       Misc.string_of_nat o ++ " in " ++ string_of_mem_block_keys x2_m)%string.
+      generalize ("Error reading 1st arg memory in evalDSHMap2 @" ++
+       Misc.string_of_nat o ++ " in " ++ string_of_mem_block_keys x1_m)%string.
+      intros.
+
+      cbn in M.
+      unfold mem_lookup_err in M.
+      autospecialize IHo; [intros; apply D; lia |].
+      specialize (D o).
+      autospecialize D; [lia |].
+      repeat rewrite is_Some_def in D.
+      destruct D as [[x1b X1B] [x2b X2B]].
+      rewrite X1B, X2B in M.
+      cbn in M.
+      inversion_clear DC as [D].
+      specialize (D x1b x2b).
+      break_match; try inl_inr.
+
+      eapply IHo.
+      rewrite <-M.
+      reflexivity.
+Admitted.
+
 Global Instance IReduction_MSH_DSH_compat_S
        {i o n: nat}
        {init : CarrierA}
