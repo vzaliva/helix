@@ -11,18 +11,18 @@ Require Import MathClasses.implementations.peano_naturals.
 Module NatAsNT <: NType.
   Definition t := nat.
 
-  Definition NTypeEquiv := nat_equiv.
-  Definition NTypeSetoid: @Setoid t NTypeEquiv := sg_setoid nat.
+  Instance NTypeEquiv : Equiv t := nat_equiv.
+  Instance NTypeSetoid: @Setoid t NTypeEquiv := sg_setoid nat.
 
   (* could always be converted to `nat` *)
   Definition to_nat (n:t) : nat := n.
-  Definition to_nat_proper: Proper ((=) ==> (=)) to_nat.
-  Proof. solve_proper. Defined.
+  Instance to_nat_proper: Proper ((=) ==> (=)) to_nat.
+  Proof. solve_proper. Qed.
 
   (* not all nats could be converted to `t` *)
   Definition from_nat (n:nat): err t := inr n.
-  Definition from_nat_proper: Proper ((=) ==> (=)) from_nat.
-  Proof. solve_proper. Defined.
+  Instance from_nat_proper: Proper ((=) ==> (=)) from_nat.
+  Proof. solve_proper. Qed.
 
   (* arithmetics operators *)
   Definition NTypeDiv   := Nat.div    .
@@ -33,26 +33,26 @@ Module NatAsNT <: NType.
   Definition NTypeMin   := Nat.min    .
   Definition NTypeMax   := Nat.max    .
 
-  Definition NTypeDiv_proper: Proper ((=) ==> (=) ==> (=)) NTypeDiv.
-  Proof. solve_proper. Defined.
+  Instance NTypeDiv_proper: Proper ((=) ==> (=) ==> (=)) NTypeDiv.
+  Proof. solve_proper. Qed.
 
-  Definition NTypeMod_proper: Proper ((=) ==> (=) ==> (=)) NTypeMod  .
-  Proof. solve_proper. Defined.
+  Instance NTypeMod_proper: Proper ((=) ==> (=) ==> (=)) NTypeMod  .
+  Proof. solve_proper. Qed.
 
-  Definition NTypePlus_proper: Proper ((=) ==> (=) ==> (=)) NTypePlus .
-  Proof. solve_proper. Defined.
+  Instance NTypePlus_proper: Proper ((=) ==> (=) ==> (=)) NTypePlus .
+  Proof. solve_proper. Qed.
 
-  Definition NTypeMinus_proper: Proper ((=) ==> (=) ==> (=)) NTypeMinus.
-  Proof. solve_proper. Defined.
+  Instance NTypeMinus_proper: Proper ((=) ==> (=) ==> (=)) NTypeMinus.
+  Proof. solve_proper. Qed.
 
-  Definition NTypeMult_proper: Proper ((=) ==> (=) ==> (=)) NTypeMult .
-  Proof. solve_proper. Defined.
+  Instance NTypeMult_proper: Proper ((=) ==> (=) ==> (=)) NTypeMult .
+  Proof. solve_proper. Qed.
 
-  Definition NTypeMin_proper: Proper ((=) ==> (=) ==> (=)) NTypeMin  .
-  Proof. solve_proper. Defined.
+  Instance NTypeMin_proper: Proper ((=) ==> (=) ==> (=)) NTypeMin  .
+  Proof. solve_proper. Qed.
 
-  Definition NTypeMax_proper: Proper ((=) ==> (=) ==> (=)) NTypeMax  .
-  Proof. solve_proper. Defined.
+  Instance NTypeMax_proper: Proper ((=) ==> (=) ==> (=)) NTypeMax  .
+  Proof. solve_proper. Qed.
 
   Definition to_string (n : t) : String.string := string_of_nat (to_nat n).
 
