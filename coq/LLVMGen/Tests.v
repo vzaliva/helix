@@ -48,9 +48,6 @@ Definition IMap_plusD_test :=
 Definition Compose_pointwise_test :=
   DSHSeq IMap_plus1_test IMap_plus1_test.
 
-
-Require Import Omega.
-
 Program Definition Int64_42:Int64.int := Int64.mkint 42%Z  _.
 Next Obligation. cbv; auto. Qed.
 
