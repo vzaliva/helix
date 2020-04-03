@@ -51,14 +51,23 @@ Definition Compose_pointwise_test :=
 Program Definition Int64_42:Int64.int := Int64.mkint 42%Z  _.
 Next Obligation. cbv; auto. Qed.
 
-Program Definition Int64_0:Int64.int := Int64.mkint 0%Z  _.
-Next Obligation. cbv; auto. Qed.
+Section Int64Constants.
 
-Program Definition Int64_1:Int64.int := Int64.mkint 1%Z  _.
-Next Obligation. cbv; auto. Qed.
+  Local Obligation Tactic := cbv;auto.
 
-Program Definition Int64_2:Int64.int := Int64.mkint 2%Z  _.
-Next Obligation. cbv; auto. Qed.
+  Program Definition Int64_0:Int64.int := Int64.mkint 0%Z  _.
+  Program Definition Int64_1:Int64.int := Int64.mkint 1%Z  _.
+  Program Definition Int64_2:Int64.int := Int64.mkint 2%Z  _.
+  Program Definition Int64_3:Int64.int := Int64.mkint 3%Z  _.
+  Program Definition Int64_4:Int64.int := Int64.mkint 4%Z  _.
+  Program Definition Int64_5:Int64.int := Int64.mkint 5%Z  _.
+  Program Definition Int64_6:Int64.int := Int64.mkint 6%Z  _.
+  Program Definition Int64_7:Int64.int := Int64.mkint 7%Z  _.
+  Program Definition Int64_8:Int64.int := Int64.mkint 8%Z  _.
+  Program Definition Int64_9:Int64.int := Int64.mkint 9%Z  _.
+  Program Definition Int64_10:Int64.int := Int64.mkint 10%Z  _.
+
+End Int64Constants.
 
 Definition Inductor_test :=
   DSHPower (NConst Int64_42)
@@ -71,11 +80,11 @@ Definition IUnion_test :=
   DSHLoop 5 (DSHBinOp 2 (PVar 2) (PVar 1) (APlus (AVar 1) (AVar 0))).
 
 Definition IReduction_test :=
-  DSHAlloc 1
-           (DSHSeq (DSHMemInit 1 (PVar 0) FSigmaHCOL.Float64Zero)
+  DSHAlloc Int64_1
+           (DSHSeq (DSHMemInit Int64_1 (PVar 0) FSigmaHCOL.Float64Zero)
                    (DSHLoop 2
                             (DSHSeq
-                               (DSHAlloc 2
+                               (DSHAlloc Int64_2
                                          (DSHSeq (DSHIMap 2 (PVar 4) (PVar 0) (AAbs (AVar 0)))
                                                  (DSHBinOp 1 (PVar 0) (PVar 3)
                                                            (AAbs (AMinus (AVar 1) (AVar 0))))))
@@ -87,21 +96,21 @@ DSHSeq (DSHIMap 4 (PVar 2) (PVar 1) (AAbs (AVar 0)))
        (DSHIMap 4 (PVar 2) (PVar 1) (AMult (AVar 0) (ANth (MPtrDeref (PVar 2)) (NVar 1)))).
 
 Definition DynWin_test: DSHOperator :=
-DSHAlloc 2
+DSHAlloc Int64_2
   (DSHSeq
      (DSHSeq
-        (DSHAlloc 1
+        (DSHAlloc Int64_1
            (DSHSeq
-              (DSHAlloc 1
+              (DSHAlloc Int64_1
                  (DSHSeq
-                    (DSHMemInit 1 (PVar 0) FSigmaHCOL.Float64Zero)
+                    (DSHMemInit Int64_1 (PVar 0) FSigmaHCOL.Float64Zero)
                     (DSHLoop 3
                        (DSHSeq
-                          (DSHAlloc 1
+                          (DSHAlloc Int64_1
                              (DSHSeq
                                 (DSHAssign (PVar 7, NConst Int64_0)
                                    (PVar 0, NConst Int64_0))
-                                (DSHAlloc 1
+                                (DSHAlloc Int64_1
                                    (DSHSeq
                                       (DSHPower (NVar 2)
                                          (PVar 1, NConst Int64_0)
@@ -116,17 +125,17 @@ DSHAlloc 2
                           (DSHMemMap2 1 (PVar 1) (PVar 2) (PVar 2)
                              (APlus (AVar 1) (AVar 0)))))))
               (DSHAssign (PVar 0, NConst Int64_0) (PVar 1, NConst Int64_0))))
-        (DSHAlloc 1
+        (DSHAlloc Int64_1
            (DSHSeq
-              (DSHAlloc 1
+              (DSHAlloc Int64_1
                  (DSHSeq
-                    (DSHMemInit 1 (PVar 0) FSigmaHCOL.Float64Zero)
+                    (DSHMemInit Int64_1 (PVar 0) FSigmaHCOL.Float64Zero)
                     (DSHLoop 2
                        (DSHSeq
-                          (DSHAlloc 2
+                          (DSHAlloc Int64_2
                              (DSHSeq
                                 (DSHLoop 2
-                                   (DSHAlloc 1
+                                   (DSHAlloc Int64_1
                                       (DSHSeq
                                          (DSHAssign
                                             (PVar 9,
@@ -156,18 +165,18 @@ Local Open Scope string_scope.
 
 Definition all_tests :=
   [
-    {| i:=5; o:=1; name:="dynwin64"; op:=DynWin_test ; globals:=[("D", FSHvecValType 3)] |} ;
-      {| i:=4; o:=2; name:="binop_less"; op:=BinOp_less_test; globals:=[] |} ;
-      {| i:=4; o:=2; name:="binop_plus"; op:=BinOp_plus_test; globals:=[] |} ;
-      {| i:=2; o:=1; name:="ireduction"; op:=IReduction_test; globals:=[] |} ;
-      {| i:=5; o:=7; name:="nop"; op:=Nop_test; globals:=[] |} ;
-      {| i:=4; o:=2; name:="iunion"; op:=IUnion_test; globals:=[] |} ;
-      {| i:=1; o:=1; name:="inductor"; op:=Inductor_test; globals:=[] |} ;
-      {| i:=4; o:=4; name:="sumunion"; op:=SUMUnion_test; globals:=[("D", FSHvecValType 4)] |} ;
-      {| i:=8; o:=8; name:="pointwise_plus1"; op:=IMap_plus1_test; globals:=[] |} ;
-      {| i:=8; o:=8; name:="pointwise_plusD"; op:=IMap_plusD_test; globals:=[("D", FSHFloatValType)] |} ;
+    {| i:=Int64_5; o:=Int64_1; name:="dynwin64"; op:=DynWin_test ; globals:=[("D", FSHvecValType Int64_3)] |} ;
+  {| i:=Int64_4; o:=Int64_2; name:="binop_less"; op:=BinOp_less_test; globals:=[] |} ;
+  {| i:=Int64_4; o:=Int64_2; name:="binop_plus"; op:=BinOp_plus_test; globals:=[] |} ;
+  {| i:=Int64_2; o:=Int64_1; name:="ireduction"; op:=IReduction_test; globals:=[] |} ;
+  {| i:=Int64_5; o:=Int64_7; name:="nop"; op:=Nop_test; globals:=[] |} ;
+  {| i:=Int64_4; o:=Int64_2; name:="iunion"; op:=IUnion_test; globals:=[] |} ;
+  {| i:=Int64_1; o:=Int64_1; name:="inductor"; op:=Inductor_test; globals:=[] |} ;
+  {| i:=Int64_4; o:=Int64_4; name:="sumunion"; op:=SUMUnion_test; globals:=[("D", FSHvecValType Int64_4)] |} ;
+  {| i:=Int64_8; o:=Int64_8; name:="pointwise_plus1"; op:=IMap_plus1_test; globals:=[] |} ;
+  {| i:=Int64_8; o:=Int64_8; name:="pointwise_plusD"; op:=IMap_plusD_test; globals:=[("D", FSHFloatValType)] |} ;
 
-      {| i:=8; o:=8; name:="compose_pointwise"; op:=Compose_pointwise_test ; globals:=[]|}
+  {| i:=Int64_8; o:=Int64_8; name:="compose_pointwise"; op:=Compose_pointwise_test ; globals:=[]|}
   ].
 
 
@@ -199,7 +208,7 @@ Require Import Helix.Util.ListSetoid.
 Require Import Helix.Util.ErrorSetoid.
 
 Definition evalFSHCOLOperator
-           (i o: nat)
+           (i o: Int64.int)
            (name: string)
            (globals: list (string * FSHValType))
            (op: DSHOperator)
@@ -212,7 +221,7 @@ Definition evalFSHCOLOperator
     | Some (inr mem) =>
       let Y_mem_block_id : mem_block_id := S (length globals) in
       yb <- trywith "No output memory block" (memory_lookup mem Y_mem_block_id) ;;
-      mem_to_list "Invalid output memory block" o yb
+      mem_to_list "Invalid output memory block" (MInt64asNT.to_nat o) yb
     | Some (inl msg) => inl msg
     | None => raise "evalDSHOperator run out of fuel!"
     end.

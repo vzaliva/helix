@@ -13,6 +13,9 @@ let output_file_prefix = "test_"
 
 module AT = ANSITerminal
 
+let int_of_Int64 x =
+  Z.to_int (Int64asNT.Int64.intval x)
+
 let output_ll_file filename ast =
   let open Format in
   let channel = Out_channel.create filename in
@@ -26,7 +29,7 @@ let gsize t =
   match t with
   | FSHnatValType -> 1
   | FSHFloatValType -> 1
-  | FSHvecValType n -> Nat.to_int n
+  | FSHvecValType n -> int_of_Int64 n
 
 let string_of_FloatV fv =
   Float.to_string (camlfloat_of_coqfloat fv)
@@ -48,7 +51,7 @@ let pp_binary64 ppf v =
 let process_test t =
   let oname = camlstring_of_coqstring t.name in
   Random.self_init () ;
-  let rs = Nat.to_int t.i + (List.fold t.globals ~init:0 ~f:(fun v (_,g) -> v + gsize g )) in
+  let rs = int_of_Int64 t.i + (List.fold t.globals ~init:0 ~f:(fun v (_,g) -> v + gsize g )) in
   let randoms = List.init rs ~f:(fun _ -> coqfloat_of_camlfloat (randomFloat 3.14E8)) in
   if !Interpreter.debug_flag then
     begin

@@ -62,9 +62,7 @@ Module MInt64asNT <: NType.
       congruence.
   Qed.
 
-  (* not all nats could be converted to `t` *)
-  Definition from_nat (n:nat): err t :=
-    let z := BinInt.Z.of_nat n in
+  Definition from_Z (z:BinInt.Z): err t :=
     match ZArith_dec.Z_lt_dec (BinNums.Zneg BinNums.xH) z with
     | left H0 =>
       match ZArith_dec.Z_lt_dec z Int64.modulus with
@@ -73,6 +71,11 @@ Module MInt64asNT <: NType.
       end
     | in_right => inl "negative"
     end.
+
+  (* not all nats could be converted to `t` *)
+  Definition from_nat (n:nat): err t :=
+    from_Z (BinInt.Z.of_nat n).
+
   Definition from_nat_proper: Proper ((=) ==> (=)) from_nat.
   Proof. solve_proper. Qed.
 

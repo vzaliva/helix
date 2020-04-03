@@ -398,7 +398,7 @@ Module MDSigmaHCOLEval
           Some (
               y_i <- evalPexp σ y_p ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHMemInit" mem y_i ;;
-              let y' := mem_union (mem_const_block size value) y in
+              let y' := mem_union (mem_const_block (to_nat size) value) y in
               ret (memory_set mem y_i y')
             )
         | DSHMemCopy size x_p y_p =>

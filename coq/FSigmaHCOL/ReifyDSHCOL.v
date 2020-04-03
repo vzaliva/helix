@@ -162,18 +162,21 @@ Fixpoint DSCHOLtoFHCOL (d: MDSHCOLOnCarrierA.DSHOperator):
                    body')
     | MDSHCOLOnCarrierA.DSHAlloc size body =>
       body' <- DSCHOLtoFHCOL body ;;
+      size' <- MInt64asNT.from_nat size ;;
             ret (DSHAlloc
-                   size
+                   size'
                    body')
     | MDSHCOLOnCarrierA.DSHMemInit size y_p value =>
       value' <- translateCarrierA value ;;
+      size' <- MInt64asNT.from_nat size ;;
              ret (DSHMemInit
-                    size
+                    size'
                     (translatePExpr y_p)
                     value')
     | MDSHCOLOnCarrierA.DSHMemCopy size x_p y_p =>
+      size' <- MInt64asNT.from_nat size ;;
       ret (DSHMemCopy
-             size
+             size'
              (translatePExpr x_p)
              (translatePExpr y_p))
     | MDSHCOLOnCarrierA.DSHSeq f g =>

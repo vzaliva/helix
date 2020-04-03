@@ -124,7 +124,7 @@ Fixpoint denote_initFSHGlobals
          ret (data, (DSHCTypeVal x)::σ)
       | FSHvecValType n =>
         '(data,σ) <- denote_initFSHGlobals data gs ;;
-         let (data,mb) := constMemBlock n data in
+         let (data,mb) := constMemBlock (MInt64asNT.to_nat n) data in
          k <- trigger (MemAlloc n);;
          trigger (MemSet k mb);;
          let p := DSHPtrVal k n in
@@ -137,13 +137,13 @@ Definition denote_FSHCOL (p:FSHCOLProgram) (data:list binary64)
   '(data, σ) <- denote_initFSHGlobals data p.(globals) ;;
   xindex <- trigger (MemAlloc p.(i));;
   yindex <- trigger (MemAlloc p.(o));;
-  let '(data, x) := constMemBlock p.(i) data in
+  let '(data, x) := constMemBlock (MInt64asNT.to_nat p.(i)) data in
   trigger (MemSet xindex x);;
 
   let σ := List.app σ [DSHPtrVal yindex p.(o); DSHPtrVal xindex p.(i)] in
   denoteDSHOperator σ p.(op);;
   bk <- trigger (MemLU "denote_FSHCOL" yindex);;
-  lift_Derr (mem_to_list "Invalid output memory block" p.(o) bk).
+  lift_Derr (mem_to_list "Invalid output memory block" (MInt64asNT.to_nat p.(o)) bk).
 
 Definition semantics_FSHCOL p data: itree E_mcfg (memory * list binary64) :=
   translate (@subevent _ E_mcfg _) (interp_Mem (denote_FSHCOL p data) memory_empty).
@@ -306,10 +306,11 @@ Definition memory_invariant : Type_R_memory :=
             alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Addr ptr_llvm) /\
             get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm /\
             (fun bk_helix bk_llvm =>
-               forall i, i < ptr_size_helix ->
+               forall i, Int64.lt i ptr_size_helix ->
                     exists v_helix v_llvm,
-                      mem_lookup i bk_helix ≡ Some v_helix /\
-                      mem_lookup_llvm_at_i bk_llvm i ptr_size_helix v_llvm /\
+                      mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v_helix /\
+                      mem_lookup_llvm_at_i bk_llvm (MInt64asNT.to_nat i)
+                                           (MInt64asNT.to_nat ptr_size_helix) v_llvm /\
                       v_llvm ≡ UVALUE_Double v_helix
             ) bk_helix bk_llvm
       end.
@@ -1277,8 +1278,8 @@ Proof.
   rename Heqp2 into HCX, m2 into xdata.
   rename Heqe0 into HFSHG, l2 into fdata', e into σ.
   rename Heqe into HIRG, l0 into ldata', l1 into gdecls.
-  remember (global_YX i o ldata' (Anon 0%Z) (TYPE_Array (Z.of_nat i) TYPE_Double)
-                      (Anon 1%Z) (TYPE_Array (Z.of_nat o) TYPE_Double)) as xydecls eqn:HXY.
+  remember (global_YX i o ldata' (Anon 0%Z) (TYPE_Array (Int64.intval i) TYPE_Double)
+                      (Anon 1%Z) (TYPE_Array (Int64.intval o) TYPE_Double)) as xydecls eqn:HXY.
   rename l3 into fdata''.
 
   inv LI.

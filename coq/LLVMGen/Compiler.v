@@ -77,8 +77,11 @@ Section withErrorStateMonad.
     st <- get ;;
     ret (string_of_vars (vars st)).
 
-  Definition nat_eq_or_cerr msg a b : cerr _ := err2errS  (nat_eq_or_err msg a b).
-
+  Definition nat_eq_or_cerr msg a b : cerr _ := err2errS (nat_eq_or_err msg a b).
+  Definition Z_eq_or_cerr msg a b : cerr _ := err2errS (Z_eq_or_err msg a b).
+  Definition Int64_eq_or_cerr msg a b : cerr _ := Z_eq_or_cerr msg
+                                                               (Int64.intval a)
+                                                               (Int64.intval b).
 End withErrorStateMonad.
 
 (* 64-bit IEEE floats *)
@@ -88,7 +91,7 @@ Definition getIRType (t: FSHValType): typ :=
   match t with
   | FSHnatValType => IntType
   | FSHFloatValType => TYPE_Double
-  | FSHvecValType n => TYPE_Array (Z.of_nat n) TYPE_Double
+  | FSHvecValType n => TYPE_Array (Int64.intval n) TYPE_Double
   end.
 
 Definition genIRGlobals
@@ -217,14 +220,14 @@ Definition dropVars (n: nat): cerr unit :=
       vars := vars'
     |}.
 
-Definition allocTempArrayCode (name: local_id) (size:nat)
+Definition allocTempArrayCode (name: local_id) (size:Int64.int)
   :=
     [(IId name, INSTR_Alloca (getIRType (FSHvecValType size)) None (Some PtrAlignment))].
 
 Definition allocTempArrayBlock
            (name: local_id)
            (nextblock: block_id)
-           (size: nat): (cerr (local_id * (block typ)))
+           (size: Int64.int): (cerr (local_id * (block typ)))
   :=
     retid <- incVoid ;;
     bid <- incBlock ;;
@@ -404,7 +407,7 @@ Fixpoint genAExpr
 Definition segment:Type := block_id * list (block typ).
 
 Definition genMemCopy
-           (o: nat)
+           (o: Int64.int)
            (x y: ident)
            (nextblock: block_id)
   : cerr segment
@@ -414,10 +417,10 @@ Definition genMemCopy
     callid <- incVoid ;;
     xb <- incLocal ;;
     yb <- incLocal ;;
-    let oz := (Z.of_nat o) in
+    let oz := (Int64.intval o) in
     let atyp := TYPE_Pointer (TYPE_Array oz TYPE_Double) in
     let ptyp := TYPE_Pointer (TYPE_I 8%Z) in
-    let len:Z := Z.of_nat (o * SizeofFloatT) in
+    let len:Z := Z.mul oz (Z.of_nat (SizeofFloatT)) in
     let i32 := TYPE_I 32%Z in
     let i1 := TYPE_I 1%Z in
     ret ((entryblock, [
@@ -452,7 +455,7 @@ Definition genMemCopy
         ])).
 
 Definition genFSHAssign
-           (i o: nat)
+           (i o: Int64.int)
            (x y: ident)
            (src dst: NExpr)
            (nextblock: block_id)
@@ -590,7 +593,7 @@ Definition genWhileLoop
     ret (entryblock, loop_pre ++ body_blocks ++ loop_post).
 
 Definition genIMapBody
-           (n: nat)
+           (n: Int64.int)
            (x y: ident)
            (f: AExpr)
            (loopvar: raw_id)
@@ -667,9 +670,11 @@ Definition genBinOpBody
     py <- incLocal ;;
     v0 <- incLocal ;;
     v1 <- incLocal ;;
-    let xtyp := getIRType (FSHvecValType (n+n)) in
+    n' <- err2errS (MInt64asNT.from_nat n) ;;
+    n2' <- err2errS (MInt64asNT.from_nat (n+n)%nat) ;;
+    let xtyp := getIRType (FSHvecValType n2') in
     let xptyp := TYPE_Pointer xtyp in
-    let ytyp := getIRType (FSHvecValType n) in
+    let ytyp := getIRType (FSHvecValType n') in
     let yptyp := TYPE_Pointer ytyp in
     let loopvarid := ID_Local loopvar in
     addVars [(ID_Local v1, TYPE_Double); (ID_Local v0, TYPE_Double); (loopvarid, IntType)] ;;
@@ -751,9 +756,10 @@ Definition genMemMap2Body
     py <- incLocal ;;
     v0 <- incLocal ;;
     v1 <- incLocal ;;
-    let xtyp := getIRType (FSHvecValType n) in
+    n' <- err2errS (MInt64asNT.from_nat n) ;;
+    let xtyp := getIRType (FSHvecValType n') in
     let xptyp := TYPE_Pointer xtyp in
-    let ytyp := getIRType (FSHvecValType n) in
+    let ytyp := getIRType (FSHvecValType n') in
     let yptyp := TYPE_Pointer ytyp in
     let loopvarid := ID_Local loopvar in
     addVars [(ID_Local v1, TYPE_Double); (ID_Local v0, TYPE_Double)] ;;
@@ -814,14 +820,14 @@ Definition genMemMap2Body
         ]).
 
 Definition genMemInit
-           (o n: nat)
+           (size: Int64.int)
            (y: ident)
            (initial: binary64)
            (nextblock: block_id):
   cerr segment
   :=
     let ini := genFloatV initial in
-    let ttyp := getIRType (FSHvecValType o) in
+    let ttyp := getIRType (FSHvecValType size) in
     let tptyp := TYPE_Pointer ttyp in
     pt <- incLocal ;;
     init_block_id <- incBlockNamed "MemInit_init" ;;
@@ -853,10 +859,10 @@ Definition genMemInit
           blk_term  := (IVoid void0, TERM_Br_1 loopcontblock);
           blk_comments := None
         |} in
-    genWhileLoop "MemInit_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock init_block_id [init_block] [] nextblock.
+    genWhileLoop "MemInit_loop" (EXP_Integer 0%Z) (EXP_Integer (Int64.intval size)) loopvar loopcontblock init_block_id [init_block] [] nextblock.
 
 Definition genPower
-           (i o: nat)
+           (i o: Int64.int)
            (x y: ident)
            (src dst: NExpr)
            (n: NExpr)
@@ -935,7 +941,7 @@ Definition genPower
         |} in
     genWhileLoop "Power" (EXP_Integer 0%Z) nexp loopvar loopcontblock body_block_id [body_block] init_code nextblock.
 
-Definition resolve_PVar (p:PExpr): cerr (ident*nat)
+Definition resolve_PVar (p:PExpr): cerr (ident*Int64.int)
   :=
     svars <- getVarsAsString ;;
     match p with
@@ -944,7 +950,8 @@ Definition resolve_PVar (p:PExpr): cerr (ident*nat)
       '(l,t) <- getStateVar ("NVar#" @@ ns @@ " out of range in " @@ svars) n ;;
       match t with
       | TYPE_Pointer (TYPE_Array sz TYPE_Double) =>
-        ret (l, Z.to_nat sz)
+        sz' <- err2errS (MInt64asNT.from_Z sz) ;;
+        ret (l, sz')
       | _ => raise ("Invalid type of PVar#" @@ ns @@ " in " @@ svars)
       end
     end.
@@ -972,19 +979,21 @@ Fixpoint genIR
           '(x,i) <- resolve_PVar x_p ;;
           '(y,o) <- resolve_PVar y_p ;;
           vs <- getVarsAsString ;;
-          nat_eq_or_cerr (fshcol_s @@ " dimensions do not match in " @@ vs) i o ;;
+          Int64_eq_or_cerr (fshcol_s @@ " dimensions do not match in " @@ vs) i o ;;
           loopcontblock <- incBlockNamed "IMap_lcont" ;;
           loopvar <- incLocalNamed "IMap_i" ;;
           '(body_entry, body_blocks) <- genIMapBody i x y f loopvar loopcontblock ;;
           add_comment
-            (genWhileLoop "IMap" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat i)) loopvar loopcontblock body_entry body_blocks [] nextblock)
+            (genWhileLoop "IMap" (EXP_Integer 0%Z) (EXP_Integer (Int64.intval i)) loopvar loopcontblock body_entry body_blocks [] nextblock)
         | DSHBinOp n x_p y_p f =>
           loopcontblock <- incBlockNamed "BinOp_lcont" ;;
           '(x,i) <- resolve_PVar x_p ;;
           '(y,o) <- resolve_PVar y_p ;;
           vs <- getVarsAsString ;;
-          nat_eq_or_cerr (fshcol_s @@ " input dimensions do not match in " @@ vs) i (n+n) ;;
-          nat_eq_or_cerr (fshcol_s @@ " output dimensions do not match in " @@ vs) o n ;;
+          n2' <- err2errS (MInt64asNT.from_nat (n+n)%nat) ;;
+          n' <- err2errS (MInt64asNT.from_nat n) ;;
+          Int64_eq_or_cerr (fshcol_s @@ " input dimensions do not match in " @@ vs) i n2' ;;
+          Int64_eq_or_cerr (fshcol_s @@ " output dimensions do not match in " @@ vs) o n' ;;
           loopvar <- incLocalNamed "BinOp_i" ;;
           '(body_entry, body_blocks) <- genBinOpBody n x y f loopvar loopcontblock ;;
           add_comment
@@ -995,9 +1004,10 @@ Fixpoint genIR
           '(x1,i1) <- resolve_PVar x1_p ;;
           '(y,o) <- resolve_PVar y_p ;;
           vs <- getVarsAsString ;;
-          nat_eq_or_cerr (fshcol_s @@ " output dimensions do not match in " @@ vs) o n ;;
-          nat_eq_or_cerr (fshcol_s @@ " input 1 dimensions do not match in " @@ vs) i0 n ;;
-          nat_eq_or_cerr (fshcol_s @@ " input 2 dimensions do not match in " @@ vs) i1 n ;;
+          n' <- err2errS (MInt64asNT.from_nat n) ;;
+          Int64_eq_or_cerr (fshcol_s @@ " output dimensions do not match in " @@ vs) o n' ;;
+          Int64_eq_or_cerr (fshcol_s @@ " input 1 dimensions do not match in " @@ vs) i0 n' ;;
+          Int64_eq_or_cerr (fshcol_s @@ " input 2 dimensions do not match in " @@ vs) i1 n' ;;
           loopvar <- incLocalNamed "MemMap2_i" ;;
           '(body_entry, body_blocks) <- genMemMap2Body n x0 x1 y f loopvar loopcontblock ;;
           add_comment
@@ -1023,14 +1033,14 @@ Fixpoint genIR
           dropVars 1 ;;
           add_comment (ret (ablock, [acode]++bcode))
         | DSHMemInit size y_p value =>
-          '(y,o) <- resolve_PVar y_p ;;
-          '(ablock,acode) <- genMemInit o size y value nextblock ;;
+          '(y,_) <- resolve_PVar y_p ;; (* ignore actual block size *)
+          '(ablock,acode) <- genMemInit size y value nextblock ;;
           add_comment (ret (ablock, acode))
         | DSHMemCopy size x_p y_p =>
           '(x,i) <- resolve_PVar x_p ;;
           '(y,o) <- resolve_PVar y_p ;;
           vs <- getVarsAsString ;;
-          nat_eq_or_cerr (fshcol_s @@ " input/output dimensions do not match in " @@ vs) i o ;;
+          Int64_eq_or_cerr (fshcol_s @@ " input/output dimensions do not match in " @@ vs) i o ;;
           add_comment
             (genMemCopy size x y nextblock)
         | DSHSeq f g =>
@@ -1041,7 +1051,7 @@ Fixpoint genIR
           (fun m => raise (m @@ " in " @@ fshcol_s)).
 
 Definition LLVMGen
-           (i o: nat)
+           (i o: Int64.int)
            (globals: list (string*FSHValType))
            (globals_extern: bool)
            (fshcol: DSHOperator)
@@ -1138,7 +1148,7 @@ Definition initOneIRGlobal
                  |} in
       ret (data, g)
     | FSHvecValType n =>
-      let (data, arr) := constArray n data in
+      let (data, arr) := constArray (MInt64asNT.to_nat n) data in
       let g := TLE_Global {|
                    g_ident        := Name nm;
                    g_typ          := getIRType t ;
@@ -1220,11 +1230,11 @@ Definition initIRGlobals
    When code genration generates [main], the input
    will be stored in pre-initialized [X] global variable.
  *)
-Definition global_YX (i o:nat) (data:list binary64) x xtyp y ytyp:
+Definition global_YX (i o:Int64.int) (data:list binary64) x xtyp y ytyp:
   LLVMAst.toplevel_entities _ (list (LLVMAst.block typ))
   :=
-    let '(data,ydata) := constArray o data in
-    let '(_,xdata) := constArray i data in
+    let '(data,ydata) := constArray (MInt64asNT.to_nat o) data in
+    let '(_,xdata) := constArray (MInt64asNT.to_nat i) data in
     [ TLE_Global
         {|
           g_ident        := y;
@@ -1260,7 +1270,7 @@ Definition global_YX (i o:nat) (data:list binary64) x xtyp y ytyp:
     ].
 
 Definition genMain
-           (i o: nat)
+           (i o: Int64.int)
            (op_name: string)
            (x:raw_id)
            (xptyp:typ)

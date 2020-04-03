@@ -80,8 +80,9 @@ Module MDSigmaHCOLITree
   Variant MemEvent: Type -> Type :=
   | MemLU  (msg: string) (id: mem_block_id): MemEvent mem_block
   | MemSet (id: mem_block_id) (bk: mem_block): MemEvent unit
-  | MemAlloc (size: nat): MemEvent mem_block_id
+  | MemAlloc (size: NT.t): MemEvent mem_block_id
   | MemFree (id: mem_block_id): MemEvent unit.
+
   Definition StaticFailE := exceptE string.
   Definition StaticThrow (msg: string): StaticFailE void := Throw msg.
   Definition DynamicFailE := exceptE string.
@@ -300,7 +301,7 @@ Module MDSigmaHCOLITree
         | DSHMemInit size y_p value =>
           y_i <- denotePexp σ y_p ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHMemInit" y_i) ;;
-          let y' := mem_union (mem_const_block size value) y in
+          let y' := mem_union (mem_const_block (to_nat size) value) y in
           trigger (MemSet y_i y')
 
        | DSHMemCopy size x_p y_p =>
