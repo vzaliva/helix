@@ -12,9 +12,9 @@ addons:
   apt:
     update: true
     sources:
-    - avsm
+    - sourceline: "ppa:avsm/ppa"
     packages:
-    - opam-2.0
+    - opam
     - aspcud
 env:
   global:
