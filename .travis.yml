@@ -10,6 +10,7 @@ cache:
   - $HOME/.opam
 addons:
   apt:
+    update: true
     sources:
     - avsm
     packages:
