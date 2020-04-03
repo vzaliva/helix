@@ -54,6 +54,7 @@ Require Import Coq.Numbers.BinNums. (* for Z scope *)
 Require Import Coq.ZArith.BinInt.
 
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
+Require Import Helix.FSigmaHCOL.Int64asNT.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLITree.
 Require Import Helix.LLVMGen.Compiler.
 Require Import Helix.LLVMGen.Externals.
@@ -284,7 +285,7 @@ Definition memory_invariant : Type_R_memory :=
         (exists  bk_llvm,
             (get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm) /\
             (* And value at this pointer must match *)
-            (exists v_llvm,  mem_lookup_llvm_at_i bk_llvm 0 1 v_llvm /\ v_llvm ≡ UVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v))))
+            (exists v_llvm,  mem_lookup_llvm_at_i bk_llvm 0 1 v_llvm /\ v_llvm ≡ UVALUE_I64 (DynamicValues.Int64.repr (Int64.intval v))))
       | DSHCTypeVal v =>
         exists ptr_llvm,
         ( (* variable in local environment *)
