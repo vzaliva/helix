@@ -1054,7 +1054,8 @@ Section SigmaHCOL_rewriting.
     setoid_rewrite SafeCast_HReduction.
 
     (* Next rule *)
-    rewrite terminate_Reduction by apply rings.plus_comm.
+    unshelve rewrite terminate_Reduction by apply rings.plus_comm.
+    typeclasses eauto. (* apply Zero_Plus_BFixpoint. *)
 
     (* Next rule *)
     setoid_rewrite terminate_GathH1.
@@ -1136,7 +1137,6 @@ Section SigmaHCOL_rewriting.
     setoid_rewrite <- SHInductor_equiv_lifted_HInductor.
 
     unfold dynwin_SHCOL1.
-
     reflexivity.
   Qed.
 
@@ -1273,6 +1273,7 @@ Section SigmaHCOL_rewriting.
 End SigmaHCOL_rewriting.
 
 Require Import Helix.FSigmaHCOL.ReifyDSHCOL.
+Require Import Helix.FSigmaHCOL.Int64asNT.
 Require Import Coq.Bool.Sumbool.
 Require Import MathClasses.misc.decision.
 
