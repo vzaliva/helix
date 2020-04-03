@@ -14,7 +14,7 @@ addons:
     sources:
     - avsm
     packages:
-    - opam
+    - opam-2.0
     - aspcud
 env:
   global:
