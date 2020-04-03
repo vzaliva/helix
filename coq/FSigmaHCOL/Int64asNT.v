@@ -16,7 +16,7 @@ Open Scope string_scope.
 Module Int64 := Integers.Int64.
 
 (* =CarrierA= as =CarrierType= *)
-Module Int64asNT <: NType.
+Module MInt64asNT <: NType.
   Definition t := Int64.int.
 
   Instance NTypeEquiv: Equiv t := fun a b => is_true (Int64.eq a b).
@@ -214,4 +214,4 @@ Module Int64asNT <: NType.
 
   Definition to_string (n : t) : String.string := string_of_nat (to_nat n).
 
-End Int64asNT.
+End MInt64asNT.

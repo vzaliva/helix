@@ -8,7 +8,7 @@ Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.implementations.peano_naturals.
 
 (* =CarrierA= as =CarrierType= *)
-Module NatAsNT <: NType.
+Module MNatAsNT <: NType.
   Definition t := nat.
 
   Instance NTypeEquiv : Equiv t := nat_equiv.
@@ -56,4 +56,4 @@ Module NatAsNT <: NType.
 
   Definition to_string (n : t) : String.string := string_of_nat (to_nat n).
 
-End NatAsNT.
+End MNatAsNT.

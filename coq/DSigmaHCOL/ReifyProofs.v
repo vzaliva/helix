@@ -72,7 +72,7 @@ Section memory_aux.
     Proper ((=) ==> (=) ==> (=) ==> (=)) memory_subset_except.
   Proof.
     intros e e' Ee m_sub m_sub' ESUB m_sup m_sup' ESUP.
-    unfold equiv, nat_equiv in Ee.
+    unfold equiv, NatAsNT.MNatAsNT.NTypeEquiv, nat_equiv in Ee.
     subst e'.
     unfold memory_subset_except.
     split; intros.
@@ -2548,7 +2548,7 @@ Proof.
   2:{
     unfold lookup_Pexp; cbn.
     cbn in DOP.
-    unfold NatAsNT.NatAsNT.to_nat in *.
+    unfold NatAsNT.MNatAsNT.to_nat in *.
     destruct (evalPexp σ x_p) as [| x_id] eqn:X;
       [unfold lookup_Pexp in X_M; rewrite X in X_M; inversion X_M |].
     destruct (evalPexp σ y_p) as [| y_id] eqn:Y;
@@ -2755,7 +2755,7 @@ Proof.
     destruct n.
     +
       cbn in DOP.
-      unfold NatAsNT.NatAsNT.to_nat in *.
+      unfold NatAsNT.MNatAsNT.to_nat in *.
       repeat break_match_hyp; try inl_inr;
         repeat inl_inr_inv; repeat some_inv; try some_none; subst.
       *
@@ -2788,7 +2788,7 @@ Proof.
       apply mem_block_to_avector_nth with (kc:=jc) in XD.
 
       cbn in DOP.
-      unfold NatAsNT.NatAsNT.to_nat in *.
+      unfold NatAsNT.MNatAsNT.to_nat in *.
       rewrite N in DOP.
       repeat break_match_hyp; try inl_inr;
         repeat inl_inr_inv; repeat some_inv; try some_none; subst.
@@ -2903,7 +2903,7 @@ Proof.
       clear Y_M; rename m0 into y_m', H1 into YME.
 
     (* simplify DOP down to evalDSHPower *)
-    cbn in DOP; unfold NatAsNT.NatAsNT.to_nat in *; some_inv; rename H0 into DOP.
+    cbn in DOP; unfold NatAsNT.MNatAsNT.to_nat in *; some_inv; rename H0 into DOP.
     rewrite N in DOP.
     repeat break_match; try inl_inr.
 

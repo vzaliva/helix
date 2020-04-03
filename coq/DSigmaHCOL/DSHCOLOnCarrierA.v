@@ -20,7 +20,7 @@ Instance CarrierA_max_proper: Proper((=) ==> (=) ==> (=)) (@max CarrierA Carrier
 Proof. typeclasses eauto. Qed.
 
 
-Module MDSigmaHCOLEvalSigCarrierA <: MDSigmaHCOLEvalSig(CarrierAasCT)(NatAsNT).
+Module MDSigmaHCOLEvalSigCarrierA <: MDSigmaHCOLEvalSig(CarrierAasCT)(MNatAsNT).
   Definition CTypeZero := CarrierAz.
   Definition CTypePlus := CarrierAplus.
   Definition CTypeNeg  := CarrierAneg.
@@ -47,4 +47,4 @@ Module MDSigmaHCOLEvalSigCarrierA <: MDSigmaHCOLEvalSig(CarrierAasCT)(NatAsNT).
 End MDSigmaHCOLEvalSigCarrierA.
 
 Module Export MDSHCOLOnCarrierA :=
-  MDSigmaHCOLEval(CarrierAasCT)(NatAsNT)(MDSigmaHCOLEvalSigCarrierA).
+  MDSigmaHCOLEval(CarrierAasCT)(MNatAsNT)(MDSigmaHCOLEvalSigCarrierA).
