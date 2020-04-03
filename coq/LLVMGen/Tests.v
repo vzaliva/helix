@@ -4,6 +4,7 @@ Require Import Coq.Numbers.BinNums. (* for Z scope *)
 Require Import Coq.ZArith.BinInt.
 
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
+Require Import Helix.FSigmaHCOL.Int64asNT.
 Require Import Helix.LLVMGen.Compiler.
 Require Import Helix.LLVMGen.Externals.
 Require Import Helix.LLVMGen.Data.
@@ -47,10 +48,25 @@ Definition IMap_plusD_test :=
 Definition Compose_pointwise_test :=
   DSHSeq IMap_plus1_test IMap_plus1_test.
 
+
+Require Import Omega.
+
+Program Definition Int64_42:Int64.int := Int64.mkint 42%Z  _.
+Next Obligation. cbv; auto. Qed.
+
+Program Definition Int64_0:Int64.int := Int64.mkint 0%Z  _.
+Next Obligation. cbv; auto. Qed.
+
+Program Definition Int64_1:Int64.int := Int64.mkint 1%Z  _.
+Next Obligation. cbv; auto. Qed.
+
+Program Definition Int64_2:Int64.int := Int64.mkint 2%Z  _.
+Next Obligation. cbv; auto. Qed.
+
 Definition Inductor_test :=
-  DSHPower (NConst 42)
-           ((PVar 1), (NConst 0))
-           ((PVar 0), (NConst 0))
+  DSHPower (NConst Int64_42)
+           ((PVar 1), (NConst Int64_0))
+           ((PVar 0), (NConst Int64_0))
            (AMinus (AVar 1) (AVar 0))
            Float64One.
 
@@ -86,13 +102,13 @@ DSHAlloc 2
                        (DSHSeq
                           (DSHAlloc 1
                              (DSHSeq
-                                (DSHAssign (PVar 7, NConst 0)
-                                   (PVar 0, NConst 0))
+                                (DSHAssign (PVar 7, NConst Int64_0)
+                                   (PVar 0, NConst Int64_0))
                                 (DSHAlloc 1
                                    (DSHSeq
                                       (DSHPower (NVar 2)
-                                         (PVar 1, NConst 0)
-                                         (PVar 0, NConst 0)
+                                         (PVar 1, NConst Int64_0)
+                                         (PVar 0, NConst Int64_0)
                                          (AMult (AVar 1) (AVar 0))
                                          FSigmaHCOL.Float64One)
                                       (DSHIMap 1 (PVar 0) (PVar 4)
@@ -102,7 +118,7 @@ DSHAlloc 2
                                                (NVar 4))))))))
                           (DSHMemMap2 1 (PVar 1) (PVar 2) (PVar 2)
                              (APlus (AVar 1) (AVar 0)))))))
-              (DSHAssign (PVar 0, NConst 0) (PVar 1, NConst 0))))
+              (DSHAssign (PVar 0, NConst Int64_0) (PVar 1, NConst Int64_0))))
         (DSHAlloc 1
            (DSHSeq
               (DSHAlloc 1
@@ -118,21 +134,21 @@ DSHAlloc 2
                                          (DSHAssign
                                             (PVar 9,
                                             NPlus
-                                              (NPlus (NConst 1)
+                                              (NPlus (NConst Int64_1)
                                                  (NMult (NVar 3)
-                                                    (NConst 1)))
+                                                    (NConst Int64_1)))
                                               (NMult (NVar 1)
-                                                 (NMult (NConst 2)
-                                                    (NConst 1))))
-                                            (PVar 0, NConst 0))
+                                                 (NMult (NConst Int64_2)
+                                                    (NConst Int64_1))))
+                                            (PVar 0, NConst Int64_0))
                                          (DSHAssign
-                                            (PVar 0, NConst 0)
+                                            (PVar 0, NConst Int64_0)
                                             (PVar 2, NVar 1)))))
                                 (DSHBinOp 1 (PVar 0) (PVar 3)
                                    (AAbs (AMinus (AVar 1) (AVar 0))))))
                           (DSHMemMap2 1 (PVar 1) (PVar 2) (PVar 2)
                              (AMax (AVar 1) (AVar 0)))))))
-              (DSHAssign (PVar 0, NConst 0) (PVar 1, NConst 1)))))
+              (DSHAssign (PVar 0, NConst Int64_0) (PVar 1, NConst Int64_1)))))
      (DSHBinOp 1 (PVar 0) (PVar 2) (AZless (AVar 1) (AVar 0)))).
 
 

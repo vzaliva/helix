@@ -3,6 +3,7 @@ Require Import Coq.Strings.String.
 Require Import Coq.Lists.List.
 
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
+Require Import Helix.FSigmaHCOL.Int64asNT.
 Require Import Helix.LLVMGen.Utils.
 Require Import Helix.LLVMGen.Externals.
 Require Import Helix.Util.Misc.
@@ -275,7 +276,7 @@ Fixpoint genNExpr
                   svars <- getVarsAsString ;;
                   raise ("NVar #" @@ string_of_nat n @@ " type mismatch in " @@ svars)
                 end
-    | NConst v => ret (EXP_Integer (Z.of_nat v), [])
+    | NConst v => ret (EXP_Integer (Int64.intval v), [])
     | NDiv   a b => gen_binop a b (SDiv true)
     | NMod   a b => gen_binop a b SRem
     | NPlus  a b => gen_binop a b (Add true true)
