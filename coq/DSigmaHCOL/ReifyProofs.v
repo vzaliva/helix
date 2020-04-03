@@ -49,6 +49,17 @@ Import DSHCOLOnCarrierA.
 (* problem: some of these depend on MemSetoid.v, which depends on Memory.v *)
 Section memory_aux.
 
+  Definition mem_block_set (k : NM.key) (mb : mem_block) :=
+    NM.In k mb.
+
+  Lemma mem_block_set_mem_lookup (k : NM.key) (mb : mem_block) :
+    mem_block_set k mb <-> is_Some (mem_lookup k mb).
+  Proof.
+    unfold mem_block_set, mem_lookup.
+    rewrite NP.F.in_find_iff, is_Some_ne_None.
+    reflexivity.
+  Qed.
+
   (* [m_sub] ⊆ [m_sup] *)
   Definition memory_subset (m_sub m_sup : memory) :=
     forall k b, memory_mapsto m_sub k b -> memory_mapsto m_sup k b.
@@ -4389,10 +4400,10 @@ Lemma MemMap2_fold_with_def
       (o : nat)
       (LX1 : lookup_Pexp σ m x1_p = inr x1_m)
       (LX2 : lookup_Pexp σ m x2_p = inr x2_m)
-      (D1 : forall k, k < (S o) -> is_Some (mem_lookup k x1_m))
-      (D2 : forall k, k < (S o) -> is_Some (mem_lookup k x2_m))
-      (B1 : forall k, (S o) <= k -> is_None (mem_lookup k x1_m))
-      (B2 : forall k, (S o) <= k -> is_None (mem_lookup k x2_m))
+      (D1 : forall k, k < (S o) -> mem_block_set k x1_m)
+      (D2 : forall k, k < (S o) -> mem_block_set k x2_m)
+      (B1 : forall k, (S o) <= k -> not (mem_block_set k x1_m))
+      (B2 : forall k, (S o) <= k -> not (mem_block_set k x2_m))
       (Y_ID : evalPexp σ y_p = inr y_id)
       (Y_M : memory_lookup m y_id = Some y_m)
 
@@ -4403,7 +4414,6 @@ Lemma MemMap2_fold_with_def
     Some (inr (memory_set m y_id
                 (mem_union (MMemoryOfCarrierA.mem_merge_with_def dot init x1_m x2_m) y_m))).
 Proof.
-  intros.
   apply lookup_Pexp_eval_lookup in LX1.
   destruct LX1 as [x1_id [X1_ID X1_M]].
   apply lookup_Pexp_eval_lookup in LX2.
@@ -4441,6 +4451,7 @@ Proof.
       cbn.
       specialize (D1 0); autospecialize D1; [lia |].
       specialize (D2 0); autospecialize D2; [lia |].
+      rewrite mem_block_set_mem_lookup in *.
       rewrite is_Some_def in D1, D2.
       destruct D1 as [x1_mb D1], D2 as [x2_mb D2].
       unfold mem_lookup_err.
@@ -4460,12 +4471,14 @@ Proof.
        Misc.string_of_nat o' ++ " in " ++ string_of_mem_block_keys x2_m)%string.
       specialize (D1 o'); autospecialize D1; [lia |].
       specialize (D2 o'); autospecialize D2; [lia |].
+      rewrite mem_block_set_mem_lookup in *.
       rewrite is_Some_def in D1, D2.
       destruct D1 as [x1_mb D1], D2 as [x2_mb D2].
       unfold mem_lookup_err.
       rewrite D1, D2.
       intros.
       cbn.
+
       inversion_clear DC as [D].
       pose proof D x1_mb x2_mb as D'.
       break_match; try inl_inr.
@@ -4484,8 +4497,8 @@ Proof.
       repeat rewrite NP.F.map2_1bis by reflexivity.
       specialize (B1 k); autospecialize B1; [lia |].
       specialize (B2 k); autospecialize B2; [lia |].
-      rewrite is_None_def in B1, B2.
-      unfold mem_lookup in B1, B2.
+      unfold mem_block_set in B1, B2.
+      rewrite NP.F.not_find_in_iff in B1, B2.
       rewrite B1, B2.
       reflexivity.
     +
