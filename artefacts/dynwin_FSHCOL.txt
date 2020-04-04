@@ -1,60 +1,183 @@
-DSHAlloc 2
+DSHAlloc
+  {|
+  Int64.intval := BinNums.Zpos (BinNums.xO BinNums.xH);
+  Int64.intrange := conj eq_refl eq_refl |}
   (DSHSeq
      (DSHSeq
-        (DSHAlloc 1
+        (DSHAlloc
+           {|
+           Int64.intval := BinNums.Zpos BinNums.xH;
+           Int64.intrange := conj eq_refl eq_refl |}
            (DSHSeq
-              (DSHAlloc 1
-                 (DSHSeq
-                    (DSHMemInit 1 (PVar 0) FSigmaHCOL.Float64Zero)
+              (DSHSeq
+                 (DSHMemInit
+                    {|
+                    Int64.intval := BinNums.Zpos BinNums.xH;
+                    Int64.intrange := conj eq_refl eq_refl |}
+                    (PVar 0) FSigmaHCOL.Float64Zero)
+                 (DSHAlloc
+                    {|
+                    Int64.intval := BinNums.Zpos BinNums.xH;
+                    Int64.intrange := conj eq_refl eq_refl |}
                     (DSHLoop 3
                        (DSHSeq
-                          (DSHAlloc 1
+                          (DSHAlloc
+                             {|
+                             Int64.intval := BinNums.Zpos BinNums.xH;
+                             Int64.intrange := conj eq_refl eq_refl |}
                              (DSHSeq
-                                (DSHAssign (PVar 7, NConst 0)
-                                   (PVar 0, NConst 0))
-                                (DSHAlloc 1
+                                (DSHAssign
+                                   (PVar 7,
+                                   NConst
+                                     {|
+                                     Int64.intval := BinNums.Z0;
+                                     Int64.intrange := conj eq_refl
+                                                         eq_refl |})
+                                   (PVar 0,
+                                   NConst
+                                     {|
+                                     Int64.intval := BinNums.Z0;
+                                     Int64.intrange := conj eq_refl
+                                                         eq_refl |}))
+                                (DSHAlloc
+                                   {|
+                                   Int64.intval := BinNums.Zpos
+                                                     BinNums.xH;
+                                   Int64.intrange := conj eq_refl
+                                                       eq_refl |}
                                    (DSHSeq
                                       (DSHPower (NVar 2)
-                                         (PVar 1, NConst 0)
-                                         (PVar 0, NConst 0)
+                                         (PVar 1,
+                                         NConst
+                                           {|
+                                           Int64.intval := BinNums.Z0;
+                                           Int64.intrange := conj
+                                                           eq_refl
+                                                           eq_refl |})
+                                         (PVar 0,
+                                         NConst
+                                           {|
+                                           Int64.intval := BinNums.Z0;
+                                           Int64.intrange := conj
+                                                           eq_refl
+                                                           eq_refl |})
                                          (AMult (AVar 1) (AVar 0))
                                          FSigmaHCOL.Float64One)
-                                      (DSHIMap 1 (PVar 0) (PVar 4)
+                                      (DSHIMap 1 (PVar 0) (PVar 3)
                                          (AMult (AVar 0)
                                             (ANth
                                                (MPtrDeref (PVar 8))
                                                (NVar 4))))))))
                           (DSHMemMap2 1 (PVar 1) (PVar 2) (PVar 2)
                              (APlus (AVar 1) (AVar 0)))))))
-              (DSHAssign (PVar 0, NConst 0) (PVar 1, NConst 0))))
-        (DSHAlloc 1
+              (DSHAssign
+                 (PVar 0,
+                 NConst
+                   {|
+                   Int64.intval := BinNums.Z0;
+                   Int64.intrange := conj eq_refl eq_refl |})
+                 (PVar 1,
+                 NConst
+                   {|
+                   Int64.intval := BinNums.Z0;
+                   Int64.intrange := conj eq_refl eq_refl |}))))
+        (DSHAlloc
+           {|
+           Int64.intval := BinNums.Zpos BinNums.xH;
+           Int64.intrange := conj eq_refl eq_refl |}
            (DSHSeq
-              (DSHAlloc 1
-                 (DSHSeq
-                    (DSHMemInit 1 (PVar 0) FSigmaHCOL.Float64Zero)
+              (DSHSeq
+                 (DSHMemInit
+                    {|
+                    Int64.intval := BinNums.Zpos BinNums.xH;
+                    Int64.intrange := conj eq_refl eq_refl |}
+                    (PVar 0) FSigmaHCOL.Float64Zero)
+                 (DSHAlloc
+                    {|
+                    Int64.intval := BinNums.Zpos BinNums.xH;
+                    Int64.intrange := conj eq_refl eq_refl |}
                     (DSHLoop 2
                        (DSHSeq
-                          (DSHAlloc 2
+                          (DSHAlloc
+                             {|
+                             Int64.intval := BinNums.Zpos
+                                               (BinNums.xO
+                                                  BinNums.xH);
+                             Int64.intrange := conj eq_refl eq_refl |}
                              (DSHSeq
                                 (DSHLoop 2
-                                   (DSHAlloc 1
+                                   (DSHAlloc
+                                      {|
+                                      Int64.intval := BinNums.Zpos
+                                                        BinNums.xH;
+                                      Int64.intrange := conj eq_refl
+                                                          eq_refl |}
                                       (DSHSeq
                                          (DSHAssign
                                             (PVar 9,
                                             NPlus
-                                              (NPlus (NConst 1)
+                                              (NPlus
+                                                 (NConst
+                                                    {|
+                                                    Int64.intval := BinNums.Zpos
+                                                           BinNums.xH;
+                                                    Int64.intrange := conj
+                                                           eq_refl
+                                                           eq_refl |})
                                                  (NMult (NVar 3)
-                                                    (NConst 1)))
+                                                    (NConst
+                                                       {|
+                                                       Int64.intval := BinNums.Zpos
+                                                           BinNums.xH;
+                                                       Int64.intrange := conj
+                                                           eq_refl
+                                                           eq_refl |})))
                                               (NMult (NVar 1)
-                                                 (NMult (NConst 2)
-                                                    (NConst 1))))
-                                            (PVar 0, NConst 0))
+                                                 (NMult
+                                                    (NConst
+                                                       {|
+                                                       Int64.intval := BinNums.Zpos
+                                                           (BinNums.xO
+                                                           BinNums.xH);
+                                                       Int64.intrange := conj
+                                                           eq_refl
+                                                           eq_refl |})
+                                                    (NConst
+                                                       {|
+                                                       Int64.intval := BinNums.Zpos
+                                                           BinNums.xH;
+                                                       Int64.intrange := conj
+                                                           eq_refl
+                                                           eq_refl |}))))
+                                            (PVar 0,
+                                            NConst
+                                              {|
+                                              Int64.intval := BinNums.Z0;
+                                              Int64.intrange := conj
+                                                           eq_refl
+                                                           eq_refl |}))
                                          (DSHAssign
-                                            (PVar 0, NConst 0)
+                                            (PVar 0,
+                                            NConst
+                                              {|
+                                              Int64.intval := BinNums.Z0;
+                                              Int64.intrange := conj
+                                                           eq_refl
+                                                           eq_refl |})
                                             (PVar 2, NVar 1)))))
-                                (DSHBinOp 1 (PVar 0) (PVar 3)
+                                (DSHBinOp 1 (PVar 0) (PVar 2)
                                    (AAbs (AMinus (AVar 1) (AVar 0))))))
                           (DSHMemMap2 1 (PVar 1) (PVar 2) (PVar 2)
                              (AMax (AVar 1) (AVar 0)))))))
-              (DSHAssign (PVar 0, NConst 0) (PVar 1, NConst 1)))))
+              (DSHAssign
+                 (PVar 0,
+                 NConst
+                   {|
+                   Int64.intval := BinNums.Z0;
+                   Int64.intrange := conj eq_refl eq_refl |})
+                 (PVar 1,
+                 NConst
+                   {|
+                   Int64.intval := BinNums.Zpos BinNums.xH;
+                   Int64.intrange := conj eq_refl eq_refl |})))))
      (DSHBinOp 1 (PVar 0) (PVar 2) (AZless (AVar 1) (AVar 0))))
