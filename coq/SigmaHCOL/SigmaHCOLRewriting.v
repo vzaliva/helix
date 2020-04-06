@@ -2395,23 +2395,21 @@ Section SigmaHCOLRewritingRules.
                       (tndm t (Nat.lt_lt_add_r t n (m * n) tc))) with
           (fun (t : nat) (tc : t < n) =>
              Vhead (gen (t mod n) (tmn t (Nat.lt_lt_add_r t n (m * n) tc)))).
-      -
+      {
         clear tndm.
         induction n.
         +
           reflexivity.
         +
-
-          setoid_rewrite Vbuild_cons at 2.
+          setoid_rewrite Vbuild_Sn at 2.
           rewrite Vfold_right_cons.
-
           pose (gen' := (fun p pc => gen (S p) (lt_n_S pc))).
 
           assert(tmn' : forall t : nat, t < S m * n → t mod n < n).
           {
             intros t H.
             apply modulo_smaller_than_devisor.
-            crush.
+            lia.
           }
 
           specialize (IHn gen' tmn').
@@ -2423,69 +2421,47 @@ Section SigmaHCOLRewritingRules.
             with
               (fun (t : nat) (tc : t < n) =>
                  Vhead (gen' (t mod n) (tmn' t (Nat.lt_lt_add_r t n (m * n) tc)))).
-          *
+          {
             rewrite <- IHn.
             clear IHn tmn'.
-            cbn; unfold Vbuild; Vbuild_fix; cbn.
-            replace (gen 0 (VecUtil.Vbuild_spec_obligation_4 eq_refl))
-              with
-                (gen (n - n) (tmn 0 (Nat.lt_lt_add_r 0 (S n) (m * S n) (Nat.lt_0_succ n)))).
-            replace (fun v1 v2 : vector A (S m) =>
-                       Vcons (f (Vhead v1) (Vhead v2)) (Vmap2 f (Vtail v1) (Vtail v2)))
-              with (fun v1 v2 : vector A (S m) =>
-                      Vcons (f (Vhead v1) (Vhead v2)) (Vmap2 f (Vtail v1) (Vtail v2))).
+            rewrite Vbuild_Sn.
+            cbn.
+            repeat f_equal.
+            generalize (tmn 0 (Nat.lt_lt_add_r 0 (S n) (m * S n) (Nat.lt_0_succ n))) as ic.
+            clear.
+            revert gen.
+            simpl.
+            rewrite Nat.sub_diag.
+            intros gen ic.
+            apply f_equal, le_unique.
+          }
 
-            replace (` (Vbuild_spec (fun (i : nat) (ip : i < n) => gen (S i) (VecUtil.Vbuild_spec_obligation_3 eq_refl ip))))
-              with
-                (Vbuild gen').
-            reflexivity.
-            --
-              vec_index_equiv i ip.
-              rewrite Vbuild_nth.
-              destruct (Vbuild_spec _).
-              simpl.
-              rewrite e.
-              unfold gen'.
-              apply f_equal, le_unique.
-            --
-              reflexivity.
-            --
-              generalize (tmn 0 (Nat.lt_lt_add_r 0 (S n) (m * S n) (Nat.lt_0_succ n))) as ic0.
-              generalize (@VecUtil.Vbuild_spec_obligation_4 (S n) n (@eq_refl nat (S n))) as ic1.
-              intros ic0 ic1.
-              clear gen' tmn f z.
-              revert ic0 ic1; simpl; rewrite Nat.sub_diag; intros ic0 ic1.
-              apply f_equal, le_unique.
-          *
-            extensionality t.
-            extensionality tc.
+          extensionality t.
+          extensionality tc.
 
-            generalize (tmn' t (Nat.lt_lt_add_r t n (m * n) tc)).
-            generalize (tmn (S t) (Nat.lt_lt_add_r (S t) (S n) (m * S n) (lt_n_S tc))).
-            intros i0 i1.
+          unfold gen'.
+          repeat f_equiv.
+          clear - tc.
+          assert(S t < S n) as stc by lia.
 
-            remember (S t mod S n) as Q.
-            rewrite Nat.mod_small in HeqQ by lia.
-            subst Q.
+          generalize (lt_n_S (tmn' t (Nat.lt_lt_add_r t n (m * n) tc))).
+          generalize (tmn (S t) (Nat.lt_lt_add_r (S t) (S n) (m * S n) (lt_n_S tc))).
+          repeat rewrite (Nat.mod_small) by auto.
+          intros l l0.
+          replace l0 with l by apply NatUtil.lt_unique.
+          reflexivity.
+      }
 
-            remember (t mod n) as Q.
-            rewrite Nat.mod_small in HeqQ by auto.
-            subst Q.
-
-            unfold gen'.
-            apply f_equal, f_equal, le_unique.
-      -
-        extensionality t.
-        extensionality tc.
-        generalize (tndm t (Nat.lt_lt_add_r t n (m * n) tc)) as zc.
-        intros zc.
-        remember (t/n) as Q.
-        rewrite Nat.div_small in HeqQ by apply tc.
-        subst Q.
-        rewrite Vnth_0.
-        reflexivity.
+      extensionality t.
+      extensionality tc.
+      generalize (tndm t (Nat.lt_lt_add_r t n (m * n) tc)).
+      generalize (tmn t (Nat.lt_lt_add_r t n (m * n) tc)).
+      rewrite Nat.mod_small by auto.
+      rewrite Nat.div_small by auto.
+      intros l l0.
+      rewrite Vnth_0.
+      reflexivity.
     Qed.
-
 
     Lemma Vtail_Vfold_right_Vmap2
           {A:Type}
@@ -2512,7 +2488,7 @@ Section SigmaHCOLRewritingRules.
         pose (gen' := (fun p pc => gen (S p) (lt_n_S pc))).
 
         specialize (IHn gen' ).
-        setoid_rewrite Vbuild_cons at 2.
+        setoid_rewrite Vbuild_Sn at 2.
         rewrite Vfold_right_cons.
         replace (Vbuild (λ (i : nat) (ip : i < n), Vtail (gen (S i) (lt_n_S ip))))
           with (Vbuild (λ (p : nat) (pc : p < n), Vtail (gen' p pc))) by reflexivity.
@@ -2520,7 +2496,7 @@ Section SigmaHCOLRewritingRules.
         rewrite <- IHn. clear IHn.
         subst gen'.
 
-        setoid_rewrite Vbuild_cons.
+        setoid_rewrite Vbuild_Sn.
         rewrite Vfold_right_cons.
 
         vec_index_equiv i ip.
@@ -2548,7 +2524,7 @@ Section SigmaHCOLRewritingRules.
         -
           crush.
         -
-          rewrite Vbuild_cons.
+          rewrite Vbuild_Sn.
 
           pose(t' := build_inverse_index_map t).
           assert(P': inverse_index_map_bijective t')
@@ -3426,7 +3402,7 @@ Section SigmaHCOLRewritingRules.
 
             specialize (IHn gen' Upoz' x).
             rewrite IHn with (tmdn:=tmdn') (tmm:=tmm');
-              (rewrite Vbuild_cons in Heqlcols;
+              (rewrite Vbuild_Sn in Heqlcols;
                apply Vcons_eq_elim in Heqlcols;
                destruct Heqlcols as [Hh Hx]).
             clear IHn.
@@ -4169,9 +4145,9 @@ and `ISumReduction_PointWise` *)
         simpl.
         break_match; simpl.
         *
-          unfold Scatter_impl, Vbuild.
+          unfold Scatter_impl.
+          rewrite Vbuild_Sn.
           simpl.
-          Vbuild_fix.
           unfold decide.
           break_match; simpl.
           --
@@ -4482,7 +4458,7 @@ and `ISumReduction_PointWise` *)
         unshelve rewrite IHn with (x:=Vtail x) (y:=Vtail y).
         *
           clear IHn.
-          rewrite Vbuild_cons.
+          rewrite Vbuild_Sn.
           rewrite Vfold_left_rev_cons.
           unfold Vec2Union.
           unfold SVector.Union.
@@ -4581,7 +4557,7 @@ and `ISumReduction_PointWise` *)
         simpl.
         reflexivity.
       --
-        rewrite Vbuild_cons.
+        rewrite Vbuild_Sn.
         Opaque Vbuild.
         simpl.
         rewrite IHo; clear IHo.
@@ -4606,7 +4582,7 @@ and `ISumReduction_PointWise` *)
       -
         nat_lt_0_contradiction.
       -
-        rewrite Vbuild_cons.
+        rewrite Vbuild_Sn.
         Opaque Vbuild.
         simpl.
         destruct j.

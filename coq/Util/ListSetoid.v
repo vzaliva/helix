@@ -103,6 +103,31 @@ Proof.
     apply f_mor; auto.
 Qed.
 
+Lemma fold_left_rev_append
+      `{EqA : Equiv A}
+      `{Equivalence A EqA}
+      `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+      (l : list A)
+      (e x : A)
+  :
+    (forall a1 a2 a3, f a1 (f a2 a3) = f (f a1 a2) a3) ->
+    (forall a, f a e = a /\ f e a = a) ->
+    fold_left_rev f e (l ++ [x]) = f x (fold_left_rev f e l).
+Proof.
+  intros.
+  induction l.
+  -
+    cbn.
+    specialize (H1 x).
+    destruct H1.
+    rewrite H1, H2.
+    reflexivity.
+  -
+    cbn.
+    rewrite IHl.
+    rewrite H0.
+    reflexivity.
+Qed.
 
 Global Instance nth_error_proper
        {A: Type}

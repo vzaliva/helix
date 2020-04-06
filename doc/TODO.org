@@ -88,6 +88,18 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 * Unfinished
 ** Division by zero in DSHCOL
    [[file:../coq/DSigmaHCOL/DSigmaHCOL.v::33][NExpr]] ([[file:../coq/DSigmaHCOL/DSigmaHCOLEval.v::61][evalNexpr]])
+** ~IReduction 0~
+   According to Franz ~IReduction 0~ should initialize output vector
+   with initial value. Unfortunately this is not how it is implemented
+   in SHCOL and subseqently in MHCOL. The problem stems from the fact
+   that in SHCOL we shared the same underlying implementation function
+   called ~Diamond~ between ~IUnion~ and ~IReduction~. They are indeed
+   implemented very similarly, but in case of ~IReduction~ default
+   initilizatio values should not be /structural/. Current MSHCOL->DHCOL
+   compiler implment this incorrect semantics (for =n=0=). It is a special
+   case and we do not expect it to appear in normal programs, but for
+   consistency in future we should fix ~IReduction~ definition from
+   SHCOL upwards to initilize with non-structural values.
 ** =DSHAlloc= memory size is not tracked and enforced. 
    Probably not a problem for DSHCOL as memory blocks are of infinite
    size, but could be an issue later for LLVM codegen.

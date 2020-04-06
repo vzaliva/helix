@@ -1683,7 +1683,7 @@ Section SigmaHCOL_Operators.
         rewrite evalWriter_mkStruct.
         reflexivity.
       +
-        rewrite Vbuild_cons.
+        rewrite Vbuild_Sn.
         rewrite Vfold_left_rev_cons.
         rewrite evalWriterUnion.
         specialize (IHn
@@ -1783,7 +1783,7 @@ Section SigmaHCOL_Operators.
       rewrite evalWriter_mkStruct.
       reflexivity.
     +
-      rewrite Vbuild_cons.
+      rewrite Vbuild_Sn.
       rewrite Vfold_left_rev_cons.
       rewrite evalWriterUnion.
       specialize (IHk
@@ -2278,7 +2278,7 @@ Section OperatorProperies.
   Proof.
     unfold Diamond.
     unfold Apply_Family'.
-    rewrite Vbuild_cons.
+    rewrite Vbuild_Sn.
     rewrite MUnion_cons.
     unfold Vec2Union.
     unfold_Rtheta_equiv.

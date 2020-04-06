@@ -100,3 +100,12 @@ Ltac bool_to_nat :=
   | [H: Nat.eqb _ _ ≡ true |- _ ] => apply EqNat.beq_nat_true in H
   | [H: Nat.eqb _ _ ≡ false |- _ ] => apply EqNat.beq_nat_false in H
   end.
+
+Ltac autospecialize H :=
+  match type of H with
+  | ?P → _ => let T' := fresh "T" in
+             assert (T' : P); [clear H | specialize (H T'); try clear T']
+  end.
+
+Ltac full_autospecialize H :=
+  autospecialize H; [| try full_autospecialize H].

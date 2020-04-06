@@ -376,29 +376,20 @@ Qed.
 
 Lemma Vbuild_0: forall B gen, @Vbuild B 0 gen = @Vnil B. Proof. reflexivity. Qed.
 
-(* workaround for https://github.com/fblanqui/color/issues/22 *)
-Ltac Vbuild_fix :=
-  match goal with
-  | [|- context[(@VecUtil.Vbuild_spec_obligation_5 _ _ (@eq_refl nat ?n))]] =>
-    let H := fresh in
-    assert (VecUtil.Vbuild_spec_obligation_5 (eq_refl n) = eq_refl n)
-      as H
-      by (apply CoLoR.Util.Nat.NatUtil.eq_unique);
-    rewrite H; clear H; simpl
-  | [H1: context[(@VecUtil.Vbuild_spec_obligation_5 _ _ (@eq_refl nat ?n))] |- _ ] =>
-    let H := fresh in
-    assert (VecUtil.Vbuild_spec_obligation_5 (eq_refl n) = eq_refl n)
-      as H
-      by (apply CoLoR.Util.Nat.NatUtil.eq_unique);
-    rewrite H in H1; clear H; simpl in H1
-  end.
+Lemma Vbuild_Sn (B : Type) (n : nat) (gen : forall i : nat, i < S n -> B):
+  @Vbuild B (S n) gen = (gen 0 (Nat.lt_0_succ n))
+                          ::
+                          Vbuild (fun (i : nat) (ip : i < n) => gen (S i) (lt_n_S ip)).
+Proof.
+  rewrite <- Vbuild_head.
+  rewrite <- Vbuild_tail.
+  apply VSn_eq.
+Qed.
 
 Lemma Vbuild_1 B gen:
   @Vbuild B 1 gen = [gen 0 (lt_0_Sn 0)].
 Proof.
-  unfold Vbuild.
-  cbn.
-  Vbuild_fix.
+  rewrite Vbuild_Sn.
   apply Vcons_eq.
   split.
   - apply f_equal, le_unique.
@@ -412,9 +403,7 @@ Fact lt_1_SSn:  forall n:nat, 1<S (S n). Proof. intros; omega. Qed.
 Lemma Vbuild_2 B gen:
   @Vbuild B 2 gen = [gen 0 (lt_0_SSn 0) ; gen 1 (lt_1_SSn 0)].
 Proof.
-  unfold Vbuild.
-  cbn.
-  repeat Vbuild_fix.
+  repeat rewrite Vbuild_Sn.
   apply Vcons_eq.
   split.
   - apply f_equal, le_unique.
@@ -527,18 +516,6 @@ Section Vnth.
 
 End Vnth.
 
-Lemma Vbuild_cons:
-  forall B n (gen : forall i, i < S n -> B),
-    Vbuild gen = Vcons (gen 0 (lt_O_Sn n)) (Vbuild (fun i ip => gen (S i) (lt_n_S ip))).
-Proof.
-  intros B n gen.
-  rewrite <- Vbuild_head.
-  rewrite <- Vbuild_tail.
-  cbn.
-  repeat Vbuild_fix.
-  reflexivity.
-Qed.
-
 Lemma Vforall_Vbuild (T : Type) (P:T -> Prop) (n : nat) (gen : forall i : nat, i < n -> T):
   Vforall P (Vbuild gen) <-> forall (i : nat) (ip : i < n), P (gen i ip).
 Proof.
@@ -632,7 +609,7 @@ Proof.
     f_equal.
     apply le_unique.
   -
-    rewrite Vbuild_cons.
+    repeat rewrite Vbuild_Sn.
     simpl.
     f_equal.
     +
@@ -1487,41 +1464,28 @@ Proof.
       dep_destruct x.
       reflexivity.
     +
-      rewrite Vbuild_cons.
+      rewrite Vbuild_Sn.
       dep_destruct x. rename x0 into xs, h into x0.
       cbn.
       apply Vcons_eq_intro.
       *
-        unfold Vbuild in H.
+        rewrite Vbuild_Sn in H.
         cbn in H.
-        Vbuild_fix.
         repeat break_match_hyp; try inversion H.
-        rewrite <- H1. clear H1.
-        rewrite <- Heqo.
-        f_equal.
-        apply proof_irrelevance.
+        reflexivity.
       *
         specialize (IHn (shrink_vbuild_function_l f) xs).
         rewrite <- IHn; clear IHn.
         --
           f_equal.
         --
-          unfold Vbuild in H.
+          rewrite Vbuild_Sn in H.
           cbn in H.
-          Vbuild_fix.
           repeat break_match_hyp; try inversion H.
           apply inj_pair2 in H2.
           rewrite <- H2.
           rewrite <- Heqo0.
           f_equal.
-          apply Veq_nth.
-          intros i ic.
-          fold_Vbuild.
-          rewrite 2!Vbuild_nth.
-          unfold shrink_vbuild_function_l.
-          clear_all.
-          f_equal.
-          apply proof_irrelevance.
 Qed.
 
 Lemma vsequence_cons_eq_None (A : Type) (n : nat) (v: vector (option A) n) (h:option A):

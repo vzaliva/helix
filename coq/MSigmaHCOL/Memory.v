@@ -781,6 +781,11 @@ Module Type MBasic (Import CT : CType).
       :=
         NM.remove n m.
 
+
+    (* memory [m] has block [b] under id [n] *)
+    Definition memory_mapsto (m : memory) (n : mem_block_id) (b : mem_block) :=
+      NM.MapsTo (elt:=mem_block) n b m.
+
     Definition mem_block_exists: mem_block_id -> memory -> Prop
       := NM.In (elt:=mem_block).
 
@@ -929,6 +934,18 @@ Module Type MBasic (Import CT : CType).
       apply NM_NS_In.
     Qed.
 
+    Lemma memory_next_key_S m n:
+      memory_next_key m = S n ->
+      mem_block_exists n m.
+    Proof.
+      intros H.
+      unfold memory_next_key in H.
+      break_match_hyp ; inv H.
+      apply memory_keys_set_In.
+      apply Memory.NS.max_elt_1.
+      auto.
+    Qed.
+
     Lemma mem_block_exists_memory_next_key
           (m : memory):
       not (mem_block_exists (memory_next_key m) m).
@@ -954,6 +971,44 @@ Module Type MBasic (Import CT : CType).
         congruence.
     Qed.
 
+    Lemma mem_block_exists_next_key_gt:
+      forall k m, mem_block_exists k m -> memory_next_key m > k.
+    Proof.
+      intros k m H.
+      unfold mem_block_exists in H.
+      unfold memory_next_key.
+      apply memory_keys_set_In in H.
+      generalize dependent (memory_keys_set m).
+      intros s H.
+      clear m.
+      break_match.
+      -
+        apply NS.max_elt_2 with (y:=k) in Heqo.
+        lia.
+        apply H.
+      -
+        rename Heqo into E.
+        apply NS.max_elt_3 in E.
+        apply empty_is_empty_1 in E.
+        rewrite E in H.
+        apply FM.empty_iff in H.
+        inversion H.
+    Qed.
+
+    Lemma memory_set_memory_next_key_gt m1 m2 b k:
+      m2 = memory_set m1 k b ->
+      memory_next_key m2 > k.
+    Proof.
+      intros H.
+
+      assert(mem_block_exists k m2) as E.
+      {
+        subst m2.
+        apply mem_block_exists_memory_set_eq; reflexivity.
+      }
+      apply mem_block_exists_next_key_gt, E.
+    Qed.
+
     Lemma memory_lookup_memory_next_key_is_None (m:memory):
       MathClasses.misc.util.is_None (memory_lookup m (memory_next_key m)).
     Proof.
@@ -974,6 +1029,15 @@ Module Type MBasic (Import CT : CType).
       pose proof (memory_lookup_memory_next_key_is_None m) as N.
       rewrite H in N.
       some_none.
+    Qed.
+
+    Lemma memory_mapsto_memory_lookup k v m:
+      memory_mapsto m k v <-> memory_lookup m k = Some v.
+    Proof.
+      unfold memory_mapsto, memory_lookup.
+      split.
+      - apply NM.find_1.
+      - apply NM.find_2.
     Qed.
 
   End Memory_Blocks.
