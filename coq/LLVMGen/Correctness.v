@@ -23,32 +23,42 @@ Notation "x @@ y" := (String.append x y) (right associativity, at level 60) : st
       reflexivity.
   Qed.
 
+    Ltac rev_str_helper acc s :=
+      match s with
+      | EmptyString => acc
+      | (String ?x ?y) =>
+        rev_str_helper (String x acc) y
+      end.
+
+    Ltac rev_str s := rev_str_helper EmptyString s.
+    
+    Ltac rewrite_str acc s :=
+      match s with
+      | (String ?x EmptyString) =>
+        let r := rev_str acc in
+        constr:(r)
+      | (String ?x ?y) => rewrite_str (String x acc) y
+      end.
+
+    Ltac last_str s :=
+      match s with
+      | (String ?x EmptyString) => constr:(String x EmptyString)
+      | (String ?x ?y) => last_str y
+      end.
+
+    Ltac make_append_str s :=
+      match s with
+      | (String ?x ?y) =>
+        let rs := rewrite_str EmptyString (String x y) in
+        let ls := last_str y in
+        replace (String x y) with (rs @@ ls)%string by reflexivity
+      end.
+
 Import Coq.Strings.String Strings.Ascii.
 Open Scope string_scope.
 Open Scope char_scope.
 
 Require Import Coq.Lists.List.
-
-  (* Lemma blah : *)
-  (*   forall (b : bool), *)
-  (*   (String "y" (String "a" (String "a" (if b then "!" else "?")))) = "yay"%string. *)
-  (* Proof. *)
-  (*   intros b. *)
-  (*   replace (String "y" (String "a" (String "a" (if b then "!"%string else "?"%string)))) with ("yaa" @@ (if b then "!"%string else "?"%string)). *)
-  (*   Focus 2. *)
-
-  (*   Ltac rewrite_str acc s := *)
-  (*     match s with *)
-  (*     | (String ?x EmptyString) => idtac acc; idtac x *)
-  (*     | (String ?x ?y) => rewrite_str (acc ++ )%list y *)
-  (*     end. *)
-
-  (*   match goal with *)
-  (*   | [ |- context [String ?x ?y] ] => rewrite_str (@nil ascii) (String x y) *)
-  (*   end. *)
-
-
-  (* Qed. *)
 
 Require Import Coq.Numbers.BinNums. (* for Z scope *)
 Require Import Coq.ZArith.BinInt.
@@ -264,7 +274,7 @@ Record injection_Fin (A:Type) (domain : nat) :=
     }.
 
 Definition memory_invariant : Type_R_memory :=
-  fun σ mem_helix '(mem_llvm, x) =>
+  fun (σ : evalContext) (mem_helix : MDSHCOLOnFloat64.memory) '(mem_llvm, x) =>
     let σ_len := List.length σ in
     σ_len ≡ 0 \/ (* empty env immediately allowed, as injection could not exists *)
     let '(ρ, g) := x in
@@ -499,7 +509,7 @@ Definition bisim_partial: Type_R_partial
     (* setoid_rewrite INT.interp_intrinsics_ret. *)
     (* interp_global_ret. *)
   Admitted. (* YZ: Likely a missing instance for runState, easy to fix *)
-
+  
   Ltac eutt_hide_left :=
     match goal with
       |- eutt _ ?t _ => remember t
@@ -508,6 +518,11 @@ Definition bisim_partial: Type_R_partial
   Ltac eutt_hide_right :=
     match goal with
       |- eutt _ _ ?t => remember t
+    end.
+
+  Ltac hide_string :=
+    match goal with
+    | |- context [String ?x ?y] => remember (String x y)
     end.
 
   (* TODO: Move this to Vellvm *)
@@ -558,9 +573,233 @@ Definition bisim_partial: Type_R_partial
     cbn in Heqs2.
   Admitted.
 
+  Lemma add_comment_preserves_num_blocks :
+    forall l comments blocks,
+      add_comment l comments ≡ blocks ->
+      List.length l ≡ List.length blocks.
+  Proof.
+    induction l; intros comments blocks H.
+    - inversion H; reflexivity.
+    - simpl. inversion H. simpl.
+      reflexivity.
+  Qed.
+
+  Lemma add_comment_singleton :
+    forall l comments block,
+      add_comment l comments ≡ [block] ->
+      exists b, l ≡ [b].
+  Proof.
+    intros l comments block H.
+    destruct l.
+    - inv H.
+    - destruct l.
+      + exists b. reflexivity.
+      + inv H.
+  Qed.
+  
+  Lemma genIR_DSHAssign_to_genFSHAssign :
+    forall src dst nextblock st st' b,
+      genIR (DSHAssign src dst) nextblock st ≡ inr (st', (blk_id b, [b])) ->
+      exists psrc nsrc pdst ndst b_orig comments i i0 i1 i2 i3 n n0,
+        src ≡ (psrc, nsrc) /\
+        dst ≡ (pdst, ndst) /\
+        [b] ≡ add_comment [b_orig] comments /\
+        resolve_PVar psrc st ≡ inr (i, (i0, n)) /\
+        resolve_PVar pdst i  ≡ inr (i1, (i2, n0)) /\
+        genFSHAssign n n0 i0 i2 nsrc ndst nextblock i1 ≡ inr (i3, (blk_id b, [b_orig])).
+  Proof.
+    intros src dst nextblock st st' b H.
+    destruct src as (psrc, nsrc). exists psrc. exists nsrc.
+    destruct dst as (pdst, ndst). exists pdst. exists ndst.
+
+    inv H.
+    destruct (resolve_PVar psrc st) eqn:Hr. inversion H1.
+    destruct p. destruct p.
+    destruct (resolve_PVar pdst i) eqn:Hr1. inversion H1.
+    destruct p. destruct p.
+    destruct (genFSHAssign n n0 i0 i2 nsrc ndst nextblock i1) eqn:Hassign. inversion H1.
+    destruct p. destruct s.
+    match goal with
+    | H: context[add_comment _ ?ss] |- _ => remember ss
+    end.
+
+    inversion H1.
+    apply add_comment_singleton in H3. destruct H3 as (b_orig & Hl).
+    exists b_orig. exists l0. exists i. exists i0. exists i1. exists i2. exists i3. exists n. exists n0.
+
+    subst; intuition.
+  Qed.
+
+(*   Lemma compile_NExpr_correct : *)
+(*     forall (nexp : NExpr) (e : exp typ) (c : code typ) (σ : evalContext) env (mem : MDSHCOLOnFloat64.memory) s s' mem_llvm ρ g, *)
+(*       genNExpr nexp s ≡ inr (s', (e, c)) -> *)
+(*       eutt _ *)
+(*            (translate inr_ (interp_Mem (denoteNexp σ nexp) mem)) *)
+(*            (translate inl_ (interp_cfg_to_L3 helix_intrinsics *)
+(*                                              (D.denote_code ((map (λ '(id, i), (id, TransformTypes.fmap_instr typ dtyp (TypeUtil.normalize_type_dtyp env) i)) *)
+(*                                                                   c))) *)
+(*                                              g ρ mem_llvm)). *)
+
+(* (map (λ '(id, i), (id, TransformTypes.fmap_instr typ dtyp (TypeUtil.normalize_type_dtyp env) i)) *)
+(*                    src_nexpcode) *)
+
+  (* TODO: Move to Vellvm *)
+  Lemma denote_code_app :
+    forall a b,
+      eutt Logic.eq (D.denote_code (a ++ b)%list) (ITree.bind (D.denote_code a) (fun _ => D.denote_code b)).
+  Proof.
+    induction a; intros b.
+    - cbn. rewrite bind_ret_l.
+      reflexivity.
+    - cbn. rewrite bind_bind. setoid_rewrite IHa.
+      reflexivity.
+  Qed.
+
+
+  (* Relations for expressions *)
+  Definition nat_dvalue_rel (n : nat) (dv : dvalue) : Prop :=
+    match dv with
+    | DVALUE_I64 i => Z.eq (Z.of_nat n) (unsigned i)
+    | _ => False
+    end.
+
+  Definition nat_concrete_uvalue_rel (n : nat) (uv : uvalue) : Prop :=
+    match uvalue_to_dvalue uv with
+    | inr dv => nat_dvalue_rel n dv
+    | _ => False
+    end.
+
+  (* top might be able to just be Some (DTYPE_I 64) *)
+  Definition nexp_relation (env : list (ident * typ)) (e : exp typ) (n : nat) (r : (memory * (local_env * (global_env * ())))) :=
+    let '(mem_llvm, (ρ, (g, _))) := r in
+    eutt (fun n '(_, (_, (_, uv))) => nat_concrete_uvalue_rel n uv)
+         (ret n)
+         (interp_cfg_to_L3 helix_intrinsics (translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64)) (TransformTypes.fmap_exp _ _ (TypeUtil.normalize_type_dtyp env) e))) g ρ mem_llvm).
+
+  (* TODO: Need something about denoteNexp not failing *)
+  Lemma denote_nexp_div :
+    forall (σ : evalContext) (nexp1 nexp2 : NExpr),
+      eutt Logic.eq (denoteNexp σ (NDiv nexp1 nexp2))
+           (ITree.bind (denoteNexp σ nexp1)
+                       (fun (n1 : nat) => ITree.bind (denoteNexp σ nexp2)
+                                                (fun (n2 : nat) => denoteNexp σ (NDiv (NConst n1) (NConst n2))))).
+  Proof.
+  Admitted.
+
+  Lemma denote_exp_nexp:
+    forall nexp st i e c mem_llvm σ g ρ env,
+      genNExpr nexp st ≡ inr (i, (e, c)) ->
+      (* TODO: factor out this relation *)
+      eutt (fun n '(m, (l, (g, uv))) => nat_concrete_uvalue_rel n uv)
+           (translate inr_ (denoteNexp σ nexp))
+           (translate inl_ (interp_cfg_to_L3 helix_intrinsics (translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64)) (TransformTypes.fmap_exp _ _ (TypeUtil.normalize_type_dtyp env) e))) g ρ mem_llvm)).
+  Proof.
+    induction nexp; intros st i e c mem_llvm σ g ρ env H.
+    - cbn in H; repeat break_match_hyp; try solve [inversion H].
+      + (* Int case *)
+        cbn.
+        unfold denoteNexp. cbn.
+        break_match.
+        * cbn.
+          (* exception *) admit.
+        * break_match.
+          -- inversion H. cbn.
+             (* Need something linking id to global_env / local_env *)
+             destruct i1.
+             ++ cbn. rewrite bind_trigger.
+                repeat rewrite translate_vis.
+                admit.
+             ++ admit.
+          -- cbn. (* exception *) admit.
+          -- cbn. (* exception *) admit.
+      + (* Pointer case *)
+        admit.
+    - cbn in H; repeat break_match_hyp; inversion H; cbn.
+      admit.
+  Admitted.
+    
+
+  (* Probably need to know something about σ and mem_llvm,
+     like memory_invariant... *)
+  Lemma denoteNexp_genNExpr :
+    forall (nexp : NExpr) (st st' : IRState) (nexp_r : exp typ) (nexp_code : code typ) (env : list (ident * typ)) (σ : evalContext) g ρ mem_llvm,
+      genNExpr nexp st  ≡ inr (st', (nexp_r, nexp_code)) ->
+      eutt (nexp_relation env nexp_r)
+           (translate inr_ (denoteNexp σ nexp))
+           (translate inl_ (interp_cfg_to_L3 helix_intrinsics
+                             (D.denote_code (map
+                                               (λ '(id, i),
+                                                (id, TransformTypes.fmap_instr typ dtyp (TypeUtil.normalize_type_dtyp env) i))
+                                               nexp_code)) g ρ mem_llvm)).
+  Proof.
+    induction nexp; intros st st' nexp_r nexp_code env σ g ρ mem_llvm H.
+    - (* NVar *)
+      cbn in H.
+      repeat break_match_hyp; subst; inversion H; simpl.
+      cbn in Heqs.
+      admit.
+      admit.
+
+      (*
+        destruct t.
+        destruct (Z.eq_dec sz 64).
+        inversion H. reflexivity.
+        inversion H.
+        destruct t.
+        *
+      + inversion H.
+       *)
+    - (* NConst *)
+      cbn in H; inversion H; cbn.
+      rewrite interp_cfg_to_L3_ret.
+      repeat rewrite translate_ret.
+      apply eqit_Ret.
+      cbn.
+      rewrite translate_ret.
+      rewrite interp_cfg_to_L3_ret.
+      apply eqit_Ret.
+      cbn.
+      rewrite DynamicValues.Int64.unsigned_repr.
+      apply Z.eq_refl.
+      admit. (* overflow *)
+    - cbn in H.
+      repeat break_match_hyp; inversion H.
+
+      repeat rewrite map_app.
+      repeat setoid_rewrite denote_code_app.
+
+      rewrite denote_nexp_div.
+      pose proof IHnexp1 _ _ _ _ env σ g ρ mem_llvm Heqs.
+      rewrite interp_cfg_to_L3_bind.
+      repeat setoid_rewrite translate_bind.
+      eapply eutt_clo_bind; eauto.
+
+      intros u1 u2 H4.
+      repeat break_match.
+      rewrite interp_cfg_to_L3_bind; rewrite translate_bind.
+      eapply eutt_clo_bind; eauto.
+
+      intros u0 u3 H5.
+      repeat break_match.
+
+      (* We executed code that generated the values for the
+      expressions for the binary operations... Now we need to denote
+      the expressions themselves. *)
+      (* simplify left side to ret *)
+      cbn.
+
+      repeat rewrite translate_bind.      
+      repeat rewrite interp_cfg_to_L3_bind.
+      repeat rewrite bind_bind.
+
+      (* genNExpr nexp1 st ≡ inr (i, (e, c)) *)
+      (* I need something relating `denote_exp e` and `denoteNexp nexp1`... *)
+  Admitted.
+
+(* TODO: only handle cases where there are no exceptions? *)
 Lemma compile_FSHCOL_correct
       (op: DSHOperator): forall (nextblock bid_in : block_id) (st st' : IRState) (bks : list (LLVMAst.block typ)) (σ : evalContext) (env : list (ident * typ)) (mem : MDSHCOLOnFloat64.memory) (g : global_env) (ρ : local_env) (mem_llvm : memory),
-  nextblock ≢ bid_in ->    
+  nextblock ≢ bid_in ->
   bisim_partial σ (mem,tt) (mem_llvm, (ρ, (g, (inl bid_in)))) ->
   genIR op nextblock st ≡ inr (st',(bid_in,bks)) ->
   eutt (bisim_partial σ)
@@ -594,63 +833,166 @@ Proof.
     eutt_hide_left.
     simpl.
 
-    pose proof (denote_bks_singleton (TransformTypes.fmap_block typ dtyp (TypeUtil.normalize_type_dtyp env) b)) (blk_id b) nextblock.
-    assert (eutt (Logic.eq) (D.denote_bks [TransformTypes.fmap_block typ dtyp (TypeUtil.normalize_type_dtyp env) b] (blk_id b)) (D.denote_block (TransformTypes.fmap_block typ dtyp (TypeUtil.normalize_type_dtyp env) b))).
-    {
-      rewrite (@denote_bks_singleton (TransformTypes.fmap_block typ dtyp (TypeUtil.normalize_type_dtyp env) b) (blk_id b) nextblock (normalize_types_block_bid env b)).
-      reflexivity.
-      apply normalize_types_block_term; auto.
-      rewrite (normalize_types_block_bid env b); auto.
-    }
-    rewrite H2.
-    subst i.
-    eutt_hide_right.
-    subst i.
-    unfold interp_Mem; cbn.
-    destruct src, dst.
-    simpl in HCompile.
-    repeat break_match_hyp; try inl_inr.
-    inv Heqs; inv HCompile.
-    unfold denotePexp, evalPexp, lift_Serr.
-    subst.
-    unfold interp_Mem. (* cbn *)
-    (* match goal with *)
-    (* | |- context[add_comment _ ?ss] => generalize ss; intros ls *)
-    (* end. *)
-    (* match goal with *)
-    (* | |- context[add_comment _ ?ss] => generalize ss; intros ls1 *)
-    (* end. *)
+    (* Rewrite denote_bks to denote_block *)
+    rewrite denote_bks_singleton; eauto using normalize_types_block_term.
 
-    (* subst. eutt_hide_right. *)
+    (* Work with denote_block *)
+    (* I need to know something about b... *)
+    pose proof genIR_DSHAssign_to_genFSHAssign src dst nextblock st HCompile.
+    destruct H1 as (psrc & nsrc & pdst & ndst & b_orig & comments & ist & i0 & ist1 & i1 & ist2 & n & n0 & Hsrc & Hdst & Hb & Hr & Hr' & Hfsh).
+
+    cbn in Hb. inversion Hb.
+    cbn.
+
+    (* Now I need to know something about b_orig... *)
+    (* I know it's generated from genFSHassign, though... *)
+    cbn in Hfsh.
+
+    (* Checkpoint *)
+    inversion Hfsh.
+    destruct (genNExpr nsrc
+                       {|
+                         block_count := S (block_count ist1);
+                         local_count := S (S (S (local_count ist1)));
+                         void_count := S (S (void_count ist1));
+                         vars := vars ist1 |}) as [|(s', (src_nexpr, src_nexpcode))] eqn:Hnexp_src. inversion H3.
+    destruct (genNExpr ndst s') as [|(s'', (dst_nexpr, dst_nexpcode))] eqn:Hnexp_dst. inversion H3.
+    inversion H3.
+    cbn.
+
+    match goal with
+    | |- context[D.denote_code (map _ (src_nexpcode ++ dst_nexpcode ++ ?x))] => remember x as assigncode
+    end.
+
+    (* start working on right side again *)
+    subst i. cbn.
+    subst src dst.
+
+    unfold denotePexp, evalPexp. cbn.
+    destruct psrc, pdst.
+    destruct (nth_error σ v) eqn:Herr.
+    + destruct d.
+      * (* exceptions *) admit.
+      (* Might be able to do this with the bisimulation relation,
+         which might need to be strengthened *)
+      * (* exceptions *) admit.
+      * cbn. rewrite bind_ret_l.
+        destruct (nth_error σ v0) eqn:Herr'.
+        -- destruct d.
+           ++ (* exceptions *) admit.
+           ++ (* exceptions *) admit.
+           ++ cbn. rewrite bind_ret_l.
+              repeat setoid_rewrite bind_trigger.
+              unfold interp_Mem.
+              rewrite interp_state_vis; cbn.
+              destruct (memory_lookup_err "Error looking up 'x' in DSHAssign" mem a) eqn:Hmem_x.
+              (* exceptions *) admit.
+
+              cbn. rewrite bind_ret_l.
+
+              rewrite interp_state_vis; cbn.
+              destruct (memory_lookup_err "Error looking up 'y' in DSHAssign" mem a0) eqn:Hmem_y.
+              (* exceptions *) admit.
+
+              cbn; rewrite bind_ret_l; cbn.
+              repeat rewrite tau_eutt.
+
+              (* Unfold denote_code and break it apart. *)
+              do 2 rewrite map_app.
+              do 2 setoid_rewrite denote_code_app.
+              do 2 setoid_rewrite bind_bind.
+
+              (* Need to relate denoteNexp and denote_code of genNexpr *)
+              eutt_hide_left.
+              repeat setoid_rewrite interp_cfg_to_L3_bind.
+              admit.
+
+        -- (* exceptions *) admit. 
+    + (* Need to handle exceptions *)
+      admit.
+    (* Focus 3. *)
     (* cbn. *)
+    (* rewrite bind_ret_l. *)
+    (* destruct (nth_error σ v0) eqn:Herr'. *)
+    (* destruct d. *)
+
+    (* Focus 3. *)
+    
+    (* (* Lookup failure *) *)
+    (* Focus 2. cbn. *)
     (* unfold interp_Mem. *)
-    (* rewrite interp_state_bind. *)
-    (* unfold denotePexp, evalPexp. *)
+    (* setoid_rewrite interp_state_bind. *)
+    (* unfold Exception.throw. *)
+    (* rewrite interp_state_vis. cbn. *)
+    (* unfold MDSHCOLOnFloat64.pure_state. *)
+    (* rewrite bind_vis. rewrite bind_vis. *)
+    (* unfold resum. unfold ReSum_inl. *)
+    (* unfold resum. unfold ReSum_id. *)
+    (* unfold id_. unfold inl_. *)
+
+    (* rewrite translate_vis. *)
+    (* unfold resum. unfold inr_. *)
+    (* Check VisF. *)
+    (* simpl. *)
+    (* unfold interp_state. unfold interp. *)
+    (* interp. *)
+    (* unfold Exception.Throw. cb *)
+
+    (* inversion H3. cbn. *)
+    (* simpl. *)
     (* cbn. *)
-    (* repeat setoid_rewrite interp_state_bind. *)
-    (* rewrite denote_bks_singleton. *)
+
+    (* subst i. *)
+    (* unfold interp_Mem; cbn. *)
     (* destruct src, dst. *)
     (* simpl in HCompile. *)
     (* repeat break_match_hyp; try inl_inr. *)
     (* inv Heqs; inv HCompile. *)
-    (* match goal with *)
-    (* | |- context[add_comment _ ?ss] => generalize ss; intros ls *)
-    (* end. *)
-    (* unfold interp_Mem. *)
-    (* simpl denoteDSHOperator. *)
-    (* rewrite interp_state_bind, translate_bind. *)
-    (* match goal with *)
-    (*   |- eutt _ ?t _ => remember t *)
+    (* unfold denotePexp, evalPexp, lift_Serr. *)
+    (* subst. *)
+    (* unfold interp_Mem. (* cbn *) *)
+    (* (* match goal with *) *)
+    (* (* | |- context[add_comment _ ?ss] => generalize ss; intros ls *) *)
+    (* (* end. *) *)
+    (* (* match goal with *) *)
+    (* (* | |- context[add_comment _ ?ss] => generalize ss; intros ls1 *) *)
+    (* (* end. *) *)
+
+    (* (* subst. eutt_hide_right. *) *)
+    (* (* cbn. *) *)
+    (* (* unfold interp_Mem. *) *)
+    (* (* rewrite interp_state_bind. *) *)
+    (* (* unfold denotePexp, evalPexp. *) *)
+    (* (* cbn. *) *)
+    (* (* repeat setoid_rewrite interp_state_bind. *) *)
+    (* (* rewrite denote_bks_singleton. *) *)
+    (* (* destruct src, dst. *) *)
+    (* (* simpl in HCompile. *) *)
+    (* (* repeat break_match_hyp; try inl_inr. *) *)
+    (* (* inv Heqs; inv HCompile. *) *)
+    (* (* match goal with *) *)
+    (* (* | |- context[add_comment _ ?ss] => generalize ss; intros ls *) *)
+    (* (* end. *) *)
+    (* (* unfold interp_Mem. *) *)
+    (* (* simpl denoteDSHOperator. *) *)
+    (* (* rewrite interp_state_bind, translate_bind. *) *)
+    (* (* match goal with *) *)
+    (* (*   |- eutt _ ?t _ => remember t *) *)
+    (* (* end. *) *)
+
+    (* (* Need a lemma to invert Heqs2. *)
+    (*    Should allow us to know that the list of blocks is a singleton in this case. *)
+    (*    Need then probably a lemma to reduce proofs about `D.denote_bks [x]` to something like the denotation of x, *)
+    (*    avoiding having to worry about iter. *)
+    (*  *) *)
+    (* (* cbn; rewrite interp_cfg_to_L3_bind, interp_cfg_to_L3_ret, bind_ret_l. *) *)
+
+    (* repeat match goal with *)
+    (* | |- context [ String ?x ?y ] => remember (String x y) *)
     (* end. *)
 
-    (* Need a lemma to invert Heqs2.
-       Should allow us to know that the list of blocks is a singleton in this case.
-       Need then probably a lemma to reduce proofs about `D.denote_bks [x]` to something like the denotation of x,
-       avoiding having to worry about iter.
-     *)
-    (* cbn; rewrite interp_cfg_to_L3_bind, interp_cfg_to_L3_ret, bind_ret_l. *)
-    
-    admit.
+    (* make_append_str in H6. *)
+    (* admit. *)
 
   - (*
       Map case.
