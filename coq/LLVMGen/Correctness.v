@@ -655,6 +655,12 @@ Definition bisim_partial: Type_R_partial
       reflexivity.
   Qed.
 
+  Lemma denote_code_cons :
+        forall a l,
+      eutt Logic.eq (D.denote_code (a::l)%list) (ITree.bind (D.denote_instr a) (fun _ => D.denote_code l)).
+  Proof.
+    cbn; reflexivity.
+  Qed.
 
   (* Relations for expressions *)
   Definition nat_dvalue_rel (n : nat) (dv : dvalue) : Prop :=
@@ -796,6 +802,26 @@ Definition bisim_partial: Type_R_partial
       (* I need something relating `denote_exp e` and `denoteNexp nexp1`... *)
   Admitted.
 
+  (* TODO: awful AWFUL name. Need to figure out which of these we need *)
+  Definition nexp_relation_mem (σ : evalContext) (helix_res : MDSHCOLOnFloat64.memory * nat) (llvm_res : TopLevelEnv.memory * (local_env * (global_env * ()))) : Prop
+    :=
+      let '(mem_helix, n) := helix_res in
+      let '(mem_llvm, (ρ, (g, _))) := llvm_res in
+      memory_invariant σ mem_helix (mem_llvm, (ρ, g)).
+
+  Lemma interp_denoteNexp_genNExpr :
+    forall (nexp : NExpr) (st st' : IRState) (nexp_r : exp typ) (nexp_code : code typ) (env : list (ident * typ)) (σ : evalContext) g ρ mem_llvm memory,
+      genNExpr nexp st  ≡ inr (st', (nexp_r, nexp_code)) ->
+      eutt (nexp_relation_mem σ)
+           (translate inr_ (interp_state (case_ Mem_handler MDSHCOLOnFloat64.pure_state) (denoteNexp σ nexp) memory))
+           (translate inl_ (interp_cfg_to_L3 helix_intrinsics
+                                             (D.denote_code (map
+                                                               (λ '(id, i),
+                                                                (id, TransformTypes.fmap_instr typ dtyp (TypeUtil.normalize_type_dtyp env) i))
+                                                               nexp_code)) g ρ mem_llvm)).
+  Proof.
+  Admitted.
+
 (* TODO: only handle cases where there are no exceptions? *)
 Lemma compile_FSHCOL_correct
       (op: DSHOperator): forall (nextblock bid_in : block_id) (st st' : IRState) (bks : list (LLVMAst.block typ)) (σ : evalContext) (env : list (ident * typ)) (mem : MDSHCOLOnFloat64.memory) (g : global_env) (ρ : local_env) (mem_llvm : memory),
@@ -903,10 +929,62 @@ Proof.
               do 2 setoid_rewrite bind_bind.
 
               (* Need to relate denoteNexp and denote_code of genNexpr *)
-              eutt_hide_left.
               repeat setoid_rewrite interp_cfg_to_L3_bind.
-              admit.
+              repeat setoid_rewrite interp_state_bind.
+              repeat setoid_rewrite translate_bind.
 
+              eapply eutt_clo_bind.
+              eapply interp_denoteNexp_genNExpr; eauto.
+
+              intros u1 u2 H1.
+              destruct u1, u2, p, p; cbn.
+              rewrite interp_cfg_to_L3_bind.
+              rewrite translate_bind.
+
+              eapply eutt_clo_bind.
+              eapply interp_denoteNexp_genNExpr; eauto.
+
+              intros u1 u2 H7.
+              destruct u1, u2, p, p; cbn.
+
+              destruct (mem_lookup_err "Error looking up 'v' in DSHAssign" n1 m) eqn:Hmemlookup.
+              (* exception *) admit.
+
+              cbn.
+              rewrite interp_state_ret.
+              rewrite translate_ret.
+              rewrite bind_ret_l.
+
+              rewrite interp_state_trigger.
+              cbn.
+              rewrite bind_ret_l.
+              rewrite translate_tau.
+              rewrite tau_eutt.
+              rewrite translate_ret.
+
+              rewrite interp_cfg_to_L3_bind.
+              rewrite translate_bind.
+              cbn.
+
+              subst assigncode.
+              cbn.
+
+              repeat setoid_rewrite translate_bind.
+              repeat setoid_rewrite interp_cfg_to_L3_bind.
+              repeat setoid_rewrite bind_bind.
+
+              unfold D.lookup_id.
+              destruct i0 eqn:Hi0.
+              ** (* Global id *)
+                cbn.
+                repeat setoid_rewrite translate_bind.
+                rewrite interp_cfg_to_L3_bind.
+                repeat setoid_rewrite translate_vis.
+                repeat setoid_rewrite bind_bind.
+                repeat setoid_rewrite translate_ret.
+                admit.
+              ** (* Local id *)
+                admit.
         -- (* exceptions *) admit. 
     + (* Need to handle exceptions *)
       admit.
