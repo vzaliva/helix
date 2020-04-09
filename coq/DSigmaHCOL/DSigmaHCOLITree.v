@@ -394,8 +394,8 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
                   idtac); reflexivity).
       do 2 (break_match_hyp; try inl_inr).
       state_steps.
-      apply Denote_Eval_Equiv_Mexp_Succeeds in Heqe.
-      rewrite Heqe; state_steps.
+      apply Denote_Eval_Equiv_Mexp_Succeeds in Heqs.
+      rewrite Heqs; state_steps.
       inv_eval; state_steps; reflexivity.
     Qed.
 
@@ -428,15 +428,15 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       - eexists; right; cbn in *; inv_eval; state_steps; match_failure.
       - inl_inr.
       - inv_eval; state_steps.
-        + apply Denote_Eval_Equiv_Mexp_Fails in Heqe; destruct Heqe as (?msg & [Heqe | Heqe]).
+        + apply Denote_Eval_Equiv_Mexp_Fails in Heqs; destruct Heqs as (?msg & [Heqe | Heqe]).
           * eexists; left; state_steps.
             unfold interp_Mem in Heqe; rewrite Heqe; state_steps; match_failure.
           * eexists; right; state_steps.
             unfold interp_Mem in Heqe; rewrite Heqe; match_failure.
-        + apply Denote_Eval_Equiv_Mexp_Succeeds in Heqe.
+        + apply Denote_Eval_Equiv_Mexp_Succeeds in Heqs.
           eexists; left.
-          unfold interp_Mem in Heqe.
-          state_steps; rewrite Heqe; cbn; state_steps; match_failure.
+          unfold interp_Mem in Heqs.
+          state_steps; rewrite Heqs; cbn; state_steps; match_failure.
       - inv_eval.
         destruct IHe as [msg' [IHe | IHe]]; auto; eexists.
         left; state_steps; rewrite IHe; match_failure.
@@ -445,73 +445,73 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         + destruct IHe1 as [msg1 [IHe | IHe]]; auto.
           * eexists; left; cbn; state_steps; rewrite IHe; match_failure.
           * eexists; right; cbn; state_steps; rewrite IHe; match_failure.
-        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqe.
+        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqs.
           destruct IHe2 as [msg2 [IHe | IHe]]; auto.
           * eexists; left; cbn; state_steps.
-            rewrite Heqe; cbn; state_steps.
+            rewrite Heqs; cbn; state_steps.
             rewrite IHe; match_failure.
           * eexists; right; cbn; state_steps.
-            rewrite Heqe; cbn; state_steps.
+            rewrite Heqs; cbn; state_steps.
             rewrite IHe; match_failure.
       - inv_eval.
         + destruct IHe1 as [msg1 [IHe | IHe]]; auto.
           * eexists; left; cbn; state_steps; rewrite IHe; match_failure.
           * eexists; right; cbn; state_steps; rewrite IHe; match_failure.
-        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqe.
+        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqs.
           destruct IHe2 as [msg2 [IHe | IHe]]; auto.
           * eexists; left; cbn; state_steps.
-            rewrite Heqe; cbn; state_steps.
+            rewrite Heqs; cbn; state_steps.
             rewrite IHe; match_failure.
           * eexists; right; cbn; state_steps.
-            rewrite Heqe; cbn; state_steps.
+            rewrite Heqs; cbn; state_steps.
             rewrite IHe; match_failure.
       - inv_eval.
         + destruct IHe1 as [msg1 [IHe | IHe]]; auto.
           * eexists; left; cbn; state_steps; rewrite IHe; match_failure.
           * eexists; right; cbn; state_steps; rewrite IHe; match_failure.
-        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqe.
+        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqs.
           destruct IHe2 as [msg2 [IHe | IHe]]; auto.
           * eexists; left; cbn; state_steps.
-            rewrite Heqe; cbn; state_steps.
+            rewrite Heqs; cbn; state_steps.
             rewrite IHe; match_failure.
           * eexists; right; cbn; state_steps.
-            rewrite Heqe; cbn; state_steps.
+            rewrite Heqs; cbn; state_steps.
             rewrite IHe; match_failure.
       - inv_eval.
         + destruct IHe1 as [msg1 [IHe | IHe]]; auto.
           * eexists; left; cbn; state_steps; rewrite IHe; match_failure.
           * eexists; right; cbn; state_steps; rewrite IHe; match_failure.
-        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqe.
+        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqs.
           destruct IHe2 as [msg2 [IHe | IHe]]; auto.
           * eexists; left; cbn; state_steps.
-            rewrite Heqe; cbn; state_steps.
+            rewrite Heqs; cbn; state_steps.
             rewrite IHe; match_failure.
           * eexists; right; cbn; state_steps.
-            rewrite Heqe; cbn; state_steps.
+            rewrite Heqs; cbn; state_steps.
             rewrite IHe; match_failure.
       - inv_eval.
         + destruct IHe1 as [msg1 [IHe | IHe]]; auto.
           * eexists; left; cbn; state_steps; rewrite IHe; match_failure.
           * eexists; right; cbn; state_steps; rewrite IHe; match_failure.
-        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqe.
+        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqs.
           destruct IHe2 as [msg2 [IHe | IHe]]; auto.
           * eexists; left; cbn; state_steps.
-            rewrite Heqe; cbn; state_steps.
+            rewrite Heqs; cbn; state_steps.
             rewrite IHe; match_failure.
           * eexists; right; cbn; state_steps.
-            rewrite Heqe; cbn; state_steps.
+            rewrite Heqs; cbn; state_steps.
             rewrite IHe; match_failure.
       - inv_eval.
         + destruct IHe1 as [msg1 [IHe | IHe]]; auto.
           * eexists; left; cbn; state_steps; rewrite IHe; match_failure.
           * eexists; right; cbn; state_steps; rewrite IHe; match_failure.
-        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqe.
+        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqs.
           destruct IHe2 as [msg2 [IHe | IHe]]; auto.
           * eexists; left; cbn; state_steps.
-            rewrite Heqe; cbn; state_steps.
+            rewrite Heqs; cbn; state_steps.
             rewrite IHe; match_failure.
           * eexists; right; cbn; state_steps.
-            rewrite Heqe; cbn; state_steps.
+            rewrite Heqs; cbn; state_steps.
             rewrite IHe; match_failure.
     Qed.
 
@@ -539,13 +539,13 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       - inv_eval.
         + eexists; left.
           state_steps; match_failure.
-        + apply Denote_Eval_Equiv_Aexp_Fails in Heqe0; destruct Heqe0 as (?msg & [Heqe0 | Heqe0]); unfold interp_Mem in Heqe0.
-          * eexists; left; cbn; state_steps; rewrite Heqe0; match_failure.
-          * eexists; left; cbn; state_steps; rewrite Heqe0; match_failure.
-        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqe0.
+        + apply Denote_Eval_Equiv_Aexp_Fails in Heqs0; destruct Heqs0 as (?msg & [Heqs0 | Heqs0]); unfold interp_Mem in Heqs0.
+          * eexists; left; cbn; state_steps; rewrite Heqs0; match_failure.
+          * eexists; left; cbn; state_steps; rewrite Heqs0; match_failure.
+        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqs0.
           apply IH in HEval; destruct HEval as [msg' [EQ | EQ]]; eexists; [left | right].
-          * state_steps; rewrite Heqe0; state_steps; rewrite EQ; reflexivity.
-          * state_steps; rewrite Heqe0; state_steps; rewrite EQ; reflexivity.
+          * state_steps; rewrite Heqs0; state_steps; rewrite EQ; reflexivity.
+          * state_steps; rewrite Heqs0; state_steps; rewrite EQ; reflexivity.
     Qed.
 
     Lemma Denote_Eval_Equiv_BinCType_Succeeds: forall mem σ f i a b v,
@@ -575,7 +575,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       induction n as [| n IH]; cbn; intros off f σ x y blk HEval; unfold_Mem; cbn in HEval.
       - inv_eval; state_steps; reflexivity.
       - inv_eval; state_steps.
-        apply Denote_Eval_Equiv_BinCType_Succeeds in Heqe1; rewrite Heqe1; cbn; state_steps.
+        apply Denote_Eval_Equiv_BinCType_Succeeds in Heqs1; rewrite Heqs1; cbn; state_steps.
         rewrite IH; eauto; reflexivity.
     Qed.
 
@@ -589,9 +589,9 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       - inv_eval; try (eexists; left; state_steps; match_failure).
         edestruct Denote_Eval_Equiv_BinCType_Fails as [? [H|H]]; eauto;
           eexists; [left | right]; state_steps; rewrite H; match_failure.
-        apply Denote_Eval_Equiv_BinCType_Succeeds in Heqe1;
+        apply Denote_Eval_Equiv_BinCType_Succeeds in Heqs1;
           edestruct IH as [? [H|H]]; eauto;
-            eexists; [left | right]; state_steps; rewrite Heqe1; state_steps; rewrite H; match_failure.
+            eexists; [left | right]; state_steps; rewrite Heqs1; state_steps; rewrite H; match_failure.
     Qed.
 
     Definition denote_Loop_for_i_to_N σ body (i N: nat) :=
@@ -690,7 +690,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       destruct (i =? S N)%nat eqn:EQ'; [apply beq_nat_true in EQ'; lia | apply beq_nat_false in EQ'].
       (* And that the recursive call succeeded since the computation did *)
       destruct (eval_Loop_for_i_to_N σ op i N mem_i fuel) eqn: HEval'; [| inv Heval].
-      destruct e; inv Heval.
+      destruct s; inv Heval.
 
       (* Now there are two cases:
          either a single step was remaining and we should be able to conclude directly;
@@ -766,7 +766,6 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         +
           repeat break_match_goal; subst; cbn in H; rewrite Heqb in H.
           *
-            unfold err in *.
             rewrite <- Heqo.
             repeat break_match_hyp; subst.
             --
@@ -780,7 +779,6 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
             --
               some_none.
           *
-            unfold err in *.
             repeat break_match_hyp; subst.
             --
               apply IHN in Heqo0.
@@ -1016,7 +1014,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       cbn in Heval.
       destruct (i =? S N)%nat eqn:EQ'; [apply beq_nat_true in EQ'; lia | apply beq_nat_false in EQ'].
       destruct (eval_Loop_for_i_to_N σ op i N mem fuel) eqn: HEval'; [| inv Heval].
-      destruct e; inv Heval.
+      destruct s; inv Heval.
       -
         (* fail in loop [i] to [N] *)
         destruct (S i =? N)%nat eqn: EQ''; [apply beq_nat_true in EQ''; subst; clear IH |].
@@ -1075,7 +1073,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       intros σ i N op fuel mem msg ic H.
 
       destruct (evalDSHOperator (DSHnatVal i :: σ) op mem fuel) eqn:E.
-      destruct e.
+      destruct s.
       -
         (* fails at [i] *)
         destruct (string_dec s msg) as [SE|NSE].
@@ -1122,7 +1120,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
               clear Heqb.
               destruct fuel; [reflexivity|].
               rewrite eval_Loop_for_N_to_N.
-              break_match; inv Heqe.
+              break_match; inv Heqs.
               apply evalDSHOperator_fuel_monotone_None, E.
             *
               assert (ic1: i<N) by (apply beq_nat_false in EN; lia).
@@ -1154,7 +1152,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         state_steps; reflexivity.
       - unfold_Mem; inv_eval.
         state_steps.
-        apply Denote_Eval_Equiv_Aexp_Succeeds in Heqe1; rewrite Heqe1; state_steps.
+        apply Denote_Eval_Equiv_Aexp_Succeeds in Heqs1; rewrite Heqs1; state_steps.
         rewrite IH; eauto; reflexivity.
     Qed.
 
@@ -1169,9 +1167,9 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       - inv_eval; try (eexists; left; state_steps; match_failure).
         edestruct Denote_Eval_Equiv_Aexp_Fails as [? [H|H]]; eauto;
           eexists; [left | right]; state_steps; rewrite H; match_failure.
-        apply Denote_Eval_Equiv_Aexp_Succeeds in Heqe1;
+        apply Denote_Eval_Equiv_Aexp_Succeeds in Heqs1;
         edestruct IH as [? [H|H]]; eauto;
-        eexists; [left | right]; state_steps; rewrite Heqe1; state_steps; rewrite H; match_failure.
+        eexists; [left | right]; state_steps; rewrite Heqs1; state_steps; rewrite H; match_failure.
    Qed.
 
     Lemma Denote_Eval_Equiv_DSHPower_Succeeds:
@@ -1186,7 +1184,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         state_steps; reflexivity.
       - unfold_Mem; inv_eval.
         state_steps.
-        apply Denote_Eval_Equiv_Aexp_Succeeds in Heqe1; rewrite Heqe1; state_steps.
+        apply Denote_Eval_Equiv_Aexp_Succeeds in Heqs1; rewrite Heqs1; state_steps.
         rewrite IH; eauto; reflexivity.
     Qed.
 
@@ -1201,9 +1199,9 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       - inv_eval; try (eexists; left; state_steps; match_failure).
         edestruct Denote_Eval_Equiv_Aexp_Fails as [? [H|H]]; eauto;
           eexists; [left | right]; state_steps; rewrite H; match_failure.
-        apply Denote_Eval_Equiv_Aexp_Succeeds in Heqe1;
+        apply Denote_Eval_Equiv_Aexp_Succeeds in Heqs1;
         edestruct IH as [? [H|H]]; eauto;
-        eexists; [left | right]; state_steps; rewrite Heqe1; state_steps; rewrite H; match_failure.
+        eexists; [left | right]; state_steps; rewrite Heqs1; state_steps; rewrite H; match_failure.
    Qed.
 
     Theorem Denote_Eval_Equiv_Succeeds:

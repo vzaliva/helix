@@ -1047,33 +1047,30 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       +
         err_eq_to_equiv_hyp.
         simpl in *.
-        repeat break_match_hyp ; try (err_eq_to_equiv_hyp; rewrite H in Heqe0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
-          try rewrite H in Heqe0;
-          try rewrite H in Heqe1;
-          try rewrite H in Heqe2;
-          try rewrite H in Heqe3;
+
+        repeat break_match_hyp ; try (err_eq_to_equiv_hyp; rewrite H in Heqs0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
+          try rewrite H in Heqs0;
+          try rewrite H in Heqs1;
+          try rewrite H in Heqs2;
+          try rewrite H in Heqs3;
+          try rewrite H in Heqs4;
           try solve_match_err_case;
           try inl_inr.
         *
-          rewrite Heqe2 in Heqe.
-          clear Heqe2.
-          inversion_clear Heqe.
-          rewrite Heqe3 in Heqe0.
-          clear Heqe3.
-          inversion_clear Heqe0.
-          rewrite H2, H3 in Heqe4.
+          rewrite Heqs4 in Heqs1.
+          inversion_clear Heqs1.
+          rewrite Heqs3 in Heqs0.
+          inversion_clear Heqs0.
+          rewrite H2, H3 in Heqs5.
           inl_inr.
         *
-          rewrite Heqe2 in Heqe.
-          clear Heqe2.
-          inversion_clear Heqe.
-          rewrite Heqe3 in Heqe0.
-          clear Heqe3.
-          inversion_clear Heqe0.
-          rewrite H3, H4 in Heqe4.
-          rewrite Heqe4 in Heqe1.
-          clear Heqe4.
-          inversion_clear Heqe1.
+          rewrite Heqs4 in Heqs1.
+          inversion_clear Heqs1.
+          rewrite Heqs3 in Heqs0.
+          inversion_clear Heqs0.
+          rewrite H3, H4 in Heqs5.
+          rewrite Heqs5 in Heqs2.
+          inversion_clear Heqs2.
           clear H3.
           rewrite IHn with (y:=y) (y0:=mem_add n t2 y0) in H2.
           symmetry in H1.
@@ -1085,33 +1082,30 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       +
         err_eq_to_equiv_hyp.
         simpl in *.
-        repeat break_match_hyp ; try (err_eq_to_equiv_hyp; rewrite H in Heqe0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
-          try rewrite H in Heqe0;
-          try rewrite H in Heqe1;
-          try rewrite H in Heqe2;
-          try rewrite H in Heqe3;
+        repeat break_match_hyp ; try (err_eq_to_equiv_hyp; rewrite H in Heqs0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
+          try rewrite H in Heqs0;
+          try rewrite H in Heqs1;
+          try rewrite H in Heqs2;
+          try rewrite H in Heqs3;
+          try rewrite H in Heqs4;
           try solve_match_err_case;
           try inl_inr.
         *
-          rewrite Heqe2 in Heqe.
-          clear Heqe2.
-          inversion_clear Heqe.
-          rewrite Heqe3 in Heqe0.
-          clear Heqe3.
-          inversion_clear Heqe0.
-          rewrite H2, H4 in Heqe4.
+
+          rewrite Heqs4 in Heqs1.
+          inversion_clear Heqs1.
+          rewrite Heqs3 in Heqs0.
+          inversion_clear Heqs0.
+          rewrite H2, H4 in Heqs5.
           inl_inr.
         *
-          rewrite Heqe2 in Heqe.
-          clear Heqe2.
-          inversion_clear Heqe.
-          rewrite Heqe3 in Heqe0.
-          clear Heqe3.
-          inversion_clear Heqe0.
-          rewrite H2, H4 in Heqe4.
-          rewrite Heqe4 in Heqe1.
-          clear Heqe4.
-          inversion_clear Heqe1.
+          rewrite Heqs4 in Heqs1.
+          inversion_clear Heqs1.
+          rewrite Heqs3 in Heqs0.
+          inversion_clear Heqs0.
+          rewrite H2, H4 in Heqs5.
+          rewrite Heqs5 in Heqs2.
+          inversion_clear Heqs2.
           clear H3.
           rewrite IHn with (y:=y) (y0:=mem_add n t2 y0) in H1.
           symmetry in H1.
@@ -1123,24 +1117,22 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       +
         err_eq_to_equiv_hyp.
         simpl in *.
-        repeat break_match_hyp ; try (err_eq_to_equiv_hyp; rewrite H in Heqe0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
-          try rewrite H in Heqe0;
-          try rewrite H in Heqe1;
-          try rewrite H in Heqe2;
-          try rewrite H in Heqe3;
+        repeat break_match_hyp ; try (err_eq_to_equiv_hyp; rewrite H in Heqs0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
+          try rewrite H in Heqs0;
+          try rewrite H in Heqs1;
+          try rewrite H in Heqs2;
+          try rewrite H in Heqs3;
+          try rewrite H in Heqs4;
           try solve_match_err_case;
           try inl_inr.
 
-        rewrite Heqe2 in Heqe.
-        clear Heqe2.
-        inversion_clear Heqe.
-        rewrite Heqe3 in Heqe0.
-        clear Heqe3.
-        inversion_clear Heqe0.
-        rewrite H2, H5 in Heqe4.
-        rewrite Heqe4 in Heqe1.
-        clear Heqe4.
-        inversion_clear Heqe1.
+        rewrite Heqs2 in Heqs.
+        inversion_clear Heqs.
+        rewrite Heqs3 in Heqs0.
+        inversion_clear Heqs0.
+        rewrite H2, H5 in Heqs4.
+        rewrite Heqs4 in Heqs1.
+        inversion_clear Heqs1.
         clear H3.
         rewrite IHn with (y:=y) (y0:=mem_add n t2 y0) in Ha.
 
@@ -1172,80 +1164,78 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       +
         err_eq_to_equiv_hyp.
         simpl in *.
-        repeat break_match_hyp ; try (err_eq_to_equiv_hyp; rewrite H in Heqe0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
-          try rewrite H in Heqe0;
-          try rewrite H in Heqe1;
-          try rewrite H in Heqe2;
-          try rewrite H in Heqe3;
+        repeat break_match_hyp ; try (err_eq_to_equiv_hyp; rewrite H in Heqs0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
+          try rewrite H in Heqs0;
+          try rewrite H in Heqs1;
+          try rewrite H in Heqs2;
+          try rewrite H in Heqs3;
+          try rewrite H in Heqs4;
           try solve_match_err_case;
           try inl_inr.
         *
-          rewrite Heqe in Heqe1.
-          clear Heqe.
+          rewrite Heqs0 in Heqs2.
           repeat inl_inr_inv.
-          rewrite Heqe1 in Heqe0.
+          rewrite Heqs2 in Heqs1.
           inl_inr.
         *
-          rewrite Heqe in Heqe1.
-          clear Heqe.
+          rewrite Heqs0 in Heqs2.
           repeat inl_inr_inv.
-          rewrite Heqe1 in Heqe0.
-          rewrite Heqe0 in Heqe2.
-          clear Heqe0.
-          inl_inr_inv.
+          rewrite Heqs2 in Heqs0.
+          rewrite Heqs2 in Heqs1.
           rewrite IHn with (y:=y) (y0:=mem_add n t1 y0) in H2; auto.
           symmetry in H1.
           rewrite H1 in H2.
           inl_inr.
-          rewrite Heqe2, H0.
+          rewrite Heqs3 in Heqs1.
+          inl_inr_inv.
+          rewrite Heqs1, H0.
           reflexivity.
       +
         err_eq_to_equiv_hyp.
         simpl in *.
-        repeat break_match_hyp ; try (err_eq_to_equiv_hyp; rewrite H in Heqe0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
-          try rewrite H in Heqe0;
-          try rewrite H in Heqe1;
-          try rewrite H in Heqe2;
-          try rewrite H in Heqe3;
+        repeat break_match_hyp ; try (err_eq_to_equiv_hyp; rewrite H in Heqs0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
+          try rewrite H in Heqs0;
+          try rewrite H in Heqs1;
+          try rewrite H in Heqs2;
+          try rewrite H in Heqs3;
           try solve_match_err_case;
           try inl_inr.
         *
-          rewrite Heqe in Heqe1.
-          clear Heqe.
+          rewrite Heqs0 in Heqs2.
           repeat inl_inr_inv.
-          rewrite Heqe1 in Heqe0.
+          rewrite Heqs2 in Heqs1.
           inl_inr.
         *
-          rewrite Heqe in Heqe1.
-          clear Heqe.
+          rewrite Heqs0 in Heqs2.
+          clear Heqs0.
           repeat inl_inr_inv.
-          rewrite Heqe1 in Heqe0.
-          rewrite Heqe0 in Heqe2.
-          clear Heqe0.
+          rewrite Heqs2 in Heqs1.
+          clear Heqs2.
+          rewrite Heqs1 in Heqs3.
           inl_inr_inv.
           rewrite IHn with (y:=y) (y0:=mem_add n t1 y0) in H1; auto.
           symmetry in H1.
           rewrite H1 in H5.
           inl_inr.
-          rewrite Heqe2, H0.
+          rewrite Heqs3, H0.
           reflexivity.
       +
         err_eq_to_equiv_hyp.
         simpl in *.
-        repeat break_match_hyp ; try (err_eq_to_equiv_hyp; rewrite H in Heqe0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
-          try rewrite H in Heqe0;
-          try rewrite H in Heqe1;
-          try rewrite H in Heqe2;
-          try rewrite H in Heqe3;
+        repeat break_match_hyp ; try (err_eq_to_equiv_hyp; rewrite H in Heqs0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
+          try rewrite H in Heqs0;
+          try rewrite H in Heqs1;
+          try rewrite H in Heqs2;
+          try rewrite H in Heqs3;
           try solve_match_err_case;
           try inl_inr.
 
-        rewrite Heqe in Heqe1.
-        clear Heqe.
+        rewrite Heqs in Heqs1.
+        clear Heqs.
         repeat inl_inr_inv.
-        rewrite Heqe1 in Heqe0.
-        rewrite Heqe0 in Heqe2.
-        clear Heqe0.
+        rewrite Heqs1 in Heqs0.
+        rewrite Heqs0 in Heqs2.
+        clear Heqs0.
         inl_inr_inv.
 
         symmetry in H1.
@@ -1255,7 +1245,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         rewrite Ha in Hb.
         inl_inr_inv.
         auto.
-        rewrite Heqe2, H0.
+        rewrite Heqs2, H0.
         reflexivity.
   Qed.
 

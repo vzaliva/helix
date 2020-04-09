@@ -467,9 +467,9 @@ Section MSHCOL_to_DSHCOL.
           assert(m = avector_to_mem_block a) as C.
           {
             eq_to_equiv_hyp.
-            rewrite LM''0 in Heqe.
+            rewrite LM''0 in Heqs0.
             some_inv.
-            rewrite <- Heqe.
+            rewrite <- Heqs0.
             rewrite Heqv.
             reflexivity.
           }
@@ -488,9 +488,9 @@ Section MSHCOL_to_DSHCOL.
           assert(m = avector_to_mem_block a) as C.
           {
             eq_to_equiv_hyp.
-            rewrite LM''0 in Heqe.
+            rewrite LM''0 in Heqs0.
             some_inv.
-            rewrite <- Heqe.
+            rewrite <- Heqs0.
             rewrite Heqv.
             reflexivity.
           }

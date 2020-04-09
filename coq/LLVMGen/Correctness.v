@@ -1381,7 +1381,7 @@ Proof.
   unfold initIRGlobals, global_uniq_chk in H.
   cbn in H.
   repeat break_match_hyp; try inl_inr.
-  unfold assert_false_to_err in Heqe.
+  unfold assert_false_to_err in Heqs.
   repeat break_match_hyp; try inl_inr.
   inl_inr_inv.
   subst.
@@ -1455,11 +1455,11 @@ Proof.
     repeat break_match_hyp; try inl_inr.
     inl_inr_inv.
     subst.
-    apply IHl0 in Heqe0; clear IHl0.
-    destruct Heqe0 as (c1 & b1 & b2 & H1 & H2 & E).
+    apply IHl0 in Heqs0; clear IHl0.
+    destruct Heqs0 as (c1 & b1 & b2 & H1 & H2 & E).
     repeat eexists; cbn.
     +
-      rewrite Heqe.
+      rewrite Heqs.
       rewrite H1.
       eauto.
     +
@@ -1494,7 +1494,7 @@ Proof.
     eexists.
     split; [|eauto].
     cbn.
-    rewrite Heqe.
+    rewrite Heqs.
     apply H1.
 Qed.
 
@@ -1694,8 +1694,8 @@ Proof.
   right. (* as [σ] is never empty after init *)
   rename Heqp0 into HCY, m1 into ydata.
   rename Heqp2 into HCX, m2 into xdata.
-  rename Heqe0 into HFSHG, l2 into fdata', e into σ.
-  rename Heqe into HIRG, l0 into ldata', l1 into gdecls.
+  rename Heqs0 into HFSHG, l2 into fdata', e into σ.
+  rename Heqs into HIRG, l0 into ldata', l1 into gdecls.
   remember (global_YX i o ldata' (Anon 0%Z) (TYPE_Array (Z.of_nat i) TYPE_Double)
                       (Anon 1%Z) (TYPE_Array (Z.of_nat o) TYPE_Double)) as xydecls eqn:HXY.
   rename l3 into fdata''.
@@ -1747,8 +1747,8 @@ Proof.
     (* but currently nat constants are not implemented so we
        shortcut this branch *)
     exfalso.
-    clear - Hn Heqe1.
-    rename Heqe1 into F.
+    clear - Hn Heqs1.
+    rename Heqs1 into F.
 
     apply ListUtil.nth_app in Hn.
     destruct Hn as [[Hn Hx] | [Hn Hx]].
@@ -1789,24 +1789,24 @@ Proof.
         inl_inr.
       *
         repeat break_let; subst.
-        symmetry in Heqe.
+        symmetry in Heqs.
         inl_inr_inv.
         subst.
         destruct x.
         cbn.
         intros C. inv C.
         cbn.
-        eapply IHglobals, Heqe0.
+        eapply IHglobals, Heqs0.
       *
         repeat break_let; subst.
-        symmetry in Heqe.
+        symmetry in Heqs.
         inl_inr_inv.
         subst.
         destruct x.
         cbn.
         intros C. inv C.
         cbn.
-        eapply IHglobals, Heqe0.
+        eapply IHglobals, Heqs0.
   -
     (* [DSHCTypeVal] must end up in globals as  a pointer *)
 
@@ -1829,7 +1829,7 @@ Proof.
     assert(List.length globals ≡ List.length gdecls) as GG
         by eapply init_with_data_len, HIRG.
 
-    rename Heqe1 into F.
+    rename Heqs1 into F.
     pose proof (initFSHGlobals_globals_sigma_len_eq globals F) as GSL.
 
     assert(exists gname gtype, nth_error globals x ≡ Some (gname, gtype)).
@@ -1881,7 +1881,7 @@ Proof.
         repeat inl_inr_inv.
         subst.
 
-        unfold initOneIRGlobal in Heqe2.
+        unfold initOneIRGlobal in Heqs2.
         repeat break_match_hyp; try inl_inr.
         +
           inl_inr_inv.
@@ -1923,7 +1923,7 @@ Proof.
           *
             cbn in *.
             break_let.
-            inv Heqe.
+            inv Heqs.
             subst.
             eapply IHglobals; eauto.
             assert (LL: l0≡l1).
@@ -1937,7 +1937,7 @@ Proof.
               reflexivity.
             }
             rewrite LL.
-            eapply Heqe3.
+            eapply Heqs3.
             lia.
     }
 
@@ -1983,7 +1983,7 @@ Proof.
             some_inv.
             destruct p1.
             some_inv.
-            unfold alloc_global in Heqs0.
+            unfold alloc_global in Heqs1.
             repeat break_match_hyp; try inl_inr.
             repeat inl_inr_inv.
             exists (M.next_logical_key m, 0%Z).
@@ -2003,7 +2003,7 @@ Proof.
             some_inv.
             destruct p1.
             some_inv.
-            unfold alloc_global in Heqs0.
+            unfold alloc_global in Heqs1.
             repeat break_match_hyp; try inl_inr.
             repeat inl_inr_inv.
             exists (M.next_logical_key m, 0%Z).

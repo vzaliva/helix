@@ -130,7 +130,7 @@ Proof.
     repeat break_match_hyp; try inl_inr.
     inl_inr_inv.
     subst.
-    apply IHl in Heqe1.
+    apply IHl in Heqs1.
     cbn.
     auto.
 Qed.
