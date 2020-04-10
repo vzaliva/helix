@@ -2,6 +2,7 @@ Require Import Coq.Strings.String.
 Require Import Coq.Lists.List.
 
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
+Require Import Helix.FSigmaHCOL.Int64asNT.
 Require Import Helix.Util.ErrorSetoid.
 Require Import Helix.Util.ListUtil.
 Require Import Helix.Tactics.HelixTactics.
@@ -64,13 +65,13 @@ End RandomDataPool.
 Inductive FSHValType :=
 | FSHnatValType       :FSHValType
 | FSHFloatValType     :FSHValType
-| FSHvecValType (n:nat) :FSHValType.
+| FSHvecValType (n:Int64.int) :FSHValType.
 
 Record FSHCOLProgram :=
   mkFSHCOLProgram
     {
-      i: nat;
-      o: nat;
+      i: Int64.int;
+      o: Int64.int;
       name: string;
       globals: list (string * FSHValType) ;
       op: DSHOperator;
@@ -130,7 +131,7 @@ Proof.
     repeat break_match_hyp; try inl_inr.
     inl_inr_inv.
     subst.
-    apply IHl in Heqe1.
+    apply IHl in Heqs1.
     cbn.
     auto.
 Qed.
@@ -147,7 +148,7 @@ Definition initOneFSHGlobal
       let '(x, data) := rotate Float64Zero data in
       ret (mem, data, DSHCTypeVal x)
     | FSHvecValType n =>
-      let (data,mb) := constMemBlock n data in
+      let (data,mb) := constMemBlock (MInt64asNT.to_nat n) data in
       let k := memory_next_key mem in
       let mem := memory_set mem k mb in
       let p := DSHPtrVal k n in
@@ -170,8 +171,8 @@ Definition helix_intial_memory
   := match p with
      | mkFSHCOLProgram i o name globals op =>
        '(mem, data, σ) <- initFSHGlobals data helix_empty_memory globals ;;
-       let '(data, y) := constMemBlock o data in
-       let '(data, x) := constMemBlock i data in
+       let '(data, y) := constMemBlock (MInt64asNT.to_nat o) data in
+       let '(data, x) := constMemBlock (MInt64asNT.to_nat i) data in
        (* over-estimating id, as some globals may not alocate memory (e.g. scalars) *)
        let X_mem_block_id : mem_block_id := length globals  in
        let Y_mem_block_id : mem_block_id := S (length globals) in

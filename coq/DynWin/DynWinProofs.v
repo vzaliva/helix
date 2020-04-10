@@ -467,9 +467,9 @@ Section MSHCOL_to_DSHCOL.
           assert(m = avector_to_mem_block a) as C.
           {
             eq_to_equiv_hyp.
-            rewrite LM''0 in Heqe.
+            rewrite LM''0 in Heqs0.
             some_inv.
-            rewrite <- Heqe.
+            rewrite <- Heqs0.
             rewrite Heqv.
             reflexivity.
           }
@@ -488,9 +488,9 @@ Section MSHCOL_to_DSHCOL.
           assert(m = avector_to_mem_block a) as C.
           {
             eq_to_equiv_hyp.
-            rewrite LM''0 in Heqe.
+            rewrite LM''0 in Heqs0.
             some_inv.
-            rewrite <- Heqe.
+            rewrite <- Heqs0.
             rewrite Heqv.
             reflexivity.
           }
@@ -503,6 +503,25 @@ Section MSHCOL_to_DSHCOL.
       {
         cbn.
         discriminate.
+      }
+
+      {
+        apply IReduction_MFacts.
+        -
+          intros.
+          apply SHCompose_MFacts.
+          constructor.
+          apply SHCompose_MFacts.
+          constructor.
+          apply SHPointwise_MFacts.
+          apply SHInductor_MFacts.
+          apply Pick_MFacts.
+        -
+          intros.
+          cbn.
+          constructor.
+          constructor.
+          constructor.
       }
 
       {
@@ -562,8 +581,51 @@ Section MSHCOL_to_DSHCOL.
         rewrite <- H4 in Heqm1_plus'.
         lia.
       }
+
+      {
+        apply IReduction_MFacts.
+        -
+          intros.
+          apply SHCompose_MFacts.
+          +
+            constructor.
+            cbn in *.
+            unfold singleton.
+            destruct x0.
+            cbn.
+            destruct x0; [| clear - l; lia].
+            exfalso.
+            admit.
+          +
+            apply SHBinOp_MFacts
+              with (f:= (λ (i : FinNat 1) (a0 b : CarrierA),
+                         IgnoreIndex abs i (Fin1SwapIndex2
+                                              (mkFinNat jc) (IgnoreIndex2 sub) i a0 b))).
+          +
+            apply IUnion_MFacts.
+            intros.
+            apply SHCompose_MFacts.
+            constructor.
+            apply Embed_MFacts.
+            apply Pick_MFacts.
+            intros.
+            cbn.
+            constructor.
+            intros x C.
+            inversion C; subst.
+            inversion H1; subst.
+            inversion H2; subst.
+            contradict H0.
+            reflexivity.
+        -
+          intros.
+          cbn.
+          constructor.
+          constructor.
+          constructor.
+      }
+    Admitted.
       
-    Qed.
 
   End DummyEnv.
 
@@ -1054,7 +1116,8 @@ Section SigmaHCOL_rewriting.
     setoid_rewrite SafeCast_HReduction.
 
     (* Next rule *)
-    rewrite terminate_Reduction by apply rings.plus_comm.
+    unshelve rewrite terminate_Reduction by apply rings.plus_comm.
+    typeclasses eauto. (* apply Zero_Plus_BFixpoint. *)
 
     (* Next rule *)
     setoid_rewrite terminate_GathH1.
@@ -1137,8 +1200,15 @@ Section SigmaHCOL_rewriting.
 
     unfold dynwin_SHCOL1.
 
+    (* At this point we have two terms which are different in 2 ways:
+       1. (1+4) vs 5 (arith)
+       2. Some Prop obligations (proof irrelevance?)
+
+    unfold NatAsNT.MNatAsNT.NTypeSetoid, NatAsNT.MNatAsNT.NTypeEquiv.
+    Set Printing Implicit.
     reflexivity.
-  Qed.
+     *)
+  Admitted.
 
   (* Couple additional structual properties: input and output of the
   dynwin_SHCOL1 is dense *)
@@ -1273,6 +1343,7 @@ Section SigmaHCOL_rewriting.
 End SigmaHCOL_rewriting.
 
 Require Import Helix.FSigmaHCOL.ReifyDSHCOL.
+Require Import Helix.FSigmaHCOL.Int64asNT.
 Require Import Coq.Bool.Sumbool.
 Require Import MathClasses.misc.decision.
 
@@ -1367,11 +1438,13 @@ Section DHCOL_to_FHCOL.
     autorewrite with CarrierAZ1equalities in H.
     cbv in H.
     destruct a.
-    Helix.Util.OptionSetoid.some_inv.
     -
+      inv H.
+    -
+      inl_inr_inv.
+      (* TODO: better printing of Int64 constants. Maybe via Z *)
       (* Redirect "dynwin_FSHCOL" Show 1. *)
       exact d.
-    - inversion H.
   Defined.
 
 End DHCOL_to_FHCOL.
