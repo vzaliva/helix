@@ -473,7 +473,6 @@ Module MDSigmaHCOLEval
       evalDSHOperator σ op mem fuel ≡ Some res ->
       evalDSHOperator σ op mem (S fuel) ≡ Some res.
   Proof.
-    (*
     intros op.
     induction op; try (simpl; intros; destruct fuel; try inversion H; auto; fail).
     -
@@ -488,6 +487,7 @@ Module MDSigmaHCOLEval
         destruct fuel; simpl in H.
         some_none.
         repeat break_match_hyp; simpl in H; subst; try some_inv.
+        reflexivity.
         erewrite IHn; eauto; reflexivity.
         erewrite IHn; eauto.
         setoid_rewrite IHop; eauto.
@@ -539,15 +539,13 @@ Module MDSigmaHCOLEval
           reflexivity.
         *
           some_none.
-     *)
-  Admitted.
+  Qed.
 
   Lemma evalDSHOperator_fuel_monotone_None:
     ∀ (op : DSHOperator)  (σ : list DSHVal) (fuel : nat) (m : memory),
       evalDSHOperator σ op m (S fuel) ≡ None
       → evalDSHOperator σ op m fuel ≡ None.
   Proof.
-    (*
     intros op.
     induction op; intros; try (cbn in H; repeat break_let; subst; some_none).
     -
@@ -560,8 +558,10 @@ Module MDSigmaHCOLEval
         destruct fuel; [reflexivity|].
         repeat break_match_hyp; subst.
         * some_none.
+        * some_none.
         *
           cbn.
+          rewrite Heqs.
           repeat break_match_goal; subst.
           --
             exfalso.
@@ -579,6 +579,7 @@ Module MDSigmaHCOLEval
         *
           clear H.
           cbn.
+          rewrite Heqs.
           repeat break_match_goal; subst.
           --
             exfalso.
@@ -631,8 +632,7 @@ Module MDSigmaHCOLEval
         apply IHop1 in Heqo.
         rewrite Heqo.
         reflexivity.
-     *)
-  Admitted.
+  Qed.
 
   (* Generalization of [evalDSHOperator_fuel_monotone] *)
   Lemma evalDSHOperator_fuel_ge (f f':nat) {σ op m res}:
@@ -673,7 +673,6 @@ Module MDSigmaHCOLEval
   Lemma evalDSHOperator_estimateFuel {σ dop m}:
     is_Some (evalDSHOperator σ dop m (estimateFuel dop)).
   Proof.
-    (*
     revert σ m.
     dependent induction dop; intros; cbn; auto.
     - repeat break_let; some_none.
@@ -705,14 +704,14 @@ Module MDSigmaHCOLEval
           eapply IHdop.
           nia.
         *
-          specialize (IHdop (DSHnatVal n0 :: σ) m0).
+          specialize (IHdop (DSHnatVal t1 :: σ) m0).
           eapply evalDSHOperator_fuel_ge_is_Some with (f':=(S n0 + f * S (S n0)))
             in IHdop.
           norm_some_none.
           some_none.
           nia.
         *
-          specialize (IHdop (DSHnatVal n0 :: σ) m0).
+          specialize (IHdop (DSHnatVal t1 :: σ) m0).
           eapply evalDSHOperator_fuel_ge_is_Some with (f':=(S n0 + f * S (S n0)))
             in IHdop.
           norm_some_none.
@@ -754,8 +753,7 @@ Module MDSigmaHCOLEval
           in IHdop1.
         congruence.
         nia.
-     *)
-  Admitted.
+  Qed.
 
   Local Ltac proper_eval2 IHe1 IHe2 :=
       repeat break_match;
@@ -1056,7 +1054,6 @@ Module MDSigmaHCOLEval
     Proper
       ((=) ==> (=) ==> (=)) (evalDSHBinOp mem n off f σ).
   Proof.
-    (*
     intros x y H x0 y0 H0.
     revert x y H x0 y0 H0.
     induction n; intros.
@@ -1075,25 +1072,26 @@ Module MDSigmaHCOLEval
           try rewrite H in Heqs2;
           try rewrite H in Heqs3;
           try rewrite H in Heqs4;
+          try rewrite H in Heqs5;
           try solve_match_err_case;
           try inl_inr.
         *
-          rewrite Heqs4 in Heqs1.
-          inversion_clear Heqs1.
-          rewrite Heqs3 in Heqs0.
+          rewrite Heqs4 in Heqs0.
           inversion_clear Heqs0.
-          rewrite H2, H3 in Heqs5.
+          rewrite Heqs5 in Heqs1.
+          inversion_clear Heqs1.
+          rewrite H2, H3 in Heqs6.
           inl_inr.
         *
-          rewrite Heqs4 in Heqs1.
-          inversion_clear Heqs1.
-          rewrite Heqs3 in Heqs0.
+          rewrite Heqs4 in Heqs0.
           inversion_clear Heqs0.
-          rewrite H3, H4 in Heqs5.
-          rewrite Heqs5 in Heqs2.
-          inversion_clear Heqs2.
+          rewrite Heqs5 in Heqs1.
+          inversion_clear Heqs1.
+          rewrite H3, H4 in Heqs6.
+          rewrite Heqs6 in Heqs3.
+          inversion_clear Heqs3.
           clear H3.
-          rewrite IHn with (y:=y) (y0:=mem_add n t2 y0) in H2.
+          rewrite IHn with (y:=y) (y0:=mem_add n t3 y0) in H2.
           symmetry in H1.
           rewrite H1 in H2.
           inl_inr.
@@ -1109,26 +1107,26 @@ Module MDSigmaHCOLEval
           try rewrite H in Heqs2;
           try rewrite H in Heqs3;
           try rewrite H in Heqs4;
+          try rewrite H in Heqs5;
           try solve_match_err_case;
           try inl_inr.
         *
-
-          rewrite Heqs4 in Heqs1.
-          inversion_clear Heqs1.
-          rewrite Heqs3 in Heqs0.
+          rewrite Heqs4 in Heqs0.
           inversion_clear Heqs0.
-          rewrite H2, H4 in Heqs5.
+          rewrite Heqs5 in Heqs1.
+          inversion_clear Heqs1.
+          rewrite H2, H4 in Heqs6.
           inl_inr.
         *
-          rewrite Heqs4 in Heqs1.
-          inversion_clear Heqs1.
-          rewrite Heqs3 in Heqs0.
+          rewrite Heqs4 in Heqs0.
           inversion_clear Heqs0.
-          rewrite H2, H4 in Heqs5.
-          rewrite Heqs5 in Heqs2.
-          inversion_clear Heqs2.
+          rewrite Heqs5 in Heqs1.
+          inversion_clear Heqs1.
+          rewrite H2, H4 in Heqs6.
+          rewrite Heqs6 in Heqs3.
+          inversion_clear Heqs3.
           clear H3.
-          rewrite IHn with (y:=y) (y0:=mem_add n t2 y0) in H1.
+          rewrite IHn with (y:=y) (y0:=mem_add n t3 y0) in H1.
           symmetry in H1.
           clear H4.
           inl_inr.
@@ -1139,24 +1137,25 @@ Module MDSigmaHCOLEval
         err_eq_to_equiv_hyp.
         simpl in *.
         repeat break_match_hyp ; try (err_eq_to_equiv_hyp; rewrite H in Heqs0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
+          try rewrite H in Heqs;
           try rewrite H in Heqs0;
           try rewrite H in Heqs1;
           try rewrite H in Heqs2;
           try rewrite H in Heqs3;
           try rewrite H in Heqs4;
+          try rewrite H in Heqs5;
           try solve_match_err_case;
           try inl_inr.
 
-        rewrite Heqs2 in Heqs.
-        inversion_clear Heqs.
-        rewrite Heqs3 in Heqs0.
+        rewrite Heqs4 in Heqs0.
         inversion_clear Heqs0.
-        rewrite H2, H5 in Heqs4.
-        rewrite Heqs4 in Heqs1.
-        inversion_clear Heqs1.
+        rewrite Heqs3 in Heqs.
+        inversion_clear Heqs.
+        rewrite H2, H5 in Heqs5.
+        rewrite Heqs5 in Heqs2.
+        inversion_clear Heqs2.
         clear H3.
-        rewrite IHn with (y:=y) (y0:=mem_add n t2 y0) in Ha.
-
+        rewrite IHn with (y:=y) (y0:=mem_add n t3 y0) in Ha.
         assert(@inr string mem_block m = @inr string mem_block m0) as E
             by (rewrite <- Ha, <- Hb; reflexivity).
         inversion E.
@@ -1164,8 +1163,7 @@ Module MDSigmaHCOLEval
         apply H.
         rewrite H7, H0.
         reflexivity.
-     *)
-  Admitted.
+  Qed.
 
   Global Instance evalDSHIMap_proper
          (mem:memory)
@@ -1175,7 +1173,6 @@ Module MDSigmaHCOLEval
     Proper
       ((=) ==> (=) ==> (=)) (evalDSHIMap mem n f σ).
   Proof.
-    (*
     intros x y H x0 y0 H0.
     revert x y H x0 y0 H0.
     induction n; intros.
@@ -1196,22 +1193,22 @@ Module MDSigmaHCOLEval
           try solve_match_err_case;
           try inl_inr.
         *
-          rewrite Heqs0 in Heqs2.
+          rewrite Heqs0 in Heqs3.
           repeat inl_inr_inv.
-          rewrite Heqs2 in Heqs1.
+          rewrite Heqs3 in Heqs2.
           inl_inr.
         *
-          rewrite Heqs0 in Heqs2.
+          rewrite Heqs0 in Heqs3.
           repeat inl_inr_inv.
-          rewrite Heqs2 in Heqs0.
-          rewrite Heqs2 in Heqs1.
-          rewrite IHn with (y:=y) (y0:=mem_add n t1 y0) in H2; auto.
+          rewrite Heqs3 in Heqs0.
+          rewrite Heqs3 in Heqs2.
+          rewrite IHn with (y:=y) (y0:=mem_add n t2 y0) in H2; auto.
           symmetry in H1.
           rewrite H1 in H2.
           inl_inr.
-          rewrite Heqs3 in Heqs1.
+          rewrite Heqs4 in Heqs2.
           inl_inr_inv.
-          rewrite Heqs1, H0.
+          rewrite Heqs2, H0.
           reflexivity.
       +
         err_eq_to_equiv_hyp.
@@ -1224,23 +1221,23 @@ Module MDSigmaHCOLEval
           try solve_match_err_case;
           try inl_inr.
         *
-          rewrite Heqs0 in Heqs2.
+          rewrite Heqs0 in Heqs3.
           repeat inl_inr_inv.
-          rewrite Heqs2 in Heqs1.
+          rewrite Heqs3 in Heqs2.
           inl_inr.
         *
-          rewrite Heqs0 in Heqs2.
+          rewrite Heqs0 in Heqs3.
           clear Heqs0.
           repeat inl_inr_inv.
-          rewrite Heqs2 in Heqs1.
-          clear Heqs2.
-          rewrite Heqs1 in Heqs3.
+          rewrite Heqs3 in Heqs2.
+          clear Heqs3.
+          rewrite Heqs2 in Heqs4.
           inl_inr_inv.
-          rewrite IHn with (y:=y) (y0:=mem_add n t1 y0) in H1; auto.
+          rewrite IHn with (y:=y) (y0:=mem_add n t2 y0) in H1; auto.
           symmetry in H1.
           rewrite H1 in H5.
           inl_inr.
-          rewrite Heqs3, H0.
+          rewrite Heqs4, H0.
           reflexivity.
       +
         err_eq_to_equiv_hyp.
@@ -1253,25 +1250,24 @@ Module MDSigmaHCOLEval
           try solve_match_err_case;
           try inl_inr.
 
-        rewrite Heqs in Heqs1.
+        rewrite Heqs in Heqs2.
         clear Heqs.
         repeat inl_inr_inv.
-        rewrite Heqs1 in Heqs0.
-        rewrite Heqs0 in Heqs2.
-        clear Heqs0.
+        rewrite Heqs2 in Heqs1.
+        rewrite Heqs1 in Heqs3.
+        clear Heqs1.
         inl_inr_inv.
 
         symmetry in H1.
         symmetry in H4.
 
-        rewrite IHn with (y:=y) (y0:=mem_add n t1 y0) in Ha; auto.
+        rewrite IHn with (y:=y) (y0:=mem_add n t2 y0) in Ha; auto.
         rewrite Ha in Hb.
         inl_inr_inv.
         auto.
-        rewrite Heqs2, H0.
+        rewrite Heqs3, H0.
         reflexivity.
-     *)
-  Admitted.
+  Qed.
 
   Section IncrEval.
 
