@@ -588,14 +588,21 @@ Section MSHCOL_to_DSHCOL.
           intros.
           apply SHCompose_MFacts.
           +
-            constructor.
             cbn in *.
-            unfold singleton.
-            destruct x0.
-            cbn.
-            destruct x0; [| clear - l; lia].
-            exfalso.
-            admit.
+            clear H j jc.
+            intros x IN.
+            destruct x as [x X2].
+            cbn in *.
+            destruct x as [| x].
+            *
+              right.
+              left.
+              reflexivity.
+            *
+              inversion X2; [| lia].
+              subst.
+              left.
+              reflexivity.
           +
             apply SHBinOp_MFacts
               with (f:= (λ (i : FinNat 1) (a0 b : CarrierA),
@@ -624,8 +631,7 @@ Section MSHCOL_to_DSHCOL.
           constructor.
           constructor.
       }
-    Admitted.
-      
+    Qed.
 
   End DummyEnv.
 

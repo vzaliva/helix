@@ -4873,6 +4873,145 @@ Proof.
 Admitted.
 *)
 
+Lemma IReduction_Some_family_inv
+      (i o n : nat)
+      (op_family: @MSHOperatorFamily i o n)
+      (init : CarrierA)
+      (dot : CarrierA -> CarrierA -> CarrierA)
+      (pdot: Proper ((=) ==> (=) ==> (=)) dot)
+      (mb : mem_block)
+  :
+    is_Some (mem_op (@MSHIReduction i o n init dot pdot op_family) mb) ->
+    forall t, is_Some (mem_op (op_family t) mb).
+Proof.
+  intros.
+  cbn in H.
+  unfold Apply_mem_Family, get_family_mem_op in H.
+  break_match; try some_none.
+  clear H; rename Heqo0 into H.
+  destruct t as [t tc].
+  pose proof H as H1.
+  apply ListSetoid.monadic_Lbuild_opt_length in H.
+  apply ListSetoid.monadic_Lbuild_op_eq_Some with (i0:=t) (ic:=tc) in H1.
+  assert ((t ↾ tc) ≡ mkFinNat tc) by reflexivity.
+  rewrite H0; clear H0.
+  rewrite <-H1; clear H1.
+  clear - H tc.
+
+  generalize dependent t.
+  generalize dependent n.
+  induction l.
+  -
+    intros.
+    cbn in H; subst.
+    inversion tc.
+  -
+    intros.
+    destruct t; [reflexivity |].
+    destruct n; [discriminate |].
+    apply IHl with (n:=n).
+    cbn in H; lia.
+    lia.
+Qed.
+
+Lemma fold_left_rev_invariant
+      {A : Type}
+      (f : A -> A -> A)
+      (init : A)
+      (l : list A)
+      (P : A -> Prop)
+  :
+    (forall a b, P a \/ P b -> P (f a b)) ->
+    (exists a, P a /\ List.In a l) ->
+    P (ListUtil.fold_left_rev f init l).
+Proof.
+  intros.
+  destruct H0 as [x [Px XL]].
+  induction l; [inversion XL |].
+  cbn in *.
+  destruct XL as [AX | XX]; subst; auto.
+Qed.
+
+Lemma IReduction_family_OOB
+      (i o n : nat)
+      (op_family: @MSHOperatorFamily i o n)
+      (init : CarrierA)
+      (dot : CarrierA -> CarrierA -> CarrierA)
+      (pdot: Proper ((=) ==> (=) ==> (=)) dot)
+      (mb : mem_block)
+      (MF : MSHOperator_Facts (@MSHIReduction i o n init dot pdot op_family))
+  :
+    is_Some (mem_op (@MSHIReduction i o n init dot pdot op_family) mb) ->
+    forall t rm, mem_op (op_family t) mb ≡ Some rm ->
+            ∀ j, j ≥ o → ¬ mem_in j rm.
+Proof.
+  intros.
+  apply is_Some_def in H; destruct H as [rrm H].
+  inversion_clear MF as [T1 T2 OOB]; clear T1 T2.
+  pose proof H as RRM.
+  apply OOB with (j:=j) in H; clear OOB; [| assumption].
+  intros I; contradict H.
+  cbn in RRM.
+  unfold Apply_mem_Family, get_family_mem_op in RRM.
+  break_match; try some_none; some_inv.
+
+  apply fold_left_rev_invariant.
+  -
+    intros.
+    apply MMemoryOfCarrierA.mem_merge_with_def_as_Union.
+    assumption.
+  -
+    exists rm.
+    split; auto.
+    destruct t as [t tc].
+    apply ListSetoid.monadic_Lbuild_op_eq_Some with (i0:=t) (ic:=tc) in Heqo0.
+    assert ((t ↾ tc) ≡ mkFinNat tc) by reflexivity.
+    rewrite H in *.
+    rewrite H0 in Heqo0.
+    eapply List.nth_error_In.
+    eassumption.
+Qed.
+
+(*
+Lemma MSH_DSH_compat_DSH_preserves
+      {i o : nat}
+      {fuel : nat}
+      {mop : @MSHOperator i o}
+      {dop : DSHOperator}
+      {σ : evalContext}
+      {m m' : memory}
+      {x_p y_p : PExpr}
+      {DP : DSH_pure dop y_p}
+  :
+    lookup_Pexp m y_p = inr y_m ->
+    lookup_Pexp m' y_p = inr y_m' ->
+    @MSH_DSH_compat _ _ mop dop σ m x_p y_p _ ->
+    evalDSHOperator σ dop m fuel = Some (inr m').
+Proof.
+*)
+
+Lemma mem_not_in_mem_lookup (k : NM.key) (mb : mem_block) :
+  not (mem_in k mb) <-> is_None (mem_lookup k mb).
+Proof.
+  rewrite is_None_def.
+  apply NP.F.not_find_in_iff.
+Qed.
+
+Lemma SHCOL_DSHCOL_mem_block_equiv_keys_subset (ma mb md : mem_block) :
+  SHCOL_DSHCOL_mem_block_equiv mb ma md ->
+  forall k, mem_in k mb -> mem_in k ma.
+Proof.
+  intros.
+  specialize (H k).
+  rewrite mem_in_mem_lookup in *.
+  unfold is_Some in *.
+  inversion H.
+  all: repeat break_match; try some_none; auto.
+  unfold is_Some in *; break_match.
+  some_none.
+  auto.
+Qed.
+
 Global Instance IReduction_MSH_DSH_compat_S
        {i o n: nat}
        {init : CarrierA}
@@ -5218,7 +5357,12 @@ Proof.
       assert (T_DM_dense : ∀ k : nat, k < S o → mem_in k t_dm).
       {
         intros.
-        admit.
+        apply SHCOL_DSHCOL_mem_block_equiv_keys_subset with (mb:=mem_empty) (md:=mm).
+        inversion R.
+        symmetry in H0; memory_lookup_err_to_option.
+        assert (x = t_dm) by admit.
+        rewrite H2 in H1.
+        assumption.
       }
       
         
