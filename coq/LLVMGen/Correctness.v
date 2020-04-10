@@ -64,6 +64,7 @@ Require Import Coq.Numbers.BinNums. (* for Z scope *)
 Require Import Coq.ZArith.BinInt.
 
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
+Require Import Helix.FSigmaHCOL.Int64asNT.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLITree.
 Require Import Helix.LLVMGen.Compiler.
 Require Import Helix.LLVMGen.Externals.
@@ -133,7 +134,7 @@ Fixpoint denote_initFSHGlobals
          ret (data, (DSHCTypeVal x)::σ)
       | FSHvecValType n =>
         '(data,σ) <- denote_initFSHGlobals data gs ;;
-         let (data,mb) := constMemBlock n data in
+         let (data,mb) := constMemBlock (MInt64asNT.to_nat n) data in
          k <- trigger (MemAlloc n);;
          trigger (MemSet k mb);;
          let p := DSHPtrVal k n in
@@ -146,13 +147,13 @@ Definition denote_FSHCOL (p:FSHCOLProgram) (data:list binary64)
   '(data, σ) <- denote_initFSHGlobals data p.(globals) ;;
   xindex <- trigger (MemAlloc p.(i));;
   yindex <- trigger (MemAlloc p.(o));;
-  let '(data, x) := constMemBlock p.(i) data in
+  let '(data, x) := constMemBlock (MInt64asNT.to_nat p.(i)) data in
   trigger (MemSet xindex x);;
 
   let σ := List.app σ [DSHPtrVal yindex p.(o); DSHPtrVal xindex p.(i)] in
   denoteDSHOperator σ p.(op);;
   bk <- trigger (MemLU "denote_FSHCOL" yindex);;
-  lift_Derr (mem_to_list "Invalid output memory block" p.(o) bk).
+  lift_Derr (mem_to_list "Invalid output memory block" (MInt64asNT.to_nat p.(o)) bk).
 
 Definition semantics_FSHCOL p data: itree E_mcfg (memory * list binary64) :=
   translate (@subevent _ E_mcfg _) (interp_Mem (denote_FSHCOL p data) memory_empty).
@@ -294,7 +295,7 @@ Definition memory_invariant : Type_R_memory :=
         (exists  bk_llvm,
             (get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm) /\
             (* And value at this pointer must match *)
-            (exists v_llvm,  mem_lookup_llvm_at_i bk_llvm 0 1 v_llvm /\ v_llvm ≡ UVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v))))
+            (exists v_llvm,  mem_lookup_llvm_at_i bk_llvm 0 1 v_llvm /\ v_llvm ≡ UVALUE_I64 (DynamicValues.Int64.repr (Int64.intval v))))
       | DSHCTypeVal v =>
         exists ptr_llvm,
         ( (* variable in local environment *)
@@ -315,10 +316,11 @@ Definition memory_invariant : Type_R_memory :=
             alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Addr ptr_llvm) /\
             get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm /\
             (fun bk_helix bk_llvm =>
-               forall i, i < ptr_size_helix ->
+               forall i, Int64.lt i ptr_size_helix ->
                     exists v_helix v_llvm,
-                      mem_lookup i bk_helix ≡ Some v_helix /\
-                      mem_lookup_llvm_at_i bk_llvm i ptr_size_helix v_llvm /\
+                      mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v_helix /\
+                      mem_lookup_llvm_at_i bk_llvm (MInt64asNT.to_nat i)
+                                           (MInt64asNT.to_nat ptr_size_helix) v_llvm /\
                       v_llvm ≡ UVALUE_Double v_helix
             ) bk_helix bk_llvm
       end.
@@ -617,7 +619,7 @@ Definition bisim_partial: Type_R_partial
     destruct p. destruct p.
     destruct (resolve_PVar pdst i) eqn:Hr1. inversion H1.
     destruct p. destruct p.
-    destruct (genFSHAssign n n0 i0 i2 nsrc ndst nextblock i1) eqn:Hassign. inversion H1.
+    destruct (genFSHAssign i1 i4 i0 i3 nsrc ndst nextblock i2) eqn:Hassign. inversion H1.
     destruct p. destruct s.
     match goal with
     | H: context[add_comment _ ?ss] |- _ => remember ss
@@ -625,8 +627,8 @@ Definition bisim_partial: Type_R_partial
 
     inversion H1.
     apply add_comment_singleton in H3. destruct H3 as (b_orig & Hl).
-    exists b_orig. exists l0. exists i. exists i0. exists i1. exists i2. exists i3. exists n. exists n0.
-
+    exists b_orig. exists l0.
+    exists i. exists i0. exists i2. exists i3. exists i5. exists i1. exists i4.
     subst; intuition.
   Qed.
 
@@ -663,9 +665,23 @@ Definition bisim_partial: Type_R_partial
   Qed.
 
   (* Relations for expressions *)
+
+  Definition int64_dvalue_rel (n : Int64.int) (dv : dvalue) : Prop :=
+    match dv with
+    | DVALUE_I64 i => Z.eq (Int64.intval n) (unsigned i)
+    | _ => False
+    end.
+
+
   Definition nat_dvalue_rel (n : nat) (dv : dvalue) : Prop :=
     match dv with
     | DVALUE_I64 i => Z.eq (Z.of_nat n) (unsigned i)
+    | _ => False
+    end.
+
+  Definition int64_concrete_uvalue_rel (n : Int64.int) (uv : uvalue) : Prop :=
+    match uvalue_to_dvalue uv with
+    | inr dv => int64_dvalue_rel n dv
     | _ => False
     end.
 
@@ -676,9 +692,9 @@ Definition bisim_partial: Type_R_partial
     end.
 
   (* top might be able to just be Some (DTYPE_I 64) *)
-  Definition nexp_relation (env : list (ident * typ)) (e : exp typ) (n : nat) (r : (memory * (local_env * (global_env * ())))) :=
+  Definition nexp_relation (env : list (ident * typ)) (e : exp typ) (n : Int64.int) (r : (memory * (local_env * (global_env * ())))) :=
     let '(mem_llvm, (ρ, (g, _))) := r in
-    eutt (fun n '(_, (_, (_, uv))) => nat_concrete_uvalue_rel n uv)
+    eutt (fun n '(_, (_, (_, uv))) => int64_concrete_uvalue_rel n uv)
          (ret n)
          (interp_cfg_to_L3 helix_intrinsics (translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64)) (TransformTypes.fmap_exp _ _ (TypeUtil.normalize_type_dtyp env) e))) g ρ mem_llvm).
 
@@ -687,8 +703,8 @@ Definition bisim_partial: Type_R_partial
     forall (σ : evalContext) (nexp1 nexp2 : NExpr),
       eutt Logic.eq (denoteNexp σ (NDiv nexp1 nexp2))
            (ITree.bind (denoteNexp σ nexp1)
-                       (fun (n1 : nat) => ITree.bind (denoteNexp σ nexp2)
-                                                (fun (n2 : nat) => denoteNexp σ (NDiv (NConst n1) (NConst n2))))).
+                       (fun (n1 : Int64.int) => ITree.bind (denoteNexp σ nexp2)
+                                                (fun (n2 : Int64.int) => denoteNexp σ (NDiv (NConst n1) (NConst n2))))).
   Proof.
   Admitted.
 
@@ -696,7 +712,7 @@ Definition bisim_partial: Type_R_partial
     forall nexp st i e c mem_llvm σ g ρ env,
       genNExpr nexp st ≡ inr (i, (e, c)) ->
       (* TODO: factor out this relation *)
-      eutt (fun n '(m, (l, (g, uv))) => nat_concrete_uvalue_rel n uv)
+      eutt (fun n '(m, (l, (g, uv))) => int64_concrete_uvalue_rel n uv)
            (translate inr_ (denoteNexp σ nexp))
            (translate inl_ (interp_cfg_to_L3 helix_intrinsics (translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64)) (TransformTypes.fmap_exp _ _ (TypeUtil.normalize_type_dtyp env) e))) g ρ mem_llvm)).
   Proof.
@@ -803,7 +819,7 @@ Definition bisim_partial: Type_R_partial
   Admitted.
 
   (* TODO: awful AWFUL name. Need to figure out which of these we need *)
-  Definition nexp_relation_mem (σ : evalContext) (helix_res : MDSHCOLOnFloat64.memory * nat) (llvm_res : TopLevelEnv.memory * (local_env * (global_env * ()))) : Prop
+  Definition nexp_relation_mem (σ : evalContext) (helix_res : MDSHCOLOnFloat64.memory * Int64.int) (llvm_res : TopLevelEnv.memory * (local_env * (global_env * ()))) : Prop
     :=
       let '(mem_helix, n) := helix_res in
       let '(mem_llvm, (ρ, (g, _))) := llvm_res in
@@ -947,7 +963,7 @@ Proof.
               intros u1 u2 H7.
               destruct u1, u2, p, p; cbn.
 
-              destruct (mem_lookup_err "Error looking up 'v' in DSHAssign" n1 m) eqn:Hmemlookup.
+              destruct (mem_lookup_err "Error looking up 'v' in DSHAssign" (MInt64asNT.to_nat i) m) eqn:Hmemlookup.
               (* exception *) admit.
 
               cbn.
@@ -1696,8 +1712,8 @@ Proof.
   rename Heqp2 into HCX, m2 into xdata.
   rename Heqs0 into HFSHG, l2 into fdata', e into σ.
   rename Heqs into HIRG, l0 into ldata', l1 into gdecls.
-  remember (global_YX i o ldata' (Anon 0%Z) (TYPE_Array (Z.of_nat i) TYPE_Double)
-                      (Anon 1%Z) (TYPE_Array (Z.of_nat o) TYPE_Double)) as xydecls eqn:HXY.
+  remember (global_YX i o ldata' (Anon 0%Z) (TYPE_Array (Int64.intval i) TYPE_Double)
+                      (Anon 1%Z) (TYPE_Array (Int64.intval o) TYPE_Double)) as xydecls eqn:HXY.
   rename l3 into fdata''.
 
   inv LI.

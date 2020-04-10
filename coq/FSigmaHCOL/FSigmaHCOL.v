@@ -8,6 +8,7 @@ Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLITree.
 Require Import Helix.FSigmaHCOL.Float64AasCT.
+Require Import Helix.FSigmaHCOL.Int64asNT.
 
 (* Defining these before importing math classes to avoid name collisions,
    e.g. on [Lt] *)
@@ -62,7 +63,7 @@ Program Definition Float64One : binary64 := Bone _ _ _ _ .
 Next Obligation. unfold FLX.Prec_gt_0. omega. Qed.
 Next Obligation. omega. Qed.
 
-Module MDSigmaHCOLEvalSigFloat64 <: MDSigmaHCOLEvalSig(MFloat64AasCT).
+Module MDSigmaHCOLEvalSigFloat64 <: MDSigmaHCOLEvalSig(MFloat64AasCT)(MInt64asNT).
   Import MFloat64AasCT.
 
   Definition CTypeZero := Float64Zero.
@@ -128,4 +129,4 @@ Module MDSigmaHCOLEvalSigFloat64 <: MDSigmaHCOLEvalSig(MFloat64AasCT).
 
 End MDSigmaHCOLEvalSigFloat64.
 
-Module Export MDSHCOLOnFloat64 := MDSigmaHCOLITree(MFloat64AasCT)(MDSigmaHCOLEvalSigFloat64).
+Module Export MDSHCOLOnFloat64 := MDSigmaHCOLITree(MFloat64AasCT)(MInt64asNT)(MDSigmaHCOLEvalSigFloat64).

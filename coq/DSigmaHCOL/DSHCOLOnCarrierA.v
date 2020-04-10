@@ -2,6 +2,7 @@ Require Import Helix.HCOL.CarrierType.
 Require Import Helix.MSigmaHCOL.CarrierAasCT.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
+Require Import Helix.DSigmaHCOL.NatAsNT.
 
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.interfaces.abstract_algebra.
@@ -19,7 +20,7 @@ Instance CarrierA_max_proper: Proper((=) ==> (=) ==> (=)) (@max CarrierA Carrier
 Proof. typeclasses eauto. Qed.
 
 
-Module MDSigmaHCOLEvalSigCarrierA <: MDSigmaHCOLEvalSig(CarrierAasCT).
+Module MDSigmaHCOLEvalSigCarrierA <: MDSigmaHCOLEvalSig(CarrierAasCT)(MNatAsNT).
   Definition CTypeZero := CarrierAz.
   Definition CTypePlus := CarrierAplus.
   Definition CTypeNeg  := CarrierAneg.
@@ -46,4 +47,4 @@ Module MDSigmaHCOLEvalSigCarrierA <: MDSigmaHCOLEvalSig(CarrierAasCT).
 End MDSigmaHCOLEvalSigCarrierA.
 
 Module Export MDSHCOLOnCarrierA :=
-  MDSigmaHCOLEval(CarrierAasCT)(MDSigmaHCOLEvalSigCarrierA).
+  MDSigmaHCOLEval(CarrierAasCT)(MNatAsNT)(MDSigmaHCOLEvalSigCarrierA).

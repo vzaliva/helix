@@ -1054,7 +1054,8 @@ Section SigmaHCOL_rewriting.
     setoid_rewrite SafeCast_HReduction.
 
     (* Next rule *)
-    rewrite terminate_Reduction by apply rings.plus_comm.
+    unshelve rewrite terminate_Reduction by apply rings.plus_comm.
+    typeclasses eauto. (* apply Zero_Plus_BFixpoint. *)
 
     (* Next rule *)
     setoid_rewrite terminate_GathH1.
@@ -1137,8 +1138,15 @@ Section SigmaHCOL_rewriting.
 
     unfold dynwin_SHCOL1.
 
+    (* At this point we have two terms which are different in 2 ways:
+       1. (1+4) vs 5 (arith)
+       2. Some Prop obligations (proof irrelevance?)
+
+    unfold NatAsNT.MNatAsNT.NTypeSetoid, NatAsNT.MNatAsNT.NTypeEquiv.
+    Set Printing Implicit.
     reflexivity.
-  Qed.
+     *)
+  Admitted.
 
   (* Couple additional structual properties: input and output of the
   dynwin_SHCOL1 is dense *)
@@ -1273,6 +1281,7 @@ Section SigmaHCOL_rewriting.
 End SigmaHCOL_rewriting.
 
 Require Import Helix.FSigmaHCOL.ReifyDSHCOL.
+Require Import Helix.FSigmaHCOL.Int64asNT.
 Require Import Coq.Bool.Sumbool.
 Require Import MathClasses.misc.decision.
 
@@ -1367,11 +1376,13 @@ Section DHCOL_to_FHCOL.
     autorewrite with CarrierAZ1equalities in H.
     cbv in H.
     destruct a.
-    Helix.Util.OptionSetoid.some_inv.
     -
+      inv H.
+    -
+      inl_inr_inv.
+      (* TODO: better printing of Int64 constants. Maybe via Z *)
       (* Redirect "dynwin_FSHCOL" Show 1. *)
       exact d.
-    - inversion H.
   Defined.
 
 End DHCOL_to_FHCOL.

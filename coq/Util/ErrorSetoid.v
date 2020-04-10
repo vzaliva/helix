@@ -8,6 +8,8 @@ Require Import MathClasses.interfaces.canonical_names.
 
 Require Export Vellvm.Error.
 
+Require Import Ceres.CeresString.
+
 Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Util.StringSetoid.
 Require Import Helix.Util.Misc.
@@ -193,6 +195,12 @@ Definition nat_eq_or_err (msg:string) (a b:nat) : err unit :=
   if PeanoNat.Nat.eq_dec a b
   then ret tt
   else raise (msg ++ " " ++ string_of_nat a ++ "!=" ++ string_of_nat b)%string.
+
+Definition Z_eq_or_err (msg:string) (a b:BinInt.Z) : err unit :=
+  if BinInt.Z.eq_dec a b
+  then ret tt
+  else raise (msg ++ " " ++ (Ceres.CeresString.string_of_Z a) ++ "!=" ++ Ceres.CeresString.string_of_Z b)%string.
+
 
 Lemma is_OK_neq_inl {A : Type} {E : Equiv A} (a : err A) :
   is_OK a -> forall s, a ≠ inl s.

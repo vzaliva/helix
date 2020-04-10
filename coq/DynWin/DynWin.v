@@ -102,11 +102,11 @@ Definition dynwin_SHCOL1 (a:avector 3) :
                               SHCompose Monoid_RthetaSafeFlags
                                         (SHBinOp Monoid_RthetaSafeFlags
                                                  (λ i
-                                                    (a0 b : CarrierA),
+                                                    (a b : CarrierA),
                                                   IgnoreIndex abs i
                                                               (Fin1SwapIndex2
                                                                  jf
-                                                                 (IgnoreIndex2 sub) i a0 b)))
+                                                                 (IgnoreIndex2 sub) i a b)))
                                         (UnSafeCast
                                            (ISumUnion
                                               (λ jf0,
