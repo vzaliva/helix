@@ -1,3 +1,5 @@
+Require Import Coq.micromega.Lia.
+
 Require Import Helix.DSigmaHCOL.NType.
 
 Require Import Helix.Util.ErrorSetoid.
@@ -207,13 +209,39 @@ Module MInt64asNT <: NType.
         congruence.
   Qed.
 
+  Instance Int64_lt_proper: Proper ((=) ==> (=) ==> (eq)) Int64.lt.
+  Proof.
+    simpl_relation.
+    unfold Int64.lt.
+    destruct x as [x [xc1 xc2]].
+    destruct y as [y [yc1 yc2]].
+    destruct x0 as [x0 [x0c1 x0c2]].
+    destruct y0 as [y0 [y0c1 y0c2]].
+    inversion H as [H2]; unfold Int64.eq in H2; cbn in H2;
+      destruct (Coqlib.zeq x y) as [Ex|_]; try inversion H2; clear H H2; subst.
+    inversion H0 as [H2]; unfold Int64.eq in H2; cbn in H2;
+      destruct (Coqlib.zeq x0 y0) as [Ex0|_]; try inversion H2; clear H0 H2; subst.
+    unfold Int64.signed.
+    Opaque Int64.modulus.
+    cbn in *.
+    repeat break_if; try lia; try congruence.
+  Qed.
+
   Instance NTypeMin_proper: Proper ((=) ==> (=) ==> (=)) NTypeMin  .
   Proof.
-  Admitted.
+    unfold NTypeMin.
+    simpl_relation.
+    rewrite H, H0.
+    break_if;auto.
+  Qed.
 
   Instance NTypeMax_proper: Proper ((=) ==> (=) ==> (=)) NTypeMax  .
   Proof.
-  Admitted.
+    unfold NTypeMax.
+    simpl_relation.
+    rewrite H, H0.
+    break_if;auto.
+  Qed.
 
   Definition to_string (n : t) : String.string := string_of_nat (to_nat n).
 
