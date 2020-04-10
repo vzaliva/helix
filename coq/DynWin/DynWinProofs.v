@@ -506,6 +506,25 @@ Section MSHCOL_to_DSHCOL.
       }
 
       {
+        apply IReduction_MFacts.
+        -
+          intros.
+          apply SHCompose_MFacts.
+          constructor.
+          apply SHCompose_MFacts.
+          constructor.
+          apply SHPointwise_MFacts.
+          apply SHInductor_MFacts.
+          apply Pick_MFacts.
+        -
+          intros.
+          cbn.
+          constructor.
+          constructor.
+          constructor.
+      }
+
+      {
         cbn in *.
         unfold dynwin_x_addr in *.
         symmetry in H.
@@ -562,8 +581,51 @@ Section MSHCOL_to_DSHCOL.
         rewrite <- H4 in Heqm1_plus'.
         lia.
       }
+
+      {
+        apply IReduction_MFacts.
+        -
+          intros.
+          apply SHCompose_MFacts.
+          +
+            constructor.
+            cbn in *.
+            unfold singleton.
+            destruct x0.
+            cbn.
+            destruct x0; [| clear - l; lia].
+            exfalso.
+            admit.
+          +
+            apply SHBinOp_MFacts
+              with (f:= (λ (i : FinNat 1) (a0 b : CarrierA),
+                         IgnoreIndex abs i (Fin1SwapIndex2
+                                              (mkFinNat jc) (IgnoreIndex2 sub) i a0 b))).
+          +
+            apply IUnion_MFacts.
+            intros.
+            apply SHCompose_MFacts.
+            constructor.
+            apply Embed_MFacts.
+            apply Pick_MFacts.
+            intros.
+            cbn.
+            constructor.
+            intros x C.
+            inversion C; subst.
+            inversion H1; subst.
+            inversion H2; subst.
+            contradict H0.
+            reflexivity.
+        -
+          intros.
+          cbn.
+          constructor.
+          constructor.
+          constructor.
+      }
+    Admitted.
       
-    Qed.
 
   End DummyEnv.
 
