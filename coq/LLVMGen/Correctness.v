@@ -164,6 +164,17 @@ Definition normalize_types_blocks (env: list _) (bks: list (LLVMAst.block typ))
     (TransformTypes.fmap_block _ _ (TypeUtil.normalize_type_dtyp env)) bks.
 Import IO TopLevelEnv Global Local.
 
+Definition blah {T} (defs : IS.intrinsic_definitions) (m : memory) (g : global_env) (l : local_env) (e : instr_E T) :=
+  M.interp_memory (interp_local (interp_global (INT.interpret_intrinsics_h defs e) g) l) m.
+(*
+  (State.interp_state
+         (case_ (M.E_trigger (F:=PickE +' UBE +' DebugE +' FailureE))
+            (case_ M.handle_intrinsic (case_ M.handle_memory (M.F_trigger (F:=PickE +' UBE +' DebugE +' FailureE)))))
+         (State.interp_state (interp_local_h (G:=MemoryE +' PickE +' UBE +' DebugE +' FailureE))
+            (State.interp_state (interp_global_h (G:=LLVMEnvE +' MemoryE +' PickE +' UBE +' DebugE +' FailureE))
+               (INT.interpret_intrinsics_h defs e) g) l) m).
+*)
+
 Definition interp_cfg_to_L3:
   forall (R: Type),
     IS.intrinsic_definitions ->
@@ -524,6 +535,86 @@ Definition bisim_partial: Type_R_partial
     match goal with
     | |- context [String ?x ?y] => remember (String x y)
     end.
+
+  (* TODO: move to vellvm *)
+  Lemma interp_global_vis:
+    ∀ (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type → Type) 
+      (H0 : FailureE -< G) (R : Type) (g : map) (x : R) S X
+      (kk : X -> itree (E +' F +' GlobalE k v +' G) S)
+      (e : (E +' F +' GlobalE k v +' G) X),
+      runState (interp_global (Vis e kk)) g ≅ ITree.bind (runState (interp_global_h e) g) (fun (sx : map * X) => Tau (runState (interp_global (kk (snd sx))) (fst sx))).
+  Proof.
+    intros k v map M SK E F G H0 R g x S X kk e.
+    unfold interp_global.
+    setoid_rewrite interp_state_vis.
+    reflexivity.
+  Qed.
+
+  (* TODO: move to vellvm *)
+  Lemma interp_local_vis:
+    ∀ (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type → Type) 
+      (H0 : FailureE -< G) (R : Type) (g : map) (x : R) S X
+      (kk : X -> itree (E +' F +' LocalE k v +' G) S)
+      (e : (E +' F +' LocalE k v +' G) X),
+      runState (interp_local (Vis e kk)) g ≅ ITree.bind (runState (interp_local_h e) g) (fun (sx : map * X) => Tau (runState (interp_local (kk (snd sx))) (fst sx))).
+  Proof.
+    intros k v map M SK E F G H0 R g x S X kk e.
+    unfold interp_local.
+    setoid_rewrite interp_state_vis.
+    reflexivity.
+  Qed.
+
+  (* TODO: move to vellvm *)
+  Lemma interpret_intrinsics_vis:
+    forall E F X R (HF : FailureE -< F) (e : (E +' IntrinsicE +' F) X)
+      (kk : X -> itree (E +' IntrinsicE +' F) R)
+      defs,
+      INT.interpret_intrinsics defs (Vis e kk) ≅ ITree.bind (INT.interpret_intrinsics_h defs e) (λ x : X, Tau (interp (INT.interpret_intrinsics_h defs) (kk x))).
+  Proof.
+    intros E F X R HF e kk h.
+    unfold INT.interpret_intrinsics.
+    rewrite interp_vis.
+    reflexivity.
+  Qed.
+ 
+  Lemma interp_cfg_to_L3_vis (defs: IS.intrinsic_definitions):
+    forall T R (e : instr_E T) (k : T -> itree instr_E R) g l m,
+      interp_cfg_to_L3 defs (Vis e k) g l m ≅
+                       ITree.bind (interp_cfg_to_L3 defs (trigger e) g l m)
+                       (fun '(m, (l, (g, x)))=> Tau (interp_cfg_to_L3 defs (k x) g l m)).
+  Proof.
+    intros T R e k g l m.
+    unfold interp_cfg_to_L3.
+    unfold interp_local, interp_global, M.interp_memory, runState.
+    setoid_rewrite interpret_intrinsics_vis.
+    repeat setoid_rewrite interp_state_bind.
+    repeat setoid_rewrite bind_bind.
+  Admitted.
+
+  (* TODO: Move to itrees? *)
+  (* Check interp_interp. *)
+  (* Lemma interp_state_interp_state : *)
+  (*   forall (E G H : Type -> Type) (R STF STG T: Type) *)
+  (*     (f : ∀ T : Type, E T → Monads.stateT STF (itree G) T) *)
+  (*     (g : forall T : Type, G T -> Monads.stateT STG (itree H) T) *)
+  (*     (sf : STF) (sg : STG) *)
+  (*     (t : itree E R) t', *)
+  (*     interp_state g (interp_state f t sf) sg ≅ t'. *)
+  (* Proof. *)
+  (*   intros. *)
+  (*   unfold interp_state. *)
+  (*   Check interp_interp. *)
+
+  (*   Check interp g (fun T e => f T e sf) sg. *)
+  (*   setoid_rewrite interp_interp. *)
+  (*   Set Nested Proofs Allowed. *)
+  (*   assert (itree H (STG * (STF * R))). *)
+  (*   refine (interp_state _ _ _). *)
+  (*   refine (@interp_state G _ STG _ _ _ _ _). *)
+
+  (*   (fun (T : Type) (e : E T) => _) t). *)
+  (* Qed. *)
+
 
   (* TODO: Move this to Vellvm *)
   Definition TT {A} : relation A := fun _ _ => True.
@@ -982,6 +1073,83 @@ Proof.
                 repeat setoid_rewrite translate_vis.
                 repeat setoid_rewrite bind_bind.
                 repeat setoid_rewrite translate_ret.
+
+                rewrite interp_cfg_to_L3_vis; cbn.
+                repeat setoid_rewrite bind_bind.
+                cbn.
+                rewrite translate_bind.
+                rewrite bind_bind.
+                cbn.
+
+                match goal with
+                | |- context[ITree.bind ?ma ?b] => remember b as blah
+                end.
+                
+                unfold interp_cfg_to_L3; cbn.
+                unfold trigger.
+                rewrite interpret_intrinsics_vis.
+                cbn.
+                setoid_rewrite tau_eutt.
+                setoid_rewrite interp_ret.
+                setoid_rewrite bind_ret_r.
+                unfold interp_global.
+                cbn.
+                unfold runState.
+                unfold M.interp_memory.
+                unfold interp_local.
+                cbn.
+
+                unfold INT.F_trigger.
+                setoid_rewrite interp_state_trigger.
+                cbn.
+                destruct (alist_find AstLib.eq_dec_raw_id id g1) eqn:Hg1.
+                Focus 2.
+                (* exception *) admit.
+                rewrite bind_ret_l.
+                repeat rewrite interp_state_tau.
+                rewrite tau_eutt.
+                repeat rewrite interp_state_ret.
+                rewrite translate_ret.
+                rewrite bind_ret_l.
+
+                subst blah.
+                match goal with
+                | |- context[ITree.bind ?ma ?b] => remember b as blah
+                end.
+
+                rewrite interp_cfg_to_L3_ret.
+                rewrite tau_eutt.
+                rewrite bind_ret_l, translate_ret.
+                repeat rewrite translate_ret, interp_cfg_to_L3_ret.
+                rewrite translate_ret, bind_ret_l.
+
+                subst blah.
+                match goal with
+                | |- context[ITree.bind ?ma ?b] => remember b as blah
+                end.
+
+                repeat rewrite interp_cfg_to_L3_bind.
+                setoid_rewrite translate_ret.
+                rewrite interp_cfg_to_L3_ret.
+                rewrite bind_ret_l.
+                repeat rewrite interp_cfg_to_L3_bind.
+                repeat rewrite bind_bind.
+                rewrite translate_bind.
+                rewrite bind_bind.
+
+                epose proof (@denote_exp_nexp _ _ _ _ _ _ _ _ _ _ Hnexp_src).
+                Check eutt_clo_bind.
+                eapply eutt_clo_bind.
+
+                rewrite interpret_intrinsics_vis.
+
+                destruct id eqn:Hid.
+                --- (* Name *)
+
+                  
+                  setoid_rewrite interp_interp.
+                  
+                --- (* Local id *)
                 admit.
               ** (* Local id *)
                 admit.
