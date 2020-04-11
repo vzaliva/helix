@@ -43,6 +43,7 @@ Definition translateMemVarRef: MDSHCOLOnCarrierA.MemVarRef -> err MemVarRef
        n' <- translateNExpr n ;;
        ret (translatePExpr p, n').
 
+Set Universe Polymorphism.
 (* This one is tricky. There are only 2 known constants we know how to translate:
    '1' and '0'. Everything else will trigger an error *)
 Definition translateCarrierA (a:CarrierA): err binary64 :=
@@ -50,22 +51,38 @@ Definition translateCarrierA (a:CarrierA): err binary64 :=
   else if CarrierAequivdec a CarrierA1 then inr MDSigmaHCOLEvalSigFloat64.CTypeOne
        else (inl "unknown CarrierA constant").
 
-Definition translate_mem_block (m:MDSHCOLOnCarrierA.mem_block) : err mem_block. Admitted.
+(* This should be defined as:
 
-(*
+   Definition NM_err_sequence
+           {A: Type}
+           (mv: NM.t (err A)): err (NM.t A)
+           := @NM_sequence A err Monad_err mv.
 
-The following definition:
+   But it gives us a problem:
 
-    := NM_sequence (NM.map translateCarrierA m).
+   The term "Monad_err" has type "Monad err" while it is expected to have type
+   "Monad (fun B : Type => err B)".
 
-is causing the following error:
-
-m : MDSHCOLOnCarrierA.mem_block
-The term "translateCarrierA" has type "CarrierA -> err binary64"
-while it is expected to have type "CarrierA -> ?elt'"
-(unable to find a well-typed instantiation for "?elt'": cannot ensure that
-"Type@{max(Set,err.u0)}" is a subtype of "Type@{Coq.FSets.FMapAVL.659}").
 *)
+Definition NM_err_sequence
+           {A: Type}
+           (mv: NM.t (err A)): err (NM.t A)
+  := NM.fold
+       (fun k v acc =>
+          match v with
+          | inr v' =>
+            match acc with
+            | inr acc' => inr (NM.add k v' acc')
+            | inl msg => inl msg
+            end
+          | inl msg => inl msg
+          end)
+       mv
+       (inr (@NM.empty A)).
+
+(* This should use [NM_sequence] directly making [NM_err_sequence] unecessary, but we run into universe inconsistency *)
+Definition translate_mem_block (m:MDSHCOLOnCarrierA.mem_block) : err mem_block
+  := NM_err_sequence (NM.map translateCarrierA m).
 
 Definition translateMExpr (m:MDSHCOLOnCarrierA.MExpr) : err MExpr :=
   match m with
