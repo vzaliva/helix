@@ -4163,7 +4163,7 @@ Qed.
 Lemma memory_next_key_override (k : mem_block_id) (m : memory) (mb : mem_block) :
   mem_block_exists k m ->
   memory_next_key (memory_set m k mb) = memory_next_key m.
-Admitted.
+Admitted. (* @lord *)
 
 Global Instance evalDSHOperator_proper :
   Proper ((=) ==> (≡) ==> (=) ==> (=) ==> (=)) evalDSHOperator.
@@ -4735,15 +4735,28 @@ Proof.
     subst b_id.
     unfold memory_set.
     rewrite NP.F.add_eq_o by reflexivity.
-    assert (exists y_ma, lookup_Pexp σ ma y_p = inr y_ma) by admit. (* pure *)
+    assert (exists y_ma, lookup_Pexp σ ma y_p = inr y_ma) by admit. (* MA + pure *) (* @lord *)
     destruct H as [y_ma Y_MA].
-    assert (T : NM.find (elt:=mem_block) y_id ma = Some y_ma) by admit. (* lookup *)
+    assert (T : NM.find (elt:=mem_block) y_id ma = Some y_ma)
+      by admit. (* Y_ID + Y_MA *) (* @lord *)
     rewrite T; clear T.
     f_equiv.
     intros k.
     destruct (le_lt_dec o k).
     +
-      admit. (* preserved *)
+      unfold mem_union.
+      rewrite NP.F.map2_1bis by reflexivity.
+      assert (NM.find (elt:=CarrierA) k
+                      (mem_merge_with_def dot init (mem_firstn o x1_m)
+                                          (mem_firstn o x2_m)) = None).
+      {
+        unfold mem_merge_with_def.
+        rewrite NP.F.map2_1bis by reflexivity.
+        repeat rewrite mem_firstn_lookup_oob by assumption; reflexivity.
+      }
+      break_match; try some_none.
+      clear Heqo0 H.
+      admit. (* follows from [MA] by [evalDSHMap2_rest_preserved] *) (* @lord *)
     +
       erewrite MemMap2_merge_with_def.
       7: eapply MA.
@@ -4773,7 +4786,7 @@ Proof.
   -
     unfold memory_set.
     rewrite NP.F.add_neq_o by congruence.
-    admit. (* pure *)
+    admit. (* pure + MA *) (* @lord *)
 Admitted.
 
 Global Instance eq_equiv_subrelation `{Equivalence A EqA} :
