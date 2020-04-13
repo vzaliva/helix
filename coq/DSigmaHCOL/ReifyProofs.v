@@ -4564,7 +4564,7 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma lookup_firstn (k n : nat) (mb : mem_block) (a : CarrierA) :
+Lemma mem_firstn_def (k n : nat) (mb : mem_block) (a : CarrierA) :
   mem_lookup k (mem_firstn n mb) = Some a <-> k < n /\ mem_lookup k mb = Some a.
 Proof.
   split; intros.
@@ -4598,6 +4598,92 @@ Proof.
       apply NP.F.find_mapsto_iff.
       assumption.
 Admitted.
+
+Lemma mem_firstn_def_eq (k n : nat) (mb : mem_block) (a : CarrierA) :
+  mem_lookup k (mem_firstn n mb) ≡ Some a <-> k < n /\ mem_lookup k mb ≡ Some a.
+Proof.
+  split; intros.
+  -
+    unfold mem_firstn, mem_lookup, NP.filter_dom in *.
+    destruct NM.find eqn:F in H; try some_none; some_inv.
+    apply NP.F.find_mapsto_iff, NP.filter_iff in F.
+    2: intros k1 k2 EK a1 a2 EA; subst; reflexivity.
+    destruct F.
+    subst.
+    admit.
+  -
+    unfold mem_firstn, mem_lookup, NP.filter_dom in *.
+    destruct H as [H1 H2].
+    destruct (NM.find (elt:=CarrierA) k
+                      (NP.filter (λ (k0 : NM.key) (_ : CarrierA), k0 <? n) mb)) eqn:F.
+    +
+      apply NP.F.find_mapsto_iff, NP.filter_iff in F.
+      2: intros k1 k2 EK a1 a2 EA; subst; reflexivity.
+      destruct F.
+      admit.
+    +
+      destruct NM.find eqn:H in H2; try some_none; some_inv.
+      subst.
+      contradict F.
+      apply is_Some_ne_None, is_Some_def.
+      eexists.
+      apply NP.F.find_mapsto_iff, NP.filter_iff.
+      1: intros k1 k2 EK a1 a2 EA; subst; reflexivity.
+      split.
+      2: admit.
+      eapply NP.F.find_mapsto_iff.
+      eassumption.
+Admitted.
+
+Lemma mem_firstn_lookup (k n : nat) (mb : mem_block) :
+  k < n ->
+  mem_lookup k (mem_firstn n mb) ≡ mem_lookup k mb.
+Proof.
+  intros.
+  destruct (mem_lookup k mb) eqn:L.
+  -
+    rewrite mem_firstn_def_eq.
+    auto.
+  -
+    apply is_None_def.
+    enough (not (is_Some (mem_lookup k (mem_firstn n mb))))
+      by (unfold is_None, is_Some in *; break_match; auto).
+    intros C.
+    apply is_Some_def in C.
+    destruct C as [mb' MB].
+    apply mem_firstn_def_eq in MB.
+    destruct MB; some_none.
+Qed.
+
+Lemma mem_firstn_lookup_oob (k n : nat) (mb : mem_block) :
+  n <= k ->
+  mem_lookup k (mem_firstn n mb) ≡ None.
+Proof.
+  intros.
+  apply is_None_def.
+  enough (not (is_Some (mem_lookup k (mem_firstn n mb))))
+    by (unfold is_None, is_Some in *; break_match; auto).
+  intros C.
+  apply is_Some_def in C.
+  destruct C as [mb' MB]; eq_to_equiv.
+  apply mem_firstn_def in MB.
+  lia.
+Qed.
+
+Lemma firstn_mem_const_block_union (o : nat) (init : CarrierA) (mb : mem_block) :
+  mem_firstn o (mem_union (mem_const_block o init) mb) = mem_const_block o init.
+Proof.
+  intros k.
+  destruct (le_lt_dec o k).
+  -
+    rewrite mem_firstn_lookup_oob, mem_const_block_find_oob by assumption.
+    reflexivity.
+  -
+    rewrite mem_firstn_lookup by assumption.
+    unfold mem_union, mem_lookup.
+    rewrite NP.F.map2_1bis by reflexivity.
+    rewrite mem_const_block_find; auto.
+Qed.
 
 Lemma MemMap2_merge_with_def_firstn
       (x1_p x2_p y_p : PExpr)
@@ -4681,16 +4767,13 @@ Proof.
       destruct H as [k_x1m K_X1M].
       assert (exists k_x2m, mem_lookup k x2_m = Some k_x2m) by admit.
       destruct H as [k_x2m K_X2M].
-      assert (H1 : mem_lookup k (mem_firstn o x1_m) = Some k_x1m)
-        by (apply lookup_firstn; auto).
-      assert (H2 : mem_lookup k (mem_firstn o x2_m) = Some k_x2m)
-        by (apply lookup_firstn; auto).
+      repeat rewrite mem_firstn_lookup by assumption.
       unfold mem_lookup in *.
       repeat break_match; try some_none.
-      repeat some_inv.
-      rewrite K_X1M, K_X2M.
-      rewrite H1, H2.
-      reflexivity.
+  -
+    unfold memory_set.
+    rewrite NP.F.add_neq_o by congruence.
+    admit. (* pure *)
 Admitted.
 
 Global Instance eq_equiv_subrelation `{Equivalence A EqA} :
@@ -5234,6 +5317,7 @@ Proof.
   assumption.
 Qed.
 
+
 Global Instance IReduction_MSH_DSH_compat_S
        {i o n: nat}
        {init : CarrierA}
@@ -5626,6 +5710,7 @@ Proof.
         rename m0 into ma, Heqo0 into MA; clear Heqs0 s.
         constructor.
         subst Rel.
+
         destruct (lookup_Pexp σ (memory_remove ma t_id) y_p) eqn:Y_MA.
         {
           (* [y_p] disappeared in [ma] - not pure behavior *)
@@ -5651,37 +5736,43 @@ Proof.
           trivial.
         }
         constructor.
+
+        rewrite MemMap2_merge_with_def_firstn with (init:=init) in MA; try eassumption.
+        2: repeat rewrite evalPexp_incrPVar; assumption.
+        some_inv; inl_inr_inv.
+        eq_to_equiv.
+        rewrite <-MA in Y_MA; clear MA ma.
+        assert (m0 = mem_union
+                        (mem_merge_with_def dot init (mem_firstn o t_dm)
+                       (mem_firstn o (mem_union (mem_const_block o init) y_m)))
+                        (mem_union (mem_const_block o init) y_m)) by admit.
+        rewrite H.
+        clear Y_MA H m0.
         intros k.
         destruct (le_lt_dec o k).
         --
           constructor 1.
           admit. (* oob *)
-          rename m0 into y_ma.
-          eq_to_equiv.
-          assert (T : mem_lookup k y_m =
-                      mem_lookup k (mem_union (mem_const_block o init) y_m))
-            by admit. (* oob *)
-          rewrite T; clear T.
-          symmetry.
-          eapply MemMap2_rest_preserved.
-          3: eapply MA.
-          3: assumption.
-          eassumption.
-          repeat rewrite lookup_Pexp_incrPVar.
-          admit. (* from Y_MA *)
+          unfold mem_lookup, mem_union, mem_merge_with_def.
+          repeat rewrite NP.F.map2_1bis by reflexivity.
+          repeat rewrite mem_firstn_lookup_oob by assumption.
+          rewrite mem_const_block_find_oob by assumption.
+          reflexivity.
         --
           constructor 2.
           admit. (* dense *)
-          rename m0 into y_ma.
-          eq_to_equiv.
-          rewrite mem_merge_with_def_empty_const; [| admit | eassumption].
-          eapply MemMap2_merge_with_def with (m':=ma)
-                                             (y_m' := y_ma).
-          6: eassumption.
-          all: try assumption.
-          all: repeat rewrite lookup_Pexp_incrPVar; cbn.
-
-          all: give_up.
+          rewrite firstn_mem_const_block_union.
+          unfold mem_lookup, mem_union, mem_merge_with_def.
+          unfold MMemoryOfCarrierA.mem_merge_with_def.
+          repeat rewrite NP.F.map2_1bis by reflexivity.
+          rewrite mem_const_block_find by assumption.
+          rewrite mem_firstn_lookup by assumption.
+          specialize (T_DM_dense k l).
+          apply mem_in_mem_lookup, is_Some_def in T_DM_dense.
+          destruct T_DM_dense as [k_tdm K_TDM].
+          rewrite K_TDM.
+          cbn.
+          admit.
       * (* Map2 runs out of fuel *)
         clear - Heqo0.
         assert (is_Some (evalDSHOperator (DSHnatVal 0 :: DSHPtrVal t_id o :: σ)
