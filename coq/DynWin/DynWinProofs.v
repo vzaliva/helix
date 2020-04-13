@@ -525,6 +525,16 @@ Section MSHCOL_to_DSHCOL.
       }
 
       {
+        apply SHCompose_MFacts.
+        constructor.
+        apply SHCompose_MFacts.
+        constructor.
+        apply SHPointwise_MFacts.
+        apply SHInductor_MFacts.
+        apply Pick_MFacts.
+      }
+
+      {
         cbn in *.
         unfold dynwin_x_addr in *.
         symmetry in H.
@@ -631,6 +641,35 @@ Section MSHCOL_to_DSHCOL.
           constructor.
           constructor.
       }
+
+      {
+        apply SHCompose_MFacts.
+        -
+          cbn.
+          intros x IN.
+          destruct x as [x X2].
+          cbn in *.
+          destruct x as [| x].
+          *
+            right.
+            left.
+            reflexivity.
+          *
+            inversion X2; [| lia].
+            subst.
+            left.
+            reflexivity.
+        -
+          clear.
+          apply SHBinOp_MFacts with (f := λ (i : FinNat 1) (a0 b : CarrierA),
+                                          IgnoreIndex abs i
+                                                      (Fin1SwapIndex2 (mkFinNat jc)
+                                                                      (IgnoreIndex2 sub)
+                                                                      i a0 b)).
+        -
+          solve_facts.
+      }
+      
     Qed.
 
   End DummyEnv.
