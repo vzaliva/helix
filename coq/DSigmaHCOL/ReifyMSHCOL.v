@@ -261,7 +261,7 @@ Fixpoint compileMSHCOL2DSHCOL
                               (DSHLoop nn
                                        (DSHSeq
                                           rr
-                                          (DSHMemMap2 no t_i' y_p'' y_p'' df)))))
+                                          (DSHMemMap2 no y_p'' t_i' y_p'' df)))))
       end
       | Some n_SHCompose, [i1 ; o2 ; o3 ; op1 ; op2] =>
         tmPrint "MSHCompose" ;;

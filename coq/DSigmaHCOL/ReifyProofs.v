@@ -3926,8 +3926,8 @@ Global Instance IReduction_DSH_pure
                    (DSHLoop nn
                             (DSHSeq
                                rr
-                               (DSHMemMap2 no (PVar 1)
-                                           y_p''
+                               (DSHMemMap2 no y_p''
+                                           (PVar 1)
                                            y_p''
                                            df)))))
       y_p.
@@ -3937,7 +3937,7 @@ Proof.
   apply MemInit_DSH_pure.
 
   (* we don't care what operator it is so long as it's pure *)
-  remember (DSHMemMap2 no (PVar 1) (incrPVar 0 (incrPVar 0 y_p))
+  remember (DSHMemMap2 no (incrPVar 0 (incrPVar 0 y_p)) (PVar 1)
                 (incrPVar 0 (incrPVar 0 y_p)) df)
     as dop.
   assert (DSH_pure dop (incrPVar 0 (incrPVar 0 y_p)))
@@ -5446,8 +5446,8 @@ Global Instance IReduction_MSH_DSH_compat_S
                    (DSHLoop (S n)
                             (DSHSeq
                                rr
-                               (DSHMemMap2 o (PVar 1)
-                                           y_p''
+                               (DSHMemMap2 o y_p''
+                                           (PVar 1)
                                            y_p''
                                            df)))))
       σ m x_p y_p DP.
@@ -5785,10 +5785,10 @@ Proof.
       * (* Map2 fails *)
         exfalso.
         enough (exists m', evalDSHOperator (DSHnatVal 0 :: DSHPtrVal t_id o :: σ)
-            (DSHMemMap2 o (PVar 1) (incrPVar 0 (incrPVar 0 y_p))
+            (DSHMemMap2 o (incrPVar 0 (incrPVar 0 y_p)) (PVar 1)
                (incrPVar 0 (incrPVar 0 y_p)) df) dm
             (estimateFuel
-               (DSHMemMap2 o (PVar 1) (incrPVar 0 (incrPVar 0 y_p))
+               (DSHMemMap2 o (incrPVar 0 (incrPVar 0 y_p)) (PVar 1) 
                   (incrPVar 0 (incrPVar 0 y_p)) df)) = Some (inr m'))
           by (destruct H; rewrite H in Heqo0; some_inv; inl_inr).
         eapply DSHMap2_succeeds; eassumption.
@@ -5801,8 +5801,8 @@ Proof.
         {
           (* [y_p] disappeared in [ma] - not pure behavior *)
           exfalso.
-          pose proof @MemMap2_DSH_pure (PVar 1)
-               (incrPVar 0 (incrPVar 0 y_p)) (incrPVar 0 (incrPVar 0 y_p)) o df.
+          pose proof @MemMap2_DSH_pure
+               (incrPVar 0 (incrPVar 0 y_p)) (PVar 1) (incrPVar 0 (incrPVar 0 y_p)) o df.
           eq_to_equiv.
           cbn in Y_MA.
           unfold memory_lookup_err, trywith in Y_MA.
@@ -5828,10 +5828,10 @@ Proof.
         some_inv; inl_inr_inv.
         eq_to_equiv.
         rewrite <-MA in Y_MA; clear MA ma.
-        assert (m0 = mem_union
-                        (mem_merge_with_def dot init (mem_firstn o t_dm)
-                       (mem_firstn o (mem_union (mem_const_block o init) y_m)))
-                        (mem_union (mem_const_block o init) y_m)) by admit.
+        assert (m0 = mem_union (mem_merge_with_def dot init
+                                 (mem_firstn o (mem_union (mem_const_block o init) y_m))
+                                 (mem_firstn o t_dm))
+                               (mem_union (mem_const_block o init) y_m)) by admit.
         rewrite H.
         clear Y_MA H m0.
         intros k.
@@ -5858,19 +5858,39 @@ Proof.
           destruct T_DM_dense as [k_tdm K_TDM].
           rewrite K_TDM.
           cbn.
-          admit.
+
+          inversion R.
+          eq_to_equiv; symmetry in H; memory_lookup_err_to_option.
+          assert (T : x = t_dm) by admit; rewrite T in *; clear T x.
+          assert (exists k_mm, mem_lookup k mm = Some k_mm)
+            by admit. (* from FD and MM *)
+          destruct H1 as [k_mm K_MM].
+          break_match.
+          all: eq_to_equiv; rewrite K_MM in Heqo0.
+          all: try some_none; some_inv.
+          rewrite <-Heqo0 in *; clear c Heqo0.
+          
+          specialize (H0 k).
+          rewrite K_MM, K_TDM in H0.
+          inversion H0; try some_none.
+          some_inv.
+          rewrite H2.
+          reflexivity.
       * (* Map2 runs out of fuel *)
         clear - Heqo0.
         assert (is_Some (evalDSHOperator (DSHnatVal 0 :: DSHPtrVal t_id o :: σ)
-            (DSHMemMap2 o (PVar 1) (incrPVar 0 (incrPVar 0 y_p))
+            (DSHMemMap2 o (incrPVar 0 (incrPVar 0 y_p)) (PVar 1)
                (incrPVar 0 (incrPVar 0 y_p)) df) dm
             (estimateFuel
-               (DSHMemMap2 o (PVar 1) (incrPVar 0 (incrPVar 0 y_p))
+               (DSHMemMap2 o (incrPVar 0 (incrPVar 0 y_p)) (PVar 1)
                            (incrPVar 0 (incrPVar 0 y_p)) df))))
           by apply evalDSHOperator_estimateFuel.
         unfold is_Some in H.
         break_match; try some_none.
         contradiction.
+  -
+    rename n into n'; remember (S n') as n.
+    
 Admitted.
 
 (** * MSHCompose *)
