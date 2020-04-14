@@ -129,6 +129,44 @@ Proof.
     reflexivity.
 Qed.
 
+Lemma fold_left_rev_def {A B : Type} (l : list B) (e : A) (f : A -> B -> A) :
+  fold_left_rev f e l ≡ fold_left f (rev l) e.
+Proof.
+  induction l.
+  -
+    reflexivity.
+  -
+    cbn.
+    rewrite fold_left_app, IHl.
+    reflexivity.
+Qed.
+
+Lemma fold_left_fold_left_rev
+      {A : Type}
+      (l : list A)
+      (e : A)
+      (f : A -> A -> A)
+      (f_commut : ∀ x y, f x y ≡ f y x)
+      (f_assoc : ∀ x y z, f x (f y z) ≡ f (f x y) z)
+  :
+    fold_left_rev f e l ≡ fold_left f l e.
+Proof.
+  rewrite fold_left_rev_def.
+  rewrite <-fold_left_rev_right.
+  rewrite rev_involutive.
+  induction l; [reflexivity |].
+  cbn.
+  rewrite IHl; clear IHl.
+
+  generalize dependent a.
+  induction l; [reflexivity |].
+  intros.
+  cbn.
+  rewrite <-f_assoc.
+  do 2 rewrite <-IHl.
+  congruence.
+Qed.
+
 Global Instance nth_error_proper
        {A: Type}
        `{Ae: Equiv A}
