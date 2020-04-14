@@ -4796,7 +4796,19 @@ Proof.
     subst b_id.
     unfold memory_set.
     rewrite NP.F.add_eq_o by reflexivity.
-    assert (exists y_ma, lookup_Pexp σ ma y_p = inr y_ma) by admit. (* MA + pure *) (* @lord *)
+    assert (exists y_ma, lookup_Pexp σ ma y_p = inr y_ma).
+    {
+      apply equiv_Some_is_Some, memory_is_set_is_Some,
+      (mem_stable _ _ _ _ MA), mem_block_exists_exists in YID_M.
+      destruct YID_M as [y_ma H].
+      exists y_ma.
+      cbn.
+      break_match; try inl_inr.
+      apply memory_lookup_err_inr_Some.
+      inv Y_ID.
+      rewrite H2, H.
+      reflexivity.
+    }
     destruct H as [y_ma Y_MA].
     assert (T : NM.find (elt:=mem_block) y_id ma = Some y_ma)
       by admit. (* Y_ID + Y_MA *) (* @lord *)
