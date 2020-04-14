@@ -26,7 +26,10 @@ before_script:
   -  ./ci/keep_alive.sh &
 
 install:
-  - opam init -n -y --compiler=4.09.0
+  - opam init -n -y --compiler=4.07.1+flambda
+  # TODO: to get full perofrmance benefits we need to perform `pin edit` step
+  # as described here https://coq.discourse.group/t/install-notes-on-coq-and-ocaml-versions-configuration/713/6
+  # it is not automated in this build script yet
   - eval $(opam config env)
   - opam config var root
   # this somehow fails the second time...
