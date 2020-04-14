@@ -4160,10 +4160,71 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma memory_next_key_struct
+      (m m' : memory):
+  (forall k, mem_block_exists k m <-> mem_block_exists k m') ->
+       memory_next_key m = memory_next_key m'.
+Proof.
+  intros H.
+  unfold memory_next_key.
+  destruct (NS.max_elt (memory_keys_set m)) as [k1|] eqn:H1;
+    destruct (NS.max_elt (memory_keys_set m')) as [k2|] eqn:H2.
+  -
+    f_equiv.
+    cut(¬ k1 < k2 /\ ¬ k2 < k1);[lia|].
+    split.
+    +
+      apply (NS.max_elt_2 H1), memory_keys_set_In, H.
+      apply NS.max_elt_1, memory_keys_set_In in H2.
+      apply H2.
+    +
+      apply (NS.max_elt_2 H2), memory_keys_set_In, H.
+      apply NS.max_elt_1, memory_keys_set_In in H1.
+      apply H1.
+  - exfalso.
+    apply NS.max_elt_1 in H1.
+    apply NS.max_elt_3 in H2.
+    apply memory_keys_set_In in H1.
+    apply H in H1.
+    apply memory_keys_set_In in H1.
+    apply  NSP.empty_is_empty_1 in H2.
+    rewrite H2 in H1.
+    apply NSP.FM.empty_iff in H1.
+    tauto.
+  - exfalso.
+    apply NS.max_elt_1 in H2.
+    apply NS.max_elt_3 in H1.
+    apply memory_keys_set_In in H2.
+    apply H in H2.
+    apply memory_keys_set_In in H2.
+    apply  NSP.empty_is_empty_1 in H1.
+    rewrite H1 in H2.
+    apply NSP.FM.empty_iff in H2.
+    tauto.
+  -
+    reflexivity.
+Qed.
+
+
 Lemma memory_next_key_override (k : mem_block_id) (m : memory) (mb : mem_block) :
   mem_block_exists k m ->
   memory_next_key (memory_set m k mb) = memory_next_key m.
-Admitted. (* @lord *)
+Proof.
+  intros H.
+  apply memory_next_key_struct.
+  intros k0.
+  split; intros.
+  -
+    destruct (Nat.eq_dec k k0).
+    +
+      subst k0.
+      assumption.
+    +
+      apply mem_block_exists_memory_set_neq in H0; auto.
+  -
+    apply mem_block_exists_memory_set.
+    assumption.
+Qed.
 
 Global Instance evalDSHOperator_proper :
   Proper ((=) ==> (≡) ==> (=) ==> (=) ==> (=)) evalDSHOperator.
