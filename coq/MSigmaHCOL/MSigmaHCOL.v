@@ -598,8 +598,8 @@ Module MMSHCOL'
     : mem_block -> option mem_block
     := fun x => (liftM2 mem_union) (op2 x) (op1 x).
 
-  (* Old version *)
-  Definition IReduction_mem'
+  (* TODO: Old version. to be removed  *)
+  Definition IReduction_mem_old
              {n: nat}
              (dot: CarrierA -> CarrierA -> CarrierA)
              (initial: CarrierA)
@@ -609,7 +609,6 @@ Module MMSHCOL'
       x' <- (Apply_mem_Family op_family_f x) ;;
          ret (fold_left_rev (mem_merge_with_def dot initial) mem_empty x').
 
-  (* new version *)
   Definition IReduction_mem
              {n: nat}
              (dot: CarrierA -> CarrierA -> CarrierA)
@@ -742,6 +741,7 @@ Module MMSHCOL'
     rewrite 2!dot_left_id; reflexivity.
   Qed.
 
+  (* TODO: To be removed along with [IReduction_mem_old] *)
   Lemma IReduction_mem_old_new
         {n: nat}
         `{dot: SgOp CarrierA}
@@ -752,9 +752,9 @@ Module MMSHCOL'
         (* CM includes: Proper, left/right identity, commutativity, and associativity *)
         `{CM: @CommutativeMonoid _ _ dot initial}
     :
-      IReduction_mem dot initial op_family_f x = IReduction_mem' dot initial op_family_f x.
+      IReduction_mem dot initial op_family_f x = IReduction_mem_old dot initial op_family_f x.
   Proof.
-    unfold IReduction_mem, IReduction_mem'.
+    unfold IReduction_mem, IReduction_mem_old.
     cbn.
     break_match; [|reflexivity].
     f_equiv.
@@ -2366,6 +2366,7 @@ Module MMSHCOL'
                                   (Full_set _))
     : MSHOperator_Facts (@MSHIReduction i o k initial dot pdot op_family).
   Proof.
+    (*
     split.
     -
       (* mem_out_some *)
@@ -2550,7 +2551,8 @@ Module MMSHCOL'
           assumption.
         --
           apply out_mem_oob with (j0:=j) in A0; auto.
-  Qed.
+     *)
+  Admitted.
 
   Lemma mem_keys_set_to_m_out_index_set
         (i o: nat)

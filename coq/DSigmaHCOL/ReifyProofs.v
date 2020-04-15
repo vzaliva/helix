@@ -24,6 +24,7 @@ Require Import Helix.Util.FinNat.
 Require Import MathClasses.misc.util.
 Require Import MathClasses.misc.decision.
 Require Import MathClasses.interfaces.canonical_names.
+Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Require Import MathClasses.implementations.peano_naturals.
 Require Import MathClasses.orders.orders.
@@ -5292,16 +5293,19 @@ Proof.
   destruct XL as [AX | XX]; subst; auto.
 Qed.
 
+
 Lemma IReduction_family_OOB
       (i o n : nat)
       (op_family: @MSHOperatorFamily i o n)
-      (init : CarrierA)
-      (dot : CarrierA -> CarrierA -> CarrierA)
-      (pdot: Proper ((=) ==> (=) ==> (=)) dot)
+
+      `{dot: SgOp CarrierA}
+      `{init: MonUnit CarrierA}
+      `{CM: @CommutativeMonoid _ _ dot init}
+
       (mb : mem_block)
-      (MF : MSHOperator_Facts (@MSHIReduction i o n init dot pdot op_family))
+      (MF : MSHOperator_Facts (@MSHIReduction i o n init dot _ op_family))
   :
-    is_Some (mem_op (@MSHIReduction i o n init dot pdot op_family) mb) ->
+    is_Some (mem_op (@MSHIReduction i o n init dot _ op_family) mb) ->
     forall t rm, mem_op (op_family t) mb ≡ Some rm ->
             ∀ j, j ≥ o → ¬ mem_in j rm.
 Proof.
@@ -5315,40 +5319,30 @@ Proof.
   unfold Apply_mem_Family, get_family_mem_op in RRM.
   break_match; try some_none; some_inv.
 
-  apply fold_left_rev_invariant.
+  rewrite <- ListSetoid.fold_left_fold_left_rev_equiv.
   -
-    intros.
-    apply MMemoryOfCarrierA.mem_merge_with_def_as_Union.
-    assumption.
+    apply fold_left_rev_invariant.
+    +
+      intros.
+      apply MMemoryOfCarrierA.mem_merge_with_def_as_Union.
+      assumption.
+    +
+      exists rm.
+      split; auto.
+      destruct t as [t tc].
+      apply ListSetoid.monadic_Lbuild_op_eq_Some with (i0:=t) (ic:=tc) in Heqo0.
+      assert ((t ↾ tc) ≡ mkFinNat tc) by reflexivity.
+      rewrite H in *.
+      rewrite H0 in Heqo0.
+      eapply List.nth_error_In.
+      eassumption.
   -
-    exists rm.
-    split; auto.
-    destruct t as [t tc].
-    apply ListSetoid.monadic_Lbuild_op_eq_Some with (i0:=t) (ic:=tc) in Heqo0.
-    assert ((t ↾ tc) ≡ mkFinNat tc) by reflexivity.
-    rewrite H in *.
-    rewrite H0 in Heqo0.
-    eapply List.nth_error_In.
-    eassumption.
+    apply mem_merge_with_def_proper; apply CM.
+  -
+    apply mem_merge_with_def_Comm, CM.
+  -
+    apply mem_merge_with_def_Assoc; try apply CM.
 Qed.
-
-(*
-Lemma MSH_DSH_compat_DSH_preserves
-      {i o : nat}
-      {fuel : nat}
-      {mop : @MSHOperator i o}
-      {dop : DSHOperator}
-      {σ : evalContext}
-      {m m' : memory}
-      {x_p y_p : PExpr}
-      {DP : DSH_pure dop y_p}
-  :
-    lookup_Pexp m y_p = inr y_m ->
-    lookup_Pexp m' y_p = inr y_m' ->
-    @MSH_DSH_compat _ _ mop dop σ m x_p y_p _ ->
-    evalDSHOperator σ dop m fuel = Some (inr m').
-Proof.
-*)
 
 Lemma mem_not_in_mem_lookup (k : NM.key) (mb : mem_block) :
   not (mem_in k mb) <-> is_None (mem_lookup k mb).

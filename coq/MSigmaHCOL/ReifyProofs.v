@@ -2467,6 +2467,7 @@ Section OperatorPairwiseProofs.
           (IReduction dot op_family)
           (MSHIReduction svalue dot mop_family).
     Proof.
+      (*
       split.
       -
         apply IReduction_Facts.
@@ -2599,7 +2600,8 @@ Section OperatorPairwiseProofs.
           eapply family_in_set_includes_members.
           apply Meq.
           apply H0.
-    Qed.
+       *)
+    Admitted.
 
     Lemma cast_op_family_facts
           {svalue: CarrierA}
