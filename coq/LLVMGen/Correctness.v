@@ -1043,6 +1043,43 @@ Definition bisim_partial: Type_R_partial
     reflexivity.
   Qed.
 
+  Lemma repr_intval :
+    forall i,
+      DynamicValues.Int64.repr (Int64.intval i) ≡ i.
+  Proof.
+  Admitted.
+
+  Lemma normalize_IntType :
+    forall env,
+      TypeUtil.normalize_type_dtyp env Utils.IntType ≡ DTYPE_I 64.
+  Proof.
+  Admitted.
+
+  Lemma interp_cfg_to_L3_denote_exp :
+    forall nexp s s' ll_exp ll_code n m l g env σ,
+      genNExpr nexp s ≡ inr (s', (ll_exp, ll_code)) ->
+      denoteNexp σ nexp ≈ Ret n ->
+      (interp_cfg_to_L3 helix_intrinsics
+                        (translate exp_E_to_instr_E
+                                   (D.denote_exp (Some (DTYPE_I 64))
+                                                 (TransformTypes.fmap_exp typ dtyp (TypeUtil.normalize_type_dtyp env) ll_exp))) g l m) ≈ Ret (m, (l, (g, UVALUE_I64 n))).
+  Proof.
+    induction nexp;
+      intros s s' ll_exp ll_code n m l g env σ H H0;
+      cbn in H; inversion H.
+    - (* NVar *)
+      admit.
+    (* Exceptions due to lookup and type mismatches! *)
+    - (* NConst *)
+      cbn. rewrite repr_intval.
+      rewrite translate_ret, interp_cfg_to_L3_ret.
+      apply eqit_inv_ret in H0; subst; auto.
+      reflexivity.
+    - (* NDiv *)
+      rewrite denote_nexp_div in H0.
+      cbn in *.
+  Admitted.
+
 (* TODO: only handle cases where there are no exceptions? *)
 Lemma compile_FSHCOL_correct
       (op: DSHOperator): forall (nextblock bid_in : block_id) (st st' : IRState) (bks : list (LLVMAst.block typ)) (σ : evalContext) (env : list (ident * typ)) (mem : MDSHCOLOnFloat64.memory) (g : global_env) (ρ : local_env) (mem_llvm : memory),
@@ -1183,6 +1220,8 @@ Proof.
               rewrite tau_eutt.
               rewrite translate_ret.
 
+              (* Now we have ret on the lhs *)
+
               rewrite interp_cfg_to_L3_bind.
               rewrite translate_bind.
               cbn.
@@ -1206,6 +1245,78 @@ Proof.
                 Focus 2. admit. (* Exception *)
 
                 cbn.
+
+                match goal with
+                | |- context [ ITree.bind ?x ?y ] => remember y
+                end.
+
+                setoid_rewrite interp_cfg_to_L3_globalread; eauto.
+
+                rewrite translate_bind.
+                rewrite bind_bind.
+                repeat rewrite translate_ret.
+                rewrite bind_ret_l.
+                repeat rewrite translate_ret.
+                rewrite interp_cfg_to_L3_ret.
+                rewrite translate_ret.
+                rewrite bind_ret_l.
+
+                subst i3; cbn.
+
+                match goal with
+                | |- context [ ITree.bind ?x ?y ] => remember y
+                end.
+
+                repeat setoid_rewrite bind_bind.
+                setoid_rewrite translate_ret.
+                setoid_rewrite bind_ret_l.
+
+                rewrite interp_cfg_to_L3_bind.
+                rewrite translate_bind.
+                rewrite bind_bind.
+
+                rewrite normalize_IntType.
+                progress cbn.
+                rewrite translate_ret.
+                rewrite interp_cfg_to_L3_ret.
+                rewrite translate_ret, bind_ret_l.
+                cbn.
+
+                rewrite interp_cfg_to_L3_bind.
+                rewrite interp_cfg_to_L3_denote_exp; eauto.
+
+                (* This feels very stupid, surely this should all just evaluate? *)
+                rewrite translate_bind.
+                rewrite translate_ret.
+                rewrite bind_ret_l.
+                rewrite interp_cfg_to_L3_bind.
+                rewrite translate_bind.
+                rewrite interp_cfg_to_L3_ret.
+                rewrite translate_ret, bind_ret_l.
+                repeat rewrite interp_cfg_to_L3_bind.
+                rewrite interp_cfg_to_L3_ret.
+                rewrite bind_ret_l.
+                cbn.
+
+                rewrite uvalue_to_dvalue_of_dvalue_to_uvalue.
+                unfold ITree.map.
+                rewrite bind_trigger.
+                rewrite translate_vis.
+                cbn.
+                setoid_rewrite translate_ret.
+
+                subst i3.
+                cbn.
+                
+                all: eauto.
+                Focus 2. apply Hnexp_src.
+                reflexivity.
+
+                setoid_rewrite bind_ret_l.
+                setoid_rewrite <- denote_exp_nexp.
+                apply eutt_clo_bind.
+                
+                rewrite interp
                 rewrite bind_trigger.
                 rewrite translate_vis.
                 rewrite translate_vis.
