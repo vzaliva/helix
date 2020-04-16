@@ -2045,6 +2045,55 @@ Proof.
       omega.
 Qed.
 
+Lemma MemInit_simpl
+      (o : nat)
+      (σ : evalContext)
+      (m : memory)
+      (dop : DSHOperator)
+      (init : CarrierA)
+      (y_p : PExpr)
+      (y_id : mem_block_id)
+      (y_m : mem_block)
+      (Y_ID : evalPexp σ y_p = inr y_id)
+      (YID_M : memory_lookup m y_id = Some y_m)
+  :
+  evalDSHOperator σ (DSHSeq (DSHMemInit o y_p init) dop) m
+                  (estimateFuel (DSHSeq (DSHMemInit o y_p init) dop)) =
+  evalDSHOperator σ dop (memory_set m y_id (mem_union (mem_const_block o init) y_m))
+                  (estimateFuel dop).
+Proof.
+  cbn.
+  pose proof estimateFuel_positive dop.
+  repeat break_match; try nia.
+  -
+    cbn in Heqo0.
+    repeat break_match;
+      try some_none; repeat some_inv;
+      try inl_inr; repeat inl_inr_inv.
+    subst.
+    memory_lookup_err_to_option.
+    eq_to_equiv.
+    rewrite Y_ID in Heqs2.
+    some_none.
+  -
+    subst.
+    cbn in Heqo0.
+    repeat break_match;
+      try some_none; repeat some_inv;
+      try inl_inr; repeat inl_inr_inv.
+    subst.
+    memory_lookup_err_to_option.
+    eq_to_equiv.
+    rewrite Y_ID in *.
+    rewrite Heqs0 in YID_M.
+    some_inv.
+    rewrite YID_M in *.
+    reflexivity.
+  -
+    cbn in Heqo0.
+    some_none.
+Qed.
+
 (* [body] here corresponds to IReduction's [seq rr memmap2] *)
 Lemma IReduction_DSH_step
       (o n : nat)
