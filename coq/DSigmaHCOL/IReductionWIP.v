@@ -1891,6 +1891,159 @@ Proof.
   assumption.
 Qed.
 
+Lemma IReduction_MSH_step
+      {i o n : nat}
+      (mb : mem_block)
+      (dot : CarrierA -> CarrierA -> CarrierA)
+      (pdot : Proper ((=) ==> (=) ==> (=)) dot)
+      (init : CarrierA)
+      (S_opf : @MSHOperatorFamily i o (S n))
+  :
+    let opf := shrink_m_op_family S_opf in
+    let fn := mkFinNat (Nat.lt_succ_diag_r n) in
+    mem_op (MSHIReduction init dot S_opf) mb =
+    mb' <- mem_op (MSHIReduction init dot opf) mb ;;
+    mbn <- mem_op (S_opf fn) mb ;;
+    Some (mem_merge_with_def dot init mb' mbn).
+Proof.
+  simpl.
+  unfold IReduction_mem.
+  simpl.
+  unfold Apply_mem_Family in *.
+  repeat break_match;
+    try discriminate; try reflexivity.
+  all: repeat some_inv; subst.
+  -
+    rename l into S_lb, l0 into lb.
+
+    (* poor man's apply to copy and avoid evars *)
+    assert (S_LB : ∀ (j : nat) (jc : (j < S n)%mc),
+               List.nth_error S_lb j ≡ get_family_mem_op S_opf j jc mb)
+      by (apply ListSetoid.monadic_Lbuild_op_eq_Some; assumption).
+    assert (LB : ∀ (j : nat) (jc : (j < n)%mc),
+               List.nth_error lb j ≡ get_family_mem_op (shrink_m_op_family S_opf) j jc mb)
+      by (apply ListSetoid.monadic_Lbuild_op_eq_Some; assumption).
+
+    apply ListSetoid.monadic_Lbuild_opt_length in Heqo0; rename Heqo0 into S_L.
+    apply ListSetoid.monadic_Lbuild_opt_length in Heqo3; rename Heqo3 into L.
+    rename m0 into mbn, Heqo2 into MBN.
+
+    unfold get_family_mem_op in *.
+    assert (H : forall j, j < n -> List.nth_error lb j ≡ List.nth_error S_lb j)
+      by (intros; erewrite S_LB, LB; reflexivity).
+    Unshelve. 2: assumption.
+
+    assert (N_MB : is_Some (mem_op (S_opf (mkFinNat (Nat.lt_succ_diag_r n))) mb)).
+    {
+      apply is_Some_ne_None.
+      intro C.
+      rewrite <-S_LB in C.
+      apply List.nth_error_None in C.
+      lia.
+    }
+    apply is_Some_def in N_MB.
+    destruct N_MB as [n_mb N_MB].
+
+    assert (H1 : S_lb ≡ lb ++ [n_mb]).
+    {
+      apply list_eq_nth;
+        [rewrite List.app_length; cbn; lia |].
+      intros k KC.
+      (* extensionality *)
+      enough (forall d, List.nth k S_lb d ≡ List.nth k (lb ++ [n_mb]) d)
+        by (apply Logic.FunctionalExtensionality.functional_extensionality; assumption).
+      rewrite S_L in KC.
+      destruct (Nat.eq_dec k n).
+      -
+        subst k.
+        intros.
+        apply List_nth_nth_error.
+        replace n with (0 + Datatypes.length lb).
+        rewrite ListNth.nth_error_length.
+        cbn.
+        rewrite L.
+        rewrite S_LB with (jc := (Nat.lt_succ_diag_r n)).
+        rewrite <-N_MB.
+        reflexivity.
+      -
+        assert (k < n) by lia; clear KC n0.
+        intros.
+        apply List_nth_nth_error.
+        rewrite <-H by lia.
+        rewrite List.nth_error_app1 by lia.
+        reflexivity.
+    }
+
+    rewrite H1.
+    rewrite List.fold_left_app.
+    cbn.
+
+    rewrite MBN in N_MB; some_inv.
+    reflexivity.
+  -
+    rename l into S_lb, l0 into lb.
+
+    (* poor man's apply to copy and avoid evars *)
+    assert (S_LB : ∀ (j : nat) (jc : (j < S n)%mc),
+               List.nth_error S_lb j ≡ get_family_mem_op S_opf j jc mb)
+      by (apply ListSetoid.monadic_Lbuild_op_eq_Some; assumption).
+    apply ListSetoid.monadic_Lbuild_opt_length in Heqo0; rename Heqo0 into S_L.
+
+    assert (N_MB : is_Some (mem_op (S_opf (mkFinNat (Nat.lt_succ_diag_r n))) mb)).
+    {
+      apply is_Some_ne_None.
+      intro C.
+      unfold get_family_mem_op in *.
+      rewrite <-S_LB in C.
+      apply List.nth_error_None in C.
+      lia.
+    }
+
+    rewrite Heqo2 in N_MB.
+    some_none.
+  -
+    exfalso; clear Heqo1.
+
+    pose proof Heqo0 as L; apply ListSetoid.monadic_Lbuild_opt_length in L.
+
+    apply ListSetoid.monadic_Lbuild_op_eq_None in Heqo2.
+    destruct Heqo2 as [k [KC N]].
+    apply ListSetoid.monadic_Lbuild_op_eq_Some
+      with (i0:=k) (ic:=le_S KC)
+      in Heqo0.
+    unfold get_family_mem_op, shrink_m_op_family in *.
+    cbn in *.
+    rewrite N in Heqo0.
+    apply ListNth.nth_error_length_ge in Heqo0.
+    assert (k < n) by assumption.
+    lia.
+  -
+    exfalso.
+
+    pose proof Heqo3 as S_L; apply ListSetoid.monadic_Lbuild_opt_length in S_L.
+
+    apply ListSetoid.monadic_Lbuild_op_eq_None in Heqo0.
+    destruct Heqo0 as [k [KC N]].
+    destruct (Nat.eq_dec k n).
+    +
+      subst k.
+      unfold get_family_mem_op in *.
+      assert (KC ≡ (Nat.lt_succ_diag_r n)) by (apply lt_unique).
+      rewrite <-H, N in Heqo2.
+      some_none.
+    +
+      assert (k < n) by (assert (k < S n) by assumption; lia); clear n0.
+      apply ListSetoid.monadic_Lbuild_op_eq_Some
+        with (i0:=k) (ic:=H)
+        in Heqo3.
+      unfold get_family_mem_op, shrink_m_op_family in *.
+      cbn in Heqo3.
+      assert (le_S H ≡ KC) by (apply lt_unique).
+      rewrite H0, N in Heqo3.
+      apply ListNth.nth_error_length_ge in Heqo3.
+      rewrite S_L in Heqo3.
+      omega.
+Qed.
 
 Global Instance IReduction_MSH_DSH_compat_S
        {i o n: nat}
