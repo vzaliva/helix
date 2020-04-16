@@ -2045,6 +2045,127 @@ Proof.
       omega.
 Qed.
 
+(* [body] here corresponds to IReduction's [seq rr memmap2] *)
+Lemma IReduction_DSH_step
+      (o n : nat)
+      (body : DSHOperator)
+      (m loopN_m iterSN_m : memory)
+      (σ : evalContext)
+      (t_id : mem_block_id)
+      (T_ID : t_id ≡ memory_next_key m)
+      (body_mem_stable : ∀ σ m m' fuel,
+          evalDSHOperator σ body m fuel = Some (inr m')
+          → ∀ k, mem_block_exists k m ↔ mem_block_exists k m')
+
+      (LoopN : evalDSHOperator σ
+                               (DSHAlloc o (DSHLoop n body)) m
+                               (estimateFuel (DSHAlloc o (DSHLoop n body)))
+               = Some (inr loopN_m))
+      (IterSN : evalDSHOperator (DSHnatVal n :: DSHPtrVal t_id o :: σ)
+                                body
+                                (memory_set loopN_m t_id mem_empty)
+                                (estimateFuel body) = Some (inr iterSN_m))
+
+      (* execution of [body] does not depend on block under [t_id] *)
+      (BS : forall mb, evalDSHOperator (DSHnatVal n :: DSHPtrVal t_id o :: σ)
+                                    body
+                                    (memory_set loopN_m t_id mb)
+                                    (estimateFuel body) =
+                    evalDSHOperator (DSHnatVal n :: DSHPtrVal t_id o :: σ)
+                                    body
+                                    (memory_set loopN_m t_id mem_empty)
+                                    (estimateFuel body))
+  :
+    evalDSHOperator σ (DSHAlloc o (DSHLoop (S n) body)) m
+                  (estimateFuel (DSHAlloc o (DSHLoop (S n) body))) = 
+    Some (inr (memory_remove iterSN_m t_id)).
+Proof.
+  cbn.
+  remember (DSHLoop n body) as loop_n.
+  cbn in LoopN.
+  rewrite <-T_ID in *.
+  rewrite evalDSHOperator_estimateFuel_ge
+    by (pose proof estimateFuel_positive body; subst; cbn; lia).
+  destruct (evalDSHOperator (DSHPtrVal t_id o :: σ) loop_n
+                            (memory_set m t_id mem_empty) (estimateFuel loop_n))
+           as [t|] eqn:LoopN'; [destruct t as [|loopN_m'] |];
+    try some_none; some_inv; try inl_inr; inl_inr_inv.
+  assert (T : exists t_loopN_m', memory_lookup loopN_m' t_id = Some t_loopN_m');
+    [| destruct T as [t_loopN_m' T_loopN_m']].
+  {
+    subst loop_n.
+    clear - LoopN' body_mem_stable.
+    enough (loopn_mem_stable : ∀ σ m m' fuel,
+               evalDSHOperator σ (DSHLoop n body) m fuel = Some (inr m')
+               → ∀ k, mem_block_exists k m ↔ mem_block_exists k m').
+    {
+      apply is_Some_equiv_def.
+      apply memory_is_set_is_Some.
+      eq_to_equiv.
+      apply loopn_mem_stable with (k:=t_id) in LoopN'.
+      apply LoopN'.
+      apply mem_block_exists_memory_set_eq.
+      reflexivity.
+    }
+
+    clear - body_mem_stable.
+    intros.
+    destruct fuel; [inversion H |].
+    generalize dependent m'.
+    induction n.
+    -
+      intros.
+      cbn in H.
+      some_inv; inl_inr_inv.
+      rewrite H.
+      reflexivity.
+    -
+      intros.
+      cbn in H.
+      repeat break_match;
+        try some_none; repeat some_inv;
+        try inl_inr; repeat inl_inr_inv.
+      subst.
+      specialize (IHn m0).
+      apply evalDSHOperator_fuel_ge with (f':=S fuel) in Heqo; [| auto].
+      eq_to_equiv.
+      apply IHn in Heqo; clear IHn.
+      rewrite Heqo.
+      eapply body_mem_stable.
+      eassumption.
+  }
+  assert (loopN_m' = memory_set loopN_m t_id t_loopN_m').
+  {
+    clear - T_loopN_m' LoopN.
+    intros k.
+    destruct (Nat.eq_dec k t_id).
+    -
+      subst.
+      unfold memory_set.
+      rewrite NP.F.add_eq_o by reflexivity.
+      apply T_loopN_m'.
+    -
+      unfold memory_set.
+      rewrite NP.F.add_neq_o by congruence.
+      specialize (LoopN k).
+      unfold memory_remove in LoopN.
+      rewrite NP.F.remove_neq_o in LoopN by congruence.
+      assumption.
+  }
+
+  specialize (BS t_loopN_m').
+  rewrite <-H in BS. (* PROPER *)
+  rewrite evalDSHOperator_estimateFuel_ge
+    by (pose proof estimateFuel_positive body; subst; cbn; nia).
+  rewrite IterSN in BS.
+  destruct (evalDSHOperator (DSHnatVal n :: DSHPtrVal t_id o :: σ) body
+                            loopN_m' (estimateFuel body))
+           as [t|] eqn:IterSN'; [destruct t as [|iterSN_m'] |];
+    try some_none; some_inv; try inl_inr; inl_inr_inv.
+  repeat f_equiv.
+  assumption.
+Qed.
+
 Global Instance IReduction_MSH_DSH_compat_S
        {i o n: nat}
        {init : CarrierA}
