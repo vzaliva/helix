@@ -2695,4 +2695,177 @@ Proof.
         unfold is_Some in H.
         break_match; try some_none.
         contradiction.
+  -
+    (** * MSH step *)
+    (* done immediately to get [opf] *)
+    rewrite IReduction_MSH_step.
+
+    (** * renaming *)
+    rename n into n'; remember (S n') as n.
+    remember (Nat.lt_succ_diag_r n) as SN.
+    rename op_family into S_opf; remember (shrink_m_op_family S_opf) as opf.
+
+    (** * specialize IHn *)
+    specialize (IHn opf).
+    full_autospecialize IHn.
+    {
+      apply IReduction_DSH_pure; auto.
+    }
+    {
+      intros.
+      subst opf.
+      unfold shrink_m_op_family.
+      eapply FC.
+      all: eassumption.
+    }
+    {
+      admit.
+    }
+    {
+      subst opf.
+      unfold shrink_m_op_family.
+      intros.
+      apply FMF.
+    }
+    {
+      subst opf.
+      unfold shrink_m_op_family.
+      intros.
+      apply FD.
+    }
+
+    (** * cases by [opf] and [loopN] *)
+    remember (evalDSHOperator σ
+               (DSHSeq (DSHMemInit o y_p init)
+                  (DSHAlloc o
+                     (DSHLoop n
+                        (DSHSeq rr
+                           (DSHMemMap2 o (incrPVar 0 (incrPVar 0 y_p)) 
+                              (PVar 1) (incrPVar 0 (incrPVar 0 y_p)) df))))) m
+               (estimateFuel
+                  (DSHSeq (DSHMemInit o y_p init)
+                     (DSHAlloc o
+                        (DSHLoop n
+                           (DSHSeq rr
+                              (DSHMemMap2 o (incrPVar 0 (incrPVar 0 y_p)) 
+                                 (PVar 1) (incrPVar 0 (incrPVar 0 y_p)) df)))))))
+      as d.
+    inversion IHn; subst d; clear IHn.
+    +
+      (* [loopN] ran out of fuel *)
+      exfalso; clear - H1; symmetry in H1; contradict H1.
+      apply is_Some_ne_None.
+      apply evalDSHOperator_estimateFuel.
+    +
+      (* both [MSHIReduction opf] and [loopN] failed *)
+      admit.
+    +
+      (* both [MSHIReduction opf] and [loopN] succeeded *)
+      symmetry in H, H1.
+      rename a into opf_mm, H into OPF_MM, b into loopN_m, H1 into LoopN_M.
+      rename H0 into OPF_LoopN.
+
+      apply Option_equiv_eq in LoopN_M.
+      rewrite MemInit_simpl in * by (eq_to_equiv; eassumption).
+      remember (memory_set m y_id (mem_union (mem_const_block o init) y_m)) as init_m.
+
+      (** * specialize FC *)
+      remember (Nat.lt_succ_diag_r n) as nSn eqn:NSN.
+      specialize (FC loopN_m (memory_next_key init_m) (mkFinNat nSn) y_id).
+      full_autospecialize FC; try congruence.
+      {
+        intros k v L.
+        admit.
+      }
+      {
+        (* from [LoopN_M] through purity *)
+        (* might want to assert this before applying [MemInit_simpl]
+           and prove through [IReduction_DSH_pure] *)
+        admit.
+      }
+      cbn in FC.
+      inversion_clear FC as [T]; rename T into FC.
+      specialize (FC x_m mem_empty).
+      full_autospecialize FC.
+      {
+        repeat rewrite lookup_Pexp_incrPVar.
+        admit.
+      }
+      {
+        cbn.
+        unfold memory_lookup_err.
+        rewrite memory_lookup_memory_set_eq by congruence.
+        reflexivity.
+      }
+      
+
+      (** * DSH step *)
+      (* destruct last (new) iteration result *)
+      destruct (
+          evalDSHOperator (DSHnatVal n :: DSHPtrVal (memory_next_key init_m) o :: σ)
+                          (DSHSeq rr (DSHMemMap2 o (incrPVar 0 (incrPVar 0 y_p)) (PVar 1)
+                                                 (incrPVar 0 (incrPVar 0 y_p)) df))
+                          (memory_set loopN_m (memory_next_key init_m) mem_empty)
+                          (estimateFuel (DSHSeq rr (DSHMemMap2 o
+                                                               (incrPVar 0 (incrPVar 0 y_p))
+                                                               (PVar 1)
+                                                               (incrPVar 0 (incrPVar 0 y_p))
+                                                               df))))
+               as [t|] eqn:IterSN; [destruct t as [msg|iterSN_m] |].
+      *
+        (* last iteration fails *)
+        admit.
+      *
+        (* last iteration succeeds *)
+        
+        (** * DSH step *)
+        erewrite IReduction_DSH_step; try (eq_to_equiv; eauto; fail).
+        3: {
+          intros.
+          admit. (** this is a big one **)
+        }
+        2: {
+          clear - P.
+          intros.
+          destruct fuel; [inversion H |].
+          cbn in H.
+          repeat break_match;
+            try some_none; repeat some_inv;
+              try inl_inr; repeat inl_inr_inv.
+          subst.
+          eq_to_equiv.
+          eapply mem_stable in Heqo0.
+          eapply mem_stable in H.
+          rewrite Heqo0.
+          eassumption.
+        }
+
+        (** * simplify MSH part *)
+        replace (mem_op (MSHIReduction init dot opf) x_m)
+          with (Some opf_mm)
+          by (rewrite <-OPF_MM; reflexivity).
+        remember (λ (md : mem_block) (m' : memory),
+                  err_p (λ ma : mem_block, SHCOL_DSHCOL_mem_block_equiv y_m ma md)
+                        (lookup_Pexp σ m' y_p))
+          as Rel.
+
+        (** * destruct last iteration into [rr] and [map2] *)
+        remember (DSHMemMap2 o (incrPVar 0 (incrPVar 0 y_p)) (PVar 1)
+                   (incrPVar 0 (incrPVar 0 y_p)) df)
+          as dmap2.
+        cbn in IterSN.
+        rewrite evalDSHOperator_estimateFuel_ge in IterSN by (cbn; lia).
+        destruct (evalDSHOperator (DSHnatVal n :: DSHPtrVal (memory_next_key init_m) o :: σ) rr
+                 (memory_set loopN_m (memory_next_key init_m) mem_empty) 
+                 (estimateFuel rr))
+          as [t|] eqn:IterSN_RR; [destruct t as [msg|iterSN_rr_m] |];
+          try some_none; try some_inv; try inl_inr.
+
+        (** * coerse MSH and DSH steps to common form *)
+        eq_to_equiv.
+        admit.
+      *
+        (* last iteration runs out of fuel *)
+        contradict IterSN; clear.
+        apply is_Some_ne_None, evalDSHOperator_estimateFuel.
 Admitted.
