@@ -129,6 +129,7 @@ Definition dynwin_SHCOL (a: avector 3):
 Require Import Helix.MSigmaHCOL.ReifySHCOL.
 Require Import Helix.MSigmaHCOL.MSigmaHCOL.
 Require Import Helix.MSigmaHCOL.ReifyProofs.
+Require Import Helix.Util.MonoidalRestriction.
 
 Ltac solve_facts :=
   repeat match goal with
@@ -157,6 +158,12 @@ Ltac solve_facts :=
          | [ |- SH_MSH_Operator_compat (HTSUMUnion _ _ _ _) _ ] => apply HTSUMUnion_SH_MSH_Operator_compat
          | [ |- SH_MSH_Operator_compat (SHPointwise _ _) _    ] => apply SHPointwise_SH_MSH_Operator_compat
          | [ |- SH_MSH_Operator_compat (SHInductor _ _ _ _) _ ] => apply SHInductor_SH_MSH_Operator_compat
+         | [ |- SH_MSH_Operator_compat (IReduction minmax.max _) _  ] =>
+           apply IReduction_SH_MSH_Operator_compat with (P:=NN);
+           [apply CommutativeRMonoid_max_NN;typeclasses eauto | intros | | ]
+         | [ |- SH_MSH_Operator_compat (IReduction plus _) _  ] =>
+           apply IReduction_SH_MSH_Operator_compat with (P:=ATT CarrierA);
+           [apply Monoid2CommutativeRMonoid;typeclasses eauto | intros | | ]
          | [ |- SH_MSH_Operator_compat (IReduction _ _) _     ] => apply IReduction_SH_MSH_Operator_compat; intros
          | [ |- SH_MSH_Operator_compat (Embed _ _) _           ] => apply Embed_SH_MSH_Operator_compat
          | [ |- SH_MSH_Operator_compat (SHBinOp _ _) _        ] => apply SHBinOp_RthetaSafe_SH_MSH_Operator_compat
@@ -206,6 +213,20 @@ Section SHCOL_to_MSHCOL.
         crush.
   Qed.
 
+  Fact Apply_Family_Vforall_ATT
+        {fm}
+        {i o n}
+        {svalue: CarrierA}
+        (op_family: @SHOperatorFamily fm i o n svalue):
+    Apply_Family_Vforall_P fm (liftRthetaP (ATT CarrierA)) op_family.
+  Proof.
+    intros x j jc.
+    apply Vforall_intro.
+    intros y H.
+    unfold liftRthetaP.
+    cbv;tauto.
+  Qed.
+
   Lemma dynwin_SHCOL_MSHCOL_compat {a}:
     SH_MSH_Operator_compat (dynwin_SHCOL1 a) (dynwin_MSHCOL1 a).
   Proof.
@@ -226,7 +247,17 @@ Section SHCOL_to_MSHCOL.
       unfold singleton.
       crush.
     -
+      apply Apply_Family_Vforall_ATT.
+    -
       apply Set_Obligation_1.
+    -
+      (* we need to prove that whole
+         family output is non-negative. The family
+         have a form: (Compose (BinOp abs ..) _). Hence
+         it could be proven. We did something similar in
+         rewiriting. Need to look it up and reuse.
+       *)
+      admit.
     -
       apply Set_Obligation_1.
     -
@@ -235,7 +266,7 @@ Section SHCOL_to_MSHCOL.
       apply Set_Obligation_1.
     -
       apply Set_Obligation_1.
-  Qed.
+  Admitted.
 
 End SHCOL_to_MSHCOL.
 

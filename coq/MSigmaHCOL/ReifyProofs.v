@@ -20,6 +20,7 @@ Require Import Helix.MSigmaHCOL.MemoryOfCarrierA.
 Require Import Helix.HCOL.HCOL.
 Require Import Helix.Util.FinNatSet.
 Require Import Helix.Util.WriterMonadNoT.
+Require Import Helix.Util.MonoidalRestriction.
 
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Arith.Arith.
@@ -2449,11 +2450,13 @@ Section OperatorPairwiseProofs.
     Qed.
 
     Global Instance IReduction_SH_MSH_Operator_compat
-           {svalue: CarrierA}
            {i o k: nat}
+           (svalue: CarrierA)
            (dot: CarrierA -> CarrierA -> CarrierA)
-           `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-           `{scompat: BFixpoint svalue dot}
+           `{pdot: !Proper ((=) ==> (=) ==> (=)) dot} (* might not be needed *)
+           `{P : SgPred CarrierA}
+           `{CM: @CommutativeRMonoid _ _ dot svalue P}
+           `{scompat: BFixpoint svalue dot} (* follows from CommutativeRMonoid *)
            (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k svalue)
            (mop_family: MSHOperatorFamily)
            (Meq: forall j (jc:j<k), SH_MSH_Operator_compat
@@ -2463,11 +2466,11 @@ Section OperatorPairwiseProofs.
                Ensembles.Same_set _
                                   (out_index_set _ (op_family (mkFinNat jc)))
                                   (Full_set _))
+           (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
       : SH_MSH_Operator_compat
           (IReduction dot op_family)
           (MSHIReduction svalue dot mop_family).
     Proof.
-      (*
       split.
       -
         apply IReduction_Facts.
@@ -2490,6 +2493,7 @@ Section OperatorPairwiseProofs.
         assumption.
       -
         (* mem_vec_preservation *)
+        (*
         intros x H.
         rename k into n.
         unfold MSHIReduction, IReduction, IReduction_mem, Diamond in *.
@@ -2562,7 +2566,6 @@ Section OperatorPairwiseProofs.
             rewrite (svector_to_mem_block_Vec2Union_mem_merge_with_def svalue).
             --
               rewrite IHn; clear IHn.
-              apply mem_merge_with_def_proper; auto.
               apply Some_inj_equiv.
               rewrite <- A0. clear A0.
               unfold get_family_op, get_family_mem_op.
@@ -2600,7 +2603,7 @@ Section OperatorPairwiseProofs.
           eapply family_in_set_includes_members.
           apply Meq.
           apply H0.
-       *)
+         *)
     Admitted.
 
     Lemma cast_op_family_facts
