@@ -274,6 +274,8 @@ Require Import Helix.DSigmaHCOL.ReifyMSHCOL.
 Require Import Helix.DSigmaHCOL.DSHCOLOnCarrierA.
 Require Import Helix.DSigmaHCOL.ReifyProofs.
 
+Require Import Helix.DSigmaHCOL.IReductionWIP. (* TODO: merge the file; remove this *)
+
 Section MSHCOL_to_DSHCOL.
 
   Import MDSHCOLOnCarrierA.
@@ -570,7 +572,7 @@ Section MSHCOL_to_DSHCOL.
         unfold dynwin_x_addr in *.
         symmetry in H.
         memory_lookup_err_to_option.
-        apply ReifyProofs.memory_lookup_not_next_equiv in H.
+        apply memory_lookup_not_next_equiv in H.
         intros C.
         contradict H.
         inl_inr_inv.
