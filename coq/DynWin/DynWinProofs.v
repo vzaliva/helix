@@ -227,6 +227,7 @@ Section SHCOL_to_MSHCOL.
     cbv;tauto.
   Qed.
 
+
   Lemma dynwin_SHCOL_MSHCOL_compat {a}:
     SH_MSH_Operator_compat (dynwin_SHCOL1 a) (dynwin_MSHCOL1 a).
   Proof.
@@ -251,13 +252,27 @@ Section SHCOL_to_MSHCOL.
     -
       apply Set_Obligation_1.
     -
-      (* we need to prove that whole
-         family output is non-negative. The family
-         have a form: (Compose (BinOp abs ..) _). Hence
-         it could be proven. We did something similar in
-         rewiriting. Need to look it up and reuse.
+      (* TODO: refactor to lemma
+         [Apply_Family_Vforall_SHOperatorFamilyCompose_move_P].
        *)
-      admit.
+      unfold Apply_Family_Vforall_P.
+      intros x j jc.
+      apply Vforall_nth_intro.
+      intros t tc.
+      unfold get_family_op.
+      simpl.
+      unfold compose.
+      match goal with
+      | [|- context[SigmaHCOLImpl.SHBinOp_impl ?ff ?g]] => generalize g
+      end.
+      clear x; intros x.
+      unshelve erewrite SHBinOp_impl_nth.
+      lia.
+      lia.
+      unfold NN, liftRthetaP.
+      rewrite evalWriter_Rtheta_liftM2.
+      unfold IgnoreIndex, const.
+      apply abs_always_nonneg.
     -
       apply Set_Obligation_1.
     -
@@ -266,7 +281,7 @@ Section SHCOL_to_MSHCOL.
       apply Set_Obligation_1.
     -
       apply Set_Obligation_1.
-  Admitted.
+  Qed.
 
 End SHCOL_to_MSHCOL.
 
@@ -955,7 +970,7 @@ Section SigmaHCOL_rewriting.
   Qed.
 
   (* Special case when results of 'g' comply to P. In tihs case we can discard 'g' *)
-  Lemma Apply_Family_Vforall_P_move_P
+  Lemma Apply_Family_Vforall_SHOperatorFamilyCompose_move_P
         {fm}
         {svalue: CarrierA}
         {P:Rtheta' fm → Prop}
@@ -1095,7 +1110,7 @@ Section SigmaHCOL_rewriting.
       generalize dependent t.
       intros fam _.
 
-      apply Apply_Family_Vforall_P_move_P.
+      apply Apply_Family_Vforall_SHOperatorFamilyCompose_move_P.
       intros x.
 
       apply Vforall_nth_intro.
