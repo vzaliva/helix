@@ -2,6 +2,7 @@ Require Import Helix.Util.VecUtil.
 Require Import Helix.Util.Matrix.
 Require Import Helix.Util.VecSetoid.
 Require Import Helix.Util.OptionSetoid.
+Require Import Helix.Util.ListUtil.
 Require Import Helix.Util.ListSetoid.
 Require Import Helix.Util.Misc.
 Require Import Helix.Util.FinNat.
@@ -2449,6 +2450,102 @@ Section OperatorPairwiseProofs.
         assumption.
     Qed.
 
+    Ltac Lpos2 Lpos :=
+      apply Forall_inv_tail in Lpos;
+      apply Forall_inv in Lpos;
+      apply Lpos.
+
+    Ltac Lpos1 Lpos :=
+      apply Forall_inv in Lpos; apply Lpos.
+
+    Ltac Lpos_tail Lpos :=
+      apply Forall_inv_tail in Lpos;
+      apply Lpos.
+
+    Ltac Lpos_tail2 Lpos :=
+      apply Forall_inv_tail in Lpos;
+      apply Forall_inv_tail in Lpos;
+      apply Lpos.
+
+    Ltac solve_Lpos Lpos :=
+      try Lpos1 Lpos;
+      try Lpos2 Lpos;
+      try Lpos_tail Lpos;
+      try Lpos_tail2 Lpos.
+
+    Fact fold_left_closed_under_P
+         {A : Type}
+         `{Ae: Equiv A}
+         (l : list A)
+         (e : A)
+         (f : A -> A -> A)
+         `{P : SgPred A}
+         `{CM: @CommutativeRMonoid _ _ f e P} (* we just need commutativity and associativity, but it is shoert to state it this way *)
+         (Lpos: Forall P l)
+      :
+        P (fold_left f l e).
+    Proof.
+      destruct CM.
+      destruct comrmonoid_rmon.
+      clear rmonoid_left_id.
+      clear rmonoid_right_id.
+      destruct mon_restriction.
+      revert e rmonoid_unit_P Lpos.
+      induction l; intros.
+      -
+        apply rmonoid_unit_P.
+      -
+        cbn.
+        apply IHl.
+        solve_Lpos Lpos.
+        apply rmonoid_plus_closed.
+        apply rmonoid_unit_P.
+        solve_Lpos Lpos.
+        solve_Lpos Lpos.
+    Qed.
+
+    (* Similar to [fold_left_fold_left_rev] but using setoid equality under restriction *)
+    Lemma fold_left_fold_left_rev_restricted
+          {A : Type}
+          `{Ae: Equiv A}
+          `{Aeq: Equivalence A Ae}
+          (l : list A)
+          (e : A)
+          (f : A -> A -> A)
+          `{P : SgPred A}
+          `{CM: @CommutativeRMonoid _ _ f e P} (* we just need commutativity and associativity, but it is shoert to state it this way *)
+          (Lpos: Forall P l)
+      :
+        ListUtil.fold_left_rev f e l = fold_left f l e.
+    Proof.
+      rewrite fold_left_rev_def.
+      rewrite <- fold_left_rev_right.
+      rewrite rev_involutive.
+      induction l; [reflexivity |].
+      cbn.
+      rewrite_clear IHl; try solve_Lpos Lpos.
+      generalize dependent a.
+      induction l; [reflexivity |].
+      intros.
+      cbn.
+      setoid_rewrite <- rmonoid_ass; unfold sg_P; try typeclasses eauto; auto; solve_Lpos Lpos.
+      unfold sg_op.
+      setoid_rewrite <- IHl; try solve_Lpos Lpos.
+      2:{
+        apply Forall_cons.
+        apply CM.
+        Lpos1 Lpos.
+        Lpos2 Lpos.
+        Lpos_tail2 Lpos.
+      }
+      setoid_rewrite <- rmonoid_ass; try typeclasses eauto; try solve_Lpos Lpos.
+      f_equiv.
+      unfold sg_op.
+      unshelve eapply rcommutativity; try typeclasses eauto; try solve_Lpos Lpos.
+      apply fold_left_closed_under_P; try typeclasses eauto; auto; try solve_Lpos Lpos.
+      apply CM.
+    Qed.
+
     Global Instance IReduction_SH_MSH_Operator_compat
            {i o k: nat}
            (svalue: CarrierA)
@@ -2456,7 +2553,7 @@ Section OperatorPairwiseProofs.
            `{pdot: !Proper ((=) ==> (=) ==> (=)) dot} (* might not be needed *)
            `{P : SgPred CarrierA}
            `{CM: @CommutativeRMonoid _ _ dot svalue P}
-           `{scompat: BFixpoint svalue dot} (* follows from CommutativeRMonoid *)
+           `{scompat: BFixpoint svalue dot} (* TODO: try to remove. Follows from CommutativeRMonoid *)
            (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k svalue)
            (mop_family: MSHOperatorFamily)
            (Meq: forall j (jc:j<k), SH_MSH_Operator_compat
@@ -2493,14 +2590,16 @@ Section OperatorPairwiseProofs.
         assumption.
       -
         (* mem_vec_preservation *)
-        (*
         intros x H.
         rename k into n.
         unfold MSHIReduction, IReduction, IReduction_mem, Diamond in *.
         simpl in *.
         break_match; rename Heqo0 into A.
         +
+          admit.
+          (*
           f_equiv.
+          unshelve rewrite <- fold_left_fold_left_rev_restricted.
           remember (Apply_Family' (get_family_op Monoid_RthetaSafeFlags op_family) x)
             as v eqn:A1.
 
@@ -2588,6 +2687,7 @@ Section OperatorPairwiseProofs.
               eapply HH.
               apply compat.
               apply Full_intro.
+           *)
         +
           (* [A] could not happen *)
           exfalso.
@@ -2603,7 +2703,6 @@ Section OperatorPairwiseProofs.
           eapply family_in_set_includes_members.
           apply Meq.
           apply H0.
-         *)
     Admitted.
 
     Lemma cast_op_family_facts
