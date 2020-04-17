@@ -1080,6 +1080,70 @@ Definition bisim_partial: Type_R_partial
       cbn in *.
   Admitted.
 
+  (* TODO: Move these *)
+  Lemma interp_Mem_ret :
+    forall T mem x,
+      @interp_Mem T (Ret x) mem ≅ Ret (mem, x).
+  Proof.
+    intros T mem x.
+    unfold interp_Mem.
+    apply interp_state_ret.
+  Qed.
+
+  Lemma interp_Mem_vis :
+    forall T R mem (e : Event T) (k : T -> itree Event R),
+      interp_Mem (vis e k) mem ≅ ITree.bind ((case_ Mem_handler MDSHCOLOnFloat64.pure_state) T e mem) (fun sx => Tau (interp_Mem (k (snd sx)) (fst sx))).
+  Proof.
+    intros T R mem e k.
+    unfold interp_Mem.
+    apply interp_state_vis.
+  Qed.
+
+  Lemma interp_Mem_MemLU :
+    forall R str mem m x (k : _ -> itree _ R),
+      memory_lookup_err str mem x ≡ inr m ->
+      interp_Mem (vis (MemLU str x) k) mem ≈ interp_Mem (k m) mem.
+  Proof.
+    intros R str mem m x k H.
+    setoid_rewrite interp_Mem_vis;
+      cbn; rewrite H; cbn.
+    rewrite bind_ret_l; cbn.
+    apply tau_eutt.
+  Qed.
+
+  Lemma interp_Mem_MemSet :
+    forall dst blk mem,
+      interp_Mem (trigger (MemSet dst blk)) mem ≈ Ret (memory_set mem dst blk, ()).
+  Proof.
+    intros dst blk mem.
+    setoid_rewrite interp_Mem_vis; cbn.
+    rewrite bind_ret_l.
+    rewrite interp_Mem_ret.
+    apply tau_eutt.
+  Qed.
+
+  Lemma denotePexp_eutt_ret :
+    forall (σ : evalContext) (v : var_id) a size,
+      nth_error σ v ≡ Some (DSHPtrVal a size) ->
+      denotePexp σ (PVar v) ≈ Ret a.
+  Proof.
+    intros σ v a size H.
+    unfold denotePexp; cbn.
+    rewrite H.
+    reflexivity.
+  Qed.
+
+  Lemma eval_denoteNexp :
+    forall σ nexp val,
+      evalNexp σ nexp ≡ inr val ->
+      denoteNexp σ nexp ≅ Ret val.
+  Proof.
+    intros σ nexp val H.
+    unfold denoteNexp. rewrite H.
+    reflexivity.
+  Qed.
+
+
 (* TODO: only handle cases where there are no exceptions? *)
 Lemma compile_FSHCOL_correct
       (op: DSHOperator): forall (nextblock bid_in : block_id) (st st' : IRState) (bks : list (LLVMAst.block typ)) (σ : evalContext) (env : list (ident * typ)) (mem : MDSHCOLOnFloat64.memory) (g : global_env) (ρ : local_env) (mem_llvm : memory),
@@ -1152,8 +1216,62 @@ Proof.
     subst i. cbn.
     subst src dst.
 
-    unfold denotePexp, evalPexp. cbn.
-    destruct psrc, pdst.
+    destruct psrc as [src_v] eqn:Hpsrc, pdst as [dst_v] eqn:Hpdst.
+
+    destruct (nth_error σ dst_v) as [d|] eqn:Hdst_v. 2: admit. (* Exception *)
+    destruct d as [n_dst | v_dst | a_dst size_dst]. admit. admit. (* should only be able to be pointer *)
+
+    destruct (nth_error σ src_v) as [d|] eqn:Hsrc_v. 2: admit. (* Exception *)
+    destruct d as [n_src | v_src | a_src size_src]. admit. admit. (* should only be able to be pointer *)
+
+    setoid_rewrite denotePexp_eutt_ret; eauto.
+
+    repeat rewrite bind_ret_l.
+    repeat setoid_rewrite bind_trigger.
+
+    (* Should be able to handle MemLU's in a lemma as well *)
+    destruct (memory_lookup_err "Error looking up 'x' in DSHAssign" mem a_src) eqn:Hmem_src.
+    admit. (* Exception *)
+
+    destruct (memory_lookup_err "Error looking up 'y' in DSHAssign" mem a_dst) eqn:Hmem_dst.
+    admit. (* Exception *)
+    cbn.
+
+    repeat (rewrite interp_Mem_MemLU; eauto).
+
+    destruct (evalNexp σ nsrc) as [|eval_src] eqn:Heval_src.
+    admit. (* Exception *)
+
+    destruct (evalNexp σ ndst) as [|eval_dst] eqn:Heval_dst.
+    admit. (* Exception *)
+
+    setoid_rewrite eval_denoteNexp; eauto.
+    repeat setoid_rewrite bind_ret_l.
+    cbn.
+
+    destruct (mem_lookup_err "Error looking up 'v' in DSHAssign" (MInt64asNT.to_nat eval_src) m) eqn:Hmemlookup.
+    admit. (* Exception *)
+    cbn.
+    rewrite bind_ret_l.
+
+    rewrite interp_Mem_MemSet.
+
+    (* exception *) admit.
+    setoid_rewrite Hmemlookup.
+
+
+    unfold denoteNexp. cbn.
+    rewrite Heval_src. cbn.
+    rewrite bind_ret_l.
+    cbn. admit.
+    cbn.
+    
+    cbn.
+
+    cbn.
+    rewrite Hmem_src. cbn.
+    setoid_rewrite interp_Mem_vis.
+
     destruct (nth_error σ v) eqn:Herr.
     + destruct d.
       * (* exceptions *) admit.
