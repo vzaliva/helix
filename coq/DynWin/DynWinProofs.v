@@ -1292,15 +1292,22 @@ Section SigmaHCOL_rewriting.
     setoid_rewrite <- SHInductor_equiv_lifted_HInductor.
 
     unfold dynwin_SHCOL1.
+    unfold NatAsNT.MNatAsNT.NTypeSetoid, NatAsNT.MNatAsNT.NTypeEquiv.
+    unfold join_is_sg_op, meet_is_sg_op.
 
     (* At this point we have two terms which are different in 2 ways:
        1. (1+4) vs 5 (arith)
        2. Some Prop obligations (proof irrelevance?)
 
-    unfold NatAsNT.MNatAsNT.NTypeSetoid, NatAsNT.MNatAsNT.NTypeEquiv.
+       without [Set Printing Notation] goals look exactly the same.
+     *)
+
+
+    (*
     Set Printing Implicit.
     reflexivity.
      *)
+
   Admitted.
 
   (* Couple additional structual properties: input and output of the
