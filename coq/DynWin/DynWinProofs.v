@@ -253,7 +253,7 @@ Section SHCOL_to_MSHCOL.
       apply Set_Obligation_1.
     -
       (* TODO: refactor to lemma
-         [Apply_Family_Vforall_SHOperatorFamilyCompose_move_P].
+         [Apply_Family_Vforall_SHCompose_move_P].
        *)
       unfold Apply_Family_Vforall_P.
       intros x j jc.
