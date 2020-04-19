@@ -2551,8 +2551,8 @@ Section OperatorPairwiseProofs.
            (svalue: CarrierA)
            (dot: CarrierA -> CarrierA -> CarrierA)
            `{pdot: !Proper ((=) ==> (=) ==> (=)) dot} (* might not be needed *)
-           `{P : SgPred CarrierA}
-           `{CM: @CommutativeRMonoid _ _ dot svalue P}
+           `{SGP : SgPred CarrierA}
+           `{CM: @CommutativeRMonoid _ _ dot svalue SGP}
            `{scompat: BFixpoint svalue dot} (* TODO: try to remove. Follows from CommutativeRMonoid *)
            (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k svalue)
            (mop_family: MSHOperatorFamily)
@@ -2563,7 +2563,7 @@ Section OperatorPairwiseProofs.
                Ensembles.Same_set _
                                   (out_index_set _ (op_family (mkFinNat jc)))
                                   (Full_set _))
-           (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
+           (Upoz: Apply_Family_Vforall_P _ (liftRthetaP SGP) op_family)
       : SH_MSH_Operator_compat
           (IReduction dot op_family)
           (MSHIReduction svalue dot mop_family).
@@ -2596,10 +2596,9 @@ Section OperatorPairwiseProofs.
         simpl in *.
         break_match; rename Heqo0 into A.
         +
-          admit.
-          (*
           f_equiv.
           unshelve rewrite <- fold_left_fold_left_rev_restricted.
+          admit.
           remember (Apply_Family' (get_family_op Monoid_RthetaSafeFlags op_family) x)
             as v eqn:A1.
 
@@ -2650,11 +2649,19 @@ Section OperatorPairwiseProofs.
               intros j jc.
               apply compat.
             }
+            (* shrink Upoz *)
+            assert(Upoz': Apply_Family_Vforall_P Monoid_RthetaSafeFlags (liftRthetaP SGP)(shrink_op_family_up Monoid_RthetaSafeFlags op_family)).
+            {
+              intros x' j jc.
+              apply Upoz.
+            }
+            
             specialize (IHn
                           (shrink_op_family_up _ op_family)
                           (shrink_m_op_family_up mop_family)
                           _
                           compat'
+                          Upoz'
                           P
                           v l
                           A V
@@ -2666,6 +2673,7 @@ Section OperatorPairwiseProofs.
             --
               rewrite IHn; clear IHn.
               apply Some_inj_equiv.
+              (*
               rewrite <- A0. clear A0.
               unfold get_family_op, get_family_mem_op.
               eapply mem_vec_preservation.
@@ -2673,6 +2681,8 @@ Section OperatorPairwiseProofs.
               apply H.
               eapply family_in_set_includes_members.
               apply H0.
+               *)
+              admit.
             --
               apply Vec2Union_fold_zeros_dense with (op_family0:=op_family) (x0:=x); auto.
               apply Meq.
@@ -2687,7 +2697,10 @@ Section OperatorPairwiseProofs.
               eapply HH.
               apply compat.
               apply Full_intro.
-           *)
+          *
+            admit.
+          *
+            admit.
         +
           (* [A] could not happen *)
           exfalso.
