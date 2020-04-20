@@ -159,10 +159,10 @@ Ltac solve_facts :=
          | [ |- SH_MSH_Operator_compat (SHPointwise _ _) _    ] => apply SHPointwise_SH_MSH_Operator_compat
          | [ |- SH_MSH_Operator_compat (SHInductor _ _ _ _) _ ] => apply SHInductor_SH_MSH_Operator_compat
          | [ |- SH_MSH_Operator_compat (IReduction minmax.max _) _  ] =>
-           apply IReduction_SH_MSH_Operator_compat with (P:=NN);
+           apply IReduction_SH_MSH_Operator_compat with (SGP:=NN);
            [apply CommutativeRMonoid_max_NN;typeclasses eauto | intros | | ]
          | [ |- SH_MSH_Operator_compat (IReduction plus _) _  ] =>
-           apply IReduction_SH_MSH_Operator_compat with (P:=ATT CarrierA);
+           apply IReduction_SH_MSH_Operator_compat with (SGP:=ATT CarrierA);
            [apply Monoid2CommutativeRMonoid;typeclasses eauto | intros | | ]
          | [ |- SH_MSH_Operator_compat (IReduction _ _) _     ] => apply IReduction_SH_MSH_Operator_compat; intros
          | [ |- SH_MSH_Operator_compat (Embed _ _) _           ] => apply Embed_SH_MSH_Operator_compat
@@ -235,7 +235,6 @@ Section SHCOL_to_MSHCOL.
     unfold ISumUnion.
 
     solve_facts.
-
     -
       unfold Included, In.
       intros [x xc] H.
