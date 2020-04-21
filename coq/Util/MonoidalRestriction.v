@@ -33,6 +33,14 @@ Section MonoidalRestriction.
 
   Global Instance ATT: SgPred A := fun _ => True.
 
+  Global Instance ATT_proper:
+    Proper (equiv ==> impl) ATT.
+  Proof.
+    intros x y E.
+    unfold ATT, impl.
+    tauto.
+  Qed.
+
   (* A regular [CommutativeMonoid] with predicate which is always [True]
      is a [CommutativeRMonoid] *)
   Global Instance Monoid2CommutativeRMonoid
