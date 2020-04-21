@@ -2353,6 +2353,22 @@ Module MMSHCOL'
         eapply (out_mem_oob _ _ Heqo1); eauto.
   Qed.
 
+  Lemma mem_in_fold_left_merge
+        (k : NM.key)
+        (l : list mem_block)
+        (dot : CarrierA -> CarrierA -> CarrierA)
+        (initial : CarrierA)
+        (m : mem_block)
+    :
+      mem_in k (List.fold_left (mem_merge_with_def dot initial) l m) <->
+      mem_in k m \/ mem_in k (List.fold_left (mem_merge_with_def dot initial) l mem_empty).
+  Proof.
+    repeat rewrite fold_left_invariant
+      by (symmetry; apply mem_merge_with_def_as_Union).
+    intuition.
+    inversion H; inversion H0.
+  Qed.
+
   Instance IReduction_MFacts
            {i o k: nat}
            (initial: CarrierA)
@@ -2366,7 +2382,6 @@ Module MMSHCOL'
                                   (Full_set _))
     : MSHOperator_Facts (@MSHIReduction i o k initial dot pdot op_family).
   Proof.
-    (*
     split.
     -
       (* mem_out_some *)
@@ -2470,13 +2485,16 @@ Module MMSHCOL'
           destruct A as [A0 A].
 
           simpl.
-          apply mem_merge_with_def_as_Union.
+          apply mem_in_fold_left_merge.
+          apply LogicUtil.or_sym.
+
 
           simpl in H.
           dep_destruct H.
           --
             clear IHk A.
             right.
+            apply mem_merge_with_def_as_Union; right.
             unfold Ensembles.In in H.
             eapply (out_mem_fill_pattern _ _ A0) with (jc:=jc).
             replace (Nat.lt_0_succ k) with (zero_lt_Sn k)
@@ -2540,8 +2558,12 @@ Module MMSHCOL'
         apply Apply_mem_Family_cons in A.
         destruct A as [A0 A].
         intros C.
-        apply mem_merge_with_def_as_Union in C.
+        apply mem_in_fold_left_merge in C.
         destruct C.
+        --
+          apply mem_merge_with_def_as_Union in H.
+          destruct H; [inversion H; inversion H1 |].
+          apply out_mem_oob with (j0:=j) in A0; auto.
         --
           apply (IHk
                    (shrink_m_op_family_up op_family)
@@ -2549,10 +2571,7 @@ Module MMSHCOL'
                    _
                    A).
           assumption.
-        --
-          apply out_mem_oob with (j0:=j) in A0; auto.
-     *)
-  Admitted.
+  Qed.
 
   Lemma mem_keys_set_to_m_out_index_set
         (i o: nat)
