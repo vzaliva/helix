@@ -2578,6 +2578,9 @@ Section OperatorPairwiseProofs.
          (A: Apply_mem_Family (n:=k) (get_family_mem_op (i:=i) (o:=o) mop_family)
                               (@svector_to_mem_block Monoid_RthetaSafeFlags i x) ≡
              Some l)
+         (W : forall (j : nat) (jc : j < i),
+             family_in_index_set Monoid_RthetaSafeFlags op_family (mkFinNat jc)
+             -> Is_Val (Vnth x jc))
       :
         Forall (Forall SGP ∘ mem_value_lst) l.
     Proof.
@@ -2622,12 +2625,7 @@ Section OperatorPairwiseProofs.
       unfold get_family_op in Upoz.
       unfold get_family_mem_op in N.
       repeat eq_to_equiv_hyp.
-      rewrite <- ME in N.
-      2:{
-        (* [x] must be well formed *)
-        admit.
-      }
-
+      rewrite <- ME in N;[|intros;apply W].
       some_inv.
       rewrite <- N in M.
       unfold mem_lookup in M.
