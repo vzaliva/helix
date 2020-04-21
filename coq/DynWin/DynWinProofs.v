@@ -160,10 +160,10 @@ Ltac solve_facts :=
          | [ |- SH_MSH_Operator_compat (SHInductor _ _ _ _) _ ] => apply SHInductor_SH_MSH_Operator_compat
          | [ |- SH_MSH_Operator_compat (IReduction minmax.max _) _  ] =>
            apply IReduction_SH_MSH_Operator_compat with (SGP:=NN);
-           [apply CommutativeRMonoid_max_NN;typeclasses eauto | intros | | ]
+           [typeclasses eauto | apply CommutativeRMonoid_max_NN;typeclasses eauto | intros | | ]
          | [ |- SH_MSH_Operator_compat (IReduction plus _) _  ] =>
            apply IReduction_SH_MSH_Operator_compat with (SGP:=ATT CarrierA);
-           [apply Monoid2CommutativeRMonoid;typeclasses eauto | intros | | ]
+           [typeclasses eauto | apply Monoid2CommutativeRMonoid;typeclasses eauto | intros | | ]
          | [ |- SH_MSH_Operator_compat (IReduction _ _) _     ] => apply IReduction_SH_MSH_Operator_compat; intros
          | [ |- SH_MSH_Operator_compat (Embed _ _) _           ] => apply Embed_SH_MSH_Operator_compat
          | [ |- SH_MSH_Operator_compat (SHBinOp _ _) _        ] => apply SHBinOp_RthetaSafe_SH_MSH_Operator_compat

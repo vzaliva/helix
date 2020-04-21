@@ -2546,12 +2546,112 @@ Section OperatorPairwiseProofs.
       apply CM.
     Qed.
 
+    Local Instance mem_merge_with_def_CM
+          (svalue : CarrierA)
+          (dot : CarrierA → CarrierA → CarrierA)
+          (SGP : SgPred CarrierA)
+          (CM: @CommutativeRMonoid CarrierA CarrierAe dot svalue SGP):
+      @CommutativeRMonoid mem_block mem_block_Equiv
+                          (mem_merge_with_def dot svalue) mem_empty
+                          (@Forall CarrierA SGP ∘ mem_value_lst).
+    Proof.
+    Admitted.
+
+    (* Positivity propagation *)
+    Fact Apply_mem_Family_lift_SGP
+         {i o k: nat}
+         (svalue : CarrierA)
+         `{SGP : SgPred CarrierA}
+         `{SPGP: !Proper ((=) ==> impl) SGP}
+         (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k svalue)
+         (mop_family : MSHOperatorFamily)
+         (Upoz: Apply_Family_Vforall_P _ (liftRthetaP SGP) op_family)
+         (Meq: forall j (jc:j<k), SH_MSH_Operator_compat
+                               (op_family (mkFinNat jc))
+                               (mop_family (mkFinNat jc)))
+         (compat: forall j (jc:j<k),
+             Ensembles.Same_set _
+                                (out_index_set _ (op_family (mkFinNat jc)))
+                                (Full_set _))
+         (x : vector (Rtheta' Monoid_RthetaSafeFlags) i)
+         (l : list mem_block)
+         (A: Apply_mem_Family (n:=k) (get_family_mem_op (i:=i) (o:=o) mop_family)
+                              (@svector_to_mem_block Monoid_RthetaSafeFlags i x) ≡
+             Some l)
+      :
+        Forall (Forall SGP ∘ mem_value_lst) l.
+    Proof.
+      apply Forall_forall.
+      intros v N.
+      apply In_nth_error in N.
+      destruct N as [t N].
+      pose proof (ListNth.nth_error_length_lt _ _ N) as tc.
+      pose proof (Apply_mem_Family_length A) as L.
+      rewrite L in tc.
+
+      specialize (Meq t tc).
+      destruct Meq as [H1 H2 H3 H4 ME].
+      specialize (ME x).
+
+      apply Apply_mem_Family_eq_Some with (jc:=tc) in A.
+      unfold mem_block in A.
+      rewrite A in N; clear A.
+
+      unfold compose.
+      apply Forall_forall.
+      intros m M.
+      apply In_nth_error in M.
+      destruct M as [j M].
+      pose proof (ListNth.nth_error_length_lt _ _ M) as jc.
+      assert(O: Datatypes.length (mem_value_lst v) ≡ o).
+      {
+        (* could be derived from 'compat' *)
+        admit.
+      }
+      rewrite O in jc; clear O.
+      assert(NL: nth_error (mem_value_lst v) j ≡ mem_lookup j v).
+      {
+        (* could be derived from 'compat' *)
+        admit.
+      }
+      rewrite NL in M; clear NL.
+
+      specialize (Upoz x t tc).
+      apply Vforall_nth with (ip:=jc) in Upoz.
+
+      unfold get_family_op in Upoz.
+      unfold get_family_mem_op in N.
+      repeat eq_to_equiv_hyp.
+      rewrite <- ME in N.
+      2:{
+        (* [x] must be well formed *)
+        admit.
+      }
+
+      some_inv.
+      rewrite <- N in M.
+      unfold mem_lookup in M.
+      rewrite find_svector_to_mem_block_some with (kc:=jc) in M.
+      2:{
+        (* could be derived from 'compat' *)
+        apply NP.F.in_find_iff.
+        apply Some_nequiv_None in M.
+        apply None_nequiv_neq.
+        apply M.
+      }
+      some_inv.
+      unfold liftRthetaP in Upoz.
+      rewrite M in Upoz.
+      apply Upoz.
+    Admitted.
+
     Global Instance IReduction_SH_MSH_Operator_compat
            {i o k: nat}
            (svalue: CarrierA)
            (dot: CarrierA -> CarrierA -> CarrierA)
            `{pdot: !Proper ((=) ==> (=) ==> (=)) dot} (* might not be needed *)
            `{SGP : SgPred CarrierA}
+           `{SPGP: !Proper ((=) ==> impl) SGP}
            `{CM: @CommutativeRMonoid _ _ dot svalue SGP}
            `{scompat: BFixpoint svalue dot} (* TODO: try to remove. Follows from CommutativeRMonoid *)
            (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k svalue)
@@ -2598,7 +2698,7 @@ Section OperatorPairwiseProofs.
         +
           f_equiv.
           unshelve rewrite <- fold_left_fold_left_rev_restricted.
-          admit.
+          exact (List.Forall SGP ∘ mem_value_lst).
           remember (Apply_Family' (get_family_op Monoid_RthetaSafeFlags op_family) x)
             as v eqn:A1.
 
@@ -2672,8 +2772,8 @@ Section OperatorPairwiseProofs.
             rewrite (svector_to_mem_block_Vec2Union_mem_merge_with_def svalue).
             --
               rewrite IHn; clear IHn.
+              f_equiv. apply pdot.
               apply Some_inj_equiv.
-              (*
               rewrite <- A0. clear A0.
               unfold get_family_op, get_family_mem_op.
               eapply mem_vec_preservation.
@@ -2681,8 +2781,6 @@ Section OperatorPairwiseProofs.
               apply H.
               eapply family_in_set_includes_members.
               apply H0.
-               *)
-              admit.
             --
               apply Vec2Union_fold_zeros_dense with (op_family0:=op_family) (x0:=x); auto.
               apply Meq.
@@ -2698,9 +2796,9 @@ Section OperatorPairwiseProofs.
               apply compat.
               apply Full_intro.
           *
-            admit.
+            typeclasses eauto.
           *
-            admit.
+            eapply Apply_mem_Family_lift_SGP; eauto.
         +
           (* [A] could not happen *)
           exfalso.
@@ -2716,7 +2814,7 @@ Section OperatorPairwiseProofs.
           eapply family_in_set_includes_members.
           apply Meq.
           apply H0.
-    Admitted.
+    Qed.
 
     Lemma cast_op_family_facts
           {svalue: CarrierA}
