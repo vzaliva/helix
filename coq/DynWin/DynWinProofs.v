@@ -609,7 +609,7 @@ Section MSHCOL_to_DSHCOL.
         rename H into M0.
         rename m' into m0.
         remember (memory_alloc_empty m0 (memory_next_key m0)) as m1 eqn:M1.
-        remember (memory_set m1 (memory_next_key m1) mem_empty) as m2 eqn:M2.
+        remember (memory_set m1 (memory_next_key m1) mb) as m2 eqn:M2.
         unfold memory_alloc_empty in M1.
         rename m'0 into m1_plus.
         inl_inr_inv.
@@ -626,7 +626,7 @@ Section MSHCOL_to_DSHCOL.
           lia.
         }
 
-        remember (memory_set m1_plus (memory_next_key m1_plus) mem_empty) as
+        remember (memory_set m1_plus (memory_next_key m1_plus) mb) as
             m1_plus'.
 
         apply memory_set_memory_next_key_gt in Heqm1_plus'.

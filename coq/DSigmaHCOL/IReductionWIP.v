@@ -2428,13 +2428,13 @@ Global Instance IReduction_MSH_DSH_compat_S
            evalPexp σ y_p ≡ inr y_id ->
            memory_subset_except y_id m m'  ->
            MSH_DSH_BinCarrierA_compat dot (d1 :: d2 :: σ) df m')
-       (FC : forall m' tmpk t y_id,
+       (FC : forall m' tmpk t y_id mb,
            evalPexp σ y_p ≡ inr y_id ->
            memory_subset_except y_id m m'  ->
            tmpk ≡ memory_next_key m' ->
            @MSH_DSH_compat _ _ (op_family t) rr
                            (DSHnatVal (proj1_sig t) :: DSHPtrVal tmpk o :: σ)
-                           (memory_set m' tmpk (mem_empty))
+                           (memory_set m' tmpk mb)
                            (incrPVar 0 (incrPVar 0 x_p)) (PVar 1) P)
        (MF : MSHOperator_Facts (@MSHIReduction i o (S n) init dot _ op_family))
        (FMF : ∀ (j : nat) (jc : j < (S n)), MSHOperator_Facts (op_family (mkFinNat jc)))
@@ -2457,6 +2457,7 @@ Global Instance IReduction_MSH_DSH_compat_S
                                            df)))))
       σ m x_p y_p DP.
 Proof.
+  (*
   subst.
   constructor.
   intros x_m y_m X_M Y_M.
@@ -3312,4 +3313,5 @@ Proof.
           rewrite T in R; clear T.
           inversion R; subst.
           admit.
+   *)
 Admitted.
