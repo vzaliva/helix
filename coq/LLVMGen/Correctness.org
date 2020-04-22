@@ -1,0 +1,73 @@
+Proof of correctness of the compiler from FSHCOL to Vellvm
+
+* Structure of the compiler
+
+** Top-level: [compile_w_main ≜ compile (just_compile := false)]
+
+*** Signature of [compile: (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): err (toplevel_entities typ (list (block typ)))]
+   
+    * [FSHCOLProgram]: the program to be compiled
+    * [just_compile]: if false, setup globals meant to be read as the result
+    * [data]: a vector of inputs
+
+      If it succeeds, returns a Vellvm program in the form of [toplevel_entities]
+
+*** Structure of [compile]:
+
+    1. Initialize globals [initIRGlobals] + some comment 
+       TODO: facilities to dismiss comments 
+    2. Setup two additional globals interpreted as input and output variables
+       TODO: How do we know that [Anon 0%Z]  and [Anon 1%Z] are fresh?
+    3. Generation of the main: [genMain i o name x xptyp y ytyp yptyp globals data]
+    4. Generation of the core of the program: [LLVMGen i o globals just_compile op name]
+    5. We staple them all together: a _function_ has been generated for each of these steps [ret (ginit ++ yxinit ++ prog ++ main)]
+
+*** Corresponding correctness theorem:
+
+    [compiler_correct]
+    If [compile_w_main p data = inr pll], i.e. the compilation succeeds, then [p] and [pll] should have the same denotations.
+
+**** Denotation at the FSHCOL level
+    [semantics_FSHCOL p data: itree E_mcfg (memory * list binary64)]
+    Chains three components:
+    1. [denote_FSHCOL: FSHCOLProgram -> list binary64  -> itree Event (list binary64)]: main denotation function
+    2. [interp_Mem _ mem_empty]: interpret the memory events and runs it starting from the empty memory
+       TODO: [interp_Mem_ret] 
+       TODO: [interp_Mem_bind] 
+    3. [translate subevent _]: technical trick to add in the type of the tree failure events from Vellvm
+       TODO: How to handle this cleanly?
+
+**** Denotation at the Vellvm level
+     Notation: top_vellvm := list (toplevel_entity typ (list (LLVMAst.block typ)))
+     Notation: top_vellvm_state := (M.memory_stack * (alist raw_id TopLevelEnv.res_L0 * Stack.stack * (alist raw_id dvalue * TopLevelEnv.res_L0)))
+     [semantics_llvm pll: top_vellvm → itree E_mcfg top_vellvm_state]
+     TODO: semantics_llvm_ret
+     TODO: semantics_llvm_bind
+
+     Defined via [TopLevelEnv.lift_sem_to_mcfg] that lifts a semantic function [(CFG.mcfg DynamicTypes.dtyp) -> itree E X] 
+     to one over [top_vellvm -> itree E X] by converting top_vellvm to mcfg, and normalizing types.
+     TODO: Structural lemmas about [TopLevelEnv.lift_sem_to_mcfg]
+     TODO: semantics_llvm_mcfg_ret
+     TODO: semantics_llvm_mcfg_bind
+
+     The semantics function below is [semantics_llvm_mcfg] which is just the same translation trick as on the FSHCOL side slapped
+     atop [model_llvm'].
+     TODO: Duplicate with above, how to reason cleanly about this superfluous translate?
+
+     [model_llvm' = model_to_L3 helix_intrinsics]
+     TODO: How to lift the denotation down to L3 down to L5?
+     TODO: model_llvm'_ret
+     TODO: model_llvm'_bind
+
+**** Top-level relation on states
+     [bisim_final []]
+     METATODO: Come back to the simulation relations
+
+*** Going down a level
+    TODO: What do we deduce from [initIRGlobals data globals ≡ inr (data', ginit)]?
+    TODO: What do we deduce from [ErrorWithState.evalErrS (LLVMGen i o globals false op name) newState ≡ inr t]?
+
+    TODO: Structural lemma: [semantics_llvm (x::tl) = ??]
+    
+    TODO: How to reduce our goal [eutt R (semantics_FSHCOL _ _) (semantics_llvm (Comment :: init :: globalXY:: t :: genMain _]
+          to something of the flavor [eutt ? ? (semantics_llvm t)]?
