@@ -2546,15 +2546,119 @@ Section OperatorPairwiseProofs.
       apply CM.
     Qed.
 
+    (* TODO: similar to [NM_NS_In] but for lists instead of sets *)
+    Lemma NM_In_In_mem_value_lst
+          (x : mem_block)
+          (k : NM.key)
+          (c : CarrierA):
+      @NM.In CarrierA k x → @In CarrierA c (mem_value_lst x).
+    Proof.
+      intros H.
+      unfold mem_value_lst.
+      apply NM_NS_In in H.
+      remember (NM.elements (elt:=CarrierA) x) as e.
+      apply NSP.of_list_1 in H.
+    Admitted.
+
+
+    (* Predicate which is True for "dense" memb blocks of size [k]:
+       All keys up to [k] must be present, and not keys above [k]
+       should be set *)
+    Definition dense_block (k:nat) (m: mem_block) : Prop :=
+      forall j, (j<k) <-> NM.In j m.
+
+    (* Dense block where all values satisfiy [SGP] *)
+    Definition dense_block_SGP
+               (SGP : SgPred CarrierA)
+               (k:nat)
+               (m: mem_block) : Prop
+      := (dense_block k m) /\ (@Forall CarrierA SGP (mem_value_lst m)).
+
     Local Instance mem_merge_with_def_CM
+          (n: nat)
           (svalue : CarrierA)
           (dot : CarrierA → CarrierA → CarrierA)
           (SGP : SgPred CarrierA)
           (CM: @CommutativeRMonoid CarrierA CarrierAe dot svalue SGP):
       @CommutativeRMonoid mem_block mem_block_Equiv
                           (mem_merge_with_def dot svalue) mem_empty
-                          (@Forall CarrierA SGP ∘ mem_value_lst).
+                          (dense_block_SGP SGP n).
     Proof.
+      split.
+      -
+        (*
+        split.
+        split; typeclasses eauto.
+        +
+          (* MonRestriction *)
+          admit.
+        +
+          (* Proper sg_op *)
+          admit.
+        +
+          (* assoc *)
+          intros x y z Hx Hy Hz.
+          unfold equiv, mem_block_Equiv.
+          intros k.
+          unfold sg_op.
+          unfold mem_merge_with_def.
+          repeat rewrite NP.F.map2_1bis by reflexivity.
+          unfold sg_P, compose in Hx, Hy, Hz.
+          rewrite Forall_forall in Hx, Hy, Hz.
+          repeat break_match; try some_none;
+
+            repeat some_inv;
+            f_equiv;
+            subst;
+            try apply Some_ne_None, NP.F.in_find_iff in Heqo;
+            try apply Some_ne_None, NP.F.in_find_iff in Heqo2;
+            try apply Some_ne_None, NP.F.in_find_iff in Heqo3.
+          *
+            apply rmonoid_ass with (Aunit:=svalue) (Apred:=SGP).
+            unfold CarrierAasCT.CarrierAasCT.CTypeEquiv.
+            apply comrmonoid_rmon.
+            eapply CM.
+            --
+              apply Hx. eapply  NM_In_In_mem_value_lst. apply Heqo.
+            --
+              apply Hy. eapply  NM_In_In_mem_value_lst. apply Heqo3.
+            --
+              apply Hz. eapply  NM_In_In_mem_value_lst. apply Heqo2.
+          *
+            admit.
+        +
+          (* left id *)
+          admit.
+        +
+          (* right id *)
+          admit.
+         *)
+        admit.
+      -
+        (* commutativity *)
+        intros x y [Hxd Hx] [Hyd Hy].
+        unfold equiv, mem_block_Equiv.
+        intros k.
+        unfold sg_op.
+        unfold mem_merge_with_def.
+        rewrite 2!NP.F.map2_1bis by reflexivity.
+        unfold sg_P in Hx, Hy.
+        rewrite Forall_forall in Hx, Hy.
+        repeat break_match.
+        +
+          f_equiv.
+          unfold equiv, CarrierAasCT.CarrierAasCT.CTypeEquiv.
+          apply (@rcommutativity CarrierA CarrierAe _ _ _ CM).
+          *
+            apply Hx.
+            apply Some_ne_None, NP.F.in_find_iff in Heqo.
+            eapply  NM_In_In_mem_value_lst.
+            apply Heqo.
+          *
+            apply Hy.
+            apply Some_ne_None, NP.F.in_find_iff in Heqo0.
+            eapply  NM_In_In_mem_value_lst.
+            apply Heqo0.
     Admitted.
 
     (* Positivity propagation *)
@@ -2582,7 +2686,7 @@ Section OperatorPairwiseProofs.
              family_in_index_set Monoid_RthetaSafeFlags op_family (mkFinNat jc)
              -> Is_Val (Vnth x jc))
       :
-        Forall (Forall SGP ∘ mem_value_lst) l.
+        Forall (dense_block_SGP SGP o) l.
     Proof.
       apply Forall_forall.
       intros v N.
@@ -2597,50 +2701,54 @@ Section OperatorPairwiseProofs.
       specialize (ME x).
 
       apply Apply_mem_Family_eq_Some with (jc:=tc) in A.
-      unfold mem_block in A.
+      unfold mem_block in A, N.
       rewrite A in N; clear A.
-
-      unfold compose.
-      apply Forall_forall.
-      intros m M.
-      apply In_nth_error in M.
-      destruct M as [j M].
-      pose proof (ListNth.nth_error_length_lt _ _ M) as jc.
-      assert(O: Datatypes.length (mem_value_lst v) ≡ o).
-      {
-        (* could be derived from 'compat' *)
+      unfold dense_block_SGP.
+      split.
+      -
+        (* could be proven from [compat], [H4] *)
         admit.
-      }
-      rewrite O in jc; clear O.
-      assert(NL: nth_error (mem_value_lst v) j ≡ mem_lookup j v).
-      {
-        (* could be derived from 'compat' *)
-        admit.
-      }
-      rewrite NL in M; clear NL.
+      -
+        apply Forall_forall.
+        intros m M.
+        apply In_nth_error in M.
+        destruct M as [j M].
+        pose proof (ListNth.nth_error_length_lt _ _ M) as jc.
+        assert(O: Datatypes.length (mem_value_lst v) ≡ o).
+        {
+          (* could be derived from 'compat' *)
+          admit.
+        }
+        rewrite O in jc; clear O.
+        assert(NL: nth_error (mem_value_lst v) j ≡ mem_lookup j v).
+        {
+          (* could be derived from 'compat' *)
+          admit.
+        }
+        rewrite NL in M; clear NL.
 
-      specialize (Upoz x t tc).
-      apply Vforall_nth with (ip:=jc) in Upoz.
+        specialize (Upoz x t tc).
+        apply Vforall_nth with (ip:=jc) in Upoz.
 
-      unfold get_family_op in Upoz.
-      unfold get_family_mem_op in N.
-      repeat eq_to_equiv_hyp.
-      rewrite <- ME in N;[|intros;apply W].
-      some_inv.
-      rewrite <- N in M.
-      unfold mem_lookup in M.
-      rewrite find_svector_to_mem_block_some with (kc:=jc) in M.
-      2:{
-        (* could be derived from 'compat' *)
-        apply NP.F.in_find_iff.
-        apply Some_nequiv_None in M.
-        apply None_nequiv_neq.
-        apply M.
-      }
-      some_inv.
-      unfold liftRthetaP in Upoz.
-      rewrite M in Upoz.
-      apply Upoz.
+        unfold get_family_op in Upoz.
+        unfold get_family_mem_op in N.
+        repeat eq_to_equiv_hyp.
+        rewrite <- ME in N;[|intros;apply W].
+        some_inv.
+        rewrite <- N in M.
+        unfold mem_lookup in M.
+        rewrite find_svector_to_mem_block_some with (kc:=jc) in M.
+        2:{
+          (* could be derived from 'compat' *)
+          apply NP.F.in_find_iff.
+          apply Some_nequiv_None in M.
+          apply None_nequiv_neq.
+          apply M.
+        }
+        some_inv.
+        unfold liftRthetaP in Upoz.
+        rewrite M in Upoz.
+        apply Upoz.
     Admitted.
 
     Global Instance IReduction_SH_MSH_Operator_compat
@@ -2696,7 +2804,7 @@ Section OperatorPairwiseProofs.
         +
           f_equiv.
           unshelve rewrite <- fold_left_fold_left_rev_restricted.
-          exact (List.Forall SGP ∘ mem_value_lst).
+          exact (dense_block_SGP SGP o).
           remember (Apply_Family' (get_family_op Monoid_RthetaSafeFlags op_family) x)
             as v eqn:A1.
 
@@ -2779,6 +2887,7 @@ Section OperatorPairwiseProofs.
               apply H.
               eapply family_in_set_includes_members.
               apply H0.
+              exact o. (* TODO: not sure where this is coming from *)
             --
               apply Vec2Union_fold_zeros_dense with (op_family0:=op_family) (x0:=x); auto.
               apply Meq.
