@@ -31,7 +31,7 @@ Notation "x @@ y" := (String.append x y) (right associativity, at level 60) : st
       end.
 
     Ltac rev_str s := rev_str_helper EmptyString s.
-    
+
     Ltac rewrite_str acc s :=
       match s with
       | (String ?x EmptyString) =>
@@ -532,8 +532,8 @@ Definition bisim_partial: Type_R_partial
       (f : ∀ T : Type, E T → itree F T) (g : forall T : Type, F T -> Monads.stateT ST (itree G) T) (t : itree E R),
       interp_state g (interp f t) st ≅ interp_state (fun (T : Type) (e : E T) => interp g (f T e)) t st.
   Proof.
-  Admitted.  
-  
+  Admitted.
+
   Ltac eutt_hide_left :=
     match goal with
      |- eutt _ ?t _ => remember t
@@ -551,7 +551,7 @@ Definition bisim_partial: Type_R_partial
 
   (* TODO: move to vellvm *)
   Lemma interp_global_vis:
-    ∀ (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type → Type) 
+    ∀ (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type → Type)
       (H0 : FailureE -< G) (R : Type) (g : map) (x : R) S X
       (kk : X -> itree (E +' F +' GlobalE k v +' G) S)
       (e : (E +' F +' GlobalE k v +' G) X),
@@ -565,7 +565,7 @@ Definition bisim_partial: Type_R_partial
 
   (* TODO: move to vellvm *)
   Lemma interp_local_vis:
-    ∀ (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type → Type) 
+    ∀ (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type → Type)
       (H0 : FailureE -< G) (R : Type) (g : map) (x : R) S X
       (kk : X -> itree (E +' F +' LocalE k v +' G) S)
       (e : (E +' F +' LocalE k v +' G) X),
@@ -589,7 +589,7 @@ Definition bisim_partial: Type_R_partial
     rewrite interp_vis.
     reflexivity.
   Qed.
- 
+
   Lemma interp_cfg_to_L3_vis (defs: IS.intrinsic_definitions):
     forall T R (e : instr_E T) (k : T -> itree instr_E R) g l m,
       interp_cfg_to_L3 defs (Vis e k) g l m ≅
@@ -649,7 +649,7 @@ Definition bisim_partial: Type_R_partial
     rewrite Heqterm.
     cbn.
     setoid_rewrite translate_ret.
-    setoid_rewrite bind_ret_l. 
+    setoid_rewrite bind_ret_l.
     destruct (Eqv.eqv_dec_p (blk_id b) nextblock); try contradiction.
     repeat setoid_rewrite bind_ret_l. unfold Datatypes.id.
     reflexivity.
@@ -662,7 +662,7 @@ Definition bisim_partial: Type_R_partial
  *)
 
   Lemma DSHAssign_singleton :
-    forall (nextblock : block_id) (src dst : MemVarRef) (st st' : IRState) (bid_in : block_id) 
+    forall (nextblock : block_id) (src dst : MemVarRef) (st st' : IRState) (bid_in : block_id)
       (bks : list (LLVMAst.block typ)),
       genIR (DSHAssign src dst) nextblock st ≡ inr (st', (bid_in, bks)) ->
       exists b,
@@ -700,7 +700,7 @@ Definition bisim_partial: Type_R_partial
       + exists b. reflexivity.
       + inv H.
   Qed.
-  
+
   Lemma genIR_DSHAssign_to_genFSHAssign :
     forall src dst nextblock st st' b,
       genIR (DSHAssign src dst) nextblock st ≡ inr (st', (blk_id b, [b])) ->
@@ -841,7 +841,7 @@ Definition bisim_partial: Type_R_partial
     - cbn in H; repeat break_match_hyp; inversion H; cbn.
       admit.
   Admitted.
-    
+
 
   (* Probably need to know something about σ and mem_llvm,
      like memory_invariant... *)
@@ -850,7 +850,7 @@ Definition bisim_partial: Type_R_partial
   Lemma denoteNexp_genNExpr :
     forall (nexp : NExpr) (st st' : IRState) (nexp_r : exp typ) (nexp_code : code typ) (env : list (ident * typ)) (σ : evalContext) g ρ mem_llvm mem_helix,
       (* TODO: Do I need mem_helix? *)
-      memory_invariant σ mem_helix (mem_llvm, (ρ, g)) -> 
+      memory_invariant σ mem_helix (mem_llvm, (ρ, g)) ->
       genNExpr nexp st  ≡ inr (st', (nexp_r, nexp_code)) ->
       eutt (nexp_relation env nexp_r)
            (translate inr_ (denoteNexp σ nexp))
@@ -905,7 +905,7 @@ Definition bisim_partial: Type_R_partial
           rewrite interp_global_ret.
           rewrite interp_local_ret.
           rewrite M.interp_memory_ret.
-          
+
           apply eqit_Ret.
 
           unfold int64_concrete_uvalue_rel.
@@ -927,7 +927,7 @@ Definition bisim_partial: Type_R_partial
         * admit.
         * admit.
         * admit.
-      + 
+      +
       (* exception *) admit.
 
       (*
@@ -1177,7 +1177,13 @@ Proof.
      *)
     apply DSHAssign_singleton in HCompile.
     destruct HCompile as (b & HCompile & Hterm & Hbid & Hbksbk).
-    subst. unfold normalize_types_blocks.
+    subst.
+
+    (* Start by working on the left hand side *)
+
+
+
+    unfold normalize_types_blocks.
     eutt_hide_left.
     simpl.
 
@@ -1186,7 +1192,7 @@ Proof.
 
     (* Work with denote_block *)
     (* I need to know something about b... *)
-    pose proof genIR_DSHAssign_to_genFSHAssign src dst nextblock st HCompile.
+    pose proof genIR_DSHAssign_to_genFSHAssign src dst nextblock st HCompile as H1.
     destruct H1 as (psrc & nsrc & pdst & ndst & b_orig & comments & ist & i0 & ist1 & i1 & ist2 & n & n0 & Hsrc & Hdst & Hb & Hr & Hr' & Hfsh).
 
     cbn in Hb. inversion Hb.
@@ -1256,102 +1262,301 @@ Proof.
 
     rewrite interp_Mem_MemSet.
 
-    (* exception *) admit.
-    setoid_rewrite Hmemlookup.
+    (* Work on the right hand side again *)
+    (* Unfold denote_code and break it apart. *)
+    do 2 rewrite map_app.
+    do 2 setoid_rewrite denote_code_app.
+    do 2 setoid_rewrite bind_bind.
 
+    repeat setoid_rewrite interp_cfg_to_L3_bind.
+    repeat setoid_rewrite translate_bind.
 
-    unfold denoteNexp. cbn.
-    rewrite Heval_src. cbn.
-    rewrite bind_ret_l.
-    cbn. admit.
-    cbn.
-    
-    cbn.
+    (* Need to relate denoteNexp and denote_code of genNexpr *)
+    match goal with
+    | |- context[ ITree.bind ?x ?y ] => remember y as BLAH
+    end.
 
-    cbn.
-    rewrite Hmem_src. cbn.
-    setoid_rewrite interp_Mem_vis.
+    Set Nested Proofs Allowed.
 
-    destruct (nth_error σ v) eqn:Herr.
-    + destruct d.
-      * (* exceptions *) admit.
-      (* Might be able to do this with the bisimulation relation,
-         which might need to be strengthened *)
-      * (* exceptions *) admit.
-      * cbn. rewrite bind_ret_l.
-        destruct (nth_error σ v0) eqn:Herr'.
-        -- destruct d.
-           ++ (* exceptions *) admit.
-           ++ (* exceptions *) admit.
-           ++ cbn. rewrite bind_ret_l.
-              repeat setoid_rewrite bind_trigger.
-              unfold interp_Mem.
-              rewrite interp_state_vis; cbn.
-              destruct (memory_lookup_err "Error looking up 'x' in DSHAssign" mem a) eqn:Hmem_x.
-              (* exceptions *) admit.
+    (* Unprovable, this should come from some well typedness assumption *)
+    Lemma nvar_is_i64 :
+      forall {v s s' s'' ll_exp ll_code str i t},
+        genNExpr (NVar v) s ≡ inr (s', (ll_exp, ll_code)) ->
+        getStateVar str v s ≡ inr (s'', (i, t)) ->
+        t ≡ TYPE_I 64%Z.
+    Proof.
+    Admitted.
 
-              cbn. rewrite bind_ret_l.
+    (* TODO: This is WRONG
 
-              rewrite interp_state_vis; cbn.
-              destruct (memory_lookup_err "Error looking up 'y' in DSHAssign" mem a0) eqn:Hmem_y.
-              (* exceptions *) admit.
+      Each instruction evaluated in the code that nexp produces can
+      add a local variable.
+     *)
+    Lemma denote_code_of_nexp :
+      forall nexp s s' ll_exp ll_code env mem_llvm g ρ,
+        genNExpr nexp s ≡ inr (s', (ll_exp, ll_code)) ->
+        exists ρ',
+          interp_cfg_to_L3 helix_intrinsics
+             (D.denote_code
+                (map (λ '(id, i), (id, TransformTypes.fmap_instr typ dtyp (TypeUtil.normalize_type_dtyp env) i))
+                     ll_code)) g ρ mem_llvm ≈ Ret (mem_llvm, (ρ', (g, ()))).
+    Proof.
+      induction nexp;
+        intros s s' ll_exp ll_code env mem_llvm g ρ H;
+        remember H as Hgen eqn:Heqgen; clear Heqgen;
+        inversion H; subst; cbn.
+      -  cbn in H.
+         break_match_hyp; inversion H1.
+         destruct p, p.
+         pose proof (nvar_is_i64 Hgen Heqs0); subst.
+         break_match_hyp; try contradiction.
+         exists ρ.
+         inversion H1; subst.
+         cbn.
+         rewrite interp_cfg_to_L3_ret.
+         reflexivity.
+      - exists ρ. rewrite interp_cfg_to_L3_ret.
+        reflexivity.
+      - exists ρ. (* TODO: This will need to change *)
 
-              cbn; rewrite bind_ret_l; cbn.
-              repeat rewrite tau_eutt.
+        break_match_hyp.
+        inversion H1.
+        repeat break_match_hyp.
+        inversion H1.
+        inversion H1.
+        cbn in *.
+        do 2 rewrite map_app.
+        do 2 setoid_rewrite denote_code_app.
+        setoid_rewrite bind_bind.
 
-              (* Unfold denote_code and break it apart. *)
-              do 2 rewrite map_app.
-              do 2 setoid_rewrite denote_code_app.
-              do 2 setoid_rewrite bind_bind.
+        rewrite interp_cfg_to_L3_bind.
+        pose proof IHnexp1 s i e c env mem_llvm g ρ Heqs0 as [ρ' Hnexp1].
+        rewrite Hnexp1.
+        rewrite bind_ret_l.
 
-              (* Need to relate denoteNexp and denote_code of genNexpr *)
-              repeat setoid_rewrite interp_cfg_to_L3_bind.
-              repeat setoid_rewrite interp_state_bind.
-              repeat setoid_rewrite translate_bind.
+        rewrite interp_cfg_to_L3_bind.
+        pose proof IHnexp2 i i0 e0 c0 env mem_llvm g ρ' Heqs1 as [ρ'' Hnexp2].
+        rewrite Hnexp2.
+        rewrite bind_ret_l.
 
-              eapply eutt_clo_bind.
-              eapply interp_denoteNexp_genNExpr; eauto.
+        cbn.
+        repeat setoid_rewrite translate_bind.
+        rewrite bind_bind.
 
-              intros u1 u2 H1.
-              destruct u1, u2, p, p; cbn.
-              rewrite interp_cfg_to_L3_bind.
-              rewrite translate_bind.
+        rewrite interp_cfg_to_L3_bind.
 
-              eapply eutt_clo_bind.
-              eapply interp_denoteNexp_genNExpr; eauto.
+        Lemma always_local :
+          forall nexp ll_exp ll_code s s' env g ρ mem_llvm mem_helix σ i,
+            (forall i t, In (i, t) (vars s) -> exists ri, i ≡ ID_Local ri) ->
+            genNExpr nexp s ≡ inr (s', (ll_exp, ll_code)) ->
+            (forall i t, In (i, t) (vars s') -> exists ri, i ≡ ID_Local ri).
+        Proof.
+        Qed.
 
-              intros u1 u2 H7.
-              destruct u1, u2, p, p; cbn.
+        Lemma denote_exp_of_nexp :
+          forall nexp ll_exp ll_code s s' env g ρ mem_llvm mem_helix σ i,
+            memory_invariant σ mem_helix (mem_llvm, (ρ, g)) ->
+            genNExpr nexp s ≡ inr (s', (ll_exp, ll_code)) ->
+            evalNexp σ nexp ≡ inr i ->
+              (interp_cfg_to_L3 helix_intrinsics
+                                (translate exp_E_to_instr_E
+                                         (D.denote_exp (Some (TypeUtil.normalize_type_dtyp env Utils.IntType))
+                                                       (TransformTypes.fmap_exp typ dtyp (TypeUtil.normalize_type_dtyp env) ll_exp))) g ρ mem_llvm) ≈ Ret (mem_llvm, (ρ, (g, UVALUE_I64 i))).
+        Proof.
+          setoid_rewrite normalize_IntType.
+          induction nexp;
+            intros ll_exp ll_code s s' env g ρ mem_llvm mem_helix σ i Hmem H H0;
+            inversion H; inversion H0; subst; cbn.
+          - repeat break_match_hyp; inversion H3; inversion H2;
+              cbn.
+            destruct i1; cbn.
+            rewrite bind_trigger.
+            repeat setoid_rewrite translate_vis.
+            repeat setoid_rewrite translate_ret.
 
-              destruct (mem_lookup_err "Error looking up 'v' in DSHAssign" (MInt64asNT.to_nat i) m) eqn:Hmemlookup.
-              (* exception *) admit.
+            unfold interp_cfg_to_L3.
+            unfold runState.
+            setoid_rewrite interpret_intrinsics_vis; cbn.
+            unfold INT.F_trigger.
+            rewrite bind_trigger.
+            setoid_rewrite interp_global_vis; cbn.
+
+            Lemma gen_var_irstate_rel :
+              forall v s s' ll_exp ll_code mem_helix σ mem_llvm ρ g i id sz,
+                genNExpr (NVar v) s ≡ inr (s', (ll_exp, ll_code)) ->
+                memory_invariant σ mem_helix (mem_llvm, (ρ, g)) ->
+                evalNexp σ (NVar v) ≡ inr i ->
+                getStateVar "NVar out of range" v s ≡ inr (s', (ID_Global id, TYPE_I sz)) ->
+                alist_find AstLib.eq_dec_raw_id id g ≡ Some (DVALUE_I64 i).
+            Proof.
+              intros v s s' ll_exp ll_code mem_helix σ mem_llvm ρ g i id sz H H0 H1 H2.
+              cbn in H1. break_match_hyp; inversion H1.
+              break_match_hyp; inversion H1; subst.
+              unfold context_lookup in *.
+              destruct (nth_error σ v) eqn:Hlookup.
+              2: { inversion Heqs0. }
+              cbn in H2.
+              destruct (nth_error (vars s) v) eqn:Hlookupst.
+              2: { inversion H2. }
+              cbn in H2.
+              inversion H2. subst.
+              inversion Heqs0.
+              subst.
+              unfold memory_invariant in H0.
+              rename H0 into Hmem.
+              destruct Hmem as [Hmem | Hmem].
+              { (* Case where sigma is nil *)
+                assert (σ ≡ []) by (apply ListUtil.length_0; auto).
+                subst; cbn in Hlookup; rewrite ListNth.nth_error_nil in Hlookup.
+                inversion Hlookup.
+              }
+
+              destruct Hmem as (Hinj & ?).
+              specialize (H0 _ _ Hlookup).
+
+              destruct H0 as [ptr_llvm [[[Hlocal Hnotglobal] | [Hnotlocal Hglobal]]
+                                 [bk_llvm [Hlogicalblock [v_llvm [Hlookup_block Hmatches]]]]]]; subst.
+
+              admit. (* locals *)
 
               cbn.
-              rewrite interp_state_ret.
-              rewrite translate_ret.
-              rewrite bind_ret_l.
 
-              rewrite interp_state_trigger.
-              cbn.
-              rewrite bind_ret_l.
-              rewrite translate_tau.
-              rewrite tau_eutt.
-              rewrite translate_ret.
+              cbn in *; subst.
 
-              (* Now we have ret on the lhs *)
+            Qed.
 
-              rewrite interp_cfg_to_L3_bind.
-              rewrite translate_bind.
-              cbn.
 
-              subst assigncode.
+            Lemma irstate_rel (op: DSHOperator) :
+              forall (nextblock bid_in : block_id) (st st' : IRState) (bks : list (LLVMAst.block typ)) (σ : evalContext) (env : list (ident * typ)) (mem : MDSHCOLOnFloat64.memory) (g : global_env) (ρ : local_env) (mem_llvm : memory),
+                nextblock ≢ bid_in -> (* Do I need this? *)
+                bisim_partial σ (mem,tt) (mem_llvm, (ρ, (g, (inl bid_in)))) ->
+                genIR op nextblock st ≡ inr (st',(bid_in,bks)) ->
+
+
+            Lemma lookup_global:
+              forall σ mem_helix mem_llvm ρ g v i id s s' sz,
+                memory_invariant σ mem_helix (mem_llvm, (ρ, g)) ->
+                getStateVar "NVar out of range" v s ≡ inr (s', (ID_Global id, TYPE_I sz)) ->
+                evalNexp σ (NVar v) ≡ inr i ->
+                exists a, alist_find AstLib.eq_dec_raw_id id g ≡ Some (DVALUE_Addr a).
+            Proof.
+              intros σ mem_helix mem_llvm ρ g v i id s s' sz Hmem Hst Heval.
+              cbn in Heval.
+              unfold context_lookup in *.
+              destruct (nth_error σ v) eqn:Hlookup; cbn in Heval; try solve [inversion Heval].
+              unfold memory_invariant in Hmem.
+              destruct Hmem as [Hmem | Hmem].
+              { (* Case where sigma is nil *)
+                assert (σ ≡ []) by (apply ListUtil.length_0; auto).
+                subst; cbn in Hlookup; rewrite ListNth.nth_error_nil in Hlookup.
+                inversion Hlookup.
+              }
+
+              destruct Hmem as (Hinj & ?).
+              specialize (H _ _ Hlookup).
+
+              (* Determine that d = DSHnatVal i *)
+              destruct d eqn:Hd; cbn in Heval; inversion Heval as [Hni]; rewrite Hni in *.
+
+              destruct H as [ptr_llvm [[[Hlocal Hnotglobal] | [Hnotlocal Hglobal]]
+                                 [bk_llvm [Hlogicalblock [v_llvm [Hlookup_block Hmatches]]]]]]; subst.
+
+              (* Variable is in the local environment *)
+              admit.
+
+              (* Variable is in the global environment *)
+              exists ptr_llvm. unfold inj_f in Hglobal.
+              destruct Hinj.
+              cbn in Hglobal.
+
+              (* Need something relating id and v *)
+              destruct (inj_f0 v).
+
+              - (* d = DSHnatVal i *)
+                destruct H as
+                    [ptr_llvm [[[Hlocal Hnotglobal] | [Hnotlocal Hglobal]]
+                                 [bk_llvm [Hlogicalblock [v_llvm [Hlookup_block Hmatches]]]]]]; subst.
+                admit.
+
+                exists ptr_llvm.
+                unfold inj_f in Hglobal.
+                destruct Hinj.
+                destruct inj_f0.
+
+
+                unfold Hinj in
+
+                 destruct Hsearch.
+
+            Qed.
+            .
+              inversio
+
+
+            destruct (alist_find AstLib.eq_dec_raw_id id g) eqn:Hg.
+            Focus 2. admit. (* Exception *)
+
+            rewrite bind_ret_l.
+            repeat rewrite tau_eutt.
+            cbn.
+            rewrite interp_ret.
+            rewrite interp_global_ret.
+            cbn.
+
+            setoid_rewrite interp_local_ret.
+            unfold M.interp_memory.
+            rewrite interp_state_ret.
+
+            (* Need something relating g... memory_invariant ? *)
+
+            setoid_rewrite interp_memory_ret.
+            rewrite
+            inversion Heqs1; subst.
+            rewrite interp_cfg_to_L3_vis.
+            setoid_rewrite tau_eutt.
+            cbn.
+            setoid_rewrite translate_vis.
+            repeat rewrite translate_vis.
+            do 2 setoid_rewrite interp_cfg_to_L3_vis; cbn.
+            rewrite bind_bind.
+            setoid_rewrite interp_cfg_to_L3_vis.
+            rewrite bind_bind.
+            setoid_rewrite interp_cfg_to_L3_vis.
+            rewrite bind_bind.
+            setoid_rewrite interp_cfg_to_L3_vis.
+            rewrite bind_bind.
+            repeat setoid_rewrite translate_ret.
+            setoid_rewrite interpret_intrinsics_vis.
+            cbn;
+            rewrite interp_cfg_to_L3_vis.
+          - rewrite translate_ret, interp_cfg_to_L3_ret, repr_intval.
+            reflexivity.
+          -
+        Qed.
+
+        cbn.
+        subst.
+        rewrite IHnexp1.
+
+        destruct (genNExpr nexp1 s) eqn:Hnexp1.
+        inversion H1.
+        destruct p, p.
+
+        destruct (genNExpr nexp1 s) eqn:Hnexp1.
+    Qed.
+
+
+
+      memory * (local_env * (global_env * ()))memory * (local_env * (global_env * ()))
+    Lemma interp_nex
+    subst assigncode.
               cbn.
 
               repeat setoid_rewrite translate_bind.
               repeat setoid_rewrite interp_cfg_to_L3_bind.
               repeat setoid_rewrite bind_bind.
 
-              destruct i0 eqn:Hi0.              
+              destruct i0 eqn:Hi0.
               ** (* Global id *)
                 repeat setoid_rewrite translate_bind.
                 rewrite interp_cfg_to_L3_bind.
@@ -1425,7 +1630,7 @@ Proof.
 
                 subst i3.
                 cbn.
-                
+
                 all: eauto.
                 Focus 2. apply Hnexp_src.
                 reflexivity.
@@ -1433,7 +1638,7 @@ Proof.
                 setoid_rewrite bind_ret_l.
                 setoid_rewrite <- denote_exp_nexp.
                 apply eutt_clo_bind.
-                
+
                 rewrite interp
                 rewrite bind_trigger.
                 rewrite translate_vis.
@@ -1457,7 +1662,7 @@ Proof.
                 match goal with
                 | |- context[ITree.bind ?ma ?b] => remember b as blah
                 end.
-                
+
                 unfold interp_cfg_to_L3; cbn.
                 unfold trigger.
                 rewrite interpret_intrinsics_vis.
@@ -1519,14 +1724,14 @@ Proof.
                 destruct id eqn:Hid.
                 --- (* Name *)
 
-                  
+
                   setoid_rewrite interp_interp.
-                  
+
                 --- (* Local id *)
                 admit.
               ** (* Local id *)
                 admit.
-        -- (* exceptions *) admit. 
+        -- (* exceptions *) admit.
     + (* Need to handle exceptions *)
       admit.
     (* Focus 3. *)
@@ -1536,7 +1741,7 @@ Proof.
     (* destruct d. *)
 
     (* Focus 3. *)
-    
+
     (* (* Lookup failure *) *)
     (* Focus 2. cbn. *)
     (* unfold interp_Mem. *)
@@ -1619,7 +1824,7 @@ Proof.
       - denotePexp
       - nat_eq_or_cerr
       - genIMapBody
-      - 
+      -
      *)
     simpl genIR in HCompile.
 
@@ -1666,7 +1871,7 @@ interp_bind
     unfold interp_Mem.
     rewrite interp_state_bind.
     (* rewrite bind_trigger.
-    
+
     Locate ITree.bind.
     rewrite *)
     admit.
