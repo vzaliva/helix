@@ -32,8 +32,8 @@ Proof of correctness of the compiler from FSHCOL to Vellvm
     Chains three components:
     1. [denote_FSHCOL: FSHCOLProgram -> list binary64  -> itree Event (list binary64)]: main denotation function
     2. [interp_Mem _ mem_empty]: interpret the memory events and runs it starting from the empty memory
-       TODO: [interp_Mem_ret] 
-       TODO: [interp_Mem_bind] 
+       - [X]  [interp_Mem_ret] 
+       - [ ]  [interp_Mem_bind] 
     3. [translate subevent _]: technical trick to add in the type of the tree failure events from Vellvm
        TODO: How to handle this cleanly?
 

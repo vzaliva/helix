@@ -287,6 +287,12 @@ Record injection_Fin (A:Type) (domain : nat) :=
           x ≡ y
     }.
 
+(* TODO: This needs some changes. I think I need to know something about the relationship betwee ι and the vars list in IRState.
+
+   Additionally, how ι is written down is wrong. Not every value in σ
+   is a pointer, some values should be pure integer values for
+   instance.
+*)
 Definition memory_invariant : Type_R_memory :=
   fun (σ : evalContext) (mem_helix : MDSHCOLOnFloat64.memory) '(mem_llvm, x) =>
     let σ_len := List.length σ in
@@ -1345,14 +1351,8 @@ Proof.
 
         rewrite interp_cfg_to_L3_bind.
 
-        Lemma always_local :
-          forall nexp ll_exp ll_code s s' env g ρ mem_llvm mem_helix σ i,
-            (forall i t, In (i, t) (vars s) -> exists ri, i ≡ ID_Local ri) ->
-            genNExpr nexp s ≡ inr (s', (ll_exp, ll_code)) ->
-            (forall i t, In (i, t) (vars s') -> exists ri, i ≡ ID_Local ri).
-        Proof.
-        Qed.
 
+        (* TODO: I think I might want to know that ρ comes from denoting ll_code, actually *)
         Lemma denote_exp_of_nexp :
           forall nexp ll_exp ll_code s s' env g ρ mem_llvm mem_helix σ i,
             memory_invariant σ mem_helix (mem_llvm, (ρ, g)) ->
@@ -1380,6 +1380,23 @@ Proof.
             unfold INT.F_trigger.
             rewrite bind_trigger.
             setoid_rewrite interp_global_vis; cbn.
+
+            unfold memory_invariant in Hmem.
+            unfold context_lookup in Heqs0. destruct (nth_error σ v) eqn:Hlookup; inversion Heqs0.
+            destruct Hmem as [Hmem | Hmem].
+            { (* Case where sigma is nil *)
+              assert (σ ≡ []) by (apply ListUtil.length_0; auto).
+              subst; cbn in Hlookup; rewrite ListNth.nth_error_nil in Hlookup.
+              inversion Hlookup.
+            }
+
+            destruct Hmem as [iota Hmem].
+            (* TODO: need to be able to relate
+
+            alist_find AstLib.eq_dec_raw_id id g
+
+            and ι somehow.
+             *)
 
             Lemma gen_var_irstate_rel :
               forall v s s' ll_exp ll_code mem_helix σ mem_llvm ρ g i id sz,
