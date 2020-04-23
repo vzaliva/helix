@@ -2668,7 +2668,22 @@ Section OperatorPairwiseProofs.
         split; typeclasses eauto.
         +
           (* MonRestriction *)
-          admit.
+          split.
+          unfold mon_unit, sg_P.
+          unfold dense_block_SGP.
+          split.
+          *
+            intros k.
+            (* !!! this goal is non-provable!  *)
+            admit.
+          *
+            cbn.
+            apply Forall_nil.
+          *
+            intros a b H H0.
+            unfold sg_P in *.
+            unfold sg_op, dense_block_SGP.
+            admit.
         +
           (* Proper sg_op *)
           admit.
