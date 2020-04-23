@@ -2546,18 +2546,36 @@ Section OperatorPairwiseProofs.
       apply CM.
     Qed.
 
-    (* TODO: similar to [NM_NS_In] but for lists instead of sets *)
-    Lemma NM_In_In_mem_value_lst
-          (x : mem_block)
-          (k : NM.key)
-          (c : CarrierA):
-      @NM.In CarrierA k x → @In CarrierA c (mem_value_lst x).
+    Lemma Forall_mem_value_lst_NM_find
+          {SGP : SgPred CarrierA}
+          {m : mem_block}
+          {k : NM.key}
+          {x : CarrierA}:
+      Forall SGP (mem_value_lst m) ->
+      NM.find k m ≡ Some x -> SGP x.
     Proof.
-      intros H.
-      unfold mem_value_lst.
-      apply NM_NS_In in H.
-      remember (NM.elements (elt:=CarrierA) x) as e.
-      apply NSP.of_list_1 in H.
+      intros A F.
+      rewrite NP.F.elements_o in F.
+      unfold mem_value_lst in A.
+      remember (NM.elements (elt:=CarrierA) m) as e.
+      revert e Heqe A F.
+      induction e; intros.
+      -
+        cbn in *.
+        some_none.
+      -
+        cbn in *.
+        break_let.
+        subst.
+        break_if.
+        +
+          cbn in *.
+          some_inv.
+          subst.
+          apply Forall_inv in A.
+          apply A.
+        +
+          cbn in *.
     Admitted.
 
 
@@ -2592,6 +2610,48 @@ Section OperatorPairwiseProofs.
                (m: mem_block) : Prop
       := (dense_block k m) /\ (@Forall CarrierA SGP (mem_value_lst m)).
 
+    Lemma dense_block_find_Some
+          {k n : nat}
+          {m : mem_block}
+          {c: CarrierA}:
+      dense_block n m →
+      NM.find (elt:=CarrierA) k m ≡ Some c ->
+      k<n.
+    Proof.
+      intros D F.
+      specialize (D k).
+      destruct (le_lt_dec n k) as [kc|kc].
+      -
+        apply NM.find_2, MapsTo_In, D in F.
+        lia.
+      -
+        apply kc.
+    Qed.
+
+    Lemma dense_block_find_not_None
+          {n : nat}
+          {m : mem_block}:
+      dense_block n m → forall k : NM.key, k<n -> NM.find (elt:=CarrierA) k m ≢ None.
+    Proof.
+      intros H k kc.
+      specialize (H k).
+      apply H in kc.
+      apply NP.F.in_find_iff.
+      apply kc.
+    Qed.
+
+    Ltac dense_find_contr :=
+      match goal with
+      | [D: dense_block ?n0 ?x0,
+            F: NM.find (elt:=CarrierA) ?k ?x0 ≡ Some ?c0,
+               D1: dense_block ?n ?x,
+                   F1: NM.find (elt:=CarrierA) ?k ?x ≡ None
+         |- _
+        ] =>
+        pose proof (dense_block_find_Some D F);
+        contradict F1; eapply dense_block_find_not_None; eauto
+      end.
+
     Local Instance mem_merge_with_def_CM
           (n: nat)
           (svalue : CarrierA)
@@ -2604,7 +2664,6 @@ Section OperatorPairwiseProofs.
     Proof.
       split.
       -
-        (*
         split.
         split; typeclasses eauto.
         +
@@ -2615,43 +2674,36 @@ Section OperatorPairwiseProofs.
           admit.
         +
           (* assoc *)
-          intros x y z Hx Hy Hz.
+          intros x y z [Hx1 Hx] [Hy1 Hy] [Hz1 Hz].
           unfold equiv, mem_block_Equiv.
           intros k.
           unfold sg_op.
           unfold mem_merge_with_def.
           repeat rewrite NP.F.map2_1bis by reflexivity.
           unfold sg_P, compose in Hx, Hy, Hz.
-          rewrite Forall_forall in Hx, Hy, Hz.
+          (* rewrite Forall_forall in Hx, Hy, Hz. *)
           repeat break_match; try some_none;
 
             repeat some_inv;
             f_equiv;
-            subst;
-            try apply Some_ne_None, NP.F.in_find_iff in Heqo;
-            try apply Some_ne_None, NP.F.in_find_iff in Heqo2;
-            try apply Some_ne_None, NP.F.in_find_iff in Heqo3.
-          *
-            apply rmonoid_ass with (Aunit:=svalue) (Apred:=SGP).
+            subst; try dense_find_contr.
+
+          apply rmonoid_ass with (Aunit:=svalue) (Apred:=SGP).
             unfold CarrierAasCT.CarrierAasCT.CTypeEquiv.
             apply comrmonoid_rmon.
             eapply CM.
             --
-              apply Hx. eapply  NM_In_In_mem_value_lst. apply Heqo.
+              apply (Forall_mem_value_lst_NM_find Hx Heqo).
             --
-              apply Hy. eapply  NM_In_In_mem_value_lst. apply Heqo3.
+              apply (Forall_mem_value_lst_NM_find Hy Heqo3).
             --
-              apply Hz. eapply  NM_In_In_mem_value_lst. apply Heqo2.
-          *
-            admit.
+              apply (Forall_mem_value_lst_NM_find Hz Heqo2).
         +
           (* left id *)
           admit.
         +
           (* right id *)
           admit.
-         *)
-        admit.
       -
         (* commutativity *)
         intros x y [Hxd Hx] [Hyd Hy].
@@ -2660,23 +2712,15 @@ Section OperatorPairwiseProofs.
         unfold sg_op.
         unfold mem_merge_with_def.
         rewrite 2!NP.F.map2_1bis by reflexivity.
-        unfold sg_P in Hx, Hy.
-        rewrite Forall_forall in Hx, Hy.
         repeat break_match.
         +
           f_equiv.
           unfold equiv, CarrierAasCT.CarrierAasCT.CTypeEquiv.
           apply (@rcommutativity CarrierA CarrierAe _ _ _ CM).
           *
-            apply Hx.
-            apply Some_ne_None, NP.F.in_find_iff in Heqo.
-            eapply  NM_In_In_mem_value_lst.
-            apply Heqo.
+            apply (Forall_mem_value_lst_NM_find Hx Heqo).
           *
-            apply Hy.
-            apply Some_ne_None, NP.F.in_find_iff in Heqo0.
-            eapply  NM_In_In_mem_value_lst.
-            apply Heqo0.
+            apply (Forall_mem_value_lst_NM_find Hy Heqo0).
     Admitted.
 
     (* Positivity propagation *)
