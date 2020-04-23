@@ -1366,7 +1366,11 @@ Proof.
     apply NP.F.find_mapsto_iff, NP.filter_iff in F.
     2: intros k1 k2 EK a1 a2 EA; subst; reflexivity.
     destruct F.
-    admit.
+    rewrite <-H; clear H.
+    apply Nat.ltb_lt in H1.
+    intuition.
+    apply NM.find_1 in H0.
+    rewrite H0; reflexivity.
   -
     unfold mem_firstn, mem_lookup, NP.filter_dom in *.
     destruct H as [H1 H2].
@@ -1376,7 +1380,9 @@ Proof.
       apply NP.F.find_mapsto_iff, NP.filter_iff in F.
       2: intros k1 k2 EK a1 a2 EA; subst; reflexivity.
       destruct F.
-      admit.
+      apply NM.find_1 in H.
+      rewrite H in H2.
+      assumption.
     +
       destruct NM.find eqn:H in H2; try some_none; some_inv.
       contradict F.
@@ -1385,11 +1391,11 @@ Proof.
       apply NP.F.find_mapsto_iff, NP.filter_iff.
       1: intros k1 k2 EK a1 a2 EA; subst; reflexivity.
       split.
-      2: admit.
+      2: apply Nat.ltb_lt; assumption.
       instantiate (1:=c).
       apply NP.F.find_mapsto_iff.
       assumption.
-Admitted.
+Qed.
 
 Lemma mem_firstn_def_eq (k n : nat) (mb : mem_block) (a : CarrierA) :
   mem_lookup k (mem_firstn n mb) ≡ Some a <-> k < n /\ mem_lookup k mb ≡ Some a.
@@ -1402,7 +1408,10 @@ Proof.
     2: intros k1 k2 EK a1 a2 EA; subst; reflexivity.
     destruct F.
     subst.
-    admit.
+    apply Nat.ltb_lt in H0.
+    intuition.
+    apply NM.find_1.
+    assumption.
   -
     unfold mem_firstn, mem_lookup, NP.filter_dom in *.
     destruct H as [H1 H2].
@@ -1412,7 +1421,9 @@ Proof.
       apply NP.F.find_mapsto_iff, NP.filter_iff in F.
       2: intros k1 k2 EK a1 a2 EA; subst; reflexivity.
       destruct F.
-      admit.
+      apply NM.find_1 in H.
+      rewrite H in H2.
+      assumption.
     +
       destruct NM.find eqn:H in H2; try some_none; some_inv.
       subst.
@@ -1422,10 +1433,10 @@ Proof.
       apply NP.F.find_mapsto_iff, NP.filter_iff.
       1: intros k1 k2 EK a1 a2 EA; subst; reflexivity.
       split.
-      2: admit.
+      2: apply Nat.ltb_lt; assumption.
       eapply NP.F.find_mapsto_iff.
       eassumption.
-Admitted.
+Qed.
 
 Lemma mem_firstn_lookup (k n : nat) (mb : mem_block) :
   k < n ->
@@ -1475,6 +1486,38 @@ Proof.
     unfold mem_union, mem_lookup.
     rewrite NP.F.map2_1bis by reflexivity.
     rewrite mem_const_block_find; auto.
+Qed.
+
+Lemma MemMap2_rest_preserved 
+      (x1_p x2_p y_p : PExpr)
+      (y_m y_m' : mem_block)
+      (m m' : memory)
+      (df : AExpr)
+      (σ : evalContext)
+      (o : nat)
+      (Y_M : lookup_Pexp σ m y_p = inr y_m)
+      (Y_M' : lookup_Pexp σ m' y_p = inr y_m')
+  :
+    evalDSHOperator σ (DSHMemMap2 o x1_p x2_p y_p df) m
+                    (estimateFuel (DSHMemMap2 o x1_p x2_p y_p df)) = Some (inr m') ->
+    forall k, o <= k → mem_lookup k y_m' = mem_lookup k y_m.
+Proof.
+  intros.
+  cbn in H.
+  cbn in Y_M, Y_M'.
+  repeat break_match;
+    try some_none; repeat some_inv;
+    try inl_inr; repeat inl_inr_inv.
+  eq_to_equiv.
+  apply evalDSHMap2_rest_preserved with (k:=k) in Heqs5; [| assumption].
+  repeat break_match; try inl_inr.
+  memory_lookup_err_to_option.
+  rewrite <-H in Y_M'.
+  rewrite memory_lookup_memory_set_eq in Y_M' by reflexivity.
+  some_inv; rewrite Y_M' in *; clear Y_M' m6.
+  rewrite Heqs4 in Y_M.
+  some_inv; rewrite Y_M in *; clear Y_M m5.
+  assumption.
 Qed.
 
 Lemma MemMap2_merge_with_def_firstn
@@ -1541,8 +1584,14 @@ Proof.
       reflexivity.
     }
     destruct H as [y_ma Y_MA].
-    assert (T : NM.find (elt:=mem_block) y_id ma = Some y_ma)
-      by admit. (* Y_ID + Y_MA *) (* @lord *)
+    assert (T : NM.find (elt:=mem_block) y_id ma = Some y_ma).
+    {
+      unfold lookup_Pexp, memory_lookup_err, trywith, memory_lookup in Y_MA.
+      cbn in Y_MA.
+      repeat break_match; try inl_inr; repeat inl_inr_inv.
+      rewrite <-Y_ID, <-Y_MA, Heqo0.
+      reflexivity.
+    }
     rewrite T; clear T.
     f_equiv.
     intros k.
@@ -1560,7 +1609,16 @@ Proof.
       }
       break_match; try some_none.
       clear Heqo0 H.
-      admit. (* follows from [MA] by [evalDSHMap2_rest_preserved] *) (* @lord *)
+      eapply MemMap2_rest_preserved in MA; eauto.
+      unfold lookup_Pexp, memory_lookup_err, trywith.
+      cbn.
+      repeat break_match; try inl_inr; repeat inl_inr_inv.
+      all: eq_to_equiv.
+      all: rewrite Y_ID in Heqo0.
+      all: rewrite Heqo0 in YID_M.
+      all: try some_none; some_inv.
+      rewrite YID_M.
+      reflexivity.
     +
       erewrite MemMap2_merge_with_def.
       7: eapply MA.
@@ -1580,9 +1638,23 @@ Proof.
       instantiate (1:=init).
       unfold mem_lookup, mem_union, mem_merge_with_def.
       repeat rewrite NP.F.map2_1bis by reflexivity.
-      assert (exists k_x1m, mem_lookup k x1_m = Some k_x1m) by admit.
+      assert (exists k_x1m, mem_lookup k x1_m = Some k_x1m).
+      {
+        specialize (D1 k l).
+        apply mem_in_mem_lookup in D1.
+        apply is_Some_def in D1.
+        destruct D1.
+        exists x; rewrite H; reflexivity.
+      }
       destruct H as [k_x1m K_X1M].
-      assert (exists k_x2m, mem_lookup k x2_m = Some k_x2m) by admit.
+      assert (exists k_x2m, mem_lookup k x2_m = Some k_x2m).
+      {
+        specialize (D2 k l).
+        apply mem_in_mem_lookup in D2.
+        apply is_Some_def in D2.
+        destruct D2.
+        exists x; rewrite H; reflexivity.
+      }
       destruct H as [k_x2m K_X2M].
       repeat rewrite mem_firstn_lookup by assumption.
       unfold mem_lookup in *.
@@ -1590,8 +1662,12 @@ Proof.
   -
     unfold memory_set.
     rewrite NP.F.add_neq_o by congruence.
-    admit. (* pure + MA *) (* @lord *)
-Admitted.
+    eapply mem_write_safe in MA; [| eassumption].
+    specialize (MA b_id n).
+    rewrite MA.
+    reflexivity.
+Qed.
+
 
 Global Instance eq_equiv_subrelation `{Equivalence A EqA} :
   subrelation (@eq A) (@equiv A EqA).
@@ -2051,38 +2127,6 @@ Proof.
   all: unfold is_None, is_Some in *.
   all: repeat break_match; try some_none.
   all: intuition.
-Qed.
-
-Lemma MemMap2_rest_preserved 
-      (x1_p x2_p y_p : PExpr)
-      (y_m y_m' : mem_block)
-      (m m' : memory)
-      (df : AExpr)
-      (σ : evalContext)
-      (o : nat)
-      (Y_M : lookup_Pexp σ m y_p = inr y_m)
-      (Y_M' : lookup_Pexp σ m' y_p = inr y_m')
-  :
-    evalDSHOperator σ (DSHMemMap2 o x1_p x2_p y_p df) m
-                    (estimateFuel (DSHMemMap2 o x1_p x2_p y_p df)) = Some (inr m') ->
-    forall k, o <= k → mem_lookup k y_m' = mem_lookup k y_m.
-Proof.
-  intros.
-  cbn in H.
-  cbn in Y_M, Y_M'.
-  repeat break_match;
-    try some_none; repeat some_inv;
-    try inl_inr; repeat inl_inr_inv.
-  eq_to_equiv.
-  apply evalDSHMap2_rest_preserved with (k:=k) in Heqs5; [| assumption].
-  repeat break_match; try inl_inr.
-  memory_lookup_err_to_option.
-  rewrite <-H in Y_M'.
-  rewrite memory_lookup_memory_set_eq in Y_M' by reflexivity.
-  some_inv; rewrite Y_M' in *; clear Y_M' m6.
-  rewrite Heqs4 in Y_M.
-  some_inv; rewrite Y_M in *; clear Y_M m5.
-  assumption.
 Qed.
 
 Lemma IReduction_MSH_step
