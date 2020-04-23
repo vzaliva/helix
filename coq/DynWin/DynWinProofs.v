@@ -469,7 +469,7 @@ Section MSHCOL_to_DSHCOL.
           subst m0.
           rewrite memory_lookup_memory_set_neq.
           auto.
-          apply memory_lookup_not_next_equiv in LM'.
+          apply memory_lookup_not_next_equiv in LM.
           auto.
         }
 
@@ -635,8 +635,9 @@ Section MSHCOL_to_DSHCOL.
 
         remember (memory_next_key (memory_set m0 (memory_next_key m0) mem_empty)) as x.
         clear Heqx.
-        rewrite <- H4 in Heqm1_plus'.
-        lia.
+        pose proof memory_set_memory_next_key_gt m1_plus (memory_set m1_plus x mb) mb x.
+        autospecialize H; [reflexivity |].
+          
       }
 
       {
