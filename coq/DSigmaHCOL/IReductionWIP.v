@@ -2940,7 +2940,8 @@ Proof.
       {
         intros.
         inversion R.
-        assert (x = t_dm) by admit.
+        assert (x = t_dm)
+          by (eq_to_equiv; rewrite T_DM in H0; inl_inr_inv; assumption).
         rewrite H2 in H1.
         eapply SHCOL_DSHCOL_mem_block_equiv_keys_union.
         eassumption.
@@ -2967,9 +2968,10 @@ Proof.
         assumption.
       }
       
-      repeat break_match; eq_to_equiv.
+      repeat break_match.
       * (* Map2 fails *)
         exfalso.
+        eq_to_equiv.
         enough (exists m', evalDSHOperator (DSHnatVal 0 :: DSHPtrVal t_id o :: σ)
             (DSHMemMap2 o (incrPVar 0 (incrPVar 0 y_p)) (PVar 1)
                (incrPVar 0 (incrPVar 0 y_p)) df) dm
@@ -3009,59 +3011,106 @@ Proof.
         }
         constructor.
 
+        apply Option_equiv_eq in MA.
+        apply err_equiv_eq in Y_MA.
         rewrite MemMap2_merge_with_def_firstn with (init:=init) in MA; try eassumption.
-        2: repeat rewrite evalPexp_incrPVar; assumption.
+        2:  repeat rewrite evalPexp_incrPVar; rewrite Y_ID; reflexivity.
         some_inv; inl_inr_inv.
-        eq_to_equiv.
         rewrite <-MA in Y_MA; clear MA ma.
         assert (m0 = mem_union (mem_merge_with_def dot init
                                  (mem_firstn o (mem_union (mem_const_block o init) y_m))
                                  (mem_firstn o t_dm))
-                               (mem_union (mem_const_block o init) y_m)) by admit.
+                               (mem_union (mem_const_block o init) y_m)).
+        {
+          eq_to_equiv.
+          unfold lookup_Pexp, memory_lookup_err in Y_MA.
+          assert (evalPexp σ y_p ≡ inr y_id)
+            by (destruct (evalPexp σ y_p); try inl_inr; inl_inr_inv;
+                cbv in Y_ID; rewrite Y_ID; reflexivity).
+          rewrite H in Y_MA.
+          simpl in Y_MA.
+          rewrite memory_lookup_memory_remove_neq in Y_MA by congruence.
+          rewrite memory_lookup_memory_set_eq in Y_MA by congruence.
+          unfold trywith in Y_MA.
+          inversion Y_MA; subst.
+          rewrite H2.
+          reflexivity.
+        }
         rewrite H.
         clear Y_MA H m0.
         intros k.
         destruct (le_lt_dec o k).
         --
           constructor 1.
-          admit. (* oob *)
-          unfold mem_lookup, mem_union, mem_merge_with_def.
-          repeat rewrite NP.F.map2_1bis by reflexivity.
-          repeat rewrite mem_firstn_lookup_oob by assumption.
-          rewrite mem_const_block_find_oob by assumption.
-          reflexivity.
+          ++
+            apply mem_not_in_mem_lookup.
+            rewrite <-mem_merge_with_def_as_Union.
+            unfold MMemoryOfCarrierA.mem_empty, mem_in.
+            rewrite NP.F.empty_in_iff.
+            enough (not (mem_in k mm)) by intuition.
+            eapply out_mem_oob; eassumption.
+          ++
+            unfold mem_lookup, mem_union, mem_merge_with_def.
+            repeat rewrite NP.F.map2_1bis by reflexivity.
+            repeat rewrite mem_firstn_lookup_oob by assumption.
+            rewrite mem_const_block_find_oob by assumption.
+            reflexivity.
         --
           constructor 2.
-          admit. (* dense *)
-          rewrite firstn_mem_const_block_union.
-          unfold mem_lookup, mem_union, mem_merge_with_def.
-          unfold MMemoryOfCarrierA.mem_merge_with_def.
-          repeat rewrite NP.F.map2_1bis by reflexivity.
-          rewrite mem_const_block_find by assumption.
-          rewrite mem_firstn_lookup by assumption.
-          specialize (T_DM_dense k l).
-          apply mem_in_mem_lookup, is_Some_def in T_DM_dense.
-          destruct T_DM_dense as [k_tdm K_TDM].
-          rewrite K_TDM.
-          cbn.
+          ++
+            apply mem_in_mem_lookup.
+            rewrite <-mem_merge_with_def_as_Union.
+            right.
+            eapply out_mem_fill_pattern.
+            eassumption.
+            instantiate (1:=l).
+            apply FD.
+            constructor.
+          ++
+            rewrite firstn_mem_const_block_union.
+            unfold mem_lookup, mem_union, mem_merge_with_def.
+            unfold MMemoryOfCarrierA.mem_merge_with_def.
+            repeat rewrite NP.F.map2_1bis by reflexivity.
+            rewrite mem_const_block_find by assumption.
+            rewrite mem_firstn_lookup by assumption.
+            specialize (T_DM_dense k l).
+            apply mem_in_mem_lookup, is_Some_def in T_DM_dense.
+            destruct T_DM_dense as [k_tdm K_TDM].
+            rewrite K_TDM.
+            cbn.
 
-          inversion R.
-          eq_to_equiv; symmetry in H; memory_lookup_err_to_option.
-          assert (T : x = t_dm) by admit; rewrite T in *; clear T x.
-          assert (exists k_mm, mem_lookup k mm = Some k_mm)
-            by admit. (* from FD and MM *)
-          destruct H1 as [k_mm K_MM].
-          break_match.
-          all: eq_to_equiv; rewrite K_MM in Heqo0.
-          all: try some_none; some_inv.
-          rewrite <-Heqo0 in *; clear c Heqo0.
-          
-          specialize (H0 k).
-          rewrite K_MM, K_TDM in H0.
-          inversion H0; try some_none.
-          some_inv.
-          rewrite H2.
-          reflexivity.
+            inversion R.
+            assert (exists k_mm, mem_lookup k mm = Some k_mm).
+            {
+              apply is_Some_equiv_def.
+              apply mem_in_mem_lookup.
+              eapply out_mem_fill_pattern.
+              eassumption.
+              instantiate (1:=l).
+              apply FD.
+              constructor.
+            }
+            eq_to_equiv; symmetry in H; memory_lookup_err_to_option.
+            assert (T : x = t_dm); [| rewrite T in *; clear T x].
+            {
+              clear - H T_DM.
+              cbn in T_DM.
+              memory_lookup_err_to_option.
+              rewrite H in T_DM; some_inv.
+              assumption.
+            }
+            destruct H1 as [k_mm K_MM].
+            break_match.
+            all: eq_to_equiv; rewrite K_MM in Heqo0.
+            all: try some_none; some_inv.
+            rewrite <-Heqo0 in *; clear c Heqo0.
+            
+            specialize (H0 k).
+            rewrite K_MM, K_TDM in H0.
+            inversion H0; try some_none.
+            some_inv.
+            rewrite H2.
+            reflexivity.
       * (* Map2 runs out of fuel *)
         clear - Heqo0.
         assert (is_Some (evalDSHOperator (DSHnatVal 0 :: DSHPtrVal t_id o :: σ)
