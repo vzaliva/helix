@@ -2548,6 +2548,7 @@ Section OperatorPairwiseProofs.
 
     Lemma Forall_mem_value_lst_NM_find
           {SGP : SgPred CarrierA}
+          `{SPGP: !Proper ((=) ==> impl) SGP}
           {m : mem_block}
           {k : NM.key}
           {x : CarrierA}:
@@ -2555,28 +2556,29 @@ Section OperatorPairwiseProofs.
       NM.find k m ≡ Some x -> SGP x.
     Proof.
       intros A F.
-      rewrite NP.F.elements_o in F.
-      unfold mem_value_lst in A.
-      remember (NM.elements (elt:=CarrierA) m) as e.
-      revert e Heqe A F.
-      induction e; intros.
-      -
-        cbn in *.
-        some_none.
-      -
-        cbn in *.
-        break_let.
-        subst.
-        break_if.
-        +
-          cbn in *.
-          some_inv.
-          subst.
-          apply Forall_inv in A.
-          apply A.
-        +
-          cbn in *.
-    Admitted.
+      unshelve eapply Forall_forall in A.
+      exact x.
+      apply A.
+      clear H.
+      rewrite <- NP.of_list_3 in F.
+      rewrite NP.of_list_1b in F.
+      unfold mem_value_lst.
+      apply in_map_iff.
+      exists (k,x).
+      split;[reflexivity|].
+      unfold NP.F.eqb in F.
+      apply findA_NoDupA in F.
+      apply InA_alt in F.
+      destruct F as [[k1 x1] F].
+      cbn in F.
+      unfold NP.to_list in F.
+      destruct F as [[Fk Fx] F2].
+      subst.
+      apply F2.
+      auto.
+      apply NM.elements_3w.
+      apply NM.elements_3w.
+    Qed.
 
 
     (* Predicate which is True for "dense" memb blocks of size [k]:
@@ -2657,6 +2659,7 @@ Section OperatorPairwiseProofs.
           (svalue : CarrierA)
           (dot : CarrierA → CarrierA → CarrierA)
           (SGP : SgPred CarrierA)
+          `{SPGP: !Proper ((=) ==> impl) SGP}
           (CM: @CommutativeRMonoid CarrierA CarrierAe dot svalue SGP):
       @CommutativeRMonoid mem_block mem_block_Equiv
                           (mem_merge_with_def dot svalue) mem_empty
@@ -2705,11 +2708,11 @@ Section OperatorPairwiseProofs.
             unfold CarrierAasCT.CarrierAasCT.CTypeEquiv.
             apply comrmonoid_rmon.
             eapply CM.
-            --
+            *
               apply (Forall_mem_value_lst_NM_find Hx Heqo).
-            --
+            *
               apply (Forall_mem_value_lst_NM_find Hy Heqo3).
-            --
+            *
               apply (Forall_mem_value_lst_NM_find Hz Heqo2).
         +
           (* left id *)
