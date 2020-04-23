@@ -637,7 +637,8 @@ Section MSHCOL_to_DSHCOL.
         clear Heqx.
         pose proof memory_set_memory_next_key_gt m1_plus (memory_set m1_plus x mb) mb x.
         autospecialize H; [reflexivity |].
-          
+        rewrite <-H4 in H.
+        lia.
       }
 
       {
