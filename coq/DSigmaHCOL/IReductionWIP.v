@@ -1172,6 +1172,104 @@ Proof.
       lia.
 Qed.
 
+Lemma MemMap2_rest_preserved
+      (o : nat)
+      (σ : evalContext)
+      (m rm : memory)
+      (x1_p x2_p y_p : PExpr)
+      (df : AExpr)
+      (y_m y_rm : mem_block)
+      (Y_M : lookup_Pexp σ m y_p = inr y_m)
+      (Y_RM : lookup_Pexp σ rm y_p = inr y_rm)
+  :
+    evalDSHOperator σ (DSHMemMap2 o x1_p x2_p y_p df) m
+                    (estimateFuel (DSHMemMap2 o x1_p x2_p y_p df)) = Some (inr rm) ->
+    ∀ k : nat, o <= k → mem_lookup k y_rm = mem_lookup k y_m.
+Proof.
+  intros.
+  cbn in H.
+  repeat break_match;
+    try some_none; repeat some_inv;
+    try inl_inr; repeat inl_inr_inv.
+  memory_lookup_err_to_option.
+  rename m0 into x1_id, m1 into x2_id, m2 into y_id.
+  rename m3 into x1_m, m4 into x2_m, m5 into y_m'.
+  unfold lookup_Pexp, memory_lookup_err in *.
+  rewrite Heqs1 in *.
+  cbn in *.
+  rewrite Heqs4 in Y_M.
+  rewrite <-H in *.
+  rewrite memory_lookup_memory_set_eq in * by reflexivity.
+  cbn in *.
+  repeat inl_inr_inv.
+  eq_to_equiv.
+  rewrite Y_M, Y_RM in *; clear Y_M Y_RM.
+  eapply evalDSHMap2_rest_preserved in Heqs5; [| eassumption].
+  assumption.
+Qed.
+
+Lemma MemMap2_result_fill
+      (o : nat)
+      (σ : evalContext)
+      (m rm : memory)
+      (x1_p x2_p y_p : PExpr)
+      (df : AExpr)
+      (y_rm : mem_block)
+      (Y_RM : lookup_Pexp σ rm y_p = inr y_rm)
+  :
+    evalDSHOperator σ (DSHMemMap2 o x1_p x2_p y_p df) m
+                    (estimateFuel (DSHMemMap2 o x1_p x2_p y_p df)) = Some (inr rm) ->
+    ∀ k, k < o → mem_in k y_rm.
+Proof.
+  intros.
+  cbn in H.
+  repeat break_match;
+    try some_none; repeat some_inv;
+    try inl_inr; repeat inl_inr_inv.
+  memory_lookup_err_to_option.
+  rename m0 into x1_id, m1 into x2_id, m2 into y_id.
+  rename m3 into x1_m, m4 into x2_m, m5 into y_m'.
+  unfold lookup_Pexp, memory_lookup_err in Y_RM.
+  rewrite Heqs1 in Y_RM.
+  cbn in Y_RM.
+  rewrite <-H in Y_RM.
+  rewrite memory_lookup_memory_set_eq in Y_RM by reflexivity.
+  cbn in Y_RM.
+  inl_inr_inv.
+  eq_to_equiv.
+  rewrite Y_RM in *; clear Y_RM m6.
+  clear - Heqs5 H0.
+  rename Heqs5 into M, H0 into KO.
+
+  generalize dependent k.
+  generalize dependent y_m'.
+  generalize dependent y_rm.
+  induction o; [lia |].
+  intros.
+  cbn [evalDSHMap2] in M.
+  remember ("Error reading 1st arg memory in evalDSHMap2 @" ++
+    Misc.string_of_nat o ++ " in " ++ string_of_mem_block_keys x1_m)%string as t1;
+    clear Heqt1.
+  remember ("Error reading 2nd arg memory in evalDSHMap2 @" ++
+    Misc.string_of_nat o ++ " in " ++ string_of_mem_block_keys x2_m)%string as t2;
+    clear Heqt2.
+  cbn in *.
+  repeat break_match; try inl_inr.
+  destruct (Nat.eq_dec k o).
+  +
+    subst; clear KO.
+    apply evalDSHMap2_rest_preserved with (k:=o) in M; [| reflexivity].
+    unfold mem_in, mem_lookup, mem_add in *.
+    rewrite NP.F.add_eq_o in M by reflexivity.
+    apply NP.F.in_find_iff.
+    intros C.
+    rewrite C in M.
+    some_none.
+  +
+    eapply IHo.
+    eassumption.
+    lia.
+Qed.
 
 Lemma mem_in_mem_lookup (k : NM.key) (mb : mem_block) :
   mem_in k mb <-> is_Some (mem_lookup k mb).
@@ -1486,38 +1584,6 @@ Proof.
     unfold mem_union, mem_lookup.
     rewrite NP.F.map2_1bis by reflexivity.
     rewrite mem_const_block_find; auto.
-Qed.
-
-Lemma MemMap2_rest_preserved 
-      (x1_p x2_p y_p : PExpr)
-      (y_m y_m' : mem_block)
-      (m m' : memory)
-      (df : AExpr)
-      (σ : evalContext)
-      (o : nat)
-      (Y_M : lookup_Pexp σ m y_p = inr y_m)
-      (Y_M' : lookup_Pexp σ m' y_p = inr y_m')
-  :
-    evalDSHOperator σ (DSHMemMap2 o x1_p x2_p y_p df) m
-                    (estimateFuel (DSHMemMap2 o x1_p x2_p y_p df)) = Some (inr m') ->
-    forall k, o <= k → mem_lookup k y_m' = mem_lookup k y_m.
-Proof.
-  intros.
-  cbn in H.
-  cbn in Y_M, Y_M'.
-  repeat break_match;
-    try some_none; repeat some_inv;
-    try inl_inr; repeat inl_inr_inv.
-  eq_to_equiv.
-  apply evalDSHMap2_rest_preserved with (k:=k) in Heqs5; [| assumption].
-  repeat break_match; try inl_inr.
-  memory_lookup_err_to_option.
-  rewrite <-H in Y_M'.
-  rewrite memory_lookup_memory_set_eq in Y_M' by reflexivity.
-  some_inv; rewrite Y_M' in *; clear Y_M' m6.
-  rewrite Heqs4 in Y_M.
-  some_inv; rewrite Y_M in *; clear Y_M m5.
-  assumption.
 Qed.
 
 Lemma MemMap2_merge_with_def_firstn
@@ -2670,6 +2736,67 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma DSHLoop_invariant
+      (σ : evalContext)
+      (body : DSHOperator)
+      (n : nat)
+      (m rm: memory)
+      (P : memory -> Prop)
+      (PP : Proper ((=) ==> iff) P)
+      (body_inv : forall n m m', P m ->
+                            evalDSHOperator (DSHnatVal n :: σ) body m
+                                            (estimateFuel body) = Some (inr m') ->
+                            P m')
+  :
+    P m ->
+    evalDSHOperator σ (DSHLoop n body) m (estimateFuel (DSHLoop n body)) = Some (inr rm) ->
+    P rm.
+Proof.
+  intros.
+  pose proof (estimateFuel_positive body) as FB.
+  generalize dependent rm.
+  induction n.
+  -
+    intros.
+    cbn in H0.
+    some_inv; inl_inr_inv.
+    rewrite <-H0.
+    assumption.
+  -
+    intros.
+    cbn in H0.
+    rewrite evalDSHOperator_estimateFuel_ge in H0 by (cbn; lia).
+    repeat break_match; try some_none; repeat some_inv; try inl_inr.
+    subst.
+    specialize (IHn m0).
+    autospecialize IHn; [reflexivity |].
+    eapply body_inv.
+    apply IHn.
+    rewrite evalDSHOperator_estimateFuel_ge in H0 by (cbn; nia).
+    eapply H0.
+Qed.
+
+Lemma DSHLoop_invariant'
+      (σ : evalContext)
+      (body : DSHOperator)
+      (n : nat)
+      (m rm: memory)
+      (P : memory -> Prop)
+      (PP : Proper ((=) ==> iff) P)
+      (body_inv : forall m m' n, evalDSHOperator (DSHnatVal n :: σ) body m
+                                       (estimateFuel body) = Some (inr m') ->
+                       P m')
+  :
+    P m ->
+    evalDSHOperator σ (DSHLoop n body) m (estimateFuel (DSHLoop n body)) = Some (inr rm) ->
+    P rm.
+Proof.
+  eapply DSHLoop_invariant.
+  assumption.
+  intros.
+  eapply body_inv; eassumption.
+Qed.
+
 Global Instance IReduction_MSH_DSH_compat_S
        {i o n: nat}
        {init : CarrierA}
@@ -3577,8 +3704,110 @@ Proof.
           eexists; eassumption.
         }
 
-        assert (y_loopNm_fill : forall k, k < o -> mem_in k y_loopNm) by admit.
-        assert (t_rrm_fill : forall k, k < o -> mem_in k t_rrm) by admit.
+        assert (opf_mm_fill : forall k, k < o -> mem_in k opf_mm).
+        {
+          intros.
+          replace (IReduction_mem dot init (get_family_mem_op opf) x_m)
+            with (mem_op (MSHIReduction init dot opf) x_m)
+            in OPF_MM
+            by reflexivity.
+          unshelve eapply out_mem_fill_pattern with (j:=k) in OPF_MM; try eassumption.
+          subst opf.
+          unfold shrink_m_op_family.
+          apply IReduction_MFacts.
+          intros.
+          apply FMF.
+          intros.
+          apply FD.
+          apply OPF_MM.
+          cbn.
+          apply m_family_out_set_implies_members.
+          subst opf.
+          unfold shrink_m_op_family.
+          eexists.
+          eexists.
+          eapply FD.
+          constructor.
+
+          Unshelve.
+          exact O. (* TODO: this is rather strange - just returning a random nat *)
+          omega.
+        }
+
+        assert (opf_n_m_fill : forall k, k < o -> mem_in k opf_n_m).
+        {
+          intros.
+          eapply out_mem_fill_pattern; try eassumption.
+          apply FD.
+          constructor.
+          Unshelve.
+          assumption.
+        }
+
+        assert (y_loopNm_fill : forall k, k < o -> mem_in k y_loopNm).
+        {
+          clear Y_RRM Y_LoopNM.
+          generalize dependent y_loopNm.
+          eapply DSHLoop_invariant' with (m:=memory_set init_m t_id mem_empty)
+                                        (rm:=loopN_tm).
+          4: eassumption.
+          -
+            intros m1 m2 ME.
+            split; intros.
+            all: specialize (H y_loopNm).
+            1: autospecialize H; [rewrite ME; assumption |].
+            2: autospecialize H; [rewrite <-ME; assumption |].
+            all: apply H; assumption.
+          -
+            intros.
+            rename m into mb, m' into ma, y_loopNm into b.
+            cbn in H.
+            repeat break_match; try some_none; try (some_inv; inl_inr).
+            rewrite evalDSHOperator_estimateFuel_ge in H by (cbn; nia).
+            eapply MemMap2_result_fill in H.
+            eapply H.
+            repeat rewrite lookup_Pexp_incrPVar.
+            assumption.
+            assumption.
+          -
+            intros.
+            unfold lookup_Pexp, memory_lookup_err in Y_LoopNTM.
+            rewrite Y_ID in Y_LoopNTM.
+            simpl bind in Y_LoopNTM.
+            subst init_m.
+            rewrite memory_lookup_memory_set_neq in Y_LoopNTM by congruence.
+            rewrite memory_lookup_memory_set_eq in Y_LoopNTM by congruence.
+            cbn in Y_LoopNTM.
+            inl_inr_inv.
+            rewrite <-Y_LoopNTM.
+            subst y_initm.
+            apply mem_in_mem_lookup.
+            unfold mem_lookup, mem_union.
+            rewrite NP.F.map2_1bis by reflexivity.
+            rewrite mem_const_block_find by assumption.
+            reflexivity.
+        }
+
+        assert (t_rrm_fill : forall k, k < o -> mem_in k t_rrm).
+        {
+          intros.
+          cbn in R.
+          unfold memory_lookup_err in R.
+          rewrite T_RRM in R.
+          cbn in R.
+          inversion R.
+          subst x.
+          specialize (H1 k).
+          specialize (opf_n_m_fill k H).
+          apply mem_in_mem_lookup in opf_n_m_fill.
+          apply is_Some_equiv_def in opf_n_m_fill.
+          destruct opf_n_m_fill.
+          rewrite H0 in H1.
+          inversion H1; try some_none.
+          apply mem_in_mem_lookup.
+          apply is_Some_equiv_def.
+          eexists; eassumption.
+        }
 
         assert (
             evalDSHOperator (DSHnatVal n :: DSHPtrVal t_id o :: σ)
@@ -3766,8 +3995,95 @@ Proof.
               all: apply mem_not_in_mem_lookup.
               all: rewrite mem_firstn_lookup_oob; [reflexivity | assumption].
             }
-            rewrite T; clear T.
-            admit.
+            rewrite T.
+            eapply MemMap2_rest_preserved with (k:=k) in H.
+            2: repeat rewrite lookup_Pexp_incrPVar; eassumption.
+            2: {
+              repeat rewrite lookup_Pexp_incrPVar.
+              unfold lookup_Pexp, memory_lookup_err.
+              rewrite Y_ID.
+              simpl bind.
+              rewrite memory_lookup_memory_set_eq by reflexivity.
+              cbn.
+              reflexivity.
+            }
+            2: assumption.
+            rewrite <-H.
+            rewrite T.
+            clear H T.
+
+
+            clear Y_LoopNM y_loopNm_fill Y_RRM.
+            generalize dependent y_loopNm.
+            eapply DSHLoop_invariant with (m:=memory_set init_m t_id mem_empty)
+                                          (rm:=loopN_tm).
+            4: eassumption.
+            **
+              intros m1 m2 ME.
+              split; intros.
+              all: specialize (H y_loopNm).
+              1: autospecialize H; [rewrite ME; assumption |].
+              2: autospecialize H; [rewrite <-ME; assumption |].
+              all: apply H; assumption.
+            **
+              intros.
+              cbn in H0.
+              repeat break_match;
+                try some_none; repeat some_inv;
+                try inl_inr; repeat inl_inr_inv.
+              subst s.
+              rewrite evalDSHOperator_estimateFuel_ge in H0
+                by (pose proof estimateFuel_positive rr; cbn; lia).
+
+
+              pose proof H0 as T.
+              cbn in T.
+              repeat break_match; try some_none; repeat some_inv; try inl_inr.
+              memory_lookup_err_to_option.
+              repeat rewrite evalPexp_incrPVar in Heqs.
+              rewrite Y_ID in Heqs; inl_inr_inv; subst m2.
+              clear Heqs1 Heqs2 Heqs3 T m4 m5.
+              
+              eapply MemMap2_rest_preserved in H0.
+              4: eassumption.
+              3: repeat rewrite lookup_Pexp_incrPVar; eassumption.
+              2: {
+                repeat rewrite lookup_Pexp_incrPVar.
+                unfold lookup_Pexp, memory_lookup_err.
+                rewrite Y_ID.
+                cbn.
+                rewrite Heqs0.
+                cbn.
+                reflexivity.
+              }
+              rewrite H0.
+              apply H.
+
+              unfold lookup_Pexp, memory_lookup_err.
+              rewrite Y_ID.
+              cbn.
+
+              apply Option_equiv_eq in Heqo0.
+              eapply mem_write_safe with (y_i:=t_id) in Heqo0; [| reflexivity].
+              rewrite Heqo0 by congruence.
+              rewrite Heqs0.
+              reflexivity.
+            **
+              intros.
+              unfold lookup_Pexp, memory_lookup_err in Y_LoopNTM.
+              rewrite Y_ID in Y_LoopNTM.
+              simpl bind in Y_LoopNTM.
+              subst init_m.
+              rewrite memory_lookup_memory_set_neq in Y_LoopNTM by congruence.
+              rewrite memory_lookup_memory_set_eq in Y_LoopNTM by congruence.
+              cbn in Y_LoopNTM.
+              inl_inr_inv.
+              rewrite <-Y_LoopNTM.
+              subst y_initm.
+              unfold mem_lookup, mem_union.
+              rewrite NP.F.map2_1bis by reflexivity.
+              rewrite mem_const_block_find_oob by assumption.
+              reflexivity.
         --
           (* k is within bounds *)
           constructor 2.
@@ -3807,17 +4123,98 @@ Proof.
             }
             
             rewrite Y_LoopNM in OPF_LoopN.
-            inversion OPF_LoopN; subst.
+            inversion OPF_LoopN; subst x.
             
-            assert (T : lookup_Pexp (DSHnatVal (S n') :: DSHPtrVal
-                                               (memory_next_key
-                                                  (memory_set m y_id (mem_union
-                                                                        (mem_const_block o init)
-                                                                        y_m))) o
-                                               :: σ)
-                                    rr_m (PVar 1) = inr t_rrm)
+            assert (T : lookup_Pexp (DSHnatVal n :: DSHPtrVal t_id o :: σ) rr_m (PVar 1)
+                        = inr t_rrm)
               by (cbn; unfold memory_lookup_err; rewrite T_RRM; reflexivity).
             rewrite T in R; clear T.
             inversion R; subst.
-            admit.
-Admitted.
+            f_equiv.
+            f_equiv.
+            assumption.
+            **
+              intros j.
+              specialize (H1 j).
+              destruct (le_lt_dec o j).
+              ---
+                rewrite mem_firstn_lookup_oob by assumption.
+                apply Option_equiv_eq.
+                symmetry.
+                apply NP.F.not_find_in_iff.
+
+                move OPF_MM after l0.
+                replace (IReduction_mem dot init
+                                        (get_family_mem_op (shrink_m_op_family S_opf)) x_m)
+                  with (mem_op (MSHIReduction init dot (shrink_m_op_family S_opf)) x_m)
+                  in OPF_MM
+                  by reflexivity.
+                eapply out_mem_oob with (j0:=j) in OPF_MM.
+                assumption.
+                assumption.
+                Unshelve.
+                eapply IReduction_MFacts.
+                intros.
+                unfold shrink_m_op_family.
+                apply FMF.
+                intros.
+                apply FD.
+              ---
+                rewrite mem_firstn_lookup by assumption.
+                inversion H1.
+                {
+                  exfalso.
+                  apply mem_not_in_mem_lookup in H0.
+                  contradict H0.
+                  replace (IReduction_mem dot init
+                                          (get_family_mem_op (shrink_m_op_family S_opf)) x_m)
+                    with (mem_op (MSHIReduction init dot (shrink_m_op_family S_opf)) x_m)
+                    in OPF_MM
+                    by reflexivity.
+                  eapply out_mem_fill_pattern with (j0:=j) in OPF_MM.
+                  apply OPF_MM.
+                  cbn.
+                  left.
+                  unfold shrink_m_op_family.
+                  cbn.
+                  eapply FD.
+                  constructor.
+                }
+                assumption.
+                Unshelve.
+                eapply IReduction_MFacts.
+                intros.
+                unfold shrink_m_op_family.
+                apply FMF.
+                intros.
+                apply FD.
+                assumption.
+            **
+              intros j.
+              specialize (H2 j).
+              destruct (le_lt_dec o j).
+              ---
+                rewrite mem_firstn_lookup_oob by assumption.
+                apply Option_equiv_eq.
+                symmetry.
+                apply NP.F.not_find_in_iff.
+
+                eapply out_mem_oob in OPF_M.
+                eassumption.
+                assumption.
+              ---
+                rewrite mem_firstn_lookup by assumption.
+                inversion H2.
+                {
+                  exfalso.
+                  exfalso.
+                  apply mem_not_in_mem_lookup in H0.
+                  contradict H0.
+                  unshelve eapply out_mem_fill_pattern with (j0:=j) in OPF_M.
+                  assumption.
+                  apply OPF_M.
+                  apply FD.
+                  constructor.
+                }
+                assumption.
+Qed.
