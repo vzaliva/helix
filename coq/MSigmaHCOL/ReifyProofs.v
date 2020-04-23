@@ -2680,8 +2680,6 @@ Section OperatorPairwiseProofs.
           unfold sg_op.
           unfold mem_merge_with_def.
           repeat rewrite NP.F.map2_1bis by reflexivity.
-          unfold sg_P, compose in Hx, Hy, Hz.
-          (* rewrite Forall_forall in Hx, Hy, Hz. *)
           repeat break_match; try some_none;
 
             repeat some_inv;
@@ -2700,10 +2698,49 @@ Section OperatorPairwiseProofs.
               apply (Forall_mem_value_lst_NM_find Hz Heqo2).
         +
           (* left id *)
-          admit.
+          intros x [Pxd Px].
+          unfold equiv, mem_block_Equiv.
+          intros k.
+          unfold sg_op.
+          unfold mem_merge_with_def.
+          repeat rewrite NP.F.map2_1bis by reflexivity.
+          repeat break_match; try some_none;
+            repeat some_inv;
+            f_equiv;
+            subst.
+          *
+            unfold mon_unit, mem_empty in *.
+            pose proof (NP.F.empty_o CarrierA k); some_none.
+          *
+            unfold mon_unit, mem_empty in *.
+            pose proof (NP.F.empty_o CarrierA k); some_none.
+          *
+            clear Heqo.
+            eapply rmonoid_left_id.
+            apply CM.
+            apply (Forall_mem_value_lst_NM_find Px Heqo0).
         +
           (* right id *)
-          admit.
+          intros x [Pxd Px].
+          unfold equiv, mem_block_Equiv.
+          intros k.
+          unfold sg_op.
+          unfold mem_merge_with_def.
+          repeat rewrite NP.F.map2_1bis by reflexivity.
+          repeat break_match; try some_none;
+            repeat some_inv;
+            f_equiv;
+            subst.
+          *
+            unfold mon_unit, mem_empty in *.
+            pose proof (NP.F.empty_o CarrierA k); some_none.
+          *
+            eapply rmonoid_right_id.
+            apply CM.
+            apply (Forall_mem_value_lst_NM_find Px Heqo).
+          *
+            unfold mon_unit, mem_empty in *.
+            pose proof (NP.F.empty_o CarrierA k); some_none.
       -
         (* commutativity *)
         intros x y [Hxd Hx] [Hyd Hy].
