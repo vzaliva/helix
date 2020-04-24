@@ -48,6 +48,7 @@ Require Import ExtLib.Data.Monads.OptionMonad.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
+(* TODOYZ: Host this on the Vellvm side? On the ITree side? *)
 Ltac state_step :=
   match goal with
   | |- interp_state _ (ITree.bind _ _) _ ≈ _ => rewrite interp_state_bind
