@@ -2587,6 +2587,19 @@ Section OperatorPairwiseProofs.
     Definition dense_block (k:nat) (m: mem_block) : Prop :=
       forall j, (j<k) <-> NM.In j m.
 
+    Global Instance dense_block_proper:
+      Proper ((=) ==> (=) ==> iff) dense_block.
+    Proof.
+      intros n m Enm a b Eab.
+      unfold dense_block.
+      split; intros;
+        split; intros.
+      - rewrite <- Eab; apply H; rewrite Enm; auto.
+      - rewrite <- Enm; apply H; rewrite Eab; auto.
+      - rewrite Eab; apply H; rewrite <- Enm; auto.
+      - rewrite Enm; apply H; rewrite <- Eab; auto.
+    Qed.
+
     Lemma dense_block_mem_value_lst_len
           {n : nat}
           {m : mem_block}:
@@ -2737,6 +2750,32 @@ Section OperatorPairwiseProofs.
       all: try rewrite <-NP.F.not_find_in_iff in *.
       all: split; intros; try tauto.
       discriminate.
+    Qed.
+
+
+    Lemma mem_merge_with_def_empty_dense_preserve
+          (m2: mem_block)
+          (dot : CarrierA -> CarrierA -> CarrierA)
+          (init : CarrierA)
+          (k : nat)
+          (D2 : dense_block k m2)
+      :
+        dense_block k (mem_merge_with_def dot init mem_empty m2).
+    Proof.
+      unfold dense_block, mem_merge_with_def in *.
+      intros.
+      specialize (D2 j).
+      rewrite NP.F.in_find_iff.
+      repeat rewrite NP.F.map2_1bis by reflexivity.
+      repeat break_match.
+      all: try apply Some_ne_None in Heqo.
+      all: try apply Some_ne_None in Heqo0.
+      all: try rewrite <-NP.F.in_find_iff in *.
+      all: try rewrite <-NP.F.not_find_in_iff in *.
+      all: split; intros; try tauto.
+      discriminate.
+      unfold mem_empty in *; apply NP.F.empty_in_iff in Heqo; tauto.
+      some_none.
     Qed.
 
     Lemma exists_or {A : Type} (P Q : A -> Prop) :
@@ -2890,6 +2929,20 @@ Section OperatorPairwiseProofs.
             reflexivity.
           *
             right.
+            unfold dense_block_SGP in *.
+            destruct H0 as [DB SB].
+            split.
+            rewrite_clear H.
+            1: apply mem_merge_with_def_empty_dense_preserve; assumption.
+            rewrite Forall_forall in *.
+
+            assert(SA: ∀ x : CarrierA, In x (mem_value_lst a) → False).
+            {
+              intros k SA.
+              unfold mem_value_lst in SA.
+              admit.
+            }
+            rename H into MA.
             admit.
           *
             right.
