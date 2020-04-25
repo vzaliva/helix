@@ -2818,6 +2818,44 @@ Section OperatorPairwiseProofs.
       reflexivity.
     Qed.
 
+    (* TODO: move  *)
+    Lemma NM_find_In_elments
+          (a : mem_block)
+          (x : CarrierA)
+          (k : NM.key):
+      NM.find (elt:=CarrierA) k a ≡ Some x →
+      In (k, x) (NM.elements (elt:=CarrierA) a).
+    Proof.
+      intros F.
+      rewrite NP.F.elements_o in F.
+      apply In_InA_eq.
+      apply findA_NoDupA in F.
+      -
+
+        generalize dependent (NM.elements a).
+        intros e F.
+        induction e.
+        +
+          apply InA_nil in F.
+          tauto.
+        +
+          destruct a0 as [k' x'].
+          apply InA_cons in F.
+          destruct F as [[Fhk Fhx] | Ft]; apply InA_cons.
+          *
+            left.
+            cbn in *.
+            subst.
+            reflexivity.
+          *
+            right.
+            apply IHe, Ft.
+      -
+        typeclasses eauto.
+      -
+        apply NM.elements_3w.
+    Qed.
+
     Local Instance mem_merge_with_def_CM
           (n: nat)
           (svalue : CarrierA)
@@ -2851,8 +2889,10 @@ Section OperatorPairwiseProofs.
             repeat rewrite NP.F.map2_1bis by reflexivity.
             reflexivity.
           *
+            right.
             admit.
           *
+            right.
             admit.
           *
             right.
@@ -2862,9 +2902,7 @@ Section OperatorPairwiseProofs.
             1: apply mem_merge_with_def_dense_preserve; assumption.
             rewrite Forall_forall in *.
             intros.
-            specialize (SA x); specialize (SB x).
-            enough (In x (mem_value_lst a) \/ In x (mem_value_lst b))
-              by intuition; clear SA SB.
+
             unfold mem_value_lst in *.
             repeat rewrite in_map_iff in *.
             destruct H as [(k, x') [X IN]].
@@ -2876,7 +2914,52 @@ Section OperatorPairwiseProofs.
             unfold mem_merge_with_def in IN.
             rewrite NP.F.map2_1bis in IN by reflexivity.
             repeat break_match; try some_none.
-            all: admit.
+            --
+              rename x into z, c into x, c0 into y.
+              specialize (SA x).
+              specialize (SB y).
+              some_inv.
+              apply CM.
+              ++
+                apply SA.
+                clear - Heqo.
+                apply in_map_iff.
+                exists (k, x).
+                split; [auto|].
+                apply NM_find_In_elments.
+                assumption.
+              ++
+                apply SB.
+                clear - Heqo0.
+                apply in_map_iff.
+                exists (k, y).
+                split; [auto|].
+                apply NM_find_In_elments.
+                assumption.
+            --
+              exfalso.
+              destruct (NatUtil.lt_ge_dec k n) as [kc | nkc].
+              ++
+                apply DB in kc.
+                apply NP.F.not_find_in_iff in Heqo0.
+                congruence.
+              ++
+                apply Some_ne_None in Heqo.
+                apply NP.F.in_find_iff in Heqo.
+                apply DA in Heqo.
+                lia.
+            --
+              exfalso.
+              destruct (NatUtil.lt_ge_dec k n) as [kc | nkc].
+              ++
+                apply DA in kc.
+                apply NP.F.not_find_in_iff in Heqo.
+                congruence.
+              ++
+                apply Some_ne_None in Heqo0.
+                apply NP.F.in_find_iff in Heqo0.
+                apply DB in Heqo0.
+                lia.
         +
           (* Proper sg_op *)
           admit.
