@@ -2917,15 +2917,6 @@ Section OperatorPairwiseProofs.
       reflexivity.
     Qed.
 
-    Lemma NM_In_elments_find
-          (a : mem_block)
-          (x : CarrierA)
-          (k : NM.key):
-      In (k, x) (NM.elements (elt:=CarrierA) a) ->
-      NM.find (elt:=CarrierA) k a ≡ Some x.
-    Proof.
-    Admitted.
-
     (* TODO: move  *)
     Lemma NM_find_In_elments
           (a : mem_block)
