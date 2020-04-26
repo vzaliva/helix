@@ -2587,6 +2587,57 @@ Section OperatorPairwiseProofs.
     Definition dense_block (k:nat) (m: mem_block) : Prop :=
       forall j, (j<k) <-> NM.In j m.
 
+    (* The previous definition usually leads us to very strong
+       equality via [eq]. [is_Some] is more flexible, as it could be
+       converte to [eq] via [is_Some_def] but it also could be
+       converted to Eqivalence via [is_Some_equiv_def].  *)
+    Definition dense_block' (k:nat) (m: mem_block) : Prop :=
+      forall j, (j<k) <-> is_Some (NM.find j m).
+
+    (* But the two are the same *)
+    Lemma dense_block_dense_block' (k:nat) (m: mem_block):
+      dense_block k m <-> dense_block' k m.
+    Proof.
+      split.
+      -
+        intros D.
+        unfold dense_block', dense_block in *.
+        intros j.
+        split.
+        +
+          intros jc.
+          apply D in jc.
+          apply NP.F.in_find_iff in jc.
+          apply is_Some_ne_None in jc.
+          auto.
+        +
+          intros H.
+          destruct (lt_ge_dec j k); auto.
+          apply is_Some_def in H.
+          destruct H as [x H].
+          apply Some_ne_None, NP.F.in_find_iff in H.
+          apply D in H.
+          lia.
+      -
+        intros D.
+        unfold dense_block', dense_block in *.
+        intros j.
+        split.
+        +
+          intros jc.
+          apply D in jc.
+          apply is_Some_ne_None in jc.
+          apply NP.F.in_find_iff in jc.
+          auto.
+        +
+          intros H.
+          destruct (lt_ge_dec j k); auto.
+          apply NP.F.in_find_iff in H.
+          apply is_Some_ne_None in H.
+          apply D in H.
+          lia.
+    Qed.
+
     Global Instance dense_block_proper:
       Proper ((=) ==> (=) ==> iff) dense_block.
     Proof.
@@ -2624,6 +2675,15 @@ Section OperatorPairwiseProofs.
                (k:nat)
                (m: mem_block) : Prop
       := (dense_block k m) /\ (@Forall CarrierA SGP (mem_value_lst m)).
+
+    (* weaker version of [dense_block_SGP] which does not require
+       [eq] on values *)
+    Definition dense_block_SGP'
+               (SGP : SgPred CarrierA)
+               (k:nat)
+               (m: mem_block) : Prop
+      := (dense_block' k m) /\
+         (forall j (jc: j<k), exists x, NM.find j m = Some x -> SGP x).
 
     Lemma dense_block_find_Some
           {k n : nat}
