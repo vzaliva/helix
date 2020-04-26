@@ -2895,6 +2895,43 @@ Section OperatorPairwiseProofs.
         apply NM.elements_3w.
     Qed.
 
+    (* TODO: move  *)
+    Lemma NM_find_not_In_elments
+          (a : mem_block)
+          (k : NM.key):
+      NM.find (elt:=CarrierA) k a ≡ None →
+      forall x, not (In (k, x) (NM.elements (elt:=CarrierA) a)).
+    Proof.
+      intros F x H.
+      rewrite NP.F.elements_o in F.
+      apply In_InA_eq in H.
+      generalize dependent (NM.elements a).
+      intros e F H.
+      induction e.
+      +
+        inv H.
+      +
+        destruct a0 as [k' x'].
+        apply InA_cons in H.
+        destruct H.
+        *
+          tuple_inversion.
+          inv F.
+          break_if.
+          some_none.
+          unfold NP.F.eqb in Heqb.
+          break_if; crush.
+        *
+          apply IHe.
+          --
+            inv F.
+            break_if.
+            some_none.
+            reflexivity.
+          --
+            apply H.
+    Qed.
+
     Local Instance mem_merge_with_def_CM
           (n: nat)
           (svalue : CarrierA)
@@ -2935,13 +2972,6 @@ Section OperatorPairwiseProofs.
             rewrite_clear H.
             1: apply mem_merge_with_def_empty_dense_preserve; assumption.
             rewrite Forall_forall in *.
-
-            assert(SA: ∀ x : CarrierA, In x (mem_value_lst a) → False).
-            {
-              intros k SA.
-              unfold mem_value_lst in SA.
-              admit.
-            }
             rename H into MA.
             admit.
           *
