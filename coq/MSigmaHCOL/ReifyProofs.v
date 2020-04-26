@@ -2857,6 +2857,15 @@ Section OperatorPairwiseProofs.
       reflexivity.
     Qed.
 
+    Lemma NM_In_elments_find
+          (a : mem_block)
+          (x : CarrierA)
+          (k : NM.key):
+      In (k, x) (NM.elements (elt:=CarrierA) a) ->
+      NM.find (elt:=CarrierA) k a ≡ Some x.
+    Proof.
+    Admitted.
+
     (* TODO: move  *)
     Lemma NM_find_In_elments
           (a : mem_block)
@@ -2971,9 +2980,45 @@ Section OperatorPairwiseProofs.
             split.
             rewrite_clear H.
             1: apply mem_merge_with_def_empty_dense_preserve; assumption.
-            rewrite Forall_forall in *.
             rename H into MA.
-            admit.
+            rewrite Forall_forall in *.
+            intros.
+
+            unfold mem_value_lst in *.
+            repeat rewrite in_map_iff in *.
+            destruct H as [(k, x') [X IN]].
+            cbn in X; subst x'.
+            apply In_InA with (eqA:=NM.eq_key_elt (elt:=CarrierA)) in IN;
+              [| typeclasses eauto].
+            apply NP.F.elements_mapsto_iff in IN.
+            apply NP.F.find_mapsto_iff in IN.
+            unfold mem_merge_with_def in IN.
+            rewrite NP.F.map2_1bis in IN by reflexivity.
+            repeat break_match; try some_none.
+            --
+              eq_to_equiv_hyp.
+              rewrite MA in Heqo.
+              rewrite NP.F.empty_o in Heqo.
+              some_none.
+            --
+              eq_to_equiv_hyp.
+              rewrite MA in Heqo.
+              rewrite NP.F.empty_o in Heqo.
+              some_none.
+            --
+              apply SB.
+              some_inv.
+              subst x.
+              apply in_map_iff.
+              exists (k,c).
+              split.
+              ++
+                cbn.
+                symmetry.
+                admit. (* wrong equality *)
+              ++
+                apply NM_find_In_elments.
+                auto.
           *
             right.
             admit.
