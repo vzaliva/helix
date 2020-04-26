@@ -298,7 +298,19 @@ Section SimulationRelations.
 
   (* TODOYZ: Proof read, comment extensively *)
 
-  Definition mem_lookup_llvm_at_i (bk_llvm: M.logical_block) i ptr_size_helix v_llvm :=
+  (**
+     [mem_lookup_llvm_at_i bk_llvm i ptr_size_helix v_llvm] is a judgment asserting that
+     an array of [i] doubles can be read from the logical_block [bk_llvm],
+     and that this array is precisely [v_llvm].
+
+     NOTEYZ: [handle_gep_h] seems to completely dismiss the size argument in the
+     array type. Is the [ptr_size_helix] argument useless?
+
+     TODOYZ: This is weirdly low level. Break it into functions provided by
+     Vellvm and rewrite it at a higher level?
+
+   *)
+  Definition mem_lookup_llvm_at_i (bk_llvm: M.logical_block) (i ptr_size_helix: nat) (v_llvm: uvalue): Prop :=
     exists offset,
       match bk_llvm with
       | M.LBlock _ bk_llvm _ =>
@@ -312,6 +324,10 @@ Section SimulationRelations.
 
   (** Injective function from finite naturals [i<domain] to
    arbitrary type.
+
+   NOTEYZ: To see at use, but this dependent record seems overly fancy to me, I'm a bit worried about it.
+   If it turns out annoying, a simple function from teh list of element of interest into the image
+   and inlining a trivial characterization of the injectivity in the invariant might be simpler.
    *)
   Record injection_Fin (A:Type) (domain : nat) :=
     mk_injection_Fin
@@ -324,12 +340,20 @@ Section SimulationRelations.
             x ≡ y
       }.
 
-Definition get_logical_block (mem: M.memory) (ptr: A.addr): option M.logical_block :=
-  let '(b,a) := ptr in
-  M.lookup_logical b mem.
+  (**
+     Relation used to relate memories after the initialization phase.
+     Recall: [Type_R_memory ≜ evalContext -> memoryH -> LLVM_memory_state_cfg -> Prop]
+     NOTEYZ: Shouldn't it be [(evalContext * memoryH) -> LLVM_memory_state_cfg -> Prop] rather?
 
+     We have [memory_invariant (σ, memh) (meml,l,g)] when:
+     - The [evalContext ≜ list DSHVal] can be mapped in an injective way into
+       Vellvm. We make sure that injectivity is interpreted over the union of local
+       and global environment.
+       TODOYZ: Currently assumes a pointer in memory exists for each of these values.
+       This is janky, to rethink.
+   *)
 
-(* TODO: This needs some changes. I think I need to know something about the relationship betwee ι and the vars list in IRState.
+(* TODOCB: This needs some changes. I think I need to know something about the relationship betwee ι and the vars list in IRState.
 
    Additionally, how ι is written down is wrong. Not every value in σ
    is a pointer, some values should be pure integer values for
@@ -387,6 +411,12 @@ Definition memory_invariant : Type_R_memory :=
       end.
 
 
+(**
+   Lifting of [memory_invariant] to include return values in the relation.
+   This relation is used to prove the correctness of the compilation of operators.
+   The value on the Helix side is trivially [unit]. The value on the Vellvm-side however
+   is non trivial, we will most likely have to mention it.
+*)
 (* TODO: Currently this relation just preserves memory invariant.
    Maybe it needs to do something more?
  *)
@@ -396,6 +426,11 @@ Definition bisim_partial: Type_R_partial
       let '(ρ, (g, bid_or_v)) := x in
       memory_invariant σ mem_helix (mem_llvm, (ρ, g)).
 
+(**
+   Relation over memory and invariant for a full [cfg], i.e. to relate states at
+   the top-level.
+   Currently a simple lifting of [bisim_partial]. 
+*)
 Definition bisim_full: Type_R_full  :=
   fun σ  '(mem_helix, v_helix) mem_llvm =>
     let '(m, ((ρ,_), (g, v))) := mem_llvm in
@@ -422,7 +457,6 @@ Definition bisim_final: Type_R_full :=
                                        h_result arr
     | _ => False
     end.
-
 
 End SimulationRelations.
 
@@ -468,7 +502,53 @@ Ltac state_steps :=
         | |- ITree.bind (State.interp_state _ (lift_Serr _) _) _ ≈ _ => break_match_goal; inv_option
         end) || state_step); cbn).
 
+Ltac eutt_hide_left :=
+  match goal with
+    |- eutt _ ?t _ => remember t
+  end.
+
+Ltac eutt_hide_right :=
+  match goal with
+    |- eutt _ _ ?t => remember t
+  end.
+
+Ltac hide_string :=
+  match goal with
+  | |- context [String ?x ?y] => remember (String x y)
+  end.
+
 End Tactics.
+
+Section Add_Comment.
+
+  (* NOTEYZ:
+     Move this or a similar facility to Vellvm
+   *)
+  Lemma add_comment_preserves_num_blocks :
+    forall l comments blocks,
+      add_comment l comments ≡ blocks ->
+      List.length l ≡ List.length blocks.
+  Proof.
+    induction l; intros comments blocks H.
+    - inversion H; reflexivity.
+    - simpl. inversion H. simpl.
+      reflexivity.
+  Qed.
+
+  Lemma add_comment_singleton :
+    forall l comments block,
+      add_comment l comments ≡ [block] ->
+      exists b, l ≡ [b].
+  Proof.
+    intros l comments block H.
+    destruct l.
+    - inv H.
+    - destruct l.
+      + exists b. reflexivity.
+      + inv H.
+  Qed.
+
+End Add_Comment.
 
 (* CHECKPOINTYZ: Continue the dive from there Tomorrow *)
 
@@ -515,11 +595,6 @@ End Tactics.
 (*    *) *)
 (* Admitted. *)
 
-(* MOVE TO VELLVM *)
-Definition normalize_types_blocks (env: list _) (bks: list (LLVMAst.block typ))
-  : list (LLVMAst.block DynamicTypes.dtyp) :=
-  List.map
-    (TransformTypes.fmap_block _ _ (TypeUtil.normalize_type_dtyp env)) bks.
 
 Definition blah {T} (defs : IS.intrinsic_definitions) (m : memory) (g : global_env) (l : local_env) (e : instr_E T) :=
   M.interp_memory (interp_local (interp_global (INT.interpret_intrinsics_h defs e) g) l) m.
@@ -531,22 +606,6 @@ Definition blah {T} (defs : IS.intrinsic_definitions) (m : memory) (g : global_e
             (State.interp_state (interp_global_h (G:=LLVMEnvE +' MemoryE +' PickE +' UBE +' DebugE +' FailureE))
                (INT.interpret_intrinsics_h defs e) g) l) m).
 *)
-
-Definition interp_cfg_to_L3:
-  forall (R: Type),
-    IS.intrinsic_definitions ->
-    itree instr_E R ->
-    global_env ->
-    local_env ->
-    memory ->
-    itree (CallE +' PickE +' UBE +' DebugE +' FailureE)
-          (memory * (local_env * (global_env * R))) :=
-  fun R defs t g l m =>
-    let L0_trace := INT.interpret_intrinsics defs t in
-    let L1_trace       := Util.runState (interp_global L0_trace) g in
-    let L2_trace       := Util.runState (interp_local  L1_trace) l in
-    let L3_trace       := Util.runState (M.interp_memory L2_trace) m in
-    L3_trace.
 
 Import Coq.Strings.String Strings.Ascii.
 Open Scope string_scope.
@@ -562,21 +621,6 @@ Open Scope char_scope.
       interp_state g (interp f t) st ≅ interp_state (fun (T : Type) (e : E T) => interp g (f T e)) t st.
   Proof.
   Admitted.
-
-  Ltac eutt_hide_left :=
-    match goal with
-     |- eutt _ ?t _ => remember t
-    end.
-
-  Ltac eutt_hide_right :=
-    match goal with
-      |- eutt _ _ ?t => remember t
-    end.
-
-  Ltac hide_string :=
-    match goal with
-    | |- context [String ?x ?y] => remember (String x y)
-    end.
 
   (* TODO: move to vellvm *)
   Lemma interp_global_vis:
@@ -658,33 +702,6 @@ Open Scope char_scope.
   (* Qed. *)
 
 
-  (* TODO: Move this to Vellvm *)
-  Definition TT {A} : relation A := fun _ _ => True.
-
-  Lemma denote_bks_singleton :
-    forall (b : LLVMAst.block dtyp) (bid : block_id) (nextblock : block_id),
-      (blk_id b) ≡ bid ->
-      (snd (blk_term b)) ≡ (TERM_Br_1 nextblock) ->
-      (blk_id b) <> nextblock ->
-      eutt (Logic.eq) (D.denote_bks [b] bid) (D.denote_block b).
-  Proof.
-    intros b bid nextblock Heqid Heqterm Hneq.
-    cbn.
-    rewrite bind_ret_l.
-    rewrite KTreeFacts.unfold_iter_ktree.
-    cbn.
-    destruct (Eqv.eqv_dec_p (blk_id b) bid) eqn:Heq'; try contradiction.
-    repeat rewrite bind_bind.
-    rewrite Heqterm.
-    cbn.
-    setoid_rewrite translate_ret.
-    setoid_rewrite bind_ret_l.
-    destruct (Eqv.eqv_dec_p (blk_id b) nextblock); try contradiction.
-    repeat setoid_rewrite bind_ret_l. unfold Datatypes.id.
-    reflexivity.
-  Qed.
-
-  (* Should probably be in itrees? *)
 (*
     for an opeartor, in initialized state
     TODO: We could probably fix [env] to be [nil]
@@ -695,7 +712,9 @@ Open Scope char_scope.
       (bks : list (LLVMAst.block typ)),
       genIR (DSHAssign src dst) nextblock st ≡ inr (st', (bid_in, bks)) ->
       exists b,
-        genIR (DSHAssign src dst) nextblock st ≡ inr (st', (bid_in, [b])) /\ snd (blk_term b) ≡ TERM_Br_1 nextblock /\ blk_id b ≡ bid_in /\ bks ≡ [b].
+        genIR (DSHAssign src dst) nextblock st ≡ inr (st', (bid_in, [b]))
+        /\ snd (blk_term b) ≡ TERM_Br_1 nextblock
+        /\ blk_id b ≡ bid_in /\ bks ≡ [b].
   Proof.
     intros nextblock src dst st st' bid_in bks HCompile.
     simpl in HCompile. destruct src, dst.
@@ -705,30 +724,6 @@ Open Scope char_scope.
     unfold genFSHAssign in Heqs2.
     cbn in Heqs2.
   Admitted.
-
-  Lemma add_comment_preserves_num_blocks :
-    forall l comments blocks,
-      add_comment l comments ≡ blocks ->
-      List.length l ≡ List.length blocks.
-  Proof.
-    induction l; intros comments blocks H.
-    - inversion H; reflexivity.
-    - simpl. inversion H. simpl.
-      reflexivity.
-  Qed.
-
-  Lemma add_comment_singleton :
-    forall l comments block,
-      add_comment l comments ≡ [block] ->
-      exists b, l ≡ [b].
-  Proof.
-    intros l comments block H.
-    destruct l.
-    - inv H.
-    - destruct l.
-      + exists b. reflexivity.
-      + inv H.
-  Qed.
 
   Lemma genIR_DSHAssign_to_genFSHAssign :
     forall src dst nextblock st st' b,
@@ -776,52 +771,7 @@ Open Scope char_scope.
 (* (map (λ '(id, i), (id, TransformTypes.fmap_instr typ dtyp (TypeUtil.normalize_type_dtyp env) i)) *)
 (*                    src_nexpcode) *)
 
-  (* TODO: Move to Vellvm *)
-  Lemma denote_code_app :
-    forall a b,
-      eutt Logic.eq (D.denote_code (a ++ b)%list) (ITree.bind (D.denote_code a) (fun _ => D.denote_code b)).
-  Proof.
-    induction a; intros b.
-    - cbn. rewrite bind_ret_l.
-      reflexivity.
-    - cbn. rewrite bind_bind. setoid_rewrite IHa.
-      reflexivity.
-  Qed.
-
-  Lemma denote_code_cons :
-        forall a l,
-      eutt Logic.eq (D.denote_code (a::l)%list) (ITree.bind (D.denote_instr a) (fun _ => D.denote_code l)).
-  Proof.
-    cbn; reflexivity.
-  Qed.
-
   (* Relations for expressions *)
-
-  Definition int64_dvalue_rel (n : Int64.int) (dv : dvalue) : Prop :=
-    match dv with
-    | DVALUE_I64 i => Z.eq (Int64.intval n) (unsigned i)
-    | _ => False
-    end.
-
-
-  Definition nat_dvalue_rel (n : nat) (dv : dvalue) : Prop :=
-    match dv with
-    | DVALUE_I64 i => Z.eq (Z.of_nat n) (unsigned i)
-    | _ => False
-    end.
-
-  Definition int64_concrete_uvalue_rel (n : Int64.int) (uv : uvalue) : Prop :=
-    match uvalue_to_dvalue uv with
-    | inr dv => int64_dvalue_rel n dv
-    | _ => False
-    end.
-
-  Definition nat_concrete_uvalue_rel (n : nat) (uv : uvalue) : Prop :=
-    match uvalue_to_dvalue uv with
-    | inr dv => nat_dvalue_rel n dv
-    | _ => False
-    end.
-
   (* top might be able to just be Some (DTYPE_I 64) *)
   Definition nexp_relation (env : list (ident * typ)) (e : exp typ) (n : Int64.int) (r : (memory * (local_env * (global_env * ())))) :=
     let '(mem_llvm, (ρ, (g, _))) := r in
