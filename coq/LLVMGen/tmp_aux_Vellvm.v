@@ -33,6 +33,8 @@ From Coq Require Import
      Relations
      List.
 
+Require Import Ceres.Ceres.
+
 Import ListNotations.
 Import ITree.Basics.Basics.Monads.
 
@@ -65,35 +67,35 @@ Section InterpreterCFG.
 
 Definition interp_cfg_to_L1 {R} user_intrinsics (t: itree instr_E R) (g: global_env) :=
   let L0_trace       := INT.interp_intrinsics user_intrinsics t in
-  let L1_trace       := runState (interp_global L0_trace) g in
+  let L1_trace       := interp_global L0_trace g in
   L1_trace.
 
 Definition interp_cfg_to_L2 {R} user_intrinsics (t: itree instr_E R) (g: global_env) (l: local_env) :=
   let L0_trace       := INT.interp_intrinsics user_intrinsics t in
-  let L1_trace       := runState (interp_global L0_trace) g in
-  let L2_trace       := runState (interp_local L1_trace) l in
+  let L1_trace       := interp_global L0_trace g in
+  let L2_trace       := interp_local L1_trace l in
   L2_trace.
 
 Definition interp_cfg_to_L3 {R} user_intrinsics (t: itree instr_E R) (g: global_env) (l: local_env) (m: memory_stack) :=
   let L0_trace       := INT.interp_intrinsics user_intrinsics t in
-  let L1_trace       := runState (interp_global L0_trace) g in
-  let L2_trace       := runState (interp_local L1_trace) l in
-  let L3_trace       := runState (M.interp_memory L2_trace) m in
+  let L1_trace       := interp_global L0_trace g in
+  let L2_trace       := interp_local L1_trace l in
+  let L3_trace       := M.interp_memory L2_trace m in
   L3_trace.
 
 Definition interp_cfg_to_L4 {R} user_intrinsics (t: itree instr_E R) (g: global_env) (l: local_env) (m: memory_stack) :=
   let L0_trace       := INT.interp_intrinsics user_intrinsics t in
-  let L1_trace       := runState (interp_global L0_trace) g in
-  let L2_trace       := runState (interp_local L1_trace) l in
-  let L3_trace       := runState (M.interp_memory L2_trace) m in
+  let L1_trace       := interp_global L0_trace g in
+  let L2_trace       := interp_local L1_trace l in
+  let L3_trace       := M.interp_memory L2_trace m in
   let L4_trace       := P.model_undef L3_trace in
   L4_trace.
 
 Definition interp_cfg_to_L5 {R} user_intrinsics (t: itree instr_E R) (g: global_env) (l: local_env) (m: memory_stack) :=
   let L0_trace       := INT.interp_intrinsics user_intrinsics t in
-  let L1_trace       := runState (interp_global L0_trace) g in
-  let L2_trace       := runState (interp_local L1_trace) l in
-  let L3_trace       := runState (M.interp_memory L2_trace) m in
+  let L1_trace       := interp_global L0_trace g in
+  let L2_trace       := interp_local L1_trace l in
+  let L3_trace       := M.interp_memory L2_trace m in
   let L4_trace       := P.model_undef L3_trace in
   UndefinedBehaviour.model_UB L4_trace.
 
@@ -162,8 +164,8 @@ Global Instance eutt_interp_cfg_to_L1 (defs: intrinsic_definitions) {T}:
   Proper (eutt Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_cfg_to_L1 T defs).
 Proof.
   repeat intro.
-  unfold interp_cfg_to_L1, Util.runState.
-  subst. try rewrite H.
+  unfold interp_cfg_to_L1.
+  subst; rewrite H.
   reflexivity.
 Qed.
 
@@ -171,7 +173,7 @@ Global Instance eutt_interp_cfg_to_L2 (defs: intrinsic_definitions) {T}:
   Proper (eutt Logic.eq ==> Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_cfg_to_L2 T defs).
 Proof.
   repeat intro.
-  unfold interp_cfg_to_L2, Util.runState.
+  unfold interp_cfg_to_L2.
   subst; rewrite H.
   reflexivity.
 Qed.
@@ -181,10 +183,69 @@ Global Instance eutt_interp_cfg_to_L3 (defs: intrinsic_definitions) {T}:
   Proper (eutt Logic.eq ==> Logic.eq ==> Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_cfg_to_L3 T defs).
 Proof.
   repeat intro.
-  unfold interp_cfg_to_L3, Util.runState.
+  unfold interp_cfg_to_L3.
   subst; rewrite H.
   reflexivity.
 Qed.
+
+
+  Lemma interp_global_vis:
+    forall (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type -> Type)
+      (H0 : FailureE -< G) (R : Type) (g : map) (x : R) S X
+      (kk : X -> itree (E +' F +' GlobalE k v +' G) S)
+      (e : (E +' F +' GlobalE k v +' G) X),
+      interp_global (Vis e kk) g ≅ ITree.bind (interp_global_h e g) (fun (sx : map * X) => Tau (interp_global (kk (snd sx)) (fst sx))).
+  Proof.
+    intros k v map M SK E F G H0 R g x S X kk e.
+    unfold interp_global.
+    setoid_rewrite interp_state_vis.
+    reflexivity.
+  Qed.
+
+  Lemma interp_local_vis:
+    forall (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type -> Type)
+      (H0 : FailureE -< G) (R : Type) (g : map) (x : R) S X
+      (kk : X -> itree (E +' F +' LocalE k v +' G) S)
+      (e : (E +' F +' LocalE k v +' G) X),
+      interp_local (Vis e kk) g ≅ ITree.bind (interp_local_h e g) (fun (sx : map * X) => Tau (interp_local (kk (snd sx)) (fst sx))).
+  Proof.
+    intros k v map M SK E F G H0 R g x S X kk e.
+    unfold interp_local.
+    setoid_rewrite interp_state_vis.
+    reflexivity.
+  Qed.
+
+  Lemma interp_intrinsics_vis:
+    forall E F X R (HF : FailureE -< F) (e : (E +' IntrinsicE +' F) X)
+      (kk : X -> itree (E +' IntrinsicE +' F) R) defs,
+      INT.interp_intrinsics defs (Vis e kk) ≅
+      ITree.bind (INT.interp_intrinsics_h defs e) (fun x : X => Tau (interp (INT.interp_intrinsics_h defs) (kk x))).
+  Proof.
+    intros E F X R HF e kk h.
+    unfold INT.interp_intrinsics.
+    rewrite interp_vis.
+    reflexivity.
+  Qed.
+
+  (* TODOYZ: Finish this proof *)
+  Lemma interp_cfg_to_L3_vis (defs: IS.intrinsic_definitions):
+    forall T R (e : instr_E T) (k : T -> itree instr_E R) g l m,
+      interp_cfg_to_L3 defs (Vis e k) g l m ≅
+                       ITree.bind (interp_cfg_to_L3 defs (trigger e) g l m)
+                       (fun '(m, (l, (g, x)))=> Tau (interp_cfg_to_L3 defs (k x) g l m)).
+  Proof.
+    intros T R e k g l m.
+    unfold interp_cfg_to_L3.
+    rewrite interp_intrinsics_vis.
+    rewrite interp_global_bind, interp_local_bind, interp_memory_bind.
+    destruct e as [call | ?].
+    cbn. unfold INT.E_trigger.
+    (* eapply eutt_clo_bind. *)
+    (* apply eutt_eq_bind. eutt_bind_clo. *)
+    (* setoid_rewrite interp_intrinsics_vis. *)
+    (* repeat setoid_rewrite interp_state_bind. *)
+    (* repeat setoid_rewrite bind_bind. *)
+  Admitted.
 
 End InterpreterCFG.
 

@@ -79,6 +79,7 @@ Require Import ExtLib.Structures.Monads.
 Require Import ExtLib.Data.Map.FMapAList.
 
 Require Import Vellvm.Numeric.Fappli_IEEE_extra.
+Require Import Vellvm.Util.
 Require Import Vellvm.LLVMEvents.
 Require Import Vellvm.DynamicTypes.
 Require Import Vellvm.Denotation.
@@ -93,6 +94,7 @@ Require Import Ceres.Ceres.
 
 Require Import ITree.Interp.TranslateFacts.
 Require Import ITree.Basics.CategoryFacts.
+Require Import ITree.Events.State.
 Require Import ITree.Events.StateFacts.
 Require Import ITree.ITree.
 Require Import ITree.Eq.Eq.
@@ -607,6 +609,10 @@ Section NEXP.
   (* TODOYZ: Cleanup the normalization of types layer.
              Should we have a typeclass to have a uniform way to normalize the sub-pieces of code?
    *)
+  (* TODOYZ: Apparently, this might be dead code.
+             There's also [denote_exp_nexp], [interp_denoteNexp_genNExpr] and [interp_cfg_to_L3_denote_exp]
+   *)
+
   Lemma denoteNexp_genNExpr :
     forall (* Helix bits  *) (nexp : NExpr) (σ : evalContext) (st st' : IRState) mem_helix
       (* Vellvm bits *) (nexp_r : exp typ) (nexp_code : code typ) (env : list (ident * typ))  g ρ mem_llvm,
@@ -623,6 +629,7 @@ Section NEXP.
                                                 (id, TransformTypes.fmap_instr typ dtyp (TypeUtil.normalize_type_dtyp env) i))
                                                nexp_code)) g ρ mem_llvm)).
   Proof.
+    (*
     induction nexp; intros σ st st' mem_helix nexp_r nexp_code env g ρ mem_llvm Hmem H.
     - (* NVar *)
       cbn in H.
@@ -724,7 +731,7 @@ Section NEXP.
       repeat setoid_rewrite denote_code_app.
 
       rewrite denote_nexp_div.
-      pose proof IHnexp1 _ _ _ _ env σ g ρ mem_llvm mem_helix Hmem Heqs.
+      pose proof IHnexp1 σ _ _ mem_helix _ _ env g ρ mem_llvm Hmem Heqs.
       rewrite interp_cfg_to_L3_bind.
       repeat setoid_rewrite translate_bind.
       eapply eutt_clo_bind; eauto.
@@ -750,7 +757,262 @@ Section NEXP.
 
       (* genNExpr nexp1 st ≡ inr (i, (e, c)) *)
       (* I need something relating `denote_exp e` and `denoteNexp nexp1`... *)
+     *)
   Admitted.
+
+  Lemma denote_exp_nexp:
+    forall nexp st i e c mem_llvm σ g ρ env,
+      genNExpr nexp st ≡ inr (i, (e, c)) ->
+      (* TODO: factor out this relation *)
+      eutt (fun n '(m, (l, (g, uv))) => int64_concrete_uvalue_rel n uv)
+           (translate inr_ (denoteNexp σ nexp))
+           (translate inl_ (interp_cfg_to_L3 helix_intrinsics (translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64)) (TransformTypes.fmap_exp _ _ (TypeUtil.normalize_type_dtyp env) e))) g ρ mem_llvm)).
+  Proof.
+    induction nexp; intros st i e c mem_llvm σ g ρ env H.
+    - cbn in H; repeat break_match_hyp; try solve [inversion H].
+      + (* Int case *)
+        cbn.
+        unfold denoteNexp. cbn.
+        break_match.
+        * cbn.
+          (* exception *) admit.
+        * break_match.
+          -- inversion H. cbn.
+             (* Need something linking id to global_env / local_env *)
+             destruct i1.
+             ++ cbn. rewrite bind_trigger.
+                repeat rewrite translate_vis.
+                admit.
+             ++ admit.
+          -- cbn. (* exception *) admit.
+          -- cbn. (* exception *) admit.
+      + (* Pointer case *)
+        admit.
+    - cbn in H; repeat break_match_hyp; inversion H; cbn.
+      admit.
+  Admitted.
+
+  (* TODO: awful AWFUL name. Need to figure out which of these we need *)
+  Definition nexp_relation_mem (σ : evalContext) (helix_res : MDSHCOLOnFloat64.memory * Int64.int) (llvm_res : TopLevelEnv.memory * (local_env * (global_env * ()))) : Prop
+    :=
+      let '(mem_helix, n) := helix_res in
+      let '(mem_llvm, (ρ, (g, _))) := llvm_res in
+      memory_invariant σ mem_helix (mem_llvm, (ρ, g)).
+
+  Lemma interp_denoteNexp_genNExpr :
+    forall (nexp : NExpr) (st st' : IRState) (nexp_r : exp typ) (nexp_code : code typ) (env : list (ident * typ)) (σ : evalContext) g ρ mem_llvm memory,
+      genNExpr nexp st  ≡ inr (st', (nexp_r, nexp_code)) ->
+      eutt (nexp_relation_mem σ)
+           (translate inr_ (interp_state (case_ Mem_handler MDSHCOLOnFloat64.pure_state) (denoteNexp σ nexp) memory))
+           (translate inl_ (interp_cfg_to_L3 helix_intrinsics
+                                             (D.denote_code (map
+                                                               (λ '(id, i),
+                                                                (id, TransformTypes.fmap_instr typ dtyp (TypeUtil.normalize_type_dtyp env) i))
+                                                               nexp_code)) g ρ mem_llvm)).
+  Proof.
+  Admitted.
+
+  Lemma interp_cfg_to_L3_denote_exp :
+    forall nexp s s' ll_exp ll_code n m l g env σ,
+      genNExpr nexp s ≡ inr (s', (ll_exp, ll_code)) ->
+      denoteNexp σ nexp ≈ Ret n ->
+      (interp_cfg_to_L3 helix_intrinsics
+                        (translate exp_E_to_instr_E
+                                   (D.denote_exp (Some (DTYPE_I 64))
+                                                 (TransformTypes.fmap_exp typ dtyp (TypeUtil.normalize_type_dtyp env) ll_exp))) g l m) ≈ Ret (m, (l, (g, UVALUE_I64 n))).
+  Proof.
+    induction nexp;
+      intros s s' ll_exp ll_code n m l g env σ H H0;
+      cbn in H; inversion H.
+    - (* NVar *)
+      admit.
+    (* Exceptions due to lookup and type mismatches! *)
+    - (* NConst *)
+      cbn. rewrite repr_intval.
+      rewrite translate_ret, interp_cfg_to_L3_ret.
+      apply eqit_inv_ret in H0; subst; auto.
+      reflexivity.
+    - (* NDiv *)
+      rewrite denote_nexp_div in H0.
+      cbn in *.
+  Admitted.
+
+  Lemma eval_denoteNexp :
+    forall σ nexp val,
+      evalNexp σ nexp ≡ inr val ->
+      denoteNexp σ nexp ≅ Ret val.
+  Proof.
+    intros σ nexp val H.
+    unfold denoteNexp. rewrite H.
+    reflexivity.
+  Qed.
+
+  (* Unprovable, this should come from some well typedness assumption *)
+  Lemma nvar_is_i64 :
+    forall {v s s' s'' ll_exp ll_code str i t},
+      genNExpr (NVar v) s ≡ inr (s', (ll_exp, ll_code)) ->
+      getStateVar str v s ≡ inr (s'', (i, t)) ->
+      t ≡ TYPE_I 64%Z.
+  Proof.
+  Admitted.
+
+  (* TODO: This is WRONG
+
+      Each instruction evaluated in the code that nexp produces can
+      add a local variable.
+   *)
+  Lemma denote_code_of_nexp :
+    forall nexp s s' ll_exp ll_code env mem_llvm g ρ,
+      genNExpr nexp s ≡ inr (s', (ll_exp, ll_code)) ->
+      exists ρ',
+        interp_cfg_to_L3 helix_intrinsics
+                         (D.denote_code
+                            (map (λ '(id, i), (id, TransformTypes.fmap_instr typ dtyp (TypeUtil.normalize_type_dtyp env) i))
+                                 ll_code)) g ρ mem_llvm ≈ Ret (mem_llvm, (ρ', (g, ()))).
+  Proof.
+    induction nexp;
+      intros s s' ll_exp ll_code env mem_llvm g ρ H;
+      remember H as Hgen eqn:Heqgen; clear Heqgen;
+        inversion H; subst; cbn.
+    -  cbn in H.
+       break_match_hyp; inversion H1.
+       destruct p, p.
+       pose proof (nvar_is_i64 Hgen Heqs0); subst.
+       break_match_hyp; try contradiction.
+       exists ρ.
+       inversion H1; subst.
+       cbn.
+       rewrite interp_cfg_to_L3_ret.
+       reflexivity.
+    - exists ρ. rewrite interp_cfg_to_L3_ret.
+      reflexivity.
+    - exists ρ. (* TODO: This will need to change *)
+
+        break_match_hyp.
+        inversion H1.
+        repeat break_match_hyp.
+        inversion H1.
+        inversion H1.
+        cbn in *.
+        do 2 rewrite map_app.
+        do 2 setoid_rewrite denote_code_app.
+        setoid_rewrite bind_bind.
+
+        rewrite interp_cfg_to_L3_bind.
+        pose proof IHnexp1 s i e c env mem_llvm g ρ Heqs0 as [ρ' Hnexp1].
+        rewrite Hnexp1.
+        rewrite bind_ret_l.
+
+        rewrite interp_cfg_to_L3_bind.
+        pose proof IHnexp2 i i0 e0 c0 env mem_llvm g ρ' Heqs1 as [ρ'' Hnexp2].
+        rewrite Hnexp2.
+        rewrite bind_ret_l.
+
+        cbn.
+        repeat setoid_rewrite translate_bind.
+        rewrite bind_bind.
+
+        rewrite interp_cfg_to_L3_bind.
+
+  Admitted.
+
+  (* TODO: I think I might want to know that ρ comes from denoting ll_code, actually *)
+  Lemma denote_exp_of_nexp :
+    forall nexp ll_exp ll_code s s' env g ρ mem_llvm mem_helix σ i,
+      memory_invariant σ mem_helix (mem_llvm, (ρ, g)) ->
+      genNExpr nexp s ≡ inr (s', (ll_exp, ll_code)) ->
+      evalNexp σ nexp ≡ inr i ->
+      (interp_cfg_to_L3 helix_intrinsics
+                        (translate exp_E_to_instr_E
+                                   (D.denote_exp (Some (TypeUtil.normalize_type_dtyp env Utils.IntType))
+                                                 (TransformTypes.fmap_exp typ dtyp (TypeUtil.normalize_type_dtyp env) ll_exp))) g ρ mem_llvm) ≈ Ret (mem_llvm, (ρ, (g, UVALUE_I64 i))).
+  Proof.
+    setoid_rewrite normalize_IntType.
+    induction nexp;
+      intros ll_exp ll_code s s' env g ρ mem_llvm mem_helix σ i Hmem H H0;
+      inversion H; inversion H0; subst; cbn.
+    - repeat break_match_hyp; inversion H3; inversion H2;
+        cbn.
+      destruct i1; cbn.
+      rewrite bind_trigger.
+      repeat setoid_rewrite translate_vis.
+      repeat setoid_rewrite translate_ret.
+
+
+      unfold interp_cfg_to_L3.
+      {
+        Set Nested Proofs Allowed.
+
+        
+      setoid_rewrite interp_intrinsics_vis; cbn.
+      unfold INT.F_trigger.
+      rewrite bind_trigger.
+      setoid_rewrite interp_global_vis; cbn.
+
+      unfold memory_invariant in Hmem.
+      unfold context_lookup in Heqs0. destruct (nth_error σ v) eqn:Hlookup; inversion Heqs0.
+      destruct Hmem as [Hmem | Hmem].
+      { (* Case where sigma is nil *)
+        assert (σ ≡ []) by (apply ListUtil.length_0; auto).
+        subst; cbn in Hlookup; rewrite ListNth.nth_error_nil in Hlookup.
+        inversion Hlookup.
+      }
+
+      destruct Hmem as [iota Hmem].
+      (* TODO: need to be able to relate
+
+            alist_find AstLib.eq_dec_raw_id id g
+
+            and ι somehow.
+       *)
+
+            Lemma gen_var_irstate_rel :
+              forall v s s' ll_exp ll_code mem_helix σ mem_llvm ρ g i id sz,
+                genNExpr (NVar v) s ≡ inr (s', (ll_exp, ll_code)) ->
+                memory_invariant σ mem_helix (mem_llvm, (ρ, g)) ->
+                evalNexp σ (NVar v) ≡ inr i ->
+                getStateVar "NVar out of range" v s ≡ inr (s', (ID_Global id, TYPE_I sz)) ->
+                alist_find AstLib.eq_dec_raw_id id g ≡ Some (DVALUE_I64 i).
+            Proof.
+              intros v s s' ll_exp ll_code mem_helix σ mem_llvm ρ g i id sz H H0 H1 H2.
+              cbn in H1. break_match_hyp; inversion H1.
+              break_match_hyp; inversion H1; subst.
+              unfold context_lookup in *.
+              destruct (nth_error σ v) eqn:Hlookup.
+              2: { inversion Heqs0. }
+              cbn in H2.
+              destruct (nth_error (vars s) v) eqn:Hlookupst.
+              2: { inversion H2. }
+              cbn in H2.
+              inversion H2. subst.
+              inversion Heqs0.
+              subst.
+              unfold memory_invariant in H0.
+              rename H0 into Hmem.
+              destruct Hmem as [Hmem | Hmem].
+              { (* Case where sigma is nil *)
+                assert (σ ≡ []) by (apply ListUtil.length_0; auto).
+                subst; cbn in Hlookup; rewrite ListNth.nth_error_nil in Hlookup.
+                inversion Hlookup.
+              }
+
+              destruct Hmem as (Hinj & ?).
+              specialize (H0 _ _ Hlookup).
+
+              destruct H0 as [ptr_llvm [[[Hlocal Hnotglobal] | [Hnotlocal Hglobal]]
+                                 [bk_llvm [Hlogicalblock [v_llvm [Hlookup_block Hmatches]]]]]]; subst.
+
+              admit. (* locals *)
+
+              cbn.
+
+              cbn in *; subst.
+
+            Qed.
+
+
+
+End NEXP.
 
 
 (* CHECKPOINTYZ: Continue the dive from there Tomorrow *)
@@ -814,70 +1076,12 @@ Import Coq.Strings.String Strings.Ascii.
 Open Scope string_scope.
 Open Scope char_scope.
 
-  From Vellvm Require Import Util.
-  Require Import State.
-
   (* TODO: Prove and move to itrees *)
   Lemma interp_state_interp :
     ∀ (E F G : Type -> Type) (R : Type) (ST : Type) (st : ST)
       (f : ∀ T : Type, E T → itree F T) (g : forall T : Type, F T -> Monads.stateT ST (itree G) T) (t : itree E R),
       interp_state g (interp f t) st ≅ interp_state (fun (T : Type) (e : E T) => interp g (f T e)) t st.
   Proof.
-  Admitted.
-
-  (* TODO: move to vellvm *)
-  Lemma interp_global_vis:
-    ∀ (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type → Type)
-      (H0 : FailureE -< G) (R : Type) (g : map) (x : R) S X
-      (kk : X -> itree (E +' F +' GlobalE k v +' G) S)
-      (e : (E +' F +' GlobalE k v +' G) X),
-      runState (interp_global (Vis e kk)) g ≅ ITree.bind (runState (interp_global_h e) g) (fun (sx : map * X) => Tau (runState (interp_global (kk (snd sx))) (fst sx))).
-  Proof.
-    intros k v map M SK E F G H0 R g x S X kk e.
-    unfold interp_global.
-    setoid_rewrite interp_state_vis.
-    reflexivity.
-  Qed.
-
-  (* TODO: move to vellvm *)
-  Lemma interp_local_vis:
-    ∀ (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type → Type)
-      (H0 : FailureE -< G) (R : Type) (g : map) (x : R) S X
-      (kk : X -> itree (E +' F +' LocalE k v +' G) S)
-      (e : (E +' F +' LocalE k v +' G) X),
-      runState (interp_local (Vis e kk)) g ≅ ITree.bind (runState (interp_local_h e) g) (fun (sx : map * X) => Tau (runState (interp_local (kk (snd sx))) (fst sx))).
-  Proof.
-    intros k v map M SK E F G H0 R g x S X kk e.
-    unfold interp_local.
-    setoid_rewrite interp_state_vis.
-    reflexivity.
-  Qed.
-
-  (* TODO: move to vellvm *)
-  Lemma interp_intrinsics_vis:
-    forall E F X R (HF : FailureE -< F) (e : (E +' IntrinsicE +' F) X)
-      (kk : X -> itree (E +' IntrinsicE +' F) R)
-      defs,
-      INT.interp_intrinsics defs (Vis e kk) ≅ ITree.bind (INT.interp_intrinsics_h defs e) (λ x : X, Tau (interp (INT.interp_intrinsics_h defs) (kk x))).
-  Proof.
-    intros E F X R HF e kk h.
-    unfold INT.interp_intrinsics.
-    rewrite interp_vis.
-    reflexivity.
-  Qed.
-
-  Lemma interp_cfg_to_L3_vis (defs: IS.intrinsic_definitions):
-    forall T R (e : instr_E T) (k : T -> itree instr_E R) g l m,
-      interp_cfg_to_L3 defs (Vis e k) g l m ≅
-                       ITree.bind (interp_cfg_to_L3 defs (trigger e) g l m)
-                       (fun '(m, (l, (g, x)))=> Tau (interp_cfg_to_L3 defs (k x) g l m)).
-  Proof.
-    intros T R e k g l m.
-    unfold interp_cfg_to_L3.
-    unfold interp_local, interp_global, M.interp_memory, runState.
-    setoid_rewrite interp_intrinsics_vis.
-    repeat setoid_rewrite interp_state_bind.
-    repeat setoid_rewrite bind_bind.
   Admitted.
 
   (* TODO: Move to itrees? *)
@@ -974,61 +1178,9 @@ Open Scope char_scope.
 (* (map (λ '(id, i), (id, TransformTypes.fmap_instr typ dtyp (TypeUtil.normalize_type_dtyp env) i)) *)
 (*                    src_nexpcode) *)
 
-  Lemma denote_exp_nexp:
-    forall nexp st i e c mem_llvm σ g ρ env,
-      genNExpr nexp st ≡ inr (i, (e, c)) ->
-      (* TODO: factor out this relation *)
-      eutt (fun n '(m, (l, (g, uv))) => int64_concrete_uvalue_rel n uv)
-           (translate inr_ (denoteNexp σ nexp))
-           (translate inl_ (interp_cfg_to_L3 helix_intrinsics (translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64)) (TransformTypes.fmap_exp _ _ (TypeUtil.normalize_type_dtyp env) e))) g ρ mem_llvm)).
-  Proof.
-    induction nexp; intros st i e c mem_llvm σ g ρ env H.
-    - cbn in H; repeat break_match_hyp; try solve [inversion H].
-      + (* Int case *)
-        cbn.
-        unfold denoteNexp. cbn.
-        break_match.
-        * cbn.
-          (* exception *) admit.
-        * break_match.
-          -- inversion H. cbn.
-             (* Need something linking id to global_env / local_env *)
-             destruct i1.
-             ++ cbn. rewrite bind_trigger.
-                repeat rewrite translate_vis.
-                admit.
-             ++ admit.
-          -- cbn. (* exception *) admit.
-          -- cbn. (* exception *) admit.
-      + (* Pointer case *)
-        admit.
-    - cbn in H; repeat break_match_hyp; inversion H; cbn.
-      admit.
-  Admitted.
-
 
   (* Probably need to know something about σ and mem_llvm,
      like memory_invariant... *)
-
-  (* TODO: awful AWFUL name. Need to figure out which of these we need *)
-  Definition nexp_relation_mem (σ : evalContext) (helix_res : MDSHCOLOnFloat64.memory * Int64.int) (llvm_res : TopLevelEnv.memory * (local_env * (global_env * ()))) : Prop
-    :=
-      let '(mem_helix, n) := helix_res in
-      let '(mem_llvm, (ρ, (g, _))) := llvm_res in
-      memory_invariant σ mem_helix (mem_llvm, (ρ, g)).
-
-  Lemma interp_denoteNexp_genNExpr :
-    forall (nexp : NExpr) (st st' : IRState) (nexp_r : exp typ) (nexp_code : code typ) (env : list (ident * typ)) (σ : evalContext) g ρ mem_llvm memory,
-      genNExpr nexp st  ≡ inr (st', (nexp_r, nexp_code)) ->
-      eutt (nexp_relation_mem σ)
-           (translate inr_ (interp_state (case_ Mem_handler MDSHCOLOnFloat64.pure_state) (denoteNexp σ nexp) memory))
-           (translate inl_ (interp_cfg_to_L3 helix_intrinsics
-                                             (D.denote_code (map
-                                                               (λ '(id, i),
-                                                                (id, TransformTypes.fmap_instr typ dtyp (TypeUtil.normalize_type_dtyp env) i))
-                                                               nexp_code)) g ρ mem_llvm)).
-  Proof.
-  Admitted.
 
   (* Print LLVMGEnvE. *)
   Lemma interp_cfg_to_L3_globalread :
@@ -1038,7 +1190,7 @@ Open Scope char_scope.
                         g1 l0 m4) ≈ (Ret (m4, (l0, (g1, d)))).
   Proof.
     intros.
-    unfold interp_cfg_to_L3, runState, M.interp_memory, interp_local, interp_global, INT.interp_intrinsics.
+    unfold interp_cfg_to_L3, M.interp_memory, interp_local, interp_global, INT.interp_intrinsics.
     setoid_rewrite interp_vis.
     repeat setoid_rewrite interp_state_bind.
     cbn. unfold INT.F_trigger.
@@ -1063,31 +1215,6 @@ Open Scope char_scope.
     rewrite tau_eutt.
     reflexivity.
   Qed.
-
-  Lemma interp_cfg_to_L3_denote_exp :
-    forall nexp s s' ll_exp ll_code n m l g env σ,
-      genNExpr nexp s ≡ inr (s', (ll_exp, ll_code)) ->
-      denoteNexp σ nexp ≈ Ret n ->
-      (interp_cfg_to_L3 helix_intrinsics
-                        (translate exp_E_to_instr_E
-                                   (D.denote_exp (Some (DTYPE_I 64))
-                                                 (TransformTypes.fmap_exp typ dtyp (TypeUtil.normalize_type_dtyp env) ll_exp))) g l m) ≈ Ret (m, (l, (g, UVALUE_I64 n))).
-  Proof.
-    induction nexp;
-      intros s s' ll_exp ll_code n m l g env σ H H0;
-      cbn in H; inversion H.
-    - (* NVar *)
-      admit.
-    (* Exceptions due to lookup and type mismatches! *)
-    - (* NConst *)
-      cbn. rewrite repr_intval.
-      rewrite translate_ret, interp_cfg_to_L3_ret.
-      apply eqit_inv_ret in H0; subst; auto.
-      reflexivity.
-    - (* NDiv *)
-      rewrite denote_nexp_div in H0.
-      cbn in *.
-  Admitted.
 
   (* TODO: Move these *)
   Lemma interp_Mem_ret :
@@ -1139,16 +1266,6 @@ Open Scope char_scope.
     intros σ v a size H.
     unfold denotePexp; cbn.
     rewrite H.
-    reflexivity.
-  Qed.
-
-  Lemma eval_denoteNexp :
-    forall σ nexp val,
-      evalNexp σ nexp ≡ inr val ->
-      denoteNexp σ nexp ≅ Ret val.
-  Proof.
-    intros σ nexp val H.
-    unfold denoteNexp. rewrite H.
     reflexivity.
   Qed.
 
@@ -1286,165 +1403,6 @@ Proof.
     end.
 
     Set Nested Proofs Allowed.
-
-    (* Unprovable, this should come from some well typedness assumption *)
-    Lemma nvar_is_i64 :
-      forall {v s s' s'' ll_exp ll_code str i t},
-        genNExpr (NVar v) s ≡ inr (s', (ll_exp, ll_code)) ->
-        getStateVar str v s ≡ inr (s'', (i, t)) ->
-        t ≡ TYPE_I 64%Z.
-    Proof.
-    Admitted.
-
-    (* TODO: This is WRONG
-
-      Each instruction evaluated in the code that nexp produces can
-      add a local variable.
-     *)
-    Lemma denote_code_of_nexp :
-      forall nexp s s' ll_exp ll_code env mem_llvm g ρ,
-        genNExpr nexp s ≡ inr (s', (ll_exp, ll_code)) ->
-        exists ρ',
-          interp_cfg_to_L3 helix_intrinsics
-             (D.denote_code
-                (map (λ '(id, i), (id, TransformTypes.fmap_instr typ dtyp (TypeUtil.normalize_type_dtyp env) i))
-                     ll_code)) g ρ mem_llvm ≈ Ret (mem_llvm, (ρ', (g, ()))).
-    Proof.
-      induction nexp;
-        intros s s' ll_exp ll_code env mem_llvm g ρ H;
-        remember H as Hgen eqn:Heqgen; clear Heqgen;
-        inversion H; subst; cbn.
-      -  cbn in H.
-         break_match_hyp; inversion H1.
-         destruct p, p.
-         pose proof (nvar_is_i64 Hgen Heqs0); subst.
-         break_match_hyp; try contradiction.
-         exists ρ.
-         inversion H1; subst.
-         cbn.
-         rewrite interp_cfg_to_L3_ret.
-         reflexivity.
-      - exists ρ. rewrite interp_cfg_to_L3_ret.
-        reflexivity.
-      - exists ρ. (* TODO: This will need to change *)
-
-        break_match_hyp.
-        inversion H1.
-        repeat break_match_hyp.
-        inversion H1.
-        inversion H1.
-        cbn in *.
-        do 2 rewrite map_app.
-        do 2 setoid_rewrite denote_code_app.
-        setoid_rewrite bind_bind.
-
-        rewrite interp_cfg_to_L3_bind.
-        pose proof IHnexp1 s i e c env mem_llvm g ρ Heqs0 as [ρ' Hnexp1].
-        rewrite Hnexp1.
-        rewrite bind_ret_l.
-
-        rewrite interp_cfg_to_L3_bind.
-        pose proof IHnexp2 i i0 e0 c0 env mem_llvm g ρ' Heqs1 as [ρ'' Hnexp2].
-        rewrite Hnexp2.
-        rewrite bind_ret_l.
-
-        cbn.
-        repeat setoid_rewrite translate_bind.
-        rewrite bind_bind.
-
-        rewrite interp_cfg_to_L3_bind.
-
-
-        (* TODO: I think I might want to know that ρ comes from denoting ll_code, actually *)
-        Lemma denote_exp_of_nexp :
-          forall nexp ll_exp ll_code s s' env g ρ mem_llvm mem_helix σ i,
-            memory_invariant σ mem_helix (mem_llvm, (ρ, g)) ->
-            genNExpr nexp s ≡ inr (s', (ll_exp, ll_code)) ->
-            evalNexp σ nexp ≡ inr i ->
-              (interp_cfg_to_L3 helix_intrinsics
-                                (translate exp_E_to_instr_E
-                                         (D.denote_exp (Some (TypeUtil.normalize_type_dtyp env Utils.IntType))
-                                                       (TransformTypes.fmap_exp typ dtyp (TypeUtil.normalize_type_dtyp env) ll_exp))) g ρ mem_llvm) ≈ Ret (mem_llvm, (ρ, (g, UVALUE_I64 i))).
-        Proof.
-          setoid_rewrite normalize_IntType.
-          induction nexp;
-            intros ll_exp ll_code s s' env g ρ mem_llvm mem_helix σ i Hmem H H0;
-            inversion H; inversion H0; subst; cbn.
-          - repeat break_match_hyp; inversion H3; inversion H2;
-              cbn.
-            destruct i1; cbn.
-            rewrite bind_trigger.
-            repeat setoid_rewrite translate_vis.
-            repeat setoid_rewrite translate_ret.
-
-            unfold interp_cfg_to_L3.
-            unfold runState.
-            setoid_rewrite interp_intrinsics_vis; cbn.
-            unfold INT.F_trigger.
-            rewrite bind_trigger.
-            setoid_rewrite interp_global_vis; cbn.
-
-            unfold memory_invariant in Hmem.
-            unfold context_lookup in Heqs0. destruct (nth_error σ v) eqn:Hlookup; inversion Heqs0.
-            destruct Hmem as [Hmem | Hmem].
-            { (* Case where sigma is nil *)
-              assert (σ ≡ []) by (apply ListUtil.length_0; auto).
-              subst; cbn in Hlookup; rewrite ListNth.nth_error_nil in Hlookup.
-              inversion Hlookup.
-            }
-
-            destruct Hmem as [iota Hmem].
-            (* TODO: need to be able to relate
-
-            alist_find AstLib.eq_dec_raw_id id g
-
-            and ι somehow.
-             *)
-
-            Lemma gen_var_irstate_rel :
-              forall v s s' ll_exp ll_code mem_helix σ mem_llvm ρ g i id sz,
-                genNExpr (NVar v) s ≡ inr (s', (ll_exp, ll_code)) ->
-                memory_invariant σ mem_helix (mem_llvm, (ρ, g)) ->
-                evalNexp σ (NVar v) ≡ inr i ->
-                getStateVar "NVar out of range" v s ≡ inr (s', (ID_Global id, TYPE_I sz)) ->
-                alist_find AstLib.eq_dec_raw_id id g ≡ Some (DVALUE_I64 i).
-            Proof.
-              intros v s s' ll_exp ll_code mem_helix σ mem_llvm ρ g i id sz H H0 H1 H2.
-              cbn in H1. break_match_hyp; inversion H1.
-              break_match_hyp; inversion H1; subst.
-              unfold context_lookup in *.
-              destruct (nth_error σ v) eqn:Hlookup.
-              2: { inversion Heqs0. }
-              cbn in H2.
-              destruct (nth_error (vars s) v) eqn:Hlookupst.
-              2: { inversion H2. }
-              cbn in H2.
-              inversion H2. subst.
-              inversion Heqs0.
-              subst.
-              unfold memory_invariant in H0.
-              rename H0 into Hmem.
-              destruct Hmem as [Hmem | Hmem].
-              { (* Case where sigma is nil *)
-                assert (σ ≡ []) by (apply ListUtil.length_0; auto).
-                subst; cbn in Hlookup; rewrite ListNth.nth_error_nil in Hlookup.
-                inversion Hlookup.
-              }
-
-              destruct Hmem as (Hinj & ?).
-              specialize (H0 _ _ Hlookup).
-
-              destruct H0 as [ptr_llvm [[[Hlocal Hnotglobal] | [Hnotlocal Hglobal]]
-                                 [bk_llvm [Hlogicalblock [v_llvm [Hlookup_block Hmatches]]]]]]; subst.
-
-              admit. (* locals *)
-
-              cbn.
-
-              cbn in *; subst.
-
-            Qed.
-
 
             Lemma irstate_rel (op: DSHOperator) :
               forall (nextblock bid_in : block_id) (st st' : IRState) (bks : list (LLVMAst.block typ)) (σ : evalContext) (env : list (ident * typ)) (mem : MDSHCOLOnFloat64.memory) (g : global_env) (ρ : local_env) (mem_llvm : memory),
@@ -1692,7 +1650,6 @@ Proof.
                 setoid_rewrite bind_ret_r.
                 unfold interp_global.
                 cbn.
-                unfold runState.
                 unfold M.interp_memory.
                 unfold interp_local.
                 cbn.
