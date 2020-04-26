@@ -550,6 +550,209 @@ Section Add_Comment.
 
 End Add_Comment.
 
+Section NEXP.
+
+  (**
+     We prove in this section the correctness of the compilation of numerical expressions, i.e. [NExpr].
+     The corresponding compiling function is [genNExpr].
+
+     Helix side:
+     * nexp: NExpr
+     * σ: evalContext
+     * 
+
+   *)
+  (* NOTEYZ:
+     These expressions are pure. As such, it is true that we do not need to interpret away
+     the memory events on Helix side to establish the bisimulation.
+     However at least in the current state of affair, I believe it's widely more difficult
+     to lift the result before interpretation to the context we need than to simply plug in
+     the interpreter.
+     In particular we would need to have a clean enough lift that deduces that the memory has
+     not been modified. I'm interested in having this, but I do not know how easy it is to get it.
+     TODOYZ: Investigate this claim
+   *)
+
+  (* Relations for expressions *)
+  (* top might be able to just be Some (DTYPE_I 64) *)
+  (* NOTEYZ: I am completely confused by this definition. *)
+  Definition nexp_relation
+             (env : list (ident * typ))
+             (e : exp typ)
+             (n : Int64.int)
+             (r : (memory * (local_env * (global_env * ())))): Prop :=
+    let '(mem_llvm, (ρ, (g, _))) := r in
+    eutt (fun n '(_, (_, (_, uv))) => int64_concrete_uvalue_rel n uv)
+         (ret n)
+         (interp_cfg_to_L3 helix_intrinsics (translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64)) (TransformTypes.fmap_exp _ _ (TypeUtil.normalize_type_dtyp env) e))) g ρ mem_llvm).
+
+  (**
+     Division case. Division by zero is ruled out by assuming that no failure can happen.
+     TODOYZ: Do we:
+      - rule out failure from the source program (usual assumption, sensible). If so, how to we express it?
+      - prove preservation of failure. Unusual, stronger, require a change in our current non-interpretation of errors.
+   *)
+  (* TODO: Need something about denoteNexp not failing *)
+  Lemma denote_nexp_div :
+    forall (σ : evalContext) (nexp1 nexp2 : NExpr),
+      eutt Logic.eq (denoteNexp σ (NDiv nexp1 nexp2))
+           (ITree.bind (denoteNexp σ nexp1)
+                       (fun (n1 : Int64.int) => ITree.bind (denoteNexp σ nexp2)
+                                                        (fun (n2 : Int64.int) => denoteNexp σ (NDiv (NConst n1) (NConst n2))))).
+  Proof.
+  Admitted.
+
+
+  (* TODOCB: do I need something relating IRstate and evalContext? *)
+  (* TODOYZ: Cleanup the normalization of types layer.
+             Should we have a typeclass to have a uniform way to normalize the sub-pieces of code?
+   *)
+  Lemma denoteNexp_genNExpr :
+    forall (* Helix bits  *) (nexp : NExpr) (σ : evalContext) (st st' : IRState) mem_helix
+      (* Vellvm bits *) (nexp_r : exp typ) (nexp_code : code typ) (env : list (ident * typ))  g ρ mem_llvm,
+      (* TODOCB: Do I need mem_helix?
+         YZ: I suspect it depends on whether you run the interpreter [interp_Mem] or not here
+       *)
+      memory_invariant σ mem_helix (mem_llvm, (ρ, g)) ->
+      genNExpr nexp st  ≡ inr (st', (nexp_r, nexp_code)) ->
+      eutt (nexp_relation env nexp_r)
+           (translate inr_ (denoteNexp σ nexp))
+           (translate inl_ (interp_cfg_to_L3 helix_intrinsics
+                             (D.denote_code (map
+                                               (λ '(id, i),
+                                                (id, TransformTypes.fmap_instr typ dtyp (TypeUtil.normalize_type_dtyp env) i))
+                                               nexp_code)) g ρ mem_llvm)).
+  Proof.
+    induction nexp; intros σ st st' mem_helix nexp_r nexp_code env g ρ mem_llvm Hmem H.
+    - (* NVar *)
+      cbn in H.
+      repeat break_match_hyp; subst; inversion H; simpl.
+      + cbn in Heqs.
+        subst.
+        rewrite interp_cfg_to_L3_ret.
+        destruct (nth_error (vars st) v) eqn:Hnth; inversion Heqs; subst.
+        unfold denoteNexp. cbn.
+        unfold context_lookup.
+        destruct (nth_error σ v) eqn:Hnthsigma.
+        cbn. destruct d.
+        cbn.
+        do 2 rewrite translate_ret.
+        apply eqit_Ret.
+        cbn.
+        * destruct i0; cbn.
+          rewrite bind_trigger.
+          repeat rewrite translate_vis.
+          cbn.
+
+          unfold interp_cfg_to_L3.
+          unfold INT.interp_intrinsics.
+          rewrite interp_vis.
+          cbn.
+          rewrite interp_global_bind.
+          unfold INT.F_trigger.
+          unfold interp_global at 2.
+          setoid_rewrite interp_state_trigger.
+          rewrite bind_bind.
+          cbn.
+          break_match.
+          2: admit. (* exception *)
+          rewrite bind_ret_l.
+          rewrite bind_tau.
+          rewrite tau_eutt.
+          rewrite bind_ret_l.
+          rewrite tau_eutt.
+          rewrite interp_translate.
+          cbn.
+          rewrite translate_ret.
+          rewrite interp_ret.
+          rewrite interp_global_ret.
+          rewrite interp_local_ret.
+          rewrite M.interp_memory_ret.
+
+          apply eqit_Ret.
+
+          unfold int64_concrete_uvalue_rel.
+          rewrite uvalue_to_dvalue_of_dvalue_to_uvalue.
+          unfold int64_dvalue_rel.
+          inversion Hmem.
+          apply ListUtil.length_0 in H0; subst.
+          rewrite ListNth.nth_error_nil in Hnthsigma. inversion Hnthsigma.
+          destruct H0.
+          pose proof (H0 v (DSHnatVal n) Hnthsigma).
+          cbn in H1.
+          destruct H1 as (? & ? & ? & ? & ? & ? & ?).
+          subst.
+          destruct H1. admit.
+          cbn.
+
+          admit.
+          admit.
+        * admit.
+        * admit.
+        * admit.
+      +
+      (* exception *) admit.
+
+      (*
+        destruct t.
+        destruct (Z.eq_dec sz 64).
+        inversion H. reflexivity.
+        inversion H.
+        destruct t.
+        *
+      + inversion H.
+       *)
+    - (* NConst *)
+      cbn in H; inversion H; cbn.
+      rewrite interp_cfg_to_L3_ret.
+      repeat rewrite translate_ret.
+      apply eqit_Ret.
+      cbn.
+      rewrite translate_ret.
+      rewrite interp_cfg_to_L3_ret.
+      apply eqit_Ret.
+      cbn.
+      rewrite DynamicValues.Int64.unsigned_repr.
+      apply Z.eq_refl.
+      pose proof (DynamicValues.Int64.intrange t).
+      unfold DynamicValues.Int64.max_unsigned.
+      omega.
+    - cbn in H.
+      repeat break_match_hyp; inversion H.
+
+      repeat rewrite map_app.
+      repeat setoid_rewrite denote_code_app.
+
+      rewrite denote_nexp_div.
+      pose proof IHnexp1 _ _ _ _ env σ g ρ mem_llvm mem_helix Hmem Heqs.
+      rewrite interp_cfg_to_L3_bind.
+      repeat setoid_rewrite translate_bind.
+      eapply eutt_clo_bind; eauto.
+
+      intros u1 u2 H4.
+      repeat break_match.
+      rewrite interp_cfg_to_L3_bind; rewrite translate_bind.
+      eapply eutt_clo_bind; eauto.
+      (* eapply H0. *)
+
+      (* intros u0 u3 H5. *)
+      (* repeat break_match. *)
+
+      (* (* We executed code that generated the values for the *)
+      (* expressions for the binary operations... Now we need to denote *)
+      (* the expressions themselves. *) *)
+      (* (* simplify left side to ret *) *)
+      (* cbn. *)
+
+      (* repeat rewrite translate_bind.       *)
+      (* repeat rewrite interp_cfg_to_L3_bind. *)
+      (* repeat rewrite bind_bind. *)
+
+      (* genNExpr nexp1 st ≡ inr (i, (e, c)) *)
+      (* I need something relating `denote_exp e` and `denoteNexp nexp1`... *)
+  Admitted.
+
+
 (* CHECKPOINTYZ: Continue the dive from there Tomorrow *)
 
 (* Lemma LLVMGen_correct: forall i o globals op name newstate pll (σ: evalContext), *)
@@ -597,14 +800,14 @@ End Add_Comment.
 
 
 Definition blah {T} (defs : IS.intrinsic_definitions) (m : memory) (g : global_env) (l : local_env) (e : instr_E T) :=
-  M.interp_memory (interp_local (interp_global (INT.interpret_intrinsics_h defs e) g) l) m.
+  M.interp_memory (interp_local (interp_global (INT.interp_intrinsics_h defs e) g) l) m.
 (*
   (State.interp_state
          (case_ (M.E_trigger (F:=PickE +' UBE +' DebugE +' FailureE))
             (case_ M.handle_intrinsic (case_ M.handle_memory (M.F_trigger (F:=PickE +' UBE +' DebugE +' FailureE)))))
          (State.interp_state (interp_local_h (G:=MemoryE +' PickE +' UBE +' DebugE +' FailureE))
             (State.interp_state (interp_global_h (G:=LLVMEnvE +' MemoryE +' PickE +' UBE +' DebugE +' FailureE))
-               (INT.interpret_intrinsics_h defs e) g) l) m).
+               (INT.interp_intrinsics_h defs e) g) l) m).
 *)
 
 Import Coq.Strings.String Strings.Ascii.
@@ -651,14 +854,14 @@ Open Scope char_scope.
   Qed.
 
   (* TODO: move to vellvm *)
-  Lemma interpret_intrinsics_vis:
+  Lemma interp_intrinsics_vis:
     forall E F X R (HF : FailureE -< F) (e : (E +' IntrinsicE +' F) X)
       (kk : X -> itree (E +' IntrinsicE +' F) R)
       defs,
-      INT.interpret_intrinsics defs (Vis e kk) ≅ ITree.bind (INT.interpret_intrinsics_h defs e) (λ x : X, Tau (interp (INT.interpret_intrinsics_h defs) (kk x))).
+      INT.interp_intrinsics defs (Vis e kk) ≅ ITree.bind (INT.interp_intrinsics_h defs e) (λ x : X, Tau (interp (INT.interp_intrinsics_h defs) (kk x))).
   Proof.
     intros E F X R HF e kk h.
-    unfold INT.interpret_intrinsics.
+    unfold INT.interp_intrinsics.
     rewrite interp_vis.
     reflexivity.
   Qed.
@@ -672,7 +875,7 @@ Open Scope char_scope.
     intros T R e k g l m.
     unfold interp_cfg_to_L3.
     unfold interp_local, interp_global, M.interp_memory, runState.
-    setoid_rewrite interpret_intrinsics_vis.
+    setoid_rewrite interp_intrinsics_vis.
     repeat setoid_rewrite interp_state_bind.
     repeat setoid_rewrite bind_bind.
   Admitted.
@@ -771,34 +974,6 @@ Open Scope char_scope.
 (* (map (λ '(id, i), (id, TransformTypes.fmap_instr typ dtyp (TypeUtil.normalize_type_dtyp env) i)) *)
 (*                    src_nexpcode) *)
 
-  (* Relations for expressions *)
-  (* top might be able to just be Some (DTYPE_I 64) *)
-  Definition nexp_relation (env : list (ident * typ)) (e : exp typ) (n : Int64.int) (r : (memory * (local_env * (global_env * ())))) :=
-    let '(mem_llvm, (ρ, (g, _))) := r in
-    eutt (fun n '(_, (_, (_, uv))) => int64_concrete_uvalue_rel n uv)
-         (ret n)
-         (interp_cfg_to_L3 helix_intrinsics (translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64)) (TransformTypes.fmap_exp _ _ (TypeUtil.normalize_type_dtyp env) e))) g ρ mem_llvm).
-
-  (* TODO: Need something about denoteNexp not failing *)
-  Lemma denote_nexp_div :
-    forall (σ : evalContext) (nexp1 nexp2 : NExpr),
-      eutt Logic.eq (denoteNexp σ (NDiv nexp1 nexp2))
-           (ITree.bind (denoteNexp σ nexp1)
-                       (fun (n1 : Int64.int) => ITree.bind (denoteNexp σ nexp2)
-                                                (fun (n2 : Int64.int) => denoteNexp σ (NDiv (NConst n1) (NConst n2))))).
-  Proof.
-  Admitted.
-
-Instance eutt_interp_cfg_to_L3 (defs: INT.intrinsic_definitions) {T}:
-  Proper (eutt Logic.eq ==> Logic.eq ==> Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_cfg_to_L3 T defs).
-Proof.
-  repeat intro.
-  unfold interp_cfg_to_L3, Util.runState.
-  subst; rewrite H.
-  reflexivity.
-Qed.
-
-
   Lemma denote_exp_nexp:
     forall nexp st i e c mem_llvm σ g ρ env,
       genNExpr nexp st ≡ inr (i, (e, c)) ->
@@ -835,149 +1010,6 @@ Qed.
   (* Probably need to know something about σ and mem_llvm,
      like memory_invariant... *)
 
-  (* TODO: do I need something relating IRstate and evalContext? *)
-  Lemma denoteNexp_genNExpr :
-    forall (nexp : NExpr) (st st' : IRState) (nexp_r : exp typ) (nexp_code : code typ) (env : list (ident * typ)) (σ : evalContext) g ρ mem_llvm mem_helix,
-      (* TODO: Do I need mem_helix? *)
-      memory_invariant σ mem_helix (mem_llvm, (ρ, g)) ->
-      genNExpr nexp st  ≡ inr (st', (nexp_r, nexp_code)) ->
-      eutt (nexp_relation env nexp_r)
-           (translate inr_ (denoteNexp σ nexp))
-           (translate inl_ (interp_cfg_to_L3 helix_intrinsics
-                             (D.denote_code (map
-                                               (λ '(id, i),
-                                                (id, TransformTypes.fmap_instr typ dtyp (TypeUtil.normalize_type_dtyp env) i))
-                                               nexp_code)) g ρ mem_llvm)).
-  Proof.
-    induction nexp; intros st st' nexp_r nexp_code env σ g ρ mem_llvm mem_helix Hmem H.
-    - (* NVar *)
-      cbn in H.
-      repeat break_match_hyp; subst; inversion H; simpl.
-      + cbn in Heqs.
-        subst.
-        rewrite interp_cfg_to_L3_ret.
-        destruct (nth_error (vars st) v) eqn:Hnth; inversion Heqs; subst.
-        unfold denoteNexp. cbn.
-        unfold context_lookup.
-        destruct (nth_error σ v) eqn:Hnthsigma.
-        cbn. destruct d.
-        cbn.
-        do 2 rewrite translate_ret.
-        apply eqit_Ret.
-        cbn.
-        * destruct i0; cbn.
-          rewrite bind_trigger.
-          repeat rewrite translate_vis.
-          cbn.
-
-          unfold interp_cfg_to_L3.
-          unfold INT.interpret_intrinsics.
-          rewrite interp_vis.
-          cbn.
-          rewrite interp_global_bind.
-          unfold INT.F_trigger.
-          unfold interp_global at 2.
-          setoid_rewrite interp_state_trigger.
-          rewrite bind_bind.
-          cbn.
-          break_match.
-          Focus 2. (* exception *) admit.
-          rewrite bind_ret_l.
-          rewrite bind_tau.
-          rewrite tau_eutt.
-          rewrite bind_ret_l.
-          rewrite tau_eutt.
-          rewrite interp_translate.
-          cbn.
-          rewrite translate_ret.
-          rewrite interp_ret.
-          rewrite interp_global_ret.
-          rewrite interp_local_ret.
-          rewrite M.interp_memory_ret.
-
-          apply eqit_Ret.
-
-          unfold int64_concrete_uvalue_rel.
-          rewrite uvalue_to_dvalue_of_dvalue_to_uvalue.
-          unfold int64_dvalue_rel.
-          inversion Hmem.
-          apply ListUtil.length_0 in H0; subst.
-          rewrite ListNth.nth_error_nil in Hnthsigma. inversion Hnthsigma.
-          destruct H0.
-          pose proof (H0 v (DSHnatVal n) Hnthsigma).
-          cbn in H1.
-          destruct H1 as (? & ? & ? & ? & ? & ? & ?).
-          subst.
-          destruct H1. admit.
-          cbn.
-
-          admit.
-          admit.
-        * admit.
-        * admit.
-        * admit.
-      +
-      (* exception *) admit.
-
-      (*
-        destruct t.
-        destruct (Z.eq_dec sz 64).
-        inversion H. reflexivity.
-        inversion H.
-        destruct t.
-        *
-      + inversion H.
-       *)
-    - (* NConst *)
-      cbn in H; inversion H; cbn.
-      rewrite interp_cfg_to_L3_ret.
-      repeat rewrite translate_ret.
-      apply eqit_Ret.
-      cbn.
-      rewrite translate_ret.
-      rewrite interp_cfg_to_L3_ret.
-      apply eqit_Ret.
-      cbn.
-      rewrite DynamicValues.Int64.unsigned_repr.
-      apply Z.eq_refl.
-      pose proof (DynamicValues.Int64.intrange t).
-      unfold DynamicValues.Int64.max_unsigned.
-      omega.
-    - cbn in H.
-      repeat break_match_hyp; inversion H.
-
-      repeat rewrite map_app.
-      repeat setoid_rewrite denote_code_app.
-
-      rewrite denote_nexp_div.
-      pose proof IHnexp1 _ _ _ _ env σ g ρ mem_llvm mem_helix Hmem Heqs.
-      rewrite interp_cfg_to_L3_bind.
-      repeat setoid_rewrite translate_bind.
-      eapply eutt_clo_bind; eauto.
-
-      intros u1 u2 H4.
-      repeat break_match.
-      rewrite interp_cfg_to_L3_bind; rewrite translate_bind.
-      eapply eutt_clo_bind; eauto.
-      (* eapply H0. *)
-
-      (* intros u0 u3 H5. *)
-      (* repeat break_match. *)
-
-      (* (* We executed code that generated the values for the *)
-      (* expressions for the binary operations... Now we need to denote *)
-      (* the expressions themselves. *) *)
-      (* (* simplify left side to ret *) *)
-      (* cbn. *)
-
-      (* repeat rewrite translate_bind.       *)
-      (* repeat rewrite interp_cfg_to_L3_bind. *)
-      (* repeat rewrite bind_bind. *)
-
-      (* genNExpr nexp1 st ≡ inr (i, (e, c)) *)
-      (* I need something relating `denote_exp e` and `denoteNexp nexp1`... *)
-  Admitted.
-
   (* TODO: awful AWFUL name. Need to figure out which of these we need *)
   Definition nexp_relation_mem (σ : evalContext) (helix_res : MDSHCOLOnFloat64.memory * Int64.int) (llvm_res : TopLevelEnv.memory * (local_env * (global_env * ()))) : Prop
     :=
@@ -1006,7 +1038,7 @@ Qed.
                         g1 l0 m4) ≈ (Ret (m4, (l0, (g1, d)))).
   Proof.
     intros.
-    unfold interp_cfg_to_L3, runState, M.interp_memory, interp_local, interp_global, INT.interpret_intrinsics.
+    unfold interp_cfg_to_L3, runState, M.interp_memory, interp_local, interp_global, INT.interp_intrinsics.
     setoid_rewrite interp_vis.
     repeat setoid_rewrite interp_state_bind.
     cbn. unfold INT.F_trigger.
@@ -1031,18 +1063,6 @@ Qed.
     rewrite tau_eutt.
     reflexivity.
   Qed.
-
-  Lemma repr_intval :
-    forall i,
-      DynamicValues.Int64.repr (Int64.intval i) ≡ i.
-  Proof.
-  Admitted.
-
-  Lemma normalize_IntType :
-    forall env,
-      TypeUtil.normalize_type_dtyp env Utils.IntType ≡ DTYPE_I 64.
-  Proof.
-  Admitted.
 
   Lemma interp_cfg_to_L3_denote_exp :
     forall nexp s s' ll_exp ll_code n m l g env σ,
@@ -1359,7 +1379,7 @@ Proof.
 
             unfold interp_cfg_to_L3.
             unfold runState.
-            setoid_rewrite interpret_intrinsics_vis; cbn.
+            setoid_rewrite interp_intrinsics_vis; cbn.
             unfold INT.F_trigger.
             rewrite bind_trigger.
             setoid_rewrite interp_global_vis; cbn.
@@ -1526,7 +1546,7 @@ Proof.
             setoid_rewrite interp_cfg_to_L3_vis.
             rewrite bind_bind.
             repeat setoid_rewrite translate_ret.
-            setoid_rewrite interpret_intrinsics_vis.
+            setoid_rewrite interp_intrinsics_vis.
             cbn;
             rewrite interp_cfg_to_L3_vis.
           - rewrite translate_ret, interp_cfg_to_L3_ret, repr_intval.
@@ -1665,7 +1685,7 @@ Proof.
 
                 unfold interp_cfg_to_L3; cbn.
                 unfold trigger.
-                rewrite interpret_intrinsics_vis.
+                rewrite interp_intrinsics_vis.
                 cbn.
                 setoid_rewrite tau_eutt.
                 setoid_rewrite interp_ret.
@@ -1719,7 +1739,7 @@ Proof.
                 Check eutt_clo_bind.
                 eapply eutt_clo_bind.
 
-                rewrite interpret_intrinsics_vis.
+                rewrite interp_intrinsics_vis.
 
                 destruct id eqn:Hid.
                 --- (* Name *)

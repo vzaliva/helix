@@ -42,6 +42,9 @@ Import TopLevelEnv.
 Import IO.
 Import IS.
 Import M.
+Import Integers.
+Import BinInt.
+
 
 
 Section InterpreterCFG.
@@ -61,25 +64,25 @@ Section InterpreterCFG.
 *)
 
 Definition interp_cfg_to_L1 {R} user_intrinsics (t: itree instr_E R) (g: global_env) :=
-  let L0_trace       := INT.interpret_intrinsics user_intrinsics t in
+  let L0_trace       := INT.interp_intrinsics user_intrinsics t in
   let L1_trace       := runState (interp_global L0_trace) g in
   L1_trace.
 
 Definition interp_cfg_to_L2 {R} user_intrinsics (t: itree instr_E R) (g: global_env) (l: local_env) :=
-  let L0_trace       := INT.interpret_intrinsics user_intrinsics t in
+  let L0_trace       := INT.interp_intrinsics user_intrinsics t in
   let L1_trace       := runState (interp_global L0_trace) g in
   let L2_trace       := runState (interp_local L1_trace) l in
   L2_trace.
 
 Definition interp_cfg_to_L3 {R} user_intrinsics (t: itree instr_E R) (g: global_env) (l: local_env) (m: memory_stack) :=
-  let L0_trace       := INT.interpret_intrinsics user_intrinsics t in
+  let L0_trace       := INT.interp_intrinsics user_intrinsics t in
   let L1_trace       := runState (interp_global L0_trace) g in
   let L2_trace       := runState (interp_local L1_trace) l in
   let L3_trace       := runState (M.interp_memory L2_trace) m in
   L3_trace.
 
 Definition interp_cfg_to_L4 {R} user_intrinsics (t: itree instr_E R) (g: global_env) (l: local_env) (m: memory_stack) :=
-  let L0_trace       := INT.interpret_intrinsics user_intrinsics t in
+  let L0_trace       := INT.interp_intrinsics user_intrinsics t in
   let L1_trace       := runState (interp_global L0_trace) g in
   let L2_trace       := runState (interp_local L1_trace) l in
   let L3_trace       := runState (M.interp_memory L2_trace) m in
@@ -87,7 +90,7 @@ Definition interp_cfg_to_L4 {R} user_intrinsics (t: itree instr_E R) (g: global_
   L4_trace.
 
 Definition interp_cfg_to_L5 {R} user_intrinsics (t: itree instr_E R) (g: global_env) (l: local_env) (m: memory_stack) :=
-  let L0_trace       := INT.interpret_intrinsics user_intrinsics t in
+  let L0_trace       := INT.interp_intrinsics user_intrinsics t in
   let L1_trace       := runState (interp_global L0_trace) g in
   let L2_trace       := runState (interp_local L1_trace) l in
   let L3_trace       := runState (M.interp_memory L2_trace) m in
@@ -155,6 +158,34 @@ Proof.
   rewrite INT.interp_intrinsics_ret, interp_global_ret, interp_local_ret, interp_memory_ret; reflexivity.
 Qed.
 
+Global Instance eutt_interp_cfg_to_L1 (defs: intrinsic_definitions) {T}:
+  Proper (eutt Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_cfg_to_L1 T defs).
+Proof.
+  repeat intro.
+  unfold interp_cfg_to_L1, Util.runState.
+  subst. try rewrite H.
+  reflexivity.
+Qed.
+
+Global Instance eutt_interp_cfg_to_L2 (defs: intrinsic_definitions) {T}:
+  Proper (eutt Logic.eq ==> Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_cfg_to_L2 T defs).
+Proof.
+  repeat intro.
+  unfold interp_cfg_to_L2, Util.runState.
+  subst; rewrite H.
+  reflexivity.
+Qed.
+
+
+Global Instance eutt_interp_cfg_to_L3 (defs: intrinsic_definitions) {T}:
+  Proper (eutt Logic.eq ==> Logic.eq ==> Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_cfg_to_L3 T defs).
+Proof.
+  repeat intro.
+  unfold interp_cfg_to_L3, Util.runState.
+  subst; rewrite H.
+  reflexivity.
+Qed.
+
 End InterpreterCFG.
 
 Section Denotation.
@@ -175,15 +206,6 @@ Qed.
 
   From Vellvm Require Import Util.
   Require Import State.
-
-Instance eutt_interp_cfg_to_L3 (defs: intrinsic_definitions) {T}:
-  Proper (eutt Logic.eq ==> Logic.eq ==> Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_cfg_to_L3 T defs).
-Proof.
-  repeat intro.
-  unfold interp_cfg_to_L3, Util.runState.
-  subst; rewrite H.
-  reflexivity.
-Qed.
 
 (* TODOYZ: This is weird, I need to import again this file for the rewriting to work.
    A bit unsure as to why this happen, but somehow some subsequent import breaks it.
@@ -258,6 +280,15 @@ Definition normalize_types_blocks (env: list _) (bks: list (LLVMAst.block typ))
   List.map
     (TransformTypes.fmap_block _ _ (TypeUtil.normalize_type_dtyp env)) bks.
 
+(* NOTEYZ: [TypeUtil.normalize_type_dtyp] seems unusable as is.
+   Need to look into it.
+ *)
+  Lemma normalize_IntType :
+    forall env,
+      TypeUtil.normalize_type_dtyp env (TYPE_I 64%Z) = DTYPE_I 64.
+  Proof.
+  Admitted.
+
 End NormalizeTypes.
 
 Section MemoryModel.
@@ -268,10 +299,19 @@ Section MemoryModel.
 
 End MemoryModel.
 
-Section ValuePred.
-  Import Integers.
-  Import BinInt.
+Section Integers.
 
+  (* NOTEYZ: I doubt that the following is true, unless proof irrelevance is assumed *)
+  Lemma repr_intval (i: int64):
+    DynamicValues.Int64.repr (Int64.intval i) = i.
+  Proof.
+  Admitted.
+
+End Integers.
+
+Section ValuePred.
+
+  (* TODOYZ: Double check how useful those are *)
   Definition int64_dvalue_rel (n : Int64.int) (dv : dvalue) : Prop :=
     match dv with
     | DVALUE_I64 i => BinInt.Z.eq (Int64.intval n) (unsigned i)
@@ -297,14 +337,5 @@ Section ValuePred.
     end.
 
 End ValuePred.
-
-(* Instance eutt_interp_cfg_to_L3 (defs: intrinsic_definitions) {T}: *)
-(*   Proper (eutt Logic.eq ==> Logic.eq ==> Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_cfg_to_L3 T defs). *)
-(* Proof. *)
-(*   repeat intro. *)
-(*   unfold interp_cfg_to_L3, Util.runState. *)
-(*   subst; rewrite H. *)
-(*   reflexivity. *)
-(* Qed. *)
 
 
