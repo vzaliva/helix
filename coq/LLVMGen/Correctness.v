@@ -408,7 +408,7 @@ Definition bisim_partial: Type_R_partial
 (*     itree E_cfg *)
 (*           (memory * (local_env * (global_env * R))).  *)
 (*   fun R defs t g l m => *)
-(*     let L0_trace := INT.interpret_intrinsics defs t in *)
+(*     let L0_trace := INT.interp_intrinsics defs t in *)
 (*     let L1_trace       := Util.runState (interp_global L0_trace) g in *)
 (*     let L2_trace       := Util.runState (interp_local  L1_trace) l in *)
 (*     let L3_trace       := Util.runState (M.interp_memory L2_trace) m in *)
