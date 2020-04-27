@@ -2546,40 +2546,6 @@ Section OperatorPairwiseProofs.
       apply CM.
     Qed.
 
-    Lemma Forall_mem_value_lst_NM_find
-          {SGP : SgPred CarrierA}
-          `{SPGP: !Proper ((=) ==> impl) SGP}
-          {m : mem_block}
-          {k : NM.key}
-          {x : CarrierA}:
-      Forall SGP (mem_value_lst m) ->
-      NM.find k m ≡ Some x -> SGP x.
-    Proof.
-      intros A F.
-      unshelve eapply Forall_forall in A.
-      exact x.
-      apply A.
-      clear H.
-      rewrite <- NP.of_list_3 in F.
-      rewrite NP.of_list_1b in F.
-      unfold mem_value_lst.
-      apply in_map_iff.
-      exists (k,x).
-      split;[reflexivity|].
-      unfold NP.F.eqb in F.
-      apply findA_NoDupA in F.
-      apply InA_alt in F.
-      destruct F as [[k1 x1] F].
-      cbn in F.
-      unfold NP.to_list in F.
-      destruct F as [[Fk Fx] F2].
-      subst.
-      apply F2.
-      auto.
-      apply NM.elements_3w.
-      apply NM.elements_3w.
-    Qed.
-
     Definition dense_block (k:nat) (m: mem_block) : Prop :=
       forall j, (j<k) <-> is_Some (NM.find j m).
 
@@ -3210,22 +3176,6 @@ Section OperatorPairwiseProofs.
           all: assert_SGPs; try assumption.
           all: apply rmonoid_unit_P with (Aop:=dot) (Aunit:=svalue) (Apred:=SGP).
           all: typeclasses eauto.
-    Qed.
-    
-    Lemma mem_block_SGP_Forall
-          (m : mem_block)
-          (SGP : SgPred CarrierA)
-          `{SPGP: !Proper ((=) ==> impl) SGP}
-      :
-        @Forall CarrierA SGP (mem_value_lst m) ->
-        mem_block_SGP SGP m.
-    Proof.
-      intros A k x' F.
-      destruct NM.find as [x|] eqn:X in F; [some_inv | some_none].
-      apply (SPGP x x' F); clear F x'.
-      eapply Forall_mem_value_lst_NM_find.
-      eassumption.
-      eassumption.
     Qed.
 
     (* Positivity propagation *)
