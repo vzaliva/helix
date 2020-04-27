@@ -5286,11 +5286,11 @@ Proof.
     rename m into m1, Heqo into M1.
     eq_to_equiv_hyp.
 
-    inversion P1; clear P1 mem_write_safe;
-      rename mem_stable into P1.
+    inversion P1; clear P1 mem_write_safe0;
+      rename mem_stable0 into P1.
     apply P1 with (k:=k) in M1; clear P1.
-    inversion P2; clear P2 mem_write_safe;
-      rename mem_stable into P2.
+    inversion P2; clear P2 mem_write_safe0;
+      rename mem_stable0 into P2.
     apply P2 with (k:=k) in M2; clear P2.
     rewrite M1, M2.
     reflexivity.
@@ -5306,11 +5306,11 @@ Proof.
     rename m into m1, Heqo into M1.
     eq_to_equiv_hyp.
 
-    inversion P1; clear P1 mem_stable;
-      rename mem_write_safe into P1.
+    inversion P1; clear P1 mem_stable0;
+      rename mem_write_safe0 into P1.
     eapply P1 with (y_i := y_i) in M1; [| assumption].
-    inversion P2; clear P2 mem_stable;
-      rename mem_write_safe into P2.
+    inversion P2; clear P2 mem_stable0;
+      rename mem_write_safe0 into P2.
     eapply P2 with (y_i := y_i) in M2; [| assumption].
     clear - M1 M2.
     eapply memory_equiv_except_trans; eassumption.
