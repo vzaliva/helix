@@ -129,6 +129,7 @@ Definition dynwin_SHCOL (a: avector 3):
 Require Import Helix.MSigmaHCOL.ReifySHCOL.
 Require Import Helix.MSigmaHCOL.MSigmaHCOL.
 Require Import Helix.MSigmaHCOL.ReifyProofs.
+Require Import Helix.Util.MonoidalRestriction.
 
 Ltac solve_facts :=
   repeat match goal with
@@ -157,6 +158,12 @@ Ltac solve_facts :=
          | [ |- SH_MSH_Operator_compat (HTSUMUnion _ _ _ _) _ ] => apply HTSUMUnion_SH_MSH_Operator_compat
          | [ |- SH_MSH_Operator_compat (SHPointwise _ _) _    ] => apply SHPointwise_SH_MSH_Operator_compat
          | [ |- SH_MSH_Operator_compat (SHInductor _ _ _ _) _ ] => apply SHInductor_SH_MSH_Operator_compat
+         | [ |- SH_MSH_Operator_compat (IReduction minmax.max _) _  ] =>
+           apply IReduction_SH_MSH_Operator_compat with (SGP:=NN);
+           [typeclasses eauto | apply CommutativeRMonoid_max_NN;typeclasses eauto | intros | | ]
+         | [ |- SH_MSH_Operator_compat (IReduction plus _) _  ] =>
+           apply IReduction_SH_MSH_Operator_compat with (SGP:=ATT CarrierA);
+           [typeclasses eauto | apply Monoid2CommutativeRMonoid;typeclasses eauto | intros | | ]
          | [ |- SH_MSH_Operator_compat (IReduction _ _) _     ] => apply IReduction_SH_MSH_Operator_compat; intros
          | [ |- SH_MSH_Operator_compat (Embed _ _) _           ] => apply Embed_SH_MSH_Operator_compat
          | [ |- SH_MSH_Operator_compat (SHBinOp _ _) _        ] => apply SHBinOp_RthetaSafe_SH_MSH_Operator_compat
@@ -206,6 +213,21 @@ Section SHCOL_to_MSHCOL.
         crush.
   Qed.
 
+  Fact Apply_Family_Vforall_ATT
+        {fm}
+        {i o n}
+        {svalue: CarrierA}
+        (op_family: @SHOperatorFamily fm i o n svalue):
+    Apply_Family_Vforall_P fm (liftRthetaP (ATT CarrierA)) op_family.
+  Proof.
+    intros x j jc.
+    apply Vforall_intro.
+    intros y H.
+    unfold liftRthetaP.
+    cbv;tauto.
+  Qed.
+
+
   Lemma dynwin_SHCOL_MSHCOL_compat {a}:
     SH_MSH_Operator_compat (dynwin_SHCOL1 a) (dynwin_MSHCOL1 a).
   Proof.
@@ -213,7 +235,6 @@ Section SHCOL_to_MSHCOL.
     unfold ISumUnion.
 
     solve_facts.
-
     -
       unfold Included, In.
       intros [x xc] H.
@@ -226,7 +247,31 @@ Section SHCOL_to_MSHCOL.
       unfold singleton.
       crush.
     -
+      apply Apply_Family_Vforall_ATT.
+    -
       apply Set_Obligation_1.
+    -
+      (* TODO: refactor to lemma
+         [Apply_Family_Vforall_SHCompose_move_P].
+       *)
+      unfold Apply_Family_Vforall_P.
+      intros x j jc.
+      apply Vforall_nth_intro.
+      intros t tc.
+      unfold get_family_op.
+      simpl.
+      unfold compose.
+      match goal with
+      | [|- context[SigmaHCOLImpl.SHBinOp_impl ?ff ?g]] => generalize g
+      end.
+      clear x; intros x.
+      unshelve erewrite SHBinOp_impl_nth.
+      lia.
+      lia.
+      unfold NN, liftRthetaP.
+      rewrite evalWriter_Rtheta_liftM2.
+      unfold IgnoreIndex, const.
+      apply abs_always_nonneg.
     -
       apply Set_Obligation_1.
     -
@@ -422,7 +467,7 @@ Section MSHCOL_to_DSHCOL.
           subst m0.
           rewrite memory_lookup_memory_set_neq.
           auto.
-          apply memory_lookup_not_next_equiv in LM'.
+          apply memory_lookup_not_next_equiv in LM.
           auto.
         }
 
@@ -539,7 +584,7 @@ Section MSHCOL_to_DSHCOL.
         unfold dynwin_x_addr in *.
         symmetry in H.
         memory_lookup_err_to_option.
-        apply ReifyProofs.memory_lookup_not_next_equiv in H.
+        apply memory_lookup_not_next_equiv in H.
         intros C.
         contradict H.
         inl_inr_inv.
@@ -562,7 +607,7 @@ Section MSHCOL_to_DSHCOL.
         rename H into M0.
         rename m' into m0.
         remember (memory_alloc_empty m0 (memory_next_key m0)) as m1 eqn:M1.
-        remember (memory_set m1 (memory_next_key m1) mem_empty) as m2 eqn:M2.
+        remember (memory_set m1 (memory_next_key m1) mb) as m2 eqn:M2.
         unfold memory_alloc_empty in M1.
         rename m'0 into m1_plus.
         inl_inr_inv.
@@ -579,7 +624,7 @@ Section MSHCOL_to_DSHCOL.
           lia.
         }
 
-        remember (memory_set m1_plus (memory_next_key m1_plus) mem_empty) as
+        remember (memory_set m1_plus (memory_next_key m1_plus) mb) as
             m1_plus'.
 
         apply memory_set_memory_next_key_gt in Heqm1_plus'.
@@ -588,7 +633,9 @@ Section MSHCOL_to_DSHCOL.
 
         remember (memory_next_key (memory_set m0 (memory_next_key m0) mem_empty)) as x.
         clear Heqx.
-        rewrite <- H4 in Heqm1_plus'.
+        pose proof memory_set_memory_next_key_gt m1_plus (memory_set m1_plus x mb) mb x.
+        autospecialize H; [reflexivity |].
+        rewrite <-H4 in H.
         lia.
       }
 
@@ -922,7 +969,7 @@ Section SigmaHCOL_rewriting.
   Qed.
 
   (* Special case when results of 'g' comply to P. In tihs case we can discard 'g' *)
-  Lemma Apply_Family_Vforall_P_move_P
+  Lemma Apply_Family_Vforall_SHOperatorFamilyCompose_move_P
         {fm}
         {svalue: CarrierA}
         {P:Rtheta' fm → Prop}
@@ -1062,7 +1109,7 @@ Section SigmaHCOL_rewriting.
       generalize dependent t.
       intros fam _.
 
-      apply Apply_Family_Vforall_P_move_P.
+      apply Apply_Family_Vforall_SHOperatorFamilyCompose_move_P.
       intros x.
 
       apply Vforall_nth_intro.
@@ -1244,15 +1291,22 @@ Section SigmaHCOL_rewriting.
     setoid_rewrite <- SHInductor_equiv_lifted_HInductor.
 
     unfold dynwin_SHCOL1.
+    unfold NatAsNT.MNatAsNT.NTypeSetoid, NatAsNT.MNatAsNT.NTypeEquiv.
+    unfold join_is_sg_op, meet_is_sg_op.
 
     (* At this point we have two terms which are different in 2 ways:
        1. (1+4) vs 5 (arith)
        2. Some Prop obligations (proof irrelevance?)
 
-    unfold NatAsNT.MNatAsNT.NTypeSetoid, NatAsNT.MNatAsNT.NTypeEquiv.
+       without [Set Printing Notation] goals look exactly the same.
+     *)
+
+
+    (*
     Set Printing Implicit.
     reflexivity.
      *)
+
   Admitted.
 
   (* Couple additional structual properties: input and output of the

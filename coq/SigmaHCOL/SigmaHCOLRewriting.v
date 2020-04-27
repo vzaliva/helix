@@ -3888,6 +3888,15 @@ Section SigmaHCOLRewritingRules.
       Global Instance NN:
         SgPred CarrierA := CarrierAle CarrierAz.
 
+      Global Instance NN_proper:
+        Proper (equiv ==> impl) NN.
+      Proof.
+        intros x y E.
+        unfold NN, impl.
+        intros H.
+        crush.
+      Qed.
+
       Global Instance RMonoid_max_NN:
         @RMonoid CarrierA CarrierAe (@max CarrierA CarrierAle CarrierAledec) CarrierAz NN.
       Proof.

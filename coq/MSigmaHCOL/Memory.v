@@ -148,6 +148,9 @@ Module Type MBasic (Import CT : CType).
   Definition mem_keys_lst (m:NatMap t): list nat :=
     List.map fst (NM.elements m).
 
+  Definition mem_value_lst (m:NatMap t): list t :=
+    List.map snd (NM.elements m).
+
   Definition mem_keys_set (m: mem_block): NatSet :=
     NSP.of_list (mem_keys_lst m).
 

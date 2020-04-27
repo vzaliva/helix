@@ -83,26 +83,6 @@ Proof.
   simpl_relation.
 Qed.
 
-Global Instance fold_left_rev_proper
-       {A B : Type}
-       `{Eb: Equiv B}
-       `{Ae: Equiv A}
-       `{Equivalence A Ae}
-       (f : A -> B -> A)
-       `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-       (a : A)
-  :
-    Proper ((=) ==> (=)) (fold_left_rev f a).
-Proof.
-  intros x y E.
-  induction E.
-  -
-    reflexivity.
-  -
-    simpl.
-    apply f_mor; auto.
-Qed.
-
 Lemma fold_left_rev_append
       `{EqA : Equiv A}
       `{Equivalence A EqA}
@@ -129,42 +109,75 @@ Proof.
     reflexivity.
 Qed.
 
-Lemma fold_left_rev_def {A B : Type} (l : list B) (e : A) (f : A -> B -> A) :
-  fold_left_rev f e l ≡ fold_left f (rev l) e.
+Global Instance fold_left_rev_proper
+       {A B : Type}
+       `{Eb: Equiv B}
+       `{Ae: Equiv A}
+       `{Equivalence A Ae}
+       (f : A -> B -> A)
+       `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+       (a : A)
+  :
+    Proper ((=) ==> (=)) (fold_left_rev f a).
 Proof.
-  induction l.
+  intros x y E.
+  induction E.
   -
     reflexivity.
   -
-    cbn.
-    rewrite fold_left_app, IHl.
-    reflexivity.
+    simpl.
+    apply f_mor; auto.
 Qed.
 
-Lemma fold_left_fold_left_rev
+Global Instance List_fold_left_proper
+       {A B : Type}
+       `{Eb: Equiv B}
+       `{Ae: Equiv A}
+       `{Equivalence A Ae}
+       (f : A -> B -> A)
+       `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+  :
+    Proper ((=) ==> (=) ==> (=)) (List.fold_left f).
+Proof.
+  intros x y Exy.
+  induction Exy;  intros a b Eab.
+  -
+    apply Eab.
+  -
+    cbn.
+    apply IHExy.
+    apply f_mor; assumption.
+Qed.
+
+(* Similar to [fold_left_fold_left_rev] but using setoid equality *)
+Lemma fold_left_fold_left_rev_equiv
       {A : Type}
+      `{Ae: Equiv A}
+      `{Aeq: Equivalence A Ae}
       (l : list A)
       (e : A)
       (f : A -> A -> A)
-      (f_commut : ∀ x y, f x y ≡ f y x)
-      (f_assoc : ∀ x y z, f x (f y z) ≡ f (f x y) z)
+      `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+      (f_commut: Commutative f)
+      (f_assoc : Associative f)
   :
-    fold_left_rev f e l ≡ fold_left f l e.
+    fold_left_rev f e l = fold_left f l e.
 Proof.
   rewrite fold_left_rev_def.
   rewrite <-fold_left_rev_right.
   rewrite rev_involutive.
   induction l; [reflexivity |].
   cbn.
-  rewrite IHl; clear IHl.
-
+  rewrite_clear IHl.
   generalize dependent a.
   induction l; [reflexivity |].
   intros.
   cbn.
   rewrite <-f_assoc.
   do 2 rewrite <-IHl.
-  congruence.
+  repeat rewrite <- f_assoc.
+  f_equiv.
+  apply f_commut.
 Qed.
 
 Global Instance nth_error_proper

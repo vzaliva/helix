@@ -34,6 +34,7 @@ Require Import ExtLib.Structures.Monads.
 Require Import ExtLib.Data.Monads.OptionMonad.
 
 Require Import MathClasses.interfaces.canonical_names.
+Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.interfaces.orders.
 Require Import MathClasses.misc.util.
 Require Import MathClasses.implementations.peano_naturals.
@@ -597,7 +598,8 @@ Module MMSHCOL'
     : mem_block -> option mem_block
     := fun x => (liftM2 mem_union) (op2 x) (op1 x).
 
-  Definition IReduction_mem
+  (* TODO: Old version. to be removed  *)
+  Definition IReduction_mem_old
              {n: nat}
              (dot: CarrierA -> CarrierA -> CarrierA)
              (initial: CarrierA)
@@ -606,6 +608,16 @@ Module MMSHCOL'
     :=
       x' <- (Apply_mem_Family op_family_f x) ;;
          ret (fold_left_rev (mem_merge_with_def dot initial) mem_empty x').
+
+  Definition IReduction_mem
+             {n: nat}
+             (dot: CarrierA -> CarrierA -> CarrierA)
+             (initial: CarrierA)
+             (op_family_f: forall k (kc:k<n), mem_block -> option mem_block)
+             (x: mem_block): option mem_block
+    :=
+      x' <- (Apply_mem_Family op_family_f x) ;;
+         ret (List.fold_left (mem_merge_with_def dot initial) x' mem_empty).
 
   Definition IUnion_mem
              {n: nat}
@@ -690,6 +702,70 @@ Module MMSHCOL'
     rewrite 2!NP.F.map2_1bis by auto.
     repeat break_match; try some_none; auto;
       repeat some_inv; f_equiv; try apply Efg; auto.
+  Qed.
+
+  Global Instance mem_merge_with_def_Comm
+         (dot : CarrierA → CarrierA → CarrierA)
+         (initial : CarrierA)
+         (dot_commut: Commutative dot)
+    : Commutative (mem_merge_with_def dot initial).
+  Proof.
+    intros x y k.
+    unfold mem_merge_with_def.
+    rewrite 2!NP.F.map2_1bis by reflexivity.
+    repeat break_match; f_equiv; apply dot_commut.
+  Qed.
+
+  Global Instance mem_merge_with_def_Assoc
+         (dot : CarrierA → CarrierA → CarrierA)
+         (initial : CarrierA)
+
+        `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
+         (dot_assoc : Associative dot)
+         (dot_left_id: LeftIdentity dot initial)
+         (dot_right_id: RightIdentity dot initial)
+    :
+    Associative (mem_merge_with_def dot initial).
+  Proof.
+    intros x y z k.
+    unfold Associative,HeteroAssociative in dot_assoc.
+    unfold LeftIdentity in dot_left_id.
+    unfold RightIdentity in dot_right_id.
+
+    unfold mem_merge_with_def.
+    rewrite 4!NP.F.map2_1bis by reflexivity.
+    repeat break_match; try some_none;
+      f_equiv; repeat some_inv; try apply dot_assoc.
+
+    rewrite 2!dot_right_id; reflexivity.
+    rewrite 2!dot_left_id; reflexivity.
+  Qed.
+
+  (* TODO: To be removed along with [IReduction_mem_old] *)
+  Lemma IReduction_mem_old_new
+        {n: nat}
+        `{dot: SgOp CarrierA}
+        `{initial: MonUnit CarrierA}
+        (op_family_f: forall k (kc:k<n), mem_block -> option mem_block)
+        (x: mem_block)
+
+        (* CM includes: Proper, left/right identity, commutativity, and associativity *)
+        `{CM: @CommutativeMonoid _ _ dot initial}
+    :
+      IReduction_mem dot initial op_family_f x = IReduction_mem_old dot initial op_family_f x.
+  Proof.
+    unfold IReduction_mem, IReduction_mem_old.
+    cbn.
+    break_match; [|reflexivity].
+    f_equiv.
+    symmetry.
+    apply fold_left_fold_left_rev_equiv.
+    -
+      apply mem_merge_with_def_proper; apply CM.
+    -
+      apply mem_merge_with_def_Comm, CM.
+    -
+      apply mem_merge_with_def_Assoc; apply CM.
   Qed.
 
   Instance Embed_mem_proper
@@ -2277,6 +2353,22 @@ Module MMSHCOL'
         eapply (out_mem_oob _ _ Heqo1); eauto.
   Qed.
 
+  Lemma mem_in_fold_left_merge
+        (k : NM.key)
+        (l : list mem_block)
+        (dot : CarrierA -> CarrierA -> CarrierA)
+        (initial : CarrierA)
+        (m : mem_block)
+    :
+      mem_in k (List.fold_left (mem_merge_with_def dot initial) l m) <->
+      mem_in k m \/ mem_in k (List.fold_left (mem_merge_with_def dot initial) l mem_empty).
+  Proof.
+    repeat rewrite fold_left_invariant
+      by (symmetry; apply mem_merge_with_def_as_Union).
+    intuition.
+    inversion H; inversion H0.
+  Qed.
+
   Instance IReduction_MFacts
            {i o k: nat}
            (initial: CarrierA)
@@ -2393,13 +2485,16 @@ Module MMSHCOL'
           destruct A as [A0 A].
 
           simpl.
-          apply mem_merge_with_def_as_Union.
+          apply mem_in_fold_left_merge.
+          apply LogicUtil.or_sym.
+
 
           simpl in H.
           dep_destruct H.
           --
             clear IHk A.
             right.
+            apply mem_merge_with_def_as_Union; right.
             unfold Ensembles.In in H.
             eapply (out_mem_fill_pattern _ _ A0) with (jc:=jc).
             replace (Nat.lt_0_succ k) with (zero_lt_Sn k)
@@ -2463,8 +2558,12 @@ Module MMSHCOL'
         apply Apply_mem_Family_cons in A.
         destruct A as [A0 A].
         intros C.
-        apply mem_merge_with_def_as_Union in C.
+        apply mem_in_fold_left_merge in C.
         destruct C.
+        --
+          apply mem_merge_with_def_as_Union in H.
+          destruct H; [inversion H; inversion H1 |].
+          apply out_mem_oob with (j0:=j) in A0; auto.
         --
           apply (IHk
                    (shrink_m_op_family_up op_family)
@@ -2472,8 +2571,6 @@ Module MMSHCOL'
                    _
                    A).
           assumption.
-        --
-          apply out_mem_oob with (j0:=j) in A0; auto.
   Qed.
 
   Lemma mem_keys_set_to_m_out_index_set
