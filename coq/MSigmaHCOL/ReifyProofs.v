@@ -2597,24 +2597,6 @@ Section OperatorPairwiseProofs.
       all: try rewrite <-Eab in H0; eauto.
     Qed.
 
-    Lemma dense_block_mem_value_lst_len
-          {n : nat}
-          {m : mem_block}:
-      dense_block n m -> length (mem_value_lst m) ≡ n.
-    Proof.
-      intros D.
-      unfold mem_value_lst.
-      unfold dense_block in D.
-      cut(length (NM.elements m) ≡ n).
-      {
-        intros H.
-        rewrite map_length.
-        apply H.
-      }
-
-      rewrite <- NM.cardinal_1.
-    Admitted.
-    
     Definition mem_block_SGP (SGP : SgPred CarrierA) (m : mem_block) :=
       forall k x, NM.find (elt:=CarrierA) k m = Some x -> SGP x.
 
@@ -3322,45 +3304,43 @@ Section OperatorPairwiseProofs.
           auto.
       }
       split; [ apply D|].
-      apply mem_block_SGP_Forall; [assumption |].
-      apply Forall_forall.
-      intros m M.
-      apply In_nth_error in M.
-      destruct M as [j M].
-      pose proof (ListNth.nth_error_length_lt _ _ M) as jc.
-      assert(O: Datatypes.length (mem_value_lst v) ≡ o) by
-          apply dense_block_mem_value_lst_len, D.
-      rewrite O in jc; clear O.
-      assert(NL: nth_error (mem_value_lst v) j ≡ mem_lookup j v).
-      {
-        (* could be derived from 'compat' *)
-        admit.
-      }
-      rewrite NL in M; clear NL.
-
+      intros j m M.
       specialize (Upoz x t tc).
-      apply Vforall_nth with (ip:=jc) in Upoz.
-
-      unfold get_family_op in Upoz.
-      unfold get_family_mem_op in N.
-      repeat eq_to_equiv_hyp.
-      rewrite <- ME in N;[|intros;apply W].
-      some_inv.
-      rewrite <- N in M.
-      unfold mem_lookup in M.
-      rewrite find_svector_to_mem_block_some with (kc:=jc) in M.
-      2:{
-        (* could be derived from 'compat' *)
-        apply NP.F.in_find_iff.
-        apply Some_nequiv_None in M.
-        apply None_nequiv_neq.
-        apply M.
-      }
-      some_inv.
-      unfold liftRthetaP in Upoz.
-      rewrite M in Upoz.
-      apply Upoz.
-    Admitted.
+      destruct (lt_ge_dec j o) as [jc|njc].
+      -
+        apply Vforall_nth with (ip:=jc) in Upoz.
+        unfold get_family_op in Upoz.
+        unfold get_family_mem_op in N.
+        repeat eq_to_equiv_hyp.
+        rewrite <- ME in N;[|intros;apply W].
+        some_inv.
+        rewrite <- N in M.
+        unfold mem_lookup in M.
+        rewrite find_svector_to_mem_block_some with (kc:=jc) in M.
+        2:{
+          (* could be derived from 'compat' *)
+          apply NP.F.in_find_iff.
+          apply Some_nequiv_None in M.
+          apply None_nequiv_neq.
+          apply M.
+        }
+        some_inv.
+        unfold liftRthetaP in Upoz.
+        rewrite M in Upoz.
+        apply Upoz.
+        eapply family_in_set_includes_members.
+        eapply H.
+      -
+        exfalso.
+        unfold get_family_mem_op in N.
+        apply out_mem_oob with (j0:=j) in N.
+        destruct (NM.find (elt:=CarrierA) j) eqn:FF.
+        apply Some_ne_None, NP.F.in_find_iff in FF.
+        unfold mem_in in N.
+        congruence.
+        some_none.
+        assumption.
+    Qed.
 
     Global Instance IReduction_SH_MSH_Operator_compat
            {i o k: nat}
