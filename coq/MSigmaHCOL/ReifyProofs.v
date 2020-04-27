@@ -3292,8 +3292,34 @@ Section OperatorPairwiseProofs.
       right.
       assert(dense_block o v) as D.
       {
-        (* could be proven from [compat], [H4] *)
-        admit.
+        unfold dense_block.
+        intros j.
+        split.
+        -
+          intros jc.
+          unfold get_family_mem_op in N.
+          eapply out_mem_fill_pattern with (jc0:=jc) in N.
+          apply is_Some_ne_None.
+          apply NP.F.in_find_iff.
+          apply N.
+
+          unfold Same_set in *.
+          apply H4.
+          specialize (compat t tc).
+          destruct compat as [C1 C2].
+          unfold Included in *.
+          apply C2.
+          apply Full_intro.
+        -
+          intros H.
+          destruct (lt_ge_dec j o); auto.
+          unfold get_family_mem_op in N.
+          apply out_mem_oob with (j0:=j) in N.
+          apply is_Some_ne_None in H.
+          apply NP.F.in_find_iff in H.
+          unfold mem_in in N.
+          congruence.
+          auto.
       }
       split; [ apply D|].
       apply mem_block_SGP_Forall; [assumption |].
