@@ -2580,75 +2580,21 @@ Section OperatorPairwiseProofs.
       apply NM.elements_3w.
     Qed.
 
-
-    (* Predicate which is True for "dense" memb blocks of size [k]:
-       All keys up to [k] must be present, and not keys above [k]
-       should be set *)
     Definition dense_block (k:nat) (m: mem_block) : Prop :=
-      forall j, (j<k) <-> NM.In j m.
-
-    (* The previous definition usually leads us to very strong
-       equality via [eq]. [is_Some] is more flexible, as it could be
-       converte to [eq] via [is_Some_def] but it also could be
-       converted to Eqivalence via [is_Some_equiv_def].  *)
-    Definition dense_block' (k:nat) (m: mem_block) : Prop :=
       forall j, (j<k) <-> is_Some (NM.find j m).
-
-    (* But the two are the same *)
-    Lemma dense_block_dense_block' (k:nat) (m: mem_block):
-      dense_block k m <-> dense_block' k m.
-    Proof.
-      split.
-      -
-        intros D.
-        unfold dense_block', dense_block in *.
-        intros j.
-        split.
-        +
-          intros jc.
-          apply D in jc.
-          apply NP.F.in_find_iff in jc.
-          apply is_Some_ne_None in jc.
-          auto.
-        +
-          intros H.
-          destruct (lt_ge_dec j k); auto.
-          apply is_Some_def in H.
-          destruct H as [x H].
-          apply Some_ne_None, NP.F.in_find_iff in H.
-          apply D in H.
-          lia.
-      -
-        intros D.
-        unfold dense_block', dense_block in *.
-        intros j.
-        split.
-        +
-          intros jc.
-          apply D in jc.
-          apply is_Some_ne_None in jc.
-          apply NP.F.in_find_iff in jc.
-          auto.
-        +
-          intros H.
-          destruct (lt_ge_dec j k); auto.
-          apply NP.F.in_find_iff in H.
-          apply is_Some_ne_None in H.
-          apply D in H.
-          lia.
-    Qed.
 
     Global Instance dense_block_proper:
       Proper ((=) ==> (=) ==> iff) dense_block.
     Proof.
       intros n m Enm a b Eab.
+      cbv in Enm; subst m.
       unfold dense_block.
-      split; intros;
-        split; intros.
-      - rewrite <- Eab; apply H; rewrite Enm; auto.
-      - rewrite <- Enm; apply H; rewrite Eab; auto.
-      - rewrite Eab; apply H; rewrite <- Enm; auto.
-      - rewrite Enm; apply H; rewrite <- Eab; auto.
+      do 2 split; intros.
+      all: rewrite H in *.
+      all: rewrite is_Some_equiv_def in *.
+      all: destruct H0.
+      all: try rewrite Eab in H0; eauto.
+      all: try rewrite <-Eab in H0; eauto.
     Qed.
 
     Lemma dense_block_mem_value_lst_len
@@ -2668,22 +2614,37 @@ Section OperatorPairwiseProofs.
 
       rewrite <- NM.cardinal_1.
     Admitted.
+    
+    Definition mem_block_SGP (SGP : SgPred CarrierA) (m : mem_block) :=
+      forall k x, NM.find (elt:=CarrierA) k m = Some x -> SGP x.
+
+    Instance mem_block_SGP_proper (SGP : SgPred CarrierA) :
+      Proper ((=) ==> iff) (mem_block_SGP SGP).
+    Proof.
+      intros m1 m2 ME.
+      unfold mem_block_SGP.
+      split; intros.
+      all: apply H with (k:=k).
+      rewrite ME; assumption.
+      rewrite <-ME; assumption.
+    Qed.
 
     (* Dense block where all values satisfiy [SGP] *)
     Definition dense_block_SGP
                (SGP : SgPred CarrierA)
                (k:nat)
                (m: mem_block) : Prop
-      := (dense_block k m) /\ (@Forall CarrierA SGP (mem_value_lst m)).
+      := (dense_block k m) /\ (mem_block_SGP SGP m).
 
-    (* weaker version of [dense_block_SGP] which does not require
-       [eq] on values *)
-    Definition dense_block_SGP'
-               (SGP : SgPred CarrierA)
-               (k:nat)
-               (m: mem_block) : Prop
-      := (dense_block' k m) /\
-         (forall j (jc: j<k), exists x, NM.find j m = Some x -> SGP x).
+    Instance dense_block_SGP_proper (SGP : SgPred CarrierA) :
+      Proper ((=) ==> (=) ==> iff) (dense_block_SGP SGP).
+    Proof.
+      intros n' n NE m1 m2 ME.
+      cbv in NE; subst.
+      unfold dense_block_SGP.
+      rewrite ME.
+      reflexivity.
+    Qed.
 
     Lemma dense_block_find_Some
           {k n : nat}
@@ -2694,14 +2655,9 @@ Section OperatorPairwiseProofs.
       k<n.
     Proof.
       intros D F.
-      specialize (D k).
-      destruct (le_lt_dec n k) as [kc|kc].
-      -
-        apply NM.find_2, MapsTo_In, D in F.
-        lia.
-      -
-        apply kc.
-    Qed.
+      apply D.
+      rewrite F; reflexivity.
+   Qed.
 
     Lemma dense_block_find_not_None
           {n : nat}
@@ -2709,10 +2665,9 @@ Section OperatorPairwiseProofs.
       dense_block n m → forall k : NM.key, k<n -> NM.find (elt:=CarrierA) k m ≢ None.
     Proof.
       intros H k kc.
-      specialize (H k).
-      apply H in kc.
-      apply NP.F.in_find_iff.
-      apply kc.
+      apply is_Some_ne_None.
+      apply H.
+      assumption.
     Qed.
 
     Ltac dense_find_contr :=
@@ -2801,20 +2756,17 @@ Section OperatorPairwiseProofs.
       unfold dense_block, mem_merge_with_def in *.
       intros.
       specialize (D1 j); specialize (D2 j).
-      rewrite NP.F.in_find_iff.
       repeat rewrite NP.F.map2_1bis by reflexivity.
       repeat break_match.
       all: try apply Some_ne_None in Heqo.
       all: try apply Some_ne_None in Heqo0.
       all: try rewrite <-NP.F.in_find_iff in *.
       all: try rewrite <-NP.F.not_find_in_iff in *.
-      all: split; intros; try tauto.
-      discriminate.
+      all: split; intros; tauto.
     Qed.
 
-
-    Lemma mem_merge_with_def_empty_dense_preserve
-          (m2: mem_block)
+    Lemma mem_merge_with_def_empty_dense_preserve_l
+          (m2 : mem_block)
           (dot : CarrierA -> CarrierA -> CarrierA)
           (init : CarrierA)
           (k : nat)
@@ -2825,7 +2777,6 @@ Section OperatorPairwiseProofs.
       unfold dense_block, mem_merge_with_def in *.
       intros.
       specialize (D2 j).
-      rewrite NP.F.in_find_iff.
       repeat rewrite NP.F.map2_1bis by reflexivity.
       repeat break_match.
       all: try apply Some_ne_None in Heqo.
@@ -2833,9 +2784,79 @@ Section OperatorPairwiseProofs.
       all: try rewrite <-NP.F.in_find_iff in *.
       all: try rewrite <-NP.F.not_find_in_iff in *.
       all: split; intros; try tauto.
-      discriminate.
-      unfold mem_empty in *; apply NP.F.empty_in_iff in Heqo; tauto.
-      some_none.
+      inversion Heqo; inversion H0.
+      inversion Heqo; inversion H0.
+    Qed.
+
+    Lemma mem_merge_with_def_empty_dense_preserve_r
+          (m1 : mem_block)
+          (dot : CarrierA -> CarrierA -> CarrierA)
+          (init : CarrierA)
+          (k : nat)
+          (D1 : dense_block k m1)
+      :
+        dense_block k (mem_merge_with_def dot init m1 mem_empty).
+    Proof.
+      unfold dense_block, mem_merge_with_def in *.
+      intros.
+      specialize (D1 j).
+      repeat rewrite NP.F.map2_1bis by reflexivity.
+      repeat break_match.
+      all: try apply Some_ne_None in Heqo.
+      all: try apply Some_ne_None in Heqo0.
+      all: try rewrite <-NP.F.in_find_iff in *.
+      all: try rewrite <-NP.F.not_find_in_iff in *.
+      all: split; intros; try tauto.
+      inversion Heqo0; inversion H0.
+      inversion Heqo0; inversion H0.
+    Qed.
+
+    Lemma mem_merge_with_def_SGP_preserve
+          (m1 m2 : mem_block)
+          (svalue : CarrierA)
+          (dot : CarrierA → CarrierA → CarrierA)
+          (SGP : SgPred CarrierA)
+          `{SPGP : !Proper ((=) ==> impl) SGP}
+          (CM : @CommutativeRMonoid CarrierA CarrierAe dot svalue SGP)
+          (SM1 : mem_block_SGP SGP m1)
+          (SM2 : mem_block_SGP SGP m2)
+      :
+        mem_block_SGP SGP (mem_merge_with_def dot svalue m1 m2).
+    Proof.
+      unfold mem_block_SGP in *.
+      intros.
+      specialize (SM1 k); specialize (SM2 k) (* ; specialize (SK k) *).
+      unfold mem_merge_with_def in H.
+      rewrite NP.F.map2_1bis in H by reflexivity.
+      repeat break_match; try some_none; some_inv.
+      -
+        specialize (SM1 c); autospecialize SM1; [reflexivity |].
+        specialize (SM2 c0); autospecialize SM2; [reflexivity |].
+        apply (SPGP (dot c c0) x H).
+        eapply rmonoid_plus_closed with (Aunit:=svalue); try eassumption.
+        typeclasses eauto.
+      -
+        specialize (SM1 c); autospecialize SM1; [reflexivity |].
+        apply (SPGP (dot c svalue) x H).
+        eapply rmonoid_plus_closed with (Aunit:=svalue); try eassumption.
+        typeclasses eauto.
+        eapply rmonoid_unit_P with (Aunit:=svalue) (Aop:=dot).
+        typeclasses eauto.
+      -
+        specialize (SM2 c); autospecialize SM2; [reflexivity |].
+        apply (SPGP (dot svalue c) x H).
+        clear H x Heqo0 Heqo k m1 m2.
+        eapply rmonoid_plus_closed with (Aunit:=svalue); try eassumption.
+        typeclasses eauto.
+        eapply rmonoid_unit_P with (Aunit:=svalue) (Aop:=dot).
+        typeclasses eauto.
+    Qed.
+
+    Lemma mem_empty_SGP (SGP : SgPred CarrierA) :
+      mem_block_SGP SGP mem_empty.
+    Proof.
+      unfold mem_block_SGP.
+      intros k x C; inversion C.
     Qed.
 
     Lemma exists_or {A : Type} (P Q : A -> Prop) :
@@ -2992,6 +3013,29 @@ Section OperatorPairwiseProofs.
             apply H.
     Qed.
 
+    Fact find_mem_empty_eq_None (mb : mem_block) :
+      mb = mem_empty ->
+      forall k, NM.find (elt:=CarrierA) k mb ≡ None.
+    Proof.
+      intros.
+      apply None_equiv_eq.
+      apply H.
+    Qed.
+
+    Lemma CarrierA_equiv_eq (a1 a2 : CarrierA) :
+      a1 ≡ a2 -> a1 = a2.
+    Proof.
+      intros; subst; reflexivity.
+    Qed.
+
+    Ltac assert_SGPs :=
+      repeat match goal with
+             | [S : mem_block_SGP _ ?mb, F : NM.find _ ?mb ≡ Some _ |- _] =>
+               apply Option_equiv_eq, S in F
+             | [S : mem_block_SGP _ ?mb, F : NM.find _ ?mb = Some _ |- _] =>
+               apply S in F
+             end.
+
     Local Instance mem_merge_with_def_CM
           (n: nat)
           (svalue : CarrierA)
@@ -3030,147 +3074,74 @@ Section OperatorPairwiseProofs.
             destruct H0 as [DB SB].
             split.
             rewrite_clear H.
-            1: apply mem_merge_with_def_empty_dense_preserve; assumption.
-            rename H into MA.
-            rewrite Forall_forall in *.
-            intros.
-
-            unfold mem_value_lst in *.
-            repeat rewrite in_map_iff in *.
-            destruct H as [(k, x') [X IN]].
-            cbn in X; subst x'.
-            apply In_InA with (eqA:=NM.eq_key_elt (elt:=CarrierA)) in IN;
-              [| typeclasses eauto].
-            apply NP.F.elements_mapsto_iff in IN.
-            apply NP.F.find_mapsto_iff in IN.
-            unfold mem_merge_with_def in IN.
-            rewrite NP.F.map2_1bis in IN by reflexivity.
-            repeat break_match; try some_none.
-            --
-              eq_to_equiv_hyp.
-              rewrite MA in Heqo.
-              rewrite NP.F.empty_o in Heqo.
-              some_none.
-            --
-              eq_to_equiv_hyp.
-              rewrite MA in Heqo.
-              rewrite NP.F.empty_o in Heqo.
-              some_none.
-            --
-              apply SB.
-              some_inv.
-              subst x.
-              apply in_map_iff.
-              exists (k,c).
-              split.
-              ++
-                cbn.
-                symmetry.
-                admit. (* wrong equality *)
-              ++
-                apply NM_find_In_elments.
-                auto.
+            apply mem_merge_with_def_empty_dense_preserve_l; assumption.
+            apply mem_merge_with_def_SGP_preserve; try assumption.
+            rewrite H.
+            apply mem_empty_SGP.
           *
             right.
-            admit.
+            unfold dense_block_SGP in *.
+            destruct H as [DB SB].
+            split.
+            rewrite_clear H0.
+            apply mem_merge_with_def_empty_dense_preserve_r; assumption.
+            apply mem_merge_with_def_SGP_preserve; try assumption.
+            rewrite H0.
+            apply mem_empty_SGP.
           *
             right.
             unfold dense_block_SGP in *.
             destruct H as [DA SA], H0 as [DB SB].
             split.
-            1: apply mem_merge_with_def_dense_preserve; assumption.
-            rewrite Forall_forall in *.
-            intros.
-
-            unfold mem_value_lst in *.
-            repeat rewrite in_map_iff in *.
-            destruct H as [(k, x') [X IN]].
-            cbn in X; subst x'.
-            apply In_InA with (eqA:=NM.eq_key_elt (elt:=CarrierA)) in IN;
-              [| typeclasses eauto].
-            apply NP.F.elements_mapsto_iff in IN.
-            apply NP.F.find_mapsto_iff in IN.
-            unfold mem_merge_with_def in IN.
-            rewrite NP.F.map2_1bis in IN by reflexivity.
-            repeat break_match; try some_none.
-            --
-              rename x into z, c into x, c0 into y.
-              specialize (SA x).
-              specialize (SB y).
-              some_inv.
-              apply CM.
-              ++
-                apply SA.
-                clear - Heqo.
-                apply in_map_iff.
-                exists (k, x).
-                split; [auto|].
-                apply NM_find_In_elments.
-                assumption.
-              ++
-                apply SB.
-                clear - Heqo0.
-                apply in_map_iff.
-                exists (k, y).
-                split; [auto|].
-                apply NM_find_In_elments.
-                assumption.
-            --
-              exfalso.
-              destruct (NatUtil.lt_ge_dec k n) as [kc | nkc].
-              ++
-                apply DB in kc.
-                apply NP.F.not_find_in_iff in Heqo0.
-                congruence.
-              ++
-                apply Some_ne_None in Heqo.
-                apply NP.F.in_find_iff in Heqo.
-                apply DA in Heqo.
-                lia.
-            --
-              exfalso.
-              destruct (NatUtil.lt_ge_dec k n) as [kc | nkc].
-              ++
-                apply DA in kc.
-                apply NP.F.not_find_in_iff in Heqo.
-                congruence.
-              ++
-                apply Some_ne_None in Heqo0.
-                apply NP.F.in_find_iff in Heqo0.
-                apply DB in Heqo0.
-                lia.
+            apply mem_merge_with_def_dense_preserve; assumption.
+            apply mem_merge_with_def_SGP_preserve; assumption.
         +
           (* Proper sg_op *)
-          admit.
-          (*
+          intros l1 l2 LE r1 r2 RE.
+          intros k.
+          specialize (LE k); specialize (RE k).
+          unfold sg_op, mem_merge_with_def.
+          repeat rewrite NP.F.map2_1bis by reflexivity.
+          repeat break_match; try some_none; repeat some_inv.
+          all: try rewrite LE; try rewrite RE; reflexivity.
         +
           (* assoc *)
+          inversion_clear CM as [RM COMM].
+          inversion_clear RM as [S MR SP ASS LID RID].
+          inversion_clear MR as [UP PC].
           intros x y z SGX SGY SGZ.
-          destruct SGX, SGY, SGZ.
-          unfold equiv, mem_block_Equiv.
           intros k.
-          unfold sg_op.
-          unfold mem_merge_with_def.
+          unfold sg_op, mem_merge_with_def.
           repeat rewrite NP.F.map2_1bis by reflexivity.
-          repeat break_match; try some_none;
-
-            repeat some_inv;
-            f_equiv;
-            subst; try dense_find_contr.
-
-          apply rmonoid_ass with (Aunit:=svalue) (Apred:=SGP).
-            unfold CarrierAasCT.CarrierAasCT.CTypeEquiv.
-            apply comrmonoid_rmon.
-            eapply CM.
-            *
-              apply (Forall_mem_value_lst_NM_find Hx Heqo).
-            *
-              apply (Forall_mem_value_lst_NM_find Hy Heqo3).
-            *
-              apply (Forall_mem_value_lst_NM_find Hz Heqo2).
+          destruct SGX as [Ex | [Dx Sx]],
+                   SGY as [Ey | [Dy Sy]],
+                   SGZ as [Ez | [Dz Sz]].
+          (* doing three rewrites with set blocks, because they are not found otherwise *)
+          all: repeat rewrite find_mem_empty_eq_None with (mb:=x) by assumption.
+          all: repeat rewrite find_mem_empty_eq_None with (mb:=y) by assumption.
+          all: repeat rewrite find_mem_empty_eq_None with (mb:=z) by assumption.
+          all: repeat break_match; try some_none; repeat some_inv.
+          all: f_equiv.
+          all: try apply CarrierA_equiv_eq in H0.
+          all: try apply CarrierA_equiv_eq in H1.
+          all: repeat rewrite LID; try reflexivity.
+          all: repeat rewrite RID; try reflexivity.
+          all: assert_SGPs.
+          all: try assumption.
+          all: try (apply PC; assumption).
+          apply ASS; assumption.
         +
           (* left id *)
-          intros x [Pxd Px].
+          intros x [Ex | [Pxd Px]].
+          {
+            (* empty x *)
+            intros k.
+            unfold sg_op, mem_merge_with_def.
+            rewrite NP.F.map2_1bis by reflexivity.
+            cbn.
+            rewrite find_mem_empty_eq_None by assumption.
+            reflexivity.
+          }
           unfold equiv, mem_block_Equiv.
           intros k.
           unfold sg_op.
@@ -3190,11 +3161,20 @@ Section OperatorPairwiseProofs.
             clear Heqo.
             eapply rmonoid_left_id.
             apply CM.
-            apply (Forall_mem_value_lst_NM_find Px Heqo0).
+            eapply Px.
+            rewrite Heqo0; reflexivity.
         +
           (* right id *)
-          intros x [Pxd Px].
-          unfold equiv, mem_block_Equiv.
+          intros x [Ex | [Pxd Px]].
+          {
+            (* empty x *)
+            intros k.
+            unfold sg_op, mem_merge_with_def.
+            rewrite NP.F.map2_1bis by reflexivity.
+            cbn.
+            rewrite find_mem_empty_eq_None by assumption.
+            reflexivity.
+          }
           intros k.
           unfold sg_op.
           unfold mem_merge_with_def.
@@ -3209,29 +3189,62 @@ Section OperatorPairwiseProofs.
           *
             eapply rmonoid_right_id.
             apply CM.
-            apply (Forall_mem_value_lst_NM_find Px Heqo).
+            eapply Px.
+            rewrite Heqo; reflexivity.
           *
             unfold mon_unit, mem_empty in *.
             pose proof (NP.F.empty_o CarrierA k); some_none.
       -
         (* commutativity *)
-        intros x y [Hxd Hx] [Hyd Hy].
-        unfold equiv, mem_block_Equiv.
-        intros k.
-        unfold sg_op.
-        unfold mem_merge_with_def.
-        rewrite 2!NP.F.map2_1bis by reflexivity.
-        repeat break_match.
+        intros x y [Ex | [Hxd Hx]] [Ey | [Hyd Hy]].
+        all: intros k.
+        all: unfold sg_op, mem_merge_with_def.
+        all: repeat rewrite NP.F.map2_1bis.
+        (* doing three rewrites with set blocks, because they are not found otherwise *)
+        all: repeat rewrite find_mem_empty_eq_None with (mb:=x) by assumption.
+        all: repeat rewrite find_mem_empty_eq_None with (mb:=y) by assumption.
+        all: repeat rewrite find_mem_empty_eq_None with (mb:=z) by assumption.
+        all: try reflexivity.
         +
-          f_equiv.
-          unfold equiv, CarrierAasCT.CarrierAasCT.CTypeEquiv.
-          apply (@rcommutativity CarrierA CarrierAe _ _ _ CM).
-          *
-            apply (Forall_mem_value_lst_NM_find Hx Heqo).
-          *
-            apply (Forall_mem_value_lst_NM_find Hy Heqo0).
-           *)
-    Admitted.
+          break_match; f_equiv.
+          apply rcommutativity with (Aunit:=svalue) (Ares:=SGP).
+          typeclasses eauto.
+          apply rmonoid_unit_P with (Aop:=dot) (Aunit:=svalue) (Apred:=SGP).
+          typeclasses eauto.
+          assert_SGPs.
+          assumption.
+        +
+          break_match; f_equiv.
+          apply rcommutativity with (Aunit:=svalue) (Ares:=SGP).
+          typeclasses eauto.
+          assert_SGPs.
+          assumption.
+          apply rmonoid_unit_P with (Aop:=dot) (Aunit:=svalue) (Apred:=SGP).
+          typeclasses eauto.
+        +
+          repeat break_match; f_equiv.
+          all: apply rcommutativity with (Aunit:=svalue) (Ares:=SGP);
+            [typeclasses eauto | |].
+          all: assert_SGPs; try assumption.
+          all: apply rmonoid_unit_P with (Aop:=dot) (Aunit:=svalue) (Apred:=SGP).
+          all: typeclasses eauto.
+    Qed.
+    
+    Lemma mem_block_SGP_Forall
+          (m : mem_block)
+          (SGP : SgPred CarrierA)
+          `{SPGP: !Proper ((=) ==> impl) SGP}
+      :
+        @Forall CarrierA SGP (mem_value_lst m) ->
+        mem_block_SGP SGP m.
+    Proof.
+      intros A k x' F.
+      destruct NM.find as [x|] eqn:X in F; [some_inv | some_none].
+      apply (SPGP x x' F); clear F x'.
+      eapply Forall_mem_value_lst_NM_find.
+      eassumption.
+      eassumption.
+    Qed.
 
     (* Positivity propagation *)
     Fact Apply_mem_Family_lift_SGP
@@ -3260,7 +3273,6 @@ Section OperatorPairwiseProofs.
       :
         Forall (empty_or_dense_block_SGP SGP o) l.
     Proof.
-      (*
       apply Forall_forall.
       intros v N.
       apply In_nth_error in N.
@@ -3276,13 +3288,15 @@ Section OperatorPairwiseProofs.
       apply Apply_mem_Family_eq_Some with (jc:=tc) in A.
       unfold mem_block in A, N.
       rewrite A in N; clear A.
-      unfold dense_block_SGP.
+      unfold empty_or_dense_block_SGP, dense_block_SGP.
+      right.
       assert(dense_block o v) as D.
       {
         (* could be proven from [compat], [H4] *)
         admit.
       }
       split; [ apply D|].
+      apply mem_block_SGP_Forall; [assumption |].
       apply Forall_forall.
       intros m M.
       apply In_nth_error in M.
@@ -3320,7 +3334,6 @@ Section OperatorPairwiseProofs.
       unfold liftRthetaP in Upoz.
       rewrite M in Upoz.
       apply Upoz.
-      *)
     Admitted.
 
     Global Instance IReduction_SH_MSH_Operator_compat
