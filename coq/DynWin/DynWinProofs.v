@@ -288,8 +288,6 @@ Require Import Helix.DSigmaHCOL.ReifyMSHCOL.
 Require Import Helix.DSigmaHCOL.DSHCOLOnCarrierA.
 Require Import Helix.DSigmaHCOL.ReifyProofs.
 
-Require Import Helix.DSigmaHCOL.IReductionWIP. (* TODO: merge the file; remove this *)
-
 Section MSHCOL_to_DSHCOL.
 
   Import MDSHCOLOnCarrierA.
