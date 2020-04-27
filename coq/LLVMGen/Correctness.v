@@ -175,10 +175,10 @@ Definition interp_cfg_to_L3:
     itree (CallE +' PickE +' UBE +' DebugE +' FailureE)
           (memory * (local_env * (global_env * R))) :=
   fun R defs t g l m =>
-    let L0_trace := INT.interpret_intrinsics defs t in
-    let L1_trace       := Util.runState (interp_global L0_trace) g in
-    let L2_trace       := Util.runState (interp_local  L1_trace) l in
-    let L3_trace       := Util.runState (M.interp_memory L2_trace) m in
+    let L0_trace := INT.interp_intrinsics defs t in
+    let L1_trace       := interp_global L0_trace g in
+    let L2_trace       := interp_local  L1_trace l in
+    let L3_trace       := M.interp_memory L2_trace m in
     L3_trace.
 
 Section StateTypes.
@@ -461,7 +461,7 @@ Definition bisim_partial: Type_R_partial
     Proper (eutt Logic.eq ==> Logic.eq ==> Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_cfg_to_L3 T defs).
   Proof.
     repeat intro.
-    unfold interp_cfg_to_L3, Util.runState.
+    unfold interp_cfg_to_L3.
     subst; rewrite H.
     (* Show Proof. *)
     reflexivity.
