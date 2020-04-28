@@ -1324,21 +1324,6 @@ Qed.
 Definition compose2 {A B C D : Type} (g : C -> D) (f : A -> B -> C) : A -> B -> D :=
   fun a b => g (f a b).
 
-Fact eq_equiv_option_CarrierA (a1 a2 : option CarrierA) :
-  a1 = a2 <-> a1 ≡ a2.
-Proof.
-  split; intros.
-  -
-    unfold equiv, option_Equiv in H.
-    inversion H; [reflexivity |].
-    f_equal.
-    rewrite H0.
-    reflexivity.
-  -
-    rewrite H.
-    reflexivity.
-Qed.
-
 Lemma memory_lookup_err_inl_None
       (msg msg' : string)
       (mem : memory)
@@ -5524,28 +5509,6 @@ Proof.
   apply IHn.
 Qed.
 
-Lemma mem_lookup_err_inl_None:
-  ∀ (msg msg' : string) (mb : mem_block) (n : NM.key),
-    mem_lookup_err msg n mb = inl msg' ↔ mem_lookup n mb = None.
-Proof.
-  intros.
-  unfold mem_lookup_err, trywith.
-  break_match.
-  split; intros C; inversion C.
-  split; intros C; constructor.
-Qed.
-  
-Lemma mem_lookup_err_inr_Some:
-  ∀ (msg : string) (mb : mem_block) (n : NM.key) (a : CarrierA),
-    mem_lookup_err msg n mb = inr a ↔ mem_lookup n mb = Some a.
-Proof.
-  intros.
-  unfold mem_lookup_err, trywith.
-  break_match.
-  split; intros H; inversion H; rewrite H2; reflexivity.
-  split; intros C; inversion C.
-Qed.
-
 Global Instance evalDSHMap2_proper :
   Proper ((=) ==> (=) ==> (=) ==> (=) ==> (=) ==> (=) ==> (=)) evalDSHMap2.
 Proof.
@@ -6084,31 +6047,6 @@ Proof.
     reflexivity.
 Qed.
 
-Lemma mem_merge_with_def_empty_const
-      (dot : CarrierA -> CarrierA -> CarrierA)
-      (init : CarrierA)
-      (mb : mem_block)
-      (o : nat)
-      (MD : forall k, k < o -> mem_in k mb)
-  :
-    forall k, k < o ->
-    mem_lookup k (mem_merge_with_def dot init mem_empty mb) =
-    mem_lookup k (mem_merge_with_def dot init (mem_const_block o init) mb).
-Proof.
-  intros.
-  unfold mem_lookup, mem_merge_with_def.
-  repeat rewrite NP.F.map2_1bis by reflexivity.
-  rewrite mem_const_block_find by assumption.
-  cbn.
-  break_match; try reflexivity.
-  exfalso.
-  specialize (MD k H).
-  apply mem_in_mem_lookup in MD.
-  unfold mem_lookup in MD.
-  rewrite Heqo0 in MD.
-  some_none.
-Qed.
-
 Definition mem_firstn (n : nat) (mb : mem_block) :=
   NP.filter_dom (elt:=CarrierA) (fun k => Nat.ltb k n) mb.
 
@@ -6457,29 +6395,6 @@ Proof.
     reflexivity.
 Qed.
 
-
-Global Instance eq_equiv_subrelation `{Equivalence A EqA} :
-  subrelation (@eq A) (@equiv A EqA).
-Proof.
-  intros a b E.
-  subst.
-  reflexivity.
-Qed.
-
-Lemma is_OK_def {A : Type} {e : err A} :
-  is_OK e <-> exists a, e ≡ inr a.
-Proof.
-  split; intros.
-  -
-    destruct e; inversion H.
-    exists a.
-    reflexivity.
-  -
-    destruct H.
-    subst.
-    constructor.
-Qed.
-
 Lemma memory_set_same (m : memory) (k : mem_block_id) (mb : mem_block) :
   memory_lookup m k = Some mb ->
   memory_set m k mb = m.
@@ -6494,45 +6409,6 @@ Proof.
   -
     rewrite NP.F.add_neq_o by congruence.
     reflexivity.
-Qed.
-
-Lemma evalDSHOperator_fuel_ge_equiv
-      (f f' : nat)
-      (σ : evalContext)
-      (op : DSHOperator)
-      (m : memory)
-      (res : err memory)
-  :
-    f' ≥ f →
-    evalDSHOperator σ op m f = Some res →
-    evalDSHOperator σ op m f' = Some res.
-Proof.
-  intros.
-  destruct (evalDSHOperator σ op m f) eqn:D,
-           (evalDSHOperator σ op m f') eqn:D';
-    try some_none.
-  all: apply evalDSHOperator_fuel_ge with (f':=f') in D; [| assumption].
-  all: rewrite D in D'; some_inv; subst.
-  assumption.
-  some_none.
-Qed.
-
-Lemma fold_left_rev_invariant
-      {A : Type}
-      (f : A -> A -> A)
-      (init : A)
-      (l : list A)
-      (P : A -> Prop)
-  :
-    (forall a b, P a \/ P b -> P (f a b)) ->
-    (exists a, P a /\ List.In a l) ->
-    P (ListUtil.fold_left_rev f init l).
-Proof.
-  intros.
-  destruct H0 as [x [Px XL]].
-  induction l; [inversion XL |].
-  cbn in *.
-  destruct XL as [AX | XX]; subst; auto.
 Qed.
 
 Lemma mem_not_in_mem_lookup (k : NM.key) (mb : mem_block) :
