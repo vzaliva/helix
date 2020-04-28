@@ -766,7 +766,6 @@ Module MDSigmaHCOLITree
         eval_Loop_for_i_to_N σ op i N mem fuel ≡ Some res ->
         eval_Loop_for_i_to_N σ op i N mem (S fuel) ≡ Some res.
     Proof.
-      (*
       intros res σ op i N fuel mem H.
       revert H.
       revert res σ i fuel.
@@ -797,6 +796,10 @@ Module MDSigmaHCOLITree
               rewrite Heqo0 in Heqo.
               inv Heqo.
             --
+              apply IHN in Heqo0.
+              rewrite Heqo0 in Heqo.
+              inv Heqo.
+            --
               some_none.
           *
             repeat break_match_hyp; subst.
@@ -808,6 +811,25 @@ Module MDSigmaHCOLITree
               apply IHN in Heqo0.
               rewrite Heqo0 in Heqo.
               inv Heqo.
+              inv Heqs1.
+              apply H.
+            --
+              inv Heqs1.
+            --
+              some_none.
+          *
+            repeat break_match_hyp; subst.
+            --
+              apply IHN in Heqo0.
+              rewrite Heqo0 in Heqo.
+              inv Heqo.
+            --
+              inv Heqs1.
+            --
+              apply IHN in Heqo0.
+              rewrite Heqo0 in Heqo.
+              inv Heqo.
+              inv Heqs1.
               apply evalDSHOperator_fuel_monotone.
               apply H.
             --
@@ -820,8 +842,7 @@ Module MDSigmaHCOLITree
               some_none.
             --
               some_none.
-       *)
-    Admitted.
+    Qed.
 
     Lemma eval_Loop_for_i_to_N_fuel_monotone_gt:
       forall res σ op i N fuel fuel' mem,
