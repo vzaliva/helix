@@ -328,15 +328,6 @@ Definition lookup_Pexp (σ:evalContext) (m:memory) (p:PExpr) :=
   a <- evalPexp σ p ;;
     memory_lookup_err "block_id not found" m a.
 
-(*
-   - [evalPexp σ p] must not to fail
-   - [memory_lookup] must succeed
- *)
-Definition blocks_equiv_at_Pexp (σ0 σ1:evalContext) (p:PExpr): rel (memory)
-  := fun m0 m1 =>
-       herr (fun a b => (opt equiv (memory_lookup m0 a) (memory_lookup m1 b)))
-           (evalPexp σ0 p) (evalPexp σ1 p).
-
 (* DSH expression as a "pure" function by enforcing the memory
    invariants guaranteeing that it depends only input memory block and
    modifies only output memory block.
@@ -1270,78 +1261,6 @@ End BinCarrierA.
 (* Simple wrapper. *)
 Definition memory_alloc_empty m i :=
   memory_set m i (mem_empty).
-
-Lemma blocks_equiv_at_Pexp_incrVar
-      (p : PExpr)
-      (σ0 σ1 : evalContext)
-      (m0 m1: memory)
-      {foo0 foo1: DSHVal}
-  : blocks_equiv_at_Pexp σ0 σ1 p m0 m1 <->
-    blocks_equiv_at_Pexp (foo0::σ0) (foo1::σ1) (incrPVar 0 p) m0 m1.
-Proof.
-  split.
-  -
-    intros H.
-    unfold blocks_equiv_at_Pexp.
-    rewrite 2!evalPexp_incrPVar.
-    apply H.
-  -
-    intros H.
-    unfold blocks_equiv_at_Pexp in *.
-    setoid_rewrite evalPexp_incrPVar in H.
-    apply H; exact (DSHnatVal 0).
-Qed.
-
-Lemma blocks_equiv_at_Pexp_remove
-      (y_p : PExpr)
-      (σ0 σ1 : evalContext)
-      (t0_i t1_i : mem_block_id)
-      (m0'' m1'' : memory)
-      (NY0: evalPexp σ0 y_p ≢ inr t0_i)
-      (NY1: evalPexp σ1 y_p ≢ inr t1_i):
-  blocks_equiv_at_Pexp σ0 σ1 y_p m0'' m1''
-  → blocks_equiv_at_Pexp σ0 σ1 y_p (memory_remove m0'' t0_i) (memory_remove m1'' t1_i).
-Proof.
-  intros EE.
-  unfold blocks_equiv_at_Pexp in *.
-  destruct (evalPexp σ0 y_p), (evalPexp σ1 y_p); try (inversion EE; fail).
-  constructor.
-  inversion_clear EE.
-  rewrite inr_neq in NY0.
-  rewrite inr_neq in NY1.
-  unfold memory_lookup, memory_remove in *.
-  rewrite 2!NP.F.remove_neq_o; auto.
-Qed.
-
-Lemma blocks_equiv_at_Pexp_add_mem
-      (p : PExpr)
-      (σ0 σ1 : evalContext)
-      (m0 m1 : memory)
-      (t0 t1 : mem_block_id)
-      (foo0 foo1: mem_block)
-  :
-    evalPexp σ0 p ≢ inr t0 ->
-    evalPexp σ1 p ≢ inr t1 ->
-    blocks_equiv_at_Pexp σ0 σ1 p m0 m1 ->
-    blocks_equiv_at_Pexp σ0 σ1 p
-                         (memory_set m0 t0 foo0)
-                         (memory_set m1 t1 foo1).
-Proof.
-  intros E0 E1 EE.
-  unfold blocks_equiv_at_Pexp in *.
-  destruct (evalPexp σ0 p), (evalPexp σ1 p); try (inversion EE; fail).
-  constructor.
-  inversion_clear EE.
-  inversion H. clear H.
-  symmetry in H0, H1.
-  rewrite inr_neq in E0.
-  rewrite inr_neq in E1.
-  unfold memory_lookup, memory_set in *.
-  rewrite 2!NP.F.add_neq_o; auto.
-  rewrite H0, H1.
-  constructor.
-  apply H2.
-Qed.
 
 (* Also could be proven in other direction *)
 Lemma SHCOL_DSHCOL_mem_block_equiv_mem_empty {a b: mem_block}:
