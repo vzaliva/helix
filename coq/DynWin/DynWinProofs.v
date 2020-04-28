@@ -1155,7 +1155,7 @@ Section SigmaHCOL_rewriting.
     rewrite rewrite_PointWise_ScatHUnion by apply abs_0_s.
 
     (* Next rule *)
-    unfold SparseEmbedding, SHOperatorFamilyCompose, UnSafeFamilyCast; simpl.
+    unfold SparseEmbedding, SHOperatorFamilyCompose, UnSafeFamilyCast.
     setoid_rewrite SHCompose_assoc at 5.
     setoid_rewrite <- SHCompose_assoc at 1.
 
@@ -1292,22 +1292,22 @@ Section SigmaHCOL_rewriting.
 
     unfold dynwin_SHCOL1.
     unfold NatAsNT.MNatAsNT.NTypeSetoid, NatAsNT.MNatAsNT.NTypeEquiv.
-    unfold join_is_sg_op, meet_is_sg_op.
+    unfold join_is_sg_op, meet_is_sg_op, le.
+    simpl.
 
-    (* At this point we have two terms which are different in 2 ways:
-       1. (1+4) vs 5 (arith)
-       2. Some Prop obligations (proof irrelevance?)
 
-       without [Set Printing Notation] goals look exactly the same.
+    (* we ended up here with two instances of [reflexive_proper_proxy].
+       this is a small hack to unify them. Could be done more generaly
+       by automation to unify up to proof irrelevance
      *)
-
-
-    (*
-    Set Printing Implicit.
+    repeat match goal with
+           | [|- context [(reflexive_proper_proxy ?a )] ] =>
+             generalize (reflexive_proper_proxy a) ; intros
+           end.
+    replace p with p1 by apply proof_irrelevance.
     reflexivity.
-     *)
+  Qed.
 
-  Admitted.
 
   (* Couple additional structual properties: input and output of the
   dynwin_SHCOL1 is dense *)
