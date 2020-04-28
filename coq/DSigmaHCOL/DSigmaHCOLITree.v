@@ -590,18 +590,16 @@ Module MDSigmaHCOLITree
         evalDSHBinOp mem n off f σ x y ≡ inl msg ->
         interp_Mem_Fails (denoteDSHBinOp n off f σ x y) mem.
     Proof.
-      (*
       unfold interp_Mem_Fails.
       induction n as [| n IH]; cbn; intros off σ f x y msg HEval; unfold_Mem; cbn in HEval.
       - inv_eval.
       - inv_eval; try (eexists; left; state_steps; match_failure).
         edestruct Denote_Eval_Equiv_BinCType_Fails as [? [H|H]]; eauto;
           eexists; [left | right]; state_steps; rewrite H; match_failure.
-        apply Denote_Eval_Equiv_BinCType_Succeeds in Heqs1;
+        apply Denote_Eval_Equiv_BinCType_Succeeds in Heqs2;
           edestruct IH as [? [H|H]]; eauto;
-            eexists; [left | right]; state_steps; rewrite Heqs1; state_steps; rewrite H; match_failure.
-*)
-      Admitted.
+            eexists; [left | right]; state_steps; rewrite Heqs2; state_steps; rewrite H; match_failure.
+    Qed.
 
     Definition denote_Loop_for_i_to_N σ body (i N: nat) :=
       iter (fun (p: nat) =>
