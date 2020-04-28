@@ -579,14 +579,12 @@ Module MDSigmaHCOLITree
              (interp_Mem (denoteDSHBinOp n off f σ x y) mem)
              (ret (mem, blk)).
     Proof.
-      (*
       induction n as [| n IH]; cbn; intros off f σ x y blk HEval; unfold_Mem; cbn in HEval.
       - inv_eval; state_steps; reflexivity.
       - inv_eval; state_steps.
-        apply Denote_Eval_Equiv_BinCType_Succeeds in Heqs1; rewrite Heqs1; cbn; state_steps.
+        apply Denote_Eval_Equiv_BinCType_Succeeds in Heqs2; rewrite Heqs2; cbn; state_steps.
         rewrite IH; eauto; reflexivity.
-       *)
-    Admitted.
+    Qed.
 
     Lemma Denote_Eval_Equiv_BinOp_Fails: forall mem n off σ f x y msg,
         evalDSHBinOp mem n off f σ x y ≡ inl msg ->
