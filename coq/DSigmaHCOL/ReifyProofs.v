@@ -253,55 +253,6 @@ Section memory_aux.
 
 End memory_aux.
 
-(* This relations represents consistent memory/envirnment combinations.
-   That means all pointer variables should resolve to existing memory blocks *)
-Inductive EnvMemoryConsistent: evalContext -> memory -> Prop :=
-| EmptyEnvConsistent: forall m, EnvMemoryConsistent [] m
-| DSHPtrValConsistent: forall σ m a n,
-    mem_block_exists a m ->
-    EnvMemoryConsistent σ m ->
-    EnvMemoryConsistent (DSHPtrVal a n :: σ) m
-
-(* the remaining case does not depend on memory and just recurses over environment *)
-| DSHnatValConsistent : forall σ m n, EnvMemoryConsistent σ m ->
-                                 EnvMemoryConsistent (DSHnatVal n :: σ) m
-| DSHCTypeValConsistent: forall σ m a, EnvMemoryConsistent σ m ->
-                                  EnvMemoryConsistent (DSHCTypeVal a :: σ) m.
-
-Lemma EnvMemoryConsistent_inv (a : DSHVal) (σ : evalContext) (mem : memory) :
-  EnvMemoryConsistent (a :: σ) mem -> EnvMemoryConsistent σ mem.
-Proof.
-  intros; inversion H; auto.
-Qed.
-
-Lemma EnvMemoryConsistent_memory_lookup
-      {σ : evalContext}
-      {mem : memory}
-      {EC : EnvMemoryConsistent σ mem}
-      (v : var_id)
-      (a : mem_block_id)
-      (n : nat) :
-  List.nth_error σ v = Some (DSHPtrVal a n) →
-  is_Some (memory_lookup mem a).
-Proof.
-  intros.
-  dependent induction σ; [destruct v; inversion H |].
-  destruct v.
-  -
-    clear IHσ.
-    cbn in H; some_inv.
-    destruct a; inversion H; clear H; subst.
-    inversion EC; subst.
-    apply memory_is_set_is_Some.
-    destruct H1.
-    rewrite <-H0.
-    assumption.
-  -
-    eapply IHσ.
-    eapply EnvMemoryConsistent_inv; eassumption.
-    cbn in H; eassumption.
-Qed.
-
 (* Shows relations of cells before ([b]) and after ([a]) evaluating
    DSHCOL operator and a result of evaluating [mem_op] as [d] *)
 Inductive MemOpDelta (b a d: option CarrierA) : Prop :=
