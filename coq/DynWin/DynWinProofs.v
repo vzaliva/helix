@@ -311,7 +311,6 @@ Section MSHCOL_to_DSHCOL.
         by apply eq_refl ; eapply BinOp_MSH_DSH_compat; intros
     | |- MSH_DSH_compat (MSHCompose _ _) _ _ _ _ _ => unshelve eapply Compose_MSH_DSH_compat; intros
     | |- MSH_DSH_compat (MHTSUMUnion _ _ _) _ _ _ _ _ => unshelve eapply HTSUMUnion_MSH_DSH_compat; intros
-    | |- MSH_DSH_compat (@MSHIReduction _ _ 0 _ _ _ _) _ _ _ _ _ => unshelve eapply IReduction_MSH_DSH_compat_O; intros
     | |- MSH_DSH_compat (@MSHIReduction _ _ (S _) _ _ _ _) _ _ _ _ _ => unshelve eapply IReduction_MSH_DSH_compat_S; intros
     | |- MSH_DSH_compat (MSHPick  _) _ _ _ _ _ => apply Pick_MSH_DSH_compat
     | |- MSH_DSH_compat (MSHInductor _ _ _) _ _ _ _ _ => unshelve eapply Inductor_MSH_DSH_compat; intros
@@ -330,7 +329,6 @@ Section MSHCOL_to_DSHCOL.
                                    _
                                    (DSHMemMap2 _ _ _ _ _)))))
           _] => apply IReduction_DSH_pure
-    | [ |- DSH_pure DSHNop _] => apply NOP_DSH_pure
     | [ |- DSH_pure (DSHSeq _ _) _] => apply Seq_DSH_pure
     | [ |- DSH_pure (DSHAssign _ _) _ ] => apply Assign_DSH_pure
     | [ |- DSH_pure (DSHPower _ _ _ _ _) _] => apply Power_DSH_pure
