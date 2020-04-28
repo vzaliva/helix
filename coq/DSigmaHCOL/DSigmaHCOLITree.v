@@ -539,22 +539,21 @@ Module MDSigmaHCOLITree
         evalDSHIMap mem n f σ m1 m2 ≡ inl msg ->
         interp_Mem_Fails  (denoteDSHIMap n f σ m1 m2) mem.
     Proof.
-      (*
       unfold interp_Mem_Fails.
       induction n as [| n IH]; cbn; intros f σ m1 m2 id HEval; unfold_Mem; cbn in HEval.
       - inl_inr.
       - inv_eval.
         + eexists; left.
           state_steps; match_failure.
-        + apply Denote_Eval_Equiv_Aexp_Fails in Heqs0; destruct Heqs0 as (?msg & [Heqs0 | Heqs0]); unfold interp_Mem in Heqs0.
-          * eexists; left; cbn; state_steps; rewrite Heqs0; match_failure.
-          * eexists; left; cbn; state_steps; rewrite Heqs0; match_failure.
-        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqs0.
+        + exists id; right; state_steps. match_failure.
+        + apply Denote_Eval_Equiv_Aexp_Fails in Heqs1; destruct Heqs1 as (?msg & [Heqs1 | Heqs1]); unfold interp_Mem in Heqs1.
+          * eexists; left; cbn; state_steps; rewrite Heqs1; match_failure.
+          * eexists; left; cbn; state_steps; rewrite Heqs1; match_failure.
+        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqs1.
           apply IH in HEval; destruct HEval as [msg' [EQ | EQ]]; eexists; [left | right].
-          * state_steps; rewrite Heqs0; state_steps; rewrite EQ; reflexivity.
-          * state_steps; rewrite Heqs0; state_steps; rewrite EQ; reflexivity.
-*)
-    Admitted.
+          * state_steps; rewrite Heqs1; state_steps; rewrite EQ; reflexivity.
+          * state_steps; rewrite Heqs1; state_steps; rewrite EQ; reflexivity.
+    Qed.
 
     Lemma Denote_Eval_Equiv_BinCType_Succeeds: forall mem σ f i a b v,
         evalIBinCType mem σ f i a b ≡ inr v ->
