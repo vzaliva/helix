@@ -114,7 +114,8 @@ wc:
 	coqwc $(MYVFILES)
 
 print-unused: graph.dpd
-	dpdusage -with-path graph.dpd | sort
+	dpdusage -with-path graph.dpd | grep -v 'Memory.NM\|Memory.NP\|Memory.NE\|Memory.NS\|SigmaHCOLRewriting.NM' \
+				      | grep -v 'MemoryOfCarrierA\|DSHCOLOnCarrierA\|MDSHCOLOnFloat64\|Int64asNT\|StringOT\|CarrierA_as_OT' | sort
 
 %.vo: %.v
 	$(MAKECOQ) $@
