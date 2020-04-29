@@ -890,32 +890,6 @@ Module MDSigmaHCOLEval
     - proper_eval2 IHEe1 IHEe2.
   Qed.
 
-  Instance evalIUnCType_proper
-         (mem: memory)
-         (σ: evalContext)
-         (f: AExpr)
-         (i: NT.t):
-    Proper
-      ((=) ==> (=)) (evalIUnCType mem σ f i).
-  Proof.
-    simpl_relation.
-    unfold evalIUnCType.
-    apply evalAexp_proper.
-    -
-      reflexivity.
-    -
-      unfold equiv, ListSetoid.List_equiv.
-      constructor.
-      constructor.
-      assumption.
-      constructor.
-      constructor.
-      reflexivity.
-      reflexivity.
-    -
-      reflexivity.
-  Qed.
-
   Instance evalBinCType_proper:
     Proper ((=) ==> (=) ==> (=) ==> (=)) evalBinCType.
   Proof.
@@ -933,33 +907,36 @@ Module MDSigmaHCOLEval
       auto.
   Qed.
 
-  Instance evalIBinCType_proper
-         (mem: memory)
-         (σ: evalContext)
-         (f: AExpr)
-         (i: NT.t):
-    Proper
-      ((=) ==> (=) ==> (=)) (evalIBinCType mem σ f i).
+  Global Instance evalIUnCType_proper :
+    Proper ((=) ==> (=) ==> (=) ==> (=) ==> (=) ==> (=)) evalIUnCType.
   Proof.
-    simpl_relation.
+    intros mem1 mem2 ME σ' σ ΣE f' f FE i' i IE a' a AE.
+    unfold evalIUnCType.
+    enough (T : DSHCTypeVal a' :: DSHnatVal i' :: σ' = DSHCTypeVal a :: DSHnatVal i :: σ)
+      by (rewrite T, ME, FE; reflexivity).
+    f_equiv.
+    constructor 2.
+    assumption.
+    constructor.
+    constructor; assumption.
+    rewrite ΣE; reflexivity.
+  Qed.
+
+  Global Instance evalIBinCType_proper :
+    Proper ((=) ==> (=) ==> (=) ==> (=) ==> (=) ==> (=) ==> (=)) evalIBinCType.
+  Proof.
+    intros mem1 mem2 ME σ' σ ΣE f' f FE i' i IE a' a AE b' b BE.
     unfold evalIBinCType.
-    apply evalAexp_proper.
-    -
-      reflexivity.
-    -
-      unfold equiv, ListSetoid.List_equiv.
-      constructor.
-      constructor.
-      assumption.
-      constructor.
-      constructor.
-      assumption.
-      constructor.
-      constructor.
-      reflexivity.
-      reflexivity.
-    -
-      reflexivity.
+    enough (T : DSHCTypeVal b' :: DSHCTypeVal a' :: DSHnatVal i' :: σ' =
+                DSHCTypeVal b  :: DSHCTypeVal a  :: DSHnatVal i  :: σ)
+      by (rewrite ME, T, FE; reflexivity).
+    f_equiv.
+    constructor; assumption.
+    f_equiv.
+    constructor; assumption.
+    constructor.
+    constructor; assumption.
+    rewrite ΣE; reflexivity.
   Qed.
 
   Fixpoint NExpr_var_subst
@@ -1267,6 +1244,487 @@ Module MDSigmaHCOLEval
         auto.
         rewrite Heqs3, H0.
         reflexivity.
+  Qed.
+
+  Global Instance memory_set_proper :
+    Proper ((=) ==> (=) ==> (=)) memory_set.
+  Proof.
+    intros mem1 mem2 ME k k' KE mb1 mb2 BE.
+    cbv in KE; subst k'.
+    intros j.
+    unfold memory_set.
+    destruct (dec_eq_nat j k).
+    repeat rewrite NP.F.add_eq_o by congruence; rewrite BE; reflexivity.
+    repeat rewrite NP.F.add_neq_o by congruence; apply ME.
+  Qed.
+  
+  Global Instance evalDSHPower_Proper :
+    Proper ((=) ==> (=) ==> (=) ==> (=) ==> (=) ==> (=) ==> (=) ==> (=) ==> (=)) evalDSHPower.
+  Proof.
+    unfold Proper, respectful.
+    intros m m' M σ σ' Σ n n' N
+           f f' F x x' X y y' Y
+           xo xo' XO yo yo' YO.
+    inversion_clear N; inversion_clear XO; inversion_clear YO.
+    clear n xo yo.
+    rename n' into n, xo' into xo, yo' into yo.
+    generalize dependent y.
+    generalize dependent y'.
+    induction n; intros.
+    -
+      cbn.
+      rewrite Y.
+      reflexivity.
+    -
+      cbn.
+      repeat break_match; try constructor.
+      all: err_eq_to_equiv_hyp.
+      
+      (* memory lookups *)
+      all: try rewrite X in Heqs.
+      all: try rewrite Y in Heqs0.
+      all: try rewrite Heqs in *.
+      all: try rewrite Heqs0 in *.
+      all: try inl_inr; repeat inl_inr_inv.
+      all: rewrite Heqs2 in *.
+      all: rewrite Heqs3 in *.
+      
+      (* AExp evaluation (evalBinCType *)
+      all: rewrite M, Σ, F in Heqs1.
+      all: rewrite Heqs1 in Heqs4.
+      all: try inl_inr; repeat inl_inr_inv.
+      
+      eapply IHn.
+      rewrite Y, Heqs4.
+      reflexivity.
+  Qed.
+  
+  Global Instance evalDSHIMap_mem_proper :
+    Proper ((=) ==> (≡) ==> (≡) ==> (≡) ==> (≡) ==> (≡) ==> (=)) evalDSHIMap.
+  Proof.
+    intros mem1 mem2 ME n' n NE f' f FE σ' σ Σ xb' xb XBE yb' yb YBE.
+    subst.
+    generalize dependent yb.
+    induction n; [reflexivity |].
+    intros.
+    cbn.
+    repeat break_match; try (repeat constructor; fail).
+    all: eq_to_equiv_hyp; err_eq_to_equiv_hyp.
+    all: rewrite ME in *.
+    all: rewrite Heqs1 in Heqs2; try inl_inr; inl_inr_inv.
+    rewrite Heqs2.
+    apply IHn.
+  Qed.
+  
+  Global Instance evalDSHBinOp_mem_proper :
+    Proper ((=) ==> (≡) ==> (≡) ==> (≡) ==> (≡) ==> (≡) ==> (≡) ==> (=)) evalDSHBinOp.
+  Proof.
+    intros mem1 mem2 ME n' n NE off' off OFFE f' f FE σ' σ ΣE x' x XE y' y YE.
+    subst.
+    generalize dependent y.
+    induction n; [reflexivity |].
+    intros.
+    cbn.
+    repeat break_match; try (repeat constructor; fail).
+    all: err_eq_to_equiv_hyp; rewrite ME in *; try some_none.
+    all: rewrite Heqs2 in Heqs3; try inl_inr; inl_inr_inv.
+    rewrite Heqs3.
+    apply IHn.
+  Qed.
+  
+  Global Instance evalDSHMap2_proper :
+    Proper ((=) ==> (=) ==> (=) ==> (=) ==> (=) ==> (=) ==> (=)) evalDSHMap2.
+  Proof.
+    intros m1 m2 M n1 n2 N df1 df2 DF σ1 σ2 Σ l1 l2 L r1 r2 R y1 y2 Y.
+    cbv in N; subst; rename n2 into n.
+    generalize dependent y2.
+    generalize dependent y1.
+    induction n.
+    -
+      intros.
+      cbn.
+      rewrite Y.
+      reflexivity.
+    -
+      intros.
+      cbn [evalDSHMap2].
+      generalize ("Error reading 2nd arg memory in evalDSHMap2 @" ++
+                                                                  Misc.string_of_nat n ++ " in " ++ string_of_mem_block_keys r1)%string.
+      generalize ("Error reading 2nd arg memory in evalDSHMap2 @" ++
+                                                                  Misc.string_of_nat n ++ " in " ++ string_of_mem_block_keys r2)%string.
+      generalize ("Error reading 1st arg memory in evalDSHMap2 @" ++
+                                                                  Misc.string_of_nat n ++ " in " ++ string_of_mem_block_keys l1)%string.
+      generalize ("Error reading 1st arg memory in evalDSHMap2 @" ++
+                                                                  Misc.string_of_nat n ++ " in " ++ string_of_mem_block_keys l2)%string.
+      intros.
+      cbn.
+      assert (mem_lookup_err s0 n l1 = mem_lookup_err s n l2).
+      {
+        clear - L.
+        unfold mem_lookup_err, trywith.
+        repeat break_match; try constructor.
+        all: eq_to_equiv_hyp.
+        all: rewrite L in *.
+        all: rewrite Heqo in Heqo0; try some_none.
+        some_inv.
+        assumption.
+      }
+      assert (mem_lookup_err s2 n r1 = mem_lookup_err s1 n r2).
+      {
+        clear - R.
+        unfold mem_lookup_err, trywith.
+        repeat break_match; try constructor.
+        all: eq_to_equiv_hyp.
+        all: rewrite R in *.
+        all: rewrite Heqo in Heqo0; try some_none.
+        some_inv.
+        assumption.
+      }
+      repeat break_match; try inl_inr; repeat inl_inr_inv; try constructor.
+      +
+        err_eq_to_equiv_hyp.
+        rewrite H, H0, DF, M, Σ in Heqs1.
+        inl_inr.
+      +
+        err_eq_to_equiv_hyp.
+        rewrite H, H0, DF, M, Σ in Heqs1.
+        inl_inr.
+      +
+        apply IHn.
+        err_eq_to_equiv_hyp.
+        rewrite H, H0, DF, M, Σ in Heqs1.
+        rewrite Heqs1 in Heqs5.
+        inl_inr_inv.
+        rewrite Heqs5, Y.
+        reflexivity.
+  Qed.
+
+  Lemma memory_lookup_err_inr_Some_eq
+        (msg : string)
+        (m : memory)
+        (k : mem_block_id)
+        (mb : mem_block)
+    :
+      memory_lookup_err msg m k ≡ inr mb <->
+      memory_lookup m k ≡ Some mb.
+  Proof.
+    unfold memory_lookup_err, trywith.
+    split; intros.
+    break_match; try inl_inr.
+    inversion H.
+    reflexivity.
+    rewrite H.
+    reflexivity.
+  Qed.
+  
+  Lemma memory_lookup_err_inl_None_eq
+        (msg msg' : string)
+        (m : memory)
+        (k : mem_block_id)
+    :
+      memory_lookup_err msg m k ≡ inl msg' ->
+      memory_lookup m k ≡ None.
+  Proof.
+    unfold memory_lookup_err, trywith.
+    intros.
+    break_match; try inl_inr.
+    reflexivity.
+  Qed.
+
+  Lemma memory_lookup_err_inl_None
+        (msg msg' : string)
+        (mem : memory)
+        (n : mem_block_id)
+    :
+      memory_lookup_err msg mem n = inl msg' <->
+      memory_lookup mem n = None.
+  Proof.
+    unfold memory_lookup_err, trywith.
+    split; intros.
+    all: break_match.
+    all: inversion H.
+    all: constructor.
+  Qed.
+  
+  Lemma memory_lookup_err_inr_Some
+        (msg : string)
+        (mem : memory)
+        (n : mem_block_id)
+        (mb : mem_block)
+    :
+      memory_lookup_err msg mem n = inr mb <->
+      memory_lookup mem n = Some mb.
+  Proof.
+    unfold memory_lookup_err, trywith.
+    split; intros.
+    all: break_match.
+    all: inversion H.
+    all: rewrite H2.
+    all: reflexivity.
+  Qed.
+
+  Ltac memory_lookup_err_to_option :=
+    repeat
+      match goal with
+      | [ H: memory_lookup_err _ _ _ = inr _ |- _] =>
+        apply memory_lookup_err_inr_Some in H
+      | [ H: memory_lookup_err _ _ _ = inl _ |- _] =>
+        apply memory_lookup_err_inl_None in H
+      | [ H: memory_lookup_err _ _ _ ≡ inr _ |- _] =>
+        apply memory_lookup_err_inr_Some_eq in H
+      | [ H: memory_lookup_err _ _ _ ≡ inl _ |- _] =>
+        apply memory_lookup_err_inl_None_eq in H
+      end.
+
+  Lemma memory_next_key_struct
+        (m m' : memory):
+    (forall k, mem_block_exists k m <-> mem_block_exists k m') ->
+    memory_next_key m = memory_next_key m'.
+  Proof.
+    intros H.
+    unfold memory_next_key.
+    destruct (NS.max_elt (memory_keys_set m)) as [k1|] eqn:H1;
+      destruct (NS.max_elt (memory_keys_set m')) as [k2|] eqn:H2.
+    -
+      f_equiv.
+      cut(¬ k1 < k2 /\ ¬ k2 < k1);[lia|].
+      split.
+      +
+        apply (NS.max_elt_2 H1), memory_keys_set_In, H.
+        apply NS.max_elt_1, memory_keys_set_In in H2.
+        apply H2.
+      +
+        apply (NS.max_elt_2 H2), memory_keys_set_In, H.
+        apply NS.max_elt_1, memory_keys_set_In in H1.
+        apply H1.
+    - exfalso.
+      apply NS.max_elt_1 in H1.
+      apply NS.max_elt_3 in H2.
+      apply memory_keys_set_In in H1.
+      apply H in H1.
+      apply memory_keys_set_In in H1.
+      apply  NSP.empty_is_empty_1 in H2.
+      rewrite H2 in H1.
+      apply NSP.FM.empty_iff in H1.
+      tauto.
+    - exfalso.
+      apply NS.max_elt_1 in H2.
+      apply NS.max_elt_3 in H1.
+      apply memory_keys_set_In in H2.
+      apply H in H2.
+      apply memory_keys_set_In in H2.
+      apply  NSP.empty_is_empty_1 in H1.
+      rewrite H1 in H2.
+      apply NSP.FM.empty_iff in H2.
+      tauto.
+    -
+      reflexivity.
+  Qed.
+
+  Global Instance memory_remove_proper :
+    Proper ((=) ==> (=) ==> (=)) memory_remove.
+  Proof.
+    intros m1 m2 ME k1 k2 KE.
+    unfold memory_remove, equiv, memory_Equiv.
+    intros k.
+    destruct (dec_eq_nat k1 k).
+    -
+      assert (k2 ≡ k) by (cbv in KE; congruence).
+      repeat rewrite NP.F.remove_eq_o by assumption.
+      reflexivity.
+    -
+      assert (k2 ≢ k) by (cbv in KE; congruence).
+      repeat rewrite NP.F.remove_neq_o by assumption.
+      apply ME.
+  Qed.
+  
+  Global Instance evalDSHOperator_mem_proper :
+    Proper ((≡) ==> (≡) ==> (=) ==> (≡) ==> (=)) evalDSHOperator.
+  Proof.
+    intros σ' σ ΣE dop' dop DE mem1 mem2 ME fuel' fuel FE.
+    subst.
+    
+    generalize dependent mem2.
+    generalize dependent mem1.
+    generalize dependent fuel.
+    generalize dependent σ.
+    induction dop.
+    -
+      intros.
+      destruct fuel; [reflexivity |].
+      cbn.
+      repeat f_equiv.
+      assumption.
+    -
+      intros.
+      destruct fuel; [reflexivity |].
+      cbn.
+      repeat (break_match; try (repeat constructor; fail)).
+      all: memory_lookup_err_to_option.
+      all: eq_to_equiv_hyp; err_eq_to_equiv_hyp.
+      all: rewrite ME in *; try some_none.
+      all: rewrite Heqs1 in Heqs6; some_inv.
+      all: rewrite Heqs6 in Heqs5.
+      all: rewrite Heqs5 in Heqs8.
+      all: try inl_inr; inl_inr_inv.
+      rewrite Heqs8.
+      rewrite Heqs2 in Heqs7; some_inv.
+      rewrite Heqs7.
+      reflexivity.
+    -
+      intros.
+      destruct fuel; [reflexivity |].
+      cbn.
+      repeat (break_match; try (repeat constructor; fail)).
+      all: memory_lookup_err_to_option.
+      all: eq_to_equiv_hyp; err_eq_to_equiv_hyp.
+      all: rewrite ME in *; try some_none.
+      all: rewrite Heqs1 in Heqs4; some_inv; rewrite Heqs4 in *.
+      all: rewrite Heqs2 in Heqs5; some_inv; rewrite Heqs5 in *.
+      all: rewrite Heqs3 in Heqs6; try inl_inr; inl_inr_inv.
+      do 2 f_equiv.
+      rewrite Heqs6.
+      reflexivity.
+    -
+      intros.
+      destruct fuel; [reflexivity |].
+      cbn.
+      repeat (break_match; try (repeat constructor; fail)).
+      all: memory_lookup_err_to_option.
+      all: eq_to_equiv_hyp; err_eq_to_equiv_hyp.
+      all: rewrite ME in *; try some_none.
+      all: rewrite Heqs1 in Heqs4; some_inv; rewrite Heqs4 in *.
+      all: rewrite Heqs2 in Heqs5; some_inv; rewrite Heqs5 in *.
+      all: rewrite Heqs3 in Heqs6; try inl_inr; inl_inr_inv.
+      do 2 f_equiv.
+      rewrite Heqs6.
+      reflexivity.
+    -
+      intros.
+      destruct fuel; [reflexivity |].
+      cbn.
+      repeat (break_match; try (repeat constructor; fail)).
+      all: memory_lookup_err_to_option.
+      all: eq_to_equiv_hyp; err_eq_to_equiv_hyp.
+      all: rewrite ME in *; try some_none.
+      all: rewrite Heqs2 in Heqs6; some_inv; rewrite Heqs6 in *.
+      all: rewrite Heqs3 in Heqs7; some_inv; rewrite Heqs7 in *.
+      all: rewrite Heqs4 in Heqs8; some_inv; rewrite Heqs8 in *.
+      all: rewrite Heqs5 in Heqs9; try inl_inr; inl_inr_inv.
+      do 2 f_equiv.
+      rewrite Heqs9.
+      reflexivity.
+    -
+      intros.
+      destruct fuel; [reflexivity |].
+      cbn.
+      repeat (break_match; try (repeat constructor; fail)).
+      all: memory_lookup_err_to_option.
+      all: eq_to_equiv_hyp; err_eq_to_equiv_hyp.
+      all: rewrite ME in *; try some_none.
+      all: rewrite Heqs1 in Heqs7; some_inv; rewrite Heqs7 in *.
+      all: rewrite Heqs2 in Heqs8; some_inv; rewrite Heqs8 in *.
+      all: rewrite Heqs6 in Heqs9; try inl_inr; inl_inr_inv.
+      do 2 f_equiv.
+      rewrite Heqs9.
+      reflexivity.
+    -
+      intros.
+      
+      generalize dependent fuel.
+      induction n.
+      +
+        intros.
+        destruct fuel; [reflexivity |].
+        cbn.
+        rewrite ME.
+        reflexivity.
+      +
+        intros.
+        destruct fuel; [reflexivity |].
+        cbn.
+        specialize (IHn fuel).
+        repeat break_match;
+          try some_none; repeat some_inv;
+            try inl_inr; repeat inl_inr_inv.
+        repeat constructor.
+        apply IHdop.
+        assumption.
+    -
+      intros.
+      destruct fuel; [reflexivity |].
+      cbn.
+      replace (memory_next_key mem1) with (memory_next_key mem2).
+      2: {
+        apply memory_next_key_struct.
+        intros.
+        repeat rewrite memory_is_set_is_Some.
+        assert (memory_lookup mem1 k = memory_lookup mem2 k) by apply ME.
+        unfold is_Some.
+        repeat break_match; try some_none; intuition.
+      }
+      
+      assert (evalDSHOperator (DSHPtrVal (memory_next_key mem2) size :: σ) dop
+                              (memory_set mem1 (memory_next_key mem2) mem_empty) fuel =
+              evalDSHOperator (DSHPtrVal (memory_next_key mem2) size :: σ) dop
+                              (memory_set mem2 (memory_next_key mem2) mem_empty) fuel)
+        by (apply IHdop; rewrite ME; reflexivity).
+      
+      destruct evalDSHOperator eqn:D1 at 1;
+        destruct evalDSHOperator eqn:D2 at 1;
+        rewrite D1, D2 in *; try some_none; some_inv.
+      repeat break_match; try inl_inr. 
+      repeat constructor.
+      do 2 f_equiv.
+      inl_inr_inv.
+      rewrite H.
+      reflexivity.
+    -
+      intros.
+      destruct fuel; [reflexivity |].
+      cbn.
+      repeat break_match; try (repeat constructor; fail).
+      all: err_eq_to_equiv_hyp; eq_to_equiv_hyp.
+      all: memory_lookup_err_to_option.
+      all: rewrite ME in *; try some_none.
+      rewrite Heqs0 in Heqs1; some_inv.
+      do 3 f_equiv.
+      intros k.
+      unfold mem_union.
+      repeat rewrite NP.F.map2_1bis by reflexivity.
+      break_match; try reflexivity.
+      apply Heqs1.
+    -
+      intros.
+      destruct fuel; [reflexivity |].
+      cbn.
+      repeat break_match; try (repeat constructor; fail).
+      all: err_eq_to_equiv_hyp.
+      all: memory_lookup_err_to_option.
+      all: rewrite ME in *; try some_none.
+      rewrite Heqs1 in Heqs3; some_inv; rewrite Heqs3 in *.
+      rewrite Heqs2 in Heqs4; some_inv; rewrite Heqs4 in *.
+      f_equiv.
+      f_equiv.
+      f_equiv.
+      intros k; specialize (Heqs3 k); specialize (Heqs4 k).
+      unfold mem_union.
+      repeat rewrite NP.F.map2_1bis by reflexivity.
+      repeat break_match; try some_none.
+      some_inv; rewrite Heqs3; reflexivity.
+      assumption.
+    -
+      intros.
+      destruct fuel; [reflexivity |].
+      cbn.
+      assert (evalDSHOperator σ dop1 mem1 fuel = evalDSHOperator σ dop1 mem2 fuel)
+        by (apply IHdop1; assumption).
+      repeat break_match;
+        try some_none; repeat some_inv;
+          try inl_inr; repeat inl_inr_inv.
+      repeat constructor.
+      apply IHdop2.
+      assumption.
   Qed.
 
   Section IncrEval.
