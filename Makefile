@@ -97,6 +97,7 @@ depgraph.vcmd: $(VOFILES)
 	echo "Require dpdgraph.dpdgraph." > depgraph.vcmd
 	echo "Require $(MYVFILES:.v=)." >> depgraph.vcmd
 	echo "Print FileDependGraph $(MYVFILES:.v=)." >> depgraph.vcmd
+	sed -ie 's/coq\///g; s/\//./g' depgraph.vcmd
 
 graph: graph.svg
 
@@ -107,7 +108,7 @@ graph.dot: graph.dpd
 	dpd2dot graph.dpd
 
 graph.dpd: depgraph.vcmd
-	coqtop  -R "." $(LIBNAME) -I "." < depgraph.vcmd
+	coqtop $(COQINCLUDES) < depgraph.vcmd
 
 wc:
 	coqwc $(MYVFILES)
