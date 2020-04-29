@@ -74,7 +74,7 @@ clean-ml:
 clean: clean-ml
 	rm -f `find . -name \*~`
 	-$(MAKECOQ) clean
-	rm -rf `find . -name .coq-native -o -name .\*.aux -o -name \*.time -o -name \*.cache`
+	rm -rf `find . -name .coq-native -o -name .\*.aux -o -name \*.time -o -name \*.cache -o -name \*.timing`
 	rm -f graph.dpd graph.dot graph.svg
 	rm -f moddep.dot moddep.svg
 
@@ -128,3 +128,10 @@ moddep.dot: Makefile
 moddep.svg: moddep.dot Makefile
 	dot -Tsvg moddep.dot > moddep.svg
 
+timing: .depend Makefile.coq
+	$(MAKECOQ) TIMING=1
+
+benchmark: timing
+	find .  -name "*.v.timing" -exec awk -F " " \
+		'{print $$6 "s @" $$2 "-" $$4 " " $$5 " " FILENAME}' \
+		{} \; | sort -n | column -t | tail -n 50
