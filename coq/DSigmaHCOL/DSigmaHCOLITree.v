@@ -723,36 +723,21 @@ Module MDSigmaHCOLITree
         auto.
     Qed.
 
-    (* Helper lemma to extract the assurance that loop range is in bound if
-       [eval_Loop_for_i_to_N] succeeds *)
-    Lemma eval_Loop_for_i_to_N_from_nat_i:
-      ∀ {op : DSHOperator}
-        {i N: nat}
-        {nn}
-        {σ : evalContext} {mem mem' : memory} {fuel : nat},
-        i <= N ->
-        from_nat N ≡ inr nn ->
-        eval_Loop_for_i_to_N σ op i N mem (S fuel) ≡ Some (inr mem') ->
-        exists ii, from_nat i ≡ inr ii.
+    (* Extend [from_nat_lt] to [le] *)
+    Lemma from_nat_le:
+      forall x xi y,
+        from_nat x ≡ inr xi ->
+        y<=x ->
+        exists yi, from_nat y ≡ inr yi.
     Proof.
-      intros op i N nn σ mem mem' fuel H H0 E.
-      cbn in E.
-      repeat break_match_hyp; try some_none; try some_inv; subst.
+      intros.
+      destruct (Nat.eq_dec x y).
       -
-        inv H.
-        eexists.
-        eauto.
-      -
-        apply beq_nat_true in Heqb.
         subst.
         eexists.
         eauto.
       -
-        apply beq_nat_false in Heqb.
-        eapply from_nat_lt in H0.
-        destruct H0.
-        eexists.
-        eauto.
+        eapply from_nat_lt; eauto.
         lia.
     Qed.
 
@@ -765,43 +750,29 @@ Module MDSigmaHCOLITree
         (i N: nat)
         (σ : evalContext) (mem : memory) (fuel : nat) (mem' : memory) {nn},
         from_nat N ≡ inr nn ->
-        i <= N ->
-        eval_Loop_for_i_to_N σ op i N mem (S fuel) ≡ Some (inr mem')
-        → interp_state (case_ Mem_handler pure_state) (denote_Loop_for_i_to_N σ op i N) mem ≈ ret (mem', ()).
+        i < (S N) ->
+        eval_Loop_for_i_to_N σ op i (S N) mem (S fuel) ≡ Some (inr mem')
+        → interp_state (case_ Mem_handler pure_state) (denote_Loop_for_i_to_N σ op i (S N)) mem ≈ ret (mem', ()).
     Proof.
       intros op IHop i N σ mem fuel mem' nn NN ineq HEval.
-      remember (N - i) as k.
+      remember ((S N) - i) as k.
       revert Heqk σ mem mem' HEval.
-      revert i ineq.
+      revert i ineq NN.
       induction k as [| k IH].
-      - intros i ineq EQ.
-        assert (N ≡ i) by lia; clear EQ ineq; subst.
+      - intros i ineq NN EQ.
+        assert ((S N) ≡ i) by lia; clear EQ ineq; subst.
         intros.
-        destruct i as [| i].
-        + cbn in HEval.
-          inv HEval.
-          unfold denote_Loop_for_i_to_N.
-          iter_unfold_pointed.
-          state_steps.
-          reflexivity.
-        + cbn in HEval.
-          rewrite Nat.eqb_refl in HEval.
-          inv HEval.
-          unfold interp_Mem, denote_Loop_for_i_to_N.
-          iter_unfold_pointed.
-          state_steps.
-          rewrite Nat.eqb_refl.
-          state_steps.
-          reflexivity.
-      - intros i ineq EQ σ mem mem' HEval.
-        destruct N as [| N].
-        + cbn in HEval; inv HEval.
-          unfold denote_Loop_for_i_to_N.
-          iter_unfold_pointed.
-          state_steps.
-          destruct (i =? 0)%nat eqn:EQ'; [clear EQ'| lia].
-          state_steps; reflexivity.
-        + destruct (i =? S N)%nat eqn:EQ'.
+        cbn in HEval.
+        rewrite Nat.eqb_refl in HEval.
+        inv HEval.
+        unfold interp_Mem, denote_Loop_for_i_to_N.
+        iter_unfold_pointed.
+        state_steps.
+        rewrite Nat.eqb_refl.
+        state_steps.
+        reflexivity.
+      - intros i ineq NN EQ σ mem mem' HEval.
+        destruct (i =? S N)%nat eqn:EQ'.
           * unfold eval_Loop_for_i_to_N in HEval; rewrite EQ' in HEval.
             inv HEval.
             unfold denote_Loop_for_i_to_N.
@@ -819,9 +790,10 @@ Module MDSigmaHCOLITree
 
             assert(exists ii : t, from_nat i ≡ inr ii) as II.
             {
-              unshelve eapply (eval_Loop_for_i_to_N_from_nat_i _ _ HEval); eauto.
+              assert(i<=N) by lia.
+              eapply from_nat_le;
+              eauto.
             }
-
             destruct II as [ii II].
             rewrite II.
             cbn.
@@ -834,28 +806,45 @@ Module MDSigmaHCOLITree
             rewrite interp_state_bind.
             rewrite Eval_body.
             state_steps.
-            apply IH in Eval_tail; try lia.
-            rewrite Eval_tail.
-            reflexivity.
-    Qed.
+            apply IH in Eval_tail;try lia;auto.
+            (* rewrite Eval_tail.
+               reflexivity. *)
+            admit.
+    Admitted.
 
-    Lemma evalDSHLoop_N_in_range
+    (* NOTE: Could not be proven for [N]! *)
+    Lemma evalDSHLoop_SN_in_range
           {op : DSHOperator} {N : nat} {σ : evalContext} {mem : memory}
           {fuel : nat} {mem' : memory}:
-      evalDSHOperator σ (DSHLoop N op) mem fuel ≡ Some (inr mem')
+      evalDSHOperator σ (DSHLoop (S N) op) mem fuel ≡ Some (inr mem')
       -> exists nn, from_nat N ≡ inr nn.
     Proof.
       intros H.
-      destruct fuel; cbn in H; [some_none|].
-      break_match.
+      destruct fuel; [cbn in H; some_none|].
+
+      revert σ mem mem' fuel op H.
+      induction N; intros.
       -
         apply from_nat_zero.
       -
-        break_match.
-        + some_inv.
+        cbn in *.
+        repeat break_match; try some_none; try some_inv; subst.
         +
-          subst.
-    Admitted.
+          apply (from_nat_lt (S N) t0 N) in Heqs.
+          destruct Heqs.
+          congruence.
+          lia.
+        +
+          rename Heqo into H1.
+          destruct fuel; [cbn in H1; some_none|].
+          cbn in H1.
+          repeat break_match_hyp; try some_none; try some_inv; subst.
+          specialize (IHN σ mem m0 fuel op).
+          rewrite Heqo in IHN.
+          inv Heqs1.
+          eexists.
+          auto.
+    Qed.
 
     Lemma Loop_is_Iter:
       ∀ (op : DSHOperator)
@@ -867,11 +856,22 @@ Module MDSigmaHCOLITree
         interp_state (case_ Mem_handler pure_state) (denoteDSHOperator σ (DSHLoop N op)) mem ≈ ret (mem', ()).
     Proof.
       intros.
-      pose proof (evalDSHLoop_N_in_range H) as NN.
-      destruct NN as [nn NN].
-      apply eval_Loop_for_0_to_N_Succeeds in H.
-      rewrite  <- denote_Loop_for_0_to_N.
-      eapply Loop_is_Iter_aux; eauto; lia.
+      destruct N.
+      -
+        cbn in H.
+        some_inv.
+        subst.
+        cbn.
+        iter_unfold_pointed.
+        state_steps.
+        reflexivity.
+      -
+        pose proof (evalDSHLoop_SN_in_range H) as NN.
+        destruct NN as [nn NN].
+        apply eval_Loop_for_0_to_N_Succeeds in H.
+        rewrite  <- denote_Loop_for_0_to_N.
+        eapply Loop_is_Iter_aux;eauto.
+        lia.
     Qed.
 
     Lemma Denote_Eval_Equiv_DSHMap2_Succeeds:
