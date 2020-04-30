@@ -259,5 +259,18 @@ Module MInt64asNT <: NType.
     eauto.
   Qed.
 
+  Lemma from_nat_zero: exists z, from_nat O ≡ inr z.
+  Proof.
+    exists (Int64.mkint (Int64.Z_mod_modulus BinNums.Z0) (Int64.Z_mod_modulus_range' BinNums.Z0)).
+    cbn.
+    pose proof (Int64.unsigned_range Int64.zero) as [H0 H1].
+    break_match.
+    - f_equiv.
+      f_equiv.
+      apply proof_irrelevance.
+    - contradict n.
+      lia.
+  Qed.
+
 
 End MInt64asNT.

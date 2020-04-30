@@ -48,4 +48,8 @@ Module Type NType.
       (y<x)%nat ->
       exists yi, from_nat y ≡ inr yi.
 
+  (* 0 is always convertible *)
+  Parameter from_nat_zero: exists z, from_nat O ≡ inr z.
+
+
 End NType.

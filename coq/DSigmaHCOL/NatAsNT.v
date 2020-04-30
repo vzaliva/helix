@@ -68,4 +68,10 @@ Module MNatAsNT <: NType.
     reflexivity.
   Qed.
 
+  Lemma from_nat_zero: exists z, from_nat O ≡ inr z.
+  Proof.
+    eexists.
+    auto.
+  Qed.
+
 End MNatAsNT.
