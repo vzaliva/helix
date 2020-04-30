@@ -520,21 +520,21 @@ Module MDSigmaHCOLITree
       simpl; rewrite Nat.eqb_refl; reflexivity.
     Qed.
 
-    (* Not sure how to reformulate this for NT.t instead of nat,so
-       I comment it out completely
-    Lemma eval_Loop_for_i_to_N_invert: forall σ i N op fuel mem_i mem_f,
+    Lemma eval_Loop_for_i_to_N_invert: forall σ i ii N op fuel mem_i mem_f,
         i < N ->
+        NT.from_nat i ≡ inr ii ->
         eval_Loop_for_i_to_N σ op i N mem_i fuel ≡ Some (inr mem_f) ->
         exists mem_aux,
-          evalDSHOperator (DSHnatVal i :: σ) op mem_i fuel ≡ Some (inr mem_aux) /\
+          evalDSHOperator (DSHnatVal ii :: σ) op mem_i fuel ≡ Some (inr mem_aux) /\
           eval_Loop_for_i_to_N σ op (S i) N mem_aux fuel ≡ Some (inr mem_f).
     Proof.
       (* This proof is surprisingly painful to go through *)
       intros.
       (* Induction on the number of steps remaining *)
       remember (N - i) as k.
-      revert σ fuel i N Heqk mem_i mem_f H0 H.
-      induction k as [| k IH]; intros σ fuel i N EQ mem_i mem_f Heval ineq; [lia |].
+      revert σ fuel i ii N Heqk mem_i mem_f H0 H1 H.
+      induction k as [| k IH];
+      intros σ fuel i ii N EQ mem_i mem_f Hn Heval ineq;[lia|].
 
       (* N > 0 for us to be able to take a step *)
       destruct N as [| N]; [lia |].
@@ -556,18 +556,32 @@ Module MDSigmaHCOLITree
 
       destruct (i =? N)%nat eqn: EQ''; [apply beq_nat_true in EQ''; subst; clear IH |].
       - clear EQ' EQ ineq.
+        rewrite Hn in H0.
         destruct fuel as [| fuel]; [inv HEval' |].
         rewrite eval_Loop_for_N_to_N in HEval'.
         setoid_rewrite eval_Loop_for_N_to_N.
         inv HEval'.
         exists mem_f.
         split; [apply evalDSHOperator_fuel_monotone; auto | auto ].
-      - apply IH in HEval'; [| lia | apply beq_nat_false in EQ''; lia].
-        destruct HEval' as (mem_aux & STEP & TAIL).
-        exists mem_aux; split; [apply evalDSHOperator_fuel_monotone; auto |].
-        cbn; rewrite EQ'', TAIL; auto.
+        rewrite Hn.
+        auto.
+      - destruct (from_nat N) eqn:NN.
+        +
+          eapply IH in HEval';[|lia|eauto|apply beq_nat_false in EQ''; lia].
+          destruct HEval' as (mem_aux & STEP & TAIL).
+          exists mem_aux; split; [apply evalDSHOperator_fuel_monotone; auto |].
+          cbn; rewrite EQ'', TAIL.
+          rewrite NN.
+          reflexivity.
+        +
+          eapply IH in HEval';[|lia|eauto|apply beq_nat_false in EQ''; lia].
+          destruct HEval' as (mem_aux & STEP & TAIL).
+          exists mem_aux; split; [apply evalDSHOperator_fuel_monotone; auto |].
+          cbn; rewrite EQ'', TAIL.
+          rewrite NN.
+          reflexivity.
     Qed.
-     *)
+
     Lemma eval_Loop_for_i_to_N_i_gt_N σ op i N fuel mem:
       i > N ->
       eval_Loop_for_i_to_N σ op i N mem fuel ≡ eval_Loop_for_i_to_N σ op 0 N mem fuel.
