@@ -723,6 +723,45 @@ Module MDSigmaHCOLITree
         auto.
     Qed.
 
+    Axiom from_nat_lt:
+      forall x xi y,
+        from_nat x ≡ inr xi ->
+        y<x ->
+        exists yi, from_nat y ≡ inr yi.
+
+    (* Helper lemma to extract the assurance that loop range is in bound if
+       [eval_Loop_for_i_to_N] succeeds *)
+    Lemma eval_Loop_for_i_to_N_from_nat_i:
+      ∀ {op : DSHOperator}
+        {i N: nat}
+        {nn}
+        {σ : evalContext} {mem mem' : memory} {fuel : nat},
+        i <= N ->
+        from_nat N ≡ inr nn ->
+        eval_Loop_for_i_to_N σ op i N mem (S fuel) ≡ Some (inr mem') ->
+        exists ii, from_nat i ≡ inr ii.
+    Proof.
+      intros op i N nn σ mem mem' fuel H H0 E.
+      cbn in E.
+      repeat break_match_hyp; try some_none; try some_inv; subst.
+      -
+        inv H.
+        eexists.
+        eauto.
+      -
+        apply beq_nat_true in Heqb.
+        subst.
+        eexists.
+        eauto.
+      -
+        apply beq_nat_false in Heqb.
+        eapply from_nat_lt in H0.
+        destruct H0.
+        eexists.
+        eauto.
+        lia.
+    Qed.
+
     Lemma Loop_is_Iter_aux:
       ∀ (op : DSHOperator)
         (IHop: ∀ (σ : evalContext) (mem' : memory) (fuel : nat) (mem : memory),
@@ -735,7 +774,6 @@ Module MDSigmaHCOLITree
         eval_Loop_for_i_to_N σ op i N mem (S fuel) ≡ Some (inr mem')
         → interp_state (case_ Mem_handler pure_state) (denote_Loop_for_i_to_N σ op i N) mem ≈ ret (mem', ()).
     Proof.
-      (*
       intros op IHop i N σ mem fuel mem' ineq HEval.
       remember (N - i) as k.
       revert Heqk σ mem mem' HEval.
@@ -783,17 +821,27 @@ Module MDSigmaHCOLITree
             rewrite interp_state_bind.
             state_steps.
             apply beq_nat_false in EQ'.
-            apply eval_Loop_for_i_to_N_invert in HEval; [| lia].
+
+            assert(exists ii : t, from_nat i ≡ inr ii) as II.
+            {
+              (* apply (eval_Loop_for_i_to_N_from_nat_i _ _ HEval). *)
+              admit.
+            }
+            destruct II as [ii II].
+            rewrite II.
+            cbn.
+            apply eval_Loop_for_i_to_N_invert with (ii:=ii) in HEval; [|lia| apply II].
             destruct HEval as (mem_aux & Eval_body & Eval_tail).
             apply evalDSHOperator_fuel_monotone in Eval_body.
             apply IHop in Eval_body.
             unfold interp_Mem in Eval_body.
+            state_steps.
+            rewrite interp_state_bind.
             rewrite Eval_body.
             state_steps.
             apply IH in Eval_tail; try lia.
             rewrite Eval_tail.
             reflexivity.
-       *)
     Admitted.
 
     Lemma Loop_is_Iter:
