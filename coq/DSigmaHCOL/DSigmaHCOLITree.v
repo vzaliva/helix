@@ -586,21 +586,23 @@ Module MDSigmaHCOLITree
         lia.
     Qed.
 
-    (* Not sure how to reformulate this for NT.t instead of nat,so
-       I comment it out completely
-    Lemma eval_Loop_for_0_to_N:
-      forall σ body N mem fuel,
-        eval_Loop_for_i_to_N σ body 0 N mem fuel ≡ evalDSHOperator σ (DSHLoop N body) mem fuel.
+    Lemma eval_Loop_for_0_to_N_Succeeds:
+      forall σ body N mem mem' fuel,
+        evalDSHOperator σ (DSHLoop N body) mem fuel ≡ Some (inr mem') ->
+        eval_Loop_for_i_to_N σ body 0 N mem fuel ≡ Some (inr mem').
     Proof.
-      induction N as [| N IH]; intros mem fuel.
-      - destruct fuel; reflexivity.
-      - destruct fuel as [| fuel ]; [reflexivity |].
-        simpl evalDSHOperator.
-        simpl.
-        rewrite <- IH.
-        reflexivity.
+      induction N as [| N IH]; intros.
+      - destruct fuel; auto.
+      - destruct fuel as [| fuel ]; [auto |].
+        cbn in *.
+        repeat break_match_hyp; try some_none; try some_inv.
+        apply IH in Heqo.
+        repeat break_match.
+        + some_inv.
+        + some_inv.
+          auto.
+        + some_none.
     Qed.
-    *)
 
     Lemma eval_Loop_for_i_to_N_fuel_monotone:
       forall res σ op i N fuel mem,
@@ -789,12 +791,11 @@ Module MDSigmaHCOLITree
         evalDSHOperator σ (DSHLoop N op) mem (S fuel) ≡ Some (inr mem') ->
         interp_state (case_ Mem_handler pure_state) (denoteDSHOperator σ (DSHLoop N op)) mem ≈ ret (mem', ()).
     Proof.
-      (*
       intros.
-      rewrite <- eval_Loop_for_0_to_N, <- denote_Loop_for_0_to_N in *.
+      apply eval_Loop_for_0_to_N_Succeeds in H.
+      rewrite  <- denote_Loop_for_0_to_N.
       eapply Loop_is_Iter_aux; eauto; lia.
-       *)
-    Admitted.
+    Qed.
 
     (* Not sure how to reformulate this for NT.t instead of nat,so
        I comment it out completely
