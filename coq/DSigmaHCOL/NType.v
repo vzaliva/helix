@@ -39,4 +39,13 @@ Module Type NType.
 
   Parameter to_string: t -> String.string.
 
+  (* If [from_nat] succeeds for a number, it also succeeds for all
+     numbers less than it.
+   *)
+  Parameter from_nat_lt:
+    forall x xi y,
+      from_nat x ≡ inr xi ->
+      (y<x)%nat ->
+      exists yi, from_nat y ≡ inr yi.
+
 End NType.

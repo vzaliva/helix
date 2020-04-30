@@ -723,12 +723,6 @@ Module MDSigmaHCOLITree
         auto.
     Qed.
 
-    Axiom from_nat_lt:
-      forall x xi y,
-        from_nat x ≡ inr xi ->
-        y<x ->
-        exists yi, from_nat y ≡ inr yi.
-
     (* Helper lemma to extract the assurance that loop range is in bound if
        [eval_Loop_for_i_to_N] succeeds *)
     Lemma eval_Loop_for_i_to_N_from_nat_i:

@@ -56,4 +56,16 @@ Module MNatAsNT <: NType.
 
   Definition to_string (n : t) : String.string := string_of_nat (to_nat n).
 
+  Lemma from_nat_lt:
+    forall x xi y,
+      from_nat x ≡ inr xi ->
+      y<x ->
+      exists yi, from_nat y ≡ inr yi.
+  Proof.
+    intros x xi y H H0.
+    unfold from_nat in *.
+    exists y.
+    reflexivity.
+  Qed.
+
 End MNatAsNT.

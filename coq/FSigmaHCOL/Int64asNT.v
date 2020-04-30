@@ -245,4 +245,19 @@ Module MInt64asNT <: NType.
 
   Definition to_string (n : t) : String.string := string_of_nat (to_nat n).
 
+  Lemma from_nat_lt:
+    forall x xi y,
+      from_nat x ≡ inr xi ->
+      y<x ->
+      exists yi, from_nat y ≡ inr yi.
+  Proof.
+    intros x xi y H H0.
+    unfold from_nat, from_Z in *.
+    apply Znat.inj_lt in H0.
+    repeat break_match; try inl_inr; try lia.
+    eexists.
+    eauto.
+  Qed.
+
+
 End MInt64asNT.
