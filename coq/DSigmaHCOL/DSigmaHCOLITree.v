@@ -763,12 +763,13 @@ Module MDSigmaHCOLITree
             → interp_Mem (denoteDSHOperator σ op) mem ≈ ret (mem', ()))
 
         (i N: nat)
-        (σ : evalContext) (mem : memory) (fuel : nat) (mem' : memory),
+        (σ : evalContext) (mem : memory) (fuel : nat) (mem' : memory) {nn},
+        from_nat N ≡ inr nn ->
         i <= N ->
         eval_Loop_for_i_to_N σ op i N mem (S fuel) ≡ Some (inr mem')
         → interp_state (case_ Mem_handler pure_state) (denote_Loop_for_i_to_N σ op i N) mem ≈ ret (mem', ()).
     Proof.
-      intros op IHop i N σ mem fuel mem' ineq HEval.
+      intros op IHop i N σ mem fuel mem' nn NN ineq HEval.
       remember (N - i) as k.
       revert Heqk σ mem mem' HEval.
       revert i ineq.
@@ -818,9 +819,9 @@ Module MDSigmaHCOLITree
 
             assert(exists ii : t, from_nat i ≡ inr ii) as II.
             {
-              (* apply (eval_Loop_for_i_to_N_from_nat_i _ _ HEval). *)
-              admit.
+              unshelve eapply (eval_Loop_for_i_to_N_from_nat_i _ _ HEval); eauto.
             }
+
             destruct II as [ii II].
             rewrite II.
             cbn.
@@ -836,6 +837,24 @@ Module MDSigmaHCOLITree
             apply IH in Eval_tail; try lia.
             rewrite Eval_tail.
             reflexivity.
+    Qed.
+
+    Lemma evalDSHLoop_N_in_range
+          {op : DSHOperator} {N : nat} {σ : evalContext} {mem : memory}
+          {fuel : nat} {mem' : memory}:
+      evalDSHOperator σ (DSHLoop N op) mem fuel ≡ Some (inr mem')
+      -> exists nn, from_nat N ≡ inr nn.
+    Proof.
+      intros H.
+      destruct fuel; cbn in H; [some_none|].
+      break_match.
+      -
+        apply from_nat_zero.
+      -
+        break_match.
+        + some_inv.
+        +
+          subst.
     Admitted.
 
     Lemma Loop_is_Iter:
@@ -848,6 +867,8 @@ Module MDSigmaHCOLITree
         interp_state (case_ Mem_handler pure_state) (denoteDSHOperator σ (DSHLoop N op)) mem ≈ ret (mem', ()).
     Proof.
       intros.
+      pose proof (evalDSHLoop_N_in_range H) as NN.
+      destruct NN as [nn NN].
       apply eval_Loop_for_0_to_N_Succeeds in H.
       rewrite  <- denote_Loop_for_0_to_N.
       eapply Loop_is_Iter_aux; eauto; lia.
