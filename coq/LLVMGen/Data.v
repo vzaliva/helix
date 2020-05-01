@@ -67,6 +67,14 @@ Inductive FSHValType :=
 | FSHFloatValType     :FSHValType
 | FSHvecValType (n:Int64.int) :FSHValType.
 
+(* Helper function to deduce [FSHValType] of given [DSHVal] *)
+Definition FSHValTypeOfDSHVal (d:DSHVal): FSHValType :=
+  match d with
+  | DSHnatVal _ => FSHnatValType
+  | DSHCTypeVal a => FSHFloatValType
+  | DSHPtrVal _ size => FSHvecValType size
+  end.
+
 Record FSHCOLProgram :=
   mkFSHCOLProgram
     {
