@@ -11,10 +11,10 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 ** Probably "SUM" shoud be avoided in the name =HTSumUnion= not to confuse
   with =ISUmUnion=.
 ** Rename =Diamond= to =MR=
-** Many unused definitions could be removed. (Hint: try =make print-unused=)
+** Many unused definitions could be removed. (Hint: try =make print-unused=) :zoickx:
 ** It looks like =Apply_Family= never used directly. Just =Apply_Family'=.
    We probably need just one definition.
-** Run =coq-min-imports= on all codebase
+** Run =coq-min-imports= on all codebase                               :zoickx:
 ** GEP definition in Coq
 ** Vellvm as sub-module                                              :zoickx:
    Keep in mind that currently it is linked in 2 places, as follows:
@@ -36,6 +36,7 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    these 3 could be generalized via typeclass or a module.
 ** Split StringOT.v into several files                               :zoickx:
 ** Move =CarrierAabs_proper= to =CarrierType.v=                          :zoickx:
+** Move operations on CType to CType module like we did with NType   :zoickx:
 * Harmonization
 ** =IReduction= constraints:
   =IReduction= have 2 'compat' assumptions. We have =BFixpoint= in
