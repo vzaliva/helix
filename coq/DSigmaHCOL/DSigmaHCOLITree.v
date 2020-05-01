@@ -750,7 +750,7 @@ Module MDSigmaHCOLITree
         (i N: nat)
         (σ : evalContext) (mem : memory) (fuel : nat) (mem' : memory) {nn},
         from_nat N ≡ inr nn ->
-        i < (S N) ->
+        i <= (S N) ->
         eval_Loop_for_i_to_N σ op i (S N) mem (S fuel) ≡ Some (inr mem')
         → interp_state (case_ Mem_handler pure_state) (denote_Loop_for_i_to_N σ op i (S N)) mem ≈ ret (mem', ()).
     Proof.
@@ -807,10 +807,7 @@ Module MDSigmaHCOLITree
             rewrite Eval_body.
             state_steps.
             apply IH in Eval_tail;try lia;auto.
-            (* rewrite Eval_tail.
-               reflexivity. *)
-            admit.
-    Admitted.
+    Qed.
 
     (* NOTE: Could not be proven for [N]! *)
     Lemma evalDSHLoop_SN_in_range
