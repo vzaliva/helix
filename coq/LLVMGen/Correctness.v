@@ -159,10 +159,10 @@ Definition semantics_FSHCOL p data: itree E_mcfg (memory * list binary64) :=
   translate (@subevent _ E_mcfg _) (interp_Mem (denote_FSHCOL p data) memory_empty).
 
 (* MOVE TO VELLVM *)
-Definition normalize_types_blocks (env: list _) (bks: list (LLVMAst.block typ))
-  : list (LLVMAst.block DynamicTypes.dtyp) :=
-  List.map
-    (TransformTypes.fmap_block _ _ (TypeUtil.normalize_type_dtyp env)) bks.
+(* Definition normalize_types_blocks (env: list _) (bks: list (LLVMAst.block typ)) *)
+  (* : list (LLVMAst.block DynamicTypes.dtyp) := *)
+  (* List.map *)
+    (* (TransformTypes.fmap_block _ _ (TypeUtil.normalize_type_dtyp env)) bks. *)
 Import IO TopLevelEnv Global Local.
 
 Definition interp_cfg_to_L3:
@@ -467,14 +467,14 @@ Definition bisim_partial: Type_R_partial
     reflexivity.
   Qed.
 
-  From Vellvm Require Import Util.
+  From Vellvm Require Import Util TypToDtyp Transformations.Traversal.
   Require Import State.
 
   (* Move to vellvm *)
   (* ************************************************** *)
   Lemma normalize_types_block_bid :
     forall (env : list (ident * typ)) (b: LLVMAst.block typ),
-      blk_id (TransformTypes.fmap_block _ _ (TypeUtil.normalize_type_dtyp env) b) ≡ blk_id b.
+      blk_id (fmap (typ_to_dtyp env) b) ≡ blk_id b.
   Proof.
     intros env b.
     destruct b. reflexivity.
@@ -483,7 +483,7 @@ Definition bisim_partial: Type_R_partial
   Lemma normalize_types_block_term :
     forall (env : list (ident * typ)) (b: LLVMAst.block typ) (nextblock : block_id),
       snd (blk_term b) ≡ TERM_Br_1 nextblock ->
-      snd (blk_term (TransformTypes.fmap_block typ dtyp (TypeUtil.normalize_type_dtyp env) b)) ≡ TERM_Br_1 nextblock.
+      snd (blk_term (fmap (typ_to_dtyp env) b)) ≡ TERM_Br_1 nextblock.
   Proof.
     intros env b nextblock Hterm.
     destruct b. cbn in *. rewrite Hterm.
@@ -696,7 +696,7 @@ Definition bisim_partial: Type_R_partial
     let '(mem_llvm, (ρ, (g, _))) := r in
     eutt (fun n '(_, (_, (_, uv))) => int64_concrete_uvalue_rel n uv)
          (ret n)
-         (interp_cfg_to_L3 helix_intrinsics (translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64)) (TransformTypes.fmap_exp _ _ (TypeUtil.normalize_type_dtyp env) e))) g ρ mem_llvm).
+         (interp_cfg_to_L3 helix_intrinsics (translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64)) (fmap (typ_to_dtyp env) e))) g ρ mem_llvm).
 
   (* TODO: Need something about denoteNexp not failing *)
   Lemma denote_nexp_div :
@@ -714,7 +714,7 @@ Definition bisim_partial: Type_R_partial
       (* TODO: factor out this relation *)
       eutt (fun n '(m, (l, (g, uv))) => int64_concrete_uvalue_rel n uv)
            (translate inr_ (denoteNexp σ nexp))
-           (translate inl_ (interp_cfg_to_L3 helix_intrinsics (translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64)) (TransformTypes.fmap_exp _ _ (TypeUtil.normalize_type_dtyp env) e))) g ρ mem_llvm)).
+           (translate inl_ (interp_cfg_to_L3 helix_intrinsics (translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64)) (fmap (typ_to_dtyp env) e))) g ρ mem_llvm)).
   Proof.
     induction nexp; intros st i e c mem_llvm σ g ρ env H.
     - cbn in H; repeat break_match_hyp; try solve [inversion H].
@@ -751,7 +751,7 @@ Definition bisim_partial: Type_R_partial
            (translate inl_ (interp_cfg_to_L3 helix_intrinsics
                              (D.denote_code (map
                                                (λ '(id, i),
-                                                (id, TransformTypes.fmap_instr typ dtyp (TypeUtil.normalize_type_dtyp env) i))
+                                                (id, convert_typ env i))
                                                nexp_code)) g ρ mem_llvm)).
   Proof.
     induction nexp; intros st st' nexp_r nexp_code env σ g ρ mem_llvm H.
@@ -833,7 +833,7 @@ Definition bisim_partial: Type_R_partial
            (translate inl_ (interp_cfg_to_L3 helix_intrinsics
                                              (D.denote_code (map
                                                                (λ '(id, i),
-                                                                (id, TransformTypes.fmap_instr typ dtyp (TypeUtil.normalize_type_dtyp env) i))
+                                                                (id, convert_typ env i))
                                                                nexp_code)) g ρ mem_llvm)).
   Proof.
   Admitted.
@@ -849,7 +849,7 @@ Lemma compile_FSHCOL_correct
                   (interp_Mem (denoteDSHOperator σ op) mem))
        (translate inl_
                   (interp_cfg_to_L3 helix_intrinsics
-                                    (D.denote_bks (normalize_types_blocks env bks) bid_in)
+                                    (D.denote_bks (fmap (typ_to_dtyp env) bks) bid_in)
                                     g ρ mem_llvm)).
 Proof.
   induction op; intros; rename H1 into HCompile.
@@ -857,8 +857,7 @@ Proof.
     eutt_hide_right; cbn.
     unfold interp_Mem; simpl denoteDSHOperator.
     rewrite interp_state_ret, translate_ret.
-    subst i.
-    simpl normalize_types_blocks.
+    subst i. 
     rewrite denote_bks_nil.
     cbn. rewrite interp_cfg_to_L3_ret, translate_ret.
     apply eqit_Ret; auto.
@@ -871,10 +870,9 @@ Proof.
      *)
     apply DSHAssign_singleton in HCompile.
     destruct HCompile as (b & HCompile & Hterm & Hbid & Hbksbk).
-    subst. unfold normalize_types_blocks.
+    subst.
     eutt_hide_left.
-    simpl.
-
+    unfold fmap; simpl Fmap_list'.
     (* Rewrite denote_bks to denote_block *)
     rewrite denote_bks_singleton; eauto using normalize_types_block_term.
 
@@ -901,7 +899,7 @@ Proof.
     destruct (genNExpr ndst s') as [|(s'', (dst_nexpr, dst_nexpcode))] eqn:Hnexp_dst. inversion H3.
     inversion H3.
     cbn.
-
+    (*
     match goal with
     | |- context[D.denote_code (map _ (src_nexpcode ++ dst_nexpcode ++ ?x))] => remember x as assigncode
     end.
@@ -1004,6 +1002,7 @@ Proof.
         -- (* exceptions *) admit. 
     + (* Need to handle exceptions *)
       admit.
+     *)
     (* Focus 3. *)
     (* cbn. *)
     (* rewrite bind_ret_l. *)
@@ -1086,8 +1085,7 @@ Proof.
     (* end. *)
 
     (* make_append_str in H6. *)
-    (* admit. *)
-
+    admit.
   - (*
       Map case.
       Need some reasoning about
@@ -1235,7 +1233,7 @@ Section LLVM_Memory_Init.
   (* mimics [Alloca] handler *)
   Definition alloc_global (c_name:string) (c_typ:typ) (m:M.memory) (ms:M.mem_stack) :=
     (* TODO: not sure about this [typ] to [dtyp] conversion *)
-    let d_typ := TypeUtil.normalize_type_dtyp [] c_typ in
+    let d_typ := typ_to_dtyp [] c_typ in
     let new_block := M.make_empty_block d_typ in
     let key := M.next_logical_key m in
     let new_mem := M.add_logical key new_block m in
@@ -1250,19 +1248,18 @@ Section LLVM_Memory_Init.
 
   (* mimics [Store] handler *)
   Definition init_global (m:M.memory) (ms:M.mem_stack) (a: dvalue) (v:dvalue)
-    : err (M.memory * M.mem_stack)
-    :=
-      match a with
-      | DVALUE_Addr (key, i) =>
-        match M.lookup_logical key m with
-        | Some (M.LBlock sz bytes cid) =>
-          let bytes' := M.add_all_index (M.serialize_dvalue v) i bytes in
-          let block' := M.LBlock sz bytes' cid in
-          ret (M.add_logical key block' m, ms)
-        | None => inl "stored to unallocated address"%string
-        end
-      | _ => inl ("Store got non-address dvalue: " ++ (to_string a))
-      end.
+    : err (M.memory * M.mem_stack) :=
+    match a with
+    | DVALUE_Addr (key, i) =>
+      match M.lookup_logical key m with
+      | Some (M.LBlock sz bytes cid) =>
+        let bytes' := M.add_all_index (M.serialize_dvalue v) i bytes in
+        let block' := M.LBlock sz bytes' cid in
+        ret (M.add_logical key block' m, ms)
+      | None => inl "stored to unallocated address"%string
+      end
+    | _ => inl ("Store got non-address dvalue: " ++ (to_string a))%string
+    end.
 
 End LLVM_Memory_Init.
 
@@ -1270,7 +1267,7 @@ End LLVM_Memory_Init.
 Definition eval_const_double_exp (typed_expr:typ*exp typ): err dvalue :=
   match typed_expr with
   | (TYPE_Double, EXP_Double v) => ret (DVALUE_Double v)
-  | (_, c_typ) => inl ("Type double expected: " ++ (to_string c_typ))
+  | (_, c_typ) => inl ("Type double expected: " ++ (to_string c_typ))%string
   end.
 
 (* Array *)
@@ -1281,14 +1278,14 @@ Definition eval_const_arr_exp (typed_expr:typ*exp typ): err dvalue :=
            (fun ds d => dd <- eval_const_double_exp d ;; ret (dd::ds))
            [] a ;;
     ret (DVALUE_Array da)
-  | (_, c_typ) => inl ("Array of doubles expected: " ++ (to_string c_typ))
+  | (_, c_typ) => inl ("Array of doubles expected: " ++ (to_string c_typ))%string
   end.
 
 Definition eval_const_exp (typed_expr:typ*exp typ): err dvalue :=
   match typed_expr with
   | (TYPE_Array _ TYPE_Double, EXP_Array a) => eval_const_arr_exp typed_expr
   | (TYPE_Double, EXP_Double v) =>  eval_const_double_exp typed_expr
-  | (_, c_typ) => inl ("Unsupported constant expression type: " ++ (to_string c_typ))
+  | (_, c_typ) => inl ("Unsupported constant expression type: " ++ (to_string c_typ))%string
   end.
 
 Definition init_one_global
