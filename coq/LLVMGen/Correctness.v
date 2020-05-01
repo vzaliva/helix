@@ -69,6 +69,7 @@ Require Import Helix.DSigmaHCOL.DSigmaHCOLITree.
 Require Import Helix.LLVMGen.Compiler.
 Require Import Helix.LLVMGen.Externals.
 Require Import Helix.LLVMGen.Data.
+Require Import Helix.LLVMGen.Utils.
 Require Import Helix.LLVMGen.tmp_aux_Vellvm.
 Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Util.ErrorSetoid.
@@ -113,14 +114,14 @@ Set Implicit Arguments.
 Set Strict Implicit.
 
 Import MDSHCOLOnFloat64.
-Import IO Global Local.
+Import IO INT M Global Local.
 Import TopLevelEnv.
 Import ListNotations.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
 (* A couple of notations to avoid ambiguities while not having to worry about imports and qualified names *)
-Notation memoryV := M.memory.
+Notation memoryV := M.memory_stack.
 Notation memoryH := MDSHCOLOnFloat64.memory.
 
 Section EventTranslation.
@@ -221,12 +222,14 @@ Section StateTypes.
   (* Return state of a denoted and interpreted [cfg].
      Note the lack of local stack *)
   Definition LLVM_memory_state_cfg
-    := memory *
-       (local_env * (global_env)).
+    := memoryV * (local_env * (global_env)).
+
+  (* Constructor to avoid having to worry about the nesting *)
+  Definition mk_LLVM_memory_state_cfg m l g: LLVM_memory_state_cfg := (m,(l,g)).
 
   (* Return state of a denoted and interpreted [mcfg] *)
   Definition LLVM_memory_state_mcfg
-    := memory *
+    := memoryV *
        (local_env * @Stack.stack (local_env) * (global_env)).
 
   (* Return state and value of a denoted and interpreted (open) [cfg].
@@ -234,13 +237,13 @@ Section StateTypes.
      Note that we may return a [block_id] alternatively to a [uvalue]
    *)
   Definition LLVM_state_cfg_T (T:Type): Type
-    := memory * (local_env * (global_env * T)).
+    := memoryV * (local_env * (global_env * T)).
   Definition LLVM_state_cfg
     := LLVM_state_cfg_T (block_id + uvalue).
 
   (* Return state and value of a denoted and interpreted [mcfg]. *)
   Definition LLVM_state_mcfg_T (T:Type): Type
-    := memory * (local_env * @Stack.stack (local_env) * (global_env * T)).
+    := memoryV * (local_env * @Stack.stack (local_env) * (global_env * T)).
   Definition LLVM_state_mcfg :=
     LLVM_state_mcfg_T uvalue.
 
@@ -263,23 +266,50 @@ Section RelationTypes.
 
   (** Relation of memory states which must be held for
       intialization steps *)
-  Definition Type_R_memory: Type
+  Definition Type_R_memory_cfg: Type
     := evalContext ->
-       MDSHCOLOnFloat64.memory → LLVM_memory_state_cfg → Prop.
+       memoryH → LLVM_memory_state_cfg → Prop.
 
-  (** Type of bisimilation relation between between DSHCOL and LLVM states.
+  (** Relation of memory states which must be held for
+      intialization steps *)
+  Definition Type_R_memory_mcfg: Type
+    := evalContext ->
+       memoryH → LLVM_memory_state_mcfg → Prop.
+
+  (** Type of bisimulation relations between DSHCOL and VIR internal to CFG states,
+      parameterized by the types of the computed values.
+   *)
+  Definition Type_R_cfg_T (TH TV: Type): Type
+    := evalContext ->
+       memoryH * TH → LLVM_state_cfg_T TV → Prop.
+
+  (* Lifting a relation on memory states to one encompassing returned values by ignoring them *)
+  Definition lift_R_memory_cfg (R: Type_R_memory_cfg) (TH TV: Type): Type_R_cfg_T TH TV :=
+    fun σ '(memH,_) '(memV,(l,(g,_))) => R σ memH (memV,(l,g)).
+
+  (** Type of bisimulation relations between DSHCOL and VIR internal to CFG states,
+      parameterized by the types of the computed values.
+   *)
+  Definition Type_R_mcfg_T (TH TV: Type): Type
+    := evalContext ->
+       memoryH * TH → LLVM_state_mcfg_T TV → Prop.
+
+  Definition lift_R_memory_mcfg (R: Type_R_memory_mcfg) (TH TV: Type): Type_R_mcfg_T TH TV :=
+    fun σ '(memH,_) '(memV,(l,(g,_))) => R σ memH (memV,(l,g)).
+
+  (** Type of bisimulation relation between DSHCOL and LLVM states.
     This relation could be used for fragments of CFG [cfg].
    *)
   Definition Type_R_partial: Type
     := evalContext ->
-       MDSHCOLOnFloat64.memory * () → LLVM_state_cfg → Prop.
+       memoryH * () → LLVM_state_cfg → Prop.
 
-  (** Type of bisimilation relation between between DSHCOL and LLVM states.
+  (** Type of bisimulation relation between DSHCOL and LLVM states.
       This relation could be used for "closed" CFG [mcfg].
    *)
   Definition Type_R_full: Type
     := evalContext ->
-       MDSHCOLOnFloat64.memory * (list binary64) → LLVM_state_mcfg → Prop.
+       memoryH * (list binary64) → LLVM_state_mcfg → Prop.
 
 End RelationTypes.
 
@@ -361,7 +391,7 @@ Section SimulationRelations.
    is a pointer, some values should be pure integer values for
    instance.
 *)
-Definition memory_invariant : Type_R_memory :=
+Definition memory_invariant : Type_R_memory_cfg :=
   fun (σ : evalContext) (mem_helix : MDSHCOLOnFloat64.memory) '(mem_llvm, x) =>
     let σ_len := List.length σ in
     σ_len ≡ 0 \/ (* empty env immediately allowed, as injection could not exists *)
@@ -462,7 +492,7 @@ Definition bisim_final: Type_R_full :=
 
 End SimulationRelations.
 
-Section Tactics.
+(* begin tactics *)
 
 (* TODOYZ: This is a redefinition from [DSigmaHCOLITree]. To remove after proper reorganization into two files *)
 (* TODOYZ: Actually even more so there should be a clean part of the tactics that do the generic structural
@@ -519,7 +549,7 @@ Ltac hide_string :=
   | |- context [String ?x ?y] => remember (String x y)
   end.
 
-End Tactics.
+(* end tactics *)
 
 Section Add_Comment.
 
@@ -552,6 +582,61 @@ Section Add_Comment.
 
 End Add_Comment.
 
+Section InterpMem.
+
+  Lemma interp_Mem_ret :
+    forall T mem x,
+      @interp_Mem T (Ret x) mem ≅ Ret (mem, x).
+  Proof.
+    intros T mem x.
+    unfold interp_Mem.
+    apply interp_state_ret.
+  Qed.
+
+  Lemma interp_Mem_vis_eqit :
+    forall T R mem (e : Event T) (k : T -> itree Event R),
+      interp_Mem (vis e k) mem ≅ ITree.bind ((case_ Mem_handler MDSHCOLOnFloat64.pure_state) T e mem) (fun sx => Tau (interp_Mem (k (snd sx)) (fst sx))).
+  Proof.
+    intros T R mem e k.
+    unfold interp_Mem.
+    apply interp_state_vis.
+  Qed.
+
+  (* Lemma interp_Mem_trigger : *)
+  (*   forall T R mem (e : Event T) (k : T -> itree Event R), *)
+  (*     interp_Mem (ITree.bind (trigger e) k) mem ≈ ITree.bind ((case_ Mem_handler MDSHCOLOnFloat64.pure_state) T e mem) (fun sx => interp_Mem (k (snd sx)) (fst sx)). *)
+  (* Proof. *)
+  (*   intros T R mem e k. *)
+  (*   unfold interp_Mem. *)
+  (*   apply interp_state_vis. *)
+  (* Qed. *)
+
+
+  Lemma interp_Mem_MemLU :
+    forall R str mem m x (k : _ -> itree _ R),
+      memory_lookup_err str mem x ≡ inr m ->
+      interp_Mem (vis (MemLU str x) k) mem ≈ interp_Mem (k m) mem.
+  Proof.
+    intros R str mem m x k H.
+    setoid_rewrite interp_Mem_vis_eqit;
+      cbn; rewrite H; cbn.
+    rewrite bind_ret_l; cbn.
+    apply tau_eutt.
+  Qed.
+
+  Lemma interp_Mem_MemSet :
+    forall dst blk mem,
+      interp_Mem (trigger (MemSet dst blk)) mem ≈ Ret (memory_set mem dst blk, ()).
+  Proof.
+    intros dst blk mem.
+    setoid_rewrite interp_Mem_vis_eqit; cbn.
+    rewrite bind_ret_l.
+    rewrite interp_Mem_ret.
+    apply tau_eutt.
+  Qed.
+
+End InterpMem.
+
 Section NEXP.
 
   (**
@@ -561,7 +646,10 @@ Section NEXP.
      Helix side:
      * nexp: NExpr
      * σ: evalContext
-     * 
+     * s: IRState
+
+The expression must be closed in [evalContext]. I.e. all variables are below the length of σ
+vars s1 = σ?
 
    *)
   (* NOTEYZ:
@@ -574,6 +662,218 @@ Section NEXP.
      not been modified. I'm interested in having this, but I do not know how easy it is to get it.
      TODOYZ: Investigate this claim
    *)
+  Opaque interp_Mem.
+  Opaque append.
+
+  Ltac break_and :=
+    repeat match goal with
+           | h: _ * _ |- _ => destruct h
+           end.
+
+  Definition genNExpr_sim σ := (bisim_partial σ).
+
+  (* TOODYZ *)
+  (* Definition evalContext_IRState_rel: evalContext -> IRState -> Prop := *)
+  (*   fun σ st => *)
+  (*     (forall v n, context_lookup "NVar not found" σ v ≡ inr (DSHnatVal n) <-> ) *)
+  (* nth_error (vars s2) v ≡ Some (i, TYPE_I 64%Z) /\
+     lookup i g/l ≡ n?
+   *)
+  (*     True. *)
+
+  Ltac simp_comp H :=
+    cbn in H; repeat (inv_sum || break_and || break_match_hyp).
+
+  From Vellvm Require Import
+       TypToDtyp.
+
+  (**
+     NOTEYZ: It is slightly annoying that [IRState] is an extra piece of state introduced by
+     the compiler by that belongs to neither language.
+     Invariants about it must therefore be carried separately from the simulation relation.
+   *)
+
+  (**
+     Relational injection of [DSHType] into VIR's [typ]
+     TODOYZ : Well, precisely, todo.
+   *)
+  Variant DSHType_typ : DSHType -> typ -> Prop :=
+  | DSHnat_IntType : DSHType_typ DSHnat IntType.
+  (**
+     The compiler maintains a sort of typing context named [IRState].
+     It should be essentially a well-formed typing judgment for the current
+     value of the [evalContext], but injecting the types from [DSHCOL] to [VIR].
+   *)
+  Definition WF_IRState (σ: evalContext) (s: IRState): Prop :=
+    forall (i: ident) (t: typ) (n: nat),
+      nth_error (vars s) n ≡ Some (i,t) ->
+      exists (v: DSHVal), nth_error σ n ≡ Some v /\ DSHType_typ (DSHValToType v) t.
+
+  Lemma WF_IRState_lookup_cannot_fail :
+    forall σ it s n msg msg',
+      WF_IRState σ s ->
+      nth_error (vars s) n ≡ Some it ->
+      context_lookup msg σ n ≡ inl msg' ->
+      False.
+  Proof.
+    intros ? [] * WF LU1 LU2; apply WF in LU1; destruct LU1 as (? & LU & _).
+    unfold context_lookup in LU2; rewrite LU in LU2; inversion LU2.
+  Qed.
+
+  Ltac abs_by H :=
+    exfalso; eapply H; eauto.
+
+  (* TODOYZ : MOVE *)
+  Definition conj_rel {A B : Type} (R S: A -> B -> Prop): A -> B -> Prop :=
+    fun a b => R a b /\ S a b.
+  Infix "⩕" := conj_rel (at level 85).
+
+  (* TODOYZ: name consistency Nexp/NExpr/Nexpr/NExp *) 
+  Lemma genNExpr_correct :
+    forall (R: Type_R_memory_cfg) (R': Type_R_cfg_T Int64.int _) (* R, R' to be instantiated. R' to be R over the states plus an invariant on returned value *)
+      (* Compiler bits *) (s1 s2: IRState)
+      (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH)
+      (* Vellvm bits *)   (exp: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
+      genNExpr nexp s1 ≡ inr (s2, (exp, c)) -> (* Compilation succeeds *)
+      WF_IRState σ s1 ->                       (* Well-formed IRState *)
+      R σ memH (memV, (l, g)) ->
+      eutt (lift_R_memory_cfg R σ ⩕ R' σ)
+           (translate_E_helix_cfg  
+              (interp_Mem (denoteNexp σ nexp)
+                          memH))
+           (translate_E_vellvm_cfg
+              ((interp_cfg_to_L3 helix_intrinsics
+                                 (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp None (convert_typ [] exp))))
+                 g l memV)).
+  Proof.
+    induction nexp; intros * COMPILE WFIR PRE;
+      assert (FOO: (s2,(exp,c)) ≡ (s2,(exp,c))) by reflexivity. (* TODOYZ: stupid hack to quickly check what case we are in. To remove *)
+    - (* Variable case *)
+
+      (* Reducing the compilation *)
+      simp_comp COMPILE.
+      (* TODO: move unfolding of error wrappers in [simp_comp]? *)
+      all: unfold ErrorWithState.option2errS in *; break_match_hyp; cbn in *; try inv_sum.
+
+      + (* The variable maps to an integer in the IRState *)
+        
+        (* Reducing the [DSHCOL] denotation
+           TODO: automate
+           TODO: should translate_E_helix_cfg and co be notations?
+         *)
+        unfold translate_E_helix_cfg; cbn.
+        unfold denoteNexp, lift_Serr; cbn.
+        break_inner_match_goal.
+        * (* Variable not in context, [context_lookup] fails *)
+          abs_by WF_IRState_lookup_cannot_fail.
+        * destruct d.
+          (* DSHnatVal *)
+          (* Nat *)
+          { unfold translate_E_helix_cfg; cbn; rewrite interp_Mem_ret, translate_ret.
+            unfold translate_E_vellvm_cfg; cbn. rewrite interp_cfg_to_L3_bind, interp_cfg_to_L3_ret, bind_ret_l.
+            (* TODOYZ: Ltac *)
+            destruct i0; cbn.
+            unfold Traversal.endo, Traversal.Endo_ident, Traversal.Endo_id.
+            { rewrite translate_bind.
+              rewrite translate_trigger.
+              rewrite translate_bind.
+              rewrite lookup_E_to_exp_E_Global.
+              rewrite translate_trigger.
+              rewrite exp_E_to_instr_E_Global.
+              rewrite interp_cfg_to_L3_bind.
+              rewrite interp_cfg_to_L3_GR.
+              Unshelve.
+(** CHECKPOINT: Need to automatize all this boilerplate, need a memory invariant to progress **)
+
+              rewrite bind_trigger.
+              cbn.
+              setoid_rewrite translate_trigger.
+              unfold exp_E_to_instr_E.
+              unfold subevent, resum, ReSum_id, id_, Id_IFun.
+
+
+
+              rewrite interp_cfg_to_L3_trigger.
+              unfold trigger.
+              
+              rewrite translate_bind.
+
+
+              unfold trigger.
+              rewrite translate_vis.
+              setoid_rewrite translate_ret.
+              Set Printing Implicit.
+              replace (Vis
+                   (@lookup_E_to_exp_E dvalue
+                      (@subevent (GlobalE raw_id dvalue) lookup_E
+                         (@ReSum_inl (Type → Type) IFun sum1 Cat_IFun Inl_sum1 (GlobalE raw_id dvalue) LLVMGEnvE LLVMEnvE
+                                     (@ReSum_id (Type → Type) IFun Id_IFun LLVMGEnvE)) dvalue (@GlobalRead raw_id dvalue id))) (λ x : dvalue, Ret x)) with
+
+                  (trigger (lookup_E_to_exp_E (subevent _ (@GlobalRead raw_id dvalue id)))).
+              2: reflexivity.
+              Unset Printing Implicit.
+
+(Vis (lookup_E_to_exp_E (subevent dvalue (GlobalRead id))) (λ x : dvalue, Ret x))
+(translate lookup_E_to_exp_E (trigger (GlobalRead id)))
+            t translate_ret.
+            apply eqit_Ret.
+            split; [apply PRE |].
+            admit.
+          }
+          { rewrite interp_Mem_ret, translate_ret.
+            unfold translate_E_vellvm_cfg; cbn; rewrite interp_cfg_to_L3_ret, translate_ret.
+            apply eqit_Ret.
+            split; [apply PRE |].
+            admit.
+          }
+        * (* binary64, absurd. *)
+          (* Lookup in σ and (vars s) should have matching types? *)
+          exfalso.
+          admit.
+        *  (* block_id, absurd *)
+          (* Lookup in σ and (vars s) should have matching types? *)
+          exfalso.
+          admit.
+        * (* We find a pointer in vars *)
+          (* Reducing the denotation *)
+          unfold translate_E_helix_cfg; cbn.
+          unfold denoteNexp, lift_Serr; cbn.
+          match goal with |- context[context_lookup ?s ?x ?y] => destruct (context_lookup s x y) as [? | []] eqn:?EQ end.
+          exfalso; admit.
+          unfold translate_E_helix_cfg; cbn; rewrite interp_Mem_ret, translate_ret.
+          admit.
+          exfalso; admit.
+          exfalso; admit.
+
+    - (* Constant *)
+      simp_comp COMPILE.
+
+      unfold translate_E_helix_cfg; cbn; rewrite interp_Mem_ret, translate_ret.
+      (* Ret (memH, t) *)
+      admit.
+
+    - (* NDiv *)
+
+      simp_comp COMPILE.
+
+      unfold denoteNexp; cbn.
+      break_match_goal.
+      exfalso; admit.
+      break_match_goal.
+      exfalso; admit.
+      unfold translate_E_helix_cfg; cbn; rewrite interp_Mem_ret, translate_ret.
+      admit.
+
+    - 
+      simp_comp COMPILE.
+      admit.
+
+    - (* NPlus *)
+
+      simp_comp COMPILE.
+      admit.
+
+    - admit.
 
   (* Relations for expressions *)
   (* top might be able to just be Some (DTYPE_I 64) *)
@@ -1214,48 +1514,6 @@ Open Scope char_scope.
     rewrite tau_eutt.
     rewrite tau_eutt.
     reflexivity.
-  Qed.
-
-  (* TODO: Move these *)
-  Lemma interp_Mem_ret :
-    forall T mem x,
-      @interp_Mem T (Ret x) mem ≅ Ret (mem, x).
-  Proof.
-    intros T mem x.
-    unfold interp_Mem.
-    apply interp_state_ret.
-  Qed.
-
-  Lemma interp_Mem_vis :
-    forall T R mem (e : Event T) (k : T -> itree Event R),
-      interp_Mem (vis e k) mem ≅ ITree.bind ((case_ Mem_handler MDSHCOLOnFloat64.pure_state) T e mem) (fun sx => Tau (interp_Mem (k (snd sx)) (fst sx))).
-  Proof.
-    intros T R mem e k.
-    unfold interp_Mem.
-    apply interp_state_vis.
-  Qed.
-
-  Lemma interp_Mem_MemLU :
-    forall R str mem m x (k : _ -> itree _ R),
-      memory_lookup_err str mem x ≡ inr m ->
-      interp_Mem (vis (MemLU str x) k) mem ≈ interp_Mem (k m) mem.
-  Proof.
-    intros R str mem m x k H.
-    setoid_rewrite interp_Mem_vis;
-      cbn; rewrite H; cbn.
-    rewrite bind_ret_l; cbn.
-    apply tau_eutt.
-  Qed.
-
-  Lemma interp_Mem_MemSet :
-    forall dst blk mem,
-      interp_Mem (trigger (MemSet dst blk)) mem ≈ Ret (memory_set mem dst blk, ()).
-  Proof.
-    intros dst blk mem.
-    setoid_rewrite interp_Mem_vis; cbn.
-    rewrite bind_ret_l.
-    rewrite interp_Mem_ret.
-    apply tau_eutt.
   Qed.
 
   Lemma denotePexp_eutt_ret :

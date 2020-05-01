@@ -48,6 +48,43 @@ Import Integers.
 Import BinInt.
 Import INT.
 
+Section Translations.
+
+  (** TODOYZ : MOVE ITree *)
+  Lemma translate_trigger {E F G} `{E -< F} :
+    forall X (e: E X) (h: F ~> G),
+     translate h (trigger e) ≈ trigger (h _ (subevent X e)).
+  Proof.
+    intros; unfold trigger; rewrite translate_vis; setoid_rewrite translate_ret; reflexivity.
+  Qed.
+
+  (** TODOYZ : MOVE (Vellvm)  *)
+  (* Technicality: translations by [lookup_E_to_exp_E] and [exp_E_to_instr_E] leave these events unphased *)
+  Lemma lookup_E_to_exp_E_Global : forall {X} (e : LLVMGEnvE X),
+      trigger (lookup_E_to_exp_E (subevent X e)) = trigger e.
+  Proof.
+    reflexivity.
+  Qed.
+
+  Lemma exp_E_to_instr_E_Global : forall {X} (e : LLVMGEnvE X),
+      trigger (exp_E_to_instr_E (subevent X e)) = trigger e.
+  Proof.
+    reflexivity.
+  Qed.
+
+  Lemma lookup_E_to_exp_E_Local : forall {X} (e : LLVMEnvE X),
+      trigger (lookup_E_to_exp_E (subevent X e)) = trigger e.
+  Proof.
+    reflexivity.
+  Qed.
+
+  Lemma exp_E_to_instr_E_Local : forall {X} (e : LLVMEnvE X),
+      trigger (exp_E_to_instr_E (subevent X e)) = trigger e.
+  Proof.
+    reflexivity.
+  Qed.
+
+End Translations.
 
 Section InterpreterCFG.
 
@@ -218,7 +255,34 @@ Qed.
     intros ?; tau_steps; reflexivity.
   Qed.
 
-  Lemma interp_global_trigger_eqit:
+  (** TODOYZ : Send this to StateFacts *)
+  (** TODOYZ : Define a tactic for this recurrent [bind_ret_r] trick *)
+  Lemma interp_state_trigger' {E F : Type -> Type} {R S : Type}
+        (e : E R) (f : E ~> Monads.stateT S (itree F)) (s : S)
+    : interp_state f (ITree.trigger e) s ≈ f _ e s.
+  Proof.
+    unfold ITree.trigger. rewrite interp_state_vis.
+    match goal with
+      |- _ ≈ ?x => rewrite <- (bind_ret_r x) at 2
+    end.
+    eapply eqit_bind; try reflexivity.
+    intros []; rewrite interp_state_ret,tau_eutt.
+    reflexivity.
+  Qed.
+
+  Lemma interp_global_trigger:
+    forall (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type -> Type)
+      (H0 : FailureE -< G) (g : map) X
+      (e : (E +' F +' GlobalE k v +' G) X),
+      interp_global (ITree.trigger e) g ≈ interp_global_h e g.
+  Proof.
+    intros.
+    unfold interp_global.
+    rewrite interp_state_trigger'.
+    reflexivity.
+  Qed.
+
+  Lemma interp_global_bind_trigger_eqit:
     forall (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type -> Type)
       (H0 : FailureE -< G) (g : map) S X
       (kk : X -> itree (E +' F +' GlobalE k v +' G) S)
@@ -232,7 +296,7 @@ Qed.
     reflexivity.
   Qed.
 
-  Lemma interp_global_trigger:
+  Lemma interp_global_bind_trigger:
     forall (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type -> Type)
       (H0 : FailureE -< G) (g : map) S X
       (kk : X -> itree (E +' F +' GlobalE k v +' G) S)
@@ -240,7 +304,7 @@ Qed.
       interp_global (ITree.bind (trigger e) kk) g ≈ ITree.bind (interp_global_h e g) (fun (sx : map * X) => interp_global (kk (snd sx)) (fst sx)).
   Proof.
     intros.
-    rewrite interp_global_trigger_eqit.
+    rewrite interp_global_bind_trigger_eqit.
     apply eutt_eq_bind.
     intros ?; tau_steps; reflexivity.
   Qed.
@@ -271,7 +335,19 @@ Qed.
     intros ?; tau_steps; reflexivity.
   Qed.
 
-  Lemma interp_local_trigger_eqit:
+  Lemma interp_local_trigger:
+    forall (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type -> Type)
+      (H0 : FailureE -< G) (g : map) X
+      (e : (E +' F +' LocalE k v +' G) X),
+      interp_local (ITree.trigger e) g ≈ interp_local_h e g.
+  Proof.
+    intros.
+    unfold interp_local.
+    rewrite interp_state_trigger'.
+    reflexivity.
+  Qed.
+
+  Lemma interp_local_bind_trigger_eqit:
     forall (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type -> Type)
       (H0 : FailureE -< G) (g : map) S X
       (kk : X -> itree (E +' F +' LocalE k v +' G) S)
@@ -285,7 +361,7 @@ Qed.
     reflexivity.
   Qed.
 
-  Lemma interp_local_trigger:
+  Lemma interp_local_trigger_bind:
     forall (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type -> Type)
       (H0 : FailureE -< G) (g : map) S X
       (kk : X -> itree (E +' F +' LocalE k v +' G) S)
@@ -293,7 +369,7 @@ Qed.
       interp_local (ITree.bind (trigger e) kk) g ≈ ITree.bind (interp_local_h e g) (fun (sx : map * X) => interp_local (kk (snd sx)) (fst sx)).
   Proof.
     intros.
-    rewrite interp_local_trigger_eqit.
+    rewrite interp_local_bind_trigger_eqit.
     apply eutt_eq_bind.
     intros ?; tau_steps; reflexivity.
   Qed.
@@ -322,7 +398,17 @@ Qed.
     intros ?; tau_steps; reflexivity.
   Qed.
 
-  Lemma interp_intrinsics_trigger_eqit:
+  Lemma interp_intrinsics_trigger:
+    forall E F X (HF : FailureE -< F) (e : (E +' IntrinsicE +' F) X) defs,
+      interp_intrinsics defs (ITree.trigger e) ≈ interp_intrinsics_h defs e.
+  Proof.
+    intros *.
+    unfold interp_intrinsics.
+    rewrite interp_trigger.
+    reflexivity.
+  Qed.
+
+  Lemma interp_intrinsics_bind_trigger_eqit:
     forall E F X R (HF : FailureE -< F) (e : (E +' IntrinsicE +' F) X)
       (kk : X -> itree (E +' IntrinsicE +' F) R) defs,
       interp_intrinsics defs (ITree.bind (trigger e) kk) ≅
@@ -335,14 +421,14 @@ Qed.
     reflexivity.
   Qed.
 
-  Lemma interp_intrinsics_trigger:
+  Lemma interp_intrinsics_bind_trigger:
     forall E F X R (HF : FailureE -< F) (e : (E +' IntrinsicE +' F) X)
       (kk : X -> itree (E +' IntrinsicE +' F) R) defs,
       interp_intrinsics defs (ITree.bind (trigger e) kk) ≈
       ITree.bind (interp_intrinsics_h defs e) (fun x : X => interp (INT.interp_intrinsics_h defs) (kk x)).
   Proof.
     intros.
-    rewrite interp_intrinsics_trigger_eqit.
+    rewrite interp_intrinsics_bind_trigger_eqit.
     apply eutt_eq_bind.
     intros ?; tau_steps; reflexivity.
   Qed.
@@ -370,7 +456,7 @@ Qed.
     reflexivity.
   Qed.
 
-  Lemma interp_cfg_to_L3_trigger (defs: IS.intrinsic_definitions):
+  Lemma interp_cfg_to_L3_bind_trigger (defs: IS.intrinsic_definitions):
     forall T R (e : instr_E T) (k : T -> itree instr_E R) g l m,
       interp_cfg_to_L3 defs (ITree.bind (trigger e) k) g l m ≈ 
                        ITree.bind (interp_cfg_to_L3 defs (trigger e) g l m)
@@ -379,6 +465,21 @@ Qed.
     intros.
     rewrite bind_trigger.
     rewrite interp_cfg_to_L3_vis at 1.
+    reflexivity.
+  Qed.
+
+  Lemma interp_cfg_to_L3_GR : forall defs id g l m v,
+      Maps.lookup id g = Some v ->
+      interp_cfg_to_L3 defs (trigger (GlobalRead id)) g l m ≈ ret (m,(l,(g,v))).
+  Proof.
+    intros * LU.
+    unfold interp_cfg_to_L3.
+    rewrite interp_intrinsics_trigger.
+    cbn.
+    unfold INT.F_trigger.
+    rewrite interp_global_trigger.
+    cbn in *; rewrite LU.
+    rewrite interp_local_ret, interp_memory_ret.
     reflexivity.
   Qed.
 
@@ -451,6 +552,7 @@ Qed.
 
 End Denotation.
 
+(** 
 Section NormalizeTypes.
 
 Lemma normalize_types_block_bid :
@@ -486,6 +588,7 @@ Definition normalize_types_blocks (env: list _) (bks: list (LLVMAst.block typ))
   Admitted.
 
 End NormalizeTypes.
+**)
 
 Section MemoryModel.
 
@@ -534,4 +637,43 @@ Section ValuePred.
 
 End ValuePred.
 
+(** ** Event elimination
+    This is a pure [itree] feature.
 
+    We want to be able to express that a computation does not contain a particular event,
+    and eliminate it safely from the signature if that is so.
+ *)
+From Paco Require Import paco.
+Section ElimEvent.
+
+  (* Since we cannot test equality of event, I rely on the exact order for now.
+     As usual, the generalization of subevent may help with that?
+   *)
+
+  Definition helim_l {E F}: E +' F ~> itree F :=
+    fun _ e => match e with
+            | inl1 _ => ITree.spin
+            | inr1 e => trigger e
+            end.
+
+  Definition helim_r {E F}: E +' F ~> itree E :=
+    fun _ e => match e with
+            | inr1 _ => ITree.spin
+            | inl1 e => trigger e
+            end.
+
+  Definition elim_l {E F}: itree (E +' F) ~> itree F := interp helim_l. 
+  Definition elim_r {E F}: itree (E +' F) ~> itree E := interp helim_r. 
+
+  Variant no_left_eventF {E F X} (R: itree (E +' F) X -> Prop): itree (E +' F) X -> Prop :=
+  | no_left_event_ret: forall (x: X), no_left_eventF R (ret x)
+  | no_left_event_tau: forall t, R t -> no_left_eventF R (Tau t)
+  | no_left_event_vis: forall {Y} (e: F Y) k, (forall x, R (k x)) -> no_left_eventF R (Vis (inr1 e) k).
+
+  Definition no_left_event {E F X} := paco1 (@no_left_eventF E F X) bot1. 
+
+  (* Lemma safe_helim_l: *)
+  (*   forall {E F X} (t: itree (E +' F) X) (NOL: no_left_event t) (h: E ~> itree F), *)
+  (*     elim_l _ t ≈  interp (case_ h ((fun _ e => trigger e): Handler F F)) t. *)
+
+End ElimEvent.
