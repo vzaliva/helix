@@ -238,7 +238,6 @@ Fixpoint compileMSHCOL2DSHCOL
         ni <- tmUnquoteTyped nat i ;;
         no <- tmUnquoteTyped nat o ;;
         zconst <- tmUnquoteTyped CarrierA z ;;
-        tnt <- tmQuote DSHnat ;;
         (* freshly allocated, inside alloc before loop *)
         let t_i := PVar 0 in
         (* single inc. inside loop *)
