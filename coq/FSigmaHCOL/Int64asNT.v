@@ -47,6 +47,29 @@ Module MInt64asNT <: NType.
         congruence.
   Qed.
 
+  Instance NTypeEqDec: forall x y: t, Decision (x = y).
+  Proof.
+    intros x y.
+    simpl_relation.
+    destruct x as [x xc].
+    destruct y as [y yc].
+
+    destruct (BinInt.Z.eq_dec x y).
+    -
+      subst.
+      left.
+      f_equiv.
+      apply proof_irrelevance.
+    -
+      right.
+      intros H.
+      inversion H.
+      unfold Int64.eq in H1.
+      break_if;[|congruence].
+      cbn in e.
+      congruence.
+  Qed.
+
   (* could always be converted to `nat` *)
   Definition to_nat (n:t) : nat := BinInt.Z.to_nat (Int64.intval n).
   Definition to_nat_proper: Proper ((=) ==> (=)) to_nat.

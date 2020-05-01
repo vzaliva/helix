@@ -14,6 +14,8 @@ Module MNatAsNT <: NType.
   Instance NTypeEquiv : Equiv t := nat_equiv.
   Instance NTypeSetoid: @Setoid t NTypeEquiv := sg_setoid nat.
 
+  Instance NTypeEqDec: forall x y: t, Decision (x = y) := nat_dec.
+
   (* could always be converted to `nat` *)
   Definition to_nat (n:t) : nat := n.
   Instance to_nat_proper: Proper ((=) ==> (=)) to_nat.

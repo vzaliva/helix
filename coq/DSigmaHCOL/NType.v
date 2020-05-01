@@ -12,6 +12,9 @@ Module Type NType.
   Declare Instance NTypeEquiv: Equiv t.
   Declare Instance NTypeSetoid: @Setoid t NTypeEquiv.
 
+  (* Decidable equiality *)
+  Declare Instance NTypeEqDec: forall x y: t, Decision (x = y).
+
   (* could always be converted to `nat` *)
   Parameter to_nat: t -> nat.
   Declare Instance to_nat_proper: Proper ((=) ==> (=)) to_nat.
