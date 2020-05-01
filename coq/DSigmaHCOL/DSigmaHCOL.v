@@ -92,6 +92,13 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
   | DSHSeq (f g: DSHOperator) (* execute [g] after [f] *)
   .
 
+  Definition DSHType_of_DSHVal (v:DSHVal) :=
+    match v with
+    | DSHnatVal _ => DSHnat
+    | DSHCTypeVal _ => DSHCType
+    | DSHPtrVal _ size => DSHPtr size
+    end.
+
   (* Some Setoid stuff below *)
 
   Inductive DSHType_equiv: Equiv DSHType :=
