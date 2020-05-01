@@ -26,10 +26,11 @@ let output_ll_file filename ast =
   Out_channel.close channel
 
 let gsize t =
+  let open FSigmaHCOL.MDSHCOLOnFloat64 in
   match t with
-  | FSHnatValType -> 1
-  | FSHFloatValType -> 1
-  | FSHvecValType n -> int_of_Int64 n
+  | DSHnat -> 1
+  | DSHCType -> 1
+  | DSHPtr n -> int_of_Int64 n
 
 let string_of_FloatV fv =
   Float.to_string (camlfloat_of_coqfloat fv)

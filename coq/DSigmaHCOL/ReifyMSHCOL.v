@@ -51,11 +51,11 @@ Definition toDSHType (t: term): TemplateMonad DSHType :=
             {| inductive_mind := "Coq.Init.Datatypes.nat"; inductive_ind := 0 |} _ ; _])
     => tmReturn DSHnat (* `FinNat` is treated as `nat` *)
   | tConst "Helix.HCOL.CarrierType.CarrierA" _ => tmReturn DSHCType
-  | tConst "Helix.SigmaHCOL.Memory.mem_block" _ => tmReturn DSHPtr (* pass by reference *)
   | tApp
       (tInd {| inductive_mind := "Coq.Vectors.VectorDef.t"; inductive_ind := 0 |} _)
       [tConst "Helix.HCOL.CarrierType.CarrierA" _ ; nat_term] =>
-    tmReturn DSHPtr (* mapping vectors to memory blocks pointers *)
+    size <- tmUnquoteTyped nat nat_term ;;
+    tmReturn (DSHPtr size) (* mapping vectors to memory blocks pointers *)
   | _ =>
     (* tmPrint t ;; this print slows complilation down *)
     tmFail "non-DSHCOL type encountered"

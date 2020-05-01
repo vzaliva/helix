@@ -121,18 +121,18 @@ Local Open Scope monad_scope.
 
 Fixpoint denote_initFSHGlobals
          (data: list binary64)
-         (globals: list (string * FSHValType))
+         (globals: list (string * DSHType))
   : itree Event (list binary64 * evalContext) :=
     match globals with
     | [] => ret (data, [])
     | (_,gt)::gs =>
       match gt with
-      | FSHnatValType => Sfail "Unsupported global type: nat"
-      | FSHFloatValType =>
+      | DSHnat => Sfail "Unsupported global type: nat"
+      | DSHCType =>
         '(data,σ) <- denote_initFSHGlobals data gs ;;
          let '(x, data) := rotate Float64Zero data in
          ret (data, (DSHCTypeVal x)::σ)
-      | FSHvecValType n =>
+      | DSHPtr n =>
         '(data,σ) <- denote_initFSHGlobals data gs ;;
          let (data,mb) := constMemBlock (MInt64asNT.to_nat n) data in
          k <- trigger (MemAlloc n);;
@@ -1321,9 +1321,9 @@ Definition init_llvm_memory
     '(data,ginit) <- initIRGlobals data p.(globals) ;;
 
     let y := Anon 1%Z in
-    let ytyp := getIRType (FSHvecValType p.(o)) in
+    let ytyp := getIRType (DSHPtr p.(o)) in
     let x := Anon 0%Z in
-    let xtyp := getIRType (FSHvecValType p.(i)) in
+    let xtyp := getIRType (DSHPtr p.(i)) in
 
     let xyinit := global_YX p.(i) p.(o) data x xtyp y ytyp in
 
@@ -1353,7 +1353,7 @@ Qed.
    Currently [σ := [globals;Y;X]]
    Where globals mapped by name, while [X-> Anon 0] and [Y->Anon 1]
 *)
-Definition memory_invariant_map (globals : list (string * FSHValType)): nat -> raw_id
+Definition memory_invariant_map (globals : list (string * DSHType)): nat -> raw_id
   := fun j =>
        let l := List.length globals in
        if Nat.eqb j l then Anon 0%Z (* X *)
@@ -1364,7 +1364,7 @@ Definition memory_invariant_map (globals : list (string * FSHValType)): nat -> r
               | Some (name,_) => Name name
               end.
 
-Lemma memory_invariant_map_injectivity (globals : list (string * FSHValType)):
+Lemma memory_invariant_map_injectivity (globals : list (string * DSHType)):
   list_uniq fst globals ->
   forall (x y : nat),
     x < (Datatypes.length globals + 2)%nat ∧ y < (Datatypes.length globals + 2)%nat
@@ -1383,11 +1383,11 @@ Proof.
 Qed.
 
 Fact initIRGlobals_cons_head_uniq:
-  ∀ (a : string * FSHValType) (globals : list (string * FSHValType))
+  ∀ (a : string * DSHType) (globals : list (string * DSHType))
     (data : list binary64) (res : list binary64 *
                                   list (toplevel_entity typ (list (LLVMAst.block typ)))),
     initIRGlobals data (a :: globals) ≡ inr res ->
-    forall (j : nat) (n : string) (v : FSHValType),
+    forall (j : nat) (n : string) (v : DSHType),
       (nth_error globals j ≡ Some (n, v) /\ n ≡ fst a) → False.
 Proof.
   intros a globals data res H j n v C.
@@ -1693,6 +1693,13 @@ Lemma memory_invariant_after_init
                 init_llvm_memory p data ≡ inr lmem ->
                 memory_invariant σ hmem lmem.
 Proof.
+  (*
+
+  This partial proof was further broken after
+  eliminating [FSHValType] and replacing it with [DSHType].
+  It needs to be repaired
+
+
   intros hmem σ lmem hdata [HI LI].
   unfold memory_invariant.
   repeat break_let; subst.
@@ -2081,6 +2088,7 @@ Proof.
     eexists.
     eexists.
     admit.
+   *)
 Admitted.
 
 (* with init step  *)

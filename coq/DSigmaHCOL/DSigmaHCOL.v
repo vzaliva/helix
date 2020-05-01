@@ -30,7 +30,7 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
   Inductive DSHType :=
   | DSHnat : DSHType
   | DSHCType : DSHType
-  | DSHPtr : DSHType.
+  | DSHPtr (n:NT.t) : DSHType.
 
   Inductive DSHVal :=
   | DSHnatVal (n:NT.t): DSHVal
@@ -92,20 +92,35 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
   | DSHSeq (f g: DSHOperator) (* execute [g] after [f] *)
   .
 
-
   (* Some Setoid stuff below *)
-  Instance DSHType_equiv: Equiv DSHType := eq.
+
+  Inductive DSHType_equiv: Equiv DSHType :=
+  | DSHnat_equiv: DSHType_equiv DSHnat DSHnat
+  | DSHCType_equiv: DSHType_equiv DSHCType DSHCType
+  | DSHPtr_equiv {s0 s1:NT.t}: s0 = s1 -> DSHType_equiv (DSHPtr s0) (DSHPtr s1).
+
+  Existing Instance DSHType_equiv.
 
   Instance DSHType_equiv_Decision (a b:DSHType):
     Decision (equiv a b).
   Proof.
-    destruct a,b; try (left;constructor); right; intros H; inversion H.
+    simpl_relation.
+    destruct a,b.
+    1,5: left;constructor.
+    7:{
+      destruct (NTypeEqDec n n0).
+      left;constructor;assumption.
+      right; intros H; inv H; congruence.
+    }
+    all: right; intros H; inversion H.
   Qed.
 
-  Inductive DSHVal_equiv: DSHVal -> DSHVal -> Prop :=
+  Inductive DSHVal_equiv: Equiv DSHVal :=
   | DSHnatVal_equiv {n0 n1:NT.t}: n0=n1 -> DSHVal_equiv (DSHnatVal n0) (DSHnatVal n1)
   | DSHCTypeVal_equiv {a b: CT.t}: a=b -> DSHVal_equiv (DSHCTypeVal a) (DSHCTypeVal b)
-  | DSHPtr_equiv {p0 p1: mem_block_id} {s0 s1:NT.t}: s0 = s1 /\ p0=p1 -> DSHVal_equiv (DSHPtrVal p0 s0) (DSHPtrVal p1 s1).
+  | DSHPtrVal_equiv {p0 p1: mem_block_id} {s0 s1:NT.t}: s0 = s1 /\ p0=p1 -> DSHVal_equiv (DSHPtrVal p0 s0) (DSHPtrVal p1 s1).
+
+  Existing Instance DSHVal_equiv.
 
   Instance DSHVar_Equivalence:
     Equivalence DSHVal_equiv.
@@ -139,8 +154,6 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
         * rewrite Hs; auto.
         * rewrite Hp; auto.
   Qed.
-
-  Instance DSHVar_Equiv: Equiv DSHVal := DSHVal_equiv.
 
   Inductive NExpr_equiv: NExpr -> NExpr -> Prop :=
   | NVar_equiv  {n1 n2}: n1=n2 -> NExpr_equiv (NVar n1)  (NVar n2)
