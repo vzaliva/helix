@@ -483,6 +483,23 @@ Qed.
     reflexivity.
   Qed.
 
+  Lemma interp_cfg_to_L3_LR : forall defs id g l m v,
+      Maps.lookup id l = Some v ->
+      interp_cfg_to_L3 defs (trigger (LocalRead id)) g l m ≈ ret (m,(l,(g,v))).
+  Proof.
+    intros * LU.
+    unfold interp_cfg_to_L3.
+    rewrite interp_intrinsics_trigger.
+    cbn.
+    unfold INT.F_trigger.
+    rewrite interp_global_trigger.
+    cbn.
+    rewrite interp_local_bind, interp_local_trigger.
+    cbn in *; rewrite LU.
+    rewrite bind_ret_l, interp_local_ret, interp_memory_ret.
+    reflexivity.
+  Qed.
+
 End InterpreterCFG.
 
 Section Denotation.

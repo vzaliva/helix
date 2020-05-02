@@ -287,6 +287,10 @@ Section RelationTypes.
   Definition lift_R_memory_cfg (R: Type_R_memory_cfg) (TH TV: Type): Type_R_cfg_T TH TV :=
     fun σ '(memH,_) '(memV,(l,(g,_))) => R σ memH (memV,(l,g)).
 
+  (* Lifting a relation on results to one encompassing states by ignoring them *)
+  Definition lift_R_result_cfg {TH TV: Type} (R: TH -> TV -> Prop): Type_R_cfg_T TH TV :=
+    fun _ '(_,vh) '(_,(_,(_,vv))) => R vh vv.
+
   (** Type of bisimulation relations between DSHCOL and VIR internal to CFG states,
       parameterized by the types of the computed values.
    *)
@@ -728,16 +732,34 @@ vars s1 = σ?
     fun a b => R a b /\ S a b.
   Infix "⩕" := conj_rel (at level 85).
 
+  Variable (R: Type_R_memory_cfg).
+  Definition R' : Int64.int -> uvalue -> Prop := fun i uv => uv ≡ UVALUE_I64 i.
+  (* R, R' to be instantiated *)
+
+  (* Facts that must be derivable *)
+  Axiom R_GLU : forall σ s v id memH memV l g n,
+  WF_IRState σ s ->
+  nth_error (vars s) v ≡ Some (ID_Global id, TYPE_I 64%Z) ->
+  R σ memH (memV, (l, g)) ->
+  context_lookup "NVar not found" σ v ≡ inr (DSHnatVal n) ->
+  Maps.lookup id g ≡ Some (DVALUE_I64 n).
+
+  Axiom R_LLU : forall σ s v id memH memV l g n,
+  WF_IRState σ s ->
+  nth_error (vars s) v ≡ Some (ID_Local id, TYPE_I 64%Z) ->
+  R σ memH (memV, (l, g)) ->
+  context_lookup "NVar not found" σ v ≡ inr (DSHnatVal n) ->
+  Maps.lookup id l ≡ Some (UVALUE_I64 n).
+
   (* TODOYZ: name consistency Nexp/NExpr/Nexpr/NExp *) 
   Lemma genNExpr_correct :
-    forall (R: Type_R_memory_cfg) (R': Type_R_cfg_T Int64.int _) (* R, R' to be instantiated. R' to be R over the states plus an invariant on returned value *)
-      (* Compiler bits *) (s1 s2: IRState)
+    forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH)
       (* Vellvm bits *)   (exp: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
       genNExpr nexp s1 ≡ inr (s2, (exp, c)) -> (* Compilation succeeds *)
       WF_IRState σ s1 ->                       (* Well-formed IRState *)
       R σ memH (memV, (l, g)) ->
-      eutt (lift_R_memory_cfg R σ ⩕ R' σ)
+      eutt (lift_R_memory_cfg R σ ⩕ lift_R_result_cfg R' σ)
            (translate_E_helix_cfg  
               (interp_Mem (denoteNexp σ nexp)
                           memH))
@@ -773,59 +795,39 @@ vars s1 = σ?
             unfold translate_E_vellvm_cfg; cbn. rewrite interp_cfg_to_L3_bind, interp_cfg_to_L3_ret, bind_ret_l.
             (* TODOYZ: Ltac *)
             destruct i0; cbn.
-            unfold Traversal.endo, Traversal.Endo_ident, Traversal.Endo_id.
-            { rewrite translate_bind.
+            { (* Global *)
+              unfold Traversal.endo, Traversal.Endo_ident, Traversal.Endo_id.
+              rewrite translate_bind.
               rewrite translate_trigger.
               rewrite translate_bind.
               rewrite lookup_E_to_exp_E_Global.
               rewrite translate_trigger.
               rewrite exp_E_to_instr_E_Global.
               rewrite interp_cfg_to_L3_bind.
-              rewrite interp_cfg_to_L3_GR.
-              Unshelve.
-(** CHECKPOINT: Need to automatize all this boilerplate, need a memory invariant to progress **)
-
-              rewrite bind_trigger.
-              cbn.
-              setoid_rewrite translate_trigger.
-              unfold exp_E_to_instr_E.
-              unfold subevent, resum, ReSum_id, id_, Id_IFun.
-
-
-
-              rewrite interp_cfg_to_L3_trigger.
-              unfold trigger.
-              
-              rewrite translate_bind.
-
-
-              unfold trigger.
-              rewrite translate_vis.
-              setoid_rewrite translate_ret.
-              Set Printing Implicit.
-              replace (Vis
-                   (@lookup_E_to_exp_E dvalue
-                      (@subevent (GlobalE raw_id dvalue) lookup_E
-                         (@ReSum_inl (Type → Type) IFun sum1 Cat_IFun Inl_sum1 (GlobalE raw_id dvalue) LLVMGEnvE LLVMEnvE
-                                     (@ReSum_id (Type → Type) IFun Id_IFun LLVMGEnvE)) dvalue (@GlobalRead raw_id dvalue id))) (λ x : dvalue, Ret x)) with
-
-                  (trigger (lookup_E_to_exp_E (subevent _ (@GlobalRead raw_id dvalue id)))).
-              2: reflexivity.
-              Unset Printing Implicit.
-
-(Vis (lookup_E_to_exp_E (subevent dvalue (GlobalRead id))) (λ x : dvalue, Ret x))
-(translate lookup_E_to_exp_E (trigger (GlobalRead id)))
-            t translate_ret.
-            apply eqit_Ret.
-            split; [apply PRE |].
-            admit.
-          }
-          { rewrite interp_Mem_ret, translate_ret.
-            unfold translate_E_vellvm_cfg; cbn; rewrite interp_cfg_to_L3_ret, translate_ret.
-            apply eqit_Ret.
-            split; [apply PRE |].
-            admit.
-          }
+              rewrite interp_cfg_to_L3_GR with (v := DVALUE_I64 n).
+              2: eapply R_GLU; eauto.
+              (** TODO: Need to automatize all this boilerplate **)
+              cbn; rewrite bind_ret_l.
+              rewrite !translate_ret.
+              rewrite interp_cfg_to_L3_ret.
+              rewrite !translate_ret.
+              (** TODO: Define specialized version on eutt for external use *)
+              apply eqit_Ret.
+              split; [apply PRE | reflexivity].
+            }
+            { (* Local *)
+              unfold Traversal.endo, Traversal.Endo_ident, Traversal.Endo_id.
+              rewrite translate_trigger.
+              rewrite lookup_E_to_exp_E_Local.
+              rewrite translate_trigger.
+              rewrite exp_E_to_instr_E_Local.
+              rewrite interp_cfg_to_L3_LR with (v := UVALUE_I64 n).
+              2: eapply R_LLU; eauto.
+              (** TODO: Need to automatize all this boilerplate **)
+              cbn; rewrite !translate_ret.
+              apply eqit_Ret.
+              split; [apply PRE | reflexivity].
+            }
         * (* binary64, absurd. *)
           (* Lookup in σ and (vars s) should have matching types? *)
           exfalso.
