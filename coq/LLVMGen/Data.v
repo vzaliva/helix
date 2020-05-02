@@ -61,19 +61,13 @@ Section RandomDataPool.
 
 End RandomDataPool.
 
-(* Type of values. Used for global variables *)
-Inductive FSHValType :=
-| FSHnatValType       :FSHValType
-| FSHFloatValType     :FSHValType
-| FSHvecValType (n:Int64.int) :FSHValType.
-
 Record FSHCOLProgram :=
   mkFSHCOLProgram
     {
       i: Int64.int;
       o: Int64.int;
       name: string;
-      globals: list (string * FSHValType) ;
+      globals: list (string * DSHType) ;
       op: DSHOperator;
     }.
 
@@ -138,16 +132,16 @@ Qed.
 
 Definition initOneFSHGlobal
            (st: memory * list binary64)
-           (gp: string*FSHValType) : err (memory * list binary64 * DSHVal)
+           (gp: string*DSHType) : err (memory * list binary64 * DSHVal)
   :=
     let (_,gt) := gp in
     let '(mem,data) := st in
     match gt with
-    | FSHnatValType => raise "Unsupported global type: nat"
-    | FSHFloatValType =>
+    | DSHnat => raise "Unsupported global type: nat"
+    | DSHCType =>
       let '(x, data) := rotate Float64Zero data in
       ret (mem, data, DSHCTypeVal x)
-    | FSHvecValType n =>
+    | DSHPtr n =>
       let (data,mb) := constMemBlock (MInt64asNT.to_nat n) data in
       let k := memory_next_key mem in
       let mem := memory_set mem k mb in
@@ -158,7 +152,7 @@ Definition initOneFSHGlobal
 Definition initFSHGlobals
          (data: list binary64)
          (mem: memory)
-         (globals: list (string * FSHValType))
+         (globals: list (string * DSHType))
 : err (memory * list binary64 * evalContext)
   := init_with_data initOneFSHGlobal no_chk (mem, data) globals.
 

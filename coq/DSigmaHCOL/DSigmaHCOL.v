@@ -30,33 +30,12 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
   Inductive DSHType :=
   | DSHnat : DSHType
   | DSHCType : DSHType
-  | DSHPtr : DSHType.
+  | DSHPtr (n:NT.t) : DSHType.
 
   Inductive DSHVal :=
   | DSHnatVal (n:NT.t): DSHVal
   | DSHCTypeVal (a:CT.t): DSHVal
   | DSHPtrVal (a:mem_block_id) (size:NT.t): DSHVal.
-
-  Inductive DSHValType: DSHVal -> DSHType -> Prop :=
-  | DSHnatVal_type (n:NT.t): DSHValType (DSHnatVal n) DSHnat
-  | DSHCTypeVal_type (a:CT.t): DSHValType (DSHCTypeVal a) DSHCType
-  | DSHDSHPtrVal_type (a:mem_block_id) (size:NT.t): DSHValType (DSHPtrVal a size) (DSHPtr).
-
-  (* Functional version. *)
-  Definition DSHValToType: DSHVal -> DSHType :=
-    fun v => match v with
-          | DSHnatVal _ => DSHnat
-          | DSHCTypeVal _ =>  DSHCType
-          | DSHPtrVal _ size => DSHPtr
-          end.
-
-  (* Sanity check to make sure 2 definitons above are consistent with each other *)
-  Fact DSHValToType_DSHValType:
-    forall v, DSHValType v (DSHValToType v).
-  Proof.
-    intros v.
-    destruct v; constructor.
-  Qed.
 
   (* Expressions which evaluate to `NT.t` *)
   Inductive NExpr : Type :=
@@ -113,28 +92,42 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
   | DSHSeq (f g: DSHOperator) (* execute [g] after [f] *)
   .
 
+  Definition DSHType_of_DSHVal (v:DSHVal) :=
+    match v with
+    | DSHnatVal _ => DSHnat
+    | DSHCTypeVal _ => DSHCType
+    | DSHPtrVal _ size => DSHPtr size
+    end.
 
   (* Some Setoid stuff below *)
-  Instance DSHType_equiv: Equiv DSHType := eq.
+
+  Inductive DSHType_equiv: Equiv DSHType :=
+  | DSHnat_equiv: DSHType_equiv DSHnat DSHnat
+  | DSHCType_equiv: DSHType_equiv DSHCType DSHCType
+  | DSHPtr_equiv {s0 s1:NT.t}: s0 = s1 -> DSHType_equiv (DSHPtr s0) (DSHPtr s1).
+
+  Existing Instance DSHType_equiv.
 
   Instance DSHType_equiv_Decision (a b:DSHType):
     Decision (equiv a b).
   Proof.
-    destruct a,b; try (left;constructor); right; intros H; inversion H.
+    simpl_relation.
+    destruct a,b.
+    1,5: left;constructor.
+    7:{
+      destruct (NTypeEqDec n n0).
+      left;constructor;assumption.
+      right; intros H; inv H; congruence.
+    }
+    all: right; intros H; inversion H.
   Qed.
 
-  Instance DSHValType_Decision (v:DSHVal) (t:DSHType):
-    Decision (DSHValType v t).
-  Proof.
-    destruct v,t; try (left;constructor); right; intros H; inversion H.
-  Qed.
-
-  Definition DSHValType_bool (v:DSHVal) (t:DSHType) := bool_decide (DSHValType v t).
-
-  Inductive DSHVal_equiv: DSHVal -> DSHVal -> Prop :=
+  Inductive DSHVal_equiv: Equiv DSHVal :=
   | DSHnatVal_equiv {n0 n1:NT.t}: n0=n1 -> DSHVal_equiv (DSHnatVal n0) (DSHnatVal n1)
   | DSHCTypeVal_equiv {a b: CT.t}: a=b -> DSHVal_equiv (DSHCTypeVal a) (DSHCTypeVal b)
-  | DSHPtr_equiv {p0 p1: mem_block_id} {s0 s1:NT.t}: s0 = s1 /\ p0=p1 -> DSHVal_equiv (DSHPtrVal p0 s0) (DSHPtrVal p1 s1).
+  | DSHPtrVal_equiv {p0 p1: mem_block_id} {s0 s1:NT.t}: s0 = s1 /\ p0=p1 -> DSHVal_equiv (DSHPtrVal p0 s0) (DSHPtrVal p1 s1).
+
+  Existing Instance DSHVal_equiv.
 
   Instance DSHVar_Equivalence:
     Equivalence DSHVal_equiv.
@@ -168,8 +161,6 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
         * rewrite Hs; auto.
         * rewrite Hp; auto.
   Qed.
-
-  Instance DSHVar_Equiv: Equiv DSHVal := DSHVal_equiv.
 
   Inductive NExpr_equiv: NExpr -> NExpr -> Prop :=
   | NVar_equiv  {n1 n2}: n1=n2 -> NExpr_equiv (NVar n1)  (NVar n2)

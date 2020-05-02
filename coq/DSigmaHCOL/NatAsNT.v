@@ -14,6 +14,8 @@ Module MNatAsNT <: NType.
   Instance NTypeEquiv : Equiv t := nat_equiv.
   Instance NTypeSetoid: @Setoid t NTypeEquiv := sg_setoid nat.
 
+  Instance NTypeEqDec: forall x y: t, Decision (x = y) := nat_dec.
+
   (* could always be converted to `nat` *)
   Definition to_nat (n:t) : nat := n.
   Instance to_nat_proper: Proper ((=) ==> (=)) to_nat.
@@ -55,5 +57,23 @@ Module MNatAsNT <: NType.
   Proof. solve_proper. Qed.
 
   Definition to_string (n : t) : String.string := string_of_nat (to_nat n).
+
+  Lemma from_nat_lt:
+    forall x xi y,
+      from_nat x ≡ inr xi ->
+      y<x ->
+      exists yi, from_nat y ≡ inr yi.
+  Proof.
+    intros x xi y H H0.
+    unfold from_nat in *.
+    exists y.
+    reflexivity.
+  Qed.
+
+  Lemma from_nat_zero: exists z, from_nat O ≡ inr z.
+  Proof.
+    eexists.
+    auto.
+  Qed.
 
 End MNatAsNT.

@@ -158,3 +158,126 @@ Proof.
   apply IHl ; auto with arith.
   rewrite rev_length; auto.
 Qed.
+
+Lemma fold_left_rev_def {A B : Type} (l : list B) (e : A) (f : A -> B -> A) :
+  fold_left_rev f e l = fold_left f (rev l) e.
+Proof.
+  induction l.
+  -
+    reflexivity.
+  -
+    cbn.
+    rewrite fold_left_app, IHl.
+    reflexivity.
+Qed.
+
+Lemma fold_left_fold_left_rev
+      {A : Type}
+      (l : list A)
+      (e : A)
+      (f : A -> A -> A)
+      (f_commut : forall x y, f x y = f y x)
+      (f_assoc : forall x y z, f x (f y z) = f (f x y) z)
+  :
+    fold_left_rev f e l = fold_left f l e.
+Proof.
+  rewrite fold_left_rev_def.
+  rewrite <-fold_left_rev_right.
+  rewrite rev_involutive.
+  induction l; [reflexivity |].
+  cbn.
+  rewrite_clear IHl.
+  generalize dependent a.
+  induction l; [reflexivity |].
+  cbn.
+  congruence.
+Qed.
+
+Lemma fold_left_preservation
+      {A : Type}
+      (f : A -> A -> A)
+      (init : A)
+      (l : list A)
+      (P : A -> Prop)
+      (PP : forall a b, P a \/ P b -> P (f a b))
+  :
+    (P init \/ exists a, P a /\ In a l) ->
+    P (fold_left f l init).
+Proof.
+  intros.
+  generalize dependent init.
+  induction l.
+  -
+    intros.
+    intuition.
+    destruct H0.
+    intuition.
+  -
+    intros.
+    cbn.
+    apply IHl.
+    destruct H as [I | [a' [Pa' La']]]; auto.
+    inversion La'.
+    subst; auto.
+    right.
+    exists a'.
+    auto.
+Qed.
+
+Lemma fold_left_emergence
+
+      {A : Type}
+      (f : A -> A -> A)
+      (init : A)
+      (l : list A)
+      (P : A -> Prop)
+      (PE : forall a b, P (f a b) -> P a \/ P b)
+  :
+    P (fold_left f l init) ->
+    (P init \/ exists a, P a /\ In a l).
+Proof.
+  intros.
+  generalize dependent init.
+  induction l.
+  -
+    intros.
+    intuition.
+  -
+    intros.
+    cbn in H.
+    apply IHl in H.
+    destruct H as [I | [a' [Pa' La']]].
+    +
+      apply PE in I.
+      destruct I; auto.
+      right.
+      exists a.
+      cbn.
+      auto.
+    +
+      right.
+      exists a'.
+      cbn.
+      auto.
+Qed.
+
+Lemma fold_left_invariant
+      {A : Type}
+      (f : A -> A -> A)
+      (init : A)
+      (l : list A)
+      (P : A -> Prop)
+      (PI : forall a b, P (f a b) <-> P a \/ P b)
+  :
+    P (fold_left f l init) <-> (P init \/ exists a, P a /\ In a l).
+Proof.
+  split; intros.
+  -
+    apply fold_left_emergence with (f0:=f).
+    apply PI.
+    assumption.
+  -
+    apply fold_left_preservation with (f0:=f).
+    apply PI.
+    assumption.
+Qed.

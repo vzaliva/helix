@@ -406,122 +406,6 @@ Module MDSigmaHCOLITree
       inv_eval; state_steps; reflexivity.
     Qed.
 
-    Definition interp_Mem_Fails {T} e mem :=
-      exists msg',
-        eutt eq (interp_Mem e mem) (Dfail msg') \/
-        eutt eq (interp_Mem (T:=T) e mem) (Sfail msg').
-
-    Ltac match_failure :=
-      state_steps;
-      unfold throw, pure_state, Dfail,Sfail; state_steps;
-      apply eqit_Vis; intros [].
-
-    Lemma Denote_Eval_Equiv_Mexp_Fails: forall mem σ e msg,
-        evalMexp mem σ e ≡ inl msg ->
-        interp_Mem_Fails (denoteMexp σ e) mem.
-    Proof.
-      unfold interp_Mem_Fails.
-      intros mem σ [] bk HEval; cbn in HEval; unfold_Mem; cbn in HEval.
-      - inv_eval; state_steps; eexists; left; state_steps; match_failure.
-      - inl_inr.
-    Qed.
-
-    Lemma Denote_Eval_Equiv_Aexp_Fails: forall mem σ e msg,
-        evalAexp mem σ e ≡ inl msg ->
-        interp_Mem_Fails (denoteAexp σ e) mem.
-    Proof.
-      unfold interp_Mem_Fails.
-      intros mem σ e msg; induction e; intros HEval; cbn in HEval; unfold_Mem; cbn in HEval.
-      - eexists; right; cbn in *; inv_eval; state_steps; match_failure.
-      - inl_inr.
-      - inv_eval; state_steps.
-        + apply Denote_Eval_Equiv_Mexp_Fails in Heqs; destruct Heqs as (?msg & [Heqe | Heqe]).
-          * eexists; left; state_steps.
-            unfold interp_Mem in Heqe; rewrite Heqe; state_steps; match_failure.
-          * eexists; right; state_steps.
-            unfold interp_Mem in Heqe; rewrite Heqe; match_failure.
-        + apply Denote_Eval_Equiv_Mexp_Succeeds in Heqs.
-          eexists; left.
-          unfold interp_Mem in Heqs.
-          state_steps; rewrite Heqs; cbn; state_steps; match_failure.
-      - inv_eval.
-        destruct IHe as [msg' [IHe | IHe]]; auto; eexists.
-        left; state_steps; rewrite IHe; match_failure.
-        right; state_steps; rewrite IHe; match_failure.
-      - inv_eval.
-        + destruct IHe1 as [msg1 [IHe | IHe]]; auto.
-          * eexists; left; cbn; state_steps; rewrite IHe; match_failure.
-          * eexists; right; cbn; state_steps; rewrite IHe; match_failure.
-        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqs.
-          destruct IHe2 as [msg2 [IHe | IHe]]; auto.
-          * eexists; left; cbn; state_steps.
-            rewrite Heqs; cbn; state_steps.
-            rewrite IHe; match_failure.
-          * eexists; right; cbn; state_steps.
-            rewrite Heqs; cbn; state_steps.
-            rewrite IHe; match_failure.
-      - inv_eval.
-        + destruct IHe1 as [msg1 [IHe | IHe]]; auto.
-          * eexists; left; cbn; state_steps; rewrite IHe; match_failure.
-          * eexists; right; cbn; state_steps; rewrite IHe; match_failure.
-        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqs.
-          destruct IHe2 as [msg2 [IHe | IHe]]; auto.
-          * eexists; left; cbn; state_steps.
-            rewrite Heqs; cbn; state_steps.
-            rewrite IHe; match_failure.
-          * eexists; right; cbn; state_steps.
-            rewrite Heqs; cbn; state_steps.
-            rewrite IHe; match_failure.
-      - inv_eval.
-        + destruct IHe1 as [msg1 [IHe | IHe]]; auto.
-          * eexists; left; cbn; state_steps; rewrite IHe; match_failure.
-          * eexists; right; cbn; state_steps; rewrite IHe; match_failure.
-        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqs.
-          destruct IHe2 as [msg2 [IHe | IHe]]; auto.
-          * eexists; left; cbn; state_steps.
-            rewrite Heqs; cbn; state_steps.
-            rewrite IHe; match_failure.
-          * eexists; right; cbn; state_steps.
-            rewrite Heqs; cbn; state_steps.
-            rewrite IHe; match_failure.
-      - inv_eval.
-        + destruct IHe1 as [msg1 [IHe | IHe]]; auto.
-          * eexists; left; cbn; state_steps; rewrite IHe; match_failure.
-          * eexists; right; cbn; state_steps; rewrite IHe; match_failure.
-        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqs.
-          destruct IHe2 as [msg2 [IHe | IHe]]; auto.
-          * eexists; left; cbn; state_steps.
-            rewrite Heqs; cbn; state_steps.
-            rewrite IHe; match_failure.
-          * eexists; right; cbn; state_steps.
-            rewrite Heqs; cbn; state_steps.
-            rewrite IHe; match_failure.
-      - inv_eval.
-        + destruct IHe1 as [msg1 [IHe | IHe]]; auto.
-          * eexists; left; cbn; state_steps; rewrite IHe; match_failure.
-          * eexists; right; cbn; state_steps; rewrite IHe; match_failure.
-        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqs.
-          destruct IHe2 as [msg2 [IHe | IHe]]; auto.
-          * eexists; left; cbn; state_steps.
-            rewrite Heqs; cbn; state_steps.
-            rewrite IHe; match_failure.
-          * eexists; right; cbn; state_steps.
-            rewrite Heqs; cbn; state_steps.
-            rewrite IHe; match_failure.
-      - inv_eval.
-        + destruct IHe1 as [msg1 [IHe | IHe]]; auto.
-          * eexists; left; cbn; state_steps; rewrite IHe; match_failure.
-          * eexists; right; cbn; state_steps; rewrite IHe; match_failure.
-        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqs.
-          destruct IHe2 as [msg2 [IHe | IHe]]; auto.
-          * eexists; left; cbn; state_steps.
-            rewrite Heqs; cbn; state_steps.
-            rewrite IHe; match_failure.
-          * eexists; right; cbn; state_steps.
-            rewrite Heqs; cbn; state_steps.
-            rewrite IHe; match_failure.
-    Qed.
-
     Lemma Denote_Eval_Equiv_IMap_Succeeds: forall mem n f σ m1 m2 id,
         evalDSHIMap mem n f σ m1 m2 ≡ inr id ->
         eutt eq
@@ -536,27 +420,6 @@ Module MDSigmaHCOLITree
         reflexivity.
     Qed.
 
-    Lemma Denote_Eval_Equiv_IMap_Fails: forall mem n f σ m1 m2 msg,
-        evalDSHIMap mem n f σ m1 m2 ≡ inl msg ->
-        interp_Mem_Fails  (denoteDSHIMap n f σ m1 m2) mem.
-    Proof.
-      (*
-      unfold interp_Mem_Fails.
-      induction n as [| n IH]; cbn; intros f σ m1 m2 id HEval; unfold_Mem; cbn in HEval.
-      - inl_inr.
-      - inv_eval.
-        + eexists; left.
-          state_steps; match_failure.
-        + apply Denote_Eval_Equiv_Aexp_Fails in Heqs0; destruct Heqs0 as (?msg & [Heqs0 | Heqs0]); unfold interp_Mem in Heqs0.
-          * eexists; left; cbn; state_steps; rewrite Heqs0; match_failure.
-          * eexists; left; cbn; state_steps; rewrite Heqs0; match_failure.
-        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqs0.
-          apply IH in HEval; destruct HEval as [msg' [EQ | EQ]]; eexists; [left | right].
-          * state_steps; rewrite Heqs0; state_steps; rewrite EQ; reflexivity.
-          * state_steps; rewrite Heqs0; state_steps; rewrite EQ; reflexivity.
-*)
-    Admitted.
-
     Lemma Denote_Eval_Equiv_BinCType_Succeeds: forall mem σ f i a b v,
         evalIBinCType mem σ f i a b ≡ inr v ->
         eutt eq
@@ -567,45 +430,18 @@ Module MDSigmaHCOLITree
       eapply Denote_Eval_Equiv_Aexp_Succeeds; eauto.
     Qed.
 
-    Lemma Denote_Eval_Equiv_BinCType_Fails: forall mem σ f i a b msg,
-        evalIBinCType mem σ f i a b ≡ inl msg ->
-        interp_Mem_Fails (denoteIBinCType σ f i a b) mem.
-    Proof.
-      unfold evalIBinCType, denoteIBinCType; intros.
-      eapply Denote_Eval_Equiv_Aexp_Fails; eauto.
-    Qed.
-
     Lemma Denote_Eval_Equiv_BinOp_Succeeds: forall mem n off σ f x y blk,
         evalDSHBinOp mem n off f σ x y ≡ inr blk ->
         eutt eq
              (interp_Mem (denoteDSHBinOp n off f σ x y) mem)
              (ret (mem, blk)).
     Proof.
-      (*
       induction n as [| n IH]; cbn; intros off f σ x y blk HEval; unfold_Mem; cbn in HEval.
       - inv_eval; state_steps; reflexivity.
       - inv_eval; state_steps.
-        apply Denote_Eval_Equiv_BinCType_Succeeds in Heqs1; rewrite Heqs1; cbn; state_steps.
+        apply Denote_Eval_Equiv_BinCType_Succeeds in Heqs2; rewrite Heqs2; cbn; state_steps.
         rewrite IH; eauto; reflexivity.
-       *)
-    Admitted.
-
-    Lemma Denote_Eval_Equiv_BinOp_Fails: forall mem n off σ f x y msg,
-        evalDSHBinOp mem n off f σ x y ≡ inl msg ->
-        interp_Mem_Fails (denoteDSHBinOp n off f σ x y) mem.
-    Proof.
-      (*
-      unfold interp_Mem_Fails.
-      induction n as [| n IH]; cbn; intros off σ f x y msg HEval; unfold_Mem; cbn in HEval.
-      - inv_eval.
-      - inv_eval; try (eexists; left; state_steps; match_failure).
-        edestruct Denote_Eval_Equiv_BinCType_Fails as [? [H|H]]; eauto;
-          eexists; [left | right]; state_steps; rewrite H; match_failure.
-        apply Denote_Eval_Equiv_BinCType_Succeeds in Heqs1;
-          edestruct IH as [? [H|H]]; eauto;
-            eexists; [left | right]; state_steps; rewrite Heqs1; state_steps; rewrite H; match_failure.
-*)
-      Admitted.
+    Qed.
 
     Definition denote_Loop_for_i_to_N σ body (i N: nat) :=
       iter (fun (p: nat) =>
@@ -685,21 +521,21 @@ Module MDSigmaHCOLITree
       simpl; rewrite Nat.eqb_refl; reflexivity.
     Qed.
 
-    (* Not sure how to reformulate this for NT.t instead of nat,so
-       I comment it out completely
-    Lemma eval_Loop_for_i_to_N_invert: forall σ i N op fuel mem_i mem_f,
+    Lemma eval_Loop_for_i_to_N_invert: forall σ i ii N op fuel mem_i mem_f,
         i < N ->
+        NT.from_nat i ≡ inr ii ->
         eval_Loop_for_i_to_N σ op i N mem_i fuel ≡ Some (inr mem_f) ->
         exists mem_aux,
-          evalDSHOperator (DSHnatVal i :: σ) op mem_i fuel ≡ Some (inr mem_aux) /\
+          evalDSHOperator (DSHnatVal ii :: σ) op mem_i fuel ≡ Some (inr mem_aux) /\
           eval_Loop_for_i_to_N σ op (S i) N mem_aux fuel ≡ Some (inr mem_f).
     Proof.
       (* This proof is surprisingly painful to go through *)
       intros.
       (* Induction on the number of steps remaining *)
       remember (N - i) as k.
-      revert σ fuel i N Heqk mem_i mem_f H0 H.
-      induction k as [| k IH]; intros σ fuel i N EQ mem_i mem_f Heval ineq; [lia |].
+      revert σ fuel i ii N Heqk mem_i mem_f H0 H1 H.
+      induction k as [| k IH];
+      intros σ fuel i ii N EQ mem_i mem_f Hn Heval ineq;[lia|].
 
       (* N > 0 for us to be able to take a step *)
       destruct N as [| N]; [lia |].
@@ -721,18 +557,32 @@ Module MDSigmaHCOLITree
 
       destruct (i =? N)%nat eqn: EQ''; [apply beq_nat_true in EQ''; subst; clear IH |].
       - clear EQ' EQ ineq.
+        rewrite Hn in H0.
         destruct fuel as [| fuel]; [inv HEval' |].
         rewrite eval_Loop_for_N_to_N in HEval'.
         setoid_rewrite eval_Loop_for_N_to_N.
         inv HEval'.
         exists mem_f.
         split; [apply evalDSHOperator_fuel_monotone; auto | auto ].
-      - apply IH in HEval'; [| lia | apply beq_nat_false in EQ''; lia].
-        destruct HEval' as (mem_aux & STEP & TAIL).
-        exists mem_aux; split; [apply evalDSHOperator_fuel_monotone; auto |].
-        cbn; rewrite EQ'', TAIL; auto.
+        rewrite Hn.
+        auto.
+      - destruct (from_nat N) eqn:NN.
+        +
+          eapply IH in HEval';[|lia|eauto|apply beq_nat_false in EQ''; lia].
+          destruct HEval' as (mem_aux & STEP & TAIL).
+          exists mem_aux; split; [apply evalDSHOperator_fuel_monotone; auto |].
+          cbn; rewrite EQ'', TAIL.
+          rewrite NN.
+          reflexivity.
+        +
+          eapply IH in HEval';[|lia|eauto|apply beq_nat_false in EQ''; lia].
+          destruct HEval' as (mem_aux & STEP & TAIL).
+          exists mem_aux; split; [apply evalDSHOperator_fuel_monotone; auto |].
+          cbn; rewrite EQ'', TAIL.
+          rewrite NN.
+          reflexivity.
     Qed.
-     *)
+
     Lemma eval_Loop_for_i_to_N_i_gt_N σ op i N fuel mem:
       i > N ->
       eval_Loop_for_i_to_N σ op i N mem fuel ≡ eval_Loop_for_i_to_N σ op 0 N mem fuel.
@@ -751,28 +601,29 @@ Module MDSigmaHCOLITree
         lia.
     Qed.
 
-    (* Not sure how to reformulate this for NT.t instead of nat,so
-       I comment it out completely
-    Lemma eval_Loop_for_0_to_N:
-      forall σ body N mem fuel,
-        eval_Loop_for_i_to_N σ body 0 N mem fuel ≡ evalDSHOperator σ (DSHLoop N body) mem fuel.
+    Lemma eval_Loop_for_0_to_N_Succeeds:
+      forall σ body N mem mem' fuel,
+        evalDSHOperator σ (DSHLoop N body) mem fuel ≡ Some (inr mem') ->
+        eval_Loop_for_i_to_N σ body 0 N mem fuel ≡ Some (inr mem').
     Proof.
-      induction N as [| N IH]; intros mem fuel.
-      - destruct fuel; reflexivity.
-      - destruct fuel as [| fuel ]; [reflexivity |].
-        simpl evalDSHOperator.
-        simpl.
-        rewrite <- IH.
-        reflexivity.
+      induction N as [| N IH]; intros.
+      - destruct fuel; auto.
+      - destruct fuel as [| fuel ]; [auto |].
+        cbn in *.
+        repeat break_match_hyp; try some_none; try some_inv.
+        apply IH in Heqo.
+        repeat break_match.
+        + some_inv.
+        + some_inv.
+          auto.
+        + some_none.
     Qed.
-    *)
 
     Lemma eval_Loop_for_i_to_N_fuel_monotone:
       forall res σ op i N fuel mem,
         eval_Loop_for_i_to_N σ op i N mem fuel ≡ Some res ->
         eval_Loop_for_i_to_N σ op i N mem (S fuel) ≡ Some res.
     Proof.
-      (*
       intros res σ op i N fuel mem H.
       revert H.
       revert res σ i fuel.
@@ -803,6 +654,10 @@ Module MDSigmaHCOLITree
               rewrite Heqo0 in Heqo.
               inv Heqo.
             --
+              apply IHN in Heqo0.
+              rewrite Heqo0 in Heqo.
+              inv Heqo.
+            --
               some_none.
           *
             repeat break_match_hyp; subst.
@@ -814,6 +669,25 @@ Module MDSigmaHCOLITree
               apply IHN in Heqo0.
               rewrite Heqo0 in Heqo.
               inv Heqo.
+              inv Heqs1.
+              apply H.
+            --
+              inv Heqs1.
+            --
+              some_none.
+          *
+            repeat break_match_hyp; subst.
+            --
+              apply IHN in Heqo0.
+              rewrite Heqo0 in Heqo.
+              inv Heqo.
+            --
+              inv Heqs1.
+            --
+              apply IHN in Heqo0.
+              rewrite Heqo0 in Heqo.
+              inv Heqo.
+              inv Heqs1.
               apply evalDSHOperator_fuel_monotone.
               apply H.
             --
@@ -826,8 +700,7 @@ Module MDSigmaHCOLITree
               some_none.
             --
               some_none.
-       *)
-    Admitted.
+    Qed.
 
     Lemma eval_Loop_for_i_to_N_fuel_monotone_gt:
       forall res σ op i N fuel fuel' mem,
@@ -851,6 +724,24 @@ Module MDSigmaHCOLITree
         auto.
     Qed.
 
+    (* Extend [from_nat_lt] to [le] *)
+    Lemma from_nat_le:
+      forall x xi y,
+        from_nat x ≡ inr xi ->
+        y<=x ->
+        exists yi, from_nat y ≡ inr yi.
+    Proof.
+      intros.
+      destruct (Nat.eq_dec x y).
+      -
+        subst.
+        eexists.
+        eauto.
+      -
+        eapply from_nat_lt; eauto.
+        lia.
+    Qed.
+
     Lemma Loop_is_Iter_aux:
       ∀ (op : DSHOperator)
         (IHop: ∀ (σ : evalContext) (mem' : memory) (fuel : nat) (mem : memory),
@@ -858,45 +749,31 @@ Module MDSigmaHCOLITree
             → interp_Mem (denoteDSHOperator σ op) mem ≈ ret (mem', ()))
 
         (i N: nat)
-        (σ : evalContext) (mem : memory) (fuel : nat) (mem' : memory),
-        i <= N ->
-        eval_Loop_for_i_to_N σ op i N mem (S fuel) ≡ Some (inr mem')
-        → interp_state (case_ Mem_handler pure_state) (denote_Loop_for_i_to_N σ op i N) mem ≈ ret (mem', ()).
+        (σ : evalContext) (mem : memory) (fuel : nat) (mem' : memory) {nn},
+        from_nat N ≡ inr nn ->
+        i <= (S N) ->
+        eval_Loop_for_i_to_N σ op i (S N) mem (S fuel) ≡ Some (inr mem')
+        → interp_state (case_ Mem_handler pure_state) (denote_Loop_for_i_to_N σ op i (S N)) mem ≈ ret (mem', ()).
     Proof.
-      (*
-      intros op IHop i N σ mem fuel mem' ineq HEval.
-      remember (N - i) as k.
+      intros op IHop i N σ mem fuel mem' nn NN ineq HEval.
+      remember ((S N) - i) as k.
       revert Heqk σ mem mem' HEval.
-      revert i ineq.
+      revert i ineq NN.
       induction k as [| k IH].
-      - intros i ineq EQ.
-        assert (N ≡ i) by lia; clear EQ ineq; subst.
+      - intros i ineq NN EQ.
+        assert ((S N) ≡ i) by lia; clear EQ ineq; subst.
         intros.
-        destruct i as [| i].
-        + cbn in HEval.
-          inv HEval.
-          unfold denote_Loop_for_i_to_N.
-          iter_unfold_pointed.
-          state_steps.
-          reflexivity.
-        + cbn in HEval.
-          rewrite Nat.eqb_refl in HEval.
-          inv HEval.
-          unfold interp_Mem, denote_Loop_for_i_to_N.
-          iter_unfold_pointed.
-          state_steps.
-          rewrite Nat.eqb_refl.
-          state_steps.
-          reflexivity.
-      - intros i ineq EQ σ mem mem' HEval.
-        destruct N as [| N].
-        + cbn in HEval; inv HEval.
-          unfold denote_Loop_for_i_to_N.
-          iter_unfold_pointed.
-          state_steps.
-          destruct (i =? 0)%nat eqn:EQ'; [clear EQ'| lia].
-          state_steps; reflexivity.
-        + destruct (i =? S N)%nat eqn:EQ'.
+        cbn in HEval.
+        rewrite Nat.eqb_refl in HEval.
+        inv HEval.
+        unfold interp_Mem, denote_Loop_for_i_to_N.
+        iter_unfold_pointed.
+        state_steps.
+        rewrite Nat.eqb_refl.
+        state_steps.
+        reflexivity.
+      - intros i ineq NN EQ σ mem mem' HEval.
+        destruct (i =? S N)%nat eqn:EQ'.
           * unfold eval_Loop_for_i_to_N in HEval; rewrite EQ' in HEval.
             inv HEval.
             unfold denote_Loop_for_i_to_N.
@@ -911,18 +788,61 @@ Module MDSigmaHCOLITree
             rewrite interp_state_bind.
             state_steps.
             apply beq_nat_false in EQ'.
-            apply eval_Loop_for_i_to_N_invert in HEval; [| lia].
+
+            assert(exists ii : t, from_nat i ≡ inr ii) as II.
+            {
+              assert(i<=N) by lia.
+              eapply from_nat_le;
+              eauto.
+            }
+            destruct II as [ii II].
+            rewrite II.
+            cbn.
+            apply eval_Loop_for_i_to_N_invert with (ii:=ii) in HEval; [|lia| apply II].
             destruct HEval as (mem_aux & Eval_body & Eval_tail).
             apply evalDSHOperator_fuel_monotone in Eval_body.
             apply IHop in Eval_body.
             unfold interp_Mem in Eval_body.
+            state_steps.
+            rewrite interp_state_bind.
             rewrite Eval_body.
             state_steps.
-            apply IH in Eval_tail; try lia.
-            rewrite Eval_tail.
-            reflexivity.
-       *)
-    Admitted.
+            apply IH in Eval_tail;try lia;auto.
+    Qed.
+
+    (* NOTE: Could not be proven for [N]! *)
+    Lemma evalDSHLoop_SN_in_range
+          {op : DSHOperator} {N : nat} {σ : evalContext} {mem : memory}
+          {fuel : nat} {mem' : memory}:
+      evalDSHOperator σ (DSHLoop (S N) op) mem fuel ≡ Some (inr mem')
+      -> exists nn, from_nat N ≡ inr nn.
+    Proof.
+      intros H.
+      destruct fuel; [cbn in H; some_none|].
+
+      revert σ mem mem' fuel op H.
+      induction N; intros.
+      -
+        apply from_nat_zero.
+      -
+        cbn in *.
+        repeat break_match; try some_none; try some_inv; subst.
+        +
+          apply (from_nat_lt (S N) t0 N) in Heqs.
+          destruct Heqs.
+          congruence.
+          lia.
+        +
+          rename Heqo into H1.
+          destruct fuel; [cbn in H1; some_none|].
+          cbn in H1.
+          repeat break_match_hyp; try some_none; try some_inv; subst.
+          specialize (IHN σ mem m0 fuel op).
+          rewrite Heqo in IHN.
+          inv Heqs1.
+          eexists.
+          auto.
+    Qed.
 
     Lemma Loop_is_Iter:
       ∀ (op : DSHOperator)
@@ -933,252 +853,24 @@ Module MDSigmaHCOLITree
         evalDSHOperator σ (DSHLoop N op) mem (S fuel) ≡ Some (inr mem') ->
         interp_state (case_ Mem_handler pure_state) (denoteDSHOperator σ (DSHLoop N op)) mem ≈ ret (mem', ()).
     Proof.
-      (*
       intros.
-      rewrite <- eval_Loop_for_0_to_N, <- denote_Loop_for_0_to_N in *.
-      eapply Loop_is_Iter_aux; eauto; lia.
-       *)
-    Admitted.
-
-    (* Not sure how to reformulate this for NT.t instead of nat,so
-       I comment it out completely
-
-    (* This is "natural" invert following implementation recursion *)
-    Lemma eval_Loop_for_i_to_N_Fail_invert': forall σ i N op fuel mem msg,
-        eval_Loop_for_i_to_N σ op i (S N) mem fuel ≡ Some (inl msg) ->
-
-        eval_Loop_for_i_to_N σ op i N mem fuel ≡ Some (inl msg) \/
-        (exists mem_aux, eval_Loop_for_i_to_N σ op i N mem fuel ≡ Some (inr mem_aux) /\
-                    evalDSHOperator (DSHnatVal N :: σ) op mem_aux fuel ≡ Some (inl msg)).
-    Proof.
-      intros σ i N op fuel mem msg H.
-      destruct fuel; [inv H|].
-      cbn in H.
-      break_if; [inv H|].
-      repeat break_match_hyp.
+      destruct N.
       -
-        left.
-        inv H.
-        apply eval_Loop_for_i_to_N_fuel_monotone.
-        assumption.
-      -
-        right.
+        cbn in H.
+        some_inv.
         subst.
-        exists m.
-        split.
-        apply eval_Loop_for_i_to_N_fuel_monotone.
-        assumption.
-        apply evalDSHOperator_fuel_monotone.
-        assumption.
-      -
-        some_none.
-    Qed.
-     *)
-
-    (* Not sure how to reformulate this for NT.t instead of nat,so
-       I comment it out completely
-    Lemma eval_Loop_for_i_to_N_inl_at_i:
-      ∀ (σ : list DSHVal) (i N : nat) (op : DSHOperator) (fuel : nat) (mem : memory),
-        i < N
-        → ∀ s : string,
-          evalDSHOperator (DSHnatVal i :: σ) op mem fuel ≡ Some (inl s)
-          → eval_Loop_for_i_to_N σ op i N mem (fuel+N-i) ≡ Some (inl s).
-    Proof.
-      intros σ i N op fuel mem ic s H.
-      induction N.
-      -
-        inv ic.
-      -
-        replace (fuel + S N - i) with (S (fuel + N - i)) by lia.
         cbn.
-        break_if; [apply beq_nat_true in Heqb; lia|].
-        destruct (i =? N)%nat eqn:EN.
-        +
-          apply beq_nat_true in EN.
-          subst i.
-          clear IHN.
-          repeat break_match_goal; subst.
-          *
-            apply eval_Loop_for_i_to_N_fuel_monotone in Heqo.
-            rewrite  eval_Loop_for_N_to_N in Heqo.
-            inv Heqo.
-          *
-            apply eval_Loop_for_i_to_N_fuel_monotone in Heqo.
-            rewrite  eval_Loop_for_N_to_N in Heqo.
-            inv Heqo.
-            replace (fuel+N-N) with fuel by lia.
-            apply H.
-          *
-            exfalso.
-            destruct fuel ; [inv H|].
-            replace (S fuel + N - N) with (S fuel) in Heqo by lia.
-            rewrite eval_Loop_for_i_to_N_fuel_monotone with (res:=inl s) in Heqo.
-            some_none.
-            rewrite eval_Loop_for_N_to_N in Heqo.
-            some_none.
-        +
-          repeat break_match_goal; subst.
-          *
-            apply IHN.
-            apply beq_nat_false in EN.
-            lia.
-          *
-            assert (ic1: i<N) by (apply beq_nat_false in EN; lia).
-            specialize (IHN ic1).
-            inv IHN.
-          *
-            exfalso.
-            assert (ic1: i<N) by (apply beq_nat_false in EN; lia).
-            specialize (IHN ic1).
-            inv IHN.
-    Qed.
-     *)
-
-    (* Not sure how to reformulate this for NT.t instead of nat,so
-       I comment it out completely
-    Lemma eval_Loop_for_i_to_N_inr_at_i:
-          ∀ (σ : list DSHVal) (i N : nat) (op : DSHOperator) (fuel : nat)
-            (mem : memory) (msg : string),
-            S i < N
-            → eval_Loop_for_i_to_N σ op i N mem fuel ≡ Some (inl msg)
-            → ∀ m : memory,
-                evalDSHOperator (DSHnatVal i :: σ) op mem fuel ≡ Some (inr m)
-                → eval_Loop_for_i_to_N σ op (S i) N m fuel ≡ Some (inl msg).
-    Proof.
-      intros σ i N.
-      remember (N - i) as k.
-      revert σ i N Heqk.
-      induction k as [| k IH]; intros σ i N Heqk op fuel mem msg ineq Heval m Hi; [lia |].
-      destruct N as [| N]; [lia |].
-      destruct fuel as [| fuel]; [inv Heval |].
-      cbn in Heval.
-      destruct (i =? S N)%nat eqn:EQ'; [apply beq_nat_true in EQ'; lia | apply beq_nat_false in EQ'].
-      destruct (eval_Loop_for_i_to_N σ op i N mem fuel) eqn: HEval'; [| inv Heval].
-      destruct s; inv Heval.
-      -
-        (* fail in loop [i] to [N] *)
-        destruct (S i =? N)%nat eqn: EQ''; [apply beq_nat_true in EQ''; subst; clear IH |].
-        +
-          apply eval_Loop_for_i_to_N_fuel_monotone in HEval'.
-          cbn in HEval'.
-          break_if; [apply beq_nat_true in Heqb; lia|].
-          repeat break_match_hyp; subst.
-          *
-            apply eval_Loop_for_i_to_N_fuel_monotone in Heqo.
-            rewrite eval_Loop_for_N_to_N in Heqo.
-            inv Heqo.
-          *
-            apply eval_Loop_for_i_to_N_fuel_monotone in Heqo.
-            rewrite eval_Loop_for_N_to_N in Heqo.
-            inv Heqo.
-            apply evalDSHOperator_fuel_monotone in HEval'.
-            congruence.
-          *
-            some_none.
-        +
-          eapply IH with (m:=m) in HEval'; [| lia | apply beq_nat_false in EQ''; lia | ].
-          *
-            cbn.
-            break_if; [apply beq_nat_true in Heqb; lia|].
-            rewrite HEval'.
-            reflexivity.
-          *
-            (* fuel problem!*)
-            admit.
-      -
-        (* succeeds in loop but fails at [N] *)
-        clear IH.
-        apply eval_Loop_for_i_to_N_invert in HEval'.
-        2: lia.
-        destruct HEval' as [mem_aux [STEP TAIL]].
-        apply evalDSHOperator_fuel_monotone in STEP.
-        cbn.
-        break_if; [apply beq_nat_true in Heqb; lia|].
-        rewrite Hi in STEP. inv STEP.
-        rewrite TAIL.
+        iter_unfold_pointed.
+        state_steps.
         reflexivity.
-    Admitted.
-
-    Lemma eval_Loop_for_i_to_N_Fail_invert: forall σ i N op fuel mem msg,
-        S i < N ->
-
-        eval_Loop_for_i_to_N σ op i N mem fuel ≡ Some (inl msg) ->
-
-        evalDSHOperator (DSHnatVal i :: σ) op mem fuel ≡ Some (inl msg) \/
-
-        exists mem_aux,
-          evalDSHOperator (DSHnatVal i :: σ) op mem fuel ≡ Some (inr mem_aux) /\
-          eval_Loop_for_i_to_N σ op (S i) N mem_aux fuel ≡ Some (inl msg).
-    Proof.
-      intros σ i N op fuel mem msg ic H.
-
-      destruct (evalDSHOperator (DSHnatVal i :: σ) op mem fuel) eqn:E.
-      destruct s.
       -
-        (* fails at [i] *)
-        destruct (string_dec s msg) as [SE|NSE].
-        +
-          (* Same message *)
-          left.
-          subst.
-          reflexivity.
-        +
-          (* different message *)
-          exfalso.
-          eapply eval_Loop_for_i_to_N_inl_at_i with (N:=N) in E; [|lia].
-          eapply eval_Loop_for_i_to_N_fuel_monotone_gt in H.
-          rewrite H in E.
-          inv E.
-          unfold not in NSE. contradict NSE. reflexivity.
-          lia.
-      -
-        (* succeeds at [i] *)
-        right.
-        exists m.
-        split; [reflexivity|].
-        eapply eval_Loop_for_i_to_N_inr_at_i; eauto.
-      -
-        (* out of fuel at [i] *)
-        exfalso.
-        apply Nat.lt_succ_l in ic.
-        assert(eval_Loop_for_i_to_N σ op i N mem fuel ≡ None).
-        {
-          clear H.
-          induction N; intros.
-          -
-            inversion ic; intros.
-          -
-            destruct fuel.
-            reflexivity.
-            destruct (i =? N)%nat eqn:EN.
-            *
-              apply beq_nat_true in EN.
-              subst i.
-              clear IHN.
-              cbn.
-              break_if; [apply beq_nat_true in Heqb; lia|].
-              clear Heqb.
-              destruct fuel; [reflexivity|].
-              rewrite eval_Loop_for_N_to_N.
-              break_match; inv Heqs.
-              apply evalDSHOperator_fuel_monotone_None, E.
-            *
-              assert (ic1: i<N) by (apply beq_nat_false in EN; lia).
-              specialize (IHN ic1).
-              cbn.
-              break_if; [apply beq_nat_true in Heqb; lia|].
-              repeat break_match_goal; subst.
-              --
-                apply eval_Loop_for_i_to_N_fuel_monotone in Heqo.
-                some_none.
-              --
-                apply eval_Loop_for_i_to_N_fuel_monotone in Heqo.
-                some_none.
-              --
-                reflexivity.
-        }
-        some_none.
-    *)
+        pose proof (evalDSHLoop_SN_in_range H) as NN.
+        destruct NN as [nn NN].
+        apply eval_Loop_for_0_to_N_Succeeds in H.
+        rewrite  <- denote_Loop_for_0_to_N.
+        eapply Loop_is_Iter_aux;eauto.
+        lia.
+    Qed.
 
     Lemma Denote_Eval_Equiv_DSHMap2_Succeeds:
       forall n (σ: evalContext) mem f m1 m2 m3 m4,
@@ -1196,22 +888,6 @@ Module MDSigmaHCOLITree
         rewrite IH; eauto; reflexivity.
     Qed.
 
-    Lemma Denote_Eval_Equiv_DSHMap2_Fails:
-      forall n (σ: evalContext) mem f m1 m2 m3 msg,
-        evalDSHMap2 mem n f σ m1 m2 m3 ≡ inl msg ->
-        interp_Mem_Fails (denoteDSHMap2 n f σ m1 m2 m3) mem.
-    Proof.
-      unfold interp_Mem_Fails.
-      induction n as [| n IH]; cbn; intros σ mem f m1 m2 m3 msg HEval; unfold_Mem; cbn in HEval.
-      - inv_eval.
-      - inv_eval; try (eexists; left; state_steps; match_failure).
-        edestruct Denote_Eval_Equiv_Aexp_Fails as [? [H|H]]; eauto;
-          eexists; [left | right]; state_steps; rewrite H; match_failure.
-        apply Denote_Eval_Equiv_Aexp_Succeeds in Heqs1;
-        edestruct IH as [? [H|H]]; eauto;
-        eexists; [left | right]; state_steps; rewrite Heqs1; state_steps; rewrite H; match_failure.
-   Qed.
-
     Lemma Denote_Eval_Equiv_DSHPower_Succeeds:
       forall n (σ: evalContext) mem f x y xoff yoff m,
         evalDSHPower mem σ n f x y xoff yoff  ≡ inr m ->
@@ -1227,22 +903,6 @@ Module MDSigmaHCOLITree
         apply Denote_Eval_Equiv_Aexp_Succeeds in Heqs1; rewrite Heqs1; state_steps.
         rewrite IH; eauto; reflexivity.
     Qed.
-
-    Lemma Denote_Eval_Equiv_DSHPower_Fails:
-      forall n (σ: evalContext) mem f x y xoff yoff msg,
-        evalDSHPower mem σ n f x y xoff yoff ≡ inl msg ->
-        interp_Mem_Fails (denoteDSHPower σ n f x y xoff yoff) mem.
-    Proof.
-      unfold interp_Mem_Fails.
-      induction n as [| n IH]; cbn; intros σ mem f x y xoff yoff msg HEval; unfold_Mem; cbn in HEval.
-      - inv_eval.
-      - inv_eval; try (eexists; left; state_steps; match_failure).
-        edestruct Denote_Eval_Equiv_Aexp_Fails as [? [H|H]]; eauto;
-          eexists; [left | right]; state_steps; rewrite H; match_failure.
-        apply Denote_Eval_Equiv_Aexp_Succeeds in Heqs1;
-        edestruct IH as [? [H|H]]; eauto;
-        eexists; [left | right]; state_steps; rewrite Heqs1; state_steps; rewrite H; match_failure.
-   Qed.
 
     Theorem Denote_Eval_Equiv_Succeeds:
       forall (σ: evalContext) (op: DSHOperator) (mem: memory) (fuel: nat) (mem': memory),
@@ -1291,213 +951,6 @@ Module MDSigmaHCOLITree
         reflexivity.
     Qed.
 
-    Lemma Loop_is_Iter_Fail_aux:
-      ∀ (op : DSHOperator)
-        (IHop: ∀ (σ : evalContext) (msg : string) (fuel : nat) (mem : memory),
-            evalDSHOperator σ op mem (S fuel) ≡ Some (inl msg)
-            → ∃ msg' : string,
-              interp_Mem (denoteDSHOperator σ op) mem ≈ Dfail msg'
-              ∨ interp_Mem (denoteDSHOperator σ op) mem ≈ Sfail msg')
-        (i N: nat)
-        (σ : evalContext) (mem : memory) (fuel : nat) (msg : string),
-        i < S N ->
-        eval_Loop_for_i_to_N σ op i (S N) mem (S fuel) ≡ Some (inl msg)
-        → exists msg',
-            interp_state (case_ Mem_handler pure_state) (denote_Loop_for_i_to_N σ op i (S N)) mem
-                         ≈ Dfail msg'
-            ∨ interp_state (case_ Mem_handler pure_state) (denote_Loop_for_i_to_N σ op i (S N)) mem
-                           ≈ Sfail msg'.
-    Proof.
-      (*
-      intros op IHop i N σ mem fuel msg ineq HEval.
-      remember ((S N) - i) as k.
-      revert Heqk σ mem msg HEval.
-      revert i ineq.
-      induction k as [| k IH].
-      - intros i ineq EQ.
-        assert (S N ≡ i) by lia; clear EQ ineq; subst.
-        intros.
-        cbn in HEval.
-        rewrite Nat.eqb_refl in HEval.
-        inv HEval.
-      - intros i ineq EQ σ mem msg HEval.
-        assert(EQ': (i =? S N)%nat ≡ false) by (apply Nat.eqb_neq; lia).
-        destruct (Nat.eq_dec i N) as [E|NE].
-        +
-          unfold denote_Loop_for_i_to_N.
-          subst i.
-          cbn in HEval.
-          rewrite EQ' in HEval.
-          repeat break_match_hyp; subst.
-          *
-            destruct fuel; [inv Heqo|].
-            inv HEval.
-            rewrite eval_Loop_for_N_to_N in Heqo.
-            inv Heqo.
-          *
-            destruct fuel; [inv Heqo|].
-            rewrite eval_Loop_for_N_to_N in Heqo.
-            inv Heqo.
-
-            apply IHop in HEval.
-            unfold interp_Mem in HEval.
-            destruct HEval as [msg' [Eval_body_D | Eval_body_S]].
-            --
-              eexists.
-              left.
-              iter_unfold_pointed.
-              state_steps.
-              rewrite EQ'; state_steps.
-              rewrite interp_state_bind.
-              rewrite bind_bind.
-              apply beq_nat_false in EQ'.
-              rewrite Eval_body_D.
-              match_failure.
-            --
-              eexists.
-              right.
-              iter_unfold_pointed.
-              state_steps.
-              rewrite EQ'; state_steps.
-              rewrite interp_state_bind.
-              rewrite bind_bind.
-              apply beq_nat_false in EQ'.
-              rewrite_clear Eval_body_S.
-              match_failure.
-          *
-            some_none.
-        +
-          apply eval_Loop_for_i_to_N_Fail_invert in HEval ; [| lia].
-          destruct HEval as [Eval_body | [mem_aux [Eval_head Eval_tail]]].
-          --
-            (* fails @i *)
-            unfold denote_Loop_for_i_to_N.
-            apply IHop in Eval_body; clear IHop.
-            unfold interp_Mem in Eval_body.
-            destruct Eval_body as [msg' [Eval_body_D | Eval_body_S]].
-            ++
-              exists msg'.
-              left.
-              iter_unfold_pointed.
-              state_steps.
-              rewrite EQ'; state_steps.
-              rewrite interp_state_bind.
-              rewrite bind_bind.
-              apply beq_nat_false in EQ'.
-              rewrite Eval_body_D.
-              match_failure.
-            ++
-              exists msg'.
-              right.
-              iter_unfold_pointed.
-              state_steps.
-              rewrite EQ'; state_steps.
-              rewrite interp_state_bind.
-              rewrite bind_bind.
-              apply beq_nat_false in EQ'.
-              rewrite_clear Eval_body_S.
-              match_failure.
-          --
-            (* succeeds @i, but fails later *)
-            apply IH in Eval_tail; clear IH; try lia.
-            apply Denote_Eval_Equiv_Succeeds in Eval_head.
-            unfold interp_Mem in Eval_head.
-            destruct Eval_tail as [msg' [Eval_tail_D | Eval_tail_S]].
-            ++
-              exists msg'.
-              left.
-              unfold denote_Loop_for_i_to_N in *.
-              iter_unfold_pointed.
-              state_steps.
-              rewrite EQ'; state_steps.
-              rewrite interp_state_bind.
-              rewrite bind_bind.
-              rewrite Eval_head.
-              state_steps.
-              auto.
-            ++
-              exists msg'.
-              right.
-              unfold denote_Loop_for_i_to_N in *.
-              iter_unfold_pointed.
-              state_steps.
-              rewrite EQ'; state_steps.
-              rewrite interp_state_bind.
-              rewrite bind_bind.
-              rewrite Eval_head.
-              state_steps.
-              auto.
-       *)
-    Admitted.
-
-    Lemma Loop_is_Iter_Fail:
-      ∀ (op : DSHOperator)
-        (IHop: ∀ (σ : evalContext) (msg : string) (fuel : nat) (mem : memory),
-            evalDSHOperator σ op mem (S fuel) ≡ Some (inl msg)
-            → ∃ msg' : string,
-              interp_Mem (denoteDSHOperator σ op) mem ≈ Dfail msg'
-              ∨ interp_Mem (denoteDSHOperator σ op) mem ≈ Sfail msg')
-        (N: nat) (σ : evalContext) (mem : memory) (fuel : nat) (msg: string),
-        evalDSHOperator σ (DSHLoop (S N) op) mem (S fuel) ≡ Some (inl msg) ->
-        ∃ msg' : string,
-          interp_Mem (denoteDSHOperator σ (DSHLoop (S N) op)) mem ≈ Dfail msg'
-          ∨ interp_Mem (denoteDSHOperator σ (DSHLoop (S N) op)) mem ≈ Sfail msg'.
-    Proof.
-      (*
-      intros.
-      rewrite <- eval_Loop_for_0_to_N in H.
-      assert(zn: 0 < S N) by lia.
-      pose proof (Loop_is_Iter_Fail_aux op IHop 0 N σ mem fuel msg zn H) as AUX.
-      destruct AUX as [msg' AUX].
-      exists msg'.
-      eapply AUX; eauto.
-       *)
-    Admitted.
-
-    Theorem Denote_Eval_Equiv_Fails:
-      forall (σ: evalContext) (op: DSHOperator) (mem: memory) (fuel: nat) (msg:string),
-        evalDSHOperator σ op mem fuel ≡ Some (inl msg) ->
-        interp_Mem_Fails (denoteDSHOperator σ op) mem.
-    Proof.
-      intros σ op mem fuel msg HEval; unfold interp_Mem_Fails.
-      destruct fuel as [| fuel]; [inv HEval |].
-      revert σ mem fuel msg HEval; induction op; intros; cbn in HEval.
-      - inv_option.
-      - unfold_Mem; destruct src,dst; inv_eval;
-          eexists; left; state_steps; match_failure.
-      - unfold_Mem; inv_eval;
-          try (eexists; left; state_steps; match_failure).
-        edestruct Denote_Eval_Equiv_IMap_Fails as [? [|]]; eauto.
-        eexists; left; state_steps; rewrite H; match_failure.
-        eexists; right; state_steps; rewrite H; match_failure.
-      - unfold_Mem; inv_eval;
-          try (eexists; left; state_steps; match_failure).
-        edestruct Denote_Eval_Equiv_BinOp_Fails as [? [H|H]]; eauto;
-          eexists; [left | right]; state_steps; rewrite H; match_failure.
-      - unfold_Mem; inv_eval;
-          try (eexists; left; state_steps; match_failure).
-        edestruct Denote_Eval_Equiv_DSHMap2_Fails as [? [H|H]]; eauto;
-          eexists; [left | right]; state_steps; rewrite H; match_failure.
-      - unfold_Mem; inv_eval;
-          try (eexists; left; state_steps; match_failure).
-        edestruct Denote_Eval_Equiv_DSHPower_Fails as [? [H|H]]; eauto;
-          eexists; [left | right]; state_steps; rewrite H; match_failure.
-      -
-        destruct n;[inv HEval|].
-        eapply Loop_is_Iter_Fail; eauto.
-      - unfold_Mem; inv_eval.
-        destruct fuel as [| fuel]; [inv Heqo |].
-        edestruct IHop as [? [H|H]]; eauto;
-          eexists; [left | right]; state_steps; rewrite H; state_steps; match_failure.
-      - unfold_Mem; inv_eval; eexists; left; state_steps; match_failure.
-      - unfold_Mem; inv_eval; eexists; left; state_steps; match_failure.
-      - unfold_Mem; inv_eval.
-        + edestruct IHop1 as [? [H|H]]; eauto using evalDSHOperator_fuel_monotone;
-          eexists; [left | right]; state_steps; rewrite H; state_steps; match_failure.
-        + apply Denote_Eval_Equiv_Succeeds in Heqo.
-          edestruct IHop2 as [? [H|H]]; eauto using evalDSHOperator_fuel_monotone;
-            eexists; [left | right]; state_steps; rewrite Heqo; state_steps; rewrite H; state_steps; match_failure.
-   Qed.
 
   End Eval_Denote_Equiv.
 

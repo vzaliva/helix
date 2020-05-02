@@ -12,6 +12,9 @@ Module Type NType.
   Declare Instance NTypeEquiv: Equiv t.
   Declare Instance NTypeSetoid: @Setoid t NTypeEquiv.
 
+  (* Decidable equiality *)
+  Declare Instance NTypeEqDec: forall x y: t, Decision (x = y).
+
   (* could always be converted to `nat` *)
   Parameter to_nat: t -> nat.
   Declare Instance to_nat_proper: Proper ((=) ==> (=)) to_nat.
@@ -38,5 +41,18 @@ Module Type NType.
   Declare Instance NTypeMax_proper: Proper ((=) ==> (=) ==> (=)) NTypeMax  .
 
   Parameter to_string: t -> String.string.
+
+  (* If [from_nat] succeeds for a number, it also succeeds for all
+     numbers less than it.
+   *)
+  Parameter from_nat_lt:
+    forall x xi y,
+      from_nat x ≡ inr xi ->
+      (y<x)%nat ->
+      exists yi, from_nat y ≡ inr yi.
+
+  (* 0 is always convertible *)
+  Parameter from_nat_zero: exists z, from_nat O ≡ inr z.
+
 
 End NType.

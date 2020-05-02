@@ -47,6 +47,29 @@ Module MInt64asNT <: NType.
         congruence.
   Qed.
 
+  Instance NTypeEqDec: forall x y: t, Decision (x = y).
+  Proof.
+    intros x y.
+    simpl_relation.
+    destruct x as [x xc].
+    destruct y as [y yc].
+
+    destruct (BinInt.Z.eq_dec x y).
+    -
+      subst.
+      left.
+      f_equiv.
+      apply proof_irrelevance.
+    -
+      right.
+      intros H.
+      inversion H.
+      unfold Int64.eq in H1.
+      break_if;[|congruence].
+      cbn in e.
+      congruence.
+  Qed.
+
   (* could always be converted to `nat` *)
   Definition to_nat (n:t) : nat := BinInt.Z.to_nat (Int64.intval n).
   Definition to_nat_proper: Proper ((=) ==> (=)) to_nat.
@@ -244,5 +267,33 @@ Module MInt64asNT <: NType.
   Qed.
 
   Definition to_string (n : t) : String.string := string_of_nat (to_nat n).
+
+  Lemma from_nat_lt:
+    forall x xi y,
+      from_nat x ≡ inr xi ->
+      y<x ->
+      exists yi, from_nat y ≡ inr yi.
+  Proof.
+    intros x xi y H H0.
+    unfold from_nat, from_Z in *.
+    apply Znat.inj_lt in H0.
+    repeat break_match; try inl_inr; try lia.
+    eexists.
+    eauto.
+  Qed.
+
+  Lemma from_nat_zero: exists z, from_nat O ≡ inr z.
+  Proof.
+    exists (Int64.mkint (Int64.Z_mod_modulus BinNums.Z0) (Int64.Z_mod_modulus_range' BinNums.Z0)).
+    cbn.
+    pose proof (Int64.unsigned_range Int64.zero) as [H0 H1].
+    break_match.
+    - f_equiv.
+      f_equiv.
+      apply proof_irrelevance.
+    - contradict n.
+      lia.
+  Qed.
+
 
 End MInt64asNT.

@@ -2,6 +2,15 @@ Proof of correctness of the compiler from FSHCOL to Vellvm
 
 * Structure of the compiler
 
+** Schematic
+
+| H syntax | H sem |V  |   |
+|---+---+---+---|
+|   |   |   |   |
+|   |   |   |   |
+|   |   |   |   |
+   
+
 ** Top-level: [compile_w_main ≜ compile (just_compile := false)]
 
 *** Signature of [compile: (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): err (toplevel_entities typ (list (block typ)))]
@@ -71,3 +80,47 @@ Proof of correctness of the compiler from FSHCOL to Vellvm
     
     TODO: How to reduce our goal [eutt R (semantics_FSHCOL _ _) (semantics_llvm (Comment :: init :: globalXY:: t :: genMain _]
           to something of the flavor [eutt ? ? (semantics_llvm t)]?
+
+    TODO: [mcfg_of_modul]: sufficient condition to succeed?
+
+
+* Main lemmas
+
+  Correctness of the compiler as a whole. 
+  #+begin_src coq
+    Theorem compiler_correct:
+      forall (p:FSHCOLProgram)
+        (data:list binary64)
+        (pll: toplevel_entities typ (list (LLVMAst.block typ))),
+        compile_w_main p data ≡ inr pll ->
+        eutt (bisim_final []) (semantics_FSHCOL p data) (semantics_llvm pll).
+  #+end_src
+
+  This relates [(MDSHCOLOnFloat64.memory * list binary64)] to [(M.memory_stack * (alist raw_id res_L0 * Stack.stack * (alist raw_id dvalue * uvalue)))]
+
+  For the correctness of [LLVMGen], we now relate [(MDSHCOLOnFloat64.memory * ())] on the Helix side.
+  #+begin_src coq
+    Lemma LLVMGen_correct: forall i o globals op name newstate pll (σ: evalContext),
+        LLVMGen i o globals false op name newState ≡ inr pll ->
+        eutt (bisim_final σ)
+             (translate (@subevent _ E_mcfg _)
+                        (interp_Mem (denoteDSHOperator σ op) memory_empty))
+             (semantics_llvm pll).
+  #+end_src
+
+
+
+#+begin_src coq
+Lemma compile_FSHCOL_correct
+      (op: DSHOperator): forall (nextblock bid_in : block_id) (st st' : IRState) (bks : list (LLVMAst.block typ)) (σ : evalContext) (env : list (ident * typ)) (mem : MDSHCOLOnFloat64.memory) (g : global_env) (ρ : local_env) (mem_llvm : memory),
+  nextblock ≢ bid_in ->
+  bisim_partial σ (mem,tt) (mem_llvm, (ρ, (g, (inl bid_in)))) ->
+  genIR op nextblock st ≡ inr (st',(bid_in,bks)) ->
+  eutt (bisim_partial σ)
+       (translate inr_
+                  (interp_Mem (denoteDSHOperator σ op) mem))
+       (translate inl_
+                  (interp_cfg_to_L3 helix_intrinsics
+                                    (D.denote_bks (normalize_types_blocks env bks) bid_in)
+                                    g ρ mem_llvm)).
+#+end_src

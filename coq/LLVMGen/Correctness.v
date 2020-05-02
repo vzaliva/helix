@@ -169,18 +169,18 @@ NOTEYZ: An alternative would be to translate everything that remains into failur
   (* Initialization of globals *)
   Fixpoint denote_initFSHGlobals
            (data: list binary64)
-           (globals: list (string * FSHValType))
+           (globals: list (string * DSHType))
     : itree Event (list binary64 * evalContext) :=
     match globals with
     | [] => ret (data, [])
     | (_,gt)::gs =>
       match gt with
-      | FSHnatValType => Sfail "Unsupported global type: nat"
-      | FSHFloatValType =>
+      | DSHnat => Sfail "Unsupported global type: nat"
+      | DSHCType =>
         '(data,σ) <- denote_initFSHGlobals data gs ;;
         let '(x, data) := rotate Float64Zero data in
-        ret (data, (DSHCTypeVal x)::σ)
-      | FSHvecValType n =>
+         ret (data, (DSHCTypeVal x)::σ)
+      | DSHPtr n =>
         '(data,σ) <- denote_initFSHGlobals data gs ;;
         let (data,mb) := constMemBlock (MInt64asNT.to_nat n) data in
         k <- trigger (MemAlloc n);;
@@ -215,6 +215,7 @@ NOTEYZ: An alternative would be to translate everything that remains into failur
 End EventTranslation.
 
 (* Facilities to refer to the return types of the various pieces of denotations we manipulate *)
+
 Section StateTypes.
 
   Local Open Scope type_scope.
@@ -700,9 +701,10 @@ vars s1 = σ?
   (**
      Relational injection of [DSHType] into VIR's [typ]
      TODOYZ : Well, precisely, todo.
+     OBSOLETE: replaced by [getIRType]
    *)
-  Variant DSHType_typ : DSHType -> typ -> Prop :=
-  | DSHnat_IntType : DSHType_typ DSHnat IntType.
+  (* Variant DSHType_typ : DSHType -> typ -> Prop := *)
+  (* | DSHnat_IntType : DSHType_typ DSHnat IntType *)
   (**
      The compiler maintains a sort of typing context named [IRState].
      It should be essentially a well-formed typing judgment for the current
@@ -711,7 +713,8 @@ vars s1 = σ?
   Definition WF_IRState (σ: evalContext) (s: IRState): Prop :=
     forall (i: ident) (t: typ) (n: nat),
       nth_error (vars s) n ≡ Some (i,t) ->
-      exists (v: DSHVal), nth_error σ n ≡ Some v /\ DSHType_typ (DSHValToType v) t.
+      exists (v: DSHVal), nth_error σ n ≡ Some v /\
+                     getIRType (DSHType_of_DSHVal v) ≡ t.
 
   Lemma WF_IRState_lookup_cannot_fail :
     forall σ it s n msg msg',
@@ -828,6 +831,9 @@ vars s1 = σ?
               apply eqit_Ret.
               split; [apply PRE | reflexivity].
             }
+          }
+          { (* DSHCTypeVal *)
+            
         * (* binary64, absurd. *)
           (* Lookup in σ and (vars s) should have matching types? *)
           exfalso.
@@ -1541,7 +1547,7 @@ Lemma compile_FSHCOL_correct
                   (interp_Mem (denoteDSHOperator σ op) mem))
        (translate inl_
                   (interp_cfg_to_L3 helix_intrinsics
-                                    (D.denote_bks (normalize_types_blocks env bks) bid_in)
+                                    (D.denote_bks (fmap (typ_to_dtyp env) bks) bid_in)
                                     g ρ mem_llvm)).
 Proof.
   induction op; intros; rename H1 into HCompile.
@@ -1549,8 +1555,7 @@ Proof.
     eutt_hide_right; cbn.
     unfold interp_Mem; simpl denoteDSHOperator.
     rewrite interp_state_ret, translate_ret.
-    subst i.
-    simpl normalize_types_blocks.
+    subst i. 
     rewrite denote_bks_nil.
     cbn. rewrite interp_cfg_to_L3_ret, translate_ret.
     apply eqit_Ret; auto.
@@ -1571,8 +1576,7 @@ Proof.
 
     unfold normalize_types_blocks.
     eutt_hide_left.
-    simpl.
-
+    unfold fmap; simpl Fmap_list'.
     (* Rewrite denote_bks to denote_block *)
     rewrite denote_bks_singleton; eauto using normalize_types_block_term.
 
@@ -1599,7 +1603,7 @@ Proof.
     destruct (genNExpr ndst s') as [|(s'', (dst_nexpr, dst_nexpcode))] eqn:Hnexp_dst. inversion H3.
     inversion H3.
     cbn.
-
+    (*
     match goal with
     | |- context[D.denote_code (map _ (src_nexpcode ++ dst_nexpcode ++ ?x))] => remember x as assigncode
     end.
@@ -1971,6 +1975,7 @@ Proof.
         -- (* exceptions *) admit.
     + (* Need to handle exceptions *)
       admit.
+     *)
     (* Focus 3. *)
     (* cbn. *)
     (* rewrite bind_ret_l. *)
@@ -2053,8 +2058,7 @@ Proof.
     (* end. *)
 
     (* make_append_str in H6. *)
-    (* admit. *)
-
+    admit.
   - (*
       Map case.
       Need some reasoning about
@@ -2197,7 +2201,7 @@ Section LLVM_Memory_Init.
   (* mimics [Alloca] handler *)
   Definition alloc_global (c_name:string) (c_typ:typ) (m:M.memory) (ms:M.mem_stack) :=
     (* TODO: not sure about this [typ] to [dtyp] conversion *)
-    let d_typ := TypeUtil.normalize_type_dtyp [] c_typ in
+    let d_typ := typ_to_dtyp [] c_typ in
     let new_block := M.make_empty_block d_typ in
     let key := M.next_logical_key m in
     let new_mem := M.add_logical key new_block m in
@@ -2212,19 +2216,18 @@ Section LLVM_Memory_Init.
 
   (* mimics [Store] handler *)
   Definition init_global (m:M.memory) (ms:M.mem_stack) (a: dvalue) (v:dvalue)
-    : err (M.memory * M.mem_stack)
-    :=
-      match a with
-      | DVALUE_Addr (key, i) =>
-        match M.lookup_logical key m with
-        | Some (M.LBlock sz bytes cid) =>
-          let bytes' := M.add_all_index (M.serialize_dvalue v) i bytes in
-          let block' := M.LBlock sz bytes' cid in
-          ret (M.add_logical key block' m, ms)
-        | None => inl "stored to unallocated address"%string
-        end
-      | _ => inl ("Store got non-address dvalue: " ++ (to_string a))
-      end.
+    : err (M.memory * M.mem_stack) :=
+    match a with
+    | DVALUE_Addr (key, i) =>
+      match M.lookup_logical key m with
+      | Some (M.LBlock sz bytes cid) =>
+        let bytes' := M.add_all_index (M.serialize_dvalue v) i bytes in
+        let block' := M.LBlock sz bytes' cid in
+        ret (M.add_logical key block' m, ms)
+      | None => inl "stored to unallocated address"%string
+      end
+    | _ => inl ("Store got non-address dvalue: " ++ (to_string a))%string
+    end.
 
 End LLVM_Memory_Init.
 
@@ -2232,7 +2235,7 @@ End LLVM_Memory_Init.
 Definition eval_const_double_exp (typed_expr:typ*exp typ): err dvalue :=
   match typed_expr with
   | (TYPE_Double, EXP_Double v) => ret (DVALUE_Double v)
-  | (_, c_typ) => inl ("Type double expected: " ++ (to_string c_typ))
+  | (_, c_typ) => inl ("Type double expected: " ++ (to_string c_typ))%string
   end.
 
 (* Array *)
@@ -2243,14 +2246,14 @@ Definition eval_const_arr_exp (typed_expr:typ*exp typ): err dvalue :=
            (fun ds d => dd <- eval_const_double_exp d ;; ret (dd::ds))
            [] a ;;
     ret (DVALUE_Array da)
-  | (_, c_typ) => inl ("Array of doubles expected: " ++ (to_string c_typ))
+  | (_, c_typ) => inl ("Array of doubles expected: " ++ (to_string c_typ))%string
   end.
 
 Definition eval_const_exp (typed_expr:typ*exp typ): err dvalue :=
   match typed_expr with
   | (TYPE_Array _ TYPE_Double, EXP_Array a) => eval_const_arr_exp typed_expr
   | (TYPE_Double, EXP_Double v) =>  eval_const_double_exp typed_expr
-  | (_, c_typ) => inl ("Unsupported constant expression type: " ++ (to_string c_typ))
+  | (_, c_typ) => inl ("Unsupported constant expression type: " ++ (to_string c_typ))%string
   end.
 
 Definition init_one_global
@@ -2286,9 +2289,9 @@ Definition init_llvm_memory
     '(data,ginit) <- initIRGlobals data p.(globals) ;;
 
     let y := Anon 1%Z in
-    let ytyp := getIRType (FSHvecValType p.(o)) in
+    let ytyp := getIRType (DSHPtr p.(o)) in
     let x := Anon 0%Z in
-    let xtyp := getIRType (FSHvecValType p.(i)) in
+    let xtyp := getIRType (DSHPtr p.(i)) in
 
     let xyinit := global_YX p.(i) p.(o) data x xtyp y ytyp in
 
@@ -2318,7 +2321,7 @@ Qed.
    Currently [σ := [globals;Y;X]]
    Where globals mapped by name, while [X-> Anon 0] and [Y->Anon 1]
 *)
-Definition memory_invariant_map (globals : list (string * FSHValType)): nat -> raw_id
+Definition memory_invariant_map (globals : list (string * DSHType)): nat -> raw_id
   := fun j =>
        let l := List.length globals in
        if Nat.eqb j l then Anon 0%Z (* X *)
@@ -2329,7 +2332,7 @@ Definition memory_invariant_map (globals : list (string * FSHValType)): nat -> r
               | Some (name,_) => Name name
               end.
 
-Lemma memory_invariant_map_injectivity (globals : list (string * FSHValType)):
+Lemma memory_invariant_map_injectivity (globals : list (string * DSHType)):
   list_uniq fst globals ->
   forall (x y : nat),
     x < (Datatypes.length globals + 2)%nat ∧ y < (Datatypes.length globals + 2)%nat
@@ -2348,11 +2351,11 @@ Proof.
 Qed.
 
 Fact initIRGlobals_cons_head_uniq:
-  ∀ (a : string * FSHValType) (globals : list (string * FSHValType))
+  ∀ (a : string * DSHType) (globals : list (string * DSHType))
     (data : list binary64) (res : list binary64 *
                                   list (toplevel_entity typ (list (LLVMAst.block typ)))),
     initIRGlobals data (a :: globals) ≡ inr res ->
-    forall (j : nat) (n : string) (v : FSHValType),
+    forall (j : nat) (n : string) (v : DSHType),
       (nth_error globals j ≡ Some (n, v) /\ n ≡ fst a) → False.
 Proof.
   intros a globals data res H j n v C.
@@ -2658,6 +2661,13 @@ Lemma memory_invariant_after_init
                 init_llvm_memory p data ≡ inr lmem ->
                 memory_invariant σ hmem lmem.
 Proof.
+  (*
+
+  This partial proof was further broken after
+  eliminating [FSHValType] and replacing it with [DSHType].
+  It needs to be repaired
+
+
   intros hmem σ lmem hdata [HI LI].
   unfold memory_invariant.
   repeat break_let; subst.
@@ -3046,6 +3056,7 @@ Proof.
     eexists.
     eexists.
     admit.
+   *)
 Admitted.
 
 (* with init step  *)

@@ -1,4 +1,5 @@
 *.vo
+*.vio
 *.glob
 *.v.d
 *.aux
@@ -26,10 +27,13 @@ ml/_build
 ml/llvm_printer.ml
 ml/llvm_printer.mli
 
+depgraph.vcmde
 depgraph.vcmd
 graph.dot
 graph.dpd
 graph.svg
+
+*.timing
 
 experiments/*.hi
 experiments/*.o

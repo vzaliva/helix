@@ -2,14 +2,17 @@
 
 [[https://travis-ci.com/vzaliva/helix][https://travis-ci.com/vzaliva/helix.svg?token=x87izvm44MdTPLHzuxzF&branch=master]]
 
-HELIX is a formally verified operator language and rewriting engine
-for generation of highperformance implementation for a variety of
-linear algebra algorithms. Based on the existing SPIRAL system, HELIX
-adds the rigor of formal verification of its correctness using Coq
-proof assistant.
+HELIX is a formally verified language and rewriting engine for
+generation of high-performance implementation for a variety of
+numerical algorithms. Based on the existing [[http://spiral.net/][SPIRAL]] system, HELIX adds
+the rigor of formal verification of its correctness using the Coq
+proof assistant. It formally defines a series of domain-specific
+languages starting with HCOL, which represents a computation data
+flow. HELIX works by transforming the original program through a
+series of intermediate languages, culminating in LLVM IR.
 
-- HELIX focuses on automatic translation a class of mathematical expressions
-  to code.
+- HELIX focuses on automatic translation a class of mathematical.
+  expressions to code.
 - It works by revealing implicit iteration constructs and re-shaping
   them to match target platform parallelizm and vectorization
   capabilities.
@@ -17,7 +20,7 @@ proof assistant.
 - HELIX is implemented in Coq proof assistant.
 - It supports non-linear operators.
 - Presently, HELIX uses SPIRAL as an optimization oracle, but it
-  certifies it's findings.
+  certifies its findings.
 - LLVM is used machine code generation backend.
 - Main application: Cyber-physical systems.
 
@@ -29,7 +32,7 @@ proof assistant.
    - [[https://github.com/math-classes/math-classes][math-classes]]
    - [[https://github.com/MetaCoq/metacoq][Template Coq]]
    - [[http://flocq.gforge.inria.fr/][Flocq]]
-   - [[https://github.com/vellvm/vellvm][Vellvm]] (requires ~coq-ceres~, ~coq-ext-lib~, ~coq-paco~, and ~coq-flocq~) /(*manual installation instructions below)/
+   - [[https://github.com/vellvm/vellvm][Vellvm]] (requires ~coq-ceres~, ~coq-ext-lib~, ~coq-paco~, and ~coq-flocq~) /(manual installation instructions below)/
    - [[https://opensource.janestreet.com/core/][Jane Street Core]]
    - [[https://github.com/Karmaki/coq-dpdgraph][coq-dpdgraph]] /(optional)/
 
@@ -42,14 +45,13 @@ proof assistant.
      opam remove coq-itree # conflicts with submodule copy from Vellvm
 #+END_SRC
 
- To install *optional* dependencies:
+To install *optional* dependencies:
 
 #+BEGIN_SRC sh
      opam install coq-dpdgraph
 #+END_SRC
 
 ** Bulding and Running 
-
 *** Install VELLVM dependency:
 
     You need to manually check out /master/ branch of VELLVM, compile,
@@ -76,7 +78,6 @@ proof assistant.
     - [[http://www.crocodile.org/lord/vzaliva-CoqPL19.pdf][Reification of shallow-embedded DSLs in Coq with automated verification (CoqPL 2019)]]
     - [[http://www.crocodile.org/lord/vzaliva-fhpc2018.pdf][HELIX: A Case Study of a Formal Verification of High Performance Program Generation (FHPC 2018)]]
     - [[http://www.crocodile.org/lord/Formal_Verification_of_HCOL_Rewriting_FMCAD15.pdf][Formal Verification of HCOL Rewriting (FMCAD 2015)]]
-
 ** Contact
 
    [[mailto:vzaliva@cmu.edu][Vadim Zaliva]]

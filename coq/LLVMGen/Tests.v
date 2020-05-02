@@ -165,16 +165,16 @@ Local Open Scope string_scope.
 
 Definition all_tests :=
   [
-    {| i:=Int64_5; o:=Int64_1; name:="dynwin64"; op:=DynWin_test ; globals:=[("D", FSHvecValType Int64_3)] |} ;
+    {| i:=Int64_5; o:=Int64_1; name:="dynwin64"; op:=DynWin_test ; globals:=[("D", DSHPtr Int64_3)] |} ;
   {| i:=Int64_4; o:=Int64_2; name:="binop_less"; op:=BinOp_less_test; globals:=[] |} ;
   {| i:=Int64_4; o:=Int64_2; name:="binop_plus"; op:=BinOp_plus_test; globals:=[] |} ;
   {| i:=Int64_2; o:=Int64_1; name:="ireduction"; op:=IReduction_test; globals:=[] |} ;
   {| i:=Int64_5; o:=Int64_7; name:="nop"; op:=Nop_test; globals:=[] |} ;
   {| i:=Int64_4; o:=Int64_2; name:="iunion"; op:=IUnion_test; globals:=[] |} ;
   {| i:=Int64_1; o:=Int64_1; name:="inductor"; op:=Inductor_test; globals:=[] |} ;
-  {| i:=Int64_4; o:=Int64_4; name:="sumunion"; op:=SUMUnion_test; globals:=[("D", FSHvecValType Int64_4)] |} ;
+  {| i:=Int64_4; o:=Int64_4; name:="sumunion"; op:=SUMUnion_test; globals:=[("D", DSHPtr Int64_4)] |} ;
   {| i:=Int64_8; o:=Int64_8; name:="pointwise_plus1"; op:=IMap_plus1_test; globals:=[] |} ;
-  {| i:=Int64_8; o:=Int64_8; name:="pointwise_plusD"; op:=IMap_plusD_test; globals:=[("D", FSHFloatValType)] |} ;
+  {| i:=Int64_8; o:=Int64_8; name:="pointwise_plusD"; op:=IMap_plusD_test; globals:=[("D", DSHCType)] |} ;
 
   {| i:=Int64_8; o:=Int64_8; name:="compose_pointwise"; op:=Compose_pointwise_test ; globals:=[]|}
   ].
@@ -210,7 +210,7 @@ Require Import Helix.Util.ErrorSetoid.
 Definition evalFSHCOLOperator
            (i o: Int64.int)
            (name: string)
-           (globals: list (string * FSHValType))
+           (globals: list (string * DSHType))
            (op: DSHOperator)
            (data:list binary64)
   : err (list binary64)
