@@ -13,15 +13,87 @@ Require Import MathClasses.interfaces.canonical_names.
 Definition dynwin_i:nat := (1 + (2 + 2)).
 Definition dynwin_o:nat := 1.
 
-(* Original dynamic window expression *)
+(* Original dynamic window HCOL expression *)
 Definition dynwin_orig (a: avector 3) : avector dynwin_i -> avector dynwin_o
   :=
   (HTLess
      (HEvalPolynomial a)
      (HChebyshevDistance 2)).
 
+(* dynamic window HCOL expression after breakdown *)
+Definition dynwin_HCOL (a: avector 3) :=
+  (HBinOp (IgnoreIndex2 Zless) ∘
+          HCross
+          (HReduction plus zero ∘ (HBinOp (IgnoreIndex2 mult) ∘ HPrepend a) ∘ HInduction _ mult one)
+          (HReduction minmax.max zero ∘ (HPointwise (IgnoreIndex abs)) ∘ HBinOp (o:=2) (IgnoreIndex2 sub))).
+
 
 Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ _ g f) (at level 40, left associativity) : type_scope.
+
+(*
+Intermediate HCOL -> Sigma-HCOL Translation result
+
+BinOp(1, Lambda([ r14, r15 ], geq(r15, r14))) o
+SUMUnion(
+  ScatHUnion(2, 1, 0, 1) o
+  Reduction(3, (a, b) -> add(a, b), V(0.0), (arg) -> false) o
+  PointWise(3, Lambda([ r16, i14 ], mul(r16, nth(D, i14)))) o
+  Induction(3, Lambda([ r9, r10 ], mul(r9, r10)), V(1.0)) o
+  GathH(5, 1, 0, 1),
+
+  ScatHUnion(2, 1, 1, 1) o
+  Reduction(2, (a, b) -> max(a, b), V(0.0), (arg) -> false) o
+  PointWise(2, Lambda([ r11, i13 ], abs(r11))) o
+  ISumUnion(i15, 2,
+    ScatHUnion(2, 1, i15, 1) o
+    BinOp(1, Lambda([ r12, r13 ], sub(r12, r13))) o
+    GathH(4, 2, i15, 2)
+  ) o
+  GathH(5, 4, 1, 1)
+)
+ *)
+Definition dynwin_SHCOL (a: avector 3):
+  @SHOperator Monoid_RthetaFlags (1+(2+2)) 1 zero :=
+
+  (SafeCast (SHBinOp _ (IgnoreIndex2 Zless)))
+    ⊚
+    (HTSUMUnion _ plus (
+                  ScatH _ 0 1
+                        (range_bound := h_bound_first_half 1 1)
+                        (snzord0 := @ScatH_stride1_constr 1 2)
+                        ⊚
+                        (liftM_HOperator _ (@HReduction _ plus 0)  ⊚
+                                         SafeCast (SHBinOp _ (IgnoreIndex2 mult))
+                                         ⊚
+                                         liftM_HOperator _ (HPrepend a )
+                                         ⊚
+                                         liftM_HOperator _ (HInduction 3 mult one))
+                        ⊚
+                        (GathH _ 0 1
+                               (domain_bound := h_bound_first_half 1 (2+2)))
+                )
+
+                (
+                  (ScatH _ 1 1
+                         (range_bound := h_bound_second_half 1 1)
+                         (snzord0 := @ScatH_stride1_constr 1 2))
+                    ⊚
+                    (liftM_HOperator _ (@HReduction _ minmax.max 0))
+                    ⊚
+                    (SHPointwise _ (IgnoreIndex abs))
+                    ⊚
+                    (SumSparseEmbedding
+                       (n:=2)
+                       (fun jf => SafeCast (SHBinOp _ (o:=1)
+                                                 (Fin1SwapIndex2 jf (IgnoreIndex2 CarrierType.sub))))
+                       (fun j => h_index_map (proj1_sig j) 1 (range_bound := (ScatH_1_to_n_range_bound (proj1_sig j) 2 1 (proj2_sig j))))
+                       (f_inj := h_j_1_family_injective)
+                       (fun j => h_index_map (proj1_sig j) 2 (range_bound:=GathH_jn_domain_bound (proj1_sig j) 2 (proj2_sig j))))
+                    ⊚
+                    (GathH _ 1 1
+                           (domain_bound := h_bound_second_half 1 (2+2)))
+                )
+    ).
 
 (*
 
