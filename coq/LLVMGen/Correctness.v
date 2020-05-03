@@ -758,6 +758,11 @@ vars s1 = σ?
   Ltac unfolder_helix :=
     unfold ErrorWithState.option2errS, translate_E_helix_cfg, lift_Serr, translate_E_vellvm_cfg.
 
+  (**
+     Better solution (?): use
+     `Argument myconstant /.`
+     to force `cbn` to unfold `myconstant`
+   *)
   Ltac unfolder := unfolder_helix; unfolder_vellvm.
 
   Tactic Notation "cbn*" := (repeat (cbn; unfolder)).
@@ -836,6 +841,7 @@ vars s1 = σ?
      QUESTION YZ: Works okay (though slow), except for [ret/Ret], a cbn or an unfold needs to be sneaked in the right place
    *)
 
+
   (* TODOYZ: name consistency Nexp/NExpr/Nexpr/NExp *) 
   Lemma genNExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
@@ -888,7 +894,8 @@ vars s1 = σ?
                split; [apply PRE | reflexivity].
              }
           ++
-             { (* DSHCTypeVal *)
+
+            { (* DSHCTypeVal *)
     
         * (* binary64, absurd. *)
           (* Lookup in σ and (vars s) should have matching types? *)
