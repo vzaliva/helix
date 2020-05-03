@@ -733,6 +733,15 @@ vars s1 = σ?
     eexists; reflexivity.
   Qed.
 
+  Lemma WF_IRState_lookup_pointer :
+    forall σ s n id,
+      WF_IRState σ s ->
+      nth_error (vars s) n ≡ Some (id,TYPE_Pointer (TYPE_I 64%Z)) ->
+      False.
+  Proof.
+    intros * WF LU; apply WF in LU; destruct LU as ([] & LU & EQ); inv EQ.
+  Qed.
+
   Ltac abs_by H :=
     exfalso; eapply H; eauto.
 
@@ -805,7 +814,7 @@ vars s1 = σ?
     | context[interp _ (ITree.bind ?t' _)] => rewrite interp_bind; idtac "interp_bind"
     | context[translate _ (Ret _)] => rewrite translate_ret; idtac "trans_ret"
     | context[interp _ (Ret _)] => rewrite interp_ret; idtac "interp_ret"
-    | context[translate _ (trigger _)] => rewrite translate_trigger; idtac "trans_trigger"
+    | context[translate _ (trigger ?e)] => rewrite (translate_trigger _ e); idtac "trans_trigger"
     | context[interp _ (trigger _)] => rewrite interp_trigger; idtac "intepr_trigger"
     end.
 
@@ -851,7 +860,6 @@ vars s1 = σ?
   (**
      QUESTION YZ: Works okay (though slow), except for [ret/Ret], a cbn or an unfold needs to be sneaked in the right place
    *)
-
 
   (* TODOYZ: name consistency Nexp/NExpr/Nexpr/NExp *) 
   Lemma genNExpr_correct :
@@ -911,12 +919,80 @@ vars s1 = σ?
           ++
             exfalso. eapply WF_IRState_lookup_int in WFIR; eauto.
             destruct WFIR as [? WFIR]; rewrite Heqs in WFIR; inv WFIR.
+
       + (* The variable maps to a pointer *)
-        * (* We find a pointer in vars *)
+        
+        abs_by WF_IRState_lookup_pointer.
+
+    - (* Constant *)
+
+      simp_comp COMPILE.
+      unfold denoteNexp; cbn*.
+      repeat norm_h.
+      repeat norm_v.
+      (** ** TODO
+          The compiler appears to generate invalid code:
+          (raise "denote_exp given untyped EXP_Integer")
+       *)
+
           (* Reducing the denotation *)
+          unfold denoteNexp; cbn*.
+          repeat norm_v.
+          break_inner_match_goal.
+          { (* Variable not in context, [context_lookup] fails *)
+            abs_by WF_IRState_lookup_cannot_fail.
+          }
+          break_inner_match_goal.
+          ++ exfalso.
+             clear FOO.
+             repeat norm_h.
+             destruct i0.
+             { (* Global *)
+               cbn*.
+               repeat norm_v.
+               cbn; repeat norm_v.
+               2: eapply R_GLU; eauto.
+               cbn*; repeat norm_v.
+               repeat norm_h.
+
+               rewrite interp_cfg_to_L3_LM.
+
+
+
+
+               rewrite translate_trigger. lookup_E_to_exp_E_Global.
+
+               2: eapply R_GLU; eauto.
+               (** TODO: Define specialized version on eutt for external use *)
+               apply eqit_Ret.
+               split; [apply PRE | reflexivity].
+             }
+             { (* Local *)
+               cbn*.
+               repeat norm_v.
+               2: eapply R_LLU; eauto.
+               cbn; repeat norm_v.
+               apply eqit_Ret.
+               split; [apply PRE | reflexivity].
+             }
+          ++
+            (** TODO YZ : get this automatically discharged by [abs_by] *)
+            exfalso. eapply WF_IRState_lookup_int in WFIR; eauto.
+            destruct WFIR as [? WFIR]; rewrite Heqs in WFIR; inv WFIR.
+          ++
+            exfalso. eapply WF_IRState_lookup_int in WFIR; eauto.
+            destruct WFIR as [? WFIR]; rewrite Heqs in WFIR; inv WFIR.
+
+
+
+          
+
+
           unfold translate_E_helix_cfg; cbn.
           unfold denoteNexp, lift_Serr; cbn.
-          match goal with |- context[context_lookup ?s ?x ?y] => destruct (context_lookup s x y) as [? | []] eqn:?EQ end.
+          match goal with
+            |- context[context_lookup ?s ?x ?y] => destruct (context_lookup s x y) as [? | []] eqn:?EQ
+          end.
           exfalso; admit.
           unfold translate_E_helix_cfg; cbn; rewrite interp_Mem_ret, translate_ret.
           admit.

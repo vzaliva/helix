@@ -9,7 +9,6 @@ From ITree Require Import
 From Vellvm Require Import
      Util
      LLVMEvents
-     PropT
      DynamicTypes
      CFG
      Memory
@@ -49,14 +48,6 @@ Import BinInt.
 Import INT.
 
 Section Translations.
-
-  (** TODOYZ : MOVE ITree *)
-  Lemma translate_trigger {E F G} `{E -< F} :
-    forall X (e: E X) (h: F ~> G),
-     translate h (trigger e) ≈ trigger (h _ (subevent X e)).
-  Proof.
-    intros; unfold trigger; rewrite translate_vis; setoid_rewrite translate_ret; reflexivity.
-  Qed.
 
   (** TODOYZ : MOVE (Vellvm)  *)
   (* Technicality: translations by [lookup_E_to_exp_E] and [exp_E_to_instr_E] leave these events unphased *)
@@ -138,13 +129,7 @@ Definition interp_cfg_to_L5 {R} user_intrinsics (t: itree instr_E R) (g: global_
 
 From Vellvm Require Import TopLevelRefinements.
 
-(* Specialization of [eutt_clo_bind] to the reccurent case of [UU := eq] to avoid having to provide the relation manually everytime *)
-Lemma eutt_eq_bind : forall E R U (t: itree E U) (k1 k2: U -> itree E R), (forall u, k1 u ≈ k2 u) -> ITree.bind t k1 ≈ ITree.bind t k2.
-Proof.
-  intros.
-  apply eutt_clo_bind with (UU := Logic.eq); [reflexivity |].
-  intros ? ? ->; apply H.
-Qed.
+
 
 Lemma interp_cfg_to_L1_bind :
   forall ui {R S} (t: itree instr_E R) (k: R -> itree instr_E S) g, 
@@ -225,214 +210,6 @@ Proof.
   reflexivity.
 Qed.
 
-(**
-   The whole family. More than we need, but at least we'll have what we need.
- *)
-
-  Lemma interp_global_vis_eqit:
-    forall (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type -> Type)
-      (H0 : FailureE -< G) (g : map) S X
-      (kk : X -> itree (E +' F +' GlobalE k v +' G) S)
-      (e : (E +' F +' GlobalE k v +' G) X),
-      interp_global (Vis e kk) g ≅ ITree.bind (interp_global_h e g) (fun (sx : map * X) => Tau (interp_global (kk (snd sx)) (fst sx))).
-  Proof.
-    intros.
-    unfold interp_global.
-    setoid_rewrite interp_state_vis.
-    reflexivity.
-  Qed.
-
-  Lemma interp_global_vis:
-    forall (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type -> Type)
-      (H0 : FailureE -< G) (g : map) S X
-      (kk : X -> itree (E +' F +' GlobalE k v +' G) S)
-      (e : (E +' F +' GlobalE k v +' G) X),
-      interp_global (Vis e kk) g ≈ ITree.bind (interp_global_h e g) (fun (sx : map * X) => interp_global (kk (snd sx)) (fst sx)).
-  Proof.
-    intros.
-    rewrite interp_global_vis_eqit.
-    apply eutt_eq_bind.
-    intros ?; tau_steps; reflexivity.
-  Qed.
-
-  (** TODOYZ : Send this to StateFacts *)
-  (** TODOYZ : Define a tactic for this recurrent [bind_ret_r] trick *)
-  Lemma interp_state_trigger' {E F : Type -> Type} {R S : Type}
-        (e : E R) (f : E ~> Monads.stateT S (itree F)) (s : S)
-    : interp_state f (ITree.trigger e) s ≈ f _ e s.
-  Proof.
-    unfold ITree.trigger. rewrite interp_state_vis.
-    match goal with
-      |- _ ≈ ?x => rewrite <- (bind_ret_r x) at 2
-    end.
-    eapply eqit_bind; try reflexivity.
-    intros []; rewrite interp_state_ret,tau_eutt.
-    reflexivity.
-  Qed.
-
-  Lemma interp_global_trigger:
-    forall (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type -> Type)
-      (H0 : FailureE -< G) (g : map) X
-      (e : (E +' F +' GlobalE k v +' G) X),
-      interp_global (ITree.trigger e) g ≈ interp_global_h e g.
-  Proof.
-    intros.
-    unfold interp_global.
-    rewrite interp_state_trigger'.
-    reflexivity.
-  Qed.
-
-  Lemma interp_global_bind_trigger_eqit:
-    forall (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type -> Type)
-      (H0 : FailureE -< G) (g : map) S X
-      (kk : X -> itree (E +' F +' GlobalE k v +' G) S)
-      (e : (E +' F +' GlobalE k v +' G) X),
-      interp_global (ITree.bind (trigger e) kk) g ≅ ITree.bind (interp_global_h e g) (fun (sx : map * X) => Tau (interp_global (kk (snd sx)) (fst sx))).
-  Proof.
-    intros.
-    unfold interp_global.
-    rewrite bind_trigger.
-    setoid_rewrite interp_state_vis.
-    reflexivity.
-  Qed.
-
-  Lemma interp_global_bind_trigger:
-    forall (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type -> Type)
-      (H0 : FailureE -< G) (g : map) S X
-      (kk : X -> itree (E +' F +' GlobalE k v +' G) S)
-      (e : (E +' F +' GlobalE k v +' G) X),
-      interp_global (ITree.bind (trigger e) kk) g ≈ ITree.bind (interp_global_h e g) (fun (sx : map * X) => interp_global (kk (snd sx)) (fst sx)).
-  Proof.
-    intros.
-    rewrite interp_global_bind_trigger_eqit.
-    apply eutt_eq_bind.
-    intros ?; tau_steps; reflexivity.
-  Qed.
-
-  Lemma interp_local_vis_eqit:
-    forall (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type -> Type)
-      (H0 : FailureE -< G) (g : map) S X
-      (kk : X -> itree (E +' F +' LocalE k v +' G) S)
-      (e : (E +' F +' LocalE k v +' G) X),
-      interp_local (Vis e kk) g ≅ ITree.bind (interp_local_h e g) (fun (sx : map * X) => Tau (interp_local (kk (snd sx)) (fst sx))).
-  Proof.
-    intros.
-    unfold interp_local.
-    setoid_rewrite interp_state_vis.
-    reflexivity.
-  Qed.
-
-  Lemma interp_local_vis:
-    forall (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type -> Type)
-      (H0 : FailureE -< G) (g : map) S X
-      (kk : X -> itree (E +' F +' LocalE k v +' G) S)
-      (e : (E +' F +' LocalE k v +' G) X),
-      interp_local (Vis e kk) g ≈ ITree.bind (interp_local_h e g) (fun (sx : map * X) => interp_local (kk (snd sx)) (fst sx)).
-  Proof.
-    intros.
-    rewrite interp_local_vis_eqit.
-    apply eutt_eq_bind.
-    intros ?; tau_steps; reflexivity.
-  Qed.
-
-  Lemma interp_local_trigger:
-    forall (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type -> Type)
-      (H0 : FailureE -< G) (g : map) X
-      (e : (E +' F +' LocalE k v +' G) X),
-      interp_local (ITree.trigger e) g ≈ interp_local_h e g.
-  Proof.
-    intros.
-    unfold interp_local.
-    rewrite interp_state_trigger'.
-    reflexivity.
-  Qed.
-
-  Lemma interp_local_bind_trigger_eqit:
-    forall (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type -> Type)
-      (H0 : FailureE -< G) (g : map) S X
-      (kk : X -> itree (E +' F +' LocalE k v +' G) S)
-      (e : (E +' F +' LocalE k v +' G) X),
-      interp_local (ITree.bind (trigger e) kk) g ≅ ITree.bind (interp_local_h e g) (fun (sx : map * X) => Tau (interp_local (kk (snd sx)) (fst sx))).
-  Proof.
-    intros.
-    unfold interp_local.
-    rewrite bind_trigger.
-    setoid_rewrite interp_state_vis.
-    reflexivity.
-  Qed.
-
-  Lemma interp_local_trigger_bind:
-    forall (k v map : Type) (M : Maps.Map k v map) (SK : Serialize k) (E F G : Type -> Type)
-      (H0 : FailureE -< G) (g : map) S X
-      (kk : X -> itree (E +' F +' LocalE k v +' G) S)
-      (e : (E +' F +' LocalE k v +' G) X),
-      interp_local (ITree.bind (trigger e) kk) g ≈ ITree.bind (interp_local_h e g) (fun (sx : map * X) => interp_local (kk (snd sx)) (fst sx)).
-  Proof.
-    intros.
-    rewrite interp_local_bind_trigger_eqit.
-    apply eutt_eq_bind.
-    intros ?; tau_steps; reflexivity.
-  Qed.
-
-  Lemma interp_intrinsics_vis_eqit:
-    forall E F X R (HF : FailureE -< F) (e : (E +' IntrinsicE +' F) X)
-      (kk : X -> itree (E +' IntrinsicE +' F) R) defs,
-      interp_intrinsics defs (Vis e kk) ≅
-      ITree.bind (interp_intrinsics_h defs e) (fun x : X => Tau (interp (INT.interp_intrinsics_h defs) (kk x))).
-  Proof.
-    intros.
-    unfold interp_intrinsics.
-    rewrite interp_vis.
-    reflexivity.
-  Qed.
-
-  Lemma interp_intrinsics_vis:
-    forall E F X R (HF : FailureE -< F) (e : (E +' IntrinsicE +' F) X)
-      (kk : X -> itree (E +' IntrinsicE +' F) R) defs,
-      interp_intrinsics defs (Vis e kk) ≈
-      ITree.bind (interp_intrinsics_h defs e) (fun x : X => interp (INT.interp_intrinsics_h defs) (kk x)).
-  Proof.
-    intros.
-    rewrite interp_intrinsics_vis_eqit.
-    apply eutt_eq_bind.
-    intros ?; tau_steps; reflexivity.
-  Qed.
-
-  Lemma interp_intrinsics_trigger:
-    forall E F X (HF : FailureE -< F) (e : (E +' IntrinsicE +' F) X) defs,
-      interp_intrinsics defs (ITree.trigger e) ≈ interp_intrinsics_h defs e.
-  Proof.
-    intros *.
-    unfold interp_intrinsics.
-    rewrite interp_trigger.
-    reflexivity.
-  Qed.
-
-  Lemma interp_intrinsics_bind_trigger_eqit:
-    forall E F X R (HF : FailureE -< F) (e : (E +' IntrinsicE +' F) X)
-      (kk : X -> itree (E +' IntrinsicE +' F) R) defs,
-      interp_intrinsics defs (ITree.bind (trigger e) kk) ≅
-      ITree.bind (interp_intrinsics_h defs e) (fun x : X => Tau (interp (INT.interp_intrinsics_h defs) (kk x))).
-  Proof.
-    intros E F X R HF e kk h.
-    unfold interp_intrinsics.
-    rewrite bind_trigger.
-    rewrite interp_vis.
-    reflexivity.
-  Qed.
-
-  Lemma interp_intrinsics_bind_trigger:
-    forall E F X R (HF : FailureE -< F) (e : (E +' IntrinsicE +' F) X)
-      (kk : X -> itree (E +' IntrinsicE +' F) R) defs,
-      interp_intrinsics defs (ITree.bind (trigger e) kk) ≈
-      ITree.bind (interp_intrinsics_h defs e) (fun x : X => interp (INT.interp_intrinsics_h defs) (kk x)).
-  Proof.
-    intros.
-    rewrite interp_intrinsics_bind_trigger_eqit.
-    apply eutt_eq_bind.
-    intros ?; tau_steps; reflexivity.
-  Qed.
-
   (* NOTEYZ: This can probably be refined to [eqit eq] instead of [eutt eq], but I don't think it matters to us *)
   Lemma interp_cfg_to_L3_vis (defs: IS.intrinsic_definitions):
     forall T R (e : instr_E T) (k : T -> itree instr_E R) g l m,
@@ -497,6 +274,32 @@ Qed.
     rewrite interp_local_bind, interp_local_trigger.
     cbn in *; rewrite LU.
     rewrite bind_ret_l, interp_local_ret, interp_memory_ret.
+    reflexivity.
+  Qed.
+
+  (**
+     TODO YZ: Can we expose better than this? It's super low level
+   *)
+  Lemma interp_cfg_to_L3_LM : forall defs t a size offset g l m v bytes concrete_id,
+      lookup_logical a (fst m) = Some (LBlock size bytes concrete_id) ->
+      deserialize_sbytes (lookup_all_index offset (sizeof_dtyp t) bytes SUndef) t = v ->
+      interp_cfg_to_L3 defs (trigger (Load t (DVALUE_Addr (a, offset)))) g l m ≈ Ret (m,(l,(g,v))).
+  Proof.
+    intros * LUL EQ.
+    unfold interp_cfg_to_L3.
+    rewrite interp_intrinsics_trigger.
+    cbn.
+    unfold INT.F_trigger.
+    rewrite interp_global_trigger.
+    cbn.
+    rewrite interp_local_bind, interp_local_trigger.
+    cbn; rewrite bind_bind.
+    rewrite interp_memory_bind, interp_memory_trigger.
+    cbn.
+    destruct m as [mem memstack]. cbn.
+    cbn in LUL; rewrite LUL.
+    rewrite 2 bind_ret_l, interp_local_ret, interp_memory_ret.
+    rewrite EQ.
     reflexivity.
   Qed.
 
