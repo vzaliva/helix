@@ -88,6 +88,7 @@ Require Import Vellvm.Handlers.Memory.
 Require Import Vellvm.TopLevel.
 Require Import Vellvm.LLVMAst.
 Require Import Vellvm.CFG.
+Require Import Vellvm.TypToDtyp.
 Require Import Vellvm.TopLevelRefinements.
 Require Import Vellvm.LLVMEvents.
 
@@ -598,6 +599,15 @@ Section InterpMem.
     apply interp_state_ret.
   Qed.
 
+  Lemma interp_Mem_bind :
+    forall T U mem (t: itree Event T) (k: T -> itree Event U),
+      interp_Mem (ITree.bind t k) mem ≈ ITree.bind (interp_Mem t mem) (fun '(mem',v) => interp_Mem (k v) mem').
+  Proof.
+    intros; unfold interp_Mem.
+    rewrite interp_state_bind.
+    apply eutt_eq_bind; intros []; reflexivity.
+  Qed.
+
   Lemma interp_Mem_vis_eqit :
     forall T R mem (e : Event T) (k : T -> itree Event R),
       interp_Mem (vis e k) mem ≅ ITree.bind ((case_ Mem_handler MDSHCOLOnFloat64.pure_state) T e mem) (fun sx => Tau (interp_Mem (k (snd sx)) (fst sx))).
@@ -677,21 +687,6 @@ vars s1 = σ?
 
   Definition genNExpr_sim σ := (bisim_partial σ).
 
-  (* TOODYZ *)
-  (* Definition evalContext_IRState_rel: evalContext -> IRState -> Prop := *)
-  (*   fun σ st => *)
-  (*     (forall v n, context_lookup "NVar not found" σ v ≡ inr (DSHnatVal n) <-> ) *)
-  (* nth_error (vars s2) v ≡ Some (i, TYPE_I 64%Z) /\
-     lookup i g/l ≡ n?
-   *)
-  (*     True. *)
-
-  Ltac simp_comp H :=
-    cbn in H; repeat (inv_sum || break_and || break_match_hyp).
-
-  From Vellvm Require Import
-       TypToDtyp.
-
   (**
      NOTEYZ: It is slightly annoying that [IRState] is an extra piece of state introduced by
      the compiler by that belongs to neither language.
@@ -754,6 +749,93 @@ vars s1 = σ?
   context_lookup "NVar not found" σ v ≡ inr (DSHnatVal n) ->
   Maps.lookup id l ≡ Some (UVALUE_I64 n).
 
+  Ltac unfolderH H :=
+    unfold ErrorWithState.option2errS, translate_E_helix_cfg, lift_Serr in H.
+
+  Ltac unfolder_vellvm := unfold Traversal.Endo_id.
+    (* unfold lookup_E_to_exp_E,exp_E_to_instr_E. *)
+
+  Ltac unfolder_helix :=
+    unfold ErrorWithState.option2errS, translate_E_helix_cfg, lift_Serr, translate_E_vellvm_cfg.
+
+  Ltac unfolder := unfolder_helix; unfolder_vellvm.
+
+  Tactic Notation "cbn*" := (repeat (cbn; unfolder)).
+
+  Ltac simp_comp H :=
+    cbn in H; unfolderH H;
+    cbn in H; repeat (inv_sum || break_and || break_match_hyp).
+
+  Lemma subevent_subevent : forall {E F} `{E -< F} {X} (e : E X),
+      @subevent F F _ X (@subevent E F _ X e) ≡ subevent X e.
+  Proof.
+    reflexivity.
+  Qed.
+
+  (* We associate [bind]s to the right and dismiss leftmost [Ret]s *)
+  Ltac norm_monad t :=
+    match t with
+    | context[ITree.bind ?t' _] =>
+      match t' with
+      | ITree.bind _ _ => rewrite bind_bind; idtac "bind_bind"
+      | Ret _ => rewrite bind_ret_l; idtac "bind_ret"
+      end
+    end.
+
+  (* We push [translate]s and [interp]s inside of binds, run them through [Ret]s *)
+  Ltac norm_interp t :=
+    match t with
+    | context[translate _ (ITree.bind ?t' _)] => rewrite translate_bind; idtac "trans_bind"
+    | context[interp _ (ITree.bind ?t' _)] => rewrite interp_bind; idtac "interp_bind"
+    | context[translate _ (Ret _)] => rewrite translate_ret; idtac "trans_ret"
+    | context[interp _ (Ret _)] => rewrite interp_ret; idtac "interp_ret"
+    | context[translate _ (trigger _)] => rewrite translate_trigger; idtac "trans_trigger"
+    | context[interp _ (trigger _)] => rewrite interp_trigger; idtac "intepr_trigger"
+    end.
+
+  (* We extend [norm_interp] with locally defined interpreters on the helix side *)
+  Ltac norm_local_helix t :=
+    match t with
+    | context[interp_Mem (ITree.bind ?t' _)] => rewrite interp_Mem_bind; idtac "mem_bind"
+    | context[interp_Mem (Ret _)] => rewrite interp_Mem_ret; idtac "mem_ret"
+    end.
+
+  (* We extend [norm_interp] with locally defined interpreters on the vellvm side *)
+  Ltac norm_local_vellvm t :=
+    match t with
+    | context[interp_cfg_to_L3 _ (ITree.bind ?t' _)] => rewrite interp_cfg_to_L3_bind; idtac "cfg_bind"
+    | context[interp_cfg_to_L3 _ (Ret _)] => rewrite interp_cfg_to_L3_ret; idtac "cfg_ret"
+    | context[interp_cfg_to_L3 _ (trigger (GlobalRead _))] => rewrite interp_cfg_to_L3_GR; idtac "cfg_GR"
+    | context[interp_cfg_to_L3 _ (trigger (LocalRead _))] => rewrite interp_cfg_to_L3_LR; idtac "cfg_LR"
+    | context[lookup_E_to_exp_E (subevent _ _)] => (rewrite lookup_E_to_exp_E_Global || rewrite lookup_E_to_exp_E_Local); try rewrite subevent_subevent; idtac "luexp"
+    | context[exp_E_to_instr_E (subevent _ _)] => (rewrite exp_E_to_instr_E_Global || rewrite exp_E_to_instr_E_Local); try rewrite subevent_subevent; idtac "expinstr"
+    end.
+
+  (**
+     QUESTION YZ: the outer repeat does not do effect. Why and how to fix?
+   *)
+  Ltac norm_h :=
+    match goal with
+      |- eutt _ ?t _ =>
+      repeat (
+          repeat (norm_monad t); 
+          repeat (norm_interp t);
+          repeat (norm_local_helix t))
+    end.
+
+  Ltac norm_v :=
+    match goal with
+      |- eutt _ _ ?t =>
+      repeat (
+          repeat (norm_monad t); 
+          repeat (norm_interp t);
+          repeat (norm_local_vellvm t))
+    end.
+
+  (**
+     QUESTION YZ: Works okay (though slow), except for [ret/Ret], a cbn or an unfold needs to be sneaked in the right place
+   *)
+
   (* TODOYZ: name consistency Nexp/NExpr/Nexpr/NExp *) 
   Lemma genNExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
@@ -777,63 +859,37 @@ vars s1 = σ?
 
       (* Reducing the compilation *)
       simp_comp COMPILE.
-      (* TODO: move unfolding of error wrappers in [simp_comp]? *)
-      all: unfold ErrorWithState.option2errS in *; break_match_hyp; cbn in *; try inv_sum.
 
       + (* The variable maps to an integer in the IRState *)
-        
-        (* Reducing the [DSHCOL] denotation
-           TODO: automate
-           TODO: should translate_E_helix_cfg and co be notations?
-         *)
-        unfold translate_E_helix_cfg; cbn.
-        unfold denoteNexp, lift_Serr; cbn.
+        unfold denoteNexp; cbn*.
+
+        repeat norm_v.
         break_inner_match_goal.
         * (* Variable not in context, [context_lookup] fails *)
           abs_by WF_IRState_lookup_cannot_fail.
-        * destruct d.
-          (* DSHnatVal *)
-          (* Nat *)
-          { unfold translate_E_helix_cfg; cbn; rewrite interp_Mem_ret, translate_ret.
-            unfold translate_E_vellvm_cfg; cbn. rewrite interp_cfg_to_L3_bind, interp_cfg_to_L3_ret, bind_ret_l.
-            (* TODOYZ: Ltac *)
-            destruct i0; cbn.
-            { (* Global *)
-              unfold Traversal.endo, Traversal.Endo_ident, Traversal.Endo_id.
-              rewrite translate_bind.
-              rewrite translate_trigger.
-              rewrite translate_bind.
-              rewrite lookup_E_to_exp_E_Global.
-              rewrite translate_trigger.
-              rewrite exp_E_to_instr_E_Global.
-              rewrite interp_cfg_to_L3_bind.
-              rewrite interp_cfg_to_L3_GR with (v := DVALUE_I64 n).
-              2: eapply R_GLU; eauto.
-              (** TODO: Need to automatize all this boilerplate **)
-              cbn; rewrite bind_ret_l.
-              rewrite !translate_ret.
-              rewrite interp_cfg_to_L3_ret.
-              rewrite !translate_ret.
-              (** TODO: Define specialized version on eutt for external use *)
-              apply eqit_Ret.
-              split; [apply PRE | reflexivity].
-            }
-            { (* Local *)
-              unfold Traversal.endo, Traversal.Endo_ident, Traversal.Endo_id.
-              rewrite translate_trigger.
-              rewrite lookup_E_to_exp_E_Local.
-              rewrite translate_trigger.
-              rewrite exp_E_to_instr_E_Local.
-              rewrite interp_cfg_to_L3_LR with (v := UVALUE_I64 n).
-              2: eapply R_LLU; eauto.
-              (** TODO: Need to automatize all this boilerplate **)
-              cbn; rewrite !translate_ret.
-              apply eqit_Ret.
-              split; [apply PRE | reflexivity].
-            }
-          }
-          { (* DSHCTypeVal *)
-            
+        * break_inner_match_goal.
+          ++ repeat norm_h.
+             destruct i0.
+             { (* Global *)
+               cbn*.
+               repeat norm_v.
+               cbn; repeat norm_v.
+               2: eapply R_GLU; eauto.
+               (** TODO: Define specialized version on eutt for external use *)
+               apply eqit_Ret.
+               split; [apply PRE | reflexivity].
+             }
+             { (* Local *)
+               cbn*.
+               repeat norm_v.
+               2: eapply R_LLU; eauto.
+               cbn; repeat norm_v.
+               apply eqit_Ret.
+               split; [apply PRE | reflexivity].
+             }
+          ++
+             { (* DSHCTypeVal *)
+    
         * (* binary64, absurd. *)
           (* Lookup in σ and (vars s) should have matching types? *)
           exfalso.

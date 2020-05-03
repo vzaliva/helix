@@ -61,25 +61,25 @@ Section Translations.
   (** TODOYZ : MOVE (Vellvm)  *)
   (* Technicality: translations by [lookup_E_to_exp_E] and [exp_E_to_instr_E] leave these events unphased *)
   Lemma lookup_E_to_exp_E_Global : forall {X} (e : LLVMGEnvE X),
-      trigger (lookup_E_to_exp_E (subevent X e)) = trigger e.
+      lookup_E_to_exp_E (subevent X e) = subevent X e.
   Proof.
     reflexivity.
   Qed.
 
   Lemma exp_E_to_instr_E_Global : forall {X} (e : LLVMGEnvE X),
-      trigger (exp_E_to_instr_E (subevent X e)) = trigger e.
+      exp_E_to_instr_E (subevent X e) = subevent X e.
   Proof.
     reflexivity.
   Qed.
 
   Lemma lookup_E_to_exp_E_Local : forall {X} (e : LLVMEnvE X),
-      trigger (lookup_E_to_exp_E (subevent X e)) = trigger e.
+      lookup_E_to_exp_E (subevent X e) = subevent X e.
   Proof.
     reflexivity.
   Qed.
 
   Lemma exp_E_to_instr_E_Local : forall {X} (e : LLVMEnvE X),
-      trigger (exp_E_to_instr_E (subevent X e)) = trigger e.
+      exp_E_to_instr_E (subevent X e) = subevent X e.
   Proof.
     reflexivity.
   Qed.
