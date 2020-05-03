@@ -722,6 +722,17 @@ vars s1 = σ?
     unfold context_lookup in LU2; rewrite LU in LU2; inversion LU2.
   Qed.
 
+  Lemma WF_IRState_lookup_int :
+    forall σ s n id msg,
+      WF_IRState σ s ->
+      nth_error (vars s) n ≡ Some (id,TYPE_I 64%Z) ->
+      exists v, context_lookup msg σ n ≡ inr (DSHnatVal v).
+  Proof.
+    intros * WF LU; apply WF in LU; destruct LU as ([] & LU & EQ);
+      unfold context_lookup; rewrite LU; cbn; try inv EQ.
+    eexists; reflexivity.
+  Qed.
+
   Ltac abs_by H :=
     exfalso; eapply H; eauto.
 
@@ -894,17 +905,13 @@ vars s1 = σ?
                split; [apply PRE | reflexivity].
              }
           ++
-
-            { (* DSHCTypeVal *)
-    
-        * (* binary64, absurd. *)
-          (* Lookup in σ and (vars s) should have matching types? *)
-          exfalso.
-          admit.
-        *  (* block_id, absurd *)
-          (* Lookup in σ and (vars s) should have matching types? *)
-          exfalso.
-          admit.
+            (** TODO YZ : get this automatically discharged by [abs_by] *)
+            exfalso. eapply WF_IRState_lookup_int in WFIR; eauto.
+            destruct WFIR as [? WFIR]; rewrite Heqs in WFIR; inv WFIR.
+          ++
+            exfalso. eapply WF_IRState_lookup_int in WFIR; eauto.
+            destruct WFIR as [? WFIR]; rewrite Heqs in WFIR; inv WFIR.
+      + (* The variable maps to a pointer *)
         * (* We find a pointer in vars *)
           (* Reducing the denotation *)
           unfold translate_E_helix_cfg; cbn.
