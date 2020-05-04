@@ -636,7 +636,7 @@ Definition bisim_partial: Type_R_partial
 (*     forall (nexp : NExpr) (e : exp typ) (c : code typ) (σ : evalContext) env (mem : MDSHCOLOnFloat64.memory) s s' mem_llvm ρ g, *)
 (*       genNExpr nexp s ≡ inr (s', (e, c)) -> *)
 (*       eutt _ *)
-(*            (translate inr_ (interp_Mem (denoteNexp σ nexp) mem)) *)
+(*            (translate inr_ (interp_Mem (denoteNExpr σ nexp) mem)) *)
 (*            (translate inl_ (interp_cfg_to_L3 helix_intrinsics *)
 (*                                              (D.denote_code ((map (λ '(id, i), (id, TransformTypes.fmap_instr typ dtyp (TypeUtil.normalize_type_dtyp env) i)) *)
 (*                                                                   c))) *)
@@ -698,13 +698,13 @@ Definition bisim_partial: Type_R_partial
          (ret n)
          (interp_cfg_to_L3 helix_intrinsics (translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64)) (fmap (typ_to_dtyp env) e))) g ρ mem_llvm).
 
-  (* TODO: Need something about denoteNexp not failing *)
+  (* TODO: Need something about denoteNExpr not failing *)
   Lemma denote_nexp_div :
     forall (σ : evalContext) (nexp1 nexp2 : NExpr),
-      eutt Logic.eq (denoteNexp σ (NDiv nexp1 nexp2))
-           (ITree.bind (denoteNexp σ nexp1)
-                       (fun (n1 : Int64.int) => ITree.bind (denoteNexp σ nexp2)
-                                                (fun (n2 : Int64.int) => denoteNexp σ (NDiv (NConst n1) (NConst n2))))).
+      eutt Logic.eq (denoteNExpr σ (NDiv nexp1 nexp2))
+           (ITree.bind (denoteNExpr σ nexp1)
+                       (fun (n1 : Int64.int) => ITree.bind (denoteNExpr σ nexp2)
+                                                (fun (n2 : Int64.int) => denoteNExpr σ (NDiv (NConst n1) (NConst n2))))).
   Proof.
   Admitted.
 
@@ -713,14 +713,14 @@ Definition bisim_partial: Type_R_partial
       genNExpr nexp st ≡ inr (i, (e, c)) ->
       (* TODO: factor out this relation *)
       eutt (fun n '(m, (l, (g, uv))) => int64_concrete_uvalue_rel n uv)
-           (translate inr_ (denoteNexp σ nexp))
+           (translate inr_ (denoteNExpr σ nexp))
            (translate inl_ (interp_cfg_to_L3 helix_intrinsics (translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64)) (fmap (typ_to_dtyp env) e))) g ρ mem_llvm)).
   Proof.
     induction nexp; intros st i e c mem_llvm σ g ρ env H.
     - cbn in H; repeat break_match_hyp; try solve [inversion H].
       + (* Int case *)
         cbn.
-        unfold denoteNexp. cbn.
+        unfold denoteNExpr. cbn.
         break_match.
         * cbn.
           (* exception *) admit.
@@ -743,11 +743,11 @@ Definition bisim_partial: Type_R_partial
 
   (* Probably need to know something about σ and mem_llvm,
      like memory_invariant... *)
-  Lemma denoteNexp_genNExpr :
+  Lemma denoteNExpr_genNExpr :
     forall (nexp : NExpr) (st st' : IRState) (nexp_r : exp typ) (nexp_code : code typ) (env : list (ident * typ)) (σ : evalContext) g ρ mem_llvm,
       genNExpr nexp st  ≡ inr (st', (nexp_r, nexp_code)) ->
       eutt (nexp_relation env nexp_r)
-           (translate inr_ (denoteNexp σ nexp))
+           (translate inr_ (denoteNExpr σ nexp))
            (translate inl_ (interp_cfg_to_L3 helix_intrinsics
                              (D.denote_code (map
                                                (λ '(id, i),
@@ -815,7 +815,7 @@ Definition bisim_partial: Type_R_partial
       repeat rewrite bind_bind.
 
       (* genNExpr nexp1 st ≡ inr (i, (e, c)) *)
-      (* I need something relating `denote_exp e` and `denoteNexp nexp1`... *)
+      (* I need something relating `denote_exp e` and `denoteNExpr nexp1`... *)
   Admitted.
 
   (* TODO: awful AWFUL name. Need to figure out which of these we need *)
@@ -825,11 +825,11 @@ Definition bisim_partial: Type_R_partial
       let '(mem_llvm, (ρ, (g, _))) := llvm_res in
       memory_invariant σ mem_helix (mem_llvm, (ρ, g)).
 
-  Lemma interp_denoteNexp_genNExpr :
+  Lemma interp_denoteNExpr_genNExpr :
     forall (nexp : NExpr) (st st' : IRState) (nexp_r : exp typ) (nexp_code : code typ) (env : list (ident * typ)) (σ : evalContext) g ρ mem_llvm memory,
       genNExpr nexp st  ≡ inr (st', (nexp_r, nexp_code)) ->
       eutt (nexp_relation_mem σ)
-           (translate inr_ (interp_state (case_ Mem_handler MDSHCOLOnFloat64.pure_state) (denoteNexp σ nexp) memory))
+           (translate inr_ (interp_state (case_ Mem_handler MDSHCOLOnFloat64.pure_state) (denoteNExpr σ nexp) memory))
            (translate inl_ (interp_cfg_to_L3 helix_intrinsics
                                              (D.denote_code (map
                                                                (λ '(id, i),
@@ -908,7 +908,7 @@ Proof.
     subst i. cbn.
     subst src dst.
 
-    unfold denotePexp, evalPExpr. cbn.
+    unfold denotePExpr, evalPExpr. cbn.
     destruct psrc, pdst.
     destruct (nth_error σ v) eqn:Herr.
     + destruct d.
@@ -942,13 +942,13 @@ Proof.
               do 2 setoid_rewrite denote_code_app.
               do 2 setoid_rewrite bind_bind.
 
-              (* Need to relate denoteNexp and denote_code of genNexpr *)
+              (* Need to relate denoteNExpr and denote_code of genNexpr *)
               repeat setoid_rewrite interp_cfg_to_L3_bind.
               repeat setoid_rewrite interp_state_bind.
               repeat setoid_rewrite translate_bind.
 
               eapply eutt_clo_bind.
-              eapply interp_denoteNexp_genNExpr; eauto.
+              eapply interp_denoteNExpr_genNExpr; eauto.
 
               intros u1 u2 H1.
               destruct u1, u2, p, p; cbn.
@@ -956,7 +956,7 @@ Proof.
               rewrite translate_bind.
 
               eapply eutt_clo_bind.
-              eapply interp_denoteNexp_genNExpr; eauto.
+              eapply interp_denoteNExpr_genNExpr; eauto.
 
               intros u1 u2 H7.
               destruct u1, u2, p, p; cbn.
@@ -1041,7 +1041,7 @@ Proof.
     (* simpl in HCompile. *)
     (* repeat break_match_hyp; try inl_inr. *)
     (* inv Heqs; inv HCompile. *)
-    (* unfold denotePexp, evalPExpr, lift_Serr. *)
+    (* unfold denotePExpr, evalPExpr, lift_Serr. *)
     (* subst. *)
     (* unfold interp_Mem. (* cbn *) *)
     (* (* match goal with *) *)
@@ -1055,7 +1055,7 @@ Proof.
     (* (* cbn. *) *)
     (* (* unfold interp_Mem. *) *)
     (* (* rewrite interp_state_bind. *) *)
-    (* (* unfold denotePexp, evalPExpr. *) *)
+    (* (* unfold denotePExpr, evalPExpr. *) *)
     (* (* cbn. *) *)
     (* (* repeat setoid_rewrite interp_state_bind. *) *)
     (* (* rewrite denote_bks_singleton. *) *)
@@ -1089,7 +1089,7 @@ Proof.
   - (*
       Map case.
       Need some reasoning about
-      - denotePexp
+      - denotePExpr
       - nat_eq_or_cerr
       - genIMapBody
       - 
