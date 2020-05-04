@@ -132,6 +132,14 @@ moddep.svg: moddep.dot Makefile
 timing: .depend Makefile.coq
 	$(MAKECOQ) TIMING=1
 
+update-vellvm:
+	make -C lib/vellvm/src clean
+	make -C lib/vellvm/lib/InteractionTrees clean
+	(cd lib/vellvm; git pull --recurse-submodules; make -C src update-trees)
+	make -C lib/vellvm/src clean
+	make -C lib/vellvm/lib/InteractionTrees clean
+	make -C lib/vellvm/src
+
 benchmark: timing
 	find .  -name "*.v.timing" -exec awk -F " " \
 		'{print $$6 "s @" $$2 "-" $$4 " " $$5 " " FILENAME}' \
