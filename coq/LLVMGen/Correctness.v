@@ -908,7 +908,7 @@ Proof.
     subst i. cbn.
     subst src dst.
 
-    unfold denotePexp, evalPexp. cbn.
+    unfold denotePexp, evalPExpr. cbn.
     destruct psrc, pdst.
     destruct (nth_error σ v) eqn:Herr.
     + destruct d.
@@ -1041,7 +1041,7 @@ Proof.
     (* simpl in HCompile. *)
     (* repeat break_match_hyp; try inl_inr. *)
     (* inv Heqs; inv HCompile. *)
-    (* unfold denotePexp, evalPexp, lift_Serr. *)
+    (* unfold denotePexp, evalPExpr, lift_Serr. *)
     (* subst. *)
     (* unfold interp_Mem. (* cbn *) *)
     (* (* match goal with *) *)
@@ -1055,7 +1055,7 @@ Proof.
     (* (* cbn. *) *)
     (* (* unfold interp_Mem. *) *)
     (* (* rewrite interp_state_bind. *) *)
-    (* (* unfold denotePexp, evalPexp. *) *)
+    (* (* unfold denotePexp, evalPExpr. *) *)
     (* (* cbn. *) *)
     (* (* repeat setoid_rewrite interp_state_bind. *) *)
     (* (* rewrite denote_bks_singleton. *) *)

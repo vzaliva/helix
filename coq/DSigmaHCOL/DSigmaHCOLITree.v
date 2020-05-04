@@ -108,7 +108,7 @@ Module MDSigmaHCOLITree
     end.
 
   Definition denotePexp (σ: evalContext) (exp:PExpr): itree Event (mem_block_id) :=
-    lift_Serr (evalPexp σ exp).
+    lift_Serr (evalPExpr σ exp).
 
   Definition denoteMexp (σ: evalContext) (exp:MExpr): itree Event (mem_block) :=
     match exp with
@@ -119,7 +119,7 @@ Module MDSigmaHCOLITree
     end.
 
   Definition denoteNexp (σ: evalContext) (e: NExpr): itree Event NT.t :=
-    lift_Serr (evalNexp σ e).
+    lift_Serr (evalNExpr σ e).
 
   Fixpoint denoteAexp (σ: evalContext) (e:AExpr): itree Event CT.t :=
     match e with
@@ -377,7 +377,7 @@ Module MDSigmaHCOLITree
     Ltac unfold_Mem := unfold interp_Mem in *; cbn; unfold denotePexp, denoteNexp, evalIUnCType, denoteIUnCType in *.
 
     Lemma Denote_Eval_Equiv_Mexp_Succeeds: forall mem σ e bk,
-        evalMexp mem σ e ≡ inr bk ->
+        evalMExpr mem σ e ≡ inr bk ->
         eutt eq
              (interp_Mem (denoteMexp σ e) mem)
              (ret (mem, bk)).
@@ -388,7 +388,7 @@ Module MDSigmaHCOLITree
     Qed.
 
     Lemma Denote_Eval_Equiv_Aexp_Succeeds: forall mem σ e v,
-        evalAexp mem σ e ≡ inr v ->
+        evalAExpr mem σ e ≡ inr v ->
         eutt eq
              (interp_Mem (denoteAexp σ e) mem)
              (ret (mem, v)).
