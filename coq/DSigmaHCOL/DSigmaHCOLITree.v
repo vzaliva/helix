@@ -382,9 +382,12 @@ Module MDSigmaHCOLITree
              (interp_Mem (denoteMExpr σ e) mem)
              (ret (mem, bk)).
     Proof.
-      intros mem σ [] bk HEval; unfold_Mem; cbn in HEval.
-      - inv_eval; state_steps; reflexivity.
-      - inv_eval; state_steps; reflexivity.
+      intros mem σ [] bk HEval; unfold_Mem; cbn in HEval; inv_eval; state_steps.
+      -
+        unfold memory_lookup_err, trywith.
+        rewrite Heqo.
+        reflexivity.
+      - reflexivity.
     Qed.
 
     Lemma Denote_Eval_Equiv_AExpr_Succeeds: forall mem σ e v,
