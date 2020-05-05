@@ -958,9 +958,10 @@ Section MSHCOL_to_DSHCOL.
 
   (* Import DSHNotation. *)
 
-  Definition nglobals := List.length (dynwin_DSHCOL1_globals).
-  Definition DSH_x_p := PVar (nglobals+1).
-  Definition DSH_y_p := PVar (nglobals+0).
+  Definition nglobals := List.length (dynwin_DSHCOL1_globals). (* 1 *)
+  Definition DSH_x_p := PVar (nglobals+1). (* PVar 2 *)
+  Definition DSH_y_p := PVar (nglobals+0). (* PVar 1 *)
+
 
   (* This tactics solves both [MSH_DSH_compat] and [DSH_pure] goals along with typical
      obligations *)
@@ -1029,9 +1030,9 @@ Section MSHCOL_to_DSHCOL.
     Parameter a:vector CarrierA 3.
     Parameter x:mem_block.
 
-    Definition dynwin_a_addr:mem_block_id := 1.
-    Definition dynwin_x_addr:mem_block_id := 2.
-    Definition dynwin_y_addr:mem_block_id := 3.
+    Definition dynwin_a_addr:mem_block_id := 0.
+    Definition dynwin_y_addr:mem_block_id := (nglobals+0).
+    Definition dynwin_x_addr:mem_block_id := (nglobals+1).
 
     Definition dynwin_globals_mem :=
       (memory_set memory_empty dynwin_a_addr (avector_to_mem_block a)).
@@ -1077,7 +1078,7 @@ Section MSHCOL_to_DSHCOL.
                         DynWin_pure.
     Proof.
       unfold dynwin_DSHCOL1, DSH_y_p, DSH_x_p.
-      unfold dynwin_x_addr, dynwin_y_addr, dynwin_a_addr in *.
+      unfold dynwin_x_addr, dynwin_y_addr, dynwin_a_addr, nglobals in *.
       unfold dynwin_MSHCOL1.
       cbn in *.
 
@@ -1107,8 +1108,9 @@ Section MSHCOL_to_DSHCOL.
           subst m1.
           unfold dynwin_memory, dynwin_globals_mem.
           unfold memory_alloc_empty.
+
           do 4 (rewrite memory_lookup_memory_set_neq
-                 by (cbn;unfold dynwin_a_addr,dynwin_y_addr; auto)).
+                 by (cbn;unfold dynwin_a_addr,dynwin_y_addr,dynwin_x_addr, nglobals; auto)).
           rewrite memory_lookup_memory_set_eq by reflexivity.
           subst v.
           reflexivity.
