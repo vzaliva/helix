@@ -45,6 +45,7 @@ Local Open Scope nat_scope.
 
 Import DSHCOLOnCarrierA.
 
+(* TODO: move *)
 Section list_aux.
 
   Lemma nth_error_nil_None {A : Type} (n : nat) :
@@ -711,13 +712,12 @@ Definition lookup_PExpr (σ:evalContext) (m:memory) (p:PExpr) :=
     memory_lookup_err "block_id not found" m a.
 
 (* DSH expression as a "pure" function by enforcing the memory
-   invariants guaranteeing that it depends only input memory block and
-   modifies only output memory block.
+   invariants guaranteeing that it does not free or allocate any blocks,
+   modifies only the output memory block.
 
    It is assumed that the memory and envirnment are consistent and
    [PExp] successfuly resolve to valid memory locations for [x_p] and
    [y_p] which must be allocated.
-
  *)
 Class DSH_pure
       (d: DSHOperator)
@@ -736,15 +736,15 @@ Class DSH_pure
                    memory_equiv_except m m' y_i)
     }.
 
-(** Given MSHCOL and DSHCOL operators are quivalent, if wrt [x_i] and
-    input memory block addres and [y_i] as output.
+(** Given MSHCOL and DSHCOL operators are quivalent wrt [x_p] as
+    the input memory block addres and [y_p] as the output.
 
     It is assumed that we know what memory blocks are used as input
-    [x_i] and output [y_i], of the operator. They both must exists (be
-    allocated) prior to execution.
+    [x_p] and output [y_p], of the operator. They both must exist
+    (be allocated) prior to execution.
 
-    We do not require input block to be structurally correct, because
-    [mem_op] will just return an error in this case.  *)
+    We do not require the input block to be structurally correct, because
+    [mem_op] will just return an error in this case. *)
 Class MSH_DSH_compat
       {i o: nat}
       (mop: @MSHOperator i o)
@@ -1098,8 +1098,8 @@ Section BinCarrierA.
   Qed.
   
   
-  (* This is generalized version of [evalDSHBinOp_nth]
-     TODO see if we can replace [evalDSHBinOp_nth] with it
+  (* This is a generalized version of [evalDSHBinOp_nth]
+     TODO: see if we can replace [evalDSHBinOp_nth] with it
      or at lease simplify its proof using this lemma.
   *)
   Lemma evalDSHBinOp_equiv_inr_spec
@@ -1164,7 +1164,7 @@ Section BinCarrierA.
         lia.
   Qed.
 
-  (* TODO: generalize this (look like Proper) *)
+  (* TODO: generalize this (looks like Proper) *)
   Lemma is_OK_evalDSHIMap_mem_equiv
         (n: nat)
         (df : AExpr)
@@ -1186,7 +1186,7 @@ Section BinCarrierA.
     split; intros C; inversion C.
   Qed.
   
-  (* TODO: generalize this (look like Proper) *)
+  (* TODO: generalize this (looks like Proper) *)
   Lemma is_OK_evalDSHBinOp_mem_equiv
         (n off : nat)
         (df : AExpr)
@@ -1668,26 +1668,6 @@ Section BinCarrierA.
   
 End BinCarrierA.
 
-(* Also could be proven in other direction *)
-Lemma SHCOL_DSHCOL_mem_block_equiv_mem_empty {a b: mem_block}:
-  SHCOL_DSHCOL_mem_block_equiv mem_empty a b -> a = b.
-Proof.
-  intros H.
-  unfold SHCOL_DSHCOL_mem_block_equiv in H.
-  intros k.
-  specialize (H k).
-  unfold mem_lookup, mem_empty in H.
-  rewrite NP.F.empty_o in H.
-  inversion H.
-  -
-    rewrite <- H1.
-    apply is_None_def in H0.
-    rewrite H0.
-    reflexivity.
-  -
-    assumption.
-Qed.
-
 Lemma SHCOL_DSHCOL_mem_block_equiv_comp (m0 m1 m2 d01 d12 : mem_block) :
   SHCOL_DSHCOL_mem_block_equiv m0 m1 d01 →
   SHCOL_DSHCOL_mem_block_equiv m1 m2 d12 →
@@ -1820,6 +1800,34 @@ Proof.
     constructor.
     rewrite MDE.
     assumption.
+Qed.
+
+Lemma SHCOL_DSHCOL_mem_block_equiv_mem_empty {a b: mem_block}:
+  SHCOL_DSHCOL_mem_block_equiv mem_empty a b <-> a = b.
+Proof.
+  split.
+  -
+    intros H.
+    unfold SHCOL_DSHCOL_mem_block_equiv in H.
+    intros k.
+    specialize (H k).
+    unfold mem_lookup, mem_empty in H.
+    rewrite NP.F.empty_o in H.
+    inversion H.
+    +
+      rewrite <- H1.
+      apply is_None_def in H0.
+      rewrite H0.
+      reflexivity.
+    +
+      assumption.
+  -
+    intros.
+    rewrite H.
+    intros k.
+    destruct (mem_lookup k b).
+    constructor 2; reflexivity.
+    constructor 1; reflexivity.
 Qed.
 
 Lemma estimateFuel_positive (dop : DSHOperator) :
@@ -2280,6 +2288,7 @@ Proof.
         lia.
 Qed.
 
+
 (** * MSHBinOp  *)
 
 Global Instance BinOp_DSH_pure
@@ -2553,6 +2562,7 @@ Proof.
         lia.
 Qed.
 
+
 (** * MSHInductor *)
 
 Global Instance Power_DSH_pure
@@ -2819,10 +2829,7 @@ Proof.
   }
   -
     exfalso.
-    (*
-       [mem_op] suceeds
-       [evalDSHOperator] fails
-     *)
+    (* [mem_op] suceeds, [evalDSHOperator] fails *)
     destruct (evalPExpr σ x_p) as [| x_id] eqn:X;
       [unfold lookup_PExpr in X_M; rewrite X in X_M; inversion X_M |].
     destruct (evalPExpr σ y_p) as [| y_id] eqn:Y;
@@ -2959,20 +2966,14 @@ Proof.
             some_none.
             reflexivity.
   -
+    (* [mem_op] suceeds, [evalDSHOperator] out of fuel *)
     exfalso.
-    (*
-      [mem_op] suceeds
-      [evalDSHOperator] out of fuel
-     *)
     contradict DOP.
     apply is_Some_ne_None.
     apply evalDSHOperator_estimateFuel.
   -
+    (* [mem_op] fails, [evalDSHOperator] suceeds *)
     exfalso.
-    (*
-       [mem_op] fails
-       [evalDSHOperator] suceeds
-     *)
     destruct (evalPExpr σ x_p) as [| x_id] eqn:X;
       [unfold lookup_PExpr in X_M; rewrite X in X_M; inversion X_M |].
     destruct (evalPExpr σ y_p) as [| y_id] eqn:Y;
@@ -5689,7 +5690,7 @@ Proof.
   destruct LY as [y_id [Y_ID Y_M]].
   cbn [evalDSHOperator estimateFuel].
   remember evalDSHMap2 as t1; remember mem_lookup as t2;
-    cbn; subst t1 t2. (* poor man's selective cbv *)
+    cbn; subst t1 t2.
 
   unfold memory_lookup_err, trywith.
   repeat break_match;
@@ -6212,6 +6213,10 @@ Proof.
   intuition.
 Qed.
 
+(* Exactly the same as [mem_stable] in [DSH_pure],
+   except not part of the typeclass.
+   Useful when an operator is not strictly [DSH_pure], but still
+   does not free or allocate blocks. *)
 Definition mem_stable' (dop : DSHOperator) := 
   ∀ (σ : evalContext) (m m' : memory) (fuel : nat),
     evalDSHOperator σ dop m fuel = Some (inr m') →
@@ -6370,7 +6375,7 @@ Proof.
   constructor.
   intros x_m y_m X_M Y_M.
 
-  (** * prepare context and memory lookups *)
+  (* prepare context and memory lookups *)
   destruct (evalPExpr σ x_p) as [| x_id] eqn:X_ID;
     [unfold lookup_PExpr in X_M; rewrite X_ID in X_M; inversion X_M |].
   destruct (evalPExpr σ y_p) as [| y_id] eqn:Y_ID;
@@ -6386,7 +6391,7 @@ Proof.
 
   induction n.
   -
-    (** * go through init *)
+    (* go through init *)
     remember (DSHLoop (S 0)
                   (DSHSeq rr
                      (DSHMemMap2 o (incrPVar 0 (incrPVar 0 y_p)) (PVar 1) 
@@ -6413,7 +6418,7 @@ Proof.
     remember (memory_next_key init_m) as t_id eqn:T_ID; symmetry in T_ID.
     subst dop.
   
-    (** * deal with y_m and y_m' (get rid of one) *)
+    (* deal with y_m and y_m' (get rid of one) *)
     remember (λ (md : mem_block) (m' : memory),
               err_p (λ ma : mem_block, SHCOL_DSHCOL_mem_block_equiv y_m ma md)
                     (lookup_PExpr σ m' y_p))
@@ -6442,7 +6447,7 @@ Proof.
     }
   
     
-    (** * useful facts about init *)
+    (* useful facts about init *)
     assert (T_next_M : memory_next_key m ≡ t_id).
     {
       subst.
@@ -6462,7 +6467,7 @@ Proof.
       by (intros k H; subst init_m;
           rewrite memory_lookup_memory_set_neq by congruence; reflexivity).
 
-    (** * specialize FC *)
+    (* specialize FC *)
     remember (Nat.lt_0_succ 0) as o1 eqn:O1.
     specialize (FC init_m t_id (mkFinNat o1) y_id mem_empty).
     full_autospecialize FC; try congruence.
@@ -6529,7 +6534,7 @@ Proof.
       rewrite <-D.
       constructor.
     +
-      (** * both MSH and DSH succeed *)
+      (* both MSH and DSH succeed *)
       cbn.
 
       (* simplify mem_op down to fold *)
@@ -6826,16 +6831,16 @@ Proof.
         break_match; try some_none.
         contradiction.
   -
-    (** * MSH step *)
+    (* MSH step *)
     (* done immediately to get [opf] *)
     rewrite IReduction_MSH_step.
 
-    (** * renaming *)
+    (* renaming *)
     rename n into n'; remember (S n') as n.
     remember (Nat.lt_succ_diag_r n) as nSn.
     rename op_family into S_opf; remember (shrink_m_op_family S_opf) as opf.
 
-    (** * specialize IHn *)
+    (* specialize IHn *)
     specialize (IHn opf).
     full_autospecialize IHn.
     {
@@ -6872,7 +6877,7 @@ Proof.
       apply FD.
     }
 
-    (** * cases by [opf] and [loopN] *)
+    (* cases by [opf] and [loopN] *)
     remember (evalDSHOperator σ
                (DSHSeq (DSHMemInit o y_p init)
                   (DSHAlloc o
@@ -6924,7 +6929,7 @@ Proof.
 
       apply Option_equiv_eq in LoopN_M.
 
-      (** * lookups in [loopN_m] *)
+      (* lookups in [loopN_m] *)
       assert (M_LoopNM_E : memory_equiv_except m loopN_m y_id).
       {
         eapply mem_write_safe with (y_i:=y_id) in LoopN_M.
@@ -6966,7 +6971,7 @@ Proof.
         apply is_Some_equiv_def; eexists; eassumption.
       }
 
-      (** * lookups in [init_m] *)
+      (* lookups in [init_m] *)
       rewrite MemInit_simpl in * by (eq_to_equiv; eassumption).
       remember (memory_set m y_id (mem_union (mem_const_block o init) y_m)) as init_m.
       assert (M_InitM_E : memory_equiv_except m init_m y_id).
@@ -7016,7 +7021,7 @@ Proof.
         by (intros k H; subst init_m;
             rewrite memory_lookup_memory_set_neq by congruence; reflexivity).
 
-      (** * facts about t_id *)
+      (* facts about t_id *)
       remember (memory_next_key init_m) as t_id eqn:T_ID.
       assert (T_next_M : t_id ≡ memory_next_key m).
       {
@@ -7034,7 +7039,7 @@ Proof.
         by (eq_to_equiv; apply memory_lookup_not_next_equiv in YID_M; congruence).
       rename XY into T; assert (XY_neq : x_id <> y_id) by congruence; clear T.
 
-      (** * lookups in [loopN_tm] *)
+      (* lookups in [loopN_tm] *)
       apply DSHAlloc_inv with (t_id:=t_id) in LoopN_M; [| subst; reflexivity].
       destruct LoopN_M as [loopN_tm [LoopN_TM LoopN_M]].
       assert (X_LoopNTM : lookup_PExpr σ loopN_tm x_p = inr x_m).
@@ -7112,7 +7117,7 @@ Proof.
           apply memory_lookup_not_next_equiv in V.
           congruence.
       }
-      (** * specialize FC *)
+      (* specialize FC *)
       specialize (FC loopN_tm t_id (mkFinNat nSn) y_id t_loopNtm).
       full_autospecialize FC; try congruence; try assumption.
       cbn in FC.
@@ -7379,7 +7384,7 @@ Proof.
                 apply G.
         }
 
-        (** * DSH step *)
+        (* DSH step *)
         erewrite Alloc_Loop_step; try (eq_to_equiv; eauto; fail).
         2: {
           intros.
@@ -7393,7 +7398,7 @@ Proof.
           eapply H.
         }
 
-        (** * simplify MSH part *)
+        (* simplify MSH part *)
         replace (mem_op (MSHIReduction init dot opf) x_m)
           with (Some opf_mm)
           by (rewrite <-OPF_MM; reflexivity).
@@ -7404,7 +7409,7 @@ Proof.
         cbn.
         constructor.
 
-        (** * coerse MSH and DSH steps to common form *)
+        (* coerse MSH and DSH steps to common form *)
         subst Rel.
         assert (T : lookup_PExpr σ
                   (memory_remove
