@@ -1107,7 +1107,6 @@ Section MSHCOL_to_DSHCOL.
         {
           subst m1.
           unfold dynwin_memory, dynwin_globals_mem.
-          unfold memory_alloc_empty.
 
           do 4 (rewrite memory_lookup_memory_set_neq
                  by (cbn;unfold dynwin_a_addr,dynwin_y_addr,dynwin_x_addr, nglobals; auto)).
@@ -1268,9 +1267,8 @@ Section MSHCOL_to_DSHCOL.
 
         rename H into M0.
         rename m' into m0.
-        remember (memory_alloc_empty m0 (memory_next_key m0)) as m1 eqn:M1.
+        remember (memory_set m0 (memory_next_key m0) mem_empty) as m1 eqn:M1.
         remember (memory_set m1 (memory_next_key m1) mb) as m2 eqn:M2.
-        unfold memory_alloc_empty in M1.
         rename m'0 into m1_plus.
         inl_inr_inv.
 
