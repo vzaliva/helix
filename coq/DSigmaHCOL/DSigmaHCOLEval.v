@@ -201,14 +201,9 @@ Module MDSigmaHCOLEval
     | ANth m i =>
       m' <- (evalMExpr mem σ m) ;;
          i' <- (evalNExpr σ i) ;;
-         (* Instead of returning error we default to zero here.
-          This situation should never happen for programs
-          refined from MSHCOL which ensure bounds via
-          dependent types. So DHCOL programs should
-          be correct by construction *)
          (match mem_lookup (NT.to_nat i') m' with
           | Some v => ret v
-          | None => ret CTypeZero
+          | None => inl "ANth not in memory"
           end)
     | AZless a b => liftM2 CTypeZLess (evalAExpr mem σ a) (evalAExpr mem σ b)
     end.

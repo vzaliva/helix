@@ -1169,6 +1169,23 @@ Section MSHCOL_to_DSHCOL.
           some_none.
         -
           memory_lookup_err_to_option.
+          destruct t as [t tc].
+          cbn in *.
+          assert(m = avector_to_mem_block a) as C.
+          {
+            eq_to_equiv_hyp.
+            rewrite LM''0 in Heqs0.
+            some_inv.
+            rewrite <- Heqs0.
+            rewrite Heqv.
+            reflexivity.
+          }
+          eq_to_equiv_hyp.
+          rewrite C in Heqo.
+          rewrite mem_lookup_avector_to_mem_block_equiv with (kc:=tc) in Heqo.
+          some_none.
+        -
+          memory_lookup_err_to_option.
           inl_inr_inv.
           subst c0.
           destruct t as [t tc].
@@ -1188,25 +1205,6 @@ Section MSHCOL_to_DSHCOL.
           some_inv.
           rewrite Heqo.
           f_equiv.
-        -
-          memory_lookup_err_to_option.
-          inl_inr_inv.
-          subst c.
-          destruct t as [t tc].
-          cbn in *.
-          assert(m = avector_to_mem_block a) as C.
-          {
-            eq_to_equiv_hyp.
-            rewrite LM''0 in Heqs0.
-            some_inv.
-            rewrite <- Heqs0.
-            rewrite Heqv.
-            reflexivity.
-          }
-          eq_to_equiv_hyp.
-          rewrite C in Heqo.
-          rewrite mem_lookup_avector_to_mem_block_equiv with (kc:=tc) in Heqo.
-          some_none.
       }
 
       {

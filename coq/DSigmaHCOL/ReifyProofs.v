@@ -922,58 +922,71 @@ Section BinCarrierA.
         +
           trivial.
       -
-        apply err_equiv_eq in Heqs.
-        contradict Heqs.
+        apply err_equiv_eq in Heqs0.
+        contradict Heqs0.
         apply is_OK_neq_inl.
-        apply eq_inr_is_OK in Heqs0.
-        clear - Heqs0; rename Heqs0 into H.
-        destruct m; cbn in *.
-        +
+        apply eq_inr_is_OK in Heqs2.
+        clear - Heqs2; rename Heqs2 into H,
+                                 n0 into e.
+        induction e; cbn in *.
+        (* base 1 *)
+        destruct v; [| destruct v].
+        inversion H.
+        inversion H.
+        apply H.
+        (* base 2 *)
+        trivial.
+        (* inductive *)
+        all: repeat break_match; try reflexivity; try some_none; try inl_inr.
+        all: try apply IHe; try apply IHe1; try apply IHe2.
+        all: constructor.
+      -
+        unfold NatAsNT.MNatAsNT.to_nat in *.
+        assert (T : n1 = n2); [| cbv in T; subst n2].
+        {
+          enough (inr n1 = inr n2) by (inl_inr_inv; assumption).
+          rewrite <-Heqs0, <-Heqs2.
+          clear.
+          generalize (DSHnatVal n :: σ); clear σ n; intros σ.
+          rename n0 into n.
+          induction n.
+
+          (* base 1 *)
+          {
+            cbn.
+            destruct v.
+            - cbn; constructor.
+            - unfold context_lookup.
+              repeat rewrite ListUtil.nth_error_Sn.
+              reflexivity.
+          }
+
+          (* base 2 *)
+          reflexivity.
+
+          (* inductive *)
+          all: cbn.
+          all: repeat break_match; try inl_inr; repeat inl_inr_inv; try constructor.
+          all: rewrite IHn1, IHn2; reflexivity.
+        }
+
+        assert (m0 = m1).
+        {
+          enough (inr m0 = inr m1) by (inl_inr_inv; assumption).
+          rewrite <-Heqs, <-Heqs1.
+          clear.
+          generalize (DSHnatVal n :: σ); clear σ n; intros σ.
+          destruct m; [| reflexivity].
+          cbn.
           destruct p.
-          destruct v; [| destruct v].
-          inversion H.
-          inversion H.
-          apply H.
-        +
-          trivial.
-      -
-        apply err_equiv_eq in Heqs0.
-        contradict Heqs0.
-        apply is_OK_neq_inl.
-        apply eq_inr_is_OK in Heqs2.
-        clear - Heqs2; rename Heqs2 into H,
-                                 n0 into e.
-        induction e; cbn in *.
-        (* base 1 *)
-        destruct v; [| destruct v].
-        inversion H.
-        inversion H.
-        apply H.
-        (* base 2 *)
-        trivial.
-        (* inductive *)
-        all: repeat break_match; try reflexivity; try some_none; try inl_inr.
-        all: try apply IHe; try apply IHe1; try apply IHe2.
-        all: constructor.
-      -
-        apply err_equiv_eq in Heqs0.
-        contradict Heqs0.
-        apply is_OK_neq_inl.
-        apply eq_inr_is_OK in Heqs2.
-        clear - Heqs2; rename Heqs2 into H,
-                                 n0 into e.
-        induction e; cbn in *.
-        (* base 1 *)
-        destruct v; [| destruct v].
-        inversion H.
-        inversion H.
-        apply H.
-        (* base 2 *)
-        trivial.
-        (* inductive *)
-        all: repeat break_match; try reflexivity; try some_none; try inl_inr.
-        all: try apply IHe; try apply IHe1; try apply IHe2.
-        all: constructor.
+          destruct v.
+          reflexivity.
+          cbn.
+          reflexivity.
+        }
+        eq_to_equiv_hyp.
+        rewrite H0 in Heqo.
+        some_none.
     }
 
     (* inductive cases *)
@@ -1026,58 +1039,73 @@ Section BinCarrierA.
         +
           trivial.
       -
-        apply err_equiv_eq in Heqs.
-        contradict Heqs.
+        apply err_equiv_eq in Heqs0.
+        contradict Heqs0.
         apply is_OK_neq_inl.
-        apply eq_inr_is_OK in Heqs0.
-        clear - Heqs0; rename Heqs0 into H.
-        destruct m; cbn in *.
-        +
+        apply eq_inr_is_OK in Heqs2.
+        clear - Heqs2; rename Heqs2 into H,
+                       n0 into e.
+        induction e; cbn in *.
+        (* base 1 *)
+        destruct v; [| destruct v].
+        inversion H.
+        inversion H.
+        apply H.
+        (* base 2 *)
+        trivial.
+        (* inductive *)
+        all: repeat break_match; try reflexivity; try some_none; try inl_inr.
+        all: try apply IHe; try apply IHe1; try apply IHe2.
+        all: constructor.
+      -
+        unfold NatAsNT.MNatAsNT.to_nat in *.
+        assert (T : n1 = n2); [| cbv in T; subst n2].
+        {
+          enough (inr n1 = inr n2) by (inl_inr_inv; assumption).
+          rewrite <-Heqs0, <-Heqs2.
+          clear.
+          generalize (DSHnatVal n :: σ); clear σ n; intros σ.
+          rename n0 into n.
+          induction n.
+
+          (* base 1 *)
+          {
+            cbn.
+            destruct v; [| destruct v].
+            - cbn; constructor.
+            - cbn; constructor.
+            - unfold context_lookup.
+              repeat rewrite ListUtil.nth_error_Sn.
+              reflexivity.
+          }
+
+          (* base 2 *)
+          reflexivity.
+
+          (* inductive *)
+          all: cbn.
+          all: repeat break_match; try inl_inr; repeat inl_inr_inv; try constructor.
+          all: rewrite IHn1, IHn2; reflexivity.
+        }
+
+        assert (m0 = m1).
+        {
+          enough (inr m0 = inr m1) by (inl_inr_inv; assumption).
+          rewrite <-Heqs, <-Heqs1.
+          clear.
+          generalize (DSHnatVal n :: σ); clear σ n; intros σ.
+          destruct m; [| reflexivity].
+          cbn.
           destruct p.
-          destruct v; [| destruct v].
-          inversion H.
-          inversion H.
-          apply H.
-        +
-          trivial.
-      -
-        apply err_equiv_eq in Heqs0.
-        contradict Heqs0.
-        apply is_OK_neq_inl.
-        apply eq_inr_is_OK in Heqs2.
-        clear - Heqs2; rename Heqs2 into H,
-                       n0 into e.
-        induction e; cbn in *.
-        (* base 1 *)
-        destruct v; [| destruct v].
-        inversion H.
-        inversion H.
-        apply H.
-        (* base 2 *)
-        trivial.
-        (* inductive *)
-        all: repeat break_match; try reflexivity; try some_none; try inl_inr.
-        all: try apply IHe; try apply IHe1; try apply IHe2.
-        all: constructor.
-      -
-        apply err_equiv_eq in Heqs0.
-        contradict Heqs0.
-        apply is_OK_neq_inl.
-        apply eq_inr_is_OK in Heqs2.
-        clear - Heqs2; rename Heqs2 into H,
-                       n0 into e.
-        induction e; cbn in *.
-        (* base 1 *)
-        destruct v; [| destruct v].
-        inversion H.
-        inversion H.
-        apply H.
-        (* base 2 *)
-        trivial.
-        (* inductive *)
-        all: repeat break_match; try reflexivity; try some_none; try inl_inr.
-        all: try apply IHe; try apply IHe1; try apply IHe2.
-        all: constructor.
+          destruct v.
+          reflexivity.
+          destruct v.
+          reflexivity.
+          reflexivity.
+        }
+        eq_to_equiv_hyp.
+        rewrite H0 in Heqo.
+        some_none.
     }
     
     (* inductive cases *)
