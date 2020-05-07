@@ -185,7 +185,7 @@ Import MonadNotation.
 Import IO.
 Export IO.DV.
 
-Definition test_interpreter := TopLevelEnv.interpreter_user DynamicTypes.DTYPE_Void "Main" TopLevelEnv.main_args helix_intrinsics.
+Definition test_interpreter := TopLevelEnv.interpreter_user DynamicTypes.DTYPE_Void "main" TopLevelEnv.main_args helix_intrinsics.
 
 (* Returns a tuple [(Option p, Option d, e)] containting:
    - p: generated LLVM program

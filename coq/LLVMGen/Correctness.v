@@ -105,7 +105,7 @@ Set Strict Implicit.
 
 Import MDSHCOLOnFloat64.
 
-Definition model_llvm' := model_to_L3 DynamicTypes.DTYPE_Void "Main" TopLevelEnv.main_args helix_intrinsics.
+Definition model_llvm' := model_to_L3 DynamicTypes.DTYPE_Void "main" TopLevelEnv.main_args helix_intrinsics.
 
 Definition E_mcfg: Type -> Type := (IO.ExternalCallE +' IO.PickE +' UBE +' DebugE +' FailureE) +' (StaticFailE +' DynamicFailE).
 Definition E_cfg: Type -> Type := (IO.CallE +' IO.PickE +' UBE +' DebugE +' FailureE) +' (StaticFailE +' DynamicFailE).
