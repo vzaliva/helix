@@ -47,4 +47,5 @@ Cd "ml/extracted".
 Extraction Library ExtrOcamlIntConv.
 Recursive Extraction Library TopLevel.
 Recursive Extraction Library Tests.
+Extraction Library ParserHelper.
 Extraction Library Transform.
