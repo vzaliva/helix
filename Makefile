@@ -139,11 +139,8 @@ timing: .depend Makefile.coq
 	$(MAKECOQ) TIMING=1
 
 update-vellvm:
+	(cd lib/vellvm; git pull --recurse-submodules)
 	make -C lib/vellvm/src clean
-	make -C lib/vellvm/lib/InteractionTrees clean
-	(cd lib/vellvm; git pull --recurse-submodules; make -C src update-trees)
-	make -C lib/vellvm/src clean
-	make -C lib/vellvm/lib/InteractionTrees clean
 	make -C lib/vellvm/src
 
 benchmark: timing
