@@ -11,7 +11,7 @@ From Vellvm Require Import
      LLVMEvents
      DynamicTypes
      CFG
-     Memory
+     Handlers.Memory
      Refinement
      Environment
      TopLevel
@@ -77,6 +77,8 @@ Section Translations.
 
 End Translations.
 
+From Vellvm Require Import TopLevelRefinements.
+
 Section InterpreterCFG.
 
 (**
@@ -126,10 +128,6 @@ Definition interp_cfg_to_L5 {R} user_intrinsics (t: itree instr_E R) (g: global_
   let L3_trace       := M.interp_memory L2_trace m in
   let L4_trace       := P.model_undef L3_trace in
   UndefinedBehaviour.model_UB L4_trace.
-
-From Vellvm Require Import TopLevelRefinements.
-
-
 
 Lemma interp_cfg_to_L1_bind :
   forall ui {R S} (t: itree instr_E R) (k: R -> itree instr_E S) g, 
@@ -305,6 +303,14 @@ Qed.
 
 End InterpreterCFG.
 
+From Vellvm Require Import Util.
+Require Import State.
+
+(* TODOYZ: This is weird, I need to import again this file for the rewriting to work.
+   A bit unsure as to why this happen, but somehow some subsequent import breaks it.
+ *)
+Require Import ITree.Eq.Eq.
+
 Section Denotation.
 Import CatNotations.
 
@@ -320,14 +326,6 @@ Proof.
   repeat (cbn; (rewrite bind_bind || rewrite bind_ret_l)).
   reflexivity.
 Qed.
-
-  From Vellvm Require Import Util.
-  Require Import State.
-
-(* TODOYZ: This is weird, I need to import again this file for the rewriting to work.
-   A bit unsure as to why this happen, but somehow some subsequent import breaks it.
- *)
-Require Import ITree.Eq.Eq.
 
 Lemma denote_bks_singleton :
   forall (b : LLVMAst.block dtyp) (bid : block_id) (nextblock : block_id),
