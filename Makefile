@@ -4,6 +4,10 @@ LIBNAME := Helix
 
 .PHONY: default config clean clean-dep clean-ml distclean clean-doc tags doc install-doc install-dist targz graph wc print-unused extracted all run test
 
+# parse the -j flag if present, set jobs to 1 oterwise
+JFLAG=$(patsubst -j%,%,$(filter -j%,$(MFLAGS)))
+JOBS=$(if $(JFLAG),$(JFLAG),1)
+
 MAKECOQ := +$(MAKE) -r -f Makefile.coq
 
 VDIR := coq
@@ -20,6 +24,7 @@ MYVFILES := $(filter-out $(LIBVFILES), $(VFILES))
 
 COQINCLUDES=`grep '\-R' _CoqProject` -R $(EXTRACTDIR) Extract
 COQEXEC=coqtop -q -w none $(COQINCLUDES) -batch -load-vernac-source
+COQVERSION=8.10.2
 
 default: all
 
@@ -60,7 +65,8 @@ test: $(EXE)
 	ml/_build/default/testeval.exe
 
 install-dep:
-	opam instal coq coq-color coq-dpdgraph coq-math-classes coq-ext-lib
+	opam install --jobs=$(JOBS) coq=$(COQVERSION) coq-color coq-ext-lib coq-math-classes coq-metacoq-template coq-switch ANSITerminal coq-flocq coq-paco coq-ceres menhir core core_kernel dune && \
+	opam pin add -y coq $(COQVERSION)
 
 config Makefile.coq: _CoqProject Makefile
 	coq_makefile -f _CoqProject $(VFILES) -o Makefile.coq
@@ -131,6 +137,11 @@ moddep.svg: moddep.dot Makefile
 
 timing: .depend Makefile.coq
 	$(MAKECOQ) TIMING=1
+
+update-vellvm:
+	(cd lib/vellvm; git pull --recurse-submodules)
+	make -C lib/vellvm/src clean
+	make -C lib/vellvm/src
 
 benchmark: timing
 	find .  -name "*.v.timing" -exec awk -F " " \

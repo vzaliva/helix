@@ -10,45 +10,28 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 ** Some other cleanup opportunities are marked with "TODO" comments
 ** Probably "SUM" shoud be avoided in the name =HTSumUnion= not to confuse
   with =ISUmUnion=.
-** Rename =Diamond= to =MR=
+** Rename =Diamond= to =MR= :zoickx:
 ** Many unused definitions could be removed. (Hint: try =make print-unused=) :zoickx:
-** It looks like =Apply_Family= never used directly. Just =Apply_Family'=.
-   We probably need just one definition.
+** It looks like =Apply_Family= never used directly. Just =Apply_Family'=.     :zoickx:
+   We probably need just one definition. 
 ** Run =coq-min-imports= on all codebase                               :zoickx:
 ** GEP definition in Coq
-** Vellvm as sub-module                                              :zoickx:
-   Keep in mind that currently it is linked in 2 places, as follows:
-   
-   #+BEGIN_SRC sh
-   rm -f lib/vellvm
-   rm -f ml/libvellvm
-   ln -s ~/coq/vellvm lib/
-   ln -s ~/coq/vellvm/src/ml/libvellvm ml/
-   #+END_SRC
-
-   Ideally, we would like to have HELIX compile out of the box, after
-   checkout, without making any symlinks.
-   
-   Also top-level makefile may compile dependencies (Vellvm, interaction trees).
 ** FMap equality
    We have now defined setoid equiality for =mem_block=, =memory= and =TypeSig=. 
    These are pretty much boilderplate, assuming =Equality= on the values. Perhaps
    these 3 could be generalized via typeclass or a module.
 ** Split StringOT.v into several files                               :zoickx:
+   Remove if unecessary.
 ** Move =CarrierAabs_proper= to =CarrierType.v=                          :zoickx:
-** Move operations on CType to CType module like we did with NType   :zoickx:
+** Move operations on CType to CType module like we did with NType
+** Remove ~IReduction_mem_old~                                         :zoickx:
 * Harmonization
-** =IReduction= constraints:
-  =IReduction= have 2 'compat' assumptions. We have =BFixpoint= in
-  =SHOperator= instanct and dense body assumption in =IRedution_Mem=.
-  This nees to be normalized.
 ** =RMonoid= vs =Monoid= 
    Whenever we us =Monoid= as pre-condition for rewriting we should use
    =RMnonoid= which is more general.
-** =SHOpeator= constraints:
-  For =svalue_at_sparse= we need =szero= to be a fixpoint of =dot=
-  (with 2 arguments). For =SHOperator_Mem= we need a =Monoid= which is
-  a superset of that. 
+** ~BFixpoint~ follows from ~Monoid~
+   Whenever we aleady have ~Monoid~, ~BFixPoint~ could be derived from that
+   and should not be assumed implicitly.
 ** Quasi-Ring
    In one of rewrting proofs (=Diamond_f_subst=) I am using an awkward
    pre-condition which consists of two /Monoids/ which are sharing
@@ -59,15 +42,16 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 ** Monoidal Restriction
    See if =RelUtil.restrict= could be used in =MonoidalRestriction=.
 * Proof mechanics
-** Review =_arg_proper= vs =_proper= instances
-** Proof-irrelevance assumption could be avoided
-** FinNatSet proofs automation via [[https://gmalecha.github.io/reflections/2017/speeding-up-proofs-with-computational-reflection][computational reflection]]          :zoickx:
+** Review =_arg_proper= vs =_proper= instances                           :zoickx:
+   Check all ~Proper~ instances and if there more than one for some function
+   see if they could be merged.
+** ~FinNatSet~ proofs automation via [[https://gmalecha.github.io/reflections/2017/speeding-up-proofs-with-computational-reflection][computational reflection]]          :zoickx:
    (for automatic obligations resoluition in SHCL/MSHCOL/DSHCOL/
    equality).
 ** Tactic =solve_facts= in =DynWinProof= is hacky and slow.
    - Need more precise matching of goals
-   - can use eauto instead of matching
-   - can use =typeclasses_eauto= to find some instances
+   - Can use ~eauto~ instead of matching
+   - Can use =typeclasses_eauto= to find some instances
 ** Automation for proofs like ~DynWin_pure~.
    Current proof automation of ~MSH_DSH_compat~ doesn not extend to some
    steps of initializing memory and environment with global variables.
@@ -87,8 +71,6 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    step is fully automated now.
    
 * Unfinished
-** Division by zero in DSHCOL
-   [[file:../coq/DSigmaHCOL/DSigmaHCOL.v::33][NExpr]] ([[file:../coq/DSigmaHCOL/DSigmaHCOLEval.v::61][evalNexpr]])
 ** ~IReduction 0~
    According to Franz ~IReduction 0~ should initialize output vector
    with initial value. Unfortunately this is not how it is implemented
@@ -104,7 +86,9 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 ** =DSHAlloc= memory size is not tracked and enforced. 
    Probably not a problem for DSHCOL as memory blocks are of infinite
    size, but could be an issue later for LLVM codegen.
-** Automate /DynWin/ rewriting proof                                 :zoickx:
+   Note: Itrees semantics for DHCOL tracks memory size in denotation.
+** Automate /DynWin/ rewriting proof 
+   Ltac automation in ~DynWinSigmaHCOL1_Value_Correctness~
 ** Automate SPIRAL log reading for sequence of rewrites
    Perhaps using TemplateCoq?
 ** LLVM Code generation
@@ -119,8 +103,6 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 *** Implemnet int min/max
     in ~LLVMGen/Compiler.v~ in ~genNExpr~ implement min/max code generation for integers.
     [[https://lists.llvm.org/pipermail/llvm-dev/2016-November/106868.html][related discussion]]
-*** Handling of ~MConst~ in LLVM compiler
-    See TODO comment in =Compiler.v=
 ** Pretty printing
    How there is an assortment of functions like =string_of_DSHOperator=
    =string_of_vars= and =string_of_PExpr=. Consider using
@@ -130,21 +112,17 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    via [[https://github.com/Lysxia/coq-ceres][coq-ceres]], as it was chosen by Vellvm. See
    related [[https://harry.garrood.me/blog/down-with-show-part-3/][blog post]].
 * Build/Tests
-** Use =dune= for coq code builds.
-** Use =coq-struct-tact= package                                       :zoickx:
+** Use =dune= for coq code builds
+** Use ~install-deps~ from ~Makefile~ :zoickx:
+   - Update ~Makefile~
+   - Reference in ~README.org~
+** Use =coq-struct-tact= package                                     
    Instead of local copy we have in =Tactics/StructTactics.v=
    But we beed to wait until it become avaialble in default repo.
    Track this [[https://github.com/uwplse/StructTact/issues/55][issue]] for details.
 ** Use [[https://github.com/QuickChick/QuickChick][QuickChick]]
-** StructTactics dependency
-   Instead of included copy of [[file:~/src/helix/coq/Tactics/StructTactics.v][StructTactics.v]] we can pin an opam
-   package for git repo:
-
-   =opam pin add coq-struct-tact https://github.com/uwplse/StructTact.git -k git=
-
-   Related [[https://github.com/uwplse/StructTact/issues/55][ticket]].
-
 * Ideas
-  - See if =coq-equations= package could be used to represent index
-    functions and function arguments of =BinOp=, =Pointwise=, etc.
+** Use =coq-equations= package.
+   It could be used to represent index functions and function
+   arguments of =BinOp=, =Pointwise=, etc.
 

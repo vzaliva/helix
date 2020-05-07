@@ -740,4 +740,655 @@ Qed.
     reflexivity.
   Qed.
 
-  
+  (* TODO: only handle cases where there are no exceptions? *)
+Lemma compile_FSHCOL_correct
+      (op: DSHOperator): forall (nextblock bid_in : block_id) (st st' : IRState) (bks : list (LLVMAst.block typ)) (σ : evalContext) (env : list (ident * typ)) (mem : MDSHCOLOnFloat64.memory) (g : global_env) (ρ : local_env) (mem_llvm : memory),
+  nextblock ≢ bid_in ->
+  bisim_partial σ (mem,tt) (mem_llvm, (ρ, (g, (inl bid_in)))) ->
+  genIR op nextblock st ≡ inr (st',(bid_in,bks)) ->
+  eutt (bisim_partial σ)
+       (translate inr_
+                  (interp_Mem (denoteDSHOperator σ op) mem))
+       (translate inl_
+                  (interp_cfg_to_L3 helix_intrinsics
+                                    (D.denote_bks (fmap (typ_to_dtyp env) bks) bid_in)
+                                    g ρ mem_llvm)).
+Proof.
+  induction op; intros; rename H1 into HCompile.
+  - inv HCompile.
+    eutt_hide_right; cbn.
+    unfold interp_Mem; simpl denoteDSHOperator.
+    rewrite interp_state_ret, translate_ret.
+    subst i. 
+    rewrite denote_bks_nil.
+    cbn. rewrite interp_cfg_to_L3_ret, translate_ret.
+    apply eqit_Ret; auto.
+  - (*
+      Assign case.
+       Need some reasoning about
+       - resolve_PVar
+       - genFSHAssign
+       - D.denote_bks over singletons
+     *)
+    apply DSHAssign_singleton in HCompile.
+    destruct HCompile as (b & HCompile & Hterm & Hbid & Hbksbk).
+    subst.
+
+    (* Start by working on the left hand side *)
+
+
+
+    unfold normalize_types_blocks.
+    eutt_hide_left.
+    unfold fmap; simpl Fmap_list'.
+    (* Rewrite denote_bks to denote_block *)
+    rewrite denote_bks_singleton; eauto using normalize_types_block_term.
+
+    (* Work with denote_block *)
+    (* I need to know something about b... *)
+    pose proof genIR_DSHAssign_to_genFSHAssign src dst nextblock st HCompile as H1.
+    destruct H1 as (psrc & nsrc & pdst & ndst & b_orig & comments & ist & i0 & ist1 & i1 & ist2 & n & n0 & Hsrc & Hdst & Hb & Hr & Hr' & Hfsh).
+
+    cbn in Hb. inversion Hb.
+    cbn.
+
+    (* Now I need to know something about b_orig... *)
+    (* I know it's generated from genFSHassign, though... *)
+    cbn in Hfsh.
+
+    (* Checkpoint *)
+    inversion Hfsh.
+    destruct (genNExpr nsrc
+                       {|
+                         block_count := S (block_count ist1);
+                         local_count := S (S (S (local_count ist1)));
+                         void_count := S (S (void_count ist1));
+                         vars := vars ist1 |}) as [|(s', (src_nexpr, src_nexpcode))] eqn:Hnexp_src. inversion H3.
+    destruct (genNExpr ndst s') as [|(s'', (dst_nexpr, dst_nexpcode))] eqn:Hnexp_dst. inversion H3.
+    inversion H3.
+    cbn.
+    (*
+    match goal with
+    | |- context[D.denote_code (map _ (src_nexpcode ++ dst_nexpcode ++ ?x))] => remember x as assigncode
+    end.
+
+    (* start working on right side again *)
+    subst i. cbn.
+    subst src dst.
+
+    destruct psrc as [src_v] eqn:Hpsrc, pdst as [dst_v] eqn:Hpdst.
+
+    destruct (nth_error σ dst_v) as [d|] eqn:Hdst_v. 2: admit. (* Exception *)
+    destruct d as [n_dst | v_dst | a_dst size_dst]. admit. admit. (* should only be able to be pointer *)
+
+    destruct (nth_error σ src_v) as [d|] eqn:Hsrc_v. 2: admit. (* Exception *)
+    destruct d as [n_src | v_src | a_src size_src]. admit. admit. (* should only be able to be pointer *)
+
+    setoid_rewrite denotePexp_eutt_ret; eauto.
+
+    repeat rewrite bind_ret_l.
+    repeat setoid_rewrite bind_trigger.
+
+    (* Should be able to handle MemLU's in a lemma as well *)
+    destruct (memory_lookup_err "Error looking up 'x' in DSHAssign" mem a_src) eqn:Hmem_src.
+    admit. (* Exception *)
+
+    destruct (memory_lookup_err "Error looking up 'y' in DSHAssign" mem a_dst) eqn:Hmem_dst.
+    admit. (* Exception *)
+    cbn.
+
+    repeat (rewrite interp_Mem_MemLU; eauto).
+
+    destruct (evalNexp σ nsrc) as [|eval_src] eqn:Heval_src.
+    admit. (* Exception *)
+
+    destruct (evalNexp σ ndst) as [|eval_dst] eqn:Heval_dst.
+    admit. (* Exception *)
+
+    setoid_rewrite eval_denoteNexp; eauto.
+    repeat setoid_rewrite bind_ret_l.
+    cbn.
+
+    destruct (mem_lookup_err "Error looking up 'v' in DSHAssign" (MInt64asNT.to_nat eval_src) m) eqn:Hmemlookup.
+    admit. (* Exception *)
+    cbn.
+    rewrite bind_ret_l.
+
+    rewrite interp_Mem_MemSet.
+
+    (* Work on the right hand side again *)
+    (* Unfold denote_code and break it apart. *)
+    do 2 rewrite map_app.
+    do 2 setoid_rewrite denote_code_app.
+    do 2 setoid_rewrite bind_bind.
+
+    repeat setoid_rewrite interp_cfg_to_L3_bind.
+    repeat setoid_rewrite translate_bind.
+
+    (* Need to relate denoteNexp and denote_code of genNexpr *)
+    match goal with
+    | |- context[ ITree.bind ?x ?y ] => remember y as BLAH
+    end.
+
+    Set Nested Proofs Allowed.
+
+            Lemma irstate_rel (op: DSHOperator) :
+              forall (nextblock bid_in : block_id) (st st' : IRState) (bks : list (LLVMAst.block typ)) (σ : evalContext) (env : list (ident * typ)) (mem : MDSHCOLOnFloat64.memory) (g : global_env) (ρ : local_env) (mem_llvm : memory),
+                nextblock ≢ bid_in -> (* Do I need this? *)
+                bisim_partial σ (mem,tt) (mem_llvm, (ρ, (g, (inl bid_in)))) ->
+                genIR op nextblock st ≡ inr (st',(bid_in,bks)) ->
+
+
+            Lemma lookup_global:
+              forall σ mem_helix mem_llvm ρ g v i id s s' sz,
+                memory_invariant σ mem_helix (mem_llvm, (ρ, g)) ->
+                getStateVar "NVar out of range" v s ≡ inr (s', (ID_Global id, TYPE_I sz)) ->
+                evalNexp σ (NVar v) ≡ inr i ->
+                exists a, alist_find AstLib.eq_dec_raw_id id g ≡ Some (DVALUE_Addr a).
+            Proof.
+              intros σ mem_helix mem_llvm ρ g v i id s s' sz Hmem Hst Heval.
+              cbn in Heval.
+              unfold context_lookup in *.
+              destruct (nth_error σ v) eqn:Hlookup; cbn in Heval; try solve [inversion Heval].
+              unfold memory_invariant in Hmem.
+              destruct Hmem as [Hmem | Hmem].
+              { (* Case where sigma is nil *)
+                assert (σ ≡ []) by (apply ListUtil.length_0; auto).
+                subst; cbn in Hlookup; rewrite ListNth.nth_error_nil in Hlookup.
+                inversion Hlookup.
+              }
+
+              destruct Hmem as (Hinj & ?).
+              specialize (H _ _ Hlookup).
+
+              (* Determine that d = DSHnatVal i *)
+              destruct d eqn:Hd; cbn in Heval; inversion Heval as [Hni]; rewrite Hni in *.
+
+              destruct H as [ptr_llvm [[[Hlocal Hnotglobal] | [Hnotlocal Hglobal]]
+                                 [bk_llvm [Hlogicalblock [v_llvm [Hlookup_block Hmatches]]]]]]; subst.
+
+              (* Variable is in the local environment *)
+              admit.
+
+              (* Variable is in the global environment *)
+              exists ptr_llvm. unfold inj_f in Hglobal.
+              destruct Hinj.
+              cbn in Hglobal.
+
+              (* Need something relating id and v *)
+              destruct (inj_f0 v).
+
+              - (* d = DSHnatVal i *)
+                destruct H as
+                    [ptr_llvm [[[Hlocal Hnotglobal] | [Hnotlocal Hglobal]]
+                                 [bk_llvm [Hlogicalblock [v_llvm [Hlookup_block Hmatches]]]]]]; subst.
+                admit.
+
+                exists ptr_llvm.
+                unfold inj_f in Hglobal.
+                destruct Hinj.
+                destruct inj_f0.
+
+
+                unfold Hinj in
+
+                 destruct Hsearch.
+
+            Qed.
+            .
+              inversio
+
+
+            destruct (alist_find AstLib.eq_dec_raw_id id g) eqn:Hg.
+            Focus 2. admit. (* Exception *)
+
+            rewrite bind_ret_l.
+            repeat rewrite tau_eutt.
+            cbn.
+            rewrite interp_ret.
+            rewrite interp_global_ret.
+            cbn.
+
+            setoid_rewrite interp_local_ret.
+            unfold M.interp_memory.
+            rewrite interp_state_ret.
+
+            (* Need something relating g... memory_invariant ? *)
+
+            setoid_rewrite interp_memory_ret.
+            rewrite
+            inversion Heqs1; subst.
+            rewrite interp_cfg_to_L3_vis.
+            setoid_rewrite tau_eutt.
+            cbn.
+            setoid_rewrite translate_vis.
+            repeat rewrite translate_vis.
+            do 2 setoid_rewrite interp_cfg_to_L3_vis; cbn.
+            rewrite bind_bind.
+            setoid_rewrite interp_cfg_to_L3_vis.
+            rewrite bind_bind.
+            setoid_rewrite interp_cfg_to_L3_vis.
+            rewrite bind_bind.
+            setoid_rewrite interp_cfg_to_L3_vis.
+            rewrite bind_bind.
+            repeat setoid_rewrite translate_ret.
+            setoid_rewrite interp_intrinsics_vis.
+            cbn;
+            rewrite interp_cfg_to_L3_vis.
+          - rewrite translate_ret, interp_cfg_to_L3_ret, repr_intval.
+            reflexivity.
+          -
+        Qed.
+
+        cbn.
+        subst.
+        rewrite IHnexp1.
+
+        destruct (genNExpr nexp1 s) eqn:Hnexp1.
+        inversion H1.
+        destruct p, p.
+
+        destruct (genNExpr nexp1 s) eqn:Hnexp1.
+    Qed.
+
+
+
+      memory * (local_env * (global_env * ()))memory * (local_env * (global_env * ()))
+    Lemma interp_nex
+    subst assigncode.
+              cbn.
+
+              repeat setoid_rewrite translate_bind.
+              repeat setoid_rewrite interp_cfg_to_L3_bind.
+              repeat setoid_rewrite bind_bind.
+
+              destruct i0 eqn:Hi0.
+              ** (* Global id *)
+                repeat setoid_rewrite translate_bind.
+                rewrite interp_cfg_to_L3_bind.
+                repeat setoid_rewrite translate_vis.
+                repeat setoid_rewrite bind_bind.
+                repeat setoid_rewrite translate_ret.
+
+                destruct (alist_find AstLib.eq_dec_raw_id id g1) eqn:Hlookup.
+                Focus 2. admit. (* Exception *)
+
+                cbn.
+
+                match goal with
+                | |- context [ ITree.bind ?x ?y ] => remember y
+                end.
+
+                setoid_rewrite interp_cfg_to_L3_globalread; eauto.
+
+                rewrite translate_bind.
+                rewrite bind_bind.
+                repeat rewrite translate_ret.
+                rewrite bind_ret_l.
+                repeat rewrite translate_ret.
+                rewrite interp_cfg_to_L3_ret.
+                rewrite translate_ret.
+                rewrite bind_ret_l.
+
+                subst i3; cbn.
+
+                match goal with
+                | |- context [ ITree.bind ?x ?y ] => remember y
+                end.
+
+                repeat setoid_rewrite bind_bind.
+                setoid_rewrite translate_ret.
+                setoid_rewrite bind_ret_l.
+
+                rewrite interp_cfg_to_L3_bind.
+                rewrite translate_bind.
+                rewrite bind_bind.
+
+                rewrite normalize_IntType.
+                progress cbn.
+                rewrite translate_ret.
+                rewrite interp_cfg_to_L3_ret.
+                rewrite translate_ret, bind_ret_l.
+                cbn.
+
+                rewrite interp_cfg_to_L3_bind.
+                rewrite interp_cfg_to_L3_denote_exp; eauto.
+
+                (* This feels very stupid, surely this should all just evaluate? *)
+                rewrite translate_bind.
+                rewrite translate_ret.
+                rewrite bind_ret_l.
+                rewrite interp_cfg_to_L3_bind.
+                rewrite translate_bind.
+                rewrite interp_cfg_to_L3_ret.
+                rewrite translate_ret, bind_ret_l.
+                repeat rewrite interp_cfg_to_L3_bind.
+                rewrite interp_cfg_to_L3_ret.
+                rewrite bind_ret_l.
+                cbn.
+
+                rewrite uvalue_to_dvalue_of_dvalue_to_uvalue.
+                unfold ITree.map.
+                rewrite bind_trigger.
+                rewrite translate_vis.
+                cbn.
+                setoid_rewrite translate_ret.
+
+                subst i3.
+                cbn.
+
+                all: eauto.
+                Focus 2. apply Hnexp_src.
+                reflexivity.
+
+                setoid_rewrite bind_ret_l.
+                setoid_rewrite <- denote_exp_nexp.
+                apply eutt_clo_bind.
+
+                rewrite interp
+                rewrite bind_trigger.
+                rewrite translate_vis.
+                rewrite translate_vis.
+                setoid_rewrite translate_ret.
+                setoid_rewrite translate_ret.
+                cbn.
+                repeat setoid_rewrite translate_bind.
+                rewrite interp_cfg_to_L3_bind.
+                repeat setoid_rewrite translate_vis.
+                repeat setoid_rewrite bind_bind.
+                repeat setoid_rewrite translate_ret.
+
+                rewrite interp_cfg_to_L3_vis; cbn.
+                repeat setoid_rewrite bind_bind.
+                cbn.
+                rewrite translate_bind.
+                rewrite bind_bind.
+                cbn.
+
+                match goal with
+                | |- context[ITree.bind ?ma ?b] => remember b as blah
+                end.
+
+                unfold interp_cfg_to_L3; cbn.
+                unfold trigger.
+                rewrite interp_intrinsics_vis.
+                cbn.
+                setoid_rewrite tau_eutt.
+                setoid_rewrite interp_ret.
+                setoid_rewrite bind_ret_r.
+                unfold interp_global.
+                cbn.
+                unfold M.interp_memory.
+                unfold interp_local.
+                cbn.
+
+                unfold INT.F_trigger.
+                setoid_rewrite interp_state_trigger.
+                cbn.
+                destruct (alist_find AstLib.eq_dec_raw_id id g1) eqn:Hg1.
+                Focus 2.
+                (* exception *) admit.
+                rewrite bind_ret_l.
+                repeat rewrite interp_state_tau.
+                rewrite tau_eutt.
+                repeat rewrite interp_state_ret.
+                rewrite translate_ret.
+                rewrite bind_ret_l.
+
+                subst blah.
+                match goal with
+                | |- context[ITree.bind ?ma ?b] => remember b as blah
+                end.
+
+                rewrite interp_cfg_to_L3_ret.
+                rewrite tau_eutt.
+                rewrite bind_ret_l, translate_ret.
+                repeat rewrite translate_ret, interp_cfg_to_L3_ret.
+                rewrite translate_ret, bind_ret_l.
+
+                subst blah.
+                match goal with
+                | |- context[ITree.bind ?ma ?b] => remember b as blah
+                end.
+
+                repeat rewrite interp_cfg_to_L3_bind.
+                setoid_rewrite translate_ret.
+                rewrite interp_cfg_to_L3_ret.
+                rewrite bind_ret_l.
+                repeat rewrite interp_cfg_to_L3_bind.
+                repeat rewrite bind_bind.
+                rewrite translate_bind.
+                rewrite bind_bind.
+
+                epose proof (@denote_exp_nexp _ _ _ _ _ _ _ _ _ _ Hnexp_src).
+                Check eutt_clo_bind.
+                eapply eutt_clo_bind.
+
+                rewrite interp_intrinsics_vis.
+
+                destruct id eqn:Hid.
+                --- (* Name *)
+
+
+                  setoid_rewrite interp_interp.
+
+                --- (* Local id *)
+                admit.
+              ** (* Local id *)
+                admit.
+        -- (* exceptions *) admit.
+    + (* Need to handle exceptions *)
+      admit.
+     *)
+    (* Focus 3. *)
+    (* cbn. *)
+    (* rewrite bind_ret_l. *)
+    (* destruct (nth_error σ v0) eqn:Herr'. *)
+    (* destruct d. *)
+
+    (* Focus 3. *)
+
+    (* (* Lookup failure *) *)
+    (* Focus 2. cbn. *)
+    (* unfold interp_Mem. *)
+    (* setoid_rewrite interp_state_bind. *)
+    (* unfold Exception.throw. *)
+    (* rewrite interp_state_vis. cbn. *)
+    (* unfold MDSHCOLOnFloat64.pure_state. *)
+    (* rewrite bind_vis. rewrite bind_vis. *)
+    (* unfold resum. unfold ReSum_inl. *)
+    (* unfold resum. unfold ReSum_id. *)
+    (* unfold id_. unfold inl_. *)
+
+    (* rewrite translate_vis. *)
+    (* unfold resum. unfold inr_. *)
+    (* Check VisF. *)
+    (* simpl. *)
+    (* unfold interp_state. unfold interp. *)
+    (* interp. *)
+    (* unfold Exception.Throw. cb *)
+
+    (* inversion H3. cbn. *)
+    (* simpl. *)
+    (* cbn. *)
+
+    (* subst i. *)
+    (* unfold interp_Mem; cbn. *)
+    (* destruct src, dst. *)
+    (* simpl in HCompile. *)
+    (* repeat break_match_hyp; try inl_inr. *)
+    (* inv Heqs; inv HCompile. *)
+    (* unfold denotePexp, evalPexp, lift_Serr. *)
+    (* subst. *)
+    (* unfold interp_Mem. (* cbn *) *)
+    (* (* match goal with *) *)
+    (* (* | |- context[add_comment _ ?ss] => generalize ss; intros ls *) *)
+    (* (* end. *) *)
+    (* (* match goal with *) *)
+    (* (* | |- context[add_comment _ ?ss] => generalize ss; intros ls1 *) *)
+    (* (* end. *) *)
+
+    (* (* subst. eutt_hide_right. *) *)
+    (* (* cbn. *) *)
+    (* (* unfold interp_Mem. *) *)
+    (* (* rewrite interp_state_bind. *) *)
+    (* (* unfold denotePexp, evalPexp. *) *)
+    (* (* cbn. *) *)
+    (* (* repeat setoid_rewrite interp_state_bind. *) *)
+    (* (* rewrite denote_bks_singleton. *) *)
+    (* (* destruct src, dst. *) *)
+    (* (* simpl in HCompile. *) *)
+    (* (* repeat break_match_hyp; try inl_inr. *) *)
+    (* (* inv Heqs; inv HCompile. *) *)
+    (* (* match goal with *) *)
+    (* (* | |- context[add_comment _ ?ss] => generalize ss; intros ls *) *)
+    (* (* end. *) *)
+    (* (* unfold interp_Mem. *) *)
+    (* (* simpl denoteDSHOperator. *) *)
+    (* (* rewrite interp_state_bind, translate_bind. *) *)
+    (* (* match goal with *) *)
+    (* (*   |- eutt _ ?t _ => remember t *) *)
+    (* (* end. *) *)
+
+    (* (* Need a lemma to invert Heqs2. *)
+    (*    Should allow us to know that the list of blocks is a singleton in this case. *)
+    (*    Need then probably a lemma to reduce proofs about `D.denote_bks [x]` to something like the denotation of x, *)
+    (*    avoiding having to worry about iter. *)
+    (*  *) *)
+    (* (* cbn; rewrite interp_cfg_to_L3_bind, interp_cfg_to_L3_ret, bind_ret_l. *) *)
+
+    (* repeat match goal with *)
+    (* | |- context [ String ?x ?y ] => remember (String x y) *)
+    (* end. *)
+
+    (* make_append_str in H6. *)
+    admit.
+  - (*
+      Map case.
+      Need some reasoning about
+      - denotePexp
+      - nat_eq_or_cerr
+      - genIMapBody
+      -
+     *)
+    simpl genIR in HCompile.
+
+    (* repeat rewrite string_cons_app in HCompile. *)
+
+    repeat break_match_hyp; try inl_inr.
+    repeat inv_sum.
+    cbn.
+    (* Need to solve the issue with the display of strings, it's just absurd *)
+    eutt_hide_right.
+    unfold interp_Mem.
+    rewrite interp_state_bind.
+    admit.
+
+  - admit.
+
+  - admit.
+
+  - admit.
+
+  - eutt_hide_right.
+    cbn. unfold interp_Mem.
+
+    (*
+    Check interp_state_bind.
+    Check interp_bind.
+
+interp_state_bind
+     : ∀ (f : ∀ T : Type, ?E T → ?S → itree ?F (?S * T)) (t : itree ?E ?A) (k : ?A → itree ?E ?B) (s : ?S),
+         interp_state f (ITree.bind t k) s
+         ≅ ITree.bind (interp_state f t s) (λ st0 : ?S * ?A, interp_state f (k (snd st0)) (fst st0))
+
+interp_bind
+     : ∀ (f : ∀ T : Type, ?E T → itree ?F T) (t : itree ?E ?R) (k : ?R → itree ?E ?S),
+         interp f (ITree.bind t k) ≅ ITree.bind (interp f t) (λ r : ?R, interp f (k r))
+
+    rewrite interp_state_bind.
+    rewrite interp_iter.
+*)
+    admit.
+
+  - eutt_hide_right.
+    cbn.
+    unfold interp_Mem.
+    rewrite interp_state_bind.
+    (* rewrite bind_trigger.
+
+    Locate ITree.bind.
+    rewrite *)
+    admit.
+  - admit.
+
+  - admit.
+
+  - (* Sequence case.
+
+     *)
+
+    cbn in HCompile.
+    break_match_hyp; try inv_sum.
+    break_match_hyp; try inv_sum.
+    destruct p, s.
+    break_match_hyp; try inv_sum.
+    destruct p, s; try inv_sum.
+    eapply IHop1 with (env := env) (σ := σ) in Heqs1; eauto.
+    eapply IHop2 with (env := env) (σ := σ) in Heqs0; eauto.
+    clear IHop2 IHop1.
+    eutt_hide_right.
+    cbn; unfold interp_Mem in *.
+    rewrite interp_state_bind.
+
+    rewrite translate_bind.
+    (* Opaque D.denote_bks. *)
+
+    (* Set Nested Proofs Allowed. *)
+
+    (* Lemma add_comment_app: forall bs1 bs2 s, *)
+    (*     add_comment (bs1 ++ bs2)%list s ≡ (add_comment bs1 s ++ add_comment bs2 s)%list. *)
+    (* Proof. *)
+    (*   induction bs1 as [| b bs1 IH]; cbn; auto; intros bs2 s. *)
+    (*   f_equal. rewrite IH; auto. *)
+
+    (*   subst i0. *)
+    (*   eutt_hide_left. *)
+    (*   cbn. rewrite bind_ret_l. *)
+
+
+(* Definition respectful_eutt {E F : Type -> Type} *)
+(*   : (itree E ~> itree F) -> (itree E ~> itree F) -> Prop *)
+(*   := i_respectful (fun _ => eutt eq) (fun _ => eutt eq). *)
+
+
+(* Instance eutt_translate {E F R} *)
+(*   : @Proper (IFun E F -> (itree E ~> itree F)) *)
+(*             (eq2 ==> eutt RR ==> eutt RR) *)
+(*             translate. *)
+(* Proof. *)
+(*   repeat red. *)
+(*   intros until T. *)
+(*   ginit. gcofix CIH. intros. *)
+(*   rewrite !unfold_translate. punfold H1. red in H1. *)
+(*   induction H1; intros; subst; simpl. *)
+(*   - gstep. econstructor. eauto. *)
+(*   - gstep. econstructor. pclearbot. eauto with paco. *)
+(*   - gstep. rewrite H. econstructor. pclearbot. red. eauto 7 with paco. *)
+(*   - rewrite tau_euttge, unfold_translate. eauto. *)
+(*   - rewrite tau_euttge, unfold_translate. eauto. *)
+(* Qed. *)
+
+(* Instance eutt_translate' {E F : Type -> Type} {R : Type} (f : E ~> F) : *)
+(*   Proper (eutt eq ==> eutt eq) *)
+(*          (@translate E F f R). *)
+(* Proof. *)
+(*   repeat red. *)
+(*   apply eutt_translate. *)
+(*   reflexivity. *)
+(* Qed. *)
+
+(*     rewrite Heqs1. *)
+(* eutt_translate' *)
+
+Admitted.

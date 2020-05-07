@@ -147,7 +147,7 @@ Module MDSigmaHCOLEval
     := List.tl σ.
 
     (* Evaluation of expressions does not allow for side-effects *)
-  Definition evalPexp (σ: evalContext) (exp:PExpr): err (mem_block_id) :=
+  Definition evalPExpr (σ: evalContext) (exp:PExpr): err (mem_block_id) :=
     match exp with
     | @PVar i =>
       match nth_error σ i with
@@ -157,16 +157,16 @@ Module MDSigmaHCOLEval
     end.
 
   (* Evaluation of expressions does not allow for side-effects *)
-  Definition evalMexp (mem:memory) (σ: evalContext) (exp:MExpr): err (mem_block) :=
+  Definition evalMExpr (mem:memory) (σ: evalContext) (exp:MExpr): err (mem_block) :=
     match exp with
     | @MPtrDeref p =>
-      bi <- evalPexp σ p ;;
+      bi <- evalPExpr σ p ;;
          memory_lookup_err "MPtrDeref lookup failed" mem bi
     | @MConst t => ret t
     end.
 
   (* Evaluation of expressions does not allow for side-effects *)
-  Fixpoint evalNexp (σ: evalContext) (e:NExpr): err NT.t :=
+  Fixpoint evalNExpr (σ: evalContext) (e:NExpr): err NT.t :=
     match e with
     | NVar i => v <- (context_lookup "NVar not found" σ i) ;;
                  (match v with
@@ -174,17 +174,17 @@ Module MDSigmaHCOLEval
                   | _ => raise "invalid NVar type"
                   end)
     | NConst c => ret c
-    | NDiv a b   => liftM2 NTypeDiv   (evalNexp σ a) (evalNexp σ b)
-    | NMod a b   => liftM2 NTypeMod   (evalNexp σ a) (evalNexp σ b)
-    | NPlus a b  => liftM2 NTypePlus  (evalNexp σ a) (evalNexp σ b)
-    | NMinus a b => liftM2 NTypeMinus (evalNexp σ a) (evalNexp σ b)
-    | NMult a b  => liftM2 NTypeMult  (evalNexp σ a) (evalNexp σ b)
-    | NMin a b   => liftM2 NTypeMin   (evalNexp σ a) (evalNexp σ b)
-    | NMax a b   => liftM2 NTypeMax   (evalNexp σ a) (evalNexp σ b)
+    | NDiv a b   => liftM2 NTypeDiv   (evalNExpr σ a) (evalNExpr σ b)
+    | NMod a b   => liftM2 NTypeMod   (evalNExpr σ a) (evalNExpr σ b)
+    | NPlus a b  => liftM2 NTypePlus  (evalNExpr σ a) (evalNExpr σ b)
+    | NMinus a b => liftM2 NTypeMinus (evalNExpr σ a) (evalNExpr σ b)
+    | NMult a b  => liftM2 NTypeMult  (evalNExpr σ a) (evalNExpr σ b)
+    | NMin a b   => liftM2 NTypeMin   (evalNExpr σ a) (evalNExpr σ b)
+    | NMax a b   => liftM2 NTypeMax   (evalNExpr σ a) (evalNExpr σ b)
     end.
 
   (* Evaluation of expressions does not allow for side-effects *)
-  Fixpoint evalAexp (mem:memory) (σ: evalContext) (e:AExpr): err CT.t :=
+  Fixpoint evalAExpr (mem:memory) (σ: evalContext) (e:AExpr): err CT.t :=
     match e with
     | AVar i => v <- (context_lookup "AVar not found" σ i) ;;
                  (match v with
@@ -192,41 +192,36 @@ Module MDSigmaHCOLEval
                   | _ => raise "invalid AVar type"
                   end)
     | AConst x => ret x
-    | AAbs x =>  liftM CTypeAbs (evalAexp mem σ x)
-    | APlus a b => liftM2 CTypePlus (evalAexp mem σ a) (evalAexp mem σ b)
-    | AMult a b => liftM2 CTypeMult (evalAexp mem σ a) (evalAexp mem σ b)
-    | AMin a b => liftM2 CTypeMin (evalAexp mem σ a) (evalAexp mem σ b)
-    | AMax a b => liftM2 CTypeMax (evalAexp mem σ a) (evalAexp mem σ b)
-    | AMinus a b => liftM2 CTypeSub (evalAexp mem σ a) (evalAexp mem σ b)
+    | AAbs x =>  liftM CTypeAbs (evalAExpr mem σ x)
+    | APlus a b => liftM2 CTypePlus (evalAExpr mem σ a) (evalAExpr mem σ b)
+    | AMult a b => liftM2 CTypeMult (evalAExpr mem σ a) (evalAExpr mem σ b)
+    | AMin a b => liftM2 CTypeMin (evalAExpr mem σ a) (evalAExpr mem σ b)
+    | AMax a b => liftM2 CTypeMax (evalAExpr mem σ a) (evalAExpr mem σ b)
+    | AMinus a b => liftM2 CTypeSub (evalAExpr mem σ a) (evalAExpr mem σ b)
     | ANth m i =>
-      m' <- (evalMexp mem σ m) ;;
-         i' <- (evalNexp σ i) ;;
-         (* Instead of returning error we default to zero here.
-          This situation should never happen for programs
-          refined from MSHCOL which ensure bounds via
-          dependent types. So DHCOL programs should
-          be correct by construction *)
+      m' <- (evalMExpr mem σ m) ;;
+         i' <- (evalNExpr σ i) ;;
          (match mem_lookup (NT.to_nat i') m' with
           | Some v => ret v
-          | None => ret CTypeZero
+          | None => inl "ANth not in memory"
           end)
-    | AZless a b => liftM2 CTypeZLess (evalAexp mem σ a) (evalAexp mem σ b)
+    | AZless a b => liftM2 CTypeZLess (evalAExpr mem σ a) (evalAExpr mem σ b)
     end.
 
   (* Evaluation of functions does not allow for side-effects *)
   Definition evalIUnCType (mem:memory) (σ: evalContext) (f: AExpr)
              (i:NT.t) (a:CT.t): err CT.t :=
-    evalAexp mem (DSHCTypeVal a :: DSHnatVal i :: σ) f.
+    evalAExpr mem (DSHCTypeVal a :: DSHnatVal i :: σ) f.
 
   (* Evaluation of functions does not allow for side-effects *)
   Definition evalIBinCType (mem:memory) (σ: evalContext) (f: AExpr)
              (i:NT.t) (a b:CT.t): err CT.t :=
-    evalAexp mem (DSHCTypeVal b :: DSHCTypeVal a :: DSHnatVal i :: σ) f.
+    evalAExpr mem (DSHCTypeVal b :: DSHCTypeVal a :: DSHnatVal i :: σ) f.
 
   (* Evaluation of functions does not allow for side-effects *)
   Definition evalBinCType (mem:memory) (σ: evalContext) (f: AExpr)
              (a b:CT.t): err CT.t :=
-    evalAexp mem (DSHCTypeVal b :: DSHCTypeVal a :: σ) f.
+    evalAExpr mem (DSHCTypeVal b :: DSHCTypeVal a :: σ) f.
 
   Fixpoint evalDSHIMap
            (mem:memory)
@@ -325,19 +320,19 @@ Module MDSigmaHCOLEval
         | DSHNop => Some (ret mem)
         | DSHAssign (x_p, src_e) (y_p, dst_e) =>
           Some (
-          x_i <- evalPexp σ x_p ;;
-          y_i <- evalPexp σ y_p ;;
+          x_i <- evalPExpr σ x_p ;;
+          y_i <- evalPExpr σ y_p ;;
           x <- memory_lookup_err "Error looking up 'x' in DSHAssign" mem x_i ;;
           y <- memory_lookup_err "Error looking up 'y' in DSHAssign" mem y_i ;;
-          src <- evalNexp σ src_e ;;
-          dst <- evalNexp σ dst_e ;;
+          src <- evalNExpr σ src_e ;;
+          dst <- evalNExpr σ dst_e ;;
           v <- mem_lookup_err "Error looking up 'v' in DSHAssign" (to_nat src) x ;;
           ret (memory_set mem y_i (mem_add (to_nat dst) v y))
             )
         | @DSHIMap n x_p y_p f =>
           Some (
-            x_i <- evalPexp σ x_p ;;
-              y_i <- evalPexp σ y_p ;;
+            x_i <- evalPExpr σ x_p ;;
+              y_i <- evalPExpr σ y_p ;;
               x <- memory_lookup_err "Error looking up 'x' in DSHIMap" mem x_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHIMap" mem y_i ;;
               y' <- evalDSHIMap mem n f σ x y ;;
@@ -345,9 +340,9 @@ Module MDSigmaHCOLEval
               )
         | @DSHMemMap2 n x0_p x1_p y_p f =>
           Some (
-          x0_i <- evalPexp σ x0_p ;;
-               x1_i <- evalPexp σ x1_p ;;
-               y_i <- evalPexp σ y_p ;;
+          x0_i <- evalPExpr σ x0_p ;;
+               x1_i <- evalPExpr σ x1_p ;;
+               y_i <- evalPExpr σ y_p ;;
                x0 <- memory_lookup_err "Error looking up 'x0' in DSHMemMap2" mem x0_i ;;
                x1 <- memory_lookup_err "Error looking up 'x1' in DSHMemMap2" mem x1_i ;;
                y <- memory_lookup_err "Error looking up 'y' in DSHMemMap2" mem y_i ;;
@@ -356,8 +351,8 @@ Module MDSigmaHCOLEval
                )
         | @DSHBinOp n x_p y_p f =>
           Some (
-              x_i <- evalPexp σ x_p ;;
-              y_i <- evalPexp σ y_p ;;
+              x_i <- evalPExpr σ x_p ;;
+              y_i <- evalPExpr σ y_p ;;
               x <- memory_lookup_err "Error looking up 'x' in DSHBinOp" mem x_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHBinOp" mem y_i ;;
               y' <- evalDSHBinOp mem n n f σ x y ;;
@@ -365,13 +360,13 @@ Module MDSigmaHCOLEval
               )
         | DSHPower ne (x_p,xoffset) (y_p,yoffset) f initial =>
           Some (
-          x_i <- evalPexp σ x_p ;;
-              y_i <- evalPexp σ y_p ;;
+          x_i <- evalPExpr σ x_p ;;
+              y_i <- evalPExpr σ y_p ;;
               x <- memory_lookup_err "Error looking up 'x' in DSHPower" mem x_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHPower" mem y_i ;;
-              n <- evalNexp σ ne ;; (* [n] evaluated once at the beginning *)
-              xoff <- evalNexp σ xoffset ;;
-              yoff <- evalNexp σ yoffset ;;
+              n <- evalNExpr σ ne ;; (* [n] evaluated once at the beginning *)
+              xoff <- evalNExpr σ xoffset ;;
+              yoff <- evalNExpr σ yoffset ;;
               let y' := mem_add (to_nat yoff) initial y in
               y'' <- evalDSHPower mem σ (to_nat n) f x y' (to_nat xoff) (to_nat yoff) ;;
               ret (memory_set mem y_i y'')
@@ -396,15 +391,15 @@ Module MDSigmaHCOLEval
           end
         | DSHMemInit size y_p value =>
           Some (
-              y_i <- evalPexp σ y_p ;;
+              y_i <- evalPExpr σ y_p ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHMemInit" mem y_i ;;
               let y' := mem_union (mem_const_block (to_nat size) value) y in
               ret (memory_set mem y_i y')
             )
         | DSHMemCopy size x_p y_p =>
           Some (
-          x_i <- evalPexp σ x_p ;;
-          y_i <- evalPexp σ y_p ;;
+          x_i <- evalPExpr σ x_p ;;
+          y_i <- evalPExpr σ y_p ;;
           x <- memory_lookup_err "Error looking up 'x' in DSHMemCopy" mem x_i ;;
           y <- memory_lookup_err "Error looking up 'y' in DSHMemCopy" mem y_i ;;
           let y' := mem_union x y in
@@ -763,8 +758,8 @@ Module MDSigmaHCOLEval
           f_equiv;
       crush.
 
-  Instance evalNexp_proper:
-    Proper ((=) ==> (=) ==> (=)) evalNexp.
+  Instance evalNExpr_proper:
+    Proper ((=) ==> (=) ==> (=)) evalNExpr.
   Proof.
     intros c1 c2 Ec e1 e2 Ee.
     induction Ee; simpl.
@@ -796,8 +791,8 @@ Module MDSigmaHCOLEval
     - proper_eval2 IHEe1 IHEe2.
   Qed.
 
-  Instance evalPexp_proper:
-    Proper ((=) ==> (=) ==> (=)) (evalPexp).
+  Instance evalPExpr_proper:
+    Proper ((=) ==> (=) ==> (=)) (evalPExpr).
   Proof.
     intros c1 c2 Ec e1 e2 Ee.
      destruct Ee; simpl.
@@ -815,8 +810,8 @@ Module MDSigmaHCOLEval
      auto.
   Qed.
 
-  Instance evalMexp_proper:
-    Proper ((=) ==> (=) ==> (=) ==> (=)) (evalMexp).
+  Instance evalMExpr_proper:
+    Proper ((=) ==> (=) ==> (=) ==> (=)) (evalMExpr).
   Proof.
     intros m1 m2 Em c1 c2 Ec e1 e2 Ee.
     destruct Ee; simpl.
@@ -836,8 +831,8 @@ Module MDSigmaHCOLEval
       auto.
   Qed.
 
-  Instance evalAexp_proper:
-    Proper ((=) ==> (=) ==> (=) ==> (=)) evalAexp.
+  Instance evalAExpr_proper:
+    Proper ((=) ==> (=) ==> (=) ==> (=)) evalAExpr.
   Proof.
     intros m1 m2 Em c1 c2 Ec e1 e2 Ee.
     induction Ee; simpl.
@@ -856,10 +851,10 @@ Module MDSigmaHCOLEval
       repeat break_match; try inversion E; subst; try (constructor;auto);
       try (inversion H1;auto).
     - f_equiv. apply H.
-    - assert(C1:  evalMexp m1 c1 v1 = evalMexp m2 c2 v2)
-        by (apply evalMexp_proper; auto).
-      assert(C2:  evalNexp c1 n1 = evalNexp c2 n2)
-        by (apply evalNexp_proper; auto).
+    - assert(C1:  evalMExpr m1 c1 v1 = evalMExpr m2 c2 v2)
+        by (apply evalMExpr_proper; auto).
+      assert(C2:  evalNExpr c1 n1 = evalNExpr c2 n2)
+        by (apply evalNExpr_proper; auto).
       repeat break_match; subst ; try reflexivity; subst;
         try inversion C1; try inversion C2;
           apply Some_inj_equiv in C1;
@@ -896,7 +891,7 @@ Module MDSigmaHCOLEval
     intros m1 m2 Em c1 c2 Ec e1 e2 Ee.
     unfold evalBinCType.
     intros a a' Ea b b' Eb.
-    apply evalAexp_proper.
+    apply evalAExpr_proper.
     -
       assumption.
     -
@@ -1729,37 +1724,37 @@ Module MDSigmaHCOLEval
 
   Section IncrEval.
 
-    Lemma evalPexp_incrPVar
+    Lemma evalPExpr_incrPVar
           (p : PExpr)
           (σ : evalContext)
           (foo: DSHVal):
-      evalPexp (foo :: σ) (incrPVar 0 p) ≡ evalPexp σ p.
+      evalPExpr (foo :: σ) (incrPVar 0 p) ≡ evalPExpr σ p.
     Proof.
       destruct p;constructor.
     Qed.
 
-    Lemma evalMexp_incrMVar
+    Lemma evalMExpr_incrMVar
           (mem: memory)
           (m : MExpr)
           (σ : evalContext)
           (foo: DSHVal):
-      evalMexp mem (foo :: σ) (incrMVar 0 m) ≡ evalMexp mem σ m.
+      evalMExpr mem (foo :: σ) (incrMVar 0 m) ≡ evalMExpr mem σ m.
     Proof.
       destruct m.
       -
         simpl.
         assert_match_eq E.
-        apply evalPexp_incrPVar.
+        apply evalPExpr_incrPVar.
         repeat break_match; try inversion E; auto.
       -
         constructor.
     Qed.
 
-    Lemma evalNexp_incrNVar
+    Lemma evalNExpr_incrNVar
           (n : NExpr)
           (σ : evalContext)
           (foo: DSHVal):
-      evalNexp (foo :: σ) (incrNVar 0 n) ≡ evalNexp σ n.
+      evalNExpr (foo :: σ) (incrNVar 0 n) ≡ evalNExpr σ n.
     Proof.
       induction n; try constructor;
         (simpl;
@@ -1767,16 +1762,16 @@ Module MDSigmaHCOLEval
          reflexivity).
     Qed.
 
-    Lemma evalAexp_incrAVar
+    Lemma evalAExpr_incrAVar
           (mem: memory)
           (a : AExpr)
           (σ : evalContext)
           (foo: DSHVal):
-      evalAexp mem (foo :: σ) (incrAVar 0 a) ≡ evalAexp mem σ a.
+      evalAExpr mem (foo :: σ) (incrAVar 0 a) ≡ evalAExpr mem σ a.
     Proof.
       induction a; try constructor; simpl;
-        (try rewrite evalMexp_incrMVar;
-         try rewrite evalNexp_incrNVar;
+        (try rewrite evalMExpr_incrMVar;
+         try rewrite evalNExpr_incrNVar;
          try reflexivity);
         (try rewrite IHa; try reflexivity);
         (try rewrite IHa1, IHa2;reflexivity).
