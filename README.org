@@ -40,9 +40,7 @@ series of intermediate languages, culminating in LLVM IR.
 
 #+BEGIN_SRC sh
      opam repo add coq-released https://coq.inria.fr/opam/released
-     opam pin add coq 8.10.2 
-     opam install --jobs=4 coq coq-color coq-ext-lib coq-math-classes coq-dpdgraph coq-metacoq-template coq-flocq coq-switch ANSITerminal coq-paco coq-ceres dune menhir core core_kernel
-     opam remove coq-itree # conflicts with submodule copy from Vellvm
+     make -j 4 install-dep
 #+END_SRC
 
 To install *optional* dependencies:
