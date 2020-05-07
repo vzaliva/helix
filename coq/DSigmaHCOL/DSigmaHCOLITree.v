@@ -56,7 +56,7 @@ Ltac state_step :=
   | |- ITree.bind (Vis _ _) _ ≈ _ => rewrite bind_vis
   | |- ITree.bind (Ret _) _ ≈ _ => rewrite bind_ret_l
   | |- context[interp_state _ (Ret _) _] => rewrite interp_state_ret
-  | |- context[interp_state _ (trigger _) _] => rewrite interp_state_trigger
+  | |- context[interp_state _ (trigger _) _] => rewrite interp_state_trigger_eqit
   | |- context[interp_state _ (vis _ _) _] => rewrite interp_state_vis
   | |- context[Tau _] => rewrite tau_euttge
   end.
