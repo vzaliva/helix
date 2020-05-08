@@ -24,7 +24,6 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    Remove if unecessary.
 ** Move =CarrierAabs_proper= to =CarrierType.v=                          :zoickx:
 ** Move operations on CType to CType module like we did with NType
-** Remove ~IReduction_mem_old~                                         :zoickx:
 * Harmonization
 ** =RMonoid= vs =Monoid= 
    Whenever we us =Monoid= as pre-condition for rewriting we should use

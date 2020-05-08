@@ -598,17 +598,6 @@ Module MMSHCOL'
     : mem_block -> option mem_block
     := fun x => (liftM2 mem_union) (op2 x) (op1 x).
 
-  (* TODO: Old version. to be removed  *)
-  Definition IReduction_mem_old
-             {n: nat}
-             (dot: CarrierA -> CarrierA -> CarrierA)
-             (initial: CarrierA)
-             (op_family_f: forall k (kc:k<n), mem_block -> option mem_block)
-             (x: mem_block): option mem_block
-    :=
-      x' <- (Apply_mem_Family op_family_f x) ;;
-         ret (fold_left_rev (mem_merge_with_def dot initial) mem_empty x').
-
   Definition IReduction_mem
              {n: nat}
              (dot: CarrierA -> CarrierA -> CarrierA)
@@ -739,33 +728,6 @@ Module MMSHCOL'
 
     rewrite 2!dot_right_id; reflexivity.
     rewrite 2!dot_left_id; reflexivity.
-  Qed.
-
-  (* TODO: To be removed along with [IReduction_mem_old] *)
-  Lemma IReduction_mem_old_new
-        {n: nat}
-        `{dot: SgOp CarrierA}
-        `{initial: MonUnit CarrierA}
-        (op_family_f: forall k (kc:k<n), mem_block -> option mem_block)
-        (x: mem_block)
-
-        (* CM includes: Proper, left/right identity, commutativity, and associativity *)
-        `{CM: @CommutativeMonoid _ _ dot initial}
-    :
-      IReduction_mem dot initial op_family_f x = IReduction_mem_old dot initial op_family_f x.
-  Proof.
-    unfold IReduction_mem, IReduction_mem_old.
-    cbn.
-    break_match; [|reflexivity].
-    f_equiv.
-    symmetry.
-    apply fold_left_fold_left_rev_equiv.
-    -
-      apply mem_merge_with_def_proper; apply CM.
-    -
-      apply mem_merge_with_def_Comm, CM.
-    -
-      apply mem_merge_with_def_Assoc; apply CM.
   Qed.
 
   Instance Embed_mem_proper
