@@ -1925,7 +1925,30 @@ Proof.
         eapply H.
 Qed.
 
+Definition memory_invariant_MCFG: Type_R_mcfg_T unit unit :=
+  fun σ '(memH,_) '(memV,((l,sl),(g,_))) =>
+    memory_invariant σ memH (memV,(l,g)).
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
+Lemma memory_invariant_after_init
+      (p: FSHCOLProgram)
+      (data: list binary64) :
+  forall hmem σ hdata pll,
+    helix_intial_memory p data ≡ inr (hmem,hdata,σ) ->
+    compile_w_main p data ≡ inr pll ->
+    eutt
+      (memory_invariant_MCFG σ)
+      (Ret (hmem, ()))
+      (translate_E_vellvm_mcfg
+         (interp_to_L3 helix_intrinsics
+                       (lift_sem_to_mcfg build_global_environment pll)
+                       [] ([],[]) ((M.empty, M.empty), [[]]))
+      ).
+Proof.
+Admitted.
+
+
+(*
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
       (data: list binary64) :
@@ -1934,7 +1957,6 @@ Lemma memory_invariant_after_init
                 init_llvm_memory p data ≡ inr lmem ->
                 memory_invariant σ hmem lmem.
 Proof.
-  (*
 
   This partial proof was further broken after
   eliminating [FSHValType] and replacing it with [DSHType].
@@ -2329,8 +2351,8 @@ Proof.
     eexists.
     eexists.
     admit.
-   *)
 Admitted.
+   *)
 
 (* with init step  *)
 Lemma compiler_correct_aux:
