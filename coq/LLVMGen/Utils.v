@@ -3,7 +3,6 @@ Require Import Coq.Lists.List.
 
 Require Import Helix.Util.Misc.
 
-Require Import Vellvm.Numeric.Fappli_IEEE_extra.
 Require Import Vellvm.LLVMAst.
 
 Require Import Flocq.IEEE754.Binary.

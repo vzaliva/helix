@@ -9,7 +9,6 @@ Require Import Helix.LLVMGen.Externals.
 Require Import Helix.Util.Misc.
 Require Import Helix.Tactics.HelixTactics.
 
-Require Import Vellvm.Numeric.Fappli_IEEE_extra.
 Require Import Vellvm.IntrinsicsDefinitions.
 Require Import Vellvm.Numeric.Floats.
 Require Import Vellvm.LLVMAst.
@@ -85,7 +84,7 @@ Section withErrorStateMonad.
 End withErrorStateMonad.
 
 (* 64-bit IEEE floats *)
-Definition SizeofFloatT := 8.
+Definition SizeofFloatT: nat := 8.
 
 Definition getIRType (t: DSHType): typ :=
   match t with

@@ -11,7 +11,6 @@ Require Import Helix.LLVMGen.Data.
 Require Import Helix.Util.ErrorSetoid.
 Require Import Helix.Util.ErrorWithState.
 
-Require Import Vellvm.Numeric.Fappli_IEEE_extra.
 Require Import Vellvm.LLVMEvents.
 Require Import Vellvm.Denotation.
 Require Import Vellvm.Handlers.Memory.

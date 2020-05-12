@@ -79,7 +79,6 @@ Require Import Helix.Tactics.HelixTactics.
 Require Import ExtLib.Structures.Monads.
 Require Import ExtLib.Data.Map.FMapAList.
 
-Require Import Vellvm.Numeric.Fappli_IEEE_extra.
 Require Import Vellvm.Util.
 Require Import Vellvm.LLVMEvents.
 Require Import Vellvm.DynamicTypes.
