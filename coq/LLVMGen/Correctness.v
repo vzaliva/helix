@@ -872,7 +872,8 @@ vars s1 = σ?
   Infix "⩕" := conj_rel (at level 85).
 
   Variable (R: Type_R_memory_cfg).
-  Definition R' : Int64.int -> uvalue -> Prop := fun i uv => uv ≡ UVALUE_I64 i.
+  Definition R' : Int64.int -> uvalue -> Prop :=
+    fun i uv => uv ≡ UVALUE_I64 i.
   (* R, R' to be instantiated *)
 
   (* Facts that must be derivable *)
@@ -957,6 +958,111 @@ vars s1 = σ?
     induction a as [| [] a IH]; cbn; intros; auto.
     rewrite IH; reflexivity.
   Qed.
+  
+  (** YZ
+      At the top level, the correctness of genNExpr is expressed as the denotation of the operator being equivalent
+      to the bind of denoting the code followed by denoting the expression.
+      However this is not inductively stable, we only want to plug the expression at the top level.
+      We therefore instead carry the fact about the denotation of the expression in the invariant. (Is there another clever way?)
+      TODO: how to make this (much) less ugly?
+   *)
+  Definition R'' (e: exp typ) : Type_R_cfg_T DynamicValues.int64 unit :=
+    fun s '(_,i) '(memV,(l,(g,_))) => 
+      Ret (memV,(l,(g,UVALUE_I64 i))) ≈
+          translate_E_vellvm_cfg
+          (interp_cfg_to_L3 helix_intrinsics (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] e))) g l memV).
+
+  Definition memory_invariant_MCFG: Type_R_mcfg_T unit unit :=
+    fun σ '(memH,_) '(memV,((l,sl),(g,_))) =>  
+      memory_invariant σ memH (memV,(l,g)).
+
+  (** [memory_invariant] relation must holds after initialization of global variables *)
+  Lemma memory_invariant_after_init
+        (p: FSHCOLProgram)
+        (data: list binary64) :
+    forall hmem σ hdata pll,
+      helix_intial_memory p data ≡ inr (hmem,hdata,σ) /\
+      compile_w_main p data ≡ inr pll ->
+      eutt 
+        (memory_invariant_MCFG σ)
+        (Ret (hmem, ()))
+        (translate_E_vellvm_mcfg
+           (interp_to_L3 helix_intrinsics
+                         (lift_sem_to_mcfg build_global_environment pll)
+                         [] ([],[]) ((M.empty, M.empty), [[]]))
+        ).
+  Proof.
+  Admitted.
+
+  (* TODO: come back to this alternate statement *)
+  (* Lemma genNExpr_correct : *)
+  (*   forall (* Compiler bits *) (s1 s2: IRState) *)
+  (*     (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH) *)
+  (*     (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV), *)
+  (*     genNExpr nexp s1 ≡ inr (s2, (e, c)) -> (* Compilation succeeds *) *)
+  (*     WF_IRState σ s1 ->                       (* Well-formed IRState *) *)
+  (*     R σ memH (memV, (l, g)) -> *)
+  (*     (* (WF_IRState σ s2 /\ *) *)
+  (*      eutt (lift_R_memory_cfg R σ ⩕ R'' e σ) *)
+  (*           (translate_E_helix_cfg   *)
+  (*              (interp_Mem (denoteNExpr σ nexp) *)
+  (*                          memH)) *)
+  (*           (translate_E_vellvm_cfg *)
+  (*              (interp_cfg_to_L3 helix_intrinsics *)
+  (*                                 (denote_code (convert_typ [] c)) *)
+  (*                 g l memV)). *)
+  (* Proof. *)
+  (*   intros s1 s2 nexp; revert s1 s2; induction nexp; intros * COMPILE WFIR PRE; *)
+  (*     assert (FOO: (s2,(exp,c)) ≡ (s2,(exp,c))) by reflexivity. (* TODOYZ: stupid hack to quickly check what case we are in. To remove *) *)
+  (*   - (* Variable case *) *)
+  (*     (* Reducing the compilation *) *)
+  (*     (* simp_comp COMPILE; (split; [auto |]). *) *)
+  (*     simp_comp COMPILE. *)
+
+  (*     + (* The variable maps to an integer in the IRState *) *)
+  (*       unfold denoteNExpr; cbn*. *)
+
+  (*       repeat norm_v. *)
+  (*       break_inner_match_goal. *)
+  (*       * (* Variable not in context, [context_lookup] fails *) *)
+  (*         abs_by WF_IRState_lookup_cannot_fail. *)
+  (*       * break_inner_match_goal. *)
+  (*         ++ repeat norm_h. *)
+  (*            destruct i0. *)
+  (*            { (* Global *) *)
+  (*              apply eqit_Ret; split. *)
+  (*              apply PRE. *)
+  (*              unfold R''; cbn*. *)
+  (*              repeat norm_v. *)
+  (*              cbn; repeat norm_v. *)
+  (*              2: eapply R_GLU; eauto. *)
+  (*              (** TODO: Define specialized version on eutt for external use *) *)
+  (*              apply eqit_Ret. *)
+               
+               
+  (*              split; [apply PRE | reflexivity]. *)
+  (*            } *)
+  (*            { (* Local *) *)
+  (*              cbn*. *)
+  (*              repeat norm_v. *)
+  (*              2: eapply R_LLU; eauto. *)
+  (*              cbn; repeat norm_v. *)
+  (*              apply eqit_Ret. *)
+  (*              split; [apply PRE | reflexivity]. *)
+  (*            } *)
+  (*         ++ *)
+  (*           (** TODO YZ : get this automatically discharged by [abs_by] *) *)
+  (*           exfalso. eapply WF_IRState_lookup_int in WFIR; eauto. *)
+  (*           destruct WFIR as [? WFIR]; rewrite Heqs in WFIR; inv WFIR. *)
+  (*         ++ *)
+  (*           exfalso. eapply WF_IRState_lookup_int in WFIR; eauto. *)
+  (*           destruct WFIR as [? WFIR]; rewrite Heqs in WFIR; inv WFIR. *)
+
+  (*     + (* The variable maps to a pointer *) *)
+        
+  (*       abs_by WF_IRState_lookup_pointer. *)
+
+
 
   Lemma genNExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
@@ -971,8 +1077,9 @@ vars s1 = σ?
                (interp_Mem (denoteNExpr σ nexp)
                            memH))
             (translate_E_vellvm_cfg
-               ((interp_cfg_to_L3 helix_intrinsics
-                                  (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
+               (interp_cfg_to_L3 helix_intrinsics
+                                  (denote_code (convert_typ [] c) ;;
+                                   translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp)))
                   g l memV)).
   Proof.
     intros s1 s2 nexp; revert s1 s2; induction nexp; intros * COMPILE WFIR PRE;
@@ -1053,9 +1160,10 @@ vars s1 = σ?
         eutt_hide_left.
         cbn*.
         repeat norm_v.
-        unfold convert_typ.
+        rewrite convert_typ_app, denote_code_app.
+        repeat norm_v.
 
-        rewrite convert_typ_app. rewrite denote_code_app.
+
         repeat norm_v.
         subst.
 
@@ -1925,29 +2033,6 @@ Proof.
         eapply H.
 Qed.
 
-Definition memory_invariant_MCFG: Type_R_mcfg_T unit unit :=
-  fun σ '(memH,_) '(memV,((l,sl),(g,_))) =>
-    memory_invariant σ memH (memV,(l,g)).
-
-(** [memory_invariant] relation must holds after initialization of global variables *)
-Lemma memory_invariant_after_init
-      (p: FSHCOLProgram)
-      (data: list binary64) :
-  forall hmem σ hdata pll,
-    helix_intial_memory p data ≡ inr (hmem,hdata,σ) ->
-    compile_w_main p data ≡ inr pll ->
-    eutt
-      (memory_invariant_MCFG σ)
-      (Ret (hmem, ()))
-      (translate_E_vellvm_mcfg
-         (interp_to_L3 helix_intrinsics
-                       (lift_sem_to_mcfg build_global_environment pll)
-                       [] ([],[]) ((M.empty, M.empty), [[]]))
-      ).
-Proof.
-Admitted.
-
-
 (*
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -2476,7 +2561,7 @@ Proof.
   (* cbn. *)
 
   (* setoid_rewrite bind_bind.  interp_to_L3_bind. *)
-  (* This no longer follows from [compiler_correct_aux]. It will
+ (* This no longer follows from [compiler_correct_aux]. It will
      at pen-ultimate step when the [main] does [return] on a memory
      block.
 
