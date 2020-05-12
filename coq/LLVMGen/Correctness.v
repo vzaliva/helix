@@ -975,24 +975,6 @@ vars s1 = σ?
     fun σ '(memH,_) '(memV,((l,sl),(g,_))) =>  
       memory_invariant σ memH (memV,(l,g)).
 
-  (** [memory_invariant] relation must holds after initialization of global variables *)
-  Lemma memory_invariant_after_init
-        (p: FSHCOLProgram)
-        (data: list binary64) :
-    forall hmem σ hdata pll,
-      helix_intial_memory p data ≡ inr (hmem,hdata,σ) /\
-      compile_w_main p data ≡ inr pll ->
-      eutt 
-        (memory_invariant_MCFG σ)
-        (Ret (hmem, ()))
-        (translate_E_vellvm_mcfg
-           (interp_to_L3 helix_intrinsics
-                         (lift_sem_to_mcfg build_global_environment pll)
-                         [] ([],[]) ((M.empty, M.empty), [[]]))
-        ).
-  Proof.
-  Admitted.
-
   (* TODO: come back to this alternate statement *)
   (* Lemma genNExpr_correct : *)
   (*   forall (* Compiler bits *) (s1 s2: IRState) *)
@@ -1894,6 +1876,35 @@ Proof.
         eapply list_uniq_de_cons; eauto.
         eapply H.
 Qed.
+
+(** [memory_invariant] relation must holds after initialization of global variables *)
+Lemma memory_invariant_after_init
+      (p: FSHCOLProgram)
+      (data: list binary64) :
+  forall hmem σ hdata pll,
+    helix_intial_memory p data ≡ inr (hmem,hdata,σ) /\
+    compile_w_main p data ≡ inr pll ->
+    eutt
+      (memory_invariant_MCFG σ)
+      (Ret (hmem, ()))
+      (translate_E_vellvm_mcfg
+         (interp_to_L3 helix_intrinsics
+                       (lift_sem_to_mcfg build_global_environment pll)
+                       [] ([],[]) ((M.empty, M.empty), [[]]))
+      ).
+Proof.
+  intros hmem σ hdata pll [HI LI].
+
+  unfold memory_invariant_MCFG, memory_invariant.
+  unfold helix_intial_memory in *.
+  cbn in *.
+  repeat break_match_hyp ; try inl_inr.
+  subst.
+  inv HI.
+  cbn in *.
+
+Admitted.
+
 
 (*
 Lemma memory_invariant_after_init
