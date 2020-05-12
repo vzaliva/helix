@@ -303,6 +303,27 @@ Qed.
 
 End InterpreterCFG.
 
+Section InterpreterMCFG.
+
+  Lemma interp_to_L3_bind :
+    forall ui {R S} (t: itree L0 R) (k: R -> itree L0 S) g l m,
+      interp_to_L3 ui (ITree.bind t k) g l m ≈
+                   (ITree.bind (interp_to_L3 ui t g l m) (fun '(m',(l',(g',x))) => interp_to_L3 ui (k x) g' l' m')).
+  Proof.
+    intros.
+    unfold interp_to_L3.
+    rewrite interp_intrinsics_bind, interp_global_bind, interp_local_stack_bind, interp_memory_bind.
+    apply eutt_eq_bind; intros (? & ? & ? & ?); reflexivity.
+  Qed.
+
+  Lemma interp_to_L3_ret : forall ui (R : Type) g l m (x : R), interp_to_L3 ui (Ret x) g l m ≈ Ret (m, (l, (g,x))).
+  Proof.
+    intros; unfold interp_to_L3.
+    rewrite interp_intrinsics_ret, interp_global_ret, interp_local_stack_ret, interp_memory_ret; reflexivity.
+  Qed.
+
+End  InterpreterMCFG.
+
 From Vellvm Require Import Util.
 Require Import State.
 
