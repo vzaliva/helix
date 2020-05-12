@@ -958,24 +958,6 @@ vars s1 = σ?
     fun σ '(memH,_) '(memV,((l,sl),(g,_))) =>  
       memory_invariant σ memH (memV,(l,g)).
 
-  (** [memory_invariant] relation must holds after initialization of global variables *)
-  Lemma memory_invariant_after_init
-        (p: FSHCOLProgram)
-        (data: list binary64) :
-    forall hmem σ hdata pll,
-      helix_intial_memory p data ≡ inr (hmem,hdata,σ) /\
-      compile_w_main p data ≡ inr pll ->
-      eutt 
-        (memory_invariant_MCFG σ)
-        (Ret (hmem, ()))
-        (translate_E_vellvm_mcfg
-           (interp_to_L3 helix_intrinsics
-                         (lift_sem_to_mcfg build_global_environment pll)
-                         [] ([],[]) ((M.empty, M.empty), [[]]))
-        ).
-  Proof.
-  Admitted.
-
   (* TODO: come back to this alternate statement *)
   (* Lemma genNExpr_correct : *)
   (*   forall (* Compiler bits *) (s1 s2: IRState) *)
@@ -1556,44 +1538,6 @@ End LLVMGen.
 Definition llvm_empty_memory_state_partial: LLVM_memory_state_cfg
   := (M.empty_memory_stack, ([], [])).
 
-(* This code attempts to mimic global variable initialization from
-   [Vellvm.Toplevel] and heavily depends on internal memory
-   organization of Vellvm, as in [Vellvm.Handlers.Memory] *)
-Section LLVM_Memory_Init.
-
-  (* mimics [Alloca] handler *)
-  Definition alloc_global (c_name:string) (c_typ:typ) (m:M.memory) (ms:M.mem_stack) :=
-    (* TODO: not sure about this [typ] to [dtyp] conversion *)
-    let d_typ := typ_to_dtyp [] c_typ in
-    let new_block := M.make_empty_block d_typ in
-    let key := M.next_logical_key m in
-    let new_mem := M.add_logical key new_block m in
-    match ms with
-    | [] => inl "No stack frame for alloca."%string
-    | frame :: stack_rest =>
-      let new_stack := (key :: frame) :: stack_rest in
-      (*  global_env = alist raw_id dvalue *)
-      let a := DVALUE_Addr (key, 0%Z) in
-      ret (new_mem, new_stack, (Name c_name, a), a)
-    end.
-
-  (* mimics [Store] handler *)
-  Definition init_global (m:M.memory) (ms:M.mem_stack) (a: dvalue) (v:dvalue)
-    : err (M.memory * M.mem_stack) :=
-    match a with
-    | DVALUE_Addr (key, i) =>
-      match M.lookup_logical key m with
-      | Some (M.LBlock sz bytes cid) =>
-        let bytes' := M.add_all_index (M.serialize_dvalue v) i bytes in
-        let block' := M.LBlock sz bytes' cid in
-        ret (M.add_logical key block' m, ms)
-      | None => inl "stored to unallocated address"%string
-      end
-    | _ => inl ("Store got non-address dvalue: " ++ (to_string a))%string
-    end.
-
-End LLVM_Memory_Init.
-
 (* Scalar *)
 Definition eval_const_double_exp (typed_expr:typ*exp typ): err dvalue :=
   match typed_expr with
@@ -1619,24 +1563,6 @@ Definition eval_const_exp (typed_expr:typ*exp typ): err dvalue :=
   | (_, c_typ) => inl ("Unsupported constant expression type: " ++ (to_string c_typ))%string
   end.
 
-Definition init_one_global
-           (mem_state: (memory * local_env)%type)
-           (g:toplevel_entity typ (list (LLVMAst.block typ)))
-  := match g with
-     | TLE_Global (mk_global (Name c_name) c_typ
-                             true
-                             (Some c_initiaizer)
-                             (Some LINKAGE_Internal)
-                             None None None true None
-                             false None None) =>
-       let '((m,ms), lenv) := mem_state in
-       '(m,ms,g,a) <- alloc_global c_name c_typ m ms ;;
-       mms <- (eval_const_exp >=> init_global m ms a) (c_typ, c_initiaizer)
-       ;;
-       ret ((mms,lenv), g)
-     | _ => inl "Usupported global initialization"%string
-     end.
-
 (* TODO: move to Util *)
 Definition assoc_right_to_left {A B C:Type}: (A*(B*C)) -> ((A*B)*C)
   := fun x => let '(a,(b,c)):=x in ((a,b),c).
@@ -1644,24 +1570,6 @@ Definition assoc_right_to_left {A B C:Type}: (A*(B*C)) -> ((A*B)*C)
 (* TODO: move to Util *)
 Definition assoc_left_to_right {A B C:Type}: ((A*B)*C) -> (A*(B*C))
   := fun x => let '((a,b),c) := x in (a,(b,c)).
-
-Definition init_llvm_memory
-           (p: FSHCOLProgram)
-           (data: list binary64) : err LLVM_memory_state_cfg
-  :=
-    '(data,ginit) <- initIRGlobals data p.(globals) ;;
-
-    let y := Anon 1%Z in
-    let ytyp := getIRType (DSHPtr p.(o)) in
-    let x := Anon 0%Z in
-    let xtyp := getIRType (DSHPtr p.(i)) in
-
-    let xyinit := global_YX p.(i) p.(o) data x xtyp y ytyp in
-
-    (* Will return in order [globals ++ xy] *)
-    let '(ms,(le,ge)) := llvm_empty_memory_state_partial in
-    res <- init_with_data init_one_global no_chk (ms,le) (ginit ++ xyinit)%list ;;
-    ret (assoc_left_to_right res).
 
 (** Empty memories and environments should satisfy [memory_invariant] *)
 Lemma memory_invariant_empty: memory_invariant [] helix_empty_memory llvm_empty_memory_state_partial.
@@ -1892,69 +1800,6 @@ Proof.
         apply K0.
 Qed.
 
-
-(* TODO: brute-force proof is slow. Could be optimized *)
-Fact init_one_global_empty_local
-      (a0 : toplevel_entity typ (list (LLVMAst.block typ)))
-      (m0 : M.memory_stack)
-      (p : M.memory * M.mem_stack)
-      (l0 : local_env)
-      (p1 : raw_id * dvalue):
-  init_one_global (m0, [ ]) a0 ≡ inr (p, l0, p1) → l0 ≡ [ ].
-Proof.
-  intros H.
-  unfold init_one_global in H.
-  repeat (break_match_hyp; try inl_inr).
-  cbn in *.
-  subst.
-  repeat (break_match_hyp; try inl_inr).
-  inl_inr_inv.
-  reflexivity.
-  inl_inr_inv.
-  reflexivity.
-Qed.
-
-Fact init_with_data_init_one_global_empty_local
-     m g m' l g':
-  init_with_data init_one_global no_chk (m, [ ]) g ≡ inr (m', l, g') -> l ≡ [].
-Proof.
-  revert g' l m m'.
-  induction g; intros.
-  -
-    cbn in H.
-    inv H.
-    reflexivity.
-  -
-    cbn in H.
-    break_match_hyp; try inl_inr.
-    break_let; subst.
-    break_match_hyp; try inl_inr.
-    break_let; subst.
-    inl_inr_inv.
-    destruct p2.
-    tuple_inversion.
-    destruct p0.
-    destruct p.
-
-    unfold init_one_global in Heqs.
-    repeat break_match_hyp; try inl_inr.
-    subst.
-    inv Heqs.
-    break_match_hyp; try inl_inr.
-    repeat break_let; subst.
-    repeat break_match_hyp; try inl_inr.
-    +
-      repeat inl_inr_inv.
-      subst.
-      eapply IHg.
-      eauto.
-    +
-      repeat inl_inr_inv.
-      subst.
-      eapply IHg.
-      eauto.
-Qed.
-
 Lemma alist_find_nth_error_list_uniq
       (g : global_env)
       (x : nat)
@@ -2014,6 +1859,35 @@ Proof.
         eapply list_uniq_de_cons; eauto.
         eapply H.
 Qed.
+
+(** [memory_invariant] relation must holds after initialization of global variables *)
+Lemma memory_invariant_after_init
+      (p: FSHCOLProgram)
+      (data: list binary64) :
+  forall hmem σ hdata pll,
+    helix_intial_memory p data ≡ inr (hmem,hdata,σ) /\
+    compile_w_main p data ≡ inr pll ->
+    eutt
+      (memory_invariant_MCFG σ)
+      (Ret (hmem, ()))
+      (translate_E_vellvm_mcfg
+         (interp_to_L3 helix_intrinsics
+                       (lift_sem_to_mcfg build_global_environment pll)
+                       [] ([],[]) ((M.empty, M.empty), [[]]))
+      ).
+Proof.
+  intros hmem σ hdata pll [HI LI].
+
+  unfold memory_invariant_MCFG, memory_invariant.
+  unfold helix_intial_memory in *.
+  cbn in *.
+  repeat break_match_hyp ; try inl_inr.
+  subst.
+  inv HI.
+  cbn in *.
+
+Admitted.
+
 
 (*
 Lemma memory_invariant_after_init
