@@ -503,23 +503,6 @@ End SimulationRelations.
 (* TODOYZ: Actually even more so there should be a clean part of the tactics that do the generic structural
    rewriting, and a wrapper around it doing stuff specific to this denotation. We should only need the former
    here I believe *)
-
-Ltac inv_option :=
-  match goal with
-  | h: Some _ ≡ Some _ |-  _ => inv h
-  | h: None   ≡ Some _ |-  _ => inv h
-  | h: Some _ ≡ None   |-  _ => inv h
-  | h: None   ≡ None   |-  _ => inv h
-  end.
-
-Ltac inv_sum :=
-  match goal with
-  | h: inl _ ≡ inl _ |-  _ => inv h
-  | h: inr _ ≡ inr _ |-  _ => inv h
-  | h: inl _ ≡ inr _ |-  _ => inv h
-  | h: inr _ ≡ inl _ |-  _ => inv h
-  end.
-
 Ltac inv_mem_lookup_err :=
   unfold mem_lookup_err, trywith in *;
   break_match_hyp; cbn in *; try (inl_inr || inv_sum || inv_sum).
@@ -2386,7 +2369,6 @@ Proof.
   auto.
 Qed.
 
-From Vellvm Require Import AstLib.
 (* Lemma bisim_full_partial_subrelation: forall σ helix_state llvm_state, *)
 (*     let '(mem_helix, v_helix) := helix_state in *)
 (*     let '(m, ((ρ,_), (g, v))) := llvm_state in *)
@@ -2402,66 +2384,61 @@ From Vellvm Require Import AstLib.
 
 (* YZ TODO move  *)
 
-  Definition opt_first {T: Type} (o1 o2: option T): option T :=
-    match o1 with | Some x => Some x | None => o2 end.
-
-  Definition modul_app {T X} (m1 m2: modul T X): modul T X :=
-    let (name1, target1, layout1, tdefs1, globs1, decls1, defs1) := m1 in
-    let (name2, target2, layout2, tdefs2, globs2, decls2, defs2) := m2 in
-    {|
-      m_name := opt_first name1 name2;
-      m_target := opt_first target1 target2;
-      m_datalayout := opt_first layout1 layout2;
-      m_type_defs := tdefs1 ++ tdefs2;
-      m_globals := globs1 ++ globs2;
-      m_declarations := decls1 ++ decls2;
-      m_definitions := defs1 ++ defs2
-    |}.
-
-  Lemma modul_of_toplevel_entities_app:
-    forall {T X} tle1 tle2, 
-    @modul_of_toplevel_entities T X (tle1 ++ tle2) ≡ modul_app (modul_of_toplevel_entities T tle1) (modul_of_toplevel_entities T tle2).
+  (* Top-level compiler correctness lemma  *)
+  Theorem compiler_correct:
+    forall (p:FSHCOLProgram)
+      (data:list binary64)
+      (pll: toplevel_entities typ (list (LLVMAst.block typ))),
+      compile_w_main p data ≡ inr pll ->
+      eutt (bisim_final []) (semantics_FSHCOL p data) (semantics_llvm pll).
   Proof.
-    induction tle1 as [| tle tle1 IH]; intros; cbn; [reflexivity |].
-    { unfold modul_of_toplevel_entities.
-      f_equal; try reflexivity.
-  Admitted.
+    intros p data pll H.
+    unfold compile_w_main, compile in H.
+    destruct p.
+    cbn in *.
+    break_match_hyp; try inv_sum.
+    break_let; cbn in *.
+    break_match_hyp; try inv_sum.
+    unfold ErrorWithState.evalErrS in *.
+    break_match_hyp; try inv_sum.
+    break_match_hyp; cbn in *; repeat try inv_sum.
+    break_let; cbn in *; inv_sum.
+    repeat (break_match_hyp || break_let); try inv_sum.
 
-(* Top-level compiler correctness lemma  *)
-Theorem compiler_correct:
-  forall (p:FSHCOLProgram)
-    (data:list binary64)
-    (pll: toplevel_entities typ (list (LLVMAst.block typ))),
-    compile_w_main p data ≡ inr pll ->
-    eutt (bisim_final []) (semantics_FSHCOL p data) (semantics_llvm pll).
-Proof.
-  intros p data pll H.
-  unfold compile_w_main, compile in H.
-  destruct p.
-  cbn in *.
-  break_match_hyp; try inv_sum.
-  break_let; cbn in *.
-  break_match_hyp; try inv_sum.
-  unfold ErrorWithState.evalErrS in *.
-  break_match_hyp; try inv_sum.
-  break_match_hyp; cbn in *; repeat try inv_sum.
-  break_let; cbn in *; inv_sum.
-  repeat (break_match_hyp || break_let); try inv_sum.
+    eutt_hide_left.
+    repeat rewrite app_assoc.
+    repeat rewrite <- app_assoc.
+    match goal with
+      |- context[_ :: ?x ++ ?y ++ ?z ++ ?t] => remember x as f1; remember y as f2; remember t as f3; remember z as f4
+    end.
 
-  eutt_hide_left.
-  repeat rewrite app_assoc.
-  repeat rewrite <- app_assoc.
-  match goal with
-    |- context[_ :: ?x ++ ?y ++ ?z ++ ?t] => remember x as f1; remember y as f2; remember t as f3; remember z as f4
-  end.
+    unfold semantics_llvm. 
+    unfold lift_sem_to_mcfg.
 
-  (* unfold semantics_llvm, semantics_llvm_mcfg, model_to_L3, denote_vellvm_init, denote_vellvm. *)
-  (* unfold lift_sem_to_mcfg. *)
-  (* break_match_goal. *)
-  (*     destruct tle2 eqn:EQ; cbn. *)
-  (*     reflexivity. *)
-  (*   m (modul_of_toplevel_entities T tle2); cbn. *)
-  (*   unfold modul_app; cbn. *)
+    rewrite modul_of_toplevel_entities_cons, !modul_of_toplevel_entities_app.
+    
+    break_match_goal.
+
+    (* {  *)
+    (*   repeat match goal with *)
+    (*   | h: mcfg_of_modul _ (_ @ _) ≡ _ |- _ => *)
+    (*     apply mcfg_of_app_modul in h; *)
+    (*       destruct h as (? & ? & ?EQ & ?EQ & <-) *)
+    (*   end. *)
+    (*   Transparent map_option. *)
+    (*   cbn in EQ. *)
+    (*   injection EQ; clear EQ; intro EQ. *)
+    (*   subst f2. *)
+    (*   unfold global_YX,constArray in EQ1. *)
+      
+
+    (*   cbn in EQ1. *)
+    (*   destruct Heqo0 as (m. *)
+      
+    (* destruct tle2 eqn:EQ; cbn. *)
+    (*     reflexivity. *)
+    (*   m (modul_of_toplevel_entities T tle2); cbn. *)
+    (*   unfold modul_app; cbn. *)
 
 
 (* (AstLib.modul_of_toplevel_entities typ (TLE_Comment "Global variables" :: f1 ++ f2 ++ f4 ++ f3)) *)
