@@ -549,6 +549,11 @@ Ltac eutt_hide_right :=
     |- eutt _ _ ?t => remember t
   end.
 
+Ltac eutt_hide_rel :=
+  match goal with
+    |- eutt ?r _ _ => remember r
+  end.
+
 Ltac hide_string_goal :=
   match goal with
   | |- context [String ?x ?y] => remember (String x y)
@@ -1877,6 +1882,33 @@ Proof.
         eapply H.
 Qed.
 
+Fact build_global_environment_genMain
+     {g}
+     {intrinsics}
+     (i o: Int64.int)
+     (op_name: string)
+     (x:raw_id)
+     (xptyp:typ)
+     (y:raw_id)
+     (ytyp:typ)
+     (yptyp:typ)
+     (globals: list (string * DSHType))
+     (data:list binary64):
+  interp_to_L3 intrinsics
+               (lift_sem_to_mcfg build_global_environment
+                                 (g ++ (genMain i o op_name x xptyp y ytyp yptyp globals data))%list)
+               [ ] ([ ], [ ]) (empty, empty, [[ ]])
+  ≡
+  interp_to_L3 intrinsics
+               (lift_sem_to_mcfg build_global_environment g)
+               [ ] ([ ], [ ]) (empty, empty, [[ ]])   .
+Proof.
+  unfold lift_sem_to_mcfg.
+  unfold build_global_environment.
+  unfold convert_types.
+
+Admitted.
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -1903,6 +1935,18 @@ Proof.
   inv HI.
   cbn in *.
 
+  eutt_hide_rel.
+  repeat break_match_hyp; try inl_inr.
+  inversion_clear LI.
+  repeat rewrite app_assoc.
+  setoid_rewrite build_global_environment_genMain.
+  (*
+  induction globals.
+  -
+    repeat break_match_hyp; try inl_inr.
+    rename m0 into mx, m1 into my.
+    cbn.
+   *)
 Admitted.
 
 
