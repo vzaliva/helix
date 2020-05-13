@@ -1,4 +1,6 @@
 *.vo
+*.vok
+*.vos
 *.vio
 *.glob
 *.v.d
@@ -10,6 +12,7 @@ Makefile.coq
 .nia.cache
 CoqMakefile.conf
 Makefile.coq.conf
+.Makefile.coq.d
 nohup.out
 .coqdeps.d
 
