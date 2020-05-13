@@ -2,7 +2,9 @@ Require Import Coq.Strings.String.
 Require Import Coq.Arith.Arith.
 Require Import Omega.
 Require Import Psatz.
+
 Require Import CoLoR.Util.Nat.NatUtil.
+Require Import CoLoR.Util.Relation.RelUtil.
 
 Require Import Helix.HCOL.CarrierType.
 
@@ -21,6 +23,14 @@ Require Import Helix.HCOL.HCOL.
 Require Import Helix.Util.VecUtil.
 Require Import Helix.Util.FinNat.
 
+Require Import Helix.Util.OptionSetoid.
+Require Import Helix.Util.ErrorSetoid.
+Require Import Helix.MSigmaHCOL.MemSetoid.
+Require Import Helix.Tactics.HelixTactics.
+
+Require Import ExtLib.Structures.Monads.
+Require Import ExtLib.Data.Monads.OptionMonad.
+
 Require Import MathClasses.misc.util.
 Require Import MathClasses.misc.decision.
 Require Import MathClasses.interfaces.canonical_names.
@@ -28,18 +38,10 @@ Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Require Import MathClasses.implementations.peano_naturals.
 Require Import MathClasses.orders.orders.
 
-Require Import Helix.Util.OptionSetoid.
-Require Import Helix.Util.ErrorSetoid.
-Require Import Helix.MSigmaHCOL.MemSetoid.
-Require Import Helix.Tactics.HelixTactics.
+Import MonadNotation.
 
 Open Scope string_scope.
 Open Scope list_scope.
-
-Require Import ExtLib.Structures.Monads.
-Require Import ExtLib.Data.Monads.OptionMonad.
-
-Import MonadNotation.
 Local Open Scope monad_scope.
 Local Open Scope nat_scope.
 
@@ -705,8 +707,6 @@ Definition SHCOL_DSHCOL_mem_block_equiv (mb ma md: mem_block) : Prop :=
       (mem_lookup i ma)
       (mem_lookup i md).
 
-Require Import CoLoR.Util.Relation.RelUtil.
-
 Definition lookup_PExpr (σ:evalContext) (m:memory) (p:PExpr) :=
   a <- evalPExpr σ p ;;
     memory_lookup_err "block_id not found" m a.
@@ -905,7 +905,7 @@ Section BinCarrierA.
       repeat break_match_hyp; try inl_inr.
       apply IHn with (mb:=mem_add n c1 mb).
       lia.
-      rewrite mem_add_comm by auto.
+      rewrite mem_add_comm by lia.
       apply E.
   Qed.
 
@@ -935,7 +935,7 @@ Section BinCarrierA.
       repeat break_match_hyp; try inl_inr.
       apply IHn with (mb:=mem_add n c2 mb).
       lia.
-      rewrite mem_add_comm by auto.
+      rewrite mem_add_comm by lia.
       apply E.
   Qed.
 

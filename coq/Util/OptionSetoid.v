@@ -1,4 +1,5 @@
 Require Import Coq.Classes.RelationClasses.
+Require Import CoLoR.Util.Relation.RelUtil.
 
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.misc.util.
@@ -7,7 +8,6 @@ Require Import MathClasses.misc.decision.
 Require Import ExtLib.Structures.Monads.
 Require Import ExtLib.Data.Monads.OptionMonad.
 
-Require Import CoLoR.Util.Relation.RelUtil.
 
 Require Import Helix.Tactics.HelixTactics.
 
