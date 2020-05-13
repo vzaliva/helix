@@ -1478,9 +1478,12 @@ End NExpr.
 
 Section MExpr.
 
+  Definition R (σ : evalContext) (memH : memoryH) (vellvm : memoryV * (local_env * global_env)) : Type
+    := memory_invariant σ memH vellvm.
+
   (** ** Compilation of MExpr TODO
   *)
-  Lemma genMExpr_correct : forall R R',
+  Lemma genMExpr_correct : forall R',
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (mexp: MExpr) (σ: evalContext) (memH: memoryH)
       (* Vellvm bits *)   (exp: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV) (τ: typ),
@@ -1497,6 +1500,52 @@ Section MExpr.
                                   (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
                   g l memV)).
   Proof.
+    intros R'0 s1 s2 mexp σ memH exp c g l memV τ Hgen Hwf X.
+    unfold denoteMExpr; cbn*.
+    destruct mexp as [[vid] | mblock].
+    - unfold denotePExpr; cbn*.
+
+      (* Extracting information from genMExpr *)
+      unfold genMExpr in Hgen.
+      cbn in Hgen.
+      destruct (nth_error (vars s1) vid) eqn:Hsnth.
+      Focus 2. admit.
+      cbn in Hgen. destruct p.
+      destruct t; inversion Hgen.
+      destruct t; inversion Hgen.
+      destruct t; inversion Hgen.
+      subst.
+
+      unfold WF_IRState in Hwf.
+      pose proof (Hwf _ _ _ Hsnth) as (v & Hnth & Hirtyp).
+
+      rewrite Hnth.
+      destruct v. admit. admit.
+
+      clear Hirtyp. (* I know this is bogus *)
+
+      norm_h.
+      unfold trigger.
+      rewrite interp_Mem_MemLU.
+      repeat norm_h.
+
+      Focus 2.
+      (* I need to know something about memH and a...
+
+         a comes from sigma. So, I probably need to relate sigma and memH and a...
+
+         This is probably part of:
+
+         R σ memH (memV, (l, g))
+       *)
+      unfold R in X.
+      unfold memory_invariant in X.
+      destruct X.
+      admit. (* Provable *)
+      destruct e.
+      pose proof (y _ _ Hnth).
+      cbn in H.
+    - 
   Admitted.
 
 End MExpr.
