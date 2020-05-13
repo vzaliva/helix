@@ -1887,9 +1887,79 @@ Fact build_global_environment_genMain
                [ ] ([ ], [ ]) (empty, empty, [[ ]])   .
 Proof.
   unfold lift_sem_to_mcfg.
-  unfold build_global_environment.
-  unfold convert_types.
+  repeat break_match.
+  -
+    unfold build_global_environment.
+    unfold convert_types.
+    (* [m] and [m0] have same [m_globals] and [m_type_defs] but different [m_declarations]. *)
+    assert(G:m_globals m0 ≡ m_globals m).
+    {
+      destruct m, m0.
+      cbn.
+      unfold AstLib.modul_of_toplevel_entities in *.
+      unfold mcfg_of_modul in *.
+      inv Heqo0.
+      inv Heqo1.
+      repeat break_match_hyp; try some_none.
+      repeat some_inv.
+      rewrite ListUtil.flat_map_app.
+      rewrite app_nil_r.
+      reflexivity.
+    }
+    assert(T:m_type_defs m0 ≡ m_type_defs m).
+    {
+      destruct m, m0.
+      cbn.
+      unfold AstLib.modul_of_toplevel_entities in *.
+      unfold mcfg_of_modul in *.
+      inv Heqo0.
+      inv Heqo1.
+      repeat break_match_hyp; try some_none.
+      repeat some_inv.
+      rewrite ListUtil.flat_map_app.
+      rewrite app_nil_r.
+      reflexivity.
+    }
 
+    assert(D:m_declarations m0 ≡ m_declarations m).
+    {
+      destruct m, m0.
+      cbn.
+      unfold AstLib.modul_of_toplevel_entities in *.
+      unfold mcfg_of_modul in *.
+      inv Heqo0.
+      inv Heqo1.
+      repeat break_match_hyp; try some_none.
+      repeat some_inv.
+      rewrite ListUtil.flat_map_app.
+      rewrite app_nil_r.
+      reflexivity.
+    }
+    rewrite T.
+
+    replace (m_globals (convert_typ (m_type_defs m) m0))
+      with
+        (m_globals (convert_typ (m_type_defs m) m))
+      by
+        (unfold convert_typ, ConvertTyp_mcfg; simpl; rewrite G; reflexivity).
+
+    replace (m_declarations (convert_typ (m_type_defs m) m0))
+      with
+        (m_declarations (convert_typ (m_type_defs m) m))
+      by
+        (unfold convert_typ, ConvertTyp_mcfg; simpl; rewrite D; reflexivity).
+
+    (* The only difference is now [m_definitions] and we
+       need to prove that this does not matter *)
+    admit.
+  -
+    exfalso.
+    admit.
+  -
+    exfalso.
+    admit.
+  -
+    reflexivity.
 Admitted.
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
