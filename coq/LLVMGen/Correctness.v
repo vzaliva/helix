@@ -396,56 +396,44 @@ Section SimulationRelations.
    is a pointer, some values should be pure integer values for
    instance.
 *)
-Definition memory_invariant : Type_R_memory_cfg :=
-  fun (σ : evalContext) (mem_helix : MDSHCOLOnFloat64.memory) '(mem_llvm, x) =>
-    let σ_len := List.length σ in
-    σ_len ≡ 0 \/ (* empty env immediately allowed, as injection could not exists *)
-    let '(ρ, g) := x in
-    exists (ι: injection_Fin raw_id σ_len),
-    forall (x: nat) v,
-      nth_error σ x ≡ Some v ->
-      match v with
-      | DSHnatVal v   =>
-        exists ptr_llvm,
-        ( (* variable in local environment *)
-          (alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Addr ptr_llvm) /\
+  Definition memory_invariant : Type_R_memory_cfg :=
+    fun (σ : evalContext) (mem_helix : MDSHCOLOnFloat64.memory) '(mem_llvm, x) =>
+      let σ_len := List.length σ in
+      σ_len ≡ 0 \/ (* empty env immediately allowed, as injection could not exists *)
+      let '(ρ, g) := x in
+      exists (ι: injection_Fin raw_id σ_len),
+      forall (x: nat) v,
+        nth_error σ x ≡ Some v ->
+        match v with
+        | DSHnatVal v   =>
+          (* variable is either in local environment *)
+          (alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_I64 (DynamicValues.Int64.repr (Int64.intval v))) /\
            alist_find _ (inj_f ι x) g ≡ None) \/
-          (* variable in global environment *)
+          (* or in global environment *)
           (alist_find _ (inj_f ι x) ρ ≡ None /\
-           alist_find _ (inj_f ι x) g ≡ Some (DVALUE_Addr ptr_llvm))) /\
-        (* the block must exists *)
-        (exists  bk_llvm,
-            (get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm) /\
-            (* And value at this pointer must match *)
-            (exists v_llvm,  mem_lookup_llvm_at_i bk_llvm 0 1 v_llvm /\ v_llvm ≡ UVALUE_I64 (DynamicValues.Int64.repr (Int64.intval v))))
-      | DSHCTypeVal v =>
-        exists ptr_llvm,
-        ( (* variable in local environment *)
-          (alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Addr ptr_llvm) /\
+           alist_find _ (inj_f ι x) g ≡ Some (DVALUE_I64 (DynamicValues.Int64.repr (Int64.intval v))))
+        | DSHCTypeVal v =>
+          (* variable is either in local environment *)
+          (alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Double v) /\
            alist_find _ (inj_f ι x) g ≡ None) \/
-          (* variable in global environment *)
+          (* or in global environment *)
           (alist_find _ (inj_f ι x) ρ ≡ None /\
-           alist_find _ (inj_f ι x) g ≡ Some (DVALUE_Addr ptr_llvm))) /\
-        (* the block must exists *)
-        (exists  bk_llvm,
-            (get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm) /\
-            (* And value at this pointer must match *)
-            (exists v_llvm,  mem_lookup_llvm_at_i bk_llvm 0 1 v_llvm /\ v_llvm ≡ UVALUE_Double v))
-      | DSHPtrVal ptr_helix ptr_size_helix =>
-        forall bk_helix,
-          memory_lookup mem_helix ptr_helix ≡ Some bk_helix ->
-          exists ptr_llvm bk_llvm,
-            alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Addr ptr_llvm) /\
-            get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm /\
-            (fun bk_helix bk_llvm =>
-               forall i, Int64.lt i ptr_size_helix ->
-                    exists v_helix v_llvm,
-                      mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v_helix /\
-                      mem_lookup_llvm_at_i bk_llvm (MInt64asNT.to_nat i)
-                                           (MInt64asNT.to_nat ptr_size_helix) v_llvm /\
-                      v_llvm ≡ UVALUE_Double v_helix
-            ) bk_helix bk_llvm
-      end.
+           alist_find _ (inj_f ι x) g ≡ Some (DVALUE_Double v))
+        | DSHPtrVal ptr_helix ptr_size_helix =>
+          forall bk_helix,
+            memory_lookup mem_helix ptr_helix ≡ Some bk_helix ->
+            exists ptr_llvm bk_llvm,
+              alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Addr ptr_llvm) /\
+              get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm /\
+              (fun bk_helix bk_llvm =>
+                 forall i, Int64.lt i ptr_size_helix ->
+                      exists v_helix v_llvm,
+                        mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v_helix /\
+                        mem_lookup_llvm_at_i bk_llvm (MInt64asNT.to_nat i)
+                                             (MInt64asNT.to_nat ptr_size_helix) v_llvm /\
+                        v_llvm ≡ UVALUE_Double v_helix
+              ) bk_helix bk_llvm
+        end.
 
 
 (**
