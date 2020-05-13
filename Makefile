@@ -26,7 +26,7 @@ COQINCLUDES=`grep '\-R' _CoqProject` -R $(EXTRACTDIR) Extract
 COQEXEC=coqtop -q -w none $(COQINCLUDES) -batch -load-vernac-source
 COQVERSION=8.11.1
 
-OPAMPKGS=coq-color coq-ext-lib coq-math-classes coq-metacoq-template coq-switch ANSITerminal coq-flocq coq-paco coq-ceres menhir core core_kernel dune
+OPAMPKGS=coq-color coq-ext-lib coq-math-classes coq-metacoq-template coq-switch ANSITerminal coq-flocq coq-paco coq-ceres menhir core core_kernel dune ocamlbuild
 
 default: all
 
