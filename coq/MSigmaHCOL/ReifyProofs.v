@@ -36,6 +36,13 @@ Require Import Helix.Tactics.HelixTactics.
 Require Import Psatz.
 Require Import Omega.
 
+Require Import ExtLib.Structures.Monad.
+Require Import ExtLib.Structures.Monoid.
+
+Require Import Coq.Lists.SetoidList.
+Require Import CoLoR.Util.List.ListUtil.
+Require Import CoLoR.Util.Nat.NatUtil.
+
 Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Require Import MathClasses.theory.rings.
@@ -43,13 +50,6 @@ Require Import MathClasses.implementations.peano_naturals.
 Require Import MathClasses.orders.orders.
 Require Import MathClasses.orders.semirings.
 Require Import MathClasses.theory.setoids.
-
-Require Import ExtLib.Structures.Monad.
-Require Import ExtLib.Structures.Monoid.
-
-Require Import Coq.Lists.SetoidList.
-Require Import CoLoR.Util.List.ListUtil.
-Require Import CoLoR.Util.Nat.NatUtil.
 
 Import Monoid.
 

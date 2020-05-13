@@ -27,10 +27,6 @@ Require Import Omega.
 
 Require Import Helix.Tactics.HelixTactics.
 
-Require Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.
-Require Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.orders.rings.
-Require Import MathClasses.theory.rings MathClasses.theory.abs.
-Require Import MathClasses.theory.setoids.
 
 (* TODO: get rid of this
    Workaround for: https://github.com/coq/coq/issues/10583
@@ -42,8 +38,15 @@ Module NM := FMapAVL.Make(Nat_as_OT).
 (* --- end workaround *)
 
 Require Import ExtLib.Structures.Monoid.
-Import Monoid.
 
+
+Require Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.
+Require Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.orders.rings.
+Require Import MathClasses.theory.rings MathClasses.theory.abs.
+Require Import MathClasses.theory.setoids.
+
+
+Import Monoid.
 Import VectorNotations.
 
 Local Open Scope vector_scope.
@@ -2660,8 +2663,8 @@ Section SigmaHCOLRewritingRules.
                 +
                   (* x,y < k *)
                   apply Pi; auto.
-                  assert(⟦ t ⟧ x ≢ 0) by auto.
-                  assert(⟦ t ⟧ y ≢ 0) by auto.
+                  assert(⟦ t ⟧ x ≢ 0) by auto with ordered_type.
+                  assert(⟦ t ⟧ y ≢ 0) by auto with ordered_type.
 
                   destruct (⟦ t ⟧ x); try congruence.
                   destruct (⟦ t ⟧ y); try congruence.
@@ -2673,7 +2676,7 @@ Section SigmaHCOLRewritingRules.
                   generalize dependent k.
                   intros k L K NK l n1.
 
-                  assert(⟦ t ⟧ x ≢ 0) by auto.
+                  assert(⟦ t ⟧ x ≢ 0) by auto with ordered_type.
 
                   destruct (eq_nat_dec k (S y)) as [Ek | NEk].
                   *
@@ -2700,7 +2703,7 @@ Section SigmaHCOLRewritingRules.
                   generalize dependent k.
                   intros k L K NK l n0.
 
-                  assert(⟦ t ⟧ y ≢ 0) by auto.
+                  assert(⟦ t ⟧ y ≢ 0) by auto with ordered_type.
 
                   destruct (eq_nat_dec k (S x)) as [Ek | NEk].
                   *
