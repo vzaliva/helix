@@ -1853,6 +1853,8 @@ Proof.
         eapply H.
 Qed.
 
+
+(*
 Fact build_global_environment_genMain
      {g}
      {intrinsics}
@@ -1949,6 +1951,7 @@ Proof.
   -
     reflexivity.
 Admitted.
+*)
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
@@ -1980,16 +1983,25 @@ Proof.
   repeat break_match_hyp; try inl_inr.
   inversion_clear LI.
   repeat rewrite app_assoc.
-  setoid_rewrite build_global_environment_genMain.
-  (*
-  induction globals.
-  -
-    repeat break_match_hyp; try inl_inr.
-    rename m0 into mx, m1 into my.
-    cbn.
-   *)
-Admitted.
 
+  rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+
+  unfold build_global_environment.
+  unfold lift_sem_to_mcfg.
+  break_match.
+  2:{
+    (* TODO: prove contradiction in Heqo0 *)
+    admit.
+  }
+
+  cbn.
+  rewrite 2!interp_to_L3_bind.
+  rewrite bind_bind.
+  unfold translate_E_vellvm_mcfg.
+  rewrite translate_bind.
+  unshelve eapply eutt_clo_bind.
+
+Admitted.
 
 (*
 Lemma memory_invariant_after_init
