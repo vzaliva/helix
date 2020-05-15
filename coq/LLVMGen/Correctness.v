@@ -951,6 +951,10 @@ vars s1 = σ?
     fun σ '(memH,_) '(memV,((l,sl),(g,_))) =>  
       memory_invariant σ memH (memV,(l,g)).
 
+  Definition memory_invariant_memory_mcfg: Type_R_memory_mcfg :=
+    fun σ memH '(memV,((l,sl),g)) =>
+      memory_invariant σ memH (memV,(l,g)).
+
   (* TODO: come back to this alternate statement *)
   (* Lemma genNExpr_correct : *)
   (*   forall (* Compiler bits *) (s1 s2: IRState) *)
@@ -1999,7 +2003,9 @@ Proof.
   rewrite bind_bind.
   unfold translate_E_vellvm_mcfg.
   rewrite translate_bind.
-  unshelve eapply eutt_clo_bind.
+
+  apply eutt_clo_bind with (UU:=(lift_R_memory_mcfg memory_invariant_memory_mcfg) _ _ e).
+
 
 Admitted.
 
