@@ -1049,13 +1049,19 @@ Fixpoint genIR
         end)
           (fun m => raise (m @@ " in " @@ fshcol_s)).
 
+Definition body_get_entry (body : list (block typ)) : cerr (block typ * list (block typ)) :=
+  match body with
+  | [] => raise "Attempting to generate a function containing no block"
+  | b::body => ret (b,body)
+  end.
+
 Definition LLVMGen
            (i o: Int64.int)
            (globals: list (string*DSHType))
            (globals_extern: bool)
            (fshcol: DSHOperator)
            (funname: string)
-  : cerr (toplevel_entities typ (list (block typ)))
+  : cerr (toplevel_entities typ (block typ * list (block typ)))
   :=
     let x := Name "X" in
     let xtyp := TYPE_Pointer (getIRType (DSHPtr i)) in
@@ -1084,46 +1090,45 @@ Definition LLVMGen
         |} in
     '(_,body) <- genIR fshcol rid ;;
     let body := body ++ [retblock] in
-    let all_intrinsics:toplevel_entities typ (list (block typ))
+    body <- body_get_entry body;; 
+    let all_intrinsics:toplevel_entities typ (block typ * list (block typ))
         := [TLE_Comment "Prototypes for intrinsics we use"]
              ++ (List.map (TLE_Declaration) (
                             helix_intrinsics_decls ++ defined_intrinsics_decls))
-    in
+    in 
     ret
-      (all_intrinsics ++
+      (all_intrinsics ++ 
                       (if globals_extern then
-                         (genIRGlobals (FnBody:=list (block typ)) globals) else []) ++
+                         (genIRGlobals (FnBody:= block typ * list (block typ)) globals) else []) ++
                       [
                         TLE_Comment "Top-level operator definition" ;
-                          TLE_Definition
+                      TLE_Definition 
+                        {|
+                          df_prototype   :=
                             {|
-                              df_prototype   :=
-                                {|
-                                  dc_name        := Name funname;
-                                  dc_type        := TYPE_Function TYPE_Void [xtyp; ytyp] ;
-                                  dc_param_attrs := ([],
-                                                     [[PARAMATTR_Readonly] ++ ArrayPtrParamAttrs;
-                                                        ArrayPtrParamAttrs]);
-                                  dc_linkage     := None ;
-                                  dc_visibility  := None ;
-                                  dc_dll_storage := None ;
-                                  dc_cconv       := None ;
-                                  dc_attrs       := []   ;
-                                  dc_section     := None ;
-                                  dc_align       := None ;
-                                  dc_gc          := None
-                                |} ;
-                              df_args        := [x;y];
-                              df_instrs      := body
-                            |}
-                      ]
-      ).
-
+                              dc_name        := Name funname;
+                              dc_type        := TYPE_Function TYPE_Void [xtyp; ytyp] ;
+                              dc_param_attrs := ([],
+                                                 [[PARAMATTR_Readonly] ++ ArrayPtrParamAttrs;
+                                                 ArrayPtrParamAttrs]);
+                              dc_linkage     := None ;
+                              dc_visibility  := None ;
+                              dc_dll_storage := None ;
+                              dc_cconv       := None ;
+                              dc_attrs       := []   ;
+                              dc_section     := None ;
+                              dc_align       := None ;
+                              dc_gc          := None
+                            |} ;
+                          df_args        := [x;y];
+                          df_instrs      := body
+                        |}
+      ]).
 
 Definition initOneIRGlobal
            (data: list binary64)
            (nmt:string * DSHType)
-  : err (list binary64 * (toplevel_entity typ (list (block typ))))
+  : err (list binary64 * (toplevel_entity typ (block typ * list (block typ))))
   :=
     let (nm,t) := nmt in
     match t with
@@ -1222,7 +1227,7 @@ Definition global_uniq_chk: string * DSHType -> list (string * DSHType) -> err u
 Definition initIRGlobals
          (data: list binary64)
          (x: list (string * DSHType))
-  : err (list binary64 * list (toplevel_entity typ (list (block typ))))
+  : err (list binary64 * list (toplevel_entity typ (block typ * list (block typ))))
   := init_with_data initOneIRGlobal global_uniq_chk (data) x.
 
 (*
@@ -1230,7 +1235,7 @@ Definition initIRGlobals
    will be stored in pre-initialized [X] global variable.
  *)
 Definition global_YX (i o:Int64.int) (data:list binary64) x xtyp y ytyp:
-  LLVMAst.toplevel_entities _ (list (LLVMAst.block typ))
+  LLVMAst.toplevel_entities _ (LLVMAst.block typ * list (LLVMAst.block typ))
   :=
     let '(data,ydata) := constArray (MInt64asNT.to_nat o) data in
     let '(_,xdata) := constArray (MInt64asNT.to_nat i) data in
@@ -1278,7 +1283,7 @@ Definition genMain
            (yptyp:typ)
            (globals: list (string * DSHType))
            (data:list binary64)
-  : LLVMAst.toplevel_entities _ (list (LLVMAst.block typ))
+  : LLVMAst.toplevel_entities _ (LLVMAst.block typ * list (LLVMAst.block typ))
   :=
     let z := Name "z" in
     [
@@ -1301,7 +1306,7 @@ Definition genMain
                 dc_gc          := None
               |} ;
             df_args        := [];
-            df_instrs      := [
+            df_instrs      := (
                                {|
                                  blk_id    := Name "main_block" ;
                                  blk_phis  := [];
@@ -1314,12 +1319,10 @@ Definition genMain
 
                                  blk_term  := (IId (Name "main_ret"), TERM_Ret (ytyp, EXP_Ident (ID_Local z))) ;
                                  blk_comments := None
-                               |}
-
-                             ]
+                               |}, [])
           |}].
 
-Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): err (toplevel_entities typ (list (block typ))) :=
+Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): err (toplevel_entities typ (block typ * list (block typ))) :=
   match p with
   | mkFSHCOLProgram i o name globals op =>
     '(data,ginit) <- initIRGlobals data globals ;;
@@ -1343,5 +1346,5 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
       ret (ginit ++ yxinit ++ prog ++ main)%list
   end.
 
-Definition compile_w_main (p: FSHCOLProgram): list binary64 -> err (toplevel_entities typ (list (block typ))) :=
+Definition compile_w_main (p: FSHCOLProgram): list binary64 -> err (toplevel_entities typ (block typ * list (block typ))) :=
   compile p false.

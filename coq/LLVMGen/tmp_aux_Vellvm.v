@@ -82,7 +82,7 @@ From Vellvm Require Import TopLevelRefinements.
 
 Section InterpreterCFG.
 
-(**
+  (**
    Partial interpretations of the trees produced by the
    denotation of cfg. They differ from the ones of Vellvm programs by
    their event signature, as well as by the lack of a stack of local event.
@@ -90,96 +90,96 @@ Section InterpreterCFG.
    to perform the required semantic reasoning, and lift for free the
    equivalence down the pipe.
    This gives us a _vertical_ notion of compositionality.
- *)
+   *)
 
-(**
+  (**
    NOTE: Can we avoid this duplication w.r.t. [interp_to_Li]?
-*)
+   *)
 
-Definition interp_cfg_to_L1 {R} user_intrinsics (t: itree instr_E R) (g: global_env) :=
-  let L0_trace       := interp_intrinsics user_intrinsics t in
-  let L1_trace       := interp_global L0_trace g in
-  L1_trace.
+  Definition interp_cfg_to_L1 {R} user_intrinsics (t: itree instr_E R) (g: global_env) :=
+    let L0_trace       := interp_intrinsics user_intrinsics t in
+    let L1_trace       := interp_global L0_trace g in
+    L1_trace.
 
-Definition interp_cfg_to_L2 {R} user_intrinsics (t: itree instr_E R) (g: global_env) (l: local_env) :=
-  let L0_trace       := interp_intrinsics user_intrinsics t in
-  let L1_trace       := interp_global L0_trace g in
-  let L2_trace       := interp_local L1_trace l in
-  L2_trace.
+  Definition interp_cfg_to_L2 {R} user_intrinsics (t: itree instr_E R) (g: global_env) (l: local_env) :=
+    let L0_trace       := interp_intrinsics user_intrinsics t in
+    let L1_trace       := interp_global L0_trace g in
+    let L2_trace       := interp_local L1_trace l in
+    L2_trace.
 
-Definition interp_cfg_to_L3 {R} user_intrinsics (t: itree instr_E R) (g: global_env) (l: local_env) (m: memory_stack) :=
-  let L0_trace       := interp_intrinsics user_intrinsics t in
-  let L1_trace       := interp_global L0_trace g in
-  let L2_trace       := interp_local L1_trace l in
-  let L3_trace       := M.interp_memory L2_trace m in
-  L3_trace.
+  Definition interp_cfg_to_L3 {R} user_intrinsics (t: itree instr_E R) (g: global_env) (l: local_env) (m: memory_stack) :=
+    let L0_trace       := interp_intrinsics user_intrinsics t in
+    let L1_trace       := interp_global L0_trace g in
+    let L2_trace       := interp_local L1_trace l in
+    let L3_trace       := M.interp_memory L2_trace m in
+    L3_trace.
 
-Definition interp_cfg_to_L4 {R} user_intrinsics (t: itree instr_E R) (g: global_env) (l: local_env) (m: memory_stack) :=
-  let L0_trace       := interp_intrinsics user_intrinsics t in
-  let L1_trace       := interp_global L0_trace g in
-  let L2_trace       := interp_local L1_trace l in
-  let L3_trace       := M.interp_memory L2_trace m in
-  let L4_trace       := P.model_undef L3_trace in
-  L4_trace.
+  Definition interp_cfg_to_L4 {R} user_intrinsics (t: itree instr_E R) (g: global_env) (l: local_env) (m: memory_stack) :=
+    let L0_trace       := interp_intrinsics user_intrinsics t in
+    let L1_trace       := interp_global L0_trace g in
+    let L2_trace       := interp_local L1_trace l in
+    let L3_trace       := M.interp_memory L2_trace m in
+    let L4_trace       := P.model_undef L3_trace in
+    L4_trace.
 
-Definition interp_cfg_to_L5 {R} user_intrinsics (t: itree instr_E R) (g: global_env) (l: local_env) (m: memory_stack) :=
-  let L0_trace       := interp_intrinsics user_intrinsics t in
-  let L1_trace       := interp_global L0_trace g in
-  let L2_trace       := interp_local L1_trace l in
-  let L3_trace       := M.interp_memory L2_trace m in
-  let L4_trace       := P.model_undef L3_trace in
-  UndefinedBehaviour.model_UB L4_trace.
+  Definition interp_cfg_to_L5 {R} user_intrinsics (t: itree instr_E R) (g: global_env) (l: local_env) (m: memory_stack) :=
+    let L0_trace       := interp_intrinsics user_intrinsics t in
+    let L1_trace       := interp_global L0_trace g in
+    let L2_trace       := interp_local L1_trace l in
+    let L3_trace       := M.interp_memory L2_trace m in
+    let L4_trace       := P.model_undef L3_trace in
+    UndefinedBehaviour.model_UB L4_trace.
 
-Lemma interp_cfg_to_L1_bind :
-  forall ui {R S} (t: itree instr_E R) (k: R -> itree instr_E S) g, 
-    interp_cfg_to_L1 ui (ITree.bind t k) g ≈
-                 (ITree.bind (interp_cfg_to_L1 ui t g) (fun '(g',x) => interp_cfg_to_L1 ui (k x) g')).
-Proof.
-  intros.
-  unfold interp_cfg_to_L1.
-  rewrite interp_intrinsics_bind, interp_global_bind.
-  apply eutt_eq_bind; intros (? & ?); reflexivity.
-Qed.
+  Lemma interp_cfg_to_L1_bind :
+    forall ui {R S} (t: itree instr_E R) (k: R -> itree instr_E S) g, 
+      interp_cfg_to_L1 ui (ITree.bind t k) g ≈
+                       (ITree.bind (interp_cfg_to_L1 ui t g) (fun '(g',x) => interp_cfg_to_L1 ui (k x) g')).
+  Proof.
+    intros.
+    unfold interp_cfg_to_L1.
+    rewrite interp_intrinsics_bind, interp_global_bind.
+    apply eutt_eq_bind; intros (? & ?); reflexivity.
+  Qed.
 
-Lemma interp_cfg_to_L1_ret : forall ui (R : Type) g (x : R), interp_cfg_to_L1 ui (Ret x) g ≈ Ret (g,x).
-Proof.
-  intros; unfold interp_cfg_to_L1.
-  rewrite interp_intrinsics_ret, interp_global_ret; reflexivity.
-Qed.
+  Lemma interp_cfg_to_L1_ret : forall ui (R : Type) g (x : R), interp_cfg_to_L1 ui (Ret x) g ≈ Ret (g,x).
+  Proof.
+    intros; unfold interp_cfg_to_L1.
+    rewrite interp_intrinsics_ret, interp_global_ret; reflexivity.
+  Qed.
 
-Lemma interp_cfg_to_L2_bind :
-  forall ui {R S} (t: itree instr_E R) (k: R -> itree instr_E S) g l,
-    interp_cfg_to_L2 ui (ITree.bind t k) g l ≈
-                 (ITree.bind (interp_cfg_to_L2 ui t g l) (fun '(g',(l',x)) => interp_cfg_to_L2 ui (k x) l' g')).
-Proof.
-  intros.
-  unfold interp_cfg_to_L2.
-  rewrite interp_intrinsics_bind, interp_global_bind, interp_local_bind.
-  apply eutt_eq_bind; intros (? & ? & ?); reflexivity.
-Qed.
+  Lemma interp_cfg_to_L2_bind :
+    forall ui {R S} (t: itree instr_E R) (k: R -> itree instr_E S) g l,
+      interp_cfg_to_L2 ui (ITree.bind t k) g l ≈
+                       (ITree.bind (interp_cfg_to_L2 ui t g l) (fun '(g',(l',x)) => interp_cfg_to_L2 ui (k x) l' g')).
+  Proof.
+    intros.
+    unfold interp_cfg_to_L2.
+    rewrite interp_intrinsics_bind, interp_global_bind, interp_local_bind.
+    apply eutt_eq_bind; intros (? & ? & ?); reflexivity.
+  Qed.
 
-Lemma interp_cfg_to_L2_ret : forall ui (R : Type) g l (x : R), interp_cfg_to_L2 ui (Ret x) g l ≈ Ret (l, (g, x)).
-Proof.
-  intros; unfold interp_cfg_to_L2.
-  rewrite interp_intrinsics_ret, interp_global_ret, interp_local_ret; reflexivity.
-Qed.
+  Lemma interp_cfg_to_L2_ret : forall ui (R : Type) g l (x : R), interp_cfg_to_L2 ui (Ret x) g l ≈ Ret (l, (g, x)).
+  Proof.
+    intros; unfold interp_cfg_to_L2.
+    rewrite interp_intrinsics_ret, interp_global_ret, interp_local_ret; reflexivity.
+  Qed.
 
-Lemma interp_cfg_to_L3_bind :
-  forall ui {R S} (t: itree instr_E R) (k: R -> itree instr_E S) g l m,
-    interp_cfg_to_L3 ui (ITree.bind t k) g l m ≈
-                 (ITree.bind (interp_cfg_to_L3 ui t g l m) (fun '(m',(l',(g',x))) => interp_cfg_to_L3 ui (k x) g' l' m')).
-Proof.
-  intros.
-  unfold interp_cfg_to_L3.
-  rewrite interp_intrinsics_bind, interp_global_bind, interp_local_bind, interp_memory_bind.
-  apply eutt_eq_bind; intros (? & ? & ? & ?); reflexivity.
-Qed.
+  Lemma interp_cfg_to_L3_bind :
+    forall ui {R S} (t: itree instr_E R) (k: R -> itree instr_E S) g l m,
+      interp_cfg_to_L3 ui (ITree.bind t k) g l m ≈
+                       (ITree.bind (interp_cfg_to_L3 ui t g l m) (fun '(m',(l',(g',x))) => interp_cfg_to_L3 ui (k x) g' l' m')).
+  Proof.
+    intros.
+    unfold interp_cfg_to_L3.
+    rewrite interp_intrinsics_bind, interp_global_bind, interp_local_bind, interp_memory_bind.
+    apply eutt_eq_bind; intros (? & ? & ? & ?); reflexivity.
+  Qed.
 
-Lemma interp_cfg_to_L3_ret : forall ui (R : Type) g l m (x : R), interp_cfg_to_L3 ui (Ret x) g l m ≈ Ret (m, (l, (g,x))).
-Proof.
-  intros; unfold interp_cfg_to_L3.
-  rewrite interp_intrinsics_ret, interp_global_ret, interp_local_ret, interp_memory_ret; reflexivity.
-Qed.
+  Lemma interp_cfg_to_L3_ret : forall ui (R : Type) g l m (x : R), interp_cfg_to_L3 ui (Ret x) g l m ≈ Ret (m, (l, (g,x))).
+  Proof.
+    intros; unfold interp_cfg_to_L3.
+    rewrite interp_intrinsics_ret, interp_global_ret, interp_local_ret, interp_memory_ret; reflexivity.
+  Qed.
 
 Global Instance eutt_interp_cfg_to_L1 (defs: intrinsic_definitions) {T}:
   Proper (eutt Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_cfg_to_L1 T defs).
@@ -760,21 +760,15 @@ Section TLE_To_Modul.
       apply map_option_cons; auto.
   Qed.
 
-  Lemma mcfg_of_app_modul: forall {T} p1 p2 (m : mcfg T),
-      mcfg_of_modul _ (p1 @ p2) = Some m ->
-      exists m1 m2, mcfg_of_modul _ p1 = Some m1 /\
-               mcfg_of_modul _ p2 = Some m2 /\
-               m1 @ m2 = m.
+  Lemma mcfg_of_app_modul: forall {T} (p1 p2 : modul T _) (m : mcfg T),
+      mcfg_of_modul _ (p1 @ p2) = mcfg_of_modul _ p1 @ mcfg_of_modul _ p2.
   Proof.
-    intros * EQ; cbn in EQ.
-    break_match_hyp; inv_option.
-    rewrite m_definitions_app in Heqo.
-    apply map_option_app_inv in Heqo; destruct Heqo as (? & ? & EQ1 & EQ2 & ->).
-    cbn; rewrite EQ1, EQ2; do 2 eexists; repeat split; try reflexivity.
-    cbn.
-    rewrite m_name_app, m_target_app, m_datalayout_app, m_type_defs_app, m_globals_app, m_declarations_app; reflexivity. 
+    intros; cbn.
+    unfold mcfg_of_modul.
+    rewrite  m_name_app, m_target_app, m_datalayout_app, m_type_defs_app, m_globals_app, m_declarations_app; f_equal; try reflexivity. 
+    rewrite m_definitions_app, map_app; reflexivity.
   Qed.
-
+   
 End TLE_To_Modul.
 
 Infix "@" := (modul_app) (at level 60).

@@ -159,7 +159,7 @@ NOTEYZ: An alternative would be to translate everything that remains into failur
   (* On the Vellvm side, for [mcfg]: *)
   Definition semantics_llvm_mcfg p : itree E_mcfg _ := translate_E_vellvm_mcfg (model_to_L3 DTYPE_Void "main" main_args helix_intrinsics p).
   (* Which get lifted to [toplevel_entity] as usual: *)
-  Definition semantics_llvm (prog: list (toplevel_entity typ (list (LLVMAst.block typ)))) :=
+  Definition semantics_llvm (prog: list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ)))) :=
     lift_sem_to_mcfg semantics_llvm_mcfg prog.
 
   (* On the Helix side: *)
@@ -1616,8 +1616,7 @@ Qed.
 
 Fact initIRGlobals_cons_head_uniq:
   ∀ (a : string * DSHType) (globals : list (string * DSHType))
-    (data : list binary64) (res : list binary64 *
-                                  list (toplevel_entity typ (list (LLVMAst.block typ)))),
+    (data : list binary64) (res : list binary64 * list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ)))),
     initIRGlobals data (a :: globals) ≡ inr res ->
     forall (j : nat) (n : string) (v : DSHType),
       (nth_error globals j ≡ Some (n, v) /\ n ≡ fst a) → False.
@@ -1971,35 +1970,35 @@ Lemma memory_invariant_after_init
 Proof.
   intros hmem σ hdata pll [HI LI].
 
-  unfold memory_invariant_MCFG, memory_invariant.
-  unfold helix_intial_memory in *.
-  cbn in *.
-  repeat break_match_hyp ; try inl_inr.
-  subst.
-  inv HI.
-  cbn in *.
+  (* unfold memory_invariant_MCFG, memory_invariant. *)
+  (* unfold helix_intial_memory in *. *)
+  (* cbn in *. *)
+  (* repeat break_match_hyp ; try inl_inr. *)
+  (* subst. *)
+  (* inv HI. *)
+  (* cbn in *. *)
 
-  eutt_hide_rel.
-  repeat break_match_hyp; try inl_inr.
-  inversion_clear LI.
-  repeat rewrite app_assoc.
+  (* eutt_hide_rel. *)
+  (* repeat break_match_hyp; try inl_inr. *)
+  (* inversion_clear LI. *)
+  (* repeat rewrite app_assoc. *)
 
-  rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+  (* rewrite <- bind_ret_r. (* Add fake "bind" at LHS *) *)
 
-  unfold build_global_environment.
-  unfold lift_sem_to_mcfg.
-  break_match.
-  2:{
-    (* TODO: prove contradiction in Heqo0 *)
-    admit.
-  }
+  (* unfold build_global_environment. *)
+  (* unfold lift_sem_to_mcfg. *)
+  (* break_match. *)
+  (* 2:{ *)
+  (*   (* TODO: prove contradiction in Heqo0 *) *)
+  (*   admit. *)
+  (* } *)
 
-  cbn.
-  rewrite 2!interp_to_L3_bind.
-  rewrite bind_bind.
-  unfold translate_E_vellvm_mcfg.
-  rewrite translate_bind.
-  unshelve eapply eutt_clo_bind.
+  (* cbn. *)
+  (* rewrite 2!interp_to_L3_bind. *)
+  (* rewrite bind_bind. *)
+  (* unfold translate_E_vellvm_mcfg. *)
+  (* rewrite translate_bind. *)
+  (* unshelve eapply eutt_clo_bind. *)
 
 Admitted.
 
@@ -2413,7 +2412,7 @@ Admitted.
 Lemma compiler_correct_aux:
   forall (p:FSHCOLProgram)
     (data:list binary64)
-    (pll: toplevel_entities typ (list (LLVMAst.block typ))),
+    (pll: toplevel_entities typ (LLVMAst.block typ * list (LLVMAst.block typ))),
     compile_w_main p data ≡ inr pll ->
     eutt (bisim_full []) (semantics_FSHCOL p data) (semantics_llvm pll).
 Proof.
@@ -2453,12 +2452,12 @@ Qed.
 (* Qed. *)
 
 (* YZ TODO move  *)
-
+From Vellvm Require Import AstLib.
   (* Top-level compiler correctness lemma  *)
   Theorem compiler_correct:
     forall (p:FSHCOLProgram)
       (data:list binary64)
-      (pll: toplevel_entities typ (list (LLVMAst.block typ))),
+      (pll: toplevel_entities typ (LLVMAst.block typ * list (LLVMAst.block typ))),
       compile_w_main p data ≡ inr pll ->
       eutt (bisim_final []) (semantics_FSHCOL p data) (semantics_llvm pll).
   Proof.
@@ -2482,58 +2481,63 @@ Qed.
       |- context[_ :: ?x ++ ?y ++ ?z ++ ?t] => remember x as f1; remember y as f2; remember t as f3; remember z as f4
     end.
 
-    unfold semantics_llvm. 
+    unfold semantics_llvm.
     unfold lift_sem_to_mcfg.
+    (* break_match_goal. *)
+    (* mcfg_of_modul *)
+    (* Lemma semantics_llvm_red : *)
+    (*   forall p, semantics_llvm p ≈ semantics_llvm p. *)
+    (* Proof. *)
+    (*   unfold semantics_llvm. *)
+    (*   intros p. *)
+    (*   unfold lift_sem_to_mcfg. *)
+    (*   break_match_goal. *)
+    (*   { *)
+    (*     unfold semantics_llvm_mcfg, model_to_L3, denote_vellvm_init, denote_vellvm, translate_E_vellvm_mcfg. *)
+    (*     simpl bind. *)
+    (*     rewrite interp_to_L3_bind, translate_bind. *)
+    (*     match goal with *)
+    (*     | ?t ≈ _ => assert (t ≈ ITree.bind (lift_sem_to_mcfg (fun p =>  *)
 
-    rewrite modul_of_toplevel_entities_cons, !modul_of_toplevel_entities_app.
-    
-    break_match_goal.
 
-    (* {  *)
+    (* setoid_rewrite bind_bind. *)
+    (*   unfold translate_E_vellvm_mcfg. *)
+    (* setoid_rewrite (interp_to_L3_bind helix_intrinsics . *)
+
+    (* unfold lift_sem_to_mcfg. *)
+    (* break_match_goal. *)
+    (* { *)
+    (*   unfold semantics_llvm_mcfg, model_to_L3, denote_vellvm_init, denote_vellvm. *)
+    (*   simpl bind. *)
+    (*   unfold translate_E_vellvm_mcfg. *)
+    (*   rewrite interp_to_L3_bind, translate_bind. *)
+
+    (*   rewrite modul_of_toplevel_entities *)
+    (*           cons, !modul_of_toplevel_entities_app in Heqo0. *)
+
+      
     (*   repeat match goal with *)
-    (*   | h: mcfg_of_modul _ (_ @ _) ≡ _ |- _ => *)
-    (*     apply mcfg_of_app_modul in h; *)
-    (*       destruct h as (? & ? & ?EQ & ?EQ & <-) *)
-    (*   end. *)
+    (*          | h: mcfg_of_modul _ (_ @ _) ≡ _ |- _ => *)
+    (*            apply mcfg_of_app_modul in h; *)
+    (*              destruct h as (? & ? & ?EQ & ?EQ & <-) *)
+    (*          end. *)
     (*   Transparent map_option. *)
     (*   cbn in EQ. *)
     (*   injection EQ; clear EQ; intro EQ. *)
-    (*   subst f2. *)
-    (*   unfold global_YX,constArray in EQ1. *)
+    (*   subst. l0. f1 . *)
+    (*   cbn in EQ0. *)
       
 
-    (*   cbn in EQ1. *)
-    (*   destruct Heqo0 as (m. *)
-      
-    (* destruct tle2 eqn:EQ; cbn. *)
-    (*     reflexivity. *)
-    (*   m (modul_of_toplevel_entities T tle2); cbn. *)
-    (*   unfold modul_app; cbn. *)
+    (* } *)
 
+    (* { *)
+    (*   (* The conversion from top level entities to modul failed *) *)
+    (*   (* There is a toplevel entity with an empty list of instruction *) *)
+    (*   admit. *)
+    (* } *)
 
-(* (AstLib.modul_of_toplevel_entities typ (TLE_Comment "Global variables" :: f1 ++ f2 ++ f4 ++ f3)) *)
-
-(*   2:{ *)
-(*     Opaque map_option. *)
-(*     subst. *)
-(*     cbn in *. *)
     
-(*     { *)
-(*   } *)
 
-
-  (* cbn. *)
-
-  (* setoid_rewrite bind_bind.  interp_to_L3_bind. *)
- (* This no longer follows from [compiler_correct_aux]. It will
-     at pen-ultimate step when the [main] does [return] on a memory
-     block.
-
-       eapply eqit_mon.
-       3:apply bisim_full_final_subrelation.
-       3:eapply compiler_correct_aux.
-       tauto.
-       tauto.
-       tauto.
-   *)  
+    (*         unfold global_YX,constArray in EQ1. *)
+      
 Admitted.
