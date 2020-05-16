@@ -1858,104 +1858,24 @@ Proof.
 Qed.
 
 
-(*
-Fact build_global_environment_genMain
-     {g}
-     {intrinsics}
-     (i o: Int64.int)
-     (op_name: string)
-     (x:raw_id)
-     (xptyp:typ)
-     (y:raw_id)
-     (ytyp:typ)
-     (yptyp:typ)
-     (globals: list (string * DSHType))
-     (data:list binary64):
-  interp_to_L3 intrinsics
-               (lift_sem_to_mcfg build_global_environment
-                                 (g ++ (genMain i o op_name x xptyp y ytyp yptyp globals data))%list)
-               [ ] ([ ], [ ]) (empty, empty, [[ ]])
-  ≡
-  interp_to_L3 intrinsics
-               (lift_sem_to_mcfg build_global_environment g)
-               [ ] ([ ], [ ]) (empty, empty, [[ ]])   .
+Fact no_globals_in_genMain
+     {i o name x xtyp y ytyp yptyp globals data}
+  :
+    flat_map (AstLib.globals_of typ)
+    (genMain i o name x xtyp y ytyp yptyp globals data) ≡ [].
 Proof.
-  unfold lift_sem_to_mcfg.
-  repeat break_match.
-  -
-    unfold build_global_environment.
-    unfold convert_types.
-    (* [m] and [m0] have same [m_globals] and [m_type_defs] but different [m_declarations]. *)
-    assert(G:m_globals m0 ≡ m_globals m).
-    {
-      destruct m, m0.
-      cbn.
-      unfold AstLib.modul_of_toplevel_entities in *.
-      unfold mcfg_of_modul in *.
-      inv Heqo0.
-      inv Heqo1.
-      repeat break_match_hyp; try some_none.
-      repeat some_inv.
-      rewrite ListUtil.flat_map_app.
-      rewrite app_nil_r.
-      reflexivity.
-    }
-    assert(T:m_type_defs m0 ≡ m_type_defs m).
-    {
-      destruct m, m0.
-      cbn.
-      unfold AstLib.modul_of_toplevel_entities in *.
-      unfold mcfg_of_modul in *.
-      inv Heqo0.
-      inv Heqo1.
-      repeat break_match_hyp; try some_none.
-      repeat some_inv.
-      rewrite ListUtil.flat_map_app.
-      rewrite app_nil_r.
-      reflexivity.
-    }
+  reflexivity.
+Qed.
 
-    assert(D:m_declarations m0 ≡ m_declarations m).
-    {
-      destruct m, m0.
-      cbn.
-      unfold AstLib.modul_of_toplevel_entities in *.
-      unfold mcfg_of_modul in *.
-      inv Heqo0.
-      inv Heqo1.
-      repeat break_match_hyp; try some_none.
-      repeat some_inv.
-      rewrite ListUtil.flat_map_app.
-      rewrite app_nil_r.
-      reflexivity.
-    }
-    rewrite T.
+Fact no_type_defs_in_genMain
+     {i o name x xtyp y ytyp yptyp globals data}
+  :
+    flat_map (AstLib.type_defs_of typ)
+    (genMain i o name x xtyp y ytyp yptyp globals data) ≡ [].
+Proof.
+  reflexivity.
+Qed.
 
-    replace (m_globals (convert_typ (m_type_defs m) m0))
-      with
-        (m_globals (convert_typ (m_type_defs m) m))
-      by
-        (unfold convert_typ, ConvertTyp_mcfg; simpl; rewrite G; reflexivity).
-
-    replace (m_declarations (convert_typ (m_type_defs m) m0))
-      with
-        (m_declarations (convert_typ (m_type_defs m) m))
-      by
-        (unfold convert_typ, ConvertTyp_mcfg; simpl; rewrite D; reflexivity).
-
-    (* The only difference is now [m_definitions] and we
-       need to prove that this does not matter *)
-    admit.
-  -
-    exfalso.
-    admit.
-  -
-    exfalso.
-    admit.
-  -
-    reflexivity.
-Admitted.
-*)
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
@@ -1998,14 +1918,51 @@ Proof.
     admit.
   }
 
-  cbn.
-  rewrite 2!interp_to_L3_bind.
+  simpl.
+  unfold allocate_globals.
+  unfold map_monad_.
+  rewrite interp_to_L3_bind.
+  setoid_rewrite interp_to_L3_bind.
   rewrite bind_bind.
   unfold translate_E_vellvm_mcfg.
   rewrite translate_bind.
-
+  rename Heqo0 into M, Heqs into G, Heqs0 into L, HeqP into EP.
   apply eutt_clo_bind with (UU:=(lift_R_memory_mcfg memory_invariant_memory_mcfg) _ _ e).
+  -
+    destruct m2.
+    unfold mcfg_of_modul in M.
+    simpl in M.
+    break_match_hyp; try some_none.
+    some_inv.
+    subst.
+    simpl.
+    clear m_definitions Heqo0.
+    repeat rewrite ListUtil.flat_map_app.
+    rewrite no_globals_in_genMain.
+    rewrite no_type_defs_in_genMain.
+    (* no more [genMain] *)
+    induction globals.
+    +
+      cbn in G.
+      inl_inr_inv.
+      cbn in L.
+      inl_inr_inv.
+      subst.
+      simpl.
 
+      admit.
+    +
+      admit.
+  -
+    clear.
+    intros u1 u2 H.
+    rewrite translate_bind.
+    Fail setoid_rewrite interp_to_L3_bind.
+
+    rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+    (* eapply eutt_clo_bind. *)
+
+    admit.
 
 Admitted.
 
