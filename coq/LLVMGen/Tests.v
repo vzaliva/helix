@@ -13,7 +13,7 @@ Require Import Helix.Util.ErrorWithState.
 
 Require Import Vellvm.LLVMEvents.
 Require Import Vellvm.Denotation.
-Require Import Vellvm.Handlers.Memory.
+Require Import Vellvm.Handlers.Handlers.
 Require Import Vellvm.TopLevel.
 Require Import Vellvm.LLVMAst.
 
@@ -181,10 +181,9 @@ Definition all_tests :=
 
 Import MonadNotation.
 
-Import IO.
-Export IO.DV.
+Export DV.
 
-Definition test_interpreter := TopLevelEnv.interpreter_user DynamicTypes.DTYPE_Void "main" TopLevelEnv.main_args helix_intrinsics.
+Definition test_interpreter := interpreter_user DynamicTypes.DTYPE_Void "main" main_args helix_intrinsics.
 
 (* Returns a tuple [(Option p, Option d, e)] containting:
    - p: generated LLVM program

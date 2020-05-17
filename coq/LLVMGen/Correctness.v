@@ -83,12 +83,14 @@ Require Import Vellvm.Util.
 Require Import Vellvm.LLVMEvents.
 Require Import Vellvm.DynamicTypes.
 Require Import Vellvm.Denotation.
-Require Import Vellvm.Handlers.Memory.
+Require Import Vellvm.Handlers.Handlers.
 Require Import Vellvm.TopLevel.
 Require Import Vellvm.LLVMAst.
 Require Import Vellvm.CFG.
-Require Import Vellvm.TypToDtyp.
+Require Import Vellvm.InterpreterMCFG.
+Require Import Vellvm.InterpreterCFG.
 Require Import Vellvm.TopLevelRefinements.
+Require Import Vellvm.TypToDtyp.
 Require Import Vellvm.LLVMEvents.
 
 Require Import Ceres.Ceres.
@@ -114,14 +116,14 @@ Set Implicit Arguments.
 Set Strict Implicit.
 
 Import MDSHCOLOnFloat64.
-Import D IO INT M Global Local.
-Import TopLevelEnv.
+Import D.
+(* IO.  *)
 Import ListNotations.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
 (* A couple of notations to avoid ambiguities while not having to worry about imports and qualified names *)
-Notation memoryV := M.memory_stack.
+Notation memoryV := memory_stack.
 Notation memoryH := MDSHCOLOnFloat64.memory.
 
 Section EventTranslation.
@@ -160,7 +162,7 @@ NOTEYZ: An alternative would be to translate everything that remains into failur
   Definition semantics_llvm_mcfg p : itree E_mcfg _ := translate_E_vellvm_mcfg (model_to_L3 DTYPE_Void "main" main_args helix_intrinsics p).
   (* Which get lifted to [toplevel_entity] as usual: *)
   Definition semantics_llvm (prog: list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ)))) :=
-    lift_sem_to_mcfg semantics_llvm_mcfg prog.
+    semantics_llvm_mcfg (mcfg_of_tle prog).
 
   (* On the Helix side: *)
   (* We first define what amount to initializing the runtime before starting executing the operator *)
@@ -347,15 +349,15 @@ Section SimulationRelations.
      Vellvm and rewrite it at a higher level?
 
    *)
-  Definition mem_lookup_llvm_at_i (bk_llvm: M.logical_block) (i ptr_size_helix: nat) (v_llvm: uvalue): Prop :=
+  Definition mem_lookup_llvm_at_i (bk_llvm: logical_block) (i ptr_size_helix: nat) (v_llvm: uvalue): Prop :=
     exists offset,
       match bk_llvm with
-      | M.LBlock _ bk_llvm _ =>
-        M.handle_gep_h (DTYPE_Array (Z.of_nat ptr_size_helix) DTYPE_Double)
+      | LBlock _ bk_llvm _ =>
+        handle_gep_h (DTYPE_Array (Z.of_nat ptr_size_helix) DTYPE_Double)
                        0
                        [DVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat i))] ≡ inr offset /\
-        M.deserialize_sbytes
-          (M.lookup_all_index offset (M.sizeof_dtyp DTYPE_Double) bk_llvm M.SUndef)
+        deserialize_sbytes
+          (lookup_all_index offset (sizeof_dtyp DTYPE_Double) bk_llvm SUndef)
           DTYPE_Double ≡ v_llvm
       end.
 
@@ -1866,7 +1868,7 @@ End LLVMGen.
  **)
 
 Definition llvm_empty_memory_state_partial: LLVM_memory_state_cfg
-  := (M.empty_memory_stack, ([], [])).
+  := (empty_memory_stack, ([], [])).
 
 (* Scalar *)
 Definition eval_const_double_exp (typed_expr:typ*exp typ): err dvalue :=
@@ -2221,8 +2223,8 @@ Lemma memory_invariant_after_init
       (Ret (hmem, ()))
       (translate_E_vellvm_mcfg
          (interp_to_L3 helix_intrinsics
-                       (lift_sem_to_mcfg build_global_environment pll)
-                       [] ([],[]) ((M.empty, M.empty), [[]]))
+                       (build_global_environment (mcfg_of_tle pll))
+                       [] ([],[]) ((Mem.empty, Mem.empty), [[]]))
       ).
 Proof.
   intros hmem σ hdata pll [HI LI].
@@ -2246,7 +2248,6 @@ Proof.
   rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
 
   unfold build_global_environment.
-  unfold lift_sem_to_mcfg.
 
   simpl.
   unfold allocate_globals.
@@ -2778,7 +2779,6 @@ From Vellvm Require Import AstLib.
     end.
 
     unfold semantics_llvm.
-    unfold lift_sem_to_mcfg.
     (* break_match_goal. *)
     (* mcfg_of_modul *)
     (* Lemma semantics_llvm_red : *)
