@@ -639,30 +639,29 @@ Section InterpMem.
 
 End InterpMem.
 
-  Ltac unfolderH H :=
-    unfold ErrorWithState.option2errS, translate_E_helix_cfg, lift_Serr in H.
-
-  Ltac unfolder_vellvm := unfold Traversal.Endo_id.
+  Ltac unfolder_vellvm := unfold Traversal.Endo_id, translate_E_vellvm_cfg.
+  Ltac unfolder_vellvm_hyp h := unfold Traversal.Endo_id, translate_E_vellvm_cfg in h.
     (* unfold lookup_E_to_exp_E,exp_E_to_instr_E. *)
 
-  Ltac unfolder_helix :=
-    unfold ErrorWithState.option2errS, translate_E_helix_cfg, lift_Serr, translate_E_vellvm_cfg.
+  Ltac unfolder_helix := unfold ErrorWithState.option2errS, translate_E_helix_cfg, lift_Serr.
+  Ltac unfolder_helix_hyp h := unfold ErrorWithState.option2errS, translate_E_helix_cfg, lift_Serr in h.
 
   (**
      Better solution (?): use
      `Argument myconstant /.`
      to force `cbn` to unfold `myconstant`
    *)
-  Ltac unfolder := unfolder_helix; unfolder_vellvm.
+  Tactic Notation "unfolder" := unfolder_helix; unfolder_vellvm.
+  Tactic Notation "unfolder" "in" hyp(h) := unfolder_helix_hyp h; unfolder_vellvm_hyp h.
 
   Tactic Notation "cbn*" := (repeat (cbn; unfolder)).
-  Tactic Notation "cbn*" "in" hyp(h) := (repeat (cbn in h; unfolderH h)).
+  Tactic Notation "cbn*" "in" hyp(h) := (repeat (cbn in h; unfolder in h)).
 
   (** **
       TODO YZ : This needs to leave other hypotheses that H untouched
    *)
   Ltac simp_comp H :=
-    cbn in H; unfolderH H;
+    cbn in H; unfolder in H;
     cbn in H; repeat (inv_sum || break_and || break_match_hyp).
 
   Lemma subevent_subevent : forall {E F} `{E -< F} {X} (e : E X),
@@ -989,7 +988,7 @@ vars s1 = σ?
     induction nexp; cbn; intros * WF COMP EVAL;
       try now (simp_comp COMP; cbn in *; try inv_sum).
     - unfold context_lookup, trywith in *.
-      cbn in COMP; unfolderH COMP; cbn in COMP.
+      cbn in COMP; unfolder in COMP; cbn in COMP.
       simp_comp COMP; cbn in *; try inv_sum;
         edestruct WF as (? & ? & ?); eauto.
       all:try match goal with
@@ -1015,7 +1014,7 @@ vars s1 = σ?
       eapply IHnexp2; [eapply WFevalNexp_succeed | ..]; eauto. 
   Qed.
 
-  (* TODO use Vellvm/Tactics *)
+  (* TODO move to Vellvm/Tactics *)
   Ltac ret_bind_l_left v :=
     match goal with
       |- eutt _ ?t _ =>
@@ -1070,6 +1069,7 @@ vars s1 = σ?
     intros; apply eutt_clo_bind with (UU := RR); auto.
   Qed.
 
+  (* TODO YZ : move to Vellvm *)
   Ltac simpl_match_hyp h :=
     match type of h with
       context[match ?x with | _ => _ end] =>
@@ -1079,6 +1079,13 @@ vars s1 = σ?
       end
     end.
   Tactic Notation "simpl_match" "in" hyp(h) := simpl_match_hyp h.
+
+  Ltac introR :=
+    intros [?memH ?vH] (?memV & ?l & ?g & ?vV) ?PRE.
+  Ltac destruct_unit :=
+    match goal with
+    | x : unit |- _ => destruct x
+    end.
 
   Lemma genNExpr_correct_ind :
     forall (* Compiler bits *) (s1 s2: IRState)
@@ -1175,7 +1182,8 @@ vars s1 = σ?
           repeat norm_v in IHnexp1;
           repeat norm_h in IHnexp1.
         simpl_match in IHnexp1.
-        norm_h in IHnexp1.
+        (* YZ TODO : Why is this one particularly slow? *)
+        repeat norm_h in IHnexp1.
 
         subst.
         eutt_hide_left.
@@ -1184,8 +1192,158 @@ vars s1 = σ?
         repeat norm_v.
         subst.
         ret_bind_l_left (memH,i2).
-        apply eutt_bind_Inv.
+        eapply eutt_clo_bind; [eassumption |].
         
+        introR; destruct_unit.
+        destruct PRE0 as [PRE0 HR''].
+        specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 WFI PRE0).
+
+        unfold translate_E_vellvm_cfg in IHnexp2; cbn* in IHnexp2;
+          repeat norm_v in IHnexp2;
+          repeat norm_h in IHnexp2.
+        simpl_match in IHnexp2.
+        repeat norm_h in IHnexp2.
+
+        eutt_hide_left.
+        rewrite convert_typ_app, denote_code_app.
+        repeat norm_v.
+        subst.
+        ret_bind_l_left (memH0,i3).
+        eapply eutt_clo_bind; [eassumption |].
+ 
+        introR; destruct_unit.
+        destruct PRE1 as [PRE1 ?HR''].
+
+        simpl.
+        norm_v.
+        norm_v.
+        norm_v.
+        (* YZ TODO specialized tactic to use the same current value *)
+        ret_bind_l_left (memH,MInt64asNT.NTypeDiv i2 i3).
+        eutt_hide_rel; eutt_hide_left.
+        
+
+        (* TODO YZ : rename [eval_op] to [denote_op] *)
+        unfold eval_op.
+        simpl denote_exp.
+        admit.
+
+    - admit.
+
+    - (* NAdd *)
+
+      simp_comp COMPILE.
+      clear FOO.
+
+      (* YZ TODO Ltac for this *)
+      generalize Heqs; intros WFI; eapply WFevalNexp_succeed in WFI; eauto.
+
+      eutt_hide_right.
+      unfold denoteNExpr in *; cbn*.
+
+      break_inner_match_goal; [| break_inner_match_goal].
+      + clear - Heqs Heqs1 WFIR; abs_by WFevalNexp_no_fail. 
+      + clear - Heqs0 WFI Heqs2; abs_by WFevalNexp_no_fail. 
+      + repeat norm_h.
+
+        (* TODO YZ: gets some super specialize tactics that do not require to provide variables *)
+        specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs WFIR PRE).
+
+        (* TODO YZ : unfolderH is not doing all the work, fix *)
+        unfold translate_E_vellvm_cfg in IHnexp1; cbn* in IHnexp1;
+          repeat norm_v in IHnexp1;
+          repeat norm_h in IHnexp1.
+        simpl_match in IHnexp1.
+        (* YZ TODO : Why is this one particularly slow? *)
+        repeat norm_h in IHnexp1.
+
+        subst.
+        eutt_hide_left.
+        cbn*.
+        rewrite convert_typ_app, denote_code_app.
+        repeat norm_v.
+        subst.
+        ret_bind_l_left (memH,i2).
+        eapply eutt_clo_bind; [eassumption |].
+        
+        introR; destruct_unit.
+        destruct PRE0 as [PRE0 HR''].
+        specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 WFI PRE0).
+
+        unfold translate_E_vellvm_cfg in IHnexp2; cbn* in IHnexp2;
+          repeat norm_v in IHnexp2;
+          repeat norm_h in IHnexp2.
+        simpl_match in IHnexp2.
+        repeat norm_h in IHnexp2.
+
+        eutt_hide_left.
+        rewrite convert_typ_app, denote_code_app.
+        repeat norm_v.
+        subst.
+        ret_bind_l_left (memH0,i3).
+        eapply eutt_clo_bind; [eassumption |].
+ 
+        introR; destruct_unit.
+        destruct PRE1 as [PRE1 ?HR''].
+
+        (* Just for debugging *)
+        rename i0 into s3, e1 into e2, c1 into c2. 
+        rename i into s2, e0 into e1, c0 into c1.
+        rename i2 into i1, i3 into i2.
+        rename memV0 into memV2, l0 into l2, g0 into g2.
+        rename memV1 into memV3, l1 into l3, g1 into g3.
+        rename memV into memV1, l into l1, g into g1.
+
+        (* YZ CHECKPOINT :
+           Confused at the moment: the subexpressions seem to be evaluated in the wrong memory states.
+           Come back to this and figure it out.
+         *)
+
+        (*
+        simpl.
+        repeat norm_v.
+        unfold eval_op.
+        eutt_hide_rel; eutt_hide_left.
+
+        unfold R'' in *.
+
+        cbn* in HR''0.
+        cbn*.
+        clear -HR''0.
+        symmetry in HR''0.
+        repeat norm_v.
+        unfold IntType.
+
+        (* YZ TODO : [typ_to_dtyp] is just not manageable. Find a way to fix *)
+        Axiom typ_to_dtyp_I : forall s i, typ_to_dtyp s (TYPE_I i) ≡ DTYPE_I i.
+        rewrite typ_to_dtyp_I.
+        match goal with
+        |- eutt _ _ (ITree.bind _ ?t) => remember t end.
+        unfold convert_typ, ConvertTyp_exp in HR''0.
+        
+        rewrite HR''0.
+        rewrite HR''.
+        {
+          clear; intros.
+          unfold typ_to_dtyp, typ_to_dtyp_func.
+          cbn.
+
+
+
+        unfold typ_to_dtyp at 3, typ_to_dtyp_func.
+
+        rewrite HR''.
+        exfalso.
+        
+
+        (* YZ TODO specialized tactic to use the same current value *)
+        ret_bind_l_left (memH,MInt64asNT.NTypeDiv i2 i3).
+        eutt_hide_rel; eutt_hide_left.
+
+        (* TODO YZ : rename [eval_op] to [denote_op] *)
+        simpl denote_exp.
+        admit.
+         *)
 
 
         (* unfold translate_E_vellvm_cfg in *. *)
@@ -1289,6 +1447,8 @@ vars s1 = σ?
         
         (* TODO YZ: gets some super specialize tactics that do not require to provide variables *)
         specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs WFIR PRE).
+        cbn* in IHnexp1.
+
         ret_bind_l_left i2.
         subst.
         eutt_hide_left.
