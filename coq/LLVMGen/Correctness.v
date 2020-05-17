@@ -2190,25 +2190,6 @@ Proof.
 Qed.
 
 
-Fact no_globals_in_genMain
-     {i o name x xtyp y ytyp yptyp globals data}
-  :
-    flat_map (AstLib.globals_of typ)
-    (genMain i o name x xtyp y ytyp yptyp globals data) ≡ [].
-Proof.
-  reflexivity.
-Qed.
-
-Fact no_type_defs_in_genMain
-     {i o name x xtyp y ytyp yptyp globals data}
-  :
-    flat_map (AstLib.type_defs_of typ)
-    (genMain i o name x xtyp y ytyp yptyp globals data) ≡ [].
-Proof.
-  reflexivity.
-Qed.
-
-
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -2229,50 +2210,47 @@ Proof.
 
   (* unfold memory_invariant_MCFG, memory_invariant. *)
   unfold helix_intial_memory in *.
-  cbn in *.
+  cbn in HI.
   repeat break_match_hyp ; try inl_inr.
   subst.
   inv HI.
-  cbn in *.
-  unfold ErrorWithState.evalErrS in *. 
-  cbn in *.
+  cbn in LI.
+  unfold ErrorWithState.evalErrS in LI.
+  cbn in LI.
 
   eutt_hide_rel.
   repeat break_match_hyp; try inl_inr.
   inversion_clear LI.
-  cbn in *; repeat inv_sum.
+  repeat inv_sum.
   repeat rewrite app_assoc.
 
   rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
 
   unfold build_global_environment.
   unfold lift_sem_to_mcfg.
-
-  simpl.
   unfold allocate_globals.
   unfold map_monad_.
-  rewrite interp_to_L3_bind.
-  setoid_rewrite interp_to_L3_bind.
+  simpl.
+
+  rewrite 2!interp_to_L3_bind.
   rewrite bind_bind.
   unfold translate_E_vellvm_mcfg.
   rewrite translate_bind.
-  (* rename Heqo0 into M, Heqs into G, Heqs0 into L, HeqP into EP. *)
-  (* YZ TODO: fix names here *)
-  (*
+  rename Heqs into G, Heqs0 into L.
+  rename e into eg.
+  remember (eg ++
+        [DSHPtrVal (S (Datatypes.length globals)) o;
+        DSHPtrVal (Datatypes.length globals) i])%list as e.
+
+  repeat rewrite ListUtil.flat_map_app.
+  simpl.
+  (* no more [genMain] *)
+  clear Heqs5 Heqs3 i0 i1 l4 b.
+  rename p3 into body_instr.
   apply eutt_clo_bind with (UU:=(lift_R_memory_mcfg memory_invariant_memory_mcfg) _ _ e).
   -
-    destruct m1.
-    unfold mcfg_of_modul in M.
-    simpl in M.
-    break_match_hyp; try some_none.
-    some_inv.
-    subst.
-    simpl.
-    clear m_definitions Heqo0.
-    repeat rewrite ListUtil.flat_map_app.
-    rewrite no_globals_in_genMain.
-    rewrite no_type_defs_in_genMain.
-    (* no more [genMain] *)
+    rename m1 into mi, m0 into mo.
+    clear body_instr.
     induction globals.
     +
       cbn in G.
@@ -2281,7 +2259,6 @@ Proof.
       inl_inr_inv.
       subst.
       simpl.
-
       admit.
     +
       admit.
@@ -2295,414 +2272,8 @@ Proof.
     (* eapply eutt_clo_bind. *)
 
     admit.
-*)
 Admitted.
 
-(*
-Lemma memory_invariant_after_init
-      (p: FSHCOLProgram)
-      (data: list binary64) :
-  forall hmem σ lmem hdata,
-                helix_intial_memory p data ≡ inr (hmem,hdata,σ) /\
-                init_llvm_memory p data ≡ inr lmem ->
-                memory_invariant σ hmem lmem.
-Proof.
-
-  This partial proof was further broken after
-  eliminating [FSHValType] and replacing it with [DSHType].
-  It needs to be repaired
-
-
-  intros hmem σ lmem hdata [HI LI].
-  unfold memory_invariant.
-  repeat break_let; subst.
-  unfold helix_intial_memory, init_llvm_memory in *.
-  cbn in *.
-  repeat break_match_hyp ; try inl_inr.
-  subst.
-  inv HI.
-  cbn in *.
-  repeat break_let; subst.
-
-  right. (* as [σ] is never empty after init *)
-  rename Heqp0 into HCY, m1 into ydata.
-  rename Heqp2 into HCX, m2 into xdata.
-  rename Heqs0 into HFSHG, l2 into fdata', e into σ.
-  rename Heqs into HIRG, l0 into ldata', l1 into gdecls.
-  remember (global_YX i o ldata' (Anon 0%Z) (TYPE_Array (Int64.intval i) TYPE_Double)
-                      (Anon 1%Z) (TYPE_Array (Int64.intval o) TYPE_Double)) as xydecls eqn:HXY.
-  rename l3 into fdata''.
-
-  inv LI.
-  unfold assoc_left_to_right in H0.
-  destruct p1.
-  destruct p.
-  tuple_inversion.
-
-  pose proof (init_with_data_app _ _ _ _ HFSHG)
-    as ([m1 l1] & g1 & g2 & HG & HFXY & E).
-
-  (* No local variables initialize in init stage *)
-  assert(L1: l1 ≡ []) by eapply init_with_data_init_one_global_empty_local, HG; subst l1.
-  assert(L2: l ≡ []) by eapply init_with_data_init_one_global_empty_local, HFXY; subst l.
-
-  cbn in *.
-
-  assert(∀ x y : nat,
-            x < Datatypes.length
-                  (σ ++
-                     [DSHPtrVal (S (Datatypes.length globals)) o;
-                      DSHPtrVal (Datatypes.length globals) i])
-            ∧ y <
-              Datatypes.length
-                (σ ++
-                   [DSHPtrVal (S (Datatypes.length globals)) o;
-                    DSHPtrVal (Datatypes.length globals) i])
-            → memory_invariant_map globals x ≡ memory_invariant_map globals y → x ≡ y) as INJ.
-  {
-    (* Injectivity proof *)
-    rewrite app_length.
-    erewrite <- initFSHGlobals_globals_sigma_len_eq with (globals0:=globals).
-    2: eauto.
-    simpl.
-    apply memory_invariant_map_injectivity.
-    eapply initIRGlobals_names_unique.
-    eauto.
-  }
-  unshelve eexists.
-  exists (memory_invariant_map globals).
-  apply INJ.
-
-  intros x v Hn.
-  break_match.
-  -
-    (* [DSHnatVal] must end up in globals *)
-    (* but currently nat constants are not implemented so we
-       shortcut this branch *)
-    exfalso.
-    clear - Hn Heqs1.
-    rename Heqs1 into F.
-
-    apply ListUtil.nth_app in Hn.
-    destruct Hn as [[Hn Hx] | [Hn Hx]].
-    2:{
-      remember (x - Datatypes.length σ)%nat as k.
-      destruct k; inv Hn.
-      destruct k; inv H0.
-      rewrite Util.nth_error_nil in H1.
-      inv H1.
-    }
-    clear Hx.
-    revert F Hn.
-    revert data fdata' m0 σ x.
-    generalize helix_empty_memory as mem.
-
-    intros mem data fdata' m0 σ x F Hn.
-    contradict Hn.
-    revert x n.
-    revert F.
-    revert σ m0 data fdata' mem.
-    induction globals; intros.
-    +
-      cbn in F.
-      inv F.
-      rewrite Util.nth_error_nil.
-      intros N.
-      inversion N.
-    +
-      cbn in F.
-      break_match_hyp; [inl_inr|].
-      break_let; subst.
-      break_match_hyp; [inl_inr|].
-      break_let; subst.
-      inv F.
-      destruct a.
-      destruct f; cbn in *.
-      *
-        inl_inr.
-      *
-        repeat break_let; subst.
-        symmetry in Heqs.
-        inl_inr_inv.
-        subst.
-        destruct x.
-        cbn.
-        intros C. inv C.
-        cbn.
-        eapply IHglobals, Heqs0.
-      *
-        repeat break_let; subst.
-        symmetry in Heqs.
-        inl_inr_inv.
-        subst.
-        destruct x.
-        cbn.
-        intros C. inv C.
-        cbn.
-        eapply IHglobals, Heqs0.
-  -
-    (* [DSHCTypeVal] must end up in globals as  a pointer *)
-
-    apply ListUtil.nth_app in Hn.
-    destruct Hn as [[Hn Hx] | [Hn Hx]].
-    2:{
-      (* X,Y are pointers, not CType, so [Hn] is [False] *)
-      remember (x - Datatypes.length σ)%nat as k.
-      destruct k; inv Hn.
-      destruct k; inv H0.
-      rewrite Util.nth_error_nil in H1.
-      inv H1.
-    }
-    subst v.
-    clear HFXY.
-
-    assert(List.length gdecls ≡ List.length g1) as GL
-        by eapply init_with_data_len, HG.
-
-    assert(List.length globals ≡ List.length gdecls) as GG
-        by eapply init_with_data_len, HIRG.
-
-    rename Heqs1 into F.
-    pose proof (initFSHGlobals_globals_sigma_len_eq globals F) as GSL.
-
-    assert(exists gname gtype, nth_error globals x ≡ Some (gname, gtype)).
-    {
-      assert(L: x < Datatypes.length globals).
-      {
-        rewrite GSL.
-        apply Hx.
-      }
-      pose proof (nth_error_succeeds globals L) as H.
-      destruct H as ([gname gtype] & H).
-      exists gname.
-      exists gtype.
-      apply H.
-    }
-    destruct H as (gname & gtype & NG).
-
-    assert(exists gd,
-              nth_error gdecls x ≡ Some (TLE_Global gd) /\
-              g_exp gd ≡ Some (EXP_Double a) /\
-              g_ident gd ≡ Name gname
-          ) as (gd & XGD & VGD & NGD).
-    {
-      rewrite <- GSL, GG in Hx.
-      clear - F HIRG Hn Hx NG F.
-      unfold initFSHGlobals in *.
-      pose proof (nth_error_succeeds gdecls Hx) as H.
-      destruct H as (te & H).
-
-      (* now prove [te] is [TLE_Global gd] *)
-      revert F HIRG Hn NG Hx H.
-      revert m0 fdata' σ data ldata' gdecls x.
-      generalize helix_empty_memory as m0.
-      induction globals; intros.
-      -
-        rewrite nth_error_nil in NG.
-        some_none.
-      -
-        cbn in F.
-        repeat break_match_hyp; try inl_inr.
-        repeat inl_inr_inv.
-        subst.
-        destruct p0.
-
-        destruct gdecls; [rewrite nth_error_nil in H; inversion H|].
-
-        cbn in HIRG.
-        repeat break_match_hyp; try inl_inr.
-        repeat inl_inr_inv.
-        subst.
-
-        unfold initOneIRGlobal in Heqs2.
-        repeat break_match_hyp; try inl_inr.
-        +
-          inl_inr_inv.
-          subst.
-          cbn in *.
-          destruct x.
-          *
-            cbn in *.
-            repeat some_inv.
-            subst.
-            break_let.
-            tuple_inversion.
-            inl_inr_inv.
-            subst.
-            eexists.
-            eauto.
-          *
-            cbn in *.
-            repeat some_inv.
-            subst.
-            break_let.
-            tuple_inversion.
-            inl_inr_inv.
-            subst.
-            eapply IHglobals; eauto.
-            lia.
-        +
-          (* Array *)
-          inl_inr_inv.
-          subst.
-          cbn in *.
-          destruct x.
-          *
-            cbn in *.
-            repeat some_inv.
-            subst.
-            break_let.
-            inl_inr_inv.
-          *
-            cbn in *.
-            break_let.
-            inv Heqs.
-            subst.
-            eapply IHglobals; eauto.
-            assert (LL: l0≡l1).
-            {
-              clear - Heqp Heqp0.
-              unfold constMemBlock in Heqp.
-              unfold constArray in Heqp0.
-              break_let.
-              tuple_inversion.
-              tuple_inversion.
-              reflexivity.
-            }
-            rewrite LL.
-            eapply Heqs3.
-            lia.
-    }
-
-    assert(exists ptr_llvm, nth_error g x ≡ Some (Name gname, (DVALUE_Addr ptr_llvm))).
-    {
-      assert (x < Datatypes.length g1) as L.
-      {
-        rewrite <- GL, <- GG, GSL.
-        apply Hx.
-      }
-      subst g.
-      rewrite app_nth_error1 in * by apply L.
-      pose proof (nth_error_succeeds g1 L) as H.
-      destruct H as ([did dv] & H).
-      clear - HG H NGD XGD.
-      revert x HG H XGD.
-      generalize M.empty_memory_stack as m0.
-      revert g1 did dv.
-      induction gdecls; intros.
-      -
-        cbn in *.
-        inv HG.
-        rewrite nth_error_nil in H.
-        some_none.
-      -
-        cbn in HG.
-        repeat break_match_hyp; try inl_inr.
-        repeat inl_inr_inv.
-        subst.
-        unfold init_one_global in Heqs.
-        repeat break_match_hyp; try inl_inr.
-        repeat inl_inr_inv.
-        cbn in *.
-        repeat break_match_hyp; try inl_inr.
-        repeat inl_inr_inv.
-        subst.
-        +
-          (* Double *)
-          destruct x.
-          *
-            clear IHgdecls.
-            cbn in *.
-            some_inv.
-            destruct p1.
-            some_inv.
-            unfold alloc_global in Heqs1.
-            repeat break_match_hyp; try inl_inr.
-            repeat inl_inr_inv.
-            exists (M.next_logical_key m, 0%Z).
-            subst.
-            f_equiv.
-            f_equiv.
-            apply NGD.
-          *
-            cbn.
-            eapply IHgdecls; eauto.
-        +
-          (* Array *)
-          destruct x.
-          *
-            clear IHgdecls.
-            cbn in *.
-            some_inv.
-            destruct p1.
-            some_inv.
-            unfold alloc_global in Heqs1.
-            repeat break_match_hyp; try inl_inr.
-            repeat inl_inr_inv.
-            exists (M.next_logical_key m, 0%Z).
-            subst.
-            f_equiv.
-            f_equiv.
-            cbn in *.
-            tuple_inversion.
-            apply NGD.
-            tuple_inversion.
-            eauto.
-          *
-            cbn.
-            destruct p0.
-            inl_inr_inv.
-            subst.
-            eapply IHgdecls; eauto.
-    }
-
-    destruct H as (ptr_llvm & NGDECL).
-    exists ptr_llvm.
-
-    split.
-    right.
-    split; [trivial|cbn].
-    +
-      (* Deal with X,Y first *)
-      unfold memory_invariant_map.
-      repeat break_if; bool_to_nat; try lia.
-
-      (* X,Y eliminated, [x] somewhere in globals *)
-      break_match_goal; try some_none.
-      some_inv. subst p.
-
-      (* unify lengths *)
-      remember (Datatypes.length σ) as l eqn:SL; symmetry in SL.
-      clear Heqb Heqb0.
-      rename m0 into fm0.
-
-      (* we know, [gname] is in [gdecls] and not in [xydecls] *)
-      clear HCX HCY xdata ydata hdata.
-
-      assert(list_uniq fst g) as GU.
-      {
-        pose proof (initIRGlobals_names_unique HIRG) as GLU.
-        admit.
-      }
-
-      eapply alist_find_nth_error_list_uniq; eauto.
-    +
-      eexists.
-      split.
-      *
-        admit.
-      *
-        eexists.
-        clear - NGDECL HFSHG Hn.
-        admit.
-  -
-    (* [DSHPtrVal] must end up in memory *)
-    intros bk_helix HMH.
-    eexists.
-    eexists.
-    admit.
-Admitted.
-   *)
 
 (* with init step  *)
 Lemma compiler_correct_aux:
