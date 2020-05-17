@@ -639,7 +639,6 @@ Section InterpMem.
 
 End InterpMem.
 
-
   Ltac unfolderH H :=
     unfold ErrorWithState.option2errS, translate_E_helix_cfg, lift_Serr in H.
 
@@ -657,6 +656,7 @@ End InterpMem.
   Ltac unfolder := unfolder_helix; unfolder_vellvm.
 
   Tactic Notation "cbn*" := (repeat (cbn; unfolder)).
+  Tactic Notation "cbn*" "in" hyp(h) := (repeat (cbn in h; unfolderH h)).
 
   (** **
       TODO YZ : This needs to leave other hypotheses that H untouched
@@ -672,81 +672,176 @@ End InterpMem.
   Qed.
 
   (* We associate [bind]s to the right and dismiss leftmost [Ret]s *)
-  (* TODO YZ : Have a flag to deactivate the debbuging? *)
-  Ltac norm_monad t :=
+  (* NOTE YZ :
+     To help debugging this automation, tactics take an argument [k] representing a boolean flag as an integer.
+     I use [do k] to print debug messages if [k=1].
+     I then define two tactic notation [tac] and [tacD] setting the flag to 0 and 1 respectively.
+     Question: is there anyway to avoid having to define an intermediate notation just to force k to be parsed as an integer
+     rather than a constr?
+   *)
+  (* TODO YZ :
+     Can we avoid the duplication of the tactics into a version for hypotheses and one for goals by being able
+     to take a pattern of the form that rewrite admits?
+   *)
+  Ltac norm_monad_k t k :=
     match t with
     | context[ITree.bind ?t' _] =>
       match t' with
-      | ITree.bind _ _ => rewrite bind_bind
-                         (* ; idtac "bind_bind" *)
-      | Ret _ => rewrite bind_ret_l
-                (* ; idtac "bind_ret" *)
+      | ITree.bind _ _ => rewrite bind_bind ;
+                         do k idtac "bind_bind"
+      | Ret _ => rewrite bind_ret_l ;
+                do k idtac "bind_ret"
       end
     end.
 
-  (* We push [translate]s and [interp]s inside of binds, run them through [Ret]s *)
-  Ltac norm_interp t :=
+  Tactic Notation "norm_monad_k'" constr(t) integer(k) := norm_monad_k t k.
+  Tactic Notation "norm_monad" constr(t) := norm_monad_k' t 0.
+  Tactic Notation "norm_monadD" constr(t) := norm_monad_k' t 1.
+
+  (* Normalization in an hypothesis h instead of the goal *)
+  Ltac norm_monad_hyp_k t h k :=
     match t with
-    | context[translate _ (ITree.bind ?t' _)] => rewrite translate_bind
-                                                (* ; idtac "trans_bind" *)
-    | context[interp _ (ITree.bind ?t' _)] => rewrite interp_bind
-                                             (* ; idtac "interp_bind" *)
-    | context[translate _ (Ret _)] => rewrite translate_ret
-                                     (* ; idtac "trans_ret" *)
-    | context[interp _ (Ret _)] => rewrite interp_ret
-                                  (* ; idtac "interp_ret" *)
-    | context[translate _ (trigger ?e)] => rewrite (translate_trigger _ e)
-                                          (* ; idtac "trans_trigger" *)
-    | context[interp _ (trigger _)] => rewrite interp_trigger
-                                      (* ; idtac "intepr_trigger" *)
+    | context[ITree.bind ?t' _] =>
+      match t' with
+      | ITree.bind _ _ => rewrite bind_bind in h ; do k idtac "bind_bind"
+      | Ret _ => rewrite bind_ret_l in h ; do k idtac "bind_ret"
+      end
     end.
+
+  Tactic Notation "norm_monad_hyp_k'" constr(t) hyp(h) integer(k) := norm_monad_hyp_k t h k.
+  Tactic Notation "norm_monad_hyp" constr(t) hyp(h) := norm_monad_hyp_k' t h 0.
+  Tactic Notation "norm_monad_hypD" constr(t) hyp(h) := norm_monad_hyp_k' t h 1.
+
+  (* We push [translate]s and [interp]s inside of binds, run them through [Ret]s *)
+  Ltac norm_interp_k t k :=
+    match t with
+    | context[translate _ (ITree.bind ?t' _)] => rewrite translate_bind ; do k idtac "trans_bind"
+    | context[interp _ (ITree.bind ?t' _)] => rewrite interp_bind ; do k idtac "interp_bind"
+    | context[translate _ (Ret _)] => rewrite translate_ret ; do k idtac "trans_ret"
+    | context[interp _ (Ret _)] => rewrite interp_ret ; do k idtac "interp_ret"
+    | context[translate _ (trigger ?e)] => rewrite (translate_trigger _ e) ; do k idtac "trans_trigger"
+    | context[interp _ (trigger _)] => rewrite interp_trigger ; do k idtac "intepr_trigger"
+    end.
+
+  Tactic Notation "norm_interp_k'" constr(t) integer(k) := norm_interp_k t k.
+  Tactic Notation "norm_interp" constr(t) := norm_interp_k' t 0.
+  Tactic Notation "norm_interpD" constr(t) := norm_interp_k' t 1.
+
+  Ltac norm_interp_hyp_k t h k :=
+    match t with
+    | context[translate _ (ITree.bind ?t' _)] => rewrite translate_bind in h ; do k idtac "trans_bind"
+    | context[interp _ (ITree.bind ?t' _)] => rewrite interp_bind in h ; do k idtac "interp_bind"
+    | context[translate _ (Ret _)] => rewrite translate_ret in h ; do k idtac "trans_ret"
+    | context[interp _ (Ret _)] => rewrite interp_ret in h ; do k idtac "interp_ret"
+    | context[translate _ (trigger ?e)] => rewrite (translate_trigger _ e) in h ; do k idtac "trans_trigger"
+    | context[interp _ (trigger _)] => rewrite interp_trigger in h ; do k idtac "intepr_trigger"
+    end.
+
+  Tactic Notation "norm_interp_hyp_k'" constr(t) hyp(h) integer(k) := norm_interp_hyp_k t h k.
+  Tactic Notation "norm_interp_hyp" constr(t) hyp(h) := norm_interp_hyp_k' t h 0.
+  Tactic Notation "norm_interp_hypD" constr(t) hyp(h) := norm_interp_hyp_k' t h 1.
 
   (* We extend [norm_interp] with locally defined interpreters on the helix side *)
-  Ltac norm_local_helix t :=
+  Ltac norm_local_helix_k t k :=
     match t with
-    | context[interp_Mem (ITree.bind ?t' _)] => rewrite interp_Mem_bind
-                                               (* ; idtac "mem_bind" *)
-    | context[interp_Mem (Ret _)] => rewrite interp_Mem_ret
-                                    (* ; idtac "mem_ret" *)
+    | context[interp_Mem (ITree.bind ?t' _)] => rewrite interp_Mem_bind ; do k idtac "mem_bind"
+    | context[interp_Mem (Ret _)] => rewrite interp_Mem_ret ; do k idtac "mem_ret"
     end.
+
+  Tactic Notation "norm_local_helix_k'" constr(t) integer(k) := norm_local_helix_k t k.
+  Tactic Notation "norm_local_helix" constr(t) := norm_local_helix_k' t 0.
+  Tactic Notation "norm_local_helixD" constr(t) := norm_local_helix_k' t 1.
+
+  Ltac norm_local_helix_hyp_k t h k :=
+    match t with
+    | context[interp_Mem (ITree.bind ?t' _)] => rewrite interp_Mem_bind in h ; do k idtac "mem_bind"
+    | context[interp_Mem (Ret _)] => rewrite interp_Mem_ret in h ; do k idtac "mem_ret"
+    end.
+
+  Tactic Notation "norm_local_helix_hyp_k'" constr(t) hyp(h) integer(k) := norm_local_helix_hyp_k t h k.
+  Tactic Notation "norm_local_helix_hyp" constr(t) hyp(h) := norm_local_helix_hyp_k' t h 0.
+  Tactic Notation "norm_local_helix_hypD" constr(t) hyp(h) := norm_local_helix_hyp_k' t h 1.
 
   (* We extend [norm_interp] with locally defined interpreters on the vellvm side *)
-  Ltac norm_local_vellvm t :=
+  Ltac norm_local_vellvm_k t k :=
     match t with
-    | context[interp_cfg_to_L3 _ (ITree.bind ?t' _)] => rewrite interp_cfg_to_L3_bind
-                                                       (* ; idtac "cfg_bind" *)
-    | context[interp_cfg_to_L3 _ (Ret _)] => rewrite interp_cfg_to_L3_ret
-                                            (* ; idtac "cfg_ret" *)
-    | context[interp_cfg_to_L3 _ (trigger (GlobalRead _))] => rewrite interp_cfg_to_L3_GR
-                                                             (* ; idtac "cfg_GR" *)
-    | context[interp_cfg_to_L3 _ (trigger (LocalRead _))] => rewrite interp_cfg_to_L3_LR
-                                                            (* ; idtac "cfg_LR" *)
-    | context[lookup_E_to_exp_E (subevent _ _)] => (rewrite lookup_E_to_exp_E_Global || rewrite lookup_E_to_exp_E_Local); try rewrite subevent_subevent
-                                                  (* ; idtac "luexp" *)
-    | context[exp_E_to_instr_E (subevent _ _)] => (rewrite exp_E_to_instr_E_Global || rewrite exp_E_to_instr_E_Local); try rewrite subevent_subevent
-                                                 (* ; idtac "expinstr" *)
+    | context[interp_cfg_to_L3 _ (ITree.bind ?t' _)] => rewrite interp_cfg_to_L3_bind ; do k idtac "cfg_bind"
+    | context[interp_cfg_to_L3 _ (Ret _)] => rewrite interp_cfg_to_L3_ret ; do k idtac "cfg_ret"
+    | context[interp_cfg_to_L3 _ (trigger (GlobalRead _))] => rewrite interp_cfg_to_L3_GR ; do k idtac "cfg_GR"
+    | context[interp_cfg_to_L3 _ (trigger (LocalRead _))] => rewrite interp_cfg_to_L3_LR ; do k idtac "cfg_LR"
+    | context[lookup_E_to_exp_E (subevent _ _)] => (rewrite lookup_E_to_exp_E_Global || rewrite lookup_E_to_exp_E_Local); try rewrite subevent_subevent ; do k idtac "luexp"
+    | context[exp_E_to_instr_E (subevent _ _)] => (rewrite exp_E_to_instr_E_Global || rewrite exp_E_to_instr_E_Local); try rewrite subevent_subevent ; do k idtac "expinstr"
     end.
 
+  Tactic Notation "norm_local_vellvm_k'" constr(t) integer(k) := norm_local_vellvm_k t k.
+  Tactic Notation "norm_local_vellvm" constr(t) := norm_local_vellvm_k' t 0.
+  Tactic Notation "norm_local_vellvmD" constr(t) := norm_local_vellvm_k' t 1.
+
+  Ltac norm_local_vellvm_hyp_k t h k :=
+    match t with
+    | context[interp_cfg_to_L3 _ (ITree.bind ?t' _)] => rewrite interp_cfg_to_L3_bind in h ; do k idtac "cfg_bind"
+    | context[interp_cfg_to_L3 _ (Ret _)] => rewrite interp_cfg_to_L3_ret in h ; do k idtac "cfg_ret"
+    | context[interp_cfg_to_L3 _ (trigger (GlobalRead _))] => rewrite interp_cfg_to_L3_GR in h ; do k idtac "cfg_GR"
+    | context[interp_cfg_to_L3 _ (trigger (LocalRead _))] => rewrite interp_cfg_to_L3_LR in h ; do k idtac "cfg_LR"
+    | context[lookup_E_to_exp_E (subevent _ _)] => (rewrite lookup_E_to_exp_E_Global in h || rewrite lookup_E_to_exp_E_Local in h); try rewrite subevent_subevent in h ; do k idtac "luexp"
+    | context[exp_E_to_instr_E (subevent _ _)] => (rewrite exp_E_to_instr_E_Global in h || rewrite exp_E_to_instr_E_Local in h); try rewrite subevent_subevent in h ; do k idtac "expinstr"
+    end.
+
+  Tactic Notation "norm_local_vellvm_hyp_k'" constr(t) hyp(h) integer(k) := norm_local_vellvm_hyp_k t h k.
+  Tactic Notation "norm_local_vellvm_hyp" constr(t) hyp(h) := norm_local_vellvm_hyp_k' t h 0.
+  Tactic Notation "norm_local_vellvmD" constr(t) hyp(h) := norm_local_vellvm_hyp_k' t h 1.
+
   (**
-     QUESTION YZ: the outer repeat does not do effect. Why and how to fix?
+     QUESTION YZ: the outer repeat does not have any effect. Why and how to fix?
    *)
-  Ltac norm_h :=
+  Ltac norm_h_k k :=
     match goal with
       |- eutt _ ?t _ =>
       repeat (
-          repeat (norm_monad t); 
-          repeat (norm_interp t);
-          repeat (norm_local_helix t))
+          repeat (norm_monad_k t k); 
+          repeat (norm_interp_k t k);
+          repeat (norm_local_helix_k t k))
     end.
+  Tactic Notation "norm_h_k'" integer(k) := norm_h_k k.
+  Tactic Notation "norm_h" := norm_h_k' 0.
+  Tactic Notation "norm_hD" := norm_h_k' 1.
 
-  Ltac norm_v :=
+  Ltac norm_h_hyp_k h k :=
+    match type of h with
+      eutt _ ?t _ =>
+      repeat (
+          repeat (norm_monad_hyp_k t h k);
+          repeat (norm_interp_hyp_k t h k);
+          repeat (norm_local_helix_hyp_k t h k))
+    end.
+  Tactic Notation "norm_h_hyp_k'" hyp(h) integer(k) := norm_h_hyp_k h k.
+  Tactic Notation "norm_h" "in" hyp(h) := norm_h_hyp_k' h 0.
+  Tactic Notation "norm_hD" "in" hyp(h) := norm_h_hyp_k' h 1.
+
+  Ltac norm_v_k k :=
     match goal with
       |- eutt _ _ ?t =>
       repeat (
-          repeat (norm_monad t); 
-          repeat (norm_interp t);
-          repeat (norm_local_vellvm t))
+          repeat (norm_monad_k t k); 
+          repeat (norm_interp_k t k);
+          repeat (norm_local_vellvm_k t k))
     end.
+  Tactic Notation "norm_v_k'" integer(k) := norm_v_k k.
+  Tactic Notation "norm_v" := norm_v_k' 0.
+  Tactic Notation "norm_vD" := norm_v_k' 1.
+
+  Ltac norm_v_hyp_k h k :=
+    match type of h with
+      eutt _ _ ?t =>
+      repeat (
+          repeat (norm_monad_hyp_k t h k); 
+          repeat (norm_interp_hyp_k t h k);
+          repeat (norm_local_vellvm_hyp_k t h k))
+    end.
+
+  Tactic Notation "norm_v_hyp_k'" hyp(h) integer(k) := norm_v_hyp_k h k.
+  Tactic Notation "norm_v" "in" hyp(h) := norm_v_hyp_k' h 0.
+  Tactic Notation "norm_vD" "in" hyp(h) := norm_v_hyp_k' h 1.
 
 Section NExpr.
 
@@ -955,76 +1050,154 @@ vars s1 = σ?
     fun σ memH '(memV,((l,sl),g)) =>
       memory_invariant σ memH (memV,(l,g)).
 
-  (* TODO: come back to this alternate statement *)
-  (* Lemma genNExpr_correct : *)
-  (*   forall (* Compiler bits *) (s1 s2: IRState) *)
-  (*     (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH) *)
-  (*     (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV), *)
-  (*     genNExpr nexp s1 ≡ inr (s2, (e, c)) -> (* Compilation succeeds *) *)
-  (*     WF_IRState σ s1 ->                       (* Well-formed IRState *) *)
-  (*     R σ memH (memV, (l, g)) -> *)
-  (*     (* (WF_IRState σ s2 /\ *) *)
-  (*      eutt (lift_R_memory_cfg R σ ⩕ R'' e σ) *)
-  (*           (translate_E_helix_cfg   *)
-  (*              (interp_Mem (denoteNExpr σ nexp) *)
-  (*                          memH)) *)
-  (*           (translate_E_vellvm_cfg *)
-  (*              (interp_cfg_to_L3 helix_intrinsics *)
-  (*                                 (denote_code (convert_typ [] c)) *)
-  (*                 g l memV)). *)
-  (* Proof. *)
-  (*   intros s1 s2 nexp; revert s1 s2; induction nexp; intros * COMPILE WFIR PRE; *)
-  (*     assert (FOO: (s2,(exp,c)) ≡ (s2,(exp,c))) by reflexivity. (* TODOYZ: stupid hack to quickly check what case we are in. To remove *) *)
-  (*   - (* Variable case *) *)
-  (*     (* Reducing the compilation *) *)
-  (*     (* simp_comp COMPILE; (split; [auto |]). *) *)
-  (*     simp_comp COMPILE. *)
+  (* TODO YZ : Move to itrees *)
+  (* Simple specialization of [eqit_Ret] to [eutt] so that users of the library do not need to know about [eqit] *)
+  Lemma eutt_Ret :
+    forall E (R1 R2 : Type) (RR : R1 -> R2 -> Prop) r1 r2, RR r1 r2 <-> eutt (E := E) RR (Ret r1) (Ret r2).
+  Proof.
+    intros; apply eqit_Ret.
+  Qed.
 
-  (*     + (* The variable maps to an integer in the IRState *) *)
-  (*       unfold denoteNExpr; cbn*. *)
+  (* TODO YZ : Move to itrees *)
+  (* Specialization of [eutt_clo_bind] to the case where the intermediate predicate introduced is the same as the current one *)
+  Lemma eutt_bind_Inv :
+    ∀ (E : Type → Type) (R1 R2 : Type) (RR : R1 → R2 → Prop) (t1 : itree E R1) (t2 : itree E R2) 
+      (k1 : R1 → itree E R1) (k2 : R2 → itree E R2),
+      eutt RR t1 t2 →
+      (∀ (r1 : R1) (r2 : R2), RR r1 r2 → eutt RR (k1 r1) (k2 r2)) →
+      eutt RR (ITree.bind t1 (λ x : R1, k1 x)) (ITree.bind t2 (λ x : R2, k2 x)).
+  Proof.
+    intros; apply eutt_clo_bind with (UU := RR); auto.
+  Qed.
 
-  (*       repeat norm_v. *)
-  (*       break_inner_match_goal. *)
-  (*       * (* Variable not in context, [context_lookup] fails *) *)
-  (*         abs_by WF_IRState_lookup_cannot_fail. *)
-  (*       * break_inner_match_goal. *)
-  (*         ++ repeat norm_h. *)
-  (*            destruct i0. *)
-  (*            { (* Global *) *)
-  (*              apply eqit_Ret; split. *)
-  (*              apply PRE. *)
-  (*              unfold R''; cbn*. *)
-  (*              repeat norm_v. *)
-  (*              cbn; repeat norm_v. *)
-  (*              2: eapply R_GLU; eauto. *)
-  (*              (** TODO: Define specialized version on eutt for external use *) *)
-  (*              apply eqit_Ret. *)
-               
-               
-  (*              split; [apply PRE | reflexivity]. *)
-  (*            } *)
-  (*            { (* Local *) *)
-  (*              cbn*. *)
-  (*              repeat norm_v. *)
-  (*              2: eapply R_LLU; eauto. *)
-  (*              cbn; repeat norm_v. *)
-  (*              apply eqit_Ret. *)
-  (*              split; [apply PRE | reflexivity]. *)
-  (*            } *)
-  (*         ++ *)
-  (*           (** TODO YZ : get this automatically discharged by [abs_by] *) *)
-  (*           exfalso. eapply WF_IRState_lookup_int in WFIR; eauto. *)
-  (*           destruct WFIR as [? WFIR]; rewrite Heqs in WFIR; inv WFIR. *)
-  (*         ++ *)
-  (*           exfalso. eapply WF_IRState_lookup_int in WFIR; eauto. *)
-  (*           destruct WFIR as [? WFIR]; rewrite Heqs in WFIR; inv WFIR. *)
+  Ltac simpl_match_hyp h :=
+    match type of h with
+      context[match ?x with | _ => _ end] =>
+      match goal with
+      | EQ: x ≡ _ |- _ => rewrite EQ in h
+      | EQ: _ ≡ x |- _ => rewrite <- EQ in h
+      end
+    end.
+  Tactic Notation "simpl_match" "in" hyp(h) := simpl_match_hyp h.
 
-  (*     + (* The variable maps to a pointer *) *)
+  Lemma genNExpr_correct_ind :
+    forall (* Compiler bits *) (s1 s2: IRState)
+      (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH)
+      (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
+      genNExpr nexp s1 ≡ inr (s2, (e, c)) -> (* Compilation succeeds *)
+      WF_IRState σ s1 ->                     (* Well-formed IRState *)
+      R σ memH (memV, (l, g)) ->
+      (* (WF_IRState σ s2 /\ *)
+       eutt (lift_R_memory_cfg R σ ⩕ R'' e σ)
+            (translate_E_helix_cfg
+               (interp_Mem (denoteNExpr σ nexp)
+                           memH))
+            (translate_E_vellvm_cfg
+               (interp_cfg_to_L3 helix_intrinsics
+                                  (denote_code (convert_typ [] c))
+                  g l memV)).
+  Proof.
+    intros s1 s2 nexp; revert s1 s2; induction nexp; intros * COMPILE WFIR PRE;
+      assert (FOO: (s2,(exp,c)) ≡ (s2,(exp,c))) by reflexivity. (* TODOYZ: stupid hack to quickly check what case we are in. To remove *)
+    - (* Variable case *)
+      (* Reducing the compilation *)
+      (* simp_comp COMPILE; (split; [auto |]). *)
+      simp_comp COMPILE.
+      
+      + (* The variable maps to an integer in the IRState *)
+        unfold denoteNExpr; cbn*.
+
+        repeat norm_v.
+        break_inner_match_goal.
+        * (* Variable not in context, [context_lookup] fails *)
+          abs_by WF_IRState_lookup_cannot_fail.
+        * break_inner_match_goal.
+          ++ repeat norm_h.
+             destruct i0.
+             { (* Global *)
+               apply eutt_Ret; split.
+               apply PRE.
+               unfold R''; cbn*.
+               repeat norm_v.
+               cbn; repeat norm_v.
+               2: eapply R_GLU; eauto.
+               reflexivity.
+             }
+             { (* Local *)
+               apply eutt_Ret.
+               split; [apply PRE | ].
+               cbn*. repeat norm_v.
+               2: eapply R_LLU; eauto.
+               cbn; repeat norm_v.
+               reflexivity.
+             }
+          ++
+            (** TODO YZ : get this automatically discharged by [abs_by] *)
+            exfalso. eapply WF_IRState_lookup_int in WFIR; eauto.
+            destruct WFIR as [? WFIR]; rewrite Heqs in WFIR; inv WFIR.
+          ++
+            exfalso. eapply WF_IRState_lookup_int in WFIR; eauto.
+            destruct WFIR as [? WFIR]; rewrite Heqs in WFIR; inv WFIR.
+
+      + (* The variable maps to a pointer *)
+        abs_by WF_IRState_lookup_pointer.
+
+    - (* Constant *)
+
+      simp_comp COMPILE(* ; split; auto *).
+      unfold denoteNExpr; cbn*.
+      repeat norm_h.
+      repeat norm_v.
+      apply eutt_Ret.
+      split; [apply PRE |].
+      cbn*; rewrite repr_intval; repeat norm_v.
+      reflexivity.
+
+    - (* NDiv *)
+
+      simp_comp COMPILE.
+
+      generalize Heqs; intros WFI; eapply WFevalNexp_succeed in WFI; eauto.
+
+      eutt_hide_right.
+      unfold denoteNExpr in *; cbn*.
+
+      break_inner_match_goal; [| break_inner_match_goal].
+      + clear - Heqs Heqs1 WFIR; abs_by WFevalNexp_no_fail. 
+      + clear - Heqs0 WFI Heqs2; abs_by WFevalNexp_no_fail. 
+      + repeat norm_h.
+
+        (* TODO YZ: gets some super specialize tactics that do not require to provide variables *)
+        specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs WFIR PRE).
+
+        (* TODO YZ : unfolderH is not doing all the work, fix *)
+        unfold translate_E_vellvm_cfg in IHnexp1; cbn* in IHnexp1;
+          repeat norm_v in IHnexp1;
+          repeat norm_h in IHnexp1.
+        simpl_match in IHnexp1.
+        norm_h in IHnexp1.
+
+        subst.
+        eutt_hide_left.
+        cbn*.
+        rewrite convert_typ_app, denote_code_app.
+        repeat norm_v.
+        subst.
+        ret_bind_l_left (memH,i2).
+        apply eutt_bind_Inv.
         
-  (*       abs_by WF_IRState_lookup_pointer. *)
 
 
+        (* unfold translate_E_vellvm_cfg in *. *)
+        (* cbn in IHnexp1. *)
+        (* rewrite interp_cfg_to_L3_bind in IHnexp1. *)
+        (* rewrite translate_bind in IHnexp1. *)
+        (* eapply eutt_clo_bind. *)
+        admit.       
+ Admitted.
 
+  (* Not yet clear whether this version is the useful one, but it's a consequence of the one above I think *)
+  (* YZ TODO : investigate *)
   Lemma genNExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH)
