@@ -1294,6 +1294,8 @@ vars s1 = σ?
         rename memV1 into memV3, l1 into l3, g1 into g3.
         rename memV into memV1, l into l1, g into g1.
 
+        
+
         (* YZ CHECKPOINT :
            Confused at the moment: the subexpressions seem to be evaluated in the wrong memory states.
            Come back to this and figure it out.
@@ -1732,8 +1734,6 @@ Section Power.
 
 End Power.
 
-Tactic Notation "cbn*" ident(H) := (repeat (cbn in H; unfolderH H)).
-
 (* TO MOVE *)
 Global Instance ConvertTyp_list {A} `{Traversal.Fmap A}: ConvertTyp (fun T => list (A T)) :=
   fun env => Traversal.fmap (typ_to_dtyp env).
@@ -1818,7 +1818,7 @@ Section GenIR.
        - D.denote_bks over singletons
        *)
       destruct src,dst,p.
-      cbn* GEN.
+      cbn* in GEN.
       hide_strings'.
       simp_comp GEN.
 
