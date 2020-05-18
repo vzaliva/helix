@@ -15,7 +15,6 @@ From Vellvm Require Import
      CFG
      Handlers.Memory
      Refinement
-     Environment
      TopLevel
      LLVMAst
      Handlers.Handlers.
