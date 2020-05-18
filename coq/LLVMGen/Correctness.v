@@ -397,7 +397,20 @@ Section SimulationRelations.
    Additionally, how ι is written down is wrong. Not every value in σ
    is a pointer, some values should be pure integer values for
    instance.
-*)
+ *)
+
+  Definition in_local_or_global {σ_len : nat}
+             (ι : injection_Fin raw_id σ_len)
+             (ρ : local_env) (g : global_env)
+             (x : nat)
+             (dv : dvalue) : Prop
+    := (* variable is either in local environment *)
+      (alist_find _ (inj_f ι x) ρ ≡ Some (dvalue_to_uvalue dv) /\
+       alist_find _ (inj_f ι x) g ≡ None) \/
+      (* or in global environment *)
+      (alist_find _ (inj_f ι x) ρ ≡ None /\
+       alist_find _ (inj_f ι x) g ≡ Some dv).
+
   Definition memory_invariant : Type_R_memory_cfg :=
     fun (σ : evalContext) (mem_helix : MDSHCOLOnFloat64.memory) '(mem_llvm, x) =>
       let σ_len := List.length σ in
@@ -408,24 +421,16 @@ Section SimulationRelations.
         nth_error σ x ≡ Some v ->
         match v with
         | DSHnatVal v   =>
-          (* variable is either in local environment *)
-          (alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_I64 (DynamicValues.Int64.repr (Int64.intval v))) /\
-           alist_find _ (inj_f ι x) g ≡ None) \/
-          (* or in global environment *)
-          (alist_find _ (inj_f ι x) ρ ≡ None /\
-           alist_find _ (inj_f ι x) g ≡ Some (DVALUE_I64 (DynamicValues.Int64.repr (Int64.intval v))))
+          in_local_or_global ι ρ g x
+                             (DVALUE_I64 (DynamicValues.Int64.repr (Int64.intval v)))
         | DSHCTypeVal v =>
-          (* variable is either in local environment *)
-          (alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Double v) /\
-           alist_find _ (inj_f ι x) g ≡ None) \/
-          (* or in global environment *)
-          (alist_find _ (inj_f ι x) ρ ≡ None /\
-           alist_find _ (inj_f ι x) g ≡ Some (DVALUE_Double v))
+          in_local_or_global ι ρ g x
+                             (DVALUE_Double v)
         | DSHPtrVal ptr_helix ptr_size_helix =>
           exists bk_helix,
             memory_lookup mem_helix ptr_helix ≡ Some bk_helix /\
             exists ptr_llvm bk_llvm,
-              alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Addr ptr_llvm) /\
+              in_local_or_global ι ρ g x (DVALUE_Addr ptr_llvm) /\
               get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm /\
               (fun bk_helix bk_llvm =>
                  forall i, Int64.lt i ptr_size_helix ->
@@ -436,7 +441,6 @@ Section SimulationRelations.
                         v_llvm ≡ UVALUE_Double v_helix
               ) bk_helix bk_llvm
         end.
-
 
 (**
    Lifting of [memory_invariant] to include return values in the relation.
