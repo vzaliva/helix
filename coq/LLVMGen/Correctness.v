@@ -2367,7 +2367,6 @@ Proof.
         eapply H.
 Qed.
 
-
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -2414,45 +2413,98 @@ Proof.
   rewrite bind_bind.
   unfold translate_E_vellvm_mcfg.
   rewrite translate_bind.
+  rename Heqs0 into G, Heqs1 into L.
+  rename e into eg.
+  remember (eg ++
+               [DSHPtrVal (S (Datatypes.length globals)) o;
+                DSHPtrVal (Datatypes.length globals) i])%list as e.
+
+  repeat rewrite ListUtil.flat_map_app.
+  simpl.
+  (* no more [genMain] *)
+  clear Heqs6 Heqs4 i0 i1 l4 b.
+  rename p3 into body_instr.
+  rename m1 into mi, m0 into mo.
+
+  apply eutt_clo_bind with (UU:=(lift_R_memory_mcfg (memory_invariant_memory_mcfg e s)) _ _ ).
+  -
+    (* allocate_global *)
+    clear body_instr.
+    induction globals.
+    +
+      cbn in G.
+      inl_inr_inv.
+      cbn in L.
+      inl_inr_inv.
+      subst.
+      simpl.
+      admit.
+    +
+      admit.
+  -
+    intros u1 u2 H.
+    rewrite translate_bind.
+    rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+    apply eutt_clo_bind with (UU:=(lift_R_memory_mcfg (memory_invariant_memory_mcfg e s)) _ _ ).
+    +
+      repeat break_let.
+      rewrite interp_to_L3_ret.
+      rewrite translate_ret.
+      apply eutt_Ret.
+      unfold lift_R_memory_mcfg in *.
+      repeat break_let.
+      apply H.
+    +
+      intros u0 u3 H0.
+      repeat break_let.
+      simpl.
+      rewrite interp_to_L3_bind.
+      rewrite translate_bind.
+      rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+      apply eutt_clo_bind with (UU:=(lift_R_memory_mcfg (memory_invariant_memory_mcfg e s)) _ _ ).
+      *
+        cbn.
+        rewrite interp_to_L3_bind.
+        rewrite translate_bind.
+        rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+        apply eutt_clo_bind with (UU:=(lift_R_memory_mcfg (memory_invariant_memory_mcfg e s)) _ _ ).
+        --
+          (* allocate_declaration *)
+          admit.
+        --
+          intros u4 u5 H1.
+          repeat break_let.
+          rewrite interp_to_L3_ret.
+          rewrite translate_ret.
+          apply eutt_Ret.
+          unfold lift_R_memory_mcfg in *.
+          repeat break_let.
+          auto.
+      *
+        intros u4 u5 H1.
+        repeat break_let.
+        unfold initialize_globals.
+        unfold map_monad_.
+        cbn.
+        rewrite translate_bind.
+        rewrite interp_to_L3_bind.
+        rewrite translate_bind.
+        rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+        apply eutt_clo_bind with (UU:=(lift_R_memory_mcfg (memory_invariant_memory_mcfg e s)) _ _ ).
+        --
+          (* initialize_global *)
+          admit.
+        --
+          intros u7 u8 H2.
+          repeat break_let.
+          rewrite translate_ret.
+          rewrite interp_to_L3_ret.
+          rewrite translate_ret.
+          apply eutt_Ret.
+          unfold lift_R_memory_mcfg in *.
+          repeat break_let.
+          auto.
 Admitted.
-(*   rename Heqs into G, Heqs0 into L. *)
-(*   rename e into eg. *)
-(*   remember (eg ++ *)
-(*         [DSHPtrVal (S (Datatypes.length globals)) o; *)
-(*         DSHPtrVal (Datatypes.length globals) i])%list as e. *)
-
-(*   repeat rewrite ListUtil.flat_map_app. *)
-(*   simpl. *)
-(*   (* no more [genMain] *) *)
-(*   clear Heqs5 Heqs3 i0 i1 l4 b. *)
-(*   rename p3 into body_instr. *)
-(*   apply eutt_clo_bind with (UU:=(lift_R_memory_mcfg memory_invariant_memory_mcfg) _ _ e). *)
-(*   - *)
-(*     rename m1 into mi, m0 into mo. *)
-(*     clear body_instr. *)
-(*     induction globals. *)
-(*     + *)
-(*       cbn in G. *)
-(*       inl_inr_inv. *)
-(*       cbn in L. *)
-(*       inl_inr_inv. *)
-(*       subst. *)
-(*       simpl. *)
-(*       admit. *)
-(*     + *)
-(*       admit. *)
-(*   - *)
-(*     clear. *)
-(*     intros u1 u2 H. *)
-(*     rewrite translate_bind. *)
-(*     Fail setoid_rewrite interp_to_L3_bind. *)
-
-(*     rewrite <- bind_ret_r. (* Add fake "bind" at LHS *) *)
-(*     (* eapply eutt_clo_bind. *) *)
-
-(*     admit. *)
-(* Admitted. *)
-
 
 (* with init step  *)
 Lemma compiler_correct_aux:
