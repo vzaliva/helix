@@ -864,32 +864,17 @@ vars s1 = σ?
      value of the [evalContext], but injecting the types from [DSHCOL] to [VIR].
    *)
 
-  (* Definition WF_IRState (σ: evalContext) (s: IRState): Prop := *)
-  (*   forall (i: ident) (t: typ) (n: nat), *)
-  (*     nth_error (vars s) n ≡ Some (i,t) -> *)
-  (*     exists (v: DSHVal), nth_error σ n ≡ Some v /\ *)
-  (*                    getIRType (DSHType_of_DSHVal v) ≡ t. *)
-
-  Lemma Forall2_Some_left :
-    forall {A B} (R : A -> B -> Prop) xs ys n x,
-      nth_error xs n ≡ Some x ->
-      Forall2 R xs ys ->
-      exists y, nth_error ys n ≡ Some y /\ R x y.
-  Proof.
-    intros A B R xs ys n x Hnth Hmatch.
-    induction Hmatch.
-  Admitted.
-
+  (* TODO: Move this? *)
   Lemma Forall2_Some_right :
     forall {A B} (R : A -> B -> Prop) xs ys n y,
       nth_error ys n ≡ Some y ->
       Forall2 R xs ys ->
       exists x, nth_error xs n ≡ Some x /\ R x y.
   Proof.
-    intros A B R xs ys n x Hnth Hmatch.
-    induction Hmatch.
-    - rewrite nth_error_nil in Hnth. inversion Hnth.
-  Admitted.
+    intros A B R xs ys n y Hnth Hmatch.
+    epose proof (Nth_Forall2_Nth Hnth Hmatch).
+    apply H.
+  Qed.
 
   Lemma WF_IRState_lookup_cannot_fail :
     forall σ it s n msg msg',
@@ -1563,7 +1548,7 @@ End NExpr.
 
 Section MExpr.
 
-  Definition R (σ : evalContext) (s : IRState) (memH : memoryH) (vellvm : memoryV * (local_env * global_env)) : Type
+  Definition R (σ : evalContext) (s : IRState) (memH : memoryH) (vellvm : memoryV * (local_env * global_env)) : Prop
     := memory_invariant σ s memH vellvm.
 
   Definition R_MExpr
@@ -1600,8 +1585,7 @@ Section MExpr.
       genMExpr mexp s1 ≡ inr (s2, (exp, c, τ)) -> (* Compilation succeeds *)
       WF_IRState σ s1 ->                            (* Well-formed IRState *)
       R σ s1 memH (memV, (l, g)) ->
-      (* (WF_IRState σ s2 /\ *)
-       eutt (R_MExpr σ s1)
+       eutt (R_MExpr σ s2)
             (translate_E_helix_cfg
                (interp_Mem (denoteMExpr σ mexp)
                            memH))
@@ -1619,58 +1603,56 @@ Section MExpr.
       unfold genMExpr in Hgen.
       cbn in Hgen.
       destruct (nth_error (vars s1) vid) eqn:Hsnth.
-      2: { admit. }
+      2:
+        { (* Need to know sometnhing about vid being well formed *)
+          (* TODO: add additional assumption to genMExpr_correct *)
+          admit.
+        }
+
       cbn in Hgen. destruct p.
-      destruct t; inversion Hgen.
-      destruct t; inversion Hgen.
-      destruct t; inversion Hgen.
+      do 3 (destruct t; inversion Hgen).
+      subst.
+      clear H0 H1.
+
+      (* Need to get some information about nth_error σ vid from Hwf *)
+      pose proof (Forall2_Some_right vid Hsnth Hwf) as (v & Hnth & Hirtyp).
+      rewrite Hnth.
+      destruct v. inversion Hirtyp. inversion Hirtyp.
+      clear Hirtyp. (* TODO: I know this is bogus, fix up. *)
+
+      (* TODO: Clean this up. Extract into a lemma which spits out bk_helix? *)
+      (* Need something relating σ and memH... memory_invariant should do this *)
+      unfold R in Hmeminv.
+      (* TODO: don't unfold this, separate into lemma. *)
+      unfold memory_invariant in Hmeminv.
+      destruct Hmeminv as [_ Hmeminv].
+      pose proof Hmeminv as Hmeminv'.
+      specialize (Hmeminv _ _ _ _ Hnth Hsnth). cbn in Hmeminv.
+      destruct Hmeminv as (bk_helix & Hlookup & ptr_llvm & bk_llvm & Hfind & rest).
       subst.
 
-      unfold WF_IRState in Hwf.
-      (* pose proof (Hwf _ _ _ Hsnth) as (v & Hnth & Hirtyp). *)
+      repeat norm_h;
+        try (apply memory_lookup_err_inr_Some_eq; eauto).
 
-      (* rewrite Hnth. *)
-      (* destruct v. inversion Hirtyp. inversion Hirtyp. *)
-      (* clear Hirtyp. (* TODO: I know this is bogus, fix up. *) *)
+      (* Try to simplify right hand side *)
+      cbn.
+      norm_v.
 
-      (* (* TODO: Clean this up. Extract into a lemma which spits out bk_helix? *) *)
-      (* (* Need something relating σ and memH... memory_invariant should do this *) *)
-      (* unfold R in Hmeminv. *)
-      (* (* TODO: don't unfold this, separate into lemma. *) *)
-      (* unfold memory_invariant in Hmeminv. *)
-      (* pose proof Hmeminv as Hmeminv'. *)
-      (* specialize (Hmeminv _ _ Hnth). cbn in Hmeminv. *)
-      (* destruct Hmeminv as (τ & x & Hnth_s2 & Htyp & bk_helix & Hlookup & ptr_llvm & bk_llvm & Hfind & rest). *)
-      (* subst. *)
-
-      (* repeat norm_h; *)
-      (*   try (apply memory_lookup_err_inr_Some_eq; eauto). *)
-
-      (* (* Try to simplify right hand side *) *)
-      (* cbn. *)
-      (* norm_v. *)
-
-      (* (* TODO: Do I know anything about what i should be? *)
+      (* TODO: Do I know anything about what i should be? *)
       (* memory_invariant seems to suggest that it can only be a local *)
-      (* id. *) *)
-      (* assert (i ≡ x). *)
-      (* { (* Proof should hold, but currently bogus due to the type mismatch *) *)
-      (*   rewrite Hnth_s2 in Hsnth. inversion Hsnth; subst; auto. *)
-      (* } *)
-      (* subst x. *)
-      (* clear H0 H1. *)
-      (* destruct i as [id | id]; *)
-      (*   cbn in Hfind; *)
-      (*   repeat (cbn; repeat norm_v); *)
-      (*   try apply Hfind; *)
+      (* id. *)
+      destruct i as [id | id];
+        cbn in Hfind;
+        repeat (cbn; repeat norm_v);
+        try apply Hfind;
 
-      (*   (* TODO: group this under lemma? *) *)
-      (*   (* Final relation with R'0 *) *)
-      (*   apply eqit_Ret; *)
-      (*   unfold R_MExpr, memory_invariant; *)
-    (*   split; auto; exists ptr_llvm; auto. *)
-      admit.
-    - admit.
+        (* TODO: group this under lemma? *)
+        (* Final relation with R'0 *)
+        apply eqit_Ret;
+        unfold R_MExpr, memory_invariant;
+        split; auto; exists ptr_llvm; auto.
+    - repeat norm_h; repeat norm_v.
+      cbn in Hgen. inversion Hgen.
   Admitted.
 End MExpr.
 
