@@ -1619,7 +1619,7 @@ Section MExpr.
       unfold genMExpr in Hgen.
       cbn in Hgen.
       destruct (nth_error (vars s1) vid) eqn:Hsnth.
-      Focus 2. admit.
+      2: { admit. }
       cbn in Hgen. destruct p.
       destruct t; inversion Hgen.
       destruct t; inversion Hgen.
