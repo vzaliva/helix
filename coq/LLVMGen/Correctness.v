@@ -270,55 +270,50 @@ Section RelationTypes.
   (** Relation of memory states which must be held for
       intialization steps *)
   Definition Type_R_memory_cfg: Type
-    := evalContext ->
-       memoryH → LLVM_memory_state_cfg → Prop.
+    := memoryH → LLVM_memory_state_cfg → Prop.
 
   (** Relation of memory states which must be held for
       intialization steps *)
   Definition Type_R_memory_mcfg: Type
-    := evalContext ->
-       memoryH → LLVM_memory_state_mcfg → Prop.
+    := memoryH → LLVM_memory_state_mcfg → Prop.
 
   (** Type of bisimulation relations between DSHCOL and VIR internal to CFG states,
       parameterized by the types of the computed values.
    *)
   Definition Type_R_cfg_T (TH TV: Type): Type
-    := evalContext ->
-       memoryH * TH → LLVM_state_cfg_T TV → Prop.
+    := memoryH * TH → LLVM_state_cfg_T TV → Prop.
 
   (* Lifting a relation on memory states to one encompassing returned values by ignoring them *)
   Definition lift_R_memory_cfg (R: Type_R_memory_cfg) (TH TV: Type): Type_R_cfg_T TH TV :=
-    fun σ '(memH,_) '(memV,(l,(g,_))) => R σ memH (memV,(l,g)).
+    fun '(memH,_) '(memV,(l,(g,_))) => R memH (memV,(l,g)).
 
   (* Lifting a relation on results to one encompassing states by ignoring them *)
   Definition lift_R_result_cfg {TH TV: Type} (R: TH -> TV -> Prop): Type_R_cfg_T TH TV :=
-    fun _ '(_,vh) '(_,(_,(_,vv))) => R vh vv.
+    fun '(_,vh) '(_,(_,(_,vv))) => R vh vv.
 
   (** Type of bisimulation relations between DSHCOL and VIR internal to CFG states,
       parameterized by the types of the computed values.
    *)
   Definition Type_R_mcfg_T (TH TV: Type): Type
-    := evalContext ->
-       memoryH * TH → LLVM_state_mcfg_T TV → Prop.
+    := memoryH * TH → LLVM_state_mcfg_T TV → Prop.
 
   Definition lift_R_memory_mcfg (R: Type_R_memory_mcfg) (TH TV: Type): Type_R_mcfg_T TH TV :=
-    fun σ '(memH,_) '(memV,(l,(g,_))) => R σ memH (memV,(l,g)).
+    fun '(memH,_) '(memV,(l,(g,_))) => R memH (memV,(l,g)).
 
   (** Type of bisimulation relation between DSHCOL and LLVM states.
     This relation could be used for fragments of CFG [cfg].
    *)
   Definition Type_R_partial: Type
-    := evalContext ->
-       memoryH * () → LLVM_state_cfg → Prop.
+    := memoryH * () → LLVM_state_cfg → Prop.
 
   (** Type of bisimulation relation between DSHCOL and LLVM states.
       This relation could be used for "closed" CFG [mcfg].
    *)
   Definition Type_R_full: Type
-    := evalContext ->
-       memoryH * (list binary64) → LLVM_state_mcfg → Prop.
+    := memoryH * (list binary64) → LLVM_state_mcfg → Prop.
 
 End RelationTypes.
+Arguments lift_R_memory_cfg R {_ _}.
 
 Section SimulationRelations.
 
@@ -405,24 +400,22 @@ Section SimulationRelations.
              (x : nat)
              (dv : dvalue) : Prop
     := (* variable is either in local environment *)
-      (alist_find _ (inj_f ι x) ρ ≡ Some (dvalue_to_uvalue dv) /\
-       alist_find _ (inj_f ι x) g ≡ None) \/
+      (alist_find (inj_f ι x) ρ ≡ Some (dvalue_to_uvalue dv) /\
+       alist_find (inj_f ι x) g ≡ None) \/
       (* or in global environment *)
-      (alist_find _ (inj_f ι x) ρ ≡ None /\
-       alist_find _ (inj_f ι x) g ≡ Some dv).
+      (alist_find (inj_f ι x) ρ ≡ None /\
+       alist_find (inj_f ι x) g ≡ Some dv).
 
-  Definition memory_invariant : Type_R_memory_cfg :=
-    fun (σ : evalContext) (mem_helix : MDSHCOLOnFloat64.memory) '(mem_llvm, x) =>
+  Definition memory_invariant (σ : evalContext) : Type_R_memory_cfg :=
+    fun (mem_helix : MDSHCOLOnFloat64.memory) '(mem_llvm, (ρ,g)) =>
       let σ_len := List.length σ in
       σ_len ≡ 0 \/ (* empty env immediately allowed, as injection could not exists *)
-      let '(ρ, g) := x in
       exists (ι: injection_Fin raw_id σ_len),
       forall (x: nat) v,
         nth_error σ x ≡ Some v ->
         match v with
         | DSHnatVal v   =>
-          in_local_or_global ι ρ g x
-                             (DVALUE_I64 (DynamicValues.Int64.repr (Int64.intval v)))
+          in_local_or_global ι ρ g x (DVALUE_I64 (DynamicValues.Int64.repr (Int64.intval v)))
         | DSHCTypeVal v =>
           in_local_or_global ι ρ g x
                              (DVALUE_Double v)
@@ -451,9 +444,9 @@ Section SimulationRelations.
 (* TODO: Currently this relation just preserves memory invariant.
    Maybe it needs to do something more?
  *)
-Definition bisim_partial: Type_R_partial
+Definition bisim_partial (σ : evalContext) : Type_R_partial
   :=
-    fun σ '(mem_helix, _) '(mem_llvm, x) =>
+    fun '(mem_helix, _) '(mem_llvm, x) =>
       let '(ρ, (g, bid_or_v)) := x in
       memory_invariant σ mem_helix (mem_llvm, (ρ, g)).
 
@@ -462,11 +455,10 @@ Definition bisim_partial: Type_R_partial
    the top-level.
    Currently a simple lifting of [bisim_partial].
 *)
-Definition bisim_full: Type_R_full  :=
-  fun σ  '(mem_helix, v_helix) mem_llvm =>
+Definition bisim_full (σ : evalContext): Type_R_full  :=
+  fun '(mem_helix, v_helix) mem_llvm =>
     let '(m, ((ρ,_), (g, v))) := mem_llvm in
     bisim_partial σ (mem_helix, tt) (mk_LLVM_state_cfg_from_mem (inr v) (m, (ρ, g))).
-
 
 (** Relation bewteen the final states of evaluation and execution
     of DHCOL program.
@@ -475,8 +467,8 @@ Definition bisim_full: Type_R_full  :=
     just compare return value of [main] function in LLVM with
     evaulation results of DSHCOL.
  *)
-Definition bisim_final: Type_R_full :=
-  fun σ '(_, h_result) '(_,(_,(_,llvm_result))) =>
+Definition bisim_final (σ : evalContext) : Type_R_full :=
+  fun '(_, h_result) '(_,(_,(_,llvm_result))) =>
     match llvm_result with
     | UVALUE_Array arr => @List.Forall2 _ _
                                        (fun ve de =>
@@ -861,6 +853,9 @@ End InterpMem.
   Tactic Notation "norm_v" "in" hyp(h) := norm_v_hyp_k' h 0.
   Tactic Notation "norm_vD" "in" hyp(h) := norm_v_hyp_k' h 1.
 
+From ExtLib Require Import
+     Core.RelDec.
+
 Section NExpr.
 
   (**
@@ -959,7 +954,7 @@ vars s1 = σ?
     fun a b => R a b /\ S a b.
   Infix "⩕" := conj_rel (at level 85).
 
-  Variable (R: Type_R_memory_cfg).
+  Variable (R: evalContext -> Type_R_memory_cfg).
   Definition R' : Int64.int -> uvalue -> Prop :=
     fun i uv => uv ≡ UVALUE_I64 i.
   (* R, R' to be instantiated *)
@@ -1046,26 +1041,23 @@ vars s1 = σ?
     induction a as [| [] a IH]; cbn; intros; auto.
     rewrite IH; reflexivity.
   Qed.
+  
+  (* YZ TODO : Move to Vellvm? *)
+  Infix "∈" := Maps.contains.
+  Notation "m '@' x" := (alist_find x m).
+  Definition sub_alist {K V} {EQD : RelDec.RelDec Logic.eq} (ρ1 ρ2 : alist K V): Prop :=
+    forall (id : K) (v : V), alist_In id ρ1 v -> alist_In id ρ2 v.
+  Notation "m '⊑' m'" := (sub_alist m m') (at level 45).
 
-  (** YZ
-      At the top level, the correctness of genNExpr is expressed as the denotation of the operator being equivalent
-      to the bind of denoting the code followed by denoting the expression.
-      However this is not inductively stable, we only want to plug the expression at the top level.
-      We therefore instead carry the fact about the denotation of the expression in the invariant. (Is there another clever way?)
-      TODO: how to make this (much) less ugly?
-   *)
-  Definition R'' (e: exp typ) : Type_R_cfg_T DynamicValues.int64 unit :=
-    fun s '(_,i) '(memV,(l,(g,_))) =>
-      Ret (memV,(l,(g,UVALUE_I64 i))) ≈
-          translate_E_vellvm_cfg
-          (interp_cfg_to_L3 helix_intrinsics (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] e))) g l memV).
+  Definition ext_local {R S}: LLVM_memory_state_cfg -> Type_R_cfg_T R S :=
+    fun '(mi,(li,gi)) _ '(m,(l,(g,_))) => mi ≡ m /\ gi ≡ g /\ li ⊑ l.
 
-  Definition memory_invariant_MCFG: Type_R_mcfg_T unit unit :=
-    fun σ '(memH,_) '(memV,((l,sl),(g,_))) =>
+  Definition memory_invariant_MCFG σ: Type_R_mcfg_T unit unit :=
+    fun '(memH,_) '(memV,((l,sl),(g,_))) =>  
       memory_invariant σ memH (memV,(l,g)).
 
-  Definition memory_invariant_memory_mcfg: Type_R_memory_mcfg :=
-    fun σ memH '(memV,((l,sl),g)) =>
+  Definition memory_invariant_memory_mcfg σ: Type_R_memory_mcfg :=
+    fun memH '(memV,((l,sl),g)) =>
       memory_invariant σ memH (memV,(l,g)).
 
   (* TODO YZ : Move to itrees *)
@@ -1106,15 +1098,115 @@ vars s1 = σ?
     | x : unit |- _ => destruct x
     end.
 
-  Lemma genNExpr_correct_ind :
+  (* Beginning definition of new memory_invariant *)
+
+  Definition dvalue_of_int (v : Int64.int) : dvalue := DVALUE_I64 (DynamicValues.Int64.repr (Int64.intval v)).
+  Definition dvalue_of_bin (v: binary64) : dvalue := DVALUE_Double v.
+
+  Definition in_local_or_global' 
+             (ρ : local_env) (g : global_env)
+             (x : ident) (dv : dvalue) : Prop
+    := match x with
+       | ID_Local x => ρ @ x ≡ Some (dvalue_to_uvalue dv)
+       | ID_Global x => g @ x ≡ Some dv
+       end.
+
+  Definition memory_invariant' (σ : evalContext) (s : IRState) : Type_R_memory_cfg :=
+    fun (mem_helix : MDSHCOLOnFloat64.memory) '(mem_llvm, (ρ,g)) =>
+      forall (n: nat) v,
+        nth_error σ n ≡ Some v ->
+        exists τ x, 
+          nth_error (vars s) n ≡ Some (x,τ) /\
+          getIRType (DSHType_of_DSHVal v) ≡ τ /\
+          match v with
+          | DSHnatVal v   => in_local_or_global' ρ g x (dvalue_of_int v) 
+          | DSHCTypeVal v => in_local_or_global' ρ g x (dvalue_of_bin v)
+          | DSHPtrVal ptr_helix ptr_size_helix =>
+            exists bk_helix,
+            memory_lookup mem_helix ptr_helix ≡ Some bk_helix /\
+            exists ptr_llvm bk_llvm,
+              in_local_or_global' ρ g x (DVALUE_Addr ptr_llvm) /\
+              get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm /\
+              (fun bk_helix bk_llvm =>
+                 forall i, Int64.lt i ptr_size_helix ->
+                      exists v_helix v_llvm,
+                        mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v_helix /\
+                        mem_lookup_llvm_at_i bk_llvm (MInt64asNT.to_nat i)
+                                             (MInt64asNT.to_nat ptr_size_helix) v_llvm /\
+                        v_llvm ≡ UVALUE_Double v_helix
+              ) bk_helix bk_llvm
+          end.
+ 
+  Lemma in_local_or_global_ext_local :
+    forall ρ1 ρ2 g x dv,
+      in_local_or_global' ρ1 g x dv ->
+      ρ1 ⊑ ρ2 ->
+      in_local_or_global' ρ2 g x dv.
+  Proof.
+    intros * [? |?] MONO; [left; auto | right; auto].
+    apply MONO; auto. 
+  Qed.
+
+  Lemma memory_invariant_ext_local :
+    forall σ s memH memV ρ1 ρ2 g,
+      memory_invariant' σ s memH (memV, (ρ1, g)) ->
+      ρ1 ⊑ ρ2 ->
+      memory_invariant' σ s memH (memV, (ρ2, g)).
+  Proof.
+    intros * (WF & ι & INV) MONO.
+    split; [assumption | exists ι].
+    intros; edestruct INV as (x & EQ & INV'); eauto.
+    exists x; split; auto.
+    destruct v; eauto.
+    eapply in_local_or_global_ext_local; eauto.
+    eapply in_local_or_global_ext_local; eauto.
+    repeat destruct INV' as (? & INV').
+    eexists; split; eauto.
+    do 2 eexists; split; eauto.
+    eapply in_local_or_global_ext_local; eauto.
+  Qed.
+
+  (** YZ
+      At the top level, the correctness of genNExpr is expressed as the denotation of the operator being equivalent
+      to the bind of denoting the code followed by denoting the expression.
+      However this is not inductively stable, we only want to plug the expression at the top level.
+      We therefore instead carry the fact about the denotation of the expression in the invariant. (Is there another clever way?)
+      TODO: how to make this (much) less ugly?
+   *)
+  Definition genNexpr_exp_correct (e: exp typ) : Type_R_cfg_T DynamicValues.int64 unit :=
+    fun '(_,i) '(memV,(l,(g,_))) =>
+      forall l', l ⊑ l' ->
+        Ret (memV,(l',(g,UVALUE_I64 i)))
+        ≈
+      translate_E_vellvm_cfg
+        (interp_cfg_to_L3 helix_intrinsics (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] e))) g l' memV).
+
+  Definition genNExpr_rel (σ : evalContext) (s : IRState) (e : exp typ) (st : LLVM_memory_state_cfg): Type_R_cfg_T DynamicValues.int64 () :=
+    lift_R_memory_cfg (memory_invariant' σ s) ⩕ (genNexpr_exp_correct e ⩕ ext_local st).
+
+  Lemma memory_invariant_WF_IRState :
+    forall σ s memH st, memory_invariant' σ s memH st -> WF_IRState σ s.
+  Proof.
+    intros ? ? ? (? & ? & ?) H; apply H. 
+  Qed.
+
+  Hint Resolve memory_invariant_WF_IRState : core.
+
+  Lemma sub_alist_refl: forall {K V} {EQD : RelDec.RelDec Logic.eq} (l : alist K V), l ⊑ l.
+  Proof.
+    repeat intro; auto.
+  Qed.
+  Hint Resolve sub_alist_refl : core.
+
+  (* YZ TODO : test whether this new version makes any sense *)
+    Lemma genNExpr_correct_ind :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH)
       (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
       genNExpr nexp s1 ≡ inr (s2, (e, c)) -> (* Compilation succeeds *)
-      WF_IRState σ s1 ->                     (* Well-formed IRState *)
-      R σ memH (memV, (l, g)) ->
+      memory_invariant' σ s1 memH (memV, (l, g)) ->
       (* (WF_IRState σ s2 /\ *)
-       eutt (lift_R_memory_cfg R σ ⩕ R'' e σ)
+       eutt (genNExpr_rel σ s2 e (mk_LLVM_memory_state_cfg memV l g))
             (translate_E_helix_cfg
                (interp_Mem (denoteNExpr σ nexp)
                            memH))
@@ -1123,8 +1215,7 @@ vars s1 = σ?
                                   (denote_code (convert_typ [] c))
                   g l memV)).
   Proof.
-    intros s1 s2 nexp; revert s1 s2; induction nexp; intros * COMPILE WFIR PRE;
-      assert (FOO: (s2,(exp,c)) ≡ (s2,(exp,c))) by reflexivity. (* TODOYZ: stupid hack to quickly check what case we are in. To remove *)
+    intros s1 s2 nexp; revert s1 s2; induction nexp; intros * COMPILE (* WFIR *) PRE.
     - (* Variable case *)
       (* Reducing the compilation *)
       (* simp_comp COMPILE; (split; [auto |]). *)
@@ -1132,7 +1223,7 @@ vars s1 = σ?
 
       + (* The variable maps to an integer in the IRState *)
         unfold denoteNExpr; cbn*.
-
+        
         repeat norm_v.
         break_inner_match_goal.
         * (* Variable not in context, [context_lookup] fails *)
@@ -1141,18 +1232,42 @@ vars s1 = σ?
           ++ repeat norm_h.
              destruct i0.
              { (* Global *)
-               apply eutt_Ret; split.
-               apply PRE.
-               unfold R''; cbn*.
+               apply eutt_Ret.
+               split; [apply PRE | split; [| repeat split; eauto; try reflexivity ]].
+               intros l' MONO; cbn*.
+               subst.
                repeat norm_v.
                cbn; repeat norm_v.
+               unfold context_lookup, trywith in *; break_match_hyp; cbn in *; try inv_sum.
+               
+
+
+               nth_error (vars s) k ≡ Some (ID_Global id, TYPE_I 64%Z)
+
+               Lemma memory_invariant_GLU : forall σ s v id memH memV l g n msg,
+                   memory_invariant' σ s memH (memV, (l, g)) ->
+                   nth_error (vars s) v ≡ Some (ID_Global id, TYPE_I 64%Z) ->
+                   context_lookup msg σ v ≡ inr (DSHnatVal n) ->
+                   Maps.lookup id g ≡ Some (DVALUE_I64 n).
+               Proof.
+                 intros * (WF & ι & INV) NTH LU.
+                 unfold context_lookup, trywith in LU.
+                 break_match_hyp; cbn in *; try inv_sum.
+                 apply INV in Heqo; clear INV.
+                 destruct Heqo as (id' & NTH' & IN).
+                 apply WF in NTH; clear WF.
+                 destruct NTH as (v' & NTH'' & GET).
+                 destruct IN.
+                 2:{
+                 
+
                2: eapply R_GLU; eauto.
                reflexivity.
              }
              { (* Local *)
                apply eutt_Ret.
-               split; [apply PRE | ].
-               cbn*. repeat norm_v.
+               split; [apply PRE | split; [| repeat split; try reflexivity]].
+               intros l' MONO; cbn*. repeat norm_v.
                2: eapply R_LLU; eauto.
                cbn; repeat norm_v.
                reflexivity.
@@ -1175,7 +1290,7 @@ vars s1 = σ?
       repeat norm_h.
       repeat norm_v.
       apply eutt_Ret.
-      split; [apply PRE |].
+      split; [apply PRE | split; [| repeat split; try reflexivity]].
       cbn*; rewrite repr_intval; repeat norm_v.
       reflexivity.
 
@@ -1250,6 +1365,7 @@ vars s1 = σ?
     - admit.
 
     - (* NAdd *)
+      rename g into g1, l into l1, memV into memV1.
 
       simp_comp COMPILE.
       clear FOO.
@@ -1286,8 +1402,10 @@ vars s1 = σ?
         eapply eutt_clo_bind; [eassumption |].
 
         introR; destruct_unit.
-        destruct PRE0 as [PRE0 HR''].
-        specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 WFI PRE0).
+        rename g into g2, l into l2, memV into memV2.
+
+        destruct PRE0 as (PRE2 & POST2 & <- & <- & MONO2).
+        specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 WFI PRE2).
 
         unfold translate_E_vellvm_cfg in IHnexp2; cbn* in IHnexp2;
           repeat norm_v in IHnexp2;
@@ -1303,41 +1421,43 @@ vars s1 = σ?
         eapply eutt_clo_bind; [eassumption |].
 
         introR; destruct_unit.
-        destruct PRE1 as [PRE1 ?HR''].
+        destruct PRE0 as (PRE3 & POST3 & <- & <- & MONO3).
 
         (* Just for debugging *)
         rename i0 into s3, e1 into e2, c1 into c2.
         rename i into s2, e0 into e1, c0 into c1.
         rename i2 into i1, i3 into i2.
-        rename memV0 into memV2, l0 into l2, g0 into g2.
-        rename memV1 into memV3, l1 into l3, g1 into g3.
-        rename memV into memV1, l into l1, g into g1.
-
-
-
         (* YZ CHECKPOINT :
            Confused at the moment: the subexpressions seem to be evaluated in the wrong memory states.
            Come back to this and figure it out.
          *)
 
-        (*
         simpl.
         repeat norm_v.
         unfold eval_op.
         eutt_hide_rel; eutt_hide_left.
-
-        unfold R'' in *.
-
-        cbn* in HR''0.
         cbn*.
-        clear -HR''0.
-        symmetry in HR''0.
         repeat norm_v.
-        unfold IntType.
-
         (* YZ TODO : [typ_to_dtyp] is just not manageable. Find a way to fix *)
         Axiom typ_to_dtyp_I : forall s i, typ_to_dtyp s (TYPE_I i) ≡ DTYPE_I i.
-        rewrite typ_to_dtyp_I.
+        unfold IntType; rewrite typ_to_dtyp_I.
+ 
+        unfold R'' in *.
+        cbn* in POST2.
+
+        Lemma 
+
+        rewrite <- POST2.
+        repeat norm_v.
+        cbn* in POST3.
+        rewrite <- POST3.
+        repeat norm_v.
+        cbn.
+        repeat norm_v.
+
+
+
+
         match goal with
         |- eutt _ _ (ITree.bind _ ?t) => remember t end.
         unfold convert_typ, ConvertTyp_exp in HR''0.
