@@ -1566,11 +1566,7 @@ Section MExpr.
       unfold genMExpr in Hgen.
       cbn in Hgen.
       destruct (nth_error (vars s1) vid) eqn:Hsnth.
-      2:
-        { (* Need to know sometnhing about vid being well formed *)
-          (* TODO: add additional assumption to genMExpr_correct *)
-          admit.
-        }
+      2: inversion Hgen.
 
       cbn in Hgen. destruct p.
       do 3 (destruct t; inversion Hgen).
@@ -1616,7 +1612,7 @@ Section MExpr.
         split; auto; exists ptr_llvm; auto.
     - repeat norm_h; repeat norm_v.
       cbn in Hgen. inversion Hgen.
-  Admitted.
+  Qed.
 End MExpr.
 
 Section AExpr.
