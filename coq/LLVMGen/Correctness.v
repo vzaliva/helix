@@ -1132,6 +1132,21 @@ vars s1 = σ?
     rewrite repr_intval in Heqo; auto.
   Qed.
 
+  Definition alist_fresh {K R RD V} k m := @alist_find K R RD V k m ≡ None.
+  Lemma add_fresh_lu : forall {K V} {EQD : RelDec.RelDec Logic.eq} {RC: RelDec_Correct EQD} m (k1 k2 : K) (v1 v2 : V),
+      alist_fresh k2 m ->
+      alist_In k1 m v1 ->
+      alist_In k1 (alist_add k2 v2 m) v1.
+  Proof.
+    intros; apply In_add_ineq_iff; auto.
+    unfold alist_fresh, alist_In in *; intros ->.
+    rewrite H in H0; inv H0.
+  Qed.
+
+  Definition incLocal_fresh (l : local_env) (s : IRState) : Prop :=
+    forall s' id, incLocal s ≡ inr (s',id) ->
+             alist_fresh id l.
+
   Lemma genNExpr_correct_ind :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH)
@@ -1362,31 +1377,35 @@ vars s1 = σ?
         cbn*.
         repeat norm_v.
 
-        (* TODO MOVE to VELLVM *)
-        Lemma interp_cfg_to_L3_LR : forall defs id g l m v,
-            interp_cfg_to_L3 defs (trigger (LocalWrite id v)) g l m ≈ ret (m,(Maps.add id v l, (g,tt))).
-        Proof.
-          intros.
-          unfold interp_cfg_to_L3.
-          rewrite interp_intrinsics_trigger; cbn. 
-          unfold Intrinsics.F_trigger.
-          rewrite interp_global_trigger; cbn.
-          rewrite interp_local_bind, interp_local_trigger; cbn.
-          rewrite bind_ret_l, interp_local_ret, interp_memory_ret.
-          reflexivity.
-        Qed.
-
-        rewrite interp_cfg_to_L3_LR.
+        rewrite interp_cfg_to_L3_LW.
         cbn*; repeat norm_v.
         apply eutt_Ret.
 
-        (* TODO CHECKPOINT *)
+        destruct PRE3 as [? MEMINV].
         split; [split | split]; cbn.
-        admit.
-        admit.
-        admit.
-        repeat split; auto.
-        admit.
+        * auto.
+        * clear - MEMINV.
+          repeat let x := fresh in intros x; specialize (MEMINV x).
+          admit.
+          
+        * intros.
+          cbn*.
+          repeat norm_v.
+          2: apply H1.
+          2:apply In_add_eq.
+          cbn; norm_v; apply eutt_Ret; repeat f_equal; auto.
+          admit.
+          (* Arithmetic *)
+  (*           UVALUE_I64 (MInt64asNT.NTypePlus i1 i2) *)
+  (* ≡ dvalue_to_uvalue *)
+  (*     (if *)
+  (*       (DynamicValues.Int64.eq (DynamicValues.Int64.add_carry vH vH0 DynamicValues.Int64.zero) DynamicValues.Int64.one *)
+  (*        || DynamicValues.Int64.eq (DynamicValues.Int64.add_overflow vH vH0 DynamicValues.Int64.zero) DynamicValues.Int64.one)%bool *)
+  (*      then DVALUE_Poison *)
+  (*      else DVALUE_I64 (DynamicValues.Int64.add vH vH0)) *)
+        *
+          repeat split; auto.
+          admit.
 
 
  Admitted.
