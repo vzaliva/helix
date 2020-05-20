@@ -1521,23 +1521,14 @@ Section MExpr.
              (vellvm : memoryV * (local_env * res_L1)) : Prop
     :=
       let '(memH, mb) := helix in
-      let '(memV, (lenv, (genv, res))) := vellvm in
-      memory_invariant σ s memH (memV, (lenv, genv)) /\
-      exists ptr,
-        res ≡ UVALUE_Addr ptr.
-
-  (* TODO: Do I need to explicitly relate mb and res above? *)
-      (* exists ptr_llvm bk_llvm, *)
-      (*   res ≡ UVALUE_Addr ptr_llvm /\ *)
-      (*   get_logical_block (fst memV) ptr_llvm ≡ Some bk_llvm /\ *)
-      (*   (* Memory matches value *) *)
-      (*   (∀ (i : Int64.int) size, *)
-      (*       Int64.lt i size *)
-      (*       → ∃ (v_helix : binary64) (v_llvm : uvalue), *)
-      (*         mem_lookup (MInt64asNT.to_nat i) mb ≡ Some v_helix *)
-      (*         ∧ mem_lookup_llvm_at_i bk_llvm (MInt64asNT.to_nat i) (MInt64asNT.to_nat size) v_llvm *)
-      (*         ∧ v_llvm ≡ UVALUE_Double v_helix). *)
-
+      let '(memV, (ρ, (g, res))) := vellvm in
+      memory_invariant σ s memH (memV, (ρ, g)) /\
+      exists ptr i (vid : nat) (mid : mem_block_id) (size : Int64.int) (sz : int), (* TODO: sz ≈ size? *)
+        res ≡ UVALUE_Addr ptr /\
+        memory_lookup memH mid ≡ Some mb /\
+        in_local_or_global ρ g i (DVALUE_Addr ptr) /\
+        nth_error σ vid ≡ Some (DSHPtrVal mid size) /\
+        nth_error (vars s) vid ≡ Some (i, TYPE_Pointer (TYPE_Array sz TYPE_Double)).
 
   (** ** Compilation of MExpr TODO
   *)
@@ -1579,16 +1570,13 @@ Section MExpr.
       destruct v. inversion Hirtyp. inversion Hirtyp.
       clear Hirtyp. (* TODO: I know this is bogus, fix up. *)
 
-      (* TODO: Clean this up. Extract into a lemma which spits out bk_helix? *)
       (* Need something relating σ and memH... memory_invariant should do this *)
       unfold R in Hmeminv.
-      (* TODO: don't unfold this, separate into lemma. *)
       unfold memory_invariant in Hmeminv.
       destruct Hmeminv as [_ Hmeminv].
       pose proof Hmeminv as Hmeminv'.
       specialize (Hmeminv _ _ _ _ Hnth Hsnth). cbn in Hmeminv.
       destruct Hmeminv as (bk_helix & Hlookup & ptr_llvm & bk_llvm & Hfind & rest).
-      subst.
 
       repeat norm_h;
         try (apply memory_lookup_err_inr_Some_eq; eauto).
@@ -1597,19 +1585,17 @@ Section MExpr.
       cbn.
       norm_v.
 
-      (* TODO: Do I know anything about what i should be? *)
-      (* memory_invariant seems to suggest that it can only be a local *)
-      (* id. *)
-      destruct i as [id | id];
+      destruct i as [id | id] eqn:Hi;
         cbn in Hfind;
         repeat (cbn; repeat norm_v);
         try apply Hfind;
 
-        (* TODO: group this under lemma? *)
-        (* Final relation with R'0 *)
         apply eqit_Ret;
         unfold R_MExpr, memory_invariant;
-        split; auto; exists ptr_llvm; auto.
+        split; auto;
+          exists ptr_llvm; exists i; exists vid; exists a; exists size; exists sz;
+            subst; intuition.
+
     - repeat norm_h; repeat norm_v.
       cbn in Hgen. inversion Hgen.
   Qed.
