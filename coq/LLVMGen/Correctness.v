@@ -2398,6 +2398,7 @@ Proof.
       rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
       apply eutt_clo_bind with (UU:=(lift_R_memory_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 1 o; DSHPtrVal 0 i] s)) _ _ ).
       cbn.
+      (* rewrite interp_to_L3_Alloca. *)
       admit.
 
       intros u1 u2 H.
@@ -2431,6 +2432,7 @@ Proof.
       rewrite translate_bind.
       rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
       apply eutt_clo_bind with (UU:=(lift_R_memory_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 1 o; DSHPtrVal 0 i] s)) _ _ ).
+      (* rewrite interp_to_L3_Alloca. *)
       admit.
 
       intros u0 u2 H0.
