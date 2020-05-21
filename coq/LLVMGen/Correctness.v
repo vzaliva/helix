@@ -1500,18 +1500,10 @@ End NExpr.
 
 Section MExpr.
 
-  Definition R (σ : evalContext) (s : IRState) (memH : memoryH) (vellvm : memoryV * (local_env * global_env)) : Prop
-    := memory_invariant σ s memH vellvm.
-
-  Definition R_MExpr
+  Definition invariant_MExpr
              (σ : evalContext)
-             (s : IRState)
-             (helix : memoryH * mem_block)
-             (vellvm : memoryV * (local_env * res_L1)) : Prop
-    :=
-      let '(memH, mb) := helix in
-      let '(memV, (ρ, (g, res))) := vellvm in
-      memory_invariant σ s memH (memV, (ρ, g)) /\
+             (s : IRState) : Rel_cfg_T mem_block uvalue :=
+    fun '(memH, mb) '(memV, (ρ, (g, res))) =>
       exists ptr i (vid : nat) (mid : mem_block_id) (size : Int64.int) (sz : int), (* TODO: sz ≈ size? *)
         res ≡ UVALUE_Addr ptr /\
         memory_lookup memH mid ≡ Some mb /\
@@ -1520,24 +1512,22 @@ Section MExpr.
         nth_error (vars s) vid ≡ Some (i, TYPE_Pointer (TYPE_Array sz TYPE_Double)).
 
   (** ** Compilation of MExpr TODO
-  *)
+   *)
   Lemma genMExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (mexp: MExpr) (σ: evalContext) (memH: memoryH)
       (* Vellvm bits *)   (exp: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV) (τ: typ),
       genMExpr mexp s1 ≡ inr (s2, (exp, c, τ)) -> (* Compilation succeeds *)
-      WF_IRState σ s1 ->                            (* Well-formed IRState *)
-      R σ s1 memH (memV, (l, g)) ->
-       eutt (R_MExpr σ s2)
-            (with_err_RB
-               (interp_Mem (denoteMExpr σ mexp)
-                           memH))
-            (with_err_LB
-               ((interp_cfg_to_L3 helix_intrinsics
-                                  (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
-                  g l memV)).
+      state_invariant σ s1 memH (memV, (l, g)) ->
+      eutt (lift_Rel_cfg (state_invariant σ s2) ⩕ invariant_MExpr σ s2)
+           (with_err_RB
+              (interp_Mem (denoteMExpr σ mexp)
+                          memH))
+           (with_err_LB
+              ((interp_cfg (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
+                 g l memV)).
   Proof.
-    intros s1 s2 mexp σ memH exp c g l memV τ Hgen Hwf Hmeminv.
+    intros * Hgen Hmeminv.
 
     unfold denoteMExpr; cbn*.
     destruct mexp as [[vid] | mblock].
@@ -1555,40 +1545,33 @@ Section MExpr.
       clear H0 H1.
 
       (* Need to get some information about nth_error σ vid from Hwf *)
-      pose proof (Forall2_Nth_right _ _ _ _ _ Hsnth Hwf) as (v & Hnth & Hirtyp).
+      destruct Hmeminv as [INV WF INC].
+      edestruct (Forall2_Nth_right _ _ _ _ _ Hsnth WF) as (v & Hnth & Hirtyp).
+      unfold Nth in Hnth.
       rewrite Hnth.
-      destruct v. inversion Hirtyp. inversion Hirtyp.
-      clear Hirtyp. (* TODO: I know this is bogus, fix up. *)
-
-      (* Need something relating σ and memH... memory_invariant should do this *)
-      unfold R in Hmeminv.
-      unfold memory_invariant in Hmeminv.
-      destruct Hmeminv as [_ Hmeminv].
-      pose proof Hmeminv as Hmeminv'.
-      specialize (Hmeminv _ _ _ _ Hnth Hsnth). cbn in Hmeminv.
-      destruct Hmeminv as (bk_helix & Hlookup & ptr_llvm & bk_llvm & Hfind & rest).
+      destruct v; cbn in Hirtyp; try (now (destruct i; inv Hirtyp)).
+      inv_sum.
+      eapply INV in Hsnth; eauto.
+      destruct Hsnth as (bk_helix & Hlookup & ptr_llvm & bk_llvm & Hfind & rest).
 
       repeat norm_h;
         try (apply memory_lookup_err_inr_Some_eq; eauto).
 
       (* Try to simplify right hand side *)
-      cbn.
-      norm_v.
+      cbn*.
+      repeat norm_v; cbn*.
+      destruct i; cbn; repeat norm_v; try apply Hfind.
+      all: cbn*; repeat norm_v.
+      all: apply eqit_Ret; split; [split; eauto |].
 
-      destruct i as [id | id] eqn:Hi;
-        cbn in Hfind;
-        repeat (cbn; repeat norm_v);
-        try apply Hfind;
-
-        apply eqit_Ret;
-        unfold R_MExpr, memory_invariant;
-        split; auto;
-          exists ptr_llvm; exists i; exists vid; exists a; exists size; exists sz;
-            subst; intuition.
+      (* exists ptr_llvm, i, vid, a, size. *)
+      admit.
+      admit.
 
     - repeat norm_h; repeat norm_v.
       cbn in Hgen. inversion Hgen.
-  Qed.
+  Admitted.
+
 End MExpr.
 
 Section AExpr.
@@ -1604,12 +1587,11 @@ Section AExpr.
       R σ memH (memV, (l, g)) ->
       (* (WF_IRState σ s2 /\ *)
        eutt R'
-            (translate_E_helix_cfg
+            (with_err_RB
                (interp_Mem (denoteAExpr σ aexp)
                            memH))
-            (translate_E_vellvm_cfg
-               ((interp_cfg_to_L3 helix_intrinsics
-                                  (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
+            (with_err_LB
+               ((interp_cfg (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
                   g l memV)).
   Proof.
   Admitted.
@@ -1634,8 +1616,7 @@ Section MemCopy.
                (interp_Mem (denoteAexp σ aexp)
                            memH))
             (translate_E_vellvm_cfg
-               ((interp_cfg_to_L3 helix_intrinsics
-                                  (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
+               ((interp_cfg (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
                   g l memV)).
        *)
   Proof.
@@ -1660,8 +1641,7 @@ Section FSHAssign.
                (interp_Mem (denoteAexp σ aexp)
                            memH))
             (translate_E_vellvm_cfg
-               ((interp_cfg_to_L3 helix_intrinsics
-                                  (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
+               ((interp_cfg (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
                   g l memV)).
        *)
   Proof.
@@ -1689,8 +1669,7 @@ Section WhileLoop.
                (interp_Mem (denoteAexp σ aexp)
                            memH))
             (translate_E_vellvm_cfg
-               ((interp_cfg_to_L3 helix_intrinsics
-                                  (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
+               ((interp_cfg (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
                   g l memV)).
        *)
   Proof.
@@ -1714,8 +1693,7 @@ Section IMapBody.
                (interp_Mem (denoteAexp σ aexp)
                            memH))
             (translate_E_vellvm_cfg
-               ((interp_cfg_to_L3 helix_intrinsics
-                                  (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
+               ((interp_cfg (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
                   g l memV)).
        *)
   Proof.
@@ -1739,8 +1717,7 @@ Section BinOpBody.
                (interp_Mem (denoteAexp σ aexp)
                            memH))
             (translate_E_vellvm_cfg
-               ((interp_cfg_to_L3 helix_intrinsics
-                                  (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
+               ((interp_cfg (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
                   g l memV)).
        *)
   Proof.
@@ -1764,8 +1741,7 @@ Section MemMap2Body.
                (interp_Mem (denoteAexp σ aexp)
                            memH))
             (translate_E_vellvm_cfg
-               ((interp_cfg_to_L3 helix_intrinsics
-                                  (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
+               ((interp_cfg (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
                   g l memV)).
        *)
   Proof.
@@ -1791,8 +1767,7 @@ Section MemInit.
                (interp_Mem (denoteAexp σ aexp)
                            memH))
             (translate_E_vellvm_cfg
-               ((interp_cfg_to_L3 helix_intrinsics
-                                  (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
+               ((interp_cfg (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
                   g l memV)).
        *)
   Proof.
@@ -1817,8 +1792,7 @@ Section Power.
                (interp_Mem (denoteAexp σ aexp)
                            memH))
             (translate_E_vellvm_cfg
-               ((interp_cfg_to_L3 helix_intrinsics
-                                  (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
+               ((interp_cfg (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
                   g l memV)).
        *)
   Proof.
@@ -1884,11 +1858,10 @@ Section GenIR.
       bisim_partial σ s1 (memH,tt) (memV, (ρ, (g, (inl bid_in)))) ->
       genIR op nextblock s1 ≡ inr (s2,(bid_in,bks)) ->
       eutt (bisim_partial σ s1)
-           (translate_E_helix_cfg
+           (with_err_RB
               (interp_Mem (denoteDSHOperator σ op) memH))
-           (translate_E_vellvm_cfg
-              (interp_cfg_to_L3 helix_intrinsics
-                                (D.denote_bks (convert_typ env bks) bid_in)
+           (with_err_LB
+              (interp_cfg (D.denote_bks (convert_typ env bks) bid_in)
                                 g ρ memV)).
   Proof.
     intros s1 s2 op; revert s1 s2; induction op; intros * NEXT BISIM GEN.
@@ -1931,8 +1904,7 @@ Section LLVMGen.
       (* Vellvm bits *)   tle,
       LLVMGen i o globals false fshcol funname s1 ≡ inr (s2, tle) ->
       eutt (* (bisim_final σ) *) R
-           (translate_E_helix_mcfg
-                      (interp_Mem (denoteDSHOperator σ fshcol) memory_empty))
+           (with_err_RT (interp_Mem (denoteDSHOperator σ fshcol) memory_empty))
            (semantics_llvm tle).
   Proof.
     (* intros p data pll H. *)
@@ -1957,7 +1929,7 @@ End LLVMGen.
    Initialization of the memory
  **)
 
-Definition llvm_empty_memory_state_partial: LLVM_memory_state_cfg
+Definition llvm_empty_memory_state_partial: config_cfg
   := (empty_memory_stack, ([], [])).
 
 (* Scalar *)
