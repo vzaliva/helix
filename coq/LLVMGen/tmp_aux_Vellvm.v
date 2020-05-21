@@ -700,7 +700,6 @@ Section alistFacts.
       apply neg_rel_dec_correct. symmetry in Heqx. assumption.
   Qed.      
 
-  
   Lemma alist_find_neq : forall m (k r:K) (v:V), k <> r -> alist_find k (alist_add r v m) = alist_find k m.
   Proof.
     intros.
@@ -708,11 +707,68 @@ Section alistFacts.
     destruct x.
     - symmetry in Heqx. apply In_add_In_ineq in Heqx; auto.
     - symmetry in Heqx. symmetry. eapply alist_find_add_none. apply Heqx.
- Qed.
+  Qed.
   
-  
+  Definition alist_fresh (k : K) (m : alist K V) := alist_find k m = None.
+
+  Lemma add_fresh_lu : forall m (k1 k2 : K) (v1 v2 : V),
+      alist_fresh k2 m ->
+      alist_In k1 m v1 ->
+      alist_In k1 (alist_add k2 v2 m) v1.
+  Proof.
+    intros; apply In_add_ineq_iff; auto.
+    unfold alist_fresh, alist_In in *; intros ->.
+    rewrite H in H0; inv H0.
+  Qed.
+
 End alistFacts.
 Arguments alist_find {_ _ _ _}.
 Arguments alist_add {_ _ _ _}.
 Arguments alist_find {_ _ _ _}.
 Arguments alist_remove {_ _ _ _}.
+Arguments alist_fresh {_ _ _}.
+
+Lemma Forall2_Nth_left : forall n (A B:Type) l1 l2 R (a:A),
+    Nth l1 n a ->
+    Forall2 R l1 l2 ->
+    exists (b:B), (Nth l2 n b) /\ R a b.
+Proof.
+  induction n as [| n IH]; cbn; intros.
+  destruct l1; inv H0; inv_option.
+  eexists; eauto.
+  destruct l1; inv H0; try inv_option.
+  edestruct IH; eauto.
+Qed.
+
+Lemma Forall2_Nth_right : forall n (A B:Type) l1 l2 R (b:B),
+    Nth l2 n b ->
+    Forall2 R l1 l2 ->
+    exists (a:A), (Nth l1 n a) /\ R a b.
+Proof.
+  induction n as [| n IH]; cbn; intros.
+  destruct l1; inv H0; inv_option.
+  eexists; eauto.
+  destruct l1; inv H0; try inv_option.
+  edestruct IH; eauto.
+Qed.
+
+Lemma Forall2_Nth : forall n (A B:Type) l1 l2 R (a:A) (b : B),
+    Nth l1 n a ->
+    Nth l2 n b ->
+    Forall2 R l1 l2 ->
+    R a b.
+Proof.
+  induction n as [| n IH]; cbn; intros.
+  destruct l1; inv H1; repeat inv_option; auto.
+  destruct l1; inv H1; repeat inv_option; auto.
+  eapply IH; eauto.
+Qed.
+
+(* TODO YZ : Move to itrees *)
+(* Simple specialization of [eqit_Ret] to [eutt] so that users of the library do not need to know about [eqit] *)
+Lemma eutt_Ret :
+  forall E (R1 R2 : Type) (RR : R1 -> R2 -> Prop) r1 r2, RR r1 r2 <-> eutt (E := E) RR (Ret r1) (Ret r2).
+Proof.
+  intros; apply eqit_Ret.
+Qed.
+
