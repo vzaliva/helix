@@ -2403,7 +2403,13 @@ Proof.
       intros u1 u2 H.
       repeat break_let.
       subst.
+      rewrite interp_to_L3_GW.
       cbn.
+      rewrite translate_ret.
+      apply eutt_Ret.
+      unfold lift_R_memory_mcfg in *.
+      repeat break_let. subst.
+      clear - H.
       admit.
 
       intros u1 u2 H.
@@ -2419,7 +2425,23 @@ Proof.
       rewrite translate_bind.
       rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
       apply eutt_clo_bind with (UU:=(lift_R_memory_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 1 o; DSHPtrVal 0 i] s)) _ _ ).
+
+
+      rewrite interp_to_L3_vis.
+      rewrite translate_bind.
+      rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+      apply eutt_clo_bind with (UU:=(lift_R_memory_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 1 o; DSHPtrVal 0 i] s)) _ _ ).
+      admit.
+
+      intros u0 u2 H0.
+      repeat break_let.
+      rewrite interp_to_L3_GW.
       cbn.
+      rewrite translate_ret.
+      apply eutt_Ret.
+      unfold lift_R_memory_mcfg in *.
+      repeat break_let. subst.
+      clear - H H0.
       admit.
 
       intros u0 u2 H0.
