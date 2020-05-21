@@ -722,6 +722,12 @@ Section alistFacts.
     rewrite H in H0; inv H0.
   Qed.
 
+  Lemma alist_fresh_nil : forall k,
+      alist_fresh k [].
+  Proof.
+    intros; reflexivity.
+  Qed.
+
 End alistFacts.
 Arguments alist_find {_ _ _ _}.
 Arguments alist_add {_ _ _ _}.
