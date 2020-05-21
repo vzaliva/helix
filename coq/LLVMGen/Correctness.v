@@ -302,15 +302,17 @@ Section WF_IRState.
      injecting the types from [DSHCOL] to [VIR].
    *)
 
-  Definition getIRType' (t: DSHType): typ :=
-    match t with
-    | DSHnat => IntType
-    | DSHCType => TYPE_Double
-    | DSHPtr n => TYPE_Pointer (TYPE_Array (Int64.intval n) TYPE_Double)
+  Definition getWFType (id : ident) (t: DSHType): typ :=
+    match id, t with
+    | ID_Local _  , DSHnat   => IntType
+    | ID_Global _ , DSHnat   => TYPE_Pointer IntType
+    | ID_Local _  , DSHCType => TYPE_Double
+    | ID_Global _ , DSHCType => TYPE_Pointer TYPE_Double
+    | _           , DSHPtr n => TYPE_Pointer (TYPE_Array (Int64.intval n) TYPE_Double)
     end.
 
   Definition WF_IRState (σ : evalContext) (s : IRState) : Prop :=
-    Forall2 (fun v '(_,τ) => τ ≡ getIRType' (DSHType_of_DSHVal v)) σ (vars s).
+    Forall2 (fun v '(id,τ) => τ ≡ getWFType id (DSHType_of_DSHVal v)) σ (vars s).
 
   (* In such a well-formed context, success of a lookup in the [IRState] as performed by the compiler
      ensures the success of a lookup in the [evalContext] *)
@@ -352,10 +354,10 @@ Section WF_IRState.
   (* In such a well-formed context, finding in the typing context that a variable
      is an int ensure to find an int in the [evalContext].
    *)
-  Lemma WF_IRState_lookup_int :
+  Lemma WF_IRState_lookup_local_int :
     forall σ s n id,
       WF_IRState σ s ->
-      nth_error (vars s) n ≡ Some (id,TYPE_I 64%Z) ->
+      nth_error (vars s) n ≡ Some (ID_Local id,TYPE_I 64%Z) ->
       exists v, nth_error σ n ≡ Some (DSHnatVal v).
   Proof.
     intros * WF LU_IR.
@@ -368,10 +370,43 @@ Section WF_IRState.
   (* In such a well-formed context, finding in the typing context that a variable
      is an int ensure to find an int in the [evalContext].
    *)
-  Lemma WF_IRState_lookup_double :
+  Lemma WF_IRState_lookup_global_int :
     forall σ s n id,
       WF_IRState σ s ->
-      nth_error (vars s) n ≡ Some (id, TYPE_Double) ->
+      nth_error (vars s) n ≡ Some (ID_Global id, TYPE_Pointer (TYPE_I 64%Z)) ->
+      exists v, nth_error σ n ≡ Some (DSHnatVal v).
+  Proof.
+    intros * WF LU_IR.
+    eapply Forall2_Nth_right in WF; eauto.
+    destruct WF as (x & Hnth & Htype).
+    destruct x as [n0 | |]; try solve [inversion Htype].
+    eexists; eauto.
+  Qed.
+
+  (* In such a well-formed context, finding in the typing context that a variable
+     is an int ensure to find an int in the [evalContext].
+   *)
+  Lemma WF_IRState_lookup_local_double :
+    forall σ s n id,
+      WF_IRState σ s ->
+      nth_error (vars s) n ≡ Some (ID_Local id, TYPE_Double) ->
+      exists a, nth_error σ n ≡ Some (DSHCTypeVal a).
+  Proof.
+    intros * WF LU_IR.
+    unfold WF_IRState in WF.
+    eapply Forall2_Nth_right in LU_IR; eauto. 
+    destruct LU_IR as (x & Hnth & Htype).
+    destruct x as [n0 | |]; try solve [inversion Htype].
+    eexists; eauto.
+  Qed.
+
+  (* In such a well-formed context, finding in the typing context that a variable
+     is an int ensure to find an int in the [evalContext].
+   *)
+  Lemma WF_IRState_lookup_global_double :
+    forall σ s n id,
+      WF_IRState σ s ->
+      nth_error (vars s) n ≡ Some (ID_Global id, TYPE_Pointer TYPE_Double) ->
       exists a, nth_error σ n ≡ Some (DSHCTypeVal a).
   Proof.
     intros * WF LU_IR.
@@ -395,7 +430,7 @@ Section WF_IRState.
     unfold WF_IRState in WF.
     eapply Forall2_Nth_right in LU_IR; eauto. 
     destruct LU_IR as (x & Hnth & Htype).
-    destruct x as [n0 | |]; try solve [inversion Htype].
+    destruct x as [n0 | |]; try (destruct id; solve [inversion Htype]).
     do 2 eexists; eauto.
   Qed.
 
@@ -404,18 +439,31 @@ Section WF_IRState.
       WF_IRState σ s ->
       nth_error (vars s) n ≡ Some (id, τ) ->
       nth_error σ n ≡ Some v ->
-      τ ≡ getIRType' (DSHType_of_DSHVal v).
+      τ ≡ getWFType id (DSHType_of_DSHVal v).
   Proof.
     intros * WF LU_IR LU_SIGMA.
     eapply Forall2_Nth in WF; eauto; cbn in *; eauto.
   Qed.
 
-  Lemma WF_IRState_one_of_type:
+  Lemma WF_IRState_one_of_local_type:
     forall σ x τ s n,
       WF_IRState σ s ->
-      nth_error (vars s) n ≡ Some (x,τ) ->
+      nth_error (vars s) n ≡ Some (ID_Local x,τ) ->
       τ ≡ IntType \/
       τ ≡ TYPE_Double \/
+      exists k, τ ≡ TYPE_Pointer (TYPE_Array (Int64.intval k) TYPE_Double).
+  Proof.
+    intros * WF LU.
+    unfold WF_IRState in *.
+    eapply Forall2_Nth_right in WF; eauto; destruct WF as ([] & _ & EQ); cbn in EQ; subst; eauto.
+  Qed.
+
+  Lemma WF_IRState_one_of_global_type:
+    forall σ x τ s n,
+      WF_IRState σ s ->
+      nth_error (vars s) n ≡ Some (ID_Global x,τ) ->
+      τ ≡ TYPE_Pointer IntType \/
+      τ ≡ TYPE_Pointer TYPE_Double \/
       exists k, τ ≡ TYPE_Pointer (TYPE_Array (Int64.intval k) TYPE_Double).
   Proof.
     intros * WF LU.
@@ -431,13 +479,13 @@ Ltac abs_by_WF :=
         h': @nth_error DSHVal ?σ _ ≡ ?rhs'
     |- _ =>
     match rhs with
-    | Some (_,?τ) =>
+    | Some (?id,?τ) =>
       match rhs' with
       | None => exfalso; eapply WF_IRState_lookup_cannot_fail_ctx; now eauto
       | Some ?val =>
         let WF := fresh "WF" in
         assert (WF : WF_IRState σ s) by eauto;
-        let H := fresh in pose proof (WF_IRState_lookups _ WF h h') as H; now inv H
+        let H := fresh in pose proof (WF_IRState_lookups _ WF h h') as H; now (destruct id; inv H)
       end
     | None =>
       match rhs' with
@@ -445,10 +493,16 @@ Ltac abs_by_WF :=
       | Some ?val => idtac
       end
     end
-  | h : nth_error (vars ?s) _ ≡ Some (_,?τ) |- _ =>
-    eapply WF_IRState_one_of_type in h; eauto;
-    now (let EQ := fresh in destruct h as [EQ | [EQ | [? EQ]]]; inv EQ)
-  end.
+  | h : nth_error (vars ?s) _ ≡ Some (?id,?τ) |- _ =>
+    match id with
+    | ID_Local _ =>
+      eapply WF_IRState_one_of_local_type in h; eauto;
+      now (let EQ := fresh in destruct h as [EQ | [EQ | [? EQ]]]; inv EQ)
+    | ID_Global _ =>
+      eapply WF_IRState_one_of_global_type in h; eauto;
+      now (let EQ := fresh in destruct h as [EQ | [EQ | [? EQ]]]; inv EQ)
+    end
+   end.
 
 (* TODOYZ : MOVE *)
 Definition conj_rel {A B : Type} (R S: A -> B -> Prop): A -> B -> Prop :=
@@ -1057,8 +1111,7 @@ vars s1 = σ?
       evalNExpr σ nexp ≡ inl msg ->
       False.
   Proof.
-    induction nexp; cbn*; intros * WF COMP EVAL;
-      unfold context_lookup, trywith in *; cbn in *; repeat try inv_sum.
+    induction nexp; cbn*; intros * WF COMP EVAL; cbn* in *; repeat try inv_sum.
     simp; try abs_by_WF.
     all: simp; try abs_by_WF; [eapply IHnexp1; eauto | eapply IHnexp2; [eapply evalNexpr_preserves_WF | ..]; eauto].
   Qed.
@@ -1170,7 +1223,7 @@ vars s1 = σ?
           abs_by_WF.
 
       + (* The variable maps to a pointer *)
-        abs_by_WF.
+        admit.
 
     - (* Constant *)
 
