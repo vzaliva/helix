@@ -17,6 +17,7 @@ From Vellvm Require Import
      Refinement
      TopLevel
      LLVMAst
+     TypToDtyp
      Handlers.Handlers.
 
 From ExtLib Require Import
@@ -771,4 +772,58 @@ Lemma eutt_Ret :
 Proof.
   intros; apply eqit_Ret.
 Qed.
+
+(* TODO move to Vellvm/Tactics *)
+Ltac ret_bind_l_left v :=
+  match goal with
+    |- eutt _ ?t _ =>
+    rewrite <- (bind_ret_l v (fun _ => t))
+  end.
+
+(* TODO MOVE *)
+Lemma convert_typ_app : forall (a b : code typ) env, (convert_typ env (a ++ b) = convert_typ env a ++ convert_typ env b)%list.
+Proof.
+  induction a as [| [] a IH]; cbn; intros; auto.
+  rewrite IH; reflexivity.
+Qed.
+
+(* TODO YZ : Move to itrees *)
+(* Specialization of [eutt_clo_bind] to the case where the intermediate predicate introduced is the same as the current one *)
+Lemma eutt_bind_inv :
+  forall (E : Type -> Type) (R1 R2 : Type) (RR : R1 -> R2 -> Prop) (t1 : itree E R1) (t2 : itree E R2)
+    (k1 : R1 -> itree E R1) (k2 : R2 -> itree E R2),
+    eutt RR t1 t2 -> 
+    (forall (r1 : R1) (r2 : R2), RR r1 r2 -> eutt RR (k1 r1) (k2 r2)) ->
+    eutt RR (ITree.bind t1 (fun x : R1 => k1 x)) (ITree.bind t2 (fun x : R2 => k2 x)).
+Proof.
+  intros; apply eutt_clo_bind with (UU := RR); auto.
+Qed.
+
+(* TODO YZ : move to Vellvm *)
+Ltac simpl_match_hyp h :=
+  match type of h with
+    context[match ?x with | _ => _ end] =>
+    match goal with
+    | EQ: x = _ |- _ => rewrite EQ in h
+    | EQ: _ = x |- _ => rewrite <- EQ in h
+    end
+  end.
+Tactic Notation "simpl_match" "in" hyp(h) := simpl_match_hyp h.
+
+Ltac destruct_unit :=
+  match goal with
+  | x : unit |- _ => destruct x
+  end.
+
+(* YZ TODO : Move to Vellvm? *)
+Notation "m '@' x" := (alist_find x m).
+Definition sub_alist {K V} {EQD : RelDec.RelDec Logic.eq} (ρ1 ρ2 : alist K V): Prop :=
+  forall (id : K) (v : V), alist_In id ρ1 v -> alist_In id ρ2 v.
+Notation "m '⊑' m'" := (sub_alist m m') (at level 45).
+
+Instance sub_alist_refl {K V} {EQD : RelDec.RelDec Logic.eq} : Reflexive (@sub_alist K V _).
+Proof.
+  repeat intro; auto.
+Qed.
+
 

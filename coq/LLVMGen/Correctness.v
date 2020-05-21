@@ -75,13 +75,6 @@ Local Open Scope monad_scope.
 Notation memoryV := memory_stack.
 Notation memoryH := MDSHCOLOnFloat64.memory.
 
-(* YZ TODO : Move to Vellvm? *)
-Infix "∈" := Maps.contains.
-Notation "m '@' x" := (alist_find x m).
-Definition sub_alist {K V} {EQD : RelDec.RelDec Logic.eq} (ρ1 ρ2 : alist K V): Prop :=
-  forall (id : K) (v : V), alist_In id ρ1 v -> alist_In id ρ2 v.
-Notation "m '⊑' m'" := (sub_alist m m') (at level 45).
-
 Section EventTranslation.
 
   (* We relate Helix trees and Vellvm trees at a point where their event signatures are still not empty.
@@ -89,10 +82,10 @@ Section EventTranslation.
    Unfortunately, since [vellvm] works over two different set of signatures depending whether
    function calls are already resolved or not, we also need two joins here.
 
-TODOYZ: Principle the approach and move it to [itrees]
+   TODOYZ: Principle the approach and move it to [itrees]
 
-NOTEYZ: An alternative would be to translate everything that remains into failure. That could also be
-      part of the library as a generic handler.
+   NOTEYZ: An alternative would be to translate everything that remains into failure. That could also be
+           part of the library as a generic handler.
    *)
 
   (* Joined set of residual events for full programs *)
@@ -100,22 +93,18 @@ NOTEYZ: An alternative would be to translate everything that remains into failur
   (* Joined set of residual events for cfgs *)
   Definition E_cfg : Type -> Type := (CallE +' PickE +' UBE +' DebugE +' FailureE) +' (StaticFailE +' DynamicFailE).
 
-  (* We define the translation by injection *)
-  Definition translate_E_vellvm_mcfg : itree (ExternalCallE +' PickE +' UBE +' DebugE +' FailureE) ~> itree E_mcfg :=
-    translate inl_.
+  (* We define the translations by injection *)
+  Notation "'with_err_LT'" := (@translate (ExternalCallE +' PickE +' UBE +' DebugE +' FailureE) E_mcfg inl_).
 
-  Definition translate_E_vellvm_cfg : itree (CallE +' PickE +' UBE +' DebugE +' FailureE) ~> itree E_cfg :=
-    translate inl_.
+  Notation "'with_err_LB'" := (@translate (CallE +' PickE +' UBE +' DebugE +' FailureE) E_cfg inl_).
 
-  Definition translate_E_helix_mcfg : itree (StaticFailE +' DynamicFailE) ~> itree E_mcfg :=
-    translate inr_.
+  Notation "'with_err_RT'" := (@translate (StaticFailE +' DynamicFailE) E_mcfg inr_).
 
-  Definition translate_E_helix_cfg : itree (StaticFailE +' DynamicFailE) ~> itree E_cfg :=
-    translate inr_.
+  Notation "'with_err_RB'" := (@translate (StaticFailE +' DynamicFailE) E_cfg inr_).
 
   (* We therefore have the following resulting denotation functions. *)
   (* On the Vellvm side, for [mcfg]: *)
-  Definition semantics_llvm_mcfg p : itree E_mcfg _ := translate_E_vellvm_mcfg (model_to_L3 DTYPE_Void "main" main_args helix_intrinsics p).
+  Definition semantics_llvm_mcfg p : itree E_mcfg _ := with_err_LT (model_to_L3 DTYPE_Void "main" main_args helix_intrinsics p).
   (* Which get lifted to [toplevel_entity] as usual: *)
   Definition semantics_llvm (prog: list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ)))) :=
     semantics_llvm_mcfg (mcfg_of_tle prog).
@@ -167,9 +156,15 @@ NOTEYZ: An alternative would be to translate everything that remains into failur
 
   (* Finally, the semantics of FSHCOL for the top-level equivalence *)
   Definition semantics_FSHCOL (p: FSHCOLProgram) data : itree E_mcfg (memoryH * list binary64) :=
-    translate_E_helix_mcfg (interp_Mem (denote_FSHCOL p data) memory_empty).
+    with_err_RT (interp_Mem (denote_FSHCOL p data) memory_empty).
 
 End EventTranslation.
+Notation "'with_err_LT'" := (@translate (ExternalCallE +' PickE +' UBE +' DebugE +' FailureE) E_mcfg inl_).
+Notation "'with_err_LB'" := (@translate (CallE +' PickE +' UBE +' DebugE +' FailureE) E_cfg inl_).
+Notation "'with_err_RT'" := (@translate (StaticFailE +' DynamicFailE) E_mcfg inr_).
+Notation "'with_err_RB'" := (@translate (StaticFailE +' DynamicFailE) E_cfg inr_).
+Notation "'interp_cfg'"  := (interp_cfg_to_L3 helix_intrinsics).
+Notation "'interp_mcfg'" := (interp_to_L3 helix_intrinsics).
 
 (* Facilities to refer to the return types of the various pieces of denotations we manipulate *)
 
@@ -270,12 +265,16 @@ Section RelationTypes.
 End RelationTypes.
 Arguments lift_Rel_cfg R {_ _}.
 
-Ltac unfolder_vellvm := unfold Traversal.Endo_id, translate_E_vellvm_cfg.
-Ltac unfolder_vellvm_hyp h := unfold Traversal.Endo_id, translate_E_vellvm_cfg in h.
-(* unfold lookup_E_to_exp_E,exp_E_to_instr_E. *)
+Ltac introR :=
+  intros [?memH ?vH] (?memV & ?l & ?g & ?vV) ?PRE.
 
-Ltac unfolder_helix := unfold ErrorWithState.option2errS, translate_E_helix_cfg, lift_Serr.
-Ltac unfolder_helix_hyp h := unfold ErrorWithState.option2errS, translate_E_helix_cfg, lift_Serr in h.
+Ltac unfolder_vellvm       := unfold Traversal.Endo_id.
+Ltac unfolder_vellvm_hyp h := unfold Traversal.Endo_id in h.
+Ltac unfolder_vellvm_all   := unfold Traversal.Endo_id in *.
+
+Ltac unfolder_helix       := unfold ErrorWithState.option2errS, lift_Serr, context_lookup, trywith.
+Ltac unfolder_helix_hyp h := unfold ErrorWithState.option2errS, lift_Serr, context_lookup, trywith in h.
+Ltac unfolder_helix_all   := unfold ErrorWithState.option2errS, lift_Serr, context_lookup, trywith in *.
 
 (**
      Better solution (?): use
@@ -284,9 +283,11 @@ Ltac unfolder_helix_hyp h := unfold ErrorWithState.option2errS, translate_E_heli
  *)
 Tactic Notation "unfolder" := unfolder_helix; unfolder_vellvm.
 Tactic Notation "unfolder" "in" hyp(h) := unfolder_helix_hyp h; unfolder_vellvm_hyp h.
+Tactic Notation "unfolder" "in" "*" := unfolder_helix_all; unfolder_vellvm_all.
 
 Tactic Notation "cbn*" := (repeat (cbn; unfolder)).
 Tactic Notation "cbn*" "in" hyp(h) := (repeat (cbn in h; unfolder in h)).
+Tactic Notation "cbn*" "in" "*" := (repeat (cbn in *; unfolder in *)).
 
 Ltac simp := repeat (inv_sum || break_and || break_match_hyp).
 
@@ -310,74 +311,6 @@ Section WF_IRState.
 
   Definition WF_IRState (σ : evalContext) (s : IRState) : Prop :=
     Forall2 (fun v '(_,τ) => τ ≡ getIRType' (DSHType_of_DSHVal v)) σ (vars s).
-
-  (* In such a well-formed context, success of a lookup in the [IRState] as performed by the compiler
-     ensures the success of a lookup in the [evalContext] *)
-  (* Lemma WF_IRState_lookup_cannot_fail : *)
-  (*   forall σ it s n msg msg', *)
-  (*     WF_IRState σ s -> *)
-  (*     nth_error (vars s) n ≡ Some it -> *)
-  (*     context_lookup msg σ n ≡ inl msg' -> *)
-  (*     False. *)
-  (* Proof. *)
-  (*   intros ? [] * WF LU_IR LU_SIGMA. *)
-  (*   unfold WF_IRState in WF. *)
-  (*   unfold context_lookup in LU_SIGMA. *)
-  (*   destruct (nth_error σ n) eqn:Hnth; inversion LU_SIGMA; clear H0. *)
-  (*   apply Forall2_length in WF. *)
-  (*   apply ListNth.nth_error_length_lt in LU_IR. *)
-  (*   rewrite <- WF in LU_IR. *)
-  (*   apply nth_error_succeeds in LU_IR. destruct LU_IR as [a Hnth']. *)
-  (*   rewrite Hnth' in Hnth. *)
-  (*   inversion Hnth. *)
-  (* Qed. *)
-
-  (* In such a well-formed context, finding in the typing context that a variable
-     is an int ensure to find an int in the [evalContext].
-   *)
-  (* Lemma WF_IRState_lookup_int : *)
-  (*   forall σ s n id msg, *)
-  (*     WF_IRState σ s -> *)
-  (*     nth_error (vars s) n ≡ Some (id,TYPE_I 64%Z) -> *)
-  (*     exists v, context_lookup msg σ n ≡ inr (DSHnatVal v). *)
-  (* Proof. *)
-  (*   intros σ s n id msg WF LU_IR. *)
-  (*   unfold WF_IRState in WF. *)
-  (*   pose proof WF as WF'. *)
-  (*   eapply Forall2_Some_right with (n0:=n) (y:=(id, TYPE_I 64%Z)) in WF; eauto. *)
-  (*   destruct WF as (x & Hnth & Htype). *)
-  (*   destruct x as [n0 | |]; try solve [inversion Htype]. *)
-  (*   exists n0. unfold context_lookup. rewrite Hnth. reflexivity. *)
-  (* Qed. *)
-
-  (* TODO YZ : This is wrong  *)
-  (* Lemma WF_IRState_lookup_pointer : *)
-  (*   forall σ s n id, *)
-  (*     WF_IRState σ s -> *)
-  (*     nth_error (vars s) n ≡ Some (id,TYPE_Pointer (TYPE_I 64%Z)) -> *)
-  (*     False. *)
-  (* Proof. *)
-  (*   intros * WF LU_IR. *)
-  (*   unfold WF_IRState in WF. *)
-  (*   unfold context_lookup in LU_SIGMA. *)
-  (*   destruct (nth_error σ n) eqn:Hnth; inversion LU_SIGMA; clear H0. *)
-  (*   apply Forall2_length in WF. *)
-  (*   apply ListNth.nth_error_length_lt in LU_IR. *)
-  (*   rewrite <- WF in LU_IR. *)
-  (*   apply nth_error_succeeds in LU_IR. destruct LU_IR as [a Hnth']. *)
-  (*   rewrite Hnth' in Hnth. *)
-  (*   inversion Hnth. *)
-  (* Qed. *)
-
-  Lemma WFevalNexp_succeed:
-    forall nexp s s' σ x,
-      WF_IRState σ s ->
-      genNExpr nexp s ≡ inr (s',x) ->
-      WF_IRState σ s'.
-  Proof.
-    induction nexp; intros * WF GEN; cbn* in GEN; simp ; auto.
-    all: eapply IHnexp1 in Heqs0; eapply IHnexp2 in Heqs1; eauto.
-  Qed.
 
   (* In such a well-formed context, success of a lookup in the [IRState] as performed by the compiler
      ensures the success of a lookup in the [evalContext] *)
@@ -477,41 +410,33 @@ Section WF_IRState.
     eapply Forall2_Nth in WF; eauto; cbn in *; eauto.
   Qed.
 
-  Ltac abs_WF :=
-    match goal with
-    | h : nth_error (vars _) _ ≡ ?rhs,
-      h': @nth_error DSHVal _ _ ≡ ?rhs',
-      h'': WF_IRState _ _
-      |- _ =>
-      match rhs with
-      | Some (_,?τ) =>
-        match rhs' with
-        | None => exfalso; eapply WF_IRState_lookup_cannot_fail_ctx; now eauto
-        | Some ?val => 
-                            let H := fresh in pose proof (WF_IRState_lookups _ h'' h h') as H; now inv H
-        end
-      | None =>
-        match rhs' with
-        | None => exfalso; eapply WF_IRState_lookup_cannot_fail_st; now eauto
-        | Some ?val => idtac
-        end
-      end
-    end.
-
-  Lemma WFevalNexp_no_fail:
-    forall nexp s σ x msg,
-      WF_IRState σ s ->
-      genNExpr nexp s ≡ inr x ->
-      evalNExpr σ nexp ≡ inl msg ->
-      False.
-  Proof.
-    induction nexp; cbn*; intros * WF COMP EVAL;
-      unfold context_lookup, trywith in *; cbn in *; repeat try inv_sum.
-    simp; try abs_WF.
-    all: simp; try abs_WF; [eapply IHnexp1; eauto | eapply IHnexp2; [eapply WFevalNexp_succeed | ..]; eauto].
-  Qed.
-
 End WF_IRState.
+
+Ltac abs_by_WF :=
+  match goal with
+  | h : nth_error (vars _) _ ≡ ?rhs,
+        h': @nth_error DSHVal _ _ ≡ ?rhs',
+            h'': WF_IRState _ _
+    |- _ =>
+    match rhs with
+    | Some (_,?τ) =>
+      match rhs' with
+      | None => exfalso; eapply WF_IRState_lookup_cannot_fail_ctx; now eauto
+      | Some ?val => 
+        let H := fresh in pose proof (WF_IRState_lookups _ h'' h h') as H; now inv H
+      end
+    | None =>
+      match rhs' with
+      | None => exfalso; eapply WF_IRState_lookup_cannot_fail_st; now eauto
+      | Some ?val => idtac
+      end
+    end
+  end.
+
+(* TODOYZ : MOVE *)
+Definition conj_rel {A B : Type} (R S: A -> B -> Prop): A -> B -> Prop :=
+  fun a b => R a b /\ S a b.
+Infix "⩕" := conj_rel (at level 85).
 
 Section SimulationRelations.
 
@@ -591,6 +516,30 @@ Section SimulationRelations.
                       v_llvm ≡ UVALUE_Double v_helix
             ) bk_helix bk_llvm
         end.
+
+  Lemma memory_invariant_GLU : forall σ s v id memH memV t l g n,
+      memory_invariant σ s memH (memV, (l, g)) ->
+      nth_error (vars s) v ≡ Some (ID_Global id, t) ->
+      nth_error σ v ≡ Some (DSHnatVal n) ->
+      Maps.lookup id g ≡ Some (DVALUE_I64 n).
+  Proof.
+    intros * INV NTH LU; cbn* in *. 
+    eapply INV in LU; clear INV; eauto.
+    unfold in_local_or_global, dvalue_of_int in LU.
+    rewrite repr_intval in LU; auto.
+  Qed.
+
+  Lemma memory_invariant_LLU : forall σ s v id memH memV t l g n,
+      memory_invariant σ s memH (memV, (l, g)) ->
+      nth_error (vars s) v ≡ Some (ID_Local id, t) ->
+      nth_error σ v ≡ Some (DSHnatVal n) ->
+      Maps.lookup id l ≡ Some (UVALUE_I64 n).
+  Proof.
+    intros * INV NTH LU; cbn* in *.
+    eapply INV in LU; clear INV; eauto.
+    unfold in_local_or_global, dvalue_of_int in LU.
+    rewrite repr_intval in LU; auto.
+  Qed.
 
   Definition incLocal_fresh (l : local_env) (s : IRState) : Prop :=
     forall s' id, incLocal s ≡ inr (s',id) ->
@@ -813,16 +762,6 @@ Section InterpMem.
     apply interp_state_vis.
   Qed.
 
-  (* Lemma interp_Mem_trigger : *)
-  (*   forall T R mem (e : Event T) (k : T -> itree Event R), *)
-  (*     interp_Mem (ITree.bind (trigger e) k) mem ≈ ITree.bind ((case_ Mem_handler MDSHCOLOnFloat64.pure_state) T e mem) (fun sx => interp_Mem (k (snd sx)) (fst sx)). *)
-  (* Proof. *)
-  (*   intros T R mem e k. *)
-  (*   unfold interp_Mem. *)
-  (*   apply interp_state_vis. *)
-  (* Qed. *)
-
-
   Lemma interp_Mem_MemLU_vis :
     forall R str mem m x (k : _ -> itree _ R),
       memory_lookup_err str mem x ≡ inr m ->
@@ -858,6 +797,16 @@ Section InterpMem.
   Qed.
 
 End InterpMem.
+
+(* We should do all reasoning about [interp_Mem] through these lemmas, let's make it Opaque to be sure that reduction does not mess with it *)
+Opaque interp_Mem.
+Opaque interp_cfg_to_L3.
+
+Ltac break_and :=
+  repeat match goal with
+         | h: _ * _ |- _ => destruct h
+         end.
+
 
   (** **
       TODO YZ : This needs to leave other hypotheses that H untouched
@@ -1045,8 +994,7 @@ End InterpMem.
   Tactic Notation "norm_v" "in" hyp(h) := norm_v_hyp_k' h 0.
   Tactic Notation "norm_vD" "in" hyp(h) := norm_v_hyp_k' h 1.
 
-From ExtLib Require Import
-     Core.RelDec.
+Set Nested Proofs Allowed.
 
 Section NExpr.
 
@@ -1073,175 +1021,162 @@ vars s1 = σ?
      not been modified. I'm interested in having this, but I do not know how easy it is to get it.
      TODOYZ: Investigate this claim
    *)
-  Opaque interp_Mem.
   Opaque append.
 
-  Ltac break_and :=
-    repeat match goal with
-           | h: _ * _ |- _ => destruct h
-           end.
-
-  Definition genNExpr_sim σ := (bisim_partial σ).
-
-  (* TODOYZ : MOVE *)
-  Definition conj_rel {A B : Type} (R S: A -> B -> Prop): A -> B -> Prop :=
-    fun a b => R a b /\ S a b.
-  Infix "⩕" := conj_rel (at level 85).
-
-  (**
-     QUESTION YZ: Works okay (though slow), except for [ret/Ret], a cbn or an unfold needs to be sneaked in the right place
-
-     TODO YZ : add that the returned IRState is also WF
-   *)
-
-  Set Nested Proofs Allowed.
-
-  (* TODO move to Vellvm/Tactics *)
-  Ltac ret_bind_l_left v :=
-    match goal with
-      |- eutt _ ?t _ =>
-      rewrite <- (bind_ret_l v (fun _ => t))
-    end.
-
-  (* TODO MOVE *)
-  Lemma convert_typ_app : ∀ (a b : code typ) env, (convert_typ env (a ++ b) ≡ convert_typ env a ++ convert_typ env b)%list.
+  Lemma evalNexpr_preserves_WF:
+    forall nexp s s' σ x,
+      WF_IRState σ s ->
+      genNExpr nexp s ≡ inr (s',x) ->
+      WF_IRState σ s'.
   Proof.
-    induction a as [| [] a IH]; cbn; intros; auto.
-    rewrite IH; reflexivity.
+    induction nexp; intros * WF GEN; cbn* in GEN; simp ; auto.
+    all: eapply IHnexp1 in Heqs0; eapply IHnexp2 in Heqs1; eauto.
+  Qed.
+
+  Lemma evalNexpr_WF_no_fail:
+    forall nexp s σ x msg,
+      WF_IRState σ s ->
+      genNExpr nexp s ≡ inr x ->
+      evalNExpr σ nexp ≡ inl msg ->
+      False.
+  Proof.
+    induction nexp; cbn*; intros * WF COMP EVAL;
+      unfold context_lookup, trywith in *; cbn in *; repeat try inv_sum.
+    simp; try abs_by_WF.
+    all: simp; try abs_by_WF; [eapply IHnexp1; eauto | eapply IHnexp2; [eapply evalNexpr_preserves_WF | ..]; eauto].
   Qed.
 
   Definition memory_invariant_memory_mcfg (σ : evalContext) (s : IRState) : Rel_mcfg :=
     fun memH '(memV,((l,sl),g)) =>
       memory_invariant σ s memH (memV,(l,g)).
 
-  (* TODO YZ : Move to itrees *)
-  (* Specialization of [eutt_clo_bind] to the case where the intermediate predicate introduced is the same as the current one *)
-  Lemma eutt_bind_Inv :
-    ∀ (E : Type → Type) (R1 R2 : Type) (RR : R1 → R2 → Prop) (t1 : itree E R1) (t2 : itree E R2)
-      (k1 : R1 → itree E R1) (k2 : R2 → itree E R2),
-      eutt RR t1 t2 →
-      (∀ (r1 : R1) (r2 : R2), RR r1 r2 → eutt RR (k1 r1) (k2 r2)) →
-      eutt RR (ITree.bind t1 (λ x : R1, k1 x)) (ITree.bind t2 (λ x : R2, k2 x)).
-  Proof.
-    intros; apply eutt_clo_bind with (UU := RR); auto.
-  Qed.
-
-  (* TODO YZ : move to Vellvm *)
-  Ltac simpl_match_hyp h :=
-    match type of h with
-      context[match ?x with | _ => _ end] =>
-      match goal with
-      | EQ: x ≡ _ |- _ => rewrite EQ in h
-      | EQ: _ ≡ x |- _ => rewrite <- EQ in h
-      end
-    end.
-  Tactic Notation "simpl_match" "in" hyp(h) := simpl_match_hyp h.
-
-  Ltac introR :=
-    intros [?memH ?vH] (?memV & ?l & ?g & ?vV) ?PRE.
-  Ltac destruct_unit :=
-    match goal with
-    | x : unit |- _ => destruct x
-    end.
-
-  (** YZ
+ (** YZ
       At the top level, the correctness of genNExpr is expressed as the denotation of the operator being equivalent
       to the bind of denoting the code followed by denoting the expression.
       However this is not inductively stable, we only want to plug the expression at the top level.
       We therefore instead carry the fact about the denotation of the expression in the invariant. (Is there another clever way?)
       TODO: how to make this (much) less ugly?
    *)
-  Definition genNexpr_exp_correct (e: exp typ) : Type_R_cfg_T DynamicValues.int64 unit :=
+  Definition genNexpr_exp_correct (e: exp typ) : Rel_cfg_T DynamicValues.int64 unit :=
     fun '(_,i) '(memV,(l,(g,_))) =>
       forall l', l ⊑ l' ->
         Ret (memV,(l',(g,UVALUE_I64 i)))
         ≈
-      translate_E_vellvm_cfg
-        (interp_cfg_to_L3 helix_intrinsics (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] e))) g l' memV).
+        with_err_LB
+        (interp_cfg (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] e))) g l' memV).
 
+  (**
+     We package the local specific invariants. Additionally to the evaluation of the resulting expression,
+     we also state that evaluating the code preserves most of the state, except for the local state being
+     allowed to be extended with fresh bindings.
+   *)
   Record genNExpr_rel
-         (σ : evalContext) (s : IRState)
          (e : exp typ)
-         (mi : memoryH) (sti : LLVM_memory_state_cfg)
-         (mf : Helix_state_T DynamicValues.int64) (stf : LLVM_state_cfg_T unit)
+         (mi : memoryH) (sti : config_cfg)
+         (mf : memoryH * DynamicValues.int64) (stf : config_cfg_T unit)
     : Prop :=
     {
-    mem_inv : lift_R_memory_cfg (memory_invariant σ s) mf stf ;
-    
-                                ⩕ (genNexpr_exp_correct e ⩕ ext_local m st).
+    exp_correct : genNexpr_exp_correct e mf stf;
+    monotone : ext_local mi sti mf stf
+    }.
 
-
-  Lemma memory_invariant_WF_IRState :
-    forall σ s memH st, memory_invariant σ s memH st -> WF_IRState σ s.
+  Lemma state_invariant_WF_IRState :
+    forall σ s memH st, state_invariant σ s memH st -> WF_IRState σ s.
   Proof.
-    intros ? ? ? (? & ? & ?) [WF _]; auto.
+    intros ? ? ? (? & ? & ?) [_ WF _]; auto.
   Qed.
 
-  Hint Resolve memory_invariant_WF_IRState : core.
-
-  Lemma sub_alist_refl: forall {K V} {EQD : RelDec.RelDec Logic.eq} (l : alist K V), l ⊑ l.
+  Lemma state_invariant_memory_invariant :
+    forall σ s memH st, state_invariant σ s memH st -> memory_invariant σ s memH st.
   Proof.
-    repeat intro; auto.
-  Qed.
-  Hint Resolve sub_alist_refl : core.
-
-  Lemma memory_invariant_GLU : forall σ s v id memH memV t l g n msg,
-      memory_invariant σ s memH (memV, (l, g)) ->
-      nth_error (vars s) v ≡ Some (ID_Global id, t) ->
-      context_lookup msg σ v ≡ inr (DSHnatVal n) ->
-      Maps.lookup id g ≡ Some (DVALUE_I64 n).
-  Proof.
-    intros * [WF INV] NTH LU.
-    unfold context_lookup, trywith in LU.
-    break_match_hyp; cbn in *; try inv_sum.
-    eapply INV in Heqo; clear INV; eauto.
-    unfold in_local_or_global, dvalue_of_int in Heqo.
-    rewrite repr_intval in Heqo; auto.
+    intros ? ? ? (? & ? & ?) [INV _ _]; auto.
   Qed.
 
-  Lemma memory_invariant_LLU : forall σ s v id memH memV t l g n msg,
-      memory_invariant σ s memH (memV, (l, g)) ->
-      nth_error (vars s) v ≡ Some (ID_Local id, t) ->
-      context_lookup msg σ v ≡ inr (DSHnatVal n) ->
-      Maps.lookup id l ≡ Some (UVALUE_I64 n).
+  Lemma ext_local_refl:
+    forall {R S} memH memV l g n v,
+      @ext_local R S memH (mk_config_cfg memV l g) (memH, n) (memV, (l, (g, v))).
   Proof.
-    intros * [WF INV] NTH LU.
-    unfold context_lookup, trywith in LU.
-    break_match_hyp; cbn in *; try inv_sum.
-    eapply INV in Heqo; clear INV; eauto.
-    unfold in_local_or_global, dvalue_of_int in Heqo.
-    rewrite repr_intval in Heqo; auto.
+    intros; repeat split; reflexivity.
   Qed.
-
+  Hint Resolve state_invariant_memory_invariant state_invariant_WF_IRState ext_local_refl: core.
+  
   Lemma genNExpr_correct_ind :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH)
       (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
-      genNExpr nexp s1 ≡ inr (s2, (e, c)) -> (* Compilation succeeds *)
-      memory_invariant σ s1 memH (memV, (l, g)) ->
-      (* (WF_IRState σ s2 /\ *)
-      eutt (genNExpr_rel σ s2 e memH (mk_LLVM_memory_state_cfg memV l g))
-           (translate_E_helix_cfg
-              (interp_Mem (denoteNExpr σ nexp)
-                          memH))
-           (translate_E_vellvm_cfg
-              (interp_cfg_to_L3 helix_intrinsics
-                                (denote_code (convert_typ [] c))
-                                g l memV)).
+
+      genNExpr nexp s1 ≡ inr (s2, (e, c))      -> (* Compilation succeeds *)
+      state_invariant σ s1 memH (memV, (l, g)) -> (* The main state invariant is initially true *)
+
+      eutt (lift_Rel_cfg (state_invariant σ s2) ⩕ genNExpr_rel e memH (mk_config_cfg memV l g))
+           (with_err_RB (interp_Mem (denoteNExpr σ nexp) memH))
+           (with_err_LB (interp_cfg (denote_code (convert_typ [] c)) g l memV)).
   Proof.
-    intros s1 s2 nexp; revert s1 s2; induction nexp; intros * COMPILE (* WFIR *) PRE.
+    intros s1 s2 nexp; revert s1 s2; induction nexp; intros * COMPILE PRE.
     - (* Variable case *)
       (* Reducing the compilation *)
-      (* simp_comp COMPILE; (split; [auto |]). *)
-      simp_comp COMPILE.
+      cbn* in COMPILE; simp.
 
       + (* The variable maps to an integer in the IRState *)
         unfold denoteNExpr; cbn*.
 
         repeat norm_v.
         break_inner_match_goal.
+
+        * break_inner_match_goal.
+          ++ repeat norm_h.
+             destruct i0.
+             { (* Global *)
+               cbn; apply eutt_Ret; split; eauto.
+               constructor; eauto.
+               intros l' MONO; cbn*.
+               subst.
+               repeat norm_v.
+               cbn; repeat norm_v.
+               2: eapply memory_invariant_GLU; eauto.
+               reflexivity.
+             }
+             { (* Local *)
+               apply eutt_Ret; split; eauto.
+               constructor; eauto.
+               intros l' MONO; cbn*. repeat norm_v.
+               2: eapply memory_invariant_LLU; eauto.
+               2: eapply memory_invariant_ext_local; eauto.
+               cbn; repeat norm_v.
+               reflexivity.
+             }
+          ++ (** TODO YZ : get this automatically discharged by [abs_by] *)
+            exfalso. eapply memory_invariant_WF_IRState, WF_IRState_lookup_int in PRE; eauto.
+            destruct PRE as [? WFIR]; rewrite Heqs in WFIR; inv WFIR.
+          ++
+            exfalso. eapply memory_invariant_WF_IRState, WF_IRState_lookup_int in PRE; eauto.
+            destruct PRE as [? WFIR]; rewrite Heqs in WFIR; inv WFIR.
+
+
         * (* Variable not in context, [context_lookup] fails *)
-          abs_by WF_IRState_lookup_cannot_fail.
+
+          match goal with
+          | h : nth_error (vars _) _ ≡ ?rhs,
+                h': @nth_error DSHVal _ _ ≡ ?rhs',
+                    h'': WF_IRState _ _
+            |- _ =>
+            match rhs with
+            | Some (_,?τ) =>
+              match rhs' with
+              | None => exfalso; eapply WF_IRState_lookup_cannot_fail_ctx; now eauto
+              | Some ?val => 
+                let H := fresh in pose proof (WF_IRState_lookups _ h'' h h') as H; now inv H
+              end
+            | None =>
+              match rhs' with
+              | None => exfalso; eapply WF_IRState_lookup_cannot_fail_st; now eauto
+              | Some ?val => idtac
+              end
+            end
+          end.
+
+          abs_by_WF.
+
         * break_inner_match_goal.
           ++ repeat norm_h.
              destruct i0.
