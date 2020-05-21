@@ -410,20 +410,34 @@ Section WF_IRState.
     eapply Forall2_Nth in WF; eauto; cbn in *; eauto.
   Qed.
 
+  Lemma WF_IRState_one_of_type:
+    forall σ x τ s n,
+      WF_IRState σ s ->
+      nth_error (vars s) n ≡ Some (x,τ) ->
+      τ ≡ IntType \/
+      τ ≡ TYPE_Double \/
+      exists k, τ ≡ TYPE_Pointer (TYPE_Array (Int64.intval k) TYPE_Double).
+  Proof.
+    intros * WF LU.
+    unfold WF_IRState in *.
+    eapply Forall2_Nth_right in WF; eauto; destruct WF as ([] & _ & EQ); cbn in EQ; subst; eauto.
+  Qed.
+
 End WF_IRState.
 
 Ltac abs_by_WF :=
   match goal with
-  | h : nth_error (vars _) _ ≡ ?rhs,
-        h': @nth_error DSHVal _ _ ≡ ?rhs',
-            h'': WF_IRState _ _
+  | h : nth_error (vars ?s) _ ≡ ?rhs,
+        h': @nth_error DSHVal ?σ _ ≡ ?rhs'
     |- _ =>
     match rhs with
     | Some (_,?τ) =>
       match rhs' with
       | None => exfalso; eapply WF_IRState_lookup_cannot_fail_ctx; now eauto
-      | Some ?val => 
-        let H := fresh in pose proof (WF_IRState_lookups _ h'' h h') as H; now inv H
+      | Some ?val =>
+        let WF := fresh "WF" in
+        assert (WF : WF_IRState σ s) by eauto;
+        let H := fresh in pose proof (WF_IRState_lookups _ WF h h') as H; now inv H
       end
     | None =>
       match rhs' with
@@ -431,6 +445,9 @@ Ltac abs_by_WF :=
       | Some ?val => idtac
       end
     end
+  | h : nth_error (vars ?s) _ ≡ Some (_,?τ) |- _ =>
+    eapply WF_IRState_one_of_type in h; eauto;
+    now (let EQ := fresh in destruct h as [EQ | [EQ | [? EQ]]]; inv EQ)
   end.
 
 (* TODOYZ : MOVE *)
@@ -1099,7 +1116,10 @@ vars s1 = σ?
     intros; repeat split; reflexivity.
   Qed.
   Hint Resolve state_invariant_memory_invariant state_invariant_WF_IRState ext_local_refl: core.
-  
+
+  Lemma typ_to_dtyp_I : forall s i, typ_to_dtyp s (TYPE_I i) ≡ DTYPE_I i.
+  Admitted.
+
   Lemma genNExpr_correct_ind :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH)
@@ -1123,110 +1143,50 @@ vars s1 = σ?
         repeat norm_v.
         break_inner_match_goal.
 
-        * break_inner_match_goal.
-          ++ repeat norm_h.
-             destruct i0.
-             { (* Global *)
-               cbn; apply eutt_Ret; split; eauto.
-               constructor; eauto.
-               intros l' MONO; cbn*.
-               subst.
-               repeat norm_v.
-               cbn; repeat norm_v.
-               2: eapply memory_invariant_GLU; eauto.
-               reflexivity.
-             }
-             { (* Local *)
-               apply eutt_Ret; split; eauto.
-               constructor; eauto.
-               intros l' MONO; cbn*. repeat norm_v.
-               2: eapply memory_invariant_LLU; eauto.
-               2: eapply memory_invariant_ext_local; eauto.
-               cbn; repeat norm_v.
-               reflexivity.
-             }
-          ++ (** TODO YZ : get this automatically discharged by [abs_by] *)
-            exfalso. eapply memory_invariant_WF_IRState, WF_IRState_lookup_int in PRE; eauto.
-            destruct PRE as [? WFIR]; rewrite Heqs in WFIR; inv WFIR.
-          ++
-            exfalso. eapply memory_invariant_WF_IRState, WF_IRState_lookup_int in PRE; eauto.
-            destruct PRE as [? WFIR]; rewrite Heqs in WFIR; inv WFIR.
-
+        * break_inner_match_goal; try abs_by_WF.
+          repeat norm_h.
+          destruct i0.
+          { (* Global *)
+            cbn; apply eutt_Ret; split; eauto.
+            constructor; eauto.
+            intros l' MONO; cbn*.
+            subst.
+            repeat norm_v.
+            cbn; repeat norm_v.
+            2: eapply memory_invariant_GLU; eauto.
+            reflexivity.
+          }
+          { (* Local *)
+            apply eutt_Ret; split; eauto.
+            constructor; eauto.
+            intros l' MONO; cbn*. repeat norm_v.
+            2: eapply memory_invariant_LLU; eauto.
+            2: eapply memory_invariant_ext_local; eauto.
+            cbn; repeat norm_v.
+            reflexivity.
+          }
 
         * (* Variable not in context, [context_lookup] fails *)
-
-          match goal with
-          | h : nth_error (vars _) _ ≡ ?rhs,
-                h': @nth_error DSHVal _ _ ≡ ?rhs',
-                    h'': WF_IRState _ _
-            |- _ =>
-            match rhs with
-            | Some (_,?τ) =>
-              match rhs' with
-              | None => exfalso; eapply WF_IRState_lookup_cannot_fail_ctx; now eauto
-              | Some ?val => 
-                let H := fresh in pose proof (WF_IRState_lookups _ h'' h h') as H; now inv H
-              end
-            | None =>
-              match rhs' with
-              | None => exfalso; eapply WF_IRState_lookup_cannot_fail_st; now eauto
-              | Some ?val => idtac
-              end
-            end
-          end.
-
           abs_by_WF.
 
-        * break_inner_match_goal.
-          ++ repeat norm_h.
-             destruct i0.
-             { (* Global *)
-               apply eutt_Ret.
-               split; [apply PRE | split; [| repeat split; eauto; try reflexivity ]].
-               intros l' MONO; cbn*.
-               subst.
-               repeat norm_v.
-               cbn; repeat norm_v.
-
-               unfold context_lookup, trywith in *; break_match_hyp; cbn in *; try inv_sum.
-               2: eapply memory_invariant_GLU; eauto.
-               reflexivity.
-             }
-             { (* Local *)
-               apply eutt_Ret.
-               split; [apply PRE | split; [| repeat split; eauto; try reflexivity]].
-               intros l' MONO; cbn*. repeat norm_v.
-               2: eapply memory_invariant_LLU; eauto.
-               2: eapply memory_invariant_ext_local; eauto.
-               cbn; repeat norm_v.
-               reflexivity.
-             }
-          ++ (** TODO YZ : get this automatically discharged by [abs_by] *)
-            exfalso. eapply memory_invariant_WF_IRState, WF_IRState_lookup_int in PRE; eauto.
-            destruct PRE as [? WFIR]; rewrite Heqs in WFIR; inv WFIR.
-          ++
-            exfalso. eapply memory_invariant_WF_IRState, WF_IRState_lookup_int in PRE; eauto.
-            destruct PRE as [? WFIR]; rewrite Heqs in WFIR; inv WFIR.
-
       + (* The variable maps to a pointer *)
-        abs_by WF_IRState_lookup_pointer.
+        abs_by_WF.
 
     - (* Constant *)
 
-      simp_comp COMPILE(* ; split; auto *).
+      cbn* in COMPILE; simp.
       unfold denoteNExpr; cbn*.
       repeat norm_h.
       repeat norm_v.
       apply eutt_Ret.
-      split; [apply PRE | split; [| repeat split; eauto; try reflexivity]].
+      split; eauto.
+      split; eauto.
       intros l' MONO; cbn*; rewrite repr_intval; repeat norm_v.
       reflexivity.
 
     - (* NDiv *)
 
-      simp_comp COMPILE.
-
-      generalize Heqs; intros WFI; eapply WFevalNexp_succeed in WFI; eauto.
+      cbn* in COMPILE; simp.
 
       eutt_hide_right.
       unfold denoteNExpr in *; cbn*.
@@ -1295,118 +1255,74 @@ vars s1 = σ?
     - (* NAdd *)
       rename g into g1, l into l1, memV into memV1.
 
-      simp_comp COMPILE.
+      cbn* in COMPILE; simp.
 
       (* YZ TODO Ltac for this *)
-      generalize Heqs; intros WFI; eapply WFevalNexp_succeed in WFI; eauto.
+      generalize Heqs; intros WFI; eapply evalNexpr_preserves_WF in WFI; eauto.
 
       eutt_hide_right.
       unfold denoteNExpr in *; cbn*.
 
-      break_inner_match_goal; [| break_inner_match_goal].
-      + clear - Heqs Heqs1 PRE;  abs_by WFevalNexp_no_fail.
-      + clear - Heqs0 WFI Heqs2; abs_by WFevalNexp_no_fail.
-      + repeat norm_h.
+      break_inner_match_goal; [| break_inner_match_goal];
+        try (exfalso; match goal with | h: genNExpr _ _ ≡ _ |- _ => eapply evalNexpr_WF_no_fail in h; now eauto end).
 
-        (* TODO YZ: gets some super specialize tactics that do not require to provide variables *)
-        specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE).
+      repeat norm_h.
+      (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
+      specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE).
 
-        (* TODO YZ : unfolderH is not doing all the work, fix *)
-        unfold translate_E_vellvm_cfg in IHnexp1; cbn* in IHnexp1;
-          repeat norm_v in IHnexp1;
-          repeat norm_h in IHnexp1.
-        simpl_match in IHnexp1.
-        (* YZ TODO : Why is this one particularly slow? *)
+      cbn* in IHnexp1;
+        repeat norm_v in IHnexp1;
         repeat norm_h in IHnexp1.
+      simpl_match in IHnexp1.
+      (* YZ TODO : Why is this one particularly slow? *)
+      repeat norm_h in IHnexp1.
 
-        subst.
-        eutt_hide_left.
-        cbn*.
-        rewrite convert_typ_app, denote_code_app.
-        repeat norm_v.
-        subst.
-        ret_bind_l_left (memH,i2).
-        eapply eutt_clo_bind; [eassumption | clear IHnexp1].
+      subst.
+      cbn*.
+      rewrite convert_typ_app, denote_code_app.
+      repeat norm_v.
+      subst.
+      ret_bind_l_left (memH,i2).
+      eapply eutt_clo_bind; [eassumption | clear IHnexp1].
 
-        introR; destruct_unit.
-        rename g into g2, l into l2, memV into memV2.
+      introR; destruct_unit.
+      destruct PRE0 as [PREI (EXPRI & <- & <- & <- & MONOI)].
+      cbn in *.
 
-        destruct PRE0 as (PRE2 & POST2 & <- & <- & <- & MONO2).
-        specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PRE2).
+      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI).
 
-        unfold translate_E_vellvm_cfg in IHnexp2; cbn* in IHnexp2;
-          repeat norm_v in IHnexp2;
-          repeat norm_h in IHnexp2.
-        simpl_match in IHnexp2.
+      cbn* in IHnexp2;
+        repeat norm_v in IHnexp2;
         repeat norm_h in IHnexp2.
+      simpl_match in IHnexp2.
+      repeat norm_h in IHnexp2.
 
-        eutt_hide_left.
-        rewrite convert_typ_app, denote_code_app.
-        repeat norm_v.
-        subst.
-        ret_bind_l_left (memH,i3).
-        eapply eutt_clo_bind; [eassumption | clear IHnexp2].
+      rewrite convert_typ_app, denote_code_app.
+      repeat norm_v.
+      subst.
+      ret_bind_l_left (memH,i3).
+      eapply eutt_clo_bind; [eassumption | clear IHnexp2].
 
-        introR; destruct_unit.
-        destruct PRE0 as (PRE3 & POST3 & <- & <- & <- & MONO3).
+      introR; destruct_unit.
+      destruct PRE0 as [PREF (EXPRF & <- & <- & <- & MONOF)].
+      (* cbn takes 5seconds instead of doing this instantaneously... *)
+      simpl in *; unfold eval_op; simpl.
+      unfold IntType; rewrite typ_to_dtyp_I.
 
-        (* Just for debugging *)
-        rename i0 into s3, e1 into e2, c1 into c2.
-        rename i into s2, e0 into e1, c0 into c1.
-        rename i2 into i1, i3 into i2.
+      repeat norm_v.
+      rewrite <- EXPRI; auto.
+      repeat norm_v.
+      rewrite <- EXPRF; [| reflexivity].
+      repeat norm_v.
+      cbn*.
+      repeat norm_v.
+      rewrite interp_cfg_to_L3_LW.
+      cbn*; repeat norm_v.
+      apply eutt_Ret.
+      split.
 
-        simpl.
-        repeat norm_v.
-        unfold eval_op.
-        eutt_hide_rel; eutt_hide_left.
-        cbn*.
-        repeat norm_v.
-        (* YZ TODO : [typ_to_dtyp] is just not manageable. Find a way to fix *)
-        Axiom typ_to_dtyp_I : forall s i, typ_to_dtyp s (TYPE_I i) ≡ DTYPE_I i.
-        unfold IntType; rewrite typ_to_dtyp_I.
-
-        apply POST2 in MONO3.
-        subst.
-        cbn* in MONO3.
-        rewrite <- MONO3.
-        repeat norm_v.
-        pose proof (@sub_alist_refl _ _ _ l). 
-        apply POST3 in H.
-        cbn* in H.
-        rewrite <- H.
-        repeat norm_v.
-        cbn*.
-        repeat norm_v.
-
-        rewrite interp_cfg_to_L3_LW.
-        cbn*; repeat norm_v.
-        apply eutt_Ret.
-
-        destruct PRE3 as [? MEMINV].
-        split; [split | split]; cbn.
-        * auto.
-        * clear - MEMINV.
-          repeat let x := fresh in intros x; specialize (MEMINV x).
-          admit.
-          
-        * intros.
-          cbn*.
-          repeat norm_v.
-          2: apply H1.
-          2:apply In_add_eq.
-          cbn; norm_v; apply eutt_Ret; repeat f_equal; auto.
-          admit.
-          (* Arithmetic *)
-  (*           UVALUE_I64 (MInt64asNT.NTypePlus i1 i2) *)
-  (* ≡ dvalue_to_uvalue *)
-  (*     (if *)
-  (*       (DynamicValues.Int64.eq (DynamicValues.Int64.add_carry vH vH0 DynamicValues.Int64.zero) DynamicValues.Int64.one *)
-  (*        || DynamicValues.Int64.eq (DynamicValues.Int64.add_overflow vH vH0 DynamicValues.Int64.zero) DynamicValues.Int64.one)%bool *)
-  (*      then DVALUE_Poison *)
-  (*      else DVALUE_I64 (DynamicValues.Int64.add vH vH0)) *)
-        *
-          repeat split; auto.
-          admit.
+      admit.
+      admit.
 
 
  Admitted.
@@ -1560,15 +1476,16 @@ Section MExpr.
       WF_IRState σ s1 ->                            (* Well-formed IRState *)
       R σ s1 memH (memV, (l, g)) ->
        eutt (R_MExpr σ s2)
-            (translate_E_helix_cfg
+            (with_err_RB
                (interp_Mem (denoteMExpr σ mexp)
                            memH))
-            (translate_E_vellvm_cfg
+            (with_err_LB
                ((interp_cfg_to_L3 helix_intrinsics
                                   (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
                   g l memV)).
   Proof.
     intros s1 s2 mexp σ memH exp c g l memV τ Hgen Hwf Hmeminv.
+
     unfold denoteMExpr; cbn*.
     destruct mexp as [[vid] | mblock].
     - unfold denotePExpr; cbn*.
@@ -1585,7 +1502,7 @@ Section MExpr.
       clear H0 H1.
 
       (* Need to get some information about nth_error σ vid from Hwf *)
-      pose proof (Forall2_Some_right vid Hsnth Hwf) as (v & Hnth & Hirtyp).
+      pose proof (Forall2_Nth_right _ _ _ _ _ Hsnth Hwf) as (v & Hnth & Hirtyp).
       rewrite Hnth.
       destruct v. inversion Hirtyp. inversion Hirtyp.
       clear Hirtyp. (* TODO: I know this is bogus, fix up. *)

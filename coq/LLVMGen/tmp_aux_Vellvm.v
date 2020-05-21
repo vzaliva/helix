@@ -729,7 +729,7 @@ Arguments alist_find {_ _ _ _}.
 Arguments alist_remove {_ _ _ _}.
 Arguments alist_fresh {_ _ _}.
 
-Lemma Forall2_Nth_left : forall n (A B:Type) l1 l2 R (a:A),
+Lemma Forall2_Nth_left : forall {A B:Type} n l1 l2 R (a:A),
     Nth l1 n a ->
     Forall2 R l1 l2 ->
     exists (b:B), (Nth l2 n b) /\ R a b.
@@ -741,7 +741,7 @@ Proof.
   edestruct IH; eauto.
 Qed.
 
-Lemma Forall2_Nth_right : forall n (A B:Type) l1 l2 R (b:B),
+Lemma Forall2_Nth_right : forall {A B:Type} n l1 l2 R (b:B),
     Nth l2 n b ->
     Forall2 R l1 l2 ->
     exists (a:A), (Nth l1 n a) /\ R a b.
@@ -753,7 +753,7 @@ Proof.
   edestruct IH; eauto.
 Qed.
 
-Lemma Forall2_Nth : forall n (A B:Type) l1 l2 R (a:A) (b : B),
+Lemma Forall2_Nth : forall {A B:Type} n l1 l2 R (a:A) (b : B),
     Nth l1 n a ->
     Nth l2 n b ->
     Forall2 R l1 l2 ->
