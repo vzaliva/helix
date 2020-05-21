@@ -2325,7 +2325,6 @@ Proof.
   unfold allocate_globals.
   unfold map_monad_.
   simpl.
-
   rewrite 2!interp_to_L3_bind.
   rewrite bind_bind.
   unfold translate_E_vellvm_mcfg.
@@ -2349,13 +2348,94 @@ Proof.
     clear body_instr.
     induction globals.
     +
-      cbn in G.
-      inl_inr_inv.
-      cbn in L.
-      inl_inr_inv.
-      subst.
+      cbn in G. inv G.
+      cbn in L. inv L.
       simpl.
+      repeat rewrite app_nil_r.
+      unfold global_YX.
+      repeat break_let.
+      cbn.
+
+      (* two steps *)
+
+      rewrite interp_to_L3_bind.
+      rewrite translate_bind.
+      rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+      apply eutt_clo_bind with (UU:=(lift_R_memory_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 1 o; DSHPtrVal 0 i] s)) _ _ ).
+      unfold allocate_global.
+      cbn.
+      rewrite interp_to_L3_vis.
+      rewrite translate_bind.
+      rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+      apply eutt_clo_bind with (UU:=(lift_R_memory_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 1 o; DSHPtrVal 0 i] s)) _ _ ).
+      cbn.
+      (* rewrite interp_to_L3_Alloca. *)
       admit.
+
+      intros u1 u2 H.
+      repeat break_let.
+      subst.
+      rewrite interp_to_L3_GW.
+      cbn.
+      rewrite translate_ret.
+      apply eutt_Ret.
+      unfold lift_R_memory_mcfg in *.
+      repeat break_let. subst.
+      clear - H.
+      admit.
+
+      intros u1 u2 H.
+      repeat break_let.
+      subst.
+      rewrite interp_to_L3_bind.
+      rewrite translate_bind.
+      rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+      apply eutt_clo_bind with (UU:=(lift_R_memory_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 1 o; DSHPtrVal 0 i] s)) _ _ ).
+      unfold allocate_global.
+      cbn.
+      rewrite interp_to_L3_bind.
+      rewrite translate_bind.
+      rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+      apply eutt_clo_bind with (UU:=(lift_R_memory_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 1 o; DSHPtrVal 0 i] s)) _ _ ).
+
+
+      rewrite interp_to_L3_vis.
+      rewrite translate_bind.
+      rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+      apply eutt_clo_bind with (UU:=(lift_R_memory_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 1 o; DSHPtrVal 0 i] s)) _ _ ).
+      (* rewrite interp_to_L3_Alloca. *)
+      admit.
+
+      intros u0 u2 H0.
+      repeat break_let.
+      rewrite interp_to_L3_GW.
+      cbn.
+      rewrite translate_ret.
+      apply eutt_Ret.
+      unfold lift_R_memory_mcfg in *.
+      repeat break_let. subst.
+      clear - H H0.
+      admit.
+
+      intros u0 u2 H0.
+      repeat break_let.
+      cbn.
+      rewrite bind_ret_l.
+      rewrite interp_to_L3_ret.
+      rewrite translate_ret.
+      apply eutt_Ret.
+      unfold lift_R_memory_mcfg in *.
+      repeat break_let.
+      apply H0.
+
+      intros u0 u2 H0.
+      repeat break_let.
+      rewrite interp_to_L3_ret.
+      rewrite translate_ret.
+      apply eutt_Ret.
+      unfold lift_R_memory_mcfg in *.
+      repeat break_let.
+      apply H0.
     +
       admit.
   -
