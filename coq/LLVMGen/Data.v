@@ -170,8 +170,8 @@ Definition helix_intial_memory
        (* over-estimating id, as some globals may not alocate memory (e.g. scalars) *)
        let X_mem_block_id : mem_block_id := length globals  in
        let Y_mem_block_id : mem_block_id := S (length globals) in
-       let mem := memory_set mem X_mem_block_id x in
        let mem := memory_set mem Y_mem_block_id y in
+       let mem := memory_set mem X_mem_block_id x in
        let σ := List.app σ [DSHPtrVal Y_mem_block_id o; DSHPtrVal X_mem_block_id i] in
        ret (mem, data, σ)
      end.

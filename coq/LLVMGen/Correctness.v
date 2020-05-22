@@ -2398,19 +2398,20 @@ Proof.
       cbn.
 
       (* two steps *)
+      rewrite memory_set_seq.
 
       rewrite interp_to_L3_bind.
       rewrite translate_bind.
-      rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
-      apply eutt_clo_bind with (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 1 o; DSHPtrVal 0 i] s)) _ _ ).
+      apply eutt_clo_bind with
+          (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 1 o] s)) _ _ ).
       unfold allocate_global.
       cbn.
       rewrite interp_to_L3_vis.
       rewrite translate_bind.
       rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
-      apply eutt_clo_bind with (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 1 o; DSHPtrVal 0 i] s)) _ _ ).
+      apply eutt_clo_bind with (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 1 o] s)) _ _ ).
       cbn.
-      (* rewrite interp_to_L3_Alloca. *)
+      (* rewrite [interp_to_L3_Alloca] whould work, but [subevent] is in the way. *)
       admit.
 
       intros u1 u2 H.
@@ -2421,46 +2422,43 @@ Proof.
       rewrite translate_ret.
       apply eutt_Ret.
       unfold lift_Rel_mcfg in *.
-      repeat break_let. subst.
-      clear - H.
+      repeat break_let; subst.
+      (* not sure what's going on here *)
       admit.
 
       intros u1 u2 H.
-      repeat break_let.
-      subst.
+      repeat break_let; subst.
       rewrite interp_to_L3_bind.
       rewrite translate_bind.
       rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
-      apply eutt_clo_bind with (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 1 o; DSHPtrVal 0 i] s)) _ _ ).
+      apply eutt_clo_bind with (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 0 i] s)) _ _ ).
       unfold allocate_global.
       cbn.
       rewrite interp_to_L3_bind.
       rewrite translate_bind.
       rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
-      apply eutt_clo_bind with (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 1 o; DSHPtrVal 0 i] s)) _ _ ).
-
+      apply eutt_clo_bind with (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 0 i] s)) _ _ ).
 
       rewrite interp_to_L3_vis.
       rewrite translate_bind.
       rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
-      apply eutt_clo_bind with (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 1 o; DSHPtrVal 0 i] s)) _ _ ).
-      (* rewrite interp_to_L3_Alloca. *)
+      apply eutt_clo_bind with (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 0 i] s)) _ _ ).
+      (* rewrite [interp_to_L3_Alloca] whould work, but [subevent] is in the way. *)
       admit.
 
-      intros u0 u2 H0.
-      repeat break_let.
+      intros u1 u2 H0.
+      repeat break_let; subst.
       rewrite interp_to_L3_GW.
       cbn.
       rewrite translate_ret.
       apply eutt_Ret.
       unfold lift_Rel_mcfg in *.
-      repeat break_let. subst.
-      clear - H H0.
+      repeat break_let; subst.
+      (* not sure what's going on here *)
       admit.
 
-      intros u0 u2 H0.
-      repeat break_let.
-      cbn.
+      intros u1 u2 H0.
+      repeat break_let; subst.
       rewrite bind_ret_l.
       rewrite interp_to_L3_ret.
       rewrite translate_ret.
@@ -2469,14 +2467,17 @@ Proof.
       repeat break_let.
       apply H0.
 
-      intros u0 u2 H0.
-      repeat break_let.
+      intros u1 u2 H0.
+      repeat break_let; subst.
       rewrite interp_to_L3_ret.
       rewrite translate_ret.
       apply eutt_Ret.
       unfold lift_Rel_mcfg in *.
-      repeat break_let.
-      apply H0.
+      repeat break_let; subst.
+      (* here we need to combine [H] and [H0] hypothesis to prove to goal.
+         but it seems we are missing connection between [m0], [m1], and [m2].
+       *)
+      admit.
     +
       admit.
   -
