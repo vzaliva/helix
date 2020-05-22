@@ -1173,6 +1173,39 @@ vars s1 = σ?
   Lemma typ_to_dtyp_I : forall s i, typ_to_dtyp s (TYPE_I i) ≡ DTYPE_I i.
   Admitted.
 
+  Lemma Lu_incLocal :
+    forall s l s' id' id n τ,
+      incLocal_fresh l s ->
+      incLocal s ≡ inr (s', id') ->
+      nth_error (vars s') n ≡ Some (id, τ) ->
+      nth_error (vars s) n ≡ Some (id, τ) \/
+      id' ≡ match id with | ID_Global x | ID_Local x => x end .
+  Proof.
+    intros * FRESH INC LU.
+    destruct id as [id | id].
+    destruct (RelDec.rel_dec id id') eqn:EQ.
+    rewrite RelDec.rel_dec_correct in EQ; subst; auto.
+    left.
+    (* Nothing complicated here, but slightly annoying *)
+    (* TODO *)
+    admit.
+  Admitted.
+
+  Lemma memory_invariant_add_fresh :
+    forall σ s s' id memH memV l g v,
+      incLocal_fresh_inv s (memV, (l, g)) ->
+      incLocal s ≡ inr (s', id) ->
+      memory_invariant σ s memH (memV, (l, g)) ->
+      memory_invariant σ s' memH (memV, (alist_add id v l, g)). 
+  Proof.
+    intros * FRESH INC INV.
+    red; intros * LUH LUV.
+    edestruct Lu_incLocal as [LUV' | IS_NEW]; eauto.
+    - eapply INV in LUV'; eauto.
+      break_match; cbn.
+      (* YZ TODO *)
+  Admitted.
+
   Lemma genNExpr_correct_ind :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH)
@@ -1307,7 +1340,7 @@ vars s1 = σ?
 
     - (* NAdd *)
       rename g into g1, l into l1, memV into memV1.
-
+      Opaque incLocal.
       cbn* in COMPILE; simp.
 
       (* YZ TODO Ltac for this *)
@@ -1374,9 +1407,16 @@ vars s1 = σ?
       apply eutt_Ret.
       split.
 
-      admit.
-      admit.
+      {
+        cbn.
+        split.
+        clear -Heqs1 PREF.
+        destruct PREF as [INV WF FRESH].
+        eapply memory_invariant_add_fresh; eauto.
 
+          admit.
+          admit.
+      }
 
  Admitted.
 
