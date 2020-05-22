@@ -2404,14 +2404,13 @@ Proof.
       rewrite translate_bind.
       apply eutt_clo_bind with
           (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 1 o] s)) _ _ ).
-      unfold allocate_global.
       cbn.
-      rewrite interp_to_L3_vis.
+      rewrite interp_to_L3_bind.
       rewrite translate_bind.
       rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
       apply eutt_clo_bind with (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 1 o] s)) _ _ ).
+      rewrite interp_to_L3_Alloca; eauto.
       cbn.
-      (* rewrite [interp_to_L3_Alloca] whould work, but [subevent] is in the way. *)
       admit.
 
       intros u1 u2 H.
@@ -2439,11 +2438,11 @@ Proof.
       rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
       apply eutt_clo_bind with (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 0 i] s)) _ _ ).
 
-      rewrite interp_to_L3_vis.
+      rewrite interp_to_L3_bind.
       rewrite translate_bind.
       rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
       apply eutt_clo_bind with (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 0 i] s)) _ _ ).
-      (* rewrite [interp_to_L3_Alloca] whould work, but [subevent] is in the way. *)
+      (* rewrite [interp_to_L3_Alloca] whould work. *)
       admit.
 
       intros u1 u2 H0.
