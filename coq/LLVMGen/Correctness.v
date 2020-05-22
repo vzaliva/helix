@@ -2272,6 +2272,20 @@ Definition state_invariant_mcfg (σ : evalContext) (s : IRState) : Rel_mcfg_T un
   fun '(memH,_) '(memV,((l,sl),(g,_))) =>
       state_invariant σ s memH (memV,(l,g)).
 
+Lemma memory_set_seq {E}
+      (i1 i2: mem_block_id)
+      (b1 b2: mem_block)
+      (m0: memoryH)
+  :
+    (Ret (memory_set (memory_set m0 i1 b1) i2 b2, ()) : itree E _)
+    ≈
+    ITree.bind
+      (Ret (memory_set m0 i1 b1, ()))
+      (fun '(x,_) => Ret (memory_set x i2 b2, ())).
+Proof.
+  cbn; rewrite bind_ret_l; reflexivity.
+Qed.
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
