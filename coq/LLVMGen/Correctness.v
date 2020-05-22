@@ -612,12 +612,13 @@ Section SimulationRelations.
     rewrite repr_intval in LU; auto.
   Qed.
 
-  Definition incLocal_fresh (l : local_env) (s : IRState) : Prop :=
+  Definition incLocal_fresh (l : local_env) (g : global_env) (s : IRState) : Prop :=
     forall s' id, incLocal s ≡ inr (s',id) ->
-             alist_fresh id l.
+             alist_fresh id l /\
+             alist_fresh id g.
 
   Definition incLocal_fresh_inv (s : IRState) : config_cfg -> Prop :=
-    fun '(_, (l,_)) => incLocal_fresh l s.
+    fun '(_, (l,g)) => incLocal_fresh l g s.
 
   Record state_invariant (σ : evalContext) (s : IRState) (memH : memoryH) (configV : config_cfg) : Prop :=
     {
@@ -1170,42 +1171,143 @@ vars s1 = σ?
   Qed.
   Hint Resolve state_invariant_memory_invariant state_invariant_WF_IRState ext_local_refl: core.
 
+  (* YZ TODO MOVE *)
   Lemma typ_to_dtyp_I : forall s i, typ_to_dtyp s (TYPE_I i) ≡ DTYPE_I i.
-  Admitted.
-
-  Lemma Lu_incLocal :
-    forall s l s' id' id n τ,
-      incLocal_fresh l s ->
-      incLocal s ≡ inr (s', id') ->
-      nth_error (vars s') n ≡ Some (id, τ) ->
-      nth_error (vars s) n ≡ Some (id, τ) \/
-      id' ≡ match id with | ID_Global x | ID_Local x => x end .
   Proof.
-    intros * FRESH INC LU.
-    destruct id as [id | id].
-    destruct (RelDec.rel_dec id id') eqn:EQ.
-    rewrite RelDec.rel_dec_correct in EQ; subst; auto.
-    left.
-    (* Nothing complicated here, but slightly annoying *)
-    (* TODO *)
-    admit.
-  Admitted.
+    intros; rewrite typ_to_dtyp_equation; reflexivity.
+  Qed. 
 
-  Lemma memory_invariant_add_fresh :
-    forall σ s s' id memH memV l g v,
-      incLocal_fresh_inv s (memV, (l, g)) ->
+  (* YZ TODO MOVE *)
+  Definition get_raw_id (id: ident): raw_id :=
+    match id with
+    | ID_Global x
+    | ID_Local x => x
+    end.
+
+  From ExtLib Require Import RelDec.
+  From Vellvm Require Import AstLib.
+
+  (* (** After updating the IRState with a fresh variable, *)
+  (*     a lookup returns either this new id, or something *)
+  (*     that could be found in the previous state. *)
+  (*  *) *)
+  (* Lemma Lu_incLocal : *)
+  (*   forall s s' id' id n τ, *)
+  (*     incLocal s ≡ inr (s', id') -> *)
+  (*     nth_error (vars s') n ≡ Some (id, τ) -> *)
+  (*     (id' <> get_raw_id id /\ nth_error (vars s) n ≡ Some (id, τ)) \/ *)
+  (*     (id' ≡ get_raw_id id /\ n ≡ length (vars s)). *)
+  (* Proof. *)
+  (*   intros * INC LU. *)
+  (*   destruct id as [id | id]. *)
+  (*   - (* Global case *) *)
+  (*     destruct (RelDec.rel_dec id id') eqn:EQ. *)
+  (*     rewrite RelDec.rel_dec_correct in EQ; subst. *)
+  (*     (* New *) *)
+  (*     right; split; auto. *)
+  (*     admit. *)
+  (*     (* Old *) *)
+  (*     left; split; [apply neg_rel_dec_correct in EQ; auto |]. *)
+  (*     unfold incLocal, incLocalNamed in *; cbn in *; inv_sum. *)
+  (*     cbn in *; auto. *)
+  (*   - (* Local case *) *)
+  (*     admit. *)
+  (*     (* destruct (RelDec.rel_dec id id') eqn:EQ. *) *)
+  (*     (* rewrite RelDec.rel_dec_correct in EQ; subst; auto. *) *)
+  (*     (* (* Old *) *) *)
+  (*     (* left; split; [apply neg_rel_dec_correct in EQ; auto |]. *) *)
+  (*     (* unfold incLocal, incLocalNamed in *; cbn in *; inv_sum. *) *)
+  (*     (* cbn in *; auto. *) *)
+  (* Admitted. *)
+
+  (* Lemma in_local_or_global_add_fresh_new : *)
+  (*   ∀ (id : raw_id) (l : local_env) (g : global_env) (x : ident) dv, *)
+  (*     id ≡ get_raw_id x → *)
+  (*     in_local_or_global (alist_add id dv l) g x (uvalue_to_dvalue dv). *)
+  (* Proof. *)
+  (*   intros * INEQ LUV'. *)
+  (*   destruct x; cbn in *; auto. *)
+  (*   rewrite rel_dec_neq_false; eauto; try typeclasses eauto.   *)
+  (*   rewrite remove_neq_alist; eauto; try typeclasses eauto. *)
+  (* Qed. *)
+ 
+  Lemma in_local_or_global_same_global : forall l g l' id dv,
+    in_local_or_global l g (ID_Global id) dv ->
+    in_local_or_global l' g (ID_Global id) dv. 
+  Proof.
+    cbn; intros; auto.
+  Qed.
+
+  Lemma incLocal_vars:
+    forall s s' id,
       incLocal s ≡ inr (s', id) ->
-      memory_invariant σ s memH (memV, (l, g)) ->
-      memory_invariant σ s' memH (memV, (alist_add id v l, g)). 
+      vars s' ≡ vars s.
   Proof.
-    intros * FRESH INC INV.
-    red; intros * LUH LUV.
-    edestruct Lu_incLocal as [LUV' | IS_NEW]; eauto.
-    - eapply INV in LUV'; eauto.
-      break_match; cbn.
-      (* YZ TODO *)
-  Admitted.
+    intros; cbn in *; inv_sum; reflexivity.
+  Qed.
 
+  Lemma in_local_or_global_add_fresh_old :
+    ∀ (id : raw_id) (l : local_env) (g : global_env) (x : ident) dv dv',
+      id ≢ get_raw_id x →
+      in_local_or_global l g x dv →
+      in_local_or_global (alist_add id dv' l) g x dv.
+  Proof.
+    intros * INEQ LUV'.
+    destruct x; cbn in *; auto.
+    rewrite rel_dec_neq_false; eauto; try typeclasses eauto.  
+    rewrite remove_neq_alist; eauto; try typeclasses eauto.
+  Qed.
+
+  Lemma fresh_no_lu :
+    forall s s' id mem l g x dv,
+      incLocal s ≡ inr (s', id) ->
+      incLocal_fresh_inv s (mem, (l, g)) ->
+      in_local_or_global l g x dv ->
+      id <> get_raw_id x.
+  Proof.
+    intros * INC FRESH INLG abs; subst.
+    apply FRESH in INC; clear FRESH.
+    unfold alist_fresh in *.
+    destruct INC as [INCL INCG].
+    destruct x; cbn in *; [rewrite INLG in INCG; inv INCG | rewrite INLG in INCL; inv INCL]. 
+  Qed.
+
+  (**
+     [memory_invariant] is stable by fresh extension of the local environment.
+   *)
+  Lemma state_invariant_add_fresh :
+    forall σ s s' id memH memV l g v,
+      incLocal s ≡ inr (s', id) ->
+      state_invariant σ s memH (memV, (l, g)) ->
+      state_invariant σ s' memH (memV, (alist_add id v l, g)). 
+  Proof.
+    intros * INC [MEM WF FRESH].
+    split.
+    - red; intros * LUH LUV.
+      erewrite incLocal_vars in LUV; eauto.
+      generalize LUV; intros INLG;
+        eapply MEM in INLG; eauto.    
+      break_match.
+      + subst. 
+        eapply in_local_or_global_add_fresh_old; eauto.
+        eapply fresh_no_lu; eauto.
+      + subst. 
+        eapply in_local_or_global_add_fresh_old; eauto.
+        eapply fresh_no_lu; eauto.
+      + subst.
+        repeat destruct INLG as [? INLG].
+        eexists; split; eauto.
+        do 2 eexists; split; eauto.
+        eapply in_local_or_global_add_fresh_old; eauto.
+        eapply fresh_no_lu; eauto.
+        
+    - unfold WF_IRState; erewrite incLocal_vars; eauto; apply WF.  
+    - intros ? ? LU. unfold incLocal_fresh_inv, incLocal_fresh in *.
+
+      admit.
+
+  Admitted.
+        
   Lemma genNExpr_correct_ind :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH)
@@ -1406,17 +1508,8 @@ vars s1 = σ?
       cbn*; repeat norm_v.
       apply eutt_Ret.
       split.
-
-      {
-        cbn.
-        split.
-        clear -Heqs1 PREF.
-        destruct PREF as [INV WF FRESH].
-        eapply memory_invariant_add_fresh; eauto.
-
-          admit.
-          admit.
-      }
+      cbn; eapply state_invariant_add_fresh; eauto.
+      admit.
 
  Admitted.
 
@@ -2021,7 +2114,7 @@ Qed.
 
 Lemma inc_local_fresh_empty : incLocal_fresh_inv newState llvm_empty_memory_state_partial.
 Proof.
-  repeat intro; apply alist_fresh_nil.
+  repeat intro; split; apply alist_fresh_nil.
 Qed.
 
 Lemma state_invariant_empty: state_invariant [] newState helix_empty_memory llvm_empty_memory_state_partial.
