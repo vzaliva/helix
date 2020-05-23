@@ -1509,6 +1509,22 @@ vars s1 = σ?
       apply eutt_Ret.
       split.
       cbn; eapply state_invariant_add_fresh; eauto.
+      split.
+      2:{
+        do 3 split; auto. 
+        rewrite MONOI, MONOF.
+        apply sub_alist_add.
+        edestruct PREF as [_ _ FRESH].
+        apply FRESH in Heqs1; apply Heqs1.
+      }
+      cbn.
+      intros ? MONO.
+      cbn in *.
+      repeat norm_v.
+      cbn; norm_v.
+      2: apply MONO, In_add_eq.
+      apply eutt_Ret.
+      repeat f_equal; auto. 
       admit.
 
  Admitted.
