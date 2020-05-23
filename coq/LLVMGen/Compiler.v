@@ -10,6 +10,7 @@ Require Import Helix.Util.Misc.
 Require Import Helix.Tactics.HelixTactics.
 
 Require Import Vellvm.IntrinsicsDefinitions.
+Require Import Vellvm.Util.
 Require Import Vellvm.Numeric.Floats.
 Require Import Vellvm.LLVMAst.
 Require Import Helix.Util.ErrorSetoid.
