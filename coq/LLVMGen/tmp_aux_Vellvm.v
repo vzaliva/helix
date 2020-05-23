@@ -822,14 +822,39 @@ Ltac destruct_unit :=
   end.
 
 (* YZ TODO : Move to Vellvm? *)
+Section WithDec.
+
+  Context {K V : Type}.
+  Context {RD:RelDec (@eq K)} {RDC:RelDec_Correct RD}.
+
+  Notation "m '@' x" := (alist_find x m).
+  Definition sub_alist (ρ1 ρ2 : alist K V): Prop :=
+    forall (id : K) (v : V), alist_In id ρ1 v -> alist_In id ρ2 v.
+  Notation "m '⊑' m'" := (sub_alist m m') (at level 45).
+
+  Global Instance sub_alist_refl : Reflexive sub_alist.
+  Proof.
+    repeat intro; auto.
+  Qed.
+
+  Global Instance sub_alist_trans : Transitive sub_alist.
+  Proof.
+    repeat intro; auto.
+  Qed.
+
+  Lemma sub_alist_add :
+    forall k v (m : alist K V),
+      alist_fresh k m ->
+      m ⊑ (alist_add k v m).
+  Proof.
+    repeat intro.
+    unfold alist_In, alist_fresh in *.
+    destruct (rel_dec_p k id).
+    subst; rewrite H in H0; inversion H0.
+    apply In_In_add_ineq; auto.
+  Qed.
+
+End WithDec.
+
 Notation "m '@' x" := (alist_find x m).
-Definition sub_alist {K V} {EQD : RelDec.RelDec Logic.eq} (ρ1 ρ2 : alist K V): Prop :=
-  forall (id : K) (v : V), alist_In id ρ1 v -> alist_In id ρ2 v.
 Notation "m '⊑' m'" := (sub_alist m m') (at level 45).
-
-Instance sub_alist_refl {K V} {EQD : RelDec.RelDec Logic.eq} : Reflexive (@sub_alist K V _).
-Proof.
-  repeat intro; auto.
-Qed.
-
-
