@@ -2419,6 +2419,14 @@ Proof.
   cbn; rewrite bind_ret_l; reflexivity.
 Qed.
 
+Lemma alist_add_nil {K V:Type} {k:K} {v:V}
+      `{RD_K : @RelDec K R}
+  :
+    alist_add k v [] ≡ [(k,v)].
+Proof.
+  reflexivity.
+Qed.
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -2497,79 +2505,70 @@ Proof.
       rewrite translate_bind.
       apply eutt_clo_bind with
           (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 1 o] s)) _ _ ).
-      cbn.
-      rewrite interp_to_L3_bind.
-      rewrite translate_bind.
-      rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
-      apply eutt_clo_bind with (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 1 o] s)) _ _ ).
-      rewrite interp_to_L3_Alloca; eauto.
-      cbn.
-      admit.
+      *
+        (* "o" init *)
+        rewrite interp_to_L3_bind.
+        rewrite interp_to_L3_Alloca; eauto.
 
-      intros u1 u2 H.
-      repeat break_let.
-      subst.
-      rewrite interp_to_L3_GW.
-      cbn.
-      rewrite translate_ret.
-      apply eutt_Ret.
-      unfold lift_Rel_mcfg in *.
-      repeat break_let; subst.
-      (* not sure what's going on here *)
-      admit.
+        (* This should work, but it doesn't *)
+        Fail setoid_rewrite interp_to_L3_GW.
+        (* workaround *)
+        match goal with
+        | [ |- context[ITree.bind ?a ?b]] =>
+          replace b with (fun z =>
+                            let m' := fst z in
+                            let l' := fst (snd z) in
+                            let g' := fst (snd (snd z)) in
+                            let x := snd (snd (snd z)) in
+                            interp_mcfg (trigger (GlobalWrite (Anon 1%Z) x)) g' l' m')
+        end.
+        2:{
+          extensionality z.
+          repeat break_let; subst.
+          reflexivity.
+        }
+        (* Now we can rewrite! *)
+        setoid_rewrite interp_to_L3_GW.
 
-      intros u1 u2 H.
-      repeat break_let; subst.
-      rewrite interp_to_L3_bind.
-      rewrite translate_bind.
-      rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
-      apply eutt_clo_bind with (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 0 i] s)) _ _ ).
-      unfold allocate_global.
-      cbn.
-      rewrite interp_to_L3_bind.
-      rewrite translate_bind.
-      rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
-      apply eutt_clo_bind with (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 0 i] s)) _ _ ).
+        norm_v.
+        cbn.
+        rewrite translate_ret.
+        apply eutt_Ret.
+        (* this looks provable *)
+        intros n v τ x H H0.
+        destruct v; cbn in *;admit.
+      *
+        (* "i" init *)
+        intros u1 u2 H.
+        repeat break_let; subst.
+        norm_v.
+        repeat setoid_rewrite bind_ret_l.
 
-      rewrite interp_to_L3_bind.
-      rewrite translate_bind.
-      rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
-      apply eutt_clo_bind with (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 0 i] s)) _ _ ).
-      (* rewrite [interp_to_L3_Alloca] whould work. *)
-      admit.
+        rewrite interp_to_L3_bind.
 
-      intros u1 u2 H0.
-      repeat break_let; subst.
-      rewrite interp_to_L3_GW.
-      cbn.
-      rewrite translate_ret.
-      apply eutt_Ret.
-      unfold lift_Rel_mcfg in *.
-      repeat break_let; subst.
-      (* not sure what's going on here *)
-      admit.
+        match goal with
+        | [ |- context[ITree.bind ?a ?b]] =>
+          replace b with (fun z =>
+                            let m' := fst z in
+                            let l' := fst (snd z) in
+                            let g' := fst (snd (snd z)) in
+                            let x := snd (snd (snd z)) in
+                            interp_mcfg
+                              (ITree.bind
+                                 (trigger (GlobalWrite (Anon 0%Z) x))
+                                 (fun r => Ret [u0; r]))
+                              g' l' m')
+        end.
+        2:{
+          extensionality z.
+          repeat break_let; subst.
+          reflexivity.
+        }
 
-      intros u1 u2 H0.
-      repeat break_let; subst.
-      rewrite bind_ret_l.
-      rewrite interp_to_L3_ret.
-      rewrite translate_ret.
-      apply eutt_Ret.
-      unfold lift_Rel_mcfg in *.
-      repeat break_let.
-      apply H0.
-
-      intros u1 u2 H0.
-      repeat break_let; subst.
-      rewrite interp_to_L3_ret.
-      rewrite translate_ret.
-      apply eutt_Ret.
-      unfold lift_Rel_mcfg in *.
-      repeat break_let; subst.
-      (* here we need to combine [H] and [H0] hypothesis to prove to goal.
-         but it seems we are missing connection between [m0], [m1], and [m2].
-       *)
-      admit.
+        Fail setoid_rewrite interp_to_L3_Alloca; eauto.
+        Fail setoid_rewrite interp_bind.
+        Fail setoid_rewrite interp_to_L3_GW.
+        admit.
     +
       admit.
   -
