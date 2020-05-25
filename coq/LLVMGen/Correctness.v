@@ -1704,8 +1704,8 @@ Section MExpr.
         nth_error σ vid ≡ Some (DSHPtrVal mid size) /\
         nth_error (vars s) vid ≡ Some (i, TYPE_Pointer (TYPE_Array sz TYPE_Double)).
 
-  (** ** Compilation of MExpr TODO
-   *)
+  (** ** Compilation of MExpr
+  *)
   Lemma genMExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (mexp: MExpr) (σ: evalContext) (memH: memoryH)
@@ -1747,17 +1747,21 @@ Section MExpr.
       eapply INV in Hsnth; eauto.
       destruct Hsnth as (bk_helix & Hlookup & ptr_llvm & bk_llvm & Hfind & rest).
 
+
       repeat norm_h;
         try (apply memory_lookup_err_inr_Some_eq; eauto).
 
-      (* Try to simplify right hand side *)
+      (* Simplify right hand side *)
       cbn*.
       repeat norm_v; cbn*.
-      destruct i; cbn; repeat norm_v; try apply Hfind.
+      destruct i as [id | id] eqn:Hi; cbn; repeat norm_v; try apply Hfind.
       all: cbn*; repeat norm_v.
       all: apply eqit_Ret; split; [split; eauto |].
 
-      (* exists ptr_llvm, i, vid, a, size. *)
+      unfold invariant_MExpr. 
+      exists ptr_llvm, i, vid, a, size, sz;
+        subst; cbn; intuition.
+      
       admit.
       admit.
 
@@ -1769,17 +1773,71 @@ End MExpr.
 
 Section AExpr.
 
-  (** ** Compilation of MExpr TODO
-  *)
-  Lemma genAExpr_correct : forall R R',
+  Definition R_AExpr_start (σ : evalContext) (s : IRState) (memH : memoryH) (vellvm : memoryV * (local_env * global_env)) : Prop
+    := state_invariant σ s memH vellvm.
+
+  Definition R_AExpr
+             (σ : evalContext) (s : IRState)
+             (helix : memoryH * binary64)
+             (vellvm : memoryV * (local_env * res_L1)) : Prop
+    :=
+      let '(memH, b) := helix in
+      let '(memV, (ρ, (g, res))) := vellvm in
+      state_invariant σ s memH (memV, (ρ, g)) /\
+      res ≡ UVALUE_Double b.
+
+  Hint Unfold R_AExpr.
+
+  (* TODO: move these *)
+  Lemma context_lookup_inr__nth_some :
+    forall err val σ v,
+      context_lookup err σ v ≡ inr val ->
+      nth_error σ v ≡ Some val.
+  Proof.
+    intros err val σ v H.
+    unfold context_lookup in H.
+    destruct (nth_error σ v) eqn:Hnth;
+      inversion H.
+    reflexivity.
+  Qed.
+
+  Lemma wf_ir_nth_error_some__good_lookup :
+    forall σ st v x err,
+      WF_IRState σ st ->
+      nth_error (vars st) v ≡ Some x ->
+      exists val, context_lookup err σ v ≡ inr val.
+  Proof.
+    intros σ st v x err Hwf Hnth.
+    destruct (context_lookup err σ v) eqn:Hctx.
+    - unfold context_lookup in Hctx.
+      destruct (nth_error σ v) eqn:Hnth_σ; subst; cbn in Hctx; inversion Hctx.
+      epose proof (WF_IRState_lookup_cannot_fail_ctx).
+      exfalso; eauto.
+    - exists d. reflexivity.
+  Qed.
+
+  Lemma context_lookup_succeeds :
+    forall σ st x v err,
+      WF_IRState σ st ->
+      nth_error (vars st) v ≡ Some x ->
+      exists val, context_lookup err σ v ≡ inr val /\ nth_error σ v ≡ Some val.
+  Proof.
+    intros σ st x v err Hwf Hnth.
+    pose proof wf_ir_nth_error_some__good_lookup as H.
+    specialize (H σ st v x err Hwf Hnth) as [val Hcontext].
+    exists val; eauto using context_lookup_inr__nth_some.
+  Qed.
+
+  (** ** Compilation of AExpr TODO
+   *)
+  (* TODO: WF_IRState shouldn't be needed, it's part of R_AExpr_start *)
+  Lemma genAExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (aexp: AExpr) (σ: evalContext) (memH: memoryH)
       (* Vellvm bits *)   (exp: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV) (τ: typ),
       genAExpr aexp s1 ≡ inr (s2, (exp, c)) -> (* Compilation succeeds *)
-      WF_IRState σ s1 ->                            (* Well-formed IRState *)
-      R σ memH (memV, (l, g)) ->
-      (* (WF_IRState σ s2 /\ *)
-       eutt R'
+      state_invariant σ s1 memH (memV, (l, g)) ->
+       eutt (R_AExpr σ s2)
             (with_err_RB
                (interp_Mem (denoteAExpr σ aexp)
                            memH))
@@ -1787,6 +1845,164 @@ Section AExpr.
                ((interp_cfg (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
                   g l memV)).
   Proof.
+    intros s1 s2 aexp σ memH exp c g l memV τ H H0.
+    induction aexp.
+    - (* AVar *)
+      (* TODO: clean this all up. Extract useful LTAC.
+
+         Wait until Vadim gets back about bogus pointer cases.
+       *)
+      pose proof Hgen as Hgen'.
+      simp_comp Hgen.
+      + cbn*; repeat norm_h; repeat norm_v.
+
+        match goal with
+        | Hwf  : WF_IRState ?σ ?ir,
+          Hnth : nth_error (vars ?ir) ?v ≡ Some ?x
+          |- context[context_lookup ?err ?σ ?v] =>
+          pose proof (context_lookup_succeeds v err Hwf Hnth) as Hctx;
+          destruct Hctx as [val [Hctx Hnth_σ]]
+        end.
+
+        rewrite Hctx.
+        repeat norm_h.
+
+        destruct val.
+        admit. Focus 2. admit. (* Exceptions *)
+
+        repeat norm_h.
+
+        destruct i0 eqn:Hi.
+        cbn.
+        repeat norm_v.
+        setoid_rewrite translate_ret.
+        repeat norm_v.
+
+        (* Lookup *)
+        Focus 2. cbn*.
+        unfold Traversal.endo.
+        unfold R_AExpr_start in Hmem.
+        unfold memory_invariant in Hmem.
+        destruct Hmem as [_ Hmem].
+
+        match goal with
+        | Hnth : nth_error ?σ ?v ≡ Some ?val,
+          Hnth_ir : nth_error (vars ?st) ?v ≡ Some (?id, ?τ)
+          |- _ =>
+          let H := fresh H in
+          pose proof (Hmem v val τ id) Hnth Hnth_ir as H;
+            cbn in H
+        end.
+
+        apply H.
+
+        cbn. repeat norm_v.
+
+        rewrite typ_to_dtyp_equation.
+        admit.
+
+        (* Local case. *)
+        cbn.
+        repeat norm_v.
+        Focus 2.
+        unfold Traversal.endo.
+        unfold R_AExpr_start in Hmem.
+        unfold memory_invariant in Hmem.
+        destruct Hmem as [_ Hmem].
+
+        match goal with
+        | Hnth : nth_error ?σ ?v ≡ Some ?val,
+          Hnth_ir : nth_error (vars ?st) ?v ≡ Some (?id, ?τ)
+          |- _ =>
+          let H := fresh H in
+          pose proof (Hmem v val τ id) Hnth Hnth_ir as H;
+            cbn in H
+        end.
+
+        apply H.
+
+        setoid_rewrite translate_ret.
+        repeat norm_v.
+        cbn.
+        repeat norm_v.
+        admit.
+      + cbn*; repeat norm_h; repeat norm_v.
+
+        match goal with
+        | Hwf  : WF_IRState ?σ ?ir,
+          Hnth : nth_error (vars ?ir) ?v ≡ Some ?x
+          |- context[context_lookup ?err ?σ ?v] =>
+          pose proof (context_lookup_succeeds v err Hwf Hnth) as Hctx;
+          destruct Hctx as [val [Hctx Hnth_σ]]
+        end.
+
+        rewrite Hctx.
+        repeat norm_h.
+
+        destruct val. admit. Focus 2. admit.
+        repeat norm_h.
+
+        destruct i0;
+          cbn; repeat norm_v;
+            cbn; repeat norm_v.
+
+        Focus 2.
+        unfold Traversal.endo.
+        unfold R_AExpr_start in Hmem.
+        unfold memory_invariant in Hmem.
+        destruct Hmem as [_ Hmem].
+
+        match goal with
+        | Hnth : nth_error ?σ ?v ≡ Some ?val,
+          Hnth_ir : nth_error (vars ?st) ?v ≡ Some (?id, ?τ)
+          |- _ =>
+          let H := fresh H in
+          pose proof (Hmem v val τ id) Hnth Hnth_ir as H;
+            cbn in H
+        end.
+
+        apply H.
+
+        Focus 3.
+        unfold Traversal.endo.
+        unfold R_AExpr_start in Hmem.
+        unfold memory_invariant in Hmem.
+        destruct Hmem as [_ Hmem].
+
+        match goal with
+        | Hnth : nth_error ?σ ?v ≡ Some ?val,
+          Hnth_ir : nth_error (vars ?st) ?v ≡ Some (?id, ?τ)
+          |- _ =>
+          let H := fresh H in
+          pose proof (Hmem v val τ id) Hnth Hnth_ir as H;
+            cbn in H
+        end.
+
+        apply H.
+
+        all: apply eqit_Ret; unfold R_AExpr; auto.
+     - (* AConst *)
+      (* TODO: may want to move this to toplevel *)
+      simp_comp Hgen;
+        cbn*; repeat norm_h; repeat norm_v.
+
+      apply eqit_Ret; auto.
+    - (* ANth *)
+      admit.
+    - (* AAbs *)
+      admit.
+    - (* APlus *)
+      admit.
+    - (* AMinus *)
+      admit.
+    - (* AMult *)
+      admit.
+    - (* AMin *)
+      admit.
+    - (* AMax *)
+      admit.
+    - (* AZless *)
+      admit.
   Admitted.
 
 End AExpr.
