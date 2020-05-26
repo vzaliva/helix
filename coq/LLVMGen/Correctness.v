@@ -557,12 +557,33 @@ Section SimulationRelations.
   Definition dvalue_of_int (v : Int64.int) : dvalue := DVALUE_I64 (DynamicValues.Int64.repr (Int64.intval v)).
   Definition dvalue_of_bin (v: binary64) : dvalue := DVALUE_Double v.
 
+  (* Checks if given [id] corresponds to specified scalar dvalue [dv] via
+     local or global environemnt. Per Helix conventions:
+
+     - Local variables hold their respective values.
+
+     - Global variables are always pointers, which must point to existing
+       memory block of size 1 with sole value matching expected dvalue.
+   *)
   Definition in_local_or_global
              (ρ : local_env) (g : global_env)
+             (mem_llvm: Mem.memory)
              (x : ident) (dv : dvalue) : Prop
     := match x with
        | ID_Local x => ρ @ x ≡ Some (dvalue_to_uvalue dv)
-       | ID_Global x => g @ x ≡ Some dv
+       | ID_Global x =>
+         exists ptr_llvm, g @ x ≡ Some (DVALUE_Addr ptr_llvm) /\
+                     exists bk_llvm, get_logical_block mem_llvm ptr_llvm ≡ Some bk_llvm /\
+                                mem_lookup_llvm_at_i bk_llvm 0 1 (dvalue_to_uvalue dv)
+       end.
+
+  (* Checks if [x] corresponds to a pointer [ptr] in either local or global environemnt *)
+  Definition ptr_in_local_or_global
+             (ρ : local_env) (g : global_env)
+             (x : ident) ptr : Prop
+    := match x with
+       | ID_Local x => ρ @ x ≡ Some (UVALUE_Addr ptr)
+       | ID_Global x => g @ x ≡ Some (DVALUE_Addr ptr)
        end.
 
   Definition memory_invariant (σ : evalContext) (s : IRState) : Rel_cfg :=
@@ -571,13 +592,13 @@ Section SimulationRelations.
         nth_error σ n ≡ Some v ->
         nth_error (vars s) n ≡ Some (x,τ) ->
         match v with
-        | DSHnatVal v   => in_local_or_global ρ g x (dvalue_of_int v)
-        | DSHCTypeVal v => in_local_or_global ρ g x (dvalue_of_bin v)
+        | DSHnatVal v   => in_local_or_global ρ g (fst mem_llvm) x (dvalue_of_int v)
+        | DSHCTypeVal v => in_local_or_global ρ g (fst mem_llvm) x (dvalue_of_bin v)
         | DSHPtrVal ptr_helix ptr_size_helix =>
           exists bk_helix,
           memory_lookup mem_helix ptr_helix ≡ Some bk_helix /\
           exists ptr_llvm bk_llvm,
-            in_local_or_global ρ g x (DVALUE_Addr ptr_llvm) /\
+            ptr_in_local_or_global ρ g x ptr_llvm /\
             get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm /\
             (fun bk_helix bk_llvm =>
                forall i, Int64.lt i ptr_size_helix ->
