@@ -596,19 +596,19 @@ Section SimulationRelations.
            v_llvm ≡ UVALUE_Double v_helix.
 
   Definition memory_invariant (σ : evalContext) (s : IRState) : Rel_cfg :=
-    fun (mem_helix : MDSHCOLOnFloat64.memory) '(mem_llvm, (ρ,g)) =>
+    fun (mem_helix : MDSHCOLOnFloat64.memory) '((mem_llvm,_), (ρ,g)) =>
       forall (n: nat) v τ x,
         nth_error σ n ≡ Some v ->
         nth_error (vars s) n ≡ Some (x,τ) ->
         match v with
-        | DSHnatVal v   => in_local_or_global ρ g (fst mem_llvm) x (dvalue_of_int v)
-        | DSHCTypeVal v => in_local_or_global ρ g (fst mem_llvm) x (dvalue_of_bin v)
+        | DSHnatVal v   => in_local_or_global ρ g mem_llvm x (dvalue_of_int v)
+        | DSHCTypeVal v => in_local_or_global ρ g mem_llvm x (dvalue_of_bin v)
         | DSHPtrVal ptr_helix ptr_size_helix =>
           exists bk_helix,
           memory_lookup mem_helix ptr_helix ≡ Some bk_helix /\
           exists ptr_llvm bk_llvm,
             ptr_in_local_or_global ρ g x ptr_llvm /\
-            get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm /\
+            get_logical_block mem_llvm ptr_llvm ≡ Some bk_llvm /\
             helix_llvm_bk_equiv bk_helix bk_llvm ptr_size_helix
         end.
 
