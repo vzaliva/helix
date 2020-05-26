@@ -586,6 +586,15 @@ Section SimulationRelations.
        | ID_Global x => g @ x ≡ Some (DVALUE_Addr ptr)
        end.
 
+  (* element-wise equivalence of Helix and LLVM memory blocks *)
+  Definition helix_llvm_bk_equiv bk_helix bk_llvm ptr_size_helix : Prop :=
+    forall i, Int64.lt i ptr_size_helix ->
+         exists v_helix v_llvm,
+           mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v_helix /\
+           mem_lookup_llvm_at_i bk_llvm (MInt64asNT.to_nat i)
+                                (MInt64asNT.to_nat ptr_size_helix) v_llvm /\
+           v_llvm ≡ UVALUE_Double v_helix.
+
   Definition memory_invariant (σ : evalContext) (s : IRState) : Rel_cfg :=
     fun (mem_helix : MDSHCOLOnFloat64.memory) '(mem_llvm, (ρ,g)) =>
       forall (n: nat) v τ x,
@@ -600,14 +609,7 @@ Section SimulationRelations.
           exists ptr_llvm bk_llvm,
             ptr_in_local_or_global ρ g x ptr_llvm /\
             get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm /\
-            (fun bk_helix bk_llvm =>
-               forall i, Int64.lt i ptr_size_helix ->
-                    exists v_helix v_llvm,
-                      mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v_helix /\
-                      mem_lookup_llvm_at_i bk_llvm (MInt64asNT.to_nat i)
-                                           (MInt64asNT.to_nat ptr_size_helix) v_llvm /\
-                      v_llvm ≡ UVALUE_Double v_helix
-            ) bk_helix bk_llvm
+            helix_llvm_bk_equiv bk_helix bk_llvm ptr_size_helix
         end.
 
   Lemma memory_invariant_GLU : forall σ s v id memH memV t l g n,
