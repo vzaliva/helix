@@ -16,10 +16,11 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    We probably need just one definition. 
 ** Run =coq-min-imports= on all codebase                               :zoickx:
 ** GEP definition in Coq
-** FMap equality
-   We have now defined setoid equiality for =mem_block=, =memory= and =TypeSig=. 
-   These are pretty much boilderplate, assuming =Equality= on the values. Perhaps
-   these 3 could be generalized via typeclass or a module.
+** FMap equality                                                     :zoickx:
+   We have now defined setoid equiality for =mem_block= and =memory==.
+   These are pretty much boilderplate, assuming =Equality= on the
+   values. Perhaps these 2 could be generalized via typeclass or a
+   module.
 ** Split StringOT.v into several files                               :zoickx:
    Remove if unecessary.
 ** Move =CarrierAabs_proper= to =CarrierType.v=                          :zoickx:
@@ -28,14 +29,14 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 ** =RMonoid= vs =Monoid= 
    Whenever we us =Monoid= as pre-condition for rewriting we should use
    =RMnonoid= which is more general.
-** ~BFixpoint~ follows from ~Monoid~
+** ~BFixpoint~ follows from ~Monoid~                                     :zoickx:
    Whenever we aleady have ~Monoid~, ~BFixPoint~ could be derived from that
    and should not be assumed implicitly.
 * Proof mechanics
 ** Review =_arg_proper= vs =_proper= instances                           :zoickx:
    Check all ~Proper~ instances and if there more than one for some function
    see if they could be merged.
-** ~FinNatSet~ proofs automation via [[https://gmalecha.github.io/reflections/2017/speeding-up-proofs-with-computational-reflection][computational reflection]]          :zoickx:
+** ~FinNatSet~ proofs automation via [[https://gmalecha.github.io/reflections/2017/speeding-up-proofs-with-computational-reflection][computational reflection]]
    (for automatic obligations resoluition in SHCL/MSHCOL/DSHCOL/
    equality).
 ** Tactic =solve_facts= in =DynWinProof= is hacky and slow.
