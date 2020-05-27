@@ -10,8 +10,6 @@ Require Import MathClasses.orders.minmax.
 
 (* TODO: move =CarrierAabs_proper= to CarrierType.v *)
 Require Import MathClasses.theory.abs.
-Instance CarrierAabs_proper : Proper (equiv ==> equiv) abs.
-Proof. typeclasses eauto. Qed.
 
 Instance CarrierA_min_proper: Proper((=) ==> (=) ==> (=)) (@min CarrierA CarrierAle CarrierAledec).
 Proof. typeclasses eauto. Qed.

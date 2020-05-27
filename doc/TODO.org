@@ -23,7 +23,6 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    module.
 ** Split StringOT.v into several files                               :zoickx:
    Remove if unecessary.
-** Move =CarrierAabs_proper= to =CarrierType.v=                          :zoickx:
 ** Move operations on CType to CType module like we did with NType
 * Harmonization
 ** =RMonoid= vs =Monoid= 
