@@ -2568,8 +2568,7 @@ Proof.
       *
         (* "o" init *)
         rewrite interp_to_L3_bind.
-        rewrite interp_to_L3_Alloca; eauto.
-
+        rewrite interp_to_L3_Alloca;cbn; eauto.
         (* This should work, but it doesn't *)
         Fail setoid_rewrite interp_to_L3_GW.
         (* workaround *)
@@ -2597,7 +2596,6 @@ Proof.
         (* this looks provable *)
         intros n v τ x H H0.
         destruct v; cbn in *; admit.
-        cbn; eauto.
       *
         (* "i" init *)
         intros u1 u2 H.
@@ -2627,8 +2625,8 @@ Proof.
         }
 
         setoid_rewrite interp_to_L3_Alloca; eauto.
-        Fail setoid_rewrite interp_bind.
-        Fail setoid_rewrite interp_to_L3_GW.
+        setoid_rewrite interp_to_L3_bind.
+        setoid_rewrite interp_to_L3_GW.
         admit.
         admit. (* TODO: investigate *)
     +
