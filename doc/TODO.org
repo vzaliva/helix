@@ -31,13 +31,6 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 ** ~BFixpoint~ follows from ~Monoid~
    Whenever we aleady have ~Monoid~, ~BFixPoint~ could be derived from that
    and should not be assumed implicitly.
-** Quasi-Ring
-   In one of rewrting proofs (=Diamond_f_subst=) I am using an awkward
-   pre-condition which consists of two /Monoids/ which are sharing
-   the same /identity element/. It turns out that such algebraic
-   structure exists, and called [[https://argumatronic.com/posts/2019-06-21-algebra-cheatsheet.html#ring-like-structures][Quazi-ring]]. Instead of carrying over
-   multiple assumptions I should define a typeclass for /QuaziRing/
-   and pack them into it.
 ** Monoidal Restriction
    See if =RelUtil.restrict= could be used in =MonoidalRestriction=.
 * Proof mechanics
