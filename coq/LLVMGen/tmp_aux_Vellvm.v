@@ -175,7 +175,7 @@ Section MemoryModel.
 
   Definition get_logical_block (mem: memory) (ptr: Addr.addr): option logical_block :=
     let '(b,a) := ptr in
-    lookup_logical b mem.
+    get_logical_block_mem b mem.
 
 End MemoryModel.
 
