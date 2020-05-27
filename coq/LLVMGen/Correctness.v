@@ -578,7 +578,7 @@ Section SimulationRelations.
           memory_lookup mem_helix ptr_helix ≡ Some bk_helix /\
           exists ptr_llvm bk_llvm,
             in_local_or_global ρ g x (DVALUE_Addr ptr_llvm) /\
-            get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm /\
+            get_logical_block mem_llvm (fst ptr_llvm) ≡ Some bk_llvm /\
             (fun bk_helix bk_llvm =>
                forall i, Int64.lt i ptr_size_helix ->
                     exists v_helix v_llvm,
@@ -2596,7 +2596,8 @@ Proof.
         apply eutt_Ret.
         (* this looks provable *)
         intros n v τ x H H0.
-        destruct v; cbn in *;admit.
+        destruct v; cbn in *; admit.
+        cbn; eauto.
       *
         (* "i" init *)
         intros u1 u2 H.
@@ -2625,10 +2626,11 @@ Proof.
           reflexivity.
         }
 
-        Fail setoid_rewrite interp_to_L3_Alloca; eauto.
+        setoid_rewrite interp_to_L3_Alloca; eauto.
         Fail setoid_rewrite interp_bind.
         Fail setoid_rewrite interp_to_L3_GW.
         admit.
+        admit. (* TODO: investigate *)
     +
       admit.
   -
