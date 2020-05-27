@@ -17,12 +17,10 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 ** Run =coq-min-imports= on all codebase                               :zoickx:
 ** GEP definition in Coq
 ** FMap equality                                                     :zoickx:
-   We have now defined setoid equiality for =mem_block= and =memory==.
+   We have now defined setoid equiality for =mem_block= and =memory=.
    These are pretty much boilderplate, assuming =Equality= on the
    values. Perhaps these 2 could be generalized via typeclass or a
    module.
-** Split StringOT.v into several files                               :zoickx:
-   Remove if unecessary.
 ** Move operations on CType to CType module like we did with NType
 * Harmonization
 ** =RMonoid= vs =Monoid= 
