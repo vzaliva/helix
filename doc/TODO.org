@@ -31,8 +31,6 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 ** ~BFixpoint~ follows from ~Monoid~
    Whenever we aleady have ~Monoid~, ~BFixPoint~ could be derived from that
    and should not be assumed implicitly.
-** Monoidal Restriction
-   See if =RelUtil.restrict= could be used in =MonoidalRestriction=.
 * Proof mechanics
 ** Review =_arg_proper= vs =_proper= instances                           :zoickx:
    Check all ~Proper~ instances and if there more than one for some function
