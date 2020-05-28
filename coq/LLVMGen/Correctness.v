@@ -14,6 +14,7 @@ Require Import Coq.ZArith.BinInt.
 
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Helix.FSigmaHCOL.Int64asNT.
+Require Import Helix.FSigmaHCOL.Float64asCT.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLITree.
 Require Import Helix.LLVMGen.Compiler.
 Require Import Helix.LLVMGen.Externals.

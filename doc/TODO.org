@@ -21,7 +21,6 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    These are pretty much boilderplate, assuming =Equality= on the
    values. Perhaps these 2 could be generalized via typeclass or a
    module.
-** Move operations on CType to CType module like we did with NType
 * Harmonization
 ** =RMonoid= vs =Monoid= 
    Whenever we us =Monoid= as pre-condition for rewriting we should use

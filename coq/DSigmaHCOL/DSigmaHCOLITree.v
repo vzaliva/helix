@@ -71,10 +71,9 @@ Ltac iter_unfold_pointed :=
 
 Module MDSigmaHCOLITree
        (Import CT : CType)
-       (Import NT : NType)
-       (Import ESig:MDSigmaHCOLEvalSig CT NT).
+       (Import NT : NType).
 
-  Include MDSigmaHCOLEval CT NT ESig.
+  Include MDSigmaHCOLEval CT NT.
 
   Local Open Scope string_scope.
 

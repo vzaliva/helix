@@ -5,6 +5,7 @@ Require Import Coq.ZArith.BinInt.
 
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Helix.FSigmaHCOL.Int64asNT.
+Require Import Helix.FSigmaHCOL.Float64asCT.
 Require Import Helix.LLVMGen.Compiler.
 Require Import Helix.LLVMGen.Externals.
 Require Import Helix.LLVMGen.Data.
@@ -80,7 +81,7 @@ Definition IUnion_test :=
 
 Definition IReduction_test :=
   DSHAlloc Int64_1
-           (DSHSeq (DSHMemInit Int64_1 (PVar 0) FSigmaHCOL.Float64Zero)
+           (DSHSeq (DSHMemInit Int64_1 (PVar 0) Float64Zero)
                    (DSHLoop 2
                             (DSHSeq
                                (DSHAlloc Int64_2
@@ -102,7 +103,7 @@ DSHAlloc Int64_2
            (DSHSeq
               (DSHAlloc Int64_1
                  (DSHSeq
-                    (DSHMemInit Int64_1 (PVar 0) FSigmaHCOL.Float64Zero)
+                    (DSHMemInit Int64_1 (PVar 0) Float64Zero)
                     (DSHLoop 3
                        (DSHSeq
                           (DSHAlloc Int64_1
@@ -115,7 +116,7 @@ DSHAlloc Int64_2
                                          (PVar 1, NConst Int64_0)
                                          (PVar 0, NConst Int64_0)
                                          (AMult (AVar 1) (AVar 0))
-                                         FSigmaHCOL.Float64One)
+                                         Float64One)
                                       (DSHIMap 1 (PVar 0) (PVar 4)
                                          (AMult (AVar 0)
                                             (ANth
@@ -128,7 +129,7 @@ DSHAlloc Int64_2
            (DSHSeq
               (DSHAlloc Int64_1
                  (DSHSeq
-                    (DSHMemInit Int64_1 (PVar 0) FSigmaHCOL.Float64Zero)
+                    (DSHMemInit Int64_1 (PVar 0) Float64Zero)
                     (DSHLoop 2
                        (DSHSeq
                           (DSHAlloc Int64_2

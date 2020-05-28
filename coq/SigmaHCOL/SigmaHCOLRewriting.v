@@ -3970,14 +3970,10 @@ Section SigmaHCOLRewritingRules.
       unfold ISumUnion.
 
       (* TODO: see if I can get rid of proof_irreleance here *)
-      replace (@sg_op_proper _ _ _ _) with (@rsg_op_proper CarrierA CarrierAe max zero NN
-                                                           (@comrmonoid_rmon CarrierA CarrierAe max zero NN CommutativeRMonoid_max_NN)) by apply proof_irrelevance.
-
-      replace CarrierAPlus_proper with (@sg_op_proper CarrierA CarrierAe CarrierAplus
-                                                      (@monoid_semigroup CarrierA CarrierAe CarrierAplus zero
-                                                                         (@commonoid_mon CarrierA CarrierAe CarrierAplus zero CommutativeMonoid_plus_zero))) by apply proof_irrelevance.
-
-      eapply rewrite_Reduction_IReduction ; auto.
+      replace CarrierA_max_proper with (@rsg_op_proper CarrierA CarrierAe max zero NN
+                                                       (@comrmonoid_rmon CarrierA CarrierAe max zero NN CommutativeRMonoid_max_NN)) by apply proof_irrelevance.
+      replace CarrierAPlus_proper with (@sg_op_proper CarrierA CarrierAe CarrierAplus (@monoid_semigroup CarrierA CarrierAe CarrierAplus zero (@commonoid_mon CarrierA CarrierAe CarrierAplus zero CommutativeMonoid_plus_zero))) by apply proof_irrelevance.
+      apply rewrite_Reduction_IReduction; auto.
     Qed.
 
     (* Variant of SPIRAL's `rewrite_ISumXXX_YYY` rule for [IReduction] and [GatH]

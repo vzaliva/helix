@@ -8,6 +8,7 @@ Require Import Helix.HCOL.CarrierType.
 Require Import Helix.DSigmaHCOL.DSHCOLOnCarrierA.
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Helix.FSigmaHCOL.Int64asNT.
+Require Import Helix.FSigmaHCOL.Float64asCT.
 Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Util.ErrorSetoid.
@@ -47,9 +48,9 @@ Set Universe Polymorphism.
 (* This one is tricky. There are only 2 known constants we know how to translate:
    '1' and '0'. Everything else will trigger an error *)
 Definition translateCarrierA (a:CarrierA): err binary64 :=
-  if CarrierAequivdec a CarrierAz then inr MDSigmaHCOLEvalSigFloat64.CTypeZero
-  else if CarrierAequivdec a CarrierA1 then inr MDSigmaHCOLEvalSigFloat64.CTypeOne
-       else (inl "unknown CarrierA constant").
+  if CarrierAequivdec a CarrierAz then inr MFloat64asCT.CTypeZero
+  else if CarrierAequivdec a CarrierA1 then inr MFloat64asCT.CTypeOne
+       else (inl "unknown CarrierA constaant").
 
 (* This should be defined as:
 

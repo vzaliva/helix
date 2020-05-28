@@ -12,6 +12,7 @@ Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.theory.rings.
 Require Import MathClasses.theory.abs.
 Require Import MathClasses.interfaces.orders.
+Require Import MathClasses.orders.minmax.
 
 Require Import Helix.Util.Misc.
 
@@ -33,6 +34,12 @@ Instance CarrierAledec: ∀ x y: CarrierA, Decision (x ≤ y). Admitted.
 Instance CarrierAequivdec: ∀ x y: CarrierA, Decision (x = y). Admitted.
 Instance CarrierASSO: @StrictSetoidOrder CarrierA CarrierAe CarrierAlt. Admitted.
 Instance CarrierASRO: @SemiRingOrder CarrierA CarrierAe CarrierAplus CarrierAmult CarrierAz CarrierA1 CarrierAle. Admitted.
+
+Instance CarrierA_min_proper: Proper((=) ==> (=) ==> (=)) (@min CarrierA CarrierAle CarrierAledec).
+Proof. typeclasses eauto. Qed.
+
+Instance CarrierA_max_proper: Proper((=) ==> (=) ==> (=)) (@max CarrierA CarrierAle CarrierAledec).
+Proof. typeclasses eauto. Qed.
 
 (* Zero and One are two distrinct values *)
 Axiom CarrierA_Z_neq_One: CarrierAz ≠ CarrierA1.

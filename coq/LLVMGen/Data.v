@@ -3,6 +3,7 @@ Require Import Coq.Lists.List.
 
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Helix.FSigmaHCOL.Int64asNT.
+Require Import Helix.FSigmaHCOL.Float64asCT.
 Require Import Helix.Util.ErrorSetoid.
 Require Import Helix.Util.ListUtil.
 Require Import Helix.Tactics.HelixTactics.
