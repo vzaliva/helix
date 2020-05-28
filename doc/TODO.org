@@ -9,7 +9,7 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 * Refactoring
 ** Some other cleanup opportunities are marked with "TODO" comments
 ** Probably "SUM" shoud be avoided in the name =HTSumUnion= not to confuse
-  with =ISUmUnion=.
+  with =ISumUnion=.
 ** Rename =Diamond= to =MR= :zoickx:
 ** Many unused definitions could be removed. (Hint: try =make print-unused=) :zoickx:
 ** It looks like =Apply_Family= never used directly. Just =Apply_Family'=.     :zoickx:
@@ -25,6 +25,7 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 ** =RMonoid= vs =Monoid= 
    Whenever we us =Monoid= as pre-condition for rewriting we should use
    =RMnonoid= which is more general.
+** Using Module parameters instead of Axioms for ~CarrierA~
 ** ~BFixpoint~ follows from ~Monoid~                                     :zoickx:
    Whenever we aleady have ~Monoid~, ~BFixPoint~ could be derived from that
    and should not be assumed implicitly.
@@ -56,7 +57,10 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    depend on number of globals before them, but this is could be
    computed by size of globals array returned by Template-Coq. This
    step is fully automated now.
-   
+** Speed up typeclass search via memoization
+   The idea is to write typeclass search log once and then produce Hints
+   which will be added to proof code to speed up search.
+
 * Unfinished
 ** ~IReduction 0~
    According to Franz ~IReduction 0~ should initialize output vector
@@ -80,7 +84,7 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    Perhaps using TemplateCoq?
 ** LLVM Code generation
 *** Implement float min/max                                          :zoickx:
-    in DHCOL it is ~~Float64Min~ and ~Float64Max~.
+    in DHCOL it is ~Float64Min~ and ~Float64Max~.
 
     In LLVMgen ~Float_maxnum~ implemented as C ~max~ macro. Should be more
     like ~fmax~ https://en.cppreference.com/w/c/numeric/math/fmax
