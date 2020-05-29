@@ -3125,12 +3125,14 @@ Section SigmaHCOLRewritingRules.
             (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
             `{u_scompat: BFixpoint uf_zero u}
             `{f_scompat: BFixpoint uf_zero f}
+            {u_mor: Proper ((=) ==> (=) ==> (=)) u}
+            {f_mor: Proper ((=) ==> (=) ==> (=)) f}
       :
 
         (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f uf_zero))
           ⊚ (@IUnion uf_zero i o n u _ u_scompat op_family)
         =
-        SafeCast (IReduction f
+        SafeCast (@IReduction _ _ _ _ f f_mor _
                              (UnSafeFamilyCast
                                 (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f uf_zero)) op_family))).
     Proof.
@@ -3145,7 +3147,7 @@ Section SigmaHCOLRewritingRules.
                op Monoid_RthetaFlags (op_family (mkFinNat jc))) with  (get_family_op _ op_family) by reflexivity.
 
       rewrite <- Diamond_f_subst_under_P with (f0:=f) (u0:=u) (P0:=P); auto ; try apply f_mon.
-      clear u u_mon u_scompat.  (* No more 'u' *)
+      clear u u_mon u_mor u_scompat.  (* No more 'u' *)
       clear Uz. (* Single non-unit per row constaint no longer needed *)
 
       apply ext_equiv_applied_equiv.
@@ -3699,7 +3701,7 @@ Section SigmaHCOLRewritingRules.
         pose(lr := fun x => x/n+(x mod n)*m).
         assert(lrc: forall x (xc:x<m*n), lr x < m*n).
         {
-          clear z f P f_mon f_scompat mat Mpoz.
+          clear z f P f_mon f_mor f_scompat mat Mpoz.
           subst lr.
           intros x xc.
           assert(x mod n < n) by auto.
@@ -3712,7 +3714,7 @@ Section SigmaHCOLRewritingRules.
         pose(rl := fun x => x/m + (x mod m)*n).
         assert(rlc: forall x (xc:x<m*n), rl x < m*n).
         {
-          clear z f P f_mon f_scompat mat Mpoz.
+          clear z f P f_mon f_mor f_scompat mat Mpoz.
           subst rl.
           intros x xc.
           assert(x mod m < m) by auto.
@@ -3724,7 +3726,7 @@ Section SigmaHCOLRewritingRules.
         assert(RLR: forall x (xc:x<m*n), lr (rl x) ≡ x).
         {
           intros x xc.
-          clear z f P f_mon f_scompat mat Mpoz lrm.
+          clear z f P f_mon f_mor f_scompat mat Mpoz lrm.
           subst lr rl.
           simpl in *.
           assert(NZ: n ≢ 0) by crush.
@@ -3747,7 +3749,7 @@ Section SigmaHCOLRewritingRules.
         assert(LRL: forall x (xc:x<m*n), rl (lr x) ≡ x).
         {
           intros x xc.
-          clear z f P f_mon f_scompat mat Mpoz lrm RLR.
+          clear z f P f_mon f_mor f_scompat mat Mpoz lrm RLR.
           subst lr rl.
           simpl in *.
           assert(NZ: n ≢ 0) by crush.
@@ -3773,7 +3775,7 @@ Section SigmaHCOLRewritingRules.
         pose(rlm := IndexMap _ _ rl rlc).
         assert(RLMB: index_map_bijective rlm).
         {
-          clear z f P f_mon f_scompat mat Mpoz Heql Heqr.
+          clear z f P f_mon f_mor f_scompat mat Mpoz Heql Heqr.
           split.
           -
             (* injectivity *)
@@ -3968,12 +3970,8 @@ Section SigmaHCOLRewritingRules.
                                 (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ max zero)) op_family))).
     Proof.
       unfold ISumUnion.
-
-      (* TODO: see if I can get rid of proof_irreleance here *)
-      replace CarrierA_max_proper with (@rsg_op_proper CarrierA CarrierAe max zero NN
-                                                       (@comrmonoid_rmon CarrierA CarrierAe max zero NN CommutativeRMonoid_max_NN)) by apply proof_irrelevance.
-      replace CarrierAPlus_proper with (@sg_op_proper CarrierA CarrierAe CarrierAplus (@monoid_semigroup CarrierA CarrierAe CarrierAplus zero (@commonoid_mon CarrierA CarrierAe CarrierAplus zero CommutativeMonoid_plus_zero))) by apply proof_irrelevance.
-      apply rewrite_Reduction_IReduction; auto.
+      eapply rewrite_Reduction_IReduction; auto;
+      typeclasses eauto.
     Qed.
 
     (* Variant of SPIRAL's `rewrite_ISumXXX_YYY` rule for [IReduction] and [GatH]
