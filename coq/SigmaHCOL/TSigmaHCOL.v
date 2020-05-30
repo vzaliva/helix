@@ -28,7 +28,7 @@ Require Import MathClasses.theory.rings.
 Require Import MathClasses.theory.setoids.
 
 (* ExtLib *)
-Require Import ExtLib.Structures.Applicative.
+Import ExtLib.Structures.Monoid.
 
 Import Monoid.
 
@@ -203,7 +203,7 @@ Section TSigmaHCOLOperators.
   Section HTSUMUnion.
 
     Import ExtLib.Data.Fun.
-    Import ExtLib.Structures.Monoid.
+    Import ExtLib.Structures.Applicative.
 
     (* For some reason this instance is local. See
      https://github.com/coq-community/coq-ext-lib/issues/88 *)
