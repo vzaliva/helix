@@ -28,7 +28,8 @@ Require Import MathClasses.theory.rings.
 Require Import MathClasses.theory.setoids.
 
 (* ExtLib *)
-Require Import ExtLib.Structures.Monoid.
+Require Import ExtLib.Structures.Applicative.
+
 Import Monoid.
 
 Section RthetaSafetyCast.
@@ -193,28 +194,42 @@ Section RthetaSafetyCast.
 End RthetaSafetyCast.
 
 
+
 (* For now we are not define special type for TSigmahcolOperators, like we did for SHOperator. Currently we have only 2 of these: SHCompose and HTSumunion. We will generalize in future, if needed *)
 Section TSigmaHCOLOperators.
 
   Variable fm:Monoid RthetaFlags.
 
-  (* Per Vadim's discussion with Franz on 2015-12-14, ISumUnion is
+  Section HTSUMUnion.
+
+    Import ExtLib.Data.Fun.
+    Import ExtLib.Structures.Monoid.
+
+    (* For some reason this instance is local. See
+     https://github.com/coq-community/coq-ext-lib/issues/88 *)
+    Local Existing Instance Applicative_Fun.
+
+
+    (* Per Vadim's discussion with Franz on 2015-12-14, ISumUnion is
   just Union of two vectors, produced by application of two operators
   to the input.
-   *)
-  Definition HTSUMUnion' {i o}
-             (dot: CarrierA -> CarrierA -> CarrierA)
-             (op1: svector fm i -> svector fm o)
-             (op2: svector fm i -> svector fm o):
-    svector fm i -> svector fm o
-    := fun x => Vec2Union fm dot (op1 x) (op2 x).
+
+  This definition is using applicative reader functor.  *)
+    Definition HTSUMUnion' {i o}
+               (dot: CarrierA -> CarrierA -> CarrierA)
+               (op1: svector fm i -> svector fm o)
+               (op2: svector fm i -> svector fm o):
+      svector fm i -> svector fm o
+      :=
+        liftA2 (Vec2Union fm dot) op1 op2.
+  End HTSUMUnion.
 
   Global Instance HTSUMUnion'_proper {i o}
     : Proper ( ((=) ==> (=) ==> (=)) ==>
                                  (=) ==> (=) ==> (=) ==> (=)) (HTSUMUnion' (i:=i) (o:=o)).
   Proof.
     intros dot dot' Edot f f' Ef g g' Eg x y Ex.
-    unfold HTSUMUnion'.
+    unfold HTSUMUnion'; simpl. (* cbn. over-eager *)
     unfold Vec2Union.
     vec_index_equiv j jp.
     rewrite 2!Vnth_map2.
@@ -461,6 +476,7 @@ Section TSigmaHCOLOperators_StructuralProperties.
       destruct op1, op2, fop1, fop2.
       simpl in *.
       unfold HTSUMUnion', Vec2Union in *.
+      simpl. (* cbn. over-eager *)
       vec_index_equiv j jc.
       rewrite 2!Vnth_map2.
       f_equiv.
@@ -478,6 +494,7 @@ Section TSigmaHCOLOperators_StructuralProperties.
     - intros v D j jc S.
       simpl in *.
       unfold HTSUMUnion', Vec2Union in *.
+      simpl.
       rewrite Vnth_map2.
       apply ValUnionIsVal.
       destruct op1, op2, fop1, fop2.

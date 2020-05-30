@@ -1363,6 +1363,7 @@ Section SigmaHCOLExpansionRules.
             reflexivity.
             crush.
         }
+        simpl.
         rewrite LS, RS.
         (* destruct Heqp0.*)
         unfold Vec2Union. rewrite VMapp2_app.
