@@ -215,13 +215,11 @@ Section TSigmaHCOLOperators.
   to the input.
 
   This definition is using applicative reader functor.  *)
-    Definition HTSUMUnion' {i o}
-               (dot: CarrierA -> CarrierA -> CarrierA)
-               (op1: svector fm i -> svector fm o)
-               (op2: svector fm i -> svector fm o):
+    Definition HTSUMUnion' {i o} (dot: CarrierA -> CarrierA -> CarrierA):
+      (svector fm i -> svector fm o) -> (svector fm i -> svector fm o) ->
       svector fm i -> svector fm o
       :=
-        liftA2 (Vec2Union fm dot) op1 op2.
+        liftA2 (Vec2Union fm dot).
   End HTSUMUnion.
 
   Global Instance HTSUMUnion'_proper {i o}
