@@ -2785,7 +2785,7 @@ Proof.
       *
         (* "o" init *)
         rewrite interp_to_L3_bind.
-        rewrite interp_to_L3_Alloca;cbn; eauto.
+        rewrite interp_to_L3_alloca;cbn; eauto.
         (* This should work, but it doesn't *)
         Fail setoid_rewrite interp_to_L3_GW.
         (* workaround *)
@@ -2841,7 +2841,7 @@ Proof.
           reflexivity.
         }
 
-        setoid_rewrite interp_to_L3_Alloca; eauto.
+        setoid_rewrite interp_to_L3_alloca; eauto.
         setoid_rewrite interp_to_L3_bind.
         setoid_rewrite interp_to_L3_GW.
         admit.
