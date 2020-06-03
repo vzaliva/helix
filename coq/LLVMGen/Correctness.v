@@ -1846,164 +1846,164 @@ Section AExpr.
                ((interp_cfg (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
                   g l memV)).
   Proof.
-    intros s1 s2 aexp σ memH exp c g l memV τ H H0.
-    induction aexp.
-    - (* AVar *)
-      (* TODO: clean this all up. Extract useful LTAC.
+    (* intros s1 s2 aexp σ memH exp c g l memV τ H H0. *)
+    (* induction aexp. *)
+    (* - (* AVar *) *)
+    (*   (* TODO: clean this all up. Extract useful LTAC. *)
 
-         Wait until Vadim gets back about bogus pointer cases.
-       *)
-      pose proof Hgen as Hgen'.
-      simp_comp Hgen.
-      + cbn*; repeat norm_h; repeat norm_v.
+    (*      Wait until Vadim gets back about bogus pointer cases. *)
+    (*    *) *)
+    (*   pose proof Hgen as Hgen'. *)
+    (*   simp_comp Hgen. *)
+    (*   + cbn*; repeat norm_h; repeat norm_v. *)
 
-        match goal with
-        | Hwf  : WF_IRState ?σ ?ir,
-          Hnth : nth_error (vars ?ir) ?v ≡ Some ?x
-          |- context[context_lookup ?err ?σ ?v] =>
-          pose proof (context_lookup_succeeds v err Hwf Hnth) as Hctx;
-          destruct Hctx as [val [Hctx Hnth_σ]]
-        end.
+    (*     match goal with *)
+    (*     | Hwf  : WF_IRState ?σ ?ir, *)
+    (*       Hnth : nth_error (vars ?ir) ?v ≡ Some ?x *)
+    (*       |- context[context_lookup ?err ?σ ?v] => *)
+    (*       pose proof (context_lookup_succeeds v err Hwf Hnth) as Hctx; *)
+    (*       destruct Hctx as [val [Hctx Hnth_σ]] *)
+    (*     end. *)
 
-        rewrite Hctx.
-        repeat norm_h.
+    (*     rewrite Hctx. *)
+    (*     repeat norm_h. *)
 
-        destruct val.
-        admit. Focus 2. admit. (* Exceptions *)
+    (*     destruct val. *)
+    (*     admit. Focus 2. admit. (* Exceptions *) *)
 
-        repeat norm_h.
+    (*     repeat norm_h. *)
 
-        destruct i0 eqn:Hi.
-        cbn.
-        repeat norm_v.
-        setoid_rewrite translate_ret.
-        repeat norm_v.
+    (*     destruct i0 eqn:Hi. *)
+    (*     cbn. *)
+    (*     repeat norm_v. *)
+    (*     setoid_rewrite translate_ret. *)
+    (*     repeat norm_v. *)
 
-        (* Lookup *)
-        Focus 2. cbn*.
-        unfold Traversal.endo.
-        unfold R_AExpr_start in Hmem.
-        unfold memory_invariant in Hmem.
-        destruct Hmem as [_ Hmem].
+    (*     (* Lookup *) *)
+    (*     Focus 2. cbn*. *)
+    (*     unfold Traversal.endo. *)
+    (*     unfold R_AExpr_start in Hmem. *)
+    (*     unfold memory_invariant in Hmem. *)
+    (*     destruct Hmem as [_ Hmem]. *)
 
-        match goal with
-        | Hnth : nth_error ?σ ?v ≡ Some ?val,
-          Hnth_ir : nth_error (vars ?st) ?v ≡ Some (?id, ?τ)
-          |- _ =>
-          let H := fresh H in
-          pose proof (Hmem v val τ id) Hnth Hnth_ir as H;
-            cbn in H
-        end.
+    (*     match goal with *)
+    (*     | Hnth : nth_error ?σ ?v ≡ Some ?val, *)
+    (*       Hnth_ir : nth_error (vars ?st) ?v ≡ Some (?id, ?τ) *)
+    (*       |- _ => *)
+    (*       let H := fresh H in *)
+    (*       pose proof (Hmem v val τ id) Hnth Hnth_ir as H; *)
+    (*         cbn in H *)
+    (*     end. *)
 
-        apply H.
+    (*     apply H. *)
 
-        cbn. repeat norm_v.
+    (*     cbn. repeat norm_v. *)
 
-        rewrite typ_to_dtyp_equation.
-        admit.
+    (*     rewrite typ_to_dtyp_equation. *)
+    (*     admit. *)
 
-        (* Local case. *)
-        cbn.
-        repeat norm_v.
-        Focus 2.
-        unfold Traversal.endo.
-        unfold R_AExpr_start in Hmem.
-        unfold memory_invariant in Hmem.
-        destruct Hmem as [_ Hmem].
+    (*     (* Local case. *) *)
+    (*     cbn. *)
+    (*     repeat norm_v. *)
+    (*     Focus 2. *)
+    (*     unfold Traversal.endo. *)
+    (*     unfold R_AExpr_start in Hmem. *)
+    (*     unfold memory_invariant in Hmem. *)
+    (*     destruct Hmem as [_ Hmem]. *)
 
-        match goal with
-        | Hnth : nth_error ?σ ?v ≡ Some ?val,
-          Hnth_ir : nth_error (vars ?st) ?v ≡ Some (?id, ?τ)
-          |- _ =>
-          let H := fresh H in
-          pose proof (Hmem v val τ id) Hnth Hnth_ir as H;
-            cbn in H
-        end.
+    (*     match goal with *)
+    (*     | Hnth : nth_error ?σ ?v ≡ Some ?val, *)
+    (*       Hnth_ir : nth_error (vars ?st) ?v ≡ Some (?id, ?τ) *)
+    (*       |- _ => *)
+    (*       let H := fresh H in *)
+    (*       pose proof (Hmem v val τ id) Hnth Hnth_ir as H; *)
+    (*         cbn in H *)
+    (*     end. *)
 
-        apply H.
+    (*     apply H. *)
 
-        setoid_rewrite translate_ret.
-        repeat norm_v.
-        cbn.
-        repeat norm_v.
-        admit.
-      + cbn*; repeat norm_h; repeat norm_v.
+    (*     setoid_rewrite translate_ret. *)
+    (*     repeat norm_v. *)
+    (*     cbn. *)
+    (*     repeat norm_v. *)
+    (*     admit. *)
+    (*   + cbn*; repeat norm_h; repeat norm_v. *)
 
-        match goal with
-        | Hwf  : WF_IRState ?σ ?ir,
-          Hnth : nth_error (vars ?ir) ?v ≡ Some ?x
-          |- context[context_lookup ?err ?σ ?v] =>
-          pose proof (context_lookup_succeeds v err Hwf Hnth) as Hctx;
-          destruct Hctx as [val [Hctx Hnth_σ]]
-        end.
+    (*     match goal with *)
+    (*     | Hwf  : WF_IRState ?σ ?ir, *)
+    (*       Hnth : nth_error (vars ?ir) ?v ≡ Some ?x *)
+    (*       |- context[context_lookup ?err ?σ ?v] => *)
+    (*       pose proof (context_lookup_succeeds v err Hwf Hnth) as Hctx; *)
+    (*       destruct Hctx as [val [Hctx Hnth_σ]] *)
+    (*     end. *)
 
-        rewrite Hctx.
-        repeat norm_h.
+    (*     rewrite Hctx. *)
+    (*     repeat norm_h. *)
 
-        destruct val. admit. Focus 2. admit.
-        repeat norm_h.
+    (*     destruct val. admit. Focus 2. admit. *)
+    (*     repeat norm_h. *)
 
-        destruct i0;
-          cbn; repeat norm_v;
-            cbn; repeat norm_v.
+    (*     destruct i0; *)
+    (*       cbn; repeat norm_v; *)
+    (*         cbn; repeat norm_v. *)
 
-        Focus 2.
-        unfold Traversal.endo.
-        unfold R_AExpr_start in Hmem.
-        unfold memory_invariant in Hmem.
-        destruct Hmem as [_ Hmem].
+    (*     Focus 2. *)
+    (*     unfold Traversal.endo. *)
+    (*     unfold R_AExpr_start in Hmem. *)
+    (*     unfold memory_invariant in Hmem. *)
+    (*     destruct Hmem as [_ Hmem]. *)
 
-        match goal with
-        | Hnth : nth_error ?σ ?v ≡ Some ?val,
-          Hnth_ir : nth_error (vars ?st) ?v ≡ Some (?id, ?τ)
-          |- _ =>
-          let H := fresh H in
-          pose proof (Hmem v val τ id) Hnth Hnth_ir as H;
-            cbn in H
-        end.
+    (*     match goal with *)
+    (*     | Hnth : nth_error ?σ ?v ≡ Some ?val, *)
+    (*       Hnth_ir : nth_error (vars ?st) ?v ≡ Some (?id, ?τ) *)
+    (*       |- _ => *)
+    (*       let H := fresh H in *)
+    (*       pose proof (Hmem v val τ id) Hnth Hnth_ir as H; *)
+    (*         cbn in H *)
+    (*     end. *)
 
-        apply H.
+    (*     apply H. *)
 
-        Focus 3.
-        unfold Traversal.endo.
-        unfold R_AExpr_start in Hmem.
-        unfold memory_invariant in Hmem.
-        destruct Hmem as [_ Hmem].
+    (*     Focus 3. *)
+    (*     unfold Traversal.endo. *)
+    (*     unfold R_AExpr_start in Hmem. *)
+    (*     unfold memory_invariant in Hmem. *)
+    (*     destruct Hmem as [_ Hmem]. *)
 
-        match goal with
-        | Hnth : nth_error ?σ ?v ≡ Some ?val,
-          Hnth_ir : nth_error (vars ?st) ?v ≡ Some (?id, ?τ)
-          |- _ =>
-          let H := fresh H in
-          pose proof (Hmem v val τ id) Hnth Hnth_ir as H;
-            cbn in H
-        end.
+    (*     match goal with *)
+    (*     | Hnth : nth_error ?σ ?v ≡ Some ?val, *)
+    (*       Hnth_ir : nth_error (vars ?st) ?v ≡ Some (?id, ?τ) *)
+    (*       |- _ => *)
+    (*       let H := fresh H in *)
+    (*       pose proof (Hmem v val τ id) Hnth Hnth_ir as H; *)
+    (*         cbn in H *)
+    (*     end. *)
 
-        apply H.
+    (*     apply H. *)
 
-        all: apply eqit_Ret; unfold R_AExpr; auto.
-     - (* AConst *)
-      (* TODO: may want to move this to toplevel *)
-      simp_comp Hgen;
-        cbn*; repeat norm_h; repeat norm_v.
+    (*     all: apply eqit_Ret; unfold R_AExpr; auto. *)
+    (*  - (* AConst *) *)
+    (*   (* TODO: may want to move this to toplevel *) *)
+    (*   simp_comp Hgen; *)
+    (*     cbn*; repeat norm_h; repeat norm_v. *)
 
-      apply eqit_Ret; auto.
-    - (* ANth *)
-      admit.
-    - (* AAbs *)
-      admit.
-    - (* APlus *)
-      admit.
-    - (* AMinus *)
-      admit.
-    - (* AMult *)
-      admit.
-    - (* AMin *)
-      admit.
-    - (* AMax *)
-      admit.
-    - (* AZless *)
-      admit.
+    (*   apply eqit_Ret; auto. *)
+    (* - (* ANth *) *)
+    (*   admit. *)
+    (* - (* AAbs *) *)
+    (*   admit. *)
+    (* - (* APlus *) *)
+    (*   admit. *)
+    (* - (* AMinus *) *)
+    (*   admit. *)
+    (* - (* AMult *) *)
+    (*   admit. *)
+    (* - (* AMin *) *)
+    (*   admit. *)
+    (* - (* AMax *) *)
+    (*   admit. *)
+    (* - (* AZless *) *)
+    (*   admit. *)
   Admitted.
 
 End AExpr.
