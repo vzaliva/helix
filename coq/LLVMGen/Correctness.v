@@ -2704,13 +2704,13 @@ Proof.
   reflexivity.
 Qed.
 
-Local Ltac pose_interp_to_L3_alloca CA a' AA AE:=
+Local Ltac pose_interp_to_L3_alloca m' a' A AE:=
   match goal with
   | [|-context[interp_to_L3 ?defs (trigger (Alloca ?t)) ?g ?l ?m]] =>
     pose proof (interp_to_L3_alloca
                   defs
                   m t g l)
-      as [CA [a' [AA AE]]]
+      as [m' [a' [A AE]]]
   end.
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
@@ -2795,10 +2795,10 @@ Proof.
         (* "o" init *)
         rewrite interp_to_L3_bind.
 
-        pose_interp_to_L3_alloca CA a' AA AE.
+        pose_interp_to_L3_alloca m' a' A AE.
 
         crush. (* can allocate *)
-        rewrite AE.
+        rewrite_clear AE.
         (* This should work, but it doesn't *)
         Fail setoid_rewrite interp_to_L3_GW.
         (* workaround *)
@@ -2827,7 +2827,16 @@ Proof.
         apply eutt_Ret.
         (* this looks provable *)
         intros n v τ x H H0.
-        destruct v; cbn in *; admit.
+        cbn in A; inl_inr_inv.
+        destruct v; cbn in *.
+        (* These 3 subgoals are unprovable, since we do not know if `x`
+           is local or global. It must be global for it to succeed. *)
+        --
+          admit.
+        --
+          admit.
+        --
+          admit.
       *
         (* "i" init *)
         intros u1 u2 H.
@@ -2856,7 +2865,7 @@ Proof.
           reflexivity.
         }
 
-        pose_interp_to_L3_alloca CA a' AA AE.
+        pose_interp_to_L3_alloca m' a' A AE.
         --
           (* can allocate *)
           destruct m0.
@@ -2867,7 +2876,7 @@ Proof.
           subst f.
           admit.
         --
-          rewrite AE.
+          rewrite_clear AE.
           setoid_rewrite interp_to_L3_bind.
           setoid_rewrite interp_to_L3_GW.
           admit.
