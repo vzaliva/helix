@@ -2704,6 +2704,15 @@ Proof.
   reflexivity.
 Qed.
 
+Local Ltac pose_interp_to_L3_alloca CA a' AA AE:=
+  match goal with
+  | [|-context[interp_to_L3 ?defs (trigger (Alloca ?t)) ?g ?l ?m]] =>
+    pose proof (interp_to_L3_alloca
+                  defs
+                  m t g l)
+      as [CA [a' [AA AE]]]
+  end.
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -2785,7 +2794,11 @@ Proof.
       *
         (* "o" init *)
         rewrite interp_to_L3_bind.
-        rewrite interp_to_L3_alloca;cbn; eauto.
+
+        pose_interp_to_L3_alloca CA a' AA AE.
+
+        crush. (* can allocate *)
+        rewrite AE.
         (* This should work, but it doesn't *)
         Fail setoid_rewrite interp_to_L3_GW.
         (* workaround *)
@@ -2808,6 +2821,8 @@ Proof.
 
         norm_v.
         cbn.
+        rewrite translate_ret.
+        rewrite bind_ret_l.
         rewrite translate_ret.
         apply eutt_Ret.
         (* this looks provable *)
@@ -2841,11 +2856,21 @@ Proof.
           reflexivity.
         }
 
-        setoid_rewrite interp_to_L3_alloca; eauto.
-        setoid_rewrite interp_to_L3_bind.
-        setoid_rewrite interp_to_L3_GW.
-        admit.
-        admit. (* TODO: investigate *)
+        pose_interp_to_L3_alloca CA a' AA AE.
+        --
+          (* can allocate *)
+          destruct m0.
+          unfold can_allocate.
+          cbn in H.
+          break_let.
+          intros F.
+          subst f.
+          admit.
+        --
+          rewrite AE.
+          setoid_rewrite interp_to_L3_bind.
+          setoid_rewrite interp_to_L3_GW.
+          admit.
     +
       admit.
   -
