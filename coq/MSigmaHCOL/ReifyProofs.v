@@ -1399,6 +1399,7 @@ Section OperatorPairwiseProofs.
                   apply NM.find_1 in K.
                   rewrite_clear K.
                   unfold HTSUMUnion', Vec2Union.
+                  simpl.
                   rewrite Vnth_map2.
 
                   simpl in V.

@@ -14,6 +14,7 @@ Require Import Coq.ZArith.BinInt.
 
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Helix.FSigmaHCOL.Int64asNT.
+Require Import Helix.FSigmaHCOL.Float64asCT.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLITree.
 Require Import Helix.LLVMGen.Compiler.
 Require Import Helix.LLVMGen.Externals.
@@ -578,7 +579,7 @@ Section SimulationRelations.
           memory_lookup mem_helix ptr_helix ≡ Some bk_helix /\
           exists ptr_llvm bk_llvm,
             in_local_or_global ρ g x (DVALUE_Addr ptr_llvm) /\
-            get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm /\
+            get_logical_block mem_llvm (fst ptr_llvm) ≡ Some bk_llvm /\
             (fun bk_helix bk_llvm =>
                forall i, Int64.lt i ptr_size_helix ->
                     exists v_helix v_llvm,
@@ -2784,8 +2785,7 @@ Proof.
       *
         (* "o" init *)
         rewrite interp_to_L3_bind.
-        rewrite interp_to_L3_Alloca; eauto.
-
+        rewrite interp_to_L3_Alloca;cbn; eauto.
         (* This should work, but it doesn't *)
         Fail setoid_rewrite interp_to_L3_GW.
         (* workaround *)
@@ -2812,7 +2812,7 @@ Proof.
         apply eutt_Ret.
         (* this looks provable *)
         intros n v τ x H H0.
-        destruct v; cbn in *;admit.
+        destruct v; cbn in *; admit.
       *
         (* "i" init *)
         intros u1 u2 H.
@@ -2841,10 +2841,11 @@ Proof.
           reflexivity.
         }
 
-        Fail setoid_rewrite interp_to_L3_Alloca; eauto.
-        Fail setoid_rewrite interp_bind.
-        Fail setoid_rewrite interp_to_L3_GW.
+        setoid_rewrite interp_to_L3_Alloca; eauto.
+        setoid_rewrite interp_to_L3_bind.
+        setoid_rewrite interp_to_L3_GW.
         admit.
+        admit. (* TODO: investigate *)
     +
       admit.
   -

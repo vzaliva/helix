@@ -1468,8 +1468,8 @@ Section DHCOL_to_FHCOL.
   Definition dynwin_FSHCOL1 : FSigmaHCOL.MDSHCOLOnFloat64.DSHOperator.
   Proof.
     remember dynwin_FSHCOL as a eqn:H.
-    Opaque FSigmaHCOL.Float64Zero.
-    Opaque FSigmaHCOL.Float64One.
+    Opaque Float64asCT.Float64Zero.
+    Opaque Float64asCT.Float64One.
     cbv in H.
     autorewrite with CarrierAZ1equalities in H.
     cbv in H.

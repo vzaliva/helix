@@ -28,49 +28,9 @@ Require Import ExtLib.Data.Monads.OptionMonad.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
-Module Type MDSigmaHCOLEvalSig (Import CT : CType) (Import NT : NType).
-  (* Some additiona =CType.t= properties and operations we need for expressions
-     used in DHCOL *)
-
-  (* TODO: Maybe this should go to CType.v? *)
-
-
-  (* Values *)
-  Parameter CTypeZero: CT.t.
-
-  (* predicates *)
-  Parameter CTypeLe: relation CT.t.
-  Parameter CTypeLt: relation CT.t.
-
-  (* Decidability *)
-  Declare Instance CTypeLeDec: forall x y: CT.t, Decision (CTypeLe x y).
-
-  (* operations *)
-  Parameter CTypePlus : CT.t -> CT.t -> CT.t.
-  Parameter CTypeNeg  : CT.t -> CT.t.
-  Parameter CTypeMult : CT.t -> CT.t -> CT.t.
-  Parameter CTypeAbs  : CT.t -> CT.t.
-  Parameter CTypeZLess: CT.t -> CT.t -> CT.t.
-  Parameter CTypeMin  : CT.t -> CT.t -> CT.t.
-  Parameter CTypeMax  : CT.t -> CT.t -> CT.t.
-  Parameter CTypeSub  : CT.t -> CT.t -> CT.t.
-
-  (* Proper *)
-  Declare Instance Zless_proper: Proper ((=) ==> (=) ==> (=)) CTypeZLess.
-  Declare Instance abs_proper: Proper ((=) ==> (=)) CTypeAbs.
-  Declare Instance plus_proper: Proper((=) ==> (=) ==> (=)) CTypePlus.
-  Declare Instance sub_proper: Proper((=) ==> (=) ==> (=)) CTypeSub.
-  Declare Instance mult_proper: Proper((=) ==> (=) ==> (=)) CTypeMult.
-  Declare Instance min_proper: Proper((=) ==> (=) ==> (=)) CTypeMin.
-  Declare Instance max_proper: Proper((=) ==> (=) ==> (=)) CTypeMax.
-
-End MDSigmaHCOLEvalSig.
-
-
 Module MDSigmaHCOLEval
        (Import CT : CType)
-       (Import NT : NType)
-       (Import ESig:MDSigmaHCOLEvalSig CT NT).
+       (Import NT : NType).
 
   Include MDSigmaHCOL CT NT.
 

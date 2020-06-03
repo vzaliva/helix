@@ -2,7 +2,7 @@ LIBNAME := Helix
 
 .SUFFIXES:
 
-.PHONY: default config clean clean-dep clean-ml distclean clean-doc tags doc install-doc install-dist targz graph wc print-unused extracted all run test
+.PHONY: default config clean clean-dep clean-ml distclean clean-doc tags doc install-doc install-dist install-dep targz graph wc print-unused extracted all run test update-vellvm vellvm-update benchmark timing wc dep-versions
 
 # parse the -j flag if present, set jobs to 1 oterwise
 JFLAG=$(patsubst -j%,%,$(filter -j%,$(MFLAGS)))
@@ -143,7 +143,7 @@ moddep.svg: moddep.dot Makefile
 timing: .depend Makefile.coq
 	$(MAKECOQ) TIMING=1
 
-update-vellvm:
+update-vellvm vellvm-update:
 	(cd lib/vellvm; git pull --recurse-submodules)
 	make -C lib/vellvm/src clean
 	make -C lib/vellvm/src

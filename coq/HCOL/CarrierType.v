@@ -12,6 +12,9 @@ Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.theory.rings.
 Require Import MathClasses.theory.abs.
 Require Import MathClasses.interfaces.orders.
+Require Import MathClasses.orders.minmax.
+
+Require Import Helix.Util.Misc.
 
 Parameter CarrierA : Type.
 Instance CarrierAe: Equiv CarrierA. Admitted.
@@ -32,13 +35,19 @@ Instance CarrierAequivdec: ∀ x y: CarrierA, Decision (x = y). Admitted.
 Instance CarrierASSO: @StrictSetoidOrder CarrierA CarrierAe CarrierAlt. Admitted.
 Instance CarrierASRO: @SemiRingOrder CarrierA CarrierAe CarrierAplus CarrierAmult CarrierAz CarrierA1 CarrierAle. Admitted.
 
+Instance CarrierA_min_proper: Proper((=) ==> (=) ==> (=)) (@min CarrierA CarrierAle CarrierAledec).
+Proof. typeclasses eauto. Qed.
+
+Instance CarrierA_max_proper: Proper((=) ==> (=) ==> (=)) (@max CarrierA CarrierAle CarrierAledec).
+Proof. typeclasses eauto. Qed.
+
 (* Zero and One are two distrinct values *)
 Axiom CarrierA_Z_neq_One: CarrierAz ≠ CarrierA1.
 
 Add Ring RingA: (stdlib_ring_theory CarrierA).
 
 Instance CarrierAPlus_proper:
-  Proper ((=) ==> (=) ==> (=)) (plus).
+  Proper ((=) ==> (=) ==> (=)) plus.
 Proof.
   solve_proper.
 Qed.
@@ -47,6 +56,11 @@ Instance CarrierAmult_proper:
   Proper((=) ==> (=) ==> (=)) CarrierAmult.
 Proof.
   solve_proper.
+Qed.
+
+Instance CarrierAabs_proper : Proper ((=) ==> (=)) abs.
+Proof.
+  typeclasses eauto.
 Qed.
 
 Instance CommutativeMonoid_plus_zero:
@@ -72,7 +86,7 @@ Definition sub {T:Type}
 
 (* The following is not strictly necessary as it follows from "properness" of composition, negation, and addition operations. Unfortunately Coq 8.4 class resolution could not find these automatically so we hint it by adding implicit instance. *)
 Instance CarrierA_sub_proper:
-  Proper ((=) ==> (=) ==> (=)) (sub).
+  Proper ((=) ==> (=) ==> (=)) sub.
 Proof.
   intros a b Ha x y Hx .
   unfold sub, compose.
@@ -84,7 +98,7 @@ Definition Zless (a b: CarrierA): CarrierA
   := if CarrierAltdec a b then one else zero.
 
 Instance Zless_proper:
-  Proper ((=) ==> (=) ==> (=)) (Zless).
+  Proper ((=) ==> (=) ==> (=)) Zless.
 Proof.
   unfold Proper.
   intros a a' aE z z' zE.

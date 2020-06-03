@@ -9,42 +9,31 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 * Refactoring
 ** Some other cleanup opportunities are marked with "TODO" comments
 ** Probably "SUM" shoud be avoided in the name =HTSumUnion= not to confuse
-  with =ISUmUnion=.
+  with =ISumUnion=.
 ** Rename =Diamond= to =MR= :zoickx:
 ** Many unused definitions could be removed. (Hint: try =make print-unused=) :zoickx:
 ** It looks like =Apply_Family= never used directly. Just =Apply_Family'=.     :zoickx:
    We probably need just one definition. 
 ** Run =coq-min-imports= on all codebase                               :zoickx:
 ** GEP definition in Coq
-** FMap equality
-   We have now defined setoid equiality for =mem_block=, =memory= and =TypeSig=. 
-   These are pretty much boilderplate, assuming =Equality= on the values. Perhaps
-   these 3 could be generalized via typeclass or a module.
-** Split StringOT.v into several files                               :zoickx:
-   Remove if unecessary.
-** Move =CarrierAabs_proper= to =CarrierType.v=                          :zoickx:
-** Move operations on CType to CType module like we did with NType
+** FMap equality                                                     :zoickx:
+   We have now defined setoid equiality for =mem_block= and =memory=.
+   These are pretty much boilderplate, assuming =Equality= on the
+   values. Perhaps these 2 could be generalized via typeclass or a
+   module.
 * Harmonization
 ** =RMonoid= vs =Monoid= 
    Whenever we us =Monoid= as pre-condition for rewriting we should use
    =RMnonoid= which is more general.
-** ~BFixpoint~ follows from ~Monoid~
+** Using Module parameters instead of Axioms for ~CarrierA~
+** ~BFixpoint~ follows from ~Monoid~                                     :zoickx:
    Whenever we aleady have ~Monoid~, ~BFixPoint~ could be derived from that
    and should not be assumed implicitly.
-** Quasi-Ring
-   In one of rewrting proofs (=Diamond_f_subst=) I am using an awkward
-   pre-condition which consists of two /Monoids/ which are sharing
-   the same /identity element/. It turns out that such algebraic
-   structure exists, and called [[https://argumatronic.com/posts/2019-06-21-algebra-cheatsheet.html#ring-like-structures][Quazi-ring]]. Instead of carrying over
-   multiple assumptions I should define a typeclass for /QuaziRing/
-   and pack them into it.
-** Monoidal Restriction
-   See if =RelUtil.restrict= could be used in =MonoidalRestriction=.
 * Proof mechanics
 ** Review =_arg_proper= vs =_proper= instances                           :zoickx:
    Check all ~Proper~ instances and if there more than one for some function
    see if they could be merged.
-** ~FinNatSet~ proofs automation via [[https://gmalecha.github.io/reflections/2017/speeding-up-proofs-with-computational-reflection][computational reflection]]          :zoickx:
+** ~FinNatSet~ proofs automation via [[https://gmalecha.github.io/reflections/2017/speeding-up-proofs-with-computational-reflection][computational reflection]]
    (for automatic obligations resoluition in SHCL/MSHCOL/DSHCOL/
    equality).
 ** Tactic =solve_facts= in =DynWinProof= is hacky and slow.
@@ -68,7 +57,10 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    depend on number of globals before them, but this is could be
    computed by size of globals array returned by Template-Coq. This
    step is fully automated now.
-   
+** Speed up typeclass search via memoization
+   The idea is to write typeclass search log once and then produce Hints
+   which will be added to proof code to speed up search.
+
 * Unfinished
 ** ~IReduction 0~
    According to Franz ~IReduction 0~ should initialize output vector
@@ -92,7 +84,7 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    Perhaps using TemplateCoq?
 ** LLVM Code generation
 *** Implement float min/max                                          :zoickx:
-    in DHCOL it is ~~Float64Min~ and ~Float64Max~.
+    in DHCOL it is ~Float64Min~ and ~Float64Max~.
 
     In LLVMgen ~Float_maxnum~ implemented as C ~max~ macro. Should be more
     like ~fmax~ https://en.cppreference.com/w/c/numeric/math/fmax

@@ -42,7 +42,7 @@ install:
   - opam install -y --verbose -j 1 coq-metacoq-template
   - opam install -y --verbose -j 1 coq-switch
   - opam install -y --verbose -j 1 ANSITerminal
-  - opam install -y --verbose -j 1 coq-flocq
+  - opam pin -y --verbose -j 1 add coq-flocq 3.2.1
   - opam install -y --verbose -j 1 coq-paco
   - opam install -y --verbose -j 1 coq-ceres
   - opam install -y --verbose -j 1 menhir
@@ -56,6 +56,7 @@ script:
   - eval $(opam config env)
   - opam config var root
   - git clone --recurse-submodules https://github.com/vellvm/vellvm.git lib/vellvm
+  - git --no-pager --git-dir=lib/vellvm/.git log -1 --pretty=oneline
   - make -j ${NJOBS} -C lib/vellvm/src
   - ln -s `pwd`/lib/vellvm/src/ml/libvellvm/ ml/
   - make -j ${NJOBS}
@@ -63,4 +64,3 @@ script:
 
 notifications:
  slack: codemindersw:EqDgyov45kk75iskZ4lBLOhM
-

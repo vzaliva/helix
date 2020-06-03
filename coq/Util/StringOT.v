@@ -6,77 +6,10 @@ Ordering code by Antal :)
 *)
 
 Require Import Coq.Structures.OrderedType.
-
-Require Import Bool.
-
-(* TODO: move to BoolOT.v *)
-Module BoolOT <: OrderedType.
-
-  Definition t := bool.
-
-  Definition eq       := @Logic.eq       bool.
-  Definition eq_refl  := @Logic.eq_refl  bool.
-  Definition eq_sym   := @Logic.eq_sym   bool.
-  Definition eq_trans := @Logic.eq_trans bool.
-  Definition eq_dec   := bool_dec.
-
-  Definition lt (b1 b2 : bool) : Prop := b1 = false /\ b2 = true.
-
-  Theorem lt_trans : forall x y z : bool, lt x y -> lt y z -> lt x z.
-  Proof. unfold lt; tauto. Qed.
-
-  Theorem lt_not_eq : forall x y : bool, lt x y -> ~ eq x y.
-  Proof. unfold lt, eq; intuition; congruence. Qed.
-
-  Theorem compare : forall x y : bool, Compare lt eq x y.
-  Proof.
-    unfold lt, eq; repeat (let b := fresh in intros b; destruct b);
-      [apply EQ | apply GT | apply LT | apply EQ]; auto.
-  Qed.
-
-End BoolOT.
-
-(* TODO: move to AsciiOT.v *)
-Require Import Ascii NArith.
-Module AsciiOT <: OrderedType.
-
-  Definition t := ascii.
-
-  Definition eq       := @Logic.eq       ascii.
-  Definition eq_refl  := @Logic.eq_refl  ascii.
-  Definition eq_sym   := @Logic.eq_sym   ascii.
-  Definition eq_trans := @Logic.eq_trans ascii.
-  Definition eq_dec   := ascii_dec.
-
-  Definition lt (c d : ascii) : Prop := (N_of_ascii c < N_of_ascii d)%N.
-
-  Theorem lt_trans : forall c d e : ascii, lt c d -> lt d e -> lt c e.
-  Proof. intros *; unfold lt; apply N.lt_trans. Qed.
-
-  Theorem lt_not_eq : forall c d : ascii, lt c d -> ~ eq c d.
-  Proof.
-    unfold lt, eq; red; intros;
-      assert (N_of_ascii c = N_of_ascii d) as eq' by (f_equal; assumption);
-      generalize dependent eq'; apply N.lt_neq; assumption.
-  Qed.
-
-  Theorem compare : forall c d : ascii, Compare lt eq c d.
-  Proof.
-    unfold lt, eq; intros;
-      remember (N_of_ascii c ?= N_of_ascii d)%N as C; symmetry in HeqC; destruct C;
-        [ apply EQ; replace c with (ascii_of_N (N_of_ascii c))
-            by apply ascii_N_embedding;
-          replace d with (ascii_of_N (N_of_ascii d))
-            by apply ascii_N_embedding;
-          f_equal; apply N.compare_eq
-        | apply LT
-        | apply GT; apply N.gt_lt];
-        assumption.
-  Qed.
-
-End AsciiOT.
-
 Require Import Coq.Strings.String.
+
+Require Import Helix.Util.AsciiOT.
+
 Module StringOT <: OrderedType.
 
 Definition t := string.
