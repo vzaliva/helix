@@ -2829,14 +2829,44 @@ Proof.
         intros n v τ x H H0.
         cbn in A; inl_inr_inv.
         destruct v; cbn in *.
-        (* These 3 subgoals are unprovable, since we do not know if `x`
-           is local or global. It must be global for it to succeed. *)
         --
-          admit.
+          destruct n;cbn in H; [inv H | rewrite ListNth.nth_error_nil in H; some_none].
         --
-          admit.
+          destruct n;cbn in H; [inv H | rewrite ListNth.nth_error_nil in H; some_none].
         --
-          admit.
+          assert(L:length (vars s) ≡ 1).
+          {
+            (* because length σ = length (vars s). Need some lemma for that.
+               Probably follows from [WF_IRState]
+             *)
+            admit.
+          }
+          destruct n.
+          cbn in H.
+          inv H.
+          exists mo.
+          split; [auto|].
+          exists (0%Z, 0%Z).
+          exists (make_empty_logical_block
+           (typ_to_dtyp [ ] (TYPE_Array (Int64.intval size) TYPE_Double))).
+          split.
+          ++
+            (* This subgoal is unprovable, since we do not know if `x`
+               is local or global. It must be global for it to succeed. *)
+            admit.
+          ++
+            split;[auto|].
+            intros i0 H.
+            admit.
+          ++
+          destruct n.
+          cbn in H.
+          some_none.
+          rewrite ListNth.nth_error_past_end in H0.
+          some_none.
+          rewrite L.
+          unfold le, one, peano_naturals.nat_1.
+          lia.
       *
         (* "i" init *)
         intros u1 u2 H.
