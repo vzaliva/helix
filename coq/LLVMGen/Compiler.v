@@ -68,10 +68,18 @@ Section withErrorStateMonad.
       vars := newvars
     |}.
 
+
+  Definition sigma_to_vars: nat -> nat :=
+    fun x => match x with
+           | O => x
+           | (S O) => x
+           | _ => S (S x)
+           end.
+
   (* Returns n-th varable from state or error if [n] index oob *)
   Definition getStateVar (msg:string) (n:nat): cerr (ident * typ) :=
     st <- get ;;
-    option2errS msg (List.nth_error (vars st) n).
+    option2errS msg (List.nth_error (vars st) (sigma_to_vars n)).
 
   (* for debugging and error reporting *)
   Definition getVarsAsString : cerr string :=
@@ -83,6 +91,13 @@ Section withErrorStateMonad.
   Definition Int64_eq_or_cerr msg a b : cerr _ := Z_eq_or_cerr msg
                                                                (Int64.intval a)
                                                                (Int64.intval b).
+
+  Definition evalCErrS {St:Type} {A:Type} (c : errS St A) (initial : St) : cerr A :=
+    match c initial with
+    | inl msg => raise msg
+    | inr (s,v) => ret v
+    end.
+
 End withErrorStateMonad.
 
 (* 64-bit IEEE floats *)
@@ -94,34 +109,6 @@ Definition getIRType (t: DSHType): typ :=
   | DSHCType => TYPE_Double
   | DSHPtr n => TYPE_Array (Int64.intval n) TYPE_Double
   end.
-
-Definition genIRGlobals
-           {FnBody: Set}
-           (x: list (string*DSHType))
-  : list (toplevel_entity _ FnBody)
-  := let l := List.map
-                (fun g:(string * DSHType) =>
-                   let (n,t) := g in
-                   TLE_Global {|
-                       g_ident        := Name n;
-                       g_typ          := getIRType t ; (* globals are always pointers *)
-                       g_constant     := true ;
-                       g_exp          := None ;
-                       g_linkage      := Some LINKAGE_External ;
-                       g_visibility   := None ;
-                       g_dll_storage  := None ;
-                       g_thread_local := None ;
-                       g_unnamed_addr := true ; (* TODO: unsure about this *)
-                       g_addrspace    := None ;
-                       g_externally_initialized:= true ;
-                       g_section      := None ;
-                       g_align        := Some PtrAlignment ;
-                     |}
-                ) x in
-     match l with
-     | nil => []
-     | _::_ => [TLE_Comment "Global variables"] ++ l
-     end.
 
 Definition add_comments (b:block typ) (xs:list string): block typ :=
   {|
@@ -1059,8 +1046,6 @@ Definition body_get_entry (body : list (block typ)) : cerr (block typ * list (bl
 
 Definition LLVMGen
            (i o: Int64.int)
-           (globals: list (string*DSHType))
-           (globals_extern: bool)
            (fshcol: DSHOperator)
            (funname: string)
   : cerr (toplevel_entities typ (block typ * list (block typ)))
@@ -1072,13 +1057,6 @@ Definition LLVMGen
 
     (* Add parameters as locals X=PVar 1, Y=PVar 0 *)
     addVars [(ID_Local y, ytyp);(ID_Local x, xtyp)] ;;
-
-    (* Add globals *)
-    addVars
-      (List.map
-         (fun g:(string* DSHType) =>
-            let (n,t) := g in (ID_Global (Name n), TYPE_Pointer (getIRType t)))
-         globals) ;; (* TODO: check order of globals. Maybe reverse. *)
 
     rid <- incBlock ;;
     rsid <- incBlock ;;
@@ -1099,9 +1077,7 @@ Definition LLVMGen
                             helix_intrinsics_decls ++ defined_intrinsics_decls))
     in 
     ret
-      (all_intrinsics ++ 
-                      (if globals_extern then
-                         (genIRGlobals (FnBody:= block typ * list (block typ)) globals) else []) ++
+      (all_intrinsics ++
                       [
                         TLE_Comment "Top-level operator definition" ;
                       TLE_Definition 
@@ -1130,16 +1106,18 @@ Definition LLVMGen
 Definition initOneIRGlobal
            (data: list binary64)
            (nmt:string * DSHType)
-  : err (list binary64 * (toplevel_entity typ (block typ * list (block typ))))
+  : cerr (list binary64 * (toplevel_entity typ (block typ * list (block typ))))
   :=
     let (nm,t) := nmt in
     match t with
     | DSHnat => raise "DSHnat global type not supported"
     | DSHCType =>
       let '(x, data) := rotate Float64Zero data in
+      let v_id := Name nm in
+      let v_typ := getIRType t in
       let g := TLE_Global {|
-                   g_ident        := Name nm;
-                   g_typ          := getIRType t ;
+                   g_ident        := v_id;
+                   g_typ          := v_typ ;
                    g_constant     := true ;
                    g_exp          := Some (EXP_Double x);
                    g_linkage      := Some LINKAGE_Internal ;
@@ -1152,12 +1130,15 @@ Definition initOneIRGlobal
                    g_section      := None ;
                    g_align        := None ; (* TODO: maybe need to alight to 64-bit boundary? *)
                  |} in
+      addVars [(ID_Global v_id, v_typ)] ;;
       ret (data, g)
     | DSHPtr n =>
       let (data, arr) := constArray (MInt64asNT.to_nat n) data in
+      let v_id := Name nm in
+      let v_typ := getIRType t in
       let g := TLE_Global {|
-                   g_ident        := Name nm;
-                   g_typ          := getIRType t ;
+                   g_ident        := v_id;
+                   g_typ          := v_typ;
                    g_constant     := true ;
                    g_exp          := Some (EXP_Array arr);
                    g_linkage      := Some LINKAGE_Internal ;
@@ -1170,6 +1151,7 @@ Definition initOneIRGlobal
                    g_section      := None ;
                    g_align        := Some Utils.PtrAlignment ;
                  |} in
+      addVars [(ID_Global v_id, v_typ)] ;;
       ret (data, g)
     end.
 
@@ -1217,31 +1199,83 @@ Proof.
 Qed.
 
 
-Definition global_uniq_chk: string * DSHType -> list (string * DSHType) -> err unit
+Definition global_uniq_chk: string * DSHType -> list (string * DSHType) -> cerr unit
   := fun x xs =>
        let nm := (fst x) in
-       assert_false_to_err
+       err2errS (assert_false_to_err
          ("duplicate global name: " @@ nm)
          (globals_name_present nm xs)
-         tt.
+         tt).
 
-(* Could not use [monadic_fold_left] here because of error check. *)
+
+(*
+  Generate IR external definitoins for all globals.
+  They are externally linked and not initialized here.
+  (c.f [initIRglobals]
+
+  TODO: this is ugly. 2 maps should be replaced with single monadic fold.
+ *)
+Definition genIRGlobals
+           {FnBody: Set}
+           (x: list (string*DSHType))
+  : cerr (list (toplevel_entity _ FnBody))
+  := let l := List.map
+                (fun g:(string * DSHType) =>
+                   let (n,t) := g in
+                   TLE_Global {|
+                       g_ident        := Name n;
+                       g_typ          := getIRType t ; (* globals are always pointers *)
+                       g_constant     := true ;
+                       g_exp          := None ;
+                       g_linkage      := Some LINKAGE_External ;
+                       g_visibility   := None ;
+                       g_dll_storage  := None ;
+                       g_thread_local := None ;
+                       g_unnamed_addr := true ; (* TODO: unsure about this *)
+                       g_addrspace    := None ;
+                       g_externally_initialized:= true ;
+                       g_section      := None ;
+                       g_align        := Some PtrAlignment ;
+                     |}
+                ) x in
+     match l with
+     | nil => ret []
+     | _::_ =>
+       (* Add globals *)
+       addVars
+         (List.map
+            (fun g:(string* DSHType) =>
+               let (n,t) := g in (ID_Global (Name n), TYPE_Pointer (getIRType t)))
+            x) ;;
+       ret ([TLE_Comment "Global variables"] ++ l)
+     end.
+
+
+(*
+  Generate delclarations for all globals. They are all internally linked
+  and initialized in-place.
+
+  (c.f. genIRglobals)
+
+  NOTE: Could not use [monadic_fold_left] here because of error check.
+*)
 Definition initIRGlobals
          (data: list binary64)
          (x: list (string * DSHType))
-  : err (list binary64 * list (toplevel_entity typ (block typ * list (block typ))))
+  : cerr (list binary64 * list (toplevel_entity typ (block typ * list (block typ))))
   := init_with_data initOneIRGlobal global_uniq_chk (data) x.
 
 (*
    When code genration generates [main], the input
-   will be stored in pre-initialized [X] global variable.
+   will be stored in pre-initialized [X] global placeholder variable.
  *)
-Definition global_YX (i o:Int64.int) (data:list binary64) x xtyp y ytyp:
-  LLVMAst.toplevel_entities _ (LLVMAst.block typ * list (LLVMAst.block typ))
+Definition initXYplaceholders (i o:Int64.int) (data:list binary64) x xtyp y ytyp:
+  cerr (LLVMAst.toplevel_entities _ (LLVMAst.block typ * list (LLVMAst.block typ)))
   :=
     let '(data,ydata) := constArray (MInt64asNT.to_nat o) data in
     let '(_,xdata) := constArray (MInt64asNT.to_nat i) data in
-    [ TLE_Global
+    addVars [(ID_Global y, ytyp); (ID_Global x, xtyp)] ;;
+    ret [ TLE_Global
         {|
           g_ident        := y;
           g_typ          := ytyp;
@@ -1275,20 +1309,32 @@ Definition global_YX (i o:Int64.int) (data:list binary64) x xtyp y ytyp:
           |}
     ].
 
+(* Generates "main" function which will call "op_name", passing
+   global "x" and "y" as arguments. Returns "y". Pseudo-code:
+
+   global float[i] x;
+   global float[y] y;
+
+   float[o] main() {
+        tmp = op_name(x,y);
+        return y;
+   }
+
+*)
 Definition genMain
            (i o: Int64.int)
            (op_name: string)
-           (x:raw_id)
-           (xptyp:typ)
-           (y:raw_id)
-           (ytyp:typ)
+           (* Global X placeholder: *)
+           (x:raw_id) (xptyp:typ)
+           (* Global Y placeholder: *)
+           (y:raw_id) (ytyp:typ)
            (yptyp:typ)
            (globals: list (string * DSHType))
            (data:list binary64)
-  : LLVMAst.toplevel_entities _ (LLVMAst.block typ * list (LLVMAst.block typ))
+  : cerr (LLVMAst.toplevel_entities _ (LLVMAst.block typ * list (LLVMAst.block typ)))
   :=
     let z := Name "z" in
-    [
+    ret [
       TLE_Comment " Main function"
       ; TLE_Definition
           {|
@@ -1324,15 +1370,17 @@ Definition genMain
                                |}, [])
           |}].
 
-Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): err (toplevel_entities typ (block typ * list (block typ))) :=
+Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): cerr (toplevel_entities typ (block typ * list (block typ))) :=
   match p with
   | mkFSHCOLProgram i o name globals op =>
-    '(data,ginit) <- initIRGlobals data globals ;;
-    let ginit := app [TLE_Comment "Global variables"] ginit in
-
     if just_compile then
-      evalErrS (LLVMGen i o globals just_compile op name) newState
+      ginit <- genIRGlobals (FnBody:= block typ * list (block typ)) globals ;;
+      prog <- LLVMGen i o op name ;;
+      ret (ginit ++ prog)%list
     else
+      '(data,ginit) <- initIRGlobals data globals ;;
+
+      (* Global placeholders for X,Y *)
       let x := Anon 0%Z in
       let xtyp := getIRType (DSHPtr i) in
       let xptyp := TYPE_Pointer xtyp in
@@ -1341,12 +1389,11 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
       let ytyp := getIRType (DSHPtr o) in
       let yptyp := TYPE_Pointer ytyp in
 
-      let yxinit := global_YX i o data x xtyp y ytyp in
-      let main := genMain i o name x xptyp y ytyp yptyp globals data in
-
-      prog <- evalErrS (LLVMGen i o globals just_compile op name) newState ;;
+      yxinit <- initXYplaceholders i o data x xtyp y ytyp ;;
+      main <- genMain i o name x xptyp y ytyp yptyp globals data ;;
+      prog <- LLVMGen i o op name ;;
       ret (ginit ++ yxinit ++ prog ++ main)%list
   end.
 
-Definition compile_w_main (p: FSHCOLProgram): list binary64 -> err (toplevel_entities typ (block typ * list (block typ))) :=
+Definition compile_w_main (p: FSHCOLProgram): list binary64 -> cerr (toplevel_entities typ (block typ * list (block typ))) :=
   compile p false.

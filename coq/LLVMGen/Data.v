@@ -72,6 +72,7 @@ Record FSHCOLProgram :=
       op: DSHOperator;
     }.
 
+
 (*
    This is a special variant of monadic fold,
    which explicitly build a list.
@@ -81,14 +82,16 @@ Record FSHCOLProgram :=
    [init_llvm_memory].
  *)
 Fixpoint init_with_data
+         {m: Type -> Type}
+         `{Monad m}
          {A: Type} (* input values *)
          {B: Type} (* output values we collect *)
          {C: Type} (* data *)
-         (f: C -> A -> err (C*B))
-         (chk: A -> list A -> err unit) (* check function *)
+         (f: C -> A -> m (C*B)%type)
+         (chk: A -> list A -> m unit) (* check function *)
          (c: C) (* initial data *)
          (l: list A)
-  : err (C * list B)
+  : m (C * list B)%type
   :=  match l with
       | nil => ret (c,[])
       | cons x xs =>
@@ -173,7 +176,7 @@ Definition helix_intial_memory
        let Y_mem_block_id : mem_block_id := S (length globals) in
        let mem := memory_set mem Y_mem_block_id y in
        let mem := memory_set mem X_mem_block_id x in
-       let σ := List.app σ [DSHPtrVal Y_mem_block_id o; DSHPtrVal X_mem_block_id i] in
+       let σ := σ ++ [DSHPtrVal Y_mem_block_id o; DSHPtrVal X_mem_block_id i] in
        ret (mem, data, σ)
      end.
 

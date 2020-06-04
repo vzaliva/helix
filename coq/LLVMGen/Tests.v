@@ -193,9 +193,9 @@ Definition test_interpreter := interpreter_user DynamicTypes.DTYPE_Void "main" m
 *)
 Definition runFSHCOLTest (t:FSHCOLProgram) (just_compile:bool) (data:list binary64)
   :=
-    match compile t just_compile data with
+    match (compile t just_compile data) newState with
     | inl msg => (None, None, msg)
-    | inr prog =>
+    | inr (st,prog) =>
       if just_compile then
         (Some prog, None, "")
       else
