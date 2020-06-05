@@ -57,7 +57,7 @@ Definition dynwin_SHCOL (a: avector 3):
 
   (SafeCast (SHBinOp _ (IgnoreIndex2 Zless)))
     ⊚
-    (HTSUMUnion _ plus (
+    (Apply2Union _ plus (
                   ScatH _ 0 1
                         (range_bound := h_bound_first_half 1 1)
                         (snzord0 := @ScatH_stride1_constr 1 2)
@@ -153,7 +153,7 @@ Definition dynwin_SHCOL1 (a:avector 3) :
                                                (@equiv (forall _ : CarrierA, CarrierA)
                                                        (@ext_equiv CarrierA CarrierAe CarrierA CarrierAe)))
                                   Zless_proper))))
-         ⊚ HTSUMUnion Monoid_RthetaFlags plus
+         ⊚ Apply2Union Monoid_RthetaFlags plus
          (Embed Monoid_RthetaFlags (le_S (le_n 1))
                  ⊚ SafeCast
                  (IReduction plus

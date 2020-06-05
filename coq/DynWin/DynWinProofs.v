@@ -88,7 +88,7 @@ Ltac solve_facts :=
            replace (@SHOperator_Facts m i) with (@SHOperator_Facts m (o+o)) by apply eq_refl
          | [ |- SHOperator_Facts _ (SafeCast _)          ] => apply SafeCast_Facts
          | [ |- SHOperator_Facts _ (UnSafeCast _)        ] => apply UnSafeCast_Facts
-         | [ |- SHOperator_Facts _ (HTSUMUnion _ _ _ _)  ] => apply HTSUMUnion_Facts
+         | [ |- SHOperator_Facts _ (Apply2Union _ _ _ _) ] => apply Apply2Union_Facts
          | [ |- SHOperator_Facts _ (Scatter _ _)         ] => apply Scatter_Rtheta_Facts
          | [ |- SHOperator_Facts _ (ScatH _ _)           ] => apply Scatter_Rtheta_Facts
          | [ |- SHOperator_Facts _ (ScatH _ _ _)         ] => apply Scatter_Rtheta_Facts
@@ -100,11 +100,11 @@ Ltac solve_facts :=
          | [ |- SHInductor_Facts _ (SHInductor _ _ _ _)  ] => apply SHInductor_Facts
          | [ |- SHOperator_Facts _ (IReduction _ _)      ] => apply IReduction_Facts; intros
          | [ |- SHOperator_Facts _ _                     ] => apply SHCompose_Facts
-         | [ |- SH_MSH_Operator_compat (SafeCast _) _         ] => apply SafeCast_SH_MSH_Operator_compat
-         | [ |- SH_MSH_Operator_compat (UnSafeCast _) _       ] => apply UnSafeCast_SH_MSH_Operator_compat
-         | [ |- SH_MSH_Operator_compat (HTSUMUnion _ _ _ _) _ ] => apply HTSUMUnion_SH_MSH_Operator_compat
-         | [ |- SH_MSH_Operator_compat (SHPointwise _ _) _    ] => apply SHPointwise_SH_MSH_Operator_compat
-         | [ |- SH_MSH_Operator_compat (SHInductor _ _ _ _) _ ] => apply SHInductor_SH_MSH_Operator_compat
+         | [ |- SH_MSH_Operator_compat (SafeCast _) _          ] => apply SafeCast_SH_MSH_Operator_compat
+         | [ |- SH_MSH_Operator_compat (UnSafeCast _) _        ] => apply UnSafeCast_SH_MSH_Operator_compat
+         | [ |- SH_MSH_Operator_compat (Apply2Union _ _ _ _) _ ] => apply Apply2Union_SH_MSH_Operator_compat
+         | [ |- SH_MSH_Operator_compat (SHPointwise _ _) _     ] => apply SHPointwise_SH_MSH_Operator_compat
+         | [ |- SH_MSH_Operator_compat (SHInductor _ _ _ _) _  ] => apply SHInductor_SH_MSH_Operator_compat
          | [ |- SH_MSH_Operator_compat (IReduction minmax.max _) _  ] =>
            apply IReduction_SH_MSH_Operator_compat with (SGP:=NN);
            [typeclasses eauto | apply CommutativeRMonoid_max_NN;typeclasses eauto | intros | | ]
@@ -119,7 +119,7 @@ Ltac solve_facts :=
          | [ |- SH_MSH_Operator_compat _ _                    ] => apply SHCompose_SH_MSH_Operator_compat
          | [ |- Monoid.MonoidLaws Monoid_RthetaFlags] => apply MonoidLaws_RthetaFlags
          | [ |- Monoid.MonoidLaws Monoid_RthetaSafeFlags] => apply MonoidLaws_SafeRthetaFlags
-         | [ |- MSHOperator_Facts _ ] => apply HTSUMUnion_MFacts
+         | [ |- MSHOperator_Facts _ ] => apply Apply2Union_MFacts
          | [ |- MSHOperator_Facts _ ] => apply Pick_MFacts
          | [ |- MSHOperator_Facts _ ] => apply SHPointwise_MFacts
          | [ |- MSHOperator_Facts _ ] => apply Embed_MFacts
@@ -975,7 +975,7 @@ Section MSHCOL_to_DSHCOL.
       (@MSH_DSH_compat (o+o) o (@MSHBinOp p01 p02 p03) p1 p2 p3 p4 p5 p6)
         by apply eq_refl ; eapply BinOp_MSH_DSH_compat; intros
     | |- MSH_DSH_compat (MSHCompose _ _) _ _ _ _ _ => unshelve eapply Compose_MSH_DSH_compat; intros
-    | |- MSH_DSH_compat (MHTSUMUnion _ _ _) _ _ _ _ _ => unshelve eapply HTSUMUnion_MSH_DSH_compat; intros
+    | |- MSH_DSH_compat (MApply2Union _ _ _) _ _ _ _ _ => unshelve eapply Apply2Union_MSH_DSH_compat; intros
     | |- MSH_DSH_compat (@MSHIReduction _ _ (S _) _ _ _ _) _ _ _ _ _ => unshelve eapply IReduction_MSH_DSH_compat_S; intros
     | |- MSH_DSH_compat (MSHPick  _) _ _ _ _ _ => apply Pick_MSH_DSH_compat
     | |- MSH_DSH_compat (MSHInductor _ _ _) _ _ _ _ _ => unshelve eapply Inductor_MSH_DSH_compat; intros

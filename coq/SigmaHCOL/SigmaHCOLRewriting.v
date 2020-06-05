@@ -1074,7 +1074,7 @@ Section SigmaHCOLExpansionRules.
       :
         liftM_HOperator fm (svalue:=zero) (HTDirectSum f g)
         =
-        HTSUMUnion
+        Apply2Union
           _
           plus
           (SHCompose fm
@@ -1097,7 +1097,7 @@ Section SigmaHCOLExpansionRules.
         solve_proper.
       -
         split; try apply vec_Setoid.
-        apply HTSUMUnion'_proper.
+        apply Apply2Union'_proper.
         solve_proper.
         +
           apply ext_equiv_applied_equiv.
@@ -1140,7 +1140,7 @@ Section SigmaHCOLExpansionRules.
         unfold liftM_HOperator_impl at 1.
         unfold compose.
         unfold HTDirectSum, HCross, THCOLImpl.Cross, compose,
-        HTSUMUnion', pair2vector.
+        Apply2Union', pair2vector.
 
         break_let. break_let.
         rename t1 into x0, t2 into x1.

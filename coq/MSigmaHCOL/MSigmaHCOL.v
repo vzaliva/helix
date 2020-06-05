@@ -593,7 +593,7 @@ Module MMSHCOL'
     option (list mem_block) :=
     monadic_Lbuild _ (λ (j:nat) (jc:j<n), (op_family_f j jc) x).
 
-  Definition HTSUMUnion_mem
+  Definition Apply2Union_mem
              (op1 op2: mem_block -> option mem_block)
     : mem_block -> option mem_block
     := fun x => (liftM2 mem_union) (op2 x) (op1 x).
@@ -814,13 +814,13 @@ Module MMSHCOL'
       some_none.
   Qed.
 
-  Instance HTSUMUnion_mem_proper:
-    Proper ((equiv ==> equiv) ==> (equiv ==> equiv) ==> equiv ==> equiv) (HTSUMUnion_mem).
+  Instance Apply2Union_mem_proper:
+    Proper ((equiv ==> equiv) ==> (equiv ==> equiv) ==> equiv ==> equiv) (Apply2Union_mem).
   Proof.
     intros op0 op0' Eop0 op1 op1' Eop1 x y E.
     specialize (Eop0 x y E).
     specialize (Eop1 x y E).
-    unfold HTSUMUnion_mem.
+    unfold Apply2Union_mem.
     repeat break_match; try some_none; try reflexivity.
     repeat some_inv.
     simpl.
@@ -1731,19 +1731,19 @@ Module MMSHCOL'
                       (Full_set _)
                       (Full_set _).
 
-  Program Definition MHTSUMUnion {i o}
+  Program Definition MApply2Union {i o}
           (dot: CarrierA -> CarrierA -> CarrierA)
           (* Surprisingly, the following is not required:
                 `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot} *)
           (mop1 mop2: @MSHOperator i o)
     :=
       @mkMSHOperator i o
-                     (HTSUMUnion_mem (mem_op mop1) (mem_op mop2))
+                     (Apply2Union_mem (mem_op mop1) (mem_op mop2))
                      _
                      (Ensembles.Union _ (m_in_index_set mop1) (m_in_index_set mop2))
                      (Ensembles.Union _ (m_out_index_set mop1) (m_out_index_set mop2)).
   Next Obligation.
-    apply HTSUMUnion_mem_proper; [apply mop1 | apply mop2].
+    apply Apply2Union_mem_proper; [apply mop1 | apply mop2].
   Qed.
 
   (* Probably could be proven more generally for any monad with with some properties *)
@@ -2209,24 +2209,24 @@ Module MMSHCOL'
       apply (out_mem_fill_pattern_mem_op_of_hop H).
   Qed.
 
-  Fact HTSUMUnion_mem_out_fill_pattern
+  Fact Apply2Union_mem_out_fill_pattern
        {i o : nat}
        {dot : SgOp CarrierA}
        (op1 op2: @MSHOperator i o)
        `{facts1: MSHOperator_Facts _ _ op1}
        `{facts2: MSHOperator_Facts _ _ op2}:
     forall (m0 m : mem_block),
-      HTSUMUnion_mem (mem_op op1) (mem_op op2) m0 ≡ Some m
+      Apply2Union_mem (mem_op op1) (mem_op op2) m0 ≡ Some m
       → forall (j : nat) (jc : j < o),
         m_out_index_set (i:=i)
-                        (MHTSUMUnion dot op1 op2) (mkFinNat jc) ↔
+                        (MApply2Union dot op1 op2) (mkFinNat jc) ↔
                         mem_in j m.
   Proof.
     intros m0 m E.
     split; intros H.
     +
       simpl in *.
-      unfold HTSUMUnion_mem in E. simpl in E.
+      unfold Apply2Union_mem in E. simpl in E.
       repeat break_match_hyp; try some_none.
       inversion E as [EE]; clear E. rename EE into E.
       eapply mem_union_as_Union.
@@ -2241,7 +2241,7 @@ Module MMSHCOL'
         eapply (out_mem_fill_pattern _ _ Heqo0); eauto.
     +
       simpl in *.
-      unfold HTSUMUnion_mem in E. simpl in E.
+      unfold Apply2Union_mem in E. simpl in E.
       repeat break_match_hyp; try some_none.
       inversion E as [EE]; clear E. rename EE into E.
       apply mem_union_key_dec with (m0:=m1) (m1:=m2) (k:=j) in E.
@@ -2256,7 +2256,7 @@ Module MMSHCOL'
         eapply (out_mem_fill_pattern _ _ Heqo1); eauto.
   Qed.
 
-  Instance HTSUMUnion_MFacts
+  Instance Apply2Union_MFacts
            {i o: nat}
            `{dot: SgOp CarrierA}
            (op1 op2: @MSHOperator i o)
@@ -2266,13 +2266,13 @@ Module MMSHCOL'
            `{facts1: MSHOperator_Facts _ _ op1}
            `{facts2: MSHOperator_Facts _ _ op2}
     : MSHOperator_Facts
-        (MHTSUMUnion dot op1 op2).
+        (MApply2Union dot op1 op2).
   Proof.
     split.
     -
       (* mem_out_some *)
       intros m H.
-      unfold is_Some, MHTSUMUnion, HTSUMUnion_mem in *.
+      unfold is_Some, MApply2Union, Apply2Union_mem in *.
       simpl in *.
       repeat break_match; try some_none; try auto.
       +
@@ -2297,12 +2297,12 @@ Module MMSHCOL'
         apply H0.
     -
       (* out_mem_fill_pattern *)
-      eapply HTSUMUnion_mem_out_fill_pattern;
+      eapply Apply2Union_mem_out_fill_pattern;
         typeclasses eauto.
     -
       intros m0 m E j jc H.
       simpl in *.
-      unfold HTSUMUnion_mem in E; simpl in E.
+      unfold Apply2Union_mem in E; simpl in E.
       repeat break_match_hyp; try some_none.
       inversion E as [EE]; clear E. rename EE into E.
       apply mem_union_key_dec with (m0:=m1) (m1:=m2) (k:=j) in E.

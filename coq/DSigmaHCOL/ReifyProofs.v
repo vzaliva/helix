@@ -4711,7 +4711,7 @@ Qed.
 
 (** * MHTSUMUnioin *)
 
-Global Instance HTSUMUnion_MSH_DSH_compat
+Global Instance Apply2Union_MSH_DSH_compat
          {i o : nat}
          {mop1: @MSHOperator i o}
          {mop2: @MSHOperator i o}
@@ -4728,7 +4728,7 @@ Global Instance HTSUMUnion_MSH_DSH_compat
                       @MSH_DSH_compat _ _ mop2 dop2 σ m' x_p y_p P2)
   :
     @MSH_DSH_compat _ _
-      (MHTSUMUnion dot mop1 mop2)
+      (MApply2Union dot mop1 mop2)
       (DSHSeq dop1 dop2)
       σ m x_p y_p P.
 Proof.

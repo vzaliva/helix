@@ -1271,7 +1271,7 @@ Section OperatorPairwiseProofs.
           apply G,HH.
     Qed.
 
-    Global Instance HTSUMUnion_SH_MSH_Operator_compat
+    Global Instance Apply2Union_SH_MSH_Operator_compat
            {a_zero: MonUnit CarrierA}
            {i o: nat}
            `{dot: SgOp CarrierA}
@@ -1289,19 +1289,19 @@ Section OperatorPairwiseProofs.
            `{af_mon: @MathClasses.interfaces.abstract_algebra.Monoid CarrierA CarrierAe dot a_zero}
 
       : SH_MSH_Operator_compat
-          (HTSUMUnion Monoid_RthetaFlags dot op1 op2
+          (Apply2Union Monoid_RthetaFlags dot op1 op2
                       (scompat:=scompat)
           )
-          (MHTSUMUnion dot mop1 mop2).
+          (MApply2Union dot mop1 mop2).
     Proof.
       split.
       -
-        apply HTSUMUnion_Facts.
+        apply Apply2Union_Facts.
         apply Meq1.
         apply Meq2.
         apply compat.
       -
-        apply HTSUMUnion_MFacts.
+        apply Apply2Union_MFacts.
         eapply Disjoint_mor; eauto.
         apply Meq1.
         apply Meq2.
@@ -1329,7 +1329,7 @@ Section OperatorPairwiseProofs.
         (* mem_vec_preservation *)
         intros x G.
         simpl.
-        unfold HTSUMUnion, Vec2Union, HTSUMUnion_mem.
+        unfold Apply2Union, Vec2Union, Apply2Union_mem.
 
         pose proof (@out_pattern_compat _ _ _ _ op1 mop1 Meq1) as O1.
         pose proof (@out_pattern_compat _ _ _ _ op2 mop2 Meq2) as O2.
@@ -1358,7 +1358,7 @@ Section OperatorPairwiseProofs.
                 specialize (H0 k kc).
                 specialize (H1 k kc).
 
-                unshelve epose proof (@HTSUMUnion_mem_out_fill_pattern
+                unshelve epose proof (@Apply2Union_mem_out_fill_pattern
                               _ _ _
                               mop1 mop2
                               _ _
@@ -1366,7 +1366,7 @@ Section OperatorPairwiseProofs.
                 apply Meq1.
                 apply Meq2.
                 simpl in P.
-                unfold HTSUMUnion_mem in P. simpl in P.
+                unfold Apply2Union_mem in P. simpl in P.
                 break_match_hyp; try some_none.
                 break_match_hyp; try some_none.
                 some_inv; subst m3.
@@ -1384,11 +1384,11 @@ Section OperatorPairwiseProofs.
                   clear H1.
                   apply P in K; clear P.
 
-                  unshelve epose proof (HTSUMUnion_Facts dot op1 op2 compat) as facts.
+                  unshelve epose proof (Apply2Union_Facts dot op1 op2 compat) as facts.
                   apply Meq1.
                   apply Meq2.
                   pose proof (out_as_range _ x (SHOperator_Facts:=facts) G k kc) as V.
-                  unfold HTSUMUnion in V; simpl in V.
+                  unfold Apply2Union in V; simpl in V.
 
                   rewrite <- O1 in K.
                   rewrite <- O2 in K.
@@ -1398,7 +1398,7 @@ Section OperatorPairwiseProofs.
                   apply H0 in K; clear H0.
                   apply NM.find_1 in K.
                   rewrite_clear K.
-                  unfold HTSUMUnion', Vec2Union.
+                  unfold Apply2Union', Vec2Union.
                   simpl.
                   rewrite Vnth_map2.
 
@@ -1547,7 +1547,7 @@ Section OperatorPairwiseProofs.
                     by (symmetry; apply NP.F.not_find_in_iff, NK).
                   apply not_iff_compat in P.
                   apply P in NK; clear P.
-                  unshelve epose proof (HTSUMUnion_Facts dot op1 op2 compat) as facts.
+                  unshelve epose proof (Apply2Union_Facts dot op1 op2 compat) as facts.
                   apply Meq1.
                   apply Meq2.
                   pose proof (no_vals_at_sparse _ x k kc ) as NV.
