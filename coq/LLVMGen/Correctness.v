@@ -1088,6 +1088,9 @@ Ltac break_and :=
 
 Set Nested Proofs Allowed.
 
+From ExtLib Require Import RelDec.
+From Vellvm Require Import AstLib.
+
 Section NExpr.
 
   (**
@@ -1203,9 +1206,6 @@ vars s1 = σ?
     | ID_Global x
     | ID_Local x => x
     end.
-
-  From ExtLib Require Import RelDec.
-  From Vellvm Require Import AstLib.
 
   (* (** After updating the IRState with a fresh variable, *)
   (*     a lookup returns either this new id, or something *)
