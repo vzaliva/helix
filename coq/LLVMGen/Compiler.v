@@ -1261,12 +1261,12 @@ Definition initIRGlobals
    will be stored in pre-initialized [X] global placeholder variable.
  *)
 Definition initXYplaceholders (i o:Int64.int) (data:list binary64) x xtyp y ytyp:
-  cerr (LLVMAst.toplevel_entities _ (LLVMAst.block typ * list (LLVMAst.block typ)))
+  cerr (list binary64 * (LLVMAst.toplevel_entities _ (LLVMAst.block typ * list (LLVMAst.block typ))))
   :=
     let '(data,ydata) := constArray (MInt64asNT.to_nat o) data in
-    let '(_,xdata) := constArray (MInt64asNT.to_nat i) data in
+    let '(data,xdata) := constArray (MInt64asNT.to_nat i) data in
     addVars [(ID_Global y, ytyp); (ID_Global x, xtyp)] ;;
-    ret [ TLE_Global
+    ret (data,[ TLE_Global
         {|
           g_ident        := y;
           g_typ          := ytyp;
@@ -1298,7 +1298,7 @@ Definition initXYplaceholders (i o:Int64.int) (data:list binary64) x xtyp y ytyp
             g_section      := None;
             g_align        := None;
           |}
-    ].
+    ]).
 
 (* Generates "main" function which will call "op_name", passing
    global "x" and "y" as arguments. Returns "y". Pseudo-code:
@@ -1374,7 +1374,7 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
       let gytyp := getIRType (DSHPtr o) in
       let gyptyp := TYPE_Pointer gytyp in
 
-      yxinit <- initXYplaceholders i o data gx gxtyp gy gytyp ;;
+      '(data,yxinit) <- initXYplaceholders i o data gx gxtyp gy gytyp ;;
 
       let x := Name "X" in
       let xtyp := TYPE_Pointer (getIRType (DSHPtr i)) in
