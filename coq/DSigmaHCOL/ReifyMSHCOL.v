@@ -134,13 +134,16 @@ Fixpoint compileAExpr (res:var_resolver) (a_e:term): TemplateMonad AExpr :=
 
 Definition compileDSHUnCarrierA (res:var_resolver) (a_f:term): TemplateMonad AExpr :=
   match a_f with
+  (* TODO: check type of lambda's argument. Fail if not [CarrierA] *)
   | tLambda _ _ a_f' => compileAExpr (Lambda_var_resolver res 1) a_f'
   | _ => tmFail ("Unsupported UnCarrierA " ++ (string_of_term a_f))
   end.
 
 Definition compileDSHIUnCarrierA (res:var_resolver) (a_f:term): TemplateMonad AExpr :=
   match a_f with
-  | tLambda _ _ a_f' => compileDSHUnCarrierA (Lambda_var_resolver res 1) a_f'
+  (* TODO: check types of lambda's arguments. Fail if not [nat], [CarrierA] *)
+  | tLambda _ _ (tLambda _ _ a_f') =>
+    compileAExpr (Lambda_var_resolver res 2) a_f'
   | _ => tmFail ("Unsupported IUnCarrierA " ++ (string_of_term a_f))
   end.
 
@@ -155,6 +158,7 @@ Definition compileDSHBinCarrierA (res:var_resolver) (a_f:term): TemplateMonad AE
     tmReturn (APlus (AVar 1) (AVar 0))
   | tConst "Helix.HCOL.CarrierType.CarrierAmult" [] =>
     tmReturn (AMult (AVar 1) (AVar 0))
+  (* TODO: check types of lambda's arguments. Fail if not [CarrierA], [CarrierA] *)
   | tLambda _ _ (tLambda _ _ a_f') => compileAExpr (Lambda_var_resolver res 2) a_f'
   (* TODO: not sure the next constructor makes sense. It seems like we are
      allowing binary functions with one argument.  *)
@@ -164,6 +168,7 @@ Definition compileDSHBinCarrierA (res:var_resolver) (a_f:term): TemplateMonad AE
 
 Definition compileDSHIBinCarrierA (res:var_resolver) (a_f:term): TemplateMonad AExpr :=
   match a_f with
+  (* TODO: check type of lambda's argument. Fail if not [nat] *)
   | tLambda _ _ a_f' => compileDSHBinCarrierA (Lambda_var_resolver res 1) a_f'
   | _ => tmFail ("Unsupported IBinCarrierA " ++ (string_of_term a_f))
   end.
@@ -187,7 +192,9 @@ Run TemplateProgram
 (* return tuple: vars, [DSHOperator x_p y_p] *)
 Fixpoint compileMSHCOL2DSHCOL
          (res: var_resolver)
-         (vars:varbindings)
+         (* the [vars] parameter used to accumulate and return list of globals.
+            All lambdas at this point are globals *)
+         (vars: varbindings)
          (t:term)
          (x_p y_p: PExpr)
   : TemplateMonad (varbindings*(DSHOperator)) :=
@@ -314,8 +321,8 @@ Definition reifyMSHCOL
   eexpr <- tmUnfoldList unfold_names expr ;;
         ast <- @tmQuote A eexpr ;;
         mt <- tmQuote mem_block ;;
-        (* Fake resolver for 2 vars *)
-        let res := Fake_var_resolver (ID_var_resolver) 2 in
+        (* Fake resolver for 2 vars: Y,X *)
+        let res := Fake_var_resolver ID_var_resolver 2 in
         '(globals, dshcol) <- compileMSHCOL2DSHCOL res [] ast (PVar 1) (PVar 0) ;;
         dshcol' <- tmEval cbv dshcol ;;
         d_dshcol <- tmDefinition res_name dshcol' ;;
