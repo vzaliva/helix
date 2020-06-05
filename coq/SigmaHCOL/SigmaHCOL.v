@@ -1152,48 +1152,6 @@ Section SigmaHCOL_Operators.
       split.
     Qed.
 
-    (** Apply family of SHOperator's to same vector and return matrix of results *)
-    Definition Apply_Family
-               {i o n}
-               {svalue: CarrierA}
-               (op_family: @SHOperatorFamily i o n svalue)
-      :=
-        Apply_Family' (get_family_op op_family).
-
-    Global Instance Apply_Family_proper
-           {i o n}
-           {svalue: CarrierA}:
-      Proper ((=) ==> (=) ==> (=)) (@Apply_Family i o n svalue).
-    Proof.
-      intros f f' Ef v v' Ev.
-      unfold Apply_Family, Apply_Family'.
-      vec_index_equiv j jc.
-      rewrite 2!Vbuild_nth.
-      unfold get_family_op, mkFinNat.
-      simpl.
-      unfold equiv, SHOperatorFamily_equiv, pointwise_relation, mkFinNat in Ef.
-      rewrite <- Ev. clear Ev v'.
-      specialize (Ef (mkFinNat jc)).
-      apply SHOperator_op_proper.
-      apply Ef.
-      reflexivity.
-    Qed.
-
-    (* Do we need this in presence of Apply_Family_proper ? *)
-    Global Instance Apply_Family_arg_proper
-           {i o n}
-           {svalue: CarrierA}
-           (op_family: @SHOperatorFamily i o n svalue):
-      Proper ((=) ==> (=)) (@Apply_Family i o n svalue op_family).
-    Proof.
-      intros x y E.
-      apply Apply_Family'_arg_proper.
-      - intros k kc.
-        apply get_family_op_proper.
-        reflexivity.
-      - apply E.
-    Qed.
-
     (* Apply operator family to a vector produced a matrix which have at most one non-zero element per row.
        TODO: This could be expressed via set disjointness? *)
     Definition Apply_Family_Single_NonUnit_Per_Row
@@ -1203,7 +1161,7 @@ Section SigmaHCOL_Operators.
       :=
         forall x, Vforall (Vunique (not ∘ (equiv svalue) ∘ (@evalWriter _ _ fm)))
                           (Matrix.transpose
-                             (Apply_Family op_family x)
+                             (Apply_Family (get_family_op op_family) x)
                           ).
 
     (* States that given [P] holds for all elements of all outputs of this family *)
@@ -1553,7 +1511,7 @@ Section SigmaHCOL_Operators.
       unfold Apply_Family_Single_NonUnit_Per_Row.
       intros x.
 
-      unfold Apply_Family, Apply_Family', SparseEmbedding, get_family_op, Matrix.transpose, row, Vnth_aux.
+      unfold Apply_Family, SparseEmbedding, get_family_op, Matrix.transpose, row, Vnth_aux.
       rewrite Vforall_Vbuild.
       intros k kc.
       rewrite Vmap_Vbuild.
@@ -1669,7 +1627,7 @@ Section SigmaHCOL_Operators.
     Next Obligation.
       (* svalue_at_sparse *)
       rename H into S.
-      unfold Diamond, Apply_Family'.
+      unfold Diamond, Apply_Family.
       rewrite AbsorbMUnionIndex_Vbuild.
       unfold UnionFold.
 
@@ -1769,7 +1727,7 @@ Section SigmaHCOL_Operators.
     rename H into S, n into k.
     simpl in *.
 
-    unfold Diamond, Apply_Family'.
+    unfold Diamond, Apply_Family.
     rewrite AbsorbMUnionIndex_Vbuild.
     unfold UnionFold.
 
@@ -2252,10 +2210,10 @@ Section OperatorProperies.
         (f: @SHOperator fm o2 o3 svalue)
         (g: @SHOperatorFamily fm i1 o2 n svalue)
         {x}
-    : Apply_Family fm (SHOperatorFamilyCompose fm f g) x ≡
-                   Vmap (op fm f) (Apply_Family fm g x).
+    : Apply_Family (get_family_op fm (SHOperatorFamilyCompose fm f g)) x
+      ≡ Vmap (op fm f) (Apply_Family (get_family_op fm g) x).
   Proof.
-    unfold Apply_Family, Apply_Family', SHOperatorFamilyCompose.
+    unfold Apply_Family, SHOperatorFamilyCompose.
     rewrite Vmap_Vbuild.
     reflexivity.
   Qed.
@@ -2277,7 +2235,7 @@ Section OperatorProperies.
       (Vnth (op fm (op_family (@mkFinNat _ 0  (Nat.lt_0_succ n))) x) jc).
   Proof.
     unfold Diamond.
-    unfold Apply_Family'.
+    unfold Apply_Family.
     rewrite Vbuild_Sn.
     rewrite MUnion_cons.
     unfold Vec2Union.
@@ -3076,7 +3034,7 @@ Section StructuralProperies.
       simpl in *.
       vec_index_equiv j jc.
       unfold Diamond.
-      unfold Apply_Family'.
+      unfold Apply_Family.
 
       rewrite 2!AbsorbMUnionIndex_Vbuild.
       unfold UnionFold.
@@ -3098,7 +3056,7 @@ Section StructuralProperies.
       simpl in *.
 
       unfold Diamond.
-      unfold Apply_Family'.
+      unfold Apply_Family.
 
       rewrite AbsorbMUnionIndex_Vbuild.
       apply Is_Val_UnionFold.
@@ -3124,7 +3082,7 @@ Section StructuralProperies.
       intros v j jc S.
       simpl in *.
 
-      unfold IUnion, Diamond, Apply_Family'.
+      unfold IUnion, Diamond, Apply_Family.
       rewrite AbsorbMUnionIndex_Vbuild.
       apply not_Is_Val_Is_Struct.
       unfold Is_Struct, not.
@@ -3151,7 +3109,7 @@ Section StructuralProperies.
       (* no_coll_range *)
       intros v D j jc S.
       simpl in *.
-      unfold Diamond, Apply_Family'.
+      unfold Diamond, Apply_Family.
 
       rewrite AbsorbMUnionIndex_Vbuild.
       apply UnionFold_Non_Collision.
@@ -3215,7 +3173,7 @@ Section StructuralProperies.
       (* no_coll_at_sparse *)
       intros v j jc S.
       simpl in *.
-      unfold Diamond, Apply_Family'.
+      unfold Diamond, Apply_Family.
 
       rewrite AbsorbMUnionIndex_Vbuild.
       apply UnionFold_Non_Collision.
@@ -3276,7 +3234,7 @@ Section StructuralProperies.
       simpl in *.
       vec_index_equiv j jc.
       unfold Diamond.
-      unfold Apply_Family'.
+      unfold Apply_Family.
 
       rewrite 2!AbsorbMUnionIndex_Vbuild.
       unfold UnionFold.
@@ -3298,7 +3256,7 @@ Section StructuralProperies.
       simpl in *.
 
       unfold Diamond.
-      unfold Apply_Family'.
+      unfold Apply_Family.
 
       rewrite AbsorbMUnionIndex_Vbuild.
       apply Is_Val_UnionFold_Safe.
@@ -3324,7 +3282,7 @@ Section StructuralProperies.
       intros v j jc S.
       simpl in *.
 
-      unfold IUnion, Diamond, Apply_Family'.
+      unfold IUnion, Diamond, Apply_Family.
       rewrite AbsorbMUnionIndex_Vbuild.
       apply not_Is_Val_Is_Struct.
       unfold Is_Struct, not.
@@ -3353,7 +3311,7 @@ Section StructuralProperies.
       (* no_coll_range *)
       intros v D j jc S.
       simpl in *.
-      unfold Diamond, Apply_Family'.
+      unfold Diamond, Apply_Family.
 
       rewrite AbsorbMUnionIndex_Vbuild.
       apply UnionFold_Safe_Non_Collision.
@@ -3377,7 +3335,7 @@ Section StructuralProperies.
       (* no_coll_at_sparse *)
       intros v j jc S.
       simpl in *.
-      unfold Diamond, Apply_Family'.
+      unfold Diamond, Apply_Family.
 
       rewrite AbsorbMUnionIndex_Vbuild.
       apply UnionFold_Safe_Non_Collision.

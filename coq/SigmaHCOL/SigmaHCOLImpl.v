@@ -276,7 +276,7 @@ Section FlagsMonoidGenericOperators.
     Qed.
 
     (** Apply family of functions to same vector and return matrix of results *)
-    Definition Apply_Family'
+    Definition Apply_Family
                {i o n}
                (op_family_f: forall k, (k<n) -> svector fm i -> svector fm o)
                (v: svector fm i) :
@@ -285,15 +285,15 @@ Section FlagsMonoidGenericOperators.
         (λ (j:nat) (jc:j<n),  (op_family_f j jc) v).
 
 
-    Global Instance Apply_Family'_arg_proper
+    Global Instance Apply_Family_arg_proper
            {i o n}
            (op_family_f: forall k, (k<n) -> svector fm i -> svector fm o)
            (op_family_f_proper: forall k (kc:k<n), Proper ((=) ==> (=)) (op_family_f k kc))
       :
-        Proper ((=) ==> (=)) (@Apply_Family' i o n op_family_f).
+        Proper ((=) ==> (=)) (@Apply_Family i o n op_family_f).
     Proof.
       intros x y E.
-      unfold Apply_Family'.
+      unfold Apply_Family.
       vec_index_equiv j jc.
       rewrite 2!Vbuild_nth.
       apply op_family_f_proper, E.
@@ -308,7 +308,7 @@ Section FlagsMonoidGenericOperators.
              (op_family_f: forall k (kc:k<n), svector fm i -> svector fm o)
              (v:svector fm i): svector fm o
     :=
-      MUnion fm dot initial (Apply_Family' op_family_f v).
+      MUnion fm dot initial (Apply_Family op_family_f v).
 
 
   Global Instance Diamond_proper
@@ -325,7 +325,7 @@ Section FlagsMonoidGenericOperators.
     unfold Diamond.
     apply MUnion_proper; auto.
 
-    unfold Apply_Family'.
+    unfold Apply_Family.
     vec_index_equiv j jc.
     rewrite 2!Vbuild_nth.
     unfold forall_relation, pointwise_relation in Ef.

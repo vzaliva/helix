@@ -17,6 +17,8 @@ Require Import Helix.SigmaHCOL.SigmaHCOL.
 Require Import Helix.SigmaHCOL.TSigmaHCOL.
 Require Import Helix.SigmaHCOL.IndexFunctions.
 
+Require Import Helix.SigmaHCOL.SigmaHCOLImpl.
+
 Require Import Coq.Arith.Arith.
 Require Import Coq.Arith.Compare_dec.
 Require Import Coq.Arith.Peano_dec.
@@ -426,7 +428,7 @@ Section SigmaHCOL_rewriting.
 
     rewrite ApplyFamily_SHOperatorFamilyCompose.
     specialize (H x).
-    generalize dependent (Apply_Family Monoid_RthetaFlags fam x).
+    generalize dependent (Apply_Family (get_family_op _ fam) x).
     clear x.
     intros x H.
 

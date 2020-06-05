@@ -3347,7 +3347,7 @@ Section OperatorPairwiseProofs.
           f_equiv.
           unshelve rewrite <- fold_left_fold_left_rev_restricted.
           exact (empty_or_dense_block_SGP SGP o).
-          remember (Apply_Family' (get_family_op Monoid_RthetaSafeFlags op_family) x)
+          remember (Apply_Family (get_family_op Monoid_RthetaSafeFlags op_family) x)
             as v eqn:A1.
 
           revert l A A1.
@@ -3381,7 +3381,7 @@ Section OperatorPairwiseProofs.
               unfold Ensembles.In.
               eapply H0.
             }
-            unfold Apply_Family' in A1.
+            unfold Apply_Family in A1.
             rewrite Vbuild_Sn in A1.
             dep_destruct v.
             clear v. rename h into v0, x0 into v.
@@ -3907,10 +3907,10 @@ Section OperatorPairwiseProofs.
       :
         vector_val_index_set
           (Vfold_left_rev (Vec2Union _ dot) (Vconst (mkStruct svalue) o)
-                          (Apply_Family _ op_family x))
+                          (Apply_Family (get_family_op _ op_family) x))
           ≡ family_out_index_set' _ op_family.
     Proof.
-      unfold Apply_Family, Apply_Family'.
+      unfold Apply_Family.
 
 
       rewrite family_in_index_set_eq in *.
@@ -3985,7 +3985,7 @@ Section OperatorPairwiseProofs.
           (x : vector (Rtheta' Monoid_RthetaFlags) i)
           (v : vector (svector Monoid_RthetaFlags o) n)
 
-          (V : v ≡ Apply_Family _ (shrink_op_family_up_n _ d op_family) x)
+          (V : v ≡ Apply_Family (get_family_op _ (shrink_op_family_up_n _ d op_family)) x)
 
           (f0 : @SHOperator Monoid_RthetaFlags i o svalue)
           (F0 : f0 ≡ op_family (@mkFinNat (n+d) t tc1))
@@ -4106,7 +4106,7 @@ Section OperatorPairwiseProofs.
         break_match; auto.
       -
         subst v.
-        unfold Apply_Family, Apply_Family', cast_op_family, shrink_op_family_up_n.
+        unfold Apply_Family, cast_op_family, shrink_op_family_up_n.
         f_equiv.
         extensionality j.
         extensionality jc.
@@ -4183,7 +4183,7 @@ Section OperatorPairwiseProofs.
         break_match; rename Heqo0 into A.
         +
           f_equiv.
-          remember (Apply_Family' (get_family_op Monoid_RthetaFlags op_family) x)
+          remember (Apply_Family (get_family_op Monoid_RthetaFlags op_family) x)
             as v eqn:A1.
 
           revert l A A1.
@@ -4218,7 +4218,7 @@ Section OperatorPairwiseProofs.
               unfold Ensembles.In.
               eapply H0.
             }
-            unfold Apply_Family' in A1.
+            unfold Apply_Family in A1.
             rewrite Vbuild_Sn in A1.
             dep_destruct v.
             clear v. rename h into v0, x0 into v.
