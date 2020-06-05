@@ -360,9 +360,20 @@ Definition foo2 := fun a => MHTSUMUnion plus
                                      (MSHPointwise (n:=4) (IgnoreIndex (fun x => abs x)))
                                      (MSHPointwise (n:=4) (mult_by_nth a)).
 
+Definition foo2_0 :=  MSHPointwise (n:=4) (IgnoreIndex (fun x => abs x)).
+Definition foo2_1 := fun a => MSHPointwise (n:=4) (mult_by_nth a).
 
-Run TemplateProgram (reifyMSHCOL foo0 ["foo0"] "bar" "bar_globals").
+Let res := (Lambda_var_resolver (Lambda_var_resolver (Fake_var_resolver ID_var_resolver 2) 1) 2).
+Compute (res 0).
+Compute (res 2).
+
+Run TemplateProgram (reifyMSHCOL foo2_1 ["foo2_1"] "bar" "bar_globals").
+
+(* for foo2_1:
+   DSHIMap 4 (PVar 2) (PVar 1) (AMult (AVar 0) (ANth (MPtrDeref (PVar 2)) (NVar 1)))
+*)
 
 Print bar_globals.
 Print bar.
+
 *)
