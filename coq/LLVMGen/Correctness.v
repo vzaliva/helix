@@ -2312,7 +2312,7 @@ Section LLVMGen.
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix bits *)    (i o: Int64.int) (globals: list (string*DSHType)) (globals_extern: bool) (fshcol: DSHOperator) (funname: string) (σ: evalContext)
       (* Vellvm bits *)   tle,
-      LLVMGen i o globals false fshcol funname s1 ≡ inr (s2, tle) ->
+      LLVMGen i o fshcol funname s1 ≡ inr (s2, tle) ->
       eutt (* (bisim_final σ) *) R
            (with_err_RT (interp_Mem (denoteDSHOperator σ fshcol) memory_empty))
            (semantics_llvm tle).
@@ -2440,6 +2440,7 @@ Proof.
   - apply nth_error_None in Heqo; lia.
 Qed.
 
+(*
 Fact initIRGlobals_cons_head_uniq:
   ∀ (a : string * DSHType) (globals : list (string * DSHType))
     (data : list binary64) (res : list binary64 * list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ)))),
@@ -2465,7 +2466,9 @@ Proof.
   }
   congruence.
 Qed.
+ *)
 
+(*
 (* If [initIRGlobals] suceeds, the names of variables in [globals] were unique *)
 Lemma initIRGlobals_names_unique {globals data res}:
   initIRGlobals data globals ≡ inr res → list_uniq fst globals.
@@ -2496,6 +2499,7 @@ Proof.
       destruct C as (j & [n v] & C); cbn in C.
       eapply initIRGlobals_cons_head_uniq; eauto.
 Qed.
+ *)
 
 (* Note: this could not be proben for arbitrary [chk] function,
    so we prove this only for [no_chk] *)
@@ -2719,7 +2723,7 @@ Lemma memory_invariant_after_init
       (data: list binary64) :
   forall hmem σ s hdata pll,
     helix_intial_memory p data ≡ inr (hmem,hdata,σ) /\
-    compile_w_main p data ≡ inr pll ->
+    compile_w_main p data newState ≡ inr (s,pll) ->
     eutt
       (state_invariant_mcfg σ s)
       (Ret (hmem, ()))
@@ -2729,6 +2733,7 @@ Lemma memory_invariant_after_init
                        [] ([],[]) ((Mem.empty, Mem.empty), [[]]))
       ).
 Proof.
+  (*
   intros hmem σ s hdata pll [HI LI].
 
   (* unfold memory_invariant_MCFG, memory_invariant. *)
@@ -2738,7 +2743,7 @@ Proof.
   subst.
   inv HI.
   cbn in LI.
-  unfold ErrorWithState.evalErrS in LI.
+  unfold ErrorWithState.err2errS in LI.
   cbn in LI.
 
   eutt_hide_rel.
@@ -2750,7 +2755,6 @@ Proof.
   rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
 
   unfold build_global_environment.
-
   unfold allocate_globals.
   unfold map_monad_.
   simpl.
@@ -2975,6 +2979,7 @@ Proof.
           unfold lift_Rel_mcfg in *.
           repeat break_let.
           auto.
+*)
 Admitted.
 
 (* with init step  *)
@@ -2982,8 +2987,8 @@ Lemma compiler_correct_aux:
   forall (p:FSHCOLProgram)
     (data:list binary64)
     (pll: toplevel_entities typ (LLVMAst.block typ * list (LLVMAst.block typ))),
-    compile_w_main p data ≡ inr pll ->
-    eutt (bisim_full [] newState) (semantics_FSHCOL p data) (semantics_llvm pll).
+    forall s, compile_w_main p data newState ≡ inr (s,pll) ->
+    eutt (bisim_full [] s) (semantics_FSHCOL p data) (semantics_llvm pll).
 Proof.
 Admitted.
 
@@ -3027,10 +3032,10 @@ From Vellvm Require Import AstLib.
     forall (p:FSHCOLProgram)
       (data:list binary64)
       (pll: toplevel_entities typ (LLVMAst.block typ * list (LLVMAst.block typ))),
-      compile_w_main p data ≡ inr pll ->
+    forall s, compile_w_main p data newState ≡ inr (s,pll) ->
       eutt (bisim_final []) (semantics_FSHCOL p data) (semantics_llvm pll).
   Proof.
-    intros p data pll H.
+    intros p data pll s H.
     unfold compile_w_main, compile in H.
     destruct p.
     cbn in *.
@@ -3040,6 +3045,8 @@ From Vellvm Require Import AstLib.
     unfold ErrorWithState.evalErrS in *.
     break_match_hyp; try inv_sum.
     break_match_hyp; cbn in *; repeat try inv_sum.
+
+    (*
     break_let; cbn in *; inv_sum.
     repeat (break_match_hyp || break_let); try inv_sum.
 
@@ -3051,6 +3058,8 @@ From Vellvm Require Import AstLib.
     end.
 
     unfold semantics_llvm.
+     *)
+
     (* break_match_goal. *)
     (* mcfg_of_modul *)
     (* Lemma semantics_llvm_red : *)
