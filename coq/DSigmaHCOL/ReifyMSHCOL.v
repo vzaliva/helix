@@ -156,6 +156,8 @@ Definition compileDSHBinCarrierA (res:var_resolver) (a_f:term): TemplateMonad AE
   | tConst "Helix.HCOL.CarrierType.CarrierAmult" [] =>
     tmReturn (AMult (AVar 1) (AVar 0))
   | tLambda _ _ (tLambda _ _ a_f') => compileAExpr (Lambda_var_resolver res 2) a_f'
+  (* TODO: not sure the next constructor makes sense. It seems like we are
+     allowing binary functions with one argument.  *)
   | tLambda _ _ a_f' => compileAExpr (Lambda_var_resolver res 1) a_f'
   | _ => tmFail ("Unsupported BinCarrierA " ++ (string_of_term a_f))
   end.
