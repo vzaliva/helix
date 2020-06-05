@@ -68,18 +68,10 @@ Section withErrorStateMonad.
       vars := newvars
     |}.
 
-
-  Definition sigma_to_vars: nat -> nat :=
-    fun x => match x with
-           | O => x
-           | (S O) => x
-           | _ => S (S x)
-           end.
-
   (* Returns n-th varable from state or error if [n] index oob *)
   Definition getStateVar (msg:string) (n:nat): cerr (ident * typ) :=
     st <- get ;;
-    option2errS msg (List.nth_error (vars st) (sigma_to_vars n)).
+    option2errS msg (List.nth_error (vars st) n).
 
   (* for debugging and error reporting *)
   Definition getVarsAsString : cerr string :=
@@ -1050,14 +1042,6 @@ Definition LLVMGen
            (funname: string)
   : cerr (toplevel_entities typ (block typ * list (block typ)))
   :=
-    let x := Name "X" in
-    let xtyp := TYPE_Pointer (getIRType (DSHPtr i)) in
-    let y := Name "Y" in
-    let ytyp := TYPE_Pointer (getIRType (DSHPtr o)) in
-
-    (* Add parameters as locals X=PVar 1, Y=PVar 0 *)
-    addVars [(ID_Local y, ytyp);(ID_Local x, xtyp)] ;;
-
     rid <- incBlock ;;
     rsid <- incBlock ;;
     let retblock :=
@@ -1068,14 +1052,22 @@ Definition LLVMGen
           blk_term  := (IId rsid, TERM_Ret_void);
           blk_comments := None
         |} in
+
     '(_,body) <- genIR fshcol rid ;;
+
     let body := body ++ [retblock] in
     body <- body_get_entry body;; 
     let all_intrinsics:toplevel_entities typ (block typ * list (block typ))
         := [TLE_Comment "Prototypes for intrinsics we use"]
              ++ (List.map (TLE_Declaration) (
                             helix_intrinsics_decls ++ defined_intrinsics_decls))
-    in 
+    in
+
+    let x := Name "X" in
+    let xtyp := TYPE_Pointer (getIRType (DSHPtr i)) in
+    let y := Name "Y" in
+    let ytyp := TYPE_Pointer (getIRType (DSHPtr o)) in
+
     ret
       (all_intrinsics ++
                       [
@@ -1098,7 +1090,7 @@ Definition LLVMGen
                               dc_align       := None ;
                               dc_gc          := None
                             |} ;
-                          df_args        := [x;y];
+                          df_args        := [x; y];
                           df_instrs      := body
                         |}
       ]).
@@ -1319,22 +1311,18 @@ Definition initXYplaceholders (i o:Int64.int) (data:list binary64) x xtyp y ytyp
         tmp = op_name(x,y);
         return y;
    }
-
 *)
 Definition genMain
-           (i o: Int64.int)
            (op_name: string)
            (* Global X placeholder: *)
            (x:raw_id) (xptyp:typ)
            (* Global Y placeholder: *)
            (y:raw_id) (ytyp:typ)
            (yptyp:typ)
-           (globals: list (string * DSHType))
-           (data:list binary64)
-  : cerr (LLVMAst.toplevel_entities _ (LLVMAst.block typ * list (LLVMAst.block typ)))
+  : LLVMAst.toplevel_entities _ (LLVMAst.block typ * list (LLVMAst.block typ))
   :=
     let z := Name "z" in
-    ret [
+    [
       TLE_Comment " Main function"
       ; TLE_Definition
           {|
@@ -1378,20 +1366,41 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
       prog <- LLVMGen i o op name ;;
       ret (ginit ++ prog)%list
     else
-      '(data,ginit) <- initIRGlobals data globals ;;
-
       (* Global placeholders for X,Y *)
-      let x := Anon 0%Z in
-      let xtyp := getIRType (DSHPtr i) in
-      let xptyp := TYPE_Pointer xtyp in
+      let gx := Anon 0%Z in
+      let gxtyp := getIRType (DSHPtr i) in
+      let gxptyp := TYPE_Pointer gxtyp in
 
-      let y := Anon 1%Z in
-      let ytyp := getIRType (DSHPtr o) in
-      let yptyp := TYPE_Pointer ytyp in
+      let gy := Anon 1%Z in
+      let gytyp := getIRType (DSHPtr o) in
+      let gyptyp := TYPE_Pointer gytyp in
 
-      yxinit <- initXYplaceholders i o data x xtyp y ytyp ;;
-      main <- genMain i o name x xptyp y ytyp yptyp globals data ;;
+      yxinit <- initXYplaceholders i o data gx gxtyp gy gytyp ;;
+
+
+
+      let x := Name "X" in
+      let xtyp := TYPE_Pointer (getIRType (DSHPtr i)) in
+      let y := Name "Y" in
+      let ytyp := TYPE_Pointer (getIRType (DSHPtr o)) in
+
+      (*
+        While generate operator's function body, add
+        parameters as locals X=PVar 1, Y=PVar 0.
+
+        We want them to be in `vars` before globals, so
+        we initialize them here. It is little hacky
+       *)
+      addVars [(ID_Local y, ytyp);(ID_Local x, xtyp)] ;;
+
+      (* Global variables *)
+      '(data,ginit) <- initIRGlobals data globals ;;
+      (* operator function *)
       prog <- LLVMGen i o op name ;;
+      dropVars 2;; (* drop local X,Y parameters *)
+
+      (* Main function *)
+      let main := genMain name gx gxptyp gy gytyp gyptyp  in
       ret (ginit ++ yxinit ++ prog ++ main)%list
   end.
 
