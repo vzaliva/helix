@@ -311,8 +311,7 @@ Definition reifyMSHCOL
   let unfold_names := List.app unfold_names ["SHFamilyOperatorCompose"; "IgnoreIndex"; "Fin1SwapIndex"; "Fin1SwapIndex2"; "IgnoreIndex2"; "mult_by_nth"; "plus"; "mult"; "const"] in
   eexpr <- tmUnfoldList unfold_names expr ;;
         ast <- @tmQuote A eexpr ;;
-        ast <- @tmQuote A eexpr ;;
-        mt <- tmQuote (mem_block) ;;
+        mt <- tmQuote mem_block ;;
         (* Fake resolver for 2 vars *)
         let res := Fake_var_resolver (ID_var_resolver) 2 in
         '(globals, dshcol) <- compileMSHCOL2DSHCOL res [] ast (PVar 1) (PVar 0) ;;
@@ -320,6 +319,7 @@ Definition reifyMSHCOL
         d_dshcol <- tmDefinition res_name dshcol' ;;
         d_globals <- tmDefinition res_globals_name globals
         ;; tmReturn tt.
+
 
 (*
 Require Import Helix.DSigmaHCOL.DSHCOLOnCarrierA.
@@ -352,7 +352,7 @@ Definition foo2 := fun a => MHTSUMUnion plus
                                      (MSHPointwise (n:=4) (mult_by_nth a)).
 
 
-Run TemplateProgram (reifyMSHCOL foo2 ["foo2"] "bar" "bar_globals").
+Run TemplateProgram (reifyMSHCOL foo0 ["foo0"] "bar" "bar_globals").
 
 Print bar_globals.
 Print bar.

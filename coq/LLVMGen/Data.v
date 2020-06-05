@@ -168,7 +168,7 @@ Definition helix_intial_memory
   : err (MDSHCOLOnFloat64.memory * list binary64 * evalContext)
   := match p with
      | mkFSHCOLProgram i o name globals op =>
-       '(mem, data, σ) <- initFSHGlobals data helix_empty_memory globals ;;
+       '(mem, data, globals_σ) <- initFSHGlobals data helix_empty_memory globals ;;
        let '(data, y) := constMemBlock (MInt64asNT.to_nat o) data in
        let '(data, x) := constMemBlock (MInt64asNT.to_nat i) data in
        (* over-estimating id, as some globals may not alocate memory (e.g. scalars) *)
@@ -176,7 +176,7 @@ Definition helix_intial_memory
        let Y_mem_block_id : mem_block_id := S (length globals) in
        let mem := memory_set mem Y_mem_block_id y in
        let mem := memory_set mem X_mem_block_id x in
-       let σ := σ ++ [DSHPtrVal Y_mem_block_id o; DSHPtrVal X_mem_block_id i] in
+       let σ := globals_σ ++ [DSHPtrVal Y_mem_block_id o; DSHPtrVal X_mem_block_id i] in
        ret (mem, data, σ)
      end.
 
