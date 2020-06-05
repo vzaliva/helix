@@ -38,7 +38,7 @@ Run TemplateProgram
                  ("Helix.SigmaHCOL.SigmaHCOL.SHCompose", "n_SHCompose") ;
                  ("Helix.SigmaHCOL.TSigmaHCOL.SafeCast", "n_SafeCast") ;
                  ("Helix.SigmaHCOL.TSigmaHCOL.UnSafeCast", "n_UnSafeCast") ;
-                 ("Helix.SigmaHCOL.TSigmaHCOL.HTSUMUnion", "n_HTSUMUnion")
+                 ("Helix.SigmaHCOL.TSigmaHCOL.Apply2Union", "n_Apply2Union")
               ]
               "SHCOL_Op_Names" "parse_SHCOL_Op_Name"
     ).
@@ -122,11 +122,11 @@ Fixpoint compileSHCOL2MSHCOL (t:term) (fuel: nat) {struct fuel}: TemplateMonad (
       | Some n_UnSafeCast, [svalue; i ; o ; c] =>
         tmPrint "UnSafeCast" ;;
                 compileSHCOL2MSHCOL c fuel'
-      | Some n_HTSUMUnion, [fm ; i ; o ; svalue; dot ; _ ; _; op1 ; op2] =>
+      | Some n_Apply2Union, [fm ; i ; o ; svalue; dot ; _ ; _; op1 ; op2] =>
         tmPrint "HTSumunion" ;;
                 c1 <- compileSHCOL2MSHCOL op1 fuel' ;;
                 c2 <- compileSHCOL2MSHCOL op2 fuel' ;;
-                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MHTSUMUnion" u)
+                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MApply2Union" u)
                                 [i; o; dot; c1; c2])
       | None, _ =>
         tmFail ("Usupported function call " ++ opname)

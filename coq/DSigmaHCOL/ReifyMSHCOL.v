@@ -184,7 +184,7 @@ Run TemplateProgram
                  ("Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHIUnion"    , "n_IUnion"     ) ;
                  ("Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHIReduction", "n_IReduction" ) ;
                  ("Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHCompose"   , "n_SHCompose"  ) ;
-                 ("Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MHTSUMUnion"  , "n_HTSUMUnion" ) ]
+                 ("Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MApply2Union" , "n_Apply2Union" ) ]
 
               "SHCOL_Op_Names" "parse_SHCOL_Op_Name"
     ).
@@ -285,8 +285,8 @@ Fixpoint compileMSHCOL2DSHCOL
       '(_, cop2) <- compileMSHCOL2DSHCOL res1 vars op2 x_p' t_i ;;
       '(_, cop1) <- compileMSHCOL2DSHCOL res1 vars op1 t_i y_p' ;;
       tmReturn (vars, DSHAlloc no2 (DSHSeq cop2 cop1))
-    | Some n_HTSUMUnion, [i ; o ; dot ; op1 ; op2] =>
-      tmPrint "MHTSUMUnion" ;;
+    | Some n_Apply2Union, [i ; o ; dot ; op1 ; op2] =>
+      tmPrint "MApply2Union" ;;
       (* This only works under assumption that output index
                  sets of [op1] and [op2] are disjount *)
       '(_, cop1) <- compileMSHCOL2DSHCOL res vars op1 x_p y_p ;;
@@ -356,7 +356,7 @@ Definition foo1 :=
                      (MSHPointwise (n:=2) (IgnoreIndex (fun x => abs x)))
                 ).
 
-Definition foo2 := fun a => MHTSUMUnion plus
+Definition foo2 := fun a => MApply2Union plus
                                      (MSHPointwise (n:=4) (IgnoreIndex (fun x => abs x)))
                                      (MSHPointwise (n:=4) (mult_by_nth a)).
 

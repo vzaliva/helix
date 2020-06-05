@@ -200,7 +200,7 @@ Section TSigmaHCOLOperators.
 
   Variable fm:Monoid RthetaFlags.
 
-  Section HTSUMUnion.
+  Section Apply2Union.
 
     Import ExtLib.Data.Fun.
     Import ExtLib.Structures.Applicative.
@@ -215,19 +215,19 @@ Section TSigmaHCOLOperators.
   to the input.
 
   This definition is using applicative reader functor.  *)
-    Definition HTSUMUnion' {i o} (dot: CarrierA -> CarrierA -> CarrierA):
+    Definition Apply2Union' {i o} (dot: CarrierA -> CarrierA -> CarrierA):
       (svector fm i -> svector fm o) -> (svector fm i -> svector fm o) ->
       svector fm i -> svector fm o
       :=
         liftA2 (Vec2Union fm dot).
-  End HTSUMUnion.
+  End Apply2Union.
 
-  Global Instance HTSUMUnion'_proper {i o}
+  Global Instance Apply2Union'_proper {i o}
     : Proper ( ((=) ==> (=) ==> (=)) ==>
-                                 (=) ==> (=) ==> (=) ==> (=)) (HTSUMUnion' (i:=i) (o:=o)).
+                                 (=) ==> (=) ==> (=) ==> (=)) (Apply2Union' (i:=i) (o:=o)).
   Proof.
     intros dot dot' Edot f f' Ef g g' Eg x y Ex.
-    unfold HTSUMUnion'; simpl. (* cbn. over-eager *)
+    unfold Apply2Union'; simpl. (* cbn. over-eager *)
     unfold Vec2Union.
     vec_index_equiv j jp.
     rewrite 2!Vnth_map2.
@@ -237,18 +237,18 @@ Section TSigmaHCOLOperators.
     - apply Vnth_arg_equiv; auto.
   Qed.
 
-  Global Instance HTSUMUnion'_arg_proper {i o}
+  Global Instance Apply2Union'_arg_proper {i o}
          (op1: svector fm i -> svector fm o)
          `{op1_proper: !Proper ((=) ==> (=)) op1}
          (op2: svector fm i -> svector fm o)
          `{op2_proper: !Proper ((=) ==> (=)) op2}
          (dot: CarrierA -> CarrierA -> CarrierA)
          `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
-    : Proper ((=) ==> (=)) (HTSUMUnion' (i:=i) (o:=o) dot op1 op2).
+    : Proper ((=) ==> (=)) (Apply2Union' (i:=i) (o:=o) dot op1 op2).
   Proof.
     partial_application_tactic. instantiate (1 := equiv).
     partial_application_tactic. instantiate (1 := equiv).
-    apply HTSUMUnion'_proper.
+    apply Apply2Union'_proper.
     - apply dot_mor.
     - apply op1_proper.
     - apply op2_proper.
@@ -256,7 +256,7 @@ Section TSigmaHCOLOperators.
 
   (* Probably "SUM" shoud be avoided in the name not to confuse
      with [ISUmUnion]. *)
-  Program Definition HTSUMUnion {i o}
+  Program Definition Apply2Union {i o}
              {svalue: CarrierA}
              (dot: CarrierA -> CarrierA -> CarrierA)
              `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
@@ -264,8 +264,8 @@ Section TSigmaHCOLOperators.
              (op1 op2: @SHOperator fm i o svalue)
     : @SHOperator fm i o svalue
     :=
-      mkSHOperator fm i o svalue (HTSUMUnion' dot (op fm op1) (op fm op2))
-                   (@HTSUMUnion'_arg_proper i o
+      mkSHOperator fm i o svalue (Apply2Union' dot (op fm op1) (op fm op2))
+                   (@Apply2Union'_arg_proper i o
                                             (op fm op1) (op_proper fm op1)
                                             (op fm op2) (op_proper fm op2)
                                             dot dot_mor)
@@ -274,11 +274,11 @@ Section TSigmaHCOLOperators.
                    _ .
   Next Obligation.
     rename H into S.
-    unfold HTSUMUnion', Vec2Union.
+    unfold Apply2Union', Vec2Union.
     simpl.
     rewrite Vnth_map2.
     rewrite evalWriterUnion.
-    unfold HTSUMUnion', Vec2Union in S.
+    unfold Apply2Union', Vec2Union in S.
     simpl in *.
     assert(S1: ¬ (out_index_set fm op1 (mkFinNat jc))).
     {
@@ -301,21 +301,21 @@ Section TSigmaHCOLOperators.
     apply scompat.
   Qed.
 
-  Global Instance HTSUMUnion_proper
+  Global Instance Apply2Union_proper
          {svalue: CarrierA}
          {i o: nat}
          (dot: CarrierA -> CarrierA -> CarrierA)
          `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
          `{scompat: BFixpoint svalue dot}
     : Proper ((=) ==> (=) ==> (=))
-             (@HTSUMUnion i o svalue dot dot_mor _).
+             (@Apply2Union i o svalue dot dot_mor _).
   Proof.
     intros x x' Ex y y' Ey.
-    unfold HTSUMUnion.
+    unfold Apply2Union.
     unfold equiv, SHOperator_equiv in *.
     destruct x, y, x', y'.
     simpl in *.
-    apply HTSUMUnion'_proper; assumption.
+    apply Apply2Union'_proper; assumption.
   Qed.
 
 End TSigmaHCOLOperators.
@@ -446,7 +446,7 @@ Section TSigmaHCOLOperators_StructuralProperties.
       apply no_coll_at_sparse; assumption.
   Qed.
 
-  Global Instance HTSUMUnion_Facts
+  Global Instance Apply2Union_Facts
          {i o: nat}
          {svalue: CarrierA}
          (dot: CarrierA -> CarrierA -> CarrierA)
@@ -459,7 +459,7 @@ Section TSigmaHCOLOperators_StructuralProperties.
                            (out_index_set _ op2)
          )
          `{scompat: BFixpoint svalue dot}
-    : SHOperator_Facts Monoid_RthetaFlags (HTSUMUnion Monoid_RthetaFlags dot op1 op2).
+    : SHOperator_Facts Monoid_RthetaFlags (Apply2Union Monoid_RthetaFlags dot op1 op2).
   Proof.
     split.
     -
@@ -473,7 +473,7 @@ Section TSigmaHCOLOperators_StructuralProperties.
     - intros x y H.
       destruct op1, op2, fop1, fop2.
       simpl in *.
-      unfold HTSUMUnion', Vec2Union in *.
+      unfold Apply2Union', Vec2Union in *.
       simpl. (* cbn. over-eager *)
       vec_index_equiv j jc.
       rewrite 2!Vnth_map2.
@@ -491,7 +491,7 @@ Section TSigmaHCOLOperators_StructuralProperties.
         apply H.
     - intros v D j jc S.
       simpl in *.
-      unfold HTSUMUnion', Vec2Union in *.
+      unfold Apply2Union', Vec2Union in *.
       simpl.
       rewrite Vnth_map2.
       apply ValUnionIsVal.
@@ -514,7 +514,7 @@ Section TSigmaHCOLOperators_StructuralProperties.
         apply i0.
     -
       intros v j jc S.
-      unfold HTSUMUnion, HTSUMUnion', Vec2Union.
+      unfold Apply2Union, Apply2Union', Vec2Union.
       simpl.
       rewrite Vnth_map2.
       apply StructUnionIsStruct.
@@ -523,14 +523,14 @@ Section TSigmaHCOLOperators_StructuralProperties.
       split.
       +
         apply fop1.
-        unfold HTSUMUnion, HTSUMUnion', Vec2Union in S.
+        unfold Apply2Union, Apply2Union', Vec2Union in S.
         simpl in *.
         contradict S.
         apply Union_introl.
         apply S.
       +
         apply fop2.
-        unfold HTSUMUnion, HTSUMUnion', Vec2Union in S.
+        unfold Apply2Union, Apply2Union', Vec2Union in S.
         simpl in *.
         contradict S.
         apply Union_intror.
@@ -538,7 +538,7 @@ Section TSigmaHCOLOperators_StructuralProperties.
     -
       (* no_coll_range *)
       intros v D j jc S.
-      unfold HTSUMUnion, HTSUMUnion', Vec2Union in *.
+      unfold Apply2Union, Apply2Union', Vec2Union in *.
       simpl in *.
       rewrite Vnth_map2.
       apply UnionCollisionFree.
@@ -581,7 +581,7 @@ Section TSigmaHCOLOperators_StructuralProperties.
     -
       (* no_coll_at_sparse *)
       intros v j jc S.
-      unfold HTSUMUnion, HTSUMUnion', Vec2Union in *.
+      unfold Apply2Union, Apply2Union', Vec2Union in *.
       simpl in *.
       rewrite Vnth_map2.
       apply UnionCollisionFree.

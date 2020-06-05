@@ -2717,6 +2717,9 @@ Local Ltac pose_interp_to_L3_alloca m' a' A AE:=
       as [m' [a' [A AE]]]
   end.
 
+(* YZ TODO : Move *)
+Arguments allocate : simpl never.
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -2730,7 +2733,7 @@ Lemma memory_invariant_after_init
       (with_err_LT
          (interp_to_L3 helix_intrinsics
                        (build_global_environment (mcfg_of_tle pll))
-                       [] ([],[]) ((Mem.empty, Mem.empty), [[]]))
+                       [] ([],[]) empty_memory_stack)
       ).
 Proof.
   (*
@@ -2798,40 +2801,13 @@ Proof.
       *
         (* "o" init *)
         rewrite interp_to_L3_bind.
-
-        pose_interp_to_L3_alloca m' a' A AE.
-
-        crush. (* can allocate *)
-        rewrite_clear AE.
-        (* This should work, but it doesn't *)
-        Fail setoid_rewrite interp_to_L3_GW.
-        (* workaround *)
-        match goal with
-        | [ |- context[ITree.bind ?a ?b]] =>
-          replace b with (fun z =>
-                            let m' := fst z in
-                            let l' := fst (snd z) in
-                            let g' := fst (snd (snd z)) in
-                            let x := snd (snd (snd z)) in
-                            interp_mcfg (trigger (GlobalWrite (Anon 1%Z) x)) g' l' m')
-        end.
-        2:{
-          extensionality z.
-          repeat break_let; subst.
-          reflexivity.
-        }
-        (* Now we can rewrite! *)
-        setoid_rewrite interp_to_L3_GW.
-
-        norm_v.
-        cbn.
-        rewrite translate_ret.
-        rewrite bind_ret_l.
-        rewrite translate_ret.
+        rewrite interp_to_L3_alloca. 
+        cbn; norm_v.
+        rewrite interp_to_L3_GW.
+        cbn; norm_v.
         apply eutt_Ret.
         (* this looks provable *)
         intros n v τ x H H0.
-        cbn in A; inl_inr_inv.
         destruct v; cbn in *.
         --
           destruct n;cbn in H; [inv H | rewrite ListNth.nth_error_nil in H; some_none].
@@ -2899,22 +2875,12 @@ Proof.
           reflexivity.
         }
 
-        pose_interp_to_L3_alloca m' a' A AE.
-        --
-          (* can allocate *)
-          destruct m0.
-          unfold can_allocate.
-          cbn in H.
-          break_let.
-          intros F.
-          subst f.
-          admit.
-        --
-          rewrite_clear AE.
-          setoid_rewrite interp_to_L3_bind.
-          setoid_rewrite interp_to_L3_GW.
-          admit.
-    +
+        rewrite interp_to_L3_alloca.
+        cbn; norm_v.
+        cbn. rewrite interp_to_L3_bind, interp_to_L3_GW.
+        cbn; norm_v.
+        admit.
+   +
       admit.
   -
     intros u1 u2 H.

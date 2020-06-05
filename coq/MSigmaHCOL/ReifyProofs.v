@@ -1271,7 +1271,7 @@ Section OperatorPairwiseProofs.
           apply G,HH.
     Qed.
 
-    Global Instance HTSUMUnion_SH_MSH_Operator_compat
+    Global Instance Apply2Union_SH_MSH_Operator_compat
            {a_zero: MonUnit CarrierA}
            {i o: nat}
            `{dot: SgOp CarrierA}
@@ -1289,19 +1289,19 @@ Section OperatorPairwiseProofs.
            `{af_mon: @MathClasses.interfaces.abstract_algebra.Monoid CarrierA CarrierAe dot a_zero}
 
       : SH_MSH_Operator_compat
-          (HTSUMUnion Monoid_RthetaFlags dot op1 op2
+          (Apply2Union Monoid_RthetaFlags dot op1 op2
                       (scompat:=scompat)
           )
-          (MHTSUMUnion dot mop1 mop2).
+          (MApply2Union dot mop1 mop2).
     Proof.
       split.
       -
-        apply HTSUMUnion_Facts.
+        apply Apply2Union_Facts.
         apply Meq1.
         apply Meq2.
         apply compat.
       -
-        apply HTSUMUnion_MFacts.
+        apply Apply2Union_MFacts.
         eapply Disjoint_mor; eauto.
         apply Meq1.
         apply Meq2.
@@ -1329,7 +1329,7 @@ Section OperatorPairwiseProofs.
         (* mem_vec_preservation *)
         intros x G.
         simpl.
-        unfold HTSUMUnion, Vec2Union, HTSUMUnion_mem.
+        unfold Apply2Union, Vec2Union, Apply2Union_mem.
 
         pose proof (@out_pattern_compat _ _ _ _ op1 mop1 Meq1) as O1.
         pose proof (@out_pattern_compat _ _ _ _ op2 mop2 Meq2) as O2.
@@ -1358,7 +1358,7 @@ Section OperatorPairwiseProofs.
                 specialize (H0 k kc).
                 specialize (H1 k kc).
 
-                unshelve epose proof (@HTSUMUnion_mem_out_fill_pattern
+                unshelve epose proof (@Apply2Union_mem_out_fill_pattern
                               _ _ _
                               mop1 mop2
                               _ _
@@ -1366,7 +1366,7 @@ Section OperatorPairwiseProofs.
                 apply Meq1.
                 apply Meq2.
                 simpl in P.
-                unfold HTSUMUnion_mem in P. simpl in P.
+                unfold Apply2Union_mem in P. simpl in P.
                 break_match_hyp; try some_none.
                 break_match_hyp; try some_none.
                 some_inv; subst m3.
@@ -1384,11 +1384,11 @@ Section OperatorPairwiseProofs.
                   clear H1.
                   apply P in K; clear P.
 
-                  unshelve epose proof (HTSUMUnion_Facts dot op1 op2 compat) as facts.
+                  unshelve epose proof (Apply2Union_Facts dot op1 op2 compat) as facts.
                   apply Meq1.
                   apply Meq2.
                   pose proof (out_as_range _ x (SHOperator_Facts:=facts) G k kc) as V.
-                  unfold HTSUMUnion in V; simpl in V.
+                  unfold Apply2Union in V; simpl in V.
 
                   rewrite <- O1 in K.
                   rewrite <- O2 in K.
@@ -1398,7 +1398,7 @@ Section OperatorPairwiseProofs.
                   apply H0 in K; clear H0.
                   apply NM.find_1 in K.
                   rewrite_clear K.
-                  unfold HTSUMUnion', Vec2Union.
+                  unfold Apply2Union', Vec2Union.
                   simpl.
                   rewrite Vnth_map2.
 
@@ -1547,7 +1547,7 @@ Section OperatorPairwiseProofs.
                     by (symmetry; apply NP.F.not_find_in_iff, NK).
                   apply not_iff_compat in P.
                   apply P in NK; clear P.
-                  unshelve epose proof (HTSUMUnion_Facts dot op1 op2 compat) as facts.
+                  unshelve epose proof (Apply2Union_Facts dot op1 op2 compat) as facts.
                   apply Meq1.
                   apply Meq2.
                   pose proof (no_vals_at_sparse _ x k kc ) as NV.
@@ -3347,7 +3347,7 @@ Section OperatorPairwiseProofs.
           f_equiv.
           unshelve rewrite <- fold_left_fold_left_rev_restricted.
           exact (empty_or_dense_block_SGP SGP o).
-          remember (Apply_Family' (get_family_op Monoid_RthetaSafeFlags op_family) x)
+          remember (Apply_Family (get_family_op Monoid_RthetaSafeFlags op_family) x)
             as v eqn:A1.
 
           revert l A A1.
@@ -3381,7 +3381,7 @@ Section OperatorPairwiseProofs.
               unfold Ensembles.In.
               eapply H0.
             }
-            unfold Apply_Family' in A1.
+            unfold Apply_Family in A1.
             rewrite Vbuild_Sn in A1.
             dep_destruct v.
             clear v. rename h into v0, x0 into v.
@@ -3907,10 +3907,10 @@ Section OperatorPairwiseProofs.
       :
         vector_val_index_set
           (Vfold_left_rev (Vec2Union _ dot) (Vconst (mkStruct svalue) o)
-                          (Apply_Family _ op_family x))
+                          (Apply_Family (get_family_op _ op_family) x))
           ≡ family_out_index_set' _ op_family.
     Proof.
-      unfold Apply_Family, Apply_Family'.
+      unfold Apply_Family.
 
 
       rewrite family_in_index_set_eq in *.
@@ -3985,7 +3985,7 @@ Section OperatorPairwiseProofs.
           (x : vector (Rtheta' Monoid_RthetaFlags) i)
           (v : vector (svector Monoid_RthetaFlags o) n)
 
-          (V : v ≡ Apply_Family _ (shrink_op_family_up_n _ d op_family) x)
+          (V : v ≡ Apply_Family (get_family_op _ (shrink_op_family_up_n _ d op_family)) x)
 
           (f0 : @SHOperator Monoid_RthetaFlags i o svalue)
           (F0 : f0 ≡ op_family (@mkFinNat (n+d) t tc1))
@@ -4106,7 +4106,7 @@ Section OperatorPairwiseProofs.
         break_match; auto.
       -
         subst v.
-        unfold Apply_Family, Apply_Family', cast_op_family, shrink_op_family_up_n.
+        unfold Apply_Family, cast_op_family, shrink_op_family_up_n.
         f_equiv.
         extensionality j.
         extensionality jc.
@@ -4183,7 +4183,7 @@ Section OperatorPairwiseProofs.
         break_match; rename Heqo0 into A.
         +
           f_equiv.
-          remember (Apply_Family' (get_family_op Monoid_RthetaFlags op_family) x)
+          remember (Apply_Family (get_family_op Monoid_RthetaFlags op_family) x)
             as v eqn:A1.
 
           revert l A A1.
@@ -4218,7 +4218,7 @@ Section OperatorPairwiseProofs.
               unfold Ensembles.In.
               eapply H0.
             }
-            unfold Apply_Family' in A1.
+            unfold Apply_Family in A1.
             rewrite Vbuild_Sn in A1.
             dep_destruct v.
             clear v. rename h into v0, x0 into v.

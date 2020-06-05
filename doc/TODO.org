@@ -12,8 +12,6 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
   with =ISumUnion=.
 ** Rename =Diamond= to =MR= :zoickx:
 ** Many unused definitions could be removed. (Hint: try =make print-unused=) :zoickx:
-** It looks like =Apply_Family= never used directly. Just =Apply_Family'=.     :zoickx:
-   We probably need just one definition. 
 ** Run =coq-min-imports= on all codebase                               :zoickx:
 ** GEP definition in Coq
 ** FMap equality                                                     :zoickx:

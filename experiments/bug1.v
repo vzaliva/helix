@@ -1959,7 +1959,7 @@ given natrual number by index mapping function f_spec. *)
                             (Full_set _) (Full_set _).
 
           (** Apply family of functions to same fector and return matrix of results *)
-          Definition Apply_Family'
+          Definition Apply_Family
                      {i o n}
                      (op_family_f: forall k, (k<n) -> svector fm i -> svector fm o)
                      (v: svector fm i) :
@@ -1968,12 +1968,12 @@ given natrual number by index mapping function f_spec. *)
               (λ (j:nat) (jc:j<n),  (op_family_f j jc) v).
 
 
-          Global Instance Apply_Family'_arg_proper
+          Global Instance Apply_Family_arg_proper
                  {i o n}
                  (op_family_f: forall k, (k<n) -> svector fm i -> svector fm o)
                  (op_family_f_proper: forall k (kc:k<n), Proper ((=) ==> (=)) (op_family_f k kc))
             :
-              Proper ((=) ==> (=)) (@Apply_Family' i o n op_family_f).
+              Proper ((=) ==> (=)) (@Apply_Family i o n op_family_f).
           Admitted.
 
           (** Apply family of SHOperator's to same fector and return matrix of results *)
@@ -1981,7 +1981,7 @@ given natrual number by index mapping function f_spec. *)
                      {i o n}
                      (op_family: @SHOperatorFamily i o n)
             :=
-              Apply_Family' (get_family_op op_family).
+              Apply_Family (get_family_op op_family).
 
           Global Instance Apply_Family_proper
                  {i o n}:
@@ -2186,7 +2186,7 @@ given natrual number by index mapping function f_spec. *)
                    (op_family_f: forall k (kc:k<n), svector fm i -> svector fm o)
                    (v:svector fm i): svector fm o
           :=
-            MUnion' fm dot initial (@Apply_Family' fm i o n op_family_f v).
+            MUnion' fm dot initial (@Apply_Family fm i o n op_family_f v).
 
 
         Global Instance Diamond'_proper

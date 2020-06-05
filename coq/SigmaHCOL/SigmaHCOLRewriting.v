@@ -1035,11 +1035,11 @@ Section SigmaHCOLExpansionRules.
         unfold Diamond.
         rewrite AbsorbMUnionIndex_Vmap.
         (* OR rewrite AbsorbMUnionIndex_Vbuild.*)
-        unfold Apply_Family'.
+        unfold Apply_Family.
         rewrite Vmap_Vbuild.
 
         (* Not sure below here *)
-        unfold SparseEmbedding, Diamond, Apply_Family', MUnion.
+        unfold SparseEmbedding, Diamond, Apply_Family, MUnion.
         unfold SHCompose, compose, get_family_op.
         simpl.
 
@@ -1074,7 +1074,7 @@ Section SigmaHCOLExpansionRules.
       :
         liftM_HOperator fm (svalue:=zero) (HTDirectSum f g)
         =
-        HTSUMUnion
+        Apply2Union
           _
           plus
           (SHCompose fm
@@ -1097,7 +1097,7 @@ Section SigmaHCOLExpansionRules.
         solve_proper.
       -
         split; try apply vec_Setoid.
-        apply HTSUMUnion'_proper.
+        apply Apply2Union'_proper.
         solve_proper.
         +
           apply ext_equiv_applied_equiv.
@@ -1140,7 +1140,7 @@ Section SigmaHCOLExpansionRules.
         unfold liftM_HOperator_impl at 1.
         unfold compose.
         unfold HTDirectSum, HCross, THCOLImpl.Cross, compose,
-        HTSUMUnion', pair2vector.
+        Apply2Union', pair2vector.
 
         break_let. break_let.
         rename t1 into x0, t2 into x1.
@@ -1431,14 +1431,14 @@ Section SigmaHCOLRewritingRules.
         vec_index_equiv j jc. (* fix column *)
         setoid_rewrite SHPointwise_impl_nth; try apply MonoidLaws_RthetaFlags.
 
-        unfold Apply_Family'.
+        unfold Apply_Family.
         rewrite 2!AbsorbMUnionIndex_Vbuild.
 
         (* -- Now we are dealing with UnionFolds only -- *)
         unfold Apply_Family_Single_NonUnit_Per_Row in Uz.
         specialize (Uz x).
         apply Vforall_nth with (ip:=jc) in Uz.
-        unfold Apply_Family, Apply_Family', transpose in Uz.
+        unfold Apply_Family, transpose in Uz.
         rewrite Vbuild_nth in Uz.
         unfold row in Uz.
         rewrite Vmap_Vbuild in Uz.
@@ -1728,14 +1728,14 @@ Section SigmaHCOLRewritingRules.
       unfold Diamond.
 
       vec_index_equiv j jc.
-      unfold Apply_Family'.
+      unfold Apply_Family.
       rewrite 2!AbsorbMUnionIndex_Vbuild.
 
       (* -- Now we are dealing with UnionFolds only -- *)
       unfold Apply_Family_Single_NonUnit_Per_Row in Uz.
       specialize (Uz x).
       apply Vforall_nth with (ip:=jc) in Uz.
-      unfold Apply_Family, Apply_Family', transpose in Uz.
+      unfold Apply_Family, transpose in Uz.
       rewrite Vbuild_nth in Uz.
       unfold row in Uz.
       rewrite Vmap_Vbuild in Uz.
@@ -1996,14 +1996,14 @@ Section SigmaHCOLRewritingRules.
         unfold Diamond.
 
         vec_index_equiv j jc.
-        unfold Apply_Family'.
+        unfold Apply_Family.
         rewrite 2!AbsorbMUnionIndex_Vbuild.
 
         (* -- Now we are dealing with UnionFolds only -- *)
         unfold Apply_Family_Single_NonUnit_Per_Row in Uz.
         specialize (Uz x).
         apply Vforall_nth with (ip:=jc) in Uz.
-        unfold Apply_Family, Apply_Family', transpose in Uz.
+        unfold Apply_Family, transpose in Uz.
         rewrite Vbuild_nth in Uz.
         unfold row in Uz.
         rewrite Vmap_Vbuild in Uz.
@@ -3206,7 +3206,7 @@ Section SigmaHCOLRewritingRules.
         dep_destruct j; [idtac | crush].
 
         unfold Diamond.
-        unfold Apply_Family'.
+        unfold Apply_Family.
         unfold RStheta.
         rewrite AbsorbMUnionIndex_Vbuild.
         simpl.
@@ -4443,7 +4443,7 @@ and `ISumReduction_PointWise` *)
       rewrite Vfold_right_Vmap.
       unfold MUnion.
       apply vector1_equiv_Vhead_equiv.
-      unfold Apply_Family'.
+      unfold Apply_Family.
       simpl.
 
       induction n.
@@ -4687,7 +4687,7 @@ and `ISumReduction_PointWise` *)
       rewrite Gather_impl_spec.
       unfold VnthIndexMapped.
       unfold Diamond.
-      unfold Apply_Family'.
+      unfold Apply_Family.
       rewrite AbsorbMUnionIndex_Vbuild.
       unfold get_family_op.
       simpl.
