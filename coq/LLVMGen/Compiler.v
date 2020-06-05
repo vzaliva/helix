@@ -1122,7 +1122,7 @@ Definition initOneIRGlobal
                    g_section      := None ;
                    g_align        := None ; (* TODO: maybe need to alight to 64-bit boundary? *)
                  |} in
-      addVars [(ID_Global v_id, v_typ)] ;;
+      addVars [(ID_Global v_id, TYPE_Pointer v_typ)] ;;
       ret (data, g)
     | DSHPtr n =>
       let (data, arr) := constArray (MInt64asNT.to_nat n) data in
@@ -1143,10 +1143,9 @@ Definition initOneIRGlobal
                    g_section      := None ;
                    g_align        := Some Utils.PtrAlignment ;
                  |} in
-      addVars [(ID_Global v_id, v_typ)] ;;
+      addVars [(ID_Global v_id, TYPE_Pointer v_typ)] ;;
       ret (data, g)
     end.
-
 
 Definition globals_name_present
            (name:string)
@@ -1376,8 +1375,6 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
       let gyptyp := TYPE_Pointer gytyp in
 
       yxinit <- initXYplaceholders i o data gx gxtyp gy gytyp ;;
-
-
 
       let x := Name "X" in
       let xtyp := TYPE_Pointer (getIRType (DSHPtr i)) in
