@@ -77,6 +77,11 @@ Local Open Scope monad_scope.
 Notation memoryV := memory_stack.
 Notation memoryH := MDSHCOLOnFloat64.memory.
 
+Ltac splits :=
+  repeat match goal with
+           |- _ /\ _ => split
+         end.
+
 Section EventTranslation.
 
   (* We relate Helix trees and Vellvm trees at a point where their event signatures are still not empty.
@@ -477,8 +482,8 @@ End WF_IRState.
 
 Ltac abs_by_WF :=
   match goal with
-  | h : nth_error (vars ?s) _ ≡ ?rhs,
-        h': @nth_error DSHVal ?σ _ ≡ ?rhs'
+  | h  : nth_error (vars ?s) _ ≡ ?rhs,
+    h': @nth_error DSHVal ?σ _ ≡ ?rhs'
     |- _ =>
     match rhs with
     | Some (?id,?τ) =>
@@ -527,81 +532,78 @@ Section SimulationRelations.
    *)
 
   (**
-     [mem_lookup_llvm_at_i bk_llvm i ptr_size_helix v_llvm] is a judgment asserting that
-     an array of [i] doubles can be read from the logical_block [bk_llvm],
-     and that this array is precisely [v_llvm].
-
-     NOTEYZ: [handle_gep_h] seems to completely dismiss the size argument in the
-     array type. Is the [ptr_size_helix] argument useless?
-
-     TODOYZ: This is weirdly low level. Break it into functions provided by
-     Vellvm and rewrite it at a higher level?
-
-   *)
-  Definition mem_lookup_llvm_at_i (bk_llvm: logical_block) (i ptr_size_helix: nat) (v_llvm: uvalue): Prop :=
-    exists offset,
-      match bk_llvm with
-      | LBlock _ bk_llvm _ =>
-        handle_gep_h (DTYPE_Array (Z.of_nat ptr_size_helix) DTYPE_Double)
-                       0
-                       [DVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat i))] ≡ inr offset /\
-        deserialize_sbytes
-          (lookup_all_index offset (sizeof_dtyp DTYPE_Double) bk_llvm SUndef)
-          DTYPE_Double ≡ v_llvm
-      end.
-
-  (**
      Relation used to relate memories after the initialization phase.
      Recall: [Type_R_memory ≜ memoryH -> LLVM_memory_state_cfg -> Prop]
   *)
 
+  (* Conversion from Helix values to VIR values *)
   Definition dvalue_of_int (v : Int64.int) : dvalue := DVALUE_I64 (DynamicValues.Int64.repr (Int64.intval v)).
-  Definition dvalue_of_bin (v: binary64) : dvalue := DVALUE_Double v.
+  Definition dvalue_of_bin (v: binary64)   : dvalue := DVALUE_Double v.
 
+  (* Check that a pair of [ident] and [dvalue] can be found in the appropriate environment *)
   Definition in_local_or_global
-             (ρ : local_env) (g : global_env)
-             (x : ident) (dv : dvalue) : Prop
+             (ρ : local_env) (g : global_env) (m : memoryV)
+             (x : ident) (dv : dvalue) (τ : typ) : Prop
     := match x with
-       | ID_Local x => ρ @ x ≡ Some (dvalue_to_uvalue dv)
-       | ID_Global x => g @ x ≡ Some dv
+       | ID_Local  x => ρ @ x ≡ Some (dvalue_to_uvalue dv)
+       | ID_Global x =>
+         exists ptr τ',
+         τ ≡ TYPE_Pointer τ' /\
+         g @ x ≡ Some (DVALUE_Addr ptr) /\
+         read m ptr (typ_to_dtyp [] τ') ≡ inr (dvalue_to_uvalue dv)
        end.
 
+  (* Main memory invariant. Relies on Helix's evaluation context and the [IRState] built by the compiler.
+     At any indices, the value and ident/types respectively found are related in that:
+     - integers and floats have their translation in the appropriate VIR environment;
+     - pointers have a corresponding pointer in the appropriate VIR environment such that they map on identical arrays
+   *)
   Definition memory_invariant (σ : evalContext) (s : IRState) : Rel_cfg :=
     fun (mem_helix : MDSHCOLOnFloat64.memory) '(mem_llvm, (ρ,g)) =>
       forall (n: nat) v τ x,
         nth_error σ n ≡ Some v ->
         nth_error (vars s) n ≡ Some (x,τ) ->
         match v with
-        | DSHnatVal v   => in_local_or_global ρ g x (dvalue_of_int v)
-        | DSHCTypeVal v => in_local_or_global ρ g x (dvalue_of_bin v)
+        | DSHnatVal v   => in_local_or_global ρ g mem_llvm x (dvalue_of_int v) τ  
+        | DSHCTypeVal v => in_local_or_global ρ g mem_llvm x (dvalue_of_bin v) τ
         | DSHPtrVal ptr_helix ptr_size_helix =>
-          exists bk_helix,
+          exists bk_helix ptr_llvm,
           memory_lookup mem_helix ptr_helix ≡ Some bk_helix /\
-          exists ptr_llvm bk_llvm,
-            in_local_or_global ρ g x (DVALUE_Addr ptr_llvm) /\
-            get_logical_block mem_llvm (fst ptr_llvm) ≡ Some bk_llvm /\
-            (fun bk_helix bk_llvm =>
-               forall i, Int64.lt i ptr_size_helix ->
-                    exists v_helix v_llvm,
-                      mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v_helix /\
-                      mem_lookup_llvm_at_i bk_llvm (MInt64asNT.to_nat i)
-                                           (MInt64asNT.to_nat ptr_size_helix) v_llvm /\
-                      v_llvm ≡ UVALUE_Double v_helix
-            ) bk_helix bk_llvm
+          in_local_or_global ρ g mem_llvm x (DVALUE_Addr ptr_llvm) τ /\
+          (forall i v, mem_lookup i bk_helix ≡ Some v ->
+                  get_array_cell mem_llvm ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v))
         end.
 
+  (* Lookups in [genv] are fully determined by lookups in [vars] and [σ] *)
+  (* Lemma memory_invariant_GLU : forall σ s v id memH memV t l g n, *)
+  (*     memory_invariant σ s memH (memV, (l, g)) -> *)
+  (*     nth_error (vars s) v ≡ Some (ID_Global id, t) -> *)
+  (*     nth_error σ v ≡ Some (DSHnatVal n) -> *)
+  (*     Maps.lookup id g ≡ Some (DVALUE_I64 n). *)
+  (* Proof. *)
+  (*   intros * INV NTH LU; cbn* in *.  *)
+  (*   eapply INV in LU; clear INV; eauto. *)
+  (*   unfold in_local_or_global, dvalue_of_int in LU. *)
+  (*   rewrite repr_intval in LU; auto. *)
+  (* Qed. *)
+
+  (* Lookups in [genv] are fully determined by lookups in [vars] and [σ] *)
   Lemma memory_invariant_GLU : forall σ s v id memH memV t l g n,
       memory_invariant σ s memH (memV, (l, g)) ->
-      nth_error (vars s) v ≡ Some (ID_Global id, t) ->
+      nth_error (vars s) v ≡ Some (ID_Global id, TYPE_Pointer t) ->
       nth_error σ v ≡ Some (DSHnatVal n) ->
-      Maps.lookup id g ≡ Some (DVALUE_I64 n).
+      exists ptr, Maps.lookup id g ≡ Some (DVALUE_Addr ptr) /\
+             read memV ptr (typ_to_dtyp [] t) ≡ inr (dvalue_to_uvalue (DVALUE_I64 n)).
   Proof.
-    intros * INV NTH LU; cbn* in *. 
-    eapply INV in LU; clear INV; eauto.
-    unfold in_local_or_global, dvalue_of_int in LU.
-    rewrite repr_intval in LU; auto.
+    intros * INV NTH LU; cbn* in *.
+    eapply INV in LU; clear INV; eauto. 
+    destruct LU as (ptr & τ & EQ & LU & READ); inv EQ.
+    exists ptr; split; auto.
+    cbn in *.
+    rewrite repr_intval in READ; auto.
   Qed.
 
+  (* Lookups in [local_env] are fully determined by lookups in [vars] and [σ] *)
   Lemma memory_invariant_LLU : forall σ s v id memH memV t l g n,
       memory_invariant σ s memH (memV, (l, g)) ->
       nth_error (vars s) v ≡ Some (ID_Local id, t) ->
@@ -614,19 +616,21 @@ Section SimulationRelations.
     rewrite repr_intval in LU; auto.
   Qed.
 
-  Definition incLocal_fresh (l : local_env) (g : global_env) (s : IRState) : Prop :=
+  (** ** Fresh identifier generator invariant
+      Low and high level invariants ensuring that calls to [incLocal] indeed generate fresh variables.
+   *)
+  Definition incLocal_fresh (l : local_env) (s : IRState) : Prop :=
     forall s' id, incLocal s ≡ inr (s',id) ->
              alist_fresh id l.
-  (* /\ *)
-             (* alist_fresh id g. *)
 
   Definition concrete_fresh_inv (s : IRState) : config_cfg -> Prop :=
     fun '(_, (l,g)) =>
       forall id v n, alist_In id l v -> n >= local_count s -> id <> Name ("l" @@ string_of_nat n).
 
+  (* We need to preserve the concrete invariant, but it is sufficient to get the abstract one of interest *)
   Lemma conrete_fresh_fresh: forall s memV l g,
       concrete_fresh_inv s (memV,(l,g)) ->
-      incLocal_fresh l g s.
+      incLocal_fresh l s.
   Proof.
     intros * FRESH ? ? LU.
     unfold incLocal, incLocalNamed in LU; cbn in *; inv LU.
@@ -637,9 +641,12 @@ Section SimulationRelations.
     eapply FRESH; eauto.
   Qed. 
 
-  (* Definition incLocal_fresh_inv (s : IRState) : config_cfg -> Prop := *)
-  (*   fun '(_, (l,g)) => incLocal_fresh l g s. *)
-
+  (** ** General state invariant
+      The main invariant carried around combine the three properties defined:
+      1. the memories satisfy the invariant;
+      2. the [IRState] is well formed;
+      3. the fresh ident generator is working properly.
+   *)
   Record state_invariant (σ : evalContext) (s : IRState) (memH : memoryH) (configV : config_cfg) : Prop :=
     {
     mem_is_inv : memory_invariant σ s memH configV ;
@@ -707,12 +714,12 @@ Section Ext_Local.
     fun mh '(mi,(li,gi)) '(mh',_) '(m,(l,(g,_))) => mh ≡ mh' /\ mi ≡ m /\ gi ≡ g /\ li ⊑ l.
 
  Lemma in_local_or_global_ext_local :
-    forall ρ1 ρ2 g x dv,
-      in_local_or_global ρ1 g x dv ->
+    forall ρ1 ρ2 g m x dv τ,
+      in_local_or_global ρ1 g m x dv τ ->
       ρ1 ⊑ ρ2 ->
-      in_local_or_global ρ2 g x dv.
+      in_local_or_global ρ2 g m x dv τ.
   Proof.
-    unfold in_local_or_global; intros ? ? ? [] ? IN MONO; auto.
+    unfold in_local_or_global; intros ? ? ? ? [] ? ? IN MONO; auto.
     apply MONO; auto.
   Qed.
 
@@ -729,8 +736,7 @@ Section Ext_Local.
     eapply in_local_or_global_ext_local; eauto.
     eapply in_local_or_global_ext_local; eauto.
     repeat destruct INV as (? & INV).
-    eexists; split; eauto.
-    do 2 eexists; split; eauto.
+    do 3 eexists; splits; eauto.
     eapply in_local_or_global_ext_local; eauto.
   Qed.
 
@@ -1251,9 +1257,9 @@ vars s1 = σ?
   (*   rewrite remove_neq_alist; eauto; try typeclasses eauto. *)
   (* Qed. *)
  
-  Lemma in_local_or_global_same_global : forall l g l' id dv,
-    in_local_or_global l g (ID_Global id) dv ->
-    in_local_or_global l' g (ID_Global id) dv. 
+  Lemma in_local_or_global_same_global : forall l g l' m id dv τ,
+    in_local_or_global l g m (ID_Global id) dv τ ->
+    in_local_or_global l' g m (ID_Global id) dv τ. 
   Proof.
     cbn; intros; auto.
   Qed.
@@ -1267,10 +1273,10 @@ vars s1 = σ?
   Qed.
   
   Lemma in_local_or_global_add_fresh_old :
-    ∀ (id : raw_id) (l : local_env) (g : global_env) (x : ident) dv dv',
+    ∀ (id : raw_id) (l : local_env) (g : global_env) m (x : ident) dv dv' τ,
       x <> ID_Local id →
-      in_local_or_global l g x dv →
-      in_local_or_global (alist_add id dv' l) g x dv.
+      in_local_or_global l g m x dv τ →
+      in_local_or_global (alist_add id dv' l) g m x dv τ.
   Proof.
     intros * INEQ LUV'.
     destruct x; cbn in *; auto.
@@ -1279,12 +1285,12 @@ vars s1 = σ?
   Qed.
 
   Lemma fresh_no_lu :
-    forall s s' id l g x dv,
+    forall s s' id l g m x dv τ,
       incLocal s ≡ inr (s', id) ->
-      incLocal_fresh l g s ->
-      in_local_or_global l g x dv ->
+      incLocal_fresh l s ->
+      in_local_or_global l g m x dv τ ->
       x ≢ ID_Local id.
-  Proof.
+   Proof.
     intros * INC FRESH IN abs; subst.
     apply FRESH in INC.
     unfold alist_fresh in *.
@@ -1334,12 +1340,10 @@ vars s1 = σ?
         eapply conrete_fresh_fresh; eauto.
       + subst.
         repeat destruct INLG as [? INLG].
-        eexists; split; eauto.
-        do 2 eexists; split; eauto.
+        do 3 eexists; splits; eauto.
         eapply in_local_or_global_add_fresh_old; eauto.
         eapply fresh_no_lu; eauto.
         eapply conrete_fresh_fresh; eauto.
-        
     - unfold WF_IRState; erewrite incLocal_vars; eauto; apply WF.  
     - intros ? ? ? LU INEQ.
       clear MEM WF.
@@ -1351,7 +1355,20 @@ vars s1 = σ?
       + apply In_add_In_ineq in LU; eauto.
         eapply FRESH; eauto with arith.
   Qed. 
-        
+
+  Lemma ext_local_subalist : forall {R S} memH memV l1 g vH vV l2,
+      l1 ⊑ l2 ->
+      @ext_local R S memH (mk_config_cfg memV l1 g) (memH, vH) (memV, (l2, (g, vV))).
+  Proof.
+    intros * SUB; cbn; splits; auto.
+  Qed.
+
+  Lemma interp_cfg_to_L3_Load : forall defs t a g l m val,
+      read m a t ≡ inr val ->
+      interp_cfg_to_L3 defs (trigger (Load t (DVALUE_Addr a))) g l m ≈ Ret (m,(l,(g,val))).
+  Proof.
+  Admitted.
+
   Lemma genNExpr_correct_ind :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH)
@@ -1378,17 +1395,10 @@ vars s1 = σ?
         * break_inner_match_goal; try abs_by_WF.
           repeat norm_h.
           destruct i0.
-          { (* Global *)
-            cbn; apply eutt_Ret; split; eauto.
-            constructor; eauto.
-            intros l' MONO; cbn*.
-            subst.
-            repeat norm_v.
-            cbn; repeat norm_v.
-            2: eapply memory_invariant_GLU; eauto.
-            reflexivity.
+          { (* Global -- Absurd, globals map to pointers, not integers *)
+            abs_by_WF.
           }
-          { (* Local *)
+         { (* Local *)
             apply eutt_Ret; split; eauto.
             constructor; eauto.
             intros l' MONO; cbn*. repeat norm_v.
@@ -1402,7 +1412,35 @@ vars s1 = σ?
           abs_by_WF.
 
       + (* The variable maps to a pointer *)
-        admit.
+        unfold denoteNExpr; cbn*.
+        repeat norm_v.
+        break_inner_match_goal; try abs_by_WF.
+        * break_inner_match_goal; try abs_by_WF.
+          subst.
+          destruct i0; try abs_by_WF.
+          edestruct memory_invariant_GLU as (ptr & LU & READ); eauto.
+          cbn; repeat norm_v.
+          2:eassumption.
+          cbn; repeat norm_v.
+          cbn; repeat norm_v.
+          rewrite interp_cfg_to_L3_Load; eauto.
+          cbn; repeat norm_v.
+          rewrite interp_cfg_to_L3_LW.
+          cbn; repeat norm_v.
+          repeat norm_h.
+          apply eutt_Ret; split; eauto. 
+          -- eapply state_invariant_add_fresh; eauto; reflexivity.
+          -- split. 
+             {
+               intros l' MONO; cbn*.
+               repeat norm_v.
+               2: eapply MONO, In_add_eq.
+               cbn; repeat norm_v.
+               reflexivity.
+             } 
+             {
+               admit.
+             } 
 
     - (* Constant *)
 
@@ -1554,23 +1592,24 @@ vars s1 = σ?
       split.
       cbn; eapply state_invariant_add_fresh; eauto.
       split.
-      2:{
-        do 3 split; auto. 
-        rewrite MONOI, MONOF.
-        apply sub_alist_add.
-        edestruct PREF as [_ _ FRESH].
-        admit.
-        (* apply FRESH in Heqs1; apply Heqs1. *)
+      {
+        cbn; intros ? MONO.
+        repeat norm_v.
+        2: apply MONO, In_add_eq.
+        cbn; repeat norm_v.
+        apply eutt_Ret.
+        repeat f_equal; auto. 
+        admit. (* Bit of arithmetic to double check *)
       }
-      cbn.
-      intros ? MONO.
-      cbn in *.
-      repeat norm_v.
-      cbn; norm_v.
-      2: apply MONO, In_add_eq.
-      apply eutt_Ret.
-      repeat f_equal; auto. 
-      admit.
+      {
+        apply ext_local_subalist.
+        etransitivity; eauto.
+        etransitivity; eauto.
+        apply sub_alist_add.
+        apply incLocal_is_fresh,conrete_fresh_fresh in PREF.
+        eapply PREF.
+        eauto.
+      }
 
  Admitted.
 
@@ -1701,7 +1740,7 @@ Section MExpr.
       exists ptr i (vid : nat) (mid : mem_block_id) (size : Int64.int) (sz : int), (* TODO: sz ≈ size? *)
         res ≡ UVALUE_Addr ptr /\
         memory_lookup memH mid ≡ Some mb /\
-        in_local_or_global ρ g i (DVALUE_Addr ptr) /\
+        in_local_or_global ρ g memV i (DVALUE_Addr ptr) (TYPE_Array sz TYPE_Double) /\
         nth_error σ vid ≡ Some (DSHPtrVal mid size) /\
         nth_error (vars s) vid ≡ Some (i, TYPE_Pointer (TYPE_Array sz TYPE_Double)).
 
@@ -1746,6 +1785,9 @@ Section MExpr.
       destruct v; cbn in Hirtyp; try (now (destruct i; inv Hirtyp)).
       inv_sum.
       eapply INV in Hsnth; eauto.
+      admit.
+
+      (*
       destruct Hsnth as (bk_helix & Hlookup & ptr_llvm & bk_llvm & Hfind & rest).
 
 
@@ -1765,7 +1807,7 @@ Section MExpr.
       
       admit.
       admit.
-
+      *)
     - repeat norm_h; repeat norm_v.
       cbn in Hgen. inversion Hgen.
   Admitted.
