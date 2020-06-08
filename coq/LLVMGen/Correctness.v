@@ -1468,35 +1468,32 @@ vars s1 = σ?
       + (* Division by 0 *)
         admit.
 
-      + break_inner_match_goal.
-        * (* Poison coming from? Somewhere ? *)
-          admit.
-        * (* Good old division *)
+      + (* Good old division *)
+        repeat norm_v.
+        rewrite interp_cfg_to_L3_LW.
+        cbn; repeat norm_v.
+        apply eutt_Ret.
+        split.
+        cbn. eapply state_invariant_add_fresh; eauto; reflexivity.
+        split.
+        {
+          cbn; intros ? MONO.
           repeat norm_v.
-          rewrite interp_cfg_to_L3_LW.
+          2: apply MONO, In_add_eq.
           cbn; repeat norm_v.
           apply eutt_Ret.
-          split.
-          cbn. eapply state_invariant_add_fresh; eauto; reflexivity.
-          split.
-          {
-            cbn; intros ? MONO.
-            repeat norm_v.
-            2: apply MONO, In_add_eq.
-            cbn; repeat norm_v.
-            apply eutt_Ret.
-            do 3 f_equal.
-            admit. (* Arithmetic *)
-          }
-          {
-            apply ext_local_subalist.
-            etransitivity; eauto.
-            etransitivity; eauto.
-            apply sub_alist_add.
-            apply incLocal_is_fresh,conrete_fresh_fresh in PREF.
-            eapply PREF.
-            eauto.
-          }
+          do 3 f_equal.
+          admit. (* Arithmetic *)
+        }
+        {
+          apply ext_local_subalist.
+          etransitivity; eauto.
+          etransitivity; eauto.
+          apply sub_alist_add.
+          apply incLocal_is_fresh,conrete_fresh_fresh in PREF.
+          eapply PREF.
+          eauto.
+        }
 
     - admit.
 
@@ -1575,18 +1572,7 @@ vars s1 = σ?
         2: apply MONO, In_add_eq.
         cbn; repeat norm_v.
         apply eutt_Ret.
-        repeat f_equal; auto.
-        break_inner_match_goal.
-        { (* POISON *)
-          admit.
-        }
-        cbn.
-        f_equal.
-        assert (l ⊑ l) by reflexivity.
-        specialize (EXPRI l H).
-
-        unfold MInt64asNT.NTypePlus, DynamicValues.Int64.add.
-
+        do 3 f_equal.
         admit. (* Bit of arithmetic to double check *)
       }
       {
@@ -1673,7 +1659,7 @@ vars s1 = σ?
         2: apply MONO, In_add_eq.
         cbn; repeat norm_v.
         apply eutt_Ret.
-        repeat f_equal; auto. 
+        do 3 f_equal.
         admit. (* Bit of arithmetic to double check *)
       }
       {
@@ -1749,36 +1735,33 @@ vars s1 = σ?
       cbn*.
 
       break_inner_match_goal.
-      + (* 64 = 1, I conjecture an absurdity *)
+      + (* 64 = 1, I conjecture an easy to prove absurdity *)
         admit.
-      + break_inner_match_goal.
-        * (* Urg, poison, should be ruled out somehow *)
-          admit.
-        * cbn; repeat norm_v.
-          rewrite interp_cfg_to_L3_LW.
-          cbn*; repeat norm_v.
+      + cbn; repeat norm_v.
+        rewrite interp_cfg_to_L3_LW.
+        cbn*; repeat norm_v.
+        apply eutt_Ret.
+        split.
+        cbn; eapply state_invariant_add_fresh; eauto.
+        split.
+        {
+          cbn; intros ? MONO.
+          repeat norm_v.
+          2: apply MONO, In_add_eq.
+          cbn; repeat norm_v.
           apply eutt_Ret.
-          split.
-          cbn; eapply state_invariant_add_fresh; eauto.
-          split.
-          {
-            cbn; intros ? MONO.
-            repeat norm_v.
-            2: apply MONO, In_add_eq.
-            cbn; repeat norm_v.
-            apply eutt_Ret.
-            do 3 f_equal.
-            admit. (* Bit of arithmetic to double check *)
-          }
-          {
-            apply ext_local_subalist.
-            etransitivity; eauto.
-            etransitivity; eauto.
-            apply sub_alist_add.
-            apply incLocal_is_fresh,conrete_fresh_fresh in PREF.
-            eapply PREF.
-            eauto.
-          }
+          do 3 f_equal.
+          admit. (* Bit of arithmetic to double check *)
+        }
+        {
+          apply ext_local_subalist.
+          etransitivity; eauto.
+          etransitivity; eauto.
+          apply sub_alist_add.
+          apply incLocal_is_fresh,conrete_fresh_fresh in PREF.
+          eapply PREF.
+          eauto.
+        }
 
     - (* NMin *)
       (* Non-implemented by the compiler *)
