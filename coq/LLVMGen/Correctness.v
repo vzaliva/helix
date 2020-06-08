@@ -68,7 +68,6 @@ Set Strict Implicit.
 
 Import MDSHCOLOnFloat64.
 Import D.
-(* IO.  *)
 Import ListNotations.
 Import MonadNotation.
 Local Open Scope monad_scope.
@@ -1362,12 +1361,6 @@ vars s1 = σ?
   Proof.
     intros * SUB; cbn; splits; auto.
   Qed.
-
-  Lemma interp_cfg_to_L3_Load : forall defs t a g l m val,
-      read m a t ≡ inr val ->
-      interp_cfg_to_L3 defs (trigger (Load t (DVALUE_Addr a))) g l m ≈ Ret (m,(l,(g,val))).
-  Proof.
-  Admitted.
 
   Lemma genNExpr_correct_ind :
     forall (* Compiler bits *) (s1 s2: IRState)
