@@ -1205,57 +1205,6 @@ vars s1 = σ?
     intros; rewrite typ_to_dtyp_equation; reflexivity.
   Qed. 
 
-  (* YZ TODO MOVE *)
-  Definition get_raw_id (id: ident): raw_id :=
-    match id with
-    | ID_Global x
-    | ID_Local x => x
-    end.
-
-  (* (** After updating the IRState with a fresh variable, *)
-  (*     a lookup returns either this new id, or something *)
-  (*     that could be found in the previous state. *)
-  (*  *) *)
-  (* Lemma Lu_incLocal : *)
-  (*   forall s s' id' id n τ, *)
-  (*     incLocal s ≡ inr (s', id') -> *)
-  (*     nth_error (vars s') n ≡ Some (id, τ) -> *)
-  (*     (id' <> get_raw_id id /\ nth_error (vars s) n ≡ Some (id, τ)) \/ *)
-  (*     (id' ≡ get_raw_id id /\ n ≡ length (vars s)). *)
-  (* Proof. *)
-  (*   intros * INC LU. *)
-  (*   destruct id as [id | id]. *)
-  (*   - (* Global case *) *)
-  (*     destruct (RelDec.rel_dec id id') eqn:EQ. *)
-  (*     rewrite RelDec.rel_dec_correct in EQ; subst. *)
-  (*     (* New *) *)
-  (*     right; split; auto. *)
-  (*     admit. *)
-  (*     (* Old *) *)
-  (*     left; split; [apply neg_rel_dec_correct in EQ; auto |]. *)
-  (*     unfold incLocal, incLocalNamed in *; cbn in *; inv_sum. *)
-  (*     cbn in *; auto. *)
-  (*   - (* Local case *) *)
-  (*     admit. *)
-  (*     (* destruct (RelDec.rel_dec id id') eqn:EQ. *) *)
-  (*     (* rewrite RelDec.rel_dec_correct in EQ; subst; auto. *) *)
-  (*     (* (* Old *) *) *)
-  (*     (* left; split; [apply neg_rel_dec_correct in EQ; auto |]. *) *)
-  (*     (* unfold incLocal, incLocalNamed in *; cbn in *; inv_sum. *) *)
-  (*     (* cbn in *; auto. *) *)
-  (* Admitted. *)
-
-  (* Lemma in_local_or_global_add_fresh_new : *)
-  (*   ∀ (id : raw_id) (l : local_env) (g : global_env) (x : ident) dv, *)
-  (*     id ≡ get_raw_id x → *)
-  (*     in_local_or_global (alist_add id dv l) g x (uvalue_to_dvalue dv). *)
-  (* Proof. *)
-  (*   intros * INEQ LUV'. *)
-  (*   destruct x; cbn in *; auto. *)
-  (*   rewrite rel_dec_neq_false; eauto; try typeclasses eauto.   *)
-  (*   rewrite remove_neq_alist; eauto; try typeclasses eauto. *)
-  (* Qed. *)
- 
   Lemma in_local_or_global_same_global : forall l g l' m id dv τ,
     in_local_or_global l g m (ID_Global id) dv τ ->
     in_local_or_global l' g m (ID_Global id) dv τ. 
@@ -1626,7 +1575,18 @@ vars s1 = σ?
         2: apply MONO, In_add_eq.
         cbn; repeat norm_v.
         apply eutt_Ret.
-        repeat f_equal; auto. 
+        repeat f_equal; auto.
+        break_inner_match_goal.
+        { (* POISON *)
+          admit.
+        }
+        cbn.
+        f_equal.
+        assert (l ⊑ l) by reflexivity.
+        specialize (EXPRI l H).
+
+        unfold MInt64asNT.NTypePlus, DynamicValues.Int64.add.
+
         admit. (* Bit of arithmetic to double check *)
       }
       {
@@ -2006,7 +1966,6 @@ Section MExpr.
 
       (*
       destruct Hsnth as (bk_helix & Hlookup & ptr_llvm & bk_llvm & Hfind & rest).
-
 
       repeat norm_h;
         try (apply memory_lookup_err_inr_Some_eq; eauto).
@@ -3250,8 +3209,6 @@ Qed.
 (*   auto. *)
 (* Qed. *)
 
-(* YZ TODO move  *)
-From Vellvm Require Import AstLib.
   (* Top-level compiler correctness lemma  *)
   Theorem compiler_correct:
     forall (p:FSHCOLProgram)
