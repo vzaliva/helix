@@ -42,7 +42,7 @@ install:
   - opam install -y --verbose -j 1 coq-metacoq-template
   - opam install -y --verbose -j 1 coq-switch
   - opam install -y --verbose -j 1 ANSITerminal
-  - opam pin -y --verbose -j 1 add coq-flocq 3.2.1
+  - opam install -y --verbose -j 1 coq-flocq
   - opam install -y --verbose -j 1 coq-paco
   - opam install -y --verbose -j 1 coq-ceres
   - opam install -y --verbose -j 1 menhir
