@@ -1156,13 +1156,13 @@ vars s1 = σ?
       We therefore instead carry the fact about the denotation of the expression in the invariant. (Is there another clever way?)
       TODO: how to make this (much) less ugly?
    *)
-  Definition genNexpr_exp_correct (e: exp typ) : Rel_cfg_T DynamicValues.int64 unit :=
-    fun '(_,i) '(memV,(l,(g,_))) =>
+  Definition genNExpr_exp_correct σ (nexp : NExpr) (e: exp typ) : Rel_cfg_T DynamicValues.int64 unit :=
+    fun '(_,i) '(memV,(l,(g,v))) =>
       forall l', l ⊑ l' ->
         Ret (memV,(l',(g,UVALUE_I64 i)))
         ≈
         with_err_LB
-        (interp_cfg (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] e))) g l' memV).
+        (interp_cfg (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] e))) g l' memV) /\ evalNExpr σ nexp ≡ inr i.
 
   (**
      We package the local specific invariants. Additionally to the evaluation of the resulting expression,
@@ -1170,12 +1170,14 @@ vars s1 = σ?
      allowed to be extended with fresh bindings.
    *)
   Record genNExpr_rel
+         (σ : evalContext)
+         (nexp : NExpr)
          (e : exp typ)
          (mi : memoryH) (sti : config_cfg)
          (mf : memoryH * DynamicValues.int64) (stf : config_cfg_T unit)
     : Prop :=
     {
-    exp_correct : genNexpr_exp_correct e mf stf;
+    exp_correct : genNExpr_exp_correct σ nexp e mf stf;
     monotone : ext_local mi sti mf stf
     }.
 
@@ -1321,7 +1323,7 @@ vars s1 = σ?
       genNExpr nexp s1 ≡ inr (s2, (e, c))      -> (* Compilation succeeds *)
       state_invariant σ s1 memH (memV, (l, g)) -> (* The main state invariant is initially true *)
 
-      eutt (lift_Rel_cfg (state_invariant σ s2) ⩕ genNExpr_rel e memH (mk_config_cfg memV l g))
+      eutt (lift_Rel_cfg (state_invariant σ s2) ⩕ genNExpr_rel σ nexp e memH (mk_config_cfg memV l g))
            (with_err_RB (interp_Mem (denoteNExpr σ nexp) memH))
            (with_err_LB (interp_cfg (denote_code (convert_typ [] c)) g l memV)).
   Proof.
@@ -1345,10 +1347,16 @@ vars s1 = σ?
          { (* Local *)
             apply eutt_Ret; split; eauto.
             constructor; eauto.
-            intros l' MONO; cbn*. repeat norm_v.
-            2: eapply memory_invariant_LLU; eauto.
-            2: eapply memory_invariant_ext_local; eauto.
-            cbn; repeat norm_v.
+            intros l' MONO; cbn*.
+            split.
+            { repeat norm_v.
+              2: eapply memory_invariant_LLU; eauto.
+              2: eapply memory_invariant_ext_local; eauto.
+              cbn; repeat norm_v.
+              reflexivity.
+            }
+
+            rewrite Heqo0.
             reflexivity.
           }
 
@@ -1377,9 +1385,14 @@ vars s1 = σ?
           -- split. 
              {
                intros l' MONO; cbn*.
-               repeat norm_v.
-               2: eapply MONO, In_add_eq.
-               cbn; repeat norm_v.
+               split.
+               { repeat norm_v.
+                 2: eapply MONO, In_add_eq.
+                 cbn; repeat norm_v.
+                 reflexivity.
+               }
+
+               rewrite Heqo0.
                reflexivity.
              } 
              {
@@ -1395,7 +1408,9 @@ vars s1 = σ?
       apply eutt_Ret.
       split; eauto.
       split; eauto.
-      intros l' MONO; cbn*; rewrite repr_intval; repeat norm_v.
+      intros l' MONO; cbn*.
+      split; try reflexivity.
+      rewrite repr_intval; repeat norm_v.
       reflexivity.
 
     - (* NDiv *)
@@ -1457,9 +1472,14 @@ vars s1 = σ?
       unfold IntType; rewrite typ_to_dtyp_I.
 
       repeat norm_v.
+      specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
       rewrite <- EXPRI; auto.
+
       repeat norm_v.
-      rewrite <- EXPRF; [| reflexivity].
+      assert (l1 ⊑ l1) as L1L1. reflexivity.
+      specialize (EXPRF _ L1L1) as [EXPRF EVAL_vH0].
+      rewrite <- EXPRF.
+      clear L1L1.
       repeat norm_v.
       cbn*. 
 
@@ -1478,12 +1498,22 @@ vars s1 = σ?
         split.
         {
           cbn; intros ? MONO.
-          repeat norm_v.
-          2: apply MONO, In_add_eq.
-          cbn; repeat norm_v.
-          apply eutt_Ret.
-          do 3 f_equal.
-          admit. (* Arithmetic *)
+          split.
+          { repeat norm_v.
+            2: apply MONO, In_add_eq.
+            cbn; repeat norm_v.
+            apply eutt_Ret.
+            do 3 f_equal.
+            
+            rewrite Heqs2 in EVAL_vH; inversion EVAL_vH.
+            rewrite Heqs3 in EVAL_vH0; inversion EVAL_vH0.
+            subst.
+            admit. (* Arithmetic *)
+          }
+
+          rewrite Heqs2.
+          rewrite Heqs3.
+          reflexivity.
         }
         {
           apply ext_local_subalist.
@@ -1554,9 +1584,14 @@ vars s1 = σ?
       unfold IntType; rewrite typ_to_dtyp_I.
 
       repeat norm_v.
+      specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
       rewrite <- EXPRI; auto.
+
       repeat norm_v.
-      rewrite <- EXPRF; [| reflexivity].
+      assert (l0 ⊑ l0) as L0L0 by reflexivity.
+      specialize (EXPRF _ L0L0) as [EXPRF EVAL_vH0].
+      rewrite <- EXPRF.
+      clear L0L0.
       repeat norm_v.
       cbn*.
       repeat norm_v.
@@ -1568,12 +1603,22 @@ vars s1 = σ?
       split.
       {
         cbn; intros ? MONO.
-        repeat norm_v.
-        2: apply MONO, In_add_eq.
-        cbn; repeat norm_v.
-        apply eutt_Ret.
-        do 3 f_equal.
-        admit. (* Bit of arithmetic to double check *)
+        split.
+        { repeat norm_v.
+          2: apply MONO, In_add_eq.
+          cbn; repeat norm_v.
+          apply eutt_Ret.
+          do 3 f_equal.
+
+          rewrite Heqs2 in EVAL_vH; inversion EVAL_vH.
+          rewrite Heqs3 in EVAL_vH0; inversion EVAL_vH0.
+          subst.
+          reflexivity.
+        }
+
+        rewrite Heqs2.
+        rewrite Heqs3.
+        reflexivity.
       }
       {
         apply ext_local_subalist.
@@ -1641,9 +1686,13 @@ vars s1 = σ?
       unfold IntType; rewrite typ_to_dtyp_I.
 
       repeat norm_v.
+      specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
       rewrite <- EXPRI; auto.
+
       repeat norm_v.
-      rewrite <- EXPRF; [| reflexivity].
+      assert (l1 ⊑ l1) as L1L1 by reflexivity.
+      specialize (EXPRF _ L1L1) as [EXPRF EVAL_vH0].
+      rewrite <- EXPRF.
       repeat norm_v.
       cbn*.
       repeat norm_v.
@@ -1655,12 +1704,22 @@ vars s1 = σ?
       split.
       {
         cbn; intros ? MONO.
-        repeat norm_v.
-        2: apply MONO, In_add_eq.
-        cbn; repeat norm_v.
-        apply eutt_Ret.
-        do 3 f_equal.
-        admit. (* Bit of arithmetic to double check *)
+        split.
+        { repeat norm_v.
+          2: apply MONO, In_add_eq.
+          cbn; repeat norm_v.
+          apply eutt_Ret.
+          do 3 f_equal.
+
+          rewrite Heqs2 in EVAL_vH; inversion EVAL_vH.
+          rewrite Heqs3 in EVAL_vH0; inversion EVAL_vH0.
+          subst.
+          reflexivity.
+        }
+
+        rewrite Heqs2.
+        rewrite Heqs3.
+        auto.
       }
       {
         apply ext_local_subalist.
@@ -1728,9 +1787,14 @@ vars s1 = σ?
       unfold IntType; rewrite typ_to_dtyp_I.
 
       repeat norm_v.
+      specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
       rewrite <- EXPRI; auto.
+
       repeat norm_v.
-      rewrite <- EXPRF; [| reflexivity].
+      assert (l1 ⊑ l1) as L1L1 by reflexivity.
+      specialize (EXPRF _ L1L1) as [EXPRF EVAL_vH0].
+      rewrite <- EXPRF.
+
       repeat norm_v.
       cbn*.
 
@@ -1746,12 +1810,21 @@ vars s1 = σ?
         split.
         {
           cbn; intros ? MONO.
-          repeat norm_v.
-          2: apply MONO, In_add_eq.
-          cbn; repeat norm_v.
-          apply eutt_Ret.
-          do 3 f_equal.
-          admit. (* Bit of arithmetic to double check *)
+          split. {
+            repeat norm_v.
+            2: apply MONO, In_add_eq.
+            cbn; repeat norm_v.
+            apply eutt_Ret.
+            do 3 f_equal.
+            rewrite Heqs2 in EVAL_vH; inversion EVAL_vH.
+            rewrite Heqs3 in EVAL_vH0; inversion EVAL_vH0.
+            subst.
+            reflexivity.
+          }
+
+          rewrite Heqs2.
+          rewrite Heqs3.
+          auto.
         }
         {
           apply ext_local_subalist.
