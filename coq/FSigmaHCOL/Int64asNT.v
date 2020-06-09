@@ -17,7 +17,15 @@ Open Scope string_scope.
 
 Module Int64 := Integers.Int64.
 
-(* =CarrierA= as =CarrierType= *)
+(* [nat] as [NType]
+
+We are using singed integer type here because LLVM does not make a
+distinction between signed and unsigned integer type, so both will be
+lowered to i64. The operations on the unsigned integer, though, will
+be translated according to the original type; e.g. a division between
+unsigned integers will be udiv while between signed will be sdiv
+
+*)
 Module MInt64asNT <: NType.
   Definition t := Int64.int.
 

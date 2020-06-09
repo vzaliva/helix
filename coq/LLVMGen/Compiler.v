@@ -260,8 +260,8 @@ Fixpoint genNExpr
                   raise ("NVar #" @@ string_of_nat n @@ " type mismatch in " @@ svars)
                 end
     | NConst v => ret (EXP_Integer (Int64.intval v), [])
-    | NDiv   a b => gen_binop a b (SDiv false)
-    | NMod   a b => gen_binop a b SRem
+    | NDiv   a b => gen_binop a b (UDiv false)
+    | NMod   a b => gen_binop a b URem
     | NPlus  a b => gen_binop a b (Add false false)
     | NMinus a b => gen_binop a b (Sub false false)
     | NMult  a b => gen_binop a b (Mul false false)
