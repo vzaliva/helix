@@ -2061,7 +2061,7 @@ Section AExpr.
       state_invariant σ s memH (memV, (ρ, g)) /\
       res ≡ UVALUE_Double b.
 
-  Hint Unfold R_AExpr.
+  Hint Unfold R_AExpr: core.
 
   (* TODO: move these *)
   Lemma context_lookup_inr__nth_some :
