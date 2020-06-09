@@ -2247,6 +2247,81 @@ Section OperatorProperies.
     reflexivity.
   Qed.
 
+  Lemma SHPointwise_preserves_Apply_Family_Single_NonUnit_Per_Row
+        {i1 o2 n: nat}
+        (fam : @SHOperatorFamily fm i1 o2 n svalue)
+        (H: Apply_Family_Single_NonUnit_Per_Row fm fam)
+        (f: FinNat o2 -> CarrierA -> CarrierA)
+        {f_mor: Proper (equiv ==> equiv ==> equiv) f}
+        (A: forall (i : nat) (ic : i<o2) (v : CarrierA), svalue ≠ f (mkFinNat ic) v -> svalue ≠ v):
+    Apply_Family_Single_NonUnit_Per_Row fm
+                                        (SHOperatorFamilyCompose
+                                           fm
+                                           (SHPointwise fm f (n:=o2))
+                                           fam).
+  Proof.
+    unfold Apply_Family_Single_NonUnit_Per_Row in *.
+    intros x.
+  
+    rewrite ApplyFamily_SHOperatorFamilyCompose.
+    specialize (H x).
+    generalize dependent (Apply_Family (get_family_op _ fam) x).
+    clear x.
+    intros x H.
+  
+    unfold transpose, row, Vnth_aux.
+    rewrite Vforall_Vbuild.
+    intros k kc.
+    rewrite Vmap_map.
+    simpl.
+    unfold Vunique.
+    intros j0 jc0 j1 jc1.
+    repeat rewrite Vnth_map.
+    intros [H0 H1].
+    rewrite SHPointwise_impl_nth in H0, H1.
+  
+  
+    unfold transpose, row, Vnth_aux in H.
+    rewrite Vforall_Vbuild in H.
+    specialize (H k kc).
+    unfold Vunique in H.
+    specialize (H j0 jc0 j1 jc1).
+  
+    repeat rewrite Vnth_map in H.
+    apply H. clear H.
+    unfold compose in *.
+    rewrite evalWriter_mkValue in H0,H1.
+  
+    split; eapply A; [apply H0 | apply H1].
+  Qed.
+  
+  (* Special case when results of 'g' comply to P. In tihs case we can discard 'g' *)
+  Lemma Apply_Family_Vforall_SHOperatorFamilyCompose_move_P
+        {P:Rtheta' fm → Prop}
+        {i1 o2 o3 n: nat}
+        (f: @SHOperator fm o2 o3 svalue)
+        (g: @SHOperatorFamily fm i1 o2 n svalue)
+    :
+      (forall x, Vforall P ((op fm f) x)) ->
+      Apply_Family_Vforall_P fm P (SHOperatorFamilyCompose fm f g).
+  Proof.
+    unfold Apply_Family_Vforall_P.
+    intros H x j jc.
+    apply Vforall_nth_intro.
+    intros t tc.
+  
+    unfold SHOperatorFamilyCompose.
+    unfold get_family_op.
+    simpl.
+  
+    unfold compose.
+    generalize (op fm (g (mkFinNat jc)) x).
+    clear x. intros x.
+    specialize (H x).
+    eapply Vforall_nth in H.
+    apply H.
+  Qed.
+
 End OperatorProperies.
 
 Section StructuralProperies.
@@ -3362,4 +3437,3 @@ Section StructuralProperies.
   Qed.
 
 End StructuralProperies.
-
