@@ -1508,7 +1508,7 @@ vars s1 = σ?
             rewrite Heqs2 in EVAL_vH; inversion EVAL_vH.
             rewrite Heqs3 in EVAL_vH0; inversion EVAL_vH0.
             subst.
-            admit. (* Arithmetic *)
+            reflexivity.
           }
 
           rewrite Heqs2.
