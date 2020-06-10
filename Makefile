@@ -2,7 +2,7 @@ LIBNAME := Helix
 
 .SUFFIXES:
 
-.PHONY: default config clean clean-dep clean-ml distclean clean-doc tags doc install-doc install-dist install-dep targz graph wc print-unused extracted all run test update-vellvm vellvm-update benchmark timing wc dep-versions
+.PHONY: default config clean clean-dep clean-ml distclean clean-doc tags doc install-doc install-dist install-deps targz graph wc print-unused extracted all run test update-vellvm vellvm-update benchmark timing wc dep-versions
 
 # parse the -j flag if present, set jobs to 1 oterwise
 JFLAG=$(patsubst -j%,%,$(filter -j%,$(MFLAGS)))
@@ -65,7 +65,7 @@ $(EXE): extracted ml/dune ml/extracted/dune ml/testeval.ml
 test: $(EXE)
 	ml/_build/default/testeval.exe
 
-install-dep:
+install-deps:
 	opam install --jobs=$(JOBS) $(OPAMPKGS)
 
 dep-versions:
