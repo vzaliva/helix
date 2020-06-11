@@ -141,7 +141,13 @@ Module MDSigmaHCOLEval
       else
         av <- evalNExpr σ a ;;
         ret (NTypeDiv av bv)
-    | NMod a b   => liftM2 NTypeMod   (evalNExpr σ a) (evalNExpr σ b)
+    | NMod a b   =>
+      bv <- evalNExpr σ b ;;
+      if NTypeEqDec bv NTypeZero then
+        raise "Mod by 0"
+      else
+        av <- evalNExpr σ a ;;
+        ret (NTypeMod av bv)
     | NPlus a b  => liftM2 NTypePlus  (evalNExpr σ a) (evalNExpr σ b)
     | NMinus a b => liftM2 NTypeMinus (evalNExpr σ a) (evalNExpr σ b)
     | NMult a b  => liftM2 NTypeMult  (evalNExpr σ a) (evalNExpr σ b)
@@ -753,7 +759,11 @@ Module MDSigmaHCOLEval
       inl_inr_inv; rewrite e in IHEe2; crush.
       inl_inr_inv; rewrite e in IHEe2; crush.
       proper_eval2 IHEe1 IHEe2.
-    - proper_eval2 IHEe1 IHEe2.
+    - 
+      repeat break_match; try inl_inr; try auto; try constructor.
+      inl_inr_inv; rewrite e in IHEe2; crush.
+      inl_inr_inv; rewrite e in IHEe2; crush.
+      proper_eval2 IHEe1 IHEe2.
     - proper_eval2 IHEe1 IHEe2.
     - proper_eval2 IHEe1 IHEe2.
     - proper_eval2 IHEe1 IHEe2.

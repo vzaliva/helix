@@ -1324,6 +1324,9 @@ Section BinCarrierA.
         2:{
           admit. (* TODO: for @zoickx *)
         }
+        4:{
+          admit. (* TODO: for @zoickx *)
+        }
         all: constructor.
       -
         unfold NatAsNT.MNatAsNT.to_nat in *.
@@ -1352,6 +1355,10 @@ Section BinCarrierA.
           (* inductive *)
           all: cbn.
           all: repeat break_match; try inl_inr; repeat inl_inr_inv; try constructor.
+          admit. (* TODO @zoickx *)
+          admit. (* TODO @zoickx *)
+          2: admit. (* TODO @zoickx *)
+          2: admit. (* TODO @zoickx *)
           all: rewrite IHn1, IHn2; reflexivity.
         }
 
@@ -1379,7 +1386,7 @@ Section BinCarrierA.
     all: repeat break_match; try reflexivity; try some_none; try inl_inr.
     all: try apply IHdf; try apply IHdf1; try apply IHdf2.
     all: constructor.
-  Qed.
+  Admitted.
 
   Lemma evalIBinCarrierA_value_independent
         (mem : memory)
@@ -1441,6 +1448,8 @@ Section BinCarrierA.
         (* inductive *)
         all: repeat break_match; try reflexivity; try some_none; try inl_inr.
         all: try apply IHe; try apply IHe1; try apply IHe2.
+        2: admit. (* TODO: zoickx *)
+        4: admit. (* TODO: zoickx *)
         all: constructor.
       -
         unfold NatAsNT.MNatAsNT.to_nat in *.
@@ -1470,6 +1479,9 @@ Section BinCarrierA.
           (* inductive *)
           all: cbn.
           all: repeat break_match; try inl_inr; repeat inl_inr_inv; try constructor.
+          admit. (* TODO: zoickx *)
+          admit. (* TODO: zoickx *)
+          2-3: admit. (* TODO: zoickx *)
           all: rewrite IHn1, IHn2; reflexivity.
         }
 
@@ -1498,7 +1510,7 @@ Section BinCarrierA.
     all: repeat break_match; try reflexivity; try some_none; try inl_inr.
     all: try apply IHdf; try apply IHdf1; try apply IHdf2.
     all: constructor.
-  Qed.
+  Admitted.
 
   Lemma evalDSHIMap_is_OK_inv
         {mem : memory}
