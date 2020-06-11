@@ -17,7 +17,7 @@ Open Scope string_scope.
 
 Module Int64 := Integers.Int64.
 
-(* [nat] as [NType]
+(* [Int64.int] as [NType]
 
 We are using singed integer type here because LLVM does not make a
 distinction between signed and unsigned integer type, so both will be
