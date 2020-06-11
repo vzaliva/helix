@@ -16,6 +16,8 @@ Module MNatAsNT <: NType.
 
   Instance NTypeEqDec: forall x y: t, Decision (x = y) := nat_dec.
 
+  Definition NTypeZero := O.
+
   (* could always be converted to `nat` *)
   Definition to_nat (n:t) : nat := n.
   Instance to_nat_proper: Proper ((=) ==> (=)) to_nat.

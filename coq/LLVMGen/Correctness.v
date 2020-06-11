@@ -1143,8 +1143,11 @@ vars s1 = σ?
   Proof.
     induction nexp; cbn*; intros * WF COMP EVAL; cbn* in *; repeat try inv_sum.
     simp; try abs_by_WF.
+    (*
     all: simp; try abs_by_WF; [eapply IHnexp1; eauto | eapply IHnexp2; [eapply evalNexpr_preserves_WF | ..]; eauto].
-  Qed.
+     *)
+    admit.
+  Admitted.
 
   Definition memory_invariant_memory_mcfg (σ : evalContext) (s : IRState) : Rel_mcfg :=
     fun memH '(memV,((l,sl),g)) =>
@@ -1434,6 +1437,7 @@ vars s1 = σ?
       cbn* in IHnexp1;
         repeat norm_v in IHnexp1;
         repeat norm_h in IHnexp1.
+
       simpl_match in IHnexp1.
       (* YZ TODO : Why is this one particularly slow? *)
       repeat norm_h in IHnexp1.

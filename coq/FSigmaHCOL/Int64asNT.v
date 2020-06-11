@@ -95,6 +95,8 @@ Module MInt64asNT <: NType.
       congruence.
   Qed.
 
+  Definition NTypeZero := Int64.zero.
+
   Definition from_Z (z:BinInt.Z): err t :=
     match ZArith_dec.Z_lt_dec (BinNums.Zneg BinNums.xH) z with
     | left H0 =>

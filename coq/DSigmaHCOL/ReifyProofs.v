@@ -1321,6 +1321,9 @@ Section BinCarrierA.
         (* inductive *)
         all: repeat break_match; try reflexivity; try some_none; try inl_inr.
         all: try apply IHe; try apply IHe1; try apply IHe2.
+        2:{
+          admit. (* TODO: for @zoickx *)
+        }
         all: constructor.
       -
         unfold NatAsNT.MNatAsNT.to_nat in *.

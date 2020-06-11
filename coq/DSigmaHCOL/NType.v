@@ -12,6 +12,9 @@ Module Type NType.
   Declare Instance NTypeEquiv: Equiv t.
   Declare Instance NTypeSetoid: @Setoid t NTypeEquiv.
 
+  (* Values *)
+  Parameter NTypeZero: t.
+
   (* Decidable equiality *)
   Declare Instance NTypeEqDec: forall x y: t, Decision (x = y).
 

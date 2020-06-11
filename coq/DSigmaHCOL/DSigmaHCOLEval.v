@@ -129,12 +129,18 @@ Module MDSigmaHCOLEval
   Fixpoint evalNExpr (σ: evalContext) (e:NExpr): err NT.t :=
     match e with
     | NVar i => v <- (context_lookup "NVar not found" σ i) ;;
-                 (match v with
-                  | DSHnatVal x => ret x
-                  | _ => raise "invalid NVar type"
-                  end)
+               (match v with
+                | DSHnatVal x => ret x
+                | _ => raise "invalid NVar type"
+                end)
     | NConst c => ret c
-    | NDiv a b   => liftM2 NTypeDiv   (evalNExpr σ a) (evalNExpr σ b)
+    | NDiv a b =>
+      bv <- evalNExpr σ b ;;
+      if NTypeEqDec bv NTypeZero then
+        raise "Division by 0"
+      else
+        av <- evalNExpr σ a ;;
+        ret (NTypeDiv av bv)
     | NMod a b   => liftM2 NTypeMod   (evalNExpr σ a) (evalNExpr σ b)
     | NPlus a b  => liftM2 NTypePlus  (evalNExpr σ a) (evalNExpr σ b)
     | NMinus a b => liftM2 NTypeMinus (evalNExpr σ a) (evalNExpr σ b)
@@ -742,7 +748,11 @@ Module MDSigmaHCOLEval
       rewrite H.
       constructor.
       reflexivity.
-    - proper_eval2 IHEe1 IHEe2.
+    -
+      repeat break_match; try inl_inr; try auto; try constructor.
+      inl_inr_inv; rewrite e in IHEe2; crush.
+      inl_inr_inv; rewrite e in IHEe2; crush.
+      proper_eval2 IHEe1 IHEe2.
     - proper_eval2 IHEe1 IHEe2.
     - proper_eval2 IHEe1 IHEe2.
     - proper_eval2 IHEe1 IHEe2.
