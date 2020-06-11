@@ -7,7 +7,7 @@ Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.implementations.peano_naturals.
 
-(* =CarrierA= as =CarrierType= *)
+(* [nat] as [NType] *)
 Module MNatAsNT <: NType.
   Definition t := nat.
 
