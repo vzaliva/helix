@@ -1525,7 +1525,116 @@ vars s1 = σ?
           eauto.
         }
 
-    - admit.
+    - (*NMod *)
+      cbn* in COMPILE; simp.
+
+      (* YZ TODO Ltac for this *)
+      generalize Heqs; intros WFI; eapply evalNexpr_preserves_WF in WFI; eauto.
+
+      eutt_hide_right.
+      unfold denoteNExpr in *; cbn*.
+
+      break_inner_match_goal; [| break_inner_match_goal];
+        try (exfalso; match goal with | h: genNExpr _ _ ≡ _ |- _ => eapply evalNexpr_WF_no_fail in h; now eauto end).
+
+      repeat norm_h.
+      (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
+      specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE).
+
+      cbn* in IHnexp1;
+        repeat norm_v in IHnexp1;
+        repeat norm_h in IHnexp1.
+      simpl_match in IHnexp1.
+      (* YZ TODO : Why is this one particularly slow? *)
+      repeat norm_h in IHnexp1.
+
+      subst.
+      cbn*.
+      rewrite convert_typ_app, denote_code_app.
+      repeat norm_v.
+      subst.
+      ret_bind_l_left (memH,i2).
+      eapply eutt_clo_bind; [eassumption | clear IHnexp1].
+
+      introR; destruct_unit.
+      destruct PRE0 as [PREI (EXPRI & <- & <- & <- & MONOI)].
+      cbn in *.
+
+      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI).
+
+      cbn* in IHnexp2;
+        repeat norm_v in IHnexp2;
+        repeat norm_h in IHnexp2.
+      simpl_match in IHnexp2.
+      repeat norm_h in IHnexp2.
+
+      rewrite convert_typ_app, denote_code_app.
+      repeat norm_v.
+      subst.
+      ret_bind_l_left (memH,i3).
+      eapply eutt_clo_bind; [eassumption | clear IHnexp2].
+
+      introR; destruct_unit.
+      destruct PRE0 as [PREF (EXPRF & <- & <- & <- & MONOF)].
+      (* cbn takes 5seconds instead of doing this instantaneously... *)
+      simpl in *.
+      repeat norm_v.
+      simpl in *; unfold eval_op; simpl.
+      unfold IntType; rewrite typ_to_dtyp_I.
+
+      repeat norm_v.
+      specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
+      rewrite <- EXPRI; auto.
+
+      repeat norm_v.
+      assert (l1 ⊑ l1) as L1L1. reflexivity.
+      specialize (EXPRF _ L1L1) as [EXPRF EVAL_vH0].
+      rewrite <- EXPRF.
+      clear L1L1.
+      repeat norm_v.
+      cbn*. 
+
+      break_inner_match_goal.
+
+      + (* Division by 0 *)
+        admit.
+
+      + (* Good old division *)
+        repeat norm_v.
+        rewrite interp_cfg_to_L3_LW.
+        cbn; repeat norm_v.
+        apply eutt_Ret.
+        split.
+        cbn. eapply state_invariant_add_fresh; eauto; reflexivity.
+        split.
+        {
+          cbn; intros ? MONO.
+          split.
+          { repeat norm_v.
+            2: apply MONO, In_add_eq.
+            cbn; repeat norm_v.
+            apply eutt_Ret.
+            do 3 f_equal.
+            
+            rewrite Heqs2 in EVAL_vH; inversion EVAL_vH.
+            rewrite Heqs3 in EVAL_vH0; inversion EVAL_vH0.
+            subst.
+            reflexivity.
+          }
+
+          rewrite Heqs2.
+          rewrite Heqs3.
+          reflexivity.
+        }
+        {
+          apply ext_local_subalist.
+          etransitivity; eauto.
+          etransitivity; eauto.
+          apply sub_alist_add.
+          apply incLocal_is_fresh,conrete_fresh_fresh in PREF.
+          eapply PREF.
+          eauto.
+        }
 
     - (* NAdd *)
       rename g into g1, l into l1, memV into memV1.
@@ -1800,7 +1909,7 @@ vars s1 = σ?
 
       break_inner_match_goal.
       + (* 64 = 1, I conjecture an easy to prove absurdity *)
-        admit.
+        inversion e.
       + cbn; repeat norm_v.
         rewrite interp_cfg_to_L3_LW.
         cbn*; repeat norm_v.
@@ -2018,28 +2127,47 @@ Section MExpr.
       destruct v; cbn in Hirtyp; try (now (destruct i; inv Hirtyp)).
       inv_sum.
       eapply INV in Hsnth; eauto.
-      admit.
 
-      (*
-      destruct Hsnth as (bk_helix & Hlookup & ptr_llvm & bk_llvm & Hfind & rest).
+      cbn.
+      destruct (DSHPtrVal a size) eqn:Hptr; inversion Hptr;
+      destruct Hsnth as (bk_helix & ptr_llvm & LUP & Hfind & rest).
 
-      repeat norm_h;
-        try (apply memory_lookup_err_inr_Some_eq; eauto).
+      repeat norm_h.
+      2: apply memory_lookup_err_inr_Some_eq; apply LUP.
 
-      (* Simplify right hand side *)
-      cbn*.
-      repeat norm_v; cbn*.
-      destruct i as [id | id] eqn:Hi; cbn; repeat norm_v; try apply Hfind.
-      all: cbn*; repeat norm_v.
-      all: apply eqit_Ret; split; [split; eauto |].
+      pose proof Hfind as Hfind'.
+      unfold in_local_or_global in Hfind.
+      destruct i eqn:Hi.
+      + (* Global *)
+        destruct Hfind as (ptr & τ' & TYP & GLOB & READ).
+        cbn; repeat norm_v; eauto; cbn; repeat norm_v; cbn.
+        apply eqit_Ret.
 
-      unfold invariant_MExpr. 
-      exists ptr_llvm, i, vid, a, size, sz;
-        subst; cbn; intuition.
-      
-      admit.
-      admit.
-      *)
+        unfold lift_Rel_cfg.
+        unfold conj_rel.
+        split.
+        * split; auto.
+        * split with (x:=ptr).
+          exists i. exists vid. exists a. exists size. exists sz.
+          subst.
+          repeat (split; auto).
+          unfold memory_invariant in INV.
+          unfold concrete_fresh_inv in INC.
+          admit.
+          admit.
+      + (* Local *)
+        cbn; repeat norm_v; eauto; cbn; repeat norm_v; cbn.
+        apply eqit_Ret.
+
+        unfold lift_Rel_cfg.
+        unfold conj_rel.
+        split.
+        * split; auto.
+        * split with (x:=ptr_llvm).
+          exists i. exists vid. exists a. exists size. exists sz.
+          subst.
+          repeat (split; auto).
+          admit.
     - repeat norm_h; repeat norm_v.
       cbn in Hgen. inversion Hgen.
   Admitted.
