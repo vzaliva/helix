@@ -775,9 +775,9 @@ Ltac eutt_hide_right :=
     |- eutt _ _ ?t => remember t
   end.
 
-Ltac eutt_hide_rel :=
+Ltac eutt_hide_rel H :=
   match goal with
-    |- eutt ?r _ _ => remember r
+    |- eutt ?r _ _ => remember r as H
   end.
 
 Ltac hide_string_goal :=
@@ -3138,10 +3138,9 @@ Lemma memory_invariant_after_init
                        [] ([],[]) empty_memory_stack)
       ).
 Proof.
-  (*
   intros hmem σ s hdata pll [HI LI].
 
-  (* unfold memory_invariant_MCFG, memory_invariant. *)
+  unfold state_invariant_mcfg.
   unfold helix_intial_memory in *.
   cbn in HI.
   repeat break_match_hyp ; try inl_inr.
@@ -3149,12 +3148,11 @@ Proof.
   inv HI.
   cbn in LI.
   unfold ErrorWithState.err2errS in LI.
-  cbn in LI.
+  eutt_hide_rel R.
+  repeat break_match_hyp; try inl_inr;
+    inversion_clear LI;
+    repeat inv_sum ; [inv Heqs5|inv Heqs5|].
 
-  eutt_hide_rel.
-  repeat break_match_hyp; try inl_inr.
-  inversion_clear LI.
-  repeat inv_sum.
   repeat rewrite app_assoc.
 
   rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
@@ -3172,17 +3170,33 @@ Proof.
                [DSHPtrVal (S (Datatypes.length globals)) o;
                 DSHPtrVal (Datatypes.length globals) i])%list as e.
 
+
   repeat rewrite ListUtil.flat_map_app.
   simpl.
   (* no more [genMain] *)
-  clear Heqs6 Heqs4 i0 i1 l4 b.
-  rename p3 into body_instr.
+
+  unfold ret in Heqs5 . cbn in Heqs5. inv_sum.
+  destruct i4. cbn in Heql7. subst vars.
+
+  rename p10 into body_instr.
   rename m1 into mi, m0 into mo.
 
-  apply eutt_clo_bind with (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg e s)) _ _ ).
+  cbn in *.
+
+  assert(R0: Rel_mcfg) by
+      exact (λ memH '(memV, (l,_,g)),
+             state_invariant
+               (eg ++
+                   [DSHPtrVal (S (Datatypes.length globals)) o;
+                    DSHPtrVal (Datatypes.length globals) i]) s memH
+               (memV, (l, g))).
+
+  apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
   -
     (* allocate_global *)
-    clear body_instr.
+    clear body_instr Heqs9 p6 p7 l5.
+    clear_all.
+    (*
     induction globals.
     +
       cbn in G. inv G.
@@ -3220,7 +3234,7 @@ Proof.
           {
             (* because length σ = length (vars s). Need some lemma for that.
                Probably follows from [WF_IRState]
-             *)
+     *)
             admit.
           }
           destruct n.
@@ -3284,11 +3298,13 @@ Proof.
         admit.
    +
       admit.
+     *)
+    admit.
   -
     intros u1 u2 H.
     rewrite translate_bind.
     rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
-    apply eutt_clo_bind with (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg e s)) _ _ ).
+    apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
     +
       repeat break_let.
       rewrite interp_to_L3_ret.
@@ -3304,13 +3320,13 @@ Proof.
       rewrite interp_to_L3_bind.
       rewrite translate_bind.
       rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
-      apply eutt_clo_bind with (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg e s)) _ _ ).
+      apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
       *
         cbn.
         rewrite interp_to_L3_bind.
         rewrite translate_bind.
         rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
-        apply eutt_clo_bind with (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg e s)) _ _ ).
+        apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
         --
           (* allocate_declaration *)
           admit.
@@ -3333,7 +3349,7 @@ Proof.
         rewrite interp_to_L3_bind.
         rewrite translate_bind.
         rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
-        apply eutt_clo_bind with (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg e s)) _ _ ).
+        apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
         --
           (* initialize_global *)
           admit.
@@ -3347,7 +3363,6 @@ Proof.
           unfold lift_Rel_mcfg in *.
           repeat break_let.
           auto.
-*)
 Admitted.
 
 (* with init step  *)
