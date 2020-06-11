@@ -351,7 +351,7 @@ Section WF_IRState.
     unfold WF_IRState in WF.
     apply Forall2_length in WF.
     apply ListNth.nth_error_length_lt in LU_SIGMA.
-    rewrite WF in LU_SIGMA. 
+    rewrite WF in LU_SIGMA.
     apply nth_error_succeeds in LU_SIGMA.
     destruct LU_SIGMA as [a Hnth'].
     rewrite Hnth' in LU_IR; inv LU_IR.
@@ -450,6 +450,7 @@ Section WF_IRState.
     intros * WF LU_IR LU_SIGMA.
     eapply Forall2_Nth in WF; eauto; cbn in *; eauto.
   Qed.
+      
 
   Lemma WF_IRState_one_of_local_type:
     forall σ x τ s n,
@@ -2126,20 +2127,24 @@ Section MExpr.
       rewrite Hnth.
       destruct v; cbn in Hirtyp; try (now (destruct i; inv Hirtyp)).
       inv_sum.
-      eapply INV in Hsnth; eauto.
+      pose proof Hsnth as Hsnth'.
+      eapply INV in Hsnth'; eauto.
 
       cbn.
       destruct (DSHPtrVal a size) eqn:Hptr; inversion Hptr;
-      destruct Hsnth as (bk_helix & ptr_llvm & LUP & Hfind & rest).
+      destruct Hsnth' as (bk_helix & ptr_llvm & LUP & Hfind & rest).
 
       repeat norm_h.
       2: apply memory_lookup_err_inr_Some_eq; apply LUP.
 
       pose proof Hfind as Hfind'.
       unfold in_local_or_global in Hfind.
+
       destruct i eqn:Hi.
       + (* Global *)
         destruct Hfind as (ptr & τ' & TYP & GLOB & READ).
+        inversion TYP; subst τ'.
+        cbn in READ.
         cbn; repeat norm_v; eauto; cbn; repeat norm_v; cbn.
         apply eqit_Ret.
 
@@ -2151,10 +2156,9 @@ Section MExpr.
           exists i. exists vid. exists a. exists size. exists sz.
           subst.
           repeat (split; auto).
-          unfold memory_invariant in INV.
-          unfold concrete_fresh_inv in INC.
-          admit.
-          admit.
+          -- cbn in Hirtyp. inversion Hirtyp.
+             subst. cbn. (* This is unprovable *)
+             admit.
       + (* Local *)
         cbn; repeat norm_v; eauto; cbn; repeat norm_v; cbn.
         apply eqit_Ret.
@@ -2165,9 +2169,8 @@ Section MExpr.
         * split; auto.
         * split with (x:=ptr_llvm).
           exists i. exists vid. exists a. exists size. exists sz.
-          subst.
+          subst;
           repeat (split; auto).
-          admit.
     - repeat norm_h; repeat norm_v.
       cbn in Hgen. inversion Hgen.
   Admitted.
@@ -3217,7 +3220,7 @@ Proof.
       *
         (* "o" init *)
         rewrite interp_to_L3_bind.
-        rewrite interp_to_L3_alloca. 
+        rewrite interp_to_L3_alloca.
         cbn; norm_v.
         rewrite interp_to_L3_GW.
         cbn; norm_v.
