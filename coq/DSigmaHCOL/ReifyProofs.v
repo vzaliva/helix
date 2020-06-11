@@ -1263,6 +1263,35 @@ Section BinCarrierA.
       assumption.
   Qed.
 
+  Lemma evalNExpr_cons_CTypeVal (a b : CarrierA) (σ1 σ2 : evalContext) (n : NExpr) :
+    (forall n', evalNExpr σ1 n' = evalNExpr σ2 n') ->
+    evalNExpr (DSHCTypeVal a :: σ1) n = evalNExpr (DSHCTypeVal b :: σ2) n.
+  Proof.
+    intros.
+    induction n.
+
+    (* base case 1 *)
+    destruct v; [constructor |].
+    specialize (H (NVar v)).
+    cbn in *.
+    unfold context_lookup in *.
+    repeat rewrite ListUtil.nth_error_Sn.
+    assumption.
+
+    (* base case 2 *)
+    reflexivity.
+
+    (* inductive cases *)
+    all: cbn.
+    all: destruct (evalNExpr (DSHCTypeVal a :: σ1) n1),
+                  (evalNExpr (DSHCTypeVal a :: σ1) n2),
+                  (evalNExpr (DSHCTypeVal b :: σ2) n1),
+                  (evalNExpr (DSHCTypeVal b :: σ2) n2); try inl_inr; try constructor.
+    all: repeat inl_inr_inv; cbv in IHn1, IHn2; subst.
+    all: try reflexivity.
+    all: break_match; constructor.
+  Qed.
+      
   Lemma evalIUnCarrierA_value_independent
         (mem : memory)
         (σ : evalContext)
@@ -1322,10 +1351,22 @@ Section BinCarrierA.
         all: repeat break_match; try reflexivity; try some_none; try inl_inr.
         all: try apply IHe; try apply IHe1; try apply IHe2.
         2:{
-          admit. (* TODO: for @zoickx *)
+          exfalso.
+          clear Heqd Heqd0 IHe1 IHe2 H.
+          enough (inr n1 = inr n0) by (inl_inr_inv; congruence).
+          rewrite <-Heqs, <-Heqs0.
+          clear.
+          apply evalNExpr_cons_CTypeVal.
+          reflexivity.
         }
         4:{
-          admit. (* TODO: for @zoickx *)
+          exfalso.
+          clear Heqd Heqd0 IHe1 IHe2 H.
+          enough (inr n1 = inr n0) by (inl_inr_inv; congruence).
+          rewrite <-Heqs, <-Heqs0.
+          clear.
+          apply evalNExpr_cons_CTypeVal.
+          reflexivity.
         }
         all: constructor.
       -
@@ -1355,10 +1396,7 @@ Section BinCarrierA.
           (* inductive *)
           all: cbn.
           all: repeat break_match; try inl_inr; repeat inl_inr_inv; try constructor.
-          admit. (* TODO @zoickx *)
-          admit. (* TODO @zoickx *)
-          2: admit. (* TODO @zoickx *)
-          2: admit. (* TODO @zoickx *)
+          1,2,4,5: cbv in IHn2; subst; congruence.
           all: rewrite IHn1, IHn2; reflexivity.
         }
 
@@ -1386,7 +1424,7 @@ Section BinCarrierA.
     all: repeat break_match; try reflexivity; try some_none; try inl_inr.
     all: try apply IHdf; try apply IHdf1; try apply IHdf2.
     all: constructor.
-  Admitted.
+  Qed.
 
   Lemma evalIBinCarrierA_value_independent
         (mem : memory)
@@ -1448,8 +1486,24 @@ Section BinCarrierA.
         (* inductive *)
         all: repeat break_match; try reflexivity; try some_none; try inl_inr.
         all: try apply IHe; try apply IHe1; try apply IHe2.
-        2: admit. (* TODO: zoickx *)
-        4: admit. (* TODO: zoickx *)
+        2: {
+          exfalso; clear - n2 e Heqs0 Heqs.
+          enough (inr n1 = inr n0) by (inl_inr_inv; congruence).
+          rewrite <-Heqs, <-Heqs0; clear.
+          generalize (DSHnatVal n :: σ); clear σ; intro σ.
+          apply evalNExpr_cons_CTypeVal; intro.
+          apply evalNExpr_cons_CTypeVal; intro.
+          reflexivity.
+        }
+        4: {
+          exfalso; clear - n2 e Heqs0 Heqs.
+          enough (inr n1 = inr n0) by (inl_inr_inv; congruence).
+          rewrite <-Heqs, <-Heqs0; clear.
+          generalize (DSHnatVal n :: σ); clear σ; intro σ.
+          apply evalNExpr_cons_CTypeVal; intro.
+          apply evalNExpr_cons_CTypeVal; intro.
+          reflexivity.
+        }
         all: constructor.
       -
         unfold NatAsNT.MNatAsNT.to_nat in *.
@@ -1479,9 +1533,7 @@ Section BinCarrierA.
           (* inductive *)
           all: cbn.
           all: repeat break_match; try inl_inr; repeat inl_inr_inv; try constructor.
-          admit. (* TODO: zoickx *)
-          admit. (* TODO: zoickx *)
-          2-3: admit. (* TODO: zoickx *)
+          1,2,4,5: cbv in IHn2; subst; congruence.
           all: rewrite IHn1, IHn2; reflexivity.
         }
 
@@ -1510,7 +1562,7 @@ Section BinCarrierA.
     all: repeat break_match; try reflexivity; try some_none; try inl_inr.
     all: try apply IHdf; try apply IHdf1; try apply IHdf2.
     all: constructor.
-  Admitted.
+  Qed.
 
   Lemma evalDSHIMap_is_OK_inv
         {mem : memory}
