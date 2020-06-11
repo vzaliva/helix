@@ -400,7 +400,7 @@ Section WF_IRState.
   Proof.
     intros * WF LU_IR.
     unfold WF_IRState in WF.
-    eapply Forall2_Nth_right in LU_IR; eauto. 
+    eapply Forall2_Nth_right in LU_IR; eauto.
     destruct LU_IR as (x & Hnth & Htype).
     destruct x as [n0 | |]; try solve [inversion Htype].
     eexists; eauto.
@@ -417,7 +417,7 @@ Section WF_IRState.
   Proof.
     intros * WF LU_IR.
     unfold WF_IRState in WF.
-    eapply Forall2_Nth_right in LU_IR; eauto. 
+    eapply Forall2_Nth_right in LU_IR; eauto.
     destruct LU_IR as (x & Hnth & Htype).
     destruct x as [n0 | |]; try solve [inversion Htype].
     eexists; eauto.
@@ -434,7 +434,7 @@ Section WF_IRState.
   Proof.
     intros * WF LU_IR.
     unfold WF_IRState in WF.
-    eapply Forall2_Nth_right in LU_IR; eauto. 
+    eapply Forall2_Nth_right in LU_IR; eauto.
     destruct LU_IR as (x & Hnth & Htype).
     destruct x as [n0 | |]; try (destruct id; solve [inversion Htype]).
     do 2 eexists; eauto.
@@ -450,7 +450,7 @@ Section WF_IRState.
     intros * WF LU_IR LU_SIGMA.
     eapply Forall2_Nth in WF; eauto; cbn in *; eauto.
   Qed.
-      
+
 
   Lemma WF_IRState_one_of_local_type:
     forall σ x τ s n,
@@ -564,7 +564,7 @@ Section SimulationRelations.
         nth_error σ n ≡ Some v ->
         nth_error (vars s) n ≡ Some (x,τ) ->
         match v with
-        | DSHnatVal v   => in_local_or_global ρ g mem_llvm x (dvalue_of_int v) τ  
+        | DSHnatVal v   => in_local_or_global ρ g mem_llvm x (dvalue_of_int v) τ
         | DSHCTypeVal v => in_local_or_global ρ g mem_llvm x (dvalue_of_bin v) τ
         | DSHPtrVal ptr_helix ptr_size_helix =>
           exists bk_helix ptr_llvm,
@@ -596,7 +596,7 @@ Section SimulationRelations.
              read memV ptr (typ_to_dtyp [] t) ≡ inr (dvalue_to_uvalue (DVALUE_I64 n)).
   Proof.
     intros * INV NTH LU; cbn* in *.
-    eapply INV in LU; clear INV; eauto. 
+    eapply INV in LU; clear INV; eauto.
     destruct LU as (ptr & τ & EQ & LU & READ); inv EQ.
     exists ptr; split; auto.
     cbn in *.
@@ -628,7 +628,7 @@ Section SimulationRelations.
       forall id v n, alist_In id l v -> n >= local_count s -> id <> Name ("l" @@ string_of_nat n).
 
   (* We need to preserve the concrete invariant, but it is sufficient to get the abstract one of interest *)
-  Lemma conrete_fresh_fresh: forall s memV l g,
+  Lemma concrete_fresh_fresh: forall s memV l g,
       concrete_fresh_inv s (memV,(l,g)) ->
       incLocal_fresh l s.
   Proof.
@@ -639,7 +639,7 @@ Section SimulationRelations.
     | |- ?x ≡ None => destruct x eqn:EQ; auto; exfalso
     end.
     eapply FRESH; eauto.
-  Qed. 
+  Qed.
 
   (** ** General state invariant
       The main invariant carried around combine the three properties defined:
@@ -1210,11 +1210,11 @@ vars s1 = σ?
   Lemma typ_to_dtyp_I : forall s i, typ_to_dtyp s (TYPE_I i) ≡ DTYPE_I i.
   Proof.
     intros; rewrite typ_to_dtyp_equation; reflexivity.
-  Qed. 
+  Qed.
 
   Lemma in_local_or_global_same_global : forall l g l' m id dv τ,
     in_local_or_global l g m (ID_Global id) dv τ ->
-    in_local_or_global l' g m (ID_Global id) dv τ. 
+    in_local_or_global l' g m (ID_Global id) dv τ.
   Proof.
     cbn; intros; auto.
   Qed.
@@ -1226,7 +1226,7 @@ vars s1 = σ?
   Proof.
     intros; cbn in *; inv_sum; reflexivity.
   Qed.
-  
+
   Lemma in_local_or_global_add_fresh_old :
     ∀ (id : raw_id) (l : local_env) (g : global_env) m (x : ident) dv dv' τ,
       x <> ID_Local id →
@@ -1235,7 +1235,7 @@ vars s1 = σ?
   Proof.
     intros * INEQ LUV'.
     destruct x; cbn in *; auto.
-    rewrite rel_dec_neq_false; try typeclasses eauto; [| intros ->; auto].  
+    rewrite rel_dec_neq_false; try typeclasses eauto; [| intros ->; auto].
     rewrite remove_neq_alist; auto; try typeclasses eauto; intros ->; auto.
   Qed.
 
@@ -1256,7 +1256,7 @@ vars s1 = σ?
       s @@ s1 ≡ s @@ s2 ->
       s1 ≡ s2.
   Proof.
-    induction s as [| c s IH]; cbn; intros * EQ; auto. 
+    induction s as [| c s IH]; cbn; intros * EQ; auto.
     apply IH.
     inv EQ; auto.
   Qed.
@@ -1276,30 +1276,30 @@ vars s1 = σ?
     forall σ s s' id memH memV l g v,
       incLocal s ≡ inr (s', id) ->
       state_invariant σ s memH (memV, (l, g)) ->
-      state_invariant σ s' memH (memV, (alist_add id v l, g)). 
+      state_invariant σ s' memH (memV, (alist_add id v l, g)).
   Proof.
     intros * INC [MEM WF FRESH].
     split.
     - red; intros * LUH LUV.
       erewrite incLocal_vars in LUV; eauto.
       generalize LUV; intros INLG;
-        eapply MEM in INLG; eauto.    
+        eapply MEM in INLG; eauto.
       break_match.
-      + subst. 
+      + subst.
         eapply in_local_or_global_add_fresh_old; eauto.
         eapply fresh_no_lu; eauto.
-        eapply conrete_fresh_fresh; eauto.
-      + subst. 
+        eapply concrete_fresh_fresh; eauto.
+      + subst.
         eapply in_local_or_global_add_fresh_old; eauto.
         eapply fresh_no_lu; eauto.
-        eapply conrete_fresh_fresh; eauto.
+        eapply concrete_fresh_fresh; eauto.
       + subst.
         repeat destruct INLG as [? INLG].
         do 3 eexists; splits; eauto.
         eapply in_local_or_global_add_fresh_old; eauto.
         eapply fresh_no_lu; eauto.
-        eapply conrete_fresh_fresh; eauto.
-    - unfold WF_IRState; erewrite incLocal_vars; eauto; apply WF.  
+        eapply concrete_fresh_fresh; eauto.
+    - unfold WF_IRState; erewrite incLocal_vars; eauto; apply WF.
     - intros ? ? ? LU INEQ.
       clear MEM WF.
       destruct (rel_dec_p id0 id); [subst |];
@@ -1309,7 +1309,7 @@ vars s1 = σ?
         apply Name_inj, append_factor_left,string_of_nat_inj in abs; lia.
       + apply In_add_In_ineq in LU; eauto.
         eapply FRESH; eauto with arith.
-  Qed. 
+  Qed.
 
   Lemma ext_local_subalist : forall {R S} memH memV l1 g vH vV l2,
       l1 ⊑ l2 ->
@@ -1398,9 +1398,9 @@ vars s1 = σ?
           rewrite interp_cfg_to_L3_LW.
           cbn; repeat norm_v.
           repeat norm_h.
-          apply eutt_Ret; split; eauto. 
+          apply eutt_Ret; split; eauto.
           -- eapply state_invariant_add_fresh; eauto; reflexivity.
-          -- split. 
+          -- split.
              {
                intros l' MONO; cbn*.
                split.
@@ -1412,10 +1412,15 @@ vars s1 = σ?
 
                rewrite Heqo0.
                reflexivity.
-             } 
+             }
              {
+               repeat (split; auto).
+               apply sub_alist_add.
+               epose proof state_invariant_add_fresh (UVALUE_I64 n) Heqs0 PRE.
+               destruct H. apply concrete_fresh_fresh in incLocal_is_fresh0.
+               unfold incLocal_fresh in incLocal_is_fresh0.
                admit.
-             } 
+             }
 
     - (* Constant *)
 
@@ -1533,7 +1538,7 @@ vars s1 = σ?
 
                 rewrite Heqs2.
                 rewrite Heqd.
-                rewrite Heqs3.                
+                rewrite Heqs3.
                 reflexivity.
               }
               {
@@ -1541,7 +1546,7 @@ vars s1 = σ?
                 etransitivity; eauto.
                 etransitivity; eauto.
                 apply sub_alist_add.
-                apply incLocal_is_fresh,conrete_fresh_fresh in PREF.
+                apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
                 eapply PREF.
                 eauto.
               }
@@ -1648,7 +1653,7 @@ vars s1 = σ?
 
                 rewrite Heqs2.
                 rewrite Heqd.
-                rewrite Heqs3.                
+                rewrite Heqs3.
                 reflexivity.
               }
               {
@@ -1656,7 +1661,7 @@ vars s1 = σ?
                 etransitivity; eauto.
                 etransitivity; eauto.
                 apply sub_alist_add.
-                apply incLocal_is_fresh,conrete_fresh_fresh in PREF.
+                apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
                 eapply PREF.
                 eauto.
               }
@@ -1760,7 +1765,7 @@ vars s1 = σ?
         etransitivity; eauto.
         etransitivity; eauto.
         apply sub_alist_add.
-        apply incLocal_is_fresh,conrete_fresh_fresh in PREF.
+        apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
         eapply PREF.
         eauto.
       }
@@ -1862,7 +1867,7 @@ vars s1 = σ?
         etransitivity; eauto.
         etransitivity; eauto.
         apply sub_alist_add.
-        apply incLocal_is_fresh,conrete_fresh_fresh in PREF.
+        apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
         eapply PREF.
         eauto.
       }
@@ -1968,19 +1973,17 @@ vars s1 = σ?
           etransitivity; eauto.
           etransitivity; eauto.
           apply sub_alist_add.
-          apply incLocal_is_fresh,conrete_fresh_fresh in PREF.
+          apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
           eapply PREF.
           eauto.
         }
 
     - (* NMin *)
       (* Non-implemented by the compiler *)
-      admit.
-
+      inversion COMPILE.
     - (* NMax *)
       (* Non-implemented by the compiler *)
-      admit.
-
+      inversion COMPILE.
  Admitted.
 
   (* Not yet clear whether this version is the useful one, but it's a consequence of the one above I think *)
