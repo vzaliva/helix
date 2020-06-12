@@ -3327,7 +3327,7 @@ Proof.
               (v:=(ID_Global (Name s), TYPE_Pointer (getIRType d)) :: v)
           ; clear IHglobals; try reflexivity.
 
-          subst vars.subst.
+          subst vars. subst.
           apply Heqs1.
     }
 
