@@ -1416,10 +1416,10 @@ vars s1 = σ?
              {
                repeat (split; auto).
                apply sub_alist_add.
-               epose proof state_invariant_add_fresh (UVALUE_I64 n) Heqs0 PRE.
-               destruct H. apply concrete_fresh_fresh in incLocal_is_fresh0.
+               destruct PRE.
+               apply concrete_fresh_fresh in incLocal_is_fresh0.
                unfold incLocal_fresh in incLocal_is_fresh0.
-               admit.
+               eapply incLocal_is_fresh0; eauto.
              }
 
     - (* Constant *)
@@ -1984,7 +1984,7 @@ vars s1 = σ?
     - (* NMax *)
       (* Non-implemented by the compiler *)
       inversion COMPILE.
- Admitted.
+Qed.
 
   (* Not yet clear whether this version is the useful one, but it's a consequence of the one above I think *)
   (* YZ TODO : investigate *)
