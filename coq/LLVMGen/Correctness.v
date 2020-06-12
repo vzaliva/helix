@@ -3155,6 +3155,34 @@ Local Ltac pose_interp_to_L3_alloca m' a' A AE:=
 (* YZ TODO : Move *)
 Arguments allocate : simpl never.
 
+(* [global_uniq_chk] in succeeds, does not modify state *)
+Fact global_uniq_chk_preserves_st:
+  forall a globals i0 i1 u,
+    global_uniq_chk a globals i0 ≡ inr (i1, u) ->
+    i0 ≡ i1.
+Proof.
+  intros a globals i0 i1 u H.
+  unfold global_uniq_chk in H.
+  unfold ErrorWithState.err2errS in H.
+  break_match_hyp;inv H.
+  reflexivity.
+Qed.
+
+
+Fact initOneIRGlobal_state_change:
+  forall data nm t g' i0 i1 r,
+    initOneIRGlobal data (nm,t) i0 ≡ inr (i1, (g', r))
+    -> inr (i1,()) ≡ (addVars [(ID_Global (Name nm), TYPE_Pointer (getIRType t))]) i0.
+Proof.
+  intros data nm t g' i0 i1 r H.
+  unfold initOneIRGlobal in H.
+  destruct t.
+  - inv H.
+  - break_let; cbn in H; inl_inr_inv; reflexivity.
+  - break_let; cbn in H; inl_inr_inv; reflexivity.
+Qed.
+
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -3216,18 +3244,95 @@ Proof.
 
   cbn in *.
 
-  assert(R0: Rel_mcfg) by
-      exact (λ memH '(memV, (l,_,g)),
-             state_invariant
-               (eg ++
-                   [DSHPtrVal (S (Datatypes.length globals)) o;
-                    DSHPtrVal (Datatypes.length globals) i]) s memH
-               (memV, (l, g))).
+  remember ((λ memH '(memV, (l,_,g)),
+            state_invariant
+              (eg ++
+                  [DSHPtrVal (S (Datatypes.length globals)) o;
+                   DSHPtrVal (Datatypes.length globals) i]) s memH
+              (memV, (l, g))): Rel_mcfg) as R0.
 
   apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
   -
-    (* allocate_global *)
+    (* [map_monad allocate_global] *)
+
+    repeat rewrite app_nil_r.
+
     clear body_instr Heqs9 p6 p7 l5.
+    clear Heqs7 i5 b l9.
+
+    (* [t] - [initXYplaceholders]. It does not depend on globals *)
+
+    unfold initXYplaceholders in L.
+    repeat break_let.
+    cbn in L.
+    inv L.
+    cbn in *.
+    repeat rewrite app_nil_r.
+
+    (* no new types defined *)
+    replace (flat_map (type_defs_of typ) l3) with (@nil (ident * typ)).
+    2:{
+      symmetry.
+      clear - Heqs2.
+      rename l1 into data, l2 into data', l3 into res.
+      revert res data data' Heqs2.
+      unfold initIRGlobals.
+
+      generalize [(ID_Local (Name "Y"),
+                 TYPE_Pointer (TYPE_Array (Int64.intval o) TYPE_Double));
+                (ID_Local (Name "X"),
+                 TYPE_Pointer (TYPE_Array (Int64.intval i) TYPE_Double));
+                (ID_Global (Anon 1%Z), TYPE_Array (Int64.intval o) TYPE_Double);
+                (ID_Global (Anon 0%Z), TYPE_Array (Int64.intval i) TYPE_Double)] as v.
+
+      induction globals; intros v res data data' H.
+      -
+        cbn in *.
+        inl_inr_inv.
+        reflexivity.
+      -
+        cbn in H.
+        repeat break_match_hyp; try inl_inr.
+        apply global_uniq_chk_preserves_st in Heqs; subst i0.
+        inl_inr_inv; subst.
+        cbn.
+        apply ListUtil.app_nil.
+        +
+          clear - Heqs0.
+          rename Heqs0 into H.
+          unfold initOneIRGlobal in H.
+          break_let.
+          unfold type_defs_of.
+          break_match; try reflexivity.
+          exfalso.
+          break_match_hyp.
+          *
+            inv H.
+          *
+            break_let.
+            cbn in H.
+            inl_inr_inv.
+          *
+            break_let.
+            cbn in H.
+            inl_inr_inv.
+        +
+          destruct a.
+          apply initOneIRGlobal_state_change in Heqs0; cbn in Heqs0; inl_inr_inv.
+          destruct i2.
+          inversion H0.
+          erewrite IHglobals with
+              (data:=l)
+              (data':=data')
+              (v:=(ID_Global (Name s), TYPE_Pointer (getIRType d)) :: v)
+          ; clear IHglobals; try reflexivity.
+
+          subst vars.subst.
+          apply Heqs1.
+    }
+
+    (* l3 - initIRGlobals *)
+
     clear_all.
     (*
     induction globals.
