@@ -3107,19 +3107,33 @@ Definition state_invariant_mcfg (σ : evalContext) (s : IRState) : Rel_mcfg_T un
   fun '(memH,_) '(memV,((l,sl),(g,_))) =>
       state_invariant σ s memH (memV,(l,g)).
 
-Lemma memory_set_seq {E}
+Lemma memory_set_seq2 {E}
       (i1 i2: mem_block_id)
       (b1 b2: mem_block)
       (m0: memoryH)
   :
     (Ret (memory_set (memory_set m0 i1 b1) i2 b2, ()) : itree E _)
     ≈
-    ITree.bind
-      (Ret (memory_set m0 i1 b1, ()))
-      (fun '(x,_) => Ret (memory_set x i2 b2, ())).
+    ITree.bind (Ret (m0,()))
+     (fun '(x,_) => Ret (memory_set (memory_set m0 i1 b1) i2 b2, ())).
 Proof.
   cbn; rewrite bind_ret_l; reflexivity.
 Qed.
+
+Lemma memory_set_seq {E}
+      (i1: mem_block_id)
+      (b1: mem_block)
+      (m0: memoryH)
+  :
+    (Ret (memory_set m0 i1 b1, ()) : itree E _)
+    ≈
+    ITree.bind
+      (Ret (m0, ()))
+      (fun '(x,_) => Ret (memory_set x i1 b1, ())).
+Proof.
+  cbn; rewrite bind_ret_l; reflexivity.
+Qed.
+
 
 Lemma alist_add_nil {K V:Type} {k:K} {v:V}
       `{RD_K : @RelDec K R}
@@ -3188,11 +3202,11 @@ Proof.
   intros hmem σ s hdata pll [HI LI].
 
   unfold state_invariant_mcfg.
-  unfold helix_intial_memory in *.
+  unfold helix_intial_memory in HI.
   cbn in HI.
   repeat break_match_hyp ; try inl_inr.
-  subst.
   inv HI.
+  rename m1 into mg.
   cbn in LI.
   unfold ErrorWithState.err2errS in LI.
   eutt_hide_rel R.
@@ -3201,8 +3215,6 @@ Proof.
     repeat inv_sum ; [inv Heqs5|inv Heqs5|].
 
   repeat rewrite app_assoc.
-
-  rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
 
   unfold build_global_environment.
   unfold allocate_globals.
@@ -3226,22 +3238,106 @@ Proof.
   destruct i4. cbn in Heql7. subst vars.
 
   rename p10 into body_instr.
-  rename m1 into mi, m0 into mo.
+  rename m into mo, m0 into mi.
 
   cbn in *.
 
+  (* no new types defined by [initXYplaceholders] *)
+  replace (flat_map (type_defs_of typ) t) with (@nil (ident * typ)).
+  2:{
+    unfold initXYplaceholders in L.
+    repeat break_let.
+    cbn in L.
+    inv L.
+    reflexivity.
+  }
+
+  (* no new types defined by [initIRGlobals] *)
+  replace (flat_map (type_defs_of typ) l3) with (@nil (ident * typ)).
+  2:{
+    symmetry.
+
+    unfold initXYplaceholders in L.
+    repeat break_let.
+    cbn in L.
+    inv L.
+
+    clear - Heqs2.
+    rename l1 into data, l2 into data', l3 into res.
+    revert res data data' Heqs2.
+    unfold initIRGlobals.
+
+    cbn.
+
+    generalize [(ID_Local (Name "Y"),
+                 TYPE_Pointer (TYPE_Array (Int64.intval o) TYPE_Double));
+                (ID_Local (Name "X"),
+                 TYPE_Pointer (TYPE_Array (Int64.intval i) TYPE_Double));
+                (ID_Global (Anon 1%Z), TYPE_Array (Int64.intval o) TYPE_Double);
+                (ID_Global (Anon 0%Z), TYPE_Array (Int64.intval i) TYPE_Double)] as v.
+
+    induction globals; intros v res data data' H.
+    -
+      cbn in *.
+      inl_inr_inv.
+      reflexivity.
+    -
+      cbn in H.
+      repeat break_match_hyp; try inl_inr.
+      apply global_uniq_chk_preserves_st in Heqs; subst i0.
+      inl_inr_inv; subst.
+      cbn.
+      apply ListUtil.app_nil.
+      +
+        clear - Heqs0.
+        rename Heqs0 into H.
+        unfold initOneIRGlobal in H.
+        break_let.
+        unfold type_defs_of.
+        break_match; try reflexivity.
+        exfalso.
+        break_match_hyp.
+        *
+          inv H.
+        *
+          break_let.
+          cbn in H.
+          inl_inr_inv.
+        *
+          break_let.
+          cbn in H.
+          inl_inr_inv.
+      +
+        destruct a.
+        apply initOneIRGlobal_state_change in Heqs0; cbn in Heqs0; inl_inr_inv.
+        destruct i2.
+        inversion H0.
+        erewrite IHglobals with
+            (data:=l)
+            (data':=data')
+            (v:=(ID_Global (Name s), TYPE_Pointer (getIRType d)) :: v)
+        ; clear IHglobals; try reflexivity.
+
+        subst vars. subst.
+        apply Heqs1.
+  }
+
+  repeat rewrite app_nil_r.
+
+  (* no more [type_defs_of] after this point *)
+
+  rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+
   remember ((λ memH '(memV, (l,_,g)),
-            state_invariant
-              (eg ++
-                  [DSHPtrVal (S (Datatypes.length globals)) o;
-                   DSHPtrVal (Datatypes.length globals) i]) s memH
-              (memV, (l, g))): Rel_mcfg) as R0.
+             state_invariant
+               (eg ++
+                   [DSHPtrVal (S (Datatypes.length globals)) o;
+                    DSHPtrVal (Datatypes.length globals) i]) s memH
+               (memV, (l, g))): Rel_mcfg) as R0.
 
   apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
   -
     (* [map_monad allocate_global] *)
-
-    repeat rewrite app_nil_r.
 
     clear body_instr Heqs9 p6 p7 l5.
     clear Heqs7 i5 b l9.
@@ -3255,80 +3351,16 @@ Proof.
     cbn in *.
     repeat rewrite app_nil_r.
 
-    (* no new types defined *)
-    replace (flat_map (type_defs_of typ) l3) with (@nil (ident * typ)).
-    2:{
-      symmetry.
-      clear - Heqs2.
-      rename l1 into data, l2 into data', l3 into res.
-      revert res data data' Heqs2.
-      unfold initIRGlobals.
+    rename i1 into s', l3 into gdecls, Heqs2 into L.
+    clear pll.
+    unfold initIRGlobals in L.
 
-      generalize [(ID_Local (Name "Y"),
-                 TYPE_Pointer (TYPE_Array (Int64.intval o) TYPE_Double));
-                (ID_Local (Name "X"),
-                 TYPE_Pointer (TYPE_Array (Int64.intval i) TYPE_Double));
-                (ID_Global (Anon 1%Z), TYPE_Array (Int64.intval o) TYPE_Double);
-                (ID_Global (Anon 0%Z), TYPE_Array (Int64.intval i) TYPE_Double)] as v.
-
-      induction globals; intros v res data data' H.
-      -
-        cbn in *.
-        inl_inr_inv.
-        reflexivity.
-      -
-        cbn in H.
-        repeat break_match_hyp; try inl_inr.
-        apply global_uniq_chk_preserves_st in Heqs; subst i0.
-        inl_inr_inv; subst.
-        cbn.
-        apply ListUtil.app_nil.
-        +
-          clear - Heqs0.
-          rename Heqs0 into H.
-          unfold initOneIRGlobal in H.
-          break_let.
-          unfold type_defs_of.
-          break_match; try reflexivity.
-          exfalso.
-          break_match_hyp.
-          *
-            inv H.
-          *
-            break_let.
-            cbn in H.
-            inl_inr_inv.
-          *
-            break_let.
-            cbn in H.
-            inl_inr_inv.
-        +
-          destruct a.
-          apply initOneIRGlobal_state_change in Heqs0; cbn in Heqs0; inl_inr_inv.
-          destruct i2.
-          inversion H0.
-          erewrite IHglobals with
-              (data:=l)
-              (data':=data')
-              (v:=(ID_Global (Name s), TYPE_Pointer (getIRType d)) :: v)
-          ; clear IHglobals; try reflexivity.
-
-          subst vars. subst.
-          apply Heqs1.
-    }
-
-    (* l3 - initIRGlobals *)
-
-    clear_all.
     (*
     induction globals.
     +
       cbn in G. inv G.
       cbn in L. inv L.
-      simpl.
-      repeat rewrite app_nil_r.
-      unfold global_YX.
-      repeat break_let.
+      repeat rewrite app_nil_l.
       cbn.
 
       (* two steps *)
@@ -3336,6 +3368,19 @@ Proof.
 
       rewrite interp_to_L3_bind.
       rewrite translate_bind.
+
+      eutt_hide_rel R.
+
+      HERE
+
+      remember ((λ memH '(memV, (l,_,g)),
+                 state_invariant
+                   ([DSHPtrVal 0 o; DSHPtrVal 1 i]) s memH
+                   (memV, (l, g))): Rel_mcfg) as R0.
+
+      apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
+
+
       apply eutt_clo_bind with
           (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 1 o] s)) _ _ ).
       *
@@ -3453,6 +3498,9 @@ Proof.
         apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
         --
           (* allocate_declaration *)
+
+          (* This should not matter, as declarations do not end up
+             in \sigma and thus not affect memory invariant *)
           admit.
         --
           intros u4 u5 H1.
@@ -3476,6 +3524,7 @@ Proof.
         apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
         --
           (* initialize_global *)
+          subst.
           admit.
         --
           intros u7 u8 H2.
