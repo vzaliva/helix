@@ -2117,6 +2117,18 @@ Section MExpr.
         nth_error σ vid ≡ Some (DSHPtrVal mid size) /\
         nth_error (vars s) vid ≡ Some (i, TYPE_Pointer (TYPE_Array sz TYPE_Double)).
 
+  Lemma memory_invariant_Ptr : forall σ s memH memV l g vid a size x sz,
+      state_invariant σ s memH (memV, (l, g)) ->
+      nth_error σ vid ≡ Some (DSHPtrVal a size) ->
+      nth_error (vars s) vid ≡ Some (x, TYPE_Pointer (TYPE_Array sz TYPE_Double)) ->
+      ∃ (bk_helix : mem_block) (ptr_llvm : Addr.addr),
+        memory_lookup memH a ≡ Some bk_helix
+        ∧ in_local_or_global l g memV x (DVALUE_Addr ptr_llvm) (TYPE_Pointer (TYPE_Array sz TYPE_Double))
+        ∧ (∀ (i : Memory.NM.key) (v : binary64), mem_lookup i bk_helix ≡ Some v → get_array_cell memV ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v)).
+  Proof.
+    intros * [MEM _ _] LU1 LU2; eapply MEM in LU1; eapply LU1 in LU2; eauto.
+  Qed.
+
   (** ** Compilation of MExpr
   *)
   Lemma genMExpr_correct :
@@ -2134,75 +2146,49 @@ Section MExpr.
                  g l memV)).
   Proof.
     intros * Hgen Hmeminv.
+    generalize Hmeminv; intros WF; apply IRState_is_WF in WF.
 
     unfold denoteMExpr; cbn*.
     destruct mexp as [[vid] | mblock].
-    - unfold denotePExpr; cbn*.
+    - (* PtrDeref case *)
 
-      (* Extracting information from genMExpr *)
-      unfold genMExpr in Hgen.
-      cbn in Hgen.
-      destruct (nth_error (vars s1) vid) eqn:Hsnth.
-      2: inversion Hgen.
-
-      cbn in Hgen. destruct p.
-      do 3 (destruct t; inversion Hgen).
+      unfold denotePExpr; cbn*.
+      cbn* in Hgen; simp.
+      cbn*; repeat norm_v.
+      norm_h.
+      break_inner_match_goal; try abs_by_WF.
+      norm_h.
+      break_inner_match_goal; try abs_by_WF.
       subst.
-      clear H0 H1.
 
-      (* Need to get some information about nth_error σ vid from Hwf *)
-      destruct Hmeminv as [INV WF INC].
-      edestruct (Forall2_Nth_right _ _ _ _ _ Hsnth WF) as (v & Hnth & Hirtyp).
-      unfold Nth in Hnth.
-      rewrite Hnth.
-      destruct v; cbn in Hirtyp; try (now (destruct i; inv Hirtyp)).
-      inv_sum.
-      pose proof Hsnth as Hsnth'.
-      eapply INV in Hsnth'; eauto.
-
-      cbn.
-      destruct (DSHPtrVal a size) eqn:Hptr; inversion Hptr;
-      destruct Hsnth' as (bk_helix & ptr_llvm & LUP & Hfind & rest).
-
-      repeat norm_h.
-      2: apply memory_lookup_err_inr_Some_eq; apply LUP.
-
-      pose proof Hfind as Hfind'.
-      unfold in_local_or_global in Hfind.
-
-      destruct i eqn:Hi.
+      edestruct memory_invariant_Ptr as (bkH & ptrV & Mem_LU & LUV & EQ); eauto.
+      
+      destruct i0.
       + (* Global *)
-        destruct Hfind as (ptr & τ' & TYP & GLOB & READ).
-        inversion TYP; subst τ'.
-        cbn in READ.
-        cbn; repeat norm_v; eauto; cbn; repeat norm_v; cbn.
-        apply eqit_Ret.
-
-        unfold lift_Rel_cfg.
-        unfold conj_rel.
-        split.
-        * split; auto.
-        * split with (x:=ptr).
-          exists i. exists vid. exists a. exists size. exists sz.
-          subst.
-          repeat (split; auto).
-          -- cbn in Hirtyp. inversion Hirtyp.
-             subst. cbn. (* This is unprovable *)
-             admit.
-      + (* Local *)
-        cbn; repeat norm_v; eauto; cbn; repeat norm_v; cbn.
-        apply eqit_Ret.
-
-        unfold lift_Rel_cfg.
-        unfold conj_rel.
-        split.
-        * split; auto.
-        * split with (x:=ptr_llvm).
-          exists i. exists vid. exists a. exists size. exists sz.
-          subst;
-          repeat (split; auto).
-    - repeat norm_h; repeat norm_v.
-      cbn in Hgen. inversion Hgen.
+        cbn in *.
+        (* This case should be absurd if I'm not mistaken: we read in memory at an Array type, and yet find an address *)
+        exfalso.
+        clear - LUV.
+        destruct LUV as (ptr & τ' & EQ & LU & READ).
+        inv EQ.
+        clear -READ.
+      (* TODO lemma about read stating that if it succeeds reading at τ, the returned value has type τ? *)
+        admit.
+      + (*  Local *)
+        cbn in *.
+        repeat norm_h.
+        2: apply memory_lookup_err_inr_Some_eq; eassumption.
+        repeat norm_v.
+        2:eauto.
+        cbn*; repeat norm_v.
+        apply eutt_Ret.
+        split; auto.
+        red.
+        do 6 eexists.
+        splits; eauto.
+        cbn; auto.        
+    - (* Const *) 
+      cbn* in Hgen; simp.
   Admitted.
 
 End MExpr.
