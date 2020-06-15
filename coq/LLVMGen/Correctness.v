@@ -2162,7 +2162,7 @@ Section MExpr.
       subst.
 
       edestruct memory_invariant_Ptr as (bkH & ptrV & Mem_LU & LUV & EQ); eauto.
-      
+
       destruct i0.
       + (* Global *)
         cbn in *.
@@ -2172,8 +2172,15 @@ Section MExpr.
         destruct LUV as (ptr & τ' & EQ & LU & READ).
         inv EQ.
         clear -READ.
-      (* TODO lemma about read stating that if it succeeds reading at τ, the returned value has type τ? *)
-        admit.
+
+        do 2 rewrite typ_to_dtyp_equation in READ.
+        cbn in READ.
+
+        assert (not_undef (UVALUE_Addr ptrV)) as NU.
+        { intros t TYP. inversion TYP. }
+        eapply read_array_not_pointer; eauto.
+        reflexivity.
+        constructor.
       + (*  Local *)
         cbn in *.
         repeat norm_h.
@@ -2186,10 +2193,10 @@ Section MExpr.
         red.
         do 6 eexists.
         splits; eauto.
-        cbn; auto.        
-    - (* Const *) 
+        cbn; auto.
+    - (* Const *)
       cbn* in Hgen; simp.
-  Admitted.
+  Qed.
 
 End MExpr.
 
