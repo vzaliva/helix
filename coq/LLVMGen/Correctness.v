@@ -3362,6 +3362,26 @@ Proof.
     clear pll.
     unfold initIRGlobals in L.
 
+
+    unfold Traversal.fmap, Traversal.Fmap_list'.
+    rewrite map_app.
+
+    rewrite map_monad_app.
+    cbn.
+    rewrite interp_to_L3_bind.
+    rewrite translate_bind.
+
+    rewrite 2!memory_set_seq.
+    rewrite bind_bind.
+
+
+    (* peel off just globals init *)
+    apply eutt_clo_bind with (UU:=(lift_Rel_mcfg
+       (λ (memH : memoryH) '(memV, (l3, _, g)),
+          state_invariant eg s memH
+                          (memV, (l3, g))) (TV:=list ()))).
+    +
+      admit.
     (*
     induction globals.
     +
@@ -3475,7 +3495,10 @@ Proof.
    +
       admit.
      *)
-    admit.
+    +
+      intros u1 u2 H.
+      (* X,Y *)
+      admit.
   -
     intros u1 u2 H.
     rewrite translate_bind.
