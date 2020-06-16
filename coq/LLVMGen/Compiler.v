@@ -1376,25 +1376,23 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
 
       '(data,yxinit) <- initXYplaceholders i o data gx gxtyp gy gytyp ;;
 
+      (*
+        While generate operator's function body, add fake
+        parameters as locals X=PVar 1, Y=PVar 0.
+
+        We want them to be in `vars` before globals *)
       let x := Name "X" in
       let xtyp := TYPE_Pointer (getIRType (DSHPtr i)) in
       let y := Name "Y" in
       let ytyp := TYPE_Pointer (getIRType (DSHPtr o)) in
 
-      (*
-        While generate operator's function body, add
-        parameters as locals X=PVar 1, Y=PVar 0.
-
-        We want them to be in `vars` before globals, so
-        we initialize them here. It is little hacky
-       *)
       addVars [(ID_Local y, ytyp);(ID_Local x, xtyp)] ;;
 
       (* Global variables *)
       '(data,ginit) <- initIRGlobals data globals ;;
       (* operator function *)
       prog <- LLVMGen i o op name ;;
-      dropVars 2;; (* drop local X,Y parameters *)
+      dropVars 2;; (* drop fake X,Y parameters *)
 
       (* Main function *)
       let main := genMain name gx gxptyp gy gytyp gyptyp  in
