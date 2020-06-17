@@ -302,9 +302,6 @@ Ltac abs_by H :=
 
 Section WF_IRState.
 
-  (* how many "extra" variables we have in Γ compared to σ *)
-  Definition Γ_extra_vars:nat := 2.
-
   (**
      The compiler maintains a sort of typing context named [IRState].
      This typing context should soundly reflect the content of the [evalContext],
@@ -320,20 +317,20 @@ Section WF_IRState.
     | _           , DSHPtr n => TYPE_Pointer (TYPE_Array (Int64.intval n) TYPE_Double)
     end.
 
-  (* True is σ typecheck in Γ *)
+  (* True if σ typechecks in Γ *)
   Definition evalContext_typechecks (σ : evalContext) (Γ : list (ident * typ)) : Prop :=
     forall v n, nth_error σ n ≡ Some v ->
            ∃ id, (nth_error Γ n ≡ Some (id, getWFType id (DSHType_of_DSHVal v))).
 
   Definition WF_IRState (σ : evalContext) (s : IRState) : Prop :=
-    evalContext_typechecks σ (vars s).
+    evalContext_typechecks σ (Γ s).
 
   (* In such a well-formed context, success of a lookup in the [IRState] as performed by the compiler
      ensures the success of a lookup in the [evalContext] *)
   (* Lemma WF_IRState_lookup_cannot_fail_ctx : *)
   (*   forall σ it s n, *)
   (*     WF_IRState σ s -> *)
-  (*     nth_error (vars s) n ≡ Some it -> *)
+  (*     nth_error (Γ s) n ≡ Some it -> *)
   (*     nth_error σ n ≡ None -> *)
   (*     False. *)
   (* Proof. *)
@@ -351,7 +348,7 @@ Section WF_IRState.
   (* Lemma WF_IRState_lookup_cannot_fail_st : *)
   (*   forall σ v s n, *)
   (*     WF_IRState σ s -> *)
-  (*     nth_error (vars s) n ≡ None -> *)
+  (*     nth_error (Γ s) n ≡ None -> *)
   (*     nth_error σ n ≡ Some v -> *)
   (*     False. *)
   (* Proof. *)
@@ -361,7 +358,7 @@ Section WF_IRState.
   (*   apply Forall2_length in WF. *)
   (*   apply ListNth.nth_error_length_lt in LU_SIGMA. *)
   (*   rewrite WF in LU_SIGMA. *)
-  (*   assert (BOUND: n < Datatypes.length (vars s)).  *)
+  (*   assert (BOUND: n < Datatypes.length (Γ s)).  *)
   (*   { eapply Nat.lt_le_trans; eauto. *)
   (*     rewrite EQ, app_length. *)
   (*     lia. *)
@@ -377,7 +374,7 @@ Section WF_IRState.
   (* Lemma WF_IRState_lookup_local_int : *)
   (*   forall σ s n id, *)
   (*     WF_IRState σ s -> *)
-  (*     nth_error (vars s) n ≡ Some (ID_Local id,TYPE_I 64%Z) -> *)
+  (*     nth_error (Γ s) n ≡ Some (ID_Local id,TYPE_I 64%Z) -> *)
   (*     exists v, nth_error σ n ≡ Some (DSHnatVal v). *)
   (* Proof. *)
   (*   intros * WF LU_IR. *)
@@ -393,7 +390,7 @@ Section WF_IRState.
   (* Lemma WF_IRState_lookup_global_int : *)
   (*   forall σ s n id, *)
   (*     WF_IRState σ s -> *)
-  (*     nth_error (vars s) n ≡ Some (ID_Global id, TYPE_Pointer (TYPE_I 64%Z)) -> *)
+  (*     nth_error (Γ s) n ≡ Some (ID_Global id, TYPE_Pointer (TYPE_I 64%Z)) -> *)
   (*     exists v, nth_error σ n ≡ Some (DSHnatVal v). *)
   (* Proof. *)
   (*   intros * WF LU_IR. *)
@@ -409,7 +406,7 @@ Section WF_IRState.
   (* Lemma WF_IRState_lookup_local_double : *)
   (*   forall σ s n id, *)
   (*     WF_IRState σ s -> *)
-  (*     nth_error (vars s) n ≡ Some (ID_Local id, TYPE_Double) -> *)
+  (*     nth_error (Γ s) n ≡ Some (ID_Local id, TYPE_Double) -> *)
   (*     exists a, nth_error σ n ≡ Some (DSHCTypeVal a). *)
   (* Proof. *)
   (*   intros * WF LU_IR. *)
@@ -426,7 +423,7 @@ Section WF_IRState.
   (* Lemma WF_IRState_lookup_global_double : *)
   (*   forall σ s n id, *)
   (*     WF_IRState σ s -> *)
-  (*     nth_error (vars s) n ≡ Some (ID_Global id, TYPE_Pointer TYPE_Double) -> *)
+  (*     nth_error (Γ s) n ≡ Some (ID_Global id, TYPE_Pointer TYPE_Double) -> *)
   (*     exists a, nth_error σ n ≡ Some (DSHCTypeVal a). *)
   (* Proof. *)
   (*   intros * WF LU_IR. *)
@@ -443,7 +440,7 @@ Section WF_IRState.
   (* Lemma WF_IRState_lookup_ptr : *)
   (*   forall σ s n v id, *)
   (*     WF_IRState σ s -> *)
-  (*     nth_error (vars s) n ≡ Some (id, TYPE_Pointer (TYPE_Array v TYPE_Double)) -> *)
+  (*     nth_error (Γ s) n ≡ Some (id, TYPE_Pointer (TYPE_Array v TYPE_Double)) -> *)
   (*     exists a size, nth_error σ n ≡ Some (DSHPtrVal a size). *)
   (* Proof. *)
   (*   intros * WF LU_IR. *)
@@ -457,7 +454,7 @@ Section WF_IRState.
   Lemma WF_IRState_lookups :
     forall σ s n v id τ,
       WF_IRState σ s ->
-      nth_error (vars s) n ≡ Some (id, τ) ->
+      nth_error (Γ s) n ≡ Some (id, τ) ->
       nth_error σ n ≡ Some v ->
       τ ≡ getWFType id (DSHType_of_DSHVal v).
   Proof.
@@ -469,7 +466,7 @@ Section WF_IRState.
   Lemma WF_IRState_one_of_local_type:
     forall σ x τ s n v,
       WF_IRState σ s ->
-      nth_error (vars s) n ≡ Some (ID_Local x,τ) ->
+      nth_error (Γ s) n ≡ Some (ID_Local x,τ) ->
       nth_error σ n ≡ Some v ->
       τ ≡ IntType \/
       τ ≡ TYPE_Double \/
@@ -483,7 +480,7 @@ Section WF_IRState.
   Lemma WF_IRState_one_of_global_type:
     forall σ x τ s n v,
       WF_IRState σ s ->
-      nth_error (vars s) n ≡ Some (ID_Global x,τ) ->
+      nth_error (Γ s) n ≡ Some (ID_Global x,τ) ->
       nth_error σ n ≡ Some v ->
       τ ≡ TYPE_Pointer IntType \/
       τ ≡ TYPE_Pointer TYPE_Double \/
@@ -500,7 +497,7 @@ End WF_IRState.
 
 Ltac abs_by_WF :=
   match goal with
-  | h  : nth_error (vars ?s) _ ≡ ?rhs,
+  | h  : nth_error (Γ ?s) _ ≡ ?rhs,
     h': @nth_error DSHVal ?σ _ ≡ ?rhs'
     |- _ =>
     match rhs with
@@ -520,7 +517,7 @@ Ltac abs_by_WF :=
       | Some ?val => fail
       end
     end
-  | h : nth_error (vars ?s) _ ≡ Some (?id,?τ) |- _ =>
+  | h : nth_error (Γ ?s) _ ≡ Some (?id,?τ) |- _ =>
     match id with
     | ID_Local _ =>
       eapply WF_IRState_one_of_local_type in h; eauto;
@@ -582,7 +579,7 @@ Section SimulationRelations.
     fun (mem_helix : MDSHCOLOnFloat64.memory) '(mem_llvm, (ρ,g)) =>
       forall (n: nat) v τ x,
         nth_error σ n ≡ Some v ->
-        nth_error (vars s) n ≡ Some (x,τ) ->
+        nth_error (Γ s) n ≡ Some (x,τ) ->
         match v with
         | DSHnatVal v   => in_local_or_global ρ g mem_llvm x (dvalue_of_int v) τ
         | DSHCTypeVal v => in_local_or_global ρ g mem_llvm x (dvalue_of_bin v) τ
@@ -594,10 +591,10 @@ Section SimulationRelations.
                   get_array_cell mem_llvm ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v))
         end.
 
-  (* Lookups in [genv] are fully determined by lookups in [vars] and [σ] *)
+  (* Lookups in [genv] are fully determined by lookups in [Γ] and [σ] *)
   (* Lemma memory_invariant_GLU : forall σ s v id memH memV t l g n, *)
   (*     memory_invariant σ s memH (memV, (l, g)) -> *)
-  (*     nth_error (vars s) v ≡ Some (ID_Global id, t) -> *)
+  (*     nth_error (Γ s) v ≡ Some (ID_Global id, t) -> *)
   (*     nth_error σ v ≡ Some (DSHnatVal n) -> *)
   (*     Maps.lookup id g ≡ Some (DVALUE_I64 n). *)
   (* Proof. *)
@@ -607,10 +604,10 @@ Section SimulationRelations.
   (*   rewrite repr_intval in LU; auto. *)
   (* Qed. *)
 
-  (* Lookups in [genv] are fully determined by lookups in [vars] and [σ] *)
+  (* Lookups in [genv] are fully determined by lookups in [Γ] and [σ] *)
   Lemma memory_invariant_GLU : forall σ s v id memH memV t l g n,
       memory_invariant σ s memH (memV, (l, g)) ->
-      nth_error (vars s) v ≡ Some (ID_Global id, TYPE_Pointer t) ->
+      nth_error (Γ s) v ≡ Some (ID_Global id, TYPE_Pointer t) ->
       nth_error σ v ≡ Some (DSHnatVal n) ->
       exists ptr, Maps.lookup id g ≡ Some (DVALUE_Addr ptr) /\
              read memV ptr (typ_to_dtyp [] t) ≡ inr (dvalue_to_uvalue (DVALUE_I64 n)).
@@ -623,10 +620,10 @@ Section SimulationRelations.
     rewrite repr_intval in READ; auto.
   Qed.
 
-  (* Lookups in [local_env] are fully determined by lookups in [vars] and [σ] *)
+  (* Lookups in [local_env] are fully determined by lookups in [Γ] and [σ] *)
   Lemma memory_invariant_LLU : forall σ s v id memH memV t l g n,
       memory_invariant σ s memH (memV, (l, g)) ->
-      nth_error (vars s) v ≡ Some (ID_Local id, t) ->
+      nth_error (Γ s) v ≡ Some (ID_Local id, t) ->
       nth_error σ v ≡ Some (DSHnatVal n) ->
       Maps.lookup id l ≡ Some (UVALUE_I64 n).
   Proof.
@@ -1129,7 +1126,7 @@ Section NExpr.
      * s: IRState
 
 The expression must be closed in [evalContext]. I.e. all variables are below the length of σ
-vars s1 = σ?
+Γ s1 = σ?
 
    *)
   (* NOTEYZ:
@@ -1239,10 +1236,10 @@ vars s1 = σ?
     cbn; intros; auto.
   Qed.
 
-  Lemma incLocal_vars:
+  Lemma incLocal_Γ:
     forall s s' id,
       incLocal s ≡ inr (s', id) ->
-      vars s' ≡ vars s.
+      Γ s' ≡ Γ s.
   Proof.
     intros; cbn in *; inv_sum; reflexivity.
   Qed.
@@ -1301,7 +1298,7 @@ vars s1 = σ?
     intros * INC [MEM WF FRESH].
     split.
     - red; intros * LUH LUV.
-      erewrite incLocal_vars in LUV; eauto.
+      erewrite incLocal_Γ in LUV; eauto.
       generalize LUV; intros INLG;
         eapply MEM in INLG; eauto.
       break_match.
@@ -1319,7 +1316,7 @@ vars s1 = σ?
         eapply in_local_or_global_add_fresh_old; eauto.
         eapply fresh_no_lu; eauto.
         eapply concrete_fresh_fresh; eauto.
-    - unfold WF_IRState; erewrite incLocal_vars; eauto; apply WF.
+    - unfold WF_IRState; erewrite incLocal_Γ; eauto; apply WF.
     - intros ? ? ? LU INEQ.
       clear MEM WF.
       destruct (rel_dec_p id0 id); [subst |];
@@ -2136,12 +2133,12 @@ Section MExpr.
         memory_lookup memH mid ≡ Some mb /\
         in_local_or_global ρ g memV i (DVALUE_Addr ptr) (TYPE_Array sz TYPE_Double) /\
         nth_error σ vid ≡ Some (DSHPtrVal mid size) /\
-        nth_error (vars s) vid ≡ Some (i, TYPE_Pointer (TYPE_Array sz TYPE_Double)).
+        nth_error (Γ s) vid ≡ Some (i, TYPE_Pointer (TYPE_Array sz TYPE_Double)).
 
   Lemma memory_invariant_Ptr : forall σ s memH memV l g vid a size x sz,
       state_invariant σ s memH (memV, (l, g)) ->
       nth_error σ vid ≡ Some (DSHPtrVal a size) ->
-      nth_error (vars s) vid ≡ Some (x, TYPE_Pointer (TYPE_Array sz TYPE_Double)) ->
+      nth_error (Γ s) vid ≡ Some (x, TYPE_Pointer (TYPE_Array sz TYPE_Double)) ->
       ∃ (bk_helix : mem_block) (ptr_llvm : Addr.addr),
         memory_lookup memH a ≡ Some bk_helix
         ∧ in_local_or_global l g memV x (DVALUE_Addr ptr_llvm) (TYPE_Pointer (TYPE_Array sz TYPE_Double))
@@ -2257,7 +2254,7 @@ Section AExpr.
   Lemma wf_ir_nth_error_some__good_lookup :
     forall σ st v x err,
       WF_IRState σ st ->
-      nth_error (vars st) v ≡ Some x ->
+      nth_error (Γ st) v ≡ Some x ->
       exists val, context_lookup err σ v ≡ inr val.
   Proof.
     intros σ st v x err Hwf Hnth.
@@ -2273,7 +2270,7 @@ Section AExpr.
   Lemma context_lookup_succeeds :
     forall σ st x v err,
       WF_IRState σ st ->
-      nth_error (vars st) v ≡ Some x ->
+      nth_error (Γ st) v ≡ Some x ->
       exists val, context_lookup err σ v ≡ inr val /\ nth_error σ v ≡ Some val.
   Proof.
     intros σ st x v err Hwf Hnth.
@@ -2312,7 +2309,7 @@ Section AExpr.
 
     (*     match goal with *)
     (*     | Hwf  : WF_IRState ?σ ?ir, *)
-    (*       Hnth : nth_error (vars ?ir) ?v ≡ Some ?x *)
+    (*       Hnth : nth_error (Γ ?ir) ?v ≡ Some ?x *)
     (*       |- context[context_lookup ?err ?σ ?v] => *)
     (*       pose proof (context_lookup_succeeds v err Hwf Hnth) as Hctx; *)
     (*       destruct Hctx as [val [Hctx Hnth_σ]] *)
@@ -2341,7 +2338,7 @@ Section AExpr.
 
     (*     match goal with *)
     (*     | Hnth : nth_error ?σ ?v ≡ Some ?val, *)
-    (*       Hnth_ir : nth_error (vars ?st) ?v ≡ Some (?id, ?τ) *)
+    (*       Hnth_ir : nth_error (Γ ?st) ?v ≡ Some (?id, ?τ) *)
     (*       |- _ => *)
     (*       let H := fresh H in *)
     (*       pose proof (Hmem v val τ id) Hnth Hnth_ir as H; *)
@@ -2366,7 +2363,7 @@ Section AExpr.
 
     (*     match goal with *)
     (*     | Hnth : nth_error ?σ ?v ≡ Some ?val, *)
-    (*       Hnth_ir : nth_error (vars ?st) ?v ≡ Some (?id, ?τ) *)
+    (*       Hnth_ir : nth_error (Γ ?st) ?v ≡ Some (?id, ?τ) *)
     (*       |- _ => *)
     (*       let H := fresh H in *)
     (*       pose proof (Hmem v val τ id) Hnth Hnth_ir as H; *)
@@ -2384,7 +2381,7 @@ Section AExpr.
 
     (*     match goal with *)
     (*     | Hwf  : WF_IRState ?σ ?ir, *)
-    (*       Hnth : nth_error (vars ?ir) ?v ≡ Some ?x *)
+    (*       Hnth : nth_error (Γ ?ir) ?v ≡ Some ?x *)
     (*       |- context[context_lookup ?err ?σ ?v] => *)
     (*       pose proof (context_lookup_succeeds v err Hwf Hnth) as Hctx; *)
     (*       destruct Hctx as [val [Hctx Hnth_σ]] *)
@@ -2408,7 +2405,7 @@ Section AExpr.
 
     (*     match goal with *)
     (*     | Hnth : nth_error ?σ ?v ≡ Some ?val, *)
-    (*       Hnth_ir : nth_error (vars ?st) ?v ≡ Some (?id, ?τ) *)
+    (*       Hnth_ir : nth_error (Γ ?st) ?v ≡ Some (?id, ?τ) *)
     (*       |- _ => *)
     (*       let H := fresh H in *)
     (*       pose proof (Hmem v val τ id) Hnth Hnth_ir as H; *)
@@ -2425,7 +2422,7 @@ Section AExpr.
 
     (*     match goal with *)
     (*     | Hnth : nth_error ?σ ?v ≡ Some ?val, *)
-    (*       Hnth_ir : nth_error (vars ?st) ?v ≡ Some (?id, ?τ) *)
+    (*       Hnth_ir : nth_error (Γ ?st) ?v ≡ Some (?id, ?τ) *)
     (*       |- _ => *)
     (*       let H := fresh H in *)
     (*       pose proof (Hmem v val τ id) Hnth Hnth_ir as H; *)
@@ -3217,12 +3214,12 @@ Qed.
 
 (* This lemma states that [genIR] if succeeds does not leak
    compiler state variable *)
-Lemma genIR_prserves_vars
+Lemma genIR_prserves_Γ
       {op: DSHOperator}
       {nextblock: block_id}
       {s s' segment}:
   genIR op nextblock s ≡ inr (s', segment) ->
-  vars s ≡ vars s'.
+  Γ s ≡ Γ s'.
 Proof.
 Admitted.
 
@@ -3285,7 +3282,7 @@ Proof.
   (* no more [genMain] *)
 
   cbn in *.
-  (* destruct s3. cbn in Vs3. subst vars. *)
+  (* destruct s3. cbn in Vs3. subst Γ. *)
 
   rename p10 into body_instr.
   rename m into mo, m0 into mi.
@@ -3368,7 +3365,7 @@ Proof.
             (v:=(ID_Global (Name s), TYPE_Pointer (getIRType d)) :: v)
         ; clear IHglobals; try reflexivity.
 
-        subst vars. subst.
+        subst Γ. subst.
         apply Heqs1.
   }
 
@@ -3378,7 +3375,7 @@ Proof.
 
   rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
 
-  destruct s3; cbn in Vs3; subst vars.
+  destruct s3; cbn in Vs3; subst Γ.
 
 
   unfold body_non_empty_cast in BC.
@@ -3390,7 +3387,7 @@ Proof.
          block_count := block_count;
          local_count := local_count;
          void_count := void_count;
-         vars := v3 |} as s.
+         Γ := v3 |} as s.
 
   (* from [Rel_mcfg_T] to [Rel_mcfg] *)
   remember ((λ memH '(memV, (l4,_,g)),
@@ -3428,7 +3425,7 @@ Proof.
             block_count := block_count;
             local_count := local_count;
             void_count := void_count;
-            vars := v3 |} as s.
+            Γ := v3 |} as s.
 
     (* In [UU] we drop X,Y in σ *)
     apply eutt_clo_bind with (UU:=(lift_Rel_mcfg
@@ -3453,7 +3450,7 @@ Proof.
           rewrite nth_error_nil in H.
           some_none.
         --
-          apply genIR_prserves_vars in IR.
+          apply genIR_prserves_Γ in IR.
           inv IR.
           cbn in *.
           unfold WF_IRState.
@@ -3504,9 +3501,9 @@ Proof.
           ++
             destruct n;cbn in H; [inv H | rewrite ListNth.nth_error_nil in H; some_none].
           ++
-            assert(L:length (vars s) ≡ 1).
+            assert(L:length (Γ s) ≡ 1).
             {
-              (* because length σ = length (vars s). Need some lemma for that.
+              (* because length σ = length (Γ s). Need some lemma for that.
                Probably follows from [WF_IRState]
                *)
               admit.
