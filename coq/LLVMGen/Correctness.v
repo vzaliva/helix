@@ -3189,6 +3189,17 @@ Proof.
   - break_let; cbn in H; inl_inr_inv; reflexivity.
 Qed.
 
+(* This lemma states that [genIR] if succeeds does not leak
+   compiler state variable *)
+Lemma genIR_prserves_vars
+      {op: DSHOperator}
+      {nextblock: block_id}
+      {s s' segment}:
+  genIR op nextblock s ≡ inr (s', segment) ->
+  vars s ≡ vars s'.
+Proof.
+Admitted.
+
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
@@ -3233,7 +3244,6 @@ Proof.
   rename i4 into s3.
   (* [s3] contains two fake variables for X,Y which we drop and actual state *)
   rename Heql7 into Vs3, p6 into fake_x, p7 into fake_y, l5 into v3.
-
 
   repeat rewrite app_assoc.
   unfold build_global_environment, allocate_globals, map_monad_.
@@ -3344,6 +3354,7 @@ Proof.
 
   destruct s3; cbn in Vs3; subst vars.
 
+
   unfold body_non_empty_cast in BC.
   cbn in BC.
   break_match_hyp; inv BC.
@@ -3416,10 +3427,13 @@ Proof.
           rewrite nth_error_nil in H.
           some_none.
         --
+          apply genIR_prserves_vars in IR.
+          inv IR.
+          cbn in *.
           unfold WF_IRState.
           cbn in *.
           apply Forall2_forall.
-          admit.
+          admit. (* TODO: here we need better WF_IRState *)
         --
           intros id v n H H0.
           clear - H.
