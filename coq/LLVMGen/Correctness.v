@@ -3212,37 +3212,44 @@ Proof.
   unfold helix_intial_memory in HI.
   cbn in HI.
   repeat break_match_hyp ; try inl_inr.
+  rename Heqp0 into Co, Heqp1 into Ci.
   inv HI.
-  rename m1 into mg.
+  rename m1 into mg, Heqs0 into G.
+
   cbn in LI.
   unfold ErrorWithState.err2errS in LI.
-  eutt_hide_rel R.
   repeat break_match_hyp; try inl_inr;
-    inversion_clear LI;
-    repeat inv_sum ; [inv Heqs5|inv Heqs5|].
+    inv LI; repeat inv_sum ; inv Heqs4.
+  rename Heqs0 into LX, Heqs1 into LG, Heqs6 into IR, Heqs8 into BC, l3 into gdecls.
+
+  (*  [s0] - state after [initXYplaceholders] *)
+  rename i0 into s0.
+  (*  [s1] - state after [initIRGlobals], which
+      was generated starting with X,Y arguments added to [s0] *)
+  rename i1 into s1.
+  (*  [s2] - state after [genIR] *)
+  rename i5 into s2.
+  (*  [s3] - state after [body_non_empty_cast] *)
+  rename i4 into s3.
+  (* [s3] contains two fake variables for X,Y which we drop and actual state *)
+  rename Heql7 into Vs3, p6 into fake_x, p7 into fake_y, l5 into v3.
+
 
   repeat rewrite app_assoc.
-
-  unfold build_global_environment.
-  unfold allocate_globals.
-  unfold map_monad_.
+  unfold build_global_environment, allocate_globals, map_monad_.
   simpl.
-  rewrite 2!interp_to_L3_bind.
-  rewrite bind_bind.
-  rewrite translate_bind.
-  rename Heqs0 into G, Heqs1 into L.
+  rewrite 2!interp_to_L3_bind, bind_bind, translate_bind.
   rename e into eg.
   remember (eg ++
                [DSHPtrVal (S (Datatypes.length globals)) o;
                 DSHPtrVal (Datatypes.length globals) i])%list as e.
 
-
   repeat rewrite ListUtil.flat_map_app.
   simpl.
   (* no more [genMain] *)
 
-  unfold ret in Heqs5 . cbn in Heqs5. inv_sum.
-  destruct i4. cbn in Heql7. subst vars.
+  cbn in *.
+  (* destruct s3. cbn in Vs3. subst vars. *)
 
   rename p10 into body_instr.
   rename m into mo, m0 into mi.
@@ -3252,26 +3259,26 @@ Proof.
   (* no new types defined by [initXYplaceholders] *)
   replace (flat_map (type_defs_of typ) t) with (@nil (ident * typ)).
   2:{
-    unfold initXYplaceholders in L.
+    unfold initXYplaceholders in LX.
     repeat break_let.
-    cbn in L.
-    inv L.
+    cbn in LX.
+    inv LX.
     reflexivity.
   }
 
   (* no new types defined by [initIRGlobals] *)
-  replace (flat_map (type_defs_of typ) l3) with (@nil (ident * typ)).
+  replace (flat_map (type_defs_of typ) gdecls) with (@nil (ident * typ)).
   2:{
     symmetry.
 
-    unfold initXYplaceholders in L.
+    unfold initXYplaceholders in LX.
     repeat break_let.
-    cbn in L.
-    inv L.
+    cbn in LX.
+    inv LX.
 
-    clear - Heqs2.
-    rename l1 into data, l2 into data', l3 into res.
-    revert res data data' Heqs2.
+    clear - LG.
+    rename l1 into data, l2 into data'.
+    revert gdecls data data' LG.
     unfold initIRGlobals.
 
     cbn.
@@ -3283,7 +3290,7 @@ Proof.
                 (ID_Global (Anon 1%Z), TYPE_Array (Int64.intval o) TYPE_Double);
                 (ID_Global (Anon 0%Z), TYPE_Array (Int64.intval i) TYPE_Double)] as v.
 
-    induction globals; intros v res data data' H.
+    induction globals; intros v gdecls data data' H.
     -
       cbn in *.
       inl_inr_inv.
@@ -3317,7 +3324,7 @@ Proof.
       +
         destruct a.
         apply initOneIRGlobal_state_change in Heqs0; cbn in Heqs0; inl_inr_inv.
-        destruct i2.
+        destruct i1.
         inversion H0.
         erewrite IHglobals with
             (data:=l)
@@ -3335,55 +3342,67 @@ Proof.
 
   rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
 
-  remember ((λ memH '(memV, (l,_,g)),
+  destruct s3; cbn in Vs3; subst vars.
+
+  unfold body_non_empty_cast in BC.
+  cbn in BC.
+  break_match_hyp; inv BC.
+  cbn.
+
+  remember {|
+         block_count := block_count;
+         local_count := local_count;
+         void_count := void_count;
+         vars := v3 |} as s.
+
+  (* from [Rel_mcfg_T] to [Rel_mcfg] *)
+  remember ((λ memH '(memV, (l4,_,g)),
              state_invariant
                (eg ++
                    [DSHPtrVal (S (Datatypes.length globals)) o;
                     DSHPtrVal (Datatypes.length globals) i]) s memH
-               (memV, (l, g))): Rel_mcfg) as R0.
+               (memV, (l4, g))): Rel_mcfg) as R0.
+
 
   apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
   -
     (* [map_monad allocate_global] *)
 
-    clear body_instr Heqs9 p6 p7 l5.
-    clear Heqs7 i5 b l9.
-
     (* [t] - [initXYplaceholders]. It does not depend on globals *)
 
-    unfold initXYplaceholders in L.
+    unfold initXYplaceholders in LX.
     repeat break_let.
-    cbn in L.
-    inv L.
+    cbn in LX.
+    inv LX.
     cbn in *.
-    repeat rewrite app_nil_r.
 
-    rename i1 into s', l3 into gdecls, Heqs2 into L.
-    clear pll.
-    unfold initIRGlobals in L.
-
+    unfold initIRGlobals in LG.
 
     unfold Traversal.fmap, Traversal.Fmap_list'.
     rewrite map_app.
-
     rewrite map_monad_app.
     cbn.
-    rewrite interp_to_L3_bind.
-    rewrite translate_bind.
-
+    rewrite interp_to_L3_bind, translate_bind.
     rewrite 2!memory_set_seq.
     rewrite bind_bind.
 
     (* peel off just globals init *)
+    remember {|
+            block_count := block_count;
+            local_count := local_count;
+            void_count := void_count;
+            vars := v3 |} as s.
+
+    (* In [UU] we drop X,Y in σ *)
     apply eutt_clo_bind with (UU:=(lift_Rel_mcfg
-                                     (λ (memH : memoryH) '(memV, (l3, _, g)),
+                                     (λ (memH : memoryH) '(memV, (l6, _, g)),
                                       state_invariant eg s memH
-                                                      (memV, (l3, g))) (TV:=list ()))).
+                                                      (memV, (l6, g))) (TV:=list ()))).
     +
       induction globals.
       *
         cbn in G; inv G.
-        cbn in L; inv L.
+        cbn in LG; inv LG.
         cbn.
         unfold helix_empty_memory.
         rewrite interp_to_L3_ret.
@@ -3398,6 +3417,7 @@ Proof.
           some_none.
         --
           unfold WF_IRState.
+          cbn in *.
           apply Forall2_forall.
           admit.
         --
