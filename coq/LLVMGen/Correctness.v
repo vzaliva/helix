@@ -300,7 +300,12 @@ Ltac simp := repeat (inv_sum || break_and || break_match_hyp).
 Ltac abs_by H :=
   exfalso; eapply H; now eauto.
 
+
+
 Section WF_IRState.
+
+  (* how many "extra" variables we have in Γ compared to σ *)
+  Definition Γ_extra_vars:nat := 2.
 
   (**
      The compiler maintains a sort of typing context named [IRState].
@@ -323,7 +328,8 @@ Section WF_IRState.
            ∃ id, (nth_error Γ n ≡ Some (id, getWFType id (DSHType_of_DSHVal v))).
 
   Definition WF_IRState (σ : evalContext) (s : IRState) : Prop :=
-    evalContext_typechecks σ (vars s).
+    let Γ := vars s in
+    length Γ  ≡ length σ + Γ_extra_vars /\ evalContext_typechecks σ Γ.
 
   (* In such a well-formed context, success of a lookup in the [IRState] as performed by the compiler
      ensures the success of a lookup in the [evalContext] *)
