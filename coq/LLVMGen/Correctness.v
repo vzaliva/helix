@@ -317,8 +317,13 @@ Section WF_IRState.
     | _           , DSHPtr n => TYPE_Pointer (TYPE_Array (Int64.intval n) TYPE_Double)
     end.
 
+  (* True is σ typecheck in Γ *)
+  Definition evalContext_typechecks (σ : evalContext) (Γ : list (ident * typ)) : Prop :=
+    forall v n, nth_error σ n ≡ Some v ->
+           ∃ id, (nth_error Γ n ≡ Some (id, getWFType id (DSHType_of_DSHVal v))).
+
   Definition WF_IRState (σ : evalContext) (s : IRState) : Prop :=
-    Forall2 (fun v '(id,τ) => τ ≡ getWFType id (DSHType_of_DSHVal v)) σ (vars s).
+    evalContext_typechecks σ (vars s).
 
   (* In such a well-formed context, success of a lookup in the [IRState] as performed by the compiler
      ensures the success of a lookup in the [evalContext] *)
