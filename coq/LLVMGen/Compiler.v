@@ -1030,7 +1030,7 @@ Fixpoint genIR
         end)
           (fun m => raise (m @@ " in " @@ fshcol_s)).
 
-Definition body_get_entry (body : list (block typ)) : cerr (block typ * list (block typ)) :=
+Definition body_non_empty_cast (body : list (block typ)) : cerr (block typ * list (block typ)) :=
   match body with
   | [] => raise "Attempting to generate a function containing no block"
   | b::body => ret (b,body)
@@ -1055,8 +1055,7 @@ Definition LLVMGen
 
     '(_,body) <- genIR fshcol rid ;;
 
-    let body := body ++ [retblock] in
-    body <- body_get_entry body;; 
+    bodyt <- body_non_empty_cast (body ++ [retblock]) ;;
     let all_intrinsics:toplevel_entities typ (block typ * list (block typ))
         := [TLE_Comment "Prototypes for intrinsics we use"]
              ++ (List.map (TLE_Declaration) (
@@ -1091,7 +1090,7 @@ Definition LLVMGen
                               dc_gc          := None
                             |} ;
                           df_args        := [x; y];
-                          df_instrs      := body
+                          df_instrs      := bodyt
                         |}
       ]).
 
