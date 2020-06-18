@@ -2335,6 +2335,35 @@ Section AExpr.
     all: eapply IHaexp1 in Heqs0; eapply IHaexp2 in Heqs1; eauto.
   Qed.
 
+  (* TODO: Move this *)
+  Lemma In__alist_In :
+    forall {K V} {R : K -> K -> Prop} {RD : @RelDec K (@Logic.eq K)} {RDC : RelDec_Correct RD} (k : K) (v : V) l,
+      In (k,v) l ->
+      exists v', alist_In k l v'.
+  Proof.
+    intros K V R RD RDC k v l IN.
+    induction l; inversion IN.
+    - exists v. subst. unfold alist_In.
+      cbn.
+      assert (k ?[ Logic.eq ] k ≡ true) as Hk.
+      eapply rel_dec_correct; auto.
+      rewrite Hk.
+      reflexivity.
+    - destruct a. inversion IN.
+      + injection H0; intros; subst.
+        exists v. unfold alist_In.
+        cbn.
+        assert (k ?[ Logic.eq ] k ≡ true) as Hk.
+        eapply rel_dec_correct; auto.
+        rewrite Hk.
+        reflexivity.
+      + unfold alist_In.
+        cbn.
+        destruct (k ?[ Logic.eq ] k0) eqn:Hkk0.
+        * exists v0; auto.
+        * auto.
+  Qed.
+
   Lemma genAExpr_correct_ind :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (aexp: AExpr) (σ: evalContext) (memH: memoryH) (v : binary64)
@@ -2577,111 +2606,17 @@ Section AExpr.
           apply sub_alist_add.
           unfold alist_fresh.
           cbn in INV1'.
-      + apply PRE.
-        * unfold lift_Rel_cfg in INV1'.
           destruct INV1'.
-          unfold state_invariant in INV1'.
-          apply memory_invariant_ext_local with (ρ1:=l'').
-          intros n v0 τ x SIGMA VARS.
-          destruct v0; eauto.
+          unfold concrete_fresh_inv in incLocal_is_fresh0.
+          apply alist_find_None.
+          intros v0. intros IN.
+          (* TODO: ltac to get rid of this endo id stuff *)
+          unfold Traversal.endo in IN.
+          unfold Traversal.Endo_id in IN.
 
-          
-
-
-      break_inner_match_goal.
-      break_inner_match_goal; [| break_inner_match_goal];
-        try (exfalso; match goal with | h: genAExpr _ _ ≡ _ |- _ => eapply evalNexpr_WF_no_fail in h; now eauto end); try solve [inversion EVAL].
-
-      repeat norm_h.
-      (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
-      specialize (IHnexp1 _ _ _ _ _ _ _ _ _ _ Heqs Heqs2 PRE).
-
-      cbn* in IHnexp1;
-        repeat norm_v in IHnexp1;
-        repeat norm_h in IHnexp1.
-      simpl_match in IHnexp1.
-      (* YZ TODO : Why is this one particularly slow? *)
-      repeat norm_h in IHnexp1.
-
-      subst.
-      cbn*.
-      rewrite convert_typ_app, denote_code_app.
-      repeat norm_v.
-      subst.
-      ret_bind_l_left (memH,i2).
-      eapply eutt_clo_bind; [eassumption | clear IHnexp1].
-
-      introR; destruct_unit.
-      destruct PRE0 as [PREI (EXPRI & <- & <- & <- & MONOI)].
-      cbn in *.
-
-      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs3 PREI).
-
-      cbn* in IHnexp2;
-        repeat norm_v in IHnexp2;
-        repeat norm_h in IHnexp2.
-      simpl_match in IHnexp2.
-      repeat norm_h in IHnexp2.
-
-      rewrite convert_typ_app, denote_code_app.
-      repeat norm_v.
-      subst.
-      ret_bind_l_left (memH,i3).
-      eapply eutt_clo_bind; [eassumption | clear IHnexp2].
-
-      introR; destruct_unit.
-      destruct PRE0 as [PREF (EXPRF & <- & <- & <- & MONOF)].
-      (* cbn takes 5seconds instead of doing this instantaneously... *)
-      simpl in *; unfold eval_op; simpl.
-      unfold IntType; rewrite typ_to_dtyp_I.
-
-      repeat norm_v.
-      specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
-      rewrite <- EXPRI; auto.
-
-      repeat norm_v.
-      assert (l0 ⊑ l0) as L0L0 by reflexivity.
-      specialize (EXPRF _ L0L0) as [EXPRF EVAL_vH0].
-      rewrite <- EXPRF.
-      clear L0L0.
-      repeat norm_v.
-      cbn*.
-      repeat norm_v.
-      rewrite interp_cfg_to_L3_LW.
-      cbn*; repeat norm_v.
-      apply eutt_Ret.
-      split.
-      cbn; eapply state_invariant_add_fresh; eauto.
-      split.
-      {
-        cbn; intros ? MONO.
-        split.
-        { repeat norm_v.
-          2: apply MONO, In_add_eq.
-          cbn; repeat norm_v.
-          apply eutt_Ret.
-          do 3 f_equal.
-
-          rewrite Heqs2 in EVAL_vH; inversion EVAL_vH.
-          rewrite Heqs3 in EVAL_vH0; inversion EVAL_vH0.
-          subst.
-          reflexivity.
-        }
-
-        rewrite Heqs2.
-        rewrite Heqs3.
-        reflexivity.
-      }
-      {
-        apply ext_local_subalist.
-        etransitivity; eauto.
-        etransitivity; eauto.
-        apply sub_alist_add.
-        apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
-        eapply PREF.
-        eauto.
-      }
-
+          eapply In__alist_In in IN as [v' AIN].
+          eapply incLocal_is_fresh0; eauto.
+    - (* AMinus *)
     - (* NDiv *)
 
       cbn* in COMPILE; simp.
