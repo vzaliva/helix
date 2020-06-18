@@ -3452,11 +3452,9 @@ Proof.
         --
           apply genIR_prserves_Γ in IR.
           inv IR.
-          cbn in *.
-          unfold WF_IRState.
-          cbn in *.
-          (* apply Forall2_forall. *)
-          admit. (* TODO: here we need better WF_IRState *)
+          intros v n H.
+          rewrite nth_error_nil in H.
+          some_none.
         --
           intros id v n H H0.
           clear - H.
