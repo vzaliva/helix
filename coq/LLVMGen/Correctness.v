@@ -2589,13 +2589,17 @@ Section AExpr.
       + eapply state_invariant_add_fresh; eauto.
         reflexivity.
       + split; split; intuition.
-        * admit.
-          (*
-          cbn. repeat norm_v. cbn. norm_v.
+        * cbn. repeat norm_v. cbn. norm_v.
           reflexivity.
-          eapply memory_invariant_LLU_AExpr; eauto.
-          eapply memory_invariant_ext_local; eauto.
-          eauto. *)
+          cbn.
+
+          apply H.
+
+          (* TODO: Can't unfold Floats.Float.add ??? *)
+          assert (Floats.Float.add b' b'' ≡ MFloat64asCT.CTypePlus b' b'').
+          admit.
+          rewrite H3.
+          apply In_add_eq.
         * (* TODO: ltac, this is horrid *)
           cbn. rewrite H6.
           epose proof (aexp_correct1 l'' _) as [[] H7].
@@ -2617,6 +2621,7 @@ Section AExpr.
           eapply In__alist_In in IN as [v' AIN].
           eapply incLocal_is_fresh0; eauto.
     - (* AMinus *)
+      admit.
     - (* NDiv *)
 
       cbn* in COMPILE; simp.
