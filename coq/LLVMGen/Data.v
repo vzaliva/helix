@@ -109,11 +109,11 @@ Lemma init_with_data_len
       {A: Type} (* input values *)
       {B: Type} (* output values we collect *)
       {C: Type} (* data *)
-      (f: C -> A -> err (C*B))
-      (chk: A -> list A -> err unit) (* check function *)
-      (c c': C) (* initial data *)
-      (l: list A)
-      (bs: list B)
+      {f: C -> A -> err (C*B)}
+      {chk: A -> list A -> err unit} (* check function *)
+      {c c': C} (* initial data *)
+      {l: list A}
+      {bs: list B}
   :
     init_with_data f chk c l = inr (c', bs) ->
     List.length l = List.length bs.
