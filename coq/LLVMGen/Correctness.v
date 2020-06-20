@@ -3229,6 +3229,27 @@ Proof.
 Admitted.
 
 
+(* Helper boolean predicate to check if member of [Γ] in [IRState] is global *)
+Definition is_var_Global (v:ident * typ): bool :=
+  match (fst v) with
+  | ID_Global _ => true
+  | _ => false
+  end.
+
+(* See also: [init_with_data_len] *)
+Lemma init_with_data_env_len
+      (globals : list (string * DSHType))
+      (d0 d1 : list binary64)
+      (s0 s1: IRState)
+      (chk : string * DSHType → list (string * DSHType) → cerr ())
+      (gdecls : list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ))))
+  :
+    init_with_data initOneIRGlobal chk d0 globals s0 ≡ inr (s1, (d1, gdecls)) →
+    List.length (Γ s1) ≡
+    List.length (List.filter is_var_Global (Γ s0)) + List.length globals.
+Proof.
+Admitted.
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -3448,9 +3469,12 @@ Proof.
 
       assert(length globals ≡ length v3) as LV.
       {
-        (* init_with_data_len? *)
-        admit.
+        clear - LG.
+        apply init_with_data_env_len in LG.
+        cbn in LG.
+        lia.
       }
+
       subst s.
       revert mg gdecls eg v3 IR LG G LV.
       induction globals; intros.
