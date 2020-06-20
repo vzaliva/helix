@@ -1229,6 +1229,11 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
     intros; rewrite typ_to_dtyp_equation; reflexivity.
   Qed.
 
+  Lemma typ_to_dtyp_D : forall s, typ_to_dtyp s TYPE_Double ≡ DTYPE_Double.
+  Proof.
+    intros; rewrite typ_to_dtyp_equation; reflexivity.
+  Qed.
+
   Lemma in_local_or_global_same_global : forall l g l' m id dv τ,
     in_local_or_global l g m (ID_Global id) dv τ ->
     in_local_or_global l' g m (ID_Global id) dv τ.
@@ -3433,7 +3438,22 @@ Proof.
                                       state_invariant eg s memH
                                                       (memV, (l6, g))) (TV:=list ()))).
     +
-      induction globals.
+
+      pose proof (genIR_prserves_Γ IR) as S.
+      destruct s1.
+      cbn in S.
+      subst Γ.
+
+      cbn in Heql3.
+
+      assert(length globals ≡ length v3) as LV.
+      {
+        (* init_with_data_len? *)
+        admit.
+      }
+      subst s.
+      revert mg gdecls eg v3 IR LG G LV.
+      induction globals; intros.
       *
         cbn in G; inv G.
         cbn in LG; inv LG.
@@ -3461,111 +3481,118 @@ Proof.
           unfold alist_In in H.
           inv H.
       *
-       (*
+        cbn in LG.
+        break_match_hyp; [inl_inr|].
+        break_let; subst p.
+        break_match_hyp; [inl_inr|].
+        break_let; subst p.
+        break_let; subst p0.
+        break_match_hyp; [inl_inr|].
+        break_let; subst p.
+        break_let; subst p0.
+        destruct gdecls as [|g0 gdecls]; inv LG.
 
-        (* two steps *)
-        rewrite memory_set_seq.
+        cbn in G.
+        break_match_hyp; [inl_inr|].
+        break_let; subst p.
+        break_match_hyp; [inl_inr|].
+        break_let; subst p.
+        destruct eg as [|eg0 eg]; inv G.
 
-        rewrite interp_to_L3_bind.
-        rewrite translate_bind.
+        destruct v3 as [|v0 v3]; [inv LV|].
 
-        eutt_hide_rel R.
+        (* Not sure about [mg] *)
 
-        HERE
-
-          remember ((λ memH '(memV, (l,_,g)),
-                     state_invariant
-                       ([DSHPtrVal 0 o; DSHPtrVal 1 i]) s memH
-                       (memV, (l, g))): Rel_mcfg) as R0.
-
-        apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
-
+        simpl.
+        rewrite map_app.
+        rewrite map_monad_app.
+        cbn.
+        rewrite interp_to_L3_bind, translate_bind.
+        rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
 
         apply eutt_clo_bind with
-            (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 1 o] s)) _ _ ).
+            (UU:=lift_Rel_mcfg
+                   (λ (memH : memoryH) '(memV, (l8, _, g)),
+                    state_invariant ([eg0])
+                                    {|
+                                      block_count := block_count;
+                                      local_count := local_count;
+                                      void_count := void_count;
+                                      Γ := [v0] |} memH (memV, (l8, g))) (TV:=list ())).
         --
-          (* "o" init *)
-          rewrite interp_to_L3_bind.
-          rewrite interp_to_L3_alloca.
-          cbn; norm_v.
-          rewrite interp_to_L3_GW.
-          cbn; norm_v.
-          apply eutt_Ret.
-          (* this looks provable *)
-          intros n v τ x H H0.
-          destruct v; cbn in *.
+          clear IHglobals.
+          unfold globals_of.
+          unfold initOneIRGlobal in Heqs0.
+          break_let.
+          break_match_hyp; inv Heqs0.
           ++
-            destruct n;cbn in H; [inv H | rewrite ListNth.nth_error_nil in H; some_none].
+            (* ctype *)
+            break_let.
+            subst.
+            inv H0.
+            cbn.
+            rewrite interp_to_L3_bind, translate_bind.
+            rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+
+            match goal with
+            | [|- context[lift_Rel_mcfg ?r]] => remember r as R0
+            end.
+            apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
+            rewrite interp_to_L3_bind, translate_bind.
+            rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+            apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
+            cbn.
+            pose_interp_to_L3_alloca m' a' A AE.
+            unfold non_void.
+            rewrite typ_to_dtyp_D.
+            intros C. inversion C.
+            rewrite_clear AE.
+            cbn.
+            rewrite translate_ret.
+            apply eutt_Ret.
+            cbn.
+            subst R0.
+            split;admit.
+
+            intros u1 u2 H.
+            repeat break_let.
+
+            admit.
+            admit.
+
           ++
-            destruct n;cbn in H; [inv H | rewrite ListNth.nth_error_nil in H; some_none].
-          ++
-            assert(L:length (Γ s) ≡ 1).
-            {
-              (* because length σ = length (Γ s). Need some lemma for that.
-               Probably follows from [WF_IRState]
-               *)
-              admit.
-            }
-            destruct n.
-            cbn in H.
-            inv H.
-            exists mo.
-            split; [auto|].
-            exists (0%Z, 0%Z).
-            exists (make_empty_logical_block
-                 (typ_to_dtyp [ ] (TYPE_Array (Int64.intval size) TYPE_Double))).
-            split.
-            **
-              (* This subgoal is unprovable, since we do not know if `x`
-               is local or global. It must be global for it to succeed. *)
-              admit.
-            **
-              split;[auto|].
-              intros i0 H.
-              admit.
-            **
-              destruct n.
-              cbn in H.
-              some_none.
-              rewrite ListNth.nth_error_past_end in H0.
-              some_none.
-              rewrite L.
-              unfold le, one, peano_naturals.nat_1.
-              lia.
+            (* nat *)
+            break_let.
+            subst.
+            inv H0.
+            cbn.
+            admit.
         --
-          (* "i" init *)
           intros u1 u2 H.
+          repeat break_let.
+          subst.
+
+          setoid_rewrite <- bind_ret_r.
+          rewrite interp_to_L3_bind, translate_bind.
+          rewrite bind_bind.
+          eapply eutt_clo_bind.
+
+          (* specialize (IHglobals mg gdecls eg v3).
+          apply IHglobals. *)
+          admit.
+
+          intros u0 u2 H0.
           repeat break_let; subst.
-          norm_v.
-          repeat setoid_rewrite bind_ret_l.
+          rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+          eapply eutt_clo_bind.
+          rewrite interp_to_L3_ret.
+          rewrite translate_ret.
+          apply eutt_Ret.
+          admit.
 
-          rewrite interp_to_L3_bind.
-
-          match goal with
-          | [ |- context[ITree.bind ?a ?b]] =>
-            replace b with (fun z =>
-                              let m' := fst z in
-                              let l' := fst (snd z) in
-                              let g' := fst (snd (snd z)) in
-                              let x := snd (snd (snd z)) in
-                              interp_mcfg
-                                (ITree.bind
-                                   (trigger (GlobalWrite (Anon 0%Z) x))
-                                   (fun r => Ret [u0; r]))
-                                g' l' m')
-          end.
-          2:{
-            extensionality z.
-            repeat break_let; subst.
-            reflexivity.
-          }
-
-          rewrite interp_to_L3_alloca.
-          cbn; norm_v.
-          cbn. rewrite interp_to_L3_bind, interp_to_L3_GW.
-          cbn; norm_v.
-        *)
-        admit.
+          intros u2 u3 H1.
+          apply eutt_Ret.
+          admit.
     +
       intros u1 u2 H.
       (* X,Y *)
