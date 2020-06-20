@@ -631,7 +631,21 @@ Section SimulationRelations.
     cbn in LU; auto.
   Qed.
 
-  Hint Resolve memory_invariant_GLU memory_invariant_LLU : core.
+  (* Lookups in [genv] are fully determined by lookups in [vars] and [σ] *)
+  Lemma memory_invariant_GLU_AExpr : forall σ s v id memH memV t l g f,
+      memory_invariant σ s memH (memV, (l, g)) ->
+      nth_error (vars s) v ≡ Some (ID_Global id, TYPE_Pointer t) ->
+      nth_error σ v ≡ Some (DSHCTypeVal f) ->
+      exists ptr, Maps.lookup id g ≡ Some (DVALUE_Addr ptr) /\
+             read memV ptr (typ_to_dtyp [] t) ≡ inr (dvalue_to_uvalue (DVALUE_Double f)).
+  Proof.
+    intros * INV NTH LU; cbn* in *.
+    eapply INV in LU; clear INV; eauto.
+    destruct LU as (ptr & τ & EQ & LU & READ); inv EQ.
+    exists ptr; split; auto.
+  Qed.
+
+  Hint Resolve memory_invariant_GLU memory_invariant_LLU memory_invariant_LLU_AExpr memory_invariant_GLU_AExpr : core.
  
   (** ** Fresh identifier generator invariant
       Low and high level invariants ensuring that calls to [incLocal] indeed generate fresh variables.
@@ -2380,6 +2394,7 @@ Section AExpr.
     intros s1 s2 aexp; revert s1 s2; induction aexp; intros * COMPILE EVAL PRE.
     - (* Variable case *)
       (* Reducing the compilation *)
+      pose proof COMPILE as COMPILE'.
       cbn* in COMPILE; simp.
 
       + (* The variable maps to an integer in the IRState *)
@@ -2389,43 +2404,104 @@ Section AExpr.
         break_inner_match_goal.
         repeat norm_h.
 
-        * break_inner_match_goal; try abs_by_WF.
-          repeat norm_h.
-          destruct i0.
-          { (* Global -- Absurd, globals map to pointers, not integers *)
-            destruct PRE. abs_by_WF.
-          }
-          { (* Local *)
-            subst. cbn.
-            destruct PRE.
-            repeat norm_v.
-            2: eapply memory_invariant_LLU; eauto.
-            cbn.
-            repeat norm_v.
-            cbn.
-            repeat norm_v.
-            rewrite typ_to_dtyp_equation.
-            admit.
-          (*   setoid_rewrite bind_ret_l. *)
-          (*   apply eutt_Ret; split; eauto. *)
-          (*   constructor; eauto. *)
-          (*   intros l' MONO; cbn*. *)
-          (*   split. *)
-          (*   { repeat norm_v. *)
-          (*     2: eapply memory_invariant_LLU; eauto. *)
-          (*     2: eapply memory_invariant_ext_local; eauto. *)
-          (*     cbn; repeat norm_v. *)
-          (*     reflexivity. *)
-          (*   } *)
+        * destruct PRE.
+          break_inner_match_goal; try abs_by_WF.
 
-          (*   rewrite Heqo0. *)
-          (*   reflexivity. *)
+          repeat norm_h.
+          destruct i0; try abs_by_WF.
+
+          (* Globals *)
+          cbn.
+          epose proof (memory_invariant_GLU_AExpr _ mem_is_inv0 Heqo Heqo0).
+          destruct H as (ptr & MAP & READ).
+
+          repeat norm_v; eauto.
+
+          cbn. repeat norm_v.
+          cbn. repeat norm_v.
+
+          rewrite typ_to_dtyp_equation in *.               
+          cbn in READ.
+          rewrite interp_cfg_to_L3_Load; eauto.
+
+          repeat norm_v.
+          rewrite interp_cfg_to_L3_LW.
+          cbn. repeat norm_v.
+
+          apply eqit_Ret.
+
+          split.
+          { split.
+            - (* Ltac this dance ? *)
+              eapply memory_invariant_ext_local; eauto.
+              apply sub_alist_add.
+              apply concrete_fresh_fresh in incLocal_is_fresh0.
+              eapply incLocal_is_fresh0.
+              cbn.
+              eauto.
+            - eapply genAExpr_preserves_WF; eauto.
+            - cbn. intros id0 v1 n H H0.
+              destruct id0.
+              + (* Name *)
+                destruct (String.eqb s (String "l" (string_of_nat n))) eqn:Hid.
+                * apply String.eqb_eq in Hid.
+                  subst.
+
+                  (* LTAC *)
+                  apply concrete_fresh_fresh in incLocal_is_fresh0.
+                  unfold incLocal_fresh in incLocal_is_fresh0.
+                  unfold concrete_fresh_inv in incLocal_is_fresh0.
+
+                  (* H should be a contradiction because n >= S
+                  (local_count i), so the key should not appear in the
+                  map assuming everything is fresh. *)
+                  admit.
+                * apply String.eqb_neq in Hid.
+                  intros Hname. inversion Hname.
+                  contradiction.
+              + intros CONTRA; discriminate CONTRA.
+              + intros CONTRA; discriminate CONTRA.
           }
-          admit.
-          admit.
+          { split.
+            - split.
+              + cbn. repeat norm_v; cbn; repeat norm_v.
+                reflexivity.
+                eapply memory_invariant_LLU_AExpr; eauto.
+                eapply memory_invariant_ext_local; eauto.
+
+                (* LTAC *)
+                apply concrete_fresh_fresh in incLocal_is_fresh0.
+                unfold incLocal_fresh in incLocal_is_fresh0.
+                unfold concrete_fresh_inv in incLocal_is_fresh0.
+
+                eapply sub_alist_trans; eauto.
+                eapply sub_alist_add; eauto.
+                eapply incLocal_is_fresh0.
+                reflexivity.
+
+                (* LTAC *)
+                unfold Traversal.endo.
+                unfold Traversal.Endo_id.
+
+                unfold memory_invariant in mem_is_inv0.
+                epose proof (mem_is_inv0 _ _ _ _ Heqo0 Heqo).
+                cbn in H0.
+                destruct H0 as (ptr' & τ' & TYP & GLOB & READ').
+                inversion TYP; subst.
+                admit.
+              + cbn. unfold context_lookup.
+                rewrite Heqo0. cbn.
+                reflexivity.
+            - apply ext_local_subalist.
+              apply sub_alist_add.
+              apply concrete_fresh_fresh in incLocal_is_fresh0.
+              eapply incLocal_is_fresh0.
+              cbn.
+              eauto.
+          }
         * (* Variable not in context, [context_lookup] fails *)
-          (* abs_by_WF. *)
-          admit.
+          destruct PRE.
+          abs_by_WF.
       + (* The variable maps to a pointer *)
         unfold denoteAExpr; cbn*.
         repeat norm_v.
