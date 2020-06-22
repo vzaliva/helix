@@ -2586,6 +2586,42 @@ Section AExpr.
 
       admit.
     - (* AAbs *)
+      rename g into g1, l into l1, memV into memV1.
+      cbn* in COMPILE; simp.
+
+      (* YZ TODO Ltac for this *)
+      generalize Heqs; intros WFI; eapply genAExpr_preserves_WF in WFI; eauto.
+      2: apply PRE.
+
+      cbn in EVAL.
+      break_match; try discriminate EVAL.
+
+      cbn*.
+      repeat norm_h.
+
+      (* TODO: Ltac for this. *)
+      rewrite convert_typ_app.
+      rewrite denote_code_app.
+
+      repeat norm_v.
+      eapply eutt_clo_bind; try eapply IHaexp; eauto.
+
+      intros [memH2 b2] [memV2 [l2 [g2 []]]] [[MEMINV _ FRESH] [AEXPR EXT]].
+      unfold genAExpr_exp_correct in AEXPR.
+      unfold ext_local in EXT.
+      cbn in EXT.
+      repeat norm_h.
+
+      cbn.
+      repeat norm_v.
+      rewrite typ_to_dtyp_equation.
+      repeat norm_v.
+
+      epose proof (AEXPR l2 _) as [EUTT EVAL'].
+      rewrite <- EUTT.
+      repeat norm_v.
+      cbn; repeat norm_v.
+
       admit.
     - (* APlus *)
       rename g into g1, l into l1, memV into memV1.
