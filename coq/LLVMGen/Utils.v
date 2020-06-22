@@ -50,10 +50,10 @@ Fixpoint string_of_IRType (t: typ) :=
   | _ => "#INVALID"
   end.
 
-Definition string_of_vars (vars:list (ident * typ)) : string
+Definition string_of_Γ (Γ:list (ident * typ)) : string
   := "[" ++ String.concat ", " (List.map
                                   (fun '(n,t) =>
                                      append (string_of_ident n)
                                             (":" ++(string_of_IRType t))
                                   )
-                           vars) ++ "]".
+                           Γ) ++ "]".

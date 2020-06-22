@@ -47,7 +47,7 @@ Section withErrorStateMonad.
         block_count: nat ;
         local_count: nat ;
         void_count : nat ;
-        vars: list (ident * typ)
+        Γ: list (ident * typ)
       }.
 
   Definition newState: IRState :=
@@ -55,7 +55,7 @@ Section withErrorStateMonad.
       block_count := 0 ;
       local_count := 0 ;
       void_count  := 0 ;
-      vars := []
+      Γ := []
     |}.
 
   Definition cerr := errS IRState.
@@ -65,18 +65,18 @@ Section withErrorStateMonad.
       block_count := block_count s ;
       local_count := local_count s ;
       void_count  := void_count s ;
-      vars := newvars
+      Γ := newvars
     |}.
 
   (* Returns n-th varable from state or error if [n] index oob *)
   Definition getStateVar (msg:string) (n:nat): cerr (ident * typ) :=
     st <- get ;;
-    option2errS msg (List.nth_error (vars st) n).
+    option2errS msg (List.nth_error (Γ st) n).
 
   (* for debugging and error reporting *)
   Definition getVarsAsString : cerr string :=
     st <- get ;;
-    ret (string_of_vars (vars st)).
+    ret (string_of_Γ (Γ st)).
 
   Definition nat_eq_or_cerr msg a b : cerr _ := err2errS (nat_eq_or_err msg a b).
   Definition Z_eq_or_cerr msg a b : cerr _ := err2errS (Z_eq_or_err msg a b).
@@ -127,7 +127,7 @@ Definition incBlockNamed (prefix:string): (cerr block_id) :=
       block_count := S (block_count st);
       local_count := local_count st ;
       void_count := void_count st ;
-      vars := vars st
+      Γ := Γ st
     |} ;;
   ret (Name (prefix ++ string_of_nat (block_count st))).
 
@@ -140,7 +140,7 @@ Definition incLocalNamed (prefix:string): (cerr raw_id) :=
       block_count := block_count st ;
       local_count := S (local_count st) ;
       void_count  := void_count st ;
-      vars := vars st
+      Γ := Γ st
     |} ;;
   ret (Name (prefix @@ string_of_nat (local_count st))).
 
@@ -153,7 +153,7 @@ Definition incVoid: (cerr int) :=
       block_count := block_count st ;
       local_count := local_count st ;
       void_count  := S (void_count st) ;
-      vars := vars st
+      Γ := Γ st
     |} ;;
   ret (Z.of_nat (void_count st)).
 
@@ -164,7 +164,7 @@ Definition addVars (newvars: list (ident * typ)): cerr unit :=
       block_count := block_count st ;
       local_count := local_count st ;
       void_count  := void_count st ;
-      vars := newvars ++ vars st
+      Γ := newvars ++ Γ st
     |}.
 
 Definition newLocalVar (t:typ) (prefix:string): (cerr raw_id) :=
@@ -175,7 +175,7 @@ Definition newLocalVar (t:typ) (prefix:string): (cerr raw_id) :=
       block_count := block_count st ;
       local_count := S (local_count st) ;
       void_count  := void_count st ;
-      vars := [(ID_Local v,t)] ++ (vars st)
+      Γ := [(ID_Local v,t)] ++ (Γ st)
     |} ;;
   ret v.
 
@@ -192,12 +192,12 @@ Fixpoint drop_err {A:Type} (n:nat) (lst:list A) : err (list A)
 
 Definition dropVars (n: nat): cerr unit :=
   st <- get ;;
-  vars' <- err2errS (drop_err n (vars st)) ;;
+  Γ' <- err2errS (drop_err n (Γ st)) ;;
   put {|
       block_count := block_count st ;
       local_count := local_count st ;
       void_count  := void_count st ;
-      vars := vars'
+      Γ := Γ'
     |}.
 
 Definition allocTempArrayCode (name: local_id) (size:Int64.int)
@@ -242,8 +242,8 @@ Fixpoint genNExpr
                   if Z.eq_dec z zi then
                     ret (EXP_Ident i, [])
                   else
-                    (svars <- getVarsAsString ;;
-                     raise ("NVar #" @@ string_of_nat n @@ " dimensions mismatch in " @@ svars))
+                    (sΓ <- getVarsAsString ;;
+                     raise ("NVar #" @@ string_of_nat n @@ " dimensions mismatch in " @@ sΓ))
                 | TYPE_Pointer (TYPE_I z), TYPE_I zi =>
                   if Z.eq_dec z zi then
                     res <- incLocal ;;
@@ -253,11 +253,11 @@ Fixpoint genNExpr
                                                 (EXP_Ident i))
                                                (ret 8%Z))])
                   else
-                    (svars <- getVarsAsString ;;
-                     raise ("NVar #" @@ string_of_nat n @@ " pointer type mismatch in " @@ svars))
+                    (sΓ <- getVarsAsString ;;
+                     raise ("NVar #" @@ string_of_nat n @@ " pointer type mismatch in " @@ sΓ))
                 | _,_ =>
-                  svars <- getVarsAsString ;;
-                  raise ("NVar #" @@ string_of_nat n @@ " type mismatch in " @@ svars)
+                  sΓ <- getVarsAsString ;;
+                  raise ("NVar #" @@ string_of_nat n @@ " type mismatch in " @@ sΓ)
                 end
     | NConst v => ret (EXP_Integer (Int64.intval v), [])
     | NDiv   a b => gen_binop a b (UDiv false)
@@ -279,8 +279,8 @@ Definition genMExpr
                              | TYPE_Pointer (TYPE_Array zi TYPE_Double) =>
                                ret (EXP_Ident i, [], (TYPE_Array zi TYPE_Double))
                              | _  =>
-                               svars <- getVarsAsString ;;
-                               raise ("MPtrDeref's PVar #" @@ string_of_nat x @@ " type mismatch in " @@ svars)
+                               sΓ <- getVarsAsString ;;
+                               raise ("MPtrDeref's PVar #" @@ string_of_nat x @@ " type mismatch in " @@ sΓ)
                              end
      | MConst c => raise "MConst not implemented" (* TODO *)
      end.
@@ -331,8 +331,8 @@ Fixpoint genAExpr
                                               (EXP_Ident i))
                                              (ret 8%Z))])
                 | _ =>
-                  svars <- getVarsAsString ;;
-                  raise ("AVar #" @@ string_of_nat n @@ " type mismatch in " @@ svars)
+                  sΓ <- getVarsAsString ;;
+                  raise ("AVar #" @@ string_of_nat n @@ " type mismatch in " @@ sΓ)
                 end
     | AConst v => ret (EXP_Double v, [])
     | ANth vec i =>
@@ -923,16 +923,16 @@ Definition genPower
 
 Definition resolve_PVar (p:PExpr): cerr (ident*Int64.int)
   :=
-    svars <- getVarsAsString ;;
+    sΓ <- getVarsAsString ;;
     match p with
     | PVar n =>
       let ns := string_of_nat n in
-      '(l,t) <- getStateVar ("NVar#" @@ ns @@ " out of range in " @@ svars) n ;;
+      '(l,t) <- getStateVar ("NVar#" @@ ns @@ " out of range in " @@ sΓ) n ;;
       match t with
       | TYPE_Pointer (TYPE_Array sz TYPE_Double) =>
         sz' <- err2errS (MInt64asNT.from_Z sz) ;;
         ret (l, sz')
-      | _ => raise ("Invalid type of PVar#" @@ ns @@ " in " @@ svars)
+      | _ => raise ("Invalid type of PVar#" @@ ns @@ " in " @@ sΓ)
       end
     end.
 
@@ -1030,7 +1030,7 @@ Fixpoint genIR
         end)
           (fun m => raise (m @@ " in " @@ fshcol_s)).
 
-Definition body_get_entry (body : list (block typ)) : cerr (block typ * list (block typ)) :=
+Definition body_non_empty_cast (body : list (block typ)) : cerr (block typ * list (block typ)) :=
   match body with
   | [] => raise "Attempting to generate a function containing no block"
   | b::body => ret (b,body)
@@ -1055,8 +1055,7 @@ Definition LLVMGen
 
     '(_,body) <- genIR fshcol rid ;;
 
-    let body := body ++ [retblock] in
-    body <- body_get_entry body;; 
+    bodyt <- body_non_empty_cast (body ++ [retblock]) ;;
     let all_intrinsics:toplevel_entities typ (block typ * list (block typ))
         := [TLE_Comment "Prototypes for intrinsics we use"]
              ++ (List.map (TLE_Declaration) (
@@ -1091,7 +1090,7 @@ Definition LLVMGen
                               dc_gc          := None
                             |} ;
                           df_args        := [x; y];
-                          df_instrs      := body
+                          df_instrs      := bodyt
                         |}
       ]).
 
@@ -1376,25 +1375,23 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
 
       '(data,yxinit) <- initXYplaceholders i o data gx gxtyp gy gytyp ;;
 
+      (*
+        While generate operator's function body, add fake
+        parameters as locals X=PVar 1, Y=PVar 0.
+
+        We want them to be in `Γ` before globals *)
       let x := Name "X" in
       let xtyp := TYPE_Pointer (getIRType (DSHPtr i)) in
       let y := Name "Y" in
       let ytyp := TYPE_Pointer (getIRType (DSHPtr o)) in
 
-      (*
-        While generate operator's function body, add
-        parameters as locals X=PVar 1, Y=PVar 0.
-
-        We want them to be in `vars` before globals, so
-        we initialize them here. It is little hacky
-       *)
       addVars [(ID_Local y, ytyp);(ID_Local x, xtyp)] ;;
 
       (* Global variables *)
       '(data,ginit) <- initIRGlobals data globals ;;
       (* operator function *)
       prog <- LLVMGen i o op name ;;
-      dropVars 2;; (* drop local X,Y parameters *)
+      dropVars 2;; (* drop fake X,Y parameters *)
 
       (* Main function *)
       let main := genMain name gx gxptyp gy gytyp gyptyp  in

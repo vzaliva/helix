@@ -41,7 +41,7 @@ Module MDSigmaHCOLEval
   Definition mem_lookup_err
              (msg:string)
              (n: nat)
-             (mem: mem_block)
+             (mem: mem_block) : err CT.t
     :=
       trywith msg (mem_lookup n mem).
 
@@ -67,6 +67,7 @@ Module MDSigmaHCOLEval
              (msg:string)
              (mem: memory)
              (n: mem_block_id)
+             : err mem_block
     :=
     trywith msg (memory_lookup mem n).
 

@@ -317,190 +317,207 @@ Section WF_IRState.
     | _           , DSHPtr n => TYPE_Pointer (TYPE_Array (Int64.intval n) TYPE_Double)
     end.
 
+  (* True if σ typechecks in Γ *)
+  Definition evalContext_typechecks (σ : evalContext) (Γ : list (ident * typ)) : Prop :=
+    forall v n, nth_error σ n ≡ Some v ->
+           ∃ id, (nth_error Γ n ≡ Some (id, getWFType id (DSHType_of_DSHVal v))).
+
   Definition WF_IRState (σ : evalContext) (s : IRState) : Prop :=
-    Forall2 (fun v '(id,τ) => τ ≡ getWFType id (DSHType_of_DSHVal v)) σ (vars s).
+    evalContext_typechecks σ (Γ s).
 
   (* In such a well-formed context, success of a lookup in the [IRState] as performed by the compiler
      ensures the success of a lookup in the [evalContext] *)
-  Lemma WF_IRState_lookup_cannot_fail_ctx :
-    forall σ it s n,
-      WF_IRState σ s ->
-      nth_error (vars s) n ≡ Some it ->
-      nth_error σ n ≡ None ->
-      False.
-  Proof.
-    intros ? [] * WF LU_IR LU_SIGMA.
-    unfold WF_IRState in WF.
-    apply Forall2_length in WF.
-    apply ListNth.nth_error_length_lt in LU_IR.
-    rewrite <- WF in LU_IR.
-    apply nth_error_succeeds in LU_IR. destruct LU_IR as [a Hnth'].
-    rewrite Hnth' in LU_SIGMA; inv LU_SIGMA.
-  Qed.
+  (* Lemma WF_IRState_lookup_cannot_fail_ctx : *)
+  (*   forall σ it s n, *)
+  (*     WF_IRState σ s -> *)
+  (*     nth_error (Γ s) n ≡ Some it -> *)
+  (*     nth_error σ n ≡ None -> *)
+  (*     False. *)
+  (* Proof. *)
+  (*   intros ? [] * WF LU_IR LU_SIGMA. *)
+  (*   destruct WF as (pre & post & EQ & MAPPING). *)
+  (*   apply Forall2_length in MAPPING. *)
+  (*   apply ListNth.nth_error_length_lt in LU_IR. *)
+  (*   rewrite <- WF in LU_IR. *)
+  (*   apply nth_error_succeeds in LU_IR. destruct LU_IR as [a Hnth']. *)
+  (*   rewrite Hnth' in LU_SIGMA; inv LU_SIGMA. *)
+  (* Qed. *)
 
   (* In such a well-formed context, success of a lookup in the [IRState] as performed by the compiler
      ensures the success of a lookup in the [evalContext] *)
-  Lemma WF_IRState_lookup_cannot_fail_st :
-    forall σ v s n,
-      WF_IRState σ s ->
-      nth_error (vars s) n ≡ None ->
-      nth_error σ n ≡ Some v ->
-      False.
-  Proof.
-    intros * WF LU_IR LU_SIGMA.
-    unfold WF_IRState in WF.
-    apply Forall2_length in WF.
-    apply ListNth.nth_error_length_lt in LU_SIGMA.
-    rewrite WF in LU_SIGMA.
-    apply nth_error_succeeds in LU_SIGMA.
-    destruct LU_SIGMA as [a Hnth'].
-    rewrite Hnth' in LU_IR; inv LU_IR.
-  Qed.
+  (* Lemma WF_IRState_lookup_cannot_fail_st : *)
+  (*   forall σ v s n, *)
+  (*     WF_IRState σ s -> *)
+  (*     nth_error (Γ s) n ≡ None -> *)
+  (*     nth_error σ n ≡ Some v -> *)
+  (*     False. *)
+  (* Proof. *)
+  (*   intros * WF LU_IR LU_SIGMA. *)
+  (*   unfold WF_IRState in WF. *)
+  (*   destruct WF as (pre & i & o & EQ & WF). *)
+  (*   apply Forall2_length in WF. *)
+  (*   apply ListNth.nth_error_length_lt in LU_SIGMA. *)
+  (*   rewrite WF in LU_SIGMA. *)
+  (*   assert (BOUND: n < Datatypes.length (Γ s)).  *)
+  (*   { eapply Nat.lt_le_trans; eauto. *)
+  (*     rewrite EQ, app_length. *)
+  (*     lia. *)
+  (*   } *)
+  (*   apply nth_error_succeeds in BOUND. *)
+  (*   destruct BOUND as [a Hnth']. *)
+  (*   rewrite Hnth' in LU_IR; inv LU_IR. *)
+  (* Qed. *)
 
   (* In such a well-formed context, finding in the typing context that a variable
      is an int ensure to find an int in the [evalContext].
    *)
-  Lemma WF_IRState_lookup_local_int :
-    forall σ s n id,
-      WF_IRState σ s ->
-      nth_error (vars s) n ≡ Some (ID_Local id,TYPE_I 64%Z) ->
-      exists v, nth_error σ n ≡ Some (DSHnatVal v).
-  Proof.
-    intros * WF LU_IR.
-    eapply Forall2_Nth_right in WF; eauto.
-    destruct WF as (x & Hnth & Htype).
-    destruct x as [n0 | |]; try solve [inversion Htype].
-    eexists; eauto.
-  Qed.
+  (* Lemma WF_IRState_lookup_local_int : *)
+  (*   forall σ s n id, *)
+  (*     WF_IRState σ s -> *)
+  (*     nth_error (Γ s) n ≡ Some (ID_Local id,TYPE_I 64%Z) -> *)
+  (*     exists v, nth_error σ n ≡ Some (DSHnatVal v). *)
+  (* Proof. *)
+  (*   intros * WF LU_IR. *)
+  (*   eapply Forall2_Nth_right in WF; eauto. *)
+  (*   destruct WF as (x & Hnth & Htype). *)
+  (*   destruct x as [n0 | |]; try solve [inversion Htype]. *)
+  (*   eexists; eauto. *)
+  (* Qed. *)
 
   (* In such a well-formed context, finding in the typing context that a variable
      is an int ensure to find an int in the [evalContext].
    *)
-  Lemma WF_IRState_lookup_global_int :
-    forall σ s n id,
-      WF_IRState σ s ->
-      nth_error (vars s) n ≡ Some (ID_Global id, TYPE_Pointer (TYPE_I 64%Z)) ->
-      exists v, nth_error σ n ≡ Some (DSHnatVal v).
-  Proof.
-    intros * WF LU_IR.
-    eapply Forall2_Nth_right in WF; eauto.
-    destruct WF as (x & Hnth & Htype).
-    destruct x as [n0 | |]; try solve [inversion Htype].
-    eexists; eauto.
-  Qed.
+  (* Lemma WF_IRState_lookup_global_int : *)
+  (*   forall σ s n id, *)
+  (*     WF_IRState σ s -> *)
+  (*     nth_error (Γ s) n ≡ Some (ID_Global id, TYPE_Pointer (TYPE_I 64%Z)) -> *)
+  (*     exists v, nth_error σ n ≡ Some (DSHnatVal v). *)
+  (* Proof. *)
+  (*   intros * WF LU_IR. *)
+  (*   eapply Forall2_Nth_right in WF; eauto. *)
+  (*   destruct WF as (x & Hnth & Htype). *)
+  (*   destruct x as [n0 | |]; try solve [inversion Htype]. *)
+  (*   eexists; eauto. *)
+  (* Qed. *)
 
   (* In such a well-formed context, finding in the typing context that a variable
      is an int ensure to find an int in the [evalContext].
    *)
-  Lemma WF_IRState_lookup_local_double :
-    forall σ s n id,
-      WF_IRState σ s ->
-      nth_error (vars s) n ≡ Some (ID_Local id, TYPE_Double) ->
-      exists a, nth_error σ n ≡ Some (DSHCTypeVal a).
-  Proof.
-    intros * WF LU_IR.
-    unfold WF_IRState in WF.
-    eapply Forall2_Nth_right in LU_IR; eauto.
-    destruct LU_IR as (x & Hnth & Htype).
-    destruct x as [n0 | |]; try solve [inversion Htype].
-    eexists; eauto.
-  Qed.
+  (* Lemma WF_IRState_lookup_local_double : *)
+  (*   forall σ s n id, *)
+  (*     WF_IRState σ s -> *)
+  (*     nth_error (Γ s) n ≡ Some (ID_Local id, TYPE_Double) -> *)
+  (*     exists a, nth_error σ n ≡ Some (DSHCTypeVal a). *)
+  (* Proof. *)
+  (*   intros * WF LU_IR. *)
+  (*   unfold WF_IRState in WF. *)
+  (*   eapply Forall2_Nth_right in LU_IR; eauto. *)
+  (*   destruct LU_IR as (x & Hnth & Htype). *)
+  (*   destruct x as [n0 | |]; try solve [inversion Htype]. *)
+  (*   eexists; eauto. *)
+  (* Qed. *)
 
   (* In such a well-formed context, finding in the typing context that a variable
      is an int ensure to find an int in the [evalContext].
    *)
-  Lemma WF_IRState_lookup_global_double :
-    forall σ s n id,
-      WF_IRState σ s ->
-      nth_error (vars s) n ≡ Some (ID_Global id, TYPE_Pointer TYPE_Double) ->
-      exists a, nth_error σ n ≡ Some (DSHCTypeVal a).
-  Proof.
-    intros * WF LU_IR.
-    unfold WF_IRState in WF.
-    eapply Forall2_Nth_right in LU_IR; eauto.
-    destruct LU_IR as (x & Hnth & Htype).
-    destruct x as [n0 | |]; try solve [inversion Htype].
-    eexists; eauto.
-  Qed.
+  (* Lemma WF_IRState_lookup_global_double : *)
+  (*   forall σ s n id, *)
+  (*     WF_IRState σ s -> *)
+  (*     nth_error (Γ s) n ≡ Some (ID_Global id, TYPE_Pointer TYPE_Double) -> *)
+  (*     exists a, nth_error σ n ≡ Some (DSHCTypeVal a). *)
+  (* Proof. *)
+  (*   intros * WF LU_IR. *)
+  (*   unfold WF_IRState in WF. *)
+  (*   eapply Forall2_Nth_right in LU_IR; eauto. *)
+  (*   destruct LU_IR as (x & Hnth & Htype). *)
+  (*   destruct x as [n0 | |]; try solve [inversion Htype]. *)
+  (*   eexists; eauto. *)
+  (* Qed. *)
 
   (* In such a well-formed context, finding in the typing context that a variable
      is an int ensure to find an int in the [evalContext].
    *)
-  Lemma WF_IRState_lookup_ptr :
-    forall σ s n v id,
-      WF_IRState σ s ->
-      nth_error (vars s) n ≡ Some (id, TYPE_Pointer (TYPE_Array v TYPE_Double)) ->
-      exists a size, nth_error σ n ≡ Some (DSHPtrVal a size).
-  Proof.
-    intros * WF LU_IR.
-    unfold WF_IRState in WF.
-    eapply Forall2_Nth_right in LU_IR; eauto.
-    destruct LU_IR as (x & Hnth & Htype).
-    destruct x as [n0 | |]; try (destruct id; solve [inversion Htype]).
-    do 2 eexists; eauto.
-  Qed.
+  (* Lemma WF_IRState_lookup_ptr : *)
+  (*   forall σ s n v id, *)
+  (*     WF_IRState σ s -> *)
+  (*     nth_error (Γ s) n ≡ Some (id, TYPE_Pointer (TYPE_Array v TYPE_Double)) -> *)
+  (*     exists a size, nth_error σ n ≡ Some (DSHPtrVal a size). *)
+  (* Proof. *)
+  (*   intros * WF LU_IR. *)
+  (*   unfold WF_IRState in WF. *)
+  (*   eapply Forall2_Nth_right in LU_IR; eauto. *)
+  (*   destruct LU_IR as (x & Hnth & Htype). *)
+  (*   destruct x as [n0 | |]; try (destruct id; solve [inversion Htype]). *)
+  (*   do 2 eexists; eauto. *)
+  (* Qed. *)
 
   Lemma WF_IRState_lookups :
     forall σ s n v id τ,
       WF_IRState σ s ->
-      nth_error (vars s) n ≡ Some (id, τ) ->
+      nth_error (Γ s) n ≡ Some (id, τ) ->
       nth_error σ n ≡ Some v ->
       τ ≡ getWFType id (DSHType_of_DSHVal v).
   Proof.
     intros * WF LU_IR LU_SIGMA.
-    eapply Forall2_Nth in WF; eauto; cbn in *; eauto.
+    apply WF in LU_SIGMA; destruct LU_SIGMA as (id' & LU); rewrite LU in LU_IR; inv LU_IR.
+    reflexivity.
   Qed.
 
-
   Lemma WF_IRState_one_of_local_type:
-    forall σ x τ s n,
+    forall σ x τ s n v,
       WF_IRState σ s ->
-      nth_error (vars s) n ≡ Some (ID_Local x,τ) ->
+      nth_error (Γ s) n ≡ Some (ID_Local x,τ) ->
+      nth_error σ n ≡ Some v ->
       τ ≡ IntType \/
       τ ≡ TYPE_Double \/
       exists k, τ ≡ TYPE_Pointer (TYPE_Array (Int64.intval k) TYPE_Double).
   Proof.
-    intros * WF LU.
-    unfold WF_IRState in *.
-    eapply Forall2_Nth_right in WF; eauto; destruct WF as ([] & _ & EQ); cbn in EQ; subst; eauto.
+    intros * WF LU LU'.
+    eapply WF in LU'; destruct LU' as (id & LU''); rewrite LU in LU''; inv LU''.
+    cbn; break_match_goal; eauto.
   Qed.
 
   Lemma WF_IRState_one_of_global_type:
-    forall σ x τ s n,
+    forall σ x τ s n v,
       WF_IRState σ s ->
-      nth_error (vars s) n ≡ Some (ID_Global x,τ) ->
+      nth_error (Γ s) n ≡ Some (ID_Global x,τ) ->
+      nth_error σ n ≡ Some v ->
       τ ≡ TYPE_Pointer IntType \/
       τ ≡ TYPE_Pointer TYPE_Double \/
       exists k, τ ≡ TYPE_Pointer (TYPE_Array (Int64.intval k) TYPE_Double).
   Proof.
-    intros * WF LU.
-    unfold WF_IRState in *.
-    eapply Forall2_Nth_right in WF; eauto; destruct WF as ([] & _ & EQ); cbn in EQ; subst; eauto.
+    intros * WF LU LU'.
+    edestruct WF as (id & LU''); eauto.
+    rewrite LU in LU''; inv LU''.
+    cbn in *.
+    break_match_goal; eauto.
   Qed.
 
 End WF_IRState.
 
 Ltac abs_by_WF :=
   match goal with
-  | h  : nth_error (vars ?s) _ ≡ ?rhs,
+  | h  : nth_error (Γ ?s) _ ≡ ?rhs,
     h': @nth_error DSHVal ?σ _ ≡ ?rhs'
     |- _ =>
     match rhs with
     | Some (?id,?τ) =>
       match rhs' with
-      | None => exfalso; eapply WF_IRState_lookup_cannot_fail_ctx; now eauto
-      | Some ?val =>
+      | None => fail
+        (* exfalso; eapply WF_IRState_lookup_cannot_fail_ctx; now eauto *)
+      | Some ?val => 
         let WF := fresh "WF" in
         assert (WF : WF_IRState σ s) by eauto;
         let H := fresh in pose proof (WF_IRState_lookups _ WF h h') as H; now (destruct id; inv H)
       end
     | None =>
       match rhs' with
-      | None => exfalso; eapply WF_IRState_lookup_cannot_fail_st; now eauto
-      | Some ?val => idtac
+      | None => fail
+        (* exfalso; eapply WF_IRState_lookup_cannot_fail_st; now eauto *)
+      | Some ?val => fail
       end
     end
-  | h : nth_error (vars ?s) _ ≡ Some (?id,?τ) |- _ =>
+  | h : nth_error (Γ ?s) _ ≡ Some (?id,?τ) |- _ =>
     match id with
     | ID_Local _ =>
       eapply WF_IRState_one_of_local_type in h; eauto;
@@ -562,7 +579,7 @@ Section SimulationRelations.
     fun (mem_helix : MDSHCOLOnFloat64.memory) '(mem_llvm, (ρ,g)) =>
       forall (n: nat) v τ x,
         nth_error σ n ≡ Some v ->
-        nth_error (vars s) n ≡ Some (x,τ) ->
+        nth_error (Γ s) n ≡ Some (x,τ) ->
         match v with
         | DSHnatVal v   => in_local_or_global ρ g mem_llvm x (dvalue_of_int v) τ
         | DSHCTypeVal v => in_local_or_global ρ g mem_llvm x (dvalue_of_bin v) τ
@@ -574,10 +591,10 @@ Section SimulationRelations.
                   get_array_cell mem_llvm ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v))
         end.
 
-  (* Lookups in [genv] are fully determined by lookups in [vars] and [σ] *)
+  (* Lookups in [genv] are fully determined by lookups in [Γ] and [σ] *)
   (* Lemma memory_invariant_GLU : forall σ s v id memH memV t l g n, *)
   (*     memory_invariant σ s memH (memV, (l, g)) -> *)
-  (*     nth_error (vars s) v ≡ Some (ID_Global id, t) -> *)
+  (*     nth_error (Γ s) v ≡ Some (ID_Global id, t) -> *)
   (*     nth_error σ v ≡ Some (DSHnatVal n) -> *)
   (*     Maps.lookup id g ≡ Some (DVALUE_I64 n). *)
   (* Proof. *)
@@ -587,10 +604,10 @@ Section SimulationRelations.
   (*   rewrite repr_intval in LU; auto. *)
   (* Qed. *)
 
-  (* Lookups in [genv] are fully determined by lookups in [vars] and [σ] *)
+  (* Lookups in [genv] are fully determined by lookups in [Γ] and [σ] *)
   Lemma memory_invariant_GLU : forall σ s v id memH memV t l g n,
       memory_invariant σ s memH (memV, (l, g)) ->
-      nth_error (vars s) v ≡ Some (ID_Global id, TYPE_Pointer t) ->
+      nth_error (Γ s) v ≡ Some (ID_Global id, TYPE_Pointer t) ->
       nth_error σ v ≡ Some (DSHnatVal n) ->
       exists ptr, Maps.lookup id g ≡ Some (DVALUE_Addr ptr) /\
              read memV ptr (typ_to_dtyp [] t) ≡ inr (dvalue_to_uvalue (DVALUE_I64 n)).
@@ -603,10 +620,10 @@ Section SimulationRelations.
     rewrite repr_intval in READ; auto.
   Qed.
 
-  (* Lookups in [local_env] are fully determined by lookups in [vars] and [σ] *)
+  (* Lookups in [local_env] are fully determined by lookups in [Γ] and [σ] *)
   Lemma memory_invariant_LLU : forall σ s v id memH memV t l g n,
       memory_invariant σ s memH (memV, (l, g)) ->
-      nth_error (vars s) v ≡ Some (ID_Local id, t) ->
+      nth_error (Γ s) v ≡ Some (ID_Local id, t) ->
       nth_error σ v ≡ Some (DSHnatVal n) ->
       Maps.lookup id l ≡ Some (UVALUE_I64 n).
   Proof.
@@ -1140,7 +1157,7 @@ Section NExpr.
      * s: IRState
 
 The expression must be closed in [evalContext]. I.e. all variables are below the length of σ
-vars s1 = σ?
+Γ s1 = σ?
 
    *)
   (* NOTEYZ:
@@ -1243,6 +1260,11 @@ vars s1 = σ?
     intros; rewrite typ_to_dtyp_equation; reflexivity.
   Qed.
 
+  Lemma typ_to_dtyp_D : forall s, typ_to_dtyp s TYPE_Double ≡ DTYPE_Double.
+  Proof.
+    intros; rewrite typ_to_dtyp_equation; reflexivity.
+  Qed.
+
   Lemma in_local_or_global_same_global : forall l g l' m id dv τ,
     in_local_or_global l g m (ID_Global id) dv τ ->
     in_local_or_global l' g m (ID_Global id) dv τ.
@@ -1250,10 +1272,10 @@ vars s1 = σ?
     cbn; intros; auto.
   Qed.
 
-  Lemma incLocal_vars:
+  Lemma incLocal_Γ:
     forall s s' id,
       incLocal s ≡ inr (s', id) ->
-      vars s' ≡ vars s.
+      Γ s' ≡ Γ s.
   Proof.
     intros; cbn in *; inv_sum; reflexivity.
   Qed.
@@ -1312,7 +1334,7 @@ vars s1 = σ?
     intros * INC [MEM WF FRESH].
     split.
     - red; intros * LUH LUV.
-      erewrite incLocal_vars in LUV; eauto.
+      erewrite incLocal_Γ in LUV; eauto.
       generalize LUV; intros INLG;
         eapply MEM in INLG; eauto.
       break_match.
@@ -1330,7 +1352,7 @@ vars s1 = σ?
         eapply in_local_or_global_add_fresh_old; eauto.
         eapply fresh_no_lu; eauto.
         eapply concrete_fresh_fresh; eauto.
-    - unfold WF_IRState; erewrite incLocal_vars; eauto; apply WF.
+    - unfold WF_IRState; erewrite incLocal_Γ; eauto; apply WF.
     - intros ? ? ? LU INEQ.
       clear MEM WF.
       destruct (rel_dec_p id0 id); [subst |];
@@ -1410,7 +1432,7 @@ vars s1 = σ?
           }
 
         * (* Variable not in context, [context_lookup] fails *)
-          abs_by_WF.
+          cbn* in EVAL; rewrite Heqo0 in EVAL; inv EVAL.
 
       + (* The variable maps to a pointer *)
         unfold denoteNExpr; cbn*.
@@ -1452,6 +1474,7 @@ vars s1 = σ?
                unfold incLocal_fresh in incLocal_is_fresh0.
                eapply incLocal_is_fresh0; eauto.
              }
+        * cbn* in EVAL; rewrite Heqo0 in EVAL; inv EVAL.
 
     - (* Constant *)
 
@@ -2146,12 +2169,12 @@ Section MExpr.
         memory_lookup memH mid ≡ Some mb /\
         in_local_or_global ρ g memV i (DVALUE_Addr ptr) (TYPE_Array sz TYPE_Double) /\
         nth_error σ vid ≡ Some (DSHPtrVal mid size) /\
-        nth_error (vars s) vid ≡ Some (i, TYPE_Pointer (TYPE_Array sz TYPE_Double)).
+        nth_error (Γ s) vid ≡ Some (i, TYPE_Pointer (TYPE_Array sz TYPE_Double)).
 
   Lemma memory_invariant_Ptr : forall σ s memH memV l g vid a size x sz,
       state_invariant σ s memH (memV, (l, g)) ->
       nth_error σ vid ≡ Some (DSHPtrVal a size) ->
-      nth_error (vars s) vid ≡ Some (x, TYPE_Pointer (TYPE_Array sz TYPE_Double)) ->
+      nth_error (Γ s) vid ≡ Some (x, TYPE_Pointer (TYPE_Array sz TYPE_Double)) ->
       ∃ (bk_helix : mem_block) (ptr_llvm : Addr.addr),
         memory_lookup memH a ≡ Some bk_helix
         ∧ in_local_or_global l g memV x (DVALUE_Addr ptr_llvm) (TYPE_Pointer (TYPE_Array sz TYPE_Double))
@@ -2164,9 +2187,10 @@ Section MExpr.
   *)
   Lemma genMExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
-      (* Helix  bits *)   (mexp: MExpr) (σ: evalContext) (memH: memoryH)
+      (* Helix  bits *)   (mexp: MExpr) (σ: evalContext) (memH: memoryH) v
       (* Vellvm bits *)   (exp: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV) (τ: typ),
       genMExpr mexp s1 ≡ inr (s2, (exp, c, τ)) -> (* Compilation succeeds *)
+      evalMExpr memH σ mexp ≡ inr v            -> (* Evaluation succeeds *)
       state_invariant σ s1 memH (memV, (l, g)) ->
       eutt (lift_Rel_cfg (state_invariant σ s2) ⩕ invariant_MExpr σ s2)
            (with_err_RB
@@ -2176,7 +2200,7 @@ Section MExpr.
               ((interp_cfg (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
                  g l memV)).
   Proof.
-    intros * Hgen Hmeminv.
+    intros * Hgen Heval Hmeminv.
     generalize Hmeminv; intros WF; apply IRState_is_WF in WF.
 
     unfold denoteMExpr; cbn*.
@@ -2188,6 +2212,7 @@ Section MExpr.
       cbn*; repeat norm_v.
       norm_h.
       break_inner_match_goal; try abs_by_WF.
+      2: cbn* in Heval; rewrite Heqo0 in Heval; inv Heval.
       norm_h.
       break_inner_match_goal; try abs_by_WF.
       subst.
@@ -2225,6 +2250,7 @@ Section MExpr.
         do 6 eexists.
         splits; eauto.
         cbn; auto.
+
     - (* Const *)
       cbn* in Hgen; simp.
   Qed.
@@ -2264,22 +2290,23 @@ Section AExpr.
   Lemma wf_ir_nth_error_some__good_lookup :
     forall σ st v x err,
       WF_IRState σ st ->
-      nth_error (vars st) v ≡ Some x ->
+      nth_error (Γ st) v ≡ Some x ->
       exists val, context_lookup err σ v ≡ inr val.
   Proof.
     intros σ st v x err Hwf Hnth.
     destruct (context_lookup err σ v) eqn:Hctx.
     - unfold context_lookup in Hctx.
       destruct (nth_error σ v) eqn:Hnth_σ; subst; cbn in Hctx; inversion Hctx.
-      epose proof (WF_IRState_lookup_cannot_fail_ctx).
-      exfalso; eauto.
-    - exists d. reflexivity.
-  Qed.
+  (*     epose proof (WF_IRState_lookup_cannot_fail_ctx). *)
+  (*     exfalso; eauto. *)
+  (*   - exists d. reflexivity. *)
+  (* Qed. *)
+  Admitted.
 
   Lemma context_lookup_succeeds :
     forall σ st x v err,
       WF_IRState σ st ->
-      nth_error (vars st) v ≡ Some x ->
+      nth_error (Γ st) v ≡ Some x ->
       exists val, context_lookup err σ v ≡ inr val /\ nth_error σ v ≡ Some val.
   Proof.
     intros σ st x v err Hwf Hnth.
@@ -2975,7 +3002,7 @@ Section AExpr.
 
     (*     match goal with *)
     (*     | Hwf  : WF_IRState ?σ ?ir, *)
-    (*       Hnth : nth_error (vars ?ir) ?v ≡ Some ?x *)
+    (*       Hnth : nth_error (Γ ?ir) ?v ≡ Some ?x *)
     (*       |- context[context_lookup ?err ?σ ?v] => *)
     (*       pose proof (context_lookup_succeeds v err Hwf Hnth) as Hctx; *)
     (*       destruct Hctx as [val [Hctx Hnth_σ]] *)
@@ -3004,7 +3031,7 @@ Section AExpr.
 
     (*     match goal with *)
     (*     | Hnth : nth_error ?σ ?v ≡ Some ?val, *)
-    (*       Hnth_ir : nth_error (vars ?st) ?v ≡ Some (?id, ?τ) *)
+    (*       Hnth_ir : nth_error (Γ ?st) ?v ≡ Some (?id, ?τ) *)
     (*       |- _ => *)
     (*       let H := fresh H in *)
     (*       pose proof (Hmem v val τ id) Hnth Hnth_ir as H; *)
@@ -3029,7 +3056,7 @@ Section AExpr.
 
     (*     match goal with *)
     (*     | Hnth : nth_error ?σ ?v ≡ Some ?val, *)
-    (*       Hnth_ir : nth_error (vars ?st) ?v ≡ Some (?id, ?τ) *)
+    (*       Hnth_ir : nth_error (Γ ?st) ?v ≡ Some (?id, ?τ) *)
     (*       |- _ => *)
     (*       let H := fresh H in *)
     (*       pose proof (Hmem v val τ id) Hnth Hnth_ir as H; *)
@@ -3047,7 +3074,7 @@ Section AExpr.
 
     (*     match goal with *)
     (*     | Hwf  : WF_IRState ?σ ?ir, *)
-    (*       Hnth : nth_error (vars ?ir) ?v ≡ Some ?x *)
+    (*       Hnth : nth_error (Γ ?ir) ?v ≡ Some ?x *)
     (*       |- context[context_lookup ?err ?σ ?v] => *)
     (*       pose proof (context_lookup_succeeds v err Hwf Hnth) as Hctx; *)
     (*       destruct Hctx as [val [Hctx Hnth_σ]] *)
@@ -3071,7 +3098,7 @@ Section AExpr.
 
     (*     match goal with *)
     (*     | Hnth : nth_error ?σ ?v ≡ Some ?val, *)
-    (*       Hnth_ir : nth_error (vars ?st) ?v ≡ Some (?id, ?τ) *)
+    (*       Hnth_ir : nth_error (Γ ?st) ?v ≡ Some (?id, ?τ) *)
     (*       |- _ => *)
     (*       let H := fresh H in *)
     (*       pose proof (Hmem v val τ id) Hnth Hnth_ir as H; *)
@@ -3088,7 +3115,7 @@ Section AExpr.
 
     (*     match goal with *)
     (*     | Hnth : nth_error ?σ ?v ≡ Some ?val, *)
-    (*       Hnth_ir : nth_error (vars ?st) ?v ≡ Some (?id, ?τ) *)
+    (*       Hnth_ir : nth_error (Γ ?st) ?v ≡ Some (?id, ?τ) *)
     (*       |- _ => *)
     (*       let H := fresh H in *)
     (*       pose proof (Hmem v val τ id) Hnth Hnth_ir as H; *)
@@ -3502,8 +3529,9 @@ Qed.
 
 Lemma WF_IRState_empty : WF_IRState [ ] newState.
 Proof.
-  cbn; apply Forall2_nil.
-Qed.
+(*   cbn; apply Forall2_nil. *)
+(* Qed. *)
+Admitted.
 
 Lemma inc_local_fresh_empty : concrete_fresh_inv newState llvm_empty_memory_state_partial.
 Proof.
@@ -3877,6 +3905,38 @@ Proof.
   - break_let; cbn in H; inl_inr_inv; reflexivity.
 Qed.
 
+(* This lemma states that [genIR] if succeeds does not leak
+   compiler state variable *)
+Lemma genIR_prserves_Γ
+      {op: DSHOperator}
+      {nextblock: block_id}
+      {s s' segment}:
+  genIR op nextblock s ≡ inr (s', segment) ->
+  Γ s ≡ Γ s'.
+Proof.
+Admitted.
+
+
+(* Helper boolean predicate to check if member of [Γ] in [IRState] is global *)
+Definition is_var_Global (v:ident * typ): bool :=
+  match (fst v) with
+  | ID_Global _ => true
+  | _ => false
+  end.
+
+(* See also: [init_with_data_len] *)
+Lemma init_with_data_env_len
+      (globals : list (string * DSHType))
+      (d0 d1 : list binary64)
+      (s0 s1: IRState)
+      (chk : string * DSHType → list (string * DSHType) → cerr ())
+      (gdecls : list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ))))
+  :
+    init_with_data initOneIRGlobal chk d0 globals s0 ≡ inr (s1, (d1, gdecls)) →
+    List.length (Γ s1) ≡
+    List.length (List.filter is_var_Global (Γ s0)) + List.length globals.
+Proof.
+Admitted.
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
@@ -3900,37 +3960,43 @@ Proof.
   unfold helix_intial_memory in HI.
   cbn in HI.
   repeat break_match_hyp ; try inl_inr.
+  rename Heqp0 into Co, Heqp1 into Ci.
   inv HI.
-  rename m1 into mg.
+  rename m1 into mg, Heqs0 into G.
+
   cbn in LI.
   unfold ErrorWithState.err2errS in LI.
-  eutt_hide_rel R.
   repeat break_match_hyp; try inl_inr;
-    inversion_clear LI;
-    repeat inv_sum ; [inv Heqs5|inv Heqs5|].
+    inv LI; repeat inv_sum ; inv Heqs4.
+  rename Heqs0 into LX, Heqs1 into LG, Heqs6 into IR, Heqs8 into BC, l3 into gdecls.
+
+  (*  [s0] - state after [initXYplaceholders] *)
+  rename i0 into s0.
+  (*  [s1] - state after [initIRGlobals], which
+      was generated starting with X,Y arguments added to [s0] *)
+  rename i1 into s1.
+  (*  [s2] - state after [genIR] *)
+  rename i5 into s2.
+  (*  [s3] - state after [body_non_empty_cast] *)
+  rename i4 into s3.
+  (* [s3] contains two fake variables for X,Y which we drop and actual state *)
+  rename Heql7 into Vs3, p6 into fake_x, p7 into fake_y, l5 into v3.
 
   repeat rewrite app_assoc.
-
-  unfold build_global_environment.
-  unfold allocate_globals.
-  unfold map_monad_.
+  unfold build_global_environment, allocate_globals, map_monad_.
   simpl.
-  rewrite 2!interp_to_L3_bind.
-  rewrite bind_bind.
-  rewrite translate_bind.
-  rename Heqs0 into G, Heqs1 into L.
+  rewrite 2!interp_to_L3_bind, bind_bind, translate_bind.
   rename e into eg.
   remember (eg ++
                [DSHPtrVal (S (Datatypes.length globals)) o;
                 DSHPtrVal (Datatypes.length globals) i])%list as e.
 
-
   repeat rewrite ListUtil.flat_map_app.
   simpl.
   (* no more [genMain] *)
 
-  unfold ret in Heqs5 . cbn in Heqs5. inv_sum.
-  destruct i4. cbn in Heql7. subst vars.
+  cbn in *.
+  (* destruct s3. cbn in Vs3. subst Γ. *)
 
   rename p10 into body_instr.
   rename m into mo, m0 into mi.
@@ -3940,26 +4006,26 @@ Proof.
   (* no new types defined by [initXYplaceholders] *)
   replace (flat_map (type_defs_of typ) t) with (@nil (ident * typ)).
   2:{
-    unfold initXYplaceholders in L.
+    unfold initXYplaceholders in LX.
     repeat break_let.
-    cbn in L.
-    inv L.
+    cbn in LX.
+    inv LX.
     reflexivity.
   }
 
   (* no new types defined by [initIRGlobals] *)
-  replace (flat_map (type_defs_of typ) l3) with (@nil (ident * typ)).
+  replace (flat_map (type_defs_of typ) gdecls) with (@nil (ident * typ)).
   2:{
     symmetry.
 
-    unfold initXYplaceholders in L.
+    unfold initXYplaceholders in LX.
     repeat break_let.
-    cbn in L.
-    inv L.
+    cbn in LX.
+    inv LX.
 
-    clear - Heqs2.
-    rename l1 into data, l2 into data', l3 into res.
-    revert res data data' Heqs2.
+    clear - LG.
+    rename l1 into data, l2 into data'.
+    revert gdecls data data' LG.
     unfold initIRGlobals.
 
     cbn.
@@ -3971,7 +4037,7 @@ Proof.
                 (ID_Global (Anon 1%Z), TYPE_Array (Int64.intval o) TYPE_Double);
                 (ID_Global (Anon 0%Z), TYPE_Array (Int64.intval i) TYPE_Double)] as v.
 
-    induction globals; intros v res data data' H.
+    induction globals; intros v gdecls data data' H.
     -
       cbn in *.
       inl_inr_inv.
@@ -4005,7 +4071,7 @@ Proof.
       +
         destruct a.
         apply initOneIRGlobal_state_change in Heqs0; cbn in Heqs0; inl_inr_inv.
-        destruct i2.
+        destruct i1.
         inversion H0.
         erewrite IHglobals with
             (data:=l)
@@ -4013,7 +4079,7 @@ Proof.
             (v:=(ID_Global (Name s), TYPE_Pointer (getIRType d)) :: v)
         ; clear IHglobals; try reflexivity.
 
-        subst vars. subst.
+        subst Γ. subst.
         apply Heqs1.
   }
 
@@ -4023,55 +4089,86 @@ Proof.
 
   rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
 
-  remember ((λ memH '(memV, (l,_,g)),
+  destruct s3; cbn in Vs3; subst Γ.
+
+
+  unfold body_non_empty_cast in BC.
+  cbn in BC.
+  break_match_hyp; inv BC.
+  cbn.
+
+  remember {|
+         block_count := block_count;
+         local_count := local_count;
+         void_count := void_count;
+         Γ := v3 |} as s.
+
+  (* from [Rel_mcfg_T] to [Rel_mcfg] *)
+  remember ((λ memH '(memV, (l4,_,g)),
              state_invariant
                (eg ++
                    [DSHPtrVal (S (Datatypes.length globals)) o;
                     DSHPtrVal (Datatypes.length globals) i]) s memH
-               (memV, (l, g))): Rel_mcfg) as R0.
+               (memV, (l4, g))): Rel_mcfg) as R0.
+
 
   apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
   -
     (* [map_monad allocate_global] *)
 
-    clear body_instr Heqs9 p6 p7 l5.
-    clear Heqs7 i5 b l9.
-
     (* [t] - [initXYplaceholders]. It does not depend on globals *)
 
-    unfold initXYplaceholders in L.
+    unfold initXYplaceholders in LX.
     repeat break_let.
-    cbn in L.
-    inv L.
+    cbn in LX.
+    inv LX.
     cbn in *.
-    repeat rewrite app_nil_r.
 
-    rename i1 into s', l3 into gdecls, Heqs2 into L.
-    clear pll.
-    unfold initIRGlobals in L.
-
+    unfold initIRGlobals in LG.
 
     unfold Traversal.fmap, Traversal.Fmap_list'.
     rewrite map_app.
-
     rewrite map_monad_app.
     cbn.
-    rewrite interp_to_L3_bind.
-    rewrite translate_bind.
-
+    rewrite interp_to_L3_bind, translate_bind.
     rewrite 2!memory_set_seq.
     rewrite bind_bind.
 
     (* peel off just globals init *)
+    remember {|
+            block_count := block_count;
+            local_count := local_count;
+            void_count := void_count;
+            Γ := v3 |} as s.
+
+    (* In [UU] we drop X,Y in σ *)
     apply eutt_clo_bind with (UU:=(lift_Rel_mcfg
-                                     (λ (memH : memoryH) '(memV, (l3, _, g)),
+                                     (λ (memH : memoryH) '(memV, (l6, _, g)),
                                       state_invariant eg s memH
-                                                      (memV, (l3, g))) (TV:=list ()))).
+                                                      (memV, (l6, g))) (TV:=list ()))).
     +
-      induction globals.
+
+      pose proof (genIR_prserves_Γ IR) as S.
+      destruct s1.
+      cbn in S.
+      subst Γ.
+
+      cbn in Heql3.
+
+      assert(length globals ≡ length v3) as LV.
+      {
+        clear - LG.
+        apply init_with_data_env_len in LG.
+        cbn in LG.
+        lia.
+      }
+
+      subst s.
+      revert mg gdecls eg v3 IR LG G LV.
+      induction globals; intros.
       *
         cbn in G; inv G.
-        cbn in L; inv L.
+        cbn in LG; inv LG.
         cbn.
         unfold helix_empty_memory.
         rewrite interp_to_L3_ret.
@@ -4085,120 +4182,129 @@ Proof.
           rewrite nth_error_nil in H.
           some_none.
         --
-          unfold WF_IRState.
-          apply Forall2_forall.
-          admit.
+          apply genIR_prserves_Γ in IR.
+          inv IR.
+          intros v n H.
+          rewrite nth_error_nil in H.
+          some_none.
         --
           intros id v n H H0.
           clear - H.
           unfold alist_In in H.
           inv H.
       *
-       (*
+        cbn in LG.
+        break_match_hyp; [inl_inr|].
+        break_let; subst p.
+        break_match_hyp; [inl_inr|].
+        break_let; subst p.
+        break_let; subst p0.
+        break_match_hyp; [inl_inr|].
+        break_let; subst p.
+        break_let; subst p0.
+        destruct gdecls as [|g0 gdecls]; inv LG.
 
-        (* two steps *)
-        rewrite memory_set_seq.
+        cbn in G.
+        break_match_hyp; [inl_inr|].
+        break_let; subst p.
+        break_match_hyp; [inl_inr|].
+        break_let; subst p.
+        destruct eg as [|eg0 eg]; inv G.
 
-        rewrite interp_to_L3_bind.
-        rewrite translate_bind.
+        destruct v3 as [|v0 v3]; [inv LV|].
 
-        eutt_hide_rel R.
+        (* Not sure about [mg] *)
 
-        HERE
-
-          remember ((λ memH '(memV, (l,_,g)),
-                     state_invariant
-                       ([DSHPtrVal 0 o; DSHPtrVal 1 i]) s memH
-                       (memV, (l, g))): Rel_mcfg) as R0.
-
-        apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
-
+        simpl.
+        rewrite map_app.
+        rewrite map_monad_app.
+        cbn.
+        rewrite interp_to_L3_bind, translate_bind.
+        rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
 
         apply eutt_clo_bind with
-            (UU:=(lift_Rel_mcfg (memory_invariant_memory_mcfg [DSHPtrVal 1 o] s)) _ _ ).
+            (UU:=lift_Rel_mcfg
+                   (λ (memH : memoryH) '(memV, (l8, _, g)),
+                    state_invariant ([eg0])
+                                    {|
+                                      block_count := block_count;
+                                      local_count := local_count;
+                                      void_count := void_count;
+                                      Γ := [v0] |} memH (memV, (l8, g))) (TV:=list ())).
         --
-          (* "o" init *)
-          rewrite interp_to_L3_bind.
-          rewrite interp_to_L3_alloca.
-          cbn; norm_v.
-          rewrite interp_to_L3_GW.
-          cbn; norm_v.
-          apply eutt_Ret.
-          (* this looks provable *)
-          intros n v τ x H H0.
-          destruct v; cbn in *.
+          clear IHglobals.
+          unfold globals_of.
+          unfold initOneIRGlobal in Heqs0.
+          break_let.
+          break_match_hyp; inv Heqs0.
           ++
-            destruct n;cbn in H; [inv H | rewrite ListNth.nth_error_nil in H; some_none].
+            (* ctype *)
+            break_let.
+            subst.
+            inv H0.
+            cbn.
+            rewrite interp_to_L3_bind, translate_bind.
+            rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+
+            match goal with
+            | [|- context[lift_Rel_mcfg ?r]] => remember r as R0
+            end.
+            apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
+            rewrite interp_to_L3_bind, translate_bind.
+            rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+            apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
+            cbn.
+            pose_interp_to_L3_alloca m' a' A AE.
+            unfold non_void.
+            rewrite typ_to_dtyp_D.
+            intros C. inversion C.
+            rewrite_clear AE.
+            cbn.
+            rewrite translate_ret.
+            apply eutt_Ret.
+            cbn.
+            subst R0.
+            split;admit.
+
+            intros u1 u2 H.
+            repeat break_let.
+
+            admit.
+            admit.
+
           ++
-            destruct n;cbn in H; [inv H | rewrite ListNth.nth_error_nil in H; some_none].
-          ++
-            assert(L:length (vars s) ≡ 1).
-            {
-              (* because length σ = length (vars s). Need some lemma for that.
-               Probably follows from [WF_IRState]
-               *)
-              admit.
-            }
-            destruct n.
-            cbn in H.
-            inv H.
-            exists mo.
-            split; [auto|].
-            exists (0%Z, 0%Z).
-            exists (make_empty_logical_block
-                 (typ_to_dtyp [ ] (TYPE_Array (Int64.intval size) TYPE_Double))).
-            split.
-            **
-              (* This subgoal is unprovable, since we do not know if `x`
-               is local or global. It must be global for it to succeed. *)
-              admit.
-            **
-              split;[auto|].
-              intros i0 H.
-              admit.
-            **
-              destruct n.
-              cbn in H.
-              some_none.
-              rewrite ListNth.nth_error_past_end in H0.
-              some_none.
-              rewrite L.
-              unfold le, one, peano_naturals.nat_1.
-              lia.
+            (* nat *)
+            break_let.
+            subst.
+            inv H0.
+            cbn.
+            admit.
         --
-          (* "i" init *)
           intros u1 u2 H.
+          repeat break_let.
+          subst.
+
+          setoid_rewrite <- bind_ret_r.
+          rewrite interp_to_L3_bind, translate_bind.
+          rewrite bind_bind.
+          eapply eutt_clo_bind.
+
+          (* specialize (IHglobals mg gdecls eg v3).
+          apply IHglobals. *)
+          admit.
+
+          intros u0 u2 H0.
           repeat break_let; subst.
-          norm_v.
-          repeat setoid_rewrite bind_ret_l.
+          rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+          eapply eutt_clo_bind.
+          rewrite interp_to_L3_ret.
+          rewrite translate_ret.
+          apply eutt_Ret.
+          admit.
 
-          rewrite interp_to_L3_bind.
-
-          match goal with
-          | [ |- context[ITree.bind ?a ?b]] =>
-            replace b with (fun z =>
-                              let m' := fst z in
-                              let l' := fst (snd z) in
-                              let g' := fst (snd (snd z)) in
-                              let x := snd (snd (snd z)) in
-                              interp_mcfg
-                                (ITree.bind
-                                   (trigger (GlobalWrite (Anon 0%Z) x))
-                                   (fun r => Ret [u0; r]))
-                                g' l' m')
-          end.
-          2:{
-            extensionality z.
-            repeat break_let; subst.
-            reflexivity.
-          }
-
-          rewrite interp_to_L3_alloca.
-          cbn; norm_v.
-          cbn. rewrite interp_to_L3_bind, interp_to_L3_GW.
-          cbn; norm_v.
-        *)
-        admit.
+          intros u2 u3 H1.
+          apply eutt_Ret.
+          admit.
     +
       intros u1 u2 H.
       (* X,Y *)
