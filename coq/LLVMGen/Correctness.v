@@ -638,7 +638,7 @@ Section SimulationRelations.
   (* Lookups in [local_env] are fully determined by lookups in [vars] and [σ] *)
   Lemma memory_invariant_LLU_AExpr : forall σ s v id memH memV t l g f,
       memory_invariant σ s memH (memV, (l, g)) ->
-      nth_error (vars s) v ≡ Some (ID_Local id, t) ->
+      nth_error (Γ s) v ≡ Some (ID_Local id, t) ->
       nth_error σ v ≡ Some (DSHCTypeVal f) ->
       Maps.lookup id l ≡ Some (UVALUE_Double f).
   Proof.
@@ -651,7 +651,7 @@ Section SimulationRelations.
   (* Lookups in [genv] are fully determined by lookups in [vars] and [σ] *)
   Lemma memory_invariant_GLU_AExpr : forall σ s v id memH memV t l g f,
       memory_invariant σ s memH (memV, (l, g)) ->
-      nth_error (vars s) v ≡ Some (ID_Global id, TYPE_Pointer t) ->
+      nth_error (Γ s) v ≡ Some (ID_Global id, TYPE_Pointer t) ->
       nth_error σ v ≡ Some (DSHCTypeVal f) ->
       exists ptr, Maps.lookup id g ≡ Some (DVALUE_Addr ptr) /\
              read memV ptr (typ_to_dtyp [] t) ≡ inr (dvalue_to_uvalue (DVALUE_Double f)).
@@ -2347,7 +2347,7 @@ Section AExpr.
         memory_lookup memH mid ≡ Some mb /\
         in_local_or_global ρ g memV i (DVALUE_Addr ptr) (TYPE_Array sz TYPE_Double) /\
         nth_error σ vid ≡ Some (DSHPtrVal mid size) /\
-        nth_error (vars s) vid ≡ Some (i, TYPE_Pointer (TYPE_Array sz TYPE_Double)).
+        nth_error (Γ s) vid ≡ Some (i, TYPE_Pointer (TYPE_Array sz TYPE_Double)).
 
   (* TODO move to mexpr section *)
   Lemma genMExpr_preserves_WF:
