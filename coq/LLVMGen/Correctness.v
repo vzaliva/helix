@@ -504,7 +504,13 @@ Ltac abs_by_WF :=
     | Some (?id,?τ) =>
       match rhs' with
       | None => fail
-        (* exfalso; eapply WF_IRState_lookup_cannot_fail_ctx; now eauto *)
+                 (*
+        let LUP    := fresh "LUP" in
+        let val    := fresh "val" in
+        let CONTRA := fresh "CONTRA" in
+        epose proof (context_lookup_succeeds _ _ _ h) as (val & LUP & CONTRA);
+        rewrite h' in CONTRA;
+        discriminate CONTRA *)
       | Some ?val => 
         let WF := fresh "WF" in
         assert (WF : WF_IRState σ s) by eauto;
@@ -2274,47 +2280,6 @@ Section AExpr.
 
   Hint Unfold R_AExpr: core.
 
-  (* TODO: move these *)
-  Lemma context_lookup_inr__nth_some :
-    forall err val σ v,
-      context_lookup err σ v ≡ inr val ->
-      nth_error σ v ≡ Some val.
-  Proof.
-    intros err val σ v H.
-    unfold context_lookup in H.
-    destruct (nth_error σ v) eqn:Hnth;
-      inversion H.
-    reflexivity.
-  Qed.
-
-  Lemma wf_ir_nth_error_some__good_lookup :
-    forall σ st v x err,
-      WF_IRState σ st ->
-      nth_error (Γ st) v ≡ Some x ->
-      exists val, context_lookup err σ v ≡ inr val.
-  Proof.
-    intros σ st v x err Hwf Hnth.
-    destruct (context_lookup err σ v) eqn:Hctx.
-    - unfold context_lookup in Hctx.
-      destruct (nth_error σ v) eqn:Hnth_σ; subst; cbn in Hctx; inversion Hctx.
-  (*     epose proof (WF_IRState_lookup_cannot_fail_ctx). *)
-  (*     exfalso; eauto. *)
-  (*   - exists d. reflexivity. *)
-  (* Qed. *)
-  Admitted.
-
-  Lemma context_lookup_succeeds :
-    forall σ st x v err,
-      WF_IRState σ st ->
-      nth_error (Γ st) v ≡ Some x ->
-      exists val, context_lookup err σ v ≡ inr val /\ nth_error σ v ≡ Some val.
-  Proof.
-    intros σ st x v err Hwf Hnth.
-    pose proof wf_ir_nth_error_some__good_lookup as H.
-    specialize (H σ st v x err Hwf Hnth) as [val Hcontext].
-    exists val; eauto using context_lookup_inr__nth_some.
-  Qed.
-
   (** ** Compilation of AExpr TODO
    *)
   Definition genAExpr_exp_correct σ (aexp : AExpr) (e: exp typ) : Rel_cfg_T binary64 unit :=
@@ -2527,8 +2492,7 @@ Section AExpr.
               eauto.
           }
         * (* Variable not in context, [context_lookup] fails *)
-          destruct PRE.
-          abs_by_WF.
+          cbn* in EVAL; rewrite Heqo0 in EVAL; inv EVAL.
       + (* The variable maps to a pointer *)
         unfold denoteAExpr; cbn*.
         repeat norm_v.
@@ -2556,6 +2520,8 @@ Section AExpr.
              reflexivity.
           -- repeat (split; auto).
              reflexivity.
+        * (* TODO: should be able to replace with abs_by_WF *)
+          cbn* in EVAL; rewrite Heqo0 in EVAL; inv EVAL.
     - (* Constant *)
       cbn* in COMPILE; simp.
       unfold denoteAExpr; cbn*.
@@ -2585,7 +2551,7 @@ Section AExpr.
       assert (state_invariant σ i memH (memV, (l, g))) as SINV.
       admit.
 
-      epose proof genMExpr_correct _ Heqs0 SINV.
+      epose proof genMExpr_correct _ Heqs0 Heqs1 SINV.
       repeat norm_h.
       rewrite convert_typ_app.
       rewrite denote_code_app.
@@ -2649,7 +2615,30 @@ Section AExpr.
       repeat norm_v.
       cbn; repeat norm_v.
 
-      admit.
+      (* TODO: Maybe we should have more map lemmas *)
+      unfold ITree.map.
+      repeat norm_v.
+
+      rewrite interp_cfg_to_L3_intrinsic; try reflexivity.
+      cbn; repeat norm_v.
+
+      rewrite interp_cfg_to_L3_LW.
+      cbn; repeat norm_v.
+
+      apply eqit_Ret.
+      split.
+      + split; eauto.
+        * admit.
+        * admit.
+      + split.
+        * split.
+          -- do 2 (cbn; repeat norm_v).
+             reflexivity.
+             admit.
+          -- cbn. rewrite EVAL'.
+             reflexivity.
+        * cbn; intuition.
+          admit.
     - (* APlus *)
       rename g into g1, l into l1, memV into memV1.
       cbn* in COMPILE; simp.
