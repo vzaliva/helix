@@ -2599,7 +2599,9 @@ Section AExpr.
       repeat norm_v.
       eapply eutt_clo_bind; try eapply IHaexp; eauto.
 
-      intros [memH2 b2] [memV2 [l2 [g2 []]]] [[MEMINV _ FRESH] [AEXPR EXT]].
+      intros [memH2 b2] [memV2 [l2 [g2 []]]] [SINV EXPR_REL].
+      cbn in SINV.
+      destruct EXPR_REL as [AEXPR EXT].
       unfold genAExpr_exp_correct in AEXPR.
       unfold ext_local in EXT.
       cbn in EXT.
@@ -2626,19 +2628,34 @@ Section AExpr.
       cbn; repeat norm_v.
 
       apply eqit_Ret.
+
+      (* TODO: This is repeated a lot... Ltac? *)
       split.
-      + split; eauto.
-        * admit.
-        * admit.
-      + split.
-        * split.
-          -- do 2 (cbn; repeat norm_v).
-             reflexivity.
-             admit.
-          -- cbn. rewrite EVAL'.
-             reflexivity.
-        * cbn; intuition.
+      + eapply state_invariant_add_fresh; eauto.
+        reflexivity.
+      + split; split; intuition.
+        * cbn. repeat norm_v. cbn. norm_v.
+          reflexivity.
+          cbn.
+
+          apply H.
+
+          (* TODO: Can't unfold Floats.Float.abs ??? *)
+          assert (Floats.Float.abs b2 ≡ MFloat64asCT.CTypeAbs b2).
           admit.
+          rewrite H3.
+          apply In_add_eq.
+        * (* TODO: ltac, this is horrid *)
+          cbn. rewrite EVAL'.
+          reflexivity.
+        * rewrite H3.
+          apply sub_alist_add.
+          unfold alist_fresh.
+          apply alist_find_None.
+          intros v0. intros IN.
+          eapply In__alist_In in IN as [v' AIN].
+          apply incLocal_is_fresh in SINV.
+          eapply SINV; eauto.
     - (* APlus *)
       rename g into g1, l into l1, memV into memV1.
       cbn* in COMPILE; simp.
