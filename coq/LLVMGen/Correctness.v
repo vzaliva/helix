@@ -2396,7 +2396,8 @@ Section AExpr.
         break_inner_match_goal.
         repeat norm_h.
 
-        * destruct PRE.
+        * pose proof PRE as SINV.
+          destruct PRE.
           break_inner_match_goal; try abs_by_WF.
 
           repeat norm_h.
@@ -2421,75 +2422,26 @@ Section AExpr.
           cbn. repeat norm_v.
 
           apply eqit_Ret.
-
           split.
-          { split.
-            - (* Ltac this dance ? *)
-              eapply memory_invariant_ext_local; eauto.
-              apply sub_alist_add.
-              apply concrete_fresh_fresh in incLocal_is_fresh0.
-              eapply incLocal_is_fresh0.
-              cbn.
-              eauto.
-            - eapply genAExpr_preserves_WF; eauto.
-            - cbn. intros id0 v1 n H H0.
-              destruct id0.
-              + (* Name *)
-                destruct (String.eqb s (String "l" (string_of_nat n))) eqn:Hid.
-                * apply String.eqb_eq in Hid.
-                  subst.
-
-                  (* LTAC *)
-                  apply concrete_fresh_fresh in incLocal_is_fresh0.
-                  unfold incLocal_fresh in incLocal_is_fresh0.
-                  unfold concrete_fresh_inv in incLocal_is_fresh0.
-
-                  (* H should be a contradiction because n >= S
-                  (local_count i), so the key should not appear in the
-                  map assuming everything is fresh. *)
-                  admit.
-                * apply String.eqb_neq in Hid.
-                  intros Hname. inversion Hname.
-                  contradiction.
-              + intros CONTRA; discriminate CONTRA.
-              + intros CONTRA; discriminate CONTRA.
+          { cbn. eapply state_invariant_add_fresh; eauto.
+            cbn. reflexivity.
           }
-          { split.
-            - split.
-              + cbn. repeat norm_v; cbn; repeat norm_v.
+          {
+            + split; split; intuition.
+              * cbn. repeat norm_v. cbn. norm_v.
                 reflexivity.
-                eapply memory_invariant_LLU_AExpr; eauto.
-                eapply memory_invariant_ext_local; eauto.
-
-                (* LTAC *)
+                cbn.
+                erewrite H; eauto.
+                eapply alist_In_add_eq'.
+                exact UVALUE_None. (* ... What? *)
+              * cbn. unfold context_lookup.
+                rewrite Heqo0.
+                cbn. reflexivity.
+              * apply sub_alist_add.
                 apply concrete_fresh_fresh in incLocal_is_fresh0.
                 unfold incLocal_fresh in incLocal_is_fresh0.
-                unfold concrete_fresh_inv in incLocal_is_fresh0.
-
-                eapply sub_alist_trans; eauto.
-                eapply sub_alist_add; eauto.
                 eapply incLocal_is_fresh0.
-                reflexivity.
-
-                (* LTAC *)
-                unfold Traversal.endo.
-                unfold Traversal.Endo_id.
-
-                unfold memory_invariant in mem_is_inv0.
-                epose proof (mem_is_inv0 _ _ _ _ Heqo0 Heqo).
-                cbn in H0.
-                destruct H0 as (ptr' & τ' & TYP & GLOB & READ').
-                inversion TYP; subst.
-                admit.
-              + cbn. unfold context_lookup.
-                rewrite Heqo0. cbn.
-                reflexivity.
-            - apply ext_local_subalist.
-              apply sub_alist_add.
-              apply concrete_fresh_fresh in incLocal_is_fresh0.
-              eapply incLocal_is_fresh0.
-              cbn.
-              eauto.
+                cbn. eauto.
           }
         * (* Variable not in context, [context_lookup] fails *)
           cbn* in EVAL; rewrite Heqo0 in EVAL; inv EVAL.
