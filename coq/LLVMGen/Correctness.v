@@ -2808,9 +2808,54 @@ Ltac forget_strings :=
       eutt_hide_right.
       repeat norm_h.
       subst; eutt_hide_left.
-      (* Need some reasoning about [denote_bks] *)
-      admit.
 
+      Lemma denote_bks_unfold: forall bks bid b,
+        find_block dtyp bks bid ≡ Some b ->
+        denote_bks bks bid ≈
+          vob <- denote_block b ;;
+        match vob with
+        | inl bid' => denote_bks bks bid'
+        | inr v => ret (inr v)
+        end.
+      Admitted.
+
+      unfold add_comments.
+      cbn.
+      match goal with
+        |- context[denote_bks ?x] =>
+        remember x as bks
+      end.
+
+      erewrite denote_bks_unfold.
+      2:{
+        subst; cbn.
+        destruct (Eqv.eqv_dec_p bid_in bid_in). 
+        reflexivity.
+        exfalso.
+        apply n0.
+        reflexivity.
+      }
+      cbn.
+      repeat norm_v.
+      unfold IntType; rewrite typ_to_dtyp_I.
+      cbn.
+      setoid_rewrite bind_ret_l.
+      setoid_rewrite bind_ret_l.
+      cbn.
+      repeat norm_v.
+      rewrite interp_cfg_to_L3_LW.
+      cbn*; repeat norm_v.
+      cbn*; repeat norm_v.
+      2:{
+        cbn.
+        unfold endo.
+        rewrite rel_dec_eq_true; eauto; typeclasses eauto.
+      }
+      
+     admit. 
+        
+
+      
   Admitted.
 
   End GenIR.
