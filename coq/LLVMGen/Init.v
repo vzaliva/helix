@@ -634,7 +634,6 @@ Proof.
                                       state_invariant eg s memH
                                                       (memV, (l6, g))) (TV:=list ()))).
     +
-
       pose proof (genIR_prserves_Γ IR) as S.
       destruct s1.
       cbn in S.
@@ -795,6 +794,106 @@ Proof.
     +
       intros u1 u2 H.
       (* X,Y *)
+      repeat break_let; subst.
+
+      rewrite interp_to_L3_bind, translate_bind.
+      eapply eutt_clo_bind.
+
+      rewrite interp_to_L3_bind, translate_bind.
+      rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+      eapply eutt_clo_bind.
+
+      rewrite interp_to_L3_bind, translate_bind.
+      rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+      eapply eutt_clo_bind.
+
+      (* dealing with Y allocation *)
+
+      pose_interp_to_L3_alloca m' a' A AE.
+      rewrite typ_to_dtyp_D_array.
+      crush.
+
+      rewrite_clear AE.
+      cbn.
+      rewrite translate_ret.
+      apply eutt_Ret.
+      admit.
+
+      intros u1 u2 H0.
+      repeat break_let; subst.
+      rewrite interp_to_L3_GW.
+      cbn.
+      rewrite translate_ret.
+      apply eutt_Ret.
+      admit.
+
+      (* "Y" is dealt with *)
+
+      intros u1 u2 H0.
+      repeat break_let; subst.
+
+
+      rewrite interp_to_L3_bind, translate_bind.
+      rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+      eapply eutt_clo_bind.
+
+      rewrite interp_to_L3_bind, translate_bind.
+      rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+      eapply eutt_clo_bind.
+
+      rewrite interp_to_L3_bind, translate_bind.
+      rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+      eapply eutt_clo_bind.
+
+
+      (* dealing with X allocation *)
+
+      pose_interp_to_L3_alloca m' a' A AE.
+      rewrite typ_to_dtyp_D_array.
+      crush.
+
+      rewrite_clear AE.
+      cbn.
+      rewrite translate_ret.
+      apply eutt_Ret.
+      admit.
+
+      intros u2 u3 H1.
+      repeat break_let; subst.
+      rewrite interp_to_L3_GW.
+      cbn.
+      rewrite translate_ret.
+      apply eutt_Ret.
+      admit.
+
+      (* "X" is dealt with *)
+
+      intros u2 u3 H1.
+      repeat break_let; subst.
+      rewrite interp_to_L3_bind, translate_bind.
+      rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+      eapply eutt_clo_bind.
+
+      rewrite interp_to_L3_ret, translate_ret.
+      apply eutt_Ret.
+      admit.
+
+      intros u3 u5 H2.
+      repeat break_let; subst.
+      rewrite interp_to_L3_ret, translate_ret.
+      apply eutt_Ret.
+      admit.
+
+      intros u2 u3 H1.
+      repeat break_let; subst.
+      rewrite interp_to_L3_ret, translate_ret.
+      apply eutt_Ret.
+      admit.
+
+      intros u1 u2 H0.
+      repeat break_let; subst.
+      rewrite interp_to_L3_ret, translate_ret.
+      apply eutt_Ret.
       admit.
   -
     intros u1 u2 H.
@@ -803,8 +902,7 @@ Proof.
     apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
     +
       repeat break_let.
-      rewrite interp_to_L3_ret.
-      rewrite translate_ret.
+      rewrite interp_to_L3_ret, translate_ret.
       apply eutt_Ret.
       unfold lift_Rel_mcfg in *.
       repeat break_let.
@@ -813,14 +911,12 @@ Proof.
       intros u0 u3 H0.
       repeat break_let.
       simpl.
-      rewrite interp_to_L3_bind.
-      rewrite translate_bind.
+      rewrite interp_to_L3_bind, translate_bind.
       rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
       apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
       *
         cbn.
-        rewrite interp_to_L3_bind.
-        rewrite translate_bind.
+        rewrite interp_to_L3_bind, translate_bind.
         rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
         apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
         --

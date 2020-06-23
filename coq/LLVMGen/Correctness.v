@@ -1006,6 +1006,14 @@ From Vellvm Require Import AstLib.
     intros; rewrite typ_to_dtyp_equation; reflexivity.
   Qed.
 
+  Lemma typ_to_dtyp_D_array : forall n s, typ_to_dtyp s (TYPE_Array n TYPE_Double) ≡ DTYPE_Array n DTYPE_Double.
+  Proof.
+    intros.
+    rewrite typ_to_dtyp_equation.
+    rewrite typ_to_dtyp_D.
+    reflexivity.
+  Qed.
+
   Lemma in_local_or_global_same_global : forall l g l' m id dv τ,
     in_local_or_global l g m (ID_Global id) dv τ ->
     in_local_or_global l' g m (ID_Global id) dv τ.
