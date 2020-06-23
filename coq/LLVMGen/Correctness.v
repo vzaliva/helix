@@ -295,7 +295,7 @@ Tactic Notation "cbn*" := (repeat (cbn; unfolder)).
 Tactic Notation "cbn*" "in" hyp(h) := (repeat (cbn in h; unfolder in h)).
 Tactic Notation "cbn*" "in" "*" := (repeat (cbn in *; unfolder in *)).
 
-Ltac simp := repeat (inv_sum || break_and || break_match_hyp).
+Ltac simp := repeat (inv_sum || inv_option || break_and || break_match_hyp).
 
 Ltac abs_by H :=
   exfalso; eapply H; now eauto.
@@ -324,132 +324,6 @@ Section WF_IRState.
 
   Definition WF_IRState (σ : evalContext) (s : IRState) : Prop :=
     evalContext_typechecks σ (Γ s).
-
-  (* In such a well-formed context, success of a lookup in the [IRState] as performed by the compiler
-     ensures the success of a lookup in the [evalContext] *)
-  (* Lemma WF_IRState_lookup_cannot_fail_ctx : *)
-  (*   forall σ it s n, *)
-  (*     WF_IRState σ s -> *)
-  (*     nth_error (Γ s) n ≡ Some it -> *)
-  (*     nth_error σ n ≡ None -> *)
-  (*     False. *)
-  (* Proof. *)
-  (*   intros ? [] * WF LU_IR LU_SIGMA. *)
-  (*   destruct WF as (pre & post & EQ & MAPPING). *)
-  (*   apply Forall2_length in MAPPING. *)
-  (*   apply ListNth.nth_error_length_lt in LU_IR. *)
-  (*   rewrite <- WF in LU_IR. *)
-  (*   apply nth_error_succeeds in LU_IR. destruct LU_IR as [a Hnth']. *)
-  (*   rewrite Hnth' in LU_SIGMA; inv LU_SIGMA. *)
-  (* Qed. *)
-
-  (* In such a well-formed context, success of a lookup in the [IRState] as performed by the compiler
-     ensures the success of a lookup in the [evalContext] *)
-  (* Lemma WF_IRState_lookup_cannot_fail_st : *)
-  (*   forall σ v s n, *)
-  (*     WF_IRState σ s -> *)
-  (*     nth_error (Γ s) n ≡ None -> *)
-  (*     nth_error σ n ≡ Some v -> *)
-  (*     False. *)
-  (* Proof. *)
-  (*   intros * WF LU_IR LU_SIGMA. *)
-  (*   unfold WF_IRState in WF. *)
-  (*   destruct WF as (pre & i & o & EQ & WF). *)
-  (*   apply Forall2_length in WF. *)
-  (*   apply ListNth.nth_error_length_lt in LU_SIGMA. *)
-  (*   rewrite WF in LU_SIGMA. *)
-  (*   assert (BOUND: n < Datatypes.length (Γ s)).  *)
-  (*   { eapply Nat.lt_le_trans; eauto. *)
-  (*     rewrite EQ, app_length. *)
-  (*     lia. *)
-  (*   } *)
-  (*   apply nth_error_succeeds in BOUND. *)
-  (*   destruct BOUND as [a Hnth']. *)
-  (*   rewrite Hnth' in LU_IR; inv LU_IR. *)
-  (* Qed. *)
-
-  (* In such a well-formed context, finding in the typing context that a variable
-     is an int ensure to find an int in the [evalContext].
-   *)
-  (* Lemma WF_IRState_lookup_local_int : *)
-  (*   forall σ s n id, *)
-  (*     WF_IRState σ s -> *)
-  (*     nth_error (Γ s) n ≡ Some (ID_Local id,TYPE_I 64%Z) -> *)
-  (*     exists v, nth_error σ n ≡ Some (DSHnatVal v). *)
-  (* Proof. *)
-  (*   intros * WF LU_IR. *)
-  (*   eapply Forall2_Nth_right in WF; eauto. *)
-  (*   destruct WF as (x & Hnth & Htype). *)
-  (*   destruct x as [n0 | |]; try solve [inversion Htype]. *)
-  (*   eexists; eauto. *)
-  (* Qed. *)
-
-  (* In such a well-formed context, finding in the typing context that a variable
-     is an int ensure to find an int in the [evalContext].
-   *)
-  (* Lemma WF_IRState_lookup_global_int : *)
-  (*   forall σ s n id, *)
-  (*     WF_IRState σ s -> *)
-  (*     nth_error (Γ s) n ≡ Some (ID_Global id, TYPE_Pointer (TYPE_I 64%Z)) -> *)
-  (*     exists v, nth_error σ n ≡ Some (DSHnatVal v). *)
-  (* Proof. *)
-  (*   intros * WF LU_IR. *)
-  (*   eapply Forall2_Nth_right in WF; eauto. *)
-  (*   destruct WF as (x & Hnth & Htype). *)
-  (*   destruct x as [n0 | |]; try solve [inversion Htype]. *)
-  (*   eexists; eauto. *)
-  (* Qed. *)
-
-  (* In such a well-formed context, finding in the typing context that a variable
-     is an int ensure to find an int in the [evalContext].
-   *)
-  (* Lemma WF_IRState_lookup_local_double : *)
-  (*   forall σ s n id, *)
-  (*     WF_IRState σ s -> *)
-  (*     nth_error (Γ s) n ≡ Some (ID_Local id, TYPE_Double) -> *)
-  (*     exists a, nth_error σ n ≡ Some (DSHCTypeVal a). *)
-  (* Proof. *)
-  (*   intros * WF LU_IR. *)
-  (*   unfold WF_IRState in WF. *)
-  (*   eapply Forall2_Nth_right in LU_IR; eauto. *)
-  (*   destruct LU_IR as (x & Hnth & Htype). *)
-  (*   destruct x as [n0 | |]; try solve [inversion Htype]. *)
-  (*   eexists; eauto. *)
-  (* Qed. *)
-
-  (* In such a well-formed context, finding in the typing context that a variable
-     is an int ensure to find an int in the [evalContext].
-   *)
-  (* Lemma WF_IRState_lookup_global_double : *)
-  (*   forall σ s n id, *)
-  (*     WF_IRState σ s -> *)
-  (*     nth_error (Γ s) n ≡ Some (ID_Global id, TYPE_Pointer TYPE_Double) -> *)
-  (*     exists a, nth_error σ n ≡ Some (DSHCTypeVal a). *)
-  (* Proof. *)
-  (*   intros * WF LU_IR. *)
-  (*   unfold WF_IRState in WF. *)
-  (*   eapply Forall2_Nth_right in LU_IR; eauto. *)
-  (*   destruct LU_IR as (x & Hnth & Htype). *)
-  (*   destruct x as [n0 | |]; try solve [inversion Htype]. *)
-  (*   eexists; eauto. *)
-  (* Qed. *)
-
-  (* In such a well-formed context, finding in the typing context that a variable
-     is an int ensure to find an int in the [evalContext].
-   *)
-  (* Lemma WF_IRState_lookup_ptr : *)
-  (*   forall σ s n v id, *)
-  (*     WF_IRState σ s -> *)
-  (*     nth_error (Γ s) n ≡ Some (id, TYPE_Pointer (TYPE_Array v TYPE_Double)) -> *)
-  (*     exists a size, nth_error σ n ≡ Some (DSHPtrVal a size). *)
-  (* Proof. *)
-  (*   intros * WF LU_IR. *)
-  (*   unfold WF_IRState in WF. *)
-  (*   eapply Forall2_Nth_right in LU_IR; eauto. *)
-  (*   destruct LU_IR as (x & Hnth & Htype). *)
-  (*   destruct x as [n0 | |]; try (destruct id; solve [inversion Htype]). *)
-  (*   do 2 eexists; eauto. *)
-  (* Qed. *)
 
   Lemma WF_IRState_lookups :
     forall σ s n v id τ,
@@ -590,19 +464,6 @@ Section SimulationRelations.
           (forall i v, mem_lookup i bk_helix ≡ Some v ->
                   get_array_cell mem_llvm ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v))
         end.
-
-  (* Lookups in [genv] are fully determined by lookups in [Γ] and [σ] *)
-  (* Lemma memory_invariant_GLU : forall σ s v id memH memV t l g n, *)
-  (*     memory_invariant σ s memH (memV, (l, g)) -> *)
-  (*     nth_error (Γ s) v ≡ Some (ID_Global id, t) -> *)
-  (*     nth_error σ v ≡ Some (DSHnatVal n) -> *)
-  (*     Maps.lookup id g ≡ Some (DVALUE_I64 n). *)
-  (* Proof. *)
-  (*   intros * INV NTH LU; cbn* in *.  *)
-  (*   eapply INV in LU; clear INV; eauto. *)
-  (*   unfold in_local_or_global, dvalue_of_int in LU. *)
-  (*   rewrite repr_intval in LU; auto. *)
-  (* Qed. *)
 
   (* Lookups in [genv] are fully determined by lookups in [Γ] and [σ] *)
   Lemma memory_invariant_GLU : forall σ s v id memH memV t l g n,
@@ -1114,95 +975,6 @@ Set Nested Proofs Allowed.
 From ExtLib Require Import RelDec.
 From Vellvm Require Import AstLib.
 
-Section NExpr.
-
-  (**
-     We prove in this section the correctness of the compilation of numerical expressions, i.e. [NExpr].
-     The corresponding compiling function is [inexpert].
-
-     Helix side:
-     * nexp: NExpr
-     * σ: evalContext
-     * s: IRState
-
-The expression must be closed in [evalContext]. I.e. all variables are below the length of σ
-Γ s1 = σ?
-
-   *)
-  (* NOTEYZ:
-     These expressions are pure. As such, it is true that we do not need to interpret away
-     the memory events on Helix side to establish the bisimulation.
-     However at least in the current state of affair, I believe it's widely more difficult
-     to lift the result before interpretation to the context we need than to simply plug in
-     the interpreter.
-     In particular we would need to have a clean enough lift that deduces that the memory has
-     not been modified. I'm interested in having this, but I do not know how easy it is to get it.
-     TODOYZ: Investigate this claim
-   *)
-  Opaque append.
-
-  Lemma evalNexpr_preserves_WF:
-    forall nexp s s' σ x,
-      WF_IRState σ s ->
-      genNExpr nexp s ≡ inr (s',x) ->
-      WF_IRState σ s'.
-  Proof.
-    induction nexp; intros * WF GEN; cbn* in GEN; simp ; auto.
-    all: eapply IHnexp1 in Heqs0; eapply IHnexp2 in Heqs1; eauto.
-  Qed.
-
-  (* TODO: I don't think we can use this anymore :( *)
-  (* Lemma evalNexpr_WF_no_fail: *)
-  (*   forall nexp s σ x msg, *)
-  (*     WF_IRState σ s -> *)
-  (*     genNExpr nexp s ≡ inr x -> *)
-  (*     evalNExpr σ nexp ≡ inl msg -> *)
-  (*     False. *)
-  (* Proof. *)
-  (*   induction nexp; cbn*; intros * WF COMP EVAL; cbn* in *; repeat try inv_sum. *)
-  (*   simp; try abs_by_WF. *)
-  (*   (* *)
-  (*   all: simp; try abs_by_WF; [eapply IHnexp1; eauto | eapply IHnexp2; [eapply evalNexpr_preserves_WF | ..]; eauto]. *)
-  (*    *) *)
-  (*   admit. *)
-  (* Admitted. *)
-
-  Definition memory_invariant_memory_mcfg (σ : evalContext) (s : IRState) : Rel_mcfg :=
-    fun memH '(memV,((l,sl),g)) =>
-      memory_invariant σ s memH (memV,(l,g)).
-
- (** YZ
-      At the top level, the correctness of genNExpr is expressed as the denotation of the operator being equivalent
-      to the bind of denoting the code followed by denoting the expression.
-      However this is not inductively stable, we only want to plug the expression at the top level.
-      We therefore instead carry the fact about the denotation of the expression in the invariant. (Is there another clever way?)
-      TODO: how to make this (much) less ugly?
-   *)
-  Definition genNExpr_exp_correct σ (nexp : NExpr) (e: exp typ) : Rel_cfg_T DynamicValues.int64 unit :=
-    fun '(_,i) '(memV,(l,(g,v))) =>
-      forall l', l ⊑ l' ->
-        Ret (memV,(l',(g,UVALUE_I64 i)))
-        ≈
-        with_err_LB
-        (interp_cfg (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] e))) g l' memV) /\ evalNExpr σ nexp ≡ inr i.
-
-  (**
-     We package the local specific invariants. Additionally to the evaluation of the resulting expression,
-     we also state that evaluating the code preserves most of the state, except for the local state being
-     allowed to be extended with fresh bindings.
-   *)
-  Record genNExpr_rel
-         (σ : evalContext)
-         (nexp : NExpr)
-         (e : exp typ)
-         (mi : memoryH) (sti : config_cfg)
-         (mf : memoryH * DynamicValues.int64) (stf : config_cfg_T unit)
-    : Prop :=
-    {
-    exp_correct : genNExpr_exp_correct σ nexp e mf stf;
-    monotone : ext_local mi sti mf stf
-    }.
-
   Lemma state_invariant_WF_IRState :
     forall σ s memH st, state_invariant σ s memH st -> WF_IRState σ s.
   Proof.
@@ -1291,6 +1063,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
     intros * EQ; inv EQ; auto.
   Qed.
 
+  Opaque append.
   (**
      [memory_invariant] is stable by fresh extension of the local environment.
    *)
@@ -1340,6 +1113,98 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
     intros * SUB; cbn; splits; auto.
   Qed.
 
+  Lemma incVoid_Γ:
+    forall s s' id,
+      incVoid s ≡ inr (s', id) ->
+      Γ s' ≡ Γ s.
+  Proof.
+    intros; cbn in *; inv_sum; reflexivity.
+  Qed.
+
+  Lemma incVoid_local_count:
+    forall s s' id,
+      incVoid s ≡ inr (s', id) ->
+      local_count s' ≡ local_count s.
+  Proof.
+    intros; cbn in *; inv_sum; reflexivity.
+  Qed.
+
+  Lemma state_invariant_incVoid :
+    forall σ s s' k memH stV,
+      incVoid s ≡ inr (s', k) ->
+      state_invariant σ s memH stV ->
+      state_invariant σ s' memH stV.
+  Proof.
+    intros * INC [MEM WF FRESH].
+    split.
+    - red; repeat break_let; intros * LUH LUV.
+      erewrite incVoid_Γ in LUV; eauto.
+      generalize LUV; intros INLG;
+        eapply MEM in INLG; eauto.
+    - unfold WF_IRState; erewrite incVoid_Γ; eauto; apply WF.
+    - red; repeat break_let; erewrite incVoid_local_count; eauto. 
+  Qed.
+
+  Lemma incLocal_local_count: forall s s' x,
+      incLocal s ≡ inr (s',x) ->
+      local_count s' ≡ S (local_count s).
+  Proof.
+    intros; cbn in *; inv_sum; reflexivity.
+  Qed.
+
+  Lemma state_invariant_incLocal :
+    forall σ s s' k memH stV,
+      incLocal s ≡ inr (s', k) ->
+      state_invariant σ s memH stV ->
+      state_invariant σ s' memH stV.
+  Proof.
+    intros * INC [MEM WF FRESH].
+    split.
+    - red; repeat break_let; intros * LUH LUV.
+      erewrite incLocal_Γ in LUV; eauto.
+      generalize LUV; intros INLG;
+        eapply MEM in INLG; eauto.
+    - unfold WF_IRState; erewrite incLocal_Γ; eauto; apply WF.
+    - red; repeat break_let; intros ? ? ? LU INEQ.
+      clear MEM WF.
+      erewrite incLocal_local_count in INEQ; eauto.
+      eapply FRESH; eauto with arith.
+  Qed.
+
+  Lemma incBlockNamed_Γ:
+    forall s s' msg id,
+      incBlockNamed msg s ≡ inr (s', id) ->
+      Γ s' ≡ Γ s.
+  Proof.
+    intros; cbn in *; inv_sum; reflexivity.
+  Qed.
+
+  Lemma incBlockNamed_local_count:
+    forall s s' msg id,
+      incBlockNamed msg s ≡ inr (s', id) ->
+      local_count s' ≡ local_count s.
+  Proof.
+    intros; cbn in *; inv_sum; reflexivity.
+  Qed.
+
+  Lemma state_invariant_incBlockNamed :
+    forall σ s s' k msg memH stV,
+      incBlockNamed msg s ≡ inr (s', k) ->
+      state_invariant σ s memH stV ->
+      state_invariant σ s' memH stV.
+  Proof.
+    intros * INC [MEM WF FRESH].
+    split.
+    - red; repeat break_let; intros * LUH LUV.
+      erewrite incBlockNamed_Γ in LUV; eauto.
+      generalize LUV; intros INLG;
+        eapply MEM in INLG; eauto.
+    - unfold WF_IRState; erewrite incBlockNamed_Γ; eauto; apply WF.
+    - red; repeat break_let; erewrite incBlockNamed_local_count; eauto. 
+  Qed.
+
+  Opaque incBlockNamed.
+  Opaque incVoid.
   Opaque incLocal.
 
   Lemma unsigned_is_zero: forall a, Int64.unsigned a ≡ Int64.unsigned Int64.zero ->
@@ -1354,6 +1219,68 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
     apply Coqlib.zeq_true.
   Qed.
 
+Section NExpr.
+
+  (**
+     We prove in this section the correctness of the compilation of numerical expressions, i.e. [NExpr].
+     The corresponding compiling function is [inexpert].
+
+     Helix side:
+     * nexp: NExpr
+     * σ: evalContext
+     * s: IRState
+
+The expression must be closed in [evalContext]. I.e. all variables are below the length of σ
+Γ s1 = σ?
+
+   *)
+  (* NOTEYZ:
+     These expressions are pure. As such, it is true that we do not need to interpret away
+     the memory events on Helix side to establish the bisimulation.
+     However at least in the current state of affair, I believe it's widely more difficult
+     to lift the result before interpretation to the context we need than to simply plug in
+     the interpreter.
+     In particular we would need to have a clean enough lift that deduces that the memory has
+     not been modified. I'm interested in having this, but I do not know how easy it is to get it.
+     TODOYZ: Investigate this claim
+   *)
+
+  Definition memory_invariant_memory_mcfg (σ : evalContext) (s : IRState) : Rel_mcfg :=
+    fun memH '(memV,((l,sl),g)) =>
+      memory_invariant σ s memH (memV,(l,g)).
+
+ (** YZ
+      At the top level, the correctness of genNExpr is expressed as the denotation of the operator being equivalent
+      to the bind of denoting the code followed by denoting the expression.
+      However this is not inductively stable, we only want to plug the expression at the top level.
+      We therefore instead carry the fact about the denotation of the expression in the invariant. (Is there another clever way?)
+      TODO: how to make this (much) less ugly?
+   *)
+  Definition genNExpr_exp_correct σ (nexp : NExpr) (e: exp typ) : Rel_cfg_T DynamicValues.int64 unit :=
+    fun '(_,i) '(memV,(l,(g,v))) =>
+      forall l', l ⊑ l' ->
+        Ret (memV,(l',(g,UVALUE_I64 i)))
+        ≈
+        with_err_LB
+        (interp_cfg (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] e))) g l' memV) /\ evalNExpr σ nexp ≡ inr i.
+
+  (**
+     We package the local specific invariants. Additionally to the evaluation of the resulting expression,
+     we also state that evaluating the code preserves most of the state, except for the local state being
+     allowed to be extended with fresh bindings.
+   *)
+  Record genNExpr_rel
+         (σ : evalContext)
+         (nexp : NExpr)
+         (e : exp typ)
+         (mi : memoryH) (sti : config_cfg)
+         (mf : memoryH * DynamicValues.int64) (stf : config_cfg_T unit)
+    : Prop :=
+    {
+    exp_correct : genNExpr_exp_correct σ nexp e mf stf;
+    monotone : ext_local mi sti mf stf
+    }.
+
   Lemma genNExpr_correct_ind :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH) (v : Int64.int)
@@ -1367,6 +1294,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
            (with_err_RB (interp_Mem (denoteNExpr σ nexp) memH))
            (with_err_LB (interp_cfg (denote_code (convert_typ [] c)) g l memV)).
   Proof.
+  (*
     intros s1 s2 nexp; revert s1 s2; induction nexp; intros * COMPILE EVAL PRE.
     - (* Variable case *)
       (* Reducing the compilation *)
@@ -1462,9 +1390,6 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
     - (* NDiv *)
 
       cbn* in COMPILE; simp.
-
-      (* YZ TODO Ltac for this *)
-      generalize Heqs; intros WFI; eapply evalNexpr_preserves_WF in WFI; eauto.
 
       eutt_hide_right.
       unfold denoteNExpr in *; cbn*.
@@ -1578,9 +1503,6 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
 
       cbn* in COMPILE; simp.
 
-      (* YZ TODO Ltac for this *)
-      generalize Heqs; intros WFI; eapply evalNexpr_preserves_WF in WFI; eauto.
-
       eutt_hide_right.
       unfold denoteNExpr in *; cbn*.
 
@@ -1693,9 +1615,6 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       rename g into g1, l into l1, memV into memV1.
       cbn* in COMPILE; simp.
 
-      (* YZ TODO Ltac for this *)
-      generalize Heqs; intros WFI; eapply evalNexpr_preserves_WF in WFI; eauto.
-
       eutt_hide_right.
       unfold denoteNExpr in *; cbn*.
 
@@ -1796,9 +1715,6 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
     - (* NMinus *)
       cbn* in COMPILE; simp.
 
-      (* YZ TODO Ltac for this *)
-      generalize Heqs; intros WFI; eapply evalNexpr_preserves_WF in WFI; eauto.
-
       eutt_hide_right.
       unfold denoteNExpr in *; cbn*.
 
@@ -1897,9 +1813,6 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
 
     - (* NMult *)
       cbn* in COMPILE; simp.
-
-      (* YZ TODO Ltac for this *)
-      generalize Heqs; intros WFI; eapply evalNexpr_preserves_WF in WFI; eauto.
 
       eutt_hide_right.
       unfold denoteNExpr in *; cbn*.
@@ -2008,6 +1921,9 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       (* Non-implemented by the compiler *)
       inversion COMPILE.
 Qed.
+     *)
+  Admitted.
+
 
   (* Not yet clear whether this version is the useful one, but it's a consequence of the one above I think *)
   (* YZ TODO : investigate *)
@@ -2140,7 +2056,7 @@ Section MExpr.
         nth_error σ vid ≡ Some (DSHPtrVal mid size) /\
         nth_error (Γ s) vid ≡ Some (i, TYPE_Pointer (TYPE_Array sz TYPE_Double)).
 
-  Lemma memory_invariant_Ptr : forall σ s memH memV l g vid a size x sz,
+  Lemma memory_invariant_Ptr : forall vid σ s memH memV l g a size x sz,
       state_invariant σ s memH (memV, (l, g)) ->
       nth_error σ vid ≡ Some (DSHPtrVal a size) ->
       nth_error (Γ s) vid ≡ Some (x, TYPE_Pointer (TYPE_Array sz TYPE_Double)) ->
@@ -2665,6 +2581,29 @@ Section Power.
 
 End Power.
 
+Section Resolve_PVar.
+
+  (* Lemma compile_FSHCOL_correct : *)
+  (*   forall (** Compiler bits *) (s1 s2: IRState) *)
+  (*     (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH) *)
+  (*     (** Vellvm bits   *) (nextblock bid_in : block_id) (bks : list (LLVMAst.block typ)) *)
+  (*     (env : list (ident * typ))  (g : global_env) (ρ : local_env) (memV : memoryV), *)
+  (*     nextblock ≢ bid_in -> (* YZ: not sure about this yet *) *)
+  (*     R σ s1 (memH,tt) (memV, (ρ, (g, (inl bid_in)))) -> *)
+  (*     genIR op nextblock s1 ≡ inr (s2,(bid_in,bks)) -> *)
+  (*     eutt (R σ s1) *)
+  (*          (with_err_RB *)
+  (*             (interp_Mem (denoteDSHOperator σ op) memH)) *)
+  (*          (with_err_LB *)
+  (*             (interp_cfg (D.denote_bks (convert_typ env bks) bid_in) *)
+  (*                               g ρ memV)). *)
+  (* Proof. *)
+ 
+
+
+End Resolve_PVar.
+
+
 (* TO MOVE *)
 Global Instance ConvertTyp_list {A} `{Traversal.Fmap A}: ConvertTyp (fun T => list (A T)) :=
   fun env => Traversal.fmap (typ_to_dtyp env).
@@ -2707,55 +2646,174 @@ Ltac forget_strings :=
         generalize (String x y) as msg
       end).
 
+  Lemma resolve_PVar_simple : forall p s s' x v,
+      resolve_PVar p s ≡ inr (s', (x, v)) ->
+      exists sz n,
+        nth_error (Γ s') n ≡ Some (x, TYPE_Pointer (TYPE_Array sz TYPE_Double)) /\
+        MInt64asNT.from_Z sz ≡ inr v /\ p ≡ PVar n /\ s ≡ s'.
+  Proof.
+    intros * H.
+    unfold resolve_PVar in H.
+    cbn* in H.
+    simp.
+    unfold ErrorWithState.err2errS in *.
+    break_match_hyp; cbn* in *; inv_sum.
+    do 2 eexists; eauto.
+  Qed.
 
-Section GenIR.
+  Ltac inv_resolve_PVar H :=
+    apply resolve_PVar_simple in H;
+    destruct H as (?sz & ?n & ?LUn & ?EQsz & -> & <-).
+
+  From Vellvm Require Import Traversal.
+
+  Lemma fmap_list_app: forall U V H H' c1 c2 f,
+      @fmap code (@Fmap_code H H') U V f (c1 ++ c2) ≡
+            fmap f c1  ++ fmap f c2.
+  Proof.
+    induction c1 as [| [] c1 IH]; cbn; intros; [reflexivity |].
+    rewrite IH; reflexivity.
+  Qed.
+
+  (* Lemma convert_typ_list_app: forall H env c1 c2, *)
+  (*     @convert_typ code (@ConvertTyp_list LLVMAst.block H) env (c1 ++ c2) ≡ *)
+  (*           convert_typ env c1 ++ *)
+  (*           convert_typ env c2. *)
+  (* Proof. *)
+  (*   induction c1 as [| [] c1 IH]; cbn; intros; [reflexivity |]. *)
+  (*   rewrite IH; reflexivity. *)
+  (* Qed. *)
+
+
+  Section GenIR.
 
   (* YZ TODO : reducing denote_bks exposes iter. Should we simply make it opaque? *)
   Opaque denote_bks.
-  Opaque resolve_PVar genFSHAssign.
+  Opaque resolve_PVar. 
+
+  Definition GenIR_Rel σ Γ : Rel_cfg_T unit (block_id + uvalue) :=
+    lift_Rel_cfg (state_invariant σ Γ).
 
   Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
-      (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH)
+      (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH) fuel v
       (** Vellvm bits   *) (nextblock bid_in : block_id) (bks : list (LLVMAst.block typ))
-      (env : list (ident * typ))  (g : global_env) (ρ : local_env) (memV : memoryV),
+      (* (env : list (ident * typ)) *)  (g : global_env) (ρ : local_env) (memV : memoryV),
       nextblock ≢ bid_in -> (* YZ: not sure about this yet *)
-      bisim_partial σ s1 (memH,tt) (memV, (ρ, (g, (inl bid_in)))) ->
+      GenIR_Rel σ s1 (memH,tt) (memV, (ρ, (g, (inl bid_in)))) ->
+      evalDSHOperator σ op memH fuel ≡ Some (inr v)            -> (* Evaluation succeeds *)
       genIR op nextblock s1 ≡ inr (s2,(bid_in,bks)) ->
-      eutt (bisim_partial σ s1)
+      eutt (GenIR_Rel σ s1)
            (with_err_RB
               (interp_Mem (denoteDSHOperator σ op) memH))
            (with_err_LB
-              (interp_cfg (D.denote_bks (convert_typ env bks) bid_in)
+              (interp_cfg (D.denote_bks (convert_typ [] bks) bid_in)
                                 g ρ memV)).
   Proof.
-    intros s1 s2 op; revert s1 s2; induction op; intros * NEXT BISIM GEN.
-    - cbn in GEN.
+    intros s1 s2 op; revert s1 s2; induction op; intros * NEXT BISIM EVAL GEN.
+    - cbn* in GEN.
+      simp.
       hide_strings'.
-      simp_comp GEN.
-      eutt_hide_right; cbn*; repeat norm_h; subst.
-      cbn*; repeat norm_v.
-      (* YZ TODO : add denote_bks theory to the automation *)
+      cbn*; repeat norm_h.
       rewrite denote_bks_nil.
       cbn*; repeat norm_v.
       apply eqit_Ret; auto.
 
-    - (*
-      Assign case.
-       Need some reasoning about
-       - resolve_PVar
-       - genFSHAssign
-       - D.denote_bks over singletons
-       *)
-      destruct src,dst,p.
+    - (* Assign case. *)
+      destruct fuel as [| fuel]; [cbn in *; simp |].
       cbn* in GEN.
+      unfold GenIR_Rel in BISIM; cbn in BISIM.
+      simp.
       hide_strings'.
-      simp_comp GEN.
+      rename i into si, i2 into si',
+      i0 into x, i3 into y,
+      i1 into v1, i4 into v2.
+      inv_resolve_PVar Heqs0.
+      inv_resolve_PVar Heqs1.
+
+      cbn*.
+      repeat norm_h.
+      unfold denotePExpr at 2; cbn*.
+      break_inner_match_goal; cbn in *; simp.
+      repeat norm_h.
+      unfold denotePExpr; cbn*.
+      break_inner_match_goal; cbn in *; simp.
+      repeat (norm_h; []).
+      edestruct (memory_invariant_Ptr n1) as (bkH1 & ptrV1 & Mem_LU1 & LUV1 & EQ1); eauto.
+      edestruct (memory_invariant_Ptr n2) as (bkH2 & ptrV2 & Mem_LU2 & LUV2 & EQ2); eauto.
+      norm_h.
+      2: unfold memory_lookup_err; cbn*; rewrite Mem_LU1; reflexivity.
+      repeat (norm_h; []).
+      norm_h.
+      2: unfold memory_lookup_err; cbn*; rewrite Mem_LU2; reflexivity.
+      repeat (norm_h; []).
+      simpl.
+      unfold add_comments.
+      cbn.
+      eutt_hide_left.
+      cbn.
+      rewrite denote_bks_singleton; eauto.
+      2:reflexivity.
+      cbn*.
+      repeat rewrite fmap_list_app.
+      rewrite denote_code_app.
+      repeat norm_v.
+      subst.
+
+      eapply eutt_clo_bind.
+      eapply genNExpr_correct_ind.
+      eassumption.
+      eassumption.
+      do 3 (eapply state_invariant_incLocal; eauto).
+      do 2 (eapply state_invariant_incVoid; eauto).
+      do 1 (eapply state_invariant_incBlockNamed; eauto).
+      
+      intros [memH1 val1] (memV1 & ρ1 & g1 & []) (INV1 & EXP1 & ( <- & <- & <- & EXT1)); cbn in INV1.
+      cbn*.
+      rewrite denote_code_app.
+      repeat norm_v.
+      repeat norm_h.
+
+      eapply eutt_clo_bind.
+      eapply genNExpr_correct_ind; eauto.
+
+      intros [memH2 val2] (memV2 & ρ2 & g2 & []) (INV2 & EXP2 & ( <- & <- & <- & EXT2)); cbn in INV2.
+      eutt_hide_right.
+      cbn*.
+      repeat norm_h.
+      unfold mem_lookup_err.
+      cbn*.
+
+    (* End of genFSHAssign, things are getting a bit complicated *)
 
       admit.
+
+    - admit.
+
+    - (* DSHBinOp *)
+      destruct fuel as [| fuel]; [cbn in *; simp |].
+      cbn* in GEN.
+      unfold GenIR_Rel in BISIM; cbn in BISIM.
+      unfold ErrorWithState.err2errS in *.
+      repeat (break_inner_match_hyp; cbn in *; repeat inv_sum; []).
+      repeat match goal with
+      | h: _ * _ |- _ => destruct h
+      | h: () |- _ => destruct h
+      end.
+      repeat match goal with
+      | h: (_,_) ≡ (_,_) |- _ => inv h
+             end.
+      cbn* in *.
+
+      eutt_hide_right.
+      repeat norm_h.
+      subst; eutt_hide_left.
+      (* Need some reasoning about [denote_bks] *)
+      admit.
+
   Admitted.
 
-End GenIR.
+  End GenIR.
 
 Section LLVMGen.
 
@@ -3168,7 +3226,6 @@ Lemma memory_set_seq {E}
 Proof.
   cbn; rewrite bind_ret_l; reflexivity.
 Qed.
-
 
 Lemma alist_add_nil {K V:Type} {k:K} {v:V}
       `{RD_K : @RelDec K R}
