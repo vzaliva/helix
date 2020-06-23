@@ -2432,8 +2432,7 @@ Section AExpr.
                 reflexivity.
                 cbn.
                 erewrite H; eauto.
-                eapply alist_In_add_eq'.
-                exact UVALUE_None. (* ... What? *)
+                eapply In_add_eq.
               * cbn. unfold context_lookup.
                 rewrite Heqo0.
                 cbn. reflexivity.
@@ -2593,6 +2592,7 @@ Section AExpr.
           apply H.
 
           (* TODO: Can't unfold Floats.Float.abs ??? *)
+          (* TODO: Use Transparent... Still not obvious. *)
           assert (Floats.Float.abs b2 ≡ MFloat64asCT.CTypeAbs b2).
           admit.
           rewrite H3.
@@ -2924,11 +2924,395 @@ Section AExpr.
           eapply In__alist_In in IN as [v' AIN].
           eapply incLocal_is_fresh0; eauto.
     - (* AMin *)
-      admit.
+      rename g into g1, l into l1, memV into memV1.
+      cbn* in COMPILE; simp.
+
+      (* YZ TODO Ltac for this *)
+      generalize Heqs; intros WFI; eapply genAExpr_preserves_WF in WFI; eauto.
+      2: apply PRE.
+
+      cbn in EVAL.
+      break_match; try discriminate EVAL.
+      break_match; try discriminate EVAL.
+
+      cbn*.
+      repeat norm_h.
+
+      rewrite convert_typ_app.
+      rewrite denote_code_app.
+      repeat norm_v.
+
+      eapply eutt_clo_bind; try eapply IHaexp1; eauto.
+
+      intros [memH' b'] [memV' [l' [g' []]]] [INV1 INV2].
+      cbn in *.
+
+      repeat norm_h.
+
+      rewrite convert_typ_app.
+      rewrite denote_code_app.
+      repeat norm_v.
+
+      inversion INV2.
+      inversion amonotone0.
+      subst.
+      eapply eutt_clo_bind; try eapply IHaexp2; eauto.
+
+      intros [memH'' b''] [memV'' [l'' [g'' []]]] [INV1' INV2'].
+      inversion INV2'.
+      inversion amonotone1.
+      subst.
+
+      repeat norm_h.
+      cbn. repeat norm_v.
+      rewrite typ_to_dtyp_equation.
+
+      unfold genAExpr_exp_correct in aexp_correct0.
+      do 2 destruct H1.
+      subst.
+      specialize (aexp_correct0 l'').
+      assert (Ret (memV'', (l'', (g'', UVALUE_Double b')))
+                    ≈ with_err_LB
+                        (interp_cfg
+                           (translate exp_E_to_instr_E
+                                      (denote_exp (Some DTYPE_Double) (convert_typ [ ] e0))) g'' l'' memV'')) as EUTT0.
+      apply aexp_correct0; eauto.
+      rewrite <- EUTT0.
+      repeat norm_v.
+
+      unfold genAExpr_exp_correct in aexp_correct1.
+      assert (Ret (memV'', (l'', (g'', UVALUE_Double b'')))
+                      ≈ with_err_LB
+                          (interp_cfg
+                             (translate exp_E_to_instr_E
+                                        (denote_exp (Some DTYPE_Double) (convert_typ [ ] e1))) g'' l'' memV'')) as EUTT1.
+      apply aexp_correct1; eauto. reflexivity.
+      rewrite <- EUTT1.
+      repeat norm_v.
+      cbn.
+      repeat norm_v.
+
+      unfold ITree.map.
+      repeat norm_v.
+
+      rewrite interp_cfg_to_L3_intrinsic; try reflexivity.
+      cbn; repeat norm_v.
+
+      rewrite interp_cfg_to_L3_LW.
+      cbn; repeat norm_v.
+
+      apply eqit_Ret.
+      split; cbn; eauto.
+      + eapply state_invariant_add_fresh; eauto.
+        reflexivity.
+      + split; split; intuition.
+        * cbn. repeat norm_v. cbn. norm_v.
+          reflexivity.
+          cbn.
+          apply H.          
+
+          (* TODO: Can't unfold Floats.Float.add ??? *)
+          assert (Float_minimum b' b'' ≡ MFloat64asCT.CTypeMin b' b'').
+          admit.
+          rewrite H3.
+          apply In_add_eq.
+        * (* TODO: ltac, this is horrid *)
+          cbn. rewrite H6.
+          epose proof (aexp_correct1 l'' _) as [[] H7].
+          rewrite H7.
+
+          reflexivity.
+        * rewrite H3. rewrite H2.
+          apply sub_alist_add.
+          unfold alist_fresh.
+          cbn in INV1'.
+          destruct INV1'.
+          unfold concrete_fresh_inv in incLocal_is_fresh0.
+          apply alist_find_None.
+          intros v0. intros IN.
+          eapply In__alist_In in IN as [v' AIN].
+          eapply incLocal_is_fresh0; eauto.
     - (* AMax *)
-      admit.
+      rename g into g1, l into l1, memV into memV1.
+      cbn* in COMPILE; simp.
+
+      (* YZ TODO Ltac for this *)
+      generalize Heqs; intros WFI; eapply genAExpr_preserves_WF in WFI; eauto.
+      2: apply PRE.
+
+      cbn in EVAL.
+      break_match; try discriminate EVAL.
+      break_match; try discriminate EVAL.
+
+      cbn*.
+      repeat norm_h.
+
+      rewrite convert_typ_app.
+      rewrite denote_code_app.
+      repeat norm_v.
+
+      eapply eutt_clo_bind; try eapply IHaexp1; eauto.
+
+      intros [memH' b'] [memV' [l' [g' []]]] [INV1 INV2].
+      cbn in *.
+
+      repeat norm_h.
+
+      rewrite convert_typ_app.
+      rewrite denote_code_app.
+      repeat norm_v.
+
+      inversion INV2.
+      inversion amonotone0.
+      subst.
+      eapply eutt_clo_bind; try eapply IHaexp2; eauto.
+
+      intros [memH'' b''] [memV'' [l'' [g'' []]]] [INV1' INV2'].
+      inversion INV2'.
+      inversion amonotone1.
+      subst.
+
+      repeat norm_h.
+      cbn. repeat norm_v.
+      rewrite typ_to_dtyp_equation.
+
+      unfold genAExpr_exp_correct in aexp_correct0.
+      do 2 destruct H1.
+      subst.
+      specialize (aexp_correct0 l'').
+      assert (Ret (memV'', (l'', (g'', UVALUE_Double b')))
+                    ≈ with_err_LB
+                        (interp_cfg
+                           (translate exp_E_to_instr_E
+                                      (denote_exp (Some DTYPE_Double) (convert_typ [ ] e0))) g'' l'' memV'')) as EUTT0.
+      apply aexp_correct0; eauto.
+      rewrite <- EUTT0.
+      repeat norm_v.
+
+      unfold genAExpr_exp_correct in aexp_correct1.
+      assert (Ret (memV'', (l'', (g'', UVALUE_Double b'')))
+                      ≈ with_err_LB
+                          (interp_cfg
+                             (translate exp_E_to_instr_E
+                                        (denote_exp (Some DTYPE_Double) (convert_typ [ ] e1))) g'' l'' memV'')) as EUTT1.
+      apply aexp_correct1; eauto. reflexivity.
+      rewrite <- EUTT1.
+      repeat norm_v.
+      cbn.
+      repeat norm_v.
+
+      unfold ITree.map.
+      repeat norm_v.
+
+      rewrite interp_cfg_to_L3_intrinsic; try reflexivity.
+      cbn; repeat norm_v.
+
+      rewrite interp_cfg_to_L3_LW.
+      cbn; repeat norm_v.
+
+      apply eqit_Ret.
+      split; cbn; eauto.
+      + eapply state_invariant_add_fresh; eauto.
+        reflexivity.
+      + split; split; intuition.
+        * cbn. repeat norm_v. cbn. norm_v.
+          reflexivity.
+          cbn.
+          apply H.          
+
+          assert (Float_maxnum b' b'' ≡ MFloat64asCT.CTypeMax b' b'').
+          admit.
+          rewrite H3.
+          apply In_add_eq.
+        * (* TODO: ltac, this is horrid *)
+          cbn. rewrite H6.
+          epose proof (aexp_correct1 l'' _) as [[] H7].
+          rewrite H7.
+
+          reflexivity.
+        * rewrite H3. rewrite H2.
+          apply sub_alist_add.
+          unfold alist_fresh.
+          cbn in INV1'.
+          destruct INV1'.
+          unfold concrete_fresh_inv in incLocal_is_fresh0.
+          apply alist_find_None.
+          intros v0. intros IN.
+          eapply In__alist_In in IN as [v' AIN].
+          eapply incLocal_is_fresh0; eauto.
     - (* AZless *)
-      admit.
+      rename g into g1, l into l1, memV into memV1.
+      cbn* in COMPILE; simp.
+
+      (* YZ TODO Ltac for this *)
+      generalize Heqs; intros WFI; eapply genAExpr_preserves_WF in WFI; eauto.
+      2: apply PRE.
+
+      cbn in EVAL.
+      break_match; try discriminate EVAL.
+      break_match; try discriminate EVAL.
+
+      cbn*.
+      repeat norm_h.
+
+      rewrite convert_typ_app.
+      rewrite denote_code_app.
+      repeat norm_v.
+
+      eapply eutt_clo_bind; try eapply IHaexp1; eauto.
+
+      intros [memH' b'] [memV' [l' [g' []]]] [INV1 INV2].
+      cbn in *.
+
+      repeat norm_h.
+
+      rewrite convert_typ_app.
+      rewrite denote_code_app.
+      repeat norm_v.
+
+      inversion INV2.
+      inversion amonotone0.
+      subst.
+      eapply eutt_clo_bind; try eapply IHaexp2; eauto.
+
+      intros [memH'' b''] [memV'' [l'' [g'' []]]] [INV1' INV2'].
+      inversion INV2'.
+      inversion amonotone1.
+      subst.
+
+      change [(IId (Name (String "l" (string_of_nat (local_count i0)))),
+                      INSTR_Op (OP_FCmp FOlt TYPE_Double e0 e1));
+                     (IVoid (Z.of_nat (void_count i0)),
+                     INSTR_Comment "Casting bool to float");
+                     (IId (Name (String "l" (string_of_nat (S (local_count i0))))),
+                     INSTR_Op
+                       (OP_Conversion Uitofp (TYPE_I 1%Z)
+                          (EXP_Ident
+                             (ID_Local
+                                (Name (String "l" (string_of_nat (local_count i0))))))
+                          TYPE_Double))] with
+          ([(IId (Name (String "l" (string_of_nat (local_count i0)))),
+                      INSTR_Op (OP_FCmp FOlt TYPE_Double e0 e1))] ++
+          [(IVoid (Z.of_nat (void_count i0)),
+                     INSTR_Comment "Casting bool to float");
+                     (IId (Name (String "l" (string_of_nat (S (local_count i0))))),
+                     INSTR_Op
+                       (OP_Conversion Uitofp (TYPE_I 1%Z)
+                          (EXP_Ident
+                             (ID_Local
+                                (Name (String "l" (string_of_nat (local_count i0))))))
+                          TYPE_Double))]).
+
+      rewrite convert_typ_app.
+      rewrite denote_code_app.
+
+      repeat norm_h.
+      repeat norm_v.
+      cbn; repeat norm_v.
+
+      unfold genAExpr_exp_correct in aexp_correct0.
+      do 2 destruct H1.
+      subst.
+      specialize (aexp_correct0 l'').
+      assert (Ret (memV'', (l'', (g'', UVALUE_Double b')))
+                    ≈ with_err_LB
+                        (interp_cfg
+                           (translate exp_E_to_instr_E
+                                      (denote_exp (Some DTYPE_Double) (convert_typ [ ] e0))) g'' l'' memV'')) as EUTT0.
+      apply aexp_correct0; eauto.
+
+      (* TODO: This could be cleaner... *)
+      repeat rewrite typ_to_dtyp_equation.
+      repeat setoid_rewrite translate_bind.
+      setoid_rewrite interp_cfg_to_L3_bind.
+      repeat setoid_rewrite translate_bind.
+      rewrite <- EUTT0.
+
+      repeat norm_v.
+      setoid_rewrite translate_bind.
+
+      unfold genAExpr_exp_correct in aexp_correct1.
+      assert (Ret (memV'', (l'', (g'', UVALUE_Double b'')))
+                      ≈ with_err_LB
+                          (interp_cfg
+                             (translate exp_E_to_instr_E
+                                        (denote_exp (Some DTYPE_Double) (convert_typ [ ] e1))) g'' l'' memV'')) as EUTT1.
+      apply aexp_correct1; eauto. reflexivity.
+      rewrite <- EUTT1.
+      repeat norm_v.
+      cbn.
+      repeat norm_v.
+
+      rewrite interp_cfg_to_L3_LW.
+      cbn; repeat norm_v.
+      cbn; repeat norm_v.
+      2: apply In_add_eq.
+
+      (* TODO: probably want a lemma for this *)
+      unfold uvalue_to_dvalue_uop.
+      rewrite uvalue_to_dvalue_of_dvalue_to_uvalue.
+      cbn.
+
+      unfold Traversal.endo.
+      unfold Traversal.Endo_id.
+
+      (* Should probably separate this into an existential lemma *)
+      unfold double_cmp.
+      destruct (ordered64 b' b'' && Floats.Float.cmp Integers.Clt b' b'')%bool eqn:CMP.
+      { cbn.
+        unfold ITree.map.
+        repeat norm_v.
+        rewrite interp_cfg_to_L3_LW.
+        cbn.
+        repeat norm_v.
+
+        apply eqit_Ret.
+        split; cbn; eauto.
+        + eapply state_invariant_add_fresh; eauto.
+          cbn. admit. admit.
+        + split; split; intuition.
+          * cbn. repeat norm_v. cbn. norm_v.
+            reflexivity.
+            cbn.
+            apply H.
+            assert ((Floats.Float.of_longu (DynamicValues.Int64.repr 1)) ≡ MFloat64asCT.CTypeZLess b' b'').
+            admit.
+            rewrite H3.
+            apply In_add_eq.
+          * (* TODO: ltac, this is horrid *)
+            cbn. rewrite H6.
+            epose proof (aexp_correct1 l'' _) as [[] H7].
+            rewrite H7.
+
+            reflexivity.
+          * rewrite H3. rewrite H2.
+
+            cbn in INV1'.
+            destruct INV1'.
+            unfold concrete_fresh_inv in incLocal_is_fresh0.
+
+            assert (l'' ⊑ (alist_add (Name (String "l" (string_of_nat (local_count i0)))) (UVALUE_I1 DynamicValues.Int1.one) l'')) as TRANS.
+            { apply sub_alist_add.
+              unfold alist_fresh.
+              apply alist_find_None.
+              intros v0 IN.
+              eapply In__alist_In in IN as [v' AIN].
+              eapply incLocal_is_fresh0; eauto.
+            }
+
+            eapply (sub_alist_trans _ _ _ TRANS).
+            set (alist_add (Name (String "l" (string_of_nat (local_count i0)))) (UVALUE_I1 DynamicValues.Int1.one) l'') as l'''.
+
+            apply sub_alist_add.
+            unfold alist_fresh.
+            apply alist_find_None.
+            intros v0 IN.
+            eapply In__alist_In in IN as [v' AIN].
+            admit.
+      }
+      {
+        admit.
+      }
   Admitted.
 
 

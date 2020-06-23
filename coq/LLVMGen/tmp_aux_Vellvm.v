@@ -539,17 +539,6 @@ Section alistFacts.
       contradiction.
   Qed.
 
-  Lemma alist_In_add_eq' : forall m (k:K) (v n:V), alist_In k (alist_add k n m) n.
-  Proof.
-    intros m k v n.
-    unfold alist_In.
-    unfold alist_add.
-    cbn.
-    destruct (k ?[ eq ] k) eqn:Heqk; auto.
-    apply neg_rel_dec_correct in Heqk.
-    contradiction.
-  Qed.
-
   Lemma alist_find_remove_none:
     forall (m : list (K*V)) (k1 k2 : K), k2 <> k1 -> alist_find k1 (alist_remove k2 m) = None -> alist_find k1 m = None.
   Proof.
