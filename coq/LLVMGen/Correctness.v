@@ -246,7 +246,6 @@ Section RelationTypes.
 
   Definition lift_pure_cfg (P : Prop) {TH TV : Type} : Rel_cfg_T TH TV :=
     fun _ _ => P.
-  Arguments lift_pure_cfg /.
 
   (* Lifting a relation on results to one encompassing states by ignoring them *)
   Definition lift_Rel_res_cfg {TH TV: Type} (R: TH -> TV -> Prop): Rel_cfg_T TH TV :=
@@ -263,7 +262,6 @@ Section RelationTypes.
 
   Definition lift_pure_mcfg (P : Prop) {TH TV : Type} : Rel_mcfg_T TH TV :=
     fun _ _ => P.
-  Arguments lift_pure_cfg /.
 
   (** Type of bisimulation relation between DSHCOL and LLVM states.
     This relation could be used for fragments of CFG [cfg].
@@ -279,6 +277,8 @@ Section RelationTypes.
 
 End RelationTypes.
 Arguments lift_Rel_cfg R {_ _}.
+Arguments lift_pure_cfg /.
+Arguments lift_pure_cfg /.
 
 Ltac introR :=
   intros [?memH ?vH] (?memV & ?l & ?g & ?vV) ?PRE.
@@ -501,6 +501,21 @@ Section SimulationRelations.
     eapply INV in LU; clear INV; eauto.
     unfold in_local_or_global, dvalue_of_int in LU.
     rewrite repr_intval in LU; auto.
+  Qed.
+
+  Lemma memory_invariant_LLU_Ptr : forall σ s v id memH memV t l g m size,
+      memory_invariant σ s memH (memV, (l, g)) ->
+      nth_error (Γ s) v ≡ Some (ID_Local id, t) ->
+      nth_error σ v ≡ Some (DSHPtrVal m size) ->
+      ∃ (bk_h : mem_block) (ptr_v : Addr.addr),
+        memory_lookup memH m ≡ Some bk_h
+        ∧ in_local_or_global l g memV (ID_Local id) (DVALUE_Addr ptr_v) t
+        ∧ (∀ (i : Memory.NM.key) (v : binary64),
+              mem_lookup i bk_h ≡ Some v → get_array_cell memV ptr_v i DTYPE_Double ≡ inr (UVALUE_Double v)).
+  Proof.
+    intros * INV NTH LU; cbn* in *.
+    eapply INV in LU; clear INV; eauto.
+    auto.
   Qed.
 
   (** ** Fresh identifier generator invariant
@@ -2758,16 +2773,34 @@ Ltac forget_strings :=
          Can it be a global?
        *)
 
-      (* onAllHyps move_up_types.  *)
-      (* destruct x; cbn. *)
-      (* + (* Global case, I think absurd *) *)
-      (*   admit. *)
-      (* + cbn*. *)
-      (*   repeat norm_v. *)
-      (*   2: unfold endo. *)
-      (*   2: eapply memory_invariant_LLU; eauto. *)
+      (* onAllHyps move_up_types. *)
+      destruct x; cbn.
+      + (* Global case, I think absurd *)
+        admit.
+      + subst; focus_single_step_v; eutt_hide_left.
+        rename id into bar.
+        edestruct memory_invariant_LLU_Ptr as (bk_h & ptr_v & LU & INLG & VEC_LU); [| exact LUn | exact Heqo |]; eauto.
+        repeat norm_v.
+        2: apply MONO2, MONO1; eauto.
+        cbn; repeat norm_v.
+        subst.
+        eutt_hide_left.
+        norm_v.
+        focus_single_step_v.
+        repeat norm_v.
+        cbn.
+        unfold IntType; rewrite typ_to_dtyp_I.
+        cbn.
+        repeat norm_v.
+        rename e into foo.
+        destruct (EXP1 ρ2) as [EQe ?]; auto.
+        rewrite <- EQe.
+        repeat norm_v.
 
-      admit.
+        cbn.
+        (* Need to reason about GEP *)
+
+        admit.
     (* End of genFSHAssign, things are getting a bit complicated *)
 
 
