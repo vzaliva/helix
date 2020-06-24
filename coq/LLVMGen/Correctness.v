@@ -1,3 +1,4 @@
+(* Require Import LibHyps.LibHyps. *)
 Require Import Coq.Arith.Arith.
 Require Import Psatz.
 
@@ -278,9 +279,9 @@ Ltac unfolder_vellvm       := unfold Traversal.Endo_id.
 Ltac unfolder_vellvm_hyp h := unfold Traversal.Endo_id in h.
 Ltac unfolder_vellvm_all   := unfold Traversal.Endo_id in *.
 
-Ltac unfolder_helix       := unfold ErrorWithState.option2errS, lift_Serr, context_lookup, trywith.
-Ltac unfolder_helix_hyp h := unfold ErrorWithState.option2errS, lift_Serr, context_lookup, trywith in h.
-Ltac unfolder_helix_all   := unfold ErrorWithState.option2errS, lift_Serr, context_lookup, trywith in *.
+Ltac unfolder_helix       := unfold mem_lookup_err, memory_lookup_err, ErrorWithState.option2errS, lift_Serr, context_lookup, trywith.
+Ltac unfolder_helix_hyp h := unfold mem_lookup_err, memory_lookup_err, ErrorWithState.option2errS, lift_Serr, context_lookup, trywith in h.
+Ltac unfolder_helix_all   := unfold mem_lookup_err, memory_lookup_err, ErrorWithState.option2errS, lift_Serr, context_lookup, trywith in *.
 
 (**
      Better solution (?): use
@@ -2699,6 +2700,33 @@ Ltac forget_strings :=
   Opaque denote_bks.
   Opaque resolve_PVar. 
 
+  Lemma denote_bks_unfold: forall bks bid b,
+      find_block dtyp bks bid ≡ Some b ->
+      denote_bks bks bid ≈
+                 vob <- denote_block b ;;
+      match vob with
+      | inl bid' => denote_bks bks bid'
+      | inr v => ret (inr v)
+      end.
+  Admitted.
+
+  Ltac focus_single_step_v :=
+    match goal with
+      |- eutt _ _ (ITree.bind _ ?x) => remember x
+    end.
+
+  Ltac focus_single_step_h :=
+    match goal with
+      |- eutt _ (ITree.bind _ ?x) _ => remember x
+    end.
+
+  Ltac focus_single_step :=
+    match goal with
+      |- eutt _ (ITree.bind _ ?x) (ITree.bind _ ?y) => remember x; remember y
+    end.
+
+ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
+
   Definition GenIR_Rel σ Γ : Rel_cfg_T unit (block_id + uvalue) :=
     lift_Rel_cfg (state_invariant σ Γ).
 
@@ -2727,7 +2755,18 @@ Ltac forget_strings :=
       cbn*; repeat norm_v.
       apply eqit_Ret; auto.
 
-    - (* Assign case. *)
+    - (* Assign case.
+         Helix side:
+         1. x_i <- evalPExpr σ x_p ;;
+         2. y_i <- evalPExpr σ y_p ;;
+         3. x <- memory_lookup_err "Error looking up 'x' in DSHAssign" mem x_i ;;
+         4. y <- memory_lookup_err "Error looking up 'y' in DSHAssign" mem y_i ;;
+         5. src <- evalNExpr σ src_e ;;
+         6. dst <- evalNExpr σ dst_e ;;
+         7. v <- mem_lookup_err "Error looking up 'v' in DSHAssign" (to_nat src) x ;;
+         8. ret (memory_set mem y_i (mem_add (to_nat dst) v y))
+       *)
+
       destruct fuel as [| fuel]; [cbn in *; simp |].
       cbn* in GEN.
       unfold GenIR_Rel in BISIM; cbn in BISIM.
@@ -2739,27 +2778,18 @@ Ltac forget_strings :=
       inv_resolve_PVar Heqs0.
       inv_resolve_PVar Heqs1.
 
+      eutt_hide_right.
       cbn*.
       repeat norm_h.
-      unfold denotePExpr at 2; cbn*.
-      break_inner_match_goal; cbn in *; simp.
-      repeat norm_h.
       unfold denotePExpr; cbn*.
-      break_inner_match_goal; cbn in *; simp.
-      repeat (norm_h; []).
-      edestruct (memory_invariant_Ptr n1) as (bkH1 & ptrV1 & Mem_LU1 & LUV1 & EQ1); eauto.
-      edestruct (memory_invariant_Ptr n2) as (bkH2 & ptrV2 & Mem_LU2 & LUV2 & EQ2); eauto.
-      norm_h.
-      2: unfold memory_lookup_err; cbn*; rewrite Mem_LU1; reflexivity.
-      repeat (norm_h; []).
-      norm_h.
-      2: unfold memory_lookup_err; cbn*; rewrite Mem_LU2; reflexivity.
-      repeat (norm_h; []).
-      simpl.
+      break_inner_match_goal; cbn* in *; simp.
+      eutt_hide_right.
+      repeat norm_h.
+      2,3:cbn*; apply memory_lookup_err_inr_Some_eq; eauto.
+
+      subst; eutt_hide_left.
       unfold add_comments.
-      cbn.
-      eutt_hide_left.
-      cbn.
+      cbn*.
       rewrite denote_bks_singleton; eauto.
       2:reflexivity.
       cbn*.
@@ -2767,34 +2797,71 @@ Ltac forget_strings :=
       rewrite denote_code_app.
       repeat norm_v.
       subst.
+      focus_single_step.
 
+      (* Step 5. *)
       eapply eutt_clo_bind.
-      eapply genNExpr_correct_ind.
-      eassumption.
-      eassumption.
+      eapply genNExpr_correct_ind; try eassumption.
       do 3 (eapply state_invariant_incLocal; eauto).
       do 2 (eapply state_invariant_incVoid; eauto).
       do 1 (eapply state_invariant_incBlockNamed; eauto).
       
       intros [memH1 val1] (memV1 & ρ1 & g1 & []) (INV1 & EXP1 & ( <- & <- & <- & EXT1)); cbn in INV1.
-      cbn*.
+      cbn* in *.
+
+      subst.
+
       rewrite denote_code_app.
       repeat norm_v.
       repeat norm_h.
+      focus_single_step.
 
+      (* Step 6. *)
       eapply eutt_clo_bind.
       eapply genNExpr_correct_ind; eauto.
 
       intros [memH2 val2] (memV2 & ρ2 & g2 & []) (INV2 & EXP2 & ( <- & <- & <- & EXT2)); cbn in INV2.
+      subst.
+
+      (* Step 7. *)
+      eutt_hide_right.
+
+      edestruct EXP1 as (EQ1 & EQ1'); [reflexivity |].
+      rewrite EQ1' in Heqs11; inv Heqs11.
+      rewrite Heqo0.
       eutt_hide_right.
       cbn*.
       repeat norm_h.
-      unfold mem_lookup_err.
+      rewrite interp_Mem_MemSet.
       cbn*.
+      repeat norm_h.
 
-    (* End of genFSHAssign, things are getting a bit complicated *)
+      subst; eutt_hide_left.
+
+      simpl.
+      norm_v.
+      norm_v.
+      focus_single_step_v.
+      unfold eval_op; cbn.
+      repeat norm_v.
+      (* I am looking up an ident x, for which I find the type `TYPE_Pointer (TYPE_Array sz TYPE_Double)`
+         in my typing context.
+         Can it be a global?
+       *)
+
+      (* onAllHyps move_up_types.  *)
+      (* destruct x; cbn. *)
+      (* + (* Global case, I think absurd *) *)
+      (*   admit. *)
+      (* + cbn*. *)
+      (*   repeat norm_v. *)
+      (*   2: unfold endo. *)
+      (*   2: eapply memory_invariant_LLU; eauto. *)
 
       admit.
+    (* End of genFSHAssign, things are getting a bit complicated *)
+
+
 
     - admit.
 
@@ -2813,19 +2880,18 @@ Ltac forget_strings :=
              end.
       cbn* in *.
 
+      (* On the Helix side, the computation consists in:
+         1. xi <- denotePExpr x
+         2. yi <- denotePExpr y
+         3. lookup xi in memory
+         4. lookup yi in memory
+         5. denoteDSHBinop on the values read
+         6. write the result in memory at yi
+       *)
       eutt_hide_right.
       repeat norm_h.
-      subst; eutt_hide_left.
 
-      Lemma denote_bks_unfold: forall bks bid b,
-        find_block dtyp bks bid ≡ Some b ->
-        denote_bks bks bid ≈
-          vob <- denote_block b ;;
-        match vob with
-        | inl bid' => denote_bks bks bid'
-        | inr v => ret (inr v)
-        end.
-      Admitted.
+     subst; eutt_hide_left.
 
       unfold add_comments.
       cbn.
@@ -2859,11 +2925,42 @@ Ltac forget_strings :=
         unfold endo.
         rewrite rel_dec_eq_true; eauto; typeclasses eauto.
       }
-      
-     admit. 
-        
+      cbn.
+      unfold endo.
+      unfold eval_int_icmp.
+      cbn.
 
+      focus_single_step_v.
+
+      unfold Int64_eq_or_cerr, Z_eq_or_cerr, ErrorWithState.err2errS, Z_eq_or_err, memory_lookup_err in *.
+      cbn* in *.
+      simp.
+      inv_resolve_PVar Heqs0.
+      inv_resolve_PVar Heqs1.
+
+      (* onAllHyps move_up_types.  *)
+
+      repeat match goal with
+             | h : Int64.intval _ ≡ Int64.intval _ |- _ => apply int_eq_inv in h; subst
+             end.
+
+      eutt_hide_left.
+      focus_single_step_v.
+      unfold MInt64asNT.from_nat in *.
       
+      rename n into index1.
+      break_if.
+      {
+        cbn.
+        repeat norm_v.
+        subst i3.
+        cbn.
+        repeat norm_v.
+        rename b2 into foo.
+        
+       
+      
+
   Admitted.
 
   End GenIR.
