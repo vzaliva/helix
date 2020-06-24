@@ -1,4 +1,4 @@
-Require Import LibHyps.LibHyps.
+(* Require Import LibHyps.LibHyps. *)
 Require Import Coq.Arith.Arith.
 Require Import Psatz.
 
@@ -2833,8 +2833,7 @@ Ltac forget_strings :=
       do 2 (eapply state_invariant_incVoid; eauto).
       do 1 (eapply state_invariant_incBlockNamed; eauto).
       
-      intros [memH1 val1] (memV1 & ρ1 & g1 & []) (INV1 & EXP1 & ( <- & <- & <- & EXT1)); cbn in INV1.
-      cbn* in *.
+      intros [memH1 val1] (memV1 & ρ1 & g1 & []) (INV1 & (EXP1 & <- & <- & <- & MONO1) & GAMMA1); cbn* in *.
 
       subst.
 
@@ -2847,7 +2846,7 @@ Ltac forget_strings :=
       eapply eutt_clo_bind.
       eapply genNExpr_correct_ind; eauto.
 
-      intros [memH2 val2] (memV2 & ρ2 & g2 & []) (INV2 & EXP2 & ( <- & <- & <- & EXT2)); cbn in INV2.
+      intros [memH2 val2] (memV2 & ρ2 & g2 & []) (INV2 & (EXP2 & <- & <- & <- & MONO2) & GAMMA2); cbn in GAMMA2; cbn in INV2. 
       subst.
 
       (* Step 7. *)
@@ -2980,10 +2979,10 @@ Ltac forget_strings :=
       {
         cbn.
         repeat norm_v.
-        subst i3.
+        subst.
         cbn.
         repeat norm_v.
-        rename b2 into foo.
+
         
        
       
