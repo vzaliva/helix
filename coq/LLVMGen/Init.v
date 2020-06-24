@@ -738,7 +738,15 @@ Proof.
             apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
             rewrite interp_to_L3_bind, translate_bind.
             rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
-            apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
+            remember ((λ (memH : memoryH) '(memV, (l8, _, g)),
+               state_invariant []
+                 {|
+                 block_count := block_count;
+                 local_count := local_count;
+                 void_count := void_count;
+                 Γ := [] |} memH (memV, (l8, g))):Rel_mcfg) as R1.
+
+            apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R1) _ _ ).
             cbn.
             pose_interp_to_L3_alloca m' a' A AE.
             unfold non_void.
@@ -749,15 +757,54 @@ Proof.
             rewrite translate_ret.
             apply eutt_Ret.
             cbn.
-            subst R0.
-            split; admit.
+            subst R1.
+            split.
+            **
+              intros n v τ x H H0.
+              rewrite nth_error_nil in H.
+              some_none.
+            **
+              unfold WF_IRState.
+              unfold evalContext_typechecks.
+              cbn.
+              intros v n H.
+              rewrite nth_error_nil in H.
+              some_none.
+            **
+              admit.
+            **
+              intros u1 u2 H.
+              repeat break_let.
+              rewrite interp_to_L3_GW.
+              cbn.
+              rewrite translate_ret.
+              apply eutt_Ret.
+              (* R1 -> R0 *)
+              admit.
+            **
+              intros u1 u2 H.
+              repeat break_let.
 
-            intros u1 u2 H.
-            repeat break_let.
+              rewrite interp_to_L3_bind, translate_bind.
+              rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+              apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
+              rewrite interp_to_L3_ret.
+              rewrite translate_ret.
+              apply eutt_Ret.
+              destruct u0.
+              clear - H.
+              (* equivalent to [H] up to [TV] argument of [lift_Rel_mcfg] *)
+              admit.
 
-            admit.
-            admit.
-
+              intros u3 u4 H0.
+              repeat break_let.
+              rewrite interp_to_L3_ret.
+              rewrite translate_ret.
+              apply eutt_Ret.
+              destruct u0.
+              clear -H0.
+              (* equivalent to [H0] up to [TV] argument of [lift_Rel_mcfg] *)
+              admit.
           ++
             (* nat *)
             break_let.
