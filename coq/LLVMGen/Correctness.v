@@ -1,4 +1,4 @@
-(* Require Import LibHyps.LibHyps. *)
+Require Import LibHyps.LibHyps.
 Require Import Coq.Arith.Arith.
 Require Import Psatz.
 
@@ -244,6 +244,10 @@ Section RelationTypes.
   Definition lift_Rel_cfg (R: Rel_cfg) (TH TV: Type): Rel_cfg_T TH TV :=
     fun '(memH,_) '(memV,(l,(g,_))) => R memH (memV,(l,g)).
 
+  Definition lift_pure_cfg (P : Prop) {TH TV : Type} : Rel_cfg_T TH TV :=
+    fun _ _ => P.
+  Arguments lift_pure_cfg /.
+
   (* Lifting a relation on results to one encompassing states by ignoring them *)
   Definition lift_Rel_res_cfg {TH TV: Type} (R: TH -> TV -> Prop): Rel_cfg_T TH TV :=
     fun '(_,vh) '(_,(_,(_,vv))) => R vh vv.
@@ -256,6 +260,10 @@ Section RelationTypes.
 
   Definition lift_Rel_mcfg (R: Rel_mcfg) (TH TV: Type): Rel_mcfg_T TH TV :=
     fun '(memH,_) '(memV,(l,(g,_))) => R memH (memV,(l,g)).
+
+  Definition lift_pure_mcfg (P : Prop) {TH TV : Type} : Rel_mcfg_T TH TV :=
+    fun _ _ => P.
+  Arguments lift_pure_cfg /.
 
   (** Type of bisimulation relation between DSHCOL and LLVM states.
     This relation could be used for fragments of CFG [cfg].
@@ -406,7 +414,7 @@ Ltac abs_by_WF :=
 (* TODOYZ : MOVE *)
 Definition conj_rel {A B : Type} (R S: A -> B -> Prop): A -> B -> Prop :=
   fun a b => R a b /\ S a b.
-Infix "⩕" := conj_rel (at level 85).
+Infix "⩕" := conj_rel (at level 85, right associativity).
 
 Section SimulationRelations.
 
@@ -1299,7 +1307,9 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       evalNExpr σ nexp ≡ inr v                 -> (* Evaluation succeeds *)
       state_invariant σ s1 memH (memV, (l, g)) -> (* The main state invariant is initially true *)
 
-      eutt (lift_Rel_cfg (state_invariant σ s2) ⩕ genNExpr_rel σ nexp e memH (mk_config_cfg memV l g))
+      eutt (lift_Rel_cfg (state_invariant σ s2) ⩕
+            genNExpr_rel σ nexp e memH (mk_config_cfg memV l g) ⩕
+            lift_pure_cfg (Γ s1 ≡ Γ s2))
            (with_err_RB (interp_Mem (denoteNExpr σ nexp) memH))
            (with_err_LB (interp_cfg (denote_code (convert_typ [] c)) g l memV)).
   Proof.
@@ -1322,7 +1332,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
             abs_by_WF.
           }
          { (* Local *)
-            apply eutt_Ret; split; eauto.
+            apply eutt_Ret; split; [| split]; try now eauto.
             constructor; eauto.
             intros l' MONO; cbn*.
             split.
@@ -1335,6 +1345,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
 
             rewrite Heqo0.
             reflexivity.
+            
           }
 
         * (* Variable not in context, [context_lookup] fails *)
@@ -1357,7 +1368,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
           rewrite interp_cfg_to_L3_LW.
           cbn; repeat norm_v.
           repeat norm_h.
-          apply eutt_Ret; split; eauto.
+          apply eutt_Ret; split; [| split].
           -- eapply state_invariant_add_fresh; eauto; reflexivity.
           -- split.
              {
@@ -1380,6 +1391,8 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
                unfold incLocal_fresh in incLocal_is_fresh0.
                eapply incLocal_is_fresh0; eauto.
              }
+          -- symmetry; eapply incLocal_Γ; eauto.
+
         * cbn* in EVAL; rewrite Heqo0 in EVAL; inv EVAL.
 
     - (* Constant *)
@@ -1388,8 +1401,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       unfold denoteNExpr; cbn*.
       repeat norm_h.
       repeat norm_v.
-      apply eutt_Ret.
-      split; eauto.
+      apply eutt_Ret; split; [| split]; try now eauto.
       split; eauto.
       intros l' MONO; cbn*.
       split; try reflexivity.
@@ -1427,9 +1439,9 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
           eapply eutt_clo_bind; [eassumption | clear IHnexp1].
 
           introR; destruct_unit.
-          destruct PRE0 as [PREI (EXPRI & <- & <- & <- & MONOI)].
+          destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI) & GAMMAI).
           cbn in *.
-
+          
           specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs2 PREI).
 
           cbn* in IHnexp2;
@@ -1445,7 +1457,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
           eapply eutt_clo_bind; [eassumption | clear IHnexp2].
 
           introR; destruct_unit.
-          destruct PRE0 as [PREF (EXPRF & <- & <- & <- & MONOF)].
+          destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
           (* cbn takes 5seconds instead of doing this instantaneously... *)
           simpl in *.
           repeat norm_v.
@@ -1479,8 +1491,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
               repeat norm_v.
               rewrite interp_cfg_to_L3_LW.
               cbn; repeat norm_v.
-              apply eutt_Ret.
-              split.
+              apply eutt_Ret; split; [| split]; try now eauto.
               cbn. eapply state_invariant_add_fresh; eauto; reflexivity.
               split.
               {
@@ -1506,6 +1517,10 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
                 apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
                 eapply PREF.
                 eauto.
+              }
+              {
+                rewrite GAMMAI, GAMMAF.
+                symmetry; eapply incLocal_Γ; eauto.
               }
           }
     - (*NMod *)
@@ -1539,7 +1554,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
           eapply eutt_clo_bind; [eassumption | clear IHnexp1].
 
           introR; destruct_unit.
-          destruct PRE0 as [PREI (EXPRI & <- & <- & <- & MONOI)].
+          destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI) & GAMMAI).
           cbn in *.
 
           specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs2 PREI).
@@ -1557,7 +1572,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
           eapply eutt_clo_bind; [eassumption | clear IHnexp2].
 
           introR; destruct_unit.
-          destruct PRE0 as [PREF (EXPRF & <- & <- & <- & MONOF)].
+          destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
           (* cbn takes 5seconds instead of doing this instantaneously... *)
           simpl in *.
           repeat norm_v.
@@ -1591,8 +1606,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
               repeat norm_v.
               rewrite interp_cfg_to_L3_LW.
               cbn; repeat norm_v.
-              apply eutt_Ret.
-              split.
+              apply eutt_Ret; split; [| split].
               cbn. eapply state_invariant_add_fresh; eauto; reflexivity.
               split.
               {
@@ -1618,6 +1632,10 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
                 apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
                 eapply PREF.
                 eauto.
+              }
+              {
+                rewrite GAMMAI, GAMMAF.
+                symmetry; eapply incLocal_Γ; eauto.
               }
           }
     - (* NAdd *)
@@ -1651,7 +1669,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       eapply eutt_clo_bind; [eassumption | clear IHnexp1].
 
       introR; destruct_unit.
-      destruct PRE0 as [PREI (EXPRI & <- & <- & <- & MONOI)].
+      destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI) & GAMMAI).
       cbn in *.
 
       specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs3 PREI).
@@ -1669,7 +1687,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       eapply eutt_clo_bind; [eassumption | clear IHnexp2].
 
       introR; destruct_unit.
-      destruct PRE0 as [PREF (EXPRF & <- & <- & <- & MONOF)].
+      destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
       (* cbn takes 5seconds instead of doing this instantaneously... *)
       simpl in *; unfold eval_op; simpl.
       unfold IntType; rewrite typ_to_dtyp_I.
@@ -1688,8 +1706,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       repeat norm_v.
       rewrite interp_cfg_to_L3_LW.
       cbn*; repeat norm_v.
-      apply eutt_Ret.
-      split.
+      apply eutt_Ret; split; [| split].
       cbn; eapply state_invariant_add_fresh; eauto.
       split.
       {
@@ -1719,6 +1736,10 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
         apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
         eapply PREF.
         eauto.
+      }
+      {
+        rewrite GAMMAI, GAMMAF.
+        symmetry; eapply incLocal_Γ; eauto.
       }
 
     - (* NMinus *)
@@ -1751,7 +1772,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       eapply eutt_clo_bind; [eassumption | clear IHnexp1].
 
       introR; destruct_unit.
-      destruct PRE0 as [PREI (EXPRI & <- & <- & <- & MONOI)].
+      destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI) & GAMMAI).
       cbn in *.
 
       specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs3 PREI).
@@ -1769,7 +1790,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       eapply eutt_clo_bind; [eassumption | clear IHnexp2].
 
       introR; destruct_unit.
-      destruct PRE0 as [PREF (EXPRF & <- & <- & <- & MONOF)].
+      destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
       (* cbn takes 5seconds instead of doing this instantaneously... *)
       simpl in *; unfold eval_op; simpl.
       unfold IntType; rewrite typ_to_dtyp_I.
@@ -1787,8 +1808,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       repeat norm_v.
       rewrite interp_cfg_to_L3_LW.
       cbn*; repeat norm_v.
-      apply eutt_Ret.
-      split.
+      apply eutt_Ret; split; [| split].
       cbn; eapply state_invariant_add_fresh; eauto.
       split.
       {
@@ -1818,6 +1838,10 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
         apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
         eapply PREF.
         eauto.
+      }
+      {
+        rewrite GAMMAI, GAMMAF.
+        symmetry; eapply incLocal_Γ; eauto.
       }
 
     - (* NMult *)
@@ -1850,7 +1874,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       eapply eutt_clo_bind; [eassumption | clear IHnexp1].
 
       introR; destruct_unit.
-      destruct PRE0 as [PREI (EXPRI & <- & <- & <- & MONOI)].
+      destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI) & GAMMAI).
       cbn in *.
 
       specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs3 PREI).
@@ -1868,7 +1892,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       eapply eutt_clo_bind; [eassumption | clear IHnexp2].
 
       introR; destruct_unit.
-      destruct PRE0 as [PREF (EXPRF & <- & <- & <- & MONOF)].
+      destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
       (* cbn takes 5seconds instead of doing this instantaneously... *)
       simpl in *; unfold eval_op; simpl.
       unfold IntType; rewrite typ_to_dtyp_I.
@@ -1891,8 +1915,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       + cbn; repeat norm_v.
         rewrite interp_cfg_to_L3_LW.
         cbn*; repeat norm_v.
-        apply eutt_Ret.
-        split.
+        apply eutt_Ret; split; [| split].
         cbn; eapply state_invariant_add_fresh; eauto.
         split.
         {
@@ -1921,6 +1944,10 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
           apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
           eapply PREF.
           eauto.
+        }
+        {
+          rewrite GAMMAI, GAMMAF.
+          symmetry; eapply incLocal_Γ; eauto.
         }
 
     - (* NMin *)
