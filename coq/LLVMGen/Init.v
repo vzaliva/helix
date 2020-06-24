@@ -392,6 +392,149 @@ Proof.
   - break_let; cbn in H; inl_inr_inv; reflexivity.
 Qed.
 
+Lemma getStateVar_preserves_st
+      {s : string}
+      {n : nat}
+      {st st' r} :
+  getStateVar s n st ≡ inr (st', r) ->
+  st ≡ st'.
+Proof.
+  intros.
+  unfold getStateVar in H.
+  cbn in H.
+  unfold ErrorWithState.option2errS in H.
+  break_match; inversion H; subst.
+  reflexivity.
+Qed.
+
+Lemma genMExpr_preserves_Γ
+      {m : MExpr}
+      {s s' r} :
+  genMExpr m s ≡ inr (s', r) ->
+  Γ s ≡ Γ s'.
+Proof.
+  intros.
+  unfold genMExpr in H.
+  destruct m; [| inversion H].
+  destruct p.
+  unfold bind in H.
+  break_let.
+  inversion Heqm; subst ret bind; clear Heqm.
+  repeat break_match; inversion H.
+  subst.
+  apply getStateVar_preserves_st in Heqs0.
+  congruence.
+Qed.
+
+Lemma genNExpr_preserves_Γ
+      {n : NExpr}
+      {s s' r} :
+  genNExpr n s ≡ inr (s', r) ->
+  Γ s ≡ Γ s'.
+Proof.
+  intros.
+  generalize dependent r.
+  generalize dependent s.
+  generalize dependent s'.
+  induction n.
+
+  { (* base case 1 *)
+    intros.
+    unfold genNExpr in H.
+    unfold bind in H.
+    repeat break_let.
+    inversion Heqm; subst ret bind; clear Heqm.
+    repeat break_match; inversion H; subst; clear H.
+    +
+      apply getStateVar_preserves_st in Heqs0.
+      subst; reflexivity.
+    +
+      apply getStateVar_preserves_st in Heqs0; subst i.
+      apply incLocal_Γ in Heqs1.
+      congruence.
+  }
+
+  { (* base case 2 *)
+    intros.
+    cbn in H.
+    inversion H; reflexivity.
+  }
+
+  (* inductive cases *)
+  all: intros; cbn in H.
+  all: destruct (genNExpr n1 s)  as [t | [s1 [ae1 ac1]]] eqn:N1; [inl_inr |].
+  all: destruct (genNExpr n2 s1) as [t | [s2 [ae2 ac2]]] eqn:N2; [inl_inr |].
+  all: inversion_clear H. (* clear H H1 H2. *)
+  all: apply IHn1 in N1.
+  all: apply IHn2 in N2.
+  all: cbn; congruence.
+Qed.
+
+Lemma genAExpr_preserves_Γ
+      {a : AExpr}
+      {s s' r} :
+  genAExpr a s ≡ inr (s', r) ->
+  Γ s ≡ Γ s'.
+Proof.
+  intros.
+  generalize dependent r.
+  generalize dependent s.
+  generalize dependent s'.
+  induction a.
+
+  { (* base case 1 *)
+    intros.
+    unfold genAExpr in H.
+    unfold bind in H.
+    repeat break_let.
+    inversion Heqm; subst ret bind; clear Heqm.
+    repeat break_match; inversion H; subst; clear H.
+    +
+      apply getStateVar_preserves_st in Heqs0.
+      apply incLocal_Γ in Heqs1.
+      congruence.
+    +
+      apply getStateVar_preserves_st in Heqs0.
+      congruence.
+  }
+
+  { (* base case 2 *)
+    intros.
+    cbn in H.
+    inversion H; reflexivity.
+  }
+
+  {
+    intros.
+    cbn in H.
+    repeat break_match; inversion_clear H.
+    subst.
+    apply genNExpr_preserves_Γ in Heqs0.
+    apply genMExpr_preserves_Γ in Heqs1.
+    cbn.
+    congruence.
+  }
+
+  {
+    intros.
+    cbn in H.
+    destruct (genAExpr a s)  as [t | [s1 [ae1 ac1]]] eqn:A; [inl_inr |].
+    apply IHa in A.
+    inversion H.
+    cbn.
+    congruence.
+  }
+
+  (* inductive cases *)
+  all: intros; cbn in H.
+  all: destruct (genAExpr a1 s)  as [t | [s1 [ae1 ac1]]] eqn:A1; [inl_inr |].
+  all: destruct (genAExpr a2 s1) as [t | [s2 [ae2 ac2]]] eqn:A2; [inl_inr |].
+  all: inversion_clear H. (* clear H H1 H2. *)
+  all: apply IHa1 in A1.
+  all: apply IHa2 in A2.
+  all: cbn; congruence.
+Qed.
+
 (* This lemma states that [genIR] if succeeds does not leak
    compiler state variable *)
 Lemma genIR_prserves_Γ
@@ -401,8 +544,43 @@ Lemma genIR_prserves_Γ
   genIR op nextblock s ≡ inr (s', segment) ->
   Γ s ≡ Γ s'.
 Proof.
+  intros.
+  induction op.
+  -
+    cbn in H; inversion H; reflexivity.
+  -
+    unfold genIR in H.
+    repeat break_let; subst.
+    unfold catch in H.
+    repeat break_let; subst.
+    unfold ErrorWithState.Exception_errS in Heqm.
+    inversion Heqm; subst; clear Heqm.
+    remember
+      ["--- Operator: " @@ string_of_DSHOperator (DSHAssign (p, n) (p0, n0)) @@ "---"]
+      as T; clear HeqT.
+    simpl bind in H.
+    repeat break_match; try inl_inr; try (inversion H; fail).
+    repeat inl_inr_inv; subst.
+    inversion H0; subst; clear H0.
+    replace i with s in *
+      by (apply resolve_PVar_simple in Heqs1;
+          destruct Heqs1 as [t1 [t2 H]];
+          apply H).
+    replace i2 with s in *
+      by (apply resolve_PVar_simple in Heqs2;
+          destruct Heqs2 as [t1 [t2 H]];
+          apply H).
+    clear Heqs1 Heqs2 p p0.
+    unfold genFSHAssign in Heqs3.
+    remember "Assign" as A.
+    simpl bind in Heqs3.
+    repeat break_match; try inl_inr.
+    repeat inl_inr_inv; subst.
+    apply genNExpr_preserves_Γ in Heqs0.
+    apply genNExpr_preserves_Γ in Heqs1.
+    cbn in Heqs0, Heqs1.
+    congruence.
 Admitted.
-
 
 (* Helper boolean predicate to check if member of [Γ] in [IRState] is global *)
 Definition is_var_Global (v:ident * typ): bool :=
