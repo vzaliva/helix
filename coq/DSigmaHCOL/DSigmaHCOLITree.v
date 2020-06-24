@@ -140,8 +140,8 @@ Module MDSigmaHCOLITree
          b' <- (denoteAExpr σ b) ;;
          ret (CTypeSub a' b')
     | ANth m i =>
-      m' <- (denoteMExpr σ m) ;;
       i' <- denoteNExpr σ i ;;
+      m' <- (denoteMExpr σ m) ;;
          (* Instead of returning error we default to zero here.
           This situation should never happen for programs
           refined from MSHCOL which ensure bounds via
@@ -398,8 +398,8 @@ Module MDSigmaHCOLITree
                   idtac); reflexivity).
       do 2 (break_match_hyp; try inl_inr).
       state_steps.
-      apply Denote_Eval_Equiv_MExpr_Succeeds in Heqs.
-      rewrite Heqs; state_steps.
+      apply Denote_Eval_Equiv_MExpr_Succeeds in Heqs0.
+      rewrite Heqs0; state_steps.
       inv_eval; state_steps; reflexivity.
     Qed.
 

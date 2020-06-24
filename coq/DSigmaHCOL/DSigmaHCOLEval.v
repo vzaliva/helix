@@ -172,12 +172,12 @@ Module MDSigmaHCOLEval
     | AMax a b => liftM2 CTypeMax (evalAExpr mem σ a) (evalAExpr mem σ b)
     | AMinus a b => liftM2 CTypeSub (evalAExpr mem σ a) (evalAExpr mem σ b)
     | ANth m i =>
+      i' <- (evalNExpr σ i) ;;
       m' <- (evalMExpr mem σ m) ;;
-         i' <- (evalNExpr σ i) ;;
-         (match mem_lookup (NT.to_nat i') m' with
-          | Some v => ret v
-          | None => inl "ANth not in memory"
-          end)
+      (match mem_lookup (NT.to_nat i') m' with
+       | Some v => ret v
+       | None => inl "ANth not in memory"
+       end)
     | AZless a b => liftM2 CTypeZLess (evalAExpr mem σ a) (evalAExpr mem σ b)
     end.
 
