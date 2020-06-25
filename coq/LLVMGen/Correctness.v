@@ -2064,7 +2064,7 @@ Section MExpr.
               (interp_Mem (denoteMExpr σ mexp)
                           memH))
            (with_err_LB
-              ((interp_cfg (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
+              ((interp_cfg (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some DTYPE_Pointer (* (DTYPE_I 64%Z) *)) (convert_typ [] exp))))
                  g l memV)).
   Proof.
     intros * Hgen Heval Hmeminv.
@@ -2354,144 +2354,173 @@ Section AExpr.
 
       rewrite convert_typ_app.
       rewrite denote_code_app.
-      repeat norm_v.
 
       (* I need to know something about c0, which is an NExpr. *)
-(*       epose proof genNExpr_correct_ind _ Heqs Heqs1 PRE. *)
+      epose proof genNExpr_correct_ind _ Heqs Heqs3 PRE.
 
-(*       eutt_hide_right. *)
-(*       cbn*. *)
-(*       repeat norm_h. *)
+      eutt_hide_right.
+      cbn*.
+      repeat norm_h.
 
-(*       subst i2. *)
+      subst i3.
+      do 2 norm_v.
 
-(*       eapply eutt_clo_bind; eauto. *)
-(*       intros [memH' n'] [memV' [l' [g' []]]] [SINV GENN_REL]. *)
-(*       cbn in SINV. *)
+      eapply eutt_clo_bind; eauto.
+      intros [memH' n'] [memV' [l' [g' []]]] [SINV' GENN_REL].
 
-(*       (* Relate MExpr *) *)
-(*       destruct GENN_REL as [NEXP_CORRECT [MEMH [MEMV [G L]]]]; subst. *)
+      (* Relate MExpr *)
+      destruct GENN_REL as [NEXP_CORRECT VARS_s1_i].
 
-(*       (* Need to make sure that we pull e1 out so we can use genMExpr_correct *) *)
-(*       epose proof genMExpr_correct _ Heqs0 Heqs2 SINV as MCODE. *)
+      (* Need to know that memH'=memH and memV'=memV ... *)
+      pose proof genNExpr_preserves_state_invariant n PRE Heqs as SINV.
 
-(*       (* Should be able to pull e1 out from the denotation of GEP *) *)
-(*       change [(IId (Name (String "l" (string_of_nat (local_count i0)))), *)
-(*                  INSTR_Op *)
-(*                    (OP_GetElementPtr t (TYPE_Pointer t, e1) *)
-(*                       [(IntType, EXP_Integer 0%Z); (IntType, e0)])); *)
-(*                 (IId (Name (String "l" (string_of_nat (S (local_count i0))))), *)
-(*                 INSTR_Load false TYPE_Double *)
-(*                   (TYPE_Pointer TYPE_Double, *)
-(*                   EXP_Ident (ID_Local (Name (String "l" (string_of_nat (local_count i0)))))) *)
-(*                   (Some 8%Z))] with *)
-(*           ([(IId (Name (String "l" (string_of_nat (local_count i0)))), *)
-(*                  INSTR_Op *)
-(*                    (OP_GetElementPtr t (TYPE_Pointer t, e1) *)
-(*                       [(IntType, EXP_Integer 0%Z); (IntType, e0)]))] ++ *)
-(*           [(IId (Name (String "l" (string_of_nat (S (local_count i0))))), *)
-(*                 INSTR_Load false TYPE_Double *)
-(*                   (TYPE_Pointer TYPE_Double, *)
-(*                   EXP_Ident (ID_Local (Name (String "l" (string_of_nat (local_count i0)))))) *)
-(*                   (Some 8%Z))]). *)
-(*       rewrite app_assoc. *)
-(*       rewrite convert_typ_app. *)
-(*       rewrite denote_code_app. *)
+      (* Need to make sure that we pull e1 out so we can use genMExpr_correct *)
+      epose proof genMExpr_correct _ Heqs0 Heqs4 SINV as MCODE.
 
-(*       repeat norm_v. *)
-(*       rewrite convert_typ_app. *)
-(*       rewrite denote_code_app. *)
-(*       repeat norm_v. *)
+      (* Should be able to pull e1 out from the denotation of GEP *)
 
-(*       repeat norm_h. *)
+      (* TODO: this is awful. *)
+      change [(IId r,
+                  INSTR_Op
+                    (OP_GetElementPtr t (TYPE_Pointer t, e1)
+                       [(IntType, EXP_Integer 0%Z); (IntType, e0)]));
+                 (IId r0,
+                 INSTR_Load false TYPE_Double (TYPE_Pointer TYPE_Double, EXP_Ident (ID_Local r))
+                            (Some 8%Z))] with
+          ([(IId r,
+                  INSTR_Op
+                    (OP_GetElementPtr t (TYPE_Pointer t, e1)
+                       [(IntType, EXP_Integer 0%Z); (IntType, e0)]))] ++
+          [(IId r0,
+                 INSTR_Load false TYPE_Double (TYPE_Pointer TYPE_Double, EXP_Ident (ID_Local r))
+                   (Some 8%Z))]).
 
-(*       (* I want to deconstruct denote_code of OP_GetElementPtr *) *)
-(* (*       assert ((convert_typ [ ] *) *)
-(* (*                          [(IId (Name (String "l" (string_of_nat (local_count i0)))), *) *)
-(* (*                           INSTR_Op *) *)
-(* (*                             (OP_GetElementPtr t (TYPE_Pointer t, e1) *) *)
-(* (*                                               [(IntType, EXP_Integer 0%Z); (IntType, e0)]))]) ≡ *) *)
-(* (* [(IId (Traversal.endo (Name (String "l" (string_of_nat (local_count i0))))), *) *)
-(* (*      INSTR_Op *) *)
-(* (*        (OP_GetElementPtr (typ_to_dtyp [ ] t) *) *)
-(* (*           (typ_to_dtyp [ ] (TYPE_Pointer t), Traversal.fmap (typ_to_dtyp [ ]) e1) *) *)
-(* (*           [(typ_to_dtyp [ ] IntType, EXP_Integer 0%Z); *) *)
-(* (*            (typ_to_dtyp [ ] IntType, Traversal.fmap (typ_to_dtyp [ ]) e0)]))]) as GEP by reflexivity. *) *)
+      rewrite app_assoc.
+      rewrite convert_typ_app.
+      rewrite denote_code_app.
 
-(* (*       rewrite GEP. *) *)
+      rewrite convert_typ_app.
+      rewrite denote_code_app.
 
-(* (*       From ExtLib Require Import *) *)
-(* (*            Structures.Monads *) *)
-(* (*            Structures.Functor *) *)
-(* (*            Eqv. *) *)
+      eutt_hide_left.
 
+      (* I want to deconstruct denote_code of OP_GetElementPtr in
+         order to expose the underlying denote_exp of e1. *)
+      cbn.
 
-(* (*       Lemma denote_instr_GEP : *) *)
-(* (*         forall id t e idxs, *) *)
-(* (*           denote_instr (IId id, INSTR_Op (OP_GetElementPtr t (DTYPE_Pointer, e) idxs)) ≈ *) *)
-(* (*           vptr <- denote_exp (Some DTYPE_Pointer) e ;; *) *)
-(* (*           vs <- map_monad (fun '(dt, index) => denote_exp (Some dt) index) idxs ;; *) *)
-
-(* (*           let maybe_dvs := dvptr <- uvalue_to_dvalue vptr ;; *) *)
-(* (*                            dvs <- map_monad uvalue_to_dvalue vs ;; *) *)
-(* (*                            ret (dvptr, dvs) *) *)
-(* (*           in *) *)
-
-(* (*           match maybe_dvs with *) *)
-(* (*           | inr (dvptr, dvs) => fmap dvalue_to_uvalue (trigger (GEP t dvptr dvs)) *) *)
-(* (*           | inl _ => *) *)
-(* (*             (* Pick to get dvalues *) *) *)
-(* (*             dvptr <- trigger (pick vptr True) ;; *) *)
-(* (*             dvs <- map_monad (fun v => trigger (pick v True)) vs ;; *) *)
-(* (*             fmap dvalue_to_uvalue (trigger (GEP t dvptr dvs)) *) *)
-(* (*           end. *) *)
-(* (*       (* Using this we can *) *) *)
-
-(* (*             | OP_GetElementPtr dt1 (dt2, ptrval) idxs => *) *)
-(* (*           vptr <- denote_exp (Some dt2) ptrval ;; *) *)
-(* (*           vs <- map_monad (fun '(dt, index) => denote_exp (Some dt) index) idxs ;; *) *)
-
-(* (*           let maybe_dvs := dvptr <- uvalue_to_dvalue vptr ;; *) *)
-(* (*                            dvs <- map_monad uvalue_to_dvalue vs ;; *) *)
-(* (*                            ret (dvptr, dvs) *) *)
-(* (*           in *) *)
-
-(* (*           match maybe_dvs with *) *)
-(* (*           | inr (dvptr, dvs) => fmap dvalue_to_uvalue (trigger (GEP dt1 dvptr dvs)) *) *)
-(* (*           | inl _ => *) *)
-(* (*             (* Pick to get dvalues *) *) *)
-(* (*             dvptr <- trigger (pick vptr True) ;; *) *)
-(* (*             dvs <- map_monad (fun v => trigger (pick v True)) vs ;; *) *)
-(* (*             fmap dvalue_to_uvalue (trigger (GEP dt1 dvptr dvs)) *) *)
-(* (*           end *) *)
+      set (λ _ : (),
+                ITree.bind
+                  (ITree.bind
+                     (translate exp_E_to_instr_E
+                        (translate lookup_E_to_exp_E (trigger (LocalRead (Traversal.endo r)))))
+                     (λ ua : uvalue,
+                        ITree.bind (concretize_or_pick ua True)
+                          (λ da : dvalue,
+                             match da with
+                             | DVALUE_Poison => raiseUB "Load from poisoned address."
+                             | _ =>
+                                 ITree.bind (trigger (Load (typ_to_dtyp [ ] TYPE_Double) da))
+                                   (λ dv : uvalue, trigger (LocalWrite (Traversal.endo r0) dv))
+                             end))) (λ _ : (), Ret ())) as blah.
       
-(* (*       rewrite <- bind_bind. *) *)
-(* (*       cbn. *) *)
-(* (*       setoid_rewrite translate_bind. *) *)
+      repeat rewrite <- bind_bind.
+      setoid_rewrite translate_bind.
+      rewrite <- bind_bind.
+      Check (denote_exp (Some (typ_to_dtyp [ ] (TYPE_Pointer t)))
+                                 (Traversal.fmap (typ_to_dtyp [ ]) e1)).
 
-(* (*       set (i2 := (λ x : memoryV * (local_env * (global_env * ())), *) *)
-(* (*                with_err_LB *) *)
-(* (*                  (let *) *)
-(* (*                   '(m', (l'0, (g'0, _))) := x in *) *)
-(* (*                    interp_cfg *) *)
-(* (*                      (denote_code *) *)
-(* (*                         (convert_typ [ ] *) *)
-(* (*                            [(IId (Name (String "l" (string_of_nat (S (local_count i0))))), *) *)
-(* (*                             INSTR_Load false TYPE_Double *) *)
-(* (*                               (TYPE_Pointer TYPE_Double, *) *)
-(* (*                               EXP_Ident *) *)
-(* (*                                 (ID_Local (Name (String "l" (string_of_nat (local_count i0)))))) *) *)
-(* (*                               (Some 8%Z))])) g'0 l'0 m'))). *) *)
-(* (*       eutt_hide_left. *) *)
 
-(* (*       cbn. *) *)
+      assert ((denote_exp (Some (typ_to_dtyp [ ] (TYPE_Pointer t)))
+                          (Traversal.fmap (typ_to_dtyp [ ]) e1)) ≡ (denote_exp (Some DTYPE_Pointer) (convert_typ [ ] e1))) as He1.
+      { rewrite typ_to_dtyp_equation.
+        reflexivity.
+      }
+
+      rewrite He1.
+
+      set (ITree.bind (denote_code (convert_typ [ ] c1))
+                      (λ _ : (),
+                             translate exp_E_to_instr_E
+                                       (denote_exp (Some DTYPE_Pointer) (convert_typ [ ] e1)))) as MYBIND.
+      repeat norm_v.
+
+      subst MYBIND.
+      subst i3.
+      repeat norm_h.
+
+      (* Might not be true, might be extensions instead *)
+      assert (l≡l') as LL. admit.
+      assert (g≡g') as GG. admit.
+      assert (memV≡memV') as MEMV. admit.
+      assert (memH≡memH') as MEMH. admit.
+      subst.
+
+      eapply eutt_clo_bind.
+      apply MCODE.
+
+      intros [memH'' b'] [memV'' [l'' [g'' uv'']]] H0.
+
+      subst blah.
+      clear He1.
+
+      repeat norm_v.
+
+      (* Should be able to show this now... *)
+      assert (mem_lookup (MInt64asNT.to_nat n') b' ≡ Some b) as LUPn'b'.
+      admit.
+
+      rewrite LUPn'b'.
+      repeat norm_h.
+
+      progress cbn*.
+      repeat rewrite typ_to_dtyp_equation.
+      cbn*. repeat norm_v.
+      destruct NEXP_CORRECT.
+      unfold genNExpr_exp_correct in exp_correct0.
+
+      assert (l' ⊑ l'') as L'L''. admit.
+      assert (g'≡g'') as GG'. admit.
+      assert (memV'≡memV'') as MEMV'. admit.
+      subst.
+      specialize (exp_correct0 _ L'L'') as (NEXP_EUTT & NEXP_EVAL).
+      setoid_rewrite <- NEXP_EUTT.
+
+      setoid_rewrite bind_ret_l.
+      progress repeat norm_v.
+
+      destruct H0 as (SINV'' & MINV).
+      destruct MINV as (ptr & i' & vid & mid & size & sz & RES & rest).
+      subst uv''.
+
+      cbn.
       
-(* (*       setoid_rewrite translate_bind. *) *)
-(* (*       setoid_rewrite bind_bind. *) *)
+(*       rewrite <- bind_bind. *)
+(*       cbn. *)
+(*       setoid_rewrite translate_bind. *)
 
-(* (*       eapply eutt_clo_bind with (UU:=lift_Rel_cfg (state_invariant σ i0) ⩕ invariant_MExpr_code σ i0). *) *)
+(*       set (i2 := (λ x : memoryV * (local_env * (global_env * ())), *)
+(*                with_err_LB *)
+(*                  (let *)
+(*                   '(m', (l'0, (g'0, _))) := x in *)
+(*                    interp_cfg *)
+(*                      (denote_code *)
+(*                         (convert_typ [ ] *)
+(*                            [(IId (Name (String "l" (string_of_nat (S (local_count i0))))), *)
+(*                             INSTR_Load false TYPE_Double *)
+(*                               (TYPE_Pointer TYPE_Double, *)
+(*                               EXP_Ident *)
+(*                                 (ID_Local (Name (String "l" (string_of_nat (local_count i0)))))) *)
+(*                               (Some 8%Z))])) g'0 l'0 m'))). *)
+(*       eutt_hide_left. *)
 
-(* (*       (* There's a mismatch here. *) *)
+(*       cbn. *)
+      
+(*       setoid_rewrite translate_bind. *)
+(*       setoid_rewrite bind_bind. *)
+
+(*       eapply eutt_clo_bind with (UU:=lift_Rel_cfg (state_invariant σ i0) ⩕ invariant_MExpr_code σ i0). *)
+
+(*       (* There's a mismatch here. *) *)
 
 (* (*          - MCODE is the code followed by the expression. *) *)
 (* (*          - But we just have the code. *) *)
@@ -2500,64 +2529,64 @@ Section AExpr.
 (* (*          the expression's value as well. *) *)
 
 (* (*          Can use invariant_MExpr_code, however. *) *)
-(* (*        *) *) *)
-(* (*       admit. (* Need a way to prove this *) *) *)
+(* (*        *) *)
+(*       admit. (* Need a way to prove this *) *)
       
-(* (*       intros [memH'' mb] [memV'' [l'' [g'' []]]] [SINV' MEXPR_REL]. *) *)
-(* (*       cbn in SINV'. *) *)
-(* (*       cbn in MEXPR_REL. *) *)
-(* (*       destruct MEXPR_REL as (ptr & nth_id & n'' & mid & size & sz & LUP & INLOG & NTH_σ & NTH_Γ). *) *)
+(*       intros [memH'' mb] [memV'' [l'' [g'' []]]] [SINV' MEXPR_REL]. *)
+(*       cbn in SINV'. *)
+(*       cbn in MEXPR_REL. *)
+(*       destruct MEXPR_REL as (ptr & nth_id & n'' & mid & size & sz & LUP & INLOG & NTH_σ & NTH_Γ). *)
 
-(* (*       eutt_hide_right. *) *)
-(* (*       cbn. *) *)
-(* (*       cbn in NEXP_CORRECT. *) *)
-(* (*       assert (i1 ≡ n') as Hi1n'. *) *)
-(* (*       { assert (l' ⊑ l') as LL by reflexivity. *) *)
-(* (*         pose proof NEXP_CORRECT l' LL as (_ & EVAL'). *) *)
-(* (*         rewrite Heqs1 in EVAL'. inversion EVAL'. *) *)
-(* (*         reflexivity. *) *)
-(* (*       } *) *)
+(*       eutt_hide_right. *)
+(*       cbn. *)
+(*       cbn in NEXP_CORRECT. *)
+(*       assert (i1 ≡ n') as Hi1n'. *)
+(*       { assert (l' ⊑ l') as LL by reflexivity. *)
+(*         pose proof NEXP_CORRECT l' LL as (_ & EVAL'). *)
+(*         rewrite Heqs1 in EVAL'. inversion EVAL'. *)
+(*         reflexivity. *)
+(*       } *)
 
-(* (*       rewrite <- Hi1n'. *) *)
-(* (*       subst i2. *) *)
+(*       rewrite <- Hi1n'. *)
+(*       subst i2. *)
 
-(* (*       (* Can I relate m0 and mb? *) *) *)
-(* (*       (* Seems like this should maybe be related to the expression...? *) *) *)
-(* (*       rewrite Heqo. *) *)
-(* (*       (* I should be able to rewrite this... *) *) *)
-(* (*       cbn*. *) *)
-(* (*       assert (state_invariant σ i memH (memV, (l, g))) as SINV. *) *)
-(* (*       {  *) *)
-(* (*       } *) *)
-(* (*       admit. *) *)
+(*       (* Can I relate m0 and mb? *) *)
+(*       (* Seems like this should maybe be related to the expression...? *) *)
+(*       rewrite Heqo. *)
+(*       (* I should be able to rewrite this... *) *)
+(*       cbn*. *)
+(*       assert (state_invariant σ i memH (memV, (l, g))) as SINV. *)
+(*       {  *)
+(*       } *)
+(*       admit. *)
 
-(* (*       epose proof genMExpr_correct _ Heqs0 Heqs1 SINV. *) *)
-(* (*       repeat norm_h. *) *)
-(* (*       rewrite convert_typ_app. *) *)
-(* (*       rewrite denote_code_app. *) *)
-(* (*       repeat norm_v. *) *)
+(*       epose proof genMExpr_correct _ Heqs0 Heqs1 SINV. *)
+(*       repeat norm_h. *)
+(*       rewrite convert_typ_app. *)
+(*       rewrite denote_code_app. *)
+(*       repeat norm_v. *)
 
-(* (*       eapply eutt_clo_bind; eauto. *) *)
-(* (*       assert (eutt (lift_Rel_cfg (state_invariant σ i) ⩕ invariant_MExpr_code σ i0) *) *)
-(* (*                    (with_err_RB (interp_Mem (denoteMExpr σ m) memH)) *) *)
-(* (*                    (with_err_LB (interp_cfg (denote_code (convert_typ [ ] c0)) g l memV))). *) *)
-(* (*       { admit.  *) *)
-(* (*       } *) *)
-(* (*       eauto. *) *)
+(*       eapply eutt_clo_bind; eauto. *)
+(*       assert (eutt (lift_Rel_cfg (state_invariant σ i) ⩕ invariant_MExpr_code σ i0) *)
+(*                    (with_err_RB (interp_Mem (denoteMExpr σ m) memH)) *)
+(*                    (with_err_LB (interp_cfg (denote_code (convert_typ [ ] c0)) g l memV))). *)
+(*       { admit.  *)
+(*       } *)
+(*       eauto. *)
 
-(* (*       intros [memH' nm] [memV' [l' [g' []]]] [H1 H2]. *) *)
+(*       intros [memH' nm] [memV' [l' [g' []]]] [H1 H2]. *)
 
-(* (*       repeat norm_h. *) *)
-(* (*       rewrite convert_typ_app. *) *)
-(* (*       rewrite denote_code_app. *) *)
-(* (*       repeat norm_v. *) *)
+(*       repeat norm_h. *)
+(*       rewrite convert_typ_app. *)
+(*       rewrite denote_code_app. *)
+(*       repeat norm_v. *)
 
-(* (*       eapply eutt_clo_bind; eauto. *) *)
-(* (*       admit. *) *)
-(* (*       intros [memH'' nm'] [memV'' [l'' [g'' []]]] H3. *) *)
-(* (*       cbn*. *) *)
+(*       eapply eutt_clo_bind; eauto. *)
+(*       admit. *)
+(*       intros [memH'' nm'] [memV'' [l'' [g'' []]]] H3. *)
+(*       cbn*. *)
 
-(*     (*       admit. *) *)
+    (*       admit. *)
       admit.
     - (* AAbs *)
       rename g into g1, l into l1, memV into memV1.
