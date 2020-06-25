@@ -1291,6 +1291,22 @@ Section BinCarrierA.
     all: try reflexivity.
     all: break_match; constructor.
   Qed.
+
+  Lemma evalMExpr_cons_CTypeVal
+        (a b : CarrierA)
+        (σ1 σ2 : evalContext)
+        (mem: memory)
+        (m : MExpr) :
+    (forall m', evalMExpr mem σ1 m' = evalMExpr mem σ2 m') ->
+    evalMExpr mem (DSHCTypeVal a :: σ1) m = evalMExpr mem (DSHCTypeVal b :: σ2) m.
+  Proof.
+    intros.
+    destruct m as [[v] | t]; [| reflexivity].
+    destruct v; [reflexivity |].
+    cbn.
+    specialize (H (MPtrDeref (PVar v))).
+    apply H.
+  Qed.
       
   Lemma evalIUnCarrierA_value_independent
         (mem : memory)
@@ -1318,104 +1334,25 @@ Section BinCarrierA.
     {
       repeat break_match; try some_none; try inl_inr; exfalso.
       -
-        apply err_equiv_eq in Heqs.
-        contradict Heqs.
-        apply is_OK_neq_inl.
-        apply eq_inr_is_OK in Heqs0.
-        clear - Heqs0; rename Heqs0 into H.
-        destruct m; cbn in *.
-        +
-          destruct p.
-          destruct v; [| destruct v].
-          inversion H.
-          inversion H.
-          apply H.
-        +
-          trivial.
-      -
-        apply err_equiv_eq in Heqs0.
-        contradict Heqs0.
-        apply is_OK_neq_inl.
-        apply eq_inr_is_OK in Heqs2.
-        clear - Heqs2; rename Heqs2 into H,
-                                 n0 into e.
-        induction e; cbn in *.
-        (* base 1 *)
-        destruct v; [| destruct v].
-        inversion H.
-        inversion H.
-        apply H.
-        (* base 2 *)
-        trivial.
-        (* inductive *)
-        all: repeat break_match; try reflexivity; try some_none; try inl_inr.
-        all: try apply IHe; try apply IHe1; try apply IHe2.
-        2:{
-          exfalso.
-          clear Heqd Heqd0 IHe1 IHe2 H.
-          enough (inr n1 = inr n0) by (inl_inr_inv; congruence).
-          rewrite <-Heqs, <-Heqs0.
-          clear.
-          apply evalNExpr_cons_CTypeVal.
-          reflexivity.
-        }
-        4:{
-          exfalso.
-          clear Heqd Heqd0 IHe1 IHe2 H.
-          enough (inr n1 = inr n0) by (inl_inr_inv; congruence).
-          rewrite <-Heqs, <-Heqs0.
-          clear.
-          apply evalNExpr_cons_CTypeVal.
-          reflexivity.
-        }
-        all: constructor.
-      -
+        enough (inl s = inr n1) by inl_inr.
+        rewrite <-Heqs0, <-Heqs; clear.
+        apply evalNExpr_cons_CTypeVal.
+        reflexivity.
+      - 
+        enough (inl s = inr m0) by inl_inr.
+        rewrite <-Heqs0, <-Heqs2; clear.
+        apply evalMExpr_cons_CTypeVal.
+        reflexivity.
+      - 
         unfold NatAsNT.MNatAsNT.to_nat in *.
-        assert (T : n1 = n2); [| cbv in T; subst n2].
-        {
-          enough (inr n1 = inr n2) by (inl_inr_inv; assumption).
-          rewrite <-Heqs0, <-Heqs2.
-          clear.
-          generalize (DSHnatVal n :: σ); clear σ n; intros σ.
-          rename n0 into n.
-          induction n.
+        eq_to_equiv.
 
-          (* base 1 *)
-          {
-            cbn.
-            destruct v.
-            - cbn; constructor.
-            - unfold context_lookup.
-              repeat rewrite ListUtil.nth_error_Sn.
-              reflexivity.
-          }
-
-          (* base 2 *)
-          reflexivity.
-
-          (* inductive *)
-          all: cbn.
-          all: repeat break_match; try inl_inr; repeat inl_inr_inv; try constructor.
-          1,2,4,5: cbv in IHn2; subst; congruence.
-          all: rewrite IHn1, IHn2; reflexivity.
-        }
-
-        assert (m0 = m1).
-        {
-          enough (inr m0 = inr m1) by (inl_inr_inv; assumption).
-          rewrite <-Heqs, <-Heqs1.
-          clear.
-          generalize (DSHnatVal n :: σ); clear σ n; intros σ.
-          destruct m; [| reflexivity].
-          cbn.
-          destruct p.
-          destruct v.
-          reflexivity.
-          cbn.
-          reflexivity.
-        }
-        eq_to_equiv_hyp.
-        rewrite H0 in Heqo.
+        erewrite evalNExpr_cons_CTypeVal in Heqs by reflexivity.
+        rewrite Heqs in Heqs1.
+        erewrite evalMExpr_cons_CTypeVal in Heqs2 by reflexivity.
+        rewrite Heqs0 in Heqs2.
+        repeat inl_inr_inv.
+        rewrite Heqs1, Heqs2 in *.
         some_none.
     }
 
@@ -1454,106 +1391,39 @@ Section BinCarrierA.
     {
       repeat break_match; try some_none; try inl_inr; exfalso.
       -
-        apply err_equiv_eq in Heqs.
-        contradict Heqs.
-        apply is_OK_neq_inl.
-        apply eq_inr_is_OK in Heqs0.
-        clear - Heqs0; rename Heqs0 into H.
-        destruct m; cbn in *.
-        +
-          destruct p.
-          destruct v; [| destruct v].
-          inversion H.
-          inversion H.
-          apply H.
-        +
-          trivial.
-      -
-        apply err_equiv_eq in Heqs0.
-        contradict Heqs0.
-        apply is_OK_neq_inl.
-        apply eq_inr_is_OK in Heqs2.
-        clear - Heqs2; rename Heqs2 into H,
-                       n0 into e.
-        induction e; cbn in *.
-        (* base 1 *)
-        destruct v; [| destruct v].
-        inversion H.
-        inversion H.
-        apply H.
-        (* base 2 *)
-        trivial.
-        (* inductive *)
-        all: repeat break_match; try reflexivity; try some_none; try inl_inr.
-        all: try apply IHe; try apply IHe1; try apply IHe2.
-        2: {
-          exfalso; clear - n2 e Heqs0 Heqs.
-          enough (inr n1 = inr n0) by (inl_inr_inv; congruence).
-          rewrite <-Heqs, <-Heqs0; clear.
-          generalize (DSHnatVal n :: σ); clear σ; intro σ.
-          apply evalNExpr_cons_CTypeVal; intro.
-          apply evalNExpr_cons_CTypeVal; intro.
-          reflexivity.
-        }
-        4: {
-          exfalso; clear - n2 e Heqs0 Heqs.
-          enough (inr n1 = inr n0) by (inl_inr_inv; congruence).
-          rewrite <-Heqs, <-Heqs0; clear.
-          generalize (DSHnatVal n :: σ); clear σ; intro σ.
-          apply evalNExpr_cons_CTypeVal; intro.
-          apply evalNExpr_cons_CTypeVal; intro.
-          reflexivity.
-        }
-        all: constructor.
-      -
+        enough (inl s = inr n1) by inl_inr.
+        rewrite <-Heqs0, <-Heqs; clear.
+        apply evalNExpr_cons_CTypeVal; intro.
+        apply evalNExpr_cons_CTypeVal.
+        reflexivity.
+      - 
+        enough (inl s = inr m0) by inl_inr.
+        rewrite <-Heqs0, <-Heqs2; clear.
+        apply evalMExpr_cons_CTypeVal; intro.
+        apply evalMExpr_cons_CTypeVal.
+        reflexivity.
+      - 
         unfold NatAsNT.MNatAsNT.to_nat in *.
-        assert (T : n1 = n2); [| cbv in T; subst n2].
+        eq_to_equiv.
+
+        assert (n1 = n2).
         {
           enough (inr n1 = inr n2) by (inl_inr_inv; assumption).
-          rewrite <-Heqs0, <-Heqs2.
-          clear.
-          generalize (DSHnatVal n :: σ); clear σ n; intros σ.
-          rename n0 into n.
-          induction n.
-
-          (* base 1 *)
-          {
-            cbn.
-            destruct v; [| destruct v].
-            - cbn; constructor.
-            - cbn; constructor.
-            - unfold context_lookup.
-              repeat rewrite ListUtil.nth_error_Sn.
-              reflexivity.
-          }
-
-          (* base 2 *)
+          rewrite <-Heqs, <-Heqs1; clear.
+          apply evalNExpr_cons_CTypeVal; intro.
+          apply evalNExpr_cons_CTypeVal.
           reflexivity.
-
-          (* inductive *)
-          all: cbn.
-          all: repeat break_match; try inl_inr; repeat inl_inr_inv; try constructor.
-          1,2,4,5: cbv in IHn2; subst; congruence.
-          all: rewrite IHn1, IHn2; reflexivity.
         }
-
+        
         assert (m0 = m1).
         {
           enough (inr m0 = inr m1) by (inl_inr_inv; assumption).
-          rewrite <-Heqs, <-Heqs1.
-          clear.
-          generalize (DSHnatVal n :: σ); clear σ n; intros σ.
-          destruct m; [| reflexivity].
-          cbn.
-          destruct p.
-          destruct v.
-          reflexivity.
-          destruct v.
-          reflexivity.
+          rewrite <-Heqs0, <-Heqs2; clear.
+          apply evalMExpr_cons_CTypeVal; intro.
+          apply evalMExpr_cons_CTypeVal.
           reflexivity.
         }
-        eq_to_equiv_hyp.
-        rewrite H0 in Heqo.
+        rewrite H0, H1 in *.
         some_none.
     }
     
