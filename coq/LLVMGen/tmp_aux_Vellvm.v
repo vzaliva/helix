@@ -64,6 +64,12 @@ Section Translations.
     reflexivity.
   Qed.
 
+  Lemma exp_E_to_instr_E_Memory : forall {X} (e : MemoryE X),
+      exp_E_to_instr_E (subevent X e) = subevent X e.
+  Proof.
+    reflexivity.
+  Qed.
+  
 End Translations.
 
 From Vellvm Require Import Util.
@@ -131,45 +137,19 @@ Proof.
   cbn; reflexivity.
 Qed.
 
+Import MonadNotation.
+Open Scope monad_scope.
+Lemma denote_bks_unfold: forall bks bid b,
+    find_block dtyp bks bid = Some b ->
+    D.denote_bks bks bid ≈
+    vob <- D.denote_block b ;;
+    match vob with
+    | inl bid' => D.denote_bks bks bid'
+    | inr v => ret (inr v)
+    end.
+Admitted.
+
 End Denotation.
-
-(** 
-Section NormalizeTypes.
-
-Lemma normalize_types_block_bid :
-  forall (env : list (ident * typ)) (b: LLVMAst.block typ),
-    blk_id (TransformTypes.fmap_block _ _ (TypeUtil.normalize_type_dtyp env) b) = blk_id b.
-Proof.
-  intros env b.
-  destruct b. reflexivity.
-Qed.
-
-Lemma normalize_types_block_term :
-  forall (env : list (ident * typ)) (b: LLVMAst.block typ) (nextblock : block_id),
-    snd (blk_term b) = TERM_Br_1 nextblock ->
-    snd (blk_term (TransformTypes.fmap_block typ dtyp (TypeUtil.normalize_type_dtyp env) b)) = TERM_Br_1 nextblock.
-Proof.
-  intros env b nextblock Hterm.
-  destruct b. cbn in *. rewrite Hterm.
-  reflexivity.
-Qed.
-
-Definition normalize_types_blocks (env: list _) (bks: list (LLVMAst.block typ))
-  : list (LLVMAst.block DynamicTypes.dtyp) :=
-  List.map
-    (TransformTypes.fmap_block _ _ (TypeUtil.normalize_type_dtyp env)) bks.
-
-(* NOTEYZ: [TypeUtil.normalize_type_dtyp] seems unusable as is.
-   Need to look into it.
- *)
-  Lemma normalize_IntType :
-    forall env,
-      TypeUtil.normalize_type_dtyp env (TYPE_I 64%Z) = DTYPE_I 64.
-  Proof.
-  Admitted.
-
-End NormalizeTypes.
-**)
 
 Section MemoryModel.
 
@@ -730,6 +710,19 @@ Section WithDec.
     subst; rewrite H in H0; inversion H0.
     apply In_In_add_ineq; auto.
   Qed.
+
+  Lemma lookup_alist_add_eq :
+    forall k v (m : alist K V),
+      Maps.lookup k (alist_add k v m) = Some v.
+  Proof.
+  Admitted.
+
+  Lemma lookup_alist_add_ineq :
+    forall k k' v (m : alist K V),
+      k <> k' ->
+      Maps.lookup k (alist_add k' v m) = Maps.lookup k m.
+  Proof.
+  Admitted.
 
 End WithDec.
 

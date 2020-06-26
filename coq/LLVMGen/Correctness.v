@@ -1314,17 +1314,6 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
      TODOYZ: Investigate this claim
    *)
 
-  Lemma genNExpr_preserves_state_invariant:
-    forall nexp e c s1 s2 memH memV l g σ,
-      state_invariant σ s1 memH (memV, (l, g)) ->      
-      genNExpr nexp s1 ≡ inr (s2, (e, c)) ->
-      state_invariant σ s2 memH (memV, (l, g)).
-  Proof.
-    induction nexp;
-      intros e c s1 s2 memH memV l g σ SINV GEN;
-      cbn* in GEN; simp; auto.
-  Admitted.
-
   Definition memory_invariant_memory_mcfg (σ : evalContext) (s : IRState) : Rel_mcfg :=
     fun memH '(memV,((l,sl),g)) =>
       memory_invariant σ s memH (memV,(l,g)).
@@ -1376,7 +1365,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
            (with_err_RB (interp_Mem (denoteNExpr σ nexp) memH))
            (with_err_LB (interp_cfg (denote_code (convert_typ [] c)) g l memV)).
   Proof.
-  (*
+    (*
     intros s1 s2 nexp; revert s1 s2; induction nexp; intros * COMPILE EVAL PRE.
     - (* Variable case *)
       (* Reducing the compilation *)
@@ -1542,7 +1531,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
           rewrite Heqs3 in EVAL_vH; inversion EVAL_vH.
           rewrite Heqs2 in EVAL_vH0; inversion EVAL_vH0.
           subst.
-
+          
           { break_inner_match_goal.
             + (* Division by 0 *)
               apply Z.eqb_eq in Heqb.
@@ -2067,6 +2056,7 @@ Section MExpr.
               ((interp_cfg (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
                  g l memV)).
   Proof.
+    (*
     intros * Hgen Heval Hmeminv.
     generalize Hmeminv; intros WF; apply IRState_is_WF in WF.
 
@@ -2121,6 +2111,8 @@ Section MExpr.
     - (* Const *)
       cbn* in Hgen; simp.
   Qed.
+     *)
+  Admitted.
 
 End MExpr.
 
@@ -3829,41 +3821,31 @@ Ltac forget_strings :=
 
   Section GenIR.
 
-  (* YZ TODO : reducing denote_bks exposes iter. Should we simply make it opaque? *)
-  Opaque denote_bks.
-  Opaque resolve_PVar. 
+    (* YZ TODO : reducing denote_bks exposes iter. Should we simply make it opaque? *)
+    Opaque denote_bks.
+    Opaque resolve_PVar. 
 
-  Lemma denote_bks_unfold: forall bks bid b,
-      find_block dtyp bks bid ≡ Some b ->
-      denote_bks bks bid ≈
-                 vob <- denote_block b ;;
-      match vob with
-      | inl bid' => denote_bks bks bid'
-      | inr v => ret (inr v)
+    Ltac focus_single_step_v :=
+      match goal with
+        |- eutt _ _ (ITree.bind _ ?x) => remember x
       end.
-  Admitted.
 
-  Ltac focus_single_step_v :=
-    match goal with
-      |- eutt _ _ (ITree.bind _ ?x) => remember x
-    end.
+    Ltac focus_single_step_h :=
+      match goal with
+        |- eutt _ (ITree.bind _ ?x) _ => remember x
+      end.
 
-  Ltac focus_single_step_h :=
-    match goal with
-      |- eutt _ (ITree.bind _ ?x) _ => remember x
-    end.
+    Ltac focus_single_step :=
+      match goal with
+        |- eutt _ (ITree.bind _ ?x) (ITree.bind _ ?y) => remember x; remember y
+      end.
 
-  Ltac focus_single_step :=
-    match goal with
-      |- eutt _ (ITree.bind _ ?x) (ITree.bind _ ?y) => remember x; remember y
-    end.
-
- Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
+    Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
   Definition GenIR_Rel σ Γ : Rel_cfg_T unit (block_id + uvalue) :=
     lift_Rel_cfg (state_invariant σ Γ).
 
-  Lemma compile_FSHCOL_correct :
+ Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
       (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH) fuel v
       (** Vellvm bits   *) (nextblock bid_in : block_id) (bks : list (LLVMAst.block typ))
@@ -3913,10 +3895,14 @@ Ltac forget_strings :=
 
       eutt_hide_right.
       cbn*.
+      rename n1 into x_p, n2 into y_p.
+
       repeat norm_h.
       unfold denotePExpr; cbn*.
       break_inner_match_goal; cbn* in *; simp.
       eutt_hide_right.
+      rename m into x_i, m0 into y_i.
+
       repeat norm_h.
       2,3:cbn*; apply memory_lookup_err_inr_Some_eq; eauto.
 
@@ -3931,6 +3917,10 @@ Ltac forget_strings :=
       repeat norm_v.
       subst.
       focus_single_step.
+      rename x into x_p', y into y_p'.
+      rename m1 into x, m2 into y.
+      rename n into src_e, n0 into dst_e.
+      rename b into v.
 
       (* Step 5. *)
       eapply eutt_clo_bind.
@@ -3939,7 +3929,7 @@ Ltac forget_strings :=
       do 2 (eapply state_invariant_incVoid; eauto).
       do 1 (eapply state_invariant_incBlockNamed; eauto).
       
-      intros [memH1 val1] (memV1 & ρ1 & g1 & []) (INV1 & (EXP1 & <- & <- & <- & MONO1) & GAMMA1); cbn* in *.
+      intros [memH1 src] (memV1 & ρ1 & g1 & []) (INV1 & (EXP1 & <- & <- & <- & MONO1) & GAMMA1); cbn* in *.
 
       subst.
 
@@ -3952,7 +3942,7 @@ Ltac forget_strings :=
       eapply eutt_clo_bind.
       eapply genNExpr_correct_ind; eauto.
 
-      intros [memH2 val2] (memV2 & ρ2 & g2 & []) (INV2 & (EXP2 & <- & <- & <- & MONO2) & GAMMA2); cbn in GAMMA2; cbn in INV2. 
+      intros [memH2 dst] (memV2 & ρ2 & g2 & []) (INV2 & (EXP2 & <- & <- & <- & MONO2) & GAMMA2); cbn in GAMMA2; cbn in INV2. 
       subst.
 
       (* Step 7. *)
@@ -3982,38 +3972,189 @@ Ltac forget_strings :=
        *)
 
       (* onAllHyps move_up_types. *)
-      destruct x; cbn.
-      + (* Global case, I think absurd *)
-        admit.
-      + subst; focus_single_step_v; eutt_hide_left.
-        rename id into bar.
-        edestruct memory_invariant_LLU_Ptr as (bk_h & ptr_v & LU & INLG & VEC_LU); [| exact LUn | exact Heqo |]; eauto.
-        repeat norm_v.
-        2: apply MONO2, MONO1; eauto.
-        cbn; repeat norm_v.
-        subst.
-        eutt_hide_left.
-        norm_v.
-        focus_single_step_v.
-        repeat norm_v.
-        cbn.
-        unfold IntType; rewrite typ_to_dtyp_I.
-        cbn.
-        repeat norm_v.
-        rename e into foo.
-        destruct (EXP1 ρ2) as [EQe ?]; auto.
-        rewrite <- EQe.
-        repeat norm_v.
+      subst; focus_single_step_v; eutt_hide_left.
+      unfold endo, Endo_ident.
 
-        cbn.
-        (* Need to reason about GEP *)
+      destruct x_p' as [x_p' | x_p']; [admit |];
+        destruct y_p' as [y_p' | y_p']; cbn; [admit |].
+      subst; focus_single_step_v; eutt_hide_left.
+      edestruct memory_invariant_LLU_Ptr as (bk_x & ptr_x & LUx & INLGx & VEC_LUx); [| exact LUn | exact Heqo |]; eauto.
+      rewrite LUx in Heqo2; symmetry in Heqo2; inv Heqo2.
+      edestruct memory_invariant_LLU_Ptr as (bk_y & ptr_y & LUy & INLGy & VEC_LUy); [| exact LUn0 | eassumption |]; eauto.
+      rewrite LUy in Heqo1; symmetry in Heqo1; inv Heqo1.
+
+      focus_single_step_v; repeat norm_v.
+      2: apply MONO2, MONO1; eauto.
+      cbn; repeat norm_v.
+      subst; focus_single_step_v; repeat norm_v.
+      unfold IntType; rewrite typ_to_dtyp_I; cbn.
+      subst; focus_single_step_v; repeat norm_v.
+      subst; focus_single_step_v; repeat norm_vD.
+      focus_single_step_v.
+      
+      destruct (EXP1 ρ2) as [EQe ?]; auto.
+      rewrite <- EQe.
+      repeat norm_v.
+      subst; focus_single_step_v; repeat norm_vD.
+      cbn.
+
+      rename i into index, v1 into size_array.
+      unfold ITree.map.
+      repeat norm_v.
+
+      rewrite exp_E_to_instr_E_Memory, subevent_subevent.
+      rewrite typ_to_dtyp_D_array.
+
+      cbn in *.
+
+      (* onAllHyps move_up_types. *)
+
+      match goal with
+        |- context[interp_cfg_to_L3 ?defs (@ITree.trigger ?E _ (subevent _ (GEP (DTYPE_Array ?size ?t) (DVALUE_Addr ?a) _)))] =>
+        edestruct (@interp_cfg_to_L3_GEP_array defs t a size g ρ2) as (add & ?EQ & READ); eauto
+      end.
+
+      assert (EQindex: Integers.Int64.repr (Z.of_nat (MInt64asNT.to_nat index)) ≡ index) by admit.
+      rewrite EQindex in *.
+      rewrite EQ.
+
+      repeat norm_v.
+      cbn.
+      subst; cbn; repeat norm_v.
+      focus_single_step_v.
+      rewrite interp_cfg_to_L3_LW.
+      cbn*; repeat norm_v.
+      subst; simpl; repeat norm_v.
+      focus_single_step_v.
+      cbn; repeat norm_v.
+      subst; cbn; repeat norm_v.
+      focus_single_step_v.
+
+      2: apply lookup_alist_add_eq.
+      cbn*; repeat norm_v.
+      subst; cbn; repeat norm_v; focus_single_step_v.
+      rewrite interp_cfg_to_L3_Load.
+      2: rewrite typ_to_dtyp_D; eassumption. 
+      repeat norm_v.
+      subst; cbn; repeat norm_v; focus_single_step_v.
+      rewrite interp_cfg_to_L3_LW.
+      cbn; repeat norm_v.
+      subst; cbn; repeat norm_v.
+
+      2:{
+        unfold endo.
+        assert (y_p' <> r1) by admit.
+        assert (y_p' <> r) by admit.
+        setoid_rewrite lookup_alist_add_ineq; eauto.
+        setoid_rewrite lookup_alist_add_ineq; eauto.
+        cbn in *.
+        apply MONO2, MONO1; eauto.
+      }
+      cbn.
+      subst.
+      unfold IntType;rewrite !typ_to_dtyp_I.
+      focus_single_step_v; repeat norm_v.
+      subst; cbn; repeat norm_v.
+      focus_single_step_v.
+
+      match goal with
+        |- eutt _ _ (ITree.bind (_ (interp_cfg _ _ ?l _)) _) => destruct (EXP2 l) as [EQe' ?]; auto
+      end.
+      rewrite <- sub_alist_add.
+      apply sub_alist_add.
+      rename r into foo.
+      (* Freshness, easy todo *)
+      admit.
+      admit.
+
+      rewrite <- EQe'.
+      repeat norm_v.
+      subst; cbn*; repeat norm_v.
+      focus_single_step_v.
+      repeat norm_v; subst; focus_single_step_v.
+      repeat norm_v; subst; focus_single_step_v.
+      cbn; unfold ITree.map.
+      repeat norm_v; subst; focus_single_step_v.
+      rewrite exp_E_to_instr_E_Memory, subevent_subevent.
+      rewrite typ_to_dtyp_D_array.
+
+      Set Hyps Limit 50.
+
+      (* Need another GEP lemma?
+         The destination is not read on the Helix side, so that I do not know that the GEP succeeds
+       *)
+
+      (*
+      match goal with
+        |- context[interp_cfg_to_L3 ?defs (@ITree.trigger ?E _ (subevent _ (GEP (DTYPE_Array ?size ?t) (DVALUE_Addr ?a) _))) ?g ?l] =>
+        edestruct (@interp_cfg_to_L3_GEP_array defs t a size g l) as (add' & ?EQ & READ'); eauto
+      end.
+
+      eapply VEC_LUy.
+       *)
 
         admit.
     (* End of genFSHAssign, things are getting a bit complicated *)
 
 
 
-    - admit.
+    - destruct fuel as [| fuel]; [cbn in *; simp |].
+      Opaque genWhileLoop. 
+      cbn* in GEN.
+      unfold GenIR_Rel in BISIM; cbn in BISIM.
+      simp.
+      hide_strings'.
+      inv_resolve_PVar Heqs0.
+      inv_resolve_PVar Heqs1.
+      cbn* in *.
+      simp.
+      destruct u; cbn in *.
+      simp.
+      unfold Int64_eq_or_cerr, Z_eq_or_cerr,ErrorWithState.err2errS,Z_eq_or_err in *; cbn* in *.
+      simp.
+      (* onAllHyps move_up_types. *)
+
+      eutt_hide_right.
+
+      repeat norm_h.
+      unfold denotePExpr; cbn*.
+      rewrite Heqs4, Heqs12.
+
+      repeat (norm_h; []).
+      norm_h.
+      2: cbn*; rewrite Heqo0; reflexivity.
+      repeat norm_h.
+      2: cbn*; rewrite Heqo; reflexivity.
+
+      subst; eutt_hide_left.
+      unfold add_comments.
+      cbn.
+      match goal with
+        |- context[denote_bks ?x] =>
+        remember x as bks
+      end.
+
+      admit.
+      (* erewrite denote_bks_unfold. *)
+      (* 2:{ *)
+      (*   subst; cbn. *)
+      (*   destruct (Eqv.eqv_dec_p bid_in bid_in).  *)
+      (*   reflexivity. *)
+      (*   exfalso. *)
+      (*   apply n0. *)
+      (*   reflexivity. *)
+      (* } *)
+
+      (* cbn. *)
+      (* repeat norm_v. *)
+      (* unfold IntType; rewrite typ_to_dtyp_I. *)
+      (* cbn. *)
+      (* focus_single_step_v; repeat norm_v. *)
+      (* cbn; repeat norm_v. *)
+      (* subst. *)
+      (* repeat norm_v. *)
+      (* focus_single_step_v; repeat norm_v. *)
+      
 
     - (* DSHBinOp *)
       destruct fuel as [| fuel]; [cbn in *; simp |].
@@ -4050,62 +4191,63 @@ Ltac forget_strings :=
         remember x as bks
       end.
 
-      erewrite denote_bks_unfold.
-      2:{
-        subst; cbn.
-        destruct (Eqv.eqv_dec_p bid_in bid_in). 
-        reflexivity.
-        exfalso.
-        apply n0.
-        reflexivity.
-      }
-      cbn.
-      repeat norm_v.
-      unfold IntType; rewrite typ_to_dtyp_I.
-      cbn.
-      setoid_rewrite bind_ret_l.
-      setoid_rewrite bind_ret_l.
-      cbn.
-      repeat norm_v.
-      rewrite interp_cfg_to_L3_LW.
-      cbn*; repeat norm_v.
-      cbn*; repeat norm_v.
-      2:{
-        cbn.
-        unfold endo.
-        rewrite rel_dec_eq_true; eauto; typeclasses eauto.
-      }
-      cbn.
-      unfold endo.
-      unfold eval_int_icmp.
-      cbn.
+      (* Lemma about while loop instead *)
+      (* erewrite denote_bks_unfold. *)
+      (* 2:{ *)
+      (*   subst; cbn. *)
+      (*   destruct (Eqv.eqv_dec_p bid_in bid_in).  *)
+      (*   reflexivity. *)
+      (*   exfalso. *)
+      (*   apply n0. *)
+      (*   reflexivity. *)
+      (* } *)
+      (* cbn. *)
+      (* repeat norm_v. *)
+      (* unfold IntType; rewrite typ_to_dtyp_I. *)
+      (* cbn. *)
+      (* setoid_rewrite bind_ret_l. *)
+      (* setoid_rewrite bind_ret_l. *)
+      (* cbn. *)
+      (* repeat norm_v. *)
+      (* rewrite interp_cfg_to_L3_LW. *)
+      (* cbn*; repeat norm_v. *)
+      (* cbn*; repeat norm_v. *)
+      (* 2:{ *)
+      (*   cbn. *)
+      (*   unfold endo. *)
+      (*   rewrite rel_dec_eq_true; eauto; typeclasses eauto. *)
+      (* } *)
+      (* cbn. *)
+      (* unfold endo. *)
+      (* unfold eval_int_icmp. *)
+      (* cbn. *)
 
-      focus_single_step_v.
+      (* focus_single_step_v. *)
 
-      unfold Int64_eq_or_cerr, Z_eq_or_cerr, ErrorWithState.err2errS, Z_eq_or_err, memory_lookup_err in *.
-      cbn* in *.
-      simp.
-      inv_resolve_PVar Heqs0.
-      inv_resolve_PVar Heqs1.
+      (* unfold Int64_eq_or_cerr, Z_eq_or_cerr, ErrorWithState.err2errS, Z_eq_or_err, memory_lookup_err in *. *)
+      (* cbn* in *. *)
+      (* simp. *)
+      (* inv_resolve_PVar Heqs0. *)
+      (* inv_resolve_PVar Heqs1. *)
 
       (* onAllHyps move_up_types.  *)
 
-      repeat match goal with
-             | h : Int64.intval _ ≡ Int64.intval _ |- _ => apply int_eq_inv in h; subst
-             end.
+  (*     repeat match goal with *)
+  (*            | h : Int64.intval _ ≡ Int64.intval _ |- _ => apply int_eq_inv in h; subst *)
+  (*            end. *)
 
-      eutt_hide_left.
-      focus_single_step_v.
-      unfold MInt64asNT.from_nat in *.
+  (*     eutt_hide_left. *)
+  (*     focus_single_step_v. *)
+  (*     unfold MInt64asNT.from_nat in *. *)
       
-      rename n into index1.
-      break_if.
-      {
-        cbn.
-        repeat norm_v.
-        subst.
-        cbn.
-        repeat norm_v.
+  (*     rename n into index1. *)
+  (*     break_if. *)
+  (*     { *)
+  (*       cbn. *)
+  (*       repeat norm_v. *)
+  (*       subst. *)
+  (*       cbn. *)
+  (*       repeat norm_v. *)
 
         
        
