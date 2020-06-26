@@ -2426,9 +2426,6 @@ Section AExpr.
       repeat rewrite <- bind_bind.
       setoid_rewrite translate_bind.
       rewrite <- bind_bind.
-      Check (denote_exp (Some (typ_to_dtyp [ ] (TYPE_Pointer t)))
-                                 (Traversal.fmap (typ_to_dtyp [ ]) e1)).
-
 
       assert ((denote_exp (Some (typ_to_dtyp [ ] (TYPE_Pointer t)))
                           (Traversal.fmap (typ_to_dtyp [ ]) e1)) ≡ (denote_exp (Some DTYPE_Pointer) (convert_typ [ ] e1))) as He1.
@@ -2466,6 +2463,25 @@ Section AExpr.
       repeat norm_v.
 
       (* Should be able to show this now... *)
+      (* n' = i2 *)
+      Lemma int_of_nat :
+        forall (i : Int64.int),
+        exists (n : nat), i ≡ Int64.repr (Z.of_nat n).
+      Proof.
+        intros [val [LOWER UPPER]].
+        destruct val eqn:Hval.
+        - exists 0. cbv.
+          Transparent Int64.repr.
+          unfold Int64.repr.
+          cbn.
+          unfold Int64.Z_mod_modulus_range'.
+          admit.
+        - exists (Pos.to_nat p). cbn.
+          admit.
+        - pose proof (Pos2Z.neg_is_neg p).
+          omega. (* Contradiction. *)
+      Admitted.
+
       assert (mem_lookup (MInt64asNT.to_nat n') b' ≡ Some b) as LUPn'b'.
       admit.
 
@@ -2490,10 +2506,83 @@ Section AExpr.
 
       destruct H0 as (SINV'' & MINV).
       destruct MINV as (ptr & i' & vid & mid & size & sz & RES & rest).
+      destruct rest as (MLUP & ILG & NTH_σ_vid & NTH_Γ_vid).
       subst uv''.
 
       cbn.
-      
+      unfold ITree.map.
+      repeat norm_v.
+
+      pose proof int_of_nat n' as (n'_nat & Hn').
+      rewrite Hn'.
+
+      Lemma exp_E_to_instr_E_Memory : forall {X} (e : MemoryE X),
+          exp_E_to_instr_E (subevent X e) ≡ subevent X e.
+      Proof.
+        reflexivity.
+      Qed.
+
+      Lemma genMExpr_array : forall {s1 s2 m e c t},
+          genMExpr m s1 ≡ inr (s2, (e, c, t)) ->
+          exists sz, t ≡ TYPE_Array sz TYPE_Double.
+      Proof.
+        intros s1 s2 m e c t H.
+        destruct m; cbn in H; inv H.
+        simp.
+        exists sz.
+        reflexivity.
+      Qed.
+
+      (* Long path to rewriting with GEP lemma... *)
+      pose proof genMExpr_array Heqs0 as (sz' & ARRAY).
+      rewrite ARRAY.
+      rewrite typ_to_dtyp_equation.
+      rewrite exp_E_to_instr_E_Memory, subevent_subevent.
+      epose proof interp_cfg_to_L3_GEP_array _ (DTYPE_Array sz' DTYPE_Double).
+
+      unfold in_local_or_global in ILG.
+      epose proof memory_invariant_LLU_Ptr.
+
+      destruct i'; cbn in ILG.
+      { destruct ILG as (? & ? & CONTRA & REST).
+        inv CONTRA. }
+
+      cbn in SINV''.
+      pose proof state_invariant_memory_invariant SINV'' as MINV.
+      epose proof memory_invariant_LLU_Ptr vid MINV NTH_Γ_vid NTH_σ_vid as (bk_h & ptr_v & MLUP' & ILG' & GET_ARRAY).
+      assert (ptr_v ≡ ptr). admit.
+      subst.
+
+      rewrite MLUP in MLUP'. inv MLUP'.
+      replace (MInt64asNT.to_nat (Int64.repr (Z.of_nat n'_nat))) with n'_nat in LUPn'b'.
+      2: admit.
+      specialize (GET_ARRAY n'_nat b LUPn'b').
+      epose proof interp_cfg_to_L3_GEP_array helix_intrinsics DTYPE_Double ptr sz' g'' l'' memV'' _ n'_nat GET_ARRAY as (ptr' & EUTT_GEP & read).
+
+      rewrite EUTT_GEP.
+      repeat norm_v.
+
+      rewrite interp_cfg_to_L3_LW; cbn.
+      repeat norm_v; cbn.
+      repeat norm_v.
+
+      2: { break_match; auto. apply neg_rel_dec_correct in Heqb0. contradiction. }
+
+      cbn.
+      repeat norm_v.
+      rewrite interp_cfg_to_L3_Load; eauto.
+
+      repeat norm_v.
+      rewrite interp_cfg_to_L3_LW; cbn.
+      repeat norm_v.
+
+      apply eqit_Ret.
+      split.
+      + cbn.
+        admit.
+      + cbn.
+        admit.
+
 (*       rewrite <- bind_bind. *)
 (*       cbn. *)
 (*       setoid_rewrite translate_bind. *)
@@ -2587,7 +2676,6 @@ Section AExpr.
 (*       cbn*. *)
 
     (*       admit. *)
-      admit.
     - (* AAbs *)
       rename g into g1, l into l1, memV into memV1.
       cbn* in COMPILE; simp.
