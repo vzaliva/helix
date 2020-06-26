@@ -72,10 +72,6 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    case and we do not expect it to appear in normal programs, but for
    consistency in future we should fix ~IReduction~ definition from
    SHCOL upwards to initilize with non-structural values.
-** =DSHAlloc= memory size is not tracked and enforced. 
-   Probably not a problem for DSHCOL as memory blocks are of infinite
-   size, but could be an issue later for LLVM codegen.
-   Note: Itrees semantics for DHCOL tracks memory size in denotation.
 ** Automate /DynWin/ rewriting proof 
    Ltac automation in ~DynWinSigmaHCOL1_Value_Correctness~
 ** Automate SPIRAL log reading for sequence of rewrites

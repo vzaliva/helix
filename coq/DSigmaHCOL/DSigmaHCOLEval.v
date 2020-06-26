@@ -108,22 +108,23 @@ Module MDSigmaHCOLEval
     := List.tl σ.
 
     (* Evaluation of expressions does not allow for side-effects *)
-  Definition evalPExpr (σ: evalContext) (exp:PExpr): err (mem_block_id) :=
+  Definition evalPExpr (σ: evalContext) (exp:PExpr): err (mem_block_id*NT.t) :=
     match exp with
     | @PVar i =>
       match nth_error σ i with
-      | Some (@DSHPtrVal v _) => ret v
+      | Some (@DSHPtrVal v size) => ret (v,size)
       | _ => raise "error looking up PVar"
       end
     end.
 
   (* Evaluation of expressions does not allow for side-effects *)
-  Definition evalMExpr (mem:memory) (σ: evalContext) (exp:MExpr): err (mem_block) :=
+  Definition evalMExpr (mem:memory) (σ: evalContext) (exp:MExpr): err (mem_block*NT.t) :=
     match exp with
     | @MPtrDeref p =>
-      bi <- evalPExpr σ p ;;
-         memory_lookup_err "MPtrDeref lookup failed" mem bi
-    | @MConst t => ret t
+      '(bi,size) <- evalPExpr σ p ;;
+      m <- memory_lookup_err "MPtrDeref lookup failed" mem bi ;;
+      ret (m,size)
+    | @MConst t size => ret (t,size)
     end.
 
   (* Evaluation of expressions does not allow for side-effects *)
@@ -156,6 +157,24 @@ Module MDSigmaHCOLEval
     | NMax a b   => liftM2 NTypeMax   (evalNExpr σ a) (evalNExpr σ b)
     end.
 
+  Definition assert_NT_lt (msg:string) (a b:NT.t) : err unit :=
+    assert_true_to_err msg (Nat.ltb (to_nat a) (to_nat b)) tt.
+
+
+  (** The following maybe should be moved somwehere. Baiscally it is
+      needed for setoid rewriting to work in cases where we deal with units.
+      For example, in case or [assert_NT_lt] *)
+  Section UnitSetoid.
+    Global Instance Unit_Equiv:
+      Equiv unit := fun _ _ => True.
+
+    Global Instance Unit_Equivalence:
+      Equivalence Unit_Equiv.
+    Proof.
+      repeat split;auto.
+    Qed.
+  End UnitSetoid.
+
   (* Evaluation of expressions does not allow for side-effects *)
   Fixpoint evalAExpr (mem:memory) (σ: evalContext) (e:AExpr): err CT.t :=
     match e with
@@ -172,12 +191,10 @@ Module MDSigmaHCOLEval
     | AMax a b => liftM2 CTypeMax (evalAExpr mem σ a) (evalAExpr mem σ b)
     | AMinus a b => liftM2 CTypeSub (evalAExpr mem σ a) (evalAExpr mem σ b)
     | ANth m i =>
-      i' <- (evalNExpr σ i) ;;
-      m' <- (evalMExpr mem σ m) ;;
-      (match mem_lookup (NT.to_nat i') m' with
-       | Some v => ret v
-       | None => inl "ANth not in memory"
-       end)
+      i' <- evalNExpr σ i ;;
+      '(m',size) <- evalMExpr mem σ m ;;
+      assert_NT_lt "ANth index out of bounds" i' size ;;
+      mem_lookup_err "ANth not in memory" (NT.to_nat i') m'
     | AZless a b => liftM2 CTypeZLess (evalAExpr mem σ a) (evalAExpr mem σ b)
     end.
 
@@ -293,48 +310,49 @@ Module MDSigmaHCOLEval
         | DSHNop => Some (ret mem)
         | DSHAssign (x_p, src_e) (y_p, dst_e) =>
           Some (
-          x_i <- evalPExpr σ x_p ;;
-          y_i <- evalPExpr σ y_p ;;
-          x <- memory_lookup_err "Error looking up 'x' in DSHAssign" mem x_i ;;
-          y <- memory_lookup_err "Error looking up 'y' in DSHAssign" mem y_i ;;
-          src <- evalNExpr σ src_e ;;
-          dst <- evalNExpr σ dst_e ;;
-          v <- mem_lookup_err "Error looking up 'v' in DSHAssign" (to_nat src) x ;;
-          ret (memory_set mem y_i (mem_add (to_nat dst) v y))
+              '(x_i,x_size) <- evalPExpr σ x_p ;;
+              '(y_i,y_size) <- evalPExpr σ y_p ;;
+              x <- memory_lookup_err "Error looking up 'x' in DSHAssign" mem x_i ;;
+              y <- memory_lookup_err "Error looking up 'y' in DSHAssign" mem y_i ;;
+              src <- evalNExpr σ src_e ;;
+              dst <- evalNExpr σ dst_e ;;
+              assert_NT_lt "DSHAssign dst out of bounds" dst y_size ;;
+              v <- mem_lookup_err "Error looking up 'v' in DSHAssign" (to_nat src) x ;;
+              ret (memory_set mem y_i (mem_add (to_nat dst) v y))
             )
         | @DSHIMap n x_p y_p f =>
           Some (
-            x_i <- evalPExpr σ x_p ;;
-              y_i <- evalPExpr σ y_p ;;
+              '(x_i,x_size) <- evalPExpr σ x_p ;;
+              '(y_i,y_size) <- evalPExpr σ y_p ;;
               x <- memory_lookup_err "Error looking up 'x' in DSHIMap" mem x_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHIMap" mem y_i ;;
               y' <- evalDSHIMap mem n f σ x y ;;
               ret (memory_set mem y_i y')
-              )
+            )
         | @DSHMemMap2 n x0_p x1_p y_p f =>
           Some (
-          x0_i <- evalPExpr σ x0_p ;;
-               x1_i <- evalPExpr σ x1_p ;;
-               y_i <- evalPExpr σ y_p ;;
-               x0 <- memory_lookup_err "Error looking up 'x0' in DSHMemMap2" mem x0_i ;;
-               x1 <- memory_lookup_err "Error looking up 'x1' in DSHMemMap2" mem x1_i ;;
-               y <- memory_lookup_err "Error looking up 'y' in DSHMemMap2" mem y_i ;;
-               y' <- evalDSHMap2 mem n f σ x0 x1 y ;;
-               ret (memory_set mem y_i y')
-               )
+              '(x0_i,x0_size) <- evalPExpr σ x0_p ;;
+              '(x1_i,x1_size) <- evalPExpr σ x1_p ;;
+              '(y_i,y_size) <- evalPExpr σ y_p ;;
+              x0 <- memory_lookup_err "Error looking up 'x0' in DSHMemMap2" mem x0_i ;;
+              x1 <- memory_lookup_err "Error looking up 'x1' in DSHMemMap2" mem x1_i ;;
+              y <- memory_lookup_err "Error looking up 'y' in DSHMemMap2" mem y_i ;;
+              y' <- evalDSHMap2 mem n f σ x0 x1 y ;;
+              ret (memory_set mem y_i y')
+            )
         | @DSHBinOp n x_p y_p f =>
           Some (
-              x_i <- evalPExpr σ x_p ;;
-              y_i <- evalPExpr σ y_p ;;
+              '(x_i,x_size) <- evalPExpr σ x_p ;;
+              '(y_i,y_size) <- evalPExpr σ y_p ;;
               x <- memory_lookup_err "Error looking up 'x' in DSHBinOp" mem x_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHBinOp" mem y_i ;;
               y' <- evalDSHBinOp mem n n f σ x y ;;
               ret (memory_set mem y_i y')
-              )
+            )
         | DSHPower ne (x_p,xoffset) (y_p,yoffset) f initial =>
           Some (
-          x_i <- evalPExpr σ x_p ;;
-              y_i <- evalPExpr σ y_p ;;
+              '(x_i,x_size) <- evalPExpr σ x_p ;;
+              '(y_i,y_size) <- evalPExpr σ y_p ;;
               x <- memory_lookup_err "Error looking up 'x' in DSHPower" mem x_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHPower" mem y_i ;;
               n <- evalNExpr σ ne ;; (* [n] evaluated once at the beginning *)
@@ -364,19 +382,19 @@ Module MDSigmaHCOLEval
           end
         | DSHMemInit size y_p value =>
           Some (
-              y_i <- evalPExpr σ y_p ;;
+              '(y_i,y_size) <- evalPExpr σ y_p ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHMemInit" mem y_i ;;
               let y' := mem_union (mem_const_block (to_nat size) value) y in
               ret (memory_set mem y_i y')
             )
         | DSHMemCopy size x_p y_p =>
           Some (
-          x_i <- evalPExpr σ x_p ;;
-          y_i <- evalPExpr σ y_p ;;
-          x <- memory_lookup_err "Error looking up 'x' in DSHMemCopy" mem x_i ;;
-          y <- memory_lookup_err "Error looking up 'y' in DSHMemCopy" mem y_i ;;
-          let y' := mem_union x y in
-          ret (memory_set mem y_i y'))
+              '(x_i, x_size) <- evalPExpr σ x_p ;;
+              '(y_i, y_size) <- evalPExpr σ y_p ;;
+              x <- memory_lookup_err "Error looking up 'x' in DSHMemCopy" mem x_i ;;
+              y <- memory_lookup_err "Error looking up 'y' in DSHMemCopy" mem y_i ;;
+              let y' := mem_union x y in
+              ret (memory_set mem y_i y'))
 
         | DSHSeq f g =>
           match evalDSHOperator σ f mem fuel with
@@ -785,10 +803,12 @@ Module MDSigmaHCOLEval
        apply Ec.
        reflexivity.
      }
-     repeat break_match; try inversion E; subst; try (constructor;auto);
-       try (inversion H1;auto).
+     repeat break_match; try inversion E; subst; try (constructor;subst;auto);
+       try (inversion H1;subst;auto).
      destruct H0.
-     auto.
+     subst.
+     rewrite H0, H.
+     reflexivity.
   Qed.
 
   Instance evalMExpr_proper:
@@ -803,10 +823,25 @@ Module MDSigmaHCOLEval
         rewrite H, Ec.
         reflexivity.
       }
-      repeat break_match; try inversion E; subst; try (constructor;auto);
-        try (inversion H1;auto).
-      rewrite H2, Em.
-      reflexivity.
+      repeat break_match ; inversion_clear E;  try (constructor;auto);
+        inversion_clear H0; cbn in *; subst.
+      +
+        err_eq_to_equiv_hyp.
+        rewrite Em, H1 in Heqs0.
+        rewrite Heqs0 in Heqs2.
+        inl_inr.
+      +
+        err_eq_to_equiv_hyp.
+        rewrite Em, H1 in Heqs0.
+        rewrite Heqs0 in Heqs2.
+        inl_inr.
+      +
+        err_eq_to_equiv_hyp.
+        rewrite Em, H1 in Heqs0.
+        rewrite Heqs0 in Heqs2.
+        inv Heqs2.
+        unfold equiv, products.prod_equiv.
+        auto.
     -
       constructor.
       auto.
@@ -840,20 +875,38 @@ Module MDSigmaHCOLEval
         try inversion C1; try inversion C2;
           apply Some_inj_equiv in C1;
           apply Some_inj_equiv in C2; try congruence; try (constructor;auto); subst.
-
       +
-        apply Some_inj_equiv.
-        rewrite <- Heqo, <- Heqo0.
-        rewrite H3, H6.
+        exfalso.
+        clear - Heqs1 Heqs4 C2 H3.
+        some_inv.
+        unfold assert_NT_lt, assert_true_to_err in *.
+        repeat break_if; try inl_inr.
+        repeat inl_inr_inv.
+        subst.
+        apply PeanoNat.Nat.ltb_ge in Heqb0.
+        apply PeanoNat.Nat.ltb_lt in Heqb.
+        inversion_clear H3; cbn in *.
+        rewrite C2,H0 in Heqb0; clear C2 H0.
+        lia.
+      +
+        exfalso.
+        clear - Heqs1 Heqs4 C2 H3.
+        some_inv.
+        unfold assert_NT_lt, assert_true_to_err in *.
+        repeat break_if; try inl_inr.
+        repeat inl_inr_inv.
+        subst.
+        apply PeanoNat.Nat.ltb_lt in Heqb0.
+        apply PeanoNat.Nat.ltb_ge in Heqb.
+        inversion_clear H3; cbn in *.
+        rewrite C2,H0 in Heqb0; clear C2 H0.
+        lia.
+      +
+        rewrite H6.
+        inversion_clear H3.
+        cbn in H1.
+        rewrite H1.
         reflexivity.
-      +
-        eq_to_equiv_hyp.
-        rewrite H3, H6 in Heqo.
-        some_none.
-      +
-        eq_to_equiv_hyp.
-        rewrite H3, H6 in Heqo.
-        some_none.
     -
       repeat break_match;subst; try reflexivity;
         try constructor; try inversion IHEe; auto.
@@ -1532,6 +1585,8 @@ Module MDSigmaHCOLEval
       repeat f_equiv.
       assumption.
     -
+      (* TODO: @zoickx please fix *)
+      (*
       intros.
       destruct fuel; [reflexivity |].
       cbn.
@@ -1547,6 +1602,8 @@ Module MDSigmaHCOLEval
       rewrite Heqs2 in Heqs7; some_inv.
       rewrite Heqs7.
       reflexivity.
+       *)
+      admit.
     -
       intros.
       destruct fuel; [reflexivity |].
@@ -1701,7 +1758,7 @@ Module MDSigmaHCOLEval
       repeat constructor.
       apply IHdop2.
       assumption.
-  Qed.
+  Admitted.
 
   Section IncrEval.
 
@@ -1726,7 +1783,21 @@ Module MDSigmaHCOLEval
         simpl.
         assert_match_eq E.
         apply evalPExpr_incrPVar.
-        repeat break_match; try inversion E; auto.
+        repeat break_match; try inl_inr; try inl_inr_inv; subst; auto.
+        +
+          rewrite Heqs0 in Heqs2.
+          inl_inr_inv.
+          auto.
+        +
+          rewrite Heqs0 in Heqs2.
+          inl_inr.
+        +
+          rewrite Heqs0 in Heqs2.
+          inl_inr.
+        +
+          rewrite Heqs0 in Heqs2.
+          inl_inr_inv.
+          f_equiv.
       -
         constructor.
     Qed.
