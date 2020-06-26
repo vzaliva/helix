@@ -108,14 +108,17 @@ Module MDSigmaHCOLITree
     end.
 
   Definition denotePExpr (σ: evalContext) (exp:PExpr): itree Event (mem_block_id) :=
-    lift_Serr (evalPExpr σ exp).
+    match evalPExpr σ exp with
+    | inl x => throw x
+    | inr (m,size) => ret m (* size is ingored here *)
+    end.
 
   Definition denoteMExpr (σ: evalContext) (exp:MExpr): itree Event (mem_block) :=
     match exp with
     | @MPtrDeref p =>
       bi <- denotePExpr σ p ;;
       trigger (MemLU "MPtrDeref" bi)
-    | @MConst t => ret t
+    | @MConst t size => ret t (* size is ingored here *)
     end.
 
   Definition denoteNExpr (σ: evalContext) (e: NExpr): itree Event NT.t :=
@@ -376,13 +379,13 @@ Module MDSigmaHCOLITree
     (* Ltac unfold_Mem := unfold interp_Mem in *; cbn in *; unfold denotePExpr, denoteNExpr, evalIUnCType, denoteIUnCType in *. *)
     Ltac unfold_Mem := unfold interp_Mem in *; cbn; unfold denotePExpr, denoteNExpr, evalIUnCType, denoteIUnCType in *.
 
-    Lemma Denote_Eval_Equiv_MExpr_Succeeds: forall mem σ e bk,
-        evalMExpr mem σ e ≡ inr bk ->
+    Lemma Denote_Eval_Equiv_MExpr_Succeeds: forall mem σ e bk size,
+        evalMExpr mem σ e ≡ inr (bk,size) -> (* size is ignored *)
         eutt eq
              (interp_Mem (denoteMExpr σ e) mem)
              (ret (mem, bk)).
     Proof.
-      intros mem σ [] bk HEval; unfold_Mem; cbn in HEval; inv_eval; state_steps; reflexivity.
+      intros mem σ [] bk size HEval; unfold_Mem; cbn in HEval; inv_eval; state_steps; reflexivity.
     Qed.
 
     Lemma Denote_Eval_Equiv_AExpr_Succeeds: forall mem σ e v,
@@ -398,6 +401,8 @@ Module MDSigmaHCOLITree
                   idtac); reflexivity).
       do 2 (break_match_hyp; try inl_inr).
       state_steps.
+      break_let; subst.
+      break_match_hyp; try inl_inr.
       apply Denote_Eval_Equiv_MExpr_Succeeds in Heqs0.
       rewrite Heqs0; state_steps.
       inv_eval; state_steps; reflexivity.
