@@ -2356,7 +2356,7 @@ Section AExpr.
       rewrite denote_code_app.
 
       (* I need to know something about c0, which is an NExpr. *)
-      epose proof genNExpr_correct_ind _ Heqs Heqs3 PRE.
+      epose proof genNExpr_correct_ind _ Heqs Heqs3 PRE as NEXP.
 
       eutt_hide_right.
       cbn*.
@@ -2365,14 +2365,72 @@ Section AExpr.
       subst i3.
       do 2 norm_v.
 
-      eapply eutt_clo_bind; eauto.
-      intros [memH' n'] [memV' [l' [g' []]]] [SINV' GENN_REL].
+      (* TODO: move these, and use them more. *)
+      Lemma genNExpr_memH : forall σ n e memH memV memH' memV' l g l' g' n',
+          genNExpr_rel σ n e memH (mk_config_cfg memV l g) (memH', n')
+                       (memV', (l', (g', ()))) ->
+          memH ≡ memH'.
+      Proof.
+        intros σ n e memH memV memH' memV' l g l' g' n' H.
+        destruct H.
+        cbn in monotone0.
+        apply monotone0.
+      Qed.
 
+      Lemma genNExpr_memV : forall σ n e memH memV memH' memV' l g l' g' n',
+          genNExpr_rel σ n e memH (mk_config_cfg memV l g) (memH', n')
+                       (memV', (l', (g', ()))) ->
+          memV ≡ memV'.
+      Proof.
+        intros σ n e memH memV memH' memV' l g l' g' n' H.
+        destruct H.
+        cbn in monotone0.
+        apply monotone0.
+      Qed.
+
+      Lemma genNExpr_g : forall σ n e memH memV memH' memV' l g l' g' n',
+          genNExpr_rel σ n e memH (mk_config_cfg memV l g) (memH', n')
+                       (memV', (l', (g', ()))) ->
+          g ≡ g'.
+      Proof.
+        intros σ n e memH memV memH' memV' l g l' g' n' H.
+        destruct H.
+        cbn in monotone0.
+        apply monotone0.
+      Qed.
+
+      Lemma genNExpr_l : forall σ n e memH memV memH' memV' l g l' g' n',
+          genNExpr_rel σ n e memH (mk_config_cfg memV l g) (memH', n')
+                       (memV', (l', (g', ()))) ->
+          l ⊑ l'.
+      Proof.
+        intros σ n e memH memV memH' memV' l g l' g' n' H.
+        destruct H.
+        cbn in monotone0.
+        apply monotone0.
+      Qed.
+
+      eapply eutt_clo_bind; eauto.
+      intros [memH' n'] [memV' [l' [g' []]]] [SINV GENN_REL].          
+      
       (* Relate MExpr *)
       destruct GENN_REL as [NEXP_CORRECT VARS_s1_i].
 
+      (* TODO: move this Ltac *)
+      Ltac genNExpr_rel_subst LL :=
+        match goal with
+        | NEXP : genNExpr_rel ?σ ?n ?e ?memH (mk_config_cfg ?memV ?l ?g) (?memH', ?n') (?memV', (?l', (?g', ()))) |- _ =>
+          let H := fresh in
+          pose proof genNExpr_memH NEXP as H; subst memH';
+          pose proof genNExpr_memV NEXP as H; subst memV';
+          pose proof genNExpr_g NEXP as H; subst g';
+          pose proof genNExpr_l NEXP as LL
+        end.
+
       (* Need to know that memH'=memH and memV'=memV ... *)
-      pose proof genNExpr_preserves_state_invariant n PRE Heqs as SINV.
+      genNExpr_rel_subst LL'.
+
+      cbn in SINV.
 
       (* Need to make sure that we pull e1 out so we can use genMExpr_correct *)
       epose proof genMExpr_correct _ Heqs0 Heqs4 SINV as MCODE.
@@ -2408,6 +2466,7 @@ Section AExpr.
          order to expose the underlying denote_exp of e1. *)
       cbn.
 
+      (* TODO: clean this up *)
       set (λ _ : (),
                 ITree.bind
                   (ITree.bind
@@ -2446,23 +2505,19 @@ Section AExpr.
       repeat norm_h.
 
       (* Might not be true, might be extensions instead *)
-      assert (l≡l') as LL. admit.
-      assert (g≡g') as GG. admit.
-      assert (memV≡memV') as MEMV. admit.
-      assert (memH≡memH') as MEMH. admit.
-      subst.
-
       eapply eutt_clo_bind.
       apply MCODE.
 
-      intros [memH'' b'] [memV'' [l'' [g'' uv'']]] H0.
+      intros [memH'' b'] [memV'' [l'' [g'' uv'']]] MINV.
 
-      subst blah.
+      subst blah. (* TODO: fix this up *)
       clear He1.
 
       repeat norm_v.
 
       (* Should be able to show this now... *)
+
+      (* TODO: actually prove this... *)
       (* n' = i2 *)
       Lemma int_of_nat :
         forall (i : Int64.int),
@@ -2488,6 +2543,8 @@ Section AExpr.
       rewrite LUPn'b'.
       repeat norm_h.
 
+      (* TODO: I need something to know that genMExpr does not affect memH / memV / g / l !!! *)
+
       progress cbn*.
       repeat rewrite typ_to_dtyp_equation.
       cbn*. repeat norm_v.
@@ -2495,8 +2552,8 @@ Section AExpr.
       unfold genNExpr_exp_correct in exp_correct0.
 
       assert (l' ⊑ l'') as L'L''. admit.
-      assert (g'≡g'') as GG'. admit.
-      assert (memV'≡memV'') as MEMV'. admit.
+      assert (g≡g'') as GG'. admit.
+      assert (memV≡memV'') as MEMV'. admit.
       subst.
       specialize (exp_correct0 _ L'L'') as (NEXP_EUTT & NEXP_EVAL).
       setoid_rewrite <- NEXP_EUTT.
@@ -2504,7 +2561,7 @@ Section AExpr.
       setoid_rewrite bind_ret_l.
       progress repeat norm_v.
 
-      destruct H0 as (SINV'' & MINV).
+      destruct MINV as (SINV'' & MINV).
       destruct MINV as (ptr & i' & vid & mid & size & sz & RES & rest).
       destruct rest as (MLUP & ILG & NTH_σ_vid & NTH_Γ_vid).
       subst uv''.
@@ -2557,7 +2614,7 @@ Section AExpr.
       replace (MInt64asNT.to_nat (Int64.repr (Z.of_nat n'_nat))) with n'_nat in LUPn'b'.
       2: admit.
       specialize (GET_ARRAY n'_nat b LUPn'b').
-      epose proof interp_cfg_to_L3_GEP_array helix_intrinsics DTYPE_Double ptr sz' g'' l'' memV'' _ n'_nat GET_ARRAY as (ptr' & EUTT_GEP & read).
+      epose proof interp_cfg_to_L3_GEP_array helix_intrinsics DTYPE_Double ptr sz' g'' l'' memV'' _ n'_nat GET_ARRAY as (ptr' & EUTT_GEP & READ).
 
       rewrite EUTT_GEP.
       repeat norm_v.
@@ -2578,104 +2635,23 @@ Section AExpr.
 
       apply eqit_Ret.
       split.
-      + cbn.
-        admit.
-      + cbn.
-        admit.
+      + do 2 (eapply state_invariant_add_fresh; eauto).
+      + split; split; intuition.
+        * cbn. repeat norm_v. cbn. norm_v.
+          reflexivity.
+          cbn.
 
-(*       rewrite <- bind_bind. *)
-(*       cbn. *)
-(*       setoid_rewrite translate_bind. *)
-
-(*       set (i2 := (λ x : memoryV * (local_env * (global_env * ())), *)
-(*                with_err_LB *)
-(*                  (let *)
-(*                   '(m', (l'0, (g'0, _))) := x in *)
-(*                    interp_cfg *)
-(*                      (denote_code *)
-(*                         (convert_typ [ ] *)
-(*                            [(IId (Name (String "l" (string_of_nat (S (local_count i0))))), *)
-(*                             INSTR_Load false TYPE_Double *)
-(*                               (TYPE_Pointer TYPE_Double, *)
-(*                               EXP_Ident *)
-(*                                 (ID_Local (Name (String "l" (string_of_nat (local_count i0)))))) *)
-(*                               (Some 8%Z))])) g'0 l'0 m'))). *)
-(*       eutt_hide_left. *)
-
-(*       cbn. *)
-      
-(*       setoid_rewrite translate_bind. *)
-(*       setoid_rewrite bind_bind. *)
-
-(*       eapply eutt_clo_bind with (UU:=lift_Rel_cfg (state_invariant σ i0) ⩕ invariant_MExpr_code σ i0). *)
-
-(*       (* There's a mismatch here. *) *)
-
-(* (*          - MCODE is the code followed by the expression. *) *)
-(* (*          - But we just have the code. *) *)
-
-(* (*          Can't use invariant_MExpr, because it includes a relation on *) *)
-(* (*          the expression's value as well. *) *)
-
-(* (*          Can use invariant_MExpr_code, however. *) *)
-(* (*        *) *)
-(*       admit. (* Need a way to prove this *) *)
-      
-(*       intros [memH'' mb] [memV'' [l'' [g'' []]]] [SINV' MEXPR_REL]. *)
-(*       cbn in SINV'. *)
-(*       cbn in MEXPR_REL. *)
-(*       destruct MEXPR_REL as (ptr & nth_id & n'' & mid & size & sz & LUP & INLOG & NTH_σ & NTH_Γ). *)
-
-(*       eutt_hide_right. *)
-(*       cbn. *)
-(*       cbn in NEXP_CORRECT. *)
-(*       assert (i1 ≡ n') as Hi1n'. *)
-(*       { assert (l' ⊑ l') as LL by reflexivity. *)
-(*         pose proof NEXP_CORRECT l' LL as (_ & EVAL'). *)
-(*         rewrite Heqs1 in EVAL'. inversion EVAL'. *)
-(*         reflexivity. *)
-(*       } *)
-
-(*       rewrite <- Hi1n'. *)
-(*       subst i2. *)
-
-(*       (* Can I relate m0 and mb? *) *)
-(*       (* Seems like this should maybe be related to the expression...? *) *)
-(*       rewrite Heqo. *)
-(*       (* I should be able to rewrite this... *) *)
-(*       cbn*. *)
-(*       assert (state_invariant σ i memH (memV, (l, g))) as SINV. *)
-(*       {  *)
-(*       } *)
-(*       admit. *)
-
-(*       epose proof genMExpr_correct _ Heqs0 Heqs1 SINV. *)
-(*       repeat norm_h. *)
-(*       rewrite convert_typ_app. *)
-(*       rewrite denote_code_app. *)
-(*       repeat norm_v. *)
-
-(*       eapply eutt_clo_bind; eauto. *)
-(*       assert (eutt (lift_Rel_cfg (state_invariant σ i) ⩕ invariant_MExpr_code σ i0) *)
-(*                    (with_err_RB (interp_Mem (denoteMExpr σ m) memH)) *)
-(*                    (with_err_LB (interp_cfg (denote_code (convert_typ [ ] c0)) g l memV))). *)
-(*       { admit.  *)
-(*       } *)
-(*       eauto. *)
-
-(*       intros [memH' nm] [memV' [l' [g' []]]] [H1 H2]. *)
-
-(*       repeat norm_h. *)
-(*       rewrite convert_typ_app. *)
-(*       rewrite denote_code_app. *)
-(*       repeat norm_v. *)
-
-(*       eapply eutt_clo_bind; eauto. *)
-(*       admit. *)
-(*       intros [memH'' nm'] [memV'' [l'' [g'' []]]] H3. *)
-(*       cbn*. *)
-
-    (*       admit. *)
+          admit.
+        * (* TODO: ltac, this is horrid *)
+          cbn.
+          rewrite Heqs3.
+          assert (memH≡memH''). admit.
+          subst.
+          rewrite Heqs4.
+          rewrite Heqo.
+          reflexivity.
+        * admit.
+        * admit.
     - (* AAbs *)
       rename g into g1, l into l1, memV into memV1.
       cbn* in COMPILE; simp.
