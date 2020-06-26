@@ -76,15 +76,15 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
 
 
   (* Memory variable along with offset *)
-  Definition MemVarRef: Type := (PExpr * NExpr).
+  Definition MemRef: Type := (PExpr * NExpr).
 
   Inductive DSHOperator :=
   | DSHNop (* no-op. *)
-  | DSHAssign (src dst: MemVarRef) (* formerly [Pick] and [Embed] *)
+  | DSHAssign (src dst: MemRef) (* formerly [Pick] and [Embed] *)
   | DSHIMap (n: nat) (x_p y_p: PExpr) (f: AExpr) (* formerly [Pointwise] *)
   | DSHBinOp (n: nat) (x_p y_p: PExpr) (f: AExpr) (* formerly [BinOp] *)
   | DSHMemMap2 (n: nat) (x0_p x1_p y_p: PExpr) (f: AExpr) (* No direct correspondance in SHCOL *)
-  | DSHPower (n:NExpr) (src dst: MemVarRef) (f: AExpr) (initial: CT.t) (* formely [Inductor] *)
+  | DSHPower (n:NExpr) (src dst: MemRef) (f: AExpr) (initial: CT.t) (* formely [Inductor] *)
   | DSHLoop (n:nat) (body: DSHOperator) (* Formerly [IUnion] *)
   | DSHAlloc (size:NT.t) (body: DSHOperator) (* allocates new uninitialized memory block and puts pointer to it on stack. The new block will be visible in the scope of [body] *)
   | DSHMemInit (size:NT.t) (y_p: PExpr) (value: CT.t) (* Initialize memory block indices [0-size] with given value *)
@@ -394,7 +394,7 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
       | _ => "?"
       end.
 
-    Definition string_of_MemVarRef (m:MemVarRef) : string :=
+    Definition string_of_MemRef (m:MemRef) : string :=
       let '(p,n) := m in
       "(" ++ string_of_PExpr p ++ "," ++ string_of_NExpr n ++ ")".
 
@@ -403,8 +403,8 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
       | DSHNop => "DSHNop"
       | DSHAssign src dst =>
         "DSHAssign " ++
-                     string_of_MemVarRef src ++ " " ++
-                     string_of_MemVarRef dst ++ " "
+                     string_of_MemRef src ++ " " ++
+                     string_of_MemRef dst ++ " "
       | DSHIMap n x_p y_p f =>
         "DSHIMap " ++
                    string_of_nat n ++ " " ++
@@ -424,8 +424,8 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
       | DSHPower n src dst f initial =>
         "DSHPower " ++
                     string_of_NExpr n ++ " " ++
-                    string_of_MemVarRef src ++ " " ++
-                    string_of_MemVarRef dst ++ "..."
+                    string_of_MemRef src ++ " " ++
+                    string_of_MemRef dst ++ "..."
       | DSHLoop n body =>
         "DSHLoop " ++
                    string_of_nat n ++ " "

@@ -39,7 +39,7 @@ Fixpoint translateNExpr (n:MDSHCOLOnCarrierA.NExpr) : err NExpr :=
   | MDSHCOLOnCarrierA.NMax x x0 => liftM2 NMax (translateNExpr x) (translateNExpr x0)
   end.
 
-Definition translateMemVarRef: MDSHCOLOnCarrierA.MemVarRef -> err MemVarRef
+Definition translateMemRef: MDSHCOLOnCarrierA.MemRef -> err MemRef
   := fun '(p,n) =>
        n' <- translateNExpr n ;;
        ret (translatePExpr p, n').
@@ -137,8 +137,8 @@ Fixpoint DSCHOLtoFHCOL (d: MDSHCOLOnCarrierA.DSHOperator):
     | MDSHCOLOnCarrierA.DSHNop =>
       ret DSHNop
     | MDSHCOLOnCarrierA.DSHAssign src dst =>
-      src' <- translateMemVarRef src ;;
-      dst' <- translateMemVarRef dst ;;
+      src' <- translateMemRef src ;;
+      dst' <- translateMemRef dst ;;
       ret (DSHAssign src' dst')
     | MDSHCOLOnCarrierA.DSHIMap n x_p y_p f =>
       f' <- translateAExpr f ;;
@@ -166,8 +166,8 @@ Fixpoint DSCHOLtoFHCOL (d: MDSHCOLOnCarrierA.DSHOperator):
       f' <- translateAExpr f ;;
       initial' <- translateCarrierA initial ;;
       n' <- translateNExpr n ;;
-      src' <- translateMemVarRef src ;;
-      dst' <- translateMemVarRef dst ;;
+      src' <- translateMemRef src ;;
+      dst' <- translateMemRef dst ;;
       ret (DSHPower
              n'
              src' dst'

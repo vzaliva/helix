@@ -957,10 +957,10 @@ Module MDSigmaHCOLEval
     | AZless a b => AZless (AExpr_natvar_subst name value a) (AExpr_natvar_subst name value b)
     end.
 
-  Definition MemVarRef_NVar_subt
+  Definition MemRef_NVar_subt
              (name: nat)
              (value: NExpr)
-             (exp: MemVarRef): MemVarRef
+             (exp: MemRef): MemRef
     :=
       let '(v, e) := exp in
       (v, NExpr_var_subst name value e).
@@ -972,13 +972,13 @@ Module MDSigmaHCOLEval
     match exp with
     | DSHAssign src dst =>
       DSHAssign
-        (MemVarRef_NVar_subt name value src)
-        (MemVarRef_NVar_subt name value dst)
+        (MemRef_NVar_subt name value src)
+        (MemRef_NVar_subt name value dst)
     | DSHPower n src dst f initial =>
       DSHPower
         (NExpr_var_subst name value n)
-        (MemVarRef_NVar_subt name value src)
-        (MemVarRef_NVar_subt name value dst)
+        (MemRef_NVar_subt name value src)
+        (MemRef_NVar_subt name value dst)
         f initial
     | _ => exp
     end.
