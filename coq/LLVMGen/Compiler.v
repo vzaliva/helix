@@ -282,7 +282,7 @@ Definition genMExpr
                                sΓ <- getVarsAsString ;;
                                raise ("MPtrDeref's PVar #" @@ string_of_nat x @@ " type mismatch in " @@ sΓ)
                              end
-     | MConst c => raise "MConst not implemented" (* TODO *)
+     | MConst _ _ => raise "MConst not implemented" (* TODO *)
      end.
 
 Fixpoint genAExpr
