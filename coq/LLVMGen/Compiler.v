@@ -964,7 +964,7 @@ Fixpoint genIR
           loopvar <- incLocalNamed "IMap_i" ;;
           '(body_entry, body_blocks) <- genIMapBody i x y f loopvar loopcontblock ;;
           add_comment
-            (genWhileLoop "IMap" (EXP_Integer 0%Z) (EXP_Integer (Int64.intval i)) loopvar loopcontblock body_entry body_blocks [] nextblock)
+            (genWhileLoop "IMap" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] nextblock)
         | DSHBinOp n x_p y_p f =>
           loopcontblock <- incBlockNamed "BinOp_lcont" ;;
           '(x,i) <- resolve_PVar x_p ;;
