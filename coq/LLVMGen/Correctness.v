@@ -2057,7 +2057,7 @@ Section MExpr.
       (* Helix  bits *)   (mexp: MExpr) (σ: evalContext) (memH: memoryH) v
       (* Vellvm bits *)   (exp: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV) (τ: typ),
       genMExpr mexp s1 ≡ inr (s2, (exp, c, τ)) -> (* Compilation succeeds *)
-      evalMExpr memH σ mexp ≡ inr v            -> (* Evaluation succeeds *)
+      evalMExpr memH σ mexp ≡ inr v    -> (* Evaluation succeeds *)
       state_invariant σ s1 memH (memV, (l, g)) ->
       eutt (lift_Rel_cfg (state_invariant σ s2) ⩕ invariant_MExpr σ s2)
            (with_err_RB
