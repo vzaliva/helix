@@ -1,4 +1,3 @@
-(* Require Import LibHyps.LibHyps. *)
 Require Import Coq.Arith.Arith.
 Require Import Psatz.
 
@@ -287,9 +286,9 @@ Ltac unfolder_vellvm       := unfold Traversal.Endo_id.
 Ltac unfolder_vellvm_hyp h := unfold Traversal.Endo_id in h.
 Ltac unfolder_vellvm_all   := unfold Traversal.Endo_id in *.
 
-Ltac unfolder_helix       := unfold mem_lookup_err, memory_lookup_err, ErrorWithState.option2errS, lift_Serr, context_lookup, trywith.
-Ltac unfolder_helix_hyp h := unfold mem_lookup_err, memory_lookup_err, ErrorWithState.option2errS, lift_Serr, context_lookup, trywith in h.
-Ltac unfolder_helix_all   := unfold mem_lookup_err, memory_lookup_err, ErrorWithState.option2errS, lift_Serr, context_lookup, trywith in *.
+Ltac unfolder_helix       := unfold mem_lookup_err, memory_lookup_err, ErrorWithState.option2errS, lift_Serr, Int64_eq_or_cerr, Z_eq_or_cerr,ErrorWithState.err2errS,Z_eq_or_err, context_lookup, trywith.
+Ltac unfolder_helix_hyp h := unfold mem_lookup_err, memory_lookup_err, ErrorWithState.option2errS, lift_Serr, Int64_eq_or_cerr, Z_eq_or_cerr,ErrorWithState.err2errS,Z_eq_or_err, context_lookup, trywith in h.
+Ltac unfolder_helix_all   := unfold mem_lookup_err, memory_lookup_err, ErrorWithState.option2errS, lift_Serr, Int64_eq_or_cerr, Z_eq_or_cerr,ErrorWithState.err2errS,Z_eq_or_err, context_lookup, trywith in *.
 
 (**
      Better solution (?): use
@@ -2237,6 +2236,7 @@ Section AExpr.
            (with_err_RB (interp_Mem (denoteAExpr σ aexp) memH))
            (with_err_LB (interp_cfg (denote_code (convert_typ [] c)) g l memV)).
   Proof.
+    (*
     intros s1 s2 aexp; revert s1 s2; induction aexp; intros * COMPILE EVAL PRE.
     - (* Variable case *)
       (* Reducing the compilation *)
@@ -3426,6 +3426,7 @@ Section AExpr.
       {
         admit.
       }
+*)
   Admitted.
 
 
@@ -3883,8 +3884,6 @@ Ltac forget_strings :=
     unfold resolve_PVar in H.
     cbn* in H.
     simp.
-    unfold ErrorWithState.err2errS in *.
-    break_match_hyp; cbn* in *; inv_sum.
     do 2 eexists; eauto.
   Qed.
 
@@ -4192,6 +4191,7 @@ Ltac forget_strings :=
 
 
     - destruct fuel as [| fuel]; [cbn in *; simp |].
+
       Opaque genWhileLoop. 
       cbn* in GEN.
       unfold GenIR_Rel in BISIM; cbn in BISIM.
@@ -4201,53 +4201,143 @@ Ltac forget_strings :=
       inv_resolve_PVar Heqs1.
       cbn* in *.
       simp.
-      destruct u; cbn in *.
-      simp.
-      unfold Int64_eq_or_cerr, Z_eq_or_cerr,ErrorWithState.err2errS,Z_eq_or_err in *; cbn* in *.
-      simp.
+      (* Require Import LibHyps.LibHyps. *)
       (* onAllHyps move_up_types. *)
 
       eutt_hide_right.
 
       repeat norm_h.
       unfold denotePExpr; cbn*.
-      rewrite Heqs4, Heqs12.
+
+      Ltac rewrite_nth_error :=
+        match goal with
+        | h: nth_error _ _ ≡ _ |- _ => rewrite h
+        end.
+
+      Ltac rewrite_memory_lookup :=
+        match goal with
+        | h: memory_lookup _ _ ≡ _ |- _ => rewrite h
+        end.
+
+      do 2 rewrite_nth_error.
 
       repeat (norm_h; []).
       norm_h.
-      2: cbn*; rewrite Heqo0; reflexivity.
+      2: cbn*; rewrite_memory_lookup; reflexivity.
+
       repeat norm_h.
-      2: cbn*; rewrite Heqo; reflexivity.
+      2: cbn*; rewrite_memory_lookup; reflexivity.
 
       subst; eutt_hide_left.
-      unfold add_comments.
+      Transparent genWhileLoop.
+      cbn in *.
+      simp.
+      cbn in *.
+      unfold add_comments; cbn.
+      repeat rewrite fmap_list_app.
       cbn.
+
+
       match goal with
         |- context[denote_bks ?x] =>
         remember x as bks
       end.
 
-      admit.
-      (* erewrite denote_bks_unfold. *)
-      (* 2:{ *)
-      (*   subst; cbn. *)
-      (*   destruct (Eqv.eqv_dec_p bid_in bid_in).  *)
-      (*   reflexivity. *)
-      (*   exfalso. *)
-      (*   apply n0. *)
-      (*   reflexivity. *)
-      (* } *)
 
-      (* cbn. *)
-      (* repeat norm_v. *)
-      (* unfold IntType; rewrite typ_to_dtyp_I. *)
-      (* cbn. *)
-      (* focus_single_step_v; repeat norm_v. *)
-      (* cbn; repeat norm_v. *)
-      (* subst. *)
-      (* repeat norm_v. *)
-      (* focus_single_step_v; repeat norm_v. *)
-      
+      erewrite denote_bks_unfold.
+      2:{
+        subst; cbn.
+        clear.
+        destruct (Eqv.eqv_dec_p bid_in bid_in) as [foo | foo].
+        reflexivity.
+        exfalso; apply foo; reflexivity.
+      }
+      cbn.
+      repeat norm_v.
+      unfold IntType; rewrite typ_to_dtyp_I.
+      cbn.
+      focus_single_step_v; repeat norm_v.
+      cbn; repeat norm_v.
+      subst.
+      repeat norm_v.
+      focus_single_step_v; repeat norm_v.
+      rewrite interp_cfg_to_L3_LW.
+      cbn; repeat norm_v.
+      unfold endo.
+      subst.
+      repeat (norm_v; []).
+      focus_single_step_v.
+      apply int_eq_inv in e0; inv e0.
+      (* onAllHyps move_up_types. *)
+      unfold endo.
+      focus_single_step_v.
+      norm_v.
+      2: apply lookup_alist_add_eq.
+      cbn; repeat norm_v.
+      subst; cbn; repeat norm_v.
+      focus_single_step_v.
+
+      (* Case analysis on whether we ever enter the loop or not *)
+      unfold eval_int_icmp.
+      cbn.
+      break_match_goal.
+      -- (* We enter the loop *)
+        cbn; repeat norm_v.
+        subst; cbn; repeat norm_v.
+        (* loopblock  *)
+        rewrite denote_bks_unfold.
+        2:{
+          cbn.
+          match goal with
+            |- context[if ?p then true else false] =>
+            destruct p as [EQ | INEQ]
+          end.
+          admit.
+          match goal with
+            |- context[if ?p then true else false] =>
+            destruct p as [?EQ | ?INEQ]
+          end.
+          reflexivity.
+          admit.
+        }
+
+      (* Need to denote phis, I cannot denote the block directly :( *)
+
+        admit.
+        
+      --
+        (* from == to, we go from the entry block to the next one directly *)
+        cbn.
+        repeat norm_v.
+        subst; cbn; repeat norm_v.
+
+        Lemma denote_bks_unfold_not_in: forall bks bid,
+            find_block dtyp bks bid ≡ None ->
+            D.denote_bks bks bid ≈ Ret (inl bid).
+        Admitted.
+
+        rewrite denote_bks_unfold_not_in.
+        2:{
+          (* Freshness of some block id *)
+          admit.
+        }
+
+        cbn; repeat norm_v.
+        assert (n ≡ 0) by admit.
+
+        subst.
+        cbn; repeat norm_h.
+        rewrite interp_Mem_MemSet.
+        repeat norm_h.
+        
+        apply eutt_Ret.
+        split; eauto.
+        {
+          admit.
+        }
+        {
+          admit.
+        }
 
     - (* DSHBinOp *)
       destruct fuel as [| fuel]; [cbn in *; simp |].
