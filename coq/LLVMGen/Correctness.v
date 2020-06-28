@@ -4252,6 +4252,9 @@ Ltac forget_strings :=
         reflexivity.
         exfalso; apply foo; reflexivity.
       }
+
+      Opaque find_block.
+
       cbn.
       repeat norm_v.
       unfold IntType; rewrite typ_to_dtyp_I.
@@ -4284,6 +4287,23 @@ Ltac forget_strings :=
       -- (* We enter the loop *)
         cbn; repeat norm_v.
         subst; cbn; repeat norm_v.
+
+        Lemma find_block_eq: forall {T} x b bs,
+            blk_id b ≡ x ->
+            find_block T (b:: bs) x ≡ Some b.
+        Admitted.
+
+        Lemma find_block_ineq: forall {T} x b bs,
+            blk_id b <> x ->
+            find_block T (b::bs) x ≡ find_block T bs x. 
+        Admitted.
+
+        rewrite find_block_ineq, find_block_eq.
+        2: reflexivity.
+        2:cbn; admit. 
+
+        repeat norm_v.
+(*
         (* loopblock  *)
         rewrite denote_bks_unfold.
         2:{
@@ -4300,7 +4320,7 @@ Ltac forget_strings :=
           reflexivity.
           admit.
         }
-
+*)
       (* Need to denote phis, I cannot denote the block directly :( *)
 
         admit.
@@ -4315,12 +4335,13 @@ Ltac forget_strings :=
             find_block dtyp bks bid ≡ None ->
             D.denote_bks bks bid ≈ Ret (inl bid).
         Admitted.
+        repeat rewrite find_block_ineq.
+        2,3,4,5: cbn; admit.
+        cbn.
+        Lemma find_block_nil: forall {T} b, find_block T [] b ≡ None. 
+        Admitted.
 
-        rewrite denote_bks_unfold_not_in.
-        2:{
-          (* Freshness of some block id *)
-          admit.
-        }
+        rewrite find_block_nil.
 
         cbn; repeat norm_v.
         assert (n ≡ 0) by admit.

@@ -139,13 +139,23 @@ Qed.
 
 Import MonadNotation.
 Open Scope monad_scope.
+
 Lemma denote_bks_unfold: forall bks bid b,
     find_block dtyp bks bid = Some b ->
     D.denote_bks bks bid ≈
     vob <- D.denote_block b ;;
     match vob with
-    | inl bid' => D.denote_bks bks bid'
     | inr v => ret (inr v)
+    | inl bid_target =>
+      match find_block DynamicTypes.dtyp bks bid_target with
+      | None => ret (inl bid_target)
+      | Some block_target =>
+        dvs <- Util.map_monad
+                (fun x => translate exp_E_to_instr_E (D.denote_phi bid x))
+                (blk_phis block_target) ;;
+        Util.map_monad (fun '(id,dv) => trigger (LocalWrite id dv)) dvs;;
+        D.denote_bks bks bid_target
+      end
     end.
 Admitted.
 
