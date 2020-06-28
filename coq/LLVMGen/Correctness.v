@@ -3616,8 +3616,8 @@ Section MemCopy.
   Lemma genMemCopy_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (σ: evalContext)
-      (* Vellvm bits *)   (o: Int64.int) (x y: ident) (nextblock bid: block_id) (bks : list (LLVMAst.block typ)),
-      genMemCopy o x y nextblock s1 ≡ inr (s2, (bid, bks)) -> (* Compilation succeeds *)
+      (* Vellvm bits *)   (i o n: Int64.int) (x y: ident) (nextblock bid: block_id) (bks : list (LLVMAst.block typ)),
+      genMemCopy i o n x y nextblock s1 ≡ inr (s2, (bid, bks)) -> (* Compilation succeeds *)
       WF_IRState σ s1 ->                                      (* Well-formed IRState *)
       False.
       (* eutt R'

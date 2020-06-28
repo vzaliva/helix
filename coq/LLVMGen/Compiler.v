@@ -387,7 +387,7 @@ Fixpoint genAExpr
 Definition segment:Type := block_id * list (block typ).
 
 Definition genMemCopy
-           (o: Int64.int)
+           (i o n: Int64.int)
            (x y: ident)
            (nextblock: block_id)
   : cerr segment
@@ -397,10 +397,11 @@ Definition genMemCopy
     callid <- incVoid ;;
     xb <- incLocal ;;
     yb <- incLocal ;;
-    let oz := (Int64.intval o) in
-    let atyp := TYPE_Pointer (TYPE_Array oz TYPE_Double) in
+    let nz := (Int64.intval n) in
+    let xtyp := TYPE_Pointer (TYPE_Array (Int64.intval i) TYPE_Double) in
+    let ytyp := TYPE_Pointer (TYPE_Array (Int64.intval o) TYPE_Double) in
     let ptyp := TYPE_Pointer (TYPE_I 8%Z) in
-    let len:Z := Z.mul oz (Z.of_nat (SizeofFloatT)) in
+    let len:Z := Z.mul nz (Z.of_nat (SizeofFloatT)) in
     let i32 := TYPE_I 32%Z in
     let i1 := TYPE_I 1%Z in
     ret ((entryblock, [
@@ -410,13 +411,13 @@ Definition genMemCopy
               blk_code  := [
                             (IId xb, INSTR_Op (OP_Conversion
                                                  Bitcast
-                                                 atyp
+                                                 xtyp
                                                  (EXP_Ident x)
                                                  ptyp
                             ));
                               (IId yb, INSTR_Op (OP_Conversion
                                                    Bitcast
-                                                   atyp
+                                                   ytyp
                                                    (EXP_Ident y)
                                                    ptyp
                               ));
@@ -1011,10 +1012,8 @@ Fixpoint genIR
         | DSHMemCopy size x_p y_p =>
           '(x,i) <- resolve_PVar x_p ;;
           '(y,o) <- resolve_PVar y_p ;;
-          vs <- getVarsAsString ;;
-          Int64_eq_or_cerr (fshcol_s @@ " input/output dimensions do not match in " @@ vs) i o ;;
           add_comment
-            (genMemCopy size x y nextblock)
+            (genMemCopy i o size x y nextblock)
         | DSHSeq f g =>
           '(gb, g') <- genIR g nextblock ;;
           '(fb, f') <- genIR f gb ;;
