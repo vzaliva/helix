@@ -257,8 +257,8 @@ Module MDSigmaHCOLEval
       match n with
       | O => ret y
       | S p =>
-        xv <- mem_lookup_err "Error reading 'xv' memory in evalDSHBinOp" xoffset x ;;
-           yv <- mem_lookup_err "Error reading 'yv' memory in evalDSHBinOp" yoffset y ;;
+        xv <- mem_lookup_err "Error reading 'xv' memory in evalDSHPower" xoffset x ;;
+           yv <- mem_lookup_err "Error reading 'yv' memory in evalDSHPower" yoffset y ;;
            v' <- evalBinCType mem σ f yv xv ;;
            evalDSHPower mem σ p f x (mem_add yoffset v' y) xoffset yoffset
       end.
