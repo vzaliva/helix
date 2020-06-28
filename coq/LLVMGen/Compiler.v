@@ -573,7 +573,7 @@ Definition genWhileLoop
     ret (entryblock, loop_pre ++ body_blocks ++ loop_post).
 
 Definition genIMapBody
-           (n: Int64.int)
+           (i o: Int64.int)
            (x y: ident)
            (f: AExpr)
            (loopvar: raw_id)
@@ -586,8 +586,10 @@ Definition genIMapBody
     px <- incLocal ;;
     py <- incLocal ;;
     v <- incLocal ;;
-    let xytyp := getIRType (DSHPtr n) in
-    let xyptyp := TYPE_Pointer xytyp in
+    let xtyp := getIRType (DSHPtr i) in
+    let ytyp := getIRType (DSHPtr o) in
+    let xptyp := TYPE_Pointer xtyp in
+    let yptyp := TYPE_Pointer ytyp in
     let loopvarid := ID_Local loopvar in
     addVars [(ID_Local v, TYPE_Double); (loopvarid, IntType)] ;;
     '(fexpr, fexpcode) <- genAExpr f ;;
@@ -599,7 +601,7 @@ Definition genIMapBody
              blk_phis  := [];
              blk_code  := [
                            (IId px,  INSTR_Op (OP_GetElementPtr
-                                                 xytyp (xyptyp, (EXP_Ident x))
+                                                 xtyp (xptyp, (EXP_Ident x))
                                                  [(IntType, EXP_Integer 0%Z);
                                                     (IntType,(EXP_Ident loopvarid))]
 
@@ -614,7 +616,7 @@ Definition genIMapBody
                             ++ fexpcode ++
 
                             [ (IId py,  INSTR_Op (OP_GetElementPtr
-                                                    xytyp (xyptyp, (EXP_Ident y))
+                                                    ytyp (yptyp, (EXP_Ident y))
                                                     [(IntType, EXP_Integer 0%Z);
                                                        (IntType,(EXP_Ident loopvarid))]
 
@@ -959,10 +961,9 @@ Fixpoint genIR
           '(x,i) <- resolve_PVar x_p ;;
           '(y,o) <- resolve_PVar y_p ;;
           vs <- getVarsAsString ;;
-          Int64_eq_or_cerr (fshcol_s @@ " dimensions do not match in " @@ vs) i o ;;
           loopcontblock <- incBlockNamed "IMap_lcont" ;;
           loopvar <- incLocalNamed "IMap_i" ;;
-          '(body_entry, body_blocks) <- genIMapBody i x y f loopvar loopcontblock ;;
+          '(body_entry, body_blocks) <- genIMapBody i o x y f loopvar loopcontblock ;;
           add_comment
             (genWhileLoop "IMap" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] nextblock)
         | DSHBinOp n x_p y_p f =>
