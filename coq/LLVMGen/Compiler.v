@@ -636,6 +636,7 @@ Definition genIMapBody
         ]).
 
 Definition genBinOpBody
+           (i o: Int64.int)
            (n: nat)
            (x y: ident)
            (f: AExpr)
@@ -653,10 +654,9 @@ Definition genBinOpBody
     v0 <- incLocal ;;
     v1 <- incLocal ;;
     n' <- err2errS (MInt64asNT.from_nat n) ;;
-    n2' <- err2errS (MInt64asNT.from_nat (n+n)%nat) ;;
-    let xtyp := getIRType (DSHPtr n2') in
+    let xtyp := getIRType (DSHPtr i) in
     let xptyp := TYPE_Pointer xtyp in
-    let ytyp := getIRType (DSHPtr n') in
+    let ytyp := getIRType (DSHPtr o) in
     let yptyp := TYPE_Pointer ytyp in
     let loopvarid := ID_Local loopvar in
     addVars [(ID_Local v1, TYPE_Double); (ID_Local v0, TYPE_Double); (loopvarid, IntType)] ;;
@@ -972,12 +972,8 @@ Fixpoint genIR
           '(x,i) <- resolve_PVar x_p ;;
           '(y,o) <- resolve_PVar y_p ;;
           vs <- getVarsAsString ;;
-          n2' <- err2errS (MInt64asNT.from_nat (n+n)%nat) ;;
-          n' <- err2errS (MInt64asNT.from_nat n) ;;
-          Int64_eq_or_cerr (fshcol_s @@ " input dimensions do not match in " @@ vs) i n2' ;;
-          Int64_eq_or_cerr (fshcol_s @@ " output dimensions do not match in " @@ vs) o n' ;;
           loopvar <- incLocalNamed "BinOp_i" ;;
-          '(body_entry, body_blocks) <- genBinOpBody n x y f loopvar loopcontblock ;;
+          '(body_entry, body_blocks) <- genBinOpBody i o n x y f loopvar loopcontblock ;;
           add_comment
             (genWhileLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] nextblock)
         | DSHMemMap2 n x0_p x1_p y_p f =>

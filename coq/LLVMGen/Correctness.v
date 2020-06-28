@@ -3717,8 +3717,8 @@ Section BinOpBody.
   Lemma genBinOpBody_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *) (σ: evalContext) (f: AExpr)
-      (* Vellvm bits *) (n: nat) (x y: ident) (loopvar: raw_id) (nextblock: block_id) (bid: block_id) (bks: list (LLVMAst.block typ)),
-      genBinOpBody n x y f loopvar nextblock s1 ≡ inr (s2, (bid, bks)) -> (* Compilation succeeds *)
+      (* Vellvm bits *) (i o: Int64.int) (n: nat) (x y: ident) (loopvar: raw_id) (nextblock: block_id) (bid: block_id) (bks: list (LLVMAst.block typ)),
+      genBinOpBody i o n x y f loopvar nextblock s1 ≡ inr (s2, (bid, bks)) -> (* Compilation succeeds *)
       WF_IRState σ s1 ->                                      (* Well-formed IRState *)
       False.
       (* eutt R'
