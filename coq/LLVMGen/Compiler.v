@@ -961,7 +961,6 @@ Fixpoint genIR
         | DSHIMap n x_p y_p f =>
           '(x,i) <- resolve_PVar x_p ;;
           '(y,o) <- resolve_PVar y_p ;;
-          vs <- getVarsAsString ;;
           loopcontblock <- incBlockNamed "IMap_lcont" ;;
           loopvar <- incLocalNamed "IMap_i" ;;
           '(body_entry, body_blocks) <- genIMapBody i o x y f loopvar loopcontblock ;;
@@ -971,7 +970,6 @@ Fixpoint genIR
           loopcontblock <- incBlockNamed "BinOp_lcont" ;;
           '(x,i) <- resolve_PVar x_p ;;
           '(y,o) <- resolve_PVar y_p ;;
-          vs <- getVarsAsString ;;
           loopvar <- incLocalNamed "BinOp_i" ;;
           '(body_entry, body_blocks) <- genBinOpBody i o n x y f loopvar loopcontblock ;;
           add_comment
@@ -981,7 +979,6 @@ Fixpoint genIR
           '(x0,i0) <- resolve_PVar x0_p ;;
           '(x1,i1) <- resolve_PVar x1_p ;;
           '(y,o) <- resolve_PVar y_p ;;
-          vs <- getVarsAsString ;;
           n' <- err2errS (MInt64asNT.from_nat n) ;;
           loopvar <- incLocalNamed "MemMap2_i" ;;
           '(body_entry, body_blocks) <- genMemMap2Body i0 i1 o x0 x1 y f loopvar loopcontblock ;;
