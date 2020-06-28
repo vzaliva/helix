@@ -723,7 +723,7 @@ Definition genBinOpBody
         ]).
 
 Definition genMemMap2Body
-           (n: nat)
+           (i0 i1 o: Int64.int)
            (x0 x1 y: ident)
            (f: AExpr)
            (loopvar: raw_id)
@@ -738,10 +738,11 @@ Definition genMemMap2Body
     py <- incLocal ;;
     v0 <- incLocal ;;
     v1 <- incLocal ;;
-    n' <- err2errS (MInt64asNT.from_nat n) ;;
-    let xtyp := getIRType (DSHPtr n') in
-    let xptyp := TYPE_Pointer xtyp in
-    let ytyp := getIRType (DSHPtr n') in
+    let x0typ := getIRType (DSHPtr i0) in
+    let x1typ := getIRType (DSHPtr i1) in
+    let ytyp := getIRType (DSHPtr o) in
+    let x0ptyp := TYPE_Pointer x0typ in
+    let x1ptyp := TYPE_Pointer x1typ in
     let yptyp := TYPE_Pointer ytyp in
     let loopvarid := ID_Local loopvar in
     addVars [(ID_Local v1, TYPE_Double); (ID_Local v0, TYPE_Double)] ;;
@@ -754,7 +755,7 @@ Definition genMemMap2Body
              blk_phis  := [];
              blk_code  := [
                            (IId px0,  INSTR_Op (OP_GetElementPtr
-                                                  xtyp (xptyp, (EXP_Ident x0))
+                                                  x0typ (x0ptyp, (EXP_Ident x0))
                                                   [(IntType, EXP_Integer 0%Z);
                                                      (IntType,(EXP_Ident loopvarid))]
 
@@ -766,7 +767,7 @@ Definition genMemMap2Body
                                                  (ret 8%Z));
 
                              (IId px1,  INSTR_Op (OP_GetElementPtr
-                                                    xtyp (xptyp, (EXP_Ident x1))
+                                                    x1typ (x1ptyp, (EXP_Ident x1))
                                                     [(IntType, EXP_Integer 0%Z);
                                                        (IntType,(EXP_Ident (ID_Local loopvar)))]
 
@@ -986,11 +987,8 @@ Fixpoint genIR
           '(y,o) <- resolve_PVar y_p ;;
           vs <- getVarsAsString ;;
           n' <- err2errS (MInt64asNT.from_nat n) ;;
-          Int64_eq_or_cerr (fshcol_s @@ " output dimensions do not match in " @@ vs) o n' ;;
-          Int64_eq_or_cerr (fshcol_s @@ " input 1 dimensions do not match in " @@ vs) i0 n' ;;
-          Int64_eq_or_cerr (fshcol_s @@ " input 2 dimensions do not match in " @@ vs) i1 n' ;;
           loopvar <- incLocalNamed "MemMap2_i" ;;
-          '(body_entry, body_blocks) <- genMemMap2Body n x0 x1 y f loopvar loopcontblock ;;
+          '(body_entry, body_blocks) <- genMemMap2Body i0 i1 o x0 x1 y f loopvar loopcontblock ;;
           add_comment
             (genWhileLoop "MemMap2" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] nextblock)
         | DSHPower n (src_p,src_n) (dst_p,dst_n) f initial =>
