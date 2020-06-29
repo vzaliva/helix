@@ -2026,6 +2026,29 @@ Section MExpr.
         nth_error σ vid ≡ Some (DSHPtrVal mid size) /\
         nth_error (Γ s) vid ≡ Some (i, TYPE_Pointer (TYPE_Array sz TYPE_Double)).
 
+  (* TODO: like ext_local, but locals also don't change. Not sure what to call this... *)
+  Definition preserves_states {R S}: memoryH -> config_cfg -> Rel_cfg_T R S :=
+    fun mh '(mi,(li,gi)) '(mh',_) '(m,(l,(g,_))) => mh ≡ mh' /\ mi ≡ m /\ gi ≡ g /\ li ≡ l.
+
+  Lemma preserves_states_refl:
+  forall {R S} memH memV l g n v,
+    @preserves_states R S memH (mk_config_cfg memV l g) (memH, n) (memV, (l, (g, v))).
+  Proof.
+    intros; repeat split; reflexivity.
+  Qed.
+  Hint Resolve preserves_states_refl: core.
+
+  Record genMExpr_rel
+         (σ : evalContext)
+         (s : IRState)
+         (mi : memoryH) (sti : config_cfg)
+         (mf : memoryH * mem_block) (stf : config_cfg_T uvalue)
+    : Prop :=
+    {
+    mexp_correct :invariant_MExpr σ s mf stf;
+    m_preserves : preserves_states mi sti mf stf
+    }.
+
   Lemma memory_invariant_Ptr : forall vid σ s memH memV l g a size x sz,
       state_invariant σ s memH (memV, (l, g)) ->
       nth_error σ vid ≡ Some (DSHPtrVal a size) ->
@@ -2047,7 +2070,7 @@ Section MExpr.
       genMExpr mexp s1 ≡ inr (s2, (exp, c, τ)) -> (* Compilation succeeds *)
       evalMExpr memH σ mexp ≡ inr v            -> (* Evaluation succeeds *)
       state_invariant σ s1 memH (memV, (l, g)) ->
-      eutt (lift_Rel_cfg (state_invariant σ s2) ⩕ invariant_MExpr σ s2)
+      eutt (lift_Rel_cfg (state_invariant σ s2) ⩕ genMExpr_rel σ s2 memH (mk_config_cfg memV l g))
            (with_err_RB
               (interp_Mem (denoteMExpr σ mexp)
                           memH))
@@ -2055,7 +2078,6 @@ Section MExpr.
               ((interp_cfg (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some DTYPE_Pointer (* (DTYPE_I 64%Z) *)) (convert_typ [] exp))))
                  g l memV)).
   Proof.
-    (*
     intros * Hgen Heval Hmeminv.
     generalize Hmeminv; intros WF; apply IRState_is_WF in WF.
 
@@ -2102,16 +2124,14 @@ Section MExpr.
         cbn*; repeat norm_v.
         apply eutt_Ret.
         split; auto.
+        split; auto.
         red.
         do 6 eexists.
         splits; eauto.
         cbn; auto.
-
     - (* Const *)
       cbn* in Hgen; simp.
   Qed.
-     *)
-  Admitted.
 
 End MExpr.
 
@@ -2236,7 +2256,6 @@ Section AExpr.
            (with_err_RB (interp_Mem (denoteAExpr σ aexp) memH))
            (with_err_LB (interp_cfg (denote_code (convert_typ [] c)) g l memV)).
   Proof.
-    (*
     intros s1 s2 aexp; revert s1 s2; induction aexp; intros * COMPILE EVAL PRE.
     - (* Variable case *)
       (* Reducing the compilation *)
@@ -2364,9 +2383,7 @@ Section AExpr.
           memH ≡ memH'.
       Proof.
         intros σ n e memH memV memH' memV' l g l' g' n' H.
-        destruct H.
-        cbn in monotone0.
-        apply monotone0.
+        destruct H; cbn in *; intuition.
       Qed.
 
       Lemma genNExpr_memV : forall σ n e memH memV memH' memV' l g l' g' n',
@@ -2375,9 +2392,7 @@ Section AExpr.
           memV ≡ memV'.
       Proof.
         intros σ n e memH memV memH' memV' l g l' g' n' H.
-        destruct H.
-        cbn in monotone0.
-        apply monotone0.
+        destruct H; cbn in *; intuition.
       Qed.
 
       Lemma genNExpr_g : forall σ n e memH memV memH' memV' l g l' g' n',
@@ -2386,9 +2401,7 @@ Section AExpr.
           g ≡ g'.
       Proof.
         intros σ n e memH memV memH' memV' l g l' g' n' H.
-        destruct H.
-        cbn in monotone0.
-        apply monotone0.
+        destruct H; cbn in *; intuition.
       Qed.
 
       Lemma genNExpr_l : forall σ n e memH memV memH' memV' l g l' g' n',
@@ -2397,9 +2410,43 @@ Section AExpr.
           l ⊑ l'.
       Proof.
         intros σ n e memH memV memH' memV' l g l' g' n' H.
-        destruct H.
-        cbn in monotone0.
-        apply monotone0.
+        destruct H; cbn in *; intuition.
+      Qed.
+
+      Lemma genMExpr_memH : forall σ s memH memV memH' memV' l g l' g' mb uv,
+          genMExpr_rel σ s memH (mk_config_cfg memV l g) (memH', mb)
+                       (memV', (l', (g', uv))) ->
+          memH ≡ memH'.
+      Proof.
+        intros σ s memH memV memH' memV' l g l' g' mb uv H.
+        destruct H; cbn in *; intuition.
+      Qed.
+
+      Lemma genMExpr_memV : forall σ s memH memV memH' memV' l g l' g' mb uv,
+          genMExpr_rel σ s memH (mk_config_cfg memV l g) (memH', mb)
+                       (memV', (l', (g', uv))) ->
+          memV ≡ memV'.
+      Proof.
+        intros σ s memH memV memH' memV' l g l' g' mb uv H.
+        destruct H; cbn in *; intuition.
+      Qed.
+
+      Lemma genMExpr_g : forall σ s memH memV memH' memV' l g l' g' mb uv,
+          genMExpr_rel σ s memH (mk_config_cfg memV l g) (memH', mb)
+                       (memV', (l', (g', uv))) ->
+          g ≡ g'.
+      Proof.
+        intros σ s memH memV memH' memV' l g l' g' mb uv H.
+        destruct H; cbn in *; intuition.
+      Qed.
+
+      Lemma genMExpr_l : forall σ s memH memV memH' memV' l g l' g' mb uv,
+          genMExpr_rel σ s memH (mk_config_cfg memV l g) (memH', mb)
+                       (memV', (l', (g', uv))) ->
+          l ≡ l'.
+      Proof.
+        intros σ s memH memV memH' memV' l g l' g' mb uv H.
+        destruct H; cbn in *; intuition.
       Qed.
 
       eapply eutt_clo_bind; eauto.
@@ -2417,6 +2464,16 @@ Section AExpr.
           pose proof genNExpr_memV NEXP as H; subst memV';
           pose proof genNExpr_g NEXP as H; subst g';
           pose proof genNExpr_l NEXP as LL
+        end.
+
+      Ltac genMExpr_rel_subst :=
+        match goal with
+        | NEXP : genMExpr_rel ?σ ?s ?memH (mk_config_cfg ?memV ?l ?g) (?memH', ?mb) (?memV', (?l', (?g', ?uv))) |- _ =>
+          let H := fresh in
+          pose proof genMExpr_memH NEXP as H; subst memH';
+          pose proof genMExpr_memV NEXP as H; subst memV';
+          pose proof genMExpr_g NEXP as H; subst g';
+          pose proof genMExpr_l NEXP as H; subst l'
         end.
 
       (* Need to know that memH'=memH and memV'=memV ... *)
@@ -2535,25 +2592,25 @@ Section AExpr.
       rewrite LUPn'b'.
       repeat norm_h.
 
+      destruct MINV as (SINV'' & MINV).
+
       (* TODO: I need something to know that genMExpr does not affect memH / memV / g / l !!! *)
+      genMExpr_rel_subst.
 
       progress cbn*.
       repeat rewrite typ_to_dtyp_equation.
       cbn*. repeat norm_v.
       destruct NEXP_CORRECT.
       unfold genNExpr_exp_correct in exp_correct0.
-
-      assert (l' ⊑ l'') as L'L''. admit.
-      assert (g≡g'') as GG'. admit.
-      assert (memV≡memV'') as MEMV'. admit.
       subst.
-      specialize (exp_correct0 _ L'L'') as (NEXP_EUTT & NEXP_EVAL).
+      assert (l' ⊑ l') as L'L' by reflexivity.
+      specialize (exp_correct0 _ L'L') as (NEXP_EUTT & NEXP_EVAL).
       setoid_rewrite <- NEXP_EUTT.
 
       setoid_rewrite bind_ret_l.
       progress repeat norm_v.
 
-      destruct MINV as (SINV'' & MINV).
+      destruct MINV as (MINV & PRESERVES).
       destruct MINV as (ptr & i' & vid & mid & size & sz & RES & rest).
       destruct rest as (MLUP & ILG & NTH_σ_vid & NTH_Γ_vid).
       subst uv''.
@@ -2606,7 +2663,7 @@ Section AExpr.
       replace (MInt64asNT.to_nat (Int64.repr (Z.of_nat n'_nat))) with n'_nat in LUPn'b'.
       2: admit.
       specialize (GET_ARRAY n'_nat b LUPn'b').
-      epose proof interp_cfg_to_L3_GEP_array helix_intrinsics DTYPE_Double ptr sz' g'' l'' memV'' _ n'_nat GET_ARRAY as (ptr' & EUTT_GEP & READ).
+      epose proof interp_cfg_to_L3_GEP_array helix_intrinsics DTYPE_Double ptr sz' g l' memV _ n'_nat GET_ARRAY as (ptr' & EUTT_GEP & READ).
 
       rewrite EUTT_GEP.
       repeat norm_v.
@@ -2637,12 +2694,9 @@ Section AExpr.
         * (* TODO: ltac, this is horrid *)
           cbn.
           rewrite Heqs3.
-          assert (memH≡memH''). admit.
-          subst.
           rewrite Heqs4.
           rewrite Heqo.
           reflexivity.
-        * admit.
         * admit.
     - (* AAbs *)
       rename g into g1, l into l1, memV into memV1.
@@ -3426,7 +3480,6 @@ Section AExpr.
       {
         admit.
       }
-*)
   Admitted.
 
 
