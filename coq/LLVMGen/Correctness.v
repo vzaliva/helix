@@ -2362,7 +2362,7 @@ Section AExpr.
       cbn*.
       repeat norm_h.
 
-      subst i3.
+      subst i4.
       do 2 norm_v.
 
       eapply eutt_clo_bind; eauto.
@@ -2445,7 +2445,7 @@ Section AExpr.
       repeat norm_v.
 
       subst MYBIND.
-      subst i3.
+      subst i4.
       repeat norm_h.
 
       (* Might not be true, might be extensions instead *)
@@ -2466,6 +2466,7 @@ Section AExpr.
       repeat norm_v.
 
       (* Should be able to show this now... *)
+      destruct b' as (b' & bk_size).
       assert (mem_lookup (MInt64asNT.to_nat n') b' ≡ Some b) as LUPn'b'.
       admit.
 
