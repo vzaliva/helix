@@ -2562,7 +2562,7 @@ Section AExpr.
       cbn*.
       repeat norm_h.
 
-      subst i3.
+      subst i4.
       do 2 norm_v.
 
       eapply eutt_clo_bind; eauto.
@@ -2645,7 +2645,7 @@ Section AExpr.
       repeat norm_v.
 
       subst MYBIND.
-      subst i3.
+      subst i4.
       repeat norm_h.
 
       (* Might not be true, might be extensions instead *)
