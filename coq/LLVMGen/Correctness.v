@@ -3992,6 +3992,8 @@ Ltac forget_strings :=
       rewrite EQ1' in Heqs11; inv Heqs11.
       rewrite Heqo0.
       eutt_hide_right.
+      assert (i2 ≡ val2). admit. subst.
+      rewrite Heqs13.
       cbn*.
       repeat norm_h.
       rewrite interp_Mem_MemSet.
