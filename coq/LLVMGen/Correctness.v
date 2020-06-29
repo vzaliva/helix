@@ -2682,6 +2682,22 @@ Section AExpr.
       rewrite interp_cfg_to_L3_LW; cbn.
       repeat norm_v.
 
+      (* TODO: Can probably be smarter about this *)
+      Transparent incLocal.
+      assert (r ≡ Name ("l" @@ string_of_nat (local_count i0))) as EQr.
+      { unfold incLocal in Heqs1.
+        cbn in Heqs1.
+        inversion Heqs1.
+        reflexivity.
+      }
+      assert (r0 ≡ Name ("l" @@ string_of_nat (local_count i1))) as EQr0.
+      { unfold incLocal in Heqs2.
+        cbn in Heqs2.
+        inversion Heqs2.
+        reflexivity.
+      }
+      Opaque incLocal.
+
       apply eqit_Ret.
       split.
       + do 2 (eapply state_invariant_add_fresh; eauto).
@@ -2689,15 +2705,40 @@ Section AExpr.
         * cbn. repeat norm_v. cbn. norm_v.
           reflexivity.
           cbn.
-
-          admit.
+          apply H1.
+          apply In_add_eq.
         * (* TODO: ltac, this is horrid *)
           cbn.
           rewrite Heqs3.
           rewrite Heqs4.
           rewrite Heqo.
           reflexivity.
-        * admit.
+        * eapply sub_alist_trans; eauto.
+          eapply sub_alist_trans; eapply sub_alist_add.
+          -- unfold alist_fresh.
+             apply alist_find_None.
+             intros v0 IN.
+             eapply In__alist_In in IN as [v' AIN].
+             apply incLocal_is_fresh in SINV''.
+             eapply SINV''; eauto.
+          -- unfold alist_fresh.
+             apply alist_find_None.
+             intros v0 IN.
+             eapply In__alist_In in IN as [v' AIN].
+             epose proof (state_invariant_incLocal Heqs1 SINV'') as SINV_i1.
+             apply incLocal_is_fresh in SINV_i1.
+             eapply SINV_i1 with (id:=r0) (v:=v'); eauto.
+             apply In_add_ineq_iff in AIN; auto.
+             intros CONTRA; subst.
+             (* TODO: don't do this :( *)
+             Transparent incLocal.
+             unfold incLocal in Heqs1.
+             Opaque incLocal.
+             cbn in Heqs1. inversion Heqs1.
+             rewrite <- H3 in CONTRA.
+             cbn in CONTRA.
+             unfold Traversal.endo, Traversal.Endo_id in CONTRA.
+             apply Name_inj, append_factor_left,string_of_nat_inj in CONTRA; lia.
     - (* AAbs *)
       rename g into g1, l into l1, memV into memV1.
       cbn* in COMPILE; simp.
