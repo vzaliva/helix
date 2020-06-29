@@ -2029,8 +2029,8 @@ Section MExpr.
 
   Definition invariant_MExpr
              (σ : evalContext)
-             (s : IRState) : Rel_cfg_T mem_block uvalue :=
-    fun '(memH, mb) '(memV, (ρ, (g, res))) =>
+             (s : IRState) : Rel_cfg_T (mem_block * Int64.int) uvalue :=
+    fun '(memH, (mb, _)) '(memV, (ρ, (g, res))) =>
       exists ptr i (vid : nat) (mid : mem_block_id) (size : Int64.int) (sz : int), (* TODO: sz ≈ size? *)
         res ≡ UVALUE_Addr ptr /\
         memory_lookup memH mid ≡ Some mb /\
