@@ -3992,7 +3992,15 @@ Ltac forget_strings :=
       rewrite EQ1' in Heqs11; inv Heqs11.
       rewrite Heqo0.
       eutt_hide_right.
-      assert (i2 ≡ val2). admit. subst.
+      assert (i2 ≡ val2).
+      { unfold genNExpr_exp_correct in EXP2.
+        assert (ρ2 ⊑ ρ2) as LL by reflexivity.
+        specialize (EXP2 _ LL) as (EXP2_EUTT & EXP2_EVAL).
+        rewrite EXP2_EVAL in Heqs12.
+        inversion Heqs12.
+        auto.
+      }
+      subst.
       rewrite Heqs13.
       cbn*.
       repeat norm_h.
