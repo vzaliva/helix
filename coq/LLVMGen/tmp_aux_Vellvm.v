@@ -80,87 +80,6 @@ Require Import State.
  *)
 Require Import ITree.Eq.Eq.
 
-Section Denotation.
-Import CatNotations.
-
-Lemma denote_bks_nil: forall s, D.denote_bks [] s ≈ ret (inl s).
-Proof.
-  intros s; unfold D.denote_bks.
-  unfold loop.
-  cbn. rewrite bind_ret_l.
-  match goal with
-  | |- CategoryOps.iter (C := ktree _) ?body ?s ≈ _ =>
-    rewrite (unfold_iter body s)
-  end.
-  repeat (cbn; (rewrite bind_bind || rewrite bind_ret_l)).
-  reflexivity.
-Qed.
-
-Lemma denote_bks_singleton :
-  forall (b : LLVMAst.block dtyp) (bid : block_id) (nextblock : block_id),
-    blk_id b = bid ->
-    (snd (blk_term b)) = (TERM_Br_1 nextblock) ->
-    (blk_id b) <> nextblock ->
-    eutt (Logic.eq) (D.denote_bks [b] bid) (D.denote_block b).
-Proof.
-  intros b bid nextblock Heqid Heqterm Hneq.
-  cbn.
-  rewrite bind_ret_l.
-  rewrite KTreeFacts.unfold_iter_ktree.
-  cbn.
-  destruct (Eqv.eqv_dec_p (blk_id b) bid) eqn:Heq'; try contradiction.
-  repeat rewrite bind_bind.
-  rewrite Heqterm.
-  cbn.
-  setoid_rewrite translate_ret.
-  setoid_rewrite bind_ret_l.
-  destruct (Eqv.eqv_dec_p (blk_id b) nextblock); try contradiction.
-  repeat setoid_rewrite bind_ret_l. unfold Datatypes.id.
-  reflexivity.
-Qed.
-
-Lemma denote_code_app :
-  forall a b,
-    D.denote_code (a ++ b)%list ≈ ITree.bind (D.denote_code a) (fun _ => D.denote_code b).
-Proof.
-  induction a; intros b.
-  - cbn. rewrite bind_ret_l.
-    reflexivity.
-  - cbn. rewrite bind_bind. setoid_rewrite IHa.
-    reflexivity.
-Qed.
-
-Lemma denote_code_cons :
-  forall a l,
-    D.denote_code (a::l) ≈ ITree.bind (D.denote_instr a) (fun _ => D.denote_code l).
-Proof.
-  cbn; reflexivity.
-Qed.
-
-Import MonadNotation.
-Open Scope monad_scope.
-
-Lemma denote_bks_unfold: forall bks bid b,
-    find_block dtyp bks bid = Some b ->
-    D.denote_bks bks bid ≈
-    vob <- D.denote_block b ;;
-    match vob with
-    | inr v => ret (inr v)
-    | inl bid_target =>
-      match find_block DynamicTypes.dtyp bks bid_target with
-      | None => ret (inl bid_target)
-      | Some block_target =>
-        dvs <- Util.map_monad
-                (fun x => translate exp_E_to_instr_E (D.denote_phi bid x))
-                (blk_phis block_target) ;;
-        Util.map_monad (fun '(id,dv) => trigger (LocalWrite id dv)) dvs;;
-        D.denote_bks bks bid_target
-      end
-    end.
-Admitted.
-
-End Denotation.
-
 Section MemoryModel.
 
   Definition get_logical_block (mem: memory) (ptr: Addr.addr): option logical_block :=
@@ -529,6 +448,34 @@ Section alistFacts.
       contradiction.
   Qed.
 
+  Lemma In__alist_In :
+    forall {R : K -> K -> Prop} {RD : @RelDec K (@Logic.eq K)} {RDC : RelDec_Correct RD} (k : K) (v : V) l,
+      In (k,v) l ->
+      exists v', alist_In k l v'.
+  Proof.
+    intros R RD RDC k v l IN.
+    induction l; inversion IN.
+    - exists v. subst. unfold alist_In.
+      cbn.
+      assert (k ?[ Logic.eq ] k = true) as Hk.
+      eapply rel_dec_correct; auto.
+      rewrite Hk.
+      reflexivity.
+    - destruct a. inversion IN.
+      + injection H0; intros; subst.
+        exists v. unfold alist_In.
+        cbn.
+        assert (k ?[ Logic.eq ] k = true) as Hk.
+        eapply rel_dec_correct; auto.
+        rewrite Hk.
+        reflexivity.
+      + unfold alist_In.
+        cbn.
+        destruct (k ?[ Logic.eq ] k0) eqn:Hkk0.
+        * exists v0; auto.
+        * auto.
+  Qed.
+
   Lemma alist_find_remove_none:
     forall (m : list (K*V)) (k1 k2 : K), k2 <> k1 -> alist_find k1 (alist_remove k2 m) = None -> alist_find k1 m = None.
   Proof.
@@ -738,4 +685,18 @@ End WithDec.
 
 Notation "m '@' x" := (alist_find x m).
 Notation "m '⊑' m'" := (sub_alist m m') (at level 45).
+
+(* find_block axiomatisation to ease things. TODO: make it opaque *)
+Lemma find_block_nil: forall {T} b, find_block T [] b = None. 
+Admitted.
+
+Lemma find_block_eq: forall {T} x b bs,
+    blk_id b = x ->
+    find_block T (b:: bs) x = Some b.
+Admitted.
+
+Lemma find_block_ineq: forall {T} x b bs,
+    blk_id b <> x ->
+    find_block T (b::bs) x = find_block T bs x. 
+Admitted.
 

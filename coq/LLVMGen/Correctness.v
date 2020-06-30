@@ -393,7 +393,7 @@ Ltac abs_by_WF :=
         epose proof (context_lookup_succeeds _ _ _ h) as (val & LUP & CONTRA);
         rewrite h' in CONTRA;
         discriminate CONTRA *)
-      | Some ?val => 
+      | Some ?val =>
         let WF := fresh "WF" in
         assert (WF : WF_IRState σ s) by eauto;
         let H := fresh in pose proof (WF_IRState_lookups _ WF h h') as H; now (destruct id; inv H)
@@ -538,7 +538,7 @@ Section SimulationRelations.
   Qed.
 
   Hint Resolve memory_invariant_GLU memory_invariant_LLU memory_invariant_LLU_AExpr memory_invariant_GLU_AExpr : core.
- 
+
   Lemma memory_invariant_LLU_Ptr : forall σ s v id memH memV t l g m size,
       memory_invariant σ s memH (memV, (l, g)) ->
       nth_error (Γ s) v ≡ Some (ID_Local id, t) ->
@@ -1210,7 +1210,7 @@ Proof.
     generalize LUV; intros INLG;
       eapply MEM in INLG; eauto.
   - unfold WF_IRState; erewrite incVoid_Γ; eauto; apply WF.
-  - red; repeat break_let; erewrite incVoid_local_count; eauto. 
+  - red; repeat break_let; erewrite incVoid_local_count; eauto.
 Qed.
 
 Lemma incLocal_local_count: forall s s' x,
@@ -1268,7 +1268,7 @@ Proof.
     generalize LUV; intros INLG;
       eapply MEM in INLG; eauto.
   - unfold WF_IRState; erewrite incBlockNamed_Γ; eauto; apply WF.
-  - red; repeat break_let; erewrite incBlockNamed_local_count; eauto. 
+  - red; repeat break_let; erewrite incBlockNamed_local_count; eauto.
 Qed.
 
 Opaque incBlockNamed.
@@ -1396,7 +1396,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
 
             rewrite Heqo0.
             reflexivity.
-            
+
           }
 
         * (* Variable not in context, [context_lookup] fails *)
@@ -1492,7 +1492,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
           introR; destruct_unit.
           destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI) & GAMMAI).
           cbn in *.
-          
+
           specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs2 PREI).
 
           cbn* in IHnexp2;
@@ -1530,7 +1530,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
           rewrite Heqs3 in EVAL_vH; inversion EVAL_vH.
           rewrite Heqs2 in EVAL_vH0; inversion EVAL_vH0.
           subst.
-          
+
           { break_inner_match_goal.
             + (* Division by 0 *)
               apply Z.eqb_eq in Heqb.
@@ -2011,7 +2011,53 @@ Qed.
      *)
   Admitted.
 
+  Lemma genNExpr_memH : forall σ n e memH memV memH' memV' l g l' g' n',
+      genNExpr_rel σ n e memH (mk_config_cfg memV l g) (memH', n')
+                   (memV', (l', (g', ()))) ->
+      memH ≡ memH'.
+  Proof.
+    intros σ n e memH memV memH' memV' l g l' g' n' H.
+    destruct H; cbn in *; intuition.
+  Qed.
+
+  Lemma genNExpr_memV : forall σ n e memH memV memH' memV' l g l' g' n',
+      genNExpr_rel σ n e memH (mk_config_cfg memV l g) (memH', n')
+                   (memV', (l', (g', ()))) ->
+      memV ≡ memV'.
+  Proof.
+    intros σ n e memH memV memH' memV' l g l' g' n' H.
+    destruct H; cbn in *; intuition.
+  Qed.
+
+  Lemma genNExpr_g : forall σ n e memH memV memH' memV' l g l' g' n',
+      genNExpr_rel σ n e memH (mk_config_cfg memV l g) (memH', n')
+                   (memV', (l', (g', ()))) ->
+      g ≡ g'.
+  Proof.
+    intros σ n e memH memV memH' memV' l g l' g' n' H.
+    destruct H; cbn in *; intuition.
+  Qed.
+
+  Lemma genNExpr_l : forall σ n e memH memV memH' memV' l g l' g' n',
+      genNExpr_rel σ n e memH (mk_config_cfg memV l g) (memH', n')
+                   (memV', (l', (g', ()))) ->
+      l ⊑ l'.
+  Proof.
+    intros σ n e memH memV memH' memV' l g l' g' n' H.
+    destruct H; cbn in *; intuition.
+  Qed.
+
 End NExpr.
+
+Ltac genNExpr_rel_subst LL :=
+  match goal with
+  | NEXP : genNExpr_rel ?σ ?n ?e ?memH (mk_config_cfg ?memV ?l ?g) (?memH', ?n') (?memV', (?l', (?g', ()))) |- _ =>
+    let H := fresh in
+    pose proof genNExpr_memH NEXP as H; subst memH';
+    pose proof genNExpr_memV NEXP as H; subst memV';
+    pose proof genNExpr_g NEXP as H; subst g';
+    pose proof genNExpr_l NEXP as LL
+  end.
 
 Section MExpr.
 
@@ -2145,7 +2191,75 @@ Section MExpr.
       cbn* in Hgen; simp.
   Qed.
 
+      (* TODO: move these, and use them more. *)
+
+      Lemma genMExpr_memH : forall σ s e memH memV memH' memV' l g l' g' mb uv,
+          genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
+                       (memV', (l', (g', uv))) ->
+          memH ≡ memH'.
+      Proof.
+        intros * H.
+        destruct H; cbn in *; intuition.
+      Qed.
+
+      Lemma genMExpr_memV : forall σ s e memH memV memH' memV' l g l' g' mb uv,
+          genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
+                       (memV', (l', (g', uv))) ->
+          memV ≡ memV'.
+      Proof.
+        intros * H.
+        destruct H; cbn in *; intuition.
+      Qed.
+
+      Lemma genMExpr_g : forall σ s e memH memV memH' memV' l g l' g' mb uv,
+          genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
+                       (memV', (l', (g', uv))) ->
+          g ≡ g'.
+      Proof.
+        intros * H.
+        destruct H; cbn in *; intuition.
+      Qed.
+
+      Lemma genMExpr_l : forall σ s e memH memV memH' memV' l g l' g' mb uv,
+          genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
+                       (memV', (l', (g', uv))) ->
+          l ≡ l'.
+      Proof.
+        intros * H.
+        destruct H; cbn in *; intuition.
+      Qed.
+
+      Lemma genMExpr_preserves_WF:
+        forall mexp s s' σ x,
+          WF_IRState σ s ->
+          genMExpr mexp s ≡ inr (s',x) ->
+          WF_IRState σ s'.
+      Proof.
+        induction mexp; intros * WF GEN; cbn* in GEN; simp; auto.
+      Qed.
+
+      Lemma genMExpr_array : forall {s1 s2 m e c t},
+          genMExpr m s1 ≡ inr (s2, (e, c, t)) ->
+          exists sz, t ≡ TYPE_Array sz TYPE_Double.
+      Proof.
+        intros s1 s2 m e c t H.
+        destruct m; cbn in H; inv H.
+        simp.
+        exists sz.
+        reflexivity.
+      Qed.
+
 End MExpr.
+
+Ltac genMExpr_rel_subst :=
+  match goal with
+  | MEXP : genMExpr_rel ?σ ?s ?e ?memH (mk_config_cfg ?memV ?l ?g) (?memH', ?mb) (?memV', (?l', (?g', ?uv))) |- _ =>
+    let H := fresh in
+    pose proof genMExpr_memH MEXP as H; subst memH';
+    pose proof genMExpr_memV MEXP as H; subst memV';
+    pose proof genMExpr_g MEXP as H; subst g';
+    pose proof genMExpr_l MEXP as H; subst l'
+  end.
 
 Section AExpr.
 
@@ -2186,28 +2300,6 @@ Section AExpr.
     amonotone : ext_local mi sti mf stf
     }.
 
-  (* TODO: better name *)
-  (* Only after denoting code, not expression *)
-  Definition invariant_MExpr_code
-             (σ : evalContext)
-             (s : IRState) : Rel_cfg_T mem_block () :=
-    fun '(memH, mb) '(memV, (ρ, (g, res))) =>
-      exists ptr i (vid : nat) (mid : mem_block_id) (size : Int64.int) (sz : int), (* TODO: sz ≈ size? *)
-        memory_lookup memH mid ≡ Some mb /\
-        in_local_or_global ρ g memV i (DVALUE_Addr ptr) (TYPE_Array sz TYPE_Double) /\
-        nth_error σ vid ≡ Some (DSHPtrVal mid size) /\
-        nth_error (Γ s) vid ≡ Some (i, TYPE_Pointer (TYPE_Array sz TYPE_Double)).
-
-  (* TODO move to mexpr section *)
-  Lemma genMExpr_preserves_WF:
-    forall mexp s s' σ x,
-      WF_IRState σ s ->
-      genMExpr mexp s ≡ inr (s',x) ->
-      WF_IRState σ s'.
-  Proof.
-    induction mexp; intros * WF GEN; cbn* in GEN; simp; auto.
-  Qed.
-
   (*
   Lemma genAExpr_preserves_WF:
     forall aexp s s' σ x,
@@ -2222,38 +2314,77 @@ Section AExpr.
     { pose proof IHaexp _ _ _ _ WF Heqs0.
       eauto.
     }
-    
+
     all: eapply IHaexp1 in Heqs0; eapply IHaexp2 in Heqs1; eauto.
   Qed. *)
 
-  (* TODO: Move this *)
-  Lemma In__alist_In :
-    forall {K V} {R : K -> K -> Prop} {RD : @RelDec K (@Logic.eq K)} {RDC : RelDec_Correct RD} (k : K) (v : V) l,
-      In (k,v) l ->
-      exists v', alist_In k l v'.
+  (* TODO: move this *)
+  Lemma int_of_nat :
+    forall (i : Int64.int),
+    exists (n : nat), i ≡ Int64.repr (Z.of_nat n).
   Proof.
-    intros K V R RD RDC k v l IN.
-    induction l; inversion IN.
-    - exists v. subst. unfold alist_In.
+    intros [val [LOWER UPPER]].
+    Transparent Int64.repr.
+    unfold Int64.repr.
+    Opaque Int64.repr.
+    exists (Z.to_nat val).
+    rewrite Z2Nat.id by lia.
+
+    match goal with
+    | |- ?x ≡ ?y => assert (x = y) as EQ;
+                    pose proof Int64.eq_spec x y as EQ_real
+    end.
+
+    { unfold equiv.
+      unfold MInt64asNT.NTypeEquiv.
+      unfold Int64.eq.
       cbn.
-      assert (k ?[ Logic.eq ] k ≡ true) as Hk.
-      eapply rel_dec_correct; auto.
-      rewrite Hk.
-      reflexivity.
-    - destruct a. inversion IN.
-      + injection H0; intros; subst.
-        exists v. unfold alist_In.
-        cbn.
-        assert (k ?[ Logic.eq ] k ≡ true) as Hk.
-        eapply rel_dec_correct; auto.
-        rewrite Hk.
-        reflexivity.
-      + unfold alist_In.
-        cbn.
-        destruct (k ?[ Logic.eq ] k0) eqn:Hkk0.
-        * exists v0; auto.
-        * auto.
+      rewrite Int64.Z_mod_modulus_eq.
+
+      assert (val mod Int64.modulus ≡ val)%Z as H.
+      apply Zdiv.Zmod_small; lia.
+
+      rewrite H.
+      apply Coqlib.zeq_true.
+    }
+
+    rewrite EQ in EQ_real.
+    auto.
   Qed.
+
+  (* TODO: move this *)
+  Lemma to_nat_repr_of_nat :
+    forall (n : nat),
+      MInt64asNT.to_nat (Int64.repr (Z.of_nat n)) ≡ n.
+  Proof.
+    intros n.
+
+    match goal with
+    | |- ?x ≡ ?y => assert (x = y) as EQ
+    end.
+
+    { unfold equiv. unfold peano_naturals.nat_equiv.
+      Transparent Int64.repr.
+      unfold Int64.repr.
+      Opaque Int64.repr.
+
+      unfold MInt64asNT.to_nat.
+      unfold Int64.intval.
+      rewrite Int64.Z_mod_modulus_eq.
+      assert (exists m, Int64.modulus ≡ Z.of_nat m) as (m & H).
+      admit.
+
+      rewrite H.
+      rewrite <- Zdiv.mod_Zmod.
+      rewrite Nat2Z.id.
+
+      admit.
+      admit.
+    }
+
+    rewrite EQ.
+    auto.
+  Admitted.
 
   Lemma genAExpr_correct_ind :
     forall (* Compiler bits *) (s1 s2: IRState)
@@ -2298,7 +2429,7 @@ Section AExpr.
           cbn. repeat norm_v.
           cbn. repeat norm_v.
 
-          rewrite typ_to_dtyp_equation in *.               
+          rewrite typ_to_dtyp_equation in *.
           cbn in READ.
           rewrite interp_cfg_to_L3_Load; eauto.
 
@@ -2353,8 +2484,7 @@ Section AExpr.
              unfold context_lookup.
              rewrite Heqo0. cbn.
              reflexivity.
-        * (* TODO: should be able to replace with abs_by_WF *)
-          cbn* in EVAL; rewrite Heqo0 in EVAL; inv EVAL.
+        * cbn* in EVAL; rewrite Heqo0 in EVAL; inv EVAL.
     - (* Constant *)
       cbn* in COMPILE; simp.
       unfold denoteAExpr; cbn*.
@@ -2388,105 +2518,11 @@ Section AExpr.
       subst i3.
       do 2 norm_v.
 
-      (* TODO: move these, and use them more. *)
-      Lemma genNExpr_memH : forall σ n e memH memV memH' memV' l g l' g' n',
-          genNExpr_rel σ n e memH (mk_config_cfg memV l g) (memH', n')
-                       (memV', (l', (g', ()))) ->
-          memH ≡ memH'.
-      Proof.
-        intros σ n e memH memV memH' memV' l g l' g' n' H.
-        destruct H; cbn in *; intuition.
-      Qed.
-
-      Lemma genNExpr_memV : forall σ n e memH memV memH' memV' l g l' g' n',
-          genNExpr_rel σ n e memH (mk_config_cfg memV l g) (memH', n')
-                       (memV', (l', (g', ()))) ->
-          memV ≡ memV'.
-      Proof.
-        intros σ n e memH memV memH' memV' l g l' g' n' H.
-        destruct H; cbn in *; intuition.
-      Qed.
-
-      Lemma genNExpr_g : forall σ n e memH memV memH' memV' l g l' g' n',
-          genNExpr_rel σ n e memH (mk_config_cfg memV l g) (memH', n')
-                       (memV', (l', (g', ()))) ->
-          g ≡ g'.
-      Proof.
-        intros σ n e memH memV memH' memV' l g l' g' n' H.
-        destruct H; cbn in *; intuition.
-      Qed.
-
-      Lemma genNExpr_l : forall σ n e memH memV memH' memV' l g l' g' n',
-          genNExpr_rel σ n e memH (mk_config_cfg memV l g) (memH', n')
-                       (memV', (l', (g', ()))) ->
-          l ⊑ l'.
-      Proof.
-        intros σ n e memH memV memH' memV' l g l' g' n' H.
-        destruct H; cbn in *; intuition.
-      Qed.
-
-      Lemma genMExpr_memH : forall σ s e memH memV memH' memV' l g l' g' mb uv,
-          genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
-                       (memV', (l', (g', uv))) ->
-          memH ≡ memH'.
-      Proof.
-        intros * H.
-        destruct H; cbn in *; intuition.
-      Qed.
-
-      Lemma genMExpr_memV : forall σ s e memH memV memH' memV' l g l' g' mb uv,
-          genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
-                       (memV', (l', (g', uv))) ->
-          memV ≡ memV'.
-      Proof.
-        intros * H.
-        destruct H; cbn in *; intuition.
-      Qed.
-
-      Lemma genMExpr_g : forall σ s e memH memV memH' memV' l g l' g' mb uv,
-          genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
-                       (memV', (l', (g', uv))) ->
-          g ≡ g'.
-      Proof.
-        intros * H.
-        destruct H; cbn in *; intuition.
-      Qed.
-
-      Lemma genMExpr_l : forall σ s e memH memV memH' memV' l g l' g' mb uv,
-          genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
-                       (memV', (l', (g', uv))) ->
-          l ≡ l'.
-      Proof.
-        intros * H.
-        destruct H; cbn in *; intuition.
-      Qed.
-
       eapply eutt_clo_bind; eauto.
-      intros [memH' n'] [memV' [l' [g' []]]] [SINV GENN_REL].          
-      
+      intros [memH' n'] [memV' [l' [g' []]]] [SINV GENN_REL].
+
       (* Relate MExpr *)
       destruct GENN_REL as [NEXP_CORRECT VARS_s1_i].
-
-      (* TODO: move this Ltac *)
-      Ltac genNExpr_rel_subst LL :=
-        match goal with
-        | NEXP : genNExpr_rel ?σ ?n ?e ?memH (mk_config_cfg ?memV ?l ?g) (?memH', ?n') (?memV', (?l', (?g', ()))) |- _ =>
-          let H := fresh in
-          pose proof genNExpr_memH NEXP as H; subst memH';
-          pose proof genNExpr_memV NEXP as H; subst memV';
-          pose proof genNExpr_g NEXP as H; subst g';
-          pose proof genNExpr_l NEXP as LL
-        end.
-
-      Ltac genMExpr_rel_subst :=
-        match goal with
-        | MEXP : genMExpr_rel ?σ ?s ?e ?memH (mk_config_cfg ?memV ?l ?g) (?memH', ?mb) (?memV', (?l', (?g', ?uv))) |- _ =>
-          let H := fresh in
-          pose proof genMExpr_memH MEXP as H; subst memH';
-          pose proof genMExpr_memV MEXP as H; subst memV';
-          pose proof genMExpr_g MEXP as H; subst g';
-          pose proof genMExpr_l MEXP as H; subst l'
-        end.
 
       (* Need to know that memH'=memH and memV'=memV ... *)
       genNExpr_rel_subst LL'.
@@ -2542,7 +2578,7 @@ Section AExpr.
                                  ITree.bind (trigger (Load (typ_to_dtyp [ ] TYPE_Double) da))
                                    (λ dv : uvalue, trigger (LocalWrite (Traversal.endo r0) dv))
                              end))) (λ _ : (), Ret ())) as blah.
-      
+
       repeat rewrite <- bind_bind.
       setoid_rewrite translate_bind.
       rewrite <- bind_bind.
@@ -2575,28 +2611,6 @@ Section AExpr.
       clear He1.
 
       repeat norm_v.
-
-      (* Should be able to show this now... *)
-
-      (* TODO: actually prove this... *)
-      (* n' = i2 *)
-      Lemma int_of_nat :
-        forall (i : Int64.int),
-        exists (n : nat), i ≡ Int64.repr (Z.of_nat n).
-      Proof.
-        intros [val [LOWER UPPER]].
-        destruct val eqn:Hval.
-        - exists 0. cbv.
-          Transparent Int64.repr.
-          unfold Int64.repr.
-          cbn.
-          unfold Int64.Z_mod_modulus_range'.
-          admit.
-        - exists (Pos.to_nat p). cbn.
-          admit.
-        - pose proof (Pos2Z.neg_is_neg p).
-          omega. (* Contradiction. *)
-      Admitted.
 
       destruct MINV as (SINV'' & MINV).
 
@@ -2656,32 +2670,12 @@ Section AExpr.
       pose proof int_of_nat n' as (n'_nat & Hn').
       rewrite Hn'.
 
-      Lemma exp_E_to_instr_E_Memory : forall {X} (e : MemoryE X),
-          exp_E_to_instr_E (subevent X e) ≡ subevent X e.
-      Proof.
-        reflexivity.
-      Qed.
-
-      Lemma genMExpr_array : forall {s1 s2 m e c t},
-          genMExpr m s1 ≡ inr (s2, (e, c, t)) ->
-          exists sz, t ≡ TYPE_Array sz TYPE_Double.
-      Proof.
-        intros s1 s2 m e c t H.
-        destruct m; cbn in H; inv H.
-        simp.
-        exists sz.
-        reflexivity.
-      Qed.
-
       (* Long path to rewriting with GEP lemma... *)
       pose proof genMExpr_array Heqs0 as (sz' & ARRAY).
       rewrite ARRAY.
       rewrite typ_to_dtyp_equation.
       rewrite exp_E_to_instr_E_Memory, subevent_subevent.
       epose proof interp_cfg_to_L3_GEP_array _ (DTYPE_Array sz' DTYPE_Double).
-
-      unfold in_local_or_global in ILG.
-      epose proof memory_invariant_LLU_Ptr.
 
       destruct i'; cbn in ILG.
       { destruct ILG as (? & ? & CONTRA & REST).
@@ -2690,12 +2684,21 @@ Section AExpr.
       cbn in SINV''.
       pose proof state_invariant_memory_invariant SINV'' as MINV.
       epose proof memory_invariant_LLU_Ptr vid MINV NTH_Γ_vid NTH_σ_vid as (bk_h & ptr_v & MLUP' & ILG' & GET_ARRAY).
-      assert (ptr_v ≡ ptr). admit.
+      assert (ptr_v ≡ ptr).
+      { (* ptr_v comes from memory_invariant_LLU_Ptr *)
+        (* ILG : l' @ id = Some (UVALUE_Addr ptr) *)
+        (* Use ILG' to relate... *)
+        cbn in ILG'.
+        rewrite ILG in ILG'.
+        inversion ILG'.
+        auto.
+      }
       subst.
 
       rewrite MLUP in MLUP'. inv MLUP'.
+      
       replace (MInt64asNT.to_nat (Int64.repr (Z.of_nat n'_nat))) with n'_nat in LUPn'b'.
-      2: admit.
+      2: { symmetry. apply to_nat_repr_of_nat. }
       specialize (GET_ARRAY n'_nat b LUPn'b').
       epose proof interp_cfg_to_L3_GEP_array helix_intrinsics DTYPE_Double ptr sz' g l' memV _ n'_nat GET_ARRAY as (ptr' & EUTT_GEP & READ).
 
@@ -2739,7 +2742,7 @@ Section AExpr.
         * cbn. repeat norm_v. cbn. norm_v.
           reflexivity.
           cbn.
-          apply H1.
+          apply H0.
           apply In_add_eq.
         * (* TODO: ltac, this is horrid *)
           cbn.
@@ -2769,7 +2772,7 @@ Section AExpr.
              unfold incLocal in Heqs1.
              Opaque incLocal.
              cbn in Heqs1. inversion Heqs1.
-             rewrite <- H3 in CONTRA.
+             rewrite <- H2 in CONTRA.
              cbn in CONTRA.
              unfold Traversal.endo, Traversal.Endo_id in CONTRA.
              apply Name_inj, append_factor_left,string_of_nat_inj in CONTRA; lia.
@@ -3259,7 +3262,7 @@ Section AExpr.
         * cbn. repeat norm_v. cbn. norm_v.
           reflexivity.
           cbn.
-          apply H.          
+          apply H.
 
           (* TODO: Can't unfold Floats.Float.add ??? *)
           assert (Float_minimum b' b'' ≡ MFloat64asCT.CTypeMin b' b'').
@@ -3370,7 +3373,7 @@ Section AExpr.
         * cbn. repeat norm_v. cbn. norm_v.
           reflexivity.
           cbn.
-          apply H.          
+          apply H.
 
           assert (Float_maxnum b' b'' ≡ MFloat64asCT.CTypeMax b' b'').
           admit.
@@ -3744,8 +3747,8 @@ Section MemCopy.
   Lemma genMemCopy_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (σ: evalContext)
-      (* Vellvm bits *)   (o: Int64.int) (x y: ident) (nextblock bid: block_id) (bks : list (LLVMAst.block typ)),
-      genMemCopy o x y nextblock s1 ≡ inr (s2, (bid, bks)) -> (* Compilation succeeds *)
+      (* Vellvm bits *)   (i o n: Int64.int) (x y: ident) (nextblock bid: block_id) (bks : list (LLVMAst.block typ)),
+      genMemCopy i o n x y nextblock s1 ≡ inr (s2, (bid, bks)) -> (* Compilation succeeds *)
       WF_IRState σ s1 ->                                      (* Well-formed IRState *)
       False.
       (* eutt R'
@@ -3821,8 +3824,8 @@ Section IMapBody.
   Lemma genIMapBody_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *) (σ: evalContext) (f: AExpr)
-      (* Vellvm bits *) (n: Int64.int) (x y: ident) (loopvar: raw_id) (nextblock: block_id) (bid: block_id) (bks: list (LLVMAst.block typ)),
-      genIMapBody n x y f loopvar nextblock s1 ≡ inr (s2, (bid, bks)) -> (* Compilation succeeds *)
+      (* Vellvm bits *) (i o: Int64.int) (x y: ident) (loopvar: raw_id) (nextblock: block_id) (bid: block_id) (bks: list (LLVMAst.block typ)),
+      genIMapBody i o x y f loopvar nextblock s1 ≡ inr (s2, (bid, bks)) -> (* Compilation succeeds *)
       WF_IRState σ s1 ->                                      (* Well-formed IRState *)
       False.
       (* eutt R'
@@ -3845,8 +3848,8 @@ Section BinOpBody.
   Lemma genBinOpBody_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *) (σ: evalContext) (f: AExpr)
-      (* Vellvm bits *) (n: nat) (x y: ident) (loopvar: raw_id) (nextblock: block_id) (bid: block_id) (bks: list (LLVMAst.block typ)),
-      genBinOpBody n x y f loopvar nextblock s1 ≡ inr (s2, (bid, bks)) -> (* Compilation succeeds *)
+      (* Vellvm bits *) (i o: Int64.int) (n: nat) (x y: ident) (loopvar: raw_id) (nextblock: block_id) (bid: block_id) (bks: list (LLVMAst.block typ)),
+      genBinOpBody i o n x y f loopvar nextblock s1 ≡ inr (s2, (bid, bks)) -> (* Compilation succeeds *)
       WF_IRState σ s1 ->                                      (* Well-formed IRState *)
       False.
       (* eutt R'
@@ -3869,8 +3872,8 @@ Section MemMap2Body.
   Lemma genMemMap2Body_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *) (σ: evalContext) (f: AExpr)
-      (* Vellvm bits *) (n: nat) (x x0 y: ident) (loopvar: raw_id) (nextblock: block_id) (bid: block_id) (bks: list (LLVMAst.block typ)),
-      genMemMap2Body n x x0 y f loopvar nextblock s1 ≡ inr (s2, (bid, bks)) -> (* Compilation succeeds *)
+      (* Vellvm bits *) (i0 i1 o: Int64.int) (n: nat) (x x0 y: ident) (loopvar: raw_id) (nextblock: block_id) (bid: block_id) (bks: list (LLVMAst.block typ)),
+      genMemMap2Body i0 i1 o x x0 y f loopvar nextblock s1 ≡ inr (s2, (bid, bks)) -> (* Compilation succeeds *)
       WF_IRState σ s1 ->                                      (* Well-formed IRState *)
       False.
       (* eutt R'
@@ -3954,7 +3957,7 @@ Section Resolve_PVar.
   (*             (interp_cfg (D.denote_bks (convert_typ env bks) bid_in) *)
   (*                               g ρ memV)). *)
   (* Proof. *)
- 
+
 
 
 End Resolve_PVar.
@@ -4043,7 +4046,7 @@ Ltac forget_strings :=
 
     (* YZ TODO : reducing denote_bks exposes iter. Should we simply make it opaque? *)
     Opaque denote_bks.
-    Opaque resolve_PVar. 
+    Opaque resolve_PVar.
 
     Ltac focus_single_step_v :=
       match goal with
@@ -4148,7 +4151,7 @@ Ltac forget_strings :=
       do 3 (eapply state_invariant_incLocal; eauto).
       do 2 (eapply state_invariant_incVoid; eauto).
       do 1 (eapply state_invariant_incBlockNamed; eauto).
-      
+
       intros [memH1 src] (memV1 & ρ1 & g1 & []) (INV1 & (EXP1 & <- & <- & <- & MONO1) & GAMMA1); cbn* in *.
 
       subst.
@@ -4162,7 +4165,7 @@ Ltac forget_strings :=
       eapply eutt_clo_bind.
       eapply genNExpr_correct_ind; eauto.
 
-      intros [memH2 dst] (memV2 & ρ2 & g2 & []) (INV2 & (EXP2 & <- & <- & <- & MONO2) & GAMMA2); cbn in GAMMA2; cbn in INV2. 
+      intros [memH2 dst] (memV2 & ρ2 & g2 & []) (INV2 & (EXP2 & <- & <- & <- & MONO2) & GAMMA2); cbn in GAMMA2; cbn in INV2.
       subst.
 
       (* Step 7. *)
@@ -4211,7 +4214,7 @@ Ltac forget_strings :=
       subst; focus_single_step_v; repeat norm_v.
       subst; focus_single_step_v; repeat norm_vD.
       focus_single_step_v.
-      
+
       destruct (EXP1 ρ2) as [EQe ?]; auto.
       rewrite <- EQe.
       repeat norm_v.
@@ -4254,7 +4257,7 @@ Ltac forget_strings :=
       cbn*; repeat norm_v.
       subst; cbn; repeat norm_v; focus_single_step_v.
       rewrite interp_cfg_to_L3_Load.
-      2: rewrite typ_to_dtyp_D; eassumption. 
+      2: rewrite typ_to_dtyp_D; eassumption.
       repeat norm_v.
       subst; cbn; repeat norm_v; focus_single_step_v.
       rewrite interp_cfg_to_L3_LW.
@@ -4320,7 +4323,7 @@ Ltac forget_strings :=
 
     - destruct fuel as [| fuel]; [cbn in *; simp |].
 
-      Opaque genWhileLoop. 
+      Opaque genWhileLoop.
       cbn* in GEN.
       unfold GenIR_Rel in BISIM; cbn in BISIM.
       simp.
@@ -4398,7 +4401,6 @@ Ltac forget_strings :=
       subst.
       repeat (norm_v; []).
       focus_single_step_v.
-      apply int_eq_inv in e0; inv e0.
       (* onAllHyps move_up_types. *)
       unfold endo.
       focus_single_step_v.
@@ -4416,19 +4418,9 @@ Ltac forget_strings :=
         cbn; repeat norm_v.
         subst; cbn; repeat norm_v.
 
-        Lemma find_block_eq: forall {T} x b bs,
-            blk_id b ≡ x ->
-            find_block T (b:: bs) x ≡ Some b.
-        Admitted.
-
-        Lemma find_block_ineq: forall {T} x b bs,
-            blk_id b <> x ->
-            find_block T (b::bs) x ≡ find_block T bs x. 
-        Admitted.
-
         rewrite find_block_ineq, find_block_eq.
         2: reflexivity.
-        2:cbn; admit. 
+        2:cbn; admit.
 
         repeat norm_v.
 (*
@@ -4452,23 +4444,16 @@ Ltac forget_strings :=
       (* Need to denote phis, I cannot denote the block directly :( *)
 
         admit.
-        
+
       --
         (* from == to, we go from the entry block to the next one directly *)
         cbn.
         repeat norm_v.
         subst; cbn; repeat norm_v.
 
-        Lemma denote_bks_unfold_not_in: forall bks bid,
-            find_block dtyp bks bid ≡ None ->
-            D.denote_bks bks bid ≈ Ret (inl bid).
-        Admitted.
         repeat rewrite find_block_ineq.
         2,3,4,5: cbn; admit.
         cbn.
-        Lemma find_block_nil: forall {T} b, find_block T [] b ≡ None. 
-        Admitted.
-
         rewrite find_block_nil.
 
         cbn; repeat norm_v.
@@ -4478,7 +4463,7 @@ Ltac forget_strings :=
         cbn; repeat norm_h.
         rewrite interp_Mem_MemSet.
         repeat norm_h.
-        
+
         apply eutt_Ret.
         split; eauto.
         {
@@ -4571,7 +4556,7 @@ Ltac forget_strings :=
   (*     eutt_hide_left. *)
   (*     focus_single_step_v. *)
   (*     unfold MInt64asNT.from_nat in *. *)
-      
+
   (*     rename n into index1. *)
   (*     break_if. *)
   (*     { *)
@@ -4581,9 +4566,9 @@ Ltac forget_strings :=
   (*       cbn. *)
   (*       repeat norm_v. *)
 
-        
-       
-      
+
+
+
 
   Admitted.
 
@@ -4727,4 +4712,3 @@ Proof.
     eapply U; eauto.
   - apply nth_error_None in Heqo; lia.
 Qed.
-
