@@ -4415,16 +4415,6 @@ Ltac forget_strings :=
         cbn; repeat norm_v.
         subst; cbn; repeat norm_v.
 
-        Lemma find_block_eq: forall {T} x b bs,
-            blk_id b ≡ x ->
-            find_block T (b:: bs) x ≡ Some b.
-        Admitted.
-
-        Lemma find_block_ineq: forall {T} x b bs,
-            blk_id b <> x ->
-            find_block T (b::bs) x ≡ find_block T bs x. 
-        Admitted.
-
         rewrite find_block_ineq, find_block_eq.
         2: reflexivity.
         2:cbn; admit. 
@@ -4461,9 +4451,6 @@ Ltac forget_strings :=
         repeat rewrite find_block_ineq.
         2,3,4,5: cbn; admit.
         cbn.
-        Lemma find_block_nil: forall {T} b, find_block T [] b ≡ None. 
-        Admitted.
-
         rewrite find_block_nil.
 
         cbn; repeat norm_v.

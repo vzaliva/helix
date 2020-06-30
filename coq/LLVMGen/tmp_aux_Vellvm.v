@@ -658,3 +658,17 @@ End WithDec.
 Notation "m '@' x" := (alist_find x m).
 Notation "m '⊑' m'" := (sub_alist m m') (at level 45).
 
+(* find_block axiomatisation to ease things. TODO: make it opaque *)
+Lemma find_block_nil: forall {T} b, find_block T [] b = None. 
+Admitted.
+
+Lemma find_block_eq: forall {T} x b bs,
+    blk_id b = x ->
+    find_block T (b:: bs) x = Some b.
+Admitted.
+
+Lemma find_block_ineq: forall {T} x b bs,
+    blk_id b <> x ->
+    find_block T (b::bs) x = find_block T bs x. 
+Admitted.
+
