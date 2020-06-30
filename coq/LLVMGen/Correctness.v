@@ -3744,8 +3744,8 @@ Section MemCopy.
   Lemma genMemCopy_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (σ: evalContext)
-      (* Vellvm bits *)   (o: Int64.int) (x y: ident) (nextblock bid: block_id) (bks : list (LLVMAst.block typ)),
-      genMemCopy o x y nextblock s1 ≡ inr (s2, (bid, bks)) -> (* Compilation succeeds *)
+      (* Vellvm bits *)   (i o n: Int64.int) (x y: ident) (nextblock bid: block_id) (bks : list (LLVMAst.block typ)),
+      genMemCopy i o n x y nextblock s1 ≡ inr (s2, (bid, bks)) -> (* Compilation succeeds *)
       WF_IRState σ s1 ->                                      (* Well-formed IRState *)
       False.
       (* eutt R'
@@ -3821,8 +3821,8 @@ Section IMapBody.
   Lemma genIMapBody_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *) (σ: evalContext) (f: AExpr)
-      (* Vellvm bits *) (n: Int64.int) (x y: ident) (loopvar: raw_id) (nextblock: block_id) (bid: block_id) (bks: list (LLVMAst.block typ)),
-      genIMapBody n x y f loopvar nextblock s1 ≡ inr (s2, (bid, bks)) -> (* Compilation succeeds *)
+      (* Vellvm bits *) (i o: Int64.int) (x y: ident) (loopvar: raw_id) (nextblock: block_id) (bid: block_id) (bks: list (LLVMAst.block typ)),
+      genIMapBody i o x y f loopvar nextblock s1 ≡ inr (s2, (bid, bks)) -> (* Compilation succeeds *)
       WF_IRState σ s1 ->                                      (* Well-formed IRState *)
       False.
       (* eutt R'
@@ -3845,8 +3845,8 @@ Section BinOpBody.
   Lemma genBinOpBody_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *) (σ: evalContext) (f: AExpr)
-      (* Vellvm bits *) (n: nat) (x y: ident) (loopvar: raw_id) (nextblock: block_id) (bid: block_id) (bks: list (LLVMAst.block typ)),
-      genBinOpBody n x y f loopvar nextblock s1 ≡ inr (s2, (bid, bks)) -> (* Compilation succeeds *)
+      (* Vellvm bits *) (i o: Int64.int) (n: nat) (x y: ident) (loopvar: raw_id) (nextblock: block_id) (bid: block_id) (bks: list (LLVMAst.block typ)),
+      genBinOpBody i o n x y f loopvar nextblock s1 ≡ inr (s2, (bid, bks)) -> (* Compilation succeeds *)
       WF_IRState σ s1 ->                                      (* Well-formed IRState *)
       False.
       (* eutt R'
@@ -3869,8 +3869,8 @@ Section MemMap2Body.
   Lemma genMemMap2Body_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *) (σ: evalContext) (f: AExpr)
-      (* Vellvm bits *) (n: nat) (x x0 y: ident) (loopvar: raw_id) (nextblock: block_id) (bid: block_id) (bks: list (LLVMAst.block typ)),
-      genMemMap2Body n x x0 y f loopvar nextblock s1 ≡ inr (s2, (bid, bks)) -> (* Compilation succeeds *)
+      (* Vellvm bits *) (i0 i1 o: Int64.int) (n: nat) (x x0 y: ident) (loopvar: raw_id) (nextblock: block_id) (bid: block_id) (bks: list (LLVMAst.block typ)),
+      genMemMap2Body i0 i1 o x x0 y f loopvar nextblock s1 ≡ inr (s2, (bid, bks)) -> (* Compilation succeeds *)
       WF_IRState σ s1 ->                                      (* Well-formed IRState *)
       False.
       (* eutt R'
@@ -4398,7 +4398,6 @@ Ltac forget_strings :=
       subst.
       repeat (norm_v; []).
       focus_single_step_v.
-      apply int_eq_inv in e0; inv e0.
       (* onAllHyps move_up_types. *)
       unfold endo.
       focus_single_step_v.
