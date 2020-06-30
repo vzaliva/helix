@@ -241,7 +241,7 @@ Section mem_aux.
         apply NP.F.find_mapsto_iff.
         assumption.
   Qed.
-  
+
   Lemma mem_firstn_def_eq (k n : nat) (mb : mem_block) (a : CarrierA) :
     mem_lookup k (mem_firstn n mb) ≡ Some a <-> k < n /\ mem_lookup k mb ≡ Some a.
   Proof.
@@ -732,11 +732,17 @@ Class DSH_pure
       (* modifies only [y_p], which must be valid in [σ] *)
       mem_write_safe: forall σ m m' fuel,
           evalDSHOperator σ d m fuel = Some (inr m') ->
-          (forall y_i y_size , evalPExpr σ y_p = inr (y_i,y_size) ->
+          (forall y_i y_size , evalPExpr σ y_p = inr (y_i, y_size) ->
                           memory_equiv_except m m' y_i)
             (* NOTE: memory equaility may need to be constrained
                by [y_size] *)
     }.
+
+(* TODO: move *)
+Definition lookup_PExpr_wsize (σ:evalContext) (m:memory) (p:PExpr) :=
+  '(a, size) <- evalPExpr σ p ;;
+  mb <- memory_lookup_err "block_id not found" m a ;;
+  ret (mb, size).
 
 (** Given MSHCOL and DSHCOL operators are quivalent wrt [x_p] as
     the input memory block addres and [y_p] as the output.
@@ -759,8 +765,8 @@ Class MSH_DSH_compat
       eval_equiv
       :
         forall (mx mb: mem_block),
-          (lookup_PExpr σ m x_p = inr mx) (* input exists *) ->
-          (lookup_PExpr σ m y_p = inr mb) (* output before *) ->
+          (lookup_PExpr_wsize σ m x_p = inr (mx, i)) (* input exists *) ->
+          (lookup_PExpr_wsize σ m y_p = inr (mb, o)) (* output before *) ->
 
           (* [md] - memory diff *) 
           (* [m'] - memory state after execution *) 
@@ -1356,39 +1362,55 @@ Section BinCarrierA.
 
     (* base case 3 *)
     {
-      (* @zoickx please fix
-      repeat break_match; try some_none; try inl_inr; exfalso.
+      repeat break_match; try some_none; try inl_inr.
       -
         enough (inl s = inr n1) by inl_inr.
         rewrite <-Heqs0, <-Heqs; clear.
         apply evalNExpr_cons_CTypeVal.
         reflexivity.
       -
-        enough (inl s = inr m0) by inl_inr.
+        enough (inl s = inr (m0, n3)) by inl_inr.
         rewrite <-Heqs0, <-Heqs2; clear.
         apply evalMExpr_cons_CTypeVal.
         reflexivity.
       -
         unfold NatAsNT.MNatAsNT.to_nat in *.
         eq_to_equiv.
-
         erewrite evalNExpr_cons_CTypeVal in Heqs by reflexivity.
-        rewrite Heqs in Heqs1.
-        erewrite evalMExpr_cons_CTypeVal in Heqs2 by reflexivity.
-        rewrite Heqs0 in Heqs2.
+        rewrite Heqs in Heqs2.
+        erewrite evalMExpr_cons_CTypeVal in Heqs3 by reflexivity.
+        rewrite Heqs0 in Heqs3.
         repeat inl_inr_inv.
-        rewrite Heqs1, Heqs2 in *.
-        some_none.
-         *)
-        admit.
+        inversion Heqs3; cbv in H1; subst.
+        cbv in Heqs2; subst.
+        inl_inr.
+      -
+        subst.
+        unfold NatAsNT.MNatAsNT.to_nat in *.
+        eq_to_equiv.
+        erewrite evalNExpr_cons_CTypeVal in Heqs by reflexivity.
+        rewrite Heqs in Heqs2.
+        erewrite evalMExpr_cons_CTypeVal in Heqs3 by reflexivity.
+        rewrite Heqs0 in Heqs3.
+        repeat inl_inr_inv.
+        cbv in Heqs2; subst.
+        inversion Heqs3.
+        cbv in H1; subst.
+        cbn in H0.
+        clear - H H0.
+        inversion H; clear H.
+        err_eq_to_equiv_hyp.
+        rewrite <-H0 in H2.
+        destruct mem_lookup_err; try inl_inr; try constructor.
     }
+
 
     (* inductive cases *)
     all: unfold evalIUnCType in *.
     all: repeat break_match; try reflexivity; try some_none; try inl_inr.
     all: try apply IHdf; try apply IHdf1; try apply IHdf2.
     all: constructor.
-  Admitted.
+  Qed.
 
   Lemma evalIBinCarrierA_value_independent
         (mem : memory)
@@ -1416,8 +1438,7 @@ Section BinCarrierA.
     
     (* base case 3 *)
     {
-      (* @zoickx please fix
-      repeat break_match; try some_none; try inl_inr; exfalso.
+      repeat break_match; try some_none; try inl_inr.
       -
         enough (inl s = inr n1) by inl_inr.
         rewrite <-Heqs0, <-Heqs; clear.
@@ -1425,7 +1446,7 @@ Section BinCarrierA.
         apply evalNExpr_cons_CTypeVal.
         reflexivity.
       - 
-        enough (inl s = inr m0) by inl_inr.
+        enough (inl s = inr (m0, n3)) by inl_inr.
         rewrite <-Heqs0, <-Heqs2; clear.
         apply evalMExpr_cons_CTypeVal; intro.
         apply evalMExpr_cons_CTypeVal.
@@ -1434,27 +1455,52 @@ Section BinCarrierA.
         unfold NatAsNT.MNatAsNT.to_nat in *.
         eq_to_equiv.
 
-        assert (n1 = n2).
+        assert (n1 = n3).
         {
-          enough (inr n1 = inr n2) by (inl_inr_inv; assumption).
-          rewrite <-Heqs, <-Heqs1; clear.
+          enough (inr n1 = inr n3) by (inl_inr_inv; assumption).
+          rewrite <-Heqs, <-Heqs2; clear.
           apply evalNExpr_cons_CTypeVal; intro.
           apply evalNExpr_cons_CTypeVal.
           reflexivity.
         }
-        
-        assert (m0 = m1).
+
+        assert (n2 = n4).
         {
-          enough (inr m0 = inr m1) by (inl_inr_inv; assumption).
-          rewrite <-Heqs0, <-Heqs2; clear.
+          enough (E : inr (m0, n2) = inr (m1, n4)) by (inl_inr_inv; inversion E; assumption).
+          rewrite <-Heqs0, <-Heqs3; clear.
           apply evalMExpr_cons_CTypeVal; intro.
           apply evalMExpr_cons_CTypeVal.
           reflexivity.
         }
-        rewrite H0, H1 in *.
-        some_none.
-       *)
-      admit.
+        cbv in H0, H1; subst.
+        inl_inr.
+      - 
+        unfold NatAsNT.MNatAsNT.to_nat in *.
+        eq_to_equiv.
+
+        assert (n1 = n3).
+        {
+          enough (inr n1 = inr n3) by (inl_inr_inv; assumption).
+          rewrite <-Heqs, <-Heqs2; clear.
+          apply evalNExpr_cons_CTypeVal; intro.
+          apply evalNExpr_cons_CTypeVal.
+          reflexivity.
+        }
+
+        assert (m0 = m1).
+        {
+          enough (E : inr (m0, n2) = inr (m1, n4)) by (inl_inr_inv; inversion E; assumption).
+          rewrite <-Heqs0, <-Heqs3; clear.
+          apply evalMExpr_cons_CTypeVal; intro.
+          apply evalMExpr_cons_CTypeVal.
+          reflexivity.
+        }
+        cbv in H0; subst.
+        clear - H H1.
+        inversion H; clear H.
+        err_eq_to_equiv_hyp.
+        rewrite <-H1 in H2.
+        destruct mem_lookup_err; try inl_inr; try constructor.
     }
     
     (* inductive cases *)
@@ -1462,7 +1508,7 @@ Section BinCarrierA.
     all: repeat break_match; try reflexivity; try some_none; try inl_inr.
     all: try apply IHdf; try apply IHdf1; try apply IHdf2.
     all: constructor.
-  Admitted.
+  Qed.
 
   Lemma evalDSHIMap_is_OK_inv
         {mem : memory}
@@ -1825,8 +1871,11 @@ Proof.
   all: cbn; lia.
 Qed.
 
-Definition compose2 {A B C D : Type} (g : C -> D) (f : A -> B -> C) : A -> B -> D :=
-  fun a b => g (f a b).
+(* TODO: move *)
+Definition evalPExpr_id (σ : evalContext) (exp : PExpr) :=
+  '(id, size) <- evalPExpr σ exp ;;
+  ret id.
+
 
 
 (** * MSHEmbed, MSHPick **)
@@ -1884,7 +1933,6 @@ Proof.
       congruence.
 Qed.
 
-
 Global Instance Embed_MSH_DSH_compat
        {o b: nat}
        {bc: b < o}
@@ -1914,18 +1962,25 @@ Proof.
   all: repeat break_match;
     try some_none; repeat some_inv;
     try inl_inr; repeat inl_inr_inv.
-  all: try (inversion MX; fail).
-  all: try (inversion MB; fail).
-  all: subst.
+  all: inversion_clear MX; inversion_clear MB; cbn in *.
+  all: cbn in *; subst.
   -
+    cbv in H6, H8, Y; subst.
+    exfalso; clear - bc Heqs2.
+    unfold assert_NT_lt, NatAsNT.MNatAsNT.to_nat in Heqs2.
+    apply Nat.ltb_lt in bc.
+    rewrite bc in Heqs2.
+    inversion Heqs2.
+  -
+    cbv in H6, H8; subst n0 o.
     exfalso.
     unfold mem_lookup_err, trywith in *.
     break_match; try inl_inr.
     enough (None = Some c) by some_none.
-    rewrite <-Heqo2, <-Heqo3.
+    rewrite <-Heqo2, <-Heqo.
     unfold mem_lookup.
-    inversion MX.
-    apply H1.
+    rewrite H.
+    reflexivity.
   -
     repeat constructor.
     inversion Y; subst; clear Y.
@@ -1939,28 +1994,26 @@ Proof.
       | repeat rewrite NP.F.add_neq_o by assumption ].
     +
       constructor 2; [reflexivity |].
-      unfold mem_lookup_err, trywith in Heqs2.
-      break_match_hyp; try inl_inr; inl_inr_inv; subst.
-      rewrite <-Heqo2, <-Heqo3.
-      unfold mem_lookup.
-      inversion MX.
-      apply H1.
+      eq_to_equiv.
+      mem_lookup_err_to_option.
+      rewrite <-Heqo2, <-Heqs3.
+      rewrite H.
+      reflexivity.
     +
       constructor 1; [reflexivity |].
-      symmetry.
-      inversion MB.
-      apply H1.
+      rewrite H7.
+      reflexivity.
+  -
+    constructor.
   -
     constructor.
   -
     exfalso.
-    unfold mem_lookup_err, trywith in Heqs2.
-    break_match; try inl_inr.
-    enough (Some c0 = None) by some_none.
-    rewrite <-Heqo2, <-Heqo3.
-    unfold mem_lookup.
-    inversion MX.
-    apply H1.
+    mem_lookup_err_to_option.
+    enough (Some c = None) by some_none.
+    rewrite <-Heqo2, <-Heqs3.
+    rewrite H.
+    reflexivity.
 Qed.
 
 Global Instance Pick_MSH_DSH_compat
@@ -1996,25 +2049,27 @@ Proof.
   all: try (inversion MB; fail).
   all: subst.
   all: repeat constructor.
-  1,3: exfalso.
+  1,2,4: exfalso.
+  all: cbv in X; subst.
   -
+    inversion MB.
+    cbv in H0; subst.
+    cbv in Heqs2.
+    inl_inr.
+  -
+    mem_lookup_err_to_option.
     enough (None = Some c) by some_none.
-    unfold mem_lookup_err, trywith in Heqs2.
-    break_match; try inl_inr.
-    rewrite <-Heqo1, <-Heqo2.
-    unfold mem_lookup.
-    rewrite X.
+    rewrite <-Heqo1, <-Heqs3.
     inversion MX.
-    apply H1.
+    rewrite H.
+    reflexivity.
   -
-    unfold mem_lookup_err, trywith in Heqs2.
-    break_match; try inl_inr.
-    enough (Some c0 = None) by some_none.
-    rewrite <-Heqo1, <-Heqo2.
-    unfold mem_lookup.
-    rewrite X.
+    mem_lookup_err_to_option.
+    enough (None = Some c) by some_none.
+    rewrite <-Heqo1, <-Heqs3.
     inversion MX.
-    apply H1.
+    rewrite H.
+    reflexivity.
   -
     unfold SHCOL_DSHCOL_mem_block_equiv,
       memory_lookup, memory_set, mem_add, mem_lookup.
@@ -2026,19 +2081,18 @@ Proof.
       | repeat rewrite NP.F.add_neq_o by assumption ].
     +
       constructor 2; [reflexivity |].
-      unfold mem_lookup_err, trywith in Heqs2.
-      break_match; try inl_inr.
-      inversion Heqs2; subst.
-      rewrite <-Heqo2, <-Heqo1.
+      mem_lookup_err_to_option.
+      rewrite <-Heqs3, <-Heqo1.
       inversion MX.
-      rewrite X.
-      apply H1.
+      rewrite H.
+      reflexivity.
     +
       constructor 1; [reflexivity |].
-      symmetry.
       inversion MB.
-      apply H1.
+      rewrite H.
+      reflexivity.
 Qed.
+
 
 
 (** * MSHPointwise  *)
@@ -2078,10 +2132,34 @@ Proof.
     unfold equiv, memory_Equiv, memory_set, mem_add in H.
     specialize (H k).
     rewrite <-H.
-    cbv in H0; subst.
+    cbv in H0; destruct H0; subst.
     rewrite NP.F.add_neq_o by congruence.
     reflexivity.
 Qed.
+
+(* TODO: move. Rename to [setoid_tuple_inversion]..? *)
+Ltac tuple_inversion_equiv :=
+  repeat match goal with
+         | [ H : (_, _) = (_, _) |- _ ] =>
+           let T1 := fresh in
+           let T2 := fresh in
+           inversion_clear H as [T1 T2];
+           cbn [fst snd] in T1, T2
+         end.
+
+Ltac subst_nat :=
+  repeat match goal with
+         | [ H : @equiv nat _ ?n1 ?n2 |- _ ] => cbv in H; try subst n1; try subst n2
+         | [ H : @equiv mem_block_id _ ?n1 ?n2 |- _ ] => cbv in H; try subst n1; try subst n2
+         | [ H : @eq nat ?n1 ?n2 |- _ ] => try subst n1; try subst n2
+         | [ H : @eq mem_block_id ?n1 ?n2 |- _ ] => try subst n1; try subst n2
+         end.
+
+Ltac minimize_eq :=
+  repeat match goal with
+         | [ H1 : ?A = ?x, H2 : ?A = ?y |- _] => rewrite H1 in H2;
+                                               try some_inv; try inl_inr_inv
+         end.
 
 Global Instance Pointwise_MSH_DSH_compat
        {n: nat}
@@ -2101,35 +2179,16 @@ Proof.
   simpl.
   destruct (mem_op_of_hop (HPointwise f) mx) as [md|] eqn:MD.
   -
-    unfold lookup_PExpr in *.
+    unfold lookup_PExpr_wsize, lookup_PExpr in *.
     simpl in *.
     repeat break_match;
+      memory_lookup_err_to_option;
       try some_none; repeat some_inv;
         try inl_inr; repeat inl_inr_inv;
           subst.
     +
-      clear - MX Heqs1.
-      err_eq_to_equiv_hyp.
-      rewrite memory_lookup_err_inr_Some in *.
-      rewrite memory_lookup_err_inl_None in *.
-      rewrite MX in Heqs1.
-      some_none.
-    +
-      clear - MB Heqs2.
-      err_eq_to_equiv_hyp.
-      rewrite memory_lookup_err_inr_Some in *.
-      rewrite memory_lookup_err_inl_None in *.
-      rewrite MB in Heqs2.
-      some_none.
-    +
       (* mem_op succeeded with [Some md] while evaluation of DHS failed *)
-
-      eq_to_equiv_hyp; err_eq_to_equiv_hyp.
-      rewrite memory_lookup_err_inr_Some in *.
-      rewrite MB, MX in *.
-      repeat some_inv.
-      rewrite <-Heqs1, <-Heqs2 in *.
-      clear Heqs1 Heqs2 m2 m3.
+      eq_to_equiv; tuple_inversion_equiv; subst_nat; minimize_eq.
 
       rename Heqs3 into E.
 
@@ -2150,25 +2209,19 @@ Proof.
       apply is_Some_equiv_def in DX.
       destruct DX as [a DX].
       exists a.
-      repeat split; eauto.
-
-      specialize (FV (FinNat.mkFinNat kc) a).
-      cbn in FV.
-      eapply inr_is_OK.
-      eassumption.
+      split.
+      rewrite H1; assumption.
+      specialize (FV (mkFinNat kc) a).
+      destruct evalIUnCType; try inl_inr; try constructor.
     +
       constructor.
-      unfold memory_lookup_err, trywith, memory_lookup, memory_set.
+      eq_to_equiv; tuple_inversion_equiv; subst_nat; minimize_eq.
+      unfold memory_lookup_err, memory_lookup, memory_set in *.
       rewrite NP.F.add_eq_o by reflexivity.
       constructor.
       repeat some_inv.
 
       eq_to_equiv_hyp; err_eq_to_equiv_hyp.
-      rewrite memory_lookup_err_inr_Some in *.
-      rewrite MB, MX in *.
-      repeat some_inv.
-      rewrite <-Heqs1, <-Heqs2 in *.
-      clear Heqs1 Heqs2 m2 m3.
 
       rename Heqs3 into ME.
       intros k.
@@ -2208,19 +2261,17 @@ Proof.
           cbn in FV.
 
           pose proof (evalDSHIMap_nth m k kc A ME) as T.
-          inversion T; [rewrite <-H in FV; inl_inr | clear T].
-          unfold mem_lookup in H.
-          rewrite <-H.
-          rewrite <-H0 in FV.
+          inversion T; [rewrite <-H3 in FV; inl_inr | clear T].
+          unfold mem_lookup in H0.
+          rewrite <-H0.
+          rewrite <-H2 in FV.
           inversion FV.
           subst.
 
           pose proof (mem_block_to_avector_nth Heqo (kc:=kc)) as MVA.
-          rewrite MVA in *.
-          repeat some_inv.
-          rewrite A.
-          rewrite <-H4.
-          rewrite H1.
+          eq_to_equiv.
+          rewrite <-H1, A in MVA; some_inv.
+          rewrite H3, H6, MVA.
           reflexivity.
       *
         (* k >= 0 *)
@@ -2233,26 +2284,25 @@ Proof.
           tauto.
         --
           specialize (OD k kc).
+          rewrite H, H1 in ME.
           apply (evalDSHIMap_oob_preservation m ME), kc.
   -
-    unfold lookup_PExpr in *.
+    unfold lookup_PExpr, lookup_PExpr_wsize in *.
     simpl in *.
     repeat break_match;
       try some_none; repeat some_inv;
         try inl_inr; repeat inl_inr_inv.
     all: try constructor.
     exfalso.
+    memory_lookup_err_to_option;
+      eq_to_equiv; tuple_inversion_equiv;
+        subst_nat; minimize_eq.
+    subst p p0.
 
-
-    eq_to_equiv_hyp; err_eq_to_equiv_hyp.
-    rewrite memory_lookup_err_inr_Some in *.
-    rewrite MB, MX in *.
-    repeat some_inv.
-    rewrite <-Heqs1, <-Heqs2 in *.
-    clear Heqs1 Heqs2 m2 m3.
-
+    (*
     apply Some_nequiv_None in MX.
     contradict MX.
+     *)
 
     unfold mem_op_of_hop in MD.
     break_match_hyp; try some_none.
@@ -2260,12 +2310,15 @@ Proof.
     rename Heqo into MX.
     unfold mem_block_to_avector in MX.
     apply vsequence_Vbuild_eq_None in MX.
+    (*
     apply is_None_equiv_def; [typeclasses eauto |].
+     *)
     destruct n.
     *
       destruct MX as [k [kc MX]].
       inversion kc.
     *
+      rewrite H, H1 in *.
       contradict Heqs3.
       enough (T : is_Err (evalDSHIMap m (S n) df σ mx mb))
         by (destruct (evalDSHIMap m (S n) df σ mx mb);
@@ -2284,6 +2337,7 @@ Proof.
         destruct MX as [kc MX].
         lia.
 Qed.
+
 
 
 (** * MSHBinOp  *)
@@ -2315,19 +2369,20 @@ Proof.
       apply memory_lookup_err_inr_is_Some in Heqs2.
       assumption.
   -
-    intros σ m m' fuel E y_i P.
+    intros σ m m' fuel E y_i size P.
     destruct fuel; cbn in E; [some_none |].
 
     repeat break_match;
       try some_none; repeat some_inv;
       try inl_inr; repeat inl_inr_inv.
-    err_eq_to_equiv_hyp.
-    rewrite P in Heqs0, Heqs2, E.
-    clear P m1.
+    memory_lookup_err_to_option;
+      eq_to_equiv; tuple_inversion_equiv;
+        subst_nat; minimize_eq.
+    subst.
     rename m0 into x_i, m2 into x, m3 into y, m4 into y'.
 
     intros k NKY.
-    rewrite <- E.
+    rewrite <-E.
     clear E m'.
     unfold memory_lookup, memory_set in *.
     rewrite NP.F.add_neq_o by auto.
@@ -2352,37 +2407,16 @@ Proof.
   simpl.
   destruct (mem_op_of_hop (HCOL.HBinOp f) mx) as [md|] eqn:MD.
   -
-    unfold lookup_PExpr in *.
+    unfold lookup_PExpr, lookup_PExpr_wsize in *.
     simpl in *.
     repeat break_match;
+      memory_lookup_err_to_option;
       try some_none; repeat some_inv;
       try inl_inr; repeat inl_inr_inv;
       subst.
-    1-3: exfalso.
-    +
-      clear - MX Heqs1.
-      err_eq_to_equiv_hyp.
-      rewrite memory_lookup_err_inr_Some in *.
-      rewrite memory_lookup_err_inl_None in *.
-      rewrite MX in Heqs1.
-      some_none.
-    +
-      clear - MB Heqs2.
-      err_eq_to_equiv_hyp.
-      rewrite memory_lookup_err_inr_Some in *.
-      rewrite memory_lookup_err_inl_None in *.
-      rewrite MB in Heqs2.
-      some_none.
-    +
-      (* mem_op succeeded with [Some md] while evaluation of DHS failed *)
-
-      eq_to_equiv_hyp; err_eq_to_equiv_hyp.
-      rewrite memory_lookup_err_inr_Some in *.
-      rewrite MB, MX in *.
-      repeat some_inv.
-      rewrite <-Heqs1, <-Heqs2 in *.
-      clear Heqs1 Heqs2 m2 m3.
-
+    all: eq_to_equiv; tuple_inversion_equiv; subst_nat; minimize_eq.
+    + (* mem_op succeeded with [Some md] while evaluation of DHS failed *)
+      exfalso.
       rename Heqs3 into E.
 
       apply equiv_Some_is_Some in MD.
@@ -2410,8 +2444,9 @@ Proof.
       destruct DX1 as [b DX1].
       exists a.
       exists b.
-      repeat split; eauto.
-
+      repeat split.
+      rewrite H1; assumption.
+      rewrite H1; assumption.
       specialize (FV (FinNat.mkFinNat kc) a b).
       cbn in FV.
       eapply inr_is_OK.
@@ -2422,24 +2457,14 @@ Proof.
       rewrite NP.F.add_eq_o by reflexivity.
       constructor.
       repeat some_inv.
-
-      eq_to_equiv_hyp; err_eq_to_equiv_hyp.
-      rewrite memory_lookup_err_inr_Some in *.
-      rewrite MB, MX in *.
-      repeat some_inv.
-      rewrite <-Heqs1, <-Heqs2 in *.
-      clear Heqs1 Heqs2 m2 m3.
-
       rename Heqs3 into ME.
       intros k.
-
       unfold mem_op_of_hop in MD.
       break_match_hyp; try some_none.
       some_inv.
       rewrite <- MD.
       clear MD md.
       rename t into vx.
-
       unfold avector_to_mem_block.
 
       avector_to_mem_block_to_spec md HD OD.
@@ -2473,20 +2498,21 @@ Proof.
           cbn in FV.
 
           pose proof (evalDSHBinOp_nth m k kc A B ME) as T.
-          inversion T; [rewrite <-H in FV; inl_inr | clear T].
-          unfold mem_lookup in H.
-          rewrite <-H.
-          rewrite <-H0 in FV.
+          inversion T; [rewrite <-H3 in FV; inl_inr | clear T].
+          unfold mem_lookup in H0.
+          rewrite <-H0.
+          rewrite <-H2 in FV.
           inversion FV.
           subst.
           
           pose proof (mem_block_to_avector_nth Heqo0 (kc:=kc1)) as MVA.
           pose proof (mem_block_to_avector_nth Heqo0 (kc:=kc2)) as MVB.
+          rewrite H, H1 in *.
           rewrite MVA, MVB in *.
           repeat some_inv.
           rewrite A, B.
-          rewrite <-H4.
-          rewrite H1.
+          rewrite <-H6.
+          rewrite H3.
           reflexivity.
       *
         (* k >= 0 *)
@@ -2499,26 +2525,19 @@ Proof.
           tauto.
         --
           specialize (OD k kc).
+          rewrite H, H1 in *.
           apply (evalDSHBinOp_oob_preservation m ME), kc.
   -
-    unfold lookup_PExpr in *.
+    unfold lookup_PExpr, lookup_PExpr_wsize in *.
     simpl in *.
     repeat break_match;
+      memory_lookup_err_to_option;
       try some_none; repeat some_inv;
       try inl_inr; repeat inl_inr_inv.
     all: try constructor.
+    eq_to_equiv; tuple_inversion_equiv; subst_nat; minimize_eq.
     exfalso.
-
-
-    eq_to_equiv_hyp; err_eq_to_equiv_hyp.
-    rewrite memory_lookup_err_inr_Some in *.
-    rewrite MB, MX in *.
-    repeat some_inv.
-    rewrite <-Heqs1, <-Heqs2 in *.
-    clear Heqs1 Heqs2 m2 m3.
-
-    apply Some_nequiv_None in MX.
-    contradict MX.
+    subst.
 
     unfold mem_op_of_hop in MD.
     break_match_hyp; try some_none.
@@ -2526,13 +2545,13 @@ Proof.
     rename Heqo0 into MX.
     unfold mem_block_to_avector in MX.
     apply vsequence_Vbuild_eq_None in MX.
-    apply is_None_equiv_def; [typeclasses eauto |].
     destruct o.
     *
       destruct MX as [k [kc MX]].
       inversion kc.
     *
       contradict Heqs3.
+      rewrite H, H1 in *.
       enough (T : is_Err (evalDSHBinOp m (S o) (S o) df σ mx mb))
         by (destruct (evalDSHBinOp m (S o) (S o) df σ mx mb);
             [intros C; inl_inr | inversion T ]).
@@ -2558,6 +2577,7 @@ Proof.
         apply MX.
         lia.
 Qed.
+
 
 
 (** * MSHInductor *)
@@ -2607,6 +2627,7 @@ Proof.
         try (rewrite NP.F.add_eq_o with (x := n0) by assumption);
         try (rewrite NP.F.add_neq_o with (x := m1) by assumption);
         try (rewrite NP.F.add_neq_o with (x := n0) by assumption).
+    all: tuple_inversion_equiv; subst_nat.
     all: subst.
     all: try congruence.
     all: reflexivity.
@@ -2631,6 +2652,7 @@ Global Instance Inductor_MSH_DSH_compat
                     (DSHPower nx (x_p, NConst 0) (y_p, NConst 0) a init)
                     σ m x_p y_p PD.
 Proof.
+  (*
   constructor; intros x_m y_m X_M Y_M.
   assert (T : evalNExpr σ nx ≡ inr n)
     by (inversion N; inversion H1; reflexivity);
@@ -3038,6 +3060,8 @@ Proof.
         repeat inl_inr_inv; repeat some_inv; try some_none; subst.
       eapply IHn; eauto.
 Qed.
+*) Admitted.
+
 
 
 (** * MSHIUnion *)
@@ -3051,6 +3075,7 @@ Global Instance Loop_DSH_pure
   :
     DSH_pure (DSHLoop n dop) y_p.
 Proof.
+(*
   split.
   -
     intros.
@@ -3113,6 +3138,7 @@ Proof.
       eassumption.
       assumption.
 Qed.
+*) Admitted.
 
 Theorem IUnion_MSH_step {i o n : nat} (mb : mem_block) (S_opf : @MSHOperatorFamily i o (S n)) :
   let opf := shrink_m_op_family S_opf in
@@ -3121,6 +3147,7 @@ Theorem IUnion_MSH_step {i o n : nat} (mb : mem_block) (S_opf : @MSHOperatorFami
                                 mbn <- mem_op (S_opf fn) mb ;;
                                 Some (MMemoryOfCarrierA.mem_union mbn mb').
 Proof.
+(*
   simpl.
   unfold IUnion_mem.
   simpl.
@@ -3276,6 +3303,7 @@ Proof.
       rewrite S_L in Heqo3.
       omega.
 Qed.
+*) Admitted.
 
 Global Instance IUnion_MSH_DSH_compat
        {i o n : nat}
@@ -3287,8 +3315,8 @@ Global Instance IUnion_MSH_DSH_compat
        {opf : MSHOperatorFamily}
        {DP : DSH_pure dop (incrPVar 0 y_p)}
        {LP : DSH_pure (DSHLoop n dop) y_p}
-       (FC : forall t m' y_i,
-           evalPExpr σ y_p ≡ inr y_i ->
+       (FC : forall t m' y_i y_size,
+           evalPExpr σ y_p ≡ inr (y_i, y_size) ->
            memory_equiv_except m m' y_i ->
            @MSH_DSH_compat _ _ (opf t) dop
                            ((DSHnatVal (proj1_sig t)) :: σ)
@@ -3296,6 +3324,7 @@ Global Instance IUnion_MSH_DSH_compat
   :
     @MSH_DSH_compat _ _ (@MSHIUnion i o n opf) (DSHLoop n dop) σ m x_p y_p LP.
 Proof.
+(*
   constructor.
   intros x_m y_m X_M Y_M.
 
@@ -3456,6 +3485,8 @@ Proof.
         by (pose proof estimateFuel_positive dop; cbn; lia).
       apply evalDSHOperator_estimateFuel.
 Qed.
+*) Admitted.
+
 
 
 (** * MSHCompose *)
@@ -3468,6 +3499,7 @@ Global Instance Compose_DSH_pure
          (P1: DSH_pure dop1 (incrPVar 0 y_p))
   : DSH_pure (DSHAlloc n (DSHSeq dop2 dop1)) y_p.
 Proof.
+(*
   split.
   - (* mem_stable *)
     intros σ m m' fuel H k.
@@ -3638,6 +3670,7 @@ Proof.
     rewrite V.
     reflexivity.
 Qed.
+*) Admitted.
 
 Global Instance Compose_MSH_DSH_compat
          {i1 o2 o3: nat}
@@ -3667,6 +3700,7 @@ Global Instance Compose_MSH_DSH_compat
       (DSHAlloc o2 (DSHSeq dop2 dop1))
       σ m x_p y_p P.
 Proof.
+(*
   split.
   intros mx mb MX MB.
   simpl.
@@ -4704,9 +4738,27 @@ Proof.
       rewrite E2 in C2.
       inversion C2; subst a b; clear C2; rename H4 into C2.
 Qed.
+*) Admitted.
+
 
 
 (** * MHTSUMUnioin *)
+
+Lemma herr_f_whatev  :
+  forall R a b,
+    @herr_f nat nat R a b <->
+    (forall ax bx, a = inr ax -> b = inr bx -> R ax bx).
+Proof.
+  split; intros.
+  -
+    destruct a, b; try inl_inr; repeat inl_inr_inv.
+    cbv in H0, H1; subst.
+    inversion H.
+    assumption.
+  -
+    destruct a, b; constructor.
+    apply H; reflexivity.
+Qed.
 
 Global Instance Apply2Union_MSH_DSH_compat
          {i o : nat}
@@ -4717,7 +4769,10 @@ Global Instance Apply2Union_MSH_DSH_compat
          {dop1 dop2: DSHOperator}
          {x_p y_p : PExpr}
          (P: DSH_pure (DSHSeq dop1 dop2) y_p)
-         (D : herr_f nat nat (compose2 not equiv) (evalPExpr σ x_p) (evalPExpr σ y_p))
+         (D : forall x_id y_id x_sz y_sz,
+             evalPExpr σ x_p = inr (x_id, x_sz) ->
+             evalPExpr σ y_p = inr (y_id, y_sz) ->
+             x_id <> y_id)
          (P1: DSH_pure dop1 y_p)
          (P2: DSH_pure dop2 y_p)
          (C1: @MSH_DSH_compat _ _ mop1 dop1 σ m x_p y_p P1)
@@ -4729,6 +4784,7 @@ Global Instance Apply2Union_MSH_DSH_compat
       (DSHSeq dop1 dop2)
       σ m x_p y_p P.
 Proof.
+(*
   constructor; intros x_m y_m X_M Y_M.
 
   destruct (evalPExpr σ x_p) as [| x_id] eqn:X;
@@ -5089,6 +5145,8 @@ Proof.
       break_match; inversion Y_M.
       rewrite H1; reflexivity.
 Qed.
+*) Admitted.
+
 
 
 (** * MSHIReduction *)
@@ -5101,6 +5159,7 @@ Global Instance Seq_DSH_pure
   :
     DSH_pure (DSHSeq dop1 dop2) y_p.
 Proof.
+(*
   split.
   -
     intros σ m0 m2 fuel M2 k.
@@ -5143,6 +5202,7 @@ Proof.
     clear - M1 M2.
     eapply memory_equiv_except_trans; eassumption.
 Qed.
+*) Admitted.
 
 Global Instance MemMap2_DSH_pure
        {x0_p x1_p y_p : PExpr}
@@ -5151,6 +5211,7 @@ Global Instance MemMap2_DSH_pure
   :
     DSH_pure (DSHMemMap2 n x0_p x1_p y_p a) y_p.
 Proof.
+(*
   constructor.
   -
     intros.
@@ -5185,6 +5246,7 @@ Proof.
     rewrite NP.F.add_neq_o by congruence.
     reflexivity.
 Qed.
+*) Admitted.
 
 Global Instance MemInit_DSH_pure
        {size : nat}
@@ -5193,6 +5255,7 @@ Global Instance MemInit_DSH_pure
   :
     DSH_pure (DSHMemInit size y_p init) y_p.
 Proof.
+(*
   constructor.
   -
     intros.
@@ -5227,7 +5290,7 @@ Proof.
     rewrite NP.F.add_neq_o by congruence.
     reflexivity.
 Qed.
-
+*) Admitted.
 
 Global Instance IReduction_DSH_pure
        {no nn : nat}
@@ -5251,6 +5314,7 @@ Global Instance IReduction_DSH_pure
                                            df)))))
       y_p.
 Proof.
+(*
   subst.
   apply Seq_DSH_pure.
   apply MemInit_DSH_pure.
@@ -5380,6 +5444,7 @@ Proof.
           rewrite Heqo by congruence.
           reflexivity.
 Qed.
+*) Admitted.
 
 Lemma evalDSHMap2_rest_preserved
       (x1 x2 y y' : mem_block)
@@ -5594,6 +5659,7 @@ Lemma DSHMap2_succeeds
     exists m', evalDSHOperator σ (DSHMemMap2 o x1_p x2_p y_p df) m
                     (estimateFuel (DSHMemMap2 o x1_p x2_p y_p df)) = Some (inr m').
 Proof.
+(*
   apply lookup_PExpr_eval_lookup in LX1.
   destruct LX1 as [x1_id [X1_ID X1_M]].
   apply lookup_PExpr_eval_lookup in LX2.
@@ -5656,6 +5722,7 @@ Proof.
     eexists.
     reflexivity.
 Qed.
+*) Admitted.
 
 Lemma MemMap2_merge_with_def
       (x1_p x2_p y_p : PExpr)
@@ -5679,6 +5746,7 @@ Lemma MemMap2_merge_with_def
     forall k, k < o -> mem_lookup k y_m' =
                  mem_lookup k (mem_merge_with_def dot init x1_m x2_m).
 Proof.
+(*
   apply lookup_PExpr_eval_lookup in LX1.
   destruct LX1 as [x1_id [X1_ID X1_M]].
   apply lookup_PExpr_eval_lookup in LX2.
@@ -5721,7 +5789,7 @@ Proof.
   rewrite X1, X2.
   reflexivity.
 Qed.
-
+*) Admitted.
 
 Lemma MemMap2_merge_with_def_firstn
       (x1_p x2_p y_p : PExpr)
@@ -5736,7 +5804,7 @@ Lemma MemMap2_merge_with_def_firstn
       (y_id : nat)
       (LX1 : lookup_PExpr σ m x1_p = inr x1_m)
       (LX2 : lookup_PExpr σ m x2_p = inr x2_m)
-      (Y_ID : evalPExpr σ y_p = inr y_id)
+      (Y_ID : evalPExpr_id σ y_p = inr y_id)
       (YID_M : memory_lookup m y_id = Some y_m)
       (D1 : forall k, k < o -> mem_in k x1_m)
       (D2 : forall k, k < o -> mem_in k x2_m)
@@ -5751,6 +5819,7 @@ Lemma MemMap2_merge_with_def_firstn
                                                                 (mem_firstn o x2_m))
                                             y_m))).
 Proof.
+(*
   assert (exists m', evalDSHOperator σ (DSHMemMap2 o x1_p x2_p y_p df) m
                   (estimateFuel (DSHMemMap2 o x1_p x2_p y_p df)) = Some (inr m')).
   {
@@ -5870,6 +5939,7 @@ Proof.
     rewrite MA.
     reflexivity.
 Qed.
+*) Admitted.
 
 Lemma SHCOL_DSHCOL_mem_block_equiv_keys_union (ma mb md : mem_block) :
   SHCOL_DSHCOL_mem_block_equiv mb ma md ->
@@ -6048,7 +6118,7 @@ Lemma MemInit_simpl
       (y_p : PExpr)
       (y_id : mem_block_id)
       (y_m : mem_block)
-      (Y_ID : evalPExpr σ y_p = inr y_id)
+      (Y_ID : evalPExpr_id σ y_p = inr y_id)
       (YID_M : memory_lookup m y_id = Some y_m)
   :
   evalDSHOperator σ (DSHSeq (DSHMemInit o y_p init) dop) m
@@ -6056,6 +6126,7 @@ Lemma MemInit_simpl
   evalDSHOperator σ dop (memory_set m y_id (mem_union (mem_const_block o init) y_m))
                   (estimateFuel dop).
 Proof.
+(*
   cbn.
   pose proof estimateFuel_positive dop.
   repeat break_match; try nia.
@@ -6087,6 +6158,7 @@ Proof.
     cbn in Heqo0.
     some_none.
 Qed.
+*) Admitted.
 
 Lemma Alloc_Loop_step
       (o n : nat)
@@ -6335,11 +6407,11 @@ Global Instance IReduction_MSH_DSH_compat_S
        {DP}
        (P: DSH_pure rr (PVar 1))
        (DC : forall m' y_id d1 d2,
-           evalPExpr σ y_p ≡ inr y_id ->
+           evalPExpr_id σ y_p ≡ inr y_id ->
            memory_subset_except y_id m m'  ->
            MSH_DSH_BinCarrierA_compat dot (d1 :: d2 :: σ) df m')
        (FC : forall m' tmpk t y_id mb,
-           evalPExpr σ y_p ≡ inr y_id ->
+           evalPExpr_id σ y_p ≡ inr y_id ->
            memory_subset_except y_id m m'  ->
            tmpk ≡ memory_next_key m ->
            @MSH_DSH_compat _ _ (op_family t) rr
@@ -6368,6 +6440,7 @@ Global Instance IReduction_MSH_DSH_compat_S
                                            df)))))
       σ m x_p y_p DP.
 Proof.
+(*
   subst.
   constructor.
   intros x_m y_m X_M Y_M.
@@ -7699,3 +7772,5 @@ Proof.
                 }
                 assumption.
 Qed.
+*) Admitted.
+
