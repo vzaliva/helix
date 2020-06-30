@@ -493,14 +493,14 @@ Definition genFSHAssign
 
     .entry:
       (init_code)
-      %c0 = icmp slt i32 %start, %n
+      %c0 = icmp slt i32 %from, %to
       br i1 %c0, label %.loop, label %.nextblock
     .loop:
-      %i = phi i32 [ %next_i, .loopcontblock], [ %start, .entry ]
+      %i = phi i32 [ %next_i, .loopcontblock], [ %from, .entry ]
      (body)
     .loopcontblock:
       %next_i = add nsw i32 %i, 1
-      %c = icmp slt i32 %next_i, %n
+      %c = icmp slt i32 %next_i, %to
       br i1 %c, label %.loop, label nextblock
     nextblock:
  *)
@@ -573,19 +573,19 @@ Definition genWhileLoopUp
         ] in
     ret (entryblock, loop_pre ++ body_blocks ++ loop_post).
 
-(* Generates while loop `init_code(); i=to-1; while(from<=i){ body(); i--;}`
+(* Generates while loop `init_code(); i=to; while(from<=i){ body(); i--;}`
+   NOTE: unlike [genWhileLoopUp] the upper bound [to] is inclusive.
 
     .entry:
       (init_code)
-      %up = sub nsw i32 %n, 1
-      %c0 = icmp sle i32 %start, %up
+      %c0 = icmp sle i32 %from, %to
       br i1 %c0, label %.loop, label %.nextblock
     .loop:
-      %i = phi i32 [ %next_i, .loopcontblock], [ %up, .entry ]
+      %i = phi i32 [ %next_i, .loopcontblock], [ %to, .entry ]
      (body)
     .loopcontblock:
       %next_i = sub nsw i32 %i, 1
-      %c = icmp slt i32 %next_i, %n
+      %c = icmp sle i32 %next_i, %from
       br i1 %c, label %.loop, label nextblock
     nextblock:
  *)
@@ -605,7 +605,6 @@ Definition genWhileLoopDown
     loopcond <- incLocal ;;
     loopcond1 <- incLocal ;;
     nextvar <- incLocalNamed (prefix @@ "_next_i") ;;
-    upbound <- incLocalNamed (prefix @@ "_upbound") ;;
     void0 <- incVoid ;;
     void1 <- incVoid ;;
     retloop <- incVoid ;;
@@ -620,11 +619,10 @@ Definition genWhileLoopDown
             blk_code  :=
               init_code ++
                         [
-                          (IId upbound, INSTR_Op (OP_IBinop (Sub false false) IntType to (EXP_Integer 1%Z)));
                           (IId loopcond, INSTR_Op (OP_ICmp Sle
                                                            IntType
                                                            from
-                                                           (EXP_Ident (ID_Local upbound))))
+                                                           to))
 
                         ];
             blk_term  := (IVoid void0, TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local loopcond)) loopblock nextblock);
@@ -633,7 +631,7 @@ Definition genWhileLoopDown
 
         {|
           blk_id    := loopblock ;
-          blk_phis  := [(loopvar, Phi IntType [(entryblock, EXP_Ident (ID_Local upbound));
+          blk_phis  := [(loopvar, Phi IntType [(entryblock, to);
                                               (loopcontblock, EXP_Ident (ID_Local nextvar))])];
           blk_code  := [];
           blk_term  := (IVoid void1, TERM_Br_1 body_entry);
@@ -932,7 +930,7 @@ Definition genMemInit
           blk_term  := (IVoid void0, TERM_Br_1 loopcontblock);
           blk_comments := None
         |} in
-    genWhileLoopDown "MemInit_loop" (EXP_Integer 0%Z) (EXP_Integer (Int64.intval size)) loopvar loopcontblock init_block_id [init_block] [] nextblock.
+    genWhileLoopDown "MemInit_loop" (EXP_Integer 0%Z) (EXP_Integer ((Int64.intval size)-1)) loopvar loopcontblock init_block_id [init_block] [] nextblock.
 
 Definition genPower
            (i o: Int64.int)
@@ -1012,7 +1010,7 @@ Definition genPower
           blk_term  := (IVoid void2, TERM_Br_1 loopcontblock);
           blk_comments := None
         |} in
-    genWhileLoopDown "Power" (EXP_Integer 0%Z) nexp loopvar loopcontblock body_block_id [body_block] init_code nextblock.
+    genWhileLoopUp "Power" (EXP_Integer 0%Z) nexp loopvar loopcontblock body_block_id [body_block] init_code nextblock.
 
 Definition resolve_PVar (p:PExpr): cerr (ident*Int64.int)
   :=
@@ -1055,7 +1053,7 @@ Fixpoint genIR
           loopvar <- incLocalNamed "IMap_i" ;;
           '(body_entry, body_blocks) <- genIMapBody i o x y f loopvar loopcontblock ;;
           add_comment
-            (genWhileLoopDown "IMap" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] nextblock)
+            (genWhileLoopDown "IMap" (EXP_Integer 0%Z) (EXP_Integer ((Z.of_nat n)-1)) loopvar loopcontblock body_entry body_blocks [] nextblock)
         | DSHBinOp n x_p y_p f =>
           loopcontblock <- incBlockNamed "BinOp_lcont" ;;
           '(x,i) <- resolve_PVar x_p ;;
@@ -1063,7 +1061,7 @@ Fixpoint genIR
           loopvar <- incLocalNamed "BinOp_i" ;;
           '(body_entry, body_blocks) <- genBinOpBody i o n x y f loopvar loopcontblock ;;
           add_comment
-            (genWhileLoopDown "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] nextblock)
+            (genWhileLoopDown "BinOp" (EXP_Integer 0%Z) (EXP_Integer ((Z.of_nat n)-1)) loopvar loopcontblock body_entry body_blocks [] nextblock)
         | DSHMemMap2 n x0_p x1_p y_p f =>
           loopcontblock <- incBlockNamed "MemMap2_lcont" ;;
           '(x0,i0) <- resolve_PVar x0_p ;;
@@ -1073,7 +1071,7 @@ Fixpoint genIR
           loopvar <- incLocalNamed "MemMap2_i" ;;
           '(body_entry, body_blocks) <- genMemMap2Body i0 i1 o x0 x1 y f loopvar loopcontblock ;;
           add_comment
-            (genWhileLoopDown "MemMap2" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] nextblock)
+            (genWhileLoopDown "MemMap2" (EXP_Integer 0%Z) (EXP_Integer ((Z.of_nat n)-1)) loopvar loopcontblock body_entry body_blocks [] nextblock)
         | DSHPower n (src_p,src_n) (dst_p,dst_n) f initial =>
           '(x,i) <- resolve_PVar src_p ;;
           '(y,o) <- resolve_PVar dst_p ;;
