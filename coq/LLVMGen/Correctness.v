@@ -2680,9 +2680,6 @@ Section AExpr.
       rewrite exp_E_to_instr_E_Memory, subevent_subevent.
       epose proof interp_cfg_to_L3_GEP_array _ (DTYPE_Array sz' DTYPE_Double).
 
-      unfold in_local_or_global in ILG.
-      epose proof memory_invariant_LLU_Ptr.
-
       destruct i'; cbn in ILG.
       { destruct ILG as (? & ? & CONTRA & REST).
         inv CONTRA. }
@@ -2690,7 +2687,15 @@ Section AExpr.
       cbn in SINV''.
       pose proof state_invariant_memory_invariant SINV'' as MINV.
       epose proof memory_invariant_LLU_Ptr vid MINV NTH_Γ_vid NTH_σ_vid as (bk_h & ptr_v & MLUP' & ILG' & GET_ARRAY).
-      assert (ptr_v ≡ ptr). admit.
+      assert (ptr_v ≡ ptr).
+      { (* ptr_v comes from memory_invariant_LLU_Ptr *)
+        (* ILG : l' @ id = Some (UVALUE_Addr ptr) *)
+        (* Use ILG' to relate... *)
+        cbn in ILG'.
+        rewrite ILG in ILG'.
+        inversion ILG'.
+        auto.
+      }
       subst.
 
       rewrite MLUP in MLUP'. inv MLUP'.
@@ -2739,7 +2744,7 @@ Section AExpr.
         * cbn. repeat norm_v. cbn. norm_v.
           reflexivity.
           cbn.
-          apply H1.
+          apply H0.
           apply In_add_eq.
         * (* TODO: ltac, this is horrid *)
           cbn.
@@ -2769,7 +2774,7 @@ Section AExpr.
              unfold incLocal in Heqs1.
              Opaque incLocal.
              cbn in Heqs1. inversion Heqs1.
-             rewrite <- H3 in CONTRA.
+             rewrite <- H2 in CONTRA.
              cbn in CONTRA.
              unfold Traversal.endo, Traversal.Endo_id in CONTRA.
              apply Name_inj, append_factor_left,string_of_nat_inj in CONTRA; lia.
