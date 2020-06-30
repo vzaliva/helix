@@ -393,7 +393,7 @@ Ltac abs_by_WF :=
         epose proof (context_lookup_succeeds _ _ _ h) as (val & LUP & CONTRA);
         rewrite h' in CONTRA;
         discriminate CONTRA *)
-      | Some ?val => 
+      | Some ?val =>
         let WF := fresh "WF" in
         assert (WF : WF_IRState σ s) by eauto;
         let H := fresh in pose proof (WF_IRState_lookups _ WF h h') as H; now (destruct id; inv H)
@@ -538,7 +538,7 @@ Section SimulationRelations.
   Qed.
 
   Hint Resolve memory_invariant_GLU memory_invariant_LLU memory_invariant_LLU_AExpr memory_invariant_GLU_AExpr : core.
- 
+
   Lemma memory_invariant_LLU_Ptr : forall σ s v id memH memV t l g m size,
       memory_invariant σ s memH (memV, (l, g)) ->
       nth_error (Γ s) v ≡ Some (ID_Local id, t) ->
@@ -1210,7 +1210,7 @@ Proof.
     generalize LUV; intros INLG;
       eapply MEM in INLG; eauto.
   - unfold WF_IRState; erewrite incVoid_Γ; eauto; apply WF.
-  - red; repeat break_let; erewrite incVoid_local_count; eauto. 
+  - red; repeat break_let; erewrite incVoid_local_count; eauto.
 Qed.
 
 Lemma incLocal_local_count: forall s s' x,
@@ -1268,7 +1268,7 @@ Proof.
     generalize LUV; intros INLG;
       eapply MEM in INLG; eauto.
   - unfold WF_IRState; erewrite incBlockNamed_Γ; eauto; apply WF.
-  - red; repeat break_let; erewrite incBlockNamed_local_count; eauto. 
+  - red; repeat break_let; erewrite incBlockNamed_local_count; eauto.
 Qed.
 
 Opaque incBlockNamed.
@@ -1396,7 +1396,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
 
             rewrite Heqo0.
             reflexivity.
-            
+
           }
 
         * (* Variable not in context, [context_lookup] fails *)
@@ -1492,7 +1492,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
           introR; destruct_unit.
           destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI) & GAMMAI).
           cbn in *.
-          
+
           specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs2 PREI).
 
           cbn* in IHnexp2;
@@ -1530,7 +1530,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
           rewrite Heqs3 in EVAL_vH; inversion EVAL_vH.
           rewrite Heqs2 in EVAL_vH0; inversion EVAL_vH0.
           subst.
-          
+
           { break_inner_match_goal.
             + (* Division by 0 *)
               apply Z.eqb_eq in Heqb.
@@ -2222,7 +2222,7 @@ Section AExpr.
     { pose proof IHaexp _ _ _ _ WF Heqs0.
       eauto.
     }
-    
+
     all: eapply IHaexp1 in Heqs0; eapply IHaexp2 in Heqs1; eauto.
   Qed. *)
 
@@ -2298,7 +2298,7 @@ Section AExpr.
           cbn. repeat norm_v.
           cbn. repeat norm_v.
 
-          rewrite typ_to_dtyp_equation in *.               
+          rewrite typ_to_dtyp_equation in *.
           cbn in READ.
           rewrite interp_cfg_to_L3_Load; eauto.
 
@@ -2462,8 +2462,8 @@ Section AExpr.
       Qed.
 
       eapply eutt_clo_bind; eauto.
-      intros [memH' n'] [memV' [l' [g' []]]] [SINV GENN_REL].          
-      
+      intros [memH' n'] [memV' [l' [g' []]]] [SINV GENN_REL].
+
       (* Relate MExpr *)
       destruct GENN_REL as [NEXP_CORRECT VARS_s1_i].
 
@@ -2542,7 +2542,7 @@ Section AExpr.
                                  ITree.bind (trigger (Load (typ_to_dtyp [ ] TYPE_Double) da))
                                    (λ dv : uvalue, trigger (LocalWrite (Traversal.endo r0) dv))
                              end))) (λ _ : (), Ret ())) as blah.
-      
+
       repeat rewrite <- bind_bind.
       setoid_rewrite translate_bind.
       rewrite <- bind_bind.
@@ -2578,7 +2578,7 @@ Section AExpr.
 
       Lemma int_of_nat :
         forall (i : Int64.int),
-        exists (n : nat), i = Int64.repr (Z.of_nat n).
+        exists (n : nat), i ≡ Int64.repr (Z.of_nat n).
       Proof.
         intros [val [LOWER UPPER]].
         Transparent Int64.repr.
@@ -2586,17 +2586,26 @@ Section AExpr.
         exists (Z.to_nat val).
         rewrite Z2Nat.id by lia.
 
-        unfold equiv.
-        unfold MInt64asNT.NTypeEquiv.
-        unfold Int64.eq.
-        cbn.
-        rewrite Int64.Z_mod_modulus_eq.
+        match goal with
+        | |- ?x ≡ ?y => assert (x = y) as EQ;
+                        pose proof Int64.eq_spec x y as EQ_real
+        end.
 
-        assert (val mod Int64.modulus ≡ val)%Z as H.
-        apply Zdiv.Zmod_small; lia.
+        { unfold equiv.
+          unfold MInt64asNT.NTypeEquiv.
+          unfold Int64.eq.
+          cbn.
+          rewrite Int64.Z_mod_modulus_eq.
 
-        rewrite H.
-        apply Coqlib.zeq_true.
+          assert (val mod Int64.modulus ≡ val)%Z as H.
+          apply Zdiv.Zmod_small; lia.
+
+          rewrite H.
+          apply Coqlib.zeq_true.
+        }
+
+        rewrite EQ in EQ_real.
+        auto.
       Qed.
 
       destruct MINV as (SINV'' & MINV).
@@ -3265,7 +3274,7 @@ Section AExpr.
         * cbn. repeat norm_v. cbn. norm_v.
           reflexivity.
           cbn.
-          apply H.          
+          apply H.
 
           (* TODO: Can't unfold Floats.Float.add ??? *)
           assert (Float_minimum b' b'' ≡ MFloat64asCT.CTypeMin b' b'').
@@ -3376,7 +3385,7 @@ Section AExpr.
         * cbn. repeat norm_v. cbn. norm_v.
           reflexivity.
           cbn.
-          apply H.          
+          apply H.
 
           assert (Float_maxnum b' b'' ≡ MFloat64asCT.CTypeMax b' b'').
           admit.
@@ -3960,7 +3969,7 @@ Section Resolve_PVar.
   (*             (interp_cfg (D.denote_bks (convert_typ env bks) bid_in) *)
   (*                               g ρ memV)). *)
   (* Proof. *)
- 
+
 
 
 End Resolve_PVar.
@@ -4049,7 +4058,7 @@ Ltac forget_strings :=
 
     (* YZ TODO : reducing denote_bks exposes iter. Should we simply make it opaque? *)
     Opaque denote_bks.
-    Opaque resolve_PVar. 
+    Opaque resolve_PVar.
 
     Ltac focus_single_step_v :=
       match goal with
@@ -4154,7 +4163,7 @@ Ltac forget_strings :=
       do 3 (eapply state_invariant_incLocal; eauto).
       do 2 (eapply state_invariant_incVoid; eauto).
       do 1 (eapply state_invariant_incBlockNamed; eauto).
-      
+
       intros [memH1 src] (memV1 & ρ1 & g1 & []) (INV1 & (EXP1 & <- & <- & <- & MONO1) & GAMMA1); cbn* in *.
 
       subst.
@@ -4168,7 +4177,7 @@ Ltac forget_strings :=
       eapply eutt_clo_bind.
       eapply genNExpr_correct_ind; eauto.
 
-      intros [memH2 dst] (memV2 & ρ2 & g2 & []) (INV2 & (EXP2 & <- & <- & <- & MONO2) & GAMMA2); cbn in GAMMA2; cbn in INV2. 
+      intros [memH2 dst] (memV2 & ρ2 & g2 & []) (INV2 & (EXP2 & <- & <- & <- & MONO2) & GAMMA2); cbn in GAMMA2; cbn in INV2.
       subst.
 
       (* Step 7. *)
@@ -4217,7 +4226,7 @@ Ltac forget_strings :=
       subst; focus_single_step_v; repeat norm_v.
       subst; focus_single_step_v; repeat norm_vD.
       focus_single_step_v.
-      
+
       destruct (EXP1 ρ2) as [EQe ?]; auto.
       rewrite <- EQe.
       repeat norm_v.
@@ -4260,7 +4269,7 @@ Ltac forget_strings :=
       cbn*; repeat norm_v.
       subst; cbn; repeat norm_v; focus_single_step_v.
       rewrite interp_cfg_to_L3_Load.
-      2: rewrite typ_to_dtyp_D; eassumption. 
+      2: rewrite typ_to_dtyp_D; eassumption.
       repeat norm_v.
       subst; cbn; repeat norm_v; focus_single_step_v.
       rewrite interp_cfg_to_L3_LW.
@@ -4326,7 +4335,7 @@ Ltac forget_strings :=
 
     - destruct fuel as [| fuel]; [cbn in *; simp |].
 
-      Opaque genWhileLoop. 
+      Opaque genWhileLoop.
       cbn* in GEN.
       unfold GenIR_Rel in BISIM; cbn in BISIM.
       simp.
@@ -4423,7 +4432,7 @@ Ltac forget_strings :=
 
         rewrite find_block_ineq, find_block_eq.
         2: reflexivity.
-        2:cbn; admit. 
+        2:cbn; admit.
 
         repeat norm_v.
 (*
@@ -4447,7 +4456,7 @@ Ltac forget_strings :=
       (* Need to denote phis, I cannot denote the block directly :( *)
 
         admit.
-        
+
       --
         (* from == to, we go from the entry block to the next one directly *)
         cbn.
@@ -4466,7 +4475,7 @@ Ltac forget_strings :=
         cbn; repeat norm_h.
         rewrite interp_Mem_MemSet.
         repeat norm_h.
-        
+
         apply eutt_Ret.
         split; eauto.
         {
@@ -4559,7 +4568,7 @@ Ltac forget_strings :=
   (*     eutt_hide_left. *)
   (*     focus_single_step_v. *)
   (*     unfold MInt64asNT.from_nat in *. *)
-      
+
   (*     rename n into index1. *)
   (*     break_if. *)
   (*     { *)
@@ -4569,9 +4578,9 @@ Ltac forget_strings :=
   (*       cbn. *)
   (*       repeat norm_v. *)
 
-        
-       
-      
+
+
+
 
   Admitted.
 
@@ -4715,4 +4724,3 @@ Proof.
     eapply U; eauto.
   - apply nth_error_None in Heqo; lia.
 Qed.
-
