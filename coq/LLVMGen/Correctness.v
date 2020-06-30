@@ -4458,10 +4458,6 @@ Ltac forget_strings :=
         repeat norm_v.
         subst; cbn; repeat norm_v.
 
-        Lemma denote_bks_unfold_not_in: forall bks bid,
-            find_block dtyp bks bid ≡ None ->
-            D.denote_bks bks bid ≈ Ret (inl bid).
-        Admitted.
         repeat rewrite find_block_ineq.
         2,3,4,5: cbn; admit.
         cbn.
