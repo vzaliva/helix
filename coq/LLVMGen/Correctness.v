@@ -2576,27 +2576,28 @@ Section AExpr.
 
       repeat norm_v.
 
-      (* Should be able to show this now... *)
-
-      (* TODO: actually prove this... *)
-      (* n' = i2 *)
       Lemma int_of_nat :
         forall (i : Int64.int),
-        exists (n : nat), i ≡ Int64.repr (Z.of_nat n).
+        exists (n : nat), i = Int64.repr (Z.of_nat n).
       Proof.
         intros [val [LOWER UPPER]].
-        destruct val eqn:Hval.
-        - exists 0. cbv.
-          Transparent Int64.repr.
-          unfold Int64.repr.
-          cbn.
-          unfold Int64.Z_mod_modulus_range'.
-          admit.
-        - exists (Pos.to_nat p). cbn.
-          admit.
-        - pose proof (Pos2Z.neg_is_neg p).
-          omega. (* Contradiction. *)
-      Admitted.
+        Transparent Int64.repr.
+        unfold Int64.repr.
+        exists (Z.to_nat val).
+        rewrite Z2Nat.id by lia.
+
+        unfold equiv.
+        unfold MInt64asNT.NTypeEquiv.
+        unfold Int64.eq.
+        cbn.
+        rewrite Int64.Z_mod_modulus_eq.
+
+        assert (val mod Int64.modulus ≡ val)%Z as H.
+        apply Zdiv.Zmod_small; lia.
+
+        rewrite H.
+        apply Coqlib.zeq_true.
+      Qed.
 
       destruct MINV as (SINV'' & MINV).
 
