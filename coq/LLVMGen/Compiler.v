@@ -573,7 +573,7 @@ Definition genWhileLoopUp
         ] in
     ret (entryblock, loop_pre ++ body_blocks ++ loop_post).
 
-(* Generates while loop `init_code(); i=to; while(from<=i){ body(); i--;}`
+(* Generates while loop `init_code(); i=to-1; while(from<=i){ body(); i--;}`
 
     .entry:
       (init_code)
