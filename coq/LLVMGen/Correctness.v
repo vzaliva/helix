@@ -4270,7 +4270,6 @@ Ltac forget_strings :=
       subst.
       repeat (norm_v; []).
       focus_single_step_v.
-      apply int_eq_inv in e0; inv e0.
       (* onAllHyps move_up_types. *)
       unfold endo.
       focus_single_step_v.
