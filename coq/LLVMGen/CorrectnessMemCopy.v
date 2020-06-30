@@ -82,6 +82,21 @@ Notation memoryH := MDSHCOLOnFloat64.memory.
 
 Section MemCopy.
 
+  Ltac focus_single_step_v :=
+    match goal with
+      |- eutt _ _ (ITree.bind _ ?x) => remember x
+    end.
+
+  Ltac focus_single_step_h :=
+    match goal with
+      |- eutt _ (ITree.bind _ ?x) _ => remember x
+    end.
+
+  Ltac focus_single_step :=
+    match goal with
+      |- eutt _ (ITree.bind _ ?x) (ITree.bind _ ?y) => remember x; remember y
+    end.
+
 
   Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
@@ -166,7 +181,7 @@ Section MemCopy.
       (* Woo, we get something out of the mem invariant! *)
       Focus 2. cbn. apply g_id_Some.
 
-      cbn. repeat norm_v. rewrite Heqi1.
+      cbn. repeat norm_v. rewrite Heqi3.
 
     (* Step 3 : Next focus step :-) *)
       cbn*. repeat norm_v.
@@ -220,8 +235,8 @@ Section MemCopy.
         repeat (norm_v; try setoid_rewrite translate_ret).
         cbn. repeat norm_vD.
         2 : {
-          assert (Name (String "l" (string_of_nat (local_count i3))) ≢
-                       Name (String "l" (string_of_nat (S (local_count i3))))).
+          assert (Name (String "l" (string_of_nat (local_count i1))) ≢
+                       Name (String "l" (string_of_nat (S (local_count i1))))).
           { admit. }
           eapply lookup_alist_add_ineq in H. 
           setoid_rewrite H. clear H.
@@ -229,42 +244,13 @@ Section MemCopy.
         }
         2 : apply lookup_alist_add_eq.
         cbn*. repeat norm_v.
-
-        rewrite interp_cfg_to_L3_intrinsic.
-        2 : {
-          cbn. 
-          admit. (* IY: This intrinsic is defined in terms of llvm. ?? *)
-        }
-      cbn; repeat norm_v. subst.
-
-    (* Lemma state_inv_mem_union : *)
-
-    (*   state_invariant σ i3 (memory_set memH m0 (mem_union m1 m2)) *)
-    (*     (memV, *)
-    (*     (alist_add (Name (String "l" (string_of_nat (S (local_count i3))))) *)
-    (*       (UVALUE_Addr i2_ptr) *)
-    (*       (alist_add (Name (String "l" (string_of_nat (local_count i3)))) *)
-    (*           (UVALUE_Addr ptr) ρ), g)). *)
-
-      (* Step 4: Last step : Prove that the invariants hold. *)
-      apply eqit_Ret. cbn*.
-      split; cbn; eauto.
-        * intros. destruct v.
-          -- red. destruct x.
-             ++ admit.
-             ++ admit.
-          -- red. destruct x.
-             ++ admit.
-             ++ admit.
-          -- admit.
-        * admit.
-        * admit.
+        admit.
 
       + (* Step 3.2 : i2 is Local *)
         unfold Traversal.endo. cbn. repeat norm_v.
 
         2 : {
-          assert (id0 ≢ Name (String "l" (string_of_nat (local_count i3)))).
+          assert (id0 ≢ Name (String "l" (string_of_nat (local_count i1)))).
           admit.
           eapply lookup_alist_add_ineq in H.
           setoid_rewrite H. cbn. apply i2_local_or_global.
@@ -285,8 +271,8 @@ Section MemCopy.
         repeat (norm_v; try setoid_rewrite translate_ret).
         cbn. repeat norm_vD.
         2 : {
-          assert (Name (String "l" (string_of_nat (local_count i3))) ≢
-                       Name (String "l" (string_of_nat (S (local_count i3))))).
+          assert (Name (String "l" (string_of_nat (local_count i1))) ≢
+                       Name (String "l" (string_of_nat (S (local_count i1))))).
           { admit. }
           eapply lookup_alist_add_ineq in H. 
           setoid_rewrite H. clear H.
@@ -294,23 +280,7 @@ Section MemCopy.
         }
         2 : apply lookup_alist_add_eq.
         cbn*. repeat norm_v.
-        rewrite interp_cfg_to_L3_intrinsic; try reflexivity.
-      cbn; repeat norm_v. subst.
-
-      (* Step 4: Last step : Prove that the invariants hold. *)
-      apply eqit_Ret. cbn*.
-      split; cbn; eauto.
-        * intros. destruct v.
-          -- red. destruct x.
-             ++ admit.
-             ++ admit.
-          -- red. destruct x.
-             ++ admit.
-             ++ admit.
-          -- admit.
-        * admit.
-        * admit.
-        * admit.
+        admit.
 
     - (* Step 2.2 : i0 Is Local *)
         unfold Traversal.endo. cbn. repeat norm_v.
@@ -320,7 +290,7 @@ Section MemCopy.
         }
 
         setoid_rewrite translate_ret. repeat norm_v.
-        repeat norm_v. cbn*. rewrite Heqi1.
+        repeat norm_v. cbn*. rewrite Heqi3.
 
     (* Step 3 : Next focus step :-) *)
       cbn*. repeat norm_v.
@@ -374,8 +344,8 @@ Section MemCopy.
         repeat (norm_v; try setoid_rewrite translate_ret).
         cbn. repeat norm_vD.
         2 : {
-          assert (Name (String "l" (string_of_nat (local_count i3))) ≢
-                       Name (String "l" (string_of_nat (S (local_count i3))))).
+          assert (Name (String "l" (string_of_nat (local_count i1))) ≢
+                       Name (String "l" (string_of_nat (S (local_count i1))))).
           { admit. }
           eapply lookup_alist_add_ineq in H. 
           setoid_rewrite H. clear H.
@@ -383,29 +353,13 @@ Section MemCopy.
         }
         2 : apply lookup_alist_add_eq.
         cbn*. repeat norm_v.
-        rewrite interp_cfg_to_L3_intrinsic; try reflexivity.
-      cbn; repeat norm_v. subst.
-
-      (* Step 4: Last step : Prove that the invariants hold. *)
-      apply eqit_Ret. cbn*.
-      split; cbn; eauto.
-        * intros. destruct v.
-          -- red. destruct x.
-             ++ admit.
-             ++ admit.
-          -- red. destruct x.
-             ++ admit.
-             ++ admit.
-          -- admit.
-        * admit.
-        * admit.
-        * admit.
+        admit.
 
       + (* Step 3.2 : i2 is Local *)
         unfold Traversal.endo. cbn. repeat norm_v.
 
         2 : {
-          assert (id0 ≢ Name (String "l" (string_of_nat (local_count i3)))).
+          assert (id0 ≢ Name (String "l" (string_of_nat (local_count i1)))).
           admit.
           eapply lookup_alist_add_ineq in H.
           setoid_rewrite H. cbn. apply i2_local_or_global.
@@ -426,8 +380,8 @@ Section MemCopy.
         repeat (norm_v; try setoid_rewrite translate_ret).
         cbn. repeat norm_vD.
         2 : {
-          assert (Name (String "l" (string_of_nat (local_count i3))) ≢
-                       Name (String "l" (string_of_nat (S (local_count i3))))).
+          assert (Name (String "l" (string_of_nat (local_count i1))) ≢
+                       Name (String "l" (string_of_nat (S (local_count i1))))).
           { admit. }
           eapply lookup_alist_add_ineq in H. 
           setoid_rewrite H. clear H.
@@ -435,23 +389,6 @@ Section MemCopy.
         }
         2 : apply lookup_alist_add_eq.
         cbn*. repeat norm_v.
-        rewrite interp_cfg_to_L3_intrinsic; try reflexivity.
-      cbn; repeat norm_v. subst.
-
-      (* Step 4: Last step : Prove that the invariants hold. *)
-      apply eqit_Ret. cbn*.
-      split; cbn; eauto.
-        * intros. destruct v.
-          -- red. destruct x.
-             ++ admit.
-             ++ admit.
-          -- red. destruct x.
-             ++ admit.
-             ++ admit.
-          -- admit.
-        * admit.
-        * admit.
-        * admit.
   Admitted.
 
 End MemCopy.
