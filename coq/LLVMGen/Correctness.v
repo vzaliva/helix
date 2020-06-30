@@ -2578,7 +2578,7 @@ Section AExpr.
 
       Lemma int_of_nat :
         forall (i : Int64.int),
-        exists (n : nat), i = Int64.repr (Z.of_nat n).
+        exists (n : nat), i ≡ Int64.repr (Z.of_nat n).
       Proof.
         intros [val [LOWER UPPER]].
         Transparent Int64.repr.
@@ -2586,18 +2586,8 @@ Section AExpr.
         exists (Z.to_nat val).
         rewrite Z2Nat.id by lia.
 
-        unfold equiv.
-        unfold MInt64asNT.NTypeEquiv.
-        unfold Int64.eq.
-        cbn.
-        rewrite Int64.Z_mod_modulus_eq.
+      Admitted.
 
-        assert (val mod Int64.modulus ≡ val)%Z as H.
-        apply Zdiv.Zmod_small; lia.
-
-        rewrite H.
-        apply Coqlib.zeq_true.
-      Qed.
 
       destruct MINV as (SINV'' & MINV).
 
@@ -2655,7 +2645,7 @@ Section AExpr.
       repeat norm_v.
 
       pose proof int_of_nat n' as (n'_nat & Hn').
-      rewrite Hn'.
+      (* rewrite Hn'. *)
 
       Lemma exp_E_to_instr_E_Memory : forall {X} (e : MemoryE X),
           exp_E_to_instr_E (subevent X e) ≡ subevent X e.
@@ -3804,7 +3794,7 @@ Section WhileLoop.
       (* Vellvm bits *) (prefix: string) (from to: exp typ) (loopvar: raw_id) (loopcontblock: block_id)
                         (body_entry: block_id) (body_blocks: list (LLVMAst.block typ)) (init_code: (code typ))
                         (nextblock: block_id) (bid: block_id) (bks : list (LLVMAst.block typ)),
-      genWhileLoop prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 ≡ inr (s2, (bid, bks)) -> (* Compilation succeeds *)
+      genWhileLoopDown prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 ≡ inr (s2, (bid, bks)) -> (* Compilation succeeds *)
       WF_IRState σ s1 ->                                      (* Well-formed IRState *)
       False.
       (* eutt R'
@@ -4326,6 +4316,7 @@ Ltac forget_strings :=
 
     - destruct fuel as [| fuel]; [cbn in *; simp |].
 
+      (*
       Opaque genWhileLoop. 
       cbn* in GEN.
       unfold GenIR_Rel in BISIM; cbn in BISIM.
@@ -4475,7 +4466,8 @@ Ltac forget_strings :=
         {
           admit.
         }
-
+       *)
+      admit.
     - (* DSHBinOp *)
       destruct fuel as [| fuel]; [cbn in *; simp |].
       cbn* in GEN.
