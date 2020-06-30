@@ -2011,7 +2011,53 @@ Qed.
      *)
   Admitted.
 
+  Lemma genNExpr_memH : forall σ n e memH memV memH' memV' l g l' g' n',
+      genNExpr_rel σ n e memH (mk_config_cfg memV l g) (memH', n')
+                   (memV', (l', (g', ()))) ->
+      memH ≡ memH'.
+  Proof.
+    intros σ n e memH memV memH' memV' l g l' g' n' H.
+    destruct H; cbn in *; intuition.
+  Qed.
+
+  Lemma genNExpr_memV : forall σ n e memH memV memH' memV' l g l' g' n',
+      genNExpr_rel σ n e memH (mk_config_cfg memV l g) (memH', n')
+                   (memV', (l', (g', ()))) ->
+      memV ≡ memV'.
+  Proof.
+    intros σ n e memH memV memH' memV' l g l' g' n' H.
+    destruct H; cbn in *; intuition.
+  Qed.
+
+  Lemma genNExpr_g : forall σ n e memH memV memH' memV' l g l' g' n',
+      genNExpr_rel σ n e memH (mk_config_cfg memV l g) (memH', n')
+                   (memV', (l', (g', ()))) ->
+      g ≡ g'.
+  Proof.
+    intros σ n e memH memV memH' memV' l g l' g' n' H.
+    destruct H; cbn in *; intuition.
+  Qed.
+
+  Lemma genNExpr_l : forall σ n e memH memV memH' memV' l g l' g' n',
+      genNExpr_rel σ n e memH (mk_config_cfg memV l g) (memH', n')
+                   (memV', (l', (g', ()))) ->
+      l ⊑ l'.
+  Proof.
+    intros σ n e memH memV memH' memV' l g l' g' n' H.
+    destruct H; cbn in *; intuition.
+  Qed.
+
 End NExpr.
+
+Ltac genNExpr_rel_subst LL :=
+  match goal with
+  | NEXP : genNExpr_rel ?σ ?n ?e ?memH (mk_config_cfg ?memV ?l ?g) (?memH', ?n') (?memV', (?l', (?g', ()))) |- _ =>
+    let H := fresh in
+    pose proof genNExpr_memH NEXP as H; subst memH';
+    pose proof genNExpr_memV NEXP as H; subst memV';
+    pose proof genNExpr_g NEXP as H; subst g';
+    pose proof genNExpr_l NEXP as LL
+  end.
 
 Section MExpr.
 
@@ -2145,7 +2191,75 @@ Section MExpr.
       cbn* in Hgen; simp.
   Qed.
 
+      (* TODO: move these, and use them more. *)
+
+      Lemma genMExpr_memH : forall σ s e memH memV memH' memV' l g l' g' mb uv,
+          genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
+                       (memV', (l', (g', uv))) ->
+          memH ≡ memH'.
+      Proof.
+        intros * H.
+        destruct H; cbn in *; intuition.
+      Qed.
+
+      Lemma genMExpr_memV : forall σ s e memH memV memH' memV' l g l' g' mb uv,
+          genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
+                       (memV', (l', (g', uv))) ->
+          memV ≡ memV'.
+      Proof.
+        intros * H.
+        destruct H; cbn in *; intuition.
+      Qed.
+
+      Lemma genMExpr_g : forall σ s e memH memV memH' memV' l g l' g' mb uv,
+          genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
+                       (memV', (l', (g', uv))) ->
+          g ≡ g'.
+      Proof.
+        intros * H.
+        destruct H; cbn in *; intuition.
+      Qed.
+
+      Lemma genMExpr_l : forall σ s e memH memV memH' memV' l g l' g' mb uv,
+          genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
+                       (memV', (l', (g', uv))) ->
+          l ≡ l'.
+      Proof.
+        intros * H.
+        destruct H; cbn in *; intuition.
+      Qed.
+
+      Lemma genMExpr_preserves_WF:
+        forall mexp s s' σ x,
+          WF_IRState σ s ->
+          genMExpr mexp s ≡ inr (s',x) ->
+          WF_IRState σ s'.
+      Proof.
+        induction mexp; intros * WF GEN; cbn* in GEN; simp; auto.
+      Qed.
+
+      Lemma genMExpr_array : forall {s1 s2 m e c t},
+          genMExpr m s1 ≡ inr (s2, (e, c, t)) ->
+          exists sz, t ≡ TYPE_Array sz TYPE_Double.
+      Proof.
+        intros s1 s2 m e c t H.
+        destruct m; cbn in H; inv H.
+        simp.
+        exists sz.
+        reflexivity.
+      Qed.
+
 End MExpr.
+
+Ltac genMExpr_rel_subst :=
+  match goal with
+  | MEXP : genMExpr_rel ?σ ?s ?e ?memH (mk_config_cfg ?memV ?l ?g) (?memH', ?mb) (?memV', (?l', (?g', ?uv))) |- _ =>
+    let H := fresh in
+    pose proof genMExpr_memH MEXP as H; subst memH';
+    pose proof genMExpr_memV MEXP as H; subst memV';
+    pose proof genMExpr_g MEXP as H; subst g';
+    pose proof genMExpr_l MEXP as H; subst l'
+  end.
 
 Section AExpr.
 
@@ -2186,28 +2300,6 @@ Section AExpr.
     amonotone : ext_local mi sti mf stf
     }.
 
-  (* TODO: better name *)
-  (* Only after denoting code, not expression *)
-  Definition invariant_MExpr_code
-             (σ : evalContext)
-             (s : IRState) : Rel_cfg_T mem_block () :=
-    fun '(memH, mb) '(memV, (ρ, (g, res))) =>
-      exists ptr i (vid : nat) (mid : mem_block_id) (size : Int64.int) (sz : int), (* TODO: sz ≈ size? *)
-        memory_lookup memH mid ≡ Some mb /\
-        in_local_or_global ρ g memV i (DVALUE_Addr ptr) (TYPE_Array sz TYPE_Double) /\
-        nth_error σ vid ≡ Some (DSHPtrVal mid size) /\
-        nth_error (Γ s) vid ≡ Some (i, TYPE_Pointer (TYPE_Array sz TYPE_Double)).
-
-  (* TODO move to mexpr section *)
-  Lemma genMExpr_preserves_WF:
-    forall mexp s s' σ x,
-      WF_IRState σ s ->
-      genMExpr mexp s ≡ inr (s',x) ->
-      WF_IRState σ s'.
-  Proof.
-    induction mexp; intros * WF GEN; cbn* in GEN; simp; auto.
-  Qed.
-
   (*
   Lemma genAExpr_preserves_WF:
     forall aexp s s' σ x,
@@ -2226,34 +2318,73 @@ Section AExpr.
     all: eapply IHaexp1 in Heqs0; eapply IHaexp2 in Heqs1; eauto.
   Qed. *)
 
-  (* TODO: Move this *)
-  Lemma In__alist_In :
-    forall {K V} {R : K -> K -> Prop} {RD : @RelDec K (@Logic.eq K)} {RDC : RelDec_Correct RD} (k : K) (v : V) l,
-      In (k,v) l ->
-      exists v', alist_In k l v'.
+  (* TODO: move this *)
+  Lemma int_of_nat :
+    forall (i : Int64.int),
+    exists (n : nat), i ≡ Int64.repr (Z.of_nat n).
   Proof.
-    intros K V R RD RDC k v l IN.
-    induction l; inversion IN.
-    - exists v. subst. unfold alist_In.
+    intros [val [LOWER UPPER]].
+    Transparent Int64.repr.
+    unfold Int64.repr.
+    Opaque Int64.repr.
+    exists (Z.to_nat val).
+    rewrite Z2Nat.id by lia.
+
+    match goal with
+    | |- ?x ≡ ?y => assert (x = y) as EQ;
+                    pose proof Int64.eq_spec x y as EQ_real
+    end.
+
+    { unfold equiv.
+      unfold MInt64asNT.NTypeEquiv.
+      unfold Int64.eq.
       cbn.
-      assert (k ?[ Logic.eq ] k ≡ true) as Hk.
-      eapply rel_dec_correct; auto.
-      rewrite Hk.
-      reflexivity.
-    - destruct a. inversion IN.
-      + injection H0; intros; subst.
-        exists v. unfold alist_In.
-        cbn.
-        assert (k ?[ Logic.eq ] k ≡ true) as Hk.
-        eapply rel_dec_correct; auto.
-        rewrite Hk.
-        reflexivity.
-      + unfold alist_In.
-        cbn.
-        destruct (k ?[ Logic.eq ] k0) eqn:Hkk0.
-        * exists v0; auto.
-        * auto.
+      rewrite Int64.Z_mod_modulus_eq.
+
+      assert (val mod Int64.modulus ≡ val)%Z as H.
+      apply Zdiv.Zmod_small; lia.
+
+      rewrite H.
+      apply Coqlib.zeq_true.
+    }
+
+    rewrite EQ in EQ_real.
+    auto.
   Qed.
+
+  (* TODO: move this *)
+  Lemma to_nat_repr_of_nat :
+    forall (n : nat),
+      MInt64asNT.to_nat (Int64.repr (Z.of_nat n)) ≡ n.
+  Proof.
+    intros n.
+
+    match goal with
+    | |- ?x ≡ ?y => assert (x = y) as EQ
+    end.
+
+    { unfold equiv. unfold peano_naturals.nat_equiv.
+      Transparent Int64.repr.
+      unfold Int64.repr.
+      Opaque Int64.repr.
+
+      unfold MInt64asNT.to_nat.
+      unfold Int64.intval.
+      rewrite Int64.Z_mod_modulus_eq.
+      assert (exists m, Int64.modulus ≡ Z.of_nat m) as (m & H).
+      admit.
+
+      rewrite H.
+      rewrite <- Zdiv.mod_Zmod.
+      rewrite Nat2Z.id.
+
+      admit.
+      admit.
+    }
+
+    rewrite EQ.
+    auto.
+  Admitted.
 
   Lemma genAExpr_correct_ind :
     forall (* Compiler bits *) (s1 s2: IRState)
@@ -2353,8 +2484,7 @@ Section AExpr.
              unfold context_lookup.
              rewrite Heqo0. cbn.
              reflexivity.
-        * (* TODO: should be able to replace with abs_by_WF *)
-          cbn* in EVAL; rewrite Heqo0 in EVAL; inv EVAL.
+        * cbn* in EVAL; rewrite Heqo0 in EVAL; inv EVAL.
     - (* Constant *)
       cbn* in COMPILE; simp.
       unfold denoteAExpr; cbn*.
@@ -2388,105 +2518,11 @@ Section AExpr.
       subst i3.
       do 2 norm_v.
 
-      (* TODO: move these, and use them more. *)
-      Lemma genNExpr_memH : forall σ n e memH memV memH' memV' l g l' g' n',
-          genNExpr_rel σ n e memH (mk_config_cfg memV l g) (memH', n')
-                       (memV', (l', (g', ()))) ->
-          memH ≡ memH'.
-      Proof.
-        intros σ n e memH memV memH' memV' l g l' g' n' H.
-        destruct H; cbn in *; intuition.
-      Qed.
-
-      Lemma genNExpr_memV : forall σ n e memH memV memH' memV' l g l' g' n',
-          genNExpr_rel σ n e memH (mk_config_cfg memV l g) (memH', n')
-                       (memV', (l', (g', ()))) ->
-          memV ≡ memV'.
-      Proof.
-        intros σ n e memH memV memH' memV' l g l' g' n' H.
-        destruct H; cbn in *; intuition.
-      Qed.
-
-      Lemma genNExpr_g : forall σ n e memH memV memH' memV' l g l' g' n',
-          genNExpr_rel σ n e memH (mk_config_cfg memV l g) (memH', n')
-                       (memV', (l', (g', ()))) ->
-          g ≡ g'.
-      Proof.
-        intros σ n e memH memV memH' memV' l g l' g' n' H.
-        destruct H; cbn in *; intuition.
-      Qed.
-
-      Lemma genNExpr_l : forall σ n e memH memV memH' memV' l g l' g' n',
-          genNExpr_rel σ n e memH (mk_config_cfg memV l g) (memH', n')
-                       (memV', (l', (g', ()))) ->
-          l ⊑ l'.
-      Proof.
-        intros σ n e memH memV memH' memV' l g l' g' n' H.
-        destruct H; cbn in *; intuition.
-      Qed.
-
-      Lemma genMExpr_memH : forall σ s e memH memV memH' memV' l g l' g' mb uv,
-          genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
-                       (memV', (l', (g', uv))) ->
-          memH ≡ memH'.
-      Proof.
-        intros * H.
-        destruct H; cbn in *; intuition.
-      Qed.
-
-      Lemma genMExpr_memV : forall σ s e memH memV memH' memV' l g l' g' mb uv,
-          genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
-                       (memV', (l', (g', uv))) ->
-          memV ≡ memV'.
-      Proof.
-        intros * H.
-        destruct H; cbn in *; intuition.
-      Qed.
-
-      Lemma genMExpr_g : forall σ s e memH memV memH' memV' l g l' g' mb uv,
-          genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
-                       (memV', (l', (g', uv))) ->
-          g ≡ g'.
-      Proof.
-        intros * H.
-        destruct H; cbn in *; intuition.
-      Qed.
-
-      Lemma genMExpr_l : forall σ s e memH memV memH' memV' l g l' g' mb uv,
-          genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
-                       (memV', (l', (g', uv))) ->
-          l ≡ l'.
-      Proof.
-        intros * H.
-        destruct H; cbn in *; intuition.
-      Qed.
-
       eapply eutt_clo_bind; eauto.
       intros [memH' n'] [memV' [l' [g' []]]] [SINV GENN_REL].
 
       (* Relate MExpr *)
       destruct GENN_REL as [NEXP_CORRECT VARS_s1_i].
-
-      (* TODO: move this Ltac *)
-      Ltac genNExpr_rel_subst LL :=
-        match goal with
-        | NEXP : genNExpr_rel ?σ ?n ?e ?memH (mk_config_cfg ?memV ?l ?g) (?memH', ?n') (?memV', (?l', (?g', ()))) |- _ =>
-          let H := fresh in
-          pose proof genNExpr_memH NEXP as H; subst memH';
-          pose proof genNExpr_memV NEXP as H; subst memV';
-          pose proof genNExpr_g NEXP as H; subst g';
-          pose proof genNExpr_l NEXP as LL
-        end.
-
-      Ltac genMExpr_rel_subst :=
-        match goal with
-        | MEXP : genMExpr_rel ?σ ?s ?e ?memH (mk_config_cfg ?memV ?l ?g) (?memH', ?mb) (?memV', (?l', (?g', ?uv))) |- _ =>
-          let H := fresh in
-          pose proof genMExpr_memH MEXP as H; subst memH';
-          pose proof genMExpr_memV MEXP as H; subst memV';
-          pose proof genMExpr_g MEXP as H; subst g';
-          pose proof genMExpr_l MEXP as H; subst l'
-        end.
 
       (* Need to know that memH'=memH and memV'=memV ... *)
       genNExpr_rel_subst LL'.
@@ -2576,38 +2612,6 @@ Section AExpr.
 
       repeat norm_v.
 
-      Lemma int_of_nat :
-        forall (i : Int64.int),
-        exists (n : nat), i ≡ Int64.repr (Z.of_nat n).
-      Proof.
-        intros [val [LOWER UPPER]].
-        Transparent Int64.repr.
-        unfold Int64.repr.
-        exists (Z.to_nat val).
-        rewrite Z2Nat.id by lia.
-
-        match goal with
-        | |- ?x ≡ ?y => assert (x = y) as EQ;
-                        pose proof Int64.eq_spec x y as EQ_real
-        end.
-
-        { unfold equiv.
-          unfold MInt64asNT.NTypeEquiv.
-          unfold Int64.eq.
-          cbn.
-          rewrite Int64.Z_mod_modulus_eq.
-
-          assert (val mod Int64.modulus ≡ val)%Z as H.
-          apply Zdiv.Zmod_small; lia.
-
-          rewrite H.
-          apply Coqlib.zeq_true.
-        }
-
-        rewrite EQ in EQ_real.
-        auto.
-      Qed.
-
       destruct MINV as (SINV'' & MINV).
 
       (* Need to know that genMExpr does not affect memH / memV / g / l *)
@@ -2666,23 +2670,6 @@ Section AExpr.
       pose proof int_of_nat n' as (n'_nat & Hn').
       rewrite Hn'.
 
-      Lemma exp_E_to_instr_E_Memory : forall {X} (e : MemoryE X),
-          exp_E_to_instr_E (subevent X e) ≡ subevent X e.
-      Proof.
-        reflexivity.
-      Qed.
-
-      Lemma genMExpr_array : forall {s1 s2 m e c t},
-          genMExpr m s1 ≡ inr (s2, (e, c, t)) ->
-          exists sz, t ≡ TYPE_Array sz TYPE_Double.
-      Proof.
-        intros s1 s2 m e c t H.
-        destruct m; cbn in H; inv H.
-        simp.
-        exists sz.
-        reflexivity.
-      Qed.
-
       (* Long path to rewriting with GEP lemma... *)
       pose proof genMExpr_array Heqs0 as (sz' & ARRAY).
       rewrite ARRAY.
@@ -2709,8 +2696,9 @@ Section AExpr.
       subst.
 
       rewrite MLUP in MLUP'. inv MLUP'.
+      
       replace (MInt64asNT.to_nat (Int64.repr (Z.of_nat n'_nat))) with n'_nat in LUPn'b'.
-      2: admit.
+      2: { symmetry. apply to_nat_repr_of_nat. }
       specialize (GET_ARRAY n'_nat b LUPn'b').
       epose proof interp_cfg_to_L3_GEP_array helix_intrinsics DTYPE_Double ptr sz' g l' memV _ n'_nat GET_ARRAY as (ptr' & EUTT_GEP & READ).
 

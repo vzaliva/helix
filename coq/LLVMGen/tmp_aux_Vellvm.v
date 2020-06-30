@@ -448,6 +448,34 @@ Section alistFacts.
       contradiction.
   Qed.
 
+  Lemma In__alist_In :
+    forall {R : K -> K -> Prop} {RD : @RelDec K (@Logic.eq K)} {RDC : RelDec_Correct RD} (k : K) (v : V) l,
+      In (k,v) l ->
+      exists v', alist_In k l v'.
+  Proof.
+    intros R RD RDC k v l IN.
+    induction l; inversion IN.
+    - exists v. subst. unfold alist_In.
+      cbn.
+      assert (k ?[ Logic.eq ] k = true) as Hk.
+      eapply rel_dec_correct; auto.
+      rewrite Hk.
+      reflexivity.
+    - destruct a. inversion IN.
+      + injection H0; intros; subst.
+        exists v. unfold alist_In.
+        cbn.
+        assert (k ?[ Logic.eq ] k = true) as Hk.
+        eapply rel_dec_correct; auto.
+        rewrite Hk.
+        reflexivity.
+      + unfold alist_In.
+        cbn.
+        destruct (k ?[ Logic.eq ] k0) eqn:Hkk0.
+        * exists v0; auto.
+        * auto.
+  Qed.
+
   Lemma alist_find_remove_none:
     forall (m : list (K*V)) (k1 k2 : K), k2 <> k1 -> alist_find k1 (alist_remove k2 m) = None -> alist_find k1 m = None.
   Proof.
