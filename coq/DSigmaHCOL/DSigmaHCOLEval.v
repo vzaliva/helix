@@ -1505,6 +1505,83 @@ Module MDSigmaHCOLEval
         apply memory_lookup_err_inl_None_eq in H
       end.
 
+  Lemma mem_lookup_err_inr_Some_eq
+        (msg : string)
+        (mb : mem_block)
+        (n : nat)
+        (a : CT.t)
+    :
+      mem_lookup_err msg n mb ≡ inr a <->
+      mem_lookup n mb ≡ Some a.
+  Proof.
+    unfold mem_lookup_err, trywith.
+    split; intros.
+    break_match; try inl_inr.
+    inversion H.
+    reflexivity.
+    rewrite H.
+    reflexivity.
+  Qed.
+
+  Lemma mem_lookup_err_inl_None_eq
+        (msg msg' : string)
+        (mb : mem_block)
+        (n : nat)
+    :
+      mem_lookup_err msg n mb ≡ inl msg' ->
+      mem_lookup n mb ≡ None.
+  Proof.
+    unfold mem_lookup_err, trywith.
+    intros.
+    break_match; try inl_inr.
+    reflexivity.
+  Qed.
+
+  Lemma mem_lookup_err_inl_None
+        (msg msg' : string)
+        (mb : mem_block)
+        (n : nat)
+    :
+      mem_lookup_err msg n mb = inl msg' <->
+      mem_lookup n mb = None.
+  Proof.
+    unfold mem_lookup_err, trywith.
+    split; intros.
+    all: break_match.
+    all: inversion H.
+    all: constructor.
+  Qed.
+
+  Lemma mem_lookup_err_inr_Some
+        (msg : string)
+        (mb : mem_block)
+        (n : nat)
+        (a : CT.t)
+    :
+      mem_lookup_err msg n mb = inr a <->
+      mem_lookup n mb = Some a.
+  Proof.
+    unfold mem_lookup_err, trywith.
+    split; intros.
+    all: break_match.
+    all: inversion H.
+    all: rewrite H2.
+    all: reflexivity.
+  Qed.
+
+  Ltac mem_lookup_err_to_option :=
+    repeat
+      match goal with
+      | [ H: mem_lookup_err _ _ _ = inr _ |- _] =>
+        apply mem_lookup_err_inr_Some in H
+      | [ H: mem_lookup_err _ _ _ = inl _ |- _] =>
+        apply mem_lookup_err_inl_None in H
+      | [ H: mem_lookup_err _ _ _ ≡ inr _ |- _] =>
+        apply mem_lookup_err_inr_Some_eq in H
+      | [ H: mem_lookup_err _ _ _ ≡ inl _ |- _] =>
+        apply mem_lookup_err_inl_None_eq in H
+      end.
+
   Lemma memory_next_key_struct
         (m m' : memory):
     (forall k, mem_block_exists k m <-> mem_block_exists k m') ->
