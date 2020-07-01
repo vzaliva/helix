@@ -102,6 +102,76 @@ Section MemCopy.
 
   Opaque denote_bks.
 
+  Definition Rel_memV (T S : Type) :=
+    memoryV * (local_env * (global_env * S)) -> memoryV * T -> Prop.
+
+  Definition lift_Rel_memV (T S : Type) (R : T -> S -> Prop) : Rel_memV T S :=
+    fun '(_, (_, (_, s))) '(_, t) => R t s.
+
+  Lemma interp_cfg_to_L3_memory_intrinsic :
+    ∀ (defs : intrinsic_definitions) (m : memoryV) (τ : dtyp) (g : global_env)
+      (l : local_env)
+      (fn : string) (args : list dvalue) (df : semantic_function)
+      (res : dvalue),
+    assoc string_dec fn (defs_assoc defs) ≡ None
+    → df args ≡ inr res
+    → eutt (lift_Rel_memV (@Logic.eq dvalue)) (interp_cfg_to_L3 defs (trigger (Intrinsic τ fn args)) g l m) (handle_intrinsic ((Intrinsic τ fn args)) m).
+  Proof.
+    intros.
+  Admitted.
+
+    Lemma interp_cfg_to_L3_memory_intrinsic' :
+      ∀ (defs: intrinsic_definitions) (m : memoryV) (τ : typ) (dτ : dtyp)
+        (g : global_env) (l : local_env)
+        (val1 val2 : uvalue) ptr1 ptr2 sz t,
+       TYPE_Pointer (TYPE_Array sz TYPE_Double) ≡ TYPE_Pointer τ ->
+        MInt64asNT.from_Z sz ≡ inr t ->
+       read m ptr1 dτ ≡ inr val1 ->
+       read m ptr2 dτ ≡ inr val2 ->
+      interp_cfg_to_L3 defs (trigger (Intrinsic DTYPE_Void
+                  "llvm.memcpy.p0i8.p0i8.i32"
+                   [DVALUE_Addr ptr1; DVALUE_Addr ptr2;
+                   DVALUE_I32 (DynamicValues.Int32.repr (Int64.intval t * 8));
+                   DVALUE_I32 (DynamicValues.Int32.repr PtrAlignment);
+                   DVALUE_I1 (DynamicValues.Int1.repr 0)])) g l m ≈
+                       Ret (m, (l, (g, DVALUE_Addr ptr2))) /\
+      read m ptr2 dτ ≡ inr val1.
+    Proof.
+      intros defs m τ dτ g l val1 val2 ptr1 ptr2 sz t.
+      intros Pointer_TYPE SIZE read_ptr1 read_ptr2.
+    Admitted.
+
+    Lemma interp_memory_intrinsic_memcpy :
+      ∀ (m : memoryV) (a1 a2 : Addr.addr) (i : nat)
+        (val1 val2 : uvalue) (dτ : dtyp),
+      get_array_cell m a1 i dτ ≡ inr val1 ->
+      get_array_cell m a2 i dτ ≡ inr val2 ->
+      exists m',
+       interp_memory (trigger (Intrinsic DTYPE_Void
+                  "llvm.memcpy.p0i8.p0i8.i32"
+                   [DVALUE_Addr a1; DVALUE_Addr a2;
+                   DVALUE_I64 (Int64.repr 0);
+                   DVALUE_I64 (Int64.repr (Z.of_nat i))])) m ≈
+                       Ret (m', DVALUE_None) /\
+        read m' a2 dτ ≡ inr val1.
+    Proof.
+      intros m a1 a2 i val1 val2 dτ MEM_ptr1 MEM_ptr2.
+      pose proof get_array_succeeds_allocated _ _ _ _ MEM_ptr1 as ALLOC_ptr1.
+      pose proof get_array_succeeds_allocated _ _ _ _ MEM_ptr2 as ALLOC_ptr2.
+      pose proof read_array_exists m
+           (Z.of_nat i) dτ i a1 ALLOC_ptr1 as RARRAY_ptr1.
+      pose proof read_array_exists m
+           (Z.of_nat i) dτ i a2 ALLOC_ptr2 as RARRAY_ptr2.
+      destruct RARRAY_ptr1 as (ptr1 & GEP1 & READ1).
+      destruct RARRAY_ptr2 as (ptr2 & GEP2 & READ2).
+      - Set Printing Implicit. setoid_rewrite interp_memory_trigger. cbn.
+        unfold resum, ReSum_id, id_, Id_IFun.
+        (* IY: Something goes wrong here, memory isn't interpreted correctly. *)
+        setoid_rewrite bind_trigger.
+        admit.
+    Admitted.
+
+
   (** ** Compilation of MemCopy
       Unclear how to state this at the moment.
       What is on the Helix side? What do the arguments correspond to?
@@ -121,274 +191,277 @@ Section MemCopy.
         (with_err_LB
           (interp_cfg (denote_bks (convert_typ [ ] bks) bid_in) g ρ memV)).
   Proof.
-    intros size x_p y_p s1 s2 σ memH fuel v nextblock bid_in bks g ρ memV NEXT BISIM EVAL GEN.
-    destruct fuel as [| fuel]; [cbn in *; simp |].
-    repeat red in BISIM.
+    (* intros size x_p y_p s1 s2 σ memH fuel v nextblock bid_in bks g ρ memV NEXT BISIM EVAL GEN. *)
+    (* destruct fuel as [| fuel]; [cbn in *; simp |]. *)
+    (* repeat red in BISIM. *)
 
-    (* remember (GenIR_Rel σ s1 ⩕ lift_pure_cfg (s1 ≡ s2)) as RR. *)
-    cbn* in GEN. simp. hide_strings'. cbn* in *.
+    (* (* remember (GenIR_Rel σ s1 ⩕ lift_pure_cfg (s1 ≡ s2)) as RR. *) *)
+    (* cbn* in GEN. simp. hide_strings'. cbn* in *. *)
 
 
-    eutt_hide_right. repeat norm_h. unfold denotePExpr. cbn*.
-    simp. eutt_hide_right. repeat (norm_h ; [ ]). norm_h.
-    2 : {
-      cbn*. rewrite Heqo2. reflexivity.
-    }
-    repeat norm_h.
-    2 : {
-      cbn*. rewrite Heqo1. reflexivity. 
-    }
-    rewrite interp_Mem_MemSet. norm_h.
+    (* eutt_hide_right. repeat norm_h. unfold denotePExpr. cbn*. *)
+    (* simp. eutt_hide_right. repeat (norm_h ; [ ]). norm_h. *)
+    (* 2 : { *)
+    (*   cbn*. rewrite Heqo2. reflexivity. *)
+    (* } *)
+    (* repeat norm_h. *)
+    (* 2 : { *)
+    (*   cbn*. rewrite Heqo1. reflexivity.  *)
+    (* } *)
+    (* rewrite interp_Mem_MemSet. norm_h. *)
 
-    (* Right hand side... *)
-    (* Step 1 : Handle blocks, then focus step by step. *)
-    subst. eutt_hide_left.
-    unfold add_comments. cbn*.
+    (* (* Right hand side... *) *)
+    (* (* Step 1 : Handle blocks, then focus step by step. *) *)
+    (* subst. eutt_hide_left. *)
+    (* unfold add_comments. cbn*. *)
 
-    rewrite denote_bks_singleton; eauto.
-    2:reflexivity.
-    cbn*.
-    repeat norm_v.
-    unfold uvalue_to_dvalue_uop.
-    cbn*; repeat norm_v.
-    unfold ITree.map. cbn.
-    repeat setoid_rewrite translate_bind.
-    cbn. repeat norm_v.
-    setoid_rewrite translate_bind.
-    cbn. repeat norm_v.
-    repeat rewrite typ_to_dtyp_equation.
+    (* rewrite denote_bks_singleton; eauto. *)
+    (* 2:reflexivity. *)
+    (* cbn*. *)
+    (* repeat norm_v. *)
+    (* unfold uvalue_to_dvalue_uop. *)
+    (* cbn*; repeat norm_v. *)
+    (* unfold ITree.map. cbn. *)
+    (* repeat setoid_rewrite translate_bind. *)
+    (* cbn. repeat norm_v. *)
+    (* setoid_rewrite translate_bind. *)
+    (* cbn. repeat norm_v. *)
+    (* repeat rewrite typ_to_dtyp_equation. *)
 
-    (* Step 2 : First step focus --- looking up i0 pointer. *)
-    focus_single_step_v.
-    unfold Traversal.endo, Traversal.Endo_ident.
+    (* (* Step 2 : First step focus --- looking up i0 pointer. *) *)
+    (* focus_single_step_v. *)
+    (* unfold Traversal.endo, Traversal.Endo_ident. *)
 
-    (* Use memory invariant to reason about lookup. It must be either
-     global or local. *)
-    destruct BISIM.
-    pose proof mem_is_inv as mem_is_inv'.
-    red in mem_is_inv.
-    specialize (mem_is_inv _ _ _ _ Heqo4 Heqo0). cbn in mem_is_inv.
-    edestruct mem_is_inv as (x_mem_block & x_address & LOOKUP_mem_m &
-                            i0_local_or_global & cell_on_memV).
-    red in i0_local_or_global.
+    (* (* Use memory invariant to reason about lookup. It must be either *)
+    (*  global or local. *) *)
+    (* destruct BISIM. *)
+    (* pose proof mem_is_inv as mem_is_inv'. *)
+    (* red in mem_is_inv. *)
+    (* specialize (mem_is_inv _ _ _ _ Heqo4 Heqo0). cbn in mem_is_inv. *)
+    (* edestruct mem_is_inv as (x_mem_block & x_address & LOOKUP_mem_m & *)
+    (*                         i0_local_or_global & cell_on_memV). *)
+    (* red in i0_local_or_global. *)
 
-    break_inner_match.
-    - (* Step 2.1 : i0 Is Global *)
-      destruct i0_local_or_global as
-        (ptr & τ & Pointer_TYPE & g_id_Some & read_memV).
-      unfold Traversal.endo. cbn. repeat norm_v.
+    (* break_inner_match. *)
+    (* - (* Step 2.1 : i0 Is Global *) *)
+    (*   destruct i0_local_or_global as *)
+    (*     (ptr & τ & Pointer_TYPE & g_id_Some & read_memV). *)
+    (*   unfold Traversal.endo. cbn. repeat norm_v. *)
 
-      (* Woo, we get something out of the mem invariant! *)
-      Focus 2. cbn. apply g_id_Some.
+    (*   (* Woo, we get something out of the mem invariant! *) *)
+    (*   Focus 2. cbn. apply g_id_Some. *)
 
-      cbn. repeat norm_v. rewrite Heqi3.
+    (*   cbn. repeat norm_v. rewrite Heqi3. *)
 
-    (* Step 3 : Next focus step :-) *)
-      cbn*. repeat norm_v.
-      do 2 setoid_rewrite translate_ret.
-      cbn. repeat norm_v.
-      setoid_rewrite translate_ret.
-      repeat norm_vD.
-      unfold Traversal.endo.
+    (* (* Step 3 : Next focus step :-) *) *)
+    (*   cbn*. repeat norm_v. *)
+    (*   do 2 setoid_rewrite translate_ret. *)
+    (*   cbn. repeat norm_v. *)
+    (*   setoid_rewrite translate_ret. *)
+    (*   repeat norm_vD. *)
+    (*   unfold Traversal.endo. *)
 
-      rewrite interp_cfg_to_L3_LW.
-      cbn*. repeat norm_v.
-      setoid_rewrite translate_ret.
-      repeat norm_v.
+    (*   rewrite interp_cfg_to_L3_LW. *)
+    (*   cbn*. repeat norm_v. *)
+    (*   setoid_rewrite translate_ret. *)
+    (*   repeat norm_v. *)
 
-      (* Another lookup. *)
-      unfold Traversal.Endo_ident.
+    (*   (* Another lookup. *) *)
+    (*   unfold Traversal.Endo_ident. *)
 
-      pose proof mem_is_inv as mem_is_inv''; red in mem_is_inv'.
-      specialize (mem_is_inv' _ _ _ _ Heqo3 Heqo).
-      edestruct mem_is_inv' as (i2_mem_block & i2_address & i2_LOOKUP_mem_m &
-                               i2_local_or_global & i2_cell_on_memV).
-      red in i2_local_or_global.
+    (*   pose proof mem_is_inv as mem_is_inv''; red in mem_is_inv'. *)
+    (*   specialize (mem_is_inv' _ _ _ _ Heqo3 Heqo). *)
+    (*   edestruct mem_is_inv' as (i2_mem_block & i2_address & i2_LOOKUP_mem_m & *)
+    (*                            i2_local_or_global & i2_cell_on_memV). *)
+    (*   red in i2_local_or_global. *)
 
-      break_inner_match.
+    (*   break_inner_match. *)
 
-      + (* Step 3.1 : i2 is Global *)
-        destruct i2_local_or_global as
-            (i2_ptr & i2_τ & i2_Pointer_TYPE & i2_g_id_Some & i2_read_memV).
-        unfold Traversal.endo. cbn. repeat norm_v.
+    (*   + (* Step 3.1 : i2 is Global *) *)
+    (*     destruct i2_local_or_global as *)
+    (*         (i2_ptr & i2_τ & i2_Pointer_TYPE & i2_g_id_Some & i2_read_memV). *)
+    (*     unfold Traversal.endo. cbn. repeat norm_v. *)
 
-        Focus 2. rewrite Heqi4. apply i2_g_id_Some.
+    (*     Focus 2. rewrite Heqi4. apply i2_g_id_Some. *)
 
-        setoid_rewrite translate_ret. repeat norm_v.
-        do 2 setoid_rewrite translate_ret.
-        cbn. repeat norm_v.
-        setoid_rewrite translate_ret.
-        repeat norm_v.
+    (*     setoid_rewrite translate_ret. repeat norm_v. *)
+    (*     do 2 setoid_rewrite translate_ret. *)
+    (*     cbn. repeat norm_v. *)
+    (*     setoid_rewrite translate_ret. *)
+    (*     repeat norm_v. *)
 
-        cbn*. repeat norm_v.
-        do 2 setoid_rewrite translate_ret.
-        (* IY: Why don't the invocations of translate_ret work in norm_v? *)
-        cbn. repeat norm_v.
-        setoid_rewrite translate_ret.
-        repeat norm_v.
+    (*     cbn*. repeat norm_v. *)
+    (*     do 2 setoid_rewrite translate_ret. *)
+    (*     (* IY: Why don't the invocations of translate_ret work in norm_v? *) *)
+    (*     cbn. repeat norm_v. *)
+    (*     setoid_rewrite translate_ret. *)
+    (*     repeat norm_v. *)
 
-        rewrite interp_cfg_to_L3_LW.
-        cbn*. repeat norm_v.
-        setoid_rewrite translate_ret.
-        repeat norm_v.
-        setoid_rewrite translate_ret.
-        repeat (norm_v; try setoid_rewrite translate_ret).
-        cbn. repeat norm_vD.
-        2 : {
-          assert (Name (String "l" (string_of_nat (local_count i1))) ≢
-                       Name (String "l" (string_of_nat (S (local_count i1))))).
-          { admit. }
-          eapply lookup_alist_add_ineq in H. 
-          setoid_rewrite H. clear H.
-          apply lookup_alist_add_eq.
-        }
-        2 : apply lookup_alist_add_eq.
-        cbn*. repeat norm_v.
-        admit.
+    (*     rewrite interp_cfg_to_L3_LW. *)
+    (*     cbn*. repeat norm_v. *)
+    (*     setoid_rewrite translate_ret. *)
+    (*     repeat norm_v. *)
+    (*     setoid_rewrite translate_ret. *)
+    (*     repeat (norm_v; try setoid_rewrite translate_ret). *)
+    (*     cbn. repeat norm_vD. *)
+    (*     2 : { *)
+    (*       assert (Name (String "l" (string_of_nat (local_count i1))) ≢ *)
+    (*                    Name (String "l" (string_of_nat (S (local_count i1))))). *)
+    (*       { admit. } *)
+    (*       eapply lookup_alist_add_ineq in H.  *)
+    (*       setoid_rewrite H. clear H. *)
+    (*       apply lookup_alist_add_eq. *)
+    (*     } *)
+    (*     2 : apply lookup_alist_add_eq. *)
+    (*     cbn*. repeat norm_v. *)
+    (*     pose proof interp_cfg_to_L3_intrinsic. *)
 
-      + (* Step 3.2 : i2 is Local *)
-        unfold Traversal.endo. cbn. repeat norm_v.
+    (*     clear Heqi3 mem_is_inv mem_is_inv' mem_is_inv''. *)
+    (*     admit. *)
 
-        2 : {
-          assert (id0 ≢ Name (String "l" (string_of_nat (local_count i1)))).
-          admit.
-          eapply lookup_alist_add_ineq in H.
-          setoid_rewrite H. cbn. apply i2_local_or_global.
-        }
+    (*   + (* Step 3.2 : i2 is Local *) *)
+    (*     unfold Traversal.endo. cbn. repeat norm_v. *)
 
-        setoid_rewrite translate_ret. repeat norm_v.
-        repeat norm_v. cbn*.
-        repeat norm_v.
-        do 2 setoid_rewrite translate_ret.
-        repeat norm_v. setoid_rewrite translate_ret.
-        repeat norm_v.
+    (*     2 : { *)
+    (*       assert (id0 ≢ Name (String "l" (string_of_nat (local_count i1)))). *)
+    (*       admit. *)
+    (*       eapply lookup_alist_add_ineq in H. *)
+    (*       setoid_rewrite H. cbn. apply i2_local_or_global. *)
+    (*     } *)
 
-        rewrite interp_cfg_to_L3_LW.
-        cbn*. repeat norm_v.
-        setoid_rewrite translate_ret.
-        repeat norm_v.
-        setoid_rewrite translate_ret.
-        repeat (norm_v; try setoid_rewrite translate_ret).
-        cbn. repeat norm_vD.
-        2 : {
-          assert (Name (String "l" (string_of_nat (local_count i1))) ≢
-                       Name (String "l" (string_of_nat (S (local_count i1))))).
-          { admit. }
-          eapply lookup_alist_add_ineq in H. 
-          setoid_rewrite H. clear H.
-          apply lookup_alist_add_eq.
-        }
-        2 : apply lookup_alist_add_eq.
-        cbn*. repeat norm_v.
-        admit.
+    (*     setoid_rewrite translate_ret. repeat norm_v. *)
+    (*     repeat norm_v. cbn*. *)
+    (*     repeat norm_v. *)
+    (*     do 2 setoid_rewrite translate_ret. *)
+    (*     repeat norm_v. setoid_rewrite translate_ret. *)
+    (*     repeat norm_v. *)
 
-    - (* Step 2.2 : i0 Is Local *)
-        unfold Traversal.endo. cbn. repeat norm_v.
+    (*     rewrite interp_cfg_to_L3_LW. *)
+    (*     cbn*. repeat norm_v. *)
+    (*     setoid_rewrite translate_ret. *)
+    (*     repeat norm_v. *)
+    (*     setoid_rewrite translate_ret. *)
+    (*     repeat (norm_v; try setoid_rewrite translate_ret). *)
+    (*     cbn. repeat norm_vD. *)
+    (*     2 : { *)
+    (*       assert (Name (String "l" (string_of_nat (local_count i1))) ≢ *)
+    (*                    Name (String "l" (string_of_nat (S (local_count i1))))). *)
+    (*       { admit. } *)
+    (*       eapply lookup_alist_add_ineq in H.  *)
+    (*       setoid_rewrite H. clear H. *)
+    (*       apply lookup_alist_add_eq. *)
+    (*     } *)
+    (*     2 : apply lookup_alist_add_eq. *)
+    (*     cbn*. repeat norm_v. *)
+    (*     admit. *)
 
-        2 : {
-          cbn. apply i0_local_or_global.
-        }
+    (* - (* Step 2.2 : i0 Is Local *) *)
+    (*     unfold Traversal.endo. cbn. repeat norm_v. *)
 
-        setoid_rewrite translate_ret. repeat norm_v.
-        repeat norm_v. cbn*. rewrite Heqi3.
+    (*     2 : { *)
+    (*       cbn. apply i0_local_or_global. *)
+    (*     } *)
 
-    (* Step 3 : Next focus step :-) *)
-      cbn*. repeat norm_v.
-      do 2 setoid_rewrite translate_ret.
-      cbn. repeat norm_v.
-      setoid_rewrite translate_ret.
-      repeat norm_vD.
-      unfold Traversal.endo.
+    (*     setoid_rewrite translate_ret. repeat norm_v. *)
+    (*     repeat norm_v. cbn*. rewrite Heqi3. *)
 
-      rewrite interp_cfg_to_L3_LW.
-      cbn*. repeat norm_v.
-      setoid_rewrite translate_ret.
-      repeat norm_v.
+    (* (* Step 3 : Next focus step :-) *) *)
+    (*   cbn*. repeat norm_v. *)
+    (*   do 2 setoid_rewrite translate_ret. *)
+    (*   cbn. repeat norm_v. *)
+    (*   setoid_rewrite translate_ret. *)
+    (*   repeat norm_vD. *)
+    (*   unfold Traversal.endo. *)
 
-      (* Another lookup. *)
-      unfold Traversal.Endo_ident.
+    (*   rewrite interp_cfg_to_L3_LW. *)
+    (*   cbn*. repeat norm_v. *)
+    (*   setoid_rewrite translate_ret. *)
+    (*   repeat norm_v. *)
 
-      pose proof mem_is_inv as mem_is_inv''; red in mem_is_inv'.
-      specialize (mem_is_inv' _ _ _ _ Heqo3 Heqo).
-      edestruct mem_is_inv' as (i2_mem_block & i2_address & i2_LOOKUP_mem_m &
-                               i2_local_or_global & i2_cell_on_memV).
-      red in i2_local_or_global.
+    (*   (* Another lookup. *) *)
+    (*   unfold Traversal.Endo_ident. *)
 
-      break_inner_match.
+    (*   pose proof mem_is_inv as mem_is_inv''; red in mem_is_inv'. *)
+    (*   specialize (mem_is_inv' _ _ _ _ Heqo3 Heqo). *)
+    (*   edestruct mem_is_inv' as (i2_mem_block & i2_address & i2_LOOKUP_mem_m & *)
+    (*                            i2_local_or_global & i2_cell_on_memV). *)
+    (*   red in i2_local_or_global. *)
 
-      + (* Step 3.1 : i2 is Global *)
-        destruct i2_local_or_global as
-            (i2_ptr & i2_τ & i2_Pointer_TYPE & i2_g_id_Some & i2_read_memV).
-        unfold Traversal.endo. cbn. repeat norm_v.
+    (*   break_inner_match. *)
 
-        Focus 2. rewrite Heqi4. apply i2_g_id_Some.
+    (*   + (* Step 3.1 : i2 is Global *) *)
+    (*     destruct i2_local_or_global as *)
+    (*         (i2_ptr & i2_τ & i2_Pointer_TYPE & i2_g_id_Some & i2_read_memV). *)
+    (*     unfold Traversal.endo. cbn. repeat norm_v. *)
 
-        setoid_rewrite translate_ret. repeat norm_v.
-        do 2 setoid_rewrite translate_ret.
-        cbn. repeat norm_v.
-        setoid_rewrite translate_ret.
-        repeat norm_v.
+    (*     Focus 2. rewrite Heqi4. apply i2_g_id_Some. *)
 
-        cbn*. repeat norm_v.
-        do 2 setoid_rewrite translate_ret.
-        (* IY: Why don't the invocations of translate_ret work in norm_v? *)
-        cbn. repeat norm_v.
-        setoid_rewrite translate_ret.
-        repeat norm_v.
+    (*     setoid_rewrite translate_ret. repeat norm_v. *)
+    (*     do 2 setoid_rewrite translate_ret. *)
+    (*     cbn. repeat norm_v. *)
+    (*     setoid_rewrite translate_ret. *)
+    (*     repeat norm_v. *)
 
-        rewrite interp_cfg_to_L3_LW.
-        cbn*. repeat norm_v.
-        setoid_rewrite translate_ret.
-        repeat norm_v.
-        setoid_rewrite translate_ret.
-        repeat (norm_v; try setoid_rewrite translate_ret).
-        cbn. repeat norm_vD.
-        2 : {
-          assert (Name (String "l" (string_of_nat (local_count i1))) ≢
-                       Name (String "l" (string_of_nat (S (local_count i1))))).
-          { admit. }
-          eapply lookup_alist_add_ineq in H. 
-          setoid_rewrite H. clear H.
-          apply lookup_alist_add_eq.
-        }
-        2 : apply lookup_alist_add_eq.
-        cbn*. repeat norm_v.
-        admit.
+    (*     cbn*. repeat norm_v. *)
+    (*     do 2 setoid_rewrite translate_ret. *)
+    (*     (* IY: Why don't the invocations of translate_ret work in norm_v? *) *)
+    (*     cbn. repeat norm_v. *)
+    (*     setoid_rewrite translate_ret. *)
+    (*     repeat norm_v. *)
 
-      + (* Step 3.2 : i2 is Local *)
-        unfold Traversal.endo. cbn. repeat norm_v.
+    (*     rewrite interp_cfg_to_L3_LW. *)
+    (*     cbn*. repeat norm_v. *)
+    (*     setoid_rewrite translate_ret. *)
+    (*     repeat norm_v. *)
+    (*     setoid_rewrite translate_ret. *)
+    (*     repeat (norm_v; try setoid_rewrite translate_ret). *)
+    (*     cbn. repeat norm_vD. *)
+    (*     2 : { *)
+    (*       assert (Name (String "l" (string_of_nat (local_count i1))) ≢ *)
+    (*                    Name (String "l" (string_of_nat (S (local_count i1))))). *)
+    (*       { admit. } *)
+    (*       eapply lookup_alist_add_ineq in H.  *)
+    (*       setoid_rewrite H. clear H. *)
+    (*       apply lookup_alist_add_eq. *)
+    (*     } *)
+    (*     2 : apply lookup_alist_add_eq. *)
+    (*     cbn*. repeat norm_v. *)
+    (*     admit. *)
 
-        2 : {
-          assert (id0 ≢ Name (String "l" (string_of_nat (local_count i1)))).
-          admit.
-          eapply lookup_alist_add_ineq in H.
-          setoid_rewrite H. cbn. apply i2_local_or_global.
-        }
+    (*   + (* Step 3.2 : i2 is Local *) *)
+    (*     unfold Traversal.endo. cbn. repeat norm_v. *)
 
-        setoid_rewrite translate_ret. repeat norm_v.
-        repeat norm_v. cbn*.
-        repeat norm_v.
-        do 2 setoid_rewrite translate_ret.
-        repeat norm_v. setoid_rewrite translate_ret.
-        repeat norm_v.
+    (*     2 : { *)
+    (*       assert (id0 ≢ Name (String "l" (string_of_nat (local_count i1)))). *)
+    (*       admit. *)
+    (*       eapply lookup_alist_add_ineq in H. *)
+    (*       setoid_rewrite H. cbn. apply i2_local_or_global. *)
+    (*     } *)
 
-        rewrite interp_cfg_to_L3_LW.
-        cbn*. repeat norm_v.
-        setoid_rewrite translate_ret.
-        repeat norm_v.
-        setoid_rewrite translate_ret.
-        repeat (norm_v; try setoid_rewrite translate_ret).
-        cbn. repeat norm_vD.
-        2 : {
-          assert (Name (String "l" (string_of_nat (local_count i1))) ≢
-                       Name (String "l" (string_of_nat (S (local_count i1))))).
-          { admit. }
-          eapply lookup_alist_add_ineq in H. 
-          setoid_rewrite H. clear H.
-          apply lookup_alist_add_eq.
-        }
-        2 : apply lookup_alist_add_eq.
-        cbn*. repeat norm_v.
+    (*     setoid_rewrite translate_ret. repeat norm_v. *)
+    (*     repeat norm_v. cbn*. *)
+    (*     repeat norm_v. *)
+    (*     do 2 setoid_rewrite translate_ret. *)
+    (*     repeat norm_v. setoid_rewrite translate_ret. *)
+    (*     repeat norm_v. *)
+
+    (*     rewrite interp_cfg_to_L3_LW. *)
+    (*     cbn*. repeat norm_v. *)
+    (*     setoid_rewrite translate_ret. *)
+    (*     repeat norm_v. *)
+    (*     setoid_rewrite translate_ret. *)
+    (*     repeat (norm_v; try setoid_rewrite translate_ret). *)
+    (*     cbn. repeat norm_vD. *)
+    (*     2 : { *)
+    (*       assert (Name (String "l" (string_of_nat (local_count i1))) ≢ *)
+    (*                    Name (String "l" (string_of_nat (S (local_count i1))))). *)
+    (*       { admit. } *)
+    (*       eapply lookup_alist_add_ineq in H.  *)
+    (*       setoid_rewrite H. clear H. *)
+    (*       apply lookup_alist_add_eq. *)
+    (*     } *)
+    (*     2 : apply lookup_alist_add_eq. *)
+    (*     cbn*. repeat norm_v. *)
   Admitted.
 
 End MemCopy.
