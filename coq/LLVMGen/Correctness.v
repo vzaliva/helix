@@ -2300,6 +2300,53 @@ Section AExpr.
     amonotone : ext_local mi sti mf stf
     }.
 
+  Lemma genAExpr_memH : forall σ aexp e memH memV memH' memV' l g l' g' mb uv,
+      genAExpr_rel σ aexp e memH (mk_config_cfg memV l g) (memH', mb)
+                   (memV', (l', (g', uv))) ->
+      memH ≡ memH'.
+  Proof.
+    intros * H.
+    destruct H; cbn in *; intuition.
+  Qed.
+
+  Lemma genAExpr_memV : forall σ aexp e memH memV memH' memV' l g l' g' mb uv,
+      genAExpr_rel σ aexp e memH (mk_config_cfg memV l g) (memH', mb)
+                   (memV', (l', (g', uv))) ->
+      memV ≡ memV'.
+  Proof.
+    intros * H.
+    destruct H; cbn in *; intuition.
+  Qed.
+
+  Lemma genAExpr_g : forall σ aexp e memH memV memH' memV' l g l' g' mb uv,
+      genAExpr_rel σ aexp e memH (mk_config_cfg memV l g) (memH', mb)
+                   (memV', (l', (g', uv))) ->
+      g ≡ g'.
+  Proof.
+    intros * H.
+    destruct H; cbn in *; intuition.
+  Qed.
+
+  Lemma genAExpr_l : forall σ aexp e memH memV memH' memV' l g l' g' mb uv,
+      genAExpr_rel σ aexp e memH (mk_config_cfg memV l g) (memH', mb)
+                   (memV', (l', (g', uv))) ->
+      l ⊑ l'.
+  Proof.
+    intros * H.
+    destruct H; cbn in *; intuition.
+  Qed.
+
+  Ltac genAExpr_rel_subst LL :=
+    match goal with
+    | NEXP : genAExpr_rel ?σ ?n ?e ?memH (mk_config_cfg ?memV ?l ?g) (?memH', ?n') (?memV', (?l', (?g', ()))) |- _ =>
+      let H := fresh in
+      pose proof genAExpr_memH NEXP as H; subst memH';
+      pose proof genAExpr_memV NEXP as H; subst memV';
+      pose proof genAExpr_g NEXP as H; subst g';
+      pose proof genAExpr_l NEXP as LL
+    end.
+
+
   (*
   Lemma genAExpr_preserves_WF:
     forall aexp s s' σ x,
@@ -3514,6 +3561,7 @@ Section AExpr.
         apply eqit_Ret.
         split; cbn; eauto.
         + eapply state_invariant_add_fresh; eauto.
+          (* incVoid of i1... *)
           cbn. admit. admit.
         + split; split; intuition.
           * cbn. repeat norm_v. cbn. norm_v.
@@ -3536,7 +3584,17 @@ Section AExpr.
             destruct INV1'.
             unfold concrete_fresh_inv in incLocal_is_fresh0.
 
-            assert (l'' ⊑ (alist_add (Name (String "l" (string_of_nat (local_count i0)))) (UVALUE_I1 DynamicValues.Int1.one) l'')) as TRANS.
+            cbn in INV1.
+            destruct INV1.
+            unfold concrete_fresh_inv in incLocal_is_fresh1.
+
+            Transparent incLocal.
+            unfold incLocal in Heqs1, Heqs2.
+            inversion Heqs1.
+            inversion Heqs2.
+            Opaque incLocal.
+
+            assert (l'' ⊑ (alist_add r (UVALUE_I1 DynamicValues.Int1.one) l'')) as TRANS.
             { apply sub_alist_add.
               unfold alist_fresh.
               apply alist_find_None.
@@ -3544,15 +3602,18 @@ Section AExpr.
               eapply In__alist_In in IN as [v' AIN].
               eapply incLocal_is_fresh0; eauto.
             }
-
+            
             eapply (sub_alist_trans _ _ _ TRANS).
-            set (alist_add (Name (String "l" (string_of_nat (local_count i0)))) (UVALUE_I1 DynamicValues.Int1.one) l'') as l'''.
+            unfold ext_local in *.
+            cbn in *.
 
-            (* apply sub_alist_add. *)
-            (* unfold alist_fresh. *)
-            (* apply alist_find_None. *)
-            (* intros v0 IN. *)
-            (* eapply In__alist_In in IN as [v' AIN]. *)
+            subst. cbn.
+            apply sub_alist_add.
+            unfold alist_fresh.
+            apply alist_find_None.
+            intros v0 IN.
+            eapply In__alist_In in IN as [v' AIN].
+            eapply incLocal_is_fresh0; eauto.
             admit.
       }
       {
