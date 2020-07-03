@@ -4248,7 +4248,7 @@ Ltac forget_strings :=
       norm_v.
       norm_v.
       focus_single_step_v.
-      unfold eval_op; cbn.
+      cbn.
       repeat norm_v.
       (* I am looking up an ident x, for which I find the type `TYPE_Pointer (TYPE_Array sz TYPE_Double)`
          in my typing context.
