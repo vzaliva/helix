@@ -2059,6 +2059,7 @@ Ltac genNExpr_rel_subst LL :=
     pose proof genNExpr_l NEXP as LL
   end.
 
+(*
 Section MExpr.
 
   Definition invariant_MExpr
@@ -2261,6 +2262,7 @@ Ltac genMExpr_rel_subst :=
     pose proof genMExpr_l MEXP as H; subst l'
   end.
 
+*)
 Section AExpr.
 
   Definition R_AExpr_start (σ : evalContext) (s : IRState) (memH : memoryH) (vellvm : memoryV * (local_env * global_env)) : Prop
@@ -2577,6 +2579,7 @@ Section AExpr.
       cbn in SINV.
 
       (* Need to make sure that we pull e1 out so we can use genMExpr_correct *)
+      (*
       epose proof genMExpr_correct _ Heqs0 Heqs4 SINV as MCODE.
 
       (* Should be able to pull e1 out from the denotation of GEP *)
@@ -3619,6 +3622,7 @@ Section AExpr.
       {
         admit.
       }
+       *)
   Admitted.
 
 
@@ -4236,6 +4240,7 @@ Ltac forget_strings :=
       rewrite EQ1' in Heqs11; inv Heqs11.
       rewrite Heqo0.
       eutt_hide_right.
+      (*
       assert (i2 ≡ val2).
       { unfold genNExpr_exp_correct in EXP2.
         assert (ρ2 ⊑ ρ2) as LL by reflexivity.
@@ -4641,6 +4646,7 @@ Ltac forget_strings :=
 
 
 
+*)
   Admitted.
 
   End GenIR.
