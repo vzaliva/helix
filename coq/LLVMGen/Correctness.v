@@ -3562,7 +3562,8 @@ Section AExpr.
         split; cbn; eauto.
         + eapply state_invariant_add_fresh; eauto.
           (* incVoid of i1... *)
-          cbn. admit. admit.
+          cbn. admit.
+          admit.
         + split; split; intuition.
           * cbn. repeat norm_v. cbn. norm_v.
             reflexivity.
@@ -3613,8 +3614,13 @@ Section AExpr.
             apply alist_find_None.
             intros v0 IN.
             eapply In__alist_In in IN as [v' AIN].
-            eapply incLocal_is_fresh0; eauto.
-            admit.
+
+            eapply incLocal_is_fresh0 with (n:=S (local_count i0)); eauto.
+            assert (Name ("l" @@ string_of_nat (S (local_count i0))) <> (Name ("l" @@ string_of_nat (local_count i0)))) as NEQ.
+            { intros CONTRA.
+              apply Name_inj, append_factor_left,string_of_nat_inj in CONTRA; lia.
+            }
+            apply (In_add_In_ineq _ _ _ _ _ NEQ AIN).
       }
       {
         admit.
