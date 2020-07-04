@@ -160,6 +160,8 @@ Module MDSigmaHCOLEval
   Definition assert_NT_lt (msg:string) (a b:NT.t) : err unit :=
     assert_true_to_err msg (Nat.ltb (to_nat a) (to_nat b)) tt.
 
+  Definition assert_NT_le (msg:string) (a b:NT.t) : err unit :=
+    assert_true_to_err msg (Nat.leb (to_nat a) (to_nat b)) tt.
 
   (** The following maybe should be moved somwehere. Baiscally it is
       needed for setoid rewriting to work in cases where we deal with units.
@@ -316,14 +318,17 @@ Module MDSigmaHCOLEval
               y <- memory_lookup_err "Error looking up 'y' in DSHAssign" mem y_i ;;
               src <- evalNExpr σ src_e ;;
               dst <- evalNExpr σ dst_e ;;
-              assert_NT_lt "DSHAssign dst out of bounds" dst y_size ;;
+              assert_NT_lt "DSHAssign 'dst' out of bounds" dst y_size ;;
               v <- mem_lookup_err "Error looking up 'v' in DSHAssign" (to_nat src) x ;;
               ret (memory_set mem y_i (mem_add (to_nat dst) v y))
             )
         | @DSHIMap n x_p y_p f =>
           Some (
+              n' <- from_nat n ;;
               '(x_i,x_size) <- evalPExpr σ x_p ;;
+              (* assert_NT_le "DSHIMap 'n' larger than 'x_size'" n' x_size ;; *)
               '(y_i,y_size) <- evalPExpr σ y_p ;;
+              assert_NT_le "DSHIMap 'n' larger than 'y_size'" n' x_size ;;
               x <- memory_lookup_err "Error looking up 'x' in DSHIMap" mem x_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHIMap" mem y_i ;;
               y' <- evalDSHIMap mem n f σ x y ;;
@@ -331,9 +336,13 @@ Module MDSigmaHCOLEval
             )
         | @DSHMemMap2 n x0_p x1_p y_p f =>
           Some (
+              n' <- from_nat n ;;
               '(x0_i,x0_size) <- evalPExpr σ x0_p ;;
+              (* assert_NT_le "DSHMemMap2 'n' larger than 'x0_size'" n' x0_size ;; *)
               '(x1_i,x1_size) <- evalPExpr σ x1_p ;;
+              (* assert_NT_le "DSHMemMap2 'n' larger than 'x0_size'" n' x1_size ;; *)
               '(y_i,y_size) <- evalPExpr σ y_p ;;
+              assert_NT_le "DSHMemMap2 'n' larger than 'y_size'" n' y_size ;;
               x0 <- memory_lookup_err "Error looking up 'x0' in DSHMemMap2" mem x0_i ;;
               x1 <- memory_lookup_err "Error looking up 'x1' in DSHMemMap2" mem x1_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHMemMap2" mem y_i ;;
@@ -342,8 +351,12 @@ Module MDSigmaHCOLEval
             )
         | @DSHBinOp n x_p y_p f =>
           Some (
+              n' <- from_nat n ;;
+              (* nn' <- from_nat (n+n) ;; *)
               '(x_i,x_size) <- evalPExpr σ x_p ;;
+              (* assert_NT_le "DSHBinOp 'n' larger than 'x_size/2'" nn' x_size ;; *)
               '(y_i,y_size) <- evalPExpr σ y_p ;;
+              assert_NT_le "DSHBinOp 'n' larger than 'y_size'" n' y_size ;;
               x <- memory_lookup_err "Error looking up 'x' in DSHBinOp" mem x_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHBinOp" mem y_i ;;
               y' <- evalDSHBinOp mem n n f σ x y ;;
@@ -358,6 +371,7 @@ Module MDSigmaHCOLEval
               n <- evalNExpr σ ne ;; (* [n] evaluated once at the beginning *)
               xoff <- evalNExpr σ xoffset ;;
               yoff <- evalNExpr σ yoffset ;;
+              assert_NT_lt "DSHPower 'y' offset out of bounds" yoff y_size ;;
               let y' := mem_add (to_nat yoff) initial y in
               y'' <- evalDSHPower mem σ (to_nat n) f x y' (to_nat xoff) (to_nat yoff) ;;
               ret (memory_set mem y_i y'')
@@ -383,6 +397,7 @@ Module MDSigmaHCOLEval
         | DSHMemInit size y_p value =>
           Some (
               '(y_i,y_size) <- evalPExpr σ y_p ;;
+              assert_NT_le "DSHMemInit 'size' larger than 'y_size'" size y_size ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHMemInit" mem y_i ;;
               let y' := mem_union (mem_const_block (to_nat size) value) y in
               ret (memory_set mem y_i y')
@@ -391,6 +406,7 @@ Module MDSigmaHCOLEval
           Some (
               '(x_i, x_size) <- evalPExpr σ x_p ;;
               '(y_i, y_size) <- evalPExpr σ y_p ;;
+              assert_NT_le "DSHMemCopy 'size' larger than 'y_size'" size y_size ;;
               x <- memory_lookup_err "Error looking up 'x' in DSHMemCopy" mem x_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHMemCopy" mem y_i ;;
               let y' := mem_union x y in
