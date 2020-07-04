@@ -4378,8 +4378,6 @@ Proof.
       repeat constructor.
       rewrite <-H2; assumption.
       cbn.
-      Search o3.
-      Search n.
       eapply lookup_PExpr_size_invariant'.
       rewrite Heqs2; reflexivity.
       eassumption.
