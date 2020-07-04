@@ -1941,8 +1941,6 @@ Definition evalPExpr_id (σ : evalContext) (exp : PExpr) :=
   '(id, size) <- evalPExpr σ exp ;;
   ret id.
 
-
-
 (** * MSHEmbed, MSHPick **)
 
 Global Instance Assign_DSH_pure
@@ -5392,7 +5390,6 @@ Global Instance Seq_DSH_pure
   :
     DSH_pure (DSHSeq dop1 dop2) y_p.
 Proof.
-(*
   split.
   -
     intros σ m0 m2 fuel M2 k.
@@ -5415,7 +5412,7 @@ Proof.
     rewrite M1, M2.
     reflexivity.
   -
-    intros σ m0 m2 fuel M2 y_i Y.
+    intros σ m0 m2 fuel M2 y_i y_sz Y.
 
     destruct fuel; [inversion M2 |].
     cbn in *.
@@ -5428,14 +5425,13 @@ Proof.
 
     inversion P1; clear P1 mem_stable0;
       rename mem_write_safe0 into P1.
-    eapply P1 with (y_i := y_i) in M1; [| assumption].
+    eapply P1 with (y_i:=y_i) (y_size:=y_sz) in M1; [| assumption].
     inversion P2; clear P2 mem_stable0;
       rename mem_write_safe0 into P2.
-    eapply P2 with (y_i := y_i) in M2; [| assumption].
+    eapply P2 with (y_i:=y_i) (y_size:=y_sz) in M2; [| assumption].
     clear - M1 M2.
     eapply memory_equiv_except_trans; eassumption.
 Qed.
-*) Admitted.
 
 Global Instance MemMap2_DSH_pure
        {x0_p x1_p y_p : PExpr}
@@ -5444,7 +5440,6 @@ Global Instance MemMap2_DSH_pure
   :
     DSH_pure (DSHMemMap2 n x0_p x1_p y_p a) y_p.
 Proof.
-(*
   constructor.
   -
     intros.
@@ -5476,10 +5471,10 @@ Proof.
     unfold memory_equiv_except; intros.
     rewrite <-H; clear H m'.
     unfold memory_lookup, memory_set.
+    destruct H0.
     rewrite NP.F.add_neq_o by congruence.
     reflexivity.
 Qed.
-*) Admitted.
 
 Global Instance MemInit_DSH_pure
        {size : nat}
@@ -5488,7 +5483,6 @@ Global Instance MemInit_DSH_pure
   :
     DSH_pure (DSHMemInit size y_p init) y_p.
 Proof.
-(*
   constructor.
   -
     intros.
@@ -5520,10 +5514,10 @@ Proof.
     unfold memory_equiv_except; intros.
     rewrite <-H; clear H m'.
     unfold memory_lookup, memory_set.
+    destruct H0.
     rewrite NP.F.add_neq_o by congruence.
     reflexivity.
 Qed.
-*) Admitted.
 
 Global Instance IReduction_DSH_pure
        {no nn : nat}
@@ -5547,7 +5541,6 @@ Global Instance IReduction_DSH_pure
                                            df)))))
       y_p.
 Proof.
-(*
   subst.
   apply Seq_DSH_pure.
   apply MemInit_DSH_pure.
@@ -5661,9 +5654,10 @@ Proof.
         rename m0 into rr_m.
         eq_to_equiv.
         inversion_clear P as [T S]; clear T.
-        apply S with (y_i:=memory_next_key m) in Heqo0; clear S; [| reflexivity].
+        apply S with (y_i:=memory_next_key m) (y_size:=no) in Heqo0;
+          clear S; [| reflexivity].
         inversion_clear H as [T S]; clear T.
-        apply S with (y_i:=y_i) in Heqo; clear S;
+        apply S with (y_i:=y_i) (y_size:=y_size) in Heqo; clear S;
           [| repeat rewrite evalPExpr_incrPVar; assumption].
         rewrite IHnn by assumption.
         destruct (Nat.eq_dec k (memory_next_key m)).
@@ -5677,7 +5671,6 @@ Proof.
           rewrite Heqo by congruence.
           reflexivity.
 Qed.
-*) Admitted.
 
 Lemma evalDSHMap2_rest_preserved
       (x1 x2 y y' : mem_block)
@@ -5892,20 +5885,19 @@ Lemma DSHMap2_succeeds
     exists m', evalDSHOperator σ (DSHMemMap2 o x1_p x2_p y_p df) m
                     (estimateFuel (DSHMemMap2 o x1_p x2_p y_p df)) = Some (inr m').
 Proof.
-(*
   apply lookup_PExpr_eval_lookup in LX1.
-  destruct LX1 as [x1_id [X1_ID X1_M]].
+  destruct LX1 as [x1_id [x1_sz [X1_ID X1_M]]].
   apply lookup_PExpr_eval_lookup in LX2.
-  destruct LX2 as [x2_id [X2_ID X2_M]].
+  destruct LX2 as [x2_id [x2_sz [X2_ID X2_M]]].
   apply lookup_PExpr_eval_lookup in LY.
-  destruct LY as [y_id [Y_ID Y_M]].
+  destruct LY as [y_id [y_sz [Y_ID Y_M]]].
   cbn.
   unfold memory_lookup_err, trywith.
   repeat break_match;
     try some_none; repeat some_inv;
     try inl_inr; repeat inl_inr_inv.
+  all: tuple_inversion_equiv; subst_nat; subst.
   all: eq_to_equiv.
-  all: rewrite X1_ID, X2_ID, Y_ID in *; clear X1_ID X2_ID Y_ID m0 m1 m2.
   all: rename Heqs into X1_ID, Heqs0 into X2_ID, Heqs1 into Y_ID.
   all: try some_none.
   all: subst.
@@ -5955,7 +5947,6 @@ Proof.
     eexists.
     reflexivity.
 Qed.
-*) Admitted.
 
 Lemma MemMap2_merge_with_def
       (x1_p x2_p y_p : PExpr)
@@ -5979,13 +5970,12 @@ Lemma MemMap2_merge_with_def
     forall k, k < o -> mem_lookup k y_m' =
                  mem_lookup k (mem_merge_with_def dot init x1_m x2_m).
 Proof.
-(*
   apply lookup_PExpr_eval_lookup in LX1.
-  destruct LX1 as [x1_id [X1_ID X1_M]].
+  destruct LX1 as [x1_id [x1_sz [X1_ID X1_M]]].
   apply lookup_PExpr_eval_lookup in LX2.
-  destruct LX2 as [x2_id [X2_ID X2_M]].
+  destruct LX2 as [x2_id [x2_sz [X2_ID X2_M]]].
   apply lookup_PExpr_eval_lookup in LY.
-  destruct LY as [y_id [Y_ID Y_M]].
+  destruct LY as [y_id [y_sz [Y_ID Y_M]]].
   cbn [evalDSHOperator estimateFuel].
   remember evalDSHMap2 as t1; remember mem_lookup as t2;
     cbn; subst t1 t2.
@@ -5994,15 +5984,14 @@ Proof.
   repeat break_match;
     try some_none; repeat some_inv;
     try inl_inr; repeat inl_inr_inv.
+  all: tuple_inversion_equiv; subst_nat; subst.
   all: eq_to_equiv.
-  all: rewrite X1_ID, X2_ID, Y_ID in *; clear X1_ID X2_ID Y_ID m0 m1 m2.
   all: rename Heqs into X1_ID, Heqs0 into X2_ID, Heqs1 into Y_ID.
   all: try some_none.
   all: intros; try some_none; repeat some_inv; try inl_inr; inl_inr_inv.
-  all: inversion H3; clear H3.
+  all: invc H0; rewrite H4 in *; clear H4 m7.
   subst.
   rewrite Heqo3, Heqo2, Heqo1 in *; repeat some_inv.
-  rewrite H7 in *; clear H7 m7.
   rewrite X1_M, X2_M, Y_M in *; clear X1_M X2_M Y_M m3 m4 m5.
   rename Heqo3 into X1_M, Heqo2 into X2_M, Heqo1 into Y_M.
   rename Heqs5 into M.
@@ -6022,7 +6011,6 @@ Proof.
   rewrite X1, X2.
   reflexivity.
 Qed.
-*) Admitted.
 
 Lemma MemMap2_merge_with_def_firstn
       (x1_p x2_p y_p : PExpr)
@@ -6052,13 +6040,14 @@ Lemma MemMap2_merge_with_def_firstn
                                                                 (mem_firstn o x2_m))
                                             y_m))).
 Proof.
-(*
+  unfold evalPExpr_id in Y_ID; cbn in Y_ID.
   assert (exists m', evalDSHOperator σ (DSHMemMap2 o x1_p x2_p y_p df) m
                   (estimateFuel (DSHMemMap2 o x1_p x2_p y_p df)) = Some (inr m')).
   {
     eapply DSHMap2_succeeds; try eassumption.
     cbn.
     break_match; try inl_inr.
+    destruct p.
     inl_inr_inv.
     rewrite Y_ID.
     unfold memory_lookup_err.
@@ -6083,6 +6072,7 @@ Proof.
       exists y_ma.
       cbn.
       break_match; try inl_inr.
+      destruct p.
       apply memory_lookup_err_inr_Some.
       inv Y_ID.
       rewrite H2, H.
@@ -6143,6 +6133,7 @@ Proof.
       instantiate (1:=init).
       unfold mem_lookup, mem_union, mem_merge_with_def.
       repeat rewrite NP.F.map2_1bis by reflexivity.
+
       assert (exists k_x1m, mem_lookup k x1_m = Some k_x1m).
       {
         specialize (D1 k l).
@@ -6167,12 +6158,17 @@ Proof.
   -
     unfold memory_set.
     rewrite NP.F.add_neq_o by congruence.
-    eapply mem_write_safe in MA; [| eassumption].
+    break_match; try inl_inr.
+    destruct p; inl_inr_inv.
+    eapply mem_write_safe in MA.
     specialize (MA b_id n).
     rewrite MA.
     reflexivity.
+    rewrite Heqs.
+    repeat constructor.
+    rewrite Y_ID.
+    reflexivity.
 Qed.
-*) Admitted.
 
 Lemma SHCOL_DSHCOL_mem_block_equiv_keys_union (ma mb md : mem_block) :
   SHCOL_DSHCOL_mem_block_equiv mb ma md ->
@@ -6183,9 +6179,10 @@ Proof.
   inversion H.
   all: repeat rewrite mem_in_mem_lookup in *.
   all: repeat rewrite mem_not_in_mem_lookup in *.
-  all: unfold is_None, is_Some in *.
   all: repeat break_match; try some_none.
   all: intuition.
+  all: unfold is_Some in *; repeat break_match; try some_none.
+  all: auto.
 Qed.
 
 Theorem IReduction_MSH_step
@@ -6359,39 +6356,31 @@ Lemma MemInit_simpl
   evalDSHOperator σ dop (memory_set m y_id (mem_union (mem_const_block o init) y_m))
                   (estimateFuel dop).
 Proof.
-(*
-  cbn.
+  unfold evalPExpr_id in Y_ID; cbn in Y_ID.
   pose proof estimateFuel_positive dop.
-  repeat break_match; try nia.
-  -
-    cbn in Heqo0.
-    repeat break_match;
-      try some_none; repeat some_inv;
+  cbn.
+  repeat break_match;
+    try some_none; repeat some_inv;
       try inl_inr; repeat inl_inr_inv.
-    subst.
+  all: subst; try nia; cbn in Heqo0.
+  all: repeat break_match;
+    try some_none; repeat some_inv;
+      try inl_inr; repeat inl_inr_inv;
+        subst.
+  -
     memory_lookup_err_to_option.
     eq_to_equiv.
-    rewrite Y_ID in Heqs2.
+    rewrite Y_ID in Heqs0.
     some_none.
   -
-    subst.
-    cbn in Heqo0.
-    repeat break_match;
-      try some_none; repeat some_inv;
-      try inl_inr; repeat inl_inr_inv.
-    subst.
     memory_lookup_err_to_option.
     eq_to_equiv.
     rewrite Y_ID in *.
     rewrite Heqs0 in YID_M.
     some_inv.
-    rewrite YID_M in *.
+    rewrite YID_M.
     reflexivity.
-  -
-    cbn in Heqo0.
-    some_none.
 Qed.
-*) Admitted.
 
 Lemma Alloc_Loop_step
       (o n : nat)
@@ -6624,6 +6613,31 @@ Proof.
     eapply H0.
 Qed.
 
+(* TODO: move *)
+Lemma lookup_PExpr_memory_lookup
+      (σ : evalContext)
+      (x_p : PExpr)
+      (x_id : mem_block_id)
+      (x_sz : nat)
+      (m : memory)
+      (x_m : mem_block)
+  :
+      evalPExpr σ x_p ≡ inr (x_id, x_sz) ->
+      lookup_PExpr_wsize σ m x_p = inr (x_m, x_sz) →
+      memory_lookup m x_id = Some x_m.
+Proof.
+  intros.
+  unfold lookup_PExpr_wsize in H0.
+  rewrite H in H0; clear H.
+  cbn in H0.
+  break_match; try inl_inr; inl_inr_inv.
+  memory_lookup_err_to_option.
+  rewrite Heqs.
+  tuple_inversion_equiv.
+  rewrite H.
+  reflexivity.
+Qed.
+
 Global Instance IReduction_MSH_DSH_compat_S
        {i o n: nat}
        {init : CarrierA}
@@ -6633,7 +6647,7 @@ Global Instance IReduction_MSH_DSH_compat_S
        {df : AExpr}
        {σ : evalContext}
        {x_p y_p y_p'': PExpr}
-       {XY : evalPExpr σ x_p <> evalPExpr σ y_p}
+       {XY : evalPExpr_id σ x_p <> evalPExpr_id σ y_p}
        {Y : y_p'' ≡ incrPVar 0 (incrPVar 0 y_p)}
        {rr : DSHOperator}
        {m : memory}
@@ -6673,24 +6687,41 @@ Global Instance IReduction_MSH_DSH_compat_S
                                            df)))))
       σ m x_p y_p DP.
 Proof.
-(*
   subst.
   constructor.
   intros x_m y_m X_M Y_M.
+  unfold evalPExpr_id in *.
 
   (* prepare context and memory lookups *)
-  destruct (evalPExpr σ x_p) as [| x_id] eqn:X_ID;
-    [unfold lookup_PExpr in X_M; rewrite X_ID in X_M; inversion X_M |].
-  destruct (evalPExpr σ y_p) as [| y_id] eqn:Y_ID;
-    [unfold lookup_PExpr in Y_M; rewrite Y_ID in Y_M; inversion Y_M |].
+  destruct (evalPExpr σ x_p) as [| (x_id, x_sz)] eqn:X_ID;
+    [unfold lookup_PExpr_wsize in X_M; rewrite X_ID in X_M; inversion X_M |].
+  destruct (evalPExpr σ y_p) as [| (y_id, y_sz)] eqn:Y_ID;
+    [unfold lookup_PExpr_wsize in Y_M; rewrite Y_ID in Y_M; inversion Y_M |].
+
+  assert (X_IDID : evalPExpr_id σ x_p = inr x_id)
+    by (cbn; rewrite X_ID; reflexivity).
+  assert (Y_IDID : evalPExpr_id σ y_p = inr y_id)
+    by (cbn; rewrite Y_ID; reflexivity).
+    
+  replace x_sz with i in *
+    by (symmetry; eapply lookup_PExpr_size_invariant';
+        [rewrite X_ID; reflexivity | eassumption]).
+  replace y_sz with o in *
+    by (symmetry; eapply lookup_PExpr_size_invariant';
+        [rewrite Y_ID; reflexivity | eassumption]).
+  clear x_sz y_sz.
+  
   assert (XID_M : memory_lookup m x_id = Some x_m)
-    by (unfold lookup_PExpr in X_M; rewrite X_ID in X_M;
-        cbn in X_M; memory_lookup_err_to_option; assumption).
+    by (eapply lookup_PExpr_memory_lookup; eassumption).
   assert (YID_M : memory_lookup m y_id = Some y_m)
-    by (unfold lookup_PExpr in Y_M; rewrite Y_ID in Y_M;
-        cbn in Y_M; memory_lookup_err_to_option; assumption).
+    by (eapply lookup_PExpr_memory_lookup; eassumption).
   assert (T : x_id ≢ y_id) by (intros C; contradict XY; rewrite C; reflexivity);
     clear XY; rename T into XY.
+
+  copy_apply lookup_PExpr_wsize_OK_no_size X_M.
+  rename X_M into X_M_SZ, H into X_M.
+  copy_apply lookup_PExpr_wsize_OK_no_size Y_M.
+  rename Y_M into Y_M_SZ, H into Y_M.
 
   induction n.
   -
@@ -6733,7 +6764,7 @@ Proof.
                err_p (λ ma : mem_block, SHCOL_DSHCOL_mem_block_equiv y_m ma md)
                      (lookup_PExpr σ m' y_p)) as Rel.
     assert (T : forall omb oem, h_opt_opterr_c Rel omb oem <-> h_opt_opterr_c Rel' omb oem);
-      [| apply T; clear T HeqRel' Rel' YM_YM' y_m'].
+      [| apply T; clear T HeqRel' Rel' YM_YM' Y_M_SZ y_m']. (* HERE *)
     {
       assert (forall mb m, Rel' mb m <-> Rel mb m).
       {
@@ -6770,6 +6801,8 @@ Proof.
       by (intros k H; subst init_m;
           rewrite memory_lookup_memory_set_neq by congruence; reflexivity).
 
+    simpl bind in *.
+
     (* specialize FC *)
     remember (Nat.lt_0_succ 0) as o1 eqn:O1.
     specialize (FC init_m t_id (mkFinNat o1) y_id mem_empty).
@@ -6794,14 +6827,20 @@ Proof.
     specialize (FC x_m mem_empty).
     full_autospecialize FC.
     {
-      repeat rewrite lookup_PExpr_incrPVar.
-      unfold lookup_PExpr.
+      repeat rewrite lookup_PExpr_wsize_incrPVar.
+      unfold lookup_PExpr_wsize.
       rewrite X_ID.
       cbn.
       unfold memory_lookup_err.
       subst init_m.
       repeat rewrite memory_lookup_memory_set_neq by congruence.
-      rewrite XID_M.
+      unfold trywith.
+      repeat break_match; try some_none; try inl_inr.
+      repeat constructor.
+      inversion Heqs.
+      inversion XID_M.
+      subst.
+      rewrite H2.
       reflexivity.
     }
     {
@@ -6859,7 +6898,7 @@ Proof.
       (* asserts to be used by MemMap2_merge_with_def *)
       assert (M_subs_DM : memory_subset_except y_id m dm).
       {
-        clear - P D T_next_M INIT_M TY_neq.
+        clear - o P D T_next_M INIT_M TY_neq.
         subst init_m.
         unfold memory_subset_except; intros.
         assert (KT_neq : k <> t_id)
@@ -6867,7 +6906,7 @@ Proof.
         clear T_next_M.
         inversion_clear P as [T S]; clear T.
         symmetry in D; eq_to_equiv.
-        apply S with (y_i:=t_id) in D; [| reflexivity]; clear S.
+        apply S with (y_i:=t_id) (y_size:=o) in D; [| reflexivity]; clear S.
         specialize (D k KT_neq).
         destruct (Nat.eq_dec k y_id).
         -
@@ -6911,11 +6950,11 @@ Proof.
       assert (YID_DM : memory_lookup dm y_id =
                       Some (mem_union (mem_const_block o init) y_m)).
       {
-        clear - D P INIT_M TY_neq.
+        clear - o D P INIT_M TY_neq.
         subst init_m.
         inversion_clear P as [T S]; clear T.
         symmetry in D; eq_to_equiv.
-        apply S with (y_i:=t_id) in D; [| reflexivity]; clear S.
+        apply S with (y_i:=t_id) (y_size:=o) in D; [| reflexivity]; clear S.
         unfold memory_equiv_except in D.
         rewrite <-D by congruence; clear D.
         rewrite memory_lookup_memory_set_neq by congruence.
@@ -6923,7 +6962,7 @@ Proof.
         reflexivity.
       }
       assert (Y_ID_in_dm : evalPExpr (DSHnatVal 0 :: DSHPtrVal t_id 0 :: σ)
-                                    (incrPVar 0 (incrPVar 0 y_p)) = inr y_id)
+                                    (incrPVar 0 (incrPVar 0 y_p)) = inr (y_id, o))
         by (repeat rewrite evalPExpr_incrPVar; rewrite Y_ID; reflexivity).
       assert (Y_DM : lookup_PExpr (DSHnatVal 0 :: DSHPtrVal t_id o :: σ)
                                dm (incrPVar 0 (incrPVar 0 y_p)) =
@@ -7007,7 +7046,8 @@ Proof.
           repeat break_match; try inl_inr; repeat inl_inr_inv.
           1: inversion Y_MA.
           eq_to_equiv.
-          rewrite Y_ID in Heqo0.
+          tuple_inversion_equiv.
+          rewrite H0 in Heqo0.
           rewrite memory_lookup_memory_remove_neq in Heqo0 by congruence.
           clear - Heqo0 MA H YID_DM.
           inversion_clear H as [S T]; clear T.
@@ -7024,7 +7064,8 @@ Proof.
         apply Option_equiv_eq in MA.
         apply err_equiv_eq in Y_MA.
         rewrite MemMap2_merge_with_def_firstn with (init:=init) in MA; try eassumption.
-        2:  repeat rewrite evalPExpr_incrPVar; rewrite Y_ID; reflexivity.
+        2: unfold evalPExpr_id; repeat rewrite evalPExpr_incrPVar; rewrite Y_ID; reflexivity.
+        
         some_inv; inl_inr_inv.
         rewrite <-MA in Y_MA; clear MA ma.
         assert (m0 = mem_union (mem_merge_with_def dot init
@@ -7034,9 +7075,9 @@ Proof.
         {
           eq_to_equiv.
           unfold lookup_PExpr, memory_lookup_err in Y_MA.
-          assert (evalPExpr σ y_p ≡ inr y_id)
-            by (destruct (evalPExpr σ y_p); try inl_inr; inl_inr_inv;
-                cbv in Y_ID; rewrite Y_ID; reflexivity).
+          assert (evalPExpr σ y_p ≡ inr (y_id, o))
+            by (clear - Y_ID; destruct evalPExpr as [| (i',o')]; try inl_inr;
+                inl_inr_inv; tuple_inversion_equiv; subst_nat; reflexivity).
           rewrite H in Y_MA.
           simpl in Y_MA.
           rewrite memory_lookup_memory_remove_neq in Y_MA by congruence.
@@ -7422,22 +7463,28 @@ Proof.
       }
       (* specialize FC *)
       specialize (FC loopN_tm t_id (mkFinNat nSn) y_id t_loopNtm).
-      full_autospecialize FC; try congruence; try assumption.
+      full_autospecialize FC; try reflexivity; try congruence; try assumption.
       cbn in FC.
       inversion_clear FC as [T]; rename T into FC.
       specialize (FC x_m t_loopNtm).
       full_autospecialize FC.
       {
-        repeat rewrite lookup_PExpr_incrPVar.
-        unfold lookup_PExpr, memory_lookup_err, trywith.
+        repeat rewrite lookup_PExpr_wsize_incrPVar.
+        unfold lookup_PExpr_wsize, memory_lookup_err, trywith.
         rewrite X_ID.
         simpl.
         rewrite memory_lookup_memory_set_neq by congruence.
         unfold lookup_PExpr, memory_lookup_err in X_LoopNTM.
         rewrite X_ID in X_LoopNTM.
         cbn in X_LoopNTM.
-        break_match; inversion X_LoopNTM.
-        rewrite H1; reflexivity.
+        repeat break_match; try inl_inr.
+        inversion X_LoopNTM.
+        repeat constructor.
+        inversion Heqs.
+        rewrite <-H0.
+        inversion X_LoopNTM.
+        rewrite H2.
+        reflexivity.
       }
       {
         cbn.
@@ -7641,6 +7688,7 @@ Proof.
             rewrite T_RRM.
             reflexivity.
           -
+            unfold evalPExpr_id.
             repeat rewrite evalPExpr_incrPVar.
             rewrite Y_ID; reflexivity.
           -
@@ -7663,7 +7711,7 @@ Proof.
               exists y_loopNm.
               split; [| congruence].
               apply Option_equiv_eq in RR_M.
-              apply mem_write_safe with (y_i:=t_id) in RR_M; [| reflexivity].
+              apply mem_write_safe with (y_i:=t_id) (y_size:=o) in RR_M; [| reflexivity].
               rewrite <-RR_M by congruence.
               unfold lookup_PExpr in Y_LoopNTM.
               rewrite Y_ID in Y_LoopNTM.
@@ -7679,7 +7727,7 @@ Proof.
                 congruence.
               *
                 apply Option_equiv_eq in RR_M.
-                apply mem_write_safe with (y_i:=t_id) in RR_M; [| reflexivity].
+                apply mem_write_safe with (y_i:=t_id) (y_size:=o) in RR_M; [| reflexivity].
                 specialize (M_sub_LoopNTM k v H).
                 destruct M_sub_LoopNTM as [v' G].
                 exists v'.
@@ -7851,7 +7899,7 @@ Proof.
               cbn.
 
               apply Option_equiv_eq in Heqo0.
-              eapply mem_write_safe with (y_i:=t_id) in Heqo0; [| reflexivity].
+              eapply mem_write_safe with (y_i:=t_id) (y_size:=o) in Heqo0; [| reflexivity].
               rewrite Heqo0 by congruence.
               rewrite Heqs0.
               reflexivity.
@@ -8005,5 +8053,3 @@ Proof.
                 }
                 assumption.
 Qed.
-*) Admitted.
-

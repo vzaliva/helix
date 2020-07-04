@@ -1191,7 +1191,50 @@ Section MSHCOL_to_DSHCOL.
       }
 
       {
-        cbn; discriminate.
+
+        cbn in *.
+        unfold dynwin_x_addr in *.
+        intros C.
+        inl_inr_inv.
+        subst.
+
+        symmetry in H.
+        memory_lookup_err_to_option.
+        apply equiv_Some_is_Some in H.
+        apply memory_is_set_is_Some in H.
+
+        rename H into M0.
+        rename m' into m0.
+        remember (memory_set m0 (memory_next_key m0) mem_empty) as m1 eqn:M1.
+        remember (memory_set m1 (memory_next_key m1) mb) as m2 eqn:M2.
+        rename m'0 into m1_plus.
+        inl_inr_inv.
+
+        assert(memory_next_key m0 > 2) as LM0.
+        {
+          apply mem_block_exists_next_key_gt in M0.
+          apply M0.
+        }
+
+        assert(memory_next_key m1 > 3) as LM1.
+        {
+          apply memory_set_memory_next_key_gt in M1.
+          lia.
+        }
+
+        remember (memory_set m1_plus (memory_next_key m1_plus) mb) as
+            m1_plus'.
+
+        apply memory_set_memory_next_key_gt in Heqm1_plus'.
+        apply memory_subset_except_next_keys in H1.
+        subst_max.
+
+        remember (memory_next_key (memory_set m0 (memory_next_key m0) mem_empty)) as x.
+        clear Heqx.
+        pose proof memory_set_memory_next_key_gt m1_plus (memory_set m1_plus x mb) mb x.
+        autospecialize H; [reflexivity |].
+        rewrite <-H4 in H.
+        lia.
       }
 
       {
