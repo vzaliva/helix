@@ -2336,6 +2336,16 @@ Section AExpr.
     destruct H; cbn in *; intuition.
   Qed.
 
+  Ltac genAExpr_rel_subst_H AEXP LL :=
+    match AEXP with
+    | genAExpr_rel ?σ ?n ?e ?memH (mk_config_cfg ?memV ?l ?g) (?memH', ?n') (?memV', (?l', (?g', ()))) =>
+      let H := fresh in
+      pose proof genAExpr_memH AEXP as H; subst memH';
+      pose proof genAExpr_memV AEXP as H; subst memV';
+      pose proof genAExpr_g AEXP as H; subst g';
+      pose proof genAExpr_l AEXP as LL
+    end.
+
   Ltac genAExpr_rel_subst LL :=
     match goal with
     | NEXP : genAExpr_rel ?σ ?n ?e ?memH (mk_config_cfg ?memV ?l ?g) (?memH', ?n') (?memV', (?l', (?g', ()))) |- _ =>
@@ -3453,6 +3463,7 @@ Section AExpr.
       rename g into g1, l into l1, memV into memV1.
       cbn* in COMPILE; simp.
 
+      (* We know evaluation succeeds, so we know aexp1 and aexp2 evaluate successfully *)
       cbn in EVAL.
       break_match; try discriminate EVAL.
       break_match; try discriminate EVAL.
@@ -3460,10 +3471,11 @@ Section AExpr.
       cbn*.
       repeat norm_h.
 
+      (* c0 lines up with aexp1 *)
       rewrite convert_typ_app.
       rewrite denote_code_app.
       repeat norm_v.
-
+      
       eapply eutt_clo_bind; try eapply IHaexp1; eauto.
 
       intros [memH' b'] [memV' [l' [g' []]]] [INV1 INV2].
@@ -3471,19 +3483,23 @@ Section AExpr.
 
       repeat norm_h.
 
+      (* c1 lines up with aexp2 *)
       rewrite convert_typ_app.
       rewrite denote_code_app.
       repeat norm_v.
 
-      inversion INV2.
-      inversion amonotone0.
-      subst.
+      (* inversion INV2. *)
+      (* inversion amonotone0. *)
+      (* subst. *)
+      genAExpr_rel_subst L1L'.
+
       eapply eutt_clo_bind; try eapply IHaexp2; eauto.
 
       intros [memH'' b''] [memV'' [l'' [g'' []]]] [INV1' INV2'].
-      inversion INV2'.
-      inversion amonotone1.
-      subst.
+      (* inversion INV2'. *)
+      (* inversion amonotone1. *)
+      (* subst. *)
+      genAExpr_rel_subst L'L''.
 
       change [(IId r, INSTR_Op (OP_FCmp FOlt TYPE_Double e0 e1));
                 (IVoid i4, INSTR_Comment "Casting bool to float");
@@ -3502,15 +3518,17 @@ Section AExpr.
       repeat norm_v.
       cbn; repeat norm_v.
 
+      apply aexp_correct in INV2; rename INV2 into aexp_correct0.
       unfold genAExpr_exp_correct in aexp_correct0.
-      do 2 destruct H1.
-      subst.
       specialize (aexp_correct0 l'').
-      assert (Ret (memV'', (l'', (g'', UVALUE_Double b')))
+      rename memV1 into memV.
+      rename g1 into g.
+
+      assert (Ret (memV, (l'', (g, UVALUE_Double b')))
                     ≈ with_err_LB
                         (interp_cfg
                            (translate exp_E_to_instr_E
-                                      (denote_exp (Some DTYPE_Double) (convert_typ [ ] e0))) g'' l'' memV'')) as EUTT0.
+                                      (denote_exp (Some DTYPE_Double) (convert_typ [ ] e0))) g l'' memV)) as EUTT0.
       apply aexp_correct0; eauto.
 
       (* TODO: This could be cleaner... *)
@@ -3523,12 +3541,14 @@ Section AExpr.
       repeat norm_v.
       setoid_rewrite translate_bind.
 
+      apply aexp_correct in INV2'; rename INV2' into aexp_correct1.
       unfold genAExpr_exp_correct in aexp_correct1.
-      assert (Ret (memV'', (l'', (g'', UVALUE_Double b'')))
+
+      assert (Ret (memV, (l'', (g, UVALUE_Double b'')))
                       ≈ with_err_LB
                           (interp_cfg
                              (translate exp_E_to_instr_E
-                                        (denote_exp (Some DTYPE_Double) (convert_typ [ ] e1))) g'' l'' memV'')) as EUTT1.
+                                        (denote_exp (Some DTYPE_Double) (convert_typ [ ] e1))) g l'' memV)) as EUTT1.
       apply aexp_correct1; eauto. reflexivity.
       rewrite <- EUTT1.
       repeat norm_v.
@@ -3548,9 +3568,25 @@ Section AExpr.
       unfold Traversal.endo.
       unfold Traversal.Endo_id.
 
-      (* Should probably separate this into an existential lemma *)
-      unfold double_cmp.
-      destruct (ordered64 b' b'' && Floats.Float.cmp Integers.Clt b' b'')%bool eqn:CMP.
+      (* TODO move this, possibly give it a better name. *)
+      Lemma float_cmp :
+        forall (a b : binary64),
+          exists v,
+            double_cmp FOlt a b ≡ DVALUE_I1 v /\ MFloat64asCT.CTypeZLess a b ≡ (Floats.Float.of_longu
+                                                                                 (DynamicValues.Int64.repr (DynamicValues.Int1.unsigned v))).
+      Proof.
+        intros a b.
+        unfold double_cmp.
+        destruct (ordered64 a b && Floats.Float.cmp Integers.Clt a b)%bool eqn:CMP.
+        - exists DynamicValues.Int1.one.
+          intuition; cbn.
+          admit.
+        - exists DynamicValues.Int1.zero.
+          intuition; cbn.
+      Admitted.
+
+      pose proof (float_cmp b' b'') as (cmp_res & CMP_V & CMP_H).
+      rewrite CMP_V.
       { cbn.
         unfold ITree.map.
         repeat norm_v.
@@ -3560,26 +3596,33 @@ Section AExpr.
 
         apply eqit_Ret.
         split; cbn; eauto.
-        + eapply state_invariant_add_fresh; eauto.
-          (* incVoid of i1... *)
-          cbn. admit.
-          admit.
-        + split; split; intuition.
-          * cbn. repeat norm_v. cbn. norm_v.
+        - cbn.
+          eapply state_invariant_incVoid; eauto.
+          repeat (eapply state_invariant_add_fresh; eauto).
+        - split; split; intuition.
+          + cbn. repeat norm_v. cbn. norm_v.
             reflexivity.
             cbn.
             apply H.
-            assert ((Floats.Float.of_longu (DynamicValues.Int64.repr 1)) ≡ MFloat64asCT.CTypeZLess b' b'').
-            admit.
-            rewrite H3.
-            apply In_add_eq.
-          * (* TODO: ltac, this is horrid *)
-            cbn. rewrite H6.
-            epose proof (aexp_correct1 l'' _) as [[] H7].
-            rewrite H7.
+            rewrite <- CMP_H.
 
+            apply In_add_eq.
+          + cbn.
+
+            (* TODO: move this *)
+            Ltac match_rewrite :=
+              match goal with
+              | H : (?X ≡ ?v) |-
+                context [ match ?X with | _ => _ end] =>
+                rewrite H
+              end.
+
+            repeat match_rewrite.
+            epose proof (aexp_correct1 l'' _) as [[] EVAL'].
+            rewrite Heqs5 in EVAL'.
+            inv EVAL'.
             reflexivity.
-          * rewrite H3. rewrite H2.
+          + rewrite L1L'. rewrite L'L''.
 
             cbn in INV1'.
             destruct INV1'.
@@ -3595,7 +3638,7 @@ Section AExpr.
             inversion Heqs2.
             Opaque incLocal.
 
-            assert (l'' ⊑ (alist_add r (UVALUE_I1 DynamicValues.Int1.one) l'')) as TRANS.
+            assert (l'' ⊑ (alist_add r (UVALUE_I1 cmp_res) l'')) as TRANS.
             { apply sub_alist_add.
               unfold alist_fresh.
               apply alist_find_None.
@@ -3621,9 +3664,6 @@ Section AExpr.
               apply Name_inj, append_factor_left,string_of_nat_inj in CONTRA; lia.
             }
             apply (In_add_In_ineq _ _ _ _ _ NEQ AIN).
-      }
-      {
-        admit.
       }
   Admitted.
 
