@@ -2415,7 +2415,7 @@ Proof.
       destruct H0; [assumption |].
       subst.
       apply memory_is_set_is_Some.
-      apply memory_lookup_err_inr_is_Some in Heqs2.
+      apply memory_lookup_err_inr_is_Some in Heqs3.
       assumption.
   -
     intros σ m m' fuel E y_i size P.
