@@ -1660,7 +1660,7 @@ Module MDSigmaHCOLEval
       apply ME.
   Qed.
   
-  Global Instance evalDSHOperator_mem_proper :
+  Global Instance evalDSHOperator_mem_proper:
     Proper ((≡) ==> (≡) ==> (=) ==> (≡) ==> (=)) evalDSHOperator.
   Proof.
     intros σ' σ ΣE dop' dop DE mem1 mem2 ME fuel' fuel FE.
@@ -1678,8 +1678,6 @@ Module MDSigmaHCOLEval
       repeat f_equiv.
       assumption.
     -
-      (* TODO: @zoickx please fix *)
-      (*
       intros.
       destruct fuel; [reflexivity |].
       cbn.
@@ -1687,16 +1685,14 @@ Module MDSigmaHCOLEval
       all: memory_lookup_err_to_option.
       all: eq_to_equiv_hyp; err_eq_to_equiv_hyp.
       all: rewrite ME in *; try some_none.
-      all: rewrite Heqs1 in Heqs6; some_inv.
-      all: rewrite Heqs6 in Heqs5.
-      all: rewrite Heqs5 in Heqs8.
+      all: rewrite Heqs1 in Heqs7; some_inv.
+      all: rewrite Heqs7 in Heqs6.
+      all: rewrite Heqs6 in Heqs9.
       all: try inl_inr; inl_inr_inv.
+      rewrite Heqs9.
+      rewrite Heqs2 in Heqs8; some_inv.
       rewrite Heqs8.
-      rewrite Heqs2 in Heqs7; some_inv.
-      rewrite Heqs7.
       reflexivity.
-       *)
-      admit.
     -
       intros.
       destruct fuel; [reflexivity |].
@@ -1705,11 +1701,11 @@ Module MDSigmaHCOLEval
       all: memory_lookup_err_to_option.
       all: eq_to_equiv_hyp; err_eq_to_equiv_hyp.
       all: rewrite ME in *; try some_none.
-      all: rewrite Heqs1 in Heqs4; some_inv; rewrite Heqs4 in *.
-      all: rewrite Heqs2 in Heqs5; some_inv; rewrite Heqs5 in *.
-      all: rewrite Heqs3 in Heqs6; try inl_inr; inl_inr_inv.
+      all: rewrite Heqs3 in Heqs6; some_inv; rewrite Heqs6 in *.
+      all: rewrite Heqs4 in Heqs7; some_inv; rewrite Heqs7 in *.
+      all: rewrite Heqs5 in Heqs8; try inl_inr; inl_inr_inv.
       do 2 f_equiv.
-      rewrite Heqs6.
+      rewrite Heqs8.
       reflexivity.
     -
       intros.
@@ -1719,11 +1715,11 @@ Module MDSigmaHCOLEval
       all: memory_lookup_err_to_option.
       all: eq_to_equiv_hyp; err_eq_to_equiv_hyp.
       all: rewrite ME in *; try some_none.
-      all: rewrite Heqs1 in Heqs4; some_inv; rewrite Heqs4 in *.
-      all: rewrite Heqs2 in Heqs5; some_inv; rewrite Heqs5 in *.
-      all: rewrite Heqs3 in Heqs6; try inl_inr; inl_inr_inv.
+      all: rewrite Heqs3 in Heqs6; some_inv; rewrite Heqs6 in *.
+      all: rewrite Heqs4 in Heqs7; some_inv; rewrite Heqs7 in *.
+      all: rewrite Heqs5 in Heqs8; try inl_inr; inl_inr_inv.
       do 2 f_equiv.
-      rewrite Heqs6.
+      rewrite Heqs8.
       reflexivity.
     -
       intros.
@@ -1733,12 +1729,12 @@ Module MDSigmaHCOLEval
       all: memory_lookup_err_to_option.
       all: eq_to_equiv_hyp; err_eq_to_equiv_hyp.
       all: rewrite ME in *; try some_none.
-      all: rewrite Heqs2 in Heqs6; some_inv; rewrite Heqs6 in *.
-      all: rewrite Heqs3 in Heqs7; some_inv; rewrite Heqs7 in *.
+      all: rewrite Heqs5 in Heqs9; some_inv; rewrite Heqs9 in *.
+      all: rewrite Heqs6 in Heqs10; some_inv; rewrite Heqs10 in *.
       all: rewrite Heqs4 in Heqs8; some_inv; rewrite Heqs8 in *.
-      all: rewrite Heqs5 in Heqs9; try inl_inr; inl_inr_inv.
+      all: rewrite Heqs7 in Heqs11; try inl_inr; inl_inr_inv.
       do 2 f_equiv.
-      rewrite Heqs9.
+      rewrite Heqs11.
       reflexivity.
     -
       intros.
@@ -1748,11 +1744,11 @@ Module MDSigmaHCOLEval
       all: memory_lookup_err_to_option.
       all: eq_to_equiv_hyp; err_eq_to_equiv_hyp.
       all: rewrite ME in *; try some_none.
-      all: rewrite Heqs1 in Heqs7; some_inv; rewrite Heqs7 in *.
-      all: rewrite Heqs2 in Heqs8; some_inv; rewrite Heqs8 in *.
-      all: rewrite Heqs6 in Heqs9; try inl_inr; inl_inr_inv.
+      all: rewrite Heqs1 in Heqs8; some_inv; rewrite Heqs8 in *.
+      all: rewrite Heqs2 in Heqs9; some_inv; rewrite Heqs9 in *.
+      all: rewrite Heqs7 in Heqs10; try inl_inr; inl_inr_inv.
       do 2 f_equiv.
-      rewrite Heqs9.
+      rewrite Heqs10.
       reflexivity.
     -
       intros.
@@ -1813,13 +1809,13 @@ Module MDSigmaHCOLEval
       all: err_eq_to_equiv_hyp; eq_to_equiv_hyp.
       all: memory_lookup_err_to_option.
       all: rewrite ME in *; try some_none.
-      rewrite Heqs0 in Heqs1; some_inv.
+      rewrite Heqs1 in Heqs2; some_inv.
       do 3 f_equiv.
       intros k.
       unfold mem_union.
       repeat rewrite NP.F.map2_1bis by reflexivity.
       break_match; try reflexivity.
-      apply Heqs1.
+      apply Heqs2.
     -
       intros.
       destruct fuel; [reflexivity |].
@@ -1828,16 +1824,16 @@ Module MDSigmaHCOLEval
       all: err_eq_to_equiv_hyp.
       all: memory_lookup_err_to_option.
       all: rewrite ME in *; try some_none.
-      rewrite Heqs1 in Heqs3; some_inv; rewrite Heqs3 in *.
       rewrite Heqs2 in Heqs4; some_inv; rewrite Heqs4 in *.
+      rewrite Heqs3 in Heqs5; some_inv; rewrite Heqs5 in *.
       f_equiv.
       f_equiv.
       f_equiv.
-      intros k; specialize (Heqs3 k); specialize (Heqs4 k).
+      intros k; specialize (Heqs4 k); specialize (Heqs5 k).
       unfold mem_union.
       repeat rewrite NP.F.map2_1bis by reflexivity.
       repeat break_match; try some_none.
-      some_inv; rewrite Heqs3; reflexivity.
+      some_inv; rewrite Heqs4; reflexivity.
       assumption.
     -
       intros.
@@ -1851,7 +1847,7 @@ Module MDSigmaHCOLEval
       repeat constructor.
       apply IHdop2.
       assumption.
-  Admitted.
+  Qed.
 
   Section IncrEval.
 
