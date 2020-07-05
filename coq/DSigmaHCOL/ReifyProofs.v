@@ -5947,10 +5947,20 @@ Proof.
   all: rename Heqs into X1_ID, Heqs0 into X2_ID, Heqs1 into Y_ID.
   all: try some_none.
   all: subst.
+  1: {
+    exfalso.
+    unfold assert_NT_le, assert_true_to_err in Heqs2.
+    break_if; try inl_inr.
+    apply leb_complete_conv in Heqb.
+    unfold NatAsNT.MNatAsNT.to_nat in Heqb.
+    (* TODO: @zoickx we need additional assumption [y_sz < o] added to this lemma
+       to prove this goal *)
+    admit.
+  }
   all: rewrite Heqo2, Heqo1, Heqo0 in *; repeat some_inv.
   all: rewrite X1_M, X2_M, Y_M in *; clear X1_M X2_M Y_M m3 m4 m5.
   all: rename Heqo2 into X1_M, Heqo1 into X2_M, Heqo0 into Y_M.
-  all: rename Heqs5 into M.
+  all: rename Heqs6 into M.
   - (* evalDSHMap2 fails *)
     exfalso.
     contradict M; generalize s; apply is_OK_neq_inl.
@@ -5970,6 +5980,22 @@ Proof.
     +
       autospecialize IHo; [intros; apply D1; lia |].
       autospecialize IHo; [intros; apply D2; lia |].
+      autospecialize IHo.
+      {
+        clear - Heqs2.
+        unfold assert_NT_le, assert_true_to_err in *.
+        break_if; try inl_inr.
+        destruct u.
+        reflexivity.
+        exfalso.
+        break_if; try inl_inr.
+        apply leb_complete_conv in Heqb.
+        apply leb_complete in Heqb0.
+        clear Heqs2 u.
+        unfold NatAsNT.MNatAsNT.to_nat in *.
+        lia.
+      }
+      
       cbn [evalDSHMap2].
       generalize ("Error reading 1st arg memory in evalDSHMap2 @" ++
        Misc.string_of_nat o ++ " in " ++ string_of_mem_block_keys x1_m)%string.
@@ -5992,7 +6018,7 @@ Proof.
   -
     eexists.
     reflexivity.
-Qed.
+Admitted.
 
 Lemma MemMap2_merge_with_def
       (x1_p x2_p y_p : PExpr)
