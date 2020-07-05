@@ -30,6 +30,7 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
   Inductive DSHType :=
   | DSHnat : DSHType
   | DSHCType : DSHType
+  (* pointer to memory block of size [n] *)
   | DSHPtr (n:NT.t) : DSHType.
 
   Inductive DSHVal :=
@@ -58,8 +59,7 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
   (* Expressions which evaluate to [mem_block] *)
   Inductive MExpr: Type :=
   | MPtrDeref:  PExpr -> MExpr (* Dereference operator *)
-  | MConst: mem_block -> MExpr.
-
+  | MConst: mem_block -> NT.t -> MExpr. (* constant block with size *)
 
   (* Expressions which evaluate to `CType` *)
   Inductive AExpr : Type :=
@@ -225,7 +225,7 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
 
   Inductive MExpr_equiv : MExpr -> MExpr -> Prop :=
   | MPtrDeref_equiv {p0 p1}: p0=p1 -> MExpr_equiv (MPtrDeref p0) (MPtrDeref p1)
-  | MConst_equiv {a b: mem_block}: a=b -> MExpr_equiv (MConst a) (MConst b).
+  | MConst_equiv {a b: mem_block} (asize bsize:NT.t) : (a=b /\ asize=bsize) -> MExpr_equiv (MConst a asize) (MConst b bsize).
 
   Instance MExpr_Equiv: Equiv MExpr := MExpr_equiv.
 
@@ -238,11 +238,29 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
       induction x; constructor; auto.
     -
       intros x y E.
-      induction E; constructor; try symmetry; assumption.
+      induction E.
+      +
+        constructor.
+        symmetry.
+        assumption.
+      +
+        constructor.
+        destruct H.
+        split;try symmetry; auto.
     -
       intros x y z Exy Eyz.
-      induction Exy; inversion Eyz; subst;
-        constructor; auto.
+
+      induction Exy; inversion Eyz; subst.
+      +
+        destruct H1.
+        constructor.
+        rewrite <- H0.
+        auto.
+      +
+        destruct H3.
+        constructor.
+        rewrite <- H0, <- H1.
+        auto.
   Qed.
 
 

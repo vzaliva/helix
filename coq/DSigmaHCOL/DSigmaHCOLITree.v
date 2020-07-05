@@ -107,15 +107,16 @@ Module MDSigmaHCOLITree
     | inr x => ret x
     end.
 
-  Definition denotePExpr (σ: evalContext) (exp:PExpr): itree Event (mem_block_id) :=
+  Definition denotePExpr (σ: evalContext) (exp:PExpr): itree Event (mem_block_id*NT.t) :=
     lift_Serr (evalPExpr σ exp).
 
-  Definition denoteMExpr (σ: evalContext) (exp:MExpr): itree Event (mem_block) :=
+  Definition denoteMExpr (σ: evalContext) (exp:MExpr): itree Event (mem_block*NT.t) :=
     match exp with
     | @MPtrDeref p =>
-      bi <- denotePExpr σ p ;;
-      trigger (MemLU "MPtrDeref" bi)
-    | @MConst t => ret t
+      '(bi,size) <- denotePExpr σ p ;;
+      bi' <- trigger (MemLU "MPtrDeref" bi) ;;
+      ret (bi', size)
+    | @MConst t size => ret (t,size)
     end.
 
   Definition denoteNExpr (σ: evalContext) (e: NExpr): itree Event NT.t :=
@@ -141,7 +142,7 @@ Module MDSigmaHCOLITree
          ret (CTypeSub a' b')
     | ANth m i =>
       i' <- denoteNExpr σ i ;;
-      m' <- (denoteMExpr σ m) ;;
+      '(m',msize) <- (denoteMExpr σ m) ;;
          (* Instead of returning error we default to zero here.
           This situation should never happen for programs
           refined from MSHCOL which ensure bounds via
@@ -238,43 +239,44 @@ Module MDSigmaHCOLITree
         | DSHNop => ret tt
 
         | DSHAssign (x_p, src_e) (y_p, dst_e) =>
-          x_i <- denotePExpr σ x_p ;;
-          y_i <- denotePExpr σ y_p ;;
+          '(x_i,x_size) <- denotePExpr σ x_p ;;
+          '(y_i,y_size) <- denotePExpr σ y_p ;;
           x <- trigger (MemLU "Error looking up 'x' in DSHAssign" x_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHAssign" y_i) ;;
           src <- denoteNExpr σ src_e ;;
           dst <- denoteNExpr σ dst_e ;;
+          lift_Derr (assert_NT_lt "DSHAssign dst out of bounds" dst y_size) ;;
           v <- lift_Derr (mem_lookup_err "Error looking up 'v' in DSHAssign" (to_nat src) x) ;;
           trigger (MemSet y_i (mem_add (to_nat dst) v y))
 
         | @DSHIMap n x_p y_p f =>
-          x_i <- denotePExpr σ x_p ;;
-              y_i <- denotePExpr σ y_p ;;
-              x <- trigger (MemLU "Error looking up 'x' in DSHIMap" x_i) ;;
-              y <- trigger (MemLU "Error looking up 'y' in DSHIMap" y_i) ;;
-              y' <- denoteDSHIMap n f σ x y ;;
-              trigger (MemSet y_i y')
+          '(x_i,x_size) <- denotePExpr σ x_p ;;
+          '(y_i,y_sixe) <- denotePExpr σ y_p ;;
+          x <- trigger (MemLU "Error looking up 'x' in DSHIMap" x_i) ;;
+          y <- trigger (MemLU "Error looking up 'y' in DSHIMap" y_i) ;;
+          y' <- denoteDSHIMap n f σ x y ;;
+          trigger (MemSet y_i y')
 
         | @DSHMemMap2 n x0_p x1_p y_p f =>
-          x0_i <- denotePExpr σ x0_p ;;
-               x1_i <- denotePExpr σ x1_p ;;
-               y_i <- denotePExpr σ y_p ;;
-               x0 <- trigger (MemLU "Error looking up 'x0' in DSHMemMap2" x0_i) ;;
-               x1 <- trigger (MemLU "Error looking up 'x1' in DSHMemMap2" x1_i) ;;
-               y <- trigger (MemLU "Error looking up 'y' in DSHMemMap2" y_i) ;;
-               y' <- denoteDSHMap2 n f σ x0 x1 y ;;
-               trigger (MemSet y_i y')
+          '(x0_i,x0_size) <- denotePExpr σ x0_p ;;
+          '(x1_i,x1_size) <- denotePExpr σ x1_p ;;
+          '(y_i,y_size) <- denotePExpr σ y_p ;;
+          x0 <- trigger (MemLU "Error looking up 'x0' in DSHMemMap2" x0_i) ;;
+          x1 <- trigger (MemLU "Error looking up 'x1' in DSHMemMap2" x1_i) ;;
+          y <- trigger (MemLU "Error looking up 'y' in DSHMemMap2" y_i) ;;
+          y' <- denoteDSHMap2 n f σ x0 x1 y ;;
+          trigger (MemSet y_i y')
         | @DSHBinOp n x_p y_p f =>
-          x_i <- denotePExpr σ x_p ;;
-              y_i <- denotePExpr σ y_p ;;
-              x <- trigger (MemLU "Error looking up 'x' in DSHBinOp" x_i) ;;
-              y <- trigger (MemLU "Error looking up 'y' in DSHBinOp" y_i) ;;
-              y' <- denoteDSHBinOp n n f σ x y ;;
-              trigger (MemSet y_i y')
+          '(x_i,x_size) <- denotePExpr σ x_p ;;
+          '(y_i,y_sixe) <- denotePExpr σ y_p ;;
+          x <- trigger (MemLU "Error looking up 'x' in DSHBinOp" x_i) ;;
+          y <- trigger (MemLU "Error looking up 'y' in DSHBinOp" y_i) ;;
+          y' <- denoteDSHBinOp n n f σ x y ;;
+          trigger (MemSet y_i y')
 
         | DSHPower ne (x_p,xoffset) (y_p,yoffset) f initial =>
-          x_i <- denotePExpr σ x_p ;;
-          y_i <- denotePExpr σ y_p ;;
+          '(x_i,x_size) <- denotePExpr σ x_p ;;
+          '(y_i,y_sixe) <- denotePExpr σ y_p ;;
           x <- trigger (MemLU "Error looking up 'x' in DSHPower" x_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHPower" y_i) ;;
           n <- denoteNExpr σ ne ;; (* [n] denoteuated once at the beginning *)
@@ -299,14 +301,14 @@ Module MDSigmaHCOLITree
           trigger (MemFree t_i)
 
         | DSHMemInit size y_p value =>
-          y_i <- denotePExpr σ y_p ;;
+          '(y_i,y_sixe) <- denotePExpr σ y_p ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHMemInit" y_i) ;;
           let y' := mem_union (mem_const_block (to_nat size) value) y in
           trigger (MemSet y_i y')
 
        | DSHMemCopy size x_p y_p =>
-          x_i <- denotePExpr σ x_p ;;
-          y_i <- denotePExpr σ y_p ;;
+          '(x_i,x_size) <- denotePExpr σ x_p ;;
+          '(y_i,y_sixe) <- denotePExpr σ y_p ;;
           x <- trigger (MemLU "Error looking up 'x' in DSHMemCopy" x_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHMemCopy" y_i) ;;
           let y' := mem_union x y in
@@ -376,13 +378,13 @@ Module MDSigmaHCOLITree
     (* Ltac unfold_Mem := unfold interp_Mem in *; cbn in *; unfold denotePExpr, denoteNExpr, evalIUnCType, denoteIUnCType in *. *)
     Ltac unfold_Mem := unfold interp_Mem in *; cbn; unfold denotePExpr, denoteNExpr, evalIUnCType, denoteIUnCType in *.
 
-    Lemma Denote_Eval_Equiv_MExpr_Succeeds: forall mem σ e bk,
-        evalMExpr mem σ e ≡ inr bk ->
+    Lemma Denote_Eval_Equiv_MExpr_Succeeds: forall mem σ e bk size,
+        evalMExpr mem σ e ≡ inr (bk,size) ->
         eutt eq
              (interp_Mem (denoteMExpr σ e) mem)
-             (ret (mem, bk)).
+             (ret (mem, (bk,size))).
     Proof.
-      intros mem σ [] bk HEval; unfold_Mem; cbn in HEval; inv_eval; state_steps; reflexivity.
+      intros mem σ [] bk size HEval; unfold_Mem; cbn in HEval; inv_eval; state_steps; reflexivity.
     Qed.
 
     Lemma Denote_Eval_Equiv_AExpr_Succeeds: forall mem σ e v,
@@ -398,6 +400,8 @@ Module MDSigmaHCOLITree
                   idtac); reflexivity).
       do 2 (break_match_hyp; try inl_inr).
       state_steps.
+      break_let; subst.
+      break_match_hyp; try inl_inr.
       apply Denote_Eval_Equiv_MExpr_Succeeds in Heqs0.
       rewrite Heqs0; state_steps.
       inv_eval; state_steps; reflexivity.
@@ -910,9 +914,15 @@ Module MDSigmaHCOLITree
       revert σ mem' fuel mem H.
       induction op; intros σ mem fuel mem' HEval; cbn in HEval.
       - unfold_Mem; inv_eval; state_steps; reflexivity.
-      - unfold_Mem; destruct src,dst.
+      -
+        unfold_Mem; destruct src,dst.
         inv_eval.
-        state_steps; reflexivity.
+        state_steps.
+        replace (assert_NT_lt "DSHAssign dst out of bounds" t3 t1)
+          with (@inr string unit tt)
+          by (unfold assert_NT_lt, assert_true_to_err in *; break_if; inl_inr).
+        state_steps.
+        reflexivity.
       - unfold_Mem; inv_eval.
         state_steps.
         rewrite Denote_Eval_Equiv_IMap_Succeeds; eauto; state_steps.
@@ -947,7 +957,6 @@ Module MDSigmaHCOLITree
         state_steps; rewrite IHop2; eauto using evalDSHOperator_fuel_monotone.
         reflexivity.
     Qed.
-
 
   End Eval_Denote_Equiv.
 

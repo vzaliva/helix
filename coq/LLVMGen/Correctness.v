@@ -2059,6 +2059,7 @@ Ltac genNExpr_rel_subst LL :=
     pose proof genNExpr_l NEXP as LL
   end.
 
+(*
 Section MExpr.
 
   Definition invariant_MExpr
@@ -2116,7 +2117,7 @@ Section MExpr.
       (* Helix  bits *)   (mexp: MExpr) (σ: evalContext) (memH: memoryH) v
       (* Vellvm bits *)   (exp: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV) (τ: typ),
       genMExpr mexp s1 ≡ inr (s2, (exp, c, τ)) -> (* Compilation succeeds *)
-      evalMExpr memH σ mexp ≡ inr v            -> (* Evaluation succeeds *)
+      evalMExpr memH σ mexp ≡ inr v    -> (* Evaluation succeeds *)
       state_invariant σ s1 memH (memV, (l, g)) ->
       eutt (lift_Rel_cfg (state_invariant σ s2) ⩕ genMExpr_rel σ s2 mexp memH (mk_config_cfg memV l g))
            (with_err_RB
@@ -2261,6 +2262,7 @@ Ltac genMExpr_rel_subst :=
     pose proof genMExpr_l MEXP as H; subst l'
   end.
 
+*)
 Section AExpr.
 
   Definition R_AExpr_start (σ : evalContext) (s : IRState) (memH : memoryH) (vellvm : memoryV * (local_env * global_env)) : Prop
@@ -2562,7 +2564,7 @@ Section AExpr.
       cbn*.
       repeat norm_h.
 
-      subst i3.
+      subst i4.
       do 2 norm_v.
 
       eapply eutt_clo_bind; eauto.
@@ -2577,6 +2579,7 @@ Section AExpr.
       cbn in SINV.
 
       (* Need to make sure that we pull e1 out so we can use genMExpr_correct *)
+      (*
       epose proof genMExpr_correct _ Heqs0 Heqs4 SINV as MCODE.
 
       (* Should be able to pull e1 out from the denotation of GEP *)
@@ -2645,7 +2648,7 @@ Section AExpr.
       repeat norm_v.
 
       subst MYBIND.
-      subst i3.
+      subst i4.
       repeat norm_h.
 
       (* Might not be true, might be extensions instead *)
@@ -3625,6 +3628,7 @@ Section AExpr.
       {
         admit.
       }
+       *)
   Admitted.
 
 
@@ -4242,6 +4246,17 @@ Ltac forget_strings :=
       rewrite EQ1' in Heqs11; inv Heqs11.
       rewrite Heqo0.
       eutt_hide_right.
+      (*
+      assert (i2 ≡ val2).
+      { unfold genNExpr_exp_correct in EXP2.
+        assert (ρ2 ⊑ ρ2) as LL by reflexivity.
+        specialize (EXP2 _ LL) as (EXP2_EUTT & EXP2_EVAL).
+        rewrite EXP2_EVAL in Heqs12.
+        inversion Heqs12.
+        auto.
+      }
+      subst.
+      rewrite Heqs13.
       cbn*.
       repeat norm_h.
       rewrite interp_Mem_MemSet.
@@ -4637,6 +4652,7 @@ Ltac forget_strings :=
 
 
 
+*)
   Admitted.
 
   End GenIR.
