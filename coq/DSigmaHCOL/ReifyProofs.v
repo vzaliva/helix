@@ -5838,14 +5838,14 @@ Proof.
   unfold lookup_PExpr, memory_lookup_err in *.
   rewrite Heqs1 in *.
   cbn in *.
-  rewrite Heqs4 in Y_M.
+  rewrite Heqs5 in Y_M.
   rewrite <-H in *.
   rewrite memory_lookup_memory_set_eq in * by reflexivity.
   cbn in *.
   repeat inl_inr_inv.
   eq_to_equiv.
   rewrite Y_M, Y_RM in *; clear Y_M Y_RM.
-  eapply evalDSHMap2_rest_preserved in Heqs5; [| eassumption].
+  eapply evalDSHMap2_rest_preserved in Heqs6; [| eassumption].
   assumption.
 Qed.
 
