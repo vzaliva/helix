@@ -2229,7 +2229,7 @@ Proof.
       (* mem_op succeeded with [Some md] while evaluation of DHS failed *)
       eq_to_equiv; tuple_inversion_equiv; subst_nat; minimize_eq.
 
-      rename Heqs3 into E.
+      rename Heqs1 into E.
 
       apply equiv_Some_is_Some in MD.
       pose proof (mem_op_of_hop_x_density MD) as DX.
@@ -2240,6 +2240,24 @@ Proof.
       contradict E.
       apply is_OK_neq_inl.
 
+      unfold assert_NT_le.
+      rewrite Nat.leb_refl.
+      cbn.
+      constructor.
+    +
+      (* mem_op succeeded with [Some md] while evaluation of DHS failed *)
+      eq_to_equiv; tuple_inversion_equiv; subst_nat; minimize_eq.
+
+      rename Heqs4 into E.
+
+      apply equiv_Some_is_Some in MD.
+      pose proof (mem_op_of_hop_x_density MD) as DX.
+      clear MD pF.
+
+      inversion_clear FDF as [FV].
+
+      contradict E.
+      apply is_OK_neq_inl.
       eapply evalDSHIMap_is_OK_inv.
 
       intros k kc.
@@ -2262,7 +2280,7 @@ Proof.
 
       eq_to_equiv_hyp; err_eq_to_equiv_hyp.
 
-      rename Heqs3 into ME.
+      rename Heqs4 into ME.
       intros k.
 
       unfold mem_op_of_hop in MD.
