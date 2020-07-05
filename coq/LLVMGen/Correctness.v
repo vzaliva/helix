@@ -2059,20 +2059,19 @@ Ltac genNExpr_rel_subst LL :=
     pose proof genNExpr_l NEXP as LL
   end.
 
-(*
 Section MExpr.
 
   Definition invariant_MExpr
              (σ : evalContext)
-             (s : IRState) (mexp : MExpr) : Rel_cfg_T mem_block uvalue :=
-    fun '(memH, mb) '(memV, (ρ, (g, res))) =>
+             (s : IRState) (mexp : MExpr) : Rel_cfg_T (mem_block * Int64.int) uvalue :=
+    fun '(memH, (mb, mb_sz)) '(memV, (ρ, (g, res))) =>
       (exists ptr i (vid : nat) (mid : mem_block_id) (size : Int64.int) (sz : int), (* TODO: sz ≈ size? *)
         res ≡ UVALUE_Addr ptr /\
         memory_lookup memH mid ≡ Some mb /\
         in_local_or_global ρ g memV i (DVALUE_Addr ptr) (TYPE_Array sz TYPE_Double) /\
         nth_error σ vid ≡ Some (DSHPtrVal mid size) /\
         nth_error (Γ s) vid ≡ Some (i, TYPE_Pointer (TYPE_Array sz TYPE_Double))) /\
-      evalMExpr memH σ mexp ≡ inr mb.
+      evalMExpr memH σ mexp ≡ inr (mb, mb_sz).
 
   (* TODO: like ext_local, but locals also don't change. Not sure what to call this... *)
   Definition preserves_states {R S}: memoryH -> config_cfg -> Rel_cfg_T R S :=
@@ -2091,7 +2090,7 @@ Section MExpr.
          (s : IRState)
          (mexp : MExpr)
          (mi : memoryH) (sti : config_cfg)
-         (mf : memoryH * mem_block) (stf : config_cfg_T uvalue)
+         (mf : memoryH * (mem_block * Int64.int)) (stf : config_cfg_T uvalue)
     : Prop :=
     {
     mexp_correct :invariant_MExpr σ s mexp mf stf;
@@ -2180,13 +2179,23 @@ Section MExpr.
           splits; eauto.
           cbn; auto.
         }
-        { assert (v ≡ bkH) as VBKH.
+        { destruct v as (v & bk_sz). assert (v ≡ bkH) as VBKH.
           { simp.
             inv_memory_lookup_err.
             inversion Mem_LU.
             auto.
           }
-          subst; auto.
+
+          subst.
+          cbn.
+          rewrite 
+          do 4 (break_match_hyp; try solve [inversion Heval]).
+          inversion Heval.
+          subst.
+          break_match_goal; try solve [inversion Heval].
+          break_match; inversion Heval.
+          break
+          apply Heval.
         }
     - (* Const *)
       cbn* in Hgen; simp.
