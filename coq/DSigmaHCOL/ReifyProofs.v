@@ -5879,8 +5879,8 @@ Proof.
   inl_inr_inv.
   eq_to_equiv.
   rewrite Y_RM in *; clear Y_RM m6.
-  clear - Heqs5 H0.
-  rename Heqs5 into M, H0 into KO.
+  clear - Heqs6 H0.
+  rename Heqs6 into M, H0 into KO.
 
   generalize dependent k.
   generalize dependent y_m'.
