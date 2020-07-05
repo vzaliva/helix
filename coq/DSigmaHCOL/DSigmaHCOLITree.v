@@ -915,12 +915,14 @@ Module MDSigmaHCOLITree
       induction op; intros σ mem fuel mem' HEval; cbn in HEval.
       - unfold_Mem; inv_eval; state_steps; reflexivity.
       -
-        (* TODO: fix this
         unfold_Mem; destruct src,dst.
         inv_eval.
-        state_steps; reflexivity.
-         *)
-        admit.
+        state_steps.
+        replace (assert_NT_lt "DSHAssign dst out of bounds" t3 t1)
+          with (@inr string unit tt)
+          by (unfold assert_NT_lt, assert_true_to_err in *; break_if; inl_inr).
+        state_steps.
+        reflexivity.
       - unfold_Mem; inv_eval.
         state_steps.
         rewrite Denote_Eval_Equiv_IMap_Succeeds; eauto; state_steps.
@@ -954,8 +956,7 @@ Module MDSigmaHCOLITree
         state_steps; rewrite IHop1; eauto using evalDSHOperator_fuel_monotone.
         state_steps; rewrite IHop2; eauto using evalDSHOperator_fuel_monotone.
         reflexivity.
-    Admitted.
-
+    Qed.
 
   End Eval_Denote_Equiv.
 
