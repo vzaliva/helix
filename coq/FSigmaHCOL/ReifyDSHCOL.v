@@ -88,9 +88,10 @@ Definition translate_mem_block (m:MDSHCOLOnCarrierA.mem_block) : err mem_block
 Definition translateMExpr (m:MDSHCOLOnCarrierA.MExpr) : err MExpr :=
   match m with
   | MDSHCOLOnCarrierA.MPtrDeref x => ret (MPtrDeref (translatePExpr x))
-  | MDSHCOLOnCarrierA.MConst x =>
+  | MDSHCOLOnCarrierA.MConst x size =>
     x' <- translate_mem_block x ;;
-       ret (MConst x')
+    size' <- MInt64asNT.from_nat size ;;
+       ret (MConst x' size')
   end.
 
 Fixpoint translateAExpr (a:MDSHCOLOnCarrierA.AExpr): err AExpr :=

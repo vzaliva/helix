@@ -81,6 +81,15 @@ Ltac splits :=
            |- _ /\ _ => split
          end.
 
+(* TODO: move this *)
+Ltac match_rewrite :=
+  match goal with
+  | H : (?X ≡ ?v) |-
+    context [ match ?X with | _ => _ end] =>
+    rewrite H
+  end.
+
+
 Section EventTranslation.
 
   (* We relate Helix trees and Vellvm trees at a point where their event signatures are still not empty.
@@ -2063,15 +2072,15 @@ Section MExpr.
 
   Definition invariant_MExpr
              (σ : evalContext)
-             (s : IRState) (mexp : MExpr) : Rel_cfg_T mem_block uvalue :=
-    fun '(memH, mb) '(memV, (ρ, (g, res))) =>
+             (s : IRState) (mexp : MExpr) : Rel_cfg_T (mem_block * Int64.int) uvalue :=
+    fun '(memH, (mb, mb_sz)) '(memV, (ρ, (g, res))) =>
       (exists ptr i (vid : nat) (mid : mem_block_id) (size : Int64.int) (sz : int), (* TODO: sz ≈ size? *)
         res ≡ UVALUE_Addr ptr /\
         memory_lookup memH mid ≡ Some mb /\
         in_local_or_global ρ g memV i (DVALUE_Addr ptr) (TYPE_Array sz TYPE_Double) /\
         nth_error σ vid ≡ Some (DSHPtrVal mid size) /\
         nth_error (Γ s) vid ≡ Some (i, TYPE_Pointer (TYPE_Array sz TYPE_Double))) /\
-      evalMExpr memH σ mexp ≡ inr mb.
+      evalMExpr memH σ mexp ≡ inr (mb, mb_sz).
 
   (* TODO: like ext_local, but locals also don't change. Not sure what to call this... *)
   Definition preserves_states {R S}: memoryH -> config_cfg -> Rel_cfg_T R S :=
@@ -2090,7 +2099,7 @@ Section MExpr.
          (s : IRState)
          (mexp : MExpr)
          (mi : memoryH) (sti : config_cfg)
-         (mf : memoryH * mem_block) (stf : config_cfg_T uvalue)
+         (mf : memoryH * (mem_block * Int64.int)) (stf : config_cfg_T uvalue)
     : Prop :=
     {
     mexp_correct :invariant_MExpr σ s mexp mf stf;
@@ -2116,7 +2125,7 @@ Section MExpr.
       (* Helix  bits *)   (mexp: MExpr) (σ: evalContext) (memH: memoryH) v
       (* Vellvm bits *)   (exp: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV) (τ: typ),
       genMExpr mexp s1 ≡ inr (s2, (exp, c, τ)) -> (* Compilation succeeds *)
-      evalMExpr memH σ mexp ≡ inr v            -> (* Evaluation succeeds *)
+      evalMExpr memH σ mexp ≡ inr v    -> (* Evaluation succeeds *)
       state_invariant σ s1 memH (memV, (l, g)) ->
       eutt (lift_Rel_cfg (state_invariant σ s2) ⩕ genMExpr_rel σ s2 mexp memH (mk_config_cfg memV l g))
            (with_err_RB
@@ -2179,75 +2188,85 @@ Section MExpr.
           splits; eauto.
           cbn; auto.
         }
-        { assert (v ≡ bkH) as VBKH.
+        { destruct v as (v & bk_sz). assert (v ≡ bkH) as VBKH.
           { simp.
             inv_memory_lookup_err.
             inversion Mem_LU.
             auto.
           }
-          subst; auto.
+
+          subst.
+          cbn.
+          match_rewrite.
+          rewrite Heqo0 in Heval.
+          unfold memory_lookup_err in *.
+          rewrite Mem_LU.
+          rewrite Mem_LU in Heval.
+          cbn in *.
+          inversion Heval.
+          reflexivity.
         }
     - (* Const *)
       cbn* in Hgen; simp.
   Qed.
 
-      (* TODO: move these, and use them more. *)
+  (* TODO: move these, and use them more. *)
 
-      Lemma genMExpr_memH : forall σ s e memH memV memH' memV' l g l' g' mb uv,
-          genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
-                       (memV', (l', (g', uv))) ->
-          memH ≡ memH'.
-      Proof.
-        intros * H.
-        destruct H; cbn in *; intuition.
-      Qed.
+  Lemma genMExpr_memH : forall σ s e memH memV memH' memV' l g l' g' mb uv,
+      genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
+                   (memV', (l', (g', uv))) ->
+      memH ≡ memH'.
+  Proof.
+    intros * H.
+    destruct H; cbn in *; intuition.
+  Qed.
 
-      Lemma genMExpr_memV : forall σ s e memH memV memH' memV' l g l' g' mb uv,
-          genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
-                       (memV', (l', (g', uv))) ->
-          memV ≡ memV'.
-      Proof.
-        intros * H.
-        destruct H; cbn in *; intuition.
-      Qed.
+  Lemma genMExpr_memV : forall σ s e memH memV memH' memV' l g l' g' mb uv,
+      genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
+                   (memV', (l', (g', uv))) ->
+      memV ≡ memV'.
+  Proof.
+    intros * H.
+    destruct H; cbn in *; intuition.
+  Qed.
 
-      Lemma genMExpr_g : forall σ s e memH memV memH' memV' l g l' g' mb uv,
-          genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
-                       (memV', (l', (g', uv))) ->
-          g ≡ g'.
-      Proof.
-        intros * H.
-        destruct H; cbn in *; intuition.
-      Qed.
+  Lemma genMExpr_g : forall σ s e memH memV memH' memV' l g l' g' mb uv,
+      genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
+                   (memV', (l', (g', uv))) ->
+      g ≡ g'.
+  Proof.
+    intros * H.
+    destruct H; cbn in *; intuition.
+  Qed.
 
-      Lemma genMExpr_l : forall σ s e memH memV memH' memV' l g l' g' mb uv,
-          genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
-                       (memV', (l', (g', uv))) ->
-          l ≡ l'.
-      Proof.
-        intros * H.
-        destruct H; cbn in *; intuition.
-      Qed.
+  Lemma genMExpr_l : forall σ s e memH memV memH' memV' l g l' g' mb uv,
+      genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
+                   (memV', (l', (g', uv))) ->
+      l ≡ l'.
+  Proof.
+    intros * H.
+    destruct H; cbn in *; intuition.
+  Qed.
 
-      Lemma genMExpr_preserves_WF:
-        forall mexp s s' σ x,
-          WF_IRState σ s ->
-          genMExpr mexp s ≡ inr (s',x) ->
-          WF_IRState σ s'.
-      Proof.
-        induction mexp; intros * WF GEN; cbn* in GEN; simp; auto.
-      Qed.
+  Lemma genMExpr_preserves_WF:
+    forall mexp s s' σ x,
+      WF_IRState σ s ->
+      genMExpr mexp s ≡ inr (s',x) ->
+      WF_IRState σ s'.
+  Proof.
+    induction mexp; intros * WF GEN; cbn* in GEN; simp; auto.
+  Qed.
 
-      Lemma genMExpr_array : forall {s1 s2 m e c t},
-          genMExpr m s1 ≡ inr (s2, (e, c, t)) ->
-          exists sz, t ≡ TYPE_Array sz TYPE_Double.
-      Proof.
-        intros s1 s2 m e c t H.
-        destruct m; cbn in H; inv H.
-        simp.
-        exists sz.
-        reflexivity.
-      Qed.
+  Lemma genMExpr_array : forall {s1 s2 m e c t},
+      genMExpr m s1 ≡ inr (s2, (e, c, t)) ->
+      exists sz, t ≡ TYPE_Array sz TYPE_Double.
+  Proof.
+    intros s1 s2 m e c t H.
+    destruct m; cbn in H; inv H.
+    simp.
+    exists sz.
+    reflexivity.
+  Qed.
 
 End MExpr.
 
@@ -2572,7 +2591,7 @@ Section AExpr.
       cbn*.
       repeat norm_h.
 
-      subst i3.
+      subst i4.
       do 2 norm_v.
 
       eapply eutt_clo_bind; eauto.
@@ -2655,14 +2674,14 @@ Section AExpr.
       repeat norm_v.
 
       subst MYBIND.
-      subst i3.
+      subst i4.
       repeat norm_h.
 
       (* Might not be true, might be extensions instead *)
       eapply eutt_clo_bind.
       apply MCODE.
 
-      intros [memH'' b'] [memV'' [l'' [g'' uv'']]] MINV.
+      intros [memH'' [b' bk_size]] [memV'' [l'' [g'' uv'']]] MINV.
 
       subst blah. (* TODO: fix this up *)
       clear He1.
@@ -2753,7 +2772,7 @@ Section AExpr.
       subst.
 
       rewrite MLUP in MLUP'. inv MLUP'.
-      
+
       replace (MInt64asNT.to_nat (Int64.repr (Z.of_nat n'_nat))) with n'_nat in LUPn'b'.
       2: { symmetry. apply to_nat_repr_of_nat. }
       specialize (GET_ARRAY n'_nat b LUPn'b').
@@ -2805,8 +2824,9 @@ Section AExpr.
           cbn.
           rewrite Heqs3.
           rewrite Heqs4.
-          rewrite Heqo.
-          reflexivity.
+          rewrite Heqs5.
+          apply mem_lookup_err_inr_Some_eq.
+          auto.
         * eapply sub_alist_trans; eauto.
           eapply sub_alist_trans; eapply sub_alist_add.
           -- unfold alist_fresh.
@@ -3475,7 +3495,7 @@ Section AExpr.
       rewrite convert_typ_app.
       rewrite denote_code_app.
       repeat norm_v.
-      
+
       eapply eutt_clo_bind; try eapply IHaexp1; eauto.
 
       intros [memH' b'] [memV' [l' [g' []]]] [INV1 INV2].
@@ -3609,14 +3629,6 @@ Section AExpr.
             apply In_add_eq.
           + cbn.
 
-            (* TODO: move this *)
-            Ltac match_rewrite :=
-              match goal with
-              | H : (?X ≡ ?v) |-
-                context [ match ?X with | _ => _ end] =>
-                rewrite H
-              end.
-
             repeat match_rewrite.
             epose proof (aexp_correct1 l'' _) as [[] EVAL'].
             rewrite Heqs5 in EVAL'.
@@ -3646,7 +3658,7 @@ Section AExpr.
               eapply In__alist_In in IN as [v' AIN].
               eapply incLocal_is_fresh0; eauto.
             }
-            
+
             eapply (sub_alist_trans _ _ _ TRANS).
             unfold ext_local in *.
             cbn in *.
@@ -4282,6 +4294,17 @@ Ltac forget_strings :=
       rewrite EQ1' in Heqs11; inv Heqs11.
       rewrite Heqo0.
       eutt_hide_right.
+      (*
+      assert (i2 ≡ val2).
+      { unfold genNExpr_exp_correct in EXP2.
+        assert (ρ2 ⊑ ρ2) as LL by reflexivity.
+        specialize (EXP2 _ LL) as (EXP2_EUTT & EXP2_EVAL).
+        rewrite EXP2_EVAL in Heqs12.
+        inversion Heqs12.
+        auto.
+      }
+      subst.
+      rewrite Heqs13.
       cbn*.
       repeat norm_h.
       rewrite interp_Mem_MemSet.
@@ -4677,6 +4700,7 @@ Ltac forget_strings :=
 
 
 
+*)
   Admitted.
 
   End GenIR.

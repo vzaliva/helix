@@ -1007,6 +1007,13 @@ Section MSHCOL_to_DSHCOL.
 
       solve_MSH_DSH_compat.
 
+      {
+        cbn in *.
+        do 2 inl_inr_inv.
+        cbv in H, H0.
+        lia.
+      }
+
       (* This remailing obligation proof is not yet automated *)
       2: {
         (* [a] is defined in section *)
@@ -1090,43 +1097,55 @@ Section MSHCOL_to_DSHCOL.
           eq_to_equiv_hyp.
           some_none.
         -
+          inversion Heqs0; subst.
+          exfalso; clear - Heqs1.
+          unfold assert_NT_lt, NatAsNT.MNatAsNT.to_nat in Heqs1.
+          destruct t.
+          cbn in Heqs1.
+          enough (E : x0 <=? 2 ≡ true) by (rewrite E in Heqs1; inversion Heqs1).
+          clear - l.
+          apply Nat.leb_le.
+          lia.
+        -
           memory_lookup_err_to_option.
           destruct t as [t tc].
           cbn in *.
           assert(m = avector_to_mem_block a) as C.
           {
             eq_to_equiv_hyp.
-            rewrite LM''0 in Heqs0.
+            rewrite LM''0 in Heqs2.
             some_inv.
-            rewrite <- Heqs0.
+            inversion Heqs0; subst m2 n.
+            rewrite <- Heqs2.
             rewrite Heqv.
             reflexivity.
           }
-          eq_to_equiv_hyp.
-          rewrite C in Heqo.
-          rewrite mem_lookup_avector_to_mem_block_equiv with (kc:=tc) in Heqo.
-          some_none.
+          err_eq_to_equiv_hyp.
+          rewrite C in Heqs.
+          unfold mem_lookup_err in Heqs.
+          rewrite mem_lookup_avector_to_mem_block_equiv with (kc:=tc) in Heqs.
+          inversion Heqs.
         -
           memory_lookup_err_to_option.
           inl_inr_inv.
-          subst c0.
+          subst.
           destruct t as [t tc].
           cbn in *.
           assert(m = avector_to_mem_block a) as C.
           {
             eq_to_equiv_hyp.
-            rewrite LM''0 in Heqs0.
+            rewrite LM''0 in Heqs2.
             some_inv.
-            rewrite <- Heqs0.
-            rewrite Heqv.
+            rewrite <- Heqs2.
             reflexivity.
           }
-          eq_to_equiv_hyp.
-          rewrite C in Heqo.
-          rewrite mem_lookup_avector_to_mem_block_equiv with (kc:=tc) in Heqo.
-          some_inv.
-          rewrite Heqo.
-          f_equiv.
+          err_eq_to_equiv_hyp.
+          rewrite C in Heqs.
+          unfold mem_lookup_err in Heqs.
+          rewrite mem_lookup_avector_to_mem_block_equiv with (kc:=tc) in Heqs.
+          inversion Heqs; subst.
+          rewrite H4.
+          reflexivity.
       }
 
       {
@@ -1165,18 +1184,14 @@ Section MSHCOL_to_DSHCOL.
 
       {
         cbn in *.
-        unfold dynwin_x_addr in *.
         symmetry in H.
         memory_lookup_err_to_option.
         apply memory_lookup_not_next_equiv in H.
-        intros C.
-        contradict H.
-        inl_inr_inv.
-        reflexivity.
+        congruence.
       }
 
-
       {
+
         cbn in *.
         unfold dynwin_x_addr in *.
         intros C.
