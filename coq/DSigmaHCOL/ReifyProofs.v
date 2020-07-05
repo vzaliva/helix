@@ -6418,7 +6418,8 @@ Proof.
 Qed.
 
 Lemma MemInit_simpl
-      (o : nat)
+      (o y_sz : nat)
+      (SZ : o <= y_sz)
       (σ : evalContext)
       (m : memory)
       (dop : DSHOperator)
@@ -6427,13 +6428,24 @@ Lemma MemInit_simpl
       (y_id : mem_block_id)
       (y_m : mem_block)
       (Y_ID : evalPExpr_id σ y_p = inr y_id)
-      (YID_M : memory_lookup m y_id = Some y_m)
+      (Y_M : lookup_PExpr_wsize σ m y_p = inr (y_m, y_sz))
+      (* (YID_M : memory_lookup m y_id = Some y_m) *)
   :
   evalDSHOperator σ (DSHSeq (DSHMemInit o y_p init) dop) m
                   (estimateFuel (DSHSeq (DSHMemInit o y_p init) dop)) =
   evalDSHOperator σ dop (memory_set m y_id (mem_union (mem_const_block o init) y_m))
                   (estimateFuel dop).
 Proof.
+  assert (YID_M : memory_lookup m y_id = Some y_m).
+  {
+    clear - Y_ID Y_M.
+    cbn in *.
+    repeat break_match; try inl_inr; repeat inl_inr_inv.
+    memory_lookup_err_to_option.
+    tuple_inversion_equiv; subst_nat; subst.
+    rewrite Heqs0, H.
+    reflexivity.
+  }
   unfold evalPExpr_id in Y_ID; cbn in Y_ID.
   pose proof estimateFuel_positive dop.
   cbn.
@@ -6446,7 +6458,19 @@ Proof.
       try inl_inr; repeat inl_inr_inv;
         subst.
   -
-    admit.
+    exfalso.
+    unfold assert_NT_le, assert_true_to_err in Heqs0.
+    break_if; try inl_inr.
+    apply leb_complete_conv in Heqb.
+    unfold NatAsNT.MNatAsNT.to_nat in Heqb.
+    replace n0 with y_sz in *.
+    lia.
+    symmetry.
+    eapply lookup_PExpr_size_invariant'.
+    rewrite Heqs.
+    reflexivity.
+    rewrite Y_M.
+    reflexivity.
   -
     memory_lookup_err_to_option.
     eq_to_equiv.
@@ -6460,7 +6484,7 @@ Proof.
     some_inv.
     rewrite YID_M.
     reflexivity.
-Admitted.
+Qed.
 
 Lemma Alloc_Loop_step
       (o n : nat)
@@ -7365,6 +7389,7 @@ Proof.
       eq_to_equiv.
       rewrite <-Heqt.
       apply Heqo0.
+      all: reflexivity.
     +
       (* both [MSHIReduction opf] and [loopN] succeeded *)
       symmetry in H, H1.
@@ -7416,7 +7441,7 @@ Proof.
       }
 
       (* lookups in [init_m] *)
-      rewrite MemInit_simpl in * by (eq_to_equiv; eassumption).
+      rewrite MemInit_simpl in *; try (eq_to_equiv; eassumption); try reflexivity.
       remember (memory_set m y_id (mem_union (mem_const_block o init) y_m)) as init_m.
       assert (M_InitM_E : memory_equiv_except m init_m y_id).
       {
