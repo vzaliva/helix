@@ -2466,7 +2466,24 @@ Proof.
     all: eq_to_equiv; tuple_inversion_equiv; subst_nat; minimize_eq.
     + (* mem_op succeeded with [Some md] while evaluation of DHS failed *)
       exfalso.
-      rename Heqs3 into E.
+      rename Heqs1 into E.
+
+      apply equiv_Some_is_Some in MD.
+      pose proof (mem_op_of_hop_x_density MD) as DX.
+      clear MD pF.
+
+      inversion_clear FDF as [FV].
+
+      contradict E.
+      apply is_OK_neq_inl.
+
+      unfold assert_NT_le.
+      rewrite Nat.leb_refl.
+      cbn.
+      constructor.
+    + (* mem_op succeeded with [Some md] while evaluation of DHS failed *)
+      exfalso.
+      rename Heqs4 into E.
 
       apply equiv_Some_is_Some in MD.
       pose proof (mem_op_of_hop_x_density MD) as DX.
@@ -2506,7 +2523,7 @@ Proof.
       rewrite NP.F.add_eq_o by reflexivity.
       constructor.
       repeat some_inv.
-      rename Heqs3 into ME.
+      rename Heqs4 into ME.
       intros k.
       unfold mem_op_of_hop in MD.
       break_match_hyp; try some_none.
@@ -2599,7 +2616,7 @@ Proof.
       destruct MX as [k [kc MX]].
       inversion kc.
     *
-      contradict Heqs3.
+      contradict Heqs4.
       rewrite H, H1 in *.
       enough (T : is_Err (evalDSHBinOp m (S o) (S o) df σ mx mb))
         by (destruct (evalDSHBinOp m (S o) (S o) df σ mx mb);
