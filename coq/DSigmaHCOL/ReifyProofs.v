@@ -2760,12 +2760,23 @@ Proof.
         repeat eq_to_equiv_hyp.
         some_none.
       *
+        (* assert_NT_lt fails *)
+        unfold assert_NT_lt, assert_true_to_err in Heqs4.
+        cbn in Heqs4.
+        break_if; try inl_inr.
+        break_match_hyp; [| inversion Heqb].
+        unfold NatAsNT.MNatAsNT.to_nat in Heqn.
+        subst.
+        inv YME.
+        cbn in H0.
+        inv H0.
+      *
         unfold memory_lookup_err, trywith in *.
         rewrite X_M' in Heqs1.
         rewrite Y_M' in Heqs2.
         repeat inl_inr_inv.
         subst.
-        cbn in Heqs4.
+        cbn in Heqs5.
         inl_inr.
     +
       cbn in MOP.
@@ -2788,14 +2799,16 @@ Proof.
       all: memory_lookup_err_to_option; tuple_inversion_equiv;
         minimize_eq; eq_to_equiv; subst_nat; subst.
       all: try some_none.
+      1: inv Heqs3.
       unfold memory_lookup_err, trywith in *.
       rewrite X_M' in Heqs1.
       rewrite Y_M' in Heqs2.
       repeat some_inv.
+
       rewrite <-Heqs1, <-Heqs2, H, H1 in *;
         clear Heqs1 Heqs2 m2 m3 H H1 y_m' x_m'.
 
-      rename Heqs3 into EV.
+      rename Heqs4 into EV.
       clear - EV XD FA.
       apply equiv_Some_is_Some in XD.
       revert x_m XD EV.
@@ -2895,7 +2908,7 @@ Proof.
       minimize_eq; subst_nat; subst.
     rename H into YME, H1 into XME.
 
-    rename Heqs3 into EV.
+    rename Heqs4 into EV.
 
     (* [x_m] is not dense *)
     rename Heqo into XD.
@@ -2967,7 +2980,7 @@ Proof.
       rewrite N in DOP.
       repeat break_match; try inl_inr.
       inl_inr_inv.
-      rename m0 into pm, Heqs into PM,
+      rename m0 into pm, Heqs0 into PM,
       H0 into DMA.
       rewrite <-DMA in *.
       unfold memory_lookup, memory_set in Y_DMA.
