@@ -1358,7 +1358,8 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
     monotone : ext_local mi sti mf stf
     }.
 
-  Lemma genNExpr_correct_ind :
+  Opaque denote_code.
+  Lemma genNExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH) (v : Int64.int)
       (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
@@ -1373,7 +1374,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
            (with_err_RB (interp_Mem (denoteNExpr σ nexp) memH))
            (with_err_LB (interp_cfg (denote_code (convert_typ [] c)) g l memV)).
   Proof.
-    (*
+
     intros s1 s2 nexp; revert s1 s2; induction nexp; intros * COMPILE EVAL PRE.
     - (* Variable case *)
       (* Reducing the compilation *)
@@ -1381,7 +1382,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
 
       + (* The variable maps to an integer in the IRState *)
         unfold denoteNExpr; cbn*.
-
+        rewrite denote_code_nil; cbn.
         repeat norm_v.
         break_inner_match_goal.
 
@@ -1413,12 +1414,15 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
 
       + (* The variable maps to a pointer *)
         unfold denoteNExpr; cbn*.
+        rewrite denote_code_sing.
+        cbn.
         repeat norm_v.
         break_inner_match_goal; try abs_by_WF.
         * break_inner_match_goal; try abs_by_WF.
           subst.
           destruct i0; try abs_by_WF.
           edestruct memory_invariant_GLU as (ptr & LU & READ); eauto.
+         cbn.
           cbn; repeat norm_v.
           2:eassumption.
           cbn; repeat norm_v.
@@ -1459,6 +1463,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
 
       cbn* in COMPILE; simp.
       unfold denoteNExpr; cbn*.
+      rewrite denote_code_nil; cbn.
       repeat norm_h.
       repeat norm_v.
       apply eutt_Ret; split; [| split]; try now eauto.
@@ -1520,8 +1525,11 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
           destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
           (* cbn takes 5seconds instead of doing this instantaneously... *)
           simpl in *.
+          cbn.
+          
+          rewrite denote_code_sing; cbn.
           repeat norm_v.
-          simpl in *; unfold eval_op; simpl.
+          simpl in *; unfold denote_op; simpl.
           unfold IntType; rewrite typ_to_dtyp_I.
 
           repeat norm_v.
@@ -1584,7 +1592,6 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
               }
           }
     - (*NMod *)
-
       cbn* in COMPILE; simp.
 
       eutt_hide_right.
@@ -1635,8 +1642,11 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
           destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
           (* cbn takes 5seconds instead of doing this instantaneously... *)
           simpl in *.
+          cbn.
+          
+          rewrite denote_code_sing; cbn.
           repeat norm_v.
-          simpl in *; unfold eval_op; simpl.
+          simpl in *; unfold denote_op; simpl.
           unfold IntType; rewrite typ_to_dtyp_I.
 
           repeat norm_v.
@@ -1656,17 +1666,15 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
           subst.
 
           { break_inner_match_goal.
-            + (* Division by 0 *)
-              apply Z.eqb_eq in Heqb.
+            + apply Z.eqb_eq in Heqb.
               exfalso. apply n.
               rewrite <- Int64.unsigned_zero in Heqb.
               unfold MInt64asNT.NTypeZero.
               apply unsigned_is_zero; auto.
-            + (* Good old division *)
-              repeat norm_v.
+            + repeat norm_v.
               rewrite interp_cfg_to_L3_LW.
               cbn; repeat norm_v.
-              apply eutt_Ret; split; [| split].
+              apply eutt_Ret; split; [| split]; try now eauto.
               cbn. eapply state_invariant_add_fresh; eauto; reflexivity.
               split.
               {
@@ -1698,7 +1706,8 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
                 symmetry; eapply incLocal_Γ; eauto.
               }
           }
-    - (* NAdd *)
+ 
+   - (* NAdd *)
       rename g into g1, l into l1, memV into memV1.
       cbn* in COMPILE; simp.
 
@@ -1749,11 +1758,11 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       introR; destruct_unit.
       destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
       (* cbn takes 5seconds instead of doing this instantaneously... *)
-      simpl in *; unfold eval_op; simpl.
-      unfold IntType; rewrite typ_to_dtyp_I.
-
+      simpl in *; unfold denote_op; simpl.
+      cbn; rewrite denote_code_sing; cbn.
       repeat norm_v.
       specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
+      unfold IntType; rewrite typ_to_dtyp_I.
       rewrite <- EXPRI; auto.
 
       repeat norm_v.
@@ -1851,8 +1860,8 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
 
       introR; destruct_unit.
       destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
-      (* cbn takes 5seconds instead of doing this instantaneously... *)
-      simpl in *; unfold eval_op; simpl.
+      cbn; rewrite denote_code_sing; simpl.
+      simpl in *; unfold denote_op; simpl.
       unfold IntType; rewrite typ_to_dtyp_I.
 
       repeat norm_v.
@@ -1954,7 +1963,8 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       introR; destruct_unit.
       destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
       (* cbn takes 5seconds instead of doing this instantaneously... *)
-      simpl in *; unfold eval_op; simpl.
+      cbn; rewrite denote_code_sing.
+      simpl in *; unfold denote_op; simpl.
       unfold IntType; rewrite typ_to_dtyp_I.
 
       repeat norm_v.
@@ -2017,8 +2027,6 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       (* Non-implemented by the compiler *)
       inversion COMPILE.
 Qed.
-     *)
-  Admitted.
 
   Lemma genNExpr_memH : forall σ n e memH memV memH' memV' l g l' g' n',
       genNExpr_rel σ n e memH (mk_config_cfg memV l g) (memH', n')
@@ -2462,7 +2470,7 @@ Section AExpr.
     auto.
   Admitted.
 
-  Lemma genAExpr_correct_ind :
+  Lemma genAExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (aexp: AExpr) (σ: evalContext) (memH: memoryH) (v : binary64)
       (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
@@ -2585,7 +2593,7 @@ Section AExpr.
       rewrite denote_code_app.
 
       (* I need to know something about c0, which is an NExpr. *)
-      epose proof genNExpr_correct_ind _ Heqs Heqs3 PRE as NEXP.
+      epose proof genNExpr_correct _ Heqs Heqs3 PRE as NEXP.
 
       eutt_hide_right.
       cbn*.
@@ -3692,182 +3700,6 @@ Section AExpr.
       }
   Admitted.
 
-
-  (* TODO: WF_IRState shouldn't be needed, it's part of R_AExpr_start *)
-  Lemma genAExpr_correct :
-    forall (* Compiler bits *) (s1 s2: IRState)
-      (* Helix  bits *)   (aexp: AExpr) (σ: evalContext) (memH: memoryH)
-      (* Vellvm bits *)   (exp: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV) (τ: typ),
-      genAExpr aexp s1 ≡ inr (s2, (exp, c)) -> (* Compilation succeeds *)
-      state_invariant σ s1 memH (memV, (l, g)) ->
-       eutt (R_AExpr σ s2)
-            (with_err_RB
-               (interp_Mem (denoteAExpr σ aexp)
-                           memH))
-            (with_err_LB
-               ((interp_cfg (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
-                  g l memV)).
-  Proof.
-    (* intros s1 s2 aexp σ memH exp c g l memV τ H H0. *)
-    (* induction aexp. *)
-    (* - (* AVar *) *)
-    (*   (* TODO: clean this all up. Extract useful LTAC. *)
-
-    (*      Wait until Vadim gets back about bogus pointer cases. *)
-    (*    *) *)
-    (*   pose proof Hgen as Hgen'. *)
-    (*   simp_comp Hgen. *)
-    (*   + cbn*; repeat norm_h; repeat norm_v. *)
-
-    (*     match goal with *)
-    (*     | Hwf  : WF_IRState ?σ ?ir, *)
-    (*       Hnth : nth_error (Γ ?ir) ?v ≡ Some ?x *)
-    (*       |- context[context_lookup ?err ?σ ?v] => *)
-    (*       pose proof (context_lookup_succeeds v err Hwf Hnth) as Hctx; *)
-    (*       destruct Hctx as [val [Hctx Hnth_σ]] *)
-    (*     end. *)
-
-    (*     rewrite Hctx. *)
-    (*     repeat norm_h. *)
-
-    (*     destruct val. *)
-    (*     admit. Focus 2. admit. (* Exceptions *) *)
-
-    (*     repeat norm_h. *)
-
-    (*     destruct i0 eqn:Hi. *)
-    (*     cbn. *)
-    (*     repeat norm_v. *)
-    (*     setoid_rewrite translate_ret. *)
-    (*     repeat norm_v. *)
-
-    (*     (* Lookup *) *)
-    (*     Focus 2. cbn*. *)
-    (*     unfold Traversal.endo. *)
-    (*     unfold R_AExpr_start in Hmem. *)
-    (*     unfold memory_invariant in Hmem. *)
-    (*     destruct Hmem as [_ Hmem]. *)
-
-    (*     match goal with *)
-    (*     | Hnth : nth_error ?σ ?v ≡ Some ?val, *)
-    (*       Hnth_ir : nth_error (Γ ?st) ?v ≡ Some (?id, ?τ) *)
-    (*       |- _ => *)
-    (*       let H := fresh H in *)
-    (*       pose proof (Hmem v val τ id) Hnth Hnth_ir as H; *)
-    (*         cbn in H *)
-    (*     end. *)
-
-    (*     apply H. *)
-
-    (*     cbn. repeat norm_v. *)
-
-    (*     rewrite typ_to_dtyp_equation. *)
-    (*     admit. *)
-
-    (*     (* Local case. *) *)
-    (*     cbn. *)
-    (*     repeat norm_v. *)
-    (*     Focus 2. *)
-    (*     unfold Traversal.endo. *)
-    (*     unfold R_AExpr_start in Hmem. *)
-    (*     unfold memory_invariant in Hmem. *)
-    (*     destruct Hmem as [_ Hmem]. *)
-
-    (*     match goal with *)
-    (*     | Hnth : nth_error ?σ ?v ≡ Some ?val, *)
-    (*       Hnth_ir : nth_error (Γ ?st) ?v ≡ Some (?id, ?τ) *)
-    (*       |- _ => *)
-    (*       let H := fresh H in *)
-    (*       pose proof (Hmem v val τ id) Hnth Hnth_ir as H; *)
-    (*         cbn in H *)
-    (*     end. *)
-
-    (*     apply H. *)
-
-    (*     setoid_rewrite translate_ret. *)
-    (*     repeat norm_v. *)
-    (*     cbn. *)
-    (*     repeat norm_v. *)
-    (*     admit. *)
-    (*   + cbn*; repeat norm_h; repeat norm_v. *)
-
-    (*     match goal with *)
-    (*     | Hwf  : WF_IRState ?σ ?ir, *)
-    (*       Hnth : nth_error (Γ ?ir) ?v ≡ Some ?x *)
-    (*       |- context[context_lookup ?err ?σ ?v] => *)
-    (*       pose proof (context_lookup_succeeds v err Hwf Hnth) as Hctx; *)
-    (*       destruct Hctx as [val [Hctx Hnth_σ]] *)
-    (*     end. *)
-
-    (*     rewrite Hctx. *)
-    (*     repeat norm_h. *)
-
-    (*     destruct val. admit. Focus 2. admit. *)
-    (*     repeat norm_h. *)
-
-    (*     destruct i0; *)
-    (*       cbn; repeat norm_v; *)
-    (*         cbn; repeat norm_v. *)
-
-    (*     Focus 2. *)
-    (*     unfold Traversal.endo. *)
-    (*     unfold R_AExpr_start in Hmem. *)
-    (*     unfold memory_invariant in Hmem. *)
-    (*     destruct Hmem as [_ Hmem]. *)
-
-    (*     match goal with *)
-    (*     | Hnth : nth_error ?σ ?v ≡ Some ?val, *)
-    (*       Hnth_ir : nth_error (Γ ?st) ?v ≡ Some (?id, ?τ) *)
-    (*       |- _ => *)
-    (*       let H := fresh H in *)
-    (*       pose proof (Hmem v val τ id) Hnth Hnth_ir as H; *)
-    (*         cbn in H *)
-    (*     end. *)
-
-    (*     apply H. *)
-
-    (*     Focus 3. *)
-    (*     unfold Traversal.endo. *)
-    (*     unfold R_AExpr_start in Hmem. *)
-    (*     unfold memory_invariant in Hmem. *)
-    (*     destruct Hmem as [_ Hmem]. *)
-
-    (*     match goal with *)
-    (*     | Hnth : nth_error ?σ ?v ≡ Some ?val, *)
-    (*       Hnth_ir : nth_error (Γ ?st) ?v ≡ Some (?id, ?τ) *)
-    (*       |- _ => *)
-    (*       let H := fresh H in *)
-    (*       pose proof (Hmem v val τ id) Hnth Hnth_ir as H; *)
-    (*         cbn in H *)
-    (*     end. *)
-
-    (*     apply H. *)
-
-    (*     all: apply eqit_Ret; unfold R_AExpr; auto. *)
-    (*  - (* AConst *) *)
-    (*   (* TODO: may want to move this to toplevel *) *)
-    (*   simp_comp Hgen; *)
-    (*     cbn*; repeat norm_h; repeat norm_v. *)
-
-    (*   apply eqit_Ret; auto. *)
-    (* - (* ANth *) *)
-    (*   admit. *)
-    (* - (* AAbs *) *)
-    (*   admit. *)
-    (* - (* APlus *) *)
-    (*   admit. *)
-    (* - (* AMinus *) *)
-    (*   admit. *)
-    (* - (* AMult *) *)
-    (*   admit. *)
-    (* - (* AMin *) *)
-    (*   admit. *)
-    (* - (* AMax *) *)
-    (*   admit. *)
-    (* - (* AZless *) *)
-    (*   admit. *)
-  Admitted.
-
 End AExpr.
 
 Section MemCopy.
@@ -4280,7 +4112,7 @@ Ltac forget_strings :=
 
       (* Step 5. *)
       eapply eutt_clo_bind.
-      eapply genNExpr_correct_ind; try eassumption.
+      eapply genNExpr_correct; try eassumption.
       do 3 (eapply state_invariant_incLocal; eauto).
       do 2 (eapply state_invariant_incVoid; eauto).
       do 1 (eapply state_invariant_incBlockNamed; eauto).
@@ -4296,7 +4128,7 @@ Ltac forget_strings :=
 
       (* Step 6. *)
       eapply eutt_clo_bind.
-      eapply genNExpr_correct_ind; eauto.
+      eapply genNExpr_correct; eauto.
 
       intros [memH2 dst] (memV2 & ρ2 & g2 & []) (INV2 & (EXP2 & <- & <- & <- & MONO2) & GAMMA2); cbn in GAMMA2; cbn in INV2.
       subst.
