@@ -2637,25 +2637,12 @@ Section AExpr.
 
       (* I want to deconstruct denote_code of OP_GetElementPtr in
          order to expose the underlying denote_exp of e1. *)
+      Opaque denote_code.
       cbn.
 
-      (* TODO: clean this up *)
-      set (λ _ : (),
-                ITree.bind
-                  (ITree.bind
-                     (translate exp_E_to_instr_E
-                        (translate lookup_E_to_exp_E (trigger (LocalRead (Traversal.endo r)))))
-                     (λ ua : uvalue,
-                        ITree.bind (concretize_or_pick ua True)
-                          (λ da : dvalue,
-                             match da with
-                             | DVALUE_Poison => raiseUB "Load from poisoned address."
-                             | _ =>
-                                 ITree.bind (trigger (Load (typ_to_dtyp [ ] TYPE_Double) da))
-                                   (λ dv : uvalue, trigger (LocalWrite (Traversal.endo r0) dv))
-                             end))) (λ _ : (), Ret ())) as blah.
-
-      repeat rewrite <- bind_bind.
+      setoid_rewrite denote_code_cons.
+      cbn.
+      repeat rewrite bind_bind.
       setoid_rewrite translate_bind.
       rewrite <- bind_bind.
 
@@ -2667,6 +2654,8 @@ Section AExpr.
 
       rewrite He1.
 
+      repeat rewrite <- bind_bind.
+
       set (ITree.bind (denote_code (convert_typ [ ] c1))
                       (λ _ : (),
                              translate exp_E_to_instr_E
@@ -2677,13 +2666,11 @@ Section AExpr.
       subst i4.
       repeat norm_h.
 
-      (* Might not be true, might be extensions instead *)
       eapply eutt_clo_bind.
       apply MCODE.
 
       intros [memH'' [b' bk_size]] [memV'' [l'' [g'' uv'']]] MINV.
 
-      subst blah. (* TODO: fix this up *)
       clear He1.
 
       repeat norm_v.
@@ -2721,7 +2708,7 @@ Section AExpr.
       rewrite LUPn'b'.
       repeat norm_h.
 
-      progress cbn*.
+      cbn*.
       repeat rewrite typ_to_dtyp_equation.
       cbn*. repeat norm_v.
       destruct NEXP_CORRECT.
@@ -2732,7 +2719,7 @@ Section AExpr.
       setoid_rewrite <- NEXP_EUTT.
 
       setoid_rewrite bind_ret_l.
-      progress repeat norm_v.
+      repeat norm_v.
 
       destruct MINV as (MINV & PRESERVES).
       destruct MINV as ((ptr & i' & vid & mid & size & sz & RES & rest) & EVAL_MEXP).
@@ -2783,12 +2770,14 @@ Section AExpr.
 
       rewrite interp_cfg_to_L3_LW; cbn.
       repeat norm_v; cbn.
+      rewrite denote_code_nil; cbn*.
       repeat norm_v.
 
-      2: { break_match; auto. apply neg_rel_dec_correct in Heqb0. contradiction. }
+      2: { cbn. break_match; auto. apply neg_rel_dec_correct in Heqb0. contradiction. }
 
       cbn.
-      repeat norm_v.
+      repeat norm_v; cbn.
+      repeat norm_v; cbn.
       rewrite interp_cfg_to_L3_Load; eauto.
 
       repeat norm_v.
@@ -2811,6 +2800,7 @@ Section AExpr.
       }
       Opaque incLocal.
 
+      rewrite denote_code_nil; cbn; repeat norm_v.
       apply eqit_Ret.
       split.
       + do 2 (eapply state_invariant_add_fresh; eauto).
@@ -2884,6 +2874,8 @@ Section AExpr.
       repeat norm_v.
 
       epose proof (AEXPR l2 _) as [EUTT EVAL'].
+      rewrite denote_code_cons.
+      cbn. repeat norm_v.
       rewrite <- EUTT.
       repeat norm_v.
       cbn; repeat norm_v.
@@ -2897,6 +2889,9 @@ Section AExpr.
 
       rewrite interp_cfg_to_L3_LW.
       cbn; repeat norm_v.
+
+      rewrite denote_code_nil; cbn.
+      repeat norm_v.
 
       apply eqit_Ret.
 
@@ -2943,6 +2938,7 @@ Section AExpr.
       break_match; try discriminate EVAL.
       break_match; try discriminate EVAL.
 
+      Opaque denote_code.
       cbn*.
       repeat norm_h.
 
@@ -2985,6 +2981,8 @@ Section AExpr.
                            (translate exp_E_to_instr_E
                                       (denote_exp (Some DTYPE_Double) (convert_typ [ ] e0))) g'' l'' memV'')) as EUTT0.
       apply aexp_correct0; eauto.
+      rewrite denote_code_cons.
+      cbn. repeat norm_v.
       rewrite <- EUTT0.
       repeat norm_v.
 
@@ -3001,8 +2999,9 @@ Section AExpr.
       repeat norm_v.
 
       rewrite interp_cfg_to_L3_LW.
-      cbn.
+      cbn*.
       repeat norm_v.
+      rewrite denote_code_nil; cbn; repeat norm_v.
 
       apply eqit_Ret.
       split; cbn; eauto.
@@ -3093,6 +3092,8 @@ Section AExpr.
                            (translate exp_E_to_instr_E
                                       (denote_exp (Some DTYPE_Double) (convert_typ [ ] e0))) g'' l'' memV'')) as EUTT0.
       apply aexp_correct0; eauto.
+      cbn.
+      rewrite denote_code_cons; cbn; repeat norm_v.
       rewrite <- EUTT0.
       repeat norm_v.
 
@@ -3111,6 +3112,7 @@ Section AExpr.
       rewrite interp_cfg_to_L3_LW.
       cbn.
       repeat norm_v.
+      rewrite denote_code_nil; cbn; repeat norm_v.
 
       apply eqit_Ret.
       split; cbn; eauto.
@@ -3200,6 +3202,8 @@ Section AExpr.
                            (translate exp_E_to_instr_E
                                       (denote_exp (Some DTYPE_Double) (convert_typ [ ] e0))) g'' l'' memV'')) as EUTT0.
       apply aexp_correct0; eauto.
+      rewrite denote_code_sing.
+      cbn*. repeat norm_v.
       rewrite <- EUTT0.
       repeat norm_v.
 
@@ -3308,6 +3312,8 @@ Section AExpr.
                            (translate exp_E_to_instr_E
                                       (denote_exp (Some DTYPE_Double) (convert_typ [ ] e0))) g'' l'' memV'')) as EUTT0.
       apply aexp_correct0; eauto.
+      rewrite denote_code_sing.
+      cbn*. repeat norm_v.
       rewrite <- EUTT0.
       repeat norm_v.
 
@@ -3419,6 +3425,8 @@ Section AExpr.
                            (translate exp_E_to_instr_E
                                       (denote_exp (Some DTYPE_Double) (convert_typ [ ] e0))) g'' l'' memV'')) as EUTT0.
       apply aexp_correct0; eauto.
+      rewrite denote_code_sing.
+      cbn. repeat norm_v.
       rewrite <- EUTT0.
       repeat norm_v.
 
@@ -3554,12 +3562,12 @@ Section AExpr.
       (* TODO: This could be cleaner... *)
       repeat rewrite typ_to_dtyp_equation.
       repeat setoid_rewrite translate_bind.
-      setoid_rewrite interp_cfg_to_L3_bind.
+      rewrite denote_code_sing. cbn.
+      repeat norm_v.
       repeat setoid_rewrite translate_bind.
       rewrite <- EUTT0.
 
       repeat norm_v.
-      setoid_rewrite translate_bind.
 
       apply aexp_correct in INV2'; rename INV2' into aexp_correct1.
       unfold genAExpr_exp_correct in aexp_correct1.
@@ -3577,8 +3585,13 @@ Section AExpr.
 
       rewrite interp_cfg_to_L3_LW.
       cbn; repeat norm_v.
+      rewrite denote_code_cons.
+      cbn; repeat norm_v.
+      rewrite denote_code_sing.
       cbn; repeat norm_v.
       2: apply In_add_eq.
+
+      cbn; progress repeat norm_v.
 
       (* TODO: probably want a lemma for this *)
       unfold uvalue_to_dvalue_uop.
@@ -4187,6 +4200,7 @@ Ltac forget_strings :=
   Definition GenIR_Rel σ Γ : Rel_cfg_T unit (block_id + uvalue) :=
     lift_Rel_cfg (state_invariant σ Γ).
 
+  Opaque denote_code.
  Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
       (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH) fuel v
