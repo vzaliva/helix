@@ -1347,13 +1347,29 @@ Definition genMain
                                |}, [])
           |}].
 
+
+(* Drop 2 vars before the last 2 in Γ *)
+Definition dropFakeVars: cerr unit :=
+  st <- get ;;
+  let l := List.length (Γ st) in
+  '(globals, Γ') <- option2errS "Γ too short"
+                               (ListUtil.split_aux nil (Γ st) (l-4)) ;;
+  '(_, Γ'') <- option2errS "Γ too short"
+                          (ListUtil.split_aux nil Γ' 2) ;;
+  put {|
+      block_count := block_count st ;
+      local_count := local_count st ;
+      void_count  := void_count st ;
+      Γ := (globals ++ Γ'')
+    |}.
+
 Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): cerr (toplevel_entities typ (block typ * list (block typ))) :=
   match p with
   | mkFSHCOLProgram i o name globals op =>
     if just_compile then
       ginit <- genIRGlobals (FnBody:= block typ * list (block typ)) globals ;;
       prog <- LLVMGen i o op name ;;
-      ret (ginit ++ prog)%list
+      ret (ginit ++ prog)
     else
       (* Global placeholders for X,Y *)
       let gx := Anon 0%Z in
@@ -1388,13 +1404,13 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
       prog <- LLVMGen i o op name ;;
 
       (* After generation of operator function, we no longer need
-         [x] and [y] in [Γ]. However, the compiler [IRState] is no
-         longer used to in [genMain], so we just abandon it in
-         this incorrect state. *)
+         [x] and [y] in [Γ]. *)
+
+      dropFakeVars ;;
 
       (* Main function *)
       let main := genMain name gx gxptyp gy gytyp gyptyp in
-      ret (yxinit ++ ginit ++ prog ++ main)%list
+      ret (yxinit ++ ginit ++ prog ++ main)
   end.
 
 Definition compile_w_main (p: FSHCOLProgram): list binary64 -> cerr (toplevel_entities typ (block typ * list (block typ))) :=

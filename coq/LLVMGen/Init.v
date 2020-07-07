@@ -649,10 +649,12 @@ Proof.
   rename m1 into mg, Heqs0 into G.
 
   cbn in LI.
-  unfold ErrorWithState.err2errS in LI.
+  unfold ErrorWithState.option2errS in *.
   repeat break_match_hyp; try inl_inr;
-    inv LI; repeat inv_sum.
-  rename Heqs0 into LX, Heqs1 into LG, Heqs3 into IR, Heqs5 into BC, l3 into gdecls.
+    inv LI; repeat inv_sum; inv Heqs5; inv Heqs4.
+  rename Heqs0 into LX, Heqs1 into LG, Heqs6 into IR, Heqs8 into BC, l3 into gdecls.
+  rename Heqo1 into Sg. (* split globals *)
+  rename Heqo0 into Sxy. (* split fake_x, fake_y *)
 
   (*  [s0] - state after [initXYplaceholders] *)
   rename i0 into s0.
@@ -660,12 +662,19 @@ Proof.
       was generated starting with X,Y arguments added to [s0] *)
   rename i1 into s1.
   (*  [s2] - state after [genIR] *)
-  rename i3 into s2.
-  (*  [s3] - state after [body_non_empty_cast] *)
-  rename s into s3.
-  (* [s3] contains two fake variables for X,Y which we drop and actual state *)
-  (* these seem to have no counterparts now *)
-  (*rename Heql7 into Vs3, p6 into fake_x, p7 into fake_y, l5 into v3.*)
+  rename i6 into s2.
+  (*  [s3] - the final state. (after [body_non_empty_cast]) *)
+  rename i5 into s3.
+
+  (* [s3] contains two local for X,Y parameter which we drop: *)
+
+  rename l5 into Γ_globals.
+  rename l8 into Γ_fake_xy.
+  rename l6 into Γ_xy_fake_xy. (* temporary *)
+  rename l7 into Γ_xy. (* this ones are dropped *)
+
+  (* TODO: @zoickx we can prove that length [Γ_fake_xy] is 2,
+     and deconstruct it into [fake_y;fake_x] *)
 
   repeat rewrite app_assoc.
   unfold build_global_environment, allocate_globals, map_monad_.
@@ -680,11 +689,12 @@ Proof.
   simpl.
   (* no more [genMain] *)
 
-  cbn in *.
-  (* destruct s3. cbn in Vs3. subst Γ. *)
 
-  rename p10 into body_instr.
+  destruct s3.
+  cbn in Sg, Sxy.
+
   rename m into mo, m0 into mi.
+  rename p13 into body_instr.
 
   cbn in *.
 
@@ -774,8 +784,6 @@ Proof.
 
   rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
 
-  destruct s3; cbn in Vs3; subst Γ.
-
 
   unfold body_non_empty_cast in BC.
   cbn in BC.
@@ -786,7 +794,7 @@ Proof.
          block_count := block_count;
          local_count := local_count;
          void_count := void_count;
-         Γ := v3 |} as s.
+         Γ := Γ_globals ++ Γ_fake_xy |} as s.
 
   (* from [Rel_mcfg_T] to [Rel_mcfg] *)
   remember ((λ memH '(memV, (l4,_,g)),
@@ -795,7 +803,6 @@ Proof.
                    [DSHPtrVal (S (Datatypes.length globals)) o;
                     DSHPtrVal (Datatypes.length globals) i])%list s memH
                (memV, (l4, g))): Rel_mcfg) as R0.
-
 
   apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
   -
