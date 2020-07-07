@@ -23,7 +23,6 @@ Require Import Helix.LLVMGen.Externals.
 Require Import Helix.LLVMGen.Data.
 Require Import Helix.LLVMGen.Utils.
 Require Import Helix.LLVMGen.tmp_aux_Vellvm.
-Require Import Helix.LLVMGen.Correctness.
 Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Util.ErrorSetoid.
 Require Import Helix.Util.ListUtil.
@@ -66,6 +65,8 @@ Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.misc.decision.
 
 Require Import Omega.
+
+Require Import Helix.LLVMGen.Correctness_Invariants.
 
 Set Implicit Arguments.
 Set Strict Implicit.
@@ -426,6 +427,11 @@ Proof.
   congruence.
 Qed.
 
+Transparent incLocal.
+Transparent incVoid.
+Transparent incBlock.
+Transparent incBlockNamed.
+
 Lemma genNExpr_preserves_Γ
       {n : NExpr}
       {s s' r} :
@@ -534,6 +540,19 @@ Proof.
   all: apply IHa2 in A2.
   all: cbn; congruence.
 Qed.
+Lemma resolve_PVar_simple : forall p s s' x v,
+    resolve_PVar p s ≡ inr (s', (x, v)) ->
+    exists sz n,
+      nth_error (Γ s') n ≡ Some (x, TYPE_Pointer (TYPE_Array sz TYPE_Double)) /\
+      MInt64asNT.from_Z sz ≡ inr v /\ p ≡ PVar n /\ s ≡ s'.
+Proof.
+  intros * H.
+  unfold resolve_PVar in H.
+  cbn* in H.
+  simp.
+  do 2 eexists; eauto.
+Qed.
+
 
 (* This lemma states that [genIR] if succeeds does not leak
    compiler state variable *)
@@ -562,17 +581,17 @@ Proof.
     repeat break_match; try inl_inr; try (inversion H; fail).
     repeat inl_inr_inv; subst.
     inversion H0; subst; clear H0.
-    replace i with s in *
-      by (apply resolve_PVar_simple in Heqs1;
-          destruct Heqs1 as [t1 [t2 H]];
-          apply H).
+    replace i with s in * by
+        (apply resolve_PVar_simple in Heqs1;
+         destruct Heqs1 as [t1 [t2 H]];
+           apply H).
     replace i2 with s in *
       by (apply resolve_PVar_simple in Heqs2;
           destruct Heqs2 as [t1 [t2 H]];
           apply H).
     clear Heqs1 Heqs2 p p0.
     unfold genFSHAssign in Heqs3.
-    remember "Assign" as A.
+    remember "Assign"%string as A.
     simpl bind in Heqs3.
     repeat break_match; try inl_inr.
     repeat inl_inr_inv; subst.
@@ -773,7 +792,7 @@ Proof.
              state_invariant
                (eg ++
                    [DSHPtrVal (S (Datatypes.length globals)) o;
-                    DSHPtrVal (Datatypes.length globals) i]) s memH
+                    DSHPtrVal (Datatypes.length globals) i])%list s memH
                (memV, (l4, g))): Rel_mcfg) as R0.
 
 

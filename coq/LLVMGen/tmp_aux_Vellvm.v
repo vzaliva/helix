@@ -700,3 +700,32 @@ Lemma find_block_ineq: forall {T} x b bs,
     find_block T (b::bs) x = find_block T bs x. 
 Admitted.
 
+Global Instance ConvertTyp_list {A} `{Traversal.Fmap A}: ConvertTyp (fun T => list (A T)) :=
+  fun env => Traversal.fmap (typ_to_dtyp env).
+
+From Vellvm Require Import Traversal.
+
+Lemma fmap_list_app: forall U V H H' c1 c2 f,
+    @fmap code (@Fmap_code H H') U V f (c1 ++ c2) =
+          fmap f c1  ++ fmap f c2.
+Proof.
+  induction c1 as [| [] c1 IH]; cbn; intros; [reflexivity |].
+  rewrite IH; reflexivity.
+Qed.
+
+Ltac focus_single_step_v :=
+  match goal with
+    |- eutt _ _ (ITree.bind _ ?x) => remember x
+  end.
+
+Ltac focus_single_step_h :=
+  match goal with
+    |- eutt _ (ITree.bind _ ?x) _ => remember x
+  end.
+
+Ltac focus_single_step :=
+  match goal with
+    |- eutt _ (ITree.bind _ ?x) (ITree.bind _ ?y) => remember x; remember y
+  end.
+
+Global Opaque D.denote_bks.

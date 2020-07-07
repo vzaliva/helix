@@ -1,4 +1,3 @@
-
 (* Require Import LibHyps.LibHyps. *)
 Require Import Coq.Arith.Arith.
 Require Import Psatz.
@@ -19,7 +18,7 @@ Require Import Helix.FSigmaHCOL.Int64asNT.
 Require Import Helix.FSigmaHCOL.Float64asCT.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLITree.
 Require Import Helix.LLVMGen.Compiler.
-Require Import Helix.LLVMGen.Correctness.
+Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.Externals.
 Require Import Helix.LLVMGen.Data.
 Require Import Helix.LLVMGen.Utils.
@@ -182,10 +181,10 @@ Section MemCopy.
       (nextblock bid_in : block_id) (bks : list (LLVMAst.block typ))
       (g : global_env) (ρ : local_env) (memV : memoryV),
       nextblock ≢ bid_in
-      → GenIR_Rel σ s1 (memH, ()) (memV, (ρ, (g, inl bid_in)))
+      → lift_Rel_cfg (state_invariant σ s1) (memH, ()) (memV, (ρ, (g, inl (B := uvalue) bid_in)))
       → evalDSHOperator σ (DSHMemCopy size x_p y_p) memH fuel ≡ Some (inr v)
       → genIR (DSHMemCopy size x_p y_p) nextblock s1 ≡ inr (s2, (bid_in, bks))
-      → eutt (GenIR_Rel σ s1)
+      → eutt (lift_Rel_cfg (state_invariant σ s1))
         (with_err_RB
           (interp_Mem (denoteDSHOperator σ (DSHMemCopy size x_p y_p)) memH))
         (with_err_LB
