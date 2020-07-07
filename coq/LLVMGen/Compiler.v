@@ -1365,10 +1365,10 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
       let gyptyp := TYPE_Pointer gytyp in
 
       '(data,yxinit) <- initXYplaceholders i o data gx gxtyp gy gytyp ;;
+      (* Γ := [fake_y; fake_x] *)
 
-      (*
-        While generate operator's function body, add fake
-        parameters as locals X=PVar 1, Y=PVar 0.
+      (* While generate operator's function body, add parameters as
+         locals X=PVar 1, Y=PVar 0.
 
         We want them to be in `Γ` before globals *)
       let x := Name "X" in
@@ -1376,15 +1376,24 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
       let y := Name "Y" in
       let ytyp := TYPE_Pointer (getIRType (DSHPtr o)) in
 
+
       addVars [(ID_Local y, ytyp);(ID_Local x, xtyp)] ;;
+      (* Γ := [y; x; fake_y; fake_x] *)
 
       (* Global variables *)
       '(data,ginit) <- initIRGlobals data globals ;;
+      (* Γ := [globals; y; x; fake_y; fake_x] *)
+
       (* operator function *)
       prog <- LLVMGen i o op name ;;
 
+      (* After generation of operator function, we no longer need
+         [x] and [y] in [Γ]. However, the compiler [IRState] is no
+         longer used to in [genMain], so we just abandon it in
+         this incorrect state. *)
+
       (* Main function *)
-      let main := genMain name gx gxptyp gy gytyp gyptyp  in
+      let main := genMain name gx gxptyp gy gytyp gyptyp in
       ret (yxinit ++ ginit ++ prog ++ main)%list
   end.
 
