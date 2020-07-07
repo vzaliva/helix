@@ -43,7 +43,7 @@ extracted: $(TSTAMP) .depend Makefile.coq
 
 # Exclude some proofs from list of files required to run tests
 # This allows us to run unit tests even if sources just partially compile
-TESTVOFILES = $(filter-out coq/DynWin/DynWinProofs.vo coq/LLVMGen/Correctness.vo coq/DSigmaHCOL/ReifyProofs.vo, $(VOFILES))
+TESTVOFILES = $(filter-out coq/DynWin/DynWinProofs.vo coq/DSigmaHCOL/ReifyProofs.vo coq/LLVMGen/CorrectnessMemCopy.vo coq/LLVMGen/Correctness_AExpr.vo coq/LLVMGen/Correctness_GenIR.vo coq/LLVMGen/Correctness_Invariants.vo coq/LLVMGen/Correctness_MExpr.vo coq/LLVMGen/Correctness_Misc.vo coq/LLVMGen/Correctness_NExpr.vo coq/LLVMGen/Init.vo, $(VOFILES))
 
 $(TSTAMP): $(TESTVOFILES) $(EXTRACTDIR)/Extract.v
 	@echo "Extracting"
