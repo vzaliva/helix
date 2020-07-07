@@ -1382,11 +1382,10 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
       '(data,ginit) <- initIRGlobals data globals ;;
       (* operator function *)
       prog <- LLVMGen i o op name ;;
-      dropVars 2;; (* drop fake X,Y parameters *)
 
       (* Main function *)
       let main := genMain name gx gxptyp gy gytyp gyptyp  in
-      ret (ginit ++ yxinit ++ prog ++ main)%list
+      ret (yxinit ++ ginit ++ prog ++ main)%list
   end.
 
 Definition compile_w_main (p: FSHCOLProgram): list binary64 -> cerr (toplevel_entities typ (block typ * list (block typ))) :=
