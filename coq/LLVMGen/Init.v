@@ -651,8 +651,8 @@ Proof.
   cbn in LI.
   unfold ErrorWithState.err2errS in LI.
   repeat break_match_hyp; try inl_inr;
-    inv LI; repeat inv_sum ; inv Heqs4.
-  rename Heqs0 into LX, Heqs1 into LG, Heqs6 into IR, Heqs8 into BC, l3 into gdecls.
+    inv LI; repeat inv_sum.
+  rename Heqs0 into LX, Heqs1 into LG, Heqs3 into IR, Heqs5 into BC, l3 into gdecls.
 
   (*  [s0] - state after [initXYplaceholders] *)
   rename i0 into s0.
@@ -660,11 +660,12 @@ Proof.
       was generated starting with X,Y arguments added to [s0] *)
   rename i1 into s1.
   (*  [s2] - state after [genIR] *)
-  rename i5 into s2.
+  rename i3 into s2.
   (*  [s3] - state after [body_non_empty_cast] *)
-  rename i4 into s3.
+  rename s into s3.
   (* [s3] contains two fake variables for X,Y which we drop and actual state *)
-  rename Heql7 into Vs3, p6 into fake_x, p7 into fake_y, l5 into v3.
+  (* these seem to have no counterparts now *)
+  (*rename Heql7 into Vs3, p6 into fake_x, p7 into fake_y, l5 into v3.*)
 
   repeat rewrite app_assoc.
   unfold build_global_environment, allocate_globals, map_monad_.
