@@ -1352,16 +1352,18 @@ Definition genMain
 Definition dropFakeVars: cerr unit :=
   st <- get ;;
   let l := List.length (Γ st) in
-  '(globals, Γ') <- option2errS "Γ too short"
-                               (ListUtil.split_aux nil (Γ st) (l-4)) ;;
-  '(_, Γ'') <- option2errS "Γ too short"
-                          (ListUtil.split_aux nil Γ' 2) ;;
-  put {|
-      block_count := block_count st ;
-      local_count := local_count st ;
-      void_count  := void_count st ;
-      Γ := (globals ++ Γ'')
-    |}.
+  if Nat.ltb l 4 then raise "Γ too short"
+  else
+    '(globals, Γ') <- option2errS "Γ too short"
+                                 (ListUtil.split_aux nil (Γ st) (l-4)) ;;
+    '(_, Γ'') <- option2errS "Γ too short"
+                            (ListUtil.split_aux nil Γ' 2) ;;
+    put {|
+        block_count := block_count st ;
+        local_count := local_count st ;
+        void_count  := void_count st ;
+        Γ := (globals ++ Γ'')
+      |}.
 
 Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): cerr (toplevel_entities typ (block typ * list (block typ))) :=
   match p with
