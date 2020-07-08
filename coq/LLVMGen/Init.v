@@ -679,7 +679,10 @@ Proof.
   replace Γ_xy with [x; y] in * by admit; clear Γ_xy.
   replace Γ_fake_xy with [fake_x; fake_y] in * by admit; clear Γ_fake_xy.
   subst Γ_xy_fake_xy.
-  clear Sg Sxy.
+  clear Sxy.
+  apply ListUtil.split_correct in Sg.
+  rename Sg into Vs3.
+             
 
   repeat rewrite app_assoc.
   unfold build_global_environment, allocate_globals, map_monad_.
