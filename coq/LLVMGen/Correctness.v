@@ -3933,32 +3933,29 @@ Section Power.
 
 End Power.
 
-Section Resolve_PVar.
-
-  (* Lemma compile_FSHCOL_correct : *)
-  (*   forall (** Compiler bits *) (s1 s2: IRState) *)
-  (*     (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH) *)
-  (*     (** Vellvm bits   *) (nextblock bid_in : block_id) (bks : list (LLVMAst.block typ)) *)
-  (*     (env : list (ident * typ))  (g : global_env) (ρ : local_env) (memV : memoryV), *)
-  (*     nextblock ≢ bid_in -> (* YZ: not sure about this yet *) *)
-  (*     R σ s1 (memH,tt) (memV, (ρ, (g, (inl bid_in)))) -> *)
-  (*     genIR op nextblock s1 ≡ inr (s2,(bid_in,bks)) -> *)
-  (*     eutt (R σ s1) *)
-  (*          (with_err_RB *)
-  (*             (interp_Mem (denoteDSHOperator σ op) memH)) *)
-  (*          (with_err_LB *)
-  (*             (interp_cfg (D.denote_bks (convert_typ env bks) bid_in) *)
-  (*                               g ρ memV)). *)
-  (* Proof. *)
- 
-
-
-End Resolve_PVar.
+Fixpoint build_vec {E} (n: nat) (body: nat -> mem_block -> itree E mem_block):
+  mem_block -> itree E mem_block :=
+  fun memy =>
+    match n with
+    | O => ret memy
+    | S m => memy' <- body n memy;;
+            build_vec m body memy'
+    end.
 
 
 (* TO MOVE *)
 Global Instance ConvertTyp_list {A} `{Traversal.Fmap A}: ConvertTyp (fun T => list (A T)) :=
   fun env => Traversal.fmap (typ_to_dtyp env).
+  From Vellvm Require Import Traversal.
+
+  Lemma fmap_list_app: forall U V H H' c1 c2 f,
+      @fmap code (@Fmap_code H H') U V f (c1 ++ c2) ≡
+            fmap f c1  ++ fmap f c2.
+  Proof.
+    induction c1 as [| [] c1 IH]; cbn; intros; [reflexivity |].
+    rewrite IH; reflexivity.
+  Qed.
+
 
 Variant Box (T: Type): Type := box (t: T).
 (* Protects from "direct" pattern matching but not from context one *)
@@ -3998,6 +3995,210 @@ Ltac forget_strings :=
         generalize (String x y) as msg
       end).
 
+Ltac focus_single_step_v :=
+  match goal with
+    |- eutt _ _ (ITree.bind _ ?x) => remember x
+  end.
+
+Ltac focus_single_step_h :=
+  match goal with
+    |- eutt _ (ITree.bind _ ?x) _ => remember x
+  end.
+
+Ltac focus_single_step :=
+  match goal with
+    |- eutt _ (ITree.bind _ ?x) (ITree.bind _ ?y) => remember x; remember y
+  end.
+
+Opaque denote_bks.
+Opaque find_block.
+(*
+        S k: xk ~ yk
+         Sk :forall i<k, S i
+         [x1 .. xn]
+         [y1 .. yn]
+ *)
+Lemma genWhileLoop_ind:
+  forall msg lvar post body (bodyV : list (LLVMAst.block typ)) next n s1 s2 bid (bks : list (LLVMAst.block typ))
+    (* Generation of the LLVM code wrapping the loop around bodyV *)
+    (GEN: genWhileLoopDown msg (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
+                           lvar post body bodyV [] next s1 ≡ inr (s2,(bid,bks)))
+    (* Computation on the Helix side performed at each cell of the vector,
+             the counterpart to bodyV *)
+    (bodyH: nat -> mem_block -> itree _ mem_block) 
+
+    (* Main relation preserved by iteration *)
+    (R : Rel_cfg_T mem_block (block_id + uvalue))
+    (* Additional invariant holding on the prefix of the vector already handled *)
+    (Invk: nat -> Rel_cfg_T mem_block (block_id + uvalue)),
+
+    (* Inductive proof: Assuming R and (Inv n), reestablish R and (Inv (n + B))
+             by going through both bodies *)
+    (forall g l mV mH ymem,
+        ((R ⩕ Invk n) (mH,ymem) (mV, (l, (g, (inl body))))) ->
+        eutt (R ⩕ Invk (n +1))
+             (with_err_RB (interp_Mem (bodyH n ymem) mH))
+             (with_err_LB
+                (interp_cfg (denote_bks (convert_typ [] bodyV) body) g l mV))
+    ) ->
+
+    (* Main result. Need to know initially that R holds *)
+    forall g l mV mH ymem,
+      (R ⩕ Invk 0) (mH,ymem) (mV, (l, (g, (inl bid)))) ->
+      (eutt (R ⩕ (fun _ '(_,(_,(_,x))) => x ≡ inl next)))
+        (with_err_RB (interp_Mem (build_vec n bodyH ymem) mH))
+        (with_err_LB
+           (interp_cfg (denote_bks (convert_typ [] bks) bid) g l mV)
+        ).
+Proof.
+  induction n as [| n IH].
+  - intros * GEN * IND * PRE.
+    cbn in GEN; simp.
+    Require Import LibHyps.LibHyps.
+    onAllHyps move_up_types.
+    cbn in *.
+
+    cbn; eutt_hide_right; repeat norm_h.
+    subst; eutt_hide_left; repeat norm_v.
+    match goal with
+      |- context [denote_bks ?bks' _] => remember bks' as bks
+    end.
+
+    rewrite denote_bks_unfold.
+    2: subst; rewrite find_block_eq; reflexivity.
+    (* entry block: substraction by 1, conditional jump *)
+    cbn.
+    repeat norm_v.
+    focus_single_step_v.
+    unfold IntType; rewrite typ_to_dtyp_I; cbn.
+    repeat norm_v; cbn.
+    repeat norm_v.
+    subst.
+    cbn; repeat norm_v.
+    rewrite interp_cfg_to_L3_LW.
+    cbn; repeat norm_v.
+    focus_single_step_v.
+    unfold IntType; rewrite typ_to_dtyp_I; cbn.
+    repeat (norm_v; []).
+    norm_v.
+    2: match goal with
+        |- Maps.lookup ?x (alist_add ?y ?a ?b) ≡ _ =>
+        rewrite (lookup_alist_add_eq x a b)
+      end; reflexivity.
+    cbn; repeat norm_v.
+    cbn; repeat norm_v.
+    subst; cbn; repeat norm_v.
+    rewrite interp_cfg_to_L3_LW.
+    cbn; repeat norm_v.
+    cbn; repeat norm_v.
+    2:match goal with
+        |- Maps.lookup ?x (alist_add ?y ?a ?b) ≡ _ =>
+        rewrite (lookup_alist_add_eq x a b)
+      end; reflexivity.
+    cbn; repeat norm_v.
+    focus_single_step_v.
+    unfold eval_int_icmp; cbn.
+    match goal with
+      |- context [if ?b then _ else _] => replace b with false
+    end.
+    2:{
+      (* Arithmetic *)
+      admit.
+    }
+    cbn; repeat norm_v.
+    subst.
+    cbn; repeat norm_v.
+
+    Ltac hide_bks :=
+      match goal with
+        |- context [denote_bks ?bks' _] =>
+        let bks := fresh "bks" in
+        remember bks' as bks
+      end.
+
+    hide_bks.
+    match goal with
+      |- context [match ?x with | _ => _ end] => replace x with (@None (LLVMAst.block dtyp))
+    end.
+    2:admit.
+    cbn; repeat norm_v.
+    subst.
+
+    apply eutt_Ret.
+
+    split.
+
+    admit.
+
+    reflexivity.
+
+  - intros * GEN * IND * PRE.
+    cbn in GEN; simp.
+    Require Import LibHyps.LibHyps.
+    onAllHyps move_up_types.
+    revert IH.
+    cbn in *|-.
+
+    cbn; eutt_hide_right; repeat norm_h.
+    subst; eutt_hide_left; repeat norm_v.
+    match goal with
+      |- context [denote_bks ?bks' _] => remember bks' as bks
+    end.
+
+    rewrite denote_bks_unfold.
+    2: subst; rewrite find_block_eq; reflexivity.
+    (* entry block: substraction by 1, conditional jump *)
+    cbn.
+    repeat norm_v.
+    focus_single_step_v.
+    unfold IntType; rewrite typ_to_dtyp_I; cbn.
+    repeat norm_v; cbn.
+    repeat norm_v.
+    subst.
+    cbn; repeat norm_v.
+    rewrite interp_cfg_to_L3_LW.
+    cbn; repeat norm_v.
+    focus_single_step_v.
+    unfold IntType; rewrite typ_to_dtyp_I; cbn.
+    repeat (norm_v; []).
+    norm_v.
+    2: match goal with
+        |- Maps.lookup ?x (alist_add ?y ?a ?b) ≡ _ =>
+        rewrite (lookup_alist_add_eq x a b)
+      end; reflexivity.
+    cbn; repeat norm_v.
+    cbn; repeat norm_v.
+    subst; cbn; repeat norm_v.
+    rewrite interp_cfg_to_L3_LW.
+    cbn; repeat norm_v.
+    cbn; repeat norm_v.
+    2:match goal with
+        |- Maps.lookup ?x (alist_add ?y ?a ?b) ≡ _ =>
+        rewrite (lookup_alist_add_eq x a b)
+      end; reflexivity.
+    cbn; repeat norm_v.
+    focus_single_step_v.
+    unfold eval_int_icmp; cbn.
+    match goal with
+      |- context [if ?b then _ else _] => replace b with true
+    end.
+    2:{
+      (* Arithmetic *)
+      admit.
+    }
+    cbn; repeat norm_v.
+    subst.
+    cbn; repeat norm_v.
+    exfalso.
+
+
+    hide_bks.
+    onAllHyps move_up_types.
+
+
+
+Section Resolve_PVar.
+
   Lemma resolve_PVar_simple : forall p s s' x v,
       resolve_PVar p s ≡ inr (s', (x, v)) ->
       exists sz n,
@@ -4011,50 +4212,17 @@ Ltac forget_strings :=
     do 2 eexists; eauto.
   Qed.
 
-  Ltac inv_resolve_PVar H :=
-    apply resolve_PVar_simple in H;
-    destruct H as (?sz & ?n & ?LUn & ?EQsz & -> & <-).
+End Resolve_PVar.
+Opaque resolve_PVar. 
 
-  From Vellvm Require Import Traversal.
-
-  Lemma fmap_list_app: forall U V H H' c1 c2 f,
-      @fmap code (@Fmap_code H H') U V f (c1 ++ c2) ≡
-            fmap f c1  ++ fmap f c2.
-  Proof.
-    induction c1 as [| [] c1 IH]; cbn; intros; [reflexivity |].
-    rewrite IH; reflexivity.
-  Qed.
-
-  (* Lemma convert_typ_list_app: forall H env c1 c2, *)
-  (*     @convert_typ code (@ConvertTyp_list LLVMAst.block H) env (c1 ++ c2) ≡ *)
-  (*           convert_typ env c1 ++ *)
-  (*           convert_typ env c2. *)
-  (* Proof. *)
-  (*   induction c1 as [| [] c1 IH]; cbn; intros; [reflexivity |]. *)
-  (*   rewrite IH; reflexivity. *)
-  (* Qed. *)
-
+Ltac inv_resolve_PVar H :=
+  apply resolve_PVar_simple in H;
+  destruct H as (?sz & ?n & ?LUn & ?EQsz & -> & <-).
 
   Section GenIR.
 
     (* YZ TODO : reducing denote_bks exposes iter. Should we simply make it opaque? *)
     Opaque denote_bks.
-    Opaque resolve_PVar. 
-
-    Ltac focus_single_step_v :=
-      match goal with
-        |- eutt _ _ (ITree.bind _ ?x) => remember x
-      end.
-
-    Ltac focus_single_step_h :=
-      match goal with
-        |- eutt _ (ITree.bind _ ?x) _ => remember x
-      end.
-
-    Ltac focus_single_step :=
-      match goal with
-        |- eutt _ (ITree.bind _ ?x) (ITree.bind _ ?y) => remember x; remember y
-      end.
 
     Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
