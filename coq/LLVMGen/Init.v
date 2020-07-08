@@ -673,8 +673,11 @@ Proof.
   rename l6 into Γ_xy_fake_xy. (* temporary *)
   rename l7 into Γ_xy. (* this ones are dropped *)
 
-  (* TODO: @zoickx we can prove that length [Γ_fake_xy] is 2,
-     and deconstruct it into [fake_y;fake_x] *)
+  assert (ΓXYFXY : exists x y fake_x fake_y, Γ_xy_fake_xy ≡ [x; y; fake_x; fake_y])
+    by admit.
+  destruct ΓXYFXY as [x [y [fake_x [fake_y ΓXYFXY]]]].
+  subst Γ_xy_fake_xy.
+  clear Sg Sxy.
 
   repeat rewrite app_assoc.
   unfold build_global_environment, allocate_globals, map_monad_.
