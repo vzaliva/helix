@@ -699,7 +699,6 @@ Proof.
 
 
   destruct s3.
-  cbn in Sg, Sxy.
 
   rename m into mo, m0 into mi.
   rename p13 into body_instr.
@@ -802,7 +801,7 @@ Proof.
          block_count := block_count;
          local_count := local_count;
          void_count := void_count;
-         Γ := Γ_globals ++ Γ_fake_xy |} as s.
+         Γ := Γ_globals ++ [fake_x; fake_y] |} as s.
 
   (* from [Rel_mcfg_T] to [Rel_mcfg] *)
   remember ((λ memH '(memV, (l4,_,g)),
@@ -822,12 +821,20 @@ Proof.
     repeat break_let.
     cbn in LX.
     inv LX.
+    Opaque map_monad.
     cbn in *.
 
     unfold initIRGlobals in LG.
 
-    unfold Traversal.fmap, Traversal.Fmap_list'.
-    rewrite map_app.
+    unfold Traversal.Fmap_global, Traversal.fmap, Traversal.Fmap_list'.
+    cbn.
+
+    match goal with
+    | [|- context[map_monad _ (?h::?t)]] =>
+      replace (h::t) with ([h]++t)%list
+        by apply list_cons_app
+    end.
+
     rewrite map_monad_app.
     cbn.
     rewrite interp_to_L3_bind, translate_bind.
@@ -839,7 +846,7 @@ Proof.
             block_count := block_count;
             local_count := local_count;
             void_count := void_count;
-            Γ := v3 |} as s.
+            Γ := Γ_globals ++ [fake_x; fake_y] |} as s.
 
     (* In [UU] we drop X,Y in σ *)
     apply eutt_clo_bind with (UU:=(lift_Rel_mcfg
@@ -854,6 +861,7 @@ Proof.
 
       cbn in Heql3.
 
+      (*
       assert(length globals ≡ length v3) as LV.
       {
         clear - LG.
@@ -861,9 +869,10 @@ Proof.
         cbn in LG.
         lia.
       }
+       *)
 
       subst s.
-      revert mg gdecls eg v3 IR LG G LV.
+      revert mg gdecls eg (* v3 *) IR LG G (* LV *).
       induction globals; intros.
       *
         cbn in G; inv G.
