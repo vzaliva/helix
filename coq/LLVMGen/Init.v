@@ -676,6 +676,8 @@ Proof.
   assert (ΓXYFXY : exists x y fake_x fake_y, Γ_xy_fake_xy ≡ [x; y; fake_x; fake_y])
     by admit.
   destruct ΓXYFXY as [x [y [fake_x [fake_y ΓXYFXY]]]].
+  replace Γ_xy with [x; y] in * by admit; clear Γ_xy.
+  replace Γ_fake_xy with [fake_x; fake_y] in * by admit; clear Γ_fake_xy.
   subst Γ_xy_fake_xy.
   clear Sg Sxy.
 
