@@ -76,6 +76,226 @@ Import ListNotations.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
+Ltac rewrite_nth_error :=
+  match goal with
+  | h: nth_error _ _ ≡ _ |- _ => rewrite h
+  end.
+
+Ltac rewrite_memory_lookup :=
+  match goal with
+  | h: memory_lookup _ _ ≡ _ |- _ => rewrite h
+  end.
+
+Ltac rewrite_mem_lookup :=
+  match goal with
+  | h: mem_lookup _ _ ≡ _ |- _ => rewrite h
+  end.
+ 
+Fixpoint build_vec {E} (n: nat) (body: nat -> mem_block -> itree E mem_block):
+  mem_block -> itree E mem_block :=
+  fun memy =>
+    match n with
+    | O => ret memy
+    | S n => memy' <- body n memy;;
+            build_vec n body memy'
+    end.
+
+Definition bodyIMap (f : AExpr) (σ : evalContext) (x: mem_block) (n: nat) (y: mem_block) : itree Event (mem_block) :=
+        v <- lift_Derr (mem_lookup_err "Error reading memory denoteDSHIMap" n x) ;;
+        vn <- lift_Serr (MInt64asNT.from_nat n) ;;
+        v' <- denoteIUnCType σ f vn v ;;
+        ret (mem_add n v' y).
+
+Definition  IMap_Rel σ Γ : Rel_cfg_T mem_block (block_id + uvalue) :=
+  lift_Rel_cfg (state_invariant σ Γ).
+
+Definition uvalue_of_nat k := UVALUE_I64 (Int64.repr (Z.of_nat k)).
+
+Lemma bodyIMapCorrect : forall i o vx vy f loopvar loopcontblock s1 s2 bid bodyV
+                          memx memy
+                          (σ : evalContext) (memH : memoryH) (memV : memoryV) l g
+                          (* nx memx mx ix ny my iy *)
+                          nx ny szx szy 
+                          mbkx mbky szx' szy'
+  ,
+    genIMapBody i o vx vy f loopvar loopcontblock s1 ≡ inr (s2, (bid,bodyV)) ->
+
+    state_invariant σ s1 memH (memV,(l,g)) ->
+
+    nth_error (Γ s1) nx ≡ Some (vx, TYPE_Pointer (TYPE_Array szx TYPE_Double)) ->
+    nth_error (Γ s1) ny ≡ Some (vy, TYPE_Pointer (TYPE_Array szy TYPE_Double)) ->
+    MInt64asNT.from_Z szx ≡ inr i ->
+    MInt64asNT.from_Z szy ≡ inr o ->
+
+    nth_error σ nx ≡ Some (DSHPtrVal mbkx szx') ->
+    nth_error σ ny ≡ Some (DSHPtrVal mbky szy') ->
+
+    (* Should rather be something like? *)
+    (*
+      I am handling the cell k
+      l @ loopvar ≡ Some (uvalue_of_nat k) ->
+
+      memory_lookup memH mbkx ≡ Some bk_helix ->
+      mem_lookup i bk_helix ≡ Some val ->
+
+    l @ idx ≡ Some (UVALUE_Addr ptr_x) ->
+    get_array_cell memV (DVALUE_Addr ptr_x) k TYPE_Double ≡ inr (UVALUE_Double val) ->
+
+What should be exactly the post?
+     *)
+
+
+    forall k,
+      eutt (IMap_Rel σ s1)
+           (with_err_RB (interp_Mem (bodyIMap f σ memx k memy) memH))
+           (with_err_LB (interp_cfg (D.denote_bks (convert_typ [] bodyV) bid) g l memV)).
+Proof.
+  intros * GEN PRE; intros.
+
+  cbn* in *.
+  simp; cbn* in *; simp.
+
+     
+      (* Require Import LibHyps.LibHyps. *)
+      (* onAllHyps move_up_types. *)
+
+      destruct vx; [admit |].
+      destruct vy; [admit |].
+      break_match_goal; [admit|].
+      break_match_goal; [|admit].
+      cbn.
+      cbn*; repeat norm_h.
+      unfold denoteIUnCType.
+
+      rewrite denote_bks_unfold.
+      Opaque find_block.
+      2: rewrite find_block_eq; reflexivity.
+      cbn.
+      repeat norm_v.
+      focus_single_step.
+      rewrite denote_code_cons.
+      simpl.
+      unfold denote_op.
+      simpl.
+      repeat rewrite bind_bind.
+      focus_single_step_v.
+      cbn*.
+      edestruct memory_invariant_LLU_Ptr as (bk_x & ptr_x & LUx & INLGx & VEC_LUx); [| exact H | exact H3 |]; eauto.
+      repeat norm_v.
+      2:eassumption. 
+      cbn; repeat norm_v.
+      unfold IntType; rewrite typ_to_dtyp_I.
+      cbn; repeat (norm_v; []).
+      cbn.
+      subst; focus_single_step.
+      assert (l @ loopvar ≡ Some (UVALUE_I64 (Int64.repr (Z.of_nat k)))) by admit.
+      norm_v.
+      2:eassumption.
+      cbn; repeat norm_v.
+      simpl.
+      unfold ITree.map.
+      cbn; repeat norm_v.
+      rewrite exp_E_to_instr_E_Memory,subevent_subevent.
+      cbn in *. 
+
+Admitted.
+
+(*       apply VEC_LUx in Heqo0. *)
+(*       edestruct (@interp_cfg_to_L3_GEP_array defs t a  g l) as (add & ?EQ & READ); eauto. *)
+(*       erewrite interp_cfg_to_L3_GEP_array. *)
+
+(*         | DSHIMap n (PVar ix) (PVar iy) f => *)
+          
+(*           (* Helix *) *)
+(*           nth_error σ ix = Some (DSHPtrVal vx sizex) *)
+(*           nth_error σ iy = Some (DSHPtrVal vy sizey) *)
+(*           memH[vx] = x *)
+(*           memH[vy] = y *)
+(*   LUn : nth_error (Γ s1) n0 ≡ Some (i0, TYPE_Pointer (TYPE_Array sz TYPE_Double)) *)
+(*           (* Vellvm *) *)
+          
+
+
+(*           '(x,i) <- resolve_PVar x_p ;; *)
+(*           '(y,o) <- resolve_PVar y_p ;; *)
+(*           loopcontblock <- incBlockNamed "IMap_lcont" ;; *)
+(*           loopvar <- incLocalNamed "IMap_i" ;; *)
+(*           '(body_entry, body_blocks) <- genIMapBody i o x y f loopvar loopcontblock ;; *)
+(*           add_comment *)
+(*             (genWhileLoop "IMap" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] nextblock) *)
+
+(*         | DSHIMap n x_p y_p f => *)
+(*           '(x_i,x_size) <- denotePExpr σ x_p ;; *)
+(*           '(y_i,y_sixe) <- denotePExpr σ y_p ;; *)
+(*           x <- trigger (MemLU "Error looking up 'x' in DSHIMap" x_i) ;; *)
+(*           y <- trigger (MemLU "Error looking up 'y' in DSHIMap" y_i) ;; *)
+(*           y' <- denoteDSHIMap n f σ x y ;; *)
+(*           trigger (MemSet y_i y') *)
+
+
+(* Definition genIMapBody *)
+(*            (i o: Int64.int) *)
+(*            (x y: ident) *)
+(*            (f: AExpr) *)
+(*            (loopvar: raw_id) *)
+(*            (nextblock: block_id) *)
+(*   : cerr segment *)
+(*   := *)
+(*     pwblock <- incBlockNamed "IMapLoopBody" ;; *)
+(*     pwret <- incVoid ;; *)
+(*     storeid <- incVoid ;; *)
+(*     px <- incLocal ;; *)
+(*     py <- incLocal ;; *)
+(*     v <- incLocal ;; *)
+(*     let xtyp := getIRType (DSHPtr i) in *)
+(*     let ytyp := getIRType (DSHPtr o) in *)
+(*     let xptyp := TYPE_Pointer xtyp in *)
+(*     let yptyp := TYPE_Pointer ytyp in *)
+(*     let loopvarid := ID_Local loopvar in *)
+(*     addVars [(ID_Local v, TYPE_Double); (loopvarid, IntType)] ;; *)
+(*     '(fexpr, fexpcode) <- genAExpr f ;; *)
+(*     dropVars 2 ;; *)
+(*     ret (pwblock, *)
+(*          [ *)
+(*            {| *)
+(*              blk_id    := pwblock ; *)
+(*              blk_phis  := []; *)
+(*              blk_code  := [ *)
+(*                            (IId px,  INSTR_Op (OP_GetElementPtr *)
+(*                                                  xtyp (xptyp, (EXP_Ident x)) *)
+(*                                                  [(IntType, EXP_Integer 0%Z); *)
+(*                                                     (IntType,(EXP_Ident loopvarid))] *)
+
+(*                            )); *)
+
+(*                              (IId v, INSTR_Load false TYPE_Double *)
+(*                                                 (TYPE_Pointer TYPE_Double, *)
+(*                                                  (EXP_Ident (ID_Local px))) *)
+(*                                                 (ret 8%Z)) *)
+(*                          ] *)
+
+(*                             ++ fexpcode ++ *)
+
+(*                             [ (IId py,  INSTR_Op (OP_GetElementPtr *)
+(*                                                     ytyp (yptyp, (EXP_Ident y)) *)
+(*                                                     [(IntType, EXP_Integer 0%Z); *)
+(*                                                        (IntType,(EXP_Ident loopvarid))] *)
+
+(*                               )); *)
+
+(*                                 (IVoid storeid, INSTR_Store false *)
+(*                                                             (TYPE_Double, fexpr) *)
+(*                                                             (TYPE_Pointer TYPE_Double, *)
+(*                                                              (EXP_Ident (ID_Local py))) *)
+(*                                                             (ret 8%Z)) *)
+
+
+(*                             ]; *)
+(*              blk_term  := (IVoid pwret, TERM_Br_1 nextblock); *)
+(*              blk_comments := None *)
+(*            |} *)
+(*         ]). *)
+
 
 Section FSHAssign.
   (** ** Compilation of FSHAssign TODO
