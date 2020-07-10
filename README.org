@@ -2,9 +2,9 @@
 
 [[https://travis-ci.com/vzaliva/helix][https://travis-ci.com/vzaliva/helix.svg?token=x87izvm44MdTPLHzuxzF&branch=master]]
 
-HELIX is a formally verified language and rewriting engine for
-generation of high-performance implementation for a variety of
-numerical algorithms. Based on the existing [[http://spiral.net/][SPIRAL]] system, HELIX adds
+HELIX project allows for the synthesis of high-performance implementations of numerical 
+algorithms by providing a certified compiler for formally-specified DSL. 
+Based on the existing [[http://spiral.net/][SPIRAL]] system, HELIX adds
 the rigor of formal verification of its correctness using the Coq
 proof assistant. It formally defines a series of domain-specific
 languages starting with HCOL, which represents a computation data
