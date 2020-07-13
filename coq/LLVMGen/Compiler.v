@@ -1355,9 +1355,9 @@ Definition dropFakeVars: cerr unit :=
   if Nat.ltb l 4 then raise "Γ too short"
   else
     '(globals, Γ') <- option2errS "Γ too short"
-                                 (ListUtil.split_aux nil (Γ st) (l-4)) ;;
+                                 (ListUtil.split (Γ st) (l-4)) ;;
     '(_, Γ'') <- option2errS "Γ too short"
-                            (ListUtil.split_aux nil Γ' 2) ;;
+                            (ListUtil.split Γ' 2) ;;
     put {|
         block_count := block_count st ;
         local_count := local_count st ;

@@ -622,6 +622,46 @@ Lemma init_with_data_env_len
 Proof.
 Admitted.
 
+Lemma split_hd_len {A : Type} (l l1 l2 : list A) (n : nat) :
+  ListUtil.split l n ≡ Some (l1, l2) -> length l1 ≡ n.
+Proof.
+  enough (forall acc, ListUtil.split_aux acc l n ≡ Some (l1, l2) -> length l1 ≡ n + length acc).
+  {
+    intros.
+    rewrite H with (acc:=[]).
+    cbn.
+    apply Nat.add_0_r.
+    assumption.
+  }
+  generalize dependent l.
+  induction n.
+  -
+    intros.
+    destruct l.
+    all: inversion H; subst.
+    all: rewrite ListUtil.rev_append_rev, app_nil_r, rev_length.
+    all: reflexivity.
+  -
+    intros.
+    destruct l; [inversion H |].
+    cbn in H.
+    apply IHn in H.
+    cbn in H.
+    rewrite plus_Snm_nSm.
+    assumption.
+Qed.
+
+Lemma split_tl_len {A : Type} (l l1 l2 : list A) (n : nat) :
+  ListUtil.split l n ≡ Some (l1, l2) -> length l2 ≡ (length l - n)%nat.
+Proof.
+  intros.
+  copy_apply ListUtil.split_correct H.
+  apply split_hd_len in H.
+  subst.
+  rewrite ListUtil.length_app.
+  lia.
+Qed.
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -673,16 +713,22 @@ Proof.
   rename l6 into Γ_xy_fake_xy. (* temporary *)
   rename l7 into Γ_xy. (* this ones are dropped *)
 
-  assert (ΓXYFXY : exists x y fake_x fake_y, Γ_xy_fake_xy ≡ [x; y; fake_x; fake_y])
-    by admit.
+  assert (ΓXYFXY : exists x y fake_x fake_y, Γ_xy_fake_xy ≡ [x; y; fake_x; fake_y]).
+  {
+    clear - Sg Heqb.
+    apply split_tl_len in Sg.
+    apply Nat.leb_gt in Heqb.
+    assert (Datatypes.length Γ_xy_fake_xy ≡ 4)%nat by lia.
+    clear - H.
+    repeat (destruct Γ_xy_fake_xy; inversion H).
+    repeat eexists.
+  }
   destruct ΓXYFXY as [x [y [fake_x [fake_y ΓXYFXY]]]].
-  replace Γ_xy with [x; y] in * by admit; clear Γ_xy.
-  replace Γ_fake_xy with [fake_x; fake_y] in * by admit; clear Γ_fake_xy.
   subst Γ_xy_fake_xy.
-  clear Sxy.
+  invc Sxy.
+
   apply ListUtil.split_correct in Sg.
   rename Sg into Vs3.
-             
 
   repeat rewrite app_assoc.
   unfold build_global_environment, allocate_globals, map_monad_.
