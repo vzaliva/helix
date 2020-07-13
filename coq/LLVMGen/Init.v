@@ -788,6 +788,49 @@ Proof.
   repeat rewrite app_nil_r.
 
   (* no more [type_defs_of] after this point *)
+  
+  replace
+    (@go E_mcfg (prod memory unit)
+         (@RetF E_mcfg (prod memory unit) (itree E_mcfg (prod memory unit))
+                (@pair memory unit
+                       (memory_set
+                          (memory_set mg (S (@Datatypes.length (prod string DSHType) globals)) mo)
+                          (@Datatypes.length (prod string DSHType) globals) mi) tt)))
+    with
+      (mg' <- (@go E_mcfg memory (@RetF E_mcfg memory (itree E_mcfg memory) mg)) ;;
+       mgy <- Ret (memory_set mg' (S (Datatypes.length globals)) mo) ;;
+       Ret (memory_set mgy (Datatypes.length globals) mi, ())).
+
+  cbn.
+
+  eapply eutt_clo_bind.
+  admit.
+  intros.
+
+  rewrite translate_bind.
+  cbn.
+  repeat break_let.
+
+  rewrite interp_to_L3_ret, translate_ret.
+
+  setoid_rewrite bind_ret_l at 2.
+
+  rewrite interp_to_L3_bind, translate_bind.
+
+  rewrite interp_to_L3_bind.
+  setoid_rewrite translate_bind.
+  rewrite map_map.
+
+  
+
+
+
+
+
+
+
+
+  
 
   rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
 
