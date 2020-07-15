@@ -70,6 +70,9 @@ Import ListNotations.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
+Require Import Vellvm.InstrLemmas.
+
+
 Opaque incBlockNamed.
 Opaque incVoid.
 Opaque incLocal.
@@ -116,7 +119,6 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       forall l', l ⊑ l' ->
         Ret (memV,(l',(g,UVALUE_I64 i)))
         ≈
-        with_err_LB
         (interp_cfg (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] e))) g l' memV) /\ evalNExpr σ nexp ≡ inr i.
 
   (**
@@ -137,6 +139,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
     }.
 
   Opaque denote_code.
+  Opaque denote_instr.
   Lemma genNExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH) (v : Int64.int)
@@ -200,16 +203,28 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
           subst.
           destruct i0; try abs_by_WF.
           edestruct memory_invariant_GLU as (ptr & LU & READ); eauto.
-         cbn.
-          cbn; repeat norm_v.
-          2:eassumption.
-          cbn; repeat norm_v.
-          cbn; repeat norm_v.
-          rewrite interp_cfg_to_L3_Load; eauto.
-          cbn; repeat norm_v.
-          rewrite interp_cfg_to_L3_LW.
-          cbn; repeat norm_v.
+          cbn.
+          rewrite denote_instr_load; cbn; eauto.
+
+          (* Can this be cleaned up? *)
+          2: {
+            repeat rewrite translate_bind.
+            rewrite interp_cfg_to_L3_bind.
+            do 2 rewrite translate_trigger.
+            rewrite lookup_E_to_exp_E_Global.
+            rewrite subevent_subevent.
+            rewrite exp_E_to_instr_E_Global.
+            rewrite subevent_subevent.
+            rewrite interp_cfg_to_L3_GR; eauto.
+            cbn. rewrite bind_ret_l.
+            repeat rewrite translate_ret.
+            rewrite interp_cfg_to_L3_ret.
+            reflexivity.
+            }
+
+          repeat norm_v.
           repeat norm_h.
+
           apply eutt_Ret; split; [| split].
           -- eapply state_invariant_add_fresh; eauto; reflexivity.
           -- split.
@@ -238,7 +253,6 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
         * cbn* in EVAL; rewrite Heqo0 in EVAL; inv EVAL.
 
     - (* Constant *)
-
       cbn* in COMPILE; simp.
       unfold denoteNExpr; cbn*.
       rewrite denote_code_nil; cbn.
@@ -304,74 +318,81 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
           (* cbn takes 5seconds instead of doing this instantaneously... *)
           simpl in *.
           cbn.
-          
+
           rewrite denote_code_sing; cbn.
           repeat norm_v.
           simpl in *; unfold denote_op; simpl.
           unfold IntType; rewrite typ_to_dtyp_I.
 
-          repeat norm_v.
           specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
-          rewrite <- EXPRI; auto.
-
-          repeat norm_v.
+          rewrite Heqs3 in EVAL_vH.
+          injection EVAL_vH; intros; subst.
           assert (l1 ⊑ l1) as L1L1. reflexivity.
           specialize (EXPRF _ L1L1) as [EXPRF EVAL_vH0].
-          rewrite <- EXPRF.
-          clear L1L1.
-          repeat norm_v.
-          cbn*.
+          rewrite Heqs2 in EVAL_vH0.
+          injection EVAL_vH0; intros; subst.
 
-          rewrite Heqs3 in EVAL_vH; inversion EVAL_vH.
-          rewrite Heqs2 in EVAL_vH0; inversion EVAL_vH0.
-          subst.
+          rewrite denote_instr_op.
 
-          { break_inner_match_goal.
-            + (* Division by 0 *)
+          (* Operator evaluation *)
+          2: {
+            cbn.
+            rewrite translate_bind.
+            rewrite interp_cfg_to_L3_bind.
+            rewrite <- EXPRI.
+            rewrite bind_ret_l.
+
+            rewrite translate_bind.
+            rewrite interp_cfg_to_L3_bind.
+            rewrite <- EXPRF.
+            rewrite bind_ret_l.
+
+            cbn.
+            break_inner_match_goal.
+            - (* Division by 0 *)
               apply Z.eqb_eq in Heqb.
               exfalso. apply n.
               rewrite <- Int64.unsigned_zero in Heqb.
               unfold MInt64asNT.NTypeZero.
-
-
               apply unsigned_is_zero; auto.
-            + (* Good old division *)
-              repeat norm_v.
-              rewrite interp_cfg_to_L3_LW.
-              cbn; repeat norm_v.
-              apply eutt_Ret; split; [| split]; try now eauto.
-              cbn. eapply state_invariant_add_fresh; eauto; reflexivity.
-              split.
-              {
-                cbn; intros ? MONO.
-                split.
-                { repeat norm_v.
-                  2: apply MONO, In_add_eq.
-                  cbn; repeat norm_v.
-                  apply eutt_Ret.
-                  do 3 f_equal.
-                }
-
-                rewrite Heqs2.
-                rewrite Heqd.
-                rewrite Heqs3.
-                reflexivity.
-              }
-              {
-                apply ext_local_subalist.
-                etransitivity; eauto.
-                etransitivity; eauto.
-                apply sub_alist_add.
-                apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
-                eapply PREF.
-                eauto.
-              }
-              {
-                rewrite GAMMAI, GAMMAF.
-                symmetry; eapply incLocal_Γ; eauto.
-              }
+            - (* Good old division *)
+              repeat norm_h.
+              rewrite interp_cfg_to_L3_ret.
+              reflexivity.
           }
-    - (*NMod *)
+
+          repeat norm_v.
+          apply eutt_Ret; split; [| split]; try now eauto.
+          cbn. eapply state_invariant_add_fresh; eauto; reflexivity.
+          split.
+          {
+            cbn; intros ? MONO.
+            split.
+            { repeat norm_v.
+              2: apply MONO, In_add_eq.
+              cbn; repeat norm_v.
+              apply eutt_Ret.
+              do 3 f_equal.
+            }
+
+            repeat match_rewrite.
+            reflexivity.
+          }
+          {
+            apply ext_local_subalist.
+            etransitivity; eauto.
+            etransitivity; eauto.
+            apply sub_alist_add.
+            apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
+            eapply PREF.
+            eauto.
+          }
+          {
+            rewrite GAMMAI, GAMMAF.
+            symmetry; eapply incLocal_Γ; eauto.
+          }
+    - (* NMod *)
+
       cbn* in COMPILE; simp.
 
       eutt_hide_right.
@@ -423,70 +444,79 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
           (* cbn takes 5seconds instead of doing this instantaneously... *)
           simpl in *.
           cbn.
-          
+
           rewrite denote_code_sing; cbn.
           repeat norm_v.
           simpl in *; unfold denote_op; simpl.
           unfold IntType; rewrite typ_to_dtyp_I.
 
-          repeat norm_v.
           specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
-          rewrite <- EXPRI; auto.
-
-          repeat norm_v.
+          rewrite Heqs3 in EVAL_vH.
+          injection EVAL_vH; intros; subst.
           assert (l1 ⊑ l1) as L1L1. reflexivity.
           specialize (EXPRF _ L1L1) as [EXPRF EVAL_vH0].
-          rewrite <- EXPRF.
-          clear L1L1.
-          repeat norm_v.
-          cbn*.
+          rewrite Heqs2 in EVAL_vH0.
+          injection EVAL_vH0; intros; subst.
 
-          rewrite Heqs3 in EVAL_vH; inversion EVAL_vH.
-          rewrite Heqs2 in EVAL_vH0; inversion EVAL_vH0.
-          subst.
+          rewrite denote_instr_op.
 
-          { break_inner_match_goal.
-            + apply Z.eqb_eq in Heqb.
+          (* Operator evaluation *)
+          2: {
+            cbn.
+            rewrite translate_bind.
+            rewrite interp_cfg_to_L3_bind.
+            rewrite <- EXPRI.
+            rewrite bind_ret_l.
+
+            rewrite translate_bind.
+            rewrite interp_cfg_to_L3_bind.
+            rewrite <- EXPRF.
+            rewrite bind_ret_l.
+
+            cbn.
+            break_inner_match_goal.
+            - (* Division by 0 *)
+              apply Z.eqb_eq in Heqb.
               exfalso. apply n.
               rewrite <- Int64.unsigned_zero in Heqb.
               unfold MInt64asNT.NTypeZero.
               apply unsigned_is_zero; auto.
-            + repeat norm_v.
-              rewrite interp_cfg_to_L3_LW.
-              cbn; repeat norm_v.
-              apply eutt_Ret; split; [| split]; try now eauto.
-              cbn. eapply state_invariant_add_fresh; eauto; reflexivity.
-              split.
-              {
-                cbn; intros ? MONO.
-                split.
-                { repeat norm_v.
-                  2: apply MONO, In_add_eq.
-                  cbn; repeat norm_v.
-                  apply eutt_Ret.
-                  do 3 f_equal.
-                }
-
-                rewrite Heqs2.
-                rewrite Heqd.
-                rewrite Heqs3.
-                reflexivity.
-              }
-              {
-                apply ext_local_subalist.
-                etransitivity; eauto.
-                etransitivity; eauto.
-                apply sub_alist_add.
-                apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
-                eapply PREF.
-                eauto.
-              }
-              {
-                rewrite GAMMAI, GAMMAF.
-                symmetry; eapply incLocal_Γ; eauto.
-              }
+            - (* Good old division *)
+              repeat norm_h.
+              rewrite interp_cfg_to_L3_ret.
+              reflexivity.
           }
- 
+
+          repeat norm_v.
+          apply eutt_Ret; split; [| split]; try now eauto.
+          cbn. eapply state_invariant_add_fresh; eauto; reflexivity.
+          split.
+          {
+            cbn; intros ? MONO.
+            split.
+            { repeat norm_v.
+              2: apply MONO, In_add_eq.
+              cbn; repeat norm_v.
+              apply eutt_Ret.
+              do 3 f_equal.
+            }
+
+            repeat match_rewrite.
+            reflexivity.
+          }
+          {
+            apply ext_local_subalist.
+            etransitivity; eauto.
+            etransitivity; eauto.
+            apply sub_alist_add.
+            apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
+            eapply PREF.
+            eauto.
+          }
+          {
+            rewrite GAMMAI, GAMMAF.
+            symmetry; eapply incLocal_Γ; eauto.
+          }
    - (* NAdd *)
       rename g into g1, l into l1, memV into memV1.
       cbn* in COMPILE; simp.
@@ -540,21 +570,42 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       (* cbn takes 5seconds instead of doing this instantaneously... *)
       simpl in *; unfold denote_op; simpl.
       cbn; rewrite denote_code_sing; cbn.
-      repeat norm_v.
-      specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
       unfold IntType; rewrite typ_to_dtyp_I.
-      rewrite <- EXPRI; auto.
 
-      repeat norm_v.
+      specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
+      rewrite Heqs2 in EVAL_vH; injection EVAL_vH; intros; subst.
+
       assert (l0 ⊑ l0) as L0L0 by reflexivity.
       specialize (EXPRF _ L0L0) as [EXPRF EVAL_vH0].
-      rewrite <- EXPRF.
+      rewrite Heqs3 in EVAL_vH0; injection EVAL_vH0; intros; subst.
       clear L0L0.
-      repeat norm_v.
+
       cbn*.
+
+      rewrite denote_instr_op.
+
+      (* Operator evaluation *)
+      2: {
+        (* First subexpression *)
+        cbn.
+        rewrite translate_bind.
+        rewrite interp_cfg_to_L3_bind.
+        rewrite <- EXPRI.
+        rewrite bind_ret_l.
+
+        (* Second subexpression *)
+        rewrite translate_bind.
+        rewrite interp_cfg_to_L3_bind.
+        rewrite <- EXPRF.
+        rewrite bind_ret_l.
+
+        cbn.
+        repeat norm_h.
+        rewrite interp_cfg_to_L3_ret.
+        reflexivity.
+      }
+
       repeat norm_v.
-      rewrite interp_cfg_to_L3_LW.
-      cbn*; repeat norm_v.
       apply eutt_Ret; split; [| split].
       cbn; eapply state_invariant_add_fresh; eauto.
       split.
@@ -566,15 +617,9 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
           cbn; repeat norm_v.
           apply eutt_Ret.
           do 3 f_equal.
-
-          rewrite Heqs2 in EVAL_vH; inversion EVAL_vH.
-          rewrite Heqs3 in EVAL_vH0; inversion EVAL_vH0.
-          subst.
-          reflexivity.
         }
 
-        rewrite Heqs2.
-        rewrite Heqs3.
+        repeat match_rewrite.
         reflexivity.
       }
       {
@@ -590,110 +635,8 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
         rewrite GAMMAI, GAMMAF.
         symmetry; eapply incLocal_Γ; eauto.
       }
-
     - (* NMinus *)
-      cbn* in COMPILE; simp.
-
-      eutt_hide_right.
-      unfold denoteNExpr in *; cbn*.
-
-      cbn in EVAL.
-      break_inner_match_goal; [| break_inner_match_goal];
-        try (exfalso; match goal with | h: genNExpr _ _ ≡ _ |- _ => eapply evalNexpr_WF_no_fail in h; now eauto end); try solve [inversion EVAL].
-
-      repeat norm_h.
-      (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
-      specialize (IHnexp1 _ _ _ _ _ _ _ _ _ _ Heqs Heqs2 PRE).
-
-      cbn* in IHnexp1;
-        repeat norm_v in IHnexp1;
-        repeat norm_h in IHnexp1.
-      simpl_match in IHnexp1.
-      (* YZ TODO : Why is this one particularly slow? *)
-      repeat norm_h in IHnexp1.
-
-      subst.
-      cbn*.
-      rewrite convert_typ_app, denote_code_app.
-      repeat norm_v.
-      subst.
-      ret_bind_l_left (memH,i2).
-      eapply eutt_clo_bind; [eassumption | clear IHnexp1].
-
-      introR; destruct_unit.
-      destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI) & GAMMAI).
-      cbn in *.
-
-      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs3 PREI).
-
-      cbn* in IHnexp2;
-        repeat norm_v in IHnexp2;
-        repeat norm_h in IHnexp2.
-      simpl_match in IHnexp2.
-      repeat norm_h in IHnexp2.
-
-      rewrite convert_typ_app, denote_code_app.
-      repeat norm_v.
-      subst.
-      ret_bind_l_left (memH,i3).
-      eapply eutt_clo_bind; [eassumption | clear IHnexp2].
-
-      introR; destruct_unit.
-      destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
-      cbn; rewrite denote_code_sing; simpl.
-      simpl in *; unfold denote_op; simpl.
-      unfold IntType; rewrite typ_to_dtyp_I.
-
-      repeat norm_v.
-      specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
-      rewrite <- EXPRI; auto.
-
-      repeat norm_v.
-      assert (l1 ⊑ l1) as L1L1 by reflexivity.
-      specialize (EXPRF _ L1L1) as [EXPRF EVAL_vH0].
-      rewrite <- EXPRF.
-      repeat norm_v.
-      cbn*.
-      repeat norm_v.
-      rewrite interp_cfg_to_L3_LW.
-      cbn*; repeat norm_v.
-      apply eutt_Ret; split; [| split].
-      cbn; eapply state_invariant_add_fresh; eauto.
-      split.
-      {
-        cbn; intros ? MONO.
-        split.
-        { repeat norm_v.
-          2: apply MONO, In_add_eq.
-          cbn; repeat norm_v.
-          apply eutt_Ret.
-          do 3 f_equal.
-
-          rewrite Heqs2 in EVAL_vH; inversion EVAL_vH.
-          rewrite Heqs3 in EVAL_vH0; inversion EVAL_vH0.
-          subst.
-          reflexivity.
-        }
-
-        rewrite Heqs2.
-        rewrite Heqs3.
-        auto.
-      }
-      {
-        apply ext_local_subalist.
-        etransitivity; eauto.
-        etransitivity; eauto.
-        apply sub_alist_add.
-        apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
-        eapply PREF.
-        eauto.
-      }
-      {
-        rewrite GAMMAI, GAMMAF.
-        symmetry; eapply incLocal_Γ; eauto.
-      }
-
-    - (* NMult *)
+      rename g into g1, l into l1, memV into memV1.
       cbn* in COMPILE; simp.
 
       eutt_hide_right.
@@ -743,63 +686,192 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       introR; destruct_unit.
       destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
       (* cbn takes 5seconds instead of doing this instantaneously... *)
-      cbn; rewrite denote_code_sing.
       simpl in *; unfold denote_op; simpl.
+      cbn; rewrite denote_code_sing; cbn.
       unfold IntType; rewrite typ_to_dtyp_I.
 
-      repeat norm_v.
       specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
-      rewrite <- EXPRI; auto.
+      rewrite Heqs2 in EVAL_vH; injection EVAL_vH; intros; subst.
 
-      repeat norm_v.
-      assert (l1 ⊑ l1) as L1L1 by reflexivity.
-      specialize (EXPRF _ L1L1) as [EXPRF EVAL_vH0].
-      rewrite <- EXPRF.
+      assert (l0 ⊑ l0) as L0L0 by reflexivity.
+      specialize (EXPRF _ L0L0) as [EXPRF EVAL_vH0].
+      rewrite Heqs3 in EVAL_vH0; injection EVAL_vH0; intros; subst.
+      clear L0L0.
 
-      repeat norm_v.
       cbn*.
 
-      break_inner_match_goal.
-      + (* 64 = 1, I conjecture an easy to prove absurdity *)
-        inversion e.
-      + cbn; repeat norm_v.
-        rewrite interp_cfg_to_L3_LW.
-        cbn*; repeat norm_v.
-        apply eutt_Ret; split; [| split].
-        cbn; eapply state_invariant_add_fresh; eauto.
+      rewrite denote_instr_op.
+
+      (* Operator evaluation *)
+      2: {
+        (* First subexpression *)
+        cbn.
+        rewrite translate_bind.
+        rewrite interp_cfg_to_L3_bind.
+        rewrite <- EXPRI.
+        rewrite bind_ret_l.
+
+        (* Second subexpression *)
+        rewrite translate_bind.
+        rewrite interp_cfg_to_L3_bind.
+        rewrite <- EXPRF.
+        rewrite bind_ret_l.
+
+        cbn.
+        repeat norm_h.
+        rewrite interp_cfg_to_L3_ret.
+        reflexivity.
+      }
+
+      repeat norm_v.
+      apply eutt_Ret; split; [| split].
+      cbn; eapply state_invariant_add_fresh; eauto.
+      split.
+      {
+        cbn; intros ? MONO.
         split.
-        {
-          cbn; intros ? MONO.
-          split. {
-            repeat norm_v.
-            2: apply MONO, In_add_eq.
-            cbn; repeat norm_v.
-            apply eutt_Ret.
-            do 3 f_equal.
-            rewrite Heqs2 in EVAL_vH; inversion EVAL_vH.
-            rewrite Heqs3 in EVAL_vH0; inversion EVAL_vH0.
-            subst.
+        { repeat norm_v.
+          2: apply MONO, In_add_eq.
+          cbn; repeat norm_v.
+          apply eutt_Ret.
+          do 3 f_equal.
+        }
+
+        repeat match_rewrite.
+        reflexivity.
+      }
+      {
+        apply ext_local_subalist.
+        etransitivity; eauto.
+        etransitivity; eauto.
+        apply sub_alist_add.
+        apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
+        eapply PREF.
+        eauto.
+      }
+      {
+        rewrite GAMMAI, GAMMAF.
+        symmetry; eapply incLocal_Γ; eauto.
+      }
+    - (* NMult *)
+      rename g into g1, l into l1, memV into memV1.
+      cbn* in COMPILE; simp.
+
+      eutt_hide_right.
+      unfold denoteNExpr in *; cbn*.
+
+      cbn in EVAL.
+      break_inner_match_goal; [| break_inner_match_goal];
+        try (exfalso; match goal with | h: genNExpr _ _ ≡ _ |- _ => eapply evalNexpr_WF_no_fail in h; now eauto end); try solve [inversion EVAL].
+
+      repeat norm_h.
+      (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
+      specialize (IHnexp1 _ _ _ _ _ _ _ _ _ _ Heqs Heqs2 PRE).
+
+      cbn* in IHnexp1;
+        repeat norm_v in IHnexp1;
+        repeat norm_h in IHnexp1.
+      simpl_match in IHnexp1.
+      (* YZ TODO : Why is this one particularly slow? *)
+      repeat norm_h in IHnexp1.
+
+      subst.
+      cbn*.
+      rewrite convert_typ_app, denote_code_app.
+      repeat norm_v.
+      subst.
+      ret_bind_l_left (memH,i2).
+      eapply eutt_clo_bind; [eassumption | clear IHnexp1].
+
+      introR; destruct_unit.
+      destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI) & GAMMAI).
+      cbn in *.
+
+      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs3 PREI).
+
+      cbn* in IHnexp2;
+        repeat norm_v in IHnexp2;
+        repeat norm_h in IHnexp2.
+      simpl_match in IHnexp2.
+      repeat norm_h in IHnexp2.
+
+      rewrite convert_typ_app, denote_code_app.
+      repeat norm_v.
+      subst.
+      ret_bind_l_left (memH,i3).
+      eapply eutt_clo_bind; [eassumption | clear IHnexp2].
+
+      introR; destruct_unit.
+      destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
+      (* cbn takes 5seconds instead of doing this instantaneously... *)
+      simpl in *; unfold denote_op; simpl.
+      cbn; rewrite denote_code_sing; cbn.
+      unfold IntType; rewrite typ_to_dtyp_I.
+
+      specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
+      rewrite Heqs2 in EVAL_vH; injection EVAL_vH; intros; subst.
+
+      assert (l0 ⊑ l0) as L0L0 by reflexivity.
+      specialize (EXPRF _ L0L0) as [EXPRF EVAL_vH0].
+      rewrite Heqs3 in EVAL_vH0; injection EVAL_vH0; intros; subst.
+      clear L0L0.
+
+      cbn*.
+
+      rewrite denote_instr_op.
+
+      (* Operator evaluation *)
+      2: {
+        (* First subexpression *)
+        cbn.
+        rewrite translate_bind.
+        rewrite interp_cfg_to_L3_bind.
+        rewrite <- EXPRI.
+        rewrite bind_ret_l.
+
+        (* Second subexpression *)
+        rewrite translate_bind.
+        rewrite interp_cfg_to_L3_bind.
+        rewrite <- EXPRF.
+        rewrite bind_ret_l.
+
+        cbn.
+
+        break_inner_match;
+          repeat norm_h; rewrite interp_cfg_to_L3_ret;
             reflexivity.
-          }
+      }
 
-          rewrite Heqs2.
-          rewrite Heqs3.
-          auto.
-        }
-        {
-          apply ext_local_subalist.
-          etransitivity; eauto.
-          etransitivity; eauto.
-          apply sub_alist_add.
-          apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
-          eapply PREF.
-          eauto.
-        }
-        {
-          rewrite GAMMAI, GAMMAF.
-          symmetry; eapply incLocal_Γ; eauto.
+      repeat norm_v.
+      apply eutt_Ret; split; [| split].
+      cbn; eapply state_invariant_add_fresh; eauto.
+      split.
+      {
+        cbn; intros ? MONO.
+        split.
+        { repeat norm_v.
+          2: apply MONO, In_add_eq.
+          cbn; repeat norm_v.
+          apply eutt_Ret.
+          do 3 f_equal.
         }
 
+        repeat match_rewrite.
+        reflexivity.
+      }
+      {
+        apply ext_local_subalist.
+        etransitivity; eauto.
+        etransitivity; eauto.
+        apply sub_alist_add.
+        apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
+        eapply PREF.
+        eauto.
+      }
+      {
+        rewrite GAMMAI, GAMMAF.
+        symmetry; eapply incLocal_Γ; eauto.
+      }
     - (* NMin *)
       (* Non-implemented by the compiler *)
       inversion COMPILE.
@@ -855,4 +927,3 @@ Ltac genNExpr_rel_subst LL :=
     pose proof genNExpr_g NEXP as H; subst g';
     pose proof genNExpr_l NEXP as LL
   end.
-
