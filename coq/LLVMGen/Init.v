@@ -845,9 +845,172 @@ Proof.
     with
       (mg' <- (@go E_mcfg memory (@RetF E_mcfg memory (itree E_mcfg memory) mg)) ;;
        mgy <- Ret (memory_set mg' (S (Datatypes.length globals)) mo) ;;
-       Ret (memory_set mgy (Datatypes.length globals) mi, ())).
+       Ret (memory_set mgy (Datatypes.length globals) mi, ()))
+    by admit.
 
   cbn.
+
+  (* these are just to make the goal a bit more readable *)
+  remember (fun pat : prod memory unit =>
+     match pat return (forall _ : config_mcfg_T unit, Prop) with
+     | pair memH _ =>
+         fun pat0 : config_mcfg_T unit =>
+         match pat0 return Prop with
+         | pair memV p =>
+             match p return Prop with
+             | pair p0 p1 =>
+                 match p0 return Prop with
+                 | pair l3 _ =>
+                     match p1 return Prop with
+                     | pair g _ =>
+                         state_invariant e
+                           (mkIRstate block_count local_count void_count
+                              (@app (prod ident typ) Γ_globals
+                                 (@cons (prod ident typ) fake_x
+                                    (@cons (prod ident typ) fake_y (@nil (prod ident typ))))))
+                           memH
+                           (@pair memory_stack (prod local_env global_env) memV
+                              (@pair local_env global_env l3 g))
+                     end
+                 end
+             end
+         end
+     end) as REL.
+
+  remember (@ITree.bind' E_mcfg memory (prod memory unit)
+       (fun mg' : memory =>
+        @ITree.bind' E_mcfg memory (prod memory unit)
+          (fun mgy : memory =>
+           @go E_mcfg (prod memory unit)
+             (@RetF E_mcfg (prod memory unit) (itree E_mcfg (prod memory unit))
+                (@pair memory unit
+                   (memory_set mgy (@Datatypes.length (prod string DSHType) globals) mi) tt)))
+          (@go E_mcfg memory
+             (@RetF E_mcfg memory (itree E_mcfg memory)
+                (memory_set mg' (S (@Datatypes.length (prod string DSHType) globals)) mo))))
+       (@go E_mcfg memory (@RetF E_mcfg memory (itree E_mcfg memory) mg))) as DSHM.
+
+  remember (Traversal.fmap (typ_to_dtyp [ ])
+                                   (map
+                                      (λ d : definition typ
+                                               (LLVMAst.block typ * list (LLVMAst.block typ)),
+                                         {|
+                                         df_prototype := df_prototype d;
+                                         df_args := df_args d;
+                                         df_instrs := cfg_of_definition typ d |})
+                                      (((flat_map (definitions_of typ) t ++
+                                         flat_map (definitions_of typ) gdecls) ++
+                                        [{|
+                                         df_prototype := {|
+                                                         dc_name := Name name;
+                                                         dc_type := TYPE_Function TYPE_Void
+                                                               [
+                                                               TYPE_Pointer
+                                                               (TYPE_Array 
+                                                               (Int64.intval i) TYPE_Double);
+                                                               TYPE_Pointer
+                                                               (TYPE_Array 
+                                                               (Int64.intval o) TYPE_Double)];
+                                                         dc_param_attrs := ([ ],
+                                                               [
+                                                               PARAMATTR_Readonly
+                                                               :: ArrayPtrParamAttrs;
+                                                               ArrayPtrParamAttrs]);
+                                                         dc_linkage := None;
+                                                         dc_visibility := None;
+                                                         dc_dll_storage := None;
+                                                         dc_cconv := None;
+                                                         dc_attrs := [ ];
+                                                         dc_section := None;
+                                                         dc_align := None;
+                                                         dc_gc := None |};
+                                         df_args := [Name "X"; Name "Y"];
+                                         df_instrs := body_instr |}]) ++
+                                       [{|
+                                        df_prototype := {|
+                                                        dc_name := Name "main";
+                                                        dc_type := TYPE_Function
+                                                               (TYPE_Array 
+                                                               (Int64.intval o) TYPE_Double)
+                                                               [ ];
+                                                        dc_param_attrs := ([ ], [ ]);
+                                                        dc_linkage := None;
+                                                        dc_visibility := None;
+                                                        dc_dll_storage := None;
+                                                        dc_cconv := None;
+                                                        dc_attrs := [ ];
+                                                        dc_section := None;
+                                                        dc_align := None;
+                                                        dc_gc := None |};
+                                        df_args := [ ];
+                                        df_instrs := ({|
+                                                      blk_id := Name "main_block";
+                                                      blk_phis := [ ];
+                                                      blk_code := [
+                                                               (
+                                                               IVoid 0%Z,
+                                                               INSTR_Call
+                                                               (TYPE_Void,
+                                                               EXP_Ident
+                                                               (ID_Global (Name name)))
+                                                               [
+                                                               (
+                                                               TYPE_Pointer
+                                                               (TYPE_Array 
+                                                               (Int64.intval i) TYPE_Double),
+                                                               EXP_Ident
+                                                               (ID_Global (Anon 0%Z)));
+                                                               (
+                                                               TYPE_Pointer
+                                                               (TYPE_Array 
+                                                               (Int64.intval o) TYPE_Double),
+                                                               EXP_Ident
+                                                               (ID_Global (Anon 1%Z)))]);
+                                                               (
+                                                               IId (Name "z"),
+                                                               INSTR_Load false
+                                                               (TYPE_Array 
+                                                               (Int64.intval o) TYPE_Double)
+                                                               (
+                                                               TYPE_Pointer
+                                                               (TYPE_Array 
+                                                               (Int64.intval o) TYPE_Double),
+                                                               EXP_Ident
+                                                               (ID_Global (Anon 1%Z))) None)];
+                                                      blk_term := (
+                                                               IId (Name "main_ret"),
+                                                               TERM_Ret
+                                                               (
+                                                               TYPE_Array 
+                                                               (Int64.intval o) TYPE_Double,
+                                                               EXP_Ident
+                                                               (ID_Local (Name "z"))));
+                                                      blk_comments := None |}, [ ]) |}])))
+           as HUNK.
+
+  rewrite <-translate_bind. (* this is great, leave this *)
+  rewrite <-bind_bind.
+  (* setoid_rewrite interp_to_L3_bind. *) (* this would nice at the first lambda *)
+
+  (*
+  repeat break_let.
+  
+
+  rewrite interp_to_L3_ret, translate_ret.
+  setoid_rewrite bind_ret_l at 2.
+  rewrite interp_to_L3_bind, translate_bind.
+  rewrite interp_to_L3_bind.
+  setoid_rewrite translate_bind.
+
+  repeat rewrite <-app_assoc.
+  rewrite map_app.
+  repeat break_let.
+
+  setoid_rewrite <-bind_bind at 2.
+
+  subst.
+  cbn.
+   *)
 
   eapply eutt_clo_bind.
   -
@@ -922,7 +1085,6 @@ Proof.
     +
       intros.
       repeat break_let.
-      cbn.
       
       
       
