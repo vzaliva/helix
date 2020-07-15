@@ -709,9 +709,10 @@ Proof.
   (* [s3] contains two local for X,Y parameter which we drop: *)
 
   rename l5 into Γ_globals.
-  rename l8 into Γ_fake_xy.
-  rename l6 into Γ_xy_fake_xy. (* temporary *)
-  rename l7 into Γ_xy. (* this ones are dropped *)
+  (* these ones are dropped *)
+  rename l8 into Γ_fake_xy,
+         l6 into Γ_xy_fake_xy,
+         l7 into Γ_xy.
 
   assert (ΓXYFXY : exists x y fake_x fake_y, Γ_xy_fake_xy ≡ [x; y; fake_x; fake_y]).
   {
@@ -742,7 +743,6 @@ Proof.
   repeat rewrite ListUtil.flat_map_app.
   simpl.
   (* no more [genMain] *)
-
 
   destruct s3.
 
@@ -850,29 +850,82 @@ Proof.
   cbn.
 
   eapply eutt_clo_bind.
-  admit.
-  intros.
+  -
+    admit.
+  -
+    intros.
+    cbn.
+    repeat break_let.
+    
+    rewrite translate_bind.
 
-  rewrite translate_bind.
-  cbn.
-  repeat break_let.
+    rewrite interp_to_L3_ret, translate_ret.
+    setoid_rewrite bind_ret_l at 2.
+    rewrite interp_to_L3_bind, translate_bind.
+    rewrite interp_to_L3_bind.
+    setoid_rewrite translate_bind.
 
-  rewrite interp_to_L3_ret, translate_ret.
+    repeat rewrite <-app_assoc.
+    rewrite map_app.
+    repeat break_let.
 
-  setoid_rewrite bind_ret_l at 2.
+    replace (
+      @Traversal.fmap (fun T : Set => list (declaration T))
+        (@Traversal.Fmap_list' declaration
+           (@Traversal.Fmap_declaration (Traversal.Endo_id function_id) 
+              (Traversal.Endo_id string) (Traversal.Endo_id int) (Traversal.Endo_id param_attr)
+              (Traversal.Endo_id linkage) (Traversal.Endo_id visibility)
+              (Traversal.Endo_id dll_storage) (Traversal.Endo_id cconv)
+              (Traversal.Endo_id fn_attr))) typ dtyp (typ_to_dtyp (@nil (prod ident typ)))
+        (@app (declaration typ)
+           (@flat_map (toplevel_entity typ (prod (LLVMAst.block typ) (list (LLVMAst.block typ))))
+              (declaration typ)
+              (@declarations_of typ (prod (LLVMAst.block typ) (list (LLVMAst.block typ)))) t)
+           (@app (declaration typ)
+              (@flat_map
+                 (toplevel_entity typ (prod (LLVMAst.block typ) (list (LLVMAst.block typ))))
+                 (declaration typ)
+                 (@declarations_of typ (prod (LLVMAst.block typ) (list (LLVMAst.block typ))))
+                 gdecls)
+              (@cons (declaration typ) maxnum_32_decl
+                 (@cons (declaration typ) maxnum_64_decl
+                    (@cons (declaration typ) minimum_64_decl
+                       (@cons (declaration typ) IntrinsicsDefinitions.fabs_32_decl
+                          (@cons (declaration typ) IntrinsicsDefinitions.fabs_64_decl
+                             (@cons (declaration typ) IntrinsicsDefinitions.memcpy_8_decl
+                                (@nil (declaration typ)))))))))))
+      with (
+        app
+        (Traversal.fmap (typ_to_dtyp nil) (flat_map (declarations_of typ) t))
+        (Traversal.fmap (typ_to_dtyp nil)
+                              (app (flat_map (declarations_of typ) gdecls)
+                                 (cons maxnum_32_decl
+                                    (cons maxnum_64_decl
+                                       (cons minimum_64_decl
+                                          (cons IntrinsicsDefinitions.fabs_32_decl
+                                             (cons IntrinsicsDefinitions.fabs_64_decl
+                                                   (cons IntrinsicsDefinitions.memcpy_8_decl nil))))))))
+        )
+      by
+        admit.
 
-  rewrite interp_to_L3_bind, translate_bind.
-
-  rewrite interp_to_L3_bind.
-  setoid_rewrite translate_bind.
-  rewrite map_map.
-
-  
-
-
-
-
-
+    rewrite map_monad_app at 1; cbn.
+    rewrite interp_to_L3_bind.
+    setoid_rewrite translate_bind.
+    repeat rewrite bind_bind.
+    
+    eapply eutt_clo_bind.
+    +
+      cbn.
+      repeat break_let.
+      admit.
+    +
+      intros.
+      repeat break_let.
+      cbn.
+      
+      
+      
 
 
 
