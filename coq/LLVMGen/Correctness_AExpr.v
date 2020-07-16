@@ -513,7 +513,6 @@ Section AExpr.
       specialize (exp_correct _ L'L') as (NEXP_EUTT & NEXP_EVAL).
       setoid_rewrite <- NEXP_EUTT.
 
-      setoid_rewrite bind_ret_l.
       repeat norm_v.
 
       destruct MINV as (MINV & PRESERVES).
