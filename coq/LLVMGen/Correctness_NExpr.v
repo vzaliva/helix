@@ -336,29 +336,15 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
 
           (* Operator evaluation *)
           2: {
-            cbn.
-            rewrite translate_bind.
-            rewrite interp_cfg_to_L3_bind.
-            rewrite <- EXPRI.
-            rewrite bind_ret_l.
+            eapply denote_ibinop_concrete; cbn; eauto; try reflexivity.
+            cbn; break_inner_match_goal; try reflexivity.
 
-            rewrite translate_bind.
-            rewrite interp_cfg_to_L3_bind.
-            rewrite <- EXPRF.
-            rewrite bind_ret_l.
-
-            cbn.
-            break_inner_match_goal.
-            - (* Division by 0 *)
-              apply Z.eqb_eq in Heqb.
-              exfalso. apply n.
-              rewrite <- Int64.unsigned_zero in Heqb.
-              unfold MInt64asNT.NTypeZero.
-              apply unsigned_is_zero; auto.
-            - (* Good old division *)
-              repeat norm_h.
-              rewrite interp_cfg_to_L3_ret.
-              reflexivity.
+            (* Division by 0 *)
+            apply Z.eqb_eq in Heqb.
+            exfalso. apply n.
+            rewrite <- Int64.unsigned_zero in Heqb.
+            unfold MInt64asNT.NTypeZero.
+            apply unsigned_is_zero; auto.
           }
 
           repeat norm_v.
@@ -462,29 +448,15 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
 
           (* Operator evaluation *)
           2: {
-            cbn.
-            rewrite translate_bind.
-            rewrite interp_cfg_to_L3_bind.
-            rewrite <- EXPRI.
-            rewrite bind_ret_l.
+            eapply denote_ibinop_concrete; cbn; eauto; try reflexivity.
+            cbn; break_inner_match_goal; try reflexivity.
 
-            rewrite translate_bind.
-            rewrite interp_cfg_to_L3_bind.
-            rewrite <- EXPRF.
-            rewrite bind_ret_l.
-
-            cbn.
-            break_inner_match_goal.
-            - (* Division by 0 *)
-              apply Z.eqb_eq in Heqb.
-              exfalso. apply n.
-              rewrite <- Int64.unsigned_zero in Heqb.
-              unfold MInt64asNT.NTypeZero.
-              apply unsigned_is_zero; auto.
-            - (* Good old division *)
-              repeat norm_h.
-              rewrite interp_cfg_to_L3_ret.
-              reflexivity.
+            (* Division by 0 *)
+            apply Z.eqb_eq in Heqb.
+            exfalso. apply n.
+            rewrite <- Int64.unsigned_zero in Heqb.
+            unfold MInt64asNT.NTypeZero.
+            apply unsigned_is_zero; auto.
           }
 
           repeat norm_v.
@@ -585,7 +557,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       rewrite denote_instr_op.
 
       (* Operator evaluation *)
-      2: eapply denote_ibinop_not_div; cbn; eauto; reflexivity.
+      2: eapply denote_ibinop_concrete; cbn; eauto; reflexivity.
 
       repeat norm_v.
       apply eutt_Ret; split; [| split].
@@ -685,7 +657,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       rewrite denote_instr_op.
 
       (* Operator evaluation *)
-      2: eapply denote_ibinop_not_div; cbn; eauto; reflexivity.
+      2: eapply denote_ibinop_concrete; cbn; eauto; reflexivity.
 
       repeat norm_v.
       apply eutt_Ret; split; [| split].
@@ -786,7 +758,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
 
       (* Operator evaluation *)
       2: {
-        eapply denote_ibinop_not_div; cbn; eauto; try reflexivity.
+        eapply denote_ibinop_concrete; cbn; eauto; try reflexivity.
         cbn.
         break_inner_match; reflexivity.
       }
