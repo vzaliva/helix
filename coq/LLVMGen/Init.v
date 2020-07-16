@@ -858,37 +858,116 @@ Proof.
   eutt_hide_rel REL.
   eutt_hide_left DSHM.
 
+  (* @lord, I spent way too long trying to shorten these *)
+  remember {|
+      df_prototype := {|
+                       dc_name := Name name;
+                       dc_type := TYPE_Function TYPE_Void
+                                                [
+                                                  TYPE_Pointer
+                                                    (TYPE_Array 
+                                                       (Int64.intval i) TYPE_Double);
+                                                  TYPE_Pointer
+                                                    (TYPE_Array 
+                                                       (Int64.intval o) TYPE_Double)];
+                       dc_param_attrs := ([ ],
+                                          [
+                                            PARAMATTR_Readonly
+                                              :: ArrayPtrParamAttrs;
+                                            ArrayPtrParamAttrs]);
+                       dc_linkage := None;
+                       dc_visibility := None;
+                       dc_dll_storage := None;
+                       dc_cconv := None;
+                       dc_attrs := [ ];
+                       dc_section := None;
+                       dc_align := None;
+                       dc_gc := None |};
+      df_args := [Name "X"; Name "Y"];
+      df_instrs := body_instr |}
+    as XY.
+
+  remember {|
+      df_prototype := {|
+                       dc_name := Name "main";
+                       dc_type := TYPE_Function
+                                    (TYPE_Array 
+                                       (Int64.intval o) TYPE_Double)
+                                    [ ];
+                       dc_param_attrs := ([ ], [ ]);
+                       dc_linkage := None;
+                       dc_visibility := None;
+                       dc_dll_storage := None;
+                       dc_cconv := None;
+                       dc_attrs := [ ];
+                       dc_section := None;
+                       dc_align := None;
+                       dc_gc := None |};
+      df_args := [ ];
+      df_instrs := ({|
+                       blk_id := Name "main_block";
+                       blk_phis := [ ];
+                       blk_code := [
+                                    (
+                                      IVoid 0%Z,
+                                      INSTR_Call
+                                        (TYPE_Void,
+                                         EXP_Ident
+                                           (ID_Global (Name name)))
+                                        [
+                                          (
+                                            TYPE_Pointer
+                                              (TYPE_Array 
+                                                 (Int64.intval i) TYPE_Double),
+                                            EXP_Ident
+                                              (ID_Global (Anon 0%Z)));
+                                          (
+                                            TYPE_Pointer
+                                              (TYPE_Array 
+                                                 (Int64.intval o) TYPE_Double),
+                                            EXP_Ident
+                                              (ID_Global (Anon 1%Z)))]);
+                                    (
+                                      IId (Name "z"),
+                                      INSTR_Load false
+                                                 (TYPE_Array 
+                                                    (Int64.intval o) TYPE_Double)
+                                                 (
+                                                   TYPE_Pointer
+                                                     (TYPE_Array 
+                                                        (Int64.intval o) TYPE_Double),
+                                                   EXP_Ident
+                                                     (ID_Global (Anon 1%Z))) None)];
+                       blk_term := (
+                                    IId (Name "main_ret"),
+                                    TERM_Ret
+                                      (
+                                        TYPE_Array 
+                                          (Int64.intval o) TYPE_Double,
+                                        EXP_Ident
+                                          (ID_Local (Name "z"))));
+                       blk_comments := None |}, [ ]) |}
+    as FAKE_XY.
+
+  remember [maxnum_32_decl; maxnum_64_decl; minimum_64_decl;
+            IntrinsicsDefinitions.fabs_32_decl;
+            IntrinsicsDefinitions.fabs_64_decl;
+            IntrinsicsDefinitions.memcpy_8_decl]
+    as DECLS.
+
+  rewrite <-translate_bind.
+  rewrite <-bind_bind.
+  repeat rewrite <-interp_to_L3_bind.
+
   match goal with
-  | [|- context[map_monad
-                 allocate_declaration
-                 (Traversal.fmap _ _ ++ map df_prototype ?hunk)]
-    ] => remember hunk as HUNK
+  | [ |- context[Traversal.fmap _ (map ?f _)] ] => remember f as mapF
   end.
 
+  repeat progress (try rewrite map_app; cbn).
 
-  rewrite <-translate_bind. (* this is great, leave this *)
-  rewrite <-bind_bind.
-  (* setoid_rewrite interp_to_L3_bind. *) (* this would nice at the first lambda *)
-
-  (*
-  repeat break_let.
+  (* setoid_rewrite fmap_list_app. *) (* still doesn't work C: *)
   
-
-  rewrite interp_to_L3_ret, translate_ret.
-  setoid_rewrite bind_ret_l at 2.
-  rewrite interp_to_L3_bind, translate_bind.
-  rewrite interp_to_L3_bind.
-  setoid_rewrite translate_bind.
-
-  repeat rewrite <-app_assoc.
-  rewrite map_app.
-  repeat break_let.
-
-  setoid_rewrite <-bind_bind at 2.
-
-  subst.
-  cbn.
-   *)
+  repeat unfold Traversal.fmap, Traversal.Fmap_list', Traversal.Fmap_definition.
 
   eapply eutt_clo_bind.
   -
