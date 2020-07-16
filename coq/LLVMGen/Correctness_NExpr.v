@@ -255,7 +255,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
 
       cbn* in COMPILE; simp.
 
-      eutt_hide_right.
+      eutt_hide_right i1.
       unfold denoteNExpr in *; cbn*.
 
       cbn in EVAL.
@@ -374,7 +374,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
     - (*NMod *)
       cbn* in COMPILE; simp.
 
-      eutt_hide_right.
+      eutt_hide_right i1.
       unfold denoteNExpr in *; cbn*.
 
       cbn in EVAL.
@@ -491,7 +491,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       rename g into g1, l into l1, memV into memV1.
       cbn* in COMPILE; simp.
 
-      eutt_hide_right.
+      eutt_hide_right i1.
       unfold denoteNExpr in *; cbn*.
 
       cbn in EVAL.
@@ -594,7 +594,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
     - (* NMinus *)
       cbn* in COMPILE; simp.
 
-      eutt_hide_right.
+      eutt_hide_right i1.
       unfold denoteNExpr in *; cbn*.
 
       cbn in EVAL.
@@ -696,7 +696,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
     - (* NMult *)
       cbn* in COMPILE; simp.
 
-      eutt_hide_right.
+      eutt_hide_right i1.
       unfold denoteNExpr in *; cbn*.
 
       cbn in EVAL.

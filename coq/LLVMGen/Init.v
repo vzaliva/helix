@@ -856,7 +856,7 @@ Proof.
 
   (* these are just to make the goal a bit more readable *)
   eutt_hide_rel REL.
-  eutt_hide_left; rename i0 into DSHM.
+  eutt_hide_left DSHM.
 
   match goal with
   | [|- context[map_monad
