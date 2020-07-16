@@ -585,25 +585,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       rewrite denote_instr_op.
 
       (* Operator evaluation *)
-      2: {
-        (* First subexpression *)
-        cbn.
-        rewrite translate_bind.
-        rewrite interp_cfg_to_L3_bind.
-        rewrite <- EXPRI.
-        rewrite bind_ret_l.
-
-        (* Second subexpression *)
-        rewrite translate_bind.
-        rewrite interp_cfg_to_L3_bind.
-        rewrite <- EXPRF.
-        rewrite bind_ret_l.
-
-        cbn.
-        repeat norm_h.
-        rewrite interp_cfg_to_L3_ret.
-        reflexivity.
-      }
+      2: eapply denote_ibinop_not_div; cbn; eauto; reflexivity.
 
       repeat norm_v.
       apply eutt_Ret; split; [| split].
@@ -703,25 +685,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       rewrite denote_instr_op.
 
       (* Operator evaluation *)
-      2: {
-        (* First subexpression *)
-        cbn.
-        rewrite translate_bind.
-        rewrite interp_cfg_to_L3_bind.
-        rewrite <- EXPRI.
-        rewrite bind_ret_l.
-
-        (* Second subexpression *)
-        rewrite translate_bind.
-        rewrite interp_cfg_to_L3_bind.
-        rewrite <- EXPRF.
-        rewrite bind_ret_l.
-
-        cbn.
-        repeat norm_h.
-        rewrite interp_cfg_to_L3_ret.
-        reflexivity.
-      }
+      2: eapply denote_ibinop_not_div; cbn; eauto; reflexivity.
 
       repeat norm_v.
       apply eutt_Ret; split; [| split].
@@ -822,24 +786,9 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
 
       (* Operator evaluation *)
       2: {
-        (* First subexpression *)
+        eapply denote_ibinop_not_div; cbn; eauto; try reflexivity.
         cbn.
-        rewrite translate_bind.
-        rewrite interp_cfg_to_L3_bind.
-        rewrite <- EXPRI.
-        rewrite bind_ret_l.
-
-        (* Second subexpression *)
-        rewrite translate_bind.
-        rewrite interp_cfg_to_L3_bind.
-        rewrite <- EXPRF.
-        rewrite bind_ret_l.
-
-        cbn.
-
-        break_inner_match;
-          repeat norm_h; rewrite interp_cfg_to_L3_ret;
-            reflexivity.
+        break_inner_match; reflexivity.
       }
 
       repeat norm_v.
