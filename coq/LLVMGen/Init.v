@@ -960,7 +960,7 @@ Proof.
   repeat rewrite <-interp_to_L3_bind.
 
   match goal with
-  | [ |- context[Traversal.fmap _ (map ?f _)] ] => remember f as mapF
+  | [ |- context[Traversal.fmap _ (map ?f _)] ] => remember f as F1
   end.
 
   repeat progress (try rewrite map_app; cbn).
@@ -968,6 +968,43 @@ Proof.
   (* setoid_rewrite fmap_list_app. *) (* still doesn't work C: *)
   
   repeat unfold Traversal.fmap, Traversal.Fmap_list', Traversal.Fmap_definition.
+  repeat rewrite <-app_assoc.
+  repeat (rewrite map_app; cbn).
+
+  remember (λ d : definition typ (cfg typ),
+                                 {|
+                                 df_prototype := Traversal.Fmap_declaration typ dtyp
+                                                   (typ_to_dtyp [ ]) 
+                                                   (df_prototype d);
+                                 df_args := Traversal.endo (df_args d);
+                                 df_instrs := Traversal.Fmap_cfg typ dtyp 
+                                                (typ_to_dtyp [ ]) 
+                                                (df_instrs d) |}) as F2.
+
+  remember (Traversal.Fmap_declaration typ dtyp (typ_to_dtyp [ ])) as F3.
+  repeat rewrite <-app_assoc.
+
+  (*  this splits globals from Xs and Ys *)
+  replace (map F3 (flat_map (declarations_of typ) t) ++
+               map F3 (flat_map (declarations_of typ) gdecls) ++
+               map F3 DECLS ++
+               map df_prototype (map F2 (map F1 (flat_map (definitions_of typ) t))) ++
+               map df_prototype
+               (map F2 (map F1 (flat_map (definitions_of typ) gdecls))) ++
+               [F3 (df_prototype (F1 XY)); F3 (df_prototype (F1 FAKE_XY))])%list
+    with (app
+            (map F3 (flat_map (declarations_of typ) t) ++
+                 map F3 (flat_map (declarations_of typ) gdecls) ++
+                 map F3 DECLS ++
+                 map df_prototype (map F2 (map F1 (flat_map (definitions_of typ) t))) ++
+                 map df_prototype
+                 (map F2 (map F1 (flat_map (definitions_of typ) gdecls))))
+            [F3 (df_prototype (F1 XY)); F3 (df_prototype (F1 FAKE_XY))])%list
+    by (repeat rewrite <-app_assoc; reflexivity).
+  setoid_rewrite map_monad_app at 2.
+
+  (* however there are still more under second-to-last lambda *)
+  cbn.
 
   eapply eutt_clo_bind.
   -
