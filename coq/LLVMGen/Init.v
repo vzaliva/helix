@@ -1003,8 +1003,42 @@ Proof.
     by (repeat rewrite <-app_assoc; reflexivity).
   setoid_rewrite map_monad_app at 2.
 
-  (* however there are still more under second-to-last lambda *)
+  remember (map_monad allocate_global
+                   (map (Traversal.Fmap_global typ dtyp (typ_to_dtyp [ ]))
+                      (flat_map (globals_of typ) t) ++
+                    map (Traversal.Fmap_global typ dtyp (typ_to_dtyp [ ]))
+                    (flat_map (globals_of typ) gdecls)))
+    as GLOB1.
+  
+  remember (map_monad allocate_declaration
+                        (map F3 (flat_map (declarations_of typ) t) ++
+                         map F3 (flat_map (declarations_of typ) gdecls) ++
+                         map F3 DECLS ++
+                         map df_prototype
+                           (map F2 (map F1 (flat_map (definitions_of typ) t))) ++
+                         map df_prototype
+                         (map F2 (map F1 (flat_map (definitions_of typ) gdecls)))))
+    as GLOB2.
+
+  remember (map_monad allocate_declaration
+                      [F3 (df_prototype (F1 XY)); F3 (df_prototype (F1 FAKE_XY))])
+    as XYFAKEXY.
+
   cbn.
+
+  repeat rewrite <-bind_bind.
+  setoid_rewrite translate_bind.
+  setoid_rewrite translate_ret.
+
+  remember (translate _exp_E_to_L0
+                      (map_monad initialize_global
+                                 (map (Traversal.Fmap_global typ dtyp (typ_to_dtyp [ ]))
+                                      (flat_map (globals_of typ) t) ++
+                                      map (Traversal.Fmap_global typ dtyp (typ_to_dtyp [ ]))
+                                      (flat_map (globals_of typ) gdecls))))
+    as GLOB3.
+
+  repeat rewrite interp_to_L3_bind.
 
   eapply eutt_clo_bind.
   -
