@@ -435,22 +435,11 @@ Section AExpr.
       epose proof genMExpr_correct _ Heqs0 Heqs4 SINV as MCODE.
 
       (* Should be able to pull e1 out from the denotation of GEP *)
-
-      (* TODO: this is awful. *)
-      change [(IId r,
-                  INSTR_Op
-                    (OP_GetElementPtr t (TYPE_Pointer t, e1)
-                       [(IntType, EXP_Integer 0%Z); (IntType, e0)]));
-                 (IId r0,
-                 INSTR_Load false TYPE_Double (TYPE_Pointer TYPE_Double, EXP_Ident (ID_Local r))
-                            (Some 8%Z))] with
-          ([(IId r,
-                  INSTR_Op
-                    (OP_GetElementPtr t (TYPE_Pointer t, e1)
-                       [(IntType, EXP_Integer 0%Z); (IntType, e0)]))] ++
-          [(IId r0,
-                 INSTR_Load false TYPE_Double (TYPE_Pointer TYPE_Double, EXP_Ident (ID_Local r))
-                   (Some 8%Z))])%list.
+      match goal with
+      | |- context [ [?a; ?b] ] =>
+        change [a; b] with
+            ([a] ++ [b])%list
+      end.
 
       rewrite app_assoc.
       rewrite convert_typ_app.
