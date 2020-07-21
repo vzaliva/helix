@@ -678,6 +678,7 @@ Lemma memory_invariant_after_init
                        [] ([],[]) empty_memory_stack)
       ).
 Proof.
+  (*
   intros hmem σ s hdata pll [HI LI].
 
   unfold state_invariant_mcfg.
@@ -687,7 +688,6 @@ Proof.
   rename Heqp0 into Co, Heqp1 into Ci.
   inv HI.
   rename m1 into mg, Heqs0 into G.
-
   cbn in LI.
   unfold ErrorWithState.option2errS in *.
   repeat break_match_hyp; try inl_inr;
@@ -1560,6 +1560,7 @@ Proof.
           unfold lift_Rel_mcfg in *.
           repeat break_let.
           auto.
+*)
 Admitted.
 
 (* with init step  *)
