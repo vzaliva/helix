@@ -42,6 +42,7 @@ Require Import Vellvm.InterpreterCFG.
 Require Import Vellvm.TopLevelRefinements.
 Require Import Vellvm.TypToDtyp.
 Require Import Vellvm.LLVMEvents.
+Require Import Vellvm.Denotation_Theory.
 
 Require Import Ceres.Ceres.
 
@@ -96,26 +97,28 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   Section GenIR.
 
 
-  Definition GenIR_Rel σ Γ : Rel_cfg_T unit (block_id + uvalue) :=
+  Definition GenIR_Rel σ Γ : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
     lift_Rel_cfg (state_invariant σ Γ).
 
   Opaque denote_code.
  Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
       (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH) fuel v
-      (** Vellvm bits   *) (nextblock bid_in : block_id) (bks : list (LLVMAst.block typ))
+      (** Vellvm bits   *) (nextblock bid_in bid_from : block_id) (bks : list (LLVMAst.block typ))
       (* (env : list (ident * typ)) *)  (g : global_env) (ρ : local_env) (memV : memoryV),
       nextblock ≢ bid_in -> (* YZ: not sure about this yet *)
-      GenIR_Rel σ s1 (memH,tt) (memV, (ρ, (g, (inl bid_in)))) ->
+      GenIR_Rel σ s1 (memH,tt) (memV, (ρ, (g, (inl (bid_from, bid_in))))) ->
       evalDSHOperator σ op memH fuel ≡ Some (inr v)            -> (* Evaluation succeeds *)
       genIR op nextblock s1 ≡ inr (s2,(bid_in,bks)) ->
       eutt (GenIR_Rel σ s1)
            (with_err_RB
               (interp_Mem (denoteDSHOperator σ op) memH))
            (with_err_LB
-              (interp_cfg (D.denote_bks (convert_typ [] bks) bid_in)
+              (interp_cfg (D.denote_bks (convert_typ [] bks) (bid_from,bid_in))
                                 g ρ memV)).
-  Proof.
+ Proof.
+   (** 
+
     intros s1 s2 op; revert s1 s2; induction op; intros * NEXT BISIM EVAL GEN.
     - cbn* in GEN.
       simp.
@@ -164,10 +167,14 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       subst; eutt_hide_left.
       unfold add_comments.
       cbn*.
-      rewrite denote_bks_singleton; eauto.
-      2:reflexivity.
+      rewrite denote_bks_unfold_in; eauto.
+      2: rewrite find_block_eq; reflexivity.
       cbn*.
       repeat rewrite fmap_list_app.
+      norm_v.
+      cbn.
+      repeat norm_v.
+      rewrite translate_ret. _ret_l.
       rewrite denote_code_app.
       repeat norm_v.
       subst.
@@ -614,8 +621,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
 
 *)
+*)
   Admitted.
-
   End GenIR.
 
 

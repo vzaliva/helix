@@ -44,6 +44,7 @@ Require Import Vellvm.InterpreterCFG.
 Require Import Vellvm.TopLevelRefinements.
 Require Import Vellvm.TypToDtyp.
 Require Import Vellvm.LLVMEvents.
+Require Import Vellvm.Denotation_Theory.
 
 Require Import Ceres.Ceres.
 
@@ -106,19 +107,19 @@ Definition bodyIMap (f : AExpr) (σ : evalContext) (x: mem_block) (n: nat) (y: m
         v' <- denoteIUnCType σ f vn v ;;
         ret (mem_add n v' y).
 
-Definition  IMap_Rel σ Γ : Rel_cfg_T mem_block (block_id + uvalue) :=
+Definition  IMap_Rel σ Γ : Rel_cfg_T mem_block (block_id * block_id + uvalue) :=
   lift_Rel_cfg (state_invariant σ Γ).
 
 Definition uvalue_of_nat k := UVALUE_I64 (Int64.repr (Z.of_nat k)).
 
-Lemma bodyIMapCorrect : forall i o vx vy f loopvar loopcontblock s1 s2 bid bodyV
+Lemma bodyIMapCorrect : forall i o vx vy f loopvar loopcontblock s1 s2 bid_from bid_src bodyV
                           memx memy
                           (σ : evalContext) (memH : memoryH) (memV : memoryV) l g
                           (* nx memx mx ix ny my iy *)
                           nx ny szx szy 
                           mbkx mbky szx' szy'
   ,
-    genIMapBody i o vx vy f loopvar loopcontblock s1 ≡ inr (s2, (bid,bodyV)) ->
+    genIMapBody i o vx vy f loopvar loopcontblock s1 ≡ inr (s2, (bid_src,bodyV)) ->
 
     state_invariant σ s1 memH (memV,(l,g)) ->
 
@@ -148,7 +149,7 @@ What should be exactly the post?
     forall k,
       eutt (IMap_Rel σ s1)
            (with_err_RB (interp_Mem (bodyIMap f σ memx k memy) memH))
-           (with_err_LB (interp_cfg (D.denote_bks (convert_typ [] bodyV) bid) g l memV)).
+           (with_err_LB (interp_cfg (D.denote_bks (convert_typ [] bodyV) (bid_from, bid_src)) g l memV)).
 Proof.
   intros * GEN PRE; intros.
 
@@ -167,12 +168,13 @@ Proof.
       cbn*; repeat norm_h.
       unfold denoteIUnCType.
 
-      rewrite denote_bks_unfold.
+      rewrite denote_bks_unfold_in.
       Opaque find_block.
       2: rewrite find_block_eq; reflexivity.
       cbn.
       repeat norm_v.
       focus_single_step.
+      (*
       rewrite denote_code_cons.
       simpl.
       unfold denote_op.
@@ -197,7 +199,7 @@ Proof.
       cbn; repeat norm_v.
       rewrite exp_E_to_instr_E_Memory,subevent_subevent.
       cbn in *. 
-
+       *)
 Admitted.
 
 (*       apply VEC_LUx in Heqo0. *)

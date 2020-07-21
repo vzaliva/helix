@@ -42,6 +42,8 @@ Require Import Vellvm.InterpreterCFG.
 Require Import Vellvm.TopLevelRefinements.
 Require Import Vellvm.TypToDtyp.
 Require Import Vellvm.LLVMEvents.
+Require Import Vellvm.Denotation_Theory.
+Require Import Vellvm.InstrLemmas.
 
 Require Import Ceres.Ceres.
 
@@ -72,7 +74,24 @@ Import ListNotations.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
-Require Import Vellvm.InstrLemmas.
+Typeclasses Opaque equiv.
+Remove Hints
+       equiv_default_relation
+       abstract_algebra.sg_op_proper
+       abstract_algebra.sm_proper
+       abstract_algebra.comp_proper
+       orders.po_preorder
+       orders.total_order_po
+       orders.le_total
+       orders.join_sl_order
+       orders.lattice_order_join
+       orders.lattice_order_meet
+       orders.strict_po_po
+       orders.srorder_po
+       strong_setoids.binary_strong_morphism_proper
+       semirings.FullPseudoOrder_instance_0
+       minmax.LatticeOrder_instance_0
+       workarounds.equivalence_proper : typeclass_instances.
 
 Section AExpr.
 
@@ -313,7 +332,7 @@ Section AExpr.
           epose proof (memory_invariant_GLU_AExpr _ mem_is_inv Heqo Heqo0).
           destruct H as (ptr & MAP & READ).
 
-          rewrite denote_code_sing; cbn.
+          rewrite denote_code_singleton; cbn.
           repeat norm_v; eauto.
 
           rewrite denote_instr_load; eauto.
@@ -463,7 +482,7 @@ Section AExpr.
 
       (* I want to deconstruct denote_code of OP_GetElementPtr in
          order to expose the underlying denote_exp of e1. *)
-      setoid_rewrite denote_code_sing.
+      setoid_rewrite denote_code_singleton.
       cbn.
 
       (* TODO: avoid this... Want to use GEP lemma for denote_instr *)
@@ -704,11 +723,18 @@ Section AExpr.
       repeat norm_v.
 
       epose proof (AEXPR l2 _) as [EUTT EVAL'].
-      rewrite denote_code_sing.
+      rewrite denote_code_singleton.
 
-      rewrite denote_instr_intrinsic; cbn; eauto.
-      2: cbn; eauto.
+    (* YZ: There is something weird here. I will fix this *)
+      admit.
+      (*
+      rewrite denote_instr_intrinsic; cbn.
+      2,3:reflexivity.
       4: {
+        unfold Monad.eqm, ITreeMonad.EqM_ITree.
+        cbn.
+        setoid_rewrite bind_ret_l.
+        rewrite <- EUTT.
         rewrite interp_cfg_to_L3_bind.
         rewrite <- EUTT.
         setoid_rewrite bind_ret_l.
@@ -764,6 +790,9 @@ Section AExpr.
           inversion Heqs0.
           reflexivity.
           Opaque incLocal.
+
+       *)
+
     - (* APlus *)
       rename g into g1, l into l1, memV into memV1.
       cbn* in COMPILE; simp.
@@ -827,7 +856,7 @@ Section AExpr.
         apply aexp_correct1; eauto.
       }
 
-      rewrite denote_code_sing.
+      rewrite denote_code_singleton.
 
       rewrite denote_instr_op.
       2: {
@@ -938,7 +967,7 @@ Section AExpr.
         apply aexp_correct1; eauto.
       }
 
-      rewrite denote_code_sing.
+      rewrite denote_code_singleton.
 
       rewrite denote_instr_op.
       2: {
@@ -1050,7 +1079,7 @@ Section AExpr.
         apply aexp_correct1; eauto.
       }
 
-      rewrite denote_code_sing.
+      rewrite denote_code_singleton.
 
       rewrite denote_instr_op.
       2: {
@@ -1161,10 +1190,9 @@ Section AExpr.
       { assert (l'' ⊑ l'') as L''L'' by reflexivity.
         apply aexp_correct1; eauto.
       }
-
-      rewrite denote_code_sing.
-
+      rewrite denote_code_singleton.
       rewrite denote_instr_intrinsic; cbn; eauto.
+
       2: cbn; eauto.
       4: {
         rewrite interp_cfg_to_L3_bind.
@@ -1292,7 +1320,7 @@ Section AExpr.
         apply aexp_correct1; eauto.
       }
 
-      rewrite denote_code_sing.
+      rewrite denote_code_singleton.
 
       rewrite denote_instr_intrinsic; cbn; eauto.
       2: cbn; eauto.
@@ -1430,7 +1458,7 @@ Section AExpr.
       repeat setoid_rewrite denote_code_app.
 
       repeat norm_v.
-      setoid_rewrite denote_code_sing.
+      setoid_rewrite denote_code_singleton.
 
       rewrite denote_instr_op.
       2: {
@@ -1439,11 +1467,11 @@ Section AExpr.
 
       cbn.
       repeat norm_v.
-      setoid_rewrite denote_code_sing.
+      setoid_rewrite denote_code_singleton.
       rewrite denote_instr_comment.
       repeat norm_v.
 
-      setoid_rewrite denote_code_sing.
+      setoid_rewrite denote_code_singleton.
       pose proof (float_cmp b' b'') as (cmp_res & CMP_V & CMP_H).
 
       rewrite denote_instr_op.

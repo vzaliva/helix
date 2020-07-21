@@ -45,6 +45,7 @@ Require Import Vellvm.InterpreterCFG.
 Require Import Vellvm.TopLevelRefinements.
 Require Import Vellvm.TypToDtyp.
 Require Import Vellvm.LLVMEvents.
+Require Import Vellvm.Denotation_Theory.
 
 Require Import Ceres.Ceres.
 
@@ -178,7 +179,7 @@ Section MemCopy.
   Lemma MemCopy_Correct:
     ∀ (size : Int64.int) (x_p y_p : PExpr) (s1 s2 : IRState)
       (σ : evalContext) (memH : memoryH) (fuel : nat) (v : memoryH)
-      (nextblock bid_in : block_id) (bks : list (LLVMAst.block typ))
+      (nextblock bid_src bid_in : block_id) (bks : list (LLVMAst.block typ))
       (g : global_env) (ρ : local_env) (memV : memoryV),
       nextblock ≢ bid_in
       → lift_Rel_cfg (state_invariant σ s1) (memH, ()) (memV, (ρ, (g, inl (B := uvalue) bid_in)))
@@ -188,7 +189,7 @@ Section MemCopy.
         (with_err_RB
           (interp_Mem (denoteDSHOperator σ (DSHMemCopy size x_p y_p)) memH))
         (with_err_LB
-          (interp_cfg (denote_bks (convert_typ [ ] bks) bid_in) g ρ memV)).
+          (interp_cfg (denote_bks (convert_typ [ ] bks) (bid_src, bid_in)) g ρ memV)).
   Proof.
     (* intros size x_p y_p s1 s2 σ memH fuel v nextblock bid_in bks g ρ memV NEXT BISIM EVAL GEN. *)
     (* destruct fuel as [| fuel]; [cbn in *; simp |]. *)
