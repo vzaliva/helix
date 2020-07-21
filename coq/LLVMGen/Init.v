@@ -622,6 +622,46 @@ Lemma init_with_data_env_len
 Proof.
 Admitted.
 
+Lemma split_hd_len {A : Type} (l l1 l2 : list A) (n : nat) :
+  ListUtil.split l n ≡ Some (l1, l2) -> length l1 ≡ n.
+Proof.
+  enough (forall acc, ListUtil.split_aux acc l n ≡ Some (l1, l2) -> length l1 ≡ n + length acc).
+  {
+    intros.
+    rewrite H with (acc:=[]).
+    cbn.
+    apply Nat.add_0_r.
+    assumption.
+  }
+  generalize dependent l.
+  induction n.
+  -
+    intros.
+    destruct l.
+    all: inversion H; subst.
+    all: rewrite ListUtil.rev_append_rev, app_nil_r, rev_length.
+    all: reflexivity.
+  -
+    intros.
+    destruct l; [inversion H |].
+    cbn in H.
+    apply IHn in H.
+    cbn in H.
+    rewrite plus_Snm_nSm.
+    assumption.
+Qed.
+
+Lemma split_tl_len {A : Type} (l l1 l2 : list A) (n : nat) :
+  ListUtil.split l n ≡ Some (l1, l2) -> length l2 ≡ (length l - n)%nat.
+Proof.
+  intros.
+  copy_apply ListUtil.split_correct H.
+  apply split_hd_len in H.
+  subst.
+  rewrite ListUtil.length_app.
+  lia.
+Qed.
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -638,6 +678,7 @@ Lemma memory_invariant_after_init
                        [] ([],[]) empty_memory_stack)
       ).
 Proof.
+  (*
   intros hmem σ s hdata pll [HI LI].
 
   unfold state_invariant_mcfg.
@@ -647,12 +688,13 @@ Proof.
   rename Heqp0 into Co, Heqp1 into Ci.
   inv HI.
   rename m1 into mg, Heqs0 into G.
-
   cbn in LI.
-  unfold ErrorWithState.err2errS in LI.
+  unfold ErrorWithState.option2errS in *.
   repeat break_match_hyp; try inl_inr;
-    inv LI; repeat inv_sum ; inv Heqs4.
+    inv LI; repeat inv_sum; inv Heqs5; inv Heqs4.
   rename Heqs0 into LX, Heqs1 into LG, Heqs6 into IR, Heqs8 into BC, l3 into gdecls.
+  rename Heqo1 into Sg. (* split globals *)
+  rename Heqo0 into Sxy. (* split fake_x, fake_y *)
 
   (*  [s0] - state after [initXYplaceholders] *)
   rename i0 into s0.
@@ -660,11 +702,34 @@ Proof.
       was generated starting with X,Y arguments added to [s0] *)
   rename i1 into s1.
   (*  [s2] - state after [genIR] *)
-  rename i5 into s2.
-  (*  [s3] - state after [body_non_empty_cast] *)
-  rename i4 into s3.
-  (* [s3] contains two fake variables for X,Y which we drop and actual state *)
-  rename Heql7 into Vs3, p6 into fake_x, p7 into fake_y, l5 into v3.
+  rename i6 into s2.
+  (*  [s3] - the final state. (after [body_non_empty_cast]) *)
+  rename i5 into s3.
+
+  (* [s3] contains two local for X,Y parameter which we drop: *)
+
+  rename l5 into Γ_globals.
+  (* these ones are dropped *)
+  rename l8 into Γ_fake_xy,
+         l6 into Γ_xy_fake_xy,
+         l7 into Γ_xy.
+
+  assert (ΓXYFXY : exists x y fake_x fake_y, Γ_xy_fake_xy ≡ [x; y; fake_x; fake_y]).
+  {
+    clear - Sg Heqb.
+    apply split_tl_len in Sg.
+    apply Nat.leb_gt in Heqb.
+    assert (Datatypes.length Γ_xy_fake_xy ≡ 4)%nat by lia.
+    clear - H.
+    repeat (destruct Γ_xy_fake_xy; inversion H).
+    repeat eexists.
+  }
+  destruct ΓXYFXY as [x [y [fake_x [fake_y ΓXYFXY]]]].
+  subst Γ_xy_fake_xy.
+  invc Sxy.
+
+  apply ListUtil.split_correct in Sg.
+  rename Sg into Vs3.
 
   repeat rewrite app_assoc.
   unfold build_global_environment, allocate_globals, map_monad_.
@@ -679,11 +744,10 @@ Proof.
   simpl.
   (* no more [genMain] *)
 
-  cbn in *.
-  (* destruct s3. cbn in Vs3. subst Γ. *)
+  destruct s3.
 
-  rename p10 into body_instr.
   rename m into mo, m0 into mi.
+  rename p13 into body_instr.
 
   cbn in *.
 
@@ -770,10 +834,294 @@ Proof.
   repeat rewrite app_nil_r.
 
   (* no more [type_defs_of] after this point *)
+  
+  replace
+    (@go E_mcfg (prod memory unit)
+         (@RetF E_mcfg (prod memory unit) (itree E_mcfg (prod memory unit))
+                (@pair memory unit
+                       (memory_set
+                          (memory_set mg (S (@Datatypes.length (prod string DSHType) globals)) mo)
+                          (@Datatypes.length (prod string DSHType) globals) mi) tt)))
+    with
+      (mg' <- (@go E_mcfg memory (@RetF E_mcfg memory (itree E_mcfg memory) mg)) ;;
+       mgy <- Ret (memory_set mg' (S (Datatypes.length globals)) mo) ;;
+       Ret (memory_set mgy (Datatypes.length globals) mi, ()))
+    by admit.
+
+  cbn.
+
+  match goal with
+  | [ |- context[(fun pat : prod memory unit => ?body)]] => idtac body
+  end.
+
+  (* these are just to make the goal a bit more readable *)
+  eutt_hide_rel REL.
+  eutt_hide_left DSHM.
+
+  (* @lord, I spent way too long trying to shorten these *)
+  remember {|
+      df_prototype := {|
+                       dc_name := Name name;
+                       dc_type := TYPE_Function TYPE_Void
+                                                [
+                                                  TYPE_Pointer
+                                                    (TYPE_Array 
+                                                       (Int64.intval i) TYPE_Double);
+                                                  TYPE_Pointer
+                                                    (TYPE_Array 
+                                                       (Int64.intval o) TYPE_Double)];
+                       dc_param_attrs := ([ ],
+                                          [
+                                            PARAMATTR_Readonly
+                                              :: ArrayPtrParamAttrs;
+                                            ArrayPtrParamAttrs]);
+                       dc_linkage := None;
+                       dc_visibility := None;
+                       dc_dll_storage := None;
+                       dc_cconv := None;
+                       dc_attrs := [ ];
+                       dc_section := None;
+                       dc_align := None;
+                       dc_gc := None |};
+      df_args := [Name "X"; Name "Y"];
+      df_instrs := body_instr |}
+    as XY.
+
+  remember {|
+      df_prototype := {|
+                       dc_name := Name "main";
+                       dc_type := TYPE_Function
+                                    (TYPE_Array 
+                                       (Int64.intval o) TYPE_Double)
+                                    [ ];
+                       dc_param_attrs := ([ ], [ ]);
+                       dc_linkage := None;
+                       dc_visibility := None;
+                       dc_dll_storage := None;
+                       dc_cconv := None;
+                       dc_attrs := [ ];
+                       dc_section := None;
+                       dc_align := None;
+                       dc_gc := None |};
+      df_args := [ ];
+      df_instrs := ({|
+                       blk_id := Name "main_block";
+                       blk_phis := [ ];
+                       blk_code := [
+                                    (
+                                      IVoid 0%Z,
+                                      INSTR_Call
+                                        (TYPE_Void,
+                                         EXP_Ident
+                                           (ID_Global (Name name)))
+                                        [
+                                          (
+                                            TYPE_Pointer
+                                              (TYPE_Array 
+                                                 (Int64.intval i) TYPE_Double),
+                                            EXP_Ident
+                                              (ID_Global (Anon 0%Z)));
+                                          (
+                                            TYPE_Pointer
+                                              (TYPE_Array 
+                                                 (Int64.intval o) TYPE_Double),
+                                            EXP_Ident
+                                              (ID_Global (Anon 1%Z)))]);
+                                    (
+                                      IId (Name "z"),
+                                      INSTR_Load false
+                                                 (TYPE_Array 
+                                                    (Int64.intval o) TYPE_Double)
+                                                 (
+                                                   TYPE_Pointer
+                                                     (TYPE_Array 
+                                                        (Int64.intval o) TYPE_Double),
+                                                   EXP_Ident
+                                                     (ID_Global (Anon 1%Z))) None)];
+                       blk_term := (
+                                    IId (Name "main_ret"),
+                                    TERM_Ret
+                                      (
+                                        TYPE_Array 
+                                          (Int64.intval o) TYPE_Double,
+                                        EXP_Ident
+                                          (ID_Local (Name "z"))));
+                       blk_comments := None |}, [ ]) |}
+    as FAKE_XY.
+
+  remember [maxnum_32_decl; maxnum_64_decl; minimum_64_decl;
+            IntrinsicsDefinitions.fabs_32_decl;
+            IntrinsicsDefinitions.fabs_64_decl;
+            IntrinsicsDefinitions.memcpy_8_decl]
+    as DECLS.
+
+  rewrite <-translate_bind.
+  rewrite <-bind_bind.
+  repeat rewrite <-interp_to_L3_bind.
+
+  match goal with
+  | [ |- context[Traversal.fmap _ (map ?f _)] ] => remember f as F1
+  end.
+
+  repeat progress (try rewrite map_app; cbn).
+
+  (* setoid_rewrite fmap_list_app. *) (* still doesn't work C: *)
+  
+  repeat unfold Traversal.fmap, Traversal.Fmap_list', Traversal.Fmap_definition.
+  repeat rewrite <-app_assoc.
+  repeat (rewrite map_app; cbn).
+
+  remember (λ d : definition typ (cfg typ),
+                                 {|
+                                 df_prototype := Traversal.Fmap_declaration typ dtyp
+                                                   (typ_to_dtyp [ ]) 
+                                                   (df_prototype d);
+                                 df_args := Traversal.endo (df_args d);
+                                 df_instrs := Traversal.Fmap_cfg typ dtyp 
+                                                (typ_to_dtyp [ ]) 
+                                                (df_instrs d) |}) as F2.
+
+  remember (Traversal.Fmap_declaration typ dtyp (typ_to_dtyp [ ])) as F3.
+  repeat rewrite <-app_assoc.
+
+  (*  this splits globals from Xs and Ys *)
+  replace (map F3 (flat_map (declarations_of typ) t) ++
+               map F3 (flat_map (declarations_of typ) gdecls) ++
+               map F3 DECLS ++
+               map df_prototype (map F2 (map F1 (flat_map (definitions_of typ) t))) ++
+               map df_prototype
+               (map F2 (map F1 (flat_map (definitions_of typ) gdecls))) ++
+               [F3 (df_prototype (F1 XY)); F3 (df_prototype (F1 FAKE_XY))])%list
+    with (app
+            (map F3 (flat_map (declarations_of typ) t) ++
+                 map F3 (flat_map (declarations_of typ) gdecls) ++
+                 map F3 DECLS ++
+                 map df_prototype (map F2 (map F1 (flat_map (definitions_of typ) t))) ++
+                 map df_prototype
+                 (map F2 (map F1 (flat_map (definitions_of typ) gdecls))))
+            [F3 (df_prototype (F1 XY)); F3 (df_prototype (F1 FAKE_XY))])%list
+    by (repeat rewrite <-app_assoc; reflexivity).
+  setoid_rewrite map_monad_app at 2.
+
+  remember (map_monad allocate_global
+                   (map (Traversal.Fmap_global typ dtyp (typ_to_dtyp [ ]))
+                      (flat_map (globals_of typ) t) ++
+                    map (Traversal.Fmap_global typ dtyp (typ_to_dtyp [ ]))
+                    (flat_map (globals_of typ) gdecls)))
+    as GLOB1.
+  
+  remember (map_monad allocate_declaration
+                        (map F3 (flat_map (declarations_of typ) t) ++
+                         map F3 (flat_map (declarations_of typ) gdecls) ++
+                         map F3 DECLS ++
+                         map df_prototype
+                           (map F2 (map F1 (flat_map (definitions_of typ) t))) ++
+                         map df_prototype
+                         (map F2 (map F1 (flat_map (definitions_of typ) gdecls)))))
+    as GLOB2.
+
+  remember (map_monad allocate_declaration
+                      [F3 (df_prototype (F1 XY)); F3 (df_prototype (F1 FAKE_XY))])
+    as XYFAKEXY.
+
+  cbn.
+
+  repeat rewrite <-bind_bind.
+  setoid_rewrite translate_bind.
+  setoid_rewrite translate_ret.
+
+  remember (translate _exp_E_to_L0
+                      (map_monad initialize_global
+                                 (map (Traversal.Fmap_global typ dtyp (typ_to_dtyp [ ]))
+                                      (flat_map (globals_of typ) t) ++
+                                      map (Traversal.Fmap_global typ dtyp (typ_to_dtyp [ ]))
+                                      (flat_map (globals_of typ) gdecls))))
+    as GLOB3.
+
+  repeat rewrite interp_to_L3_bind.
+
+  eapply eutt_clo_bind.
+  -
+    admit.
+  -
+    intros.
+    cbn.
+    repeat break_let.
+    
+    rewrite translate_bind.
+
+    rewrite interp_to_L3_ret, translate_ret.
+    setoid_rewrite bind_ret_l at 2.
+    rewrite interp_to_L3_bind, translate_bind.
+    rewrite interp_to_L3_bind.
+    setoid_rewrite translate_bind.
+
+    repeat rewrite <-app_assoc.
+    rewrite map_app.
+    repeat break_let.
+
+    replace (
+      @Traversal.fmap (fun T : Set => list (declaration T))
+        (@Traversal.Fmap_list' declaration
+           (@Traversal.Fmap_declaration (Traversal.Endo_id function_id) 
+              (Traversal.Endo_id string) (Traversal.Endo_id int) (Traversal.Endo_id param_attr)
+              (Traversal.Endo_id linkage) (Traversal.Endo_id visibility)
+              (Traversal.Endo_id dll_storage) (Traversal.Endo_id cconv)
+              (Traversal.Endo_id fn_attr))) typ dtyp (typ_to_dtyp (@nil (prod ident typ)))
+        (@app (declaration typ)
+           (@flat_map (toplevel_entity typ (prod (LLVMAst.block typ) (list (LLVMAst.block typ))))
+              (declaration typ)
+              (@declarations_of typ (prod (LLVMAst.block typ) (list (LLVMAst.block typ)))) t)
+           (@app (declaration typ)
+              (@flat_map
+                 (toplevel_entity typ (prod (LLVMAst.block typ) (list (LLVMAst.block typ))))
+                 (declaration typ)
+                 (@declarations_of typ (prod (LLVMAst.block typ) (list (LLVMAst.block typ))))
+                 gdecls)
+              (@cons (declaration typ) maxnum_32_decl
+                 (@cons (declaration typ) maxnum_64_decl
+                    (@cons (declaration typ) minimum_64_decl
+                       (@cons (declaration typ) IntrinsicsDefinitions.fabs_32_decl
+                          (@cons (declaration typ) IntrinsicsDefinitions.fabs_64_decl
+                             (@cons (declaration typ) IntrinsicsDefinitions.memcpy_8_decl
+                                (@nil (declaration typ)))))))))))
+      with (
+        app
+        (Traversal.fmap (typ_to_dtyp nil) (flat_map (declarations_of typ) t))
+        (Traversal.fmap (typ_to_dtyp nil)
+                              (app (flat_map (declarations_of typ) gdecls)
+                                 (cons maxnum_32_decl
+                                    (cons maxnum_64_decl
+                                       (cons minimum_64_decl
+                                          (cons IntrinsicsDefinitions.fabs_32_decl
+                                             (cons IntrinsicsDefinitions.fabs_64_decl
+                                                   (cons IntrinsicsDefinitions.memcpy_8_decl nil))))))))
+        )
+      by
+        admit.
+
+    rewrite map_monad_app at 1; cbn.
+    rewrite interp_to_L3_bind.
+    setoid_rewrite translate_bind.
+    repeat rewrite bind_bind.
+    
+    eapply eutt_clo_bind.
+    +
+      cbn.
+      repeat break_let.
+      admit.
+    +
+      intros.
+      repeat break_let.
+      
+      
+      
+
+
+
+  
 
   rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
-
-  destruct s3; cbn in Vs3; subst Γ.
 
 
   unfold body_non_empty_cast in BC.
@@ -785,7 +1133,7 @@ Proof.
          block_count := block_count;
          local_count := local_count;
          void_count := void_count;
-         Γ := v3 |} as s.
+         Γ := Γ_globals ++ [fake_x; fake_y] |} as s.
 
   (* from [Rel_mcfg_T] to [Rel_mcfg] *)
   remember ((λ memH '(memV, (l4,_,g)),
@@ -794,7 +1142,6 @@ Proof.
                    [DSHPtrVal (S (Datatypes.length globals)) o;
                     DSHPtrVal (Datatypes.length globals) i])%list s memH
                (memV, (l4, g))): Rel_mcfg) as R0.
-
 
   apply eutt_clo_bind with (UU:=(lift_Rel_mcfg R0) _ _ ).
   -
@@ -806,12 +1153,20 @@ Proof.
     repeat break_let.
     cbn in LX.
     inv LX.
+    Opaque map_monad.
     cbn in *.
 
     unfold initIRGlobals in LG.
 
-    unfold Traversal.fmap, Traversal.Fmap_list'.
-    rewrite map_app.
+    unfold Traversal.Fmap_global, Traversal.fmap, Traversal.Fmap_list'.
+    cbn.
+
+    match goal with
+    | [|- context[map_monad _ (?h::?t)]] =>
+      replace (h::t) with ([h]++t)%list
+        by apply list_cons_app
+    end.
+
     rewrite map_monad_app.
     cbn.
     rewrite interp_to_L3_bind, translate_bind.
@@ -823,7 +1178,7 @@ Proof.
             block_count := block_count;
             local_count := local_count;
             void_count := void_count;
-            Γ := v3 |} as s.
+            Γ := Γ_globals ++ [fake_x; fake_y] |} as s.
 
     (* In [UU] we drop X,Y in σ *)
     apply eutt_clo_bind with (UU:=(lift_Rel_mcfg
@@ -838,6 +1193,7 @@ Proof.
 
       cbn in Heql3.
 
+      (*
       assert(length globals ≡ length v3) as LV.
       {
         clear - LG.
@@ -845,9 +1201,10 @@ Proof.
         cbn in LG.
         lia.
       }
+       *)
 
       subst s.
-      revert mg gdecls eg v3 IR LG G LV.
+      revert mg gdecls eg (* v3 *) IR LG G (* LV *).
       induction globals; intros.
       *
         cbn in G; inv G.
@@ -1203,6 +1560,7 @@ Proof.
           unfold lift_Rel_mcfg in *.
           repeat break_let.
           auto.
+*)
 Admitted.
 
 (* with init step  *)

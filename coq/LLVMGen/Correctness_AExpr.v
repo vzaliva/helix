@@ -413,7 +413,7 @@ Section AExpr.
       (* I need to know something about c0, which is an NExpr. *)
       epose proof genNExpr_correct _ Heqs Heqs3 PRE as NEXP.
 
-      eutt_hide_right.
+      eutt_hide_right i4.
       cbn*.
       repeat norm_h.
 
@@ -459,7 +459,7 @@ Section AExpr.
       rewrite convert_typ_app.
       rewrite denote_code_app.
 
-      eutt_hide_left.
+      eutt_hide_left i4.
 
       (* I want to deconstruct denote_code of OP_GetElementPtr in
          order to expose the underlying denote_exp of e1. *)

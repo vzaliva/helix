@@ -1347,13 +1347,31 @@ Definition genMain
                                |}, [])
           |}].
 
+
+(* Drop 2 vars before the last 2 in Γ *)
+Definition dropFakeVars: cerr unit :=
+  st <- get ;;
+  let l := List.length (Γ st) in
+  if Nat.ltb l 4 then raise "Γ too short"
+  else
+    '(globals, Γ') <- option2errS "Γ too short"
+                                 (ListUtil.split (Γ st) (l-4)) ;;
+    '(_, Γ'') <- option2errS "Γ too short"
+                            (ListUtil.split Γ' 2) ;;
+    put {|
+        block_count := block_count st ;
+        local_count := local_count st ;
+        void_count  := void_count st ;
+        Γ := (globals ++ Γ'')
+      |}.
+
 Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): cerr (toplevel_entities typ (block typ * list (block typ))) :=
   match p with
   | mkFSHCOLProgram i o name globals op =>
     if just_compile then
       ginit <- genIRGlobals (FnBody:= block typ * list (block typ)) globals ;;
       prog <- LLVMGen i o op name ;;
-      ret (ginit ++ prog)%list
+      ret (ginit ++ prog)
     else
       (* Global placeholders for X,Y *)
       let gx := Anon 0%Z in
@@ -1365,10 +1383,10 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
       let gyptyp := TYPE_Pointer gytyp in
 
       '(data,yxinit) <- initXYplaceholders i o data gx gxtyp gy gytyp ;;
+      (* Γ := [fake_y; fake_x] *)
 
-      (*
-        While generate operator's function body, add fake
-        parameters as locals X=PVar 1, Y=PVar 0.
+      (* While generate operator's function body, add parameters as
+         locals X=PVar 1, Y=PVar 0.
 
         We want them to be in `Γ` before globals *)
       let x := Name "X" in
@@ -1376,17 +1394,25 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
       let y := Name "Y" in
       let ytyp := TYPE_Pointer (getIRType (DSHPtr o)) in
 
+
       addVars [(ID_Local y, ytyp);(ID_Local x, xtyp)] ;;
+      (* Γ := [y; x; fake_y; fake_x] *)
 
       (* Global variables *)
       '(data,ginit) <- initIRGlobals data globals ;;
+      (* Γ := [globals; y; x; fake_y; fake_x] *)
+
       (* operator function *)
       prog <- LLVMGen i o op name ;;
-      dropVars 2;; (* drop fake X,Y parameters *)
+
+      (* After generation of operator function, we no longer need
+         [x] and [y] in [Γ]. *)
+
+      dropFakeVars ;;
 
       (* Main function *)
-      let main := genMain name gx gxptyp gy gytyp gyptyp  in
-      ret (ginit ++ yxinit ++ prog ++ main)%list
+      let main := genMain name gx gxptyp gy gytyp gyptyp in
+      ret (yxinit ++ ginit ++ prog ++ main)
   end.
 
 Definition compile_w_main (p: FSHCOLProgram): list binary64 -> cerr (toplevel_entities typ (block typ * list (block typ))) :=
