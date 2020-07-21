@@ -712,20 +712,48 @@ Ltac state_steps :=
         | |- ITree.bind (State.interp_state _ (lift_Serr _) _) _ ≈ _ => break_match_goal; inv_option
         end) || state_step); cbn).
 
-Ltac eutt_hide_left :=
+
+Ltac eutt_hide_left_named H :=
   match goal with
-    |- eutt _ ?t _ => remember t
+    |- eutt _ ?t _ => remember t as H
   end.
 
-Ltac eutt_hide_right :=
+(* with hypothesis name provided *)
+Tactic Notation "eutt_hide_left" ident(hypname) :=
+  eutt_hide_left_named hypname.
+
+(* with hypothesis name auto-generated *)
+Tactic Notation "eutt_hide_left" :=
+  let H := fresh "EL" in
+  eutt_hide_left_named H.
+
+Ltac eutt_hide_right_named H :=
   match goal with
-    |- eutt _ _ ?t => remember t
+    |- eutt _ _ ?t => remember t as H
   end.
 
-Ltac eutt_hide_rel H :=
+(* with hypothesis name provided *)
+Tactic Notation "eutt_hide_right" ident(hypname) :=
+  eutt_hide_right_named hypname.
+
+(* with hypothesis name auto-generated *)
+Tactic Notation "eutt_hide_right" :=
+  let H := fresh "ER" in
+  eutt_hide_right_named H.
+
+Ltac eutt_hide_rel_named H :=
   match goal with
-    |- eutt ?r _ _ => remember r as H
+    |- eutt ?t _ _ => remember t as H
   end.
+
+(* with hypothesis name provided *)
+Tactic Notation "eutt_hide_rel" ident(hypname) :=
+  eutt_hide_rel_named hypname.
+
+(* with hypothesis name auto-generated *)
+Tactic Notation "eutt_hide_rel" :=
+  let H := fresh "EU" in
+  eutt_hide_rel_named H.
 
 Ltac hide_string_goal :=
   match goal with
