@@ -42,6 +42,7 @@ Require Import Vellvm.InterpreterCFG.
 Require Import Vellvm.TopLevelRefinements.
 Require Import Vellvm.TypToDtyp.
 Require Import Vellvm.LLVMEvents.
+Require Import Vellvm.Denotation_Theory.
 
 Require Import Ceres.Ceres.
 
@@ -214,7 +215,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
 
       + (* The variable maps to a pointer *)
         unfold denoteNExpr; cbn*.
-        rewrite denote_code_sing.
+        rewrite denote_code_singleton.
         cbn.
         repeat norm_v.
         break_inner_match_goal; try abs_by_WF.
@@ -338,7 +339,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
           simpl in *.
           cbn.
 
-          rewrite denote_code_sing; cbn.
+          rewrite denote_code_singleton; cbn.
           repeat norm_v.
           simpl in *; unfold denote_op; simpl.
           unfold IntType; rewrite typ_to_dtyp_I.
@@ -450,7 +451,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
           simpl in *.
           cbn.
 
-          rewrite denote_code_sing; cbn.
+          rewrite denote_code_singleton; cbn.
           repeat norm_v.
           simpl in *; unfold denote_op; simpl.
           unfold IntType; rewrite typ_to_dtyp_I.
@@ -560,7 +561,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
       (* cbn takes 5seconds instead of doing this instantaneously... *)
       simpl in *; unfold denote_op; simpl.
-      cbn; rewrite denote_code_sing; cbn.
+      cbn; rewrite denote_code_singleton; cbn.
       unfold IntType; rewrite typ_to_dtyp_I.
 
       specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
@@ -660,7 +661,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
       (* cbn takes 5seconds instead of doing this instantaneously... *)
       simpl in *; unfold denote_op; simpl.
-      cbn; rewrite denote_code_sing; cbn.
+      cbn; rewrite denote_code_singleton; cbn.
       unfold IntType; rewrite typ_to_dtyp_I.
 
       specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
@@ -760,7 +761,7 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
       destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
       (* cbn takes 5seconds instead of doing this instantaneously... *)
       simpl in *; unfold denote_op; simpl.
-      cbn; rewrite denote_code_sing; cbn.
+      cbn; rewrite denote_code_singleton; cbn.
       unfold IntType; rewrite typ_to_dtyp_I.
 
       specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
