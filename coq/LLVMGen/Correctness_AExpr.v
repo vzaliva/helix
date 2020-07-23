@@ -698,20 +698,15 @@ Section AExpr.
       epose proof (AEXPR l2 _) as [EUTT EVAL'].
       rewrite denote_code_singleton.
 
-    (* YZ: There is something weird here. I will fix this *)
-      admit.
-      (*
       rewrite denote_instr_intrinsic; cbn.
       2,3:reflexivity.
       4: {
         unfold Monad.eqm, ITreeMonad.EqM_ITree.
         cbn.
         setoid_rewrite bind_ret_l.
-        rewrite <- EUTT.
         rewrite interp_cfg_to_L3_bind.
         rewrite <- EUTT.
         setoid_rewrite bind_ret_l.
-        rewrite bind_ret_l.
         rewrite interp_cfg_to_L3_ret.
         reflexivity.
       }
@@ -738,12 +733,6 @@ Section AExpr.
           cbn.
 
           apply H.
-
-          (* TODO: Can't unfold Floats.Float.abs ??? *)
-          (* TODO: Use Transparent... Still not obvious. *)
-          assert (Floats.Float.abs b2 ≡ MFloat64asCT.CTypeAbs b2).
-          admit.
-          rewrite H3.
           apply In_add_eq.
         * (* TODO: ltac, this is horrid *)
           cbn. rewrite EVAL'.
@@ -763,9 +752,6 @@ Section AExpr.
           inversion Heqs0.
           reflexivity.
           Opaque incLocal.
-
-       *)
-
     - (* APlus *)
       rename g into g1, l into l1, memV into memV1.
       cbn* in COMPILE; simp.
