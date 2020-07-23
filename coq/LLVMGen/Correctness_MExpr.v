@@ -80,10 +80,10 @@ Section MExpr.
 
   Definition invariant_MExpr
              (σ : evalContext)
-             (s : IRState) (mexp : MExpr) : Rel_cfg_T (mem_block * Int64.int) uvalue :=
-    fun '(memH, (mb, mb_sz)) '(memV, (ρ, (g, res))) =>
+             (s : IRState) (mexp : MExpr) (e : exp typ) : Rel_cfg_T (mem_block * Int64.int) unit :=
+    fun '(memH, (mb, mb_sz)) '(memV, (ρ, (g, _))) =>
       (exists ptr i (vid : nat) (mid : mem_block_id) (size : Int64.int) (sz : int), (* TODO: sz ≈ size? *)
-        res ≡ UVALUE_Addr ptr /\
+        Ret (memV,(ρ,(g,UVALUE_Addr ptr))) ≈ interp_cfg (translate exp_E_to_instr_E (D.denote_exp (Some DTYPE_Pointer) (convert_typ [] e))) g ρ memV /\
         memory_lookup memH mid ≡ Some mb /\
         in_local_or_global ρ g memV i (DVALUE_Addr ptr) (TYPE_Array sz TYPE_Double) /\
         nth_error σ vid ≡ Some (DSHPtrVal mid size) /\
@@ -106,13 +106,16 @@ Section MExpr.
          (σ : evalContext)
          (s : IRState)
          (mexp : MExpr)
+         (e  : exp typ)
          (mi : memoryH) (sti : config_cfg)
-         (mf : memoryH * (mem_block * Int64.int)) (stf : config_cfg_T uvalue)
+         (mf : memoryH * (mem_block * Int64.int)) (stf : config_cfg_T unit)
     : Prop :=
     {
-    mexp_correct :invariant_MExpr σ s mexp mf stf;
+    mexp_correct :invariant_MExpr σ s mexp e mf stf;
     m_preserves : preserves_states mi sti mf stf
     }.
+
+ (* ;; ) *)
 
   Lemma memory_invariant_Ptr : forall vid σ s memH memV l g a size x sz,
       state_invariant σ s memH (memV, (l, g)) ->
@@ -135,13 +138,12 @@ Section MExpr.
       genMExpr mexp s1 ≡ inr (s2, (exp, c, τ)) -> (* Compilation succeeds *)
       evalMExpr memH σ mexp ≡ inr v    -> (* Evaluation succeeds *)
       state_invariant σ s1 memH (memV, (l, g)) ->
-      eutt (lift_Rel_cfg (state_invariant σ s2) ⩕ genMExpr_rel σ s2 mexp memH (mk_config_cfg memV l g))
+      eutt (lift_Rel_cfg (state_invariant σ s2) ⩕ genMExpr_rel σ s2 mexp exp memH (mk_config_cfg memV l g))
            (with_err_RB
               (interp_Mem (denoteMExpr σ mexp)
                           memH))
            (with_err_LB
-              ((interp_cfg (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some DTYPE_Pointer (* (DTYPE_I 64%Z) *)) (convert_typ [] exp))))
-                 g l memV)).
+              (interp_cfg (D.denote_code (convert_typ [] c)) g l memV)).
   Proof.
     intros * Hgen Heval Hmeminv.
     generalize Hmeminv; intros WF; apply IRState_is_WF in WF.
@@ -186,8 +188,6 @@ Section MExpr.
         2: apply memory_lookup_err_inr_Some_eq; eassumption.
         rewrite denote_code_nil; cbn.
         repeat norm_v.
-        2:eauto.
-        cbn*; repeat norm_v.
         apply eutt_Ret.
         split; auto.
         split; auto.
@@ -195,7 +195,17 @@ Section MExpr.
         split.
         { do 6 eexists.
           splits; eauto.
-          cbn; auto.
+
+          cbn.
+          rewrite translate_trigger.
+          rewrite translate_trigger.
+
+          rewrite lookup_E_to_exp_E_Local.
+          rewrite subevent_subevent.
+          rewrite exp_E_to_instr_E_Local.
+          setoid_rewrite interp_cfg_to_L3_LR; eauto.
+          cbn; reflexivity.
+          auto.
         }
         { destruct v as (v & bk_sz). assert (v ≡ bkH) as VBKH.
           { simp.
@@ -221,8 +231,8 @@ Section MExpr.
 
   (* TODO: move these, and use them more. *)
 
-  Lemma genMExpr_memH : forall σ s e memH memV memH' memV' l g l' g' mb uv,
-      genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
+  Lemma genMExpr_memH : forall σ s mexp e memH memV memH' memV' l g l' g' mb uv,
+      genMExpr_rel σ s mexp e memH (mk_config_cfg memV l g) (memH', mb)
                    (memV', (l', (g', uv))) ->
       memH ≡ memH'.
   Proof.
@@ -230,8 +240,8 @@ Section MExpr.
     destruct H; cbn in *; intuition.
   Qed.
 
-  Lemma genMExpr_memV : forall σ s e memH memV memH' memV' l g l' g' mb uv,
-      genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
+  Lemma genMExpr_memV : forall σ s mexp e memH memV memH' memV' l g l' g' mb uv,
+      genMExpr_rel σ s mexp e memH (mk_config_cfg memV l g) (memH', mb)
                    (memV', (l', (g', uv))) ->
       memV ≡ memV'.
   Proof.
@@ -239,8 +249,8 @@ Section MExpr.
     destruct H; cbn in *; intuition.
   Qed.
 
-  Lemma genMExpr_g : forall σ s e memH memV memH' memV' l g l' g' mb uv,
-      genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
+  Lemma genMExpr_g : forall σ s mexp e memH memV memH' memV' l g l' g' mb uv,
+      genMExpr_rel σ s mexp e memH (mk_config_cfg memV l g) (memH', mb)
                    (memV', (l', (g', uv))) ->
       g ≡ g'.
   Proof.
@@ -248,8 +258,8 @@ Section MExpr.
     destruct H; cbn in *; intuition.
   Qed.
 
-  Lemma genMExpr_l : forall σ s e memH memV memH' memV' l g l' g' mb uv,
-      genMExpr_rel σ s e memH (mk_config_cfg memV l g) (memH', mb)
+  Lemma genMExpr_l : forall σ s mexp e memH memV memH' memV' l g l' g' mb uv,
+      genMExpr_rel σ s mexp e memH (mk_config_cfg memV l g) (memH', mb)
                    (memV', (l', (g', uv))) ->
       l ≡ l'.
   Proof.
@@ -281,11 +291,10 @@ End MExpr.
 
 Ltac genMExpr_rel_subst :=
   match goal with
-  | MEXP : genMExpr_rel ?σ ?s ?e ?memH (mk_config_cfg ?memV ?l ?g) (?memH', ?mb) (?memV', (?l', (?g', ?uv))) |- _ =>
+  | MEXP : genMExpr_rel ?σ ?s ?mexp ?e ?memH (mk_config_cfg ?memV ?l ?g) (?memH', ?mb) (?memV', (?l', (?g', ?uv))) |- _ =>
     let H := fresh in
     pose proof genMExpr_memH MEXP as H; subst memH';
     pose proof genMExpr_memV MEXP as H; subst memV';
     pose proof genMExpr_g MEXP as H; subst g';
     pose proof genMExpr_l MEXP as H; subst l'
   end.
-

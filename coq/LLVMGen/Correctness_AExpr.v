@@ -293,6 +293,7 @@ Section AExpr.
 
 
   Opaque denote_instr.
+  Opaque denote_code.
 
   Lemma genAExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
@@ -474,196 +475,93 @@ Section AExpr.
       setoid_rewrite denote_code_singleton.
       cbn.
 
-      (* TODO: avoid this... Want to use GEP lemma for denote_instr *)
-      Transparent denote_instr.
-      unfold denote_instr at 2.
-      Opaque denote_instr.
-      cbn.
-
       assert ((denote_exp (Some (typ_to_dtyp [ ] (TYPE_Pointer t)))
                           (Traversal.fmap (typ_to_dtyp [ ]) e1)) ≡ (denote_exp (Some DTYPE_Pointer) (convert_typ [ ] e1))) as He1.
       { rewrite typ_to_dtyp_equation.
         reflexivity.
       }
 
-      rewrite He1.
-
-      repeat rewrite <- bind_bind.
-      setoid_rewrite translate_bind.
-      rewrite <- bind_bind.
-
-      set (ITree.bind (denote_code (convert_typ [ ] c1))
-                      (λ _ : (),
-                             translate exp_E_to_instr_E
-                                       (denote_exp (Some DTYPE_Pointer) (convert_typ [ ] e1)))) as MYBIND.
+      pose proof (genMExpr_array Heqs0) as (sz & ARRAY); subst t.
+      cbn in *.
+      unfold IntType.
+      repeat rewrite typ_to_dtyp_equation in *.
+      cbn.
 
       repeat norm_v.
       subst i4.
-      subst MYBIND.
       repeat norm_h.
 
-      eapply eutt_clo_bind.
-      apply MCODE.
-
-      intros [memH'' [b' bk_size]] [memV'' [l'' [g'' uv'']]] MINV.
-
-      clear He1.
-
-      repeat norm_v.
-
+      eapply eutt_clo_bind; eauto.
+      unfold Traversal.endo, Traversal.Endo_id.
+      intros [memH'' [b' bk_size]] [memV'' [l'' [g'' []]]] MINV.
       destruct MINV as (SINV'' & MINV).
-
-      (* Need to know that genMExpr does not affect memH / memV / g / l *)
       genMExpr_rel_subst.
+      destruct MINV as [[MINV EVAL_MEXP] PRES].
+      destruct MINV as (ptr & ptr_id & vid & mid & size & sz_array & EUTT_e1 & MINV).
+      symmetry in EUTT_e1.
+      epose proof denote_instr_gep_array r sz DTYPE_Double _ (Traversal.fmap (typ_to_dtyp [ ]) e0) (MInt64asNT.to_nat i2) _ _ _ _ _ _ EUTT_e1 as GEP.
+      edestruct GEP as [ptr_res [READ EUTT_GEP]].
+      3: {
+        repeat norm_v.
+        (* i2 / n'... *)
+        rewrite EUTT_GEP.
+        repeat norm_v.
 
-      assert (mem_lookup (MInt64asNT.to_nat n') b' ≡ Some b) as LUPn'b'.
-      { (* i2 = n', because:
+        rewrite denote_instr_load; eauto.
+        repeat norm_v.
+
+        assert (mem_lookup (MInt64asNT.to_nat n') b' ≡ Some b) as LUPn'b'.
+        { (* i2 = n', because:
 
            Heqs3: evalNExpr σ n = inr i2
            NEXP_CORRECT : genNExpr_rel σ n e0 memH (mk_config_cfg memV l g) (memH, n') (memV, (l', (g, ())))
-         *)
-        destruct NEXP_CORRECT as (NEXP_CORRECT & _).
-        assert (l' ⊑ l') as L'L' by reflexivity.
-        specialize (NEXP_CORRECT _ L'L') as (_ & NEXP_EVAL).
-        rewrite Heqs3 in NEXP_EVAL; inv NEXP_EVAL.
+           *)
+          destruct NEXP_CORRECT as (NEXP_CORRECT & _).
+          assert (l' ⊑ l') as L'L' by reflexivity.
+          specialize (NEXP_CORRECT _ L'L') as (_ & NEXP_EVAL).
+          rewrite Heqs3 in NEXP_EVAL; inv NEXP_EVAL.
 
-        (* m0 = b', because:
+          (* m0 = b', because:
 
            Heqs4 : evalMExpr memH σ m ≡ inr m0
            MINV : (lift_Rel_cfg (state_invariant σ i0) ⩕ genMExpr_rel σ i0 memH (mk_config_cfg memV l' g))
            (memH'', b') (memV'', (l'', (g'', uv'')))
-         *)
 
-        destruct MINV as (MINV & _).
-        destruct MINV as (MINV & EVAL_MEXP).
-        rewrite Heqs4 in EVAL_MEXP; inv EVAL_MEXP.
+           *)
 
-        auto.
-      }
-
-      rewrite LUPn'b'.
-      repeat norm_h.
-
-      cbn*.
-      repeat rewrite typ_to_dtyp_equation.
-      cbn*. repeat norm_v.
-      destruct NEXP_CORRECT.
-      unfold genNExpr_exp_correct in exp_correct.
-      subst.
-      assert (l' ⊑ l') as L'L' by reflexivity.
-      specialize (exp_correct _ L'L') as (NEXP_EUTT & NEXP_EVAL).
-      setoid_rewrite <- NEXP_EUTT.
-
-      repeat norm_v.
-
-      destruct MINV as (MINV & PRESERVES).
-      destruct MINV as ((ptr & i' & vid & mid & size & sz & RES & rest) & EVAL_MEXP).
-      destruct rest as (MLUP & ILG & NTH_σ_vid & NTH_Γ_vid).
-      subst uv''.
-
-      cbn.
-      unfold ITree.map.
-      repeat norm_v.
-
-      pose proof int_of_nat n' as (n'_nat & Hn').
-      rewrite Hn'.
-
-      (* Long path to rewriting with GEP lemma... *)
-      pose proof genMExpr_array Heqs0 as (sz' & ARRAY).
-      rewrite ARRAY.
-      rewrite typ_to_dtyp_equation.
-      rewrite exp_E_to_instr_E_Memory, subevent_subevent.
-      epose proof interp_cfg_to_L3_GEP_array _ (DTYPE_Array sz' DTYPE_Double).
-
-      destruct i'; cbn in ILG.
-      { destruct ILG as (? & ? & CONTRA & REST).
-        inv CONTRA. }
-
-      cbn in SINV''.
-      pose proof state_invariant_memory_invariant SINV'' as MINV.
-      epose proof memory_invariant_LLU_Ptr vid MINV NTH_Γ_vid NTH_σ_vid as (bk_h & ptr_v & MLUP' & ILG' & GET_ARRAY).
-      assert (ptr_v ≡ ptr).
-      { (* ptr_v comes from memory_invariant_LLU_Ptr *)
-        (* ILG : l' @ id = Some (UVALUE_Addr ptr) *)
-        (* Use ILG' to relate... *)
-        cbn in ILG'.
-        rewrite ILG in ILG'.
-        inversion ILG'.
-        auto.
-      }
-      subst.
-
-      rewrite MLUP in MLUP'. inv MLUP'.
-
-      replace (MInt64asNT.to_nat (Int64.repr (Z.of_nat n'_nat))) with n'_nat in LUPn'b'.
-      2: { symmetry. apply to_nat_repr_of_nat. }
-      specialize (GET_ARRAY n'_nat b LUPn'b').
-      epose proof interp_cfg_to_L3_GEP_array helix_intrinsics DTYPE_Double ptr sz' g l' memV _ n'_nat GET_ARRAY as (ptr' & EUTT_GEP & READ).
-
-      rewrite EUTT_GEP.
-      repeat norm_v.
-
-      rewrite interp_cfg_to_L3_LW; cbn.
-      repeat norm_v; cbn.
-
-      rewrite denote_instr_load; cbn; eauto.
-
-      2: {
-        rewrite translate_trigger.
-        rewrite translate_trigger.
-
-        rewrite exp_E_to_instr_E_subevent.
-        rewrite lookup_E_to_exp_E_Local.
-        rewrite subevent_subevent.
-        setoid_rewrite interp_cfg_to_L3_LR.
-        cbn.
-        reflexivity.
-        apply lookup_alist_add_eq.
-      }
-
-      norm_v.
-
-      (* TODO: Can probably be smarter about this *)
-      Transparent incLocal.
-      assert (r ≡ Name ("l" @@ string_of_nat (local_count i0))) as EQr.
-      { unfold incLocal in Heqs1.
-        cbn in Heqs1.
-        inversion Heqs1.
-        reflexivity.
-      }
-      assert (r0 ≡ Name ("l" @@ string_of_nat (local_count i1))) as EQr0.
-      { unfold incLocal in Heqs2.
-        cbn in Heqs2.
-        inversion Heqs2.
-        reflexivity.
-      }
-      Opaque incLocal.
-
-      apply eqit_Ret.
-      split.
-      + do 2 (eapply state_invariant_add_fresh; eauto).
-      + split; split; intuition.
-        * cbn. repeat norm_v. cbn. norm_v.
-          reflexivity.
-          cbn.
-          apply H0.
-          apply In_add_eq.
-        * (* TODO: ltac, this is horrid *)
-          cbn.
-          rewrite Heqs3.
-          rewrite Heqs4.
-          rewrite Heqs5.
-          apply mem_lookup_err_inr_Some_eq.
+          rewrite Heqs4 in EVAL_MEXP; inv EVAL_MEXP.
           auto.
-        * eapply sub_alist_trans; eauto.
-          eapply sub_alist_trans; eapply sub_alist_add.
-          -- unfold alist_fresh.
-             apply alist_find_None.
-             intros v0 IN.
-             eapply In__alist_In in IN as [v' AIN].
-             apply incLocal_is_fresh in SINV''.
-             eapply SINV''; eauto.
-          -- unfold alist_fresh.
+        }
+
+        rewrite LUPn'b'.
+        repeat norm_h.
+
+        apply eutt_Ret.
+        split.
+        + do 2 (eapply state_invariant_add_fresh; eauto).
+        + split; split; intuition.
+          * cbn. repeat norm_v. cbn. norm_v.
+            reflexivity.
+            cbn.
+            apply H.
+            apply In_add_eq.
+          * (* TODO: ltac, this is horrid *)
+            cbn.
+            rewrite Heqs3.
+            rewrite Heqs4.
+            rewrite Heqs5.
+            apply mem_lookup_err_inr_Some_eq.
+            auto.
+          * eapply sub_alist_trans; eauto.
+            eapply sub_alist_trans; eapply sub_alist_add.
+            -- unfold alist_fresh.
+               apply alist_find_None.
+               intros v0 IN.
+               eapply In__alist_In in IN as [v' AIN].
+               apply incLocal_is_fresh in SINV''.
+               inversion Heqs1.
+               eapply SINV''; eauto.
+            -- unfold alist_fresh.
              apply alist_find_None.
              intros v0 IN.
              eapply In__alist_In in IN as [v' AIN].
@@ -671,16 +569,102 @@ Section AExpr.
              apply incLocal_is_fresh in SINV_i1.
              eapply SINV_i1 with (id:=r0) (v:=v'); eauto.
              apply In_add_ineq_iff in AIN; auto.
-             intros CONTRA; subst.
+             intros CONTRA.
              (* TODO: don't do this :( *)
              Transparent incLocal.
              unfold incLocal in Heqs1.
+             unfold incLocal in Heqs2.
              Opaque incLocal.
              cbn in Heqs1. inversion Heqs1.
-             rewrite <- H2 in CONTRA.
+             cbn in Heqs2. inversion Heqs2.
+             rewrite <- H6 in CONTRA.
+             rewrite <- H8 in CONTRA.
+             rewrite <- H5 in CONTRA.
              cbn in CONTRA.
              unfold Traversal.endo, Traversal.Endo_id in CONTRA.
              apply Name_inj, append_factor_left,string_of_nat_inj in CONTRA; lia.
+             Transparent incLocal.
+             unfold incLocal in Heqs1.
+             unfold incLocal in Heqs2.
+             Opaque incLocal.
+             cbn in Heqs1. inversion Heqs1.
+             cbn in Heqs2. inversion Heqs2.
+             cbn.
+             rewrite <- H4.
+             cbn.
+             reflexivity.
+        + cbn.
+          do 2 rewrite translate_trigger.
+            rewrite lookup_E_to_exp_E_Local.
+            rewrite subevent_subevent.
+            rewrite exp_E_to_instr_E_Local.
+            rewrite subevent_subevent.
+            rewrite interp_cfg_to_L3_LR.
+            cbn.
+            reflexivity.
+            apply lookup_alist_add_eq.
+      }
+      { destruct NEXP_CORRECT.
+        unfold genNExpr_exp_correct in exp_correct.
+        assert (l' ⊑ l') as L'L' by reflexivity.
+        specialize (exp_correct _ L'L') as (EUTT_e0 & EVAL_n).
+        rewrite <- EUTT_e0.
+
+        (* can probably use Heqs5 (assert_NT_lt) for this... i2 = n'
+        by Heqs3, and I think i3 is the size of a block. *)
+        unfold assert_NT_lt in Heqs5.
+        assert (i2 ≡ n') as N'.
+        { rewrite Heqs3 in EVAL_n.
+          inv EVAL_n.
+          reflexivity.
+        }
+
+        rewrite N'.
+
+        (* TODO: extract to lemma *)
+        unfold MInt64asNT.to_nat.
+        rewrite Znat.Z2Nat.id.
+        rewrite repr_intval.
+
+        reflexivity.
+
+        pose proof Integers.Int64.intrange n'.
+        lia.
+      }
+      { (* follows from mem_lookup, Heqo *)
+        (* m0 = b' by evalMExpr hypotheses *)
+        destruct MINV as (MLUP & INLG & NTH_σ_vid & NTH_Γ_vid).
+
+        destruct ptr_id; cbn in INLG.
+        { destruct INLG as (? & ? & CONTRA & REST).
+          inv CONTRA. }
+
+        cbn in SINV''.
+        pose proof state_invariant_memory_invariant SINV'' as MEMINV.
+        epose proof memory_invariant_LLU_Ptr vid MEMINV _ NTH_σ_vid as (bk_h & ptr_v & MLUP' & ILG' & GET_ARRAY).
+        assert (m0 ≡ bk_h) as M0BK.
+        {
+          rewrite Heqs4 in EVAL_MEXP.
+          inv EVAL_MEXP.
+          rewrite MLUP in MLUP'.
+          inv MLUP'.
+          reflexivity.
+        }
+        rewrite M0BK in Heqo.
+
+        assert (ptr_v ≡ ptr).
+        { (* ptr_v comes from memory_invariant_LLU_Ptr *)
+          (* ILG : l' @ id = Some (UVALUE_Addr ptr) *)
+          (* Use ILG' to relate... *)
+          cbn in ILG'.
+          rewrite INLG in ILG'.
+          inversion ILG'.
+          auto.
+        }
+
+        rewrite H in GET_ARRAY.
+        auto.
+      }
     - (* AAbs *)
       rename g into g1, l into l1, memV into memV1.
       cbn* in COMPILE; simp.
@@ -791,7 +775,6 @@ Section AExpr.
       break_match; try discriminate EVAL.
       break_match; try discriminate EVAL.
 
-      Opaque denote_code.
       cbn*.
       repeat norm_h.
 
