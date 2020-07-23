@@ -847,11 +847,6 @@ Section AExpr.
           cbn.
 
           apply H.
-
-          (* TODO: Can't unfold Floats.Float.add ??? *)
-          assert (Floats.Float.add b' b'' ≡ MFloat64asCT.CTypePlus b' b'').
-          admit.
-          rewrite H3.
           apply In_add_eq.
         * (* TODO: ltac, this is horrid *)
           cbn. rewrite H6.
@@ -958,12 +953,6 @@ Section AExpr.
           cbn.
 
           apply H.
-
-          (* TODO: Can't unfold Floats.Float.add ??? *)
-          assert (Floats.Float.sub b' b'' ≡ MFloat64asCT.CTypeSub b' b'').
-          admit.
-
-          rewrite H3.
           apply In_add_eq.
         * (* TODO: ltac, this is horrid *)
           cbn. rewrite H6.
@@ -1070,12 +1059,6 @@ Section AExpr.
           cbn.
 
           apply H.
-
-          (* TODO: Can't unfold Floats.Float.add ??? *)
-          assert (Floats.Float.mul b' b'' ≡ MFloat64asCT.CTypeMult b' b'').
-          admit.
-
-          rewrite H3.
           apply In_add_eq.
         * (* TODO: ltac, this is horrid *)
           cbn. rewrite H6.
