@@ -452,8 +452,10 @@ Section SimulationRelations.
   Definition dvalue_of_int (v : Int64.int) : dvalue := DVALUE_I64 (DynamicValues.Int64.repr (Int64.intval v)).
   Definition dvalue_of_bin (v: binary64)   : dvalue := DVALUE_Double v.
 
-  (* Check that a pair of [ident] and [dvalue] can be found in the appropriate environment *)
-  Definition in_local_or_global
+  (* Check that a pair of [ident] and [dvalue] can be found in the
+     appropriate environment. This to be used only for scalar values,
+     like [int] or [double] *)
+  Definition in_local_or_global_scalar
              (ρ : local_env) (g : global_env) (m : memoryV)
              (x : ident) (dv : dvalue) (τ : typ) : Prop
     := match x with
@@ -463,6 +465,16 @@ Section SimulationRelations.
          τ ≡ TYPE_Pointer τ' /\
          g @ x ≡ Some (DVALUE_Addr ptr) /\
          read m ptr (typ_to_dtyp [] τ') ≡ inr (dvalue_to_uvalue dv)
+       end.
+
+  (* Check that a pair of [ident] and [dvalue] can be found in the
+     appropriate environment. This to be used for  *)
+  Definition in_local_or_global_addr
+             (ρ : local_env) (g : global_env) (m : memoryV)
+             (x : ident) (a : Addr.addr) (τ : typ) : Prop
+    := match x with
+       | ID_Local  x => ρ @ x ≡ Some (UVALUE_Addr a)
+       | ID_Global x => g @ x ≡ Some (DVALUE_Addr a)
        end.
 
   (* Main memory invariant. Relies on Helix's evaluation context and the [IRState] built by the compiler.
@@ -476,12 +488,12 @@ Section SimulationRelations.
         nth_error σ n ≡ Some v ->
         nth_error (Γ s) n ≡ Some (x,τ) ->
         match v with
-        | DSHnatVal v   => in_local_or_global ρ g mem_llvm x (dvalue_of_int v) τ
-        | DSHCTypeVal v => in_local_or_global ρ g mem_llvm x (dvalue_of_bin v) τ
+        | DSHnatVal v   => in_local_or_global_scalar ρ g mem_llvm x (dvalue_of_int v) τ
+        | DSHCTypeVal v => in_local_or_global_scalar ρ g mem_llvm x (dvalue_of_bin v) τ
         | DSHPtrVal ptr_helix ptr_size_helix =>
           exists bk_helix ptr_llvm,
           memory_lookup mem_helix ptr_helix ≡ Some bk_helix /\
-          in_local_or_global ρ g mem_llvm x (DVALUE_Addr ptr_llvm) τ /\
+          in_local_or_global_addr ρ g mem_llvm x ptr_llvm τ /\
           (forall i v, mem_lookup i bk_helix ≡ Some v ->
                   get_array_cell mem_llvm ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v))
         end.
