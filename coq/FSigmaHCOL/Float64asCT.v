@@ -40,9 +40,7 @@ Definition FT_Rounding:mode := mode_NE.
 Require Import Omega.
 
 Definition Float64Zero : binary64 := B754_zero _ _ false.
-Program Definition Float64One : binary64 := Bone _ _ _ _ .
-Next Obligation. unfold FLX.Prec_gt_0. omega. Qed.
-Next Obligation. omega. Qed.
+Program Definition Float64One : binary64 := Bone _ _ eq_refl eq_refl.
 
 Instance binary64_Equiv: Equiv binary64 := eq.
 
