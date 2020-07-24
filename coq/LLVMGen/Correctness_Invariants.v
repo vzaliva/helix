@@ -471,7 +471,7 @@ Section SimulationRelations.
      appropriate environment. This to be used for  *)
   Definition in_local_or_global_addr
              (ρ : local_env) (g : global_env) (m : memoryV)
-             (x : ident) (a : Addr.addr) (τ : typ) : Prop
+             (x : ident) (a : Addr.addr): Prop
     := match x with
        | ID_Local  x => ρ @ x ≡ Some (UVALUE_Addr a)
        | ID_Global x => g @ x ≡ Some (DVALUE_Addr a)
@@ -493,7 +493,7 @@ Section SimulationRelations.
         | DSHPtrVal ptr_helix ptr_size_helix =>
           exists bk_helix ptr_llvm,
           memory_lookup mem_helix ptr_helix ≡ Some bk_helix /\
-          in_local_or_global_addr ρ g mem_llvm x ptr_llvm τ /\
+          in_local_or_global_addr ρ g mem_llvm x ptr_llvm /\
           (forall i v, mem_lookup i bk_helix ≡ Some v ->
                   get_array_cell mem_llvm ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v))
         end.
