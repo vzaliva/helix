@@ -29,24 +29,6 @@ Section MinMax.
       end
     end.
 
-  Definition Float64Lt (a b: binary64) : Prop :=
-    match (Bcompare _ _ a b) with
-    | Some Datatypes.Lt => True
-    | _ => False
-    end.
-
-  (* needed for Zless *)
-  Instance Float64LtDec: forall x y: binary64, Decision (Float64Lt x y).
-  Proof.
-    intros x y.
-    unfold Float64Lt.
-    destruct (Bcompare 53 1024 x y).
-    -
-      destruct c; solve_trivial_decision.
-    -
-      solve_trivial_decision.
-  Qed.
-
 End MinMax.
 
 Require Import MathClasses.interfaces.canonical_names.
@@ -90,16 +72,35 @@ Module MFloat64asCT <: CType.
   Definition CTypeSetoid := binary64_Setoid.
 
   Definition CTypeZero := Float64Zero.
-  Definition CTypeOne := Float64One.
+  Definition CTypeOne  := Float64One.
 
   Definition CTypePlus     := b64_plus FT_Rounding.
   Definition CTypeNeg      := b64_opp.
   Definition CTypeMult     := b64_mult FT_Rounding.
-
-
   Definition CTypeAbs      := b64_abs.
-  Definition CTypeZLess (a b: binary64) :=
-    if Float64LtDec a b then CTypeOne else CTypeZero.
+
+  (* For "regular" floating point numbers the comparison is
+    straighforward. However we need to handle NaNs. From point of
+    view of DHCOL<->FHCOL semantics equivalence, NaNs does not matter,
+    as we are going to constant the proof to input data which does not
+    contain NaNs and furthermore prove that NaNs will not appear as
+    result of any internal computations. So any NaN behaviour will do.
+
+    To simplify FHCOL->IR compiler proofs we will chose to handle NaNs
+    as similiar as possible as it is done in [fcmp olt] instruction
+    which this one is compiled to. Per IR spec it "yields true if both
+    operands are not a QNAN and op1 is less than op2"
+
+  *)
+  Definition CTypeZLess (a b: binary64) : binary64 :=
+    match a, b with
+    | B754_nan _ _ _ _ _, _ | _, B754_nan _ _ _ _ _ => CTypeZero
+    | _, _ =>
+      match Bcompare _ _ a b with
+      | Some Datatypes.Lt => CTypeOne
+      | _ => CTypeZero
+      end
+    end.
 
   Definition CTypeMin      := Float64Min.
   Definition CTypeMax      := Float64Max.
