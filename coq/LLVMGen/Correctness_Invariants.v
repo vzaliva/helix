@@ -16,7 +16,6 @@ Require Import Helix.FSigmaHCOL.Int64asNT.
 Require Import Helix.FSigmaHCOL.Float64asCT.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLITree.
 Require Import Helix.LLVMGen.Compiler.
-Require Import Helix.LLVMGen.Externals.
 Require Import Helix.LLVMGen.Data.
 Require Import Helix.LLVMGen.Utils.
 Require Import Helix.LLVMGen.tmp_aux_Vellvm.
@@ -118,7 +117,7 @@ Section EventTranslation.
 
   (* We therefore have the following resulting denotation functions. *)
   (* On the Vellvm side, for [mcfg]: *)
-  Definition semantics_llvm_mcfg p : itree E_mcfg _ := with_err_LT (model_to_L3 DTYPE_Void "main" main_args helix_intrinsics p).
+  Definition semantics_llvm_mcfg p : itree E_mcfg _ := with_err_LT (model_to_L3 DTYPE_Void "main" main_args defined_intrinsics p).
   (* Which get lifted to [toplevel_entity] as usual: *)
   Definition semantics_llvm (prog: list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ)))) :=
     semantics_llvm_mcfg (mcfg_of_tle prog).
@@ -177,8 +176,8 @@ Notation "'with_err_LT'" := (@translate (ExternalCallE +' PickE +' UBE +' DebugE
 Notation "'with_err_LB'" := (@translate (CallE +' PickE +' UBE +' DebugE +' FailureE) E_cfg inl_).
 Notation "'with_err_RT'" := (@translate (StaticFailE +' DynamicFailE) E_mcfg inr_).
 Notation "'with_err_RB'" := (@translate (StaticFailE +' DynamicFailE) E_cfg inr_).
-Notation "'interp_cfg'"  := (interp_cfg_to_L3 helix_intrinsics).
-Notation "'interp_mcfg'" := (interp_to_L3 helix_intrinsics).
+Notation "'interp_cfg'"  := (interp_cfg_to_L3 defined_intrinsics).
+Notation "'interp_mcfg'" := (interp_to_L3 defined_intrinsics).
 
 (* Facilities to refer to the return types of the various pieces of denotations we manipulate *)
 

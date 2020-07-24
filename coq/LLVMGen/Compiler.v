@@ -6,7 +6,6 @@ Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Helix.FSigmaHCOL.Int64asNT.
 Require Import Helix.FSigmaHCOL.Float64asCT.
 Require Import Helix.LLVMGen.Utils.
-Require Import Helix.LLVMGen.Externals.
 Require Import Helix.Util.Misc.
 Require Import Helix.Tactics.HelixTactics.
 
@@ -1049,8 +1048,7 @@ Definition LLVMGen
     bodyt <- body_non_empty_cast (body ++ [retblock]) ;;
     let all_intrinsics:toplevel_entities typ (block typ * list (block typ))
         := [TLE_Comment "Prototypes for intrinsics we use"]
-             ++ (List.map (TLE_Declaration) (
-                            helix_intrinsics_decls ++ defined_intrinsics_decls))
+             ++ (List.map (TLE_Declaration) defined_intrinsics_decls)
     in
 
     let x := Name "X" in

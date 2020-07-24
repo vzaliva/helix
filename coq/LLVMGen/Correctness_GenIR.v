@@ -16,7 +16,6 @@ Require Import Helix.FSigmaHCOL.Int64asNT.
 Require Import Helix.FSigmaHCOL.Float64asCT.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLITree.
 Require Import Helix.LLVMGen.Compiler.
-Require Import Helix.LLVMGen.Externals.
 Require Import Helix.LLVMGen.Data.
 Require Import Helix.LLVMGen.Utils.
 Require Import Helix.LLVMGen.tmp_aux_Vellvm.

@@ -19,7 +19,6 @@ Require Import Helix.FSigmaHCOL.Int64asNT.
 Require Import Helix.FSigmaHCOL.Float64asCT.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLITree.
 Require Import Helix.LLVMGen.Compiler.
-Require Import Helix.LLVMGen.Externals.
 Require Import Helix.LLVMGen.Data.
 Require Import Helix.LLVMGen.Utils.
 Require Import Helix.LLVMGen.tmp_aux_Vellvm.
@@ -673,7 +672,7 @@ Lemma memory_invariant_after_init
       (state_invariant_mcfg σ s)
       (Ret (hmem, ()))
       (with_err_LT
-         (interp_to_L3 helix_intrinsics
+         (interp_to_L3 defined_intrinsics
                        (build_global_environment (mcfg_of_tle pll))
                        [] ([],[]) empty_memory_stack)
       ).
@@ -1658,7 +1657,7 @@ Qed.
 
     (* setoid_rewrite bind_bind. *)
     (*   unfold translate_E_vellvm_mcfg. *)
-    (* setoid_rewrite (interp_to_L3_bind helix_intrinsics . *)
+    (* setoid_rewrite (interp_to_L3_bind defined_intrinsics . *)
 
     (* unfold lift_sem_to_mcfg. *)
     (* break_match_goal. *)

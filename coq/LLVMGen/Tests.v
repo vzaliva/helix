@@ -7,7 +7,6 @@ Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Helix.FSigmaHCOL.Int64asNT.
 Require Import Helix.FSigmaHCOL.Float64asCT.
 Require Import Helix.LLVMGen.Compiler.
-Require Import Helix.LLVMGen.Externals.
 Require Import Helix.LLVMGen.Data.
 Require Import Helix.Util.ErrorSetoid.
 Require Import Helix.Util.ErrorWithState.
@@ -184,7 +183,7 @@ Import MonadNotation.
 
 Export DV.
 
-Definition test_interpreter := interpreter_user DynamicTypes.DTYPE_Void "main" main_args helix_intrinsics.
+Definition test_interpreter := interpreter_user DynamicTypes.DTYPE_Void "main" main_args defined_intrinsics.
 
 (* Returns a tuple [(Option p, Option d, e)] containting:
    - p: generated LLVM program
