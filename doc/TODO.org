@@ -77,14 +77,6 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 ** Automate SPIRAL log reading for sequence of rewrites
    Perhaps using TemplateCoq?
 ** LLVM Code generation
-*** Implement float min/max                                          :zoickx:
-    in DHCOL it is ~Float64Min~ and ~Float64Max~.
-
-    In LLVMgen ~Float_maxnum~ implemented as C ~max~ macro. Should be more
-    like ~fmax~ https://en.cppreference.com/w/c/numeric/math/fmax
-    LLVM ref: https://llvm.org/docs/LangRef.html#llvm-maxnum-intrinsic
-
-    ~Float_maxnum~ is the same as ~Float64Max~
 *** Implemnet int min/max
     in ~LLVMGen/Compiler.v~ in ~genNExpr~ implement min/max code generation for integers.
     [[https://lists.llvm.org/pipermail/llvm-dev/2016-November/106868.html][related discussion]]
