@@ -141,7 +141,11 @@ Definition initOneFSHGlobal
     let (_,gt) := gp in
     let '(mem,data) := st in
     match gt with
-    | DSHnat => raise "Unsupported global type: nat"
+    | DSHnat =>
+      let '(x, data) := rotate Float64Zero data in
+      let xz := bits_of_b64 x in (* a potential size overflow here ? *)
+      xi <- MInt64asNT.from_Z xz ;;
+      ret (mem, data, DSHnatVal xi)
     | DSHCType =>
       let '(x, data) := rotate Float64Zero data in
       ret (mem, data, DSHCTypeVal x)

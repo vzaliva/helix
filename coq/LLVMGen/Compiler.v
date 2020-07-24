@@ -1090,7 +1090,29 @@ Definition initOneIRGlobal
   :=
     let (nm,t) := nmt in
     match t with
-    | DSHnat => raise "DSHnat global type not supported"
+    | DSHnat =>
+      let '(x, data) := rotate Float64Zero data in
+      let xi := bits_of_b64 x in (* a potential size overflow here ? *)
+      let v_id := Name nm in
+      let v_typ := getIRType t in
+      let g := TLE_Global {|
+                   g_ident        := v_id;
+                   g_typ          := v_typ ;
+                   g_constant     := true ;
+                   g_exp          := Some (EXP_Integer xi);
+                   g_linkage      := Some LINKAGE_Internal ;
+                   g_visibility   := None ;
+                   g_dll_storage  := None ;
+                   g_thread_local := None ;
+                   g_unnamed_addr := true ;
+                   g_addrspace    := None ;
+                   g_externally_initialized := false ;
+                   g_section      := None ;
+                   g_align        := None ; (* TODO: maybe need to alight to 64-bit boundary? *)
+                 |} in
+      addVars [(ID_Global v_id, TYPE_Pointer v_typ)] ;;
+      ret (data, g)
+
     | DSHCType =>
       let '(x, data) := rotate Float64Zero data in
       let v_id := Name nm in

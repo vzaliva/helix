@@ -387,7 +387,9 @@ Proof.
   intros data nm t g' i0 i1 r H.
   unfold initOneIRGlobal in H.
   destruct t.
-  - inv H.
+  - break_let.
+    inv H.
+    reflexivity.
   - break_let; cbn in H; inl_inr_inv; reflexivity.
   - break_let; cbn in H; inl_inr_inv; reflexivity.
 Qed.
