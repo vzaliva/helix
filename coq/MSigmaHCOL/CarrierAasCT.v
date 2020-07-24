@@ -17,7 +17,6 @@ Module CarrierAasCT <: CType.
   Definition CTypePlus  := CarrierAplus.
   Definition CTypeNeg   := CarrierAneg.
   Definition CTypeMult  := CarrierAmult.
-  Definition CTypeLt    := CarrierAlt.
 
   Definition CTypeAbs   := abs.
   Definition CTypeZLess := Zless.

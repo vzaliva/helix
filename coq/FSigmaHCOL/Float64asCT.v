@@ -35,6 +35,18 @@ Section MinMax.
     | _ => False
     end.
 
+  (* needed for Zless *)
+  Instance Float64LtDec: forall x y: binary64, Decision (Float64Lt x y).
+  Proof.
+    intros x y.
+    unfold Float64Lt.
+    destruct (Bcompare 53 1024 x y).
+    -
+      destruct c; solve_trivial_decision.
+    -
+      solve_trivial_decision.
+  Qed.
+
 End MinMax.
 
 Require Import MathClasses.interfaces.canonical_names.
@@ -83,23 +95,11 @@ Module MFloat64asCT <: CType.
   Definition CTypePlus     := b64_plus FT_Rounding.
   Definition CTypeNeg      := b64_opp.
   Definition CTypeMult     := b64_mult FT_Rounding.
-  Definition CTypeLt       := Float64Lt.
 
-  (* needed for Zless *)
-  Instance CTypeLtDec: forall x y: t, Decision (CTypeLt x y).
-  Proof.
-    intros x y.
-    unfold CTypeLt, Float64Lt.
-    destruct (Bcompare 53 1024 x y).
-    -
-      destruct c; solve_trivial_decision.
-    -
-      solve_trivial_decision.
-  Qed.
 
   Definition CTypeAbs      := b64_abs.
   Definition CTypeZLess (a b: binary64) :=
-    if CTypeLtDec a b then CTypeOne else CTypeZero.
+    if Float64LtDec a b then CTypeOne else CTypeZero.
 
   Definition CTypeMin      := Float64Min.
   Definition CTypeMax      := Float64Max.

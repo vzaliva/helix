@@ -16,9 +16,6 @@ Module Type CType.
   Parameter CTypeZero: t.
   Parameter CTypeOne: t.
 
-  (* predicates *)
-  Parameter CTypeLt: relation t.
-
   (* operations *)
   Parameter CTypePlus : t -> t -> t.
   Parameter CTypeNeg  : t -> t.
