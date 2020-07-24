@@ -1,6 +1,5 @@
 Require Import ZArith.
-Require Import Flocq.IEEE754.Binary.
-Require Import Flocq.IEEE754.Bits.
+From Flocq Require Import Binary Bits.
 
 Require Import MathClasses.interfaces.abstract_algebra.
 
@@ -10,25 +9,24 @@ Require Import Helix.MSigmaHCOL.CType.
    e.g. on [Lt] *)
 Section MinMax.
 
-  (* TODO: Implement semantics as in LLVM:
-     https://llvm.org/docs/LangRef.html#llvm-minimum-intrinsic
-   *)
   Definition Float64Min (a b: binary64) :=
-    match Bcompare _ _ a b with
-    | Some Datatypes.Lt => a
-    | _ => b
+    match a, b with
+    | B754_nan _ _ _ _ _, _ | _, B754_nan _ _ _ _ _ => build_nan _ _ (binop_nan_pl64 a b)
+    | _, _ =>
+      match Bcompare _ _ a b with
+      | Some Datatypes.Lt => a
+      | _ => b
+      end
     end.
 
-  (* TODO: Implement IEEE-754 semantics for `maxNum` except for the
-     handling of signaling `NaNs`. This matches the behavior of libm’s
-     `fmax`.
-
-     https://llvm.org/docs/LangRef.html#llvm-maxnum-intrinsic
-   *)
   Definition Float64Max (a b: binary64): binary64 :=
-    match Bcompare _ _ a b with
-    | Some Datatypes.Lt => b
-    | _ => a
+    match a, b with
+    | B754_nan _ _ _ _ _, _ | _, B754_nan _ _ _ _ _ => build_nan _ _ (binop_nan_pl64 a b)
+    | _, _ =>
+      match Bcompare _ _ a b with
+      | Some Datatypes.Lt => b
+      | _ => a
+      end
     end.
 
   Definition Float64Le (a b: binary64) : Prop :=
