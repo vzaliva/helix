@@ -274,6 +274,32 @@ Section AExpr.
     auto.
   Admitted.
 
+  Fact CTypeOne_of_longu:
+    MFloat64asCT.CTypeOne ≡ Floats.Float.of_longu (DynamicValues.Int64.repr 1).
+  Proof.
+    Transparent DynamicValues.Int64.repr.
+    unfold DynamicValues.Int64.repr.
+    unfold MFloat64asCT.CTypeOne, Float64One.
+    Transparent Floats.Float.of_longu.
+    unfold Floats.Float.of_longu.
+    unfold Binary.Bone, IEEE754_extra.BofZ, Binary.binary_normalize.
+    cbn.
+    f_equiv.
+  Qed.
+
+  Fact CTypeZero_of_longu:
+    MFloat64asCT.CTypeZero ≡ Floats.Float.of_longu (DynamicValues.Int64.repr 0).
+  Proof.
+    Transparent DynamicValues.Int64.repr.
+    unfold DynamicValues.Int64.repr.
+    unfold MFloat64asCT.CTypeOne, Float64One.
+    Transparent Floats.Float.of_longu.
+    unfold Floats.Float.of_longu.
+    unfold Binary.Bone, IEEE754_extra.BofZ, Binary.binary_normalize.
+    cbn.
+    f_equiv.
+  Qed.
+
   (* TODO move this, possibly give it a better name. *)
   Lemma float_cmp :
     forall (a b : binary64),
@@ -285,12 +311,50 @@ Section AExpr.
     unfold double_cmp.
     destruct (ordered64 a b && Floats.Float.cmp Integers.Clt a b)%bool eqn:CMP.
     - exists DynamicValues.Int1.one.
+      simpl.
+      rewrite <- CTypeOne_of_longu.
       intuition; cbn.
-      admit.
+      apply andb_prop in CMP.
+      destruct CMP as [O C].
+      unfold ordered64 in O.
+      apply andb_prop in O.
+      destruct O as [OA OB].
+      unfold MFloat64asCT.CTypeZLess.
+      Transparent Floats.Float.cmp.
+      unfold Floats.Float.cmp, Floats.cmp_of_comparison, Floats.Float.compare in C.
+      break_match_hyp; [|inversion C].
+      break_match_hyp; inversion C; clear C.
+      subst.
+      unfold not_nan64 in OA, OB.
+      apply Bool.negb_true_iff in OA.
+      apply Bool.negb_true_iff in OB.
+      destruct a; try inv OA; destruct b; try inv OB; reflexivity.
     - exists DynamicValues.Int1.zero.
+      simpl.
+      rewrite <- CTypeZero_of_longu.
       intuition; cbn.
-  Admitted.
-
+      unfold MFloat64asCT.CTypeZLess.
+      Transparent Floats.Float.cmp.
+      unfold Floats.Float.cmp, Floats.cmp_of_comparison, Floats.Float.compare in CMP.
+      unfold ordered64 in CMP.
+      rewrite 2!BoolUtil.andb_eq_false in CMP.
+      destruct CMP.
+      +
+        destruct H.
+        *
+          unfold not_nan64 in H.
+          apply Bool.negb_false_iff in H.
+          break_match.
+          1,2,4: inversion H.
+          reflexivity.
+        *
+          destruct b; try inversion H.
+          unfold not_nan64 in H.
+          break_match; reflexivity.
+      +
+        repeat break_match_hyp; subst; [| inversion H | |];
+          destruct a,b; inversion Heqo; try reflexivity.
+  Qed.
 
   Opaque denote_instr.
   Opaque denote_code.
