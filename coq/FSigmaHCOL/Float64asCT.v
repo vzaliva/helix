@@ -29,13 +29,6 @@ Section MinMax.
       end
     end.
 
-  Definition Float64Le (a b: binary64) : Prop :=
-    match (Bcompare _ _ a b) with
-    | Some Datatypes.Eq => True
-    | Some Datatypes.Lt => True
-    | _ => False
-    end.
-
   Definition Float64Lt (a b: binary64) : Prop :=
     match (Bcompare _ _ a b) with
     | Some Datatypes.Lt => True
@@ -90,19 +83,7 @@ Module MFloat64asCT <: CType.
   Definition CTypePlus     := b64_plus FT_Rounding.
   Definition CTypeNeg      := b64_opp.
   Definition CTypeMult     := b64_mult FT_Rounding.
-  Definition CTypeLe       := Float64Le.
   Definition CTypeLt       := Float64Lt.
-
-  Instance CTypeLeDec: forall x y: t, Decision (CTypeLe x y).
-  Proof.
-    intros x y.
-    unfold CTypeLe, Float64Le.
-    destruct (Bcompare 53 1024 x y).
-    -
-      destruct c; solve_trivial_decision.
-    -
-      solve_trivial_decision.
-  Qed.
 
   (* needed for Zless *)
   Instance CTypeLtDec: forall x y: t, Decision (CTypeLt x y).

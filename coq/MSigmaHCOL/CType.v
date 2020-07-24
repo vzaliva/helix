@@ -17,11 +17,7 @@ Module Type CType.
   Parameter CTypeOne: t.
 
   (* predicates *)
-  Parameter CTypeLe: relation t.
   Parameter CTypeLt: relation t.
-
-  (* Decidability *)
-  Declare Instance CTypeLeDec: forall x y: t, Decision (CTypeLe x y).
 
   (* operations *)
   Parameter CTypePlus : t -> t -> t.
