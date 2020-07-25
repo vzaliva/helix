@@ -1,0 +1,13 @@
+#+STARTUP: latexpreview
+
+|---------------------------+-----------------+--------------------------------------------------------|
+| Helix type in ~evalContext~ | IR local/global | IR Type in ~IRState~                                     |
+|---------------------------+-----------------+--------------------------------------------------------|
+| ~DSHnat~                    | local           | TYPE_I 64                                              |
+| ~DSHCType~                  | local           | TYPE_Double                                            |
+| ~DSHPtr n~                  | local           | TYPE_Pointer (TYPE_Array (Int64.intval n) TYPE_Double) |
+| ~DSHnat~                    | global          | TYPE_Pointer (TYPE_I 64)                               |
+| ~DSHCType~                  | global          | TYPE_Pointer (TYPE_Double)                             |
+| ~DSHPtr n~                  | global          | TYPE_Pointer (TYPE_Array (Int64.intval n) TYPE_Double) |
+|---------------------------+-----------------+--------------------------------------------------------|
+
