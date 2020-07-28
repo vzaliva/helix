@@ -385,55 +385,6 @@ Fixpoint genAExpr
 (* List of blocks with entry point *)
 Definition segment:Type := block_id * list (block typ).
 
-Definition genMemCopy
-           (i o n: Int64.int)
-           (x y: ident)
-           (nextblock: block_id)
-  : cerr segment
-  :=
-    entryblock <- incBlockNamed "MemCopy" ;;
-    retentry <- incVoid ;;
-    callid <- incVoid ;;
-    xb <- incLocal ;;
-    yb <- incLocal ;;
-    let nz := (Int64.intval n) in
-    let xtyp := TYPE_Pointer (TYPE_Array (Int64.intval i) TYPE_Double) in
-    let ytyp := TYPE_Pointer (TYPE_Array (Int64.intval o) TYPE_Double) in
-    let ptyp := TYPE_Pointer (TYPE_I 8%Z) in
-    let len:Z := Z.mul nz (Z.of_nat (SizeofFloatT)) in
-    let i32 := TYPE_I 32%Z in
-    let i1 := TYPE_I 1%Z in
-    ret ((entryblock, [
-            {|
-              blk_id    := entryblock ;
-              blk_phis  := [];
-              blk_code  := [
-                            (IId xb, INSTR_Op (OP_Conversion
-                                                 Bitcast
-                                                 xtyp
-                                                 (EXP_Ident x)
-                                                 ptyp
-                            ));
-                              (IId yb, INSTR_Op (OP_Conversion
-                                                   Bitcast
-                                                   ytyp
-                                                   (EXP_Ident y)
-                                                   ptyp
-                              ));
-
-                              (IVoid callid, INSTR_Call (TYPE_Void, intrinsic_exp memcpy_8_decl)
-                                                        [
-                                                          (ptyp, EXP_Ident (ID_Local yb));
-                                                            (ptyp, EXP_Ident (ID_Local xb));
-                                                            (i32, EXP_Integer len);
-                                                            (i32, EXP_Integer PtrAlignment) ;
-                                                            (i1, EXP_Integer 0%Z)])
-                          ];
-              blk_term  := (IVoid retentry, TERM_Br_1 nextblock);
-              blk_comments := None
-            |}
-        ])).
-
 Definition genFSHAssign
            (i o: Int64.int)
            (x y: ident)
@@ -1008,11 +959,6 @@ Fixpoint genIR
           '(y,_) <- resolve_PVar y_p ;; (* ignore actual block size *)
           '(ablock,acode) <- genMemInit size y value nextblock ;;
           add_comment (ret (ablock, acode))
-        | DSHMemCopy size x_p y_p =>
-          '(x,i) <- resolve_PVar x_p ;;
-          '(y,o) <- resolve_PVar y_p ;;
-          add_comment
-            (genMemCopy i o size x y nextblock)
         | DSHSeq f g =>
           '(gb, g') <- genIR g nextblock ;;
           '(fb, f') <- genIR f gb ;;

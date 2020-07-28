@@ -88,7 +88,6 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
   | DSHLoop (n:nat) (body: DSHOperator) (* Formerly [IUnion] *)
   | DSHAlloc (size:NT.t) (body: DSHOperator) (* allocates new uninitialized memory block and puts pointer to it on stack. The new block will be visible in the scope of [body] *)
   | DSHMemInit (size:NT.t) (y_p: PExpr) (value: CT.t) (* Initialize memory block indices [0-size] with given value *)
-  | DSHMemCopy (size:NT.t) (x_p y_p: PExpr)(* copy memory blocks. Overwrites output block values, if present *)
   | DSHSeq (f g: DSHOperator) (* execute [g] after [f] *)
   .
 
@@ -386,7 +385,6 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
        | DSHLoop n body => DSHLoop n (incrOp (S skip) body)
        | DSHAlloc size body => DSHAlloc size (incrOp (S skip) body)
        | DSHMemInit size y_p value => DSHMemInit size (incrPVar skip y_p) value
-       | DSHMemCopy size x_p y_p => DSHMemCopy size (incrPVar skip x_p) (incrPVar skip y_p)
        | DSHSeq f g => DSHSeq (incrOp skip f) (incrOp skip g)
        end.
 
@@ -453,11 +451,6 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
       | DSHMemInit size y_p value =>
         "DSHMemInit " ++
                       NT.to_string size ++ " " ++
-                      string_of_PExpr y_p ++ " ..."
-      | DSHMemCopy size x_p y_p =>
-        "DSHMemCopy " ++
-                      NT.to_string size ++ " " ++
-                      string_of_PExpr x_p ++ " " ++
                       string_of_PExpr y_p ++ " ..."
       | DSHSeq f g => "DSHSeq"
       end.

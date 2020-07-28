@@ -306,14 +306,6 @@ Module MDSigmaHCOLITree
           let y' := mem_union (mem_const_block (to_nat size) value) y in
           trigger (MemSet y_i y')
 
-       | DSHMemCopy size x_p y_p =>
-          '(x_i,x_size) <- denotePExpr σ x_p ;;
-          '(y_i,y_sixe) <- denotePExpr σ y_p ;;
-          x <- trigger (MemLU "Error looking up 'x' in DSHMemCopy" x_i) ;;
-          y <- trigger (MemLU "Error looking up 'y' in DSHMemCopy" y_i) ;;
-          let y' := mem_union x y in
-          trigger (MemSet y_i y')
-
        | DSHSeq f g =>
           denoteDSHOperator σ f ;; denoteDSHOperator σ g
       end.
@@ -945,9 +937,6 @@ Module MDSigmaHCOLITree
         state_steps.
         destruct fuel as [| fuel]; [inv Heqo |].
         rewrite IHop; eauto; state_steps.
-        reflexivity.
-      - unfold_Mem; inv_eval.
-        state_steps.
         reflexivity.
       - unfold_Mem; inv_eval.
         state_steps.

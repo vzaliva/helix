@@ -294,7 +294,6 @@ Module MDSigmaHCOLEval
     | DSHLoop n body => S (estimateFuel body * n)
     | DSHAlloc _ body => S (estimateFuel body)
     | DSHMemInit _ _ _ => 1
-    | DSHMemCopy _ _ _ => 1
     | DSHSeq f g =>
       S (Nat.max (estimateFuel f) (estimateFuel g))
     end.
@@ -402,16 +401,6 @@ Module MDSigmaHCOLEval
               let y' := mem_union (mem_const_block (to_nat size) value) y in
               ret (memory_set mem y_i y')
             )
-        | DSHMemCopy size x_p y_p =>
-          Some (
-              '(x_i, x_size) <- evalPExpr σ x_p ;;
-              '(y_i, y_size) <- evalPExpr σ y_p ;;
-              assert_NT_le "DSHMemCopy 'size' larger than 'y_size'" size y_size ;;
-              x <- memory_lookup_err "Error looking up 'x' in DSHMemCopy" mem x_i ;;
-              y <- memory_lookup_err "Error looking up 'y' in DSHMemCopy" mem y_i ;;
-              let y' := mem_union x y in
-              ret (memory_set mem y_i y'))
-
         | DSHSeq f g =>
           match evalDSHOperator σ f mem fuel with
           | Some (inr mem') => evalDSHOperator σ g mem' fuel
@@ -1816,25 +1805,6 @@ Module MDSigmaHCOLEval
       repeat rewrite NP.F.map2_1bis by reflexivity.
       break_match; try reflexivity.
       apply Heqs2.
-    -
-      intros.
-      destruct fuel; [reflexivity |].
-      cbn.
-      repeat break_match; try (repeat constructor; fail).
-      all: err_eq_to_equiv_hyp.
-      all: memory_lookup_err_to_option.
-      all: rewrite ME in *; try some_none.
-      rewrite Heqs2 in Heqs4; some_inv; rewrite Heqs4 in *.
-      rewrite Heqs3 in Heqs5; some_inv; rewrite Heqs5 in *.
-      f_equiv.
-      f_equiv.
-      f_equiv.
-      intros k; specialize (Heqs4 k); specialize (Heqs5 k).
-      unfold mem_union.
-      repeat rewrite NP.F.map2_1bis by reflexivity.
-      repeat break_match; try some_none.
-      some_inv; rewrite Heqs4; reflexivity.
-      assumption.
     -
       intros.
       destruct fuel; [reflexivity |].
