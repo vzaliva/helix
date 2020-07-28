@@ -617,45 +617,11 @@ Section AExpr.
             auto.
           * eapply sub_alist_trans; eauto.
             eapply sub_alist_trans; eapply sub_alist_add.
-            -- unfold alist_fresh.
-               apply alist_find_None.
-               intros v0 IN.
-               eapply In__alist_In in IN as [v' AIN].
-               apply incLocal_is_fresh in SINV''.
-               inversion Heqs1.
-               eapply SINV''; eauto.
-            -- unfold alist_fresh.
-             apply alist_find_None.
-             intros v0 IN.
-             eapply In__alist_In in IN as [v' AIN].
-             epose proof (state_invariant_incLocal Heqs1 SINV'') as SINV_i1.
-             apply incLocal_is_fresh in SINV_i1.
-             eapply SINV_i1 with (id:=r0) (v:=v'); eauto.
-             apply In_add_ineq_iff in AIN; auto.
-             intros CONTRA.
-             (* TODO: don't do this :( *)
-             Transparent incLocal.
-             unfold incLocal in Heqs1.
-             unfold incLocal in Heqs2.
-             Opaque incLocal.
-             cbn in Heqs1. inversion Heqs1.
-             cbn in Heqs2. inversion Heqs2.
-             rewrite <- H6 in CONTRA.
-             rewrite <- H8 in CONTRA.
-             rewrite <- H5 in CONTRA.
-             cbn in CONTRA.
-             unfold Traversal.endo, Traversal.Endo_id in CONTRA.
-             apply Name_inj, append_factor_left,string_of_nat_inj in CONTRA; lia.
-             Transparent incLocal.
-             unfold incLocal in Heqs1.
-             unfold incLocal in Heqs2.
-             Opaque incLocal.
-             cbn in Heqs1. inversion Heqs1.
-             cbn in Heqs2. inversion Heqs2.
-             cbn.
-             rewrite <- H4.
-             cbn.
-             reflexivity.
+            -- eapply concrete_fresh_fresh; eauto.
+               eapply incLocal_is_fresh; eauto.
+            -- eapply concrete_fresh_fresh; eauto.
+               eapply incLocal_is_fresh; eauto.
+               eapply state_invariant_add_fresh; eauto.
         + cbn.
           do 2 rewrite translate_trigger.
             rewrite lookup_E_to_exp_E_Local.
@@ -800,19 +766,8 @@ Section AExpr.
           reflexivity.
         * rewrite H3.
           apply sub_alist_add.
-          unfold alist_fresh.
-          apply alist_find_None.
-          intros v0. intros IN.
-          eapply In__alist_In in IN as [v' AIN].
-          apply incLocal_is_fresh in SINV.
-          eapply SINV; eauto.
-          (* TODO: there's probably a smarter way to do this case now *)
-          Transparent incLocal.
-          unfold incLocal in Heqs0.
-          cbn in Heqs0.
-          inversion Heqs0.
-          reflexivity.
-          Opaque incLocal.
+          eapply concrete_fresh_fresh; eauto.
+          eapply incLocal_is_fresh; eauto.
     - (* APlus *)
       rename g into g1, l into l1, memV into memV1.
       cbn* in COMPILE; simp.
@@ -901,23 +856,10 @@ Section AExpr.
           rewrite H7.
 
           reflexivity.
-        * rewrite H3. rewrite H2.
+        * rewrite H3, H2.
           apply sub_alist_add.
-          unfold alist_fresh.
-          cbn in INV1'.
-          destruct INV1'.
-          unfold concrete_fresh_inv in incLocal_is_fresh.
-          apply alist_find_None.
-          intros v0. intros IN.
-          eapply In__alist_In in IN as [v' AIN].
+          eapply concrete_fresh_fresh; eauto.
           eapply incLocal_is_fresh; eauto.
-          (* TODO: there's probably a smarter way to do this case now *)
-          Transparent incLocal.
-          unfold incLocal in Heqs1.
-          cbn in Heqs1.
-          inversion Heqs1.
-          reflexivity.
-          Opaque incLocal.
     - (* AMinus *)
       rename g into g1, l into l1, memV into memV1.
       cbn* in COMPILE; simp.
@@ -1007,23 +949,10 @@ Section AExpr.
           rewrite H7.
 
           reflexivity.
-        * rewrite H3. rewrite H2.
+        * rewrite H3, H2.
           apply sub_alist_add.
-          unfold alist_fresh.
-          cbn in INV1'.
-          destruct INV1'.
-          unfold concrete_fresh_inv in incLocal_is_fresh.
-          apply alist_find_None.
-          intros v0. intros IN.
-          eapply In__alist_In in IN as [v' AIN].
+          eapply concrete_fresh_fresh; eauto.
           eapply incLocal_is_fresh; eauto.
-          (* TODO: there's probably a smarter way to do this case now *)
-          Transparent incLocal.
-          unfold incLocal in Heqs1.
-          cbn in Heqs1.
-          inversion Heqs1.
-          reflexivity.
-          Opaque incLocal.
     - (* AMult *)
       rename g into g1, l into l1, memV into memV1.
       cbn* in COMPILE; simp.
@@ -1113,23 +1042,10 @@ Section AExpr.
           rewrite H7.
 
           reflexivity.
-        * rewrite H3. rewrite H2.
+        * rewrite H3, H2.
           apply sub_alist_add.
-          unfold alist_fresh.
-          cbn in INV1'.
-          destruct INV1'.
-          unfold concrete_fresh_inv in incLocal_is_fresh.
-          apply alist_find_None.
-          intros v0. intros IN.
-          eapply In__alist_In in IN as [v' AIN].
+          eapply concrete_fresh_fresh; eauto.
           eapply incLocal_is_fresh; eauto.
-          (* TODO: there's probably a smarter way to do this case now *)
-          Transparent incLocal.
-          unfold incLocal in Heqs1.
-          cbn in Heqs1.
-          inversion Heqs1.
-          reflexivity.
-          Opaque incLocal.
     - (* AMin *)
       rename g into g1, l into l1, memV into memV1.
       cbn* in COMPILE; simp.
@@ -1242,23 +1158,10 @@ Section AExpr.
           rewrite H7.
 
           reflexivity.
-        * rewrite H3. rewrite H2.
+        * rewrite H3, H2.
           apply sub_alist_add.
-          unfold alist_fresh.
-          cbn in INV1'.
-          destruct INV1'.
-          unfold concrete_fresh_inv in incLocal_is_fresh.
-          apply alist_find_None.
-          intros v0. intros IN.
-          eapply In__alist_In in IN as [v' AIN].
+          eapply concrete_fresh_fresh; eauto.
           eapply incLocal_is_fresh; eauto.
-          (* TODO: there's probably a smarter way to do this case now *)
-          Transparent incLocal.
-          unfold incLocal in Heqs1.
-          cbn in Heqs1.
-          inversion Heqs1.
-          reflexivity.
-          Opaque incLocal.
     - (* AMax *)
       rename g into g1, l into l1, memV into memV1.
       cbn* in COMPILE; simp.
@@ -1372,65 +1275,41 @@ Section AExpr.
           rewrite H7.
 
           reflexivity.
-        * rewrite H3. rewrite H2.
+        * rewrite H3, H2.
           apply sub_alist_add.
-          unfold alist_fresh.
-          cbn in INV1'.
-          destruct INV1'.
-          unfold concrete_fresh_inv in incLocal_is_fresh.
-          apply alist_find_None.
-          intros v0. intros IN.
-          eapply In__alist_In in IN as [v' AIN].
+          eapply concrete_fresh_fresh; eauto.
           eapply incLocal_is_fresh; eauto.
-          (* TODO: there's probably a smarter way to do this case now *)
-          Transparent incLocal.
-          unfold incLocal in Heqs1.
-          cbn in Heqs1.
-          inversion Heqs1.
-          reflexivity.
-          Opaque incLocal.
     - (* AZless *)
       rename g into g1, l into l1, memV into memV1.
       cbn* in COMPILE; simp.
-
       (* YZ TODO Ltac for this *)
       cbn in EVAL.
       break_match; try discriminate EVAL.
       break_match; try discriminate EVAL.
-
       Opaque denote_code.
       cbn*.
       repeat norm_h.
-
       rewrite convert_typ_app.
       rewrite denote_code_app.
       repeat norm_v.
-
       eapply eutt_clo_bind; try eapply IHaexp1; eauto.
-
       intros [memH' b'] [memV' [l' [g' []]]] [INV1 INV2].
       cbn in *.
-
       repeat norm_h.
-
       rewrite convert_typ_app.
       rewrite denote_code_app.
       repeat norm_v.
-
       inversion INV2.
       inversion amonotone0.
       subst.
       eapply eutt_clo_bind; try eapply IHaexp2; eauto.
-
       intros [memH'' b''] [memV'' [l'' [g'' []]]] [INV1' INV2'].
       inversion INV2'.
       inversion amonotone1.
       subst.
-
       repeat norm_h.
       cbn. repeat norm_v.
       rewrite typ_to_dtyp_equation.
-
       unfold genAExpr_exp_correct in aexp_correct0.
       do 2 destruct H1.
       subst.
@@ -1442,7 +1321,6 @@ Section AExpr.
       {
         apply aexp_correct0; eauto.
       }
-
       unfold genAExpr_exp_correct in aexp_correct1.
       assert (Ret (memV'', (l'', (g'', UVALUE_Double b'')))
                       ≈ interp_cfg
@@ -1451,22 +1329,18 @@ Section AExpr.
       { assert (l'' ⊑ l'') as L''L'' by reflexivity.
         apply aexp_correct1; eauto.
       }
-
       match goal with
       | |- context [ denote_code [?a; ?b; ?c] ] =>
         change [a; b; c] with
             ([a] ++ [b] ++ [c])%list
       end.
       repeat setoid_rewrite denote_code_app.
-
       repeat norm_v.
       setoid_rewrite denote_code_singleton.
-
       rewrite denote_instr_op.
       2: {
         eapply denote_fcmp_concrete; cbn; eauto; try reflexivity.
       }
-
       cbn.
       repeat norm_v.
       setoid_rewrite denote_code_singleton.
@@ -1537,49 +1411,22 @@ Section AExpr.
             assert (l' ⊑ l'') as L'L'' by auto.
             rewrite L1L', L'L''.
 
-            cbn in INV1'.
-            destruct INV1'.
-            unfold concrete_fresh_inv in incLocal_is_fresh.
-
-            cbn in INV1.
-            destruct INV1.
-            unfold concrete_fresh_inv in incLocal_is_fresh0.
-
-            Transparent incLocal.
-            unfold incLocal in Heqs1, Heqs2.
-            inversion Heqs1.
-            inversion Heqs2.
-            Opaque incLocal.
+            unfold Traversal.endo, Traversal.Endo_id.
+            rewrite CMP_V.
+            cbn.
 
             assert (l'' ⊑ (alist_add r (UVALUE_I1 cmp_res) l'')) as TRANS.
             { apply sub_alist_add.
-              unfold alist_fresh.
-              apply alist_find_None.
-              intros v0 IN.
-              eapply In__alist_In in IN as [v' AIN].
+              eapply concrete_fresh_fresh; eauto.
               eapply incLocal_is_fresh; eauto.
             }
 
             eapply (sub_alist_trans _ _ _ TRANS).
-            unfold ext_local in *.
-            cbn in *.
 
-            subst. cbn.
-            unfold Traversal.endo, Traversal.Endo_id.
-            rewrite CMP_V.
-            cbn.
-            apply sub_alist_add.
-            unfold alist_fresh.
-            apply alist_find_None.
-            intros v0 IN.
-            eapply In__alist_In in IN as [v' AIN].
-
-            eapply incLocal_is_fresh with (n:=S (local_count i0)); eauto.
-            assert (Name ("l" @@ string_of_nat (S (local_count i0))) <> (Name ("l" @@ string_of_nat (local_count i0)))) as NEQ.
-            { intros CONTRA.
-              apply Name_inj, append_factor_left,string_of_nat_inj in CONTRA; lia.
-            }
-            apply (In_add_In_ineq _ _ _ _ _ NEQ AIN).
+            eapply sub_alist_add.
+            eapply concrete_fresh_fresh; eauto.
+            eapply incLocal_is_fresh; eauto.
+            eapply state_invariant_add_fresh; eauto.
   Admitted.
 
 End AExpr.
