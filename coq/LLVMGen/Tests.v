@@ -80,7 +80,7 @@ Definition IUnion_test :=
 
 Definition IReduction_test :=
   DSHAlloc Int64_1
-           (DSHSeq (DSHMemInit Int64_1 (PVar 0) Float64Zero)
+           (DSHSeq (DSHMemInit (PVar 0) Float64Zero)
                    (DSHLoop 2
                             (DSHSeq
                                (DSHAlloc Int64_2
@@ -102,7 +102,7 @@ DSHAlloc Int64_2
            (DSHSeq
               (DSHAlloc Int64_1
                  (DSHSeq
-                    (DSHMemInit Int64_1 (PVar 0) Float64Zero)
+                    (DSHMemInit (PVar 0) Float64Zero)
                     (DSHLoop 3
                        (DSHSeq
                           (DSHAlloc Int64_1
@@ -128,7 +128,7 @@ DSHAlloc Int64_2
            (DSHSeq
               (DSHAlloc Int64_1
                  (DSHSeq
-                    (DSHMemInit Int64_1 (PVar 0) Float64Zero)
+                    (DSHMemInit (PVar 0) Float64Zero)
                     (DSHLoop 2
                        (DSHSeq
                           (DSHAlloc Int64_2

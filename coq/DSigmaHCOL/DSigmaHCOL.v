@@ -87,7 +87,7 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
   | DSHPower (n:NExpr) (src dst: MemRef) (f: AExpr) (initial: CT.t) (* formely [Inductor] *)
   | DSHLoop (n:nat) (body: DSHOperator) (* Formerly [IUnion] *)
   | DSHAlloc (size:NT.t) (body: DSHOperator) (* allocates new uninitialized memory block and puts pointer to it on stack. The new block will be visible in the scope of [body] *)
-  | DSHMemInit (size:NT.t) (y_p: PExpr) (value: CT.t) (* Initialize memory block indices [0-size] with given value *)
+  | DSHMemInit (y_p: PExpr) (value: CT.t) (* Initialize memory block with given value *)
   | DSHSeq (f g: DSHOperator) (* execute [g] after [f] *)
   .
 
@@ -384,7 +384,7 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
          DSHPower (incrNVar skip n) (incrPVar skip src_p, incrNVar skip src_o) (incrPVar skip dst_p, incrNVar skip dst_o) (incrDSHBinCType skip f) initial
        | DSHLoop n body => DSHLoop n (incrOp (S skip) body)
        | DSHAlloc size body => DSHAlloc size (incrOp (S skip) body)
-       | DSHMemInit size y_p value => DSHMemInit size (incrPVar skip y_p) value
+       | DSHMemInit y_p value => DSHMemInit (incrPVar skip y_p) value
        | DSHSeq f g => DSHSeq (incrOp skip f) (incrOp skip g)
        end.
 
@@ -448,9 +448,8 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
       | DSHAlloc size body =>
         "DSHAlloc " ++
                     NT.to_string size
-      | DSHMemInit size y_p value =>
+      | DSHMemInit y_p value =>
         "DSHMemInit " ++
-                      NT.to_string size ++ " " ++
                       string_of_PExpr y_p ++ " ..."
       | DSHSeq f g => "DSHSeq"
       end.

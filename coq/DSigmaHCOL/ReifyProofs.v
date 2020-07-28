@@ -5523,11 +5523,10 @@ Proof.
 Qed.
 
 Global Instance MemInit_DSH_pure
-       {size : nat}
        {y_p : PExpr}
        {init : CarrierA}
   :
-    DSH_pure (DSHMemInit size y_p init) y_p.
+    DSH_pure (DSHMemInit y_p init) y_p.
 Proof.
   constructor.
   -
@@ -5576,7 +5575,7 @@ Global Instance IReduction_DSH_pure
   :
     DSH_pure
       (DSHSeq
-         (DSHMemInit no y_p init)
+         (DSHMemInit y_p init)
          (DSHAlloc no
                    (DSHLoop nn
                             (DSHSeq
@@ -6418,8 +6417,7 @@ Proof.
 Qed.
 
 Lemma MemInit_simpl
-      (o y_sz : nat)
-      (SZ : o <= y_sz)
+      (y_sz: nat)
       (σ : evalContext)
       (m : memory)
       (dop : DSHOperator)
@@ -6429,11 +6427,10 @@ Lemma MemInit_simpl
       (y_m : mem_block)
       (Y_ID : evalPExpr_id σ y_p = inr y_id)
       (Y_M : lookup_PExpr_wsize σ m y_p = inr (y_m, y_sz))
-      (* (YID_M : memory_lookup m y_id = Some y_m) *)
   :
-  evalDSHOperator σ (DSHSeq (DSHMemInit o y_p init) dop) m
-                  (estimateFuel (DSHSeq (DSHMemInit o y_p init) dop)) =
-  evalDSHOperator σ dop (memory_set m y_id (mem_union (mem_const_block o init) y_m))
+  evalDSHOperator σ (DSHSeq (DSHMemInit y_p init) dop) m
+                  (estimateFuel (DSHSeq (DSHMemInit y_p init) dop)) =
+  evalDSHOperator σ dop (memory_set m y_id (mem_union (mem_const_block y_sz init) y_m))
                   (estimateFuel dop).
 Proof.
   assert (YID_M : memory_lookup m y_id = Some y_m).
@@ -6452,37 +6449,36 @@ Proof.
   repeat break_match;
     try some_none; repeat some_inv;
       try inl_inr; repeat inl_inr_inv.
-  all: subst; try nia; cbn in Heqo0.
+  all: cbn in Heqo.
   all: repeat break_match;
     try some_none; repeat some_inv;
       try inl_inr; repeat inl_inr_inv;
-        subst.
-  -
-    exfalso.
-    unfold assert_NT_le, assert_true_to_err in Heqs0.
-    break_if; try inl_inr.
-    apply leb_complete_conv in Heqb.
-    unfold NatAsNT.MNatAsNT.to_nat in Heqb.
-    replace n0 with y_sz in *.
-    lia.
-    symmetry.
-    eapply lookup_PExpr_size_invariant'.
-    rewrite Heqs.
-    reflexivity.
-    rewrite Y_M.
-    reflexivity.
+        subst; try lia.
   -
     memory_lookup_err_to_option.
     eq_to_equiv.
-    rewrite Y_ID in Heqs2.
+    rewrite Y_ID in Heqs3.
     some_none.
   -
     memory_lookup_err_to_option.
     eq_to_equiv.
     rewrite Y_ID in *.
-    rewrite Heqs2 in YID_M.
+    rewrite Heqs3 in YID_M.
     some_inv.
     rewrite YID_M.
+    unfold NatAsNT.MNatAsNT.to_nat.
+    unfold lookup_PExpr_wsize in Y_M.
+    cbn in Y_M.
+    break_match.
+    inversion Y_M.
+    break_let.
+    break_match.
+    inversion Y_M.
+    repeat inl_inr_inv.
+    invc Heqs2.
+    invc Y_M.
+    cbn in H0, H1, H2, H3.
+    rewrite <- H1, H3.
     reflexivity.
 Qed.
 
@@ -6780,7 +6776,7 @@ Global Instance IReduction_MSH_DSH_compat_S
       _ _
       (@MSHIReduction i o (S n) init dot pdot op_family)
       (DSHSeq
-         (DSHMemInit o y_p init)
+         (DSHMemInit y_p init)
          (DSHAlloc o
                    (DSHLoop (S n)
                             (DSHSeq
@@ -7347,14 +7343,14 @@ Proof.
 
     (* cases by [opf] and [loopN] *)
     remember (evalDSHOperator σ
-               (DSHSeq (DSHMemInit o y_p init)
+               (DSHSeq (DSHMemInit y_p init)
                   (DSHAlloc o
                      (DSHLoop n
                         (DSHSeq rr
                            (DSHMemMap2 o (incrPVar 0 (incrPVar 0 y_p)) 
                               (PVar 1) (incrPVar 0 (incrPVar 0 y_p)) df))))) m
                (estimateFuel
-                  (DSHSeq (DSHMemInit o y_p init)
+                  (DSHSeq (DSHMemInit y_p init)
                      (DSHAlloc o
                         (DSHLoop n
                            (DSHSeq rr

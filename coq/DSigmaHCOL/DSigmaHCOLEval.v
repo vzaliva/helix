@@ -293,7 +293,7 @@ Module MDSigmaHCOLEval
     | DSHPower _ _ _ _ _ => 1
     | DSHLoop n body => S (estimateFuel body * n)
     | DSHAlloc _ body => S (estimateFuel body)
-    | DSHMemInit _ _ _ => 1
+    | DSHMemInit _ _ => 1
     | DSHSeq f g =>
       S (Nat.max (estimateFuel f) (estimateFuel g))
     end.
@@ -393,12 +393,11 @@ Module MDSigmaHCOLEval
           | Some (inl msg) => Some (inl msg)
           | None => None
           end
-        | DSHMemInit size y_p value =>
+        | DSHMemInit y_p value =>
           Some (
               '(y_i,y_size) <- evalPExpr σ y_p ;;
-              assert_NT_le "DSHMemInit 'size' larger than 'y_size'" size y_size ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHMemInit" mem y_i ;;
-              let y' := mem_union (mem_const_block (to_nat size) value) y in
+              let y' := mem_union (mem_const_block (to_nat y_size) value) y in
               ret (memory_set mem y_i y')
             )
         | DSHSeq f g =>
@@ -1798,13 +1797,13 @@ Module MDSigmaHCOLEval
       all: err_eq_to_equiv_hyp; eq_to_equiv_hyp.
       all: memory_lookup_err_to_option.
       all: rewrite ME in *; try some_none.
-      rewrite Heqs1 in Heqs2; some_inv.
+      rewrite Heqs0 in Heqs1; some_inv.
       do 3 f_equiv.
       intros k.
       unfold mem_union.
       repeat rewrite NP.F.map2_1bis by reflexivity.
       break_match; try reflexivity.
-      apply Heqs2.
+      apply Heqs1.
     -
       intros.
       destruct fuel; [reflexivity |].

@@ -955,8 +955,8 @@ Fixpoint genIR
           '(ablock,acode) <- allocTempArrayBlock aname bblock size ;;
           dropVars 1 ;;
           add_comment (ret (ablock, [acode]++bcode))
-        | DSHMemInit size y_p value =>
-          '(y,_) <- resolve_PVar y_p ;; (* ignore actual block size *)
+        | DSHMemInit y_p value =>
+          '(y,size) <- resolve_PVar y_p ;; (* ignore actual block size *)
           '(ablock,acode) <- genMemInit size y value nextblock ;;
           add_comment (ret (ablock, acode))
         | DSHSeq f g =>

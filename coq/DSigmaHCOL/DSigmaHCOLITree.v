@@ -300,10 +300,10 @@ Module MDSigmaHCOLITree
           denoteDSHOperator (DSHPtrVal t_i size :: σ) body ;;
           trigger (MemFree t_i)
 
-        | DSHMemInit size y_p value =>
-          '(y_i,y_sixe) <- denotePExpr σ y_p ;;
+        | DSHMemInit y_p value =>
+          '(y_i,y_size) <- denotePExpr σ y_p ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHMemInit" y_i) ;;
-          let y' := mem_union (mem_const_block (to_nat size) value) y in
+          let y' := mem_union (mem_const_block (to_nat y_size) value) y in
           trigger (MemSet y_i y')
 
        | DSHSeq f g =>

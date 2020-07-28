@@ -908,7 +908,7 @@ Section MSHCOL_to_DSHCOL.
     |  [ |-
         DSH_pure
           (DSHSeq
-             (DSHMemInit ?o _ _)
+             (DSHMemInit _ _)
              (DSHAlloc ?o
                        (DSHLoop _
                                 (DSHSeq

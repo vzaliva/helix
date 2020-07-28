@@ -264,7 +264,7 @@ Fixpoint compileMSHCOL2DSHCOL
         df <- compileDSHBinCarrierA res1 f ;;
         tmReturn (vars,
                   DSHSeq
-                    (DSHMemInit no y_p zconst)
+                    (DSHMemInit y_p zconst)
                     (DSHAlloc no
                               (DSHLoop nn
                                        (DSHSeq
