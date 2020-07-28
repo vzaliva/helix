@@ -698,34 +698,32 @@ Section AExpr.
         (* m0 = b' by evalMExpr hypotheses *)
         destruct MINV as (MLUP & INLG & NTH_σ_vid & NTH_Γ_vid).
 
-        destruct ptr_id; cbn in INLG.
-        { destruct INLG as (? & ? & CONTRA & REST).
-          inv CONTRA. }
-
-        cbn in SINV''.
         pose proof state_invariant_memory_invariant SINV'' as MEMINV.
-        epose proof memory_invariant_LLU_Ptr vid MEMINV _ NTH_σ_vid as (bk_h & ptr_v & MLUP' & ILG' & GET_ARRAY).
+        epose proof MEMINV _ _ _ _ NTH_σ_vid NTH_Γ_vid as GET_ARRAY.
+        cbn in GET_ARRAY.
+        destruct GET_ARRAY as (bk_h & ptr_v & MLUP' & ILG' & GET_ARRAY).
+
+        (* Need to show that m0 = bk_h *)
         assert (m0 ≡ bk_h) as M0BK.
-        {
-          rewrite Heqs4 in EVAL_MEXP.
+        { rewrite Heqs4 in EVAL_MEXP.
           inv EVAL_MEXP.
           rewrite MLUP in MLUP'.
           inv MLUP'.
           reflexivity.
         }
-        rewrite M0BK in Heqo.
+        subst.
 
-        assert (ptr_v ≡ ptr).
-        { (* ptr_v comes from memory_invariant_LLU_Ptr *)
-          (* ILG : l' @ id = Some (UVALUE_Addr ptr) *)
-          (* Use ILG' to relate... *)
-          cbn in ILG'.
-          rewrite INLG in ILG'.
-          inversion ILG'.
+        (* Need to show ptr = ptr_v *)
+        assert (ptr ≡ ptr_v).
+        { destruct ptr_id;
+          cbn in INLG, ILG';
+          rewrite INLG in ILG';
+          inversion ILG';
           auto.
         }
 
-        rewrite H in GET_ARRAY.
+        subst.
+
         auto.
       }
     - (* AAbs *)

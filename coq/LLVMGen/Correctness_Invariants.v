@@ -452,8 +452,10 @@ Section SimulationRelations.
   Definition dvalue_of_int (v : Int64.int) : dvalue := DVALUE_I64 (DynamicValues.Int64.repr (Int64.intval v)).
   Definition dvalue_of_bin (v: binary64)   : dvalue := DVALUE_Double v.
 
-  (* Check that a pair of [ident] and [dvalue] can be found in the appropriate environment *)
-  Definition in_local_or_global
+  (* Check that a pair of [ident] and [dvalue] can be found in the
+     appropriate environment. This to be used only for scalar values,
+     like [int] or [double] *)
+  Definition in_local_or_global_scalar
              (ρ : local_env) (g : global_env) (m : memoryV)
              (x : ident) (dv : dvalue) (τ : typ) : Prop
     := match x with
@@ -463,6 +465,16 @@ Section SimulationRelations.
          τ ≡ TYPE_Pointer τ' /\
          g @ x ≡ Some (DVALUE_Addr ptr) /\
          read m ptr (typ_to_dtyp [] τ') ≡ inr (dvalue_to_uvalue dv)
+       end.
+
+  (* Check that a pair of [ident] and [dvalue] can be found in the
+     appropriate environment. This to be used for  *)
+  Definition in_local_or_global_addr
+             (ρ : local_env) (g : global_env) (m : memoryV)
+             (x : ident) (a : Addr.addr): Prop
+    := match x with
+       | ID_Local  x => ρ @ x ≡ Some (UVALUE_Addr a)
+       | ID_Global x => g @ x ≡ Some (DVALUE_Addr a)
        end.
 
   (* Main memory invariant. Relies on Helix's evaluation context and the [IRState] built by the compiler.
@@ -476,12 +488,12 @@ Section SimulationRelations.
         nth_error σ n ≡ Some v ->
         nth_error (Γ s) n ≡ Some (x,τ) ->
         match v with
-        | DSHnatVal v   => in_local_or_global ρ g mem_llvm x (dvalue_of_int v) τ
-        | DSHCTypeVal v => in_local_or_global ρ g mem_llvm x (dvalue_of_bin v) τ
+        | DSHnatVal v   => in_local_or_global_scalar ρ g mem_llvm x (dvalue_of_int v) τ
+        | DSHCTypeVal v => in_local_or_global_scalar ρ g mem_llvm x (dvalue_of_bin v) τ
         | DSHPtrVal ptr_helix ptr_size_helix =>
           exists bk_helix ptr_llvm,
           memory_lookup mem_helix ptr_helix ≡ Some bk_helix /\
-          in_local_or_global ρ g mem_llvm x (DVALUE_Addr ptr_llvm) τ /\
+          in_local_or_global_addr ρ g mem_llvm x ptr_llvm /\
           (forall i v, mem_lookup i bk_helix ≡ Some v ->
                   get_array_cell mem_llvm ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v))
         end.
@@ -511,7 +523,7 @@ Section SimulationRelations.
   Proof.
     intros * INV NTH LU; cbn* in *.
     eapply INV in LU; clear INV; eauto.
-    unfold in_local_or_global, dvalue_of_int in LU.
+    unfold in_local_or_global_scalar, dvalue_of_int in LU.
     rewrite repr_intval in LU; auto.
   Qed.
 
@@ -526,7 +538,7 @@ Section SimulationRelations.
   Proof.
     intros * INV NTH LU; cbn* in *.
     eapply INV in LU; clear INV; eauto.
-    unfold in_local_or_global, dvalue_of_int in LU.
+    unfold in_local_or_global_scalar, dvalue_of_int in LU.
     cbn in LU; auto.
   Qed.
 
@@ -552,7 +564,7 @@ Section SimulationRelations.
       nth_error σ v ≡ Some (DSHPtrVal m size) ->
       exists (bk_h : mem_block) (ptr_v : Addr.addr),
         memory_lookup memH m ≡ Some bk_h
-        /\ in_local_or_global l g memV (ID_Local id) (DVALUE_Addr ptr_v) t
+        /\ in_local_or_global_addr l g memV (ID_Local id) ptr_v
         /\ (forall (i : Memory.NM.key) (v : binary64),
               mem_lookup i bk_h ≡ Some v -> get_array_cell memV ptr_v i DTYPE_Double ≡ inr (UVALUE_Double v)).
   Proof.
@@ -658,13 +670,23 @@ Section Ext_Local.
   Definition ext_local {R S}: memoryH -> config_cfg -> Rel_cfg_T R S :=
     fun mh '(mi,(li,gi)) '(mh',_) '(m,(l,(g,_))) => mh ≡ mh' /\ mi ≡ m /\ gi ≡ g /\ li ⊑ l.
 
- Lemma in_local_or_global_ext_local :
+ Lemma in_local_or_global_scalar_ext_local :
     forall ρ1 ρ2 g m x dv τ,
-      in_local_or_global ρ1 g m x dv τ ->
+      in_local_or_global_scalar ρ1 g m x dv τ ->
       ρ1 ⊑ ρ2 ->
-      in_local_or_global ρ2 g m x dv τ.
+      in_local_or_global_scalar ρ2 g m x dv τ.
   Proof.
-    unfold in_local_or_global; intros ? ? ? ? [] ? ? IN MONO; auto.
+    unfold in_local_or_global_scalar; intros ? ? ? ? [] ? ? IN MONO; auto.
+    apply MONO; auto.
+  Qed.
+
+ Lemma in_local_or_global_addr_ext_local :
+    forall ρ1 ρ2 g m x ptr,
+      in_local_or_global_addr ρ1 g m x ptr ->
+      ρ1 ⊑ ρ2 ->
+      in_local_or_global_addr ρ2 g m x ptr.
+  Proof.
+    unfold in_local_or_global_addr; intros ρ1 ρ2 g m [] ptr IN MONO; auto.
     apply MONO; auto.
   Qed.
 
@@ -678,11 +700,11 @@ Section Ext_Local.
     red; intros * NTH NTH'.
     specialize (INV _ _ _ _ NTH NTH').
     destruct v; eauto.
-    eapply in_local_or_global_ext_local; eauto.
-    eapply in_local_or_global_ext_local; eauto.
+    eapply in_local_or_global_scalar_ext_local; eauto.
+    eapply in_local_or_global_scalar_ext_local; eauto.
     repeat destruct INV as (? & INV).
     do 3 eexists; splits; eauto.
-    eapply in_local_or_global_ext_local; eauto.
+    eapply in_local_or_global_addr_ext_local; eauto.
   Qed.
 
 End Ext_Local.
@@ -1109,9 +1131,16 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma in_local_or_global_same_global : forall l g l' m id dv τ,
-    in_local_or_global l g m (ID_Global id) dv τ ->
-    in_local_or_global l' g m (ID_Global id) dv τ.
+Lemma in_local_or_global_scalar_same_global : forall l g l' m id dv τ,
+    in_local_or_global_scalar l g m (ID_Global id) dv τ ->
+    in_local_or_global_scalar l' g m (ID_Global id) dv τ.
+Proof.
+  cbn; intros; auto.
+Qed.
+
+Lemma in_local_or_global_addr_same_global : forall l g l' m id ptr,
+    in_local_or_global_addr l g m (ID_Global id) ptr ->
+    in_local_or_global_addr l' g m (ID_Global id) ptr.
 Proof.
   cbn; intros; auto.
 Qed.
@@ -1124,11 +1153,23 @@ Proof.
   intros; cbn in *; inv_sum; reflexivity.
 Qed.
 
-Lemma in_local_or_global_add_fresh_old :
+Lemma in_local_or_global_scalar_add_fresh_old :
   forall (id : raw_id) (l : local_env) (g : global_env) m (x : ident) dv dv' τ,
     x <> ID_Local id ->
-    in_local_or_global l g m x dv τ ->
-    in_local_or_global (alist_add id dv' l) g m x dv τ.
+    in_local_or_global_scalar l g m x dv τ ->
+    in_local_or_global_scalar (alist_add id dv' l) g m x dv τ.
+Proof.
+  intros * INEQ LUV'.
+  destruct x; cbn in *; auto.
+  rewrite rel_dec_neq_false; try typeclasses eauto; [| intros ->; auto].
+  rewrite remove_neq_alist; auto; try typeclasses eauto; intros ->; auto.
+Qed.
+
+Lemma in_local_or_global_addr_add_fresh_old :
+  forall (id : raw_id) (l : local_env) (g : global_env) m (x : ident) ptr dv',
+    x <> ID_Local id ->
+    in_local_or_global_addr l g m x ptr ->
+    in_local_or_global_addr (alist_add id dv' l) g m x ptr.
 Proof.
   intros * INEQ LUV'.
   destruct x; cbn in *; auto.
@@ -1140,7 +1181,20 @@ Lemma fresh_no_lu :
   forall s s' id l g m x dv τ,
     incLocal s ≡ inr (s', id) ->
     incLocal_fresh l s ->
-    in_local_or_global l g m x dv τ ->
+    in_local_or_global_scalar l g m x dv τ ->
+    x <> ID_Local id.
+Proof.
+  intros * INC FRESH IN abs; subst.
+  apply FRESH in INC.
+  unfold alist_fresh in *.
+  cbn in *; rewrite INC in IN; inv IN.
+Qed.
+
+Lemma fresh_no_lu_addr :
+  forall s s' id l g m x ptr,
+    incLocal s ≡ inr (s', id) ->
+    incLocal_fresh l s ->
+    in_local_or_global_addr l g m x ptr ->
     x <> ID_Local id.
 Proof.
   intros * INC FRESH IN abs; subst.
@@ -1184,18 +1238,18 @@ Proof.
       eapply MEM in INLG; eauto.
     break_match.
     + subst.
-      eapply in_local_or_global_add_fresh_old; eauto.
+      eapply in_local_or_global_scalar_add_fresh_old; eauto.
       eapply fresh_no_lu; eauto.
       eapply concrete_fresh_fresh; eauto.
     + subst.
-      eapply in_local_or_global_add_fresh_old; eauto.
+      eapply in_local_or_global_scalar_add_fresh_old; eauto.
       eapply fresh_no_lu; eauto.
       eapply concrete_fresh_fresh; eauto.
     + subst.
       repeat destruct INLG as [? INLG].
       do 3 eexists; splits; eauto.
-      eapply in_local_or_global_add_fresh_old; eauto.
-      eapply fresh_no_lu; eauto.
+      eapply in_local_or_global_addr_add_fresh_old; eauto.
+      eapply fresh_no_lu_addr; eauto.
       eapply concrete_fresh_fresh; eauto.
   - unfold WF_IRState; erewrite incLocal_Γ; eauto; apply WF.
   - intros ? ? ? LU INEQ.

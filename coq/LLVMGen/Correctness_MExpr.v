@@ -84,7 +84,7 @@ Section MExpr.
       (exists ptr i (vid : nat) (mid : mem_block_id) (size : Int64.int) (sz : int), (* TODO: sz ≈ size? *)
         Ret (memV,(ρ,(g,UVALUE_Addr ptr))) ≈ interp_cfg (translate exp_E_to_instr_E (D.denote_exp (Some DTYPE_Pointer) (convert_typ [] e))) g ρ memV /\
         memory_lookup memH mid ≡ Some mb /\
-        in_local_or_global ρ g memV i (DVALUE_Addr ptr) (TYPE_Array sz TYPE_Double) /\
+        in_local_or_global_addr ρ g memV i ptr /\
         nth_error σ vid ≡ Some (DSHPtrVal mid size) /\
         nth_error (Γ s) vid ≡ Some (i, TYPE_Pointer (TYPE_Array sz TYPE_Double))) /\
       evalMExpr memH σ mexp ≡ inr (mb, mb_sz).
@@ -122,7 +122,7 @@ Section MExpr.
       nth_error (Γ s) vid ≡ Some (x, TYPE_Pointer (TYPE_Array sz TYPE_Double)) ->
       ∃ (bk_helix : mem_block) (ptr_llvm : Addr.addr),
         memory_lookup memH a ≡ Some bk_helix
-        ∧ in_local_or_global l g memV x (DVALUE_Addr ptr_llvm) (TYPE_Pointer (TYPE_Array sz TYPE_Double))
+        ∧ in_local_or_global_addr l g memV x ptr_llvm
         ∧ (∀ (i : Memory.NM.key) (v : binary64), mem_lookup i bk_helix ≡ Some v → get_array_cell memV ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v)).
   Proof.
     intros * [MEM _ _] LU1 LU2; eapply MEM in LU1; eapply LU1 in LU2; eauto.
@@ -163,67 +163,53 @@ Section MExpr.
 
       edestruct memory_invariant_Ptr as (bkH & ptrV & Mem_LU & LUV & EQ); eauto.
 
-      destruct i0.
-      + (* Global *)
+      rewrite denote_code_nil; cbn.
+      repeat norm_h; try apply memory_lookup_err_inr_Some_eq; eauto.
+      repeat norm_v.
+
+      apply eutt_Ret.
+      split; auto.
+      split; auto.
+      red.
+      split.
+      { do 6 eexists.
+        splits; eauto.
+
+        destruct i0;
+          cbn in *; repeat norm_v; cbn; eauto;
+            try rewrite bind_ret_l;
+            repeat rewrite translate_ret;
+            try rewrite interp_cfg_to_L3_ret;
+            reflexivity.
+      }
+      { destruct v as (v & bk_sz).
+        assert (v ≡ bkH) as VBKH.
+        { simp.
+          cbn in Heval.
+          repeat break_match; inversion Heval; inversion Heqs; subst.
+          inv_memory_lookup_err.
+          match goal with
+          | H : Some (DSHPtrVal m bk_sz) ≡ Some (DSHPtrVal a size) |- _ =>
+            inversion H; subst
+          end.
+          match goal with
+          | H : memory_lookup memH a ≡ Some v |- _ =>
+            rewrite H in Mem_LU
+          end.
+          inversion Mem_LU; auto.
+        }
+
+        subst.
         cbn in *.
-        (* This case should be absurd if I'm not mistaken: we read in memory at an Array type, and yet find an address *)
-        exfalso.
-        clear - LUV.
-        destruct LUV as (ptr & τ' & EQ & LU & READ).
-        inv EQ.
-        clear -READ.
-
-        do 2 rewrite typ_to_dtyp_equation in READ.
-        cbn in READ.
-
-        assert (not_undef (UVALUE_Addr ptrV)) as NU.
-        { intros t TYP. inversion TYP. }
-        eapply read_array_not_pointer; eauto.
+        match_rewrite.
+        rewrite Heqo0 in Heval.
+        unfold memory_lookup_err in *.
+        rewrite Mem_LU.
+        rewrite Mem_LU in Heval.
+        cbn in *.
+        inversion Heval.
         reflexivity.
-        constructor.
-      + (*  Local *)
-        cbn in *.
-        repeat norm_h.
-        2: apply memory_lookup_err_inr_Some_eq; eassumption.
-        rewrite denote_code_nil; cbn.
-        repeat norm_v.
-        apply eutt_Ret.
-        split; auto.
-        split; auto.
-        red.
-        split.
-        { do 6 eexists.
-          splits; eauto.
-
-          cbn.
-          rewrite translate_trigger.
-          rewrite translate_trigger.
-
-          rewrite lookup_E_to_exp_E_Local.
-          rewrite subevent_subevent.
-          rewrite exp_E_to_instr_E_Local.
-          setoid_rewrite interp_cfg_to_L3_LR; eauto.
-          cbn; reflexivity.
-          auto.
-        }
-        { destruct v as (v & bk_sz). assert (v ≡ bkH) as VBKH.
-          { simp.
-            inv_memory_lookup_err.
-            inversion Mem_LU.
-            auto.
-          }
-
-          subst.
-          cbn.
-          match_rewrite.
-          rewrite Heqo0 in Heval.
-          unfold memory_lookup_err in *.
-          rewrite Mem_LU.
-          rewrite Mem_LU in Heval.
-          cbn in *.
-          inversion Heval.
-          reflexivity.
-        }
+      }
     - (* Const *)
       cbn* in Hgen; simp.
   Qed.
