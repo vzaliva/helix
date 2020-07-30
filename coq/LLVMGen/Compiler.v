@@ -41,7 +41,7 @@ Notation "x @@ y" := (String.append x y) (right associativity, at level 60) : st
 Section withErrorStateMonad.
 
   Record IRState :=
-    mkIRstate
+    mkIRState
       {
         block_count: nat ;
         local_count: nat ;
