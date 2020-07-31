@@ -135,6 +135,7 @@ Ltac find_phi :=
 (* Enforcing these definitions to be unfolded systematically by [cbn] *)
 Arguments endo /.
 Arguments Endo_id /.
+Arguments Endo_ident /.
 Arguments IntType /.
 
 (* General purpose tactics.
@@ -403,7 +404,12 @@ Module ProofNotations.
   Notation "x" := (with_err_LB x) (only printing, at level 10). 
   Notation "x" := (with_err_RT x) (only printing, at level 10). 
   Notation "x" := (with_err_RB x) (only printing, at level 10). 
-
+  Notation "⟦ t ⟧ g l m" := (interp_cfg t g l m) (only printing, at level 10).
+  Notation "'CODE' c" := (denote_code c) (only printing, at level 10, format "'CODE' '//' c").
+  Notation "'INSTR' i" := (denote_instr i) (only printing, at level 10, format "'INSTR' '//' i").
+  Notation "'ι' x" := (DTYPE_I x) (at level 10,only printing).
+  Notation "⋆" := (DTYPE_Pointer) (at level 10,only printing).
+ 
   Notation "t '======================' u '======================' '{' R '}'"
     := (eutt R t u)
          (only printing, at level 200,
@@ -874,6 +880,7 @@ Ltac break_and :=
   Tactic Notation "norm_hD" "in" hyp(h) := norm_h_hyp_k' h 1.
 
   Ltac norm_v_k k :=
+    repeat rewrite typ_to_dtyp_equation;
       repeat (
           repeat (norm_monad_r_k k);
           repeat (norm_interp_r_k k);

@@ -328,6 +328,7 @@ Section AExpr.
           cbn.
           epose proof (memory_invariant_GLU_AExpr _ mem_is_inv Heqo Heqo0).
           destruct H as (ptr & MAP & READ).
+          rewrite typ_to_dtyp_equation in READ.
 
           rewrite denote_code_singleton; cbn.
           norm_v; eauto.
@@ -652,8 +653,6 @@ Section AExpr.
 
       cbn.
       norm_v.
-      rewrite typ_to_dtyp_equation.
-      norm_v.
 
       epose proof (AEXPR l2 _) as [EUTT EVAL'].
       rewrite denote_code_singleton.
@@ -741,7 +740,6 @@ Section AExpr.
 
       norm_h.
       cbn. norm_v.
-      rewrite typ_to_dtyp_equation.
 
       unfold genAExpr_exp_correct in aexp_correct0.
       do 2 destruct H1.
@@ -834,7 +832,6 @@ Section AExpr.
 
       norm_h.
       cbn. norm_v.
-      rewrite typ_to_dtyp_equation.
 
       unfold genAExpr_exp_correct in aexp_correct0.
       do 2 destruct H1.
@@ -927,7 +924,6 @@ Section AExpr.
 
       norm_h.
       cbn. norm_v.
-      rewrite typ_to_dtyp_equation.
 
       unfold genAExpr_exp_correct in aexp_correct0.
       do 2 destruct H1.
@@ -1020,7 +1016,6 @@ Section AExpr.
 
       norm_h.
       cbn. norm_v.
-      rewrite typ_to_dtyp_equation.
 
       unfold genAExpr_exp_correct in aexp_correct0.
       do 2 destruct H1.
@@ -1136,7 +1131,6 @@ Section AExpr.
 
       norm_h.
       cbn. norm_v.
-      rewrite typ_to_dtyp_equation.
 
       unfold genAExpr_exp_correct in aexp_correct0.
       do 2 destruct H1.
@@ -1243,7 +1237,6 @@ Section AExpr.
       subst.
       norm_h.
       cbn. norm_v.
-      rewrite typ_to_dtyp_equation.
       unfold genAExpr_exp_correct in aexp_correct0.
       do 2 destruct H1.
       subst.
@@ -1291,7 +1284,6 @@ Section AExpr.
        (Floats.Float.of_longu (DynamicValues.Int64.repr (DynamicValues.Int1.unsigned cmp_res)))) as x.
         set (alist_add (Traversal.endo r) (dvalue_to_uvalue (double_cmp (Traversal.endo FOlt) b' b'')) l'') as l'''.
         pose proof denote_conversion_concrete Uitofp (DTYPE_I 1) DTYPE_Double (EXP_Ident (ID_Local (Traversal.endo r))) g'' l''' memV'' x (dvalue_to_uvalue (double_cmp (Traversal.endo FOlt) b' b'')).
-        rewrite typ_to_dtyp_equation.
         cbn.
         (* YZ: Sorry I broke this one but this is too ugly to debug, we'll have to redo the proof anyway.
            The goal is to have Vellvm side automation in the style of norm for this.

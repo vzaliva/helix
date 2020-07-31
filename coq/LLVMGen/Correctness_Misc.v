@@ -99,14 +99,14 @@ Proof.
       break_match_goal; [admit|].
       break_match_goal; [|admit].
       cbn.
-      cbn*; repeat norm_h.
+      cbn*; norm_h.
       unfold denoteIUnCType.
 
       rewrite denote_bks_unfold_in.
       Opaque find_block.
       2: rewrite find_block_eq; reflexivity.
       cbn.
-      repeat norm_v.
+      norm_v.
       focus_single_step.
       (*
       rewrite denote_code_cons.
@@ -117,9 +117,9 @@ Proof.
       focus_single_step_v.
       cbn*.
       edestruct memory_invariant_LLU_Ptr as (bk_x & ptr_x & LUx & INLGx & VEC_LUx); [| exact H | exact H3 |]; eauto.
-      repeat norm_v.
+      norm_v.
       2:eassumption. 
-      cbn; repeat norm_v.
+      cbn; norm_v.
       unfold IntType; rewrite typ_to_dtyp_I.
       cbn; repeat (norm_v; []).
       cbn.
@@ -127,10 +127,10 @@ Proof.
       assert (l @ loopvar ≡ Some (UVALUE_I64 (Int64.repr (Z.of_nat k)))) by admit.
       norm_v.
       2:eassumption.
-      cbn; repeat norm_v.
+      cbn; norm_v.
       simpl.
       unfold ITree.map.
-      cbn; repeat norm_v.
+      cbn; norm_v.
       rewrite exp_E_to_instr_E_Memory,subevent_subevent.
       cbn in *. 
        *)
@@ -424,19 +424,17 @@ Proof.
   - (* n = 0: we never enter the loop *)
 
     cbn.
-    repeat norm_h.
+    norm_h.
 
     jump_in.
        
     cbn.
-    repeat norm_v.
-    cbn; repeat norm_v.
+    norm_v.
+    cbn; norm_v.
 
     rewrite denote_code_singleton.
     rewrite denote_instr_op.
     2:{
-      cbn.
-      unfold IntType; rewrite typ_to_dtyp_I.
       cbn.
       rewrite !bind_ret_l.
       cbn.
@@ -444,9 +442,8 @@ Proof.
       reflexivity.
     }
 
-    repeat norm_v.
+    norm_v.
     focus_single_step_v.
-    rewrite typ_to_dtyp_I.
     rewrite denote_term_br_r.
     2:{
       cbn.
@@ -458,13 +455,13 @@ Proof.
       reflexivity.
     }
 
-    repeat norm_v.
+    norm_v.
     subst.
 
     rewrite denote_bks_unfold_not_in.
     2: admit.
 
-    repeat norm_v.
+    norm_v.
     apply eutt_Ret.
 
     cbn; eapply STABLE; eauto.
@@ -481,15 +478,13 @@ Proof.
     jump_in.
 
     cbn.
-    repeat norm_v.
-    cbn; repeat norm_v.
+    norm_v.
+    cbn; norm_v.
 
     focus_single_step_v.
     rewrite denote_code_singleton.
     rewrite denote_instr_op.
     2:{
-      simpl.
-      unfold IntType; rewrite typ_to_dtyp_I.
       simpl.
       rewrite !bind_ret_l.
       cbn.
@@ -497,9 +492,8 @@ Proof.
       reflexivity.
     }
 
-    repeat norm_v.
-    subst; cbn; repeat norm_v; focus_single_step_v.
-    rewrite typ_to_dtyp_I.
+    norm_v.
+    subst; cbn; norm_v; focus_single_step_v.
     rewrite denote_term_br_l.
     2:{
       cbn.
@@ -511,30 +505,27 @@ Proof.
       reflexivity.
     }
 
-    repeat norm_v.
-    subst; cbn; repeat norm_v.
+    norm_v.
+    subst; cbn; norm_v.
 
     jump_in.
     2:admit.
 
     cbn.
-    repeat norm_v.
+    norm_v.
 
     find_phi.
 
-    cbn; repeat norm_v.
+    cbn; norm_v.
     focus_single_step_v.
 
-    rewrite typ_to_dtyp_I.
-    cbn.
-    repeat norm_v.
-    subst; repeat norm_v.
     cbn.
     norm_v.
+    subst; norm_v.
     rewrite interp_cfg_to_L3_LW.
-    cbn; repeat norm_v.
+    cbn; norm_v.
     rewrite denote_code_nil.
-    cbn; repeat norm_v.
+    cbn; norm_v.
 
 
 Admitted.

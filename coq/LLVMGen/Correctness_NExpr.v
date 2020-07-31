@@ -1,6 +1,7 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Import ProofNotations.
+Open Scope Z.
 
 Set Implicit Arguments.
 Set Strict Implicit.
@@ -106,39 +107,37 @@ Section NExpr.
         * break_inner_match_goal; try abs_by_WF.
 
           norm_h.
-          destruct i0.
-          { (* Global -- Absurd, globals map to pointers, not integers *)
-            abs_by_WF.
-          }
-         { (* Local *)
-            apply eutt_Ret; split; [| split]; try now eauto.
-            constructor; eauto.
-            intros l' MONO; cbn*.
-            split.
-            { norm_v.
-              2: eapply memory_invariant_LLU; eauto.
-              2: eapply memory_invariant_ext_local; eauto.
-              reflexivity.
-            }
+          destruct i0; try abs_by_WF.
 
-            rewrite Heqo0.
+          apply eutt_Ret; split; [| split]; try now eauto.
+          constructor; eauto.
+          intros l' MONO; cbn*.
+          split.
+          { norm_v.
+            2: eapply memory_invariant_LLU; eauto.
+            2: eapply memory_invariant_ext_local; eauto.
             reflexivity.
-
           }
+          match_rewrite.
+          reflexivity.
 
         * (* Variable not in context, [context_lookup] fails *)
           cbn* in EVAL; rewrite Heqo0 in EVAL; inv EVAL.
-
+          
       + (* The variable maps to a pointer *)
         unfold denoteNExpr; cbn*.
+
+        norm_v.
+
         rewrite denote_code_singleton.
         break_inner_match_goal; try abs_by_WF.
+
         * break_inner_match_goal; try abs_by_WF.
           subst.
           destruct i0; try abs_by_WF.
           edestruct memory_invariant_GLU as (ptr & LU & READ); eauto.
-          cbn.
-          rewrite denote_instr_load; cbn; eauto.
+          rewrite typ_to_dtyp_equation in READ.
+          rewrite denote_instr_load; cbn in *; eauto.
 
           (* Can this be cleaned up? *)
           2: {
@@ -153,6 +152,7 @@ Section NExpr.
             cbn. rewrite bind_ret_l.
             repeat rewrite translate_ret.
             rewrite interp_cfg_to_L3_ret.
+            cbn.
             reflexivity.
             }
           norm_v.
@@ -255,7 +255,6 @@ Section NExpr.
           rewrite denote_code_singleton; cbn.
           norm_v.
           simpl in *; unfold denote_op; simpl.
-          unfold IntType; rewrite typ_to_dtyp_I.
 
           specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
           rewrite Heqs3 in EVAL_vH.
@@ -367,7 +366,6 @@ Section NExpr.
           rewrite denote_code_singleton; cbn.
           norm_v.
           simpl in *; unfold denote_op; simpl.
-          unfold IntType; rewrite typ_to_dtyp_I.
 
           specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
           rewrite Heqs3 in EVAL_vH.
