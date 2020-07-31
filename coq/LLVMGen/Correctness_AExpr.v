@@ -313,15 +313,15 @@ Section AExpr.
       + (* The variable maps to an integer in the IRState *)
         unfold denoteAExpr; cbn*.
 
-        repeat norm_v.
+        norm_v.
         break_inner_match_goal.
-        repeat norm_h.
+        norm_h.
 
         * pose proof PRE as SINV.
           destruct PRE.
           break_inner_match_goal; try abs_by_WF.
 
-          repeat norm_h.
+          norm_h.
           destruct i0; try abs_by_WF.
 
           (* Globals *)
@@ -330,7 +330,7 @@ Section AExpr.
           destruct H as (ptr & MAP & READ).
 
           rewrite denote_code_singleton; cbn.
-          repeat norm_v; eauto.
+          norm_v; eauto.
 
           rewrite denote_instr_load; eauto.
 
@@ -359,7 +359,7 @@ Section AExpr.
           }
           {
             + split; split; intuition.
-              * cbn. repeat norm_v. cbn. norm_v.
+              * cbn. norm_v. cbn. norm_v.
                 reflexivity.
                 cbn.
                 erewrite H; eauto.
@@ -378,18 +378,18 @@ Section AExpr.
       + (* The variable maps to a pointer *)
         unfold denoteAExpr; cbn*.
         rewrite denote_code_nil; cbn.
-        repeat norm_v.
+        norm_v.
         destruct PRE.
         break_inner_match_goal; try abs_by_WF.
-        * repeat norm_h.
+        * norm_h.
           break_inner_match_goal; try abs_by_WF.
           subst.
           destruct i0; try abs_by_WF.
-          repeat norm_h.
+          norm_h.
           apply eutt_Ret.
           split; split; eauto.
           -- split.
-             { cbn; repeat norm_v; cbn; repeat norm_v; eauto.
+             { cbn; norm_v; cbn; norm_v; eauto.
                reflexivity.
 
                eapply memory_invariant_LLU_AExpr; eauto;
@@ -406,16 +406,16 @@ Section AExpr.
       cbn* in COMPILE; simp.
       cbn. rewrite denote_code_nil; cbn.
       unfold denoteAExpr; cbn*.
-      repeat norm_h.
-      repeat norm_v.
+      norm_h.
+      norm_v.
       apply eutt_Ret.
       split; eauto.
       split; eauto.
       intros l' MONO; cbn*.
       split; try reflexivity.
       cbn in EVAL. inversion EVAL; subst.
-      repeat norm_h.
-      repeat norm_v.
+      norm_h.
+      norm_v.
       reflexivity.
     - (* ANth *)
       cbn* in COMPILE; simp.
@@ -431,7 +431,7 @@ Section AExpr.
 
       eutt_hide_right i4.
       cbn*.
-      repeat norm_h.
+      norm_h.
 
       subst i4.
       do 2 norm_v.
@@ -483,9 +483,9 @@ Section AExpr.
       repeat rewrite typ_to_dtyp_equation in *.
       cbn.
 
-      repeat norm_v.
+      norm_v.
       subst i4.
-      repeat norm_h.
+      norm_h.
 
       eapply eutt_clo_bind; eauto.
       unfold Traversal.endo, Traversal.Endo_id.
@@ -498,13 +498,13 @@ Section AExpr.
       epose proof denote_instr_gep_array r sz DTYPE_Double _ (Traversal.fmap (typ_to_dtyp [ ]) e0) (MInt64asNT.to_nat i2) _ _ _ _ _ _ EUTT_e1 as GEP.
       edestruct GEP as [ptr_res [READ EUTT_GEP]].
       3: {
-        repeat norm_v.
+        norm_v.
         (* i2 / n'... *)
         rewrite EUTT_GEP.
-        repeat norm_v.
+        norm_v.
 
         rewrite denote_instr_load; eauto.
-        repeat norm_v.
+        norm_v.
 
         assert (mem_lookup (MInt64asNT.to_nat n') b' ≡ Some b) as LUPn'b'.
         { (* i2 = n', because:
@@ -530,13 +530,13 @@ Section AExpr.
         }
 
         rewrite LUPn'b'.
-        repeat norm_h.
+        norm_h.
 
         apply eutt_Ret.
         split.
         + do 2 (eapply state_invariant_add_fresh; eauto).
         + split; split; intuition.
-          * cbn. repeat norm_v. cbn. norm_v.
+          * cbn. norm_v. cbn. norm_v.
             reflexivity.
             cbn.
             apply H.
@@ -633,13 +633,13 @@ Section AExpr.
       break_match; try discriminate EVAL.
 
       cbn*.
-      repeat norm_h.
+      norm_h.
 
       (* TODO: Ltac for this. *)
       rewrite convert_typ_app.
       rewrite denote_code_app.
 
-      repeat norm_v.
+      norm_v.
       eapply eutt_clo_bind; try eapply IHaexp; eauto.
 
       intros [memH2 b2] [memV2 [l2 [g2 []]]] [SINV EXPR_REL].
@@ -648,12 +648,12 @@ Section AExpr.
       unfold genAExpr_exp_correct in AEXPR.
       unfold ext_local in EXT.
       cbn in EXT.
-      repeat norm_h.
+      norm_h.
 
       cbn.
-      repeat norm_v.
+      norm_v.
       rewrite typ_to_dtyp_equation.
-      repeat norm_v.
+      norm_v.
 
       epose proof (AEXPR l2 _) as [EUTT EVAL'].
       rewrite denote_code_singleton.
@@ -681,7 +681,7 @@ Section AExpr.
         cbn. reflexivity.
       }
 
-      repeat norm_v.
+      norm_v.
 
       apply eqit_Ret.
 
@@ -689,7 +689,7 @@ Section AExpr.
       split.
       + eapply state_invariant_add_fresh; eauto.
       + split; split; intuition.
-        * cbn. repeat norm_v. cbn. norm_v.
+        * cbn. norm_v. cbn. norm_v.
           reflexivity.
           cbn.
 
@@ -712,22 +712,22 @@ Section AExpr.
       break_match; try discriminate EVAL.
 
       cbn*.
-      repeat norm_h.
+      norm_h.
 
       rewrite convert_typ_app.
       rewrite denote_code_app.
-      repeat norm_v.
+      norm_v.
 
       eapply eutt_clo_bind; try eapply IHaexp1; eauto.
 
       intros [memH' b'] [memV' [l' [g' []]]] [INV1 INV2].
       cbn in *.
 
-      repeat norm_h.
+      norm_h.
 
       rewrite convert_typ_app.
       rewrite denote_code_app.
-      repeat norm_v.
+      norm_v.
 
       inversion INV2.
       inversion amonotone0.
@@ -739,8 +739,8 @@ Section AExpr.
       inversion amonotone1.
       subst.
 
-      repeat norm_h.
-      cbn. repeat norm_v.
+      norm_h.
+      cbn. norm_v.
       rewrite typ_to_dtyp_equation.
 
       unfold genAExpr_exp_correct in aexp_correct0.
@@ -772,13 +772,13 @@ Section AExpr.
       }
 
       cbn.
-      repeat norm_v.
+      norm_v.
 
       apply eqit_Ret.
       split; cbn; eauto.
       + eapply state_invariant_add_fresh; eauto.
       + split; split; intuition.
-        * cbn. repeat norm_v. cbn. norm_v.
+        * cbn. norm_v. cbn. norm_v.
           reflexivity.
           cbn.
 
@@ -805,22 +805,22 @@ Section AExpr.
 
       Opaque denote_code.
       cbn*.
-      repeat norm_h.
+      norm_h.
 
       rewrite convert_typ_app.
       rewrite denote_code_app.
-      repeat norm_v.
+      norm_v.
 
       eapply eutt_clo_bind; try eapply IHaexp1; eauto.
 
       intros [memH' b'] [memV' [l' [g' []]]] [INV1 INV2].
       cbn in *.
 
-      repeat norm_h.
+      norm_h.
 
       rewrite convert_typ_app.
       rewrite denote_code_app.
-      repeat norm_v.
+      norm_v.
 
       inversion INV2.
       inversion amonotone0.
@@ -832,8 +832,8 @@ Section AExpr.
       inversion amonotone1.
       subst.
 
-      repeat norm_h.
-      cbn. repeat norm_v.
+      norm_h.
+      cbn. norm_v.
       rewrite typ_to_dtyp_equation.
 
       unfold genAExpr_exp_correct in aexp_correct0.
@@ -865,13 +865,13 @@ Section AExpr.
       }
 
       cbn.
-      repeat norm_v.
+      norm_v.
 
       apply eqit_Ret.
       split; cbn; eauto.
       + eapply state_invariant_add_fresh; eauto.
       + split; split; intuition.
-        * cbn. repeat norm_v. cbn. norm_v.
+        * cbn. norm_v. cbn. norm_v.
           reflexivity.
           cbn.
 
@@ -898,22 +898,22 @@ Section AExpr.
 
       Opaque denote_code.
       cbn*.
-      repeat norm_h.
+      norm_h.
 
       rewrite convert_typ_app.
       rewrite denote_code_app.
-      repeat norm_v.
+      norm_v.
 
       eapply eutt_clo_bind; try eapply IHaexp1; eauto.
 
       intros [memH' b'] [memV' [l' [g' []]]] [INV1 INV2].
       cbn in *.
 
-      repeat norm_h.
+      norm_h.
 
       rewrite convert_typ_app.
       rewrite denote_code_app.
-      repeat norm_v.
+      norm_v.
 
       inversion INV2.
       inversion amonotone0.
@@ -925,8 +925,8 @@ Section AExpr.
       inversion amonotone1.
       subst.
 
-      repeat norm_h.
-      cbn. repeat norm_v.
+      norm_h.
+      cbn. norm_v.
       rewrite typ_to_dtyp_equation.
 
       unfold genAExpr_exp_correct in aexp_correct0.
@@ -958,13 +958,13 @@ Section AExpr.
       }
 
       cbn.
-      repeat norm_v.
+      norm_v.
 
       apply eqit_Ret.
       split; cbn; eauto.
       + eapply state_invariant_add_fresh; eauto.
       + split; split; intuition.
-        * cbn. repeat norm_v. cbn. norm_v.
+        * cbn. norm_v. cbn. norm_v.
           reflexivity.
           cbn.
 
@@ -991,22 +991,22 @@ Section AExpr.
 
       Opaque denote_code.
       cbn*.
-      repeat norm_h.
+      norm_h.
 
       rewrite convert_typ_app.
       rewrite denote_code_app.
-      repeat norm_v.
+      norm_v.
 
       eapply eutt_clo_bind; try eapply IHaexp1; eauto.
 
       intros [memH' b'] [memV' [l' [g' []]]] [INV1 INV2].
       cbn in *.
 
-      repeat norm_h.
+      norm_h.
 
       rewrite convert_typ_app.
       rewrite denote_code_app.
-      repeat norm_v.
+      norm_v.
 
       inversion INV2.
       inversion amonotone0.
@@ -1018,8 +1018,8 @@ Section AExpr.
       inversion amonotone1.
       subst.
 
-      repeat norm_h.
-      cbn. repeat norm_v.
+      norm_h.
+      cbn. norm_v.
       rewrite typ_to_dtyp_equation.
 
       unfold genAExpr_exp_correct in aexp_correct0.
@@ -1068,13 +1068,13 @@ Section AExpr.
       }
 
       cbn.
-      repeat norm_v.
+      norm_v.
 
       apply eqit_Ret.
       split; cbn; eauto.
       + eapply state_invariant_add_fresh; eauto.
       + split; split; intuition.
-        * cbn. repeat norm_v. cbn. norm_v.
+        * cbn. norm_v. cbn. norm_v.
           reflexivity.
           cbn.
 
@@ -1107,22 +1107,22 @@ Section AExpr.
 
       Opaque denote_code.
       cbn*.
-      repeat norm_h.
+      norm_h.
 
       rewrite convert_typ_app.
       rewrite denote_code_app.
-      repeat norm_v.
+      norm_v.
 
       eapply eutt_clo_bind; try eapply IHaexp1; eauto.
 
       intros [memH' b'] [memV' [l' [g' []]]] [INV1 INV2].
       cbn in *.
 
-      repeat norm_h.
+      norm_h.
 
       rewrite convert_typ_app.
       rewrite denote_code_app.
-      repeat norm_v.
+      norm_v.
 
       inversion INV2.
       inversion amonotone0.
@@ -1134,8 +1134,8 @@ Section AExpr.
       inversion amonotone1.
       subst.
 
-      repeat norm_h.
-      cbn. repeat norm_v.
+      norm_h.
+      cbn. norm_v.
       rewrite typ_to_dtyp_equation.
 
       unfold genAExpr_exp_correct in aexp_correct0.
@@ -1185,13 +1185,13 @@ Section AExpr.
       }
 
       cbn.
-      repeat norm_v.
+      norm_v.
 
       apply eqit_Ret.
       split; cbn; eauto.
       + eapply state_invariant_add_fresh; eauto.
       + split; split; intuition.
-        * cbn. repeat norm_v. cbn. norm_v.
+        * cbn. norm_v. cbn. norm_v.
           reflexivity.
           cbn.
 
@@ -1222,17 +1222,17 @@ Section AExpr.
       break_match; try discriminate EVAL.
       Opaque denote_code.
       cbn*.
-      repeat norm_h.
+      norm_h.
       rewrite convert_typ_app.
       rewrite denote_code_app.
-      repeat norm_v.
+      norm_v.
       eapply eutt_clo_bind; try eapply IHaexp1; eauto.
       intros [memH' b'] [memV' [l' [g' []]]] [INV1 INV2].
       cbn in *.
-      repeat norm_h.
+      norm_h.
       rewrite convert_typ_app.
       rewrite denote_code_app.
-      repeat norm_v.
+      norm_v.
       inversion INV2.
       inversion amonotone0.
       subst.
@@ -1241,8 +1241,8 @@ Section AExpr.
       inversion INV2'.
       inversion amonotone1.
       subst.
-      repeat norm_h.
-      cbn. repeat norm_v.
+      norm_h.
+      cbn. norm_v.
       rewrite typ_to_dtyp_equation.
       unfold genAExpr_exp_correct in aexp_correct0.
       do 2 destruct H1.
@@ -1269,17 +1269,17 @@ Section AExpr.
             ([a] ++ [b] ++ [c])%list
       end.
       repeat setoid_rewrite denote_code_app.
-      repeat norm_v.
+      norm_v.
       setoid_rewrite denote_code_singleton.
       rewrite denote_instr_op.
       2: {
         eapply denote_fcmp_concrete; cbn; eauto; try reflexivity.
       }
       cbn.
-      repeat norm_v.
+      norm_v.
       setoid_rewrite denote_code_singleton.
       rewrite denote_instr_comment.
-      repeat norm_v.
+      norm_v.
 
       setoid_rewrite denote_code_singleton.
       pose proof (float_cmp b' b'') as (cmp_res & CMP_V & CMP_H).
@@ -1333,7 +1333,7 @@ Section AExpr.
         eapply state_invariant_incVoid; eauto.
         repeat (eapply state_invariant_add_fresh; eauto).
       + split; split; intuition.
-          * cbn. repeat norm_v. cbn.
+          * cbn. norm_v. cbn.
             reflexivity.
             cbn.
             apply H.

@@ -56,9 +56,9 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     - cbn* in GEN.
       simp.
       hide_strings'.
-      cbn*; repeat norm_h.
+      cbn*; norm_h.
       rewrite denote_bks_nil.
-      cbn*; repeat norm_v.
+      cbn*; norm_v.
       apply eqit_Ret; auto.
 
     - (* Assign case.
@@ -88,13 +88,13 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       cbn*.
       rename n1 into x_p, n2 into y_p.
 
-      repeat norm_h.
+      norm_h.
       unfold denotePExpr; cbn*.
       break_inner_match_goal; cbn* in *; simp.
       eutt_hide_right.
       rename m into x_i, m0 into y_i.
 
-      repeat norm_h.
+      norm_h.
       2,3:cbn*; apply memory_lookup_err_inr_Some_eq; eauto.
 
       subst; eutt_hide_left.
@@ -106,10 +106,10 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       repeat rewrite fmap_list_app.
       norm_v.
       cbn.
-      repeat norm_v.
+      norm_v.
       rewrite translate_ret. _ret_l.
       rewrite denote_code_app.
-      repeat norm_v.
+      norm_v.
       subst.
       focus_single_step.
       rename x into x_p', y into y_p'.
@@ -129,8 +129,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       subst.
 
       rewrite denote_code_app.
-      repeat norm_v.
-      repeat norm_h.
+      norm_v.
+      norm_h.
       focus_single_step.
 
       (* Step 6. *)
@@ -159,10 +159,10 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       subst.
       rewrite Heqs13.
       cbn*.
-      repeat norm_h.
+      norm_h.
       rewrite interp_Mem_MemSet.
       cbn*.
-      repeat norm_h.
+      norm_h.
 
       subst; eutt_hide_left.
 
@@ -171,7 +171,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       norm_v.
       focus_single_step_v.
       cbn.
-      repeat norm_v.
+      norm_v.
       (* I am looking up an ident x, for which I find the type `TYPE_Pointer (TYPE_Array sz TYPE_Double)`
          in my typing context.
          Can it be a global?
@@ -189,24 +189,24 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       edestruct memory_invariant_LLU_Ptr as (bk_y & ptr_y & LUy & INLGy & VEC_LUy); [| exact LUn0 | eassumption |]; eauto.
       rewrite LUy in Heqo1; symmetry in Heqo1; inv Heqo1.
 
-      focus_single_step_v; repeat norm_v.
+      focus_single_step_v; norm_v.
       2: apply MONO2, MONO1; eauto.
-      cbn; repeat norm_v.
-      subst; focus_single_step_v; repeat norm_v.
+      cbn; norm_v.
+      subst; focus_single_step_v; norm_v.
       unfold IntType; rewrite typ_to_dtyp_I; cbn.
-      subst; focus_single_step_v; repeat norm_v.
-      subst; focus_single_step_v; repeat norm_vD.
+      subst; focus_single_step_v; norm_v.
+      subst; focus_single_step_v; norm_vD.
       focus_single_step_v.
 
       destruct (EXP1 ρ2) as [EQe ?]; auto.
       rewrite <- EQe.
-      repeat norm_v.
-      subst; focus_single_step_v; repeat norm_vD.
+      norm_v.
+      subst; focus_single_step_v; norm_vD.
       cbn.
 
       rename i into index, v1 into size_array.
       unfold ITree.map.
-      repeat norm_v.
+      norm_v.
 
       rewrite exp_E_to_instr_E_Memory, subevent_subevent.
       rewrite typ_to_dtyp_D_array.
@@ -224,28 +224,28 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       rewrite EQindex in *.
       rewrite EQ.
 
-      repeat norm_v.
+      norm_v.
       cbn.
-      subst; cbn; repeat norm_v.
+      subst; cbn; norm_v.
       focus_single_step_v.
       rewrite interp_cfg_to_L3_LW.
-      cbn*; repeat norm_v.
-      subst; simpl; repeat norm_v.
+      cbn*; norm_v.
+      subst; simpl; norm_v.
       focus_single_step_v.
-      cbn; repeat norm_v.
-      subst; cbn; repeat norm_v.
+      cbn; norm_v.
+      subst; cbn; norm_v.
       focus_single_step_v.
 
       2: apply lookup_alist_add_eq.
-      cbn*; repeat norm_v.
-      subst; cbn; repeat norm_v; focus_single_step_v.
+      cbn*; norm_v.
+      subst; cbn; norm_v; focus_single_step_v.
       rewrite interp_cfg_to_L3_Load.
       2: rewrite typ_to_dtyp_D; eassumption.
-      repeat norm_v.
-      subst; cbn; repeat norm_v; focus_single_step_v.
+      norm_v.
+      subst; cbn; norm_v; focus_single_step_v.
       rewrite interp_cfg_to_L3_LW.
-      cbn; repeat norm_v.
-      subst; cbn; repeat norm_v.
+      cbn; norm_v.
+      subst; cbn; norm_v.
 
       2:{
         unfold endo.
@@ -259,8 +259,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       cbn.
       subst.
       unfold IntType;rewrite !typ_to_dtyp_I.
-      focus_single_step_v; repeat norm_v.
-      subst; cbn; repeat norm_v.
+      focus_single_step_v; norm_v.
+      subst; cbn; norm_v.
       focus_single_step_v.
 
       match goal with
@@ -274,13 +274,13 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       admit.
 
       rewrite <- EQe'.
-      repeat norm_v.
-      subst; cbn*; repeat norm_v.
+      norm_v.
+      subst; cbn*; norm_v.
       focus_single_step_v.
-      repeat norm_v; subst; focus_single_step_v.
-      repeat norm_v; subst; focus_single_step_v.
+      norm_v; subst; focus_single_step_v.
+      norm_v; subst; focus_single_step_v.
       cbn; unfold ITree.map.
-      repeat norm_v; subst; focus_single_step_v.
+      norm_v; subst; focus_single_step_v.
       rewrite exp_E_to_instr_E_Memory, subevent_subevent.
       rewrite typ_to_dtyp_D_array.
 
@@ -320,7 +320,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
       eutt_hide_right.
 
-      repeat norm_h.
+      norm_h.
       unfold denotePExpr; cbn*.
 
       Ltac rewrite_nth_error :=
@@ -339,7 +339,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       norm_h.
       2: cbn*; rewrite_memory_lookup; reflexivity.
 
-      repeat norm_h.
+      norm_h.
       2: cbn*; rewrite_memory_lookup; reflexivity.
 
       subst; eutt_hide_left.
@@ -370,16 +370,16 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       Opaque find_block.
 
       cbn.
-      repeat norm_v.
+      norm_v.
       unfold IntType; rewrite typ_to_dtyp_I.
       cbn.
-      focus_single_step_v; repeat norm_v.
-      cbn; repeat norm_v.
+      focus_single_step_v; norm_v.
+      cbn; norm_v.
       subst.
-      repeat norm_v.
-      focus_single_step_v; repeat norm_v.
+      norm_v.
+      focus_single_step_v; norm_v.
       rewrite interp_cfg_to_L3_LW.
-      cbn; repeat norm_v.
+      cbn; norm_v.
       unfold endo.
       subst.
       repeat (norm_v; []).
@@ -389,8 +389,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       focus_single_step_v.
       norm_v.
       2: apply lookup_alist_add_eq.
-      cbn; repeat norm_v.
-      subst; cbn; repeat norm_v.
+      cbn; norm_v.
+      subst; cbn; norm_v.
       focus_single_step_v.
 
       (* Case analysis on whether we ever enter the loop or not *)
@@ -398,14 +398,14 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       cbn.
       break_match_goal.
       -- (* We enter the loop *)
-        cbn; repeat norm_v.
-        subst; cbn; repeat norm_v.
+        cbn; norm_v.
+        subst; cbn; norm_v.
 
         rewrite find_block_ineq, find_block_eq.
         2: reflexivity.
         2:cbn; admit.
 
-        repeat norm_v.
+        norm_v.
 (*
         (* loopblock  *)
         rewrite denote_bks_unfold.
@@ -431,21 +431,21 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       --
         (* from == to, we go from the entry block to the next one directly *)
         cbn.
-        repeat norm_v.
-        subst; cbn; repeat norm_v.
+        norm_v.
+        subst; cbn; norm_v.
 
         repeat rewrite find_block_ineq.
         2,3,4,5: cbn; admit.
         cbn.
         rewrite find_block_nil.
 
-        cbn; repeat norm_v.
+        cbn; norm_v.
         assert (n ≡ 0) by admit.
 
         subst.
-        cbn; repeat norm_h.
+        cbn; norm_h.
         rewrite interp_Mem_MemSet.
-        repeat norm_h.
+        norm_h.
 
         apply eutt_Ret.
         split; eauto.
@@ -480,7 +480,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
          6. write the result in memory at yi
        *)
       eutt_hide_right.
-      repeat norm_h.
+      norm_h.
 
      subst; eutt_hide_left.
 
@@ -502,16 +502,16 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       (*   reflexivity. *)
       (* } *)
       (* cbn. *)
-      (* repeat norm_v. *)
+      (* norm_v. *)
       (* unfold IntType; rewrite typ_to_dtyp_I. *)
       (* cbn. *)
       (* setoid_rewrite bind_ret_l. *)
       (* setoid_rewrite bind_ret_l. *)
       (* cbn. *)
-      (* repeat norm_v. *)
+      (* norm_v. *)
       (* rewrite interp_cfg_to_L3_LW. *)
-      (* cbn*; repeat norm_v. *)
-      (* cbn*; repeat norm_v. *)
+      (* cbn*; norm_v. *)
+      (* cbn*; norm_v. *)
       (* 2:{ *)
       (*   cbn. *)
       (*   unfold endo. *)
@@ -544,10 +544,10 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   (*     break_if. *)
   (*     { *)
   (*       cbn. *)
-  (*       repeat norm_v. *)
+  (*       norm_v. *)
   (*       subst. *)
   (*       cbn. *)
-  (*       repeat norm_v. *)
+  (*       norm_v. *)
 
 
 

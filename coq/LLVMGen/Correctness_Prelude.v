@@ -657,20 +657,42 @@ Ltac break_and :=
      Can we avoid the duplication of the tactics into a version for hypotheses and one for goals by being able
      to take a pattern of the form that rewrite admits?
    *)
-  Ltac norm_monad_k t k :=
-    match t with
-    | context[ITree.bind ?t' _] =>
-      match t' with
-      | ITree.bind _ _ => rewrite bind_bind ;
-                         do k idtac "bind_bind"
-      | Ret _ => rewrite bind_ret_l ;
-                do k idtac "bind_ret"
-      end
+  Ltac norm_monad_l_k k :=
+    match goal with
+      |- eutt _ ?t ?u =>
+      let x := fresh in remember u as x;
+      match t with
+      | context[ITree.bind ?t' _] =>
+        match t' with
+        | ITree.bind _ _ => rewrite bind_bind ;
+                           do k idtac "bind_bind"
+        | Ret _ => rewrite bind_ret_l ;
+                  do k idtac "bind_ret"
+        end
+      end; subst x
     end.
 
-  Tactic Notation "norm_monad_k'" constr(t) integer(k) := norm_monad_k t k.
-  Tactic Notation "norm_monad" constr(t) := norm_monad_k' t 0.
-  Tactic Notation "norm_monadD" constr(t) := norm_monad_k' t 1.
+  Tactic Notation "norm_monad_l_k'" constr(t) integer(k) := norm_monad_l_k t k.
+  Tactic Notation "norm_monad_l" constr(t) := norm_monad_l_k' t 0.
+  Tactic Notation "norm_monad_lD" constr(t) := norm_monad_l_k' t 1.
+
+  Ltac norm_monad_r_k k :=
+    match goal with
+      |- eutt _ ?u ?t =>
+      let x := fresh in remember u as x;
+      match t with
+      | context[ITree.bind ?t' _] =>
+        match t' with
+        | ITree.bind _ _ => rewrite bind_bind ;
+                           do k idtac "bind_bind"
+        | Ret _ => rewrite bind_ret_l ;
+                  do k idtac "bind_ret"
+      end
+    end; subst x end.
+
+  Tactic Notation "norm_monad_r_k'" integer(k) := norm_monad_r_k k.
+  Tactic Notation "norm_monad_r" := norm_monad_r_k' 0.
+  Tactic Notation "norm_monad_rD" := norm_monad_r_k' 1.
 
   (* Normalization in an hypothesis h instead of the goal *)
   Ltac norm_monad_hyp_k t h k :=
@@ -687,7 +709,10 @@ Ltac break_and :=
   Tactic Notation "norm_monad_hypD" constr(t) hyp(h) := norm_monad_hyp_k' t h 1.
 
   (* We push [translate]s and [interp]s inside of binds, run them through [Ret]s *)
-  Ltac norm_interp_k t k :=
+  Ltac norm_interp_l_k k :=
+    match goal with
+    |- eutt _ ?t ?u =>
+      let x := fresh in remember u as x;
     match t with
     | context[translate _ (ITree.bind ?t' _)] => rewrite translate_bind ; do k idtac "trans_bind"
     | context[interp _ (ITree.bind ?t' _)] => rewrite interp_bind ; do k idtac "interp_bind"
@@ -695,11 +720,28 @@ Ltac break_and :=
     | context[interp _ (Ret _)] => rewrite interp_ret ; do k idtac "interp_ret"
     | context[translate _ (trigger ?e)] => rewrite (translate_trigger _ e) ; do k idtac "trans_trigger"
     | context[interp _ (trigger _)] => rewrite interp_trigger ; do k idtac "intepr_trigger"
-    end.
+    end; subst x end.
 
-  Tactic Notation "norm_interp_k'" constr(t) integer(k) := norm_interp_k t k.
-  Tactic Notation "norm_interp" constr(t) := norm_interp_k' t 0.
-  Tactic Notation "norm_interpD" constr(t) := norm_interp_k' t 1.
+  Tactic Notation "norm_interp_l_k'" integer(k) := norm_interp_l_k k.
+  Tactic Notation "norm_interp_l" := norm_interp_l_k' 0.
+  Tactic Notation "norm_interp_lD" := norm_interp_l_k' 1.
+
+  Ltac norm_interp_r_k k :=
+    match goal with
+    |- eutt _ ?u ?t =>
+      let x := fresh in remember u as x;
+    match t with
+    | context[translate _ (ITree.bind ?t' _)] => rewrite translate_bind ; do k idtac "trans_bind"
+    | context[interp _ (ITree.bind ?t' _)] => rewrite interp_bind ; do k idtac "interp_bind"
+    | context[translate _ (Ret _)] => rewrite translate_ret ; do k idtac "trans_ret"
+    | context[interp _ (Ret _)] => rewrite interp_ret ; do k idtac "interp_ret"
+    | context[translate _ (trigger ?e)] => rewrite (translate_trigger _ e) ; do k idtac "trans_trigger"
+    | context[interp _ (trigger _)] => rewrite interp_trigger ; do k idtac "intepr_trigger"
+    end; subst x end.
+
+  Tactic Notation "norm_interp_r_k'" integer(k) := norm_interp_r_k k.
+  Tactic Notation "norm_interp_r" := norm_interp_r_k' 0.
+  Tactic Notation "norm_interp_rD" := norm_interp_r_k' 1.
 
   Ltac norm_interp_hyp_k t h k :=
     match t with
@@ -716,17 +758,37 @@ Ltac break_and :=
   Tactic Notation "norm_interp_hypD" constr(t) hyp(h) := norm_interp_hyp_k' t h 1.
 
   (* We extend [norm_interp] with locally defined interpreters on the helix side *)
-  Ltac norm_local_helix_k t k :=
-    match t with
+  Ltac norm_local_helix_l_k k :=
+    match goal with
+    |- eutt _ ?t ?u =>
+      let x := fresh in remember u as x;
+     match t with
     | context[interp_Mem (ITree.bind ?t' _)] => rewrite interp_Mem_bind ; do k idtac "mem_bind"
     | context[interp_Mem (Ret _)] => rewrite interp_Mem_ret ; do k idtac "mem_ret"
     | context[interp_Mem (trigger (MemLU _ _)) _] =>
       rewrite interp_Mem_MemLU; do k idtac "mem_memlu"
-    end.
+                                   end; subst x
+                                   end.
 
-  Tactic Notation "norm_local_helix_k'" constr(t) integer(k) := norm_local_helix_k t k.
-  Tactic Notation "norm_local_helix" constr(t) := norm_local_helix_k' t 0.
-  Tactic Notation "norm_local_helixD" constr(t) := norm_local_helix_k' t 1.
+  Tactic Notation "norm_local_helix_l_k'" integer(k) := norm_local_helix_l_k k.
+  Tactic Notation "norm_local_helix_l" := norm_local_helix_l_k' 0.
+  Tactic Notation "norm_local_helix_lD" := norm_local_helix_l_k' 1.
+
+  Ltac norm_local_helix_r_k k :=
+    match goal with
+    |- eutt _ ?u ?t =>
+      let x := fresh in remember u as x;
+     match t with
+    | context[interp_Mem (ITree.bind ?t' _)] => rewrite interp_Mem_bind ; do k idtac "mem_bind"
+    | context[interp_Mem (Ret _)] => rewrite interp_Mem_ret ; do k idtac "mem_ret"
+    | context[interp_Mem (trigger (MemLU _ _)) _] =>
+      rewrite interp_Mem_MemLU; do k idtac "mem_memlu"
+                                   end; subst x
+                                   end.
+
+  Tactic Notation "norm_local_helix_r_k'" integer(k) := norm_local_helix_r_k k.
+  Tactic Notation "norm_local_helix_r" := norm_local_helix_r_k' 0.
+  Tactic Notation "norm_local_helix_rD" := norm_local_helix_r_k' 1.
 
   Ltac norm_local_helix_hyp_k t h k :=
     match t with
@@ -739,7 +801,10 @@ Ltac break_and :=
   Tactic Notation "norm_local_helix_hypD" constr(t) hyp(h) := norm_local_helix_hyp_k' t h 1.
 
   (* We extend [norm_interp] with locally defined interpreters on the vellvm side *)
-  Ltac norm_local_vellvm_k t k :=
+  Ltac norm_local_vellvm_l_k k :=
+    match goal with
+    |- eutt _ ?t ?u =>
+      let x := fresh in remember u as x;
     match t with
     | context[interp_cfg_to_L3 _ (ITree.bind ?t' _)] => rewrite interp_cfg_to_L3_bind ; do k idtac "cfg_bind"
     | context[interp_cfg_to_L3 _ (Ret _)] => rewrite interp_cfg_to_L3_ret ; do k idtac "cfg_ret"
@@ -747,11 +812,28 @@ Ltac break_and :=
     | context[interp_cfg_to_L3 _ (trigger (LocalRead _))] => rewrite interp_cfg_to_L3_LR ; do k idtac "cfg_LR"
     | context[lookup_E_to_exp_E (subevent _ _)] => (rewrite lookup_E_to_exp_E_Global || rewrite lookup_E_to_exp_E_Local); try rewrite subevent_subevent ; do k idtac "luexp"
     | context[exp_E_to_instr_E (subevent _ _)] => (rewrite exp_E_to_instr_E_Global || rewrite exp_E_to_instr_E_Local); try rewrite subevent_subevent ; do k idtac "expinstr"
-    end.
+    end; subst x end.
 
-  Tactic Notation "norm_local_vellvm_k'" constr(t) integer(k) := norm_local_vellvm_k t k.
-  Tactic Notation "norm_local_vellvm" constr(t) := norm_local_vellvm_k' t 0.
-  Tactic Notation "norm_local_vellvmD" constr(t) := norm_local_vellvm_k' t 1.
+  Tactic Notation "norm_local_vellvm_l_k'" integer(k) := norm_local_vellvm_l_k k.
+  Tactic Notation "norm_local_vellvm_l" := norm_local_vellvm_l_k' 0.
+  Tactic Notation "norm_local_vellvm_lD" := norm_local_vellvm_l_k' 1.
+
+  Ltac norm_local_vellvm_r_k k :=
+    match goal with
+    |- eutt _ ?u ?t =>
+      let x := fresh in remember u as x;
+    match t with
+    | context[interp_cfg_to_L3 _ (ITree.bind ?t' _)] => rewrite interp_cfg_to_L3_bind ; do k idtac "cfg_bind"
+    | context[interp_cfg_to_L3 _ (Ret _)] => rewrite interp_cfg_to_L3_ret ; do k idtac "cfg_ret"
+    | context[interp_cfg_to_L3 _ (trigger (GlobalRead _))] => rewrite interp_cfg_to_L3_GR ; do k idtac "cfg_GR"
+    | context[interp_cfg_to_L3 _ (trigger (LocalRead _))] => rewrite interp_cfg_to_L3_LR ; do k idtac "cfg_LR"
+    | context[lookup_E_to_exp_E (subevent _ _)] => (rewrite lookup_E_to_exp_E_Global || rewrite lookup_E_to_exp_E_Local); try rewrite subevent_subevent ; do k idtac "luexp"
+    | context[exp_E_to_instr_E (subevent _ _)] => (rewrite exp_E_to_instr_E_Global || rewrite exp_E_to_instr_E_Local); try rewrite subevent_subevent ; do k idtac "expinstr"
+    end; subst x end.
+
+  Tactic Notation "norm_local_vellvm_r_k'" integer(k) := norm_local_vellvm_r_k k.
+  Tactic Notation "norm_local_vellvm_r" := norm_local_vellvm_r_k' 0.
+  Tactic Notation "norm_local_vellvm_rD" := norm_local_vellvm_r_k' 1.
 
   Ltac norm_local_vellvm_hyp_k t h k :=
     match t with
@@ -770,13 +852,11 @@ Ltac break_and :=
      QUESTION YZ: the outer repeat does not have any effect. Why and how to fix?
    *)
   Ltac norm_h_k k :=
-    match goal with
-      |- eutt _ ?t _ =>
       repeat (
-          repeat (norm_monad_k t k);
-          repeat (norm_interp_k t k);
-          repeat (norm_local_helix_k t k))
-    end.
+          repeat (norm_monad_l_k k);
+          repeat (norm_interp_l_k k);
+          repeat (norm_local_helix_l_k k))
+  .
   Tactic Notation "norm_h_k'" integer(k) := norm_h_k k.
   Tactic Notation "norm_h" := norm_h_k' 0.
   Tactic Notation "norm_hD" := norm_h_k' 1.
@@ -794,13 +874,11 @@ Ltac break_and :=
   Tactic Notation "norm_hD" "in" hyp(h) := norm_h_hyp_k' h 1.
 
   Ltac norm_v_k k :=
-    match goal with
-      |- eutt _ _ ?t =>
       repeat (
-          repeat (norm_monad_k t k);
-          repeat (norm_interp_k t k);
-          repeat (norm_local_vellvm_k t k))
-    end.
+          repeat (norm_monad_r_k k);
+          repeat (norm_interp_r_k k);
+          repeat (norm_local_vellvm_r_k k))
+  .
   Tactic Notation "norm_v_k'" integer(k) := norm_v_k k.
   Tactic Notation "norm_v" := norm_v_k' 0.
   Tactic Notation "norm_vD" := norm_v_k' 1.

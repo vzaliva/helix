@@ -98,13 +98,14 @@ Section NExpr.
         unfold denoteNExpr; cbn*.
 
         rewrite denote_code_nil; cbn.
-        repeat norm_v.
+
+        norm_v.
 
         break_inner_match_goal.
 
         * break_inner_match_goal; try abs_by_WF.
 
-          repeat norm_h.
+          norm_h.
           destruct i0.
           { (* Global -- Absurd, globals map to pointers, not integers *)
             abs_by_WF.
@@ -114,10 +115,9 @@ Section NExpr.
             constructor; eauto.
             intros l' MONO; cbn*.
             split.
-            { repeat norm_v.
+            { norm_v.
               2: eapply memory_invariant_LLU; eauto.
               2: eapply memory_invariant_ext_local; eauto.
-              cbn; repeat norm_v.
               reflexivity.
             }
 
@@ -132,8 +132,6 @@ Section NExpr.
       + (* The variable maps to a pointer *)
         unfold denoteNExpr; cbn*.
         rewrite denote_code_singleton.
-        cbn.
-        repeat norm_v.
         break_inner_match_goal; try abs_by_WF.
         * break_inner_match_goal; try abs_by_WF.
           subst.
@@ -157,9 +155,8 @@ Section NExpr.
             rewrite interp_cfg_to_L3_ret.
             reflexivity.
             }
-
-          repeat norm_v.
-          repeat norm_h.
+          norm_v.
+          norm_h.
 
           apply eutt_Ret; split; [| split].
           -- eapply state_invariant_add_fresh; eauto; reflexivity.
@@ -167,9 +164,9 @@ Section NExpr.
              {
                intros l' MONO; cbn*.
                split.
-               { repeat norm_v.
+               { norm_v.
                  2: eapply MONO, In_add_eq.
-                 cbn; repeat norm_v.
+                 cbn; norm_v.
                  reflexivity.
                }
 
@@ -192,13 +189,13 @@ Section NExpr.
       cbn* in COMPILE; simp.
       unfold denoteNExpr; cbn*.
       rewrite denote_code_nil; cbn.
-      repeat norm_h.
-      repeat norm_v.
+      norm_h.
+      norm_v.
       apply eutt_Ret; split; [| split]; try now eauto.
       split; eauto.
       intros l' MONO; cbn*.
       split; try reflexivity.
-      rewrite repr_intval; repeat norm_v.
+      rewrite repr_intval; norm_v.
       reflexivity.
 
     - (* NDiv *)
@@ -215,7 +212,7 @@ Section NExpr.
       + (* Success, Heqs2 *)
         break_inner_match_goal.
         * inversion EVAL. (* Exception in subexpression *)
-        * repeat norm_h.
+        * norm_h.
           subst i1.
 
           (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
@@ -226,7 +223,7 @@ Section NExpr.
           repeat norm_h in IHnexp1.
 
           rewrite convert_typ_app, denote_code_app.
-          repeat norm_v.
+          norm_v.
 
           ret_bind_l_left (memH, i3).
           eapply eutt_clo_bind; [eassumption | clear IHnexp1].
@@ -244,7 +241,7 @@ Section NExpr.
           repeat norm_h in IHnexp2.
 
           rewrite convert_typ_app, denote_code_app.
-          repeat norm_v.
+          norm_v.
           subst.
           ret_bind_l_left (memH,i2).
           eapply eutt_clo_bind; [eassumption | clear IHnexp2].
@@ -256,7 +253,7 @@ Section NExpr.
           cbn.
 
           rewrite denote_code_singleton; cbn.
-          repeat norm_v.
+          norm_v.
           simpl in *; unfold denote_op; simpl.
           unfold IntType; rewrite typ_to_dtyp_I.
 
@@ -283,16 +280,16 @@ Section NExpr.
             apply unsigned_is_zero; auto.
           }
 
-          repeat norm_v.
+          norm_v.
           apply eutt_Ret; split; [| split]; try now eauto.
           cbn. eapply state_invariant_add_fresh; eauto; reflexivity.
           split.
           {
             cbn; intros ? MONO.
             split.
-            { repeat norm_v.
+            { norm_v.
               2: apply MONO, In_add_eq.
-              cbn; repeat norm_v.
+              cbn; norm_v.
               apply eutt_Ret.
               do 3 f_equal.
             }
@@ -327,7 +324,7 @@ Section NExpr.
       + (* Success, Heqs2 *)
         break_inner_match_goal.
         * inversion EVAL. (* Exception in subexpression *)
-        * repeat norm_h.
+        * norm_h.
           subst i1.
 
           (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
@@ -338,7 +335,7 @@ Section NExpr.
           repeat norm_h in IHnexp1.
 
           rewrite convert_typ_app, denote_code_app.
-          repeat norm_v.
+          norm_v.
 
           ret_bind_l_left (memH, i3).
           eapply eutt_clo_bind; [eassumption | clear IHnexp1].
@@ -356,7 +353,7 @@ Section NExpr.
           repeat norm_h in IHnexp2.
 
           rewrite convert_typ_app, denote_code_app.
-          repeat norm_v.
+          norm_v.
           subst.
           ret_bind_l_left (memH,i2).
           eapply eutt_clo_bind; [eassumption | clear IHnexp2].
@@ -368,7 +365,7 @@ Section NExpr.
           cbn.
 
           rewrite denote_code_singleton; cbn.
-          repeat norm_v.
+          norm_v.
           simpl in *; unfold denote_op; simpl.
           unfold IntType; rewrite typ_to_dtyp_I.
 
@@ -395,16 +392,16 @@ Section NExpr.
             apply unsigned_is_zero; auto.
           }
 
-          repeat norm_v.
+          norm_v.
           apply eutt_Ret; split; [| split]; try now eauto.
           cbn. eapply state_invariant_add_fresh; eauto; reflexivity.
           split.
           {
             cbn; intros ? MONO.
             split.
-            { repeat norm_v.
+            {  norm_v.
               2: apply MONO, In_add_eq.
-              cbn; repeat norm_v.
+              cbn; norm_v.
               apply eutt_Ret.
               do 3 f_equal.
             }
@@ -436,7 +433,7 @@ Section NExpr.
       break_inner_match_goal; [| break_inner_match_goal];
         try (exfalso; match goal with | h: genNExpr _ _ ≡ _ |- _ => eapply evalNexpr_WF_no_fail in h; now eauto end); try solve [inversion EVAL].
 
-      repeat norm_h.
+      norm_h.
       (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
       specialize (IHnexp1 _ _ _ _ _ _ _ _ _ _ Heqs Heqs2 PRE).
 
@@ -450,7 +447,7 @@ Section NExpr.
       subst.
       cbn*.
       rewrite convert_typ_app, denote_code_app.
-      repeat norm_v.
+      norm_v.
       subst.
       ret_bind_l_left (memH,i2).
       eapply eutt_clo_bind; [eassumption | clear IHnexp1].
@@ -468,7 +465,7 @@ Section NExpr.
       repeat norm_h in IHnexp2.
 
       rewrite convert_typ_app, denote_code_app.
-      repeat norm_v.
+      norm_v.
       subst.
       ret_bind_l_left (memH,i3).
       eapply eutt_clo_bind; [eassumption | clear IHnexp2].
@@ -495,16 +492,16 @@ Section NExpr.
       (* Operator evaluation *)
       2: eapply denote_ibinop_concrete; cbn; eauto; reflexivity.
 
-      repeat norm_v.
+      norm_v.
       apply eutt_Ret; split; [| split].
       cbn; eapply state_invariant_add_fresh; eauto.
       split.
       {
         cbn; intros ? MONO.
         split.
-        { repeat norm_v.
+        { norm_v.
           2: apply MONO, In_add_eq.
-          cbn; repeat norm_v.
+          cbn; norm_v.
           apply eutt_Ret.
           do 3 f_equal.
         }
@@ -536,7 +533,7 @@ Section NExpr.
       break_inner_match_goal; [| break_inner_match_goal];
         try (exfalso; match goal with | h: genNExpr _ _ ≡ _ |- _ => eapply evalNexpr_WF_no_fail in h; now eauto end); try solve [inversion EVAL].
 
-      repeat norm_h.
+      norm_h.
       (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
       specialize (IHnexp1 _ _ _ _ _ _ _ _ _ _ Heqs Heqs2 PRE).
 
@@ -550,7 +547,7 @@ Section NExpr.
       subst.
       cbn*.
       rewrite convert_typ_app, denote_code_app.
-      repeat norm_v.
+      norm_v.
       subst.
       ret_bind_l_left (memH,i2).
       eapply eutt_clo_bind; [eassumption | clear IHnexp1].
@@ -568,7 +565,7 @@ Section NExpr.
       repeat norm_h in IHnexp2.
 
       rewrite convert_typ_app, denote_code_app.
-      repeat norm_v.
+      norm_v.
       subst.
       ret_bind_l_left (memH,i3).
       eapply eutt_clo_bind; [eassumption | clear IHnexp2].
@@ -595,16 +592,16 @@ Section NExpr.
       (* Operator evaluation *)
       2: eapply denote_ibinop_concrete; cbn; eauto; reflexivity.
 
-      repeat norm_v.
+      norm_v.
       apply eutt_Ret; split; [| split].
       cbn; eapply state_invariant_add_fresh; eauto.
       split.
       {
         cbn; intros ? MONO.
         split.
-        { repeat norm_v.
+        { norm_v.
           2: apply MONO, In_add_eq.
-          cbn; repeat norm_v.
+          cbn; norm_v.
           apply eutt_Ret.
           do 3 f_equal.
         }
@@ -636,7 +633,7 @@ Section NExpr.
       break_inner_match_goal; [| break_inner_match_goal];
         try (exfalso; match goal with | h: genNExpr _ _ ≡ _ |- _ => eapply evalNexpr_WF_no_fail in h; now eauto end); try solve [inversion EVAL].
 
-      repeat norm_h.
+      norm_h.
       (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
       specialize (IHnexp1 _ _ _ _ _ _ _ _ _ _ Heqs Heqs2 PRE).
 
@@ -650,7 +647,7 @@ Section NExpr.
       subst.
       cbn*.
       rewrite convert_typ_app, denote_code_app.
-      repeat norm_v.
+      norm_v.
       subst.
       ret_bind_l_left (memH,i2).
       eapply eutt_clo_bind; [eassumption | clear IHnexp1].
@@ -668,7 +665,7 @@ Section NExpr.
       repeat norm_h in IHnexp2.
 
       rewrite convert_typ_app, denote_code_app.
-      repeat norm_v.
+      norm_v.
       subst.
       ret_bind_l_left (memH,i3).
       eapply eutt_clo_bind; [eassumption | clear IHnexp2].
@@ -699,16 +696,16 @@ Section NExpr.
         break_inner_match; reflexivity.
       }
 
-      repeat norm_v.
+      norm_v.
       apply eutt_Ret; split; [| split].
       cbn; eapply state_invariant_add_fresh; eauto.
       split.
       {
         cbn; intros ? MONO.
         split.
-        { repeat norm_v.
+        { norm_v.
           2: apply MONO, In_add_eq.
-          cbn; repeat norm_v.
+          cbn; norm_v.
           apply eutt_Ret.
           do 3 f_equal.
         }

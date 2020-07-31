@@ -103,7 +103,7 @@ Section MExpr.
 
       unfold denotePExpr; cbn*.
       cbn* in Hgen; simp.
-      cbn*; repeat norm_v.
+      cbn*; norm_v.
       norm_h.
       break_inner_match_goal; try abs_by_WF.
       2: cbn* in Heval; rewrite Heqo0 in Heval; inv Heval.
@@ -114,8 +114,8 @@ Section MExpr.
       edestruct memory_invariant_Ptr as (bkH & ptrV & Mem_LU & LUV & EQ); eauto.
 
       rewrite denote_code_nil; cbn.
-      repeat norm_h; try apply memory_lookup_err_inr_Some_eq; eauto.
-      repeat norm_v.
+      norm_h; try apply memory_lookup_err_inr_Some_eq; eauto.
+      norm_v.
 
       apply eutt_Ret.
       split; auto.
@@ -126,7 +126,7 @@ Section MExpr.
         splits; eauto.
 
         destruct i0;
-          cbn in *; repeat norm_v; cbn; eauto;
+          cbn in *; norm_v; cbn; eauto;
             try rewrite bind_ret_l;
             repeat rewrite translate_ret;
             try rewrite interp_cfg_to_L3_ret;
