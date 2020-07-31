@@ -74,6 +74,15 @@ Section NExpr.
     monotone : ext_local mi sti mf stf
     }.
 
+  Hint Resolve memory_invariant_ext_local: core.
+  Ltac solve_lu :=
+    match goal with
+    | |- @Maps.lookup _ _ local_env _ ?id ?l ≡ Some _ =>
+      eapply memory_invariant_LLU; [| eassumption | eassumption]; eauto
+    | |- @Maps.lookup _ _ global_env _ ?id ?l ≡ Some _ =>
+      eapply memory_invariant_GLU; [| eassumption | eassumption]; eauto
+     end.
+
   Lemma genNExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH) (v : Int64.int)
@@ -113,13 +122,12 @@ Section NExpr.
           constructor; eauto.
           intros l' MONO; cbn*.
           split.
-          { norm_v.
-            2: eapply memory_invariant_LLU; eauto.
-            2: eapply memory_invariant_ext_local; eauto.
+          { norm_vr; [| solve_lu].
             reflexivity.
           }
-          match_rewrite.
-          reflexivity.
+          {match_rewrite.
+           reflexivity.
+          }
 
         * (* Variable not in context, [context_lookup] fails *)
           cbn* in EVAL; rewrite Heqo0 in EVAL; inv EVAL.
@@ -138,44 +146,31 @@ Section NExpr.
           edestruct memory_invariant_GLU as (ptr & LU & READ); eauto.
           rewrite typ_to_dtyp_equation in READ.
           rewrite denote_instr_load; cbn in *; eauto.
-
-          (* Can this be cleaned up? *)
           2: {
-            repeat rewrite translate_bind.
-            rewrite interp_cfg_to_L3_bind.
-            do 2 rewrite translate_trigger.
-            rewrite lookup_E_to_exp_E_Global.
-            rewrite subevent_subevent.
-            rewrite exp_E_to_instr_E_Global.
-            rewrite subevent_subevent.
-            rewrite interp_cfg_to_L3_GR; eauto.
-            cbn. rewrite bind_ret_l.
-            repeat rewrite translate_ret.
-            rewrite interp_cfg_to_L3_ret.
-            cbn.
-            reflexivity.
-            }
+            norm_vl; eauto.
+            norm_vl; reflexivity.
+          }
+
           norm_v.
           norm_h.
-
           apply eutt_Ret; split; [| split].
-          -- eapply state_invariant_add_fresh; eauto; reflexivity.
+          -- eapply state_invariant_add_fresh; eauto; reflexivity. (* YZ TODO: automate *)
           -- split.
              {
                intros l' MONO; cbn*.
                split.
-               { norm_v.
+               { norm_vr.
                  2: eapply MONO, In_add_eq.
-                 cbn; norm_v.
-                 reflexivity.
+                 norm_vr; reflexivity.
                }
-
-               rewrite Heqo0.
+               match_rewrite.
                reflexivity.
              }
              {
                repeat (split; auto).
+               (* YZ TODO: automate [sub_alist] goals *)
                apply sub_alist_add.
+               (* YZ TODO: automate [alist_fresh] goals *)
                destruct PRE.
                apply concrete_fresh_fresh in incLocal_is_fresh.
                unfold incLocal_fresh in incLocal_is_fresh.
@@ -201,208 +196,179 @@ Section NExpr.
     - (* NDiv *)
 
       cbn* in COMPILE; simp.
-
-      eutt_hide_right i1.
       unfold denoteNExpr in *; cbn*.
-
       cbn in EVAL.
-      break_inner_match_goal; [| break_inner_match_goal].
-      + inversion EVAL. (* Exception in subexpression *)
-      + inversion EVAL. (* Division by 0 *)
-      + (* Success, Heqs2 *)
-        break_inner_match_goal.
-        * inversion EVAL. (* Exception in subexpression *)
-        * norm_h.
-          subst i1.
+      simp.
+      norm_h.
 
-          (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
-          specialize (IHnexp1 _ _ _ _ _ _ _ _ _ _ Heqs Heqs3 PRE).
+      (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
+      specialize (IHnexp1 _ _ _ _ _ _ _ _ _ _ Heqs Heqs3 PRE).
 
-          cbn* in IHnexp1; rewrite Heqs3 in IHnexp1.
-          (* YZ TODO : Why is this one particularly slow? *)
-          repeat norm_h in IHnexp1.
+      cbn* in IHnexp1; rewrite Heqs3 in IHnexp1.
+      (* YZ TODO : Why is this one particularly slow? *)
+      repeat norm_h in IHnexp1.
 
-          rewrite convert_typ_app, denote_code_app.
-          norm_v.
+      rewrite convert_typ_app, denote_code_app.
+      norm_v.
 
-          ret_bind_l_left (memH, i3).
-          eapply eutt_clo_bind; [eassumption | clear IHnexp1].
+      ret_bind_l_left (memH, i2).
+      eapply eutt_clo_bind; [eassumption | clear IHnexp1].
 
-          introR; destruct_unit.
-          destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI) & GAMMAI).
-          cbn in *.
+      introR; destruct_unit.
+      destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI) & GAMMAI).
+      cbn in *.
 
-          specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs2 PREI).
+      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs2 PREI).
 
-          cbn* in IHnexp2;
-            repeat norm_v in IHnexp2;
-            repeat norm_h in IHnexp2.
-          simpl_match in IHnexp2.
-          repeat norm_h in IHnexp2.
+      cbn* in IHnexp2;
+        repeat norm_v in IHnexp2;
+        repeat norm_h in IHnexp2.
+      simp.
+      repeat norm_h in IHnexp2.
 
-          rewrite convert_typ_app, denote_code_app.
-          norm_v.
-          subst.
-          ret_bind_l_left (memH,i2).
-          eapply eutt_clo_bind; [eassumption | clear IHnexp2].
+      rewrite convert_typ_app, denote_code_app.
+      norm_v.
+      ret_bind_l_left (memH,i1).
+      eapply eutt_clo_bind; [eassumption | clear IHnexp2].
 
-          introR; destruct_unit.
-          destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
-          (* cbn takes 5seconds instead of doing this instantaneously... *)
-          simpl in *.
-          cbn.
+      introR; destruct_unit.
+      destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
+      cbn in *.
 
-          rewrite denote_code_singleton; cbn.
-          norm_v.
-          simpl in *; unfold denote_op; simpl.
+      rewrite denote_code_singleton; cbn.
+      norm_v.
 
-          specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
-          rewrite Heqs3 in EVAL_vH.
-          injection EVAL_vH; intros; subst.
-          assert (l1 ⊑ l1) as L1L1. reflexivity.
-          specialize (EXPRF _ L1L1) as [EXPRF EVAL_vH0].
-          rewrite Heqs2 in EVAL_vH0.
-          injection EVAL_vH0; intros; subst.
+      specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
+      assert (l1 ⊑ l1) as L1L1 by reflexivity; specialize (EXPRF _ L1L1) as [EXPRF EVAL_vH0].
+      rewrite Heqs3 in EVAL_vH.
+      injection EVAL_vH; intros; subst.
+      rewrite Heqs4 in EVAL_vH0.
+      simp.
+      rewrite denote_instr_op.
+      2:{
+        eapply denote_ibinop_concrete; cbn; eauto; try reflexivity.
+        cbn; break_inner_match_goal; try reflexivity.
+        exfalso; apply n.
+        clear EXPRF EXPRI.
+        apply Z.eqb_eq in Heqb.
+        rewrite <- Int64.unsigned_zero in Heqb.
+       unfold MInt64asNT.NTypeZero.
+        apply unsigned_is_zero; auto.
+      }
+      
+      norm_v.
+      apply eutt_Ret; split; [| split]; try now eauto.
+      cbn. eapply state_invariant_add_fresh; eauto; reflexivity.
+      split.
+      {
+        cbn; intros ? MONO.
+        split.
+        { norm_v.
+          2: apply MONO, In_add_eq.
+          cbn; norm_v.
+          apply eutt_Ret.
+          do 3 f_equal.
+        }
 
-          rewrite denote_instr_op.
+        repeat match_rewrite.
+        reflexivity.
+      }
+      {
+        apply ext_local_subalist.
+        etransitivity; eauto.
+        etransitivity; eauto.
+        apply sub_alist_add.
+        apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
+        eapply PREF.
+        eauto.
+      }
+      {
+        rewrite GAMMAI, GAMMAF.
+        symmetry; eapply incLocal_Γ; eauto.
+      }
 
-          (* Operator evaluation *)
-          2: {
-            eapply denote_ibinop_concrete; cbn; eauto; try reflexivity.
-            cbn; break_inner_match_goal; try reflexivity.
-
-            (* Division by 0 *)
-            apply Z.eqb_eq in Heqb.
-            exfalso. apply n.
-            rewrite <- Int64.unsigned_zero in Heqb.
-            unfold MInt64asNT.NTypeZero.
-            apply unsigned_is_zero; auto.
-          }
-
-          norm_v.
-          apply eutt_Ret; split; [| split]; try now eauto.
-          cbn. eapply state_invariant_add_fresh; eauto; reflexivity.
-          split.
-          {
-            cbn; intros ? MONO.
-            split.
-            { norm_v.
-              2: apply MONO, In_add_eq.
-              cbn; norm_v.
-              apply eutt_Ret.
-              do 3 f_equal.
-            }
-
-            repeat match_rewrite.
-            reflexivity.
-          }
-          {
-            apply ext_local_subalist.
-            etransitivity; eauto.
-            etransitivity; eauto.
-            apply sub_alist_add.
-            apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
-            eapply PREF.
-            eauto.
-          }
-          {
-            rewrite GAMMAI, GAMMAF.
-            symmetry; eapply incLocal_Γ; eauto.
-          }
     - (* NMod *)
 
       cbn* in COMPILE; simp.
-
-      eutt_hide_right i1.
       unfold denoteNExpr in *; cbn*.
+      cbn in EVAL; simp.
 
-      cbn in EVAL.
-      break_inner_match_goal; [| break_inner_match_goal].
-      + inversion EVAL. (* Exception in subexpression *)
-      + inversion EVAL. (* Division by 0 *)
-      + (* Success, Heqs2 *)
-        break_inner_match_goal.
-        * inversion EVAL. (* Exception in subexpression *)
-        * norm_h.
-          subst i1.
+      norm_h.
+     
+      (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
+      specialize (IHnexp1 _ _ _ _ _ _ _ _ _ _ Heqs Heqs3 PRE).
 
-          (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
-          specialize (IHnexp1 _ _ _ _ _ _ _ _ _ _ Heqs Heqs3 PRE).
+      cbn* in IHnexp1; rewrite Heqs3 in IHnexp1.
+      (* YZ TODO : Why is this one particularly slow? *)
+      repeat norm_h in IHnexp1.
 
-          cbn* in IHnexp1; rewrite Heqs3 in IHnexp1.
-          (* YZ TODO : Why is this one particularly slow? *)
-          repeat norm_h in IHnexp1.
+      ret_bind_l_left (memH, i2).
+      rewrite convert_typ_app, denote_code_app.
+      norm_v.
 
-          rewrite convert_typ_app, denote_code_app.
-          norm_v.
+      eapply eutt_clo_bind; [eassumption | clear IHnexp1].
 
-          ret_bind_l_left (memH, i3).
-          eapply eutt_clo_bind; [eassumption | clear IHnexp1].
+      introR; destruct_unit.
+      destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI) & GAMMAI).
+      cbn in *.
 
-          introR; destruct_unit.
-          destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI) & GAMMAI).
-          cbn in *.
+      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs2 PREI).
 
-          specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs2 PREI).
+      cbn* in IHnexp2;
+        repeat norm_v in IHnexp2;
+        repeat norm_h in IHnexp2.
+      simp.
+      repeat norm_h in IHnexp2.
 
-          cbn* in IHnexp2;
-            repeat norm_v in IHnexp2;
-            repeat norm_h in IHnexp2.
-          simpl_match in IHnexp2.
-          repeat norm_h in IHnexp2.
+      rewrite convert_typ_app, denote_code_app.
+      norm_v.
+      ret_bind_l_left (memH,i1).
+      eapply eutt_clo_bind; [eassumption | clear IHnexp2].
 
-          rewrite convert_typ_app, denote_code_app.
-          norm_v.
-          subst.
-          ret_bind_l_left (memH,i2).
-          eapply eutt_clo_bind; [eassumption | clear IHnexp2].
+      introR; destruct_unit.
+      destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
+      (* cbn takes 5seconds instead of doing this instantaneously... *)
+      cbn in *.
 
-          introR; destruct_unit.
-          destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
-          (* cbn takes 5seconds instead of doing this instantaneously... *)
-          simpl in *.
-          cbn.
+      rewrite denote_code_singleton; cbn.
+      norm_v.
 
-          rewrite denote_code_singleton; cbn.
-          norm_v.
-          simpl in *; unfold denote_op; simpl.
+      (* I hate this painful unification with eval... Not sure how to do better *)
+      specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
+      rewrite Heqs3 in EVAL_vH.
+      injection EVAL_vH; intros; subst.
+      assert (l1 ⊑ l1) as L1L1 by reflexivity.
+      specialize (EXPRF _ L1L1) as [EXPRF EVAL_vH0].
+      rewrite Heqs4 in EVAL_vH0.
+      injection EVAL_vH0; intros; subst.
 
-          specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
-          rewrite Heqs3 in EVAL_vH.
-          injection EVAL_vH; intros; subst.
-          assert (l1 ⊑ l1) as L1L1. reflexivity.
-          specialize (EXPRF _ L1L1) as [EXPRF EVAL_vH0].
-          rewrite Heqs2 in EVAL_vH0.
-          injection EVAL_vH0; intros; subst.
+      rewrite denote_instr_op.
 
-          rewrite denote_instr_op.
+      (* Operator evaluation *)
+      2: {
+        eapply denote_ibinop_concrete; cbn; eauto; try reflexivity.
+        cbn; break_inner_match_goal; try reflexivity.
 
-          (* Operator evaluation *)
-          2: {
-            eapply denote_ibinop_concrete; cbn; eauto; try reflexivity.
-            cbn; break_inner_match_goal; try reflexivity.
+        (* Division by 0 *)
+        apply Z.eqb_eq in Heqb.
+        exfalso. apply n.
+        rewrite <- Int64.unsigned_zero in Heqb.
+        unfold MInt64asNT.NTypeZero.
+        apply unsigned_is_zero; auto.
+      }
 
-            (* Division by 0 *)
-            apply Z.eqb_eq in Heqb.
-            exfalso. apply n.
-            rewrite <- Int64.unsigned_zero in Heqb.
-            unfold MInt64asNT.NTypeZero.
-            apply unsigned_is_zero; auto.
-          }
-
-          norm_v.
-          apply eutt_Ret; split; [| split]; try now eauto.
-          cbn. eapply state_invariant_add_fresh; eauto; reflexivity.
-          split.
-          {
-            cbn; intros ? MONO.
-            split.
-            {  norm_v.
+      norm_v.
+      apply eutt_Ret; split; [| split]; try now eauto.
+      -- cbn. eapply state_invariant_add_fresh; eauto; reflexivity.
+      -- split.
+         {
+           cbn; intros ? MONO.
+           split.
+           {  norm_v.
               2: apply MONO, In_add_eq.
-              cbn; norm_v.
               apply eutt_Ret.
-              do 3 f_equal.
-            }
+              reflexivity.
+           }
 
             repeat match_rewrite.
             reflexivity.
@@ -416,38 +382,26 @@ Section NExpr.
             eapply PREF.
             eauto.
           }
-          {
-            rewrite GAMMAI, GAMMAF.
-            symmetry; eapply incLocal_Γ; eauto.
-          }
+      -- rewrite GAMMAI, GAMMAF.
+         symmetry; eapply incLocal_Γ; eauto.
+
    - (* NAdd *)
-      rename g into g1, l into l1, memV into memV1.
       cbn* in COMPILE; simp.
-
-      eutt_hide_right i1.
-      unfold denoteNExpr in *; cbn*.
-
-      cbn in EVAL.
-      break_inner_match_goal; [| break_inner_match_goal];
-        try (exfalso; match goal with | h: genNExpr _ _ ≡ _ |- _ => eapply evalNexpr_WF_no_fail in h; now eauto end); try solve [inversion EVAL].
-
+      unfold denoteNExpr in *; cbn* in *.
+      simp.
       norm_h.
+
       (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
       specialize (IHnexp1 _ _ _ _ _ _ _ _ _ _ Heqs Heqs2 PRE).
+      simp.
 
       cbn* in IHnexp1;
         repeat norm_v in IHnexp1;
         repeat norm_h in IHnexp1.
-      simpl_match in IHnexp1.
-      (* YZ TODO : Why is this one particularly slow? *)
-      repeat norm_h in IHnexp1.
 
-      subst.
-      cbn*.
       rewrite convert_typ_app, denote_code_app.
       norm_v.
-      subst.
-      ret_bind_l_left (memH,i2).
+      ret_bind_l_left (memH,i1).
       eapply eutt_clo_bind; [eassumption | clear IHnexp1].
 
       introR; destruct_unit.
@@ -455,35 +409,30 @@ Section NExpr.
       cbn in *.
 
       specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs3 PREI).
+      simp.
 
       cbn* in IHnexp2;
         repeat norm_v in IHnexp2;
         repeat norm_h in IHnexp2.
-      simpl_match in IHnexp2.
-      repeat norm_h in IHnexp2.
 
       rewrite convert_typ_app, denote_code_app.
       norm_v.
-      subst.
-      ret_bind_l_left (memH,i3).
+      ret_bind_l_left (memH,i2).
       eapply eutt_clo_bind; [eassumption | clear IHnexp2].
 
       introR; destruct_unit.
       destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
-      (* cbn takes 5seconds instead of doing this instantaneously... *)
-      simpl in *; unfold denote_op; simpl.
-      cbn; rewrite denote_code_singleton; cbn.
-      unfold IntType; rewrite typ_to_dtyp_I.
-
+      cbn in *.
+      rewrite denote_code_singleton; cbn.
+      norm_v.
+    
       specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
-      rewrite Heqs2 in EVAL_vH; injection EVAL_vH; intros; subst.
+      rewrite Heqs4 in EVAL_vH; injection EVAL_vH; intros; subst.
 
-      assert (l0 ⊑ l0) as L0L0 by reflexivity.
+      assert (l1 ⊑ l1) as L0L0 by reflexivity.
       specialize (EXPRF _ L0L0) as [EXPRF EVAL_vH0].
-      rewrite Heqs3 in EVAL_vH0; injection EVAL_vH0; intros; subst.
+      rewrite Heqs2 in EVAL_vH0; injection EVAL_vH0; intros; subst.
       clear L0L0.
-
-      cbn*.
 
       rewrite denote_instr_op.
 
@@ -499,9 +448,9 @@ Section NExpr.
         split.
         { norm_v.
           2: apply MONO, In_add_eq.
-          cbn; norm_v.
+          norm_v.
           apply eutt_Ret.
-          do 3 f_equal.
+          reflexivity.
         }
 
         repeat match_rewrite.
@@ -521,33 +470,22 @@ Section NExpr.
         symmetry; eapply incLocal_Γ; eauto.
       }
     - (* NMinus *)
-      rename g into g1, l into l1, memV into memV1.
       cbn* in COMPILE; simp.
-
-      eutt_hide_right i1.
-      unfold denoteNExpr in *; cbn*.
-
-      cbn in EVAL.
-      break_inner_match_goal; [| break_inner_match_goal];
-        try (exfalso; match goal with | h: genNExpr _ _ ≡ _ |- _ => eapply evalNexpr_WF_no_fail in h; now eauto end); try solve [inversion EVAL].
+      unfold denoteNExpr in *; cbn* in *.
+      simp.
 
       norm_h.
+
       (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
       specialize (IHnexp1 _ _ _ _ _ _ _ _ _ _ Heqs Heqs2 PRE).
-
+      simp.
       cbn* in IHnexp1;
         repeat norm_v in IHnexp1;
         repeat norm_h in IHnexp1.
-      simpl_match in IHnexp1.
-      (* YZ TODO : Why is this one particularly slow? *)
-      repeat norm_h in IHnexp1.
 
-      subst.
-      cbn*.
       rewrite convert_typ_app, denote_code_app.
       norm_v.
-      subst.
-      ret_bind_l_left (memH,i2).
+      ret_bind_l_left (memH,i1).
       eapply eutt_clo_bind; [eassumption | clear IHnexp1].
 
       introR; destruct_unit.
@@ -555,35 +493,31 @@ Section NExpr.
       cbn in *.
 
       specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs3 PREI).
-
+      simp.
       cbn* in IHnexp2;
         repeat norm_v in IHnexp2;
         repeat norm_h in IHnexp2.
-      simpl_match in IHnexp2.
-      repeat norm_h in IHnexp2.
 
       rewrite convert_typ_app, denote_code_app.
       norm_v.
-      subst.
-      ret_bind_l_left (memH,i3).
+
+      ret_bind_l_left (memH,i2).
       eapply eutt_clo_bind; [eassumption | clear IHnexp2].
 
       introR; destruct_unit.
       destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
-      (* cbn takes 5seconds instead of doing this instantaneously... *)
-      simpl in *; unfold denote_op; simpl.
-      cbn; rewrite denote_code_singleton; cbn.
-      unfold IntType; rewrite typ_to_dtyp_I.
+      cbn in *.
+
+      rewrite denote_code_singleton; cbn.
 
       specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
-      rewrite Heqs2 in EVAL_vH; injection EVAL_vH; intros; subst.
+      rewrite Heqs4 in EVAL_vH; simp. 
 
-      assert (l0 ⊑ l0) as L0L0 by reflexivity.
+      assert (l1 ⊑ l1) as L0L0 by reflexivity.
       specialize (EXPRF _ L0L0) as [EXPRF EVAL_vH0].
-      rewrite Heqs3 in EVAL_vH0; injection EVAL_vH0; intros; subst.
+      rewrite Heqs2 in EVAL_vH0; simp.
       clear L0L0.
-
-      cbn*.
+      norm_v.
 
       rewrite denote_instr_op.
 
@@ -599,9 +533,8 @@ Section NExpr.
         split.
         { norm_v.
           2: apply MONO, In_add_eq.
-          cbn; norm_v.
           apply eutt_Ret.
-          do 3 f_equal.
+          reflexivity.
         }
 
         repeat match_rewrite.
@@ -621,33 +554,23 @@ Section NExpr.
         symmetry; eapply incLocal_Γ; eauto.
       }
     - (* NMult *)
-      rename g into g1, l into l1, memV into memV1.
       cbn* in COMPILE; simp.
-
-      eutt_hide_right i1.
-      unfold denoteNExpr in *; cbn*.
-
-      cbn in EVAL.
-      break_inner_match_goal; [| break_inner_match_goal];
-        try (exfalso; match goal with | h: genNExpr _ _ ≡ _ |- _ => eapply evalNexpr_WF_no_fail in h; now eauto end); try solve [inversion EVAL].
+      unfold denoteNExpr in *; cbn* in *.
+      simp.
 
       norm_h.
-      (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
+
       specialize (IHnexp1 _ _ _ _ _ _ _ _ _ _ Heqs Heqs2 PRE).
+      simp.
 
       cbn* in IHnexp1;
         repeat norm_v in IHnexp1;
         repeat norm_h in IHnexp1.
-      simpl_match in IHnexp1.
-      (* YZ TODO : Why is this one particularly slow? *)
-      repeat norm_h in IHnexp1.
 
-      subst.
-      cbn*.
       rewrite convert_typ_app, denote_code_app.
       norm_v.
-      subst.
-      ret_bind_l_left (memH,i2).
+
+      ret_bind_l_left (memH,i1).
       eapply eutt_clo_bind; [eassumption | clear IHnexp1].
 
       introR; destruct_unit.
@@ -655,35 +578,29 @@ Section NExpr.
       cbn in *.
 
       specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs3 PREI).
-
+      simp.
       cbn* in IHnexp2;
         repeat norm_v in IHnexp2;
         repeat norm_h in IHnexp2.
-      simpl_match in IHnexp2.
-      repeat norm_h in IHnexp2.
 
       rewrite convert_typ_app, denote_code_app.
       norm_v.
-      subst.
-      ret_bind_l_left (memH,i3).
+     
+      ret_bind_l_left (memH,i2).
       eapply eutt_clo_bind; [eassumption | clear IHnexp2].
 
       introR; destruct_unit.
       destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
-      (* cbn takes 5seconds instead of doing this instantaneously... *)
-      simpl in *; unfold denote_op; simpl.
-      cbn; rewrite denote_code_singleton; cbn.
-      unfold IntType; rewrite typ_to_dtyp_I.
+      cbn in *; rewrite denote_code_singleton; cbn.
+      norm_v.
 
       specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
-      rewrite Heqs2 in EVAL_vH; injection EVAL_vH; intros; subst.
+      rewrite Heqs4 in EVAL_vH; injection EVAL_vH; intros; subst.
 
-      assert (l0 ⊑ l0) as L0L0 by reflexivity.
+      assert (l1 ⊑ l1) as L0L0 by reflexivity.
       specialize (EXPRF _ L0L0) as [EXPRF EVAL_vH0].
-      rewrite Heqs3 in EVAL_vH0; injection EVAL_vH0; intros; subst.
+      rewrite Heqs2 in EVAL_vH0; injection EVAL_vH0; intros; subst.
       clear L0L0.
-
-      cbn*.
 
       rewrite denote_instr_op.
 
@@ -703,9 +620,8 @@ Section NExpr.
         split.
         { norm_v.
           2: apply MONO, In_add_eq.
-          cbn; norm_v.
           apply eutt_Ret.
-          do 3 f_equal.
+          reflexivity.
         }
 
         repeat match_rewrite.

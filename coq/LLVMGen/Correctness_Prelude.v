@@ -409,11 +409,13 @@ Module ProofNotations.
   Notation "'INSTR' i" := (denote_instr i) (only printing, at level 10, format "'INSTR' '//' i").
   Notation "'ι' x" := (DTYPE_I x) (at level 10,only printing).
   Notation "⋆" := (DTYPE_Pointer) (at level 10,only printing).
+  Notation "x" := (convert_typ _ x) (at level 10, only printing).
+  Notation "x" := (fmap (typ_to_dtyp _) x) (at level 10, only printing).
  
-  Notation "t '======================' u '======================' '{' R '}'"
+  Notation "t '======================' '======================' u '======================' '{' R '}'"
     := (eutt R t u)
          (only printing, at level 200,
-          format "'//' t '//' '======================' '//' u '//' '======================' '//' '{' R '}'"
+          format "'//' '//' t '//' '======================' '======================' '//' u '//' '======================' '//' '{' R '}'"
          ).
 
 End ProofNotations.
@@ -459,17 +461,6 @@ Ltac inv_mem_lookup_err :=
 Ltac inv_memory_lookup_err :=
   unfold memory_lookup_err, trywith in *;
   break_match_hyp; cbn in *; try (inl_inr || inv_sum || inv_sum).
-
-Ltac state_steps :=
-  cbn;
-  repeat (
-      ((match goal with
-        | |- ITree.bind (lift_Derr _) _ ≈ _ => break_match_goal; inv_memory_lookup_err; inv_option
-        | |- ITree.bind (lift_Serr _) _ ≈ _ => break_match_goal; inv_memory_lookup_err; inv_option
-        | |- ITree.bind (State.interp_state _ (lift_Derr _) _) _ ≈ _ => break_match_goal; inv_option
-        | |- ITree.bind (State.interp_state _ (lift_Serr _) _) _ ≈ _ => break_match_goal; inv_option
-        end) || state_step); cbn).
-
 
 Ltac eutt_hide_left_named H :=
   match goal with
@@ -854,10 +845,8 @@ Ltac break_and :=
   Tactic Notation "norm_local_vellvm_hyp" constr(t) hyp(h) := norm_local_vellvm_hyp_k' t h 0.
   Tactic Notation "norm_local_vellvmD" constr(t) hyp(h) := norm_local_vellvm_hyp_k' t h 1.
 
-  (**
-     QUESTION YZ: the outer repeat does not have any effect. Why and how to fix?
-   *)
   Ltac norm_h_k k :=
+    simpl ret;
       repeat (
           repeat (norm_monad_l_k k);
           repeat (norm_interp_l_k k);
@@ -879,16 +868,33 @@ Ltac break_and :=
   Tactic Notation "norm_h" "in" hyp(h) := norm_h_hyp_k' h 0.
   Tactic Notation "norm_hD" "in" hyp(h) := norm_h_hyp_k' h 1.
 
-  Ltac norm_v_k k :=
+  Ltac norm_v_l_k k :=
+    simpl ret;
+    repeat rewrite typ_to_dtyp_equation;
+      repeat (
+          repeat (norm_monad_l_k k);
+          repeat (norm_interp_l_k k);
+          repeat (norm_local_vellvm_l_k k))
+  .
+  Tactic Notation "norm_vl_k'" integer(k) := norm_v_l_k k.
+  Tactic Notation "norm_vl" := norm_vl_k' 0.
+  Tactic Notation "norm_vlD" := norm_vl_k' 1.
+
+
+  Ltac norm_v_r_k k :=
+    simpl ret;
     repeat rewrite typ_to_dtyp_equation;
       repeat (
           repeat (norm_monad_r_k k);
           repeat (norm_interp_r_k k);
           repeat (norm_local_vellvm_r_k k))
   .
-  Tactic Notation "norm_v_k'" integer(k) := norm_v_k k.
-  Tactic Notation "norm_v" := norm_v_k' 0.
-  Tactic Notation "norm_vD" := norm_v_k' 1.
+  Tactic Notation "norm_vr_k'" integer(k) := norm_v_r_k k.
+  Tactic Notation "norm_vr" := norm_vr_k' 0.
+  Tactic Notation "norm_vrD" := norm_vr_k' 1.
+
+  Tactic Notation "norm_v" := norm_vr.
+  Tactic Notation "norm_vD" := norm_vrD.
 
   Ltac norm_v_hyp_k h k :=
     match type of h with
