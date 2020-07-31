@@ -688,17 +688,30 @@ Notation "m '⊑' m'" := (sub_alist m m') (at level 45).
 
 (* find_block axiomatisation to ease things. TODO: make it opaque *)
 Lemma find_block_nil: forall {T} b, find_block T [] b = None. 
-Admitted.
+Proof.
+  reflexivity.
+Qed.
 
 Lemma find_block_eq: forall {T} x b bs,
     blk_id b = x ->
     find_block T (b:: bs) x = Some b.
-Admitted.
+Proof.
+  intros; cbn.
+  rewrite H.
+  destruct (Eqv.eqv_dec_p x x).
+  reflexivity.
+  contradiction n; reflexivity.
+Qed.
 
 Lemma find_block_ineq: forall {T} x b bs,
     blk_id b <> x ->
     find_block T (b::bs) x = find_block T bs x. 
-Admitted.
+Proof.
+  intros; cbn.
+  destruct (Eqv.eqv_dec_p (blk_id b)) as [EQ | INEQ].
+  unfold Eqv.eqv, eqv_raw_id in *; intuition.
+  reflexivity.
+Qed.
 
 Global Instance ConvertTyp_list {A} `{Traversal.Fmap A}: ConvertTyp (fun T => list (A T)) :=
   fun env => Traversal.fmap (typ_to_dtyp env).
@@ -728,4 +741,29 @@ Ltac focus_single_step :=
     |- eutt _ (ITree.bind _ ?x) (ITree.bind _ ?y) => remember x; remember y
   end.
 
+(* YZ: Should they be Opaque or simpl never? *)
 Global Opaque D.denote_bks.
+Global Opaque assoc.
+Global Opaque D.denote_instr.
+Global Opaque D.denote_terminator.
+Global Opaque D.denote_phi.
+Global Opaque D.denote_code.
+
+Lemma typ_to_dtyp_I : forall s i, typ_to_dtyp s (TYPE_I i) = DTYPE_I i.
+Proof.
+  intros; rewrite typ_to_dtyp_equation; reflexivity.
+Qed.
+
+Lemma typ_to_dtyp_D : forall s, typ_to_dtyp s TYPE_Double = DTYPE_Double.
+Proof.
+  intros; rewrite typ_to_dtyp_equation; reflexivity.
+Qed.
+
+Lemma typ_to_dtyp_D_array : forall n s, typ_to_dtyp s (TYPE_Array n TYPE_Double) = DTYPE_Array n DTYPE_Double.
+Proof.
+  intros.
+  rewrite typ_to_dtyp_equation.
+  rewrite typ_to_dtyp_D.
+  reflexivity.
+Qed.
+

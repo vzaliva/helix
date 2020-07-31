@@ -1,76 +1,10 @@
-Require Import Coq.Arith.Arith.
-Require Import Psatz.
-
-Require Import Coq.Strings.String.
-
-Open Scope string_scope.
-Open Scope char_scope.
-
-Require Import Coq.Lists.List.
-
-Require Import Coq.Numbers.BinNums. (* for Z scope *)
-Require Import Coq.ZArith.BinInt.
-
-Require Import Helix.FSigmaHCOL.FSigmaHCOL.
-Require Import Helix.FSigmaHCOL.Int64asNT.
-Require Import Helix.FSigmaHCOL.Float64asCT.
-Require Import Helix.DSigmaHCOL.DSigmaHCOLITree.
-Require Import Helix.LLVMGen.Compiler.
-Require Import Helix.LLVMGen.Data.
-Require Import Helix.LLVMGen.Utils.
-Require Import Helix.LLVMGen.tmp_aux_Vellvm.
-Require Import Helix.Util.OptionSetoid.
-Require Import Helix.Util.ErrorSetoid.
-Require Import Helix.Util.ListUtil.
-Require Import Helix.Tactics.HelixTactics.
-
-Require Import ExtLib.Structures.Monads.
-Require Import ExtLib.Data.Map.FMapAList.
-
-Require Import Vellvm.Tactics.
-Require Import Vellvm.Util.
-Require Import Vellvm.LLVMEvents.
-Require Import Vellvm.DynamicTypes.
-Require Import Vellvm.Denotation.
-Require Import Vellvm.Handlers.Handlers.
-Require Import Vellvm.TopLevel.
-Require Import Vellvm.LLVMAst.
-Require Import Vellvm.CFG.
-Require Import Vellvm.InterpreterMCFG.
-Require Import Vellvm.InterpreterCFG.
-Require Import Vellvm.TopLevelRefinements.
-Require Import Vellvm.TypToDtyp.
-Require Import Vellvm.LLVMEvents.
-Require Import Vellvm.Denotation_Theory.
-
-Require Import Ceres.Ceres.
-
-Require Import ITree.Interp.TranslateFacts.
-Require Import ITree.Basics.CategoryFacts.
-Require Import ITree.Events.State.
-Require Import ITree.Events.StateFacts.
-Require Import ITree.ITree.
-Require Import ITree.Eq.Eq.
-Require Import ITree.Basics.Basics.
-Require Import ITree.Interp.InterpFacts.
-
-Require Import Flocq.IEEE754.Bits.
-
-Require Import MathClasses.interfaces.canonical_names.
-Require Import MathClasses.misc.decision.
-
+Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.Correctness_NExpr.
 Require Import Helix.LLVMGen.Correctness_MExpr.
 
 Set Implicit Arguments.
 Set Strict Implicit.
-
-Import MDSHCOLOnFloat64.
-Import D.
-Import ListNotations.
-Import MonadNotation.
-Local Open Scope monad_scope.
 
 Lemma resolve_PVar_simple : forall p s s' x v,
     resolve_PVar p s ≡ inr (s', (x, v)) ->

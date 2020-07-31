@@ -1,82 +1,11 @@
-Require Import Coq.Arith.Arith.
-Require Import Psatz.
-
-Require Import Coq.Strings.String.
-
-Open Scope string_scope.
-Open Scope char_scope.
-
-Require Import Coq.Lists.List.
-
-Require Import Coq.Numbers.BinNums. (* for Z scope *)
-Require Import Coq.ZArith.BinInt.
-
-Require Import Helix.FSigmaHCOL.FSigmaHCOL.
-Require Import Helix.FSigmaHCOL.Int64asNT.
-Require Import Helix.FSigmaHCOL.Float64asCT.
-Require Import Helix.DSigmaHCOL.DSigmaHCOLITree.
-Require Import Helix.LLVMGen.Compiler.
-Require Import Helix.LLVMGen.Data.
-Require Import Helix.LLVMGen.Utils.
-Require Import Helix.LLVMGen.tmp_aux_Vellvm.
-Require Import Helix.Util.OptionSetoid.
-Require Import Helix.Util.ErrorSetoid.
-Require Import Helix.Util.ListUtil.
-Require Import Helix.Tactics.HelixTactics.
-
-Require Import ExtLib.Structures.Monads.
-Require Import ExtLib.Data.Map.FMapAList.
-
-Require Import Vellvm.Tactics.
-Require Import Vellvm.Util.
-Require Import Vellvm.LLVMEvents.
-Require Import Vellvm.DynamicTypes.
-Require Import Vellvm.Denotation.
-Require Import Vellvm.Handlers.Handlers.
-Require Import Vellvm.TopLevel.
-Require Import Vellvm.LLVMAst.
-Require Import Vellvm.CFG.
-Require Import Vellvm.InterpreterMCFG.
-Require Import Vellvm.InterpreterCFG.
-Require Import Vellvm.TopLevelRefinements.
-Require Import Vellvm.TypToDtyp.
-Require Import Vellvm.LLVMEvents.
-Require Import Vellvm.Denotation_Theory.
-
-Require Import Ceres.Ceres.
-
-Require Import ITree.Interp.TranslateFacts.
-Require Import ITree.Basics.CategoryFacts.
-Require Import ITree.Events.State.
-Require Import ITree.Events.StateFacts.
-Require Import ITree.ITree.
-Require Import ITree.Eq.Eq.
-Require Import ITree.Basics.Basics.
-Require Import ITree.Interp.InterpFacts.
-
-Require Import Flocq.IEEE754.Bits.
-
-Require Import MathClasses.interfaces.canonical_names.
-Require Import MathClasses.misc.decision.
-
+Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
+Import ProofNotations.
 
 Set Implicit Arguments.
 Set Strict Implicit.
 
-Import MDSHCOLOnFloat64.
-Import D.
-Import ListNotations.
-Import MonadNotation.
-Local Open Scope monad_scope.
-
-Require Import Vellvm.InstrLemmas.
-
-
-Opaque incBlockNamed.
-Opaque incVoid.
-Opaque incLocal.
-
+(* YZ TODO: Check that this is global and factor it in prelude *)
 Typeclasses Opaque equiv.
 Remove Hints
        equiv_default_relation
@@ -96,37 +25,21 @@ Remove Hints
        minmax.LatticeOrder_instance_0
        workarounds.equivalence_proper : typeclass_instances.
 
-Section NExpr.
+(** * Correctness of the compilation of numerical expressions
 
-  (**
      We prove in this section the correctness of the compilation of numerical expressions, i.e. [NExpr].
-     The corresponding compiling function is [inexpert].
+     The corresponding compiling function is [genNexpr].
 
      Helix side:
      * nexp: NExpr
      * σ: evalContext
      * s: IRState
 
-The expression must be closed in [evalContext]. I.e. all variables are below the length of σ
-Γ s1 = σ?
+ *)
 
-   *)
-  (* NOTEYZ:
-     These expressions are pure. As such, it is true that we do not need to interpret away
-     the memory events on Helix side to establish the bisimulation.
-     However at least in the current state of affair, I believe it's widely more difficult
-     to lift the result before interpretation to the context we need than to simply plug in
-     the interpreter.
-     In particular we would need to have a clean enough lift that deduces that the memory has
-     not been modified. I'm interested in having this, but I do not know how easy it is to get it.
-     TODOYZ: Investigate this claim
-   *)
-
-  Definition memory_invariant_memory_mcfg (σ : evalContext) (s : IRState) : Rel_mcfg :=
-    fun memH '(memV,((l,sl),g)) =>
-      memory_invariant σ s memH (memV,(l,g)).
-
- (** YZ
+Section NExpr.
+  
+  (** YZ
       At the top level, the correctness of genNExpr is expressed as the denotation of the operator being equivalent
       to the bind of denoting the code followed by denoting the expression.
       However this is not inductively stable, we only want to plug the expression at the top level.
@@ -136,9 +49,12 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
   Definition genNExpr_exp_correct σ (nexp : NExpr) (e: exp typ) : Rel_cfg_T DynamicValues.int64 unit :=
     fun '(_,i) '(memV,(l,(g,v))) =>
       forall l', l ⊑ l' ->
-        Ret (memV,(l',(g,UVALUE_I64 i)))
-        ≈
-        (interp_cfg (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] e))) g l' memV) /\ evalNExpr σ nexp ≡ inr i.
+            Ret (memV,(l',(g,UVALUE_I64 i)))
+                ≈
+            (interp_cfg (translate exp_E_to_instr_E
+                                   (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] e)))
+                        g l' memV)
+            /\ evalNExpr σ nexp ≡ inr i.
 
   (**
      We package the local specific invariants. Additionally to the evaluation of the resulting expression,
@@ -157,8 +73,6 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
     monotone : ext_local mi sti mf stf
     }.
 
-  Opaque denote_code.
-  Opaque denote_instr.
   Lemma genNExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH) (v : Int64.int)
@@ -182,11 +96,14 @@ The expression must be closed in [evalContext]. I.e. all variables are below the
 
       + (* The variable maps to an integer in the IRState *)
         unfold denoteNExpr; cbn*.
+
         rewrite denote_code_nil; cbn.
         repeat norm_v.
+
         break_inner_match_goal.
 
         * break_inner_match_goal; try abs_by_WF.
+
           repeat norm_h.
           destruct i0.
           { (* Global -- Absurd, globals map to pointers, not integers *)

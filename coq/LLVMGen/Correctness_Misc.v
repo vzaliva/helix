@@ -1,69 +1,4 @@
-Require Import Coq.Arith.Arith.
-Require Import Psatz.
-
-Require Import Coq.Strings.String.
-
-Import Coq.Strings.String Strings.Ascii.
-Open Scope string_scope.
-Open Scope char_scope.
-
-Require Import Coq.Lists.List.
-
-Require Import Coq.Numbers.BinNums. (* for Z scope *)
-Require Import Coq.ZArith.BinInt.
-
-Require Import Helix.FSigmaHCOL.FSigmaHCOL.
-Require Import Helix.FSigmaHCOL.Int64asNT.
-Require Import Helix.FSigmaHCOL.Float64asCT.
-Require Import Helix.DSigmaHCOL.DSigmaHCOLITree.
-Require Import Helix.LLVMGen.Compiler.
-Require Import Helix.LLVMGen.Data.
-Require Import Helix.LLVMGen.Utils.
-Require Import Helix.LLVMGen.tmp_aux_Vellvm.
-Require Import Helix.Util.OptionSetoid.
-Require Import Helix.Util.ErrorSetoid.
-Require Import Helix.Util.ListUtil.
-Require Import Helix.Tactics.HelixTactics.
-
-Require Import ExtLib.Structures.Monads.
-Require Import ExtLib.Data.Map.FMapAList.
-
-Require Import Vellvm.Tactics.
-Require Import Vellvm.Util.
-Require Import Vellvm.LLVMEvents.
-Require Import Vellvm.DynamicTypes.
-Require Import Vellvm.Denotation.
-Require Import Vellvm.Handlers.Handlers.
-Require Import Vellvm.TopLevel.
-Require Import Vellvm.LLVMAst.
-Require Import Vellvm.AstLib.
-Require Import Vellvm.CFG.
-Require Import Vellvm.InterpreterMCFG.
-Require Import Vellvm.InterpreterCFG.
-Require Import Vellvm.TopLevelRefinements.
-Require Import Vellvm.TypToDtyp.
-Require Import Vellvm.LLVMEvents.
-Require Import Vellvm.Denotation_Theory.
-
-Require Import Ceres.Ceres.
-
-Require Import ITree.Interp.TranslateFacts.
-Require Import ITree.Basics.CategoryFacts.
-Require Import ITree.Events.State.
-Require Import ITree.Events.StateFacts.
-Require Import ITree.ITree.
-Require Import ITree.Eq.Eq.
-Require Import ITree.Basics.Basics.
-Require Import ITree.Interp.InterpFacts.
-
-Require Import Flocq.IEEE754.Binary.
-Require Import Flocq.IEEE754.Bits.
-
-Require Import MathClasses.interfaces.canonical_names.
-Require Import MathClasses.misc.decision.
-
-Require Import Omega.
-
+Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 
 Set Implicit Arguments.
@@ -323,33 +258,287 @@ Section FSHAssign.
 
 End FSHAssign.
 
-Section WhileLoop.
-  (** ** Compilation of loops TODO
-      Unclear how to state this at the moment
-      What is on the Helix side? What do the arguments correspond to?
-   *)
+Fixpoint build_vec' {E} (n: nat) (body: nat -> mem_block -> itree E mem_block):
+  mem_block -> itree E mem_block :=
+  fun memy =>
+    match n with
+    | O => ret memy
+    | S n => memy' <- build_vec' n body memy;;
+            body n memy'
+    end.
+ 
+(**
+   General lemma for iteration over vectors.
+ *)
 
-  Lemma genWhileLoop_correct :
-    forall (* Compiler bits *) (s1 s2: IRState)
-      (* Helix  bits *) (σ: evalContext)
-      (* Vellvm bits *) (prefix: string) (from to: exp typ) (loopvar: raw_id) (loopcontblock: block_id)
-                        (body_entry: block_id) (body_blocks: list (LLVMAst.block typ)) (init_code: (code typ))
-                        (nextblock: block_id) (bid: block_id) (bks : list (LLVMAst.block typ)),
-      genWhileLoop prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 ≡ inr (s2, (bid, bks)) -> (* Compilation succeeds *)
-      WF_IRState σ s1 ->                                      (* Well-formed IRState *)
-      False.
-      (* eutt R'
-            (translate_E_helix_cfg
-               (interp_Mem (denoteAexp σ aexp)
-                           memH))
-            (translate_E_vellvm_cfg
-               ((interp_cfg (D.denote_code (convert_typ [] c) ;; translate exp_E_to_instr_E (D.denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] exp))))
-                  g l memV)).
-       *)
-  Proof.
-  Admitted.
+(* Bodies invariant:
+   * Helix: pure computation returning a mem_block having updated the cell k with some value
+   * Vellvm: impure computation having _only_ updated the same cell with the same value.
+             The local state may have been extended
+ *)
 
-End WhileLoop.
+Definition body_pre loopvar (k: nat) : Rel_cfg :=
+  fun memH '(memV,(l,g)) => l @ loopvar ≡ Some (uvalue_of_nat k).
+
+Definition body_post
+           (a: addr) (bk_i: mem_block) (k : nat) (post: block_id)
+           (memHi : memoryH) (memVi : memoryV) (li : local_env) (gi : global_env)
+           (τ: dtyp) (* This type should be fixed ? *)
+  : Rel_cfg_T mem_block (block_id * block_id + uvalue) :=
+  fun '(memH,bk) '(memV,(l,(g,v))) =>
+    (exists l, v ≡ inl (l, post)) /\
+    memH ≡ memHi /\
+    g ≡ gi /\
+    li ⊑ l /\
+    exists v,
+      bk ≡ mem_add k v bk_i /\
+      inr memV ≡ write_array_cell memVi a k τ (dvalue_of_bin v).
+
+From Vellvm Require Import Traversal.
+
+(* Definition loop_post *)
+(*            (a: addr) (bk_i: mem_block) (k : nat) (post: block_id) *)
+(*            (memHi : memoryH) (memVi : memoryV) (li : local_env) (gi : global_env) *)
+(*            (τ: dtyp) (* This type should be fixed ? *) *)
+(*   : Rel_cfg_T mem_block (block_id * block_id + uvalue) := *)
+(*   fun '(memH,bk) '(memV,(l,(g,v))) => *)
+(*     (exists l, v ≡ inl (l, post)) /\ *)
+(*     memH ≡ memHi /\ *)
+(*     g ≡ gi /\ *)
+(*     li ⊑ l /\ *)
+(*     exists v, *)
+(*       bk ≡ mem_add k v bk_i /\ *)
+(*       inr memV ≡ write_array_cell memVi a k τ (dvalue_of_bin v). *)
+
+
+Lemma genWhileLoop_ind:
+  forall (msg : string)
+    (lvar : raw_id)            (* lvar storing the loop index *)
+    (body_entry_id : block_id) (* entry point of the body *)
+    (wrap_loop_id : block_id)  (* reentry point from the body back to the loop *)
+    (bodyV : list (LLVMAst.block typ)) (* (llvm) body to be iterated *)
+    (exit_id : block_id)       (* exit point of the overall loop *)
+    (entry_id : block_id)      (* entry point of the overall loop *)
+    (s1 s2 : IRState)
+    (bks : list (LLVMAst.block typ)) (* (llvm) code defining the whole loop *)
+    (from_id: block_id)       (* point from which we enter the overall loop *)
+    (n : nat)                    (* Number of iterations *)
+
+    (* Generation of the LLVM code wrapping the loop around bodyV *)
+    (GEN: genWhileLoop msg (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
+                       lvar wrap_loop_id body_entry_id bodyV [] exit_id s1
+                       ≡ inr (s2,(entry_id,bks)))
+
+    (* Computation on the Helix side performed at each cell of the vector,
+       the counterpart to bodyV *)
+    (bodyH: nat -> mem_block -> itree _ mem_block) 
+
+    (* Main relation preserved by iteration *)
+    (R : Rel_cfg),
+
+    (* Inductive proof: Assuming R, reestablish R by going through both bodies *)
+    (forall g l mV mH ymem,
+        (* ((R ⩕ Invk n) (mH,ymem) (mV, (l, (g, (inl body))))) -> *)
+        (R mH (mV,(l,g))) ->
+        eutt
+          (lift_Rel_cfg R)
+          (* (R ⩕ Invk (n +1) /\ lvar = n /\ retlabel = post ) *)
+          (with_err_RB (interp_Mem (bodyH n ymem) mH))
+          (with_err_LB (interp_cfg
+                          (denote_bks (convert_typ [] bodyV) (from_id,body_entry_id)) g l mV))
+    ) ->
+
+    (* Main result. Need to know initially that R holds *)
+    forall g l mV mH ymem,
+      R mH (mV,(l,g)) ->
+      eutt (lift_Rel_cfg R)
+           (with_err_RB (interp_Mem (build_vec n bodyH ymem) mH))
+           (with_err_LB (interp_cfg (denote_bks (convert_typ [] bks) (from_id,entry_id)) g l mV)).
+Proof.
+  intros * GEN * IND * PRE.
+  cbn* in GEN; simp.
+Admitted.
+
+Definition stable_exp_local (R: Rel_cfg) : Prop :=
+    forall memH memV ρ1 ρ2 g,
+      R memH (memV, (ρ1, g)) ->
+      ρ1 ⊑ ρ2 ->
+      R memH (memV, (ρ2, g)).
+
+Definition imp_rel {A B : Type} (R S: A -> B -> Prop): Prop :=
+  forall a b, R a b -> S a b.
+
+Lemma genWhileLoop_correct:
+  forall (msg : string)
+    (lvar : raw_id)            (* lvar storing the loop index *)
+    (body_entry_id : block_id) (* entry point of the body *)
+    (wrap_loop_id : block_id)  (* reentry point from the body back to the loop *)
+    (bodyV : list (LLVMAst.block typ)) (* (llvm) body to be iterated *)
+    (exit_id : block_id)       (* exit point of the overall loop *)
+    (entry_id : block_id)      (* entry point of the overall loop *)
+    σ (s1 s2 : IRState)
+    (bks : list (LLVMAst.block typ)) (* (llvm) code defining the whole loop *)
+    (from_id: block_id)        (* point from which we enter the overall loop *)
+    (n : nat)                    (* Number of iterations *)
+
+    (* Generation of the LLVM code wrapping the loop around bodyV *)
+    (GEN: genWhileLoop msg (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
+                       lvar wrap_loop_id body_entry_id bodyV [] exit_id s1
+                       ≡ inr (s2,(entry_id,bks)))
+
+    (* Computation on the Helix side performed at each cell of the vector,
+       the counterpart to bodyV *)
+    (bodyH: nat -> mem_block -> itree _ mem_block) 
+
+    (* Main relation preserved by iteration *)
+    (R : Rel_cfg),
+
+    (* Inductive proof: Assuming R, reestablish R by going through both bodies *)
+    (forall g l mV mH ymem,
+        (* ((R ⩕ Invk n) (mH,ymem) (mV, (l, (g, (inl body))))) -> *)
+        (R mH (mV,(l,g))) ->
+        eutt
+          (lift_Rel_cfg R)
+          (* (R ⩕ Invk (n +1) /\ lvar = n /\ retlabel = post ) *)
+          (with_err_RB (interp_Mem (bodyH n ymem) mH))
+          (with_err_LB (interp_cfg
+                          (denote_bks (convert_typ [] bodyV) (from_id,body_entry_id)) g l mV))
+    ) ->
+
+    (* R must be stable by extension of the local env *)
+    stable_exp_local R ->
+
+    (* R must entail the state invariant *)
+    imp_rel R (state_invariant σ s1) ->
+
+    (* Main result. Need to know initially that R holds *)
+    forall g l mV mH ymem,
+      R mH (mV,(l,g)) ->
+      eutt (lift_Rel_cfg R)
+           (with_err_RB (interp_Mem (build_vec n bodyH ymem) mH))
+           (with_err_LB (interp_cfg (denote_bks (convert_typ [] bks) (from_id,entry_id)) g l mV)).
+Proof.
+  intros * GEN * IND STABLE IMPSTATE * PRE.
+  cbn* in GEN; simp. 
+  destruct n as [|[|n]].
+  - (* n = 0: we never enter the loop *)
+
+    cbn.
+    repeat norm_h.
+
+    jump_in.
+       
+    cbn.
+    repeat norm_v.
+    cbn; repeat norm_v.
+
+    rewrite denote_code_singleton.
+    rewrite denote_instr_op.
+    2:{
+      cbn.
+      unfold IntType; rewrite typ_to_dtyp_I.
+      cbn.
+      rewrite !bind_ret_l.
+      cbn.
+      rewrite translate_ret, interp_cfg_to_L3_ret.
+      reflexivity.
+    }
+
+    repeat norm_v.
+    focus_single_step_v.
+    rewrite typ_to_dtyp_I.
+    rewrite denote_term_br_r.
+    2:{
+      cbn.
+      rewrite translate_trigger, lookup_E_to_exp_E_Local, subevent_subevent.
+      rewrite translate_trigger, exp_E_to_instr_E_Local, subevent_subevent.
+      rewrite interp_cfg_to_L3_LR.
+      2: unfold local_env; rewrite lookup_alist_add_eq; reflexivity.
+      cbn.
+      reflexivity.
+    }
+
+    repeat norm_v.
+    subst.
+
+    rewrite denote_bks_unfold_not_in.
+    2: admit.
+
+    repeat norm_v.
+    apply eutt_Ret.
+
+    cbn; eapply STABLE; eauto.
+    eapply sub_alist_add.
+    eapply concrete_fresh_fresh; eauto.
+    eapply incLocal_is_fresh.
+    eapply state_invariant_incBlockNamed; eauto.
+    eapply state_invariant_incBlockNamed; eauto.
+
+  - (* n > 0 *)
+    cbn.
+    eutt_hide_left.
+
+    jump_in.
+
+    cbn.
+    repeat norm_v.
+    cbn; repeat norm_v.
+
+    focus_single_step_v.
+    rewrite denote_code_singleton.
+    rewrite denote_instr_op.
+    2:{
+      simpl.
+      unfold IntType; rewrite typ_to_dtyp_I.
+      simpl.
+      rewrite !bind_ret_l.
+      cbn.
+      rewrite translate_ret, interp_cfg_to_L3_ret.
+      reflexivity.
+    }
+
+    repeat norm_v.
+    subst; cbn; repeat norm_v; focus_single_step_v.
+    rewrite typ_to_dtyp_I.
+    rewrite denote_term_br_l.
+    2:{
+      cbn.
+      rewrite translate_trigger, lookup_E_to_exp_E_Local, subevent_subevent.
+      rewrite translate_trigger, exp_E_to_instr_E_Local, subevent_subevent.
+      rewrite interp_cfg_to_L3_LR.
+      2: unfold local_env; rewrite lookup_alist_add_eq; reflexivity.
+      cbn.
+      reflexivity.
+    }
+
+    repeat norm_v.
+    subst; cbn; repeat norm_v.
+
+    jump_in.
+    2:admit.
+
+    cbn.
+    repeat norm_v.
+
+    find_phi.
+
+    cbn; repeat norm_v.
+    focus_single_step_v.
+
+    rewrite typ_to_dtyp_I.
+    cbn.
+    repeat norm_v.
+    subst; repeat norm_v.
+    cbn.
+    norm_v.
+    rewrite interp_cfg_to_L3_LW.
+    cbn; repeat norm_v.
+    rewrite denote_code_nil.
+    cbn; repeat norm_v.
+
+
+Admitted.
+
 
 Section IMapBody.
   (** ** Compilation of IMapBody TODO

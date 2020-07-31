@@ -1,3 +1,6 @@
+(* YZ: Can we delete this file or is there anything that should be saved? *)
+
+(*
 (* Require Import LibHyps.LibHyps. *)
 Require Import Coq.Arith.Arith.
 Require Import Psatz.
@@ -171,3 +174,4 @@ Section MemCopy.
     Admitted.
 
 End MemCopy.
+*)
