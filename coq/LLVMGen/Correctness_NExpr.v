@@ -227,7 +227,7 @@ Section NExpr.
 
       cbn* in IHnexp1; rewrite Heqs3 in IHnexp1.
       (* YZ TODO : Why is this one particularly slow? *)
-      repeat norm_h in IHnexp1.
+      norm_h in IHnexp1.
 
       rewrite convert_typ_app, denote_code_app.
       norm_v.
@@ -242,10 +242,10 @@ Section NExpr.
       specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs2 PREI).
 
       cbn* in IHnexp2;
-        repeat norm_v in IHnexp2;
-        repeat norm_h in IHnexp2.
+        norm_v in IHnexp2;
+        norm_h in IHnexp2.
       simp.
-      repeat norm_h in IHnexp2.
+      norm_h in IHnexp2.
 
       rewrite convert_typ_app, denote_code_app.
       norm_v.
@@ -321,7 +321,7 @@ Section NExpr.
 
       cbn* in IHnexp1; rewrite Heqs3 in IHnexp1.
       (* YZ TODO : Why is this one particularly slow? *)
-      repeat norm_h in IHnexp1.
+      norm_h in IHnexp1.
 
       ret_bind_l_left (memH, i2).
       rewrite convert_typ_app, denote_code_app.
@@ -336,10 +336,10 @@ Section NExpr.
       specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs2 PREI).
 
       cbn* in IHnexp2;
-        repeat norm_v in IHnexp2;
-        repeat norm_h in IHnexp2.
+        norm_v in IHnexp2;
+        norm_h in IHnexp2.
       simp.
-      repeat norm_h in IHnexp2.
+      norm_h in IHnexp2.
 
       rewrite convert_typ_app, denote_code_app.
       norm_v.
@@ -417,8 +417,8 @@ Section NExpr.
       simp.
 
       cbn* in IHnexp1;
-        repeat norm_v in IHnexp1;
-        repeat norm_h in IHnexp1.
+        norm_v in IHnexp1;
+        norm_h in IHnexp1.
 
       rewrite convert_typ_app, denote_code_app.
       norm_v.
@@ -433,8 +433,8 @@ Section NExpr.
       simp.
 
       cbn* in IHnexp2;
-        repeat norm_v in IHnexp2;
-        repeat norm_h in IHnexp2.
+        norm_v in IHnexp2;
+        norm_h in IHnexp2.
 
       rewrite convert_typ_app, denote_code_app.
       norm_v.
@@ -501,8 +501,8 @@ Section NExpr.
       specialize (IHnexp1 _ _ _ _ _ _ _ _ _ _ Heqs Heqs2 PRE).
       simp.
       cbn* in IHnexp1;
-        repeat norm_v in IHnexp1;
-        repeat norm_h in IHnexp1.
+        norm_v in IHnexp1;
+        norm_h in IHnexp1.
 
       rewrite convert_typ_app, denote_code_app.
       norm_v.
@@ -516,8 +516,8 @@ Section NExpr.
       specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs3 PREI).
       simp.
       cbn* in IHnexp2;
-        repeat norm_v in IHnexp2;
-        repeat norm_h in IHnexp2.
+        norm_v in IHnexp2;
+        norm_h in IHnexp2.
 
       rewrite convert_typ_app, denote_code_app.
       norm_v.
@@ -585,8 +585,8 @@ Section NExpr.
       simp.
 
       cbn* in IHnexp1;
-        repeat norm_v in IHnexp1;
-        repeat norm_h in IHnexp1.
+        norm_v in IHnexp1;
+        norm_h in IHnexp1.
 
       rewrite convert_typ_app, denote_code_app.
       norm_v.
@@ -601,8 +601,8 @@ Section NExpr.
       specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs3 PREI).
       simp.
       cbn* in IHnexp2;
-        repeat norm_v in IHnexp2;
-        repeat norm_h in IHnexp2.
+        norm_v in IHnexp2;
+        norm_h in IHnexp2.
 
       rewrite convert_typ_app, denote_code_app.
       norm_v.
