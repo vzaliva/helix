@@ -2,6 +2,7 @@ Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Import ProofNotations.
 Open Scope Z.
+Open Scope list.
 
 Set Implicit Arguments.
 Set Strict Implicit.
@@ -29,7 +30,7 @@ Remove Hints
 (** * Correctness of the compilation of numerical expressions
 
      We prove in this section the correctness of the compilation of numerical expressions, i.e. [NExpr].
-     The corresponding compiling function is [genNexpr].
+     The corresponding compiling function is [ genNexpr].
 
      Helix side:
      * nexp: NExpr
@@ -83,6 +84,32 @@ Section NExpr.
       eapply memory_invariant_GLU; [| eassumption | eassumption]; eauto
      end.
 
+  Ltac check_state_invariant :=
+    match goal with
+      |- state_invariant _ _ _ (_, (alist_add _ _ _, _)) =>
+      eapply state_invariant_add_fresh; [now eauto | (eassumption || check_state_invariant)]
+    end.
+
+  Lemma state_invariant_alist_fresh:
+    forall σ s s' memH memV l g id,
+      state_invariant σ s memH (memV, (l,g)) ->
+      incLocal s ≡ inr (s',id) ->
+      alist_fresh id l.
+  Proof.
+    intros * [] LOC.
+    apply concrete_fresh_fresh in incLocal_is_fresh.
+    eapply incLocal_is_fresh; eauto.
+  Qed.
+
+  Ltac solve_alist_fresh :=
+    (reflexivity ||
+     eapply state_invariant_alist_fresh; now eauto).
+
+  Ltac solve_sub_alist :=
+    (reflexivity ||
+     apply sub_alist_add; solve_alist_fresh).
+  
+
   Lemma genNExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH) (v : Int64.int)
@@ -105,80 +132,73 @@ Section NExpr.
       cbn* in COMPILE; simp.
 
       + (* The variable maps to an integer in the IRState *)
-        unfold denoteNExpr; cbn*.
+        unfold denoteNExpr; cbn* in *.
+        simp.
 
-        rewrite denote_code_nil; cbn.
+        (* Reduction on the Helix side *)
+        norm_h.
 
+        (* Reduction on the Vellvm side *)
+        rewrite denote_code_nil.
         norm_v.
 
-        break_inner_match_goal.
+        (* The identifier has to be a local one *)
+        destruct i0; try abs_by_WF.
 
-        * break_inner_match_goal; try abs_by_WF.
-
-          norm_h.
-          destruct i0; try abs_by_WF.
-
-          apply eutt_Ret; split; [| split]; try now eauto.
-          constructor; eauto.
-          intros l' MONO; cbn*.
-          split.
-          { norm_vr; [| solve_lu].
-            reflexivity.
-          }
-          {match_rewrite.
-           reflexivity.
-          }
-
-        * (* Variable not in context, [context_lookup] fails *)
-          cbn* in EVAL; rewrite Heqo0 in EVAL; inv EVAL.
-          
+        (* We establish the postcondition *)
+        apply eutt_Ret; split; [| split]; try now eauto.
+        constructor; eauto.
+        intros l' MONO; cbn*.
+        split.
+        {
+          norm_vr; [| solve_lu].
+          reflexivity.
+        }
+        {
+          match_rewrite.
+          reflexivity.
+        }
+         
       + (* The variable maps to a pointer *)
-        unfold denoteNExpr; cbn*.
+        unfold denoteNExpr; cbn* in *.
+        simp.
 
-        norm_v.
+        norm_h.
 
         rewrite denote_code_singleton.
+        norm_v.
         break_inner_match_goal; try abs_by_WF.
 
-        * break_inner_match_goal; try abs_by_WF.
-          subst.
-          destruct i0; try abs_by_WF.
-          edestruct memory_invariant_GLU as (ptr & LU & READ); eauto.
-          rewrite typ_to_dtyp_equation in READ.
-          rewrite denote_instr_load; cbn in *; eauto.
-          2: {
-            norm_vl; eauto.
-            norm_vl; reflexivity.
-          }
+        edestruct memory_invariant_GLU as (ptr & LU & READ); eauto.
+        rewrite typ_to_dtyp_equation in READ.
+        rewrite denote_instr_load; cbn in *; eauto.
+        2: {
+          norm_vl; eauto.
+          norm_vl; reflexivity.
+        }
 
-          norm_v.
-          norm_h.
-          apply eutt_Ret; split; [| split].
-          -- eapply state_invariant_add_fresh; eauto; reflexivity. (* YZ TODO: automate *)
-          -- split.
-             {
-               intros l' MONO; cbn*.
-               split.
-               { norm_vr.
-                 2: eapply MONO, In_add_eq.
-                 norm_vr; reflexivity.
-               }
-               match_rewrite.
+        norm_v.
+
+        apply eutt_Ret; split; [| split].
+        -- cbn; check_state_invariant.
+
+        -- split.
+           {
+             intros l' MONO; cbn*.
+             split.
+             { norm_vr.
+               2: eapply MONO, In_add_eq.
                reflexivity.
              }
-             {
-               repeat (split; auto).
-               (* YZ TODO: automate [sub_alist] goals *)
-               apply sub_alist_add.
-               (* YZ TODO: automate [alist_fresh] goals *)
-               destruct PRE.
-               apply concrete_fresh_fresh in incLocal_is_fresh.
-               unfold incLocal_fresh in incLocal_is_fresh.
-               eapply incLocal_is_fresh; eauto.
-             }
-          -- symmetry; eapply incLocal_Γ; eauto.
+             match_rewrite.
+             reflexivity.
+           }
+           {
+             repeat (split; auto).
+             solve_sub_alist.
+           }
 
-        * cbn* in EVAL; rewrite Heqo0 in EVAL; inv EVAL.
+        -- symmetry; eapply incLocal_Γ; eauto.
 
     - (* Constant *)
       cbn* in COMPILE; simp.
@@ -186,6 +206,7 @@ Section NExpr.
       rewrite denote_code_nil; cbn.
       norm_h.
       norm_v.
+
       apply eutt_Ret; split; [| split]; try now eauto.
       split; eauto.
       intros l' MONO; cbn*.
@@ -196,9 +217,9 @@ Section NExpr.
     - (* NDiv *)
 
       cbn* in COMPILE; simp.
-      unfold denoteNExpr in *; cbn*.
-      cbn in EVAL.
+      unfold denoteNExpr in *; cbn* in *.
       simp.
+
       norm_h.
 
       (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)

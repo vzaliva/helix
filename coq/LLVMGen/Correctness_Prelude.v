@@ -411,7 +411,33 @@ Module ProofNotations.
   Notation "⋆" := (DTYPE_Pointer) (at level 10,only printing).
   Notation "x" := (convert_typ _ x) (at level 10, only printing).
   Notation "x" := (fmap (typ_to_dtyp _) x) (at level 10, only printing).
- 
+
+  Notation "'ret' τ e" := (TERM_Ret (τ, e)) (at level 10, only printing).
+  Notation "'ret' 'void'" := (TERM_Ret_void) (at level 10, only printing).
+  Notation "'br' c ',' 'label' e ',' 'label' f" := (TERM_Br c e f) (at level 10, only printing).
+  Notation "'br' 'label' e" := (TERM_Br_1 e) (at level 10, only printing).
+
+  Notation "r '←' 'op' x" := ((IId r, INSTR_Op x)) (at level 10, only printing).
+  Notation "r '←' 'call' x args" := ((IId r, INSTR_Call x args)) (at level 10, only printing).
+  Notation "'call' x args" := ((IVoid, INSTR_Call x args)) (at level 10, only printing).
+  Notation "r '←' 'alloca' t" := ((IId r, INSTR_Alloca t _ _)) (at level 10, only printing).
+  Notation "r '←' 'load' t ',' e" := ((IId r, INSTR_Load _ t e _)) (at level 10, only printing).
+  Notation "r '←' 'store' e ',' f" := ((IId r, INSTR_Store _ e f _)) (at level 10, only printing).
+
+  Notation "'add' e f"  := (OP_IBinop (Add _ _) _ e f) (at level 10, only printing).
+  Notation "'sub' e f"  := (OP_IBinop (Sub _ _) _ e f) (at level 10, only printing).
+  Notation "'mul' e f"  := (OP_IBinop (Mul _ _) _ e f) (at level 10, only printing).
+  Notation "'shl' e f"  := (OP_IBinop (Shl _ _) _ e f) (at level 10, only printing).
+  Notation "'udiv' e f" := (OP_IBinop (UDiv _) _ e f)  (at level 10, only printing).
+  Notation "'sdiv' e f" := (OP_IBinop (SDiv _) _ e f)  (at level 10, only printing).
+  Notation "'lshr' e f" := (OP_IBinop (LShr _) _ e f)  (at level 10, only printing).
+  Notation "'ashr' e f" := (OP_IBinop (AShr _) _ e f)  (at level 10, only printing).
+  Notation "'urem' e f" := (OP_IBinop URem _ e f)      (at level 10, only printing).
+  Notation "'srem' e f" := (OP_IBinop SRem _ e f)      (at level 10, only printing).
+  Notation "'and' e f"  := (OP_IBinop And _ e f)       (at level 10, only printing).
+  Notation "'or' e f"   := (OP_IBinop Or _ e f)        (at level 10, only printing).
+  Notation "'xor' e f"  := (OP_IBinop Xor _ e f)       (at level 10, only printing).
+
   Notation "t '======================' '======================' u '======================' '{' R '}'"
     := (eutt R t u)
          (only printing, at level 200,
