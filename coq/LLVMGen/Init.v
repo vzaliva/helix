@@ -1118,11 +1118,12 @@ Proof.
   remember (ITree.bind GLOB (λ _ : list (), translate _exp_E_to_L0 INIT_GLOB)) as ALLGLOB.
 
   assert (R' :
-            ITree.bind (ITree.bind ALLGLOB (λ _ : list (), ALLOC_LDECL))
-                       (λ _ : list (), Ret ())
+            interp_mcfg (ITree.bind (ITree.bind ALLGLOB (λ _ : list (), ALLOC_LDECL))
+                       (λ _ : list (), Ret ())) [ ] ([ ], [ ]) empty_memory_stack
             ≈
-            ITree.bind ALLGLOB
+            interp_mcfg (ITree.bind ALLGLOB
                        (fun _ => ITree.bind ALLOC_LDECL (λ _ : list (), Ret ())))
+         [ ] ([ ], [ ]) empty_memory_stack)
     by admit.
   rewrite R'.
 
