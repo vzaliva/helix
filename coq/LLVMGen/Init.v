@@ -3,6 +3,8 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 
+Import MonadNotation.
+
 Set Implicit Arguments.
 Set Strict Implicit.
 Import List.
@@ -593,6 +595,144 @@ Proof.
   lia.
 Qed.
 
+Fact bind_ret_override
+      {A B C : Type}
+      {E : Type -> Type}
+      (f : A -> A -> C)
+      (b : B)
+      (i1 i2 : itree E A) :
+  (ITree.bind
+     (ITree.bind i1
+                 (λ a1 : A, ITree.bind i2
+                                       (λ a2 : A, Ret (f a1 a2))))
+     (λ _ : C, Ret b))
+  ≈
+  (ITree.bind i1 (λ _, ITree.bind i2 (λ _ : A, Ret b))).
+Proof.
+  repeat (rewrite bind_bind; apply eutt_eq_bind; intro).
+  rewrite bind_ret_l.
+  reflexivity.
+Qed.
+
+(* QOL, similar to [eutt_eq_bind] *)
+Lemma eutt_eq_bind_l :
+  forall E R U (t1 t2 : itree E U) (k : U -> itree E R),
+    t1 ≈ t2 -> ITree.bind t1 k ≈ ITree.bind t2 k.
+Proof.
+  intros.
+  rewrite H.
+  reflexivity.
+Qed.
+
+(* TODO: remove when done
+Lemma bind_comm {E : Type -> Type} {A B : Type} {x : B} (i1 i2 : itree E A) :
+    (exists i, i1 ≈ Ret i) ->
+    ITree.bind (ITree.bind i1 (fun _ => i2)) (fun _ => Ret x) ≈
+    ITree.bind (ITree.bind i2 (fun _ => i1)) (fun _ => Ret x).
+Proof.
+  intro I.
+  destruct I as [i I].
+  setoid_rewrite I.
+  rewrite bind_ret_l.
+  rewrite bind_bind.
+  setoid_rewrite bind_ret_l.
+  reflexivity.
+Qed.
+
+
+Lemma build_global_environment_globals_app
+      (m_name m_target m_datalayout : option string)
+      (m_globals_1 m_globals_2 : list (global dtyp))
+      (m_declarations : list (declaration dtyp))
+      (m_definitions : list (definition dtyp (cfg dtyp)))
+  :
+    build_global_environment {|
+        m_name := m_name;
+        m_target := m_target;
+        m_datalayout := m_datalayout;
+        m_type_defs := []; (* for simplicity, no type definitions *)
+        m_globals := (m_globals_1 ++ m_globals_2)%list;
+        m_declarations := m_declarations;
+        m_definitions := m_definitions
+      |}
+
+    ≈
+
+    ITree.bind
+      (build_global_environment {|
+           m_name := m_name;
+           m_target := m_target;
+           m_datalayout := m_datalayout;
+           m_type_defs := []; (* for simplicity, no type definitions *)
+           m_globals := m_globals_1;
+           m_declarations := []; (* no declarations *)
+           m_definitions := [] (* no definitions *)
+         |})
+      (fun _ => ITree.bind
+               (build_global_environment {|
+                    m_name := m_name;
+                    m_target := m_target;
+                    m_datalayout := m_datalayout;
+                    m_type_defs := []; (* for simplicity, no type definitions *)
+                    m_globals := m_globals_2;
+                    m_declarations := []; (* no declarations *)
+                    m_definitions := [] (* no definitions *)
+                  |})
+               (fun _ => build_global_environment {|
+                          m_name := m_name;
+                          m_target := m_target;
+                          m_datalayout := m_datalayout;
+                          m_type_defs := []; (* for simplicity, no type definitions *)
+                          m_globals := []; (* no globals *)
+                          m_declarations := m_declarations;
+                          m_definitions := m_definitions |})).
+Proof.
+  Opaque map_monad.
+  cbn.
+  setoid_rewrite map_monad_app.
+  cbn.
+  Transparent map_monad.
+  cbn.
+  repeat progress (try setoid_rewrite bind_ret_l;
+                   try setoid_rewrite translate_bind;
+                   try setoid_rewrite translate_ret).
+  repeat setoid_rewrite bind_ret_override.
+  repeat rewrite <-bind_bind.
+
+Abort.
+
+Fact bind_ret_override' {E : Type -> Type} {A B : Type} (i1 i2 : itree E A) (x y : B) :
+  forall f,
+    (ITree.bind (translate f (ITree.bind i1 (fun _ => Ret x)))
+                (fun _ => ITree.bind i2 (fun _ => Ret y))) ≈
+    ITree.bind (ITree.bind i1 (fun _ => i2)) (fun _ => Ret y).
+Proof.
+  intro.
+  repeat rewrite bind_bind.
+
+  apply eutt_eq_bind.
+  intro.
+  rewrite bind_ret_l.
+  reflexivity.
+Qed.
+
+Let etl := translate _exp_E_to_L0.
+Goal
+  forall lid lids m X Y,
+    interp_mcfg (allocate_globals X ;; etl (T:=()) (initialize_globals Y)) lid lids m
+    ≈
+    interp_mcfg (etl (initialize_globals Y) ;; allocate_globals X) lid lids m.
+Proof.
+  intros.
+  cbn.
+  norm_h.
+  setoid_rewrite bind_ret_l.
+  setoid_rewrite translate_bind.
+  unfold initialize_global.
+  setoid_rewrite unfold_translate.                                                            
+Admitted.
+*)
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -609,7 +749,6 @@ Lemma memory_invariant_after_init
                        [] ([],[]) empty_memory_stack)
       ).
 Proof.
-  (*
   intros hmem σ s hdata pll [HI LI].
 
   unfold state_invariant_mcfg.
@@ -737,16 +876,7 @@ Proof.
         break_match; try reflexivity.
         exfalso.
         break_match_hyp.
-        *
-          inv H.
-        *
-          break_let.
-          cbn in H.
-          inl_inr_inv.
-        *
-          break_let.
-          cbn in H.
-          inl_inr_inv.
+        all: break_let; cbn in H; inl_inr_inv.
       +
         destruct a.
         apply initOneIRGlobal_state_change in Heqs0; cbn in Heqs0; inl_inr_inv.
@@ -880,9 +1010,12 @@ Proof.
                        blk_comments := None |}, [ ]) |}
     as FAKE_XY.
 
-  remember [maxnum_32_decl; maxnum_64_decl; minimum_64_decl;
-            IntrinsicsDefinitions.fabs_32_decl;
+  remember [IntrinsicsDefinitions.fabs_32_decl;
             IntrinsicsDefinitions.fabs_64_decl;
+            IntrinsicsDefinitions.maxnum_32_decl;
+            IntrinsicsDefinitions.maxnum_64_decl;
+            IntrinsicsDefinitions.minimum_32_decl;
+            IntrinsicsDefinitions.minimum_64_decl;
             IntrinsicsDefinitions.memcpy_8_decl]
     as DECLS.
 
@@ -904,11 +1037,11 @@ Proof.
 
   remember (λ d : definition typ (cfg typ),
                                  {|
-                                 df_prototype := Traversal.Fmap_declaration typ dtyp
+                                 df_prototype := Fmap_declaration typ dtyp 
                                                    (typ_to_dtyp [ ]) 
                                                    (df_prototype d);
-                                 df_args := Traversal.endo (df_args d);
-                                 df_instrs := Traversal.Fmap_cfg typ dtyp 
+                                 df_args := Endo_list (df_args d);
+                                 df_instrs := Fmap_cfg typ dtyp 
                                                 (typ_to_dtyp [ ]) 
                                                 (df_instrs d) |}) as F2.
 
@@ -939,7 +1072,7 @@ Proof.
                       (flat_map (globals_of typ) t) ++
                     map (Traversal.Fmap_global typ dtyp (typ_to_dtyp [ ]))
                     (flat_map (globals_of typ) gdecls)))
-    as GLOB1.
+    as ALLOC_GLOB.
   
   remember (map_monad allocate_declaration
                         (map F3 (flat_map (declarations_of typ) t) ++
@@ -949,27 +1082,52 @@ Proof.
                            (map F2 (map F1 (flat_map (definitions_of typ) t))) ++
                          map df_prototype
                          (map F2 (map F1 (flat_map (definitions_of typ) gdecls)))))
-    as GLOB2.
+    as ALLOC_GDECL.
+
+  remember (map_monad initialize_global
+                        (map (Fmap_global typ dtyp (typ_to_dtyp [ ]))
+                           (flat_map (globals_of typ) t) ++
+                         map (Fmap_global typ dtyp (typ_to_dtyp [ ]))
+                           (flat_map (globals_of typ) gdecls)))
+    as INIT_GLOB.
 
   remember (map_monad allocate_declaration
                       [F3 (df_prototype (F1 XY)); F3 (df_prototype (F1 FAKE_XY))])
-    as XYFAKEXY.
+    as ALLOC_LDECL.
 
   cbn.
 
-  repeat rewrite <-bind_bind.
-  setoid_rewrite translate_bind.
-  setoid_rewrite translate_ret.
+  (* simplify *)
+  setoid_rewrite translate_bind; setoid_rewrite translate_ret.
+  setoid_rewrite bind_ret_override.
+  repeat setoid_rewrite bind_bind.
+  repeat setoid_rewrite bind_ret_l.
+  repeat setoid_rewrite <-bind_bind.
 
-  remember (translate _exp_E_to_L0
-                      (map_monad initialize_global
-                                 (map (Traversal.Fmap_global typ dtyp (typ_to_dtyp [ ]))
-                                      (flat_map (globals_of typ) t) ++
-                                      map (Traversal.Fmap_global typ dtyp (typ_to_dtyp [ ]))
-                                      (flat_map (globals_of typ) gdecls))))
-    as GLOB3.
+  remember (ITree.bind ALLOC_GLOB (λ _ : list (), ALLOC_GDECL)) as GLOB.
 
-  repeat rewrite interp_to_L3_bind.
+  assert (R :
+      (ITree.bind (ITree.bind GLOB (λ _ : list (), ALLOC_LDECL))
+                  (λ _ : list (), translate _exp_E_to_L0 INIT_GLOB))
+      ≈
+      (ITree.bind (ITree.bind GLOB (λ _ : list (), translate _exp_E_to_L0 INIT_GLOB))
+                  (λ _ : list (), ALLOC_LDECL))
+    ) by admit.
+  rewrite R.
+
+  remember (ITree.bind GLOB (λ _ : list (), translate _exp_E_to_L0 INIT_GLOB)) as ALLGLOB.
+
+  assert (R' :
+            ITree.bind (ITree.bind ALLGLOB (λ _ : list (), ALLOC_LDECL))
+                       (λ _ : list (), Ret ())
+            ≈
+            ITree.bind ALLGLOB
+                       (fun _ => ITree.bind ALLOC_LDECL (λ _ : list (), Ret ())))
+    by admit.
+  rewrite R'.
+
+  rewrite interp_to_L3_bind, translate_bind.
+  subst DSHM.
 
   eapply eutt_clo_bind.
   -
@@ -977,6 +1135,8 @@ Proof.
   -
     intros.
     cbn.
+
+    (*
     repeat break_let.
     
     rewrite translate_bind.
