@@ -296,7 +296,6 @@ Local Ltac pose_interp_to_L3_alloca m' a' A AE:=
       as [m' [a' [A AE]]]
   end.
 
-
 (* [global_uniq_chk] in succeeds, does not modify state *)
 Fact global_uniq_chk_preserves_st:
   forall a globals i0 i1 u,
@@ -733,6 +732,47 @@ Proof.
 Admitted.
 *)
 
+Notation "x <- c1 ;; c2" := (ITree.bind c1 (fun x => c2)).
+Notation "a ;; b" := (ITree.bind a (fun _ => b)).
+
+Local Ltac fold_map_monad_ :=
+  repeat
+  match goal with
+  | |- context [map_monad ?f ?L;; Ret ()] =>
+    replace (map_monad f L;; Ret ())
+      with (map_monad_ f L)
+      in *
+      by reflexivity
+  end.
+
+From ITree Require Import
+     Basics.Monad. 
+
+Lemma map_monad_app_
+      {m : Type -> Type}
+      {Mm : Monad m}
+      {EqMm : EqM m}
+      {HEQP: EqMProps m}
+      {ML: MonadLaws m}
+      {A : Type}
+      (f : A -> m unit)
+      (l1 l2 : list A)
+  :
+    (map_monad_ f (l1 ++ l2) ≈
+    map_monad_ f l1 ;;
+    map_monad_ f l2)%monad.
+Proof.
+  unfold map_monad_.
+  rewrite map_monad_app.
+  generalize (map_monad f l1);
+    generalize (map_monad f l2);
+    intros L1 L2.
+  repeat setoid_rewrite bind_bind.
+  setoid_rewrite bind_ret_l.
+  reflexivity.
+Qed.
+
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -797,14 +837,13 @@ Proof.
   destruct ΓXYFXY as [x [y [fake_x [fake_y ΓXYFXY]]]].
   subst Γ_xy_fake_xy.
   invc Sxy.
-
   apply ListUtil.split_correct in Sg.
   rename Sg into Vs3.
 
   repeat rewrite app_assoc.
   unfold build_global_environment, allocate_globals, map_monad_.
   simpl.
-  rewrite 2!interp_to_L3_bind, bind_bind, translate_bind.
+  rewrite 2!interp_to_L3_bind, translate_bind.
   rename e into eg.
   remember (eg ++
                [DSHPtrVal (S (Datatypes.length globals)) o;
@@ -821,9 +860,30 @@ Proof.
 
   cbn in *.
 
-  (* no new types defined by [initXYplaceholders] *)
-  replace (flat_map (type_defs_of typ) t) with (@nil (ident * typ)).
+  (* only globals defined by [initXYplaceholders] *)
+  replace (flat_map (type_defs_of typ) t) with (@nil (ident * typ)) in *.
   2:{
+    clear - LX.
+    unfold initXYplaceholders in LX.
+    repeat break_let.
+    cbn in LX.
+    inv LX.
+    reflexivity.
+  }
+  replace (flat_map (declarations_of typ) t) with (@nil (declaration typ)) in *.
+  2:{
+    clear - LX.
+    unfold initXYplaceholders in LX.
+    repeat break_let.
+    cbn in LX.
+    inv LX.
+    reflexivity.
+  }
+  replace (flat_map (definitions_of typ) t)
+    with (@nil (definition typ (LLVMAst.block typ * list (LLVMAst.block typ))))
+    in *.
+  2:{
+    clear - LX.
     unfold initXYplaceholders in LX.
     repeat break_let.
     cbn in LX.
@@ -832,7 +892,7 @@ Proof.
   }
 
   (* no new types defined by [initIRGlobals] *)
-  replace (flat_map (type_defs_of typ) gdecls) with (@nil (ident * typ)).
+  replace (flat_map (type_defs_of typ) gdecls) with (@nil (ident * typ)) in *.
   2:{
     symmetry.
 
@@ -893,148 +953,32 @@ Proof.
   }
 
   repeat rewrite app_nil_r.
+  repeat rewrite app_nil_l.
 
-  (* no more [type_defs_of] after this point *)
-  
-  replace
-    (@go E_mcfg (prod memory unit)
-         (@RetF E_mcfg (prod memory unit) (itree E_mcfg (prod memory unit))
-                (@pair memory unit
-                       (memory_set
-                          (memory_set mg (S (@Datatypes.length (prod string DSHType) globals)) mo)
-                          (@Datatypes.length (prod string DSHType) globals) mi) tt)))
-    with
-      (mg' <- (@go E_mcfg memory (@RetF E_mcfg memory (itree E_mcfg memory) mg)) ;;
-       mgy <- Ret (memory_set mg' (S (Datatypes.length globals)) mo) ;;
-       Ret (memory_set mgy (Datatypes.length globals) mi, ()))
-    by admit.
-
-  cbn.
-
-  match goal with
-  | [ |- context[(fun pat : prod memory unit => ?body)]] => idtac body
-  end.
-
-  (* these are just to make the goal a bit more readable *)
+  (* make the goal a bit more readable *)
   eutt_hide_rel REL.
   eutt_hide_left DSHM.
-
-  (* @lord, I spent way too long trying to shorten these *)
-  remember {|
-      df_prototype := {|
-                       dc_name := Name name;
-                       dc_type := TYPE_Function TYPE_Void
-                                                [
-                                                  TYPE_Pointer
-                                                    (TYPE_Array 
-                                                       (Int64.intval i) TYPE_Double);
-                                                  TYPE_Pointer
-                                                    (TYPE_Array 
-                                                       (Int64.intval o) TYPE_Double)];
-                       dc_param_attrs := ([ ],
-                                          [
-                                            PARAMATTR_Readonly
-                                              :: ArrayPtrParamAttrs;
-                                            ArrayPtrParamAttrs]);
-                       dc_linkage := None;
-                       dc_visibility := None;
-                       dc_dll_storage := None;
-                       dc_cconv := None;
-                       dc_attrs := [ ];
-                       dc_section := None;
-                       dc_align := None;
-                       dc_gc := None |};
-      df_args := [Name "X"; Name "Y"];
-      df_instrs := body_instr |}
-    as XY.
-
-  remember {|
-      df_prototype := {|
-                       dc_name := Name "main";
-                       dc_type := TYPE_Function
-                                    (TYPE_Array 
-                                       (Int64.intval o) TYPE_Double)
-                                    [ ];
-                       dc_param_attrs := ([ ], [ ]);
-                       dc_linkage := None;
-                       dc_visibility := None;
-                       dc_dll_storage := None;
-                       dc_cconv := None;
-                       dc_attrs := [ ];
-                       dc_section := None;
-                       dc_align := None;
-                       dc_gc := None |};
-      df_args := [ ];
-      df_instrs := ({|
-                       blk_id := Name "main_block";
-                       blk_phis := [ ];
-                       blk_code := [
-                                    (
-                                      IVoid 0%Z,
-                                      INSTR_Call
-                                        (TYPE_Void,
-                                         EXP_Ident
-                                           (ID_Global (Name name)))
-                                        [
-                                          (
-                                            TYPE_Pointer
-                                              (TYPE_Array 
-                                                 (Int64.intval i) TYPE_Double),
-                                            EXP_Ident
-                                              (ID_Global (Anon 0%Z)));
-                                          (
-                                            TYPE_Pointer
-                                              (TYPE_Array 
-                                                 (Int64.intval o) TYPE_Double),
-                                            EXP_Ident
-                                              (ID_Global (Anon 1%Z)))]);
-                                    (
-                                      IId (Name "z"),
-                                      INSTR_Load false
-                                                 (TYPE_Array 
-                                                    (Int64.intval o) TYPE_Double)
-                                                 (
-                                                   TYPE_Pointer
-                                                     (TYPE_Array 
-                                                        (Int64.intval o) TYPE_Double),
-                                                   EXP_Ident
-                                                     (ID_Global (Anon 1%Z))) None)];
-                       blk_term := (
-                                    IId (Name "main_ret"),
-                                    TERM_Ret
-                                      (
-                                        TYPE_Array 
-                                          (Int64.intval o) TYPE_Double,
-                                        EXP_Ident
-                                          (ID_Local (Name "z"))));
-                       blk_comments := None |}, [ ]) |}
-    as FAKE_XY.
-
-  remember [IntrinsicsDefinitions.fabs_32_decl;
-            IntrinsicsDefinitions.fabs_64_decl;
-            IntrinsicsDefinitions.maxnum_32_decl;
-            IntrinsicsDefinitions.maxnum_64_decl;
-            IntrinsicsDefinitions.minimum_32_decl;
-            IntrinsicsDefinitions.minimum_64_decl;
-            IntrinsicsDefinitions.memcpy_8_decl]
-    as DECLS.
-
-  rewrite <-translate_bind.
-  rewrite <-bind_bind.
-  repeat rewrite <-interp_to_L3_bind.
-
+  repeat match goal with
+         | |- context[[?x]] => let N:=fresh S in remember [x] as N
+         end.
+  subst S; rename S0 into xy_def, S1 into fake_xy_def.
   match goal with
-  | [ |- context[Traversal.fmap _ (map ?f _)] ] => remember f as F1
+  | |- context[Traversal.fmap _ (map ?f _)] => remember f as F1
   end.
+  match goal with
+  | |- context[?h::?tl] => remember (h::tl) as intrinsic_delcs
+  end.
+  
+  rewrite <-translate_bind.
+  repeat rewrite <-interp_to_L3_bind.
 
   repeat progress (try rewrite map_app; cbn).
 
-  (* setoid_rewrite fmap_list_app. *) (* still doesn't work C: *)
-  
-  repeat unfold Traversal.fmap, Traversal.Fmap_list', Traversal.Fmap_definition.
+  repeat unfold fmap, Fmap_list'.
   repeat rewrite <-app_assoc.
   repeat (rewrite map_app; cbn).
 
+  (*
   remember (λ d : definition typ (cfg typ),
                                  {|
                                  df_prototype := Fmap_declaration typ dtyp 
@@ -1102,43 +1046,46 @@ Proof.
   setoid_rewrite bind_ret_override.
   repeat setoid_rewrite bind_bind.
   repeat setoid_rewrite bind_ret_l.
-  repeat setoid_rewrite <-bind_bind.
 
-  remember (ITree.bind ALLOC_GLOB (λ _ : list (), ALLOC_GDECL)) as GLOB.
+  rewrite <-bind_bind at 1.
 
-  assert (R :
-      (ITree.bind (ITree.bind GLOB (λ _ : list (), ALLOC_LDECL))
-                  (λ _ : list (), translate _exp_E_to_L0 INIT_GLOB))
-      ≈
-      (ITree.bind (ITree.bind GLOB (λ _ : list (), translate _exp_E_to_L0 INIT_GLOB))
-                  (λ _ : list (), ALLOC_LDECL))
-    ) by admit.
-  rewrite R.
+  remember (ALLOC_GLOB;; ALLOC_GDECL) as A_GL_GD.
+  remember (translate _exp_E_to_L0 INIT_GLOB) as I_GL.
+  assert (R: interp_mcfg (A_GL_GD;; ALLOC_LDECL;; I_GL;; Ret ())
+                         [ ] ([ ], [ ]) empty_memory_stack ≈
+             interp_mcfg (A_GL_GD;; I_GL;; ALLOC_LDECL;; Ret ())
+                         [ ] ([ ], [ ]) empty_memory_stack)
+         by admit;
+    rewrite R.
 
-  remember (ITree.bind GLOB (λ _ : list (), translate _exp_E_to_L0 INIT_GLOB)) as ALLGLOB.
+  assert (Assoc : A_GL_GD;; I_GL;; ALLOC_LDECL;; Ret () ≈
+                  (A_GL_GD;; I_GL);; ALLOC_LDECL;; Ret ()) by admit;
+    rewrite Assoc; clear Assoc.
 
-  assert (R' :
-            interp_mcfg (ITree.bind (ITree.bind ALLGLOB (λ _ : list (), ALLOC_LDECL))
-                       (λ _ : list (), Ret ())) [ ] ([ ], [ ]) empty_memory_stack
-            ≈
-            interp_mcfg (ITree.bind ALLGLOB
-                       (fun _ => ITree.bind ALLOC_LDECL (λ _ : list (), Ret ())))
-         [ ] ([ ], [ ]) empty_memory_stack)
-    by admit.
-  rewrite R'.
 
   rewrite interp_to_L3_bind, translate_bind.
   subst DSHM.
+
+  replace
+    (@go E_mcfg (prod memory unit)
+         (@RetF E_mcfg (prod memory unit) (itree E_mcfg (prod memory unit))
+                (@pair memory unit
+                       (memory_set
+                          (memory_set mg (S (@Datatypes.length (prod string DSHType) globals)) mo)
+                          (@Datatypes.length (prod string DSHType) globals) mi) tt)))
+    with
+      (mg' <- (@go E_mcfg memory (@RetF E_mcfg memory (itree E_mcfg memory) mg)) ;;
+       mgy <- Ret (memory_set mg' (S (Datatypes.length globals)) mo) ;;
+       Ret (memory_set mgy (Datatypes.length globals) mi, ()))
+    by admit.
 
   eapply eutt_clo_bind.
   -
     admit.
   -
     intros.
-    cbn.
-
-    (*
     repeat break_let.
+    subst; cbn.
     
     rewrite translate_bind.
 
@@ -1151,46 +1098,6 @@ Proof.
     repeat rewrite <-app_assoc.
     rewrite map_app.
     repeat break_let.
-
-    replace (
-      @Traversal.fmap (fun T : Set => list (declaration T))
-        (@Traversal.Fmap_list' declaration
-           (@Traversal.Fmap_declaration (Traversal.Endo_id function_id) 
-              (Traversal.Endo_id string) (Traversal.Endo_id int) (Traversal.Endo_id param_attr)
-              (Traversal.Endo_id linkage) (Traversal.Endo_id visibility)
-              (Traversal.Endo_id dll_storage) (Traversal.Endo_id cconv)
-              (Traversal.Endo_id fn_attr))) typ dtyp (typ_to_dtyp (@nil (prod ident typ)))
-        (@app (declaration typ)
-           (@flat_map (toplevel_entity typ (prod (LLVMAst.block typ) (list (LLVMAst.block typ))))
-              (declaration typ)
-              (@declarations_of typ (prod (LLVMAst.block typ) (list (LLVMAst.block typ)))) t)
-           (@app (declaration typ)
-              (@flat_map
-                 (toplevel_entity typ (prod (LLVMAst.block typ) (list (LLVMAst.block typ))))
-                 (declaration typ)
-                 (@declarations_of typ (prod (LLVMAst.block typ) (list (LLVMAst.block typ))))
-                 gdecls)
-              (@cons (declaration typ) maxnum_32_decl
-                 (@cons (declaration typ) maxnum_64_decl
-                    (@cons (declaration typ) minimum_64_decl
-                       (@cons (declaration typ) IntrinsicsDefinitions.fabs_32_decl
-                          (@cons (declaration typ) IntrinsicsDefinitions.fabs_64_decl
-                             (@cons (declaration typ) IntrinsicsDefinitions.memcpy_8_decl
-                                (@nil (declaration typ)))))))))))
-      with (
-        app
-        (Traversal.fmap (typ_to_dtyp nil) (flat_map (declarations_of typ) t))
-        (Traversal.fmap (typ_to_dtyp nil)
-                              (app (flat_map (declarations_of typ) gdecls)
-                                 (cons maxnum_32_decl
-                                    (cons maxnum_64_decl
-                                       (cons minimum_64_decl
-                                          (cons IntrinsicsDefinitions.fabs_32_decl
-                                             (cons IntrinsicsDefinitions.fabs_64_decl
-                                                   (cons IntrinsicsDefinitions.memcpy_8_decl nil))))))))
-        )
-      by
-        admit.
 
     rewrite map_monad_app at 1; cbn.
     rewrite interp_to_L3_bind.
