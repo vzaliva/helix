@@ -732,9 +732,6 @@ Proof.
 Admitted.
 *)
 
-Notation "x <- c1 ;; c2" := (ITree.bind c1 (fun x => c2)).
-Notation "a ;; b" := (ITree.bind a (fun _ => b)).
-
 Local Ltac fold_map_monad_ :=
   repeat
   match goal with
