@@ -4,6 +4,7 @@ Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 
 Import MonadNotation.
+Import ITreeNotations.
 
 Set Implicit Arguments.
 Set Strict Implicit.
