@@ -733,19 +733,11 @@ Proof.
 Admitted.
 *)
 
-Local Ltac fold_map_monad_ :=
-  repeat
-  match goal with
-  | |- context [map_monad ?f ?L;; Ret ()] =>
-    replace (map_monad f L;; Ret ())
-      with (map_monad_ f L)
-      in *
-      by reflexivity
-  end.
-
 From ITree Require Import
      Basics.Monad. 
 
+(* similar to [map_monad_app] but for [map_monad_],
+   without unnecessary bindings *)
 Lemma map_monad_app_
       {m : Type -> Type}
       {Mm : Monad m}
@@ -770,6 +762,38 @@ Proof.
   reflexivity.
 Qed.
 
+(* all allocations and initializations operate using [map_monad_].
+   It is nicer to work with than [map_monad], so fold it whenver possible *)
+Local Ltac fold_map_monad_ :=
+  repeat
+  match goal with
+  | |- context [map_monad ?f ?L;; Ret ()] =>
+    replace (map_monad f L;; Ret ())
+      with (map_monad_ f L)
+      in *
+      by reflexivity
+  end.
+
+
+Local Ltac fold_initialization :=
+  repeat
+  match goal with
+  | |- context[map_monad_ allocate_global ?l] =>
+    replace (map_monad_ allocate_global l)
+      with (allocate_globals l)
+      in *
+      by reflexivity
+  | |- context[map_monad_ allocate_declaration ?l] =>
+    replace (map_monad_ allocate_declaration l)
+      with (allocate_declarations l)
+      in *
+      by reflexivity
+  | |- context[map_monad_ initialize_global ?l] =>
+    replace (map_monad_ initialize_global l)
+      with (initialize_globals l)
+      in *
+      by reflexivity
+  end.
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
@@ -889,9 +913,10 @@ Proof.
     reflexivity.
   }
 
-  (* no new types defined by [initIRGlobals] *)
+  (* only globals defined by [initIRGlobals] *)
   replace (flat_map (type_defs_of typ) gdecls) with (@nil (ident * typ)) in *.
   2:{
+    clear - LX LG.
     symmetry.
 
     unfold initXYplaceholders in LX.
@@ -929,12 +954,128 @@ Proof.
         clear - Heqs0.
         rename Heqs0 into H.
         unfold initOneIRGlobal in H.
-        break_let.
-        unfold type_defs_of.
-        break_match; try reflexivity.
-        exfalso.
-        break_match_hyp.
-        all: break_let; cbn in H; inl_inr_inv.
+        cbn in *.
+        repeat break_match.
+        all: inv H.
+        all: reflexivity.
+      +
+        destruct a.
+        apply initOneIRGlobal_state_change in Heqs0; cbn in Heqs0; inl_inr_inv.
+        destruct i1.
+        inversion H0.
+        erewrite IHglobals with
+            (data:=l)
+            (data':=data')
+            (v:=(ID_Global (Name s), TYPE_Pointer (getIRType d)) :: v)
+        ; clear IHglobals; try reflexivity.
+
+        subst Γ. subst.
+        apply Heqs1.
+  }
+  replace (flat_map (declarations_of typ) gdecls) with (@nil (declaration typ)) in *.
+  2:{
+    clear - LX LG.
+    symmetry.
+
+    unfold initXYplaceholders in LX.
+    repeat break_let.
+    cbn in LX.
+    inv LX.
+
+    clear - LG.
+    rename l1 into data, l2 into data'.
+    revert gdecls data data' LG.
+    unfold initIRGlobals.
+
+    cbn.
+
+    generalize [(ID_Local (Name "Y"),
+                 TYPE_Pointer (TYPE_Array (Int64.intval o) TYPE_Double));
+                (ID_Local (Name "X"),
+                 TYPE_Pointer (TYPE_Array (Int64.intval i) TYPE_Double));
+                (ID_Global (Anon 1%Z), TYPE_Array (Int64.intval o) TYPE_Double);
+                (ID_Global (Anon 0%Z), TYPE_Array (Int64.intval i) TYPE_Double)] as v.
+
+    induction globals; intros v gdecls data data' H.
+    -
+      cbn in *.
+      inl_inr_inv.
+      reflexivity.
+    -
+      cbn in H.
+      repeat break_match_hyp; try inl_inr.
+      apply global_uniq_chk_preserves_st in Heqs; subst i0.
+      inl_inr_inv; subst.
+      cbn.
+      apply ListUtil.app_nil.
+      +
+        clear - Heqs0.
+        rename Heqs0 into H.
+        unfold initOneIRGlobal in H.
+        cbn in *.
+        repeat break_match.
+        all: inv H.
+        all: reflexivity.
+      +
+        destruct a.
+        apply initOneIRGlobal_state_change in Heqs0; cbn in Heqs0; inl_inr_inv.
+        destruct i1.
+        inversion H0.
+        erewrite IHglobals with
+            (data:=l)
+            (data':=data')
+            (v:=(ID_Global (Name s), TYPE_Pointer (getIRType d)) :: v)
+        ; clear IHglobals; try reflexivity.
+
+        subst Γ. subst.
+        apply Heqs1.
+  }
+  replace (flat_map (definitions_of typ) gdecls)
+    with (@nil (definition typ (LLVMAst.block typ * list (LLVMAst.block typ))))
+    in *.
+  2:{
+    clear - LX LG.
+    symmetry.
+
+    unfold initXYplaceholders in LX.
+    repeat break_let.
+    cbn in LX.
+    inv LX.
+
+    clear - LG.
+    rename l1 into data, l2 into data'.
+    revert gdecls data data' LG.
+    unfold initIRGlobals.
+
+    cbn.
+
+    generalize [(ID_Local (Name "Y"),
+                 TYPE_Pointer (TYPE_Array (Int64.intval o) TYPE_Double));
+                (ID_Local (Name "X"),
+                 TYPE_Pointer (TYPE_Array (Int64.intval i) TYPE_Double));
+                (ID_Global (Anon 1%Z), TYPE_Array (Int64.intval o) TYPE_Double);
+                (ID_Global (Anon 0%Z), TYPE_Array (Int64.intval i) TYPE_Double)] as v.
+
+    induction globals; intros v gdecls data data' H.
+    -
+      cbn in *.
+      inl_inr_inv.
+      reflexivity.
+    -
+      cbn in H.
+      repeat break_match_hyp; try inl_inr.
+      apply global_uniq_chk_preserves_st in Heqs; subst i0.
+      inl_inr_inv; subst.
+      cbn.
+      apply ListUtil.app_nil.
+      +
+        clear - Heqs0.
+        rename Heqs0 into H.
+        unfold initOneIRGlobal in H.
+        cbn in *.
+        repeat break_match.
+        all: inv H.
+        all: reflexivity.
       +
         destruct a.
         apply initOneIRGlobal_state_change in Heqs0; cbn in Heqs0; inl_inr_inv.
@@ -953,130 +1094,134 @@ Proof.
   repeat rewrite app_nil_r.
   repeat rewrite app_nil_l.
 
-  (* make the goal a bit more readable *)
+  
+  (* simplification *)
   eutt_hide_rel REL.
   eutt_hide_left DSHM.
-  repeat match goal with
-         | |- context[[?x]] => let N:=fresh S in remember [x] as N
-         end.
-  subst S; rename S0 into xy_def, S1 into fake_xy_def.
+  (* The following three tactics are non-straight reasoning.
+     I separately computed what the simplification *would* be,
+     and then put the [remember]s before the [replace].
+     The simplification from it is so nice that it's worth it. *)
+  remember {|
+     dc_name := Name name;
+     dc_type := typ_to_dtyp [ ]
+                  (TYPE_Function TYPE_Void
+                     [TYPE_Pointer (TYPE_Array (Int64.intval i) TYPE_Double);
+                     TYPE_Pointer (TYPE_Array (Int64.intval o) TYPE_Double)]);
+     dc_param_attrs := ([ ],
+                       [[PARAMATTR_Readonly; PARAMATTR_Align PtrAlignment;
+                        PARAMATTR_Nonnull];
+                       [PARAMATTR_Align PtrAlignment; PARAMATTR_Nonnull]]);
+     dc_linkage := None;
+     dc_visibility := None;
+     dc_dll_storage := None;
+     dc_cconv := None;
+     dc_attrs := [ ];
+     dc_section := None;
+     dc_align := None;
+     dc_gc := None |}
+    as xy1.
+  remember {|
+      dc_name := Name "main";
+      dc_type := typ_to_dtyp [ ]
+                             (TYPE_Function (TYPE_Array (Int64.intval o) TYPE_Double) [ ]);
+      dc_param_attrs := ([ ], [ ]);
+      dc_linkage := None;
+      dc_visibility := None;
+      dc_dll_storage := None;
+      dc_cconv := None;
+      dc_attrs := [ ];
+      dc_section := None;
+      dc_align := None;
+      dc_gc := None |}
+    as y1.
   match goal with
-  | |- context[Traversal.fmap _ (map ?f _)] => remember f as F1
+  | |- context[map df_prototype ?l] =>
+    replace (map df_prototype l) with [xy1; y1] by (subst; reflexivity)
   end.
   match goal with
   | |- context[?h::?tl] => remember (h::tl) as intrinsic_delcs
   end.
+  (* /simplification *)
   
   rewrite <-translate_bind.
   repeat rewrite <-interp_to_L3_bind.
-
-  repeat progress (try rewrite map_app; cbn).
-
+  fold_map_monad_.
   repeat unfold fmap, Fmap_list'.
-  repeat rewrite <-app_assoc.
-  repeat (rewrite map_app; cbn).
 
-  (*
-  remember (λ d : definition typ (cfg typ),
-                                 {|
-                                 df_prototype := Fmap_declaration typ dtyp 
-                                                   (typ_to_dtyp [ ]) 
-                                                   (df_prototype d);
-                                 df_args := Endo_list (df_args d);
-                                 df_instrs := Fmap_cfg typ dtyp 
-                                                (typ_to_dtyp [ ]) 
-                                                (df_instrs d) |}) as F2.
+  (* 
+     * [t], provided by [LX], contains two globals: "fake X", "fake Y"
+     * [gdecls], provided by [LG], contains some list of globals
 
-  remember (Traversal.Fmap_declaration typ dtyp (typ_to_dtyp [ ])) as F3.
-  repeat rewrite <-app_assoc.
+     There are three steps:
+     1. [map_monad_ allocate_global]
+        - This step needs to be split into a bind of "allocate t" and "allocate gdecls".
+     2. [map_monad_ allocate_declaration]
+        - It is unclear to me how the [map df_prototype ...] part
+          turns "definitions" into "declarations".
+        - Overall, according to @lord's comment later in this file,
+          this part should somehow not matter at all. It was admitted though.
+     3. [map_monad_ initialize_global]
+        - This, just like (1), needs to be split in two.
 
-  (*  this splits globals from Xs and Ys *)
-  replace (map F3 (flat_map (declarations_of typ) t) ++
-               map F3 (flat_map (declarations_of typ) gdecls) ++
-               map F3 DECLS ++
-               map df_prototype (map F2 (map F1 (flat_map (definitions_of typ) t))) ++
-               map df_prototype
-               (map F2 (map F1 (flat_map (definitions_of typ) gdecls))) ++
-               [F3 (df_prototype (F1 XY)); F3 (df_prototype (F1 FAKE_XY))])%list
-    with (app
-            (map F3 (flat_map (declarations_of typ) t) ++
-                 map F3 (flat_map (declarations_of typ) gdecls) ++
-                 map F3 DECLS ++
-                 map df_prototype (map F2 (map F1 (flat_map (definitions_of typ) t))) ++
-                 map df_prototype
-                 (map F2 (map F1 (flat_map (definitions_of typ) gdecls))))
-            [F3 (df_prototype (F1 XY)); F3 (df_prototype (F1 FAKE_XY))])%list
-    by (repeat rewrite <-app_assoc; reflexivity).
-  setoid_rewrite map_monad_app at 2.
+     Omitting the [allocate_declaration] part altogether,
+     (1) and (3) need to be rearrannged to form
 
-  remember (map_monad allocate_global
-                   (map (Traversal.Fmap_global typ dtyp (typ_to_dtyp [ ]))
-                      (flat_map (globals_of typ) t) ++
-                    map (Traversal.Fmap_global typ dtyp (typ_to_dtyp [ ]))
-                    (flat_map (globals_of typ) gdecls)))
-    as ALLOC_GLOB.
-  
-  remember (map_monad allocate_declaration
-                        (map F3 (flat_map (declarations_of typ) t) ++
-                         map F3 (flat_map (declarations_of typ) gdecls) ++
-                         map F3 DECLS ++
-                         map df_prototype
-                           (map F2 (map F1 (flat_map (definitions_of typ) t))) ++
-                         map df_prototype
-                         (map F2 (map F1 (flat_map (definitions_of typ) gdecls)))))
-    as ALLOC_GDECL.
+     <allocate gdecls> ;; <initialize gdecls> ;;
+     <allocate xy> ;; <initialize xy>
 
-  remember (map_monad initialize_global
-                        (map (Fmap_global typ dtyp (typ_to_dtyp [ ]))
-                           (flat_map (globals_of typ) t) ++
-                         map (Fmap_global typ dtyp (typ_to_dtyp [ ]))
-                           (flat_map (globals_of typ) gdecls)))
-    as INIT_GLOB.
+     Notably, the lists under [map_monad_ allocate_global]
+     and [map_monad_ initialize_global] are ≡.
 
-  remember (map_monad allocate_declaration
-                      [F3 (df_prototype (F1 XY)); F3 (df_prototype (F1 FAKE_XY))])
-    as ALLOC_LDECL.
+   *)
 
-  cbn.
+  (* splitting the lists in (1) and (3) *)
+  (* just [rewrite map_app] doesn't work for some reason *)
+  replace (map (Fmap_global typ dtyp (typ_to_dtyp [ ]))
+               (flat_map (globals_of typ) t ++ flat_map (globals_of typ) gdecls))
+    with (map (Fmap_global typ dtyp (typ_to_dtyp [ ])) (flat_map (globals_of typ) t) ++
+              map (Fmap_global typ dtyp (typ_to_dtyp [ ])) (flat_map (globals_of typ) gdecls))
+    by (rewrite map_app; reflexivity).
 
-  (* simplify *)
-  setoid_rewrite translate_bind; setoid_rewrite translate_ret.
-  setoid_rewrite bind_ret_override.
-  repeat setoid_rewrite bind_bind.
-  repeat setoid_rewrite bind_ret_l.
+  (* splitting (1) and (3) into binds *)
+  setoid_rewrite map_monad_app_.
 
-  rewrite <-bind_bind at 1.
+  fold_initialization.
+  simpl.
 
-  remember (ALLOC_GLOB;; ALLOC_GDECL) as A_GL_GD.
-  remember (translate _exp_E_to_L0 INIT_GLOB) as I_GL.
-  assert (R: interp_mcfg (A_GL_GD;; ALLOC_LDECL;; I_GL;; Ret ())
-                         [ ] ([ ], [ ]) empty_memory_stack ≈
-             interp_mcfg (A_GL_GD;; I_GL;; ALLOC_LDECL;; Ret ())
-                         [ ] ([ ], [ ]) empty_memory_stack)
-         by admit;
-    rewrite R.
+  remember (map (Fmap_global typ dtyp (typ_to_dtyp [ ]))
+                (flat_map (globals_of typ) t))
+    as XY.
+  remember (map (Fmap_global typ dtyp (typ_to_dtyp [ ]))
+                (flat_map (globals_of typ) gdecls))
+    as GLOB.
 
-  assert (Assoc : A_GL_GD;; I_GL;; ALLOC_LDECL;; Ret () ≈
-                  (A_GL_GD;; I_GL);; ALLOC_LDECL;; Ret ()) by admit;
-    rewrite Assoc; clear Assoc.
+  (* This part is still unclear.
+     Hiding it now to show the overall state of the goal,
+     but it probably needs work *)
+  (* [allocate_declaration] operates very similarly to [allocate_global],
+     so if commutativity needs to proven, I'd expect it to be
+     exactly the same as that for [allocate_global] *)
+  remember (allocate_declarations
+              (map (Fmap_declaration typ dtyp (typ_to_dtyp [ ])) intrinsic_delcs);;
+            allocate_declarations [xy1; y1])
+    as DECLS_BLOB.
 
+  (** * rearrangement goes here *)
 
-  rewrite interp_to_L3_bind, translate_bind.
+  (* peel globals from the DSH side *)
   subst DSHM.
-
-  replace
-    (@go E_mcfg (prod memory unit)
-         (@RetF E_mcfg (prod memory unit) (itree E_mcfg (prod memory unit))
-                (@pair memory unit
-                       (memory_set
-                          (memory_set mg (S (@Datatypes.length (prod string DSHType) globals)) mo)
-                          (@Datatypes.length (prod string DSHType) globals) mi) tt)))
+  (* Explicit [ITree.bind'] here because Coq can't guess [E]. Note that [bind' x y ~ bind y x] *)
+  replace (Ret (memory_set (memory_set mg (S (Datatypes.length globals)) mo)
+          (Datatypes.length globals) mi, ()))
     with
-      (mg' <- (@go E_mcfg memory (@RetF E_mcfg memory (itree E_mcfg memory) mg)) ;;
-       mgy <- Ret (memory_set mg' (S (Datatypes.length globals)) mo) ;;
-       Ret (memory_set mgy (Datatypes.length globals) mi, ()))
+      (ITree.bind' (E:=E_mcfg)
+                   (fun mg' => mgy <- Ret (memory_set mg' (S (Datatypes.length globals)) mo) ;;
+                            Ret (memory_set mgy (Datatypes.length globals) mi, ()))
+                   (Ret mg))
     by admit.
 
+  (*
   eapply eutt_clo_bind.
   -
     admit.
