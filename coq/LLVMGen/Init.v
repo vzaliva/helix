@@ -1157,8 +1157,6 @@ Proof.
      1. [map_monad_ allocate_global]
         - This step needs to be split into a bind of "allocate t" and "allocate gdecls".
      2. [map_monad_ allocate_declaration]
-        - It is unclear to me how the [map df_prototype ...] part
-          turns "definitions" into "declarations".
         - Overall, according to @lord's comment later in this file,
           this part should somehow not matter at all. It was admitted though.
      3. [map_monad_ initialize_global]
@@ -1200,7 +1198,7 @@ Proof.
      Hiding it now to show the overall state of the goal,
      but it probably needs work *)
   (* [allocate_declaration] operates very similarly to [allocate_global],
-     so if commutativity needs to proven, I'd expect it to be
+     so if commutativity needs to be proven, I'd expect it to be
      exactly the same as that for [allocate_global] *)
   remember (allocate_declarations
               (map (Fmap_declaration typ dtyp (typ_to_dtyp [ ])) intrinsic_delcs);;
