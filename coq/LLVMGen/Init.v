@@ -1194,9 +1194,11 @@ Proof.
                 (flat_map (globals_of typ) gdecls))
     as GLOB.
 
-  (* This part is still unclear.
-     Hiding it now to show the overall state of the goal,
-     but it probably needs work *)
+  (* the [allocate_declaration] part has no correspondence on DSH side
+     (at least under the current [REL]). Thus it can/should be [eutt_clo_bind]-ed
+     with a fake meaningless ret/bind on DSH side.
+     Commutativity will still probably need to be proven for it to make the other necessary
+     rearranngements. *)
   (* [allocate_declaration] operates very similarly to [allocate_global],
      so if commutativity needs to be proven, I'd expect it to be
      exactly the same as that for [allocate_global] *)
