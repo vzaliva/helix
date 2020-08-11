@@ -110,6 +110,92 @@ Section NExpr.
      apply sub_alist_add; solve_alist_fresh).
   
 
+  From Ltac2 Require Import Ltac2.
+  From Ltac2 Require Option.
+
+  Set Warnings "+not-unit".
+
+  (* IY: Why can't datatypes translate directly to Ltac2? Also, what's a good use case of
+     this?*)
+
+  Ltac2 mutable debug_flag := true.
+  Ltac2 Notation x(self) "++" y(self) := Message.concat x y.
+
+  Ltac2 print_debug msg :=
+    match debug_flag with
+    | true => Message.print msg
+    | false => ()
+    end.
+
+  Ltac2 norm_eq local_tactic l r :=
+    local_tactic l;
+    local_tactic r.
+
+  (* TODO: Separate this for "in" hypothesis. *)
+  Ltac2 norm_localized local_tactic :=
+      print_debug (Message.of_string "Normalizing term.");
+      match! goal with
+      |  [ |- eutt _ ?t ?u ] => norm_eq local_tactic t u
+      |  [h : ?t |- _] =>
+          (match! (Constr.type t) with
+          | eutt _ ?t ?u => norm_eq local_tactic t u
+          end)
+    end.
+
+  (* TODO: switch norm_* to Ltac2*)
+  Ltac norm_prelude k :=
+      repeat (norm_monad_l_k k);
+      repeat (norm_interp_l_k k);
+      repeat (norm_monad_r_k k);
+      repeat (norm_interp_r_k k).
+
+  Tactic Notation "norm_prelude" integer(k) := norm_prelude k.
+
+  Ltac2 norm prelude local_tactic :=
+    prelude ();
+    repeat (
+      repeat (ltac1:(norm_prelude 0));
+      repeat (norm_localized local_tactic);
+      cbn).
+
+  (** Local Definitions of Helix and Vellvm contexts *)
+  Ltac2 norm_helix t :=
+    print_debug (Message.of_string "Helix [Mem] normalizing: " ++ Message.of_constr t);
+    match! t with
+     | context[interp_Mem (ITree.bind ?t' _)]      => rewrite interp_Mem_bind
+     | context[interp_Mem (Ret _)]                 => rewrite interp_Mem_ret
+     | context[interp_Mem (trigger (MemLU _ _)) _] => rewrite interp_Mem_MemLU
+     | _ => ()
+    end.
+
+  (* IY: "try" is not supported in Ltac2. *)
+  Ltac2 norm_vellvm t :=
+    print_debug (Message.of_string "Vellvm normalizing: " ++ Message.of_constr t);
+    match! t with
+    | context[interp_cfg_to_L3 _ (ITree.bind ?t' _)]       =>
+      rewrite interp_cfg_to_L3_bind
+    | context[interp_cfg_to_L3 _ (Ret _)]                  =>
+      rewrite interp_cfg_to_L3_ret
+    | context[interp_cfg_to_L3 _ (trigger (GlobalRead _))] =>
+      rewrite interp_cfg_to_L3_GR
+    | context[interp_cfg_to_L3 _ (trigger (LocalRead _))]  =>
+      rewrite interp_cfg_to_L3_LR
+    | context[lookup_E_to_exp_E (subevent _ _)]            =>
+      (ltac1:(rewrite lookup_E_to_exp_E_Global || rewrite lookup_E_to_exp_E_Local));
+                                    ltac1: (try rewrite subevent_subevent)
+    | context[exp_E_to_instr_E (subevent _ _)]             =>
+      ltac1: ((rewrite exp_E_to_instr_E_Global || rewrite exp_E_to_instr_E_Local);
+             try rewrite subevent_subevent)
+    | _ => ()
+    end.
+
+  Ltac2 norm_vellvm_prelude () :=
+    simpl ret; (ltac1:(repeat rewrite typ_to_dtyp_equation)).
+
+  (* IY: When does it switch to "Ltac1" vs. "Ltac2" context?*)
+  Ltac2 norm_h () := norm (fun () => ()) norm_helix.
+  Ltac2 norm_v () := norm norm_vellvm_prelude norm_vellvm.
+
   Lemma genNExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH) (v : Int64.int)
@@ -129,45 +215,44 @@ Section NExpr.
     intros s1 s2 nexp; revert s1 s2; induction nexp; intros * COMPILE EVAL PRE.
     - (* Variable case *)
       (* Reducing the compilation *)
-      cbn* in COMPILE; simp.
+      ltac1: (cbn* in COMPILE; simp).
 
       + (* The variable maps to an integer in the IRState *)
-        unfold denoteNExpr; cbn* in *.
-        simp.
-
+        unfold denoteNExpr; ltac1:(cbn* in *).
+        ltac1:(simp).
+        norm_h ().
         (* Reduction on the Helix side *)
-        norm_h.
 
         (* Reduction on the Vellvm side *)
         rewrite denote_code_nil.
-        norm_v.
-
+        (* ltac1:(norm_v). *)
+        norm_v ().
         (* The identifier has to be a local one *)
-        destruct i0; try abs_by_WF.
+        destruct i0; ltac1: (try abs_by_WF).
 
         (* We establish the postcondition *)
-        apply eutt_Ret; split; [| split]; try now eauto.
+        apply eutt_Ret; split > [ () | split]; ltac1: (try now eauto).
         constructor; eauto.
-        intros l' MONO; cbn*.
+        intros l' MONO; ltac1: (cbn*).
         split.
         {
-          norm_vr; [| solve_lu].
+          ltac1:(norm_vr ; [| solve_lu]).
           reflexivity.
         }
         {
-          match_rewrite.
+          ltac1:(match_rewrite).
           reflexivity.
         }
-         
-      + (* The variable maps to a pointer *)
-        unfold denoteNExpr; cbn* in *.
-        simp.
 
-        norm_h.
+      + (* The variable maps to a pointer *)
+        unfold denoteNExpr; ltac1:(cbn* in *).
+        ltac1:(simp).
+
+        norm_h ().
 
         rewrite denote_code_singleton.
-        norm_v.
-        break_inner_match_goal; try abs_by_WF.
+        norm_v ().
+        ltac1:(break_inner_match_goal; try abs_by_WF).
 
         edestruct memory_invariant_GLU as (ptr & LU & READ); eauto.
         rewrite typ_to_dtyp_equation in READ.

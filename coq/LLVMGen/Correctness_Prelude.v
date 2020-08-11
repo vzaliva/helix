@@ -797,7 +797,7 @@ Ltac break_and :=
     | context[translate _ (Ret _)] => rewrite translate_ret in h ; do k idtac "trans_ret"
     | context[interp _ (Ret _)] => rewrite interp_ret in h ; do k idtac "interp_ret"
     | context[translate _ (trigger ?e)] => rewrite (translate_trigger _ e) in h ; do k idtac "trans_trigger"
-    | context[interp _ (trigger _)] => rewrite interp_trigger in h ; do k idtac "intepr_trigger"
+    | context[interp _ (trigger _)] => rewrite interp_trigger in h ; do k idtac "interp_trigger"
     end; subst x end.
 
   Ltac norm_interp_hyp_r_k h k :=
@@ -821,6 +821,8 @@ Ltac break_and :=
   Tactic Notation "norm_interp_hyp_r"  hyp(h) := norm_interp_hyp_r_k' h 0.
   Tactic Notation "norm_interp_hyp_rD" hyp(h) := norm_interp_hyp_r_k' h 1.
 
+  (* ==== STARTING LTAC2 GENERALIZATION ===================================================== *)
+
   (* We extend [norm_interp] with locally defined interpreters on the helix side *)
   Ltac norm_local_helix_l_k k :=
     match goal with
@@ -837,6 +839,7 @@ Ltac break_and :=
   Tactic Notation "norm_local_helix_l_k'" integer(k) := norm_local_helix_l_k k.
   Tactic Notation "norm_local_helix_l" := norm_local_helix_l_k' 0.
   Tactic Notation "norm_local_helix_lD" := norm_local_helix_l_k' 1.
+
 
   Ltac norm_local_helix_r_k k :=
     match goal with
@@ -1022,6 +1025,8 @@ Ltac break_and :=
 
   Tactic Notation "norm_v" "in" hyp(h) := norm_vr in h.
   Tactic Notation "norm_vD" "in" hyp(h) := norm_vrD in h.
+
+  (* ==================================================================================== *)
 
   Variant Box (T: Type): Type := box (t: T).
   (* Protects from "direct" pattern matching but not from context one *)
