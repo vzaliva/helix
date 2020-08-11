@@ -3429,7 +3429,7 @@ Proof.
       assert (T2: (∀ t m' y_i y_sz,
                       evalPExpr σ y_p ≡ inr (y_i, y_sz) ->
                       memory_equiv_except m m' y_i ->
-                      MSH_DSH_compat (opf' t) dop (DSHnatVal (` t) :: σ) m'
+                      MSH_DSH_compat (opf' t) dop (DSHnatVal (proj1_sig t) :: σ) m'
                                      (incrPVar 0 x_p) (incrPVar 0 y_p))).
       {
         clear - FC.
@@ -3437,7 +3437,7 @@ Proof.
         intros.
         unfold shrink_m_op_family.
         specialize (FC (mkFinNat (le_S (proj2_sig t))) m' y_i y_sz H H0).
-        enough (T : (` (mkFinNat (le_S (proj2_sig t)))) ≡ (` t))
+        enough (T : (proj1_sig (mkFinNat (le_S (proj2_sig t)))) ≡ (proj1_sig t))
           by (rewrite T in FC; assumption).
         cbv.
         repeat break_match; congruence.
@@ -3467,7 +3467,7 @@ Proof.
       assert (T2: (∀ t m' y_i y_sz,
                       evalPExpr σ y_p ≡ inr (y_i, y_sz) ->
                       memory_equiv_except m m' y_i ->
-                      MSH_DSH_compat (opf' t) dop (DSHnatVal (` t) :: σ) m'
+                      MSH_DSH_compat (opf' t) dop (DSHnatVal (proj1_sig t) :: σ) m'
                                      (incrPVar 0 x_p) (incrPVar 0 y_p))).
       {
         clear - FC.
@@ -3475,7 +3475,7 @@ Proof.
         intros.
         unfold shrink_m_op_family.
         specialize (FC (mkFinNat (le_S (proj2_sig t))) m' y_i y_sz H H0).
-        enough (T : (` (mkFinNat (le_S (proj2_sig t)))) ≡ (` t))
+        enough (T : (proj1_sig (mkFinNat (le_S (proj2_sig t)))) ≡ (proj1_sig t))
           by (rewrite T in FC; assumption).
         cbv.
         repeat break_match; congruence.
