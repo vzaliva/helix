@@ -108,7 +108,6 @@ Section NExpr.
   Ltac solve_sub_alist :=
     (reflexivity ||
      apply sub_alist_add; solve_alist_fresh).
-  
 
   From Ltac2 Require Import Ltac2.
   From Ltac2 Require Option.
@@ -120,21 +119,32 @@ Section NExpr.
 
   Ltac2 print_debug msg :=
     match debug_flag with
-    | true => Message.print msg
+    | true => Message.print (Message.of_string msg)
     | false => ()
     end.
 
-  Ltac2 Type eq_hand := [Left | Right | Both].
+  (* IY: The particular panic that makes [Message.of_constr] hard to use---
+    https://github.com/coq/coq/blob/a9786e88c8afe03cbe85cffbcce2767bd655048d/user-contrib/Ltac2/Message.v#L22
+
+    For now, we should use print_debug_constr only when we know for sure that
+    the tactic retains the number of goals (e.g. failure cases).
+   *)
+  Ltac2 print_debug_constr msg t :=
+    match debug_flag with
+    | true => Message.print (Message.of_string msg ++ Message.of_string " at : " ++ Message.of_constr t)
+    | false => ()
+    end.
 
   (* Custom normalizing tactic  ========================================= *)
+  Ltac2 Type eq_hand := [Left | Right | Both].
+
   Ltac2 custom_norm loc tac :=
-    print_debug (Message.of_string "Normalizing term");
       match! goal with
       |  [ |- eutt _ ?t ?u ] =>
          match loc with
-           | Left => tac t
-           | Right => tac u
-           | Both => tac t; tac u
+         | Left => let x := Fresh.fresh in remember $u as x ; tac t ; subst x
+         | Right => let x := Fresh.fresh in remember $t as x ; tac u ; subst x
+         | Both => try (tac t); try (tac u)
          end
     end.
 
@@ -142,29 +152,45 @@ Section NExpr.
   Ltac2 Notation "custom_norm_r" := custom_norm Right.
   Ltac2 Notation "custom_norm_eq" := custom_norm Both.
 
+  (* IY: Rewriting strategy seems to be slightly different for Ltac1 and Ltac2. *)
   (* General "Itree-simplifying" tactics ================================ *)
   Ltac2 interp_simp t :=
     match! t with
-    | context[translate _ (ITree.bind ?t' _)] => rewrite translate_bind
-    | context[interp _ (ITree.bind ?t' _)] => rewrite interp_bind
-    | context[translate _ (Ret _)] => rewrite translate_ret
-    | context[interp _ (Ret _)] => rewrite interp_ret
-    | context[translate _ (trigger ?e)] => rewrite (translate_trigger _ $e)
-    | context[interp _ (trigger _)] => rewrite interp_trigger
-    | _ => ()
+    | context[translate _ (ITree.bind _ _)] => ltac1:(rewrite translate_bind)
+    | context[interp _ (ITree.bind _ _)] => ltac1:(rewrite interp_bind)
+    | context[translate _ (Ret _)] => ltac1:(rewrite translate_ret)
+    | context[interp _ (Ret _)] => ltac1:(rewrite interp_ret)
+    | context[translate _ (trigger _)] => ltac1:(rewrite (translate_trigger _ _))
+    | context[interp _ (trigger _)] => ltac1:(rewrite interp_trigger)
+    | _ => print_debug_constr "Failed to apply interp_simp" t
   end.
+
+  Set Default Proof Mode "Classic".
+
   Ltac2 monad_simp t :=
     match! t with
-    | ITree.bind _ _ => rewrite bind_bind
-    | Ret _ => rewrite bind_ret_l
-    | _ => ()
+    | ITree.bind _ _ => ltac1:(rewrite bind_bind)
+    | Ret _ => ltac1:(rewrite bind_ret_l)
+    | _ => print_debug_constr "Failed to apply monad_simp" t
     end.
 
 
   (* IY: in Coq 8.12.0, we can use Ltac2.List.iter *)
   Ltac2 itree_simp () :=
-    custom_norm_eq interp_simp;
-    custom_norm_eq monad_simp.
+    try (custom_norm_eq interp_simp);
+    try (custom_norm_eq monad_simp).
+
+  (* Top-level "normalizing" tactic for [eutt] expressions.
+       [preproc]    : Any "preprocessing" simplification which might be specific
+                      to your use case
+       [local_simp] : Local simplifying/rewriting lemma
+                      (so far, use cases are Vellvm and Helix.)
+       [loc]        : Side of the equation you would like to simplify (Left/Right/Both)
+   *)
+  Ltac2 norm loc preproc local_simp :=
+    preproc ();
+          repeat (repeat (itree_simp ());
+          repeat (custom_norm loc local_simp)).
 
   (* Helix and Vellvm tactics =========================================== *)
   Ltac2 helix_simp t :=
@@ -172,23 +198,17 @@ Section NExpr.
      | context[interp_Mem (ITree.bind _ _)]      => rewrite interp_Mem_bind
      | context[interp_Mem (Ret _)]                 => rewrite interp_Mem_ret
      | context[interp_Mem (trigger (MemLU _ _)) _] => rewrite interp_Mem_MemLU
-     | _ => ()
-    end;
-    print_debug (Message.of_string "Helix [Mem] normalizing: " ++ Message.of_constr t).
-
-  Opaque subevent.
+     | _ => print_debug_constr "Failed to apply helix_simp" t
+    end.
 
   Ltac2 vellvm_simp t :=
-    (* IY: The particular panic that makes "Opaque subevent" necessary is
-            [Message.of_constr] ---
-      https://github.com/coq/coq/blob/a9786e88c8afe03cbe85cffbcce2767bd655048d/user-contrib/Ltac2/Message.v#L22 *)
     match! t with
     | context[interp_cfg_to_L3 _ (ITree.bind ?t' _)]       =>
       rewrite interp_cfg_to_L3_bind
     | context[interp_cfg_to_L3 _ (Ret _)]                  =>
       rewrite interp_cfg_to_L3_ret
     | context[interp_cfg_to_L3 _ (trigger (GlobalRead _))] =>
-      rewrite interp_cfg_to_L3_GR; eauto (* TODO: Maybe this is a bug? Throws panic *)
+      rewrite interp_cfg_to_L3_GR; eauto
     | context[interp_cfg_to_L3 _ (trigger (LocalRead _))]  =>
       rewrite interp_cfg_to_L3_LR; eauto
     | context [subevent _ (subevent _ _)]                  =>
@@ -197,23 +217,15 @@ Section NExpr.
       ltac1:(rewrite lookup_E_to_exp_E_Global || rewrite lookup_E_to_exp_E_Local)
     | context[exp_E_to_instr_E (_)]             =>
       ltac1: (rewrite exp_E_to_instr_E_Global || rewrite exp_E_to_instr_E_Local)
-    | _ => ()
-    end;
-    print_debug (Message.of_string "Vellvm normalizing: " ++ Message.of_constr t).
+    | _ => print_debug_constr "Failed to apply vellvm_simp" t; ()
+    end.
 
   Ltac2 vellvm_pre () :=
     simpl ret; (ltac1:(repeat rewrite typ_to_dtyp_equation)).
 
-  Ltac2 norm pre_simp local_simp loc :=
-    pre_simp ();
-    repeat (repeat (custom_norm loc interp_simp) ;
-          repeat (custom_norm loc monad_simp) ;
-          repeat (custom_norm loc local_simp) ; cbn).
-
-  Ltac2 norm_h loc := norm (fun () => ()) helix_simp loc.
-  Ltac2 norm_v loc := norm vellvm_pre vellvm_simp loc.
-
-  Set Default Proof Mode "Classic".
+  (* Definiing our local normalization tactics *)
+  Ltac2 norm_h loc := norm loc (fun () => ()) helix_simp.
+  Ltac2 norm_v loc := norm loc vellvm_pre vellvm_simp.
 
   Tactic Notation "norm_h" := (ltac2:(norm_h Both)).
   Tactic Notation "norm_v" := (ltac2:(norm_v Both)).
@@ -222,6 +234,40 @@ Section NExpr.
   Tactic Notation "norm_hr" := (ltac2:(norm_h Right)).
   Tactic Notation "norm_vr" := (ltac2:(norm_v Right)).
 
+  Tactic Notation "rauto" := (autorewrite with core).
+  Tactic Notation "rauto" "in" hyp(h) := (autorewrite with core in h).
+
+  Section itree.
+    Hint Rewrite @translate_bind : itree.
+    Hint Rewrite @interp_bind : itree.
+    Hint Rewrite @translate_ret : itree.
+    Hint Rewrite @interp_ret : itree.
+    Hint Rewrite @translate_trigger : itree.
+    Hint Rewrite @interp_trigger : itree.
+    Hint Rewrite @bind_bind : itree.
+    Hint Rewrite @bind_ret_l : itree.
+  End itree.
+
+  Section vellvm.
+    Hint Rewrite interp_cfg_to_L3_bind : vellvm.
+    Hint Rewrite interp_cfg_to_L3_ret : vellvm.
+    Hint Rewrite interp_cfg_to_L3_GR : vellvm.
+    Hint Rewrite interp_cfg_to_L3_LR : vellvm.
+    Hint Rewrite @lookup_E_to_exp_E_Global : vellvm.
+    Hint Rewrite @lookup_E_to_exp_E_Local : vellvm.
+    Hint Rewrite @exp_E_to_instr_E_Global : vellvm.
+    Hint Rewrite @exp_E_to_instr_E_Local : vellvm.
+    Hint Rewrite @subevent_subevent : vellvm.
+    Hint Rewrite @typ_to_dtyp_equation : vellvm.
+  End vellvm.
+
+  Section helix.
+    Hint Rewrite interp_Mem_bind : helix.
+    Hint Rewrite interp_Mem_ret : helix.
+    Hint Rewrite interp_Mem_MemLU : helix.
+  End helix.
+
+  (* NExpr Proofs ====================================================== *)
   Lemma genNExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH) (v : Int64.int)
@@ -237,6 +283,7 @@ Section NExpr.
            (with_err_RB (interp_Mem (denoteNExpr σ nexp) memH))
            (with_err_LB (interp_cfg (denote_code (convert_typ [] c)) g l memV)).
   Proof.
+    (* with (autorewrite with itree). *)
 
     intros s1 s2 nexp; revert s1 s2; induction nexp; intros * COMPILE EVAL PRE.
     - (* Variable case *)
@@ -245,46 +292,35 @@ Section NExpr.
 
       + (* The variable maps to an integer in the IRState *)
         unfold denoteNExpr; cbn* in *.
-        simp.
-        norm_h.
-        (* Reduction on the Helix side *)
-
-        (* Reduction on the Vellvm side *)
-        rewrite denote_code_nil.
-        norm_v.
+        simp...
+        rewrite denote_code_nil...
         (* The identifier has to be a local one *)
-        destruct i0; try abs_by_WF.
-        (* We establish the postcondition *)
+        destruct i0; try abs_by_WF...
+
+        cbn...
         apply eutt_Ret ; split ; [ | split]; (try now eauto).
         constructor; eauto.
         intros l' MONO; cbn*.
-        split.
-        {
-          (* TODO *)
-          norm_vr ; [| solve_lu].
+        split...
+        * cbn... reflexivity. 
+        * solve_lu.
+        * match_rewrite.
           reflexivity.
-        }
-        {
-          match_rewrite.
-          reflexivity.
-        }
 
       + (* The variable maps to a pointer *)
         unfold denoteNExpr; cbn* in *.
-        simp.
+        simp...
 
-        norm_h.
-
-        rewrite denote_code_singleton.
-        norm_v.
+        rewrite denote_code_singleton...
         break_inner_match_goal; try abs_by_WF.
 
         edestruct memory_invariant_GLU as (ptr & LU & READ); eauto.
         rewrite typ_to_dtyp_equation in READ.
         rewrite denote_instr_load; cbn in *; eauto.
-        2 : norm_v; reflexivity.
-
-        norm_v.
+        cbn...
+        2 : { cbn... cbn...
+              2 : eauto.
+              reflexivity. }
 
         apply eutt_Ret; split; [| split].
         -- cbn; check_state_invariant.
@@ -292,12 +328,12 @@ Section NExpr.
         -- split.
            {
              intros l' MONO; cbn*.
-             split.
+             split...
              {
-               norm_v.
-               2: eapply MONO, In_add_eq.
+               cbn...
                reflexivity.
              }
+             eapply MONO, In_add_eq.
              match_rewrite.
              reflexivity.
            }
@@ -311,33 +347,29 @@ Section NExpr.
     - (* Constant *)
       cbn* in COMPILE; simp.
       unfold denoteNExpr; cbn*.
-      rewrite denote_code_nil; cbn.
-      norm_h; norm_v.
+      rewrite denote_code_nil; cbn...
 
       apply eutt_Ret; split; [| split]; try now eauto.
       split; eauto.
       intros l' MONO; cbn*.
       split; try reflexivity.
-      rewrite repr_intval; norm_v.
+      rewrite repr_intval...
       reflexivity.
 
     - (* NDiv *)
 
       cbn* in COMPILE; simp.
       unfold denoteNExpr in *; cbn* in *.
-      simp.
-
-      norm_h.
+      simp...
 
       (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
       specialize (IHnexp1 _ _ _ _ _ _ _ _ _ _ Heqs Heqs3 PRE).
 
       cbn* in IHnexp1; rewrite Heqs3 in IHnexp1.
       (* YZ TODO : Why is this one particularly slow? *)
-      norm_h in IHnexp1.
+      rauto in IHnexp1.
 
-      rewrite convert_typ_app, denote_code_app.
-      norm_v.
+      rewrite convert_typ_app, denote_code_app...
 
       ret_bind_l_left (memH, i2).
       eapply eutt_clo_bind; [eassumption | clear IHnexp1].
@@ -349,13 +381,12 @@ Section NExpr.
       specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs2 PREI).
 
       cbn* in IHnexp2;
-        norm_v in IHnexp2;
-        norm_h in IHnexp2.
+        rauto in IHnexp2;
+        rauto in IHnexp2.
       simp.
-      norm_h in IHnexp2.
+      rauto in IHnexp2.
 
-      rewrite convert_typ_app, denote_code_app.
-      norm_v.
+      rewrite convert_typ_app, denote_code_app...
       ret_bind_l_left (memH,i1).
       eapply eutt_clo_bind; [eassumption | clear IHnexp2].
 
@@ -363,8 +394,7 @@ Section NExpr.
       destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
       cbn in *.
 
-      rewrite denote_code_singleton; cbn.
-      norm_v.
+      rewrite denote_code_singleton; cbn...
 
       specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
       assert (l1 ⊑ l1) as L1L1 by reflexivity; specialize (EXPRF _ L1L1) as [EXPRF EVAL_vH0].
@@ -383,21 +413,15 @@ Section NExpr.
        unfold MInt64asNT.NTypeZero.
         apply unsigned_is_zero; auto.
       }
-      
-      norm_v.
+      cbn...
       apply eutt_Ret; split; [| split]; try now eauto.
       cbn. eapply state_invariant_add_fresh; eauto; reflexivity.
       split.
       {
         cbn; intros ? MONO.
-        split.
-        { norm_v.
-          2: apply MONO, In_add_eq.
-          cbn; norm_v.
-          apply eutt_Ret.
-          do 3 f_equal.
-        }
-
+        split...
+        cbn... reflexivity.
+          apply MONO, In_add_eq.
         repeat match_rewrite.
         reflexivity.
       }
@@ -419,16 +443,14 @@ Section NExpr.
 
       cbn* in COMPILE; simp.
       unfold denoteNExpr in *; cbn*.
-      cbn in EVAL; simp.
+      cbn in EVAL; simp...
 
-      norm_h.
-     
       (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
       specialize (IHnexp1 _ _ _ _ _ _ _ _ _ _ Heqs Heqs3 PRE).
 
       cbn* in IHnexp1; rewrite Heqs3 in IHnexp1.
       (* YZ TODO : Why is this one particularly slow? *)
-      norm_h in IHnexp1.
+      rauto in IHnexp1...
 
       ret_bind_l_left (memH, i2).
       rewrite convert_typ_app, denote_code_app.
