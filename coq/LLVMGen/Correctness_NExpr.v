@@ -115,9 +115,6 @@ Section NExpr.
 
   Set Warnings "+not-unit".
 
-  (* IY: Why can't datatypes translate directly to Ltac2? Also, what's a good use case of
-     this?*)
-
   Ltac2 mutable debug_flag := true.
   Ltac2 Notation x(self) "++" y(self) := Message.concat x y.
 
@@ -127,74 +124,103 @@ Section NExpr.
     | false => ()
     end.
 
-  Ltac2 norm_eq local_tactic l r :=
-    local_tactic l;
-    local_tactic r.
+  Ltac2 Type eq_hand := [Left | Right | Both].
 
-  (* TODO: Separate this for "in" hypothesis. *)
-  Ltac2 norm_localized local_tactic :=
-      print_debug (Message.of_string "Normalizing term.");
+  (* Custom normalizing tactic  ========================================= *)
+  Ltac2 custom_norm loc tac :=
+    print_debug (Message.of_string "Normalizing term");
       match! goal with
-      |  [ |- eutt _ ?t ?u ] => norm_eq local_tactic t u
-      |  [h : ?t |- _] =>
-          (match! (Constr.type t) with
-          | eutt _ ?t ?u => norm_eq local_tactic t u
-          end)
+      |  [ |- eutt _ ?t ?u ] =>
+         match loc with
+           | Left => tac t
+           | Right => tac u
+           | Both => tac t; tac u
+         end
     end.
 
-  (* TODO: switch norm_* to Ltac2*)
-  Ltac norm_prelude k :=
-      repeat (norm_monad_l_k k);
-      repeat (norm_interp_l_k k);
-      repeat (norm_monad_r_k k);
-      repeat (norm_interp_r_k k).
+  Ltac2 Notation "custom_norm_l" := custom_norm Left.
+  Ltac2 Notation "custom_norm_r" := custom_norm Right.
+  Ltac2 Notation "custom_norm_eq" := custom_norm Both.
 
-  Tactic Notation "norm_prelude" integer(k) := norm_prelude k.
-
-  Ltac2 norm prelude local_tactic :=
-    prelude ();
-    repeat (
-      repeat (ltac1:(norm_prelude 0));
-      repeat (norm_localized local_tactic);
-      cbn).
-
-  (** Local Definitions of Helix and Vellvm contexts *)
-  Ltac2 norm_helix t :=
-    print_debug (Message.of_string "Helix [Mem] normalizing: " ++ Message.of_constr t);
+  (* General "Itree-simplifying" tactics ================================ *)
+  Ltac2 interp_simp t :=
     match! t with
-     | context[interp_Mem (ITree.bind ?t' _)]      => rewrite interp_Mem_bind
+    | context[translate _ (ITree.bind ?t' _)] => rewrite translate_bind
+    | context[interp _ (ITree.bind ?t' _)] => rewrite interp_bind
+    | context[translate _ (Ret _)] => rewrite translate_ret
+    | context[interp _ (Ret _)] => rewrite interp_ret
+    | context[translate _ (trigger ?e)] => rewrite (translate_trigger _ $e)
+    | context[interp _ (trigger _)] => rewrite interp_trigger
+    | _ => ()
+  end.
+  Ltac2 monad_simp t :=
+    match! t with
+    | ITree.bind _ _ => rewrite bind_bind
+    | Ret _ => rewrite bind_ret_l
+    | _ => ()
+    end.
+
+
+  (* IY: in Coq 8.12.0, we can use Ltac2.List.iter *)
+  Ltac2 itree_simp () :=
+    custom_norm_eq interp_simp;
+    custom_norm_eq monad_simp.
+
+  (* Helix and Vellvm tactics =========================================== *)
+  Ltac2 helix_simp t :=
+    match! t with
+     | context[interp_Mem (ITree.bind _ _)]      => rewrite interp_Mem_bind
      | context[interp_Mem (Ret _)]                 => rewrite interp_Mem_ret
      | context[interp_Mem (trigger (MemLU _ _)) _] => rewrite interp_Mem_MemLU
      | _ => ()
-    end.
+    end;
+    print_debug (Message.of_string "Helix [Mem] normalizing: " ++ Message.of_constr t).
 
-  (* IY: "try" is not supported in Ltac2. *)
-  Ltac2 norm_vellvm t :=
-    print_debug (Message.of_string "Vellvm normalizing: " ++ Message.of_constr t);
+  Opaque subevent.
+
+  Ltac2 vellvm_simp t :=
+    (* IY: The particular panic that makes "Opaque subevent" necessary is
+            [Message.of_constr] ---
+      https://github.com/coq/coq/blob/a9786e88c8afe03cbe85cffbcce2767bd655048d/user-contrib/Ltac2/Message.v#L22 *)
     match! t with
     | context[interp_cfg_to_L3 _ (ITree.bind ?t' _)]       =>
       rewrite interp_cfg_to_L3_bind
     | context[interp_cfg_to_L3 _ (Ret _)]                  =>
       rewrite interp_cfg_to_L3_ret
     | context[interp_cfg_to_L3 _ (trigger (GlobalRead _))] =>
-      rewrite interp_cfg_to_L3_GR
+      rewrite interp_cfg_to_L3_GR; eauto (* TODO: Maybe this is a bug? Throws panic *)
     | context[interp_cfg_to_L3 _ (trigger (LocalRead _))]  =>
-      rewrite interp_cfg_to_L3_LR
-    | context[lookup_E_to_exp_E (subevent _ _)]            =>
-      (ltac1:(rewrite lookup_E_to_exp_E_Global || rewrite lookup_E_to_exp_E_Local));
-                                    ltac1: (try rewrite subevent_subevent)
-    | context[exp_E_to_instr_E (subevent _ _)]             =>
-      ltac1: ((rewrite exp_E_to_instr_E_Global || rewrite exp_E_to_instr_E_Local);
-             try rewrite subevent_subevent)
+      rewrite interp_cfg_to_L3_LR; eauto
+    | context [subevent _ (subevent _ _)]                  =>
+      ltac1:(rewrite subevent_subevent); ()
+    | context[lookup_E_to_exp_E (_)]            =>
+      ltac1:(rewrite lookup_E_to_exp_E_Global || rewrite lookup_E_to_exp_E_Local)
+    | context[exp_E_to_instr_E (_)]             =>
+      ltac1: (rewrite exp_E_to_instr_E_Global || rewrite exp_E_to_instr_E_Local)
     | _ => ()
-    end.
+    end;
+    print_debug (Message.of_string "Vellvm normalizing: " ++ Message.of_constr t).
 
-  Ltac2 norm_vellvm_prelude () :=
+  Ltac2 vellvm_pre () :=
     simpl ret; (ltac1:(repeat rewrite typ_to_dtyp_equation)).
 
-  (* IY: When does it switch to "Ltac1" vs. "Ltac2" context?*)
-  Ltac2 norm_h () := norm (fun () => ()) norm_helix.
-  Ltac2 norm_v () := norm norm_vellvm_prelude norm_vellvm.
+  Ltac2 norm pre_simp local_simp loc :=
+    pre_simp ();
+    repeat (repeat (custom_norm loc interp_simp) ;
+          repeat (custom_norm loc monad_simp) ;
+          repeat (custom_norm loc local_simp) ; cbn).
+
+  Ltac2 norm_h loc := norm (fun () => ()) helix_simp loc.
+  Ltac2 norm_v loc := norm vellvm_pre vellvm_simp loc.
+
+  Set Default Proof Mode "Classic".
+
+  Tactic Notation "norm_h" := (ltac2:(norm_h Both)).
+  Tactic Notation "norm_v" := (ltac2:(norm_v Both)).
+  Tactic Notation "norm_hl" := (ltac2:(norm_h Left)).
+  Tactic Notation "norm_vl" := (ltac2:(norm_v Left)).
+  Tactic Notation "norm_hr" := (ltac2:(norm_h Right)).
+  Tactic Notation "norm_vr" := (ltac2:(norm_v Right)).
 
   Lemma genNExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
@@ -215,52 +241,48 @@ Section NExpr.
     intros s1 s2 nexp; revert s1 s2; induction nexp; intros * COMPILE EVAL PRE.
     - (* Variable case *)
       (* Reducing the compilation *)
-      ltac1: (cbn* in COMPILE; simp).
+      cbn* in COMPILE; simp.
 
       + (* The variable maps to an integer in the IRState *)
-        unfold denoteNExpr; ltac1:(cbn* in *).
-        ltac1:(simp).
-        norm_h ().
+        unfold denoteNExpr; cbn* in *.
+        simp.
+        norm_h.
         (* Reduction on the Helix side *)
 
         (* Reduction on the Vellvm side *)
         rewrite denote_code_nil.
-        (* ltac1:(norm_v). *)
-        norm_v ().
+        norm_v.
         (* The identifier has to be a local one *)
-        destruct i0; ltac1: (try abs_by_WF).
-
+        destruct i0; try abs_by_WF.
         (* We establish the postcondition *)
-        apply eutt_Ret; split > [ () | split]; ltac1: (try now eauto).
+        apply eutt_Ret ; split ; [ | split]; (try now eauto).
         constructor; eauto.
-        intros l' MONO; ltac1: (cbn*).
+        intros l' MONO; cbn*.
         split.
         {
-          ltac1:(norm_vr ; [| solve_lu]).
+          (* TODO *)
+          norm_vr ; [| solve_lu].
           reflexivity.
         }
         {
-          ltac1:(match_rewrite).
+          match_rewrite.
           reflexivity.
         }
 
       + (* The variable maps to a pointer *)
-        unfold denoteNExpr; ltac1:(cbn* in *).
-        ltac1:(simp).
+        unfold denoteNExpr; cbn* in *.
+        simp.
 
-        norm_h ().
+        norm_h.
 
         rewrite denote_code_singleton.
-        norm_v ().
-        ltac1:(break_inner_match_goal; try abs_by_WF).
+        norm_v.
+        break_inner_match_goal; try abs_by_WF.
 
         edestruct memory_invariant_GLU as (ptr & LU & READ); eauto.
         rewrite typ_to_dtyp_equation in READ.
         rewrite denote_instr_load; cbn in *; eauto.
-        2: {
-          norm_vl; eauto.
-          norm_vl; reflexivity.
-        }
+        2 : norm_v; reflexivity.
 
         norm_v.
 
@@ -271,7 +293,8 @@ Section NExpr.
            {
              intros l' MONO; cbn*.
              split.
-             { norm_vr.
+             {
+               norm_v.
                2: eapply MONO, In_add_eq.
                reflexivity.
              }
@@ -289,8 +312,7 @@ Section NExpr.
       cbn* in COMPILE; simp.
       unfold denoteNExpr; cbn*.
       rewrite denote_code_nil; cbn.
-      norm_h.
-      norm_v.
+      norm_h; norm_v.
 
       apply eutt_Ret; split; [| split]; try now eauto.
       split; eauto.
