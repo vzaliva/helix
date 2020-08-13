@@ -647,7 +647,7 @@ Section AExpr.
       rewrite denote_instr_intrinsic; cbn.
       2,3:reflexivity.
       4: {
-        unfold Monad.eqm, ITreeMonad.EqM_ITree.
+        unfold Monad.eq1, ITreeMonad.Eq1_ITree.
         cbn.
         setoid_rewrite bind_ret_l.
         rewrite interp_cfg_to_L3_bind.

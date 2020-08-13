@@ -741,9 +741,9 @@ From ITree Require Import
 Lemma map_monad_app_
       {m : Type -> Type}
       {Mm : Monad m}
-      {EqMm : EqM m}
-      {HEQP: EqMProps m}
-      {ML: MonadLaws m}
+      {EqMm : Eq1 m}
+      {HEQP: Eq1Equivalence m}
+      {ML: MonadLawsE m}
       {A : Type}
       (f : A -> m unit)
       (l1 l2 : list A)
