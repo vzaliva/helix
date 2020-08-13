@@ -93,7 +93,7 @@ Section MExpr.
                           memH))
            (with_err_LB
               (interp_cfg (D.denote_code (convert_typ [] c)) g l memV)).
-  Proof.
+  Proof with rauto.
     intros * Hgen Heval Hmeminv.
     generalize Hmeminv; intros WF; apply IRState_is_WF in WF.
 
@@ -103,21 +103,18 @@ Section MExpr.
 
       unfold denotePExpr; cbn*.
       cbn* in Hgen; simp.
-      cbn*; norm_v.
-      norm_h.
+      cbn*... 
       break_inner_match_goal; try abs_by_WF.
-      2: cbn* in Heval; rewrite Heqo0 in Heval; inv Heval.
-      norm_h.
+      2: cbn* in Heval; rewrite Heqo0 in Heval; inv Heval...
       break_inner_match_goal; try abs_by_WF.
       subst.
 
       edestruct memory_invariant_Ptr as (bkH & ptrV & Mem_LU & LUV & EQ); eauto.
 
-      rewrite denote_code_nil; cbn.
-      norm_h; try apply memory_lookup_err_inr_Some_eq; eauto.
-      norm_v.
-
+      cbn...
       apply eutt_Ret.
+      2 : try apply memory_lookup_err_inr_Some_eq; eauto.
+      
       split; auto.
       split; auto.
       red.
@@ -126,11 +123,10 @@ Section MExpr.
         splits; eauto.
 
         destruct i0;
-          cbn in *; norm_v; cbn; eauto;
-            try rewrite bind_ret_l;
-            repeat rewrite translate_ret;
-            try rewrite interp_cfg_to_L3_ret;
-            reflexivity.
+          cbn in *; cbn...
+
+        cbn... 2 : eauto. 3 : eauto. 2 : cbn... 2 : reflexivity. 
+        reflexivity.
       }
       { destruct v as (v & bk_sz).
         assert (v ≡ bkH) as VBKH.
