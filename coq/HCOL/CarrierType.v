@@ -147,7 +147,10 @@ Module CarrierA_as_BooleanDecidableType <: BooleanDecidableType.
 End CarrierA_as_BooleanDecidableType.
 
 (* Only needed for [CarrierAOrderedType] *)
-Instance CarrierFPAO: @orders.FullPartialOrder CarrierA CarrierAe (@strong_setoids.default_apart CarrierA CarrierAe) CarrierALe CarrierALt. Admitted.
+Instance CarrierFPAO: @orders.FullPartialOrder CarrierA CarrierAe (@strong_setoids.default_apart CarrierA CarrierAe) CarrierALe CarrierALt.
+Proof.
+  typeclasses eauto.
+Qed.
 
 Module CarrierA_as_OT <: OrderedType.
 
