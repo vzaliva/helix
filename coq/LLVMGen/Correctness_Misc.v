@@ -84,7 +84,7 @@ What should be exactly the post?
       eutt (IMap_Rel σ s1)
            (with_err_RB (interp_Mem (bodyIMap f σ memx k memy) memH))
            (with_err_LB (interp_cfg (D.denote_bks (convert_typ [] bodyV) (bid_from, bid_src)) g l memV)).
-Proof.
+Proof with rauto.
   intros * GEN PRE; intros.
 
   cbn* in *.
@@ -99,14 +99,13 @@ Proof.
       break_match_goal; [admit|].
       break_match_goal; [|admit].
       cbn.
-      cbn*; norm_h.
+      cbn*. cbn...
       unfold denoteIUnCType.
 
       rewrite denote_bks_unfold_in.
       Opaque find_block.
       2: rewrite find_block_eq; reflexivity.
-      cbn.
-      norm_v.
+      cbn...
       focus_single_step.
       (*
       rewrite denote_code_cons.
@@ -417,51 +416,43 @@ Lemma genWhileLoop_correct:
       eutt (lift_Rel_cfg R)
            (with_err_RB (interp_Mem (build_vec n bodyH ymem) mH))
            (with_err_LB (interp_cfg (denote_bks (convert_typ [] bks) (from_id,entry_id)) g l mV)).
-Proof.
+Proof with rauto.
   intros * GEN * IND STABLE IMPSTATE * PRE.
   cbn* in GEN; simp. 
   destruct n as [|[|n]].
   - (* n = 0: we never enter the loop *)
 
-    cbn.
-    norm_h.
+    cbn...
 
     jump_in.
-       
-    cbn.
-    norm_v.
-    cbn; norm_v.
 
-    rewrite denote_code_singleton.
+    cbn...
+    cbn...
+
     rewrite denote_instr_op.
     2:{
-      cbn.
-      rewrite !bind_ret_l.
-      cbn.
-      rewrite translate_ret, interp_cfg_to_L3_ret.
+      cbn...
+      cbn...
       reflexivity.
     }
 
-    norm_v.
+    cbn...
     focus_single_step_v.
     rewrite denote_term_br_r.
     2:{
-      cbn.
-      rewrite translate_trigger, lookup_E_to_exp_E_Local, subevent_subevent.
-      rewrite translate_trigger, exp_E_to_instr_E_Local, subevent_subevent.
-      rewrite interp_cfg_to_L3_LR.
-      2: unfold local_env; rewrite lookup_alist_add_eq; reflexivity.
-      cbn.
+      cbn...
+      cbn...
       reflexivity.
+      unfold local_env; rewrite lookup_alist_add_eq; reflexivity.
     }
 
-    norm_v.
+    cbn...
     subst.
 
     rewrite denote_bks_unfold_not_in.
     2: admit.
 
-    norm_v.
+    cbn...
     apply eutt_Ret.
 
     cbn; eapply STABLE; eauto.
@@ -477,55 +468,44 @@ Proof.
 
     jump_in.
 
-    cbn.
-    norm_v.
-    cbn; norm_v.
+    cbn...
+    cbn...
 
     focus_single_step_v.
-    rewrite denote_code_singleton.
     rewrite denote_instr_op.
     2:{
-      simpl.
-      rewrite !bind_ret_l.
-      cbn.
-      rewrite translate_ret, interp_cfg_to_L3_ret.
+      cbn...
+      cbn...
       reflexivity.
     }
 
-    norm_v.
-    subst; cbn; norm_v; focus_single_step_v.
+    cbn...
+    subst.
+    cbn... focus_single_step_v.
     rewrite denote_term_br_l.
     2:{
-      cbn.
-      rewrite translate_trigger, lookup_E_to_exp_E_Local, subevent_subevent.
-      rewrite translate_trigger, exp_E_to_instr_E_Local, subevent_subevent.
-      rewrite interp_cfg_to_L3_LR.
-      2: unfold local_env; rewrite lookup_alist_add_eq; reflexivity.
-      cbn.
+      cbn...
+      cbn...
       reflexivity.
+      unfold local_env; rewrite lookup_alist_add_eq; reflexivity.
     }
 
-    norm_v.
-    subst; cbn; norm_v.
+    cbn...
+    subst; cbn...
 
     jump_in.
     2:admit.
 
-    cbn.
-    norm_v.
+    cbn...
 
     find_phi.
 
-    cbn; norm_v.
+    cbn...
     focus_single_step_v.
 
-    cbn.
-    norm_v.
-    subst; norm_v.
-    rewrite interp_cfg_to_L3_LW.
-    cbn; norm_v.
-    rewrite denote_code_nil.
-    cbn; norm_v.
+    cbn...
+    subst...
+    cbn...
 
 
 Admitted.

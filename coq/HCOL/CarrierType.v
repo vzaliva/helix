@@ -30,10 +30,23 @@ Instance CarrierAto: @TotalOrder CarrierA CarrierAe CarrierAle. Admitted.
 Instance CarrierAabs: @Abs CarrierA CarrierAe CarrierAle CarrierAz CarrierAneg. Admitted.
 Instance CarrierAr: Ring CarrierA. Admitted.
 Instance CarrierAltdec: ∀ x y: CarrierA, Decision (x < y). Admitted.
-Instance CarrierAledec: ∀ x y: CarrierA, Decision (x ≤ y). Admitted.
 Instance CarrierAequivdec: ∀ x y: CarrierA, Decision (x = y). Admitted.
 Instance CarrierASSO: @StrictSetoidOrder CarrierA CarrierAe CarrierAlt. Admitted.
 Instance CarrierASRO: @SemiRingOrder CarrierA CarrierAe CarrierAplus CarrierAmult CarrierAz CarrierA1 CarrierAle. Admitted.
+
+Instance CarrierFPSO: @orders.FullPseudoOrder CarrierA CarrierAe (@strong_setoids.default_apart CarrierA CarrierAe) CarrierALe CarrierALt. Admitted.
+
+Instance CarrierAledec: ∀ x y: CarrierA, Decision (x ≤ y).
+Proof.
+  intros x y.
+  unfold Decision.
+  destruct (CarrierAltdec x y), (CarrierAequivdec x y).
+  - left. apply orders.eq_le. assumption.
+  - left. apply orders.not_lt_le_flip, orders.lt_flip. assumption.
+  - left. apply orders.eq_le. assumption.
+  - right. apply orders.lt_not_le_flip.
+    apply orders.not_lt_apart_lt_flip; auto.
+Qed.
 
 Instance CarrierA_min_proper: Proper((=) ==> (=) ==> (=)) (@min CarrierA CarrierAle CarrierAledec).
 Proof. typeclasses eauto. Qed.
@@ -134,10 +147,10 @@ Module CarrierA_as_BooleanDecidableType <: BooleanDecidableType.
 End CarrierA_as_BooleanDecidableType.
 
 (* Only needed for [CarrierAOrderedType] *)
-Instance CarrierFPSO: @orders.FullPseudoOrder CarrierA CarrierAe (@strong_setoids.default_apart CarrierA CarrierAe) CarrierALe CarrierALt. Admitted.
-
-(* Only needed for [CarrierAOrderedType] *)
-Instance CarrierFPAO: @orders.FullPartialOrder CarrierA CarrierAe (@strong_setoids.default_apart CarrierA CarrierAe) CarrierALe CarrierALt. Admitted.
+Instance CarrierFPAO: @orders.FullPartialOrder CarrierA CarrierAe (@strong_setoids.default_apart CarrierA CarrierAe) CarrierALe CarrierALt.
+Proof.
+  typeclasses eauto.
+Qed.
 
 Module CarrierA_as_OT <: OrderedType.
 
