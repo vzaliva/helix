@@ -30,8 +30,13 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   Section GenIR.
 
 
+  Definition branches (mh : memoryH * ()) (c : config_cfg_T (block_id * block_id + uvalue)) : Prop :=
+    match c with
+    | (m,(l,(g,res))) => exists bids, res ≡ inl bids
+    end.
+
   Definition GenIR_Rel σ Γ : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
-    lift_Rel_cfg (state_invariant σ Γ).
+    lift_Rel_cfg (state_invariant σ Γ) ⩕ branches.
 
   Opaque denote_code.
  Lemma compile_FSHCOL_correct :
@@ -50,8 +55,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
               (interp_cfg (D.denote_bks (convert_typ [] bks) (bid_from,bid_in))
                                 g ρ memV)).
  Proof.
-   (** 
-
     intros s1 s2 op; revert s1 s2; induction op; intros * NEXT BISIM EVAL GEN.
     - cbn* in GEN.
       simp.
@@ -76,6 +79,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       destruct fuel as [| fuel]; [cbn in *; simp |].
       cbn* in GEN.
       unfold GenIR_Rel in BISIM; cbn in BISIM.
+      destruct BISIM as [BISIM1 BISIM2].
       simp.
       hide_strings'.
       rename i into si, i2 into si',
@@ -107,7 +111,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       norm_v.
       cbn.
       norm_v.
-      rewrite translate_ret. _ret_l.
       rewrite denote_code_app.
       norm_v.
       subst.
@@ -147,8 +150,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       rewrite EQ1' in Heqs11; inv Heqs11.
       rewrite Heqo0.
       eutt_hide_right.
-      (*
-      assert (i2 ≡ val2).
+
+      assert (i2 ≡ dst).
       { unfold genNExpr_exp_correct in EXP2.
         assert (ρ2 ⊑ ρ2) as LL by reflexivity.
         specialize (EXP2 _ LL) as (EXP2_EUTT & EXP2_EVAL).
@@ -157,7 +160,21 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         auto.
       }
       subst.
-      rewrite Heqs13.
+
+      Set Nested Proofs Allowed.
+      Lemma assert_NT_lt_success :
+        forall {s1 s2 x y v},
+          assert_NT_lt s1 x y ≡ inr v ->
+          assert_NT_lt s2 x y ≡ inr v.
+      Proof.
+        intros s1 s2 x y v H.
+        unfold assert_NT_lt in *.
+        destruct ((MInt64asNT.to_nat x <? MInt64asNT.to_nat y)%nat); inversion H.
+        cbn in *. subst.
+        auto.
+      Qed.
+
+      rewrite (assert_NT_lt_success Heqs13). 
       cbn*.
       norm_h.
       rewrite interp_Mem_MemSet.
@@ -190,117 +207,118 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       rewrite LUy in Heqo1; symmetry in Heqo1; inv Heqo1.
 
       focus_single_step_v; norm_v.
-      2: apply MONO2, MONO1; eauto.
-      cbn; norm_v.
-      subst; focus_single_step_v; norm_v.
-      unfold IntType; rewrite typ_to_dtyp_I; cbn.
-      subst; focus_single_step_v; norm_v.
-      subst; focus_single_step_v; norm_vD.
-      focus_single_step_v.
-
-      destruct (EXP1 ρ2) as [EQe ?]; auto.
-      rewrite <- EQe.
-      norm_v.
-      subst; focus_single_step_v; norm_vD.
-      cbn.
-
-      rename i into index, v1 into size_array.
-      unfold ITree.map.
-      norm_v.
-
-      rewrite exp_E_to_instr_E_Memory, subevent_subevent.
-      rewrite typ_to_dtyp_D_array.
-
-      cbn in *.
-
-      (* onAllHyps move_up_types. *)
-
-      match goal with
-        |- context[interp_cfg_to_L3 ?defs (@ITree.trigger ?E _ (subevent _ (GEP (DTYPE_Array ?size ?t) (DVALUE_Addr ?a) _)))] =>
-        edestruct (@interp_cfg_to_L3_GEP_array defs t a size g ρ2) as (add & ?EQ & READ); eauto
-      end.
-
-      assert (EQindex: Integers.Int64.repr (Z.of_nat (MInt64asNT.to_nat index)) ≡ index) by admit.
-      rewrite EQindex in *.
-      rewrite EQ.
-
-      norm_v.
-      cbn.
-      subst; cbn; norm_v.
-      focus_single_step_v.
-      rewrite interp_cfg_to_L3_LW.
-      cbn*; norm_v.
-      subst; simpl; norm_v.
-      focus_single_step_v.
-      cbn; norm_v.
-      subst; cbn; norm_v.
-      focus_single_step_v.
-
-      2: apply lookup_alist_add_eq.
-      cbn*; norm_v.
-      subst; cbn; norm_v; focus_single_step_v.
-      rewrite interp_cfg_to_L3_Load.
-      2: rewrite typ_to_dtyp_D; eassumption.
-      norm_v.
-      subst; cbn; norm_v; focus_single_step_v.
-      rewrite interp_cfg_to_L3_LW.
-      cbn; norm_v.
-      subst; cbn; norm_v.
-
-      2:{
-        unfold endo.
-        assert (y_p' <> r1) by admit.
-        assert (y_p' <> r) by admit.
-        setoid_rewrite lookup_alist_add_ineq; eauto.
-        setoid_rewrite lookup_alist_add_ineq; eauto.
-        cbn in *.
-        apply MONO2, MONO1; eauto.
-      }
-      cbn.
-      subst.
-      unfold IntType;rewrite !typ_to_dtyp_I.
-      focus_single_step_v; norm_v.
-      subst; cbn; norm_v.
-      focus_single_step_v.
-
-      match goal with
-        |- eutt _ _ (ITree.bind (_ (interp_cfg _ _ ?l _)) _) => destruct (EXP2 l) as [EQe' ?]; auto
-      end.
-      rewrite <- sub_alist_add.
-      apply sub_alist_add.
-      rename r into foo.
-      (* Freshness, easy todo *)
       admit.
-      admit.
+    (*   2: apply MONO2, MONO1; eauto. *)
+    (*   cbn; norm_v. *)
+    (*   subst; focus_single_step_v; norm_v. *)
+    (*   unfold IntType; rewrite typ_to_dtyp_I; cbn. *)
+    (*   subst; focus_single_step_v; norm_v. *)
+    (*   subst; focus_single_step_v; norm_vD. *)
+    (*   focus_single_step_v. *)
 
-      rewrite <- EQe'.
-      norm_v.
-      subst; cbn*; norm_v.
-      focus_single_step_v.
-      norm_v; subst; focus_single_step_v.
-      norm_v; subst; focus_single_step_v.
-      cbn; unfold ITree.map.
-      norm_v; subst; focus_single_step_v.
-      rewrite exp_E_to_instr_E_Memory, subevent_subevent.
-      rewrite typ_to_dtyp_D_array.
+    (*   destruct (EXP1 ρ2) as [EQe ?]; auto. *)
+    (*   rewrite <- EQe. *)
+    (*   norm_v. *)
+    (*   subst; focus_single_step_v; norm_vD. *)
+    (*   cbn. *)
 
-      Set Hyps Limit 50.
+    (*   rename i into index, v1 into size_array. *)
+    (*   unfold ITree.map. *)
+    (*   norm_v. *)
 
-      (* Need another GEP lemma?
-         The destination is not read on the Helix side, so that I do not know that the GEP succeeds
-       *)
+    (*   rewrite exp_E_to_instr_E_Memory, subevent_subevent. *)
+    (*   rewrite typ_to_dtyp_D_array. *)
 
-      (*
-      match goal with
-        |- context[interp_cfg_to_L3 ?defs (@ITree.trigger ?E _ (subevent _ (GEP (DTYPE_Array ?size ?t) (DVALUE_Addr ?a) _))) ?g ?l] =>
-        edestruct (@interp_cfg_to_L3_GEP_array defs t a size g l) as (add' & ?EQ & READ'); eauto
-      end.
+    (*   cbn in *. *)
 
-      eapply VEC_LUy.
-       *)
+    (*   (* onAllHyps move_up_types. *) *)
 
-        admit.
-    (* End of genFSHAssign, things are getting a bit complicated *)
+    (*   match goal with *)
+    (*     |- context[interp_cfg_to_L3 ?defs (@ITree.trigger ?E _ (subevent _ (GEP (DTYPE_Array ?size ?t) (DVALUE_Addr ?a) _)))] => *)
+    (*     edestruct (@interp_cfg_to_L3_GEP_array defs t a size g ρ2) as (add & ?EQ & READ); eauto *)
+    (*   end. *)
+
+    (*   assert (EQindex: Integers.Int64.repr (Z.of_nat (MInt64asNT.to_nat index)) ≡ index) by admit. *)
+    (*   rewrite EQindex in *. *)
+    (*   rewrite EQ. *)
+
+    (*   norm_v. *)
+    (*   cbn. *)
+    (*   subst; cbn; norm_v. *)
+    (*   focus_single_step_v. *)
+    (*   rewrite interp_cfg_to_L3_LW. *)
+    (*   cbn*; norm_v. *)
+    (*   subst; simpl; norm_v. *)
+    (*   focus_single_step_v. *)
+    (*   cbn; norm_v. *)
+    (*   subst; cbn; norm_v. *)
+    (*   focus_single_step_v. *)
+
+    (*   2: apply lookup_alist_add_eq. *)
+    (*   cbn*; norm_v. *)
+    (*   subst; cbn; norm_v; focus_single_step_v. *)
+    (*   rewrite interp_cfg_to_L3_Load. *)
+    (*   2: rewrite typ_to_dtyp_D; eassumption. *)
+    (*   norm_v. *)
+    (*   subst; cbn; norm_v; focus_single_step_v. *)
+    (*   rewrite interp_cfg_to_L3_LW. *)
+    (*   cbn; norm_v. *)
+    (*   subst; cbn; norm_v. *)
+
+    (*   2:{ *)
+    (*     unfold endo. *)
+    (*     assert (y_p' <> r1) by admit. *)
+    (*     assert (y_p' <> r) by admit. *)
+    (*     setoid_rewrite lookup_alist_add_ineq; eauto. *)
+    (*     setoid_rewrite lookup_alist_add_ineq; eauto. *)
+    (*     cbn in *. *)
+    (*     apply MONO2, MONO1; eauto. *)
+    (*   } *)
+    (*   cbn. *)
+    (*   subst. *)
+    (*   unfold IntType;rewrite !typ_to_dtyp_I. *)
+    (*   focus_single_step_v; norm_v. *)
+    (*   subst; cbn; norm_v. *)
+    (*   focus_single_step_v. *)
+
+    (*   match goal with *)
+    (*     |- eutt _ _ (ITree.bind (_ (interp_cfg _ _ ?l _)) _) => destruct (EXP2 l) as [EQe' ?]; auto *)
+    (*   end. *)
+    (*   rewrite <- sub_alist_add. *)
+    (*   apply sub_alist_add. *)
+    (*   rename r into foo. *)
+    (*   (* Freshness, easy todo *) *)
+    (*   admit. *)
+    (*   admit. *)
+
+    (*   rewrite <- EQe'. *)
+    (*   norm_v. *)
+    (*   subst; cbn*; norm_v. *)
+    (*   focus_single_step_v. *)
+    (*   norm_v; subst; focus_single_step_v. *)
+    (*   norm_v; subst; focus_single_step_v. *)
+    (*   cbn; unfold ITree.map. *)
+    (*   norm_v; subst; focus_single_step_v. *)
+    (*   rewrite exp_E_to_instr_E_Memory, subevent_subevent. *)
+    (*   rewrite typ_to_dtyp_D_array. *)
+
+    (*   Set Hyps Limit 50. *)
+
+    (*   (* Need another GEP lemma? *)
+    (*      The destination is not read on the Helix side, so that I do not know that the GEP succeeds *)
+    (*    *) *)
+
+    (*   (* *)
+    (*   match goal with *)
+    (*     |- context[interp_cfg_to_L3 ?defs (@ITree.trigger ?E _ (subevent _ (GEP (DTYPE_Array ?size ?t) (DVALUE_Addr ?a) _))) ?g ?l] => *)
+    (*     edestruct (@interp_cfg_to_L3_GEP_array defs t a size g l) as (add' & ?EQ & READ'); eauto *)
+    (*   end. *)
+
+    (*   eapply VEC_LUy. *)
+    (*    *) *)
+
+    (*     admit. *)
+    (* (* End of genFSHAssign, things are getting a bit complicated *) *)
 
 
 
@@ -357,7 +375,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         remember x as bks
       end.
 
-
+(*      
       erewrite denote_bks_unfold.
       2:{
         subst; cbn.
@@ -406,7 +424,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         2:cbn; admit.
 
         norm_v.
-(*
         (* loopblock  *)
         rewrite denote_bks_unfold.
         2:{
@@ -428,33 +445,33 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
         admit.
 
-      --
-        (* from == to, we go from the entry block to the next one directly *)
-        cbn.
-        norm_v.
-        subst; cbn; norm_v.
+      (* -- *)
+      (*   (* from == to, we go from the entry block to the next one directly *) *)
+      (*   cbn. *)
+      (*   norm_v. *)
+      (*   subst; cbn; norm_v. *)
 
-        repeat rewrite find_block_ineq.
-        2,3,4,5: cbn; admit.
-        cbn.
-        rewrite find_block_nil.
+      (*   repeat rewrite find_block_ineq. *)
+      (*   2,3,4,5: cbn; admit. *)
+      (*   cbn. *)
+      (*   rewrite find_block_nil. *)
 
-        cbn; norm_v.
-        assert (n ≡ 0) by admit.
+      (*   cbn; norm_v. *)
+      (*   assert (n ≡ 0) by admit. *)
 
-        subst.
-        cbn; norm_h.
-        rewrite interp_Mem_MemSet.
-        norm_h.
+      (*   subst. *)
+      (*   cbn; norm_h. *)
+      (*   rewrite interp_Mem_MemSet. *)
+      (*   norm_h. *)
 
-        apply eutt_Ret.
-        split; eauto.
-        {
-          admit.
-        }
-        {
-          admit.
-        }
+      (*   apply eutt_Ret. *)
+      (*   split; eauto. *)
+      (*   { *)
+      (*     admit. *)
+      (*   } *)
+      (*   { *)
+      (*     admit. *)
+      (*   } *)
 
     - (* DSHBinOp *)
       destruct fuel as [| fuel]; [cbn in *; simp |].
@@ -549,12 +566,273 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   (*       cbn. *)
   (*       norm_v. *)
 
+      admit.
+    - (* DSHMemMap2 *) admit.
+    - (* DSHPower *) admit.
+    - (* DSHLoop *) admit.
+    - (* DSHAlloc *) admit.
+    - (* DSHMemInit *) admit.
+    - (* DSHSeq *)
+      cbn.
+
+      cbn in GEN.
+      break_match_hyp; inversion GEN.
+      break_match_hyp; inversion GEN.
+      inversion Heqs.
+
+      destruct p0, s.
+      break_match_hyp; inversion Heqs.
+      destruct p0, s.
+      subst. cbn in *.
+      inversion H2.
+
+      Lemma add_comment_eutt :
+        forall comments bks ids,
+          denote_bks (convert_typ [] (add_comment bks comments)) ids ≈ denote_bks (convert_typ [] bks) ids.
+      Proof.
+        intros comments bks ids.
+        induction bks.
+        - cbn. reflexivity.
+        - destruct ids as (bid_from, bid_src); cbn.
+          match goal with
+          | |- context[denote_bks ?bks (_, ?bid_src)] =>
+            destruct (find_block dtyp bks bid_src) eqn:FIND
+          end.
+      Admitted.
+
+      rewrite add_comment_eutt.
+
+      Check ITree.bind _ _.
+
+      (* Move these *)
+      (* Kind of wonder if these should be traversals *)
+      Definition bks_labels {t} (bks : list (LLVMAst.block t)) : list block_id
+        := fmap blk_id bks.
+
+      Definition terminator_targets {t} (term : LLVMAst.terminator t) : list block_id
+        := match term with
+           | TERM_Ret v => []
+           | TERM_Ret_void => []
+           | TERM_Br v br1 br2 => [br1; br2]
+           | TERM_Br_1 br => [br]
+           | TERM_Switch v default_dest brs => default_dest :: fmap snd brs
+           | TERM_IndirectBr v brs => brs
+           | TERM_Resume v => []
+           | TERM_Invoke fnptrval args to_label unwind_label => [to_label; unwind_label]
+           end.
+      
+      Definition bks_targets {t} (bks : list (LLVMAst.block t)) : list block_id
+        := fold_left (fun acc bk => terminator_targets (snd (blk_term bk)) ++ acc) bks [].
+
+      Lemma find_none_app:
+        forall {A} (l1 l2 : list A) pred,
+          find pred l1 ≡ None ->
+          find pred (l1 ++ l2) ≡ find pred l2.
+      Proof.
+        induction l1; intros l2 pred FIND.
+        - reflexivity.
+        - cbn in FIND; cbn.
+          destruct (pred a); inversion FIND.
+          auto.
+      Qed.
+
+      Lemma find_some_app:
+        forall {A} (l1 l2 : list A) a pred,
+          find pred l1 ≡ Some a ->
+          find pred (l1 ++ l2) ≡ Some a.
+      Proof.
+        induction l1 as [|x l1']; intros l2 a pred FIND.
+        - inversion FIND.
+        - cbn in FIND. destruct (pred x) eqn:PRED.
+          + inversion FIND; cbn; subst.
+            rewrite PRED. reflexivity.
+          + cbn. rewrite PRED.
+            auto.
+      Qed.
+
+      Lemma find_block_none_app:
+        forall {t} l1 l2 bid,
+          find_block t l1 bid ≡ None ->
+          find_block t (l1 ++ l2) bid ≡ find_block t l2 bid.
+      Proof.
+        intros t l1 l2 bid FIND.
+        apply find_none_app; auto.
+      Qed.
+
+      Lemma find_block_some_app:
+        forall {t} l1 l2 bid bk,
+          find_block t l1 bid ≡ Some bk ->
+          find_block t (l1 ++ l2) bid ≡ Some bk.
+      Proof.
+        intros t l1 l2 bid bk FIND.
+        apply find_some_app; auto.
+      Qed.
+      
+      Lemma denote_bks_app_no_edges :
+        forall l1 l2 fto,
+          find_block dtyp l1 (snd fto) ≡ None ->
+          (forall bk, In bk (bks_targets l2) -> ~ In bk (bks_labels l1)) ->
+          denote_bks (l1 ++ l2) fto ≈ denote_bks l2 fto.
+      Proof.
+        intros l1 l2 [f to] FIND NOBACK.
+        cbn in FIND.
+        epose proof (find_block_none_app _ l2 _ FIND) as FIND_L1L2.
+        destruct (find_block dtyp l2 to) eqn:FIND_L2.
+        - rewrite denote_bks_unfold_in; eauto.
+          rewrite denote_bks_unfold_in; eauto.
+          eapply eutt_clo_bind.
+          + reflexivity.
+          + intros u1 u2 H.
+            subst. destruct u2; try reflexivity.
+            admit.
+        - rewrite denote_bks_unfold_not_in; auto.
+          rewrite denote_bks_unfold_not_in; auto.
+          reflexivity.
+      Admitted.
+
+      Lemma denote_bks_app :
+        forall l1 l2 fto,
+          (* No edges from l2 to l1 *)
+          (forall bk, In bk (bks_targets l2) -> ~ In bk (bks_labels l1)) ->
+          denote_bks (l1 ++ l2) fto ≈ ITree.bind (denote_bks l1 fto)
+                                       (fun x =>
+                                          match x with
+                                          | inl fto2 => denote_bks l2 fto2
+                                          | inr v => ret (inr v)
+                                          end).
+      Proof.
+        intros l1 l2 [f to] NOBACK.
+        destruct (find_block dtyp l1 to) eqn:FIND.
+        - pose proof denote_bks_unfold_in l1 f to b FIND as EQ.
+          pose proof find_block_some_app l1 l2 to FIND as FIND_APP.
+
+          rewrite denote_bks_unfold_in; eauto.
+          rewrite denote_bks_unfold_in; eauto.
+
+          cbn.
+          repeat setoid_rewrite bind_bind.
+
+          (* denote_phis *)
+          eapply eutt_clo_bind; try reflexivity.
+          intros u1 u2 H; subst.
+
+          (* Writing phis *)
+          eapply eutt_clo_bind; try reflexivity.
+          intros u1 u0 H; subst.
+          repeat rewrite bind_ret_l.
+
+          (* denote_code *)
+          eapply eutt_clo_bind; try reflexivity.
+          intros u1 u3 H; subst.
+
+          (* denote_terminator *)
+          Definition branch_not_in {t} (r : block_id + uvalue) (l : list (LLVMAst.block t)) : Prop :=
+            match r with
+            | inl bid => find_block t l bid ≡ None
+            | _ => True
+            end.
+          
+          Definition branch_out {t} (l : list (LLVMAst.block t)) (r1 : block_id + uvalue) (r2 : block_id + uvalue) : Prop :=
+            r1 ≡ r2 /\ branch_not_in r1 l.
+
+          eapply eutt_clo_bind with (UU:=branch_out l1).
+          { destruct (blk_term b) as [i t] eqn:TERM.
+            (* destruct t. *)
+            (* - cbn. *)
+            (*   Transparent denote_terminator. *)
 
 
+            eapply eqit_mon with (RR:=Logic.eq); intuition.
+            unfold branch_out. intuition.
+            cbn.
+            admit. admit.
+          }
 
+          intros term' term [EQT BOUT]; subst.
+          destruct term as [branch_to | retv].
+          + (* b0 not in l1 due to bailing out of iter *)
+            assert (find_block dtyp l1 branch_to ≡ None) as FIND_B0.
+            admit.
 
-*)
-*)
+            rewrite denote_bks_app_no_edges; eauto.
+
+            rewrite (denote_bks_unfold_not_in l1); eauto.
+            rewrite bind_ret_l.
+
+            reflexivity.
+          + rewrite bind_ret_l.
+            reflexivity.
+        - rewrite denote_bks_app_no_edges; eauto.
+
+          rewrite (denote_bks_unfold_not_in l1); eauto.
+          rewrite bind_ret_l.
+
+          reflexivity.
+      Admitted.
+
+      cbn.
+
+      Lemma convert_typ_block_app : forall (a b : list (LLVMAst.block typ)) env, (convert_typ env (a ++ b) ≡ convert_typ env a ++ convert_typ env b)%list.
+      Proof.
+        induction a as [| [] a IH]; cbn; intros; auto.
+        rewrite IH; reflexivity.
+      Qed.
+
+      rewrite convert_typ_block_app.
+      rewrite denote_bks_app; eauto.
+      2: admit. (* TODO: should hold from compilation *)
+
+      repeat norm_h.
+      repeat norm_v.
+
+      Lemma evalDSHSeq_split :
+        forall {fuel σ op1 op2 mem mem''},
+          evalDSHOperator σ (DSHSeq op1 op2) mem fuel ≡ Some (inr mem'') ->
+          exists mem', evalDSHOperator σ op1 mem fuel ≡ Some (inr mem') /\
+                  evalDSHOperator σ op2 mem' fuel ≡ Some (inr mem'').
+      Proof.
+        induction fuel;
+          intros σ op1 op2 mem mem'' EVAL.
+        - inversion EVAL.
+        - cbn in EVAL.
+          break_match_hyp; try break_match_hyp; inversion EVAL.
+          exists m. split.
+          * apply evalDSHOperator_fuel_monotone; auto.
+          * erewrite evalDSHOperator_fuel_monotone; eauto.
+      Qed.
+
+      pose proof (evalDSHSeq_split EVAL) as [mem' [EVAL1 EVAL2]].
+
+      subst.
+      eapply eutt_clo_bind.
+      { eapply (IHop1 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ EVAL1 Heqs1).
+        Unshelve.
+        admit.
+
+        (* TODO: :(((( *)
+        (* This one is annoying. Need to apply IHop1 to get GenIR_Rel
+        of i... But need it to apply. Grrrr *)
+        admit.
+      }
+
+      intros [u1 []] (u2 & le & ge & res) IRREL.
+      pose proof IRREL as [STATE [[from to] BRANCH]].
+
+      (* TODO: How can I know this? *)
+      (* Probably need to extend GenIR_Rel? *)
+      assert (b ≡ to). admit. subst.
+
+      (* TODO: Need to match u1 up with mem' somehow *)
+      assert (u1 ≡ mem').
+      { epose proof (IHop1 _ _ σ memH _ _ _ bid_in from _ ge le u2 _ _ EVAL1 Heqs1) as IH.
+        cbn in STATE.
+        apply state_invariant_memory_invariant in STATE.
+        admit.
+      }
+      subst.
+
+      epose proof (IHop2 _ _ σ mem' _ _ _ to from _ ge le u2 _ _ EVAL2 Heqs0) as IH.
+      apply IH.
   Admitted.
   End GenIR.
 
