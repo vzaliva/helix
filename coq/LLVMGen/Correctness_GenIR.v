@@ -59,9 +59,9 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     - cbn* in GEN.
       simp.
       hide_strings'.
-      cbn*; norm_h.
+      cbn*; rauto:L.
       rewrite denote_bks_nil.
-      cbn*; norm_v.
+      cbn*; rauto:R.
       apply eqit_Ret; auto.
 
     - (* Assign case.
@@ -92,13 +92,15 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       cbn*.
       rename n1 into x_p, n2 into y_p.
 
-      norm_h.
+      rauto:L.
       unfold denotePExpr; cbn*.
       break_inner_match_goal; cbn* in *; simp.
       eutt_hide_right.
       rename m into x_i, m0 into y_i.
-
-      norm_h.
+      focus_single_step_h.
+      rauto:L.
+      subst.
+      rauto:L.
       2,3:cbn*; apply memory_lookup_err_inr_Some_eq; eauto.
 
       subst; eutt_hide_left.
@@ -108,11 +110,11 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       2: rewrite find_block_eq; reflexivity.
       cbn*.
       repeat rewrite fmap_list_app.
-      norm_v.
+      rauto:R.
       cbn.
-      norm_v.
+      rauto:R.
       rewrite denote_code_app.
-      norm_v.
+      rauto:R.
       subst.
       focus_single_step.
       rename x into x_p', y into y_p'.
@@ -132,8 +134,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       subst.
 
       rewrite denote_code_app.
-      norm_v.
-      norm_h.
+      rauto.
       focus_single_step.
 
       (* Step 6. *)
@@ -176,19 +177,19 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
       rewrite (assert_NT_lt_success Heqs13). 
       cbn*.
-      norm_h.
+      rauto:L.
+     
       rewrite interp_Mem_MemSet.
       cbn*.
-      norm_h.
+      rauto:L.
 
       subst; eutt_hide_left.
 
       simpl.
-      norm_v.
-      norm_v.
+      rauto:R.
       focus_single_step_v.
       cbn.
-      norm_v.
+
       (* I am looking up an ident x, for which I find the type `TYPE_Pointer (TYPE_Array sz TYPE_Double)`
          in my typing context.
          Can it be a global?
@@ -206,7 +207,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       edestruct memory_invariant_LLU_Ptr as (bk_y & ptr_y & LUy & INLGy & VEC_LUy); [| exact LUn0 | eassumption |]; eauto.
       rewrite LUy in Heqo1; symmetry in Heqo1; inv Heqo1.
 
-      focus_single_step_v; norm_v.
+      focus_single_step_v; rauto:R.
       admit.
     (*   2: apply MONO2, MONO1; eauto. *)
     (*   cbn; norm_v. *)
@@ -338,7 +339,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
       eutt_hide_right.
 
-      norm_h.
+      rauto:L.
       unfold denotePExpr; cbn*.
 
       Ltac rewrite_nth_error :=
@@ -353,11 +354,11 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
       do 2 rewrite_nth_error.
 
-      repeat (norm_h; []).
-      norm_h.
+      repeat (rauto:L; []).
+      rauto:L.
       2: cbn*; rewrite_memory_lookup; reflexivity.
 
-      norm_h.
+      rauto:L.
       2: cbn*; rewrite_memory_lookup; reflexivity.
 
       subst; eutt_hide_left.
@@ -497,7 +498,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
          6. write the result in memory at yi
        *)
       eutt_hide_right.
-      norm_h.
+      rauto:L.
 
      subst; eutt_hide_left.
 
@@ -576,15 +577,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       cbn.
 
       cbn in GEN.
-      break_match_hyp; inversion GEN.
-      break_match_hyp; inversion GEN.
-      inversion Heqs.
-
-      destruct p0, s.
-      break_match_hyp; inversion Heqs.
-      destruct p0, s.
-      subst. cbn in *.
-      inversion H2.
+      simp.
 
       Lemma add_comment_eutt :
         forall comments bks ids,
@@ -602,7 +595,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
       rewrite add_comment_eutt.
 
-      Check ITree.bind _ _.
 
       (* Move these *)
       (* Kind of wonder if these should be traversals *)
@@ -667,7 +659,16 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         intros t l1 l2 bid bk FIND.
         apply find_some_app; auto.
       Qed.
-      
+
+      (* TODO: replace the too restrictive version from itree *)
+      Lemma eutt_eq_bind : forall E R1 R2 RR U (t: itree E U) (k1: U -> itree E R1) (k2: U -> itree E R2),
+          (forall u, eutt RR (k1 u) (k2 u)) -> eutt RR (ITree.bind t k1) (ITree.bind t k2).
+      Proof.
+        intros.
+        apply eutt_clo_bind with (UU := Logic.eq); [reflexivity |].
+        intros ? ? ->; apply H.
+      Qed.
+
       Lemma denote_bks_app_no_edges :
         forall l1 l2 fto,
           find_block dtyp l1 (snd fto) ≡ None ->
@@ -675,19 +676,20 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
           denote_bks (l1 ++ l2) fto ≈ denote_bks l2 fto.
       Proof.
         intros l1 l2 [f to] FIND NOBACK.
-        cbn in FIND.
-        epose proof (find_block_none_app _ l2 _ FIND) as FIND_L1L2.
-        destruct (find_block dtyp l2 to) eqn:FIND_L2.
-        - rewrite denote_bks_unfold_in; eauto.
-          rewrite denote_bks_unfold_in; eauto.
-          eapply eutt_clo_bind.
-          + reflexivity.
-          + intros u1 u2 H.
-            subst. destruct u2; try reflexivity.
-            admit.
-        - rewrite denote_bks_unfold_not_in; auto.
-          rewrite denote_bks_unfold_not_in; auto.
-          reflexivity.
+          Transparent denote_bks.
+          apply (@KTreeFacts.eutt_iter_gen _ _ _ (fun fto fto' => fto' ≡ fto /\ find_block dtyp l1 (snd fto) ≡ None)); auto.
+          clear f to FIND; intros fto fto' [-> FIND]; destruct fto as [f to] .
+          cbn in *.
+          epose proof (find_block_none_app _ l2 _ FIND) as FIND_L1L2.
+          rewrite FIND_L1L2.
+          destruct (find_block dtyp l2 to) eqn:FIND_L2.
+        - repeat (autorewrite with itree; apply eutt_eq_bind; intros ?).
+          destruct u2; apply eutt_Ret.
+          + left; split; auto.
+            cbn.
+            admit. (* Need a lemma to derive that the new label was part of the targets *)
+          + right; auto.
+        - apply eutt_Ret; right; auto.
       Admitted.
 
       Lemma denote_bks_app :
@@ -782,8 +784,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       rewrite denote_bks_app; eauto.
       2: admit. (* TODO: should hold from compilation *)
 
-      repeat norm_h.
-      repeat norm_v.
+      rauto.
+     
 
       Lemma evalDSHSeq_split :
         forall {fuel σ op1 op2 mem mem''},
@@ -805,7 +807,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
       subst.
       eapply eutt_clo_bind.
-      { eapply (IHop1 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ EVAL1 Heqs1).
+      { eapply (IHop1 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ EVAL1 Heqs2).
         Unshelve.
         admit.
 
@@ -824,7 +826,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
       (* TODO: Need to match u1 up with mem' somehow *)
       assert (u1 ≡ mem').
-      { epose proof (IHop1 _ _ σ memH _ _ _ bid_in from _ ge le u2 _ _ EVAL1 Heqs1) as IH.
+      { epose proof (IHop1 _ _ σ memH _ _ _ bid_in from _ ge le u2 _ _ EVAL1 Heqs2) as IH.
         cbn in STATE.
         apply state_invariant_memory_invariant in STATE.
         admit.

@@ -724,17 +724,18 @@ Ltac break_and :=
   Hint Rewrite interp_cfg_to_L3_LR : vellvm.
   Hint Rewrite @lookup_E_to_exp_E_Global : vellvm.
   Hint Rewrite @lookup_E_to_exp_E_Local : vellvm.
+  Hint Rewrite @subevent_subevent : vellvm.
   Hint Rewrite @exp_E_to_instr_E_Global : vellvm.
   Hint Rewrite @exp_E_to_instr_E_Local : vellvm.
   Hint Rewrite @subevent_subevent : vellvm.
   Hint Rewrite @typ_to_dtyp_equation : vellvm.
+  Hint Rewrite denote_code_nil : vellvm.
+  Hint Rewrite denote_code_singleton : vellvm.
+
 
   Hint Rewrite interp_Mem_bind : helix.
   Hint Rewrite interp_Mem_ret : helix.
   Hint Rewrite interp_Mem_MemLU : helix.
-
-  Hint Rewrite denote_code_nil : helix.
-  Hint Rewrite denote_code_singleton : helix.
 
   Tactic Notation "rauto:R" :=
     repeat (
