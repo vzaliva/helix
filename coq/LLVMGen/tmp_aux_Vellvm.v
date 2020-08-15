@@ -587,12 +587,6 @@ Qed.
 
 (* TODO YZ : Move to itrees *)
 (* Simple specialization of [eqit_Ret] to [eutt] so that users of the library do not need to know about [eqit] *)
-Lemma eutt_Ret :
-  forall E (R1 R2 : Type) (RR : R1 -> R2 -> Prop) r1 r2, RR r1 r2 <-> eutt (E := E) RR (Ret r1) (Ret r2).
-Proof.
-  intros; apply eqit_Ret.
-Qed.
-
 (* TODO move to Vellvm/Tactics *)
 Ltac ret_bind_l_left v :=
   match goal with
@@ -685,33 +679,6 @@ End WithDec.
 
 Notation "m '@' x" := (alist_find x m).
 Notation "m '⊑' m'" := (sub_alist m m') (at level 45).
-
-(* find_block axiomatisation to ease things. TODO: make it opaque *)
-Lemma find_block_nil: forall {T} b, find_block T [] b = None. 
-Proof.
-  reflexivity.
-Qed.
-
-Lemma find_block_eq: forall {T} x b bs,
-    blk_id b = x ->
-    find_block T (b:: bs) x = Some b.
-Proof.
-  intros; cbn.
-  rewrite H.
-  destruct (Eqv.eqv_dec_p x x).
-  reflexivity.
-  contradiction n; reflexivity.
-Qed.
-
-Lemma find_block_ineq: forall {T} x b bs,
-    blk_id b <> x ->
-    find_block T (b::bs) x = find_block T bs x. 
-Proof.
-  intros; cbn.
-  destruct (Eqv.eqv_dec_p (blk_id b)) as [EQ | INEQ].
-  unfold Eqv.eqv, eqv_raw_id in *; intuition.
-  reflexivity.
-Qed.
 
 Global Instance ConvertTyp_list {A} `{Traversal.Fmap A}: ConvertTyp (fun T => list (A T)) :=
   fun env => Traversal.fmap (typ_to_dtyp env).
