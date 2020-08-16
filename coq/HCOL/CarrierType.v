@@ -17,24 +17,38 @@ Require Import MathClasses.orders.minmax.
 Require Import Helix.Util.Misc.
 
 Parameter CarrierA : Type.
+
+(* Equality *)
 Instance CarrierAe: Equiv CarrierA. Admitted.
 Instance CarrierAsetoid: @Setoid CarrierA CarrierAe. Admitted.
+
+(* Constants *)
 Instance CarrierAz: Zero CarrierA. Admitted.
 Instance CarrierA1: One CarrierA. Admitted.
+
+(* Operators *)
 Instance CarrierAplus: Plus CarrierA. Admitted.
 Instance CarrierAmult: Mult CarrierA. Admitted.
 Instance CarrierAneg: Negate CarrierA. Admitted.
+Instance CarrierAabs: @Abs CarrierA CarrierAe CarrierAle CarrierAz CarrierAneg. Admitted.
+
+(* Ring *)
+Instance CarrierAr: Ring CarrierA. Admitted.
+
+(* Comparison *)
 Instance CarrierAle: Le CarrierA. Admitted.
 Instance CarrierAlt: Lt CarrierA. Admitted.
-Instance CarrierAto: @TotalOrder CarrierA CarrierAe CarrierAle. Admitted.
-Instance CarrierAabs: @Abs CarrierA CarrierAe CarrierAle CarrierAz CarrierAneg. Admitted.
-Instance CarrierAr: Ring CarrierA. Admitted.
+
+(* Decidability *)
 Instance CarrierAltdec: ∀ x y: CarrierA, Decision (x < y). Admitted.
 Instance CarrierAequivdec: ∀ x y: CarrierA, Decision (x = y). Admitted.
+
+(* Orders *)
+Instance CarrierAto: @TotalOrder CarrierA CarrierAe CarrierAle. Admitted.
 Instance CarrierASSO: @StrictSetoidOrder CarrierA CarrierAe CarrierAlt. Admitted.
 Instance CarrierASRO: @SemiRingOrder CarrierA CarrierAe CarrierAplus CarrierAmult CarrierAz CarrierA1 CarrierAle. Admitted.
+Instance CarrierFPSO: @FullPseudoOrder CarrierA CarrierAe (@strong_setoids.default_apart CarrierA CarrierAe) CarrierALe CarrierALt. Admitted.
 
-Instance CarrierFPSO: @orders.FullPseudoOrder CarrierA CarrierAe (@strong_setoids.default_apart CarrierA CarrierAe) CarrierALe CarrierALt. Admitted.
 
 Instance CarrierAledec: ∀ x y: CarrierA, Decision (x ≤ y).
 Proof.
