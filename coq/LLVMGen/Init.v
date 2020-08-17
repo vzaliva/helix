@@ -811,6 +811,7 @@ Lemma memory_invariant_after_init
                        [] ([],[]) empty_memory_stack)
       ).
 Proof.
+  (*
   intros hmem σ s hdata pll [HI LI].
 
   unfold state_invariant_mcfg.
@@ -1220,6 +1221,8 @@ Proof.
                             Ret (memory_set mgy (Datatypes.length globals) mi, ()))
                    (Ret mg))
     by admit.
+
+  *)
 
   (*
   eapply eutt_clo_bind.
