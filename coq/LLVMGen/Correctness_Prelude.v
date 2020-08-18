@@ -321,6 +321,10 @@ Section RelationTypes.
   Definition Rel_cfg: Type
     := memoryH -> config_cfg -> Prop.
 
+  (** Predicate on cfg *)
+  Definition Pred_cfg: Type
+    := config_cfg -> Prop.
+
   (** Relation of memory states which must be held for
       intialization steps *)
   Definition Rel_mcfg: Type

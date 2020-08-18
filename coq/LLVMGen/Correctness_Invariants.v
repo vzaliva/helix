@@ -152,7 +152,7 @@ Section SimulationRelations.
        end.
 
   (* Check that a pair of [ident] and [dvalue] can be found in the
-     appropriate environment. This to be used for  *)
+     appropriate environment. *)
   Definition in_local_or_global_addr
              (ρ : local_env) (g : global_env) (m : memoryV)
              (x : ident) (a : Addr.addr): Prop
@@ -181,6 +181,15 @@ Section SimulationRelations.
           (forall i v, mem_lookup i bk_helix ≡ Some v ->
                   get_array_cell mem_llvm ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v))
         end.
+
+  (* For compiled FHCOL programs we need to ensure we have 2 declarations:
+     1. "main" function
+     2. function, implementing compiled expression.
+   *)
+  Definition declarations_invariant (fnname:string) : Pred_cfg :=
+    fun '(mem_llvm, (ρ,g)) =>
+      (exists ma, g @ (Name "main") ≡ Some (DVALUE_Addr ma)) /\
+      (exists mf, g @ (Name fnname) ≡ Some (DVALUE_Addr mf)).
 
   (* Lookups in [genv] are fully determined by lookups in [Γ] and [σ] *)
   Lemma memory_invariant_GLU : forall σ s v id memH memV t l g n,
