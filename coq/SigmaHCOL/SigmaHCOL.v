@@ -2328,7 +2328,7 @@ Section GatherScatterIdentities.
 
   Local Notation "g ⊚ f" := (@SHCompose _ _ _ _ _ g f) (at level 40, left associativity) : type_scope.
 
-  Lemma GatherScatter {n:nat}
+  Lemma ScatterGather_identity {n:nat}
         {f:index_map n n}
         {f_inj: index_map_injective f}
     :
@@ -2343,7 +2343,17 @@ Section GatherScatterIdentities.
     reflexivity.
   Qed.
 
-  Lemma ScatterGather {n:nat}
+  Lemma index_map_inj_surj
+        {n: nat}
+        {f: index_map n n}
+        (f_inj: index_map_injective f):
+    index_map_surjective f.
+  Proof.
+    intros y yc.
+    unfold index_map_injective in f_inj.
+  Admitted.
+
+  Lemma GatherScatter_identity {n:nat}
         {f:index_map n n}
         {f_inj: index_map_injective f}
     :
@@ -2353,23 +2363,91 @@ Section GatherScatterIdentities.
     simpl.
     unfold compose.
     vec_index_equiv j jc.
-    pose proof Scatter_impl_spec as S.
-    unfold VnthIndexMapped in S.
-    specialize (S Monoid_RthetaFlags n n f f_inj zero).
-    specialize (S (Gather_impl f x)).
-    setoid_rewrite Gather_impl_spec in S.
-    unfold VnthIndexMapped in S.
-    assert(⟦ f ⟧ (⟦ f ⟧ j) = j) as E.
+    pose proof Scatter_impl_spec as SS.
+    unfold VnthIndexMapped in SS.
+    specialize (SS Monoid_RthetaFlags n n f f_inj zero (Gather_impl f x)).
+    setoid_rewrite Gather_impl_spec in SS.
+    unfold VnthIndexMapped in SS.
+    symmetry.
+    assert(exists j' (jc:j'<n), ⟦ f ⟧ j' ≡ j) as JJ.
     {
-      (* via bijectivity *)
-      admit.
+      cut (index_map_surjective f).
+      auto.
+      apply index_map_inj_surj, f_inj.
     }
-    specialize (S (⟦ f ⟧ (⟦ f ⟧ j))).
-    autospecialize S.
-    {
-      rewrite E; assumption.
-    }
+    destruct JJ as (j' & jc' & JJ).
+
+    specialize (SS j' jc').
+    erewrite Vnth_eq.
+    erewrite SS.
+    2:auto.
+    clear SS.
+    apply Vnth_equiv.
+    auto.
+    reflexivity.
+  Qed.
+
+  (* [g] is left inverse of [f] *)
+  Definition left_inverse {n} (g f: index_map n n) :=
+    forall x (xc:x<n) y, ⟦ f ⟧ x = y -> ⟦ g ⟧ y = x.
+
+  (* [h] is right inverse of [f] *)
+  Definition right_inverse {n} (h f: index_map n n) :=
+    forall x (xc:x<n) y, ⟦ h ⟧ y = x -> ⟦ f ⟧ x = y.
+
+  (* A function [f] with a left inverse is necessarily injective. *)
+  Lemma left_inverse_is_injective {n:nat} {f: index_map n n}:
+    exists g, left_inverse g f -> index_map_injective f.
+  Proof.
+    eexists.
+    intros HI. unfold left_inverse in HI.
+    intros x y xc yc H.
+    (* not sure we need this lemma *)
   Admitted.
+
+  Lemma ScatterGather
+        {n:nat}
+        {f h:index_map n n}
+        {f_inj: index_map_injective f}
+        {inv: right_inverse h f}
+        {fm}
+        {svalue}
+    :
+      Scatter (svalue:=svalue) (f_inj:=f_inj) fm f = Gather fm h.
+  Proof.
+    unfold equiv, SHOperator_equiv.
+    simpl.
+    unfold equiv.
+    intros x y E.
+    vec_index_equiv j jc.
+    rewrite Gather_impl_spec.
+    unfold VnthIndexMapped.
+    unfold right_inverse in inv.
+    Set Printing Implicit.
+  Admitted.
+
+  (*
+  Lemma ScatterGather
+        {n:nat}
+        {f g:index_map n n}
+        {f_inj: index_map_injective f}
+        {inv: left_inverse g f}
+        {fm}
+        {svalue}
+    :
+      Scatter (svalue:=svalue) (f_inj:=f_inj) fm f = Gather fm g.
+  Proof.
+    unfold equiv, SHOperator_equiv.
+    simpl.
+    unfold equiv.
+    intros x y E.
+    vec_index_equiv j jc.
+    rewrite Gather_impl_spec.
+    unfold VnthIndexMapped.
+    unfold left_inverse in inv.
+    Set Printing Implicit.
+  Admitted.
+   *)
 
 End GatherScatterIdentities.
 
