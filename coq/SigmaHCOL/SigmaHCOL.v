@@ -2324,6 +2324,55 @@ Section OperatorProperies.
 
 End OperatorProperies.
 
+Section GatherScatterIdentities.
+
+  Local Notation "g ⊚ f" := (@SHCompose _ _ _ _ _ g f) (at level 40, left associativity) : type_scope.
+
+  Lemma GatherScatter {n:nat}
+        {f:index_map n n}
+        {f_inj: index_map_injective f}
+    :
+      forall x, (op (svalue:=zero) Monoid_RthetaFlags (Gather _ f ⊚ Scatter (f_inj:=f_inj) _ f)) x = x.
+  Proof.
+    intros x.
+    simpl.
+    unfold compose.
+    vec_index_equiv j jc.
+    rewrite Gather_impl_spec.
+    rewrite <- Scatter_impl_spec.
+    reflexivity.
+  Qed.
+
+  Lemma ScatterGather {n:nat}
+        {f:index_map n n}
+        {f_inj: index_map_injective f}
+    :
+      forall x, (op (svalue:=zero) Monoid_RthetaFlags (Scatter (f_inj:=f_inj) _ f  ⊚ Gather _ f)) x = x.
+  Proof.
+    intros x.
+    simpl.
+    unfold compose.
+    vec_index_equiv j jc.
+    pose proof Scatter_impl_spec as S.
+    unfold VnthIndexMapped in S.
+    specialize (S Monoid_RthetaFlags n n f f_inj zero).
+    specialize (S (Gather_impl f x)).
+    setoid_rewrite Gather_impl_spec in S.
+    unfold VnthIndexMapped in S.
+    assert(⟦ f ⟧ (⟦ f ⟧ j) = j) as E.
+    {
+      (* via bijectivity *)
+      admit.
+    }
+    specialize (S (⟦ f ⟧ (⟦ f ⟧ j))).
+    autospecialize S.
+    {
+      rewrite E; assumption.
+    }
+  Admitted.
+
+End GatherScatterIdentities.
+
 Section StructuralProperies.
 
   Section FlagsMonoidGenericStructuralProperties.
