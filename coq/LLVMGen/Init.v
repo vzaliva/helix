@@ -1109,6 +1109,10 @@ Proof.
     repeat rewrite app_nil_l.
 
     cbn.
+    (*
+    repeat  rewrite !ITree.Eq.Eq.bind_bind.
+    repeat  rewrite !ITree.Eq.Eq.bind_ret_l.
+     *)
     admit.
   }
 
