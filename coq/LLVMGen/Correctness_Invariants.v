@@ -182,15 +182,6 @@ Section SimulationRelations.
                   get_array_cell mem_llvm ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v))
         end.
 
-  (* For compiled FHCOL programs we need to ensure we have 2 declarations:
-     1. "main" function
-     2. function, implementing compiled expression.
-   *)
-  Definition declarations_invariant (fnname:string) : Pred_cfg :=
-    fun '(mem_llvm, (ρ,g)) =>
-      (exists ma, g @ (Name "main") ≡ Some (DVALUE_Addr ma)) /\
-      (exists mf, g @ (Name fnname) ≡ Some (DVALUE_Addr mf)).
-
   (* Lookups in [genv] are fully determined by lookups in [Γ] and [σ] *)
   Lemma memory_invariant_GLU : forall σ s v id memH memV t l g n,
       memory_invariant σ s memH (memV, (l, g)) ->
@@ -302,6 +293,22 @@ Section SimulationRelations.
     mem_is_inv : memory_invariant σ s memH configV ;
     IRState_is_WF : WF_IRState σ s ;
     incLocal_is_fresh : concrete_fresh_inv s configV
+    }.
+
+  (* For compiled FHCOL programs we need to ensure we have 2 declarations:
+     1. "main" function
+     2. function, implementing compiled expression.
+   *)
+  Definition declarations_invariant (fnname:string) : Pred_cfg :=
+    fun '(mem_llvm, (ρ,g)) =>
+      (exists ma, g @ (Name "main") ≡ Some (DVALUE_Addr ma)) /\
+      (exists mf, g @ (Name fnname) ≡ Some (DVALUE_Addr mf)).
+
+  (** An invariant which must hold after initialization stage *)
+  Record post_init_invariant (fnname:string) (σ : evalContext) (s : IRState) (memH : memoryH) (configV : config_cfg) : Prop :=
+    {
+    state_inv:  state_invariant σ s memH configV;
+    decl_inv: declarations_invariant fnname configV
     }.
 
   (**

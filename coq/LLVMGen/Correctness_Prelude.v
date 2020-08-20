@@ -330,11 +330,20 @@ Section RelationTypes.
   Definition Rel_mcfg: Type
     := memoryH -> config_mcfg -> Prop.
 
+  Definition Pred_mcfg: Type
+    := config_mcfg -> Prop.
+
   (** Type of bisimulation relations between DSHCOL and VIR internal to CFG states,
       parameterized by the types of the computed values.
    *)
   Definition Rel_cfg_T (TH TV: Type): Type
     := memoryH * TH -> config_cfg_T TV -> Prop.
+
+  (** Type of bisimulation relations between DSHCOL and VIR internal to CFG states,
+      parameterized by the types of the computed values.
+   *)
+  Definition Pred_cfg_T (TV: Type): Type
+    := config_cfg_T TV -> Prop.
 
   (* Lifting a relation on memory states to one encompassing returned values by ignoring them *)
   Definition lift_Rel_cfg (R: Rel_cfg) (TH TV: Type): Rel_cfg_T TH TV :=
@@ -358,6 +367,9 @@ Section RelationTypes.
 
   Definition lift_pure_mcfg (P : Prop) {TH TV : Type} : Rel_mcfg_T TH TV :=
     fun _ _ => P.
+
+  Definition Pred_mcfg_T (TV: Type): Type
+    := config_mcfg_T TV -> Prop.
 
   (** Type of bisimulation relation between DSHCOL and LLVM states.
     This relation could be used for fragments of CFG [cfg].

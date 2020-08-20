@@ -254,7 +254,15 @@ Qed.
 
 Definition state_invariant_mcfg (σ : evalContext) (s : IRState) : Rel_mcfg_T unit unit :=
   fun '(memH,_) '(memV,((l,sl),(g,_))) =>
-      state_invariant σ s memH (memV,(l,g)).
+    state_invariant σ s memH (memV,(l,g)).
+
+Definition post_init_invariant_mcfg (fnname:string) (σ : evalContext) (s : IRState) : Rel_mcfg_T unit unit :=
+  fun '(memH,_) '(memV,((l,sl),(g,_))) =>
+    post_init_invariant fnname σ s memH (memV,(l,g)).
+
+Definition declarations_invariant_mcfg (fnname:string) : Pred_mcfg_T unit :=
+  fun '(memV,((l,sl),(g,_))) =>
+    declarations_invariant fnname (memV,(l,g)).
 
 Lemma memory_set_seq2 {E}
       (i1 i2: mem_block_id)
@@ -803,7 +811,7 @@ Lemma memory_invariant_after_init
     helix_intial_memory p data ≡ inr (hmem,hdata,σ) /\
     compile_w_main p data newState ≡ inr (s,pll) ->
     eutt
-      (state_invariant_mcfg σ s)
+      (post_init_invariant_mcfg p.(name) σ s)
       (Ret (hmem, ()))
       (with_err_LT
          (interp_to_L3 defined_intrinsics
@@ -811,10 +819,9 @@ Lemma memory_invariant_after_init
                        [] ([],[]) empty_memory_stack)
       ).
 Proof.
-  (*
   intros hmem σ s hdata pll [HI LI].
 
-  unfold state_invariant_mcfg.
+  unfold post_init_invariant_mcfg.
   unfold helix_intial_memory in HI.
   cbn in HI.
   repeat break_match_hyp ; try inl_inr.
@@ -863,6 +870,20 @@ Proof.
   apply ListUtil.split_correct in Sg.
   rename Sg into Vs3.
 
+  repeat rewrite app_assoc.
+  unfold build_global_environment.
+  setoid_rewrite interp_to_L3_bind.
+  rewrite translate_bind.
+  rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+
+  apply eutt_clo_bind with (UU:=fun _ => declarations_invariant_mcfg name).
+  (* proving this goal will guarantee that [declarations_invariant_mcfg]
+     is satisfied after [allocate_declarations] step *)
+  admit.
+
+  intros u1 u2 DECL.
+
+  (*
   repeat rewrite app_assoc.
   unfold build_global_environment, allocate_globals, map_monad_.
   simpl.
