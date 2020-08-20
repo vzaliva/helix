@@ -2343,6 +2343,39 @@ Section GatherScatterIdentities.
     reflexivity.
   Qed.
 
+  Let n_nth (n : nat) (f : nat -> nat) : (nat -> nat) :=
+    fun x => if x =? n
+          then n
+          else if f x =? n
+               then f n
+               else f x.
+  
+  Local Lemma inj_n_nth_shrink_spec
+        {f : nat -> nat} {n : nat}
+        (f_inj : forall x y, x < (S n) -> y < (S n) -> f x ≡ f y → x ≡ y)
+    :
+      (forall x : nat, x < (S n) → f x < (S n)) ->
+      (forall x : nat, x < n → (n_nth n f) x < n).
+  Proof.
+    intros.
+    unfold n_nth.
+    repeat break_if;
+      try rewrite Nat.eqb_neq in *;
+      try rewrite Nat.eqb_eq in *.
+    -
+      omega.
+    -
+      specialize (H n).
+      autospecialize H; [constructor |].
+      destruct (Nat.eq_dec (f n) n); [| lia].
+      specialize (f_inj x n).
+      full_autospecialize f_inj; lia.
+    -
+      enough (f x < S n) by lia.
+      apply H.
+      lia.
+  Qed.
+
   Lemma index_map_inj_surj
         {n: nat}
         {f: index_map n n}
@@ -2350,7 +2383,66 @@ Section GatherScatterIdentities.
     index_map_surjective f.
   Proof.
     intros y yc.
+
     unfold index_map_injective in f_inj.
+    destruct f as [f T]; cbn in *.
+    assert (D : forall x1, x1 < n -> f x1 < n) by assumption.
+    assert (INJ : forall x1 x2, x1 < n -> x2 < n -> f x1 ≡ f x2 -> x1 ≡ x2) by auto.
+    clear f_inj T.
+
+    enough (T : exists x, x < n /\ f x ≡ y) by (destruct T as [x [xc T]]; eauto).
+
+    generalize dependent f.
+    induction n.
+    -
+      omega.
+    -
+      intros.
+      destruct (Nat.eq_dec y n).
+      +
+        subst.
+        clear IHn yc.
+
+        (* I don't think this can be avoided:
+           IB: map size 0 - trivial
+           IH: map size n maps all elements below n
+           IS: map size n -> map size (S n)
+               Consider the element to be found (y):
+               1) y < n: can be found through "shrinking",
+                         as shown in the rest of this proof
+               2) y = n: this is the new part of the codomain,
+                         IH is powerless
+
+           We are in [2].
+         *)
+        admit.
+      +
+        assert (YN : y < n) by omega; clear n0 yc.
+        autospecialize IHn; [assumption |].
+        specialize (IHn (n_nth n f)).
+        full_autospecialize IHn.
+        {
+          apply inj_n_nth_shrink_spec; auto.
+        } 
+        {
+          intros.
+          apply INJ; try omega.
+          unfold n_nth in *.
+          repeat break_if;
+            try rewrite Nat.eqb_neq in *;
+            try rewrite Nat.eqb_eq in *;
+            try (subst; omega).
+          apply INJ in H1; omega.
+          apply INJ in H1; omega.
+        }
+        destruct IHn as [x [xc R]].
+        unfold n_nth in *.
+        repeat break_if;
+          try rewrite Nat.eqb_neq in *;
+          try rewrite Nat.eqb_eq in *;
+          try (subst; omega).
+        exists n; auto.
+        exists x; auto.
   Admitted.
 
   Lemma GatherScatter_identity {n:nat}
