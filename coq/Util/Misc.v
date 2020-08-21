@@ -389,3 +389,16 @@ Section StringUtils.
     string_of_nat_aux n n "".
 
 End StringUtils.
+
+
+Definition is_Some_bool {A:Type} (x:option A) : bool :=
+  match x with
+  | Some x => true
+  | None => false
+  end.
+
+Definition is_None_bool {A:Type} (x:option A) : bool :=
+  match x with
+  | Some x => false
+  | None => true
+  end.
