@@ -295,14 +295,18 @@ Section SimulationRelations.
     incLocal_is_fresh : concrete_fresh_inv s configV
     }.
 
+  (* Named function pointer exists in global environemnts *)
+  Definition global_named_ptr_exists (fnname:string) : Pred_cfg :=
+    fun '(mem_llvm, (ρ,g)) => exists mf, g @ (Name fnname) ≡ Some (DVALUE_Addr mf).
+
   (* For compiled FHCOL programs we need to ensure we have 2 declarations:
      1. "main" function
      2. function, implementing compiled expression.
    *)
   Definition declarations_invariant (fnname:string) : Pred_cfg :=
-    fun '(mem_llvm, (ρ,g)) =>
-      (exists ma, g @ (Name "main") ≡ Some (DVALUE_Addr ma)) /\
-      (exists mf, g @ (Name fnname) ≡ Some (DVALUE_Addr mf)).
+    fun c =>
+      global_named_ptr_exists "main" c /\
+      global_named_ptr_exists fnname c.
 
   (** An invariant which must hold after initialization stage *)
   Record post_init_invariant (fnname:string) (σ : evalContext) (s : IRState) (memH : memoryH) (configV : config_cfg) : Prop :=

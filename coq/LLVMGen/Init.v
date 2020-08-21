@@ -803,6 +803,7 @@ Local Ltac fold_initialization :=
       by reflexivity
   end.
 
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -1138,11 +1139,88 @@ Proof.
     end.
     autorewrite with itree.
 
-    (*
-      rewrite !ITree.Eq.Eq.bind_bind.
-      rewrite !ITree.Eq.Eq.bind_ret_l.
-     *)
-    admit.
+    rewrite interp_to_L3_bind.
+    rewrite translate_bind.
+
+    pose_interp_to_L3_alloca m' a' A AE.
+    1:{
+      unfold non_void.
+      intros C. inversion C.
+    }
+    rewrite AE.
+    setoid_rewrite translate_ret.
+    rewrite !ITree.Eq.Eq.bind_ret_l.
+    rewrite interp_to_L3_bind.
+    rewrite translate_bind.
+    rewrite interp_to_L3_GW.
+    setoid_rewrite translate_ret.
+    rewrite !ITree.Eq.Eq.bind_ret_l.
+    autorewrite with itree.
+    cbn.
+    unfold alist_add.
+    cbn.
+
+    rewrite interp_to_L3_bind.
+    rewrite translate_bind.
+
+    pose_interp_to_L3_alloca m'' a'' A' AE'.
+    1:{
+      unfold non_void.
+      intros C. inversion C.
+    }
+    rewrite AE'.
+    setoid_rewrite translate_ret.
+    rewrite !ITree.Eq.Eq.bind_ret_l.
+    rewrite interp_to_L3_bind.
+    rewrite translate_bind.
+    rewrite interp_to_L3_GW.
+    setoid_rewrite translate_ret.
+    rewrite !ITree.Eq.Eq.bind_ret_l.
+    cbn.
+    replace (alist_add (Name "main") (DVALUE_Addr a'') [(Name name, DVALUE_Addr a')])
+      with
+        [(Name "main", DVALUE_Addr a'') ; (Name name, DVALUE_Addr a')].
+    2:{
+      assert(eqb name "main" ≡ false) as M.
+      {
+        clear - VFN.
+        apply eqb_neq.
+        intros C.
+        rewrite C in VFN.
+        cbn in VFN.
+        inv VFN.
+      }
+      clear - M.
+      unfold alist_add.
+      apply eqb_neq in M.
+      cbv.
+      break_match.
+      reflexivity.
+      break_if.
+      break_if.
+      crush.
+      crush.
+      crush.
+    }
+
+    subst LHS.
+    rewrite interp_to_L3_ret.
+    rewrite translate_ret.
+    apply eutt_Ret.
+    subst R.
+    unfold declarations_invariant_mcfg, declarations_invariant.
+    unfold global_named_ptr_exists.
+    split.
+    -
+      exists a''.
+      reflexivity.
+    -
+      exists a'.
+      rewrite alist_find_cons_neq.
+      rewrite alist_find_cons_eq.
+      reflexivity.
+      reflexivity.
+      crush.
   }
 
   intros.

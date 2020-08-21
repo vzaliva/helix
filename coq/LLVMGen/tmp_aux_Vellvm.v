@@ -542,6 +542,44 @@ Section alistFacts.
     intros; reflexivity.
   Qed.
 
+  Lemma alist_find_cons_neq
+        (k k0 : K)
+        (v0 : V)
+        (xs: alist K V)
+    :
+      (k <> k0) ->
+      alist_find k ((k0,v0)::xs) = alist_find k xs.
+  Proof.
+    intros H.
+    cbn.
+    destruct (rel_dec k k0) eqn:E.
+    -
+      exfalso.
+      rewrite rel_dec_correct in E.
+      congruence.
+    -
+      reflexivity.
+  Qed.
+
+  Lemma alist_find_cons_eq
+        (k k0 : K)
+        (v0 : V)
+        (xs: alist K V)
+    :
+      (k = k0) ->
+      alist_find k ((k0,v0)::xs) = Some v0.
+  Proof.
+    intros H.
+    cbn.
+    destruct (rel_dec k k0) eqn:E.
+    -
+      reflexivity.
+    -
+      exfalso.
+      apply rel_dec_correct in H.
+      congruence.
+  Qed.
+
 End alistFacts.
 Arguments alist_find {_ _ _ _}.
 Arguments alist_add {_ _ _ _}.
