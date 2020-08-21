@@ -54,6 +54,7 @@ Require Export Vellvm.TopLevelRefinements.
 Require Export Vellvm.TypToDtyp.
 Require Export Vellvm.LLVMEvents.
 Require Export Vellvm.Transformations.Traversal.
+Require Export Vellvm.PostConditions.
 Require Export Vellvm.Denotation_Theory.
 Require Export Vellvm.InstrLemmas.
 
