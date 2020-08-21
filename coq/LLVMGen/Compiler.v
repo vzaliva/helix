@@ -12,6 +12,7 @@ Require Import Helix.Tactics.HelixTactics.
 Require Import Vellvm.IntrinsicsDefinitions.
 Require Import Vellvm.Util.
 Require Import Vellvm.Numeric.Floats.
+Require Import Vellvm.TopLevel.
 Require Import Vellvm.LLVMAst.
 Require Import Helix.Util.ErrorSetoid.
 
@@ -1331,54 +1332,62 @@ Definition dropFakeVars: cerr unit :=
         Γ := (globals ++ Γ'')
       |}.
 
+Definition valid_function_name (fname:string) : bool :=
+  andb
+    (negb (eqb fname "main"))
+    (is_None_bool
+       (List.find (fun x => function_name_eq (Name fname) (dc_name x)) defined_intrinsics_decls)).
+
 Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): cerr (toplevel_entities typ (block typ * list (block typ))) :=
   match p with
   | mkFSHCOLProgram i o name globals op =>
-    if just_compile then
-      ginit <- genIRGlobals (FnBody:= block typ * list (block typ)) globals ;;
-      prog <- LLVMGen i o op name ;;
-      ret (ginit ++ prog)
-    else
-      (* Global placeholders for X,Y *)
-      let gx := Anon 0%Z in
-      let gxtyp := getIRType (DSHPtr i) in
-      let gxptyp := TYPE_Pointer gxtyp in
+    if valid_function_name name then
+      if just_compile then
+        ginit <- genIRGlobals (FnBody:= block typ * list (block typ)) globals ;;
+        prog <- LLVMGen i o op name ;;
+        ret (ginit ++ prog)
+      else
+        (* Global placeholders for X,Y *)
+        let gx := Anon 0%Z in
+        let gxtyp := getIRType (DSHPtr i) in
+        let gxptyp := TYPE_Pointer gxtyp in
 
-      let gy := Anon 1%Z in
-      let gytyp := getIRType (DSHPtr o) in
-      let gyptyp := TYPE_Pointer gytyp in
+        let gy := Anon 1%Z in
+        let gytyp := getIRType (DSHPtr o) in
+        let gyptyp := TYPE_Pointer gytyp in
 
-      '(data,yxinit) <- initXYplaceholders i o data gx gxtyp gy gytyp ;;
-      (* Γ := [fake_y; fake_x] *)
+        '(data,yxinit) <- initXYplaceholders i o data gx gxtyp gy gytyp ;;
+        (* Γ := [fake_y; fake_x] *)
 
-      (* While generate operator's function body, add parameters as
+        (* While generate operator's function body, add parameters as
          locals X=PVar 1, Y=PVar 0.
 
         We want them to be in `Γ` before globals *)
-      let x := Name "X" in
-      let xtyp := TYPE_Pointer (getIRType (DSHPtr i)) in
-      let y := Name "Y" in
-      let ytyp := TYPE_Pointer (getIRType (DSHPtr o)) in
+        let x := Name "X" in
+        let xtyp := TYPE_Pointer (getIRType (DSHPtr i)) in
+        let y := Name "Y" in
+        let ytyp := TYPE_Pointer (getIRType (DSHPtr o)) in
 
+        addVars [(ID_Local y, ytyp);(ID_Local x, xtyp)] ;;
+        (* Γ := [y; x; fake_y; fake_x] *)
 
-      addVars [(ID_Local y, ytyp);(ID_Local x, xtyp)] ;;
-      (* Γ := [y; x; fake_y; fake_x] *)
+        (* Global variables *)
+        '(data,ginit) <- initIRGlobals data globals ;;
+        (* Γ := [globals; y; x; fake_y; fake_x] *)
 
-      (* Global variables *)
-      '(data,ginit) <- initIRGlobals data globals ;;
-      (* Γ := [globals; y; x; fake_y; fake_x] *)
+        (* operator function *)
+        prog <- LLVMGen i o op name ;;
 
-      (* operator function *)
-      prog <- LLVMGen i o op name ;;
-
-      (* After generation of operator function, we no longer need
+        (* After generation of operator function, we no longer need
          [x] and [y] in [Γ]. *)
 
-      dropFakeVars ;;
+        dropFakeVars ;;
 
-      (* Main function *)
-      let main := genMain name gx gxptyp gy gytyp gyptyp in
-      ret (yxinit ++ ginit ++ prog ++ main)
+        (* Main function *)
+        let main := genMain name gx gxptyp gy gytyp gyptyp in
+        ret (yxinit ++ ginit ++ prog ++ main)
+    else
+      raise "invalid program name"
   end.
 
 Definition compile_w_main (p: FSHCOLProgram): list binary64 -> cerr (toplevel_entities typ (block typ * list (block typ))) :=

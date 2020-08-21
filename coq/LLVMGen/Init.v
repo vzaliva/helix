@@ -830,6 +830,11 @@ Proof.
   rename m1 into mg, Heqs0 into G.
   cbn in LI.
   unfold ErrorWithState.option2errS in *.
+
+
+  destruct (valid_function_name name) eqn:VFN.
+  2: inversion LI.
+
   repeat break_match_hyp; try inl_inr;
     inv LI; repeat inv_sum; inv Heqs5; inv Heqs4.
   rename Heqs0 into LX, Heqs1 into LG, Heqs6 into IR, Heqs8 into BC, l3 into gdecls.
@@ -1117,6 +1122,21 @@ Proof.
     (* autorewrite with vellvm. *)
     unfold allocate_declaration.
     cbn.
+
+    (* conditons like
+       [if (name =? "llvm.fabs.f32")%string]
+       are resolved using VFN hypothesis
+     *)
+    repeat match goal with
+    | [ |- context[eqb name ?s]] =>
+      destruct (eqb name s) eqn:TMP; [
+        (apply eqb_eq in TMP;
+        rewrite TMP in VFN;
+        cbn in VFN;
+        inv VFN)|] ; clear TMP
+    end.
+    autorewrite with itree.
+
 
     (*
       rewrite !ITree.Eq.Eq.bind_bind.
@@ -1801,6 +1821,9 @@ Qed.
     unfold compile_w_main, compile in H.
     destruct p.
     cbn in *.
+    destruct (valid_function_name name) eqn:VFN.
+    2: inversion H.
+
     break_match_hyp; try inv_sum.
     break_let; cbn in *.
     break_match_hyp; try inv_sum.
