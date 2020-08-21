@@ -1109,9 +1109,18 @@ Proof.
     repeat rewrite app_nil_l.
 
     cbn.
+
+    eutt_hide_left_named LHS.
+    eutt_hide_rel_named R.
+
+    autorewrite with itree.
+    (* autorewrite with vellvm. *)
+    unfold allocate_declaration.
+    cbn.
+
     (*
-    repeat  rewrite !ITree.Eq.Eq.bind_bind.
-    repeat  rewrite !ITree.Eq.Eq.bind_ret_l.
+      rewrite !ITree.Eq.Eq.bind_bind.
+      rewrite !ITree.Eq.Eq.bind_ret_l.
      *)
     admit.
   }
