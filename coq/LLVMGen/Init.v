@@ -879,6 +879,235 @@ Proof.
   unfold build_global_environment.
   setoid_rewrite interp_to_L3_bind.
   rewrite translate_bind.
+
+  repeat rewrite app_assoc.
+  unfold allocate_globals, map_monad_.
+  simpl.
+  repeat rewrite ListUtil.flat_map_app.
+  simpl.
+  (* no more [genMain] *)
+
+  destruct s3.
+
+  rename m into mo, m0 into mi.
+  rename p13 into body_instr.
+
+  cbn in *.
+
+  (* only globals defined by [initXYplaceholders] *)
+  replace (flat_map (type_defs_of typ) t) with (@nil (ident * typ)) in *.
+  2:{
+    clear - LX.
+    unfold initXYplaceholders in LX.
+    repeat break_let.
+    cbn in LX.
+    inv LX.
+    reflexivity.
+  }
+  replace (flat_map (declarations_of typ) t) with (@nil (declaration typ)) in *.
+  2:{
+    clear - LX.
+    unfold initXYplaceholders in LX.
+    repeat break_let.
+    cbn in LX.
+    inv LX.
+    reflexivity.
+  }
+  replace (flat_map (definitions_of typ) t)
+    with (@nil (definition typ (LLVMAst.block typ * list (LLVMAst.block typ))))
+    in *.
+  2:{
+    clear - LX.
+    unfold initXYplaceholders in LX.
+    repeat break_let.
+    cbn in LX.
+    inv LX.
+    reflexivity.
+  }
+
+  (* only globals defined by [initIRGlobals] *)
+  replace (flat_map (type_defs_of typ) gdecls) with (@nil (ident * typ)) in *.
+  2:{
+    clear - LX LG.
+    symmetry.
+
+    unfold initXYplaceholders in LX.
+    repeat break_let.
+    cbn in LX.
+    inv LX.
+
+    clear - LG.
+    rename l1 into data, l2 into data'.
+    revert gdecls data data' LG.
+    unfold initIRGlobals.
+
+    cbn.
+
+    generalize [(ID_Local (Name "Y"),
+                 TYPE_Pointer (TYPE_Array (Int64.intval o) TYPE_Double));
+                (ID_Local (Name "X"),
+                 TYPE_Pointer (TYPE_Array (Int64.intval i) TYPE_Double));
+                (ID_Global (Anon 1%Z), TYPE_Array (Int64.intval o) TYPE_Double);
+                (ID_Global (Anon 0%Z), TYPE_Array (Int64.intval i) TYPE_Double)] as v.
+
+    induction globals; intros v gdecls data data' H.
+    -
+      cbn in *.
+      inl_inr_inv.
+      reflexivity.
+    -
+      cbn in H.
+      repeat break_match_hyp; try inl_inr.
+      apply global_uniq_chk_preserves_st in Heqs; subst i0.
+      inl_inr_inv; subst.
+      cbn.
+      apply ListUtil.app_nil.
+      +
+        clear - Heqs0.
+        rename Heqs0 into H.
+        unfold initOneIRGlobal in H.
+        cbn in *.
+        repeat break_match.
+        all: inv H.
+        all: reflexivity.
+      +
+        destruct a.
+        apply initOneIRGlobal_state_change in Heqs0; cbn in Heqs0; inl_inr_inv.
+        destruct i1.
+        inversion H0.
+        erewrite IHglobals with
+            (data:=l)
+            (data':=data')
+            (v:=(ID_Global (Name s), TYPE_Pointer (getIRType d)) :: v)
+        ; clear IHglobals; try reflexivity.
+
+        subst Γ. subst.
+        apply Heqs1.
+  }
+  replace (flat_map (declarations_of typ) gdecls) with (@nil (declaration typ)) in *.
+  2:{
+    clear - LX LG.
+    symmetry.
+
+    unfold initXYplaceholders in LX.
+    repeat break_let.
+    cbn in LX.
+    inv LX.
+
+    clear - LG.
+    rename l1 into data, l2 into data'.
+    revert gdecls data data' LG.
+    unfold initIRGlobals.
+
+    cbn.
+
+    generalize [(ID_Local (Name "Y"),
+                 TYPE_Pointer (TYPE_Array (Int64.intval o) TYPE_Double));
+                (ID_Local (Name "X"),
+                 TYPE_Pointer (TYPE_Array (Int64.intval i) TYPE_Double));
+                (ID_Global (Anon 1%Z), TYPE_Array (Int64.intval o) TYPE_Double);
+                (ID_Global (Anon 0%Z), TYPE_Array (Int64.intval i) TYPE_Double)] as v.
+
+    induction globals; intros v gdecls data data' H.
+    -
+      cbn in *.
+      inl_inr_inv.
+      reflexivity.
+    -
+      cbn in H.
+      repeat break_match_hyp; try inl_inr.
+      apply global_uniq_chk_preserves_st in Heqs; subst i0.
+      inl_inr_inv; subst.
+      cbn.
+      apply ListUtil.app_nil.
+      +
+        clear - Heqs0.
+        rename Heqs0 into H.
+        unfold initOneIRGlobal in H.
+        cbn in *.
+        repeat break_match.
+        all: inv H.
+        all: reflexivity.
+      +
+        destruct a.
+        apply initOneIRGlobal_state_change in Heqs0; cbn in Heqs0; inl_inr_inv.
+        destruct i1.
+        inversion H0.
+        erewrite IHglobals with
+            (data:=l)
+            (data':=data')
+            (v:=(ID_Global (Name s), TYPE_Pointer (getIRType d)) :: v)
+        ; clear IHglobals; try reflexivity.
+
+        subst Γ. subst.
+        apply Heqs1.
+  }
+  replace (flat_map (definitions_of typ) gdecls)
+    with (@nil (definition typ (LLVMAst.block typ * list (LLVMAst.block typ))))
+    in *.
+  2:{
+    clear - LX LG.
+    symmetry.
+
+    unfold initXYplaceholders in LX.
+    repeat break_let.
+    cbn in LX.
+    inv LX.
+
+    clear - LG.
+    rename l1 into data, l2 into data'.
+    revert gdecls data data' LG.
+    unfold initIRGlobals.
+
+    cbn.
+
+    generalize [(ID_Local (Name "Y"),
+                 TYPE_Pointer (TYPE_Array (Int64.intval o) TYPE_Double));
+                (ID_Local (Name "X"),
+                 TYPE_Pointer (TYPE_Array (Int64.intval i) TYPE_Double));
+                (ID_Global (Anon 1%Z), TYPE_Array (Int64.intval o) TYPE_Double);
+                (ID_Global (Anon 0%Z), TYPE_Array (Int64.intval i) TYPE_Double)] as v.
+
+    induction globals; intros v gdecls data data' H.
+    -
+      cbn in *.
+      inl_inr_inv.
+      reflexivity.
+    -
+      cbn in H.
+      repeat break_match_hyp; try inl_inr.
+      apply global_uniq_chk_preserves_st in Heqs; subst i0.
+      inl_inr_inv; subst.
+      cbn.
+      apply ListUtil.app_nil.
+      +
+        clear - Heqs0.
+        rename Heqs0 into H.
+        unfold initOneIRGlobal in H.
+        cbn in *.
+        repeat break_match.
+        all: inv H.
+        all: reflexivity.
+      +
+        destruct a.
+        apply initOneIRGlobal_state_change in Heqs0; cbn in Heqs0; inl_inr_inv.
+        destruct i1.
+        inversion H0.
+        erewrite IHglobals with
+            (data:=l)
+            (data':=data')
+            (v:=(ID_Global (Name s), TYPE_Pointer (getIRType d)) :: v)
+        ; clear IHglobals; try reflexivity.
+
+        subst Γ. subst.
+        apply Heqs1.
+  }
+
+  repeat rewrite app_nil_r.
+  repeat rewrite app_nil_l.
+
+  cbn.
+
   rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
 
   apply eutt_clo_bind with (UU:=fun _ => declarations_invariant_mcfg name).
@@ -887,236 +1116,8 @@ Proof.
 
   1:{
 
-    repeat rewrite app_assoc.
-    unfold allocate_globals, map_monad_.
-    simpl.
-    repeat rewrite ListUtil.flat_map_app.
-    simpl.
-    (* no more [genMain] *)
-
-    destruct s3.
-
-    rename m into mo, m0 into mi.
-    rename p13 into body_instr.
-
-    cbn in *.
-
-    (* only globals defined by [initXYplaceholders] *)
-    replace (flat_map (type_defs_of typ) t) with (@nil (ident * typ)) in *.
-    2:{
-      clear - LX.
-      unfold initXYplaceholders in LX.
-      repeat break_let.
-      cbn in LX.
-      inv LX.
-      reflexivity.
-    }
-    replace (flat_map (declarations_of typ) t) with (@nil (declaration typ)) in *.
-    2:{
-      clear - LX.
-      unfold initXYplaceholders in LX.
-      repeat break_let.
-      cbn in LX.
-      inv LX.
-      reflexivity.
-    }
-    replace (flat_map (definitions_of typ) t)
-      with (@nil (definition typ (LLVMAst.block typ * list (LLVMAst.block typ))))
-      in *.
-    2:{
-      clear - LX.
-      unfold initXYplaceholders in LX.
-      repeat break_let.
-      cbn in LX.
-      inv LX.
-      reflexivity.
-    }
-
-    (* only globals defined by [initIRGlobals] *)
-    replace (flat_map (type_defs_of typ) gdecls) with (@nil (ident * typ)) in *.
-    2:{
-      clear - LX LG.
-      symmetry.
-
-      unfold initXYplaceholders in LX.
-      repeat break_let.
-      cbn in LX.
-      inv LX.
-
-      clear - LG.
-      rename l1 into data, l2 into data'.
-      revert gdecls data data' LG.
-      unfold initIRGlobals.
-
-      cbn.
-
-      generalize [(ID_Local (Name "Y"),
-                   TYPE_Pointer (TYPE_Array (Int64.intval o) TYPE_Double));
-                  (ID_Local (Name "X"),
-                   TYPE_Pointer (TYPE_Array (Int64.intval i) TYPE_Double));
-                  (ID_Global (Anon 1%Z), TYPE_Array (Int64.intval o) TYPE_Double);
-                  (ID_Global (Anon 0%Z), TYPE_Array (Int64.intval i) TYPE_Double)] as v.
-
-      induction globals; intros v gdecls data data' H.
-      -
-        cbn in *.
-        inl_inr_inv.
-        reflexivity.
-      -
-        cbn in H.
-        repeat break_match_hyp; try inl_inr.
-        apply global_uniq_chk_preserves_st in Heqs; subst i0.
-        inl_inr_inv; subst.
-        cbn.
-        apply ListUtil.app_nil.
-        +
-          clear - Heqs0.
-          rename Heqs0 into H.
-          unfold initOneIRGlobal in H.
-          cbn in *.
-          repeat break_match.
-          all: inv H.
-          all: reflexivity.
-        +
-          destruct a.
-          apply initOneIRGlobal_state_change in Heqs0; cbn in Heqs0; inl_inr_inv.
-          destruct i1.
-          inversion H0.
-          erewrite IHglobals with
-              (data:=l)
-              (data':=data')
-              (v:=(ID_Global (Name s), TYPE_Pointer (getIRType d)) :: v)
-          ; clear IHglobals; try reflexivity.
-
-          subst Γ. subst.
-          apply Heqs1.
-    }
-    replace (flat_map (declarations_of typ) gdecls) with (@nil (declaration typ)) in *.
-    2:{
-      clear - LX LG.
-      symmetry.
-
-      unfold initXYplaceholders in LX.
-      repeat break_let.
-      cbn in LX.
-      inv LX.
-
-      clear - LG.
-      rename l1 into data, l2 into data'.
-      revert gdecls data data' LG.
-      unfold initIRGlobals.
-
-      cbn.
-
-      generalize [(ID_Local (Name "Y"),
-                   TYPE_Pointer (TYPE_Array (Int64.intval o) TYPE_Double));
-                  (ID_Local (Name "X"),
-                   TYPE_Pointer (TYPE_Array (Int64.intval i) TYPE_Double));
-                  (ID_Global (Anon 1%Z), TYPE_Array (Int64.intval o) TYPE_Double);
-                  (ID_Global (Anon 0%Z), TYPE_Array (Int64.intval i) TYPE_Double)] as v.
-
-      induction globals; intros v gdecls data data' H.
-      -
-        cbn in *.
-        inl_inr_inv.
-        reflexivity.
-      -
-        cbn in H.
-        repeat break_match_hyp; try inl_inr.
-        apply global_uniq_chk_preserves_st in Heqs; subst i0.
-        inl_inr_inv; subst.
-        cbn.
-        apply ListUtil.app_nil.
-        +
-          clear - Heqs0.
-          rename Heqs0 into H.
-          unfold initOneIRGlobal in H.
-          cbn in *.
-          repeat break_match.
-          all: inv H.
-          all: reflexivity.
-        +
-          destruct a.
-          apply initOneIRGlobal_state_change in Heqs0; cbn in Heqs0; inl_inr_inv.
-          destruct i1.
-          inversion H0.
-          erewrite IHglobals with
-              (data:=l)
-              (data':=data')
-              (v:=(ID_Global (Name s), TYPE_Pointer (getIRType d)) :: v)
-          ; clear IHglobals; try reflexivity.
-
-          subst Γ. subst.
-          apply Heqs1.
-    }
-    replace (flat_map (definitions_of typ) gdecls)
-      with (@nil (definition typ (LLVMAst.block typ * list (LLVMAst.block typ))))
-      in *.
-    2:{
-      clear - LX LG.
-      symmetry.
-
-      unfold initXYplaceholders in LX.
-      repeat break_let.
-      cbn in LX.
-      inv LX.
-
-      clear - LG.
-      rename l1 into data, l2 into data'.
-      revert gdecls data data' LG.
-      unfold initIRGlobals.
-
-      cbn.
-
-      generalize [(ID_Local (Name "Y"),
-                   TYPE_Pointer (TYPE_Array (Int64.intval o) TYPE_Double));
-                  (ID_Local (Name "X"),
-                   TYPE_Pointer (TYPE_Array (Int64.intval i) TYPE_Double));
-                  (ID_Global (Anon 1%Z), TYPE_Array (Int64.intval o) TYPE_Double);
-                  (ID_Global (Anon 0%Z), TYPE_Array (Int64.intval i) TYPE_Double)] as v.
-
-      induction globals; intros v gdecls data data' H.
-      -
-        cbn in *.
-        inl_inr_inv.
-        reflexivity.
-      -
-        cbn in H.
-        repeat break_match_hyp; try inl_inr.
-        apply global_uniq_chk_preserves_st in Heqs; subst i0.
-        inl_inr_inv; subst.
-        cbn.
-        apply ListUtil.app_nil.
-        +
-          clear - Heqs0.
-          rename Heqs0 into H.
-          unfold initOneIRGlobal in H.
-          cbn in *.
-          repeat break_match.
-          all: inv H.
-          all: reflexivity.
-        +
-          destruct a.
-          apply initOneIRGlobal_state_change in Heqs0; cbn in Heqs0; inl_inr_inv.
-          destruct i1.
-          inversion H0.
-          erewrite IHglobals with
-              (data:=l)
-              (data':=data')
-              (v:=(ID_Global (Name s), TYPE_Pointer (getIRType d)) :: v)
-          ; clear IHglobals; try reflexivity.
-
-          subst Γ. subst.
-          apply Heqs1.
-    }
-
-    repeat rewrite app_nil_r.
-    repeat rewrite app_nil_l.
-
-    cbn.
-
-    eutt_hide_left_named LHS.
-    eutt_hide_rel_named R.
+    eutt_hide_rel R.
+    eutt_hide_left LHS.
 
     autorewrite with itree.
     (* autorewrite with vellvm. *)
@@ -1137,7 +1138,6 @@ Proof.
     end.
     autorewrite with itree.
 
-
     (*
       rewrite !ITree.Eq.Eq.bind_bind.
       rewrite !ITree.Eq.Eq.bind_ret_l.
@@ -1145,92 +1145,13 @@ Proof.
     admit.
   }
 
-  (*
-  cbn.
+  intros.
 
-
-
-
-
-
-  
-  (* simplification *)
   eutt_hide_rel REL.
   eutt_hide_left DSHM.
-  (* The following three tactics are non-straight reasoning.
-     I separately computed what the simplification *would* be,
-     and then put the [remember]s before the [replace].
-     The simplification from it is so nice that it's worth it. *)
-  remember {|
-     dc_name := Name name;
-     dc_type := typ_to_dtyp [ ]
-                  (TYPE_Function TYPE_Void
-                     [TYPE_Pointer (TYPE_Array (Int64.intval i) TYPE_Double);
-                     TYPE_Pointer (TYPE_Array (Int64.intval o) TYPE_Double)]);
-     dc_param_attrs := ([ ],
-                       [[PARAMATTR_Readonly; PARAMATTR_Align PtrAlignment;
-                        PARAMATTR_Nonnull];
-                       [PARAMATTR_Align PtrAlignment; PARAMATTR_Nonnull]]);
-     dc_linkage := None;
-     dc_visibility := None;
-     dc_dll_storage := None;
-     dc_cconv := None;
-     dc_attrs := [ ];
-     dc_section := None;
-     dc_align := None;
-     dc_gc := None |}
-    as xy1.
-  remember {|
-      dc_name := Name "main";
-      dc_type := typ_to_dtyp [ ]
-                             (TYPE_Function (TYPE_Array (Int64.intval o) TYPE_Double) [ ]);
-      dc_param_attrs := ([ ], [ ]);
-      dc_linkage := None;
-      dc_visibility := None;
-      dc_dll_storage := None;
-      dc_cconv := None;
-      dc_attrs := [ ];
-      dc_section := None;
-      dc_align := None;
-      dc_gc := None |}
-    as y1.
-  match goal with
-  | |- context[map df_prototype ?l] =>
-    replace (map df_prototype l) with [xy1; y1] by (subst; reflexivity)
-  end.
-  match goal with
-  | |- context[?h::?tl] => remember (h::tl) as intrinsic_delcs
-  end.
-  (* /simplification *)
   
-  rewrite <-translate_bind.
-  repeat rewrite <-interp_to_L3_bind.
   fold_map_monad_.
   repeat unfold fmap, Fmap_list'.
-
-  (* 
-     * [t], provided by [LX], contains two globals: "fake X", "fake Y"
-     * [gdecls], provided by [LG], contains some list of globals
-
-     There are three steps:
-     1. [map_monad_ allocate_global]
-        - This step needs to be split into a bind of "allocate t" and "allocate gdecls".
-     2. [map_monad_ allocate_declaration]
-        - Overall, according to @lord's comment later in this file,
-          this part should somehow not matter at all. It was admitted though.
-     3. [map_monad_ initialize_global]
-        - This, just like (1), needs to be split in two.
-
-     Omitting the [allocate_declaration] part altogether,
-     (1) and (3) need to be rearrannged to form
-
-     <allocate gdecls> ;; <initialize gdecls> ;;
-     <allocate xy> ;; <initialize xy>
-
-     Notably, the lists under [map_monad_ allocate_global]
-     and [map_monad_ initialize_global] are ≡.
-
-   *)
 
   (* splitting the lists in (1) and (3) *)
   (* just [rewrite map_app] doesn't work for some reason *)
@@ -1241,6 +1162,7 @@ Proof.
     by (rewrite map_app; reflexivity).
 
   (* splitting (1) and (3) into binds *)
+  repeat break_match_goal.
   setoid_rewrite map_monad_app_.
 
   fold_initialization.
@@ -1253,36 +1175,7 @@ Proof.
                 (flat_map (globals_of typ) gdecls))
     as GLOB.
 
-  (* the [allocate_declaration] part has no correspondence on DSH side
-     (at least under the current [REL]). Thus it can/should be [eutt_clo_bind]-ed
-     with a fake meaningless ret/bind on DSH side.
-     Commutativity will still probably need to be proven for it to make the other necessary
-     rearranngements. *)
-  (* [allocate_declaration] operates very similarly to [allocate_global],
-     so if commutativity needs to be proven, I'd expect it to be
-     exactly the same as that for [allocate_global] *)
-  remember (allocate_declarations
-              (map (Fmap_declaration typ dtyp (typ_to_dtyp [ ])) intrinsic_delcs);;
-            allocate_declarations [xy1; y1])
-    as DECLS_BLOB.
-
-  (** * rearrangement goes here *)
-
-  (* peel globals from the DSH side *)
-  subst DSHM.
-  (* Explicit [ITree.bind'] here because Coq can't guess [E]. Note that [bind' x y ~ bind y x] *)
-  replace (Ret (memory_set (memory_set mg (S (Datatypes.length globals)) mo)
-          (Datatypes.length globals) mi, ()))
-    with
-      (ITree.bind' (E:=E_mcfg)
-                   (fun mg' => mgy <- Ret (memory_set mg' (S (Datatypes.length globals)) mo) ;;
-                            Ret (memory_set mgy (Datatypes.length globals) mi, ()))
-                   (Ret mg))
-    by admit.
-
-  *)
-
-  (*
+  (* (* this is very old code at this point *)
   eapply eutt_clo_bind.
   -
     admit.
