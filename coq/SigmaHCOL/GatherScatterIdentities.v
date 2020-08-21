@@ -29,7 +29,7 @@ Open Scope vector_scope.
 Open Scope nat_scope.
 
 
-Local Notation "g ⊚ f" := (@SHCompose _ _ _ _ _ g f) (at level 40, left associativity) : type_scope.
+Notation "g ⊚ f" := (@SHCompose _ _ _ _ _ g f) (at level 40, left associativity) : type_scope.
 
 Lemma ScatterGather_identity {n:nat}
       {f:index_map n n}
@@ -46,14 +46,14 @@ Proof.
   reflexivity.
 Qed.
 
-Let n_nth (n : nat) (f : nat -> nat) : (nat -> nat) :=
+Definition n_nth (n : nat) (f : nat -> nat) : (nat -> nat) :=
   fun x => if x =? n
         then n
         else if f x =? n
              then f n
              else f x.
 
-Local Lemma inj_n_nth_shrink_spec
+Lemma inj_n_nth_shrink_spec
       {f : nat -> nat} {n : nat}
       (f_inj : forall x y, x < (S n) -> y < (S n) -> f x ≡ f y → x ≡ y)
   :
