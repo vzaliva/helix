@@ -46,12 +46,11 @@ Instance CarrierAequivdec: ∀ x y: CarrierA, Decision (x = y). Admitted.
 (* Orders *)
 Instance CarrierAto: @TotalOrder CarrierA CarrierAe CarrierAle. Admitted.
 Instance CarrierASSO: @StrictSetoidOrder CarrierA CarrierAe CarrierAlt. Admitted.
-Instance CarrierASRO: @SemiRingOrder CarrierA CarrierAe CarrierAplus CarrierAmult CarrierAz CarrierA1 CarrierAle. Admitted.
 Instance CarrierFPSO: @FullPseudoOrder CarrierA CarrierAe (@strong_setoids.default_apart CarrierA CarrierAe) CarrierALe CarrierALt. Admitted.
-
 
 Instance CarrierAledec: ∀ x y: CarrierA, Decision (x ≤ y).
 Proof.
+  (* This proofs requires FullPseudoOrder *)
   intros x y.
   unfold Decision.
   destruct (CarrierAltdec x y), (CarrierAequivdec x y).
@@ -160,11 +159,13 @@ Module CarrierA_as_BooleanDecidableType <: BooleanDecidableType.
   Definition eqb_eq := CarrierA_eqb_equiv.
 End CarrierA_as_BooleanDecidableType.
 
+(*
 (* Only needed for [CarrierAOrderedType] *)
 Instance CarrierFPAO: @orders.FullPartialOrder CarrierA CarrierAe (@strong_setoids.default_apart CarrierA CarrierAe) CarrierALe CarrierALt.
 Proof.
   typeclasses eauto.
 Qed.
+ *)
 
 Module CarrierA_as_OT <: OrderedType.
 
@@ -178,7 +179,11 @@ Module CarrierA_as_OT <: OrderedType.
   Lemma eq_refl : forall x : t, eq x x. Proof. apply CarrierAsetoid. Qed.
   Lemma eq_sym : forall x y : t, eq x y -> eq y x. Proof. apply CarrierAsetoid. Qed.
   Lemma eq_trans : forall x y z : t, eq x y -> eq y z -> eq x z. Proof. apply CarrierAsetoid. Qed.
-  Lemma lt_trans : forall x y z : t, lt x y -> lt y z -> lt x z. Proof. apply CarrierASSO. Qed.
+  Lemma lt_trans : forall x y z : t, lt x y -> lt y z -> lt x z.
+  Proof.
+    intros x y z H H0.
+    eapply transitivity;eauto.
+  Qed.
 
   Lemma lt_not_eq : forall x y : t, lt x y -> ~ eq x y.
   Proof.
@@ -197,7 +202,7 @@ Module CarrierA_as_OT <: OrderedType.
     destruct (CarrierAltdec x y) as [L | NL].
     exact (LT L).
     apply GT.
-
+    (* At this point we need [FullPseudoOrder] and [TrivialApart] *)
     eapply orders.le_iff_not_lt_flip in NL.
     eapply orders.lt_iff_le_apart.
     split.

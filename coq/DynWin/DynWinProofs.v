@@ -329,7 +329,15 @@ End HCOL_to_SigmaHCOL.
 
 (* --- SigmaHCOL -> final SigmaHCOL --- *)
 Section SigmaHCOL_rewriting.
-  Instance DynWinSigmaHCOL1_Facts
+
+  (*
+           This assumptions is required for reasoning about non-negativity and [abs].
+           It is specific to [abs] and this we do not make it a global assumption
+           on [CarrierA] but rather assume for this particular SHCOL expression.
+   *)
+  Context `{CarrierASRO: @orders.SemiRingOrder CarrierA CarrierAe CarrierAplus CarrierAmult CarrierAz CarrierA1 CarrierAle}.
+
+   Instance DynWinSigmaHCOL1_Facts
            (a: avector 3):
     SHOperator_Facts _ (dynwin_SHCOL1 a).
   Proof.
@@ -415,7 +423,7 @@ Section SigmaHCOL_rewriting.
 
   (* Sigma-HCOL rewriting correctenss *)
   Lemma DynWinSigmaHCOL1_Value_Correctness
-          (a: avector 3)
+        (a: avector 3)
     : dynwin_SHCOL a = dynwin_SHCOL1 a.
   Proof.
     unfold dynwin_SHCOL.
@@ -776,6 +784,13 @@ Section SigmaHCOL_rewriting.
 End SigmaHCOL_rewriting.
 
 Section SHCOL_to_MSHCOL.
+
+  (*
+           This assumptions is required for reasoning about non-negativity and [abs].
+           It is specific to [abs] and this we do not make it a global assumption
+           on [CarrierA] but rather assume for this particular SHCOL expression.
+   *)
+  Context `{CarrierASRO: @orders.SemiRingOrder CarrierA CarrierAe CarrierAplus CarrierAmult CarrierAz CarrierA1 CarrierAle}.
 
   Run TemplateProgram (reifySHCOL dynwin_SHCOL1 100 ["dynwin_SHCOL1"] "dynwin_MSHCOL1").
 
