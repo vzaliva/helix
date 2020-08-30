@@ -4978,7 +4978,7 @@ Qed.
 
 
 
-(** * MHTSUMUnioin *)
+(** * MApply2Union *)
 
 Lemma herr_f_whatev  :
   forall R a b,
