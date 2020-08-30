@@ -1,6 +1,5 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
 
-(* YZ: Not sure how I feel about this. Implicit arguments in lemmas weird me out *)
 Set Implicit Arguments.
 Set Strict Implicit.
 

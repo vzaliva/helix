@@ -286,7 +286,7 @@ Section TLE_To_Modul.
       apply map_option_cons; auto.
   Qed.
 
-  Lemma mcfg_of_app_modul: forall {T} (p1 p2 : modul T _) (m : mcfg T),
+  Lemma mcfg_of_app_modul: forall {T} (p1 p2 : modul T _), 
       mcfg_of_modul _ (p1 @ p2) = mcfg_of_modul _ p1 @ mcfg_of_modul _ p2.
   Proof.
     intros; cbn.
@@ -294,7 +294,46 @@ Section TLE_To_Modul.
     rewrite  m_name_app, m_target_app, m_datalayout_app, m_type_defs_app, m_globals_app, m_declarations_app; f_equal; try reflexivity. 
     rewrite m_definitions_app, map_app; reflexivity.
   Qed.
-   
+
+  (* YZ TODO :  A bit annoying but should not be an issue. *)
+  Lemma convert_typ_mcfg_app:
+    forall mcfg1 mcfg2 : modul typ (cfg typ),
+      convert_typ (m_type_defs mcfg1 ++ m_type_defs mcfg2) (mcfg1 @ mcfg2) =
+      convert_typ (m_type_defs mcfg1) mcfg1 @ convert_typ (m_type_defs mcfg2) mcfg2.
+  Proof.
+    intros mcfg1 mcfg2.
+    remember (m_type_defs mcfg1) as l1; remember (m_type_defs mcfg2) as l2.
+    revert l1 Heql1.
+    induction l1 as [| τ1 l1 IH]; cbn; intros EQ.
+    - rewrite <- !EQ; cbn.
+      destruct mcfg1, mcfg2; cbn; subst; cbn in *.
+      rewrite <- !EQ; cbn.
+      unfold convert_typ, ConvertTyp_mcfg, Traversal.fmap, Traversal.Fmap_mcfg.
+      cbn.
+      f_equal; try (unfold Endo_option; cbn; repeat flatten_goal; now intuition).
+      + 
+  Admitted.
+
+  Lemma convert_types_app_mcfg : forall mcfg1 mcfg2,
+      convert_types (modul_app mcfg1 mcfg2) =
+                    modul_app (convert_types mcfg1) (convert_types mcfg2).
+  Proof.
+    unfold convert_types.
+    intros.
+    rewrite m_type_defs_app,convert_typ_mcfg_app.
+    reflexivity.
+  Qed.
+
+  Lemma mcfg_of_tle_app : forall x y, mcfg_of_tle (x ++ y) = modul_app (mcfg_of_tle x) (mcfg_of_tle y).
+  Proof.
+    intros ? ?.
+    unfold mcfg_of_tle.
+    rewrite modul_of_toplevel_entities_app.
+    rewrite mcfg_of_app_modul.
+    rewrite convert_types_app_mcfg.
+    reflexivity.
+  Qed.
+
 End TLE_To_Modul.
 
 Infix "@" := (modul_app) (at level 60).
@@ -305,7 +344,6 @@ From ExtLib Require Import
      Core.RelDec
      Data.Map.FMapAList.
 Section alistFacts.
-
 
   (* Generic facts about alists. To eventually move to ExtLib. *)
 
