@@ -803,7 +803,6 @@ Local Ltac fold_initialization :=
       by reflexivity
   end.
 
-
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -1116,20 +1115,11 @@ Proof.
     generalize (memory_set (memory_set mg (S (Datatypes.length globals)) mo)
         (Datatypes.length globals) mi, ()).
     clear.
-    intros x.
+    generalize (memoryH * ())%type.
     cbn.
-
-    pose proof ITreeMonad.MonadLawsE_ITree (E:=E_mcfg).
-    destruct H as [BL _ _ _].
-
-    (*
-    Unset Printing Notations.
-    Fail erewrite BL.
-    (* does not see [ret], despite [{| _observe := RetF x |}] being itree's [ret] *)
-    Print Monad_itree.
-    Set Printing Notations.
-     *)
-    admit.
+    intros A a.
+    rewrite Eq.bind_ret_l.
+    reflexivity.
   }
 
   apply eutt_clo_bind with (UU:=fun _ => declarations_invariant_mcfg name).
@@ -1272,7 +1262,18 @@ Proof.
                 (flat_map (globals_of typ) gdecls))
     as GLOB.
 
-  assert (FB : (LHS ≈ LHS ;; LHS)%monad); [admit | rewrite FB; clear FB].
+  assert (FB : (LHS ≈ LHS ;; LHS)%monad); [ | rewrite FB; clear FB].
+  {
+    subst LHS.
+    generalize (memory_set (memory_set mg (S (Datatypes.length globals)) mo)
+        (Datatypes.length globals) mi, ()).
+    clear.
+    generalize (memoryH * ())%type.
+    cbn.
+    intros A a.
+    rewrite Eq.bind_ret_l.
+    reflexivity.
+  }
 
   rewrite interp_to_L3_bind, translate_bind.
   eapply eutt_clo_bind.
