@@ -1109,7 +1109,28 @@ Proof.
 
   cbn.
 
-  rewrite <- bind_ret_r. (* Add fake "bind" at LHS *)
+  eutt_hide_left LHS.
+  assert (FB : (LHS ≈ LHS ;; LHS)%monad); [| rewrite FB; clear FB].
+  {
+    subst LHS.
+    generalize (memory_set (memory_set mg (S (Datatypes.length globals)) mo)
+        (Datatypes.length globals) mi, ()).
+    clear.
+    intros x.
+    cbn.
+
+    pose proof ITreeMonad.MonadLawsE_ITree (E:=E_mcfg).
+    destruct H as [BL _ _ _].
+
+    (*
+    Unset Printing Notations.
+    Fail erewrite BL.
+    (* does not see [ret], despite [{| _observe := RetF x |}] being itree's [ret] *)
+    Print Monad_itree.
+    Set Printing Notations.
+     *)
+    admit.
+  }
 
   apply eutt_clo_bind with (UU:=fun _ => declarations_invariant_mcfg name).
   (* proving this goal will guarantee that [declarations_invariant_mcfg]
@@ -1118,7 +1139,6 @@ Proof.
   1:{
 
     eutt_hide_rel R.
-    eutt_hide_left LHS.
 
     autorewrite with itree.
     (* autorewrite with vellvm. *)
@@ -1226,7 +1246,6 @@ Proof.
   intros.
 
   eutt_hide_rel REL.
-  eutt_hide_left DSHM.
   
   fold_map_monad_.
   repeat unfold fmap, Fmap_list'.
@@ -1252,6 +1271,23 @@ Proof.
   remember (map (Fmap_global typ dtyp (typ_to_dtyp [ ]))
                 (flat_map (globals_of typ) gdecls))
     as GLOB.
+
+  assert (FB : (LHS ≈ LHS ;; LHS)%monad); [admit | rewrite FB; clear FB].
+
+  rewrite interp_to_L3_bind, translate_bind.
+  eapply eutt_clo_bind.
+
+  admit.
+
+  intros.
+  (* @lord, see [H0]:
+     * [u0] is meaningless
+     * [u3] is used in goal, but is only constricted by the meaningless [u0].
+       No changes to [?UU] can fix this.
+   *)
+     
+
+
 
   (* (* this is very old code at this point *)
   eapply eutt_clo_bind.
