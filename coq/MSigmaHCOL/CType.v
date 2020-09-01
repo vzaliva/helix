@@ -2,9 +2,7 @@
 
 Require Import MathClasses.interfaces.abstract_algebra.
 
-(* Basic module wrapping carrier type.
-   It just states it is a setoid.
- *)
+(* Basic module wrapping carrier type. *)
 Module Type CType.
 
   Parameter Inline t : Type.
