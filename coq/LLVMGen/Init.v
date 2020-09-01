@@ -1961,8 +1961,8 @@ Hint Rewrite interp_to_L3_ret : local.
     }
 
     unfold denote_vellvm.
-    Require Import LibHyps.LibHyps.
-    onAllHyps move_up_types.
+    (* Require Import LibHyps.LibHyps. *)
+    (* onAllHyps move_up_types. *)
     eutt_hide_left.
 
     rewrite EQ.
