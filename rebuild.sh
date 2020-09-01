@@ -7,3 +7,4 @@ make -j4 -C lib/vellvm/src
 make -C lib/vellvm/src test
 make distclean
 make -j4
+make test
