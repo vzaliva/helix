@@ -295,7 +295,11 @@ Section TLE_To_Modul.
     rewrite m_definitions_app, map_app; reflexivity.
   Qed.
 
-  (* YZ TODO :  A bit annoying but should not be an issue. *)
+  From Vellvm Require Import Traversal.
+  (* YZ TODO :  A bit annoying but should not be an issue.
+     Actually: requires some assumptions to be able to split the environment in two.
+     Some well-formedness/closedness of the respective mcfg under the respective environments.
+   *)
   Lemma convert_typ_mcfg_app:
     forall mcfg1 mcfg2 : modul typ (cfg typ),
       convert_typ (m_type_defs mcfg1 ++ m_type_defs mcfg2) (mcfg1 @ mcfg2) =
@@ -310,8 +314,8 @@ Section TLE_To_Modul.
       rewrite <- !EQ; cbn.
       unfold convert_typ, ConvertTyp_mcfg, Traversal.fmap, Traversal.Fmap_mcfg.
       cbn.
-      f_equal; try (unfold Endo_option; cbn; repeat flatten_goal; now intuition).
-      + 
+      f_equal; try (unfold endo, Endo_option; cbn; repeat flatten_goal; now intuition).
+      + unfold Fmap_list'.
   Admitted.
 
   Lemma convert_types_app_mcfg : forall mcfg1 mcfg2,
@@ -332,6 +336,11 @@ Section TLE_To_Modul.
     rewrite mcfg_of_app_modul.
     rewrite convert_types_app_mcfg.
     reflexivity.
+  Qed.
+
+  Lemma mcfg_of_tle_cons : forall x y, mcfg_of_tle (x :: y) = modul_app (mcfg_of_tle [x]) (mcfg_of_tle y).
+  Proof.
+    intros; rewrite list_cons_app; apply mcfg_of_tle_app.
   Qed.
 
 End TLE_To_Modul.
