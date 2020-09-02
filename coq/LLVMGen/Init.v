@@ -803,6 +803,35 @@ Local Ltac fold_initialization :=
       by reflexivity
   end.
 
+Lemma eutt_clo_bind_skip_l
+      (E : Type → Type)
+      (LT1 LT2 RT1 RT2 RT3 : Type)
+      (l1 : itree E LT1)
+      (r1 : itree E RT1)
+      (ls1 : LT1 → itree E LT2)
+      (rs1 : RT1 → itree E RT2)
+      (rs2 : RT2 → itree E RT3)
+      R1 R2 R3
+  :
+    eutt R1 l1 r1 ->
+    (∀ xl1 xr1, R1 xl1 xr1 -> eutt R2 (ls1 xl1) (rs1 xr1)) ->
+    (∀ xl2 xr2, R2 xl2 xr2 → eutt R3 (ret xl2) (rs2 xr2)) ->
+    eutt R3 (x <- l1;; ls1 x) (x <- r1;; x' <- rs1 x ;; rs2 x').
+Proof.
+  intros.
+  eapply eutt_clo_bind.
+  -
+    eassumption.
+  -
+    intros.
+    rewrite <-bind_ret_r.
+    eapply eutt_clo_bind.
+    +
+      eauto.
+    +
+      eauto.
+Qed.
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -1109,6 +1138,7 @@ Proof.
   cbn.
 
   eutt_hide_left LHS.
+
   assert (FB : (LHS ≈ LHS ;; LHS)%monad); [| rewrite FB; clear FB].
   {
     subst LHS.
@@ -1262,33 +1292,14 @@ Proof.
                 (flat_map (globals_of typ) gdecls))
     as GLOB.
 
-  assert (FB : (LHS ≈ LHS ;; LHS)%monad); [ | rewrite FB; clear FB].
-  {
-    subst LHS.
-    generalize (memory_set (memory_set mg (S (Datatypes.length globals)) mo)
-        (Datatypes.length globals) mi, ()).
-    clear.
-    generalize (memoryH * ())%type.
-    cbn.
-    intros A a.
-    rewrite Eq.bind_ret_l.
-    reflexivity.
-  }
-
+  rewrite <-bind_ret_r.
   rewrite interp_to_L3_bind, translate_bind.
+
   eapply eutt_clo_bind.
-
-  admit.
-
-  intros.
-  (* @lord, see [H0]:
-     * [u0] is meaningless
-     * [u3] is used in goal, but is only constricted by the meaningless [u0].
-       No changes to [?UU] can fix this.
-   *)
-     
-
-
+  -
+    admit.
+  -
+    admit.
 
   (* (* this is very old code at this point *)
   eapply eutt_clo_bind.
