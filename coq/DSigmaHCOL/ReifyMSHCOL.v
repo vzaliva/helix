@@ -66,9 +66,9 @@ Definition varbindings:Type := list (string*DSHType).
 
 Definition var_resolver := nat -> var_id.
 Definition ID_var_resolver : var_resolver := id.
-Definition Fake_var_resolver (parent: var_resolver) (n:nat)
+Definition Fake_var_resolver (parent: var_resolver) (n:nat) : var_resolver
   := fun r => ((parent r)+n)%nat.
-Definition Lambda_var_resolver (parent: var_resolver) (n:nat)
+Definition Lambda_var_resolver (parent: var_resolver) (n:nat) : var_resolver
   := fun r => if lt_dec r n then r else ((parent (r-n))+n)%nat.
 
 Fixpoint compileNExpr (res:var_resolver) (a_n:term): TemplateMonad NExpr :=
