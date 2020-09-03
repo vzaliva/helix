@@ -30,6 +30,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   Section GenIR.
 
 
+  (* The result is a branch *)
   Definition branches (mh : memoryH * ()) (c : config_cfg_T (block_id * block_id + uvalue)) : Prop :=
     match c with
     | (m,(l,(g,res))) => exists bids, res ≡ inl bids
@@ -37,6 +38,173 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
   Definition GenIR_Rel σ Γ : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
     lift_Rel_cfg (state_invariant σ Γ) ⩕ branches.
+
+  
+  Hint Resolve state_invariant_incBlockNamed : state_invariant.
+  Hint Resolve state_invariant_incLocal : state_invariant.
+  Hint Resolve state_invariant_incVoid : state_invariant.
+
+  Lemma state_invariant_genNExpr :
+    forall exp s1 s2 e c σ memH conf,
+      genNExpr exp s1 ≡ inr (s2, (e, c)) ->
+      state_invariant σ s1 memH conf ->
+      state_invariant σ s2 memH conf.
+  Proof.
+    intros exp; induction exp;
+      intros * GEN SINV;
+      cbn in GEN; simp; eauto with state_invariant.
+    - destruct (nth_error (Γ s1) v); cbn in *; inversion Heqs; subst;
+        eauto with state_invariant.
+    - destruct (nth_error (Γ s1) v); cbn in *; inversion Heqs; subst;
+        eauto with state_invariant.
+  Qed.
+
+  Hint Resolve state_invariant_genNExpr : state_invariant.
+
+  Tactic Notation "state_inv_auto" := eauto with state_invariant.
+  
+  Lemma GenIR_incBlockedNamed :
+    forall σ s1 s2 memH memV ρ g bid_from bid_in msg b,
+      incBlockNamed msg s1 ≡ inr (s2, b) ->
+      GenIR_Rel σ s1 (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))) ->
+      GenIR_Rel σ s2 (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))).
+  Proof.
+    intros * INC [STATE BRANCH].
+    split; cbn; state_inv_auto.
+  Qed.
+
+  Lemma GenIR_incLocal :
+    forall σ s1 s2 memH memV ρ g bid_from bid_in b,
+      incLocal s1 ≡ inr (s2, b) ->
+      GenIR_Rel σ s1 (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))) ->
+      GenIR_Rel σ s2 (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))).
+  Proof.
+    intros * INC [STATE BRANCH].
+    split; cbn; state_inv_auto.
+  Qed.
+
+  Lemma GenIR_incVoid :
+    forall σ s1 s2 memH memV ρ g bid_from bid_in x,
+      incVoid s1 ≡ inr (s2, x) ->
+      GenIR_Rel σ s1 (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))) ->
+      GenIR_Rel σ s2 (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))).
+  Proof.
+    intros * INC [STATE BRANCH].
+    split; cbn; state_inv_auto.
+  Qed.
+
+  Lemma GenIR_genNExpr :
+    forall σ s1 s2 memH memV ρ g bid_from bid_in e c exp,
+      genNExpr exp s1 ≡ inr (s2, (e, c)) ->
+      GenIR_Rel σ s1 (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))) ->
+      GenIR_Rel σ s2 (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))).
+  Proof.
+    intros * INC [STATE BRANCH].
+    split; cbn; state_inv_auto.
+  Qed.
+    
+  Hint Resolve GenIR_incBlockedNamed : GenIR_Rel.
+  Hint Resolve GenIR_incLocal : GenIR_Rel.
+  Hint Resolve GenIR_incVoid : GenIR_Rel.
+  Hint Resolve GenIR_genNExpr : GenIR_Rel.
+
+  Tactic Notation "gen_ir_rel_auto" := eauto with GenIR_Rel.
+
+  Lemma resolve_PVar_state :
+    forall p s1 s2 x,
+      resolve_PVar p s1 ≡ inr (s2, x) ->
+      s1 ≡ s2.
+  Proof.
+    intros p s1 s2 [x v] H.
+    pose proof resolve_PVar_simple p s1 H as H0.
+    destruct H0 as (sz & n & H0).
+    intuition.
+  Qed.
+
+  (* TODO: Move this, and remove Transparent / Opaque *)
+  Lemma incLocal_unfold :
+    forall s,
+      incLocal s ≡ inr
+               ({|
+                   block_count := block_count s;
+                   local_count := S (local_count s);
+                   void_count := void_count s;
+                   Γ := Γ s
+                 |}
+                , Name ("l" @@ string_of_nat (local_count s))).
+  Proof.
+    intros s.
+    Transparent incLocal.
+    cbn.
+    reflexivity.
+    Opaque incLocal.
+  Qed.
+
+  Lemma GenIR_Rel_S_local_count :
+    forall σ s memH memV ρ g bid_from bid_in,
+      GenIR_Rel σ s (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))) ->
+      GenIR_Rel σ {| block_count := block_count s; local_count := S (local_count s); void_count := void_count s; Γ := Γ s |} (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))).
+  Proof.
+    intros σ s memH memV ρ g bid_from bid_in GEN.
+    eapply GenIR_incLocal in GEN; eauto.
+    apply incLocal_unfold.
+  Qed.
+
+  Ltac solve_gen_ir_rel :=
+    repeat
+      match goal with
+      | GEN : genNExpr ?n ?s1 ≡ inr (?s2, _) |- GenIR_Rel _ ?s2 _ _ =>
+        eapply (GenIR_genNExpr _ GEN)
+      | LOC : incLocal ?s1 ≡ inr (?s2, _) |- GenIR_Rel _ ?s2 _ _ =>
+        eapply (GenIR_incLocal LOC)
+      | VOID : incVoid ?s1 ≡ inr (?s2, _) |- GenIR_Rel _ ?s2 _ _ =>
+        eapply (GenIR_incVoid VOID)
+      | NAMED : incBlockNamed _ ?s1 ≡ inr (?s2, _) |- GenIR_Rel _ ?s2 _ _ =>
+        eapply (GenIR_incBlockedNamed NAMED)
+      | RES : resolve_PVar ?p ?s1 ≡ inr (?s2, ?x) |- GenIR_Rel _ ?s2 _ _ =>
+        rewrite <- (@resolve_PVar_state p s1 s2 x RES)
+      | |- GenIR_Rel _ {| block_count := block_count ?s; local_count := S (local_count ?s); void_count := void_count ?s; Γ := Γ ?s |} _ _ =>
+        apply GenIR_Rel_S_local_count
+      end; auto.
+
+  Lemma genIR_GenIR_Rel:
+    ∀ (op : DSHOperator) (s1 s2 : IRState) (σ : evalContext) (memH : memoryH) (nextblock bid_in bid_from : block_id) (g : global_env) 
+      (ρ : local_env) (memV : memoryV) (s_op1 : IRState) (bk_op : list (LLVMAst.block typ)),
+      genIR op nextblock s1 ≡ inr (s2, (bid_in, bk_op)) →
+      GenIR_Rel σ s1 (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))) ->
+      GenIR_Rel σ s2 (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))).
+  Proof.
+    intros op s1 s2 σ memH nextblock bid_in bid_from g ρ memV s_op1 bk_op GEN BISIM.
+    induction op; cbn in GEN; simp; eauto with GenIR_Rel.
+    - solve_gen_ir_rel.
+    - inversion Heqs3.
+    - inversion Heqs3.
+    - inversion Heqs3; subst.
+      solve_gen_ir_rel.
+      Set Nested Proofs Allowed.
+      Lemma GenIR_Rel_drop_var :
+        forall σ s memH memV ρ g bid_from bid_in h l,
+          Γ s ≡ h :: l ->
+          GenIR_Rel σ s (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))) ->
+          GenIR_Rel σ {| block_count := block_count s; local_count := local_count s; void_count := void_count s; Γ := l |} (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))).
+      Proof.
+        intros σ s memH memV ρ g bid_from bid_in h l DROP GEN.
+        cbv in GEN; destruct GEN as [STATE BRANCH].
+        split; cbn.
+        - apply Build_state_invariant.
+          + cbn. apply state_invariant_memory_invariant in STATE. cbn in STATE.
+            intros n v τ x NTH_σ NTH_l.
+
+            (* nth_error l n ≡ Some (x, τ) ≡ nth_error (Γ s) (S n)
+
+               However, this now means that σ is off by one, because σ doesn't change!!!
+
+               I think I have to go back yet another step, to relate
+               the state before the intermediate variables were
+               added...
+             *)
+      Abort.
+  Admitted.
 
   Opaque denote_code.
  Lemma compile_FSHCOL_correct :
@@ -48,7 +216,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       GenIR_Rel σ s1 (memH,tt) (memV, (ρ, (g, (inl (bid_from, bid_in))))) ->
       evalDSHOperator σ op memH fuel ≡ Some (inr v)            -> (* Evaluation succeeds *)
       genIR op nextblock s1 ≡ inr (s2,(bid_in,bks)) ->
-      eutt (GenIR_Rel σ s1)
+      eutt (GenIR_Rel σ s2)
            (with_err_RB
               (interp_Mem (denoteDSHOperator σ op) memH))
            (with_err_LB
@@ -63,7 +231,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       rewrite denote_bks_nil.
       cbn*; rauto:R.
       apply eqit_Ret; auto.
-
+      gen_ir_rel_auto.
     - (* Assign case.
          Helix side:
          1. x_i <- evalPExpr σ x_p ;;
@@ -125,9 +293,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       (* Step 5. *)
       eapply eutt_clo_bind.
       eapply genNExpr_correct; try eassumption.
-      do 3 (eapply state_invariant_incLocal; eauto).
-      do 2 (eapply state_invariant_incVoid; eauto).
-      do 1 (eapply state_invariant_incBlockNamed; eauto).
+      eauto 7 with state_invariant.
 
       intros [memH1 src] (memV1 & ρ1 & g1 & []) (INV1 & (EXP1 & <- & <- & <- & MONO1) & GAMMA1); cbn* in *.
 
@@ -579,6 +745,10 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       cbn in GEN.
       simp.
 
+      rename i into s_op1.
+      rename l0 into bk_op1.
+      rename l into bk_op2.
+
       Lemma add_comment_eutt :
         forall comments bks ids,
           denote_bks (convert_typ [] (add_comment bks comments)) ids ≈ denote_bks (convert_typ [] bks) ids.
@@ -586,7 +756,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         intros comments bks ids.
         induction bks.
         - cbn. reflexivity.
-        - destruct ids as (bid_from, bid_src); cbn.
+        - cbn.
+          destruct ids as (bid_from, bid_src); cbn.
           match goal with
           | |- context[denote_bks ?bks (_, ?bid_src)] =>
             destruct (find_block dtyp bks bid_src) eqn:FIND
@@ -607,8 +778,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       rewrite denote_bks_app; eauto.
       2: admit. (* TODO: should hold from compilation *)
 
-      rauto.
-     
+      rauto.     
 
       Lemma evalDSHSeq_split :
         forall {fuel σ op1 op2 mem mem''},
@@ -626,17 +796,28 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
           * erewrite evalDSHOperator_fuel_monotone; eauto.
       Qed.
 
+      (* Evaluation of operators in sequence *)
       pose proof (evalDSHSeq_split EVAL) as [mem' [EVAL1 EVAL2]].
 
-      subst.
       eapply eutt_clo_bind.
       { eapply (IHop1 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ EVAL1 Heqs2).
         Unshelve.
-        admit.
+        admit. (* Should come from freshness *)
 
-        (* TODO: :(((( *)
-        (* This one is annoying. Need to apply IHop1 to get GenIR_Rel
-        of i... But need it to apply. Grrrr *)
+        (* Helix generates code for op2 *first*, so op2 gets earlier
+        variables from the irstate. Helix needs to do this because it
+        passes the block id for the next block that an operator should
+        jump to when it's done executing... So it generates code for
+        op2, which goes to the next block of the entire sequence, and
+        then passes the entry point for op2 as the "nextblock" for
+        op1.
+
+        However, when evaluating a sequence operator with evalDSHOperator, we 
+
+           Helix does this because it passes a "nextblock" id when generating code for an operator.
+
+         *)
+        eapply genIR_GenIR_Rel; eauto.
         admit.
       }
 
@@ -657,8 +838,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       subst.
 
       epose proof (IHop2 _ _ σ mem' _ _ _ to from _ ge le u2 _ _ EVAL2 Heqs0) as IH.
-      apply IH.
+      (* apply IH. *)
   Admitted.
   End GenIR.
-
-
