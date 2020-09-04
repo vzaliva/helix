@@ -166,7 +166,7 @@ Definition initFSHGlobals
 
 Definition helix_empty_memory := memory_empty.
 
-Definition helix_intial_memory
+Definition helix_initial_memory
            (p: FSHCOLProgram)
            (data: list binary64)
   : err (MDSHCOLOnFloat64.memory * list binary64 * evalContext)

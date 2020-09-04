@@ -213,7 +213,7 @@ Definition evalFSHCOLOperator
   : err (list binary64)
   :=
     let p := mkFSHCOLProgram i o name globals op in
-    '(mem, data, σ) <- helix_intial_memory p data ;;
+    '(mem, data, σ) <- helix_initial_memory p data ;;
     match evalDSHOperator σ op mem (estimateFuel op) with
     | Some (inr mem) =>
       let Y_mem_block_id : mem_block_id := S (length globals) in

@@ -866,7 +866,7 @@ Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
       (data: list binary64) :
   forall hmem σ s hdata pll,
-    helix_intial_memory p data ≡ inr (hmem,hdata,σ) /\
+    helix_initial_memory p data ≡ inr (hmem,hdata,σ) /\
     compile_w_main p data newState ≡ inr (s,pll) ->
     eutt
       (post_init_invariant_mcfg p.(name) σ s)
@@ -880,11 +880,10 @@ Proof.
   intros hmem σ s hdata pll [HI LI].
 
   unfold post_init_invariant_mcfg.
-  unfold helix_intial_memory in HI.
+  unfold helix_initial_memory in HI.
   cbn in HI.
   repeat break_match_hyp ; try inl_inr.
   rename Heqp0 into Co, Heqp1 into Ci.
-  (* TODO: rename [helix_intial_memory] *)
   (* TODO: replace inv with inl_inr_inv *)
   (* inl_inr_inv. *)
   inv HI.
