@@ -832,6 +832,28 @@ Proof.
       eauto.
 Qed.
 
+(* TODO: FINISH THIS *)
+Definition post_alloc_invariant_mcfg
+           (globals : list (string * DSHType))
+           (σ : evalContext)
+           (s : IRState)
+  : Rel_mcfg_T unit unit :=
+
+  fun '(memH,_) '(memV,((l,sl),(g,_))) =>
+    forall j (jc : j < length σ),
+      match (nth_error σ j) with
+      | Some (DSHPtrVal id len) => exists ptr_llvm,
+                              (if j <? length globals
+                              then in_local_or_global_addr l g memV (ID_Global (Name "w")) (* <Name (fst globals[j])> *) ptr_llvm
+                              else
+                                in_local_or_global_addr l g memV (ID_Global (Anon (Z.of_nat (j - length globals)))) ptr_llvm)
+                              /\
+                              (forall i (ic : Z.lt (Z.of_nat i) (Int64.intval len)), exists v, get_array_cell memV ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v))
+
+         | _ => False
+         end.
+
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -855,6 +877,9 @@ Proof.
   cbn in HI.
   repeat break_match_hyp ; try inl_inr.
   rename Heqp0 into Co, Heqp1 into Ci.
+  (* TODO: rename [helix_intial_memory] *)
+  (* TODO: replace inv with inl_inr_inv *)
+  (* inl_inr_inv. *)
   inv HI.
   rename m1 into mg, Heqs0 into G.
   cbn in LI.
@@ -1295,10 +1320,19 @@ Proof.
   rewrite <-bind_ret_r.
   rewrite interp_to_L3_bind, translate_bind.
 
-  eapply eutt_clo_bind.
+  subst LHS REL.
+  destruct p0 as [le0 stack0].
+  destruct x as [x_id x_typ].
+
+  (* TODO: don't forget to replace e -> σ *)
+  apply eutt_clo_bind with (UU:=post_alloc_invariant_mcfg globals e s2).
   -
+    rewrite interp_to_L3_bind, translate_bind.
+    assert (exists y x, XY ≡ [y; x]) by admit.
+    (* pose_interp_to_L3_alloca *)
     admit.
   -
+    intros.
     admit.
 
   (* (* this is very old code at this point *)
