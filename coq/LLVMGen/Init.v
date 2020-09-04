@@ -632,7 +632,7 @@ Proof.
   reflexivity.
 Qed.
 
-(* TODO: remove when done
+(* ZX TODO: remove when done
 Lemma bind_comm {E : Type -> Type} {A B : Type} {x : B} (i1 i2 : itree E A) :
     (exists i, i1 ≈ Ret i) ->
     ITree.bind (ITree.bind i1 (fun _ => i2)) (fun _ => Ret x) ≈
@@ -832,12 +832,41 @@ Proof.
       eauto.
 Qed.
 
+Definition post_alloc_invariant_mcfg
+           (globals : list (string * DSHType))
+           (σ : evalContext)
+           (s : IRState)
+  : Rel_mcfg_T unit unit :=
+
+  fun '(memH,_) '(memV,((l,sl),(g,_))) =>
+    forall j (jc : j < length σ),
+      match ListUtil.ith jc with
+      | DSHPtrVal id len => (
+          exists ptr_llvm,
+            match le_lt_dec (length globals) j with
+            | right jc' =>
+              in_local_or_global_addr
+                l g
+                (ID_Global (Name (fst (ListUtil.ith jc'))))
+                ptr_llvm
+            | _ => in_local_or_global_addr
+                    l g
+                    (ID_Global (Anon (Z.of_nat (j - length globals))))
+                    ptr_llvm
+            end
+            /\
+            forall i (ic : Z.lt (Z.of_nat i) (Int64.intval len)),
+            exists v, get_array_cell memV ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v))
+
+         | _ => False
+         end.
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
       (data: list binary64) :
   forall hmem σ s hdata pll,
-    helix_intial_memory p data ≡ inr (hmem,hdata,σ) /\
+    helix_initial_memory p data ≡ inr (hmem,hdata,σ) /\
     compile_w_main p data newState ≡ inr (s,pll) ->
     eutt
       (post_init_invariant_mcfg p.(name) σ s)
@@ -851,7 +880,7 @@ Proof.
   intros hmem σ s hdata pll [HI LI].
 
   unfold post_init_invariant_mcfg.
-  unfold helix_intial_memory in HI.
+  unfold helix_initial_memory in HI.
   cbn in HI.
   repeat break_match_hyp ; try inl_inr.
   rename Heqp0 into Co, Heqp1 into Ci.
@@ -1295,10 +1324,40 @@ Proof.
   rewrite <-bind_ret_r.
   rewrite interp_to_L3_bind, translate_bind.
 
-  eapply eutt_clo_bind.
+  subst LHS REL.
+  destruct p0 as [le0 stack0].
+  destruct x as [x_id x_typ].
+
+  remember (e ++ [DSHPtrVal (S (Datatypes.length globals)) o;
+            DSHPtrVal (Datatypes.length globals) i])
+    as σ.
+  (* ZX TODO: [s2] might be wrong below *)
+  apply eutt_clo_bind with (UU:=post_alloc_invariant_mcfg globals σ s2).
   -
+    unfold initXYplaceholders in LX.
+    unfold addVars in LX.
+    cbn in LX.
+    repeat break_let.
+    invc LX.
+    cbn.
+    repeat rewrite interp_to_L3_bind, translate_bind.
+
+    pose_interp_to_L3_alloca m'' a'' A' AE'.
+    1:{
+      unfold non_void.
+      clear.
+      admit.
+    }
+    rewrite AE'.
+
+    setoid_rewrite translate_ret.
+    rewrite !ITree.Eq.Eq.bind_ret_l.
+    rewrite interp_to_L3_GW.
+    setoid_rewrite translate_ret.
+    rewrite !ITree.Eq.Eq.bind_ret_l.
     admit.
   -
+    intros.
     admit.
 
   (* (* this is very old code at this point *)

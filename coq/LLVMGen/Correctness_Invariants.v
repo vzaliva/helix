@@ -153,7 +153,7 @@ Section SimulationRelations.
   (* Check that a pair of [ident] and [dvalue] can be found in the
      appropriate environment. *)
   Definition in_local_or_global_addr
-             (ρ : local_env) (g : global_env) (m : memoryV)
+             (ρ : local_env) (g : global_env)
              (x : ident) (a : Addr.addr): Prop
     := match x with
        | ID_Local  x => ρ @ x ≡ Some (UVALUE_Addr a)
@@ -176,7 +176,7 @@ Section SimulationRelations.
         | DSHPtrVal ptr_helix ptr_size_helix =>
           exists bk_helix ptr_llvm,
           memory_lookup mem_helix ptr_helix ≡ Some bk_helix /\
-          in_local_or_global_addr ρ g mem_llvm x ptr_llvm /\
+          in_local_or_global_addr ρ g x ptr_llvm /\
           (forall i v, mem_lookup i bk_helix ≡ Some v ->
                   get_array_cell mem_llvm ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v))
         end.
@@ -247,7 +247,7 @@ Section SimulationRelations.
       nth_error σ v ≡ Some (DSHPtrVal m size) ->
       exists (bk_h : mem_block) (ptr_v : Addr.addr),
         memory_lookup memH m ≡ Some bk_h
-        /\ in_local_or_global_addr l g memV (ID_Local id) ptr_v
+        /\ in_local_or_global_addr l g (ID_Local id) ptr_v
         /\ (forall (i : Memory.NM.key) (v : binary64),
               mem_lookup i bk_h ≡ Some v -> get_array_cell memV ptr_v i DTYPE_Double ≡ inr (UVALUE_Double v)).
   Proof.
@@ -384,12 +384,12 @@ Section Ext_Local.
   Qed.
 
  Lemma in_local_or_global_addr_ext_local :
-    forall ρ1 ρ2 g m x ptr,
-      in_local_or_global_addr ρ1 g m x ptr ->
+    forall ρ1 ρ2 g x ptr,
+      in_local_or_global_addr ρ1 g x ptr ->
       ρ1 ⊑ ρ2 ->
-      in_local_or_global_addr ρ2 g m x ptr.
+      in_local_or_global_addr ρ2 g x ptr.
   Proof.
-    unfold in_local_or_global_addr; intros ρ1 ρ2 g m [] ptr IN MONO; auto.
+    unfold in_local_or_global_addr; intros ρ1 ρ2 g [] ptr IN MONO; auto.
     apply MONO; auto.
   Qed.
 
@@ -439,9 +439,9 @@ Proof.
   cbn; intros; auto.
 Qed.
 
-Lemma in_local_or_global_addr_same_global : forall l g l' m id ptr,
-    in_local_or_global_addr l g m (ID_Global id) ptr ->
-    in_local_or_global_addr l' g m (ID_Global id) ptr.
+Lemma in_local_or_global_addr_same_global : forall l g l' id ptr,
+    in_local_or_global_addr l g (ID_Global id) ptr ->
+    in_local_or_global_addr l' g (ID_Global id) ptr.
 Proof.
   cbn; intros; auto.
 Qed.
@@ -467,10 +467,10 @@ Proof.
 Qed.
 
 Lemma in_local_or_global_addr_add_fresh_old :
-  forall (id : raw_id) (l : local_env) (g : global_env) m (x : ident) ptr dv',
+  forall (id : raw_id) (l : local_env) (g : global_env) (x : ident) ptr dv',
     x <> ID_Local id ->
-    in_local_or_global_addr l g m x ptr ->
-    in_local_or_global_addr (alist_add id dv' l) g m x ptr.
+    in_local_or_global_addr l g x ptr ->
+    in_local_or_global_addr (alist_add id dv' l) g x ptr.
 Proof.
   intros * INEQ LUV'.
   destruct x; cbn in *; auto.
@@ -492,10 +492,10 @@ Proof.
 Qed.
 
 Lemma fresh_no_lu_addr :
-  forall s s' id l g m x ptr,
+  forall s s' id l g x ptr,
     incLocal s ≡ inr (s', id) ->
     incLocal_fresh l s ->
-    in_local_or_global_addr l g m x ptr ->
+    in_local_or_global_addr l g x ptr ->
     x <> ID_Local id.
 Proof.
   intros * INC FRESH IN abs; subst.
