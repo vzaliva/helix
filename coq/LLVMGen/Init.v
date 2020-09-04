@@ -832,7 +832,6 @@ Proof.
       eauto.
 Qed.
 
-(* TODO: FINISH THIS *)
 Definition post_alloc_invariant_mcfg
            (globals : list (string * DSHType))
            (σ : evalContext)
@@ -841,18 +840,26 @@ Definition post_alloc_invariant_mcfg
 
   fun '(memH,_) '(memV,((l,sl),(g,_))) =>
     forall j (jc : j < length σ),
-      match (nth_error σ j) with
-      | Some (DSHPtrVal id len) => exists ptr_llvm,
-                              (if j <? length globals
-                              then in_local_or_global_addr l g memV (ID_Global (Name "w")) (* <Name (fst globals[j])> *) ptr_llvm
-                              else
-                                in_local_or_global_addr l g memV (ID_Global (Anon (Z.of_nat (j - length globals)))) ptr_llvm)
-                              /\
-                              (forall i (ic : Z.lt (Z.of_nat i) (Int64.intval len)), exists v, get_array_cell memV ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v))
+      match ListUtil.ith jc with
+      | DSHPtrVal id len => (
+          exists ptr_llvm,
+            match le_lt_dec (length globals) j with
+            | right jc' =>
+              in_local_or_global_addr
+                l g memV
+                (ID_Global (Name (fst (ListUtil.ith jc'))))
+                ptr_llvm
+            | _ => in_local_or_global_addr
+                    l g memV
+                    (ID_Global (Anon (Z.of_nat (j - length globals))))
+                    ptr_llvm
+            end
+            /\
+            forall i (ic : Z.lt (Z.of_nat i) (Int64.intval len)),
+            exists v, get_array_cell memV ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v))
 
          | _ => False
          end.
-
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
