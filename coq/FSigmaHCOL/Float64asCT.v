@@ -100,6 +100,25 @@ Module MFloat64asCT <: CType.
       end
     end.
 
+  (* Quick test that definitoin we have is indeed different from
+     directly using [Bcompare]:
+
+  Definition CTypeZLess' (a b: binary64) : binary64 :=
+    match Bcompare _ _ a b with
+    | Some Datatypes.Lt => CTypeOne
+      | _ => CTypeZero
+    end.
+
+  Require Import HelixTactics.
+  Lemma Foo: forall a b, CTypeZLess' a b ≡ CTypeZLess a b.
+  Proof.
+    intros.
+    unfold CTypeZLess, CTypeZLess'.
+    repeat break_match; auto; try reflexivity.
+    (* could not be proven. *)
+  Qed.
+   *)
+
   Definition CTypeMin      := Float64Min.
   Definition CTypeMax      := Float64Max.
   Definition CTypeSub      := b64_minus FT_Rounding.
