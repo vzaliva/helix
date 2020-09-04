@@ -846,11 +846,11 @@ Definition post_alloc_invariant_mcfg
             match le_lt_dec (length globals) j with
             | right jc' =>
               in_local_or_global_addr
-                l g memV
+                l g
                 (ID_Global (Name (fst (ListUtil.ith jc'))))
                 ptr_llvm
             | _ => in_local_or_global_addr
-                    l g memV
+                    l g
                     (ID_Global (Anon (Z.of_nat (j - length globals))))
                     ptr_llvm
             end
