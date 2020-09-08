@@ -1344,6 +1344,18 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
     if valid_function_name name then
       if just_compile then
         ginit <- genIRGlobals (FnBody:= block typ * list (block typ)) globals ;;
+
+        (* While generate operator's function body, add parameters as
+         locals X=PVar 1, Y=PVar 0.
+
+        We want them to be in `Γ` before globals *)
+        let x := Name "X" in
+        let xtyp := TYPE_Pointer (getIRType (DSHPtr i)) in
+        let y := Name "Y" in
+        let ytyp := TYPE_Pointer (getIRType (DSHPtr o)) in
+
+        addVars [(ID_Local y, ytyp);(ID_Local x, xtyp)] ;;
+        (* Γ := [y; x; fake_y; fake_x] *)
         prog <- LLVMGen i o op name ;;
         ret (ginit ++ prog)
       else
