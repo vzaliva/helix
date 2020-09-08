@@ -78,10 +78,10 @@ Module MDSigmaHCOLITree
   Local Open Scope string_scope.
 
   Variant MemEvent: Type -> Type :=
-  | MemLU  (msg: string) (id: mem_block_id): MemEvent mem_block
-  | MemSet (id: mem_block_id) (bk: mem_block): MemEvent unit
-  | MemAlloc (size: NT.t): MemEvent mem_block_id
-  | MemFree (id: mem_block_id): MemEvent unit.
+  | MemLU  (msg: string) (id: nat): MemEvent mem_block
+  | MemSet (id: nat) (bk: mem_block): MemEvent unit
+  | MemAlloc (size: NT.t): MemEvent nat
+  | MemFree (id: nat): MemEvent unit.
 
   Definition StaticFailE := exceptE string.
   Definition StaticThrow (msg: string): StaticFailE void := Throw msg.
@@ -107,7 +107,7 @@ Module MDSigmaHCOLITree
     | inr x => ret x
     end.
 
-  Definition denotePExpr (σ: evalContext) (exp:PExpr): itree Event (mem_block_id*NT.t) :=
+  Definition denotePExpr (σ: evalContext) (exp:PExpr): itree Event (nat*NT.t) :=
     lift_Serr (evalPExpr σ exp).
 
   Definition denoteMExpr (σ: evalContext) (exp:MExpr): itree Event (mem_block*NT.t) :=

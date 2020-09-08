@@ -351,14 +351,14 @@ Section memory_aux.
   (* Two memory locations equivalent on all addresses except one
      TODO: make `e` 1st parameter to make this relation.
    *)
-  Definition memory_equiv_except (m m': memory) (e:mem_block_id)
+  Definition memory_equiv_except (m m': memory) (e:nat)
     := forall k, k ≢ e -> memory_lookup m k = memory_lookup m' k.
 
   (* Relation between memory location defined as:
      1. All addresses except [e] from 1st memory must map to same memory blocks in the 2nd one.
      2. If 1st memory block has [e] initialized it also must be initialized in the 2nd one but not necessary with the same value.
    *)
-  Definition memory_subset_except (e : mem_block_id) (m_sub m_sup : memory) :=
+  Definition memory_subset_except (e : nat) (m_sub m_sup : memory) :=
     forall k v,
       memory_lookup m_sub k = Some v ->
       exists v', (memory_lookup m_sup k = Some v' /\ (k ≢ e -> v = v')).
@@ -413,7 +413,7 @@ Section memory_aux.
     apply kc.
   Qed.
 
-  Lemma memory_lookup_err_inr_is_Some {s : string} (m : memory) (mbi : mem_block_id) :
+  Lemma memory_lookup_err_inr_is_Some {s : string} (m : memory) (mbi : nat) :
     forall mb, memory_lookup_err s m mbi ≡ inr mb → is_Some (memory_lookup m mbi).
   Proof.
     intros.
@@ -432,7 +432,7 @@ Section memory_aux.
     -
       lia.
     -
-      rename m into k.
+      rename n into k.
       apply memory_next_key_S in E.
       apply memory_is_set_is_Some in E.
       apply util.is_Some_def in E.
@@ -465,7 +465,7 @@ Section memory_aux.
         apply H.
   Qed.
 
-  Lemma memory_set_overwrite (m : memory) (k k' : mem_block_id) (mb mb' : mem_block) :
+  Lemma memory_set_overwrite (m : memory) (k k' : nat) (mb mb' : mem_block) :
     k = k' ->
     memory_set (memory_set m k mb) k' mb' = memory_set m k' mb'.
   Proof.
@@ -481,7 +481,7 @@ Section memory_aux.
       reflexivity.
   Qed.
   
-  Lemma memory_remove_memory_set_eq (m : memory) (k k' : mem_block_id) (mb : mem_block) :
+  Lemma memory_remove_memory_set_eq (m : memory) (k k' : nat) (mb : mem_block) :
     k = k' ->
     memory_remove (memory_set m k mb) k' = memory_remove m k.
   Proof.
@@ -498,7 +498,7 @@ Section memory_aux.
       reflexivity.
   Qed.
   
-  Lemma memory_remove_nonexistent_key (m : memory) (k : mem_block_id) :
+  Lemma memory_remove_nonexistent_key (m : memory) (k : nat) :
     not (mem_block_exists k m) -> memory_remove m k = m.
   Proof.
     intros.
@@ -512,7 +512,7 @@ Section memory_aux.
     reflexivity.
   Qed.
 
-  Lemma memory_lookup_memory_set_eq (m : memory) (k k' : mem_block_id) (mb : mem_block) :
+  Lemma memory_lookup_memory_set_eq (m : memory) (k k' : nat) (mb : mem_block) :
     k = k' ->
     memory_lookup (memory_set m k mb) k' ≡ Some mb.
   Proof.
@@ -523,7 +523,7 @@ Section memory_aux.
     reflexivity.
   Qed.
   
-  Lemma memory_lookup_memory_set_neq (m : memory) (k k' : mem_block_id) (mb : mem_block) :
+  Lemma memory_lookup_memory_set_neq (m : memory) (k k' : nat) (mb : mem_block) :
     k <> k' ->
     memory_lookup (memory_set m k mb) k' ≡ memory_lookup m k'.
   Proof.
@@ -533,7 +533,7 @@ Section memory_aux.
     reflexivity.
   Qed.
   
-  Lemma memory_lookup_memory_remove_eq (m : memory) (k k' : mem_block_id) :
+  Lemma memory_lookup_memory_remove_eq (m : memory) (k k' : nat) :
     k = k' ->
     memory_lookup (memory_remove m k) k' = None.
   Proof.
@@ -543,7 +543,7 @@ Section memory_aux.
     rewrite NP.F.remove_eq_o; reflexivity.
   Qed.
   
-  Lemma memory_lookup_memory_remove_neq (m : memory) (k k' : mem_block_id) :
+  Lemma memory_lookup_memory_remove_neq (m : memory) (k k' : nat) :
     k <> k' ->
     memory_lookup (memory_remove m k) k' = memory_lookup m k'.
   Proof.
@@ -554,7 +554,7 @@ Section memory_aux.
     assumption.
   Qed.
 
-  Lemma memory_lookup_not_next_equiv (m : memory) (k : mem_block_id) (mb : mem_block) :
+  Lemma memory_lookup_not_next_equiv (m : memory) (k : nat) (mb : mem_block) :
     memory_lookup m k = Some mb -> k <> memory_next_key m.
   Proof.
     intros S C.
@@ -566,7 +566,7 @@ Section memory_aux.
     some_none.
   Qed.
   
-  Lemma memory_next_key_override (k : mem_block_id) (m : memory) (mb : mem_block) :
+  Lemma memory_next_key_override (k : nat) (m : memory) (mb : mem_block) :
     mem_block_exists k m ->
     memory_next_key (memory_set m k mb) = memory_next_key m.
   Proof.
@@ -586,7 +586,7 @@ Section memory_aux.
       assumption.
   Qed.
 
-  Lemma memory_set_same (m : memory) (k : mem_block_id) (mb : mem_block) :
+  Lemma memory_set_same (m : memory) (k : nat) (mb : mem_block) :
     memory_lookup m k = Some mb ->
     memory_set m k mb = m.
   Proof.
@@ -602,7 +602,7 @@ Section memory_aux.
       reflexivity.
   Qed.
 
-  Lemma memory_subset_except_transitive (k : mem_block_id) (m1 m2 m3 : memory) :
+  Lemma memory_subset_except_transitive (k : nat) (m1 m2 m3 : memory) :
     memory_subset_except k m1 m2 ->
     memory_subset_except k m2 m3 ->
     memory_subset_except k m1 m3.
@@ -751,9 +751,9 @@ Ltac tuple_inversion_equiv :=
 Ltac subst_nat :=
   repeat match goal with
          | [ H : @equiv nat _ ?n1 ?n2 |- _ ] => cbv in H; try subst n1; try subst n2
-         | [ H : @equiv mem_block_id _ ?n1 ?n2 |- _ ] => cbv in H; try subst n1; try subst n2
+         | [ H : @equiv nat _ ?n1 ?n2 |- _ ] => cbv in H; try subst n1; try subst n2
          | [ H : @eq nat ?n1 ?n2 |- _ ] => try subst n1; try subst n2
-         | [ H : @eq mem_block_id ?n1 ?n2 |- _ ] => try subst n1; try subst n2
+         | [ H : @eq nat ?n1 ?n2 |- _ ] => try subst n1; try subst n2
          end.
 
 Ltac minimize_eq :=
@@ -1841,8 +1841,8 @@ Proof.
   unfold lookup_PExpr, memory_lookup_err, trywith in H.
   cbn in *.
   repeat break_match; try inl_inr; inl_inr_inv.
-  exists m0.
   exists n.
+  exists n0.
   intuition.
   rewrite Heqo, H.
   reflexivity.
@@ -1977,11 +1977,11 @@ Proof.
     unfold equiv, memory_Equiv, memory_set, mem_add in H.
     specialize (H k).
     rewrite <-H.
-    destruct (Nat.eq_dec m1 k), (Nat.eq_dec n0 k);
-        try (rewrite NP.F.add_eq_o with (x := m1) by assumption);
-        try (rewrite NP.F.add_eq_o with (x := n0) by assumption);
-        try (rewrite NP.F.add_neq_o with (x := m1) by assumption);
-        try (rewrite NP.F.add_neq_o with (x := n0) by assumption).
+    destruct (Nat.eq_dec n1 k), (Nat.eq_dec n4 k);
+        try (rewrite NP.F.add_eq_o with (x := n1) by assumption);
+        try (rewrite NP.F.add_eq_o with (x := n4) by assumption);
+        try (rewrite NP.F.add_neq_o with (x := n1) by assumption);
+        try (rewrite NP.F.add_neq_o with (x := n4) by assumption).
     all: subst.
     all: try congruence.
     all: try reflexivity.
@@ -2035,7 +2035,7 @@ Proof.
     rewrite bc in Heqs2.
     inversion Heqs2.
   -
-    cbv in H6, H8; subst n0 o.
+    cbv in H6, H8; subst n2 o.
     exfalso.
     unfold mem_lookup_err, trywith in *.
     break_match; try inl_inr.
@@ -2428,8 +2428,6 @@ Proof.
       eq_to_equiv; tuple_inversion_equiv;
         subst_nat; minimize_eq.
     subst.
-    rename m0 into x_i, m2 into x, m3 into y, m4 into y'.
-
     intros k NKY.
     rewrite <-E.
     clear E m'.
@@ -2688,10 +2686,10 @@ Proof.
     unfold equiv, memory_Equiv, memory_set, mem_add in H.
     specialize (H k).
     rewrite <-H.
-    destruct (Nat.eq_dec m1 k), (Nat.eq_dec n0 k);
-        try (rewrite NP.F.add_eq_o with (x := m1) by assumption);
+    destruct (Nat.eq_dec n2 k), (Nat.eq_dec n0 k);
+        try (rewrite NP.F.add_eq_o with (x := n2) by assumption);
         try (rewrite NP.F.add_eq_o with (x := n0) by assumption);
-        try (rewrite NP.F.add_neq_o with (x := m1) by assumption);
+        try (rewrite NP.F.add_neq_o with (x := n2) by assumption);
         try (rewrite NP.F.add_neq_o with (x := n0) by assumption).
     all: tuple_inversion_equiv; subst_nat.
     all: subst.
@@ -2806,7 +2804,7 @@ Proof.
       repeat some_inv.
 
       rewrite <-Heqs1, <-Heqs2, H, H1 in *;
-        clear Heqs1 Heqs2 m2 m3 H H1 y_m' x_m'.
+        clear Heqs1 Heqs2 H H1 y_m' x_m'.
 
       rename Heqs4 into EV.
       clear - EV XD FA.
@@ -2918,8 +2916,8 @@ Proof.
     rewrite X_M' in Heqs1.
     rewrite Y_M' in Heqs2.
     repeat some_inv.
-    eq_to_equiv; subst m2 m3.
-    rewrite XME, YME in *; clear XME YME x_m' y_m'.
+    eq_to_equiv; subst y_m' x_m'.
+    rewrite XME, YME in *; clear XME YME m0.
 
     destruct XD as (j & jc & XD).
     destruct j; [clear jc|lia].
@@ -3778,7 +3776,7 @@ Lemma lookup_PExpr_size
       (σ : evalContext)
       (p : PExpr)
       (m : memory)
-      (id : mem_block_id)
+      (id : nat)
       (sz : nat)
       (mb : mem_block) :
   evalPExpr σ p = inr (id, sz) ->
@@ -3840,7 +3838,7 @@ Lemma lookup_PExpr_size_invariant'
       (σ : evalContext)
       (p : PExpr)
       (sz sz' : nat)
-      (id : mem_block_id)
+      (id : nat)
       (mb : mem_block) :
   evalPExpr σ p = inr (id, sz) ->
   forall m, lookup_PExpr_wsize σ m p = inr (mb, sz') ->
@@ -3905,7 +3903,7 @@ Proof.
     unfold lookup_PExpr in *.
     simpl in MX, MB.
     repeat break_match_hyp; try some_none; repeat some_inv; try inl_inr.
-    rename m1 into x_i, m0 into y_i.
+    rename n1 into x_i, n into y_i.
     rename Heqo0 into E2.
     rewrite evalDSHOperator_estimateFuel_ge in E2 by lia.
 
@@ -4010,7 +4008,7 @@ Proof.
     unfold lookup_PExpr in *.
     simpl in MX, MB.
     repeat break_match_hyp; try some_none; repeat some_inv; try inl_inr.
-    rename m1 into x_i, m0 into y_i.
+    rename n1 into x_i, n into y_i.
     rename Heqo0 into E2, Heqo into E1.
     rewrite evalDSHOperator_estimateFuel_ge in E1 by lia.
     rewrite evalDSHOperator_estimateFuel_ge in E2 by lia.
@@ -4171,7 +4169,7 @@ Proof.
       subst σ'.
       rewrite lookup_PExpr_wsize_incrPVar.
       eapply lookup_PExpr_size.
-      replace o3 with n in * by
+      replace o3 with n0 in * by
           (eapply lookup_PExpr_size_invariant';
            [rewrite Heqs1; reflexivity | eassumption]).
       rewrite Heqs1; reflexivity.
@@ -4223,7 +4221,7 @@ Proof.
     simpl in MX, MB.
     repeat break_match_hyp; try some_none; repeat some_inv; try inl_inr.
     simpl.
-    rename m1 into x_i, m0 into y_i.
+    rename n1 into x_i, n into y_i.
     rename Heqo0 into E2, Heqo into E1.
     rewrite evalDSHOperator_estimateFuel_ge in E1 by lia.
     rewrite evalDSHOperator_estimateFuel_ge in E2 by lia.
@@ -4460,7 +4458,7 @@ Proof.
     unfold lookup_PExpr in *.
     simpl in MX, MB.
     repeat break_match_hyp; try some_none; repeat some_inv; try inl_inr.
-    rename m1 into x_i, m0 into y_i.
+    rename n1 into x_i, n into y_i.
     rename Heqo0 into E2, Heqo into E1.
     rewrite evalDSHOperator_estimateFuel_ge in E1 by lia.
     rewrite evalDSHOperator_estimateFuel_ge in E2 by lia.
@@ -4604,7 +4602,7 @@ Proof.
       subst σ'.
       rewrite lookup_PExpr_wsize_incrPVar.
       eapply lookup_PExpr_size.
-      replace o3 with n in * by
+      replace o3 with n0 in * by
           (eapply lookup_PExpr_size_invariant';
            [rewrite Heqs1; reflexivity | eassumption]).
       rewrite Heqs1; reflexivity.
@@ -4653,7 +4651,7 @@ Proof.
     unfold lookup_PExpr in *.
     simpl in MX, MB.
     repeat break_match_hyp; try some_none; repeat some_inv; try inl_inr.
-    rename m1 into x_i, m0 into y_i.
+    rename n1 into x_i, n into y_i.
     clear Heqo.
     rename Heqo0 into E2.
     rewrite evalDSHOperator_estimateFuel_ge in E2 by lia.
@@ -4743,7 +4741,7 @@ Proof.
     unfold lookup_PExpr in *.
     simpl in MX, MB.
     repeat break_match_hyp; try some_none; repeat some_inv; try inl_inr.
-    rename m1 into x_i, m0 into y_i.
+    rename n1 into x_i, n into y_i.
     rename Heqo0 into E2, Heqo into E1.
     rewrite evalDSHOperator_estimateFuel_ge in E1 by lia.
     rewrite evalDSHOperator_estimateFuel_ge in E2 by lia.
@@ -4904,7 +4902,7 @@ Proof.
         subst σ'.
         rewrite lookup_PExpr_wsize_incrPVar.
         eapply lookup_PExpr_size.
-        replace o3 with n in * by
+        replace o3 with n0 in * by
             (eapply lookup_PExpr_size_invariant';
              [rewrite Heqs2; reflexivity | eassumption]).
         rewrite Heqs2; reflexivity.
@@ -5832,8 +5830,6 @@ Proof.
     try some_none; repeat some_inv;
     try inl_inr; repeat inl_inr_inv.
   memory_lookup_err_to_option.
-  rename m0 into x1_id, m1 into x2_id, m2 into y_id.
-  rename m3 into x1_m, m4 into x2_m, m5 into y_m'.
   unfold lookup_PExpr, memory_lookup_err in *.
   rewrite Heqs1 in *.
   cbn in *.
@@ -5867,8 +5863,6 @@ Proof.
     try some_none; repeat some_inv;
     try inl_inr; repeat inl_inr_inv.
   memory_lookup_err_to_option.
-  rename m0 into x1_id, m1 into x2_id, m2 into y_id.
-  rename m3 into x1_m, m4 into x2_m, m5 into y_m'.
   unfold lookup_PExpr, memory_lookup_err in Y_RM.
   rewrite Heqs1 in Y_RM.
   cbn in Y_RM.
@@ -5877,16 +5871,17 @@ Proof.
   cbn in Y_RM.
   inl_inr_inv.
   eq_to_equiv.
-  rewrite Y_RM in *; clear Y_RM m6.
+  rewrite Y_RM in *; clear Y_RM.
   clear - Heqs6 H0.
   rename Heqs6 into M, H0 into KO.
 
   generalize dependent k.
-  generalize dependent y_m'.
+  generalize dependent m2.
   generalize dependent y_rm.
   induction o; [lia |].
   intros.
   cbn [evalDSHMap2] in M.
+  rename m0 into x1_m, m1 into x2_m.
   remember ("Error reading 1st arg memory in evalDSHMap2 @" ++
     Misc.string_of_nat o ++ " in " ++ string_of_mem_block_keys x1_m)%string as t1;
     clear Heqt1.
@@ -5961,7 +5956,7 @@ Proof.
     omega.
   }
   all: rewrite Heqo2, Heqo1, Heqo0 in *; repeat some_inv.
-  all: rewrite X1_M, X2_M, Y_M in *; clear X1_M X2_M Y_M m3 m4 m5.
+  all: rewrite X1_M, X2_M, Y_M in *; clear X1_M X2_M Y_M.
   all: rename Heqo2 into X1_M, Heqo1 into X2_M, Heqo0 into Y_M.
   all: rename Heqs6 into M.
   - (* evalDSHMap2 fails *)
@@ -6065,16 +6060,16 @@ Proof.
   all: rename Heqs into X1_ID, Heqs0 into X2_ID, Heqs1 into Y_ID.
   all: try some_none.
   all: intros; try some_none; repeat some_inv; try inl_inr; inl_inr_inv.
-  all: invc H0; rewrite H4 in *; clear H4 m7.
+  all: invc H0; rewrite H4 in *; clear H4.
   subst.
   rewrite Heqo3, Heqo2, Heqo1 in *; repeat some_inv.
-  rewrite X1_M, X2_M, Y_M in *; clear X1_M X2_M Y_M m3 m4 m5.
+  rewrite X1_M, X2_M, Y_M in *; clear X1_M X2_M Y_M.
   rename Heqo3 into X1_M, Heqo2 into X2_M, Heqo1 into Y_M.
   rename Heqs6 into M.
   rewrite <-H in Heqo0.
   rewrite memory_lookup_memory_set_eq in Heqo0 by reflexivity.
   some_inv.
-  rewrite Heqo0 in *; clear Heqo0 m6.
+  rewrite Heqo0 in *; clear Heqo0.
   
   apply evalDSHMap2_result with (k:=k) (dot:=dot) in M; try assumption.
   destruct M as [a1 [a2 [X1 [X2 Y]]]].
@@ -6423,7 +6418,7 @@ Lemma MemInit_simpl
       (dop : DSHOperator)
       (init : CarrierA)
       (y_p : PExpr)
-      (y_id : mem_block_id)
+      (y_id : nat)
       (y_m : mem_block)
       (Y_ID : evalPExpr_id σ y_p = inr y_id)
       (Y_M : lookup_PExpr_wsize σ m y_p = inr (y_m, y_sz))
@@ -6487,7 +6482,7 @@ Lemma Alloc_Loop_step
       (body : DSHOperator)
       (m loopN_m iterSN_m : memory)
       (σ : evalContext)
-      (t_id : mem_block_id)
+      (t_id : nat)
       (T_ID : t_id ≡ memory_next_key m)
       (LoopN : evalDSHOperator (DSHPtrVal t_id o :: σ) (DSHLoop n body)
                                (memory_set m t_id mem_empty)
@@ -6523,7 +6518,7 @@ Lemma Alloc_Loop_error1
       (body : DSHOperator)
       (m : memory)
       (σ : evalContext)
-      (t_id : mem_block_id)
+      (t_id : nat)
       (T_ID : t_id ≡ memory_next_key m)
       (msg : string)
       (LoopN : evalDSHOperator (DSHPtrVal t_id o :: σ) (DSHLoop n body)
@@ -6552,7 +6547,7 @@ Lemma Alloc_Loop_error2
       (body : DSHOperator)
       (m loopN_m : memory)
       (σ : evalContext)
-      (t_id : mem_block_id)
+      (t_id : nat)
       (T_ID : t_id ≡ memory_next_key m)
       (msg : string)
       (LoopN : evalDSHOperator (DSHPtrVal t_id o :: σ) (DSHLoop n body)
@@ -6611,7 +6606,7 @@ Qed.
 Definition mem_stable' (dop : DSHOperator) := 
   ∀ (σ : evalContext) (m m' : memory) (fuel : nat),
     evalDSHOperator σ dop m fuel = Some (inr m') →
-    ∀ k : mem_block_id, mem_block_exists k m ↔ mem_block_exists k m'.
+    ∀ k : nat, mem_block_exists k m ↔ mem_block_exists k m'.
 
 Lemma DSH_pure_mem_stable (dop : DSHOperator) (y_p : PExpr) :
   DSH_pure dop y_p -> mem_stable' dop.
@@ -6717,7 +6712,7 @@ Qed.
 Lemma lookup_PExpr_memory_lookup
       (σ : evalContext)
       (x_p : PExpr)
-      (x_id : mem_block_id)
+      (x_id : nat)
       (x_sz : nat)
       (m : memory)
       (x_m : mem_block)
@@ -8012,7 +8007,7 @@ Proof.
                      Heqs4 into Heqs3.
               
               repeat rewrite evalPExpr_incrPVar in Heqs.
-              rewrite Y_ID in Heqs; inl_inr_inv; subst m2.
+              rewrite Y_ID in Heqs; inl_inr_inv; subst y_id.
               clear Heqs1 Heqs2 Heqs3 T m4 m5.
               
               eapply MemMap2_rest_preserved in H0.

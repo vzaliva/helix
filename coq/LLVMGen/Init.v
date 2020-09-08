@@ -265,7 +265,7 @@ Definition declarations_invariant_mcfg (fnname:string) : Pred_mcfg_T unit :=
     declarations_invariant fnname (memV,(l,g)).
 
 Lemma memory_set_seq2 {E}
-      (i1 i2: mem_block_id)
+      (i1 i2: nat)
       (b1 b2: mem_block)
       (m0: memoryH)
   :
@@ -278,7 +278,7 @@ Proof.
 Qed.
 
 Lemma memory_set_seq {E}
-      (i1: mem_block_id)
+      (i1: nat)
       (b1: mem_block)
       (m0: memoryH)
   :

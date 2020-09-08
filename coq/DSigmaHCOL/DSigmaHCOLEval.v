@@ -66,7 +66,7 @@ Module MDSigmaHCOLEval
   Definition memory_lookup_err
              (msg:string)
              (mem: memory)
-             (n: mem_block_id)
+             (n: nat)
              : err mem_block
     :=
     trywith msg (memory_lookup mem n).
@@ -108,7 +108,7 @@ Module MDSigmaHCOLEval
     := List.tl σ.
 
     (* Evaluation of expressions does not allow for side-effects *)
-  Definition evalPExpr (σ: evalContext) (exp:PExpr): err (mem_block_id*NT.t) :=
+  Definition evalPExpr (σ: evalContext) (exp:PExpr): err (nat*NT.t) :=
     match exp with
     | @PVar i =>
       match nth_error σ i with
@@ -1435,7 +1435,7 @@ Module MDSigmaHCOLEval
   Lemma memory_lookup_err_inr_Some_eq
         (msg : string)
         (m : memory)
-        (k : mem_block_id)
+        (k : nat)
         (mb : mem_block)
     :
       memory_lookup_err msg m k ≡ inr mb <->
@@ -1453,7 +1453,7 @@ Module MDSigmaHCOLEval
   Lemma memory_lookup_err_inl_None_eq
         (msg msg' : string)
         (m : memory)
-        (k : mem_block_id)
+        (k : nat)
     :
       memory_lookup_err msg m k ≡ inl msg' ->
       memory_lookup m k ≡ None.
@@ -1467,7 +1467,7 @@ Module MDSigmaHCOLEval
   Lemma memory_lookup_err_inl_None
         (msg msg' : string)
         (mem : memory)
-        (n : mem_block_id)
+        (n : nat)
     :
       memory_lookup_err msg mem n = inl msg' <->
       memory_lookup mem n = None.
@@ -1482,7 +1482,7 @@ Module MDSigmaHCOLEval
   Lemma memory_lookup_err_inr_Some
         (msg : string)
         (mem : memory)
-        (n : mem_block_id)
+        (n : nat)
         (mb : mem_block)
     :
       memory_lookup_err msg mem n = inr mb <->

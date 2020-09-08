@@ -968,9 +968,9 @@ Section MSHCOL_to_DSHCOL.
     Parameter a:vector CarrierA 3.
     Parameter x:mem_block.
 
-    Definition dynwin_a_addr:mem_block_id := 0.
-    Definition dynwin_y_addr:mem_block_id := (nglobals+0).
-    Definition dynwin_x_addr:mem_block_id := (nglobals+1).
+    Definition dynwin_a_addr:nat := 0.
+    Definition dynwin_y_addr:nat := (nglobals+0).
+    Definition dynwin_x_addr:nat := (nglobals+1).
 
     Definition dynwin_globals_mem :=
       (memory_set memory_empty dynwin_a_addr (avector_to_mem_block a)).
