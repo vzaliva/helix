@@ -603,6 +603,7 @@ Proof.
   lia.
 Qed.
 
+(* ZX TODO: remove when done
 Fact bind_ret_override
       {A B C : Type}
       {E : Type -> Type}
@@ -632,7 +633,6 @@ Proof.
   reflexivity.
 Qed.
 
-(* ZX TODO: remove when done
 Lemma bind_comm {E : Type -> Type} {A B : Type} {x : B} (i1 i2 : itree E A) :
     (exists i, i1 ≈ Ret i) ->
     ITree.bind (ITree.bind i1 (fun _ => i2)) (fun _ => Ret x) ≈
@@ -860,6 +860,18 @@ Definition post_alloc_invariant_mcfg
 
          | _ => False
          end.
+
+Lemma allocate_allocated (m1 m2 : memoryV) (d : dtyp) (a : Z * Z) :
+  allocate m1 d ≡ inr (m2, a) → allocated a m2.
+Proof.
+  intros AS.
+  unfold allocate, allocated in *.
+  destruct d; invc AS.
+  all: repeat break_let; subst.
+  all: unfold add_logical_block, add_logical_block_mem, add_to_frame in *.
+  all: repeat break_match; invc Heqm; invc Heqm0.
+  all: apply member_add_eq.
+Qed.
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
@@ -1342,20 +1354,106 @@ Proof.
     cbn.
     repeat rewrite interp_to_L3_bind, translate_bind.
 
-    pose_interp_to_L3_alloca m'' a'' A' AE'.
-    1:{
-      unfold non_void.
-      clear.
-      admit.
-    }
+    (* Alloca Y *)
+    pose_interp_to_L3_alloca m'' a'' A' AE';
+      [rewrite typ_to_dtyp_equation; congruence |].
     rewrite AE'.
+    setoid_rewrite translate_ret.
 
+    (* GlobalWrite Y *)
+    rewrite !ITree.Eq.Eq.bind_ret_l.
+    rewrite interp_to_L3_GW.
+    setoid_rewrite translate_ret.
+    rewrite !ITree.Eq.Eq.bind_ret_l.
+
+    repeat rewrite interp_to_L3_bind, translate_bind.
+    
+    (* Alloca X *)
+    pose_interp_to_L3_alloca m''' a''' A'' AE'';
+      [rewrite typ_to_dtyp_equation; congruence |].
+    rewrite AE''.
+
+    (* GlobalWrite X *)
     setoid_rewrite translate_ret.
     rewrite !ITree.Eq.Eq.bind_ret_l.
     rewrite interp_to_L3_GW.
     setoid_rewrite translate_ret.
     rewrite !ITree.Eq.Eq.bind_ret_l.
-    admit.
+
+    repeat rewrite interp_to_L3_ret, translate_ret, !ITree.Eq.Eq.bind_ret_l.
+    cbn.
+
+    induction globals.
+    +
+      cbn in *.
+      invc G; invc LG.
+      cbn.
+      rewrite interp_to_L3_bind, translate_bind.
+      rewrite interp_to_L3_ret, translate_ret, !ITree.Eq.Eq.bind_ret_l.
+      rewrite interp_to_L3_ret, translate_ret.
+
+      apply eutt_Ret.
+      unfold post_alloc_invariant_mcfg.
+      intros.
+      destruct j as [|j].
+      *
+        cbn [ListUtil.ith Datatypes.length]; clear jc.
+        break_match; try lia; clear l0.
+        unfold in_local_or_global_addr.
+        exists a'''.
+        split.
+        --
+          replace (Z.of_nat (0 - 0)) with Z0 by reflexivity.
+          unfold alist_add.
+          rewrite alist_find_cons_eq by reflexivity.
+          reflexivity.
+        --
+          intros.
+          unfold get_array_cell.
+          pose proof allocated_get_logical_block a''' m'''.
+          break_let; subst.
+          autospecialize H0; [eapply allocate_allocated; eassumption |].
+          destruct H0 as [b''' B'''].
+          cbn in B'''.
+          rewrite B'''.
+          break_match.
+          cbn.
+          eexists.
+          f_equal.
+          unfold read_in_mem_block, deserialize_sbytes.
+          break_if.
+          ++
+            cbn.
+            reflexivity.
+          ++
+            exfalso.
+            (* unfold get_logical_block, get_logical_block_mem in *. *)
+            admit.
+      *
+        destruct j; [| cbn in jc; lia].
+        cbn [ListUtil.ith Datatypes.length]; clear jc.
+        break_match; try lia; clear l0.
+        unfold in_local_or_global_addr.
+        exists a''.
+        split.
+        --
+          replace (Z.of_nat (1 - 0)) with 1%Z by reflexivity.
+          rewrite alist_find_neq by discriminate.
+          unfold alist_add.
+          rewrite alist_find_cons_eq by reflexivity.
+          reflexivity.
+        --
+          intros.
+          unfold get_array_cell.
+          pose proof allocated_get_logical_block a'' m''.
+          break_let; subst.
+          autospecialize H0; [eapply allocate_allocated; eassumption |].
+          destruct H0 as [b''' B'''].
+          cbn in B'''.
+          (* [get_logical_block m''' z ≡ get_logical_block m'' z] *)
+          admit.
+    +
+      admit.
   -
     intros.
     admit.
