@@ -855,13 +855,11 @@ Definition post_alloc_invariant_mcfg
                     ptr_llvm
             end
             /\
-            forall i (ic : Z.lt (Z.of_nat i) (Int64.intval len)),
-            exists v, get_array_cell memV ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v))
-
+            allocated ptr_llvm memV)
          | _ => False
          end.
 
-Lemma allocate_allocated (m1 m2 : memoryV) (d : dtyp) (a : Z * Z) :
+Lemma allocate_allocated (m1 m2 : memoryV) (d : dtyp) (a : Addr.addr) :
   allocate m1 d ≡ inr (m2, a) → allocated a m2.
 Proof.
   intros AS.
@@ -872,6 +870,10 @@ Proof.
   all: repeat break_match; invc Heqm; invc Heqm0.
   all: apply member_add_eq.
 Qed.
+
+Lemma allocated_allocate_allocated (m1 m2 : memoryV) (d : dtyp) (a a' : Addr.addr) :
+  allocated a m1 -> allocate m1 d ≡ inr (m2, a') → allocated a m2.
+Admitted.
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
@@ -1409,26 +1411,8 @@ Proof.
           reflexivity.
         --
           intros.
-          unfold get_array_cell.
-          pose proof allocated_get_logical_block a''' m'''.
-          break_let; subst.
-          autospecialize H0; [eapply allocate_allocated; eassumption |].
-          destruct H0 as [b''' B'''].
-          cbn in B'''.
-          rewrite B'''.
-          break_match.
-          cbn.
-          eexists.
-          f_equal.
-          unfold read_in_mem_block, deserialize_sbytes.
-          break_if.
-          ++
-            cbn.
-            reflexivity.
-          ++
-            exfalso.
-            (* unfold get_logical_block, get_logical_block_mem in *. *)
-            admit.
+          eapply allocate_allocated.
+          eassumption.
       *
         destruct j; [| cbn in jc; lia].
         cbn [ListUtil.ith Datatypes.length]; clear jc.
@@ -1444,14 +1428,10 @@ Proof.
           reflexivity.
         --
           intros.
-          unfold get_array_cell.
-          pose proof allocated_get_logical_block a'' m''.
-          break_let; subst.
-          autospecialize H0; [eapply allocate_allocated; eassumption |].
-          destruct H0 as [b''' B'''].
-          cbn in B'''.
-          (* [get_logical_block m''' z ≡ get_logical_block m'' z] *)
-          admit.
+          eapply allocated_allocate_allocated.
+          eapply allocate_allocated.
+          eassumption.
+          eassumption.
     +
       admit.
   -
