@@ -832,26 +832,29 @@ Proof.
       eauto.
 Qed.
 
+Definition in_global_addr (g : global_env) (x : raw_id) (a : Addr.addr) := 
+  g @ x ≡ Some (DVALUE_Addr a).
+
 Definition post_alloc_invariant_mcfg
            (globals : list (string * DSHType))
            (σ : evalContext)
            (s : IRState)
   : Rel_mcfg_T unit unit :=
 
-  fun '(memH,_) '(memV,((l,sl),(g,_))) =>
+  fun '(memH,_) '(memV,((_,sl),(g,_))) =>
     forall j (jc : j < length σ),
       match ListUtil.ith jc with
       | DSHPtrVal id len => (
           exists ptr_llvm,
             match le_lt_dec (length globals) j with
             | right jc' =>
-              in_local_or_global_addr
-                l g
-                (ID_Global (Name (fst (ListUtil.ith jc'))))
+              in_global_addr
+                g
+                (Name (fst (ListUtil.ith jc')))
                 ptr_llvm
-            | _ => in_local_or_global_addr
-                    l g
-                    (ID_Global (Anon (Z.of_nat (j - length globals))))
+            | _ => in_global_addr
+                    g
+                    (Anon (Z.of_nat (j - length globals)))
                     ptr_llvm
             end
             /\
@@ -1401,7 +1404,7 @@ Proof.
       *
         cbn [ListUtil.ith Datatypes.length]; clear jc.
         break_match; try lia; clear l0.
-        unfold in_local_or_global_addr.
+        unfold in_global_addr.
         exists a'''.
         split.
         --
@@ -1417,7 +1420,7 @@ Proof.
         destruct j; [| cbn in jc; lia].
         cbn [ListUtil.ith Datatypes.length]; clear jc.
         break_match; try lia; clear l0.
-        unfold in_local_or_global_addr.
+        unfold in_global_addr.
         exists a''.
         split.
         --
