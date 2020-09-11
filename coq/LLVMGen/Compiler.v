@@ -1397,7 +1397,7 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
 
         (* Main function *)
         let main := genMain name gx gxptyp gy gytyp gyptyp in
-        ret (yxinit ++ ginit ++ prog ++ main)
+        ret (ginit ++ yxinit ++ prog ++ main)
     else
       raise "invalid program name"
   end.
