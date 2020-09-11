@@ -343,6 +343,46 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       try lia.
   Qed.
 
+  Lemma genIR_local_count :
+    forall op s1 s2 nextblock b bk_op,
+      genIR op nextblock s1 ≡ inr (s2, (b, bk_op)) ->
+      local_count s2 ≥ local_count s1.
+  Proof.
+    induction op;
+      intros s1 s2 nextblock b bk_op H;
+      cbn in H; simp;
+        repeat
+          (match goal with
+           | H: inl _ ≡ inr _ |- _ =>
+             inversion H
+           | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
+             destruct (nth_error (Γ s1) n) eqn:?; inversion H; subst
+           | H : ErrorWithState.err2errS (MInt64asNT.from_nat ?n) ?s1 ≡ inr (?s2, _) |- _ =>
+             destruct (MInt64asNT.from_nat n) eqn:?; inversion H; subst
+           | H : incLocal ?s1 ≡ inr (?s2, _) |- _ =>
+             apply incLocal_local_count in H
+           | H : incVoid ?s1 ≡ inr (?s2, _) |- _ =>
+             apply incVoid_local_count in H
+           | H : incBlockNamed _ _ ≡ inr _ |- _ =>
+             apply incBlockNamed_local_count in H
+           | H : incBlock _ ≡ inr _ |- _ =>
+             apply incBlockNamed_local_count in H
+           | H : resolve_PVar _ _ ≡ inr _ |- _ =>
+             apply resolve_PVar_state in H; subst
+           | GEN : genNExpr _ _ ≡ inr _ |- _ =>
+             apply genNExpr_local_count in GEN
+           | GEN : genMExpr _ _ ≡ inr _ |- _ =>
+             apply genMExpr_local_count in GEN
+           | GEN : genAExpr _ _ ≡ inr _ |- _ =>
+             apply genAExpr_local_count in GEN
+           | IH : ∀ (s1 s2 : IRState) (nextblock b : block_id) (bk_op : list (LLVMAst.block typ)),
+               genIR ?op nextblock s1 ≡ inr (s2, (b, bk_op)) → local_count s2 ≥ local_count s1,
+             GEN: genIR ?op _ _ ≡ inr _ |- _ =>
+             apply IH in GEN
+           end; cbn in *);
+      try lia.
+  Qed.
+
   Ltac solve_gen_ir_rel :=
     repeat
       match goal with
@@ -466,7 +506,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
               end;
               solve_gen_ir_rel); solve_gen_ir_rel.
     (* TODO: might be able to automate these cases away too. *)
-    - (* Γ i = l0 because of Heqs1 *)
+    - pose proof (genIR_local_count _ _ _ Heqs1) as LOC; cbn in LOC.
+
       apply genIR_Context in Heqs1; cbn in Heqs1; eauto.
       rewrite <- Heqs1 in Heql1.
       inversion Heql1.
@@ -479,8 +520,16 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
       epose proof GenIR_incBlockedNamed Heqs0 BISIM.
       eapply GenIR_Rel_monotone; eauto.
-      admit.
-    - eapply genIR_Context in Heqs0; cbn in Heqs0; eauto.
+      lia.
+    -
+      assert (local_count i1 ≥ local_count s1).
+      { pose proof (genIR_local_count _ _ _ Heqs0) as LOC; cbn in LOC.
+        apply incVoid_local_count in Heqs1.
+        apply incBlockNamed_local_count in Heqs3.
+        lia.
+      }
+
+      eapply genIR_Context in Heqs0; cbn in Heqs0; eauto.
 
       apply incVoid_Γ in Heqs1.
       apply incBlockNamed_Γ in Heqs3.
@@ -490,8 +539,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       inversion Heql1; subst.
 
       eapply GenIR_Rel_monotone; eauto.
-      admit.
-  Admitted.
+  Qed.
 
   Opaque denote_code.
  Lemma compile_FSHCOL_correct :
