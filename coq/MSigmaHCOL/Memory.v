@@ -809,6 +809,15 @@ Module Type MBasic (Import CT : CType).
           | Some k => S k
           end.
 
+    (* forced union of two memory states. conflicts are resolved by
+       giving preference to elements of the 1st state *)
+    Definition memory_union (m1 m2 : memory) : memory
+      := NM.map2 (fun mx my =>
+                    match mx with
+                    | Some x => Some x
+                    | None => my
+                    end) m1 m2.
+
     Lemma mem_block_exists_exists (m:memory) (k:nat):
       mem_block_exists k m <-> exists y : mem_block, memory_lookup m k = Some y.
     Proof.
