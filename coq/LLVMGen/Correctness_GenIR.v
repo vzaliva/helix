@@ -429,13 +429,12 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
            end.
 
   Lemma genIR_Context:
-    ∀ (op : DSHOperator) (s1 s2 : IRState) (σ : evalContext) (memH : memoryH) (nextblock bid_in bid_from b : block_id) (g : global_env)
-      (ρ : local_env) (memV : memoryV) (bk_op : list (LLVMAst.block typ)),
+    ∀ (op : DSHOperator) (s1 s2 : IRState) (nextblock b : block_id) (bk_op : list (LLVMAst.block typ)),
       genIR op nextblock s1 ≡ inr (s2, (b, bk_op)) →
       Γ s1 ≡ Γ s2.
   Proof.
     induction op;
-      intros s1 s2 σ memH nextblock bid_in bid_from b g ρ memV bk_op H;
+      intros s1 s2 nextblock b bk_op H;
       cbn in H; simp;
         repeat
           (match goal with
@@ -1076,12 +1075,17 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     - (* DSHSeq *)
       cbn.
 
-      cbn in GEN.
-      simp.
+      pose proof GEN as GEN_DESTRUCT.
+      cbn in GEN_DESTRUCT; simp.
 
       rename i into s_op1.
       rename l0 into bk_op1.
       rename l into bk_op2.
+
+      rename b into bid_op2.
+
+      rename Heqs0 into GEN_OP2.
+      rename Heqs2 into GEN_OP1.
 
       Lemma add_comment_eutt :
         forall comments bks ids,
@@ -1099,7 +1103,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       Admitted.
 
       rewrite add_comment_eutt.
-
       cbn.
 
       Lemma convert_typ_block_app : forall (a b : list (LLVMAst.block typ)) env, (convert_typ env (a ++ b) ≡ convert_typ env a ++ convert_typ env b)%list.
@@ -1134,7 +1137,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       pose proof (evalDSHSeq_split EVAL) as [mem' [EVAL1 EVAL2]].
 
       eapply eutt_clo_bind.
-      { eapply (IHop1 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ EVAL1 Heqs2).
+      { eapply (IHop1 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ EVAL1 GEN_OP1).
         Unshelve.
         admit. (* Should come from freshness *)
 
@@ -1154,23 +1157,60 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         eapply genIR_GenIR_Rel; eauto.
       }
 
-      intros [u1 []] (u2 & le & ge & res) IRREL.
+      intros [memH' []] (memV' & le & ge & res) IRREL.
       pose proof IRREL as [STATE [[from to] BRANCH]].
 
       (* TODO: How can I know this? *)
       (* Probably need to extend GenIR_Rel? *)
-      assert (b ≡ to). admit. subst.
+      (* - bid_op2 comes from genIR of the sequence destructed with simp...
+         - to comes from GenIR_Rel σ s2 (memH', ()) (memV', (le, (ge, (from, to))))
 
+         
+       *)
+      
+      assert (bid_op2 ≡ to).
+      { unfold GenIR_Rel in IRREL.
+        cbv in IRREL. destruct IRREL as [IRREL_STATE IRREL_BRANCHES].
+        
+        unfold GenIR_Rel in BISIM.
+        cbv in BISIM. destruct BISIM as [BISIM_STATE BISIM_BRANCHES].
+        subst.
+
+        cbv in STATE.
+
+        (* *)
+
+      admit.
+      }
       (* TODO: Need to match u1 up with mem' somehow *)
-      assert (u1 ≡ mem').
-      { epose proof (IHop1 _ _ σ memH _ _ _ bid_in from _ ge le u2 _ _ EVAL1 Heqs2) as IH.
+      assert (memH' ≡ mem').
+      { epose proof (IHop1 _ _ σ memH _ _ _ bid_in from _ ge le memV' _ _ EVAL1 GEN_OP1) as IH.
         cbn in STATE.
         apply state_invariant_memory_invariant in STATE.
+
+        unfold memory_invariant in STATE.
         admit.
       }
       subst.
 
-      epose proof (IHop2 _ _ σ mem' _ _ _ to from _ ge le u2 _ _ EVAL2 Heqs0) as IH.
-      (* apply IH. *)
+      epose proof (IHop2 _ _ σ mem' _ _ _ to from _ ge le memV' _ _ EVAL2 GEN_OP2) as IH2.
+      epose proof (IHop1 _ _ σ _ _ _ _ _ _ _ ge le _ _ _ EVAL1 GEN_OP1) as IH1.
+
+      eapply eqit_mon.
+      4: apply IH2.
+      all: eauto.
+      intros [memH_mon []] (memV_mon & l_mon & g_mon & res) PR.
+
+      pose proof GEN_OP1 as LOC; apply genIR_local_count in LOC.
+      pose proof GEN_OP1 as CONT; apply genIR_Context in CONT.
+
+      replace s2 with {| block_count := block_count s2; local_count := local_count s2; void_count := void_count s2; Γ := Γ s_op1 |} by admit.
+
+      destruct res as [[from_mon to_mon] | ].
+      + (* returned a branch, all good *) 
+        eapply GenIR_Rel_monotone in PR.
+        eapply PR. eapply LOC.
+      + destruct PR as [PR_STATE [? PR_BRANCH]].
+        inversion PR_BRANCH.
   Admitted.
   End GenIR.
