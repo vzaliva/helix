@@ -573,7 +573,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       subst.
       focus_single_step.
       rename x into x_p', y into y_p'.
-      rename m1 into x, m2 into y.
       rename n into src_e, n0 into dst_e.
       rename b into v.
 

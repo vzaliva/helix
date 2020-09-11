@@ -31,7 +31,7 @@ Section MExpr.
              (σ : evalContext)
              (s : IRState) (mexp : MExpr) (e : exp typ) : Rel_cfg_T (mem_block * Int64.int) unit :=
     fun '(memH, (mb, mb_sz)) '(memV, (ρ, (g, _))) =>
-      (exists ptr i (vid : nat) (mid : mem_block_id) (size : Int64.int) (sz : int), (* TODO: sz ≈ size? *)
+      (exists ptr i (vid : nat) (mid : nat) (size : Int64.int) (sz : int), (* TODO: sz ≈ size? *)
         Ret (memV,(ρ,(g,UVALUE_Addr ptr))) ≈ interp_cfg (translate exp_E_to_instr_E (D.denote_exp (Some DTYPE_Pointer) (convert_typ [] e))) g ρ memV /\
         memory_lookup memH mid ≡ Some mb /\
         in_local_or_global_addr ρ g i ptr /\
@@ -135,7 +135,7 @@ Section MExpr.
           repeat break_match; inversion Heval; inversion Heqs; subst.
           inv_memory_lookup_err.
           match goal with
-          | H : Some (DSHPtrVal m bk_sz) ≡ Some (DSHPtrVal a size) |- _ =>
+          | H : Some (DSHPtrVal n bk_sz) ≡ Some (DSHPtrVal a size) |- _ =>
             inversion H; subst
           end.
           match goal with

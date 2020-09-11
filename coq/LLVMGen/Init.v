@@ -265,7 +265,7 @@ Definition declarations_invariant_mcfg (fnname:string) : Pred_mcfg_T unit :=
     declarations_invariant fnname (memV,(l,g)).
 
 Lemma memory_set_seq2 {E}
-      (i1 i2: mem_block_id)
+      (i1 i2: nat)
       (b1 b2: mem_block)
       (m0: memoryH)
   :
@@ -278,7 +278,7 @@ Proof.
 Qed.
 
 Lemma memory_set_seq {E}
-      (i1: mem_block_id)
+      (i1: nat)
       (b1: mem_block)
       (m0: memoryH)
   :
@@ -603,6 +603,7 @@ Proof.
   lia.
 Qed.
 
+(* ZX TODO: remove when done
 Fact bind_ret_override
       {A B C : Type}
       {E : Type -> Type}
@@ -632,7 +633,6 @@ Proof.
   reflexivity.
 Qed.
 
-(* ZX TODO: remove when done
 Lemma bind_comm {E : Type -> Type} {A B : Type} {x : B} (i1 i2 : itree E A) :
     (exists i, i1 ≈ Ret i) ->
     ITree.bind (ITree.bind i1 (fun _ => i2)) (fun _ => Ret x) ≈
@@ -832,34 +832,51 @@ Proof.
       eauto.
 Qed.
 
+Definition in_global_addr (g : global_env) (x : raw_id) (a : Addr.addr) := 
+  g @ x ≡ Some (DVALUE_Addr a).
+
 Definition post_alloc_invariant_mcfg
            (globals : list (string * DSHType))
            (σ : evalContext)
            (s : IRState)
   : Rel_mcfg_T unit unit :=
 
-  fun '(memH,_) '(memV,((l,sl),(g,_))) =>
+  fun '(memH,_) '(memV,((_,sl),(g,_))) =>
     forall j (jc : j < length σ),
       match ListUtil.ith jc with
       | DSHPtrVal id len => (
           exists ptr_llvm,
             match le_lt_dec (length globals) j with
             | right jc' =>
-              in_local_or_global_addr
-                l g
-                (ID_Global (Name (fst (ListUtil.ith jc'))))
+              in_global_addr
+                g
+                (Name (fst (ListUtil.ith jc')))
                 ptr_llvm
-            | _ => in_local_or_global_addr
-                    l g
-                    (ID_Global (Anon (Z.of_nat (j - length globals))))
+            | _ => in_global_addr
+                    g
+                    (Anon (Z.of_nat (j - length globals)))
                     ptr_llvm
             end
             /\
-            forall i (ic : Z.lt (Z.of_nat i) (Int64.intval len)),
-            exists v, get_array_cell memV ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v))
-
+            allocated ptr_llvm memV)
          | _ => False
          end.
+
+Lemma allocate_allocated (m1 m2 : memoryV) (d : dtyp) (a : Addr.addr) :
+  allocate m1 d ≡ inr (m2, a) → allocated a m2.
+Proof.
+  intros AS.
+  unfold allocate, allocated in *.
+  destruct d; invc AS.
+  all: repeat break_let; subst.
+  all: unfold add_logical_block, add_logical_block_mem, add_to_frame in *.
+  all: repeat break_match; invc Heqm; invc Heqm0.
+  all: apply member_add_eq.
+Qed.
+
+Lemma allocated_allocate_allocated (m1 m2 : memoryV) (d : dtyp) (a a' : Addr.addr) :
+  allocated a m1 -> allocate m1 d ≡ inr (m2, a') → allocated a m2.
+Admitted.
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
@@ -1342,20 +1359,84 @@ Proof.
     cbn.
     repeat rewrite interp_to_L3_bind, translate_bind.
 
-    pose_interp_to_L3_alloca m'' a'' A' AE'.
-    1:{
-      unfold non_void.
-      clear.
-      admit.
-    }
+    (* Alloca Y *)
+    pose_interp_to_L3_alloca m'' a'' A' AE';
+      [rewrite typ_to_dtyp_equation; congruence |].
     rewrite AE'.
+    setoid_rewrite translate_ret.
 
+    (* GlobalWrite Y *)
+    rewrite !ITree.Eq.Eq.bind_ret_l.
+    rewrite interp_to_L3_GW.
+    setoid_rewrite translate_ret.
+    rewrite !ITree.Eq.Eq.bind_ret_l.
+
+    repeat rewrite interp_to_L3_bind, translate_bind.
+    
+    (* Alloca X *)
+    pose_interp_to_L3_alloca m''' a''' A'' AE'';
+      [rewrite typ_to_dtyp_equation; congruence |].
+    rewrite AE''.
+
+    (* GlobalWrite X *)
     setoid_rewrite translate_ret.
     rewrite !ITree.Eq.Eq.bind_ret_l.
     rewrite interp_to_L3_GW.
     setoid_rewrite translate_ret.
     rewrite !ITree.Eq.Eq.bind_ret_l.
-    admit.
+
+    repeat rewrite interp_to_L3_ret, translate_ret, !ITree.Eq.Eq.bind_ret_l.
+    cbn.
+
+    induction globals.
+    +
+      cbn in *.
+      invc G; invc LG.
+      cbn.
+      rewrite interp_to_L3_bind, translate_bind.
+      rewrite interp_to_L3_ret, translate_ret, !ITree.Eq.Eq.bind_ret_l.
+      rewrite interp_to_L3_ret, translate_ret.
+
+      apply eutt_Ret.
+      unfold post_alloc_invariant_mcfg.
+      intros.
+      destruct j as [|j].
+      *
+        cbn [ListUtil.ith Datatypes.length]; clear jc.
+        break_match; try lia; clear l0.
+        unfold in_global_addr.
+        exists a'''.
+        split.
+        --
+          replace (Z.of_nat (0 - 0)) with Z0 by reflexivity.
+          unfold alist_add.
+          rewrite alist_find_cons_eq by reflexivity.
+          reflexivity.
+        --
+          intros.
+          eapply allocate_allocated.
+          eassumption.
+      *
+        destruct j; [| cbn in jc; lia].
+        cbn [ListUtil.ith Datatypes.length]; clear jc.
+        break_match; try lia; clear l0.
+        unfold in_global_addr.
+        exists a''.
+        split.
+        --
+          replace (Z.of_nat (1 - 0)) with 1%Z by reflexivity.
+          rewrite alist_find_neq by discriminate.
+          unfold alist_add.
+          rewrite alist_find_cons_eq by reflexivity.
+          reflexivity.
+        --
+          intros.
+          eapply allocated_allocate_allocated.
+          eapply allocate_allocated.
+          eassumption.
+          eassumption.
+    +
+      admit.
   -
     intros.
     admit.

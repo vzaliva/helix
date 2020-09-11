@@ -176,11 +176,11 @@ Definition helix_initial_memory
        let '(data, x) := constMemBlock (MInt64asNT.to_nat i) data in
        '(mem, data, globals_σ) <- initFSHGlobals data helix_empty_memory globals ;;
        (* over-estimating id, as some globals may not alocate memory (e.g. scalars) *)
-       let X_mem_block_id : mem_block_id := length globals  in
-       let Y_mem_block_id : mem_block_id := S (length globals) in
-       let mem := memory_set mem Y_mem_block_id y in
-       let mem := memory_set mem X_mem_block_id x in
-       let σ := globals_σ ++ [DSHPtrVal Y_mem_block_id o; DSHPtrVal X_mem_block_id i] in
+       let X_nat : nat := length globals  in
+       let Y_nat : nat := S (length globals) in
+       let mem := memory_set mem Y_nat y in
+       let mem := memory_set mem X_nat x in
+       let σ := globals_σ ++ [DSHPtrVal Y_nat o; DSHPtrVal X_nat i] in
        ret (mem, data, σ)
      end.
 
