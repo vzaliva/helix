@@ -239,6 +239,12 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     end; auto.
   Qed.
 
+  Hint Resolve genNExpr_context : helix_context.
+  Hint Resolve genMExpr_context : helix_context.
+  Hint Resolve incVoid_Γ        : helix_context.
+  Hint Resolve incLocal_Γ       : helix_context.
+  Hint Resolve incBlockNamed_Γ  : helix_context.
+
   Lemma genAExpr_context :
     forall aexp s1 s2 e c,
       genAExpr aexp s1 ≡ inr (s2, (e,c)) ->
@@ -376,6 +382,68 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
               apply GenIR_Rel_monotone; auto
       end; auto.
 
+  Ltac subst_contexts :=
+    repeat match goal with
+           | H : Γ ?s1 ≡ Γ ?s2 |- _ =>
+             rewrite H in *; clear H
+           end.
+
+  Lemma genIR_Context:
+    ∀ (op : DSHOperator) (s1 s2 : IRState) (σ : evalContext) (memH : memoryH) (nextblock bid_in bid_from b : block_id) (g : global_env)
+      (ρ : local_env) (memV : memoryV) (bk_op : list (LLVMAst.block typ)),
+      genIR op nextblock s1 ≡ inr (s2, (b, bk_op)) →
+      Γ s1 ≡ Γ s2.
+  Proof.
+    induction op;
+      intros s1 s2 σ memH nextblock bid_in bid_from b g ρ memV bk_op H;
+      cbn in H; simp;
+        repeat
+          (match goal with
+           | H : ErrorWithState.err2errS (MInt64asNT.from_nat ?n) ?s1 ≡ inr (?s2, _) |- _ =>
+             destruct (MInt64asNT.from_nat n); inversion H; subst
+           | H: _ :: Γ ?s1 ≡ Γ ?s2,
+                R: Γ ?s2 ≡ _ |- _ =>
+             rewrite <- H in R; inversion R; subst
+           | H: _ :: _ :: Γ ?s1 ≡ Γ ?s2,
+                R: Γ ?s2 ≡ _ |- _ =>
+             rewrite <- H in R; inversion R; subst
+           | H: _ :: _ :: _ :: Γ ?s1 ≡ Γ ?s2,
+                R: Γ ?s2 ≡ _ |- _ =>
+             rewrite <- H in R; inversion R; subst
+           | H: inl _ ≡ inr _ |- _ =>
+             inversion H
+           | H: inr (?i1, Γ ?s1) ≡ inr (?i2, Γ ?s2) |- _ =>
+             inversion H; clear H
+           | RES : resolve_PVar ?p ?s1 ≡ inr (?s2, ?x) |- _ =>
+             rewrite <- (@resolve_PVar_state p s1 s2 x RES) in *
+           | H: incBlockNamed _ _ ≡ inr _ |- _ =>
+             apply incBlockNamed_Γ in H
+           | H: incLocal _ ≡ inr _ |- _ =>
+             apply incLocal_Γ in H
+           | H: incVoid _ ≡ inr _ |- _ =>
+             apply incVoid_Γ in H
+           | GEN: genNExpr _ _ ≡ inr _ |- _ =>
+             apply genNExpr_context in GEN; cbn in GEN; inversion GEN; subst
+           | GEN: genMExpr _ _ ≡ inr _ |- _ =>
+             apply genMExpr_context in GEN; cbn in GEN; inversion GEN; subst
+           | GEN: genAExpr _ _ ≡ inr _ |- _ =>
+             apply genAExpr_context in GEN; cbn in GEN; inversion GEN; subst
+           | GEN : genIR ?op ?b ?s1 ≡ inr _ |- _ =>
+             apply IHop in GEN; cbn in GEN; eauto 
+           end; cbn in *; subst);
+        subst_contexts;
+        auto.
+    - inversion Heqs; subst.
+      apply incBlockNamed_Γ in Heqs3.
+      subst_contexts.
+      rewrite <- Heqs0 in Heql1.
+      inversion Heql1.
+      reflexivity.
+    - eapply IHop1 in Heqs2; eauto.
+      eapply IHop2 in Heqs0; eauto.
+      subst_contexts.
+      reflexivity.
+  Qed.
 
   Lemma genIR_GenIR_Rel:
     ∀ (op : DSHOperator) (s1 s2 : IRState) (σ : evalContext) (memH : memoryH) (nextblock bid_in bid_from b : block_id) (g : global_env)
@@ -397,14 +465,32 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
                 inversion H; subst
               end;
               solve_gen_ir_rel); solve_gen_ir_rel.
-    - eapply IHop in Heqs1. eauto.
-      Unshelve.
-      all:auto.
+    (* TODO: might be able to automate these cases away too. *)
+    - (* Γ i = l0 because of Heqs1 *)
+      apply genIR_Context in Heqs1; cbn in Heqs1; eauto.
+      rewrite <- Heqs1 in Heql1.
+      inversion Heql1.
+      subst_contexts.
+      solve_gen_ir_rel.
+      match goal with
+      | H : ErrorWithState.err2errS (inr _) _ ≡ inr _ |- _ =>
+        inversion H; subst
+      end.
 
-      cbn in Heqs.
+      epose proof GenIR_incBlockedNamed Heqs0 BISIM.
+      eapply GenIR_Rel_monotone; eauto.
       admit.
+    - eapply genIR_Context in Heqs0; cbn in Heqs0; eauto.
+
+      apply incVoid_Γ in Heqs1.
+      apply incBlockNamed_Γ in Heqs3.
+      subst_contexts.
+
+      rewrite <- Heqs0 in Heql1.
+      inversion Heql1; subst.
+
+      eapply GenIR_Rel_monotone; eauto.
       admit.
-    - admit.
   Admitted.
 
   Opaque denote_code.
