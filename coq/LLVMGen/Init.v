@@ -2140,6 +2140,7 @@ Hint Rewrite interp_to_L3_ret : local.
     forall s, compile_w_main p data newState ≡ inr (s,pll) ->
       eutt (bisim_final []) (semantics_FSHCOL p data) (semantics_llvm pll).
   Proof.
+    (*
     intros * COMPILE.
     unfold compile_w_main, compile in COMPILE.
     cbn* in *; simp.
@@ -2330,4 +2331,5 @@ Hint Rewrite interp_to_L3_ret : local.
 
     (*         unfold global_YX,constArray in EQ1. *)
 
+*)
 Admitted.
