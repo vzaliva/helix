@@ -1193,9 +1193,8 @@ Proof.
   repeat rewrite app_nil_l.
 
   cbn.
-
   eutt_hide_left LHS.
-
+ 
   assert (FB : (LHS ≈ LHS ;; LHS)%monad); [| rewrite FB; clear FB].
   {
     subst LHS.
@@ -1219,6 +1218,7 @@ Proof.
 
     autorewrite with itree.
     (* autorewrite with vellvm. *)
+
     unfold allocate_declaration.
     cbn.
 
@@ -1363,7 +1363,6 @@ Proof.
   (* ZX TODO: [s2] might be wrong below *)
   apply eutt_clo_bind with (UU:=post_alloc_invariant_mcfg globals σ s2).
   -
-
     rewrite interp_to_L3_bind, translate_bind.
     assert (M : memory_set (memory_set mg (S lg) mo) lg mi =
             memory_union (memory_set (memory_set helix_empty_memory (S lg) mo) lg mi) mg).
@@ -1378,6 +1377,26 @@ Proof.
       4: cbn.
       all: reflexivity.
     }
+
+    Set Nested Proofs Allowed.
+    Lemma eutt_weaken_left: forall {E A B} (R : A -> A -> Prop) (S : A -> B -> Prop)
+                 (t t' : itree E A) (s : itree E B),
+        (* i.e. sub_rel (rcompose R S) S *)
+        (forall a a' b, S a' b -> R a a' -> S a b) ->
+        eutt R t t' ->
+        eutt S t' s ->
+        eutt S t s.
+    Proof.
+      intros * LEFTUNIT EQt EQ.
+      (* YZ TODO: specialize eqit_mon to eutt *)
+      eapply eqit_mon; [reflexivity | reflexivity | | eapply eqit_trans; eauto].
+      intros ? ? []; eauto.
+    Qed.
+
+    (* You can now apply eutt_weaken_left with [t'] the right-hand side in your equation below.
+       You will be able to prove it with respect to any relation you wish instead of [eq],
+       but will have an additional proof obligation.
+     *)
 
     assert (ret (memory_set (memory_set mg (S lg) mo) lg mi, ()) ≈
         ITree.bind' (E:=E_mcfg)
