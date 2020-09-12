@@ -1398,10 +1398,11 @@ Proof.
        but will have an additional proof obligation.
      *)
 
-    assert (ret (memory_set (memory_set mg (S lg) mo) lg mi, ()) ≈
-        ITree.bind' (E:=E_mcfg)
-            (fun xy => ret (memory_union (fst xy) mg, ()))
-            (ret ((memory_set (memory_set helix_empty_memory (S lg) mo) lg mi), ()))).
+    assert (TMP_EQ: eutt (fun '(m,_) '(m',_) => m = m')
+                 (ret (memory_set (memory_set mg (S lg) mo) lg mi, ()))
+                 (ITree.bind' (E:=E_mcfg)
+                              (fun xy => ret (memory_union (fst xy) mg, ()))
+                              (ret ((memory_set (memory_set helix_empty_memory (S lg) mo) lg mi), ())))).
     {
       setoid_rewrite Eq.bind_ret_l.
       cbn.
@@ -1412,14 +1413,16 @@ Proof.
                  (memory_union (memory_set (memory_set helix_empty_memory (S lg) mo) lg mi)
                                mg).
       intros.
-      assert ((m0, ()) = (m, ())) by (constructor; [assumption | reflexivity]).
-      generalize dependent (m0, ()).
-      generalize dependent (m, ()).
-      clear.
-      intros.
-      admit.
+      apply eutt_Ret; auto.
     }
-    rewrite H0; clear H0.
+    eapply eutt_weaken_left; [| exact TMP_EQ |]; clear TMP_EQ.
+
+    {
+      clear.
+      intros [?m []] [?m' []] (? & [? ?] & ? & []).
+      cbn; intros H EQ j x; specialize (H j x).
+      simp; auto.
+    }
 
     apply eutt_clo_bind
       with (UU:=post_alloc_invariant_mcfg globals e s2).
