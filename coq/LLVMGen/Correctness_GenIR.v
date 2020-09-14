@@ -1082,7 +1082,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       rename l0 into bk_op1.
       rename l into bk_op2.
 
-      rename b into bid_op2.
+      rename b into op2_entry.
+      rename bid_in into op1_entry.
 
       rename Heqs0 into GEN_OP2.
       rename Heqs2 into GEN_OP1.
@@ -1141,34 +1142,19 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         Unshelve.
         admit. (* Should come from freshness *)
 
-        (* Helix generates code for op2 *first*, so op2 gets earlier
-        variables from the irstate. Helix needs to do this because it
-        passes the block id for the next block that an operator should
-        jump to when it's done executing... So it generates code for
-        op2, which goes to the next block of the entire sequence, and
-        then passes the entry point for op2 as the "nextblock" for
-        op1.
-
-        However, when evaluating a sequence operator with evalDSHOperator, we
-
-           Helix does this because it passes a "nextblock" id when generating code for an operator.
-
-         *)
         eapply genIR_GenIR_Rel; eauto.
       }
 
       intros [memH' []] (memV' & le & ge & res) IRREL.
       pose proof IRREL as [STATE [[from to] BRANCH]].
+      cbn in STATE.
 
       (* TODO: How can I know this? *)
       (* Probably need to extend GenIR_Rel? *)
-      (* - bid_op2 comes from genIR of the sequence destructed with simp...
-         - to comes from GenIR_Rel σ s2 (memH', ()) (memV', (le, (ge, (from, to))))
-
-         
+      (* - op2_entry comes from genIR of the sequence destructed with simp...
+         - to comes from GenIR_Rel σ s2 (memH', ()) (memV', (le, (ge, (from, to))))         
        *)
-      
-      assert (bid_op2 ≡ to).
+      assert (op2_entry ≡ to).
       { unfold GenIR_Rel in IRREL.
         cbv in IRREL. destruct IRREL as [IRREL_STATE IRREL_BRANCHES].
         
@@ -1178,13 +1164,15 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
         cbv in STATE.
 
-        (* *)
-
-      admit.
+        admit.
       }
-      (* TODO: Need to match u1 up with mem' somehow *)
+
+      (* TODO: How can I know this? *)
+      (* memH' comes from eutt_clo_bind
+         mem' comes from evalDSHSeq_split...
+       *)
       assert (memH' ≡ mem').
-      { epose proof (IHop1 _ _ σ memH _ _ _ bid_in from _ ge le memV' _ _ EVAL1 GEN_OP1) as IH.
+      { epose proof (IHop1 _ _ σ memH _ _ _ op1_entry from _ ge le memV' _ _ EVAL1 GEN_OP1) as IH.
         cbn in STATE.
         apply state_invariant_memory_invariant in STATE.
 
@@ -1204,7 +1192,10 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       pose proof GEN_OP1 as LOC; apply genIR_local_count in LOC.
       pose proof GEN_OP1 as CONT; apply genIR_Context in CONT.
 
-      replace s2 with {| block_count := block_count s2; local_count := local_count s2; void_count := void_count s2; Γ := Γ s_op1 |} by admit.
+      replace s2 with {| block_count := block_count s2; local_count := local_count s2; void_count := void_count s2; Γ := Γ s_op1 |}.
+      2: { rewrite CONT. destruct s2. cbn.
+           reflexivity.
+      }
 
       destruct res as [[from_mon to_mon] | ].
       + (* returned a branch, all good *) 
