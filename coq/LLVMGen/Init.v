@@ -2288,7 +2288,6 @@ Hint Rewrite interp_to_L3_ret : local.
     forall s, compile_w_main p data newState ≡ inr (s,pll) ->
       eutt (bisim_final []) (semantics_FSHCOL p data) (semantics_llvm pll).
   Proof.
-    (*
     intros * COMPILE.
     unfold compile_w_main, compile in COMPILE.
     cbn* in *; simp.
@@ -2305,8 +2304,8 @@ Hint Rewrite interp_to_L3_ret : local.
     {
       subst M.
       rewrite ! mcfg_of_tle_app, !m_type_defs_app.
-      erewrite initXYplaceholders_no_type_defs; eauto.
       erewrite initIRGlobals_no_type_defs; eauto.
+      erewrite initXYplaceholders_no_type_defs; eauto.
     }
 
     match type of HeqM with
@@ -2319,8 +2318,8 @@ Hint Rewrite interp_to_L3_ret : local.
     assert (EQ: m_definitions (mcfg_of_tle M) ≡ m_definitions (mcfg_of_tle (body::main))).
     { subst M.
       rewrite ! mcfg_of_tle_app, !m_definitions_app.
-      erewrite initXYplaceholders_no_definitions; eauto.
       erewrite initIRGlobals_no_definitions; eauto.
+      erewrite initXYplaceholders_no_definitions; eauto.
     }
 
     unfold denote_vellvm.
@@ -2478,6 +2477,4 @@ Hint Rewrite interp_to_L3_ret : local.
 
 
     (*         unfold global_YX,constArray in EQ1. *)
-
-*)
 Admitted.
