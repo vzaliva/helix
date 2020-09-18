@@ -1481,10 +1481,62 @@ Proof.
       simp; auto.
     }
 
+    rewrite interp_to_L3_bind, translate_bind.
+    cbn.
+
     apply eutt_clo_bind
       with (UU:=post_alloc_invariant_mcfg globals e s2).
     +
-      admit.
+      subst.
+      dependent induction globals.
+      *
+        cbn in *; subst.
+        invc LG.
+        cbn.
+        repeat rewrite interp_to_L3_bind, translate_bind.
+        rewrite interp_to_L3_ret, translate_ret.
+        rewrite Eq.bind_ret_l.
+        rewrite interp_to_L3_ret, translate_ret.
+        apply eutt_Ret.
+        cbn.
+        intros.
+        lia.
+      *
+        cbn in *; subst.
+        (* this is a bit harsh *)
+        repeat break_match; try inl_inr.
+        (* carefully clean up *)
+        replace p7 with (mg, hdata) in * by (invc G; auto); clear p7.
+        subst p p0 p1 p2 p3 p4 (**) p6.
+        rename p5 into ngo.
+        rename s0 into st_fyx.
+        rename a into new_g.
+        replace i2 with s1 in * by (invc LG; auto); clear i2.
+        replace l2 with l4 in * by (invc LG; auto); clear l2.
+        copy_apply global_uniq_chk_preserves_st Heqs.
+        rename i0 into st_yx; rewrite H0 in *; rename H0 into ST_YX.
+        rename i1 into st_ng.
+        inv G.
+        rename l6 into e.
+        rename d into new_g_dsh.
+        rename s1 into st_fin.
+
+        invc LG.
+        rename l5 into gdecls, t0 into new_gdecl.
+        simpl.
+        rewrite map_app.
+
+        copy_apply initOneIRGlobal_is_global Heqs0.
+        destruct H0 as [ng  H0]; subst new_gdecl.
+        simpl.
+
+        (* now destruct [mg] into some [g + mg'] and apply [eutt_clo_bind] again.
+           (might be easier to do that at the very beginning of this bullet)
+
+           the first subgoal will be the correspondence between the new element on both sides,
+           the second will be proven by applyin the induction hypothesis.
+         *)
+        admit.
     +
       intros.
       unfold initXYplaceholders, addVars in LX.
