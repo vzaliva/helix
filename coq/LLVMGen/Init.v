@@ -958,6 +958,35 @@ Proof.
     apply IHl.
 Qed.
 
+Lemma eutt_weaken_left: forall {E A B} (R : A -> A -> Prop) (S : A -> B -> Prop)
+             (t t' : itree E A) (s : itree E B),
+    (* i.e. sub_rel (rcompose R S) S *)
+    (forall a a' b, S a' b -> R a a' -> S a b) ->
+    eutt R t t' ->
+    eutt S t' s ->
+    eutt S t s.
+Proof.
+  intros * LEFTUNIT EQt EQ.
+  (* YZ TODO: specialize eqit_mon to eutt *)
+  eapply eqit_mon; [reflexivity | reflexivity | | eapply eqit_trans; eauto].
+  intros ? ? []; eauto.
+Qed.
+
+Lemma initOneIRGlobal_is_global
+      (data data' : list binary64)
+      (r : toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ))) 
+      (nmt : string * DSHType)
+      (s s' : IRState)
+  :
+    initOneIRGlobal data nmt s ≡ inr (s', (data', r)) ->
+    exists g, r ≡ TLE_Global g.
+Proof.
+  intro R.
+  unfold initOneIRGlobal in R.
+  repeat break_match; invc R.
+  all: eexists; eauto.
+Qed.
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -985,6 +1014,7 @@ Proof.
   rename m1 into mg, Heqs0 into G.
   cbn in LI.
   unfold ErrorWithState.option2errS in *.
+  unfold initFSHGlobals in *.
   assert (LGE : length globals ≡ length e)
     by (apply init_with_data_len in G; assumption).
 
@@ -1430,63 +1460,19 @@ Proof.
             DSHPtrVal (Datatypes.length globals) i])
     as σ.
   remember (Datatypes.length globals) as lg.
-  (* ZX TODO: [s2] might be wrong below *)
+  (* ZX TODO: [s2] might be wrong here *)
   apply eutt_clo_bind with (UU:=post_alloc_invariant_mcfg globals σ s2).
   -
-    rewrite interp_to_L3_bind, translate_bind.
-    assert (M : memory_set (memory_set mg (S lg) mo) lg mi =
-            memory_union (memory_set (memory_set helix_empty_memory (S lg) mo) lg mi) mg).
-    {
-      clear.
-      intros k.
-      unfold memory_union, memory_set, helix_empty_memory.
-      rewrite Memory.NP.F.map2_1bis by reflexivity.
-      destruct (Nat.eq_dec k lg), (Nat.eq_dec k (S lg)).
-      all: repeat (try rewrite Memory.NP.F.add_eq_o by congruence;
-                   try rewrite Memory.NP.F.add_neq_o by congruence).
-      4: cbn.
-      all: reflexivity.
-    }
-
-    Set Nested Proofs Allowed.
-
-    Lemma eutt_weaken_left: forall {E A B} (R : A -> A -> Prop) (S : A -> B -> Prop)
-                 (t t' : itree E A) (s : itree E B),
-        (* i.e. sub_rel (rcompose R S) S *)
-        (forall a a' b, S a' b -> R a a' -> S a b) ->
-        eutt R t t' ->
-        eutt S t' s ->
-        eutt S t s.
-    Proof.
-      intros * LEFTUNIT EQt EQ.
-      (* YZ TODO: specialize eqit_mon to eutt *)
-      eapply eqit_mon; [reflexivity | reflexivity | | eapply eqit_trans; eauto].
-      intros ? ? []; eauto.
-    Qed.
-
-    (* You can now apply eutt_weaken_left with [t'] the right-hand side in your equation below.
-       You will be able to prove it with respect to any relation you wish instead of [eq],
-       but will have an additional proof obligation.
-     *)
-
     assert (TMP_EQ: eutt
              (fun '(m,_) '(m',_) => m = m')
              (ret (memory_set (memory_set mg (S lg) mo) lg mi, ()))
              (ITree.bind' (E:=E_mcfg)
-                          (fun xy => ret (memory_union (fst xy) mg, ()))
-                          (ret ((memory_set (memory_set helix_empty_memory (S lg) mo) lg mi),
-                                ())))).
-    {
-      setoid_rewrite Eq.bind_ret_l.
-      cbn.
-      clear - M.
-      generalize dependent (memory_set (memory_set mg (S lg) mo) lg mi).
-      generalize dependent
-                 (memory_union (memory_set (memory_set helix_empty_memory (S lg) mo) lg mi)
-                               mg).
-      intros.
-      apply eutt_Ret; auto.
-    }
+                          (fun mg' => ret (memory_set
+                                          (memory_set (fst mg') (S lg) mo)
+                                          lg mi, ()))
+                          (ret (mg, ()))))
+      by (setoid_rewrite Eq.bind_ret_l; apply eutt_Ret; reflexivity).
+
     eapply eutt_weaken_left; [| exact TMP_EQ |]; clear TMP_EQ.
     {
       clear.
