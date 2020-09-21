@@ -1508,7 +1508,7 @@ Proof.
         (* carefully clean up *)
         replace p7 with (mg, hdata) in * by (invc G; auto); clear p7.
         subst p p0 p1 p2 p3 p4 (**) p6.
-        rename p5 into ngo.
+        destruct p5 as [mg0 hdata0].
         rename s0 into st_fyx.
         rename a into new_g.
         replace i2 with s1 in * by (invc LG; auto); clear i2.
@@ -1530,11 +1530,79 @@ Proof.
         destruct H0 as [ng  H0]; subst new_gdecl.
         simpl.
 
+        move Heqs2 at bottom.
+
+        assert (mg = memory_union mg0 mg).
+        {
+          clear - Heqs2 Heqs3.
+          unfold initOneFSHGlobal in Heqs2.
+          intros k.
+          repeat break_match; invc Heqs2.
+          1: break_match; invc H0.
+          all: unfold memory_union, helix_empty_memory, memory_empty in *.
+          all: rewrite Memory.NP.F.map2_1bis by reflexivity.
+          1,2: rewrite Memory.NP.F.empty_o; reflexivity.
+
+          remember (memory_next_key (Memory.NM.empty mem_block)) as k0.
+          unfold memory_set.
+
+          destruct (Nat.eq_dec k k0).
+          2: rewrite Memory.NP.F.add_neq_o by congruence.
+          2: rewrite Memory.NP.F.empty_o; reflexivity.
+          subst k.
+          rewrite Memory.NP.F.add_eq_o by congruence.
+          rename m into mb.
+
+          remember (memory_set (Memory.NM.empty mem_block) k0 mb) as m0.
+          assert (M0 : Memory.NM.find k0 m0 ≡ Some mb)
+            by (subst; unfold memory_set;
+                rewrite Memory.NP.F.add_eq_o by reflexivity;
+                reflexivity).
+          clear - Heqs3 M0.
+          rename Heqs3 into L.
+
+          dependent induction globals.
+          -
+            cbn in L.
+            invc L.
+            rewrite M0; reflexivity.
+          -
+            cbn in L.
+            repeat break_match; invc L.
+            unfold initOneFSHGlobal in Heqs.
+            repeat break_match; invc Heqs.
+            1: break_match; invc H0.
+            +
+              eapply IHglobals.
+              eassumption.
+              eassumption.
+            +
+              eapply IHglobals.
+              eassumption.
+              eassumption.
+            +
+              eapply IHglobals.
+              eassumption.
+              clear - M0.
+              destruct (Nat.eq_dec k0 (memory_next_key m0)).
+              *
+                subst.
+                pose proof memory_lookup_memory_next_key_is_None m0.
+                unfold memory_lookup in H.
+                rewrite util.is_None_def in H.
+                rewrite H in M0; congruence.
+              *
+                unfold memory_set.
+                rewrite Memory.NP.F.add_neq_o by congruence.
+                assumption.
+        }
+        
+                
         (* now destruct [mg] into some [g + mg'] and apply [eutt_clo_bind] again.
            (might be easier to do that at the very beginning of this bullet)
 
            the first subgoal will be the correspondence between the new element on both sides,
-           the second will be proven by applyin the induction hypothesis.
+           the second will be proven by applying the induction hypothesis.
          *)
         admit.
     +
