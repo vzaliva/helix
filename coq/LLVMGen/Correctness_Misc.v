@@ -309,6 +309,53 @@ From Vellvm Require Import Traversal.
 (*       bk ≡ mem_add k v bk_i /\ *)
 (*       inr memV ≡ write_array_cell memVi a k τ (dvalue_of_bin v). *)
 
+(* 
+HELIX SIDE:
+  vectors x and y
+  y is an accumulator
+  at step k, you update y[k] "as an accumulator"
+
+Once you're done iterating,
+then you do mem[bk] <- y
+ *)
+
+(*
+VELLVM SIDE:
+  In memory, mem[bk][k] <- the right value at each iteration
+ *)
+
+
+(* P -> J(0)  [forall i, {J(i)} c(i) {J(i + 1)}] J(n) -> Q *)
+(* ----------------------------------------------- *)
+(* {P} for i = k to n do c(i) {Q} *)
+
+Notation "P ⊆ Q" := (forall x y, P x y -> Q x y) (at level 37).
+
+(* TODO: Combinators to write conveniently predicates over vellvm:
+   - lift predicate over local memory to full state
+   - lift predicate on vellvm to relation on helix*vellvm
+ *)
+
+(*
+
+
+
+[body_entry_id:
+bodyV
+]
+
+
+comm =
+res = 1
+for i = 0 to n do
+   
+
+P -> I(0)
+I(n) -> Q
+forall k, {I(k) /\ i = k} c {I(S k)} 
+--
+{P} comm {Q}
+ *)
 
 Lemma genWhileLoop_ind:
   forall (msg : string)
@@ -320,8 +367,9 @@ Lemma genWhileLoop_ind:
     (entry_id : block_id)      (* entry point of the overall loop *)
     (s1 s2 : IRState)
     (bks : list (LLVMAst.block typ)) (* (llvm) code defining the whole loop *)
-    (from_id: block_id)       (* point from which we enter the overall loop *)
+    (from_id: block_id)        (* point from which we enter the overall loop *)
     (n : nat)                    (* Number of iterations *)
+    (j : nat)                    (* Starting iteration *)
 
     (* Generation of the LLVM code wrapping the loop around bodyV *)
     (GEN: genWhileLoop msg (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
@@ -333,26 +381,44 @@ Lemma genWhileLoop_ind:
     (bodyH: nat -> mem_block -> itree _ mem_block) 
 
     (* Main relation preserved by iteration *)
-    (R : Rel_cfg),
+    (P Q : Rel_cfg) (I : nat -> Rel_cfg),
 
     (* Inductive proof: Assuming R, reestablish R by going through both bodies *)
-    (forall g l mV mH ymem,
+
+    (* We build weakening in the rule: the precondition implies the initial invariant
+       and the final invariant implies the postcondition
+     *)
+    (P  ⊆ I 0) ->
+    (I n ⊆ Q) ->
+
+    (forall g l mV mH ymem k,
         (* ((R ⩕ Invk n) (mH,ymem) (mV, (l, (g, (inl body))))) -> *)
-        (R mH (mV,(l,g))) ->
+        (conj_rel (I k)
+                  (fun _ '(_, (l, _)) => l @ lvar ≡ Some (uvalue_of_nat k))
+                  mH (mV,(l,g)))
+        ->
         eutt
-          (lift_Rel_cfg R)
+          (conj_rel
+             (lift_Rel_cfg (I (S k)))
+             (lift_Rel_cfg (fun _ '(_, (l, _)) => l @ lvar ≡ Some (uvalue_of_nat k)))
+          )
           (* (R ⩕ Invk (n +1) /\ lvar = n /\ retlabel = post ) *)
           (with_err_RB (interp_Mem (bodyH n ymem) mH))
           (with_err_LB (interp_cfg
-                          (denote_bks (convert_typ [] bodyV) (from_id,body_entry_id)) g l mV))
+                          (denote_bks (convert_typ [] bodyV) (wrap_loop_id,body_entry_id)) g l mV))
     ) ->
 
     (* Main result. Need to know initially that R holds *)
     forall g l mV mH ymem,
-      R mH (mV,(l,g)) ->
-      eutt (lift_Rel_cfg R)
+      (conj_rel
+         P
+         (fun _ '(_, (l, _)) => l @ lvar ≡ Some (uvalue_of_nat j))
+         mH (mV,(l,g))
+      )
+      ->
+      eutt (lift_Rel_cfg Q)
            (with_err_RB (interp_Mem (build_vec n bodyH ymem) mH))
-           (with_err_LB (interp_cfg (denote_bks (convert_typ [] bks) (from_id,entry_id)) g l mV)).
+           (with_err_LB (interp_cfg (denote_bks (convert_typ [] bks) (wrap_loop_id,body_entry_id)) g l mV)).
 Proof.
   intros * GEN * IND * PRE.
   cbn* in GEN; simp.
