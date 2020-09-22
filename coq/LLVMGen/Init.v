@@ -1062,19 +1062,9 @@ Proof.
   rename Sg into Vs3.
 
   repeat rewrite app_assoc.
-(* <<<<<<< HEAD *)
-(*   unfold build_global_environment, allocate_globals, map_monad_. *)
-(*   simpl. cbn. *)
-(*   rewrite 2!interp_to_L3_bind, translate_bind. *)
-(*   rename e into eg. *)
-(*   remember (eg ++ *)
-(*                [DSHPtrVal (S (Datatypes.length globals)) o; *)
-(*                 DSHPtrVal (Datatypes.length globals) i])%list as e. *)
-(* ======= *)
   unfold build_global_environment.
   setoid_rewrite interp_to_L3_bind.
   rewrite translate_bind.
-(* >>>>>>> 8a0049a8223bda18b5cf3fc7f2dfeba3a3c88050 *)
 
   repeat rewrite app_assoc.
   unfold allocate_globals, map_monad_.
@@ -1542,7 +1532,7 @@ Proof.
 
         move Heqs2 at bottom.
 
-        assert (mg = memory_union mg0 mg).
+        assert (TMP_EQ' : mg = memory_union mg0 mg).
         {
           clear - Heqs2 Heqs3.
           unfold initOneFSHGlobal in Heqs2.
@@ -1606,15 +1596,68 @@ Proof.
                 rewrite Memory.NP.F.add_neq_o by congruence.
                 assumption.
         }
-        
-                
-        (* now destruct [mg] into some [g + mg'] and apply [eutt_clo_bind] again.
-           (might be easier to do that at the very beginning of this bullet)
 
-           the first subgoal will be the correspondence between the new element on both sides,
-           the second will be proven by applying the induction hypothesis.
-         *)
-        admit.
+        assert (TMP_EQ : eutt (fun '(m,_) '(m',_) => m = m')
+                              (Ret (mg, ()))
+                              (ITree.bind' (E:=E_mcfg)
+                                           (fun mg0' => Ret (memory_union (fst mg0') mg, ()))
+                                           (Ret (mg0, ()))))
+          by (rewrite Eq.bind_ret_l;
+              apply eutt_Ret;
+              assumption).
+          
+        eapply eutt_weaken_left; [| exact TMP_EQ |]; clear TMP_EQ.
+        {
+          clear.
+          intros [?m []] [?m' []] (? & [? ?] & ? & []).
+          cbn; intros H EQ j x; specialize (H j x).
+          simp; auto.
+        }
+
+        rewrite Eq.bind_bind.
+        repeat rewrite interp_to_L3_bind, translate_bind.
+        (* ZX TODO: [s2] might still be a bad fit *)
+        apply eutt_clo_bind with (UU:=post_alloc_invariant_mcfg [new_g] [new_g_dsh] s2).
+        --
+          intros.
+          cbn.
+          repeat rewrite interp_to_L3_bind, translate_bind.
+
+          
+          (* Alloca ng *)
+          pose_interp_to_L3_alloca m'' a'' A' AE'.
+          {
+            (* this might/should follow from [Heqs0] *)
+            admit.
+          }
+          rewrite AE'.
+          setoid_rewrite translate_ret.
+          
+          (* GlobalWrite ng *)
+          rewrite !ITree.Eq.Eq.bind_ret_l.
+          rewrite interp_to_L3_GW.
+          setoid_rewrite translate_ret.
+
+          apply eutt_Ret.
+          unfold post_alloc_invariant_mcfg.
+          intros.
+          cbn in jc.
+          unshelve erewrite ListUtil.ith_eq with (j:=0); [cbn; constructor | | lia].
+          cbn.
+
+          (* @lord, this goal seems unprovable:
+             I have no information about what [new_g_dsh] is *)
+          destruct new_g_dsh eqn:NGD.
+          ++
+            cbn in *.
+            unfold initOneFSHGlobal in Heqs2.
+            repeat break_match; invc Heqs2.
+            break_match; invc H1.
+            admit.
+          ++ admit.
+          ++ admit.
+        --
+          admit.
     +
       intros.
       unfold initXYplaceholders, addVars in LX.
