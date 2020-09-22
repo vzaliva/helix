@@ -741,9 +741,9 @@ From ITree Require Import
 Lemma map_monad_app_
       {m : Type -> Type}
       {Mm : Monad m}
-      {EqMm : EqM m}
-      {HEQP: EqMProps m}
-      {ML: MonadLaws m}
+      {Eq1m : Eq1 m}
+      {HEQP: Eq1Equivalence m}
+      {ML: MonadLawsE m}
       {A : Type}
       (f : A -> m unit)
       (l1 l2 : list A)
@@ -864,7 +864,7 @@ Proof.
 
   repeat rewrite app_assoc.
   unfold build_global_environment, allocate_globals, map_monad_.
-  simpl.
+  simpl. cbn.
   rewrite 2!interp_to_L3_bind, translate_bind.
   rename e into eg.
   remember (eg ++
