@@ -195,7 +195,7 @@ End RthetaSafetyCast.
 
 
 
-(* For now we are not define special type for TSigmahcolOperators, like we did for SHOperator. Currently we have only 2 of these: SHCompose and HTSumunion. We will generalize in future, if needed *)
+(* For now we are not define special type for TSigmahcolOperators, like we did for SHOperator. Currently we have only 2 of these: SHCompose and Apply2Union. We will generalize in future, if needed *)
 Section TSigmaHCOLOperators.
 
   Variable fm:Monoid RthetaFlags.

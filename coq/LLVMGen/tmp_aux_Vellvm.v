@@ -286,7 +286,7 @@ Section TLE_To_Modul.
       apply map_option_cons; auto.
   Qed.
 
-  Lemma mcfg_of_app_modul: forall {T} (p1 p2 : modul T _) (m : mcfg T),
+  Lemma mcfg_of_app_modul: forall {T} (p1 p2 : modul T _), 
       mcfg_of_modul _ (p1 @ p2) = mcfg_of_modul _ p1 @ mcfg_of_modul _ p2.
   Proof.
     intros; cbn.
@@ -294,7 +294,55 @@ Section TLE_To_Modul.
     rewrite  m_name_app, m_target_app, m_datalayout_app, m_type_defs_app, m_globals_app, m_declarations_app; f_equal; try reflexivity. 
     rewrite m_definitions_app, map_app; reflexivity.
   Qed.
-   
+
+  From Vellvm Require Import Traversal.
+  (* YZ TODO :  A bit annoying but should not be an issue.
+     Actually: requires some assumptions to be able to split the environment in two.
+     Some well-formedness/closedness of the respective mcfg under the respective environments.
+   *)
+  Lemma convert_typ_mcfg_app:
+    forall mcfg1 mcfg2 : modul typ (cfg typ),
+      convert_typ (m_type_defs mcfg1 ++ m_type_defs mcfg2) (mcfg1 @ mcfg2) =
+      convert_typ (m_type_defs mcfg1) mcfg1 @ convert_typ (m_type_defs mcfg2) mcfg2.
+  Proof.
+    intros mcfg1 mcfg2.
+    remember (m_type_defs mcfg1) as l1; remember (m_type_defs mcfg2) as l2.
+    revert l1 Heql1.
+    induction l1 as [| τ1 l1 IH]; cbn; intros EQ.
+    - rewrite <- !EQ; cbn.
+      destruct mcfg1, mcfg2; cbn; subst; cbn in *.
+      rewrite <- !EQ; cbn.
+      unfold convert_typ, ConvertTyp_mcfg, Traversal.fmap, Traversal.Fmap_mcfg.
+      cbn.
+      f_equal; try (unfold endo, Endo_option; cbn; repeat flatten_goal; now intuition).
+      + unfold Fmap_list'.
+  Admitted.
+
+  Lemma convert_types_app_mcfg : forall mcfg1 mcfg2,
+      convert_types (modul_app mcfg1 mcfg2) =
+                    modul_app (convert_types mcfg1) (convert_types mcfg2).
+  Proof.
+    unfold convert_types.
+    intros.
+    rewrite m_type_defs_app,convert_typ_mcfg_app.
+    reflexivity.
+  Qed.
+
+  Lemma mcfg_of_tle_app : forall x y, mcfg_of_tle (x ++ y) = modul_app (mcfg_of_tle x) (mcfg_of_tle y).
+  Proof.
+    intros ? ?.
+    unfold mcfg_of_tle.
+    rewrite modul_of_toplevel_entities_app.
+    rewrite mcfg_of_app_modul.
+    rewrite convert_types_app_mcfg.
+    reflexivity.
+  Qed.
+
+  Lemma mcfg_of_tle_cons : forall x y, mcfg_of_tle (x :: y) = modul_app (mcfg_of_tle [x]) (mcfg_of_tle y).
+  Proof.
+    intros; rewrite list_cons_app; apply mcfg_of_tle_app.
+  Qed.
+
 End TLE_To_Modul.
 
 Infix "@" := (modul_app) (at level 60).
@@ -305,7 +353,6 @@ From ExtLib Require Import
      Core.RelDec
      Data.Map.FMapAList.
 Section alistFacts.
-
 
   (* Generic facts about alists. To eventually move to ExtLib. *)
 
@@ -542,6 +589,44 @@ Section alistFacts.
     intros; reflexivity.
   Qed.
 
+  Lemma alist_find_cons_neq
+        (k k0 : K)
+        (v0 : V)
+        (xs: alist K V)
+    :
+      (k <> k0) ->
+      alist_find k ((k0,v0)::xs) = alist_find k xs.
+  Proof.
+    intros H.
+    cbn.
+    destruct (rel_dec k k0) eqn:E.
+    -
+      exfalso.
+      rewrite rel_dec_correct in E.
+      congruence.
+    -
+      reflexivity.
+  Qed.
+
+  Lemma alist_find_cons_eq
+        (k k0 : K)
+        (v0 : V)
+        (xs: alist K V)
+    :
+      (k = k0) ->
+      alist_find k ((k0,v0)::xs) = Some v0.
+  Proof.
+    intros H.
+    cbn.
+    destruct (rel_dec k k0) eqn:E.
+    -
+      reflexivity.
+    -
+      exfalso.
+      apply rel_dec_correct in H.
+      congruence.
+  Qed.
+
 End alistFacts.
 Arguments alist_find {_ _ _ _}.
 Arguments alist_add {_ _ _ _}.
@@ -587,12 +672,6 @@ Qed.
 
 (* TODO YZ : Move to itrees *)
 (* Simple specialization of [eqit_Ret] to [eutt] so that users of the library do not need to know about [eqit] *)
-Lemma eutt_Ret :
-  forall E (R1 R2 : Type) (RR : R1 -> R2 -> Prop) r1 r2, RR r1 r2 <-> eutt (E := E) RR (Ret r1) (Ret r2).
-Proof.
-  intros; apply eqit_Ret.
-Qed.
-
 (* TODO move to Vellvm/Tactics *)
 Ltac ret_bind_l_left v :=
   match goal with
@@ -685,33 +764,6 @@ End WithDec.
 
 Notation "m '@' x" := (alist_find x m).
 Notation "m '⊑' m'" := (sub_alist m m') (at level 45).
-
-(* find_block axiomatisation to ease things. TODO: make it opaque *)
-Lemma find_block_nil: forall {T} b, find_block T [] b = None. 
-Proof.
-  reflexivity.
-Qed.
-
-Lemma find_block_eq: forall {T} x b bs,
-    blk_id b = x ->
-    find_block T (b:: bs) x = Some b.
-Proof.
-  intros; cbn.
-  rewrite H.
-  destruct (Eqv.eqv_dec_p x x).
-  reflexivity.
-  contradiction n; reflexivity.
-Qed.
-
-Lemma find_block_ineq: forall {T} x b bs,
-    blk_id b <> x ->
-    find_block T (b::bs) x = find_block T bs x. 
-Proof.
-  intros; cbn.
-  destruct (Eqv.eqv_dec_p (blk_id b)) as [EQ | INEQ].
-  unfold Eqv.eqv, eqv_raw_id in *; intuition.
-  reflexivity.
-Qed.
 
 Global Instance ConvertTyp_list {A} `{Traversal.Fmap A}: ConvertTyp (fun T => list (A T)) :=
   fun env => Traversal.fmap (typ_to_dtyp env).

@@ -329,7 +329,15 @@ End HCOL_to_SigmaHCOL.
 
 (* --- SigmaHCOL -> final SigmaHCOL --- *)
 Section SigmaHCOL_rewriting.
-  Instance DynWinSigmaHCOL1_Facts
+
+  (*
+           This assumptions is required for reasoning about non-negativity and [abs].
+           It is specific to [abs] and this we do not make it a global assumption
+           on [CarrierA] but rather assume for this particular SHCOL expression.
+   *)
+  Context `{CarrierASRO: @orders.SemiRingOrder CarrierA CarrierAe CarrierAplus CarrierAmult CarrierAz CarrierA1 CarrierAle}.
+
+   Instance DynWinSigmaHCOL1_Facts
            (a: avector 3):
     SHOperator_Facts _ (dynwin_SHCOL1 a).
   Proof.
@@ -415,7 +423,7 @@ Section SigmaHCOL_rewriting.
 
   (* Sigma-HCOL rewriting correctenss *)
   Lemma DynWinSigmaHCOL1_Value_Correctness
-          (a: avector 3)
+        (a: avector 3)
     : dynwin_SHCOL a = dynwin_SHCOL1 a.
   Proof.
     unfold dynwin_SHCOL.
@@ -777,6 +785,13 @@ End SigmaHCOL_rewriting.
 
 Section SHCOL_to_MSHCOL.
 
+  (*
+           This assumptions is required for reasoning about non-negativity and [abs].
+           It is specific to [abs] and this we do not make it a global assumption
+           on [CarrierA] but rather assume for this particular SHCOL expression.
+   *)
+  Context `{CarrierASRO: @orders.SemiRingOrder CarrierA CarrierAe CarrierAplus CarrierAmult CarrierAz CarrierA1 CarrierAle}.
+
   Run TemplateProgram (reifySHCOL dynwin_SHCOL1 100 ["dynwin_SHCOL1"] "dynwin_MSHCOL1").
 
   Fact Set_Obligation_1:
@@ -953,9 +968,9 @@ Section MSHCOL_to_DSHCOL.
     Parameter a:vector CarrierA 3.
     Parameter x:mem_block.
 
-    Definition dynwin_a_addr:mem_block_id := 0.
-    Definition dynwin_y_addr:mem_block_id := (nglobals+0).
-    Definition dynwin_x_addr:mem_block_id := (nglobals+1).
+    Definition dynwin_a_addr:nat := 0.
+    Definition dynwin_y_addr:nat := (nglobals+0).
+    Definition dynwin_x_addr:nat := (nglobals+1).
 
     Definition dynwin_globals_mem :=
       (memory_set memory_empty dynwin_a_addr (avector_to_mem_block a)).
@@ -1401,7 +1416,13 @@ Section DHCOL_to_FHCOL.
     CarrierAZ1equalities.
 
   Import FSigmaHCOL.MDSHCOLOnFloat64.
+  Require Import AltBinNotations.
+
   (* Import DSHNotation. *)
+  (* Notation for shorter printing of `int64` constants *)
+  Local Declare Scope int64.
+  Local Notation "v" := (Int64.mkint v _) (at level 10, only printing) : int64.
+  Local Delimit Scope int64 with int64.
 
   Definition dynwin_FSHCOL1 : FSigmaHCOL.MDSHCOLOnFloat64.DSHOperator.
   Proof.
@@ -1416,7 +1437,7 @@ Section DHCOL_to_FHCOL.
       inv H.
     -
       inl_inr_inv.
-      (* TODO: better printing of Int64 constants. Maybe via Z *)
+      (* Set Printing All. *)
       (* Redirect "dynwin_FSHCOL" Show 1. *)
       exact d.
   Defined.

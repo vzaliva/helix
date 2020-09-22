@@ -29,14 +29,14 @@ Import MDSHCOLOnFloat64.
 (* sample definition to be moved to DynWin.v *)
 Local Open Scope nat_scope.
 
-(* Nop is generated, for example, for `IReduction 0` *)
-Definition Nop_test := DSHNop.
 
 Definition BinOp_less_test :=
   DSHBinOp 2 (PVar 1) (PVar 0) (AZless (AVar 1) (AVar 0)).
 
 Definition BinOp_plus_test :=
   DSHBinOp 2 (PVar 1) (PVar 0) (APlus (AVar 1) (AVar 0)).
+
+Definition Nop_test := DSHSeq BinOp_plus_test DSHNop.
 
 Definition IMap_plus1_test :=
   DSHIMap 8 (PVar 1) (PVar 0) (APlus (AConst Float64One) (AVar 0)).
@@ -213,11 +213,11 @@ Definition evalFSHCOLOperator
   : err (list binary64)
   :=
     let p := mkFSHCOLProgram i o name globals op in
-    '(mem, data, σ) <- helix_intial_memory p data ;;
+    '(mem, data, σ) <- helix_initial_memory p data ;;
     match evalDSHOperator σ op mem (estimateFuel op) with
     | Some (inr mem) =>
-      let Y_mem_block_id : mem_block_id := S (length globals) in
-      yb <- trywith "No output memory block" (memory_lookup mem Y_mem_block_id) ;;
+      let Y_nat : nat := S (length globals) in
+      yb <- trywith "No output memory block" (memory_lookup mem Y_nat) ;;
       mem_to_list "Invalid output memory block" (MInt64asNT.to_nat o) yb
     | Some (inl msg) => inl msg
     | None => raise "evalDSHOperator run out of fuel!"

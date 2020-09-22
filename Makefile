@@ -54,10 +54,6 @@ $(TSTAMP): $(TESTVOFILES) $(EXTRACTDIR)/Extract.v
 
 EXE=ml/_build/default/testeval.exe
 
-$(CEXE): extracted ml/dune ml/extracted/dune ml/testcomp.ml
-	@echo "Compiling $(CEXE)"
-	(cd ml; dune build --profile=dev testcomp.exe)
-
 $(EXE): extracted ml/dune ml/extracted/dune ml/testeval.ml
 	@echo "Compiling $(EXE)"
 	(cd ml; dune build --profile=dev testeval.exe)

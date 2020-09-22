@@ -1,6 +1,5 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
 
-(* YZ: Not sure how I feel about this. Implicit arguments in lemmas weird me out *)
 Set Implicit Arguments.
 Set Strict Implicit.
 
@@ -152,9 +151,9 @@ Section SimulationRelations.
        end.
 
   (* Check that a pair of [ident] and [dvalue] can be found in the
-     appropriate environment. This to be used for  *)
+     appropriate environment. *)
   Definition in_local_or_global_addr
-             (ρ : local_env) (g : global_env) (m : memoryV)
+             (ρ : local_env) (g : global_env)
              (x : ident) (a : Addr.addr): Prop
     := match x with
        | ID_Local  x => ρ @ x ≡ Some (UVALUE_Addr a)
@@ -177,7 +176,7 @@ Section SimulationRelations.
         | DSHPtrVal ptr_helix ptr_size_helix =>
           exists bk_helix ptr_llvm,
           memory_lookup mem_helix ptr_helix ≡ Some bk_helix /\
-          in_local_or_global_addr ρ g mem_llvm x ptr_llvm /\
+          in_local_or_global_addr ρ g x ptr_llvm /\
           (forall i v, mem_lookup i bk_helix ≡ Some v ->
                   get_array_cell mem_llvm ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v))
         end.
@@ -248,7 +247,7 @@ Section SimulationRelations.
       nth_error σ v ≡ Some (DSHPtrVal m size) ->
       exists (bk_h : mem_block) (ptr_v : Addr.addr),
         memory_lookup memH m ≡ Some bk_h
-        /\ in_local_or_global_addr l g memV (ID_Local id) ptr_v
+        /\ in_local_or_global_addr l g (ID_Local id) ptr_v
         /\ (forall (i : Memory.NM.key) (v : binary64),
               mem_lookup i bk_h ≡ Some v -> get_array_cell memV ptr_v i DTYPE_Double ≡ inr (UVALUE_Double v)).
   Proof.
@@ -293,6 +292,26 @@ Section SimulationRelations.
     mem_is_inv : memory_invariant σ s memH configV ;
     IRState_is_WF : WF_IRState σ s ;
     incLocal_is_fresh : concrete_fresh_inv s configV
+    }.
+
+  (* Named function pointer exists in global environemnts *)
+  Definition global_named_ptr_exists (fnname:string) : Pred_cfg :=
+    fun '(mem_llvm, (ρ,g)) => exists mf, g @ (Name fnname) ≡ Some (DVALUE_Addr mf).
+
+  (* For compiled FHCOL programs we need to ensure we have 2 declarations:
+     1. "main" function
+     2. function, implementing compiled expression.
+   *)
+  Definition declarations_invariant (fnname:string) : Pred_cfg :=
+    fun c =>
+      global_named_ptr_exists "main" c /\
+      global_named_ptr_exists fnname c.
+
+  (** An invariant which must hold after initialization stage *)
+  Record post_init_invariant (fnname:string) (σ : evalContext) (s : IRState) (memH : memoryH) (configV : config_cfg) : Prop :=
+    {
+    state_inv:  state_invariant σ s memH configV;
+    decl_inv: declarations_invariant fnname configV
     }.
 
   (**
@@ -365,12 +384,12 @@ Section Ext_Local.
   Qed.
 
  Lemma in_local_or_global_addr_ext_local :
-    forall ρ1 ρ2 g m x ptr,
-      in_local_or_global_addr ρ1 g m x ptr ->
+    forall ρ1 ρ2 g x ptr,
+      in_local_or_global_addr ρ1 g x ptr ->
       ρ1 ⊑ ρ2 ->
-      in_local_or_global_addr ρ2 g m x ptr.
+      in_local_or_global_addr ρ2 g x ptr.
   Proof.
-    unfold in_local_or_global_addr; intros ρ1 ρ2 g m [] ptr IN MONO; auto.
+    unfold in_local_or_global_addr; intros ρ1 ρ2 g [] ptr IN MONO; auto.
     apply MONO; auto.
   Qed.
 
@@ -420,9 +439,9 @@ Proof.
   cbn; intros; auto.
 Qed.
 
-Lemma in_local_or_global_addr_same_global : forall l g l' m id ptr,
-    in_local_or_global_addr l g m (ID_Global id) ptr ->
-    in_local_or_global_addr l' g m (ID_Global id) ptr.
+Lemma in_local_or_global_addr_same_global : forall l g l' id ptr,
+    in_local_or_global_addr l g (ID_Global id) ptr ->
+    in_local_or_global_addr l' g (ID_Global id) ptr.
 Proof.
   cbn; intros; auto.
 Qed.
@@ -448,10 +467,10 @@ Proof.
 Qed.
 
 Lemma in_local_or_global_addr_add_fresh_old :
-  forall (id : raw_id) (l : local_env) (g : global_env) m (x : ident) ptr dv',
+  forall (id : raw_id) (l : local_env) (g : global_env) (x : ident) ptr dv',
     x <> ID_Local id ->
-    in_local_or_global_addr l g m x ptr ->
-    in_local_or_global_addr (alist_add id dv' l) g m x ptr.
+    in_local_or_global_addr l g x ptr ->
+    in_local_or_global_addr (alist_add id dv' l) g x ptr.
 Proof.
   intros * INEQ LUV'.
   destruct x; cbn in *; auto.
@@ -473,10 +492,10 @@ Proof.
 Qed.
 
 Lemma fresh_no_lu_addr :
-  forall s s' id l g m x ptr,
+  forall s s' id l g x ptr,
     incLocal s ≡ inr (s', id) ->
     incLocal_fresh l s ->
-    in_local_or_global_addr l g m x ptr ->
+    in_local_or_global_addr l g x ptr ->
     x <> ID_Local id.
 Proof.
   intros * INC FRESH IN abs; subst.

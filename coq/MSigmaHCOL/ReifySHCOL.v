@@ -123,7 +123,7 @@ Fixpoint compileSHCOL2MSHCOL (t:term) (fuel: nat) {struct fuel}: TemplateMonad (
         tmPrint "UnSafeCast" ;;
                 compileSHCOL2MSHCOL c fuel'
       | Some n_Apply2Union, [fm ; i ; o ; svalue; dot ; _ ; _; op1 ; op2] =>
-        tmPrint "HTSumunion" ;;
+        tmPrint "Apply2Union" ;;
                 c1 <- compileSHCOL2MSHCOL op1 fuel' ;;
                 c2 <- compileSHCOL2MSHCOL op2 fuel' ;;
                 tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MApply2Union" u)

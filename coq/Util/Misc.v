@@ -200,41 +200,6 @@ Proof.
   apply H.
 Qed.
 
-Lemma abs_max_comm_2nd
-      `{Ae: Equiv A}
-      `{Az: Zero A} `{A1: One A}
-      `{Aplus: Plus A} `{Amult: Mult A}
-      `{Aneg: Negate A}
-      `{Ale: Le A}
-      `{Ato: !@TotalOrder A Ae Ale}
-      `{Aabs: !@Abs A Ae Ale Az Aneg}
-      `{Ar: !Ring A}
-      `{ASRO: !@SemiRingOrder A Ae Aplus Amult Az A1 Ale}
-      `{Aledec: !∀ x y: A, Decision (x ≤ y)}
-  : forall (x y:A),  max (abs y) x = abs (max (abs y) x).
-Proof.
-
-  intros.
-  unfold max, sort, decide_rel.
-  destruct (Aledec (abs y) x).
-
-  (* Case "abs y <= x". *)
-  unfold abs, abs_sig.
-  simpl.
-  destruct (Aabs x) as [z1 [Ez1 Fz1]].
-  simpl.
-  symmetry.
-  assert (XP: 0 ≤ x). revert l. assert (0 ≤ abs y). apply abs_always_nonneg. auto.
-  revert Ez1.
-  auto.
-
-  (* Case "abs y > x". *)
-  simpl.
-  rewrite unary_idempotency.
-  reflexivity.
-Qed.
-
-
 Local Open Scope nat_scope.
 
 Lemma modulo_smaller_than_devisor:
@@ -389,3 +354,16 @@ Section StringUtils.
     string_of_nat_aux n n "".
 
 End StringUtils.
+
+
+Definition is_Some_bool {A:Type} (x:option A) : bool :=
+  match x with
+  | Some x => true
+  | None => false
+  end.
+
+Definition is_None_bool {A:Type} (x:option A) : bool :=
+  match x with
+  | Some x => false
+  | None => true
+  end.

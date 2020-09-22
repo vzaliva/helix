@@ -31,10 +31,10 @@ Section MExpr.
              (σ : evalContext)
              (s : IRState) (mexp : MExpr) (e : exp typ) : Rel_cfg_T (mem_block * Int64.int) unit :=
     fun '(memH, (mb, mb_sz)) '(memV, (ρ, (g, _))) =>
-      (exists ptr i (vid : nat) (mid : mem_block_id) (size : Int64.int) (sz : int), (* TODO: sz ≈ size? *)
+      (exists ptr i (vid : nat) (mid : nat) (size : Int64.int) (sz : int), (* TODO: sz ≈ size? *)
         Ret (memV,(ρ,(g,UVALUE_Addr ptr))) ≈ interp_cfg (translate exp_E_to_instr_E (D.denote_exp (Some DTYPE_Pointer) (convert_typ [] e))) g ρ memV /\
         memory_lookup memH mid ≡ Some mb /\
-        in_local_or_global_addr ρ g memV i ptr /\
+        in_local_or_global_addr ρ g i ptr /\
         nth_error σ vid ≡ Some (DSHPtrVal mid size) /\
         nth_error (Γ s) vid ≡ Some (i, TYPE_Pointer (TYPE_Array sz TYPE_Double))) /\
       evalMExpr memH σ mexp ≡ inr (mb, mb_sz).
@@ -72,7 +72,7 @@ Section MExpr.
       nth_error (Γ s) vid ≡ Some (x, TYPE_Pointer (TYPE_Array sz TYPE_Double)) ->
       ∃ (bk_helix : mem_block) (ptr_llvm : Addr.addr),
         memory_lookup memH a ≡ Some bk_helix
-        ∧ in_local_or_global_addr l g memV x ptr_llvm
+        ∧ in_local_or_global_addr l g x ptr_llvm
         ∧ (∀ (i : Memory.NM.key) (v : binary64), mem_lookup i bk_helix ≡ Some v → get_array_cell memV ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v)).
   Proof.
     intros * [MEM _ _] LU1 LU2; eapply MEM in LU1; eapply LU1 in LU2; eauto.
@@ -135,7 +135,7 @@ Section MExpr.
           repeat break_match; inversion Heval; inversion Heqs; subst.
           inv_memory_lookup_err.
           match goal with
-          | H : Some (DSHPtrVal m bk_sz) ≡ Some (DSHPtrVal a size) |- _ =>
+          | H : Some (DSHPtrVal n bk_sz) ≡ Some (DSHPtrVal a size) |- _ =>
             inversion H; subst
           end.
           match goal with

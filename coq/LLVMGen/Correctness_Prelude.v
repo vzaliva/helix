@@ -54,6 +54,7 @@ Require Export Vellvm.TopLevelRefinements.
 Require Export Vellvm.TypToDtyp.
 Require Export Vellvm.LLVMEvents.
 Require Export Vellvm.Transformations.Traversal.
+Require Export Vellvm.PostConditions.
 Require Export Vellvm.Denotation_Theory.
 Require Export Vellvm.InstrLemmas.
 
@@ -321,16 +322,29 @@ Section RelationTypes.
   Definition Rel_cfg: Type
     := memoryH -> config_cfg -> Prop.
 
+  (** Predicate on cfg *)
+  Definition Pred_cfg: Type
+    := config_cfg -> Prop.
+
   (** Relation of memory states which must be held for
       intialization steps *)
   Definition Rel_mcfg: Type
     := memoryH -> config_mcfg -> Prop.
+
+  Definition Pred_mcfg: Type
+    := config_mcfg -> Prop.
 
   (** Type of bisimulation relations between DSHCOL and VIR internal to CFG states,
       parameterized by the types of the computed values.
    *)
   Definition Rel_cfg_T (TH TV: Type): Type
     := memoryH * TH -> config_cfg_T TV -> Prop.
+
+  (** Type of bisimulation relations between DSHCOL and VIR internal to CFG states,
+      parameterized by the types of the computed values.
+   *)
+  Definition Pred_cfg_T (TV: Type): Type
+    := config_cfg_T TV -> Prop.
 
   (* Lifting a relation on memory states to one encompassing returned values by ignoring them *)
   Definition lift_Rel_cfg (R: Rel_cfg) (TH TV: Type): Rel_cfg_T TH TV :=
@@ -354,6 +368,9 @@ Section RelationTypes.
 
   Definition lift_pure_mcfg (P : Prop) {TH TV : Type} : Rel_mcfg_T TH TV :=
     fun _ _ => P.
+
+  Definition Pred_mcfg_T (TV: Type): Type
+    := config_mcfg_T TV -> Prop.
 
   (** Type of bisimulation relation between DSHCOL and LLVM states.
     This relation could be used for fragments of CFG [cfg].
@@ -724,17 +741,18 @@ Ltac break_and :=
   Hint Rewrite interp_cfg_to_L3_LR : vellvm.
   Hint Rewrite @lookup_E_to_exp_E_Global : vellvm.
   Hint Rewrite @lookup_E_to_exp_E_Local : vellvm.
+  Hint Rewrite @subevent_subevent : vellvm.
   Hint Rewrite @exp_E_to_instr_E_Global : vellvm.
   Hint Rewrite @exp_E_to_instr_E_Local : vellvm.
   Hint Rewrite @subevent_subevent : vellvm.
   Hint Rewrite @typ_to_dtyp_equation : vellvm.
+  Hint Rewrite denote_code_nil : vellvm.
+  Hint Rewrite denote_code_singleton : vellvm.
+
 
   Hint Rewrite interp_Mem_bind : helix.
   Hint Rewrite interp_Mem_ret : helix.
   Hint Rewrite interp_Mem_MemLU : helix.
-
-  Hint Rewrite denote_code_nil : helix.
-  Hint Rewrite denote_code_singleton : helix.
 
   Tactic Notation "rauto:R" :=
     repeat (

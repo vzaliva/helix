@@ -36,7 +36,7 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
   Inductive DSHVal :=
   | DSHnatVal (n:NT.t): DSHVal
   | DSHCTypeVal (a:CT.t): DSHVal
-  | DSHPtrVal (a:mem_block_id) (size:NT.t): DSHVal.
+  | DSHPtrVal (a:nat) (size:NT.t): DSHVal.
 
   (* Expressions which evaluate to `NT.t` *)
   Inductive NExpr : Type :=
@@ -124,7 +124,7 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
   Inductive DSHVal_equiv: Equiv DSHVal :=
   | DSHnatVal_equiv {n0 n1:NT.t}: n0=n1 -> DSHVal_equiv (DSHnatVal n0) (DSHnatVal n1)
   | DSHCTypeVal_equiv {a b: CT.t}: a=b -> DSHVal_equiv (DSHCTypeVal a) (DSHCTypeVal b)
-  | DSHPtrVal_equiv {p0 p1: mem_block_id} {s0 s1:NT.t}: s0 = s1 /\ p0=p1 -> DSHVal_equiv (DSHPtrVal p0 s0) (DSHPtrVal p1 s1).
+  | DSHPtrVal_equiv {p0 p1: nat} {s0 s1:NT.t}: s0 = s1 /\ p0=p1 -> DSHVal_equiv (DSHPtrVal p0 s0) (DSHPtrVal p1 s1).
 
   Existing Instance DSHVal_equiv.
 

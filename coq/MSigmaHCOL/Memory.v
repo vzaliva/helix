@@ -136,11 +136,11 @@ Qed.
 
 Module Type MBasic (Import CT : CType).
 
-  Definition mem_add k (v:t) := NM.add k v.
-  Definition mem_delete k (m:NatMap t) := NM.remove k m.
-  Definition mem_member k (m:NatMap t) := NM.mem k m.
-  Definition mem_in     k (m:NatMap t) := NM.In k m.
-  Definition mem_lookup k (m:NatMap t) := NM.find k m.
+  Definition mem_add (k:nat) (v:t) := NM.add k v.
+  Definition mem_delete (k:nat) (m:NatMap t) := NM.remove k m.
+  Definition mem_member (k:nat) (m:NatMap t) := NM.mem k m.
+  Definition mem_in     (k:nat) (m:NatMap t) := NM.In k m.
+  Definition mem_lookup (k:nat) (m:NatMap t) := NM.find k m.
   Definition mem_empty := @NM.empty t.
 
   Definition mem_block := NatMap t.
@@ -760,18 +760,15 @@ Module Type MBasic (Import CT : CType).
 
     Definition memory_empty : memory := NM.empty _.
 
-    (* Memory block address *)
-    Definition mem_block_id := nat.
-
     Definition memory_lookup
                (m: memory)
-               (n: mem_block_id)
+               (n: nat)
       : option mem_block
       := NM.find n m.
 
     Definition memory_set
                (m: memory)
-               (n: mem_block_id)
+               (n: nat)
                (v: mem_block)
       : memory
       :=
@@ -779,17 +776,17 @@ Module Type MBasic (Import CT : CType).
 
     Definition memory_remove
                (m: memory)
-               (n: mem_block_id)
+               (n: nat)
       : memory
       :=
         NM.remove n m.
 
 
     (* memory [m] has block [b] under id [n] *)
-    Definition memory_mapsto (m : memory) (n : mem_block_id) (b : mem_block) :=
+    Definition memory_mapsto (m : memory) (n : nat) (b : mem_block) :=
       NM.MapsTo (elt:=mem_block) n b m.
 
-    Definition mem_block_exists: mem_block_id -> memory -> Prop
+    Definition mem_block_exists: nat -> memory -> Prop
       := NM.In (elt:=mem_block).
 
     Lemma decidable_mem_block_exists (k:NM.key) (m:memory): decidable (mem_block_exists k m).
@@ -806,11 +803,20 @@ Module Type MBasic (Import CT : CType).
 
     (* Returns block ID which is guaraneed to be free in [m] *)
     Definition memory_next_key
-               (m: memory): mem_block_id
+               (m: memory): nat
       :=  match NS.max_elt (memory_keys_set m) with
           | None => 0
           | Some k => S k
           end.
+
+    (* forced union of two memory states. conflicts are resolved by
+       giving preference to elements of the 1st state *)
+    Definition memory_union (m1 m2 : memory) : memory
+      := NM.map2 (fun mx my =>
+                    match mx with
+                    | Some x => Some x
+                    | None => my
+                    end) m1 m2.
 
     Lemma mem_block_exists_exists (m:memory) (k:nat):
       mem_block_exists k m <-> exists y : mem_block, memory_lookup m k = Some y.
@@ -836,7 +842,7 @@ Module Type MBasic (Import CT : CType).
         apply F.not_find_in_iff in H1; congruence.
     Qed.
 
-    Lemma memory_is_set_is_Some (m:memory) (k:mem_block_id):
+    Lemma memory_is_set_is_Some (m:memory) (k:nat):
       mem_block_exists k m <-> MathClasses.misc.util.is_Some (memory_lookup m k).
     Proof.
       unfold mem_block_exists, memory_lookup, MathClasses.misc.util.is_Some.
@@ -850,7 +856,7 @@ Module Type MBasic (Import CT : CType).
         some_none.
     Qed.
 
-    Lemma mem_block_exists_memory_remove (k:mem_block_id) (m:memory):
+    Lemma mem_block_exists_memory_remove (k:nat) (m:memory):
       not (mem_block_exists k (memory_remove m k)).
     Proof.
       unfold mem_block_exists, memory_remove.
