@@ -248,7 +248,7 @@ Section EventTranslation.
     trigger (MemSet xindex x);;
 
     let σ := List.app σ [DSHPtrVal yindex p.(o); DSHPtrVal xindex p.(i)] in
-    denoteDSHOperator σ p.(op);;
+    denoteDSHOperator σ (p.(Data.op) : DSHOperator);;
     bk <- trigger (MemLU "denote_FSHCOL" yindex);;
     lift_Derr (mem_to_list "Invalid output memory block" (MInt64asNT.to_nat p.(o)) bk).
 

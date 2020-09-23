@@ -891,6 +891,21 @@ Definition resolve_PVar (p:PExpr): cerr (ident*Int64.int)
       end
     end.
 
+Definition genNop (nextblock: block_id) : cerr segment
+  :=
+    nopblock <- incBlockNamed "Nop" ;;
+    nopret <- incVoid ;;
+    ret (nopblock,
+         [
+           {|
+             blk_id    := nopblock ;
+             blk_phis  := [];
+             blk_code  := [];
+             blk_term  := (IVoid nopret, TERM_Br_1 nextblock);
+             blk_comments := None
+           |}
+        ]).
+
 Fixpoint genIR
          (fshcol: DSHOperator)
          (nextblock: block_id):
@@ -902,9 +917,9 @@ Fixpoint genIR
     catch (
         match fshcol with
         | DSHNop =>
-          nopblock <- incBlockNamed "Nop" ;;
+          '(body_entry, body_blocks) <- genNop nextblock ;;
           add_comment
-            (ret (nopblock,[]))
+            (ret (body_entry, body_blocks))
         | DSHAssign (src_p,src_n) (dst_p,dst_n) =>
           '(x,i) <- resolve_PVar src_p ;;
           '(y,o) <- resolve_PVar dst_p ;;

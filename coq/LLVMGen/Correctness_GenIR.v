@@ -571,6 +571,41 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   (*     lia. *)
   (* Qed. *)
 
+
+  (* TODO: Move *)
+  Lemma add_comment_eutt :
+    forall comments bks ids,
+      denote_bks (convert_typ [] (add_comment bks comments)) ids ≈ denote_bks (convert_typ [] bks) ids.
+  Proof.
+    intros comments bks ids.
+    induction bks.
+    - cbn. reflexivity.
+    - cbn.
+      destruct ids as (bid_from, bid_src); cbn.
+      match goal with
+      | |- context[denote_bks ?bks (_, ?bid_src)] =>
+        destruct (find_block dtyp bks bid_src) eqn:FIND
+      end.
+  Admitted.
+
+  (* TODO: Move *)
+  (* Could probably have something more general... *)
+  Lemma add_comments_eutt :
+    forall bk comments bids,
+      denote_bks
+        [fmap (typ_to_dtyp [ ]) (add_comments bk comments)] bids ≈ denote_bks [fmap (typ_to_dtyp [ ]) bk] bids.
+  Proof.
+    intros bk comments bids.
+  Admitted.
+      
+
+  (* TODO: Move *)
+  Lemma convert_typ_block_app : forall (a b : list (LLVMAst.block typ)) env, (convert_typ env (a ++ b) ≡ convert_typ env a ++ convert_typ env b)%list.
+  Proof.
+    induction a as [| [] a IH]; cbn; intros; auto.
+    rewrite IH; reflexivity.
+  Qed.
+
   Opaque denote_code.
  Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
@@ -593,18 +628,44 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       simp.
       hide_strings'.
       cbn*; rauto:L.
-      rewrite denote_bks_nil.
+
+      rewrite add_comments_eutt.
+      rewrite denote_bks_unfold_in.
+      2: {
+        cbn.
+
+        assert ((if Eqv.eqv_dec_p bid_in bid_in then true else false) ≡ true).
+        admit.
+        rewrite H.
+
+        auto.
+      }
+
       cbn*; rauto:R.
+      cbn*; rauto:R.
+      cbn*; rauto:R.
+
+      rewrite denote_term_br_1.
+      cbn*; rauto:R.
+      
+      rewrite denote_bks_unfold_not_in.
+      2 : {
+        (* We know nextblock ≢ bid_in *)
+        admit.
+      }
+
+      rauto:R.
       apply eqit_Ret; auto.
+      solve_gen_ir_rel.
+
       destruct BISIM as (STATE & (from & BRANCH) & MEM).
       cbn in STATE, BRANCH, MEM.
-      epose proof (state_invariant_incBlockNamed Heqs0 STATE).
-      split; gen_ir_rel_auto.
-      + split; cbn.
-        * exists bid_from.
-          auto.
-          admit. (* Technically NOPs get compiled to empty blocks so there is no "nextblock" and the invariant doesn't hold... *)
-        * induction fuel; inversion EVAL; auto.
+      split; eauto.
+      split.
+      + cbn. exists bid_in.
+        reflexivity.
+      + cbn.
+        induction fuel; inversion EVAL; auto.
     - (* Assign case.
          Helix side:
          1. x_i <- evalPExpr σ x_p ;;
@@ -1127,29 +1188,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       rename Heqs0 into GEN_OP2.
       rename Heqs2 into GEN_OP1.
 
-      Lemma add_comment_eutt :
-        forall comments bks ids,
-          denote_bks (convert_typ [] (add_comment bks comments)) ids ≈ denote_bks (convert_typ [] bks) ids.
-      Proof.
-        intros comments bks ids.
-        induction bks.
-        - cbn. reflexivity.
-        - cbn.
-          destruct ids as (bid_from, bid_src); cbn.
-          match goal with
-          | |- context[denote_bks ?bks (_, ?bid_src)] =>
-            destruct (find_block dtyp bks bid_src) eqn:FIND
-          end.
-      Admitted.
-
       rewrite add_comment_eutt.
       cbn.
-
-      Lemma convert_typ_block_app : forall (a b : list (LLVMAst.block typ)) env, (convert_typ env (a ++ b) ≡ convert_typ env a ++ convert_typ env b)%list.
-      Proof.
-        induction a as [| [] a IH]; cbn; intros; auto.
-        rewrite IH; reflexivity.
-      Qed.
 
       rewrite convert_typ_block_app.
       rewrite denote_bks_app; eauto.

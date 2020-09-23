@@ -29,14 +29,14 @@ Import MDSHCOLOnFloat64.
 (* sample definition to be moved to DynWin.v *)
 Local Open Scope nat_scope.
 
-(* Nop is generated, for example, for `IReduction 0` *)
-Definition Nop_test := DSHNop.
 
 Definition BinOp_less_test :=
   DSHBinOp 2 (PVar 1) (PVar 0) (AZless (AVar 1) (AVar 0)).
 
 Definition BinOp_plus_test :=
   DSHBinOp 2 (PVar 1) (PVar 0) (APlus (AVar 1) (AVar 0)).
+
+Definition Nop_test := DSHSeq BinOp_plus_test DSHNop.
 
 Definition IMap_plus1_test :=
   DSHIMap 8 (PVar 1) (PVar 0) (APlus (AConst Float64One) (AVar 0)).
