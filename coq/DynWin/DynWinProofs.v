@@ -792,7 +792,7 @@ Section SHCOL_to_MSHCOL.
    *)
   Context `{CarrierASRO: @orders.SemiRingOrder CarrierA CarrierAe CarrierAplus CarrierAmult CarrierAz CarrierA1 CarrierAle}.
 
-  Run TemplateProgram (reifySHCOL dynwin_SHCOL1 100 ["dynwin_SHCOL1"] "dynwin_MSHCOL1").
+  MetaCoq Run (reifySHCOL dynwin_SHCOL1 100 [(BasicAst.MPfile ["DynWin"; "DynWin"; "Helix"], "dynwin_SHCOL1")] "dynwin_MSHCOL1").
 
   Fact Set_Obligation_1:
     Included (FinNat 2) (Full_set (FinNat 2))
@@ -849,7 +849,7 @@ Section SHCOL_to_MSHCOL.
 
       apply Union_intror.
       unfold singleton.
-      crush.
+      destruct x; crush.
     -
       apply Apply_Family_Vforall_ATT.
     -
@@ -892,7 +892,7 @@ Section MSHCOL_to_DSHCOL.
 
   Import MDSHCOLOnCarrierA.
 
-  Run TemplateProgram (reifyMSHCOL dynwin_MSHCOL1 ["dynwin_MSHCOL1"] "dynwin_DSHCOL1" "dynwin_DSHCOL1_globals").
+  MetaCoq Run (reifyMSHCOL dynwin_MSHCOL1 [(BasicAst.MPfile ["DynWinProofs"; "DynWin"; "Helix"], "dynwin_MSHCOL1")] "dynwin_DSHCOL1" "dynwin_DSHCOL1_globals").
 
   (* Import DSHNotation. *)
 
