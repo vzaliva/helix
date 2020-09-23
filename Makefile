@@ -6,7 +6,7 @@ LIBNAME := Helix
 
 # parse the -j flag if present, set jobs to 1 oterwise
 JFLAG=$(patsubst -j%,%,$(filter -j%,$(MFLAGS)))
-JOBS=$(if $(JFLAG),$(JFLAG),1)
+JOBS=$(if $(JFLAG),$(JFLAG),4)
 
 MAKECOQ := +$(MAKE) -r -f Makefile.coq
 
