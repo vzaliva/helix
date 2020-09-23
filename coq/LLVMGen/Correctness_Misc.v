@@ -26,14 +26,28 @@ Ltac rewrite_mem_lookup :=
   | h: mem_lookup _ _ ≡ _ |- _ => rewrite h
   end.
  
-Fixpoint build_vec {E} (n: nat) (body: nat -> mem_block -> itree E mem_block):
-  mem_block -> itree E mem_block :=
-  fun memy =>
-    match n with
-    | O => ret memy
-    | S n => memy' <- body n memy;;
-            build_vec n body memy'
+(* Fixpoint build_vec {E} (n: nat) (body: nat -> mem_block -> itree E mem_block): *)
+(*   mem_block -> itree E mem_block := *)
+(*   fun memy => *)
+(*     match n with *)
+(*     | O => ret memy *)
+(*     | S n => memy' <- body n memy;; *)
+(*             build_vec n body memy' *)
+(*     end. *)
+
+Fixpoint build_vec_gen_aux {E} (from remains : nat) (body : nat -> mem_block -> itree E mem_block) : mem_block -> itree E mem_block :=
+  fun vec =>
+    match remains with
+    | 0 => ret vec
+    | S remains' =>
+      vec' <- body from vec;;
+      build_vec_gen_aux (S from) remains' body vec'
     end.
+
+Definition build_vec_gen {E} (from to : nat) :=
+  @build_vec_gen_aux E from (to - from).
+
+Definition build_vec {E} := @build_vec_gen E 0.
 
 Definition bodyIMap (f : AExpr) (σ : evalContext) (x: mem_block) (n: nat) (y: mem_block) : itree Event (mem_block) :=
         v <- lift_Derr (mem_lookup_err "Error reading memory denoteDSHIMap" n x) ;;
@@ -41,7 +55,7 @@ Definition bodyIMap (f : AExpr) (σ : evalContext) (x: mem_block) (n: nat) (y: m
         v' <- denoteIUnCType σ f vn v ;;
         ret (mem_add n v' y).
 
-Definition  IMap_Rel σ Γ : Rel_cfg_T mem_block (block_id * block_id + uvalue) :=
+Definition IMap_Rel σ Γ : Rel_cfg_T mem_block (block_id * block_id + uvalue) :=
   lift_Rel_cfg (state_invariant σ Γ).
 
 Definition uvalue_of_nat k := UVALUE_I64 (Int64.repr (Z.of_nat k)).
@@ -357,35 +371,51 @@ forall k, {I(k) /\ i = k} c {I(S k)}
 {P} comm {Q}
  *)
 
+Fixpoint for_itree_aux {E A} (body : nat -> A -> itree E A) (a0 : A) (index remaining: nat): itree E A :=
+  match remaining with
+  | 0 => ret a0
+  | S n => ITree.bind (body index a0) (fun a => for_itree_aux body a (S index) n)
+  end.
+Definition for_itree {E A} (body : nat -> A -> itree E A) (a0 : A) (from to : nat): itree E A :=
+  for_itree_aux body a0 from (to - from).
+(* 
+    genWhileLoop prefix (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
+                       loopvar loopcontblock body_entry body_blocks [] nextblock s1
+                       (* IY: Adding explicit exposure of entry_bk and loop_bk. *)
+                       ≡ inr (s2,(entry_id, bks)) 
+
+forall g l mV,
+eutt (fun st st' => st ⊑ st')
+(for_itree_aux (fun '(mV,(l,g)) => [| body_blocks |] g l mV) (mV,(l,g)) from to)
+([|(convert_typ [] bks)|] (from_id, entry_id) g l mV)
+
+ *)
 
 Lemma genWhileLoop_ind:
   forall (prefix : string)
     (loopvar : raw_id)            (* lvar storing the loop index *)
-    (loopcontblock : block_id)  (* reentry point from the body back to the loop *)
-    (body_entry : block_id) (* entry point of the body *)
+    (loopcontblock : block_id)    (* reentry point from the body back to the loop *)
+    (body_entry : block_id)       (* entry point of the body *)
     (body_blocks : list (LLVMAst.block typ)) (* (llvm) body to be iterated *)
-    (nextblock : block_id)       (* exit point of the overall loop *)
-    (entry_id : block_id)      (* entry point of the overall loop *)
+    (nextblock : block_id)        (* exit point of the overall loop *)
+    (entry_id : block_id)         (* entry point of the overall loop *)
     (s1 s2 : IRState)
-    (entry_bk loop_bk : LLVMAst.block typ)
-    (post_bks : list (LLVMAst.block typ)) (* (llvm) code defining the whole loop *)
-    (n : nat)                    (* Number of iterations *)
-    (j : nat)                    (* Starting iteration *)
+    (bks : list (LLVMAst.block typ))
+    (n : nat)                       (* Number of iterations *)
+    (j : nat)                       (* Starting iteration *)
     (BOUND: n - j > 0)
     (* Main relations preserved by iteration *)
-    (P Q : Rel_cfg) (I : nat -> Rel_cfg),
+    (I : nat -> mem_block -> Rel_cfg),
 
-    forall loop_id i i0,
-    incBlockNamed (prefix @@ "_entry") s1 ≡ inr (i, entry_id) ->
-    incBlockNamed (prefix @@ "_loop") i ≡ inr (i0, loop_id) ->
-
-    (* Inductive proof: Assuming precondition P, and postcondition Q after going through both bodies *)
+    (* forall loop_id i i0, *)
+    (* incBlockNamed (prefix @@ "_entry") s1 ≡ inr (i, entry_id) -> *)
+    (* incBlockNamed (prefix @@ "_loop") i ≡ inr (i0, loop_id) -> *)
 
     (* (* Generation of the LLVM code wrapping the loop around bodyV *) *)
     genWhileLoop prefix (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
                        loopvar loopcontblock body_entry body_blocks [] nextblock s1
                        (* IY: Adding explicit exposure of entry_bk and loop_bk. *)
-                       ≡ inr (s2,(entry_id, (entry_bk :: loop_bk :: body_blocks ++ post_bks)%list)) ->
+                       ≡ inr (s2,(entry_id, bks)) ->
     (* (* Computation on the Helix side performed at each cell of the vector, *)
     (*    the counterpart to bodyV (body_blocks) *) *)
     forall (bodyH: nat -> mem_block -> itree _ mem_block),
@@ -394,95 +424,110 @@ Lemma genWhileLoop_ind:
     (* We build weakening in the rule: the precondition implies the initial invariant
        and the final invariant implies the postcondition
      *)
-    (P ⊆ I 0) -> (I n ⊆ Q) ->
-          (* (R ⩕ Invk (n +1) /\ lvar = n /\ retlabel = post ) *)
-        (* ((R ⩕ Invk n) (mH,ymem) (mV, (l, (g, (inl body))))) -> *)
-    (forall g l mV mH ymem k,
-        (conj_rel (I k)
+    (* (P ⊆ I 0) -> (I n ⊆ Q) -> *)
+      (* (R ⩕ Invk (n +1) /\ lvar = n /\ retlabel = post ) *)
+      (* ((R ⩕ Invk n) (mH,ymem) (mV, (l, (g, (inl body))))) -> *)
+    (forall g l mV mH ymem k _label,
+        (conj_rel (I k ymem)
                   (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k))
                   mH (mV,(l,g))) ->
         eutt
-          (conj_rel
-             (lift_Rel_cfg (I (S k)))
-             (lift_Rel_cfg (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat (S k)))))
-          (with_err_RB (interp_Mem (bodyH (S k) ymem) mH))
+          (
+             (fun '(memH,vec') '(memV, (l, (g, x))) =>
+                l @ loopvar ≡ Some (uvalue_of_nat k) /\
+                I (S k) vec' memH (memV, (l, g))
+    ))
+          (with_err_RB (interp_Mem (bodyH k ymem) mH))
           (with_err_LB (interp_cfg
-                          (denote_bks (convert_typ [] body_blocks) (body_entry, loop_id)) g l mV))
+                          (denote_bks (convert_typ [] body_blocks) (_label, body_entry)) g l mV))
     ) ->
 
     (* Main result. Need to know initially that P holds *)
-    forall g l mV mH ymem,
+    forall g l mV mH ymem _label _label',
       (conj_rel
-         P
+         (I j ymem)
          (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat j))
          mH (mV,(l,g))
-      ) ->
-      eutt (conj_rel (lift_Rel_cfg Q)
-                     (lift_Rel_cfg (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat n))))
-           (with_err_RB (interp_Mem (build_vec n bodyH ymem) mH))
-           (with_err_LB (interp_cfg (denote_bks (convert_typ [] (body_blocks ++ post_bks)%list) (body_entry, loop_id)) g l mV)).
- Proof with rauto.
-   intros *.
-   intros BOUND GEN * EQ EQ'. intros. destruct H3 as [PRE1 PRE2].
-   cbn* in GEN; simp. red.
+      ) -> 
+      eutt (fun '(memH,vec') '(memV, (l, (g,x))) =>
+              l @ loopvar ≡ Some (uvalue_of_nat n) /\
+              x ≡ inl (_label,nextblock) /\
+              I n vec' memH (memV,(l,g))
+           )
+           (with_err_RB (interp_Mem (build_vec_gen j n bodyH ymem) mH))
+           (with_err_LB (interp_cfg (denote_bks (convert_typ [] bks)
+                                                (_label', loopcontblock)) g l mV)).
 
-   (* Specifying the post condition into a "I x" format, to use inductive hypothesis *)
-   eapply eqit_mon; auto.
-   Unshelve.
-   3 : exact
-         (lift_Rel_cfg (I n) ⩕ lift_Rel_cfg (λ (_ : memoryH) '(_, (l0, _)),
-                                             l0 @ loopvar ≡ Some (uvalue_of_nat n))).
-   red; intros; intuition.
-   unfold lift_Rel_cfg. destruct x0, x1, p. destruct p. apply H1.
-   destruct PR. auto. destruct PR. auto.
-   cbn in *.
-   cbn...
+Proof with rauto.
+  intros * BOUND * GEN.
+  unfold genWhileLoop in GEN. cbn* in GEN. simp.
+  intros * HBODY.
+  remember (n - j - 1) as k.
+  revert j k Heqk BOUND.
+  induction j as [| j IH]; intros * EQ BOUND * PRE.
+  - admit.
+  - admit.
 
-   (* Induction on loop iteration, namely [n - j]. *)
-   (* A dead-end direction is to induct over "body_blocks" directly  -- we may be able
-      to do this using information about [n], but it is a bad idea to actually induct
-      over "body_blocks" directly *)
-   generalize dependent n. generalize dependent j.
-   intros. 2 : exact true. 2 : exact true. simp.
-   remember (n - j) as index. generalize dependent n. generalize dependent j.
-   induction index. intros. inversion BOUND.
-   intros. cbn... cbn... cbn...
-   remember
-     ([{|
-      blk_id := loopcontblock;
-      blk_phis := [ ];
-      blk_code :=
-        [(IId (Name ((prefix @@ "_next_i") @@ string_of_nat (local_count i2))),
-          INSTR_Op
-            (OP_IBinop (Add false false) (TYPE_I 64%Z) (EXP_Ident (ID_Local loopvar))
-                (EXP_Integer 1%Z)));
-          (IId r0,
-          INSTR_Op
-            (OP_ICmp Slt (TYPE_I 64%Z)
-              (EXP_Ident
-                  (ID_Local
-                    (Name ((prefix @@ "_next_i") @@ string_of_nat (local_count i2)))))
-              (EXP_Integer (Z.pos (Pos.of_succ_nat n)))))];
-      blk_term := (IVoid i8, TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local r0)) loop_id nextblock);
-      blk_comments := None |}]).
-  assert (
-  ∀ a b : list (LLVMAst.block typ),
-    convert_typ [ ] (a ++ b)%list ≡ (convert_typ [ ] a ++ convert_typ [ ] b)%list
-  ).
-  induction a as [| [] a IH']; cbn; intros; auto.
-  rewrite IH'; reflexivity. rewrite H.
-  cbn...
-  apply app_inv_head in H7.
-  subst.
-  cbn...
+  (*  intros BOUND GEN * EQ EQ'. intros. destruct H3 as [PRE1 PRE2]. *)
+  (*  cbn* in GEN; simp. red. *)
+   
+  (*  (* Specifying the post condition into a "I x" format, to use inductive hypothesis *) *)
+  (*  eapply eqit_mon; auto. *)
+  (*  Unshelve. *)
+  (*  3 : exact *)
+  (*        (lift_Rel_cfg (I n) ⩕ lift_Rel_cfg (λ (_ : memoryH) '(_, (l0, _)), *)
+  (*                                            l0 @ loopvar ≡ Some (uvalue_of_nat n))). *)
+  (*  red; intros; intuition. *)
+  (*  unfold lift_Rel_cfg. destruct x0, x1, p. destruct p. apply H1. *)
+  (*  destruct PR. auto. destruct PR. auto. *)
+  (*  cbn in *. *)
+  (*  cbn... *)
 
-  (* Trying to get shape things up so that we can apply IH.. *)
-  assert (n ≡ S (index + j)). {
-    assert (n = S index + j). rewrite Heqindex.
-    rewrite Nat.sub_add. reflexivity. lia.
-    rewrite H3. reflexivity. }
+  (*  (* Induction on loop iteration, namely [n - j]. *) *)
+  (*  (* A dead-end direction is to induct over "body_blocks" directly  -- we may be able *)
+  (*     to do this using information about [n], but it is a bad idea to actually induct *)
+  (*     over "body_blocks" directly *) *)
+  (*  generalize dependent n. generalize dependent j. *)
+  (*  intros. 2 : exact true. 2 : exact true. simp. *)
+  (*  remember (n - j) as index. generalize dependent n. generalize dependent j. *)
+  (*  induction index. intros. inversion BOUND. *)
+  (*  intros. cbn... cbn... cbn... *)
+  (*  remember *)
+  (*    ([{| *)
+  (*     blk_id := loopcontblock; *)
+  (*     blk_phis := [ ]; *)
+  (*     blk_code := *)
+  (*       [(IId (Name ((prefix @@ "_next_i") @@ string_of_nat (local_count i2))), *)
+  (*         INSTR_Op *)
+  (*           (OP_IBinop (Add false false) (TYPE_I 64%Z) (EXP_Ident (ID_Local loopvar)) *)
+  (*               (EXP_Integer 1%Z))); *)
+  (*         (IId r0, *)
+  (*         INSTR_Op *)
+  (*           (OP_ICmp Slt (TYPE_I 64%Z) *)
+  (*             (EXP_Ident *)
+  (*                 (ID_Local *)
+  (*                   (Name ((prefix @@ "_next_i") @@ string_of_nat (local_count i2))))) *)
+  (*             (EXP_Integer (Z.pos (Pos.of_succ_nat n)))))]; *)
+  (*     blk_term := (IVoid i8, TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local r0)) loop_id nextblock); *)
+  (*     blk_comments := None |}]). *)
+  (* assert ( *)
+  (* ∀ a b : list (LLVMAst.block typ), *)
+  (*   convert_typ [ ] (a ++ b)%list ≡ (convert_typ [ ] a ++ convert_typ [ ] b)%list *)
+  (* ). *)
+  (* induction a as [| [] a IH']; cbn; intros; auto. *)
+  (* rewrite IH'; reflexivity. rewrite H. *)
+  (* cbn... *)
+  (* apply app_inv_head in H7. *)
+  (* subst. *)
+  (* cbn... *)
 
-  rewrite H3. cbn...
+  (* (* Trying to get shape things up so that we can apply IH.. *) *)
+  (* assert (n ≡ S (index + j)). { *)
+  (*   assert (n = S index + j). rewrite Heqindex. *)
+  (*   rewrite Nat.sub_add. reflexivity. lia. *)
+  (*   rewrite H3. reflexivity. } *)
+
+  (* rewrite H3. cbn... *)
 Admitted.
  
 Definition stable_exp_local (R: Rel_cfg) : Prop :=
