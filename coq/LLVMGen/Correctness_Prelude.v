@@ -244,13 +244,43 @@ Section EventTranslation.
     lift_Derr (mem_to_list "Invalid output memory block" (MInt64asNT.to_nat p.(o)) bk).
 
   (* TO MOVE *)
+
+  Definition failT (m : Type -> Type) (a : Type) : Type :=
+    m (option a)%type.
+
+  Instance failT_fun `{Functor.Functor m} : Functor.Functor (failT m) :=
+    {| Functor.fmap := fun x y f => 
+                         Functor.fmap (fun x => match x with | None => None | Some x => Some (f x) end) |}.
+
+  Instance failT_monad `{Monad m} : Monad (failT m) :=
+    {| ret := fun _ x => ret (Some x);
+       bind := fun _ _ c k =>
+                 bind (m := m) c 
+                      (fun x => match x with | None => ret (None) | Some x => k x end)
+    |}.
+  
+  Instance failT_iter `{Monad m} `{MonadIter m} : MonadIter (failT m) :=
+    fun A I body i => Basics.iter (M := m) (I := I) (R := option A) 
+                               (fun i => bind (m := m)
+                                           (body i)
+                                           (fun x => match x with
+                                                  | None       => ret (inr None)
+                                                  | Some (inl j) => ret (inl j)
+                                                  | Some (inr a) => ret (inr (Some a))
+                                                  end))
+                               i.
+
+  Definition handle_failure: (StaticFailE +' DynamicFailE) ~> failT (itree void1) :=
+    fun _ _ => ret None.
+  Definition interp_failure := interp handle_failure.
+ 
   Definition errorT (m : Type -> Type) (a : Type) : Type :=
     m (unit + a)%type.
   Instance errotT_fun `{Functor.Functor m} : Functor.Functor (errorT m) :=
     {| Functor.fmap := fun x y f => 
                          Functor.fmap (fun x => match x with | inl _ => inl () | inr x => inr (f x) end) |}.
 
-  Instance errotT_monad `{Monad m} : Monad (errorT m) :=
+  Instance errorT_monad `{Monad m} : Monad (errorT m) :=
     {| ret := fun _ x => ret (inr x);
        bind := fun _ _ c k =>
                  bind (m := m) c 
@@ -268,13 +298,13 @@ Section EventTranslation.
                                                   end))
                                i.
 
-  Definition handle_failure: (StaticFailE +' DynamicFailE) ~> errorT (itree void1) :=
+  Definition handle_error: (StaticFailE +' DynamicFailE) ~> errorT (itree void1) :=
     fun _ _ => ret (inl ()).
-  Definition interp_failure := interp handle_failure.
+  Definition interp_error := interp handle_error.
 
   (* Finally, the semantics of FSHCOL for the top-level equivalence *)
   Definition semantics_FSHCOL (p: FSHCOLProgram) (data : list binary64)
-    : errorT (itree E_mcfg) (memoryH * list binary64) :=
+    : failT (itree E_mcfg) (memoryH * list binary64) :=
     translate (fun _ (x:void1 _) => match x with end) (interp_failure (interp_Mem (denote_FSHCOL p data) memory_empty)).
 
 End EventTranslation.
@@ -335,10 +365,12 @@ End StateTypes.
 (* TODOYZ: Think about those, rename. *)
 Section RelationTypes.
 
+  Definition config_helix := option memoryH.
+
   (** Relation of memory states which must be held for
       intialization steps *)
   Definition Rel_cfg: Type
-    := memoryH -> config_cfg -> Prop.
+    := config_helix -> config_cfg -> Prop.
 
   (** Predicate on cfg *)
   Definition Pred_cfg: Type
@@ -347,7 +379,7 @@ Section RelationTypes.
   (** Relation of memory states which must be held for
       intialization steps *)
   Definition Rel_mcfg: Type
-    := memoryH -> config_mcfg -> Prop.
+    := config_helix -> config_mcfg -> Prop.
 
   Definition Pred_mcfg: Type
     := config_mcfg -> Prop.
@@ -356,7 +388,7 @@ Section RelationTypes.
       parameterized by the types of the computed values.
    *)
   Definition Rel_cfg_T (TH TV: Type): Type
-    := memoryH * TH -> config_cfg_T TV -> Prop.
+    := config_helix * TH -> config_cfg_T TV -> Prop.
 
   (** Type of bisimulation relations between DSHCOL and VIR internal to CFG states,
       parameterized by the types of the computed values.
@@ -379,7 +411,7 @@ Section RelationTypes.
       parameterized by the types of the computed values.
    *)
   Definition Rel_mcfg_T (TH TV: Type): Type
-    := memoryH * TH -> config_mcfg_T TV -> Prop.
+    := config_helix * TH -> config_mcfg_T TV -> Prop.
 
   Definition lift_Rel_mcfg (R: Rel_mcfg) (TH TV: Type): Rel_mcfg_T TH TV :=
     fun '(memH,_) '(memV,(l,(g,_))) => R memH (memV,(l,g)).
@@ -394,13 +426,13 @@ Section RelationTypes.
     This relation could be used for fragments of CFG [cfg].
    *)
   Definition Type_R_partial: Type
-    := memoryH * unit -> config_res_cfg -> Prop.
+    := config_helix * unit -> config_res_cfg -> Prop.
 
   (** Type of bisimulation relation between DSHCOL and LLVM states.
       This relation could be used for "closed" CFG [mcfg].
    *)
   Definition Type_R_full: Type
-    := memoryH * (list binary64) -> config_res_mcfg -> Prop.
+    := config_helix * (list binary64) -> config_res_mcfg -> Prop.
 
 End RelationTypes.
 Arguments lift_Rel_cfg R {_ _}.
