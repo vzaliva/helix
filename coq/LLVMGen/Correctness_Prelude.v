@@ -187,22 +187,13 @@ Section EventTranslation.
    *)
 
   (* Joined set of residual events for full programs *)
-  Definition E_mcfg : Type -> Type := (ExternalCallE +' PickE +' UBE +' DebugE +' FailureE) +' (StaticFailE +' DynamicFailE).
+  Definition E_mcfg : Type -> Type := (ExternalCallE +' PickE +' UBE +' DebugE +' FailureE).
   (* Joined set of residual events for cfgs *)
-  Definition E_cfg : Type -> Type := (CallE +' PickE +' UBE +' DebugE +' FailureE) +' (StaticFailE +' DynamicFailE).
-
-  (* We define the translations by injection *)
-  Notation "'with_err_LT'" := (@translate (ExternalCallE +' PickE +' UBE +' DebugE +' FailureE) E_mcfg inl_).
-
-  Notation "'with_err_LB'" := (@translate (CallE +' PickE +' UBE +' DebugE +' FailureE) E_cfg inl_).
-
-  Notation "'with_err_RT'" := (@translate (StaticFailE +' DynamicFailE) E_mcfg inr_).
-
-  Notation "'with_err_RB'" := (@translate (StaticFailE +' DynamicFailE) E_cfg inr_).
+  Definition E_cfg : Type -> Type := (CallE +' PickE +' UBE +' DebugE +' FailureE). 
 
   (* We therefore have the following resulting denotation functions. *)
   (* On the Vellvm side, for [mcfg]: *)
-  Definition semantics_llvm_mcfg p : itree E_mcfg _ := with_err_LT (model_to_L3 DTYPE_Void "main" main_args defined_intrinsics p).
+  Definition semantics_llvm_mcfg p : itree E_mcfg _ := model_to_L3 DTYPE_Void "main" main_args defined_intrinsics p.
   (* Which get lifted to [toplevel_entity] as usual: *)
   Definition semantics_llvm (prog: list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ)))) :=
     semantics_llvm_mcfg (mcfg_of_tle prog).
@@ -252,17 +243,44 @@ Section EventTranslation.
     bk <- trigger (MemLU "denote_FSHCOL" yindex);;
     lift_Derr (mem_to_list "Invalid output memory block" (MInt64asNT.to_nat p.(o)) bk).
 
+  (* TO MOVE *)
+  Definition errorT (m : Type -> Type) (a : Type) : Type :=
+    m (unit + a)%type.
+  Instance errotT_fun `{Functor.Functor m} : Functor.Functor (errorT m) :=
+    {| Functor.fmap := fun x y f => 
+                         Functor.fmap (fun x => match x with | inl _ => inl () | inr x => inr (f x) end) |}.
+
+  Instance errotT_monad `{Monad m} : Monad (errorT m) :=
+    {| ret := fun _ x => ret (inr x);
+       bind := fun _ _ c k =>
+                 bind (m := m) c 
+                      (fun x => match x with | inl _ => ret (inl ()) | inr x => k x end)
+    |}.
+  
+  Instance errotT_iter `{Monad m} `{MonadIter m} : MonadIter (errorT m) :=
+    fun A I body i => Basics.iter (M := m) (I := I) (R := unit + A) 
+                               (fun i => bind (m := m)
+                                           (body i)
+                                           (fun x => match x with
+                                                  | inl _       => ret (inr (inl ()))
+                                                  | inr (inl j) => ret (inl j)
+                                                  | inr (inr a) => ret (inr (inr a))
+                                                  end))
+                               i.
+
+  Definition handle_failure: (StaticFailE +' DynamicFailE) ~> errorT (itree void1) :=
+    fun _ _ => ret (inl ()).
+  Definition interp_failure := interp handle_failure.
+
   (* Finally, the semantics of FSHCOL for the top-level equivalence *)
-  Definition semantics_FSHCOL (p: FSHCOLProgram) data : itree E_mcfg (memoryH * list binary64) :=
-    with_err_RT (interp_Mem (denote_FSHCOL p data) memory_empty).
+  Definition semantics_FSHCOL (p: FSHCOLProgram) (data : list binary64)
+    : errorT (itree E_mcfg) (memoryH * list binary64) :=
+    translate (fun _ (x:void1 _) => match x with end) (interp_failure (interp_Mem (denote_FSHCOL p data) memory_empty)).
 
 End EventTranslation.
-Notation "'with_err_LT'" := (@translate (ExternalCallE +' PickE +' UBE +' DebugE +' FailureE) E_mcfg inl_).
-Notation "'with_err_LB'" := (@translate (CallE +' PickE +' UBE +' DebugE +' FailureE) E_cfg inl_).
-Notation "'with_err_RT'" := (@translate (StaticFailE +' DynamicFailE) E_mcfg inr_).
-Notation "'with_err_RB'" := (@translate (StaticFailE +' DynamicFailE) E_cfg inr_).
-Notation "'interp_cfg'"  := (interp_cfg_to_L3 defined_intrinsics).
-Notation "'interp_mcfg'" := (interp_to_L3 defined_intrinsics).
+Set Printing Implicit.
+Notation "'with_cfg'"  := (@translate _ E_cfg (fun _ (x:void1 _) => match x with end)).
+Notation "'with_mcfg'" := (@translate _ E_mcfg (fun _ (x:void1 _) => match x with end)).
 
 (** Smart constructors for states, predicates, relations  *)
 
@@ -417,10 +435,8 @@ Module ProofNotations.
   Notation "x ← 'Φ' xs" := (x,Phi _ xs) (at level 10,only printing). 
   Notation "'denote_blocks' '...' id " := (denote_bks _ id) (at level 10,only printing). 
   Notation "'IRS' ctx" := (mkIRState _ _ _ ctx) (only printing, at level 10). 
-  Notation "x" := (with_err_LT x) (only printing, at level 10). 
-  Notation "x" := (with_err_LB x) (only printing, at level 10). 
-  Notation "x" := (with_err_RT x) (only printing, at level 10). 
-  Notation "x" := (with_err_RB x) (only printing, at level 10). 
+  Notation "x" := (with_cfg x) (only printing, at level 10). 
+  Notation "x" := (with_mcfg x) (only printing, at level 10). 
   Notation "⟦ t ⟧ g l m" := (interp_cfg t g l m) (only printing, at level 10).
   Notation "'CODE' c" := (denote_code c) (only printing, at level 10, format "'CODE' '//' c").
   Notation "'INSTR' i" := (denote_instr i) (only printing, at level 10, format "'INSTR' '//' i").
