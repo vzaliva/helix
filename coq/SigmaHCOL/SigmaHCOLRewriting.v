@@ -4153,7 +4153,6 @@ and `ISumReduction_PointWise` *)
         break_match; simpl.
         *
           unfold Scatter_impl.
-          rewrite Vbuild_Sn.
           simpl.
           unfold decide.
           break_match; simpl.

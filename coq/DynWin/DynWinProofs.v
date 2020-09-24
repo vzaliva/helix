@@ -863,6 +863,7 @@ Section SHCOL_to_MSHCOL.
       apply Vforall_nth_intro.
       intros t tc.
       unfold get_family_op.
+      Opaque SigmaHCOLImpl.SHBinOp_impl.
       simpl.
       unfold compose.
       match goal with
