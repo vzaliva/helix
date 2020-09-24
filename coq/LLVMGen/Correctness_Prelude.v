@@ -311,6 +311,8 @@ End EventTranslation.
 Set Printing Implicit.
 Notation "'with_cfg'"  := (@translate _ E_cfg (fun _ (x:void1 _) => match x with end)).
 Notation "'with_mcfg'" := (@translate _ E_mcfg (fun _ (x:void1 _) => match x with end)).
+Notation "'interp_cfg'"  := (interp_cfg_to_L3 defined_intrinsics).
+Notation "'interp_mcfg'" := (interp_to_L3 defined_intrinsics).
 
 (** Smart constructors for states, predicates, relations  *)
 
