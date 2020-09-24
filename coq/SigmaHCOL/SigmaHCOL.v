@@ -1856,12 +1856,10 @@ Section OperatorProperies.
         (x: svector fm i):
     ∀ n (ip : n < o), Vnth (Gather_impl f x) ip ≡ VnthIndexMapped x f n ip.
   Proof.
-    unfold Gather_impl, Vbuild.
-    destruct (Vbuild_spec (VnthIndexMapped x f)) as [Vv Vs].
-    simpl.
-    intros.
-    subst.
-    auto.
+    unfold Gather_impl.
+    intros n ip.
+    rewrite Vbuild_nth.
+    reflexivity.
   Qed.
 
   (* Index-function based condition under which Gather output is dense *)

@@ -1434,12 +1434,6 @@ Qed.
 
 Require Import Coq.Logic.ProofIrrelevance.
 
-Ltac fold_Vbuild :=
-  match goal with
-  | [ |- context [proj1_sig (Vbuild_spec ?gen)] ] =>
-    fold (Vbuild gen)
-  end.
-
 Lemma vsequence_Vbuild_eq_Some
       {A: Type}
       {n: nat}
