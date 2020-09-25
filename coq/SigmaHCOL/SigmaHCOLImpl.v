@@ -22,7 +22,7 @@ Require Import Coq.Logic.Decidable.
 
 Require Import Helix.Tactics.HelixTactics.
 Require Import Psatz.
-Require Import Omega.
+Require Import Coq.micromega.Lia.
 
 Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.

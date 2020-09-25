@@ -783,6 +783,9 @@ Section SigmaHCOL_rewriting.
 
 End SigmaHCOL_rewriting.
 
+Require Import Coq.Lists.List.
+Import ListNotations.
+
 Section SHCOL_to_MSHCOL.
 
   (*

@@ -37,7 +37,7 @@ Require Import MathClasses.interfaces.orders.
 
 Definition FT_Rounding:mode := mode_NE.
 
-Require Import Omega.
+Require Import Coq.micromega.Lia.
 
 Definition Float64Zero : binary64 := B754_zero _ _ false.
 Program Definition Float64One : binary64 := Bone _ _ eq_refl eq_refl.

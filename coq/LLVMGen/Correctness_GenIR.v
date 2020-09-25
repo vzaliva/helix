@@ -3,6 +3,8 @@ Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.Correctness_NExpr.
 Require Import Helix.LLVMGen.Correctness_MExpr.
 
+Import ListNotations.
+
 Set Implicit Arguments.
 Set Strict Implicit.
 

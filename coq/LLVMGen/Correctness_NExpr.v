@@ -1,6 +1,9 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
+
 Import ProofNotations.
+Import ListNotations.
+
 Open Scope Z.
 Open Scope list.
 
