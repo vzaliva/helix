@@ -995,6 +995,81 @@ Proof.
   all: eexists; eauto.
 Qed.
 
+
+Definition conj_rel (A B : Type) (R S : A → B → Prop) :=
+  fun a b => R a b /\ S a b.
+
+Lemma post_alloc_invariant_mcfg_conj
+      (h1 : string * DSHType)
+      (tl1 : list (string * DSHType)) 
+      (h2 : DSHVal)
+      (tl2 : list DSHVal)
+  :
+    equiv_rel
+      (post_alloc_invariant_mcfg (h1::tl1) (h2::tl2))
+      (conj_rel (post_alloc_invariant_mcfg [h1] [h2]) (post_alloc_invariant_mcfg tl1 tl2)).
+Proof.
+  intros.
+  split; intros.
+  -
+    unfold post_alloc_invariant_mcfg, conj_rel.
+    cbn.
+    repeat break_match; subst.
+    cbn in H.
+    split; intros.
+    +
+      specialize (H j).
+      autospecialize H; [lia |].
+      destruct H.
+      repeat break_match; try lia.
+      subst.
+      exists x.
+      assumption.
+    +
+      specialize (H (S j)).
+      autospecialize H; [lia |].
+      destruct H as [p H].
+      destruct sumbool_rec (*eqn:SH*) in H.
+      *
+        break_match; try lia.
+        exists p.
+        assumption.
+      *
+        break_match; try lia.
+        exists p.
+        erewrite ListUtil.ith_eq; [| reflexivity].
+        eassumption.
+  -
+    destruct H as [H TL].
+    unfold post_alloc_invariant_mcfg, conj_rel in *.
+    repeat break_let; subst.
+    intros.
+    cbn [Datatypes.length] in *.
+    destruct j.
+    +
+      clear TL.
+      cbn in *.
+      specialize (H O).
+      autospecialize H; [lia |].
+      destruct H as [p H].
+      exists p.
+      assumption.
+    +
+      clear H.
+      specialize (TL j).
+      autospecialize TL; [lia |].
+      destruct TL as [p TL].
+      repeat break_match; try lia.
+      *
+        exists p.
+        eassumption.
+      *
+        cbn.
+        exists p.
+        erewrite ListUtil.ith_eq; [| reflexivity].
+        eassumption.
+Qed.
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
