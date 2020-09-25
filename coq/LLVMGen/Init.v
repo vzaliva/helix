@@ -1756,12 +1756,9 @@ Proof.
           move IHglobals after H.
 
           eapply eutt_weaken_right.
-          Focus 3.
-          eapply IHglobals; admit.
-          Focus 2.
-          rewrite interp_to_L3_bind, translate_bind.
+          3:{ eapply IHglobals; admit. }
+          2:{ rewrite interp_to_L3_bind, translate_bind. admit. }
           (* eapply eutt_clo_bind. *)
-          admit.
           admit.
     +
       intros.
