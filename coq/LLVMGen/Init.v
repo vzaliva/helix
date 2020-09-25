@@ -1543,8 +1543,7 @@ Proof.
             DSHPtrVal (Datatypes.length globals) i])
     as σ.
   remember (Datatypes.length globals) as lg.
-  (* ZX TODO: [s2] might be wrong here *)
-  apply eutt_clo_bind with (UU:=post_alloc_invariant_mcfg globals σ s2).
+  apply eutt_clo_bind with (UU:=post_alloc_invariant_mcfg globals σ).
   -
     assert (TMP_EQ: eutt
              (fun '(m,_) '(m',_) => m = m')
@@ -1568,7 +1567,7 @@ Proof.
     cbn.
 
     apply eutt_clo_bind
-      with (UU:=post_alloc_invariant_mcfg globals e s2).
+      with (UU:=post_alloc_invariant_mcfg globals e).
     +
       subst.
       dependent induction globals.
@@ -1615,6 +1614,8 @@ Proof.
 
         move Heqs2 at bottom.
 
+        (* ZX TODO: this can be generalized into a nice lemma on [initFSHGlobals]
+           along the lines of [initFSGlobals init_m = res_m -> res_m = union init_m res_m] *)
         assert (TMP_EQ' : mg = memory_union mg0 mg).
         {
           clear - Heqs2 Heqs3.
@@ -1699,8 +1700,7 @@ Proof.
 
         rewrite Eq.bind_bind.
         repeat rewrite interp_to_L3_bind, translate_bind.
-        (* ZX TODO: [s2] might still be a bad fit *)
-        apply eutt_clo_bind with (UU:=post_alloc_invariant_mcfg [new_g] [new_g_dsh] s2).
+        apply eutt_clo_bind with (UU:=post_alloc_invariant_mcfg [new_g] [new_g_dsh]).
         --
           intros.
           cbn.
@@ -1710,8 +1710,12 @@ Proof.
           (* Alloca ng *)
           pose_interp_to_L3_alloca m'' a'' A' AE'.
           {
-            (* this might/should follow from [Heqs0] *)
-            admit.
+            clear - Heqs0.
+            unfold initOneIRGlobal in Heqs0.
+            repeat break_match; invc Heqs0; cbn.
+            rewrite typ_to_dtyp_I; discriminate.
+            rewrite typ_to_dtyp_D; discriminate.
+            rewrite typ_to_dtyp_D_array; discriminate.
           }
           rewrite AE'.
           setoid_rewrite translate_ret.
@@ -1725,21 +1729,39 @@ Proof.
           unfold post_alloc_invariant_mcfg.
           intros.
           cbn in jc.
-          unshelve erewrite ListUtil.ith_eq with (j:=0); [cbn; constructor | | lia].
+          replace j with 0 in * by lia.
           cbn.
 
-          (* @lord, this goal seems unprovable:
-             I have no information about what [new_g_dsh] is *)
-          destruct new_g_dsh eqn:NGD.
+          unfold in_global_addr.
+
+          exists a''.
+          split.
           ++
-            cbn in *.
-            unfold initOneFSHGlobal in Heqs2.
-            repeat break_match; invc Heqs2.
-            break_match; invc H1.
-            admit.
-          ++ admit.
-          ++ admit.
+            unfold alist_add.
+            rewrite alist_find_cons_eq.
+            reflexivity.
+            clear - Heqs0.
+            unfold initOneIRGlobal in Heqs0.
+            repeat break_match; invc Heqs0; reflexivity.
+          ++
+            eapply allocate_allocated.
+            eassumption.
         --
+          intros.
+          eapply eutt_equiv;
+            [eapply post_alloc_invariant_mcfg_conj |].
+          repeat break_let; subst.
+          eapply eutt_conj.
+          admit.
+          move IHglobals after H.
+
+          eapply eutt_weaken_right.
+          Focus 3.
+          eapply IHglobals; admit.
+          Focus 2.
+          rewrite interp_to_L3_bind, translate_bind.
+          (* eapply eutt_clo_bind. *)
+          admit.
           admit.
     +
       intros.
