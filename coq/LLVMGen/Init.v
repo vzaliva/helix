@@ -838,28 +838,22 @@ Definition in_global_addr (g : global_env) (x : raw_id) (a : Addr.addr) :=
 Definition post_alloc_invariant_mcfg
            (globals : list (string * DSHType))
            (σ : evalContext)
-           (s : IRState)
   : Rel_mcfg_T unit unit :=
   fun '(memH,_) '(memV,((_,sl),(g,_))) =>
     forall j (jc : j < length σ),
-      match ListUtil.ith jc with
-      | DSHPtrVal _ _ => (
-          exists ptr_llvm,
-            match le_lt_dec (length globals) j with
-            | in_left => in_global_addr
-                          g
-                          (Anon (Z.of_nat (j - length globals)))
-                          ptr_llvm
-            | right jc' => in_global_addr
-                            g
-                            (Name (fst (ListUtil.ith jc')))
-                            ptr_llvm
-            end
-            /\
-            allocated ptr_llvm memV)
-      (* /\ mem_block_exists id memH *)
-         | _ => False
-         end.
+    exists ptr_llvm,
+      match le_lt_dec (length globals) j with
+      | in_left => in_global_addr
+                    g
+                    (Anon (Z.of_nat (j - length globals)))
+                    ptr_llvm
+      | right jc' => in_global_addr
+                      g
+                      (Name (fst (ListUtil.ith jc')))
+                      ptr_llvm
+      end
+      /\
+      allocated ptr_llvm memV.
 
 Lemma allocate_allocated (m1 m2 : memoryV) (d : dtyp) (a : Addr.addr) :
   allocate m1 d ≡ inr (m2, a) → allocated a m2.
