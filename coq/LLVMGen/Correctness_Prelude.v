@@ -728,23 +728,25 @@ Ltac break_and :=
   (* "Normalizing" rewriting hint database. *)
   Hint Rewrite @translate_bind : itree.
   Hint Rewrite @interp_bind : itree.
-  Hint Rewrite @translate_ret : itree.
-  Hint Rewrite @interp_ret : itree.
-  Hint Rewrite @translate_trigger : itree.
-  Hint Rewrite @interp_trigger : itree.
   Hint Rewrite @bind_bind : itree.
   Hint Rewrite @bind_ret_l : itree.
+
+  Hint Rewrite @translate_ret : itree.
+  Hint Rewrite @interp_ret : itree.
+
+  Hint Rewrite @translate_trigger : itree.
+  Hint Rewrite @interp_trigger : itree.
 
   Hint Rewrite interp_cfg_to_L3_bind : vellvm.
   Hint Rewrite interp_cfg_to_L3_ret : vellvm.
   Hint Rewrite interp_cfg_to_L3_GR : vellvm.
   Hint Rewrite interp_cfg_to_L3_LR : vellvm.
+
   Hint Rewrite @lookup_E_to_exp_E_Global : vellvm.
   Hint Rewrite @lookup_E_to_exp_E_Local : vellvm.
   Hint Rewrite @subevent_subevent : vellvm.
   Hint Rewrite @exp_E_to_instr_E_Global : vellvm.
   Hint Rewrite @exp_E_to_instr_E_Local : vellvm.
-  Hint Rewrite @subevent_subevent : vellvm.
   Hint Rewrite @typ_to_dtyp_equation : vellvm.
   Hint Rewrite denote_code_nil : vellvm.
   Hint Rewrite denote_code_singleton : vellvm.
@@ -777,3 +779,267 @@ Ltac break_and :=
   Tactic Notation "rauto" := (repeat (autorewrite with itree; autorewrite with vellvm; autorewrite with helix)).
   Tactic Notation "rauto" "in" hyp(h) :=
     (repeat (autorewrite with itree in h; autorewrite with vellvm in h; autorewrite with helix in h)).
+
+  Remove Hints
+        equiv_default_relation
+        abstract_algebra.sg_op_proper
+        abstract_algebra.sm_proper
+        abstract_algebra.comp_proper
+        abstract_algebra.BoundedJoinSemiLattice
+        abstract_algebra.JoinSemiLattice
+        abstract_algebra.MeetSemiLattice
+        abstract_algebra.Ring
+        additional_operations.ModEuclid MonadIter categories.Mono
+        abstract_algebra.Setoid
+        orders.po_preorder
+        orders.total_order_po
+        orders.le_total
+        orders.join_sl_order
+        orders.lattice_order_join
+        orders.lattice_order_meet
+        orders.strict_po_po
+        orders.srorder_po
+        strong_setoids.binary_strong_morphism_proper
+        semirings.FullPseudoOrder_instance_0
+        minmax.LatticeOrder_instance_0
+        workarounds.equivalence_proper
+        abstract_algebra.BoundedJoinSemiLattice
+        abstract_algebra.JoinSemiLattice
+        abstract_algebra.Setoid
+        abstract_algebra.intdom_nontrivial
+        abstract_algebra.decfield_nontrivial
+        abstract_algebra.field_nontrivial
+        abstract_algebra.intdom_nozeroes
+        abstract_algebra.strong_setoid_symmetric
+        abstract_algebra.semilattice_idempotent
+        abstract_algebra.bounded_semilattice_idempotent
+        abstract_algebra.meet_join_absorption
+        abstract_algebra.join_meet_absorption
+        abstract_algebra.comp_assoc
+        abstract_algebra.MeetSemiLattice
+        abstract_algebra.lattice_meet
+        abstract_algebra.MeetSemiLattice
+        abstract_algebra.SemiRing_Morphism
+        abstract_algebra.Injective
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Monoid_Morphism
+        abstract_algebra.SemiGroup_Morphism
+        abstract_algebra.strong_setoid_irreflexive
+        abstract_algebra.id_l
+        abstract_algebra.monoid_left_id
+        abstract_algebra.join_meet_distr_l
+        abstract_algebra.semiring_distr
+        abstract_algebra.ring_dist
+        abstract_algebra.sg_ass
+        abstract_algebra.negate_l
+        abstract_algebra.comsg_ass
+        abstract_algebra.commonoid_commutative
+        abstract_algebra.abgroup_commutative
+        abstract_algebra.semiring_left_absorb
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.sg_setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.arrow_equiv
+        abstract_algebra.Setoid
+        abstract_algebra.strong_setoid_cotrans
+        abstract_algebra.JoinSemiLattice
+        abstract_algebra.JoinSemiLattice
+        abstract_algebra.lattice_join
+        abstract_algebra.JoinSemiLattice
+        abstract_algebra.negate_r
+        abstract_algebra.id_r
+        abstract_algebra.monoid_right_id
+        abstract_algebra.CommutativeSemiGroup
+        abstract_algebra.semilattice_sg
+        abstract_algebra.CommutativeSemiGroup
+        abstract_algebra.Lattice
+        abstract_algebra.distr_lattice_lattice
+        abstract_algebra.Lattice
+        abstract_algebra.Monoid_Morphism
+        abstract_algebra.Monoid_Morphism
+        abstract_algebra.bounded_join_slmor_monmor
+        abstract_algebra.Monoid_Morphism
+        abstract_algebra.Monoid_Morphism
+        abstract_algebra.Monoid_Morphism
+        abstract_algebra.Monoid_Morphism
+        abstract_algebra.semiringmor_mult_mor
+        abstract_algebra.Monoid_Morphism
+        abstract_algebra.semiringmor_plus_mor
+        abstract_algebra.Monoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.sgmor_setmor
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.negate_proper
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.recip_proper
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.dec_recip_proper
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.MeetSemiLattice_Morphism
+        abstract_algebra.MeetSemiLattice_Morphism
+        abstract_algebra.latticemor_meet_mor
+        abstract_algebra.MeetSemiLattice_Morphism
+        abstract_algebra.MeetSemiLattice_Morphism
+        abstract_algebra.MeetSemiLattice_Morphism
+        abstract_algebra.DistributiveLattice
+        abstract_algebra.DistributiveLattice
+        abstract_algebra.StrongSetoid
+        abstract_algebra.StrongSetoid
+        abstract_algebra.field_strongsetoid
+        abstract_algebra.StrongSetoid
+        abstract_algebra.SemiRing
+        abstract_algebra.SemiRing
+        abstract_algebra.SemiRing
+        abstract_algebra.SemiRing
+        abstract_algebra.SemiRing
+        abstract_algebra.BoundedJoinSemiLattice_Morphism
+        abstract_algebra.BoundedJoinSemiLattice_Morphism
+        abstract_algebra.BoundedJoinSemiLattice_Morphism
+        abstract_algebra.BoundedJoinSemiLattice_Morphism
+        abstract_algebra.setoid_eq
+        abstract_algebra.BoundedSemiLattice
+        abstract_algebra.bounded_join_semilattice
+        abstract_algebra.BoundedSemiLattice
+        abstract_algebra.SemiGroup
+        abstract_algebra.SemiGroup
+        abstract_algebra.comsg_setoid
+        abstract_algebra.SemiGroup
+        abstract_algebra.monoid_semigroup
+        abstract_algebra.SemiGroup
+        abstract_algebra.SemiGroup_Morphism
+        abstract_algebra.SemiGroup_Morphism
+        abstract_algebra.meet_slmor_sgmor
+        abstract_algebra.SemiGroup_Morphism
+        abstract_algebra.join_slmor_sgmor
+        abstract_algebra.SemiGroup_Morphism
+        abstract_algebra.monmor_sgmor
+        abstract_algebra.SemiGroup_Morphism
+        abstract_algebra.SemiGroup_Morphism
+        abstract_algebra.SemiGroup_Morphism
+        abstract_algebra.Lattice_Morphism
+        abstract_algebra.Lattice_Morphism
+        abstract_algebra.Lattice_Morphism
+        abstract_algebra.Lattice_Morphism
+        abstract_algebra.SemiRing_Morphism
+        abstract_algebra.SemiRing_Morphism
+        abstract_algebra.SemiRing_Morphism
+        abstract_algebra.SemiRing_Morphism
+        abstract_algebra.strong_semiringmor_sr_mor
+        abstract_algebra.SemiRing_Morphism
+        abstract_algebra.SemiRing_Morphism
+        abstract_algebra.SemiRing_Morphism
+        abstract_algebra.Ring
+        abstract_algebra.Ring
+        abstract_algebra.decfield_ring
+        abstract_algebra.Ring
+        abstract_algebra.field_ring
+        abstract_algebra.Ring
+        abstract_algebra.intdom_ring
+        abstract_algebra.Ring
+        abstract_algebra.Group
+        abstract_algebra.abgroup_group
+        abstract_algebra.Group
+        abstract_algebra.CommutativeMonoid
+        abstract_algebra.CommutativeMonoid
+        abstract_algebra.bounded_semilattice_mon
+        abstract_algebra.CommutativeMonoid
+        abstract_algebra.semimult_monoid
+        abstract_algebra.CommutativeMonoid
+        abstract_algebra.semiplus_monoid
+        abstract_algebra.CommutativeMonoid
+        abstract_algebra.ring_monoid
+        abstract_algebra.CommutativeMonoid
+        abstract_algebra.AbGroup
+        abstract_algebra.ring_group
+        abstract_algebra.AbGroup
+        abstract_algebra.Surjective
+        abstract_algebra.Surjective
+        abstract_algebra.bijective_surjective
+        abstract_algebra.Surjective
+        abstract_algebra.Surjective
+        abstract_algebra.Surjective
+        abstract_algebra.Injective
+        abstract_algebra.Injective
+        abstract_algebra.Injective
+        abstract_algebra.bijective_injective
+        abstract_algebra.Injective
+        abstract_algebra.Injective
+        abstract_algebra.Injective
+        abstract_algebra.Injective
+        abstract_algebra.StrongSetoid_Morphism
+        abstract_algebra.StrongSetoid_Morphism
+        abstract_algebra.StrongSetoid_Morphism
+        abstract_algebra.strong_semiringmor_strong_mor
+        abstract_algebra.StrongSetoid_Morphism
+        abstract_algebra.Monoid
+        abstract_algebra.commonoid_mon
+        abstract_algebra.Monoid
+        abstract_algebra.group_monoid
+        abstract_algebra.Monoid
+        abstract_algebra.Monoid
+        abstract_algebra.Bijective
+        abstract_algebra.Bijective
+        abstract_algebra.Bijective
+        abstract_algebra.Bijective
+        abstract_algebra.SemiLattice
+        abstract_algebra.meet_semilattice
+        abstract_algebra.SemiLattice
+        abstract_algebra.join_semilattice
+        abstract_algebra.SemiLattice
+        abstract_algebra.SemiLattice
+        abstract_algebra.Category
+        abstract_algebra.Category
+        abstract_algebra.Category
+        abstract_algebra.Category
+        abstract_algebra.Category
+        abstract_algebra.Category
+        abstract_algebra.Category
+        abstract_algebra.JoinSemiLattice_Morphism
+        abstract_algebra.JoinSemiLattice_Morphism
+        abstract_algebra.JoinSemiLattice_Morphism
+        abstract_algebra.latticemor_join_mor
+        abstract_algebra.JoinSemiLattice_Morphism
+        abstract_algebra.JoinSemiLattice_Morphism
+        abstract_algebra.JoinSemiLattice_Morphism
+        abstract_algebra.StrongSetoid_BinaryMorphism
+        abstract_algebra.StrongSetoid_BinaryMorphism
+        abstract_algebra.StrongSetoid_BinaryMorphism
+        abstract_algebra.field_mult_ext
+        abstract_algebra.StrongSetoid_BinaryMorphism
+        abstract_algebra.field_plus_ext
+        abstract_algebra.StrongSetoid_BinaryMorphism : typeclass_instances.
