@@ -962,6 +962,20 @@ Lemma eutt_weaken_left: forall {E A B} (R : A -> A -> Prop) (S : A -> B -> Prop)
 Proof.
   intros * LEFTUNIT EQt EQ.
   (* YZ TODO: specialize eqit_mon to eutt *)
+  (* ZX: also look at the lemma below, I just copied this *)
+  eapply eqit_mon; [reflexivity | reflexivity | | eapply eqit_trans; eauto].
+  intros ? ? []; eauto.
+Qed.
+
+Lemma eutt_weaken_right: forall {E A B} (R : B -> B -> Prop) (S : A -> B -> Prop)
+             (t : itree E A) (s s' : itree E B),
+    (* i.e. sub_rel (rcompose R S) S *)
+    (forall a b b', S a b' -> R b' b -> S a b) ->
+    eutt R s' s ->
+    eutt S t s' ->
+    eutt S t s.
+Proof.
+  intros * RIGHTUNIT EQt EQ.
   eapply eqit_mon; [reflexivity | reflexivity | | eapply eqit_trans; eauto].
   intros ? ? []; eauto.
 Qed.
