@@ -1263,7 +1263,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         (*     entry <> nextblock. *)
         (* Proof. *)
         (*   Admit *)
-        About bk_outputs.
+        (* About bk_outputs. *)
         unfold no_reentrance.
         admit.
       }
