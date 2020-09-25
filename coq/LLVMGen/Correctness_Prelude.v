@@ -728,12 +728,16 @@ From Coq Require Import
 Section InterpHelix.
 
   Import Monad.
+  Definition lift_rel_option {X : Type} (R : relation X) : relation (option X) :=
+    fun mx my => match mx,my with
+              | Some x, Some y => R x y
+              | None, None => True
+              | _, _ => False
+              end.
+  Hint Unfold lift_rel_option : core.
+
   Global Instance failT_Eq1 {E} : Eq1 (failT (itree E)) :=
-    fun _ => eutt (fun c c' => match c,c' with
-                         | None, None => True
-                         | Some c, Some c' => c ≡ c'
-                         | _,_ => False
-                         end).
+    fun _ => eutt (lift_rel_option Logic.eq).
 
   (* (** Unfolding of [interp_fail]. *) *)
   Definition _interp_fail {E F R} (f : E ~> failT (itree F)) (ot : itreeF E R _)
@@ -761,7 +765,8 @@ Section InterpHelix.
   Qed.
 
   From Paco Require Import paco.
-  Global Instance interp_failure_eq {X}: Proper (eq_itree Logic.eq ==> eq_itree Logic.eq) (@interp_failure X).
+
+  Global Instance interp_failure_eq_itree {X} {R : X -> X -> Prop} : Proper (eq_itree R ==> eq_itree (lift_rel_option R)) (@interp_failure X).
   Proof.
     repeat red. unfold interp_failure.
     ginit.
@@ -772,6 +777,49 @@ Section InterpHelix.
     destruct EQ; cbn; subst; try discriminate; pclearbot; try (gstep; constructor; eauto with paco; fail).
     guclo eqit_clo_bind; econstructor; [reflexivity | intros x ? <-].
     destruct x as [x|]; gstep; econstructor; eauto with paco.
+  Qed.
+
+  Lemma lift_rel_option_eq : forall {A : Type},
+    HeterogeneousRelations.eq_rel (@Logic.eq (option A)) (lift_rel_option Logic.eq).
+  Proof.
+    intros ?; split; intros [] [] EQ; subst; try inv EQ; cbn; auto.
+  Qed.
+From ITree Require Import HeterogeneousRelations.
+  Global Instance interp_failure_eq_itree_eq {X} : Proper (eq_itree Logic.eq ==> eq_itree Logic.eq) (@interp_failure X).
+  Proof.
+    repeat intro.
+    
+    etransitivity.
+    eapply eqit_Proper_R; eauto.
+    apply lift_rel_option_eq.
+    eapply interp_failure_eq_itree.
+    eauto.
+    reflexivity.
+    
+    repeat red. unfold interp_failure.
+    ginit.
+    gcofix CIH.
+    intros s t EQ.
+    rewrite 2 unfold_interp_fail.
+    punfold EQ; red in EQ.
+    destruct EQ; cbn; subst; try discriminate; pclearbot; try (gstep; constructor; eauto with paco; fail).
+    guclo eqit_clo_bind; econstructor; [reflexivity | intros x ? <-].
+    destruct x as [x|]; gstep; econstructor; eauto with paco.
+  Qed.
+
+
+  Global Instance interp_failure_eutt {X R} : Proper (eutt R ==> eutt (lift_rel_option R)) (@interp_failure X).
+  Proof.
+    repeat red. unfold interp_failure.
+    ginit.
+    gcofix CIH.
+    intros s t EQ.
+    rewrite 2 unfold_interp_fail.
+    punfold EQ; red in EQ.
+    induction EQ; intros; cbn; subst; try discriminate; pclearbot; try (gstep; constructor; eauto with paco; fail).
+    - rewrite !Eq.bind_ret_l; gstep; constructor; eauto with paco.
+    - rewrite tau_euttge, unfold_interp_fail; eauto.
+    - rewrite tau_euttge, unfold_interp_fail; eauto.
   Qed.
 
   Lemma interp_failure_ret : forall {X} (x : X),
@@ -786,7 +834,7 @@ Section InterpHelix.
   Proof.
     intros. 
     unfold interp_helix.
-    rewrite interp_Mem_ret, interp_failure_ret, translate_ret.
+    rewrite interp_Mem_ret. interp_failure_ret, translate_ret.
     reflexivity.
   Qed.
 
@@ -837,15 +885,18 @@ Section InterpHelix.
       reflexivity.
   Qed.
 
-  (* Lemma interp_helix_bind : *)
-  (*   forall T U E mem (t: itree Event T) (k: T -> itree Event U), *)
-  (*     @interp_helix _ E (ITree.bind t k) mem ≈ *)
-  (*                   bind (interp_helix t mem) (fun '(mem',v) => interp_helix (k v) mem'). *)
-  (* Proof. *)
-  (*   intros; unfold interp_helix. *)
-  (*   rewrite interp_state_bind. *)
-  (*   apply eutt_eq_bind; intros []; reflexivity. *)
-  (* Qed. *)
+  Lemma interp_helix_bind :
+    forall T U E mem (t: itree Event T) (k: T -> itree Event U),
+      @interp_helix _ E (ITree.bind t k) mem ≈
+                    bind (interp_helix t mem) (fun '(mem',v) => interp_helix (k v) mem').
+  Proof.
+    intros; unfold interp_helix.
+    cbn.
+    rewrite interp_Mem_bind.
+    
+    rewrite interp_state_bind.
+    apply eutt_eq_bind; intros []; reflexivity.
+  Qed.
 
   (* Lemma interp_helix_vis_eqit : *)
   (*   forall T R mem (e : Event T) (k : T -> itree Event R), *)
