@@ -1814,15 +1814,11 @@ Proof.
         rewrite app_length in jc'.
         cbn in *.
         remember (j - Datatypes.length e) as j'.
-        unshelve erewrite ListUtil.ith_eq with (j:=Datatypes.length e + j').
-        1: rewrite app_length; cbn; lia.
-        2: lia.
-        unshelve erewrite ith_eq_app_r.
-        1: cbn; lia.
+        break_match; try lia.
         destruct j' as [|j'].
         --
           cbn.
-          break_match; try lia.
+          (* break_match; try lia. *)
           replace (j - length globals) with 0 by lia.
           exists a'''.
           unfold in_global_addr, alist_add.
@@ -1833,7 +1829,7 @@ Proof.
         --
           destruct j'; [| exfalso; clear - jc' Heqj'; lia].
           cbn.
-          break_match; try lia.
+          (* break_match; try lia. *)
           replace (j - length globals) with 1 by lia.
           unfold in_global_addr, alist_add.
           rewrite alist_find_cons_neq by discriminate.
@@ -1849,69 +1845,31 @@ Proof.
           eassumption.
       *
         (* [j] "in" [e] *)
-        rewrite ListUtil.ith_eq_app with (hj:=hj) by reflexivity.
+        break_match; try lia.
         clear jc.
         specialize (H0 j hj).
-        break_match; auto.
+        break_match; try lia.
         destruct H0 as [ptr_llvm P].
-        break_match.
-        --
-          unfold in_global_addr.
-          remember (j - Datatypes.length globals) as j'.
-          destruct j' as [| j0] eqn:J0.
-          ++
-            unfold alist_add.
-            rewrite alist_find_cons_eq by reflexivity.
-            exists a'''.
-            split; [reflexivity |].
-            eapply allocate_allocated.
-            eassumption.
-          ++
-            destruct j0 as [| j1] eqn:J1.
-            **
-              unfold alist_add.
-              rewrite alist_find_cons_neq by discriminate.
-              rewrite remove_neq_alist;
-                try typeclasses eauto;
-                try discriminate.
-              rewrite alist_find_cons_eq by reflexivity.
-              exists a''.
-              split; [reflexivity |].
-              eapply allocated_allocate_allocated.
-              eapply allocate_allocated.
-              eassumption.
-              eassumption.
-            **
-              unfold in_global_addr in P.
-              destruct P as [P1 P2].
-              exists ptr_llvm.
-              unfold alist_add.
-              rewrite alist_find_cons_neq by discriminate.
-              rewrite remove_neq_alist;
-                try typeclasses eauto;
-                try discriminate.
-              rewrite alist_find_cons_neq
-                by (intros C; inversion C; lia).
-              rewrite remove_neq_alist;
-                try typeclasses eauto;
-                try (intros C; inversion C; lia).
-              split.
-              assumption.
-              eapply allocated_allocate_allocated.
-              eapply allocated_allocate_allocated.
-              eassumption.
-              eassumption.
-              eassumption.
-        --
-          unfold in_global_addr in *.
-          repeat rewrite alist_find_neq by discriminate.
-          exists ptr_llvm.
-          intuition.
-          eapply allocated_allocate_allocated.
-          eapply allocated_allocate_allocated.
-          eassumption.
-          eassumption.
-          eassumption.
+        unfold in_global_addr in *.
+        destruct P as [P1 P2].
+        exists ptr_llvm.
+        unfold alist_add.
+        rewrite alist_find_cons_neq by discriminate.
+        rewrite remove_neq_alist;
+          try typeclasses eauto;
+          try discriminate.
+        rewrite alist_find_cons_neq
+          by (intros C; inversion C; lia).
+        rewrite remove_neq_alist;
+          try typeclasses eauto;
+          try (intros C; inversion C; lia).
+        split.
+        erewrite ListUtil.ith_eq; [eassumption | reflexivity].
+        eapply allocated_allocate_allocated.
+        eapply allocated_allocate_allocated.
+        eassumption.
+        eassumption.
+        eassumption.
   -
     intros.
     admit.
