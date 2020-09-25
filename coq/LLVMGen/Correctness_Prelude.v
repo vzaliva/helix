@@ -779,34 +779,35 @@ Section InterpHelix.
     destruct x as [x|]; gstep; econstructor; eauto with paco.
   Qed.
 
+  From ITree Require Import HeterogeneousRelations.
+
   Lemma lift_rel_option_eq : forall {A : Type},
-    HeterogeneousRelations.eq_rel (@Logic.eq (option A)) (lift_rel_option Logic.eq).
+    eq_rel (@Logic.eq (option A)) (lift_rel_option Logic.eq).
   Proof.
     intros ?; split; intros [] [] EQ; subst; try inv EQ; cbn; auto.
   Qed.
-From ITree Require Import HeterogeneousRelations.
+
+  Global Instance eq_itree_Proper_R {E : Type -> Type} {R1 R2:Type}
+    : Proper ( (@eq_rel R1 R2) ==> Logic.eq ==> Logic.eq ==> iff) (@eq_itree E R1 R2).
+  Proof.
+    repeat intro; subst.
+    unfold eq_itree; rewrite H; reflexivity.
+  Qed.
+
+
+  Global Instance eutt_Proper_R {E : Type -> Type} {R1 R2:Type}
+    : Proper ( (@eq_rel R1 R2) ==> Logic.eq ==> Logic.eq ==> iff) (@eutt E R1 R2).
+  Proof.
+    repeat intro; subst.
+    unfold eutt; rewrite H; reflexivity.
+  Qed.
+
   Global Instance interp_failure_eq_itree_eq {X} : Proper (eq_itree Logic.eq ==> eq_itree Logic.eq) (@interp_failure X).
   Proof.
     repeat intro.
-    
-    etransitivity.
-    eapply eqit_Proper_R; eauto.
-    apply lift_rel_option_eq.
-    eapply interp_failure_eq_itree.
-    eauto.
-    reflexivity.
-    
-    repeat red. unfold interp_failure.
-    ginit.
-    gcofix CIH.
-    intros s t EQ.
-    rewrite 2 unfold_interp_fail.
-    punfold EQ; red in EQ.
-    destruct EQ; cbn; subst; try discriminate; pclearbot; try (gstep; constructor; eauto with paco; fail).
-    guclo eqit_clo_bind; econstructor; [reflexivity | intros x ? <-].
-    destruct x as [x|]; gstep; econstructor; eauto with paco.
+    rewrite lift_rel_option_eq.
+    apply interp_failure_eq_itree; auto.
   Qed.
-
 
   Global Instance interp_failure_eutt {X R} : Proper (eutt R ==> eutt (lift_rel_option R)) (@interp_failure X).
   Proof.
@@ -822,6 +823,13 @@ From ITree Require Import HeterogeneousRelations.
     - rewrite tau_euttge, unfold_interp_fail; eauto.
   Qed.
 
+  Global Instance interp_failure_eutt_eq {X} : Proper (eutt Logic.eq ==> eutt Logic.eq) (@interp_failure X).
+  Proof.
+    repeat intro.
+    rewrite lift_rel_option_eq.
+    apply interp_failure_eutt; auto.
+ Qed.
+
   Lemma interp_failure_ret : forall {X} (x : X),
       interp_failure (Ret x) ≅ Ret (Some x).
   Proof.
@@ -834,7 +842,7 @@ From ITree Require Import HeterogeneousRelations.
   Proof.
     intros. 
     unfold interp_helix.
-    rewrite interp_Mem_ret. interp_failure_ret, translate_ret.
+    rewrite interp_Mem_ret, interp_failure_ret, translate_ret.
     reflexivity.
   Qed.
 
