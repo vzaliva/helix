@@ -127,47 +127,6 @@ Section ValuePred.
 
 End ValuePred.
 
-(** ** Event elimination
-    This is a pure [itree] feature.
-
-    We want to be able to express that a computation does not contain a particular event,
-    and eliminate it safely from the signature if that is so.
- *)
-From Paco Require Import paco.
-Section ElimEvent.
-
-  (* Since we cannot test equality of event, I rely on the exact order for now.
-     As usual, the generalization of subevent may help with that?
-   *)
-
-  Definition helim_l {E F}: E +' F ~> itree F :=
-    fun _ e => match e with
-            | inl1 _ => ITree.spin
-            | inr1 e => trigger e
-            end.
-
-  Definition helim_r {E F}: E +' F ~> itree E :=
-    fun _ e => match e with
-            | inr1 _ => ITree.spin
-            | inl1 e => trigger e
-            end.
-
-  Definition elim_l {E F}: itree (E +' F) ~> itree F := interp helim_l. 
-  Definition elim_r {E F}: itree (E +' F) ~> itree E := interp helim_r. 
-
-  Variant no_left_eventF {E F X} (R: itree (E +' F) X -> Prop): itree (E +' F) X -> Prop :=
-  | no_left_event_ret: forall (x: X), no_left_eventF R (ret x)
-  | no_left_event_tau: forall t, R t -> no_left_eventF R (Tau t)
-  | no_left_event_vis: forall {Y} (e: F Y) k, (forall x, R (k x)) -> no_left_eventF R (Vis (inr1 e) k).
-
-  Definition no_left_event {E F X} := paco1 (@no_left_eventF E F X) bot1. 
-
-  (* Lemma safe_helim_l: *)
-  (*   forall {E F X} (t: itree (E +' F) X) (NOL: no_left_event t) (h: E ~> itree F), *)
-  (*     elim_l _ t ≈  interp (case_ h ((fun _ e => trigger e): Handler F F)) t. *)
-
-End ElimEvent.
-
 Section TLE_To_Modul.
 
   Definition opt_first {T: Type} (o1 o2: option T): option T :=
