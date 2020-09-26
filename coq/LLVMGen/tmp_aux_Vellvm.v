@@ -645,18 +645,6 @@ Proof.
   rewrite IH; reflexivity.
 Qed.
 
-(* TODO YZ : Move to itrees *)
-(* Specialization of [eutt_clo_bind] to the case where the intermediate predicate introduced is the same as the current one *)
-Lemma eutt_bind_inv :
-  forall (E : Type -> Type) (R1 R2 : Type) (RR : R1 -> R2 -> Prop) (t1 : itree E R1) (t2 : itree E R2)
-    (k1 : R1 -> itree E R1) (k2 : R2 -> itree E R2),
-    eutt RR t1 t2 -> 
-    (forall (r1 : R1) (r2 : R2), RR r1 r2 -> eutt RR (k1 r1) (k2 r2)) ->
-    eutt RR (ITree.bind t1 (fun x : R1 => k1 x)) (ITree.bind t2 (fun x : R2 => k2 x)).
-Proof.
-  intros; apply eutt_clo_bind with (UU := RR); auto.
-Qed.
-
 (* TODO YZ : move to Vellvm *)
 Ltac simpl_match_hyp h :=
   match type of h with
