@@ -110,15 +110,19 @@ Section NExpr.
 
   Definition no_failure {E X} (t : itree E (option X)) : Prop :=
     t ⤳ fun x => ~ x ≡ None.
-  
+
+  Lemma failure_throw : forall E X s m,
+      ~ no_failure (interp_helix (X := X) (E := E) (Exception.throw s) m).
+  Proof.
+  Admitted.
+
   Lemma genNExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
-      (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH) (* (v : Int64.int) *)
+      (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH) 
       (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
 
       genNExpr nexp s1 ≡ inr (s2, (e, c))      -> (* Compilation succeeds *)
-      no_failure (interp_helix (E := E_cfg) (denoteNExpr σ nexp) memH) ->
-      (* evalNExpr σ nexp ≡ inr v                 -> (* Evaluation succeeds *) *)
+      no_failure (interp_helix (E := E_cfg) (denoteNExpr σ nexp) memH) -> (* Source semantics defined *)
       state_invariant σ s1 memH (memV, (l, g)) -> (* The main state invariant is initially true *)
       eutt (succ_cfg (lift_Rel_cfg (state_invariant σ s2) ⩕
                                    genNExpr_rel σ nexp e memH (mk_config_cfg memV l g) ⩕
@@ -134,16 +138,8 @@ Section NExpr.
 
       + (* The variable maps to an integer in the IRState *)
         unfold denoteNExpr in *; cbn* in *...
-        simp.
-        * (* Deriving contradiction automatically from NOFAIL *)
-          admit.
-        * (* Deriving contradiction automatically from NOFAIL *)
-          admit.
-        * (* Deriving contradiction automatically from NOFAIL *)
-          admit.
-        *
+        simp; try abs_by failure_throw.
 
-        (* break_inner_match_goal; cbn. *)
         (* The identifier has to be a local one *)
         destruct i0; try abs_by_WF.
         cbn... 
@@ -158,9 +154,10 @@ Section NExpr.
         match_rewrite; reflexivity.
 
       + (* The variable maps to a pointer *)
-        unfold denoteNExpr; cbn* in *.
-        simp...
+        unfold denoteNExpr in *; cbn* in *.
+        simp; try abs_by failure_throw.
         break_inner_match_goal; try abs_by_WF.
+        cbn...
 
         edestruct memory_invariant_GLU as (ptr & LU & READ); eauto.
         rewrite typ_to_dtyp_equation in READ.
@@ -172,8 +169,6 @@ Section NExpr.
           2 : auto. 2 : exact (DVALUE_Addr ptr).
           reflexivity.
         }
-
-        cbn...
 
         apply eutt_Ret; split; [| split].
         -- cbn; check_state_invariant.
@@ -199,7 +194,7 @@ Section NExpr.
 
     - (* Constant *)
       cbn* in COMPILE; simp.
-      unfold denoteNExpr; cbn*.
+      unfold denoteNExpr in *; cbn*.
       rewrite denote_code_nil; cbn...
       cbn...
 
@@ -214,8 +209,8 @@ Section NExpr.
 
       cbn* in COMPILE; simp.
       unfold denoteNExpr in *; cbn* in *.
-      simp...
-
+      simp; try abs_by failure_throw. 
+      cbn...
       (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
       specialize (IHnexp1 _ _ _ _ _ _ _ _ _ _ Heqs Heqs3 PRE).
 

@@ -90,10 +90,10 @@ Module MDSigmaHCOLITree
   Definition Event := MemEvent +' StaticFailE +' DynamicFailE.
 
   Definition Sfail {A: Type} {E} `{DynamicFailE -< E} (msg: string): itree E A :=
-    vis (Throw msg) (fun (x: void) => match x with end).
+    'x <- trigger (Throw msg);; match x : void with end.
 
   Definition Dfail {A: Type} {E} `{DynamicFailE -< E} (msg: string): itree E A :=
-    vis (Throw msg) (fun (x: void) => match x with end).
+    'x <- trigger (Throw msg);; match x : void with end.
 
   Definition lift_Serr {A} {E} `{StaticFailE -< E} (m:err A) : itree E A :=
     match m with
