@@ -439,7 +439,7 @@ Infix "⩕" := conj_rel (at level 85, right associativity).
 
 (* Introduction pattern useful after [eutt_clo_bind] *)
 Ltac introR :=
-  intros [?memH ?vH] (?memV & ?l & ?g & ?vV) ?PRE.
+  intros [[?memH ?vH] |] (?memV & ?l & ?g & ?vV) ?PRE; [| now inv PRE].
 
 
 (** Long term dream: a cute proof mode in the spirit of Iris

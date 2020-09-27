@@ -111,10 +111,31 @@ Section NExpr.
   Definition no_failure {E X} (t : itree E (option X)) : Prop :=
     t ⤳ fun x => ~ x ≡ None.
 
+  (* TO MOVE TO ITREE *)
+  Lemma interp_fail_vis {E F : Type -> Type} {T U : Type}
+        (e : E T) (k : T -> itree E U) (h : E ~> failT (itree F)) 
+    : interp_fail h (Vis e k)
+                   ≈ h T e >>= fun mx => match mx with | None => Ret None | Some x => (interp_fail h (k x)) end.
+  Proof.
+    rewrite unfold_interp_fail; cbn.
+    apply eutt_eq_bind; intros []; [rewrite tau_eutt; reflexivity | reflexivity]. 
+  Qed.
+
   Lemma failure_throw : forall E X s m,
       ~ no_failure (interp_helix (X := X) (E := E) (Exception.throw s) m).
   Proof.
   Admitted.
+
+  Lemma no_failure_Ret : forall E X x m,
+      no_failure (interp_helix (X := X) (E := E) (Ret x) m).
+  Proof.
+  Admitted.
+
+  Ltac forward H :=
+    let H' := fresh in
+    match type of H with
+    | ?P -> _ => assert P as H'; [| specialize (H H'); clear H']
+    end.
 
   Lemma genNExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
@@ -122,8 +143,8 @@ Section NExpr.
       (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
 
       genNExpr nexp s1 ≡ inr (s2, (e, c))      -> (* Compilation succeeds *)
-      no_failure (interp_helix (E := E_cfg) (denoteNExpr σ nexp) memH) -> (* Source semantics defined *)
       state_invariant σ s1 memH (memV, (l, g)) -> (* The main state invariant is initially true *)
+      no_failure (interp_helix (E := E_cfg) (denoteNExpr σ nexp) memH) -> (* Source semantics defined *)
       eutt (succ_cfg (lift_Rel_cfg (state_invariant σ s2) ⩕
                                    genNExpr_rel σ nexp e memH (mk_config_cfg memV l g) ⩕
                                    lift_pure_cfg (Γ s1 ≡ Γ s2)))
@@ -131,27 +152,27 @@ Section NExpr.
            (interp_cfg (denote_code (convert_typ [] c)) g l memV).
   Proof with (rauto).
 
-    intros s1 s2 nexp; revert s1 s2; induction nexp; intros * COMPILE NOFAIL PRE.
+    intros s1 s2 nexp; revert s1 s2; induction nexp; intros * COMPILE PRE NOFAIL.
     - (* Variable case *)
       (* Reducing the compilation *)
       cbn* in COMPILE; simp.
 
       + (* The variable maps to an integer in the IRState *)
         unfold denoteNExpr in *; cbn* in *...
-        simp; try abs_by failure_throw.
+        simp; try abs_by failure_throw...
 
         (* The identifier has to be a local one *)
         destruct i0; try abs_by_WF.
-        cbn... 
 
         (* We establish the postcondition *)
         apply eutt_Ret; split; [| split]; try now eauto.
         constructor; eauto.
         intros l' MONO; cbn*.
-        split... cbn...
+        split.
+        2:match_rewrite; reflexivity.
+        rauto.
+        2:solve_lu.
         reflexivity.
-        solve_lu.
-        match_rewrite; reflexivity.
 
       + (* The variable maps to a pointer *)
         unfold denoteNExpr in *; cbn* in *.
@@ -159,14 +180,16 @@ Section NExpr.
         break_inner_match_goal; try abs_by_WF.
         cbn...
 
+        (* YZ : TODO load tactic?
+           at least reorder the goals afters the rewrite denote_instr_load
+         *)
         edestruct memory_invariant_GLU as (ptr & LU & READ); eauto.
         rewrite typ_to_dtyp_equation in READ.
-        rewrite denote_instr_load; cbn in *; eauto...
-        cbn...
+        rewrite denote_instr_load; eauto; cycle 1.
 
-        2: {
-          cbn... Unshelve.
-          2 : auto. 2 : exact (DVALUE_Addr ptr).
+        {
+          cbn...
+          2 : eauto. 
           reflexivity.
         }
 
@@ -190,20 +213,17 @@ Section NExpr.
            }
 
         -- symmetry; eapply incLocal_Γ; eauto.
-        -- eauto.
 
     - (* Constant *)
       cbn* in COMPILE; simp.
       unfold denoteNExpr in *; cbn*.
       rewrite denote_code_nil; cbn...
-      cbn...
 
       apply eutt_Ret; split; [| split]; try now eauto.
       split; eauto.
-      intros l' MONO; cbn*.
-      split; try reflexivity.
+      intros l' MONO; cbn*...
       rewrite repr_intval...
-      reflexivity.
+      split; try reflexivity.
 
     - (* NDiv *)
 
@@ -212,32 +232,31 @@ Section NExpr.
       simp; try abs_by failure_throw. 
       cbn...
       (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
-      specialize (IHnexp1 _ _ _ _ _ _ _ _ _ _ Heqs Heqs3 PRE).
+      specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE). 
+      simp.
 
-      cbn* in IHnexp1; rewrite Heqs3 in IHnexp1.
-      (* YZ TODO : Why is this one particularly slow? *)
+      forward IHnexp1; auto using no_failure_Ret.
+
       rauto in IHnexp1.
 
       rewrite convert_typ_app, denote_code_app.
-      ret_bind_l_left (memH, i2).
-      rauto:R. rauto:R.
-
+      rauto:R. 
+      ret_bind_l_left (Some (memH, i3)).
       eapply eutt_clo_bind; [eassumption | clear IHnexp1].
 
       introR; destruct_unit.
       destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI) & GAMMAI).
       cbn in *.
 
-      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs2 PREI).
-
+      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI).
+      simp.
+      forward IHnexp2; auto using no_failure_Ret.
       cbn* in IHnexp2;
         rauto in IHnexp2.
-      simp.
-      rauto in IHnexp2.
 
       rewrite convert_typ_app, denote_code_app.
-      rauto:R. rauto:R.
-      ret_bind_l_left (memH,i1).
+      rauto:R. 
+      ret_bind_l_left (Some (memH,i2)).
       eapply eutt_clo_bind; [eassumption | clear IHnexp2].
 
       introR; destruct_unit.
@@ -248,7 +267,7 @@ Section NExpr.
 
       specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
       assert (l1 ⊑ l1) as L1L1 by reflexivity; specialize (EXPRF _ L1L1) as [EXPRF EVAL_vH0].
-      rewrite Heqs3 in EVAL_vH.
+      rewrite Heqs2 in EVAL_vH.
       injection EVAL_vH; intros; subst.
       rewrite Heqs4 in EVAL_vH0.
       simp.
@@ -297,20 +316,18 @@ Section NExpr.
     - (* NMod *)
 
       cbn* in COMPILE; simp.
-      unfold denoteNExpr in *; cbn*.
-      cbn in EVAL; simp...
-
+      unfold denoteNExpr in *; cbn* in *.
+      simp; try abs_by failure_throw. 
+      cbn...
       (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
-      specialize (IHnexp1 _ _ _ _ _ _ _ _ _ _ Heqs Heqs3 PRE).
-
-      cbn* in IHnexp1; rewrite Heqs3 in IHnexp1.
-      (* YZ TODO : Why is this one particularly slow? *)
-      rauto in IHnexp1.
+      specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE). 
+      simp.
+      forward IHnexp1; auto using no_failure_Ret.
       rauto in IHnexp1.
 
-      ret_bind_l_left (memH, i2).
+      ret_bind_l_left (Some (memH, i3)).
       rewrite convert_typ_app, denote_code_app.
-      rauto:R ; rauto:R.
+      rauto:R.
 
       eapply eutt_clo_bind; [eassumption | clear IHnexp1].
 
@@ -318,14 +335,14 @@ Section NExpr.
       destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI) & GAMMAI).
       cbn in *.
 
-      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs2 PREI).
-
-      cbn* in IHnexp2; rauto in IHnexp2.
+      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI).
       simp.
-      rauto in IHnexp2.
+      forward IHnexp2; auto using no_failure_Ret.
+      cbn* in IHnexp2;
+        rauto in IHnexp2.
 
       rewrite convert_typ_app, denote_code_app...
-      ret_bind_l_left (memH,i1).
+      ret_bind_l_left (Some (memH,i2)).
       eapply eutt_clo_bind; [eassumption | clear IHnexp2].
 
       introR; destruct_unit.
@@ -337,7 +354,7 @@ Section NExpr.
 
       (* I hate this painful unification with eval... Not sure how to do better *)
       specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
-      rewrite Heqs3 in EVAL_vH.
+      rewrite Heqs2 in EVAL_vH.
       injection EVAL_vH; intros; subst.
       assert (l1 ⊑ l1) as L1L1 by reflexivity.
       specialize (EXPRF _ L1L1) as [EXPRF EVAL_vH0].
@@ -388,35 +405,33 @@ Section NExpr.
          symmetry; eapply incLocal_Γ; eauto.
 
    - (* NAdd *)
+
       cbn* in COMPILE; simp.
       unfold denoteNExpr in *; cbn* in *.
-      simp...
-
+      simp; try abs_by failure_throw. 
+      cbn...
       (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
-      specialize (IHnexp1 _ _ _ _ _ _ _ _ _ _ Heqs Heqs2 PRE).
+      specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE). 
       simp.
-
-      cbn* in IHnexp1;
-        rauto in IHnexp1;
-        rauto in IHnexp1.
+      forward IHnexp1; auto using no_failure_Ret.
+      rauto in IHnexp1.
 
       rewrite convert_typ_app, denote_code_app...
-      ret_bind_l_left (memH,i1).
+      ret_bind_l_left (Some (memH,i2)).
       eapply eutt_clo_bind; [eassumption | clear IHnexp1].
 
       introR; destruct_unit.
       destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI) & GAMMAI).
       cbn in *.
 
-      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs3 PREI).
+      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI).
       simp.
-
+      forward IHnexp2; auto using no_failure_Ret.
       cbn* in IHnexp2;
-        rauto in IHnexp2;
         rauto in IHnexp2.
 
       rewrite convert_typ_app, denote_code_app...
-      ret_bind_l_left (memH,i2).
+      ret_bind_l_left (Some (memH,i3)).
       eapply eutt_clo_bind; [eassumption | clear IHnexp2].
 
       introR; destruct_unit.
@@ -425,11 +440,11 @@ Section NExpr.
       rewrite denote_code_singleton; cbn...
 
       specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
-      rewrite Heqs4 in EVAL_vH; injection EVAL_vH; intros; subst.
+      rewrite Heqs2 in EVAL_vH; injection EVAL_vH; intros; subst.
 
       assert (l1 ⊑ l1) as L0L0 by reflexivity.
       specialize (EXPRF _ L0L0) as [EXPRF EVAL_vH0].
-      rewrite Heqs2 in EVAL_vH0; injection EVAL_vH0; intros; subst.
+      rewrite Heqs3 in EVAL_vH0; injection EVAL_vH0; intros; subst.
       clear L0L0.
 
       rewrite denote_instr_op.
@@ -467,30 +482,31 @@ Section NExpr.
     - (* NMinus *)
       cbn* in COMPILE; simp.
       unfold denoteNExpr in *; cbn* in *.
-      simp...
-
+      simp; try abs_by failure_throw. 
+      cbn...
       (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
-      specialize (IHnexp1 _ _ _ _ _ _ _ _ _ _ Heqs Heqs2 PRE).
+      specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE). 
       simp.
-      cbn* in IHnexp1;
-        rauto in IHnexp1.
+      forward IHnexp1; auto using no_failure_Ret.
+      rauto in IHnexp1.
 
       rewrite convert_typ_app, denote_code_app...
-      ret_bind_l_left (memH,i1).
+      ret_bind_l_left (Some (memH,i2)).
       eapply eutt_clo_bind; [eassumption | clear IHnexp1].
 
       introR; destruct_unit.
       destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI) & GAMMAI).
       cbn in *.
 
-      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs3 PREI).
+      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI).
       simp.
+      forward IHnexp2; auto using no_failure_Ret.
       cbn* in IHnexp2;
         rauto in IHnexp2.
 
       rewrite convert_typ_app, denote_code_app...
 
-      ret_bind_l_left (memH,i2).
+      ret_bind_l_left (Some (memH,i3)).
       eapply eutt_clo_bind; [eassumption | clear IHnexp2].
 
       introR; destruct_unit.
@@ -500,11 +516,11 @@ Section NExpr.
       rewrite denote_code_singleton; cbn.
 
       specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
-      rewrite Heqs4 in EVAL_vH; simp. 
+      rewrite Heqs2 in EVAL_vH; simp. 
 
       assert (l1 ⊑ l1) as L0L0 by reflexivity.
       specialize (EXPRF _ L0L0) as [EXPRF EVAL_vH0].
-      rewrite Heqs2 in EVAL_vH0; simp.
+      rewrite Heqs3 in EVAL_vH0; simp.
       clear L0L0...
 
       rewrite denote_instr_op.
@@ -541,36 +557,36 @@ Section NExpr.
         rewrite GAMMAI, GAMMAF.
         symmetry; eapply incLocal_Γ; eauto.
       }
+
     - (* NMult *)
       cbn* in COMPILE; simp.
       unfold denoteNExpr in *; cbn* in *.
-      simp...
-
-      specialize (IHnexp1 _ _ _ _ _ _ _ _ _ _ Heqs Heqs2 PRE).
+      simp; try abs_by failure_throw. 
+      cbn...
+      (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
+      specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE). 
       simp.
-
-      cbn* in IHnexp1;
-        rauto in IHnexp1;
-        rauto in IHnexp1.
+      forward IHnexp1; auto using no_failure_Ret.
+      rauto in IHnexp1.
 
       rewrite convert_typ_app, denote_code_app...
 
-      ret_bind_l_left (memH,i1).
+      ret_bind_l_left (Some (memH,i2)).
       eapply eutt_clo_bind; [eassumption | clear IHnexp1].
 
       introR; destruct_unit.
       destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI) & GAMMAI).
       cbn in *.
 
-      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ _ Heqs0 Heqs3 PREI).
+      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI).
       simp.
+      forward IHnexp2; auto using no_failure_Ret.
       cbn* in IHnexp2;
-        rauto in IHnexp2;
         rauto in IHnexp2.
 
       rewrite convert_typ_app, denote_code_app...
 
-      ret_bind_l_left (memH,i2).
+      ret_bind_l_left (Some (memH,i3)).
       eapply eutt_clo_bind; [eassumption | clear IHnexp2].
 
       introR; destruct_unit.
@@ -578,11 +594,11 @@ Section NExpr.
       cbn in *; rewrite denote_code_singleton; cbn...
 
       specialize (EXPRI _ MONOF) as [EXPRI EVAL_vH].
-      rewrite Heqs4 in EVAL_vH; injection EVAL_vH; intros; subst.
+      rewrite Heqs2 in EVAL_vH; injection EVAL_vH; intros; subst.
 
       assert (l1 ⊑ l1) as L0L0 by reflexivity.
       specialize (EXPRF _ L0L0) as [EXPRF EVAL_vH0].
-      rewrite Heqs2 in EVAL_vH0; injection EVAL_vH0; intros; subst.
+      rewrite Heqs3 in EVAL_vH0; injection EVAL_vH0; intros; subst.
       clear L0L0.
 
       rewrite denote_instr_op.
