@@ -303,6 +303,12 @@ Section StateTypes.
 
   Local Open Scope type_scope.
 
+  Definition config_helix := memoryH.
+  Definition config_helix_O := option memoryH.
+
+  Definition config_helix_T (T : Type) := memoryH * T.
+  Definition config_helix_OT (T : Type) := option (memoryH * T).
+
   (* Return state of a denoted and interpreted [cfg].
      Note the lack of local stack *)
   Definition config_cfg
@@ -344,83 +350,87 @@ Section StateTypes.
 
 End StateTypes.
 
-(* Facilities to refer to the type of relations used during the simulations of various pieces of denotions we manipulate *)
-(* TODOYZ: Think about those, rename. *)
+(* Facilities to refer to the type of relations used during the simulations
+   of various pieces of denotions we manipulate.
+   In particular, all relations we state assume success on the Helix side, and
+   we will lift systematically these relations to the option type.
+ *)
 Section RelationTypes.
 
-  Definition config_helix := option memoryH.
-
-  (** Relation of memory states which must be held for
-      intialization steps *)
-  Definition Rel_cfg: Type
-    := config_helix -> config_cfg -> Prop.
-
-  (** Predicate on cfg *)
-  Definition Pred_cfg: Type
-    := config_cfg -> Prop.
-
-  (** Relation of memory states which must be held for
-      intialization steps *)
-  Definition Rel_mcfg: Type
-    := config_helix -> config_mcfg -> Prop.
-
-  Definition Pred_mcfg: Type
-    := config_mcfg -> Prop.
-
-  (** Type of bisimulation relations between DSHCOL and VIR internal to CFG states,
-      parameterized by the types of the computed values.
+  (** * Relations used for refinements
+      At both the [cfg] and [mcfg] levels, we have relation types:
+      - Relating states
+      - Relating states and values
+      - Relating states and values, and accounting for possible failure on the Helix side.
    *)
-  Definition Rel_cfg_T (TH TV: Type): Type
-    := config_helix * TH -> config_cfg_T TV -> Prop.
-
+  (** Relation on memory states with cfg-level states on the vellvm side *)
+  Definition Rel_cfg : Type := config_helix -> config_cfg -> Prop.
   (** Type of bisimulation relations between DSHCOL and VIR internal to CFG states,
-      parameterized by the types of the computed values.
-   *)
-  Definition Pred_cfg_T (TV: Type): Type
-    := config_cfg_T TV -> Prop.
+      parameterized by the types of the computed values. *)
+  Definition Rel_cfg_T (TH TV: Type): Type := config_helix_T TH -> config_cfg_T TV -> Prop.
+  Definition Rel_cfg_OT (TH TV: Type): Type := config_helix_OT TH -> config_cfg_T TV -> Prop.
 
-  (* Lifting a relation on memory states to one encompassing returned values by ignoring them *)
+  (** Relation on memory states with mcfg-level states on the vellvm side *)
+  Definition Rel_mcfg: Type := config_helix -> config_mcfg -> Prop.
+  (** Type of bisimulation relations between DSHCOL and VIR internal to CFG states,
+      parameterized by the types of the computed values. *)
+  Definition Rel_mcfg_T (TH TV: Type): Type := config_helix_T TH -> config_mcfg_T TV -> Prop.
+  Definition Rel_mcfg_OT (TH TV: Type): Type := config_helix_OT TH -> config_mcfg_T TV -> Prop.
+
+  (** * Predicates  *)
+  (** Predicate on mcfg-level states *)
+  Definition Pred_mcfg: Type := config_mcfg -> Prop.
+  Definition Pred_mcfg_T (TV: Type): Type := config_mcfg_T TV -> Prop.
+  (** Predicate on cfg-level states *)
+  Definition Pred_cfg: Type := config_cfg -> Prop.
+  Definition Pred_cfg_T (TV: Type): Type := config_cfg_T TV -> Prop.
+
+  (** * Liftings of relations
+      Can be lifted to a relation on states and values:
+      - A relation on states
+      - A relation on values
+      - A pure predicate
+      Any relation can be lifted to account for failure on the Helix side by asserting success.
+   *)
+  (* Lifting a relation on states to one on states and values *)
   Definition lift_Rel_cfg (R: Rel_cfg) (TH TV: Type): Rel_cfg_T TH TV :=
     fun '(memH,_) '(memV,(l,(g,_))) => R memH (memV,(l,g)).
-
-  Definition lift_pure_cfg (P : Prop) {TH TV : Type} : Rel_cfg_T TH TV :=
-    fun _ _ => P.
-
-  (* Lifting a relation on results to one encompassing states by ignoring them *)
-  Definition lift_Rel_res_cfg {TH TV: Type} (R: TH -> TV -> Prop): Rel_cfg_T TH TV :=
-    fun '(_,vh) '(_,(_,(_,vv))) => R vh vv.
-
-  (** Type of bisimulation relations between DSHCOL and VIR internal to CFG states,
-      parameterized by the types of the computed values.
-   *)
-  Definition Rel_mcfg_T (TH TV: Type): Type
-    := config_helix * TH -> config_mcfg_T TV -> Prop.
-
   Definition lift_Rel_mcfg (R: Rel_mcfg) (TH TV: Type): Rel_mcfg_T TH TV :=
     fun '(memH,_) '(memV,(l,(g,_))) => R memH (memV,(l,g)).
 
-  Definition lift_pure_mcfg (P : Prop) {TH TV : Type} : Rel_mcfg_T TH TV :=
-    fun _ _ => P.
+  (* Lifting a relation on values to one on states and values *)
+  Definition lift_Rel_res_cfg {TH TV: Type} (R: TH -> TV -> Prop): Rel_cfg_T TH TV :=
+    fun '(_,vh) '(_,(_,(_,vv))) => R vh vv.
+  Definition lift_Rel_res_mcfg {TH TV: Type} (R: TH -> TV -> Prop): Rel_mcfg_T TH TV :=
+    fun '(_,vh) '(_,(_,(_,vv))) => R vh vv.
 
-  Definition Pred_mcfg_T (TV: Type): Type
-    := config_mcfg_T TV -> Prop.
+  (* Lifting pure predicates *)
+  Definition lift_pure_cfg (P : Prop) {TH TV : Type} : Rel_cfg_T TH TV := fun _ _ => P.
+  Definition lift_pure_mcfg (P : Prop) {TH TV : Type} : Rel_mcfg_T TH TV := fun _ _ => P.
+
+  Definition succ_rel_l {A B} (R : A -> B -> Prop) : option A -> B -> Prop :=
+    fun ma b => match ma with | Some a => R a b | _ => False end.
+  Definition succ_cfg {TH TV}: Rel_cfg_T TH TV -> Rel_cfg_OT TH TV := succ_rel_l.
+  Definition succ_mcfg {TH TV}: Rel_mcfg_T TH TV -> Rel_mcfg_OT TH TV := succ_rel_l.
 
   (** Type of bisimulation relation between DSHCOL and LLVM states.
     This relation could be used for fragments of CFG [cfg].
    *)
   Definition Type_R_partial: Type
-    := config_helix * unit -> config_res_cfg -> Prop.
+    := config_helix_T unit -> config_res_cfg -> Prop.
 
   (** Type of bisimulation relation between DSHCOL and LLVM states.
       This relation could be used for "closed" CFG [mcfg].
    *)
   Definition Type_R_full: Type
-    := config_helix * (list binary64) -> config_res_mcfg -> Prop.
+    := config_helix_T (list binary64) -> config_res_mcfg -> Prop.
 
 End RelationTypes.
 Arguments lift_Rel_cfg R {_ _}.
 Arguments lift_pure_cfg /.
 Arguments lift_pure_cfg /.
+Coercion succ_cfg : Rel_cfg_T >-> Rel_cfg_OT.
+Coercion succ_mcfg : Rel_mcfg_T >-> Rel_mcfg_OT.
 
 (* TODOYZ : MOVE *)
 Definition conj_rel {A B : Type} (R S: A -> B -> Prop): A -> B -> Prop :=

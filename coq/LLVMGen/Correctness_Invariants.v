@@ -182,7 +182,7 @@ Section SimulationRelations.
                (forall i v, mem_lookup i bk_helix ≡ Some v ->
                        get_array_cell mem_llvm ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v))
              end),
-        memory_invariant σ s (Some mem_helix) (mem_llvm, (ρ,g)).
+        memory_invariant σ s mem_helix (mem_llvm, (ρ,g)).
 
   (* Lookups in [genv] are fully determined by lookups in [Γ] and [σ] *)
   Lemma memory_invariant_GLU : forall σ s v id memH memV t l g n,
@@ -245,7 +245,7 @@ Section SimulationRelations.
   Hint Resolve memory_invariant_GLU memory_invariant_LLU memory_invariant_LLU_AExpr memory_invariant_GLU_AExpr : core.
 
   Lemma memory_invariant_LLU_Ptr : forall σ s v id memH memV t l g m size,
-      memory_invariant σ s (Some memH) (memV, (l, g)) ->
+      memory_invariant σ s memH (memV, (l, g)) ->
       nth_error (Γ s) v ≡ Some (ID_Local id, t) ->
       nth_error σ v ≡ Some (DSHPtrVal m size) ->
       exists (bk_h : mem_block) (ptr_v : Addr.addr),
@@ -290,7 +290,7 @@ Section SimulationRelations.
       2. the [IRState] is well formed;
       3. the fresh ident generator is working properly.
    *)
-  Record state_invariant (σ : evalContext) (s : IRState) (memH : config_helix) (configV : config_cfg) : Prop :=
+  Record state_invariant (σ : evalContext) (s : IRState) (memH : memoryH) (configV : config_cfg) : Prop :=
     {
     mem_is_inv : memory_invariant σ s memH configV ;
     IRState_is_WF : WF_IRState σ s ;
@@ -311,7 +311,7 @@ Section SimulationRelations.
       global_named_ptr_exists fnname c.
 
   (** An invariant which must hold after initialization stage *)
-  Record post_init_invariant (fnname:string) (σ : evalContext) (s : IRState) (memH : config_helix) (configV : config_cfg) : Prop :=
+  Record post_init_invariant (fnname:string) (σ : evalContext) (s : IRState) (memH : memoryH) (configV : config_cfg) : Prop :=
     {
     state_inv: state_invariant σ s memH configV;
     decl_inv:  declarations_invariant fnname configV
