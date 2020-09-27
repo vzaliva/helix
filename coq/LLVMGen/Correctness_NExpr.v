@@ -108,13 +108,17 @@ Section NExpr.
     (reflexivity ||
      apply sub_alist_add; solve_alist_fresh).
 
+  Definition no_failure {E X} (t : itree E (option X)) : Prop :=
+    t ⤳ fun x => ~ x ≡ None.
+  
   Lemma genNExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
-      (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH) (v : Int64.int)
+      (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH) (* (v : Int64.int) *)
       (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
 
       genNExpr nexp s1 ≡ inr (s2, (e, c))      -> (* Compilation succeeds *)
-      evalNExpr σ nexp ≡ inr v                 -> (* Evaluation succeeds *)
+      no_failure (interp_helix (E := E_cfg) (denoteNExpr σ nexp) memH) ->
+      (* evalNExpr σ nexp ≡ inr v                 -> (* Evaluation succeeds *) *)
       state_invariant σ s1 memH (memV, (l, g)) -> (* The main state invariant is initially true *)
       eutt (succ_cfg (lift_Rel_cfg (state_invariant σ s2) ⩕
                                    genNExpr_rel σ nexp e memH (mk_config_cfg memV l g) ⩕
@@ -123,19 +127,26 @@ Section NExpr.
            (interp_cfg (denote_code (convert_typ [] c)) g l memV).
   Proof with (rauto).
 
-    intros s1 s2 nexp; revert s1 s2; induction nexp; intros * COMPILE EVAL PRE.
+    intros s1 s2 nexp; revert s1 s2; induction nexp; intros * COMPILE NOFAIL PRE.
     - (* Variable case *)
       (* Reducing the compilation *)
       cbn* in COMPILE; simp.
 
       + (* The variable maps to an integer in the IRState *)
-        unfold denoteNExpr; cbn* in *.
-        simp...
+        unfold denoteNExpr in *; cbn* in *...
+        simp.
+        * (* Deriving contradiction automatically from NOFAIL *)
+          admit.
+        * (* Deriving contradiction automatically from NOFAIL *)
+          admit.
+        * (* Deriving contradiction automatically from NOFAIL *)
+          admit.
+        *
 
+        (* break_inner_match_goal; cbn. *)
         (* The identifier has to be a local one *)
         destruct i0; try abs_by_WF.
-
-        cbn... cbn...
+        cbn... 
 
         (* We establish the postcondition *)
         apply eutt_Ret; split; [| split]; try now eauto.
