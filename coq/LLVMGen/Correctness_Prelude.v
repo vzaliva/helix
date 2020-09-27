@@ -819,6 +819,8 @@ Section InterpHelix.
 
 End InterpHelix.
 
+Opaque interp_helix.
+       
 Ltac break_and :=
   repeat match goal with
          | h: _ * _ |- _ => destruct h
@@ -903,9 +905,9 @@ Ltac break_and :=
   Hint Rewrite denote_code_singleton : vellvm.
 
 
-  Hint Rewrite interp_Mem_bind : helix.
-  Hint Rewrite interp_Mem_ret : helix.
-  Hint Rewrite interp_Mem_MemLU : helix.
+  Hint Rewrite interp_helix_bind : helix.
+  Hint Rewrite interp_helix_Ret : helix.
+  Hint Rewrite @interp_helix_MemLU : helix.
 
   Tactic Notation "rauto:R" :=
     repeat (
