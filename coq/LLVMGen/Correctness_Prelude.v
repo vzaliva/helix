@@ -68,6 +68,7 @@ Require Export ITree.Interp.TranslateFacts.
 Require Export ITree.Basics.CategoryFacts.
 Require Export ITree.Events.State.
 Require Export ITree.Events.StateFacts.
+Require Export ITree.Events.FailFacts.
 Require Export ITree.ITree.
 Require Export ITree.Eq.Eq.
 Require Export ITree.Basics.Basics.
@@ -245,34 +246,8 @@ Section EventTranslation.
 
   (* TO MOVE *)
 
-  Definition failT (m : Type -> Type) (a : Type) : Type :=
-    m (option a)%type.
-
-  Global Instance failT_fun `{Functor.Functor m} : Functor.Functor (failT m) :=
-    {| Functor.fmap := fun x y f => 
-                         Functor.fmap (fun x => match x with | None => None | Some x => Some (f x) end) |}.
-
-  Global Instance failT_monad `{Monad m} : Monad (failT m) :=
-    {| ret := fun _ x => ret (Some x);
-       bind := fun _ _ c k =>
-                 bind (m := m) c 
-                      (fun x => match x with | None => ret (None) | Some x => k x end)
-    |}.
-  
-  Global Instance failT_iter `{Monad m} `{MonadIter m} : MonadIter (failT m) :=
-    fun A I body i => Basics.iter (M := m) (I := I) (R := option A) 
-                               (fun i => bind (m := m)
-                                           (body i)
-                                           (fun x => match x with
-                                                  | None       => ret (inr None)
-                                                  | Some (inl j) => ret (inl j)
-                                                  | Some (inr a) => ret (inr (Some a))
-                                                  end))
-                               i.
-
   Definition handle_failure: (StaticFailE +' DynamicFailE) ~> failT (itree void1) :=
     fun _ _ => ret None.
-  Definition interp_failure := interp handle_failure.
  
   Definition errorT (m : Type -> Type) (a : Type) : Type :=
     m (unit + a)%type.
@@ -302,8 +277,11 @@ Section EventTranslation.
     fun _ _ => ret (inl ()).
   Definition interp_error := interp handle_error.
 
+  Definition inject_signature {E} : void1 ~> E := fun _ (x:void1 _) => match x with end.
+  Hint Unfold inject_signature : core.
+
   Definition interp_helix {X E} (t : itree Event X) (mem : memoryH) : failT (itree E) (memoryH * X) :=
-    translate (fun _ (x:void1 _) => match x with end) (interp_failure (interp_Mem t mem)).
+    translate inject_signature (interp_fail handle_failure (interp_Mem t mem)).
 
   (* Finally, the semantics of FSHCOL for the top-level equivalence *)
   Definition semantics_FSHCOL (p: FSHCOLProgram) (data : list binary64)
@@ -724,229 +702,109 @@ From Coq Require Import
      Morphisms
      RelationClasses.
 
-
 Section InterpHelix.
 
-  Import Monad.
-  Definition lift_rel_option {X : Type} (R : relation X) : relation (option X) :=
-    fun mx my => match mx,my with
-              | Some x, Some y => R x y
-              | None, None => True
-              | _, _ => False
-              end.
-  Hint Unfold lift_rel_option : core.
+  (* YZ: as with state, there is this tension between "inlining" the monad transformer
+     in order to rewrite at the itree level, and develop the infrastructure to "properly"
+     work in the transformed monad.
+     With the former style, we pay by systematically exposing what should be handled internally
+     (threading the state, checking on failure).
+     With the latter, we need to be more rigorous with the infrastructure.
+   *)
 
-  Global Instance failT_Eq1 {E} : Eq1 (failT (itree E)) :=
-    fun _ => eutt (lift_rel_option Logic.eq).
-
-  (* (** Unfolding of [interp_fail]. *) *)
-  Definition _interp_fail {E F R} (f : E ~> failT (itree F)) (ot : itreeF E R _)
-    : failT (itree F) R :=
-    match ot with
-    | RetF r => ret r
-    | TauF t => Tau (interp f t)
-    | VisF _ e k => f _ e >>= (fun x => Tau (interp f (k x)))
-    end.
-
-  (** Unfold lemma. *)
-  Lemma unfold_interp_fail {E F R} {f : E ~> failT (itree F)} (t : itree E R) :
-    interp f t ≅
-           (_interp_fail f (observe t)).
-  Proof.
-    unfold interp. unfold Basics.iter, failT_iter, Basics.iter, MonadIter_itree. rewrite unfold_iter.
-    destruct (observe t).
-    cbn; repeat (rewrite ?Eq.bind_bind, ?Eq.bind_ret_l, ?bind_map; try reflexivity).
-    cbn; repeat (rewrite ?Eq.bind_bind, ?Eq.bind_ret_l, ?bind_map; try reflexivity).
-    cbn; repeat (rewrite ?Eq.bind_bind, ?Eq.bind_ret_l, ?bind_map; try reflexivity).
-    apply eq_itree_clo_bind with (UU := Logic.eq); [reflexivity | intros x ? <-]. 
-    destruct x as [| x].
-    - rewrite Eq.bind_ret_l; reflexivity.
-    - rewrite Eq.bind_ret_l; reflexivity.
-  Qed.
-
-  From Paco Require Import paco.
-
-  Global Instance interp_failure_eq_itree {X} {R : X -> X -> Prop} : Proper (eq_itree R ==> eq_itree (lift_rel_option R)) (@interp_failure X).
-  Proof.
-    repeat red. unfold interp_failure.
-    ginit.
-    gcofix CIH.
-    intros s t EQ.
-    rewrite 2 unfold_interp_fail.
-    punfold EQ; red in EQ.
-    destruct EQ; cbn; subst; try discriminate; pclearbot; try (gstep; constructor; eauto with paco; fail).
-    guclo eqit_clo_bind; econstructor; [reflexivity | intros x ? <-].
-    destruct x as [x|]; gstep; econstructor; eauto with paco.
-  Qed.
-
-  From ITree Require Import HeterogeneousRelations.
-
-  Lemma lift_rel_option_eq : forall {A : Type},
-    eq_rel (@Logic.eq (option A)) (lift_rel_option Logic.eq).
-  Proof.
-    intros ?; split; intros [] [] EQ; subst; try inv EQ; cbn; auto.
-  Qed.
-
-  Global Instance eq_itree_Proper_R {E : Type -> Type} {R1 R2:Type}
-    : Proper ( (@eq_rel R1 R2) ==> Logic.eq ==> Logic.eq ==> iff) (@eq_itree E R1 R2).
-  Proof.
-    repeat intro; subst.
-    unfold eq_itree; rewrite H; reflexivity.
-  Qed.
-
-
-  Global Instance eutt_Proper_R {E : Type -> Type} {R1 R2:Type}
-    : Proper ( (@eq_rel R1 R2) ==> Logic.eq ==> Logic.eq ==> iff) (@eutt E R1 R2).
-  Proof.
-    repeat intro; subst.
-    unfold eutt; rewrite H; reflexivity.
-  Qed.
-
-  Global Instance interp_failure_eq_itree_eq {X} : Proper (eq_itree Logic.eq ==> eq_itree Logic.eq) (@interp_failure X).
-  Proof.
-    repeat intro.
-    rewrite lift_rel_option_eq.
-    apply interp_failure_eq_itree; auto.
-  Qed.
-
-  Global Instance interp_failure_eutt {X R} : Proper (eutt R ==> eutt (lift_rel_option R)) (@interp_failure X).
-  Proof.
-    repeat red. unfold interp_failure.
-    ginit.
-    gcofix CIH.
-    intros s t EQ.
-    rewrite 2 unfold_interp_fail.
-    punfold EQ; red in EQ.
-    induction EQ; intros; cbn; subst; try discriminate; pclearbot; try (gstep; constructor; eauto with paco; fail).
-    - rewrite !Eq.bind_ret_l; gstep; constructor; eauto with paco.
-    - rewrite tau_euttge, unfold_interp_fail; eauto.
-    - rewrite tau_euttge, unfold_interp_fail; eauto.
-  Qed.
-
-  Global Instance interp_failure_eutt_eq {X} : Proper (eutt Logic.eq ==> eutt Logic.eq) (@interp_failure X).
-  Proof.
-    repeat intro.
-    rewrite lift_rel_option_eq.
-    apply interp_failure_eutt; auto.
- Qed.
-
-  Lemma interp_failure_ret : forall {X} (x : X),
-      interp_failure (Ret x) ≅ Ret (Some x).
-  Proof.
-    intros; unfold interp_failure; rewrite unfold_interp_fail; reflexivity.
-  Qed.
-
+  (* inlined *)
   Lemma interp_helix_Ret :
     forall T E mem x,
       @interp_helix T E (Ret x) mem ≅ Ret (Some (mem, x)).
   Proof.
     intros. 
     unfold interp_helix.
-    rewrite interp_Mem_ret, interp_failure_ret, translate_ret.
+    rewrite interp_Mem_ret, interp_fail_Ret, translate_ret.
     reflexivity.
   Qed.
 
+  (* proper *)
   Lemma interp_helix_ret :
     forall T E mem x,
       @interp_helix T E (Ret x) mem ≅ ret (m := failT _) (mem, x).
   Proof.
     intros. 
     unfold interp_helix.
-    rewrite interp_Mem_ret, interp_failure_ret, translate_ret.
+    rewrite interp_Mem_ret, interp_fail_ret.
+    cbn; rewrite translate_ret.
     reflexivity.
   Qed.
 
-  Global Instance Reflexive_failT_eq1 {E T} : Reflexive (@failT_Eq1 E T).
-  Proof.
-    apply Reflexive_eqit.
-    intros []; auto.
-  Qed.
-
-  Global Instance Symmetric_failT_eq1 {E T} : Symmetric (@failT_Eq1 E T).
-  Proof.
-    apply Symmetric_eqit.
-    intros [] []; auto.
-  Qed.
-
-  Global Instance Transitive_failT_eq1 {E T} : Transitive (@failT_Eq1 E T).
-  Proof.
-    apply Transitive_eqit.
-    intros [] [] [] ? ?; subst; intuition contradiction.
-  Qed.
-
-  Global Instance MonadLaws_failE {E} : MonadLawsE (failT (itree E)).
-  Proof.
-    split.
-    - cbn; intros; rewrite Eq.bind_ret_l; reflexivity.
-    - cbn; intros.
-      rewrite <- (Eq.bind_ret_r x) at 2.
-      eapply eutt_clo_bind with (UU := Logic.eq); [reflexivity | intros ? ? <-].
-      destruct u1; cbn; reflexivity.
-    - intros; cbn; rewrite Eq.bind_bind.
-      eapply eutt_clo_bind with (UU := Logic.eq); [reflexivity | intros [] ? <-].
-      + eapply eutt_clo_bind with (UU := Logic.eq); [reflexivity | intros [] ? <-]; reflexivity.
-      + rewrite Eq.bind_ret_l; reflexivity.
-    - repeat intro; cbn.
-      eapply eutt_clo_bind; eauto.
-      intros [] [] REL; subst; try intuition discriminate.
-      rewrite H0; reflexivity.
-      reflexivity.
-  Qed.
-
   Lemma interp_helix_bind :
+    forall T U E mem (t: itree Event T) (k: T -> itree Event U),
+      @interp_helix _ E (ITree.bind t k) mem ≈
+                    ITree.bind (interp_helix t mem)
+                    (fun mx => match mx with | None => ret None | Some x => let '(mem',v) := x in interp_helix (k v) mem' end).
+  Proof.
+    intros; unfold interp_helix.
+    rewrite interp_Mem_bind, interp_fail_bind, translate_bind.
+    eapply eutt_eq_bind; intros [[]|]; cbn.
+    reflexivity.
+    rewrite translate_ret; reflexivity.
+  Qed.
+
+  Lemma interp_helix_bind' :
     forall T U E mem (t: itree Event T) (k: T -> itree Event U),
       @interp_helix _ E (ITree.bind t k) mem ≈
                     bind (interp_helix t mem) (fun '(mem',v) => interp_helix (k v) mem').
   Proof.
     intros; unfold interp_helix.
     cbn.
-    rewrite interp_Mem_bind.
-    
-    rewrite interp_state_bind.
-    apply eutt_eq_bind; intros []; reflexivity.
+    rewrite interp_Mem_bind, interp_fail_bind, translate_bind.
+    eapply eutt_eq_bind; intros [[]|]; cbn.
+    reflexivity.
+    rewrite translate_ret; reflexivity.
   Qed.
 
-  (* Lemma interp_helix_vis_eqit : *)
-  (*   forall T R mem (e : Event T) (k : T -> itree Event R), *)
-  (*     interp_helix (vis e k) mem ≅ ITree.bind ((case_ helix_handler MDSHCOLOnFloat64.pure_state) T e mem) (fun sx => Tau (interp_helix (k (snd sx)) (fst sx))). *)
+  (* Lemma interp_helix_vis : *)
+  (*   forall T R E mem (e : Event T) (k : T -> itree Event R), *)
+  (*     interp_helix (E := E) (vis e k) mem ≈ *)
+  (*     interp_helix (vis e k) mem.  *)
+  (*     (* ITree.bind ((case_ Mem_handler handle_failure helix_handler MDSHCOLOnFloat64.pure_state) T e mem) *) *)
+  (*                (* (fun sx => Tau (interp_helix (k (snd sx)) (fst sx))). *) *)
   (* Proof. *)
-  (*   intros T R mem e k. *)
+  (*   intros.  *)
   (*   unfold interp_helix. *)
-  (*   apply interp_state_vis. *)
+  (*   rewrite interp_Mem_vis_eqit. *)
+  (*   rewrite interp_fail_bind, translate_bind. *)
+    
+  (*   apply interp_cbn.state_vis. *)
   (* Qed. *)
 
-  (* Lemma interp_helix_helixLU_vis : *)
-  (*   forall R str mem m x (k : _ -> itree _ R), *)
-  (*     memory_lookup_err str mem x ≡ inr m -> *)
-  (*     interp_helix (vis (helixLU str x) k) mem ≈ interp_helix (k m) mem. *)
-  (* Proof. *)
-  (*   intros R str mem m x k H. *)
-  (*   setoid_rewrite interp_helix_vis_eqit; *)
-  (*     cbn; rewrite H; cbn. *)
-  (*   rewrite bind_ret_l; cbn. *)
-  (*   apply tau_eutt. *)
-  (* Qed. *)
+  Lemma interp_helix_MemLU :
+    forall {E} str mem m x,
+      memory_lookup_err str mem x ≡ inr m ->
+      interp_helix (E := E) (trigger (MemLU str x)) mem ≈ Ret (Some (mem,m)).
+  Proof.
+    intros * EQ.
+    unfold interp_helix.
+    setoid_rewrite interp_Mem_vis_eqit.
+    cbn; rewrite EQ; cbn.
+    rewrite Eq.bind_ret_l, tau_eutt.
+    cbn; rewrite interp_Mem_ret, interp_fail_Ret, translate_ret.
+    reflexivity.
+  Qed.
 
-  (* Lemma interp_helix_helixLU : *)
-  (*   forall str mem m x, *)
-  (*     memory_lookup_err str mem x ≡ inr m -> *)
-  (*     interp_helix (trigger (helixLU str x)) mem ≈ interp_helix (Ret m) mem. *)
-  (* Proof. *)
-  (*   intros str mem m x H. *)
-  (*   unfold trigger. *)
-  (*   rewrite interp_helix_helixLU_vis; eauto. *)
-  (*   reflexivity. *)
-  (* Qed. *)
+  Lemma interp_helix_MemSet :
+    forall {E} dst blk mem,
+      interp_helix (E := E) (trigger (MemSet dst blk)) mem ≈ Ret (Some (memory_set mem dst blk, tt)).
+  Proof.
+    intros.
+    unfold interp_helix.
+    setoid_rewrite interp_Mem_vis_eqit.
+    cbn. rewrite Eq.bind_ret_l, tau_eutt.
+    cbn; rewrite interp_Mem_ret, interp_fail_Ret, translate_ret.
+    reflexivity.
+  Qed.
 
-  (* Lemma interp_helix_helixSet : *)
-  (*   forall dst blk mem, *)
-  (*     interp_helix (trigger (helixSet dst blk)) mem ≈ Ret (memory_set mem dst blk, tt). *)
+  (* Global Instance interp_helix_eutt {X E} {R : X -> X -> Prop} : *)
+  (*   Proper (eutt R ==> eutt (option_rel R)) (@interp_helix X E). *)
   (* Proof. *)
-  (*   intros dst blk mem. *)
-  (*   setoid_rewrite interp_helix_vis_eqit; cbn. *)
-  (*   rewrite bind_ret_l. *)
-  (*   rewrite interp_helix_ret. *)
-  (*   apply tau_eutt. *)
   (* Qed. *)
 
 End InterpHelix.
