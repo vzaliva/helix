@@ -41,21 +41,20 @@ Remove Hints
 
 Section NExpr.
   
-  (** YZ
-      At the top level, the correctness of genNExpr is expressed as the denotation of the operator being equivalent
+  (** At the top level, the correctness of genNExpr is expressed as the denotation of the operator being equivalent
       to the bind of denoting the code followed by denoting the expression.
       However this is not inductively stable, we only want to plug the expression at the top level.
       We therefore instead carry the fact about the denotation of the expression in the invariant. (Is there another clever way?)
       TODO: how to make this (much) less ugly?
    *)
-  Definition genNExpr_exp_correct σ (nexp : NExpr) (e: exp typ) : Rel_cfg_T DynamicValues.int64 unit :=
-    fun '(_,i) '(memV,(l,(g,v))) =>
+  Definition genNExpr_exp_correct (σ : evalContext) (nexp : NExpr) (e: exp typ)
+  : Rel_cfg_T DynamicValues.int64 unit :=
+    fun '(x,i) '(memV,(l,(g,v))) =>
       forall l', l ⊑ l' ->
-            Ret (memV,(l',(g,UVALUE_I64 i)))
-                ≈
-            (interp_cfg (translate exp_E_to_instr_E
-                                   (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] e)))
-                        g l' memV)
+            Ret (memV,(l',(g,UVALUE_I64 i))) ≈
+            interp_cfg
+                (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] e)))
+                g l' memV
             /\ evalNExpr σ nexp ≡ inr i.
 
   (**
@@ -117,12 +116,11 @@ Section NExpr.
       genNExpr nexp s1 ≡ inr (s2, (e, c))      -> (* Compilation succeeds *)
       evalNExpr σ nexp ≡ inr v                 -> (* Evaluation succeeds *)
       state_invariant σ s1 memH (memV, (l, g)) -> (* The main state invariant is initially true *)
-
-      eutt (lift_Rel_cfg (state_invariant σ s2) ⩕
-            genNExpr_rel σ nexp e memH (mk_config_cfg memV l g) ⩕
-            lift_pure_cfg (Γ s1 ≡ Γ s2))
-           (with_err_RB (interp_Mem (denoteNExpr σ nexp) memH))
-           (with_err_LB (interp_cfg (denote_code (convert_typ [] c)) g l memV)).
+      eutt (succ_cfg (lift_Rel_cfg (state_invariant σ s2) ⩕
+                                   genNExpr_rel σ nexp e memH (mk_config_cfg memV l g) ⩕
+                                   lift_pure_cfg (Γ s1 ≡ Γ s2)))
+           (interp_helix (denoteNExpr σ nexp) memH)
+           (interp_cfg (denote_code (convert_typ [] c)) g l memV).
   Proof with (rauto).
 
     intros s1 s2 nexp; revert s1 s2; induction nexp; intros * COMPILE EVAL PRE.
