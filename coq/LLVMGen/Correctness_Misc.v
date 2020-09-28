@@ -11,6 +11,276 @@ Import ListNotations.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
+Print Hint *.
+
+Remove Hints
+       equiv_default_relation
+       abstract_algebra.sg_op_proper
+       abstract_algebra.sm_proper
+       abstract_algebra.comp_proper
+       abstract_algebra.BoundedJoinSemiLattice
+       abstract_algebra.JoinSemiLattice
+       abstract_algebra.MeetSemiLattice
+       abstract_algebra.Ring
+       additional_operations.ModEuclid MonadIter categories.Mono
+       abstract_algebra.Setoid
+       orders.po_preorder
+       orders.total_order_po
+       orders.le_total
+       orders.join_sl_order
+       orders.lattice_order_join
+       orders.lattice_order_meet
+       orders.strict_po_po
+       orders.srorder_po
+       strong_setoids.binary_strong_morphism_proper
+       semirings.FullPseudoOrder_instance_0
+       minmax.LatticeOrder_instance_0
+       workarounds.equivalence_proper : typeclass_instances.
+
+(* IY: Remove rest of abstract_algebra hints. Seems to give ~ 4% performance
+       increase on some rauto invocations. *)
+Remove Hints
+        abstract_algebra.BoundedJoinSemiLattice
+        abstract_algebra.JoinSemiLattice
+        abstract_algebra.Setoid
+        abstract_algebra.intdom_nontrivial
+        abstract_algebra.decfield_nontrivial
+        abstract_algebra.field_nontrivial
+        abstract_algebra.intdom_nozeroes
+        abstract_algebra.strong_setoid_symmetric
+        abstract_algebra.semilattice_idempotent
+        abstract_algebra.bounded_semilattice_idempotent
+        abstract_algebra.meet_join_absorption
+        abstract_algebra.join_meet_absorption
+        abstract_algebra.comp_assoc
+        abstract_algebra.MeetSemiLattice
+        abstract_algebra.lattice_meet
+        abstract_algebra.MeetSemiLattice
+        abstract_algebra.SemiRing_Morphism
+        abstract_algebra.Injective
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Monoid_Morphism
+        abstract_algebra.SemiGroup_Morphism
+        abstract_algebra.strong_setoid_irreflexive
+        abstract_algebra.id_l
+        abstract_algebra.monoid_left_id
+        abstract_algebra.join_meet_distr_l
+        abstract_algebra.semiring_distr
+        abstract_algebra.ring_dist
+        abstract_algebra.sg_ass
+        abstract_algebra.negate_l
+        abstract_algebra.comsg_ass
+        abstract_algebra.commonoid_commutative
+        abstract_algebra.abgroup_commutative
+        abstract_algebra.semiring_left_absorb
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.sg_setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.Setoid
+        abstract_algebra.arrow_equiv
+        abstract_algebra.Setoid
+        abstract_algebra.strong_setoid_cotrans
+        abstract_algebra.JoinSemiLattice
+        abstract_algebra.JoinSemiLattice
+        abstract_algebra.lattice_join
+        abstract_algebra.JoinSemiLattice
+        abstract_algebra.negate_r
+        abstract_algebra.id_r
+        abstract_algebra.monoid_right_id
+        abstract_algebra.CommutativeSemiGroup
+        abstract_algebra.semilattice_sg
+        abstract_algebra.CommutativeSemiGroup
+        abstract_algebra.Lattice
+        abstract_algebra.distr_lattice_lattice
+        abstract_algebra.Lattice
+        abstract_algebra.Monoid_Morphism
+        abstract_algebra.Monoid_Morphism
+        abstract_algebra.bounded_join_slmor_monmor
+        abstract_algebra.Monoid_Morphism
+        abstract_algebra.Monoid_Morphism
+        abstract_algebra.Monoid_Morphism
+        abstract_algebra.Monoid_Morphism
+        abstract_algebra.semiringmor_mult_mor
+        abstract_algebra.Monoid_Morphism
+        abstract_algebra.semiringmor_plus_mor
+        abstract_algebra.Monoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.sgmor_setmor
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.negate_proper
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.recip_proper
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.dec_recip_proper
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.Setoid_Morphism
+        abstract_algebra.MeetSemiLattice_Morphism
+        abstract_algebra.MeetSemiLattice_Morphism
+        abstract_algebra.latticemor_meet_mor
+        abstract_algebra.MeetSemiLattice_Morphism
+        abstract_algebra.MeetSemiLattice_Morphism
+        abstract_algebra.MeetSemiLattice_Morphism
+        abstract_algebra.DistributiveLattice
+        abstract_algebra.DistributiveLattice
+        abstract_algebra.StrongSetoid
+        abstract_algebra.StrongSetoid
+        abstract_algebra.field_strongsetoid
+        abstract_algebra.StrongSetoid
+        abstract_algebra.SemiRing
+        abstract_algebra.SemiRing
+        abstract_algebra.SemiRing
+        abstract_algebra.SemiRing
+        abstract_algebra.SemiRing
+        abstract_algebra.BoundedJoinSemiLattice_Morphism
+        abstract_algebra.BoundedJoinSemiLattice_Morphism
+        abstract_algebra.BoundedJoinSemiLattice_Morphism
+        abstract_algebra.BoundedJoinSemiLattice_Morphism
+        abstract_algebra.setoid_eq
+        abstract_algebra.BoundedSemiLattice
+        abstract_algebra.bounded_join_semilattice
+        abstract_algebra.BoundedSemiLattice
+        abstract_algebra.SemiGroup
+        abstract_algebra.SemiGroup
+        abstract_algebra.comsg_setoid
+        abstract_algebra.SemiGroup
+        abstract_algebra.monoid_semigroup
+        abstract_algebra.SemiGroup
+        abstract_algebra.SemiGroup_Morphism
+        abstract_algebra.SemiGroup_Morphism
+        abstract_algebra.meet_slmor_sgmor
+        abstract_algebra.SemiGroup_Morphism
+        abstract_algebra.join_slmor_sgmor
+        abstract_algebra.SemiGroup_Morphism
+        abstract_algebra.monmor_sgmor
+        abstract_algebra.SemiGroup_Morphism
+        abstract_algebra.SemiGroup_Morphism
+        abstract_algebra.SemiGroup_Morphism
+        abstract_algebra.Lattice_Morphism
+        abstract_algebra.Lattice_Morphism
+        abstract_algebra.Lattice_Morphism
+        abstract_algebra.Lattice_Morphism
+        abstract_algebra.SemiRing_Morphism
+        abstract_algebra.SemiRing_Morphism
+        abstract_algebra.SemiRing_Morphism
+        abstract_algebra.SemiRing_Morphism
+        abstract_algebra.strong_semiringmor_sr_mor
+        abstract_algebra.SemiRing_Morphism
+        abstract_algebra.SemiRing_Morphism
+        abstract_algebra.SemiRing_Morphism
+        abstract_algebra.Ring
+        abstract_algebra.Ring
+        abstract_algebra.decfield_ring
+        abstract_algebra.Ring
+        abstract_algebra.field_ring
+        abstract_algebra.Ring
+        abstract_algebra.intdom_ring
+        abstract_algebra.Ring
+        abstract_algebra.Group
+        abstract_algebra.abgroup_group
+        abstract_algebra.Group
+        abstract_algebra.CommutativeMonoid
+        abstract_algebra.CommutativeMonoid
+        abstract_algebra.bounded_semilattice_mon
+        abstract_algebra.CommutativeMonoid
+        abstract_algebra.semimult_monoid
+        abstract_algebra.CommutativeMonoid
+        abstract_algebra.semiplus_monoid
+        abstract_algebra.CommutativeMonoid
+        abstract_algebra.ring_monoid
+        abstract_algebra.CommutativeMonoid
+        abstract_algebra.AbGroup
+        abstract_algebra.ring_group
+        abstract_algebra.AbGroup
+        abstract_algebra.Surjective
+        abstract_algebra.Surjective
+        abstract_algebra.bijective_surjective
+        abstract_algebra.Surjective
+        abstract_algebra.Surjective
+        abstract_algebra.Surjective
+        abstract_algebra.Injective
+        abstract_algebra.Injective
+        abstract_algebra.Injective
+        abstract_algebra.bijective_injective
+        abstract_algebra.Injective
+        abstract_algebra.Injective
+        abstract_algebra.Injective
+        abstract_algebra.Injective
+        abstract_algebra.StrongSetoid_Morphism
+        abstract_algebra.StrongSetoid_Morphism
+        abstract_algebra.StrongSetoid_Morphism
+        abstract_algebra.strong_semiringmor_strong_mor
+        abstract_algebra.StrongSetoid_Morphism
+        abstract_algebra.Monoid
+        abstract_algebra.commonoid_mon
+        abstract_algebra.Monoid
+        abstract_algebra.group_monoid
+        abstract_algebra.Monoid
+        abstract_algebra.Monoid
+        abstract_algebra.Bijective
+        abstract_algebra.Bijective
+        abstract_algebra.Bijective
+        abstract_algebra.Bijective
+        abstract_algebra.SemiLattice
+        abstract_algebra.meet_semilattice
+        abstract_algebra.SemiLattice
+        abstract_algebra.join_semilattice
+        abstract_algebra.SemiLattice
+        abstract_algebra.SemiLattice
+        abstract_algebra.Category
+        abstract_algebra.Category
+        abstract_algebra.Category
+        abstract_algebra.Category
+        abstract_algebra.Category
+        abstract_algebra.Category
+        abstract_algebra.Category
+        abstract_algebra.JoinSemiLattice_Morphism
+        abstract_algebra.JoinSemiLattice_Morphism
+        abstract_algebra.JoinSemiLattice_Morphism
+        abstract_algebra.latticemor_join_mor
+        abstract_algebra.JoinSemiLattice_Morphism
+        abstract_algebra.JoinSemiLattice_Morphism
+        abstract_algebra.JoinSemiLattice_Morphism
+        abstract_algebra.StrongSetoid_BinaryMorphism
+        abstract_algebra.StrongSetoid_BinaryMorphism
+        abstract_algebra.StrongSetoid_BinaryMorphism
+        abstract_algebra.field_mult_ext
+        abstract_algebra.StrongSetoid_BinaryMorphism
+        abstract_algebra.field_plus_ext
+        abstract_algebra.StrongSetoid_BinaryMorphism : typeclass_instances.
+
 Ltac rewrite_nth_error :=
   match goal with
   | h: nth_error _ _ ≡ _ |- _ => rewrite h
@@ -49,6 +319,265 @@ Definition build_vec_gen {E} (from to : nat) :=
 
 Definition build_vec {E} := @build_vec_gen E 0.
 
+
+
+From Paco Require Import paco.
+From ITree Require Import Basics.HeterogeneousRelations.
+
+(* IY: TODO: move to ITrees*)
+Lemma eutt_Proper_mono : forall {A B E},
+        Proper ((@subrelationH A B) ==> (@subrelationH _ _)) (eutt (E := E)).
+Proof.
+  intros A B. do 3 red.
+    intros E x y. pcofix CIH. pstep. red.
+    intros sub a b H.
+    do 2 red in H. punfold H. red in H.
+    remember (observe a) as a'.
+    remember (observe b) as b'.
+    generalize dependent a. generalize dependent b.
+    induction H; intros; eauto.
+    + constructor. red in REL. destruct REL.
+      right. apply CIH. assumption. assumption.
+      destruct H.
+    + constructor. red in REL. intros.
+      specialize (REL v). unfold id.
+      destruct REL. right. apply CIH. assumption. assumption.
+      destruct H.
+Qed.
+
+Definition uvalue_of_nat k := UVALUE_I64 (Int64.repr (Z.of_nat k)).
+
+Lemma convert_typ_block_app : forall (a b : list (LLVMAst.block typ)) env, (convert_typ env (a ++ b) ≡ convert_typ env a ++ convert_typ env b)%list.
+Proof.
+  induction a as [| [] a IH]; cbn; intros; auto.
+  rewrite IH; reflexivity.
+Qed.
+
+
+(* Instance : Params (@eutt) 4. Defined. *)
+(* (* time rauto. (* 11.684 secs *) *) *)
+(* Instance : Params (@interp) 7. Defined. *)
+(* Instance : Params (@translate) 4. Defined. *)
+(* Instance : Params (@bind) 4. Defined. *)
+(* Instance : Params (@ret) 4. Defined. *)
+(* Instance : Params (@RetF) 4. Defined. *)
+(* Instance : Params (@interp_cfg_to_L3) 2. Defined. *)
+(* Instance : Params (@ITree.bind') 3. Defined. *)
+(* Typeclasses eauto := debug. *)
+(* Unset Printing Notations. *)
+
+Lemma genWhileLoop_ind:
+  forall (prefix : string)
+    (loopvar : raw_id)            (* lvar storing the loop index *)
+    (loopcontblock : block_id)    (* reentry point from the body back to the loop *)
+    (body_entry : block_id)       (* entry point of the body *)
+    (body_blocks : list (LLVMAst.block typ)) (* (llvm) body to be iterated *)
+    (nextblock : block_id)        (* exit point of the overall loop *)
+    (entry_id : block_id)         (* entry point of the overall loop *)
+    (s1 s2 : IRState)
+    (bks : list (LLVMAst.block typ))
+    (n : nat)                       (* Number of iterations *)
+    (j : nat)                       (* Starting iteration *)
+    (BOUND: n - j > 0)
+    (* Main relations preserved by iteration *)
+    (I : nat -> mem_block -> Rel_cfg),
+
+    (* Uniqueness of identifiers *)
+    find_block dtyp (convert_typ [ ] body_blocks) loopcontblock ≡ None ->
+    find_block dtyp (convert_typ [ ] body_blocks) nextblock ≡ None ->
+    entry_id ≢ loopcontblock ->
+    entry_id ≢ nextblock ->
+    loopcontblock ≢ nextblock ->
+    (forall loop_id i i0,
+        incBlockNamed (prefix @@ "_entry") s1 ≡ inr (i, entry_id) ->
+        incBlockNamed (prefix @@ "_loop") i ≡ inr (i0, loop_id) ->
+        loop_id ≢ loopcontblock /\ loop_id ≢ nextblock) ->
+
+    (* Generation of the LLVM code wrapping the loop around bodyV *)
+    genWhileLoop prefix (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
+                       loopvar loopcontblock body_entry body_blocks [] nextblock s1
+                       ≡ inr (s2,(entry_id, bks)) ->
+    (* Computation on the Helix side performed at each cell of the vector, *)
+    (*    the counterpart to bodyV (body_blocks) *)
+    forall (bodyH: nat -> mem_block -> itree _ mem_block),
+
+    (* Inductive Case *)
+    (* We build weakening in the rule: the precondition implies the initial invariant
+       and the final invariant implies the postcondition
+     *)
+    (forall g l mV mH ymem k _label,
+        (conj_rel (I k ymem)
+                  (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k))
+                  mH (mV,(l,g))) ->
+        eutt
+          (
+             (fun '(memH,vec') '(memV, (l, (g, x))) =>
+                l @ loopvar ≡ Some (uvalue_of_nat k) /\
+                I (S k) vec' memH (memV, (l, g))
+    ))
+          (with_err_RB (interp_Mem (bodyH k ymem) mH))
+          (with_err_LB (interp_cfg
+                          (denote_bks (convert_typ [] body_blocks) (_label, body_entry)) g l mV))
+    ) ->
+
+    (* Invariant is stable under extending local state *)
+    (forall k mH mV l l' g ymem, I k ymem mH (mV, (l, g)) -> l ⊑ l' -> I k ymem mH (mV, (l', g))) ->
+
+    (* Main result. Need to know initially that P holds *)
+    forall g l mV mH ymem _label,
+      (conj_rel
+         (I j ymem)
+         (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat j))
+         mH (mV,(l,g))
+      ) ->
+      eutt (fun '(memH,vec') '(memV, (l, (g,x))) =>
+              (* l @ loopvar ≡ Some (uvalue_of_nat n) /\ *)
+              x ≡ inl (loopcontblock, nextblock) /\
+              I n vec' memH (memV,(l,g))
+           )
+           (with_err_RB (interp_Mem (build_vec_gen (S j) n bodyH ymem) mH))
+           (with_err_LB (interp_cfg (denote_bks (convert_typ [] bks)
+                                                (_label, loopcontblock)) g l mV)).
+
+Proof with rauto.
+  intros * BOUND * F0 F1 F2 F3 F4 F5 GEN.
+  unfold genWhileLoop in GEN. cbn* in GEN. simp.
+  intros * STABLE HBODY.
+  remember (n - j) as k.
+  revert j k Heqk BOUND.
+  induction k as [| k IH]; intros * EQ BOUND * PRE.
+  - cbn...
+    (* LHS Helix simplification *)
+    unfold build_vec_gen, build_vec_gen_aux.
+    assert (n - S j ≡ 0) by lia.
+    rewrite H. cbn.
+    cbn...
+
+    (* RHS Vellvm simplification *)
+    rewrite denote_bks_unfold_in.
+    2 : {
+      rewrite find_block_ineq. rewrite find_block_ineq.
+      rewrite convert_typ_block_app. rewrite find_block_none_app.
+      Opaque find_block.
+      cbn. unfold fmap, Fmap_block. cbn. rewrite find_block_eq.
+      reflexivity. cbn. reflexivity.
+      auto.
+      cbn. eapply F5; eauto.
+      cbn. auto.
+    }
+    cbn...
+    cbn...
+    focus_single_step_v.
+    Transparent denote_code.
+    cbn...
+    focus_single_step_v.
+
+    setoid_rewrite denote_instr_op.
+    2 : {
+      cbn...
+      2 : {
+        destruct PRE; eauto.
+      }
+      cbn...
+      unfold uvalue_to_dvalue_binop.
+      cbn...
+      reflexivity.
+    }
+    cbn... subst. cbn...
+    rewrite denote_instr_op.
+    2 : {
+      cbn.
+      cbn...
+      2 : {
+        setoid_rewrite lookup_alist_add_eq. reflexivity.
+      }
+      cbn...
+      Arguments uvalue_to_dvalue_binop /.
+      cbn...
+      reflexivity.
+    }
+    cbn...
+    rewrite denote_term_br_r.
+    2 : {
+      (* TODO: notation for map updates *)
+      (* TODO: notation for DynamicValues.Int64 *)
+      cbn...
+      2 : {
+        setoid_rewrite lookup_alist_add_eq. reflexivity.
+      }
+      match goal with
+      | [ |- ret (_, (_, (_, ?x))) ≈ Ret (_, (_, (_, ?x'))) ] => assert (x ≡ x')
+          end.
+      unfold eval_int_icmp. cbn.
+      assert (
+         DynamicValues.Int64.lt
+        (DynamicValues.Int64.add (Int64.repr (Z.of_nat j)) (DynamicValues.Int64.repr 1))
+        (DynamicValues.Int64.repr (Z.of_nat n)) ≡ false) by lia.
+      rewrite H0. cbn. reflexivity.
+      cbn. rewrite H0. reflexivity.
+    }
+    cbn... subst. rewrite denote_bks_unfold_not_in.
+    2 : lia.
+    cbn... apply eutt_Ret.
+    split.
+    + reflexivity.
+    + eapply HBODY. destruct PRE.
+      2 : {
+        Unshelve.
+        eapply sub_alist_add.
+        lia.
+      } eapply HBODY.
+      2 : {
+        Unshelve. 2 : exact l.
+        eapply sub_alist_add.
+        lia.
+      }
+      assert (n ≡ j) by lia.
+      rewrite H0. auto.
+  - cbn...
+    match goal with
+    | [ |- context[convert_typ [] ?l] ] => remember l as L
+    end.
+    (* match goal with *)
+    (* | [ |- context[convert_typ [] (?hd1::?hd2::?tl ++ ?l)] ] => *)
+    (*   remember hd1 as HD1; remember hd2 as HD2; remember tl as TL; remember l as L *)
+    (* end *)
+    (* . *)
+(*     setoid_rewrite list_cons_app in HeqL. *)
+(*     subst.  *)
+(*     rewrite denote_bks_flow_right. *)
+(*     + rewrite list_cons_app. cbn... *)
+(*       pose proof interp_Mem_ret. *)
+(*       assert ( *)
+(*            ITree.bind (with_err_RB (interp_Mem (bodyH j ymem) mH)) *)
+(*            (λ x : memoryH * mem_block, ret x) *)
+(*           ≈ *)
+(*            ITree.bind (with_err_RB (interp_Mem (bodyH j ymem) mH)) *)
+(*            (λ x : memoryH * mem_block, with_err_RB (let '(mem', v) := x in interp_Mem (Ret v) mem'))). *)
+(*       { eapply eutt_clo_bind. reflexivity. intros. subst. *)
+(*         destruct u2. rewrite interp_Mem_ret. rewrite translate_ret. reflexivity. } *)
+(*       rewrite <- H1. rewrite bind_ret_r. clear H1. *)
+(*       match goal with *)
+(*       | [ |- eutt _ _ ?RHS ] => remember RHS as R *)
+(*       end. *)
+(*       assert ( *)
+(*           (with_err_LB (interp_cfg (denote_bks (convert_typ [ ] body_blocks) (_label, body_entry)) g l mV)) *)
+(*             ≈ R). *)
+(*       { *)
+(*         rewrite HeqR. clear HeqR R. admit. (* Can't use ind_flow or noreentrance here? *) *)
+(*       } *)
+(*       rewrite <- H1. clear HeqR R H1. *)
+(*       assert (n ≡ S j) by lia. rewrite H1. *)
+(*       eapply eutt_Proper_mono. *)
+(*       2 : apply HBODY. *)
+(*       * red. intros. destruct x, y. destruct p. destruct p. destruct s. destruct p. destruct H2. *)
+(*         intuition. cbn. admit. admit. *)
+(*       * apply PRE. *)
+(*     + admit. *)
+(*     + admit. *)
+(*   - admit. *)
+Admitted.
+ 
 Definition bodyIMap (f : AExpr) (σ : evalContext) (x: mem_block) (n: nat) (y: mem_block) : itree Event (mem_block) :=
         v <- lift_Derr (mem_lookup_err "Error reading memory denoteDSHIMap" n x) ;;
         vn <- lift_Serr (MInt64asNT.from_nat n) ;;
@@ -57,8 +586,6 @@ Definition bodyIMap (f : AExpr) (σ : evalContext) (x: mem_block) (n: nat) (y: m
 
 Definition IMap_Rel σ Γ : Rel_cfg_T mem_block (block_id * block_id + uvalue) :=
   lift_Rel_cfg (state_invariant σ Γ).
-
-Definition uvalue_of_nat k := UVALUE_I64 (Int64.repr (Z.of_nat k)).
 
 Lemma bodyIMapCorrect : forall i o vx vy f loopvar loopcontblock s1 s2 bid_from bid_src bodyV
                           memx memy
@@ -391,145 +918,6 @@ eutt (fun st st' => st ⊑ st')
 
  *)
 
-Lemma genWhileLoop_ind:
-  forall (prefix : string)
-    (loopvar : raw_id)            (* lvar storing the loop index *)
-    (loopcontblock : block_id)    (* reentry point from the body back to the loop *)
-    (body_entry : block_id)       (* entry point of the body *)
-    (body_blocks : list (LLVMAst.block typ)) (* (llvm) body to be iterated *)
-    (nextblock : block_id)        (* exit point of the overall loop *)
-    (entry_id : block_id)         (* entry point of the overall loop *)
-    (s1 s2 : IRState)
-    (bks : list (LLVMAst.block typ))
-    (n : nat)                       (* Number of iterations *)
-    (j : nat)                       (* Starting iteration *)
-    (BOUND: n - j > 0)
-    (* Main relations preserved by iteration *)
-    (I : nat -> mem_block -> Rel_cfg),
-
-    (* forall loop_id i i0, *)
-    (* incBlockNamed (prefix @@ "_entry") s1 ≡ inr (i, entry_id) -> *)
-    (* incBlockNamed (prefix @@ "_loop") i ≡ inr (i0, loop_id) -> *)
-
-    (* (* Generation of the LLVM code wrapping the loop around bodyV *) *)
-    genWhileLoop prefix (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
-                       loopvar loopcontblock body_entry body_blocks [] nextblock s1
-                       (* IY: Adding explicit exposure of entry_bk and loop_bk. *)
-                       ≡ inr (s2,(entry_id, bks)) ->
-    (* (* Computation on the Helix side performed at each cell of the vector, *)
-    (*    the counterpart to bodyV (body_blocks) *) *)
-    forall (bodyH: nat -> mem_block -> itree _ mem_block),
-
-    (* Inductive Case *)
-    (* We build weakening in the rule: the precondition implies the initial invariant
-       and the final invariant implies the postcondition
-     *)
-    (* (P ⊆ I 0) -> (I n ⊆ Q) -> *)
-      (* (R ⩕ Invk (n +1) /\ lvar = n /\ retlabel = post ) *)
-      (* ((R ⩕ Invk n) (mH,ymem) (mV, (l, (g, (inl body))))) -> *)
-    (forall g l mV mH ymem k _label,
-        (conj_rel (I k ymem)
-                  (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k))
-                  mH (mV,(l,g))) ->
-        eutt
-          (
-             (fun '(memH,vec') '(memV, (l, (g, x))) =>
-                l @ loopvar ≡ Some (uvalue_of_nat k) /\
-                I (S k) vec' memH (memV, (l, g))
-    ))
-          (with_err_RB (interp_Mem (bodyH k ymem) mH))
-          (with_err_LB (interp_cfg
-                          (denote_bks (convert_typ [] body_blocks) (_label, body_entry)) g l mV))
-    ) ->
-
-    (* Main result. Need to know initially that P holds *)
-    forall g l mV mH ymem _label _label',
-      (conj_rel
-         (I j ymem)
-         (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat j))
-         mH (mV,(l,g))
-      ) -> 
-      eutt (fun '(memH,vec') '(memV, (l, (g,x))) =>
-              l @ loopvar ≡ Some (uvalue_of_nat n) /\
-              x ≡ inl (_label,nextblock) /\
-              I n vec' memH (memV,(l,g))
-           )
-           (with_err_RB (interp_Mem (build_vec_gen j n bodyH ymem) mH))
-           (with_err_LB (interp_cfg (denote_bks (convert_typ [] bks)
-                                                (_label', loopcontblock)) g l mV)).
-
-Proof with rauto.
-  intros * BOUND * GEN.
-  unfold genWhileLoop in GEN. cbn* in GEN. simp.
-  intros * HBODY.
-  remember (n - j - 1) as k.
-  revert j k Heqk BOUND.
-  induction j as [| j IH]; intros * EQ BOUND * PRE.
-  - admit.
-  - admit.
-
-  (*  intros BOUND GEN * EQ EQ'. intros. destruct H3 as [PRE1 PRE2]. *)
-  (*  cbn* in GEN; simp. red. *)
-   
-  (*  (* Specifying the post condition into a "I x" format, to use inductive hypothesis *) *)
-  (*  eapply eqit_mon; auto. *)
-  (*  Unshelve. *)
-  (*  3 : exact *)
-  (*        (lift_Rel_cfg (I n) ⩕ lift_Rel_cfg (λ (_ : memoryH) '(_, (l0, _)), *)
-  (*                                            l0 @ loopvar ≡ Some (uvalue_of_nat n))). *)
-  (*  red; intros; intuition. *)
-  (*  unfold lift_Rel_cfg. destruct x0, x1, p. destruct p. apply H1. *)
-  (*  destruct PR. auto. destruct PR. auto. *)
-  (*  cbn in *. *)
-  (*  cbn... *)
-
-  (*  (* Induction on loop iteration, namely [n - j]. *) *)
-  (*  (* A dead-end direction is to induct over "body_blocks" directly  -- we may be able *)
-  (*     to do this using information about [n], but it is a bad idea to actually induct *)
-  (*     over "body_blocks" directly *) *)
-  (*  generalize dependent n. generalize dependent j. *)
-  (*  intros. 2 : exact true. 2 : exact true. simp. *)
-  (*  remember (n - j) as index. generalize dependent n. generalize dependent j. *)
-  (*  induction index. intros. inversion BOUND. *)
-  (*  intros. cbn... cbn... cbn... *)
-  (*  remember *)
-  (*    ([{| *)
-  (*     blk_id := loopcontblock; *)
-  (*     blk_phis := [ ]; *)
-  (*     blk_code := *)
-  (*       [(IId (Name ((prefix @@ "_next_i") @@ string_of_nat (local_count i2))), *)
-  (*         INSTR_Op *)
-  (*           (OP_IBinop (Add false false) (TYPE_I 64%Z) (EXP_Ident (ID_Local loopvar)) *)
-  (*               (EXP_Integer 1%Z))); *)
-  (*         (IId r0, *)
-  (*         INSTR_Op *)
-  (*           (OP_ICmp Slt (TYPE_I 64%Z) *)
-  (*             (EXP_Ident *)
-  (*                 (ID_Local *)
-  (*                   (Name ((prefix @@ "_next_i") @@ string_of_nat (local_count i2))))) *)
-  (*             (EXP_Integer (Z.pos (Pos.of_succ_nat n)))))]; *)
-  (*     blk_term := (IVoid i8, TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local r0)) loop_id nextblock); *)
-  (*     blk_comments := None |}]). *)
-  (* assert ( *)
-  (* ∀ a b : list (LLVMAst.block typ), *)
-  (*   convert_typ [ ] (a ++ b)%list ≡ (convert_typ [ ] a ++ convert_typ [ ] b)%list *)
-  (* ). *)
-  (* induction a as [| [] a IH']; cbn; intros; auto. *)
-  (* rewrite IH'; reflexivity. rewrite H. *)
-  (* cbn... *)
-  (* apply app_inv_head in H7. *)
-  (* subst. *)
-  (* cbn... *)
-
-  (* (* Trying to get shape things up so that we can apply IH.. *) *)
-  (* assert (n ≡ S (index + j)). { *)
-  (*   assert (n = S index + j). rewrite Heqindex. *)
-  (*   rewrite Nat.sub_add. reflexivity. lia. *)
-  (*   rewrite H3. reflexivity. } *)
-
-  (* rewrite H3. cbn... *)
-Admitted.
- 
 Definition stable_exp_local (R: Rel_cfg) : Prop :=
     forall memH memV ρ1 ρ2 g,
       R memH (memV, (ρ1, g)) ->

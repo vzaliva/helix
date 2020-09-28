@@ -751,7 +751,6 @@ Ltac break_and :=
   Hint Rewrite denote_code_nil : vellvm.
   Hint Rewrite denote_code_singleton : vellvm.
 
-
   Hint Rewrite interp_Mem_bind : helix.
   Hint Rewrite interp_Mem_ret : helix.
   Hint Rewrite interp_Mem_MemLU : helix.
