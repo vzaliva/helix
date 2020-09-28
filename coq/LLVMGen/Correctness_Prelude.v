@@ -788,13 +788,13 @@ Section InterpHelix.
 
   Lemma interp_helix_MemLU :
     forall {E} str mem m x,
-      memory_lookup_err str mem x ≡ inr m ->
+      memory_lookup mem x ≡ Some m ->
       interp_helix (E := E) (trigger (MemLU str x)) mem ≈ Ret (Some (mem,m)).
   Proof.
     intros * EQ.
     unfold interp_helix.
     setoid_rewrite interp_Mem_vis_eqit.
-    cbn; rewrite EQ; cbn.
+    cbn*; rewrite EQ; cbn.
     rewrite Eq.bind_ret_l, tau_eutt.
     cbn; rewrite interp_Mem_ret, interp_fail_Ret, translate_ret.
     reflexivity.

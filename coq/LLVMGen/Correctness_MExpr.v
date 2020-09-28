@@ -78,86 +78,58 @@ Section MExpr.
     intros * [MEM _ _] LU1 LU2; eapply MEM in LU1; eapply LU1 in LU2; eauto.
   Qed.
 
+  Lemma failure_throw : forall E Y X s (k : Y -> _) m,
+      ~ no_failure (interp_helix (X := X) (E := E) (ITree.bind (Exception.throw s) k) m).
+  Proof.
+  Admitted.
+
+
   (** ** Compilation of MExpr
   *)
   Lemma genMExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
-      (* Helix  bits *)   (mexp: MExpr) (σ: evalContext) (memH: memoryH) v
+      (* Helix  bits *)   (mexp: MExpr) (σ: evalContext) (memH: memoryH) 
       (* Vellvm bits *)   (exp: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV) (τ: typ),
       genMExpr mexp s1 ≡ inr (s2, (exp, c, τ)) -> (* Compilation succeeds *)
-      evalMExpr memH σ mexp ≡ inr v    -> (* Evaluation succeeds *)
       state_invariant σ s1 memH (memV, (l, g)) ->
-      eutt (lift_Rel_cfg (state_invariant σ s2) ⩕ genMExpr_rel σ s2 mexp exp memH (mk_config_cfg memV l g))
-           (with_err_RB
-              (interp_Mem (denoteMExpr σ mexp)
-                          memH))
-           (with_err_LB
-              (interp_cfg (D.denote_code (convert_typ [] c)) g l memV)).
+      no_failure (interp_helix (E := E_cfg) (denoteMExpr σ mexp) memH) -> (* Source semantics defined *)
+      eutt (succ_cfg
+              (lift_Rel_cfg (state_invariant σ s2) ⩕ genMExpr_rel σ s2 mexp exp memH (mk_config_cfg memV l g)))
+           (interp_helix (denoteMExpr σ mexp) memH)
+           (interp_cfg (D.denote_code (convert_typ [] c)) g l memV).
   Proof with rauto.
-    intros * Hgen Heval Hmeminv.
+    intros * Hgen Hmeminv NOFAIL.
     generalize Hmeminv; intros WF; apply IRState_is_WF in WF.
 
-    unfold denoteMExpr; cbn*.
-    destruct mexp as [[vid] | mblock].
-    - (* PtrDeref case *)
+    unfold denoteMExpr in *; cbn* in *.
 
-      unfold denotePExpr; cbn*.
-      cbn* in Hgen; simp.
-      cbn*... 
-      break_inner_match_goal; try abs_by_WF.
-      2: cbn* in Heval; rewrite Heqo0 in Heval; inv Heval...
-      break_inner_match_goal; try abs_by_WF.
-      subst.
+    destruct mexp as [[vid] | mblock]; [| cbn in Hgen; inv Hgen].
 
-      edestruct memory_invariant_Ptr as (bkH & ptrV & Mem_LU & LUV & EQ); eauto.
+    cbn* in Hgen; simp.
+    unfold denotePExpr in *; cbn* in *.
+    simp; try (abs_by_WF || abs_by failure_throw).
 
-      cbn...
-      apply eutt_Ret.
-      2 : try apply memory_lookup_err_inr_Some_eq; eauto.
-      
-      split; auto.
-      split; auto.
-      red.
-      split.
-      { do 6 eexists.
-        splits; eauto.
+    edestruct memory_invariant_Ptr as (bkH & ptrV & Mem_LU & LUV & EQ); eauto.
 
-        destruct i0;
-          cbn in *; cbn...
+    cbn*... 2:eauto.
+    apply eutt_Ret.
+    
+    split; auto.
+    split; auto.
+    split.
+    { do 6 eexists.
+      splits; eauto.
+
+      destruct i0;
+        cbn in *; cbn...
 
         cbn... 2 : eauto. 3 : eauto. 2 : cbn... 2 : reflexivity. 
         reflexivity.
       }
-      { destruct v as (v & bk_sz).
-        assert (v ≡ bkH) as VBKH.
-        { simp.
-          cbn in Heval.
-          repeat break_match; inversion Heval; inversion Heqs; subst.
-          inv_memory_lookup_err.
-          match goal with
-          | H : Some (DSHPtrVal n bk_sz) ≡ Some (DSHPtrVal a size) |- _ =>
-            inversion H; subst
-          end.
-          match goal with
-          | H : memory_lookup memH a ≡ Some v |- _ =>
-            rewrite H in Mem_LU
-          end.
-          inversion Mem_LU; auto.
-        }
-
-        subst.
-        cbn in *.
-        match_rewrite.
-        rewrite Heqo0 in Heval.
-        unfold memory_lookup_err in *.
-        rewrite Mem_LU.
-        rewrite Mem_LU in Heval.
-        cbn in *.
-        inversion Heval.
-        reflexivity.
-      }
-    - (* Const *)
-      cbn* in Hgen; simp.
+    { 
+      cbn*.
+      do 2 match_rewrite; reflexivity.
+    }
   Qed.
 
   (* TODO: move these, and use them more. *)
