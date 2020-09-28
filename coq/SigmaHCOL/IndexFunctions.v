@@ -11,7 +11,7 @@ Import Coq.Arith.PeanoNat.Nat.
 
 Require Import Helix.Tactics.HelixTactics.
 Require Import Psatz.
-Require Import Omega.
+Require Import Coq.micromega.Lia.
 
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
@@ -148,11 +148,11 @@ Proof.
     unfold index_f', compose.
     destruct (index_f0 x) eqn:E.
     -
-      destruct x; omega.
+      destruct x; lia.
     -
       rewrite Nat.pred_succ.
       specialize (index_f_spec0 x xc).
-      omega.
+      lia.
   }
   exact (IndexMap 1 r index_f' new_spec).
 Defined.
@@ -207,7 +207,7 @@ Section InRange.
         }
         rewrite F.
         apply IHd.
-        omega.
+        lia.
   Qed.
 
   Lemma in_range_upper_bound:
@@ -255,7 +255,7 @@ Section InRange.
       induction d.
       + crush.
       + destruct (Nat.eq_dec (⟦ f ⟧ d) y).
-        * assert(dc: d<S d) by omega.
+        * assert(dc: d<S d) by lia.
           exists d, dc.
           assumption.
         *
@@ -267,7 +267,7 @@ Section InRange.
           intros x H0.
           elim H0.
           intros x0 H1.
-          assert(xc: x < (Datatypes.S  d)) by omega.
+          assert(xc: x < (Datatypes.S  d)) by lia.
           exists x, xc.
           apply H1.
           apply shrink_non_shrink_eq.
@@ -383,7 +383,7 @@ Section Jections.
     break_match.
     simpl in *.
     unfold compose in H.
-    destruct x,y; omega.
+    destruct x,y; lia.
   Qed.
 
 End Jections.
@@ -494,7 +494,7 @@ definition does not enforce this requirement, and the function produced might no
         *
           destruct (Nat.eq_dec x d).
           congruence.
-          omega.
+          lia.
         *
           unfold shrink_index_map_domain.
           break_match.
@@ -1071,7 +1071,7 @@ Section IndexMapSets.
       auto.
       apply in_range_shrink_index_map_domain.
       apply in_range_by_def.
-      omega.
+      lia.
       assumption.
   Qed.
 

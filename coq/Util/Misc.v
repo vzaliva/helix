@@ -15,7 +15,7 @@ Require Export Coq.Init.Specif.
 Require Import Helix.Tactics.HelixTactics.
 
 Require Import Psatz.
-Require Import Omega.
+Require Import Coq.micromega.Lia.
 
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.
@@ -208,7 +208,7 @@ Proof.
   intros.
   destruct y; try congruence.
   unfold PeanoNat.Nat.modulo.
-  omega.
+  lia.
 Qed.
 
 Lemma ext_equiv_applied_equiv
@@ -228,7 +228,7 @@ Lemma zero_lt_Sn:
   forall n:nat, 0<S n.
 Proof.
   intros.
-  omega.
+  lia.
 Qed.
 
 Lemma S_j_lt_n {n j:nat}:
@@ -254,7 +254,7 @@ Proof.
   intros m i M H.
   destruct (Compare_dec.dec_lt i m) as [HL|HGE].
   -
-    omega.
+    lia.
   -
     apply Nat.nlt_ge in HGE.
     destruct (eq_nat_dec i m).
@@ -291,12 +291,12 @@ Lemma add_lt_lt
      {n m t : nat}:
   (t < m) ->  (t + n < n + m).
 Proof.
-  omega.
+  lia.
 Qed.
 
 (* Similar to `Vnth_cast_aux` but arguments in equality hypotheis are swapped *)
 Lemma eq_lt_lt {n m k: nat} : n ≡ m -> k < n -> k < m.
-Proof. intros; omega. Qed.
+Proof. intros; lia. Qed.
 
 Lemma S_pred_simpl:
   forall n : nat, n ≢ 0 -> S (Init.Nat.pred n) ≡ n.

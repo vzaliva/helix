@@ -25,7 +25,7 @@ Require Import Coq.Logic.Decidable.
 
 Require Import Helix.Tactics.HelixTactics.
 Require Import Psatz.
-Require Import Omega.
+Require Import Coq.micromega.Lia.
 
 Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
@@ -368,7 +368,7 @@ Section SigmaHCOL_Operators.
           apply H.
         +
           right.
-          assert(jc1: j<k) by omega.
+          assert(jc1: j<k) by lia.
           apply IHk with (jc:=jc1). clear IHk.
           unfold shrink_op_family, mkFinNat, proj2_sig in *.
           simpl in *.
@@ -402,7 +402,7 @@ Section SigmaHCOL_Operators.
           right.
           dep_destruct j.
           congruence.
-          assert(jc1: x0<k) by omega.
+          assert(jc1: x0<k) by lia.
           unshelve eapply IHk with (jc:=jc1).
           unfold shrink_op_family_up, mkFinNat, proj2_sig in *.
           simpl in *.
@@ -437,7 +437,7 @@ Section SigmaHCOL_Operators.
           specialize (IHk (shrink_op_family op_family) H0).
           destruct IHk as [t [tc  IHk]].
           exists t.
-          assert(tc1: t < S k) by omega.
+          assert(tc1: t < S k) by lia.
           exists tc1.
 
           unfold shrink_op_family, mkFinNat, proj2_sig.
@@ -473,7 +473,7 @@ Section SigmaHCOL_Operators.
           specialize (IHk (shrink_op_family_up op_family) H0).
           destruct IHk as [t [tc  IHk]].
           exists (S t).
-          assert(tc1: S t < S k) by omega.
+          assert(tc1: S t < S k) by lia.
           exists tc1.
 
           unfold shrink_op_family_up, mkFinNat, proj2_sig in IHk.
@@ -546,7 +546,7 @@ Section SigmaHCOL_Operators.
               right; clear zc.
               destruct t.
               congruence.
-              assert(tc1: t<n) by omega.
+              assert(tc1: t<n) by lia.
               pose proof (family_in_set_includes_members i o n
                                                          (shrink_op_family_up op_family)
                                                          t
@@ -609,7 +609,7 @@ Section SigmaHCOL_Operators.
               right.
               unfold In.
               rewrite IHn.
-              assert(tc1: S t < n) by omega.
+              assert(tc1: S t < n) by lia.
               eapply family_in_set'_includes_members with (jc:=tc1).
               unfold shrink_op_family.
               simpl.
@@ -644,7 +644,7 @@ Section SigmaHCOL_Operators.
           apply H.
         +
           right.
-          assert(jc1: j<k) by omega.
+          assert(jc1: j<k) by lia.
           apply IHk with (jc:=jc1).
           unfold shrink_op_family, mkFinNat, proj2_sig.
           simpl in *.
@@ -679,7 +679,7 @@ Section SigmaHCOL_Operators.
           right.
           dep_destruct j.
           congruence.
-          assert(jc1: x0<k) by omega.
+          assert(jc1: x0<k) by lia.
           unshelve eapply IHk with (jc:=jc1).
           unfold shrink_op_family_up, mkFinNat, proj2_sig in *.
           simpl in *.
@@ -716,7 +716,7 @@ Section SigmaHCOL_Operators.
             specialize (IHk (shrink_op_family op_family) H0).
             destruct IHk as [t [tc  IHk]].
             exists t.
-            assert(tc1: t < S k) by omega.
+            assert(tc1: t < S k) by lia.
             exists tc1.
 
             unfold shrink_op_family, mkFinNat, proj2_sig in *.
@@ -756,7 +756,7 @@ Section SigmaHCOL_Operators.
           specialize (IHk (shrink_op_family_up op_family) H0).
           destruct IHk as [t [tc  IHk]].
           exists (S t).
-          assert(tc1: S t < S k) by omega.
+          assert(tc1: S t < S k) by lia.
           exists tc1.
 
           unfold shrink_op_family_up, mkFinNat, proj2_sig in IHk.
@@ -829,7 +829,7 @@ Section SigmaHCOL_Operators.
               right; clear zc.
               destruct t.
               congruence.
-              assert(tc1: t<n) by omega.
+              assert(tc1: t<n) by lia.
               pose proof (family_out_set_includes_members i o n
                                                          (shrink_op_family_up op_family)
                                                          t
@@ -892,7 +892,7 @@ Section SigmaHCOL_Operators.
               right.
               unfold In.
               rewrite IHn.
-              assert(tc1: S t < n) by omega.
+              assert(tc1: S t < n) by lia.
               eapply family_out_set'_includes_members with (jc:=tc1).
               unfold shrink_op_family.
               simpl.
@@ -2000,7 +2000,7 @@ Section OperatorProperies.
         simpl in *.
         clear f_inj.
         specialize (index_f_spec 0).
-        omega.
+        lia.
   Qed.
 
   Lemma Scatter_impl_1_Sn
@@ -2055,9 +2055,9 @@ Section OperatorProperies.
           assert(HH: ∃ x (xc:x<1), ⟦ f ⟧ x ≡ S i) by
               apply (@in_range_exists 1 (S n) (S i) f ip), H.
           destruct HH as [j [jc HH]].
-          dep_destruct j; omega.
+          dep_destruct j; lia.
         *
-          dep_destruct i; try omega.
+          dep_destruct i; try lia.
           simpl.
           rewrite Vnth_const.
           reflexivity.
@@ -2085,7 +2085,7 @@ Section OperatorProperies.
             apply H.
           }
           destruct HH as [j [jc HH]].
-          dep_destruct j; omega.
+          dep_destruct j; lia.
         *
           reflexivity.
       +
@@ -2706,10 +2706,10 @@ Section StructuralProperies.
         +
           Opaque ret.
           simpl in *.
-          dep_destruct j. 2: { omega. }
+          dep_destruct j. 2: { lia. }
           apply Is_Val_mkValue.
         +
-          dep_destruct j. 2: {omega. }
+          dep_destruct j. 2: { lia. }
           specialize (H 0 jc).
           simpl op.
           simpl in H, S.
@@ -2729,10 +2729,10 @@ Section StructuralProperies.
         +
           Opaque ret.
           simpl in *.
-          dep_destruct j. 2: { omega. }
+          dep_destruct j. 2: { lia. }
           apply Not_Collision_mkValue.
         +
-          dep_destruct j. 2: {omega. }
+          dep_destruct j. 2: { lia. }
           specialize (D 0 jc).
           simpl in D, S.
           dep_destruct v.
@@ -2851,8 +2851,8 @@ Section StructuralProperies.
     -
       intros v H j jc S.
       simpl in *.
-      assert(jc2: (j+o)<o+o) by omega.
-      assert(jc1:j<o+o) by omega.
+      assert(jc2: (j+o)<o+o) by lia.
+      assert(jc1:j<o+o) by lia.
       rewrite (@SHBinOp_impl_nth Monoid_RthetaSafeFlags o f v j jc jc1 jc2).
       apply Is_Val_Safe_liftM2; (apply H; constructor).
     -
@@ -2862,8 +2862,8 @@ Section StructuralProperies.
       split.
     - intros v D j jc S.
       simpl in *.
-      assert(jc2: (j+o)<o+o) by omega.
-      assert(jc1:j<o+o) by omega.
+      assert(jc2: (j+o)<o+o) by lia.
+      assert(jc1:j<o+o) by lia.
       rewrite (@SHBinOp_impl_nth _  o f v j jc jc1 jc2).
       apply Not_Collision_Safe_liftM2; apply D; constructor.
     -
@@ -2959,7 +2959,7 @@ Section StructuralProperies.
             apply VallButOne_Sn_cons_not_head in Vv.
             apply Vv.
           }
-          assert(ic' : i < n) by omega.
+          assert(ic' : i < n) by lia.
           assert(VAllButOne i ic' (not ∘ Is_Val) v).
           {
             eapply VallButOne_Sn_cases.

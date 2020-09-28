@@ -1,7 +1,10 @@
 
 Require Import Coq.Program.Basics.
 Require Import Coq.Program.Equality. (* for dependent induction *)
-Require Import Omega.
+Require Import Coq.micromega.Lia.
+Require Import Coq.Arith.Lt.
+Require Import Coq.Arith.PeanoNat.
+Require Import Coq.Arith.Peano_dec.
 Require Import Coq.Logic.FunctionalExtensionality.
 
 Require Export Coq.Vectors.Vector.
@@ -12,7 +15,6 @@ Require Import Helix.Tactics.HelixTactics.
 Require Import Helix.Util.Misc.
 Require Import Helix.Util.FinNat.
 
-Require Import Lia.
 
 Local Open Scope program_scope. (* for \circ notation *)
 Open Scope vector_scope.
@@ -283,7 +285,7 @@ Section VBreak.
     -
       rewrite Vnth_app.
       break_match.
-      + omega.
+      + lia.
       + apply f_equal, le_unique.
     -
       f_equal. symmetry.
@@ -313,7 +315,7 @@ Section VBreak.
         rewrite E.
         intros g.
         apply f_equal, le_unique.
-      + omega.
+      + lia.
     -
       f_equal. symmetry.
       apply Vbreak_eq_app.
@@ -396,9 +398,9 @@ Proof.
   - reflexivity.
 Qed.
 
-Fact lt_0_SSn:  forall n:nat, 0<S (S n). Proof. intros;omega. Qed.
+Fact lt_0_SSn:  forall n:nat, 0<S (S n). Proof. intros; lia. Qed.
 
-Fact lt_1_SSn:  forall n:nat, 1<S (S n). Proof. intros; omega. Qed.
+Fact lt_1_SSn:  forall n:nat, 1<S (S n). Proof. intros; lia. Qed.
 
 Lemma Vbuild_2 B gen:
   @Vbuild B 2 gen = [gen 0 (lt_0_SSn 0) ; gen 1 (lt_1_SSn 0)].
@@ -457,7 +459,7 @@ Section Vnth.
     -
       rewrite Vnth_0.
       reflexivity.
-    - omega.
+    - lia.
   Qed.
 
   Lemma Vnth_1
@@ -469,7 +471,7 @@ Section Vnth.
   Proof.
     destruct i.
     - auto.
-    - omega.
+    - lia.
   Qed.
 
   Lemma Vnth_Sn {B} (n i:nat) (v:B) (vs:vector B n) (ip: S i< S n) (ip': i< n):
@@ -619,7 +621,7 @@ Proof.
       apply Veq_nth.
       intros i ip.
       rewrite 2!Vbuild_nth.
-      assert(E: i+1+n = S (i+n) ) by omega.
+      assert(E: i+1+n = S (i+n) ) by lia.
       symmetry.
       forall_n_lt_eq.
 Qed.
@@ -724,19 +726,19 @@ Section Vunique.
     destruct i, j.
     - reflexivity.
     -
-      assert(jc':j < n) by omega.
+      assert(jc':j < n) by lia.
       apply Vforall_nth with (i:=j) (ip:=jc') in Pt.
       unfold compose in Pt.
       rewrite Vnth_Sn with (ip:=jc) (ip':=jc') in Hj.
       congruence.
     -
-      assert(ic':i < n) by omega.
+      assert(ic':i < n) by lia.
       apply Vforall_nth with (i:=i) (ip:=ic') in Pt.
       unfold compose in Pt.
       rewrite Vnth_Sn with (ip:=ic) (ip':=ic') in Hi.
       congruence.
     -
-      assert(jc':j < n) by omega.
+      assert(jc':j < n) by lia.
       apply Vforall_nth with (i:=j) (ip:=jc') in Pt.
       unfold compose in Pt.
       rewrite Vnth_Sn with (ip:=jc) (ip':=jc') in Hj.
@@ -766,8 +768,8 @@ Section Vunique.
     intros i ic j jc [Vi Vj].
     assert(S i = S j).
     {
-      assert(ic': S i < S n) by omega.
-      assert(jc': S j < S n) by omega.
+      assert(ic': S i < S n) by lia.
+      assert(jc': S j < S n) by lia.
       apply H with (ic:=ic') (jc:=jc').
       simpl.
       rewrite (le_unique _ _ (lt_S_n ic') ic).
@@ -801,7 +803,7 @@ Section Vunique.
     specialize (H 0).
     unfold compose in H.
     simpl in H.
-    apply H ; omega.
+    apply H ; lia.
   Qed.
 
   Lemma VAllButOne_0_Vforall
@@ -818,8 +820,8 @@ Section Vunique.
     unfold VAllButOne in H.
     apply Vforall_nth_intro.
     intros i ip.
-    assert (ip1: S i < S n) by omega.
-    assert (ip2: 0 <> S i) by omega.
+    assert (ip1: S i < S n) by lia.
+    assert (ip2: 0 <> S i) by lia.
     specialize (H (S i) ip1 ip2).
     simpl in *.
     rewrite (le_unique _ _  ip (lt_S_n ip1)).
@@ -838,8 +840,8 @@ Section Vunique.
     intros H.
     unfold VAllButOne in *.
     intros j jc N.
-    assert(jc': S j < S n) by omega.
-    assert(N':S i <> S j) by omega.
+    assert(jc': S j < S n) by lia.
+    assert(N':S i <> S j) by lia.
     specialize (H (S j) jc' N').
     rewrite <- Vnth_Sn with (v:=h) (ip:=jc').
     assumption.
@@ -880,10 +882,10 @@ Section Vunique.
     intros j jc H0.
     destruct j.
     crush.
-    assert(jc': j < n) by omega.
+    assert(jc': j < n) by lia.
     rewrite Vnth_Sn with (ip':=jc').
     apply H.
-    omega.
+    lia.
   Qed.
 
   (* In this direction requires additional assumtion  P h *)
@@ -1011,7 +1013,7 @@ Section Vunique.
           inversion e.
           inversion H.
           clear e H.
-          assert(sx0: S x0 < S n) by omega.
+          assert(sx0: S x0 < S n) by lia.
           exists (S x0), sx0.
           apply VAllButOne_Sn' with (ic':=sx0) (ic:=x1); assumption.
   Qed.

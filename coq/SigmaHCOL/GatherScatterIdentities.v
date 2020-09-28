@@ -17,7 +17,7 @@ Require Import Coq.Logic.Decidable.
 
 Require Import Helix.Tactics.HelixTactics.
 Require Import Psatz.
-Require Import Omega.
+Require Import Coq.micromega.Lia.
 
 Require Import MathClasses.interfaces.abstract_algebra.
 
@@ -66,7 +66,7 @@ Proof.
     try rewrite Nat.eqb_neq in *;
     try rewrite Nat.eqb_eq in *.
   -
-    omega.
+    lia.
   -
     specialize (H n).
     autospecialize H; [constructor |].
@@ -98,7 +98,7 @@ Proof.
   generalize dependent f.
   induction n.
   -
-    omega.
+    lia.
   -
     intros.
     destruct (Nat.eq_dec y n).
@@ -120,7 +120,7 @@ Proof.
        *)
       admit.
     +
-      assert (YN : y < n) by omega; clear n0 yc.
+      assert (YN : y < n) by lia; clear n0 yc.
       autospecialize IHn; [assumption |].
       specialize (IHn (n_nth n f)).
       full_autospecialize IHn.
@@ -129,21 +129,21 @@ Proof.
       }
       {
         intros.
-        apply INJ; try omega.
+        apply INJ; try lia.
         unfold n_nth in *.
         repeat break_if;
           try rewrite Nat.eqb_neq in *;
           try rewrite Nat.eqb_eq in *;
-          try (subst; omega).
-        apply INJ in H1; omega.
-        apply INJ in H1; omega.
+          try (subst; lia).
+        apply INJ in H1; lia.
+        apply INJ in H1; lia.
       }
       destruct IHn as [x [xc R]].
       unfold n_nth in *.
       repeat break_if;
         try rewrite Nat.eqb_neq in *;
         try rewrite Nat.eqb_eq in *;
-        try (subst; omega).
+        try (subst; lia).
       exists n; auto.
       exists x; auto.
 Admitted.

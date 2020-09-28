@@ -3,6 +3,8 @@ Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.Correctness_NExpr.
 Require Import Helix.LLVMGen.Correctness_MExpr.
 
+Import ListNotations.
+
 Set Implicit Arguments.
 Set Strict Implicit.
 
@@ -1263,7 +1265,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         (*     entry <> nextblock. *)
         (* Proof. *)
         (*   Admit *)
-        About bk_outputs.
+        (* About bk_outputs. *)
         unfold no_reentrance.
         admit.
       }

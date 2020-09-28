@@ -1,6 +1,8 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.Correctness_NExpr.
+
+Import ListNotations.
 Import ProofNotations.
 
 Set Implicit Arguments.
