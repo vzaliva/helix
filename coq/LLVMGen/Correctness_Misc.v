@@ -11,276 +11,6 @@ Import ListNotations.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
-Print Hint *.
-
-Remove Hints
-       equiv_default_relation
-       abstract_algebra.sg_op_proper
-       abstract_algebra.sm_proper
-       abstract_algebra.comp_proper
-       abstract_algebra.BoundedJoinSemiLattice
-       abstract_algebra.JoinSemiLattice
-       abstract_algebra.MeetSemiLattice
-       abstract_algebra.Ring
-       additional_operations.ModEuclid MonadIter categories.Mono
-       abstract_algebra.Setoid
-       orders.po_preorder
-       orders.total_order_po
-       orders.le_total
-       orders.join_sl_order
-       orders.lattice_order_join
-       orders.lattice_order_meet
-       orders.strict_po_po
-       orders.srorder_po
-       strong_setoids.binary_strong_morphism_proper
-       semirings.FullPseudoOrder_instance_0
-       minmax.LatticeOrder_instance_0
-       workarounds.equivalence_proper : typeclass_instances.
-
-(* IY: Remove rest of abstract_algebra hints. Seems to give ~ 4% performance
-       increase on some rauto invocations. *)
-Remove Hints
-        abstract_algebra.BoundedJoinSemiLattice
-        abstract_algebra.JoinSemiLattice
-        abstract_algebra.Setoid
-        abstract_algebra.intdom_nontrivial
-        abstract_algebra.decfield_nontrivial
-        abstract_algebra.field_nontrivial
-        abstract_algebra.intdom_nozeroes
-        abstract_algebra.strong_setoid_symmetric
-        abstract_algebra.semilattice_idempotent
-        abstract_algebra.bounded_semilattice_idempotent
-        abstract_algebra.meet_join_absorption
-        abstract_algebra.join_meet_absorption
-        abstract_algebra.comp_assoc
-        abstract_algebra.MeetSemiLattice
-        abstract_algebra.lattice_meet
-        abstract_algebra.MeetSemiLattice
-        abstract_algebra.SemiRing_Morphism
-        abstract_algebra.Injective
-        abstract_algebra.Setoid_Morphism
-        abstract_algebra.Monoid_Morphism
-        abstract_algebra.SemiGroup_Morphism
-        abstract_algebra.strong_setoid_irreflexive
-        abstract_algebra.id_l
-        abstract_algebra.monoid_left_id
-        abstract_algebra.join_meet_distr_l
-        abstract_algebra.semiring_distr
-        abstract_algebra.ring_dist
-        abstract_algebra.sg_ass
-        abstract_algebra.negate_l
-        abstract_algebra.comsg_ass
-        abstract_algebra.commonoid_commutative
-        abstract_algebra.abgroup_commutative
-        abstract_algebra.semiring_left_absorb
-        abstract_algebra.Setoid
-        abstract_algebra.Setoid
-        abstract_algebra.Setoid
-        abstract_algebra.Setoid
-        abstract_algebra.Setoid
-        abstract_algebra.Setoid
-        abstract_algebra.Setoid
-        abstract_algebra.Setoid
-        abstract_algebra.Setoid
-        abstract_algebra.Setoid
-        abstract_algebra.Setoid
-        abstract_algebra.Setoid
-        abstract_algebra.Setoid
-        abstract_algebra.Setoid
-        abstract_algebra.Setoid
-        abstract_algebra.Setoid
-        abstract_algebra.Setoid
-        abstract_algebra.Setoid
-        abstract_algebra.sg_setoid
-        abstract_algebra.Setoid
-        abstract_algebra.Setoid
-        abstract_algebra.Setoid
-        abstract_algebra.arrow_equiv
-        abstract_algebra.Setoid
-        abstract_algebra.strong_setoid_cotrans
-        abstract_algebra.JoinSemiLattice
-        abstract_algebra.JoinSemiLattice
-        abstract_algebra.lattice_join
-        abstract_algebra.JoinSemiLattice
-        abstract_algebra.negate_r
-        abstract_algebra.id_r
-        abstract_algebra.monoid_right_id
-        abstract_algebra.CommutativeSemiGroup
-        abstract_algebra.semilattice_sg
-        abstract_algebra.CommutativeSemiGroup
-        abstract_algebra.Lattice
-        abstract_algebra.distr_lattice_lattice
-        abstract_algebra.Lattice
-        abstract_algebra.Monoid_Morphism
-        abstract_algebra.Monoid_Morphism
-        abstract_algebra.bounded_join_slmor_monmor
-        abstract_algebra.Monoid_Morphism
-        abstract_algebra.Monoid_Morphism
-        abstract_algebra.Monoid_Morphism
-        abstract_algebra.Monoid_Morphism
-        abstract_algebra.semiringmor_mult_mor
-        abstract_algebra.Monoid_Morphism
-        abstract_algebra.semiringmor_plus_mor
-        abstract_algebra.Monoid_Morphism
-        abstract_algebra.Setoid_Morphism
-        abstract_algebra.Setoid_Morphism
-        abstract_algebra.Setoid_Morphism
-        abstract_algebra.Setoid_Morphism
-        abstract_algebra.Setoid_Morphism
-        abstract_algebra.Setoid_Morphism
-        abstract_algebra.Setoid_Morphism
-        abstract_algebra.Setoid_Morphism
-        abstract_algebra.Setoid_Morphism
-        abstract_algebra.Setoid_Morphism
-        abstract_algebra.Setoid_Morphism
-        abstract_algebra.Setoid_Morphism
-        abstract_algebra.Setoid_Morphism
-        abstract_algebra.sgmor_setmor
-        abstract_algebra.Setoid_Morphism
-        abstract_algebra.negate_proper
-        abstract_algebra.Setoid_Morphism
-        abstract_algebra.Setoid_Morphism
-        abstract_algebra.Setoid_Morphism
-        abstract_algebra.recip_proper
-        abstract_algebra.Setoid_Morphism
-        abstract_algebra.Setoid_Morphism
-        abstract_algebra.dec_recip_proper
-        abstract_algebra.Setoid_Morphism
-        abstract_algebra.Setoid_Morphism
-        abstract_algebra.MeetSemiLattice_Morphism
-        abstract_algebra.MeetSemiLattice_Morphism
-        abstract_algebra.latticemor_meet_mor
-        abstract_algebra.MeetSemiLattice_Morphism
-        abstract_algebra.MeetSemiLattice_Morphism
-        abstract_algebra.MeetSemiLattice_Morphism
-        abstract_algebra.DistributiveLattice
-        abstract_algebra.DistributiveLattice
-        abstract_algebra.StrongSetoid
-        abstract_algebra.StrongSetoid
-        abstract_algebra.field_strongsetoid
-        abstract_algebra.StrongSetoid
-        abstract_algebra.SemiRing
-        abstract_algebra.SemiRing
-        abstract_algebra.SemiRing
-        abstract_algebra.SemiRing
-        abstract_algebra.SemiRing
-        abstract_algebra.BoundedJoinSemiLattice_Morphism
-        abstract_algebra.BoundedJoinSemiLattice_Morphism
-        abstract_algebra.BoundedJoinSemiLattice_Morphism
-        abstract_algebra.BoundedJoinSemiLattice_Morphism
-        abstract_algebra.setoid_eq
-        abstract_algebra.BoundedSemiLattice
-        abstract_algebra.bounded_join_semilattice
-        abstract_algebra.BoundedSemiLattice
-        abstract_algebra.SemiGroup
-        abstract_algebra.SemiGroup
-        abstract_algebra.comsg_setoid
-        abstract_algebra.SemiGroup
-        abstract_algebra.monoid_semigroup
-        abstract_algebra.SemiGroup
-        abstract_algebra.SemiGroup_Morphism
-        abstract_algebra.SemiGroup_Morphism
-        abstract_algebra.meet_slmor_sgmor
-        abstract_algebra.SemiGroup_Morphism
-        abstract_algebra.join_slmor_sgmor
-        abstract_algebra.SemiGroup_Morphism
-        abstract_algebra.monmor_sgmor
-        abstract_algebra.SemiGroup_Morphism
-        abstract_algebra.SemiGroup_Morphism
-        abstract_algebra.SemiGroup_Morphism
-        abstract_algebra.Lattice_Morphism
-        abstract_algebra.Lattice_Morphism
-        abstract_algebra.Lattice_Morphism
-        abstract_algebra.Lattice_Morphism
-        abstract_algebra.SemiRing_Morphism
-        abstract_algebra.SemiRing_Morphism
-        abstract_algebra.SemiRing_Morphism
-        abstract_algebra.SemiRing_Morphism
-        abstract_algebra.strong_semiringmor_sr_mor
-        abstract_algebra.SemiRing_Morphism
-        abstract_algebra.SemiRing_Morphism
-        abstract_algebra.SemiRing_Morphism
-        abstract_algebra.Ring
-        abstract_algebra.Ring
-        abstract_algebra.decfield_ring
-        abstract_algebra.Ring
-        abstract_algebra.field_ring
-        abstract_algebra.Ring
-        abstract_algebra.intdom_ring
-        abstract_algebra.Ring
-        abstract_algebra.Group
-        abstract_algebra.abgroup_group
-        abstract_algebra.Group
-        abstract_algebra.CommutativeMonoid
-        abstract_algebra.CommutativeMonoid
-        abstract_algebra.bounded_semilattice_mon
-        abstract_algebra.CommutativeMonoid
-        abstract_algebra.semimult_monoid
-        abstract_algebra.CommutativeMonoid
-        abstract_algebra.semiplus_monoid
-        abstract_algebra.CommutativeMonoid
-        abstract_algebra.ring_monoid
-        abstract_algebra.CommutativeMonoid
-        abstract_algebra.AbGroup
-        abstract_algebra.ring_group
-        abstract_algebra.AbGroup
-        abstract_algebra.Surjective
-        abstract_algebra.Surjective
-        abstract_algebra.bijective_surjective
-        abstract_algebra.Surjective
-        abstract_algebra.Surjective
-        abstract_algebra.Surjective
-        abstract_algebra.Injective
-        abstract_algebra.Injective
-        abstract_algebra.Injective
-        abstract_algebra.bijective_injective
-        abstract_algebra.Injective
-        abstract_algebra.Injective
-        abstract_algebra.Injective
-        abstract_algebra.Injective
-        abstract_algebra.StrongSetoid_Morphism
-        abstract_algebra.StrongSetoid_Morphism
-        abstract_algebra.StrongSetoid_Morphism
-        abstract_algebra.strong_semiringmor_strong_mor
-        abstract_algebra.StrongSetoid_Morphism
-        abstract_algebra.Monoid
-        abstract_algebra.commonoid_mon
-        abstract_algebra.Monoid
-        abstract_algebra.group_monoid
-        abstract_algebra.Monoid
-        abstract_algebra.Monoid
-        abstract_algebra.Bijective
-        abstract_algebra.Bijective
-        abstract_algebra.Bijective
-        abstract_algebra.Bijective
-        abstract_algebra.SemiLattice
-        abstract_algebra.meet_semilattice
-        abstract_algebra.SemiLattice
-        abstract_algebra.join_semilattice
-        abstract_algebra.SemiLattice
-        abstract_algebra.SemiLattice
-        abstract_algebra.Category
-        abstract_algebra.Category
-        abstract_algebra.Category
-        abstract_algebra.Category
-        abstract_algebra.Category
-        abstract_algebra.Category
-        abstract_algebra.Category
-        abstract_algebra.JoinSemiLattice_Morphism
-        abstract_algebra.JoinSemiLattice_Morphism
-        abstract_algebra.JoinSemiLattice_Morphism
-        abstract_algebra.latticemor_join_mor
-        abstract_algebra.JoinSemiLattice_Morphism
-        abstract_algebra.JoinSemiLattice_Morphism
-        abstract_algebra.JoinSemiLattice_Morphism
-        abstract_algebra.StrongSetoid_BinaryMorphism
-        abstract_algebra.StrongSetoid_BinaryMorphism
-        abstract_algebra.StrongSetoid_BinaryMorphism
-        abstract_algebra.field_mult_ext
-        abstract_algebra.StrongSetoid_BinaryMorphism
-        abstract_algebra.field_plus_ext
-        abstract_algebra.StrongSetoid_BinaryMorphism : typeclass_instances.
-
 Ltac rewrite_nth_error :=
   match goal with
   | h: nth_error _ _ ≡ _ |- _ => rewrite h
@@ -295,15 +25,6 @@ Ltac rewrite_mem_lookup :=
   match goal with
   | h: mem_lookup _ _ ≡ _ |- _ => rewrite h
   end.
- 
-(* Fixpoint build_vec {E} (n: nat) (body: nat -> mem_block -> itree E mem_block): *)
-(*   mem_block -> itree E mem_block := *)
-(*   fun memy => *)
-(*     match n with *)
-(*     | O => ret memy *)
-(*     | S n => memy' <- body n memy;; *)
-(*             build_vec n body memy' *)
-(*     end. *)
 
 Fixpoint build_vec_gen_aux {E} (from remains : nat) (body : nat -> mem_block -> itree E mem_block) : mem_block -> itree E mem_block :=
   fun vec =>
@@ -318,8 +39,6 @@ Definition build_vec_gen {E} (from to : nat) :=
   @build_vec_gen_aux E from (to - from).
 
 Definition build_vec {E} := @build_vec_gen E 0.
-
-
 
 From Paco Require Import paco.
 From ITree Require Import Basics.HeterogeneousRelations.
@@ -353,7 +72,6 @@ Proof.
   rewrite IH; reflexivity.
 Qed.
 
-
 (* Instance : Params (@eutt) 4. Defined. *)
 (* (* time rauto. (* 11.684 secs *) *) *)
 (* Instance : Params (@interp) 7. Defined. *)
@@ -365,6 +83,21 @@ Qed.
 (* Instance : Params (@ITree.bind') 3. Defined. *)
 (* Typeclasses eauto := debug. *)
 (* Unset Printing Notations. *)
+
+Notation "x < y" := (DynamicValues.Int64.lt x y).
+Notation "x + y" := (DynamicValues.Int64.add x y).
+Notation "'u_zero'" := (UVALUE_I1 DynamicValues.Int1.zero).
+Notation "'u_one" := (UVALUE_I1 DynamicValues.Int1.one).
+Notation "'d_zero'" := (DVALUE_I1 DynamicValues.Int1.zero).
+Notation "'d_one'" := (DVALUE_I1 DynamicValues.Int1.one).
+Notation "'(int64)' x" := (Int64.repr x) (at level 10).
+Notation "'(Z)' x" := (Z.of_nat x) (at level 10).
+
+Lemma bounds_check_aux :
+  forall (j n :nat),
+    ((int64) ((Z) j) + (int64) 1 < (int64) ((Z) n)) ≡ true ->
+                    (j + 1 < n)%nat.
+Proof. Admitted.
 
 Lemma genWhileLoop_ind:
   forall (prefix : string)
@@ -378,9 +111,10 @@ Lemma genWhileLoop_ind:
     (bks : list (LLVMAst.block typ))
     (n : nat)                       (* Number of iterations *)
     (j : nat)                       (* Starting iteration *)
-    (BOUND: n - j > 0)
+    (BOUND : (n >= j))
     (* Main relations preserved by iteration *)
     (I : nat -> mem_block -> Rel_cfg),
+
 
     (* Uniqueness of identifiers *)
     find_block dtyp (convert_typ [ ] body_blocks) loopcontblock ≡ None ->
@@ -406,6 +140,7 @@ Lemma genWhileLoop_ind:
        and the final invariant implies the postcondition
      *)
     (forall g l mV mH ymem k _label,
+
         (conj_rel (I k ymem)
                   (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k))
                   mH (mV,(l,g))) ->
@@ -423,8 +158,22 @@ Lemma genWhileLoop_ind:
     (* Invariant is stable under extending local state *)
     (forall k mH mV l l' g ymem, I k ymem mH (mV, (l, g)) -> l ⊑ l' -> I k ymem mH (mV, (l', g))) ->
 
+
     (* Main result. Need to know initially that P holds *)
     forall g l mV mH ymem _label,
+
+
+  (forall i i0 i1 i2 r r0 b0,
+      incBlockNamed (prefix @@ "_entry") s1 ≡ inr (i, entry_id) ->
+      incBlockNamed (prefix @@ "_loop") i ≡ inr (i0, b0) ->
+      incLocal i0 ≡ inr (i1, r) ->
+      incLocal i1 ≡ inr (i2, r0) ->
+
+      (alist_fresh r0
+        (alist_add (Name ((prefix @@ "_next_i") @@ string_of_nat (local_count i2)))
+          (UVALUE_I64 ((int64) ((Z) j) + (int64) 1)) l) /\
+            alist_fresh (Name ((prefix @@ "_next_i") @@ string_of_nat (local_count i2))) l)) ->
+
       (conj_rel
          (I j ymem)
          (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat j))
@@ -445,7 +194,7 @@ Proof with rauto.
   intros * STABLE HBODY.
   remember (n - j) as k.
   revert j k Heqk BOUND.
-  induction k as [| k IH]; intros * EQ BOUND * PRE.
+  induction k as [| k IH]; intros * EQ BOUND * FRESH PRE.
   - cbn...
     (* LHS Helix simplification *)
     unfold build_vec_gen, build_vec_gen_aux.
@@ -500,7 +249,6 @@ Proof with rauto.
     rewrite denote_term_br_r.
     2 : {
       (* TODO: notation for map updates *)
-      (* TODO: notation for DynamicValues.Int64 *)
       cbn...
       2 : {
         setoid_rewrite lookup_alist_add_eq. reflexivity.
@@ -509,31 +257,44 @@ Proof with rauto.
       | [ |- ret (_, (_, (_, ?x))) ≈ Ret (_, (_, (_, ?x'))) ] => assert (x ≡ x')
           end.
       unfold eval_int_icmp. cbn.
-      assert (
-         DynamicValues.Int64.lt
-        (DynamicValues.Int64.add (Int64.repr (Z.of_nat j)) (DynamicValues.Int64.repr 1))
-        (DynamicValues.Int64.repr (Z.of_nat n)) ≡ false) by lia.
+      assert ((int64) ((Z) j) + (int64) 1 < (int64) ((Z) n) ≡ false). {
+        symmetry in EQ. rewrite Nat.sub_0_le in EQ.
+        assert (j + 1 > n) by lia.
+        apply gt_asym in H0.
+        apply Bool.not_true_is_false. red. intros. apply H0.
+        assert ((j + 1 < n -> n > j + 1)%nat). intros; lia.
+        apply H2. clear H2.
+        apply bounds_check_aux. auto.
+      }
       rewrite H0. cbn. reflexivity.
       cbn. rewrite H0. reflexivity.
     }
     cbn... subst. rewrite denote_bks_unfold_not_in.
-    2 : lia.
+    2 : {
+      rewrite find_block_ineq. rewrite find_block_ineq.
+      rewrite convert_typ_block_app. rewrite find_block_none_app.
+      Opaque find_block.
+      cbn. unfold fmap, Fmap_block. cbn. rewrite find_block_ineq.
+      apply find_block_nil. cbn. auto. auto. cbn. eapply F5; eauto. cbn. auto.
+    }
     cbn... apply eutt_Ret.
     split.
     + reflexivity.
-    + eapply HBODY. destruct PRE.
+    +
+      eapply HBODY. destruct PRE.
       2 : {
         Unshelve.
-        eapply sub_alist_add.
-        lia.
+        eapply sub_alist_add. cbn.
+        eapply FRESH; eauto.
       } eapply HBODY.
       2 : {
         Unshelve. 2 : exact l.
-        eapply sub_alist_add.
-        lia.
+        eapply sub_alist_add.  eapply FRESH; eauto.
       }
-      assert (n ≡ j) by lia.
-      rewrite H0. auto.
+      assert (n <= j). lia.
+      assert (n ≡ j). lia.
+      rewrite H1. auto.
+
   - cbn...
     match goal with
     | [ |- context[convert_typ [] ?l] ] => remember l as L
