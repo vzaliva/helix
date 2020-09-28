@@ -1120,6 +1120,35 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         apply bid_bound_only_block_count
       end.
 
+  Lemma bound_between_shrink :
+    forall s1 s2 s1' s2' bid,
+      (block_count s1' <= block_count s1)%nat ->
+      (block_count s2' >= block_count s2)%nat ->
+      bid_bound_between s1 s2 bid ->
+      bid_bound_between s1' s2' bid.
+  Proof.
+    intros s1 s2 s1' s2' bid S1LE S2GE BOUND_BETWEEN.
+    unfold bid_bound_between.
+    destruct BOUND_BETWEEN as (n & s' & s'' & NEND & LT & GE & INC).
+    exists n. exists s'. exists s''.
+    repeat (split; auto).
+    all: lia.
+  Qed.
+
+  Lemma all_bound_between_shrink :
+    forall s1 s2 s1' s2' bids,
+      (block_count s1' <= block_count s1)%nat ->
+      (block_count s2' >= block_count s2)%nat ->
+      Forall (bid_bound_between s1 s2) bids ->
+      Forall (bid_bound_between s1' s2') bids.
+  Proof.
+    intros s1 s2 s1' s2' bids S1LE S2GE BOUND_BETWEEN.
+    apply Forall_forall.
+    intros x IN.
+    eapply Forall_forall in BOUND_BETWEEN; eauto.
+    eapply bound_between_shrink; eauto.
+  Qed.
+  
   (* TODO: Move *)
   Lemma inputs_bound_between :
     forall (op : DSHOperator) (s1 s2 : IRState) (nextblock op_entry : block_id) (bk_op : list (LLVMAst.block typ)),
@@ -1128,6 +1157,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   Proof.
     induction op;
       intros s1 s2 nextblock op_entry bk_op GEN;
+      pose proof GEN as BACKUP_GEN;
       cbn in GEN; simp; cbn.
 
     Ltac invert_err2errs :=
@@ -1162,6 +1192,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       match goal with
       | |- (block_count ?s1 <= block_count ?s2)%nat
         => block_count_replace; cbn; lia
+      | |- (block_count ?s1 >= block_count ?s2)%nat
+        => block_count_replace; cbn; lia
       end.
 
     Ltac solve_not_bid_bound :=
@@ -1191,8 +1223,70 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
     - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
     - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
-  Qed.
 
+      Set Nested Proofs Allowed.
+      Lemma convert_typ_app_list :
+        forall {F} `{Traversal.Fmap F} (a b : list (F typ)) (env : list (ident * typ)),
+          convert_typ env (a ++ b) ≡ convert_typ env a ++ convert_typ env b.
+      Proof.
+        intros F H a.
+        induction a; cbn; intros; auto.
+        rewrite IHa; reflexivity.
+      Qed.
+
+      rewrite convert_typ_app_list.
+
+      (* TODO: clean this up *)
+      unfold fmap.
+      unfold Fmap_list.
+      rewrite map_app.
+
+      apply Forall_app.
+      split.
+      + eapply all_bound_between_shrink.
+        3: {
+          eapply IHop; eauto.
+        }
+        solve_block_count.
+        solve_block_count.
+      + cbn.
+        rewrite List.Forall_cons_iff.
+        split.
+        2: { apply List.Forall_nil. }
+
+        admit.
+    - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
+      admit. admit.
+      admit.
+    - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
+    - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
+      cbn.
+
+      Lemma add_comment_inputs :
+        forall (bs : list (LLVMAst.block typ)) env (comments : list string),
+          inputs (convert_typ env (add_comment bs comments)) ≡ inputs (convert_typ env bs).
+      Proof.
+        induction bs; intros env comments; auto.
+      Qed.
+
+      rewrite add_comment_inputs.
+
+      unfold inputs.
+      unfold fmap.
+      unfold Fmap_list.
+
+      rewrite convert_typ_app_list.
+      rewrite map_app.
+
+      apply Forall_app.
+      split.
+      + eapply all_bound_between_shrink.
+        3: { eapply IHop1; eauto. }
+        all: solve_block_count.
+      + eapply all_bound_between_shrink.
+        3: { eapply IHop2; eauto. }
+        all: solve_block_count.
+  Admitted.
 
   Opaque denote_code.
  Lemma compile_FSHCOL_correct :
