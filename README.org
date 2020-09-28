@@ -40,8 +40,7 @@ series of intermediate languages, culminating in LLVM IR.
 
 #+BEGIN_SRC sh
      opam repo add coq-released https://coq.inria.fr/opam/released
-     opam pin add coq 8.11.2
-     make -j 4 install-dep
+     make -j 4 install-deps
 #+END_SRC
 
 To install *optional* dependencies:

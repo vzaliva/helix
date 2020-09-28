@@ -783,6 +783,9 @@ Section SigmaHCOL_rewriting.
 
 End SigmaHCOL_rewriting.
 
+Require Import Coq.Lists.List.
+Import ListNotations.
+
 Section SHCOL_to_MSHCOL.
 
   (*
@@ -863,6 +866,7 @@ Section SHCOL_to_MSHCOL.
       apply Vforall_nth_intro.
       intros t tc.
       unfold get_family_op.
+      Opaque SigmaHCOLImpl.SHBinOp_impl.
       simpl.
       unfold compose.
       match goal with

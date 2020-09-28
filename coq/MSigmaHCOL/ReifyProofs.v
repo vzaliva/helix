@@ -34,7 +34,7 @@ Require Import Coq.Lists.SetoidList.
 
 Require Import Helix.Tactics.HelixTactics.
 Require Import Psatz.
-Require Import Omega.
+Require Import Coq.micromega.Lia.
 
 Require Import ExtLib.Structures.Monad.
 Require Import ExtLib.Structures.Monoid.
@@ -276,20 +276,20 @@ Section SVector.
       simpl.
       destruct k.
       +
-        omega.
+        lia.
       +
         break_if.
         *
-          rewrite NP.F.add_neq_o by omega.
+          rewrite NP.F.add_neq_o by lia.
           rewrite find_fold_right_indexed'_S_P.
           rewrite IHv.
           reflexivity.
-          omega.
+          lia.
         *
           rewrite find_fold_right_indexed'_S_P.
           rewrite IHv.
           reflexivity.
-          omega.
+          lia.
   Qed.
 
   Definition mem_block_to_svector {n} (m: mem_block): svector fm n
@@ -720,7 +720,7 @@ Section OperatorPairwiseProofs.
             (* k>=o, oob case *)
             specialize (O0 k kc).
             rewrite_clear O0.
-            rewrite NP.F.add_neq_o by (unfold lt, nat_lt in bc;omega).
+            rewrite NP.F.add_neq_o by (unfold lt, nat_lt in bc; lia).
             rewrite NP.F.empty_o.
             reflexivity.
         +
@@ -793,17 +793,17 @@ Section OperatorPairwiseProofs.
             }
             rewrite H0 in V0. clear H0.
             apply NM.find_1 in V0.
-            rewrite NP.F.add_eq_o by omega.
+            rewrite NP.F.add_eq_o by lia.
             destruct k.
             --
               rewrite V0.
               f_equiv.
             --
-              omega.
+              lia.
           *
             unfold mem_lookup in *.
             rewrite O0 by apply kc.
-            rewrite NP.F.add_neq_o by omega.
+            rewrite NP.F.add_neq_o by lia.
             rewrite NP.F.empty_o.
             reflexivity.
         +
@@ -1200,14 +1200,14 @@ Section OperatorPairwiseProofs.
           (* k<n, which is normal *)
           clear O0 O1 O2.
           specialize (H0 k kc). specialize (I0 k kc).
-          assert (k < o + o)%nat as kc1 by omega.
+          assert (k < o + o)%nat as kc1 by lia.
           assert(V1: Is_Val (Vnth x kc1)).
           {
             apply G.
             apply Full_intro.
           }
 
-          assert (k + o < o + o)%nat as kc2 by omega.
+          assert (k + o < o + o)%nat as kc2 by lia.
           assert(V2: Is_Val (Vnth x kc2)).
           {
             apply G.
@@ -4017,11 +4017,11 @@ Section OperatorPairwiseProofs.
         eapply family_out_set'_implies_members in D0.
         destruct D0 as [p [pc D0]].
 
-        assert(pc1: p+d < n+d) by omega.
+        assert(pc1: p+d < n+d) by lia.
         specialize (compat t tc1 (p+d) pc1).
         destruct (eq_nat_dec t (p+d)) as [E | NE].
         +
-          omega.
+          lia.
         +
           specialize (compat NE).
           destruct compat.
@@ -4123,7 +4123,7 @@ Section OperatorPairwiseProofs.
         apply H.
         apply family_in_set_implies_members in H0.
         destruct H0 as [t [tc H0]].
-        assert(tc1: t < S n) by omega.
+        assert(tc1: t < S n) by lia.
         apply family_in_set_includes_members with (jc:=tc1).
         rewrite cast_in_index_set_eq with (E0:=E) (tn:=tc).
         apply H0.

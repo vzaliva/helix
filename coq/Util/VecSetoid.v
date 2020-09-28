@@ -4,7 +4,7 @@ Require Import Helix.Util.VecUtil.
 Require Import Coq.Arith.Arith.
 Require Import Coq.Program.Basics. (* for \circ notation *)
 Require Export Coq.Vectors.Vector.
-Require Import Omega.
+Require Import Coq.micromega.Lia.
 
 Require Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.
 Require Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.orders.rings.

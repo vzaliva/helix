@@ -3,6 +3,7 @@ Require Import Helix.LLVMGen.Correctness_Prelude.
 Set Implicit Arguments.
 Set Strict Implicit.
 
+Import ListNotations.
 Section WF_IRState.
 
   (**

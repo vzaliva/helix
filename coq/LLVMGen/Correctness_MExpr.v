@@ -1,29 +1,14 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.Correctness_NExpr.
+
+Import ListNotations.
 Import ProofNotations.
 
 Set Implicit Arguments.
 Set Strict Implicit.
 
 Typeclasses Opaque equiv.
-Remove Hints
-       equiv_default_relation
-       abstract_algebra.sg_op_proper
-       abstract_algebra.sm_proper
-       abstract_algebra.comp_proper
-       orders.po_preorder
-       orders.total_order_po
-       orders.le_total
-       orders.join_sl_order
-       orders.lattice_order_join
-       orders.lattice_order_meet
-       orders.strict_po_po
-       orders.srorder_po
-       strong_setoids.binary_strong_morphism_proper
-       semirings.FullPseudoOrder_instance_0
-       minmax.LatticeOrder_instance_0
-       workarounds.equivalence_proper : typeclass_instances.
 
 Section MExpr.
 

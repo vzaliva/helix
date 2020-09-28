@@ -66,7 +66,7 @@ Require Import Flocq.IEEE754.Bits.
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.misc.decision.
 
-Require Import Omega.
+Require Import Coq.micromega.Lia.
 
 Set Implicit Arguments.
 Set Strict Implicit.

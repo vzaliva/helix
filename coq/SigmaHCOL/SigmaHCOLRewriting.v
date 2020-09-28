@@ -23,7 +23,7 @@ Require Import Coq.Logic.ProofIrrelevance.
 Require Import Coq.Program.Program.
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Psatz.
-Require Import Omega.
+Require Import Coq.micromega.Lia.
 
 Require Import Helix.Tactics.HelixTactics.
 
@@ -177,8 +177,8 @@ Section SigmaHCOLHelperLemmas.
     unfold rvector2rsvector.
     unfold_Rtheta_equiv.
 
-    assert(jc1: j < o + o) by omega.
-    assert(jc2: j + o < o + o) by omega.
+    assert(jc1: j < o + o) by lia.
+    assert(jc2: j + o < o + o) by lia.
     setoid_rewrite SHBinOp_impl_nth with (jc1:=jc1) (jc2:=jc2).
 
     rewrite 2!Vnth_map.
@@ -568,7 +568,7 @@ Section SigmaHCOLHelperLemmas.
             unfold Rtheta',Monad_RthetaFlags,WriterMonadNoT.writer in x.
             replace (Vnth x jp) with (Vnth (Vcons h x) ipp) by apply Vnth_Sn.
             apply U.
-            omega.
+            lia.
           }
 
           assert(UZ: Is_ValX uf_zero (UnionFold fm f uf_zero x)).
@@ -598,7 +598,7 @@ Section SigmaHCOLHelperLemmas.
             rewrite Vnth_0.
             auto.
             unfold VAllButOne in U.
-            assert(jc: 0 < S n) by omega.
+            assert(jc: 0 < S n) by lia.
             specialize (U 0 jc n0).
             apply not_not_on_decidable.
             unfold Is_ValX.
@@ -664,7 +664,7 @@ Section SigmaHCOLHelperLemmas.
       intros SZ.
       dependent induction m.
       - dep_destruct x.
-        destruct j; omega.
+        destruct j; lia.
       -
         dep_destruct x.
         destruct (eq_nat_dec j 0).
@@ -746,8 +746,8 @@ Section SigmaHCOLHelperLemmas.
       unfold rsvector2rvector.
       unfold_Rtheta_equiv.
 
-      assert(jc1: j < o + o) by omega.
-      assert(jc2: j + o < o + o) by omega.
+      assert(jc1: j < o + o) by lia.
+      assert(jc2: j + o < o + o) by lia.
       setoid_rewrite SHBinOp_impl_nth with (jc1:=jc1) (jc2:=jc2).
 
       rewrite 2!Vnth_map.
@@ -844,8 +844,8 @@ Section SigmaHCOLExpansionRules.
         rewrite Vnth_map.
 
 
-        assert(jc1: j<o+o) by omega.
-        assert(jc2: j+o<o+o) by omega.
+        assert(jc1: j<o+o) by lia.
+        assert(jc2: j+o<o+o) by lia.
         rewrite SHBinOp_impl_nth with (fm:=Monoid_RthetaSafeFlags)
                                   (jc1:=jc1) (jc2:=jc2).
 
@@ -1027,8 +1027,8 @@ Section SigmaHCOLExpansionRules.
         unfold SafeCast', compose, rsvector2rvector, rvector2rsvector.
         rewrite Vnth_map.
 
-        assert(ip1: i<n+n) by omega.
-        assert(ip2: (i+n) < (n+n)) by omega.
+        assert(ip1: i<n+n) by lia.
+        assert(ip2: (i+n) < (n+n)) by lia.
         setoid_rewrite SHBinOp_impl_nth with (jc1:=ip1) (jc2:=ip2).
 
 
@@ -1179,7 +1179,7 @@ Section SigmaHCOLExpansionRules.
                 apply in_range_of_h in i0.
                 crush.
                 rewrite <- H in l.
-                omega.
+                lia.
                 apply ip.
               * reflexivity.
             + (* First half of x, which is fx0 *)
@@ -1236,7 +1236,7 @@ Section SigmaHCOLExpansionRules.
 
             rename Heqp0 into H.
             apply Vbreak_arg_app in H.
-            assert(ip1: S i <= i1 + i2) by omega.
+            assert(ip1: S i <= i1 + i2) by lia.
             apply Vnth_arg_eq with (ip:=ip1) in H.
             rewrite Vnth_app in H.
             break_match.
@@ -1323,7 +1323,7 @@ Section SigmaHCOLExpansionRules.
                 exists (i-o1).
                 assert (oc: i - o1 < o2) by crush.
                 exists oc.
-                replace (o1 + (i - o1) * 1) with i by omega.
+                replace (o1 + (i - o1) * 1) with i by lia.
                 reflexivity.
               *
                 rewrite Vnth_const.
@@ -1340,7 +1340,7 @@ Section SigmaHCOLExpansionRules.
             unfold sparsify.
             rewrite Vnth_map.
 
-            assert(ip1: i+i1 < i1 + i2) by omega.
+            assert(ip1: i+i1 < i1 + i2) by lia.
             apply Vnth_arg_eq with (i:=i+i1) (ip:=ip1) in H.
             unfold densify in H.
             rewrite Vnth_map in H.
@@ -1878,7 +1878,7 @@ Section SigmaHCOLRewritingRules.
               unfold Rtheta',Monad_RthetaFlags,WriterMonadNoT.writer in x.
               replace (Vnth x jp) with (Vnth (Vcons h x) ipp) by apply Vnth_Sn.
               apply U.
-              omega.
+              lia.
             }
 
             assert(UZ: Is_ValX uf_zero (UnionFold fm f uf_zero x)).
@@ -1908,7 +1908,7 @@ Section SigmaHCOLRewritingRules.
               rewrite Vnth_0.
               auto.
               unfold VAllButOne in U.
-              assert(jc: 0 < S n) by omega.
+              assert(jc: 0 < S n) by lia.
               specialize (U 0 jc n0).
               apply not_not_on_decidable.
               typeclasses eauto.
@@ -2197,7 +2197,7 @@ Section SigmaHCOLRewritingRules.
             apply (Vfold_right_under_P P).
             apply Uht.
           +
-            assert(C:S m + n ≡ S (m + n)) by omega.
+            assert(C:S m + n ≡ S (m + n)) by lia.
             replace (@Vfold_right A A f (S m + n) ht z)
               with (@Vfold_right A A f (S (m + n)) (@Vcast _ _ ht (S (m + n)) C) z)
               by
@@ -2925,7 +2925,7 @@ Section SigmaHCOLRewritingRules.
                 break_if.
                 - crush.
                 -
-                  replace (i - k + 1 + k) with (S i) by omega.
+                  replace (i - k + 1 + k) with (S i) by lia.
                   destruct (⟦ t ⟧ (S i)) eqn:T.
                   +
                     rewrite <- K in T.
@@ -2942,7 +2942,7 @@ Section SigmaHCOLRewritingRules.
               symmetry.
               assert(E: (S (Init.Nat.pred (if Compare_dec.lt_dec i k then ⟦ t ⟧ i else ⟦ t ⟧ (S i)))) ≡⟦ t ⟧ i ).
               {
-                break_if; try omega.
+                break_if; try lia.
                 destruct (⟦ t ⟧ i) eqn:T.
                 +
                   rewrite <- K in T.
@@ -3421,7 +3421,7 @@ Section SigmaHCOLRewritingRules.
               remember (Vbuild
                           (λ (t0 : nat) (it : t0 < m * S n), Vnth (gen (t0 / m) (tmdn t0 it)) (tmm t0 it))) as ht.
               assert (F: m * S n ≡ m + m * n) by lia.
-              assert(C:m * S n ≡ m + m*n) by omega.
+              assert(C:m * S n ≡ m + m*n) by lia.
               clear F. (*TODO: weird shit. cleanup later *)
               replace (Vfold_right f ht uf_zero) with
                   (Vfold_right f
@@ -3459,7 +3459,7 @@ Section SigmaHCOLRewritingRules.
                     {
                       revert l MNZ; clear_all; intros H MNZ.
                       rewrite <- Nat.mod_add with (a:=i-m) (b:=1).
-                      replace (i - m + 1 * m) with i by omega.
+                      replace (i - m + 1 * m) with i by lia.
                       reflexivity.
                       apply MNZ.
                     }
@@ -4153,7 +4153,6 @@ and `ISumReduction_PointWise` *)
         break_match; simpl.
         *
           unfold Scatter_impl.
-          rewrite Vbuild_Sn.
           simpl.
           unfold decide.
           break_match; simpl.
@@ -4183,7 +4182,7 @@ and `ISumReduction_PointWise` *)
             clear Heqd.
             dep_destruct (index_f 0).
             reflexivity.
-            omega.
+            lia.
         *
           crush.
       +
@@ -4349,8 +4348,8 @@ and `ISumReduction_PointWise` *)
       unfold SHPointwise_impl.
       rewrite Vbuild_nth.
 
-      assert(jc1: j<n+n) by omega.
-      assert(jc2: (j+n) < (n+n)) by omega.
+      assert(jc1: j<n+n) by lia.
+      assert(jc2: (j+n) < (n+n)) by lia.
       setoid_rewrite SHBinOp_impl_nth with (jc1:=jc1) (jc2:=jc2).
       unfold Rtheta'_equiv.
       rewrite evalWriter_Rtheta_liftM.
@@ -4545,7 +4544,7 @@ and `ISumReduction_PointWise` *)
         + rewrite <- plus_n_O; reflexivity.
         + apply H.
       -
-        omega.
+        lia.
     Qed.
 
     Lemma Vfold_left_rev_Vbuild_zeroes
@@ -4913,7 +4912,7 @@ https://stackoverflow.com/questions/47934884/proving-two-fixpoint-functions-by-i
       dep_destruct x. clear x.
       dep_destruct x0. clear x0.
       rename h into x.
-      dep_destruct j; try omega.
+      dep_destruct j; try lia.
       simpl.
 
       generalize (WriterMonadNoT.evalWriter x) as y.

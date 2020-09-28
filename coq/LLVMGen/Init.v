@@ -3,6 +3,7 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 
+Import ListNotations.
 Import MonadNotation.
 Import ITreeNotations.
 
@@ -838,28 +839,22 @@ Definition in_global_addr (g : global_env) (x : raw_id) (a : Addr.addr) :=
 Definition post_alloc_invariant_mcfg
            (globals : list (string * DSHType))
            (σ : evalContext)
-           (s : IRState)
   : Rel_mcfg_T unit unit :=
   fun '(memH,_) '(memV,((_,sl),(g,_))) =>
     forall j (jc : j < length σ),
-      match ListUtil.ith jc with
-      | DSHPtrVal _ _ => (
-          exists ptr_llvm,
-            match le_lt_dec (length globals) j with
-            | in_left => in_global_addr
-                          g
-                          (Anon (Z.of_nat (j - length globals)))
-                          ptr_llvm
-            | right jc' => in_global_addr
-                            g
-                            (Name (fst (ListUtil.ith jc')))
-                            ptr_llvm
-            end
-            /\
-            allocated ptr_llvm memV)
-      (* /\ mem_block_exists id memH *)
-         | _ => False
-         end.
+    exists ptr_llvm,
+      match le_lt_dec (length globals) j with
+      | in_left => in_global_addr
+                    g
+                    (Anon (Z.of_nat (j - length globals)))
+                    ptr_llvm
+      | right jc' => in_global_addr
+                      g
+                      (Name (fst (ListUtil.ith jc')))
+                      ptr_llvm
+      end
+      /\
+      allocated ptr_llvm memV.
 
 Lemma allocate_allocated (m1 m2 : memoryV) (d : dtyp) (a : Addr.addr) :
   allocate m1 d ≡ inr (m2, a) → allocated a m2.
@@ -968,6 +963,20 @@ Lemma eutt_weaken_left: forall {E A B} (R : A -> A -> Prop) (S : A -> B -> Prop)
 Proof.
   intros * LEFTUNIT EQt EQ.
   (* YZ TODO: specialize eqit_mon to eutt *)
+  (* ZX: also look at the lemma below, I just copied this *)
+  eapply eqit_mon; [reflexivity | reflexivity | | eapply eqit_trans; eauto].
+  intros ? ? []; eauto.
+Qed.
+
+Lemma eutt_weaken_right: forall {E A B} (R : B -> B -> Prop) (S : A -> B -> Prop)
+             (t : itree E A) (s s' : itree E B),
+    (* i.e. sub_rel (rcompose R S) S *)
+    (forall a b b', S a b' -> R b' b -> S a b) ->
+    eutt R s' s ->
+    eutt S t s' ->
+    eutt S t s.
+Proof.
+  intros * RIGHTUNIT EQt EQ.
   eapply eqit_mon; [reflexivity | reflexivity | | eapply eqit_trans; eauto].
   intros ? ? []; eauto.
 Qed.
@@ -985,6 +994,81 @@ Proof.
   unfold initOneIRGlobal in R.
   repeat break_match; invc R.
   all: eexists; eauto.
+Qed.
+
+
+Definition conj_rel (A B : Type) (R S : A → B → Prop) :=
+  fun a b => R a b /\ S a b.
+
+Lemma post_alloc_invariant_mcfg_conj
+      (h1 : string * DSHType)
+      (tl1 : list (string * DSHType)) 
+      (h2 : DSHVal)
+      (tl2 : list DSHVal)
+  :
+    equiv_rel
+      (post_alloc_invariant_mcfg (h1::tl1) (h2::tl2))
+      (conj_rel (post_alloc_invariant_mcfg [h1] [h2]) (post_alloc_invariant_mcfg tl1 tl2)).
+Proof.
+  intros.
+  split; intros.
+  -
+    unfold post_alloc_invariant_mcfg, conj_rel.
+    cbn.
+    repeat break_match; subst.
+    cbn in H.
+    split; intros.
+    +
+      specialize (H j).
+      autospecialize H; [lia |].
+      destruct H.
+      repeat break_match; try lia.
+      subst.
+      exists x.
+      assumption.
+    +
+      specialize (H (S j)).
+      autospecialize H; [lia |].
+      destruct H as [p H].
+      destruct sumbool_rec (*eqn:SH*) in H.
+      *
+        break_match; try lia.
+        exists p.
+        assumption.
+      *
+        break_match; try lia.
+        exists p.
+        erewrite ListUtil.ith_eq; [| reflexivity].
+        eassumption.
+  -
+    destruct H as [H TL].
+    unfold post_alloc_invariant_mcfg, conj_rel in *.
+    repeat break_let; subst.
+    intros.
+    cbn [Datatypes.length] in *.
+    destruct j.
+    +
+      clear TL.
+      cbn in *.
+      specialize (H O).
+      autospecialize H; [lia |].
+      destruct H as [p H].
+      exists p.
+      assumption.
+    +
+      clear H.
+      specialize (TL j).
+      autospecialize TL; [lia |].
+      destruct TL as [p TL].
+      repeat break_match; try lia.
+      *
+        exists p.
+        eassumption.
+      *
+        cbn.
+        exists p.
+        erewrite ListUtil.ith_eq; [| reflexivity].
+        eassumption.
 Qed.
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
@@ -1460,8 +1544,7 @@ Proof.
             DSHPtrVal (Datatypes.length globals) i])
     as σ.
   remember (Datatypes.length globals) as lg.
-  (* ZX TODO: [s2] might be wrong here *)
-  apply eutt_clo_bind with (UU:=post_alloc_invariant_mcfg globals σ s2).
+  apply eutt_clo_bind with (UU:=post_alloc_invariant_mcfg globals σ).
   -
     assert (TMP_EQ: eutt
              (fun '(m,_) '(m',_) => m = m')
@@ -1485,7 +1568,7 @@ Proof.
     cbn.
 
     apply eutt_clo_bind
-      with (UU:=post_alloc_invariant_mcfg globals e s2).
+      with (UU:=post_alloc_invariant_mcfg globals e).
     +
       subst.
       dependent induction globals.
@@ -1532,6 +1615,8 @@ Proof.
 
         move Heqs2 at bottom.
 
+        (* ZX TODO: this can be generalized into a nice lemma on [initFSHGlobals]
+           along the lines of [initFSGlobals init_m = res_m -> res_m = union init_m res_m] *)
         assert (TMP_EQ' : mg = memory_union mg0 mg).
         {
           clear - Heqs2 Heqs3.
@@ -1616,8 +1701,7 @@ Proof.
 
         rewrite Eq.bind_bind.
         repeat rewrite interp_to_L3_bind, translate_bind.
-        (* ZX TODO: [s2] might still be a bad fit *)
-        apply eutt_clo_bind with (UU:=post_alloc_invariant_mcfg [new_g] [new_g_dsh] s2).
+        apply eutt_clo_bind with (UU:=post_alloc_invariant_mcfg [new_g] [new_g_dsh]).
         --
           intros.
           cbn.
@@ -1627,8 +1711,12 @@ Proof.
           (* Alloca ng *)
           pose_interp_to_L3_alloca m'' a'' A' AE'.
           {
-            (* this might/should follow from [Heqs0] *)
-            admit.
+            clear - Heqs0.
+            unfold initOneIRGlobal in Heqs0.
+            repeat break_match; invc Heqs0; cbn.
+            rewrite typ_to_dtyp_I; discriminate.
+            rewrite typ_to_dtyp_D; discriminate.
+            rewrite typ_to_dtyp_D_array; discriminate.
           }
           rewrite AE'.
           setoid_rewrite translate_ret.
@@ -1642,21 +1730,36 @@ Proof.
           unfold post_alloc_invariant_mcfg.
           intros.
           cbn in jc.
-          unshelve erewrite ListUtil.ith_eq with (j:=0); [cbn; constructor | | lia].
+          replace j with 0 in * by lia.
           cbn.
 
-          (* @lord, this goal seems unprovable:
-             I have no information about what [new_g_dsh] is *)
-          destruct new_g_dsh eqn:NGD.
+          unfold in_global_addr.
+
+          exists a''.
+          split.
           ++
-            cbn in *.
-            unfold initOneFSHGlobal in Heqs2.
-            repeat break_match; invc Heqs2.
-            break_match; invc H1.
-            admit.
-          ++ admit.
-          ++ admit.
+            unfold alist_add.
+            rewrite alist_find_cons_eq.
+            reflexivity.
+            clear - Heqs0.
+            unfold initOneIRGlobal in Heqs0.
+            repeat break_match; invc Heqs0; reflexivity.
+          ++
+            eapply allocate_allocated.
+            eassumption.
         --
+          intros.
+          eapply eutt_equiv;
+            [eapply post_alloc_invariant_mcfg_conj |].
+          repeat break_let; subst.
+          eapply eutt_conj.
+          admit.
+          move IHglobals after H.
+
+          eapply eutt_weaken_right.
+          3:{ eapply IHglobals; admit. }
+          2:{ rewrite interp_to_L3_bind, translate_bind. admit. }
+          (* eapply eutt_clo_bind. *)
           admit.
     +
       intros.
@@ -1709,15 +1812,11 @@ Proof.
         rewrite app_length in jc'.
         cbn in *.
         remember (j - Datatypes.length e) as j'.
-        unshelve erewrite ListUtil.ith_eq with (j:=Datatypes.length e + j').
-        1: rewrite app_length; cbn; lia.
-        2: lia.
-        unshelve erewrite ith_eq_app_r.
-        1: cbn; lia.
+        break_match; try lia.
         destruct j' as [|j'].
         --
           cbn.
-          break_match; try lia.
+          (* break_match; try lia. *)
           replace (j - length globals) with 0 by lia.
           exists a'''.
           unfold in_global_addr, alist_add.
@@ -1728,7 +1827,7 @@ Proof.
         --
           destruct j'; [| exfalso; clear - jc' Heqj'; lia].
           cbn.
-          break_match; try lia.
+          (* break_match; try lia. *)
           replace (j - length globals) with 1 by lia.
           unfold in_global_addr, alist_add.
           rewrite alist_find_cons_neq by discriminate.
@@ -1744,69 +1843,31 @@ Proof.
           eassumption.
       *
         (* [j] "in" [e] *)
-        rewrite ListUtil.ith_eq_app with (hj:=hj) by reflexivity.
+        break_match; try lia.
         clear jc.
         specialize (H0 j hj).
-        break_match; auto.
+        break_match; try lia.
         destruct H0 as [ptr_llvm P].
-        break_match.
-        --
-          unfold in_global_addr.
-          remember (j - Datatypes.length globals) as j'.
-          destruct j' as [| j0] eqn:J0.
-          ++
-            unfold alist_add.
-            rewrite alist_find_cons_eq by reflexivity.
-            exists a'''.
-            split; [reflexivity |].
-            eapply allocate_allocated.
-            eassumption.
-          ++
-            destruct j0 as [| j1] eqn:J1.
-            **
-              unfold alist_add.
-              rewrite alist_find_cons_neq by discriminate.
-              rewrite remove_neq_alist;
-                try typeclasses eauto;
-                try discriminate.
-              rewrite alist_find_cons_eq by reflexivity.
-              exists a''.
-              split; [reflexivity |].
-              eapply allocated_allocate_allocated.
-              eapply allocate_allocated.
-              eassumption.
-              eassumption.
-            **
-              unfold in_global_addr in P.
-              destruct P as [P1 P2].
-              exists ptr_llvm.
-              unfold alist_add.
-              rewrite alist_find_cons_neq by discriminate.
-              rewrite remove_neq_alist;
-                try typeclasses eauto;
-                try discriminate.
-              rewrite alist_find_cons_neq
-                by (intros C; inversion C; lia).
-              rewrite remove_neq_alist;
-                try typeclasses eauto;
-                try (intros C; inversion C; lia).
-              split.
-              assumption.
-              eapply allocated_allocate_allocated.
-              eapply allocated_allocate_allocated.
-              eassumption.
-              eassumption.
-              eassumption.
-        --
-          unfold in_global_addr in *.
-          repeat rewrite alist_find_neq by discriminate.
-          exists ptr_llvm.
-          intuition.
-          eapply allocated_allocate_allocated.
-          eapply allocated_allocate_allocated.
-          eassumption.
-          eassumption.
-          eassumption.
+        unfold in_global_addr in *.
+        destruct P as [P1 P2].
+        exists ptr_llvm.
+        unfold alist_add.
+        rewrite alist_find_cons_neq by discriminate.
+        rewrite remove_neq_alist;
+          try typeclasses eauto;
+          try discriminate.
+        rewrite alist_find_cons_neq
+          by (intros C; inversion C; lia).
+        rewrite remove_neq_alist;
+          try typeclasses eauto;
+          try (intros C; inversion C; lia).
+        split.
+        erewrite ListUtil.ith_eq; [eassumption | reflexivity].
+        eapply allocated_allocate_allocated.
+        eapply allocated_allocate_allocated.
+        eassumption.
+        eassumption.
+        eassumption.
   -
     intros.
     admit.

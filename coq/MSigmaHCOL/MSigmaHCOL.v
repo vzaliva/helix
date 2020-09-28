@@ -6,7 +6,7 @@ Require Import Coq.Arith.Lt.
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Export Coq.Sets.Ensembles.
 Require Import Psatz.
-Require Import Omega.
+Require Import Coq.micromega.Lia.
 
 Require Import Helix.Util.VecUtil.
 Require Import Helix.Util.Misc.
@@ -88,7 +88,7 @@ Module MMSHCOL'
       simpl.
       break_if.
       +
-        rewrite NP.F.add_neq_o by omega.
+        rewrite NP.F.add_neq_o by lia.
         apply IHn.
         lia.
       +
@@ -135,8 +135,8 @@ Module MMSHCOL'
           rewrite NP.F.add_eq_o by reflexivity.
           reflexivity.
         *
-          rewrite NP.F.add_neq_o by omega.
-          rewrite NP.F.add_neq_o by omega.
+          rewrite NP.F.add_neq_o by lia.
+          rewrite NP.F.add_neq_o by lia.
           replace (S i + off) with (i + S off) by lia.
           replace (S off) with (0 + S off) by lia.
           rewrite IHn.
@@ -222,7 +222,7 @@ Module MMSHCOL'
       simpl.
       break_if.
       +
-        rewrite NP.F.add_neq_o by omega.
+        rewrite NP.F.add_neq_o by lia.
         reflexivity.
       +
         reflexivity.
@@ -312,15 +312,15 @@ Module MMSHCOL'
     -
       unfold mem_lookup.
       simpl.
-      rewrite NP.F.add_neq_o by omega.
+      rewrite NP.F.add_neq_o by lia.
       destruct k.
       +
-        omega.
+        lia.
       +
         rewrite find_fold_right_indexed'_S.
         rewrite IHv.
         reflexivity.
-        omega.
+        lia.
   Qed.
 
   Lemma mem_block_to_avector_eq_None {n m}:
@@ -1111,7 +1111,7 @@ Module MMSHCOL'
         apply H.
       +
         right.
-        assert(jc1: j<k) by omega.
+        assert(jc1: j<k) by lia.
         apply IHk with (jc:=jc1). clear IHk.
         unfold shrink_m_op_family, mkFinNat, proj2_sig in *.
         simpl in *.
@@ -1144,7 +1144,7 @@ Module MMSHCOL'
         right.
         dep_destruct j.
         congruence.
-        assert(jc1: x0<k) by omega.
+        assert(jc1: x0<k) by lia.
         unshelve eapply IHk with (jc:=jc1).
         unfold shrink_m_op_family_up, mkFinNat, proj2_sig in *.
         simpl in *.
@@ -1180,7 +1180,7 @@ Module MMSHCOL'
         specialize (IHk (shrink_m_op_family op_family) H0).
         destruct IHk as [t [tc  IHk]].
         exists t.
-        assert(tc1: t < S k) by omega.
+        assert(tc1: t < S k) by lia.
         exists tc1.
 
         unfold shrink_m_op_family, mkFinNat, proj2_sig.
@@ -1215,7 +1215,7 @@ Module MMSHCOL'
         specialize (IHk (shrink_m_op_family_up op_family) H0).
         destruct IHk as [t [tc  IHk]].
         exists (S t).
-        assert(tc1: S t < S k) by omega.
+        assert(tc1: S t < S k) by lia.
         exists tc1.
 
         unfold shrink_m_op_family_up, mkFinNat, proj2_sig in IHk.
@@ -1283,7 +1283,7 @@ Module MMSHCOL'
             congruence.
 
             rewrite <- IHn.
-            assert(tc1: t<n) by omega.
+            assert(tc1: t<n) by lia.
             apply (m_family_in_set_includes_members _ _ _
                                                     (shrink_m_op_family_up op_family) _
                                                     tc1).
@@ -1334,7 +1334,7 @@ Module MMSHCOL'
             (* H: not first, nor last *)
             right.
             rewrite IHn.
-            assert(tc1: S t < n) by omega.
+            assert(tc1: S t < n) by lia.
             eapply m_family_in_set'_includes_members with (jc:=tc1).
             unfold shrink_m_op_family.
             simpl.
@@ -1394,7 +1394,7 @@ Module MMSHCOL'
         apply H.
       +
         right.
-        assert(jc1: j<k) by omega.
+        assert(jc1: j<k) by lia.
         apply IHk with (jc:=jc1).
         unfold shrink_m_op_family, mkFinNat, proj2_sig.
         simpl in *.
@@ -1429,7 +1429,7 @@ Module MMSHCOL'
         right.
         dep_destruct j.
         congruence.
-        assert(jc1: x0<k) by omega.
+        assert(jc1: x0<k) by lia.
         unshelve eapply IHk with (jc:=jc1).
         unfold shrink_m_op_family_up, mkFinNat, proj2_sig in *.
         simpl in *.
@@ -1466,7 +1466,7 @@ Module MMSHCOL'
           specialize (IHk (shrink_m_op_family op_family) H0).
           destruct IHk as [t [tc  IHk]].
           exists t.
-          assert(tc1: t < S k) by omega.
+          assert(tc1: t < S k) by lia.
           exists tc1.
 
           unfold shrink_m_op_family, mkFinNat, proj2_sig in *.
@@ -1505,7 +1505,7 @@ Module MMSHCOL'
         specialize (IHk (shrink_m_op_family_up op_family) H0).
         destruct IHk as [t [tc  IHk]].
         exists (S t).
-        assert(tc1: S t < S k) by omega.
+        assert(tc1: S t < S k) by lia.
         exists tc1.
 
         unfold shrink_m_op_family_up, mkFinNat, proj2_sig in IHk.
@@ -1575,7 +1575,7 @@ Module MMSHCOL'
             destruct t.
             congruence.
             rewrite <- IHn.
-            assert(tc1: t<n) by omega.
+            assert(tc1: t<n) by lia.
             apply (m_family_out_set_includes_members _ _ _
                                                      (shrink_m_op_family_up op_family) _
                                                      tc1).
@@ -1626,7 +1626,7 @@ Module MMSHCOL'
             (* H: not first, nor last *)
             right.
             rewrite IHn.
-            assert(tc1: S t < n) by omega.
+            assert(tc1: S t < n) by lia.
             eapply m_family_out_set'_includes_members with (jc:=tc1).
             unfold shrink_m_op_family.
             simpl.
@@ -2051,7 +2051,7 @@ Module MMSHCOL'
       some_inv.
       subst m.
       unfold mem_add, mem_empty in C.
-      destruct (eq_nat_dec j b); try omega.
+      destruct (eq_nat_dec j b); try lia.
       apply NP.F.in_find_iff in C.
       rewrite NP.F.add_neq_o in C; auto.
   Qed.
@@ -2083,7 +2083,7 @@ Module MMSHCOL'
       intros m0 m H.
       simpl in *.
       unfold Pick_mem, map_mem_block_elt, mem_lookup, mem_in in *.
-      destruct j; try omega.
+      destruct j; try lia.
       split.
       +
         intros F.
@@ -2098,8 +2098,6 @@ Module MMSHCOL'
       +
         intros I.
         apply Full_intro.
-      +
-        crush.
     -
       intros m0 m H.
       simpl in *.
@@ -2576,7 +2574,7 @@ Module MMSHCOL'
         (* H is false, as k is out of range *)
         unfold Ensembles.In in H.
         unfold FinNatSet_to_natSet in H.
-        break_match_hyp; try omega.
+        break_match_hyp; try lia.
     -
       unfold Ensembles.Included.
       intros k H.
@@ -2586,7 +2584,7 @@ Module MMSHCOL'
         clear H2.
         specialize (H1 k kc).
         unfold FinNatSet_to_natSet.
-        break_match; try omega.
+        break_match; try lia.
         replace l with kc by apply NatUtil.lt_unique.
         apply H1.
         apply mem_keys_set_In.

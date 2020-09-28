@@ -1022,7 +1022,7 @@ Module MDSigmaHCOLEval
       let '(v, e) := exp in
       (v, NExpr_var_subst name value e).
 
-  Fixpoint DSHOperator_NVar_subt
+  Definition DSHOperator_NVar_subt
            (name: nat)
            (value: NExpr)
            (exp: DSHOperator): DSHOperator :=
