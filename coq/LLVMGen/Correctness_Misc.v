@@ -97,7 +97,7 @@ Lemma bounds_check_aux :
   forall (j n :nat),
     ((int64) ((Z) j) + (int64) 1 < (int64) ((Z) n)) ≡ true ->
                     (j + 1 < n)%nat.
-Proof. Admitted.
+Proof. Unset Printing Notations.  Admitted.
 
 Lemma genWhileLoop_ind:
   forall (prefix : string)
@@ -191,122 +191,127 @@ Lemma genWhileLoop_ind:
 Proof with rauto.
   intros * BOUND * F0 F1 F2 F3 F4 F5 GEN.
   unfold genWhileLoop in GEN. cbn* in GEN. simp.
-  intros * STABLE HBODY.
+  intros * HBODY STABLE.
   remember (n - j) as k.
-  revert j k Heqk BOUND.
-  induction k as [| k IH]; intros * EQ BOUND * FRESH PRE.
-  - cbn...
-    (* LHS Helix simplification *)
-    unfold build_vec_gen, build_vec_gen_aux.
-    assert (n - S j ≡ 0) by lia.
-    rewrite H. cbn.
-    cbn...
+  assert (JEQ: j ≡ n - k) by lia.
+  rewrite JEQ. clear BOUND Heqk JEQ j.
 
-    (* RHS Vellvm simplification *)
-    rewrite denote_bks_unfold_in.
-    2 : {
-      rewrite find_block_ineq. rewrite find_block_ineq.
-      rewrite convert_typ_block_app. rewrite find_block_none_app.
-      Opaque find_block.
-      cbn. unfold fmap, Fmap_block. cbn. rewrite find_block_eq.
-      reflexivity. cbn. reflexivity.
-      auto.
-      cbn. eapply F5; eauto.
-      cbn. auto.
-    }
-    cbn...
-    cbn...
-    focus_single_step_v.
-    Transparent denote_code.
-    cbn...
-    focus_single_step_v.
+  generalize dependent k.
+  generalize dependent n.
+  induction k as [| k IH]; intros * FRESH PRE.
+  - admit.
+  (* - cbn... *)
+  (*   (* LHS Helix simplification *) *)
+  (*   unfold build_vec_gen, build_vec_gen_aux. *)
+  (*   assert (n - S j ≡ 0) by lia. *)
+  (*   rewrite H. cbn. *)
+  (*   cbn... *)
 
-    setoid_rewrite denote_instr_op.
-    2 : {
-      cbn...
-      2 : {
-        destruct PRE; eauto.
-      }
-      cbn...
-      unfold uvalue_to_dvalue_binop.
-      cbn...
-      reflexivity.
-    }
-    cbn... subst. cbn...
-    rewrite denote_instr_op.
-    2 : {
-      cbn.
-      cbn...
-      2 : {
-        setoid_rewrite lookup_alist_add_eq. reflexivity.
-      }
-      cbn...
-      Arguments uvalue_to_dvalue_binop /.
-      cbn...
-      reflexivity.
-    }
-    cbn...
-    rewrite denote_term_br_r.
-    2 : {
-      (* TODO: notation for map updates *)
-      cbn...
-      2 : {
-        setoid_rewrite lookup_alist_add_eq. reflexivity.
-      }
-      match goal with
-      | [ |- ret (_, (_, (_, ?x))) ≈ Ret (_, (_, (_, ?x'))) ] => assert (x ≡ x')
-          end.
-      unfold eval_int_icmp. cbn.
-      assert ((int64) ((Z) j) + (int64) 1 < (int64) ((Z) n) ≡ false). {
-        symmetry in EQ. rewrite Nat.sub_0_le in EQ.
-        assert (j + 1 > n) by lia.
-        apply gt_asym in H0.
-        apply Bool.not_true_is_false. red. intros. apply H0.
-        assert ((j + 1 < n -> n > j + 1)%nat). intros; lia.
-        apply H2. clear H2.
-        apply bounds_check_aux. auto.
-      }
-      rewrite H0. cbn. reflexivity.
-      cbn. rewrite H0. reflexivity.
-    }
-    cbn... subst. rewrite denote_bks_unfold_not_in.
-    2 : {
-      rewrite find_block_ineq. rewrite find_block_ineq.
-      rewrite convert_typ_block_app. rewrite find_block_none_app.
-      Opaque find_block.
-      cbn. unfold fmap, Fmap_block. cbn. rewrite find_block_ineq.
-      apply find_block_nil. cbn. auto. auto. cbn. eapply F5; eauto. cbn. auto.
-    }
-    cbn... apply eutt_Ret.
-    split.
-    + reflexivity.
-    +
-      eapply HBODY. destruct PRE.
-      2 : {
-        Unshelve.
-        eapply sub_alist_add. cbn.
-        eapply FRESH; eauto.
-      } eapply HBODY.
-      2 : {
-        Unshelve. 2 : exact l.
-        eapply sub_alist_add.  eapply FRESH; eauto.
-      }
-      assert (n <= j). lia.
-      assert (n ≡ j). lia.
-      rewrite H1. auto.
+  (*   (* RHS Vellvm simplification *) *)
+  (*   rewrite denote_bks_unfold_in. *)
+  (*   2 : { *)
+  (*     rewrite find_block_ineq. rewrite find_block_ineq. *)
+  (*     rewrite convert_typ_block_app. rewrite find_block_none_app. *)
+  (*     Opaque find_block. *)
+  (*     cbn. unfold fmap, Fmap_block. cbn. rewrite find_block_eq. *)
+  (*     reflexivity. cbn. reflexivity. *)
+  (*     auto. *)
+  (*     cbn. eapply F5; eauto. *)
+  (*     cbn. auto. *)
+  (*   } *)
+  (*   cbn... *)
+  (*   cbn... *)
+  (*   focus_single_step_v. *)
+  (*   Transparent denote_code. *)
+  (*   cbn... *)
+  (*   focus_single_step_v. *)
 
-  - cbn...
-    match goal with
-    | [ |- context[convert_typ [] ?l] ] => remember l as L
+  (*   setoid_rewrite denote_instr_op. *)
+  (*   2 : { *)
+  (*     cbn... *)
+  (*     2 : { *)
+  (*       destruct PRE; eauto. *)
+  (*     } *)
+  (*     cbn... *)
+  (*     unfold uvalue_to_dvalue_binop. *)
+  (*     cbn... *)
+  (*     reflexivity. *)
+  (*   } *)
+  (*   cbn... subst. cbn... *)
+  (*   rewrite denote_instr_op. *)
+  (*   2 : { *)
+  (*     cbn. *)
+  (*     cbn... *)
+  (*     2 : { *)
+  (*       setoid_rewrite lookup_alist_add_eq. reflexivity. *)
+  (*     } *)
+  (*     cbn... *)
+  (*     Arguments uvalue_to_dvalue_binop /. *)
+  (*     cbn... *)
+  (*     reflexivity. *)
+  (*   } *)
+  (*   cbn... *)
+  (*   rewrite denote_term_br_r. *)
+  (*   2 : { *)
+  (*     (* TODO: notation for map updates *) *)
+  (*     cbn... *)
+  (*     2 : { *)
+  (*       setoid_rewrite lookup_alist_add_eq. reflexivity. *)
+  (*     } *)
+  (*     match goal with *)
+  (*     | [ |- ret (_, (_, (_, ?x))) ≈ Ret (_, (_, (_, ?x'))) ] => assert (x ≡ x') *)
+  (*         end. *)
+  (*     unfold eval_int_icmp. cbn. *)
+  (*     assert ((int64) ((Z) j) + (int64) 1 < (int64) ((Z) n) ≡ false). { *)
+  (*       symmetry in EQ. rewrite Nat.sub_0_le in EQ. *)
+  (*       assert (j + 1 > n) by lia. *)
+  (*       apply gt_asym in H0. *)
+  (*       apply Bool.not_true_is_false. red. intros. apply H0. *)
+  (*       assert ((j + 1 < n -> n > j + 1)%nat). intros; lia. *)
+  (*       apply H2. clear H2. *)
+  (*       apply bounds_check_aux. auto. *)
+  (*     } *)
+  (*     rewrite H0. cbn. reflexivity. *)
+  (*     cbn. rewrite H0. reflexivity. *)
+  (*   } *)
+  (*   cbn... subst. rewrite denote_bks_unfold_not_in. *)
+  (*   2 : { *)
+  (*     rewrite find_block_ineq. rewrite find_block_ineq. *)
+  (*     rewrite convert_typ_block_app. rewrite find_block_none_app. *)
+  (*     Opaque find_block. *)
+  (*     cbn. unfold fmap, Fmap_block. cbn. rewrite find_block_ineq. *)
+  (*     apply find_block_nil. cbn. auto. auto. cbn. eapply F5; eauto. cbn. auto. *)
+  (*   } *)
+  (*   cbn... apply eutt_Ret. *)
+  (*   split. *)
+  (*   + reflexivity. *)
+  (*   + *)
+  (*     eapply HBODY. destruct PRE. *)
+  (*     2 : { *)
+  (*       Unshelve. *)
+  (*       eapply sub_alist_add. cbn. *)
+  (*       eapply FRESH; eauto. *)
+  (*     } eapply HBODY. *)
+  (*     2 : { *)
+  (*       Unshelve. 2 : exact l. *)
+  (*       eapply sub_alist_add.  eapply FRESH; eauto. *)
+  (*     } *)
+  (*     assert (n <= j). lia. *)
+  (*     assert (n ≡ j). lia. *)
+  (*     rewrite H1. auto. *)
+
+  - match goal with
+    | [ |- context[convert_typ _ ?l] ] => remember l as L
     end.
+    unfold build_vec_gen, build_vec_gen_aux. cbn...
     (* match goal with *)
     (* | [ |- context[convert_typ [] (?hd1::?hd2::?tl ++ ?l)] ] => *)
     (*   remember hd1 as HD1; remember hd2 as HD2; remember tl as TL; remember l as L *)
     (* end *)
     (* . *)
-(*     setoid_rewrite list_cons_app in HeqL. *)
-(*     subst.  *)
-(*     rewrite denote_bks_flow_right. *)
+    setoid_rewrite list_cons_app in HeqL.
+    subst.
+    
 (*     + rewrite list_cons_app. cbn... *)
 (*       pose proof interp_Mem_ret. *)
 (*       assert ( *)
@@ -1078,7 +1083,7 @@ Definition memory_invariant_map (globals : list (string * DSHType)): nat -> raw_
 Lemma memory_invariant_map_injectivity (globals : list (string * DSHType)):
   list_uniq fst globals ->
   forall (x y : nat),
-    x < (Datatypes.length globals + 2)%nat ∧ y < (Datatypes.length globals + 2)%nat
+    (x < Datatypes.length globals + 2)%nat ∧ (y < Datatypes.length globals + 2)%nat
     → memory_invariant_map globals x ≡ memory_invariant_map globals y → x ≡ y.
 Proof.
   intros U x y [Hx Hy] E.
