@@ -1288,6 +1288,23 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         all: solve_block_count.
   Admitted.
 
+  Lemma inputs_nextblock :
+    forall (op : DSHOperator) (s1 s2 : IRState) (nextblock op_entry : block_id) (bk_op : list (LLVMAst.block typ)),
+      genIR op nextblock s1 ≡ inr (s2, (op_entry, bk_op)) ->
+      Forall (fun bid => bid ≢ nextblock) (inputs (convert_typ [ ] bk_op)).
+  Proof.
+    intros op s1 s2 nextblock op_entry bk_op H.
+    (* NOT TRUE *)
+  Admitted.
+
+  (* TODO: Move *)
+  Lemma outputs_bound_between :
+    forall (op : DSHOperator) (s1 s2 : IRState) (nextblock op_entry : block_id) (bk_op : list (LLVMAst.block typ)),
+      genIR op nextblock s1 ≡ inr (s2, (op_entry, bk_op)) ->
+      Forall (fun bid => bid_bound_between s1 s2 bid \/ bid ≡ nextblock) (outputs (convert_typ [ ] bk_op)).
+  Proof.
+  Admitted.
+
   Opaque denote_code.
  Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
@@ -1920,6 +1937,46 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
         (* About bk_outputs. *)
         unfold no_reentrance.
+        apply inputs_bound_between in GEN_OP1.
+        apply outputs_bound_between in GEN_OP2.
+
+        Lemma bid_bound_between_separate :
+          forall s1 s2 s3 s4 bid bid',
+            (block_count s2 <= block_count s3)%nat ->
+            bid_bound_between s1 s2 bid ->
+            bid_bound_between s3 s4 bid' ->
+            bid ≢ bid'.
+        Proof.
+          intros s1 s2 s3 s4 bid bid' BC BOUND1 BOUND2.
+          destruct BOUND1 as (n1 & s1' & s1'' & NEND1 & LT1 & GE1 & INC1).
+          destruct BOUND2 as (n2 & s2' & s2'' & NEND2 & LT2 & GE2 & INC2).
+          (* TODO: Move to where I don't need this, or expose lemma *)
+          Transparent incBlockNamed.
+          unfold incBlockNamed in INC1, INC2.
+          Opaque incBlockNamed.
+          cbn in INC1, INC2.
+          simp.
+
+          assert (block_count s1' ≢ block_count s2') as NEQ by lia.
+        Admitted.
+
+        Lemma Forall_disjoint :
+          forall {A} (l1 l2 : list A) (P1 P2 : A -> Prop),
+            (forall x, P1 x -> ~(P2 x)) ->
+            Forall P1 l1 ->
+            Forall P2 l2 ->
+            l1 ⊍ l2.
+        Proof.
+          induction l1;
+            intros l2 P1 P2 P1NP2 L1 L2.
+          - intros ? ? CONTRA. inversion CONTRA.
+          - apply Coqlib.list_disjoint_cons_l.
+            + eapply IHl1; eauto using Forall_inv_tail.
+            + apply Forall_inv in L1.
+              apply P1NP2 in L1.
+              intros IN.
+              eapply Forall_forall in L2; eauto.
+        Qed.
         admit.
       }
 
