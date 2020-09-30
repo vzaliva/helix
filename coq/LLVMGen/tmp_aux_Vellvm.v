@@ -36,42 +36,6 @@ Import BinInt.
 Import ListNotations.
 Import ITree.Basics.Basics.Monads.
 
-Section Translations.
-
-  (** TODOYZ : MOVE (Vellvm)  *)
-  (* Technicality: translations by [lookup_E_to_exp_E] and [exp_E_to_instr_E] leave these events unphased *)
-  Lemma lookup_E_to_exp_E_Global : forall {X} (e : LLVMGEnvE X),
-      lookup_E_to_exp_E (subevent X e) = subevent X e.
-  Proof.
-    reflexivity.
-  Qed.
-
-  Lemma exp_E_to_instr_E_Global : forall {X} (e : LLVMGEnvE X),
-      exp_E_to_instr_E (subevent X e) = subevent X e.
-  Proof.
-    reflexivity.
-  Qed.
-
-  Lemma lookup_E_to_exp_E_Local : forall {X} (e : LLVMEnvE X),
-      lookup_E_to_exp_E (subevent X e) = subevent X e.
-  Proof.
-    reflexivity.
-  Qed.
-
-  Lemma exp_E_to_instr_E_Local : forall {X} (e : LLVMEnvE X),
-      exp_E_to_instr_E (subevent X e) = subevent X e.
-  Proof.
-    reflexivity.
-  Qed.
-
-  Lemma exp_E_to_instr_E_Memory : forall {X} (e : MemoryE X),
-      exp_E_to_instr_E (subevent X e) = subevent X e.
-  Proof.
-    reflexivity.
-  Qed.
-  
-End Translations.
-
 From Vellvm Require Import Util.
 Require Import State.
 
