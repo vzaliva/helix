@@ -735,6 +735,35 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   Qed.
   Opaque incBlockNamed.
 
+  Lemma bid_bound_fresh' :
+    forall (s1 s2 s3 : IRState) (bid bid' : block_id),
+      bid_bound s1 bid ->
+      (block_count s1 <= block_count s2)%nat ->
+      bid_bound_between s2 s3 bid' ->
+      bid ≢ bid'.
+  Proof.
+    intros s1 s2 s3 bid bid' BOUND COUNT BETWEEN.
+    destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
+    destruct BETWEEN as (n2 & sm' & sm'' & N_S2 & COUNT_Sm_ge & COUNT_Sm_lt & GEN_bid').
+
+    inversion GEN_bid.
+    destruct s1'. cbn in *.
+
+    inversion GEN_bid'.
+    intros H.
+    apply Name_inj in H.
+    match goal with
+    | H : ?s1 @@ string_of_nat ?n ≡ ?s2 @@ string_of_nat ?k,
+          NS1 : not_ends_with_nat ?s1,
+                NS2 : not_ends_with_nat ?s2
+      |- _ =>
+      eapply (@not_ends_with_nat_neq s1 s2 n k NS1 NS2); eauto
+    end.
+
+    cbn.
+    lia.
+  Qed.
+
   Lemma bid_bound_bound_between :
     forall (s1 s2 : IRState) (bid : block_id),
       bid_bound s2 bid ->
@@ -1288,13 +1317,25 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         all: solve_block_count.
   Admitted.
 
+  (* TODO: may not actually needs this. *)
   Lemma inputs_nextblock :
-    forall (op : DSHOperator) (s1 s2 : IRState) (nextblock op_entry : block_id) (bk_op : list (LLVMAst.block typ)),
-      genIR op nextblock s1 ≡ inr (s2, (op_entry, bk_op)) ->
+    forall (op : DSHOperator) (s1 s2 s3 : IRState) (nextblock op_entry : block_id) (bk_op : list (LLVMAst.block typ)),
+      bid_bound s1 nextblock ->
+      genIR op nextblock s2 ≡ inr (s3, (op_entry, bk_op)) ->
       Forall (fun bid => bid ≢ nextblock) (inputs (convert_typ [ ] bk_op)).
   Proof.
-    intros op s1 s2 nextblock op_entry bk_op H.
-    (* NOT TRUE *)
+    intros op s1 s2 s3 nextblock op_entry bk_op H.
+  Admitted.
+
+  Lemma inputs_not_earlier_bound :
+    forall (op : DSHOperator) (s1 s2 s3 : IRState) (bid nextblock op_entry : block_id) (bk_op : list (LLVMAst.block typ)),
+      bid_bound s1 bid ->
+      genIR op nextblock s2 ≡ inr (s3, (op_entry, bk_op)) ->
+      Forall (fun x => x ≢ bid) (inputs (convert_typ [ ] bk_op)).
+  Proof.
+    intros op s1 s2 s3 bid nextblock op_entry bk_op BOUND GEN.
+    apply Forall_forall.
+    intros x H.
   Admitted.
 
   (* TODO: Move *)
@@ -1915,39 +1956,24 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       rewrite convert_typ_block_app.
       rewrite denote_bks_app; eauto.
       2: {
-        (* This should follow from freshness *)
-        (* outputs of bk_op2 don't overlap with the block ids in bk_op1
-
-           This *is* correct.
-
-           bk_op2 can not possibly have an output in bk_op1 because
-           all the labels are generated from s1, and have to be less
-           than s_op1 labels.
-
-           all labels in bk_op2 are > s_op1 labels.
-
-           ALSO nextblock <> op2_entry... Somehow I need that...
-         *)
-        (* Lemma genIR_bid_not_nextblock : *)
-        (*   forall op nextblock entry s1 s2 bk_op, *)
-        (*     genIR op nextblock s1 ≡ inr (s2, (entry, bk_op)) -> *)
-        (*     entry <> nextblock. *)
-        (* Proof. *)
-        (*   Admit *)
-
-        (* About bk_outputs. *)
         unfold no_reentrance.
+        pose proof GEN_OP1 as GEN_OP1'.
+
+        apply (inputs_not_earlier_bound _ _ _ NEXT) in GEN_OP1'.
         apply inputs_bound_between in GEN_OP1.
         apply outputs_bound_between in GEN_OP2.
 
+        pose proof (Forall_and GEN_OP1 GEN_OP1') as INPUTS.
+        cbn in INPUTS.
+
         Lemma bid_bound_between_separate :
           forall s1 s2 s3 s4 bid bid',
-            (block_count s2 <= block_count s3)%nat ->
             bid_bound_between s1 s2 bid ->
             bid_bound_between s3 s4 bid' ->
+            (block_count s2 <= block_count s3)%nat ->
             bid ≢ bid'.
         Proof.
-          intros s1 s2 s3 s4 bid bid' BC BOUND1 BOUND2.
+          intros s1 s2 s3 s4 bid bid' BOUND1 BOUND2 BC.
           destruct BOUND1 as (n1 & s1' & s1'' & NEND1 & LT1 & GE1 & INC1).
           destruct BOUND2 as (n2 & s2' & s2'' & NEND2 & LT2 & GE2 & INC2).
           (* TODO: Move to where I don't need this, or expose lemma *)
@@ -1962,13 +1988,13 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
         Lemma Forall_disjoint :
           forall {A} (l1 l2 : list A) (P1 P2 : A -> Prop),
-            (forall x, P1 x -> ~(P2 x)) ->
             Forall P1 l1 ->
             Forall P2 l2 ->
+            (forall x, P1 x -> ~(P2 x)) ->
             l1 ⊍ l2.
         Proof.
           induction l1;
-            intros l2 P1 P2 P1NP2 L1 L2.
+            intros l2 P1 P2 L1 L2 P1NP2.
           - intros ? ? CONTRA. inversion CONTRA.
           - apply Coqlib.list_disjoint_cons_l.
             + eapply IHl1; eauto using Forall_inv_tail.
@@ -1977,7 +2003,13 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
               intros IN.
               eapply Forall_forall in L2; eauto.
         Qed.
-        admit.
+
+        eapply (Forall_disjoint GEN_OP2 INPUTS).
+        (* TODO: need to make sure IN_NEXT is actually nextblock... *)
+        intros x OUT_PRED [IN_BOUND IN_NEXT].
+        destruct OUT_PRED as [OUT_PRED | OUT_PRED]; auto.
+        eapply (bid_bound_between_separate OUT_PRED IN_BOUND).
+        lia. auto.
       }
 
       rauto.
