@@ -26,7 +26,7 @@ before_script:
   -  ./ci/keep_alive.sh &
 
 install:
-  - opam init -n -y --compiler=4.10.1+flambda
+  - opam init -n -y --compiler=4.11.1+flambda
   - eval $(opam config env)
   - opam config var root
   # this somehow fails the second time...
