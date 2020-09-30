@@ -290,24 +290,44 @@ Section AExpr.
 
   Opaque denote_instr.
   Opaque denote_code.
-
+Require Import Paco.paco.
   (* YZ: I've a bit hasty here: this is a non-trivial proof, not a direct consequence of an inversion lemma.
      This states essentially that if `no_failure` holds at the end of the execution, then it is an invariant
      of the execution.
    *)
-  Lemma no_failure_bind_inv : forall {E X Y} (t : itree E (option X)) (k : X -> itree E (option Y)),
+  Lemma no_failure_bind_prefix : forall {E X Y} (t : itree E (option X)) (k : X -> itree E (option Y)),
       no_failure (bind (m := failT (itree E)) t k) ->
       no_failure t.
   Proof.
-    intros.
-  Admitted.
+    unfold no_failure,has_post; intros E X Y.
+    einit; ecofix CIH.
+    intros * NOFAIL.
+    cbn in NOFAIL. rewrite unfold_bind in NOFAIL.
+    rewrite itree_eta.
+    destruct (observe t) eqn:EQt.
+    - eret.
+      cbn in *.
+      destruct r; [intros abs; inv abs | exfalso]. 
+      apply eutt_Ret in NOFAIL; apply NOFAIL; auto.
+    - estep.
+      cbn in *.
+      ebase; right; eapply CIH.
+      rewrite <- tau_eutt; eauto.
+    - estep.
+      cbn in *.
+      intros ?; ebase.
+      right; eapply CIH0.
+      eapply eqit_Vis in NOFAIL; eauto.
+  Qed.
 
-  Lemma no_failure_interp_helix_bind_inv : forall {E X Y} (t : itree _ X) (k : X -> itree _ Y) m,
+  Lemma no_failure_interp_helix_bind_prefix : forall {E X Y} (t : itree _ X) (k : X -> itree _ Y) m,
       no_failure (interp_helix (E := E) (ITree.bind t k) m) ->
       no_failure (interp_helix (E := E) t m).
-  Admitted.
-
-  Set Nested Proofs Allowed.
+  Proof.
+    intros * NOFAIL.
+    unfold no_failure, has_post in NOFAIL; rewrite interp_helix_bind in NOFAIL.
+    eapply no_failure_bind_prefix, NOFAIL. 
+  Qed.
 
   Lemma post_returns : forall {E X} (t : itree E X), t ⤳ fun a => PropT.Returns a t.
   Proof.
@@ -333,7 +353,11 @@ Section AExpr.
       forall u m', PropT.Returns (E := E) (Some (m',u)) (interp_helix t m) -> 
               no_failure (interp_helix (E := E) (k u) m').
   Proof.
-  Admitted.
+    intros * NOFAIL * ISRET.
+    unfold no_failure, has_post in NOFAIL; rewrite interp_helix_bind in NOFAIL.
+    eapply PropT.eqit_bind_Returns_inv in NOFAIL; eauto. 
+    apply NOFAIL.
+  Qed.
 
   Ltac forward H :=
     let H' := fresh in
