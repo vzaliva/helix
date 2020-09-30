@@ -291,55 +291,86 @@ Section AExpr.
   Opaque denote_instr.
   Opaque denote_code.
 
+
+  Lemma no_failure_bind_inv : forall {E X Y} (t : itree E (option X)) (k : X -> itree E (option Y)),
+      no_failure (bind (m := failT (itree E)) t k) ->
+      no_failure t.
+  Admitted.
+
+  Lemma no_failure_interp_helix_bind_inv : forall {E X Y} (t : itree _ X) (k : X -> itree _ Y) m,
+      no_failure (interp_helix (E := E) (ITree.bind t k) m) ->
+      no_failure (interp_helix (E := E) t m).
+  Admitted.
+
+  Set Nested Proofs Allowed.
+
+  Lemma post_returns : forall {E X} (t : itree E X), t ⤳ fun a => PropT.Returns a t.
+  Proof.
+    intros; eapply eqit_mon; eauto.
+    2: eapply PropT.eutt_Returns.
+    intros ? ? [<- ?]; auto.
+  Qed.
+  Import ITreeNotations.
+  Local Open Scope itree.
+
+  Lemma eutt_clo_bind_returns {E R1 R2 RR U1 U2 UU}
+        (t1 : itree E U1) (t2 : itree E U2)
+        (k1 : U1 -> itree E R1) (k2 : U2 -> itree E R2)
+        (EQT: @eutt E U1 U2 UU t1 t2)
+        (EQK: forall u1 u2, UU u1 u2 -> PropT.Returns u1 t1 -> PropT.Returns u2 t2 -> eutt RR (k1 u1) (k2 u2)):
+    eutt RR (x <- t1;; k1 x) (x <- t2;; k2 x).
+  Proof.
+    intros; eapply eutt_post_bind_gen; eauto using post_returns.
+  Qed.
+
+  Lemma no_failure_interp_helix_bind_inv' : forall {E X Y} (t : itree _ X) (k : X -> itree _ Y) m,
+      no_failure (interp_helix (E := E) (ITree.bind t k) m) ->
+      forall u m', PropT.Returns (E := E) (Some (m',u)) (interp_helix t m) -> 
+              no_failure (interp_helix (E := E) (k u) m').
+  Proof.
+  Admitted.
+
+  Ltac forward H :=
+    let H' := fresh in
+    match type of H with
+    | ?P -> _ => assert P as H'; [| specialize (H H'); clear H']
+    end.
+
   Lemma genAExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
-      (* Helix  bits *)   (aexp: AExpr) (σ: evalContext) (memH: memoryH) (v : binary64)
+      (* Helix  bits *)   (aexp: AExpr) (σ: evalContext) (memH: memoryH) 
       (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
 
       genAExpr aexp s1 ≡ inr (s2, (e, c))      -> (* Compilation succeeds *)
-      evalAExpr memH σ aexp ≡ inr v            -> (* Evaluation succeeds *)
       state_invariant σ s1 memH (memV, (l, g)) -> (* The main state invariant is initially true *)
+      no_failure (interp_helix (E := E_cfg) (denoteAExpr σ aexp) memH) -> (* Source semantics defined *)
 
-      eutt (lift_Rel_cfg (state_invariant σ s2) ⩕ genAExpr_rel σ aexp e memH (mk_config_cfg memV l g))
-           (with_err_RB (interp_Mem (denoteAExpr σ aexp) memH))
-           (with_err_LB (interp_cfg (denote_code (convert_typ [] c)) g l memV)).
+      eutt (succ_cfg (lift_Rel_cfg (state_invariant σ s2) ⩕ genAExpr_rel σ aexp e memH (mk_config_cfg memV l g)))
+           (interp_helix (denoteAExpr σ aexp) memH)
+           (interp_cfg (denote_code (convert_typ [] c)) g l memV).
   Proof with rauto.
-    intros s1 s2 aexp; revert s1 s2; induction aexp; intros * COMPILE EVAL PRE.
+    intros s1 s2 aexp; revert s1 s2; induction aexp; intros * COMPILE PRE NOFAIL.
     - (* Variable case *)
       (* Reducing the compilation *)
       pose proof COMPILE as COMPILE'.
       cbn* in COMPILE; simp.
 
       + (* The variable maps to an integer in the IRState *)
-        unfold denoteAExpr; cbn*.
+        unfold denoteAExpr in *; cbn* in *.
+        simp; try abs_by failure_throw.
 
         cbn...
-        break_inner_match_goal.
+        break_inner_match_goal; try abs_by_WF.
+        break_inner_match_goal; try abs_by_WF.
         cbn...
+        edestruct memory_invariant_GLU_AExpr as (ptr & MAP & READ); eauto. 
+        rewrite typ_to_dtyp_equation in READ.
 
-        * pose proof PRE as SINV.
-          destruct PRE.
-          break_inner_match_goal; try abs_by_WF.
-
-          cbn...
-          destruct i0; try abs_by_WF.
-
-          (* Globals *)
-          cbn...
-
-          epose proof (memory_invariant_GLU_AExpr _ mem_is_inv Heqo _).
-          destruct H as (ptr & MAP & READ).
-          rewrite typ_to_dtyp_equation in READ...
-
-          (* rewrite denote_code_singleton; cbn. *)
-          (* cbn... eauto. *)
-
-          rewrite denote_instr_load; eauto.
-
-          cbn...
+        rewrite denote_instr_load; eauto; cycle -1.
+        { cbn... 2:eauto. reflexivity. }
+        { cbn...
           apply eqit_Ret.
-
-          split.
+                    split.
           { cbn. eapply state_invariant_add_fresh; eauto.
           }
           {
@@ -349,107 +380,103 @@ Section AExpr.
                 cbn.
                 erewrite H; eauto.
                 eapply In_add_eq.
-              * cbn. unfold context_lookup.
-                rewrite Heqo0.
-                cbn. reflexivity.
+              * cbn*; match_rewrite; reflexivity.
               * apply sub_alist_add.
-                apply concrete_fresh_fresh in incLocal_is_fresh.
-                unfold incLocal_fresh in incLocal_is_fresh.
-                eapply incLocal_is_fresh.
-                cbn. eauto.
+                eapply concrete_fresh_fresh; eauto. 
+                eapply incLocal_is_fresh; eauto.
           }
-          cbn... cbn... 2 : eauto. reflexivity.
+        } 
 
-        * (* Variable not in context, [context_lookup] fails *)
-          cbn* in EVAL; rewrite Heqo0 in EVAL; inv EVAL.
       + (* The variable maps to a pointer *)
-        unfold denoteAExpr; cbn*.
-        rewrite denote_code_nil; cbn.
+        unfold denoteAExpr in *; cbn* in *.
+        simp; try abs_by failure_throw.
         cbn...
-        destruct PRE.
-        break_inner_match_goal; try abs_by_WF.
-        * cbn...
-          break_inner_match_goal; try abs_by_WF.
-          subst.
-          destruct i0; try abs_by_WF.
+        destruct d; try abs_by_WF.
+        clear NOFAIL.
+        cbn... 
+        apply eutt_Ret.
+        split; split; eauto using incLocal_is_fresh.
+        split.
+        { cbn...
+          break_match_goal; try abs_by_WF.
           cbn...
-          apply eutt_Ret.
-          split; split; eauto.
-          -- split.
-             { cbn... cbn...
-               reflexivity.
+          2:eapply memory_invariant_LLU_AExpr; eauto;
+            eapply memory_invariant_ext_local;
+            eauto.
+          reflexivity.
+        }
+        cbn*; match_rewrite; reflexivity.
 
-               eapply memory_invariant_LLU_AExpr; eauto;
-                 eapply memory_invariant_ext_local;
-                 eauto.
-             }
-
-             cbn.
-             unfold context_lookup.
-             rewrite Heqo0. cbn.
-             reflexivity.
-        * cbn* in EVAL; rewrite Heqo0 in EVAL; inv EVAL.
     - (* Constant *)
       cbn* in COMPILE; simp.
-      cbn. rewrite denote_code_nil; cbn.
-      unfold denoteAExpr; cbn*.
-      cbn...
-      cbn...
-      apply eutt_Ret.
-      split; eauto.
-      split; eauto.
-      intros l' MONO; cbn*.
-      split; try reflexivity.
-      cbn in EVAL. inversion EVAL; subst.
-      cbn...
-      cbn...
-      reflexivity.
-    - (* ANth *)
+      unfold denoteAExpr in *; cbn* in *.
+      cbn... 
+      apply eutt_Ret; split; [| split]; eauto.
+      intros l' MONO; split; cbn*...
+      all: reflexivity.
+      
+    - (* ANth m n *)
       cbn* in COMPILE; simp.
+      unfold denoteAExpr in *; cbn* in *.
 
-      cbn* in EVAL.
-      repeat (break_match; try discriminate EVAL).
-
-      rewrite convert_typ_app.
-      rewrite denote_code_app.
-
-      (* I need to know something about c0, which is an NExpr. *)
-      epose proof genNExpr_correct _ Heqs Heqs3 PRE as NEXP.
-
-      eutt_hide_right i4.
-      cbn*.
+      (* denoting [n] *)
+      epose proof genNExpr_correct _ Heqs PRE as NEXP.
+      forward NEXP; [eauto using no_failure_interp_helix_bind_inv |].
+      rewrite convert_typ_app, denote_code_app.
       cbn...
 
-      subst i4.
-      do 2 cbn...
-
-      eapply eutt_clo_bind; eauto.
-      intros [memH' n'] [memV' [l' [g' []]]] [SINV GENN_REL].
-
-      (* Relate MExpr *)
+      eapply eutt_clo_bind_returns; eauto; clear NEXP.
+      introR.
+      intros ?RET _.
+      destruct PRE0 as [SINV GENN_REL].
       destruct GENN_REL as [NEXP_CORRECT VARS_s1_i].
+      cbn* in *.
+
+      (* denoting [m] *)
+      epose proof genMExpr_correct _ Heqs0 SINV as MCODE.
+      forward MCODE.
+      {
+        eapply no_failure_interp_helix_bind_inv' in NOFAIL; eauto.
+        eapply no_failure_interp_helix_bind_inv in NOFAIL; eauto.
+      }
+
+      rewrite convert_typ_app, denote_code_app.
+      cbn...
+      eapply eutt_clo_bind; eauto; clear MCODE.
+
+      cbn; introR.
+      destruct vH0.
+      destruct PRE0 as [SINV' GENN_REL'].
+      cbn in *.
+      cbn* in *...
+      rewrite denote_code_cons.
+      cbn...
+
+      Require Import LibHyps.LibHyps.
+      onAllHyps move_up_types.
+      destruct GENN_REL'.
+      destruct mexp_correct as [TMP ?H].
+      repeat destruct TMP as [? TMP].
+       
+      edestruct denote_instr_gep_array.
+      edestruct @genMExpr_array; eauto; subst.
+      cbn...
+      destruct GENN_REL'.
+      
+      edestruct denote_instr_gep_array.
+      destruct SINV'.
+      cbn in *.
+      clear - mem_is_inv.
+      edestruct denote_instr_gep_array.
+      epose proof denote_instr_gep_array r sz DTYPE_Double _ (Traversal.fmap (typ_to_dtyp [ ]) e0) (MInt64asNT.to_nat i2) _ _ _ _ _ _ EUTT_e1 as GEP.
+
+
+
 
       (* Need to know that memH'=memH and memV'=memV ... *)
       genNExpr_rel_subst LL'.
 
       cbn in SINV.
-
-      (* Need to make sure that we pull e1 out so we can use genMExpr_correct *)
-      epose proof genMExpr_correct _ Heqs0 Heqs4 SINV as MCODE.
-
-      (* Should be able to pull e1 out from the denotation of GEP *)
-      match goal with
-      | |- context [ [?a; ?b] ] =>
-        change [a; b] with
-            ([a] ++ [b])%list
-      end.
-
-      rewrite app_assoc.
-      rewrite convert_typ_app.
-      rewrite denote_code_app.
-
-      rewrite convert_typ_app.
-      rewrite denote_code_app.
 
       eutt_hide_left i4.
 

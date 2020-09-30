@@ -32,7 +32,8 @@ Section MExpr.
              (s : IRState) (mexp : MExpr) (e : exp typ) : Rel_cfg_T (mem_block * Int64.int) unit :=
     fun '(memH, (mb, mb_sz)) '(memV, (ρ, (g, _))) =>
       (exists ptr i (vid : nat) (mid : nat) (size : Int64.int) (sz : int), (* TODO: sz ≈ size? *)
-        Ret (memV,(ρ,(g,UVALUE_Addr ptr))) ≈ interp_cfg (translate exp_E_to_instr_E (D.denote_exp (Some DTYPE_Pointer) (convert_typ [] e))) g ρ memV /\
+          interp_cfg (translate exp_E_to_instr_E (D.denote_exp (Some DTYPE_Pointer) (convert_typ [] e))) g ρ memV ≈
+          Ret (memV,(ρ,(g,UVALUE_Addr ptr))) /\
         memory_lookup memH mid ≡ Some mb /\
         in_local_or_global_addr ρ g i ptr /\
         nth_error σ vid ≡ Some (DSHPtrVal mid size) /\
@@ -201,3 +202,4 @@ Ltac genMExpr_rel_subst :=
     pose proof genMExpr_g MEXP as H; subst g';
     pose proof genMExpr_l MEXP as H; subst l'
   end.
+
