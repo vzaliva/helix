@@ -124,12 +124,25 @@ Section NExpr.
   Lemma failure_throw : forall E X s m,
       ~ no_failure (interp_helix (X := X) (E := E) (Exception.throw s) m).
   Proof.
-  Admitted.
+    intros * abs.
+    unfold no_failure, has_post, Exception.throw in *.
+    unfold interp_helix in *.
+    setoid_rewrite interp_Mem_vis_eqit in abs.
+    unfold pure_state in *; cbn in *.
+    rewrite interp_fail_bind in abs.
+    rewrite interp_fail_vis in abs.
+    cbn in *.
+    rewrite Eq.bind_bind, !bind_ret_l in abs.
+    rewrite translate_ret in abs.
+    eapply eutt_Ret in abs.
+    apply abs; auto.
+  Qed.
 
   Lemma no_failure_Ret : forall E X x m,
       no_failure (interp_helix (X := X) (E := E) (Ret x) m).
   Proof.
-  Admitted.
+    intros.  unfold no_failure, has_post. rewrite interp_helix_ret; apply eutt_Ret; intros abs; inv abs.
+  Qed.
 
   Ltac forward H :=
     let H' := fresh in

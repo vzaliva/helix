@@ -65,8 +65,6 @@ Section MExpr.
     m_preserves : preserves_states mi sti mf stf
     }.
 
- (* ;; ) *)
-
   Lemma memory_invariant_Ptr : forall vid σ s memH memV l g a size x sz,
       state_invariant σ s memH (memV, (l, g)) ->
       nth_error σ vid ≡ Some (DSHPtrVal a size) ->
@@ -82,8 +80,21 @@ Section MExpr.
   Lemma failure_throw : forall E Y X s (k : Y -> _) m,
       ~ no_failure (interp_helix (X := X) (E := E) (ITree.bind (Exception.throw s) k) m).
   Proof.
-  Admitted.
-
+    intros * abs.
+    unfold no_failure, has_post, Exception.throw in *.
+    unfold interp_helix in *.
+    rewrite interp_Mem_bind in abs.
+    setoid_rewrite interp_Mem_vis_eqit in abs.
+    unfold pure_state in *; cbn in *.
+    rewrite bind_bind in abs.
+    rewrite interp_fail_bind in abs.
+    rewrite interp_fail_vis in abs.
+    cbn in *.
+    rewrite Eq.bind_bind, !bind_ret_l in abs.
+    rewrite translate_ret in abs.
+    eapply eutt_Ret in abs.
+    apply abs; auto.
+  Qed.
 
   (** ** Compilation of MExpr
   *)
