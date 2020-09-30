@@ -291,10 +291,15 @@ Section AExpr.
   Opaque denote_instr.
   Opaque denote_code.
 
-
+  (* YZ: I've a bit hasty here: this is a non-trivial proof, not a direct consequence of an inversion lemma.
+     This states essentially that if `no_failure` holds at the end of the execution, then it is an invariant
+     of the execution.
+   *)
   Lemma no_failure_bind_inv : forall {E X Y} (t : itree E (option X)) (k : X -> itree E (option Y)),
       no_failure (bind (m := failT (itree E)) t k) ->
       no_failure t.
+  Proof.
+    intros.
   Admitted.
 
   Lemma no_failure_interp_helix_bind_inv : forall {E X Y} (t : itree _ X) (k : X -> itree _ Y) m,
