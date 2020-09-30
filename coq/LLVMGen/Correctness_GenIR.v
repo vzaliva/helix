@@ -1047,6 +1047,15 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     lia.
   Qed.
 
+  Lemma bid_bound_genIR_entry :
+    forall op s1 s2 nextblock bid bks,
+      genIR op nextblock s1 ≡ inr (s2, (bid, bks)) ->
+      bid_bound s2 bid.
+  Proof.
+    induction op;
+      intros s1 s2 nextblock b bks GEN.
+  Admitted.
+
   Lemma incBlockNamed_not_equal :
     forall name1 name2 s1 s2 s1' s2' bid1 bid2,
       not_ends_with_nat name1 ->
@@ -1966,6 +1975,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         pose proof (Forall_and GEN_OP1 GEN_OP1') as INPUTS.
         cbn in INPUTS.
 
+        (* TODO: move *)
         Lemma bid_bound_between_separate :
           forall s1 s2 s3 s4 bid bid',
             bid_bound_between s1 s2 bid ->
@@ -1986,6 +1996,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
           assert (block_count s1' ≢ block_count s2') as NEQ by lia.
         Admitted.
 
+        (* TODO: move, add a file for disjoint list stuff? *)
         Lemma Forall_disjoint :
           forall {A} (l1 l2 : list A) (P1 P2 : A -> Prop),
             Forall P1 l1 ->
@@ -2051,7 +2062,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
         eapply (IHop1 _ _ _ _ _ _ op2_entry _ _ _ _ _ _ _ _ EVAL1 GEN_OP1).
         Unshelve.
-        admit. (* Should come from freshness *)
+        eapply bid_bound_genIR_entry; eauto.
         split; cbn.
         - eapply genIR_GenIR_Rel in GEN_OP2; eauto.
           destruct GEN_OP2 as (STATE & _).
@@ -2080,7 +2091,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         epose proof (IHop2 _ _ σ memH' _ _ _ _ _ _ ge le memV' _ _ EVAL2 GEN_OP2) as IH2.
         apply IH2.
         Unshelve.
-        admit. (* Freshness *)
+        auto.
 
         eapply genIR_GenIR_Rel in GEN_OP2; eauto.
         2: {
