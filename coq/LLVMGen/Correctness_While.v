@@ -284,6 +284,7 @@ Lemma genWhileLoop_ind:
     (* Main relations preserved by iteration *)
     (I : nat -> mem_block -> Rel_cfg),
 
+    In body_entry (block_ids body_blocks) ->
 
     (* Uniqueness of identifiers *)
     find_block dtyp (convert_typ [ ] body_blocks) loopcontblock ≡ None ->
@@ -358,7 +359,7 @@ Lemma genWhileLoop_ind:
                                                 (_label, loopcontblock)) g l mV)).
 
 Proof with rauto.
-  intros * BOUND * F0 F1 F2 F3 F4 F5 GEN.
+  intros * BOUND * IN F0 F1 F2 F3 F4 F5 GEN.
   unfold genWhileLoop in GEN. cbn* in GEN. simp.
   intros * HBODY STABLE.
   remember (n - j) as k.
@@ -537,7 +538,7 @@ Proof with rauto.
     cbn...
     rewrite eval_int_icmp_aux.
     Typeclasses eauto := 4.
-    setoid_rewrite H. cbn...
+    cbn...
     focus_single_step_v.
     Typeclasses eauto :=.
     setoid_rewrite translate_ret.
@@ -593,8 +594,8 @@ Proof with rauto.
     | [ |- eutt ?R _ _ ] => remember R as REL
     end.
 
-    pose proof @rcompose_eq_r. specialize (H0 _ _ REL).
-    rewrite H0.
+    pose proof @rcompose_eq_r. specialize (H _ _ REL).
+    rewrite H.
 
     (* If we enter from body_entry, having either body_blocks or bks should be the same *)
     eapply eqit_trans.
@@ -605,16 +606,18 @@ Proof with rauto.
                                             (b0, body_entry)) g LOCAL mV)).
       pose proof @body_blocks_from_entry_eq.
 
-      rewrite H1.
+      rewrite H0.
       2 : {
         Unshelve.
         2 : exact prefix. 8 :exact n. 2 : exact loopvar. 2 : exact loopcontblock.
         2 : exact nextblock. 2 : exact entry_id. 2 : exact s1. 2 : exact s2.
-        cbn. rewrite Heqs. rewrite Heqs0. rewrite Heqs1. rewrite Heqs2. rewrite Heqs3. rewrite Heqs4.
-        rewrite Heqs5. reflexivity.
+        cbn. apply IN. auto.
       }
+      (* rewrite Heqs. rewrite Heqs0. rewrite Heqs1. rewrite Heqs2. rewrite Heqs3. rewrite Heqs4. *)
+      (*   rewrite Heqs5. reflexivity. *)
+      (* } *)
       subst.
-      rewrite list_cons_app. rewrite convert_typ_block_app.
+      rewrite list_cons_app.
       cbn. unfold fmap, Fmap_block. cbn.
 
       rewrite list_cons_app.
@@ -622,9 +625,11 @@ Proof with rauto.
       (* Ignore entry_id *)
       rewrite denote_bks_flow_right. 2 : admit. 2 : admit. (* TODO: Freshness *)
       cbn... cbn.
-      rewrite convert_typ_block_app. cbn. unfold fmap, Fmap_block. cbn.
+      unfold fmap, Fmap_block. cbn.
       cbn...
-      reflexivity.
+      admit.
+      (* reflexivity. *)
+      admit. (* *)
     }
 
     (* Now the RHS is the same as the body hypothesis, we should now reduce the LHS respectively. *)
@@ -636,10 +641,10 @@ Proof with rauto.
        step S k, and to jumping to loopcontblock. *)
 
     (* Step 4 : Back to starting from loopcontblock and have reestablished everything at the next index:
-       conclude by IH *).
+       conclude by IH *)
 
 Admitted.
- 
+
 
 
 Lemma genWhileLoop_correct:
