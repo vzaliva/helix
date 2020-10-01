@@ -134,6 +134,16 @@ Proof.
     cbn. right. apply IHb. auto.
 Qed.
 
+Definition imp_rel {A B : Type} (R S: A -> B -> Prop): Prop :=
+  forall a b, R a b -> S a b.
+
+
+Definition stable_exp_local (R: Rel_cfg) : Prop :=
+    forall memH memV ρ1 ρ2 g,
+      R memH (memV, (ρ1, g)) ->
+      ρ1 ⊑ ρ2 ->
+      R memH (memV, (ρ2, g)).
+
 Lemma disjoint_bid_neq {T : Set} (b b' : list (LLVMAst.block T)) :
   disjoint_bid_blocks b b' ->
   forall x x', In x b -> In x' b' -> blk_id x ≢ blk_id x'.
@@ -582,86 +592,86 @@ Proof with rauto.
 
     jump_in.
 
-    cbn...
-    cbn...
+  (*   cbn... *)
+  (*   cbn... *)
 
-    rewrite denote_instr_op.
-    2:{
-      cbn...
-      cbn...
-      reflexivity.
-    }
+  (*   rewrite denote_instr_op. *)
+  (*   2:{ *)
+  (*     cbn... *)
+  (*     cbn... *)
+  (*     reflexivity. *)
+  (*   } *)
 
-    cbn...
-    focus_single_step_v.
-    rewrite denote_term_br_r.
-    2:{
-      cbn...
-      cbn...
-      reflexivity.
-      unfold local_env; rewrite lookup_alist_add_eq; reflexivity.
-    }
+  (*   cbn... *)
+  (*   focus_single_step_v. *)
+  (*   rewrite denote_term_br_r. *)
+  (*   2:{ *)
+  (*     cbn... *)
+  (*     cbn... *)
+  (*     reflexivity. *)
+  (*     unfold local_env; rewrite lookup_alist_add_eq; reflexivity. *)
+  (*   } *)
 
-    cbn...
-    subst.
+  (*   cbn... *)
+  (*   subst. *)
 
-    rewrite denote_bks_unfold_not_in.
-    2: admit.
+  (*   rewrite denote_bks_unfold_not_in. *)
+  (*   2: admit. *)
 
-    cbn...
-    apply eutt_Ret.
+  (*   cbn... *)
+  (*   apply eutt_Ret. *)
 
-    cbn; eapply STABLE; eauto.
-    eapply sub_alist_add.
-    eapply concrete_fresh_fresh; eauto.
-    eapply incLocal_is_fresh.
-    eapply state_invariant_incBlockNamed; eauto.
-    eapply state_invariant_incBlockNamed; eauto.
+  (*   cbn; eapply STABLE; eauto. *)
+  (*   eapply sub_alist_add. *)
+  (*   eapply concrete_fresh_fresh; eauto. *)
+  (*   eapply incLocal_is_fresh. *)
+  (*   eapply state_invariant_incBlockNamed; eauto. *)
+  (*   eapply state_invariant_incBlockNamed; eauto. *)
 
-  - (* n > 0 *)
-    cbn.
-    eutt_hide_left.
+  (* - (* n > 0 *) *)
+  (*   cbn. *)
+  (*   eutt_hide_left. *)
 
-    jump_in.
+  (*   jump_in. *)
 
-    cbn...
-    cbn...
+  (*   cbn... *)
+  (*   cbn... *)
 
-    focus_single_step_v.
-    rewrite denote_instr_op.
-    2:{
-      cbn...
-      cbn...
-      reflexivity.
-    }
+  (*   focus_single_step_v. *)
+  (*   rewrite denote_instr_op. *)
+  (*   2:{ *)
+  (*     cbn... *)
+  (*     cbn... *)
+  (*     reflexivity. *)
+  (*   } *)
 
-    cbn...
-    subst.
-    cbn... focus_single_step_v.
-    rewrite denote_term_br_l.
-    2:{
-      cbn...
-      cbn...
-      reflexivity.
-      unfold local_env; rewrite lookup_alist_add_eq; reflexivity.
-    }
+  (*   cbn... *)
+  (*   subst. *)
+  (*   cbn... focus_single_step_v. *)
+  (*   rewrite denote_term_br_l. *)
+  (*   2:{ *)
+  (*     cbn... *)
+  (*     cbn... *)
+  (*     reflexivity. *)
+  (*     unfold local_env; rewrite lookup_alist_add_eq; reflexivity. *)
+  (*   } *)
 
-    cbn...
-    subst; cbn...
+  (*   cbn... *)
+  (*   subst; cbn... *)
 
-    jump_in.
-    2:admit.
+  (*   jump_in. *)
+  (*   2:admit. *)
 
-    cbn...
+  (*   cbn... *)
 
-    find_phi.
+  (*   find_phi. *)
 
-    cbn...
-    focus_single_step_v.
+  (*   cbn... *)
+  (*   focus_single_step_v. *)
 
-    cbn...
-    subst...
-    cbn...
+  (*   cbn... *)
+  (*   subst... *)
+  (*   cbn... *)
 
 
 Admitted.
