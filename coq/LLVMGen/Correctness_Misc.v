@@ -97,7 +97,129 @@ Lemma bounds_check_aux :
   forall (j n :nat),
     ((int64) ((Z) j) + (int64) 1 < (int64) ((Z) n)) ≡ true ->
                     (j + 1 < n)%nat.
-Proof. Unset Printing Notations.  Admitted.
+Proof.
+  Admitted.
+
+(* λ (t : Set) (bks : open_cfg), *)
+(*   fold_left (λ (acc : list block_id) (bk : LLVMAst.block t), (acc ++ bk_outputs bk)%list) bks [ ] *)
+(*      : ∀ t : Set, open_cfg → list block_id *)
+(* Definition  *)
+
+(* TODO: Move to Vellvm Denotation_Theory.v? *)
+
+
+Definition block_ids {T : Set} (b : list ((LLVMAst.block T))) :=
+  fold_left (fun (acc : list block_id) (bk : LLVMAst.block T) => (acc ++ [blk_id bk])%list) b [].
+
+(* IY: Why isn't it the below, instead? It looks like outputs etc. also have use
+   fold_left instead of map (in Vellvm - Denotation_Theory.v), which feels super
+   awkward. Following Vellvm conventions for now. *)
+Definition block_ids' {T : Set} (b : list ((LLVMAst.block T))) :=
+  map (@blk_id T).
+
+Definition disjoint_bid_blocks {T : Set} (b b' : list ((LLVMAst.block T))) :=
+  block_ids b ⊍ block_ids b'.
+
+Lemma disjoint_bid_blocks_not_in_r {T : Set} (b b' : list (LLVMAst.block T)) :
+  disjoint_bid_blocks b b' ->
+  forall x, In x (block_ids b) -> ~ In x (block_ids b').
+Proof.
+  intros; eauto using Coqlib.list_disjoint_notin, Coqlib.list_disjoint_sym.
+Qed.
+
+Lemma disjoint_bid_blocks_not_in_l {T : Set} (b b' : list (LLVMAst.block T)) :
+  disjoint_bid_blocks b b' ->
+  forall x, In x (block_ids b') -> ~ In x (block_ids b).
+Proof.
+  intros; eauto using Coqlib.list_disjoint_notin, Coqlib.list_disjoint_sym.
+Qed.
+
+Lemma fold_left_acc_app : forall {a t} (l : list t) (f : t -> list a) acc,
+    (fold_left (fun acc bk => acc ++ f bk) l acc ≡
+    acc ++ fold_left (fun acc bk => acc ++ f bk) l [])%list.
+Proof.
+  intros. induction l using List.list_rev_ind; intros; cbn.
+  - rewrite app_nil_r. reflexivity.
+  - rewrite 2 fold_left_app, IHl.
+    cbn.
+    rewrite app_assoc.
+    reflexivity.
+Qed.
+
+(* IY: The more general statement should be In being injective over List.map,
+   but it's stated like this here because we're using fold_left *)
+Lemma In_inj_block_ids :
+  forall T x (b : list (LLVMAst.block T)), In x b -> In (blk_id x) (block_ids b).
+Proof.
+  intros. revert H. revert x. induction b.
+  - intros. inversion H.
+  - intros. unfold block_ids. cbn.
+    rewrite fold_left_acc_app. rewrite <-list_cons_app.
+    cbn in H. destruct H. cbn. left. rewrite H. reflexivity.
+    cbn. right. apply IHb. auto.
+Qed.
+
+Lemma disjoint_bid_neq {T : Set} (b b' : list (LLVMAst.block T)) :
+  disjoint_bid_blocks b b' ->
+  forall x x', In x b -> In x' b' -> blk_id x ≢ blk_id x'.
+Proof.
+  intros.
+  do 2 red in H.
+  specialize (H (blk_id x) (blk_id x')).
+  apply H; apply In_inj_block_ids; auto.
+Qed.
+
+Lemma find_block_ineq :
+  ∀ (T : Set) (x : block_id) (b bs : list (LLVMAst.block T)) e,
+    disjoint_bid_blocks b bs ->
+    find_block T bs x ≡ Some e -> find_block T (b ++ bs) x ≡ Some e.
+Proof.
+  intros.
+  induction b.
+  - intros. rewrite app_nil_l. apply H0.
+  - intros.
+    rewrite list_cons_app.
+    rewrite <- app_assoc.
+    rewrite <- list_cons_app.
+    cbn.
+    assert (blk_id a ≢ x).
+    assert (H' := H0).
+    apply find_some in H0. destruct H0.
+    assert (In a (a :: b)). { red. left. reflexivity. }
+    destruct (Eqv.eqv_dec_p (blk_id e) x). 2 : inversion H1.
+    rewrite <- e0.
+    eapply disjoint_bid_neq; eauto.
+    assert (not (Eqv.eqv (blk_id a) x)). red. intros. apply H1. rewrite H2. reflexivity.
+    unfold Eqv.eqv_dec_p. eapply rel_dec_neq_false in H2. 2 : typeclasses eauto.
+    setoid_rewrite H2. apply IHb.
+    red. red in H.
+    eapply Coqlib.list_disjoint_cons_left.
+    rewrite list_cons_app in H.
+    clear H0 IHb H1 H2. induction b. cbn. rewrite app_nil_r in H.
+    apply H. red. intros. red in H. apply H. 2 : auto.
+    eapply Permutation.Permutation_in. 2: apply H0.
+    clear H IHb H0 H1.
+    remember (a0 :: b). clear Heql.
+    induction l. cbn. auto.
+    cbn. cbn in IHl. eapply Permutation.perm_trans.
+    rewrite list_cons_app.
+    rewrite Permutation.Permutation_app_swap. apply Permutation.Permutation_refl.
+    pose proof @fold_left_acc_app .
+    specialize (H _ _ l (fun x => [blk_id x])). cbn in H.
+    assert (
+    (fold_left (λ (acc : list block_id) (bk : LLVMAst.block T), (acc ++ [blk_id bk])%list) l [blk_id a1] ++
+               [blk_id a]) ≡
+     ([blk_id a1] ++ fold_left (λ (acc : list block_id) (bk : LLVMAst.block T), acc ++ [blk_id bk]) l [ ]) ++
+     [blk_id a])%list. rewrite H. reflexivity. rewrite H0.
+    assert (
+    (fold_left (λ (acc : list block_id) (bk : LLVMAst.block T), (acc ++ [blk_id bk])%list) l
+       [blk_id a; blk_id a1]) ≡
+     ([blk_id a; blk_id a1] ++ fold_left (λ (acc : list block_id) (bk : LLVMAst.block T), acc ++ [blk_id bk]) l [ ])%list).
+    rewrite H; reflexivity.
+    rewrite H1. clear H0 H1. eapply Permutation.perm_trans.
+    apply Permutation.Permutation_app_swap. cbn.
+    apply Permutation.Permutation_refl.
+Qed.
 
 Lemma genWhileLoop_ind:
   forall (prefix : string)
@@ -300,18 +422,47 @@ Proof with rauto.
   (*     assert (n ≡ j). lia. *)
   (*     rewrite H1. auto. *)
 
-  - match goal with
+  -
+    match goal with
     | [ |- context[convert_typ _ ?l] ] => remember l as L
     end.
-    unfold build_vec_gen, build_vec_gen_aux. cbn...
+    (* LHS *)
+    (* unfold build_vec_gen, build_vec_gen_aux. cbn... *)
     (* match goal with *)
     (* | [ |- context[convert_typ [] (?hd1::?hd2::?tl ++ ?l)] ] => *)
     (*   remember hd1 as HD1; remember hd2 as HD2; remember tl as TL; remember l as L *)
     (* end *)
     (* . *)
+
+    (* RHS *)
     setoid_rewrite list_cons_app in HeqL.
     subst.
-    
+    rewrite convert_typ_block_app.
+    rewrite denote_bks_flow_right.
+
+    match goal with
+    | [ |- context[convert_typ _ ?l] ] => remember l as L
+    end. setoid_rewrite list_cons_app in HeqL.
+    subst. rewrite convert_typ_block_app.
+    rewrite denote_bks_unfold_in. cbn.
+    cbn...
+    2 : {
+      rewrite convert_typ_block_app.
+      rewrite app_assoc.
+      eapply find_block_ineq. admit.
+      cbn.
+      assert (loopcontblock ≡ loopcontblock) by reflexivity.
+      eapply rel_dec_eq_true in H. 2 : typeclasses eauto. setoid_rewrite H.
+      reflexivity.
+    }
+    (*   cbn. *)
+
+    (*   destruct (Eqv.eqv_dec_p b0 loopcontblock). admit. *)
+    (*   cbn.  *)
+    (* } *)
+    (* rewrite  *)
+
+    (* cbn. rewrite denote_bks_app.  *)
 (*     + rewrite list_cons_app. cbn... *)
 (*       pose proof interp_Mem_ret. *)
 (*       assert ( *)
