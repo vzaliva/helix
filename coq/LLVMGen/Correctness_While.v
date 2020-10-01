@@ -52,7 +52,6 @@ Proof.
       destruct H.
 Qed.
 
-
 Lemma convert_typ_block_app : forall (a b : list (LLVMAst.block typ)) env, (convert_typ env (a ++ b) ≡ convert_typ env a ++ convert_typ env b)%list.
 Proof.
   induction a as [| [] a IH]; cbn; intros; auto.
@@ -68,20 +67,7 @@ Notation "'d_one'" := (DVALUE_I1 DynamicValues.Int1.one).
 Notation "'(int64)' x" := (Int64.repr x) (at level 10).
 Notation "'(Z)' x" := (Z.of_nat x) (at level 10).
 
-Lemma bounds_check_aux :
-  forall (j n :nat),
-    ((int64) ((Z) j) + (int64) 1 < (int64) ((Z) n)) ≡ true ->
-                    (j + 1 < n)%nat.
-Proof.
-  Admitted.
-
-(* λ (t : Set) (bks : open_cfg), *)
-(*   fold_left (λ (acc : list block_id) (bk : LLVMAst.block t), (acc ++ bk_outputs bk)%list) bks [ ] *)
-(*      : ∀ t : Set, open_cfg → list block_id *)
-(* Definition  *)
-
 (* TODO: Move to Vellvm Denotation_Theory.v? *)
-
 
 Definition block_ids {T : Set} (b : list ((LLVMAst.block T))) :=
   fold_left (fun (acc : list block_id) (bk : LLVMAst.block T) => (acc ++ [blk_id bk])%list) b [].
@@ -206,6 +192,82 @@ Proof.
     apply Permutation.Permutation_refl.
 Qed.
 
+(* Useful lemmas about rcompose. TODO: Move? *)
+Lemma rcompose_eq_r :
+  forall A B (R: relationH A B), eq_rel (R) (rcompose R (@Logic.eq B)).
+Proof.
+  repeat intro. red. split; repeat intro; auto. econstructor.
+  apply H. reflexivity.
+  inversion H. subst. auto.
+Qed.
+
+Lemma rcompose_eq_l :
+  forall A B (R: relationH A B), eq_rel (R) (rcompose (@Logic.eq A) R).
+Proof.
+  repeat intro. red. split; repeat intro; auto. econstructor.
+  reflexivity. apply H.
+  inversion H. subst. auto.
+Qed.
+
+(* Auxiliary integer computation lemmas *)
+Lemma bounds_check_aux :
+  forall (j n :nat),
+    ((int64) ((Z) j) + (int64) 1 < (int64) ((Z) n)) ≡ true ->
+                    (j + 1 < n)%nat.
+Proof.
+  Admitted.
+
+Lemma eval_int_icmp_aux :
+  forall (n k : nat),
+    dvalue_to_uvalue (eval_int_icmp Slt ((int64) ((Z) (n - S k)) + (int64) 1) ((int64) ((Z) n)))
+                     ≡ (UVALUE_I1 DynamicValues.Int1.one).
+Proof.
+Admitted.
+
+Lemma find_block_label_in_blocks :
+  forall label bks, In label (block_ids bks) ->
+  exists x, find_block dtyp (convert_typ [ ] bks) label ≡ Some x.
+Proof.
+Admitted.
+
+Lemma body_blocks_from_entry_eq:
+  forall (prefix : string)
+    (loopvar : raw_id)            (* lvar storing the loop index *)
+    (loopcontblock : block_id)    (* reentry point from the body back to the loop *)
+    (body_entry : block_id)       (* entry point of the body *)
+    (body_blocks : list (LLVMAst.block typ)) (* (llvm) body to be iterated *)
+    (nextblock : block_id)        (* exit point of the overall loop *)
+    (entry_id : block_id)         (* entry point of the overall loop *)
+    (s1 s2 : IRState)
+    (n : nat)
+    (bks : list (LLVMAst.block typ)),
+
+    In body_entry (block_ids body_blocks) ->
+
+    (* Generation of the LLVM code wrapping the loop around bodyV *)
+    genWhileLoop prefix (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
+                       loopvar loopcontblock body_entry body_blocks [] nextblock s1
+                       ≡ inr (s2,(entry_id, bks)) ->
+
+    (* TODO: Add hypothesis about freshness/separation btw body_blocks and bks. *)
+
+    forall g l mV _label,
+      eutt Logic.eq
+      (with_err_LB (interp_cfg (denote_bks (convert_typ [ ] body_blocks) (_label, body_entry)) g l mV))
+      (with_err_LB (interp_cfg (denote_bks (convert_typ [ ] bks) (_label, body_entry)) g l mV)).
+Proof.
+  intros. unfold genWhileLoop in H0. cbn* in H0. simp.
+  rewrite list_cons_app.
+  rewrite convert_typ_block_app.
+  apply find_block_label_in_blocks in H. destruct H.
+  rewrite denote_bks_flow_right. 2 : admit. (* TODO: Freshness. *)
+
+  rewrite denote_bks_unfold_in.
+  2 : apply H.
+  cbn...
+Admitted.
+
+(* TODO: Freshness is stated in a somewhat ad-hoc way in here. Needs clean-up. *)
 Lemma genWhileLoop_ind:
   forall (prefix : string)
     (loopvar : raw_id)            (* lvar storing the loop index *)
@@ -411,18 +473,13 @@ Proof with rauto.
     match goal with
     | [ |- context[convert_typ _ ?l] ] => remember l as L
     end.
-    (* LHS *)
-    (* unfold build_vec_gen, build_vec_gen_aux. cbn... *)
-    (* match goal with *)
-    (* | [ |- context[convert_typ [] (?hd1::?hd2::?tl ++ ?l)] ] => *)
-    (*   remember hd1 as HD1; remember hd2 as HD2; remember tl as TL; remember l as L *)
-    (* end *)
-    (* . *)
 
-    (* RHS *)
+    (* RHS : Reducing RHS to apply Body Hypothesis *)
+    (* First step : First, Check that k<n hence we do not exit, in order to jump back to bodyblock. *)
     setoid_rewrite list_cons_app in HeqL.
     subst.
     rewrite convert_typ_block_app.
+    (* We ignore entry_id *)
     rewrite denote_bks_flow_right.
 
     match goal with
@@ -441,6 +498,7 @@ Proof with rauto.
       reflexivity.
     }
 
+    (* Updating (loopvar <- S k) coming from loopcontblock. *)
     focus_single_step_v.
     unfold fmap, Fmap_block. cbn. cbn... 
     rewrite Heqi7. cbn...
@@ -455,6 +513,7 @@ Proof with rauto.
     unfold uvalue_to_dvalue_binop. cbn. cbn...
     rewrite interp_cfg_to_L3_LW. cbn...
 
+    (* Simplifying until we get to the branching conditional statement. *)
     rewrite Heqi10. cbn...
     Transparent denote_instr. unfold denote_instr. cbn...
     Opaque denote_instr. cbn...
@@ -474,12 +533,9 @@ Proof with rauto.
       setoid_rewrite lookup_alist_add_eq. reflexivity.
     }
 
-    cbn... 
-    assert (dvalue_to_uvalue (eval_int_icmp Slt ((int64) ((Z) (n - S k)) + (int64) 1) ((int64) ((Z) n))) ≡
-(UVALUE_I1 DynamicValues.Int1.one)). {
-      unfold eval_int_icmp. cbn.
-      admit. (* TODO: Integer computation. State as aux.lemma above. *)
-    }
+    (* We find that k < n, thus we go back to looping on the body *)
+    cbn...
+    rewrite eval_int_icmp_aux.
     Typeclasses eauto := 4.
     setoid_rewrite H. cbn...
     focus_single_step_v.
@@ -492,7 +548,7 @@ Proof with rauto.
     2 : admit. 2 : admit. (* TODO: Freshness *)
     cbn... clear Heqi11.
 
-    (* Strategy : Jump back to body_entry *)
+    (* Step 2 : Jump back to body_entry (since we have checked k < n). *)
     unfold fmap, Fmap_block. cbn. rewrite convert_typ_block_app.
     rewrite list_cons_app. rewrite denote_bks_unfold_in.
     2 : { rewrite <- list_cons_app. setoid_rewrite find_block_eq. reflexivity. cbn. reflexivity.  }
@@ -527,7 +583,60 @@ Proof with rauto.
     | [ |- context[denote_bks ?l]] => remember l as bks
     end.
     clear i11 i12 Heqi12 i10 i9 Heqi9. clear i7 Heqi7.
-    (* TODO: Apply BODY HYPOTHESIS here! *)
+
+    (* Step 3 : Starting to think about applying body hypothesis *)
+    (* Step 3.1 : Make right had side of equation agree with right hand side of HBODY *)
+    match goal with
+    | [ |- context[interp_cfg _ _ ?l _]] => remember l as LOCAL
+    end.
+    match goal with
+    | [ |- eutt ?R _ _ ] => remember R as REL
+    end.
+
+    pose proof @rcompose_eq_r. specialize (H0 _ _ REL).
+    rewrite H0.
+
+    (* If we enter from body_entry, having either body_blocks or bks should be the same *)
+    eapply eqit_trans.
+    2 : {
+      Unshelve.
+      2 : exact (with_err_LB (interp_cfg
+                                (denote_bks (convert_typ [ ] body_blocks)
+                                            (b0, body_entry)) g LOCAL mV)).
+      pose proof @body_blocks_from_entry_eq.
+
+      rewrite H1.
+      2 : {
+        Unshelve.
+        2 : exact prefix. 8 :exact n. 2 : exact loopvar. 2 : exact loopcontblock.
+        2 : exact nextblock. 2 : exact entry_id. 2 : exact s1. 2 : exact s2.
+        cbn. rewrite Heqs. rewrite Heqs0. rewrite Heqs1. rewrite Heqs2. rewrite Heqs3. rewrite Heqs4.
+        rewrite Heqs5. reflexivity.
+      }
+      subst.
+      rewrite list_cons_app. rewrite convert_typ_block_app.
+      cbn. unfold fmap, Fmap_block. cbn.
+
+      rewrite list_cons_app.
+
+      (* Ignore entry_id *)
+      rewrite denote_bks_flow_right. 2 : admit. 2 : admit. (* TODO: Freshness *)
+      cbn... cbn.
+      rewrite convert_typ_block_app. cbn. unfold fmap, Fmap_block. cbn.
+      cbn...
+      reflexivity.
+    }
+
+    (* Now the RHS is the same as the body hypothesis, we should now reduce the LHS respectively. *)
+    unfold build_vec_gen, build_vec_gen_aux. cbn.
+    assert (n - S (n - S k) ≡ k).
+    assert (n - S (n - S k) ≡ n - (1 + (n - 1 - k))) by lia.
+
+    (* Step 3 (Actually applying BH): By body hypothesis, this will lead to my invariant being true at
+       step S k, and to jumping to loopcontblock. *)
+
+    (* Step 4 : Back to starting from loopcontblock and have reestablished everything at the next index:
+       conclude by IH *).
 
 Admitted.
  
