@@ -1187,6 +1187,28 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     eapply bound_between_shrink; eauto.
   Qed.
   
+  (* TODO: move *)
+  Lemma bid_bound_between_separate :
+    forall s1 s2 s3 s4 bid bid',
+      bid_bound_between s1 s2 bid ->
+      bid_bound_between s3 s4 bid' ->
+      (block_count s2 <= block_count s3)%nat ->
+      bid ≢ bid'.
+  Proof.
+    intros s1 s2 s3 s4 bid bid' BOUND1 BOUND2 BC.
+    destruct BOUND1 as (n1 & s1' & s1'' & NEND1 & LT1 & GE1 & INC1).
+    destruct BOUND2 as (n2 & s2' & s2'' & NEND2 & LT2 & GE2 & INC2).
+    (* TODO: Move to where I don't need this, or expose lemma *)
+    Transparent incBlockNamed.
+    unfold incBlockNamed in INC1, INC2.
+    Opaque incBlockNamed.
+    cbn in INC1, INC2.
+    simp.
+
+    assert (block_count s1' ≢ block_count s2') as NEQ by lia.
+  Admitted.
+
+
   (* TODO: Move *)
   Lemma inputs_bound_between :
     forall (op : DSHOperator) (s1 s2 : IRState) (nextblock op_entry : block_id) (bk_op : list (LLVMAst.block typ)),
@@ -1354,6 +1376,55 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       Forall (fun bid => bid_bound_between s1 s2 bid \/ bid ≡ nextblock) (outputs (convert_typ [ ] bk_op)).
   Proof.
   Admitted.
+
+  (* TODO: move this (or get rid of it) *)
+  Lemma evalDSHSeq_split :
+    forall {fuel σ op1 op2 mem mem''},
+      evalDSHOperator σ (DSHSeq op1 op2) mem fuel ≡ Some (inr mem'') ->
+      exists mem', evalDSHOperator σ op1 mem fuel ≡ Some (inr mem') /\
+              evalDSHOperator σ op2 mem' fuel ≡ Some (inr mem'').
+  Proof.
+    induction fuel;
+      intros σ op1 op2 mem mem'' EVAL.
+    - inversion EVAL.
+    - cbn in EVAL.
+      break_match_hyp; try break_match_hyp; inversion EVAL.
+      exists m. split.
+      * apply evalDSHOperator_fuel_monotone; auto.
+      * erewrite evalDSHOperator_fuel_monotone; eauto.
+  Qed.
+
+  Lemma assert_NT_lt_success :
+    forall {s1 s2 x y v},
+      assert_NT_lt s1 x y ≡ inr v ->
+      assert_NT_lt s2 x y ≡ inr v.
+  Proof.
+    intros s1 s2 x y v H.
+    unfold assert_NT_lt in *.
+    destruct ((MInt64asNT.to_nat x <? MInt64asNT.to_nat y)%nat); inversion H.
+    cbn in *. subst.
+    auto.
+  Qed.
+
+  (* TODO: move, add a file for disjoint list stuff? *)
+  Lemma Forall_disjoint :
+    forall {A} (l1 l2 : list A) (P1 P2 : A -> Prop),
+      Forall P1 l1 ->
+      Forall P2 l2 ->
+      (forall x, P1 x -> ~(P2 x)) ->
+      l1 ⊍ l2.
+  Proof.
+    induction l1;
+      intros l2 P1 P2 L1 L2 P1NP2.
+    - intros ? ? CONTRA. inversion CONTRA.
+    - apply Coqlib.list_disjoint_cons_l.
+      + eapply IHl1; eauto using Forall_inv_tail.
+      + apply Forall_inv in L1.
+        apply P1NP2 in L1.
+        intros IN.
+        eapply Forall_forall in L2; eauto.
+  Qed.
+
 
   Opaque denote_code.
  Lemma compile_FSHCOL_correct :
@@ -1531,19 +1602,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         auto.
       }
       subst.
-
-      Set Nested Proofs Allowed.
-      Lemma assert_NT_lt_success :
-        forall {s1 s2 x y v},
-          assert_NT_lt s1 x y ≡ inr v ->
-          assert_NT_lt s2 x y ≡ inr v.
-      Proof.
-        intros s1 s2 x y v H.
-        unfold assert_NT_lt in *.
-        destruct ((MInt64asNT.to_nat x <? MInt64asNT.to_nat y)%nat); inversion H.
-        cbn in *. subst.
-        auto.
-      Qed.
 
       rewrite (assert_NT_lt_success Heqs13).
       cbn*.
@@ -1975,46 +2033,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         pose proof (Forall_and GEN_OP1 GEN_OP1') as INPUTS.
         cbn in INPUTS.
 
-        (* TODO: move *)
-        Lemma bid_bound_between_separate :
-          forall s1 s2 s3 s4 bid bid',
-            bid_bound_between s1 s2 bid ->
-            bid_bound_between s3 s4 bid' ->
-            (block_count s2 <= block_count s3)%nat ->
-            bid ≢ bid'.
-        Proof.
-          intros s1 s2 s3 s4 bid bid' BOUND1 BOUND2 BC.
-          destruct BOUND1 as (n1 & s1' & s1'' & NEND1 & LT1 & GE1 & INC1).
-          destruct BOUND2 as (n2 & s2' & s2'' & NEND2 & LT2 & GE2 & INC2).
-          (* TODO: Move to where I don't need this, or expose lemma *)
-          Transparent incBlockNamed.
-          unfold incBlockNamed in INC1, INC2.
-          Opaque incBlockNamed.
-          cbn in INC1, INC2.
-          simp.
-
-          assert (block_count s1' ≢ block_count s2') as NEQ by lia.
-        Admitted.
-
-        (* TODO: move, add a file for disjoint list stuff? *)
-        Lemma Forall_disjoint :
-          forall {A} (l1 l2 : list A) (P1 P2 : A -> Prop),
-            Forall P1 l1 ->
-            Forall P2 l2 ->
-            (forall x, P1 x -> ~(P2 x)) ->
-            l1 ⊍ l2.
-        Proof.
-          induction l1;
-            intros l2 P1 P2 L1 L2 P1NP2.
-          - intros ? ? CONTRA. inversion CONTRA.
-          - apply Coqlib.list_disjoint_cons_l.
-            + eapply IHl1; eauto using Forall_inv_tail.
-            + apply Forall_inv in L1.
-              apply P1NP2 in L1.
-              intros IN.
-              eapply Forall_forall in L2; eauto.
-        Qed.
-
         eapply (Forall_disjoint GEN_OP2 INPUTS).
         (* TODO: need to make sure IN_NEXT is actually nextblock... *)
         intros x OUT_PRED [IN_BOUND IN_NEXT].
@@ -2024,22 +2042,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       }
 
       rauto.
-
-      Lemma evalDSHSeq_split :
-        forall {fuel σ op1 op2 mem mem''},
-          evalDSHOperator σ (DSHSeq op1 op2) mem fuel ≡ Some (inr mem'') ->
-          exists mem', evalDSHOperator σ op1 mem fuel ≡ Some (inr mem') /\
-                  evalDSHOperator σ op2 mem' fuel ≡ Some (inr mem'').
-      Proof.
-        induction fuel;
-          intros σ op1 op2 mem mem'' EVAL.
-        - inversion EVAL.
-        - cbn in EVAL.
-          break_match_hyp; try break_match_hyp; inversion EVAL.
-          exists m. split.
-          * apply evalDSHOperator_fuel_monotone; auto.
-          * erewrite evalDSHOperator_fuel_monotone; eauto.
-      Qed.
 
       (* Evaluation of operators in sequence *)
       pose proof (evalDSHSeq_split EVAL) as [mem' [EVAL1 EVAL2]].
@@ -2052,14 +2054,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
       eapply eutt_clo_bind.
       {
-        (* bid_from = ???
-           bid_in   = op1_entry
-
-           next_block = bid_in by GenIR_Rel...
-
-           BISIM should give us nextblock = op1_entry
-         *)
-
         eapply (IHop1 _ _ _ _ _ _ op2_entry _ _ _ _ _ _ _ _ EVAL1 GEN_OP1).
         Unshelve.
         eapply bid_bound_genIR_entry; eauto.
@@ -2088,6 +2082,20 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       intros. apply H.
       intros. apply H.
       2: {
+        (* TODO: this might be wrong *)
+        (* This is setting me up for failure, I think...
+
+           I end up having to prove:
+
+           GenIR_Rel σ s1 memH' op2_entry (memH', ()) (memV', (le, (ge, inl (from', op2_entry))))
+
+           Which leaves me with:
+
+           concrete_fresh_inv s1 le
+
+           Which is not true.
+
+         *)
         epose proof (IHop2 _ _ σ memH' _ _ _ _ _ _ ge le memV' _ _ EVAL2 GEN_OP2) as IH2.
         apply IH2.
         Unshelve.
@@ -2113,11 +2121,28 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
             rewrite <- (genIR_Context _ _ _ GEN).
             auto.
           + eapply IRState_is_WF; eauto.
-          + eapply incLocal_is_fresh in STATE_BIS.
+          +
+            (* This doesn't seem true?
+
+               le should be the local environment after denoting op1...
+
+               So, I should hope to have
+
+               concrete_fresh_inv s_op1 le,
+
+               instead of
+
+               concrete_fresh_inv s1 le...
+
+               Because we generated names between s1 and s_op1...
+             *)
+            eapply incLocal_is_fresh in STATE_BIS.
             cbn in STATE_BIS.
             cbn.
             intros id v0 n H H0.
             eapply STATE_BIS; eauto.
+
+            (* Does le = ρ ? *)
             admit. (* TODO: ugh, freshness *)
         - split; cbn; eauto.
       }
