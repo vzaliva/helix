@@ -57,6 +57,8 @@ Require Export Vellvm.Transformations.Traversal.
 Require Export Vellvm.PostConditions.
 Require Export Vellvm.Denotation_Theory.
 Require Export Vellvm.InstrLemmas.
+Require Export Vellvm.NoFailure.
+Require Export Vellvm.PropT.
 
 Require Export ExtLib.Structures.Monads.
 Require Export ExtLib.Data.Map.FMapAList.
@@ -72,6 +74,7 @@ Require Export ITree.Events.FailFacts.
 Require Export ITree.ITree.
 Require Export ITree.Eq.Eq.
 Require Export ITree.Basics.Basics.
+Require Export ITree.Events.Exception.
 Require Export ITree.Interp.InterpFacts.
 
 Require Export Flocq.IEEE754.Binary.
@@ -819,7 +822,6 @@ Section InterpHelix.
 
 End InterpHelix.
 
-Opaque interp_helix.
        
 Ltac break_and :=
   repeat match goal with
@@ -932,3 +934,62 @@ Ltac break_and :=
   Tactic Notation "rauto" := (repeat (autorewrite with itree; autorewrite with vellvm; autorewrite with helix)).
   Tactic Notation "rauto" "in" hyp(h) :=
     (repeat (autorewrite with itree in h; autorewrite with vellvm in h; autorewrite with helix in h)).
+
+  (* We derive lemmas specialized to [interp_helix] to reason about [no_failure] and easily derive contradictions *)
+  Section Interp_Helix_No_Failure.
+
+    Lemma no_failure_helix_Ret : forall E X x m,
+      no_failure (interp_helix (X := X) (E := E) (Ret x) m).
+    Proof.
+      intros.
+      rewrite interp_helix_ret. apply eutt_Ret; intros abs; inv abs.
+    Qed.
+
+    Lemma failure_throw : forall E X s m,
+        ~ no_failure (interp_helix (X := X) (E := E) (throw s) m).
+    Proof.
+      intros * abs.
+      unfold Exception.throw in *.
+      unfold interp_helix in *.
+      setoid_rewrite interp_Mem_vis_eqit in abs.
+      unfold pure_state in *; cbn in *.
+      rewrite interp_fail_bind in abs.
+      rewrite interp_fail_vis in abs.
+      cbn in *.
+      rewrite Eq.bind_bind, !bind_ret_l in abs.
+      rewrite translate_ret in abs.
+      eapply eutt_Ret in abs.
+      apply abs; auto.
+    Qed.
+
+    Lemma failure_throw' : forall E Y X s (k : Y -> _) m,
+        ~ no_failure (interp_helix (X := X) (E := E) (ITree.bind (throw s) k) m).
+    Proof.
+      intros * abs.
+      rewrite interp_helix_bind in abs.
+      eapply no_failure_bind_prefix, failure_throw in abs; auto.
+    Qed.
+
+    Lemma no_failure_interp_helix_bind_prefix : forall {E X Y} (t : itree _ X) (k : X -> itree _ Y) m,
+        no_failure (interp_helix (E := E) (ITree.bind t k) m) ->
+        no_failure (interp_helix (E := E) t m).
+    Proof.
+      intros * NOFAIL.
+      rewrite interp_helix_bind in NOFAIL.
+      eapply no_failure_bind_prefix; eapply NOFAIL.
+    Qed.
+
+    Lemma no_failure_interp_helix_bind_continuation : forall {E X Y} (t : itree _ X) (k : X -> itree _ Y) m,
+        no_failure (interp_helix (E := E) (ITree.bind t k) m) ->
+        forall u m', Returns (E := E) (Some (m',u)) (interp_helix t m) -> 
+                no_failure (interp_helix (E := E) (k u) m').
+    Proof.
+      intros * NOFAIL * ISRET.
+      rewrite interp_helix_bind in NOFAIL.
+      eapply no_failure_bind_cont in NOFAIL; eauto.
+      apply NOFAIL.
+    Qed.
+
+  End Interp_Helix_No_Failure.
+  
+  Opaque interp_helix.
