@@ -945,7 +945,7 @@ Ltac break_and :=
       rewrite interp_helix_ret. apply eutt_Ret; intros abs; inv abs.
     Qed.
 
-    Lemma failure_throw : forall E X s m,
+    Lemma failure_helix_throw : forall E X s m,
         ~ no_failure (interp_helix (X := X) (E := E) (throw s) m).
     Proof.
       intros * abs.
@@ -962,15 +962,15 @@ Ltac break_and :=
       apply abs; auto.
     Qed.
 
-    Lemma failure_throw' : forall E Y X s (k : Y -> _) m,
+    Lemma failure_helix_throw' : forall E Y X s (k : Y -> _) m,
         ~ no_failure (interp_helix (X := X) (E := E) (ITree.bind (throw s) k) m).
     Proof.
       intros * abs.
       rewrite interp_helix_bind in abs.
-      eapply no_failure_bind_prefix, failure_throw in abs; auto.
+      eapply no_failure_bind_prefix, failure_helix_throw in abs; auto.
     Qed.
 
-    Lemma no_failure_interp_helix_bind_prefix : forall {E X Y} (t : itree _ X) (k : X -> itree _ Y) m,
+    Lemma no_failure_helix_bind_prefix : forall {E X Y} (t : itree _ X) (k : X -> itree _ Y) m,
         no_failure (interp_helix (E := E) (ITree.bind t k) m) ->
         no_failure (interp_helix (E := E) t m).
     Proof.
@@ -979,7 +979,7 @@ Ltac break_and :=
       eapply no_failure_bind_prefix; eapply NOFAIL.
     Qed.
 
-    Lemma no_failure_interp_helix_bind_continuation : forall {E X Y} (t : itree _ X) (k : X -> itree _ Y) m,
+    Lemma no_failure_helix_bind_continuation : forall {E X Y} (t : itree _ X) (k : X -> itree _ Y) m,
         no_failure (interp_helix (E := E) (ITree.bind t k) m) ->
         forall u m', Returns (E := E) (Some (m',u)) (interp_helix t m) -> 
                 no_failure (interp_helix (E := E) (k u) m').
@@ -993,3 +993,12 @@ Ltac break_and :=
   End Interp_Helix_No_Failure.
   
   Opaque interp_helix.
+
+  Hint Resolve no_failure_helix_Ret : core.
+  Hint Resolve no_failure_helix_bind_prefix : core.
+  Hint Extern 4 (no_failure _) =>
+  (match goal with
+   | h : no_failure (interp_helix (ITree.bind _ _) _) |- _ =>
+     eapply no_failure_helix_bind_continuation in h
+   end) : core.
+
