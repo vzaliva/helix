@@ -47,14 +47,14 @@ Section NExpr.
       We therefore instead carry the fact about the denotation of the expression in the invariant. (Is there another clever way?)
       TODO: how to make this (much) less ugly?
    *)
-  Definition genNExpr_exp_correct (σ : evalContext) (nexp : NExpr) (e: exp typ)
+  Definition genNExpr_exp_correct_ind (σ : evalContext) (nexp : NExpr) (e: exp typ)
   : Rel_cfg_T DynamicValues.int64 unit :=
     fun '(x,i) '(memV,(l,(g,v))) =>
       forall l', l ⊑ l' ->
-            Ret (memV,(l',(g,UVALUE_I64 i))) ≈
             interp_cfg
                 (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] e)))
-                g l' memV
+                g l' memV ≈
+            Ret (memV,(l',(g,UVALUE_I64 i)))
             /\ evalNExpr σ nexp ≡ inr i.
 
   (**
@@ -62,7 +62,7 @@ Section NExpr.
      we also state that evaluating the code preserves most of the state, except for the local state being
      allowed to be extended with fresh bindings.
    *)
-  Record genNExpr_rel
+  Record genNExpr_rel_ind
          (σ : evalContext)
          (nexp : NExpr)
          (e : exp typ)
@@ -70,7 +70,7 @@ Section NExpr.
          (mf : memoryH * DynamicValues.int64) (stf : config_cfg_T unit)
     : Prop :=
     {
-    exp_correct : genNExpr_exp_correct σ nexp e mf stf;
+    exp_correct : genNExpr_exp_correct_ind σ nexp e mf stf;
     monotone : ext_local mi sti mf stf
     }.
 
@@ -108,49 +108,7 @@ Section NExpr.
     (reflexivity ||
      apply sub_alist_add; solve_alist_fresh).
 
-  Definition no_failure {E X} (t : itree E (option X)) : Prop :=
-    t ⤳ fun x => ~ x ≡ None.
-
-  (* TO MOVE TO ITREE *)
-  Lemma interp_fail_vis {E F : Type -> Type} {T U : Type}
-        (e : E T) (k : T -> itree E U) (h : E ~> failT (itree F)) 
-    : interp_fail h (Vis e k)
-                   ≈ h T e >>= fun mx => match mx with | None => Ret None | Some x => (interp_fail h (k x)) end.
-  Proof.
-    rewrite unfold_interp_fail; cbn.
-    apply eutt_eq_bind; intros []; [rewrite tau_eutt; reflexivity | reflexivity]. 
-  Qed.
-
-  Lemma failure_throw : forall E X s m,
-      ~ no_failure (interp_helix (X := X) (E := E) (Exception.throw s) m).
-  Proof.
-    intros * abs.
-    unfold no_failure, has_post, Exception.throw in *.
-    unfold interp_helix in *.
-    setoid_rewrite interp_Mem_vis_eqit in abs.
-    unfold pure_state in *; cbn in *.
-    rewrite interp_fail_bind in abs.
-    rewrite interp_fail_vis in abs.
-    cbn in *.
-    rewrite Eq.bind_bind, !bind_ret_l in abs.
-    rewrite translate_ret in abs.
-    eapply eutt_Ret in abs.
-    apply abs; auto.
-  Qed.
-
-  Lemma no_failure_Ret : forall E X x m,
-      no_failure (interp_helix (X := X) (E := E) (Ret x) m).
-  Proof.
-    intros.  unfold no_failure, has_post. rewrite interp_helix_ret; apply eutt_Ret; intros abs; inv abs.
-  Qed.
-
-  Ltac forward H :=
-    let H' := fresh in
-    match type of H with
-    | ?P -> _ => assert P as H'; [| specialize (H H'); clear H']
-    end.
-
-  Lemma genNExpr_correct :
+  Lemma genNExpr_correct_ind :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH) 
       (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
@@ -159,8 +117,8 @@ Section NExpr.
       state_invariant σ s1 memH (memV, (l, g)) -> (* The main state invariant is initially true *)
       no_failure (interp_helix (E := E_cfg) (denoteNExpr σ nexp) memH) -> (* Source semantics defined *)
       eutt (succ_cfg (lift_Rel_cfg (state_invariant σ s2) ⩕
-                                   genNExpr_rel σ nexp e memH (mk_config_cfg memV l g) ⩕
-                                   lift_pure_cfg (Γ s1 ≡ Γ s2)))
+                      genNExpr_rel_ind σ nexp e memH (mk_config_cfg memV l g) ⩕
+                      lift_pure_cfg (Γ s1 ≡ Γ s2)))
            (interp_helix (denoteNExpr σ nexp) memH)
            (interp_cfg (denote_code (convert_typ [] c)) g l memV).
   Proof with (rauto).
@@ -172,10 +130,10 @@ Section NExpr.
 
       + (* The variable maps to an integer in the IRState *)
         unfold denoteNExpr in *; cbn* in *...
-        simp; try abs_by failure_throw...
+        simp; try_abs.
 
         (* The identifier has to be a local one *)
-        destruct i0; try abs_by_WF.
+        destruct i0; try_abs... 
 
         (* We establish the postcondition *)
         apply eutt_Ret; split; [| split]; try now eauto.
@@ -189,8 +147,8 @@ Section NExpr.
 
       + (* The variable maps to a pointer *)
         unfold denoteNExpr in *; cbn* in *.
-        simp; try abs_by failure_throw.
-        break_inner_match_goal; try abs_by_WF.
+        simp; try_abs.
+        break_inner_match_goal; try_abs.
         cbn...
 
         (* YZ : TODO load tactic?
@@ -242,13 +200,13 @@ Section NExpr.
 
       cbn* in COMPILE; simp.
       unfold denoteNExpr in *; cbn* in *.
-      simp; try abs_by failure_throw. 
+      simp; try_abs.
       cbn...
       (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
       specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE). 
       simp.
 
-      forward IHnexp1; auto using no_failure_Ret.
+      forward IHnexp1; eauto. 
 
       rauto in IHnexp1.
 
@@ -263,7 +221,7 @@ Section NExpr.
 
       specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI).
       simp.
-      forward IHnexp2; auto using no_failure_Ret.
+      forward IHnexp2; auto. 
       cbn* in IHnexp2;
         rauto in IHnexp2.
 
@@ -292,7 +250,7 @@ Section NExpr.
         clear EXPRF EXPRI.
         apply Z.eqb_eq in Heqb.
         rewrite <- Int64.unsigned_zero in Heqb.
-       unfold MInt64asNT.NTypeZero.
+        unfold MInt64asNT.NTypeZero.
         apply unsigned_is_zero; auto.
       }
       cbn...
@@ -330,12 +288,12 @@ Section NExpr.
 
       cbn* in COMPILE; simp.
       unfold denoteNExpr in *; cbn* in *.
-      simp; try abs_by failure_throw. 
+      simp; try_abs.
       cbn...
       (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
       specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE). 
       simp.
-      forward IHnexp1; auto using no_failure_Ret.
+      forward IHnexp1; auto. 
       rauto in IHnexp1.
 
       ret_bind_l_left (Some (memH, i3)).
@@ -350,7 +308,7 @@ Section NExpr.
 
       specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI).
       simp.
-      forward IHnexp2; auto using no_failure_Ret.
+      forward IHnexp2; auto. 
       cbn* in IHnexp2;
         rauto in IHnexp2.
 
@@ -421,12 +379,12 @@ Section NExpr.
 
       cbn* in COMPILE; simp.
       unfold denoteNExpr in *; cbn* in *.
-      simp; try abs_by failure_throw. 
+      simp; try_abs.
       cbn...
       (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
       specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE). 
       simp.
-      forward IHnexp1; auto using no_failure_Ret.
+      forward IHnexp1; auto. 
       rauto in IHnexp1.
 
       rewrite convert_typ_app, denote_code_app...
@@ -439,7 +397,7 @@ Section NExpr.
 
       specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI).
       simp.
-      forward IHnexp2; auto using no_failure_Ret.
+      forward IHnexp2; auto. 
       cbn* in IHnexp2;
         rauto in IHnexp2.
 
@@ -495,12 +453,12 @@ Section NExpr.
     - (* NMinus *)
       cbn* in COMPILE; simp.
       unfold denoteNExpr in *; cbn* in *.
-      simp; try abs_by failure_throw. 
+      simp; try_abs.
       cbn...
       (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
       specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE). 
       simp.
-      forward IHnexp1; auto using no_failure_Ret.
+      forward IHnexp1; auto. 
       rauto in IHnexp1.
 
       rewrite convert_typ_app, denote_code_app...
@@ -513,7 +471,7 @@ Section NExpr.
 
       specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI).
       simp.
-      forward IHnexp2; auto using no_failure_Ret.
+      forward IHnexp2; auto. 
       cbn* in IHnexp2;
         rauto in IHnexp2.
 
@@ -574,12 +532,12 @@ Section NExpr.
     - (* NMult *)
       cbn* in COMPILE; simp.
       unfold denoteNExpr in *; cbn* in *.
-      simp; try abs_by failure_throw. 
+      simp; try_abs.
       cbn...
       (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
       specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE). 
       simp.
-      forward IHnexp1; auto using no_failure_Ret.
+      forward IHnexp1; auto. 
       rauto in IHnexp1.
 
       rewrite convert_typ_app, denote_code_app...
@@ -593,7 +551,7 @@ Section NExpr.
 
       specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI).
       simp.
-      forward IHnexp2; auto using no_failure_Ret.
+      forward IHnexp2; auto. 
       cbn* in IHnexp2;
         rauto in IHnexp2.
 
@@ -660,6 +618,8 @@ Section NExpr.
       inversion COMPILE.
 Qed.
 
+  (* CLEAN UP *)
+  (*
   Lemma genNExpr_memH : forall σ n e memH memV memH' memV' l g l' g' n',
       genNExpr_rel σ n e memH (mk_config_cfg memV l g) (memH', n')
                    (memV', (l', (g', ()))) ->
@@ -696,8 +656,12 @@ Qed.
     destruct H; cbn in *; intuition.
   Qed.
 
+   *)
+
 End NExpr.
 
+(* CLEAN UP *)
+(*
 Ltac genNExpr_rel_subst LL :=
   match goal with
   | NEXP : genNExpr_rel ?σ ?n ?e ?memH (mk_config_cfg ?memV ?l ?g) (?memH', ?n') (?memV', (?l', (?g', ()))) |- _ =>
@@ -707,3 +671,84 @@ Ltac genNExpr_rel_subst LL :=
     pose proof genNExpr_g NEXP as H; subst g';
     pose proof genNExpr_l NEXP as LL
   end.
+ *)
+
+(*
+Definition genNExpr_exp_correct' (σ : evalContext) (s : IRState) (nexp : NExpr) (e: exp typ)
+  : Rel_cfg_T DynamicValues.int64 unit :=
+  fun '(memH,i) '(memV,(l,(g,v))) => 
+            eutt (succ_cfg (lift_Rel_cfg (state_invariant σ s)))
+                 (interp_helix (denoteNExpr σ nexp) memH)
+                 (interp_cfg
+                    (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] e)))
+                    g l memV). 
+
+  Lemma genNExpr_correct' :
+    forall (* Compiler bits *) (s1 s2: IRState)
+      (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH) 
+      (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
+
+      genNExpr nexp s1 ≡ inr (s2, (e, c))      -> (* Compilation succeeds *)
+      state_invariant σ s1 memH (memV, (l, g)) -> (* The main state invariant is initially true *)
+      no_failure (interp_helix (E := E_cfg) (denoteNExpr σ nexp) memH) -> (* Source semantics defined *)
+      eutt (succ_cfg (genNExpr_exp_correct' σ s2 nexp e))
+           (interp_helix (denoteNExpr σ nexp) memH)
+           (interp_cfg (denote_code (convert_typ [] c)) g l memV).
+  Proof.
+    intros.
+    eapply eqit_mon; [eauto | eauto | ..].
+    2: eapply genNExpr_correct; eauto.
+    intros [(? & ?) |] (? & ? & ? & ?) INV; [destruct INV as (SI & EXP & ?) | inv INV].
+    destruct u; cbn in *.
+    destruct EXP as (EXP & MONO).
+    cbn in *.
+    specialize (EXP l0).
+    forward EXP; [reflexivity |].
+    destruct EXP as (EXP & EQ).
+    unfold denoteNExpr; rewrite EQ; cbn.
+    rewrite interp_helix_Ret.
+    cbn.
+    rewrite <- EXP.
+    apply eutt_Ret.
+    cbn.
+    eauto.
+  Qed.
+
+ *)
+
+Definition genNExpr_exp_correct (σ : evalContext) (s : IRState) (e: exp typ)
+  : Rel_cfg_T DynamicValues.int64 unit :=
+  fun '(memH,i) '(memV,(l,(g,v))) => 
+    eutt Logic.eq 
+         (interp_cfg
+            (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] e)))
+            g l memV)
+         (Ret (memV,(l,(g,UVALUE_I64 i)))).
+
+Lemma genNExpr_correct :
+  forall (* Compiler bits *) (s1 s2: IRState)
+    (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH) 
+    (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
+
+    genNExpr nexp s1 ≡ inr (s2, (e, c))      -> (* Compilation succeeds *)
+    state_invariant σ s1 memH (memV, (l, g)) -> (* The main state invariant is initially true *)
+    no_failure (interp_helix (E := E_cfg) (denoteNExpr σ nexp) memH) -> (* Source semantics defined *)
+    eutt (succ_cfg
+            (lift_Rel_cfg (state_invariant σ s2) ⩕
+                          genNExpr_exp_correct σ s2 e))
+         (interp_helix (denoteNExpr σ nexp) memH)
+         (interp_cfg (denote_code (convert_typ [] c)) g l memV).
+Proof.
+  intros.
+  eapply eutt_mon; cycle -1.
+  eapply genNExpr_correct_ind; eauto.
+  intros [(? & ?) |] (? & ? & ? & []) INV; [destruct INV as (SI & EXP & ?) | inv INV].
+  cbn in *.
+  destruct EXP as (EXP & MONO).
+  cbn in *.
+  specialize (EXP l0).
+  forward EXP; [reflexivity |].
+  destruct EXP as (EXP & EQ).
+  split; auto.
+Qed.
+
