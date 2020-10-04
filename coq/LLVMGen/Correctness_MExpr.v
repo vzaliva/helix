@@ -28,6 +28,16 @@ Remove Hints
 Section MExpr.
 
   Definition invariant_MExpr
+             (e : exp typ) : Rel_cfg_T (mem_block * Int64.int) unit :=
+    fun '(memH, (mb, mb_sz)) '(memV, (ρ, (g, _))) => 
+      exists (ptr : Addr.addr), 
+        interp_cfg (translate exp_E_to_instr_E (D.denote_exp (Some DTYPE_Pointer) (convert_typ [] e))) g ρ memV ≈
+                   Ret (memV,(ρ,(g,UVALUE_Addr ptr))) /\ 
+        (forall i v, mem_lookup i mb ≡ Some v -> get_array_cell memV ptr i DTYPE_Double ≡ inr (UVALUE_Double v)).
+  
+
+  (* TO CLEAN
+Definition invariant_MExpr
              (σ : evalContext)
              (s : IRState) (mexp : MExpr) (e : exp typ) : Rel_cfg_T (mem_block * Int64.int) unit :=
     fun '(memH, (mb, mb_sz)) '(memV, (ρ, (g, _))) =>
@@ -39,8 +49,8 @@ Section MExpr.
         nth_error σ vid ≡ Some (DSHPtrVal mid size) /\
         nth_error (Γ s) vid ≡ Some (i, TYPE_Pointer (TYPE_Array sz TYPE_Double))) /\
       evalMExpr memH σ mexp ≡ inr (mb, mb_sz).
+   *)
 
-  (* TODO: like ext_local, but locals also don't change. Not sure what to call this... *)
   Definition preserves_states {R S}: memoryH -> config_cfg -> Rel_cfg_T R S :=
     fun mh '(mi,(li,gi)) '(mh',_) '(m,(l,(g,_))) => mh ≡ mh' /\ mi ≡ m /\ gi ≡ g /\ li ≡ l.
 
@@ -51,19 +61,6 @@ Section MExpr.
     intros; repeat split; reflexivity.
   Qed.
   Hint Resolve preserves_states_refl: core.
-
-  Record genMExpr_rel
-         (σ : evalContext)
-         (s : IRState)
-         (mexp : MExpr)
-         (e  : exp typ)
-         (mi : memoryH) (sti : config_cfg)
-         (mf : memoryH * (mem_block * Int64.int)) (stf : config_cfg_T unit)
-    : Prop :=
-    {
-    mexp_correct :invariant_MExpr σ s mexp e mf stf;
-    m_preserves : preserves_states mi sti mf stf
-    }.
 
   Lemma memory_invariant_Ptr : forall vid σ s memH memV l g a size x sz,
       state_invariant σ s memH (memV, (l, g)) ->
@@ -77,24 +74,53 @@ Section MExpr.
     intros * [MEM _ _] LU1 LU2; eapply MEM in LU1; eapply LU1 in LU2; eauto.
   Qed.
 
-  Lemma failure_throw : forall E Y X s (k : Y -> _) m,
-      ~ no_failure (interp_helix (X := X) (E := E) (ITree.bind (Exception.throw s) k) m).
-  Proof.
-    intros * abs.
-    unfold no_failure, has_post, Exception.throw in *.
-    unfold interp_helix in *.
-    rewrite interp_Mem_bind in abs.
-    setoid_rewrite interp_Mem_vis_eqit in abs.
-    unfold pure_state in *; cbn in *.
-    rewrite bind_bind in abs.
-    rewrite interp_fail_bind in abs.
-    rewrite interp_fail_vis in abs.
-    cbn in *.
-    rewrite Eq.bind_bind, !bind_ret_l in abs.
-    rewrite translate_ret in abs.
-    eapply eutt_Ret in abs.
-    apply abs; auto.
+  Lemma genMExpr_correct :
+    forall (* Compiler bits *) (s1 s2: IRState)
+      (* Helix  bits *)   (mexp: MExpr) (σ: evalContext) (memH: memoryH) 
+      (* Vellvm bits *)   (exp: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV) (τ: typ),
+      genMExpr mexp s1 ≡ inr (s2, (exp, c, τ)) -> (* Compilation succeeds *)
+      state_invariant σ s1 memH (memV, (l, g)) ->
+      no_failure (interp_helix (E := E_cfg) (denoteMExpr σ mexp) memH) -> (* Source semantics defined *)
+      eutt (succ_cfg
+              (
+                lift_Rel_cfg (state_invariant σ s2) ⩕
+                             preserves_states memH (memV,(l,g)) ⩕
+                             invariant_MExpr exp 
+           ))
+           (interp_helix (denoteMExpr σ mexp) memH)
+           (interp_cfg (D.denote_code (convert_typ [] c)) g l memV).
+  Proof with rauto.
+    intros * Hgen Hmeminv NOFAIL.
+    destruct mexp as [[vid] | mblock]; cbn* in Hgen; simp.
+    cbn...
+    unfold denoteMExpr in *; cbn* in *.
+    unfold denotePExpr in *; cbn* in *.
+    simp; try_abs.
+    edestruct memory_invariant_Ptr as (bkH & ptrV & Mem_LU & LUV & EQ); eauto.
+    cbn...
+    2:eauto.
+    apply eutt_Ret; split; [| split]; cbn; auto.
+    eexists; split; eauto.
+    break_match_goal; cbn...
+    all: eauto.
+    all: reflexivity.
   Qed.
+
+End MExpr.
+
+(*
+  (* Record genMExpr_rel *)
+  (*        (σ : evalContext) *)
+  (*        (s : IRState) *)
+  (*        (mexp : MExpr) *)
+  (*        (e  : exp typ) *)
+  (*        (mi : memoryH) (sti : config_cfg) *)
+  (*        (mf : memoryH * (mem_block * Int64.int)) (stf : config_cfg_T unit) *)
+  (*   : Prop := *)
+  (*   { *)
+  (*   mexp_correct :invariant_MExpr σ s mexp e mf stf; *)
+  (*   m_preserves : preserves_states mi sti mf stf *)
+  (*   }. *)
 
   (** ** Compilation of MExpr
   *)
@@ -111,40 +137,66 @@ Section MExpr.
            (interp_cfg (D.denote_code (convert_typ [] c)) g l memV).
   Proof with rauto.
     intros * Hgen Hmeminv NOFAIL.
-    generalize Hmeminv; intros WF; apply IRState_is_WF in WF.
-
+    destruct mexp as [[vid] | mblock]; cbn* in Hgen; simp.
+    cbn...
     unfold denoteMExpr in *; cbn* in *.
-
-    destruct mexp as [[vid] | mblock]; [| cbn in Hgen; inv Hgen].
-
-    cbn* in Hgen; simp.
     unfold denotePExpr in *; cbn* in *.
-    simp; try (abs_by_WF || abs_by failure_throw).
-
+    simp; try_abs.
     edestruct memory_invariant_Ptr as (bkH & ptrV & Mem_LU & LUV & EQ); eauto.
-
-    cbn*... 2:eauto.
-    apply eutt_Ret.
-    
-    split; auto.
-    split; auto.
+    cbn...
+    2:eauto.
+    apply eutt_Ret; split; cbn; auto.
     split.
-    { do 6 eexists.
-      splits; eauto.
+    2: cbn; intuition.
+    cbn.
+  (*   split. 2:{ *)
+  (*     apply IRState_is_WF in WF. *)
+  (*     do 2 match_rewrite; reflexivity. *)
+      
+  (*   split. *)
+  (*   { do 6 eexists. *)
+  (*     splits; eauto. *)
 
-      destruct i0;
-        cbn in *; cbn...
+  (*     destruct i0; *)
+  (*       cbn in *; cbn... *)
 
-        cbn... 2 : eauto. 3 : eauto. 2 : cbn... 2 : reflexivity. 
-        reflexivity.
-      }
-    { 
-      cbn*.
-      do 2 match_rewrite; reflexivity.
-    }
-  Qed.
+  (*       cbn... 2 : eauto. 3 : eauto. 2 : cbn... 2 : reflexivity.  *)
+  (*       reflexivity. *)
+  (*     } *)
+  (*   {  *)
+  (*     cbn*. *)
+  (*     do 2 match_rewrite; reflexivity. *)
+  (*   } *)
+ 
+  (*   split. *)
+  (*   generalize Hmeminv; intros WF;  *)
+
+
+
+
+
+  (*   cbn*... 2:eauto. *)
+    
+  (*   split; auto. *)
+  (*   split; auto. *)
+  (*   split. *)
+  (*   { do 6 eexists. *)
+  (*     splits; eauto. *)
+
+  (*     destruct i0; *)
+  (*       cbn in *; cbn... *)
+
+  (*       cbn... 2 : eauto. 3 : eauto. 2 : cbn... 2 : reflexivity.  *)
+  (*       reflexivity. *)
+  (*     } *)
+  (*   {  *)
+  (*     cbn*. *)
+  (*     do 2 match_rewrite; reflexivity. *)
+  (*   } *)
+  (* Qed. *)
 
   (* TODO: move these, and use them more. *)
+  Admitted.
 
   Lemma genMExpr_memH : forall σ s mexp e memH memV memH' memV' l g l' g' mb uv,
       genMExpr_rel σ s mexp e memH (mk_config_cfg memV l g) (memH', mb)
@@ -214,3 +266,4 @@ Ltac genMExpr_rel_subst :=
     pose proof genMExpr_l MEXP as H; subst l'
   end.
 
+*)
