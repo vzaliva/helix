@@ -81,13 +81,6 @@ Ltac abs_by_WF :=
     | Some (?id,?τ) =>
       match rhs' with
       | None => fail
-                 (*
-        let LUP    := fresh "LUP" in
-        let val    := fresh "val" in
-        let CONTRA := fresh "CONTRA" in
-        epose proof (context_lookup_succeeds _ _ _ h) as (val & LUP & CONTRA);
-        rewrite h' in CONTRA;
-        discriminate CONTRA *)
       | Some ?val =>
         let WF := fresh "WF" in
         assert (WF : WF_IRState σ s) by eauto;
@@ -96,7 +89,6 @@ Ltac abs_by_WF :=
     | None =>
       match rhs' with
       | None => fail
-        (* exfalso; eapply WF_IRState_lookup_cannot_fail_st; now eauto *)
       | Some ?val => fail
       end
     end
@@ -110,6 +102,9 @@ Ltac abs_by_WF :=
       now (let EQ := fresh in destruct h as [EQ | [EQ | [? EQ]]]; inv EQ)
     end
    end.
+
+Ltac try_abs :=
+  try (abs_by_WF || abs_by failure_helix_throw || abs_by failure_helix_throw').
 
 Section SimulationRelations.
 
