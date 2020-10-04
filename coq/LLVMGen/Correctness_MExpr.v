@@ -35,7 +35,6 @@ Section MExpr.
                    Ret (memV,(ρ,(g,UVALUE_Addr ptr))) /\ 
         (forall i v, mem_lookup i mb ≡ Some v -> get_array_cell memV ptr i DTYPE_Double ≡ inr (UVALUE_Double v)).
   
-
   (* TO CLEAN
 Definition invariant_MExpr
              (σ : evalContext)
@@ -104,6 +103,17 @@ Definition invariant_MExpr
     break_match_goal; cbn...
     all: eauto.
     all: reflexivity.
+  Qed.
+
+  Lemma genMExpr_array : forall {s1 s2 m e c t},
+      genMExpr m s1 ≡ inr (s2, (e, c, t)) ->
+      exists sz, t ≡ TYPE_Array sz TYPE_Double.
+  Proof.
+    intros s1 s2 m e c t H.
+    destruct m; cbn in H; inv H.
+    simp.
+    exists sz.
+    reflexivity.
   Qed.
 
 End MExpr.
@@ -241,17 +251,6 @@ End MExpr.
       WF_IRState σ s'.
   Proof.
     induction mexp; intros * WF GEN; cbn* in GEN; simp; auto.
-  Qed.
-
-  Lemma genMExpr_array : forall {s1 s2 m e c t},
-      genMExpr m s1 ≡ inr (s2, (e, c, t)) ->
-      exists sz, t ≡ TYPE_Array sz TYPE_Double.
-  Proof.
-    intros s1 s2 m e c t H.
-    destruct m; cbn in H; inv H.
-    simp.
-    exists sz.
-    reflexivity.
   Qed.
 
 End MExpr.
