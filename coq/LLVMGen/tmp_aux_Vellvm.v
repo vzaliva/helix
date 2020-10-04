@@ -730,3 +730,10 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma eutt_mon {E R1 R2} (RR RR' : R1 -> R2 -> Prop)
+      (LERR: RR <2= RR') :
+  @eutt E R1 R2 RR <2= eutt RR'.
+Proof.
+  eapply eqit_mon; eauto.
+Qed.
+
