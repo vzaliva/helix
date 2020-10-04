@@ -56,7 +56,6 @@ Section NExpr.
                 (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] e)))
                 g l' memV ≈
             Ret (memV,(l',(g,UVALUE_I64 i))).
-            (* /\ evalNExpr σ nexp ≡ inr i. *)
 
   (**
      We package the local specific invariants. Additionally to the evaluation of the resulting expression,
@@ -118,8 +117,7 @@ Section NExpr.
       state_invariant σ s1 memH (memV, (l, g)) -> (* The main state invariant is initially true *)
       no_failure (interp_helix (E := E_cfg) (denoteNExpr σ nexp) memH) -> (* Source semantics defined *)
       eutt (succ_cfg (lift_Rel_cfg (state_invariant σ s2) ⩕
-                      genNExpr_rel_ind σ nexp e memH (mk_config_cfg memV l g) ⩕
-                      lift_pure_cfg (Γ s1 ≡ Γ s2)))
+                      genNExpr_rel_ind σ nexp e memH (mk_config_cfg memV l g)))
            (interp_helix (denoteNExpr σ nexp) memH)
            (interp_cfg (denote_code (convert_typ [] c)) g l memV).
   Proof with (rauto).
@@ -138,11 +136,7 @@ Section NExpr.
 
         (* We establish the postcondition *)
         apply eutt_Ret; split; [| split]; try now eauto.
-        constructor; eauto.
-        intros l' MONO; cbn*.
-        (* split. *)
-        (* 2:match_rewrite; reflexivity. *)
-        rauto.
+        intros l' MONO; cbn*...
         2:solve_lu.
         reflexivity.
 
@@ -168,14 +162,10 @@ Section NExpr.
         apply eutt_Ret; split; [| split].
         -- cbn; check_state_invariant.
 
-        -- split.
-           2: repeat (split; auto); solve_sub_alist.
-           {
-             intros l' MONO; cbn*...
-             reflexivity.
-             eapply MONO, In_add_eq.
-           }
-        -- symmetry; eapply incLocal_Γ; eauto.
+        -- intros l' MONO; cbn*...
+           reflexivity.
+           eapply MONO, In_add_eq.
+        -- repeat (split; auto); solve_sub_alist.
 
     - (* Constant *)
       cbn* in COMPILE; simp.
@@ -183,7 +173,6 @@ Section NExpr.
       rewrite denote_code_nil; cbn...
 
       apply eutt_Ret; split; [| split]; try now eauto.
-      split; eauto.
       intros l' MONO; cbn*...
       rewrite repr_intval...
       reflexivity.
@@ -203,7 +192,7 @@ Section NExpr.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       cbn in *.
-      destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI) & GAMMAI).
+      destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI)).
 
       specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI).
       forward IHnexp2; eauto. 
@@ -214,7 +203,7 @@ Section NExpr.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       cbn in *.
-      destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
+      destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF)).
       simp; try_abs.
 
       rewrite denote_code_singleton; cbn...
@@ -240,7 +229,6 @@ Section NExpr.
       cbn...
       apply eutt_Ret; split; [| split].
       cbn. eapply state_invariant_add_fresh; eauto; reflexivity.
-      split.
       {
         cbn; intros ? MONO...
         apply eutt_Ret.
@@ -255,10 +243,6 @@ Section NExpr.
         apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
         eapply PREF.
         eauto.
-      }
-      {
-        rewrite GAMMAI, GAMMAF.
-        symmetry; eapply incLocal_Γ; eauto.
       }
 
     - (* NMod *)
@@ -275,7 +259,7 @@ Section NExpr.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       cbn in *.
-      destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI) & GAMMAI).
+      destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI)).
 
       specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI).
       forward IHnexp2; eauto. 
@@ -284,7 +268,7 @@ Section NExpr.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       cbn in *.
-      destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
+      destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF)). 
       rewrite denote_code_singleton; cbn...
       break_match_goal; try_abs...
 
@@ -309,23 +293,16 @@ Section NExpr.
  
       apply eutt_Ret; split; [| split]; try now eauto.
       -- cbn. eapply state_invariant_add_fresh; eauto; reflexivity.
-      -- split.
-         {
-           cbn; intros ? MONO...
-           2: apply MONO, In_add_eq.
-           reflexivity.
-          }
-          {
-            apply ext_local_subalist.
-            etransitivity; eauto.
-            etransitivity; eauto.
-            apply sub_alist_add.
-            apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
-            eapply PREF.
-            eauto.
-          }
-      -- rewrite GAMMAI, GAMMAF.
-         symmetry; eapply incLocal_Γ; eauto.
+      -- cbn; intros ? MONO...
+         2: apply MONO, In_add_eq.
+         reflexivity.
+      -- apply ext_local_subalist.
+         etransitivity; eauto.
+         etransitivity; eauto.
+         apply sub_alist_add.
+         apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
+         eapply PREF.
+         eauto.
 
    - (* NAdd *)
 
@@ -338,7 +315,7 @@ Section NExpr.
      eapply eutt_clo_bind_returns; [eassumption | clear IHnexp1].
      introR; destruct_unit.
      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-     destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI) & GAMMAI).
+     destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI)). 
 
      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI). 
      forward IHnexp2; eauto. 
@@ -346,15 +323,15 @@ Section NExpr.
      eapply eutt_clo_bind_returns; [eassumption | clear IHnexp2].
      introR; destruct_unit.
      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-     destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
+     destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF)). 
 
      cbn...
      rewrite denote_instr_op.
      2: eapply denote_ibinop_concrete; cbn; try (eapply EXPRF || eapply EXPRI); eauto; reflexivity.
      cbn...
+
      apply eutt_Ret; split; [| split].
      cbn; eapply state_invariant_add_fresh; eauto.
-     split.
      {
        cbn; intros ? MONO...
        2:apply MONO, In_add_eq.
@@ -368,10 +345,6 @@ Section NExpr.
        apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
        eapply PREF.
        eauto.
-     }
-     {
-       rewrite GAMMAI, GAMMAF.
-       symmetry; eapply incLocal_Γ; eauto.
      }
      
    - (* NMinus *)
@@ -385,7 +358,7 @@ Section NExpr.
      eapply eutt_clo_bind_returns; [eassumption | clear IHnexp1].
      introR; destruct_unit.
      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-     destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI) & GAMMAI).
+     destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI)). 
 
      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI). 
      forward IHnexp2; eauto. 
@@ -393,15 +366,15 @@ Section NExpr.
      eapply eutt_clo_bind_returns; [eassumption | clear IHnexp2].
      introR; destruct_unit.
      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-     destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
+     destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF)). 
 
      cbn...
      rewrite denote_instr_op.
      2: eapply denote_ibinop_concrete; cbn; try (eapply EXPRF || eapply EXPRI); eauto; reflexivity.
      cbn...
+
      apply eutt_Ret; split; [| split].
      cbn; eapply state_invariant_add_fresh; eauto.
-     split.
      {
        cbn; intros ? MONO...
        2:apply MONO, In_add_eq.
@@ -416,10 +389,6 @@ Section NExpr.
        eapply PREF.
        eauto.
      }
-     {
-       rewrite GAMMAI, GAMMAF.
-       symmetry; eapply incLocal_Γ; eauto.
-     }
 
     - (* NMult *)
      
@@ -432,7 +401,7 @@ Section NExpr.
      eapply eutt_clo_bind_returns; [eassumption | clear IHnexp1].
      introR; destruct_unit.
      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-     destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI) & GAMMAI).
+     destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI)). 
 
      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI). 
      forward IHnexp2; eauto. 
@@ -440,7 +409,7 @@ Section NExpr.
      eapply eutt_clo_bind_returns; [eassumption | clear IHnexp2].
      introR; destruct_unit.
      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-     destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF) & GAMMAF).
+     destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF)). 
 
      cbn...
      rewrite denote_instr_op.
@@ -451,9 +420,9 @@ Section NExpr.
         break_inner_match; reflexivity.
       }
       cbn...
+
       apply eutt_Ret; split; [| split].
       cbn; eapply state_invariant_add_fresh; eauto.
-      split.
       {
         cbn; intros ? MONO...
         2:apply MONO, In_add_eq.
@@ -467,10 +436,6 @@ Section NExpr.
         apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
         eapply PREF.
         eauto.
-      }
-      {
-        rewrite GAMMAI, GAMMAF.
-        symmetry; eapply incLocal_Γ; eauto.
       }
 
     - (* NMin *)
@@ -607,11 +572,9 @@ Proof.
   eapply genNExpr_correct_ind; eauto.
   intros [(? & ?) |] (? & ? & ? & []) INV; [destruct INV as (SI & EXP & ?) | inv INV].
   cbn in *.
-  destruct EXP as (EXP & MONO).
   cbn in *.
   specialize (EXP l0).
   forward EXP; [reflexivity |].
-  destruct EXP as (EXP & EQ).
   split; auto.
 Qed.
 
