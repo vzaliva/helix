@@ -995,12 +995,12 @@ Ltac break_and :=
     Qed.
 
     Lemma no_failure_Ret: forall {E X Y} (v : X) (k : X -> itree Event Y) m,
-        no_failure (E := E) (interp_helix ('x <- Ret v;; k x) m) -> no_failure (E := E) (interp_helix (k v) m) .
+        no_failure (E := E) (interp_helix (ITree.bind (Ret v) k) m) -> no_failure (E := E) (interp_helix (k v) m) .
     Proof.
       intros * NOFAIL.
       rewrite interp_helix_bind, interp_helix_Ret, bind_ret_l in NOFAIL; assumption.
     Qed.
-    
+ 
   End Interp_Helix_No_Failure.
   
   Opaque interp_helix.
