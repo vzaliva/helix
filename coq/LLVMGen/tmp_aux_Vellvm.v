@@ -738,3 +738,12 @@ Proof.
   eapply eqit_mon; eauto.
 Qed.
 
+Ltac inv_eqs :=
+  repeat 
+    match goal with
+    | h : ?x = ?x |- _ => clear h
+    | h : _ = ?x |- _ => subst x
+    | h : ?x = ?x /\ _ |- _ => destruct h as [_ ?]
+    | h : _ = _ /\ _ |- _ => (destruct h as [<- ?] || destruct h as [?EQ ?])
+    end.
+

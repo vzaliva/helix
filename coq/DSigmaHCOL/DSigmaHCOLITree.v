@@ -173,15 +173,8 @@ Module MDSigmaHCOLITree
     | ANth m i =>
       i' <- denoteNExpr σ i ;;
       '(m',msize) <- (denoteMExpr σ m) ;;
-         (* Instead of returning error we default to zero here.
-          This situation should never happen for programs
-          refined from MSHCOL which ensure bounds via
-          dependent types. So DHCOL programs should
-          be correct by construction *)
-      (match mem_lookup (to_nat i') m' with
-       | Some v => ret v
-       | None => ret CTypeZero
-       end)
+      lift_Derr (assert_NT_lt "ANth index out of bounds" i' msize) ;;
+      lift_Derr (mem_lookup_err "ANth not in memory" (NT.to_nat i') m')
     | AZless a b => liftM2 CTypeZLess (denoteAExpr σ a) (denoteAExpr σ b)
     end.
 

@@ -466,13 +466,17 @@ Module ProofNotations.
   Notation "x" := (with_cfg x) (only printing, at level 10). 
   Notation "x" := (with_mcfg x) (only printing, at level 10). 
   Notation "⟦ t ⟧ g l m" := (interp_cfg t g l m) (only printing, at level 10).
-  Notation "'CODE' c" := (denote_code c) (only printing, at level 10, format "'CODE' '//' c").
-  Notation "'INSTR' i" := (denote_instr i) (only printing, at level 10, format "'INSTR' '//' i").
+  (* Notation "'CODE' c" := (denote_code c) (only printing, at level 10, format "'CODE' '//' c"). *)
+  Notation "c" := (denote_code c) (only printing, at level 10).
+  (* Notation "'INSTR' i" := (denote_instr i) (only printing, at level 10, format "'INSTR' '//' i"). *)
+  Notation "i" := (denote_instr i) (only printing, at level 10).
   Notation "'ι' x" := (DTYPE_I x) (at level 10,only printing).
   Notation "⋆" := (DTYPE_Pointer) (at level 10,only printing).
   Notation "x" := (convert_typ _ x) (at level 10, only printing).
   Notation "x" := (fmap (typ_to_dtyp _) x) (at level 10, only printing).
-
+  Notation "x" := (translate exp_E_to_instr_E (denote_exp _ x)) (only printing, at level 10). 
+  Notation "⟦ t ⟧ m" := (interp_helix t m) (only printing, at level 10).
+  
   Notation "'ret' τ e" := (TERM_Ret (τ, e)) (at level 10, only printing).
   Notation "'ret' 'void'" := (TERM_Ret_void) (at level 10, only printing).
   Notation "'br' c ',' 'label' e ',' 'label' f" := (TERM_Br c e f) (at level 10, only printing).
@@ -513,9 +517,9 @@ Ltac unfolder_vellvm       := unfold Traversal.Endo_id.
 Ltac unfolder_vellvm_hyp h := unfold Traversal.Endo_id in h.
 Ltac unfolder_vellvm_all   := unfold Traversal.Endo_id in *.
 
-Ltac unfolder_helix       := unfold mem_lookup_err, memory_lookup_err, ErrorWithState.option2errS, lift_Serr, Int64_eq_or_cerr, Z_eq_or_cerr,ErrorWithState.err2errS,Z_eq_or_err, context_lookup, trywith.
-Ltac unfolder_helix_hyp h := unfold mem_lookup_err, memory_lookup_err, ErrorWithState.option2errS, lift_Serr, Int64_eq_or_cerr, Z_eq_or_cerr,ErrorWithState.err2errS,Z_eq_or_err, context_lookup, trywith in h.
-Ltac unfolder_helix_all   := unfold mem_lookup_err, memory_lookup_err, ErrorWithState.option2errS, lift_Serr, Int64_eq_or_cerr, Z_eq_or_cerr,ErrorWithState.err2errS,Z_eq_or_err, context_lookup, trywith in *.
+Ltac unfolder_helix       := unfold mem_lookup_err, memory_lookup_err, ErrorWithState.option2errS, lift_Serr, lift_Derr, Int64_eq_or_cerr, Z_eq_or_cerr,ErrorWithState.err2errS,Z_eq_or_err, context_lookup, trywith.
+Ltac unfolder_helix_hyp h := unfold mem_lookup_err, memory_lookup_err, ErrorWithState.option2errS, lift_Serr, lift_Derr, Int64_eq_or_cerr, Z_eq_or_cerr,ErrorWithState.err2errS,Z_eq_or_err, context_lookup, trywith in h.
+Ltac unfolder_helix_all   := unfold mem_lookup_err, memory_lookup_err, ErrorWithState.option2errS, lift_Serr, lift_Derr, Int64_eq_or_cerr, Z_eq_or_cerr,ErrorWithState.err2errS,Z_eq_or_err, context_lookup, trywith in *.
 
 (**
      Better solution (?): use
@@ -990,6 +994,13 @@ Ltac break_and :=
       apply NOFAIL.
     Qed.
 
+    Lemma no_failure_Ret: forall {E X Y} (v : X) (k : X -> itree Event Y) m,
+        no_failure (E := E) (interp_helix ('x <- Ret v;; k x) m) -> no_failure (E := E) (interp_helix (k v) m) .
+    Proof.
+      intros * NOFAIL.
+      rewrite interp_helix_bind, interp_helix_Ret, bind_ret_l in NOFAIL; assumption.
+    Qed.
+    
   End Interp_Helix_No_Failure.
   
   Opaque interp_helix.

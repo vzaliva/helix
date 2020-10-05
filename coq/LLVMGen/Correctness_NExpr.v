@@ -563,7 +563,9 @@ Lemma genNExpr_correct :
     no_failure (interp_helix (E := E_cfg) (denoteNExpr σ nexp) memH) -> (* Source semantics defined *)
     eutt (succ_cfg
             (lift_Rel_cfg (state_invariant σ s2) ⩕
-                          genNExpr_exp_correct σ s2 e))
+                          genNExpr_exp_correct σ s2 e ⩕
+                          ext_local memH (memV,(l,g))
+         ))
          (interp_helix (denoteNExpr σ nexp) memH)
          (interp_cfg (denote_code (convert_typ [] c)) g l memV).
 Proof.
@@ -575,6 +577,7 @@ Proof.
   cbn in *.
   specialize (EXP l0).
   forward EXP; [reflexivity |].
+  split; auto.
   split; auto.
 Qed.
 
