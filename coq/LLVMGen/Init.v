@@ -997,11 +997,9 @@ Lemma memory_invariant_after_init
     eutt
       (post_init_invariant_mcfg p.(name) σ s)
       (Ret (hmem, ()))
-      (with_err_LT
-         (interp_to_L3 defined_intrinsics
-                       (build_global_environment (mcfg_of_tle pll))
-                       [] ([],[]) empty_memory_stack)
-      ).
+      (interp_to_L3 defined_intrinsics
+                    (build_global_environment (mcfg_of_tle pll))
+                    [] ([],[]) empty_memory_stack).
 Proof.
   intros hmem σ s hdata pll [HI LI].
 
@@ -1064,7 +1062,6 @@ Proof.
   repeat rewrite app_assoc.
   unfold build_global_environment.
   setoid_rewrite interp_to_L3_bind.
-  rewrite translate_bind.
 
   repeat rewrite app_assoc.
   unfold allocate_globals, map_monad_.
@@ -1337,7 +1334,6 @@ Proof.
     autorewrite with itree.
 
     rewrite interp_to_L3_bind.
-    rewrite translate_bind.
 
     pose_interp_to_L3_alloca m' a' A AE.
     1:{
@@ -1345,20 +1341,16 @@ Proof.
       intros C. inversion C.
     }
     rewrite AE.
-    setoid_rewrite translate_ret.
-    rewrite !ITree.Eq.Eq.bind_ret_l.
+    cbn. repeat setoid_rewrite Eq.bind_ret_l.
     rewrite interp_to_L3_bind.
-    rewrite translate_bind.
     rewrite interp_to_L3_GW.
-    setoid_rewrite translate_ret.
-    rewrite !ITree.Eq.Eq.bind_ret_l.
+    cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
     autorewrite with itree.
     cbn.
     unfold alist_add.
     cbn.
 
     rewrite interp_to_L3_bind.
-    rewrite translate_bind.
 
     pose_interp_to_L3_alloca m'' a'' A' AE'.
     1:{
@@ -1366,13 +1358,10 @@ Proof.
       intros C. inversion C.
     }
     rewrite AE'.
-    setoid_rewrite translate_ret.
-    rewrite !ITree.Eq.Eq.bind_ret_l.
+    cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
     rewrite interp_to_L3_bind.
-    rewrite translate_bind.
     rewrite interp_to_L3_GW.
-    setoid_rewrite translate_ret.
-    rewrite !ITree.Eq.Eq.bind_ret_l.
+    cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
     cbn.
     replace (alist_add (Name "main") (DVALUE_Addr a'') [(Name name, DVALUE_Addr a')])
       with
@@ -1402,7 +1391,6 @@ Proof.
 
     subst LHS.
     rewrite interp_to_L3_ret.
-    rewrite translate_ret.
     apply eutt_Ret.
     subst R.
     unfold declarations_invariant_mcfg, declarations_invariant.
@@ -1450,7 +1438,7 @@ Proof.
     as GLOB.
 
   rewrite <-bind_ret_r.
-  rewrite interp_to_L3_bind, translate_bind.
+  rewrite interp_to_L3_bind.
 
   subst LHS REL.
   destruct p0 as [le0 stack0].
@@ -1481,7 +1469,7 @@ Proof.
       simp; auto.
     }
 
-    rewrite interp_to_L3_bind, translate_bind.
+    rewrite interp_to_L3_bind.
     cbn.
 
     apply eutt_clo_bind
@@ -1493,10 +1481,10 @@ Proof.
         cbn in *; subst.
         invc LG.
         cbn.
-        repeat rewrite interp_to_L3_bind, translate_bind.
-        rewrite interp_to_L3_ret, translate_ret.
+        repeat rewrite interp_to_L3_bind.
+        cbn; rewrite interp_to_L3_ret.
         rewrite Eq.bind_ret_l.
-        rewrite interp_to_L3_ret, translate_ret.
+        rewrite interp_to_L3_ret.
         apply eutt_Ret.
         cbn.
         intros.
@@ -1615,13 +1603,13 @@ Proof.
         }
 
         rewrite Eq.bind_bind.
-        repeat rewrite interp_to_L3_bind, translate_bind.
+        repeat rewrite interp_to_L3_bind.
         (* ZX TODO: [s2] might still be a bad fit *)
         apply eutt_clo_bind with (UU:=post_alloc_invariant_mcfg [new_g] [new_g_dsh] s2).
         --
           intros.
           cbn.
-          repeat rewrite interp_to_L3_bind, translate_bind.
+          repeat rewrite interp_to_L3_bind.
 
           
           (* Alloca ng *)
@@ -1631,12 +1619,10 @@ Proof.
             admit.
           }
           rewrite AE'.
-          setoid_rewrite translate_ret.
           
           (* GlobalWrite ng *)
-          rewrite !ITree.Eq.Eq.bind_ret_l.
+          cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
           rewrite interp_to_L3_GW.
-          setoid_rewrite translate_ret.
 
           apply eutt_Ret.
           unfold post_alloc_invariant_mcfg.
@@ -1665,21 +1651,19 @@ Proof.
       repeat break_let.
       invc LX.
       cbn.
-      repeat rewrite interp_to_L3_bind, translate_bind.
+      repeat rewrite interp_to_L3_bind. 
       
       (* Alloca Y *)
       pose_interp_to_L3_alloca m'' a'' A' AE';
         [rewrite typ_to_dtyp_equation; congruence |].
       rewrite AE'.
-      setoid_rewrite translate_ret.
       
       (* GlobalWrite Y *)
-      rewrite !ITree.Eq.Eq.bind_ret_l.
+      cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
       rewrite interp_to_L3_GW.
-      setoid_rewrite translate_ret.
-      rewrite !ITree.Eq.Eq.bind_ret_l.
+      cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
       
-      repeat rewrite interp_to_L3_bind, translate_bind.
+      repeat rewrite interp_to_L3_bind.
       
       (* Alloca X *)
       pose_interp_to_L3_alloca m''' a''' A'' AE'';
@@ -1687,15 +1671,13 @@ Proof.
       rewrite AE''.
       
       (* GlobalWrite X *)
-      setoid_rewrite translate_ret.
-      rewrite !ITree.Eq.Eq.bind_ret_l.
+      cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
       rewrite interp_to_L3_GW.
-      setoid_rewrite translate_ret.
-      rewrite !ITree.Eq.Eq.bind_ret_l.
+      cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
       
-      repeat rewrite interp_to_L3_ret, translate_ret, !ITree.Eq.Eq.bind_ret_l.
+      repeat rewrite interp_to_L3_ret, !ITree.Eq.Eq.bind_ret_l.
       cbn.
-      rewrite interp_to_L3_ret, translate_ret.
+      rewrite interp_to_L3_ret.
 
       apply eutt_Ret.
       unfold post_alloc_invariant_mcfg in *.
@@ -2301,7 +2283,7 @@ Lemma compiler_correct_aux:
     (data:list binary64)
     (pll: toplevel_entities typ (LLVMAst.block typ * list (LLVMAst.block typ))),
     forall s, compile_w_main p data newState ≡ inr (s,pll) ->
-    eutt (bisim_full [] s) (semantics_FSHCOL p data) (semantics_llvm pll).
+    eutt (succ_mcfg (bisim_full [] s)) (semantics_FSHCOL p data) (semantics_llvm pll).
 Proof.
 Admitted.
 
@@ -2445,7 +2427,7 @@ Hint Rewrite interp_to_L3_ret : local.
       (data:list binary64)
       (pll: toplevel_entities typ (LLVMAst.block typ * list (LLVMAst.block typ))),
     forall s, compile_w_main p data newState ≡ inr (s,pll) ->
-      eutt (bisim_final []) (semantics_FSHCOL p data) (semantics_llvm pll).
+      eutt (succ_mcfg (bisim_final [])) (semantics_FSHCOL p data) (semantics_llvm pll).
   Proof.
     intros * COMPILE.
     unfold compile_w_main, compile in COMPILE.

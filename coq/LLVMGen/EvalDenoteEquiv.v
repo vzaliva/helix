@@ -5,45 +5,6 @@ Import MInt64asNT.
 
 Section Eval_Denote_Equiv.
 
-    (* Ltac inv_sum := *)
-    (*   match goal with *)
-    (*   | h: inl _ ≡ inl _ |-  _ => inv h *)
-    (*   | h: inr _ ≡ inr _ |-  _ => inv h *)
-    (*   | h: inl _ ≡ inr _ |-  _ => inv h *)
-    (*   | h: inr _ ≡ inl _ |-  _ => inv h *)
-    (*   end. *)
-
-    (* Ltac inv_option := *)
-    (*   match goal with *)
-    (*   | h: Some _ ≡ Some _ |-  _ => inv h *)
-    (*   | h: None   ≡ Some _ |-  _ => inv h *)
-    (*   | h: Some _ ≡ None   |-  _ => inv h *)
-    (*   | h: None   ≡ None   |-  _ => inv h *)
-    (*   end. *)
-
-    (* Ltac inv_mem_lookup_err := *)
-    (*   unfold mem_lookup_err, trywith in *; *)
-    (*   break_match_hyp; cbn in *; try (inl_inr || inv_sum || inv_sum). *)
-
-    (* Ltac inv_memory_lookup_err := *)
-    (*   unfold memory_lookup_err, trywith in *; *)
-    (*   break_match_hyp; cbn in *; try (inl_inr || inv_sum || inv_sum). *)
-
-    (* Ltac state_steps := *)
-    (*   cbn; *)
-    (*   repeat ( *)
-    (*       ((match goal with *)
-    (*         | |- ITree.bind (lift_Derr _) _ ≈ _ => break_match_goal; inv_memory_lookup_err; inv_option *)
-    (*         | |- ITree.bind (lift_Serr _) _ ≈ _ => break_match_goal; inv_memory_lookup_err; inv_option *)
-    (*         | |- ITree.bind (interp_state _ (lift_Derr _) _) _ ≈ _ => break_match_goal; inv_option *)
-    (*         | |- ITree.bind (interp_state _ (lift_Serr _) _) _ ≈ _ => break_match_goal; inv_option *)
-    (*         end) || state_step); cbn). *)
-
-    (* Ltac inv_eval := repeat (break_match_hyp; try (inl_inr || inv_sum || inv_option)); *)
-    (*                  repeat try (inv_sum || inv_option); *)
-    (*                  repeat inv_memory_lookup_err; *)
-    (*                  repeat inv_mem_lookup_err. *)
-
   Hint Rewrite interp_Mem_bind : itree.
   Hint Rewrite interp_Mem_ret : itree.
   Hint Rewrite @interp_Mem_MemLU : itree.
