@@ -25,15 +25,6 @@ Ltac rewrite_mem_lookup :=
   match goal with
   | h: mem_lookup _ _ ≡ _ |- _ => rewrite h
   end.
- 
-Fixpoint build_vec {E} (n: nat) (body: nat -> mem_block -> itree E mem_block):
-  mem_block -> itree E mem_block :=
-  fun memy =>
-    match n with
-    | O => ret memy
-    | S n => memy' <- body n memy;;
-            build_vec n body memy'
-    end.
 
 Definition bodyIMap (f : AExpr) (σ : evalContext) (x: mem_block) (n: nat) (y: mem_block) : itree Event (mem_block) :=
         v <- lift_Derr (mem_lookup_err "Error reading memory denoteDSHIMap" n x) ;;
@@ -41,10 +32,8 @@ Definition bodyIMap (f : AExpr) (σ : evalContext) (x: mem_block) (n: nat) (y: m
         v' <- denoteIUnCType σ f vn v ;;
         ret (mem_add n v' y).
 
-Definition  IMap_Rel σ Γ : Rel_cfg_T mem_block (block_id * block_id + uvalue) :=
+Definition IMap_Rel σ Γ : Rel_cfg_T mem_block (block_id * block_id + uvalue) :=
   lift_Rel_cfg (state_invariant σ Γ).
-
-Definition uvalue_of_nat k := UVALUE_I64 (Int64.repr (Z.of_nat k)).
 
 Lemma bodyIMapCorrect : forall i o vx vy f loopvar loopcontblock s1 s2 bid_from bid_src bodyV
                           memx memy
@@ -276,6 +265,8 @@ Fixpoint build_vec' {E} (n: nat) (body: nat -> mem_block -> itree E mem_block):
              The local state may have been extended
  *)
 
+
+Definition uvalue_of_nat k := UVALUE_I64 (Int64.repr (Z.of_nat k)).
 Definition body_pre loopvar (k: nat) : Rel_cfg :=
   fun memH '(memV,(l,g)) => l @ loopvar ≡ Some (uvalue_of_nat k).
 
@@ -357,72 +348,25 @@ forall k, {I(k) /\ i = k} c {I(S k)}
 {P} comm {Q}
  *)
 
-Lemma genWhileLoop_ind:
-  forall (msg : string)
-    (lvar : raw_id)            (* lvar storing the loop index *)
-    (body_entry_id : block_id) (* entry point of the body *)
-    (wrap_loop_id : block_id)  (* reentry point from the body back to the loop *)
-    (bodyV : list (LLVMAst.block typ)) (* (llvm) body to be iterated *)
-    (exit_id : block_id)       (* exit point of the overall loop *)
-    (entry_id : block_id)      (* entry point of the overall loop *)
-    (s1 s2 : IRState)
-    (bks : list (LLVMAst.block typ)) (* (llvm) code defining the whole loop *)
-    (from_id: block_id)        (* point from which we enter the overall loop *)
-    (n : nat)                    (* Number of iterations *)
-    (j : nat)                    (* Starting iteration *)
+Fixpoint for_itree_aux {E A} (body : nat -> A -> itree E A) (a0 : A) (index remaining: nat): itree E A :=
+  match remaining with
+  | 0 => ret a0
+  | S n => ITree.bind (body index a0) (fun a => for_itree_aux body a (S index) n)
+  end.
+Definition for_itree {E A} (body : nat -> A -> itree E A) (a0 : A) (from to : nat): itree E A :=
+  for_itree_aux body a0 from (to - from).
+(* 
+    genWhileLoop prefix (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
+                       loopvar loopcontblock body_entry body_blocks [] nextblock s1
+                       (* IY: Adding explicit exposure of entry_bk and loop_bk. *)
+                       ≡ inr (s2,(entry_id, bks)) 
 
-    (* Generation of the LLVM code wrapping the loop around bodyV *)
-    (GEN: genWhileLoop msg (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
-                       lvar wrap_loop_id body_entry_id bodyV [] exit_id s1
-                       ≡ inr (s2,(entry_id,bks)))
+forall g l mV,
+eutt (fun st st' => st ⊑ st')
+(for_itree_aux (fun '(mV,(l,g)) => [| body_blocks |] g l mV) (mV,(l,g)) from to)
+([|(convert_typ [] bks)|] (from_id, entry_id) g l mV)
 
-    (* Computation on the Helix side performed at each cell of the vector,
-       the counterpart to bodyV *)
-    (bodyH: nat -> mem_block -> itree _ mem_block) 
-
-    (* Main relation preserved by iteration *)
-    (P Q : Rel_cfg) (I : nat -> Rel_cfg),
-
-    (* Inductive proof: Assuming R, reestablish R by going through both bodies *)
-
-    (* We build weakening in the rule: the precondition implies the initial invariant
-       and the final invariant implies the postcondition
-     *)
-    (P  ⊆ I 0) ->
-    (I n ⊆ Q) ->
-
-    (forall g l mV mH ymem k,
-        (* ((R ⩕ Invk n) (mH,ymem) (mV, (l, (g, (inl body))))) -> *)
-        (conj_rel (I k)
-                  (fun _ '(_, (l, _)) => l @ lvar ≡ Some (uvalue_of_nat k))
-                  mH (mV,(l,g)))
-        ->
-        eutt
-          (conj_rel
-             (lift_Rel_cfg (I (S k)))
-             (lift_Rel_cfg (fun _ '(_, (l, _)) => l @ lvar ≡ Some (uvalue_of_nat k)))
-          )
-          (* (R ⩕ Invk (n +1) /\ lvar = n /\ retlabel = post ) *)
-          (with_err_RB (interp_Mem (bodyH n ymem) mH))
-          (with_err_LB (interp_cfg
-                          (denote_bks (convert_typ [] bodyV) (wrap_loop_id,body_entry_id)) g l mV))
-    ) ->
-
-    (* Main result. Need to know initially that R holds *)
-    forall g l mV mH ymem,
-      (conj_rel
-         P
-         (fun _ '(_, (l, _)) => l @ lvar ≡ Some (uvalue_of_nat j))
-         mH (mV,(l,g))
-      )
-      ->
-      eutt (lift_Rel_cfg Q)
-           (with_err_RB (interp_Mem (build_vec n bodyH ymem) mH))
-           (with_err_LB (interp_cfg (denote_bks (convert_typ [] bks) (wrap_loop_id,body_entry_id)) g l mV)).
-Proof.
-  intros * GEN * IND * PRE.
-  cbn* in GEN; simp.
-Admitted.
+ *)
 
 Definition stable_exp_local (R: Rel_cfg) : Prop :=
     forall memH memV ρ1 ρ2 g,
@@ -432,149 +376,6 @@ Definition stable_exp_local (R: Rel_cfg) : Prop :=
 
 Definition imp_rel {A B : Type} (R S: A -> B -> Prop): Prop :=
   forall a b, R a b -> S a b.
-
-Lemma genWhileLoop_correct:
-  forall (msg : string)
-    (lvar : raw_id)            (* lvar storing the loop index *)
-    (body_entry_id : block_id) (* entry point of the body *)
-    (wrap_loop_id : block_id)  (* reentry point from the body back to the loop *)
-    (bodyV : list (LLVMAst.block typ)) (* (llvm) body to be iterated *)
-    (exit_id : block_id)       (* exit point of the overall loop *)
-    (entry_id : block_id)      (* entry point of the overall loop *)
-    σ (s1 s2 : IRState)
-    (bks : list (LLVMAst.block typ)) (* (llvm) code defining the whole loop *)
-    (from_id: block_id)        (* point from which we enter the overall loop *)
-    (n : nat)                    (* Number of iterations *)
-
-    (* Generation of the LLVM code wrapping the loop around bodyV *)
-    (GEN: genWhileLoop msg (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
-                       lvar wrap_loop_id body_entry_id bodyV [] exit_id s1
-                       ≡ inr (s2,(entry_id,bks)))
-
-    (* Computation on the Helix side performed at each cell of the vector,
-       the counterpart to bodyV *)
-    (bodyH: nat -> mem_block -> itree _ mem_block) 
-
-    (* Main relation preserved by iteration *)
-    (R : Rel_cfg),
-
-    (* Inductive proof: Assuming R, reestablish R by going through both bodies *)
-    (forall g l mV mH ymem,
-        (* ((R ⩕ Invk n) (mH,ymem) (mV, (l, (g, (inl body))))) -> *)
-        (R mH (mV,(l,g))) ->
-        eutt
-          (lift_Rel_cfg R)
-          (* (R ⩕ Invk (n +1) /\ lvar = n /\ retlabel = post ) *)
-          (with_err_RB (interp_Mem (bodyH n ymem) mH))
-          (with_err_LB (interp_cfg
-                          (denote_bks (convert_typ [] bodyV) (from_id,body_entry_id)) g l mV))
-    ) ->
-
-    (* R must be stable by extension of the local env *)
-    stable_exp_local R ->
-
-    (* R must entail the state invariant *)
-    imp_rel R (state_invariant σ s1) ->
-
-    (* Main result. Need to know initially that R holds *)
-    forall g l mV mH ymem,
-      R mH (mV,(l,g)) ->
-      eutt (lift_Rel_cfg R)
-           (with_err_RB (interp_Mem (build_vec n bodyH ymem) mH))
-           (with_err_LB (interp_cfg (denote_bks (convert_typ [] bks) (from_id,entry_id)) g l mV)).
-Proof with rauto.
-  intros * GEN * IND STABLE IMPSTATE * PRE.
-  cbn* in GEN; simp. 
-  destruct n as [|[|n]].
-  - (* n = 0: we never enter the loop *)
-
-    cbn...
-
-    jump_in.
-
-    cbn...
-    cbn...
-
-    rewrite denote_instr_op.
-    2:{
-      cbn...
-      cbn...
-      reflexivity.
-    }
-
-    cbn...
-    focus_single_step_v.
-    rewrite denote_term_br_r.
-    2:{
-      cbn...
-      cbn...
-      reflexivity.
-      unfold local_env; rewrite lookup_alist_add_eq; reflexivity.
-    }
-
-    cbn...
-    subst.
-
-    rewrite denote_bks_unfold_not_in.
-    2: admit.
-
-    cbn...
-    apply eutt_Ret.
-
-    cbn; eapply STABLE; eauto.
-    eapply sub_alist_add.
-    eapply concrete_fresh_fresh; eauto.
-    eapply incLocal_is_fresh.
-    eapply state_invariant_incBlockNamed; eauto.
-    eapply state_invariant_incBlockNamed; eauto.
-
-  - (* n > 0 *)
-    cbn.
-    eutt_hide_left.
-
-    jump_in.
-
-    cbn...
-    cbn...
-
-    focus_single_step_v.
-    rewrite denote_instr_op.
-    2:{
-      cbn...
-      cbn...
-      reflexivity.
-    }
-
-    cbn...
-    subst.
-    cbn... focus_single_step_v.
-    rewrite denote_term_br_l.
-    2:{
-      cbn...
-      cbn...
-      reflexivity.
-      unfold local_env; rewrite lookup_alist_add_eq; reflexivity.
-    }
-
-    cbn...
-    subst; cbn...
-
-    jump_in.
-    2:admit.
-
-    cbn...
-
-    find_phi.
-
-    cbn...
-    focus_single_step_v.
-
-    cbn...
-    subst...
-    cbn...
-
-
-Admitted.
 
 
 Section IMapBody.
@@ -823,7 +624,7 @@ Definition memory_invariant_map (globals : list (string * DSHType)): nat -> raw_
 Lemma memory_invariant_map_injectivity (globals : list (string * DSHType)):
   list_uniq fst globals ->
   forall (x y : nat),
-    x < (Datatypes.length globals + 2)%nat ∧ y < (Datatypes.length globals + 2)%nat
+    (x < Datatypes.length globals + 2)%nat ∧ (y < Datatypes.length globals + 2)%nat
     → memory_invariant_map globals x ≡ memory_invariant_map globals y → x ≡ y.
 Proof.
   intros U x y [Hx Hy] E.

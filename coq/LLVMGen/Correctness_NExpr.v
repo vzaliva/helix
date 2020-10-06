@@ -1,7 +1,9 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
-Require Import LibHyps.LibHyps.
+
 Import ProofNotations.
+Import ListNotations.
+
 Open Scope Z.
 Open Scope list.
 
@@ -10,23 +12,6 @@ Set Strict Implicit.
 
 (* YZ TODO: Check that this is global and factor it in prelude *)
 Typeclasses Opaque equiv.
-Remove Hints
-       equiv_default_relation
-       abstract_algebra.sg_op_proper
-       abstract_algebra.sm_proper
-       abstract_algebra.comp_proper
-       orders.po_preorder
-       orders.total_order_po
-       orders.le_total
-       orders.join_sl_order
-       orders.lattice_order_join
-       orders.lattice_order_meet
-       orders.strict_po_po
-       orders.srorder_po
-       strong_setoids.binary_strong_morphism_proper
-       semirings.FullPseudoOrder_instance_0
-       minmax.LatticeOrder_instance_0
-       workarounds.equivalence_proper : typeclass_instances.
 
 (** * Correctness of the compilation of numerical expressions
 
@@ -184,7 +169,7 @@ Section NExpr.
       specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE). 
       forward IHnexp1; eauto. 
       simp.
-      onAllHyps move_up_types.
+      (* onAllHyps move_up_types. *)
 
       rewrite convert_typ_app, denote_code_app.
       rauto:R.
@@ -196,7 +181,7 @@ Section NExpr.
 
       specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI).
       forward IHnexp2; eauto. 
-      onAllHyps move_up_types.
+      (* onAllHyps move_up_types. *)
       rewrite convert_typ_app, denote_code_app.
       rauto.
       eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp2].
@@ -251,7 +236,7 @@ Section NExpr.
       (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
       specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE). 
       forward IHnexp1; eauto.
-      onAllHyps move_up_types.
+      (* onAllHyps move_up_types. *)
 
       rewrite convert_typ_app, denote_code_app.
       rauto:R.

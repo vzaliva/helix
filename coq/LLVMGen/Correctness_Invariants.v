@@ -3,6 +3,7 @@ Require Import Helix.LLVMGen.Correctness_Prelude.
 Set Implicit Arguments.
 Set Strict Implicit.
 
+Import ListNotations.
 Section WF_IRState.
 
   (**
@@ -636,6 +637,14 @@ Lemma incBlockNamed_local_count:
   forall s s' msg id,
     incBlockNamed msg s ≡ inr (s', id) ->
     local_count s' ≡ local_count s.
+Proof.
+  intros; cbn in *; inv_sum; reflexivity.
+Qed.
+
+Lemma incBlockNamed_block_count:
+  forall s s' msg id,
+    incBlockNamed msg s ≡ inr (s', id) ->
+    block_count s' ≡ S (block_count s).
 Proof.
   intros; cbn in *; inv_sum; reflexivity.
 Qed.

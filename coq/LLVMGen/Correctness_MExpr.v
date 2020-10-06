@@ -1,29 +1,14 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.Correctness_NExpr.
+
+Import ListNotations.
 Import ProofNotations.
 
 Set Implicit Arguments.
 Set Strict Implicit.
 
 Typeclasses Opaque equiv.
-Remove Hints
-       equiv_default_relation
-       abstract_algebra.sg_op_proper
-       abstract_algebra.sm_proper
-       abstract_algebra.comp_proper
-       orders.po_preorder
-       orders.total_order_po
-       orders.le_total
-       orders.join_sl_order
-       orders.lattice_order_join
-       orders.lattice_order_meet
-       orders.strict_po_po
-       orders.srorder_po
-       strong_setoids.binary_strong_morphism_proper
-       semirings.FullPseudoOrder_instance_0
-       minmax.LatticeOrder_instance_0
-       workarounds.equivalence_proper : typeclass_instances.
 
 Section MExpr.
 
@@ -35,21 +20,6 @@ Section MExpr.
                    Ret (memV,(ρ,(g,UVALUE_Addr ptr))) /\ 
         (forall i v, mem_lookup i mb ≡ Some v -> get_array_cell memV ptr i DTYPE_Double ≡ inr (UVALUE_Double v)).
   
-  (* TO CLEAN
-Definition invariant_MExpr
-             (σ : evalContext)
-             (s : IRState) (mexp : MExpr) (e : exp typ) : Rel_cfg_T (mem_block * Int64.int) unit :=
-    fun '(memH, (mb, mb_sz)) '(memV, (ρ, (g, _))) =>
-      (exists ptr i (vid : nat) (mid : nat) (size : Int64.int) (sz : int), (* TODO: sz ≈ size? *)
-          interp_cfg (translate exp_E_to_instr_E (D.denote_exp (Some DTYPE_Pointer) (convert_typ [] e))) g ρ memV ≈
-          Ret (memV,(ρ,(g,UVALUE_Addr ptr))) /\
-        memory_lookup memH mid ≡ Some mb /\
-        in_local_or_global_addr ρ g i ptr /\
-        nth_error σ vid ≡ Some (DSHPtrVal mid size) /\
-        nth_error (Γ s) vid ≡ Some (i, TYPE_Pointer (TYPE_Array sz TYPE_Double))) /\
-      evalMExpr memH σ mexp ≡ inr (mb, mb_sz).
-   *)
-
   Definition preserves_states {R S}: memoryH -> config_cfg -> Rel_cfg_T R S :=
     fun mh '(mi,(li,gi)) '(mh',_) '(m,(l,(g,_))) => mh ≡ mh' /\ mi ≡ m /\ gi ≡ g /\ li ≡ l.
 
@@ -118,151 +88,3 @@ Definition invariant_MExpr
 
 End MExpr.
 
-(*
-  (* Record genMExpr_rel *)
-  (*        (σ : evalContext) *)
-  (*        (s : IRState) *)
-  (*        (mexp : MExpr) *)
-  (*        (e  : exp typ) *)
-  (*        (mi : memoryH) (sti : config_cfg) *)
-  (*        (mf : memoryH * (mem_block * Int64.int)) (stf : config_cfg_T unit) *)
-  (*   : Prop := *)
-  (*   { *)
-  (*   mexp_correct :invariant_MExpr σ s mexp e mf stf; *)
-  (*   m_preserves : preserves_states mi sti mf stf *)
-  (*   }. *)
-
-  (** ** Compilation of MExpr
-  *)
-  Lemma genMExpr_correct :
-    forall (* Compiler bits *) (s1 s2: IRState)
-      (* Helix  bits *)   (mexp: MExpr) (σ: evalContext) (memH: memoryH) 
-      (* Vellvm bits *)   (exp: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV) (τ: typ),
-      genMExpr mexp s1 ≡ inr (s2, (exp, c, τ)) -> (* Compilation succeeds *)
-      state_invariant σ s1 memH (memV, (l, g)) ->
-      no_failure (interp_helix (E := E_cfg) (denoteMExpr σ mexp) memH) -> (* Source semantics defined *)
-      eutt (succ_cfg
-              (lift_Rel_cfg (state_invariant σ s2) ⩕ genMExpr_rel σ s2 mexp exp memH (mk_config_cfg memV l g)))
-           (interp_helix (denoteMExpr σ mexp) memH)
-           (interp_cfg (D.denote_code (convert_typ [] c)) g l memV).
-  Proof with rauto.
-    intros * Hgen Hmeminv NOFAIL.
-    destruct mexp as [[vid] | mblock]; cbn* in Hgen; simp.
-    cbn...
-    unfold denoteMExpr in *; cbn* in *.
-    unfold denotePExpr in *; cbn* in *.
-    simp; try_abs.
-    edestruct memory_invariant_Ptr as (bkH & ptrV & Mem_LU & LUV & EQ); eauto.
-    cbn...
-    2:eauto.
-    apply eutt_Ret; split; cbn; auto.
-    split.
-    2: cbn; intuition.
-    cbn.
-  (*   split. 2:{ *)
-  (*     apply IRState_is_WF in WF. *)
-  (*     do 2 match_rewrite; reflexivity. *)
-      
-  (*   split. *)
-  (*   { do 6 eexists. *)
-  (*     splits; eauto. *)
-
-  (*     destruct i0; *)
-  (*       cbn in *; cbn... *)
-
-  (*       cbn... 2 : eauto. 3 : eauto. 2 : cbn... 2 : reflexivity.  *)
-  (*       reflexivity. *)
-  (*     } *)
-  (*   {  *)
-  (*     cbn*. *)
-  (*     do 2 match_rewrite; reflexivity. *)
-  (*   } *)
- 
-  (*   split. *)
-  (*   generalize Hmeminv; intros WF;  *)
-
-
-
-
-
-  (*   cbn*... 2:eauto. *)
-    
-  (*   split; auto. *)
-  (*   split; auto. *)
-  (*   split. *)
-  (*   { do 6 eexists. *)
-  (*     splits; eauto. *)
-
-  (*     destruct i0; *)
-  (*       cbn in *; cbn... *)
-
-  (*       cbn... 2 : eauto. 3 : eauto. 2 : cbn... 2 : reflexivity.  *)
-  (*       reflexivity. *)
-  (*     } *)
-  (*   {  *)
-  (*     cbn*. *)
-  (*     do 2 match_rewrite; reflexivity. *)
-  (*   } *)
-  (* Qed. *)
-
-  (* TODO: move these, and use them more. *)
-  Admitted.
-
-  Lemma genMExpr_memH : forall σ s mexp e memH memV memH' memV' l g l' g' mb uv,
-      genMExpr_rel σ s mexp e memH (mk_config_cfg memV l g) (memH', mb)
-                   (memV', (l', (g', uv))) ->
-      memH ≡ memH'.
-  Proof.
-    intros * H.
-    destruct H; cbn in *; intuition.
-  Qed.
-
-  Lemma genMExpr_memV : forall σ s mexp e memH memV memH' memV' l g l' g' mb uv,
-      genMExpr_rel σ s mexp e memH (mk_config_cfg memV l g) (memH', mb)
-                   (memV', (l', (g', uv))) ->
-      memV ≡ memV'.
-  Proof.
-    intros * H.
-    destruct H; cbn in *; intuition.
-  Qed.
-
-  Lemma genMExpr_g : forall σ s mexp e memH memV memH' memV' l g l' g' mb uv,
-      genMExpr_rel σ s mexp e memH (mk_config_cfg memV l g) (memH', mb)
-                   (memV', (l', (g', uv))) ->
-      g ≡ g'.
-  Proof.
-    intros * H.
-    destruct H; cbn in *; intuition.
-  Qed.
-
-  Lemma genMExpr_l : forall σ s mexp e memH memV memH' memV' l g l' g' mb uv,
-      genMExpr_rel σ s mexp e memH (mk_config_cfg memV l g) (memH', mb)
-                   (memV', (l', (g', uv))) ->
-      l ≡ l'.
-  Proof.
-    intros * H.
-    destruct H; cbn in *; intuition.
-  Qed.
-
-  Lemma genMExpr_preserves_WF:
-    forall mexp s s' σ x,
-      WF_IRState σ s ->
-      genMExpr mexp s ≡ inr (s',x) ->
-      WF_IRState σ s'.
-  Proof.
-    induction mexp; intros * WF GEN; cbn* in GEN; simp; auto.
-  Qed.
-
-End MExpr.
-
-Ltac genMExpr_rel_subst :=
-  match goal with
-  | MEXP : genMExpr_rel ?σ ?s ?mexp ?e ?memH (mk_config_cfg ?memV ?l ?g) (?memH', ?mb) (?memV', (?l', (?g', ?uv))) |- _ =>
-    let H := fresh in
-    pose proof genMExpr_memH MEXP as H; subst memH';
-    pose proof genMExpr_memV MEXP as H; subst memV';
-    pose proof genMExpr_g MEXP as H; subst g';
-    pose proof genMExpr_l MEXP as H; subst l'
-  end.
-
-*)

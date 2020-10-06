@@ -4,27 +4,12 @@ Require Import Helix.LLVMGen.Correctness_NExpr.
 Require Import Helix.LLVMGen.Correctness_MExpr.
 Require Import LibHyps.LibHyps.
 
+Import ListNotations.
+
 Set Implicit Arguments.
 Set Strict Implicit.
 
 Typeclasses Opaque equiv.
-Remove Hints
-       equiv_default_relation
-       abstract_algebra.sg_op_proper
-       abstract_algebra.sm_proper
-       abstract_algebra.comp_proper
-       orders.po_preorder
-       orders.total_order_po
-       orders.le_total
-       orders.join_sl_order
-       orders.lattice_order_join
-       orders.lattice_order_meet
-       orders.strict_po_po
-       orders.srorder_po
-       strong_setoids.binary_strong_morphism_proper
-       semirings.FullPseudoOrder_instance_0
-       minmax.LatticeOrder_instance_0
-       workarounds.equivalence_proper : typeclass_instances.
 
 Section AExpr.
 
@@ -298,7 +283,7 @@ Section AExpr.
       edestruct @genMExpr_array as (?sz & ?EQ); eauto; subst.
 
       (* denoting [n] *)
-      onAllHyps move_up_types.
+      (* onAllHyps move_up_types. *)
       rewrite convert_typ_app, denote_code_app...
       eapply eutt_clo_bind_returns; [eapply genNExpr_correct |..]; eauto.
       introR; destruct_unit.
@@ -307,7 +292,7 @@ Section AExpr.
       cbn* in *; inv_eqs.
 
       (* denoting [m] *)
-      onAllHyps move_up_types.
+      (* onAllHyps move_up_types. *)
       rewrite convert_typ_app, denote_code_app...
       eapply eutt_clo_bind_returns; [eapply genMExpr_correct | ..]; eauto.
       introR; destruct_unit.

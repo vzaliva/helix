@@ -6,7 +6,7 @@ LIBNAME := Helix
 
 # parse the -j flag if present, set jobs to 1 oterwise
 JFLAG=$(patsubst -j%,%,$(filter -j%,$(MFLAGS)))
-JOBS=$(if $(JFLAG),$(JFLAG),1)
+JOBS=$(if $(JFLAG),$(JFLAG),4)
 
 MAKECOQ := +$(MAKE) -r -f Makefile.coq
 
@@ -43,7 +43,7 @@ extracted: $(TSTAMP) .depend Makefile.coq
 
 # Exclude some proofs from list of files required to run tests
 # This allows us to run unit tests even if sources just partially compile
-TESTVOFILES = $(filter-out coq/DynWin/DynWinProofs.vo coq/DSigmaHCOL/ReifyProofs.vo coq/LLVMGen/CorrectnessMemCopy.vo coq/LLVMGen/Correctness_AExpr.vo coq/LLVMGen/Correctness_GenIR.vo coq/LLVMGen/Correctness_Invariants.vo coq/LLVMGen/Correctness_MExpr.vo coq/LLVMGen/Correctness_Misc.vo coq/LLVMGen/Correctness_NExpr.vo coq/LLVMGen/Init.vo, $(VOFILES))
+TESTVOFILES = $(filter-out coq/DynWin/DynWinProofs.vo coq/DSigmaHCOL/ReifyProofs.vo coq/LLVMGen/CorrectnessMemCopy.vo coq/LLVMGen/Correctness_AExpr.vo coq/LLVMGen/Correctness_GenIR.vo coq/LLVMGen/Correctness_Invariants.vo coq/LLVMGen/Correctness_MExpr.vo coq/LLVMGen/Correctness_Misc.vo coq/LLVMGen/Correctness_NExpr.vo coq/LLVMGen/Init.vo coq/LLVMGen/Correctness_While.vo, $(VOFILES))
 
 $(TSTAMP): $(TESTVOFILES) $(EXTRACTDIR)/Extract.v
 	@echo "Extracting"

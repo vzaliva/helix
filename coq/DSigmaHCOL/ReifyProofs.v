@@ -1,6 +1,7 @@
 Require Import Coq.Strings.String.
+Require Import Coq.Lists.List.
 Require Import Coq.Arith.Arith.
-Require Import Omega.
+Require Import Coq.micromega.Lia.
 Require Import Psatz.
 
 Require Import CoLoR.Util.Nat.NatUtil.
@@ -39,6 +40,7 @@ Require Import MathClasses.implementations.peano_naturals.
 Require Import MathClasses.orders.orders.
 
 Import MonadNotation.
+Import ListNotations.
 
 Open Scope string_scope.
 Open Scope list_scope.
@@ -1583,7 +1585,7 @@ Section BinCarrierA.
     repeat break_match.
     1-2: exfalso.
     -
-      assert (T : n < S n) by omega.
+      assert (T : n < S n) by lia.
       specialize (H n T).
       destruct H as [a [L1 S]].
       unfold mem_lookup_err, trywith in Heqs.
@@ -1591,7 +1593,7 @@ Section BinCarrierA.
     -
       err_eq_to_equiv_hyp.
       contradict Heqs0.
-      assert (T : n < S n) by omega.
+      assert (T : n < S n) by lia.
       specialize (H n T).
       apply is_OK_neq_inl.
       apply evalIUnCarrierA_value_independent.
@@ -1626,13 +1628,13 @@ Section BinCarrierA.
     repeat break_match.
     1-3: exfalso.
     -
-      assert (T : n < S n) by omega.
+      assert (T : n < S n) by lia.
       specialize (H n T).
       destruct H as [a [b [L1 [L2 S]]]].
       unfold mem_lookup_err, trywith in Heqs.
       break_match; try inversion Heqs; try some_none.
     -
-      assert (T : n < S n) by omega.
+      assert (T : n < S n) by lia.
       specialize (H n T).
       destruct H as [a [b [L1 [L2 S]]]].
       unfold mem_lookup_err, trywith in Heqs0.
@@ -1640,7 +1642,7 @@ Section BinCarrierA.
     -
       err_eq_to_equiv_hyp.
       contradict Heqs1.
-      assert (T : n < S n) by omega.
+      assert (T : n < S n) by lia.
       specialize (H n T).
       apply is_OK_neq_inl.
       apply evalIBinCarrierA_value_independent.
@@ -2548,8 +2550,8 @@ Proof.
         --
           inversion_clear FDF as [FV].
 
-          assert (k < o + o)%nat as kc1 by omega.
-          assert (k + o < o + o)%nat as kc2 by omega.
+          assert (k < o + o)%nat as kc1 by lia.
+          assert (k + o < o + o)%nat as kc2 by lia.
           rewrite HBinOp_nth with (jc1:=kc1) (jc2:=kc2).
 
           pose proof (evalDSHBinOp_mem_lookup_mx ME k kc) as [A B].
@@ -3373,7 +3375,7 @@ Proof.
       rewrite H0, N in Heqo3.
       apply ListNth.nth_error_length_ge in Heqo3.
       rewrite S_L in Heqo3.
-      omega.
+      lia.
 Qed.
 
 Global Instance IUnion_MSH_DSH_compat
@@ -5953,7 +5955,7 @@ Proof.
     break_if; try inl_inr.
     apply leb_complete_conv in Heqb.
     unfold NatAsNT.MNatAsNT.to_nat in Heqb.
-    omega.
+    lia.
   }
   all: rewrite Heqo2, Heqo1, Heqo0 in *; repeat some_inv.
   all: rewrite X1_M, X2_M, Y_M in *; clear X1_M X2_M Y_M.
@@ -6408,7 +6410,7 @@ Proof.
       rewrite H0, N in Heqo3.
       apply ListNth.nth_error_length_ge in Heqo3.
       rewrite S_L in Heqo3.
-      omega.
+      lia.
 Qed.
 
 Lemma MemInit_simpl
@@ -7698,7 +7700,7 @@ Proof.
 
           Unshelve.
           exact O. (* TODO: this is rather strange - just returning a random nat *)
-          omega.
+          lia.
         }
 
         assert (opf_n_m_fill : forall k, k < o -> mem_in k opf_n_m).
