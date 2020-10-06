@@ -540,25 +540,47 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       eapply GenIR_Rel_monotone; eauto.
   Qed.
 
+  Lemma no_failure_helix_LU : forall {E X} s a (k : _ -> itree _ X) m,
+      no_failure (E := E) (interp_helix (ITree.bind (trigger (MemLU s a)) k) m) ->
+      exists v,
+        no_failure (E := E) (interp_helix (k v) m) /\ memory_lookup m a ≡ Some v.
+  Proof.
+    intros * NOFAIL.
+    rewrite interp_helix_bind in NOFAIL.
+    Transparent interp_helix interp_Mem.
+    unfold interp_helix in NOFAIL.
+    unfold interp_Mem in NOFAIL.
+    rewrite interp_state_trigger in NOFAIL.
+    cbn* in *.
+    simp.
+    - unfold throw in *.
+      rewrite interp_fail_vis in NOFAIL.
+      cbn in *.
+      rewrite bind_ret_l, translate_ret, bind_ret_l in NOFAIL.
+      apply eutt_Ret in NOFAIL; contradiction NOFAIL; auto.
+    - rewrite interp_fail_ret in NOFAIL.
+      cbn in *; rewrite translate_ret, bind_ret_l in NOFAIL.
+      eexists; split; eauto.
+  Qed.
+  Opaque interp_helix interp_Mem.
+
   Opaque denote_code.
- Lemma compile_FSHCOL_correct :
+  Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
-      (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH) fuel v
+      (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH) 
       (** Vellvm bits   *) (nextblock bid_in bid_from : block_id) (bks : list (LLVMAst.block typ))
       (* (env : list (ident * typ)) *)  (g : global_env) (ρ : local_env) (memV : memoryV),
       nextblock ≢ bid_in -> (* YZ: not sure about this yet *)
       GenIR_Rel σ s1 (memH,tt) (memV, (ρ, (g, (inl (bid_from, bid_in))))) ->
-      evalDSHOperator σ op memH fuel ≡ Some (inr v)            -> (* Evaluation succeeds *)
+      no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ op) memH) -> (* Evaluation succeeds *)
       genIR op nextblock s1 ≡ inr (s2,(bid_in,bks)) ->
-      eutt (GenIR_Rel σ s2)
-           (with_err_RB
-              (interp_Mem (denoteDSHOperator σ op) memH))
-           (with_err_LB
-              (interp_cfg (D.denote_bks (convert_typ [] bks) (bid_from,bid_in))
-                                g ρ memV)).
- Proof.
-    intros s1 s2 op; revert s1 s2; induction op; intros * NEXT BISIM EVAL GEN.
-    - cbn* in GEN.
+      eutt (succ_cfg (GenIR_Rel σ s2))
+           (interp_helix (denoteDSHOperator σ op) memH)
+           (interp_cfg (D.denote_bks (convert_typ [] bks) (bid_from,bid_in))
+                          g ρ memV).
+  Proof.
+    intros s1 s2 op; revert s1 s2; induction op; intros * NEXT BISIM NOFAIL GEN.
+    - cbn* in *.
       simp.
       hide_strings'.
       cbn*; rauto:L.
@@ -580,33 +602,29 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
          7. v <- mem_lookup_err "Error looking up 'v' in DSHAssign" (to_nat src) x ;;
          8. ret (memory_set mem y_i (mem_add (to_nat dst) v y))
        *)
-
-      destruct fuel as [| fuel]; [cbn in *; simp |].
-      cbn* in GEN.
-      unfold GenIR_Rel in BISIM; cbn in BISIM.
       destruct BISIM as [BISIM1 BISIM2].
-      simp.
-      hide_strings'.
+      cbn* in *; simp.
       rename i into si, i2 into si',
       i0 into x, i3 into y,
       i1 into v1, i4 into v2.
       inv_resolve_PVar Heqs0.
       inv_resolve_PVar Heqs1.
+      Require Import LibHyps.LibHyps.
+      onAllHyps move_up_types.
 
       eutt_hide_right.
-      cbn*.
       rename n1 into x_p, n2 into y_p.
+      unfold denotePExpr in *; cbn* in *.
+      simp; try_abs.
+      apply no_failure_Ret in NOFAIL; try_abs.
+      repeat apply no_failure_Ret in NOFAIL.
+      edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto. 
+      edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto. 
 
-      rauto:L.
-      unfold denotePExpr; cbn*.
-      break_inner_match_goal; cbn* in *; simp.
       eutt_hide_right.
-      rename m into x_i, m0 into y_i.
-      focus_single_step_h.
-      rauto:L.
+      rauto.
+      2,3: eauto.
       subst.
-      rauto:L.
-      2,3:cbn*; apply memory_lookup_err_inr_Some_eq; eauto.
 
       subst; eutt_hide_left.
       unfold add_comments.
@@ -624,14 +642,13 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       focus_single_step.
       rename x into x_p', y into y_p'.
       rename n into src_e, n0 into dst_e.
-      rename b into v.
 
       (* Step 5. *)
-      eapply eutt_clo_bind.
-      eapply genNExpr_correct; try eassumption.
+      eapply eutt_clo_bind_returns; [eapply genNExpr_correct |..]; eauto.
       eauto 7 with state_invariant.
-
-      intros [memH1 src] (memV1 & ρ1 & g1 & []) (INV1 & (EXP1 & <- & <- & <- & MONO1) & GAMMA1); cbn* in *.
+      introR; destruct_unit.
+      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
+      cbn in PRE; destruct PRE as (INV1 & EXP1 & ?); cbn in *; inv_eqs.
 
       subst.
 
@@ -640,77 +657,75 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       focus_single_step.
 
       (* Step 6. *)
-      eapply eutt_clo_bind.
-      eapply genNExpr_correct; eauto.
-
-      intros [memH2 dst] (memV2 & ρ2 & g2 & []) (INV2 & (EXP2 & <- & <- & <- & MONO2) & GAMMA2); cbn in GAMMA2; cbn in INV2.
+      eapply eutt_clo_bind_returns; [eapply genNExpr_correct |..]; eauto.
+      introR; destruct_unit.
+      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
+      cbn in PRE; destruct PRE as (INV2 & EXP2 & ?); cbn in *; inv_eqs.
+      
       subst.
+      simp; try_abs.
+      apply no_failure_Ret in NOFAIL; try_abs.
 
       (* Step 7. *)
       eutt_hide_right.
-
-      edestruct EXP1 as (EQ1 & EQ1'); [reflexivity |].
-      rewrite EQ1' in Heqs11; inv Heqs11.
-      rewrite Heqo0.
-      eutt_hide_right.
-
-      assert (i2 ≡ dst).
-      { unfold genNExpr_exp_correct in EXP2.
-        assert (ρ2 ⊑ ρ2) as LL by reflexivity.
-        specialize (EXP2 _ LL) as (EXP2_EUTT & EXP2_EVAL).
-        rewrite EXP2_EVAL in Heqs12.
-        inversion Heqs12.
-        auto.
-      }
+      rauto.
+      rewrite interp_helix_MemSet.
       subst.
-
-      Set Nested Proofs Allowed.
-      Lemma assert_NT_lt_success :
-        forall {s1 s2 x y v},
-          assert_NT_lt s1 x y ≡ inr v ->
-          assert_NT_lt s2 x y ≡ inr v.
-      Proof.
-        intros s1 s2 x y v H.
-        unfold assert_NT_lt in *.
-        destruct ((MInt64asNT.to_nat x <? MInt64asNT.to_nat y)%nat); inversion H.
-        cbn in *. subst.
-        auto.
-      Qed.
-
-      rewrite (assert_NT_lt_success Heqs13).
-      cbn*.
-      rauto:L.
-
-      rewrite interp_Mem_MemSet.
-      cbn*.
-      rauto:L.
-
-      subst; eutt_hide_left.
-
-      simpl.
       rauto:R.
       focus_single_step_v.
-      cbn.
-
-      (* I am looking up an ident x, for which I find the type `TYPE_Pointer (TYPE_Array sz TYPE_Double)`
-         in my typing context.
-         Can it be a global?
-       *)
-
-      (* onAllHyps move_up_types. *)
-      subst; focus_single_step_v; eutt_hide_left.
-      unfold endo, Endo_ident.
-
-      destruct x_p' as [x_p' | x_p']; [admit |];
-        destruct y_p' as [y_p' | y_p']; cbn; [admit |].
-      subst; focus_single_step_v; eutt_hide_left.
-      edestruct memory_invariant_LLU_Ptr as (bk_x & ptr_x & LUx & INLGx & VEC_LUx); [| exact LUn | exact Heqo |]; eauto.
-      rewrite LUx in Heqo2; symmetry in Heqo2; inv Heqo2.
-      edestruct memory_invariant_LLU_Ptr as (bk_y & ptr_y & LUy & INLGy & VEC_LUy); [| exact LUn0 | eassumption |]; eauto.
-      rewrite LUy in Heqo1; symmetry in Heqo1; inv Heqo1.
-
-      focus_single_step_v; rauto:R.
+      eutt_hide_left.
+      
       admit.
+
+
+      (* edestruct EXP1 as (EQ1 & EQ1'); [reflexivity |]. *)
+      (* rewrite EQ1' in Heqs11; inv Heqs11. *)
+      (* rewrite Heqo0. *)
+      (* eutt_hide_right. *)
+
+      (* assert (i2 ≡ dst). *)
+      (* { unfold genNExpr_exp_correct in EXP2. *)
+      (*   assert (ρ2 ⊑ ρ2) as LL by reflexivity. *)
+      (*   specialize (EXP2 _ LL) as (EXP2_EUTT & EXP2_EVAL). *)
+      (*   rewrite EXP2_EVAL in Heqs12. *)
+      (*   inversion Heqs12. *)
+      (*   auto. *)
+      (* } *)
+      (* subst. *)
+
+      (* Set Nested Proofs Allowed. *)
+      (* Lemma assert_NT_lt_success : *)
+      (*   forall {s1 s2 x y v}, *)
+      (*     assert_NT_lt s1 x y ≡ inr v -> *)
+      (*     assert_NT_lt s2 x y ≡ inr v. *)
+      (* Proof. *)
+      (*   intros s1 s2 x y v H. *)
+      (*   unfold assert_NT_lt in *. *)
+      (*   destruct ((MInt64asNT.to_nat x <? MInt64asNT.to_nat y)%nat); inversion H. *)
+      (*   cbn in *. subst. *)
+      (*   auto. *)
+      (* Qed. *)
+
+      (* rewrite (assert_NT_lt_success Heqs13). *)
+      (* (* I am looking up an ident x, for which I find the type `TYPE_Pointer (TYPE_Array sz TYPE_Double)` *)
+      (*    in my typing context. *)
+      (*    Can it be a global? *)
+      (*  *) *)
+
+      (* (* onAllHyps move_up_types. *) *)
+      (* subst; focus_single_step_v; eutt_hide_left. *)
+      (* unfold endo, Endo_ident. *)
+
+      (* destruct x_p' as [x_p' | x_p']; [admit |]; *)
+      (*   destruct y_p' as [y_p' | y_p']; cbn; [admit |]. *)
+      (* subst; focus_single_step_v; eutt_hide_left. *)
+      (* edestruct memory_invariant_LLU_Ptr as (bk_x & ptr_x & LUx & INLGx & VEC_LUx); [| exact LUn | exact Heqo |]; eauto. *)
+      (* rewrite LUx in Heqo2; symmetry in Heqo2; inv Heqo2. *)
+      (* edestruct memory_invariant_LLU_Ptr as (bk_y & ptr_y & LUy & INLGy & VEC_LUy); [| exact LUn0 | eassumption |]; eauto. *)
+      (* rewrite LUy in Heqo1; symmetry in Heqo1; inv Heqo1. *)
+
+      (* focus_single_step_v; rauto:R. *)
+
     (*   2: apply MONO2, MONO1; eauto. *)
     (*   cbn; norm_v. *)
     (*   subst; focus_single_step_v; norm_v. *)
@@ -825,12 +840,14 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
 
 
-    - destruct fuel as [| fuel]; [cbn in *; simp |].
-
+    -
       Opaque genWhileLoop.
-      cbn* in GEN.
-      unfold GenIR_Rel in BISIM; cbn in BISIM.
+      cbn* in *.
       simp.
+      unfold denotePExpr in *; cbn* in *.
+      simp; try now (exfalso; clear -NOFAIL; try apply no_failure_Ret in NOFAIL; try_abs).
+      apply no_failure_Ret in NOFAIL; simp; cbn in *; try_abs.
+
       hide_strings'.
       inv_resolve_PVar Heqs0.
       inv_resolve_PVar Heqs1.
@@ -840,10 +857,11 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       (* onAllHyps move_up_types. *)
 
       eutt_hide_right.
+      repeat apply no_failure_Ret in NOFAIL.
+      repeat (edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto). 
 
       rauto:L.
-      unfold denotePExpr; cbn*.
-
+      all:eauto.
       Ltac rewrite_nth_error :=
         match goal with
         | h: nth_error _ _ ≡ _ |- _ => rewrite h
@@ -854,14 +872,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         | h: memory_lookup _ _ ≡ _ |- _ => rewrite h
         end.
 
-      do 2 rewrite_nth_error.
-
-      repeat (rauto:L; []).
-      rauto:L.
-      2: cbn*; rewrite_memory_lookup; reflexivity.
-
-      rauto:L.
-      2: cbn*; rewrite_memory_lookup; reflexivity.
 
       subst; eutt_hide_left.
       Transparent genWhileLoop.
@@ -977,19 +987,10 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       (*   } *)
 
     - (* DSHBinOp *)
-      destruct fuel as [| fuel]; [cbn in *; simp |].
-      cbn* in GEN.
-      unfold GenIR_Rel in BISIM; cbn in BISIM.
-      unfold ErrorWithState.err2errS in *.
-      repeat (break_inner_match_hyp; cbn in *; repeat inv_sum; []).
-      repeat match goal with
-      | h: _ * _ |- _ => destruct h
-      | h: () |- _ => destruct h
-      end.
-      repeat match goal with
-      | h: (_,_) ≡ (_,_) |- _ => inv h
-             end.
       cbn* in *.
+      simp.
+      inv_resolve_PVar Heqs1.
+      inv_resolve_PVar Heqs2.
 
       (* On the Helix side, the computation consists in:
          1. xi <- denotePExpr x
@@ -1002,7 +1003,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       eutt_hide_right.
       rauto:L.
 
-     subst; eutt_hide_left.
+      subst; eutt_hide_left.
 
       unfold add_comments.
       cbn.
@@ -1090,6 +1091,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       rename Heqs0 into GEN_OP2.
       rename Heqs2 into GEN_OP1.
 
+      Set Nested Proofs Allowed.
       Lemma add_comment_eutt :
         forall comments bks ids,
           denote_bks (convert_typ [] (add_comment bks comments)) ids ≈ denote_bks (convert_typ [] bks) ids.
@@ -1137,14 +1139,12 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       Qed.
 
       (* Evaluation of operators in sequence *)
-      pose proof (evalDSHSeq_split EVAL) as [mem' [EVAL1 EVAL2]].
+      (* pose proof (evalDSHSeq_split EVAL) as [mem' [EVAL1 EVAL2]]. *)
+      cbn in NOFAIL.
+      eapply eutt_clo_bind_returns; [eapply IHop1; try exact GEN_OP1; eauto |].
+      admit. (* Should come from freshness *)
 
-      eapply eutt_clo_bind.
-      { eapply (IHop1 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ EVAL1 GEN_OP1).
-        Unshelve.
-        admit. (* Should come from freshness *)
-
-        (* Helix generates code for op2 *first*, so op2 gets earlier
+      (* Helix generates code for op2 *first*, so op2 gets earlier
         variables from the irstate. Helix needs to do this because it
         passes the block id for the next block that an operator should
         jump to when it's done executing... So it generates code for
@@ -1157,12 +1157,12 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
            Helix does this because it passes a "nextblock" id when generating code for an operator.
 
          *)
-        eapply genIR_GenIR_Rel; eauto.
-      }
-
-      intros [memH' []] (memV' & le & ge & res) IRREL.
-      pose proof IRREL as [STATE [[from to] BRANCH]].
-
+      eapply genIR_GenIR_Rel; eauto.
+      introR; destruct_unit.
+      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
+      cbn in PRE; destruct PRE as (STATE & [from to] & BRANCH); cbn in *; inv_eqs; subst.
+      simp.
+      clear IHop1.
       (* TODO: How can I know this? *)
       (* Probably need to extend GenIR_Rel? *)
       (* - bid_op2 comes from genIR of the sequence destructed with simp...
@@ -1170,50 +1170,55 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
          
        *)
-      
-      assert (bid_op2 ≡ to).
-      { unfold GenIR_Rel in IRREL.
-        cbv in IRREL. destruct IRREL as [IRREL_STATE IRREL_BRANCHES].
-        
-        unfold GenIR_Rel in BISIM.
-        cbv in BISIM. destruct BISIM as [BISIM_STATE BISIM_BRANCHES].
-        subst.
-
-        cbv in STATE.
-
-        (* *)
-
+      eapply IHop2; try apply Heqs0; eauto.
       admit.
-      }
-      (* TODO: Need to match u1 up with mem' somehow *)
-      assert (memH' ≡ mem').
-      { epose proof (IHop1 _ _ σ memH _ _ _ bid_in from _ ge le memV' _ _ EVAL1 GEN_OP1) as IH.
-        cbn in STATE.
-        apply state_invariant_memory_invariant in STATE.
+      admit.
+      admit.
+  (*     assert (bid_op2 ≡ to). *)
+  (*     { unfold GenIR_Rel in IRREL. *)
+  (*       cbv in IRREL. destruct IRREL as [IRREL_STATE IRREL_BRANCHES]. *)
+        
+  (*       unfold GenIR_Rel in BISIM. *)
+  (*       cbv in BISIM. destruct BISIM as [BISIM_STATE BISIM_BRANCHES]. *)
+  (*       subst. *)
 
-        unfold memory_invariant in STATE.
-        admit.
-      }
-      subst.
+  (*       cbv in STATE. *)
 
-      epose proof (IHop2 _ _ σ mem' _ _ _ to from _ ge le memV' _ _ EVAL2 GEN_OP2) as IH2.
-      epose proof (IHop1 _ _ σ _ _ _ _ _ _ _ ge le _ _ _ EVAL1 GEN_OP1) as IH1.
+  (*       (* *) *)
 
-      eapply eqit_mon.
-      4: apply IH2.
-      all: eauto.
-      intros [memH_mon []] (memV_mon & l_mon & g_mon & res) PR.
+  (*     admit. *)
+  (*     } *)
+  (*     (* TODO: Need to match u1 up with mem' somehow *) *)
+  (*     assert (memH' ≡ mem'). *)
+  (*     { epose proof (IHop1 _ _ σ memH _ _ _ bid_in from _ ge le memV' _ _ EVAL1 GEN_OP1) as IH. *)
+  (*       cbn in STATE. *)
+  (*       apply state_invariant_memory_invariant in STATE. *)
 
-      pose proof GEN_OP1 as LOC; apply genIR_local_count in LOC.
-      pose proof GEN_OP1 as CONT; apply genIR_Context in CONT.
+  (*       unfold memory_invariant in STATE. *)
+  (*       admit. *)
+  (*     } *)
+  (*     subst. *)
 
-      replace s2 with {| block_count := block_count s2; local_count := local_count s2; void_count := void_count s2; Γ := Γ s_op1 |} by admit.
+  (*     epose proof (IHop2 _ _ σ mem' _ _ _ to from _ ge le memV' _ _ EVAL2 GEN_OP2) as IH2. *)
+  (*     epose proof (IHop1 _ _ σ _ _ _ _ _ _ _ ge le _ _ _ EVAL1 GEN_OP1) as IH1. *)
 
-      destruct res as [[from_mon to_mon] | ].
-      + (* returned a branch, all good *) 
-        eapply GenIR_Rel_monotone in PR.
-        eapply PR. eapply LOC.
-      + destruct PR as [PR_STATE [? PR_BRANCH]].
-        inversion PR_BRANCH.
+  (*     eapply eqit_mon. *)
+  (*     4: apply IH2. *)
+  (*     all: eauto. *)
+  (*     intros [memH_mon []] (memV_mon & l_mon & g_mon & res) PR. *)
+
+  (*     pose proof GEN_OP1 as LOC; apply genIR_local_count in LOC. *)
+  (*     pose proof GEN_OP1 as CONT; apply genIR_Context in CONT. *)
+
+  (*     replace s2 with {| block_count := block_count s2; local_count := local_count s2; void_count := void_count s2; Γ := Γ s_op1 |} by admit. *)
+
+  (*     destruct res as [[from_mon to_mon] | ]. *)
+  (*     + (* returned a branch, all good *)  *)
+  (*       eapply GenIR_Rel_monotone in PR. *)
+  (*       eapply PR. eapply LOC. *)
+  (*     + destruct PR as [PR_STATE [? PR_BRANCH]]. *)
+  (*       inversion PR_BRANCH. *)
   Admitted.
-  End GenIR.
+
+           End GenIR.
+           
