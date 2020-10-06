@@ -24,7 +24,7 @@ Fixpoint build_vec_gen_aux {E} (from remains : nat) (body : nat -> mem_block -> 
     end.
 
 Definition build_vec_gen {E} (from to : nat) :=
-  @build_vec_gen_aux E from (to - from).
+  @build_vec_gen_aux E from (to - (from - 1)).
 
 Definition build_vec {E} := @build_vec_gen E 0.
 
@@ -276,6 +276,17 @@ Proof.
 Admitted.
 
 
+Lemma genWhileLoop_ind_arith_aux_0 : forall n,
+    dvalue_to_uvalue (eval_int_icmp Slt ((int64) ((Z) (n - 0 - 1)) + (int64) 1) ((int64) ((Z) n))) ≡ u_zero.
+Proof.
+Admitted.
+
+Lemma genWhileLoop_ind_arith_aux_1: forall n k,
+    dvalue_to_uvalue (eval_int_icmp Slt ((int64) ((Z) (n - S k - 1)) + (int64) 1) ((int64) ((Z) n))) ≡ 'u_one. Admitted.
+
+Lemma genWhileLoop_ind_arith_aux_2: forall n k, UVALUE_I64 ((int64) ((Z) (n - S (S k) - 1)) + (int64) 1) ≡ uvalue_of_nat (n - S (S k)).
+  Admitted.
+
 (* TODO: Freshness is stated in a somewhat ad-hoc way in here. Needs clean-up. *)
 Lemma genWhileLoop_ind:
   forall (prefix : string)
@@ -289,7 +300,8 @@ Lemma genWhileLoop_ind:
     (bks : list (LLVMAst.block typ))
     (n : nat)                       (* Number of iterations *)
     (j : nat)                       (* Starting iteration *)
-    (BOUND : n > j)
+    (UPPER_BOUND : n > j)
+    (LOW_BOUND : j > 1)
     (* Main relations preserved by iteration *)
     (I : nat -> mem_block -> Rel_cfg),
 
@@ -297,6 +309,8 @@ Lemma genWhileLoop_ind:
 
     (* All labels generated are distinct *)
     blk_id_norepet bks ->
+
+    not (In nextblock (map blk_id bks)) ->
 
     (* Generation of the LLVM code wrapping the loop around bodyV *)
     genWhileLoop prefix (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
@@ -337,7 +351,7 @@ Lemma genWhileLoop_ind:
       ) ->
       eutt (fun '(memH,vec') '(memV, (l, (g,x))) =>
               x ≡ inl (loopcontblock, nextblock) /\
-              l @ loopvar ≡ Some (uvalue_of_nat n) /\
+              l @ loopvar ≡ Some (uvalue_of_nat (n - 1)) /\
               I n vec' memH (memV,(l,g))
            )
            (with_err_RB (interp_Mem (build_vec_gen (S j) n bodyH ymem) mH))
@@ -345,15 +359,19 @@ Lemma genWhileLoop_ind:
                                                 (_label, loopcontblock)) g l mV)).
 
 Proof with rauto.
-  intros * BOUND * IN UNIQUE_IDENTS GEN.
+  intros * UPPER_BOUND LOWER_BOUND * IN UNIQUE_IDENTS NEXTBLOCK_ID GEN.
   unfold genWhileLoop in GEN. cbn* in GEN. simp.
   intros * HBODY STABLE.
   unfold build_vec_gen.
-  remember (n - S j) as k eqn:K_EQ.
-  assert (JEQ: S j ≡ n - k) by lia. rewrite JEQ.
-  assert (JEQ' : j ≡ (n -  S k )) by lia. rewrite JEQ' in *.
-  clear JEQ JEQ'.
+  remember (n - j) as k eqn:K_EQ.
+  
+  (* assert (JEQ: S j ≡ n - k) by lia. rewrite JEQ. *)
+  assert (JEQ' : j ≡ (n -  k)) by lia. rewrite JEQ' in *.
+  assert (EQ': (n - (S (n - k) - 1)) ≡ k) by lia. rewrite EQ'.
 
+  assert (n - k > 1). lia.
+  clear JEQ'.
+  clear UPPER_BOUND.
   red in UNIQUE_IDENTS. cbn in UNIQUE_IDENTS. rewrite map_app in UNIQUE_IDENTS.
   cbn in UNIQUE_IDENTS.
   assert (MAP_CONV: forall bs, map blk_id bs ≡ map blk_id (convert_typ [] bs)). {
@@ -369,88 +387,119 @@ Proof with rauto.
   end.
 
   induction k as [| k IH].
-  - admit.
-  (* - intros * (INV & LOOPVAR). *)
-  (*   (* admit. (* TODO: Redo base case with new unique ident property *) *) *)
-  (*   cbn... *)
+  - intros * (INV & LOOPVAR).
+    cbn...
 
-  (*   (* RHS Vellvm simplification *) *)
-  (*   subst. *)
-  (*   Arguments fmap /. *)
-  (*   Arguments Fmap_block /. *)
-  (*   cbn. intros. *)
-  (*   rewrite denote_bks_unfold_in. *)
-  (*   2 : { *)
-  (*     rewrite find_block_ineq. rewrite find_block_ineq. *)
-  (*     rewrite convert_typ_block_app. rewrite find_block_none_app. *)
-  (*     Opaque find_block. *)
-  (*     cbn. unfold fmap, Fmap_block. cbn. rewrite find_block_eq. *)
-  (*     reflexivity. cbn. reflexivity. *)
-  (*     auto. *)
-  (*     cbn. *)
-  (*     apply find_block_not_in_inputs. *)
-  (*     red. intros. inversion UNIQUE_IDENTS. subst. *)
-  (*     inversion H3. subst. admit. (* TODO: *) admit. admit. *)
-  (*   } *)
-  (*   cbn... *)
-  (*   cbn... *)
-  (*   focus_single_step_v. *)
-  (*   Transparent denote_code. *)
-  (*   cbn... *)
-  (*   focus_single_step_v. *)
+    (* RHS Vellvm simplification *)
+    subst.
+    Arguments fmap /.
+    Arguments Fmap_block /.
+    cbn. intros.
+    rewrite denote_bks_unfold_in.
+    2 : {
+      rewrite find_block_ineq. rewrite find_block_ineq.
+      rewrite convert_typ_block_app. rewrite find_block_none_app.
+      Opaque find_block.
+      cbn. unfold fmap, Fmap_block. cbn. rewrite find_block_eq.
+      reflexivity. cbn. reflexivity.
+      auto.
+      cbn.
+      apply find_block_not_in_inputs.
+      red. intros.
+      eapply Coqlib.list_drop_norepet in UNIQUE_IDENTS.
+      Unshelve. 4 : exact 2. cbn in UNIQUE_IDENTS.
+      apply Coqlib.list_norepet_append_commut in UNIQUE_IDENTS.
+      cbn in UNIQUE_IDENTS. inversion UNIQUE_IDENTS. apply H3.
+      apply H0.
+      red. cbn. intros.
+      cbn in UNIQUE_IDENTS.
+      apply (Coqlib.list_drop_norepet 1) in UNIQUE_IDENTS. cbn in UNIQUE_IDENTS.
+      rewrite list_cons_app in UNIQUE_IDENTS.
+      rewrite -> Coqlib.list_norepet_app in UNIQUE_IDENTS. destruct UNIQUE_IDENTS as (? & ? & ?).
+      red in H3. specialize (H3 b0 loopcontblock). apply H3. constructor. reflexivity.
+      apply in_or_app. right. constructor. auto. auto.
+      cbn.
+      rewrite list_cons_app in UNIQUE_IDENTS.
+      apply Coqlib.list_norepet_append_commut in UNIQUE_IDENTS.
+      rewrite Coqlib.list_norepet_app in UNIQUE_IDENTS.
+      destruct UNIQUE_IDENTS as (? & ? & ?).
+      apply Coqlib.list_disjoint_sym in H2.
+      apply H2. constructor. reflexivity.
+      cbn. right. apply in_or_app. right. constructor. auto.
+    }
+    cbn...
+    cbn...
+    focus_single_step_v.
+    Transparent denote_code.
+    cbn...
+    focus_single_step_v.
 
-  (*   setoid_rewrite denote_instr_op. *)
-  (*   2 : { *)
-  (*     cbn... *)
-  (*     2 : { *)
-  (*       eauto. *)
-  (*     } *)
-  (*     cbn... *)
-  (*     unfold uvalue_to_dvalue_binop. *)
-  (*     cbn... *)
-  (*     reflexivity. *)
-  (*   } *)
-  (*   cbn... subst. cbn... *)
-  (*   rewrite denote_instr_op. *)
-  (*   2 : { *)
-  (*     cbn. *)
-  (*     cbn... *)
-  (*     2 : { *)
-  (*       setoid_rewrite lookup_alist_add_eq. reflexivity. *)
-  (*     } *)
-  (*     cbn... *)
-  (*     Arguments uvalue_to_dvalue_binop /. *)
-  (*     cbn... *)
-  (*     reflexivity. *)
-  (*   } *)
-  (*   cbn... *)
-  (*   rewrite denote_term_br_r. *)
-  (*   2 : { *)
-  (*     (* TODO: notation for map updates *) *)
-  (*     cbn... *)
-  (*     2 : { *)
-  (*       setoid_rewrite lookup_alist_add_eq. reflexivity. *)
-  (*     } *)
-  (*     match goal with *)
-  (*     | [ |- ret (_, (_, (_, ?x))) ≈ Ret (_, (_, (_, ?x'))) ] => assert (x ≡ x') *)
-  (*         end. *)
-  (*     admit. rewrite H. cbn. reflexivity. *)
-  (*   } *)
-  (*   cbn... subst. rewrite denote_bks_unfold_not_in. *)
-  (*   2 : { *)
-  (*     rewrite find_block_ineq. rewrite find_block_ineq. *)
-  (*     rewrite convert_typ_block_app. rewrite find_block_none_app. *)
-  (*     Opaque find_block. *)
-  (*     cbn. unfold fmap, Fmap_block. cbn. rewrite find_block_ineq. *)
-  (*     apply find_block_nil. cbn. auto. auto. cbn. *)
-  (*     admit. admit. admit. admit. *)
-  (*   } *)
-  (*   cbn... apply eutt_Ret. *)
-  (*   split. *)
-  (*   + reflexivity. *)
-  (*   + assert (NUM : n - 1 ≡ n - 0 - 1). lia. *)
-  (*     eapply STABLE. apply INV. *)
-  (*     red. intros. (* TODO: local freshness*) admit. *)
+    setoid_rewrite denote_instr_op.
+    2 : {
+      cbn...
+      2 : {
+        eauto.
+      }
+      cbn...
+      unfold uvalue_to_dvalue_binop.
+      cbn...
+      reflexivity.
+    }
+    cbn... subst. cbn...
+    rewrite denote_instr_op.
+    2 : {
+      cbn.
+      cbn...
+      2 : {
+        setoid_rewrite lookup_alist_add_eq. reflexivity.
+      }
+      cbn...
+      Arguments uvalue_to_dvalue_binop /.
+      cbn...
+      reflexivity.
+    }
+    cbn...
+    rewrite denote_term_br_r.
+    2 : {
+      (* TODO: notation for map updates *)
+      cbn...
+      2 : {
+        setoid_rewrite lookup_alist_add_eq. reflexivity.
+      }
+      match goal with
+      | [ |- ret (_, (_, (_, ?x))) ≈ Ret (_, (_, (_, ?x'))) ] => assert (x ≡ x')
+          end.
+
+      rewrite genWhileLoop_ind_arith_aux_0. reflexivity.
+      cbn. rewrite H0. reflexivity.
+    }
+    cbn...
+
+    subst. rewrite denote_bks_unfold_not_in.
+    2 : {
+      rewrite find_block_ineq. rewrite find_block_ineq.
+      rewrite convert_typ_block_app. rewrite find_block_none_app.
+      Opaque find_block.
+      cbn. unfold fmap, Fmap_block. cbn. rewrite find_block_ineq.
+      apply find_block_nil. cbn.
+      cbn in NEXTBLOCK_ID. intro. apply NEXTBLOCK_ID. right. right.
+      rewrite map_app. cbn. apply in_or_app. right. cbn. left. auto.
+      cbn in NEXTBLOCK_ID. apply find_block_not_in_inputs. intro.
+      apply NEXTBLOCK_ID. right. right. rewrite map_app. cbn.
+      apply in_or_app. left. unfold inputs in H0. rewrite MAP_CONV. cbn in H0. unfold Fmap_list in H0.
+      auto. cbn.
+      cbn in NEXTBLOCK_ID. intro. apply NEXTBLOCK_ID. right. left. auto.
+      cbn. cbn in NEXTBLOCK_ID. intro. apply NEXTBLOCK_ID. left. auto.
+    }
+    cbn...
+
+    apply eutt_Ret.
+    split.
+    + reflexivity.
+    + split.
+      assert (NUM : n - 1 ≡ n - 0 - 1). lia. rewrite <- NUM. admit.
+      eapply STABLE. assert (NUM' : n - 0 ≡ n). lia. rewrite <- NUM'. apply INV.
+      red. intros. (* TODO: local freshness*) admit.
 
   - cbn in *. intros * (INV & LOOPVAR).
     Arguments fmap /.
@@ -484,7 +533,7 @@ Proof with rauto.
         cbn. subst.
         assert (EQ: loopcontblock ≡ loopcontblock) by reflexivity.
         eapply rel_dec_eq_true in EQ. 2 : typeclasses eauto. subst.
-        cbn. setoid_rewrite EQ. reflexivity.
+        cbn. rewrite find_block_eq. reflexivity. reflexivity.
       }
       red. cbn.
       rewrite map_app. cbn. subst. cbn. 
@@ -585,13 +634,12 @@ Proof with rauto.
     }
 
     (* We find that k < n, thus we go back to looping on the body *)
-    match goal with
-    | [ |- context[(g, ?h)]] => remember h
-    end.
-    assert (Hequ' :u ≡ 'u_one). admit.
-    rewrite Hequ'.
+    (* match goal with *)
+    (* | [ |- context[(g, ?h)]] => remember h *)
+    (* end. *)
     cbn...
 
+    rewrite genWhileLoop_ind_arith_aux_1.
     rewrite Heqi11. cbn.
     cbn... clear Heqi11.
 
@@ -619,7 +667,7 @@ Proof with rauto.
     focus_single_step_v.
     2 : {
       inversion UNIQUE_IDENTS.
-      cbn in H2. intro. subst. apply H1. right.
+      cbn in H2. intro. subst. apply H2. right.
       apply in_or_app. right. constructor. reflexivity.
     }
     Transparent denote_phi. unfold denote_phi. rewrite assoc_hd. cbn.
@@ -671,7 +719,7 @@ Proof with rauto.
         induction bs. cbn. reflexivity.
         cbn. rewrite IHbs. reflexivity.
         }
-      subst. rewrite <-H. unfold block_ids in IN. apply IN.
+      subst. rewrite <-H0. unfold block_ids in IN. apply IN.
     }
 
     2 : {
@@ -680,7 +728,6 @@ Proof with rauto.
     cbn...
 
 
-    assert (n - S k > 1). admit.
     assert (n - S k ≡ S (n - S (S k))). lia.
 
     rewrite H0.
@@ -689,22 +736,20 @@ Proof with rauto.
     (* Step 3 (Actually applying BH): By body hypothesis, this will lead to my invariant being true at
        step S k, and to jumping to loopcontblock. *)
     eapply HBODY.
-    
+
     red. split.
-    eapply STABLE. apply INV.
+    eapply STABLE. rewrite <- H0. apply INV.
     (*TODO: Local var alist unique *) admit.
-    subst. 
+    subst.
 
     cbn.
-    (* admit (* TODO: fix k in L316 to (S k) *). *)
     assert (H3 : loopvar ≡ loopvar) by reflexivity.
     subst.
     eapply rel_dec_eq_true in H3. cbn. rewrite H3.
-    assert (ARITH: UVALUE_I64 ((int64) ((Z) (n - S (S k) - 1)) + (int64) 1) ≡ uvalue_of_nat (n - S (S k))).
+
+    assert (UVALUE_I64 ((int64) ((Z) (n - S k - 1)) + (int64) 1) ≡ uvalue_of_nat (S (n - S (S k)))).
     admit.
-    rewrite ARITH.
-    auto.
-    typeclasses eauto.
+    rewrite H1. reflexivity. typeclasses eauto.
 
     intros *. destruct u1, u2. destruct p. destruct p.
     intros (LOOPVAR' & HS & IH').
@@ -712,8 +757,8 @@ Proof with rauto.
 
     (* Step 4 : Back to starting from loopcontblock and have reestablished everything at the next index:
         conclude by IH *)
-    assert (EQ' : S (S (n - S (S k))) ≡ n - k). lia.
-    rewrite EQ'. subst. cbn in IH. rewrite convert_typ_block_app in IH. cbn in IH.
+    assert (EQ'' : S (S (n - S (S k))) ≡ n - k). lia.
+    rewrite EQ''. subst. cbn in IH. rewrite convert_typ_block_app in IH. cbn in IH.
       match goal with
       | [ |- context[denote_bks (?a :: ?b :: ?c ++ ?d)]] => remember a; remember b; remember c; remember d
       end.
@@ -732,11 +777,13 @@ Proof with rauto.
         subst. rewrite 2 typ_to_dtyp_I. reflexivity.
       }
       rewrite <- EQB1,<- EQB2,<- EQB3.
-      eapply IH. lia. lia.
+      eapply IH. lia. lia. lia. lia.
       split.
-      assert (S (n - S (S k)) ≡ n - S k). lia. rewrite <- H1. auto.
-      assert (n - S (S k) ≡ n - S k - 1) by lia.
-      rewrite <- H1. auto. Unshelve. auto.
+      assert (S (S (n - S (S k))) ≡ n - k). lia. rewrite <- H1. auto.
+      assert (n - k - 1 ≡ S (n - S (S k))) by lia.
+      rewrite H1. auto.
+      Unshelve. apply RawIDOrd.eq_dec. auto.
+
 Admitted.
 
 
