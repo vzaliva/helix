@@ -2,7 +2,7 @@ Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.Correctness_NExpr.
 Require Import Helix.LLVMGen.Correctness_MExpr.
-Require Import LibHyps.LibHyps.
+(* Require Import LibHyps.LibHyps. *)
 
 Import ListNotations.
 

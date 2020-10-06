@@ -743,8 +743,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       i1 into v1, i4 into v2.
       inv_resolve_PVar Heqs0.
       inv_resolve_PVar Heqs1.
-      Require Import LibHyps.LibHyps.
-      onAllHyps move_up_types.
+      (* Require Import LibHyps.LibHyps. *)
+      (* onAllHyps move_up_types. *)
 
       eutt_hide_right.
       rename n1 into x_p, n2 into y_p.
@@ -1252,12 +1252,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       rauto.
 
       (* Evaluation of operators in sequence *)
-      (* HEAD
       (* pose proof (evalDSHSeq_split EVAL) as [mem' [EVAL1 EVAL2]]. *)
-      cbn in NOFAIL.
-      eapply eutt_clo_bind_returns; [eapply IHop1; try exact GEN_OP1; eauto |].
-      admit. (* Should come from freshness *)
-
       (* Helix generates code for op2 *first*, so op2 gets earlier
         variables from the irstate. Helix needs to do this because it
         passes the block id for the next block that an operator should
@@ -1265,47 +1260,70 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         op2, which goes to the next block of the entire sequence, and
         then passes the entry point for op2 as the "nextblock" for
         op1.
-
+        YZ: I got lost, I'll try to refix it later
       *)
-
-      pose proof (evalDSHSeq_split EVAL) as [mem' [EVAL1 EVAL2]].
-
+      cbn in NOFAIL.
       pose proof BISIM as BISIM2.
-      destruct BISIM2 as (STATE_BIS & BRANCH_BIS & MEM_BIS).
-      cbn in STATE_BIS, BRANCH_BIS, MEM_BIS.
-      destruct BRANCH_BIS as (from & BRANCH_BIS).
-      inversion BRANCH_BIS. subst.
+      destruct BISIM as [SINV (?from & EQ)]; cbn in *; inv EQ.
+      simp.
+      eapply eutt_clo_bind_returns; [eapply IHop1; try exact Heqs1; eauto |].  
+      eapply bid_bound_genIR_entry; eauto.
+      (* { split; cbn; cbn. *)
+      (*   - eapply genIR_GenIR_Rel in Heqs1; eauto. *)
+      (*     cbn in *. *)
+      (*     destruct GEN_OP2 as (STATE & _). *)
+      (*     cbn in STATE. *)
+      (*     apply STATE. *)
+      (*     split; auto. *)
+      (*     split; cbn; auto. *)
+      (*     eauto. *)
+      (*   - split; cbn. *)
+      (*     + (* Already had to prove that nextblock <> op2_entry... So, *) *)
+      (* (*          that's probably a problem *) *)
+      (*       exists from. *)
+      (*       reflexivity. *)
+      (*     + reflexivity. *)
+      (* } *)
+      admit.
 
-      eapply eutt_clo_bind.
-      {
-        eapply (IHop1 _ _ _ _ _ _ op2_entry _ _ _ _ _ _ _ _ EVAL1 GEN_OP1).
-        Unshelve.
-        eapply bid_bound_genIR_entry; eauto.
-        split; cbn.
-        - eapply genIR_GenIR_Rel in GEN_OP2; eauto.
-          destruct GEN_OP2 as (STATE & _).
-          cbn in STATE.
-          apply STATE.
-          split; auto.
-          split; cbn; auto.
-          exists from. eauto.
-        - split; cbn.
-          + (* Already had to prove that nextblock <> op2_entry... So,
-               that's probably a problem *)
-            exists from.
-            reflexivity.
-          + reflexivity.
-      }
+      introR; destruct_unit.
+      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
+      cbn in PRE; destruct PRE as (INV2 & EXP2 & ?); cbn in *; inv_eqs.
+      subst...
+      eapply IHop2; try eapply Heqs1; eauto.
+      admit.
+      admit.
+   
+      (* eapply eutt_clo_bind. *)
+      (* { *)
+      (*   eapply (IHop1 _ _ _ _ _ _ op2_entry _ _ _ _ _ _ _ _ EVAL1 GEN_OP1). *)
+      (*   Unshelve. *)
+      (*   eapply bid_bound_genIR_entry; eauto. *)
+      (*   split; cbn. *)
+      (*   - eapply genIR_GenIR_Rel in GEN_OP2; eauto. *)
+      (*     destruct GEN_OP2 as (STATE & _). *)
+      (*     cbn in STATE. *)
+      (*     apply STATE. *)
+      (*     split; auto. *)
+      (*     split; cbn; auto. *)
+      (*     exists from. eauto. *)
+      (*   - split; cbn. *)
+      (*     + (* Already had to prove that nextblock <> op2_entry... So, *)
+      (*          that's probably a problem *) *)
+      (*       exists from. *)
+      (*       reflexivity. *)
+      (*     + reflexivity. *)
+      (* } *)
 
-      intros [memH' []] (memV' & le & ge & res) IRREL.
-      pose proof IRREL as [STATE [[from' BRANCH] MEM]].
-      cbn in STATE, BRANCH, MEM.
-      subst.
+      (* intros [memH' []] (memV' & le & ge & res) IRREL. *)
+      (* pose proof IRREL as [STATE [[from' BRANCH] MEM]]. *)
+      (* cbn in STATE, BRANCH, MEM. *)
+      (* subst. *)
 
-      eapply eqit_mon.
-      intros. apply H.
-      intros. apply H.
-      2: {
+      (* eapply eqit_mon. *)
+      (* intros. apply H. *)
+      (* intros. apply H. *)
+      (* 2: { *)
         (* TODO: this might be wrong *)
         (* This is setting me up for failure, I think...
 
@@ -1322,12 +1340,12 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
          *)
 
-      eapply genIR_GenIR_Rel; eauto.
-      introR; destruct_unit.
-      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      cbn in PRE; destruct PRE as (STATE & [from to] & BRANCH); cbn in *; inv_eqs; subst.
-      simp.
-      clear IHop1.
+      (* eapply genIR_GenIR_Rel; eauto. *)
+      (* introR; destruct_unit. *)
+      (* intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET. *)
+      (* cbn in PRE; destruct PRE as (STATE & [from to] & BRANCH); cbn in *; inv_eqs; subst. *)
+      (* simp. *)
+      (* clear IHop1. *)
       (* TODO: How can I know this? *)
       (* Probably need to extend GenIR_Rel? *)
       (* - bid_op2 comes from genIR of the sequence destructed with simp...
@@ -1335,10 +1353,10 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
          
        *)
-      eapply IHop2; try apply Heqs0; eauto.
-      admit.
-      admit.
-      admit.
+      (* eapply IHop2; try apply Heqs0; eauto. *)
+      (* admit. *)
+      (* admit. *)
+      (* admit. *)
   (*     assert (bid_op2 ≡ to). *)
   (*     { unfold GenIR_Rel in IRREL. *)
   (*       cbv in IRREL. destruct IRREL as [IRREL_STATE IRREL_BRANCHES]. *)
@@ -1372,57 +1390,57 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   (*     all: eauto. *)
   (*     intros [memH_mon []] (memV_mon & l_mon & g_mon & res) PR. *)
 
-        epose proof (IHop2 _ _ σ memH' _ _ _ _ _ _ ge le memV' _ _ EVAL2 GEN_OP2) as IH2.
-        apply IH2.
-        Unshelve.
-        auto.
+      (*   epose proof (IHop2 _ _ σ memH' _ _ _ _ _ _ ge le memV' _ _ EVAL2 GEN_OP2) as IH2. *)
+      (*   apply IH2. *)
+      (*   Unshelve. *)
+      (*   auto. *)
 
-        eapply genIR_GenIR_Rel in GEN_OP2; eauto.
-        2: {
-          split; cbn; eauto.
-          split; cbn; eauto.
-        }
+      (*   eapply genIR_GenIR_Rel in GEN_OP2; eauto. *)
+      (*   2: { *)
+      (*     split; cbn; eauto. *)
+      (*     split; cbn; eauto. *)
+      (*   } *)
 
-        destruct GEN_OP2 as (STATE_OP2 & (from_op2 & BRANCH_OP2) & MEM_OP2).
-        cbn in STATE_OP2, BRANCH_OP2, MEM_OP2.
+      (*   destruct GEN_OP2 as (STATE_OP2 & (from_op2 & BRANCH_OP2) & MEM_OP2). *)
+      (*   cbn in STATE_OP2, BRANCH_OP2, MEM_OP2. *)
 
-        (* TODO: can I clean this part up? *)
-        split; cbn.
-        - split.
-          + apply state_invariant_memory_invariant in STATE.
-            unfold memory_invariant.
-            intros n v0 τ x H H0.
+      (*   (* TODO: can I clean this part up? *) *)
+      (*   split; cbn. *)
+      (*   - split. *)
+      (*     + apply state_invariant_memory_invariant in STATE. *)
+      (*       unfold memory_invariant. *)
+      (*       intros n v0 τ x H H0. *)
 
-            eapply STATE; eauto.
-            rewrite <- (genIR_Context _ _ _ GEN).
-            auto.
-          + eapply IRState_is_WF; eauto.
-          +
-            (* This doesn't seem true?
+      (*       eapply STATE; eauto. *)
+      (*       rewrite <- (genIR_Context _ _ _ GEN). *)
+      (*       auto. *)
+      (*     + eapply IRState_is_WF; eauto. *)
+      (*     + *)
+      (*       (* This doesn't seem true? *)
 
-               le should be the local environment after denoting op1...
+      (*          le should be the local environment after denoting op1... *)
 
-               So, I should hope to have
+      (*          So, I should hope to have *)
 
-               concrete_fresh_inv s_op1 le,
+      (*          concrete_fresh_inv s_op1 le, *)
 
-               instead of
+      (*          instead of *)
 
-               concrete_fresh_inv s1 le...
+      (*          concrete_fresh_inv s1 le... *)
 
-               Because we generated names between s1 and s_op1...
-             *)
-            eapply incLocal_is_fresh in STATE_BIS.
-            cbn in STATE_BIS.
-            cbn.
-            intros id v0 n H H0.
-            eapply STATE_BIS; eauto.
+      (*          Because we generated names between s1 and s_op1... *)
+      (*        *) *)
+      (*       eapply incLocal_is_fresh in STATE_BIS. *)
+      (*       cbn in STATE_BIS. *)
+      (*       cbn. *)
+      (*       intros id v0 n H H0. *)
+      (*       eapply STATE_BIS; eauto. *)
 
-            (* Does le = ρ ? *)
-            admit. (* TODO: ugh, freshness *)
-        - split; cbn; eauto.
-      }
-      intros [memH_mon []] (memV_mon & l_mon & g_mon & res) PR.
+      (*       (* Does le = ρ ? *) *)
+      (*       admit. (* TODO: ugh, freshness *) *)
+      (*   - split; cbn; eauto. *)
+      (* } *)
+      (* intros [memH_mon []] (memV_mon & l_mon & g_mon & res) PR. *)
 
 
   (*     pose proof GEN_OP1 as LOC; apply genIR_local_count in LOC. *)
@@ -1437,27 +1455,24 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   (*       eapply PR. eapply LOC. *)
   (*     + destruct PR as [PR_STATE [? PR_BRANCH]]. *)
   (*       inversion PR_BRANCH. *)
-  Admitted.
-
-           End GenIR.
            
 
-      replace s2 with {| block_count := block_count s2; local_count := local_count s2; void_count := void_count s2; Γ := Γ s_op1 |}.
-      2: { rewrite CONT. destruct s2. cbn.
-           reflexivity.
-      }
+      (* replace s2 with {| block_count := block_count s2; local_count := local_count s2; void_count := void_count s2; Γ := Γ s_op1 |}. *)
+      (* 2: { rewrite CONT. destruct s2. cbn. *)
+      (*      reflexivity. *)
+      (* } *)
 
-      {
-      destruct res as [[from_mon to_mon] | ].
-      + (* returned a branch, all good *) 
-        eapply GenIR_Rel_monotone in PR.
-        eapply PR. eapply LOC.
-      + destruct PR as [PR_STATE [[? PR_BRANCH] ?]].
-        inversion PR_BRANCH.
-      }
+      (* { *)
+      (* destruct res as [[from_mon to_mon] | ]. *)
+      (* + (* returned a branch, all good *)  *)
+      (*   eapply GenIR_Rel_monotone in PR. *)
+      (*   eapply PR. eapply LOC. *)
+      (* + destruct PR as [PR_STATE [[? PR_BRANCH] ?]]. *)
+      (*   inversion PR_BRANCH. *)
+      (* } *)
 
-      Unshelve.
-      all: eauto.
+      (* Unshelve. *)
+      (* all: eauto. *)
   Admitted.
   End GenIR.
  

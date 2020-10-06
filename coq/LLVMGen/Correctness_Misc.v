@@ -70,9 +70,9 @@ What should be exactly the post?
 
 
     forall k,
-      eutt (IMap_Rel σ s1)
-           (with_err_RB (interp_Mem (bodyIMap f σ memx k memy) memH))
-           (with_err_LB (interp_cfg (D.denote_bks (convert_typ [] bodyV) (bid_from, bid_src)) g l memV)).
+      eutt (succ_cfg (IMap_Rel σ s1))
+           (interp_helix (bodyIMap f σ memx k memy) memH)
+           (interp_cfg (D.denote_bks (convert_typ [] bodyV) (bid_from, bid_src)) g l memV).
 Proof with rauto.
   intros * GEN PRE; intros.
 
@@ -512,7 +512,7 @@ Section LLVMGen.
       (* Vellvm bits *)   tle,
       LLVMGen i o fshcol funname s1 ≡ inr (s2, tle) ->
       eutt (* (bisim_final σ) *) R
-           (with_err_RT (interp_Mem (denoteDSHOperator σ fshcol) memory_empty))
+           (interp_helix (denoteDSHOperator σ fshcol) memory_empty)
            (semantics_llvm tle).
   Proof.
     (* intros p data pll H. *)
