@@ -1371,7 +1371,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
       Unshelve.
       all: eauto.
-        
   Admitted.
   End GenIR.
  
