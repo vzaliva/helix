@@ -120,15 +120,15 @@ Qed.
 (*     cbn. right. apply IHb. auto. *)
 (* Qed. *)
 
-(* Definition imp_rel {A B : Type} (R S: A -> B -> Prop): Prop := *)
-(*   forall a b, R a b -> S a b. *)
+Definition imp_rel {A B : Type} (R S: A -> B -> Prop): Prop :=
+  forall a b, R a b -> S a b.
 
 
-(* Definition stable_exp_local (R: Rel_cfg) : Prop := *)
-(*     forall memH memV ρ1 ρ2 g, *)
-(*       R memH (memV, (ρ1, g)) -> *)
-(*       ρ1 ⊑ ρ2 -> *)
-(*       R memH (memV, (ρ2, g)). *)
+Definition stable_exp_local (R: Rel_cfg) : Prop :=
+    forall memH memV ρ1 ρ2 g,
+      R memH (memV, (ρ1, g)) ->
+      ρ1 ⊑ ρ2 ->
+      R memH (memV, (ρ2, g)).
 
 (* Lemma disjoint_bid_neq {T : Set} (b b' : list (LLVMAst.block T)) : *)
 (*   disjoint_bid_blocks b b' -> *)
@@ -802,9 +802,9 @@ Lemma genWhileLoop_correct:
                        lvar wrap_loop_id body_entry_id bodyV [] exit_id s1
                        ≡ inr (s2,(entry_id,bks)))
 
-    (* Computation on the Helix side performed at each cell of the vector,
-       the counterpart to bodyV *)
-    (bodyH: nat -> mem_block -> itree _ mem_block) 
+    (* Computation on the Helix side performed at each cell of the vector, *)
+(*        the counterpart to bodyV *)
+    (bodyH: nat -> mem_block -> itree _ mem_block)
 
     (* Main relation preserved by iteration *)
     (R : Rel_cfg),
@@ -835,7 +835,7 @@ Lemma genWhileLoop_correct:
            (with_err_LB (interp_cfg (denote_bks (convert_typ [] bks) (from_id,entry_id)) g l mV)).
 Proof with rauto.
   intros * GEN * IND STABLE IMPSTATE * PRE.
-  cbn* in GEN; simp. 
+  cbn* in GEN; simp.
   destruct n as [|[|n]].
   - (* n = 0: we never enter the loop *)
 
