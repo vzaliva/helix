@@ -730,7 +730,7 @@ Ltac break_and :=
   Hint Rewrite @interp_bind : itree.
   Hint Rewrite @bind_bind : itree.
   Hint Rewrite @bind_ret_l : itree.
-
+  
   Hint Rewrite @translate_ret : itree.
   Hint Rewrite @interp_ret : itree.
 
