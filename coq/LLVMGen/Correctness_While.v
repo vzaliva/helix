@@ -241,9 +241,11 @@ Qed.
 (* TODO: General Vellvm lemma *)
 Lemma denote_bks_prefix_ :
   forall (prefix bks postfix : list (LLVMAst.block dtyp)) (from to: block_id),
-    In to (map blk_id bks) ->
-    (* All labels are distinct *)
-    Coqlib.list_norepet (map blk_id (prefix ++ bks ++ postfix)) ->
+    (* In to (map blk_id bks) -> *)
+    (* (* All labels are distinct *) *)
+    (* Coqlib.list_norepet (map blk_id (prefix ++ bks ++ postfix)) -> *) (* TODO: Perhaps we don't need this.. *)
+
+    not (In to (map blk_id prefix)) ->
     denote_bks (prefix ++ bks ++ postfix) (from, to) ≈
                ITree.bind (denote_bks bks (from, to))
                (fun x => match x with
@@ -255,18 +257,28 @@ Proof.
   (* denote_bks_app denote_bks_cons *)
 Admitted.
 
-(* Auxiliary integer computation lemmas *)
-Lemma genWhileLoop_ind_arith_aux_1: forall n k,
-  dvalue_to_uvalue (eval_int_icmp Slt ((int64) ((Z) (n - S k - 1)) + (int64) 1) ((int64) ((Z) n))) ≡ 'u_one.
-Admitted.
+From Vellvm Require Import Numeric.Integers.
 
-Lemma genWhileLoop_ind_arith_aux_2: forall n k,
-UVALUE_I64 ((int64) ((Z) (n - S (S k) - 1)) + (int64) 1) ≡ uvalue_of_nat (n - S (S k)).
-Admitted.
+(* Auxiliary integer computation lemmas *)
 
 Lemma genWhileLoop_ind_arith_aux_0:
   forall n,
     dvalue_to_uvalue (eval_int_icmp Slt ((int64) ((Z) (n - 1 - 1)) + (int64) 1) ((int64) ((Z) n))) ≡ u_zero.
+Admitted.
+
+Lemma genWhileLoop_ind_arith_aux_1: forall n k,
+  dvalue_to_uvalue (eval_int_icmp Slt ((int64) ((Z) (n - S k - 1)) + (int64) 1) ((int64) ((Z) n))) ≡ 'u_one.
+Proof.
+  intros.
+  assert ((eval_int_icmp Slt ((int64) ((Z) (n - S k - 1)) + (int64) 1) ((int64) ((Z) n))) ≡ DVALUE_I1 DynamicValues.Int1.one).
+  eapply RelDec_Correct_eq_typ. Unshelve. 3 : apply @dvalue_eq_dec.
+  unfold eval_int_icmp. cbn.
+  assert ((int64) ((Z) (n - S k - 1)) + (int64) 1 ≡ (int64) ((Z) (n - S k))). {
+    Int64.bit_solve.  destruct (Int64.testbit ((int64) ((Z) (n - S k))) i) eqn: H'.
+Admitted.
+
+Lemma genWhileLoop_ind_arith_aux_2: forall n k,
+UVALUE_I64 ((int64) ((Z) (n - S (S k) - 1)) + (int64) 1) ≡ uvalue_of_nat (n - S (S k)).
 Admitted.
 
 Lemma incLocalNamed_fresh:
@@ -289,25 +301,28 @@ Lemma genWhileLoop_ind:
     (n : nat)                       (* Number of iterations *)
     (j : nat)                       (* Starting iteration *)
     (UPPER_BOUND : n > j)
+    (* TODO: Rethink about this lower bound (j > 0?) *)
     (LOW_BOUND : j > 1)
     (* Main relations preserved by iteration *)
     (I : nat -> mem_block -> Rel_cfg),
 
     In body_entry (block_ids body_blocks) ->
 
-    (* All labels generated are distinct *)
-    blk_id_norepet bks ->
-
     not (In nextblock (map blk_id bks)) ->
 
-    (* Loopvar is unique*)
+    (* Loopvar is unique *)
+    (* TODO : quantify boundedness using s1. *)
     (forall i s r, incLocal i ≡ inr (s, r) -> loopvar ≢ r) ->
+    (* TODO : assumption doesn't include r *)
     (forall str s r, incLocalNamed str ≡ s -> loopvar ≢ r) ->
 
     (* Generation of the LLVM code wrapping the loop around bodyV *)
     genWhileLoop prefix (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
                        loopvar loopcontblock body_entry body_blocks [] nextblock s1
                        ≡ inr (s2,(entry_id, bks)) ->
+
+    (* All labels generated are distinct *)
+    blk_id_norepet bks ->
     (* Computation on the Helix side performed at each cell of the vector, *)
     (*    the counterpart to bodyV (body_blocks) *)
     forall (bodyH: nat -> mem_block -> itree _ mem_block),
@@ -332,6 +347,7 @@ Lemma genWhileLoop_ind:
     ) ->
 
     (* Invariant is stable under extending local state *)
+    (* TODO: clean up incLocalNamed, incLocal *)
     (forall k mH mV s s' g l ymem id v str, incLocal s ≡ inr (s', id)
                                        \/ incLocalNamed str s ≡ inr (s', id)
                                        \/ id ≡ loopvar ->
