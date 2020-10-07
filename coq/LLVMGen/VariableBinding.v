@@ -726,10 +726,11 @@ Section Inputs.
   Lemma inputs_nextblock :
     forall (op : DSHOperator) (s1 s2 s3 : IRState) (nextblock op_entry : block_id) (bk_op : list (LLVMAst.block typ)),
       bid_bound s1 nextblock ->
+      (block_count s1 <= block_count s2)%nat ->
       genIR op nextblock s2 ≡ inr (s3, (op_entry, bk_op)) ->
       Forall (fun bid => bid ≢ nextblock) (inputs (convert_typ [ ] bk_op)).
   Proof.
-    intros op s1 s2 s3 nextblock op_entry bk_op BOUND GEN.
+    intros op s1 s2 s3 nextblock op_entry bk_op BOUND COUNT GEN.
     eapply inputs_not_earlier_bound; eauto.
   Qed.
 End Inputs.
