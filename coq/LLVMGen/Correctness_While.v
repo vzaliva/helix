@@ -337,13 +337,13 @@ Lemma genWhileLoop_ind:
                   (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k))
                   mH (mV,(l',g))) ->
         eutt
-             (fun '(memH,vec') '(memV, (l, (g, x))) =>
+          (succ_cfg (fun '(memH,vec') '(memV, (l, (g, x))) =>
                 l @ loopvar ≡ Some (uvalue_of_nat k) /\
                 x ≡ inl (_label', loopcontblock) /\
-                I (S k) vec' memH (memV, (l, g)))
-          (with_err_RB (interp_Mem (bodyH (S k) ymem) mH))
-          (with_err_LB (interp_cfg
-                          (denote_bks (convert_typ [] body_blocks) (_label, body_entry)) g l mV))
+                I (S k) vec' memH (memV, (l, g))))
+          (interp_helix (bodyH (S k) ymem) mH)
+          (interp_cfg
+             (denote_bks (convert_typ [] body_blocks) (_label, body_entry)) g l mV)
     ) ->
 
     (* Invariant is stable under extending local state *)
@@ -361,13 +361,13 @@ Lemma genWhileLoop_ind:
          (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat (j - 1)))
          mH (mV,(l,g))
       ) ->
-      eutt (fun '(memH,vec') '(memV, (l, (g,x))) =>
+      eutt (succ_cfg (fun '(memH,vec') '(memV, (l, (g,x))) =>
               x ≡ inl (loopcontblock, nextblock) /\
               I (n - 1) vec' memH (memV,(l,g))
-           )
-           (with_err_RB (interp_Mem (build_vec_gen (S j) n bodyH ymem) mH))
-           (with_err_LB (interp_cfg (denote_bks (convert_typ [] bks)
-                                                (_label, loopcontblock)) g l mV)).
+           ))
+           (interp_helix (build_vec_gen (S j) n bodyH ymem) mH)
+           (interp_cfg (denote_bks (convert_typ [] bks)
+                                                (_label, loopcontblock)) g l mV).
 
 Proof with rauto.
   intros * UPPER_BOUND LOWER_BOUND * IN UNIQUE_IDENTS NEXTBLOCK_ID LOOPVAR0 LOOPVAR1 GEN.
@@ -476,9 +476,9 @@ Proof with rauto.
         setoid_rewrite lookup_alist_add_eq. reflexivity.
       }
       match goal with
-      | [ |- ret (_, (_, (_, ?x))) ≈ Ret (_, (_, (_, ?x'))) ] => assert (x ≡ x')
+      | [ |- Ret (_, (_, (_, ?x))) ≈ Ret (_, (_, (_, ?x'))) ] => assert (x ≡ x')
           end.
-  apply genWhileLoop_ind_arith_aux_0.
+      apply genWhileLoop_ind_arith_aux_0.
       cbn. rewrite H0. reflexivity.
     }
     cbn...
@@ -523,7 +523,6 @@ Proof with rauto.
 
     (* START rewrite *)
     rewrite bind_bind. rewrite bind_bind. rewrite interp_cfg_to_L3_bind.
-    rewrite translate_bind.
     (* END rewrite *)
 
     2 : {
@@ -552,17 +551,17 @@ Proof with rauto.
     cbn.
 
     (* START rewrite *)
-    rewrite interp_cfg_to_L3_ret. rewrite translate_ret. rewrite bind_ret_l.
+    rewrite interp_cfg_to_L3_ret. rewrite bind_ret_l.
     (* END rewrite *)
 
     rewrite Heqi7.
 
     (* START rewrite *)
     rewrite bind_bind. rewrite interp_cfg_to_L3_bind.
-    rewrite translate_bind. cbn. rewrite interp_cfg_to_L3_ret.
-    rewrite translate_ret. rewrite bind_ret_l. rewrite bind_ret_l.
+    cbn. rewrite interp_cfg_to_L3_ret.
+    rewrite bind_ret_l. rewrite bind_ret_l.
     rewrite bind_bind. rewrite interp_cfg_to_L3_bind.
-    rewrite translate_bind. cbn.
+    cbn.
     (* END rewrite *)
 
     focus_single_step_v.
@@ -571,7 +570,7 @@ Proof with rauto.
 
     (* START rewrite *)
     rewrite bind_bind. rewrite interp_cfg_to_L3_bind.
-    rewrite translate_bind. rewrite bind_bind.
+    rewrite bind_bind.
     (* END rewrite *)
 
     focus_single_step_v.
@@ -579,10 +578,10 @@ Proof with rauto.
     Opaque denote_instr.
 
     (* START rewrite *)
-    setoid_rewrite interp_cfg_to_L3_bind. rewrite translate_bind.
+    setoid_rewrite interp_cfg_to_L3_bind. 
     rewrite bind_bind. cbn. (* This cbn takes so long.. *)
     rewrite translate_bind. rewrite interp_cfg_to_L3_bind.
-    rewrite translate_bind. rewrite bind_bind.
+    rewrite bind_bind.
     rewrite translate_trigger. rewrite translate_trigger.
     rewrite lookup_E_to_exp_E_Local.
     rewrite subevent_subevent.
@@ -594,8 +593,8 @@ Proof with rauto.
     cbn.
 
     (* START rewrite *)
-    rewrite translate_ret. rewrite bind_ret_l. rewrite translate_bind.
-    rewrite interp_cfg_to_L3_bind. rewrite translate_bind. rewrite bind_bind.
+    rewrite bind_ret_l. rewrite translate_bind.
+    rewrite interp_cfg_to_L3_bind.  rewrite bind_bind.
     cbn...
     (* END rewrite *)
 
@@ -616,10 +615,10 @@ Proof with rauto.
     rewrite interp_cfg_to_L3_LW. cbn.
 
     (* START rewrite *)
-    rewrite translate_ret. rewrite bind_ret_l. rewrite interp_cfg_to_L3_bind.
-    rewrite translate_bind. rewrite bind_bind. rewrite bind_ret_l.
-    rewrite interp_cfg_to_L3_ret. rewrite translate_ret. rewrite bind_ret_l.
-    rewrite bind_ret_l. rewrite interp_cfg_to_L3_ret. rewrite translate_ret.
+    rewrite bind_ret_l. rewrite interp_cfg_to_L3_bind.
+    rewrite bind_bind. rewrite bind_ret_l.
+    rewrite interp_cfg_to_L3_ret. rewrite bind_ret_l.
+    rewrite bind_ret_l. rewrite interp_cfg_to_L3_ret. 
     rewrite bind_ret_l.
     (* END rewrite *)
     clear Heqi10. rewrite Heqi9.
@@ -630,7 +629,6 @@ Proof with rauto.
     rewrite subevent_subevent. rewrite translate_bind.
     rewrite bind_bind. rewrite translate_trigger.
     rewrite interp_cfg_to_L3_bind.
-    rewrite translate_bind.
     (* END rewrite *)
     focus_single_step_v.
 
@@ -684,7 +682,7 @@ Proof with rauto.
       apply in_or_app. right. constructor. reflexivity.
     }
     Transparent denote_phi. unfold denote_phi. rewrite assoc_hd. cbn.
-    cbn... cbn. rewrite translate_ret. rewrite bind_ret_l.
+    cbn... cbn. 
     Opaque denote_phi.
     2 : {
       setoid_rewrite lookup_alist_add_ineq.
@@ -706,13 +704,9 @@ Proof with rauto.
     subst.
     cbn...
     cbn...
-    rewrite interp_cfg_to_L3_LW. cbn. setoid_rewrite translate_ret.
+    rewrite interp_cfg_to_L3_LW. cbn. 
     rewrite bind_ret_l.
     cbn... cbn.
-    rewrite interp_cfg_to_L3_ret. setoid_rewrite translate_ret.
-    rewrite bind_ret_l. rewrite interp_cfg_to_L3_bind.
-    setoid_rewrite translate_ret. setoid_rewrite interp_cfg_to_L3_ret.
-    rewrite bind_ret_l.
 
     (* Starting to see body entry in the horizon. We need to apply the body hypothesis
        to retrieve the fact that "bks" entering from "body_entry" is the same denotation
@@ -748,22 +742,26 @@ Proof with rauto.
 
     (* Step 3 (Actually applying BH): By body hypothesis, this will lead to my invariant being true at
        step S k, and to jumping to loopcontblock. *)
-    eapply HBODY.
+    {
+      eapply HBODY.
 
-    red. Unshelve. 6 : exact LOCAL. split.
-    + subst. eapply STABLE. right. right. reflexivity.
-      eapply STABLE. left. eauto.
-      eapply STABLE. right. left. reflexivity. auto.
-    + subst. cbn. assert (L : loopvar ≡ loopvar) by reflexivity. eapply rel_dec_eq_true in L.
-      rewrite L. cbn.
-      rewrite genWhileLoop_ind_arith_aux_2. reflexivity.
-      typeclasses eauto.
-    +
+      red. cbn. split. 
+      + subst. eapply STABLE. right. right. reflexivity.
+        eapply STABLE. left. eauto.
+        eapply STABLE. right. left. reflexivity. auto.
+        eapply INV.
+      + subst. cbn. assert (L : loopvar ≡ loopvar) by reflexivity. eapply rel_dec_eq_true in L.
+        rewrite L. cbn.
+        rewrite <- genWhileLoop_ind_arith_aux_2. reflexivity.
+        typeclasses eauto.
+    }
 
-    intros *. destruct u1, u2. destruct p. destruct p.
+    intros *. destruct u1 as [(? & ?)|].
+    2: admit. (* YZ TODO : Fix what happens in case of failure? *)
+    destruct u2 as (? & ? & ? & ?).
     intros (LOOPVAR' & HS & IH').
     rewrite HS.
-
+    
     (* Step 4 : Back to starting from loopcontblock and have reestablished everything at the next index:
         conclude by IH *)
     (* assert (EQ'' : S ( S (S (n - S (S k)) - 1)) ≡ n - k). lia. *)
@@ -796,9 +794,11 @@ Proof with rauto.
       Unshelve.
       all: try auto.
       assert (n - S k - 1 ≡ n - S (S k)). lia. rewrite H4. auto.
-    + auto.
-    + apply RawIDOrd.eq_dec.
-Qed.
+      apply RawIDOrd.eq_dec.
+      (* YZ : this is weird *)
+      exact UVALUE_None.
+      exact UVALUE_None.
+Admitted.
 
 Lemma genWhileLoop_correct:
   forall (msg : string)
@@ -830,11 +830,11 @@ Lemma genWhileLoop_correct:
         (* ((R ⩕ Invk n) (mH,ymem) (mV, (l, (g, (inl body))))) -> *)
         (R mH (mV,(l,g))) ->
         eutt
-          (lift_Rel_cfg R)
+          (succ_cfg (lift_Rel_cfg R))
           (* (R ⩕ Invk (n +1) /\ lvar = n /\ retlabel = post ) *)
-          (with_err_RB (interp_Mem (bodyH n ymem) mH))
-          (with_err_LB (interp_cfg
-                          (denote_bks (convert_typ [] bodyV) (from_id,body_entry_id)) g l mV))
+          (interp_helix (bodyH n ymem) mH)
+          (interp_cfg
+             (denote_bks (convert_typ [] bodyV) (from_id,body_entry_id)) g l mV)
     ) ->
 
     (* R must be stable by extension of the local env *)
@@ -846,9 +846,9 @@ Lemma genWhileLoop_correct:
     (* Main result. Need to know initially that R holds *)
     forall g l mV mH ymem,
       R mH (mV,(l,g)) ->
-      eutt (lift_Rel_cfg R)
-           (with_err_RB (interp_Mem (build_vec n bodyH ymem) mH))
-           (with_err_LB (interp_cfg (denote_bks (convert_typ [] bks) (from_id,entry_id)) g l mV)).
+      eutt (succ_cfg (lift_Rel_cfg R))
+           (interp_helix (build_vec n bodyH ymem) mH)
+           (interp_cfg (denote_bks (convert_typ [] bks) (from_id,entry_id)) g l mV).
 Proof with rauto.
   intros * GEN * IND STABLE IMPSTATE * PRE.
   cbn* in GEN; simp.

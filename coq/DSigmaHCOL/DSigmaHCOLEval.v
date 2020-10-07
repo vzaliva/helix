@@ -1889,4 +1889,23 @@ Module MDSigmaHCOLEval
 
   End IncrEval.
 
+  Lemma evalDSHLoop_SN_in_range
+        {op : DSHOperator} {N : nat} {σ : evalContext} {mem : memory}
+        {fuel : nat} {mem' : memory}:
+    evalDSHOperator σ (DSHLoop (S N) op) mem fuel ≡ Some (inr mem')
+    -> exists nn, from_nat N ≡ inr nn.
+  Proof.
+    intros H.
+    destruct fuel; [cbn in H; some_none|].
+    revert σ mem mem' fuel op H.
+    induction N; intros.
+    -
+      apply from_nat_zero.
+    -
+      cbn in *. 
+      repeat break_match; try some_none; try some_inv; subst.
+      + eexists; reflexivity.
+      + eexists; reflexivity.
+  Qed.
+
 End MDSigmaHCOLEval.

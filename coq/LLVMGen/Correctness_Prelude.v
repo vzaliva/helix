@@ -57,6 +57,8 @@ Require Export Vellvm.Transformations.Traversal.
 Require Export Vellvm.PostConditions.
 Require Export Vellvm.Denotation_Theory.
 Require Export Vellvm.InstrLemmas.
+Require Export Vellvm.NoFailure.
+Require Export Vellvm.PropT.
 
 Require Export ExtLib.Structures.Monads.
 Require Export ExtLib.Data.Map.FMapAList.
@@ -68,9 +70,11 @@ Require Export ITree.Interp.TranslateFacts.
 Require Export ITree.Basics.CategoryFacts.
 Require Export ITree.Events.State.
 Require Export ITree.Events.StateFacts.
+Require Export ITree.Events.FailFacts.
 Require Export ITree.ITree.
 Require Export ITree.Eq.Eq.
 Require Export ITree.Basics.Basics.
+Require Export ITree.Events.Exception.
 Require Export ITree.Interp.InterpFacts.
 
 Require Export Flocq.IEEE754.Binary.
@@ -78,6 +82,8 @@ Require Export Flocq.IEEE754.Bits.
 
 Require Export MathClasses.interfaces.canonical_names.
 Require Export MathClasses.misc.decision.
+
+(* Require Export LibHyps.LibHyps. *)
 
 Open Scope string_scope.
 Open Scope char_scope.
@@ -187,22 +193,13 @@ Section EventTranslation.
    *)
 
   (* Joined set of residual events for full programs *)
-  Definition E_mcfg : Type -> Type := (ExternalCallE +' PickE +' UBE +' DebugE +' FailureE) +' (StaticFailE +' DynamicFailE).
+  Definition E_mcfg : Type -> Type := (ExternalCallE +' PickE +' UBE +' DebugE +' FailureE).
   (* Joined set of residual events for cfgs *)
-  Definition E_cfg : Type -> Type := (CallE +' PickE +' UBE +' DebugE +' FailureE) +' (StaticFailE +' DynamicFailE).
-
-  (* We define the translations by injection *)
-  Notation "'with_err_LT'" := (@translate (ExternalCallE +' PickE +' UBE +' DebugE +' FailureE) E_mcfg inl_).
-
-  Notation "'with_err_LB'" := (@translate (CallE +' PickE +' UBE +' DebugE +' FailureE) E_cfg inl_).
-
-  Notation "'with_err_RT'" := (@translate (StaticFailE +' DynamicFailE) E_mcfg inr_).
-
-  Notation "'with_err_RB'" := (@translate (StaticFailE +' DynamicFailE) E_cfg inr_).
+  Definition E_cfg : Type -> Type := (CallE +' PickE +' UBE +' DebugE +' FailureE). 
 
   (* We therefore have the following resulting denotation functions. *)
   (* On the Vellvm side, for [mcfg]: *)
-  Definition semantics_llvm_mcfg p : itree E_mcfg _ := with_err_LT (model_to_L3 DTYPE_Void "main" main_args defined_intrinsics p).
+  Definition semantics_llvm_mcfg p : itree E_mcfg _ := model_to_L3 DTYPE_Void "main" main_args defined_intrinsics p.
   (* Which get lifted to [toplevel_entity] as usual: *)
   Definition semantics_llvm (prog: list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ)))) :=
     semantics_llvm_mcfg (mcfg_of_tle prog).
@@ -252,15 +249,54 @@ Section EventTranslation.
     bk <- trigger (MemLU "denote_FSHCOL" yindex);;
     lift_Derr (mem_to_list "Invalid output memory block" (MInt64asNT.to_nat p.(o)) bk).
 
+  (* TO MOVE *)
+
+  Definition handle_failure: (StaticFailE +' DynamicFailE) ~> failT (itree void1) :=
+    fun _ _ => ret None.
+ 
+  Definition errorT (m : Type -> Type) (a : Type) : Type :=
+    m (unit + a)%type.
+  Global Instance errotT_fun `{Functor.Functor m} : Functor.Functor (errorT m) :=
+    {| Functor.fmap := fun x y f => 
+                         Functor.fmap (fun x => match x with | inl _ => inl () | inr x => inr (f x) end) |}.
+
+  Global Instance errorT_monad `{Monad m} : Monad (errorT m) :=
+    {| ret := fun _ x => ret (inr x);
+       bind := fun _ _ c k =>
+                 bind (m := m) c 
+                      (fun x => match x with | inl _ => ret (inl ()) | inr x => k x end)
+    |}.
+  
+  Global Instance errotT_iter `{Monad m} `{MonadIter m} : MonadIter (errorT m) :=
+    fun A I body i => Basics.iter (M := m) (I := I) (R := unit + A) 
+                               (fun i => bind (m := m)
+                                           (body i)
+                                           (fun x => match x with
+                                                  | inl _       => ret (inr (inl ()))
+                                                  | inr (inl j) => ret (inl j)
+                                                  | inr (inr a) => ret (inr (inr a))
+                                                  end))
+                               i.
+
+  Definition handle_error: (StaticFailE +' DynamicFailE) ~> errorT (itree void1) :=
+    fun _ _ => ret (inl ()).
+  Definition interp_error := interp handle_error.
+
+  Definition inject_signature {E} : void1 ~> E := fun _ (x:void1 _) => match x with end.
+  Hint Unfold inject_signature : core.
+
+  Definition interp_helix {X E} (t : itree Event X) (mem : memoryH) : failT (itree E) (memoryH * X) :=
+    translate inject_signature (interp_fail handle_failure (interp_Mem t mem)).
+
   (* Finally, the semantics of FSHCOL for the top-level equivalence *)
-  Definition semantics_FSHCOL (p: FSHCOLProgram) data : itree E_mcfg (memoryH * list binary64) :=
-    with_err_RT (interp_Mem (denote_FSHCOL p data) memory_empty).
+  Definition semantics_FSHCOL (p: FSHCOLProgram) (data : list binary64)
+    : failT (itree E_mcfg) (memoryH * list binary64) :=
+    interp_helix (denote_FSHCOL p data) memory_empty.
 
 End EventTranslation.
-Notation "'with_err_LT'" := (@translate (ExternalCallE +' PickE +' UBE +' DebugE +' FailureE) E_mcfg inl_).
-Notation "'with_err_LB'" := (@translate (CallE +' PickE +' UBE +' DebugE +' FailureE) E_cfg inl_).
-Notation "'with_err_RT'" := (@translate (StaticFailE +' DynamicFailE) E_mcfg inr_).
-Notation "'with_err_RB'" := (@translate (StaticFailE +' DynamicFailE) E_cfg inr_).
+
+Notation "'with_cfg'"  := (@translate _ E_cfg (fun _ (x:void1 _) => match x with end)).
+Notation "'with_mcfg'" := (@translate _ E_mcfg (fun _ (x:void1 _) => match x with end)).
 Notation "'interp_cfg'"  := (interp_cfg_to_L3 defined_intrinsics).
 Notation "'interp_mcfg'" := (interp_to_L3 defined_intrinsics).
 
@@ -271,6 +307,12 @@ Notation "'interp_mcfg'" := (interp_to_L3 defined_intrinsics).
 Section StateTypes.
 
   Local Open Scope type_scope.
+
+  Definition config_helix := memoryH.
+  Definition config_helix_O := option memoryH.
+
+  Definition config_helix_T (T : Type) := memoryH * T.
+  Definition config_helix_OT (T : Type) := option (memoryH * T).
 
   (* Return state of a denoted and interpreted [cfg].
      Note the lack of local stack *)
@@ -313,81 +355,87 @@ Section StateTypes.
 
 End StateTypes.
 
-(* Facilities to refer to the type of relations used during the simulations of various pieces of denotions we manipulate *)
-(* TODOYZ: Think about those, rename. *)
+(* Facilities to refer to the type of relations used during the simulations
+   of various pieces of denotions we manipulate.
+   In particular, all relations we state assume success on the Helix side, and
+   we will lift systematically these relations to the option type.
+ *)
 Section RelationTypes.
 
-  (** Relation of memory states which must be held for
-      intialization steps *)
-  Definition Rel_cfg: Type
-    := memoryH -> config_cfg -> Prop.
-
-  (** Predicate on cfg *)
-  Definition Pred_cfg: Type
-    := config_cfg -> Prop.
-
-  (** Relation of memory states which must be held for
-      intialization steps *)
-  Definition Rel_mcfg: Type
-    := memoryH -> config_mcfg -> Prop.
-
-  Definition Pred_mcfg: Type
-    := config_mcfg -> Prop.
-
-  (** Type of bisimulation relations between DSHCOL and VIR internal to CFG states,
-      parameterized by the types of the computed values.
+  (** * Relations used for refinements
+      At both the [cfg] and [mcfg] levels, we have relation types:
+      - Relating states
+      - Relating states and values
+      - Relating states and values, and accounting for possible failure on the Helix side.
    *)
-  Definition Rel_cfg_T (TH TV: Type): Type
-    := memoryH * TH -> config_cfg_T TV -> Prop.
-
+  (** Relation on memory states with cfg-level states on the vellvm side *)
+  Definition Rel_cfg : Type := config_helix -> config_cfg -> Prop.
   (** Type of bisimulation relations between DSHCOL and VIR internal to CFG states,
-      parameterized by the types of the computed values.
-   *)
-  Definition Pred_cfg_T (TV: Type): Type
-    := config_cfg_T TV -> Prop.
+      parameterized by the types of the computed values. *)
+  Definition Rel_cfg_T (TH TV: Type): Type := config_helix_T TH -> config_cfg_T TV -> Prop.
+  Definition Rel_cfg_OT (TH TV: Type): Type := config_helix_OT TH -> config_cfg_T TV -> Prop.
 
-  (* Lifting a relation on memory states to one encompassing returned values by ignoring them *)
+  (** Relation on memory states with mcfg-level states on the vellvm side *)
+  Definition Rel_mcfg: Type := config_helix -> config_mcfg -> Prop.
+  (** Type of bisimulation relations between DSHCOL and VIR internal to CFG states,
+      parameterized by the types of the computed values. *)
+  Definition Rel_mcfg_T (TH TV: Type): Type := config_helix_T TH -> config_mcfg_T TV -> Prop.
+  Definition Rel_mcfg_OT (TH TV: Type): Type := config_helix_OT TH -> config_mcfg_T TV -> Prop.
+
+  (** * Predicates  *)
+  (** Predicate on mcfg-level states *)
+  Definition Pred_mcfg: Type := config_mcfg -> Prop.
+  Definition Pred_mcfg_T (TV: Type): Type := config_mcfg_T TV -> Prop.
+  (** Predicate on cfg-level states *)
+  Definition Pred_cfg: Type := config_cfg -> Prop.
+  Definition Pred_cfg_T (TV: Type): Type := config_cfg_T TV -> Prop.
+
+  (** * Liftings of relations
+      Can be lifted to a relation on states and values:
+      - A relation on states
+      - A relation on values
+      - A pure predicate
+      Any relation can be lifted to account for failure on the Helix side by asserting success.
+   *)
+  (* Lifting a relation on states to one on states and values *)
   Definition lift_Rel_cfg (R: Rel_cfg) (TH TV: Type): Rel_cfg_T TH TV :=
     fun '(memH,_) '(memV,(l,(g,_))) => R memH (memV,(l,g)).
-
-  Definition lift_pure_cfg (P : Prop) {TH TV : Type} : Rel_cfg_T TH TV :=
-    fun _ _ => P.
-
-  (* Lifting a relation on results to one encompassing states by ignoring them *)
-  Definition lift_Rel_res_cfg {TH TV: Type} (R: TH -> TV -> Prop): Rel_cfg_T TH TV :=
-    fun '(_,vh) '(_,(_,(_,vv))) => R vh vv.
-
-  (** Type of bisimulation relations between DSHCOL and VIR internal to CFG states,
-      parameterized by the types of the computed values.
-   *)
-  Definition Rel_mcfg_T (TH TV: Type): Type
-    := memoryH * TH -> config_mcfg_T TV -> Prop.
-
   Definition lift_Rel_mcfg (R: Rel_mcfg) (TH TV: Type): Rel_mcfg_T TH TV :=
     fun '(memH,_) '(memV,(l,(g,_))) => R memH (memV,(l,g)).
 
-  Definition lift_pure_mcfg (P : Prop) {TH TV : Type} : Rel_mcfg_T TH TV :=
-    fun _ _ => P.
+  (* Lifting a relation on values to one on states and values *)
+  Definition lift_Rel_res_cfg {TH TV: Type} (R: TH -> TV -> Prop): Rel_cfg_T TH TV :=
+    fun '(_,vh) '(_,(_,(_,vv))) => R vh vv.
+  Definition lift_Rel_res_mcfg {TH TV: Type} (R: TH -> TV -> Prop): Rel_mcfg_T TH TV :=
+    fun '(_,vh) '(_,(_,(_,vv))) => R vh vv.
 
-  Definition Pred_mcfg_T (TV: Type): Type
-    := config_mcfg_T TV -> Prop.
+  (* Lifting pure predicates *)
+  Definition lift_pure_cfg (P : Prop) {TH TV : Type} : Rel_cfg_T TH TV := fun _ _ => P.
+  Definition lift_pure_mcfg (P : Prop) {TH TV : Type} : Rel_mcfg_T TH TV := fun _ _ => P.
+
+  Definition succ_rel_l {A B} (R : A -> B -> Prop) : option A -> B -> Prop :=
+    fun ma b => match ma with | Some a => R a b | _ => False end.
+  Definition succ_cfg {TH TV}: Rel_cfg_T TH TV -> Rel_cfg_OT TH TV := succ_rel_l.
+  Definition succ_mcfg {TH TV}: Rel_mcfg_T TH TV -> Rel_mcfg_OT TH TV := succ_rel_l.
 
   (** Type of bisimulation relation between DSHCOL and LLVM states.
     This relation could be used for fragments of CFG [cfg].
    *)
   Definition Type_R_partial: Type
-    := memoryH * unit -> config_res_cfg -> Prop.
+    := config_helix_T unit -> config_res_cfg -> Prop.
 
   (** Type of bisimulation relation between DSHCOL and LLVM states.
       This relation could be used for "closed" CFG [mcfg].
    *)
   Definition Type_R_full: Type
-    := memoryH * (list binary64) -> config_res_mcfg -> Prop.
+    := config_helix_T (list binary64) -> config_res_mcfg -> Prop.
 
 End RelationTypes.
 Arguments lift_Rel_cfg R {_ _}.
 Arguments lift_pure_cfg /.
 Arguments lift_pure_cfg /.
+Coercion succ_cfg : Rel_cfg_T >-> Rel_cfg_OT.
+Coercion succ_mcfg : Rel_mcfg_T >-> Rel_mcfg_OT.
 
 (* TODOYZ : MOVE *)
 Definition conj_rel {A B : Type} (R S: A -> B -> Prop): A -> B -> Prop :=
@@ -396,7 +444,7 @@ Infix "⩕" := conj_rel (at level 85, right associativity).
 
 (* Introduction pattern useful after [eutt_clo_bind] *)
 Ltac introR :=
-  intros [?memH ?vH] (?memV & ?l & ?g & ?vV) ?PRE.
+  intros [[?memH ?vH] |] (?memV & ?l & ?g & ?vV) ?PRE; [| now inv PRE].
 
 
 (** Long term dream: a cute proof mode in the spirit of Iris
@@ -417,18 +465,20 @@ Module ProofNotations.
   Notation "x ← 'Φ' xs" := (x,Phi _ xs) (at level 10,only printing). 
   Notation "'denote_blocks' '...' id " := (denote_bks _ id) (at level 10,only printing). 
   Notation "'IRS' ctx" := (mkIRState _ _ _ ctx) (only printing, at level 10). 
-  Notation "x" := (with_err_LT x) (only printing, at level 10). 
-  Notation "x" := (with_err_LB x) (only printing, at level 10). 
-  Notation "x" := (with_err_RT x) (only printing, at level 10). 
-  Notation "x" := (with_err_RB x) (only printing, at level 10). 
+  Notation "x" := (with_cfg x) (only printing, at level 10). 
+  Notation "x" := (with_mcfg x) (only printing, at level 10). 
   Notation "⟦ t ⟧ g l m" := (interp_cfg t g l m) (only printing, at level 10).
-  Notation "'CODE' c" := (denote_code c) (only printing, at level 10, format "'CODE' '//' c").
-  Notation "'INSTR' i" := (denote_instr i) (only printing, at level 10, format "'INSTR' '//' i").
+  (* Notation "'CODE' c" := (denote_code c) (only printing, at level 10, format "'CODE' '//' c"). *)
+  Notation "c" := (denote_code c) (only printing, at level 10).
+  (* Notation "'INSTR' i" := (denote_instr i) (only printing, at level 10, format "'INSTR' '//' i"). *)
+  Notation "i" := (denote_instr i) (only printing, at level 10).
   Notation "'ι' x" := (DTYPE_I x) (at level 10,only printing).
   Notation "⋆" := (DTYPE_Pointer) (at level 10,only printing).
   Notation "x" := (convert_typ _ x) (at level 10, only printing).
   Notation "x" := (fmap (typ_to_dtyp _) x) (at level 10, only printing).
-
+  Notation "x" := (translate exp_E_to_instr_E (denote_exp _ x)) (only printing, at level 10). 
+  Notation "⟦ t ⟧ m" := (interp_helix t m) (only printing, at level 10).
+  
   Notation "'ret' τ e" := (TERM_Ret (τ, e)) (at level 10, only printing).
   Notation "'ret' 'void'" := (TERM_Ret_void) (at level 10, only printing).
   Notation "'br' c ',' 'label' e ',' 'label' f" := (TERM_Br c e f) (at level 10, only printing).
@@ -469,9 +519,9 @@ Ltac unfolder_vellvm       := unfold Traversal.Endo_id.
 Ltac unfolder_vellvm_hyp h := unfold Traversal.Endo_id in h.
 Ltac unfolder_vellvm_all   := unfold Traversal.Endo_id in *.
 
-Ltac unfolder_helix       := unfold mem_lookup_err, memory_lookup_err, ErrorWithState.option2errS, lift_Serr, Int64_eq_or_cerr, Z_eq_or_cerr,ErrorWithState.err2errS,Z_eq_or_err, context_lookup, trywith.
-Ltac unfolder_helix_hyp h := unfold mem_lookup_err, memory_lookup_err, ErrorWithState.option2errS, lift_Serr, Int64_eq_or_cerr, Z_eq_or_cerr,ErrorWithState.err2errS,Z_eq_or_err, context_lookup, trywith in h.
-Ltac unfolder_helix_all   := unfold mem_lookup_err, memory_lookup_err, ErrorWithState.option2errS, lift_Serr, Int64_eq_or_cerr, Z_eq_or_cerr,ErrorWithState.err2errS,Z_eq_or_err, context_lookup, trywith in *.
+Ltac unfolder_helix       := unfold mem_lookup_err, memory_lookup_err, ErrorWithState.option2errS, lift_Serr, lift_Derr, Int64_eq_or_cerr, Z_eq_or_cerr,ErrorWithState.err2errS,Z_eq_or_err, context_lookup, trywith.
+Ltac unfolder_helix_hyp h := unfold mem_lookup_err, memory_lookup_err, ErrorWithState.option2errS, lift_Serr, lift_Derr, Int64_eq_or_cerr, Z_eq_or_cerr,ErrorWithState.err2errS,Z_eq_or_err, context_lookup, trywith in h.
+Ltac unfolder_helix_all   := unfold mem_lookup_err, memory_lookup_err, ErrorWithState.option2errS, lift_Serr, lift_Derr, Int64_eq_or_cerr, Z_eq_or_cerr,ErrorWithState.err2errS,Z_eq_or_err, context_lookup, trywith in *.
 
 (**
      Better solution (?): use
@@ -665,7 +715,120 @@ End InterpMem.
 (* We should do all reasoning about [interp_Mem] through these lemmas, let's make it Opaque to be sure that reduction does not mess with it *)
 Global Opaque interp_Mem.
 Global Opaque interp_cfg_to_L3.
+From Coq Require Import
+     Program
+     Setoid
+     Morphisms
+     RelationClasses.
 
+Section InterpHelix.
+
+  (* YZ: as with state, there is this tension between "inlining" the monad transformer
+     in order to rewrite at the itree level, and develop the infrastructure to "properly"
+     work in the transformed monad.
+     With the former style, we pay by systematically exposing what should be handled internally
+     (threading the state, checking on failure).
+     With the latter, we need to be more rigorous with the infrastructure.
+   *)
+
+  (* inlined *)
+  Lemma interp_helix_Ret :
+    forall T E mem x,
+      @interp_helix T E (Ret x) mem ≅ Ret (Some (mem, x)).
+  Proof.
+    intros. 
+    unfold interp_helix.
+    rewrite interp_Mem_ret, interp_fail_Ret, translate_ret.
+    reflexivity.
+  Qed.
+
+  (* proper *)
+  Lemma interp_helix_ret :
+    forall T E mem x,
+      @interp_helix T E (Ret x) mem ≅ ret (m := failT _) (mem, x).
+  Proof.
+    intros. 
+    unfold interp_helix.
+    rewrite interp_Mem_ret, interp_fail_ret.
+    cbn; rewrite translate_ret.
+    reflexivity.
+  Qed.
+
+  Lemma interp_helix_bind :
+    forall T U E mem (t: itree Event T) (k: T -> itree Event U),
+      @interp_helix _ E (ITree.bind t k) mem ≈
+                    ITree.bind (interp_helix t mem)
+                    (fun mx => match mx with | None => ret None | Some x => let '(mem',v) := x in interp_helix (k v) mem' end).
+  Proof.
+    intros; unfold interp_helix.
+    rewrite interp_Mem_bind, interp_fail_bind, translate_bind.
+    eapply eutt_eq_bind; intros [[]|]; cbn.
+    reflexivity.
+    rewrite translate_ret; reflexivity.
+  Qed.
+
+  Lemma interp_helix_bind' :
+    forall T U E mem (t: itree Event T) (k: T -> itree Event U),
+      @interp_helix _ E (ITree.bind t k) mem ≈
+                    bind (interp_helix t mem) (fun '(mem',v) => interp_helix (k v) mem').
+  Proof.
+    intros; unfold interp_helix.
+    cbn.
+    rewrite interp_Mem_bind, interp_fail_bind, translate_bind.
+    eapply eutt_eq_bind; intros [[]|]; cbn.
+    reflexivity.
+    rewrite translate_ret; reflexivity.
+  Qed.
+
+  (* Lemma interp_helix_vis : *)
+  (*   forall T R E mem (e : Event T) (k : T -> itree Event R), *)
+  (*     interp_helix (E := E) (vis e k) mem ≈ *)
+  (*     interp_helix (vis e k) mem.  *)
+  (*     (* ITree.bind ((case_ Mem_handler handle_failure helix_handler MDSHCOLOnFloat64.pure_state) T e mem) *) *)
+  (*                (* (fun sx => Tau (interp_helix (k (snd sx)) (fst sx))). *) *)
+  (* Proof. *)
+  (*   intros.  *)
+  (*   unfold interp_helix. *)
+  (*   rewrite interp_Mem_vis_eqit. *)
+  (*   rewrite interp_fail_bind, translate_bind. *)
+    
+  (*   apply interp_cbn.state_vis. *)
+  (* Qed. *)
+
+  Lemma interp_helix_MemLU :
+    forall {E} str mem m x,
+      memory_lookup mem x ≡ Some m ->
+      interp_helix (E := E) (trigger (MemLU str x)) mem ≈ Ret (Some (mem,m)).
+  Proof.
+    intros * EQ.
+    unfold interp_helix.
+    setoid_rewrite interp_Mem_vis_eqit.
+    cbn*; rewrite EQ; cbn.
+    rewrite Eq.bind_ret_l, tau_eutt.
+    cbn; rewrite interp_Mem_ret, interp_fail_Ret, translate_ret.
+    reflexivity.
+  Qed.
+
+  Lemma interp_helix_MemSet :
+    forall {E} dst blk mem,
+      interp_helix (E := E) (trigger (MemSet dst blk)) mem ≈ Ret (Some (memory_set mem dst blk, tt)).
+  Proof.
+    intros.
+    unfold interp_helix.
+    setoid_rewrite interp_Mem_vis_eqit.
+    cbn. rewrite Eq.bind_ret_l, tau_eutt.
+    cbn; rewrite interp_Mem_ret, interp_fail_Ret, translate_ret.
+    reflexivity.
+  Qed.
+
+  (* Global Instance interp_helix_eutt {X E} {R : X -> X -> Prop} : *)
+  (*   Proper (eutt R ==> eutt (option_rel R)) (@interp_helix X E). *)
+  (* Proof. *)
+  (* Qed. *)
+
+End InterpHelix.
+
+       
 Ltac break_and :=
   repeat match goal with
          | h: _ * _ |- _ => destruct h
@@ -751,9 +914,9 @@ Ltac break_and :=
   Hint Rewrite denote_code_nil : vellvm.
   Hint Rewrite denote_code_singleton : vellvm.
 
-  Hint Rewrite interp_Mem_bind : helix.
-  Hint Rewrite interp_Mem_ret : helix.
-  Hint Rewrite interp_Mem_MemLU : helix.
+  Hint Rewrite interp_helix_bind : helix.
+  Hint Rewrite interp_helix_Ret : helix.
+  Hint Rewrite @interp_helix_MemLU : helix.
 
   Tactic Notation "rauto:R" :=
     repeat (
@@ -778,6 +941,80 @@ Ltac break_and :=
   Tactic Notation "rauto" := (repeat (autorewrite with itree; autorewrite with vellvm; autorewrite with helix)).
   Tactic Notation "rauto" "in" hyp(h) :=
     (repeat (autorewrite with itree in h; autorewrite with vellvm in h; autorewrite with helix in h)).
+
+  (* We derive lemmas specialized to [interp_helix] to reason about [no_failure] and easily derive contradictions *)
+  Section Interp_Helix_No_Failure.
+
+    Lemma no_failure_helix_Ret : forall E X x m,
+      no_failure (interp_helix (X := X) (E := E) (Ret x) m).
+    Proof.
+      intros.
+      rewrite interp_helix_ret. apply eutt_Ret; intros abs; inv abs.
+    Qed.
+
+    Lemma failure_helix_throw : forall E X s m,
+        ~ no_failure (interp_helix (X := X) (E := E) (throw s) m).
+    Proof.
+      intros * abs.
+      unfold Exception.throw in *.
+      unfold interp_helix in *.
+      setoid_rewrite interp_Mem_vis_eqit in abs.
+      unfold pure_state in *; cbn in *.
+      rewrite interp_fail_bind in abs.
+      rewrite interp_fail_vis in abs.
+      cbn in *.
+      rewrite Eq.bind_bind, !bind_ret_l in abs.
+      rewrite translate_ret in abs.
+      eapply eutt_Ret in abs.
+      apply abs; auto.
+    Qed.
+
+    Lemma failure_helix_throw' : forall E Y X s (k : Y -> _) m,
+        ~ no_failure (interp_helix (X := X) (E := E) (ITree.bind (throw s) k) m).
+    Proof.
+      intros * abs.
+      rewrite interp_helix_bind in abs.
+      eapply no_failure_bind_prefix, failure_helix_throw in abs; auto.
+    Qed.
+
+    Lemma no_failure_helix_bind_prefix : forall {E X Y} (t : itree _ X) (k : X -> itree _ Y) m,
+        no_failure (interp_helix (E := E) (ITree.bind t k) m) ->
+        no_failure (interp_helix (E := E) t m).
+    Proof.
+      intros * NOFAIL.
+      rewrite interp_helix_bind in NOFAIL.
+      eapply no_failure_bind_prefix; eapply NOFAIL.
+    Qed.
+
+    Lemma no_failure_helix_bind_continuation : forall {E X Y} (t : itree _ X) (k : X -> itree _ Y) m,
+        no_failure (interp_helix (E := E) (ITree.bind t k) m) ->
+        forall u m', Returns (E := E) (Some (m',u)) (interp_helix t m) -> 
+                no_failure (interp_helix (E := E) (k u) m').
+    Proof.
+      intros * NOFAIL * ISRET.
+      rewrite interp_helix_bind in NOFAIL.
+      eapply no_failure_bind_cont in NOFAIL; eauto.
+      apply NOFAIL.
+    Qed.
+
+    Lemma no_failure_Ret: forall {E X Y} (v : X) (k : X -> itree Event Y) m,
+        no_failure (E := E) (interp_helix (ITree.bind (Ret v) k) m) -> no_failure (E := E) (interp_helix (k v) m) .
+    Proof.
+      intros * NOFAIL.
+      rewrite interp_helix_bind, interp_helix_Ret, bind_ret_l in NOFAIL; assumption.
+    Qed.
+ 
+  End Interp_Helix_No_Failure.
+  
+  Opaque interp_helix.
+
+  Hint Resolve no_failure_helix_Ret : core.
+  Hint Resolve no_failure_helix_bind_prefix : core.
+  Hint Extern 4 (no_failure _) =>
+  (match goal with
+   | h : no_failure (interp_helix (ITree.bind _ _) _) |- _ =>
+     eapply no_failure_helix_bind_continuation in h
+   end) : core.
 
   Remove Hints
         abstract_algebra.AbGroup

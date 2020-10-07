@@ -82,13 +82,6 @@ Ltac abs_by_WF :=
     | Some (?id,?τ) =>
       match rhs' with
       | None => fail
-                 (*
-        let LUP    := fresh "LUP" in
-        let val    := fresh "val" in
-        let CONTRA := fresh "CONTRA" in
-        epose proof (context_lookup_succeeds _ _ _ h) as (val & LUP & CONTRA);
-        rewrite h' in CONTRA;
-        discriminate CONTRA *)
       | Some ?val =>
         let WF := fresh "WF" in
         assert (WF : WF_IRState σ s) by eauto;
@@ -97,7 +90,6 @@ Ltac abs_by_WF :=
     | None =>
       match rhs' with
       | None => fail
-        (* exfalso; eapply WF_IRState_lookup_cannot_fail_st; now eauto *)
       | Some ?val => fail
       end
     end
@@ -111,6 +103,9 @@ Ltac abs_by_WF :=
       now (let EQ := fresh in destruct h as [EQ | [EQ | [? EQ]]]; inv EQ)
     end
    end.
+
+Ltac try_abs :=
+  try (abs_by_WF || abs_by failure_helix_throw || abs_by failure_helix_throw').
 
 Section SimulationRelations.
 
@@ -190,8 +185,8 @@ Section SimulationRelations.
       exists ptr, Maps.lookup id g ≡ Some (DVALUE_Addr ptr) /\
              read memV ptr (typ_to_dtyp [] t) ≡ inr (dvalue_to_uvalue (DVALUE_I64 n)).
   Proof.
-    intros * INV NTH LU; cbn* in *.
-    eapply INV in LU; clear INV; eauto.
+    intros * MEM_INV NTH LU; cbn* in *.
+    eapply MEM_INV in LU; clear MEM_INV; eauto.
     destruct LU as (ptr & τ & EQ & LU & READ); inv EQ.
     exists ptr; split; auto.
     cbn in *.
@@ -205,8 +200,8 @@ Section SimulationRelations.
       nth_error σ v ≡ Some (DSHnatVal n) ->
       Maps.lookup id l ≡ Some (UVALUE_I64 n).
   Proof.
-    intros * INV NTH LU; cbn* in *.
-    eapply INV in LU; clear INV; eauto.
+    intros * MEM_INV NTH LU; cbn* in *.
+    eapply MEM_INV in LU; clear MEM_INV; eauto.
     unfold in_local_or_global_scalar, dvalue_of_int in LU.
     rewrite repr_intval in LU; auto.
   Qed.
@@ -220,8 +215,8 @@ Section SimulationRelations.
       nth_error σ v ≡ Some (DSHCTypeVal f) ->
       Maps.lookup id l ≡ Some (UVALUE_Double f).
   Proof.
-    intros * INV NTH LU; cbn* in *.
-    eapply INV in LU; clear INV; eauto.
+    intros * MEM_INV NTH LU; cbn* in *.
+    eapply MEM_INV in LU; clear MEM_INV; eauto.
     unfold in_local_or_global_scalar, dvalue_of_int in LU.
     cbn in LU; auto.
   Qed.
@@ -234,8 +229,8 @@ Section SimulationRelations.
       exists ptr, Maps.lookup id g ≡ Some (DVALUE_Addr ptr) /\
              read memV ptr (typ_to_dtyp [] t) ≡ inr (dvalue_to_uvalue (DVALUE_Double f)).
   Proof.
-    intros * INV NTH LU; cbn* in *.
-    eapply INV in LU; clear INV; eauto.
+    intros * MEM_INV NTH LU; cbn* in *.
+    eapply MEM_INV in LU; clear MEM_INV; eauto.
     destruct LU as (ptr & τ & EQ & LU & READ); inv EQ.
     exists ptr; split; auto.
   Qed.
@@ -252,8 +247,8 @@ Section SimulationRelations.
         /\ (forall (i : Memory.NM.key) (v : binary64),
               mem_lookup i bk_h ≡ Some v -> get_array_cell memV ptr_v i DTYPE_Double ≡ inr (UVALUE_Double v)).
   Proof.
-    intros * INV NTH LU; cbn* in *.
-    eapply INV in LU; clear INV; eauto.
+    intros * MEM_INV NTH LU; cbn* in *.
+    eapply MEM_INV in LU; clear MEM_INV; eauto.
     auto.
   Qed.
 
@@ -311,8 +306,8 @@ Section SimulationRelations.
   (** An invariant which must hold after initialization stage *)
   Record post_init_invariant (fnname:string) (σ : evalContext) (s : IRState) (memH : memoryH) (configV : config_cfg) : Prop :=
     {
-    state_inv:  state_invariant σ s memH configV;
-    decl_inv: declarations_invariant fnname configV
+    state_inv: state_invariant σ s memH configV;
+    decl_inv:  declarations_invariant fnname configV
     }.
 
   (**
@@ -371,7 +366,7 @@ Section Ext_Local.
       To this end, we rely on the fact that this code does not alter the configuration
       except to extend it with fresh bindings.
    *)
-  Definition ext_local {R S}: memoryH -> config_cfg -> Rel_cfg_T R S :=
+  Definition ext_local {R S}: config_helix -> config_cfg -> Rel_cfg_T R S :=
     fun mh '(mi,(li,gi)) '(mh',_) '(m,(l,(g,_))) => mh ≡ mh' /\ mi ≡ m /\ gi ≡ g /\ li ⊑ l.
 
  Lemma in_local_or_global_scalar_ext_local :
@@ -400,13 +395,13 @@ Section Ext_Local.
       ρ1 ⊑ ρ2 ->
       memory_invariant σ s memH (memV, (ρ2, g)).
   Proof.
-    intros * INV MONO.
+    intros * MEM_INV MONO.
     red; intros * NTH NTH'.
-    specialize (INV _ _ _ _ NTH NTH').
+    specialize (MEM_INV _ _ _ _ NTH NTH').
     destruct v; eauto.
     eapply in_local_or_global_scalar_ext_local; eauto.
     eapply in_local_or_global_scalar_ext_local; eauto.
-    repeat destruct INV as (? & INV).
+    repeat destruct MEM_INV as (? & MEM_INV).
     do 3 eexists; splits; eauto.
     eapply in_local_or_global_addr_ext_local; eauto.
   Qed.
@@ -532,12 +527,12 @@ Lemma state_invariant_add_fresh :
     state_invariant σ s memH (memV, (l, g)) ->
     state_invariant σ s' memH (memV, (alist_add id v l, g)).
 Proof.
-  intros * INC [MEM WF FRESH].
+  intros * INC [MEM_INV WF FRESH].
   split.
   - red; intros * LUH LUV.
     erewrite incLocal_Γ in LUV; eauto.
     generalize LUV; intros INLG;
-      eapply MEM in INLG; eauto.
+      eapply MEM_INV in INLG; eauto.
     break_match.
     + subst.
       eapply in_local_or_global_scalar_add_fresh_old; eauto.
@@ -555,7 +550,7 @@ Proof.
       eapply concrete_fresh_fresh; eauto.
   - unfold WF_IRState; erewrite incLocal_Γ; eauto; apply WF.
   - intros ? ? ? LU INEQ.
-    clear MEM WF.
+    clear MEM_INV WF.
     destruct (rel_dec_p id0 id); [subst |];
       destruct s; cbn in INC; inv_sum; cbn in *.
     + intros abs.
@@ -594,12 +589,12 @@ Lemma state_invariant_incVoid :
     state_invariant σ s memH stV ->
     state_invariant σ s' memH stV.
 Proof.
-  intros * INC [MEM WF FRESH].
+  intros * INC [MEM_INV WF FRESH].
   split.
   - red; repeat break_let; intros * LUH LUV.
     erewrite incVoid_Γ in LUV; eauto.
     generalize LUV; intros INLG;
-      eapply MEM in INLG; eauto.
+      eapply MEM_INV in INLG; eauto.
   - unfold WF_IRState; erewrite incVoid_Γ; eauto; apply WF.
   - red; repeat break_let; erewrite incVoid_local_count; eauto.
 Qed.
@@ -617,15 +612,15 @@ Lemma state_invariant_incLocal :
     state_invariant σ s memH stV ->
     state_invariant σ s' memH stV.
 Proof.
-  intros * INC [MEM WF FRESH].
+  intros * INC [MEM_INV WF FRESH].
   split.
   - red; repeat break_let; intros * LUH LUV.
     erewrite incLocal_Γ in LUV; eauto.
     generalize LUV; intros INLG;
-      eapply MEM in INLG; eauto.
+      eapply MEM_INV in INLG; eauto.
   - unfold WF_IRState; erewrite incLocal_Γ; eauto; apply WF.
   - red; repeat break_let; intros ? ? ? LU INEQ.
-    clear MEM WF.
+    clear MEM_INV WF.
     erewrite incLocal_local_count in INEQ; eauto.
     eapply FRESH; eauto with arith.
 Qed.
@@ -660,12 +655,12 @@ Lemma state_invariant_incBlockNamed :
     state_invariant σ s memH stV ->
     state_invariant σ s' memH stV.
 Proof.
-  intros * INC [MEM WF FRESH].
+  intros * INC [MEM_INV WF FRESH].
   split.
   - red; repeat break_let; intros * LUH LUV.
     erewrite incBlockNamed_Γ in LUV; eauto.
     generalize LUV; intros INLG;
-      eapply MEM in INLG; eauto.
+      eapply MEM_INV in INLG; eauto.
   - unfold WF_IRState; erewrite incBlockNamed_Γ; eauto; apply WF.
   - red; repeat break_let; erewrite incBlockNamed_local_count; eauto.
 Qed.

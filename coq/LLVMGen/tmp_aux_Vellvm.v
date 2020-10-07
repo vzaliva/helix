@@ -36,42 +36,6 @@ Import BinInt.
 Import ListNotations.
 Import ITree.Basics.Basics.Monads.
 
-Section Translations.
-
-  (** TODOYZ : MOVE (Vellvm)  *)
-  (* Technicality: translations by [lookup_E_to_exp_E] and [exp_E_to_instr_E] leave these events unphased *)
-  Lemma lookup_E_to_exp_E_Global : forall {X} (e : LLVMGEnvE X),
-      lookup_E_to_exp_E (subevent X e) = subevent X e.
-  Proof.
-    reflexivity.
-  Qed.
-
-  Lemma exp_E_to_instr_E_Global : forall {X} (e : LLVMGEnvE X),
-      exp_E_to_instr_E (subevent X e) = subevent X e.
-  Proof.
-    reflexivity.
-  Qed.
-
-  Lemma lookup_E_to_exp_E_Local : forall {X} (e : LLVMEnvE X),
-      lookup_E_to_exp_E (subevent X e) = subevent X e.
-  Proof.
-    reflexivity.
-  Qed.
-
-  Lemma exp_E_to_instr_E_Local : forall {X} (e : LLVMEnvE X),
-      exp_E_to_instr_E (subevent X e) = subevent X e.
-  Proof.
-    reflexivity.
-  Qed.
-
-  Lemma exp_E_to_instr_E_Memory : forall {X} (e : MemoryE X),
-      exp_E_to_instr_E (subevent X e) = subevent X e.
-  Proof.
-    reflexivity.
-  Qed.
-  
-End Translations.
-
 From Vellvm Require Import Util.
 Require Import State.
 
@@ -126,47 +90,6 @@ Section ValuePred.
     end.
 
 End ValuePred.
-
-(** ** Event elimination
-    This is a pure [itree] feature.
-
-    We want to be able to express that a computation does not contain a particular event,
-    and eliminate it safely from the signature if that is so.
- *)
-From Paco Require Import paco.
-Section ElimEvent.
-
-  (* Since we cannot test equality of event, I rely on the exact order for now.
-     As usual, the generalization of subevent may help with that?
-   *)
-
-  Definition helim_l {E F}: E +' F ~> itree F :=
-    fun _ e => match e with
-            | inl1 _ => ITree.spin
-            | inr1 e => trigger e
-            end.
-
-  Definition helim_r {E F}: E +' F ~> itree E :=
-    fun _ e => match e with
-            | inr1 _ => ITree.spin
-            | inl1 e => trigger e
-            end.
-
-  Definition elim_l {E F}: itree (E +' F) ~> itree F := interp helim_l. 
-  Definition elim_r {E F}: itree (E +' F) ~> itree E := interp helim_r. 
-
-  Variant no_left_eventF {E F X} (R: itree (E +' F) X -> Prop): itree (E +' F) X -> Prop :=
-  | no_left_event_ret: forall (x: X), no_left_eventF R (ret x)
-  | no_left_event_tau: forall t, R t -> no_left_eventF R (Tau t)
-  | no_left_event_vis: forall {Y} (e: F Y) k, (forall x, R (k x)) -> no_left_eventF R (Vis (inr1 e) k).
-
-  Definition no_left_event {E F X} := paco1 (@no_left_eventF E F X) bot1. 
-
-  (* Lemma safe_helim_l: *)
-  (*   forall {E F X} (t: itree (E +' F) X) (NOL: no_left_event t) (h: E ~> itree F), *)
-  (*     elim_l _ t ≈  interp (case_ h ((fun _ e => trigger e): Handler F F)) t. *)
-
-End ElimEvent.
 
 Section TLE_To_Modul.
 
@@ -686,18 +609,6 @@ Proof.
   rewrite IH; reflexivity.
 Qed.
 
-(* TODO YZ : Move to itrees *)
-(* Specialization of [eutt_clo_bind] to the case where the intermediate predicate introduced is the same as the current one *)
-Lemma eutt_bind_inv :
-  forall (E : Type -> Type) (R1 R2 : Type) (RR : R1 -> R2 -> Prop) (t1 : itree E R1) (t2 : itree E R2)
-    (k1 : R1 -> itree E R1) (k2 : R2 -> itree E R2),
-    eutt RR t1 t2 -> 
-    (forall (r1 : R1) (r2 : R2), RR r1 r2 -> eutt RR (k1 r1) (k2 r2)) ->
-    eutt RR (ITree.bind t1 (fun x : R1 => k1 x)) (ITree.bind t2 (fun x : R2 => k2 x)).
-Proof.
-  intros; apply eutt_clo_bind with (UU := RR); auto.
-Qed.
-
 (* TODO YZ : move to Vellvm *)
 Ltac simpl_match_hyp h :=
   match type of h with
@@ -818,4 +729,21 @@ Proof.
   rewrite typ_to_dtyp_D.
   reflexivity.
 Qed.
+
+From Paco Require Import paco.
+Lemma eutt_mon {E R1 R2} (RR RR' : R1 -> R2 -> Prop)
+      (LERR: RR <2= RR') :
+  @eutt E R1 R2 RR <2= eutt RR'.
+Proof.
+  eapply eqit_mon; eauto.
+Qed.
+
+Ltac inv_eqs :=
+  repeat 
+    match goal with
+    | h : ?x = ?x |- _ => clear h
+    | h : _ = ?x |- _ => subst x
+    | h : ?x = ?x /\ _ |- _ => destruct h as [_ ?]
+    | h : _ = _ /\ _ |- _ => (destruct h as [<- ?] || destruct h as [?EQ ?])
+    end.
 

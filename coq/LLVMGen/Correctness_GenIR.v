@@ -2,28 +2,14 @@ Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.Correctness_NExpr.
 Require Import Helix.LLVMGen.Correctness_MExpr.
+Require Import Helix.LLVMGen.IdLemmas.
+Require Import Helix.LLVMGen.StateCounters.
+Require Import Helix.LLVMGen.VariableBinding.
 
 Import ListNotations.
 
 Set Implicit Arguments.
 Set Strict Implicit.
-
-Lemma resolve_PVar_simple : forall p s s' x v,
-    resolve_PVar p s ≡ inr (s', (x, v)) ->
-    exists sz n,
-      nth_error (Γ s') n ≡ Some (x, TYPE_Pointer (TYPE_Array sz TYPE_Double)) /\
-      MInt64asNT.from_Z sz ≡ inr v /\ p ≡ PVar n /\ s ≡ s'.
-Proof.
-  intros * H.
-  unfold resolve_PVar in H.
-  cbn* in H.
-  simp.
-  do 2 eexists; eauto.
-Qed.
-
-Ltac inv_resolve_PVar H :=
-  apply resolve_PVar_simple in H;
-  destruct H as (?sz & ?n & ?LUn & ?EQsz & -> & <-).
 
 Global Opaque resolve_PVar.
 
@@ -38,13 +24,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     | (m,(l,(g,res))) => exists from, res ≡ inl (from, to)
     end.
 
-  Definition mh_rel (eval_mh : memoryH) (mh : memoryH * ()) (c : config_cfg_T (block_id * block_id + uvalue)) : Prop :=
-    match mh with
-    | (mh, tt) => eval_mh ≡ mh
-    end.
-  
-  Definition GenIR_Rel σ Γ eval_mh to : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
-    lift_Rel_cfg (state_invariant σ Γ) ⩕ branches to ⩕ mh_rel eval_mh.
+  Definition GenIR_Rel σ Γ to : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
+    lift_Rel_cfg (state_invariant σ Γ) ⩕ branches to. 
 
 
   Hint Resolve state_invariant_incBlockNamed : state_invariant.
@@ -71,40 +52,40 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   Tactic Notation "state_inv_auto" := eauto with state_invariant.
 
   Lemma GenIR_incBlockedNamed :
-    forall σ s1 s2 emh memH memV ρ g to bid_from bid_in msg b,
+    forall σ s1 s2 memH memV ρ g to bid_from bid_in msg b,
       incBlockNamed msg s1 ≡ inr (s2, b) ->
-      GenIR_Rel σ s1 emh to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))) ->
-      GenIR_Rel σ s2 emh to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))).
+      GenIR_Rel σ s1 to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))) ->
+      GenIR_Rel σ s2 to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))).
   Proof.
     intros * INC [STATE BRANCH].
     split; cbn; state_inv_auto.
   Qed.
 
   Lemma GenIR_incLocal :
-    forall σ s1 s2 emh memH memV ρ g to bid_from bid_in b,
+    forall σ s1 s2 memH memV ρ g to bid_from bid_in b,
       incLocal s1 ≡ inr (s2, b) ->
-      GenIR_Rel σ s1 emh to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))) ->
-      GenIR_Rel σ s2 emh to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))).
+      GenIR_Rel σ s1 to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))) ->
+      GenIR_Rel σ s2 to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))).
   Proof.
     intros * INC [STATE BRANCH].
     split; cbn; state_inv_auto.
   Qed.
 
   Lemma GenIR_incVoid :
-    forall σ s1 s2 emh memH memV ρ g to bid_from bid_in x,
+    forall σ s1 s2 memH memV ρ g to bid_from bid_in x,
       incVoid s1 ≡ inr (s2, x) ->
-      GenIR_Rel σ s1 emh to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))) ->
-      GenIR_Rel σ s2 emh to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))).
+      GenIR_Rel σ s1 to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))) ->
+      GenIR_Rel σ s2 to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))).
   Proof.
     intros * INC [STATE BRANCH].
     split; cbn; state_inv_auto.
   Qed.
 
   Lemma GenIR_genNExpr :
-    forall σ s1 s2 emh memH memV ρ g to bid_from bid_in e c exp,
+    forall σ s1 s2 memH memV ρ g to bid_from bid_in e c exp,
       genNExpr exp s1 ≡ inr (s2, (e, c)) ->
-      GenIR_Rel σ s1 emh to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))) ->
-      GenIR_Rel σ s2 emh to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))).
+      GenIR_Rel σ s1 to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))) ->
+      GenIR_Rel σ s2 to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))).
   Proof.
     intros * INC [STATE BRANCH].
     split; cbn; state_inv_auto.
@@ -116,17 +97,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   Hint Resolve GenIR_genNExpr : GenIR_Rel.
 
   Tactic Notation "gen_ir_rel_auto" := eauto with GenIR_Rel.
-
-  Lemma resolve_PVar_state :
-    forall p s1 s2 x,
-      resolve_PVar p s1 ≡ inr (s2, x) ->
-      s1 ≡ s2.
-  Proof.
-    intros p s1 s2 [x v] H.
-    pose proof resolve_PVar_simple p s1 H as H0.
-    destruct H0 as (sz & n & H0).
-    intuition.
-  Qed.
 
   (* TODO: Move this, and remove Transparent / Opaque *)
   Lemma incLocal_unfold :
@@ -167,32 +137,32 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   Qed.
 
   Lemma GenIR_Rel_S_local_count :
-    forall σ s emh memH memV ρ g to bid_from bid_in,
-      GenIR_Rel σ s emh to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))) ->
-      GenIR_Rel σ {| block_count := block_count s; local_count := S (local_count s); void_count := void_count s; Γ := Γ s |} emh to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))).
+    forall σ s memH memV ρ g to bid_from bid_in,
+      GenIR_Rel σ s to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))) ->
+      GenIR_Rel σ {| block_count := block_count s; local_count := S (local_count s); void_count := void_count s; Γ := Γ s |} to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))).
   Proof.
-    intros σ s emh memH memV ρ g to bid_from bid_in GEN.
+    intros σ s memH memV ρ g to bid_from bid_in GEN.
     eapply GenIR_incLocal in GEN; eauto.
     apply incLocal_unfold.
   Qed.
 
   Lemma GenIR_Rel_S_void_count :
-    forall σ s emh memH memV ρ g to bid_from bid_in,
-      GenIR_Rel σ s emh to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))) ->
-      GenIR_Rel σ {| block_count := block_count s; local_count := local_count s; void_count := S (void_count s); Γ := Γ s |} emh to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))).
+    forall σ s memH memV ρ g to bid_from bid_in,
+      GenIR_Rel σ s to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))) ->
+      GenIR_Rel σ {| block_count := block_count s; local_count := local_count s; void_count := S (void_count s); Γ := Γ s |} to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))).
   Proof.
-    intros σ s emh memH memV ρ g to bid_from bid_in GEN.
+    intros σ s memH memV ρ g to bid_from bid_in GEN.
     eapply GenIR_incVoid in GEN; eauto.
     apply incVoid_unfold.
   Qed.
 
   Lemma GenIR_Rel_monotone :
-    forall σ s emh memH memV ρ g to bid_from bid_in bc lc vc,
+    forall σ s memH memV ρ g to bid_from bid_in bc lc vc,
       lc ≥ local_count s ->
-      GenIR_Rel σ s emh to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))) ->
-      GenIR_Rel σ {| block_count := bc; local_count := lc; void_count := vc; Γ := Γ s |} emh to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))).
+      GenIR_Rel σ s to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))) ->
+      GenIR_Rel σ {| block_count := bc; local_count := lc; void_count := vc; Γ := Γ s |} to (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))).
   Proof.
-    intros σ s emh memH memV ρ g to bid_from bid_in bc lc vc LC [STATE BRANCH].
+    intros σ s memH memV ρ g to bid_from bid_in bc lc vc LC [STATE BRANCH].
     split; cbn in *; auto.
     apply Build_state_invariant;
       try eapply STATE; eauto.
@@ -346,8 +316,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
               genAExpr ?a s1 ≡ inr _ → local_count s2 ≥ local_count s1,
       GEN : genAExpr ?a _ ≡ inr _ |- _ =>
     apply IH in GEN
-    end;
-      try lia.
+    end; try lia.
   Qed.
 
   Lemma genIR_local_count :
@@ -387,7 +356,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
              GEN: genIR ?op _ _ ≡ inr _ |- _ =>
              apply IH in GEN
            end; cbn in *);
-      try lia.
+           try lia.
   Qed.
 
   Ltac solve_gen_ir_rel :=
@@ -494,11 +463,11 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   (* Qed. *)
 
   Lemma genIR_GenIR_Rel:
-    ∀ (op : DSHOperator) (s1 s2 : IRState) (σ : evalContext) (emh memH : memoryH) (nextblock bid_in bid_from b : block_id) (g : global_env)
+    ∀ (op : DSHOperator) (s1 s2 : IRState) (σ : evalContext) (memH : memoryH) (nextblock bid_in bid_from b : block_id) (g : global_env)
       (ρ : local_env) (memV : memoryV) (bk_op : list (LLVMAst.block typ)),
       genIR op nextblock s1 ≡ inr (s2, (b, bk_op)) →
-      GenIR_Rel σ s1 emh nextblock (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))) ->
-      GenIR_Rel σ s2 emh nextblock (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))).
+      GenIR_Rel σ s1 nextblock (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))) ->
+      GenIR_Rel σ s2 nextblock (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))).
   Proof.
     (* Admitted for speed right now *)
   Admitted.
@@ -600,782 +569,12 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     intros bk comments bids.
   Admitted.
 
-
-  (* Stuff about block ids *)
-
-  Definition not_ends_with_nat (str : string) : Prop
-    := forall pre n, str ≢ pre @@ string_of_nat n.
-
-  Lemma not_ends_with_nat_string_of_nat :
-    forall s1 s2 n k,
-      not_ends_with_nat s1 ->
-      not_ends_with_nat s2 ->
-      (s1 @@ string_of_nat n ≡ s2 @@ string_of_nat k <-> n ≡ k /\ s1 ≡ s2).
-  Proof.
-    intros s1 s2 n k NS1 NS2.
-    split.
-    { admit.
-    }
-
-    {
-      intros [NK S1S2].
-      subst.
-      auto.
-    }
-  Admitted.
-
-  Lemma not_ends_with_nat_neq :
-    forall s1 s2 n k,
-      not_ends_with_nat s1 ->
-      not_ends_with_nat s2 ->
-      n ≢ k ->
-      s1 @@ string_of_nat n ≢ s2 @@ string_of_nat k.
-  Proof.
-    intros s1 s2 n k NS1 NS2 NK.
-    epose proof (not_ends_with_nat_string_of_nat n k NS1 NS2) as [CONTRA _].
-    intros H.
-    apply CONTRA in H as [NK_EQ _].
-    contradiction.
-  Qed.
-
-  Lemma not_ends_with_nat_nop :
-    not_ends_with_nat "Nop".
-  Proof.
-  Admitted.
-
-  Lemma not_ends_with_nat_assign :
-    not_ends_with_nat "Assign".
-  Proof.
-  Admitted.
-
-  Lemma not_ends_with_nat_imap_entry :
-    not_ends_with_nat ("IMap" @@ "_entry").
-  Proof.
-  Admitted.
-
-  Lemma not_ends_with_nat_imap_loop :
-    not_ends_with_nat ("IMap" @@ "_loop").
-  Proof.
-  Admitted.
-
-  Lemma not_ends_with_nat_imap_lcont :
-    not_ends_with_nat ("IMap_lcont").
-  Proof.
-  Admitted.
-
-  Lemma not_ends_with_nat_binop_entry :
-    not_ends_with_nat ("BinOp" @@ "_entry").
-  Proof.
-  Admitted.
-
-  Lemma not_ends_with_nat_binop_loop :
-    not_ends_with_nat ("BinOp" @@ "_loop").
-  Proof.
-  Admitted.
-
-  (* TODO: This is obviously not true, but I want to discharge all
-     these goals that this *should* be true for *)
-  Lemma not_ends_with_nat_all :
-    forall pre,
-    not_ends_with_nat pre.
-  Proof.
-  Admitted.
-
-  Hint Resolve not_ends_with_nat_nop : NOT_ENDS_WITH.
-  Hint Resolve not_ends_with_nat_assign : NOT_ENDS_WITH.
-  Hint Resolve not_ends_with_nat_imap_entry : NOT_ENDS_WITH.
-  Hint Resolve not_ends_with_nat_imap_loop : NOT_ENDS_WITH.
-  Hint Resolve not_ends_with_nat_imap_lcont : NOT_ENDS_WITH.
-  Hint Resolve not_ends_with_nat_binop_entry : NOT_ENDS_WITH.
-  Hint Resolve not_ends_with_nat_binop_loop : NOT_ENDS_WITH.
-  Hint Resolve not_ends_with_nat_all : NOT_ENDS_WITH.
-
-  Ltac solve_not_ends_with := eauto with NOT_ENDS_WITH.
-
-  (* Block id has been generated by an earlier IRState *)
-  Definition bid_bound (s : IRState) (bid: block_id) : Prop
-    := exists name s' s'', not_ends_with_nat name /\ (block_count s' < block_count s)%nat /\ inr (s'', bid) ≡ incBlockNamed name s'.
-
-  (* If an id has been bound between two states.
-
-     The primary use for this is in lemmas like, bid_bound_fresh,
-     which let us know that since a id was bound between two states,
-     it can not possibly collide with an id from an earlier state.
-   *)
-  Definition bid_bound_between (s1 s2 : IRState) (bid : block_id) : Prop
-    := exists name s' s'', not_ends_with_nat name /\ (block_count s' < block_count s2)%nat /\ block_count s' ≥ block_count s1 /\ inr (s'', bid) ≡ incBlockNamed name s'.
-
-  (* TODO: Move this and fix up this Transparent *)
-  Transparent incBlockNamed.
-  Lemma bid_bound_fresh :
-    forall (s1 s2 : IRState) (bid bid' : block_id),
-      bid_bound s1 bid ->
-      bid_bound_between s1 s2 bid' ->
-      bid ≢ bid'.
-  Proof.
-    intros s1 s2 bid bid' BOUND BETWEEN.
-    destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
-    destruct BETWEEN as (n2 & sm' & sm'' & N_S2 & COUNT_Sm_ge & COUNT_Sm_lt & GEN_bid').
-
-    inversion GEN_bid.
-    destruct s1'. cbn in *.
-
-    inversion GEN_bid'.
-    intros H.
-    apply Name_inj in H.
-    match goal with
-    | H : ?s1 @@ string_of_nat ?n ≡ ?s2 @@ string_of_nat ?k,
-      NS1 : not_ends_with_nat ?s1,
-      NS2 : not_ends_with_nat ?s2
-      |- _ =>
-      eapply (@not_ends_with_nat_neq s1 s2 n k NS1 NS2); eauto
-    end.
-
-    lia.
-  Qed.
-  Opaque incBlockNamed.
-
-  Lemma bid_bound_fresh' :
-    forall (s1 s2 s3 : IRState) (bid bid' : block_id),
-      bid_bound s1 bid ->
-      (block_count s1 <= block_count s2)%nat ->
-      bid_bound_between s2 s3 bid' ->
-      bid ≢ bid'.
-  Proof.
-    intros s1 s2 s3 bid bid' BOUND COUNT BETWEEN.
-    destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
-    destruct BETWEEN as (n2 & sm' & sm'' & N_S2 & COUNT_Sm_ge & COUNT_Sm_lt & GEN_bid').
-
-    inversion GEN_bid.
-    destruct s1'. cbn in *.
-
-    inversion GEN_bid'.
-    intros H.
-    apply Name_inj in H.
-    match goal with
-    | H : ?s1 @@ string_of_nat ?n ≡ ?s2 @@ string_of_nat ?k,
-          NS1 : not_ends_with_nat ?s1,
-                NS2 : not_ends_with_nat ?s2
-      |- _ =>
-      eapply (@not_ends_with_nat_neq s1 s2 n k NS1 NS2); eauto
-    end.
-
-    cbn.
-    lia.
-  Qed.
-
-  Lemma bid_bound_bound_between :
-    forall (s1 s2 : IRState) (bid : block_id),
-      bid_bound s2 bid ->
-      ~(bid_bound s1 bid) ->
-      bid_bound_between s1 s2 bid.
-  Proof.
-    intros s1 s2 bid BOUND NOTBOUND.
-    destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
-    unfold bid_bound_between.
-    exists n1. exists s1'. exists s1''.
-    repeat (split; auto).
-    pose proof (NatUtil.lt_ge_dec (block_count s1') (block_count s1)) as [LT | GE].
-    - (* If this is the case, I must have a contradiction, which would mean that
-         bid_bound s1 bid... *)
-      assert (bid_bound s1 bid).
-      unfold bid_bound.
-      exists n1. exists s1'. exists s1''.
-      auto.
-      contradiction.
-    - auto.
-  Qed.
-
-  Lemma bid_bound_incBlockNamed_mono :
-    forall name s1 s2 bid bid',
-      bid_bound s1 bid ->
-      incBlockNamed name s1 ≡ inr (s2, bid') ->
-      bid_bound s2 bid.
-  Proof.
-    intros name s1 s2 bid bid' BOUND INC.
-    destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
-    unfold bid_bound.
-    exists n1. exists s1'. exists s1''.
-    intuition.
-    apply incBlockNamed_block_count in INC.
-    lia.
-  Qed.
-
-  (* TODO: Move this *)
-  Lemma incVoid_block_count :
-    forall s1 s2 bid,
-      incVoid s1 ≡ inr (s2, bid) ->
-      block_count s1 ≡ block_count s2.
-  Proof.
-    intros s1 s2 bid H.
-    Transparent incVoid.
-    unfold incVoid in H.
-    cbn in H.
-    simp.
-    destruct s1; cbn; auto.
-    Opaque incVoid.
-  Qed.
-
-  Lemma bid_bound_incVoid_mono :
-    forall s1 s2 bid bid',
-      bid_bound s1 bid ->
-      incVoid s1 ≡ inr (s2, bid') ->
-      bid_bound s2 bid.
-  Proof.
-    intros s1 s2 bid bid' BOUND INC.
-    destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
-    unfold bid_bound.
-    exists n1. exists s1'. exists s1''.
-    intuition.
-    apply incVoid_block_count in INC.
-    lia.
-  Qed.
-
-  (* TODO: Move this *)
-  Lemma incLocal_block_count :
-    forall s1 s2 bid,
-      incLocal s1 ≡ inr (s2, bid) ->
-      block_count s1 ≡ block_count s2.
-  Proof.
-    intros s1 s2 bid H.
-    Transparent incLocal.
-    unfold incLocal in H.
-    cbn in H.
-    simp.
-    destruct s1; cbn; auto.
-    Opaque incLocal.
-  Qed.
-
-  Lemma bid_bound_incLocal_mono :
-    forall s1 s2 bid bid',
-      bid_bound s1 bid ->
-      incLocal s1 ≡ inr (s2, bid') ->
-      bid_bound s2 bid.
-  Proof.
-    intros s1 s2 bid bid' BOUND INC.
-    destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
-    unfold bid_bound.
-    exists n1. exists s1'. exists s1''.
-    intuition.
-    apply incLocal_block_count in INC.
-    lia.
-  Qed.
-
-  Lemma bid_bound_incBlockNamed :
-    forall name s1 s2 bid,
-      not_ends_with_nat name ->
-      incBlockNamed name s1 ≡ inr (s2, bid) ->
-      bid_bound s2 bid.
-  Proof.
-    intros name s1 s2 bid ENDS INC.
-    exists name. exists s1. exists s2.
-    repeat (split; auto).
-    erewrite incBlockNamed_block_count with (s':=s2); eauto.
-  Qed.
-
-  (* TODO: Move this *)
-  Lemma genNExpr_block_count :
-    ∀ (nexp : NExpr) (s1 s2 : IRState) (e : exp typ) (c : code typ),
-      genNExpr nexp s1 ≡ inr (s2, (e, c)) → (block_count s2 ≡ block_count s1)%nat.
-  Proof.
-    induction nexp;
-      intros s1 s2 e c GEN;
-      cbn in GEN; simp; cbn;
-        repeat
-          match goal with
-          | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
-            destruct (nth_error (Γ s1) n) eqn:FIND; inversion H; subst
-          | H : incLocal ?s1 ≡ inr (?s2, _) |- _ =>
-            apply incLocal_block_count in H
-          | IH : ∀ (s1 s2 : IRState) (e : exp typ) (c : code typ),
-              genNExpr ?n s1 ≡ inr (s2, (e, c)) → block_count s2 ≡ block_count s1,
-            GEN: genNExpr ?n _ ≡ inr _ |- _ =>
-            apply IH in GEN
-          end; subst; auto; try lia.
-  Qed.
-
-  (* TODO: Move this *)
-  Lemma genMExpr_block_count :
-  ∀ (mexp : MExpr) (s1 s2 : IRState) (e : exp typ * code typ) (c : typ),
-    genMExpr mexp s1 ≡ inr (s2, (e, c)) → block_count s2 ≡ block_count s1.
-  Proof.
-    induction mexp;
-      intros s1 s2 e c GEN;
-      cbn in GEN; simp; cbn;
-        repeat
-          match goal with
-          | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
-            destruct (nth_error (Γ s1) n) eqn:FIND; inversion H; subst
-          | H : incLocal ?s1 ≡ inr (?s2, _) |- _ =>
-            apply incLocal_block_count in H
-          | IH : ∀ (s1 s2 : IRState) (e : exp typ) (c : code typ),
-              genMExpr ?n s1 ≡ inr (s2, (e, c)) → block_count s2 ≡ block_count s1,
-            GEN: genMExpr ?n _ ≡ inr _ |- _ =>
-            apply IH in GEN
-          end; subst; auto; try lia.
-  Qed.
-
-  (* TODO: Move this *)
-  Lemma genAExpr_block_count :
-  ∀ (aexp : AExpr) (s1 s2 : IRState) (e : exp typ) (c : code typ),
-    genAExpr aexp s1 ≡ inr (s2, (e, c)) → block_count s2 ≡ block_count s1.
-  Proof.
-    induction aexp;
-      intros s1 s2 e c GEN;
-      cbn in GEN; simp; cbn;
-        repeat
-          match goal with
-          | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
-            destruct (nth_error (Γ s1) n) eqn:FIND; inversion H; subst
-          | H : incLocal ?s1 ≡ inr (?s2, _) |- _ =>
-            apply incLocal_block_count in H
-          | H : incVoid ?s1 ≡ inr (?s2, _) |- _ =>
-            apply incVoid_block_count in H
-          | GEN : genNExpr _ _ ≡ inr _ |- _ =>
-            apply genNExpr_block_count in GEN
-          | GEN : genMExpr _ _ ≡ inr _ |- _ =>
-            apply genMExpr_block_count in GEN
-          | IH : ∀ (s1 s2 : IRState) (e : exp typ) (c : code typ),
-              genAExpr ?n s1 ≡ inr (s2, (e, c)) → block_count s2 ≡ block_count s1,
-            GEN: genAExpr ?n _ ≡ inr _ |- _ =>
-            apply IH in GEN
-          end; subst; auto; try lia.
-  Qed.
-
-  (* TODO: move this *)
-  Lemma genIR_block_count :
-    forall op s1 s2 nextblock b bk_op,
-      genIR op nextblock s1 ≡ inr (s2, (b, bk_op)) ->
-      block_count s2 ≥ block_count s1.
-  Proof.
-    induction op;
-      intros s1 s2 nextblock b bk_op H;
-      cbn in H; simp;
-        repeat
-          (match goal with
-           | H: inl _ ≡ inr _ |- _ =>
-             inversion H
-           | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
-             destruct (nth_error (Γ s1) n) eqn:?; inversion H; subst
-           | H : ErrorWithState.err2errS (MInt64asNT.from_nat ?n) ?s1 ≡ inr (?s2, _) |- _ =>
-             destruct (MInt64asNT.from_nat n) eqn:?; inversion H; subst
-           | H : incLocal ?s1 ≡ inr (?s2, _) |- _ =>
-             apply incLocal_block_count in H
-           | H : incVoid ?s1 ≡ inr (?s2, _) |- _ =>
-             apply incVoid_block_count in H
-           | H : incBlockNamed _ _ ≡ inr _ |- _ =>
-             apply incBlockNamed_block_count in H
-           | H : incBlock _ ≡ inr _ |- _ =>
-             apply incBlockNamed_block_count in H
-           | H : resolve_PVar _ _ ≡ inr _ |- _ =>
-             apply resolve_PVar_state in H; subst
-           | GEN : genNExpr _ _ ≡ inr _ |- _ =>
-             apply genNExpr_block_count in GEN
-           | GEN : genMExpr _ _ ≡ inr _ |- _ =>
-             apply genMExpr_block_count in GEN
-           | GEN : genAExpr _ _ ≡ inr _ |- _ =>
-             apply genAExpr_block_count in GEN
-           | IH : ∀ (s1 s2 : IRState) (nextblock b : block_id) (bk_op : list (LLVMAst.block typ)),
-               genIR ?op nextblock s1 ≡ inr (s2, (b, bk_op)) → block_count s2 ≥ block_count s1,
-             GEN: genIR ?op _ _ ≡ inr _ |- _ =>
-             apply IH in GEN
-           end; cbn in *);
-      try lia.
-  Qed.
-
-
-  Lemma bid_bound_genNExpr_mono :
-    forall s1 s2 bid nexp e c,
-      bid_bound s1 bid ->
-      genNExpr nexp s1 ≡ inr (s2, (e, c)) ->
-      bid_bound s2 bid.
-  Proof.
-    intros s1 s2 bid nexp e c BOUND GEN.
-    apply genNExpr_block_count in GEN.
-    destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
-    unfold bid_bound.
-    exists n1. exists s1'. exists s1''.
-    repeat (split; auto).
-    rewrite GEN.
-    auto.
-  Qed.
-
-  Lemma bid_bound_genMExpr_mono :
-    forall s1 s2 bid mexp e c,
-      bid_bound s1 bid ->
-      genMExpr mexp s1 ≡ inr (s2, (e, c)) ->
-      bid_bound s2 bid.
-  Proof.
-    intros s1 s2 bid mexp e c BOUND GEN.
-    apply genMExpr_block_count in GEN.
-    destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
-    unfold bid_bound.
-    exists n1. exists s1'. exists s1''.
-    repeat (split; auto).
-    rewrite GEN.
-    auto.
-  Qed.
-
-  Lemma bid_bound_genAExpr_mono :
-    forall s1 s2 bid aexp e c,
-      bid_bound s1 bid ->
-      genAExpr aexp s1 ≡ inr (s2, (e, c)) ->
-      bid_bound s2 bid.
-  Proof.
-    intros s1 s2 bid nexp e c BOUND GEN.
-    apply genAExpr_block_count in GEN.
-    destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
-    unfold bid_bound.
-    exists n1. exists s1'. exists s1''.
-    repeat (split; auto).
-    rewrite GEN.
-    auto.
-  Qed.
-
-  Lemma bid_bound_genIR_mono :
-    forall s1 s2 bid op nextblock b bks,
-      bid_bound s1 bid ->
-      genIR op nextblock s1 ≡ inr (s2, (b, bks)) ->
-      bid_bound s2 bid.
-  Proof.
-    intros s1 s2 bid op nextblock b bks BOUND GEN.
-    apply genIR_block_count in GEN.
-    destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
-    unfold bid_bound.
-    exists n1. exists s1'. exists s1''.
-    repeat (split; auto).
-    lia.
-  Qed.
-
-  Lemma bid_bound_genIR_entry :
-    forall op s1 s2 nextblock bid bks,
-      genIR op nextblock s1 ≡ inr (s2, (bid, bks)) ->
-      bid_bound s2 bid.
-  Proof.
-    induction op;
-      intros s1 s2 nextblock b bks GEN.
-  Admitted.
-
-  Lemma incBlockNamed_not_equal :
-    forall name1 name2 s1 s2 s1' s2' bid1 bid2,
-      not_ends_with_nat name1 ->
-      not_ends_with_nat name2 ->
-      block_count s1 ≢ block_count s2 ->
-      incBlockNamed name1 s1 ≡ inr (s1', bid1) ->
-      incBlockNamed name2 s2 ≡ inr (s2', bid2) ->
-      bid1 ≢ bid2.
-  Proof.
-    intros name1 name2 s1 s2 s1' s2' bid1 bid2 ENDS1 ENDS2 NEQ INC1 INC2.
-  Admitted.
-
-  Lemma incBlockNamed_not_bid_bound :
-    forall name s1 s2 bid,
-      not_ends_with_nat name ->
-      incBlockNamed name s1 ≡ inr (s2, bid) ->
-      ~(bid_bound s1 bid).
-  Proof.
-    intros name s1 s2 bid ENDS INC.
-    intros BOUND.
-    destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
-
-    eapply (incBlockNamed_not_equal ENDS N_S1); eauto.
-    lia.
-  Qed.
-
-  Lemma bid_bound_only_block_count :
-    forall s lc vc γ bid,
-      bid_bound s bid ->
-      bid_bound {| block_count := block_count s; local_count := lc; void_count := vc; Γ := γ |} bid.
-  Proof.
-    intros s lc vc γ bid BOUND.
-    destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
-    unfold bid_bound.
-    exists n1. exists s1'. exists s1''.
-    repeat (split; auto).
-  Qed.
-
-  Lemma not_bid_bound_incBlockNamed_mono :
-    forall name s1 s2 s' bid,
-      incBlockNamed name s1 ≡ inr (s2, bid) ->
-      (block_count s' <= block_count s1)%nat ->
-      not_ends_with_nat name ->
-      ~ (bid_bound s' bid).
-  Proof.
-    intros name s1 s2 s' bid INC LE NE.
-    intros BOUND.
-    destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
-    Transparent incBlockNamed.
-    unfold incBlockNamed in *.
-    cbn in *; simp.
-    assert (block_count s1 ≢ block_count s1') as NEQ by lia.
-    epose proof not_ends_with_nat_neq NE N_S1 NEQ.
-    contradiction.
-    Opaque incBlockNamed.
-  Qed.
-
-
   (* TODO: Move *)
   Lemma convert_typ_block_app : forall (a b : list (LLVMAst.block typ)) env, (convert_typ env (a ++ b) ≡ convert_typ env a ++ convert_typ env b)%list.
   Proof.
     induction a as [| [] a IH]; cbn; intros; auto.
     rewrite IH; reflexivity.
   Qed.
-
-  Ltac solve_bid_bound :=
-    repeat
-      match goal with
-      | H: incBlockNamed ?msg ?s1 ≡ inr (?s2, ?bid) |-
-        bid_bound ?s2 ?bid =>
-        eapply bid_bound_incBlockNamed; try eapply H; solve_not_ends_with
-      | H: incBlockNamed ?msg ?s1 ≡ inr (_, ?bid) |-
-        ~(bid_bound ?s1 ?bid) =>
-        eapply incBlockNamed_not_bid_bound; try eapply H; solve_not_ends_with
-      (* Monotonicity *)
-      | H: incVoid ?s1 ≡ inr (?s2, _) |-
-        bid_bound ?s2 _ =>
-        eapply bid_bound_incVoid_mono; try eapply H
-      | H: incLocal ?s1 ≡ inr (?s2, _) |-
-        bid_bound ?s2 _ =>
-        eapply bid_bound_incLocal_mono; try eapply H
-      | H: incBlockNamed _ ?s1 ≡ inr (?s2, _) |-
-        bid_bound ?s2 _ =>
-        eapply bid_bound_incBlockNamed_mono; try eapply H
-      | H: genNExpr ?n ?s1 ≡ inr (?s2, _) |-
-        bid_bound ?s2 _ =>
-        eapply bid_bound_genNExpr_mono; try eapply H
-      | H: genMExpr ?n ?s1 ≡ inr (?s2, _) |-
-        bid_bound ?s2 _ =>
-        eapply bid_bound_genMExpr_mono; try eapply H
-      | H: genAExpr ?n ?s1 ≡ inr (?s2, _) |-
-        bid_bound ?s2 _ =>
-        eapply bid_bound_genAExpr_mono; try eapply H
-      | H: genIR ?op ?n ?s1 ≡ inr (?s2, _) |-
-        bid_bound ?s2 _ =>
-        eapply bid_bound_genIR_mono; try eapply H
-      | H : resolve_PVar _ _ ≡ inr _ |- _ =>
-        apply resolve_PVar_state in H; subst
-      | |- bid_bound {| block_count := block_count ?s; local_count := ?lc; void_count := ?vc; Γ := ?γ |} ?bid =>
-        apply bid_bound_only_block_count
-      end.
-
-  Lemma bound_between_shrink :
-    forall s1 s2 s1' s2' bid,
-      (block_count s1' <= block_count s1)%nat ->
-      (block_count s2' >= block_count s2)%nat ->
-      bid_bound_between s1 s2 bid ->
-      bid_bound_between s1' s2' bid.
-  Proof.
-    intros s1 s2 s1' s2' bid S1LE S2GE BOUND_BETWEEN.
-    unfold bid_bound_between.
-    destruct BOUND_BETWEEN as (n & s' & s'' & NEND & LT & GE & INC).
-    exists n. exists s'. exists s''.
-    repeat (split; auto).
-    all: lia.
-  Qed.
-
-  Lemma all_bound_between_shrink :
-    forall s1 s2 s1' s2' bids,
-      (block_count s1' <= block_count s1)%nat ->
-      (block_count s2' >= block_count s2)%nat ->
-      Forall (bid_bound_between s1 s2) bids ->
-      Forall (bid_bound_between s1' s2') bids.
-  Proof.
-    intros s1 s2 s1' s2' bids S1LE S2GE BOUND_BETWEEN.
-    apply Forall_forall.
-    intros x IN.
-    eapply Forall_forall in BOUND_BETWEEN; eauto.
-    eapply bound_between_shrink; eauto.
-  Qed.
-  
-  (* TODO: move *)
-  Lemma bid_bound_between_separate :
-    forall s1 s2 s3 s4 bid bid',
-      bid_bound_between s1 s2 bid ->
-      bid_bound_between s3 s4 bid' ->
-      (block_count s2 <= block_count s3)%nat ->
-      bid ≢ bid'.
-  Proof.
-    intros s1 s2 s3 s4 bid bid' BOUND1 BOUND2 BC.
-    destruct BOUND1 as (n1 & s1' & s1'' & NEND1 & LT1 & GE1 & INC1).
-    destruct BOUND2 as (n2 & s2' & s2'' & NEND2 & LT2 & GE2 & INC2).
-    (* TODO: Move to where I don't need this, or expose lemma *)
-    Transparent incBlockNamed.
-    unfold incBlockNamed in INC1, INC2.
-    Opaque incBlockNamed.
-    cbn in INC1, INC2.
-    simp.
-
-    assert (block_count s1' ≢ block_count s2') as NEQ by lia.
-  Admitted.
-
-
-  (* TODO: Move *)
-  Lemma inputs_bound_between :
-    forall (op : DSHOperator) (s1 s2 : IRState) (nextblock op_entry : block_id) (bk_op : list (LLVMAst.block typ)),
-      genIR op nextblock s1 ≡ inr (s2, (op_entry, bk_op)) ->
-      Forall (bid_bound_between s1 s2) (inputs (convert_typ [ ] bk_op)).
-  Proof.
-    induction op;
-      intros s1 s2 nextblock op_entry bk_op GEN;
-      pose proof GEN as BACKUP_GEN;
-      cbn in GEN; simp; cbn.
-
-    Ltac invert_err2errs :=
-      match goal with
-      | H : ErrorWithState.err2errS (MInt64asNT.from_nat ?n) ?s1 ≡ inr (?s2, _) |- _ =>
-        destruct (MInt64asNT.from_nat n); inversion H; subst
-      | H : ErrorWithState.err2errS (inl _) _ ≡ inr _ |- _ =>
-        inversion H
-      | H : ErrorWithState.err2errS (inr _) _ ≡ inr _ |- _ =>
-        inversion H; subst
-      end.
-
-    Ltac block_count_replace :=
-      repeat match goal with
-             | H : incVoid ?s1 ≡ inr (?s2, ?bid) |- _
-               => apply incVoid_block_count in H; cbn in H
-             | H : incBlockNamed ?name ?s1 ≡ inr (?s2, ?bid) |- _
-               => apply incBlockNamed_block_count in H; cbn in H
-             | H : incLocal ?s1 ≡ inr (?s2, ?bid) |- _
-               => apply incLocal_block_count in H; cbn in H
-             | H: genNExpr ?n ?s1 ≡ inr (?s2, _) |- _
-               => eapply genNExpr_block_count in H; cbn in H
-             | H: genMExpr ?n ?s1 ≡ inr (?s2, _) |- _
-               => eapply genMExpr_block_count in H; cbn in H
-             | H: genAExpr ?n ?s1 ≡ inr (?s2, _) |- _
-               => eapply genAExpr_block_count in H; cbn in H
-             | H: genIR ?op ?nextblock ?s1 ≡ inr (?s2, _) |- _
-               => eapply genIR_block_count in H; cbn in H
-             end.
-
-    Ltac solve_block_count :=
-      match goal with
-      | |- (block_count ?s1 <= block_count ?s2)%nat
-        => block_count_replace; cbn; lia
-      | |- (block_count ?s1 >= block_count ?s2)%nat
-        => block_count_replace; cbn; lia
-      end.
-
-    Ltac solve_not_bid_bound :=
-      match goal with
-      | H: incBlockNamed ?name ?s1 ≡ inr (?s2, ?bid) |-
-        ~(bid_bound ?s3 ?bid) =>
-        eapply (not_bid_bound_incBlockNamed_mono H)
-      end.
-
-    Ltac big_solve :=
-      repeat
-        (try invert_err2errs;
-         try solve_block_count;
-         try solve_not_bid_bound;
-         try solve_not_ends_with;
-         match goal with
-         | |- Forall _ (?x::?xs) =>
-           apply Forall_cons; eauto
-         | |- bid_bound_between ?s1 ?s2 ?bid =>
-           eapply bid_bound_bound_between; solve_bid_bound
-         end).
-
-    all: try (solve [big_solve]).
-
-    - big_solve; solve_not_bid_bound; cbn in *; big_solve.
-    - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
-    - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
-    - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
-    - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
-
-      Set Nested Proofs Allowed.
-      Lemma convert_typ_app_list :
-        forall {F} `{Traversal.Fmap F} (a b : list (F typ)) (env : list (ident * typ)),
-          convert_typ env (a ++ b) ≡ convert_typ env a ++ convert_typ env b.
-      Proof.
-        intros F H a.
-        induction a; cbn; intros; auto.
-        rewrite IHa; reflexivity.
-      Qed.
-
-      rewrite convert_typ_app_list.
-
-      (* TODO: clean this up *)
-      unfold fmap.
-      unfold Fmap_list.
-      rewrite map_app.
-
-      apply Forall_app.
-      split.
-      + eapply all_bound_between_shrink.
-        3: {
-          eapply IHop; eauto.
-        }
-        solve_block_count.
-        solve_block_count.
-      + cbn.
-        rewrite List.Forall_cons_iff.
-        split.
-        2: { apply List.Forall_nil. }
-
-        admit.
-    - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
-      admit. admit.
-      admit.
-    - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
-    - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
-      cbn.
-
-      Lemma add_comment_inputs :
-        forall (bs : list (LLVMAst.block typ)) env (comments : list string),
-          inputs (convert_typ env (add_comment bs comments)) ≡ inputs (convert_typ env bs).
-      Proof.
-        induction bs; intros env comments; auto.
-      Qed.
-
-      rewrite add_comment_inputs.
-
-      unfold inputs.
-      unfold fmap.
-      unfold Fmap_list.
-
-      rewrite convert_typ_app_list.
-      rewrite map_app.
-
-      apply Forall_app.
-      split.
-      + eapply all_bound_between_shrink.
-        3: { eapply IHop1; eauto. }
-        all: solve_block_count.
-      + eapply all_bound_between_shrink.
-        3: { eapply IHop2; eauto. }
-        all: solve_block_count.
-  Admitted.
-
-  (* TODO: may not actually needs this. *)
-  Lemma inputs_nextblock :
-    forall (op : DSHOperator) (s1 s2 s3 : IRState) (nextblock op_entry : block_id) (bk_op : list (LLVMAst.block typ)),
-      bid_bound s1 nextblock ->
-      genIR op nextblock s2 ≡ inr (s3, (op_entry, bk_op)) ->
-      Forall (fun bid => bid ≢ nextblock) (inputs (convert_typ [ ] bk_op)).
-  Proof.
-    intros op s1 s2 s3 nextblock op_entry bk_op H.
-  Admitted.
-
-  Lemma inputs_not_earlier_bound :
-    forall (op : DSHOperator) (s1 s2 s3 : IRState) (bid nextblock op_entry : block_id) (bk_op : list (LLVMAst.block typ)),
-      bid_bound s1 bid ->
-      genIR op nextblock s2 ≡ inr (s3, (op_entry, bk_op)) ->
-      Forall (fun x => x ≢ bid) (inputs (convert_typ [ ] bk_op)).
-  Proof.
-    intros op s1 s2 s3 bid nextblock op_entry bk_op BOUND GEN.
-    apply Forall_forall.
-    intros x H.
-  Admitted.
-
-  (* TODO: Move *)
-  Lemma outputs_bound_between :
-    forall (op : DSHOperator) (s1 s2 : IRState) (nextblock op_entry : block_id) (bk_op : list (LLVMAst.block typ)),
-      genIR op nextblock s1 ≡ inr (s2, (op_entry, bk_op)) ->
-      Forall (fun bid => bid_bound_between s1 s2 bid \/ bid ≡ nextblock) (outputs (convert_typ [ ] bk_op)).
-  Proof.
-  Admitted.
 
   (* TODO: move this (or get rid of it) *)
   Lemma evalDSHSeq_split :
@@ -1425,26 +624,47 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         eapply Forall_forall in L2; eauto.
   Qed.
 
+  Lemma no_failure_helix_LU : forall {E X} s a (k : _ -> itree _ X) m,
+      no_failure (E := E) (interp_helix (ITree.bind (trigger (MemLU s a)) k) m) ->
+      exists v,
+        no_failure (E := E) (interp_helix (k v) m) /\ memory_lookup m a ≡ Some v.
+  Proof.
+    intros * NOFAIL.
+    rewrite interp_helix_bind in NOFAIL.
+    Transparent interp_helix interp_Mem.
+    unfold interp_helix in NOFAIL.
+    unfold interp_Mem in NOFAIL.
+    rewrite interp_state_trigger in NOFAIL.
+    cbn* in *.
+    simp.
+    - unfold throw in *.
+      rewrite interp_fail_vis in NOFAIL.
+      cbn in *.
+      rewrite bind_ret_l, translate_ret, bind_ret_l in NOFAIL.
+      apply eutt_Ret in NOFAIL; contradiction NOFAIL; auto.
+    - rewrite interp_fail_ret in NOFAIL.
+      cbn in *; rewrite translate_ret, bind_ret_l in NOFAIL.
+      eexists; split; eauto.
+  Qed.
+  Opaque interp_helix interp_Mem.
 
   Opaque denote_code.
- Lemma compile_FSHCOL_correct :
+  Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
-      (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH) fuel v
+      (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH) 
       (** Vellvm bits   *) (nextblock bid_in bid_from : block_id) (bks : list (LLVMAst.block typ))
       (* (env : list (ident * typ)) *)  (g : global_env) (ρ : local_env) (memV : memoryV),
       bid_bound s1 nextblock ->
-      GenIR_Rel σ s1 memH bid_in (memH,tt) (memV, (ρ, (g, (inl (bid_from, bid_in))))) ->
-      evalDSHOperator σ op memH fuel ≡ Some (inr v)            -> (* Evaluation succeeds *)
+      GenIR_Rel σ s1 bid_in (memH,tt) (memV, (ρ, (g, (inl (bid_from, bid_in))))) ->
+      no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ op) memH) -> (* Evaluation succeeds *)
       genIR op nextblock s1 ≡ inr (s2,(bid_in,bks)) ->
-      eutt (GenIR_Rel σ s2 v nextblock)
-           (with_err_RB
-              (interp_Mem (denoteDSHOperator σ op) memH))
-           (with_err_LB
-              (interp_cfg (D.denote_bks (convert_typ [] bks) (bid_from,bid_in))
-                                g ρ memV)).
- Proof.
-    intros s1 s2 op; revert s1 s2; induction op; intros * NEXT BISIM EVAL GEN.
-    - cbn* in GEN.
+      eutt (succ_cfg (GenIR_Rel σ s2 nextblock))
+           (interp_helix (denoteDSHOperator σ op) memH)
+           (interp_cfg (D.denote_bks (convert_typ [] bks) (bid_from,bid_in))
+                       g ρ memV).
+  Proof.
+    intros s1 s2 op; revert s1 s2; induction op; intros * NEXT BISIM NOFAIL GEN.
+    - cbn* in *.
       simp.
       hide_strings'.
       cbn*; rauto:L.
@@ -1488,7 +708,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
           end.
           eapply bid_bound_incBlockNamed; eauto;
             solve_not_ends_with.
-          eapply incBlockNamed_not_bid_bound; eauto;
+          eapply gen_not_state_bound; eauto using incBlockNamed_count_gen_injective;
             solve_not_ends_with.
         }
 
@@ -1499,15 +719,12 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       rauto:R.
       apply eqit_Ret; auto.
       solve_gen_ir_rel.
+      destruct BISIM as (STATE & (from & BRANCH)).
+      cbn in STATE, BRANCH.
+      split; cbn; eauto.
+      eapply state_invariant_incVoid; eauto.
+      eapply state_invariant_incBlockNamed; eauto.
 
-      destruct BISIM as (STATE & (from & BRANCH) & MEM).
-      cbn in STATE, BRANCH, MEM.
-      split; eauto.
-      split.
-      + cbn. exists bid_in.
-        reflexivity.
-      + cbn.
-        induction fuel; inversion EVAL; auto.
     - (* Assign case.
          Helix side:
          1. x_i <- evalPExpr σ x_p ;;
@@ -1519,33 +736,29 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
          7. v <- mem_lookup_err "Error looking up 'v' in DSHAssign" (to_nat src) x ;;
          8. ret (memory_set mem y_i (mem_add (to_nat dst) v y))
        *)
-
-      destruct fuel as [| fuel]; [cbn in *; simp |].
-      cbn* in GEN.
-      unfold GenIR_Rel in BISIM; cbn in BISIM.
       destruct BISIM as [BISIM1 BISIM2].
-      simp.
-      hide_strings'.
+      cbn* in *; simp.
       rename i into si, i2 into si',
       i0 into x, i3 into y,
       i1 into v1, i4 into v2.
       inv_resolve_PVar Heqs0.
       inv_resolve_PVar Heqs1.
+      (* Require Import LibHyps.LibHyps. *)
+      (* onAllHyps move_up_types. *)
 
       eutt_hide_right.
-      cbn*.
       rename n1 into x_p, n2 into y_p.
+      unfold denotePExpr in *; cbn* in *.
+      simp; try_abs.
+      apply no_failure_Ret in NOFAIL; try_abs.
+      repeat apply no_failure_Ret in NOFAIL.
+      edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto. 
+      edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto. 
 
-      rauto:L.
-      unfold denotePExpr; cbn*.
-      break_inner_match_goal; cbn* in *; simp.
       eutt_hide_right.
-      rename m into x_i, m0 into y_i.
-      focus_single_step_h.
-      rauto:L.
+      rauto.
+      2,3: eauto.
       subst.
-      rauto:L.
-      2,3:cbn*; apply memory_lookup_err_inr_Some_eq; eauto.
 
       subst; eutt_hide_left.
       unfold add_comments.
@@ -1563,14 +776,13 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       focus_single_step.
       rename x into x_p', y into y_p'.
       rename n into src_e, n0 into dst_e.
-      rename b into v.
 
       (* Step 5. *)
-      eapply eutt_clo_bind.
-      eapply genNExpr_correct; try eassumption.
+      eapply eutt_clo_bind_returns; [eapply genNExpr_correct |..]; eauto.
       eauto 7 with state_invariant.
-
-      intros [memH1 src] (memV1 & ρ1 & g1 & []) (INV1 & (EXP1 & <- & <- & <- & MONO1) & GAMMA1); cbn* in *.
+      introR; destruct_unit.
+      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
+      cbn in PRE; destruct PRE as (INV1 & EXP1 & ?); cbn in *; inv_eqs.
 
       subst.
 
@@ -1579,64 +791,75 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       focus_single_step.
 
       (* Step 6. *)
-      eapply eutt_clo_bind.
-      eapply genNExpr_correct; eauto.
-
-      intros [memH2 dst] (memV2 & ρ2 & g2 & []) (INV2 & (EXP2 & <- & <- & <- & MONO2) & GAMMA2); cbn in GAMMA2; cbn in INV2.
+      eapply eutt_clo_bind_returns; [eapply genNExpr_correct |..]; eauto.
+      introR; destruct_unit.
+      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
+      cbn in PRE; destruct PRE as (INV2 & EXP2 & ?); cbn in *; inv_eqs.
+      
       subst.
+      simp; try_abs.
+      apply no_failure_Ret in NOFAIL; try_abs.
 
       (* Step 7. *)
       eutt_hide_right.
-
-      edestruct EXP1 as (EQ1 & EQ1'); [reflexivity |].
-      rewrite EQ1' in Heqs11; inv Heqs11.
-      rewrite Heqo0.
-      eutt_hide_right.
-
-      assert (i2 ≡ dst).
-      { unfold genNExpr_exp_correct in EXP2.
-        assert (ρ2 ⊑ ρ2) as LL by reflexivity.
-        specialize (EXP2 _ LL) as (EXP2_EUTT & EXP2_EVAL).
-        rewrite EXP2_EVAL in Heqs12.
-        inversion Heqs12.
-        auto.
-      }
+      rauto.
+      rewrite interp_helix_MemSet.
       subst.
-
-      rewrite (assert_NT_lt_success Heqs13).
-      cbn*.
-      rauto:L.
-
-      rewrite interp_Mem_MemSet.
-      cbn*.
-      rauto:L.
-
-      subst; eutt_hide_left.
-
-      simpl.
       rauto:R.
       focus_single_step_v.
-      cbn.
-
-      (* I am looking up an ident x, for which I find the type `TYPE_Pointer (TYPE_Array sz TYPE_Double)`
-         in my typing context.
-         Can it be a global?
-       *)
-
-      (* onAllHyps move_up_types. *)
-      subst; focus_single_step_v; eutt_hide_left.
-      unfold endo, Endo_ident.
-
-      destruct x_p' as [x_p' | x_p']; [admit |];
-        destruct y_p' as [y_p' | y_p']; cbn; [admit |].
-      subst; focus_single_step_v; eutt_hide_left.
-      edestruct memory_invariant_LLU_Ptr as (bk_x & ptr_x & LUx & INLGx & VEC_LUx); [| exact LUn | exact Heqo |]; eauto.
-      rewrite LUx in Heqo2; symmetry in Heqo2; inv Heqo2.
-      edestruct memory_invariant_LLU_Ptr as (bk_y & ptr_y & LUy & INLGy & VEC_LUy); [| exact LUn0 | eassumption |]; eauto.
-      rewrite LUy in Heqo1; symmetry in Heqo1; inv Heqo1.
-
-      focus_single_step_v; rauto:R.
+      eutt_hide_left.
+      
       admit.
+
+
+      (* edestruct EXP1 as (EQ1 & EQ1'); [reflexivity |]. *)
+      (* rewrite EQ1' in Heqs11; inv Heqs11. *)
+      (* rewrite Heqo0. *)
+      (* eutt_hide_right. *)
+
+      (* assert (i2 ≡ dst). *)
+      (* { unfold genNExpr_exp_correct in EXP2. *)
+      (*   assert (ρ2 ⊑ ρ2) as LL by reflexivity. *)
+      (*   specialize (EXP2 _ LL) as (EXP2_EUTT & EXP2_EVAL). *)
+      (*   rewrite EXP2_EVAL in Heqs12. *)
+      (*   inversion Heqs12. *)
+      (*   auto. *)
+      (* } *)
+      (* subst. *)
+
+      (* Set Nested Proofs Allowed. *)
+      (* Lemma assert_NT_lt_success : *)
+      (*   forall {s1 s2 x y v}, *)
+      (*     assert_NT_lt s1 x y ≡ inr v -> *)
+      (*     assert_NT_lt s2 x y ≡ inr v. *)
+      (* Proof. *)
+      (*   intros s1 s2 x y v H. *)
+      (*   unfold assert_NT_lt in *. *)
+      (*   destruct ((MInt64asNT.to_nat x <? MInt64asNT.to_nat y)%nat); inversion H. *)
+      (*   cbn in *. subst. *)
+      (*   auto. *)
+      (* Qed. *)
+
+      (* rewrite (assert_NT_lt_success Heqs13). *)
+      (* (* I am looking up an ident x, for which I find the type `TYPE_Pointer (TYPE_Array sz TYPE_Double)` *)
+      (*    in my typing context. *)
+      (*    Can it be a global? *)
+      (*  *) *)
+
+      (* (* onAllHyps move_up_types. *) *)
+      (* subst; focus_single_step_v; eutt_hide_left. *)
+      (* unfold endo, Endo_ident. *)
+
+      (* destruct x_p' as [x_p' | x_p']; [admit |]; *)
+      (*   destruct y_p' as [y_p' | y_p']; cbn; [admit |]. *)
+      (* subst; focus_single_step_v; eutt_hide_left. *)
+      (* edestruct memory_invariant_LLU_Ptr as (bk_x & ptr_x & LUx & INLGx & VEC_LUx); [| exact LUn | exact Heqo |]; eauto. *)
+      (* rewrite LUx in Heqo2; symmetry in Heqo2; inv Heqo2. *)
+      (* edestruct memory_invariant_LLU_Ptr as (bk_y & ptr_y & LUy & INLGy & VEC_LUy); [| exact LUn0 | eassumption |]; eauto. *)
+      (* rewrite LUy in Heqo1; symmetry in Heqo1; inv Heqo1. *)
+
+      (* focus_single_step_v; rauto:R. *)
+
     (*   2: apply MONO2, MONO1; eauto. *)
     (*   cbn; norm_v. *)
     (*   subst; focus_single_step_v; norm_v. *)
@@ -1751,12 +974,14 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
 
 
-    - destruct fuel as [| fuel]; [cbn in *; simp |].
-
+    -
       Opaque genWhileLoop.
-      cbn* in GEN.
-      unfold GenIR_Rel in BISIM; cbn in BISIM.
+      cbn* in *.
       simp.
+      unfold denotePExpr in *; cbn* in *.
+      simp; try now (exfalso; clear -NOFAIL; try apply no_failure_Ret in NOFAIL; try_abs).
+      apply no_failure_Ret in NOFAIL; simp; cbn in *; try_abs.
+
       hide_strings'.
       inv_resolve_PVar Heqs0.
       inv_resolve_PVar Heqs1.
@@ -1766,10 +991,11 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       (* onAllHyps move_up_types. *)
 
       eutt_hide_right.
+      repeat apply no_failure_Ret in NOFAIL.
+      repeat (edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto). 
 
       rauto:L.
-      unfold denotePExpr; cbn*.
-
+      all:eauto.
       Ltac rewrite_nth_error :=
         match goal with
         | h: nth_error _ _ ≡ _ |- _ => rewrite h
@@ -1780,14 +1006,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         | h: memory_lookup _ _ ≡ _ |- _ => rewrite h
         end.
 
-      do 2 rewrite_nth_error.
-
-      repeat (rauto:L; []).
-      rauto:L.
-      2: cbn*; rewrite_memory_lookup; reflexivity.
-
-      rauto:L.
-      2: cbn*; rewrite_memory_lookup; reflexivity.
 
       subst; eutt_hide_left.
       Transparent genWhileLoop.
@@ -1903,19 +1121,10 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       (*   } *)
 
     - (* DSHBinOp *)
-      destruct fuel as [| fuel]; [cbn in *; simp |].
-      cbn* in GEN.
-      unfold GenIR_Rel in BISIM; cbn in BISIM.
-      unfold ErrorWithState.err2errS in *.
-      repeat (break_inner_match_hyp; cbn in *; repeat inv_sum; []).
-      repeat match goal with
-      | h: _ * _ |- _ => destruct h
-      | h: () |- _ => destruct h
-      end.
-      repeat match goal with
-      | h: (_,_) ≡ (_,_) |- _ => inv h
-             end.
       cbn* in *.
+      simp.
+      inv_resolve_PVar Heqs1.
+      inv_resolve_PVar Heqs2.
 
       (* On the Helix side, the computation consists in:
          1. xi <- denotePExpr x
@@ -1928,7 +1137,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       eutt_hide_right.
       rauto:L.
 
-     subst; eutt_hide_left.
+      subst; eutt_hide_left.
 
       unfold add_comments.
       cbn.
@@ -2016,7 +1225,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
       rename Heqs0 into GEN_OP2.
       rename Heqs2 into GEN_OP1.
-
       rewrite add_comment_eutt.
       cbn.
 
@@ -2037,55 +1245,90 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         (* TODO: need to make sure IN_NEXT is actually nextblock... *)
         intros x OUT_PRED [IN_BOUND IN_NEXT].
         destruct OUT_PRED as [OUT_PRED | OUT_PRED]; auto.
-        eapply (bid_bound_between_separate OUT_PRED IN_BOUND).
+        eapply (state_bound_between_separate incBlockNamed_count_gen_injective OUT_PRED IN_BOUND).
         lia. auto.
       }
 
       rauto.
 
       (* Evaluation of operators in sequence *)
-      pose proof (evalDSHSeq_split EVAL) as [mem' [EVAL1 EVAL2]].
-
+      (* pose proof (evalDSHSeq_split EVAL) as [mem' [EVAL1 EVAL2]]. *)
+      (* Helix generates code for op2 *first*, so op2 gets earlier
+        variables from the irstate. Helix needs to do this because it
+        passes the block id for the next block that an operator should
+        jump to when it's done executing... So it generates code for
+        op2, which goes to the next block of the entire sequence, and
+        then passes the entry point for op2 as the "nextblock" for
+        op1.
+        YZ: I got lost, I'll try to refix it later
+      *)
+      cbn in NOFAIL.
       pose proof BISIM as BISIM2.
-      destruct BISIM2 as (STATE_BIS & BRANCH_BIS & MEM_BIS).
-      cbn in STATE_BIS, BRANCH_BIS, MEM_BIS.
-      destruct BRANCH_BIS as (from & BRANCH_BIS).
-      inversion BRANCH_BIS. subst.
+      destruct BISIM as [SINV (?from & EQ)]; cbn in *; inv EQ.
+      simp.
+      eapply eutt_clo_bind_returns; [eapply IHop1; try exact Heqs1; eauto |].  
+      eapply bid_bound_genIR_entry; eauto.
+      (* { split; cbn; cbn. *)
+      (*   - eapply genIR_GenIR_Rel in Heqs1; eauto. *)
+      (*     cbn in *. *)
+      (*     destruct GEN_OP2 as (STATE & _). *)
+      (*     cbn in STATE. *)
+      (*     apply STATE. *)
+      (*     split; auto. *)
+      (*     split; cbn; auto. *)
+      (*     eauto. *)
+      (*   - split; cbn. *)
+      (*     + (* Already had to prove that nextblock <> op2_entry... So, *) *)
+      (* (*          that's probably a problem *) *)
+      (*       exists from. *)
+      (*       reflexivity. *)
+      (*     + reflexivity. *)
+      (* } *)
+      admit.
 
-      eapply eutt_clo_bind.
-      {
-        eapply (IHop1 _ _ _ _ _ _ op2_entry _ _ _ _ _ _ _ _ EVAL1 GEN_OP1).
-        Unshelve.
-        eapply bid_bound_genIR_entry; eauto.
-        split; cbn.
-        - eapply genIR_GenIR_Rel in GEN_OP2; eauto.
-          destruct GEN_OP2 as (STATE & _).
-          cbn in STATE.
-          apply STATE.
-          split; auto.
-          split; cbn; auto.
-          exists from. eauto.
-        - split; cbn.
-          + (* Already had to prove that nextblock <> op2_entry... So,
-               that's probably a problem *)
-            exists from.
-            reflexivity.
-          + reflexivity.
-      }
+      introR; destruct_unit.
+      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
+      cbn in PRE; destruct PRE as (INV2 & EXP2 & ?); cbn in *; inv_eqs.
+      subst...
+      eapply IHop2; try eapply Heqs1; eauto.
+      admit.
+      admit.
+   
+      (* eapply eutt_clo_bind. *)
+      (* { *)
+      (*   eapply (IHop1 _ _ _ _ _ _ op2_entry _ _ _ _ _ _ _ _ EVAL1 GEN_OP1). *)
+      (*   Unshelve. *)
+      (*   eapply bid_bound_genIR_entry; eauto. *)
+      (*   split; cbn. *)
+      (*   - eapply genIR_GenIR_Rel in GEN_OP2; eauto. *)
+      (*     destruct GEN_OP2 as (STATE & _). *)
+      (*     cbn in STATE. *)
+      (*     apply STATE. *)
+      (*     split; auto. *)
+      (*     split; cbn; auto. *)
+      (*     exists from. eauto. *)
+      (*   - split; cbn. *)
+      (*     + (* Already had to prove that nextblock <> op2_entry... So, *)
+      (*          that's probably a problem *) *)
+      (*       exists from. *)
+      (*       reflexivity. *)
+      (*     + reflexivity. *)
+      (* } *)
 
-      intros [memH' []] (memV' & le & ge & res) IRREL.
-      pose proof IRREL as [STATE [[from' BRANCH] MEM]].
-      cbn in STATE, BRANCH, MEM.
-      subst.
+      (* intros [memH' []] (memV' & le & ge & res) IRREL. *)
+      (* pose proof IRREL as [STATE [[from' BRANCH] MEM]]. *)
+      (* cbn in STATE, BRANCH, MEM. *)
+      (* subst. *)
 
-      eapply eqit_mon.
-      intros. apply H.
-      intros. apply H.
-      2: {
+      (* eapply eqit_mon. *)
+      (* intros. apply H. *)
+      (* intros. apply H. *)
+      (* 2: { *)
         (* TODO: this might be wrong *)
         (* This is setting me up for failure, I think...
 
            I end up having to prove:
+
 
            GenIR_Rel σ s1 memH' op2_entry (memH', ()) (memV', (le, (ge, inl (from', op2_entry))))
 
@@ -2096,78 +1339,141 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
            Which is not true.
 
          *)
-        epose proof (IHop2 _ _ σ memH' _ _ _ _ _ _ ge le memV' _ _ EVAL2 GEN_OP2) as IH2.
-        apply IH2.
-        Unshelve.
-        auto.
 
-        eapply genIR_GenIR_Rel in GEN_OP2; eauto.
-        2: {
-          split; cbn; eauto.
-          split; cbn; eauto.
-        }
+      (* eapply genIR_GenIR_Rel; eauto. *)
+      (* introR; destruct_unit. *)
+      (* intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET. *)
+      (* cbn in PRE; destruct PRE as (STATE & [from to] & BRANCH); cbn in *; inv_eqs; subst. *)
+      (* simp. *)
+      (* clear IHop1. *)
+      (* TODO: How can I know this? *)
+      (* Probably need to extend GenIR_Rel? *)
+      (* - bid_op2 comes from genIR of the sequence destructed with simp...
+         - to comes from GenIR_Rel σ s2 (memH', ()) (memV', (le, (ge, (from, to))))
 
-        destruct GEN_OP2 as (STATE_OP2 & (from_op2 & BRANCH_OP2) & MEM_OP2).
-        cbn in STATE_OP2, BRANCH_OP2, MEM_OP2.
-
-        (* TODO: can I clean this part up? *)
-        split; cbn.
-        - split.
-          + apply state_invariant_memory_invariant in STATE.
-            unfold memory_invariant.
-            intros n v0 τ x H H0.
-
-            eapply STATE; eauto.
-            rewrite <- (genIR_Context _ _ _ GEN).
-            auto.
-          + eapply IRState_is_WF; eauto.
-          +
-            (* This doesn't seem true?
-
-               le should be the local environment after denoting op1...
-
-               So, I should hope to have
-
-               concrete_fresh_inv s_op1 le,
-
-               instead of
-
-               concrete_fresh_inv s1 le...
-
-               Because we generated names between s1 and s_op1...
-             *)
-            eapply incLocal_is_fresh in STATE_BIS.
-            cbn in STATE_BIS.
-            cbn.
-            intros id v0 n H H0.
-            eapply STATE_BIS; eauto.
-
-            (* Does le = ρ ? *)
-            admit. (* TODO: ugh, freshness *)
-        - split; cbn; eauto.
-      }
-      intros [memH_mon []] (memV_mon & l_mon & g_mon & res) PR.
-
-      pose proof GEN_OP1 as LOC; apply genIR_local_count in LOC.
-      pose proof GEN_OP1 as CONT; apply genIR_Context in CONT.
-
-      replace s2 with {| block_count := block_count s2; local_count := local_count s2; void_count := void_count s2; Γ := Γ s_op1 |}.
-      2: { rewrite CONT. destruct s2. cbn.
-           reflexivity.
-      }
-
-      {
-      destruct res as [[from_mon to_mon] | ].
-      + (* returned a branch, all good *) 
-        eapply GenIR_Rel_monotone in PR.
-        eapply PR. eapply LOC.
-      + destruct PR as [PR_STATE [[? PR_BRANCH] ?]].
-        inversion PR_BRANCH.
-      }
-
-      Unshelve.
-      all: eauto.
+         
+       *)
+      (* eapply IHop2; try apply Heqs0; eauto. *)
+      (* admit. *)
+      (* admit. *)
+      (* admit. *)
+  (*     assert (bid_op2 ≡ to). *)
+  (*     { unfold GenIR_Rel in IRREL. *)
+  (*       cbv in IRREL. destruct IRREL as [IRREL_STATE IRREL_BRANCHES]. *)
         
+  (*       unfold GenIR_Rel in BISIM. *)
+  (*       cbv in BISIM. destruct BISIM as [BISIM_STATE BISIM_BRANCHES]. *)
+  (*       subst. *)
+
+  (*       cbv in STATE. *)
+
+  (*       (* *) *)
+
+  (*     admit. *)
+  (*     } *)
+  (*     (* TODO: Need to match u1 up with mem' somehow *) *)
+  (*     assert (memH' ≡ mem'). *)
+  (*     { epose proof (IHop1 _ _ σ memH _ _ _ bid_in from _ ge le memV' _ _ EVAL1 GEN_OP1) as IH. *)
+  (*       cbn in STATE. *)
+  (*       apply state_invariant_memory_invariant in STATE. *)
+
+  (*       unfold memory_invariant in STATE. *)
+  (*       admit. *)
+  (*     } *)
+  (*     subst. *)
+
+  (*     epose proof (IHop2 _ _ σ mem' _ _ _ to from _ ge le memV' _ _ EVAL2 GEN_OP2) as IH2. *)
+  (*     epose proof (IHop1 _ _ σ _ _ _ _ _ _ _ ge le _ _ _ EVAL1 GEN_OP1) as IH1. *)
+
+  (*     eapply eqit_mon. *)
+  (*     4: apply IH2. *)
+  (*     all: eauto. *)
+  (*     intros [memH_mon []] (memV_mon & l_mon & g_mon & res) PR. *)
+
+      (*   epose proof (IHop2 _ _ σ memH' _ _ _ _ _ _ ge le memV' _ _ EVAL2 GEN_OP2) as IH2. *)
+      (*   apply IH2. *)
+      (*   Unshelve. *)
+      (*   auto. *)
+
+      (*   eapply genIR_GenIR_Rel in GEN_OP2; eauto. *)
+      (*   2: { *)
+      (*     split; cbn; eauto. *)
+      (*     split; cbn; eauto. *)
+      (*   } *)
+
+      (*   destruct GEN_OP2 as (STATE_OP2 & (from_op2 & BRANCH_OP2) & MEM_OP2). *)
+      (*   cbn in STATE_OP2, BRANCH_OP2, MEM_OP2. *)
+
+      (*   (* TODO: can I clean this part up? *) *)
+      (*   split; cbn. *)
+      (*   - split. *)
+      (*     + apply state_invariant_memory_invariant in STATE. *)
+      (*       unfold memory_invariant. *)
+      (*       intros n v0 τ x H H0. *)
+
+      (*       eapply STATE; eauto. *)
+      (*       rewrite <- (genIR_Context _ _ _ GEN). *)
+      (*       auto. *)
+      (*     + eapply IRState_is_WF; eauto. *)
+      (*     + *)
+      (*       (* This doesn't seem true? *)
+
+      (*          le should be the local environment after denoting op1... *)
+
+      (*          So, I should hope to have *)
+
+      (*          concrete_fresh_inv s_op1 le, *)
+
+      (*          instead of *)
+
+      (*          concrete_fresh_inv s1 le... *)
+
+      (*          Because we generated names between s1 and s_op1... *)
+      (*        *) *)
+      (*       eapply incLocal_is_fresh in STATE_BIS. *)
+      (*       cbn in STATE_BIS. *)
+      (*       cbn. *)
+      (*       intros id v0 n H H0. *)
+      (*       eapply STATE_BIS; eauto. *)
+
+      (*       (* Does le = ρ ? *) *)
+      (*       admit. (* TODO: ugh, freshness *) *)
+      (*   - split; cbn; eauto. *)
+      (* } *)
+      (* intros [memH_mon []] (memV_mon & l_mon & g_mon & res) PR. *)
+
+
+  (*     pose proof GEN_OP1 as LOC; apply genIR_local_count in LOC. *)
+  (*     pose proof GEN_OP1 as CONT; apply genIR_Context in CONT. *)
+
+
+  (*     replace s2 with {| block_count := block_count s2; local_count := local_count s2; void_count := void_count s2; Γ := Γ s_op1 |} by admit. *)
+
+  (*     destruct res as [[from_mon to_mon] | ]. *)
+  (*     + (* returned a branch, all good *)  *)
+  (*       eapply GenIR_Rel_monotone in PR. *)
+  (*       eapply PR. eapply LOC. *)
+  (*     + destruct PR as [PR_STATE [? PR_BRANCH]]. *)
+  (*       inversion PR_BRANCH. *)
+           
+
+      (* replace s2 with {| block_count := block_count s2; local_count := local_count s2; void_count := void_count s2; Γ := Γ s_op1 |}. *)
+      (* 2: { rewrite CONT. destruct s2. cbn. *)
+      (*      reflexivity. *)
+      (* } *)
+
+      (* { *)
+      (* destruct res as [[from_mon to_mon] | ]. *)
+      (* + (* returned a branch, all good *)  *)
+      (*   eapply GenIR_Rel_monotone in PR. *)
+      (*   eapply PR. eapply LOC. *)
+      (* + destruct PR as [PR_STATE [[? PR_BRANCH] ?]]. *)
+      (*   inversion PR_BRANCH. *)
+      (* } *)
+
+      (* Unshelve. *)
+      (* all: eauto. *)
   Admitted.
   End GenIR.
  
+
