@@ -264,6 +264,18 @@ Section BidBound.
     repeat (split; auto).
   Qed.
 
+  Lemma bid_bound_between_only_block_count_r :
+    forall s1 s2 lc vc γ bid,
+      bid_bound_between s1 s2 bid ->
+      bid_bound_between s1 {| block_count := block_count s2; local_count := lc; void_count := vc; Γ := γ |} bid.
+  Proof.
+    intros s1 s2 lc vc γ bid BOUND.
+    destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
+    unfold bid_bound.
+    exists n1. exists s1'. exists s1''.
+    repeat (split; auto).
+  Qed.
+
   Lemma bid_bound_fresh :
     forall (s1 s2 : IRState) (bid bid' : block_id),
       bid_bound s1 bid ->
@@ -490,10 +502,21 @@ Ltac solve_bid_bound :=
     | H: incBlockNamed ?msg ?s1 ≡ inr (?s2, ?bid) |-
       bid_bound ?s2 ?bid =>
       eapply bid_bound_incBlockNamed; try eapply H; solve_not_ends_with
+    | H: incBlock ?s1 ≡ inr (?s2, ?bid) |-
+      bid_bound ?s2 ?bid =>
+      eapply bid_bound_incBlockNamed; try eapply H; solve_not_ends_with
+
     | H: incBlockNamed ?msg ?s1 ≡ inr (_, ?bid) |-
       ~(bid_bound ?s1 ?bid) =>
       eapply gen_not_state_bound; try eapply H; solve_not_ends_with
+    | H: incBlock ?s1 ≡ inr (_, ?bid) |-
+      ~(bid_bound ?s1 ?bid) =>
+      eapply gen_not_state_bound; try eapply H; solve_not_ends_with
+
     (* Monotonicity *)
+    | |- bid_bound {| block_count := block_count ?s; local_count := ?lc; void_count := ?vc; Γ := ?γ |} ?bid =>
+      apply bid_bound_only_block_count
+
     | H: incVoid ?s1 ≡ inr (?s2, _) |-
       bid_bound ?s2 _ =>
       eapply bid_bound_incVoid_mono; try eapply H
@@ -501,6 +524,9 @@ Ltac solve_bid_bound :=
       bid_bound ?s2 _ =>
       eapply bid_bound_incLocal_mono; try eapply H
     | H: incBlockNamed _ ?s1 ≡ inr (?s2, _) |-
+      bid_bound ?s2 _ =>
+      eapply bid_bound_incBlockNamed_mono; try eapply H
+    | H: incBlock ?s1 ≡ inr (?s2, _) |-
       bid_bound ?s2 _ =>
       eapply bid_bound_incBlockNamed_mono; try eapply H
     | H: genNExpr ?n ?s1 ≡ inr (?s2, _) |-
@@ -517,8 +543,6 @@ Ltac solve_bid_bound :=
       eapply bid_bound_genIR_mono; try eapply H
     | H : resolve_PVar _ _ ≡ inr _ |- _ =>
       apply resolve_PVar_state in H; subst
-    | |- bid_bound {| block_count := block_count ?s; local_count := ?lc; void_count := ?vc; Γ := ?γ |} ?bid =>
-      apply bid_bound_only_block_count
     end.
 
 Section Inputs.
@@ -549,6 +573,8 @@ Section Inputs.
                => apply incVoid_block_count in H; cbn in H
              | H : incBlockNamed ?name ?s1 ≡ inr (?s2, ?bid) |- _
                => apply incBlockNamed_block_count in H; cbn in H
+             | H : incBlock ?s1 ≡ inr (?s2, ?bid) |- _
+               => apply incBlockNamed_block_count in H; cbn in H
              | H : incLocal ?s1 ≡ inr (?s2, ?bid) |- _
                => apply incLocal_block_count in H; cbn in H
              | H: genNExpr ?n ?s1 ≡ inr (?s2, _) |- _
@@ -574,6 +600,9 @@ Section Inputs.
       | H: incBlockNamed ?name ?s1 ≡ inr (?s2, ?bid) |-
         ~(bid_bound ?s3 ?bid) =>
         eapply (not_id_bound_gen_mono incBlockNamed_count_gen_injective _ H)
+      | H: incBlock ?s1 ≡ inr (?s2, ?bid) |-
+        ~(bid_bound ?s3 ?bid) =>
+        eapply (not_id_bound_gen_mono incBlockNamed_count_gen_injective _ H)
       end.
 
     Ltac solve_count_gen_injective :=
@@ -589,7 +618,7 @@ Section Inputs.
          try solve_not_bid_bound;
          try solve_not_ends_with;
          try solve_count_gen_injective;
-         match goal with
+         try match goal with
          | |- Forall _ (?x::?xs) =>
            apply Forall_cons; eauto
          | |- bid_bound_between ?s1 ?s2 ?bid =>
@@ -598,10 +627,6 @@ Section Inputs.
 
     all: try (solve [big_solve]).
 
-    - big_solve; solve_not_bid_bound; cbn in *; big_solve.
-    - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
-    - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
-    - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
     - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
 
       Set Nested Proofs Allowed.
@@ -634,15 +659,21 @@ Section Inputs.
         rewrite List.Forall_cons_iff.
         split.
         2: { apply List.Forall_nil. }
+        big_solve.
+    - apply Forall_cons.
+      + big_solve.
+      + eapply Forall_impl.
+        apply bid_bound_between_only_block_count_r.
+        eapply all_state_bound_between_shrink.
+        3: {
+          eapply IHop.
+          eapply Heqs0.
+        }
 
-        admit.
-    - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
-      admit. admit.
-      admit.
-    - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
-    - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
-      cbn.
-
+        cbn. auto.
+        block_count_replace.
+        lia.
+    - 
       (* TODO: move this *)
       Lemma add_comment_inputs :
         forall (bs : list (LLVMAst.block typ)) env (comments : list string),
@@ -652,13 +683,10 @@ Section Inputs.
       Qed.
 
       rewrite add_comment_inputs.
+      rewrite convert_typ_app_list.
 
       unfold inputs.
-      unfold fmap.
-      unfold Fmap_list.
-
-      rewrite convert_typ_app_list.
-      rewrite map_app.
+      setoid_rewrite map_app.
 
       apply Forall_app.
       split.
@@ -668,7 +696,7 @@ Section Inputs.
       + eapply all_state_bound_between_shrink.
         3: { eapply IHop2; eauto. }
         all: solve_block_count.
-  Admitted.
+  Qed.
 
   (* TODO: may not actually needs this. *)
   Lemma inputs_nextblock :
