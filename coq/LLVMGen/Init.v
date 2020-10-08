@@ -840,9 +840,10 @@ Definition in_global_addr (g : global_env) (x : raw_id) (a : Addr.addr) :=
 Definition post_alloc_invariant_mcfg
            (globals : list (string * DSHType))
            (σ : evalContext)
+           (k : nat)
   : Rel_mcfg_T unit unit :=
   fun '(memH,_) '(memV,((_,sl),(g,_))) =>
-    forall j (jc : j < length σ),
+    forall j (jc : j < k),
     exists ptr_llvm,
       match le_lt_dec (length globals) j with
       | in_left => in_global_addr
@@ -1001,6 +1002,7 @@ Qed.
 Definition conj_rel (A B : Type) (R S : A → B → Prop) :=
   fun a b => R a b /\ S a b.
 
+(*
 Lemma post_alloc_invariant_mcfg_conj
       (h1 : string * DSHType)
       (tl1 : list (string * DSHType)) 
@@ -1070,6 +1072,71 @@ Proof.
         exists p.
         erewrite ListUtil.ith_eq; [| reflexivity].
         eassumption.
+Qed.
+*)
+
+Lemma global_uniq_chk_app
+      (a : string * DSHType)
+      (g1 g2 : list (string * DSHType))
+      (s : IRState)
+  :
+    global_uniq_chk a (g1 ++ g2) s ≡ inr (s, ()) ->
+    global_uniq_chk a g1 s ≡ inr (s, ()).
+Proof.
+  intros.
+  unfold global_uniq_chk, globals_name_present in *.
+  destruct fold_right eqn:FA in H;
+    inversion_clear H.
+  match goal with
+  | [ |- context [fold_right ?f' _ _ ]] => remember f' as f
+  end.
+  enough (fold_right f false g1 ≡ false) by (now rewrite H).
+  rewrite fold_right_app in FA.
+  destruct (fold_right f false g2) eqn:FG2; [| assumption].
+  contradict FA.
+  rewrite Bool.not_false_iff_true.
+  induction g1.
+  - reflexivity.
+  - cbn. rewrite IHg1. now subst.
+Qed.
+
+Lemma init_with_data_app_global_uniq_chk
+      (pre post : list (string * DSHType))
+      (s0 s1 : IRState)
+      (l0 l1 : list binary64)
+      (g : list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ)))) 
+  :
+    init_with_data initOneIRGlobal
+                   global_uniq_chk l0 (pre ++ post) s0 ≡ inr (s1, (l1, g)) →
+    ∃ l' s' g1 g2,
+      init_with_data initOneIRGlobal global_uniq_chk l0 pre s0 ≡ inr (s', (l', g1)) ∧
+      init_with_data initOneIRGlobal global_uniq_chk l' post s' ≡ inr (s1, (l1, g2)) ∧
+      g ≡ g1 ++ g2.
+Proof.
+  dependent induction pre; intros A.
+  -
+    intros.
+    cbn in *.
+    repeat eexists.
+    assumption.
+  -
+    rename pre into pre'.
+    cbn in A.
+    repeat break_match_hyp;
+      try inl_inr; repeat inl_inr_inv; subst.
+    apply IHpre in Heqs1; clear IHpre.
+    destruct Heqs1 as (l' & s' & g1 & g2 & PRE & POST & G).
+    repeat eexists.
+    2: eassumption.
+    2: { instantiate (1:=t :: g1). now rewrite G. }
+
+    copy_apply global_uniq_chk_preserves_st Heqs; subst i.
+    cbn.
+    erewrite global_uniq_chk_app;
+      [| destruct u; eassumption].
+    rewrite Heqs0.
+    rewrite PRE.
+    reflexivity.
 Qed.
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
@@ -1533,7 +1600,7 @@ Proof.
             DSHPtrVal (Datatypes.length globals) i])
     as σ.
   remember (Datatypes.length globals) as lg.
-  apply eutt_clo_bind with (UU:=post_alloc_invariant_mcfg globals σ).
+  apply eutt_clo_bind with (UU:=post_alloc_invariant_mcfg globals σ (length σ)).
   -
     assert (TMP_EQ: eutt
              (fun '(m,_) '(m',_) => m = m')
@@ -1557,10 +1624,71 @@ Proof.
     cbn.
 
     apply eutt_clo_bind
-      with (UU:=post_alloc_invariant_mcfg globals e).
-    +
+      with (UU:=post_alloc_invariant_mcfg globals e (length e)).
+    + 
       subst.
-      dependent induction globals.
+
+      fold_map_monad_.
+
+      remember {|
+          block_count := Compiler.block_count s0;
+          local_count := Compiler.local_count s0;
+          void_count := Compiler.void_count s0;
+          Γ := (ID_Local (Name "Y"), TYPE_Pointer (TYPE_Array (Int64.intval o) TYPE_Double))
+               :: (ID_Local (Name "X"),
+                  TYPE_Pointer (TYPE_Array (Int64.intval i) TYPE_Double)) :: 
+                  Γ s0 |} as s_yx.
+     
+      enough (
+          forall pre post gdecls1 gdecls2 s' l',
+            globals ≡ pre ++ post -> 
+
+            gdecls ≡ gdecls1 ++ gdecls2 ->
+
+            init_with_data initOneIRGlobal
+                           global_uniq_chk l1 pre s_yx ≡ inr (s', (l', gdecls1)) ->
+
+            init_with_data initOneIRGlobal
+                           global_uniq_chk l' post s' ≡ inr (s1, (l2, gdecls2)) ->
+
+            post_alloc_invariant_mcfg pre e (length pre)
+                                      (mg, ())
+                                      (m, (le0, stack0, (g, ()))) ->
+
+            eutt (post_alloc_invariant_mcfg (pre ++ post) e (length (pre ++ post)))
+                 (Ret (mg, ()))
+                    (interp_mcfg
+                       (map_monad_ allocate_global
+                                   (map (Fmap_global typ dtyp (typ_to_dtyp []))
+                                        (flat_map (globals_of typ) gdecls2)))
+                       g (le0, stack0) m))).
+      {
+        replace (globals) with ([] ++ globals) in * by reflexivity.
+        apply init_with_data_app_global_uniq_chk in LG.
+        destruct LG as (l' & s' & gdecls1 & gdecls2 & PRE & POST & GDECLS).
+        specialize (H0 [] globals gdecls1 gdecls2 s' l').
+        full_autospecialize H0; try congruence.
+        1: cbn; intros; lia.
+        replace (length e) with (length ([] ++ globals)) by congruence.
+        inv PRE.
+        apply H0.
+      }
+
+      intros pre post; revert pre.
+      induction post;
+        intros pre gdecls1 gdecls2 s' l' GLOBALS GDECLS PRE POST INV.
+      *
+        inv POST.
+        cbn.
+        admit.
+        (* repeat rewrite interp_to_L3_bind, translate_bind.
+        repeat rewrite interp_to_L3_ret, translate_ret. *)
+      *
+        rewrite <-ListUtil.list_app_first_last in *.
+        admit.
+
+      (*
+      induction globals; intros.
       *
         cbn in *; subst.
         invc LG.
@@ -1574,32 +1702,41 @@ Proof.
         intros.
         lia.
       *
+        rewrite <-CeresUtils.app_cons_assoc in *.
+        remember (x :: g_unchk) as g_unchk_new.
+        specialize IHg_chk with (g_unchk:=g_unchk_new).
+        (* specialize IHg_unchk with (n:=n). *)
+
+        eapply IHg_chk.
+        eassumption.
+        eassumption.
+          
         cbn in *; subst.
         (* this is a bit harsh *)
         repeat break_match; try inl_inr.
         (* carefully clean up *)
-        replace p7 with (mg, hdata) in * by (invc G; auto); clear p7.
-        subst p p0 p1 p2 p3 p4 (**) p6.
-        destruct p5 as [mg0 hdata0].
+        subst p (* p0 *) p1 (* p2 *) p3 p4 p5 p6 p7.
+        destruct p0 as [mg0 hdata0].
+        replace p2 with (mg, hdata) in * by (invc G; auto); clear p2.
         rename s0 into st_fyx.
         rename a into new_g.
-        replace i2 with s1 in * by (invc LG; auto); clear i2.
-        replace l2 with l4 in * by (invc LG; auto); clear l2.
-        copy_apply global_uniq_chk_preserves_st Heqs.
-        rename i0 into st_yx; rewrite H0 in *; rename H0 into ST_YX.
+        replace i2 with s1 in * by (inversion LG; auto); clear i2.
+        replace l2 with l5 in * by (inversion LG; auto); clear l2.
+        copy_apply global_uniq_chk_preserves_st Heqs1.
+        rename i0 into st_yxfyx; rewrite H0 in *; rename H0 into ST_YXFYX.
         rename i1 into st_ng.
-        inv G.
-        rename l6 into e.
+        inversion G; clear G; subst e.
+        rename l3 into e.
         rename d into new_g_dsh.
-        rename s1 into st_fin.
+        (* rename s1 into st_fin. *)
 
-        invc LG.
+        inversion LG; clear LG; subst gdecls.
         rename l5 into gdecls, t0 into new_gdecl.
         simpl.
         rewrite map_app.
 
-        copy_apply initOneIRGlobal_is_global Heqs0.
-        destruct H0 as [ng  H0]; subst new_gdecl.
+        copy_apply initOneIRGlobal_is_global Heqs2.
+        destruct H0 as [ng H0]; subst new_gdecl.
         simpl.
 
         move Heqs2 at bottom.
@@ -1608,10 +1745,10 @@ Proof.
            along the lines of [initFSGlobals init_m = res_m -> res_m = union init_m res_m] *)
         assert (TMP_EQ' : mg = memory_union mg0 mg).
         {
-          clear - Heqs2 Heqs3.
-          unfold initOneFSHGlobal in Heqs2.
+          clear - Heqs Heqs0.
+          unfold initOneFSHGlobal in Heqs.
           intros k.
-          repeat break_match; invc Heqs2.
+          repeat break_match; invc Heqs.
           1: break_match; invc H0.
           all: unfold memory_union, helix_empty_memory, memory_empty in *.
           all: rewrite Memory.NP.F.map2_1bis by reflexivity.
@@ -1632,8 +1769,8 @@ Proof.
             by (subst; unfold memory_set;
                 rewrite Memory.NP.F.add_eq_o by reflexivity;
                 reflexivity).
-          clear - Heqs3 M0.
-          rename Heqs3 into L.
+          clear - Heqs0 M0.
+          rename Heqs0 into L.
 
           dependent induction globals.
           -
@@ -1689,8 +1826,8 @@ Proof.
         }
 
         rewrite Eq.bind_bind.
-        repeat rewrite interp_to_L3_bind.
-        eapply eutt_clo_bind with (UU:=post_alloc_invariant_mcfg [new_g] [new_g_dsh]).
+        repeat rewrite interp_to_L3_bind, translate_bind.
+        apply eutt_clo_bind with (UU:=post_alloc_invariant_mcfg [new_g] [new_g_dsh] 1).
         --
           intros.
           cbn.
@@ -1700,9 +1837,9 @@ Proof.
           (* Alloca ng *)
           pose_interp_to_L3_alloca m'' a'' A' AE'.
           {
-            clear - Heqs0.
-            unfold initOneIRGlobal in Heqs0.
-            repeat break_match; invc Heqs0; cbn.
+            clear - Heqs2.
+            unfold initOneIRGlobal in Heqs2.
+            repeat break_match; invc Heqs2; cbn.
             rewrite typ_to_dtyp_I; discriminate.
             rewrite typ_to_dtyp_D; discriminate.
             rewrite typ_to_dtyp_D_array; discriminate.
@@ -1728,26 +1865,29 @@ Proof.
             unfold alist_add.
             rewrite alist_find_cons_eq.
             reflexivity.
-            clear - Heqs0.
-            unfold initOneIRGlobal in Heqs0.
-            repeat break_match; invc Heqs0; reflexivity.
+            clear - Heqs2.
+            unfold initOneIRGlobal in Heqs2.
+            repeat break_match; inversion Heqs2; reflexivity.
           ++
             eapply allocate_allocated.
             eassumption.
         --
           intros.
+          move IHglobals after Heqs0.
           eapply eutt_equiv;
             [eapply post_alloc_invariant_mcfg_conj |].
-          repeat break_let; subst.
+          repeat break_let; subst p1 p u3.
           eapply eutt_conj.
           admit.
-          move IHglobals after H.
 
           eapply eutt_weaken_right.
-          3:{ eapply IHglobals; admit. }
-          2:{ rewrite interp_to_L3_bind. admit. }
-          (* eapply eutt_clo_bind. *)
-          admit.
+
+          3:{
+            eapply IHglobals.
+            all: admit.
+          }
+          all:admit.
+          *)
     +
       intros.
       unfold initXYplaceholders, addVars in LX.
