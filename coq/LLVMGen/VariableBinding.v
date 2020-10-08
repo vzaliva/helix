@@ -75,7 +75,7 @@ Section StateBound.
     forall (s1 s2 s3 : IRState) (id id' : raw_id),
       state_bound s1 id ->
       (count s1 <= count s2)%nat ->
-      state_bound_between s1 s2 id' ->
+      state_bound_between s2 s3 id' ->
       id ≢ id'.
   Proof.
     intros s1 s2 s3 id id' BOUND COUNT BETWEEN.
@@ -258,6 +258,18 @@ Section BidBound.
       bid_bound {| block_count := block_count s; local_count := lc; void_count := vc; Γ := γ |} bid.
   Proof.
     intros s lc vc γ bid BOUND.
+    destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
+    unfold bid_bound.
+    exists n1. exists s1'. exists s1''.
+    repeat (split; auto).
+  Qed.
+
+  Lemma bid_bound_between_only_block_count_r :
+    forall s1 s2 lc vc γ bid,
+      bid_bound_between s1 s2 bid ->
+      bid_bound_between s1 {| block_count := block_count s2; local_count := lc; void_count := vc; Γ := γ |} bid.
+  Proof.
+    intros s1 s2 lc vc γ bid BOUND.
     destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
     unfold bid_bound.
     exists n1. exists s1'. exists s1''.
@@ -490,10 +502,21 @@ Ltac solve_bid_bound :=
     | H: incBlockNamed ?msg ?s1 ≡ inr (?s2, ?bid) |-
       bid_bound ?s2 ?bid =>
       eapply bid_bound_incBlockNamed; try eapply H; solve_not_ends_with
+    | H: incBlock ?s1 ≡ inr (?s2, ?bid) |-
+      bid_bound ?s2 ?bid =>
+      eapply bid_bound_incBlockNamed; try eapply H; solve_not_ends_with
+
     | H: incBlockNamed ?msg ?s1 ≡ inr (_, ?bid) |-
       ~(bid_bound ?s1 ?bid) =>
       eapply gen_not_state_bound; try eapply H; solve_not_ends_with
+    | H: incBlock ?s1 ≡ inr (_, ?bid) |-
+      ~(bid_bound ?s1 ?bid) =>
+      eapply gen_not_state_bound; try eapply H; solve_not_ends_with
+
     (* Monotonicity *)
+    | |- bid_bound {| block_count := block_count ?s; local_count := ?lc; void_count := ?vc; Γ := ?γ |} ?bid =>
+      apply bid_bound_only_block_count
+
     | H: incVoid ?s1 ≡ inr (?s2, _) |-
       bid_bound ?s2 _ =>
       eapply bid_bound_incVoid_mono; try eapply H
@@ -501,6 +524,9 @@ Ltac solve_bid_bound :=
       bid_bound ?s2 _ =>
       eapply bid_bound_incLocal_mono; try eapply H
     | H: incBlockNamed _ ?s1 ≡ inr (?s2, _) |-
+      bid_bound ?s2 _ =>
+      eapply bid_bound_incBlockNamed_mono; try eapply H
+    | H: incBlock ?s1 ≡ inr (?s2, _) |-
       bid_bound ?s2 _ =>
       eapply bid_bound_incBlockNamed_mono; try eapply H
     | H: genNExpr ?n ?s1 ≡ inr (?s2, _) |-
@@ -517,11 +543,97 @@ Ltac solve_bid_bound :=
       eapply bid_bound_genIR_mono; try eapply H
     | H : resolve_PVar _ _ ≡ inr _ |- _ =>
       apply resolve_PVar_state in H; subst
-    | |- bid_bound {| block_count := block_count ?s; local_count := ?lc; void_count := ?vc; Γ := ?γ |} ?bid =>
-      apply bid_bound_only_block_count
     end.
 
+
+Ltac invert_err2errs :=
+  match goal with
+  | H : ErrorWithState.err2errS (MInt64asNT.from_nat ?n) ?s1 ≡ inr (?s2, _) |- _ =>
+    destruct (MInt64asNT.from_nat n); inversion H; subst
+  | H : ErrorWithState.err2errS (inl _) _ ≡ inr _ |- _ =>
+    inversion H
+  | H : ErrorWithState.err2errS (inr _) _ ≡ inr _ |- _ =>
+    inversion H; subst
+  end.
+
+Ltac block_count_replace :=
+  repeat match goal with
+         | H : incVoid ?s1 ≡ inr (?s2, ?bid) |- _
+           => apply incVoid_block_count in H; cbn in H
+         | H : incBlockNamed ?name ?s1 ≡ inr (?s2, ?bid) |- _
+           => apply incBlockNamed_block_count in H; cbn in H
+         | H : incBlock ?s1 ≡ inr (?s2, ?bid) |- _
+           => apply incBlockNamed_block_count in H; cbn in H
+         | H : incLocal ?s1 ≡ inr (?s2, ?bid) |- _
+           => apply incLocal_block_count in H; cbn in H
+         | H: genNExpr ?n ?s1 ≡ inr (?s2, _) |- _
+           => eapply genNExpr_block_count in H; cbn in H
+         | H: genMExpr ?n ?s1 ≡ inr (?s2, _) |- _
+           => eapply genMExpr_block_count in H; cbn in H
+         | H: genAExpr ?n ?s1 ≡ inr (?s2, _) |- _
+           => eapply genAExpr_block_count in H; cbn in H
+         | H: genIR ?op ?nextblock ?s1 ≡ inr (?s2, _) |- _
+           => eapply genIR_block_count in H; cbn in H
+         end.
+
+Ltac solve_block_count :=
+  match goal with
+  | |- (block_count ?s1 <= block_count ?s2)%nat
+    => block_count_replace; cbn; lia
+  | |- (block_count ?s1 >= block_count ?s2)%nat
+    => block_count_replace; cbn; lia
+  end.
+
+Ltac solve_not_bid_bound :=
+  match goal with
+  | H: incBlockNamed ?name ?s1 ≡ inr (?s2, ?bid) |-
+    ~(bid_bound ?s3 ?bid) =>
+    eapply (not_id_bound_gen_mono incBlockNamed_count_gen_injective _ H)
+  | H: incBlock ?s1 ≡ inr (?s2, ?bid) |-
+    ~(bid_bound ?s3 ?bid) =>
+    eapply (not_id_bound_gen_mono incBlockNamed_count_gen_injective _ H)
+  end.
+
+Ltac solve_count_gen_injective :=
+  match goal with
+  | |- count_gen_injective _ _
+    => eauto with CountGenInj
+  end.
+
+Ltac big_solve :=
+  repeat
+    (try invert_err2errs;
+     try solve_block_count;
+     try solve_not_bid_bound;
+     try solve_not_ends_with;
+     try solve_count_gen_injective;
+     try match goal with
+         | |- Forall _ (?x::?xs) =>
+           apply Forall_cons; eauto
+         | |- bid_bound_between ?s1 ?s2 ?bid =>
+           eapply bid_bound_bound_between; solve_bid_bound
+         end).
+
 Section Inputs.
+
+  (* TODO: Move this to Vellvm *)
+  Lemma convert_typ_app_list :
+    forall {F} `{Traversal.Fmap F} (a b : list (F typ)) (env : list (ident * typ)),
+      convert_typ env (a ++ b) ≡ convert_typ env a ++ convert_typ env b.
+  Proof.
+    intros F H a.
+    induction a; cbn; intros; auto.
+    rewrite IHa; reflexivity.
+  Qed.
+
+  (* TODO: move this *)
+  Lemma add_comment_inputs :
+    forall (bs : list (LLVMAst.block typ)) env (comments : list string),
+      inputs (convert_typ env (add_comment bs comments)) ≡ inputs (convert_typ env bs).
+  Proof.
+    induction bs; intros env comments; auto.
+  Qed.
+
   (* Lemmas about the inputs to blocks *)
   Lemma inputs_bound_between :
     forall (op : DSHOperator) (s1 s2 : IRState) (nextblock op_entry : block_id) (bk_op : list (LLVMAst.block typ)),
@@ -532,88 +644,9 @@ Section Inputs.
       intros s1 s2 nextblock op_entry bk_op GEN;
       pose proof GEN as BACKUP_GEN;
       cbn in GEN; simp; cbn.
-
-    Ltac invert_err2errs :=
-      match goal with
-      | H : ErrorWithState.err2errS (MInt64asNT.from_nat ?n) ?s1 ≡ inr (?s2, _) |- _ =>
-        destruct (MInt64asNT.from_nat n); inversion H; subst
-      | H : ErrorWithState.err2errS (inl _) _ ≡ inr _ |- _ =>
-        inversion H
-      | H : ErrorWithState.err2errS (inr _) _ ≡ inr _ |- _ =>
-        inversion H; subst
-      end.
-
-    Ltac block_count_replace :=
-      repeat match goal with
-             | H : incVoid ?s1 ≡ inr (?s2, ?bid) |- _
-               => apply incVoid_block_count in H; cbn in H
-             | H : incBlockNamed ?name ?s1 ≡ inr (?s2, ?bid) |- _
-               => apply incBlockNamed_block_count in H; cbn in H
-             | H : incLocal ?s1 ≡ inr (?s2, ?bid) |- _
-               => apply incLocal_block_count in H; cbn in H
-             | H: genNExpr ?n ?s1 ≡ inr (?s2, _) |- _
-               => eapply genNExpr_block_count in H; cbn in H
-             | H: genMExpr ?n ?s1 ≡ inr (?s2, _) |- _
-               => eapply genMExpr_block_count in H; cbn in H
-             | H: genAExpr ?n ?s1 ≡ inr (?s2, _) |- _
-               => eapply genAExpr_block_count in H; cbn in H
-             | H: genIR ?op ?nextblock ?s1 ≡ inr (?s2, _) |- _
-               => eapply genIR_block_count in H; cbn in H
-             end.
-
-    Ltac solve_block_count :=
-      match goal with
-      | |- (block_count ?s1 <= block_count ?s2)%nat
-        => block_count_replace; cbn; lia
-      | |- (block_count ?s1 >= block_count ?s2)%nat
-        => block_count_replace; cbn; lia
-      end.
-
-    Ltac solve_not_bid_bound :=
-      match goal with
-      | H: incBlockNamed ?name ?s1 ≡ inr (?s2, ?bid) |-
-        ~(bid_bound ?s3 ?bid) =>
-        eapply (not_id_bound_gen_mono incBlockNamed_count_gen_injective _ H)
-      end.
-
-    Ltac solve_count_gen_injective :=
-      match goal with
-      | |- count_gen_injective _ _
-        => eauto with CountGenInj
-      end.
-
-    Ltac big_solve :=
-      repeat
-        (try invert_err2errs;
-         try solve_block_count;
-         try solve_not_bid_bound;
-         try solve_not_ends_with;
-         try solve_count_gen_injective;
-         match goal with
-         | |- Forall _ (?x::?xs) =>
-           apply Forall_cons; eauto
-         | |- bid_bound_between ?s1 ?s2 ?bid =>
-           eapply bid_bound_bound_between; solve_bid_bound
-         end).
-
     all: try (solve [big_solve]).
 
-    - big_solve; solve_not_bid_bound; cbn in *; big_solve.
     - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
-    - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
-    - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
-    - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
-
-      Set Nested Proofs Allowed.
-      (* TODO: Move this *)
-      Lemma convert_typ_app_list :
-        forall {F} `{Traversal.Fmap F} (a b : list (F typ)) (env : list (ident * typ)),
-          convert_typ env (a ++ b) ≡ convert_typ env a ++ convert_typ env b.
-      Proof.
-        intros F H a.
-        induction a; cbn; intros; auto.
-        rewrite IHa; reflexivity.
-      Qed.
 
       rewrite convert_typ_app_list.
 
@@ -634,31 +667,25 @@ Section Inputs.
         rewrite List.Forall_cons_iff.
         split.
         2: { apply List.Forall_nil. }
+        big_solve.
+    - apply Forall_cons.
+      + big_solve.
+      + eapply Forall_impl.
+        apply bid_bound_between_only_block_count_r.
+        eapply all_state_bound_between_shrink.
+        3: {
+          eapply IHop.
+          eapply Heqs0.
+        }
 
-        admit.
-    - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
-      admit. admit.
-      admit.
-    - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
-    - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
-      cbn.
-
-      (* TODO: move this *)
-      Lemma add_comment_inputs :
-        forall (bs : list (LLVMAst.block typ)) env (comments : list string),
-          inputs (convert_typ env (add_comment bs comments)) ≡ inputs (convert_typ env bs).
-      Proof.
-        induction bs; intros env comments; auto.
-      Qed.
-
-      rewrite add_comment_inputs.
+        cbn. auto.
+        block_count_replace.
+        lia.
+    - rewrite add_comment_inputs.
+      rewrite convert_typ_app_list.
 
       unfold inputs.
-      unfold fmap.
-      unfold Fmap_list.
-
-      rewrite convert_typ_app_list.
-      rewrite map_app.
+      setoid_rewrite map_app.
 
       apply Forall_app.
       split.
@@ -668,32 +695,47 @@ Section Inputs.
       + eapply all_state_bound_between_shrink.
         3: { eapply IHop2; eauto. }
         all: solve_block_count.
-  Admitted.
+  Qed.
+
+  Lemma inputs_not_earlier_bound :
+    forall (op : DSHOperator) (s1 s2 s3 : IRState) (bid nextblock op_entry : block_id) (bk_op : list (LLVMAst.block typ)),
+      bid_bound s1 bid ->
+      (block_count s1 <= block_count s2)%nat ->
+      genIR op nextblock s2 ≡ inr (s3, (op_entry, bk_op)) ->
+      Forall (fun x => x ≢ bid) (inputs (convert_typ [ ] bk_op)).
+  Proof.
+    intros op s1 s2 s3 bid nextblock op_entry bk_op BOUND COUNT GEN.
+    pose proof (inputs_bound_between _ _ _ GEN) as BETWEEN.
+    apply Forall_forall.
+    intros x H.
+    assert (bid ≢ x) as BIDX; auto.
+    { eapply state_bound_fresh'.
+      - apply incBlockNamed_count_gen_injective.
+      - assert (bid_bound_between s2 s3 x).
+        eapply Forall_forall. apply BETWEEN.
+        auto.
+        apply BOUND.
+      - apply COUNT.
+      - eapply Forall_forall.
+        apply BETWEEN.
+        auto.
+    }
+  Qed.
 
   (* TODO: may not actually needs this. *)
   Lemma inputs_nextblock :
     forall (op : DSHOperator) (s1 s2 s3 : IRState) (nextblock op_entry : block_id) (bk_op : list (LLVMAst.block typ)),
       bid_bound s1 nextblock ->
+      (block_count s1 <= block_count s2)%nat ->
       genIR op nextblock s2 ≡ inr (s3, (op_entry, bk_op)) ->
       Forall (fun bid => bid ≢ nextblock) (inputs (convert_typ [ ] bk_op)).
   Proof.
-    intros op s1 s2 s3 nextblock op_entry bk_op H.
-  Admitted.
-
-  Lemma inputs_not_earlier_bound :
-    forall (op : DSHOperator) (s1 s2 s3 : IRState) (bid nextblock op_entry : block_id) (bk_op : list (LLVMAst.block typ)),
-      bid_bound s1 bid ->
-      genIR op nextblock s2 ≡ inr (s3, (op_entry, bk_op)) ->
-      Forall (fun x => x ≢ bid) (inputs (convert_typ [ ] bk_op)).
-  Proof.
-    intros op s1 s2 s3 bid nextblock op_entry bk_op BOUND GEN.
-    apply Forall_forall.
-    intros x H.
-  Admitted.
+    intros op s1 s2 s3 nextblock op_entry bk_op BOUND COUNT GEN.
+    eapply inputs_not_earlier_bound; eauto.
+  Qed.
 End Inputs.
 
 Section Outputs.
-  (* TODO: Move *)
   Lemma outputs_bound_between :
     forall (op : DSHOperator) (s1 s2 : IRState) (nextblock op_entry : block_id) (bk_op : list (LLVMAst.block typ)),
       genIR op nextblock s1 ≡ inr (s2, (op_entry, bk_op)) ->
