@@ -245,14 +245,19 @@ End A.
 
 Ltac vred :=
   rewrite ?typ_to_dtyp_equation;
+  rewrite ?bind_ret_l;
+  rewrite ?bind_bind;
   first [rewrite translate_trigger; (rewrite lookup_E_to_exp_E_Local || rewrite lookup_E_to_exp_E_Global);
          rewrite subevent_subevent, translate_trigger;
          (rewrite exp_E_to_instr_E_Local || rewrite exp_E_to_instr_E_Global); rewrite subevent_subevent |
          idtac];
-  first [rewrite denote_code_nil | rewrite denote_code_singleton | rewrite convert_typ_app, denote_code_app | idtac];
+  first [rewrite denote_code_nil | rewrite denote_code_singleton | rewrite denote_code_cons | rewrite convert_typ_app, denote_code_app | idtac];
   first [rewrite interp_cfg_to_L3_ret | rewrite  interp_cfg_to_L3_bind | idtac].
 
-Ltac hred := rewrite ?interp_helix_bind, ?interp_helix_Ret.
+Ltac hred :=
+  repeat (rewrite ?interp_helix_bind, ?interp_helix_Ret, ?bind_ret_l).
+
+Ltac hstep := first [rewrite interp_helix_MemSet | rewrite interp_helix_MemLU; cycle -1 | idtac].
 
 Ltac hvred :=
   let R := fresh
@@ -263,29 +268,20 @@ Ltac hvred :=
         in eutt_hide_right_named X; hred; subst X;
            subst R.
 
-Lemma denote_exp_i64 :forall defs t g l m,
-    interp_cfg_to_L3 defs
-                     (translate exp_E_to_instr_E
-                                (denote_exp (Some (DTYPE_I 64))
-                                            (EXP_Integer (Integers.Int64.intval t))))
-                     g l m
-             ≈
-                     Ret (m, (l, (g, UVALUE_I64 t))).
-Proof.
-  intros; cbn.
-  rewrite translate_ret, interp_cfg_to_L3_ret, repr_intval.
-  reflexivity.
-Qed.
-
 Ltac expstep :=
-first [rewrite denote_exp_LR; cycle -1 |
-         rewrite denote_exp_GR; cycle -1 |
+first [rewrite denote_exp_LR; cycle 1 |
+         rewrite denote_exp_GR; cycle 1 |
          rewrite denote_exp_i64 |
-         rewrite denote_instr_op; cycle -1 |
+         rewrite denote_exp_double |
+         rewrite denote_ibinop_concrete; cycle 1; try reflexivity |
+         rewrite denote_fbinop_concrete; cycle 1; try reflexivity |
+         rewrite denote_fcmp_concrete; cycle 1; try reflexivity |
          idtac].
 
 Ltac instrstep :=
-  first [rewrite denote_instr_load; eauto; cycle -1 |
+  first [rewrite denote_instr_load; eauto; cycle 1 |
+         rewrite denote_instr_intrinsic; cycle 1; try reflexivity |
+         rewrite denote_instr_op; cycle 1 |
          idtac
         ].
 
@@ -399,8 +395,7 @@ Arguments denote_exp : simpl never.
       hvred.
       vstep.
       {
-        (* TODO: can we simplify this? *)
-        eapply denote_ibinop_concrete; cbn; eauto; try reflexivity.
+        vstep; eauto; try reflexivity.
         cbn; break_inner_match_goal; try reflexivity.
         exfalso; apply n.
         clear EXPRF EXPRI.
@@ -458,8 +453,8 @@ Arguments denote_exp : simpl never.
       (* Operator evaluation *)
       {
         cbn in EXPRF.
-        eapply denote_ibinop_concrete; cbn; eauto; try reflexivity.
-        3: eapply EXPRF; reflexivity.
+        vstep; cbn; eauto; try reflexivity.
+        eapply EXPRF; reflexivity.
         reflexivity.
         cbn; break_inner_match_goal; try reflexivity.
 
@@ -509,7 +504,7 @@ Arguments denote_exp : simpl never.
 
      cbn; hvred.
      vstep.
-     eapply denote_ibinop_concrete; cbn; try (eapply EXPRF || eapply EXPRI); eauto; reflexivity.
+     vstep; cbn; try (eapply EXPRF || eapply EXPRI); eauto; reflexivity.
      cbn.
 
      apply eutt_Ret; split; [| split].
@@ -553,7 +548,7 @@ Arguments denote_exp : simpl never.
 
      cbn; hvred.
      vstep.
-     eapply denote_ibinop_concrete; cbn; try (eapply EXPRF || eapply EXPRI); eauto; reflexivity.
+     vstep; cbn; try (eapply EXPRF || eapply EXPRI); eauto; reflexivity.
 
      apply eutt_Ret; split; [| split].
      cbn; eapply state_invariant_add_fresh; eauto.
@@ -598,7 +593,7 @@ Arguments denote_exp : simpl never.
      vstep.
       (* Operator evaluation *)
      {
-        eapply denote_ibinop_concrete; cbn; try (eapply EXPRF || eapply EXPRI); eauto; try reflexivity.
+        vstep; cbn; try (eapply EXPRF || eapply EXPRI); eauto; try reflexivity.
         cbn.
         break_inner_match; reflexivity.
       }

@@ -1661,7 +1661,7 @@ Proof.
                        (map_monad_ allocate_global
                                    (map (Fmap_global typ dtyp (typ_to_dtyp []))
                                         (flat_map (globals_of typ) gdecls2)))
-                       g (le0, stack0) m))).
+                       g (le0, stack0) m)).
       {
         replace (globals) with ([] ++ globals) in * by reflexivity.
         apply init_with_data_app_global_uniq_chk in LG.
