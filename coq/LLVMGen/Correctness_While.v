@@ -260,6 +260,21 @@ Proof.
   (* denote_bks_app denote_bks_cons *)
 Admitted.
 
+(* YZ: I think this is what we need *)
+Lemma denote_bks_prefix :
+  forall (prefix bks' postfix bks : list (LLVMAst.block dtyp)) (from to: block_id),
+    bks ≡ (prefix ++ bks' ++ postfix) ->
+    ~ In to (map blk_id prefix) ->
+    denote_bks bks (from, to) ≈
+               ITree.bind (denote_bks bks' (from, to))
+               (fun x => match x with
+                      | inl x => denote_bks bks x
+                      | inr x => ret (inr x)
+                      end
+               ).
+Proof.
+Admitted.
+
 (* Auxiliary integer computation lemmas *)
 Lemma genWhileLoop_ind_arith_aux_1: forall n k,
   dvalue_to_uvalue (eval_int_icmp Slt ((int64) ((Z) (n - S k - 1)) + (int64) 1) ((int64) ((Z) n))) ≡ 'u_one.
@@ -486,21 +501,25 @@ Proof.
   clear UPPER_BOUND.
 
   induction k as [| k IH].
-  - intros * (INV & LOOPVAR).
+  - (* Base case: we enter through [loopcontblock] and jump out immediately to [nextblock] *)
+    intros * (INV & LOOPVAR).
+
     (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
     apply no_repeat_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
     apply fresh_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_block_app in NEXTBLOCK_ID.
     cbn; rewrite ?convert_typ_block_app.
     hide_cfg.
 
+    (* We jump into [loopcontblock]
+       We denote the content of the block.
+     *)
     vjmp.
-    unfold bind, Monad_itree.
-    rewrite interp_cfg_to_L3_bind.
     cbn.
-    (* TODO step *)
-    rewrite denote_no_phis, bind_ret_l.
+    vred.
+    (* TODO add phi-reasoning to step *)
+    rewrite denote_no_phis.
     repeat vred.
-    vstep.
+    vstep. 
     {
       vstep.
       vstep; solve_lu; reflexivity.
@@ -518,7 +537,8 @@ Proof.
     }      
     vred.
 
-    (* TODO *)
+    (* We now branch to [nextblock] *)
+    (* TODO add branching reasoning to step *)
     rewrite denote_term_br_r; cycle 1.
     { vstep.
       solve_lu.
@@ -533,6 +553,7 @@ Proof.
     vjmp_out.
     vred.
 
+    (* We have only touched local variables that the invariant does not care about, we can reestablish it *)
     apply eutt_Ret.
     split.
     + reflexivity.
@@ -540,243 +561,115 @@ Proof.
       eapply STABLE. right. left. reflexivity.
       apply INV.
 
-  - cbn in *. intros * (INV & LOOPVAR).
-    Arguments fmap /.
-    Arguments Fmap_block /.
-    cbn...
+  - (* Inductive case *)
+
+    cbn in *. intros * (INV & LOOPVAR).
+    (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
+    apply no_repeat_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
+    apply fresh_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_block_app in NEXTBLOCK_ID.
+    cbn; rewrite ?convert_typ_block_app.
+    cbn in IH; rewrite ?convert_typ_block_app in IH.
+    hide_cfg.
 
     (* RHS : Reducing RHS to apply Body Hypothesis *)
-    (* First step : First, Check that k<n hence we do not exit, in order to jump back to bodyblock. *)
-    rewrite list_cons_app.
-    rewrite convert_typ_block_app.
-    (* We ignore entry_id *)
-    cbn. rewrite list_cons_app.
-    rewrite denote_bks_unfold_in. cbn.
-
-    (* START rewrite *)
-    rewrite bind_bind. rewrite bind_bind. rewrite interp_cfg_to_L3_bind.
-    (* END rewrite *)
-
-    2 : {
-      match goal with
-      | [ |- find_block dtyp (_ ++ ?l) _ ≡ _ ] => remember l
-      end
-      .
-      rewrite list_cons_app in Heql0.
-      rewrite Heql0.
-      rewrite app_assoc.
-      rewrite app_assoc. erewrite blk_id_norepet_find_block. reflexivity.
-      2 : reflexivity. cbn. cbn in UNIQUE_IDENTS.
-      2 : {
-        cbn. subst.
-        assert (EQ: loopcontblock ≡ loopcontblock) by reflexivity.
-        eapply rel_dec_eq_true in EQ. 2 : typeclasses eauto. subst.
-        cbn. rewrite find_block_eq. reflexivity. reflexivity.
-      }
-      red. cbn.
-      rewrite map_app. cbn. subst. cbn. 
-      apply UNIQUE_IDENTS.
+    (* Step 1 : First, process [loopcontblock] and check that k<n, and hence that we do not exit *)
+    vjmp.
+    cbn.
+    vred.
+    rewrite denote_no_phis.
+    repeat vred.
+    vstep.
+    {
+      vstep.
+      vstep; solve_lu.
+      vstep; solve_lu.
+      all: reflexivity.
     }
+    vred.
+    vstep.
+    {
+      cbn; vstep.
+      vstep; solve_lu.
+      vstep; solve_lu.
+      all: reflexivity.
+    }
+    vred.
 
-    (* Updating (loopvar <- S k) coming from loopcontblock. *)
-    focus_single_step_v.
-    cbn.
-
-    (* START rewrite *)
-    rewrite interp_cfg_to_L3_ret. rewrite bind_ret_l.
-    (* END rewrite *)
-
-    rewrite Heqi7.
-
-    (* START rewrite *)
-    rewrite bind_bind. rewrite interp_cfg_to_L3_bind.
-    cbn. rewrite interp_cfg_to_L3_ret.
-    rewrite bind_ret_l. rewrite bind_ret_l.
-    rewrite bind_bind. rewrite interp_cfg_to_L3_bind.
-    cbn.
-    (* END rewrite *)
+    (* Step 2 : Jump to b0, i.e. loopblock (since we have checked k < n). *)
+    rewrite denote_term_br_l; cycle 1.
+    { cbn; vstep; try solve_lu.
+      rewrite genWhileLoop_ind_arith_aux_1.
+      reflexivity.
+    }
+    vred.
+    vjmp.
+    (* We update [loopvar] via the phi-node *)
+    cbn; repeat vred.
 
     focus_single_step_v.
-    Transparent denote_code.
-    unfold denote_code. cbn. Opaque denote_code.
 
-    (* START rewrite *)
-    rewrite bind_bind. rewrite interp_cfg_to_L3_bind.
-    rewrite bind_bind.
-    (* END rewrite *)
-
-    focus_single_step_v.
-    Transparent denote_instr. unfold denote_instr.
-    Opaque denote_instr.
-
-    (* START rewrite *)
-    setoid_rewrite interp_cfg_to_L3_bind. 
-    rewrite bind_bind. cbn. (* This cbn takes so long.. *)
-    rewrite translate_bind. rewrite interp_cfg_to_L3_bind.
-    rewrite bind_bind.
-    rewrite translate_trigger. rewrite translate_trigger.
-    rewrite lookup_E_to_exp_E_Local.
-    rewrite subevent_subevent.
-    rewrite exp_E_to_instr_E_Local. rewrite subevent_subevent.
-    rewrite interp_cfg_to_L3_LR.
-    (* END rewrite *)
-
-    2 : { cbn... eauto. }
+    (* TODO: infrastructure to deal with phi *)
+    unfold denote_phis.
     cbn.
-
-    (* START rewrite *)
-    rewrite bind_ret_l. rewrite translate_bind.
-    rewrite interp_cfg_to_L3_bind.  rewrite bind_bind.
-    cbn...
-    (* END rewrite *)
-
-    unfold uvalue_to_dvalue_binop. cbn. cbn...
-    unfold uvalue_to_dvalue. cbn.
-    cbn...
-    rewrite interp_cfg_to_L3_LW. cbn...
-
-    (* Simplifying until we get to the branching conditional statement. *)
-    rewrite Heqi10. cbn...
-    Transparent denote_instr. unfold denote_instr. cbn...
-    Opaque denote_instr. cbn...
-    unfold uvalue_to_dvalue_binop. cbn.
-    2 : {
-      setoid_rewrite lookup_alist_add_eq. reflexivity.
+    repeat vred.
+    rewrite denote_phi_tl; cycle 1.
+    {
+      (* TODO *)
+      admit.
+      (* inversion UNIQUE_IDENTS. *)
+      (* intro. subst. apply H3. right. *)
+      (* apply in_or_app. right. constructor. reflexivity. *)
     }
-    cbn. cbn...
-    rewrite interp_cfg_to_L3_LW. cbn.
-
-    (* START rewrite *)
-    rewrite bind_ret_l. rewrite interp_cfg_to_L3_bind.
-    rewrite bind_bind. rewrite bind_ret_l.
-    rewrite interp_cfg_to_L3_ret. rewrite bind_ret_l.
-    rewrite bind_ret_l. rewrite interp_cfg_to_L3_ret. 
-    rewrite bind_ret_l.
-    (* END rewrite *)
-    clear Heqi10. rewrite Heqi9.
-    Transparent denote_terminator. cbn.
-
-    (* START rewrite *)
-    rewrite translate_trigger. rewrite lookup_E_to_exp_E_Local.
-    rewrite subevent_subevent. rewrite translate_bind.
-    rewrite bind_bind. rewrite translate_trigger.
-    rewrite interp_cfg_to_L3_bind.
-    (* END rewrite *)
-    focus_single_step_v.
-
-    cbn...
+    rewrite denote_phi_hd.
     cbn.
-    2 : {
-      setoid_rewrite lookup_alist_add_eq. reflexivity.
-    }
-
-    (* We find that k < n, thus we go back to looping on the body *)
-    cbn...
-
-    (* assert (n - S (S k) ≡ n - S k - 1) by lia. setoid_rewrite H0. *)
-    cbn.
-    match goal with
-    | [ |- context [(g, ?w)]] => remember w
-    end.
-
-    assert (u ≡ 'u_one). subst.
-    apply genWhileLoop_ind_arith_aux_1.
-    rewrite H0.
-
-    rewrite Heqi11. cbn.
-    cbn... clear Heqi11.
-
-
-    (* Step 2 : Jump back to body_entry (since we have checked k < n). *)
-    simpl. cbn...
-    simpl.
-    rewrite list_cons_app. cbn...
-
-    rewrite denote_bks_unfold_in.
-
-    2 : {
-      rewrite list_cons_app.
-      erewrite blk_id_norepet_find_block.
-      reflexivity. 2 : reflexivity.
-      red; cbn; rewrite map_app; cbn.
-      subst. cbn.
-      apply UNIQUE_IDENTS.
-      rewrite find_block_eq. reflexivity. subst. cbn. reflexivity.
-    }
-    cbn...
-    subst. cbn...
-    (* rewrite Heqb0_bk, Heqentry_bk, Heqloopcont_bk. cbn... *)
-    rewrite denote_phi_tl.
-    focus_single_step_v.
-    2 : {
-      inversion UNIQUE_IDENTS.
-      cbn in H2. intro. subst. apply H3. right.
-      apply in_or_app. right. constructor. reflexivity.
-    }
-    Transparent denote_phi. unfold denote_phi. rewrite assoc_hd. cbn.
-    cbn... cbn. 
-    Opaque denote_phi.
-    2 : {
+    (* TOFIX: broken automation, a wild translate sneaked in where it shouldn't *)
+    rewrite translate_bind.
+    repeat vred.
+    vstep.
+    {
+      (* TODO automation? *)
       setoid_rewrite lookup_alist_add_ineq.
       setoid_rewrite lookup_alist_add_eq. reflexivity.
-      intro. symmetry in H1. revert H1.
+      intro. symmetry in H0. revert H0.
       Transparent incLocal.
       eapply incLocalNamed_fresh.
       eauto. reflexivity.
     }
-    cbn... rewrite Heqi7. cbn...
-
-    (* Got the phi node from loop cont block, now! Time to jump to body_entry. *)
-    (* Before that, we need to clean up some fluff. *)
-    cbn... focus_single_step_v. cbn...
+    (* TOFIX: broken automation, a wild translate sneaked in where it shouldn't *)
+    repeat vred.
+    rewrite translate_ret.
+    repeat vred.
+    cbn.
+    repeat vred.
+    (* TOFIX: we leak a [LocalWrite] event *)
+    rewrite interp_cfg_to_L3_LW.
+    repeat vred.
     subst.
+    cbn.
+    repeat vred.
 
-    cbn...
-    focus_single_step_v. cbn...
-    subst.
-    cbn...
-    cbn...
-    rewrite interp_cfg_to_L3_LW. cbn. 
-    rewrite bind_ret_l.
-    cbn... cbn.
-
-    (* Starting to see body entry in the horizon. We need to apply the body hypothesis
-       to retrieve the fact that "bks" entering from "body_entry" is the same denotation
-       as "body_bks" entering from "body_entry". *)
-
-    (* Step 3 : Starting to think about applying body hypothesis *)
-    (* Step 3.1 : Make right had side of equation agree with right hand side of HBODY *)
-    match goal with
-    | [ |- context[interp_cfg _ _ ?l _]] => remember l as LOCAL
-    end.
-
-    assert (H0': (forall A (b : A) b1 l0 l1, b :: b1 :: l0 ++ l1 ≡ (b :: [b1]) ++ l0 ++ l1)%list). cbn. reflexivity.
-    rewrite H0'.
-
-    rewrite denote_bks_prefix_.
-    2 : {
-      assert (forall bs, map blk_id bs ≡ map blk_id (convert_typ [] bs)). {
-        induction bs. cbn. reflexivity.
-        cbn. rewrite IHbs. reflexivity.
-      }
-      subst. rewrite <-H1. unfold block_ids in IN. apply IN.
-    }
-
-    2 : {
-      subst. cbn. rewrite map_app. cbn. apply UNIQUE_IDENTS.
-    }
-    cbn...
-
-    assert (n - k ≡ S (S (n - S (S k)))). lia.
-
-    rewrite <-H1.
-    eapply eutt_clo_bind.
-
-    (* Step 3 (Actually applying BH): By body hypothesis, this will lead to my invariant being true at
-       step S k, and to jumping to loopcontblock. *)
+    (* Step 3 : we jump into the body *)
+    rewrite denote_term_br_1.
+    vred.
+    (* In order to use our body hypothesis, we need to restrict the ambient cfg to only the body *)
+    inv VG.
+    rewrite denote_bks_prefix; cycle 1.
     {
-      eapply HBODY.
-
+      match goal with
+        |- ?x::?y::?z ≡ _ => replace (x::y::z) with ([x;y]++z) by reflexivity
+      end; f_equal.
+    }
+    {
+      (* TODO: exploit [fresh_in_cfg] to prove that [body_entry] can't be in the prefix *)
+      admit.
+    }
+    hide_cfg.
+    hvred.
+    eapply eutt_clo_bind.
+    (* We can know use the body hypothesis *)
+    eapply HBODY.
+    {
+      (* A bit of arithmetic is needed to prove that we have the right precondition *)
       red. cbn. split. 
       + subst. eapply STABLE. right. right. reflexivity.
         eapply STABLE. left. eauto.
@@ -788,48 +681,23 @@ Proof.
         typeclasses eauto.
     }
 
+    (* Step 4 : Back to starting from loopcontblock and have reestablished everything at the next index:
+        conclude by IH *)
     intros *. destruct u1 as [(? & ?)|].
     2: admit. (* YZ TODO : Fix what happens in case of failure? *)
     destruct u2 as (? & ? & ? & ?).
     intros (LOOPVAR' & HS & IH').
-    rewrite HS.
-    
-    (* Step 4 : Back to starting from loopcontblock and have reestablished everything at the next index:
-        conclude by IH *)
-    (* assert (EQ'' : S ( S (S (n - S (S k)) - 1)) ≡ n - k). lia. *)
-    (* rewrite EQ''. *)
-    subst. cbn in IH. rewrite convert_typ_block_app in IH. cbn in IH.
-      match goal with
-      | [ |- context[denote_bks (?a :: ?b :: ?c ++ ?d)]] => remember a; remember b; remember c; remember d
-      end.
-      match goal with
-      | [ H : context[denote_bks (?a :: ?b :: ?c ++ ?d)] |- _] => remember a; remember b; remember c; remember d
-      end
-      .
-      assert (EQB1: b2 ≡ b). {
-        subst.
-        rewrite 2 typ_to_dtyp_I. reflexivity.
-      }
-      assert (EQB2: b3 ≡ b1). {
-        subst. rewrite typ_to_dtyp_I. reflexivity.
-      }
-      assert (EQB3 : l4 ≡ l2). {
-        subst. rewrite 2 typ_to_dtyp_I. reflexivity.
-      }
-      rewrite <- EQB1,<- EQB2,<- EQB3.
-      assert (S (n - S k) ≡ n - k). lia. rewrite <- H2.
-      eapply IH. lia. lia. lia.
+    subst.
+    replace (S (n - S (S k)) ) with ( n - S k) by lia.
+    eapply IH; try lia.
+    split.
+    replace (n - S k) with (S (n - S (S k))) by lia; eauto.
+    replace (n - S k - 1) with (n - S (S k)) by lia; auto.
 
-      assert ((S (n - S (S k)) ) ≡ n - S k). lia. rewrite <- H3. auto.
-
-      split; auto. rewrite H3.
-      Unshelve.
-      all: try auto.
-      assert (n - S k - 1 ≡ n - S (S k)). lia. rewrite H4. auto.
-      apply RawIDOrd.eq_dec.
-      (* YZ : this is weird *)
-      exact UVALUE_None.
-      exact UVALUE_None.
+    Unshelve.
+    all: try auto.
+    exact UVALUE_None.
+    exact UVALUE_None.
 Admitted.
 
 Lemma genWhileLoop_correct:

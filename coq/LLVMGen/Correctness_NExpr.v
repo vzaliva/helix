@@ -161,6 +161,9 @@ Module VIR_denotation_Notations.
   Notation "'ℐ' '(' t ')' g l m" := (interp_cfg t g l m) (only printing, at level 10).
   Notation "⟦ c ⟧" := (denote_code c) (only printing, at level 10).
   Notation "⟦ i ⟧" := (denote_instr i) (only printing, at level 10).
+  Notation "⟦ t ⟧" := (denote_terminator t) (only printing, at level 10).
+  Notation "⟦ e ⟧" := (denote_exp e) (only printing, at level 10).
+  Notation "x" := (translate exp_E_to_instr_E x) (only printing).
 
 End VIR_denotation_Notations.
 
@@ -184,6 +187,7 @@ Module A.
   Include VIR_denotation_Notations.
   Include eutt_Notations.
   Include Helix_Notations.
+  Notation "g '[' r ':' x ']'" := (alist_add r x g) (only printing, at level 10). 
 
   (* Notation "⟦ b , p , c , t ⟧" := (fmap _ (mk_block b p c t _)) (only printing).  *)
   (* Notation "'denote_blocks' '...' id " := (denote_bks _ id) (at level 10,only printing).  *)
