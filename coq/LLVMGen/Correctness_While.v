@@ -316,52 +316,173 @@ Ltac show_cfg :=
   end.
 Notation "'hidden' G" := (hidden_cfg (G ≡ _)) (only printing, at level 10).
 
-Arguments find_block : simpl never.
+Lemma blk_id_norepet_nil:
+  forall T, blk_id_norepet (T := T) []. 
+Proof.
+  intros; apply Coqlib.list_norepet_nil.
+Qed.
 
-Lemma find_block_tail_wf :
-∀ (T : Set) (x : block_id) (b b' : LLVMAst.block T) (bs : list (LLVMAst.block T)),
-  blk_id_norepet (b :: bs)  ->
-  find_block T bs x ≡ Some b' ->
-  find_block T (b :: bs) x ≡ Some b'.
-Admitted.
+Lemma no_repeat_cons :
+  forall T (b : LLVMAst.block T) bs,
+    blk_id_norepet (b :: bs) ->
+    blk_id_norepet bs.
+Proof.
+  intros * NOREP; inv NOREP; eauto.
+Qed.
+
+Lemma no_repeat_cons_not_in :
+  forall T (b : LLVMAst.block T) bs,
+    blk_id_norepet (b :: bs) ->
+    not (In (blk_id b) (map blk_id bs)).
+Proof.
+  intros * NOREP; inv NOREP; eauto.
+Qed.
+
+Lemma no_repeat_app_r :
+  forall T (bs1 bs2 : list (LLVMAst.block T)), 
+blk_id_norepet (bs1 ++ bs2) ->
+blk_id_norepet bs2.
+Proof.
+  intros * NR.
+  eapply Coqlib.list_norepet_append_right.
+  unfold blk_id_norepet in NR.
+  rewrite map_app in NR.
+  eauto.
+Qed.
+
+Lemma no_repeat_app_l :
+  forall T (bs1 bs2 : list (LLVMAst.block T)), 
+blk_id_norepet (bs1 ++ bs2) ->
+blk_id_norepet bs1.
+Proof.
+  intros * NR.
+  eapply Coqlib.list_norepet_append_left.
+  unfold blk_id_norepet in NR.
+  rewrite map_app in NR.
+  eauto.
+Qed.
+
+Lemma blk_id_convert_typ : forall env b,
+    blk_id (convert_typ env b) ≡ blk_id b.
+Proof.
+  intros ? []; reflexivity.
+Qed.
+
+Lemma blk_id_map_convert_typ : forall env bs,
+    map blk_id (convert_typ env bs) ≡ map blk_id bs.
+Proof.
+  induction bs as [| b bs IH]; cbn; auto.
+  f_equal; auto.
+Qed.
+
+Lemma no_repeat_convert_typ :
+  forall env (bs : list (LLVMAst.block typ)),
+    blk_id_norepet bs ->
+    blk_id_norepet (convert_typ env bs).
+Proof.
+  induction bs as [| b bs IH]; intros NOREP.
+  - cbn; auto.
+  - cbn.
+    apply Coqlib.list_norepet_cons. 
+    + cbn.
+      apply no_repeat_cons_not_in in NOREP.
+     rewrite blk_id_map_convert_typ; auto.
+    + eapply IH, no_repeat_cons; eauto. 
+Qed.
 
 Lemma find_block_app_r_wf :
 ∀ (T : Set) (x : block_id) (b : LLVMAst.block T) (bs1 bs2 : list (LLVMAst.block T)),
   blk_id_norepet (bs1 ++ bs2)  ->
   find_block T bs2 x ≡ Some b ->
   find_block T (bs1 ++ bs2) x ≡ Some b.
-Admitted.
+Proof.
+  intros T x b; induction bs1 as [| hd bs1 IH]; intros * NOREP FIND.
+  - rewrite app_nil_l; auto.
+  - cbn; break_inner_match_goal.
+    + cbn in *.
+      apply no_repeat_cons_not_in in NOREP.
+      exfalso; apply NOREP.
+      rewrite e.
+      apply find_some in FIND as [FIND EQ].
+      clear - FIND EQ.
+      rewrite map_app; eapply ListUtil.in_appr.
+      break_match; [| intuition].
+      rewrite <- e.
+      eapply in_map; auto.
+    + cbn in NOREP; apply no_repeat_cons in NOREP.
+      apply IH; eauto.
+Qed.
 
 Lemma find_block_app_l_wf :
 ∀ (T : Set) (x : block_id) (b : LLVMAst.block T) (bs1 bs2 : list (LLVMAst.block T)),
   blk_id_norepet (bs1 ++ bs2)  ->
   find_block T bs1 x ≡ Some b ->
   find_block T (bs1 ++ bs2) x ≡ Some b.
-Admitted.
+Proof.
+  intros T x b; induction bs1 as [| hd bs1 IH]; intros * NOREP FIND.
+  - inv FIND.
+  - cbn in FIND |- *.
+    break_inner_match; auto.
+    apply IH; eauto.
+    eapply no_repeat_cons, NOREP.
+Qed.
 
-Lemma no_repeat_app_r :
-  forall T (bs1 bs2 : list (LLVMAst.block T)), 
-blk_id_norepet (bs1 ++ bs2) ->
-blk_id_norepet bs2.
-Admitted.
+Lemma find_block_tail_wf :
+∀ (T : Set) (x : block_id) (b b' : LLVMAst.block T) (bs : list (LLVMAst.block T)),
+  blk_id_norepet (b :: bs)  ->
+  find_block T bs x ≡ Some b' ->
+  find_block T (b :: bs) x ≡ Some b'.
+Proof.
+  intros.
+  rewrite list_cons_app.
+  apply find_block_app_r_wf; auto.
+Qed.
 
-Lemma no_repeat_app_l :
-  forall T (bs1 bs2 : list (LLVMAst.block T)), 
-blk_id_norepet (bs1 ++ bs2) ->
-blk_id_norepet bs1.
-Admitted.
+Definition fresh_in_cfg {T} (cfg : list (LLVMAst.block T)) (id : block_id) : Prop :=
+  not (In id (map blk_id cfg)).
 
-Lemma no_repeat_convert_typ :
-  forall env (bs : list (LLVMAst.block typ)),
-blk_id_norepet bs ->
-blk_id_norepet (convert_typ env bs).
-Admitted.
+Lemma fresh_in_cfg_cons:
+  forall {T} b (bs : list (LLVMAst.block T)) id,
+    fresh_in_cfg (b::bs) id ->
+    fresh_in_cfg bs id .
+Proof.
+  intros * FR abs; apply FR; cbn.
+  destruct (Eqv.eqv_dec_p (blk_id b) id); [rewrite e; auto | right; auto].
+Qed.
 
-Lemma no_repeat_cons :
-  forall T (b : LLVMAst.block T) bs,
-blk_id_norepet (b :: bs) ->
-blk_id_norepet bs.
-Admitted.
+Lemma find_block_fresh_id :
+  forall {T} (cfg : list (LLVMAst.block T)) id,
+    fresh_in_cfg cfg id ->
+    find_block T cfg id ≡ None.
+Proof.
+  induction cfg as [| b bs IH]; cbn; intros * FRESH; auto.
+  break_inner_match_goal.
+  + exfalso; eapply FRESH.
+    cbn; rewrite e; auto.
+  + apply IH.
+    apply fresh_in_cfg_cons in FRESH; auto.
+Qed.
+
+Lemma fresh_in_convert_typ :
+  forall env (bs : list (LLVMAst.block typ)) id,
+  fresh_in_cfg bs id ->
+  fresh_in_cfg (convert_typ env bs) id.
+Proof.
+  induction bs as [| b bs IH]; intros * FR.
+  - red; cbn; auto.
+  - cbn.
+    intros abs.
+    eapply FR.
+    destruct (Eqv.eqv_dec_p (blk_id b) id).
+    left; rewrite e; auto.
+    destruct abs.
+    + cbn in H.
+      exfalso; apply n; rewrite H; reflexivity.
+    + apply IH in H; intuition.
+      eapply fresh_in_cfg_cons; eauto.
+Qed.
+
+Arguments find_block : simpl never.
 
 Ltac solve_find_block :=
   cbn;
@@ -391,24 +512,9 @@ Arguments denote_phis : simpl never.
 Arguments denote_code : simpl never.
 Arguments denote_terminator : simpl never.
 
-Definition fresh_in_cfg {T} (cfg : list (LLVMAst.block T)) (id : block_id) : Prop :=
-  not (In id (map blk_id cfg)).
-
-Lemma find_block_fresh_id :
-  forall {T} (cfg : list (LLVMAst.block T)) id,
-    fresh_in_cfg cfg id ->
-    find_block T cfg id ≡ None.
-Admitted.
-
 Ltac vjmp_out :=
   rewrite denote_bks_unfold_not_in; cycle 1;
   [apply find_block_fresh_id; eauto |]. 
-
-Lemma fresh_in_convert_typ :
-  forall env (bs : list (LLVMAst.block typ)) id,
-fresh_in_cfg bs id ->
-fresh_in_cfg (convert_typ env bs) id.
-Admitted.
 
 Lemma genWhileLoop_ind:
   forall (prefix : string)
