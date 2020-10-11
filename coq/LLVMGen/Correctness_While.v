@@ -296,6 +296,74 @@ Ltac show_cfg :=
   end.
 Notation "'hidden' G" := (hidden_cfg (G ≡ _)) (only printing, at level 10).
 
+Arguments find_block : simpl never.
+
+Lemma find_block_tail_wf :
+∀ (T : Set) (x : block_id) (b b' : LLVMAst.block T) (bs : list (LLVMAst.block T)),
+  blk_id_norepet (b :: bs)  ->
+  find_block T bs x ≡ Some b' ->
+  find_block T (b :: bs) x ≡ Some b'.
+Admitted.
+
+Lemma find_block_app_r_wf :
+∀ (T : Set) (x : block_id) (b : LLVMAst.block T) (bs1 bs2 : list (LLVMAst.block T)),
+  blk_id_norepet (bs1 ++ bs2)  ->
+  find_block T bs2 x ≡ Some b ->
+  find_block T (bs1 ++ bs2) x ≡ Some b.
+Admitted.
+
+Lemma find_block_app_l_wf :
+∀ (T : Set) (x : block_id) (b : LLVMAst.block T) (bs1 bs2 : list (LLVMAst.block T)),
+  blk_id_norepet (bs1 ++ bs2)  ->
+  find_block T bs1 x ≡ Some b ->
+  find_block T (bs1 ++ bs2) x ≡ Some b.
+Admitted.
+
+Lemma no_repeat_app_r :
+  forall T (bs1 bs2 : list (LLVMAst.block T)), 
+blk_id_norepet (bs1 ++ bs2) ->
+blk_id_norepet bs2.
+Admitted.
+
+Lemma no_repeat_app_l :
+  forall T (bs1 bs2 : list (LLVMAst.block T)), 
+blk_id_norepet (bs1 ++ bs2) ->
+blk_id_norepet bs1.
+Admitted.
+
+Lemma no_repeat_convert_typ :
+  forall env (bs : list (LLVMAst.block typ)),
+blk_id_norepet bs ->
+blk_id_norepet (convert_typ env bs).
+Admitted.
+
+Lemma no_repeat_cons :
+  forall T (b : LLVMAst.block T) bs,
+blk_id_norepet (b :: bs) ->
+blk_id_norepet bs.
+Admitted.
+
+Ltac solve_find_block :=
+  cbn;
+  match goal with
+    | |- find_block _ [_] _ ≡ _ => apply find_block_eq; reflexivity
+    | h: blk_id_norepet _ |- find_block _ (_ :: _) _ ≡ _ =>
+      first [apply find_block_eq; reflexivity |
+             apply find_block_tail_wf; [eassumption | apply no_repeat_cons in h; solve_find_block]]
+    | h: blk_id_norepet _ |- find_block _ (_ ++ _) _ ≡ _ =>
+      first [apply find_block_app_l_wf; [eassumption | apply no_repeat_app_l in h; solve_find_block] |
+             apply find_block_app_r_wf; [eassumption | apply no_repeat_app_r in h; solve_find_block]]
+  end.
+
+Ltac vjmp :=
+  rewrite denote_bks_unfold_in; cycle 1;
+  [match goal with
+   | h: hidden_cfg _ |- _ => inv h
+   | h: visible_cfg _ |- _ => inv h
+   | _ => idtac
+   end;
+   cbn; rewrite ?convert_typ_block_app;
+   solve_find_block |].
 
 Lemma genWhileLoop_ind:
   forall (prefix : string)
@@ -386,13 +454,14 @@ Proof.
   assert (n - S k > 1) by lia.
   clear JEQ'.
   clear UPPER_BOUND.
-  red in UNIQUE_IDENTS. cbn in UNIQUE_IDENTS. rewrite map_app in UNIQUE_IDENTS.
-  cbn in UNIQUE_IDENTS.
-  assert (MAP_CONV: forall bs, map blk_id bs ≡ map blk_id (convert_typ [] bs)). {
-    induction bs. cbn. reflexivity.
-    cbn. rewrite IHbs. reflexivity.
-  }
-  rewrite MAP_CONV in UNIQUE_IDENTS.
+
+  (* red in UNIQUE_IDENTS. cbn in UNIQUE_IDENTS. rewrite map_app in UNIQUE_IDENTS. *)
+  (* cbn in UNIQUE_IDENTS. *)
+  (* assert (MAP_CONV: forall bs, map blk_id bs ≡ map blk_id (convert_typ [] bs)). { *)
+  (*   induction bs. cbn. reflexivity. *)
+  (*   cbn. rewrite IHbs. reflexivity. *)
+  (* } *)
+  (* rewrite MAP_CONV in UNIQUE_IDENTS. *)
 
   match goal with
   | [ |- context[convert_typ [] (?a::?b::_ ++?c)]] => remember a as entry_bk;
@@ -402,45 +471,16 @@ Proof.
 
   induction k as [| k IH].
   - intros * (INV & LOOPVAR).
+    subst.
+    hide_cfg.
+    Require Import Helix.LLVMGen.Correctness_NExpr.
+    Import A.
+
+    apply no_repeat_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
+    vjmp.
+
     cbn...
 
-    (* RHS Vellvm simplification *)
-    subst.
-    Arguments fmap /.
-    Arguments Fmap_block /.
-    cbn. intros.
-    rewrite denote_bks_unfold_in.
-    2 : {
-      rewrite find_block_ineq. rewrite find_block_ineq.
-      rewrite convert_typ_block_app. rewrite find_block_none_app.
-      Opaque find_block.
-      cbn. unfold fmap, Fmap_block. cbn. rewrite find_block_eq.
-      reflexivity. cbn. reflexivity.
-      auto.
-      cbn.
-      apply find_block_not_in_inputs.
-      red. intros.
-      eapply Coqlib.list_drop_norepet in UNIQUE_IDENTS.
-      Unshelve. 4 : exact 2. cbn in UNIQUE_IDENTS.
-      apply Coqlib.list_norepet_append_commut in UNIQUE_IDENTS.
-      cbn in UNIQUE_IDENTS. inversion UNIQUE_IDENTS. apply H3.
-      apply H0.
-      red. cbn. intros.
-      cbn in UNIQUE_IDENTS.
-      apply (Coqlib.list_drop_norepet 1) in UNIQUE_IDENTS. cbn in UNIQUE_IDENTS.
-      rewrite list_cons_app in UNIQUE_IDENTS.
-      rewrite -> Coqlib.list_norepet_app in UNIQUE_IDENTS. destruct UNIQUE_IDENTS as (? & ? & ?).
-      red in H3. specialize (H3 b0 loopcontblock). apply H3. constructor. reflexivity.
-      apply in_or_app. right. constructor. auto. auto.
-      cbn.
-      rewrite list_cons_app in UNIQUE_IDENTS.
-      apply Coqlib.list_norepet_append_commut in UNIQUE_IDENTS.
-      rewrite Coqlib.list_norepet_app in UNIQUE_IDENTS.
-      destruct UNIQUE_IDENTS as (? & ? & ?).
-      apply Coqlib.list_disjoint_sym in H2.
-      apply H2. constructor. reflexivity.
-      cbn. right. apply in_or_app. right. constructor. auto.
-    }
     cbn...
     cbn...
     focus_single_step_v.
