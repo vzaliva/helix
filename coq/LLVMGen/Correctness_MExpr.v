@@ -3,7 +3,6 @@ Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.Correctness_NExpr.
 
 Import ListNotations.
-(* Import ProofNotations. *)
 
 Set Implicit Arguments.
 Set Strict Implicit.
@@ -67,7 +66,7 @@ Section MExpr.
     hvred.
     edestruct memory_invariant_Ptr as (bkH & ptrV & Mem_LU & LUV & EQ); eauto.
     hstep.
-    eauto.
+    solve_lu.
     hvred.
     apply eutt_Ret; split; [| split]; cbn; auto.
     eexists; split; eauto.

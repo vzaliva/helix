@@ -44,6 +44,7 @@ Typeclasses Opaque equiv.
 
   Ltac solve_alist_in := first [apply In_add_eq | idtac].
   Ltac solve_lu :=
+    (try now eauto);
     match goal with
     | |- @Maps.lookup _ _ local_env _ ?id ?l ≡ Some _ =>
       eapply memory_invariant_LLU; [| eassumption | eassumption]; eauto
