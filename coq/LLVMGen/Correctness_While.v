@@ -1,5 +1,9 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
+Require Import Helix.LLVMGen.Correctness_NExpr.
+
+Set Nested Proofs Allowed.
+
 
 Set Implicit Arguments.
 Set Strict Implicit.
@@ -10,6 +14,7 @@ Import D.
 Import ListNotations.
 Import MonadNotation.
 Local Open Scope monad_scope.
+Local Open Scope nat_scope.
 
 (* TODO: Move to Prelude *)
 Definition uvalue_of_nat k := UVALUE_I64 (Int64.repr (Z.of_nat k)).
@@ -363,7 +368,13 @@ Ltac vjmp :=
    | _ => idtac
    end;
    cbn; rewrite ?convert_typ_block_app;
-   solve_find_block |].
+   try solve_find_block |].
+
+Arguments fmap /.
+Arguments Fmap_block /.
+Arguments denote_phis : simpl never.
+Arguments denote_code : simpl never.
+Arguments denote_terminator : simpl never.
 
 Lemma genWhileLoop_ind:
   forall (prefix : string)
@@ -455,80 +466,48 @@ Proof.
   clear JEQ'.
   clear UPPER_BOUND.
 
-  (* red in UNIQUE_IDENTS. cbn in UNIQUE_IDENTS. rewrite map_app in UNIQUE_IDENTS. *)
-  (* cbn in UNIQUE_IDENTS. *)
-  (* assert (MAP_CONV: forall bs, map blk_id bs ≡ map blk_id (convert_typ [] bs)). { *)
-  (*   induction bs. cbn. reflexivity. *)
-  (*   cbn. rewrite IHbs. reflexivity. *)
-  (* } *)
-  (* rewrite MAP_CONV in UNIQUE_IDENTS. *)
-
-  match goal with
-  | [ |- context[convert_typ [] (?a::?b::_ ++?c)]] => remember a as entry_bk;
-                                                       remember b as b0_bk;
-                                                       remember c as loopcont_bk
-  end.
-
   induction k as [| k IH].
   - intros * (INV & LOOPVAR).
-    subst.
     hide_cfg.
-    Require Import Helix.LLVMGen.Correctness_NExpr.
-    Import A.
-
     apply no_repeat_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
     vjmp.
-
-    cbn...
-
-    cbn...
-    cbn...
-    focus_single_step_v.
-    Transparent denote_code.
-    cbn...
-    focus_single_step_v.
-
-    setoid_rewrite denote_instr_op.
-    2 : {
-      cbn...
-      2 : {
-        eauto.
-      }
-      cbn...
-      unfold uvalue_to_dvalue_binop.
-      cbn...
-      reflexivity.
+    unfold bind, Monad_itree.
+    rewrite interp_cfg_to_L3_bind.
+    cbn.
+    (* TODO step *)
+    rewrite denote_no_phis, bind_ret_l.
+    repeat vred.
+    vstep.
+    {
+      vstep.
+      vstep; solve_lu; reflexivity.
+      vstep; reflexivity.
+      all: reflexivity.
     }
-    cbn... subst. cbn...
-    rewrite denote_instr_op.
-    2 : {
+    vred.
+    vstep.
+    {
       cbn.
-      cbn...
-      2 : {
-        setoid_rewrite lookup_alist_add_eq. reflexivity.
-      }
-      cbn...
-      Arguments uvalue_to_dvalue_binop /.
-      cbn...
-      reflexivity.
-    }
-    cbn...
-    rewrite denote_term_br_r.
-    2 : {
-      (* TODO: notation for map updates *)
-      cbn...
-      2 : {
-        setoid_rewrite lookup_alist_add_eq. reflexivity.
-      }
+      vstep.
+      vstep; solve_lu; reflexivity.
+      vstep; reflexivity.
+      all:reflexivity.
+    }      
+    vred.
+
+    (* TODO *)
+    rewrite denote_term_br_r; cycle 1.
+    { vstep.
+      solve_lu.
       match goal with
       | [ |- Ret (_, (_, (_, ?x))) ≈ Ret (_, (_, (_, ?x'))) ] => assert (x ≡ x')
-          end.
+      end.
       apply genWhileLoop_ind_arith_aux_0.
-      cbn. rewrite H0. reflexivity.
-    }
-    cbn...
+      cbn in *. rewrite H0. reflexivity.
+    } 
+    hvred.
 
-    subst. rewrite denote_bks_unfold_not_in.
+    inv VG. subst. rewrite denote_bks_unfold_not_in.
     2 : {
       rewrite find_block_ineq. rewrite find_block_ineq.
       rewrite convert_typ_block_app. rewrite find_block_none_app.

@@ -227,9 +227,11 @@ Ltac expstep :=
 first [rewrite denote_exp_LR; cycle 1 |
          rewrite denote_exp_GR; cycle 1 |
          rewrite denote_exp_i64 |
+         rewrite denote_exp_i64_repr |
          rewrite denote_exp_double |
          rewrite denote_ibinop_concrete; cycle 1; try reflexivity |
          rewrite denote_fbinop_concrete; cycle 1; try reflexivity |
+         rewrite denote_icmp_concrete; cycle 1; try reflexivity |
          rewrite denote_fcmp_concrete; cycle 1; try reflexivity |
          rewrite denote_conversion_concrete; cycle 1 |
          idtac].
