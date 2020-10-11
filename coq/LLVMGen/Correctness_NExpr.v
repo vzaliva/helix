@@ -276,6 +276,7 @@ first [rewrite denote_exp_LR; cycle 1 |
          rewrite denote_ibinop_concrete; cycle 1; try reflexivity |
          rewrite denote_fbinop_concrete; cycle 1; try reflexivity |
          rewrite denote_fcmp_concrete; cycle 1; try reflexivity |
+         rewrite denote_conversion_concrete; cycle 1 |
          idtac].
 
 Ltac instrstep :=

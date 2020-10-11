@@ -587,19 +587,14 @@ Section AExpr.
       unfold denote_exp; simpl.
       hvred.
       vstep.
-      (* TODO *)
-      unfold denote_exp; simpl.
-      autorewrite with itree.
-      autorewrite with vellvm.
-      2:apply In_add_eq.
-      hvred.
-      unfold uvalue_to_dvalue_uop.
-      rewrite uvalue_to_dvalue_of_dvalue_to_uvalue; cbn...
-      match_rewrite.
-      unfold ITree.map.
-      vred.
-      autorewrite with itree.
-      vred.
+      vstep.
+
+      { vstep.
+        apply In_add_eq.
+        reflexivity.
+      }
+      rewrite uvalue_to_dvalue_of_dvalue_to_uvalue; reflexivity.
+      cbn; match_rewrite; reflexivity.
       reflexivity.
 
       apply eutt_Ret.
