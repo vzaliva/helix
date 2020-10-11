@@ -376,6 +376,25 @@ Arguments denote_phis : simpl never.
 Arguments denote_code : simpl never.
 Arguments denote_terminator : simpl never.
 
+Definition fresh_in_cfg {T} (cfg : list (LLVMAst.block T)) (id : block_id) : Prop :=
+  not (In id (map blk_id cfg)).
+
+Lemma find_block_fresh_id :
+  forall {T} (cfg : list (LLVMAst.block T)) id,
+    fresh_in_cfg cfg id ->
+    find_block T cfg id ≡ None.
+Admitted.
+
+Ltac vjmp_out :=
+  rewrite denote_bks_unfold_not_in; cycle 1;
+  [apply find_block_fresh_id; eauto |]. 
+
+Lemma fresh_in_convert_typ :
+  forall env (bs : list (LLVMAst.block typ)) id,
+fresh_in_cfg bs id ->
+fresh_in_cfg (convert_typ env bs) id.
+Admitted.
+
 Lemma genWhileLoop_ind:
   forall (prefix : string)
     (loopvar : raw_id)            (* lvar storing the loop index *)
@@ -398,7 +417,7 @@ Lemma genWhileLoop_ind:
     (* All labels generated are distinct *)
     blk_id_norepet bks ->
 
-    not (In nextblock (map blk_id bks)) ->
+    fresh_in_cfg bks nextblock ->
 
     (* Loopvar is unique*)
     (forall i s r, incLocal i ≡ inr (s, r) -> loopvar ≢ r) ->
@@ -468,8 +487,12 @@ Proof.
 
   induction k as [| k IH].
   - intros * (INV & LOOPVAR).
-    hide_cfg.
+    (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
     apply no_repeat_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
+    apply fresh_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_block_app in NEXTBLOCK_ID.
+    cbn; rewrite ?convert_typ_block_app.
+    hide_cfg.
+
     vjmp.
     unfold bind, Monad_itree.
     rewrite interp_cfg_to_L3_bind.
@@ -507,23 +530,8 @@ Proof.
     } 
     hvred.
 
-    inv VG. subst. rewrite denote_bks_unfold_not_in.
-    2 : {
-      rewrite find_block_ineq. rewrite find_block_ineq.
-      rewrite convert_typ_block_app. rewrite find_block_none_app.
-      Opaque find_block.
-      cbn. unfold fmap, Fmap_block. cbn. rewrite find_block_ineq.
-      apply find_block_nil. cbn.
-      cbn in NEXTBLOCK_ID. intro. apply NEXTBLOCK_ID. right. right.
-      rewrite map_app. cbn. apply in_or_app. right. cbn. left. auto.
-      cbn in NEXTBLOCK_ID. apply find_block_not_in_inputs. intro.
-      apply NEXTBLOCK_ID. right. right. rewrite map_app. cbn.
-      apply in_or_app. left. unfold inputs in H0. rewrite MAP_CONV. cbn in H0. unfold Fmap_list in H0.
-      auto. cbn.
-      cbn in NEXTBLOCK_ID. intro. apply NEXTBLOCK_ID. right. left. auto.
-      cbn. cbn in NEXTBLOCK_ID. intro. apply NEXTBLOCK_ID. left. auto.
-    }
-    cbn...
+    vjmp_out.
+    vred.
 
     apply eutt_Ret.
     split.
