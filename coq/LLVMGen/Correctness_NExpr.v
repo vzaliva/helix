@@ -163,7 +163,7 @@ Module VIR_denotation_Notations.
   Notation "⟦ i ⟧" := (denote_instr i) (only printing, at level 10).
   Notation "⟦ t ⟧" := (denote_terminator t) (only printing, at level 10).
   Notation "⟦ e ⟧" := (denote_exp e) (only printing, at level 10).
-  Notation "x" := (translate exp_E_to_instr_E x) (only printing).
+  Notation "x" := (translate exp_E_to_instr_E x) (only printing, at level 10).
 
 End VIR_denotation_Notations.
 
@@ -249,7 +249,6 @@ Ltac instrstep :=
 
 Ltac vstep :=
   first [progress expstep | instrstep].
-
 
 Arguments denote_exp : simpl never.
 Import A.
