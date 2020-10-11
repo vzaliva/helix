@@ -41,18 +41,24 @@ Typeclasses Opaque equiv.
   Qed.
 
   Hint Resolve memory_invariant_ext_local: core.
+
+  Ltac solve_alist_in := first [apply In_add_eq | idtac].
   Ltac solve_lu :=
     match goal with
     | |- @Maps.lookup _ _ local_env _ ?id ?l ≡ Some _ =>
       eapply memory_invariant_LLU; [| eassumption | eassumption]; eauto
+    | h: _ ⊑ ?l |- @Maps.lookup _ _ local_env _ ?id ?l ≡ Some _ =>
+      eapply h; solve_lu
     | |- @Maps.lookup _ _ global_env _ ?id ?l ≡ Some _ =>
       eapply memory_invariant_GLU; [| eassumption | eassumption]; eauto
-     end.
-
-  Ltac check_state_invariant :=
+    | _ => solve_alist_in
+    end.
+ 
+  Ltac solve_state_invariant :=
+    cbn;
     match goal with
       |- state_invariant _ _ _ (_, (alist_add _ _ _, _)) =>
-      eapply state_invariant_add_fresh; [now eauto | (eassumption || check_state_invariant)]
+      eapply state_invariant_add_fresh; [now eauto | (eassumption || solve_state_invariant)]
     end.
 
   Ltac solve_alist_fresh :=
@@ -60,9 +66,10 @@ Typeclasses Opaque equiv.
      eapply state_invariant_alist_fresh; now eauto).
 
   Ltac solve_sub_alist :=
-    (reflexivity ||
-     apply sub_alist_add; solve_alist_fresh).
-
+    (reflexivity
+     || (apply sub_alist_add; solve_alist_fresh)
+     || (etransitivity; eauto; []; solve_sub_alist)
+    ).
 
 Section NExpr.
   
@@ -156,13 +163,16 @@ Module VIR_denotation_Notations.
 
 End VIR_denotation_Notations.
 
+Module Helix_Notations.
+  Notation "'ℐ' '(' t ')' m" := (interp_helix t m) (only printing, at level 10).
+End Helix_Notations.
+
 Module eutt_Notations.
   Notation "t '======================' '======================' u '======================' '{' R '}'"
     := (eutt R t u)
          (only printing, at level 200,
           format "'//' '//' t '//' '======================' '======================' '//' u '//' '======================' '//' '{' R '}'"
          ).
-
 End eutt_Notations.
 
 
@@ -172,6 +182,7 @@ Module A.
   Include VIR_Notations.
   Include VIR_denotation_Notations.
   Include eutt_Notations.
+  Include Helix_Notations.
 
   (* Notation "⟦ b , p , c , t ⟧" := (fmap _ (mk_block b p c t _)) (only printing).  *)
   (* Notation "'denote_blocks' '...' id " := (denote_bks _ id) (at level 10,only printing).  *)
@@ -183,65 +194,8 @@ Module A.
   (* (* Notation "'INSTR' i" := (denote_instr i) (only printing, at level 10, format "'INSTR' '//' i"). *) *)
   (* Notation "i" := (denote_instr i) (only printing, at level 10). *)
   (* Notation "x" := (translate exp_E_to_instr_E (denote_exp _ x)) (only printing, at level 10).  *)
-  (* Notation "⟦ t ⟧ m" := (interp_helix t m) (only printing, at level 10). *)
   
 End A.
-
-(* Definition bool_in_nat (b:bool) := if b then 0 else 1. *)
-(* Coercion bool_in_nat : bool >-> nat. *)
-(* Check (true = 0). *)
-
-
-(* Section coercion. *)
-(* Open Scope nat. *)
-
-(*   Parameter F : Set -> Set. *)
-(*   Parameter A B : Set. *)
-(*   Parameter c : F A -> F B. *)
-
-(*   Parameter g : F B -> nat. *)
-
-(*   (* I would like to be able to use [g] over a [F A] and have a coercion introduced *) *)
-(*   (* I cannot write: *)
-(*   Coercion c : F A >-> F B. *)
-(*   Because it wants classes on both sides. *)
-(*    *) *)
-
-(*   Section FOO. *)
-(*     (* I can do: *) *)
-(*     Notation FA := (F A). *)
-(*     Notation FB := (F B). *)
-(*     Coercion c : FA >-> FB. *)
-(*     (* But that doesn't work *) *)
-(*     Fail Goal forall (x : F A), 0 = g x. *)
-(*   End FOO. *)
-
-(*   Section BAR. *)
-(*     (* I can try to use definitions instead: *) *)
-(*     Definition FA := (F A). *)
-(*     Definition FB := (F B). *)
-(*     (* But then I cannot use c, I need to explicitly have FA and FB *) *)
-(*     Parameter c' : FA -> FB. *)
-(*     Coercion c' : FA >-> FB. *)
-(*     (* But not only that, I also need explicitly the argument typed as [FA] *) *)
-(*     Fail Goal forall (x : F A), 0 = g x. *)
-(*     (* And even worst, so does of course [g] *) *)
-(*     Fail Goal forall (x : FA), 0 = g x. *)
-(*     Parameter g' : FB -> nat. *)
-(*     (* So this one works, but that's too much side effects for my use case *) *)
-(*     Goal forall (x : FA), 0 = g' x. *)
-(*   End FOO. *)
-
-(*   (* Is there better? *) *)
-
-(* End coerction. *)
-
-(* Notation codes := (code typ). *)
-(* Notation coded := (code dtyp). *)
-(* Definition trivial_convert_typ_code (c : codes): coded := convert_typ [] c. *)
-(* Coercion trivial_convert_typ_code : codes >-> coded. *)
-(* Goal forall (c' : codes), denote_code c' ≡  denote_code c'. *)
-(* Goal forall (c : coded) (c' : codes), c ≡ c'. *)
 
 Ltac vred :=
   rewrite ?typ_to_dtyp_equation;
@@ -257,7 +211,7 @@ Ltac vred :=
 Ltac hred :=
   repeat (rewrite ?interp_helix_bind, ?interp_helix_Ret, ?bind_ret_l).
 
-Ltac hstep := first [rewrite interp_helix_MemSet | rewrite interp_helix_MemLU; cycle -1 | idtac].
+Ltac hstep := first [rewrite interp_helix_MemSet | rewrite interp_helix_MemLU; cycle 1 | idtac].
 
 Ltac hvred :=
   let R := fresh
@@ -291,6 +245,31 @@ Ltac vstep :=
 
 
 Arguments denote_exp : simpl never.
+Import A.
+
+(** * Tactics
+    
+  - [cbn*] : unfolds a fixed list of definitions we want to go under, and reduces via [cbn]
+  - [simp] : systematically destruct [match] in the context. Used in particular to systematically
+             derive from the success of the compilation the success of the compilation of the sub-components.
+  - [try_abs] : attempts to automatically discharge absurd cases. Relies essentially on two sources to this end:
+             type constraints provided by [memory_invariant], and success of the computation provided by
+             [no_failure].
+
+  - [solve_lu] : attempts to discharge goal of the shape [Maps.lookup id l = Some ?]
+  - [solve_state_invariant] : attempts to discharge goal of the shape [state_invariant _ _ _ _] 
+
+  - [hvred] : stands for helix-vellvm-reduction. Uses rewriting to "reduce" both side of the simulation
+             being proved to a bind whose first component is either the denotation of a parameter,
+             or of a concrete operation to be processed. 
+  - [vred] : stands for vellvm-reduction. Similar to [hvred], but performing only [vellvm]-based reduction
+             on both sides of the simulation.
+  - [vstep]: stands for vellvm-step. Performs a single atomic forward-reasoning principle, processing for
+             instance a single instruction or expression.
+             Cycles goals so that it exhibits first the generated side conditions.
+  - [hstep]: stands helix-step. Processes a single trigger of a memory event.
+
+ *)
 
   Lemma genNExpr_correct_ind :
     forall (* Compiler bits *) (s1 s2: IRState)
@@ -312,9 +291,7 @@ Arguments denote_exp : simpl never.
       cbn* in COMPILE; simp.
 
       + (* The variable maps to an integer in the IRState *)
-        hvred.
-        unfold denoteNExpr in *; cbn* in *.
-        simp; try_abs.
+        unfold denoteNExpr in *; cbn* in *; simp; try_abs.
         hvred.
 
         (* The identifier has to be a local one *)
@@ -328,28 +305,24 @@ Arguments denote_exp : simpl never.
         reflexivity.
 
       + (* The variable maps to a pointer *)
-        unfold denoteNExpr in *; cbn* in *.
-        simp; try_abs.
+        unfold denoteNExpr in *; cbn* in *; simp; try_abs.
         break_inner_match_goal; try_abs.
         hvred.
 
+        (* We need to be a bit careful: when stepping the [load], we will need to provide the memory address
+           at which we load. This address needs to be in scope when introducing the evar, we are therefore
+           forced to look a bit ahead and first use [memory_invariant_GLU].
+         *)
         edestruct memory_invariant_GLU as (ptr & LU & READ); eauto; rewrite typ_to_dtyp_equation in READ.
         vstep.
-
-        {
-          vstep.
-          eauto.
-          reflexivity.
-        }
+        vstep; eauto; reflexivity.
 
         apply eutt_Ret; split; [| split].
-        -- cbn; check_state_invariant.
+        -- cbn; solve_state_invariant.
 
         -- intros l' MONO; cbn*.
-           (* TODO *)
-           vstep.
-           eapply MONO, In_add_eq.
-           reflexivity.
+           vstep; [solve_lu | reflexivity].
+
         -- repeat (split; auto); solve_sub_alist.
 
     - (* Constant *)
@@ -359,8 +332,7 @@ Arguments denote_exp : simpl never.
 
       apply eutt_Ret; split; [| split]; try now eauto.
       intros l' MONO; cbn*.
-      vstep.
-      reflexivity.
+      vstep; reflexivity.
 
     - (* NDiv *)
       cbn* in *; simp; try_abs.
@@ -368,19 +340,17 @@ Arguments denote_exp : simpl never.
       (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
       specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE). 
       forward IHnexp1; eauto.
-      (* onAllHyps move_up_types. *)
 
       (* e1 *)
       eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp1].
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI)).
+      hvred.
 
       (* e2 *)
       specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI).
       forward IHnexp2; eauto. 
-      (* onAllHyps move_up_types. *)
-      hvred.
       eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp2].
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
@@ -406,23 +376,14 @@ Arguments denote_exp : simpl never.
         apply unsigned_is_zero; auto.
       }
       apply eutt_Ret; split; [| split].
-      { cbn. eapply state_invariant_add_fresh; eauto; reflexivity. }
+      cbn; solve_state_invariant.
       {
         intros ? MONO.
         cbn.
-        vstep.
-        apply MONO, In_add_eq.
-        reflexivity.
+        vstep; solve_lu; reflexivity.
       }
       {
-        (* TODO solver for ext_local *)
-        apply ext_local_subalist.
-        etransitivity; eauto.
-        etransitivity; eauto.
-        apply sub_alist_add.
-        apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
-        eapply PREF.
-        eauto.
+        apply ext_local_subalist; solve_sub_alist.
       }
 
     - (* NMod *)
@@ -431,15 +392,14 @@ Arguments denote_exp : simpl never.
       (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
       specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE). 
       forward IHnexp1; eauto.
-      (* onAllHyps move_up_types. *)
 
       eapply eutt_clo_bind_returns; [eassumption | clear IHnexp1].
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       cbn in *.
       destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI)).
-
       hvred.
+
       specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI).
       forward IHnexp2; eauto. 
       eapply eutt_clo_bind_returns; [eassumption | clear IHnexp2].
@@ -469,19 +429,11 @@ Arguments denote_exp : simpl never.
       }
  
       apply eutt_Ret; split; [| split]; try now eauto.
-      -- cbn. eapply state_invariant_add_fresh; eauto; reflexivity.
+      -- solve_state_invariant. 
       -- cbn; intros ? MONO.
-         vstep.
-         apply MONO, In_add_eq.
-         reflexivity.
-      -- apply ext_local_subalist.
-         etransitivity; eauto.
-         etransitivity; eauto.
-         apply sub_alist_add.
-         apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
-         eapply PREF.
-         eauto.
-
+         vstep; solve_lu; reflexivity.
+      -- apply ext_local_subalist; solve_sub_alist.
+         
    - (* NAdd *)
 
      cbn* in *; simp; try_abs.
@@ -494,38 +446,25 @@ Arguments denote_exp : simpl never.
      introR; destruct_unit.
      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
      destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI)). 
-
      hvred.
+
      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI). 
      forward IHnexp2; eauto. 
      eapply eutt_clo_bind_returns; [eassumption | clear IHnexp2].
      introR; destruct_unit.
      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
      destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF)). 
-
      cbn; hvred.
+
      vstep.
      vstep; cbn; try (eapply EXPRF || eapply EXPRI); eauto; reflexivity.
-     cbn.
 
      apply eutt_Ret; split; [| split].
-     cbn; eapply state_invariant_add_fresh; eauto.
-     {
-       cbn; intros ? MONO.
-       vstep.
-       apply MONO, In_add_eq.
-       reflexivity.
-     }
-     {
-       apply ext_local_subalist.
-       etransitivity; eauto.
-       etransitivity; eauto.
-       apply sub_alist_add.
-       apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
-       eapply PREF.
-       eauto.
-     }
-     
+     -- solve_state_invariant.
+     -- cbn; intros ? MONO.
+        vstep; solve_lu; reflexivity.
+     -- apply ext_local_subalist; solve_sub_alist.
+        
    - (* NMinus *)
 
      cbn* in *; simp; try_abs.
@@ -538,38 +477,26 @@ Arguments denote_exp : simpl never.
      introR; destruct_unit.
      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
      destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI)). 
-
      hvred.
+
      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI). 
      forward IHnexp2; eauto. 
      eapply eutt_clo_bind_returns; [eassumption | clear IHnexp2].
      introR; destruct_unit.
      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
      destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF)). 
-
      cbn; hvred.
+
      vstep.
      vstep; cbn; try (eapply EXPRF || eapply EXPRI); eauto; reflexivity.
 
      apply eutt_Ret; split; [| split].
-     cbn; eapply state_invariant_add_fresh; eauto.
-     {
-       cbn; intros ? MONO.
-       vstep.
-       apply MONO, In_add_eq.
-       reflexivity.
-     }
-     {
-       apply ext_local_subalist.
-       etransitivity; eauto.
-       etransitivity; eauto.
-       apply sub_alist_add.
-       apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
-       eapply PREF.
-       eauto.
-     }
+     -- solve_state_invariant.
+     -- cbn; intros ? MONO.
+        vstep; solve_lu; reflexivity.
+     -- apply ext_local_subalist; solve_sub_alist.
 
-    - (* NMult *)
+   - (* NMult *)
      
      cbn* in *; simp; try_abs.
      hvred.
@@ -581,43 +508,31 @@ Arguments denote_exp : simpl never.
      introR; destruct_unit.
      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
      destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI)). 
-
      hvred.
+
      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI). 
      forward IHnexp2; eauto. 
      eapply eutt_clo_bind_returns; [eassumption | clear IHnexp2].
      introR; destruct_unit.
      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
      destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF)). 
-
      cbn; hvred.
+
      vstep.
-      (* Operator evaluation *)
+     (* Operator evaluation *)
      {
         vstep; cbn; try (eapply EXPRF || eapply EXPRI); eauto; try reflexivity.
         cbn.
         break_inner_match; reflexivity.
       }
 
-      apply eutt_Ret; split; [| split].
-      cbn; eapply state_invariant_add_fresh; eauto.
-      {
-        cbn; intros ? MONO.
-        vstep.
-        apply MONO, In_add_eq.
-        reflexivity.
-      }
-      {
-        apply ext_local_subalist.
-        etransitivity; eauto.
-        etransitivity; eauto.
-        apply sub_alist_add.
-        apply incLocal_is_fresh,concrete_fresh_fresh in PREF.
-        eapply PREF.
-        eauto.
-      }
+     apply eutt_Ret; split; [| split].
+     -- solve_state_invariant.
+     -- cbn; intros ? MONO.
+        vstep; solve_lu; reflexivity.
+     -- apply ext_local_subalist; solve_sub_alist.
 
-    - (* NMin *)
+   - (* NMin *)
       (* Non-implemented by the compiler *)
       inversion COMPILE.
     - (* NMax *)
