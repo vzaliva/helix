@@ -275,6 +275,27 @@ Lemma incLocalNamed_fresh:
 Proof.
 Admitted.
 
+Variant hidden_cfg  (T: Type) : Type := boxh_cfg (t: T).
+Variant visible_cfg (T: Type) : Type := boxv_cfg (t: T).
+Ltac hide_cfg :=
+  match goal with
+  | h : visible_cfg _ |- _ =>
+    let EQ := fresh "VG" in
+    destruct h as [EQ];
+    apply boxh_cfg in EQ
+  | |- context[denote_bks ?cfg _] =>
+    remember cfg as G eqn:VG;
+    apply boxh_cfg in VG
+  end.
+Ltac show_cfg :=
+  match goal with
+  | h: hidden_cfg _ |- _ =>
+    let EQ := fresh "HG" in
+    destruct h as [EQ];
+    apply boxv_cfg in EQ
+  end.
+Notation "'hidden' G" := (hidden_cfg (G ≡ _)) (only printing, at level 10).
+
 
 Lemma genWhileLoop_ind:
   forall (prefix : string)
@@ -353,7 +374,7 @@ Lemma genWhileLoop_ind:
            (interp_cfg (denote_bks (convert_typ [] bks)
                                                 (_label, loopcontblock)) g l mV).
 
-Proof with rauto.
+Proof.
   intros * UPPER_BOUND LOWER_BOUND * IN UNIQUE_IDENTS NEXTBLOCK_ID LOOPVAR0 LOOPVAR1 GEN.
   unfold genWhileLoop in GEN. cbn* in GEN. simp.
   intros * HBODY STABLE.
@@ -362,7 +383,7 @@ Proof with rauto.
 
   assert (JEQ' : j ≡ (n - S k)) by lia. rewrite JEQ' in *.
 
-  assert (n - S k > 1). lia.
+  assert (n - S k > 1) by lia.
   clear JEQ'.
   clear UPPER_BOUND.
   red in UNIQUE_IDENTS. cbn in UNIQUE_IDENTS. rewrite map_app in UNIQUE_IDENTS.
