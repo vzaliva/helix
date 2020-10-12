@@ -52,16 +52,6 @@ Section MemoryModel.
 
 End MemoryModel.
 
-Section Integers.
-
-  (* NOTEYZ: I doubt that the following is true, unless proof irrelevance is assumed *)
-  Lemma repr_intval (i: int64):
-    DynamicValues.Int64.repr (Int64.intval i) = i.
-  Proof.
-  Admitted.
-
-End Integers.
-
 Section ValuePred.
 
   (* TODOYZ: Double check how useful those are *)

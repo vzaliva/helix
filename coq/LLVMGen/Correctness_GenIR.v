@@ -1247,6 +1247,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         destruct OUT_PRED as [OUT_PRED | OUT_PRED]; auto.
         eapply (state_bound_between_separate incBlockNamed_count_gen_injective OUT_PRED IN_BOUND).
         lia. auto.
+        admit.
       }
 
       rauto.
@@ -1476,4 +1477,3 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   Admitted.
   End GenIR.
  
-

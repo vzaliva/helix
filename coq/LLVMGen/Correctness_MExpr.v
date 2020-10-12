@@ -3,7 +3,6 @@ Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.Correctness_NExpr.
 
 Import ListNotations.
-Import ProofNotations.
 
 Set Implicit Arguments.
 Set Strict Implicit.
@@ -58,21 +57,21 @@ Section MExpr.
            ))
            (interp_helix (denoteMExpr σ mexp) memH)
            (interp_cfg (D.denote_code (convert_typ [] c)) g l memV).
-  Proof with rauto.
+  Proof.
     intros * Hgen Hmeminv NOFAIL.
     destruct mexp as [[vid] | mblock]; cbn* in Hgen; simp.
-    cbn...
-    unfold denoteMExpr in *; cbn* in *.
-    unfold denotePExpr in *; cbn* in *.
+    cbn.
+    unfold denoteMExpr, denotePExpr in *; cbn* in *.
     simp; try_abs.
+    hvred.
     edestruct memory_invariant_Ptr as (bkH & ptrV & Mem_LU & LUV & EQ); eauto.
-    cbn...
-    2:eauto.
+    hstep.
+    solve_lu.
+    hvred.
     apply eutt_Ret; split; [| split]; cbn; auto.
     eexists; split; eauto.
-    break_match_goal; cbn...
-    all: eauto.
-    all: reflexivity.
+    break_match_goal; cbn.
+    all:vstep; eauto; reflexivity.
   Qed.
 
   Lemma genMExpr_array : forall {s1 s2 m e c t},

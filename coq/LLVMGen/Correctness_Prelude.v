@@ -57,6 +57,7 @@ Require Export Vellvm.Transformations.Traversal.
 Require Export Vellvm.PostConditions.
 Require Export Vellvm.Denotation_Theory.
 Require Export Vellvm.InstrLemmas.
+Require Export Vellvm.ExpLemmas.
 Require Export Vellvm.NoFailure.
 Require Export Vellvm.PropT.
 
@@ -758,7 +759,7 @@ Section InterpHelix.
     forall T U E mem (t: itree Event T) (k: T -> itree Event U),
       @interp_helix _ E (ITree.bind t k) mem ≈
                     ITree.bind (interp_helix t mem)
-                    (fun mx => match mx with | None => ret None | Some x => let '(mem',v) := x in interp_helix (k v) mem' end).
+                    (fun mx => match mx with | None => Ret None | Some x => let '(mem',v) := x in interp_helix (k v) mem' end).
   Proof.
     intros; unfold interp_helix.
     rewrite interp_Mem_bind, interp_fail_bind, translate_bind.

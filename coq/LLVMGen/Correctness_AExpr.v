@@ -203,7 +203,6 @@ Section AExpr.
   Opaque denote_instr.
   Opaque denote_code.
 
-  Import ProofNotations.
 
   Lemma genAExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
@@ -217,35 +216,35 @@ Section AExpr.
       eutt (succ_cfg (lift_Rel_cfg (state_invariant σ s2) ⩕ genAExpr_rel σ aexp e memH (mk_config_cfg memV l g)))
            (interp_helix (denoteAExpr σ aexp) memH)
            (interp_cfg (denote_code (convert_typ [] c)) g l memV).
-  Proof with rauto.
+  Proof. 
     intros s1 s2 aexp; revert s1 s2; induction aexp; intros * COMPILE PRE NOFAIL.
     - (* Variable case *)
       (* Reducing the compilation *)
-      pose proof COMPILE as COMPILE'.
+      (* pose proof COMPILE as COMPILE'. *)
       cbn* in COMPILE; simp.
 
       + (* The variable maps to an integer in the IRState *)
         unfold denoteAExpr in *; cbn* in *.
         simp; try_abs.
         
-        cbn...
+        hvred.
         break_inner_match_goal; try_abs.
         break_inner_match_goal; try_abs.
-        cbn...
+        hvred.
         edestruct memory_invariant_GLU_AExpr as (ptr & MAP & READ); eauto. 
         rewrite typ_to_dtyp_equation in READ.
 
-        rewrite denote_instr_load; eauto; cycle -1.
-        { cbn... 2:eauto. reflexivity. }
+        vstep.
+        { vstep; eauto; reflexivity. }
         apply eutt_Ret; cbn.
         split.
         { eapply state_invariant_add_fresh; eauto. }
         { split.
           - red; intros.
-            cbn...
-            reflexivity.
+            cbn; vstep.
             cbn; erewrite H; eauto.
             eapply In_add_eq.
+            reflexivity.
           - cbn; intuition.
             apply sub_alist_add.
             eapply concrete_fresh_fresh; eauto. 
@@ -255,56 +254,56 @@ Section AExpr.
       + (* The variable maps to a pointer *)
         unfold denoteAExpr in *; cbn* in *.
         simp; try_abs.
-        cbn...
-        destruct d; try_abs.
+        hvred.
+        break_match_goal; try_abs.
         clear NOFAIL.
-        cbn... 
+        hvred.
         apply eutt_Ret.
         split; split; eauto using incLocal_is_fresh.
-        cbn...
+        cbn; intros.
         break_match_goal; try_abs.
-        intros; cbn...
-        reflexivity.
+        vstep.
         eapply memory_invariant_LLU_AExpr; eauto;
           eapply memory_invariant_ext_local;
           eauto.
+        reflexivity.
 
     - (* Constant *)
-      cbn* in COMPILE; simp.
-      unfold denoteAExpr in *; cbn* in *.
-      cbn... 
+      cbn* in *; simp.
+      hvred.
       apply eutt_Ret; split; [| split]; eauto.
-      intros l' MONO; cbn*...
-      all: reflexivity.
+      intros l' MONO; cbn*.
+      vstep.
+      reflexivity.
       
     - (* ANth m n: lookup to m[n] *)
-      cbn* in COMPILE; simp.
-      unfold denoteAExpr in *; cbn* in *.
+      cbn* in *; simp.
       edestruct @genMExpr_array as (?sz & ?EQ); eauto; subst.
+      hvred.
 
       (* denoting [n] *)
       (* onAllHyps move_up_types. *)
-      rewrite convert_typ_app, denote_code_app...
       eapply eutt_clo_bind_returns; [eapply genNExpr_correct |..]; eauto.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       destruct PRE0 as (SINV & EQEXP & ?).
       cbn* in *; inv_eqs.
+      hvred.
 
       (* denoting [m] *)
       (* onAllHyps move_up_types. *)
-      rewrite convert_typ_app, denote_code_app...
       eapply eutt_clo_bind_returns; [eapply genMExpr_correct | ..]; eauto.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       destruct vH0, PRE0 as (SINV' & ? & (addr_m & EQEXPm & LU_ARRAY)).
       cbn* in *; inv_eqs.
+      hvred.
 
       simp; try_abs.
       (* TODO: Fix try_abs to handle this case *)
       apply no_failure_Ret in NOFAIL; try_abs.
+      hvred.
 
-      rewrite denote_code_cons...
       edestruct denote_instr_gep_array as (? & READ & EQ);
         [exact EQEXPm | | eapply LU_ARRAY; eauto |].
       { clear LU_ARRAY EQEXPm.
@@ -312,24 +311,25 @@ Section AExpr.
         rewrite EQ in EQEXP.
         exact EQEXP.
       }
-      rewrite EQ...
-      clear EQ.
-      rewrite denote_instr_load; eauto.
-      2:{
-        cbn...
-        reflexivity.
+
+      rewrite EQ; clear EQ.
+      hvred.
+      vstep.
+      {
+        vstep.
         apply lookup_alist_add_eq. 
+        reflexivity.
       }
       clear EQEXP EQEXPm NOFAIL.
       apply eutt_Ret.
       split.
       ++ cbn; do 2 (eapply state_invariant_add_fresh; eauto).
       ++ split; cbn; intuition.
-      * cbn... 
-        reflexivity.
+      * vstep.
         cbn.
         apply H0.
         apply In_add_eq.
+        reflexivity.
       * eapply sub_alist_trans; eauto.
         eapply sub_alist_trans; eapply sub_alist_add.
         -- eapply concrete_fresh_fresh; eauto.
@@ -339,286 +339,277 @@ Section AExpr.
            eapply state_invariant_add_fresh; eauto.
            
     - (* AAbs *)
-      rename g into g1, l into l1, memV into memV1.
       cbn* in *; simp.
-      cbn...
-      rewrite convert_typ_app, denote_code_app...
+      hvred.
       eapply eutt_clo_bind; try eapply IHaexp; eauto.
       introR; destruct_unit.
-      cbn; rewrite denote_code_singleton...
       destruct PRE0 as (SINV & AEXP & MONO).
       cbn in MONO; inv_eqs.
+      cbn; hvred.
 
-      Transparent assoc.
-      rewrite denote_instr_intrinsic; cbn; try reflexivity.
-      4: {
-        cbn...
-        rewrite (AEXP l); [| reflexivity]. 
-        cbn...
+      (* TO FIX *)
+      Transparent assoc. 
+      vstep; try reflexivity.
+      {
+        cbn; vred.
+        rewrite (AEXP l0); [| reflexivity].
+        vred.
         reflexivity.
       }
-      2: {
-        cbn...
+      {
+        cbn; vred.
         reflexivity.
       }
-      2: reflexivity.
+      reflexivity.
       apply eutt_Ret.
       split.
       + eapply state_invariant_add_fresh; eauto.
       + split; cbn; intuition.
-        * cbn...
-          reflexivity.
+        * vstep.
           cbn. apply H0.
           apply In_add_eq.
+          reflexivity.
         * rewrite H.
           apply sub_alist_add.
           eapply concrete_fresh_fresh; eauto.
           eapply incLocal_is_fresh; eauto.
           
     - (* APlus *)
-      rename g into g1, l into l1, memV into memV1.
       cbn* in *; simp...
+      hvred.
 
-      rewrite convert_typ_app, denote_code_app...
       eapply eutt_clo_bind_returns; try eapply IHaexp1; eauto.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       destruct PRE0 as (SINV1 & AEXP1 & ext); cbn in *; inv_eqs.
+      hvred.
 
-      rewrite convert_typ_app, denote_code_app...
       eapply eutt_clo_bind; try eapply IHaexp2; eauto.
       introR; destruct_unit.
       destruct PRE0 as (SINV2 & AEXP2 & ext); cbn in *; inv_eqs.
+      hvred.
 
-      cbn; rewrite denote_code_singleton...
-      rewrite denote_instr_op.
-      2: {
-        cbn...
-        rewrite AEXP1; auto...
-        rewrite AEXP2; [| reflexivity]...
-        cbn...
-        reflexivity.
+      vstep.
+      {
+        vstep.
+        rewrite AEXP1; auto; reflexivity.
+        rewrite AEXP2; auto; reflexivity.
+        all:reflexivity.
       }
 
       apply eutt_Ret.
       split; cbn; eauto.
       + eapply state_invariant_add_fresh; eauto.
       + split; cbn; intuition.
-        * cbn...
-          reflexivity.
+        * vstep.
           apply H1, In_add_eq.
+          reflexivity.
         * rewrite H, H0.
           apply sub_alist_add.
           eapply concrete_fresh_fresh; eauto.
           eapply incLocal_is_fresh; eauto.
 
     - (* AMinus *)
-      rename g into g1, l into l1, memV into memV1.
-      cbn* in *; simp...
+      cbn* in *; simp.
+      hvred.
 
-      rewrite convert_typ_app, denote_code_app...
       eapply eutt_clo_bind_returns; try eapply IHaexp1; eauto.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       destruct PRE0 as (SINV1 & AEXP1 & ext); cbn in *; inv_eqs.
+      hvred.
 
-      rewrite convert_typ_app, denote_code_app...
       eapply eutt_clo_bind; try eapply IHaexp2; eauto.
       introR; destruct_unit.
       destruct PRE0 as (SINV2 & AEXP2 & ext); cbn in *; inv_eqs.
+      hvred.
 
-      cbn; rewrite denote_code_singleton...
-      rewrite denote_instr_op.
-      2: {
-        cbn...
-        rewrite AEXP1; auto...
-        rewrite AEXP2; [| reflexivity]...
-        cbn...
-        reflexivity.
+      vstep.
+      {
+        vstep.
+        rewrite AEXP1; auto; reflexivity.
+        rewrite AEXP2; auto; reflexivity. 
+        all:reflexivity.
       }
 
       apply eutt_Ret.
       split; cbn; eauto.
       + eapply state_invariant_add_fresh; eauto.
       + split; cbn; intuition.
-        * cbn...
-          reflexivity.
+        * vstep.
           apply H1, In_add_eq.
+          reflexivity.
         * rewrite H, H0.
           apply sub_alist_add.
           eapply concrete_fresh_fresh; eauto.
           eapply incLocal_is_fresh; eauto.
 
     - (* AMult *)
-      rename g into g1, l into l1, memV into memV1.
-      cbn* in *; simp...
+      cbn* in *; simp.
+      hvred.
 
-      rewrite convert_typ_app, denote_code_app...
       eapply eutt_clo_bind_returns; try eapply IHaexp1; eauto.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       destruct PRE0 as (SINV1 & AEXP1 & ext); cbn in *; inv_eqs.
+      hvred.
 
-      rewrite convert_typ_app, denote_code_app...
       eapply eutt_clo_bind; try eapply IHaexp2; eauto.
       introR; destruct_unit.
       destruct PRE0 as (SINV2 & AEXP2 & ext); cbn in *; inv_eqs.
+      hvred.
 
-      cbn; rewrite denote_code_singleton...
-      rewrite denote_instr_op.
-      2: {
-        cbn...
-        rewrite AEXP1; auto...
-        rewrite AEXP2; [| reflexivity]...
-        cbn...
-        reflexivity.
+      vstep.
+      {
+        vstep.
+        rewrite AEXP1; auto; reflexivity.
+        rewrite AEXP2; auto; reflexivity.
+        all:reflexivity.
       }
 
       apply eutt_Ret.
       split; cbn; eauto.
       + eapply state_invariant_add_fresh; eauto.
       + split; cbn; intuition.
-        * cbn...
-          reflexivity.
+        * vstep.
           apply H1, In_add_eq.
+          reflexivity.
         * rewrite H, H0.
           apply sub_alist_add.
           eapply concrete_fresh_fresh; eauto.
           eapply incLocal_is_fresh; eauto.
 
-   - (* AMin *)
-      rename g into g1, l into l1, memV into memV1.
-      cbn* in *; simp...
+    - (* AMin *)
+      cbn* in *; simp.
+      hvred.
 
-      rewrite convert_typ_app, denote_code_app...
       eapply eutt_clo_bind_returns; try eapply IHaexp1; eauto.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       destruct PRE0 as (SINV1 & AEXP1 & ext); cbn in *; inv_eqs.
+      hvred.
 
-      rewrite convert_typ_app, denote_code_app...
       eapply eutt_clo_bind; try eapply IHaexp2; eauto.
       introR; destruct_unit.
       destruct PRE0 as (SINV2 & AEXP2 & ext); cbn in *; inv_eqs.
+      hvred.
 
-      cbn; rewrite denote_code_singleton...
-      rewrite denote_instr_intrinsic; cbn; try reflexivity.
-      4:{ cbn...
-          rewrite AEXP1; auto...
-          rewrite AEXP2; [cbn; rauto; reflexivity | reflexivity].
+      vstep; try reflexivity.
+      { cbn; vred. 
+        rewrite AEXP1; auto.
+        vred.
+        rewrite AEXP2; auto. 
+        vred.
+        reflexivity.
+        reflexivity.
       }
-      2: cbn; rauto; reflexivity.
-      2: reflexivity.
+      cbn; vred; reflexivity.
+      reflexivity.
       apply eutt_Ret.
-      cbn.
       split.
       + eapply state_invariant_add_fresh; eauto.
       + split; cbn; intuition.
-        * cbn...
-          reflexivity.
+        * vstep.
           cbn. apply H1.
           replace (Float_minimum vH vH0) with (MFloat64asCT.CTypeMin vH vH0) by admit.
           apply In_add_eq.
+          reflexivity.
         * rewrite H,H0.
           apply sub_alist_add.
           eapply concrete_fresh_fresh; eauto.
           eapply incLocal_is_fresh; eauto.
- 
+          
    - (* AMax *)
-      rename g into g1, l into l1, memV into memV1.
-      cbn* in *; simp...
+      cbn* in *; simp.
+      hvred.
 
-      rewrite convert_typ_app, denote_code_app...
       eapply eutt_clo_bind_returns; try eapply IHaexp1; eauto.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       destruct PRE0 as (SINV1 & AEXP1 & ext); cbn in *; inv_eqs.
+      hvred.
 
-      rewrite convert_typ_app, denote_code_app...
       eapply eutt_clo_bind; try eapply IHaexp2; eauto.
       introR; destruct_unit.
       destruct PRE0 as (SINV2 & AEXP2 & ext); cbn in *; inv_eqs.
+      hvred.
 
-      cbn; rewrite denote_code_singleton...
-      rewrite denote_instr_intrinsic; cbn; try reflexivity.
-      4:{ cbn...
-          rewrite AEXP1; auto...
-          rewrite AEXP2; [cbn; rauto; reflexivity | reflexivity].
+      vstep.
+      { cbn; vred.
+        rewrite AEXP1; eauto.
+        vred; rewrite AEXP2.
+        vred; reflexivity.
+        reflexivity.
       }
-      2: cbn; rauto; reflexivity.
-      2: reflexivity.
+      cbn; vred; reflexivity.
+      reflexivity.
       apply eutt_Ret.
-      cbn.
       split.
       + eapply state_invariant_add_fresh; eauto.
       + split; cbn; intuition.
-        * cbn...
-          reflexivity.
+        * vstep.
           cbn. apply H1.
           replace (Float_maxnum vH vH0) with (MFloat64asCT.CTypeMax vH vH0) by admit.
           apply In_add_eq.
+          reflexivity.
         * rewrite H,H0.
           apply sub_alist_add.
           eapply concrete_fresh_fresh; eauto.
           eapply incLocal_is_fresh; eauto.
 
    - (* AZless *)
-      rename g into g1, l into l1, memV into memV1.
-      cbn* in *; simp...
+      cbn* in *; simp.
+      hvred.
 
-      rewrite convert_typ_app, denote_code_app...
       eapply eutt_clo_bind_returns; try eapply IHaexp1; eauto.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       destruct PRE0 as (SINV1 & AEXP1 & ext); cbn in *; inv_eqs.
+      hvred.
 
-      rewrite convert_typ_app, denote_code_app...
       eapply eutt_clo_bind; try eapply IHaexp2; eauto.
       introR; destruct_unit.
       destruct PRE0 as (SINV2 & AEXP2 & ext); cbn in *; inv_eqs.
+      hvred.
 
-      cbn...
-      cbn; rewrite denote_code_cons...
-      rewrite denote_instr_op.
-      2: {
-        cbn...
-        rewrite AEXP1; auto...
-        rewrite AEXP2; [| reflexivity]...
-        cbn...
+      vstep.
+      {
+        vstep.
+        rewrite AEXP1; auto; reflexivity.
+        rewrite AEXP2; auto; reflexivity. 
+        all: reflexivity.
+      }
+
+      hvred.
+      destruct (float_cmp vH vH0) as (? & ? & ?).
+      rewrite denote_instr_comment.
+      vstep.
+      unfold denote_exp; simpl.
+      hvred.
+      vstep.
+      vstep.
+
+      { vstep.
+        apply In_add_eq.
         reflexivity.
       }
-
-      cbn...
-      cbn; rewrite denote_code_cons...
-      destruct (float_cmp vH vH0) as (? & ? & ?).
-      rewrite denote_instr_comment...
-      rewrite denote_instr_op.
-      2:{ simpl.
-          autorewrite with itree.
-          autorewrite with vellvm.
-          2:apply In_add_eq.
-          cbn...
-          unfold uvalue_to_dvalue_uop.
-          rewrite uvalue_to_dvalue_of_dvalue_to_uvalue; cbn...
-          match_rewrite.
-          cbn...
-          reflexivity.
-      }
+      rewrite uvalue_to_dvalue_of_dvalue_to_uvalue; reflexivity.
+      cbn; match_rewrite; reflexivity.
+      reflexivity.
 
       apply eutt_Ret.
-      cbn.
       split.
       + cbn.
         eapply state_invariant_incVoid; eauto.
         repeat (eapply state_invariant_add_fresh; eauto).
       + split; cbn; intuition.
-        * cbn...
-          reflexivity.
+        * vstep.
           cbn. apply H3.
           match goal with
             |- alist_In _ (alist_add _ ?x _) ?y => replace x with y by admit
           end.
           apply In_add_eq.
+          reflexivity.
         * rewrite H,H0.
           etransitivity; [apply sub_alist_add| apply sub_alist_add].
           eapply concrete_fresh_fresh; eauto; eapply incLocal_is_fresh; eauto.
