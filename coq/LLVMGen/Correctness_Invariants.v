@@ -679,6 +679,49 @@ Proof.
   inv Heqi0.
   unfold equiv, MInt64asNT.NTypeEquiv, Int64.eq, Int64.unsigned, Int64.intval.
   (* apply Coqlib.zeq_true. *)
-(* Qed. *)
+  (* Qed. *)
 Admitted.
+
+Lemma state_invariant_alist_fresh:
+  forall σ s s' memH memV l g id,
+    state_invariant σ s memH (memV, (l,g)) ->
+    incLocal s ≡ inr (s',id) ->
+    alist_fresh id l.
+Proof.
+  intros * [] LOC.
+  apply concrete_fresh_fresh in incLocal_is_fresh0.
+  eapply incLocal_is_fresh0; eauto.
+Qed.
+
+Hint Resolve memory_invariant_ext_local: core.
+
+Ltac solve_alist_in := first [apply In_add_eq | idtac].
+Ltac solve_lu :=
+  (try now eauto);
+  match goal with
+  | |- @Maps.lookup _ _ local_env _ ?id ?l ≡ Some _ =>
+    eapply memory_invariant_LLU; [| eassumption | eassumption]; eauto
+  | h: _ ⊑ ?l |- @Maps.lookup _ _ local_env _ ?id ?l ≡ Some _ =>
+    eapply h; solve_lu
+  | |- @Maps.lookup _ _ global_env _ ?id ?l ≡ Some _ =>
+    eapply memory_invariant_GLU; [| eassumption | eassumption]; eauto
+  | _ => solve_alist_in
+  end.
+
+Ltac solve_state_invariant :=
+  cbn;
+  match goal with
+    |- state_invariant _ _ _ (_, (alist_add _ _ _, _)) =>
+    eapply state_invariant_add_fresh; [now eauto | (eassumption || solve_state_invariant)]
+  end.
+
+Ltac solve_alist_fresh :=
+  (reflexivity ||
+   eapply state_invariant_alist_fresh; now eauto).
+
+Ltac solve_sub_alist :=
+  (reflexivity
+   || (apply sub_alist_add; solve_alist_fresh)
+   || (etransitivity; eauto; []; solve_sub_alist)
+  ).
 

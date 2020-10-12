@@ -200,10 +200,7 @@ Section AExpr.
           destruct a,b; inversion Heqo; try reflexivity.
   Qed.
 
-  Opaque denote_instr.
-  Opaque denote_code.
-
-
+  Import ProofMode.
   Lemma genAExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (aexp: AExpr) (σ: evalContext) (memH: memoryH) 
@@ -220,7 +217,6 @@ Section AExpr.
     intros s1 s2 aexp; revert s1 s2; induction aexp; intros * COMPILE PRE NOFAIL.
     - (* Variable case *)
       (* Reducing the compilation *)
-      (* pose proof COMPILE as COMPILE'. *)
       cbn* in COMPILE; simp.
 
       + (* The variable maps to an integer in the IRState *)
@@ -304,6 +300,7 @@ Section AExpr.
       apply no_failure_Ret in NOFAIL; try_abs.
       hvred.
 
+      (* [vstep] does not handle gep currently *)
       edestruct denote_instr_gep_array as (? & READ & EQ);
         [exact EQEXPm | | eapply LU_ARRAY; eauto |].
       { clear LU_ARRAY EQEXPm.
@@ -313,6 +310,7 @@ Section AExpr.
       }
 
       rewrite EQ; clear EQ.
+      hvred.
       hvred.
       vstep.
       {
@@ -351,13 +349,14 @@ Section AExpr.
       Transparent assoc. 
       vstep; try reflexivity.
       {
-        cbn; vred.
+        cbn.
+        vred_l.
         rewrite (AEXP l0); [| reflexivity].
-        vred.
+        tred; vred_l.
         reflexivity.
       }
       {
-        cbn; vred.
+        cbn; tred; vred_l.
         reflexivity.
       }
       reflexivity.
@@ -495,15 +494,17 @@ Section AExpr.
       hvred.
 
       vstep; try reflexivity.
-      { cbn; vred. 
+      { cbn; vred_l. 
         rewrite AEXP1; auto.
-        vred.
+        autorewrite with itree.
+        vred_l.
         rewrite AEXP2; auto. 
-        vred.
+        autorewrite with itree.
+        vred_l.
         reflexivity.
         reflexivity.
       }
-      cbn; vred; reflexivity.
+      cbn; tred; vred_l; reflexivity.
       reflexivity.
       apply eutt_Ret.
       split.
@@ -535,13 +536,13 @@ Section AExpr.
       hvred.
 
       vstep.
-      { cbn; vred.
+      { cbn; tred; vred_l.
         rewrite AEXP1; eauto.
-        vred; rewrite AEXP2.
-        vred; reflexivity.
+        tred; vred_l; rewrite AEXP2.
+        tred; vred_l; reflexivity.
         reflexivity.
       }
-      cbn; vred; reflexivity.
+      cbn; tred; vred_l; reflexivity.
       reflexivity.
       apply eutt_Ret.
       split.
