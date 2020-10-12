@@ -837,26 +837,30 @@ Qed.
 Definition in_global_addr (g : global_env) (x : raw_id) (a : Addr.addr) := 
   g @ x ≡ Some (DVALUE_Addr a).
 
+Definition allocated_xy (memV : memoryV) (g : global_env) :=
+  exists ptr0 ptr1,
+      allocated ptr0 memV
+    /\ allocated ptr1 memV
+    /\ in_global_addr g (Anon 0%Z) ptr0
+    /\ in_global_addr g (Anon 1%Z) ptr1.
+
+Definition allocated_globals
+           (memV : memoryV)
+           (g : global_env)
+           (globals : list (string * DSHType))
+  :=
+    forall j (jc : j < length globals),
+    exists ptr_llvm,
+      allocated ptr_llvm memV
+      /\ in_global_addr g (Name (fst (ListUtil.ith jc))) ptr_llvm.
+ 
+(* ZX TODO: consider checking [forall i, globals[i] ~~~ σ[i]] *)
 Definition post_alloc_invariant_mcfg
            (globals : list (string * DSHType))
-           (σ : evalContext)
-           (k : nat)
   : Rel_mcfg_T unit unit :=
-  fun '(memH,_) '(memV,((_,sl),(g,_))) =>
-    forall j (jc : j < k),
-    exists ptr_llvm,
-      match le_lt_dec (length globals) j with
-      | in_left => in_global_addr
-                    g
-                    (Anon (Z.of_nat (j - length globals)))
-                    ptr_llvm
-      | right jc' => in_global_addr
-                      g
-                      (Name (fst (ListUtil.ith jc')))
-                      ptr_llvm
-      end
-      /\
-      allocated ptr_llvm memV.
+  fun _ '(memV, (_, (g, _))) =>
+    allocated_xy memV g /\
+    allocated_globals memV g globals.
 
 Lemma allocate_allocated (m1 m2 : memoryV) (d : dtyp) (a : Addr.addr) :
   allocate m1 d ≡ inr (m2, a) → allocated a m2.
