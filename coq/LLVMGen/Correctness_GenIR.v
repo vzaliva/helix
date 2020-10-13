@@ -873,12 +873,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       rewrite LU in H; symmetry in H; inv H.
 
       rename e into esrc.
-      denote_instr_gep_array
 
-      subst.
-      hide_cont.
-
-      
 
       admit.
 
