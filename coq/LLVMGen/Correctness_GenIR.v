@@ -648,7 +648,71 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   Qed.
   Opaque interp_helix interp_Mem.
 
-  Opaque denote_code.
+  Require Import LibHyps.LibHyps.
+
+  Ltac clean_goal :=
+    try match goal with
+        | h1 : incVoid _ ≡ _,
+               h2 : incVoid _ ≡ _,
+                    h3 : incVoid _ ≡ _
+          |- _ => move h1 at top; move h2 at top; move h3 at top
+        | h1 : incVoid _ ≡ _, h2 : incVoid _ ≡ _ |- _ => move h1 at top; move h2 at top
+        | h : incVoid _ ≡ _ |- _ => move h at top
+        end;
+
+    try match goal with
+        | h1 : incLocal _ ≡ _,
+               h2 : incLocal _ ≡ _,
+                    h3 : incLocal _ ≡ _
+          |- _ => move h1 at top; move h2 at top; move h3 at top
+        | h1 : incLocal _ ≡ _, h2 : incLocal _ ≡ _ |- _ => move h1 at top; move h2 at top
+        | h : incLocal _ ≡ _ |- _ => move h at top
+        end;
+
+    try match goal with
+        | h1 : incBlockNamed _ _ ≡ _,
+               h2 : incBlockNamed _ _ ≡ _,
+                    h3 : incBlockNamed _ _ ≡ _
+          |- _ => move h1 at top; move h2 at top; move h3 at top
+        | h1 : incBlockNamed _ _ ≡ _, h2 : incBlockNamed _ _ ≡ _ |- _ => move h1 at top; move h2 at top
+        | h : incBlockNamed _ _ ≡ _ |- _ => move h at top
+        end;
+
+    onAllHyps move_up_types.
+  Import ProofMode.
+  Notation "'gep' τ e" := (OP_GetElementPtr τ e) (at level 10, only printing).
+  Notation "'double'" := (DTYPE_Double) (at level 10, only printing).
+  Notation "'arr'" := (DTYPE_Array) (at level 10, only printing).
+  Notation "'to_nat'" := (MInt64asNT.to_nat) (only printing).
+
+  Variant hidden_cont  (T: Type) : Type := boxh_cont (t: T).
+  Variant visible_cont (T: Type) : Type := boxv_cont (t: T).
+  Ltac hide_cont :=
+    match goal with
+    | h : visible_cont _ |- _ =>
+      let EQ := fresh "HK" in
+      destruct h as [EQ];
+      apply boxh_cont in EQ
+    | |- context[ITree.bind _ ?k] =>
+      remember k as K eqn:VK;
+      apply boxh_cont in VK
+    end.
+  Ltac show_cont :=
+    match goal with
+    | h: hidden_cont _ |- _ =>
+      let EQ := fresh "VK" in
+      destruct h as [EQ];
+      apply boxv_cont in EQ
+    end.
+  Notation "'hidden' K" := (hidden_cont (K ≡ _)) (only printing, at level 10).
+  Ltac subst_cont :=
+    match goal with
+    | h: hidden_cont _ |- _ =>
+      destruct h; subst
+    | h: visible_cont _ |- _ =>
+      destruct h; subst
+    end.
+  
   Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
       (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH) 
@@ -666,34 +730,20 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     intros s1 s2 op; revert s1 s2; induction op; intros * NEXT BISIM NOFAIL GEN.
     - cbn* in *.
       simp.
-      hide_strings'.
-      cbn*; rauto:L.
+      cbn*.
+      hvred.
+      vjmp.
+      (* TODO :( *)
+      unfold fmap, Fmap_block; cbn.
+      vred.
+      vred.
+      vred.
+      vred.
 
-      rewrite add_comments_eutt.
-      rewrite denote_bks_unfold_in.
-      2: {
-        cbn.
-
-        assert ((if Eqv.eqv_dec_p bid_in bid_in then true else false) ≡ true).
-        admit.
-        rewrite H.
-
-        auto.
-      }
-
-      cbn*; rauto:R.
-      cbn*; rauto:R.
-      cbn*; rauto:R.
-
-      rewrite denote_term_br_1.
-      cbn*; rauto:R.
-      
-      rewrite denote_bks_unfold_not_in.
-      2 : {
-        inversion EQ_msg; subst.
-        (* We know nextblock ≢ bid_in *)
-        cbn in NEXT.
-        cbn.
+      rewrite denote_bks_unfold_not_in; cycle 1.
+      {
+        (* TODO: auto and part of vjmp_out *)
+        rewrite find_block_ineq; [apply find_block_nil | cbn].
 
         assert (nextblock ≢ bid_in).
         {
@@ -711,21 +761,30 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
           eapply gen_not_state_bound; eauto using incBlockNamed_count_gen_injective;
             solve_not_ends_with.
         }
-
-        (* Should be able to rewrite this to false and show equivalence *)
-        admit.
+        auto.
       }
+      vred.
 
-      rauto:R.
-      apply eqit_Ret; auto.
-      solve_gen_ir_rel.
+      apply eutt_Ret; auto.
       destruct BISIM as (STATE & (from & BRANCH)).
       cbn in STATE, BRANCH.
       split; cbn; eauto.
-      eapply state_invariant_incVoid; eauto.
-      eapply state_invariant_incBlockNamed; eauto.
 
-    - (* Assign case.
+      (* YZ TODO: move to prelude *)
+      Ltac solve_state_invariant :=
+        cbn;
+        match goal with
+          |- state_invariant _ _ _ _ =>
+          first [eassumption |
+                 eapply state_invariant_add_fresh; [eassumption | solve_state_invariant] |
+                 eapply state_invariant_incVoid; [eassumption | solve_state_invariant] |
+                 eapply state_invariant_incBlockNamed; [eassumption | solve_state_invariant]
+                ]
+        end.
+
+      solve_state_invariant.
+
+    - (* ** DSHAssign (x_p, src_e) (y_p, dst_e):
          Helix side:
          1. x_i <- evalPExpr σ x_p ;;
          2. y_i <- evalPExpr σ y_p ;;
@@ -735,80 +794,87 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
          6. dst <- evalNExpr σ dst_e ;;
          7. v <- mem_lookup_err "Error looking up 'v' in DSHAssign" (to_nat src) x ;;
          8. ret (memory_set mem y_i (mem_add (to_nat dst) v y))
+
+         Vellm side:
+         src_nexpcode ++
+         dst_nexpcode ++
+         px <- gep "src_p"[src_nexpr] ;;
+         v  <- load px ;;
+         py <- gep "dst_p"[dst_nexpr] ;;
+         store v py
        *)
-      destruct BISIM as [BISIM1 BISIM2].
+      Import ProofMode.
+      (* Opaque interp_helix interp_Mem. *)
+      destruct BISIM as [BISIM1 [_bid EQ]]; inv EQ.
       cbn* in *; simp.
-      rename i into si, i2 into si',
-      i0 into x, i3 into y,
-      i1 into v1, i4 into v2.
+      hide_cfg.
       inv_resolve_PVar Heqs0.
       inv_resolve_PVar Heqs1.
-      (* Require Import LibHyps.LibHyps. *)
-      (* onAllHyps move_up_types. *)
-
-      eutt_hide_right.
-      rename n1 into x_p, n2 into y_p.
       unfold denotePExpr in *; cbn* in *.
-      simp; try_abs.
+      simp. Time all:try_abs.
       apply no_failure_Ret in NOFAIL; try_abs.
+      clean_goal.
       repeat apply no_failure_Ret in NOFAIL.
       edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto. 
       edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto. 
+      rename s1 into si, s2 into sf,
+      i5 into s1, i6 into s2,
+      i8 into s3, i10 into s4,
+      i11 into s5, i12 into s6,
+      i13 into s7.
+      rename n1 into x_p, n2 into y_p.
+      rename a into x_i, a0 into y_i.
+      rename x0 into y.
+      clean_goal.
 
-      eutt_hide_right.
-      rauto.
-      2,3: eauto.
-      subst.
+      hred.
+      hstep; [eauto |].
+      hred; hstep; [eauto |].
+      hred.
 
       subst; eutt_hide_left.
-      unfold add_comments.
-      cbn*.
-      rewrite denote_bks_unfold_in; eauto.
-      2: rewrite find_block_eq; reflexivity.
-      cbn*.
-      repeat rewrite fmap_list_app.
-      rauto:R.
-      cbn.
-      rauto:R.
-      rewrite denote_code_app.
-      rauto:R.
-      subst.
-      focus_single_step.
-      rename x into x_p', y into y_p'.
-      rename n into src_e, n0 into dst_e.
+      vjmp.
+      unfold fmap, Fmap_block; cbn.
+      vred.
+      vred.
+      vred.
 
       (* Step 5. *)
-      eapply eutt_clo_bind_returns; [eapply genNExpr_correct |..]; eauto.
+      subst; eapply eutt_clo_bind_returns; [eapply genNExpr_correct_ind |..]; eauto.
       eauto 7 with state_invariant.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       cbn in PRE; destruct PRE as (INV1 & EXP1 & ?); cbn in *; inv_eqs.
-
-      subst.
-
-      rewrite denote_code_app.
-      rauto.
-      focus_single_step.
+      hvred.
 
       (* Step 6. *)
       eapply eutt_clo_bind_returns; [eapply genNExpr_correct |..]; eauto.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       cbn in PRE; destruct PRE as (INV2 & EXP2 & ?); cbn in *; inv_eqs.
-      
-      subst.
-      simp; try_abs.
-      apply no_failure_Ret in NOFAIL; try_abs.
+      hvred.
+      break_inner_match_hyp; break_inner_match_hyp; try_abs.
+      2: apply no_failure_Ret in NOFAIL; try_abs.
+      destruct_unit.
 
-      (* Step 7. *)
-      eutt_hide_right.
-      rauto.
-      rewrite interp_helix_MemSet.
-      subst.
-      rauto:R.
-      focus_single_step_v.
-      eutt_hide_left.
+      rename vH into src, vH0 into dst, b into v.
+      clean_goal.
       
+      (* Step 7. *)
+      hvred.
+      hstep.
+      unfold assert_NT_lt,assert_true_to_err in *; simp.
+      hide_cont.
+      clear NOFAIL.
+      rename i1 into vsz.
+      rename i0 into vx_p, i3 into vy_p.
+      (* We access in memory vx_p[e] *)
+      edestruct memory_invariant_Ptr as (membk & ptr & LU & INLG & GETCELL); [| eauto | eauto |]; eauto.
+      rewrite LU in H; symmetry in H; inv H.
+
+      rename e into esrc.
+
+
       admit.
 
 
@@ -987,8 +1053,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       inv_resolve_PVar Heqs1.
       cbn* in *.
       simp.
-      (* Require Import LibHyps.LibHyps. *)
-      (* onAllHyps move_up_types. *)
 
       eutt_hide_right.
       repeat apply no_failure_Ret in NOFAIL.

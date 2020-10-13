@@ -34,6 +34,7 @@ series of intermediate languages, culminating in LLVM IR.
    - [[http://flocq.gforge.inria.fr/][Flocq]]
    - [[https://github.com/vellvm/vellvm][Vellvm]] (requires ~coq-ceres~, ~coq-ext-lib~, ~coq-paco~, and ~coq-flocq~) /(manual installation instructions below)/
    - [[https://opensource.janestreet.com/core/][Jane Street Core]]
+   - coq-libhyps
    - [[https://github.com/Karmaki/coq-dpdgraph][coq-dpdgraph]] /(optional)/
 
  To install all required dependenceis:

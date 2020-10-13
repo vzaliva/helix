@@ -25,7 +25,7 @@ MYVFILES := $(filter-out $(LIBVFILES), $(VFILES))
 COQINCLUDES=`grep '\-R' _CoqProject` -R $(EXTRACTDIR) Extract
 COQEXEC=coqtop -q -w none $(COQINCLUDES) -batch -load-vernac-source
 
-OPAMPKGS=coq coq-color coq-ext-lib coq-math-classes coq-metacoq-template coq-switch ANSITerminal coq-flocq coq-paco coq-ceres menhir core core_kernel dune ocamlbuild
+OPAMPKGS=coq coq-color coq-ext-lib coq-math-classes coq-metacoq-template coq-switch ANSITerminal coq-flocq coq-paco coq-ceres menhir core core_kernel dune ocamlbuild coq-libhyps
 
 default: all
 

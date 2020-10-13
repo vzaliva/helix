@@ -42,6 +42,7 @@ install:
   - opam install -y --verbose -j 1 coq-flocq
   - opam install -y --verbose -j 1 coq-paco
   - opam install -y --verbose -j 1 coq-ceres
+  - opam install -y --verbose -j 1 coq-libhyps
   - opam install -y --verbose -j 1 menhir
   - opam install -y --verbose -j 1 core
   - opam install -y --verbose -j 1 core_kernel
