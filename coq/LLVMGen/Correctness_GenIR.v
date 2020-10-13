@@ -646,6 +646,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       cbn in *; rewrite translate_ret, bind_ret_l in NOFAIL.
       eexists; split; eauto.
   Qed.
+  Opaque interp_helix interp_Mem.
 
   Require Import LibHyps.LibHyps.
 
@@ -783,7 +784,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
       solve_state_invariant.
 
-    - (* ** DSHAssign src dst:
+    - (* ** DSHAssign (x_p, src_e) (y_p, dst_e):
          Helix side:
          1. x_i <- evalPExpr σ x_p ;;
          2. y_i <- evalPExpr σ y_p ;;
@@ -802,14 +803,15 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
          py <- gep "dst_p"[dst_nexpr] ;;
          store v py
        *)
-      
+      Import ProofMode.
+      (* Opaque interp_helix interp_Mem. *)
       destruct BISIM as [BISIM1 [_bid EQ]]; inv EQ.
       cbn* in *; simp.
       hide_cfg.
       inv_resolve_PVar Heqs0.
       inv_resolve_PVar Heqs1.
       unfold denotePExpr in *; cbn* in *.
-      simp; try_abs.
+      simp. Time all:try_abs.
       apply no_failure_Ret in NOFAIL; try_abs.
       clean_goal.
       repeat apply no_failure_Ret in NOFAIL.
@@ -1056,8 +1058,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       inv_resolve_PVar Heqs1.
       cbn* in *.
       simp.
-      (* Require Import LibHyps.LibHyps. *)
-      (* onAllHyps move_up_types. *)
 
       eutt_hide_right.
       repeat apply no_failure_Ret in NOFAIL.
