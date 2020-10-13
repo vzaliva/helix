@@ -646,8 +646,72 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       cbn in *; rewrite translate_ret, bind_ret_l in NOFAIL.
       eexists; split; eauto.
   Qed.
-  Opaque interp_helix interp_Mem.
 
+  Require Import LibHyps.LibHyps.
+
+  Ltac clean_goal :=
+    try match goal with
+        | h1 : incVoid _ ≡ _,
+               h2 : incVoid _ ≡ _,
+                    h3 : incVoid _ ≡ _
+          |- _ => move h1 at top; move h2 at top; move h3 at top
+        | h1 : incVoid _ ≡ _, h2 : incVoid _ ≡ _ |- _ => move h1 at top; move h2 at top
+        | h : incVoid _ ≡ _ |- _ => move h at top
+        end;
+
+    try match goal with
+        | h1 : incLocal _ ≡ _,
+               h2 : incLocal _ ≡ _,
+                    h3 : incLocal _ ≡ _
+          |- _ => move h1 at top; move h2 at top; move h3 at top
+        | h1 : incLocal _ ≡ _, h2 : incLocal _ ≡ _ |- _ => move h1 at top; move h2 at top
+        | h : incLocal _ ≡ _ |- _ => move h at top
+        end;
+
+    try match goal with
+        | h1 : incBlockNamed _ _ ≡ _,
+               h2 : incBlockNamed _ _ ≡ _,
+                    h3 : incBlockNamed _ _ ≡ _
+          |- _ => move h1 at top; move h2 at top; move h3 at top
+        | h1 : incBlockNamed _ _ ≡ _, h2 : incBlockNamed _ _ ≡ _ |- _ => move h1 at top; move h2 at top
+        | h : incBlockNamed _ _ ≡ _ |- _ => move h at top
+        end;
+
+    onAllHyps move_up_types.
+  Import ProofMode.
+  Notation "'gep' τ e" := (OP_GetElementPtr τ e) (at level 10, only printing).
+  Notation "'double'" := (DTYPE_Double) (at level 10, only printing).
+  Notation "'arr'" := (DTYPE_Array) (at level 10, only printing).
+  Notation "'to_nat'" := (MInt64asNT.to_nat) (only printing).
+
+  Variant hidden_cont  (T: Type) : Type := boxh_cont (t: T).
+  Variant visible_cont (T: Type) : Type := boxv_cont (t: T).
+  Ltac hide_cont :=
+    match goal with
+    | h : visible_cont _ |- _ =>
+      let EQ := fresh "HK" in
+      destruct h as [EQ];
+      apply boxh_cont in EQ
+    | |- context[ITree.bind _ ?k] =>
+      remember k as K eqn:VK;
+      apply boxh_cont in VK
+    end.
+  Ltac show_cont :=
+    match goal with
+    | h: hidden_cont _ |- _ =>
+      let EQ := fresh "VK" in
+      destruct h as [EQ];
+      apply boxv_cont in EQ
+    end.
+  Notation "'hidden' K" := (hidden_cont (K ≡ _)) (only printing, at level 10).
+  Ltac subst_cont :=
+    match goal with
+    | h: hidden_cont _ |- _ =>
+      destruct h; subst
+    | h: visible_cont _ |- _ =>
+      destruct h; subst
+    end.
+  
   Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
       (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH) 
@@ -719,7 +783,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
       solve_state_invariant.
 
-    - (* Assign case.
+    - (* ** DSHAssign src dst:
          Helix side:
          1. x_i <- evalPExpr σ x_p ;;
          2. y_i <- evalPExpr σ y_p ;;
@@ -729,40 +793,16 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
          6. dst <- evalNExpr σ dst_e ;;
          7. v <- mem_lookup_err "Error looking up 'v' in DSHAssign" (to_nat src) x ;;
          8. ret (memory_set mem y_i (mem_add (to_nat dst) v y))
+
+         Vellm side:
+         src_nexpcode ++
+         dst_nexpcode ++
+         px <- gep "src_p"[src_nexpr] ;;
+         v  <- load px ;;
+         py <- gep "dst_p"[dst_nexpr] ;;
+         store v py
        *)
-
-      Require Import LibHyps.LibHyps.
-
-      Ltac clean_goal :=
-        try match goal with
-        | h1 : incVoid _ ≡ _,
-               h2 : incVoid _ ≡ _,
-                    h3 : incVoid _ ≡ _
-          |- _ => move h1 at top; move h2 at top; move h3 at top
-        | h1 : incVoid _ ≡ _, h2 : incVoid _ ≡ _ |- _ => move h1 at top; move h2 at top
-        | h : incVoid _ ≡ _ |- _ => move h at top
-        end;
-
-        try match goal with
-        | h1 : incLocal _ ≡ _,
-               h2 : incLocal _ ≡ _,
-                    h3 : incLocal _ ≡ _
-          |- _ => move h1 at top; move h2 at top; move h3 at top
-        | h1 : incLocal _ ≡ _, h2 : incLocal _ ≡ _ |- _ => move h1 at top; move h2 at top
-        | h : incLocal _ ≡ _ |- _ => move h at top
-        end;
-
-        try match goal with
-        | h1 : incBlockNamed _ _ ≡ _,
-               h2 : incBlockNamed _ _ ≡ _,
-                    h3 : incBlockNamed _ _ ≡ _
-          |- _ => move h1 at top; move h2 at top; move h3 at top
-        | h1 : incBlockNamed _ _ ≡ _, h2 : incBlockNamed _ _ ≡ _ |- _ => move h1 at top; move h2 at top
-        | h : incBlockNamed _ _ ≡ _ |- _ => move h at top
-        end;
-
-        onAllHyps move_up_types.
-
+      
       destruct BISIM as [BISIM1 [_bid EQ]]; inv EQ.
       cbn* in *; simp.
       hide_cfg.
@@ -786,7 +826,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       clean_goal.
 
       hred.
-      eutt_hide_right.
       hstep; [eauto |].
       hred; hstep; [eauto |].
       hred.
@@ -811,9 +850,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       cbn in PRE; destruct PRE as (INV2 & EXP2 & ?); cbn in *; inv_eqs.
-      repeat hvred.
-      focus_single_step_v.
-      subst.
+      hvred.
       break_inner_match_hyp; break_inner_match_hyp; try_abs.
       2: apply no_failure_Ret in NOFAIL; try_abs.
       destruct_unit.
@@ -825,37 +862,21 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       hvred.
       hstep.
       unfold assert_NT_lt,assert_true_to_err in *; simp.
-      focus_single_step_v.
-      Import ProofMode.
-      Notation "'gep' τ e" := (OP_GetElementPtr τ e) (at level 10, only printing).
-      Notation "'double'" := (DTYPE_Double) (at level 10, only printing).
-      Notation "'arr'" := (DTYPE_Array) (at level 10, only printing).
-      edestruct memory_invariant_Ptr as (membk & ptr & LU & INLG & GETCELL); [| eauto | eauto |]; eauto.
-
-      Notation "'to_nat'" := (MInt64asNT.to_nat) (only printing).
+      hide_cont.
+      clear NOFAIL.
+      rename i1 into vsz.
       rename i0 into vx_p, i3 into vy_p.
+      (* We access in memory vx_p[e] *)
+      edestruct memory_invariant_Ptr as (membk & ptr & LU & INLG & GETCELL); [| eauto | eauto |]; eauto.
+      rewrite LU in H; symmetry in H; inv H.
 
-      Variant hidden_cont  (T: Type) : Type := boxh_cont (t: T).
-      Variant visible_cont (T: Type) : Type := boxv_cont (t: T).
-      Ltac hide_cont :=
-        match goal with
-        | h : visible_cont _ |- _ =>
-          let EQ := fresh "VG" in
-          destruct h as [EQ];
-          apply boxh_cont in EQ
-        | |- context[denote_bks ?cfg _] =>
-          remember cfg as G eqn:VG;
-          apply boxh_cfg in VG
-        end.
-      Ltac show_cfg :=
-        match goal with
-        | h: hidden_cfg _ |- _ =>
-          let EQ := fresh "HG" in
-          destruct h as [EQ];
-          apply boxv_cfg in EQ
-        end.
-      Notation "'hidden' G" := (hidden_cfg (G = _)) (only printing, at level 10).
+      rename e into esrc.
+      denote_instr_gep_array
 
+      subst.
+      hide_cont.
+
+      
 
       admit.
 
