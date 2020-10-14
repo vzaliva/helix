@@ -196,7 +196,38 @@ Proof.
 Admitted.
 
 
-(* list_nopet -> then we can use find_block to find anything  *)
+Lemma no_repet_app_not_in_l :
+  forall (T : Set) id (bs bs' : list (LLVMAst.block T)), In id (block_ids bs) ->
+    blk_id_norepet (bs' ++ bs) ->
+    not (In id (block_ids bs')).
+Proof.
+  intros. destruct bs.
+  inversion H.
+  inv H.
+  apply no_repeat_cons_not_in.
+  unfold blk_id_norepet in *.
+  rewrite map_app in H0.
+  rewrite map_cons. rewrite map_cons in H0.
+  rewrite list_cons_app in H0.
+  rewrite app_assoc in H0.
+  apply Coqlib.list_norepet_append_left in H0.
+  rewrite list_cons_app.
+  rewrite Coqlib.list_norepet_app in *.
+  intuition. apply Coqlib.list_disjoint_sym. auto.
+  unfold blk_id_norepet in H0.
+  rewrite map_app in H0. rewrite map_cons in H0. rewrite list_cons_app in H0.
+  apply Coqlib.list_norepet_append_commut in H0. rewrite <- app_assoc in H0.
+  apply Coqlib.list_norepet_append_right in H0.
+  rewrite Coqlib.list_norepet_app in H0.
+  destruct H0 as (? & ? & ?).
+  red in H2. intro. eapply H2; eauto.
+Qed.
+
+Lemma no_repet_app_not_in_r :
+  forall (T : Set) id (bs bs' : list (LLVMAst.block T)), In id (block_ids bs) ->
+    blk_id_norepet (bs' ++ bs) ->
+    not (In id (block_ids bs')).
+Admitted.
 
 (* Useful lemmas about rcompose. TODO: Move? *)
 Lemma rcompose_eq_r :
@@ -308,13 +339,12 @@ Lemma genWhileLoop_ind:
                        loopvar loopcontblock body_entry body_blocks [] nextblock s1
                        ≡ inr (s2,(entry_id, bks)) ->
 
-    (* Loopvar is unique*)
-    (forall i s r, incLocal i ≡ inr (s, r) -> loopvar ≢ r) ->
-    (forall str s r, incLocalNamed str ≡ s -> loopvar ≢ r) ->
+    (* Loopvar is unique. TODO: Fix, something is off here. *)
+    forall (LVAR_FRESH' : forall str s s' id, incLocalNamed str s ≡ inr(s', id) -> loopvar ≢ id)
 
     (* Computation on the Helix side performed at each cell of the vector, *)
     (*    the counterpart to bodyV (body_blocks) *)
-    forall (bodyH: nat -> mem_block -> itree _ mem_block)
+    (bodyH: nat -> mem_block -> itree _ mem_block)
     (j : nat)                       (* Starting iteration *)
     (UPPER_BOUND : n > j)
 
@@ -339,6 +369,7 @@ Lemma genWhileLoop_ind:
              (denote_bks (convert_typ [] body_blocks) (_label, body_entry)) g l mV)
     ) ->
 
+    (* TODO : use [sub_alist] ⊑ and match on loopvar *)
     (* Invariant is stable under extending local state *)
     (forall k mH mV s s' g l ymem id v str, incLocal s ≡ inr (s', id)
                                        \/ incLocalNamed str s ≡ inr (s', id)
@@ -362,7 +393,7 @@ Lemma genWhileLoop_ind:
                                                 (_label, loopcontblock)) g l mV).
 
 Proof.
-  intros * IN UNIQUE_IDENTS NEXTBLOCK_ID * GEN LOOPVAR0 LOOPVAR1 * BOUND *.
+  intros * IN UNIQUE_IDENTS NEXTBLOCK_ID * GEN LVAR_FRESH * BOUND *.
   unfold genWhileLoop in GEN. cbn* in GEN. simp.
   intros * HBODY STABLE.
   unfold build_vec_gen.
@@ -571,6 +602,12 @@ Proof.
     exact UVALUE_None.
 Admitted.
 
+
+Lemma arith_aux0:
+  forall n,
+    dvalue_to_uvalue (eval_int_icmp Slt ((int64) 0) ((int64) (Z.pos (Pos.of_succ_nat n)))) ≡ 'u_one.
+Admitted.
+
 Lemma genWhileLoop_correct:
   forall (prefix : string)
     (loopvar : raw_id)            (* lvar storing the loop index *)
@@ -591,23 +628,50 @@ Lemma genWhileLoop_correct:
     (UNIQUE : blk_id_norepet bks)
     (IN :In body_entry (block_ids body_blocks))
     (EXIT_FRESH: fresh_in_cfg bks exit_id)
+
+    (* Loopvar is unique. TODO: Fix, something is off here. *)
+    (LVAR_FRESH' : forall str s s' id, incLocalNamed str s ≡ inr(s', id) -> loopvar ≢ id)
+
     (* Computation on the Helix side performed at each cell of the vector, *)
     (*        the counterpart to bodyV *)
     (bodyH: nat -> mem_block -> itree _ mem_block)
 
     (* Main relation preserved by iteration *)
-    (R : Rel_cfg),
+    (R : Rel_cfg)
 
-    (* Inductive proof: Assuming R, reestablish R by going through both bodies *)
-    (forall g l mV mH ymem _label k,
-        (R mH (mV,(l,g))) ->
-        eutt (succ_cfg
-              (fun '(memH,vec') '(memV, (l, (g,x))) =>
-                            x ≡ inl (_label, loopcontblock) /\
-                            R memH (memV,(l,g))))
-          (interp_helix (bodyH k ymem) mH)
+    (* Main relations preserved by iteration *)
+    (I : nat -> mem_block -> Rel_cfg)
+
+    (BASE : forall g l l' mV mH ymem _label _label',
+        (conj_rel (I 0 ymem)
+                  (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat 0))
+                  mH (mV,(l',g))) ->
+        eutt
+          (succ_cfg (fun '(memH,vec') '(memV, (l, (g, x))) =>
+                l @ loopvar ≡ Some (uvalue_of_nat 0) /\
+                x ≡ inl (_label', loopcontblock) /\
+                I 0 vec' memH (memV, (l, g))))
+          (interp_helix (bodyH 0 ymem) mH)
           (interp_cfg
-             (denote_bks (convert_typ [] body_blocks) (_label,body_entry)) g l mV)
+             (denote_bks (convert_typ [] body_blocks) (_label, body_entry)) g l mV)),
+
+    (* Inductive Case *)
+    (* We build weakening in the rule: the precondition implies the initial invariant
+       and the final invariant implies the postcondition
+     *)
+    (forall g l l' mV mH ymem k _label _label',
+
+        (conj_rel (I k ymem)
+                  (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k))
+                  mH (mV,(l',g))) ->
+        eutt
+          (succ_cfg (fun '(memH,vec') '(memV, (l, (g, x))) =>
+                l @ loopvar ≡ Some (uvalue_of_nat k) /\
+                x ≡ inl (_label', loopcontblock) /\
+                I (S k) vec' memH (memV, (l, g))))
+          (interp_helix (bodyH (S k) ymem) mH)
+          (interp_cfg
+             (denote_bks (convert_typ [] body_blocks) (_label, body_entry)) g l mV)
     ) ->
 
     (* R must be stable by extension of the local env *)
@@ -616,14 +680,27 @@ Lemma genWhileLoop_correct:
                             R mH (mV, (l, g)) ->
                             R mH (mV, ((alist_add id v l), g))) ->
 
+    (* TODO : use [sub_alist] ⊑ and match on loopvar *)
+    (* Invariant is stable under extending local state *)
+    (forall k mH mV s s' g l ymem id v str, incLocal s ≡ inr (s', id)
+                                       \/ incLocalNamed str s ≡ inr (s', id)
+                                       \/ id ≡ loopvar ->
+                            I k ymem mH (mV, (l, g)) ->
+                            I k ymem mH (mV, ((alist_add id v l), g))) ->
+
     (* R must entail the state invariant *)
     imp_rel R (state_invariant σ s1) ->
+
+    (forall g l mV mH ymem,
+        (R mH (mV, (l, g)) -> I 0 ymem mH (mV, (l, g)) /\ l @ loopvar ≡ Some (uvalue_of_nat 0)) /\
+        (I (n - 1) ymem mH (mV, (l, g)) -> R mH (mV, (l, g)))) ->
 
     (* Main result. Need to know initially that R holds *)
     forall g l mV mH ymem _label,
       R mH (mV,(l,g)) ->
       eutt (succ_cfg
             (fun '(memH,vec') '(memV, (l, (g,x))) =>
+                            (* Consider generalizing? *)
                           (x ≡ inl (loopcontblock, exit_id) \/
                           x ≡ inl (entry_id, exit_id)) /\
                           R memH (memV,(l,g))))
@@ -631,7 +708,7 @@ Lemma genWhileLoop_correct:
            (interp_helix (build_vec n bodyH ymem) mH)
            (interp_cfg (denote_bks (convert_typ [] bks) (_label ,entry_id)) g l mV).
 Proof with rauto.
-  intros * GEN * UNIQUE IN EXIT * IND STABLE IMPSTATE * PRE.
+  intros * GEN * UNIQUE IN EXIT LVAR_FRESH * BASE IND STABLE STABLE' IMPSTATE IND_INV * PRE.
   pose proof @genWhileLoop_ind as GEN_IND.
   specialize (GEN_IND prefix loopvar loopcontblock body_entry body_blocks exit_id entry_id s1 s2 bks).
   specialize (GEN_IND IN UNIQUE EXIT n GEN).
@@ -676,6 +753,8 @@ Proof with rauto.
   - Opaque build_vec_gen.
     cbn.
     cbn in *.
+
+    (* Clean up convert_typ junk *)
     apply fresh_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_block_app in EXIT.
     apply no_repeat_convert_typ with (env := []) in UNIQUE; cbn in UNIQUE; rewrite ?convert_typ_block_app in UNIQUE.
 
@@ -684,10 +763,7 @@ Proof with rauto.
 
     hide_cfg.
 
-    (* pose proof @genWhileLoop_ind as GEN_IND. *)
     Transparent build_vec_gen.
-    (* unfold build_vec_gen in GEN_IND. *)
-    (* unfold build_vec_gen. cbn in GEN_IND. *)
     cbn.
 
     hvred.
@@ -705,12 +781,11 @@ Proof with rauto.
     vstep. cbn.
     hvred.
 
-    (* Step 2 : Jump to b0, i.e. loopblock (since we have checked k < n). *)
+    (* Step 1 : Jump to b0, i.e. loopblock (since we have checked k < n). *)
     vbranch_l.
     {
       cbn; vstep; try solve_lu.
-      (* assert (genWhileLoop_aux_0: dvalue_to_uvalue (eval_int_icmp Slt ((int64) 0) ((int64) (Z.pos (Pos.succ (Pos.of_succ_nat n))))) ≡ 'u_one). admit. *)
-      (* rewrite <- genWhileLoop_aux_0. cbn. reflexivity. *) admit.
+      erewrite <- arith_aux0. reflexivity. 
     }
     vjmp. vred.
     (* We update [loopvar] via the phi-node *)
@@ -737,105 +812,62 @@ Proof with rauto.
 
     vred.
 
-    rewrite denote_bks_prefix.
+    inv VG.
+
+    match goal with
+    | [ |- context[?hd :: ?hd' :: _ ++ ?tl] ] => remember hd; remember hd'; remember tl
+    end.
+    assert (AUX:
+              b :: b1 :: (convert_typ nil body_blocks) ++ l0 ≡ [b; b1] ++ (convert_typ nil body_blocks) ++ l0).
+    reflexivity.
+    rewrite AUX.
+
+    rewrite (denote_bks_prefix).
+    2 : reflexivity.
+    2 : {
+      (* Seems like a case we can add to solve_lu. *)
+      clear -UNIQUE IN.
+      pose proof no_repeat_app_l.
+      specialize (H _ (b :: b1 :: (convert_typ nil body_blocks)) _ UNIQUE).
+      clear UNIQUE.
+
+
+      pose proof @no_repet_app_not_in_l.
+      unfold block_ids in *. eapply H0.  Unshelve.
+      setoid_rewrite <- blk_id_map_convert_typ in IN.
+      apply IN. apply H.
+    }
+
+    hide_cfg. rewrite AUX in *. clear AUX.
 
     vred.
-    eapply eutt_clo_bind. apply IND.
-    eapply STABLE. admit. eapply STABLE. eauto. eauto.
+    eapply eutt_clo_bind.
+
+    (* Base case : first iteration of loop. *)
+    eapply BASE. edestruct IND_INV. apply H. eauto.
 
     intros. destruct u1. destruct u2 as (? & ?& ? &?).
-    destruct p, s.
-    3 : inversion H.
-    cbn in H.
-
-    destruct p.
-    destruct H as (ID & INV).
+    destruct p, s. 3 : inversion H. cbn in H. destruct p. destruct H as (LOOPVAR & ID & INV).
     inversion ID; subst.
-    vjmp.
 
-      Unshelve.
-    repeat vred. vstep.
-    {
-      vstep. vstep. solve_lu. admit. (* loopvar *)
-      reflexivity.
-      vstep.
-      reflexivity.
-      apply uvalue_to_dvalue_of_dvalue_to_uvalue.
-      Unshelve. reflexivity.
-      3 : exact (DVALUE_I64 (repr 1)). cbn. reflexivity.
-    }
-    (* hvred. *)
-    vstep. cbn.
-    vred.
-
-    vstep. vstep. vstep. solve_lu. reflexivity.
-    vstep. reflexivity. reflexivity. reflexivity. reflexivity.
-
-
-    vbranch_l.
-    vstep. solve_lu. admit.
-
-    (* reflexivity. *)
-
-    vjmp. vred.
-
-    (* BEGIN TODO: infrastructure to deal with non-empty phis *)
-    unfold denote_phis.
-    repeat vred.
-
-    unfold map_monad. cbn. vred. 
-    (* rewrite interp_cfg_to_L3_LW. vred. vred. vred. vred. *)
-    rewrite denote_phi_tl.
-
-    vred. rewrite denote_phi_hd.
-
-    cbn.
-
-    (* TOFIX: broken automation, a wild translate sneaked in where it shouldn't *)
-    rewrite translate_bind.
-    rewrite ?interp_cfg_to_L3_ret, ?bind_ret_l;
-      rewrite ?interp_cfg_to_L3_bind, ?bind_bind.
-
-    vstep. solve_lu. tred. repeat vred.
-
-    rewrite interp_cfg_to_L3_LW. repeat vred.
-    (* TODO : What is the appropriate relation "R" here?*)
-   assert (REL: forall _label R,
-    eutt R (interp_cfg_to_L3 defined_intrinsics (denote_bks G (b0, body_entry)) g0 l0 m)
-         (interp_cfg_to_L3 defined_intrinsics (denote_bks G (_label, loopcontblock)) g0 l0 m)). {
-     admit.
-   }
-
-   (* TODO : use REL and eqit_trans to apply GEN_IND. *)
-    (* eapply IND.  *)
-    (* TODO : state a lemma about the relationship between body_entry and... etc.*)
-    assert (loopcontblock ≡ body_entry). admit. rewrite <- H.
-
-
-   (* After getting that into shape, applying the GEN_IND should be fairly straightforward. *)
-    (* rewrite <- H0. *)
-    (* Trying to see how genWhileLoop_ind would be applied. *)
     unfold build_vec_gen in GEN_IND.
     assert (forall j, S n - S j ≡ n - j) by lia.
-    assert (n ≡ n - 0) by lia. rewrite H1. rewrite <- H0.
+    assert (n ≡ n - 0) by lia. rewrite H0. rewrite <- H.
+    eapply eutt_Proper_mono.
+    2 : {
+      eapply GEN_IND.
+      - eauto.
+      - lia.
+      - intros. eapply IND. apply H1.
+      - intros. eapply STABLE'. apply H1. apply H2.
+      - split; eauto.
+    }
 
-    eapply eutt_Proper_mono. admit.
-    (* Unset Printing Notations.  *)
-    (* assert (n - 0 ≡ n) by lia. rewrite H1 in GEN_IND. *)
-    (* rewrite H. rewrite <- H0. *)
+    repeat intro.
+    repeat red. repeat red in H1. destruct x; try contradiction.
+    destruct p. destruct y as (? & ? & ? & ?). destruct H1. split.
+    left; auto. edestruct IND_INV. apply H4. apply H2.
 
-    eapply GEN_IND.
-    admit. admit. lia.
-    intros.
-    cbn. eapply eutt_Proper_mono. admit. apply IND.
-    destruct H1. destruct H2. admit.
-    intros. eapply STABLE. destruct H2. apply e. destruct o. rewrite <- H2. admit.
-    inversion H2. admit.
-    apply H3.
-    split. admit. solve_lu. admit.
-    inversion H. inversion H0.
-    admit. admit. all: eauto. exact 'u_one.
-
-Admitted.
- 
-
+    destruct H as (? & ? & ?). inversion H0.
+    Unshelve. eauto.
+Qed.
