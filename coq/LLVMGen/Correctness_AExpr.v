@@ -84,40 +84,6 @@ Section AExpr.
     auto.
   Qed.
 
-  (* TODO: move this *)
-  Lemma to_nat_repr_of_nat :
-    forall (n : nat),
-      MInt64asNT.to_nat (Int64.repr (Z.of_nat n)) ≡ n.
-  Proof.
-    intros n.
-
-    match goal with
-    | |- ?x ≡ ?y => assert (x = y) as EQ
-    end.
-
-    { unfold equiv. unfold peano_naturals.nat_equiv.
-      Transparent Int64.repr.
-      unfold Int64.repr.
-      Opaque Int64.repr.
-
-      unfold MInt64asNT.to_nat.
-      unfold Int64.intval.
-      rewrite Int64.Z_mod_modulus_eq.
-      assert (exists m, Int64.modulus ≡ Z.of_nat m) as (m & H).
-      admit.
-
-      rewrite H.
-      rewrite <- Zdiv.mod_Zmod.
-      rewrite Znat.Nat2Z.id.
-
-      admit.
-      admit.
-    }
-
-    rewrite EQ.
-    auto.
-  Admitted.
-
   Fact CTypeOne_of_longu:
     MFloat64asCT.CTypeOne ≡ Floats.Float.of_longu (DynamicValues.Int64.repr 1).
   Proof.
