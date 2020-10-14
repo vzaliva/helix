@@ -270,7 +270,12 @@ Section AExpr.
       edestruct denote_instr_gep_array as (? & READ & EQ);
         [exact EQEXPm | | eapply LU_ARRAY; eauto |].
       { clear LU_ARRAY EQEXPm.
-        assert (EQ: vH ≡ repr (Z.of_nat (MInt64asNT.to_nat vH))) by admit.
+        assert (EQ: vH ≡ repr (Z.of_nat (MInt64asNT.to_nat vH))).
+        cbn.
+        unfold MInt64asNT.to_nat.
+        cbn.
+        rewrite Znat.Z2Nat.id, repr_intval; auto.
+        destruct (Int64.intrange vH); lia.
         rewrite EQ in EQEXP.
         exact EQEXP.
       }
@@ -302,7 +307,7 @@ Section AExpr.
            eapply incLocal_is_fresh; eauto.
            eapply state_invariant_add_fresh; eauto.
            
-    - (* AAbs *)
+    - (* AAbs *) 
       cbn* in *; simp.
       hvred.
       eapply eutt_clo_bind; try eapply IHaexp; eauto.
