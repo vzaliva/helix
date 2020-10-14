@@ -654,14 +654,20 @@ Section WithDec.
     forall k v (m : alist K V),
       Maps.lookup k (alist_add k v m) = Some v.
   Proof.
-  Admitted.
+    intros; cbn.
+    rewrite eq_dec_eq; reflexivity.
+  Qed.
 
   Lemma lookup_alist_add_ineq :
     forall k k' v (m : alist K V),
       k <> k' ->
       Maps.lookup k (alist_add k' v m) = Maps.lookup k m.
   Proof.
-  Admitted.
+    cbn; intros.
+    rewrite eq_dec_neq; auto.
+    rewrite remove_neq_alist; auto.
+    typeclasses eauto.
+  Qed.
 
 End WithDec.
 
