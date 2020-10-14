@@ -673,127 +673,7 @@ Proof with rauto.
     apply eutt_Ret. cbn. split. right. reflexivity.
     eapply STABLE. Transparent incLocal. apply Heqs1. eauto.
 
-  - (* 1th index : single loop iteration *)
-  (*   (* destruct n. *) *)
-  (* { *)
-  (*   Opaque build_vec_gen. *)
-  (*   cbn. *)
-  (*   cbn in *. *)
-  (*   apply fresh_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_block_app in EXIT. *)
-  (*   apply no_repeat_convert_typ with (env := []) in UNIQUE; cbn in UNIQUE; rewrite ?convert_typ_block_app in UNIQUE. *)
-
-  (*   cbn; rewrite ?convert_typ_block_app. *)
-
-  (*   hide_cfg. *)
-
-  (*   (* pose proof @genWhileLoop_ind as GEN_IND. *) *)
-  (*   Transparent build_vec_gen. *)
-  (*   (* unfold build_vec_gen in GEN_IND. *) *)
-  (*   (* unfold build_vec_gen. cbn in GEN_IND. *) *)
-  (*   cbn. *)
-
-  (*   hvred. *)
-
-  (*   vjmp. *)
-  (*   cbn. *)
-  (*   vred. vred. vred. *)
-  (*   vstep. *)
-  (*   { *)
-  (*     vstep. vstep; solve_lu. *)
-  (*     vstep; solve_lu. *)
-  (*     all :reflexivity. *)
-  (*   } *)
-  (*   vred. *)
-  (*   vstep. cbn. *)
-  (*   hvred. *)
-
-  (*   (* Step 2 : Jump to b0, i.e. loopblock (since we have checked k < n). *) *)
-  (*   vbranch_l. *)
-  (*   { *)
-  (*     cbn; vstep; try solve_lu. *)
-  (*   } *)
-  (*   vjmp. vred. *)
-  (*   (* We update [loopvar] via the phi-node *) *)
-  (*   cbn; vred. *)
-
-  (*   focus_single_step_v. *)
-
-  (*   (* BEGIN TODO: infrastructure to deal with non-empty phis *) *)
-  (*   unfold denote_phis. *)
-  (*   cbn. *)
-  (*   rewrite denote_phi_hd. *)
-  (*   cbn. *)
-
-  (*   (* TOFIX: broken automation, a wild translate sneaked in where it shouldn't *) *)
-  (*   rewrite translate_bind. *)
-  (*   rewrite ?interp_cfg_to_L3_ret, ?bind_ret_l; *)
-  (*     rewrite ?interp_cfg_to_L3_bind, ?bind_bind. *)
-
-  (*   vstep. tred. repeat vred. *)
-  (*   unfold map_monad. cbn. vred.  *)
-  (*   rewrite interp_cfg_to_L3_LW. vred. vred. vred. vred. *)
-
-  (*   subst. vred. *)
-
-  (*   vred. *)
-
-  (*   rewrite denote_bks_prefix. *)
-
-  (*   vred. *)
-  (*   eapply eutt_clo_bind. apply IND. *)
-  (*   eapply STABLE. admit. eapply STABLE. *)
-  (*   apply Heqs1. auto. *)
-
-  (*   intros. destruct u1. destruct u2 as (? & ?& ? &?). *)
-  (*   destruct p, s. *)
-  (*   3 : inversion H. *)
-  (*   cbn in H. *)
-
-  (*   destruct p. *)
-  (*   destruct H as (ID & INV). *)
-  (*   inversion ID; subst. *)
-  (*   vjmp. *)
-
-  (*     Unshelve. *)
-  (*   repeat vred. vstep. *)
-  (*   { *)
-  (*     vstep. vstep. solve_lu. admit. (* loopvar *) *)
-  (*     reflexivity. *)
-  (*     vstep. *)
-  (*     reflexivity. *)
-  (*     apply uvalue_to_dvalue_of_dvalue_to_uvalue. *)
-  (*     Unshelve. reflexivity. *)
-  (*     3 : exact (DVALUE_I64 (repr 1)). cbn. reflexivity. *)
-  (*   } *)
-  (*   hvred. *)
-  (*   vstep. cbn. *)
-  (*   vred. *)
-
-  (*   vstep. vstep. solve_lu. reflexivity. *)
-  (*   vstep. reflexivity. reflexivity. reflexivity. reflexivity. *)
-
-
-  (*   vbranch_r. *)
-  (*   vstep. solve_lu. reflexivity. *)
-
-  (*   vjmp_out. vred. apply eutt_Ret. *)
-  (*   split.  *)
-  (*   + left. reflexivity. *)
-  (*   + eapply STABLE. admit. *)
-  (*     eapply STABLE. admit. *)
-  (*     apply INV. *)
-  (*   + destruct H as (? & ?). inversion H. *)
-  (*   + inv VG. admit. *)
-  (*   + admit. *)
-  (*     Unshelve. all : eauto. *)
-  (*   + eauto. *)
-  (*   + eauto. *)
-  (*   + eauto. *)
-  (* } *)
-
-  {
-
-    Opaque build_vec_gen.
+  - Opaque build_vec_gen.
     cbn.
     cbn in *.
     apply fresh_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_block_app in EXIT.
@@ -919,8 +799,20 @@ Proof with rauto.
     vstep. solve_lu. tred. repeat vred.
 
     rewrite interp_cfg_to_L3_LW. repeat vred.
-    (* TODO *)
+    (* TODO : What is the appropriate relation "R" here?*)
+   assert (REL: forall _label R,
+    eutt R (interp_cfg_to_L3 defined_intrinsics (denote_bks G (b0, body_entry)) g0 l0 m)
+         (interp_cfg_to_L3 defined_intrinsics (denote_bks G (_label, loopcontblock)) g0 l0 m)). {
+     admit.
+   }
+
+   (* TODO : use REL and eqit_trans to apply GEN_IND. *)
+    (* eapply IND.  *)
+    (* TODO : state a lemma about the relationship between body_entry and... etc.*)
     assert (loopcontblock ≡ body_entry). admit. rewrite <- H.
+
+
+   (* After getting that into shape, applying the GEN_IND should be fairly straightforward. *)
     (* rewrite <- H0. *)
     (* Trying to see how genWhileLoop_ind would be applied. *)
     unfold build_vec_gen in GEN_IND.
@@ -929,12 +821,12 @@ Proof with rauto.
 
     eapply eutt_Proper_mono. admit.
     (* Unset Printing Notations.  *)
-(* assert (n - 0 ≡ n) by lia. rewrite H1 in GEN_IND. *)
-(* rewrite H. rewrite <- H0. *)
+    (* assert (n - 0 ≡ n) by lia. rewrite H1 in GEN_IND. *)
+    (* rewrite H. rewrite <- H0. *)
+
     eapply GEN_IND.
     admit. admit. lia.
     intros.
-
     cbn. eapply eutt_Proper_mono. admit. apply IND.
     destruct H1. destruct H2. admit.
     intros. eapply STABLE. destruct H2. apply e. destruct o. rewrite <- H2. admit.
@@ -945,3 +837,5 @@ Proof with rauto.
     admit. admit. all: eauto. exact 'u_one.
 
 Admitted.
+ 
+
