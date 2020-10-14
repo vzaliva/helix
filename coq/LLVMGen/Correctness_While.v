@@ -19,7 +19,8 @@ Local Open Scope nat_scope.
 (* TODO: Move to Prelude *)
 Definition uvalue_of_nat k := UVALUE_I64 (Int64.repr (Z.of_nat k)).
 
-Fixpoint build_vec_gen_aux {E} (from remains : nat) (body : nat -> mem_block -> itree E mem_block) : mem_block -> itree E mem_block :=
+Fixpoint build_vec_gen_aux {E} (from remains: nat)
+         (body : nat -> mem_block -> itree E mem_block) : mem_block -> itree E mem_block :=
   fun vec =>
     match remains with
     | 0 => ret vec
@@ -28,7 +29,7 @@ Fixpoint build_vec_gen_aux {E} (from remains : nat) (body : nat -> mem_block -> 
       build_vec_gen_aux (S from) remains' body vec'
     end.
 
-Definition build_vec_gen {E} (from to : nat) :=
+Definition build_vec_gen {E} (from to: nat) :=
   @build_vec_gen_aux E from (to - from).
 
 Definition build_vec {E} := @build_vec_gen E 0.
@@ -68,12 +69,6 @@ Notation "'(Z)' x" := (Z.of_nat x) (at level 10).
 
 (* TODO: Move to Vellvm Denotation_Theory.v? *)
 
-(* Definition block_ids {T : Set} (b : list ((LLVMAst.block T))) := *)
-(*   fold_left (fun (acc : list block_id) (bk : LLVMAst.block T) => (acc ++ [blk_id bk])%list) b []. *)
-
-(* IY: Why isn't it the below, instead? It looks like outputs etc. also have use
-   fold_left instead of map (in Vellvm - Denotation_Theory.v), which feels super
-   awkward. Following Vellvm conventions for now. *)
 Definition block_ids {T : Set} (b : list ((LLVMAst.block T))) :=
   map (@blk_id T) b.
 
@@ -105,19 +100,6 @@ Proof.
     rewrite app_assoc.
     reflexivity.
 Qed.
-
-(* (* IY: The more general statement should be In being injective over List.map, *)
-(*    but it's stated like this here because we're using fold_left *) *)
-(* Lemma In_inj_block_ids : *)
-(*   forall T x (b : list (LLVMAst.block T)), In x b -> In (blk_id x) (block_ids b). *)
-(* Proof. *)
-(*   intros. revert H. revert x. induction b. *)
-(*   - intros. inversion H. *)
-(*   - intros. unfold block_ids. cbn. *)
-(*     rewrite fold_left_acc_app. rewrite <-list_cons_app. *)
-(*     cbn in H. destruct H. cbn. left. rewrite H. reflexivity. *)
-(*     cbn. right. apply IHb. auto. *)
-(* Qed. *)
 
 Definition imp_rel {A B : Type} (R S: A -> B -> Prop): Prop :=
   forall a b, R a b -> S a b.
@@ -296,6 +278,7 @@ Lemma incLocalNamed_fresh:
 Proof.
 Admitted.
 
+
 (* TODO: Figure out how to avoid this *)
 Arguments fmap _ _ /.
 Arguments Fmap_block _ _ _ _/.
@@ -313,28 +296,25 @@ Lemma genWhileLoop_ind:
     (n : nat)                       (* Number of iterations *)
     (j : nat)                       (* Starting iteration *)
     (UPPER_BOUND : n > j)
-    (* TODO: Rethink about this lower bound (j > 0?) *)
-    (LOW_BOUND : j > 1)
+    (LOW_BOUND : j > 0)
     (* Main relations preserved by iteration *)
     (I : nat -> mem_block -> Rel_cfg),
 
     In body_entry (block_ids body_blocks) ->
 
-(* <<<<<<< HEAD *)
-(*     not (In nextblock (map blk_id bks)) -> *)
-(* ======= *)
     (* All labels generated are distinct *)
     blk_id_norepet bks ->
 
     fresh_in_cfg bks nextblock ->
 
+    (* Loopvar is unique*)
+    (forall i s r, incLocal i ≡ inr (s, r) -> loopvar ≢ r) ->
+    (forall str s r, incLocalNamed str ≡ s -> loopvar ≢ r) ->
+
     (* Generation of the LLVM code wrapping the loop around bodyV *)
     genWhileLoop prefix (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
                        loopvar loopcontblock body_entry body_blocks [] nextblock s1
                        ≡ inr (s2,(entry_id, bks)) ->
-
-    (* All labels generated are distinct *)
-    blk_id_norepet bks ->
     (* Computation on the Helix side performed at each cell of the vector, *)
     (*    the counterpart to bodyV (body_blocks) *)
     forall (bodyH: nat -> mem_block -> itree _ mem_block),
@@ -359,7 +339,6 @@ Lemma genWhileLoop_ind:
     ) ->
 
     (* Invariant is stable under extending local state *)
-    (* TODO: clean up incLocalNamed, incLocal *)
     (forall k mH mV s s' g l ymem id v str, incLocal s ≡ inr (s', id)
                                        \/ incLocalNamed str s ≡ inr (s', id)
                                        \/ id ≡ loopvar ->
@@ -390,7 +369,7 @@ Proof.
 
   assert (JEQ' : j ≡ (n - S k)) by lia. rewrite JEQ' in *.
 
-  assert (n - S k > 1) by lia.
+  assert (n - S k > 0) by lia.
   clear JEQ'.
   clear UPPER_BOUND.
 
@@ -608,127 +587,204 @@ Lemma genWhileLoop_correct:
                        lvar wrap_loop_id body_entry_id bodyV [] exit_id s1
                        ≡ inr (s2,(entry_id,bks)))
 
+    (* All labels generated are distinct *)
+    (UNIQUE : blk_id_norepet bks)
+
+    (EXIT_FRESH: fresh_in_cfg bks exit_id)
     (* Computation on the Helix side performed at each cell of the vector, *)
-(*        the counterpart to bodyV *)
+    (*        the counterpart to bodyV *)
     (bodyH: nat -> mem_block -> itree _ mem_block)
 
     (* Main relation preserved by iteration *)
     (R : Rel_cfg),
 
     (* Inductive proof: Assuming R, reestablish R by going through both bodies *)
-    (forall g l mV mH ymem,
-        (* ((R ⩕ Invk n) (mH,ymem) (mV, (l, (g, (inl body))))) -> *)
+    (forall g l mV mH ymem _label k,
         (R mH (mV,(l,g))) ->
-        eutt
-          (succ_cfg (lift_Rel_cfg R))
-          (* (R ⩕ Invk (n +1) /\ lvar = n /\ retlabel = post ) *)
-          (interp_helix (bodyH n ymem) mH)
+        eutt (succ_cfg
+              (fun '(memH,vec') '(memV, (l, (g,x))) =>
+                            x ≡ inl (_label, wrap_loop_id) /\
+                            R memH (memV,(l,g))))
+          (interp_helix (bodyH k ymem) mH)
           (interp_cfg
-             (denote_bks (convert_typ [] bodyV) (from_id,body_entry_id)) g l mV)
+             (denote_bks (convert_typ [] bodyV) (_label,body_entry_id)) g l mV)
     ) ->
 
     (* R must be stable by extension of the local env *)
-    stable_exp_local R ->
+    (forall mH mV s s' g l id v str,
+                            incLocalNamed str s ≡ inr (s', id) ->
+                            R mH (mV, (l, g)) ->
+                            R mH (mV, ((alist_add id v l), g))) ->
 
     (* R must entail the state invariant *)
     imp_rel R (state_invariant σ s1) ->
 
     (* Main result. Need to know initially that R holds *)
-    forall g l mV mH ymem,
+    forall g l mV mH ymem ,
       R mH (mV,(l,g)) ->
-      eutt (succ_cfg (lift_Rel_cfg R))
+      eutt (succ_cfg
+            (fun '(memH,vec') '(memV, (l, (g,x))) =>
+                          (x ≡ inl (wrap_loop_id, exit_id) \/
+                          x ≡ inl (entry_id, exit_id)) /\
+                          R memH (memV,(l,g))))
+
            (interp_helix (build_vec n bodyH ymem) mH)
            (interp_cfg (denote_bks (convert_typ [] bks) (from_id,entry_id)) g l mV).
 Proof with rauto.
-  intros * GEN * IND STABLE IMPSTATE * PRE.
-  cbn* in GEN; simp.
-  destruct n as [|[|n]].
-  - (* n = 0: we never enter the loop *)
+  intros * GEN * UNIQUE EXIT * IND STABLE IMPSTATE * PRE.
+  unfold genWhileLoop in GEN. cbn* in GEN. simp.
+  unfold build_vec.
+  destruct n.
+  - (* 0th index *)
+    cbn.
 
-    cbn...
+    apply fresh_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_block_app in EXIT.
+    cbn; rewrite ?convert_typ_block_app.
 
-    jump_in.
+    hide_cfg.
+    vjmp.
 
-  (*   cbn... *)
-  (*   cbn... *)
+    vred. vred. vred. vstep.
+    {
+      cbn.
+      vstep.
+      vstep; solve_lu; reflexivity.
+      vstep; reflexivity.
+      all:reflexivity.
+    }
 
-  (*   rewrite denote_instr_op. *)
-  (*   2:{ *)
-  (*     cbn... *)
-  (*     cbn... *)
-  (*     reflexivity. *)
-  (*   } *)
+    (* We now branch to [nextblock] *)
+    vbranch_r.
+    { vstep.
+      solve_lu.
+      apply eutt_Ret; repeat f_equal.
+    }
 
-  (*   cbn... *)
-  (*   focus_single_step_v. *)
-  (*   rewrite denote_term_br_r. *)
-  (*   2:{ *)
-  (*     cbn... *)
-  (*     cbn... *)
-  (*     reflexivity. *)
-  (*     unfold local_env; rewrite lookup_alist_add_eq; reflexivity. *)
-  (*   } *)
+    vjmp_out.
+    hvred.
+    cbn.
+    hvred.
 
-  (*   cbn... *)
-  (*   subst. *)
+    (* We have only touched local variables that the invariant does not care about, we can reestablish it *)
+    apply eutt_Ret. cbn. split. right. reflexivity.
+    eapply STABLE. reflexivity. eauto.
 
-  (*   rewrite denote_bks_unfold_not_in. *)
-  (*   2: admit. *)
+  - (* 1th index : single loop iteration *)
+    destruct n.
+  {
+    Opaque build_vec_gen.
+    cbn.
+    cbn in *.
+    apply fresh_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_block_app in EXIT.
+    apply no_repeat_convert_typ with (env := []) in UNIQUE; cbn in UNIQUE; rewrite ?convert_typ_block_app in UNIQUE.
 
-  (*   cbn... *)
-  (*   apply eutt_Ret. *)
+    cbn; rewrite ?convert_typ_block_app.
 
-  (*   cbn; eapply STABLE; eauto. *)
-  (*   eapply sub_alist_add. *)
-  (*   eapply concrete_fresh_fresh; eauto. *)
-  (*   eapply incLocal_is_fresh. *)
-  (*   eapply state_invariant_incBlockNamed; eauto. *)
-  (*   eapply state_invariant_incBlockNamed; eauto. *)
+    hide_cfg.
 
-  (* - (* n > 0 *) *)
-  (*   cbn. *)
-  (*   eutt_hide_left. *)
+    (* pose proof @genWhileLoop_ind as GEN_IND. *)
+    Transparent build_vec_gen.
+    (* unfold build_vec_gen in GEN_IND. *)
+    (* unfold build_vec_gen. cbn in GEN_IND. *)
+    cbn.
 
-  (*   jump_in. *)
+    hvred.
 
-  (*   cbn... *)
-  (*   cbn... *)
+    vjmp.
+    cbn.
+    vred. vred. vred.
+    vstep.
+    {
+      vstep. vstep; solve_lu.
+      vstep; solve_lu.
+      all :reflexivity.
+    }
+    vred.
+    vstep. cbn.
+    hvred.
 
-  (*   focus_single_step_v. *)
-  (*   rewrite denote_instr_op. *)
-  (*   2:{ *)
-  (*     cbn... *)
-  (*     cbn... *)
-  (*     reflexivity. *)
-  (*   } *)
+    (* Step 2 : Jump to b0, i.e. loopblock (since we have checked k < n). *)
+    vbranch_l.
+    {
+      cbn; vstep; try solve_lu.
+    }
+    vjmp. vred.
+    (* We update [loopvar] via the phi-node *)
+    cbn; vred.
 
-  (*   cbn... *)
-  (*   subst. *)
-  (*   cbn... focus_single_step_v. *)
-  (*   rewrite denote_term_br_l. *)
-  (*   2:{ *)
-  (*     cbn... *)
-  (*     cbn... *)
-  (*     reflexivity. *)
-  (*     unfold local_env; rewrite lookup_alist_add_eq; reflexivity. *)
-  (*   } *)
+    focus_single_step_v.
 
-  (*   cbn... *)
-  (*   subst; cbn... *)
+    (* BEGIN TODO: infrastructure to deal with non-empty phis *)
+    unfold denote_phis.
+    cbn.
+    rewrite denote_phi_hd.
+    cbn.
 
-  (*   jump_in. *)
-  (*   2:admit. *)
+    (* TOFIX: broken automation, a wild translate sneaked in where it shouldn't *)
+    rewrite translate_bind.
+    rewrite ?interp_cfg_to_L3_ret, ?bind_ret_l;
+      rewrite ?interp_cfg_to_L3_bind, ?bind_bind.
 
-  (*   cbn... *)
+    vstep. tred. repeat vred.
+    unfold map_monad. cbn. vred. 
+    rewrite interp_cfg_to_L3_LW. vred. vred. vred. vred.
 
-  (*   find_phi. *)
+    subst. vred.
 
-  (*   cbn... *)
-  (*   focus_single_step_v. *)
+    vred.
 
-  (*   cbn... *)
-  (*   subst... *)
-  (*   cbn... *)
+    rewrite denote_bks_prefix.
+
+    vred.
+    eapply eutt_clo_bind. apply IND.
+    eapply STABLE. admit. eapply STABLE. reflexivity. auto.
+
+    intros. destruct u1. destruct u2 as (? & ?& ? &?).
+    destruct p, s.
+    3 : inversion H.
+    cbn in H.
+
+    destruct p.
+    destruct H as (ID & INV).
+    inversion ID; subst.
+    vjmp.
+
+      Unshelve.
+    repeat vred. vstep.
+    {
+      vstep. vstep. solve_lu. admit. (* loopvar *)
+      reflexivity.
+      vstep.
+      reflexivity.
+      apply uvalue_to_dvalue_of_dvalue_to_uvalue.
+      Unshelve. reflexivity.
+      3 : exact (DVALUE_I64 (repr 1)). cbn. reflexivity.
+    }
+    hvred.
+    vstep. cbn.
+    vred.
+
+    vstep. vstep. solve_lu. reflexivity.
+    vstep. reflexivity. reflexivity. reflexivity. reflexivity.
 
 
-Admitted.
+    vbranch_r.
+    vstep. solve_lu. reflexivity.
+
+    vjmp_out. vred. apply eutt_Ret.
+    split. 
+    + left. reflexivity.
+    + eapply STABLE. admit.
+      eapply STABLE. admit.
+      apply INV.
+    + destruct H as (? & ?). inversion H.
+    + inv VG. admit.
+    + admit.
+      Unshelve. all : eauto.
+    + eauto.
+    + eauto.
+    + eauto.
+  }
+
+  (* IH*)
+  Admitted.
