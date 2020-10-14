@@ -594,12 +594,11 @@ Lemma genAExpr_correct :
         repeat (eapply state_invariant_add_fresh; eauto).
       + split; cbn; intuition.
         * vstep.
-          cbn. apply H3.
-          match goal with
-            |- alist_In _ (alist_add _ ?x _) ?y => replace x with y by admit
-          end.
-          apply In_add_eq.
-          reflexivity.
+          cbn. 2: reflexivity.
+          rewrite H2.
+          apply H3.
+          solve_lu.
+
         * rewrite H,H0.
           etransitivity; [apply sub_alist_add| apply sub_alist_add].
           eapply concrete_fresh_fresh; eauto; eapply incLocal_is_fresh; eauto.
@@ -609,6 +608,6 @@ Lemma genAExpr_correct :
             eapply state_invariant_add_fresh; [now eauto | eassumption ]
           end.
 
-  Admitted.
+Qed.
 
 End AExpr.
