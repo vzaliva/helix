@@ -247,23 +247,6 @@ Proof.
 Qed.
 
 (* TODO: General Vellvm lemma *)
-Lemma denote_bks_prefix_ :
-  forall (prefix bks postfix : list (LLVMAst.block dtyp)) (from to: block_id),
-    (* In to (map blk_id bks) -> *)
-    (* (* All labels are distinct *) *)
-    (* Coqlib.list_norepet (map blk_id (prefix ++ bks ++ postfix)) -> *) (* TODO: Perhaps we don't need this.. *)
-
-    not (In to (map blk_id prefix)) ->
-    denote_bks (prefix ++ bks ++ postfix) (from, to) ≈
-               ITree.bind (denote_bks bks (from, to))
-               (fun x => match x with
-                      | inl x => denote_bks (prefix ++ bks ++ postfix) x
-                      | inr x => ret (inr x)
-                      end
-               ).
-Proof.
-  (* denote_bks_app denote_bks_cons *)
-Admitted.
 
 From Vellvm Require Import Numeric.Integers.
 (* YZ: I think this is what we need *)
@@ -281,11 +264,21 @@ Lemma denote_bks_prefix :
 Proof.
 Admitted.
 
+(* Another Useful Vellvm utility. Obviously true, but the proof might need some tricks.. *)
+Lemma string_of_nat_length_lt :
+  (forall n m, n < m -> length (string_of_nat n) <= length (string_of_nat m))%nat.
+Proof.
+  induction n using (well_founded_induction lt_wf).
+  intros. unfold string_of_nat.
+Admitted.
+
 (* Auxiliary integer computation lemmas *)
 
 Lemma genWhileLoop_ind_arith_aux_0:
   forall n,
     dvalue_to_uvalue (eval_int_icmp Slt ((int64) ((Z) (n - 1 - 1)) + (int64) 1) ((int64) ((Z) n))) ≡ u_zero.
+Proof.
+  intros.
 Admitted.
 
 Lemma genWhileLoop_ind_arith_aux_1: forall n k,
@@ -308,12 +301,19 @@ Lemma arith_aux0:
     dvalue_to_uvalue (eval_int_icmp Slt ((int64) 0) ((int64) (Z.pos (Pos.of_succ_nat n)))) ≡ 'u_one.
 Admitted.
 
-Lemma incLocalNamed_fresh:
-    forall i i' i'' r r' str str', incLocalNamed str i ≡ inr (i', r) ->
-                                          incLocalNamed str' i' ≡ inr (i'', r') -> r ≢ r'.
+Lemma incLocal_fresh:
+    forall i i' i'' r r' , incLocal i ≡ inr (i', r) ->
+                                          incLocal  i' ≡ inr (i'', r') -> r ≢ r'.
 Proof.
-Admitted.
+  intros. cbn in H, H0. Transparent incLocal. unfold incLocal in *.
+  intro. cbn in *. inversion H. inversion H0. subst. cbn in H6. clear -H6.
+  cbn in H6. apply Name_inj in H6.
+  apply append_simplify_l in H6.
+  apply string_of_nat_inj in H6. auto.
+  apply Nat.neq_succ_diag_l.
+Qed.
 
+Opaque incLocal.
 
 (* TODO: Figure out how to avoid this *)
 Arguments fmap _ _ /.
@@ -525,6 +525,7 @@ Proof.
       rewrite map_app.
       apply in_or_app. right. constructor. reflexivity.
     }
+
     rewrite denote_phi_hd.
     cbn.
     (* TOFIX: broken automation, a wild translate sneaked in where it shouldn't *)
@@ -534,14 +535,32 @@ Proof.
 
     vstep.
     {
-      (* TODO automation? *)
-      (* solve_lu.  *)
+      match goal with
+      | [ |- context[Maps.lookup ?check] ]=> remember check
+      end.
       setoid_rewrite lookup_alist_add_ineq.
-      setoid_rewrite lookup_alist_add_eq. reflexivity.
+      setoid_rewrite lookup_alist_add_eq. reflexivity. subst.
       intro. symmetry in H. revert H.
-      Transparent incLocal.
-      eapply incLocalNamed_fresh.
-      eauto. reflexivity.
+      Transparent incLocal. clear -Heqs0 Heqs1 Heqs2 Heqs3 Heqs4.
+      cbn in *. inversion Heqs1; clear Heqs1.
+      inversion Heqs2; clear Heqs2. cbn.
+      intro.
+      apply Name_inj in H.
+      assert (string_eq_length: forall s1 s2, s1 ≡ s2 -> length s1 ≡ length s2). {
+        intros. rewrite H4. reflexivity.
+      }
+      apply string_eq_length in H.
+      rewrite 3 length_append in H. cbn in H.
+      clear -H.
+      rewrite <- plus_assoc in H. rewrite plus_comm in H.
+      inversion H.
+      assert (length (string_of_nat (local_count i1)) >=
+              6 + length (string_of_nat (S (local_count i1))))%nat by lia.
+
+      clear -H0. pose proof string_of_nat_length_lt.
+      remember (local_count i1).
+      specialize (H n (S n)).
+      assert (n < S n)%nat by lia. apply H in H1. lia.
     }
     (* TOFIX: broken automation, a wild translate sneaked in where it shouldn't *)
     rewrite translate_ret.
@@ -613,7 +632,6 @@ Proof.
     exact UVALUE_None.
     exact UVALUE_None.
 Qed.
-
 
 Lemma genWhileLoop_correct:
   forall (prefix : string)
@@ -755,7 +773,7 @@ Proof with rauto.
 
     (* We have only touched local variables that the invariant does not care about, we can reestablish it *)
     apply eutt_Ret. cbn. split. right. reflexivity.
-    eapply STABLE. Transparent incLocal. apply Heqs1. eauto.
+    eapply STABLE. Transparent incLocal. reflexivity. eauto.
 
   - Opaque build_vec_gen.
     cbn.
