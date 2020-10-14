@@ -1236,21 +1236,12 @@ Ltac vstep :=
 
 Ltac tred := autorewrite with itree.
 
-(* Ltac vred := *)
-(*   rewrite ?typ_to_dtyp_equation; *)
-(*   rewrite ?bind_ret_l; *)
-(*   rewrite ?bind_bind; *)
-(*   first [rewrite translate_trigger; (rewrite lookup_E_to_exp_E_Local || rewrite lookup_E_to_exp_E_Global); *)
-(*          rewrite subevent_subevent, translate_trigger; *)
-(*          (rewrite exp_E_to_instr_E_Local || rewrite exp_E_to_instr_E_Global); rewrite subevent_subevent | *)
-(*          idtac]; *)
-(*   first [rewrite denote_code_nil | *)
-(*          rewrite denote_code_singleton | *)
-(*          rewrite denote_code_cons | *)
-(*          rewrite ?convert_typ_app, ?fmap_list_app, denote_code_app | idtac]; *)
-(*   first [rewrite interp_cfg_to_L3_ret | rewrite  interp_cfg_to_L3_bind | idtac]. *)
-
 Arguments denote_exp : simpl never.
+(* TODO: fmap (mk_block _ _ _ _ _) does not reduce, although we would like.
+   However if I do the following to force the unfolding, then fmap always
+   unfolds even in many other cases where we don't want it to do so.
+   Solution?
+ *)
 (* Arguments fmap /. *)
 (* Arguments Fmap_block /. *)
 Arguments denote_phis : simpl never.
