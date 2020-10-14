@@ -166,11 +166,29 @@ Section AExpr.
           destruct a,b; inversion Heqo; try reflexivity.
   Qed.
 
-  Import ProofMode.
-  Lemma genAExpr_correct :
-    forall (* Compiler bits *) (s1 s2: IRState)
-      (* Helix  bits *)   (aexp: AExpr) (σ: evalContext) (memH: memoryH) 
-      (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
+  Lemma min_float_correct: forall (a b: binary64), Float_minimum a b ≡ MFloat64asCT.CTypeMin a b.
+  Proof.
+    intros.
+    Transparent Floats.Float.cmp.
+    unfold Float_minimum, MFloat64asCT.CTypeMin, Float64Min, Floats.Float.cmp.
+    unfold Floats.Float.compare, Floats.cmp_of_comparison.
+    destruct a,b; try break_if; repeat break_match ;try reflexivity; crush.
+  Qed.
+
+  Lemma max_float_correct: forall (a b: binary64), Float_maxnum a b = MFloat64asCT.CTypeMax a b.
+  Proof.
+    intros.
+    Transparent Floats.Float.cmp.
+    unfold Float_maxnum, MFloat64asCT.CTypeMax, Float64Max, Floats.Float.cmp.
+    unfold Floats.Float.compare, Floats.cmp_of_comparison.
+    destruct a,b; try break_if; repeat break_match ;try reflexivity; crush.
+  Qed.
+
+Import ProofMode.
+Lemma genAExpr_correct :
+  forall (* Compiler bits *) (s1 s2: IRState)
+    (* Helix  bits *)   (aexp: AExpr) (σ: evalContext) (memH: memoryH) 
+    (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
 
       genAExpr aexp s1 ≡ inr (s2, (e, c))      -> (* Compilation succeeds *)
       state_invariant σ s1 memH (memV, (l, g)) -> (* The main state invariant is initially true *)
@@ -483,7 +501,7 @@ Section AExpr.
       + split; cbn; intuition.
         * vstep.
           cbn. apply H1.
-          replace (Float_minimum vH vH0) with (MFloat64asCT.CTypeMin vH vH0) by admit.
+          rewrite min_float_correct.
           apply In_add_eq.
           reflexivity.
         * rewrite H,H0.
@@ -521,7 +539,7 @@ Section AExpr.
       + split; cbn; intuition.
         * vstep.
           cbn. apply H1.
-          replace (Float_maxnum vH vH0) with (MFloat64asCT.CTypeMax vH vH0) by admit.
+          rewrite max_float_correct.
           apply In_add_eq.
           reflexivity.
         * rewrite H,H0.
