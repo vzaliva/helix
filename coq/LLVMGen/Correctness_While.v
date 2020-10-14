@@ -111,91 +111,7 @@ Definition stable_exp_local (R: Rel_cfg) : Prop :=
       ρ1 ⊑ ρ2 ->
       R memH (memV, (ρ2, g)).
 
-(* Lemma disjoint_bid_neq {T : Set} (b b' : list (LLVMAst.block T)) : *)
-(*   disjoint_bid_blocks b b' -> *)
-(*   forall x x', In x b -> In x' b' -> blk_id x ≢ blk_id x'. *)
-(* Proof. *)
-(*   intros. *)
-(*   do 2 red in H. *)
-(*   specialize (H (blk_id x) (blk_id x')). *)
-(*   apply H; apply In_inj_block_ids; auto. *)
-(* Qed. *)
-
-(* Lemma find_block_ineq : *)
-(*   ∀ (T : Set) (x : block_id) (b bs : list (LLVMAst.block T)) e, *)
-(*     disjoint_bid_blocks b bs -> *)
-(*     find_block T bs x ≡ Some e -> find_block T (b ++ bs) x ≡ Some e. *)
-(* Proof. *)
-(*   intros. *)
-(*   induction b. *)
-(*   - intros. rewrite app_nil_l. apply H0. *)
-(*   - intros. *)
-(*     rewrite list_cons_app. *)
-(*     rewrite <- app_assoc. *)
-(*     rewrite <- list_cons_app. *)
-(*     cbn. *)
-(*     assert (blk_id a ≢ x). *)
-(*     assert (H' := H0). *)
-(*     apply find_some in H0. destruct H0. *)
-(*     assert (In a (a :: b)). { red. left. reflexivity. } *)
-(*     destruct (Eqv.eqv_dec_p (blk_id e) x). 2 : inversion H1. *)
-(*     rewrite <- e0. *)
-(*     eapply disjoint_bid_neq; eauto. *)
-(*     assert (not (Eqv.eqv (blk_id a) x)). red. intros. apply H1. rewrite H2. reflexivity. *)
-(*     unfold Eqv.eqv_dec_p. eapply rel_dec_neq_false in H2. 2 : typeclasses eauto. *)
-(*     setoid_rewrite H2. apply IHb. *)
-(*     red. red in H. *)
-(*     eapply Coqlib.list_disjoint_cons_left. *)
-(*     rewrite list_cons_app in H. *)
-(*     clear H0 IHb H1 H2. induction b. cbn. rewrite app_nil_r in H. *)
-(*     apply H. red. intros. red in H. apply H. 2 : auto. *)
-(*     eapply Permutation.Permutation_in. 2: apply H0. *)
-(*     clear H IHb H0 H1. *)
-(*     remember (a0 :: b). clear Heql. *)
-(*     induction l. cbn. auto. *)
-(*     cbn. cbn in IHl. eapply Permutation.perm_trans. *)
-(*     rewrite list_cons_app. *)
-(*     rewrite Permutation.Permutation_app_swap. apply Permutation.Permutation_refl. *)
-(*     pose proof @fold_left_acc_app . *)
-(*     specialize (H _ _ l (fun x => [blk_id x])). cbn in H. *)
-(*     assert ( *)
-(*     (fold_left (λ (acc : list block_id) (bk : LLVMAst.block T), (acc ++ [blk_id bk])%list) l [blk_id a1] ++ *)
-(*                [blk_id a]) ≡ *)
-(*      ([blk_id a1] ++ fold_left (λ (acc : list block_id) (bk : LLVMAst.block T), acc ++ [blk_id bk]) l [ ]) ++ *)
-(*      [blk_id a])%list. rewrite H. reflexivity. rewrite H0. *)
-(*     assert ( *)
-(*     (fold_left (λ (acc : list block_id) (bk : LLVMAst.block T), (acc ++ [blk_id bk])%list) l *)
-(*        [blk_id a; blk_id a1]) ≡ *)
-(*      ([blk_id a; blk_id a1] ++ fold_left (λ (acc : list block_id) (bk : LLVMAst.block T), acc ++ [blk_id bk]) l [ ])%list). *)
-(*     rewrite H; reflexivity. *)
-(*     rewrite H1. clear H0 H1. eapply Permutation.perm_trans. *)
-(*     apply Permutation.Permutation_app_swap. cbn. *)
-(*     apply Permutation.Permutation_refl. *)
-(* Qed. *)
-
-
-Lemma blk_id_norepet_find_block {T} :
-  forall (bks : list (LLVMAst.block T)), blk_id_norepet bks ->
-  forall x b bs e, (bks ≡ b ++ bs)%list -> find_block T bs x ≡ Some e -> find_block T (b ++ bs) x ≡ Some e.
-Proof.
-  intros.
-  induction b.
-  - intros. rewrite app_nil_l. auto.
-  - intros.
-    rewrite list_cons_app.
-    rewrite <- app_assoc.
-    rewrite <- list_cons_app.
-    cbn.
-    assert (blk_id a ≢ x).
-    assert (H' := H1).
-    apply find_some in H1. destruct H1.
-    assert (In a (a :: b)). { red. left. reflexivity. }
-    destruct (Eqv.eqv_dec_p (blk_id e) x). 2 : inversion H3.
-    rewrite <- e0.
-    red in H.
-Admitted.
-
-
+(* TODO: Show symmetric case *)
 Lemma no_repet_app_not_in_l :
   forall (T : Set) id (bs bs' : list (LLVMAst.block T)), In id (block_ids bs) ->
     blk_id_norepet (bs' ++ bs) ->
@@ -223,12 +139,6 @@ Proof.
   red in H2. intro. eapply H2; eauto.
 Qed.
 
-Lemma no_repet_app_not_in_r :
-  forall (T : Set) id (bs bs' : list (LLVMAst.block T)), In id (block_ids bs) ->
-    blk_id_norepet (bs' ++ bs) ->
-    not (In id (block_ids bs')).
-Admitted.
-
 (* Useful lemmas about rcompose. TODO: Move? *)
 Lemma rcompose_eq_r :
   forall A B (R: relationH A B), eq_rel (R) (rcompose R (@Logic.eq B)).
@@ -246,14 +156,11 @@ Proof.
   inversion H. subst. auto.
 Qed.
 
-(* TODO: General Vellvm lemma *)
-
 From Vellvm Require Import Numeric.Integers.
-(* YZ: I think this is what we need *)
 Lemma denote_bks_prefix :
   forall (prefix bks' postfix bks : list (LLVMAst.block dtyp)) (from to: block_id),
     bks ≡ (prefix ++ bks' ++ postfix) ->
-    ~ In to (map blk_id prefix) ->
+    blk_id_norepet bks ->
     denote_bks bks (from, to) ≈
                ITree.bind (denote_bks bks' (from, to))
                (fun x => match x with
@@ -262,7 +169,34 @@ Lemma denote_bks_prefix :
                       end
                ).
 Proof.
-Admitted.
+  intros * ->; revert from to.
+  einit.
+  ecofix CIH.
+  clear CIH0.
+  intros * WF.
+  Transparent denote_bks.
+  destruct (find_block dtyp bks' to) as [bk |] eqn:EQ.
+  - unfold denote_bks at 1 3.
+    rewrite 2 KTreeFacts.unfold_iter_ktree.
+    cbn; rewrite !bind_bind.
+    assert (find_block dtyp (prefix ++ bks' ++ postfix) to ≡ Some bk).
+    {
+      erewrite find_block_app_r_wf; eauto.
+      erewrite find_block_app_l_wf; eauto.
+      eapply no_repeat_app_r; eauto.
+    }
+    do 2 match_rewrite.
+    rewrite !bind_bind.
+    eapply euttG_bind; econstructor; [reflexivity | intros [] ? <-].
+    + rewrite !bind_ret_l; cbn.
+      rewrite bind_tau; etau.
+    + rewrite !bind_ret_l.
+      reflexivity.
+  - edrop.
+    rewrite (denote_bks_unfold_not_in bks'); auto.
+    rewrite bind_ret_l.
+    reflexivity.
+Qed.
 
 (* Another Useful Vellvm utility. Obviously true, but the proof might need some tricks.. *)
 Lemma string_of_nat_length_lt :
@@ -414,19 +348,17 @@ Proof.
 
   - (* Base case: we enter through [loopcontblock] and jump out immediately to [nextblock] *)
     intros * (INV & LOOPVAR).
-
+    Import ProofMode.
     (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
     apply no_repeat_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
     apply fresh_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_block_app in NEXTBLOCK_ID.
     cbn; rewrite ?convert_typ_block_app.
     hide_cfg.
-
     (* We jump into [loopcontblock]
        We denote the content of the block.
      *)
     vjmp.
 
-    Import ProofMode.
     cbn.
     (* TODO add to vred *)
 
@@ -580,23 +512,11 @@ Proof.
 
     (* In order to use our body hypothesis, we need to restrict the ambient cfg to only the body *)
     inv VG.
-    rewrite denote_bks_prefix; cycle 1.
+    rewrite denote_bks_prefix; cycle 1; auto.
     {
       match goal with
         |- ?x::?y::?z ≡ _ => replace (x::y::z) with ([x;y]++z) by reflexivity
       end; f_equal.
-    }
-    {
-      (* Seems like a case we can add to solve_lu. *)
-      clear -UNIQUE_IDENTS IN.
-      pose proof no_repeat_app_l.
-
-      pose proof @no_repet_app_not_in_l.
-      unfold block_ids in *.
-      eapply H0. 2 : apply UNIQUE_IDENTS.
-      rewrite map_app. eapply in_or_app. left.
-      rewrite blk_id_map_convert_typ.
-      apply IN.
     }
     hide_cfg.
     hvred.
@@ -853,14 +773,7 @@ Proof with rauto.
       (* Seems like a case we can add to solve_lu. *)
       clear -UNIQUE IN.
       pose proof no_repeat_app_l.
-      specialize (H _ (b :: b1 :: (convert_typ nil body_blocks)) _ UNIQUE).
-      clear UNIQUE.
-
-
-      pose proof @no_repet_app_not_in_l.
-      unfold block_ids in *. eapply H0.  Unshelve.
-      setoid_rewrite <- blk_id_map_convert_typ in IN.
-      apply IN. apply H.
+      cbn. apply UNIQUE.
     }
 
     hide_cfg. rewrite AUX in *. clear AUX.
@@ -895,4 +808,6 @@ Proof with rauto.
 
     destruct H as (? & ? & ?). inversion H0.
     Unshelve. eauto.
+
 Qed.
+
