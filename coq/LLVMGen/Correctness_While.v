@@ -303,6 +303,11 @@ Lemma genWhileLoop_ind_arith_aux_2: forall n k,
 UVALUE_I64 ((int64) ((Z) (n - S (S k) - 1)) + (int64) 1) ≡ uvalue_of_nat (n - S (S k)).
 Admitted.
 
+Lemma arith_aux0:
+  forall n,
+    dvalue_to_uvalue (eval_int_icmp Slt ((int64) 0) ((int64) (Z.pos (Pos.of_succ_nat n)))) ≡ 'u_one.
+Admitted.
+
 Lemma incLocalNamed_fresh:
     forall i i' i'' r r' str str', incLocalNamed str i ≡ inr (i', r) ->
                                           incLocalNamed str' i' ≡ inr (i'', r') -> r ≢ r'.
@@ -515,11 +520,10 @@ Proof.
     cbn.
     rewrite denote_phi_tl; cycle 1.
     {
-      (* TODO *)
-      admit.
-      (* inversion UNIQUE_IDENTS. *)
-      (* intro. subst. apply H3. right. *)
-      (* apply in_or_app. right. constructor. reflexivity. *)
+      inv VG. inversion UNIQUE_IDENTS.
+      subst. intro. subst. apply H1. right.
+      rewrite map_app.
+      apply in_or_app. right. constructor. reflexivity.
     }
     rewrite denote_phi_hd.
     cbn.
@@ -527,17 +531,17 @@ Proof.
     rewrite translate_bind.
     rewrite ?interp_cfg_to_L3_ret, ?bind_ret_l;
       rewrite ?interp_cfg_to_L3_bind, ?bind_bind.
-    
+
     vstep.
     {
       (* TODO automation? *)
+      (* solve_lu.  *)
       setoid_rewrite lookup_alist_add_ineq.
       setoid_rewrite lookup_alist_add_eq. reflexivity.
-      intro.
-      (* symmetry in H0. revert H0. *)
-      (* Transparent incLocal. *)
-      (* eapply incLocalNamed_fresh. *)
-      (* eauto. reflexivity. *) admit.
+      intro. symmetry in H. revert H.
+      Transparent incLocal.
+      eapply incLocalNamed_fresh.
+      eauto. reflexivity.
     }
     (* TOFIX: broken automation, a wild translate sneaked in where it shouldn't *)
     rewrite translate_ret.
@@ -564,8 +568,16 @@ Proof.
       end; f_equal.
     }
     {
-      (* TODO: exploit [fresh_in_cfg] to prove that [body_entry] can't be in the prefix *)
-      admit.
+      (* Seems like a case we can add to solve_lu. *)
+      clear -UNIQUE_IDENTS IN.
+      pose proof no_repeat_app_l.
+
+      pose proof @no_repet_app_not_in_l.
+      unfold block_ids in *.
+      eapply H0. 2 : apply UNIQUE_IDENTS.
+      rewrite map_app. eapply in_or_app. left.
+      rewrite blk_id_map_convert_typ.
+      apply IN.
     }
     hide_cfg.
     hvred.
@@ -600,13 +612,8 @@ Proof.
     all: try auto.
     exact UVALUE_None.
     exact UVALUE_None.
-Admitted.
+Qed.
 
-
-Lemma arith_aux0:
-  forall n,
-    dvalue_to_uvalue (eval_int_icmp Slt ((int64) 0) ((int64) (Z.pos (Pos.of_succ_nat n)))) ≡ 'u_one.
-Admitted.
 
 Lemma genWhileLoop_correct:
   forall (prefix : string)
