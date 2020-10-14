@@ -76,8 +76,12 @@ Section NExpr.
              being proved to a bind whose first component is either the denotation of a parameter,
              or of a concrete operation to be processed. 
   - [vred] : stands for vellvm-reduction. Similar to [hvred], but performing only [vellvm]-based reduction
-             on both sides of the simulation.
-  - [vstep]: stands for vellvm-step. Performs a single atomic forward-reasoning principle, processing for
+             on the right hand-side of the simulation.
+             In the context of this development, is a synonymous for [vstep_r].
+             To perform it on the left-hand-side of [eutt], use [vstep_l].
+   - [tred] :alias for [autorewrite with itree]. Useful to fill in defaults in the current automation,
+             hopefully will be made useless soon.
+   - [vstep]: stands for vellvm-step. Performs a single atomic forward-reasoning principle, processing for
              instance a single instruction or expression.
              Cycles goals so that it exhibits first the generated side conditions.
   - [hstep]: stands helix-step. Processes a single trigger of a memory event.
@@ -85,7 +89,6 @@ Section NExpr.
  *)
 
   Import ProofMode.
-  Notation "'λ' a b c d ',' k" := (fun '(a,(b,(c,d))) => k) (only printing, at level 0, format "'λ'  a  b  c  d ',' '[' '//' k ']'").
 
   Lemma genNExpr_correct_ind :
     forall (* Compiler bits *) (s1 s2: IRState)
@@ -123,7 +126,6 @@ Section NExpr.
       + (* The variable maps to a pointer *)
         unfold denoteNExpr in *; cbn* in *; simp; try_abs.
         break_inner_match_goal; try_abs.
-        (* YZ: rewrite denote_code_singleton *)
         hvred.
         (* We need to be a bit careful: when stepping the [load], we will need to provide the memory address
            at which we load. This address needs to be in scope when introducing the evar, we are therefore
@@ -144,7 +146,6 @@ Section NExpr.
     - (* Constant *)
       cbn* in COMPILE; simp.
       unfold denoteNExpr in *; cbn*.
-      (* YZ: rewrite denote_code_nil, interp_cfg_to_L3_ret. *)
       hvred.
 
       apply eutt_Ret; split; [| split]; try now eauto.
@@ -153,7 +154,6 @@ Section NExpr.
 
     - (* NDiv *)
       cbn* in *; simp; try_abs.
-      (* YZ : rewrite ?convert_typ_app, ?fmap_list_app, denote_code_app, interp_cfg_to_L3_bind. *)
       (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
       hvred.
       specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE). 
@@ -164,7 +164,6 @@ Section NExpr.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI)).
-       (* YZ : rewrite ?convert_typ_app, ?fmap_list_app, denote_code_app, interp_cfg_to_L3_bind. *)
       hvred.
 
       (* e2 *)
