@@ -126,12 +126,12 @@ Section StateBound.
 
   Lemma state_bound_between_shrink :
     forall s1 s2 s1' s2' id,
+      state_bound_between s1 s2 id ->
       (count s1' <= count s1)%nat ->
       (count s2' >= count s2)%nat ->
-      state_bound_between s1 s2 id ->
       state_bound_between s1' s2' id.
   Proof.
-    intros s1 s2 s1' s2' id S1LE S2GE BOUND_BETWEEN.
+    intros s1 s2 s1' s2' id BOUND_BETWEEN S1LE S2GE.
     unfold state_bound_between.
     destruct BOUND_BETWEEN as (n & s' & s'' & NEND & LT & GE & INC).
     exists n. exists s'. exists s''.
@@ -141,12 +141,12 @@ Section StateBound.
 
   Lemma all_state_bound_between_shrink :
     forall s1 s2 s1' s2' ids,
+      Forall (state_bound_between s1 s2) ids ->
       (count s1' <= count s1)%nat ->
       (count s2' >= count s2)%nat ->
-      Forall (state_bound_between s1 s2) ids ->
       Forall (state_bound_between s1' s2') ids.
   Proof.
-    intros s1 s2 s1' s2' bids S1LE S2GE BOUND_BETWEEN.
+    intros s1 s2 s1' s2' bids BOUND_BETWEEN S1LE S2GE.
     apply Forall_forall.
     intros x IN.
     eapply Forall_forall in BOUND_BETWEEN; eauto.
@@ -660,9 +660,7 @@ Section Inputs.
       apply Forall_app.
       split.
       + eapply all_state_bound_between_shrink.
-        3: {
-          eapply IHop; eauto.
-        }
+        eapply IHop; eauto.
         solve_block_count.
         solve_block_count.
       + cbn.
@@ -675,11 +673,7 @@ Section Inputs.
       + eapply Forall_impl.
         apply bid_bound_between_only_block_count_r.
         eapply all_state_bound_between_shrink.
-        3: {
-          eapply IHop.
-          eapply Heqs0.
-        }
-
+        eapply IHop; eapply Heqs0.
         cbn. auto.
         block_count_replace.
         lia.
@@ -692,10 +686,10 @@ Section Inputs.
       apply Forall_app.
       split.
       + eapply all_state_bound_between_shrink.
-        3: { eapply IHop1; eauto. }
+        eapply IHop1; eauto.
         all: solve_block_count.
       + eapply all_state_bound_between_shrink.
-        3: { eapply IHop2; eauto. }
+        eapply IHop2; eauto.
         all: solve_block_count.
   Qed.
 

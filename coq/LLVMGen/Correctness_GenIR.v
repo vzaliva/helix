@@ -1255,7 +1255,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         cbn in INPUTS.
 
         eapply (Forall_disjoint GEN_OP2 INPUTS).
-        (* TODO: need to make sure IN_NEXT is actually nextblock... *)
         intros x OUT_PRED [IN_BOUND IN_NEXT].
         destruct OUT_PRED as [OUT_PRED | OUT_PRED]; auto.
         eapply (state_bound_between_separate incBlockNamed_count_gen_injective OUT_PRED IN_BOUND).
@@ -1322,16 +1321,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       cbn in PRE; destruct PRE as (INV2 & EXP2 & ?); cbn in *; inv_eqs.
       subst...
-      (* epose proof (IHop2 s1 s2 s3 σ memH0). *)
-      (* { *)
-      (*   epose proof (IHop2 _ _ _ σ memH0 nextblock op2_entry EXP2 bk_op2 g0 l memV0 _ _ _ _ GEN_OP2). *)
-      (*   Unshelve. *)
-      (*   5: { *)
-          
-      (*   } *)
-      (* } *)
-      (* (* epose proof (IHop2 s1 s2 s3 σ memH0 nextblock op2_entry EXP2 bk_op2 g0 l memV0 NEXT BCOUNT _ _ GEN_OP2). *) *)
-      (* ρ and l don't match here *)
+
       eapply eqit_mon; auto.
       2: {
         eapply IHop2; eauto.
@@ -1422,12 +1412,12 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
              assert ({alist_In id l v} + {~(alist_In id l v)}) as INL by admit.
              destruct INL as [INL | NINL].
              ++ eapply state_bound_between_shrink.
-                3: eapply H4.
+                eapply H4.
                 all: eauto.
                 apply genIR_local_count in GEN_OP2.
                 lia.
              ++ eapply state_bound_between_shrink.
-                3: eapply H1.
+                eapply H1.
                 all: eauto.
                 apply genIR_local_count in GEN_OP1.
                 lia.
