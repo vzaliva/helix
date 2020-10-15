@@ -444,14 +444,14 @@ Definition genFSHAssign
 
     .entry:
       (init_code)
-      %c0 = icmp slt i32 %start, %n
+      %c0 = icmp ult i32 %start, %n
       br i1 %c0, label %.loop, label %.nextblock
     .loop:
       %i = phi i32 [ %next_i, .loopcontblock], [ %start, .entry ]
      (body)
     .loopcontblock:
       %next_i = add nsw i32 %i, 1
-      %c = icmp slt i32 %next_i, %n
+      %c = icmp ult i32 %next_i, %n
       br i1 %c, label %.loop, label nextblock
     nextblock:
  *)
@@ -485,7 +485,7 @@ Definition genWhileLoop
             blk_code  :=
               init_code ++
                         [
-                          (IId loopcond, INSTR_Op (OP_ICmp Slt
+                          (IId loopcond, INSTR_Op (OP_ICmp Ult
                                                            IntType
                                                            from
                                                            to))
@@ -512,7 +512,7 @@ Definition genWhileLoop
                                                             IntType
                                                             (EXP_Ident (ID_Local loopvar))
                                                             (EXP_Integer 1%Z))) ;
-                            (IId loopcond1, INSTR_Op (OP_ICmp Slt
+                            (IId loopcond1, INSTR_Op (OP_ICmp Ult
                                                               IntType
                                                               (EXP_Ident (ID_Local nextvar))
                                                               to))

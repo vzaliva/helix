@@ -283,6 +283,15 @@ Proof.
   rewrite Bool.negb_true_iff in H; auto.
 Qed.
 
+Lemma ltu_antisym: forall x, Int64.ltu x x ≡ false.
+Proof.
+  intros.
+  pose proof Int64.not_ltu x x.
+  rewrite Int64.eq_true, Bool.orb_comm in H.
+  cbn in H.
+  rewrite Bool.negb_true_iff in H; auto.
+Qed.
+
 Import Int64 Int64asNT.Int64 DynamicValues.Int64.
 Lemma __arith: forall j, j> 0 ->
                     (Z.of_nat j < half_modulus)%Z ->
@@ -307,6 +316,19 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma __arithu: forall j, j> 0 ->
+                    (Z.of_nat j < modulus)%Z ->
+                    add (repr (Z.of_nat (j - 1))) (repr 1) ≡
+                        repr (Z.of_nat j).
+Proof.
+  intros .
+  unfold Int64.add.
+  rewrite !Int64.unsigned_repr_eq.
+  cbn.
+  f_equal.
+  rewrite Zdiv.Zmod_small; try lia.
+Qed.
+
 Lemma lt_nat_to_Int64: forall j n,
     0 <= j ->
     j < n ->
@@ -316,7 +338,21 @@ Proof.
   intros.
   unfold lt.
   rewrite !signed_repr.
-  2,3:unfold min_signed, max_signed; lia.
+  2,3:unfold min_signed, max_signed; try lia.
+  break_match_goal; auto.
+  lia.
+Qed.
+
+Lemma ltu_nat_to_Int64: forall j n,
+    0 <= j ->
+    j < n ->
+    (Z.of_nat n < modulus)%Z ->
+    ltu (repr (Z.of_nat j)) (repr (Z.of_nat n)) ≡ true.
+Proof.
+  intros.
+  unfold ltu.
+  rewrite !unsigned_repr.
+  2,3:unfold max_unsigned; try lia.
   break_match_goal; auto.
   lia.
 Qed.
@@ -331,6 +367,18 @@ Proof.
   unfold lt.
   rewrite !signed_repr. break_match_goal; auto.
   1,2:unfold min_signed, max_signed; lia.
+Qed.
+
+Lemma ltu_Z_to_Int64: forall j n,
+    (0 <= j)%Z ->
+    (n < modulus)%Z ->
+    (j < n)%Z ->
+    ltu (repr j) (repr n) ≡ true.
+Proof.
+  intros.
+  unfold ltu.
+  rewrite !unsigned_repr. break_match_goal; auto.
+  1,2:unfold max_unsigned; lia.
 Qed.
 
 Lemma alist_find_eq:
@@ -399,7 +447,7 @@ Lemma genWhileLoop_ind:
       (bodyH: nat -> mem_block -> itree _ mem_block)
       (j : nat)                       (* Starting iteration *)
       (UPPER_BOUND : 0 < j <= n)
-      (NO_OVERFLOW : (Z.of_nat n < Int64.half_modulus)%Z)
+      (NO_OVERFLOW : (Z.of_nat n < Int64.modulus)%Z)
 
       (* Main relations preserved by iteration *)
       (I : nat -> mem_block -> Rel_cfg),
@@ -501,11 +549,11 @@ Proof.
       cbn.
       clear - BOUND OVER.
       destruct BOUND as [? _].
-      rewrite __arith; try lia.
+      rewrite __arithu; try lia.
       unfold eval_int_icmp.
-      rewrite lt_antisym.
+      rewrite ltu_antisym.
       reflexivity.
-    } 
+    }
 
     vjmp_out.
     cbn.
@@ -555,12 +603,12 @@ Proof.
 
     (* Step 2 : Jump to b0, i.e. loopblock (since we have checked k < n). *)
     vbranch_l. 
-    { cbn; vstep; try solve_lu.
-      rewrite __arith; try lia.
+    { cbn; vstep;  try solve_lu.
+      rewrite __arithu; try lia.
       apply eutt_Ret.
       repeat f_equal.
       clear - EQidx LT LE OVER.
-      unfold eval_int_icmp; rewrite lt_nat_to_Int64; try lia.
+      unfold eval_int_icmp; rewrite ltu_nat_to_Int64; try lia.
       reflexivity.
     }
 
@@ -676,7 +724,7 @@ Lemma genWhileLoop_correct:
       (* Computation on the Helix side performed at each cell of the vector, *)
       (*    the counterpart to bodyV (body_blocks) *)
       (bodyH: nat -> mem_block -> itree _ mem_block)
-      (NO_OVERFLOW : (Z.of_nat n < Int64.half_modulus)%Z)
+      (NO_OVERFLOW : (Z.of_nat n < Int64.modulus)%Z)
 
       (* Main relations preserved by iteration *)
       (I : nat -> mem_block -> Rel_cfg)
@@ -817,10 +865,13 @@ Proof with rauto.
     (* Step 1 : Jump to b0, i.e. loopblock (since we have checked k < n). *)
     vbranch_l.
     {
-      cbn; vstep; try solve_lu.
-
+      cbn; vstep.
+      match goal with
+        |- Maps.lookup ?k (alist_add ?k ?a ?b) ≡ _ =>
+        rewrite (lookup_alist_add_eq _ _ b)
+      end; reflexivity.
       unfold eval_int_icmp. cbn.
-      rewrite lt_Z_to_Int64; try lia.
+      rewrite ltu_Z_to_Int64; try lia.
       reflexivity.
     }
     vjmp. vred.
