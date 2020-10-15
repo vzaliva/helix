@@ -58,14 +58,6 @@ Proof.
       destruct H.
 Qed.
 
-(* Notation "x < y" := (DynamicValues.Int64.lt x y). *)
-(* Notation "x + y" := (DynamicValues.Int64.add x y). *)
-(* Notation "'u_zero'" := (UVALUE_I1 DynamicValues.Int1.zero). *)
-(* Notation "'u_one" := (UVALUE_I1 DynamicValues.Int1.one). *)
-(* Notation "'d_zero'" := (DVALUE_I1 DynamicValues.Int1.zero). *)
-(* Notation "'d_one'" := (DVALUE_I1 DynamicValues.Int1.one). *)
-(* Notation "'(int64)' x" := (Int64.repr x) (at level 10). *)
-(* Notation "'(Z)' x" := (Z.of_nat x) (at level 10). *)
 
 (* TODO: Move to Vellvm Denotation_Theory.v? *)
 
@@ -104,7 +96,6 @@ Qed.
 Definition imp_rel {A B : Type} (R S: A -> B -> Prop): Prop :=
   forall a b, R a b -> S a b.
 
-
 Definition stable_exp_local (R: Rel_cfg) : Prop :=
     forall memH memV ρ1 ρ2 g,
       R memH (memV, (ρ1, g)) ->
@@ -113,6 +104,35 @@ Definition stable_exp_local (R: Rel_cfg) : Prop :=
 
 (* TODO: Show symmetric case *)
 Lemma no_repet_app_not_in_l :
+  forall (T : Set) id (bs bs' : list (LLVMAst.block T)), In id (block_ids bs) ->
+    blk_id_norepet (bs' ++ bs) ->
+    not (In id (block_ids bs')).
+Proof.
+  intros. destruct bs.
+  inversion H.
+  inv H.
+  apply no_repeat_cons_not_in.
+  unfold blk_id_norepet in *.
+  rewrite map_app in H0.
+  rewrite map_cons. rewrite map_cons in H0.
+  rewrite list_cons_app in H0.
+  rewrite app_assoc in H0.
+  apply Coqlib.list_norepet_append_left in H0.
+  rewrite list_cons_app.
+  rewrite Coqlib.list_norepet_app in *.
+  intuition. apply Coqlib.list_disjoint_sym. auto.
+  unfold blk_id_norepet in H0.
+  rewrite map_app in H0. rewrite map_cons in H0. rewrite list_cons_app in H0.
+  apply Coqlib.list_norepet_append_commut in H0. rewrite <- app_assoc in H0.
+  apply Coqlib.list_norepet_append_right in H0.
+  rewrite Coqlib.list_norepet_app in H0.
+  destruct H0 as (? & ? & ?).
+  red in H2. intro. eapply H2; eauto.
+Qed.
+
+
+(* TODO: Show symmetric case *)
+Lemma no_repet_app_not_in_r :
   forall (T : Set) id (bs bs' : list (LLVMAst.block T)), In id (block_ids bs) ->
     blk_id_norepet (bs' ++ bs) ->
     not (In id (block_ids bs')).
@@ -595,7 +615,7 @@ Proof.
     rewrite denote_bks_prefix; cycle 1; auto.
     {
       match goal with
-        |- ?x::?y::?z ≡ _ => replace (x::y::z) with ([x;y]++z) by reflexivity
+        |- ?x::?y::?z ≡ _ => replace (x::y::z) with ([x;y]++z)%list by reflexivity
       end; f_equal.
     }
     hide_cfg.
@@ -834,7 +854,7 @@ Proof with rauto.
     | [ |- context[?hd :: ?hd' :: _ ++ ?tl] ] => remember hd; remember hd'; remember tl
     end.
     assert (AUX:
-              b :: b1 :: (convert_typ nil body_blocks) ++ l0 ≡ [b; b1] ++ (convert_typ nil body_blocks) ++ l0).
+              (b :: b1 :: (convert_typ nil body_blocks) ++ l0 ≡ [b; b1] ++ (convert_typ nil body_blocks) ++ l0)%list).
     reflexivity.
     rewrite AUX.
 
