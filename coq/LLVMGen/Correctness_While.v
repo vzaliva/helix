@@ -865,12 +865,14 @@ Proof with rauto.
     (* Step 1 : Jump to b0, i.e. loopblock (since we have checked k < n). *)
     vbranch_l.
     {
-      cbn; vstep; try solve_lu.
-
+      cbn; vstep.
+      match goal with
+        |- Maps.lookup ?k (alist_add ?k ?a ?b) ≡ _ =>
+        rewrite (lookup_alist_add_eq _ _ b)
+      end; reflexivity.
       unfold eval_int_icmp. cbn.
       rewrite ltu_Z_to_Int64; try lia.
       reflexivity.
-      lia.
     }
     vjmp. vred.
     (* We update [loopvar] via the phi-node *)
