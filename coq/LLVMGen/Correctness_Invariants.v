@@ -625,6 +625,42 @@ Proof.
     eapply FRESH; eauto with arith.
 Qed.
 
+
+Lemma incLocalNamed_Γ:
+  forall s s' msg id,
+    incLocalNamed msg s ≡ inr (s', id) ->
+    Γ s' ≡ Γ s.
+Proof.
+  intros; cbn in *; inv_sum; reflexivity.
+Qed.
+
+Lemma incLocalNamed_local_count: forall s s' msg x,
+    incLocalNamed msg s ≡ inr (s',x) ->
+    local_count s' ≡ S (local_count s).
+Proof.
+  intros; cbn in *; inv_sum; reflexivity.
+Qed.
+
+Lemma state_invariant_incLocalNamed :
+  forall σ msg s s' k memH stV,
+    incLocalNamed msg s ≡ inr (s', k) ->
+    state_invariant σ s memH stV ->
+    state_invariant σ s' memH stV.
+Proof.
+  intros * INC [MEM_INV WF FRESH].
+  split.
+  - red; repeat break_let; intros * LUH LUV.
+    erewrite incLocalNamed_Γ in LUV; eauto.
+    generalize LUV; intros INLG;
+      eapply MEM_INV in INLG; eauto. 
+  - unfold WF_IRState; erewrite incLocalNamed_Γ; eauto; apply WF.
+  - red; repeat break_let; intros ? ? ? LU INEQ.
+    clear MEM_INV WF.
+    erewrite incLocalNamed_local_count in INEQ; eauto.
+    eapply FRESH; eauto with arith.
+Qed.
+
+
 Lemma incBlockNamed_Γ:
   forall s s' msg id,
     incBlockNamed msg s ≡ inr (s', id) ->
