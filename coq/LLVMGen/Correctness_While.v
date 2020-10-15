@@ -199,33 +199,11 @@ Proof.
 Qed.
 
 (* Another Useful Vellvm utility. Obviously true, but the proof might need some tricks.. *)
-Lemma string_of_nat_length_lt :
-  (forall n m, n < m -> length (string_of_nat n) <= length (string_of_nat m))%nat.
-Proof.
-  induction n using (well_founded_induction lt_wf).
-  intros. unfold string_of_nat.
-Admitted.
-
-
-(* Lemma genWhileLoop_ind_arith_aux_1: forall n k, *)
-(*   dvalue_to_uvalue (eval_int_icmp Slt ((int64) ((Z) (n - S k - 1)) + (int64) 1) ((int64) ((Z) n))) ≡ 'u_one. *)
+(* Lemma string_of_nat_length_lt : *)
+(*   (forall n m, n < m -> length (string_of_nat n) <= length (string_of_nat m))%nat. *)
 (* Proof. *)
-(*   intros. *)
-(*   assert ((eval_int_icmp Slt ((int64) ((Z) (n - S k - 1)) + (int64) 1) ((int64) ((Z) n))) ≡ DVALUE_I1 DynamicValues.Int1.one). *)
-(*   eapply RelDec_Correct_eq_typ. Unshelve. 3 : apply @dvalue_eq_dec. *)
-(*   unfold eval_int_icmp. cbn. *)
-(*   assert ((int64) ((Z) (n - S k - 1)) + (int64) 1 ≡ (int64) ((Z) (n - S k))). { *)
-(*     Int64.bit_solve.  destruct (Int64.testbit ((int64) ((Z) (n - S k))) i) eqn: H'. *)
-(* Admitted. *)
-
-(* Lemma genWhileLoop_ind_arith_aux_2: forall n k, *)
-(* UVALUE_I64 ((int64) ((Z) (n - S (S k) - 1)) + (int64) 1) ≡ uvalue_of_nat (n - S (S k)). *)
-(* Admitted. *)
-
-(* <<<<<<< Updated upstream *)
-(* Lemma arith_aux0: *)
-(*   forall n, *)
-(*     dvalue_to_uvalue (eval_int_icmp Slt ((int64) 0) ((int64) (Z.pos (Pos.of_succ_nat n)))) ≡ 'u_one. *)
+(*   induction n using (well_founded_induction lt_wf). *)
+(*   intros. unfold string_of_nat. *)
 (* Admitted. *)
 
 Lemma incLocal_fresh:
@@ -240,6 +218,12 @@ Proof.
   apply Nat.neq_succ_diag_l.
 Qed.
 
+Lemma __fresh:
+    forall s i i' i'' r r' , incLocal i ≡ inr (i', r) ->
+                      incLocalNamed s i' ≡ inr (i'', r') -> r ≢ r'.
+Proof.
+Admitted.
+Opaque incLocalNamed.
 Opaque incLocal.
 
 (* TODO: Figure out how to avoid this *)
@@ -294,6 +278,15 @@ Proof.
   lia.
 Qed.
 
+Lemma alist_find_eq:
+  ∀ (K V : Type) (RR : RelDec Logic.eq),
+    RelDec_Correct RR → ∀ (m : alist K V) (k : K) (v : V), alist_add k v m @ k ≡ Some v.
+Proof.
+  intros.
+  cbn.
+  rewrite rel_dec_eq_true; auto.
+Qed.
+
 (* TODO: incLocalNamed should be opaque, and the stability hyp revisited *)
 
 (** Inductive lemma to reason about while loops.
@@ -339,52 +332,51 @@ Lemma genWhileLoop_ind:
 
     fresh_in_cfg bks nextblock ->
 
-    forall (n : nat)                     (* Number of iterations *),
+    forall (n : nat)                     (* Number of iterations *)
 
-    (* Generation of the LLVM code wrapping the loop around bodyV *)
-    genWhileLoop prefix (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
-                       loopvar loopcontblock body_entry body_blocks [] nextblock s1
-                       ≡ inr (s2,(entry_id, bks)) ->
+      (* Generation of the LLVM code wrapping the loop around bodyV *)
+      (HGEN: genWhileLoop prefix (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
+                          loopvar loopcontblock body_entry body_blocks [] nextblock s1
+                          ≡ inr (s2,(entry_id, bks))) 
+      
+      (* Computation on the Helix side performed at each cell of the vector, *)
+      (*    the counterpart to bodyV (body_blocks) *)
+      (bodyH: nat -> mem_block -> itree _ mem_block)
+      (j : nat)                       (* Starting iteration *)
+      (UPPER_BOUND : 0 < j <= n)
+      (NO_OVERFLOW : (Z.of_nat n < Int64.half_modulus)%Z)
 
-    (* Loopvar is unique. TODO: Fix, something is off here. *)
-    forall (LVAR_FRESH' : forall str s s' id, incLocalNamed str s ≡ inr(s', id) -> loopvar ≢ id)
+      (* Main relations preserved by iteration *)
+      (I : nat -> mem_block -> Rel_cfg),
 
-    (* Computation on the Helix side performed at each cell of the vector, *)
-    (*    the counterpart to bodyV (body_blocks) *)
-    (bodyH: nat -> mem_block -> itree _ mem_block)
-    (j : nat)                       (* Starting iteration *)
-    (UPPER_BOUND : 0 < j <= n)
-    (NO_OVERFLOW : (Z.of_nat n < Int64.half_modulus)%Z)
+      (* We assume that we know how to relate the iterations of the bodies *)
+      (forall g l mV mH ymem k _label _label',
 
-    (* Main relations preserved by iteration *)
-    (I : nat -> mem_block -> Rel_cfg),
-    (* Inductive Case *)
-    (* We build weakening in the rule: the precondition implies the initial invariant
-       and the final invariant implies the postcondition
-     *)
-    (forall g l l' mV mH ymem k _label _label',
+          (conj_rel (I k ymem)
+                    (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k))
+                    mH (mV,(l,g))) ->
+          eutt
+            (succ_cfg (fun '(memH,vec') '(memV, (l, (g, x))) =>
+                         l @ loopvar ≡ Some (uvalue_of_nat k) /\
+                         x ≡ inl (_label', loopcontblock) /\
+                         I (S k) vec' memH (memV, (l, g))))
+            (interp_helix (bodyH (S k) ymem) mH)
+            (interp_cfg
+               (denote_bks (convert_typ [] body_blocks) (_label, body_entry)) g l mV)
+      ) ->
 
-        (conj_rel (I k ymem)
-                  (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k))
-                  mH (mV,(l',g))) ->
-        eutt
-          (succ_cfg (fun '(memH,vec') '(memV, (l, (g, x))) =>
-                l @ loopvar ≡ Some (uvalue_of_nat k) /\
-                x ≡ inl (_label', loopcontblock) /\
-                I (S k) vec' memH (memV, (l, g))))
-          (interp_helix (bodyH (S k) ymem) mH)
-          (interp_cfg
-             (denote_bks (convert_typ [] body_blocks) (_label, body_entry)) g l mV)
-    ) ->
-
-    (* TODO : use [sub_alist] ⊑ and match on loopvar *)
-    (* Invariant is stable under extending local state *)
-    (forall k mH mV s s' g l ymem id v str, incLocal s ≡ inr (s', id)
-                                       \/ incLocalNamed str s ≡ inr (s', id)
-                                       \/ id ≡ loopvar ->
-                            I k ymem mH (mV, (l, g)) ->
-                            I k ymem mH (mV, ((alist_add id v l), g))) ->
-
+      (* Invariant is stable under the administrative bookkeeping that the loop performs *)
+      (forall a sa b sb c sc d sd e se msg msg' msg'',
+          incBlockNamed msg s1 ≡ inr (sa, a) ->
+          incBlockNamed msg' sa ≡ inr (sb, b) ->
+          incLocal sb ≡ inr (sc,c) ->
+          incLocal sc ≡ inr (sd,d) ->
+          incLocalNamed msg'' sd ≡ inr (se, e) ->
+          forall k ymem mH l l' mV g,
+            (forall id, id <> c -> id <> d -> id <> e -> id <> loopvar -> l @ id ≡ l' @ id) ->
+            I k ymem mH (mV, (l, g)) ->
+            I k ymem mH (mV, (l', g))) ->
+      
     (* Main result. Need to know initially that P holds *)
     forall g l mV mH ymem _label,
       (conj_rel
@@ -399,7 +391,6 @@ Lemma genWhileLoop_ind:
            (interp_helix (build_vec_gen (S j) n bodyH ymem) mH)
            (interp_cfg (denote_bks (convert_typ [] bks)
                                                 (_label, loopcontblock)) g l mV).
-
 Proof.
   intros * IN UNIQUE_IDENTS NEXTBLOCK_ID * GEN LVAR_FRESH *.
   unfold genWhileLoop in GEN. cbn* in GEN. simp.
@@ -471,9 +462,8 @@ Proof.
     apply eutt_Ret.
     split.
     + reflexivity.
-    + eapply STABLE. left. eauto.
-      eapply STABLE. right. left. reflexivity.
-      apply INV.
+    + eapply STABLE; cycle -1; [apply INV |..]; eauto.
+      intros; rewrite 2 alist_find_neq; eauto. 
 
   - (* Inductive case *)
     Opaque half_modulus.
@@ -546,33 +536,9 @@ Proof.
 
     vstep.
     {
-      (* TOFIX after fixing stability hyp *)
-      match goal with
-      | [ |- context[Maps.lookup ?check] ]=> remember check
-      end.
       setoid_rewrite lookup_alist_add_ineq.
       setoid_rewrite lookup_alist_add_eq. reflexivity. subst.
-      intro. symmetry in H. revert H.
-      Transparent incLocal. clear -Heqs0 Heqs1 Heqs2 Heqs3 Heqs4.
-      cbn in *. inversion Heqs1; clear Heqs1.
-      inversion Heqs2; clear Heqs2. cbn.
-      intro.
-      apply Name_inj in H.
-      assert (string_eq_length: forall s1 s2, s1 ≡ s2 -> length s1 ≡ length s2). {
-        intros. rewrite H4. reflexivity.
-      }
-      apply string_eq_length in H.
-      rewrite 3 length_append in H. cbn in H.
-      clear -H.
-      rewrite <- plus_assoc in H. rewrite plus_comm in H.
-      inversion H.
-      assert (length (string_of_nat (local_count i1)) >=
-              6 + length (string_of_nat (S (local_count i1))))%nat by lia.
-
-      clear -H0. pose proof string_of_nat_length_lt.
-      remember (local_count i1).
-      specialize (H n (S n)).
-      assert (n < S n)%nat by lia. apply H in H1. lia.
+      intros ?; eapply __fresh; eauto.
     }
     (* TOFIX: broken automation, a wild translate sneaked in where it shouldn't *)
     rewrite translate_ret.
@@ -607,13 +573,11 @@ Proof.
     eapply HBODY.
     {
       (* A bit of arithmetic is needed to prove that we have the right precondition *)
-      red. cbn. split. 
-      + subst. eapply STABLE. right. right. reflexivity.
-        eapply STABLE. left. eauto.
-        eapply STABLE. right. left. reflexivity. auto.
-        eapply INV.
-      + subst. cbn. assert (L : loopvar ≡ loopvar) by reflexivity. eapply rel_dec_eq_true in L.
-        rewrite L. cbn.
+      split.
+      + eapply STABLE; cycle -1; [apply INV |..]; eauto. 
+        intros; rewrite 3 alist_find_neq; eauto. 
+       
+      + rewrite alist_find_eq.
         reflexivity.
         typeclasses eauto.
     }
@@ -629,8 +593,6 @@ Proof.
     replace (S j - 1) with j by lia; auto.
     Unshelve.
     all: try auto.
-    exact UVALUE_None.
-    exact UVALUE_None.
 Qed.
 
 Lemma genWhileLoop_correct:
