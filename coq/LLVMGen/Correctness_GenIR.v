@@ -24,21 +24,21 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     | (m,(l,(g,res))) => exists from, res ≡ inl (from, to)
     end.
 
-  Definition freshness (s1 s2 s3 : IRState) (l1 : local_env) : config_cfg -> Prop :=
+  Definition freshness (s1 s2 : IRState) (l1 : local_env) : config_cfg -> Prop :=
     fun '(_, (l2, _)) =>
       l1 ⊑ l2 /\
-      (forall id v, alist_In id l1 v -> ~(lid_bound_between s2 s3 id)) /\
-      (forall id v, alist_In id l2 v -> ~(alist_In id l1 v) -> lid_bound_between s2 s3 id).
+      (forall id v, alist_In id l1 v -> ~(lid_bound_between s1 s2 id)) /\
+      (forall id v, alist_In id l2 v -> ~(alist_In id l1 v) -> lid_bound_between s1 s2 id).
 
-  Record new_state_invariant (σ : evalContext) (s1 s2 s3 : IRState) (l1 : local_env) (memH : memoryH) (configV : config_cfg) : Prop :=
+  Record new_state_invariant (σ : evalContext) (s1 s2 : IRState) (l1 : local_env) (memH : memoryH) (configV : config_cfg) : Prop :=
     {
-    mem_is_inv : memory_invariant σ s3 memH configV ;
-    IRState_is_WF : WF_IRState σ s3 ;
-    incLocal_is_fresh : freshness s1 s2 s3 l1 configV
+    mem_is_inv : memory_invariant σ s2 memH configV ;
+    IRState_is_WF : WF_IRState σ s2 ;
+    incLocal_is_fresh : freshness s1 s2 l1 configV
     }.
 
-  Definition GenIR_Rel σ (s1 s2 s3 : IRState) (l1 : local_env) to : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
-    lift_Rel_cfg (new_state_invariant σ s1 s2 s3 l1) ⩕ branches to. 
+  Definition GenIR_Rel σ (s1 s2 : IRState) (l1 : local_env) to : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
+    lift_Rel_cfg (new_state_invariant σ s1 s2 l1) ⩕ branches to. 
 
 
   Hint Resolve state_invariant_incBlockNamed : state_invariant.
@@ -668,10 +668,10 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       (** Vellvm bits   *) (nextblock bid_in bid_from : block_id) (bks : list (LLVMAst.block typ))
       (* (env : list (ident * typ)) *)  (g : global_env) (ρ : local_env) (memV : memoryV),
       bid_bound s1 nextblock ->
-      GenIR_Rel σ s1 s1 s1 ρ bid_in (memH,tt) (memV, (ρ, (g, (inl (bid_from, bid_in))))) ->
+      GenIR_Rel σ s1 s1 ρ bid_in (memH,tt) (memV, (ρ, (g, (inl (bid_from, bid_in))))) ->
       no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ op) memH) -> (* Evaluation succeeds *)
       genIR op nextblock s1 ≡ inr (s2,(bid_in,bks)) ->
-      eutt (succ_cfg (GenIR_Rel σ s1 s1 s2 ρ nextblock))
+      eutt (succ_cfg (GenIR_Rel σ s1 s2 ρ nextblock))
            (interp_helix (denoteDSHOperator σ op) memH)
            (interp_cfg (D.denote_bks (convert_typ [] bks) (bid_from,bid_in))
                        g ρ memV).
