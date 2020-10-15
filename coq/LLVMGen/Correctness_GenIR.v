@@ -648,37 +648,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   Qed.
   Opaque interp_helix interp_Mem.
 
-  Require Import LibHyps.LibHyps.
-
-  Ltac clean_goal :=
-    try match goal with
-        | h1 : incVoid _ ≡ _,
-               h2 : incVoid _ ≡ _,
-                    h3 : incVoid _ ≡ _
-          |- _ => move h1 at top; move h2 at top; move h3 at top
-        | h1 : incVoid _ ≡ _, h2 : incVoid _ ≡ _ |- _ => move h1 at top; move h2 at top
-        | h : incVoid _ ≡ _ |- _ => move h at top
-        end;
-
-    try match goal with
-        | h1 : incLocal _ ≡ _,
-               h2 : incLocal _ ≡ _,
-                    h3 : incLocal _ ≡ _
-          |- _ => move h1 at top; move h2 at top; move h3 at top
-        | h1 : incLocal _ ≡ _, h2 : incLocal _ ≡ _ |- _ => move h1 at top; move h2 at top
-        | h : incLocal _ ≡ _ |- _ => move h at top
-        end;
-
-    try match goal with
-        | h1 : incBlockNamed _ _ ≡ _,
-               h2 : incBlockNamed _ _ ≡ _,
-                    h3 : incBlockNamed _ _ ≡ _
-          |- _ => move h1 at top; move h2 at top; move h3 at top
-        | h1 : incBlockNamed _ _ ≡ _, h2 : incBlockNamed _ _ ≡ _ |- _ => move h1 at top; move h2 at top
-        | h : incBlockNamed _ _ ≡ _ |- _ => move h at top
-        end;
-
-    onAllHyps move_up_types.
   Import ProofMode.
   Notation "'gep' τ e" := (OP_GetElementPtr τ e) (at level 10, only printing).
   Notation "'double'" := (DTYPE_Double) (at level 10, only printing).
@@ -896,34 +865,34 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         { vstep; solve_lu. }
         vred.
         hide_cont.
-        destruct vy_p as [vy_p | vy_p].
-        { 
-          edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |].
-          clean_goal.
-          rewrite yLU in H0; symmetry in H0; inv H0.
-          cbn in yINLG.
-          (* How do we know that ymembk is allocated?
-             yGETCELL does not contain any information here.
-           *)
-          (* Oooh we don't, we're using [gep] but not for reading a cell here?
-             Not true though, the cell must be allocated, we are about to write in it.
-             We need another lemma about [OP_GetElementPtr] then.
-           *)
-          (* edestruct denote_instr_gep_array as (yptr' & yREAD & yEQ); cycle -1; [rewrite yEQ; clear yEQ | ..]; cycle 1. *)
-          (* { vstep; solve_lu. *)
-          (*   cbn; reflexivity. *)
-          (* } *)
-          (* { rewrite EXP2. *)
-          (*   2:{ cbn. etransitivity. apply sub_alist_add. *)
-          (*       2: apply sub_alist_add. *)
-          (*       admit. admit. *)
-          (*   } *)
-          (*   replace (repr (Z.of_nat (MInt64asNT.to_nat dst))) with dst by admit. *)
-          (*   cbn; reflexivity. *)
+        (* destruct vy_p as [vy_p | vy_p]. *)
+        (* {  *)
+        (*   edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |]. *)
+        (*   clean_goal. *)
+        (*   rewrite yLU in H0; symmetry in H0; inv H0. *)
+        (*   cbn in yINLG. *)
+        (*   (* How do we know that ymembk is allocated? *)
+        (*      yGETCELL does not contain any information here. *)
+        (*    *) *)
+        (*   (* Oooh we don't, we're using [gep] but not for reading a cell here? *)
+        (*      Not true though, the cell must be allocated, we are about to write in it. *)
+        (*      We need another lemma about [OP_GetElementPtr] then. *)
+        (*    *) *)
+        (*   (* edestruct denote_instr_gep_array as (yptr' & yREAD & yEQ); cycle -1; [rewrite yEQ; clear yEQ | ..]; cycle 1. *) *)
+        (*   (* { vstep; solve_lu. *) *)
+        (*   (*   cbn; reflexivity. *) *)
+        (*   (* } *) *)
+        (*   (* { rewrite EXP2. *) *)
+        (*   (*   2:{ cbn. etransitivity. apply sub_alist_add. *) *)
+        (*   (*       2: apply sub_alist_add. *) *)
+        (*   (*       admit. admit. *) *)
+        (*   (*   } *) *)
+        (*   (*   replace (repr (Z.of_nat (MInt64asNT.to_nat dst))) with dst by admit. *) *)
+        (*   (*   cbn; reflexivity. *) *)
 
-          (* } *)
-          (* eapply yGETCELL. *)
-
+        (*   (* } *) *)
+        (*   (* eapply yGETCELL. *) *)
+        admit.
     -
       Opaque genWhileLoop.
       cbn* in *.
