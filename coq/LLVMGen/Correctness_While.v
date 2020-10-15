@@ -30,7 +30,7 @@ Fixpoint build_vec_gen_aux {E} (from remains: nat)
     end.
 
 Definition build_vec_gen {E} (from to: nat) :=
-  @build_vec_gen_aux E from (1 + to - from).
+  @build_vec_gen_aux E from (to - from).
 
 Definition build_vec {E} := @build_vec_gen E 0.
 
@@ -220,9 +220,17 @@ Qed.
 
 Lemma __fresh:
     forall s i i' i'' r r' , incLocal i ≡ inr (i', r) ->
-                      incLocalNamed s i' ≡ inr (i'', r') -> r ≢ r'.
+                        incLocalNamed s i' ≡ inr (i'', r') -> r ≢ r'.
 Proof.
+  intros * H1 H2. cbn.
+  unfold incLocal, incLocalNamed in *.
+  cbn in *; inv H1; inv H2.
+  intros abs; apply Name_inj in abs.
+  (* Yeeah not gonna bother with this. It's true though.
+     We probably just prove the lemma for the exact string "s" we need.
+   *)
 Admitted.
+
 Opaque incLocalNamed.
 Opaque incLocal.
 
@@ -360,7 +368,7 @@ Lemma genWhileLoop_ind:
                          l @ loopvar ≡ Some (uvalue_of_nat k) /\
                          x ≡ inl (_label', loopcontblock) /\
                          I (S k) vec' memH (memV, (l, g))))
-            (interp_helix (bodyH (S k) ymem) mH)
+            (interp_helix (bodyH k ymem) mH)
             (interp_cfg
                (denote_bks (convert_typ [] body_blocks) (_label, body_entry)) g l mV)
       ) ->
@@ -388,7 +396,7 @@ Lemma genWhileLoop_ind:
               x ≡ inl (loopcontblock, nextblock) /\
               I n vec' memH (memV,(l,g))
            ))
-           (interp_helix (build_vec_gen (S j) n bodyH ymem) mH)
+           (interp_helix (build_vec_gen j n bodyH ymem) mH)
            (interp_cfg (denote_bks (convert_typ [] bks)
                                                 (_label, loopcontblock)) g l mV).
 Proof.
@@ -416,7 +424,7 @@ Proof.
 
     cbn.
     assert (n ≡ j) by lia; subst.
-    replace (j - S j) with 0 by lia.
+    (* replace (j - S j) with 0 by lia. *)
 
     vred.
     vred.
@@ -565,9 +573,10 @@ Proof.
       end; f_equal.
     }
     hide_cfg.
-    rewrite <- EQidx.
+    (* rewrite <- EQidx. *)
 
     cbn; hvred.
+    destruct j as [| j]; [lia |].
     eapply eutt_clo_bind.
     (* We can now use the body hypothesis *)
     eapply HBODY.
@@ -587,15 +596,74 @@ Proof.
     introR.
     destruct PRE as (LOOPVAR' & HS & IH').
     subst.
-    replace k with (n - (S j)) by lia.
     eapply IH; try lia.
     split; auto.
-    replace (S j - 1) with j by lia; auto.
     Unshelve.
     all: try auto.
 Qed.
 
 Lemma genWhileLoop_correct:
+  forall (prefix : string)
+    (loopvar : raw_id)            (* lvar storing the loop index *)
+    (loopcontblock : block_id)    (* reentry point from the body back to the loop *)
+    (body_entry : block_id)       (* entry point of the body *)
+    (body_blocks : list (LLVMAst.block typ)) (* (llvm) body to be iterated *)
+    (nextblock : block_id)        (* exit point of the overall loop *)
+    (entry_id : block_id)         (* entry point of the overall loop *)
+    (s1 s2 : IRState)
+    (bks : list (LLVMAst.block typ)) ,
+
+    In body_entry (block_ids body_blocks) ->
+
+    (* All labels generated are distinct *)
+    blk_id_norepet bks ->
+
+    fresh_in_cfg bks nextblock ->
+
+    forall (n : nat)                     (* Number of iterations *)
+
+      (* Generation of the LLVM code wrapping the loop around bodyV *)
+      (HGEN: genWhileLoop prefix (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
+                          loopvar loopcontblock body_entry body_blocks [] nextblock s1
+                          ≡ inr (s2,(entry_id, bks))) 
+      
+      (* Computation on the Helix side performed at each cell of the vector, *)
+      (*    the counterpart to bodyV (body_blocks) *)
+      (bodyH: nat -> mem_block -> itree _ mem_block)
+      (NO_OVERFLOW : (Z.of_nat n < Int64.half_modulus)%Z)
+
+      (* Main relations preserved by iteration *)
+      (I : nat -> mem_block -> Rel_cfg)
+      (R : Rel_cfg)
+
+      (* We assume that we know how to relate the iterations of the bodies *)
+      (forall g l mV mH ymem k _label _label',
+
+          (conj_rel (I k ymem)
+                    (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k))
+                    mH (mV,(l,g))) ->
+          eutt
+            (succ_cfg (fun '(memH,vec') '(memV, (l, (g, x))) =>
+                         l @ loopvar ≡ Some (uvalue_of_nat k) /\
+                         x ≡ inl (_label', loopcontblock) /\
+                         I (S k) vec' memH (memV, (l, g))))
+            (interp_helix (bodyH (S k) ymem) mH)
+            (interp_cfg
+               (denote_bks (convert_typ [] body_blocks) (_label, body_entry)) g l mV)
+      ) ->
+
+      (* Invariant is stable under the administrative bookkeeping that the loop performs *)
+      (forall a sa b sb c sc d sd e se msg msg' msg'',
+          incBlockNamed msg s1 ≡ inr (sa, a) ->
+          incBlockNamed msg' sa ≡ inr (sb, b) ->
+          incLocal sb ≡ inr (sc,c) ->
+          incLocal sc ≡ inr (sd,d) ->
+          incLocalNamed msg'' sd ≡ inr (se, e) ->
+          forall k ymem mH l l' mV g,
+            (forall id, id <> c -> id <> d -> id <> e -> id <> loopvar -> l @ id ≡ l' @ id) ->
+            I k ymem mH (mV, (l, g)) ->
+            I k ymem mH (mV, (l', g))) ->
+ 
   forall (prefix : string)
     (loopvar : raw_id)            (* lvar storing the loop index *)
     (loopcontblock body_entry: block_id) (* entry point of the body *)
