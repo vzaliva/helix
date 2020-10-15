@@ -171,6 +171,28 @@ Section StateBound.
     all: eauto.
   Qed.
 
+  Lemma not_state_bound_between_split :
+    forall (s1 s2 s3 : IRState) id,
+      ~ state_bound_between s1 s2 id ->
+      ~ state_bound_between s2 s3 id ->
+      ~ state_bound_between s1 s3 id.
+  Proof.
+    intros s1 s2 s3 id S1S2 S2S3.
+    intros BOUND.
+    unfold state_bound_between in BOUND.
+    destruct BOUND as (name & s' & s'' & NEND & COUNT1 & COUNT2 & GEN).
+    assert (count s' < count s2 \/ count s' >= count s2)%nat as COUNT_MID by lia.
+    destruct COUNT_MID as [COUNT_MID | COUNT_MID].
+    - apply S1S2.
+      unfold state_bound_between.
+      exists name. exists s'. exists s''.
+      auto.
+    - apply S2S3.
+      unfold state_bound_between.
+      exists name. exists s'. exists s''.
+      auto.
+  Qed.
+
   Lemma gen_not_state_bound :
     forall name s1 s2 id,
       not_ends_with_nat name ->

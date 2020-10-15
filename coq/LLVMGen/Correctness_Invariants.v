@@ -71,6 +71,18 @@ Section WF_IRState.
     break_match_goal; eauto.
   Qed.
 
+  Lemma WF_IRState_Γ :
+    forall (σ : evalContext) (s1 s2 : IRState),
+      WF_IRState σ s1 ->
+      Γ s1 ≡ Γ s2 ->
+      WF_IRState σ s2.
+  Proof.
+    intros σ s1 s2 WF GAMMA.
+    unfold WF_IRState.
+    rewrite <- GAMMA.
+    apply WF.
+  Qed.
+
 End WF_IRState.
 
 Ltac abs_by_WF :=

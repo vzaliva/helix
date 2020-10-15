@@ -45,6 +45,74 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   Hint Resolve state_invariant_incLocal : state_invariant.
   Hint Resolve state_invariant_incVoid : state_invariant.
 
+  Lemma freshness_ss_ρ :
+    forall (s : IRState) (ρ : local_env) (memV : memoryV) (g : global_env),
+      freshness s s ρ (memV, (ρ, g)).
+  Proof.
+    intros s ρ memV g.
+    unfold freshness.
+    split; try reflexivity.
+    split.
+    - intros id v H.
+      intros B.
+      unfold lid_bound_between in B.
+      unfold state_bound_between in B.
+      destruct B as (name & s' & s'' & NENDW & COUNT1 & COUNT2 & NAME).
+      lia.
+    - intros id v H.
+      intros B.
+      contradiction.
+  Qed.
+
+  Lemma alist_In_dec :
+    forall {K V} `{RelDec K} `{RelDec v} (id : K) (l : alist K V) (v : V),
+      {alist_In id l v} + {~(alist_In id l v)}.
+  Proof.
+  Admitted.
+
+  Lemma freshness_split :
+    forall (s1 s2 s3 : IRState)
+      (l1 l2 l3 : local_env)
+      (g1 g2 : global_env)
+      (memV1 memV2 : memoryV),
+      freshness s2 s3 l1 (memV1, (l2, g1)) ->
+      freshness s1 s2 l2 (memV2, (l3, g2)) ->
+      (local_count s1 <= local_count s2)%nat ->
+      (local_count s3 ≥ local_count s2)%nat ->
+      freshness s1 s3 l1 (memV2, (l3, g2)).
+  Proof.
+    intros s1 s2 s3 l1 l2 l3 g1 g2 memV1 memV2 FRESH1 FRESH2 COUNTS1S2 COUNTS3S2.
+    unfold freshness.
+    destruct FRESH1 as (L1L2 & NBOUND1 & BOUND1).
+    destruct FRESH2 as (L2L3 & NBOUND2 & BOUND2).
+    split.
+    - rewrite L1L2. auto.
+    - split.
+      + intros id v IN.
+        intros B.
+
+        (* If id is in l1, then it should be bound before s1 *)
+        (* destruct FRESH3 as (L1L1 & NBOUND3 & BOUND3). *)
+
+        (* can't be between s2 and s3 *)
+        pose proof (NBOUND1 _ _ IN).
+        
+        (* l2 extends l1, and nothing in l2 can be bound between s1 and s2 *)
+        eapply L1L2 in IN.
+        pose proof (NBOUND2 _ _ IN).
+
+        (* Thus any id in l1 can't be bound between s1 and s3... *)
+        eapply not_state_bound_between_split; eauto.
+      + intros id v IN NIN.
+        pose proof (alist_In_dec id l2 v) as [INL2 | NINL2].
+        * eapply state_bound_between_shrink.
+          eapply BOUND1.
+          all: eauto.
+        * eapply state_bound_between_shrink.
+          eapply BOUND2.
+          all: eauto.
+  Qed.
+
   Lemma state_invariant_genNExpr :
     forall exp s1 s2 e c σ memH conf,
       genNExpr exp s1 ≡ inr (s2, (e, c)) ->
@@ -475,13 +543,30 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   (*     reflexivity. *)
   (* Qed. *)
 
+  Lemma genIR_WF_IRState :
+    ∀ (op : DSHOperator) (s1 s2 : IRState) (σ : evalContext) (memH : memoryH) (nextblock bid_in bid_from b : block_id) (g : global_env)
+      (ρ : local_env) (memV : memoryV) (bk_op : list (LLVMAst.block typ)),
+      genIR op nextblock s1 ≡ inr (s2, (b, bk_op)) →
+      WF_IRState σ s1 ->
+      WF_IRState σ s2.
+  Proof.
+    induction op;
+      intros s1 s2 σ memH nextblock bid_in bid_from b g ρ memV bk_op GEN WF;
+      cbn in GEN; simp.
+    - unfold WF_IRState.
+      unfold evalContext_typechecks.
+      intros v n H.
+  Admitted.
+
+
   (* Lemma genIR_GenIR_Rel: *)
   (*   ∀ (op : DSHOperator) (s1 s2 : IRState) (σ : evalContext) (memH : memoryH) (nextblock bid_in bid_from b : block_id) (g : global_env) *)
   (*     (ρ : local_env) (memV : memoryV) (bk_op : list (LLVMAst.block typ)), *)
   (*     genIR op nextblock s1 ≡ inr (s2, (b, bk_op)) → *)
-  (*     GenIR_Rel σ s0 s1 s2 nextblock (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))) -> *)
-  (*     GenIR_Rel σ s0 s2 s3 nextblock (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))). *)
+  (*     GenIR_Rel σ s1 s1 nextblock (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))) -> *)
+  (*     GenIR_Rel σ s1 s2 nextblock (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))). *)
   (* Proof. *)
+  (* Qed. *)
   (*   (* Admitted for speed right now *) *)
   (* Admitted. *)
   (*   induction op; *)
@@ -1265,8 +1350,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
       rauto.
 
-      (* Evaluation of operators in sequence *)
-      (* pose proof (evalDSHSeq_split EVAL) as [mem' [EVAL1 EVAL2]]. *)
       (* Helix generates code for op2 *first*, so op2 gets earlier
         variables from the irstate. Helix needs to do this because it
         passes the block id for the next block that an operator should
@@ -1274,7 +1357,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         op2, which goes to the next block of the entire sequence, and
         then passes the entry point for op2 as the "nextblock" for
         op1.
-        YZ: I got lost, I'll try to refix it later
       *)
       cbn in NOFAIL.
       pose proof BISIM as BISIM2.
@@ -1284,10 +1366,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       rename Heqs0 into GEN_OP2.
       rename Heqs1 into GEN_OP1.
 
-      (* TODO: This fixes values for some things that maybe it should not *)
       eapply eutt_clo_bind_returns.
       {
-        (* TODO: This is obviously disgusting, clean this up *)
         eapply IHop1 with (s1:=s_op1) (s2:=s2).
         - eapply bid_bound_genIR_entry; eauto.
         - split.
@@ -1297,20 +1377,10 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
               apply genIR_Context in GEN_OP2.
               rewrite <- GEN_OP2.
               apply SINV.
-            * admit.
-            * unfold freshness.
-              split; try reflexivity.
-              split.
-              (* Replace with lemma *)
-              -- intros id v H.
-                 intros B.
-                 unfold lid_bound_between in B.
-                 unfold state_bound_between in B.
-                 destruct B as (name & s' & s'' & NENDW & COUNT1 & COUNT2 & NAME).
-                 lia.
-              -- intros id v H.
-                 intros B.
-                 contradiction.
+            * eapply WF_IRState_Γ.
+              eapply SINV.
+              eapply genIR_Context; eauto.
+            * apply freshness_ss_ρ.
           + cbn. exists from.
             reflexivity.
         - eapply no_failure_helix_bind_prefix; eauto.
@@ -1325,7 +1395,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       eapply eqit_mon; auto.
       2: {
         eapply IHop2; eauto.
-        (* TODO: clean this up *)
         destruct BISIM2 as (SINV2 & BRANCHES2).
         cbn in SINV2, BRANCHES2.
         split.
@@ -1338,19 +1407,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
             unfold memory_invariant.
             subst_contexts.
             apply mem_is_inv1.
-          + unfold freshness.
-            intros *.
-            (* TODO: clean this up *)
-            split; try reflexivity.
-            split.
-            -- intros id v H2.
-               intros B.
-               unfold lid_bound_between in B.
-               unfold state_bound_between in B.
-               destruct B as (name & s' & s'' & NENDW & COUNT1 & COUNT2 & NAME).
-               lia.
-            -- intros id v H H0.
-               contradiction.
+          + apply freshness_ss_ρ.
         - cbn. exists EXP2.
           reflexivity.
       }
@@ -1362,11 +1419,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
       destruct res1 as [[from1 next] | v].
       2: {
-        (* TODO: clean up *)
-        inversion PR.
-        cbn in H0.
-        destruct H0.
-        inversion H0.
+        destruct PR as [? [? BR]].        
+        inversion BR.
       }
 
       cbn in PR. destruct PR as (SINV1 & BRANCHES1).
@@ -1382,45 +1436,9 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         rewrite <- GEN_OP1.
         apply MINV1.
       + auto.
-      + unfold freshness.
-        (* TODO: clean this up *)
-        destruct FRESH1.
-        destruct H0.
-        destruct FRESH2.
-        destruct H3.
-        split.
-        * rewrite H2. auto.
-        * split.
-          -- intros id v H5.
-             intros B.
-
-             (* If id is in ρ, then it should be bound before s1 *)
-             destruct SINV.
-             destruct incLocal_is_fresh0 as (? & ? & ?).
-
-             (* can't be between s_op1 and s2 by H3 *)
-             pose proof (H3 _ _ H5).
-             
-             (* l extends ρ, and nothing in l can be bound between s1 and s_op1 *)
-             eapply H2 in H5.
-             pose proof (H0 _ _ H5).
-
-             (* Thus any id in ρ can't be bound between s1 and s2... *)
-             admit.
-          -- intros id v H5 H6.
-             (* TODO: make some alist_In_dec lemma *)
-             assert ({alist_In id l v} + {~(alist_In id l v)}) as INL by admit.
-             destruct INL as [INL | NINL].
-             ++ eapply state_bound_between_shrink.
-                eapply H4.
-                all: eauto.
-                apply genIR_local_count in GEN_OP2.
-                lia.
-             ++ eapply state_bound_between_shrink.
-                eapply H1.
-                all: eauto.
-                apply genIR_local_count in GEN_OP1.
-                lia.
+      + eapply freshness_split; eauto.
+        apply genIR_local_count in GEN_OP2; lia.
+        apply genIR_local_count in GEN_OP1; lia.
   Admitted.
   End GenIR.
  
