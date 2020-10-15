@@ -612,6 +612,8 @@ Ltac big_solve :=
            apply Forall_cons; eauto
          | |- bid_bound_between ?s1 ?s2 ?bid =>
            eapply bid_bound_bound_between; solve_bid_bound
+         | |- bid_bound_between ?s1 ?s2 ?bid ∨ ?bid ≡ ?nextblock =>
+           try auto; try left
          end).
 
 Section Inputs.
@@ -741,5 +743,17 @@ Section Outputs.
       genIR op nextblock s1 ≡ inr (s2, (op_entry, bk_op)) ->
       Forall (fun bid => bid_bound_between s1 s2 bid \/ bid ≡ nextblock) (outputs (convert_typ [ ] bk_op)).
   Proof.
+    induction op;
+      intros s1 s2 nextblock op_entry bk_op GEN;
+      pose proof GEN as BACKUP_GEN;
+      cbn in GEN; simp; cbn.
+    all: try (solve [big_solve]).
+    - cbn.
+      rewrite convert_typ_app_list.
+      rewrite fold_left_app.
+      cbn.
+
+      epose proof (IHop _ _ _ _ _ Heqs1).
+      cbn in H.
   Admitted.
 End Outputs.
