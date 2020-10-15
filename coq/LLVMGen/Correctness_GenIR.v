@@ -851,9 +851,10 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         { vstep; solve_lu; reflexivity. }
         { rewrite EXP1; auto.
           Set Printing Implicit.
-          cbn. repr_intval
-          replace (repr (Z.of_nat (MInt64asNT.to_nat src))) with src by admit.
-          reflexivity.
+          cbn. 
+          (* replace (repr (Z.of_nat (MInt64asNT.to_nat src))) with src by admit. *)
+          (* reflexivity. *)
+          admit.
         }
         clear EXP1.
         clean_goal.
@@ -892,7 +893,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
         (*   (* } *) *)
         (*   (* eapply yGETCELL. *) *)
-        admit.
+        admit. }
+      admit.
     -
       Opaque genWhileLoop.
       cbn* in *.
