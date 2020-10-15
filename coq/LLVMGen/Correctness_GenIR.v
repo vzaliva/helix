@@ -15,6 +15,95 @@ Global Opaque resolve_PVar.
 
 Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
+Import ITreeNotations.
+
+Definition do_n {E X} (body : nat -> X -> itree E X) n : X -> itree E X :=
+  fun x => iter (fun '(p,x) =>
+          if EqNat.beq_nat p n
+          then ret (inr x)
+          else
+            y <- (body p x);; (Ret (inl (S p,y)))
+             ) (0%nat,x).
+
+Lemma foo: forall σ n op,
+    denoteDSHOperator σ (DSHLoop n op)
+                      ≈
+                      do_n
+                      (fun p _ => vp <- lift_Serr (MInt64asNT.from_nat p) ;;
+                               denoteDSHOperator (DSHnatVal vp :: σ) op) n tt.
+Proof.
+  intros.
+  unfold do_n.
+  cbn.
+  eapply (eutt_iter'' (fun a '(b,_) => a ≡ b) (fun a '(b,_) => a ≡ b)); auto.
+  intros ? [? []] <-.
+  cbn.
+  break_match_goal.
+  apply eutt_Ret; auto.
+  rewrite bind_bind.
+  eapply eutt_eq_bind; intros ?.
+  eapply eutt_eq_bind; intros ?.
+  apply eutt_Ret; auto.
+Qed.
+
+Instance interp_helix_proper {E X} : Proper (eutt Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_helix X E).
+Admitted.
+
+Lemma interp_helix_do_no {E : Type -> Type} : 
+  forall (X : Type) body n m (x : X),
+    interp_helix (E := E) (do_n body n x) m
+    ≈
+    do_n (fun k x =>
+            match x with
+            | None => Ret None
+            | Some (m',y) => interp_helix (body k y) m'
+            end) n (Some (m,x)).
+Proof.
+  intros.
+  unfold do_n.
+  Transparent interp_Mem.
+  unfold interp_helix, interp_Mem.
+  (* Need [interp_iter] for [interp_state] and [interp_fail] unfortunately *)
+
+Admitted.
+
+
+  Lemma compile_FSHCOL_correct :
+    forall R (** Compiler bits *) (s1 s2: IRState)
+      (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH) 
+      (** Vellvm bits   *) (nextblock bid_in bid_from : block_id) (bks : list (LLVMAst.block typ))
+      (* (env : list (ident * typ)) *)  (g : global_env) (ρ : local_env) (memV : memoryV),
+      bid_bound s1 nextblock ->
+      (* GenIR_Rel σ s1 bid_in (memH,tt) (memV, (ρ, (g, (inl (bid_from, bid_in))))) -> *)
+      no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ op) memH) -> (* Evaluation succeeds *)
+      genIR op nextblock s1 ≡ inr (s2,(bid_in,bks)) ->
+      eutt R
+           (interp_helix (denoteDSHOperator σ op) memH)
+           (interp_cfg (D.denote_bks (convert_typ [] bks) (bid_from,bid_in))
+                       g ρ memV).
+  Proof.
+    intros R s1 s2 op; revert s1 s2; induction op.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - intros.
+      rewrite foo.
+    - cbn* in *.
+      simp.
+      cbn*.
+      hvred.
+      vjmp.
+      (* TODO :( *)
+      unfold fmap, Fmap_block; cbn.
+      vred.
+      vred.
+      vred.
+      vred.
+
+
   Section GenIR.
 
 
@@ -850,7 +939,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         3:apply GETCELL.
         { vstep; solve_lu; reflexivity. }
         { rewrite EXP1; auto.
-          Set Printing Implicit.
           cbn. 
           (* replace (repr (Z.of_nat (MInt64asNT.to_nat src))) with src by admit. *)
           (* reflexivity. *)
@@ -895,6 +983,23 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         (*   (* eapply yGETCELL. *) *)
         admit. }
       admit.
+
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    -
+
+     
+      rewrite foo.
+
+denoteDSHOperator
+      cbn* in *.
+      simp.
+      rewrite add_comment_eutt.
+      cbn.
+
+
     -
       Opaque genWhileLoop.
       cbn* in *.
