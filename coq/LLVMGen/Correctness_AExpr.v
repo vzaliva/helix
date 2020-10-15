@@ -175,9 +175,9 @@ Section AExpr.
     destruct a,b; try break_if; repeat break_match ;try reflexivity; crush.
   Qed.
 
-  Lemma max_float_correct: forall (a b: binary64), Float_maxnum a b = MFloat64asCT.CTypeMax a b.
+  Lemma max_float_correct: forall (a b: binary64), Float_maxnum a b ≡ MFloat64asCT.CTypeMax a b.
   Proof.
-    intros.
+    intros. 
     Transparent Floats.Float.cmp.
     unfold Float_maxnum, MFloat64asCT.CTypeMax, Float64Max, Floats.Float.cmp.
     unfold Floats.Float.compare, Floats.cmp_of_comparison.

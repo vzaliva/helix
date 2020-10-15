@@ -30,7 +30,7 @@ Fixpoint build_vec_gen_aux {E} (from remains: nat)
     end.
 
 Definition build_vec_gen {E} (from to: nat) :=
-  @build_vec_gen_aux E from (to - from).
+  @build_vec_gen_aux E from (1 + to - from).
 
 Definition build_vec {E} := @build_vec_gen E 0.
 
@@ -58,14 +58,14 @@ Proof.
       destruct H.
 Qed.
 
-Notation "x < y" := (DynamicValues.Int64.lt x y).
-Notation "x + y" := (DynamicValues.Int64.add x y).
-Notation "'u_zero'" := (UVALUE_I1 DynamicValues.Int1.zero).
-Notation "'u_one" := (UVALUE_I1 DynamicValues.Int1.one).
-Notation "'d_zero'" := (DVALUE_I1 DynamicValues.Int1.zero).
-Notation "'d_one'" := (DVALUE_I1 DynamicValues.Int1.one).
-Notation "'(int64)' x" := (Int64.repr x) (at level 10).
-Notation "'(Z)' x" := (Z.of_nat x) (at level 10).
+(* Notation "x < y" := (DynamicValues.Int64.lt x y). *)
+(* Notation "x + y" := (DynamicValues.Int64.add x y). *)
+(* Notation "'u_zero'" := (UVALUE_I1 DynamicValues.Int1.zero). *)
+(* Notation "'u_one" := (UVALUE_I1 DynamicValues.Int1.one). *)
+(* Notation "'d_zero'" := (DVALUE_I1 DynamicValues.Int1.zero). *)
+(* Notation "'d_one'" := (DVALUE_I1 DynamicValues.Int1.one). *)
+(* Notation "'(int64)' x" := (Int64.repr x) (at level 10). *)
+(* Notation "'(Z)' x" := (Z.of_nat x) (at level 10). *)
 
 (* TODO: Move to Vellvm Denotation_Theory.v? *)
 
@@ -206,34 +206,27 @@ Proof.
   intros. unfold string_of_nat.
 Admitted.
 
-(* Auxiliary integer computation lemmas *)
 
-Lemma genWhileLoop_ind_arith_aux_0:
-  forall n,
-    dvalue_to_uvalue (eval_int_icmp Slt ((int64) ((Z) (n - 1 - 1)) + (int64) 1) ((int64) ((Z) n))) ≡ u_zero.
-Proof.
-  intros.
-Admitted.
+(* Lemma genWhileLoop_ind_arith_aux_1: forall n k, *)
+(*   dvalue_to_uvalue (eval_int_icmp Slt ((int64) ((Z) (n - S k - 1)) + (int64) 1) ((int64) ((Z) n))) ≡ 'u_one. *)
+(* Proof. *)
+(*   intros. *)
+(*   assert ((eval_int_icmp Slt ((int64) ((Z) (n - S k - 1)) + (int64) 1) ((int64) ((Z) n))) ≡ DVALUE_I1 DynamicValues.Int1.one). *)
+(*   eapply RelDec_Correct_eq_typ. Unshelve. 3 : apply @dvalue_eq_dec. *)
+(*   unfold eval_int_icmp. cbn. *)
+(*   assert ((int64) ((Z) (n - S k - 1)) + (int64) 1 ≡ (int64) ((Z) (n - S k))). { *)
+(*     Int64.bit_solve.  destruct (Int64.testbit ((int64) ((Z) (n - S k))) i) eqn: H'. *)
+(* Admitted. *)
 
-Lemma genWhileLoop_ind_arith_aux_1: forall n k,
-  dvalue_to_uvalue (eval_int_icmp Slt ((int64) ((Z) (n - S k - 1)) + (int64) 1) ((int64) ((Z) n))) ≡ 'u_one.
-Proof.
-  intros.
-  assert ((eval_int_icmp Slt ((int64) ((Z) (n - S k - 1)) + (int64) 1) ((int64) ((Z) n))) ≡ DVALUE_I1 DynamicValues.Int1.one).
-  eapply RelDec_Correct_eq_typ. Unshelve. 3 : apply @dvalue_eq_dec.
-  unfold eval_int_icmp. cbn.
-  assert ((int64) ((Z) (n - S k - 1)) + (int64) 1 ≡ (int64) ((Z) (n - S k))). {
-    Int64.bit_solve.  destruct (Int64.testbit ((int64) ((Z) (n - S k))) i) eqn: H'.
-Admitted.
+(* Lemma genWhileLoop_ind_arith_aux_2: forall n k, *)
+(* UVALUE_I64 ((int64) ((Z) (n - S (S k) - 1)) + (int64) 1) ≡ uvalue_of_nat (n - S (S k)). *)
+(* Admitted. *)
 
-Lemma genWhileLoop_ind_arith_aux_2: forall n k,
-UVALUE_I64 ((int64) ((Z) (n - S (S k) - 1)) + (int64) 1) ≡ uvalue_of_nat (n - S (S k)).
-Admitted.
-
-Lemma arith_aux0:
-  forall n,
-    dvalue_to_uvalue (eval_int_icmp Slt ((int64) 0) ((int64) (Z.pos (Pos.of_succ_nat n)))) ≡ 'u_one.
-Admitted.
+(* <<<<<<< Updated upstream *)
+(* Lemma arith_aux0: *)
+(*   forall n, *)
+(*     dvalue_to_uvalue (eval_int_icmp Slt ((int64) 0) ((int64) (Z.pos (Pos.of_succ_nat n)))) ≡ 'u_one. *)
+(* Admitted. *)
 
 Lemma incLocal_fresh:
     forall i i' i'' r r' , incLocal i ≡ inr (i', r) ->
@@ -253,6 +246,81 @@ Opaque incLocal.
 Arguments fmap _ _ /.
 Arguments Fmap_block _ _ _ _/.
 
+Lemma lt_antisym: forall x, Int64.lt x x ≡ false.
+Proof.
+  intros.
+  pose proof Int64.not_lt x x.
+  rewrite Int64.eq_true, Bool.orb_comm in H.
+  cbn in H.
+  rewrite Bool.negb_true_iff in H; auto.
+Qed.
+
+Import Int64 Int64asNT.Int64 DynamicValues.Int64.
+Lemma __arith: forall j, j> 0 ->
+                    (Z.of_nat j < half_modulus)%Z ->
+                    add (repr (Z.of_nat (j - 1))) (repr 1) ≡
+                        repr (Z.of_nat j).
+Proof.
+  intros .
+  unfold Int64.add.
+  rewrite !Int64.unsigned_repr_eq.
+  cbn.
+  f_equal.
+  rewrite Zdiv.Zmod_small; try lia.
+  unfold half_modulus in *.
+  split; try lia.
+  transitivity (Z.of_nat j); try lia.
+  eapply Z.lt_le_trans; eauto.
+  transitivity (modulus / 1)%Z.
+  eapply Z.div_le_compat_l; try lia.
+  unfold modulus.
+  pose proof Coqlib.two_power_nat_pos wordsize; lia.
+  rewrite Z.div_1_r.
+  reflexivity.
+Qed.
+
+Lemma lt_nat_to_Int64: forall j n,
+    0 <= j ->
+    j < n ->
+    (Z.of_nat n < half_modulus)%Z ->
+    (Z.of_nat j < half_modulus)%Z ->
+    lt (repr (Z.of_nat j)) (repr (Z.of_nat n)) ≡ true.
+Proof.
+  intros.
+  unfold lt.
+  rewrite !signed_repr.
+  2,3:unfold min_signed, max_signed; lia.
+  break_match_goal; auto.
+  lia.
+Qed.
+
+(* TODO: incLocalNamed should be opaque, and the stability hyp revisited *)
+
+(** Inductive lemma to reason about while loops.
+    The code generated is of the shape:
+         block_entry ---> nextblock
+             |
+    ---->loopblock
+    |        |
+    |    body_entry
+    |        |
+    |      (body)
+    |        |
+     ----loopcontblock --> nextblock
+
+ The toplevel lemma [genWhileLoop] will specify a full execution of the loop, starting from [block_entry].
+ But to be inductive, this lemma talks only about the looping part:
+ - we start from [loopcontblock]
+ - we assume that [j] iterations have already been executed
+ We therefore assume (I j) initially, and always end with (I n). 
+ We proceed by induction on the number of iterations remaining, i.e. (n - j).
+
+ Since in order to reach [loopcontblock], we need to have performed at least one iteration, we have the
+ following numerical bounds:
+ - j > 0
+ - j <= n
+ - Z.of_nat n < Int64.modulus (or the index would overflow)
+ *)
 Lemma genWhileLoop_ind:
   forall (prefix : string)
     (loopvar : raw_id)            (* lvar storing the loop index *)
@@ -271,7 +339,7 @@ Lemma genWhileLoop_ind:
 
     fresh_in_cfg bks nextblock ->
 
-    forall (n : nat)                       (* Number of iterations *),
+    forall (n : nat)                     (* Number of iterations *),
 
     (* Generation of the LLVM code wrapping the loop around bodyV *)
     genWhileLoop prefix (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
@@ -285,7 +353,8 @@ Lemma genWhileLoop_ind:
     (*    the counterpart to bodyV (body_blocks) *)
     (bodyH: nat -> mem_block -> itree _ mem_block)
     (j : nat)                       (* Starting iteration *)
-    (UPPER_BOUND : n > j)
+    (UPPER_BOUND : 0 < j <= n)
+    (NO_OVERFLOW : (Z.of_nat n < Int64.half_modulus)%Z)
 
     (* Main relations preserved by iteration *)
     (I : nat -> mem_block -> Rel_cfg),
@@ -325,30 +394,25 @@ Lemma genWhileLoop_ind:
       ) ->
       eutt (succ_cfg (fun '(memH,vec') '(memV, (l, (g,x))) =>
               x ≡ inl (loopcontblock, nextblock) /\
-              I (n - 1) vec' memH (memV,(l,g))
+              I n vec' memH (memV,(l,g))
            ))
            (interp_helix (build_vec_gen (S j) n bodyH ymem) mH)
            (interp_cfg (denote_bks (convert_typ [] bks)
                                                 (_label, loopcontblock)) g l mV).
 
 Proof.
-  intros * IN UNIQUE_IDENTS NEXTBLOCK_ID * GEN LVAR_FRESH * BOUND *.
+  intros * IN UNIQUE_IDENTS NEXTBLOCK_ID * GEN LVAR_FRESH *.
   unfold genWhileLoop in GEN. cbn* in GEN. simp.
-  intros * HBODY STABLE.
+  intros BOUND OVER * HBODY STABLE.
   unfold build_vec_gen.
-  remember (n - S j) as k eqn:K_EQ.
-
-  assert (JEQ' : j ≡ (n - S k)) by lia. rewrite JEQ' in *.
-
-  (* assert (n - S k > 0) by lia. *)
-  clear JEQ'.
-  clear BOUND.
-
-  induction k as [| k IH].
+  
+  remember (n - j) as k eqn:K_EQ.
+  revert j K_EQ BOUND.
+  induction k as [| k IH]; intros j EQidx.
 
   - (* Base case: we enter through [loopcontblock] and jump out immediately to [nextblock] *)
-    intros * (INV & LOOPVAR).
-    Import ProofMode.
+    intros  BOUND * (INV & LOOPVAR).
+    (* Import ProofMode. *)
     (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
     apply no_repeat_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
     apply fresh_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_block_app in NEXTBLOCK_ID.
@@ -360,7 +424,8 @@ Proof.
     vjmp.
 
     cbn.
-    (* TODO add to vred *)
+    assert (n ≡ j) by lia; subst.
+    replace (j - S j) with 0 by lia.
 
     vred.
     vred.
@@ -387,13 +452,22 @@ Proof.
     { vstep.
       solve_lu.
       apply eutt_Ret; repeat f_equal.
-      apply genWhileLoop_ind_arith_aux_0.
+      cbn.
+      clear - BOUND OVER.
+      destruct BOUND as [? _].
+      rewrite __arith; try lia.
+      unfold eval_int_icmp.
+      rewrite lt_antisym.
+      reflexivity.
     } 
 
     vjmp_out.
-    hvred.
+    cbn.
+    replace (j - j) with 0 by lia.
+    cbn; hvred.
 
     (* We have only touched local variables that the invariant does not care about, we can reestablish it *)
+    cbn.
     apply eutt_Ret.
     split.
     + reflexivity.
@@ -402,8 +476,8 @@ Proof.
       apply INV.
 
   - (* Inductive case *)
-
-    cbn in *. intros * (INV & LOOPVAR).
+    Opaque half_modulus.
+    cbn in *. intros [LT LE] * (INV & LOOPVAR).
     (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
     apply no_repeat_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
     apply fresh_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_block_app in NEXTBLOCK_ID.
@@ -438,9 +512,14 @@ Proof.
     (* Step 2 : Jump to b0, i.e. loopblock (since we have checked k < n). *)
     vbranch_l. 
     { cbn; vstep; try solve_lu.
-      rewrite genWhileLoop_ind_arith_aux_1.
+      rewrite __arith; try lia.
+      apply eutt_Ret.
+      repeat f_equal.
+      clear - EQidx LT LE OVER.
+      unfold eval_int_icmp; rewrite lt_nat_to_Int64; try lia.
       reflexivity.
     }
+
     vjmp.
     (* We update [loopvar] via the phi-node *)
     cbn; vred.
@@ -467,6 +546,7 @@ Proof.
 
     vstep.
     {
+      (* TOFIX after fixing stability hyp *)
       match goal with
       | [ |- context[Maps.lookup ?check] ]=> remember check
       end.
@@ -519,9 +599,11 @@ Proof.
       end; f_equal.
     }
     hide_cfg.
-    hvred.
+    rewrite <- EQidx.
+
+    cbn; hvred.
     eapply eutt_clo_bind.
-    (* We can know use the body hypothesis *)
+    (* We can now use the body hypothesis *)
     eapply HBODY.
     {
       (* A bit of arithmetic is needed to prove that we have the right precondition *)
@@ -532,7 +614,7 @@ Proof.
         eapply INV.
       + subst. cbn. assert (L : loopvar ≡ loopvar) by reflexivity. eapply rel_dec_eq_true in L.
         rewrite L. cbn.
-        rewrite <- genWhileLoop_ind_arith_aux_2. reflexivity.
+        reflexivity.
         typeclasses eauto.
     }
 
@@ -541,12 +623,10 @@ Proof.
     introR.
     destruct PRE as (LOOPVAR' & HS & IH').
     subst.
-    replace (S (n - S (S k)) ) with ( n - S k) by lia.
+    replace k with (n - (S j)) by lia.
     eapply IH; try lia.
-    split.
-    replace (n - S k) with (S (n - S (S k))) by lia; eauto.
-    replace (n - S k - 1) with (n - S (S k)) by lia; auto.
-
+    split; auto.
+    replace (S j - 1) with j by lia; auto.
     Unshelve.
     all: try auto.
     exact UVALUE_None.
@@ -653,6 +733,7 @@ Lemma genWhileLoop_correct:
            (interp_helix (build_vec n bodyH ymem) mH)
            (interp_cfg (denote_bks (convert_typ [] bks) (_label ,entry_id)) g l mV).
 Proof with rauto.
+  (*
   intros * GEN * UNIQUE IN EXIT LVAR_FRESH * BASE IND STABLE STABLE' IMPSTATE IND_INV * PRE.
   pose proof @genWhileLoop_ind as GEN_IND.
   specialize (GEN_IND prefix loopvar loopcontblock body_entry body_blocks exit_id entry_id s1 s2 bks).
@@ -810,4 +891,5 @@ Proof with rauto.
     Unshelve. eauto.
 
 Qed.
-
+*)
+Admitted.

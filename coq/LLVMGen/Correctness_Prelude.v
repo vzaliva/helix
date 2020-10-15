@@ -1143,3 +1143,34 @@ Ltac hstep := first [rewrite interp_helix_MemSet | rewrite interp_helix_MemLU; c
 Ltac vred := vred_r.
 Ltac hvred := hred; vred_r.
 
+Require Import LibHyps.LibHyps.
+
+Ltac clean_goal :=
+  try match goal with
+      | h1 : incVoid _ ≡ _,
+             h2 : incVoid _ ≡ _,
+                  h3 : incVoid _ ≡ _
+        |- _ => move h1 at top; move h2 at top; move h3 at top
+      | h1 : incVoid _ ≡ _, h2 : incVoid _ ≡ _ |- _ => move h1 at top; move h2 at top
+      | h : incVoid _ ≡ _ |- _ => move h at top
+      end;
+
+  try match goal with
+      | h1 : incLocal _ ≡ _,
+             h2 : incLocal _ ≡ _,
+                  h3 : incLocal _ ≡ _
+        |- _ => move h1 at top; move h2 at top; move h3 at top
+      | h1 : incLocal _ ≡ _, h2 : incLocal _ ≡ _ |- _ => move h1 at top; move h2 at top
+      | h : incLocal _ ≡ _ |- _ => move h at top
+      end;
+
+  try match goal with
+      | h1 : incBlockNamed _ _ ≡ _,
+             h2 : incBlockNamed _ _ ≡ _,
+                  h3 : incBlockNamed _ _ ≡ _
+        |- _ => move h1 at top; move h2 at top; move h3 at top
+      | h1 : incBlockNamed _ _ ≡ _, h2 : incBlockNamed _ _ ≡ _ |- _ => move h1 at top; move h2 at top
+      | h : incBlockNamed _ _ ≡ _ |- _ => move h at top
+      end;
+
+  onAllHyps move_up_types.

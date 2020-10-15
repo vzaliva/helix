@@ -803,8 +803,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
          py <- gep "dst_p"[dst_nexpr] ;;
          store v py
        *)
-      Import ProofMode.
-      (* Opaque interp_helix interp_Mem. *)
       destruct BISIM as [BISIM1 [_bid EQ]]; inv EQ.
       cbn* in *; simp.
       hide_cfg.
@@ -848,7 +846,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       hvred.
 
       (* Step 6. *)
-      eapply eutt_clo_bind_returns; [eapply genNExpr_correct |..]; eauto.
+      eapply eutt_clo_bind_returns; [eapply genNExpr_correct_ind |..]; eauto.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       cbn in PRE; destruct PRE as (INV2 & EXP2 & ?); cbn in *; inv_eqs.
@@ -859,7 +857,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
       rename vH into src, vH0 into dst, b into v.
       clean_goal.
-      
       (* Step 7. *)
       hvred.
       hstep.
@@ -868,177 +865,64 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       clear NOFAIL.
       rename i1 into vsz.
       rename i0 into vx_p, i3 into vy_p.
+      rename e into esrc.
+      clean_goal.
+
+      (* Question 1: is [vx_p] global, local, or can be either? *)
       (* We access in memory vx_p[e] *)
       edestruct memory_invariant_Ptr as (membk & ptr & LU & INLG & GETCELL); [| eauto | eauto |]; eauto.
       rewrite LU in H; symmetry in H; inv H.
+      specialize (GETCELL _ _ Heqo1).
+      clean_goal.
+      (* I find some pointer either in the local or global environment *)
+      destruct vx_p as [vx_p | vx_p]; cbn in INLG.
+      {
+        edestruct denote_instr_gep_array as (ptr' & READ & EQ); cycle -1; [rewrite EQ; clear EQ | ..]; cycle 1.
+        3:apply GETCELL.
+        { vstep; solve_lu; reflexivity. }
+        { rewrite EXP1; auto.
+          Set Printing Implicit.
+          cbn. repr_intval
+          replace (repr (Z.of_nat (MInt64asNT.to_nat src))) with src by admit.
+          reflexivity.
+        }
+        clear EXP1.
+        clean_goal.
+          
+        subst_cont; vred.
+        vred.
+        (* load *)
+        vstep.
+        { vstep; solve_lu. }
+        vred.
+        hide_cont.
+        destruct vy_p as [vy_p | vy_p].
+        { 
+          edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |].
+          clean_goal.
+          rewrite yLU in H0; symmetry in H0; inv H0.
+          cbn in yINLG.
+          (* How do we know that ymembk is allocated?
+             yGETCELL does not contain any information here.
+           *)
+          (* Oooh we don't, we're using [gep] but not for reading a cell here?
+             Not true though, the cell must be allocated, we are about to write in it.
+             We need another lemma about [OP_GetElementPtr] then.
+           *)
+          (* edestruct denote_instr_gep_array as (yptr' & yREAD & yEQ); cycle -1; [rewrite yEQ; clear yEQ | ..]; cycle 1. *)
+          (* { vstep; solve_lu. *)
+          (*   cbn; reflexivity. *)
+          (* } *)
+          (* { rewrite EXP2. *)
+          (*   2:{ cbn. etransitivity. apply sub_alist_add. *)
+          (*       2: apply sub_alist_add. *)
+          (*       admit. admit. *)
+          (*   } *)
+          (*   replace (repr (Z.of_nat (MInt64asNT.to_nat dst))) with dst by admit. *)
+          (*   cbn; reflexivity. *)
 
-      rename e into esrc.
-
-
-      admit.
-
-
-      (* edestruct EXP1 as (EQ1 & EQ1'); [reflexivity |]. *)
-      (* rewrite EQ1' in Heqs11; inv Heqs11. *)
-      (* rewrite Heqo0. *)
-      (* eutt_hide_right. *)
-
-      (* assert (i2 ≡ dst). *)
-      (* { unfold genNExpr_exp_correct in EXP2. *)
-      (*   assert (ρ2 ⊑ ρ2) as LL by reflexivity. *)
-      (*   specialize (EXP2 _ LL) as (EXP2_EUTT & EXP2_EVAL). *)
-      (*   rewrite EXP2_EVAL in Heqs12. *)
-      (*   inversion Heqs12. *)
-      (*   auto. *)
-      (* } *)
-      (* subst. *)
-
-      (* Set Nested Proofs Allowed. *)
-      (* Lemma assert_NT_lt_success : *)
-      (*   forall {s1 s2 x y v}, *)
-      (*     assert_NT_lt s1 x y ≡ inr v -> *)
-      (*     assert_NT_lt s2 x y ≡ inr v. *)
-      (* Proof. *)
-      (*   intros s1 s2 x y v H. *)
-      (*   unfold assert_NT_lt in *. *)
-      (*   destruct ((MInt64asNT.to_nat x <? MInt64asNT.to_nat y)%nat); inversion H. *)
-      (*   cbn in *. subst. *)
-      (*   auto. *)
-      (* Qed. *)
-
-      (* rewrite (assert_NT_lt_success Heqs13). *)
-      (* (* I am looking up an ident x, for which I find the type `TYPE_Pointer (TYPE_Array sz TYPE_Double)` *)
-      (*    in my typing context. *)
-      (*    Can it be a global? *)
-      (*  *) *)
-
-      (* (* onAllHyps move_up_types. *) *)
-      (* subst; focus_single_step_v; eutt_hide_left. *)
-      (* unfold endo, Endo_ident. *)
-
-      (* destruct x_p' as [x_p' | x_p']; [admit |]; *)
-      (*   destruct y_p' as [y_p' | y_p']; cbn; [admit |]. *)
-      (* subst; focus_single_step_v; eutt_hide_left. *)
-      (* edestruct memory_invariant_LLU_Ptr as (bk_x & ptr_x & LUx & INLGx & VEC_LUx); [| exact LUn | exact Heqo |]; eauto. *)
-      (* rewrite LUx in Heqo2; symmetry in Heqo2; inv Heqo2. *)
-      (* edestruct memory_invariant_LLU_Ptr as (bk_y & ptr_y & LUy & INLGy & VEC_LUy); [| exact LUn0 | eassumption |]; eauto. *)
-      (* rewrite LUy in Heqo1; symmetry in Heqo1; inv Heqo1. *)
-
-      (* focus_single_step_v; rauto:R. *)
-
-    (*   2: apply MONO2, MONO1; eauto. *)
-    (*   cbn; norm_v. *)
-    (*   subst; focus_single_step_v; norm_v. *)
-    (*   unfold IntType; rewrite typ_to_dtyp_I; cbn. *)
-    (*   subst; focus_single_step_v; norm_v. *)
-    (*   subst; focus_single_step_v; norm_vD. *)
-    (*   focus_single_step_v. *)
-
-    (*   destruct (EXP1 ρ2) as [EQe ?]; auto. *)
-    (*   rewrite <- EQe. *)
-    (*   norm_v. *)
-    (*   subst; focus_single_step_v; norm_vD. *)
-    (*   cbn. *)
-
-    (*   rename i into index, v1 into size_array. *)
-    (*   unfold ITree.map. *)
-    (*   norm_v. *)
-
-    (*   rewrite exp_E_to_instr_E_Memory, subevent_subevent. *)
-    (*   rewrite typ_to_dtyp_D_array. *)
-
-    (*   cbn in *. *)
-
-    (*   (* onAllHyps move_up_types. *) *)
-
-    (*   match goal with *)
-    (*     |- context[interp_cfg_to_L3 ?defs (@ITree.trigger ?E _ (subevent _ (GEP (DTYPE_Array ?size ?t) (DVALUE_Addr ?a) _)))] => *)
-    (*     edestruct (@interp_cfg_to_L3_GEP_array defs t a size g ρ2) as (add & ?EQ & READ); eauto *)
-    (*   end. *)
-
-    (*   assert (EQindex: Integers.Int64.repr (Z.of_nat (MInt64asNT.to_nat index)) ≡ index) by admit. *)
-    (*   rewrite EQindex in *. *)
-    (*   rewrite EQ. *)
-
-    (*   norm_v. *)
-    (*   cbn. *)
-    (*   subst; cbn; norm_v. *)
-    (*   focus_single_step_v. *)
-    (*   rewrite interp_cfg_to_L3_LW. *)
-    (*   cbn*; norm_v. *)
-    (*   subst; simpl; norm_v. *)
-    (*   focus_single_step_v. *)
-    (*   cbn; norm_v. *)
-    (*   subst; cbn; norm_v. *)
-    (*   focus_single_step_v. *)
-
-    (*   2: apply lookup_alist_add_eq. *)
-    (*   cbn*; norm_v. *)
-    (*   subst; cbn; norm_v; focus_single_step_v. *)
-    (*   rewrite interp_cfg_to_L3_Load. *)
-    (*   2: rewrite typ_to_dtyp_D; eassumption. *)
-    (*   norm_v. *)
-    (*   subst; cbn; norm_v; focus_single_step_v. *)
-    (*   rewrite interp_cfg_to_L3_LW. *)
-    (*   cbn; norm_v. *)
-    (*   subst; cbn; norm_v. *)
-
-    (*   2:{ *)
-    (*     unfold endo. *)
-    (*     assert (y_p' <> r1) by admit. *)
-    (*     assert (y_p' <> r) by admit. *)
-    (*     setoid_rewrite lookup_alist_add_ineq; eauto. *)
-    (*     setoid_rewrite lookup_alist_add_ineq; eauto. *)
-    (*     cbn in *. *)
-    (*     apply MONO2, MONO1; eauto. *)
-    (*   } *)
-    (*   cbn. *)
-    (*   subst. *)
-    (*   unfold IntType;rewrite !typ_to_dtyp_I. *)
-    (*   focus_single_step_v; norm_v. *)
-    (*   subst; cbn; norm_v. *)
-    (*   focus_single_step_v. *)
-
-    (*   match goal with *)
-    (*     |- eutt _ _ (ITree.bind (_ (interp_cfg _ _ ?l _)) _) => destruct (EXP2 l) as [EQe' ?]; auto *)
-    (*   end. *)
-    (*   rewrite <- sub_alist_add. *)
-    (*   apply sub_alist_add. *)
-    (*   rename r into foo. *)
-    (*   (* Freshness, easy todo *) *)
-    (*   admit. *)
-    (*   admit. *)
-
-    (*   rewrite <- EQe'. *)
-    (*   norm_v. *)
-    (*   subst; cbn*; norm_v. *)
-    (*   focus_single_step_v. *)
-    (*   norm_v; subst; focus_single_step_v. *)
-    (*   norm_v; subst; focus_single_step_v. *)
-    (*   cbn; unfold ITree.map. *)
-    (*   norm_v; subst; focus_single_step_v. *)
-    (*   rewrite exp_E_to_instr_E_Memory, subevent_subevent. *)
-    (*   rewrite typ_to_dtyp_D_array. *)
-
-    (*   Set Hyps Limit 50. *)
-
-    (*   (* Need another GEP lemma? *)
-    (*      The destination is not read on the Helix side, so that I do not know that the GEP succeeds *)
-    (*    *) *)
-
-    (*   (* *)
-    (*   match goal with *)
-    (*     |- context[interp_cfg_to_L3 ?defs (@ITree.trigger ?E _ (subevent _ (GEP (DTYPE_Array ?size ?t) (DVALUE_Addr ?a) _))) ?g ?l] => *)
-    (*     edestruct (@interp_cfg_to_L3_GEP_array defs t a size g l) as (add' & ?EQ & READ'); eauto *)
-    (*   end. *)
-
-    (*   eapply VEC_LUy. *)
-    (*    *) *)
-
-    (*     admit. *)
-    (* (* End of genFSHAssign, things are getting a bit complicated *) *)
-
-
+          (* } *)
+          (* eapply yGETCELL. *)
 
     -
       Opaque genWhileLoop.
