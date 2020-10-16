@@ -28,6 +28,10 @@ Section DOn.
                     y <- (body p x);; (Ret (inl (S p,y)))
                ) (0%nat,x).
 
+  (* The denotation of the [DSHLoop] combinator can be rewritten in terms of the [do_n] combinator.
+     So if we specify [genWhileLoop] in terms of this same combinator, then we might be good to go
+     with a generic spec that of [GenWhileLoop] that does not depend on Helix.
+   *)
   Lemma DSHLoop_as_do_n: forall σ n op,
       denoteDSHOperator σ (DSHLoop n op)
                         ≈
