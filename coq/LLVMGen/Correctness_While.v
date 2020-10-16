@@ -16,6 +16,196 @@ Import MonadNotation.
 Local Open Scope monad_scope.
 Local Open Scope nat_scope.
 
+Section DOn.
+  (* Experimenting with a pure vellvm specification of genWhileLoop via a [do_n] itree combinator *)
+  Import ITreeNotations.
+
+  Definition do_n {E X} (body : nat -> X -> itree E X) n : X -> itree E X :=
+    fun x => iter (fun '(p,x) =>
+                  if EqNat.beq_nat p n
+                  then Ret (inr x)
+                  else
+                    y <- (body p x);; (Ret (inl (S p,y)))
+               ) (0%nat,x).
+
+  Lemma DSHLoop_as_do_n: forall σ n op,
+      denoteDSHOperator σ (DSHLoop n op)
+                        ≈
+                        do_n
+                        (fun p _ => vp <- lift_Serr (MInt64asNT.from_nat p) ;;
+                                 denoteDSHOperator (DSHnatVal vp :: σ) op) n tt.
+  Proof.
+    intros.
+    unfold do_n.
+    cbn.
+    eapply (eutt_iter'' (fun a '(b,_) => a ≡ b) (fun a '(b,_) => a ≡ b)); auto.
+    intros ? [? []] <-.
+    cbn.
+    break_match_goal.
+    apply eutt_Ret; auto.
+    rewrite bind_bind.
+    eapply eutt_eq_bind; intros ?.
+    eapply eutt_eq_bind; intros ?.
+    apply eutt_Ret; auto.
+  Qed.
+
+  Transparent interp_Mem.
+
+  Global Instance interp_Mem_proper {X} : Proper (eutt Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_Mem X).
+  Proof.
+    intros ? ? EQ ? ? <-. 
+    unfold interp_Mem.
+    rewrite EQ.
+    reflexivity.
+  Qed.  
+  Global Instance interp_helix_proper {E X} : Proper (eutt Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_helix X E).
+  Proof.
+    intros ? ? EQ ? ? <-. 
+    unfold interp_helix.
+    rewrite EQ.
+    reflexivity.
+  Qed.
+
+  (* Need [interp_iter] for [interp_state] and [interp_fail] unfortunately *)
+
+  Lemma interp_fail_iter : 
+    forall {A R : Type} (E F : Type -> Type) (a0 : A) (h : E ~> failT (itree F)) f,
+      interp_fail (E := E) (T := R) h (ITree.iter f a0) ≈
+                  @Basics.iter _ failT_iter _ _ (fun a => interp_fail h (f a)) a0.
+  Proof.
+    unfold Basics.iter, failT_iter, Basics.iter, MonadIter_itree in *; cbn.
+    einit. ecofix CIH; intros *.
+    rewrite 2 unfold_iter; cbn.
+    rewrite !bind_bind.
+    rewrite interp_fail_bind.
+    ebind; econstructor; eauto.
+    reflexivity.
+    intros [[a1|r1]|] [[a2|r2]|] EQ; inv EQ.
+    - rewrite bind_ret_l.
+      rewrite interp_fail_tau.
+      estep.
+    - rewrite bind_ret_l, interp_fail_ret.
+      eret.
+    - rewrite bind_ret_l.
+      eret.
+  Qed.
+
+  Lemma interp_state_iter : 
+    forall {A R S : Type} (E F : Type -> Type) (s0 : S) (a0 : A) (h : E ~> Monads.stateT S (itree F)) f,
+      interp_state (E := E) (T := R) h (iter f a0) s0 ≈ 
+                   @Basics.iter _ MonadIter_stateT0 _ _ (fun a s => interp_state h (f a) s) a0 s0.
+  Proof.
+    unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree in *; cbn.
+    einit. ecofix CIH; intros.
+    rewrite 2 unfold_iter; cbn.
+    rewrite !bind_bind.
+    setoid_rewrite bind_ret_l.
+    rewrite interp_state_bind.
+    ebind; econstructor; eauto.
+    - reflexivity.
+    - intros [s' []] _ []; cbn.
+      + rewrite interp_state_tau.
+        estep.
+      + rewrite interp_state_ret; apply reflexivity.
+  Qed.
+
+  Lemma translate_iter : 
+    forall {A R : Type} (E F : Type -> Type) (a0 : A) (h : E ~> F) f,
+      translate (E := E) (F := F) (T := R) h (ITree.iter f a0) ≈
+                ITree.iter (fun a => translate h (f a)) a0.
+  Proof.
+    intros; revert a0.
+    einit; ecofix CIH; intros.
+    rewrite 2 unfold_iter; cbn.
+    rewrite translate_bind.
+    ebind; econstructor; eauto.
+    - reflexivity.
+    - intros [|] [] EQ; inv EQ.
+      + rewrite translate_tau; estep. 
+      + rewrite translate_ret; apply reflexivity.
+  Qed.
+
+  Transparent interp_Mem.
+  Lemma interp_helix_iter :
+    forall {X : Type} (E : Type -> Type) (m0 : memoryH) A (a0 : A) f,
+      @interp_helix X E (iter f a0) m0 ≈
+                    iter
+                    (fun '(m,a) => 
+                       ITree.bind (interp_helix (f a) m)
+                                  (fun x => match x with
+                                         | None => Ret (inr None)
+                                         | Some (m',x) => match x with
+                                                         | inl x => Ret (inl (m',x))
+                                                         | inr a => Ret (inr (Some (m',a)))
+                                                         end
+                                         end)
+                    )
+                    (m0,a0).
+  Proof.
+    unfold interp_helix, interp_Mem.
+    intros.
+    rewrite interp_state_iter.
+    unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree.
+    rewrite interp_fail_iter.
+    unfold iter, CategoryKleisli.Iter_Kleisli.
+    unfold Basics.iter, failT_iter, MonadIter_stateT0, Basics.iter, MonadIter_itree.
+    cbn.
+    rewrite translate_iter.
+    apply KTreeFacts.eutt_iter.
+    intros [m a].
+    rewrite translate_bind.
+    cbn.
+    rewrite interp_fail_bind.
+    rewrite translate_bind.
+    rewrite !bind_bind.
+    eapply eutt_eq_bind.
+    intros [[s []] |]; cbn; rewrite ?interp_fail_Ret, ?translate_ret, ?bind_ret_l, ?translate_ret; reflexivity.
+  Qed.
+
+  Lemma interp_helix_do_n {E : Type -> Type} : 
+    forall (X : Type) body n m (x : X),
+      interp_helix (E := E) (do_n body n x) m
+                   ≈
+                   do_n (fun k x =>
+                           match x with
+                           | None => Ret None
+                           | Some (m',y) =>
+                             ITree.bind (interp_helix (body k y) m')
+                                        (fun x => match x with
+                                               | None => Ret None
+                                               | Some y => Ret (Some y)
+                                               end)
+                           end) n (Some (m,x)).
+  Proof.
+    intros.
+    unfold do_n. 
+    rewrite interp_helix_iter.
+    (* eapply eutt_iter''. *)
+    eapply KTreeFacts.eutt_iter' with 
+        (fun '(m,(n,x)) y =>
+           y ≡ (n,Some(m,x)) 
+        ); auto.
+    intros (m' & n' & x') ? ->.
+    cbn.
+    destruct (n' =? n) eqn:EQ; cbn. 
+    - rewrite interp_helix_Ret, bind_ret_l.
+      apply eutt_Ret; eauto.
+    - rewrite !interp_helix_bind, !bind_bind.
+      apply eutt_eq_bind; intros [[]|]; cbn.
+      + rewrite interp_helix_Ret, !bind_ret_l.
+        apply eutt_Ret; eauto.
+      + rewrite !bind_ret_l.
+        apply eutt_Ret; eauto.
+  (* Confused here: I think the [do_n] combinator does not escape when failing immediately, while the
+     iter instance on the left does, so that we cannot conduct the proof by [eutt_iter'], but it's still
+     correct if we build the simulation manually?
+     That would be a bit of a hassle though, induction on [n] simply but then having to define
+     [for k to n] to be stable inductively, and so on
+   *)
+  Admitted.
+
+End DOn.
+
 (* TODO: Move to Prelude *)
 Definition uvalue_of_nat k := UVALUE_I64 (Int64.repr (Z.of_nat k)).
 
