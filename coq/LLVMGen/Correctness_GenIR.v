@@ -894,22 +894,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         admit. }
       admit.
 
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    -
-
-     
-      rewrite foo.
-
-denoteDSHOperator
-      cbn* in *.
-      simp.
-      rewrite add_comment_eutt.
-      cbn.
-
-
     -
       Opaque genWhileLoop.
       cbn* in *.
