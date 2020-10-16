@@ -20,13 +20,13 @@ Section DOn.
   (* Experimenting with a pure vellvm specification of genWhileLoop via a [do_n] itree combinator *)
   Import ITreeNotations.
 
-  Definition do_n {E X} (body : nat -> X -> itree E X) n : X -> itree E X :=
+  Definition tfor {E X} (body : nat -> X -> itree E X) from to : X -> itree E X :=
     fun x => iter (fun '(p,x) =>
-                  if EqNat.beq_nat p n
+                  if EqNat.beq_nat p to
                   then Ret (inr x)
                   else
                     y <- (body p x);; (Ret (inl (S p,y)))
-               ) (0%nat,x).
+               ) (from,x).
 
   (* The denotation of the [DSHLoop] combinator can be rewritten in terms of the [do_n] combinator.
      So if we specify [genWhileLoop] in terms of this same combinator, then we might be good to go
@@ -35,12 +35,12 @@ Section DOn.
   Lemma DSHLoop_as_do_n: forall σ n op,
       denoteDSHOperator σ (DSHLoop n op)
                         ≈
-                        do_n
+                        tfor
                         (fun p _ => vp <- lift_Serr (MInt64asNT.from_nat p) ;;
-                                 denoteDSHOperator (DSHnatVal vp :: σ) op) n tt.
+                                 denoteDSHOperator (DSHnatVal vp :: σ) op) 0 n tt.
   Proof.
     intros.
-    unfold do_n.
+    unfold tfor.
     cbn.
     eapply (eutt_iter'' (fun a '(b,_) => a ≡ b) (fun a '(b,_) => a ≡ b)); auto.
     intros ? [? []] <-.
@@ -166,11 +166,48 @@ Section DOn.
     intros [[s []] |]; cbn; rewrite ?interp_fail_Ret, ?translate_ret, ?bind_ret_l, ?translate_ret; reflexivity.
   Qed.
 
+  Lemma __interp_helix_do_n: 
+    forall {E : Type -> Type} (X : Type) (body : nat -> X -> _) k n, 
+      k <= n ->
+        tfor (E := E) (fun k x =>
+                match x with
+                | None => Ret None
+                | Some (m',y) =>
+                  ITree.bind (interp_helix (body k y) m')
+                             (fun x => match x with
+                                    | None => Ret None
+                                    | Some y => Ret (Some y)
+                                    end)
+                end) k n None ≈ Ret None.
+  Proof.
+    intros.
+    remember (n - k) as rem.
+    revert k Heqrem H.
+    induction rem as [| rem IH].
+    - intros ? ? ?; assert (k ≡ n) by lia; subst.
+      unfold tfor.
+      cbn.
+      unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
+      rewrite unfold_iter.
+      rewrite Nat.eqb_refl, bind_ret_l.
+      reflexivity.
+    - intros.
+      unfold tfor.
+      unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
+      cbn.
+      rewrite unfold_iter.
+      assert (k =? n ≡ false) by (apply Nat.eqb_neq; lia).
+      rewrite H0; rewrite !bind_ret_l, tau_eutt.
+      rewrite <- (IH (S k)); try lia.
+      reflexivity.
+  Qed.
+
   Lemma interp_helix_do_n {E : Type -> Type} : 
-    forall (X : Type) body n m (x : X),
-      interp_helix (E := E) (do_n body n x) m
+    forall (X : Type) body k n m (x : X),
+      k <= n ->
+      interp_helix (E := E) (tfor body k n x) m
                    ≈
-                   do_n (fun k x =>
+                   tfor (fun k x =>
                            match x with
                            | None => Ret None
                            | Some (m',y) =>
@@ -179,34 +216,47 @@ Section DOn.
                                                | None => Ret None
                                                | Some y => Ret (Some y)
                                                end)
-                           end) n (Some (m,x)).
+                           end) k n (Some (m,x)).
   Proof.
-    intros.
-    unfold do_n. 
-    rewrite interp_helix_iter.
-    (* eapply eutt_iter''. *)
-    eapply KTreeFacts.eutt_iter' with 
-        (fun '(m,(n,x)) y =>
-           y ≡ (n,Some(m,x)) 
-        ); auto.
-    intros (m' & n' & x') ? ->.
-    cbn.
-    destruct (n' =? n) eqn:EQ; cbn. 
-    - rewrite interp_helix_Ret, bind_ret_l.
-      apply eutt_Ret; eauto.
-    - rewrite !interp_helix_bind, !bind_bind.
-      apply eutt_eq_bind; intros [[]|]; cbn.
-      + rewrite interp_helix_Ret, !bind_ret_l.
-        apply eutt_Ret; eauto.
+    intros * LE.
+    remember (n - k) as rem.
+    revert m x k Heqrem LE.
+    induction rem as [| rem IH].
+    - intros.
+      assert (k ≡ n) by lia.
+      unfold tfor.
+      cbn.
+      unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
+      rewrite unfold_iter.
+      rewrite H, Nat.eqb_refl, bind_ret_l, interp_helix_Ret.
+      rewrite unfold_iter.
+      rewrite Nat.eqb_refl, bind_ret_l.
+      reflexivity.
+    - intros * EQ INEQ.
+      unfold tfor.
+      unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
+      rewrite 2 unfold_iter.
+      assert (k =? n ≡ false) by (apply Nat.eqb_neq; lia).
+      cbn; rewrite !H.
+      rewrite !bind_bind.
+      rewrite interp_helix_bind.
+      apply eutt_eq_bind; intros [[]|].
+      + cbn; rewrite ?bind_ret_l.
+        rewrite 2tau_eutt.
+        specialize (IH m0 x0 (S k)).
+        unfold tfor in IH.
+        unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree in IH.
+        cbn in *. rewrite IH;try lia.
+        reflexivity.
       + rewrite !bind_ret_l.
-        apply eutt_Ret; eauto.
-  (* Confused here: I think the [do_n] combinator does not escape when failing immediately, while the
-     iter instance on the left does, so that we cannot conduct the proof by [eutt_iter'], but it's still
-     correct if we build the simulation manually?
-     That would be a bit of a hassle though, induction on [n] simply but then having to define
-     [for k to n] to be stable inductively, and so on
-   *)
-  Admitted.
+        rewrite tau_eutt.
+        rewrite <- __interp_helix_do_n.
+        unfold tfor.
+        unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
+        cbn.
+        reflexivity.
+        lia.
+  Qed.
 
 End DOn.
 
