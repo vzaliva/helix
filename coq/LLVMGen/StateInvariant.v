@@ -3,10 +3,55 @@ Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.VariableBinding.
 
+(** ** Extensions to alists *)
+Section AlistExtend.
+
+  Context {K V : Type}.
+  Context {RD:RelDec (@Logic.eq K)} {RDC:RelDec_Correct RD}.
+
+  Definition alist_extend (l1 l2 : alist K V) : Prop :=
+    forall id v, alist_In id l1 v -> exists v', alist_In id l2 v'.
+
+  Global Instance alist_extend_Reflexive : Reflexive alist_extend.
+  Proof.
+    unfold Reflexive.
+    intros x.
+    unfold alist_extend.
+    intros id v H.
+    exists v.
+    auto.
+  Qed.
+
+  Global Instance alist_extend_Transitive : Transitive alist_extend.
+  Proof.
+    unfold Transitive.
+    intros x.
+    unfold alist_extend.
+    intros y z Hy Hz id v IN.
+    apply Hy in IN as (v' & IN).
+    apply Hz in IN as (v'' & IN).
+    exists v''; auto.
+  Qed.
+
+  Lemma alist_extend_add :
+    forall l k v,
+      alist_extend l (alist_add k v l).
+  Proof.
+    intros l k v.
+    unfold alist_extend.
+    unfold alist_In.
+    intros id v0 H.
+    destruct (rel_dec_p k id).
+    - exists v. subst; apply In_add_eq.
+    - exists v0. apply In_In_add_ineq; eauto.
+  Qed.
+
+End AlistExtend.
+
 (** ** New freshness invariant *)
 Definition freshness (s1 s2 : IRState) (l1 : local_env) : config_cfg -> Prop :=
   fun '(_, (l2, _)) =>
-    l1 ⊑ l2 /\
+    alist_extend l1 l2 /\
     (forall id v, alist_In id l1 v -> ~(lid_bound_between s1 s2 id)) /\
     (forall id v, alist_In id l2 v -> ~(alist_In id l1 v) -> lid_bound_between s1 s2 id).
 
@@ -85,7 +130,7 @@ Proof.
       pose proof (NBOUND1 _ _ IN).
       
       (* l2 extends l1, and nothing in l2 can be bound between s1 and s2 *)
-      eapply L1L2 in IN.
+      eapply L1L2 in IN as (v' & IN).
       pose proof (NBOUND2 _ _ IN).
 
       (* Thus any id in l1 can't be bound between s1 and s3... *)
@@ -227,8 +272,7 @@ Proof.
     unfold freshness.
     split.
     - rewrite L1L2.
-      apply sub_alist_add.
-      auto.
+      apply alist_extend_add.
     - split.
       + intros id0 v0 H.
         (* This actually can't be shown, because I only know that
