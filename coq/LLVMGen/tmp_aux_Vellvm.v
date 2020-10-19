@@ -19,7 +19,9 @@ From Vellvm Require Import
      TopLevel
      LLVMAst
      TypToDtyp
-     Handlers.Handlers.
+     Handlers.Handlers
+     Denotation_Theory
+     InterpreterCFG.
 
 From ExtLib Require Import
      Structures.Functor.
@@ -652,14 +654,20 @@ Section WithDec.
     forall k v (m : alist K V),
       Maps.lookup k (alist_add k v m) = Some v.
   Proof.
-  Admitted.
+    intros; cbn.
+    rewrite eq_dec_eq; reflexivity.
+  Qed.
 
   Lemma lookup_alist_add_ineq :
     forall k k' v (m : alist K V),
       k <> k' ->
       Maps.lookup k (alist_add k' v m) = Maps.lookup k m.
   Proof.
-  Admitted.
+    cbn; intros.
+    rewrite eq_dec_neq; auto.
+    rewrite remove_neq_alist; auto.
+    typeclasses eauto.
+  Qed.
 
 End WithDec.
 
@@ -736,4 +744,508 @@ Ltac inv_eqs :=
     | h : ?x = ?x /\ _ |- _ => destruct h as [_ ?]
     | h : _ = _ /\ _ |- _ => (destruct h as [<- ?] || destruct h as [?EQ ?])
     end.
+
+Import D.
+Variant hidden_cfg  (T: Type) : Type := boxh_cfg (t: T).
+Variant visible_cfg (T: Type) : Type := boxv_cfg (t: T).
+Ltac hide_cfg :=
+  match goal with
+  | h : visible_cfg _ |- _ =>
+    let EQ := fresh "VG" in
+    destruct h as [EQ];
+    apply boxh_cfg in EQ
+  | |- context[denote_bks ?cfg _] =>
+    remember cfg as G eqn:VG;
+    apply boxh_cfg in VG
+  end.
+Ltac show_cfg :=
+  match goal with
+  | h: hidden_cfg _ |- _ =>
+    let EQ := fresh "HG" in
+    destruct h as [EQ];
+    apply boxv_cfg in EQ
+  end.
+Notation "'hidden' G" := (hidden_cfg (G = _)) (only printing, at level 10).
+
+(* All labels in a list of blocks are distinct *)
+Definition blk_id_norepet {T} (bks : list (LLVMAst.block T)) :=
+  Coqlib.list_norepet (map blk_id bks).
+
+Lemma blk_id_norepet_nil:
+  forall T, blk_id_norepet (T := T) []. 
+Proof.
+  intros; apply Coqlib.list_norepet_nil.
+Qed.
+
+Lemma no_repeat_cons :
+  forall T (b : LLVMAst.block T) bs,
+    blk_id_norepet (b :: bs) ->
+    blk_id_norepet bs.
+Proof.
+  intros * NOREP; inv NOREP; eauto.
+Qed.
+
+Lemma no_repeat_cons_not_in :
+  forall T (b : LLVMAst.block T) bs,
+    blk_id_norepet (b :: bs) ->
+    not (In (blk_id b) (map blk_id bs)).
+Proof.
+  intros * NOREP; inv NOREP; eauto.
+Qed.
+
+Lemma no_repeat_app_r :
+  forall T (bs1 bs2 : list (LLVMAst.block T)), 
+blk_id_norepet (bs1 ++ bs2) ->
+blk_id_norepet bs2.
+Proof.
+  intros * NR.
+  eapply Coqlib.list_norepet_append_right.
+  unfold blk_id_norepet in NR.
+  rewrite map_app in NR.
+  eauto.
+Qed.
+
+Lemma no_repeat_app_l :
+  forall T (bs1 bs2 : list (LLVMAst.block T)), 
+blk_id_norepet (bs1 ++ bs2) ->
+blk_id_norepet bs1.
+Proof.
+  intros * NR.
+  eapply Coqlib.list_norepet_append_left.
+  unfold blk_id_norepet in NR.
+  rewrite map_app in NR.
+  eauto.
+Qed.
+
+Lemma blk_id_convert_typ : forall env b,
+    blk_id (convert_typ env b) = blk_id b.
+Proof.
+  intros ? []; reflexivity.
+Qed.
+
+Lemma blk_id_map_convert_typ : forall env bs,
+    map blk_id (convert_typ env bs) = map blk_id bs.
+Proof.
+  induction bs as [| b bs IH]; cbn; auto.
+  f_equal; auto.
+Qed.
+
+Lemma no_repeat_convert_typ :
+  forall env (bs : list (LLVMAst.block typ)),
+    blk_id_norepet bs ->
+    blk_id_norepet (convert_typ env bs).
+Proof.
+  induction bs as [| b bs IH]; intros NOREP.
+  - cbn; auto.
+  - cbn.
+    apply Coqlib.list_norepet_cons. 
+    + cbn.
+      apply no_repeat_cons_not_in in NOREP.
+     rewrite blk_id_map_convert_typ; auto.
+    + eapply IH, no_repeat_cons; eauto. 
+Qed.
+(** [break_inner_match' t] tries to destruct the innermost [match] it
+    find in [t]. *)
+Ltac break_inner_match' t :=
+ match t with
+   | context[match ?X with _ => _ end] =>
+     break_inner_match' X || destruct X eqn:?
+   | _ => destruct t eqn:?
+ end.
+
+(** [break_inner_match_goal] tries to destruct the innermost [match] it
+    find in your goal. *)
+Ltac break_inner_match_goal :=
+ match goal with
+   | [ |- context[match ?X with _ => _ end] ] =>
+     break_inner_match' X
+ end.
+
+(** [break_inner_match_hyp] tries to destruct the innermost [match] it
+    find in a hypothesis. *)
+Ltac break_inner_match_hyp :=
+ match goal with
+   | [ H : context[match ?X with _ => _ end] |- _ ] =>
+     break_inner_match' X
+ end.
+
+(** [break_inner_match] tries to destruct the innermost [match] it
+    find in your goal or a hypothesis. *)
+Ltac break_inner_match := break_inner_match_goal || break_inner_match_hyp.
+
+
+Lemma find_block_app_r_wf :
+  forall (T : Set) (x : block_id) (b : LLVMAst.block T) (bs1 bs2 : list (LLVMAst.block T)),
+    blk_id_norepet (bs1 ++ bs2)  ->
+    find_block T bs2 x = Some b ->
+    find_block T (bs1 ++ bs2) x = Some b.
+Proof.
+  intros T x b; induction bs1 as [| hd bs1 IH]; intros * NOREP FIND.
+  - rewrite app_nil_l; auto.
+  - cbn; break_inner_match_goal.
+    + cbn in *.
+      apply no_repeat_cons_not_in in NOREP.
+      exfalso; apply NOREP.
+      rewrite e.
+      apply find_some in FIND as [FIND EQ].
+      clear - FIND EQ.
+      rewrite map_app; eapply in_or_app; right.
+      break_match; [| intuition].
+      rewrite <- e.
+      eapply in_map; auto.
+    + cbn in NOREP; apply no_repeat_cons in NOREP.
+      apply IH; eauto.
+Qed.
+
+Lemma find_block_app_l_wf :
+  forall (T : Set) (x : block_id) (b : LLVMAst.block T) (bs1 bs2 : list (LLVMAst.block T)),
+    blk_id_norepet (bs1 ++ bs2)  ->
+    find_block T bs1 x = Some b ->
+    find_block T (bs1 ++ bs2) x = Some b.
+Proof.
+  intros T x b; induction bs1 as [| hd bs1 IH]; intros * NOREP FIND.
+  - inv FIND.
+  - cbn in FIND |- *.
+    break_inner_match; auto.
+    apply IH; eauto.
+    eapply no_repeat_cons, NOREP.
+Qed.
+
+Lemma find_block_tail_wf :
+  forall (T : Set) (x : block_id) (b b' : LLVMAst.block T) (bs : list (LLVMAst.block T)),
+    blk_id_norepet (b :: bs)  ->
+    find_block T bs x = Some b' ->
+    find_block T (b :: bs) x = Some b'.
+Proof.
+  intros.
+  rewrite list_cons_app.
+  apply find_block_app_r_wf; auto.
+Qed.
+
+Definition fresh_in_cfg {T} (cfg : list (LLVMAst.block T)) (id : block_id) : Prop :=
+  not (In id (map blk_id cfg)).
+
+Lemma fresh_in_cfg_cons:
+  forall {T} b (bs : list (LLVMAst.block T)) id,
+    fresh_in_cfg (b::bs) id ->
+    fresh_in_cfg bs id .
+Proof.
+  intros * FR abs; apply FR; cbn.
+  destruct (Eqv.eqv_dec_p (blk_id b) id); [rewrite e; auto | right; auto].
+Qed.
+
+Lemma find_block_fresh_id :
+  forall {T} (cfg : list (LLVMAst.block T)) id,
+    fresh_in_cfg cfg id ->
+    find_block T cfg id = None.
+Proof.
+  induction cfg as [| b bs IH]; cbn; intros * FRESH; auto.
+  break_inner_match_goal.
+  + exfalso; eapply FRESH.
+    cbn; rewrite e; auto.
+  + apply IH.
+    apply fresh_in_cfg_cons in FRESH; auto.
+Qed.
+
+(* Enforcing these definitions to be unfolded systematically by [cbn] *)
+Arguments endo /.
+Arguments Endo_id /.
+Arguments Endo_ident /.
+
+Lemma fresh_in_convert_typ :
+  forall env (bs : list (LLVMAst.block typ)) id,
+  fresh_in_cfg bs id ->
+  fresh_in_cfg (convert_typ env bs) id.
+Proof.
+  induction bs as [| b bs IH]; intros * FR.
+  - red; cbn; auto.
+  - cbn.
+    intros abs.
+    eapply FR.
+    destruct (Eqv.eqv_dec_p (blk_id b) id).
+    left; rewrite e; auto.
+    destruct abs.
+    + cbn in H.
+      exfalso; apply n; rewrite H; reflexivity.
+    + apply IH in H; intuition.
+      eapply fresh_in_cfg_cons; eauto.
+Qed.
+
+Arguments find_block : simpl never.
+
+Ltac solve_find_block :=
+  cbn;
+  match goal with
+    | |- find_block _ [_] _ = _ => apply find_block_eq; reflexivity
+    | h: blk_id_norepet _ |- find_block _ (_ :: _) _ = _ =>
+      first [apply find_block_eq; reflexivity |
+             apply find_block_tail_wf; [eassumption | apply no_repeat_cons in h; solve_find_block]]
+    | h: blk_id_norepet _ |- find_block _ (_ ++ _) _ = _ =>
+      first [apply find_block_app_l_wf; [eassumption | apply no_repeat_app_l in h; solve_find_block] |
+             apply find_block_app_r_wf; [eassumption | apply no_repeat_app_r in h; solve_find_block]]
+  end.
+
+Lemma convert_typ_block_app : forall (a b : list (LLVMAst.block typ)) env, (convert_typ env (a ++ b) = convert_typ env a ++ convert_typ env b)%list.
+Proof.
+  induction a as [| [] a IH]; cbn; intros; auto.
+  rewrite IH; reflexivity.
+Qed.
+
+Ltac vjmp :=
+  rewrite denote_bks_unfold_in; cycle 1;
+  [match goal with
+   | h: hidden_cfg _ |- _ => inv h
+   | h: visible_cfg _ |- _ => inv h
+   | _ => idtac
+   end;
+   cbn; rewrite ?convert_typ_block_app;
+   try solve_find_block |].
+
+Ltac vjmp_out :=
+  rewrite denote_bks_unfold_not_in; cycle 1;
+  [apply find_block_fresh_id; eauto |]. 
+
+Module eutt_Notations.
+  Notation "t '======================' '======================' u '======================' '{' R '}'"
+    := (eutt R t u)
+         (only printing, at level 200,
+          format "'//' '//' t '//' '======================' '======================' '//' u '//' '======================' '//' '{' R '}'"
+         ).
+End eutt_Notations.
+
+Module VIR_Notations.
+  (* We define print-only surface syntax for VIR *)
+
+  (* Identifiers *)
+  Notation "'%'" := ID_Local (only printing).
+  Notation "'@'" := ID_Global (only printing).
+
+  (* Expressions *)
+  Notation "e" := (EXP_Integer e) (at level 10,only printing). 
+  Notation "i" := (EXP_Ident i) (at level 10,only printing). 
+  Notation "'add' e f"  := (OP_IBinop (LLVMAst.Add _ _) _ e f) (at level 10, only printing).
+  Notation "'sub' e f"  := (OP_IBinop (Sub _ _) _ e f) (at level 10, only printing).
+  Notation "'mul' e f"  := (OP_IBinop (Mul _ _) _ e f) (at level 10, only printing).
+  Notation "'shl' e f"  := (OP_IBinop (Shl _ _) _ e f) (at level 10, only printing).
+  Notation "'udiv' e f" := (OP_IBinop (UDiv _) _ e f)  (at level 10, only printing).
+  Notation "'sdiv' e f" := (OP_IBinop (SDiv _) _ e f)  (at level 10, only printing).
+  Notation "'lshr' e f" := (OP_IBinop (LShr _) _ e f)  (at level 10, only printing).
+  Notation "'ashr' e f" := (OP_IBinop (AShr _) _ e f)  (at level 10, only printing).
+  Notation "'urem' e f" := (OP_IBinop URem _ e f)      (at level 10, only printing).
+  Notation "'srem' e f" := (OP_IBinop SRem _ e f)      (at level 10, only printing).
+  Notation "'and' e f"  := (OP_IBinop And _ e f)       (at level 10, only printing).
+  Notation "'or' e f"   := (OP_IBinop Or _ e f)        (at level 10, only printing).
+  Notation "'xor' e f"  := (OP_IBinop Xor _ e f)       (at level 10, only printing).
+  Notation "'eq' e f"   := (OP_ICmp Eq _ e f)       (at level 10, only printing).
+  Notation "'ne' e f"   := (OP_ICmp Ne _ e f)       (at level 10, only printing).
+  Notation "'ugt' e f"   := (OP_ICmp Ugt _ e f)       (at level 10, only printing).
+  Notation "'uge' e f"   := (OP_ICmp Uge _ e f)       (at level 10, only printing).
+  Notation "'ult' e f"   := (OP_ICmp Ult _ e f)       (at level 10, only printing).
+  Notation "'ule' e f"   := (OP_ICmp Ule _ e f)       (at level 10, only printing).
+  Notation "'sgt' e f"   := (OP_ICmp Sgt _ e f)       (at level 10, only printing).
+  Notation "'sge' e f"   := (OP_ICmp Sge _ e f)       (at level 10, only printing).
+  Notation "'slt' e f"   := (OP_ICmp Slt _ e f)       (at level 10, only printing).
+  Notation "'sle' e f"   := (OP_ICmp Sle _ e f)       (at level 10, only printing).
+
+  (* Instructions *)
+  Notation "r '←' 'op' x" := ((IId r, INSTR_Op x)) (at level 10, only printing).
+  Notation "r '←' 'call' x args" := ((IId r, INSTR_Call x args)) (at level 10, only printing).
+  Notation "'call' x args" := ((IVoid, INSTR_Call x args)) (at level 10, only printing).
+  Notation "r '←' 'alloca' t" := ((IId r, INSTR_Alloca t _ _)) (at level 10, only printing).
+  Notation "r '←' 'load' t ',' e" := ((IId r, INSTR_Load _ t e _)) (at level 10, only printing).
+  Notation "r '←' 'store' e ',' f" := ((IId r, INSTR_Store _ e f _)) (at level 10, only printing).
+
+  (* Terminators *)
+  Notation "'ret' τ e" := (TERM_Ret (τ, e)) (at level 10, only printing).
+  Notation "'ret' 'void'" := (TERM_Ret_void) (at level 10, only printing).
+  Notation "'br' c ',' 'label' e ',' 'label' f" := (TERM_Br c e f) (at level 10, only printing).
+  Notation "'br' 'label' e" := (TERM_Br_1 e) (at level 10, only printing).
+
+  (* Phi-nodes *)
+  Notation "x ← 'Φ' xs" := (x,Phi _ xs) (at level 10,only printing).
+
+  (* Types *)
+  Notation "'ι' x" := (DTYPE_I x) (at level 10,only printing, format "'ι' x").
+  Notation "⋆" := (DTYPE_Pointer) (at level 10,only printing).
+  Notation "x" := (convert_typ _ x) (at level 10, only printing).
+  Notation "x" := (typ_to_dtyp _ x) (at level 10, only printing).
+  Notation "x" := (fmap (typ_to_dtyp _) x) (at level 10, only printing).
+  Notation "'ι' x" := (TYPE_I x) (at level 10,only printing, format "'ι' x").
+  Notation "⋆" := (TYPE_Pointer) (at level 10,only printing).
+ 
+End VIR_Notations.
+
+Module VIR_denotation_Notations.
+  (* Notation "'ℐ' '(' t ')' g l m" := (interp_cfg_to_L3 _ t g l m) (only printing, at level 10). *)
+  Notation "'global.' g 'local.' l 'memory.' m 'ℐ' t" :=
+    (interp_cfg_to_L3 _ t g l m)
+      (only printing, at level 10,
+       format "'global.'  g '//' 'local.'  l '//' 'memory.'  m '//' 'ℐ'  t").
+  
+  Notation "⟦ c ⟧" := (denote_code c) (only printing, at level 10).
+  Notation "⟦ i ⟧" := (denote_instr i) (only printing, at level 10).
+  Notation "⟦ t ⟧" := (denote_terminator t) (only printing, at level 10).
+  Notation "⟦ e ⟧" := (denote_exp None e) (only printing, at level 10).
+  Notation "⟦ τ e ⟧" := (denote_exp (Some τ) e) (only printing, at level 10).
+  Notation "x" := (translate exp_E_to_instr_E x) (only printing, at level 10).
+
+  Notation "'λ' a b c d ',' k" := (fun '(a,(b,(c,d))) => k) (only printing, at level 0, format "'λ'  a  b  c  d ',' '[' '//' k ']'").
+
+End VIR_denotation_Notations.
+
+Import ITreeNotations.
+
+Lemma denote_block_unfold_cont :
+  forall {R} id phis c t s origin (k : _ -> itree _ R),
+    denote_block (mk_block id phis c t s) origin >>= k
+                 ≈
+                 denote_phis origin phis;;
+    denote_code c;;
+    translate exp_E_to_instr_E (denote_terminator (snd t)) >>= k.
+Proof.
+  intros; cbn; repeat setoid_rewrite bind_bind.
+  reflexivity.
+Qed.
+
+Lemma denote_block_unfold :
+  forall id phis c t s origin,
+    denote_block (mk_block id phis c t s) origin
+                 ≈
+                 denote_phis origin phis;;
+    denote_code c;;
+    translate exp_E_to_instr_E (denote_terminator (snd t)). 
+Proof.
+  intros; cbn; reflexivity.
+Qed.
+
+From Vellvm Require Import InstrLemmas ExpLemmas.
+
+Ltac vred_any :=
+  (* Reduce annoying type conversion *)
+  rewrite ?typ_to_dtyp_equation;
+  match goal with
+  | |- context[denote_block] =>
+    (* Structural handling: block case *)
+    first [rewrite denote_block_unfold_cont; cbn | rewrite denote_block_unfold; cbn];
+    idtac "Reduced block"
+  | |- context[denote_phis _ _]  =>
+    (* Structural handling: phi case *)
+    first [rewrite denote_no_phis];
+    idtac "Reduced phis"
+  | |- context[denote_code] =>
+    (* Structural handling: code case *)
+    first [rewrite denote_code_nil |
+           rewrite denote_code_singleton |
+           rewrite denote_code_cons |
+           rewrite ?convert_typ_app, ?fmap_list_app, denote_code_app];
+    idtac "Reduced code"
+  | |- context[denote_terminator] =>
+    (* Structural handling: code case *)
+    first [rewrite denote_term_br_1];
+    idtac "Reduced direct jump"
+   | |- context[denote_exp] => 
+    (* Structural handling: expression case *)
+    first [rewrite translate_trigger; (rewrite lookup_E_to_exp_E_Local || rewrite lookup_E_to_exp_E_Global);
+           rewrite subevent_subevent, translate_trigger;
+           (rewrite exp_E_to_instr_E_Local || rewrite exp_E_to_instr_E_Global); rewrite subevent_subevent];
+    idtac "Reduced exp"
+  | |- _ => idtac "no progress made"
+  end;
+  (* clean up *)
+  rewrite 1?interp_cfg_to_L3_ret, 1?bind_ret_l;
+  rewrite 1?interp_cfg_to_L3_bind, 1?bind_bind.
+
+Ltac vbranch_l := rewrite denote_term_br_l;
+                 [rewrite 1?interp_cfg_to_L3_ret, 1?bind_ret_l, 1?interp_cfg_to_L3_bind, 1?bind_bind |];
+                 cycle 1.
+Ltac vbranch_r := rewrite denote_term_br_r;
+                 [rewrite 1?interp_cfg_to_L3_ret, 1?bind_ret_l, 1?interp_cfg_to_L3_bind, 1?bind_bind |];
+                 cycle 1.
+
+Ltac eutt_hide_left_named H :=
+  match goal with
+    |- eutt _ ?t _ => remember t as H
+  end.
+
+(* with hypothesis name provided *)
+Tactic Notation "eutt_hide_left" ident(hypname) :=
+  eutt_hide_left_named hypname.
+
+(* with hypothesis name auto-generated *)
+Tactic Notation "eutt_hide_left" :=
+  let H := fresh "EL" in
+  eutt_hide_left_named H.
+
+Ltac eutt_hide_right_named H :=
+  match goal with
+    |- eutt _ _ ?t => remember t as H
+  end.
+
+(* with hypothesis name provided *)
+Tactic Notation "eutt_hide_right" ident(hypname) :=
+  eutt_hide_right_named hypname.
+
+(* with hypothesis name auto-generated *)
+Tactic Notation "eutt_hide_right" :=
+  let H := fresh "ER" in
+  eutt_hide_right_named H.
+
+Ltac eutt_hide_rel_named H :=
+  match goal with
+    |- eutt ?t _ _ => remember t as H
+  end.
+
+Ltac vred_r :=
+  let R := fresh
+  in eutt_hide_rel_named R;
+     let X := fresh
+     in eutt_hide_left_named X; vred_any;
+        subst X; subst R.
+
+Ltac vred_l :=
+  let R := fresh
+  in eutt_hide_rel_named R;
+     let X := fresh
+     in eutt_hide_right_named X; vred_any;
+        subst X; subst R.
+
+Ltac expstep :=
+first [rewrite denote_exp_LR; cycle 1 |
+         rewrite denote_exp_GR; cycle 1 |
+         rewrite denote_exp_i64 |
+         rewrite denote_exp_i64_repr |
+         rewrite denote_exp_double |
+         rewrite denote_ibinop_concrete; cycle 1; try reflexivity |
+         rewrite denote_fbinop_concrete; cycle 1; try reflexivity |
+         rewrite denote_icmp_concrete; cycle 1; try reflexivity |
+         rewrite denote_fcmp_concrete; cycle 1; try reflexivity |
+         rewrite denote_conversion_concrete; cycle 1 |
+         idtac].
+
+Ltac instrstep :=
+  first [rewrite denote_instr_load; eauto; cycle 1 |
+         rewrite denote_instr_intrinsic; cycle 1; try reflexivity |
+         rewrite denote_instr_op; cycle 1 |
+         idtac
+        ].
+
+Ltac vstep :=
+  first [progress expstep | instrstep];
+  rewrite 1?interp_cfg_to_L3_ret, 1?bind_ret_l;
+  rewrite 1?interp_cfg_to_L3_bind, 1?bind_bind.
+
+Ltac tred := autorewrite with itree.
+
+Arguments denote_exp : simpl never.
+(* TODO: fmap (mk_block _ _ _ _ _) does not reduce, although we would like.
+   However if I do the following to force the unfolding, then fmap always
+   unfolds even in many other cases where we don't want it to do so.
+   Solution?
+ *)
+(* Arguments fmap /. *)
+(* Arguments Fmap_block /. *)
+Arguments denote_phis : simpl never.
+Arguments denote_code : simpl never.
+Arguments denote_terminator : simpl never.
+Arguments denote_block : simpl never.
 

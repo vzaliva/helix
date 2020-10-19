@@ -84,40 +84,6 @@ Section AExpr.
     auto.
   Qed.
 
-  (* TODO: move this *)
-  Lemma to_nat_repr_of_nat :
-    forall (n : nat),
-      MInt64asNT.to_nat (Int64.repr (Z.of_nat n)) ≡ n.
-  Proof.
-    intros n.
-
-    match goal with
-    | |- ?x ≡ ?y => assert (x = y) as EQ
-    end.
-
-    { unfold equiv. unfold peano_naturals.nat_equiv.
-      Transparent Int64.repr.
-      unfold Int64.repr.
-      Opaque Int64.repr.
-
-      unfold MInt64asNT.to_nat.
-      unfold Int64.intval.
-      rewrite Int64.Z_mod_modulus_eq.
-      assert (exists m, Int64.modulus ≡ Z.of_nat m) as (m & H).
-      admit.
-
-      rewrite H.
-      rewrite <- Zdiv.mod_Zmod.
-      rewrite Znat.Nat2Z.id.
-
-      admit.
-      admit.
-    }
-
-    rewrite EQ.
-    auto.
-  Admitted.
-
   Fact CTypeOne_of_longu:
     MFloat64asCT.CTypeOne ≡ Floats.Float.of_longu (DynamicValues.Int64.repr 1).
   Proof.
@@ -200,14 +166,29 @@ Section AExpr.
           destruct a,b; inversion Heqo; try reflexivity.
   Qed.
 
-  Opaque denote_instr.
-  Opaque denote_code.
+  Lemma min_float_correct: forall (a b: binary64), Float_minimum a b ≡ MFloat64asCT.CTypeMin a b.
+  Proof.
+    intros.
+    Transparent Floats.Float.cmp.
+    unfold Float_minimum, MFloat64asCT.CTypeMin, Float64Min, Floats.Float.cmp.
+    unfold Floats.Float.compare, Floats.cmp_of_comparison.
+    destruct a,b; try break_if; repeat break_match ;try reflexivity; crush.
+  Qed.
 
+  Lemma max_float_correct: forall (a b: binary64), Float_maxnum a b ≡ MFloat64asCT.CTypeMax a b.
+  Proof.
+    intros. 
+    Transparent Floats.Float.cmp.
+    unfold Float_maxnum, MFloat64asCT.CTypeMax, Float64Max, Floats.Float.cmp.
+    unfold Floats.Float.compare, Floats.cmp_of_comparison.
+    destruct a,b; try break_if; repeat break_match ;try reflexivity; crush.
+  Qed.
 
-  Lemma genAExpr_correct :
-    forall (* Compiler bits *) (s1 s2: IRState)
-      (* Helix  bits *)   (aexp: AExpr) (σ: evalContext) (memH: memoryH) 
-      (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
+Import ProofMode.
+Lemma genAExpr_correct :
+  forall (* Compiler bits *) (s1 s2: IRState)
+    (* Helix  bits *)   (aexp: AExpr) (σ: evalContext) (memH: memoryH) 
+    (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
 
       genAExpr aexp s1 ≡ inr (s2, (e, c))      -> (* Compilation succeeds *)
       state_invariant σ s1 memH (memV, (l, g)) -> (* The main state invariant is initially true *)
@@ -220,7 +201,6 @@ Section AExpr.
     intros s1 s2 aexp; revert s1 s2; induction aexp; intros * COMPILE PRE NOFAIL.
     - (* Variable case *)
       (* Reducing the compilation *)
-      (* pose proof COMPILE as COMPILE'. *)
       cbn* in COMPILE; simp.
 
       + (* The variable maps to an integer in the IRState *)
@@ -304,15 +284,22 @@ Section AExpr.
       apply no_failure_Ret in NOFAIL; try_abs.
       hvred.
 
+      (* [vstep] does not handle gep currently *)
       edestruct denote_instr_gep_array as (? & READ & EQ);
         [exact EQEXPm | | eapply LU_ARRAY; eauto |].
       { clear LU_ARRAY EQEXPm.
-        assert (EQ: vH ≡ repr (Z.of_nat (MInt64asNT.to_nat vH))) by admit.
+        assert (EQ: vH ≡ repr (Z.of_nat (MInt64asNT.to_nat vH))).
+        cbn.
+        unfold MInt64asNT.to_nat.
+        cbn.
+        rewrite Znat.Z2Nat.id, repr_intval; auto.
+        destruct (Int64.intrange vH); lia.
         rewrite EQ in EQEXP.
         exact EQEXP.
       }
 
       rewrite EQ; clear EQ.
+      hvred.
       hvred.
       vstep.
       {
@@ -338,7 +325,7 @@ Section AExpr.
            eapply incLocal_is_fresh; eauto.
            eapply state_invariant_add_fresh; eauto.
            
-    - (* AAbs *)
+    - (* AAbs *) 
       cbn* in *; simp.
       hvred.
       eapply eutt_clo_bind; try eapply IHaexp; eauto.
@@ -351,13 +338,14 @@ Section AExpr.
       Transparent assoc. 
       vstep; try reflexivity.
       {
-        cbn; vred.
+        cbn.
+        vred_l.
         rewrite (AEXP l0); [| reflexivity].
-        vred.
+        tred; vred_l.
         reflexivity.
       }
       {
-        cbn; vred.
+        cbn; tred; vred_l.
         reflexivity.
       }
       reflexivity.
@@ -495,15 +483,17 @@ Section AExpr.
       hvred.
 
       vstep; try reflexivity.
-      { cbn; vred. 
+      { cbn; vred_l. 
         rewrite AEXP1; auto.
-        vred.
+        autorewrite with itree.
+        vred_l.
         rewrite AEXP2; auto. 
-        vred.
+        autorewrite with itree.
+        vred_l.
         reflexivity.
         reflexivity.
       }
-      cbn; vred; reflexivity.
+      cbn; tred; vred_l; reflexivity.
       reflexivity.
       apply eutt_Ret.
       split.
@@ -511,7 +501,7 @@ Section AExpr.
       + split; cbn; intuition.
         * vstep.
           cbn. apply H1.
-          replace (Float_minimum vH vH0) with (MFloat64asCT.CTypeMin vH vH0) by admit.
+          rewrite min_float_correct.
           apply In_add_eq.
           reflexivity.
         * rewrite H,H0.
@@ -535,13 +525,13 @@ Section AExpr.
       hvred.
 
       vstep.
-      { cbn; vred.
+      { cbn; tred; vred_l.
         rewrite AEXP1; eauto.
-        vred; rewrite AEXP2.
-        vred; reflexivity.
+        tred; vred_l; rewrite AEXP2.
+        tred; vred_l; reflexivity.
         reflexivity.
       }
-      cbn; vred; reflexivity.
+      cbn; tred; vred_l; reflexivity.
       reflexivity.
       apply eutt_Ret.
       split.
@@ -549,7 +539,7 @@ Section AExpr.
       + split; cbn; intuition.
         * vstep.
           cbn. apply H1.
-          replace (Float_maxnum vH vH0) with (MFloat64asCT.CTypeMax vH vH0) by admit.
+          rewrite max_float_correct.
           apply In_add_eq.
           reflexivity.
         * rewrite H,H0.
@@ -604,12 +594,11 @@ Section AExpr.
         repeat (eapply state_invariant_add_fresh; eauto).
       + split; cbn; intuition.
         * vstep.
-          cbn. apply H3.
-          match goal with
-            |- alist_In _ (alist_add _ ?x _) ?y => replace x with y by admit
-          end.
-          apply In_add_eq.
-          reflexivity.
+          cbn. 2: reflexivity.
+          rewrite H2.
+          apply H3.
+          solve_lu.
+
         * rewrite H,H0.
           etransitivity; [apply sub_alist_add| apply sub_alist_add].
           eapply concrete_fresh_fresh; eauto; eapply incLocal_is_fresh; eauto.
@@ -619,6 +608,6 @@ Section AExpr.
             eapply state_invariant_add_fresh; [now eauto | eassumption ]
           end.
 
-  Admitted.
+Qed.
 
 End AExpr.

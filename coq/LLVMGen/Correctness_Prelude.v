@@ -140,12 +140,7 @@ Ltac find_phi :=
   | _ =>  rewrite denote_phi_tl; [find_phi |]
   end.
 
-(* Enforcing these definitions to be unfolded systematically by [cbn] *)
-Arguments endo /.
-Arguments Endo_id /.
-Arguments Endo_ident /.
 Arguments IntType /.
-
 (* General purpose tactics.
    TODO: create a curated library of tactics in Vellvm.
    TODO: when creating such library, ILLUSTRATE EACH TACTIC WITH EXAMPLES!
@@ -555,39 +550,6 @@ Ltac inv_mem_lookup_err :=
 Ltac inv_memory_lookup_err :=
   unfold memory_lookup_err, trywith in *;
   break_match_hyp; cbn in *; try (inl_inr || inv_sum || inv_sum).
-
-Ltac eutt_hide_left_named H :=
-  match goal with
-    |- eutt _ ?t _ => remember t as H
-  end.
-
-(* with hypothesis name provided *)
-Tactic Notation "eutt_hide_left" ident(hypname) :=
-  eutt_hide_left_named hypname.
-
-(* with hypothesis name auto-generated *)
-Tactic Notation "eutt_hide_left" :=
-  let H := fresh "EL" in
-  eutt_hide_left_named H.
-
-Ltac eutt_hide_right_named H :=
-  match goal with
-    |- eutt _ _ ?t => remember t as H
-  end.
-
-(* with hypothesis name provided *)
-Tactic Notation "eutt_hide_right" ident(hypname) :=
-  eutt_hide_right_named hypname.
-
-(* with hypothesis name auto-generated *)
-Tactic Notation "eutt_hide_right" :=
-  let H := fresh "ER" in
-  eutt_hide_right_named H.
-
-Ltac eutt_hide_rel_named H :=
-  match goal with
-    |- eutt ?t _ _ => remember t as H
-  end.
 
 (* with hypothesis name provided *)
 Tactic Notation "eutt_hide_rel" ident(hypname) :=
@@ -1134,3 +1096,81 @@ Ltac break_and :=
         semirings.FullPseudoOrder_instance_0
         strong_setoids.binary_strong_morphism_proper
         workarounds.equivalence_proper : typeclass_instances.
+
+
+  Module Helix_Notations.
+    Notation "'ℐ' '(' t ')' m" := (interp_helix t m) (only printing, at level 10).
+    Notation "'Name' i" := (Name (_ @@ string_of_nat (local_count i))) (only printing, at level 0, format "'Name' i").
+    Notation "'Name' i" := (Name (_ @@ string_of_nat (block_count i))) (only printing, at level 0, format "'Name' i").
+    Notation "'Name' i" := (Name (_ @@ string_of_nat (void_count i))) (only printing, at level 0, format "'Name' i").
+
+
+  End Helix_Notations.
+
+Module ProofMode.
+
+  (* Include ITreeNotations. *)
+  Notation "t1 ;; k" := (ITree.bind t1 k) (format "t1 ;; '//' k", at level 61, right associativity, only printing) : itree_scope.
+  Include VIR_Notations.
+  Include VIR_denotation_Notations.
+  Include eutt_Notations.
+  Include Helix_Notations.
+  Notation "g '[' r ':' x ']'" := (alist_add r x g) (only printing, at level 10). 
+
+  (* Notation "⟦ b , p , c , t ⟧" := (fmap _ (mk_block b p c t _)) (only printing).  *)
+  (* Notation "'denote_blocks' '...' id " := (denote_bks _ id) (at level 10,only printing).  *)
+  (* Notation "'IRS' ctx" := (mkIRState _ _ _ ctx) (only printing, at level 10).  *)
+  (* Notation "x" := (with_cfg x) (only printing, at level 10).  *)
+  (* Notation "x" := (with_mcfg x) (only printing, at level 10).  *)
+  (* (* Notation "'CODE' c" := (denote_code c) (only printing, at level 10, format "'CODE' '//' c"). *) *)
+  (* Notation "c" := (denote_code c) (only printing, at level 10). *)
+  (* (* Notation "'INSTR' i" := (denote_instr i) (only printing, at level 10, format "'INSTR' '//' i"). *) *)
+  (* Notation "i" := (denote_instr i) (only printing, at level 10). *)
+  (* Notation "x" := (translate exp_E_to_instr_E (denote_exp _ x)) (only printing, at level 10).  *)
+  
+End ProofMode.
+
+Ltac hred :=
+  let R := fresh
+  in eutt_hide_rel_named R;
+     let X := fresh
+     in eutt_hide_right_named X;
+        repeat (rewrite ?interp_helix_bind, ?interp_helix_Ret, ?bind_ret_l);
+        subst R; subst X.
+
+Ltac hstep := first [rewrite interp_helix_MemSet | rewrite interp_helix_MemLU; cycle 1 | idtac].
+
+Ltac vred := vred_r.
+Ltac hvred := hred; vred_r.
+
+Require Import LibHyps.LibHyps.
+
+Ltac clean_goal :=
+  try match goal with
+      | h1 : incVoid _ ≡ _,
+             h2 : incVoid _ ≡ _,
+                  h3 : incVoid _ ≡ _
+        |- _ => move h1 at top; move h2 at top; move h3 at top
+      | h1 : incVoid _ ≡ _, h2 : incVoid _ ≡ _ |- _ => move h1 at top; move h2 at top
+      | h : incVoid _ ≡ _ |- _ => move h at top
+      end;
+
+  try match goal with
+      | h1 : incLocal _ ≡ _,
+             h2 : incLocal _ ≡ _,
+                  h3 : incLocal _ ≡ _
+        |- _ => move h1 at top; move h2 at top; move h3 at top
+      | h1 : incLocal _ ≡ _, h2 : incLocal _ ≡ _ |- _ => move h1 at top; move h2 at top
+      | h : incLocal _ ≡ _ |- _ => move h at top
+      end;
+
+  try match goal with
+      | h1 : incBlockNamed _ _ ≡ _,
+             h2 : incBlockNamed _ _ ≡ _,
+                  h3 : incBlockNamed _ _ ≡ _
+        |- _ => move h1 at top; move h2 at top; move h3 at top
+      | h1 : incBlockNamed _ _ ≡ _, h2 : incBlockNamed _ _ ≡ _ |- _ => move h1 at top; move h2 at top
+      | h : incBlockNamed _ _ ≡ _ |- _ => move h at top
+      end;
+
+  onAllHyps move_up_types.

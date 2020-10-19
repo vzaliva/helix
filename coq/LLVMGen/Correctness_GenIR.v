@@ -5,6 +5,7 @@ Require Import Helix.LLVMGen.Correctness_MExpr.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.StateCounters.
 Require Import Helix.LLVMGen.VariableBinding.
+Require Import Helix.LLVMGen.StateInvariant.
 
 Import ListNotations.
 
@@ -24,94 +25,16 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     | (m,(l,(g,res))) => exists from, res ≡ inl (from, to)
     end.
 
-  Definition freshness (s1 s2 : IRState) (l1 : local_env) : config_cfg -> Prop :=
-    fun '(_, (l2, _)) =>
-      l1 ⊑ l2 /\
-      (forall id v, alist_In id l1 v -> ~(lid_bound_between s1 s2 id)) /\
-      (forall id v, alist_In id l2 v -> ~(alist_In id l1 v) -> lid_bound_between s1 s2 id).
+  Definition GenIR_Rel σ (s1 s2 : IRState) (l : local_env) to : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
+    lift_Rel_cfg (new_state_invariant σ s1 s2 l) ⩕ branches to. 
 
-  Record new_state_invariant (σ : evalContext) (s1 s2 : IRState) (l1 : local_env) (memH : memoryH) (configV : config_cfg) : Prop :=
-    {
-    mem_is_inv : memory_invariant σ s2 memH configV ;
-    IRState_is_WF : WF_IRState σ s2 ;
-    incLocal_is_fresh : freshness s1 s2 l1 configV
-    }.
-
-  Definition GenIR_Rel σ (s1 s2 : IRState) (l1 : local_env) to : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
-    lift_Rel_cfg (new_state_invariant σ s1 s2 l1) ⩕ branches to. 
+  Definition GenIR_Rel' σ (s : IRState) to : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
+    lift_Rel_cfg (state_invariant σ s) ⩕ branches to. 
 
 
   Hint Resolve state_invariant_incBlockNamed : state_invariant.
   Hint Resolve state_invariant_incLocal : state_invariant.
   Hint Resolve state_invariant_incVoid : state_invariant.
-
-  Lemma freshness_ss_ρ :
-    forall (s : IRState) (ρ : local_env) (memV : memoryV) (g : global_env),
-      freshness s s ρ (memV, (ρ, g)).
-  Proof.
-    intros s ρ memV g.
-    unfold freshness.
-    split; try reflexivity.
-    split.
-    - intros id v H.
-      intros B.
-      unfold lid_bound_between in B.
-      unfold state_bound_between in B.
-      destruct B as (name & s' & s'' & NENDW & COUNT1 & COUNT2 & NAME).
-      lia.
-    - intros id v H.
-      intros B.
-      contradiction.
-  Qed.
-
-  Lemma alist_In_dec :
-    forall {K V} `{RelDec K} `{RelDec v} (id : K) (l : alist K V) (v : V),
-      {alist_In id l v} + {~(alist_In id l v)}.
-  Proof.
-  Admitted.
-
-  Lemma freshness_split :
-    forall (s1 s2 s3 : IRState)
-      (l1 l2 l3 : local_env)
-      (g1 g2 : global_env)
-      (memV1 memV2 : memoryV),
-      freshness s2 s3 l1 (memV1, (l2, g1)) ->
-      freshness s1 s2 l2 (memV2, (l3, g2)) ->
-      (local_count s1 <= local_count s2)%nat ->
-      (local_count s3 ≥ local_count s2)%nat ->
-      freshness s1 s3 l1 (memV2, (l3, g2)).
-  Proof.
-    intros s1 s2 s3 l1 l2 l3 g1 g2 memV1 memV2 FRESH1 FRESH2 COUNTS1S2 COUNTS3S2.
-    unfold freshness.
-    destruct FRESH1 as (L1L2 & NBOUND1 & BOUND1).
-    destruct FRESH2 as (L2L3 & NBOUND2 & BOUND2).
-    split.
-    - rewrite L1L2. auto.
-    - split.
-      + intros id v IN.
-        intros B.
-
-        (* If id is in l1, then it should be bound before s1 *)
-        (* destruct FRESH3 as (L1L1 & NBOUND3 & BOUND3). *)
-
-        (* can't be between s2 and s3 *)
-        pose proof (NBOUND1 _ _ IN).
-        
-        (* l2 extends l1, and nothing in l2 can be bound between s1 and s2 *)
-        eapply L1L2 in IN.
-        pose proof (NBOUND2 _ _ IN).
-
-        (* Thus any id in l1 can't be bound between s1 and s3... *)
-        eapply not_state_bound_between_split; eauto.
-      + intros id v IN NIN.
-        pose proof (alist_In_dec id l2 v) as [INL2 | NINL2].
-        * eapply state_bound_between_shrink.
-          eapply BOUND1.
-          all: eauto.
-        * eapply state_bound_between_shrink.
-          eapply BOUND2.
-          all: eauto.
-  Qed.
 
   Lemma state_invariant_genNExpr :
     forall exp s1 s2 e c σ memH conf,
@@ -503,7 +426,40 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   Qed.
   Opaque interp_helix interp_Mem.
 
-  Opaque denote_code.
+  Import ProofMode.
+  Notation "'gep' τ e" := (OP_GetElementPtr τ e) (at level 10, only printing).
+  Notation "'double'" := (DTYPE_Double) (at level 10, only printing).
+  Notation "'arr'" := (DTYPE_Array) (at level 10, only printing).
+  Notation "'to_nat'" := (MInt64asNT.to_nat) (only printing).
+
+  Variant hidden_cont  (T: Type) : Type := boxh_cont (t: T).
+  Variant visible_cont (T: Type) : Type := boxv_cont (t: T).
+  Ltac hide_cont :=
+    match goal with
+    | h : visible_cont _ |- _ =>
+      let EQ := fresh "HK" in
+      destruct h as [EQ];
+      apply boxh_cont in EQ
+    | |- context[ITree.bind _ ?k] =>
+      remember k as K eqn:VK;
+      apply boxh_cont in VK
+    end.
+  Ltac show_cont :=
+    match goal with
+    | h: hidden_cont _ |- _ =>
+      let EQ := fresh "VK" in
+      destruct h as [EQ];
+      apply boxv_cont in EQ
+    end.
+  Notation "'hidden' K" := (hidden_cont (K ≡ _)) (only printing, at level 10).
+  Ltac subst_cont :=
+    match goal with
+    | h: hidden_cont _ |- _ =>
+      destruct h; subst
+    | h: visible_cont _ |- _ =>
+      destruct h; subst
+    end.
+  
   Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
       (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH) 
@@ -521,34 +477,20 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     intros s1 s2 op; revert s1 s2; induction op; intros * NEXT BISIM NOFAIL GEN.
     - cbn* in *.
       simp.
-      hide_strings'.
-      cbn*; rauto:L.
+      cbn*.
+      hvred.
+      vjmp.
+      (* TODO :( *)
+      unfold fmap, Fmap_block; cbn.
+      vred.
+      vred.
+      vred.
+      vred.
 
-      rewrite add_comments_eutt.
-      rewrite denote_bks_unfold_in.
-      2: {
-        cbn.
-
-        assert ((if Eqv.eqv_dec_p bid_in bid_in then true else false) ≡ true).
-        admit.
-        rewrite H.
-
-        auto.
-      }
-
-      cbn*; rauto:R.
-      cbn*; rauto:R.
-      cbn*; rauto:R.
-
-      rewrite denote_term_br_1.
-      cbn*; rauto:R.
-      
-      rewrite denote_bks_unfold_not_in.
-      2 : {
-        inversion EQ_msg; subst.
-        (* We know nextblock ≢ bid_in *)
-        cbn in NEXT.
-        cbn.
+      rewrite denote_bks_unfold_not_in; cycle 1.
+      {
+        (* TODO: auto and part of vjmp_out *)
+        rewrite find_block_ineq; [apply find_block_nil | cbn].
 
         assert (nextblock ≢ bid_in).
         {
@@ -567,21 +509,50 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
           block_count_replace. lia.
           solve_not_ends_with.
         }
-
-        (* Should be able to rewrite this to false and show equivalence *)
-        admit.
+        auto.
       }
+      vred.
 
-      rauto:R.
-      apply eqit_Ret; auto.      
-      (* solve_gen_ir_rel. *)
-      (* destruct BISIM as (STATE & (from & BRANCH)). *)
-      (* cbn in STATE, BRANCH. *)
-      (* split; cbn; eauto. *)
-      (* eapply state_invariant_incVoid; eauto. *)
-      (* eapply state_invariant_incBlockNamed; eauto. *)
-      admit.
-    - (* Assign case.
+      apply eutt_Ret; auto.
+      destruct BISIM as (STATE & (from & BRANCH)).
+      cbn in STATE, BRANCH.
+      split; cbn; eauto.
+
+      (* I have:
+
+         new_state_invariant σ s1 s1 ρ memH (memV, (ρ, g))
+
+         But now I have a new state that is the result of doing
+         incVoid / incBlockNamed etc, and I want to know that my new
+         state has a valid state invariant as well.
+
+         new_state_invariant σ s1 s2 ρ memH (memV, (ρ, g))
+
+         But, my state invariant is not actually strong enough to
+         conclude this alone, because I don't have a high water mark.
+
+       *)
+
+      (* TODO *)
+      (* This should actually hold here because the local_count does
+      not change, so after unfolding new_state_invariant it should be
+      the same as STATE *)
+
+
+      (* YZ TODO: move to prelude *)
+      Ltac solve_state_invariant :=
+        cbn;
+        match goal with
+          |- state_invariant _ _ _ _ =>
+          first [eassumption |
+                 eapply state_invariant_add_fresh; [eassumption | solve_state_invariant] |
+                 eapply state_invariant_incVoid; [eassumption | solve_state_invariant] |
+                 eapply state_invariant_incBlockNamed; [eassumption | solve_state_invariant]
+                ]
+        end.
+
+      admit. (* solve_state_invariant. *)
+    - (* ** DSHAssign (x_p, src_e) (y_p, dst_e):
          Helix side:
          1. x_i <- evalPExpr σ x_p ;;
          2. y_i <- evalPExpr σ y_p ;;
@@ -591,244 +562,139 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
          6. dst <- evalNExpr σ dst_e ;;
          7. v <- mem_lookup_err "Error looking up 'v' in DSHAssign" (to_nat src) x ;;
          8. ret (memory_set mem y_i (mem_add (to_nat dst) v y))
+
+         Vellm side:
+         src_nexpcode ++
+         dst_nexpcode ++
+         px <- gep "src_p"[src_nexpr] ;;
+         v  <- load px ;;
+         py <- gep "dst_p"[dst_nexpr] ;;
+         store v py
        *)
-      destruct BISIM as [BISIM1 BISIM2].
+      destruct BISIM as [BISIM1 [_bid EQ]]; inv EQ.
       cbn* in *; simp.
-      rename i into si, i2 into si',
-      i0 into x, i3 into y,
-      i1 into v1, i4 into v2.
+      hide_cfg.
       inv_resolve_PVar Heqs0.
       inv_resolve_PVar Heqs1.
-      (* Require Import LibHyps.LibHyps. *)
-      (* onAllHyps move_up_types. *)
-
-      eutt_hide_right.
-      rename n1 into x_p, n2 into y_p.
       unfold denotePExpr in *; cbn* in *.
-      simp; try_abs.
-      apply no_failure_Ret in NOFAIL; try_abs.
+      simp. Time all:try_abs.
+      all: apply no_failure_Ret in NOFAIL; try_abs.
+      clean_goal.
       repeat apply no_failure_Ret in NOFAIL.
-      (* edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.  *)
-      (* edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.  *)
+      edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
+      edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
+      rename s1 into si, s2 into sf,
+      i5 into s1, i6 into s2,
+      i8 into s3, i10 into s4,
+      i11 into s5, i12 into s6,
+      i13 into s7.
+      rename n1 into x_p, n2 into y_p.
+      rename a into x_i, a0 into y_i.
+      rename x0 into y.
+      clean_goal.
 
-      (* eutt_hide_right. *)
-      (* rauto. *)
-      (* 2,3: eauto. *)
-      (* subst. *)
+      hred.
+      hstep; [eauto |].
+      hred; hstep; [eauto |].
+      hred.
 
-      (* subst; eutt_hide_left. *)
-      (* unfold add_comments. *)
-      (* cbn*. *)
-      (* rewrite denote_bks_unfold_in; eauto. *)
-      (* 2: rewrite find_block_eq; reflexivity. *)
-      (* cbn*. *)
-      (* repeat rewrite fmap_list_app. *)
-      (* rauto:R. *)
-      (* cbn. *)
-      (* rauto:R. *)
-      (* rewrite denote_code_app. *)
-      (* rauto:R. *)
-      (* subst. *)
-      (* focus_single_step. *)
-      (* rename x into x_p', y into y_p'. *)
-      (* rename n into src_e, n0 into dst_e. *)
+      subst; eutt_hide_left.
+      vjmp.
+      unfold fmap, Fmap_block; cbn.
+      vred.
+      vred.
+      vred.
 
-      (* (* Step 5. *) *)
-      (* eapply eutt_clo_bind_returns; [eapply genNExpr_correct |..]; eauto. *)
-      (* eauto 7 with state_invariant. *)
-      (* introR; destruct_unit. *)
-      (* intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET. *)
-      (* cbn in PRE; destruct PRE as (INV1 & EXP1 & ?); cbn in *; inv_eqs. *)
+      (* Step 5. *)
+      subst; eapply eutt_clo_bind_returns; [eapply genNExpr_correct_ind |..]; eauto.
+      eauto 7 with state_invariant.
+      introR; destruct_unit.
+      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
+      cbn in PRE; destruct PRE as (INV1 & EXP1 & ?); cbn in *; inv_eqs.
+      hvred.
 
-      (* subst. *)
+      (* Step 6. *)
+      eapply eutt_clo_bind_returns; [eapply genNExpr_correct_ind |..]; eauto.
+      introR; destruct_unit.
+      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
+      cbn in PRE; destruct PRE as (INV2 & EXP2 & ?); cbn in *; inv_eqs.
+      hvred.
+      break_inner_match_hyp; break_inner_match_hyp; try_abs.
+      2: apply no_failure_Ret in NOFAIL; try_abs.
+      destruct_unit.
 
-      (* rewrite denote_code_app. *)
-      (* rauto. *)
-      (* focus_single_step. *)
+      rename vH into src, vH0 into dst, b into v.
+      clean_goal.
+      (* Step 7. *)
+      hvred.
+      hstep.
+      unfold assert_NT_lt,assert_true_to_err in *; simp.
+      hide_cont.
+      clear NOFAIL.
+      rename i1 into vsz.
+      rename i0 into vx_p, i3 into vy_p.
+      rename e into esrc.
+      clean_goal.
 
-      (* (* Step 6. *) *)
-      (* eapply eutt_clo_bind_returns; [eapply genNExpr_correct |..]; eauto. *)
-      (* introR; destruct_unit. *)
-      (* intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET. *)
-      (* cbn in PRE; destruct PRE as (INV2 & EXP2 & ?); cbn in *; inv_eqs. *)
-      
-      (* subst. *)
-      (* simp; try_abs. *)
-      (* apply no_failure_Ret in NOFAIL; try_abs. *)
+      (* Question 1: is [vx_p] global, local, or can be either? *)
+      (* We access in memory vx_p[e] *)
+      edestruct memory_invariant_Ptr as (membk & ptr & LU & INLG & GETCELL); [| eauto | eauto |]; eauto.
+      rewrite LU in H; symmetry in H; inv H.
+      specialize (GETCELL _ _ Heqo1).
+      clean_goal.
+      (* I find some pointer either in the local or global environment *)
+      destruct vx_p as [vx_p | vx_p]; cbn in INLG.
+      {
+        edestruct denote_instr_gep_array as (ptr' & READ & EQ); cycle -1; [rewrite EQ; clear EQ | ..]; cycle 1.
+        3:apply GETCELL.
+        { vstep; solve_lu; reflexivity. }
+        { rewrite EXP1; auto.
+          Set Printing Implicit.
+          cbn. 
+          (* replace (repr (Z.of_nat (MInt64asNT.to_nat src))) with src by admit. *)
+          (* reflexivity. *)
+          admit.
+        }
+        clear EXP1.
+        clean_goal.
+          
+        subst_cont; vred.
+        vred.
+        (* load *)
+        vstep.
+        { vstep; solve_lu. }
+        vred.
+        hide_cont.
+        (* destruct vy_p as [vy_p | vy_p]. *)
+        (* {  *)
+        (*   edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |]. *)
+        (*   clean_goal. *)
+        (*   rewrite yLU in H0; symmetry in H0; inv H0. *)
+        (*   cbn in yINLG. *)
+        (*   (* How do we know that ymembk is allocated? *)
+        (*      yGETCELL does not contain any information here. *)
+        (*    *) *)
+        (*   (* Oooh we don't, we're using [gep] but not for reading a cell here? *)
+        (*      Not true though, the cell must be allocated, we are about to write in it. *)
+        (*      We need another lemma about [OP_GetElementPtr] then. *)
+        (*    *) *)
+        (*   (* edestruct denote_instr_gep_array as (yptr' & yREAD & yEQ); cycle -1; [rewrite yEQ; clear yEQ | ..]; cycle 1. *) *)
+        (*   (* { vstep; solve_lu. *) *)
+        (*   (*   cbn; reflexivity. *) *)
+        (*   (* } *) *)
+        (*   (* { rewrite EXP2. *) *)
+        (*   (*   2:{ cbn. etransitivity. apply sub_alist_add. *) *)
+        (*   (*       2: apply sub_alist_add. *) *)
+        (*   (*       admit. admit. *) *)
+        (*   (*   } *) *)
+        (*   (*   replace (repr (Z.of_nat (MInt64asNT.to_nat dst))) with dst by admit. *) *)
+        (*   (*   cbn; reflexivity. *) *)
 
-      (* (* Step 7. *) *)
-      (* eutt_hide_right. *)
-      (* rauto. *)
-      (* rewrite interp_helix_MemSet. *)
-      (* subst. *)
-      (* rauto:R. *)
-      (* focus_single_step_v. *)
-      (* eutt_hide_left. *)
-      
+        (*   (* } *) *)
+        (*   (* eapply yGETCELL. *) *)
+        admit. }
       admit.
-
-
-      (* edestruct EXP1 as (EQ1 & EQ1'); [reflexivity |]. *)
-      (* rewrite EQ1' in Heqs11; inv Heqs11. *)
-      (* rewrite Heqo0. *)
-      (* eutt_hide_right. *)
-
-      (* assert (i2 ≡ dst). *)
-      (* { unfold genNExpr_exp_correct in EXP2. *)
-      (*   assert (ρ2 ⊑ ρ2) as LL by reflexivity. *)
-      (*   specialize (EXP2 _ LL) as (EXP2_EUTT & EXP2_EVAL). *)
-      (*   rewrite EXP2_EVAL in Heqs12. *)
-      (*   inversion Heqs12. *)
-      (*   auto. *)
-      (* } *)
-      (* subst. *)
-
-      (* Set Nested Proofs Allowed. *)
-      (* Lemma assert_NT_lt_success : *)
-      (*   forall {s1 s2 x y v}, *)
-      (*     assert_NT_lt s1 x y ≡ inr v -> *)
-      (*     assert_NT_lt s2 x y ≡ inr v. *)
-      (* Proof. *)
-      (*   intros s1 s2 x y v H. *)
-      (*   unfold assert_NT_lt in *. *)
-      (*   destruct ((MInt64asNT.to_nat x <? MInt64asNT.to_nat y)%nat); inversion H. *)
-      (*   cbn in *. subst. *)
-      (*   auto. *)
-      (* Qed. *)
-
-      (* rewrite (assert_NT_lt_success Heqs13). *)
-      (* (* I am looking up an ident x, for which I find the type `TYPE_Pointer (TYPE_Array sz TYPE_Double)` *)
-      (*    in my typing context. *)
-      (*    Can it be a global? *)
-      (*  *) *)
-
-      (* (* onAllHyps move_up_types. *) *)
-      (* subst; focus_single_step_v; eutt_hide_left. *)
-      (* unfold endo, Endo_ident. *)
-
-      (* destruct x_p' as [x_p' | x_p']; [admit |]; *)
-      (*   destruct y_p' as [y_p' | y_p']; cbn; [admit |]. *)
-      (* subst; focus_single_step_v; eutt_hide_left. *)
-      (* edestruct memory_invariant_LLU_Ptr as (bk_x & ptr_x & LUx & INLGx & VEC_LUx); [| exact LUn | exact Heqo |]; eauto. *)
-      (* rewrite LUx in Heqo2; symmetry in Heqo2; inv Heqo2. *)
-      (* edestruct memory_invariant_LLU_Ptr as (bk_y & ptr_y & LUy & INLGy & VEC_LUy); [| exact LUn0 | eassumption |]; eauto. *)
-      (* rewrite LUy in Heqo1; symmetry in Heqo1; inv Heqo1. *)
-
-      (* focus_single_step_v; rauto:R. *)
-
-    (*   2: apply MONO2, MONO1; eauto. *)
-    (*   cbn; norm_v. *)
-    (*   subst; focus_single_step_v; norm_v. *)
-    (*   unfold IntType; rewrite typ_to_dtyp_I; cbn. *)
-    (*   subst; focus_single_step_v; norm_v. *)
-    (*   subst; focus_single_step_v; norm_vD. *)
-    (*   focus_single_step_v. *)
-
-    (*   destruct (EXP1 ρ2) as [EQe ?]; auto. *)
-    (*   rewrite <- EQe. *)
-    (*   norm_v. *)
-    (*   subst; focus_single_step_v; norm_vD. *)
-    (*   cbn. *)
-
-    (*   rename i into index, v1 into size_array. *)
-    (*   unfold ITree.map. *)
-    (*   norm_v. *)
-
-    (*   rewrite exp_E_to_instr_E_Memory, subevent_subevent. *)
-    (*   rewrite typ_to_dtyp_D_array. *)
-
-    (*   cbn in *. *)
-
-    (*   (* onAllHyps move_up_types. *) *)
-
-    (*   match goal with *)
-    (*     |- context[interp_cfg_to_L3 ?defs (@ITree.trigger ?E _ (subevent _ (GEP (DTYPE_Array ?size ?t) (DVALUE_Addr ?a) _)))] => *)
-    (*     edestruct (@interp_cfg_to_L3_GEP_array defs t a size g ρ2) as (add & ?EQ & READ); eauto *)
-    (*   end. *)
-
-    (*   assert (EQindex: Integers.Int64.repr (Z.of_nat (MInt64asNT.to_nat index)) ≡ index) by admit. *)
-    (*   rewrite EQindex in *. *)
-    (*   rewrite EQ. *)
-
-    (*   norm_v. *)
-    (*   cbn. *)
-    (*   subst; cbn; norm_v. *)
-    (*   focus_single_step_v. *)
-    (*   rewrite interp_cfg_to_L3_LW. *)
-    (*   cbn*; norm_v. *)
-    (*   subst; simpl; norm_v. *)
-    (*   focus_single_step_v. *)
-    (*   cbn; norm_v. *)
-    (*   subst; cbn; norm_v. *)
-    (*   focus_single_step_v. *)
-
-    (*   2: apply lookup_alist_add_eq. *)
-    (*   cbn*; norm_v. *)
-    (*   subst; cbn; norm_v; focus_single_step_v. *)
-    (*   rewrite interp_cfg_to_L3_Load. *)
-    (*   2: rewrite typ_to_dtyp_D; eassumption. *)
-    (*   norm_v. *)
-    (*   subst; cbn; norm_v; focus_single_step_v. *)
-    (*   rewrite interp_cfg_to_L3_LW. *)
-    (*   cbn; norm_v. *)
-    (*   subst; cbn; norm_v. *)
-
-    (*   2:{ *)
-    (*     unfold endo. *)
-    (*     assert (y_p' <> r1) by admit. *)
-    (*     assert (y_p' <> r) by admit. *)
-    (*     setoid_rewrite lookup_alist_add_ineq; eauto. *)
-    (*     setoid_rewrite lookup_alist_add_ineq; eauto. *)
-    (*     cbn in *. *)
-    (*     apply MONO2, MONO1; eauto. *)
-    (*   } *)
-    (*   cbn. *)
-    (*   subst. *)
-    (*   unfold IntType;rewrite !typ_to_dtyp_I. *)
-    (*   focus_single_step_v; norm_v. *)
-    (*   subst; cbn; norm_v. *)
-    (*   focus_single_step_v. *)
-
-    (*   match goal with *)
-    (*     |- eutt _ _ (ITree.bind (_ (interp_cfg _ _ ?l _)) _) => destruct (EXP2 l) as [EQe' ?]; auto *)
-    (*   end. *)
-    (*   rewrite <- sub_alist_add. *)
-    (*   apply sub_alist_add. *)
-    (*   rename r into foo. *)
-    (*   (* Freshness, easy todo *) *)
-    (*   admit. *)
-    (*   admit. *)
-
-    (*   rewrite <- EQe'. *)
-    (*   norm_v. *)
-    (*   subst; cbn*; norm_v. *)
-    (*   focus_single_step_v. *)
-    (*   norm_v; subst; focus_single_step_v. *)
-    (*   norm_v; subst; focus_single_step_v. *)
-    (*   cbn; unfold ITree.map. *)
-    (*   norm_v; subst; focus_single_step_v. *)
-    (*   rewrite exp_E_to_instr_E_Memory, subevent_subevent. *)
-    (*   rewrite typ_to_dtyp_D_array. *)
-
-    (*   Set Hyps Limit 50. *)
-
-    (*   (* Need another GEP lemma? *)
-    (*      The destination is not read on the Helix side, so that I do not know that the GEP succeeds *)
-    (*    *) *)
-
-    (*   (* *)
-    (*   match goal with *)
-    (*     |- context[interp_cfg_to_L3 ?defs (@ITree.trigger ?E _ (subevent _ (GEP (DTYPE_Array ?size ?t) (DVALUE_Addr ?a) _))) ?g ?l] => *)
-    (*     edestruct (@interp_cfg_to_L3_GEP_array defs t a size g l) as (add' & ?EQ & READ'); eauto *)
-    (*   end. *)
-
-    (*   eapply VEC_LUy. *)
-    (*    *) *)
-
-    (*     admit. *)
-    (* (* End of genFSHAssign, things are getting a bit complicated *) *)
-
-      admit. admit.
+>>>>>>> master
     -
       Opaque genWhileLoop.
       cbn* in *.
@@ -842,8 +708,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       inv_resolve_PVar Heqs1.
       cbn* in *.
       simp.
-      (* Require Import LibHyps.LibHyps. *)
-      (* onAllHyps move_up_types. *)
 
       eutt_hide_right.
       repeat apply no_failure_Ret in NOFAIL.

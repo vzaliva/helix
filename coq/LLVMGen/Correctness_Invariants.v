@@ -637,6 +637,42 @@ Proof.
     eapply FRESH; eauto with arith.
 Qed.
 
+
+Lemma incLocalNamed_Γ:
+  forall s s' msg id,
+    incLocalNamed msg s ≡ inr (s', id) ->
+    Γ s' ≡ Γ s.
+Proof.
+  intros; cbn in *; inv_sum; reflexivity.
+Qed.
+
+Lemma incLocalNamed_local_count: forall s s' msg x,
+    incLocalNamed msg s ≡ inr (s',x) ->
+    local_count s' ≡ S (local_count s).
+Proof.
+  intros; cbn in *; inv_sum; reflexivity.
+Qed.
+
+Lemma state_invariant_incLocalNamed :
+  forall σ msg s s' k memH stV,
+    incLocalNamed msg s ≡ inr (s', k) ->
+    state_invariant σ s memH stV ->
+    state_invariant σ s' memH stV.
+Proof.
+  intros * INC [MEM_INV WF FRESH].
+  split.
+  - red; repeat break_let; intros * LUH LUV.
+    erewrite incLocalNamed_Γ in LUV; eauto.
+    generalize LUV; intros INLG;
+      eapply MEM_INV in INLG; eauto. 
+  - unfold WF_IRState; erewrite incLocalNamed_Γ; eauto; apply WF.
+  - red; repeat break_let; intros ? ? ? LU INEQ.
+    clear MEM_INV WF.
+    erewrite incLocalNamed_local_count in INEQ; eauto.
+    eapply FRESH; eauto with arith.
+Qed.
+
+
 Lemma incBlockNamed_Γ:
   forall s s' msg id,
     incBlockNamed msg s ≡ inr (s', id) ->
@@ -691,6 +727,49 @@ Proof.
   inv Heqi0.
   unfold equiv, MInt64asNT.NTypeEquiv, Int64.eq, Int64.unsigned, Int64.intval.
   (* apply Coqlib.zeq_true. *)
-(* Qed. *)
+  (* Qed. *)
 Admitted.
+
+Lemma state_invariant_alist_fresh:
+  forall σ s s' memH memV l g id,
+    state_invariant σ s memH (memV, (l,g)) ->
+    incLocal s ≡ inr (s',id) ->
+    alist_fresh id l.
+Proof.
+  intros * [] LOC.
+  apply concrete_fresh_fresh in incLocal_is_fresh0.
+  eapply incLocal_is_fresh0; eauto.
+Qed.
+
+Hint Resolve memory_invariant_ext_local: core.
+
+Ltac solve_alist_in := first [apply In_add_eq | idtac].
+Ltac solve_lu :=
+  (try now eauto);
+  match goal with
+  | |- @Maps.lookup _ _ local_env _ ?id ?l ≡ Some _ =>
+    eapply memory_invariant_LLU; [| eassumption | eassumption]; eauto
+  | h: _ ⊑ ?l |- @Maps.lookup _ _ local_env _ ?id ?l ≡ Some _ =>
+    eapply h; solve_lu
+  | |- @Maps.lookup _ _ global_env _ ?id ?l ≡ Some _ =>
+    eapply memory_invariant_GLU; [| eassumption | eassumption]; eauto
+  | _ => solve_alist_in
+  end.
+
+Ltac solve_state_invariant :=
+  cbn;
+  match goal with
+    |- state_invariant _ _ _ (_, (alist_add _ _ _, _)) =>
+    eapply state_invariant_add_fresh; [now eauto | (eassumption || solve_state_invariant)]
+  end.
+
+Ltac solve_alist_fresh :=
+  (reflexivity ||
+   eapply state_invariant_alist_fresh; now eauto).
+
+Ltac solve_sub_alist :=
+  (reflexivity
+   || (apply sub_alist_add; solve_alist_fresh)
+   || (etransitivity; eauto; []; solve_sub_alist)
+  ).
 

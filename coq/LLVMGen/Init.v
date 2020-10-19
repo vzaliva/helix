@@ -837,26 +837,30 @@ Qed.
 Definition in_global_addr (g : global_env) (x : raw_id) (a : Addr.addr) := 
   g @ x ≡ Some (DVALUE_Addr a).
 
+Definition allocated_xy (memV : memoryV) (g : global_env) :=
+  exists ptr0 ptr1,
+      allocated ptr0 memV
+    /\ allocated ptr1 memV
+    /\ in_global_addr g (Anon 0%Z) ptr0
+    /\ in_global_addr g (Anon 1%Z) ptr1.
+
+Definition allocated_globals
+           (memV : memoryV)
+           (g : global_env)
+           (globals : list (string * DSHType))
+  :=
+    forall j (jc : j < length globals),
+    exists ptr_llvm,
+      allocated ptr_llvm memV
+      /\ in_global_addr g (Name (fst (ListUtil.ith jc))) ptr_llvm.
+ 
+(* ZX TODO: consider checking [forall i, globals[i] ~~~ σ[i]] *)
 Definition post_alloc_invariant_mcfg
            (globals : list (string * DSHType))
-           (σ : evalContext)
-           (k : nat)
   : Rel_mcfg_T unit unit :=
-  fun '(memH,_) '(memV,((_,sl),(g,_))) =>
-    forall j (jc : j < k),
-    exists ptr_llvm,
-      match le_lt_dec (length globals) j with
-      | in_left => in_global_addr
-                    g
-                    (Anon (Z.of_nat (j - length globals)))
-                    ptr_llvm
-      | right jc' => in_global_addr
-                      g
-                      (Name (fst (ListUtil.ith jc')))
-                      ptr_llvm
-      end
-      /\
-      allocated ptr_llvm memV.
+  fun _ '(memV, (_, (g, _))) =>
+    allocated_xy memV g /\
+    allocated_globals memV g globals.
 
 Lemma allocate_allocated (m1 m2 : memoryV) (d : dtyp) (a : Addr.addr) :
   allocate m1 d ≡ inr (m2, a) → allocated a m2.
@@ -1600,7 +1604,8 @@ Proof.
             DSHPtrVal (Datatypes.length globals) i])
     as σ.
   remember (Datatypes.length globals) as lg.
-  apply eutt_clo_bind with (UU:=post_alloc_invariant_mcfg globals σ (length σ)).
+
+  apply eutt_clo_bind with (UU:=post_alloc_invariant_mcfg globals).
   -
     assert (TMP_EQ: eutt
              (fun '(m,_) '(m',_) => m = m')
@@ -1614,19 +1619,24 @@ Proof.
 
     eapply eutt_weaken_left; [| exact TMP_EQ |]; clear TMP_EQ.
     {
-      clear.
-      intros [?m []] [?m' []] (? & [? ?] & ? & []).
-      cbn; intros H EQ j x; specialize (H j x).
-      simp; auto.
+      intros (?, ?) (?, ?) (? & [? ?] & ? & []).
+      now cbn.
     }
 
     rewrite interp_to_L3_bind.
     cbn.
 
+    remember (fun globals => (fun _ '(memV, (_, (g, _))) =>
+                             allocated_globals memV g globals) : Rel_mcfg_T () ())
+      as allocated_globals_mcfg.
+
     apply eutt_clo_bind
-      with (UU:=post_alloc_invariant_mcfg globals e (length e)).
+      with (UU:=allocated_globals_mcfg globals).
     + 
       subst.
+      remember (fun globals => (fun _ '(memV, (_, (g, _))) =>
+                               allocated_globals memV g globals) : Rel_mcfg_T () ())
+        as allocated_globals_mcfg.
 
       fold_map_monad_.
 
@@ -1651,11 +1661,10 @@ Proof.
             init_with_data initOneIRGlobal
                            global_uniq_chk l' post s' ≡ inr (s1, (l2, gdecls2)) ->
 
-            post_alloc_invariant_mcfg pre e (length pre)
-                                      (mg, ())
+            allocated_globals_mcfg pre (mg, ())
                                       (m, (le0, stack0, (g, ()))) ->
 
-            eutt (post_alloc_invariant_mcfg (pre ++ post) e (length (pre ++ post)))
+            eutt (allocated_globals_mcfg (pre ++ post))
                  (Ret (mg, ()))
                     (interp_mcfg
                        (map_monad_ allocate_global
@@ -1668,8 +1677,13 @@ Proof.
         destruct LG as (l' & s' & gdecls1 & gdecls2 & PRE & POST & GDECLS).
         specialize (H0 [] globals gdecls1 gdecls2 s' l').
         full_autospecialize H0; try congruence.
-        1: cbn; intros; lia.
-        replace (length e) with (length ([] ++ globals)) by congruence.
+        {
+          subst.
+          unfold allocated_globals.
+          intros.
+          cbn in jc.
+          lia.
+        }
         inv PRE.
         apply H0.
       }
@@ -1680,12 +1694,38 @@ Proof.
       *
         inv POST.
         cbn.
-        admit.
-        (* repeat rewrite interp_to_L3_bind, translate_bind.
-        repeat rewrite interp_to_L3_ret, translate_ret. *)
+        rewrite interp_to_L3_bind.
+        rewrite interp_to_L3_ret.
+        rewrite Eq.bind_ret_l.
+        rewrite interp_to_L3_ret.
+        apply eutt_Ret.
+        now rewrite app_nil_r.
       *
+        cbn in POST.
+        repeat break_match_hyp; try inl_inr.
+        inversion POST; clear POST.
+        rename l5 into gdecls2', t0 into g2';
+          subst gdecls2.
+        subst p p0 p1 p2 p3.
+        subst i2 l4.
+        
         rewrite <-ListUtil.list_app_first_last in *.
+        replace (g2' :: gdecls2')
+          with ([g2'] ++ gdecls2')
+          in *
+          by reflexivity.
+        rewrite flat_map_app.
+        rewrite map_app.
+        rewrite map_monad_app_.
+        simpl.
+        rewrite app_nil_r.
+
+        rewrite interp_to_L3_bind.
+        
+        (* eapply eutt_clo_bind. *)
         admit.
+
+
 
       (*
       induction globals; intros.
@@ -1928,6 +1968,7 @@ Proof.
       repeat break_let; subst.
       intros.
 
+      (*
       destruct (le_lt_dec (Datatypes.length e) j) as [hj | hj].
       *
         clear H0.
@@ -1991,6 +2032,8 @@ Proof.
         eassumption.
         eassumption.
         eassumption.
+        *)
+      admit.
   -
     intros.
     admit.
