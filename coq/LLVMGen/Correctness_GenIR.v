@@ -564,17 +564,10 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
             apply incVoid_Γ in H
           end.
 
-      Ltac subst_Γ :=
-        repeat
-          match goal with
-          | H: Γ ?s1 ≡ Γ ?s2 |- _ =>
-            rewrite H in *; clear H
-          end.
-
       Ltac solve_Γ :=
         match goal with
         | |- Γ ?s1 ≡ Γ ?s2 =>
-          try solve [get_Γ_hyps; subst_Γ; auto]
+          try solve [get_Γ_hyps; congruence]
         end.
 
       Ltac get_local_count_hyps :=
@@ -586,17 +579,10 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
             apply incVoid_local_count in H
           end.
 
-      Ltac subst_local_count :=
-        repeat
-          match goal with
-          | H: local_count ?s1 ≡ local_count ?s2 |- _ =>
-            rewrite H in *; clear H
-          end.
-
       Ltac solve_local_count :=
         match goal with
         | |- local_count ?s1 ≡ local_count ?s2 =>
-          try solve [get_local_count_hyps; subst_local_count; auto; lia]
+          try solve [get_local_count_hyps; lia]
         end.
 
       solve_Γ.
