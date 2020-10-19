@@ -188,6 +188,33 @@ Qed.
 (*      *) *)
 (* Admitted. *)
 
+(* TODO: Move this *)
+Lemma memory_invariant_Γ :
+  forall σ s1 s2 memH memV ρ g,
+    memory_invariant σ s1 memH (memV, (ρ, g)) ->
+    Γ s1 ≡ Γ s2 ->
+    memory_invariant σ s2 memH (memV, (ρ, g)).
+Proof.
+  intros σ s1 s2 memH memV ρ g MINV GAMMA.
+  unfold memory_invariant in *.
+  rewrite <- GAMMA.
+  auto.
+Qed.
+
+Lemma new_state_invariant_local_count_extend :
+  forall σ s1 s2 s3 memH memV l1 l2 g,
+    new_state_invariant σ s1 s2 l1 memH (memV, (l2, g)) ->
+    Γ s2 ≡ Γ s3 ->
+    local_count s2 ≡ local_count s3 ->
+    new_state_invariant σ s1 s3 l1 memH (memV, (l2, g)).
+Proof.
+  intros σ s1 s2 s3 memH memV l1 l2 g [MINV WF FRESH] COUNT.
+  split.
+  - eapply memory_invariant_Γ; eauto.
+  - eapply WF_IRState_Γ; eauto.
+  - eapply freshness_local_count_extend; eauto.
+Qed.
+
 Lemma new_state_invariant_add_new_id :
   forall σ s1 s2 s3 id memH memV l1 l2 g v,
     new_state_invariant σ s1 s2 l1 memH (memV, (l2, g)) ->

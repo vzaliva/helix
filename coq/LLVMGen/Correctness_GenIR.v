@@ -551,7 +551,56 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
                 ]
         end.
 
-      admit. (* solve_state_invariant. *)
+      eapply new_state_invariant_local_count_extend.
+      eauto.
+
+      (* TODO: move these *)
+      Ltac get_Γ_hyps :=
+        repeat
+          match goal with
+          | H: incBlockNamed ?n ?s1 ≡ inr (?s2, _) |- _ =>
+            apply incBlockNamed_Γ in H
+          | H: incVoid ?s1 ≡ inr (?s2, _) |- _ =>
+            apply incVoid_Γ in H
+          end.
+
+      Ltac subst_Γ :=
+        repeat
+          match goal with
+          | H: Γ ?s1 ≡ Γ ?s2 |- _ =>
+            rewrite H in *; clear H
+          end.
+
+      Ltac solve_Γ :=
+        match goal with
+        | |- Γ ?s1 ≡ Γ ?s2 =>
+          try solve [get_Γ_hyps; subst_Γ; auto]
+        end.
+
+      Ltac get_local_count_hyps :=
+        repeat
+          match goal with
+          | H: incBlockNamed ?n ?s1 ≡ inr (?s2, _) |- _ =>
+            apply incBlockNamed_local_count in H
+          | H: incVoid ?s1 ≡ inr (?s2, _) |- _ =>
+            apply incVoid_local_count in H
+          end.
+
+      Ltac subst_local_count :=
+        repeat
+          match goal with
+          | H: local_count ?s1 ≡ local_count ?s2 |- _ =>
+            rewrite H in *; clear H
+          end.
+
+      Ltac solve_local_count :=
+        match goal with
+        | |- local_count ?s1 ≡ local_count ?s2 =>
+          try solve [get_local_count_hyps; subst_local_count; auto; lia]
+        end.
+
+      solve_Γ.
+      solve_local_count.
     - (* ** DSHAssign (x_p, src_e) (y_p, dst_e):
          Helix side:
          1. x_i <- evalPExpr σ x_p ;;
