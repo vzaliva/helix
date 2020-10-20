@@ -2,6 +2,7 @@ Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.VariableBinding.
+Require Import Helix.LLVMGen.LidBound.
 
 (** ** Extensions to alists *)
 Section AlistExtend.
@@ -245,6 +246,20 @@ Proof.
   rewrite <- GAMMA.
   auto.
 Qed.
+
+Lemma new_state_invariant_WF_IRState :
+  forall σ s1 s2 ρ memH st, new_state_invariant σ s1 s2 ρ memH st -> WF_IRState σ s2.
+Proof.
+  intros * [_ WF _]; auto.
+Qed.
+
+Lemma new_state_invariant_memory_invariant :
+  forall σ s1 s2 ρ memH st, new_state_invariant σ s1 s2 ρ memH st -> memory_invariant σ s2 memH st.
+Proof.
+  intros * [INV _ _]; auto.
+Qed.
+
+Hint Resolve new_state_invariant_memory_invariant new_state_invariant_WF_IRState: core.
 
 Lemma new_state_invariant_local_count_extend :
   forall σ s1 s2 s3 memH memV l1 l2 g,

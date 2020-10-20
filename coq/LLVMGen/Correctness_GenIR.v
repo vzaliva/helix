@@ -641,8 +641,11 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       vred.
 
       (* Step 5. *)
+      subst; eapply eutt_clo_bind_returns; eauto.
+      eapply genNExpr_correct_ind; eauto.
       subst; eapply eutt_clo_bind_returns; [eapply genNExpr_correct_ind |..]; eauto.
       eauto 7 with state_invariant.
+      admit.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       cbn in PRE; destruct PRE as (INV1 & EXP1 & ?); cbn in *; inv_eqs.
@@ -674,6 +677,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       (* Question 1: is [vx_p] global, local, or can be either? *)
       (* We access in memory vx_p[e] *)
       edestruct memory_invariant_Ptr as (membk & ptr & LU & INLG & GETCELL); [| eauto | eauto |]; eauto.
+      admit.
       rewrite LU in H; symmetry in H; inv H.
       specialize (GETCELL _ _ Heqo1).
       clean_goal.
@@ -729,7 +733,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         (*   (* eapply yGETCELL. *) *)
         admit. }
       admit.
->>>>>>> master
     -
       Opaque genWhileLoop.
       cbn* in *.
@@ -1062,7 +1065,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
             apply genIR_Context in GEN_OP1.
             unfold memory_invariant.
             subst_contexts.
-            apply mem_is_inv1.
+            apply mem_is_inv0.
           + apply freshness_ss_ρ.
         - cbn. exists EXP2.
           reflexivity.

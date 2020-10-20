@@ -1,5 +1,6 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
+Require Import Helix.LLVMGen.StateInvariant.
 
 (* Import ProofNotations. *)
 Import ListNotations.
@@ -96,9 +97,9 @@ Section NExpr.
       (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
 
       genNExpr nexp s1 ≡ inr (s2, (e, c))      -> (* Compilation succeeds *)
-      state_invariant σ s1 memH (memV, (l, g)) -> (* The main state invariant is initially true *)
+      new_state_invariant σ s1 s2 l memH (memV, (l, g)) -> (* The main state invariant is initially true *)
       no_failure (interp_helix (E := E_cfg) (denoteNExpr σ nexp) memH) -> (* Source semantics defined *)
-      eutt (succ_cfg (lift_Rel_cfg (state_invariant σ s2) ⩕
+      eutt (succ_cfg (lift_Rel_cfg (new_state_invariant σ s1 s2 l) ⩕
                       genNExpr_rel_ind e memH (mk_config_cfg memV l g)))
            (interp_helix (denoteNExpr σ nexp) memH)
            (interp_cfg (denote_code (convert_typ [] c)) g l memV).
@@ -108,7 +109,7 @@ Section NExpr.
     - (* Variable case *)
       (* Reducing the compilation *)
       cbn* in COMPILE; simp.
-    
+
       + (* The variable maps to an integer in the IRState *)
         unfold denoteNExpr in *; cbn* in *; simp; try_abs.
         hvred.
@@ -119,10 +120,13 @@ Section NExpr.
         (* We establish the postcondition *)
         apply eutt_Ret; split; [| split]; eauto.
         intros l' MONO; cbn*.
+
+        destruct PRE.
+
         vstep.
+
         solve_lu.
         reflexivity.
-
       + (* The variable maps to a pointer *)
         unfold denoteNExpr in *; cbn* in *; simp; try_abs.
         break_inner_match_goal; try_abs.
@@ -131,13 +135,81 @@ Section NExpr.
            at which we load. This address needs to be in scope when introducing the evar, we are therefore
            forced to look a bit ahead and first use [memory_invariant_GLU].
          *)
-        edestruct memory_invariant_GLU as (ptr & LU & READ); eauto; rewrite typ_to_dtyp_equation in READ.
+        edestruct memory_invariant_GLU as (ptr & LU & READ); eauto.
+        rewrite typ_to_dtyp_equation in READ.
         vstep.
         vstep; eauto; reflexivity.
 
         apply eutt_Ret; split; [| split].
-        -- cbn; solve_state_invariant.
+        -- cbn.
+           (* TODO: this was just solve_state_invariant before. Can I use a similar level of automation? add_fresh? *)
 
+           (* Can't just use `new_state_invariant_local_count`
+              here. The local count of `s2` is actually higher than that
+              of `i`. Furthermore, the local environment is extended with `r` (and its value `i1`).
+
+              `r` comes from incLocal.
+
+              We need some kind of lemma that makes this okay.
+            *)
+
+           destruct PRE.
+           destruct incLocal_is_fresh as (EXT & NIN & IN).
+           split.
+           admit.
+           admit.
+           unfold freshness in *.
+           { split.
+             - unfold alist_extend.
+               intros id0 v0 H.
+               apply EXT in H.
+               destruct H.
+               (* Check whether x = id *)
+               admit.
+             - split.
+               + intros id0 v0 H.
+                 unfold LidBound.lid_bound_between.
+                 unfold VariableBinding.state_bound_between.
+                 intros CONTRA.
+                 destruct CONTRA as (name & s' & s'' & NEND & COUNT1 & COUNT2 & GEN).
+                 lia.
+           }
+           
+            
+
+           Set Nested Proofs Allowed.
+           Require Import LidBound.
+           Lemma blah:
+             forall σ s1 s2 s3 id v l1 l2 g memH memV,
+               lid_bound s3 id ->
+               new_state_invariant σ s1 s2 l1 memH (memV, (l2, g)) ->
+               new_state_invariant σ s1 s3 l1 memH (memV, (alist_add id v l2, g)).
+           Proof.
+             intros σ s1 s2 s3 id v l1 l2 g memH memV BOUND SINV.
+             split.
+             admit.
+             admit.
+             destruct SINV.
+             unfold freshness in *.
+             destruct incLocal_is_fresh as (EXT & NIN & IN).
+             split.
+             - unfold alist_extend.
+               intros id0 v0 H.
+               apply EXT in H.
+               destruct H.
+               (* Check whether x = id *)
+               admit.
+             - split.
+               + intros id0 v0 H.
+                 (* I have no way of knowing that 
+           Qed.
+               
+           eapply new_state_invariant_local_count_extend.
+           split.
+
+           unfold new_state_invariant.
+           apply PRE.
+           
         -- intros l' MONO; cbn*.
            vstep; [solve_lu | reflexivity].
 
