@@ -1032,6 +1032,223 @@ Proof.
     all: try auto.
 Qed.
 
+Lemma genWhileLoop_tfor_correct:
+  forall (prefix : string)
+    (loopvar : raw_id)            (* lvar storing the loop index *)
+    (loopcontblock : block_id)    (* reentry point from the body back to the loop *)
+    (body_entry : block_id)       (* entry point of the body *)
+    (body_blocks : list (LLVMAst.block typ)) (* (llvm) body to be iterated *)
+    (nextblock : block_id)        (* exit point of the overall loop *)
+    (entry_id : block_id)         (* entry point of the overall loop *)
+    (s1 s2 : IRState) 
+    (bks : list (LLVMAst.block typ)) ,
+
+    In body_entry (block_ids body_blocks) ->
+
+    (* All labels generated are distinct *)
+    blk_id_norepet bks ->
+
+    fresh_in_cfg bks nextblock ->
+
+    forall (n : nat)                     (* Number of iterations *)
+      
+      (* Generation of the LLVM code wrapping the loop around bodyV *)
+      (HGEN: genWhileLoop prefix (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
+                          loopvar loopcontblock body_entry body_blocks [] nextblock s1
+                          ≡ inr (s2,(entry_id, bks))) 
+
+      (* Computation on the Helix side performed at each cell of the vector, *)
+      (*    the counterpart to bodyV (body_blocks) *)
+      A
+      (bodyF: nat -> A -> itree _ A)
+
+      (NO_OVERFLOW : (Z.of_nat n < Int64.modulus)%Z)
+
+      (* Main relations preserved by iteration *)
+      (I : nat -> _) P Q,
+
+      (* We assume that we know how to relate the iterations of the bodies *)
+      (forall g l mV a k _label _label',
+          (conj_rel (I k)
+                    (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k))
+                    a (mV,(l,g))) ->
+          eutt
+            ( (fun a' '(memV, (l, (g, x))) =>
+                 l @ loopvar ≡ Some (uvalue_of_nat k) /\
+                 x ≡ inl (_label', loopcontblock) /\
+                 I (S k) (* a *) a' (memV, (l, g))))
+            (bodyF k a)
+            (interp_cfg (denote_bks (convert_typ [] body_blocks) (_label, body_entry)) g l mV)
+      ) ->
+
+
+    (* Invariant is stable under the administrative bookkeeping that the loop performs *)
+    (forall a sa b sb c sc d sd e se msg msg' msg'',
+          incBlockNamed msg s1 ≡ inr (sa, a) ->
+          incBlockNamed msg' sa ≡ inr (sb, b) ->
+          incLocal sb ≡ inr (sc,c) ->
+          incLocal sc ≡ inr (sd,d) ->
+          incLocalNamed msg'' sd ≡ inr (se, e) ->
+          forall k a l mV g id v,
+            id ≡ c \/ id ≡ d \/ id ≡ e \/ id ≡ loopvar ->
+            I k a (mV, (l, g)) ->
+            I k a (mV, ((alist_add id v l), g))) ->
+
+    (* R must be stable by extension of the local env *)
+      (* (forall mH mV g l l', *)
+      (*     l ⊑ l' -> *)
+      (*                       R mH (mV, (l, g)) -> *)
+      (*                       R mH (mV, (l', g))) -> *)
+
+    (* We bake in the weakening on the extremities to ease the use of the lemma *)
+    imp_rel P (I 0) ->
+    imp_rel (I n) Q ->
+
+    (* (forall g l mV a ymem, *)
+    (*     (R a (mV, (l, g)) -> I 0 mem_empty mH (mV, (l, g)) /\ l @ loopvar ≡ Some (uvalue_of_nat 0)) /\ *)
+    (*     (I n ymem mH (mV, (l, g)) -> R mH (mV, (l, g)))) -> *)
+
+    (* Main result. Need to know initially that R holds *)
+    forall g l mV a _label,
+      P a (mV,(l,g)) ->
+      eutt (fun a '(memV, (l, (g,x))) =>
+              (* Consider generalizing? *)
+              (x ≡ inl (loopcontblock, nextblock) \/
+               x ≡ inl (entry_id, nextblock)) /\
+              Q a (memV,(l,g)))
+           (tfor bodyF 0 n a) 
+           (interp_cfg (denote_bks (convert_typ [] bks) (_label ,entry_id)) g l mV).
+Proof. 
+
+  intros * IN UNIQUE EXIT * GEN * BOUND * IND STABLE pre post IMPSTATE IND_INV * PRE.
+  pose proof @genWhileLoop_tfor_ind as GEN_IND.
+  specialize (GEN_IND prefix loopvar loopcontblock body_entry body_blocks nextblock entry_id s1 s2 bks).
+  specialize (GEN_IND IN UNIQUE EXIT n GEN).
+  unfold genWhileLoop in GEN. cbn* in GEN. simp.
+  destruct n as [| n].
+  - (* 0th index *)
+    cbn.
+
+    apply fresh_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_block_app in EXIT.
+    cbn; rewrite ?convert_typ_block_app.
+    cbn in GEN_IND; rewrite ?convert_typ_block_app in GEN_IND.
+
+    hide_cfg.
+    vjmp.
+
+    vred. vred. vred. vstep.
+    {
+      cbn.
+      vstep.
+      vstep; solve_lu; reflexivity.
+      vstep; reflexivity.
+      all:reflexivity.
+    }
+
+    (* We now branch to [nextblock] *)
+    vbranch_r.
+    { vstep.
+      solve_lu.
+      apply eutt_Ret; repeat f_equal.
+    }
+
+    vjmp_out.
+    vred.
+    cbn.
+    rewrite tfor_0.
+
+    (* We have only touched local variables that the invariant does not care about, we can reestablish it *)
+    apply eutt_Ret. cbn. split. right. reflexivity.
+    eapply post; eapply STABLE; eauto.
+
+  - cbn in *.
+
+    (* Clean up convert_typ junk *)
+    apply fresh_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_block_app in EXIT.
+    apply no_repeat_convert_typ with (env := []) in UNIQUE; cbn in UNIQUE; rewrite ?convert_typ_block_app in UNIQUE.
+    cbn; rewrite ?convert_typ_block_app.
+    cbn in GEN_IND; rewrite ?convert_typ_block_app in GEN_IND.
+
+    hide_cfg.
+
+    vjmp.
+    cbn.
+    vred. vred. vred.
+    vstep.
+    {
+      vstep. vstep; solve_lu.
+      vstep; solve_lu.
+      all :reflexivity.
+    }
+    vstep. 
+
+    (* Step 1 : Jump to b0, i.e. loopblock (since we have checked k < n). *)
+    vbranch_l.
+    {
+      cbn; vstep.
+      match goal with
+        |- Maps.lookup ?k (alist_add ?k ?a ?b) ≡ _ =>
+        rewrite (lookup_alist_add_eq _ _ b)
+      end; reflexivity.
+      unfold eval_int_icmp. cbn.
+      rewrite ltu_Z_to_Int64; try lia.
+      reflexivity.
+    }
+    vjmp. vred.
+    (* We update [loopvar] via the phi-node *)
+    cbn; vred.
+
+    focus_single_step_v.
+
+    (* BEGIN TODO: infrastructure to deal with non-empty phis *)
+    unfold denote_phis.
+    cbn.
+    rewrite denote_phi_hd.
+    cbn.
+
+    (* TOFIX: broken automation, a wild translate sneaked in where it shouldn't *)
+    rewrite translate_bind.
+    rewrite ?interp_cfg_to_L3_ret, ?bind_ret_l;
+      rewrite ?interp_cfg_to_L3_bind, ?bind_bind.
+
+    vstep. tred. repeat vred.
+    unfold map_monad. cbn. vred. 
+    rewrite interp_cfg_to_L3_LW. vred. vred. vred. vred.
+
+    subst.
+    vred.
+    vred.
+    inv VG.
+
+    rewrite denote_bks_prefix; cycle 1; auto.
+    {
+      match goal with
+        |- ?x::?y::?z ≡ _ => replace (x::y::z) with ([x;y]++z)%list by reflexivity
+      end; f_equal.
+    }
+    hide_cfg.
+    vred.
+
+    rewrite tfor_unroll; [| lia].
+    eapply eutt_clo_bind.
+
+    + (* Base case : first iteration of loop. *)
+      eapply IND.
+      split.
+      eapply STABLE; eauto.
+      unfold Maps.add, Map_alist.
+      apply alist_find_eq. typeclasses eauto.
+    + intros ? (? & ? & ? & ?) (LU & -> & ?).
+      eapply eutt_Proper_mono.
+      2: apply GEN_IND.
+      { clear - post; intros ? (? & ? & ? & ?) [-> ?]; split; eauto. }
+      lia.
+      lia.
+      eauto. 
+      eapply STABLE; eauto.
+      split; eauto.
+      Unshelve. eauto. 
+Qed.
 
 (* TODO: incLocalNamed should be opaque, and the stability hyp revisited *)
 
