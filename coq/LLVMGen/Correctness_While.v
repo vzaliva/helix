@@ -28,7 +28,6 @@ Section TFor.
                     y <- (body p x);; (Ret (inl (S p,y)))
                ) (from,x).
 
-  Transparent interp_Mem.
 
   Lemma tfor_0: forall {E A} k (body : nat -> A -> itree E A) a0,
       tfor body k k a0 ≈ Ret a0.
@@ -73,7 +72,28 @@ Section TFor.
       eapply IH; lia.
   Qed.
 
+  Lemma eutt_tfor: forall {E A} (body body' : nat -> A -> itree E A) i j a0,
+      (forall k i, body i k ≈ body' i k) ->
+      (tfor body i j a0) ≈ (tfor body' i j a0).
+  Proof.
+    intros.
+    unfold tfor, iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
+    eapply KTreeFacts.eutt_iter.
+    intros [].
+    break_match_goal.
+    reflexivity.
+    cbn.
+    rewrite H.
+    reflexivity.
+  Qed.
 
+End TFor.
+
+Section DSHLoop_is_tfor.
+
+  Transparent interp_Mem.
+
+  (* MOVE prelude *)
   Global Instance interp_Mem_proper {X} : Proper (eutt Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_Mem X).
   Proof.
     intros ? ? EQ ? ? <-. 
@@ -89,8 +109,7 @@ Section TFor.
     reflexivity.
   Qed.
 
-  (* Need [interp_iter] for [interp_state] and [interp_fail] unfortunately *)
-
+  (* MOVE itree *)
   Lemma interp_fail_iter : 
     forall {A R : Type} (E F : Type -> Type) (a0 : A) (h : E ~> failT (itree F)) f,
       interp_fail (E := E) (T := R) h (ITree.iter f a0) ≈
@@ -113,6 +132,7 @@ Section TFor.
       eret.
   Qed.
 
+  (* MOVE itree *)
   Lemma interp_state_iter : 
     forall {A R S : Type} (E F : Type -> Type) (s0 : S) (a0 : A) (h : E ~> Monads.stateT S (itree F)) f,
       interp_state (E := E) (T := R) h (iter f a0) s0 ≈ 
@@ -132,6 +152,7 @@ Section TFor.
       + rewrite interp_state_ret; apply reflexivity.
   Qed.
 
+  (* MOVE itree *)
   Lemma translate_iter : 
     forall {A R : Type} (E F : Type -> Type) (a0 : A) (h : E ~> F) f,
       translate (E := E) (F := F) (T := R) h (ITree.iter f a0) ≈
@@ -301,21 +322,6 @@ Section TFor.
     apply eutt_Ret; auto.
   Qed.
 
-  Lemma tfor_eutt: forall {E A} (body body' : nat -> A -> itree E A) i j a0,
-      (forall k i, body i k ≈ body' i k) ->
-      (tfor body i j a0) ≈ (tfor body' i j a0).
-  Proof.
-    intros.
-    unfold tfor, iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
-    eapply KTreeFacts.eutt_iter.
-    intros [].
-    break_match_goal.
-    reflexivity.
-    cbn.
-    rewrite H.
-    reflexivity.
-  Qed.
-
   (* The denotation of the [DSHLoop] combinator can be rewritten in terms of the [do_n] combinator.
      So if we specify [genWhileLoop] in terms of this same combinator, then we might be good to go
      with a generic spec that of [GenWhileLoop] that does not depend on Helix.
@@ -335,7 +341,7 @@ Section TFor.
     rewrite DSHLoop_as_tfor.
     rewrite interp_helix_tfor; [|lia].
     cbn.
-    apply tfor_eutt.
+    apply eutt_tfor.
     intros [[m' _]|] i; [| reflexivity].
     rewrite interp_helix_bind.
     rewrite bind_bind.
@@ -345,7 +351,7 @@ Section TFor.
     intros [|]; reflexivity.
   Qed.
     
-End TFor.
+End DSHLoop_is_tfor.
 
 (* TODO: Move to Prelude *)
 Definition uvalue_of_nat k := UVALUE_I64 (Int64.repr (Z.of_nat k)).
