@@ -641,8 +641,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       vred.
 
       (* Step 5. *)
-      subst; eapply eutt_clo_bind_returns; eauto.
-      eapply genNExpr_correct_ind; eauto.
       subst; eapply eutt_clo_bind_returns; [eapply genNExpr_correct_ind |..]; eauto.
       eauto 7 with state_invariant.
       admit.

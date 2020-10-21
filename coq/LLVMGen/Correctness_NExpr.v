@@ -97,9 +97,9 @@ Section NExpr.
       (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
 
       genNExpr nexp s1 ≡ inr (s2, (e, c))      -> (* Compilation succeeds *)
-      new_state_invariant σ s1 s2 l memH (memV, (l, g)) -> (* The main state invariant is initially true *)
+      new_state_invariant σ s1 s2 s1 l memH (memV, (l, g)) -> (* The main state invariant is initially true *)
       no_failure (interp_helix (E := E_cfg) (denoteNExpr σ nexp) memH) -> (* Source semantics defined *)
-      eutt (succ_cfg (lift_Rel_cfg (new_state_invariant σ s1 s2 l) ⩕
+      eutt (succ_cfg (lift_Rel_cfg (new_state_invariant σ s1 s2 s2 l) ⩕
                       genNExpr_rel_ind e memH (mk_config_cfg memV l g)))
            (interp_helix (denoteNExpr σ nexp) memH)
            (interp_cfg (denote_code (convert_typ [] c)) g l memV).
@@ -165,56 +165,79 @@ Section NExpr.
                apply EXT in H.
                destruct H.
                (* Check whether x = id *)
-               admit.
+               admit. (* Very doable *)
              - split.
+               (* TODO: clean this up *)
                + intros id0 v0 H.
                  unfold LidBound.lid_bound_between.
                  unfold VariableBinding.state_bound_between.
                  intros CONTRA.
                  destruct CONTRA as (name & s' & s'' & NEND & COUNT1 & COUNT2 & GEN).
-                 lia.
+                 eapply NIN.
+                 all:eauto.
+                 unfold LidBound.lid_bound_between.
+                 unfold VariableBinding.state_bound_between.
+                 exists name. exists s'. exists s''.
+                 auto.
+               + intros id0 v0 H H0.
+                 assert ({id0 ≢ r} + {id0 ≡ r}) as Hid0r by admit.
+                 destruct Hid0r.
+                 * apply In_add_In_ineq in H; eauto.
+                 * unfold LidBound.lid_bound_between. (* Probably a lemma here *)
+                   unfold VariableBinding.state_bound_between.
+                   Require Import StateCounters.
+                   
+                   exists "l". exists i. exists s2.
+                   split.
+                   admit.
+                   split.
+                   
+                   (* TODO: move these *)
+                   Ltac get_Γ_hyps :=
+                     repeat
+                       match goal with
+                       | H: incBlockNamed ?n ?s1 ≡ inr (?s2, _) |- _ =>
+                         apply incBlockNamed_Γ in H
+                       | H: incVoid ?s1 ≡ inr (?s2, _) |- _ =>
+                         apply incVoid_Γ in H
+                       end.
+
+                   Ltac solve_Γ :=
+                     match goal with
+                     | |- Γ ?s1 ≡ Γ ?s2 =>
+                       try solve [get_Γ_hyps; congruence]
+                     end.
+
+                   Ltac get_local_count_hyps :=
+                     repeat
+                       match goal with
+                       | H: incBlockNamed ?n ?s1 ≡ inr (?s2, _) |- _ =>
+                         apply incBlockNamed_local_count in H
+                       | H: incVoid ?s1 ≡ inr (?s2, _) |- _ =>
+                         apply incVoid_local_count in H
+                       end.
+
+                   Ltac solve_local_count :=
+                     match goal with
+                     | |- local_count ?s1 ≡ local_count ?s2 =>
+                       try solve [get_local_count_hyps; lia]
+                     end.
+
+                   apply incLocal_local_count in Heqs0.
+                   lia.
+                   split.
+                   apply incLocal_local_count in Heqs0.
+                   lia.
+                   subst.
+                   auto.
            }
-           
-            
-
-           Set Nested Proofs Allowed.
-           Require Import LidBound.
-           Lemma blah:
-             forall σ s1 s2 s3 id v l1 l2 g memH memV,
-               lid_bound s3 id ->
-               new_state_invariant σ s1 s2 l1 memH (memV, (l2, g)) ->
-               new_state_invariant σ s1 s3 l1 memH (memV, (alist_add id v l2, g)).
-           Proof.
-             intros σ s1 s2 s3 id v l1 l2 g memH memV BOUND SINV.
-             split.
-             admit.
-             admit.
-             destruct SINV.
-             unfold freshness in *.
-             destruct incLocal_is_fresh as (EXT & NIN & IN).
-             split.
-             - unfold alist_extend.
-               intros id0 v0 H.
-               apply EXT in H.
-               destruct H.
-               (* Check whether x = id *)
-               admit.
-             - split.
-               + intros id0 v0 H.
-                 (* I have no way of knowing that 
-           Qed.
-               
-           eapply new_state_invariant_local_count_extend.
-           split.
-
-           unfold new_state_invariant.
-           apply PRE.
            
         -- intros l' MONO; cbn*.
            vstep; [solve_lu | reflexivity].
 
-        -- repeat (split; auto); solve_sub_alist.
-
+        -- repeat split.
+           admit.
+           (* repeat (split; auto); solve_sub_alist. *)
     - (* Constant *)
       cbn* in COMPILE; simp.
       unfold denoteNExpr in *; cbn*.
@@ -228,7 +251,39 @@ Section NExpr.
       cbn* in *; simp; try_abs.
       (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
       hvred.
-      specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE). 
+      (* TODO: Clean this mess up. Maybe this can be a lemma? *)
+      assert (new_state_invariant σ s1 i s1 l memH(memV, (l, g))) as PRE'.
+      { split.
+        admit.
+        admit.
+        split.
+        reflexivity.
+        destruct PRE.
+        destruct incLocal_is_fresh.
+        destruct H0.
+        split.
+        - intros id v H2.
+          intros BOUND.
+          destruct BOUND as (name & s' & s'' & NENDS & COUNT' & COUNT'' & INC).
+          apply H0 in H2.
+          apply H2.
+
+          exists name. exists s'. exists s''.
+          repeat split.
+
+          all: eauto.
+
+          symmetry in INC.
+          apply incLocalNamed_local_count in INC.
+          apply incLocal_local_count in Heqs1.
+          assert (local_count i >= local_count s1)%nat by admit.
+          assert (local_count i0 >= local_count i)%nat by admit.
+          lia.
+        - intros id v H2 H3.
+          contradiction.
+      }
+      
+      specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE'). 
       forward IHnexp1; eauto.
 
       (* e1 *)
@@ -239,8 +294,11 @@ Section NExpr.
       hvred.
 
       (* e2 *)
-      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI).
-      forward IHnexp2; eauto. 
+      (* TODO: clean this up *)
+      assert (new_state_invariant σ i i0 i l0 memH (memV, (l0, g))).
+      admit.
+      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 H).
+      forward IHnexp2; eauto.
       eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp2].
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
@@ -266,14 +324,15 @@ Section NExpr.
         apply unsigned_is_zero; auto.
       }
       apply eutt_Ret; split; [| split].
-      cbn; solve_state_invariant.
+      admit.
       {
         intros ? MONO.
         cbn.
         vstep; solve_lu; reflexivity.
       }
       {
-        apply ext_local_subalist; solve_sub_alist.
+        admit. (* should hold... *)
+        (* apply ext_local_subalist; solve_sub_alist. *)
       }
 
     - (* NMod *)

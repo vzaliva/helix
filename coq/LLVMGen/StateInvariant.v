@@ -147,10 +147,11 @@ Proof.
 Qed.
 
 
-Record new_state_invariant (σ : evalContext) (s1 s2 : IRState) (l1 : local_env) (memH : memoryH) (configV : config_cfg) : Prop :=
+(* sinvs is the state used for the invariants, whereas s1 and s2 are used for freshness. *)
+Record new_state_invariant (σ : evalContext) (s1 s2 sinvs : IRState) (l1 : local_env) (memH : memoryH) (configV : config_cfg) : Prop :=
   {
-  mem_is_inv : memory_invariant σ s2 memH configV ;
-  IRState_is_WF : WF_IRState σ s2 ;
+  mem_is_inv : memory_invariant σ sinvs memH configV ;
+  IRState_is_WF : WF_IRState σ sinvs ;
   incLocal_is_fresh : freshness s1 s2 l1 configV
   }.
 
@@ -248,13 +249,13 @@ Proof.
 Qed.
 
 Lemma new_state_invariant_WF_IRState :
-  forall σ s1 s2 ρ memH st, new_state_invariant σ s1 s2 ρ memH st -> WF_IRState σ s2.
+  forall σ s1 s2 sinv ρ memH st, new_state_invariant σ s1 s2 sinv ρ memH st -> WF_IRState σ sinv.
 Proof.
   intros * [_ WF _]; auto.
 Qed.
 
 Lemma new_state_invariant_memory_invariant :
-  forall σ s1 s2 ρ memH st, new_state_invariant σ s1 s2 ρ memH st -> memory_invariant σ s2 memH st.
+  forall σ s1 s2 sinv ρ memH st, new_state_invariant σ s1 s2 sinv ρ memH st -> memory_invariant σ sinv memH st.
 Proof.
   intros * [INV _ _]; auto.
 Qed.
@@ -263,10 +264,10 @@ Hint Resolve new_state_invariant_memory_invariant new_state_invariant_WF_IRState
 
 Lemma new_state_invariant_local_count_extend :
   forall σ s1 s2 s3 memH memV l1 l2 g,
-    new_state_invariant σ s1 s2 l1 memH (memV, (l2, g)) ->
+    new_state_invariant σ s1 s2 s2 l1 memH (memV, (l2, g)) ->
     Γ s2 ≡ Γ s3 ->
     local_count s2 ≡ local_count s3 ->
-    new_state_invariant σ s1 s3 l1 memH (memV, (l2, g)).
+    new_state_invariant σ s1 s3 s3 l1 memH (memV, (l2, g)).
 Proof.
   intros σ s1 s2 s3 memH memV l1 l2 g [MINV WF FRESH] COUNT.
   split.
@@ -277,9 +278,9 @@ Qed.
 
 Lemma new_state_invariant_add_new_id :
   forall σ s1 s2 s3 id memH memV l1 l2 g v,
-    new_state_invariant σ s1 s2 l1 memH (memV, (l2, g)) ->
+    new_state_invariant σ s1 s2 s2 l1 memH (memV, (l2, g)) ->
     alist_fresh id l2 ->
-    new_state_invariant σ s1 s3 l1 memH (memV, (alist_add id v l2, g)).
+    new_state_invariant σ s1 s3 s3 l1 memH (memV, (alist_add id v l2, g)).
 Proof.
   intros * [MEM_INV WF [L1L2 [NIN_FRESH IN_FRESH]]] IDFRESH.
   split.
