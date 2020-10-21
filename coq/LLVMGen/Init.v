@@ -1143,6 +1143,46 @@ Proof.
     reflexivity.
 Qed.
 
+Lemma init_with_data_no_overwrite
+      (m0 m : memoryH)
+      (hdata0 hdata : list binary64)
+      (globals : list (string * DSHType)) 
+      (e : list DSHVal)
+  :
+    init_with_data initOneFSHGlobal no_chk (m0, hdata0) globals ≡ inr (m, hdata, e) →
+    m = memory_union m0 m.
+Proof.
+  intros I k.
+  unfold memory_union.
+  rewrite Memory.NP.F.map2_1bis by reflexivity.
+  break_match; [| reflexivity].
+  rename m1 into mb, Heqo into MB.
+  move I after mb.
+
+  move globals at top.
+  dependent induction globals; intros.
+  -
+    invc I.
+    now rewrite MB.
+  -
+    cbn in I.
+    repeat break_match; invc I.
+    unfold initOneFSHGlobal in Heqs.
+    repeat break_match; invc Heqs.
+    1: break_match; invc H0.
+    all: eapply IHglobals; try eassumption.
+    destruct (Nat.eq_dec k (memory_next_key m0)).
+    *
+      subst.
+      pose proof memory_lookup_memory_next_key_is_None m0.
+      unfold memory_lookup in H.
+      rewrite util.is_None_def in H.
+      now rewrite H in MB.
+    *
+      unfold memory_set.
+      now rewrite Memory.NP.F.add_neq_o by congruence.
+Qed.
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -1634,8 +1674,8 @@ Proof.
       with (UU:=allocated_globals_mcfg globals).
     + 
       subst.
-      remember (fun globals => (fun _ '(memV, (_, (g, _))) =>
-                               allocated_globals memV g globals) : Rel_mcfg_T () ())
+      pose (fun globals => (fun _ '(memV, (_, (g, _))) =>
+                           allocated_globals memV g globals) : Rel_mcfg_T () ())
         as allocated_globals_mcfg.
 
       fold_map_monad_.
@@ -1678,7 +1718,7 @@ Proof.
         specialize (H0 [] globals gdecls1 gdecls2 s' l').
         full_autospecialize H0; try congruence.
         {
-          subst.
+          cbn.
           unfold allocated_globals.
           intros.
           cbn in jc.
@@ -1709,145 +1749,33 @@ Proof.
         subst p p0 p1 p2 p3.
         subst i2 l4.
         
-        rewrite <-ListUtil.list_app_first_last in *.
         replace (g2' :: gdecls2')
           with ([g2'] ++ gdecls2')
-          in *
-          by reflexivity.
-        rewrite flat_map_app.
-        rewrite map_app.
-        rewrite map_monad_app_.
+          in * by reflexivity.
+        rewrite flat_map_app, map_app, map_monad_app_.
         simpl.
         rewrite app_nil_r.
 
-        rewrite interp_to_L3_bind.
-        
-        (* eapply eutt_clo_bind. *)
-        admit.
+        copy_apply initOneIRGlobal_is_global Heqs0.
+        destruct H0 as [tg2 G2]; subst g2'.
+        simpl.
+        repeat rewrite Eq.bind_bind.
+        do 2 setoid_rewrite Eq.bind_ret_l.
 
+        rewrite GLOBALS in G.
+        move G after INV.
+        apply init_with_data_app in G.
+        destruct G as ((m_pre & hdata_pre) & e_pre & e_post & IPRE & IPOST & E).
+        cbn in IPOST.
 
-
-      (*
-      induction globals; intros.
-      *
-        cbn in *; subst.
-        invc LG.
-        cbn.
-        repeat rewrite interp_to_L3_bind.
-        cbn; rewrite interp_to_L3_ret.
-        rewrite Eq.bind_ret_l.
-        rewrite interp_to_L3_ret.
-        apply eutt_Ret.
-        cbn.
-        intros.
-        lia.
-      *
-        rewrite <-CeresUtils.app_cons_assoc in *.
-        remember (x :: g_unchk) as g_unchk_new.
-        specialize IHg_chk with (g_unchk:=g_unchk_new).
-        (* specialize IHg_unchk with (n:=n). *)
-
-        eapply IHg_chk.
-        eassumption.
-        eassumption.
-          
-        cbn in *; subst.
-        (* this is a bit harsh *)
         repeat break_match; try inl_inr.
-        (* carefully clean up *)
-        subst p (* p0 *) p1 (* p2 *) p3 p4 p5 p6 p7.
+        inversion IPOST; clear IPOST.
+        rename d into ne', l4 into e_post'.
+        subst p p1 p2 e_post.
         destruct p0 as [mg0 hdata0].
-        replace p2 with (mg, hdata) in * by (invc G; auto); clear p2.
-        rename s0 into st_fyx.
-        rename a into new_g.
-        replace i2 with s1 in * by (inversion LG; auto); clear i2.
-        replace l2 with l5 in * by (inversion LG; auto); clear l2.
-        copy_apply global_uniq_chk_preserves_st Heqs1.
-        rename i0 into st_yxfyx; rewrite H0 in *; rename H0 into ST_YXFYX.
-        rename i1 into st_ng.
-        inversion G; clear G; subst e.
-        rename l3 into e.
-        rename d into new_g_dsh.
-        (* rename s1 into st_fin. *)
 
-        inversion LG; clear LG; subst gdecls.
-        rename l5 into gdecls, t0 into new_gdecl.
-        simpl.
-        rewrite map_app.
-
-        copy_apply initOneIRGlobal_is_global Heqs2.
-        destruct H0 as [ng H0]; subst new_gdecl.
-        simpl.
-
-        move Heqs2 at bottom.
-
-        (* ZX TODO: this can be generalized into a nice lemma on [initFSHGlobals]
-           along the lines of [initFSGlobals init_m = res_m -> res_m = union init_m res_m] *)
-        assert (TMP_EQ' : mg = memory_union mg0 mg).
-        {
-          clear - Heqs Heqs0.
-          unfold initOneFSHGlobal in Heqs.
-          intros k.
-          repeat break_match; invc Heqs.
-          1: break_match; invc H0.
-          all: unfold memory_union, helix_empty_memory, memory_empty in *.
-          all: rewrite Memory.NP.F.map2_1bis by reflexivity.
-          1,2: rewrite Memory.NP.F.empty_o; reflexivity.
-
-          remember (memory_next_key (Memory.NM.empty mem_block)) as k0.
-          unfold memory_set.
-
-          destruct (Nat.eq_dec k k0).
-          2: rewrite Memory.NP.F.add_neq_o by congruence.
-          2: rewrite Memory.NP.F.empty_o; reflexivity.
-          subst k.
-          rewrite Memory.NP.F.add_eq_o by congruence.
-          rename m into mb.
-
-          remember (memory_set (Memory.NM.empty mem_block) k0 mb) as m0.
-          assert (M0 : Memory.NM.find k0 m0 ≡ Some mb)
-            by (subst; unfold memory_set;
-                rewrite Memory.NP.F.add_eq_o by reflexivity;
-                reflexivity).
-          clear - Heqs0 M0.
-          rename Heqs0 into L.
-
-          dependent induction globals.
-          -
-            cbn in L.
-            invc L.
-            rewrite M0; reflexivity.
-          -
-            cbn in L.
-            repeat break_match; invc L.
-            unfold initOneFSHGlobal in Heqs.
-            repeat break_match; invc Heqs.
-            1: break_match; invc H0.
-            +
-              eapply IHglobals.
-              eassumption.
-              eassumption.
-            +
-              eapply IHglobals.
-              eassumption.
-              eassumption.
-            +
-              eapply IHglobals.
-              eassumption.
-              clear - M0.
-              destruct (Nat.eq_dec k0 (memory_next_key m0)).
-              *
-                subst.
-                pose proof memory_lookup_memory_next_key_is_None m0.
-                unfold memory_lookup in H.
-                rewrite util.is_None_def in H.
-                rewrite H in M0; congruence.
-              *
-                unfold memory_set.
-                rewrite Memory.NP.F.add_neq_o by congruence.
-                assumption.
-        }
-
+        copy_apply init_with_data_no_overwrite Heqs3.
+        rename H0 into TMP_EQ'.
         assert (TMP_EQ : eutt (fun '(m,_) '(m',_) => m = m')
                               (Ret (mg, ()))
                               (ITree.bind' (E:=E_mcfg)
@@ -1856,78 +1784,69 @@ Proof.
           by (rewrite Eq.bind_ret_l;
               apply eutt_Ret;
               assumption).
-          
+
         eapply eutt_weaken_left; [| exact TMP_EQ |]; clear TMP_EQ.
         {
-          clear.
+          subst; clear.
           intros [?m []] [?m' []] (? & [? ?] & ? & []).
           cbn; intros H EQ j x; specialize (H j x).
-          simp; auto.
+          now simp.
         }
 
-        rewrite Eq.bind_bind.
-        repeat rewrite interp_to_L3_bind, translate_bind.
-        apply eutt_clo_bind with (UU:=post_alloc_invariant_mcfg [new_g] [new_g_dsh] 1).
+
+        rewrite interp_to_L3_bind.
+
+        apply eutt_clo_bind with (UU:=allocated_globals_mcfg [a]).
         --
-          intros.
           cbn.
           repeat rewrite interp_to_L3_bind.
-
           
           (* Alloca ng *)
           pose_interp_to_L3_alloca m'' a'' A' AE'.
           {
-            clear - Heqs2.
-            unfold initOneIRGlobal in Heqs2.
-            repeat break_match; invc Heqs2; cbn.
-            rewrite typ_to_dtyp_I; discriminate.
-            rewrite typ_to_dtyp_D; discriminate.
-            rewrite typ_to_dtyp_D_array; discriminate.
+            clear - Heqs0.
+            unfold initOneIRGlobal in Heqs0.
+            repeat break_match; invc Heqs0; cbn.
+            now rewrite typ_to_dtyp_I.
+            now rewrite typ_to_dtyp_D.
+            now rewrite typ_to_dtyp_D_array.
           }
           rewrite AE'.
           
           (* GlobalWrite ng *)
           cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
           rewrite interp_to_L3_GW.
-
+          
           apply eutt_Ret.
-          unfold post_alloc_invariant_mcfg.
+          subst allocated_globals_mcfg; unfold allocated_globals.
           intros.
           cbn in jc.
           replace j with 0 in * by lia.
           cbn.
-
+          
           unfold in_global_addr.
-
+          
           exists a''.
           split.
+          ++
+            eapply allocate_allocated.
+            eassumption.
           ++
             unfold alist_add.
             rewrite alist_find_cons_eq.
             reflexivity.
-            clear - Heqs2.
-            unfold initOneIRGlobal in Heqs2.
-            repeat break_match; inversion Heqs2; reflexivity.
-          ++
-            eapply allocate_allocated.
-            eassumption.
+            clear - Heqs0.
+            unfold initOneIRGlobal in Heqs0.
+            repeat break_match; invc Heqs0.
+            all: try lia; try reflexivity.
         --
           intros.
-          move IHglobals after Heqs0.
-          eapply eutt_equiv;
-            [eapply post_alloc_invariant_mcfg_conj |].
-          repeat break_let; subst p1 p u3.
-          eapply eutt_conj.
+          cbn in *.
+          move IHpost at bottom.
+
+          rewrite <-ListUtil.list_app_first_last.
+          (* eapply IHpost. *)
           admit.
-
-          eapply eutt_weaken_right.
-
-          3:{
-            eapply IHglobals.
-            all: admit.
-          }
-          all:admit.
-          *)
     +
       intros.
       unfold initXYplaceholders, addVars in LX.
