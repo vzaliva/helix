@@ -301,6 +301,21 @@ Section TFor.
     apply eutt_Ret; auto.
   Qed.
 
+  Lemma tfor_eutt: forall {E A} (body body' : nat -> A -> itree E A) i j a0,
+      (forall k i, body i k ≈ body' i k) ->
+      (tfor body i j a0) ≈ (tfor body' i j a0).
+  Proof.
+    intros.
+    unfold tfor, iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
+    eapply KTreeFacts.eutt_iter.
+    intros [].
+    break_match_goal.
+    reflexivity.
+    cbn.
+    rewrite H.
+    reflexivity.
+  Qed.
+
   (* The denotation of the [DSHLoop] combinator can be rewritten in terms of the [do_n] combinator.
      So if we specify [genWhileLoop] in terms of this same combinator, then we might be good to go
      with a generic spec that of [GenWhileLoop] that does not depend on Helix.
@@ -319,11 +334,17 @@ Section TFor.
     intros.
     rewrite DSHLoop_as_tfor.
     rewrite interp_helix_tfor; [|lia].
-    
-    unfold tfor.
     cbn.
-  Admitted.
-     
+    apply tfor_eutt.
+    intros [[m' _]|] i; [| reflexivity].
+    rewrite interp_helix_bind.
+    rewrite bind_bind.
+    apply eutt_eq_bind; intros [[?m ?] |]; [| rewrite bind_ret_l; reflexivity].
+    bind_ret_r2.
+    apply eutt_eq_bind.
+    intros [|]; reflexivity.
+  Qed.
+    
 End TFor.
 
 (* TODO: Move to Prelude *)
