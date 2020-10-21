@@ -1143,6 +1143,46 @@ Proof.
     reflexivity.
 Qed.
 
+Lemma init_with_data_no_overwrite
+      (m0 m : memoryH)
+      (hdata0 hdata : list binary64)
+      (globals : list (string * DSHType)) 
+      (e : list DSHVal)
+  :
+    init_with_data initOneFSHGlobal no_chk (m0, hdata0) globals ≡ inr (m, hdata, e) →
+    m = memory_union m0 m.
+Proof.
+  intros I k.
+  unfold memory_union.
+  rewrite Memory.NP.F.map2_1bis by reflexivity.
+  break_match; [| reflexivity].
+  rename m1 into mb, Heqo into MB.
+  move I after mb.
+
+  move globals at top.
+  dependent induction globals; intros.
+  -
+    invc I.
+    now rewrite MB.
+  -
+    cbn in I.
+    repeat break_match; invc I.
+    unfold initOneFSHGlobal in Heqs.
+    repeat break_match; invc Heqs.
+    1: break_match; invc H0.
+    all: eapply IHglobals; try eassumption.
+    destruct (Nat.eq_dec k (memory_next_key m0)).
+    *
+      subst.
+      pose proof memory_lookup_memory_next_key_is_None m0.
+      unfold memory_lookup in H.
+      rewrite util.is_None_def in H.
+      now rewrite H in MB.
+    *
+      unfold memory_set.
+      now rewrite Memory.NP.F.add_neq_o by congruence.
+Qed.
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
