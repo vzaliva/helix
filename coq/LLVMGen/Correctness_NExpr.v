@@ -100,12 +100,12 @@ Section NExpr.
   Infix "<<" := IRState_lt (at level 10).
 
   (* TODO: Move this *)
-  Lemma freshness_fresh: forall s1 s2 memV l g,
-      freshness s1 s2 l (memV, (l,g)) ->
+  Lemma freshness_fresh: forall s1 s2 memV l1 l2 g,
+      freshness s1 s2 l1 (memV, (l2,g)) ->
       s1 << s2 ->
-      incLocal_fresh l s1.
+      incLocal_fresh l1 s1.
   Proof.
-    intros s1 s2 memV l g (EXT & NIN & _) LT.
+    intros s1 s2 memV l1 l2 g (EXT & NIN & _) LT.
     unfold incLocal_fresh.
     intros s' id GEN.
 
@@ -188,6 +188,17 @@ Section NExpr.
     - apply lid_bound_between_incLocal in INC.
       apply freshness_add_between; auto.
   Qed.
+
+  Lemma new_state_invariant_alist_fresh:
+    forall σ s1 s' s2 sinv memH memV l1 l2 g id,
+      s1 << s2 ->
+      new_state_invariant σ s1 s2 sinv l1 memH (memV, (l2,g)) ->
+      incLocal s1 ≡ inr (s',id) ->
+      alist_fresh id l1.
+  Proof.
+    intros * ? [] LOC.
+    apply freshness_fresh in incLocal_is_fresh; eauto.
+  Qed.
  
   Lemma genNExpr_correct_ind :
     forall (* Compiler bits *) (s1 s2: IRState)
@@ -202,7 +213,6 @@ Section NExpr.
            (interp_helix (denoteNExpr σ nexp) memH)
            (interp_cfg (denote_code (convert_typ [] c)) g l memV).
   Proof.
-
     intros s1 s2 nexp; revert s1 s2; induction nexp; intros * COMPILE PRE NOFAIL.
     - (* Variable case *)
       (* Reducing the compilation *)
@@ -241,106 +251,15 @@ Section NExpr.
         apply eutt_Ret; split; [| split].
         -- cbn.
            eapply state_invariant_add_fresh; [now eauto | (eassumption || solve_state_invariant)].
-
-
-           (*
-           (* TODO: this was just solve_state_invariant before. Can I use a similar level of automation? add_fresh? *)
-
-           (* Can't just use `new_state_invariant_local_count`
-              here. The local count of `s2` is actually higher than that
-              of `i`. Furthermore, the local environment is extended with `r` (and its value `i1`).
-
-              `r` comes from incLocal.
-
-              We need some kind of lemma that makes this okay.
-            *)
-
-           destruct PRE.
-           destruct incLocal_is_fresh as (EXT & NIN & IN).
-           split.
-           admit.
-           admit.
-           unfold freshness in *.
-           { split.
-             - unfold alist_extend.
-               intros id0 v0 H.
-               apply EXT in H.
-               destruct H.
-               (* Check whether x = id *)
-               admit. (* Very doable *)
-             - split.
-               (* TODO: clean this up *)
-               + intros id0 v0 H.
-                 unfold LidBound.lid_bound_between.
-                 unfold VariableBinding.state_bound_between.
-                 intros CONTRA.
-                 destruct CONTRA as (name & s' & s'' & NEND & COUNT1 & COUNT2 & GEN).
-                 eapply NIN.
-                 all:eauto.
-                 unfold LidBound.lid_bound_between.
-                 unfold VariableBinding.state_bound_between.
-                 exists name. exists s'. exists s''.
-                 auto.
-               + intros id0 v0 H H0.
-                 assert ({id0 ≢ r} + {id0 ≡ r}) as Hid0r by admit.
-                 destruct Hid0r.
-                 * apply In_add_In_ineq in H; eauto.
-                 * unfold LidBound.lid_bound_between. (* Probably a lemma here *)
-                   unfold VariableBinding.state_bound_between.
-                   Require Import StateCounters.
-                   
-                   exists "l". exists i. exists s2.
-                   split.
-                   admit.
-                   split.
-                   
-                   (* TODO: move these *)
-                   Ltac get_Γ_hyps :=
-                     repeat
-                       match goal with
-                       | H: incBlockNamed ?n ?s1 ≡ inr (?s2, _) |- _ =>
-                         apply incBlockNamed_Γ in H
-                       | H: incVoid ?s1 ≡ inr (?s2, _) |- _ =>
-                         apply incVoid_Γ in H
-                       end.
-
-                   Ltac solve_Γ :=
-                     match goal with
-                     | |- Γ ?s1 ≡ Γ ?s2 =>
-                       try solve [get_Γ_hyps; congruence]
-                     end.
-
-                   Ltac get_local_count_hyps :=
-                     repeat
-                       match goal with
-                       | H: incBlockNamed ?n ?s1 ≡ inr (?s2, _) |- _ =>
-                         apply incBlockNamed_local_count in H
-                       | H: incVoid ?s1 ≡ inr (?s2, _) |- _ =>
-                         apply incVoid_local_count in H
-                       end.
-
-                   Ltac solve_local_count :=
-                     match goal with
-                     | |- local_count ?s1 ≡ local_count ?s2 =>
-                       try solve [get_local_count_hyps; lia]
-                     end.
-
-                   apply incLocal_local_count in Heqs0.
-                   lia.
-                   split.
-                   apply incLocal_local_count in Heqs0.
-                   lia.
-                   subst.
-                   auto.
-           }
-*)           
         -- intros l' MONO; cbn*.
            vstep; [solve_lu | reflexivity].
 
         -- repeat split.
-           admit.
-           (* repeat (split; auto); solve_sub_alist. *)
+           apply sub_alist_add.
+           eapply new_state_invariant_alist_fresh; eauto.
+           eapply incLocal_lt; eauto.
     - (* Constant *)
+      apply PRE.
       cbn* in COMPILE; simp.
       unfold denoteNExpr in *; cbn*.
       hvred.
