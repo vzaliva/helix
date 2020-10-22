@@ -586,8 +586,16 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
           try solve [get_local_count_hyps; lia]
         end.
 
-      solve_Γ.
-      solve_local_count.
+      2-3: reflexivity.
+      { split.
+        admit.
+        admit.
+        repeat split; try reflexivity.
+        - apply STATE.
+        - apply STATE.
+      }
+      (* solve_Γ. *)
+      (* solve_local_count. *)
     - (* ** DSHAssign (x_p, src_e) (y_p, dst_e):
          Helix side:
          1. x_i <- evalPExpr σ x_p ;;
@@ -646,12 +654,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       { split.
         - admit.
         - admit.
-        - split; try reflexivity.
-          split.
-          + intros id v H1.
-            intros BOUND.
-          + intros id v H1 H2.
-            contradiction.
+        - admit.
       }
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
@@ -660,6 +663,12 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
       (* Step 6. *)
       eapply eutt_clo_bind_returns; [eapply genNExpr_correct_ind |..]; eauto.
+      { split.
+        - admit.
+        - admit.
+        - admit.
+      }
+
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       cbn in PRE; destruct PRE as (INV2 & EXP2 & ?); cbn in *; inv_eqs.
@@ -1046,7 +1055,23 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
             * eapply WF_IRState_Γ.
               eapply SINV.
               eapply genIR_Context; eauto.
-            * apply freshness_ss_ρ.
+            * (* TODO: clean this up *)
+              destruct SINV.
+              destruct incLocal_is_fresh as (EXT & NIN & IN).
+              unfold freshness in *.
+              repeat split; auto.
+              -- intros id v H.
+                 intros BOUND.
+                 destruct BOUND as (name & s' & s'' & NEND & COUNT1' & COUNT2' & GEN).
+                 apply NIN in H.
+                 apply H.
+                 exists name. exists s'. exists s''.
+                 repeat split; auto.
+                 (* Should hold because local_count s1 <= local_count s_op1 *)
+                 assert (local_count s1 <= local_count s_op1)%nat by admit.
+                 lia.
+              -- intros id v H H0.
+                 contradiction.
           + cbn. exists from.
             reflexivity.
         - eapply no_failure_helix_bind_prefix; eauto.
@@ -1073,7 +1098,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
             unfold memory_invariant.
             subst_contexts.
             apply mem_is_inv0.
-          + apply freshness_ss_ρ.
+          + (* TODO: should be roughly the same as the above... *)
+            admit.
         - cbn. exists EXP2.
           reflexivity.
       }
