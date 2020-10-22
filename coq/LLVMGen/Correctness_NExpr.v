@@ -110,12 +110,13 @@ Section NExpr.
     intros s' id GEN.
 
     (* id is bound in s', which should be between s1 and s2 *)
-    (* TODO: Extract lemmas from this *)
     assert (lid_bound_between s1 s2 id) as BETWEEN.
-    { pose proof (incLocal_lid_bound _ _ _ GEN) as BOUND.
-      exists "l". exists s1. exists s'.
-      repeat split; auto.
-      solve_not_ends_with.
+    { eapply state_bound_between_shrink.
+      -  apply lid_bound_between_incLocal; eauto.
+      - lia.
+      - unfold IRState_lt in LT.
+        apply incLocal_local_count in GEN.
+        lia.
     }
 
     unfold alist_fresh.
@@ -140,7 +141,21 @@ Section NExpr.
     lia.
   Qed.
 
-  Import LidBound.
+  Lemma freshness_add_between :
+    forall (s1 s2 : IRState) (l1 l2 : local_env) (memV : memoryV) (g : global_env) id v,
+      freshness s1 s2 l1 (memV, (l2, g)) ->
+      lid_bound_between s1 s2 id ->
+      freshness s1 s2 l1 (memV, (alist_add id v l2, g)).
+  Proof.
+    intros s1 s2 l1 l2 memV g id v (EXT & NIN & IN) BETWEEN.
+    repeat split; eauto.
+    - rewrite EXT. apply alist_extend_add.
+    - intros id0 v0 AIN ANIN.
+      assert ({id0 ≡ id} + {id0 ≢ id}) as [IDEQ | IDNEQ] by apply rel_dec_p.
+      + subst; auto.
+      + apply In_add_In_ineq in AIN; eauto.
+  Qed.
+
   Lemma state_invariant_add_fresh :
     ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
       (l : local_env) (g : global_env) (v : uvalue),
@@ -170,15 +185,9 @@ Section NExpr.
         eapply fresh_no_lu_addr; eauto.
         eapply freshness_fresh; eauto using incLocal_lt.
     - unfold WF_IRState; erewrite incLocal_Γ; eauto; apply WF.
-    - destruct FRESH as (FRESH1 & FRESH2 & FRESH3).
-      split; [| split]; auto.
-      + admit. (* true, but useless I think *)
-      + (* TODO: clean this up *)
-        intros id0 v0 H H0.        
-        assert ({id0 ≡ id} + {id0 ≢ id}) as [EQ | NEQ] by admit .
-        * subst.
- admit. (* true *)
-  Admitted.
+    - apply lid_bound_between_incLocal in INC.
+      apply freshness_add_between; auto.
+  Qed.
  
   Lemma genNExpr_correct_ind :
     forall (* Compiler bits *) (s1 s2: IRState)
