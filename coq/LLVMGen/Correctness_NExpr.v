@@ -199,6 +199,29 @@ Section NExpr.
     intros * ? [] LOC.
     apply freshness_fresh in incLocal_is_fresh; eauto.
   Qed.
+
+
+  Lemma genNExpr_local_count :
+    forall nexp s1 s2 e c,
+      genNExpr nexp s1 ≡ inr (s2, (e, c)) ->
+      (local_count s2 >= local_count s1)%nat.
+  Proof.
+    induction nexp;
+      intros s1 s2 e c GEN;
+      cbn in GEN; simp;
+        repeat
+          match goal with
+          | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
+            destruct (nth_error (Γ s1) n) eqn:FIND; inversion H; subst
+          | H : incLocal ?s1 ≡ inr (?s2, _) |- _ =>
+            apply incLocal_local_count in H
+          | IH : ∀ (s1 s2 : IRState) (e : exp typ) (c : code typ),
+              genNExpr ?n s1 ≡ inr (s2, (e, c)) → local_count s2 ≥ local_count s1,
+      GEN: genNExpr ?n _ ≡ inr _ |- _ =>
+    apply IH in GEN
+    end;
+      try lia.
+  Qed.
  
   Lemma genNExpr_correct_ind :
     forall (* Compiler bits *) (s1 s2: IRState)
@@ -259,7 +282,6 @@ Section NExpr.
            eapply new_state_invariant_alist_fresh; eauto.
            eapply incLocal_lt; eauto.
     - (* Constant *)
-      apply PRE.
       cbn* in COMPILE; simp.
       unfold denoteNExpr in *; cbn*.
       hvred.
@@ -272,38 +294,16 @@ Section NExpr.
       cbn* in *; simp; try_abs.
       (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
       hvred.
-      (* TODO: Clean this mess up. Maybe this can be a lemma? *)
-      assert (new_state_invariant σ s1 i s1 l memH(memV, (l, g))) as PRE'.
-      { split.
-        admit.
-        admit.
-        split.
-        reflexivity.
-        destruct PRE.
-        destruct incLocal_is_fresh.
-        destruct H0.
-        split.
-        - intros id v H2.
-          intros BOUND.
-          destruct BOUND as (name & s' & s'' & NENDS & COUNT' & COUNT'' & INC).
-          apply H0 in H2.
-          apply H2.
 
-          exists name. exists s'. exists s''.
-          repeat split.
+      assert (new_state_invariant σ s1 i s1 l memH (memV, (l, g))) as PRE'.
+      eapply new_state_invariant_shrink; eauto.
 
-          all: eauto.
+      (* TODO: replace with ltac? *)
+      apply incLocal_local_count in Heqs1.
+      apply genNExpr_local_count in Heqs.
+      apply genNExpr_local_count in Heqs0.
+      lia.
 
-          symmetry in INC.
-          apply incLocalNamed_local_count in INC.
-          apply incLocal_local_count in Heqs1.
-          assert (local_count i >= local_count s1)%nat by admit.
-          assert (local_count i0 >= local_count i)%nat by admit.
-          lia.
-        - intros id v H2 H3.
-          contradiction.
-      }
-      
       specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE'). 
       forward IHnexp1; eauto.
 
@@ -316,7 +316,25 @@ Section NExpr.
 
       (* e2 *)
       (* TODO: clean this up *)
+      cbn in PREI.
       assert (new_state_invariant σ i i0 i l0 memH (memV, (l0, g))).
+
+      Set Nested Proofs Allowed.
+      Lemma new_state_invariant_weaken_local_env :
+        forall σ s1 s2 sinv l1 l2 memH memV g,
+          new_state_invariant σ s1 s2 sinv l1 memH (memV, (l2, g)) ->
+          new_state_invariant σ s1 s2 sinv l2 memH (memV, (l2, g)).
+      Proof.
+        intros σ s1 s2 sinv l1 l2 memH memV g H.
+        destruct H.
+        destruct incLocal_is_fresh as (EXT & NIN & IN).
+        repeat split; auto.
+        reflexivity.
+        - intros id v H.
+          pose proof (alist_In_dec id l1 v) as [AIN | ANIN]; eauto.
+          intros BOUND.
+          (* This just isn't true :( *)
+      Abort.
       admit.
       specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 H).
       forward IHnexp2; eauto.

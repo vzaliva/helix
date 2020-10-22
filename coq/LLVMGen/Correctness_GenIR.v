@@ -166,28 +166,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     end; subst; auto.
   Qed.
 
-  Lemma genNExpr_local_count :
-    forall nexp s1 s2 e c,
-      genNExpr nexp s1 ≡ inr (s2, (e, c)) ->
-      (local_count s2 >= local_count s1)%nat.
-  Proof.
-    induction nexp;
-      intros s1 s2 e c GEN;
-      cbn in GEN; simp;
-        repeat
-          match goal with
-          | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
-            destruct (nth_error (Γ s1) n) eqn:FIND; inversion H; subst
-          | H : incLocal ?s1 ≡ inr (?s2, _) |- _ =>
-            apply incLocal_local_count in H
-          | IH : ∀ (s1 s2 : IRState) (e : exp typ) (c : code typ),
-              genNExpr ?n s1 ≡ inr (s2, (e, c)) → local_count s2 ≥ local_count s1,
-      GEN: genNExpr ?n _ ≡ inr _ |- _ =>
-    apply IH in GEN
-    end;
-      try lia.
-  Qed.
-
   Lemma genMExpr_local_count :
     forall mexp s1 s2 e c,
       genMExpr mexp s1 ≡ inr (s2, (e, c)) ->

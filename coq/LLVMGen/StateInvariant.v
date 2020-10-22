@@ -288,6 +288,25 @@ Proof.
   - eapply freshness_local_count_extend; eauto.
 Qed.
 
+Lemma new_state_invariant_shrink :
+  forall σ s1 s1' s2 s2' sinv l memH memV g,
+    new_state_invariant σ s1 s2 sinv l memH (memV, (l, g)) ->
+    (local_count s1 <= local_count s1')%nat ->
+    (local_count s2' <= local_count s2)%nat ->
+    new_state_invariant σ s1' s2' sinv l memH (memV, (l, g)).
+Proof.
+  intros σ s1 s1' s2 s2' sinv l memH memV g SINV COUNT1 COUNT2.
+  destruct SINV.
+  destruct incLocal_is_fresh as (EXT & NIN & IN).
+  repeat (split; auto).
+  - intros id v AIN BOUND.
+    apply NIN in AIN.
+    apply AIN.
+    eapply state_bound_between_shrink; eauto.
+  - intros id v AIN ANIN.
+    contradiction.
+Qed.
+
 Lemma new_state_invariant_add_new_id :
   forall σ s1 s2 s3 id memH memV l1 l2 g v,
     new_state_invariant σ s1 s2 s2 l1 memH (memV, (l2, g)) ->
