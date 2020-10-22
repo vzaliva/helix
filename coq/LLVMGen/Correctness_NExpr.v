@@ -158,22 +158,26 @@ Section NExpr.
       + subst.
         eapply in_local_or_global_scalar_add_fresh_old; eauto.
         eapply fresh_no_lu; eauto.
-        eapply freshness_fresh; eauto using incLocal_gt.
+        eapply freshness_fresh; eauto using incLocal_lt.
       + subst.
         eapply in_local_or_global_scalar_add_fresh_old; eauto.
         eapply fresh_no_lu; eauto.
-        eapply freshness_fresh; eauto using incLocal_gt.
+        eapply freshness_fresh; eauto using incLocal_lt.
       + subst.
         repeat destruct INLG as [? INLG].
         do 3 eexists; splits; eauto.
         eapply in_local_or_global_addr_add_fresh_old; eauto.
         eapply fresh_no_lu_addr; eauto.
-        eapply freshness_fresh; eauto using incLocal_gt.
+        eapply freshness_fresh; eauto using incLocal_lt.
     - unfold WF_IRState; erewrite incLocal_Γ; eauto; apply WF.
     - destruct FRESH as (FRESH1 & FRESH2 & FRESH3).
       split; [| split]; auto.
       + admit. (* true, but useless I think *)
-      + admit. (* true *)
+      + (* TODO: clean this up *)
+        intros id0 v0 H H0.        
+        assert ({id0 ≡ id} + {id0 ≢ id}) as [EQ | NEQ] by admit .
+        * subst.
+ admit. (* true *)
   Admitted.
  
   Lemma genNExpr_correct_ind :

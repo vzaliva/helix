@@ -35,7 +35,67 @@ Section LidBound.
     end.
   Qed.
 
-  Lemma lid_bound_incBlockNamed :
+  Lemma lid_bound_incLocalNamed :
+    forall name s1 s2 id,
+      not_ends_with_nat name ->
+      incLocalNamed name s1 ≡ inr (s2, id) ->
+      lid_bound s2 id.
+  Proof.
+    intros name s1 s2 id NENDS GEN.
+    exists name. exists s1. exists s2.
+    cbn in GEN; simp.
+    repeat split; auto.
+  Qed.
+
+  Lemma not_lid_bound_incLocalNamed :
+    forall name s1 s2 id,
+      not_ends_with_nat name ->
+      incLocalNamed name s1 ≡ inr (s2, id) ->
+      ~ lid_bound s1 id.
+  Proof.
+    intros name s1 s2 id NENDS GEN.
+    eapply not_id_bound_gen_mono; eauto.
+    apply incLocalNamed_count_gen_injective.
+  Qed.
+
+
+  Lemma lid_bound_between_incLocalNamed :
+    forall name s1 s2 id,
+      not_ends_with_nat name ->
+      incLocalNamed name s1 ≡ inr (s2, id) ->
+      lid_bound_between s1 s2 id.
+  Proof.
+    intros name s1 s2 id NENDS GEN.
+    apply state_bound_bound_between.
+    - eapply lid_bound_incLocalNamed; eauto.
+    - eapply not_lid_bound_incLocalNamed; eauto.
+  Qed.
+
+  Lemma not_lid_bound_incLocal :
+    forall s1 s2 id,
+      incLocal s1 ≡ inr (s2, id) ->
+      ~ lid_bound s1 id.
+  Proof.
+    intros s1 s2 id GEN.
+    Transparent incLocal.
+    eapply not_lid_bound_incLocalNamed; eauto.
+    solve_not_ends_with.
+    Opaque incLocal.
+  Qed.
+
+  Lemma lid_bound_between_incLocal :
+    forall s1 s2 id,
+      incLocal s1 ≡ inr (s2, id) ->
+      lid_bound_between s1 s2 id.
+  Proof.
+    intros s1 s2 id GEN.
+    Transparent incLocal.
+    eapply lid_bound_between_incLocalNamed; eauto.
+    solve_not_ends_with.
+    Opaque incLocal.
+  Qed.
+
+  Lemma lid_bound_incBlockNamed_mono :
     forall name s1 s2 bid bid',
       lid_bound s1 bid ->
       incBlockNamed name s1 ≡ inr (s2, bid') ->
@@ -75,21 +135,6 @@ Section LidBound.
     exists n1. exists s1'. exists s1''.
     intuition.
     apply incLocal_local_count in INC.
-    lia.
-  Qed.
-
- Lemma lid_bound_incBlockNamed_mono :
-    forall name s1 s2 bid bid',
-      lid_bound s1 bid ->
-      incBlockNamed name s1 ≡ inr (s2, bid') ->
-      lid_bound s2 bid.
-  Proof.
-    intros name s1 s2 bid bid' BOUND INC.
-    destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
-    unfold lid_bound.
-    exists n1. exists s1'. exists s1''.
-    intuition.
-    apply incBlockNamed_local_count in INC.
     lia.
   Qed.
 
