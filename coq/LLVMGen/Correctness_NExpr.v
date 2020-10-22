@@ -133,7 +133,12 @@ Section NExpr.
   Lemma incLocal_lt : forall s1 s2 x,
       incLocal s1 ≡ inr (s2,x) ->
       s1 << s2.
-   Admitted.
+  Proof.
+    intros s1 s2 x INC.
+    apply incLocal_local_count in INC.
+    unfold IRState_lt.
+    lia.
+  Qed.
 
   Import LidBound.
   Lemma state_invariant_add_fresh :
