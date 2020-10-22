@@ -193,6 +193,18 @@ Proof.
   lia.
 Qed.
 
+Lemma incLocal_lid_bound :
+  forall s1 s2 id,
+    incLocal s1 ≡ inr (s2, id) ->
+    lid_bound s2 id.
+Proof.
+  intros s1 s2 id INC.
+  eapply incLocalNamed_lid_bound.
+  Transparent incLocal.
+  eapply INC.
+  Opaque incLocal.
+Qed.
+
 (* Lemma lid_bound_later_fresh : *)
 (*   forall s1 s2 s3 (l : local_env) m g id, *)
 (*     freshness s1 s2 l (m, (l, g)) -> *)

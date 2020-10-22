@@ -1,6 +1,9 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.StateInvariant.
+Require Import Helix.LLVMGen.VariableBinding.
+Require Import Helix.LLVMGen.LidBound.
+Require Import Helix.LLVMGen.IdLemmas.
 
 (* Import ProofNotations. *)
 Import ListNotations.
@@ -91,21 +94,46 @@ Section NExpr.
 
   Import ProofMode.
 
-  Definition IRState_gt (s1 s2 : IRState) : Prop :=
+  (* TODO: Move this *)
+  Definition IRState_lt (s1 s2 : IRState) : Prop :=
     (local_count s1 < local_count s2)%nat.
-  Infix "<<" := IRState_gt (at level 10).
+  Infix "<<" := IRState_lt (at level 10).
 
+  (* TODO: Move this *)
   Lemma freshness_fresh: forall s1 s2 memV l g,
       freshness s1 s2 l (memV, (l,g)) ->
       s1 << s2 ->
       incLocal_fresh l s1.
   Proof.
-  Admitted.
+    intros s1 s2 memV l g (EXT & NIN & _) LT.
+    unfold incLocal_fresh.
+    intros s' id GEN.
 
-  Lemma incLocal_gt : forall s1 s2 x,
+    (* id is bound in s', which should be between s1 and s2 *)
+    (* TODO: Extract lemmas from this *)
+    assert (lid_bound_between s1 s2 id) as BETWEEN.
+    { pose proof (incLocal_lid_bound _ _ _ GEN) as BOUND.
+      exists "l". exists s1. exists s'.
+      repeat split; auto.
+      solve_not_ends_with.
+    }
+
+    unfold alist_fresh.
+    apply alist_find_None.
+    intros v IN'.
+    eapply In__alist_In in IN'.
+    destruct IN' as (v' & IN).
+    apply NIN in IN.
+    contradiction.
+    Unshelve.
+    exact Logic.eq.
+  Qed.
+
+  (* TODO: Move this *)
+  Lemma incLocal_lt : forall s1 s2 x,
       incLocal s1 ≡ inr (s2,x) ->
       s1 << s2.
-  Admitted.
+   Admitted.
 
   Import LidBound.
   Lemma state_invariant_add_fresh :

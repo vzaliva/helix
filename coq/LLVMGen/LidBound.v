@@ -34,4 +34,126 @@ Section LidBound.
       eapply (@not_ends_with_nat_neq s1 s2 n k NS1 NS2); eauto
     end.
   Qed.
+
+  Lemma lid_bound_incBlockNamed :
+    forall name s1 s2 bid bid',
+      lid_bound s1 bid ->
+      incBlockNamed name s1 ≡ inr (s2, bid') ->
+      lid_bound s2 bid.
+  Proof.
+    intros name s1 s2 bid bid' (lname & s' & s'' & NEND & COUNT1 & COUNT2) INC.
+    exists lname. exists s'. exists s''.
+    repeat (split; auto).
+    erewrite incBlockNamed_local_count with (s':=s2); eauto.
+  Qed.
+
+  (* TODO: typeclasses for these mono lemmas to make automation easier? *)
+  Lemma lid_bound_incVoid_mono :
+    forall s1 s2 bid bid',
+      lid_bound s1 bid ->
+      incVoid s1 ≡ inr (s2, bid') ->
+      lid_bound s2 bid.
+  Proof.
+    intros s1 s2 bid bid' BOUND INC.
+    destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
+    unfold lid_bound.
+    exists n1. exists s1'. exists s1''.
+    intuition.
+    apply incVoid_local_count in INC.
+    lia.
+  Qed.
+
+  Lemma lid_bound_incLocal_mono :
+    forall s1 s2 bid bid',
+      lid_bound s1 bid ->
+      incLocal s1 ≡ inr (s2, bid') ->
+      lid_bound s2 bid.
+  Proof.
+    intros s1 s2 bid bid' BOUND INC.
+    destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
+    unfold lid_bound.
+    exists n1. exists s1'. exists s1''.
+    intuition.
+    apply incLocal_local_count in INC.
+    lia.
+  Qed.
+
+ Lemma lid_bound_incBlockNamed_mono :
+    forall name s1 s2 bid bid',
+      lid_bound s1 bid ->
+      incBlockNamed name s1 ≡ inr (s2, bid') ->
+      lid_bound s2 bid.
+  Proof.
+    intros name s1 s2 bid bid' BOUND INC.
+    destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
+    unfold lid_bound.
+    exists n1. exists s1'. exists s1''.
+    intuition.
+    apply incBlockNamed_local_count in INC.
+    lia.
+  Qed.
+
+  (* Lemma lid_bound_genNExpr_mono : *)
+  (*   forall s1 s2 bid nexp e c, *)
+  (*     lid_bound s1 bid -> *)
+  (*     genNExpr nexp s1 ≡ inr (s2, (e, c)) -> *)
+  (*     lid_bound s2 bid. *)
+  (* Proof. *)
+  (*   intros s1 s2 bid nexp e c BOUND GEN. *)
+  (*   apply genNExpr_local_count in GEN. *)
+  (*   destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid). *)
+  (*   unfold lid_bound. *)
+  (*   exists n1. exists s1'. exists s1''. *)
+  (*   repeat (split; auto). *)
+  (*   rewrite GEN. *)
+  (*   auto. *)
+  (* Qed. *)
+
+  (* Lemma lid_bound_genMExpr_mono : *)
+  (*   forall s1 s2 bid mexp e c, *)
+  (*     lid_bound s1 bid -> *)
+  (*     genMExpr mexp s1 ≡ inr (s2, (e, c)) -> *)
+  (*     lid_bound s2 bid. *)
+  (* Proof. *)
+  (*   intros s1 s2 bid mexp e c BOUND GEN. *)
+  (*   apply genMExpr_local_count in GEN. *)
+  (*   destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid). *)
+  (*   unfold lid_bound. *)
+  (*   exists n1. exists s1'. exists s1''. *)
+  (*   repeat (split; auto). *)
+  (*   rewrite GEN. *)
+  (*   auto. *)
+  (* Qed. *)
+
+  (* Lemma lid_bound_genAExpr_mono : *)
+  (*   forall s1 s2 bid aexp e c, *)
+  (*     lid_bound s1 bid -> *)
+  (*     genAExpr aexp s1 ≡ inr (s2, (e, c)) -> *)
+  (*     lid_bound s2 bid. *)
+  (* Proof. *)
+  (*   intros s1 s2 bid nexp e c BOUND GEN. *)
+  (*   apply genAExpr_local_count in GEN. *)
+  (*   destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid). *)
+  (*   unfold lid_bound. *)
+  (*   exists n1. exists s1'. exists s1''. *)
+  (*   repeat (split; auto). *)
+  (*   rewrite GEN. *)
+  (*   auto. *)
+  (* Qed. *)
+
+  (* Lemma lid_bound_genIR_mono : *)
+  (*   forall s1 s2 bid op nextblock b bks, *)
+  (*     lid_bound s1 bid -> *)
+  (*     genIR op nextblock s1 ≡ inr (s2, (b, bks)) -> *)
+  (*     lid_bound s2 bid. *)
+  (* Proof. *)
+  (*   intros s1 s2 bid op nextblock b bks BOUND GEN. *)
+  (*   apply genIR_local_count in GEN. *)
+  (*   destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid). *)
+  (*   unfold lid_bound. *)
+  (*   exists n1. exists s1'. exists s1''. *)
+  (*   repeat (split; auto). *)
+  (*   lia. *)
+  (* Qed. *)
+
 End LidBound.
