@@ -6,6 +6,7 @@ Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.StateCounters.
 Require Import Helix.LLVMGen.VariableBinding.
 Require Import Helix.LLVMGen.StateInvariant.
+Require Import Helix.LLVMGen.BidBound.
 
 Import ListNotations.
 
@@ -25,8 +26,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     | (m,(l,(g,res))) => exists from, res ≡ inl (from, to)
     end.
 
-  Definition GenIR_Rel σ (s1 s2 : IRState) (l : local_env) to : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
-    lift_Rel_cfg (new_state_invariant σ s1 s2 l) ⩕ branches to. 
+  Definition GenIR_Rel σ (s1 s2 sinv : IRState) (l : local_env) to : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
+    lift_Rel_cfg (new_state_invariant σ s1 s2 sinv l) ⩕ branches to. 
 
   Definition GenIR_Rel' σ (s : IRState) to : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
     lift_Rel_cfg (state_invariant σ s) ⩕ branches to. 
@@ -466,10 +467,10 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       (** Vellvm bits   *) (nextblock bid_in bid_from : block_id) (bks : list (LLVMAst.block typ))
       (* (env : list (ident * typ)) *)  (g : global_env) (ρ : local_env) (memV : memoryV),
       bid_bound s1 nextblock ->
-      GenIR_Rel σ s1 s1 ρ bid_in (memH,tt) (memV, (ρ, (g, (inl (bid_from, bid_in))))) ->
+      GenIR_Rel σ s1 s2 s1 ρ bid_in (memH,tt) (memV, (ρ, (g, (inl (bid_from, bid_in))))) ->
       no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ op) memH) -> (* Evaluation succeeds *)
       genIR op nextblock s1 ≡ inr (s2,(bid_in,bks)) ->
-      eutt (succ_cfg (GenIR_Rel σ s1 s2 ρ nextblock))
+      eutt (succ_cfg (GenIR_Rel σ s1 s2 s2 ρ nextblock))
            (interp_helix (denoteDSHOperator σ op) memH)
            (interp_cfg (D.denote_bks (convert_typ [] bks) (bid_from,bid_in))
                        g ρ memV).
@@ -642,8 +643,16 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
       (* Step 5. *)
       subst; eapply eutt_clo_bind_returns; [eapply genNExpr_correct_ind |..]; eauto.
-      eauto 7 with state_invariant.
-      admit.
+      { split.
+        - admit.
+        - admit.
+        - split; try reflexivity.
+          split.
+          + intros id v H1.
+            intros BOUND.
+          + intros id v H1 H2.
+            contradiction.
+      }
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       cbn in PRE; destruct PRE as (INV1 & EXP1 & ?); cbn in *; inv_eqs.
