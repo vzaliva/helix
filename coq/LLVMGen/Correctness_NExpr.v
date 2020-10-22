@@ -91,6 +91,58 @@ Section NExpr.
 
   Import ProofMode.
 
+  Definition IRState_gt (s1 s2 : IRState) : Prop :=
+    (local_count s1 < local_count s2)%nat.
+  Infix "<<" := IRState_gt (at level 10).
+
+  Lemma freshness_fresh: forall s1 s2 memV l g,
+      freshness s1 s2 l (memV, (l,g)) ->
+      s1 << s2 ->
+      incLocal_fresh l s1.
+  Proof.
+  Admitted.
+
+  Lemma incLocal_gt : forall s1 s2 x,
+      incLocal s1 ≡ inr (s2,x) ->
+      s1 << s2.
+  Admitted.
+
+  Import LidBound.
+  Lemma state_invariant_add_fresh :
+    ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
+      (l : local_env) (g : global_env) (v : uvalue),
+      incLocal s1 ≡ inr (s2, id)
+      → new_state_invariant σ s1 s2 s1 l memH (memV, (l, g))
+      → new_state_invariant σ s1 s2 s2 l memH (memV, (alist_add id v l, g)).
+  Proof.
+    intros * INC [MEM_INV WF FRESH].
+    split.
+    - red; intros * LUH LUV.
+      erewrite incLocal_Γ in LUV; eauto.
+      generalize LUV; intros INLG;
+        eapply MEM_INV in INLG; eauto.
+      break_match.
+      + subst.
+        eapply in_local_or_global_scalar_add_fresh_old; eauto.
+        eapply fresh_no_lu; eauto.
+        eapply freshness_fresh; eauto using incLocal_gt.
+      + subst.
+        eapply in_local_or_global_scalar_add_fresh_old; eauto.
+        eapply fresh_no_lu; eauto.
+        eapply freshness_fresh; eauto using incLocal_gt.
+      + subst.
+        repeat destruct INLG as [? INLG].
+        do 3 eexists; splits; eauto.
+        eapply in_local_or_global_addr_add_fresh_old; eauto.
+        eapply fresh_no_lu_addr; eauto.
+        eapply freshness_fresh; eauto using incLocal_gt.
+    - unfold WF_IRState; erewrite incLocal_Γ; eauto; apply WF.
+    - destruct FRESH as (FRESH1 & FRESH2 & FRESH3).
+      split; [| split]; auto.
+      + admit. (* true, but useless I think *)
+      + admit. (* true *)
+  Admitted.
+ 
   Lemma genNExpr_correct_ind :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH) 
@@ -142,6 +194,10 @@ Section NExpr.
 
         apply eutt_Ret; split; [| split].
         -- cbn.
+           eapply state_invariant_add_fresh; [now eauto | (eassumption || solve_state_invariant)].
+
+
+           (*
            (* TODO: this was just solve_state_invariant before. Can I use a similar level of automation? add_fresh? *)
 
            (* Can't just use `new_state_invariant_local_count`
@@ -231,7 +287,7 @@ Section NExpr.
                    subst.
                    auto.
            }
-           
+*)           
         -- intros l' MONO; cbn*.
            vstep; [solve_lu | reflexivity].
 
