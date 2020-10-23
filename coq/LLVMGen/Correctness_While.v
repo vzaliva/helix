@@ -1011,21 +1011,23 @@ Lemma genWhileLoop_correct:
     (* R must entail the state invariant *)
     imp_rel R (state_invariant σ s1) ->
 
-    (forall g l mV mH ymem,
-        (R mH (mV, (l, g)) -> I 0 mem_empty mH (mV, (l, g)) /\ l @ loopvar ≡ Some (uvalue_of_nat 0)) /\
+    (forall g l mV mH ymem vec,
+        (R mH (mV, (l, g)) -> I 0 vec mH (mV, (l, g)) /\ l @ loopvar ≡ Some (uvalue_of_nat 0)) /\
         (I n ymem mH (mV, (l, g)) -> R mH (mV, (l, g)))) ->
 
     (* Main result. Need to know initially that R holds *)
-    forall g l mV mH _label,
+    forall g l mV mH _label vec,
       R mH (mV,(l,g)) ->
       eutt (succ_cfg
             (fun '(memH,vec') '(memV, (l, (g,x))) =>
                             (* Consider generalizing? *)
+
+                        (* branches nextblock () *)
                           (x ≡ inl (loopcontblock, nextblock) \/
                           x ≡ inl (entry_id, nextblock)) /\
                           R memH (memV,(l,g))))
 
-           (interp_helix (build_vec n bodyH mem_empty) mH)
+           (interp_helix (build_vec n bodyH vec) mH)
            (interp_cfg (denote_bks (convert_typ [] bks) (_label ,entry_id)) g l mV).
 Proof with rauto.
 
@@ -1073,7 +1075,9 @@ Proof with rauto.
     eapply STABLE'. apply sub_alist_add. eapply state_invariant_alist_fresh.
     eapply state_invariant_incBlockNamed. apply Heqs0.
     eapply state_invariant_incBlockNamed. apply Heqs.
-    apply IMPSTATE. apply PRE. eauto. eauto.
+    apply IMPSTATE. apply PRE. eauto.
+    red in IMPSTATE.
+    auto.
 
   - Opaque build_vec_gen.
     cbn.
@@ -1197,5 +1201,5 @@ Proof with rauto.
     left; auto. edestruct IND_INV. apply H4. apply H2.
 
     destruct H as (? & ? & ?). inversion H0.
-    Unshelve. eauto. exact mem_empty. eauto.
+    Unshelve. eauto. eauto. eauto.
 Qed.
