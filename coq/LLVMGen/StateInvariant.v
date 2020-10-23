@@ -296,8 +296,8 @@ Lemma new_state_invariant_shrink :
     new_state_invariant σ s1' s2' sinv l memH (memV, (l, g)).
 Proof.
   intros σ s1 s1' s2 s2' sinv l memH memV g SINV COUNT1 COUNT2.
-  destruct SINV.
-  destruct incLocal_is_fresh as (EXT & NIN & IN).
+  destruct SINV as [MINV WF FRESH].
+  destruct FRESH as (EXT & NIN & IN).
   repeat (split; auto).
   - intros id v AIN BOUND.
     apply NIN in AIN.
@@ -307,56 +307,176 @@ Proof.
     contradiction.
 Qed.
 
-Lemma new_state_invariant_add_new_id :
-  forall σ s1 s2 s3 id memH memV l1 l2 g v,
-    new_state_invariant σ s1 s2 s2 l1 memH (memV, (l2, g)) ->
-    alist_fresh id l2 ->
-    new_state_invariant σ s1 s3 s3 l1 memH (memV, (alist_add id v l2, g)).
+(* TODO: Move this *)
+Definition IRState_lt (s1 s2 : IRState) : Prop :=
+  (local_count s1 < local_count s2)%nat.
+Infix "<<" := IRState_lt (at level 10).
+
+(* TODO: Move this *)
+Definition IRState_le (s1 s2 : IRState) : Prop :=
+  (local_count s1 <= local_count s2)%nat.
+Infix "<<=" := IRState_le (at level 10).
+
+
+(* TODO: Move this *)
+Lemma freshness_fresh: forall s1 s2 memV l1 l2 g,
+    freshness s1 s2 l1 (memV, (l2,g)) ->
+    s1 << s2 ->
+    incLocal_fresh l1 s1.
 Proof.
-  intros * [MEM_INV WF [L1L2 [NIN_FRESH IN_FRESH]]] IDFRESH.
+  intros s1 s2 memV l1 l2 g (EXT & NIN & _) LT.
+  unfold incLocal_fresh.
+  intros s' id GEN.
+
+  (* id is bound in s', which should be between s1 and s2 *)
+  assert (lid_bound_between s1 s2 id) as BETWEEN.
+  { eapply state_bound_between_shrink.
+    -  apply lid_bound_between_incLocal; eauto.
+    - lia.
+    - unfold IRState_lt in LT.
+      apply incLocal_local_count in GEN.
+      lia.
+  }
+
+  unfold alist_fresh.
+  apply alist_find_None.
+  intros v IN'.
+  eapply In__alist_In in IN'.
+  destruct IN' as (v' & IN).
+  apply NIN in IN.
+  contradiction.
+  Unshelve.
+  exact Logic.eq.
+Qed.
+
+(* TODO: Move this *)
+Lemma incLocal_lt : forall s1 s2 x,
+    incLocal s1 ≡ inr (s2,x) ->
+    s1 << s2.
+Proof.
+  intros s1 s2 x INC.
+  apply incLocal_local_count in INC.
+  unfold IRState_lt.
+  lia.
+Qed.
+
+Lemma freshness_add_between :
+  forall (s1 s2 : IRState) (l1 l2 : local_env) (memV : memoryV) (g : global_env) id v,
+    freshness s1 s2 l1 (memV, (l2, g)) ->
+    lid_bound_between s1 s2 id ->
+    freshness s1 s2 l1 (memV, (alist_add id v l2, g)).
+Proof.
+  intros s1 s2 l1 l2 memV g id v (EXT & NIN & IN) BETWEEN.
+  repeat split; eauto.
+  - rewrite EXT. apply alist_extend_add.
+  - intros id0 v0 AIN ANIN.
+    assert ({id0 ≡ id} + {id0 ≢ id}) as [IDEQ | IDNEQ] by apply rel_dec_p.
+    + subst; auto.
+    + apply In_add_In_ineq in AIN; eauto.
+Qed.
+
+Lemma state_invariant_add_fresh :
+  ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
+    (l : local_env) (g : global_env) (v : uvalue),
+    incLocal s1 ≡ inr (s2, id)
+    → new_state_invariant σ s1 s2 s1 l memH (memV, (l, g))
+    → new_state_invariant σ s1 s2 s2 l memH (memV, (alist_add id v l, g)).
+Proof.
+  intros * INC [MEM_INV WF FRESH].
   split.
-  3: {
-    unfold freshness.
-    split.
-    - rewrite L1L2.
-      apply alist_extend_add.
-    - split.
-      + intros id0 v0 H.
-        (* This actually can't be shown, because I only know that
-        variables in l1 are not between s1 and s2, but I can't know
-        that they aren't bound in s3. *)
-        admit.
-Abort.
+  - red; intros * LUH LUV.
+    erewrite incLocal_Γ in LUV; eauto.
+    generalize LUV; intros INLG;
+      eapply MEM_INV in INLG; eauto.
+    break_match.
+    + subst.
+      eapply in_local_or_global_scalar_add_fresh_old; eauto.
+      eapply fresh_no_lu; eauto.
+      eapply freshness_fresh; eauto using incLocal_lt.
+    + subst.
+      eapply in_local_or_global_scalar_add_fresh_old; eauto.
+      eapply fresh_no_lu; eauto.
+      eapply freshness_fresh; eauto using incLocal_lt.
+    + subst.
+      repeat destruct INLG as [? INLG].
+      do 3 eexists; splits; eauto.
+      eapply in_local_or_global_addr_add_fresh_old; eauto.
+      eapply fresh_no_lu_addr; eauto.
+      eapply freshness_fresh; eauto using incLocal_lt.
+  - unfold WF_IRState; erewrite incLocal_Γ; eauto; apply WF.
+  - apply lid_bound_between_incLocal in INC.
+    apply freshness_add_between; auto.
+Qed.
 
-(* Lemma incLocal_freshness : *)
-(*   forall s1 s2 s3 l g m v id, *)
-(*     incLocal s2 ≡ inr (s3, id) -> *)
-(*     (forall id v, alist_In id l v -> lid_bound s2 v) -> *)
-(*     freshness s1 s2 l (m, (l, g)) -> *)
-(*     freshness s1 s3 l (m, (alist_add id v l, g)). *)
-(* Proof. *)
-(*   intros s1 s2 s3 l g m v id INC FRESH. *)
-(*   unfold freshness. *)
-(*   split. *)
-(*   - apply sub_alist_add. *)
-(*     unfold alist_fresh. *)
-(*     pose proof incLocal_local_count INC. *)
-(*     unfold freshness in FRESH. *)
-(* (*    apply incLocal_lid_bound in INC. *)
-(*     eapply lid_bound_later_fresh; eauto. *)
-(*     lia. *) *)
-(* Admitted. *)
+Lemma new_state_invariant_alist_fresh:
+  forall σ s1 s' s2 sinv memH memV l1 l2 g id,
+    s1 << s2 ->
+    new_state_invariant σ s1 s2 sinv l1 memH (memV, (l2,g)) ->
+    incLocal s1 ≡ inr (s',id) ->
+    alist_fresh id l1.
+Proof.
+  intros * ? [] LOC.
+  apply freshness_fresh in incLocal_is_fresh0; eauto.
+Qed.
 
-(* Lemma new_state_invariant_add_fresh : *)
-(*   forall σ s1 s2 s3 id memH memV l1 l2 g v, *)
-(*     incLocal s2 ≡ inr (s3, id) -> *)
-(*     new_state_invariant σ s1 s2 l1 memH (memV, (l2, g)) -> *)
-(*     new_state_invariant σ s1 s3 l1 memH (memV, (alist_add id v l2, g)). *)
-(* Proof. *)
-(*   intros * INC [MEM_INV WF FRESH]. *)
-(*   split. *)
-(*   3: { *)
-(*     unfold freshness. *)
-(*     admit. *)
-(*   } *)
-(* Admitted. *)
+(* TODO: move these? *)
+Ltac get_local_count_hyps :=
+  repeat
+    match goal with
+    | H: incBlockNamed ?n ?s1 ≡ inr (?s2, _) |- _ =>
+      apply incBlockNamed_local_count in H
+    | H: incVoid ?s1 ≡ inr (?s2, _) |- _ =>
+      apply incVoid_local_count in H
+    | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>
+      apply incLocal_local_count in H
+    end.
+
+Ltac solve_local_count_tac := try solve [unfold IRState_lt, IRState_le in *; get_local_count_hyps; lia].
+
+Ltac solve_local_count :=
+  match goal with
+  | |- (local_count ?s1 > local_count ?s2)%nat =>
+    solve_local_count_tac
+  | |- (local_count ?s1 < local_count ?s2)%nat =>
+    solve_local_count_tac
+  | |- (local_count ?s1 >= local_count ?s2)%nat =>
+    solve_local_count_tac
+  | |- (local_count ?s1 <= local_count ?s2)%nat =>
+    solve_local_count_tac
+  | |- ?s1 << ?s2 =>
+    solve_local_count_tac
+  | |- ?s1 <<= ?s2 =>
+    solve_local_count_tac
+  | |- local_count ?s1 ≡ local_count ?s2 =>
+    solve_local_count_tac
+  end.
+
+Lemma new_state_invariant_weaken_local_env :
+  forall σ s1 s2 s3 s2' s3' sinv l1 l2 memH memV g,
+    new_state_invariant σ s1 s2 sinv l1 memH (memV, (l2, g)) ->
+    freshness s2' s3' l1 (memV, (l1, g)) ->
+    s2' <<= s2 ->
+    s3 << s3' ->
+    new_state_invariant σ s2 s3 sinv l2 memH (memV, (l2, g)).
+Proof.
+  intros σ s1 s2 s3 s2' s3' sinv l1 l2 memH memV g [MINV WF FRESH1] FRESH2 LT1 LT2.
+  split; auto.
+  repeat split.
+  - reflexivity.
+  - intros id v AIN.
+    intros BOUND.
+    destruct (alist_In_dec id l1 v).
+    + destruct FRESH2 as (_ & NIN & _).
+      apply (NIN _ _ a).
+      eapply (state_bound_between_shrink _ _ BOUND); solve_local_count.
+    + destruct FRESH1 as (_ & _ & IN).
+      pose proof (IN _ _ AIN n).
+      eapply state_bound_between_separate.
+      2: apply H.
+      2: apply BOUND.
+      apply incLocalNamed_count_gen_injective.
+      solve_local_count.
+      reflexivity.
+  - intros id v AIN ANIN.
+    contradiction.
+Qed.
