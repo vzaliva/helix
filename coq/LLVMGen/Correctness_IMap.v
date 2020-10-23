@@ -260,6 +260,7 @@ Proof.
         apply eutt_Ret. auto. inversion H1. inversion H1. apply eutt_Ret. auto.
      }
 
+    (* Bind continuation case of DSHIMap and build_vec equality *)
      {
        intros.
 
@@ -271,16 +272,25 @@ Proof.
        Opaque FUNCTION.
        cbn.
 
-       induction n. reflexivity.
-       rewrite 2 interp_helix_bind.
+       clear.
 
-       eapply eutt_clo_bind_returns. reflexivity. intros.
-       destruct u1, u2; try destruct p1; try destruct p0; try destruct p2;
-         try inversion H0; subst; try reflexivity; try inversion H1.
+       remember 0%nat in * at 1.
+       rewrite <- Heqn0 at 1.
+       assert ( n ≡ n + n0 )%nat by lia.
+       rewrite H. rewrite <- H at 1 2.
+       clear Heqn0 H.
 
+       revert n0 m0 m1 x σ f.
+       induction n; [reflexivity | ].
+       intros; rewrite 2 interp_helix_bind.
 
-       shelve. (* TODO Index on "1" and "n" *)
+       eapply eutt_clo_bind_returns. reflexivity.
+       intros [ [memH memBl] | ] [ [memH' memBl'] | ] A RetH RetH'; inversion A ; [ | reflexivity ].
+       subst.
 
+       assert (EQV': (S n + n0)%nat ≡ (n + (S n0))%nat) by lia.
+       rewrite EQV'.
+       specialize (IHn (S n0) memH' memBl' x σ f). apply IHn.
      }
   }
 
