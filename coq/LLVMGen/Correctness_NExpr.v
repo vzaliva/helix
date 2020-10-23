@@ -222,6 +222,36 @@ Section NExpr.
     end;
       try lia.
   Qed.
+
+  Ltac get_local_count_hyps :=
+    repeat
+      match goal with
+      | H: incBlockNamed ?n ?s1 ≡ inr (?s2, _) |- _ =>
+        apply incBlockNamed_local_count in H
+      | H: incVoid ?s1 ≡ inr (?s2, _) |- _ =>
+        apply incVoid_local_count in H
+      | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>
+        apply incLocal_local_count in H
+      | H: genNExpr ?n ?s1 ≡ inr (?s2, _) |- _ =>
+        apply genNExpr_local_count in H
+      end.
+
+  Ltac solve_local_count_tac := try solve [get_local_count_hyps; lia].
+  
+  Ltac solve_local_count :=
+    match goal with
+    | |- (local_count ?s1 > local_count ?s2)%nat =>
+      solve_local_count_tac
+    | |- (local_count ?s1 < local_count ?s2)%nat =>
+      solve_local_count_tac
+    | |- (local_count ?s1 >= local_count ?s2)%nat =>
+      solve_local_count_tac
+    | |- (local_count ?s1 <= local_count ?s2)%nat =>
+      solve_local_count_tac
+    | |- local_count ?s1 ≡ local_count ?s2 =>
+      solve_local_count_tac
+    end.
+
  
   Lemma genNExpr_correct_ind :
     forall (* Compiler bits *) (s1 s2: IRState)
@@ -297,12 +327,7 @@ Section NExpr.
 
       assert (new_state_invariant σ s1 i s1 l memH (memV, (l, g))) as PRE'.
       eapply new_state_invariant_shrink; eauto.
-
-      (* TODO: replace with ltac? *)
-      apply incLocal_local_count in Heqs1.
-      apply genNExpr_local_count in Heqs.
-      apply genNExpr_local_count in Heqs0.
-      lia.
+      solve_local_count.
 
       specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE'). 
       forward IHnexp1; eauto.
@@ -315,27 +340,57 @@ Section NExpr.
       hvred.
 
       (* e2 *)
-      (* TODO: clean this up *)
       cbn in PREI.
       assert (new_state_invariant σ i i0 i l0 memH (memV, (l0, g))).
-
-      Set Nested Proofs Allowed.
-      Lemma new_state_invariant_weaken_local_env :
-        forall σ s1 s2 sinv l1 l2 memH memV g,
-          new_state_invariant σ s1 s2 sinv l1 memH (memV, (l2, g)) ->
-          new_state_invariant σ s1 s2 sinv l2 memH (memV, (l2, g)).
-      Proof.
-        intros σ s1 s2 sinv l1 l2 memH memV g H.
-        destruct H.
-        destruct incLocal_is_fresh as (EXT & NIN & IN).
-        repeat split; auto.
-        reflexivity.
-        - intros id v H.
-          pose proof (alist_In_dec id l1 v) as [AIN | ANIN]; eauto.
+      (* TODO: can this become a lemma? *)
+      { destruct PREI.
+        split; auto.
+        repeat split.
+        - reflexivity.
+        - intros id v AIN.
           intros BOUND.
-          (* This just isn't true :( *)
-      Abort.
-      admit.
+          destruct incLocal_is_fresh.
+          destruct H0.
+          destruct (alist_In_dec id l v).
+          + (* I know id is not bound between s1 and i, but this says
+               nothing about i and i0 *)
+            destruct PRE.
+            destruct incLocal_is_fresh as (_ & NIN & _).
+            (* I know it's not bound between s1 and s2, and since i
+               and i0 are between s1 and s2 this is a contradiction *)
+            apply (NIN _ _ a).
+            eapply (state_bound_between_shrink _ _ BOUND); solve_local_count.
+          + (* Can make a contradiction because this means id is bound
+               between s1 and i, so it should be separate from i and i0
+               (BOUND) *)
+            pose proof (H1 _ _ AIN n).
+            eapply state_bound_between_separate.
+            2: apply H2.
+            2: apply BOUND.
+            apply incLocalNamed_count_gen_injective.
+            solve_local_count.
+            reflexivity.
+        - intros id v AIN ANIN.
+          contradiction.
+      }
+
+      (* Set Nested Proofs Allowed. *)
+      (* Lemma new_state_invariant_weaken_local_env : *)
+      (*   forall σ s1 s2 sinv l1 l2 memH memV g, *)
+      (*     new_state_invariant σ s1 s2 sinv l1 memH (memV, (l2, g)) -> *)
+      (*     new_state_invariant σ s1 s2 sinv l2 memH (memV, (l2, g)). *)
+      (* Proof. *)
+      (*   intros σ s1 s2 sinv l1 l2 memH memV g H. *)
+      (*   destruct H. *)
+      (*   destruct incLocal_is_fresh as (EXT & NIN & IN). *)
+      (*   repeat split; auto. *)
+      (*   reflexivity. *)
+      (*   - intros id v H. *)
+      (*     pose proof (alist_In_dec id l1 v) as [AIN | ANIN]; eauto. *)
+      (*     intros BOUND. *)
+      (*     (* This just isn't true :( *) *)
+      (* Abort. *)
+
       specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 H).
       forward IHnexp2; eauto.
       eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp2].
