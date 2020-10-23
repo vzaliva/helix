@@ -23,6 +23,119 @@ Global Opaque resolve_PVar.
 
 Import ProofMode.
 
+
+(* IY: Defining this as a Definition here, because we want the opacity in the
+    later parts of this proof. *)
+Definition IMAP_BODYH σ x f :=
+  let FN :=
+  (λ (x : mem_block) (σ : evalContext) (n' : nat) (mem_bl : Memory.NM.t binary64),
+        ` H : binary64 <- lift_Derr (mem_lookup_err "Error reading memory denoteDSHIMap" n' x);;
+        ` H0 : MInt64asNT.t <- lift_Serr (MInt64asNT.from_nat n');;
+        ` H1 : binary64 <- denoteIUnCType σ f H0 H;; Ret (mem_add n' H1 mem_bl)) in
+  (fun n mem_bl=> FN x σ n%nat mem_bl).
+Opaque IMAP_BODYH.
+
+
+Lemma denoteDSHIMap_eq_build_vec:
+  ∀ (n : nat) (f : AExpr) (σ : evalContext) (memH : memoryH) (x x0 : mem_block),
+  @eqit (CallE +' PickE +' UBE +' DebugE +' FailureE) (option (memoryH * mem_block))
+    (option (memoryH * mem_block)) (@Logic.eq (option (memoryH * mem_block))) true true
+    (interp_helix (denoteDSHIMap n f σ x x0) memH)
+    (interp_helix (build_vec n (λ (m : nat) (mem_bl : Memory.NM.t binary64),
+                                IMAP_BODYH σ x f (n - m - 1) mem_bl) x0) memH).
+Proof.
+  intros n f σ memH x x0.
+
+  unfold denoteDSHIMap, build_vec, build_vec_gen, build_vec_gen_aux.
+  assert (H1 : (n ≡ n - 0)%nat) by lia. rewrite <- H1. clear H1.
+  subst.
+
+  revert memH x x0 σ.
+
+  induction n.
+  - cbn. reflexivity.
+  - setoid_rewrite <- bind_bind. setoid_rewrite <- bind_bind.
+
+    cbn. intros *.
+
+    rewrite interp_helix_bind.
+    setoid_rewrite  interp_helix_bind at 2.
+
+    eapply eutt_clo_bind.
+    Unshelve.
+    3 : {
+      intros.
+
+      refine (
+          match X, X0 with
+          | Some (x_memH, x_memb), Some (x0_memH, x0_memb) =>
+              x_memH ≡ x0_memH /\ mem_add n x_memb x0 ≡ x0_memb
+          | None, None => True
+          | _, _ => False
+          end
+        ).
+    }
+    cbn.
+
+    {
+      Transparent IMAP_BODYH.
+      subst. cbn.
+      rewrite 2 interp_helix_bind.
+      rewrite Nat.sub_0_r.
+      eapply eutt_clo_bind.
+      reflexivity.
+      intros [ [memH0 bin0] | ]  [ [memH0' bin0'] | ] EQ0 ; inversion EQ0; subst.
+      rewrite 2 interp_helix_bind.
+      eapply eutt_clo_bind.
+      reflexivity.
+
+      intros [ [memH1 binH1] | ] [ [memH1' bin1'] | ] EQ1; inversion EQ1; subst.
+      rewrite interp_helix_bind.
+      rewrite <- bind_ret_r at 1.
+      eapply eutt_clo_bind. reflexivity.
+
+      intros [ [memH2 bin2] | ] [ [memH2' bin2'] | ] EQ2; inversion EQ2; subst.
+      rewrite interp_helix_ret. cbn.
+      apply eutt_Ret. split; cbn; try rewrite <- H; try reflexivity.
+      apply eutt_Ret; try inversion H. auto.
+      apply eutt_Ret. auto.
+      apply eutt_Ret. auto.
+    }
+
+    (* Bind continuation case of DSHIMap and build_vec equality *)
+    {
+      intros [ [memH0 memBl0] | ] [ [memH0' memBl0'] | ] EQ0 ; inversion EQ0.
+
+      rewrite IHn.
+      Opaque IMAP_BODYH.
+      cbn.
+
+      subst. remember (mem_add n memBl0 x0).
+      clear Heqt.
+      clear.
+
+      (* Finnicky nat handling for the induction to work. *)
+      remember 0%nat in * at 1.
+      rewrite <- Heqn0 at 1.
+      assert ( H: (n ≡ n + n0)%nat) by lia.
+      rewrite H. rewrite <- H at 1. rewrite <- H at 1.
+      clear Heqn0 H.
+
+      revert n0 memH0' t.
+
+      induction n; [reflexivity | ].
+      intros; rewrite 2 interp_helix_bind.
+
+      eapply eutt_clo_bind_returns. reflexivity.
+      intros [ [memH memBl] | ] [ [memH' memBl'] | ] A RetH RetH'; inversion A ; [ | reflexivity ].
+      subst.
+
+      assert (EQV': (S n + n0)%nat ≡ (n + (S n0))%nat) by lia.
+      rewrite EQV'. apply IHn.
+      reflexivity.
+    }
+Qed.
+
 (* DSHIMap case for [compile_FSHCOL_correct]. *)
 Lemma compile_DSHIMap_correct:
   ∀ (n : nat)
@@ -45,7 +158,6 @@ Lemma compile_DSHIMap_correct:
     (* Added constraints related to bounds-checking / freshness*)
     (OVERFLOW : Z.of_nat n < Integers.Int64.modulus),
 
-    (* *)
     eutt (succ_cfg (GenIR_Rel σ s2 nextblock))
          (interp_helix (denoteDSHOperator σ (DSHIMap n x_p y_p f)) memH)
          (interp_cfg (denote_bks (convert_typ [] bks) (bid_from, bid_in)) g ρ memV).
@@ -102,6 +214,7 @@ Proof.
   assert (IN: In b0 (block_ids body_blocks)). {
     subst. unfold block_ids. rewrite map_cons. cbn. left. reflexivity.
   }
+
   assert (UNIQUE: blk_id_norepet l0). {
     subst.
     rename Heqs4 into GEN.
@@ -109,9 +222,9 @@ Proof.
     unfold genWhileLoop in GEN.
     cbn* in GEN. simp.
     unfold blk_id_norepet.
-    cbn. admit.
-    (* Coqlib.list_norepet [bid_in; b2; b0; b] *)
-    (* Well-formedness condition needed. *)
+    cbn. admit. (* Coqlib.list_norepet [bid_in; b2; b0; b] *)
+
+    (* Well-formedness condition needed as assumption in this lemma. *)
   }
 
   assert (FRESH: fresh_in_cfg l0 nextblock). {
@@ -125,19 +238,9 @@ Proof.
   specialize (GEN_W _ _ _ _ _ _ _ _ s2 σ _ IN UNIQUE FRESH n Heqs4).
 
   (* Defining BODY_H *)
-  (* IY: Defining this as a Definition here, because we want the opacity in the
-     later parts of this proof. *)
-  Definition FUNCTION σ x f :=
-    let FN :=
-    (λ (x : mem_block) (σ : evalContext) (n' : nat) (mem_bl : Memory.NM.t binary64),
-          ` H : binary64 <- lift_Derr (mem_lookup_err "Error reading memory denoteDSHIMap" n' x);;
-          ` H0 : MInt64asNT.t <- lift_Serr (MInt64asNT.from_nat n');;
-          ` H1 : binary64 <- denoteIUnCType σ f H0 H;; Ret (mem_add n' H1 mem_bl)) in
-    (fun n mem_bl=> FN x σ n%nat mem_bl).
-  Opaque FUNCTION.
   clear HeqFN.
 
-  remember (fun m mem_bl => FUNCTION σ x f (n - m - 1)%nat mem_bl) as BODY.
+  remember (fun m mem_bl => IMAP_BODYH σ x f (n - m - 1)%nat mem_bl) as BODY.
 
   (* GEN_W gets a BODY *)
   specialize (GEN_W BODY OVERFLOW).
@@ -145,11 +248,11 @@ Proof.
   (* Defining Indexed Invariant (I : nat -> mem_block -> Rel_cfg) and stable
       state invariant (R : Rel_cfg)*)
   (* TODO: Tweak to change with "mem_bl" and "m""*)
-  remember (fun (m : nat) (mem_bl : mem_block) memH '(memV_, (l_, g_)) => state_invariant σ s1 memH (memV_, (l_, g_))) as INV.
+  remember (fun (m : nat) (mem_bl : mem_block) memH '(memV_, (l_, g_)) =>
+    state_invariant σ s1 memH (memV_, (l_, g_))) as INV.
 
-  remember (fun memH '(memV_, (l_, g_)) => forall mem_bl, state_invariant σ s2 (memory_set memH a0 mem_bl)
-                                                        (memV_, (l_, g_))) as R.
-
+  remember (fun memH '(memV_, (l_, g_)) => forall mem_bl,
+    state_invariant σ s2 (memory_set memH a0 mem_bl) (memV_, (l_, g_))) as R.
 
   (* GEN_W also gets an INV and R *)
   specialize (GEN_W INV R).
@@ -162,7 +265,6 @@ Proof.
 
   rewrite H1. clear H1.
 
-
   eapply eutt_post_bind_gen.
   eapply no_failure_helix_bind_prefix in NOFAIL.
   red in NOFAIL. apply NOFAIL. apply post_returns.
@@ -172,16 +274,18 @@ Proof.
   eapply rcompose_eq_l.
 
   eapply eqit_trans.
-  unfold denoteDSHIMap, build_vec. cbn. unfold build_vec_gen_aux.
-
 
   (* Apply genWhileLoop_correct top lemma *)
   2 : eapply GEN_W; clear GEN_W.
 
-  (* Equate the rest of the continuation with each other *)
-  (* TODO: Invariant 'I' and 'R' might need to be tweaked. *)
-  8 : {
-    intros. destruct u1. destruct p1.
+  (* denoteDSHIMap is equivalent to some IMap expression. *)
+  rewrite HeqBODY.
+  apply denoteDSHIMap_eq_build_vec.
+
+  (* Equate the rest of the continuation with each other (Trivial Ret continuations)*)
+  7 : {
+    intros.
+    destruct u1. destruct p1.
     rewrite interp_helix_MemSet. apply eutt_Ret.
     cbn. cbn in H1. destruct u2. destruct p1. destruct p1.
     destruct H1.
@@ -194,109 +298,16 @@ Proof.
     red. Unshelve.
 
     subst.
-    split. red. apply H4. red. destruct H1. exists b; auto. exists bid_in; auto. auto. auto.
+    split. red. apply H4. red. destruct H1. exists b; auto. exists bid_in; auto.
   }
 
-  (* TODO: Is it necessary to assume this bound? *)
+  (* Integer bound
+      TODO: Is it necessary to assume this bound as part of this lemma? *)
   2: auto.
 
-  (* Equate denoteDSHIMap with build_vec *)
+  (* Prove body hypothesis (body blocks is equal to one iteration of IMAP_BODYH) *)
   {
-    unfold build_vec, build_vec_gen, build_vec_gen_aux.
-    assert (n ≡ n - 0)%nat by lia. rewrite <- H1. clear H1.
-    clear GEN_W. clear Heqi i UNIQUE FRESH IN H0. clear Heqs4 Heqbody_blocks OVERFLOW NOFAIL H.
-    rewrite HeqBODY.
-    subst.
-    clear Heqo0 Heqo.
-
-    clear STATE BRANCHES.
-    revert memH x x0 σ.
-
-    induction n.
-    - cbn. reflexivity.
-    - setoid_rewrite <- bind_bind. setoid_rewrite <- bind_bind. 
-
-      cbn. intros *.
-
-      rewrite interp_helix_bind.
-      setoid_rewrite  interp_helix_bind at 2.
-
-      eapply eutt_clo_bind.
-      Unshelve.
-      3 : {
-        intros.
-
-        refine (
-            match X, X0 with
-            | Some (x_memH, x_memb), Some (x0_memH, x0_memb)=> x_memH ≡ x0_memH /\
-                                                              mem_add n x_memb x0 ≡ x0_memb
-            | None, None => True
-            | _, _ => False
-            end
-          ).
-      }
-      cbn.
-
-      {
-        Transparent FUNCTION.
-        subst. cbn.
-        rewrite 2 interp_helix_bind.
-        rewrite Nat.sub_0_r.
-        eapply eutt_clo_bind.
-        reflexivity.
-        intros * H1. destruct u1, u2. destruct p1, p2. inversion H1. subst.
-        (* inversion H1. inversion H1. subst. *)
-        rewrite 2 interp_helix_bind.
-        eapply eutt_clo_bind.
-        reflexivity. intros.
-        destruct u1, u2. destruct p1, p2. rewrite interp_helix_bind. inversion H1.
-        subst. rewrite <- bind_ret_r at 1.
-        eapply eutt_clo_bind. inversion H. reflexivity. intros. destruct u1, u2. destruct p2.
-        rewrite interp_helix_ret. cbn. destruct p1. inversion H0.
-        apply eutt_Ret. split; cbn; try rewrite <- H; try reflexivity.
-        inversion H0; auto. inversion H0; auto.
-        (* inversion H3. inversion H3. *)
-        apply eutt_Ret; try inversion H. auto. inversion H. inversion H.
-        apply eutt_Ret. auto. inversion H1. inversion H1. apply eutt_Ret. auto.
-     }
-
-    (* Bind continuation case of DSHIMap and build_vec equality *)
-     {
-       intros.
-
-       destruct u1, u2. destruct p1, p2. 4 : reflexivity.
-       3 : contradiction.
-       2 : { destruct p1; contradiction. }
-       destruct H. rewrite H, H0.
-       rewrite IHn.
-       Opaque FUNCTION.
-       cbn.
-
-       clear.
-
-       remember 0%nat in * at 1.
-       rewrite <- Heqn0 at 1.
-       assert ( n ≡ n + n0 )%nat by lia.
-       rewrite H. rewrite <- H at 1 2.
-       clear Heqn0 H.
-
-       revert n0 m0 m1 x σ f.
-       induction n; [reflexivity | ].
-       intros; rewrite 2 interp_helix_bind.
-
-       eapply eutt_clo_bind_returns. reflexivity.
-       intros [ [memH memBl] | ] [ [memH' memBl'] | ] A RetH RetH'; inversion A ; [ | reflexivity ].
-       subst.
-
-       assert (EQV': (S n + n0)%nat ≡ (n + (S n0))%nat) by lia.
-       rewrite EQV'.
-       specialize (IHn (S n0) memH' memBl' x σ f). apply IHn.
-     }
-  }
-
-  (* Prove body hypothesis (body blocks is equal to one iteration of FUNCTION) *)
-  {
-    intros. Transparent FUNCTION. unfold FUNCTION.
+    intros. Transparent IMAP_BODYH. unfold IMAP_BODYH.
     subst.
     match goal with
     | [ |- eutt ?R _ _ ] => remember R
