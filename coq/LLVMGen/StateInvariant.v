@@ -49,13 +49,27 @@ Section AlistExtend.
 
 End AlistExtend.
 
-(** ** New freshness invariant *)
-Definition freshness (s1 s2 : IRState) (l1 : local_env) : config_cfg -> Prop :=
-  fun '(_, (l2, _)) =>
-    alist_extend l1 l2 /\
-    (forall id v, alist_In id l1 v -> ~(lid_bound_between s1 s2 id)) /\
-    (forall id v, alist_In id l2 v -> ~(alist_In id l1 v) -> lid_bound_between s1 s2 id).
 
+(** ** New freshness invariant *)
+Record state_invariant (σ : evalContext) (sinvs : IRState) (memH : memoryH) (configV : config_cfg) : Prop :=
+  {
+  mem_is_inv : memory_invariant σ sinvs memH configV ;
+  IRState_is_WF : WF_IRState σ sinvs 
+  }.
+
+Definition freshness_pre (s1 s2 : IRState) : local_env -> Prop :=
+  fun l => (forall id v, alist_In id l v -> ~(lid_bound_between s1 s2 id)). 
+
+Definition freshness_post (s1 s2 : IRState) (l1 : local_env) : local_env -> Prop :=
+  fun l2 => (forall id v, alist_In id l2 v -> ~(alist_In id l1 v) -> lid_bound_between s1 s2 id).
+
+(* Definition freshness (s1 s2 : IRState) (l1 : local_env) : config_cfg -> Prop := *)
+(*   fun '(_, (l2, _)) => *)
+(*     alist_extend l1 l2 /\ *)
+(*     (forall id v, alist_In id l1 v -> ~(lid_bound_between s1 s2 id)) /\ *)
+(*     (forall id v, alist_In id l2 v -> ~(alist_In id l1 v) -> lid_bound_between s1 s2 id). *)
+
+(*
 Lemma freshness_local_count :
   forall (s1 s2 : IRState) (ρ : local_env) (memV : memoryV) (g : global_env),
     local_count s1 ≡ local_count s2 ->
@@ -96,7 +110,6 @@ Proof.
   split; unfold lid_bound_between, state_bound_between in *; rewrite COUNT in *; auto.
 Qed.
 
-(* TODO: Move this *)
 Lemma alist_In_dec :
   forall {K V} `{RelDec K} `{RelDec v} (id : K) (l : alist K V) (v : V),
     {alist_In id l v} + {~(alist_In id l v)}.
@@ -146,14 +159,14 @@ Proof.
         all: eauto.
 Qed.
 
-
-(* sinvs is the state used for the invariants, whereas s1 and s2 are used for freshness. *)
-Record new_state_invariant (σ : evalContext) (s1 s2 sinvs : IRState) (l1 : local_env) (memH : memoryH) (configV : config_cfg) : Prop :=
-  {
-  mem_is_inv : memory_invariant σ sinvs memH configV ;
-  IRState_is_WF : WF_IRState σ sinvs ;
-  incLocal_is_fresh : freshness s1 s2 l1 configV
-  }.
+*)
+(* (* sinvs is the state used for the invariants, whereas s1 and s2 are used for freshness. *) *)
+(* Record new_state_invariant (σ : evalContext) (s1 s2 sinvs : IRState) (l1 : local_env) (memH : memoryH) (configV : config_cfg) : Prop := *)
+(*   { *)
+(*   mem_is_inv : memory_invariant σ sinvs memH configV ; *)
+(*   IRState_is_WF : WF_IRState σ sinvs ; *)
+(*   incLocal_is_fresh : freshness s1 s2 l1 configV *)
+(*   }. 
 
 Lemma freshness_no_lu :
   forall s1 s2 s3 l1 l2 id x g memH memV τ dv,
@@ -177,6 +190,7 @@ Proof.
       admit.
     + pose proof (IN _ _ INl2 NINl1).
 Admitted.
+ *)
 
 Lemma incLocalNamed_lid_bound :
   forall s1 s2 id name,
@@ -260,26 +274,15 @@ Proof.
   auto.
 Qed.
 
-Lemma new_state_invariant_WF_IRState :
-  forall σ s1 s2 sinv ρ memH st, new_state_invariant σ s1 s2 sinv ρ memH st -> WF_IRState σ sinv.
-Proof.
-  intros * [_ WF _]; auto.
-Qed.
+Hint Resolve mem_is_inv IRState_is_WF : core.
 
-Lemma new_state_invariant_memory_invariant :
-  forall σ s1 s2 sinv ρ memH st, new_state_invariant σ s1 s2 sinv ρ memH st -> memory_invariant σ sinv memH st.
-Proof.
-  intros * [INV _ _]; auto.
-Qed.
-
-Hint Resolve new_state_invariant_memory_invariant new_state_invariant_WF_IRState: core.
-
-Lemma new_state_invariant_local_count_extend :
+(*
+Lemma freshness_pre_extend :
   forall σ s1 s2 s3 memH memV l1 l2 g,
-    new_state_invariant σ s1 s2 s2 l1 memH (memV, (l2, g)) ->
+    state_invariant σ s1 s2 s2 l1 memH (memV, (l2, g)) ->
     Γ s2 ≡ Γ s3 ->
     local_count s2 ≡ local_count s3 ->
-    new_state_invariant σ s1 s3 s3 l1 memH (memV, (l2, g)).
+    state_invariant σ s1 s3 s3 l1 memH (memV, (l2, g)).
 Proof.
   intros σ s1 s2 s3 memH memV l1 l2 g [MINV WF FRESH] COUNT.
   split.
@@ -288,12 +291,12 @@ Proof.
   - eapply freshness_local_count_extend; eauto.
 Qed.
 
-Lemma new_state_invariant_shrink :
+Lemma state_invariant_shrink :
   forall σ s1 s1' s2 s2' sinv l memH memV g,
-    new_state_invariant σ s1 s2 sinv l memH (memV, (l, g)) ->
+    state_invariant σ s1 s2 sinv l memH (memV, (l, g)) ->
     (local_count s1 <= local_count s1')%nat ->
     (local_count s2' <= local_count s2)%nat ->
-    new_state_invariant σ s1' s2' sinv l memH (memV, (l, g)).
+    state_invariant σ s1' s2' sinv l memH (memV, (l, g)).
 Proof.
   intros σ s1 s1' s2 s2' sinv l memH memV g SINV COUNT1 COUNT2.
   destruct SINV as [MINV WF FRESH].
@@ -306,6 +309,7 @@ Proof.
   - intros id v AIN ANIN.
     contradiction.
 Qed.
+ *)
 
 (* TODO: Move this *)
 Definition IRState_lt (s1 s2 : IRState) : Prop :=
@@ -319,12 +323,12 @@ Infix "<<=" := IRState_le (at level 10).
 
 
 (* TODO: Move this *)
-Lemma freshness_fresh: forall s1 s2 memV l1 l2 g,
-    freshness s1 s2 l1 (memV, (l2,g)) ->
+Lemma freshness_fresh: forall s1 s2 l,
+    freshness_pre s1 s2 l ->
     s1 << s2 ->
-    incLocal_fresh l1 s1.
+    incLocal_fresh l s1.
 Proof.
-  intros s1 s2 memV l1 l2 g (EXT & NIN & _) LT.
+  intros * NIN LT.
   unfold incLocal_fresh.
   intros s' id GEN.
 
@@ -360,6 +364,7 @@ Proof.
   lia.
 Qed.
 
+(*
 Lemma freshness_add_between :
   forall (s1 s2 : IRState) (l1 l2 : local_env) (memV : memoryV) (g : global_env) id v,
     freshness s1 s2 l1 (memV, (l2, g)) ->
@@ -374,15 +379,17 @@ Proof.
     + subst; auto.
     + apply In_add_In_ineq in AIN; eauto.
 Qed.
+ *)
 
 Lemma state_invariant_add_fresh :
   ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
     (l : local_env) (g : global_env) (v : uvalue),
     incLocal s1 ≡ inr (s2, id)
-    → new_state_invariant σ s1 s2 s1 l memH (memV, (l, g))
-    → new_state_invariant σ s1 s2 s2 l memH (memV, (alist_add id v l, g)).
+    → state_invariant σ s1 memH (memV, (l, g))
+    → freshness_pre s1 s2 l
+    → state_invariant σ s2 memH (memV, (alist_add id v l, g)).
 Proof.
-  intros * INC [MEM_INV WF FRESH].
+  intros * INC [MEM_INV WF] FRESH.
   split.
   - red; intros * LUH LUV.
     erewrite incLocal_Γ in LUV; eauto.
@@ -404,19 +411,19 @@ Proof.
       eapply fresh_no_lu_addr; eauto.
       eapply freshness_fresh; eauto using incLocal_lt.
   - unfold WF_IRState; erewrite incLocal_Γ; eauto; apply WF.
-  - apply lid_bound_between_incLocal in INC.
-    apply freshness_add_between; auto.
+(*  - apply lid_bound_between_incLocal in INC.
+    apply freshness_add_between; auto. *)
 Qed.
 
-Lemma new_state_invariant_alist_fresh:
-  forall σ s1 s' s2 sinv memH memV l1 l2 g id,
+Lemma freshness_pre_alist_fresh:
+  forall s1 s' s2 l id,
     s1 << s2 ->
-    new_state_invariant σ s1 s2 sinv l1 memH (memV, (l2,g)) ->
+    freshness_pre s1 s2 l ->
     incLocal s1 ≡ inr (s',id) ->
-    alist_fresh id l1.
+    alist_fresh id l.
 Proof.
-  intros * ? [] LOC.
-  apply freshness_fresh in incLocal_is_fresh0; eauto.
+  intros * ? ? INCL. 
+  eapply freshness_fresh in INCL; eauto.
 Qed.
 
 (* TODO: move these? *)
@@ -451,6 +458,7 @@ Ltac solve_local_count :=
     solve_local_count_tac
   end.
 
+(*
 Lemma new_state_invariant_weaken_local_env :
   forall σ s1 s2 s3 s2' s3' sinv l1 l2 memH memV g,
     new_state_invariant σ s1 s2 sinv l1 memH (memV, (l2, g)) ->
@@ -480,3 +488,5 @@ Proof.
   - intros id v AIN ANIN.
     contradiction.
 Qed.
+*)
+ 

@@ -128,42 +128,204 @@ Section NExpr.
       | H: genNExpr ?n ?s1 ≡ inr (?s2, _) |- _ =>
         apply genNExpr_local_count in H
       end.
- 
+
+  Create HintDb irs_lt.
+  Hint Resolve incLocal_lt : irs_lt.
+  
+  Ltac solve_alist_fresh :=
+    (eapply freshness_pre_alist_fresh; now eauto with irs_lt).
+  
+  Ltac solve_sub_alist :=
+    (reflexivity
+     || (apply sub_alist_add; solve_alist_fresh)
+     || (etransitivity; try eassumption; []; solve_sub_alist)
+    ).
+
+Lemma alist_In_dec :
+  forall {K V} `{RelDec K} `{RelDec v} (id : K) (l : alist K V) (v : V),
+    {alist_In id l v} + {~(alist_In id l v)}.
+Proof.
+Admitted.
+
+Require Import LidBound.
+
+  (* Lemma freshness_chain: forall s1 s2 s3 g1 g2 l1 l2 memV1 memV2 , *)
+  (*     freshness_pre s1 s3 (memV1,(l1,g1)) -> *)
+  (*     freshness_post s1 s2 l1 (memV2,(l2,g2)) -> *)
+  (*     freshness_pre s2 s3 (memV2,(l2,g2)). *)
+  (* Proof. *)
+  (*   intros * PRE POST. *)
+  (*   cbn in *. *)
+  (*   intros * IN. *)
+  (*   destruct (alist_In_dec id l1 v) as [IN' | NIN]. *)
+  (*   - apply PRE in IN'. *)
+
+  (* Admitted. *)
+
+  (** * Freshness
+      We need to reason about the freshness of local variables generated through the IRState monad.
+      To this end, we rely on the following pre and postcondition about local states (defined formally over a whole VIR state, ignoring the other arguments)
+      when reasoning about a given computation c:
+      - freshness_pre s1 s2 : fun l => dom(l) ∩ [s1,s2] = ∅
+        i.e. we ensure that the provided interval over which we will generate variables is indeed fresh
+      - freshness_post s1 s2 li : fun lf => dom(lf) \ dom(li) ⊆ [s1;s2]
+        i.e. after the computation, the new local state has indeed only been extended with variables from the provided interval.
+
+     Let us note FP (resp. FQ) for freshness_pre (resp. freshness_post). We have the following lemmas axiomatizing how these two predicates evolve.
+
+     FP1. FP s s l             : if we give ourself an empty freshness window, the precondition is trivially true
+
+     FP2. FP s1 s3 l ->
+          s2 << s3 ->
+          FP s1 s2 l
+
+     2. FQ s1 s2 l l         : if we don't extend the state, the postcondition is trivially true
+
+     3. incLocal s1 = (s2,r) ->
+        FP s1 s2 l l[r:v]
+
+     4. FP s1 s3 l1 ->
+        FQ s1 s2 l1 l2 ->
+        FP s2 s3 l2          : if we have the precondition for a long computation, and establish the postcondition at a mid point, we can recover the precondition at this point for the remaining of the computation.
+
+
+   *)
+
+  (* If we have not extended the local state, certainly we did not extend it out the required bound *)
+  Lemma freshness_post_no_extension: forall s1 s2 l, freshness_post s1 s2 l l.
+  Proof.
+    intros; red; intros.
+    intuition.
+  Qed.
+
+  Lemma freshness_post_inclocal : forall s1 s2 l x v,
+      incLocal s1 ≡ inr (s2,x) ->
+      freshness_post s1 s2 l (alist_add x v l).
+  Proof.
+    intros * INC.
+    cbn in *.
+    apply lid_bound_between_incLocal in INC.
+    red; intros.
+    destruct (id ?[ Logic.eq ] x) eqn:EQ.
+    - rewrite rel_dec_correct in EQ; subst; auto.
+    - apply neg_rel_dec_correct in EQ.
+      apply In_add_In_ineq in H; auto.
+      intuition.
+  Qed.
+
+  (* Weakens the freshness precondition: if we know that the range [|s1;s3|] is fresh in [l],
+         we can always lower [s3].
+         This is useful to derive the precondition of the first inductive hypotheses when dealing with nary operators.
+   *)
+  Lemma freshness_pre_shrink_upper_bound :
+    forall s1 s2 s3 l,
+      freshness_pre s1 s3 l ->
+      s2 << s3 -> (* Also works with non-strict *)
+      freshness_pre s1 s2 l.
+  Proof.
+    (* intros; eapply new_state_invariant_shrink; eauto. *)
+  Admitted.
+
+  Lemma freshness_chain: forall s1 s2 s3 l1 l2 ,
+      freshness_pre s1 s3 l1 ->
+      freshness_post s1 s2 l1 l2 ->
+      freshness_pre s2 s3 l2.
+  Proof.
+  Admitted.
+
+  Lemma freshness_post_transitive :
+    forall s1 s2 s3 l1 l2 l3,
+      freshness_post s1 s2 l1 l2 ->
+      freshness_post s2 s3 l2 l3 ->
+      freshness_post s1 s3 l1 l3.
+  Admitted.
+
+  Lemma freshness_pre_alist_fresh_specialized:
+    forall s1 s2 l id,
+      freshness_pre s1 s2 l ->
+      incLocal s1 ≡ inr (s2,id) ->
+      alist_fresh id l.
+  Proof.
+    intros * ? INCL.
+    eapply freshness_pre_alist_fresh; eauto with irs_lt.
+  Qed.
+
+  Ltac forwardr H H' :=
+    match type of H with
+    | ?P -> _ => assert P as H'; [| specialize (H H')]
+    end.
+  Tactic Notation "forwardr" ident(H) ident(H') := forwardr H H'.
+  
+  Create HintDb fresh.
+  Hint Resolve freshness_post_no_extension: fresh.
+  Hint Resolve freshness_post_inclocal : fresh.
+
+  Definition lift_fresh (P: local_env -> Prop) : Rel_cfg := fun _ '(_,(l,_)) => P l.
+
+  Notation fresh_pre := (fun s1 s2 => lift_fresh (freshness_pre s1 s2)). 
+  Notation fresh_post := (fun s1 s2 l => lift_fresh (freshness_post s1 s2 l)). 
+  Ltac splits :=
+    repeat match goal with
+             | |- _ /\ _ => split
+             | |- (_ ⩕ _) _ _ => split
+           end.
+
+  Arguments freshness_pre : simpl never.
+  Arguments freshness_post : simpl never.
+  Arguments lift_fresh /.
+
+  Ltac solve_fresh :=
+    eauto with fresh;
+    match goal with
+    | h: freshness_pre ?s ?s' ?l |- freshness_pre ?s _ ?l => apply freshness_pre_shrink_upper_bound with (1 := h); solve_local_count
+    | h: freshness_pre _ ?s _ |- freshness_pre _ ?s _ => apply freshness_chain with (1 := h); solve_fresh
+    | h: freshness_post _ ?s _ ?x |- freshness_pre ?s _ ?x => eapply freshness_chain with (2 := h); solve_fresh
+    | |- freshness_post _ _ _ _ => first [eassumption | eapply freshness_post_inclocal; eassumption | eapply freshness_post_transitive; [eassumption |]]; solve_fresh
+    end.
+
+  Ltac solve_state_invariant :=
+    cbn;
+    match goal with
+      |- state_invariant _ _ _ (_, (alist_add _ _ _, _)) =>
+      eapply state_invariant_add_fresh; [now eauto | (eassumption || solve_state_invariant) | solve_fresh]
+    end.
+
   Lemma genNExpr_correct_ind :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH) 
       (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
 
       genNExpr nexp s1 ≡ inr (s2, (e, c))      -> (* Compilation succeeds *)
-      new_state_invariant σ s1 s2 s1 l memH (memV, (l, g)) -> (* The main state invariant is initially true *)
+      (state_invariant σ s1 ⩕ fresh_pre s1 s2) memH (memV, (l, g)) -> (* The main state invariant is initially true *)
       no_failure (interp_helix (E := E_cfg) (denoteNExpr σ nexp) memH) -> (* Source semantics defined *)
-      eutt (succ_cfg (lift_Rel_cfg (new_state_invariant σ s1 s2 s2 l) ⩕
-                      genNExpr_rel_ind e memH (mk_config_cfg memV l g)))
+      eutt (succ_cfg (lift_Rel_cfg (state_invariant σ s2) ⩕
+                     lift_Rel_cfg (fresh_post s1 s2 l) ⩕
+                     genNExpr_rel_ind e memH (mk_config_cfg memV l g)))
            (interp_helix (denoteNExpr σ nexp) memH)
            (interp_cfg (denote_code (convert_typ [] c)) g l memV).
   Proof.
-    intros s1 s2 nexp; revert s1 s2; induction nexp; intros * COMPILE PRE NOFAIL.
+    intros s1 s2 nexp; revert s1 s2; induction nexp; intros * COMPILE [PRE PREF] NOFAIL.
+
     - (* Variable case *)
-      (* Reducing the compilation *)
+      (* Reducing the successful compilation *)
       cbn* in COMPILE; simp.
 
       + (* The variable maps to an integer in the IRState *)
-        unfold denoteNExpr in *; cbn* in *; simp; try_abs.
+        unfold denoteNExpr in *; cbn* in *; simp; try_abs. 
         hvred.
 
         (* The identifier has to be a local one *)
         destruct i0; try_abs.
 
         (* We establish the postcondition *)
-        apply eutt_Ret; split; [| split]; eauto.
+        apply eutt_Ret; cbn; splits; cbn; auto.
+        solve_fresh.
+        split; auto.
         intros l' MONO; cbn*.
-
-        destruct PRE.
-
         vstep.
-
         solve_lu.
         reflexivity.
+
       + (* The variable maps to a pointer *)
         unfold denoteNExpr in *; cbn* in *; simp; try_abs.
         break_inner_match_goal; try_abs.
@@ -177,63 +339,65 @@ Section NExpr.
         vstep.
         vstep; eauto; reflexivity.
 
-        apply eutt_Ret; split; [| split].
+        apply eutt_Ret; cbn; splits; cbn; eauto with fresh.
         -- cbn.
-           eapply state_invariant_add_fresh; [now eauto | (eassumption || solve_state_invariant)].
-        -- intros l' MONO; cbn*.
+           solve_state_invariant.
+        -- split.
+           intros l' MONO; cbn*.
            vstep; [solve_lu | reflexivity].
+           repeat split.
+           solve_sub_alist.
 
-        -- repeat split.
-           apply sub_alist_add.
-           eapply new_state_invariant_alist_fresh; eauto.
-           eapply incLocal_lt; eauto.
     - (* Constant *)
       cbn* in COMPILE; simp.
       unfold denoteNExpr in *; cbn*.
       hvred.
 
-      apply eutt_Ret; split; [| split]; try now eauto.
+      apply eutt_Ret; cbn; splits; cbn; eauto with fresh.
+      split; auto.
       intros l' MONO; cbn*.
       vstep; reflexivity.
 
     - (* NDiv *)
       cbn* in *; simp; try_abs.
-      (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *)
       hvred.
 
-      assert (new_state_invariant σ s1 i s1 l memH (memV, (l, g))) as PRE'.
-      eapply new_state_invariant_shrink; eauto.
-      solve_local_count.
-
-      specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE'). 
+      specialize (IHnexp1 _ _ σ memH _ _ g l memV Heqs).
+      forward IHnexp1.
+      { split; auto.
+        solve_fresh.
+      }
       forward IHnexp1; eauto.
-
+     
       (* e1 *)
       eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp1].
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI)).
+      destruct PRE0 as (PRE1 & PREF1 & (EXPR1 & <- & <- & <- & MONO1)). 
       hvred.
+      cbn in *.
 
       (* e2 *)
-      cbn in PREI.
-      assert (new_state_invariant σ i i0 i l0 memH (memV, (l0, g))).      
-      eapply new_state_invariant_weaken_local_env; eauto.
-      apply PRE. all: try solve_local_count.
-
-      specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 H).
+      specialize (IHnexp2 _ _ σ memH _ _ g l0 memV Heqs0).
+      forward IHnexp2.
+      {
+        split; auto.
+        solve_fresh.
+      }
       forward IHnexp2; eauto.
+
       eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp2].
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF)).
+      destruct PRE0 as (PRE2 & PREF2 & (EXPR2 & <- & <- & <- & MONO2)).
+      cbn in *.
 
       (* division *)
       simp; try_abs.
       hvred.
 
-      specialize (EXPRI _ MONOF) .
-      assert (l1 ⊑ l1) as L1L1 by reflexivity; specialize (EXPRF _ L1L1). 
+      specialize (EXPR1 _ MONO2) .
+      assert (l1 ⊑ l1) as L1L1 by reflexivity; specialize (EXPR2 _ L1L1). 
       cbn in *.
       hvred.
       vstep.
@@ -241,181 +405,271 @@ Section NExpr.
         vstep; eauto; try reflexivity.
         cbn; break_inner_match_goal; try reflexivity.
         exfalso; apply n.
-        clear EXPRF EXPRI.
+        clear EXPR2 EXPR1.
         apply Z.eqb_eq in Heqb.
         rewrite <- Int64.unsigned_zero in Heqb.
         unfold MInt64asNT.NTypeZero.
         apply unsigned_is_zero; auto.
       }
-      apply eutt_Ret; split; [| split].
-      admit.
+
+      apply eutt_Ret; cbn; splits; cbn.
       {
-        intros ? MONO.
-        cbn.
+        solve_state_invariant.
+      }
+      {
+        solve_fresh.
+      }
+      { split; auto.
+        intros ? MONO; cbn.
         vstep; solve_lu; reflexivity.
+        apply ext_local_subalist.
+        etransitivity; eauto.
+        etransitivity; eauto.
+        apply sub_alist_add.
+        eapply freshness_pre_alist_fresh_specialized; eauto.
+        solve_fresh.
+      }
+        
+    - (* NMod *)
+      cbn* in *; simp; try_abs.
+      hvred.
+
+      specialize (IHnexp1 _ _ σ memH _ _ g l memV Heqs).
+      forward IHnexp1.
+      { split; auto.
+        solve_fresh.
+      }
+      forward IHnexp1; eauto.
+
+      eapply eutt_clo_bind_returns; [eassumption | clear IHnexp1].
+      introR; destruct_unit.
+      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
+      cbn in *.
+      destruct PRE0 as (PRE1 & PREF1 & (EXPR1 & <- & <- & <- & MONO1)). 
+      hvred.
+      cbn in *.
+
+      specialize (IHnexp2 _ _ σ memH _ _ g l0 memV Heqs0).
+      forward IHnexp2.
+      {
+        split; auto.
+        solve_fresh.
+      }
+      forward IHnexp2; eauto.
+      eapply eutt_clo_bind_returns; [eassumption | clear IHnexp2].
+      introR; destruct_unit.
+      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
+      destruct PRE0 as (PRE2 & PREF2 & (EXPR2 & <- & <- & <- & MONO2)).
+      cbn; hvred.
+      break_match_goal; try_abs...
+      hvred.
+      
+      vstep.
+      (* Operator evaluation *)
+      {
+        vstep; cbn; eauto; try reflexivity.
+        eapply EXPR2; reflexivity.
+        reflexivity.
+        cbn; break_inner_match_goal; try reflexivity.
+
+        (* Division by 0 *)
+        exfalso.
+        apply Z.eqb_eq in Heqb.
+        exfalso. apply n.
+        rewrite <- Int64.unsigned_zero in Heqb.
+        unfold MInt64asNT.NTypeZero.
+        apply unsigned_is_zero; auto.
+      }
+
+
+      apply eutt_Ret; cbn; splits; cbn.
+      {
+        solve_state_invariant.
       }
       {
-        admit. (* should hold... *)
-        (* apply ext_local_subalist; solve_sub_alist. *)
+        solve_fresh.
       }
-      all: admit.
-        
-   (*  - (* NMod *) *)
-   (*    cbn* in *; simp; try_abs. *)
-   (*    hvred. *)
-   (*    (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *) *)
-   (*    specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE).  *)
-   (*    forward IHnexp1; eauto. *)
-
-   (*    eapply eutt_clo_bind_returns; [eassumption | clear IHnexp1]. *)
-   (*    introR; destruct_unit. *)
-   (*    intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET. *)
-   (*    cbn in *. *)
-   (*    destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI)). *)
-   (*    hvred. *)
-
-   (*    specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI). *)
-   (*    forward IHnexp2; eauto.  *)
-   (*    eapply eutt_clo_bind_returns; [eassumption | clear IHnexp2]. *)
-   (*    introR; destruct_unit. *)
-   (*    intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET. *)
-   (*    destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF)). *)
-   (*    cbn; hvred. *)
-   (*    break_match_goal; try_abs... *)
-   (*    hvred. *)
-      
-   (*    vstep. *)
-   (*    (* Operator evaluation *) *)
-   (*    { *)
-   (*      cbn in EXPRF. *)
-   (*      vstep; cbn; eauto; try reflexivity. *)
-   (*      eapply EXPRF; reflexivity. *)
-   (*      reflexivity. *)
-   (*      cbn; break_inner_match_goal; try reflexivity. *)
-
-   (*      (* Division by 0 *) *)
-   (*      exfalso. *)
-   (*      apply Z.eqb_eq in Heqb. *)
-   (*      exfalso. apply n. *)
-   (*      rewrite <- Int64.unsigned_zero in Heqb. *)
-   (*      unfold MInt64asNT.NTypeZero. *)
-   (*      apply unsigned_is_zero; auto. *)
-   (*    } *)
+      { split; auto.
+        intros ? MONO; cbn.
+        vstep; solve_lu; reflexivity.
+        apply ext_local_subalist.
+        etransitivity; eauto.
+        etransitivity; eauto.
+        apply sub_alist_add.
+        eapply freshness_pre_alist_fresh_specialized; eauto.
+        solve_fresh.
+      }
  
-   (*    apply eutt_Ret; split; [| split]; try now eauto. *)
-   (*    -- solve_state_invariant.  *)
-   (*    -- cbn; intros ? MONO. *)
-   (*       vstep; solve_lu; reflexivity. *)
-   (*    -- apply ext_local_subalist; solve_sub_alist. *)
-         
-   (* - (* NAdd *) *)
+   - (* NAdd *)
 
-   (*   cbn* in *; simp; try_abs. *)
-   (*   hvred. *)
+     cbn* in *; simp; try_abs.
+     hvred.
 
-   (*   (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *) *)
-   (*   specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE).  *)
-   (*   forward IHnexp1; eauto.  *)
-   (*   eapply eutt_clo_bind_returns; [eassumption | clear IHnexp1]. *)
-   (*   introR; destruct_unit. *)
-   (*   intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET. *)
-   (*   destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI)).  *)
-   (*   hvred. *)
+     specialize (IHnexp1 _ _ σ memH _ _ g l memV Heqs).
+     forward IHnexp1.
+     { split; auto.
+       solve_fresh.
+     }
+     forward IHnexp1; eauto.
 
-   (*   specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI).  *)
-   (*   forward IHnexp2; eauto.  *)
-   (*   eapply eutt_clo_bind_returns; [eassumption | clear IHnexp2]. *)
-   (*   introR; destruct_unit. *)
-   (*   intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET. *)
-   (*   destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF)).  *)
-   (*   cbn; hvred. *)
+     eapply eutt_clo_bind_returns; [eassumption | clear IHnexp1].
+     introR; destruct_unit.
+     intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
+     destruct PRE0 as (PRE1 & PREF1 & (EXPR1 & <- & <- & <- & MONO1)). 
+     hvred.
+     cbn in *.
 
-   (*   vstep. *)
-   (*   vstep; cbn; try (eapply EXPRF || eapply EXPRI); eauto; reflexivity. *)
+     specialize (IHnexp2 _ _ σ memH _ _ g l0 memV Heqs0).
+     forward IHnexp2.
+     {
+       split; auto.
+       solve_fresh.
+     }
+     forward IHnexp2; eauto.
+     eapply eutt_clo_bind_returns; [eassumption | clear IHnexp2].
+     introR; destruct_unit.
+     intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
+     destruct PRE0 as (PRE2 & PREF2 & (EXPR2 & <- & <- & <- & MONO2)).
+     cbn; hvred.
 
-   (*   apply eutt_Ret; split; [| split]. *)
-   (*   -- solve_state_invariant. *)
-   (*   -- cbn; intros ? MONO. *)
-   (*      vstep; solve_lu; reflexivity. *)
-   (*   -- apply ext_local_subalist; solve_sub_alist. *)
-        
-   (* - (* NMinus *) *)
+     vstep.
+     vstep; cbn; try (eapply EXPR2 || eapply EXPR1); eauto; reflexivity.
 
-   (*   cbn* in *; simp; try_abs. *)
-   (*   hvred. *)
-
-   (*   (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *) *)
-   (*   specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE).  *)
-   (*   forward IHnexp1; eauto.  *)
-   (*   eapply eutt_clo_bind_returns; [eassumption | clear IHnexp1]. *)
-   (*   introR; destruct_unit. *)
-   (*   intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET. *)
-   (*   destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI)).  *)
-   (*   hvred. *)
-
-   (*   specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI).  *)
-   (*   forward IHnexp2; eauto.  *)
-   (*   eapply eutt_clo_bind_returns; [eassumption | clear IHnexp2]. *)
-   (*   introR; destruct_unit. *)
-   (*   intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET. *)
-   (*   destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF)).  *)
-   (*   cbn; hvred. *)
-
-   (*   vstep. *)
-   (*   vstep; cbn; try (eapply EXPRF || eapply EXPRI); eauto; reflexivity. *)
-
-   (*   apply eutt_Ret; split; [| split]. *)
-   (*   -- solve_state_invariant. *)
-   (*   -- cbn; intros ? MONO. *)
-   (*      vstep; solve_lu; reflexivity. *)
-   (*   -- apply ext_local_subalist; solve_sub_alist. *)
-
-   (* - (* NMult *) *)
+     apply eutt_Ret; cbn; splits; cbn.
+     {
+       solve_state_invariant.
+     }
+     {
+       solve_fresh.
+     }
+     { split; auto.
+       intros ? MONO; cbn.
+       vstep; solve_lu; reflexivity.
+       apply ext_local_subalist.
+       etransitivity; eauto.
+       etransitivity; eauto.
+       apply sub_alist_add.
+       eapply freshness_pre_alist_fresh_specialized; eauto.
+       solve_fresh.
+     }
      
-   (*   cbn* in *; simp; try_abs. *)
-   (*   hvred. *)
+   - (* NMinus *)
 
-   (*   (* TODO YZ: gets some super "specialize" tactics that do not require to provide variables *) *)
-   (*   specialize (IHnexp1 _ _ _ _ _ _ _ _ _ Heqs PRE).  *)
-   (*   forward IHnexp1; eauto.  *)
-   (*   eapply eutt_clo_bind_returns; [eassumption | clear IHnexp1]. *)
-   (*   introR; destruct_unit. *)
-   (*   intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET. *)
-   (*   destruct PRE0 as (PREI & (EXPRI & <- & <- & <- & MONOI)).  *)
-   (*   hvred. *)
+     cbn* in *; simp; try_abs.
+     hvred.
 
-   (*   specialize (IHnexp2 _ _ _ _ _ _ _ _ _ Heqs0 PREI).  *)
-   (*   forward IHnexp2; eauto.  *)
-   (*   eapply eutt_clo_bind_returns; [eassumption | clear IHnexp2]. *)
-   (*   introR; destruct_unit. *)
-   (*   intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET. *)
-   (*   destruct PRE0 as (PREF & (EXPRF & <- & <- & <- & MONOF)).  *)
-   (*   cbn; hvred. *)
+     specialize (IHnexp1 _ _ σ memH _ _ g l memV Heqs).
+     forward IHnexp1.
+     { split; auto.
+       solve_fresh.
+     }
+     forward IHnexp1; eauto.
+     eapply eutt_clo_bind_returns; [eassumption | clear IHnexp1].
+     introR; destruct_unit.
+     intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
+     destruct PRE0 as (PRE1 & PREF1 & (EXPR1 & <- & <- & <- & MONO1)). 
+     hvred; cbn in *.
 
-   (*   vstep. *)
-   (*   (* Operator evaluation *) *)
-   (*   { *)
-   (*      vstep; cbn; try (eapply EXPRF || eapply EXPRI); eauto; try reflexivity. *)
-   (*      cbn. *)
-   (*      break_inner_match; reflexivity. *)
-   (*    } *)
+     specialize (IHnexp2 _ _ σ memH _ _ g l0 memV Heqs0).
+     forward IHnexp2.
+     { split; auto.
+       solve_fresh.
+     }
+      forward IHnexp2; eauto.
+     eapply eutt_clo_bind_returns; [eassumption | clear IHnexp2].
+     introR; destruct_unit.
+     intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
+     destruct PRE0 as (PRE2 & PREF2 & (EXPR2 & <- & <- & <- & MONO2)).
+     cbn; hvred.
 
-   (*   apply eutt_Ret; split; [| split]. *)
-   (*   -- solve_state_invariant. *)
-   (*   -- cbn; intros ? MONO. *)
-   (*      vstep; solve_lu; reflexivity. *)
-   (*   -- apply ext_local_subalist; solve_sub_alist. *)
+     vstep.
+     vstep; cbn; try (eapply EXPR2 || eapply EXPR1); eauto; reflexivity.
 
-   (* - (* NMin *) *)
-   (*    (* Non-implemented by the compiler *) *)
-   (*    inversion COMPILE. *)
-   (*  - (* NMax *) *)
-   (*    (* Non-implemented by the compiler *) *)
-   (*    inversion COMPILE. *)
-  Admitted.
+     apply eutt_Ret; cbn; splits; cbn.
+     {
+       solve_state_invariant.
+     }
+     {
+       solve_fresh.
+     }
+     { split; auto.
+       intros ? MONO; cbn.
+       vstep; solve_lu; reflexivity.
+       apply ext_local_subalist.
+       etransitivity; eauto.
+       etransitivity; eauto.
+       apply sub_alist_add.
+       eapply freshness_pre_alist_fresh_specialized; eauto.
+       solve_fresh.
+     }
+ 
+   - (* NMult *)
+     
+     cbn* in *; simp; try_abs.
+     hvred.
+
+     specialize (IHnexp1 _ _ σ memH _ _ g l memV Heqs).
+     forward IHnexp1.
+     { split; auto.
+       solve_fresh.
+     }
+     forward IHnexp1; eauto.
+     eapply eutt_clo_bind_returns; [eassumption | clear IHnexp1].
+     introR; destruct_unit.
+     intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
+     destruct PRE0 as (PRE1 & PREF1 & (EXPR1 & <- & <- & <- & MONO1)). 
+     hvred; cbn in *.
+
+     specialize (IHnexp2 _ _ σ memH _ _ g l0 memV Heqs0).
+     forward IHnexp2.
+     { split; auto.
+       solve_fresh.
+     }
+      forward IHnexp2; eauto.
+     eapply eutt_clo_bind_returns; [eassumption | clear IHnexp2].
+     introR; destruct_unit.
+     intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
+     destruct PRE0 as (PRE2 & PREF2 & (EXPR2 & <- & <- & <- & MONO2)).
+     cbn; hvred.
+
+     vstep.
+     (* Operator evaluation *)
+     {
+        vstep; cbn; try (eapply EXPR2 || eapply EXPR1); eauto; try reflexivity.
+        cbn.
+        break_inner_match; reflexivity.
+      }
+
+     apply eutt_Ret; cbn; splits; cbn.
+     {
+       solve_state_invariant.
+     }
+     {
+       solve_fresh.
+     }
+     { split; auto.
+       intros ? MONO; cbn.
+       vstep; solve_lu; reflexivity.
+       apply ext_local_subalist.
+       etransitivity; eauto.
+       etransitivity; eauto.
+       apply sub_alist_add.
+       eapply freshness_pre_alist_fresh_specialized; eauto.
+       solve_fresh.
+     }
+ 
+   - (* NMin *)
+      (* Non-implemented by the compiler *)
+      inversion COMPILE.
+    - (* NMax *)
+      (* Non-implemented by the compiler *)
+      inversion COMPILE.
+  Qed.
 
 End NExpr.
 
+Notation fresh_pre := (fun s1 s2 => lift_fresh (freshness_pre s1 s2)). 
+Notation fresh_post := (fun s1 s2 l => lift_fresh (freshness_post s1 s2 l)). 
 Definition genNExpr_exp_correct (σ : evalContext) (s : IRState) (e: exp typ)
   : Rel_cfg_T DynamicValues.int64 unit :=
   fun '(memH,i) '(memV,(l,(g,v))) => 
@@ -431,21 +685,18 @@ Lemma genNExpr_correct :
     (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
 
     genNExpr nexp s1 ≡ inr (s2, (e, c))      -> (* Compilation succeeds *)
-    new_state_invariant σ s1 s2 s1 l memH (memV, (l, g)) -> (* The main state invariant is initially true *)
+    (state_invariant σ s1 ⩕ fresh_pre s1 s2) memH (memV, (l, g)) -> (* The main state invariant is initially true *)
     no_failure (interp_helix (E := E_cfg) (denoteNExpr σ nexp) memH) -> (* Source semantics defined *)
     eutt (succ_cfg
-            (lift_Rel_cfg (new_state_invariant σ s1 s2 s2 l) ⩕
-                          genNExpr_exp_correct σ s2 e ⩕
-                          ext_local memH (memV,(l,g))
-         ))
+            (lift_Rel_cfg (state_invariant σ s2 ⩕ fresh_post s1 s2 l) ⩕ ext_local memH (memV,(l,g)))
+         )
          (interp_helix (denoteNExpr σ nexp) memH)
          (interp_cfg (denote_code (convert_typ [] c)) g l memV).
 Proof.
   intros.
   eapply eutt_mon; cycle -1.
   eapply genNExpr_correct_ind; eauto.
-  intros [(? & ?) |] (? & ? & ? & []) INV; [destruct INV as (SI & EXP & ?) | inv INV].
-  cbn in *.
+  intros [(? & ?) |] (? & ? & ? & []) INV; [destruct INV as (SI & ? & EXP & ?) | inv INV].
   cbn in *.
   specialize (EXP l0).
   forward EXP; [reflexivity |].
