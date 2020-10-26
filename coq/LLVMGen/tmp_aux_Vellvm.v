@@ -542,6 +542,43 @@ Section alistFacts.
       congruence.
   Qed.
 
+  Definition alist_extend (l1 l2 : alist K V) : Prop :=
+    forall id v, alist_In id l1 v -> exists v', alist_In id l2 v'.
+
+  Global Instance alist_extend_Reflexive : Reflexive alist_extend.
+  Proof.
+    unfold Reflexive.
+    intros x.
+    unfold alist_extend.
+    intros id v H.
+    exists v.
+    auto.
+  Qed.
+
+  Global Instance alist_extend_Transitive : Transitive alist_extend.
+  Proof.
+    unfold Transitive.
+    intros x.
+    unfold alist_extend.
+    intros y z Hy Hz id v IN.
+    apply Hy in IN as (v' & IN).
+    apply Hz in IN as (v'' & IN).
+    exists v''; auto.
+  Qed.
+
+  Lemma alist_extend_add :
+    forall l k v,
+      alist_extend l (alist_add k v l).
+  Proof.
+    intros l k v.
+    unfold alist_extend.
+    unfold alist_In.
+    intros id v0 H.
+    destruct (rel_dec_p k id).
+    - exists v. subst; apply In_add_eq.
+    - exists v0. apply In_In_add_ineq; eauto.
+  Qed.
+
 End alistFacts.
 Arguments alist_find {_ _ _ _}.
 Arguments alist_add {_ _ _ _}.
@@ -668,6 +705,12 @@ Section WithDec.
     rewrite remove_neq_alist; auto.
     typeclasses eauto.
   Qed.
+
+  Lemma alist_In_dec :
+    forall (id : K) (l : alist K V) (v : V),
+      {alist_In id l v} + {~(alist_In id l v)}.
+  Proof.
+  Admitted.
 
 End WithDec.
 
@@ -1248,4 +1291,17 @@ Arguments denote_phis : simpl never.
 Arguments denote_code : simpl never.
 Arguments denote_terminator : simpl never.
 Arguments denote_block : simpl never.
+
+Lemma Name_inj : forall s1 s2,
+    Name s1 = Name s2 ->
+    s1 = s2.
+Proof.
+  intros * EQ; inv EQ; auto.
+Qed.
+
+Ltac forwardr H H' :=
+  match type of H with
+  | ?P -> _ => assert P as H'; [| specialize (H H')]
+  end.
+Tactic Notation "forwardr" ident(H) ident(H') := forwardr H H'.
 

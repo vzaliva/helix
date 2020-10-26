@@ -1,4 +1,5 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
+Require Import Helix.LLVMGen.Freshness.
 
 Set Implicit Arguments.
 Set Strict Implicit.
@@ -264,42 +265,15 @@ Section SimulationRelations.
     auto.
   Qed.
 
-  (** ** Fresh identifier generator invariant
-      Low and high level invariants ensuring that calls to [incLocal] indeed generate fresh variables.
-   *)
-  Definition incLocal_fresh (l : local_env) (s : IRState) : Prop :=
-    forall s' id, incLocal s ≡ inr (s',id) ->
-             alist_fresh id l.
-
-  Definition concrete_fresh_inv (s : IRState) : config_cfg -> Prop :=
-    fun '(_, (l,g)) =>
-      forall id v n, alist_In id l v -> n >= local_count s -> id <> Name ("l" @@ string_of_nat n).
-
-  (* We need to preserve the concrete invariant, but it is sufficient to get the abstract one of interest *)
-  Lemma concrete_fresh_fresh: forall s memV l g,
-      concrete_fresh_inv s (memV,(l,g)) ->
-      incLocal_fresh l s.
-  Proof.
-    intros * FRESH ? ? LU.
-    unfold incLocal, incLocalNamed in LU; cbn in *; inv LU.
-    unfold alist_fresh.
-    match goal with
-    | |- ?x ≡ None => destruct x eqn:EQ; auto; exfalso
-    end.
-    eapply FRESH; eauto.
-  Qed.
-
   (** ** General state invariant
       The main invariant carried around combine the three properties defined:
       1. the memories satisfy the invariant;
       2. the [IRState] is well formed;
-      3. the fresh ident generator is working properly.
    *)
   Record state_invariant (σ : evalContext) (s : IRState) (memH : memoryH) (configV : config_cfg) : Prop :=
     {
     mem_is_inv : memory_invariant σ s memH configV ;
     IRState_is_WF : WF_IRState σ s ;
-    incLocal_is_fresh : concrete_fresh_inv s configV
     }.
 
   (* Named function pointer exists in global environemnts *)
@@ -423,13 +397,13 @@ End Ext_Local.
 Lemma state_invariant_WF_IRState :
   forall σ s memH st, state_invariant σ s memH st -> WF_IRState σ s.
 Proof.
-  intros ? ? ? (? & ? & ?) [_ WF _]; auto.
+  intros ? ? ? (? & ? & ?) [_ WF]; auto.
 Qed.
 
 Lemma state_invariant_memory_invariant :
   forall σ s memH st, state_invariant σ s memH st -> memory_invariant σ s memH st.
 Proof.
-  intros ? ? ? (? & ? & ?) [INV _ _]; auto.
+  intros ? ? ? (? & ? & ?) [INV _]; auto.
 Qed.
 
 Lemma ext_local_refl:
@@ -512,14 +486,6 @@ Proof.
   cbn in *; rewrite INC in IN; inv IN.
 Qed.
 
-(* Inversion messes up my goal a bit too much, simpler to use this *)
-Lemma Name_inj : forall s1 s2,
-    Name s1 ≡ Name s2 ->
-    s1 ≡ s2.
-Proof.
-  intros * EQ; inv EQ; auto.
-Qed.
-
 Lemma append_factor_left : forall s s1 s2,
     s @@ s1 ≡ s @@ s2 ->
     s1 ≡ s2.
@@ -534,12 +500,14 @@ Global Opaque append.
      [memory_invariant] is stable by fresh extension of the local environment.
  *)
 Lemma state_invariant_add_fresh :
-  forall σ s s' id memH memV l g v,
-    incLocal s ≡ inr (s', id) ->
-    state_invariant σ s memH (memV, (l, g)) ->
-    state_invariant σ s' memH (memV, (alist_add id v l, g)).
+  ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
+    (l : local_env) (g : global_env) (v : uvalue),
+    incLocal s1 ≡ inr (s2, id)
+    → state_invariant σ s1 memH (memV, (l, g))
+    → freshness_pre s1 s2 l
+    → state_invariant σ s2 memH (memV, (alist_add id v l, g)).
 Proof.
-  intros * INC [MEM_INV WF FRESH].
+  intros * INC [MEM_INV WF] FRESH.
   split.
   - red; intros * LUH LUV.
     erewrite incLocal_Γ in LUV; eauto.
@@ -549,27 +517,18 @@ Proof.
     + subst.
       eapply in_local_or_global_scalar_add_fresh_old; eauto.
       eapply fresh_no_lu; eauto.
-      eapply concrete_fresh_fresh; eauto.
+      eapply freshness_fresh; eauto using incLocal_lt.
     + subst.
       eapply in_local_or_global_scalar_add_fresh_old; eauto.
       eapply fresh_no_lu; eauto.
-      eapply concrete_fresh_fresh; eauto.
+      eapply freshness_fresh; eauto using incLocal_lt.
     + subst.
       repeat destruct INLG as [? INLG].
       do 3 eexists; splits; eauto.
       eapply in_local_or_global_addr_add_fresh_old; eauto.
       eapply fresh_no_lu_addr; eauto.
-      eapply concrete_fresh_fresh; eauto.
+      eapply freshness_fresh; eauto using incLocal_lt.
   - unfold WF_IRState; erewrite incLocal_Γ; eauto; apply WF.
-  - intros ? ? ? LU INEQ.
-    clear MEM_INV WF.
-    destruct (rel_dec_p id0 id); [subst |];
-      destruct s; cbn in INC; inv_sum; cbn in *.
-    + intros abs.
-      clear - INEQ abs.
-      apply Name_inj, append_factor_left,string_of_nat_inj in abs; lia.
-    + apply In_add_In_ineq in LU; eauto.
-      eapply FRESH; eauto with arith.
 Qed.
 
 Lemma ext_local_subalist : forall {R S} memH memV l1 g vH vV l2,
@@ -587,35 +546,19 @@ Proof.
   intros; cbn in *; inv_sum; reflexivity.
 Qed.
 
-Lemma incVoid_local_count:
-  forall s s' id,
-    incVoid s ≡ inr (s', id) ->
-    local_count s' ≡ local_count s.
-Proof.
-  intros; cbn in *; inv_sum; reflexivity.
-Qed.
-
 Lemma state_invariant_incVoid :
   forall σ s s' k memH stV,
     incVoid s ≡ inr (s', k) ->
     state_invariant σ s memH stV ->
     state_invariant σ s' memH stV.
 Proof.
-  intros * INC [MEM_INV WF FRESH].
+  intros * INC [MEM_INV WF].
   split.
   - red; repeat break_let; intros * LUH LUV.
     erewrite incVoid_Γ in LUV; eauto.
     generalize LUV; intros INLG;
       eapply MEM_INV in INLG; eauto.
   - unfold WF_IRState; erewrite incVoid_Γ; eauto; apply WF.
-  - red; repeat break_let; erewrite incVoid_local_count; eauto.
-Qed.
-
-Lemma incLocal_local_count: forall s s' x,
-    incLocal s ≡ inr (s',x) ->
-    local_count s' ≡ S (local_count s).
-Proof.
-  intros; cbn in *; inv_sum; reflexivity.
 Qed.
 
 Lemma state_invariant_incLocal :
@@ -624,31 +567,19 @@ Lemma state_invariant_incLocal :
     state_invariant σ s memH stV ->
     state_invariant σ s' memH stV.
 Proof.
-  intros * INC [MEM_INV WF FRESH].
+  intros * INC [MEM_INV WF].
   split.
   - red; repeat break_let; intros * LUH LUV.
     erewrite incLocal_Γ in LUV; eauto.
     generalize LUV; intros INLG;
       eapply MEM_INV in INLG; eauto.
   - unfold WF_IRState; erewrite incLocal_Γ; eauto; apply WF.
-  - red; repeat break_let; intros ? ? ? LU INEQ.
-    clear MEM_INV WF.
-    erewrite incLocal_local_count in INEQ; eauto.
-    eapply FRESH; eauto with arith.
 Qed.
-
 
 Lemma incLocalNamed_Γ:
   forall s s' msg id,
     incLocalNamed msg s ≡ inr (s', id) ->
     Γ s' ≡ Γ s.
-Proof.
-  intros; cbn in *; inv_sum; reflexivity.
-Qed.
-
-Lemma incLocalNamed_local_count: forall s s' msg x,
-    incLocalNamed msg s ≡ inr (s',x) ->
-    local_count s' ≡ S (local_count s).
 Proof.
   intros; cbn in *; inv_sum; reflexivity.
 Qed.
@@ -659,32 +590,19 @@ Lemma state_invariant_incLocalNamed :
     state_invariant σ s memH stV ->
     state_invariant σ s' memH stV.
 Proof.
-  intros * INC [MEM_INV WF FRESH].
+  intros * INC [MEM_INV WF].
   split.
   - red; repeat break_let; intros * LUH LUV.
     erewrite incLocalNamed_Γ in LUV; eauto.
     generalize LUV; intros INLG;
       eapply MEM_INV in INLG; eauto. 
   - unfold WF_IRState; erewrite incLocalNamed_Γ; eauto; apply WF.
-  - red; repeat break_let; intros ? ? ? LU INEQ.
-    clear MEM_INV WF.
-    erewrite incLocalNamed_local_count in INEQ; eauto.
-    eapply FRESH; eauto with arith.
 Qed.
-
 
 Lemma incBlockNamed_Γ:
   forall s s' msg id,
     incBlockNamed msg s ≡ inr (s', id) ->
     Γ s' ≡ Γ s.
-Proof.
-  intros; cbn in *; inv_sum; reflexivity.
-Qed.
-
-Lemma incBlockNamed_local_count:
-  forall s s' msg id,
-    incBlockNamed msg s ≡ inr (s', id) ->
-    local_count s' ≡ local_count s.
 Proof.
   intros; cbn in *; inv_sum; reflexivity.
 Qed.
@@ -703,14 +621,13 @@ Lemma state_invariant_incBlockNamed :
     state_invariant σ s memH stV ->
     state_invariant σ s' memH stV.
 Proof.
-  intros * INC [MEM_INV WF FRESH].
+  intros * INC [MEM_INV WF].
   split.
   - red; repeat break_let; intros * LUH LUV.
     erewrite incBlockNamed_Γ in LUV; eauto.
     generalize LUV; intros INLG;
       eapply MEM_INV in INLG; eauto.
   - unfold WF_IRState; erewrite incBlockNamed_Γ; eauto; apply WF.
-  - red; repeat break_let; erewrite incBlockNamed_local_count; eauto.
 Qed.
 
 Global Opaque incBlockNamed.
@@ -729,17 +646,6 @@ Proof.
   (* apply Coqlib.zeq_true. *)
   (* Qed. *)
 Admitted.
-
-Lemma state_invariant_alist_fresh:
-  forall σ s s' memH memV l g id,
-    state_invariant σ s memH (memV, (l,g)) ->
-    incLocal s ≡ inr (s',id) ->
-    alist_fresh id l.
-Proof.
-  intros * [] LOC.
-  apply concrete_fresh_fresh in incLocal_is_fresh0.
-  eapply incLocal_is_fresh0; eauto.
-Qed.
 
 Hint Resolve memory_invariant_ext_local: core.
 
@@ -760,16 +666,6 @@ Ltac solve_state_invariant :=
   cbn;
   match goal with
     |- state_invariant _ _ _ (_, (alist_add _ _ _, _)) =>
-    eapply state_invariant_add_fresh; [now eauto | (eassumption || solve_state_invariant)]
+    eapply state_invariant_add_fresh; [now eauto | (eassumption || solve_state_invariant) | solve_fresh]
   end.
-
-Ltac solve_alist_fresh :=
-  (reflexivity ||
-   eapply state_invariant_alist_fresh; now eauto).
-
-Ltac solve_sub_alist :=
-  (reflexivity
-   || (apply sub_alist_add; solve_alist_fresh)
-   || (etransitivity; eauto; []; solve_sub_alist)
-  ).
 
