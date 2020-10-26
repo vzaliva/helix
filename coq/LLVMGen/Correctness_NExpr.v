@@ -164,8 +164,7 @@ Require Import LidBound.
 
   (** * Freshness
       We need to reason about the freshness of local variables generated through the IRState monad.
-      To this end, we rely on the following pre and postcondition about local states (defined formally over a whole VIR state, ignoring the other arguments)
-      when reasoning about a given computation c:
+      To this end, we rely on the following pre and postcondition about local states when reasoning about a given computation c:
       - freshness_pre s1 s2 : fun l => dom(l) ∩ [s1,s2] = ∅
         i.e. we ensure that the provided interval over which we will generate variables is indeed fresh
       - freshness_post s1 s2 li : fun lf => dom(lf) \ dom(li) ⊆ [s1;s2]
@@ -173,21 +172,30 @@ Require Import LidBound.
 
      Let us note FP (resp. FQ) for freshness_pre (resp. freshness_post). We have the following lemmas axiomatizing how these two predicates evolve.
 
-     FP1. FP s s l             : if we give ourself an empty freshness window, the precondition is trivially true
+     P1. FP s s l             : if we give ourself an empty freshness window, the precondition is trivially true
 
-     FP2. FP s1 s3 l ->
+     P2. FP s1 s3 l ->
           s2 << s3 ->
-          FP s1 s2 l
+          FP s1 s2 l           : we can always shrink the freshness window (freshness_pre_shrink_upper_bound)
 
-     2. FQ s1 s2 l l         : if we don't extend the state, the postcondition is trivially true
+     P3. FP s1 s2 l ->
+          incLocal s1 = (s2,r) ->
+          alist_fresh r l      : the whole point, the freshness window indeed generates fresh ids (freshness_pre_alist_fresh_specialized)
 
-     3. incLocal s1 = (s2,r) ->
-        FP s1 s2 l l[r:v]
+     Q1. FQ s1 s2 l l          : if we don't extend the state, the postcondition is trivially true (freshness_pots_no_extension)
 
-     4. FP s1 s3 l1 ->
-        FQ s1 s2 l1 l2 ->
-        FP s2 s3 l2          : if we have the precondition for a long computation, and establish the postcondition at a mid point, we can recover the precondition at this point for the remaining of the computation.
+     Q2. FQ s1 s2 l1 l2 ->
+         FQ s2 s3 l2 l3 ->
+         FQ s1 s3 l1 l3        : the postcondition is transitive (freshness_post_transitive)
 
+     Q3: incLocal s1 = (s2,r) ->
+         FQ s1 s2 l l[r->v]     : the postcondition is compatible with extension by generated variables (freshness_post_incLocal)
+
+     PQ. FP s1 s3 l1 ->
+         FQ s1 s2 l1 l2 ->
+         FP s2 s3 l2           : linking the pre and postcondition: if we have the precondition for a long computation,
+                                 and establish the postcondition at a mid point, we can recover the precondition at this point for the remaining of the computation.
+                                 (freshness_chain)
 
    *)
 
