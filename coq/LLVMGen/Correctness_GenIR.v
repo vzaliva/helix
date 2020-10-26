@@ -5,8 +5,9 @@ Require Import Helix.LLVMGen.Correctness_MExpr.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.StateCounters.
 Require Import Helix.LLVMGen.VariableBinding.
-Require Import Helix.LLVMGen.StateInvariant.
 Require Import Helix.LLVMGen.BidBound.
+Require Import Helix.LLVMGen.LidBound.
+Require Import Helix.LLVMGen.Freshness.
 
 Import ListNotations.
 
@@ -26,12 +27,53 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     | (m,(l,(g,res))) => exists from, res ≡ inl (from, to)
     end.
 
-  Definition GenIR_Rel σ (s1 s2 sinv : IRState) (l : local_env) to : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
-    lift_Rel_cfg (new_state_invariant σ s1 s2 sinv l) ⩕ branches to. 
+  Definition GenIR_Rel σ (sinvs : IRState) to : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
+    lift_Rel_cfg (state_invariant σ sinvs) ⩕ branches to. 
 
-  Definition GenIR_Rel' σ (s : IRState) to : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
-    lift_Rel_cfg (state_invariant σ s) ⩕ branches to. 
+  Lemma state_invariant_incBlockNamed :
+    forall σ s s' k msg memH stV,
+      incBlockNamed msg s ≡ inr (s', k) ->
+      state_invariant σ s memH stV ->
+      state_invariant σ s' memH stV.
+  Proof.
+    intros * INC [MEM_INV WF].
+    split.
+    - red; repeat break_let; intros * LUH LUV.
+      erewrite incBlockNamed_Γ in LUV; eauto.
+      generalize LUV; intros INLG;
+        eapply MEM_INV in INLG; eauto.
+    - unfold WF_IRState; erewrite incBlockNamed_Γ; eauto; apply WF.
+  Qed.
 
+  Lemma state_invariant_incLocal :
+    forall σ s s' k memH stV,
+      incLocal s ≡ inr (s', k) ->
+      state_invariant σ s memH stV ->
+      state_invariant σ s' memH stV.
+  Proof.
+    intros * INC [MEM_INV WF].
+    split.
+    - red; repeat break_let; intros * LUH LUV.
+      erewrite incLocal_Γ in LUV; eauto.
+      generalize LUV; intros INLG;
+        eapply MEM_INV in INLG; eauto.
+    - unfold WF_IRState; erewrite incLocal_Γ; eauto; apply WF.
+  Qed.
+
+  Lemma state_invariant_incVoid :
+    forall σ s s' k memH stV,
+      incVoid s ≡ inr (s', k) ->
+      state_invariant σ s memH stV ->
+      state_invariant σ s' memH stV.
+  Proof.
+    intros * INC [MEM_INV WF].
+    split.
+    - red; repeat break_let; intros * LUH LUV.
+      erewrite incVoid_Γ in LUV; eauto.
+      generalize LUV; intros INLG;
+        eapply MEM_INV in INLG; eauto.
+    - unfold WF_IRState; erewrite incVoid_Γ; eauto; apply WF.
+  Qed.
 
   Hint Resolve state_invariant_incBlockNamed : state_invariant.
   Hint Resolve state_invariant_incLocal : state_invariant.
@@ -196,6 +238,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     induction aexp;
       intros s1 s2 e c GEN;
       cbn in GEN; simp;
+        (* TODO: can probably get rid of most of this by extending solve_local_count *)
         repeat
           match goal with
           | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
@@ -445,10 +488,10 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       (** Vellvm bits   *) (nextblock bid_in bid_from : block_id) (bks : list (LLVMAst.block typ))
       (* (env : list (ident * typ)) *)  (g : global_env) (ρ : local_env) (memV : memoryV),
       bid_bound s1 nextblock ->
-      GenIR_Rel σ s1 s2 s1 ρ bid_in (memH,tt) (memV, (ρ, (g, (inl (bid_from, bid_in))))) ->
+      (GenIR_Rel σ s1 bid_in ⩕ lift_Rel_cfg (fresh_pre s1 s2)) (memH,tt) (memV, (ρ, (g, (inl (bid_from, bid_in))))) ->
       no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ op) memH) -> (* Evaluation succeeds *)
       genIR op nextblock s1 ≡ inr (s2,(bid_in,bks)) ->
-      eutt (succ_cfg (GenIR_Rel σ s1 s2 s2 ρ nextblock))
+      eutt (succ_cfg (GenIR_Rel σ s2 nextblock ⩕ lift_Rel_cfg (fresh_post s1 s2 ρ)))
            (interp_helix (denoteDSHOperator σ op) memH)
            (interp_cfg (D.denote_bks (convert_typ [] bks) (bid_from,bid_in))
                        g ρ memV).
@@ -493,7 +536,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       vred.
 
       apply eutt_Ret; auto.
-      destruct BISIM as (STATE & (from & BRANCH)).
+      destruct BISIM as [[STATE [from BRANCH]] FRESH].
       cbn in STATE, BRANCH.
       split; cbn; eauto.
 
@@ -530,8 +573,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
                 ]
         end.
 
-      eapply new_state_invariant_local_count_extend.
-      eauto.
+      (* eapply new_state_invariant_local_count_extend. *)
+      (* eauto. *)
 
       (* TODO: move these *)
       Ltac get_Γ_hyps :=
@@ -564,14 +607,17 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
           try solve [get_local_count_hyps; lia]
         end.
 
-      2-3: reflexivity.
-      { split.
-        admit.
-        admit.
-        repeat split; try reflexivity.
-        - apply STATE.
-        - apply STATE.
-      }
+      admit.
+      admit.
+
+      (* 2-3: reflexivity. *)
+      (* { split. *)
+      (*   admit. *)
+      (*   admit. *)
+      (*   repeat split; try reflexivity. *)
+      (*   - apply STATE. *)
+      (*   - apply STATE. *)
+      (* } *)
       (* solve_Γ. *)
       (* solve_local_count. *)
     - (* ** DSHAssign (x_p, src_e) (y_p, dst_e):
@@ -593,7 +639,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
          py <- gep "dst_p"[dst_nexpr] ;;
          store v py
        *)
-      destruct BISIM as [BISIM1 [_bid EQ]]; inv EQ.
+      destruct BISIM as [[BISIM1 [_bid EQ]] FRESH]; inv EQ.
       cbn* in *; simp.
       hide_cfg.
       inv_resolve_PVar Heqs0.
@@ -632,11 +678,10 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       { split.
         - admit.
         - admit.
-        - admit.
       }
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      cbn in PRE; destruct PRE as (INV1 & EXP1 & ?); cbn in *; inv_eqs.
+      cbn in PRE; destruct PRE as (INV1 & FRESH1 & EXP1 & ?); cbn in *; inv_eqs.
       hvred.
 
       (* Step 6. *)
@@ -644,12 +689,11 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       { split.
         - admit.
         - admit.
-        - admit.
       }
 
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      cbn in PRE; destruct PRE as (INV2 & EXP2 & ?); cbn in *; inv_eqs.
+      cbn in PRE; destruct PRE as (INV2 & FRESH2 & EXP2 & ?); cbn in *; inv_eqs.
       hvred.
       break_inner_match_hyp; break_inner_match_hyp; try_abs.
       2: apply no_failure_Ret in NOFAIL; try_abs.
@@ -671,7 +715,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       (* Question 1: is [vx_p] global, local, or can be either? *)
       (* We access in memory vx_p[e] *)
       edestruct memory_invariant_Ptr as (membk & ptr & LU & INLG & GETCELL); [| eauto | eauto |]; eauto.
-      admit.
+
       rewrite LU in H; symmetry in H; inv H.
       specialize (GETCELL _ _ Heqo1).
       clean_goal.
@@ -679,7 +723,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       destruct vx_p as [vx_p | vx_p]; cbn in INLG.
       {
         edestruct denote_instr_gep_array as (ptr' & READ & EQ); cycle -1; [rewrite EQ; clear EQ | ..]; cycle 1.
-        3:apply GETCELL.
+        3: apply GETCELL.
         { vstep; solve_lu; reflexivity. }
         { rewrite EXP1; auto.
           Set Printing Implicit.
@@ -1013,7 +1057,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       *)
       cbn in NOFAIL.
       pose proof BISIM as BISIM2.
-      destruct BISIM as [SINV (?from & EQ)]; cbn in *; inv EQ.
+      destruct BISIM as [[SINV (?from & EQ)] FRESH]; cbn in *; inv EQ.
       simp.
 
       rename Heqs0 into GEN_OP2.
@@ -1028,30 +1072,13 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
             split.
             * cbn.
               apply genIR_Context in GEN_OP2.
-              rewrite <- GEN_OP2.
-              apply SINV.
-            * eapply WF_IRState_Γ.
-              eapply SINV.
-              eapply genIR_Context; eauto.
-            * (* TODO: clean this up *)
-              destruct SINV.
-              destruct incLocal_is_fresh as (EXT & NIN & IN).
-              unfold freshness in *.
-              repeat split; auto.
-              -- intros id v H.
-                 intros BOUND.
-                 destruct BOUND as (name & s' & s'' & NEND & COUNT1' & COUNT2' & GEN).
-                 apply NIN in H.
-                 apply H.
-                 exists name. exists s'. exists s''.
-                 repeat split; auto.
-                 (* Should hold because local_count s1 <= local_count s_op1 *)
-                 assert (local_count s1 <= local_count s_op1)%nat by admit.
-                 lia.
-              -- intros id v H H0.
-                 contradiction.
-          + cbn. exists from.
-            reflexivity.
+              (* TODO: patch this up... *)
+              (* rewrite <- GEN_OP2. *)
+              (* apply SINV. *)
+              admit.
+            * admit.
+          + cbn.
+            solve_fresh.
         - eapply no_failure_helix_bind_prefix; eauto.
         - auto.
       }
@@ -1060,6 +1087,10 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       cbn in PRE; destruct PRE as (INV2 & EXP2 & ?); cbn in *; inv_eqs.
       subst...
+
+      (* TODO: Where did these come from? *)
+      admit.
+      admit.
 
       eapply eqit_mon; auto.
       2: {
