@@ -61,6 +61,43 @@ Section NExpr.
     monotone : ext_local mi sti mf stf
     }.
 
+  Lemma genNExpr_local_count :
+    forall nexp s1 s2 e c,
+      genNExpr nexp s1 ≡ inr (s2, (e, c)) ->
+      (local_count s2 >= local_count s1)%nat.
+  Proof.
+    induction nexp;
+      intros s1 s2 e c GEN;
+      cbn* in GEN; simp;
+        repeat
+          match goal with
+          | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
+            destruct (nth_error (Γ s1) n) eqn:FIND; inversion H; subst
+          | H : incLocal ?s1 ≡ inr (?s2, _) |- _ =>
+            apply LidBound.incLocal_local_count in H
+          | IH : ∀ (s1 s2 : IRState) (e : exp typ) (c : code typ),
+              genNExpr ?n s1 ≡ inr (s2, (e, c)) → local_count s2 ≥ local_count s1,
+      GEN: genNExpr ?n _ ≡ inr _ |- _ =>
+    apply IH in GEN
+    end;
+      try lia.
+  Qed.
+
+  (* A bit hacky: we extend [solve_local_count] by redefining locally [get_local_count_hyps] *)
+  Ltac get_local_count_hyps ::=
+    repeat
+      match goal with
+      | H: incBlockNamed ?n ?s1 ≡ inr (?s2, _) |- _ =>
+        apply LidBound.incBlockNamed_local_count in H
+      | H: incVoid ?s1 ≡ inr (?s2, _) |- _ =>
+        apply LidBound.incVoid_local_count in H
+      | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>
+        apply LidBound.incLocal_local_count in H
+      | H: genNExpr ?n ?s1 ≡ inr (?s2, _) |- _ =>
+        apply genNExpr_local_count in H
+      end.
+
+
 (** * Tactics
     
   - [cbn*] : unfolds a fixed list of definitions we want to go under, and reduces via [cbn]
@@ -166,20 +203,7 @@ Section NExpr.
       specialize (IHnexp1 _ _ σ memH _ _ g l memV Heqs).
       forward IHnexp1.
       { split; auto.
-
-  match goal with
-  | h: freshness_pre ?s ?s' ?l |- freshness_pre ?s _ ?l => apply freshness_pre_shrink_up with (1 := h) end.  solve_local_count.
-  | h: freshness_pre _ ?s _ |- freshness_pre _ ?s _ => apply freshness_chain with (1 := h); solve_fresh
-  | h: freshness_post _ ?s _ ?x |- freshness_pre ?s _ ?x => eapply freshness_chain with (2 := h); solve_fresh
-  | |- freshness_post _ _ _ _ => first [eassumption | eapply freshness_post_inclocal; eassumption | eapply freshness_post_transitive; [eassumption |]]; solve_fresh
-  end.
-
-  
         solve_fresh.
-
-
-        unfold IRState_lt, IRState_le in *; get_local_count_hyps. lia.
-        solve_local_count_tac.
       }
       forward IHnexp1; eauto.
      
@@ -240,7 +264,7 @@ Section NExpr.
         etransitivity; eauto.
         etransitivity; eauto.
         apply sub_alist_add.
-        eapply freshness_pre_alist_fresh_specialized; eauto.
+        eapply freshness_pre_alist_fresh; eauto.
         solve_fresh.
       }
         
@@ -310,7 +334,7 @@ Section NExpr.
         etransitivity; eauto.
         etransitivity; eauto.
         apply sub_alist_add.
-        eapply freshness_pre_alist_fresh_specialized; eauto.
+        eapply freshness_pre_alist_fresh; eauto.
         solve_fresh.
       }
  
@@ -363,7 +387,7 @@ Section NExpr.
        etransitivity; eauto.
        etransitivity; eauto.
        apply sub_alist_add.
-       eapply freshness_pre_alist_fresh_specialized; eauto.
+       eapply freshness_pre_alist_fresh; eauto.
        solve_fresh.
      }
      
@@ -413,7 +437,7 @@ Section NExpr.
        etransitivity; eauto.
        etransitivity; eauto.
        apply sub_alist_add.
-       eapply freshness_pre_alist_fresh_specialized; eauto.
+       eapply freshness_pre_alist_fresh; eauto.
        solve_fresh.
      }
  
@@ -468,7 +492,7 @@ Section NExpr.
        etransitivity; eauto.
        etransitivity; eauto.
        apply sub_alist_add.
-       eapply freshness_pre_alist_fresh_specialized; eauto.
+       eapply freshness_pre_alist_fresh; eauto.
        solve_fresh.
      }
  
