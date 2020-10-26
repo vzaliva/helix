@@ -30,51 +30,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   Definition GenIR_Rel σ (sinvs : IRState) to : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
     lift_Rel_cfg (state_invariant σ sinvs) ⩕ branches to. 
 
-  Lemma state_invariant_incBlockNamed :
-    forall σ s s' k msg memH stV,
-      incBlockNamed msg s ≡ inr (s', k) ->
-      state_invariant σ s memH stV ->
-      state_invariant σ s' memH stV.
-  Proof.
-    intros * INC [MEM_INV WF].
-    split.
-    - red; repeat break_let; intros * LUH LUV.
-      erewrite incBlockNamed_Γ in LUV; eauto.
-      generalize LUV; intros INLG;
-        eapply MEM_INV in INLG; eauto.
-    - unfold WF_IRState; erewrite incBlockNamed_Γ; eauto; apply WF.
-  Qed.
-
-  Lemma state_invariant_incLocal :
-    forall σ s s' k memH stV,
-      incLocal s ≡ inr (s', k) ->
-      state_invariant σ s memH stV ->
-      state_invariant σ s' memH stV.
-  Proof.
-    intros * INC [MEM_INV WF].
-    split.
-    - red; repeat break_let; intros * LUH LUV.
-      erewrite incLocal_Γ in LUV; eauto.
-      generalize LUV; intros INLG;
-        eapply MEM_INV in INLG; eauto.
-    - unfold WF_IRState; erewrite incLocal_Γ; eauto; apply WF.
-  Qed.
-
-  Lemma state_invariant_incVoid :
-    forall σ s s' k memH stV,
-      incVoid s ≡ inr (s', k) ->
-      state_invariant σ s memH stV ->
-      state_invariant σ s' memH stV.
-  Proof.
-    intros * INC [MEM_INV WF].
-    split.
-    - red; repeat break_let; intros * LUH LUV.
-      erewrite incVoid_Γ in LUV; eauto.
-      generalize LUV; intros INLG;
-        eapply MEM_INV in INLG; eauto.
-    - unfold WF_IRState; erewrite incVoid_Γ; eauto; apply WF.
-  Qed.
-
   Hint Resolve state_invariant_incBlockNamed : state_invariant.
   Hint Resolve state_invariant_incLocal : state_invariant.
   Hint Resolve state_invariant_incVoid : state_invariant.
