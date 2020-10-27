@@ -266,9 +266,26 @@ Section Freshness_Interface.
   Lemma freshness_chain: forall s1 s2 s3 l1 l2 ,
       freshness_pre s1 s3 l1 ->
       freshness_post s1 s2 l1 l2 ->
+      s1 << s2 ->
       freshness_pre s2 s3 l2.
   Proof.
-  Admitted.
+    intros s1 s2 s3 l1 l2 PRE POST LT.
+    unfold freshness_pre in *.
+    unfold freshness_post in *.
+    intros id v AIN BOUND.
+
+    destruct (alist_In_dec id l1 v) as [INl1 | NINl1].
+    - eapply (PRE _ _ INl1).
+      eapply state_bound_between_shrink; eauto.
+      unfold IRState_lt in *; lia.
+    - pose proof (POST _ _ AIN NINl1) as BOUND'.
+      eapply state_bound_between_separate.
+      3: eapply BOUND.
+      2: eapply BOUND'.
+
+      apply incLocalNamed_count_gen_injective.
+      all: auto.
+  Qed.
 
 End Freshness_Interface.
 
