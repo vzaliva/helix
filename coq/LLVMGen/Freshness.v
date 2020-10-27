@@ -152,8 +152,16 @@ Section Freshness_Interface.
       s2 << s3 -> (* Also works with non-strict *)
       freshness_pre s1 s2 l.
   Proof.
-    (* intros; eapply new_state_invariant_shrink; eauto. *)
-  Admitted.
+    intros s1 s2 s3 l FRESH LT.
+    unfold freshness_pre in *.
+    intros id v AIN BOUND.
+
+    eapply (FRESH _ _ AIN).
+    eapply state_bound_between_shrink; eauto.
+    (* Replace with solve local count? *)
+    unfold IRState_lt in LT.
+    lia.
+  Qed.
 
   Lemma freshness_fresh: forall s1 s2 l,
       freshness_pre s1 s2 l ->
