@@ -2,6 +2,10 @@ dist: xenial
 sudo: required
 language: generic
 
+branches:
+  only:
+  - master
+  
 before_cache:
   - rm -rf $HOME/.opam/log
 cache:
