@@ -934,32 +934,49 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      cbn in PRE; destruct PRE as (INV2 & EXP2 & ?); cbn in *; inv_eqs.
+      cbn in PRE; destruct PRE as [[INV2 [from2 BRANCH2]] FRESH2]; cbn in *; inv_eqs.
       subst...
-
-      (* TODO: Where did these come from? *)
-      admit.
-      admit.
 
       eapply eqit_mon; auto.
       2: {
         eapply IHop2; eauto.
-        destruct BISIM2 as (SINV2 & BRANCHES2).
-        cbn in SINV2, BRANCHES2.
+        destruct BISIM2 as [[SINV2 BRANCHES2] FRESHNESS2].
+        cbn in SINV2, BRANCHES2, FRESHNESS2.
         split.
         - cbn.
           destruct SINV2.
           destruct INV2.
-          split; auto.
-          + apply genIR_Context in GEN_OP2.
-            apply genIR_Context in GEN_OP1.
-            unfold memory_invariant.
-            subst_contexts.
-            apply mem_is_inv0.
-          + (* TODO: should be roughly the same as the above... *)
-            admit.
-        - cbn. exists EXP2.
-          reflexivity.
+          split; cbn; auto.
+          + split.
+            * apply genIR_Context in GEN_OP2.
+              apply genIR_Context in GEN_OP1.
+              unfold memory_invariant.
+              subst_contexts.
+              cbn.
+              apply mem_is_inv0.
+            * apply SINV.
+          + exists from2. reflexivity.
+        - cbn.
+          (* TODO: make solve_fresh do this *)
+
+          (* Nothing in ρ is bound between s1 and s2 *)
+          unfold freshness_pre in FRESHNESS2.
+
+          (* Everything new in l is bound between s_op1 and s2... *)
+          unfold freshness_post in FRESH2.
+
+          (* This is consistent so far... *)
+          unfold freshness_pre.
+          intros id v H.
+
+          destruct (alist_In_dec id ρ v) as [AIN | ANIN].
+          + pose proof (FRESHNESS2 _ _ AIN) as NBOUND.
+            intros CONTRA.
+            apply NBOUND.
+            eapply state_bound_between_shrink; eauto.
+            admit. (* fix solve_local_count *)
+          + pose proof (FRESH2 _ _ H ANIN).
+            admit. (* Should be doable. *)
       }
 
       intros [[memH1 ?]|] (memV1 & l1 & g1 & res1) PR.
@@ -969,26 +986,38 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
       destruct res1 as [[from1 next] | v].
       2: {
-        destruct PR as [? [? BR]].        
+        destruct PR as [[? [? BR]] ?].
         inversion BR.
       }
 
-      cbn in PR. destruct PR as (SINV1 & BRANCHES1).
+      cbn in PR. destruct PR as [[SINV1 BRANCHES1] FRESH1].
       cbn.
 
       split; auto.
       cbn. cbn in SINV1.
-      destruct SINV1 as [MINV1 WF1 FRESH1].
-      destruct INV2 as [MINV2 WF2 FRESH2].
+      destruct SINV1 as [MINV1 WF1].
+      destruct INV2 as [MINV2 WF2].
+      split.
       split.
       + cbn.
         apply genIR_Context in GEN_OP1.
         rewrite <- GEN_OP1.
         apply MINV1.
       + auto.
-      + eapply freshness_split; eauto.
-        apply genIR_local_count in GEN_OP2; lia.
-        apply genIR_local_count in GEN_OP1; lia.
+      + cbn. cbn in BRANCHES1.
+        destruct BRANCHES1 as [from1' BRANCHES1].
+        exists from1. inversion BRANCHES1.
+        reflexivity.
+      + cbn in *.
+        unfold freshness_post in *.
+        intros id v AIN ANIN.
+        destruct (alist_In_dec id l v) as [AINL | ANINL].
+        * pose proof (FRESH2 _ _ AINL ANIN).
+          eapply state_bound_between_shrink; eauto.
+          apply genIR_local_count in GEN_OP2; lia.
+        * pose proof (FRESH1 _ _ AIN ANINL).
+          eapply state_bound_between_shrink; eauto.
+          apply genIR_local_count in GEN_OP1; lia.
   Admitted.
   End GenIR.
  
