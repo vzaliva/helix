@@ -136,6 +136,164 @@ Proof.
     }
 Qed.
 
+Lemma no_failure_index :
+  ∀ (n : nat) (f : AExpr) (σ : evalContext) (x : mem_block) (memH : memoryH) (ymem : mem_block)
+    (NOFAIL : @no_failure E_cfg (memory * mem_block) (interp_helix (denoteDSHIMap (S n) f σ x ymem) memH)),
+    @no_failure E_cfg (memory * mem_block) (interp_helix (IMAP_BODYH σ x f n ymem) memH).
+Proof.
+  intros.
+  revert n f σ x memH ymem NOFAIL.
+  intros.
+  cbn* in *.
+  setoid_rewrite <- bind_bind in NOFAIL.
+  setoid_rewrite <- bind_bind in NOFAIL.
+  eapply no_failure_helix_bind_prefix in NOFAIL.
+  unfold no_failure.
+  rewrite has_post_post_strong.
+  red. Transparent IMAP_BODYH. cbn. Opaque IMAP_BODYH.
+  vstep. rewrite interp_helix_bind. cbn.
+  eapply eutt_clo_bind_returns.
+  - cbn.
+    eapply no_failure_helix_bind_prefix in NOFAIL.
+    red in NOFAIL. rewrite has_post_post_strong in NOFAIL.
+    red in NOFAIL.
+    eapply NOFAIL.
+  - intros [ [memH' bin']| ] [ [memH'' bin'' ]|] (EQ & S) R1 R2; inversion EQ; subst.
+    2 : apply eqit_Ret; eauto.
+    inversion EQ; subst.
+    eapply no_failure_helix_bind_continuation in NOFAIL; eauto.
+
+    rewrite interp_helix_bind.
+    eapply eutt_clo_bind_returns.
+    eapply no_failure_helix_bind_prefix in NOFAIL.
+    red in NOFAIL. rewrite has_post_post_strong in NOFAIL.
+    red in NOFAIL.
+    apply NOFAIL.
+
+    cbn* in *.
+
+    intros [ [memH1' bin1']| ] [ [memH1'' bin1'' ]|] (EQ1 & S1) R11 R12; inversion EQ1; subst.
+    2 : apply eqit_Ret; eauto.
+    eapply no_failure_helix_bind_continuation in NOFAIL; eauto.
+
+    rewrite interp_helix_bind.
+    eapply eutt_clo_bind_returns.
+    red in NOFAIL. rewrite has_post_post_strong in NOFAIL.
+    red in NOFAIL. apply NOFAIL.
+
+    intros [ [memH2' bin2']| ] [ [memH2'' bin2'' ]|] (EQ2 & S2) R21 R22; inversion EQ2; subst.
+    2 : apply eqit_Ret; eauto.
+    inversion EQ2; subst.
+    rewrite interp_helix_ret.
+    apply eqit_Ret. split; eauto. intro. inversion H.
+Qed.
+
+Require Import Paco.paco.
+
+Lemma no_failure_has_post_some :
+  forall E X (t : itree E (option X)), no_failure t -> has_post t (fun x => exists x', x ≡ Some x').
+Proof.
+  intros.
+  eapply has_post_eutt. reflexivity. 2 : apply H.
+  red. intros. split; intro. destruct H0. intro. subst. inversion H1.
+  red in H0. destruct a. exists x. reflexivity.
+  exfalso. apply H0. reflexivity.
+Qed.
+
+(* Not necessarily true.*)
+(* Lemma has_post_some_returns : *)
+(*   forall E X (t : itree E (option X)), has_post t (fun x => exists x', x ≡ Some x') -> exists x', Returns (Some x') t. *)
+(* Proof. *)
+(* Admitted. *)
+
+Lemma no_failure_map_succ:
+  forall n f σ x ymem memH,
+  @no_failure E_cfg (memoryH * mem_block) (interp_helix (denoteDSHIMap (S n) f σ x ymem) memH) ->
+  exists ymem' memH',
+    @no_failure E_cfg (memoryH * mem_block) (interp_helix (denoteDSHIMap n f σ x ymem') memH').
+Proof.
+  intros.
+  unfold denoteDSHIMap in *.
+  assert (NOFAIL := H).
+  eapply no_failure_helix_bind_prefix in H.
+  cbn* in *.
+  unfold lift_Derr, mem_lookup_err.
+  apply no_failure_has_post_some in H.
+  simp; try_abs.
+  eapply no_failure_helix_bind_continuation in NOFAIL.
+  2 : {
+    rewrite interp_helix_ret. cbn. constructor. reflexivity.
+  }
+
+  clear H.
+  assert (NOFAIL' := NOFAIL).
+  eapply no_failure_helix_bind_prefix in NOFAIL.
+  apply no_failure_has_post_some in NOFAIL.
+  simp; try_abs.
+
+  clear H.
+  assert (NOFAIL' := NOFAIL).
+  eapply no_failure_helix_bind_prefix in NOFAIL.
+  apply no_failure_has_post_some in NOFAIL.
+  simp; try_abs.
+
+  eapply no_failure_helix_bind_continuation in NOFAIL'.
+  2 : {
+    rewrite interp_helix_ret. cbn. constructor. reflexivity.
+  }
+
+  clear NOFAIL.
+  assert (NOFAIL := NOFAIL').
+  eapply no_failure_helix_bind_prefix in NOFAIL.
+  apply no_failure_has_post_some in NOFAIL.
+  simp; try_abs.
+
+  eapply no_failure_helix_bind_continuation in NOFAIL'.
+  2 : {
+    rewrite interp_helix_ret. cbn. constructor. reflexivity.
+  }
+
+  clear NOFAIL.
+  assert (NOFAIL := NOFAIL').
+  eapply no_failure_helix_bind_prefix in NOFAIL.
+  apply no_failure_has_post_some in NOFAIL.
+  simp; try_abs.
+
+  eapply no_failure_helix_bind_continuation in NOFAIL'.
+  2 : {
+    unfold denoteIUnCType.
+    pose proof @genAExpr_correct.
+    admit.
+  }
+
+  eexists. eexists. apply NOFAIL'.
+Admitted.
+
+Lemma no_failure_index_dec :
+  forall (n: nat) f σ x memH ymem 
+    (NOFAIL : @no_failure E_cfg (memoryH * mem_block) (interp_helix (denoteDSHIMap (S n) f σ x ymem) memH)),
+    forall (i : nat) (BOUND : (n > i)%nat),
+      exists ymem' memH',
+    @no_failure E_cfg (memoryH * mem_block) (interp_helix (IMAP_BODYH σ x f (n - i) ymem') memH').
+Proof.
+  intros.
+  revert n f σ x memH ymem NOFAIL BOUND.
+  induction i.
+  - cbn. intros.
+    rewrite Nat.sub_0_r.
+    exists ymem, memH.
+    apply no_failure_index. apply NOFAIL.
+  - cbn. intros.
+    assert (n - S i ≡ (n - 1) - i)%nat by lia.
+    rewrite H.
+    edestruct no_failure_map_succ as (? & ? & ?).
+    apply NOFAIL.
+    edestruct IHi as (? & ? & ?).
+    3 : { exists x2, x3. apply H1. } 2 : lia.
+    assert (S (n - 1) ≡ n) by lia. rewrite H1. apply H0.
+Qed.
+
+
 (* DSHIMap case for [compile_FSHCOL_correct]. *)
 Lemma compile_DSHIMap_correct:
   ∀ (n : nat)
@@ -177,10 +335,22 @@ Proof.
   cbn* in *.
   simp.
 
+  destruct BISIM as (STATE & BRANCHES).
+  red in STATE.
+
+  (* Duplicate work as genMExpr_correct, needed for GEP later. *)
+  edestruct memory_invariant_Ptr as (bkH & ptrV & Mem_LU & LUV & EQ); eauto.
+  hvred. hstep. solve_lu.
+  hvred.
+  edestruct (@memory_invariant_Ptr _ σ _ _ _ _ _ _ _ _ _ STATE Heqo0 LUn0)
+    as (bkH' & ptrV' & Mem_LU' & LUV' & EQ'); eauto.
+  hvred. hstep. solve_lu.
+
   eutt_hide_right.
   repeat apply no_failure_Ret in NOFAIL.
   repeat (edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; [];
           clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto).
+
 
   rauto:L.
   all:eauto.
@@ -198,7 +368,10 @@ Proof.
   cbn in *.
   rewrite add_comment_eutt. subst.
 
-  destruct BISIM as (STATE & BRANCHES).
+  (* Gather information from AExpr correctness *)
+  (* denoting [f] *)
+  pose proof @genAExpr_correct as AEXPR_INV.
+  specialize (AEXPR_INV _ _ _ σ memH _ _ g ρ memV Heqs10).
 
   match goal with
   | [ H : context [genWhileLoop msg _ _ _ _ _ ?body _ _ ?s] |-_] => remember body as body_blocks;
@@ -209,6 +382,7 @@ Proof.
       ` H : binary64 <- lift_Derr (mem_lookup_err "Error reading memory denoteDSHIMap" n' x);;
       ` H0 : MInt64asNT.t <- lift_Serr (MInt64asNT.from_nat n');;
       ` H1 : binary64 <- denoteIUnCType σ f H0 H;; Ret (mem_add n' H1 mem_bl)) as FN.
+
 
   pose proof @genWhileLoop_correct as GEN_W.
   assert (IN: In b0 (block_ids body_blocks)). {
@@ -240,17 +414,21 @@ Proof.
   (* Defining BODY_H *)
   clear HeqFN.
 
-  remember (fun m mem_bl => IMAP_BODYH σ x f (n - m - 1)%nat mem_bl) as BODY.
+  remember (fun m mem_bl => IMAP_BODYH σ bkH f (n - m - 1)%nat mem_bl) as BODY.
 
   (* GEN_W gets a BODY *)
   specialize (GEN_W BODY OVERFLOW).
 
   (* Defining Indexed Invariant (I : nat -> mem_block -> Rel_cfg) and stable
       state invariant (R : Rel_cfg)*)
-  (* TODO: Tweak to change with "mem_bl" and "m""*)
+  (* TODO: Tweak to change with "mem_bl" and "m"*)
+  (* Do we want state_invariant here, or Gen_IR *)
+  (* Can retrieve*)
+  (* State/GenIR Invariant *)
   remember (fun (m : nat) (mem_bl : mem_block) memH '(memV_, (l_, g_)) =>
-    state_invariant σ s1 memH (memV_, (l_, g_))) as INV.
+              state_invariant σ s1 memH (memV_, (l_, g_))) as INV.
 
+  (* Indexed Invariant *)
   remember (fun memH '(memV_, (l_, g_)) => forall mem_bl,
     state_invariant σ s2 (memory_set memH a0 mem_bl) (memV_, (l_, g_))) as R.
 
@@ -265,11 +443,9 @@ Proof.
 
   rewrite H1. clear H1.
 
-  eapply eutt_post_bind_gen.
-  eapply no_failure_helix_bind_prefix in NOFAIL.
-  red in NOFAIL. apply NOFAIL. apply post_returns.
-
+  eapply eutt_clo_bind_returns.
   rewrite Heqi.
+
   eapply eutt_Proper_R. 2, 3: reflexivity.
   eapply rcompose_eq_l.
 
@@ -282,7 +458,7 @@ Proof.
   rewrite HeqBODY.
   apply denoteDSHIMap_eq_build_vec.
 
-  (* Equate the rest of the continuation with each other (Trivial Ret continuations)*)
+  (* Equate the rest of the continuation with each other (Trivial Ret continuations) *)
   7 : {
     intros.
     destruct u1. destruct p1.
@@ -291,10 +467,7 @@ Proof.
     destruct H1.
 
     clear GEN_W.
-    2 : {
-      assert (forall A, (@None A ≡ None -> False) -> False). intros * F. apply F. reflexivity.
-      apply H4 in H2. contradiction.
-    }
+    2 : destruct H1.
     red. Unshelve.
 
     subst.
@@ -306,70 +479,149 @@ Proof.
   2: auto.
 
   (* Prove body hypothesis (body blocks is equal to one iteration of IMAP_BODYH) *)
+  (* TODO : Add assumption in genWhile_correct that BODYH holds true only when n > 0. *)
   {
-    intros. Transparent IMAP_BODYH. unfold IMAP_BODYH.
+    intros.
+    Transparent IMAP_BODYH. unfold IMAP_BODYH.
     subst.
+
+    eapply no_failure_helix_bind_prefix in NOFAIL.
+
+    rename H1 into INV.
+
     match goal with
     | [ |- eutt ?R _ _ ] => remember R
     end.
 
+    cbn* in *.
     vjmp. hvred.
 
     unfold denote_phis.
-    cbn. hvred. vred.
+    cbn.
+    hvred. vred.
 
     rename Heqs4 into GEN.
     rename i1 into ptr.
+
     (* [vstep] does not handle gep currently *)
 
-    (* Starting to reason about memory for GEP. *)
     cbn.
 
-    hvred. vstep.
+    destruct INV as (STATE_INV & LOOPVAR).
+    destruct STATE_INV.
 
-    (* Looking up memory *)
-    edestruct denote_instr_gep_array as (? & READ & EQ); shelve.
-    (* TODO: Indexed Invariant should reference mem *)
+    (* Get information about pointer access through mem_lookup not failing *)
 
-    hvred.
-    eapply eutt_clo_bind_returns.
-    vstep.
-    edestruct denote_instr_gep_array as (? & READ & EQ); shelve.
-    shelve. shelve.
+  (*   eapply no_failure_helix_bind_prefix in NOFAIL. *)
 
-    intros. destruct u1, u2. destruct p1, p2. destruct p1.
-    hvred.
+  (*   unfold denoteDSHIMap in NOFAIL. *)
+  (*   cbn* in *; inv_eqs. *)
+  (*   hvred. *)
+  (*   simp. *)
 
-    shelve. shelve.
-  }
+  (*   (* What to do when n is 0? Should we assume that [no_failure BODY], instead? *) *)
+  (*   (* TODO Lemma: no_failure on fixpoint should imply that each iteration of *)
+  (*      the loop (or for any indexing i < n) should not fail. *) *)
 
-  {
-    intros. subst.
-    destruct H6 as [ | [| [|] ]] ; subst; admit.
-  }
+  (*   cbn in NOFAIL. *)
+  (*   eapply no_failure_helix_bind_prefix in NOFAIL. *)
+  (*   cbn* in *; inv_eqs. *)
+  (*   (* Clean up *) *)
+  (*   clear UNIQUE FRESH IN. *)
+  (*   simp. (* Something is wrong here: NOFAIL *) *)
+  (*   (* unfold throw in NOFAIL. *) *)
 
-  (* Imp_rel state invariant *)
-  2 : {
-    subst. repeat intro. destruct b1. destruct p1. admit.
-  }
+  (*   (* inversion NOFAIL. *) *)
+  (*   red in NOFAIL.  *)
+  (*   simp. try_abs. *)
+  (*   hvred. *)
+  (*   cbn* in *; simp. *)
 
-  (* Stability condition *)
-  {
-    intros. subst. intros.
-    red in H1.
-    pose proof @memory_invariant_ext_local.
-    red in H3.
-    admit.
-  }
 
-  {
-    (* subst. intros. split. intros. split; eauto. red in STATE. *)
-    shelve.
-  }
+  (*   (* TODO *) *)
 
-  {
-    subst. red in STATE. intros.
-    (* TODO: The mem_block should be instantiated concretely. *)
-    intros. shelve.
-  }
+
+  (*   hvred. *)
+  (*   vstep. *)
+  (*   hvred. *)
+  (*   symmetry. *)
+
+  (*   (* TODO: GEP *) *)
+  (*   { *)
+  (*     edestruct denote_instr_gep_array as (? & READ & EQ_); eauto. *)
+  (*     2 : { *)
+  (*       eapply LU_ARRAY; eauto. *)
+  (*       apply Memory.NM.find_1. apply H1. apply m.  *)
+  (*       apply find_some in mem_lookup_H. *)
+  (*       unfold Memory.NM.In in IN_MAP. *)
+  (*         in mem_lookup_H. *)
+  (*       cbn i *)
+  (*       apply *)
+  (*       Unshelve. *)
+
+  (*       apply H0. *)
+
+  (*     3 : apply LOOKUP_H; eauto. *)
+
+  (*     4 : { *)
+  (*       rewrite EQ.  *)
+  (*       cbn in EQ. rewrite <- EQ. setoid_rewrite EQ.  *)
+  (*       rewrite EQ.  *)
+  (*       vred. tep.  *)
+  (*     } *)
+
+  (*     shelve. *)
+  (*   } *)
+
+  (*   hvred. vstep. *)
+  (*   { *)
+
+  (*   } *)
+
+  (*   (* Looking up memory : PROBLEM AREA !! *) *)
+  (*   (* edestruct denote_instr_gep_array as (? & READ & EQ)shelve. *) *)
+  (*   (* TODO: Indexed Invariant should reference mem *) *)
+
+  (*   (* hvred. *) *)
+  (*   (* eapply eutt_clo_bind_returns. *) *)
+  (*   vstep. *)
+  (*   (* edestruct denote_instr_gep_array as (? & READ & EQ); shelve. *) *)
+  (*   shelve. shelve. *)
+
+  (*   (* intros. destruct u1, u2. destruct p1, p2. destruct p1. *) *)
+  (*   (* hvred. *) *)
+
+  (*   (* shelve. shelve. *) *)
+  (* } *)
+
+  (* { *)
+  (*   intros. subst. shelve. *)
+  (*   (* destruct H6 as [ | [| [|] ]] ; subst; admit. *) *)
+  (* } *)
+
+  (* (* Imp_rel state invariant *) *)
+  (* 2 : { *)
+  (*   subst. repeat intro. destruct b1. destruct p1. admit. *)
+  (* } *)
+
+  (* (* Stability condition *) *)
+  (* { *)
+  (*   intros. subst. intros. *)
+  (*   red in H1. *)
+  (*   pose proof @memory_invariant_ext_local. *)
+  (*   red in H3. *)
+  (*   admit. *)
+  (* } *)
+
+  (* { *)
+  (*   (* subst. intros. split. intros. split; eauto. red in STATE. *) *)
+  (*   shelve. *)
+  (* } *)
+
+  (* { *)
+  (*   subst. red in STATE. intros. *)
+  (*   (* TODO: The mem_block should be instantiated concretely. *) *)
+  (*   intros. shelve. *)
+  (* } *)
 Admitted.
+
