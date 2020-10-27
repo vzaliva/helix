@@ -61,42 +61,6 @@ Section NExpr.
     monotone : ext_local mi sti mf stf
     }.
 
-  Lemma genNExpr_local_count :
-    forall nexp s1 s2 e c,
-      genNExpr nexp s1 ≡ inr (s2, (e, c)) ->
-      (local_count s2 >= local_count s1)%nat.
-  Proof.
-    induction nexp;
-      intros s1 s2 e c GEN;
-      cbn* in GEN; simp;
-        repeat
-          match goal with
-          | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
-            destruct (nth_error (Γ s1) n) eqn:FIND; inversion H; subst
-          | H : incLocal ?s1 ≡ inr (?s2, _) |- _ =>
-            apply LidBound.incLocal_local_count in H
-          | IH : ∀ (s1 s2 : IRState) (e : exp typ) (c : code typ),
-              genNExpr ?n s1 ≡ inr (s2, (e, c)) → local_count s2 ≥ local_count s1,
-      GEN: genNExpr ?n _ ≡ inr _ |- _ =>
-    apply IH in GEN
-    end;
-      try lia.
-  Qed.
-
-  (* A bit hacky: we extend [solve_local_count] by redefining locally [get_local_count_hyps] *)
-  Ltac get_local_count_hyps ::=
-    repeat
-      match goal with
-      | H: incBlockNamed ?n ?s1 ≡ inr (?s2, _) |- _ =>
-        apply LidBound.incBlockNamed_local_count in H
-      | H: incVoid ?s1 ≡ inr (?s2, _) |- _ =>
-        apply LidBound.incVoid_local_count in H
-      | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>
-        apply LidBound.incLocal_local_count in H
-      | H: genNExpr ?n ?s1 ≡ inr (?s2, _) |- _ =>
-        apply genNExpr_local_count in H
-      end.
-
 
 (** * Tactics
     
@@ -127,6 +91,11 @@ Section NExpr.
  *)
 
   Import ProofMode.
+  Opaque incBlockNamed.
+  Opaque incVoid.
+  Opaque incLocal.
+
+  Ltac split_post := split; [split | split]; [solve_state_invariant | solve_fresh | | cbn; intuition].
 
   Lemma genNExpr_correct_ind :
     forall (* Compiler bits *) (s1 s2: IRState)
@@ -134,10 +103,9 @@ Section NExpr.
       (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
 
       genNExpr nexp s1 ≡ inr (s2, (e, c))      -> (* Compilation succeeds *)
-      (state_invariant σ s1 ⩕ fresh_pre s1 s2) memH (memV, (l, g)) -> (* The main state invariant is initially true *)
+      (state_invariant_pre σ s1 s2) memH (memV, (l, g)) -> (* The main state invariant is initially true *)
       no_failure (interp_helix (E := E_cfg) (denoteNExpr σ nexp) memH) -> (* Source semantics defined *)
-      eutt (succ_cfg (lift_Rel_cfg (state_invariant σ s2) ⩕
-                     lift_Rel_cfg (fresh_post s1 s2 l) ⩕
+      eutt (succ_cfg (lift_Rel_cfg (state_invariant_post σ s1 s2 l) ⩕
                      genNExpr_rel_ind e memH (mk_config_cfg memV l g)))
            (interp_helix (denoteNExpr σ nexp) memH)
            (interp_cfg (denote_code (convert_typ [] c)) g l memV).
@@ -156,9 +124,7 @@ Section NExpr.
         destruct i0; try_abs.
 
         (* We establish the postcondition *)
-        apply eutt_Ret; cbn; splits; cbn; auto.
-        solve_fresh.
-        split; auto.
+        apply eutt_Ret; cbn; split_post. 
         intros l' MONO; cbn*.
         vstep.
         solve_lu.
@@ -177,22 +143,18 @@ Section NExpr.
         vstep.
         vstep; eauto; reflexivity.
 
-        apply eutt_Ret; cbn; splits; cbn; eauto with fresh.
-        -- cbn.
-           solve_state_invariant.
-        -- split.
-           intros l' MONO; cbn*.
-           vstep; [solve_lu | reflexivity].
-           repeat split.
-           solve_sub_alist.
+        apply eutt_Ret; cbn; split_post.
+        intros l' MONO; cbn*.
+        vstep; [solve_lu | reflexivity].
+        repeat split.
+        solve_sub_alist.
 
     - (* Constant *)
       cbn* in COMPILE; simp.
       unfold denoteNExpr in *; cbn*.
       hvred.
 
-      apply eutt_Ret; cbn; splits; cbn; eauto with fresh.
-      split; auto.
+      apply eutt_Ret; cbn; split_post. 
       intros l' MONO; cbn*.
       vstep; reflexivity.
 
@@ -211,7 +173,7 @@ Section NExpr.
       eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp1].
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      destruct PRE0 as (PRE1 & PREF1 & (EXPR1 & <- & <- & <- & MONO1)). 
+      destruct PRE0 as ((PRE1 & PREF1) & (EXPR1 & <- & <- & <- & MONO1)). 
       hvred.
       cbn in *.
 
@@ -227,7 +189,7 @@ Section NExpr.
       eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp2].
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      destruct PRE0 as (PRE2 & PREF2 & (EXPR2 & <- & <- & <- & MONO2)).
+      destruct PRE0 as ((PRE2 & PREF2) & (EXPR2 & <- & <- & <- & MONO2)).
       cbn in *.
 
       (* division *)
@@ -250,24 +212,15 @@ Section NExpr.
         apply unsigned_is_zero; auto.
       }
 
-      apply eutt_Ret; cbn; splits; cbn.
-      {
-        solve_state_invariant.
-      }
-      {
-        solve_fresh.
-      }
-      { split; auto.
-        intros ? MONO; cbn.
-        vstep; solve_lu; reflexivity.
-        apply ext_local_subalist.
-        etransitivity; eauto.
-        etransitivity; eauto.
-        apply sub_alist_add.
-        eapply freshness_pre_alist_fresh; eauto.
-        solve_fresh.
-      }
-        
+      apply eutt_Ret; cbn; split_post.
+      intros ? MONO; cbn.
+      vstep; solve_lu; reflexivity.
+      etransitivity; eauto.
+      etransitivity; eauto.
+      apply sub_alist_add.
+      eapply freshness_pre_alist_fresh; eauto.
+      solve_fresh.
+  
     - (* NMod *)
       cbn* in *; simp; try_abs.
       hvred.
@@ -283,7 +236,7 @@ Section NExpr.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       cbn in *.
-      destruct PRE0 as (PRE1 & PREF1 & (EXPR1 & <- & <- & <- & MONO1)). 
+      destruct PRE0 as ((PRE1 & PREF1) & (EXPR1 & <- & <- & <- & MONO1)). 
       hvred.
       cbn in *.
 
@@ -297,7 +250,7 @@ Section NExpr.
       eapply eutt_clo_bind_returns; [eassumption | clear IHnexp2].
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      destruct PRE0 as (PRE2 & PREF2 & (EXPR2 & <- & <- & <- & MONO2)).
+      destruct PRE0 as ((PRE2 & PREF2) & (EXPR2 & <- & <- & <- & MONO2)).
       cbn; hvred.
       break_match_goal; try_abs...
       hvred.
@@ -319,25 +272,15 @@ Section NExpr.
         apply unsigned_is_zero; auto.
       }
 
-
-      apply eutt_Ret; cbn; splits; cbn.
-      {
-        solve_state_invariant.
-      }
-      {
-        solve_fresh.
-      }
-      { split; auto.
-        intros ? MONO; cbn.
-        vstep; solve_lu; reflexivity.
-        apply ext_local_subalist.
-        etransitivity; eauto.
-        etransitivity; eauto.
-        apply sub_alist_add.
-        eapply freshness_pre_alist_fresh; eauto.
-        solve_fresh.
-      }
- 
+      apply eutt_Ret; cbn; split_post.
+      intros ? MONO; cbn.
+      vstep; solve_lu; reflexivity.
+      etransitivity; eauto.
+      etransitivity; eauto.
+      apply sub_alist_add.
+      eapply freshness_pre_alist_fresh; eauto.
+      solve_fresh.
+  
    - (* NAdd *)
 
      cbn* in *; simp; try_abs.
@@ -353,7 +296,7 @@ Section NExpr.
      eapply eutt_clo_bind_returns; [eassumption | clear IHnexp1].
      introR; destruct_unit.
      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-     destruct PRE0 as (PRE1 & PREF1 & (EXPR1 & <- & <- & <- & MONO1)). 
+     destruct PRE0 as ((PRE1 & PREF1) & (EXPR1 & <- & <- & <- & MONO1)). 
      hvred.
      cbn in *.
 
@@ -367,30 +310,21 @@ Section NExpr.
      eapply eutt_clo_bind_returns; [eassumption | clear IHnexp2].
      introR; destruct_unit.
      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-     destruct PRE0 as (PRE2 & PREF2 & (EXPR2 & <- & <- & <- & MONO2)).
+     destruct PRE0 as ((PRE2 & PREF2) & (EXPR2 & <- & <- & <- & MONO2)).
      cbn; hvred.
 
      vstep.
      vstep; cbn; try (eapply EXPR2 || eapply EXPR1); eauto; reflexivity.
 
-     apply eutt_Ret; cbn; splits; cbn.
-     {
-       solve_state_invariant.
-     }
-     {
-       solve_fresh.
-     }
-     { split; auto.
-       intros ? MONO; cbn.
-       vstep; solve_lu; reflexivity.
-       apply ext_local_subalist.
-       etransitivity; eauto.
-       etransitivity; eauto.
-       apply sub_alist_add.
-       eapply freshness_pre_alist_fresh; eauto.
-       solve_fresh.
-     }
-     
+     apply eutt_Ret; cbn; split_post.
+     intros ? MONO; cbn.
+     vstep; solve_lu; reflexivity.
+     etransitivity; eauto.
+     etransitivity; eauto.
+     apply sub_alist_add.
+     eapply freshness_pre_alist_fresh; eauto.
+     solve_fresh.
+  
    - (* NMinus *)
 
      cbn* in *; simp; try_abs.
@@ -405,7 +339,7 @@ Section NExpr.
      eapply eutt_clo_bind_returns; [eassumption | clear IHnexp1].
      introR; destruct_unit.
      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-     destruct PRE0 as (PRE1 & PREF1 & (EXPR1 & <- & <- & <- & MONO1)). 
+     destruct PRE0 as ((PRE1 & PREF1) & (EXPR1 & <- & <- & <- & MONO1)). 
      hvred; cbn in *.
 
      specialize (IHnexp2 _ _ σ memH _ _ g l0 memV Heqs0).
@@ -417,30 +351,21 @@ Section NExpr.
      eapply eutt_clo_bind_returns; [eassumption | clear IHnexp2].
      introR; destruct_unit.
      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-     destruct PRE0 as (PRE2 & PREF2 & (EXPR2 & <- & <- & <- & MONO2)).
+     destruct PRE0 as ((PRE2 & PREF2) & (EXPR2 & <- & <- & <- & MONO2)).
      cbn; hvred.
 
      vstep.
      vstep; cbn; try (eapply EXPR2 || eapply EXPR1); eauto; reflexivity.
 
-     apply eutt_Ret; cbn; splits; cbn.
-     {
-       solve_state_invariant.
-     }
-     {
-       solve_fresh.
-     }
-     { split; auto.
-       intros ? MONO; cbn.
-       vstep; solve_lu; reflexivity.
-       apply ext_local_subalist.
-       etransitivity; eauto.
-       etransitivity; eauto.
-       apply sub_alist_add.
-       eapply freshness_pre_alist_fresh; eauto.
-       solve_fresh.
-     }
- 
+     apply eutt_Ret; cbn; split_post.
+     intros ? MONO; cbn.
+     vstep; solve_lu; reflexivity.
+     etransitivity; eauto.
+     etransitivity; eauto.
+     apply sub_alist_add.
+     eapply freshness_pre_alist_fresh; eauto.
+     solve_fresh.
+  
    - (* NMult *)
      
      cbn* in *; simp; try_abs.
@@ -455,7 +380,7 @@ Section NExpr.
      eapply eutt_clo_bind_returns; [eassumption | clear IHnexp1].
      introR; destruct_unit.
      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-     destruct PRE0 as (PRE1 & PREF1 & (EXPR1 & <- & <- & <- & MONO1)). 
+     destruct PRE0 as ((PRE1 & PREF1) & (EXPR1 & <- & <- & <- & MONO1)). 
      hvred; cbn in *.
 
      specialize (IHnexp2 _ _ σ memH _ _ g l0 memV Heqs0).
@@ -467,7 +392,7 @@ Section NExpr.
      eapply eutt_clo_bind_returns; [eassumption | clear IHnexp2].
      introR; destruct_unit.
      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-     destruct PRE0 as (PRE2 & PREF2 & (EXPR2 & <- & <- & <- & MONO2)).
+     destruct PRE0 as ((PRE2 & PREF2) & (EXPR2 & <- & <- & <- & MONO2)).
      cbn; hvred.
 
      vstep.
@@ -478,24 +403,15 @@ Section NExpr.
         break_inner_match; reflexivity.
       }
 
-     apply eutt_Ret; cbn; splits; cbn.
-     {
-       solve_state_invariant.
-     }
-     {
-       solve_fresh.
-     }
-     { split; auto.
-       intros ? MONO; cbn.
-       vstep; solve_lu; reflexivity.
-       apply ext_local_subalist.
-       etransitivity; eauto.
-       etransitivity; eauto.
-       apply sub_alist_add.
-       eapply freshness_pre_alist_fresh; eauto.
-       solve_fresh.
-     }
- 
+     apply eutt_Ret; cbn; split_post.
+     intros ? MONO; cbn.
+     vstep; solve_lu; reflexivity.
+     etransitivity; eauto.
+     etransitivity; eauto.
+     apply sub_alist_add.
+     eapply freshness_pre_alist_fresh; eauto.
+     solve_fresh.
+  
    - (* NMin *)
       (* Non-implemented by the compiler *)
       inversion COMPILE.
@@ -506,8 +422,6 @@ Section NExpr.
 
 End NExpr.
 
-Notation fresh_pre := (fun s1 s2 => lift_fresh (freshness_pre s1 s2)). 
-Notation fresh_post := (fun s1 s2 l => lift_fresh (freshness_post s1 s2 l)). 
 Definition genNExpr_exp_correct (σ : evalContext) (s : IRState) (e: exp typ)
   : Rel_cfg_T DynamicValues.int64 unit :=
   fun '(memH,i) '(memV,(l,(g,v))) => 
@@ -523,10 +437,12 @@ Lemma genNExpr_correct :
     (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
 
     genNExpr nexp s1 ≡ inr (s2, (e, c))      -> (* Compilation succeeds *)
-    (state_invariant σ s1 ⩕ fresh_pre s1 s2) memH (memV, (l, g)) -> (* The main state invariant is initially true *)
+    (state_invariant_pre σ s1 s2) memH (memV, (l, g)) -> (* The main state invariant is initially true *)
     no_failure (interp_helix (E := E_cfg) (denoteNExpr σ nexp) memH) -> (* Source semantics defined *)
     eutt (succ_cfg
-            (lift_Rel_cfg (state_invariant σ s2 ⩕ fresh_post s1 s2 l) ⩕ ext_local memH (memV,(l,g)))
+            (lift_Rel_cfg (state_invariant_post σ s1 s2 l) ⩕
+                          genNExpr_exp_correct σ s2 e ⩕
+                          ext_local memH (memV,(l,g)))
          )
          (interp_helix (denoteNExpr σ nexp) memH)
          (interp_cfg (denote_code (convert_typ [] c)) g l memV).
@@ -534,10 +450,11 @@ Proof.
   intros.
   eapply eutt_mon; cycle -1.
   eapply genNExpr_correct_ind; eauto.
-  intros [(? & ?) |] (? & ? & ? & []) INV; [destruct INV as (SI & ? & EXP & ?) | inv INV].
+  intros [(? & ?) |] (? & ? & ? & []) INV; [destruct INV as ((SI & ?) & EXP & ?) | inv INV].
   cbn in *.
   specialize (EXP l0).
   forward EXP; [reflexivity |].
+  split; auto.
   split; auto.
   split; auto.
 Qed.

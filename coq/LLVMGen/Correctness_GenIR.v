@@ -30,70 +30,9 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   Definition GenIR_Rel σ (sinvs : IRState) to : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
     lift_Rel_cfg (state_invariant σ sinvs) ⩕ branches to. 
 
-  Lemma state_invariant_incBlockNamed :
-    forall σ s s' k msg memH stV,
-      incBlockNamed msg s ≡ inr (s', k) ->
-      state_invariant σ s memH stV ->
-      state_invariant σ s' memH stV.
-  Proof.
-    intros * INC [MEM_INV WF].
-    split.
-    - red; repeat break_let; intros * LUH LUV.
-      erewrite incBlockNamed_Γ in LUV; eauto.
-      generalize LUV; intros INLG;
-        eapply MEM_INV in INLG; eauto.
-    - unfold WF_IRState; erewrite incBlockNamed_Γ; eauto; apply WF.
-  Qed.
-
-  Lemma state_invariant_incLocal :
-    forall σ s s' k memH stV,
-      incLocal s ≡ inr (s', k) ->
-      state_invariant σ s memH stV ->
-      state_invariant σ s' memH stV.
-  Proof.
-    intros * INC [MEM_INV WF].
-    split.
-    - red; repeat break_let; intros * LUH LUV.
-      erewrite incLocal_Γ in LUV; eauto.
-      generalize LUV; intros INLG;
-        eapply MEM_INV in INLG; eauto.
-    - unfold WF_IRState; erewrite incLocal_Γ; eauto; apply WF.
-  Qed.
-
-  Lemma state_invariant_incVoid :
-    forall σ s s' k memH stV,
-      incVoid s ≡ inr (s', k) ->
-      state_invariant σ s memH stV ->
-      state_invariant σ s' memH stV.
-  Proof.
-    intros * INC [MEM_INV WF].
-    split.
-    - red; repeat break_let; intros * LUH LUV.
-      erewrite incVoid_Γ in LUV; eauto.
-      generalize LUV; intros INLG;
-        eapply MEM_INV in INLG; eauto.
-    - unfold WF_IRState; erewrite incVoid_Γ; eauto; apply WF.
-  Qed.
-
   Hint Resolve state_invariant_incBlockNamed : state_invariant.
   Hint Resolve state_invariant_incLocal : state_invariant.
   Hint Resolve state_invariant_incVoid : state_invariant.
-
-  Lemma state_invariant_genNExpr :
-    forall exp s1 s2 e c σ memH conf,
-      genNExpr exp s1 ≡ inr (s2, (e, c)) ->
-      state_invariant σ s1 memH conf ->
-      state_invariant σ s2 memH conf.
-  Proof.
-    intros exp; induction exp;
-      intros * GEN SINV;
-      cbn in GEN; simp; eauto with state_invariant.
-    - destruct (nth_error (Γ s1) v); cbn in *; inversion Heqs; subst;
-        eauto with state_invariant.
-    - destruct (nth_error (Γ s1) v); cbn in *; inversion Heqs; subst;
-        eauto with state_invariant.
-  Qed.
-
   Hint Resolve state_invariant_genNExpr : state_invariant.
 
   Tactic Notation "state_inv_auto" := eauto with state_invariant.
@@ -207,97 +146,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     rewrite (genMExpr_context _ _ GEN)
     end; subst; auto.
   Qed.
-
-  Lemma genMExpr_local_count :
-    forall mexp s1 s2 e c,
-      genMExpr mexp s1 ≡ inr (s2, (e, c)) ->
-      (local_count s2 >= local_count s1)%nat.
-  Proof.
-    induction mexp;
-      intros s1 s2 e c GEN;
-      cbn in GEN; simp;
-        repeat
-          match goal with
-          | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
-            destruct (nth_error (Γ s1) n) eqn:FIND; inversion H; subst
-          | H : incLocal ?s1 ≡ inr (?s2, _) |- _ =>
-            apply incLocal_local_count in H
-          | IH : ∀ (s1 s2 : IRState) (e : exp typ) (c : code typ),
-              genMExpr ?n s1 ≡ inr (s2, (e, c)) → local_count s2 ≥ local_count s1,
-      GEN: genMExpr ?n _ ≡ inr _ |- _ =>
-    apply IH in GEN
-    end;
-      try lia.
-  Qed.
-
-  Lemma genAExpr_local_count :
-    forall aexp s1 s2 e c,
-      genAExpr aexp s1 ≡ inr (s2, (e, c)) ->
-      (local_count s2 >= local_count s1)%nat.
-  Proof.
-    induction aexp;
-      intros s1 s2 e c GEN;
-      cbn in GEN; simp;
-        (* TODO: can probably get rid of most of this by extending solve_local_count *)
-        repeat
-          match goal with
-          | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
-            destruct (nth_error (Γ s1) n) eqn:FIND; inversion H; subst
-          | H : incLocal ?s1 ≡ inr (?s2, _) |- _ =>
-            apply incLocal_local_count in H
-          | H : incVoid ?s1 ≡ inr (?s2, _) |- _ =>
-            apply incVoid_local_count in H
-          | GEN : genNExpr _ _ ≡ inr _ |- _ =>
-            apply genNExpr_local_count in GEN
-          | GEN : genMExpr _ _ ≡ inr _ |- _ =>
-            apply genMExpr_local_count in GEN
-          | IH : ∀ (s1 s2 : IRState) (e : exp typ) (c : code typ),
-              genAExpr ?a s1 ≡ inr _ → local_count s2 ≥ local_count s1,
-      GEN : genAExpr ?a _ ≡ inr _ |- _ =>
-    apply IH in GEN
-    end; try lia.
-  Qed.
-
-  Lemma genIR_local_count :
-    forall op s1 s2 nextblock b bk_op,
-      genIR op nextblock s1 ≡ inr (s2, (b, bk_op)) ->
-      local_count s2 ≥ local_count s1.
-  Proof.
-    induction op;
-      intros s1 s2 nextblock b bk_op H;
-      cbn in H; simp;
-        repeat
-          (match goal with
-           | H: inl _ ≡ inr _ |- _ =>
-             inversion H
-           | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
-             destruct (nth_error (Γ s1) n) eqn:?; inversion H; subst
-           | H : ErrorWithState.err2errS (MInt64asNT.from_nat ?n) ?s1 ≡ inr (?s2, _) |- _ =>
-             destruct (MInt64asNT.from_nat n) eqn:?; inversion H; subst
-           | H : incLocal ?s1 ≡ inr (?s2, _) |- _ =>
-             apply incLocal_local_count in H
-           | H : incVoid ?s1 ≡ inr (?s2, _) |- _ =>
-             apply incVoid_local_count in H
-           | H : incBlockNamed _ _ ≡ inr _ |- _ =>
-             apply incBlockNamed_local_count in H
-           | H : incBlock _ ≡ inr _ |- _ =>
-             apply incBlockNamed_local_count in H
-           | H : resolve_PVar _ _ ≡ inr _ |- _ =>
-             apply resolve_PVar_state in H; subst
-           | GEN : genNExpr _ _ ≡ inr _ |- _ =>
-             apply genNExpr_local_count in GEN
-           | GEN : genMExpr _ _ ≡ inr _ |- _ =>
-             apply genMExpr_local_count in GEN
-           | GEN : genAExpr _ _ ≡ inr _ |- _ =>
-             apply genAExpr_local_count in GEN
-           | IH : ∀ (s1 s2 : IRState) (nextblock b : block_id) (bk_op : list (LLVMAst.block typ)),
-               genIR ?op nextblock s1 ≡ inr (s2, (b, bk_op)) → local_count s2 ≥ local_count s1,
-             GEN: genIR ?op _ _ ≡ inr _ |- _ =>
-             apply IH in GEN
-           end; cbn in *);
-           try lia.
-  Qed.
-
+  
   Ltac subst_contexts :=
     repeat match goal with
            | H : Γ ?s1 ≡ Γ ?s2 |- _ =>

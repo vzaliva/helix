@@ -1,8 +1,8 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
+Require Import Helix.LLVMGen.Freshness.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.Correctness_NExpr.
 Require Import Helix.LLVMGen.Correctness_MExpr.
-(* Require Import LibHyps.LibHyps. *)
 
 Import ListNotations.
 
@@ -10,6 +10,9 @@ Set Implicit Arguments.
 Set Strict Implicit.
 
 Typeclasses Opaque equiv.
+Opaque incBlockNamed.
+Opaque incVoid.
+Opaque incLocal.
 
 Section AExpr.
 
@@ -184,21 +187,24 @@ Section AExpr.
     destruct a,b; try break_if; repeat break_match ;try reflexivity; crush.
   Qed.
 
-Import ProofMode.
-Lemma genAExpr_correct :
-  forall (* Compiler bits *) (s1 s2: IRState)
-    (* Helix  bits *)   (aexp: AExpr) (σ: evalContext) (memH: memoryH) 
-    (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
+  Ltac split_post := split; [split | split]; cbn;
+                     [try solve_state_invariant | try solve_fresh | | intuition; try solve_sub_alist].
+  
+  Import ProofMode.
+  Lemma genAExpr_correct :
+    forall (* Compiler bits *) (s1 s2: IRState)
+      (* Helix  bits *)   (aexp: AExpr) (σ: evalContext) (memH: memoryH) 
+      (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
 
       genAExpr aexp s1 ≡ inr (s2, (e, c))      -> (* Compilation succeeds *)
-      state_invariant σ s1 memH (memV, (l, g)) -> (* The main state invariant is initially true *)
+      state_invariant_pre σ s1 s2 memH (memV, (l, g)) -> (* The main state invariant is initially true *)
       no_failure (interp_helix (E := E_cfg) (denoteAExpr σ aexp) memH) -> (* Source semantics defined *)
 
-      eutt (succ_cfg (lift_Rel_cfg (state_invariant σ s2) ⩕ genAExpr_rel σ aexp e memH (mk_config_cfg memV l g)))
+      eutt (succ_cfg (lift_Rel_cfg (state_invariant_post σ s1 s2 l) ⩕ genAExpr_rel σ aexp e memH (mk_config_cfg memV l g)))
            (interp_helix (denoteAExpr σ aexp) memH)
            (interp_cfg (denote_code (convert_typ [] c)) g l memV).
   Proof. 
-    intros s1 s2 aexp; revert s1 s2; induction aexp; intros * COMPILE PRE NOFAIL.
+    intros s1 s2 aexp; revert s1 s2; induction aexp; intros * COMPILE [PRE PREF] NOFAIL.
     - (* Variable case *)
       (* Reducing the compilation *)
       cbn* in COMPILE; simp.
@@ -216,20 +222,12 @@ Lemma genAExpr_correct :
 
         vstep.
         { vstep; eauto; reflexivity. }
-        apply eutt_Ret; cbn.
-        split.
-        { eapply state_invariant_add_fresh; eauto. }
-        { split.
-          - red; intros.
-            cbn; vstep.
-            cbn; erewrite H; eauto.
-            eapply In_add_eq.
-            reflexivity.
-          - cbn; intuition.
-            apply sub_alist_add.
-            eapply concrete_fresh_fresh; eauto. 
-            eapply incLocal_is_fresh; eauto.
-        }
+        apply eutt_Ret; split_post. 
+        red; intros.
+        cbn; vstep.
+        cbn; erewrite H; eauto.
+        eapply In_add_eq.
+        reflexivity.
 
       + (* The variable maps to a pointer *)
         unfold denoteAExpr in *; cbn* in *.
@@ -238,10 +236,8 @@ Lemma genAExpr_correct :
         break_match_goal; try_abs.
         clear NOFAIL.
         hvred.
-        apply eutt_Ret.
-        split; split; eauto using incLocal_is_fresh.
-        cbn; intros.
-        break_match_goal; try_abs.
+        apply eutt_Ret; split_post.
+        intros; break_match_goal; try_abs.
         vstep.
         eapply memory_invariant_LLU_AExpr; eauto;
           eapply memory_invariant_ext_local;
@@ -251,31 +247,31 @@ Lemma genAExpr_correct :
     - (* Constant *)
       cbn* in *; simp.
       hvred.
-      apply eutt_Ret; split; [| split]; eauto.
-      intros l' MONO; cbn*.
-      vstep.
-      reflexivity.
+      apply eutt_Ret; split_post.
+      intros; vstep; reflexivity.
       
     - (* ANth m n: lookup to m[n] *)
+
       cbn* in *; simp.
       edestruct @genMExpr_array as (?sz & ?EQ); eauto; subst.
       hvred.
 
       (* denoting [n] *)
-      (* onAllHyps move_up_types. *)
+      clean_goal.
       eapply eutt_clo_bind_returns; [eapply genNExpr_correct |..]; eauto.
+      split; cbn; auto; solve_fresh.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      destruct PRE0 as (SINV & EQEXP & ?).
+      destruct PRE0 as ([PRE1 PREF1] & EQEXP & ?).
       cbn* in *; inv_eqs.
       hvred.
 
       (* denoting [m] *)
-      (* onAllHyps move_up_types. *)
       eapply eutt_clo_bind_returns; [eapply genMExpr_correct | ..]; eauto.
+      split; auto; solve_fresh.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      destruct vH0, PRE0 as (SINV' & ? & (addr_m & EQEXPm & LU_ARRAY)).
+      destruct vH0, PRE0 as ((PRE2 & PREF2) & ? & (addr_m & EQEXPm & LU_ARRAY)).
       cbn* in *; inv_eqs.
       hvred.
 
@@ -308,31 +304,33 @@ Lemma genAExpr_correct :
         reflexivity.
       }
       clear EQEXP EQEXPm NOFAIL.
-      apply eutt_Ret.
-      split.
-      ++ cbn; do 2 (eapply state_invariant_add_fresh; eauto).
-      ++ split; cbn; intuition.
-      * vstep.
-        cbn.
-        apply H0.
-        apply In_add_eq.
+      apply eutt_Ret; split_post. 
+      * intros.
+        vstep.
+        solve_lu.
         reflexivity.
-      * eapply sub_alist_trans; eauto.
-        eapply sub_alist_trans; eapply sub_alist_add.
-        -- eapply concrete_fresh_fresh; eauto.
-           eapply incLocal_is_fresh; eauto.
-        -- eapply concrete_fresh_fresh; eauto.
-           eapply incLocal_is_fresh; eauto.
-           eapply state_invariant_add_fresh; eauto.
+      *
+        admit.
+        (* eapply sub_alist_trans; eauto. *)
+        (* eapply sub_alist_trans. *)
+        (* 2:eapply sub_alist_add. *)
+        (* 2:{ eapply concrete_fresh_fresh. *)
+        (* -- eapply concrete_fresh_fresh; eauto. *)
+        (*    solve_fresh. *)
+        (*    eapply incLocal_is_fresh; eauto. *)
+        (* -- eapply concrete_fresh_fresh; eauto. *)
+        (*    eapply incLocal_is_fresh; eauto. *)
+        (*    eapply state_invariant_add_fresh; eauto. *)
            
     - (* AAbs *) 
       cbn* in *; simp.
       hvred.
       eapply eutt_clo_bind; try eapply IHaexp; eauto.
+      split; auto; solve_fresh.
       introR; destruct_unit.
-      destruct PRE0 as (SINV & AEXP & MONO).
+      destruct PRE0 as ((PRE1 & PREF1) & AEXP & MONO).
       cbn in MONO; inv_eqs.
-      cbn; hvred.
+      cbn in *; hvred.
 
       (* TO FIX *)
       Transparent assoc. 
@@ -349,32 +347,31 @@ Lemma genAExpr_correct :
         reflexivity.
       }
       reflexivity.
-      apply eutt_Ret.
-      split.
-      + eapply state_invariant_add_fresh; eauto.
-      + split; cbn; intuition.
-        * vstep.
-          cbn. apply H0.
-          apply In_add_eq.
-          reflexivity.
-        * rewrite H.
-          apply sub_alist_add.
-          eapply concrete_fresh_fresh; eauto.
-          eapply incLocal_is_fresh; eauto.
-          
+      apply eutt_Ret; split_post.
+      * intros; vstep.
+        solve_lu.
+        reflexivity.
+      * admit.
+        (* rewrite H. *)
+        (* apply sub_alist_add. *)
+        (* eapply concrete_fresh_fresh; eauto. *)
+        (* eapply incLocal_is_fresh; eauto. *)
+        
     - (* APlus *)
       cbn* in *; simp...
       hvred.
 
       eapply eutt_clo_bind_returns; try eapply IHaexp1; eauto.
+      split; auto; solve_fresh.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      destruct PRE0 as (SINV1 & AEXP1 & ext); cbn in *; inv_eqs.
-      hvred.
+      destruct PRE0 as ((PRE1 & PREF1) & AEXP1 & ext); cbn in *; inv_eqs.
+      cbn in *; hvred.
 
       eapply eutt_clo_bind; try eapply IHaexp2; eauto.
+      split; auto; solve_fresh.
       introR; destruct_unit.
-      destruct PRE0 as (SINV2 & AEXP2 & ext); cbn in *; inv_eqs.
+      destruct PRE0 as ((PRE2 & PREF2) & AEXP2 & ext); cbn in *; inv_eqs.
       hvred.
 
       vstep.
@@ -385,31 +382,31 @@ Lemma genAExpr_correct :
         all:reflexivity.
       }
 
-      apply eutt_Ret.
-      split; cbn; eauto.
-      + eapply state_invariant_add_fresh; eauto.
-      + split; cbn; intuition.
-        * vstep.
-          apply H1, In_add_eq.
-          reflexivity.
-        * rewrite H, H0.
-          apply sub_alist_add.
-          eapply concrete_fresh_fresh; eauto.
-          eapply incLocal_is_fresh; eauto.
+      apply eutt_Ret; split_post.
+      * intros; vstep.
+        solve_lu.
+        reflexivity.
+      * admit.
+        (* rewrite H, H0. *)
+        (* apply sub_alist_add. *)
+        (* eapply concrete_fresh_fresh; eauto. *)
+        (* eapply incLocal_is_fresh; eauto. *)
 
     - (* AMinus *)
       cbn* in *; simp.
       hvred.
 
       eapply eutt_clo_bind_returns; try eapply IHaexp1; eauto.
+      split; auto; solve_fresh.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      destruct PRE0 as (SINV1 & AEXP1 & ext); cbn in *; inv_eqs.
+      destruct PRE0 as ((PRE1 & PREF1) & AEXP1 & ext); cbn in *; inv_eqs.
       hvred.
 
       eapply eutt_clo_bind; try eapply IHaexp2; eauto.
+      split; auto; solve_fresh.
       introR; destruct_unit.
-      destruct PRE0 as (SINV2 & AEXP2 & ext); cbn in *; inv_eqs.
+      destruct PRE0 as ((PRE2 & PREF2) & AEXP2 & ext); cbn in *; inv_eqs.
       hvred.
 
       vstep.
@@ -420,31 +417,31 @@ Lemma genAExpr_correct :
         all:reflexivity.
       }
 
-      apply eutt_Ret.
-      split; cbn; eauto.
-      + eapply state_invariant_add_fresh; eauto.
-      + split; cbn; intuition.
-        * vstep.
-          apply H1, In_add_eq.
-          reflexivity.
-        * rewrite H, H0.
-          apply sub_alist_add.
-          eapply concrete_fresh_fresh; eauto.
-          eapply incLocal_is_fresh; eauto.
+      apply eutt_Ret; split_post.
+      * intros; vstep.
+        solve_lu.
+        reflexivity.
+      * admit.
+        (* rewrite H, H0. *)
+        (* apply sub_alist_add. *)
+        (* eapply concrete_fresh_fresh; eauto. *)
+        (* eapply incLocal_is_fresh; eauto. *)
 
     - (* AMult *)
       cbn* in *; simp.
       hvred.
 
       eapply eutt_clo_bind_returns; try eapply IHaexp1; eauto.
+      split; auto; solve_fresh.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      destruct PRE0 as (SINV1 & AEXP1 & ext); cbn in *; inv_eqs.
+      destruct PRE0 as ((PRE1 & PREF1) & AEXP1 & ext); cbn in *; inv_eqs.
       hvred.
 
       eapply eutt_clo_bind; try eapply IHaexp2; eauto.
+      split; auto; solve_fresh.
       introR; destruct_unit.
-      destruct PRE0 as (SINV2 & AEXP2 & ext); cbn in *; inv_eqs.
+      destruct PRE0 as ((PRE2 & PREF2) & AEXP2 & ext); cbn in *; inv_eqs.
       hvred.
 
       vstep.
@@ -455,31 +452,31 @@ Lemma genAExpr_correct :
         all:reflexivity.
       }
 
-      apply eutt_Ret.
-      split; cbn; eauto.
-      + eapply state_invariant_add_fresh; eauto.
-      + split; cbn; intuition.
-        * vstep.
-          apply H1, In_add_eq.
-          reflexivity.
-        * rewrite H, H0.
-          apply sub_alist_add.
-          eapply concrete_fresh_fresh; eauto.
-          eapply incLocal_is_fresh; eauto.
+      apply eutt_Ret; split_post.
+      * intros; vstep.
+        solve_lu.
+        reflexivity.
+      * admit.
+        (* rewrite H, H0. *)
+        (* apply sub_alist_add. *)
+        (* eapply concrete_fresh_fresh; eauto. *)
+        (* eapply incLocal_is_fresh; eauto. *)
 
     - (* AMin *)
       cbn* in *; simp.
       hvred.
 
       eapply eutt_clo_bind_returns; try eapply IHaexp1; eauto.
+      split; auto; solve_fresh.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      destruct PRE0 as (SINV1 & AEXP1 & ext); cbn in *; inv_eqs.
+      destruct PRE0 as ((PRE1 & PREF1) & AEXP1 & ext); cbn in *; inv_eqs.
       hvred.
 
       eapply eutt_clo_bind; try eapply IHaexp2; eauto.
+      split; auto; solve_fresh.
       introR; destruct_unit.
-      destruct PRE0 as (SINV2 & AEXP2 & ext); cbn in *; inv_eqs.
+      destruct PRE0 as ((PRE2 & PREF2) & AEXP2 & ext); cbn in *; inv_eqs.
       hvred.
 
       vstep; try reflexivity.
@@ -495,33 +492,33 @@ Lemma genAExpr_correct :
       }
       cbn; tred; vred_l; reflexivity.
       reflexivity.
-      apply eutt_Ret.
-      split.
-      + eapply state_invariant_add_fresh; eauto.
-      + split; cbn; intuition.
-        * vstep.
-          cbn. apply H1.
-          rewrite min_float_correct.
-          apply In_add_eq.
-          reflexivity.
-        * rewrite H,H0.
-          apply sub_alist_add.
-          eapply concrete_fresh_fresh; eauto.
-          eapply incLocal_is_fresh; eauto.
-          
+
+      apply eutt_Ret; split_post.
+      * intros; vstep.
+        solve_lu.
+        rewrite min_float_correct.
+        reflexivity.
+      * admit.
+        (* rewrite H,H0. *)
+        (* apply sub_alist_add. *)
+        (* eapply concrete_fresh_fresh; eauto. *)
+        (* eapply incLocal_is_fresh; eauto. *)
+        
    - (* AMax *)
       cbn* in *; simp.
       hvred.
 
       eapply eutt_clo_bind_returns; try eapply IHaexp1; eauto.
+      split; auto; solve_fresh.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      destruct PRE0 as (SINV1 & AEXP1 & ext); cbn in *; inv_eqs.
+      destruct PRE0 as ((PRE1 & PREF1) & AEXP1 & ext); cbn in *; inv_eqs.
       hvred.
 
       eapply eutt_clo_bind; try eapply IHaexp2; eauto.
+      split; auto; solve_fresh.
       introR; destruct_unit.
-      destruct PRE0 as (SINV2 & AEXP2 & ext); cbn in *; inv_eqs.
+      destruct PRE0 as ((PRE2 & PREF2) & AEXP2 & ext); cbn in *; inv_eqs.
       hvred.
 
       vstep.
@@ -533,33 +530,33 @@ Lemma genAExpr_correct :
       }
       cbn; tred; vred_l; reflexivity.
       reflexivity.
-      apply eutt_Ret.
-      split.
-      + eapply state_invariant_add_fresh; eauto.
-      + split; cbn; intuition.
-        * vstep.
-          cbn. apply H1.
-          rewrite max_float_correct.
-          apply In_add_eq.
-          reflexivity.
-        * rewrite H,H0.
-          apply sub_alist_add.
-          eapply concrete_fresh_fresh; eauto.
-          eapply incLocal_is_fresh; eauto.
+
+      apply eutt_Ret; split_post.
+      * intros; vstep.
+        solve_lu.
+        rewrite max_float_correct.
+        reflexivity.
+      * admit.
+        (* rewrite H,H0. *)
+        (* apply sub_alist_add. *)
+        (* eapply concrete_fresh_fresh; eauto. *)
+        (* eapply incLocal_is_fresh; eauto. *)
 
    - (* AZless *)
       cbn* in *; simp.
       hvred.
 
       eapply eutt_clo_bind_returns; try eapply IHaexp1; eauto.
+      split; auto; solve_fresh.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      destruct PRE0 as (SINV1 & AEXP1 & ext); cbn in *; inv_eqs.
+      destruct PRE0 as ((PRE1 & PREF1) & AEXP1 & ext); cbn in *; inv_eqs.
       hvred.
 
       eapply eutt_clo_bind; try eapply IHaexp2; eauto.
+      split; auto; solve_fresh.
       introR; destruct_unit.
-      destruct PRE0 as (SINV2 & AEXP2 & ext); cbn in *; inv_eqs.
+      destruct PRE0 as ((PRE2 & PREF2) & AEXP2 & ext); cbn in *; inv_eqs.
       hvred.
 
       vstep.
@@ -587,27 +584,35 @@ Lemma genAExpr_correct :
       cbn; match_rewrite; reflexivity.
       reflexivity.
 
-      apply eutt_Ret.
-      split.
-      + cbn.
-        eapply state_invariant_incVoid; eauto.
-        repeat (eapply state_invariant_add_fresh; eauto).
-      + split; cbn; intuition.
-        * vstep.
-          cbn. 2: reflexivity.
-          rewrite H2.
-          apply H3.
-          solve_lu.
+      apply eutt_Ret; split_post.
+      admit.
+      admit.
+      admit.
+      admit.
 
-        * rewrite H,H0.
-          etransitivity; [apply sub_alist_add| apply sub_alist_add].
-          eapply concrete_fresh_fresh; eauto; eapply incLocal_is_fresh; eauto.
-          eapply concrete_fresh_fresh; eauto; eapply incLocal_is_fresh; eauto.
-          match goal with
-            |- state_invariant _ _ _ (_, (alist_add _ _ _, _)) =>
-            eapply state_invariant_add_fresh; [now eauto | eassumption ]
-          end.
+      (* TODO incVoid in the mix *)
+      (* eapply state_invariant_incVoid; eauto. *)
+      (* solve_state_invariant. *)
+      (* split. *)
+      (* + cbn. *)
+      (*   eapply state_invariant_incVoid; eauto. *)
+      (*   repeat (eapply state_invariant_add_fresh; eauto). *)
+      (* + split; cbn; intuition. *)
+      (*   * vstep. *)
+      (*     cbn. 2: reflexivity. *)
+      (*     rewrite H2. *)
+      (*     apply H3. *)
+      (*     solve_lu. *)
 
-Qed.
+      (*   * rewrite H,H0. *)
+      (*     etransitivity; [apply sub_alist_add| apply sub_alist_add]. *)
+      (*     eapply concrete_fresh_fresh; eauto; eapply incLocal_is_fresh; eauto. *)
+      (*     eapply concrete_fresh_fresh; eauto; eapply incLocal_is_fresh; eauto. *)
+      (*     match goal with *)
+      (*       |- state_invariant _ _ _ (_, (alist_add _ _ _, _)) => *)
+      (*       eapply state_invariant_add_fresh; [now eauto | eassumption ] *)
+      (*     end. *)
+
+Admitted.
 
 End AExpr.

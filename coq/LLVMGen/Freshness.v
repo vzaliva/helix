@@ -2,6 +2,29 @@ Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.VariableBinding.
 Require Import Helix.LLVMGen.LidBound.
+Require Import Helix.LLVMGen.StateCounters.
+
+(* We define the obvious total order on IRStates *)
+Definition IRState_lt (s1 s2 : IRState) : Prop :=
+  (local_count s1 < local_count s2)%nat.
+Infix "<<" := IRState_lt (at level 10).
+
+Definition IRState_le (s1 s2 : IRState) : Prop :=
+  (local_count s1 <= local_count s2)%nat.
+Infix "<<=" := IRState_le (at level 10).
+
+Lemma incLocal_lt : forall s1 s2 x,
+    incLocal s1 ≡ inr (s2,x) ->
+    s1 << s2.
+Proof.
+  intros s1 s2 x INC.
+  apply incLocal_local_count in INC.
+  unfold IRState_lt.
+  lia.
+Qed.
+
+Create HintDb irs_lt.
+Hint Resolve incLocal_lt : irs_lt.
 
 (** * Freshness scheme
     We axiomatize in this file everything we need to reason
@@ -32,28 +55,6 @@ Definition freshness_pre (s1 s2 : IRState) : local_env -> Prop :=
  *)
 Definition freshness_post (s1 s2 : IRState) (l1 : local_env) : local_env -> Prop :=
   fun l2 => (forall id v, alist_In id l2 v -> ~(alist_In id l1 v) -> lid_bound_between s1 s2 id).
-
-(* We define the obvious total order on IRStates *)
-Definition IRState_lt (s1 s2 : IRState) : Prop :=
-  (local_count s1 < local_count s2)%nat.
-Infix "<<" := IRState_lt (at level 10).
-
-Definition IRState_le (s1 s2 : IRState) : Prop :=
-  (local_count s1 <= local_count s2)%nat.
-Infix "<<=" := IRState_le (at level 10).
-
-Lemma incLocal_lt : forall s1 s2 x,
-    incLocal s1 ≡ inr (s2,x) ->
-    s1 << s2.
-Proof.
-  intros s1 s2 x INC.
-  apply incLocal_local_count in INC.
-  unfold IRState_lt.
-  lia.
-Qed.
-
-Create HintDb irs_lt.
-Hint Resolve incLocal_lt : irs_lt.
 
 (** ** Fresh identifier generator invariant
       Low and high level invariants ensuring that calls to [incLocal] indeed generate fresh variables.
@@ -277,6 +278,119 @@ Arguments freshness_pre : simpl never.
 Arguments freshness_post : simpl never.
 Arguments lift_fresh /.
 
+Lemma genNExpr_local_count :
+  forall nexp s1 s2 e c,
+    genNExpr nexp s1 ≡ inr (s2, (e, c)) ->
+    (local_count s2 >= local_count s1)%nat.
+Proof.
+  induction nexp;
+    intros s1 s2 e c GEN;
+    cbn* in *; simp; cbn in *;
+      repeat
+        match goal with
+        | H : incLocal ?s1 ≡ inr (?s2, _) |- _ =>
+          apply incLocal_local_count in H
+        | IH : ∀ (s1 s2 : IRState) (e : exp typ) (c : code typ),
+            genNExpr ?n s1 ≡ inr (s2, (e, c)) → local_count s2 ≥ local_count s1,
+    GEN: genNExpr ?n _ ≡ inr _ |- _ =>
+  apply IH in GEN
+  end;
+    try lia.
+Qed.
+
+Lemma genMExpr_local_count :
+  forall mexp s1 s2 e c,
+    genMExpr mexp s1 ≡ inr (s2, (e, c)) ->
+    (local_count s2 >= local_count s1)%nat.
+Proof.
+  induction mexp;
+    intros s1 s2 e c GEN;
+    cbn* in *; simp; cbn in *;
+      repeat
+        match goal with
+        | H : incLocal ?s1 ≡ inr (?s2, _) |- _ =>
+          apply incLocal_local_count in H
+        | IH : ∀ (s1 s2 : IRState) (e : exp typ) (c : code typ),
+            genMExpr ?n s1 ≡ inr (s2, (e, c)) → local_count s2 ≥ local_count s1,
+    GEN: genMExpr ?n _ ≡ inr _ |- _ =>
+  apply IH in GEN
+  end;
+    try lia.
+Qed.
+
+Lemma genAExpr_local_count :
+  forall aexp s1 s2 e c,
+    genAExpr aexp s1 ≡ inr (s2, (e, c)) ->
+    (local_count s2 >= local_count s1)%nat.
+Proof.
+  induction aexp;
+    intros s1 s2 e c GEN;
+    cbn* in *; simp; cbn in *;
+      repeat
+        match goal with
+        | H : incLocal ?s1 ≡ inr (?s2, _) |- _ =>
+          apply incLocal_local_count in H
+        | H : incVoid ?s1 ≡ inr (?s2, _) |- _ =>
+          apply incVoid_local_count in H
+        | GEN : genNExpr _ _ ≡ inr _ |- _ =>
+          apply genNExpr_local_count in GEN
+        | GEN : genMExpr _ _ ≡ inr _ |- _ =>
+          apply genMExpr_local_count in GEN
+        | IH : ∀ (s1 s2 : IRState) (e : exp typ) (c : code typ),
+            genAExpr ?a s1 ≡ inr _ → local_count s2 ≥ local_count s1,
+    GEN : genAExpr ?a _ ≡ inr _ |- _ =>
+  apply IH in GEN
+  end; try lia.
+Qed.
+
+Arguments append: simpl never.
+Opaque incBlockNamed.
+Opaque incVoid.
+Opaque incLocal.
+
+Ltac __local_ltac :=
+  repeat
+    (match goal with
+     | H: inl _ ≡ inr _ |- _ =>
+       inversion H
+     | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
+       destruct (nth_error (Γ s1) n) eqn:?; inversion H; subst
+     | H : ErrorWithState.err2errS (MInt64asNT.from_nat ?n) ?s1 ≡ inr (?s2, _) |- _ =>
+       destruct (MInt64asNT.from_nat n) eqn:?; inversion H; subst
+     | H : incLocal ?s1 ≡ inr (?s2, _) |- _ =>
+       apply incLocal_local_count in H
+     | H : incVoid ?s1 ≡ inr (?s2, _) |- _ =>
+       apply incVoid_local_count in H
+     | H : incBlockNamed _ _ ≡ inr _ |- _ =>
+       apply incBlockNamed_local_count in H
+     | H : incBlock _ ≡ inr _ |- _ =>
+       apply incBlockNamed_local_count in H
+     | H : resolve_PVar _ _ ≡ inr _ |- _ =>
+       apply resolve_PVar_state in H; subst
+     | GEN : genNExpr _ _ ≡ inr _ |- _ =>
+       apply genNExpr_local_count in GEN
+     | GEN : genMExpr _ _ ≡ inr _ |- _ =>
+       apply genMExpr_local_count in GEN
+     | GEN : genAExpr _ _ ≡ inr _ |- _ =>
+       apply genAExpr_local_count in GEN
+     | IH : ∀ (s1 s2 : IRState) (nextblock b : block_id) (bk_op : list (LLVMAst.block typ)),
+         genIR ?op nextblock s1 ≡ inr (s2, (b, bk_op)) → local_count s2 ≥ local_count s1,
+       GEN: genIR ?op _ _ ≡ inr _ |- _ =>
+     apply IH in GEN
+     end; cbn in *).
+
+Lemma genIR_local_count :
+  forall op s1 s2 nextblock b bk_op,
+    genIR op nextblock s1 ≡ inr (s2, (b, bk_op)) ->
+    local_count s2 ≥ local_count s1.
+Proof.
+  induction op; intros; cbn in H; simp; __local_ltac; lia. 
+Qed.
+
+Transparent incBlockNamed.
+Transparent incVoid.
+Transparent incLocal.
+
 Ltac get_local_count_hyps :=
   repeat
     match goal with
@@ -286,6 +400,14 @@ Ltac get_local_count_hyps :=
       apply incVoid_local_count in H
     | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>
       apply incLocal_local_count in H
+    | H: genNExpr ?n ?s1 ≡ inr (?s2, _) |- _ =>
+      apply genNExpr_local_count in H
+    | H: genMExpr ?m ?s1 ≡ inr (?s2, _) |- _ =>
+      apply genMExpr_local_count in H
+    | H: genAExpr ?a ?s1 ≡ inr (?s2, _) |- _ =>
+      apply genAExpr_local_count in H
+    | H: genIR ?op ?id ?s1 ≡ inr (?s2, _) |- _ =>
+      apply genIR_local_count in H
     end.
 
 Ltac solve_local_count_tac := try solve [unfold IRState_lt, IRState_le in *; get_local_count_hyps; lia].
@@ -310,11 +432,13 @@ Ltac solve_local_count :=
 
 (* Tactic to solve freshness goals *)
 Ltac solve_fresh :=
+  cbn;
   eauto with fresh;
   match goal with
   | h: freshness_pre ?s ?s' ?l |- freshness_pre ?s _ ?l => apply freshness_pre_shrink_up with (1 := h); solve_local_count
   | h: freshness_pre _ ?s _ |- freshness_pre _ ?s _ => apply freshness_chain with (1 := h); solve_fresh
   | h: freshness_post _ ?s _ ?x |- freshness_pre ?s _ ?x => eapply freshness_chain with (2 := h); solve_fresh
-  | |- freshness_post _ _ _ _ => first [eassumption | eapply freshness_post_inclocal; eassumption | eapply freshness_post_transitive; [eassumption |]]; solve_fresh
+  | |- freshness_post _ _ _ (alist_add _ _ _) => first [eassumption | eapply freshness_post_inclocal; eassumption | eapply freshness_post_transitive; [ | eapply freshness_post_inclocal; eassumption]]; solve_fresh
+  | |- freshness_post _ _ _ _ => first [eassumption | eapply freshness_post_transitive; [eassumption |]]; solve_fresh
   end.
 

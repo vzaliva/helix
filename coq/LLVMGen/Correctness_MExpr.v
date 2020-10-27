@@ -1,4 +1,5 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
+Require Import Helix.LLVMGen.Freshness.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.Correctness_NExpr.
 
@@ -39,7 +40,7 @@ Section MExpr.
         ∧ in_local_or_global_addr l g x ptr_llvm
         ∧ (∀ (i : Memory.NM.key) (v : binary64), mem_lookup i bk_helix ≡ Some v → get_array_cell memV ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v)).
   Proof.
-    intros * [MEM _ _] LU1 LU2; eapply MEM in LU1; eapply LU1 in LU2; eauto.
+    intros * [MEM _] LU1 LU2; eapply MEM in LU1; eapply LU1 in LU2; eauto.
   Qed.
 
   Lemma genMExpr_correct :
@@ -47,18 +48,18 @@ Section MExpr.
       (* Helix  bits *)   (mexp: MExpr) (σ: evalContext) (memH: memoryH) 
       (* Vellvm bits *)   (exp: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV) (τ: typ),
       genMExpr mexp s1 ≡ inr (s2, (exp, c, τ)) -> (* Compilation succeeds *)
-      state_invariant σ s1 memH (memV, (l, g)) ->
+      state_invariant_pre σ s1 s2 memH (memV, (l, g)) ->
       no_failure (interp_helix (E := E_cfg) (denoteMExpr σ mexp) memH) -> (* Source semantics defined *)
       eutt (succ_cfg
               (
-                lift_Rel_cfg (state_invariant σ s2) ⩕
+                lift_Rel_cfg (state_invariant_post σ s1 s2 l) ⩕
                              preserves_states memH (memV,(l,g)) ⩕
                              invariant_MExpr exp 
            ))
            (interp_helix (denoteMExpr σ mexp) memH)
            (interp_cfg (D.denote_code (convert_typ [] c)) g l memV).
   Proof.
-    intros * Hgen Hmeminv NOFAIL.
+    intros * Hgen [Hmeminv FRESH] NOFAIL.
     destruct mexp as [[vid] | mblock]; cbn* in Hgen; simp.
     cbn.
     unfold denoteMExpr, denotePExpr in *; cbn* in *.
@@ -68,7 +69,8 @@ Section MExpr.
     hstep.
     solve_lu.
     hvred.
-    apply eutt_Ret; split; [| split]; cbn; auto.
+    apply eutt_Ret; split; [split | split]; cbn; auto.
+    solve_fresh.
     eexists; split; eauto.
     break_match_goal; cbn.
     all:vstep; eauto; reflexivity.

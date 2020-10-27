@@ -1,5 +1,4 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
-Require Import Helix.LLVMGen.Correctness_Invariants.
 
 Import ListNotations.
 

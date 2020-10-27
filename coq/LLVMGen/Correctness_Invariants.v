@@ -495,7 +495,6 @@ Proof.
   inv EQ; auto.
 Qed.
 
-Global Opaque append.
 (**
      [memory_invariant] is stable by fresh extension of the local environment.
  *)
@@ -630,10 +629,6 @@ Proof.
   - unfold WF_IRState; erewrite incBlockNamed_Γ; eauto; apply WF.
 Qed.
 
-Global Opaque incBlockNamed.
-Global Opaque incVoid.
-Global Opaque incLocal.
-
 Lemma unsigned_is_zero: forall a, Int64.unsigned a ≡ Int64.unsigned Int64.zero ->
                              a = Int64.zero.
 Proof.
@@ -663,9 +658,12 @@ Ltac solve_lu :=
   end.
 
 Ltac solve_state_invariant :=
-  cbn;
+  cbn; try eassumption;
   match goal with
     |- state_invariant _ _ _ (_, (alist_add _ _ _, _)) =>
     eapply state_invariant_add_fresh; [now eauto | (eassumption || solve_state_invariant) | solve_fresh]
   end.
+
+Definition state_invariant_pre σ s1 s2 := (state_invariant σ s1 ⩕ fresh_pre s1 s2).
+Definition state_invariant_post σ s1 s2 l := (state_invariant σ s2 ⩕ fresh_post s1 s2 l).
 
