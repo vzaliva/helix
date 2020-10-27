@@ -602,6 +602,6 @@ Ltac solve_fresh :=
   | h: freshness_pre ?s ?s' ?l |- freshness_pre ?s _ ?l => apply freshness_pre_shrink_up with (1 := h); solve_local_count
   | h: freshness_pre _ ?s _ |- freshness_pre _ ?s _ => apply freshness_chain with (1 := h); try solve_local_count; solve_fresh
   | h: freshness_post _ ?s _ ?x |- freshness_pre ?s _ ?x => eapply freshness_chain with (2 := h); try solve_local_count; solve_fresh
-  | |- freshness_post _ _ _ (alist_add _ _ _) => first [eassumption | eapply freshness_post_inclocal; eassumption | eapply freshness_post_transitive; [ | eapply freshness_post_inclocal; eassumption]]; solve_fresh
-  | |- freshness_post _ _ _ _ => first [eassumption | eapply freshness_post_transitive; [eassumption |]]; solve_fresh
+  | |- freshness_post _ _ _ (alist_add _ _ _) => first [eassumption | eapply freshness_post_inclocal; eassumption | eapply freshness_post_transitive; [ | eapply freshness_post_inclocal; eassumption | solve_local_count | solve_local_count]]; solve_fresh
+  | |- freshness_post _ _ _ _ => first [eassumption | eapply freshness_post_transitive; [eassumption | | solve_local_count | solve_local_count]]; solve_fresh
   end.
