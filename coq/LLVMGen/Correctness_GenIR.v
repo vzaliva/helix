@@ -15,6 +15,9 @@ Set Implicit Arguments.
 Set Strict Implicit.
 
 Global Opaque resolve_PVar.
+Opaque incBlockNamed.
+Opaque incVoid.
+Opaque incLocal.
 
 Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
@@ -33,7 +36,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   Hint Resolve state_invariant_incBlockNamed : state_invariant.
   Hint Resolve state_invariant_incLocal : state_invariant.
   Hint Resolve state_invariant_incVoid : state_invariant.
-  Hint Resolve state_invariant_genNExpr : state_invariant.
 
   Tactic Notation "state_inv_auto" := eauto with state_invariant.
 
@@ -530,7 +532,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       }
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      cbn in PRE; destruct PRE as (INV1 & FRESH1 & EXP1 & ?); cbn in *; inv_eqs.
+      cbn in PRE; destruct PRE as ((INV1 & FRESH1) & EXP1 & ?); cbn in *; inv_eqs.
       hvred.
 
       (* Step 6. *)
@@ -542,7 +544,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      cbn in PRE; destruct PRE as (INV2 & FRESH2 & EXP2 & ?); cbn in *; inv_eqs.
+      cbn in PRE; destruct PRE as ((INV2 & FRESH2) & EXP2 & ?); cbn in *; inv_eqs.
       hvred.
       break_inner_match_hyp; break_inner_match_hyp; try_abs.
       2: apply no_failure_Ret in NOFAIL; try_abs.
