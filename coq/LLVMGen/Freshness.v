@@ -227,8 +227,24 @@ Section Freshness_Interface.
     forall s1 s2 s3 l1 l2 l3,
       freshness_post s1 s2 l1 l2 ->
       freshness_post s2 s3 l2 l3 ->
+      s1 << s2 ->
+      s2 << s3 ->
       freshness_post s1 s3 l1 l3.
-  Admitted.
+  Proof.
+    intros s1 s2 s3 l1 l2 l3 FRESH1 FRESH2 LT1 LT2.
+    unfold freshness_post in *.
+    intros id v AIN ANIN.
+
+    destruct (alist_In_dec id l2 v) as [INl2 | NINl2].
+    - pose proof (FRESH1 _ _ INl2 ANIN).
+      eapply state_bound_between_shrink; eauto.
+      unfold IRState_lt in *.
+      lia.
+    - pose proof (FRESH2 _ _ AIN NINl2).
+      eapply state_bound_between_shrink; eauto.
+      unfold IRState_lt in *.
+      lia.
+  Qed.
 
   (** * Q3 *)
   Lemma freshness_post_inclocal : forall s1 s2 l x v,
