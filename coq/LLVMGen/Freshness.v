@@ -227,8 +227,8 @@ Section Freshness_Interface.
     forall s1 s2 s3 l1 l2 l3,
       freshness_post s1 s2 l1 l2 ->
       freshness_post s2 s3 l2 l3 ->
-      s1 << s2 ->
-      s2 << s3 ->
+      s1 <<= s2 ->
+      s2 <<= s3 ->
       freshness_post s1 s3 l1 l3.
   Proof.
     intros s1 s2 s3 l1 l2 l3 FRESH1 FRESH2 LT1 LT2.
@@ -238,12 +238,8 @@ Section Freshness_Interface.
     destruct (alist_In_dec id l2 v) as [INl2 | NINl2].
     - pose proof (FRESH1 _ _ INl2 ANIN).
       eapply state_bound_between_shrink; eauto.
-      unfold IRState_lt in *.
-      lia.
     - pose proof (FRESH2 _ _ AIN NINl2).
       eapply state_bound_between_shrink; eauto.
-      unfold IRState_lt in *.
-      lia.
   Qed.
 
   (** * Q3 *)
@@ -266,7 +262,7 @@ Section Freshness_Interface.
   Lemma freshness_chain: forall s1 s2 s3 l1 l2 ,
       freshness_pre s1 s3 l1 ->
       freshness_post s1 s2 l1 l2 ->
-      s1 << s2 ->
+      s1 <<= s2 ->
       freshness_pre s2 s3 l2.
   Proof.
     intros s1 s2 s3 l1 l2 PRE POST LT.
@@ -277,7 +273,6 @@ Section Freshness_Interface.
     destruct (alist_In_dec id l1 v) as [INl1 | NINl1].
     - eapply (PRE _ _ INl1).
       eapply state_bound_between_shrink; eauto.
-      unfold IRState_lt in *; lia.
     - pose proof (POST _ _ AIN NINl1) as BOUND'.
       eapply state_bound_between_separate.
       3: eapply BOUND.
@@ -605,8 +600,8 @@ Ltac solve_fresh :=
   eauto with fresh;
   match goal with
   | h: freshness_pre ?s ?s' ?l |- freshness_pre ?s _ ?l => apply freshness_pre_shrink_up with (1 := h); solve_local_count
-  | h: freshness_pre _ ?s _ |- freshness_pre _ ?s _ => apply freshness_chain with (1 := h); solve_fresh
-  | h: freshness_post _ ?s _ ?x |- freshness_pre ?s _ ?x => eapply freshness_chain with (2 := h); solve_fresh
+  | h: freshness_pre _ ?s _ |- freshness_pre _ ?s _ => apply freshness_chain with (1 := h); try solve_local_count; solve_fresh
+  | h: freshness_post _ ?s _ ?x |- freshness_pre ?s _ ?x => eapply freshness_chain with (2 := h); try solve_local_count; solve_fresh
   | |- freshness_post _ _ _ (alist_add _ _ _) => first [eassumption | eapply freshness_post_inclocal; eassumption | eapply freshness_post_transitive; [ | eapply freshness_post_inclocal; eassumption]]; solve_fresh
   | |- freshness_post _ _ _ _ => first [eassumption | eapply freshness_post_transitive; [eassumption |]]; solve_fresh
   end.
