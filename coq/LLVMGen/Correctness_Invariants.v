@@ -598,22 +598,6 @@ Proof.
   - unfold WF_IRState; erewrite incLocalNamed_Γ; eauto; apply WF.
 Qed.
 
-Lemma incBlockNamed_Γ:
-  forall s s' msg id,
-    incBlockNamed msg s ≡ inr (s', id) ->
-    Γ s' ≡ Γ s.
-Proof.
-  intros; cbn in *; inv_sum; reflexivity.
-Qed.
-
-Lemma incBlockNamed_block_count:
-  forall s s' msg id,
-    incBlockNamed msg s ≡ inr (s', id) ->
-    block_count s' ≡ S (block_count s).
-Proof.
-  intros; cbn in *; inv_sum; reflexivity.
-Qed.
-
 Lemma state_invariant_incBlockNamed :
   forall σ s s' k msg memH stV,
     incBlockNamed msg s ≡ inr (s', k) ->
