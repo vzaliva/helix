@@ -4,6 +4,10 @@ Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import ITree.Basics.HeterogeneousRelations.
 
+Require Import MathClasses.misc.util.
+
+Require Import Vellvm.IntrinsicsDefinitions.
+
 Import ListNotations.
 Import MonadNotation.
 Import ITreeNotations.
@@ -12,40 +16,64 @@ Set Implicit Arguments.
 Set Strict Implicit.
 Import List.
 
-(*
+Section EnvironmentConsistency.
+
+  (* Consistency check to gurantee that there is no intrinsic named "main" *)
+  Fact main_is_not_in_intrinsics:
+    is_None (List.find (fun x => eqb "main" x) (declaration_names defined_intrinsics_decls)).
+  Proof.
+    cbn.
+    tauto.
+  Qed.
+
+  (* Consistency check to gurantee that there are no duplicate intrinsic names *)
+  Fact intrinsics_unique:
+    list_uniq id (declaration_names defined_intrinsics_decls).
+  Proof.
+    remember (declaration_names defined_intrinsics_decls) as names eqn:N.
+    cbn in N.
+  Admitted.
+
+End EnvironmentConsistency.
+
 Fact initIRGlobals_cons_head_uniq:
   ∀ (a : string * DSHType) (globals : list (string * DSHType))
-    (data : list binary64) (res : list binary64 * list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ)))),
-    initIRGlobals data (a :: globals) ≡ inr res ->
+    (data : list binary64)
+    (st: IRState)
+    {res},
+    initIRGlobals data (a :: globals) st ≡ inr res ->
     forall (j : nat) (n : string) (v : DSHType),
       (nth_error globals j ≡ Some (n, v) /\ n ≡ fst a) → False.
 Proof.
-  intros a globals data res H j n v C.
+  intros a globals data st res H j n v C.
   unfold initIRGlobals, global_uniq_chk in H.
   cbn in H.
-  repeat break_match_hyp; try inl_inr.
+  repeat break_match_hyp; repeat try inl_inr.
   unfold assert_false_to_err in Heqs.
-  repeat break_match_hyp; try inl_inr.
-  inl_inr_inv.
   subst.
-  assert(globals_name_present (fst a) globals ≡ true).
-  {
-    clear -C.
-    apply nth_to_globals_name_present.
-    exists (n,v).
-    exists j.
-    apply C.
-  }
-  congruence.
+  break_if.
+  -
+    cbn in Heqs.
+    inl_inr.
+  -
+    inl_inr_inv.
+    subst.
+    assert(globals_name_present (fst a) globals ≡ true).
+    {
+      clear -C.
+      apply nth_to_globals_name_present.
+      exists (n,v).
+      exists j.
+      apply C.
+    }
+    congruence.
 Qed.
- *)
 
-(*
 (* If [initIRGlobals] suceeds, the names of variables in [globals] were unique *)
-Lemma initIRGlobals_names_unique {globals data res}:
-  initIRGlobals data globals ≡ inr res → list_uniq fst globals.
+Lemma initIRGlobals_names_unique {globals data st res}:
+  initIRGlobals data globals st ≡ inr res → list_uniq fst globals.
 Proof.
-  revert res data.
+  revert st res data.
   induction globals; intros.
   -
     cbn in H.
@@ -57,10 +85,11 @@ Proof.
     +
       cbn in H.
       break_match_hyp;[inl_inr|].
+      break_let.
       break_match_hyp;[inl_inr|].
-      break_let; subst.
+      repeat break_let; subst.
       break_match_hyp;[inl_inr|].
-      break_let; subst.
+      repeat break_let; subst.
       inv H.
       eapply IHglobals.
       eauto.
@@ -71,7 +100,6 @@ Proof.
       destruct C as (j & [n v] & C); cbn in C.
       eapply initIRGlobals_cons_head_uniq; eauto.
 Qed.
- *)
 
 (* Note: this could not be proben for arbitrary [chk] function,
    so we prove this only for [no_chk] *)
@@ -1225,7 +1253,7 @@ Proof.
   assert (LGE : length globals ≡ length e)
     by (apply init_with_data_len in G; assumption).
 
-  destruct (valid_function_name name) eqn:VFN.
+  destruct (valid_program _) eqn:VFN.
   2: inversion LI.
 
   repeat break_match_hyp; try inl_inr;
@@ -1531,15 +1559,16 @@ Proof.
     (* conditons like
        [if (name =? "llvm.fabs.f32")%string]
        are resolved using VFN hypothesis
+       @zoick Please fix this, it is broken since VFN changed
      *)
     repeat match goal with
-    | [ |- context[eqb name ?s]] =>
-      destruct (eqb name s) eqn:TMP; [
-        (apply eqb_eq in TMP;
-        rewrite TMP in VFN;
-        cbn in VFN;
-        inv VFN)|] ; clear TMP
-    end.
+           | [ |- context[eqb name ?s]] =>
+             destruct (eqb name s) eqn:TMP; [
+               (apply eqb_eq in TMP;
+                rewrite TMP in VFN;
+                cbn in VFN;
+                admit)|] ; clear TMP
+           end.
     autorewrite with itree.
 
     rewrite interp_to_L3_bind.
