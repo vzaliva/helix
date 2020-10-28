@@ -136,6 +136,31 @@ Proof.
     }
 Qed.
 
+
+
+(* TODO: Move to Vellvm/ITree *)
+
+Lemma no_failure_has_post_some :
+  forall E X (t : itree E (option X)), no_failure t -> has_post t (fun x => exists x', x ≡ Some x').
+Proof.
+  intros.
+  eapply has_post_eutt. reflexivity. 2 : apply H.
+  red. intros. split; intro. destruct H0. intro. subst. inversion H1.
+  red in H0. destruct a. exists x. reflexivity.
+  exfalso. apply H0. reflexivity.
+Qed.
+
+Lemma no_failure_bind :
+  forall E X Y (t : itree E (option X)) (k : option X -> itree E (option Y)),
+    (forall u, no_failure (k (Some u))) ->
+    no_failure t -> no_failure (ITree.bind t k).
+Proof.
+  intros. apply no_failure_has_post_some in H0.
+  eapply eutt_post_bind. apply H0.
+  intros. destruct H1. subst. apply H.
+Qed.
+
+(* TODO: Use above lemmas to prove this. *)
 Lemma no_failure_index :
   ∀ (n : nat) (f : AExpr) (σ : evalContext) (x : mem_block) (memH : memoryH) (ymem : mem_block)
     (NOFAIL : @no_failure E_cfg (memory * mem_block) (interp_helix (denoteDSHIMap (S n) f σ x ymem) memH)),
@@ -152,6 +177,7 @@ Proof.
   rewrite has_post_post_strong.
   red. Transparent IMAP_BODYH. cbn. Opaque IMAP_BODYH.
   vstep. rewrite interp_helix_bind. cbn.
+
   eapply eutt_clo_bind_returns.
   - cbn.
     eapply no_failure_helix_bind_prefix in NOFAIL.
@@ -190,109 +216,107 @@ Qed.
 
 Require Import Paco.paco.
 
-Lemma no_failure_has_post_some :
-  forall E X (t : itree E (option X)), no_failure t -> has_post t (fun x => exists x', x ≡ Some x').
-Proof.
-  intros.
-  eapply has_post_eutt. reflexivity. 2 : apply H.
-  red. intros. split; intro. destruct H0. intro. subst. inversion H1.
-  red in H0. destruct a. exists x. reflexivity.
-  exfalso. apply H0. reflexivity.
-Qed.
 
-(* Not necessarily true.*)
+(* Not necessarily true. (counterexample : diverging itrees) *)
 (* Lemma has_post_some_returns : *)
 (*   forall E X (t : itree E (option X)), has_post t (fun x => exists x', x ≡ Some x') -> exists x', Returns (Some x') t. *)
 (* Proof. *)
 (* Admitted. *)
 
 Lemma no_failure_map_succ:
-  forall n f σ x ymem memH,
+  forall n f σ x ymem memH
+    s1 s2 e c l g memV
+  (GEN: genAExpr f s1 ≡ inr (s2, (e, c)))
+  (STATE: forall b t, state_invariant (DSHCTypeVal b :: DSHnatVal t :: σ) s1 memH (memV, (l, g))),
   @no_failure E_cfg (memoryH * mem_block) (interp_helix (denoteDSHIMap (S n) f σ x ymem) memH) ->
-  exists ymem' memH',
-    @no_failure E_cfg (memoryH * mem_block) (interp_helix (denoteDSHIMap n f σ x ymem') memH').
+  forall ymem',
+    @Returns E_cfg _ (Some (memH, ymem'))
+             (interp_helix (IMAP_BODYH σ x f n ymem) memH) ->
+    @no_failure E_cfg (memoryH * mem_block) (interp_helix (denoteDSHIMap n f σ x ymem') memH).
 Proof.
   intros.
+
+  Transparent IMAP_BODYH.
+  rename H0 into RET_H.
+  unfold IMAP_BODYH in RET_H.
+  Opaque IMAP_BODYH.
+
+  cbn* in *.
   unfold denoteDSHIMap in *.
   assert (NOFAIL := H).
   eapply no_failure_helix_bind_prefix in H.
-  cbn* in *.
   unfold lift_Derr, mem_lookup_err.
-  apply no_failure_has_post_some in H.
-  simp; try_abs.
+
+  setoid_rewrite interp_helix_bind in RET_H.
+  eapply Returns_bind_inversion in RET_H  as ([[ mh' b' ]| ] & RET_PRE & RET_H).
+  2 : {
+    apply Returns_Ret in RET_H. inversion RET_H.
+  }
+
+  Ltac try_throw_abs :=
+      repeat match goal with
+      | [ H: Returns (Some _) (interp_helix (ITree.bind (throw _) _ ) _) |- _ ] => abs_by Returns_helix_throw'
+      | [ H: no_failure (interp_helix (ITree.bind (throw _ ) _ ) _) |- _ ] => abs_by failure_helix_throw'
+      | [ H: Returns (Some _) (interp_helix (throw _) _) |- _ ] => abs_by Returns_helix_throw
+      | [ H: no_failure (interp_helix (throw _ ) _ ) |- _ ] => abs_by failure_helix_throw
+          end.
+
+  simp; try_throw_abs.
   eapply no_failure_helix_bind_continuation in NOFAIL.
+  (* abs_by failure_helix_throw'. *)
+  2 : {rewrite interp_helix_ret. cbn. constructor. reflexivity. }
+
+  eapply no_failure_helix_bind_continuation in NOFAIL.
+  2 : { constructor. rewrite interp_helix_ret. cbn. reflexivity. }
+
+  setoid_rewrite interp_helix_bind in RET_H.
+  setoid_rewrite interp_helix_ret in RET_H.
+  setoid_rewrite bind_ret_l in RET_H. setoid_rewrite interp_helix_bind in RET_H.
+  eapply Returns_bind_inversion in RET_H  as ([[ mh'' b'' ]| ] & RET_PRE' & RET_H').
   2 : {
-    rewrite interp_helix_ret. cbn. constructor. reflexivity.
+    apply Returns_Ret in RET_H'. inversion RET_H'.
   }
 
-  clear H.
-  assert (NOFAIL' := NOFAIL).
-  eapply no_failure_helix_bind_prefix in NOFAIL.
-  apply no_failure_has_post_some in NOFAIL.
-  simp; try_abs.
+  setoid_rewrite interp_helix_ret in RET_H'. eapply Returns_Ret in RET_H'. inversion RET_H'; subst.
 
-  clear H.
-  assert (NOFAIL' := NOFAIL).
-  eapply no_failure_helix_bind_prefix in NOFAIL.
-  apply no_failure_has_post_some in NOFAIL.
-  simp; try_abs.
+  eapply no_failure_helix_bind_continuation in NOFAIL.
+  setoid_rewrite interp_helix_ret in RET_PRE.
+  eapply Returns_Ret in RET_PRE. inversion RET_PRE; subst.
 
-  eapply no_failure_helix_bind_continuation in NOFAIL'.
   2 : {
-    rewrite interp_helix_ret. cbn. constructor. reflexivity.
+    rewrite interp_helix_ret in RET_PRE. apply Returns_Ret in RET_PRE. inversion RET_PRE; subst.
+    apply RET_PRE'.
   }
-
-  clear NOFAIL.
-  assert (NOFAIL := NOFAIL').
-  eapply no_failure_helix_bind_prefix in NOFAIL.
-  apply no_failure_has_post_some in NOFAIL.
-  simp; try_abs.
-
-  eapply no_failure_helix_bind_continuation in NOFAIL'.
-  2 : {
-    rewrite interp_helix_ret. cbn. constructor. reflexivity.
-  }
-
-  clear NOFAIL.
-  assert (NOFAIL := NOFAIL').
-  eapply no_failure_helix_bind_prefix in NOFAIL.
-  apply no_failure_has_post_some in NOFAIL.
-  simp; try_abs.
-
-  eapply no_failure_helix_bind_continuation in NOFAIL'.
-  2 : {
-    unfold denoteIUnCType.
-    pose proof @genAExpr_correct.
-    admit.
-  }
-
-  eexists. eexists. apply NOFAIL'.
-Admitted.
-
-Lemma no_failure_index_dec :
-  forall (n: nat) f σ x memH ymem 
-    (NOFAIL : @no_failure E_cfg (memoryH * mem_block) (interp_helix (denoteDSHIMap (S n) f σ x ymem) memH)),
-    forall (i : nat) (BOUND : (n > i)%nat),
-      exists ymem' memH',
-    @no_failure E_cfg (memoryH * mem_block) (interp_helix (IMAP_BODYH σ x f (n - i) ymem') memH').
-Proof.
-  intros.
-  revert n f σ x memH ymem NOFAIL BOUND.
-  induction i.
-  - cbn. intros.
-    rewrite Nat.sub_0_r.
-    exists ymem, memH.
-    apply no_failure_index. apply NOFAIL.
-  - cbn. intros.
-    assert (n - S i ≡ (n - 1) - i)%nat by lia.
-    rewrite H.
-    edestruct no_failure_map_succ as (? & ? & ?).
-    apply NOFAIL.
-    edestruct IHi as (? & ? & ?).
-    3 : { exists x2, x3. apply H1. } 2 : lia.
-    assert (S (n - 1) ≡ n) by lia. rewrite H1. apply H0.
+  apply NOFAIL.
 Qed.
 
+(* Lemma no_failure_index_dec : *)
+(*   forall (n: nat) f σ x memH ymem *)
+(*     (NOFAIL : @no_failure E_cfg (memoryH * mem_block) (interp_helix (denoteDSHIMap (S n) f σ x ymem) memH)), *)
+(*     forall s1 s2 e c memV l g *)
+(*     (STATE : ∀ (b : binary64) (t : Int64.int), state_invariant (DSHCTypeVal b :: DSHnatVal t :: σ) s1 memH (memV, (l, g))) *)
+(*     (GEN: genAExpr f s1 ≡ inr (s2, (e, c))), *)
+(*     forall (i : nat) (BOUND : (n > i)%nat), *)
+(*       exists ymem', *)
+(*         (* TODO: Same as above. *) *)
+(*     @no_failure E_cfg (memoryH * mem_block) (interp_helix (IMAP_BODYH σ x f (n - i) ymem') memH). *)
+(* Proof. *)
+(*   intros. *)
+(*   revert n ymem NOFAIL BOUND. *)
+(*   induction i. *)
+(*   - cbn. intros. *)
+(*     rewrite Nat.sub_0_r. *)
+(*     exists ymem. *)
+(*     apply no_failure_index. apply NOFAIL. *)
+(*   - cbn. intros. *)
+(*     assert (n - S i ≡ (n - 1) - i)%nat by lia. *)
+(*     rewrite H. *)
+(*     edestruct no_failure_map_succ as (? & ?). *)
+(*     apply GEN. intros; apply STATE. apply NOFAIL. *)
+(*     edestruct IHi as (? & ?). *)
+(*     3 : { exists x1. apply H1. } 2 : lia. *)
+(*     assert (S (n - 1) ≡ n) by lia. rewrite H1. apply H0. *)
+(* Qed. *)
 
 (* DSHIMap case for [compile_FSHCOL_correct]. *)
 Lemma compile_DSHIMap_correct:
@@ -370,8 +394,8 @@ Proof.
 
   (* Gather information from AExpr correctness *)
   (* denoting [f] *)
-  pose proof @genAExpr_correct as AEXPR_INV.
-  specialize (AEXPR_INV _ _ _ σ memH _ _ g ρ memV Heqs10).
+  (* pose proof @genAExpr_correct as AEXPR_INV. *)
+  (* specialize (AEXPR_INV _ _ _ σ memH _ _ g ρ memV Heqs10). *)
 
   match goal with
   | [ H : context [genWhileLoop msg _ _ _ _ _ ?body _ _ ?s] |-_] => remember body as body_blocks;
@@ -390,23 +414,12 @@ Proof.
   }
 
   assert (UNIQUE: blk_id_norepet l0). {
-    subst.
-    rename Heqs4 into GEN.
-    Transparent genWhileLoop.
-    unfold genWhileLoop in GEN.
-    cbn* in GEN. simp.
-    unfold blk_id_norepet.
-    cbn. admit. (* Coqlib.list_norepet [bid_in; b2; b0; b] *)
-
     (* Well-formedness condition needed as assumption in this lemma. *)
+    admit.
   }
 
   assert (FRESH: fresh_in_cfg l0 nextblock). {
-    rename Heqs4 into GEN.
-    Transparent genWhileLoop.
-    unfold genWhileLoop in GEN.
-    cbn* in GEN. simp. cbn. unfold fresh_in_cfg. cbn.
-    (* Maybe we can get this from no_failure..? *)
+    (* Ditto (UNIQUE). Maybe we can get this from no_failure..? *)
     admit.
   }
   specialize (GEN_W _ _ _ _ _ _ _ _ s2 σ _ IN UNIQUE FRESH n Heqs4).
@@ -482,6 +495,7 @@ Proof.
   (* TODO : Add assumption in genWhile_correct that BODYH holds true only when n > 0. *)
   {
     intros.
+    assert (n > 0)%nat. admit.
     Transparent IMAP_BODYH. unfold IMAP_BODYH.
     subst.
 
@@ -490,25 +504,30 @@ Proof.
     rename H1 into INV.
 
     match goal with
-    | [ |- eutt ?R _ _ ] => remember R
+    | [ |- eutt ?R _ _ ] => remember R as POST
     end.
 
-    cbn* in *.
-    vjmp. hvred.
+    destruct INV as (STATE_INV & LOOPVAR).
+    (* destruct STATE_INV. *)
+    (* pose proof no_failure_index_dec as NF. *)
+    (* destruct n; [inversion H2 |]. *)
+    (* (* specialize (NF _ _ _ _ _ _ NOFAIL). *) *)
+ 
+    (* cbn* in *. *)
+    (* vjmp. hvred. *)
 
-    unfold denote_phis.
-    cbn.
-    hvred. vred.
+    (* unfold denote_phis. *)
+    (* cbn. *)
+    (* hvred. vred. *)
 
-    rename Heqs4 into GEN.
-    rename i1 into ptr.
+    (* rename Heqs4 into GEN. *)
+    (* rename i1 into ptr. *)
 
     (* [vstep] does not handle gep currently *)
 
     cbn.
 
-    destruct INV as (STATE_INV & LOOPVAR).
-    destruct STATE_INV.
+    (* apply  *)
 
     (* Get information about pointer access through mem_lookup not failing *)
 

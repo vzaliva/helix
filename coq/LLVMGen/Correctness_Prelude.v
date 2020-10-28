@@ -966,9 +966,37 @@ Ltac break_and :=
       intros * NOFAIL.
       rewrite interp_helix_bind, interp_helix_Ret, bind_ret_l in NOFAIL; assumption.
     Qed.
- 
+
+
+    Lemma Returns_helix_throw :
+      forall E X x s m,
+      not (@Returns E _ (Some x) (@interp_helix X E (throw s) m)).
+    Proof.
+      intros. red.
+      unfold interp_helix. intros abs.
+      setoid_rewrite interp_Mem_vis_eqit in abs.
+      unfold pure_state in *; cbn in *.
+      rewrite interp_fail_bind in abs.
+      rewrite interp_fail_vis in abs.
+      cbn in *.
+      rewrite Eq.bind_bind, !bind_ret_l in abs.
+      rewrite translate_ret in abs.
+      apply Returns_Ret in abs.
+      inversion abs.
+    Qed.
+
+    Lemma Returns_helix_throw' : forall E Y X s (k : Y -> _) m x,
+        ~ (@Returns E _ (Some x) (interp_helix (X := X) (E := E) (ITree.bind (throw s) k) m)).
+    Proof.
+      intros * abs.
+      rewrite interp_helix_bind in abs.
+      eapply Returns_bind_inversion in abs. destruct abs as (? & abs & ?).
+      destruct x0. 2 : { apply Returns_Ret in H. inversion H. }
+      apply Returns_helix_throw in abs. auto.
+    Qed.
+
   End Interp_Helix_No_Failure.
-  
+
   Opaque interp_helix.
 
   Hint Resolve no_failure_helix_Ret : core.

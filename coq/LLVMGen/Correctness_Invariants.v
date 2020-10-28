@@ -104,8 +104,10 @@ Ltac abs_by_WF :=
     end
    end.
 
+
 Ltac try_abs :=
-  try (abs_by_WF || abs_by failure_helix_throw || abs_by failure_helix_throw').
+  try (abs_by_WF ||
+        abs_by failure_helix_throw || abs_by failure_helix_throw').
 
 Section SimulationRelations.
 
