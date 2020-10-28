@@ -309,19 +309,16 @@ Section AExpr.
         vstep.
         solve_lu.
         reflexivity.
-      *
-        admit.
-        (* eapply sub_alist_trans; eauto. *)
-        (* eapply sub_alist_trans. *)
-        (* 2:eapply sub_alist_add. *)
-        (* 2:{ eapply concrete_fresh_fresh. *)
-        (* -- eapply concrete_fresh_fresh; eauto. *)
-        (*    solve_fresh. *)
-        (*    eapply incLocal_is_fresh; eauto. *)
-        (* -- eapply concrete_fresh_fresh; eauto. *)
-        (*    eapply incLocal_is_fresh; eauto. *)
-        (*    eapply state_invariant_add_fresh; eauto. *)
-           
+      * (* Would be good to automate *)
+        etransitivity; eauto.
+        etransitivity; eauto.
+        apply sub_alist_add.
+        eapply freshness_pre_alist_fresh; eauto.
+        solve_fresh.
+        apply sub_alist_add.
+        eapply freshness_pre_alist_fresh; eauto.
+        solve_fresh.
+        
     - (* AAbs *) 
       cbn* in *; simp.
       hvred.
@@ -351,12 +348,12 @@ Section AExpr.
       * intros; vstep.
         solve_lu.
         reflexivity.
-      * admit.
-        (* rewrite H. *)
-        (* apply sub_alist_add. *)
-        (* eapply concrete_fresh_fresh; eauto. *)
-        (* eapply incLocal_is_fresh; eauto. *)
-        
+      * (* Automate *)
+        etransitivity; eauto.
+        apply sub_alist_add.
+        eapply freshness_pre_alist_fresh; eauto.
+        solve_fresh.
+       
     - (* APlus *)
       cbn* in *; simp...
       hvred.
@@ -386,11 +383,12 @@ Section AExpr.
       * intros; vstep.
         solve_lu.
         reflexivity.
-      * admit.
-        (* rewrite H, H0. *)
-        (* apply sub_alist_add. *)
-        (* eapply concrete_fresh_fresh; eauto. *)
-        (* eapply incLocal_is_fresh; eauto. *)
+      * (* Automate *)
+        etransitivity; eauto.
+        etransitivity; eauto.
+        apply sub_alist_add.
+        eapply freshness_pre_alist_fresh; eauto.
+        solve_fresh.
 
     - (* AMinus *)
       cbn* in *; simp.
@@ -421,11 +419,12 @@ Section AExpr.
       * intros; vstep.
         solve_lu.
         reflexivity.
-      * admit.
-        (* rewrite H, H0. *)
-        (* apply sub_alist_add. *)
-        (* eapply concrete_fresh_fresh; eauto. *)
-        (* eapply incLocal_is_fresh; eauto. *)
+      * (* Automate *)
+        etransitivity; eauto.
+        etransitivity; eauto.
+        apply sub_alist_add.
+        eapply freshness_pre_alist_fresh; eauto.
+        solve_fresh.
 
     - (* AMult *)
       cbn* in *; simp.
@@ -456,11 +455,12 @@ Section AExpr.
       * intros; vstep.
         solve_lu.
         reflexivity.
-      * admit.
-        (* rewrite H, H0. *)
-        (* apply sub_alist_add. *)
-        (* eapply concrete_fresh_fresh; eauto. *)
-        (* eapply incLocal_is_fresh; eauto. *)
+      * (* Automate *)
+        etransitivity; eauto.
+        etransitivity; eauto.
+        apply sub_alist_add.
+        eapply freshness_pre_alist_fresh; eauto.
+        solve_fresh.
 
     - (* AMin *)
       cbn* in *; simp.
@@ -498,11 +498,12 @@ Section AExpr.
         solve_lu.
         rewrite min_float_correct.
         reflexivity.
-      * admit.
-        (* rewrite H,H0. *)
-        (* apply sub_alist_add. *)
-        (* eapply concrete_fresh_fresh; eauto. *)
-        (* eapply incLocal_is_fresh; eauto. *)
+      * (* Automate *)
+        etransitivity; eauto.
+        etransitivity; eauto.
+        apply sub_alist_add.
+        eapply freshness_pre_alist_fresh; eauto.
+        solve_fresh.
         
    - (* AMax *)
       cbn* in *; simp.
@@ -536,11 +537,12 @@ Section AExpr.
         solve_lu.
         rewrite max_float_correct.
         reflexivity.
-      * admit.
-        (* rewrite H,H0. *)
-        (* apply sub_alist_add. *)
-        (* eapply concrete_fresh_fresh; eauto. *)
-        (* eapply incLocal_is_fresh; eauto. *)
+      * (* Automate *)
+        etransitivity; eauto.
+        etransitivity; eauto.
+        apply sub_alist_add.
+        eapply freshness_pre_alist_fresh; eauto.
+        solve_fresh.
 
    - (* AZless *)
       cbn* in *; simp.
