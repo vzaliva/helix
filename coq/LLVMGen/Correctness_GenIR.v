@@ -966,15 +966,9 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
             apply NBOUND.
             eapply state_bound_between_shrink; eauto.
             solve_local_count.
-          + (* TODO: pull this out into a lemma. *)
-            pose proof (FRESH2 _ _ H ANIN) as BOUND1.
-            intros BOUND2.
-
-            eapply state_bound_between_separate.
-            eapply incLocalNamed_count_gen_injective.
-            apply BOUND2.
-            apply BOUND1.
-            auto.
+          + pose proof (FRESH2 _ _ H ANIN) as BOUND2.
+            intros BOUND1.
+            eapply (state_bound_between_id_separate incLocalNamed_count_gen_injective BOUND1 BOUND2).
             auto.
       }
 

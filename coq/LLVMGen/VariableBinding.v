@@ -167,6 +167,17 @@ Section StateBound.
     all: eauto.
   Qed.
 
+  Lemma state_bound_between_id_separate :
+    forall s1 s2 s3 s4 id,
+      state_bound_between s1 s2 id ->
+      state_bound_between s3 s4 id ->
+      (count s2 <= count s3)%nat ->
+      False.
+  Proof.
+    intros s1 s2 s3 s4 id BOUND1 BOUND2 BC.
+    eapply (state_bound_between_separate BOUND1 BOUND2); auto.
+  Qed.
+
   Lemma not_state_bound_between_split :
     forall (s1 s2 s3 : IRState) id,
       ~ state_bound_between s1 s2 id ->
