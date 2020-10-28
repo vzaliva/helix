@@ -515,6 +515,22 @@ Section Inputs.
 End Inputs.
 
 Section Outputs.
+  Lemma entry_bound_between :
+    forall (op : DSHOperator) (s1 s2 : IRState) (nextblock op_entry : block_id) (bk_op : list (LLVMAst.block typ)),
+      genIR op nextblock s1 ≡ inr (s2, (op_entry, bk_op)) ->
+      bid_bound_between s1 s2 op_entry.
+  Proof.
+    induction op;
+      intros s1 s2 nextblock op_entry bk_op GEN;
+      pose proof GEN as BACKUP_GEN;
+      cbn in GEN; simp; cbn.
+    all: try (solve [big_solve]).
+
+    apply IHop1 in Heqs2.
+    eapply state_bound_between_shrink; eauto.
+    solve_block_count.
+  Qed.
+  
   Lemma outputs_bound_between :
     forall (op : DSHOperator) (s1 s2 : IRState) (nextblock op_entry : block_id) (bk_op : list (LLVMAst.block typ)),
       genIR op nextblock s1 ≡ inr (s2, (op_entry, bk_op)) ->
@@ -532,5 +548,44 @@ Section Outputs.
 
       epose proof (IHop _ _ _ _ _ Heqs1).
       cbn in H.
+      unfold bid_bound_between in H.
+      admit.
+    -
+      (* Should show me that the outputs of l (genIR op result) are all bound between s1 and i *)
+      epose proof (IHop _ _ _ _ _ Heqs0).
+      cbn in H.
+      unfold outputs in H.
+
+      cbn in Heqs; inversion Heqs; subst.
+
+      rewrite outputs_acc.
+      apply Forall_app.
+      split.
+      + apply Forall_cons; [|apply Forall_nil].
+        cbn in Heqs.
+        left.
+        eapply entry_bound_between in Heqs0.
+        eapply state_bound_between_shrink; eauto.
+        cbn. solve_block_count.
+      + (* Goal is between s1 and i0 
+
+           H has between s1 and i
+
+           i < i0, though, so this should imply the other.
+         *)
+
+        assert (forall bid, bid_bound_between s1 i bid \/ bid ≡ nextblock -> bid_bound_between s1 i1 bid \/ bid ≡ nextblock) as WEAKEN.
+        { intros bid BOUND.
+          destruct BOUND.
+          - left.
+            eapply state_bound_between_shrink; eauto.
+            solve_block_count.
+          - right; auto.
+        }
+
+        eapply Forall_impl.
+        * eapply WEAKEN.
+        * eapply H.
+    - admit.
   Admitted.
 End Outputs.
