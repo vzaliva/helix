@@ -530,6 +530,15 @@ Section Outputs.
     eapply state_bound_between_shrink; eauto.
     solve_block_count.
   Qed.
+
+  (* TODO: move this? *)
+  Lemma add_comment_outputs :
+    forall (bs : list (LLVMAst.block typ)) env (comments : list string),
+      outputs (convert_typ env (add_comment bs comments)) ≡ outputs (convert_typ env bs).
+  Proof.
+    induction bs; intros env comments; auto.
+  Qed.
+
   
   Lemma outputs_bound_between :
     forall (op : DSHOperator) (s1 s2 : IRState) (nextblock op_entry : block_id) (bk_op : list (LLVMAst.block typ)),
@@ -546,10 +555,40 @@ Section Outputs.
       rewrite fold_left_app.
       cbn.
 
-      epose proof (IHop _ _ _ _ _ Heqs1).
-      cbn in H.
-      unfold bid_bound_between in H.
-      admit.
+      assert (bid_bound_between s1 s2 b2) as B2 by admit.
+      assert (bid_bound_between s1 s2 b0) as B0 by admit.
+      
+      rewrite outputs_acc.
+      (* Can probably prove stuff for b2 and nextblock to save space *)
+      rewrite Forall_app.
+      split.
+      rewrite Forall_app.
+      split.
+
+      + auto.
+      +
+
+        epose proof (IHop _ _ _ _ _ Heqs1).
+
+        (* TODO: may want to pull this out as a lemma *)
+        assert (forall bid, bid_bound_between i i0 bid \/ bid ≡ b -> bid_bound_between s1 s2 bid \/ bid ≡ nextblock) as WEAKEN.
+        { intros bid BOUND.
+          destruct BOUND.
+          - left.
+            eapply state_bound_between_shrink; eauto.
+            solve_block_count.
+            solve_block_count.
+          - left.
+            subst.
+            admit.
+        }
+
+        eapply Forall_impl.
+        * eapply WEAKEN.
+        * unfold bid_bound_between, state_bound_between in *.
+          cbn in *.
+          eapply H.
+      + auto.
     -
       (* Should show me that the outputs of l (genIR op result) are all bound between s1 and i *)
       epose proof (IHop _ _ _ _ _ Heqs0).
@@ -567,13 +606,8 @@ Section Outputs.
         eapply entry_bound_between in Heqs0.
         eapply state_bound_between_shrink; eauto.
         cbn. solve_block_count.
-      + (* Goal is between s1 and i0 
-
-           H has between s1 and i
-
-           i < i0, though, so this should imply the other.
-         *)
-
+      +
+        (* TODO: may want to pull this out as a lemma *)
         assert (forall bid, bid_bound_between s1 i bid \/ bid ≡ nextblock -> bid_bound_between s1 i1 bid \/ bid ≡ nextblock) as WEAKEN.
         { intros bid BOUND.
           destruct BOUND.
@@ -585,7 +619,43 @@ Section Outputs.
 
         eapply Forall_impl.
         * eapply WEAKEN.
-        * eapply H.
-    - admit.
-  Admitted.
+        * eauto.
+    - rewrite add_comment_outputs.
+      rewrite convert_typ_app_list.
+      setoid_rewrite outputs_app.
+      apply Forall_app.
+      split.
+      +
+        (* TODO: may want to pull this out as a lemma *)
+        assert (forall bid, bid_bound_between i s2 bid \/ bid ≡ b -> bid_bound_between s1 s2 bid \/ bid ≡ nextblock) as WEAKEN.
+        { intros bid BOUND.
+          destruct BOUND.
+          - left.
+            eapply state_bound_between_shrink; eauto.
+            solve_block_count.
+          - left.
+            eapply entry_bound_between in Heqs0.
+            subst.
+            eapply state_bound_between_shrink; eauto.
+            solve_block_count.
+        }
+
+        eapply Forall_impl.
+        * eapply WEAKEN.
+        * eauto.
+      +
+        (* TODO: may want to pull this out as a lemma *)
+        assert (forall bid, bid_bound_between s1 i bid \/ bid ≡ nextblock -> bid_bound_between s1 s2 bid \/ bid ≡ nextblock) as WEAKEN.
+        { intros bid BOUND.
+          destruct BOUND.
+          - left.
+            eapply state_bound_between_shrink; eauto.
+            solve_block_count.
+          - right; auto.
+        }
+
+        eapply Forall_impl.
+        * eapply WEAKEN.
+        * eauto.
+  Qed.
 End Outputs.
