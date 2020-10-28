@@ -12,40 +12,45 @@ Set Implicit Arguments.
 Set Strict Implicit.
 Import List.
 
-(*
+
 Fact initIRGlobals_cons_head_uniq:
   ∀ (a : string * DSHType) (globals : list (string * DSHType))
-    (data : list binary64) (res : list binary64 * list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ)))),
-    initIRGlobals data (a :: globals) ≡ inr res ->
+    (data : list binary64)
+    (st: IRState)
+    {res},
+    initIRGlobals data (a :: globals) st ≡ inr res ->
     forall (j : nat) (n : string) (v : DSHType),
       (nth_error globals j ≡ Some (n, v) /\ n ≡ fst a) → False.
 Proof.
-  intros a globals data res H j n v C.
+  intros a globals data st res H j n v C.
   unfold initIRGlobals, global_uniq_chk in H.
   cbn in H.
-  repeat break_match_hyp; try inl_inr.
+  repeat break_match_hyp; repeat try inl_inr.
   unfold assert_false_to_err in Heqs.
-  repeat break_match_hyp; try inl_inr.
-  inl_inr_inv.
   subst.
-  assert(globals_name_present (fst a) globals ≡ true).
-  {
-    clear -C.
-    apply nth_to_globals_name_present.
-    exists (n,v).
-    exists j.
-    apply C.
-  }
-  congruence.
+  break_if.
+  -
+    cbn in Heqs.
+    inl_inr.
+  -
+    inl_inr_inv.
+    subst.
+    assert(globals_name_present (fst a) globals ≡ true).
+    {
+      clear -C.
+      apply nth_to_globals_name_present.
+      exists (n,v).
+      exists j.
+      apply C.
+    }
+    congruence.
 Qed.
- *)
 
-(*
 (* If [initIRGlobals] suceeds, the names of variables in [globals] were unique *)
-Lemma initIRGlobals_names_unique {globals data res}:
-  initIRGlobals data globals ≡ inr res → list_uniq fst globals.
+Lemma initIRGlobals_names_unique {globals data st res}:
+  initIRGlobals data globals st ≡ inr res → list_uniq fst globals.
 Proof.
-  revert res data.
+  revert st res data.
   induction globals; intros.
   -
     cbn in H.
@@ -57,10 +62,11 @@ Proof.
     +
       cbn in H.
       break_match_hyp;[inl_inr|].
+      break_let.
       break_match_hyp;[inl_inr|].
-      break_let; subst.
+      repeat break_let; subst.
       break_match_hyp;[inl_inr|].
-      break_let; subst.
+      repeat break_let; subst.
       inv H.
       eapply IHglobals.
       eauto.
@@ -71,7 +77,6 @@ Proof.
       destruct C as (j & [n v] & C); cbn in C.
       eapply initIRGlobals_cons_head_uniq; eauto.
 Qed.
- *)
 
 (* Note: this could not be proben for arbitrary [chk] function,
    so we prove this only for [no_chk] *)
