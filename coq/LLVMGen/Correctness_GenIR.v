@@ -443,21 +443,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
           try solve [get_Γ_hyps; congruence]
         end.
 
-      Ltac get_local_count_hyps :=
-        repeat
-          match goal with
-          | H: incBlockNamed ?n ?s1 ≡ inr (?s2, _) |- _ =>
-            apply incBlockNamed_local_count in H
-          | H: incVoid ?s1 ≡ inr (?s2, _) |- _ =>
-            apply incVoid_local_count in H
-          end.
-
-      Ltac solve_local_count :=
-        match goal with
-        | |- local_count ?s1 ≡ local_count ?s2 =>
-          try solve [get_local_count_hyps; lia]
-        end.
-
       admit.
       admit.
 
@@ -923,11 +908,15 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
             split.
             * cbn.
               apply genIR_Context in GEN_OP2.
-              (* TODO: patch this up... *)
-              (* rewrite <- GEN_OP2. *)
-              (* apply SINV. *)
-              admit.
-            * admit.
+              split.
+              -- unfold memory_invariant.
+                 rewrite <- GEN_OP2.
+                 apply SINV.
+              -- unfold WF_IRState.
+                 rewrite <- GEN_OP2.
+                 apply SINV.
+            * cbn. exists from.
+              reflexivity.
           + cbn.
             solve_fresh.
         - eapply no_failure_helix_bind_prefix; eauto.
@@ -976,9 +965,17 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
             intros CONTRA.
             apply NBOUND.
             eapply state_bound_between_shrink; eauto.
-            admit. (* fix solve_local_count *)
-          + pose proof (FRESH2 _ _ H ANIN).
-            admit. (* Should be doable. *)
+            solve_local_count.
+          + (* TODO: pull this out into a lemma. *)
+            pose proof (FRESH2 _ _ H ANIN) as BOUND1.
+            intros BOUND2.
+
+            eapply state_bound_between_separate.
+            eapply incLocalNamed_count_gen_injective.
+            apply BOUND2.
+            apply BOUND1.
+            auto.
+            auto.
       }
 
       intros [[memH1 ?]|] (memV1 & l1 & g1 & res1) PR.
