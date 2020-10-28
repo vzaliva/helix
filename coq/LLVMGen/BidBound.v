@@ -53,15 +53,6 @@ Section BidBound.
     end.
   Qed.
 
-  Lemma bid_bound_genIR_entry :
-    forall op s1 s2 nextblock bid bks,
-      genIR op nextblock s1 ≡ inr (s2, (bid, bks)) ->
-      bid_bound s2 bid.
-  Proof.
-    induction op;
-      intros s1 s2 nextblock b bks GEN.
-  Admitted.
-
   Lemma bid_bound_only_block_count :
     forall s lc vc γ bid,
       bid_bound s bid ->
@@ -392,6 +383,21 @@ Ltac big_solve :=
          | |- bid_bound_between ?s1 ?s2 ?bid ∨ ?bid ≡ ?nextblock =>
            try auto; try left
          end).
+
+
+Lemma bid_bound_genIR_entry :
+  forall op s1 s2 nextblock bid bks,
+    genIR op nextblock s1 ≡ inr (s2, (bid, bks)) ->
+    bid_bound s2 bid.
+Proof.
+  induction op;
+    intros s1 s2 nextblock b bks GEN.
+  10: {
+    cbn in GEN; simp.
+    eapply IHop1; eauto.
+  }
+  all: cbn in GEN; simp; solve_bid_bound.
+Qed.
 
 Section Inputs.
 
