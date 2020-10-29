@@ -220,29 +220,25 @@ Section Freshness_Interface.
   Proof.
     intros * INC FRESH.
     unfold freshness_pre in *.
-    Import LidBound VariableBinding.
-    unfold lid_bound_between, state_bound_between in *.
-    intros * IN.
-    intros (? & ? & ? & ? & ? & ? & ?).
-    destruct (id ?[ Logic.eq ] r) eqn:EQ.
-    - rewrite rel_dec_correct in EQ; subst.
-      apply alist_In_add_eq in IN; subst.
-      clear FRESH.
-      cbn in *.
-      simp.
-      cbn in *.
-      admit.
-    - apply neg_rel_dec_correct in EQ.
-      apply In_add_In_ineq in IN; auto.
-      eapply FRESH; eauto.
-      do 3 eexists.
-      split; eauto.
-      split; eauto.
-      split; eauto.
-      cbn in *; simp. 
-      cbn in *.
+    pose proof INC as INCBAK.
+    eapply gen_state_bound_between in INC;
+      eauto using incLocalNamed_count_gen_injective, incLocalNamed_count_gen_mono.
+    2: solve_not_ends_with.
+
+    intros id v0 H.
+    intros BOUND.
+
+    assert ({r ≡ id} + {r ≢ id}) as [eqr | neqr] by apply rel_dec_p.
+    - subst.
+      eapply (state_bound_between_id_separate incLocalNamed_count_gen_injective INC BOUND).
+      auto.
+    - apply In_add_In_ineq in H; eauto.
+      apply FRESH in H.
+      apply H.
+      eapply incLocal_local_count in INCBAK.
+      eapply state_bound_between_shrink; eauto.
       lia.
-  Admitted.
+  Qed.
 
   (** * Q1 *)
   Lemma freshness_post_no_extension: forall s1 s2 l, freshness_post s1 s2 l l.

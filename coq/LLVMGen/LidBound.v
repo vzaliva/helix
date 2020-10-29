@@ -35,6 +35,16 @@ Section LidBound.
     end.
   Qed.
 
+  Lemma incLocalNamed_count_gen_mono :
+    count_gen_mono local_count incLocalNamed.
+  Proof.
+    unfold count_gen_mono.
+    intros s1 s2 name id H.
+
+    cbn in H; simp.
+    cbn. auto.
+  Qed.
+
   Lemma lid_bound_incLocalNamed :
     forall name s1 s2 id,
       not_ends_with_nat name ->
