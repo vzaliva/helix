@@ -151,6 +151,36 @@ Section BidBound.
     erewrite incBlockNamed_block_count with (s':=s2); eauto.
   Qed.
 
+  Lemma not_bid_bound_incBlockNamed :
+    forall s1 s2 n bid,
+      not_ends_with_nat n ->
+      incBlockNamed n s1 ≡ inr (s2, bid) ->
+      ~ (bid_bound s1 bid).
+  Proof.
+    intros s1 s2 n bid NEND GEN BOUND.
+    unfold bid_bound, state_bound in BOUND.
+    destruct BOUND as (n' & s' & s'' & NEND' & COUNT & GEN').
+    Transparent incBlockNamed.
+    unfold incBlockNamed in *.
+    Opaque incBlockNamed.
+    cbn in *.
+    simp.
+    apply not_ends_with_nat_string_of_nat in H1; auto.
+    lia.
+  Qed.
+
+  Lemma incBlockNamed_bound_between :
+    forall s1 s2 n bid,
+      not_ends_with_nat n ->
+      incBlockNamed n s1 ≡ inr (s2, bid) ->
+      bid_bound_between s1 s2 bid.
+  Proof.
+    intros s1 s2 n bid NEND GEN.
+    apply bid_bound_bound_between.
+    - eapply bid_bound_incBlockNamed; eauto.
+    - eapply not_bid_bound_incBlockNamed; eauto.
+  Qed.
+
   (* TODO: typeclasses for these mono lemmas to make automation easier? *)
   Lemma bid_bound_incVoid_mono :
     forall s1 s2 bid bid',
@@ -515,6 +545,31 @@ Section Inputs.
 End Inputs.
 
 Section Outputs.
+  Lemma entry_bound_between :
+    forall (op : DSHOperator) (s1 s2 : IRState) (nextblock op_entry : block_id) (bk_op : list (LLVMAst.block typ)),
+      genIR op nextblock s1 ≡ inr (s2, (op_entry, bk_op)) ->
+      bid_bound_between s1 s2 op_entry.
+  Proof.
+    induction op;
+      intros s1 s2 nextblock op_entry bk_op GEN;
+      pose proof GEN as BACKUP_GEN;
+      cbn in GEN; simp; cbn.
+    all: try (solve [big_solve]).
+
+    apply IHop1 in Heqs2.
+    eapply state_bound_between_shrink; eauto.
+    solve_block_count.
+  Qed.
+
+  (* TODO: move this? *)
+  Lemma add_comment_outputs :
+    forall (bs : list (LLVMAst.block typ)) env (comments : list string),
+      outputs (convert_typ env (add_comment bs comments)) ≡ outputs (convert_typ env bs).
+  Proof.
+    induction bs; intros env comments; auto.
+  Qed.
+
+  
   Lemma outputs_bound_between :
     forall (op : DSHOperator) (s1 s2 : IRState) (nextblock op_entry : block_id) (bk_op : list (LLVMAst.block typ)),
       genIR op nextblock s1 ≡ inr (s2, (op_entry, bk_op)) ->
@@ -530,7 +585,119 @@ Section Outputs.
       rewrite fold_left_app.
       cbn.
 
-      epose proof (IHop _ _ _ _ _ Heqs1).
+      assert (bid_bound_between s1 s2 b2) as B2.
+      { eapply incBlockNamed_bound_between in Heqs2.
+        eapply state_bound_between_shrink; eauto.
+        solve_block_count.
+        solve_block_count.
+        solve_not_ends_with.
+      }
+
+      assert (bid_bound_between s1 s2 b0) as B0.
+      { eapply entry_bound_between in Heqs1.
+        eapply state_bound_between_shrink; eauto.
+        solve_block_count.
+        solve_block_count.
+      }
+      
+      rewrite outputs_acc.
+      (* Can probably prove stuff for b2 and nextblock to save space *)
+      rewrite Forall_app.
+      split.
+      rewrite Forall_app.
+      split.
+
+      + auto.
+      + epose proof (IHop _ _ _ _ _ Heqs1).
+
+        (* TODO: may want to pull this out as a lemma *)
+        assert (forall bid, bid_bound_between i i0 bid \/ bid ≡ b -> bid_bound_between s1 s2 bid \/ bid ≡ nextblock) as WEAKEN.
+        { intros bid BOUND.
+          destruct BOUND.
+          - left.
+            eapply state_bound_between_shrink; eauto.
+            solve_block_count.
+            solve_block_count.
+          - left; subst.
+            eapply incBlockNamed_bound_between in Heqs0.
+            eapply state_bound_between_shrink; eauto.
+            solve_block_count.
+            solve_not_ends_with.
+        }
+
+        eapply Forall_impl.
+        * eapply WEAKEN.
+        * unfold bid_bound_between, state_bound_between in *.
+          cbn in *.
+          eapply H.
+      + auto.
+    -
+      (* Should show me that the outputs of l (genIR op result) are all bound between s1 and i *)
+      epose proof (IHop _ _ _ _ _ Heqs0).
       cbn in H.
-  Admitted.
+      unfold outputs in H.
+
+      cbn in Heqs; inversion Heqs; subst.
+
+      rewrite outputs_acc.
+      apply Forall_app.
+      split.
+      + apply Forall_cons; [|apply Forall_nil].
+        cbn in Heqs.
+        left.
+        eapply entry_bound_between in Heqs0.
+        eapply state_bound_between_shrink; eauto.
+        cbn. solve_block_count.
+      +
+        (* TODO: may want to pull this out as a lemma *)
+        assert (forall bid, bid_bound_between s1 i bid \/ bid ≡ nextblock -> bid_bound_between s1 i1 bid \/ bid ≡ nextblock) as WEAKEN.
+        { intros bid BOUND.
+          destruct BOUND.
+          - left.
+            eapply state_bound_between_shrink; eauto.
+            solve_block_count.
+          - right; auto.
+        }
+
+        eapply Forall_impl.
+        * eapply WEAKEN.
+        * eauto.
+    - rewrite add_comment_outputs.
+      rewrite convert_typ_app_list.
+      setoid_rewrite outputs_app.
+      apply Forall_app.
+      split.
+      +
+        (* TODO: may want to pull this out as a lemma *)
+        assert (forall bid, bid_bound_between i s2 bid \/ bid ≡ b -> bid_bound_between s1 s2 bid \/ bid ≡ nextblock) as WEAKEN.
+        { intros bid BOUND.
+          destruct BOUND.
+          - left.
+            eapply state_bound_between_shrink; eauto.
+            solve_block_count.
+          - left.
+            eapply entry_bound_between in Heqs0.
+            subst.
+            eapply state_bound_between_shrink; eauto.
+            solve_block_count.
+        }
+
+        eapply Forall_impl.
+        * eapply WEAKEN.
+        * eauto.
+      +
+        (* TODO: may want to pull this out as a lemma *)
+        assert (forall bid, bid_bound_between s1 i bid \/ bid ≡ nextblock -> bid_bound_between s1 s2 bid \/ bid ≡ nextblock) as WEAKEN.
+        { intros bid BOUND.
+          destruct BOUND.
+          - left.
+            eapply state_bound_between_shrink; eauto.
+            solve_block_count.
+          - right; auto.
+        }
+
+        eapply Forall_impl.
+        * eapply WEAKEN.
+        * eauto.
+  Qed.
 End Outputs.
