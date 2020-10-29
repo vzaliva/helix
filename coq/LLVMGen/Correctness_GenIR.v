@@ -390,72 +390,12 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       destruct BISIM as [[STATE [from BRANCH]] FRESH].
       cbn in STATE, BRANCH.
       split; cbn; eauto.
+      2: solve_fresh.
 
-      (* I have:
-
-         new_state_invariant σ s1 s1 ρ memH (memV, (ρ, g))
-
-         But now I have a new state that is the result of doing
-         incVoid / incBlockNamed etc, and I want to know that my new
-         state has a valid state invariant as well.
-
-         new_state_invariant σ s1 s2 ρ memH (memV, (ρ, g))
-
-         But, my state invariant is not actually strong enough to
-         conclude this alone, because I don't have a high water mark.
-
-       *)
-
-      (* TODO *)
-      (* This should actually hold here because the local_count does
-      not change, so after unfolding new_state_invariant it should be
-      the same as STATE *)
-
-
-      (* YZ TODO: move to prelude *)
-      Ltac solve_state_invariant :=
-        cbn;
-        match goal with
-          |- state_invariant _ _ _ _ =>
-          first [eassumption |
-                 eapply state_invariant_add_fresh; [eassumption | solve_state_invariant] |
-                 eapply state_invariant_incVoid; [eassumption | solve_state_invariant] |
-                 eapply state_invariant_incBlockNamed; [eassumption | solve_state_invariant]
-                ]
-        end.
-
-      (* eapply new_state_invariant_local_count_extend. *)
-      (* eauto. *)
-
-      (* TODO: move these *)
-      Ltac get_Γ_hyps :=
-        repeat
-          match goal with
-          | H: incBlockNamed ?n ?s1 ≡ inr (?s2, _) |- _ =>
-            apply incBlockNamed_Γ in H
-          | H: incVoid ?s1 ≡ inr (?s2, _) |- _ =>
-            apply incVoid_Γ in H
-          end.
-
-      Ltac solve_Γ :=
-        match goal with
-        | |- Γ ?s1 ≡ Γ ?s2 =>
-          try solve [get_Γ_hyps; congruence]
-        end.
-
-      admit.
-      admit.
-
-      (* 2-3: reflexivity. *)
-      (* { split. *)
-      (*   admit. *)
-      (*   admit. *)
-      (*   repeat split; try reflexivity. *)
-      (*   - apply STATE. *)
-      (*   - apply STATE. *)
-      (* } *)
-      (* solve_Γ. *)
-      (* solve_local_count. *)
+      cbn in FRESH.
+      split; [solve_state_invariant|].
+      cbn. exists bid_in.
+      reflexivity.
     - (* ** DSHAssign (x_p, src_e) (y_p, dst_e):
          Helix side:
          1. x_i <- evalPExpr σ x_p ;;

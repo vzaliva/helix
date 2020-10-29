@@ -644,7 +644,11 @@ Ltac solve_lu :=
 Ltac solve_state_invariant :=
   cbn; try eassumption;
   match goal with
-    |- state_invariant _ _ _ (_, (alist_add _ _ _, _)) =>
+  | H: incBlockNamed _ ?s1 ≡ inr (?s2, _) |- state_invariant _ ?s2 _ _ =>
+    eapply state_invariant_incBlockNamed; [eapply H |solve_state_invariant]             
+  | H: incVoid ?s1 ≡ inr (?s2, _) |- state_invariant _ ?s2 _ _ =>
+    eapply state_invariant_incVoid; [eapply H |solve_state_invariant]
+  | |- state_invariant _ _ _ (_, (alist_add _ _ _, _)) =>
     eapply state_invariant_add_fresh; [now eauto | (eassumption || solve_state_invariant) | solve_fresh]
   end.
 
