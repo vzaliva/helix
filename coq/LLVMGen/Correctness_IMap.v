@@ -5,6 +5,7 @@ Require Import Helix.LLVMGen.Correctness_MExpr.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.StateCounters.
 Require Import Helix.LLVMGen.VariableBinding.
+Require Import Helix.LLVMGen.BidBound.
 
 Require Import Helix.LLVMGen.Correctness_GenIR.
 Set Nested Proofs Allowed.

@@ -1,5 +1,6 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
+Require Import Helix.LLVMGen.Freshness.
 
 Set Implicit Arguments.
 Set Strict Implicit.
