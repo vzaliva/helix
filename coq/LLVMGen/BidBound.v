@@ -151,6 +151,36 @@ Section BidBound.
     erewrite incBlockNamed_block_count with (s':=s2); eauto.
   Qed.
 
+  Lemma not_bid_bound_incBlockNamed :
+    forall s1 s2 n bid,
+      not_ends_with_nat n ->
+      incBlockNamed n s1 ≡ inr (s2, bid) ->
+      ~ (bid_bound s1 bid).
+  Proof.
+    intros s1 s2 n bid NEND GEN BOUND.
+    unfold bid_bound, state_bound in BOUND.
+    destruct BOUND as (n' & s' & s'' & NEND' & COUNT & GEN').
+    Transparent incBlockNamed.
+    unfold incBlockNamed in *.
+    Opaque incBlockNamed.
+    cbn in *.
+    simp.
+    apply not_ends_with_nat_string_of_nat in H1; auto.
+    lia.
+  Qed.
+
+  Lemma incBlockNamed_bound_between :
+    forall s1 s2 n bid,
+      not_ends_with_nat n ->
+      incBlockNamed n s1 ≡ inr (s2, bid) ->
+      bid_bound_between s1 s2 bid.
+  Proof.
+    intros s1 s2 n bid NEND GEN.
+    apply bid_bound_bound_between.
+    - eapply bid_bound_incBlockNamed; eauto.
+    - eapply not_bid_bound_incBlockNamed; eauto.
+  Qed.
+
   (* TODO: typeclasses for these mono lemmas to make automation easier? *)
   Lemma bid_bound_incVoid_mono :
     forall s1 s2 bid bid',
@@ -555,8 +585,20 @@ Section Outputs.
       rewrite fold_left_app.
       cbn.
 
-      assert (bid_bound_between s1 s2 b2) as B2 by admit.
-      assert (bid_bound_between s1 s2 b0) as B0 by admit.
+      assert (bid_bound_between s1 s2 b2) as B2.
+      { eapply incBlockNamed_bound_between in Heqs2.
+        eapply state_bound_between_shrink; eauto.
+        solve_block_count.
+        solve_block_count.
+        solve_not_ends_with.
+      }
+
+      assert (bid_bound_between s1 s2 b0) as B0.
+      { eapply entry_bound_between in Heqs1.
+        eapply state_bound_between_shrink; eauto.
+        solve_block_count.
+        solve_block_count.
+      }
       
       rewrite outputs_acc.
       (* Can probably prove stuff for b2 and nextblock to save space *)
@@ -566,9 +608,7 @@ Section Outputs.
       split.
 
       + auto.
-      +
-
-        epose proof (IHop _ _ _ _ _ Heqs1).
+      + epose proof (IHop _ _ _ _ _ Heqs1).
 
         (* TODO: may want to pull this out as a lemma *)
         assert (forall bid, bid_bound_between i i0 bid \/ bid ≡ b -> bid_bound_between s1 s2 bid \/ bid ≡ nextblock) as WEAKEN.
@@ -578,9 +618,11 @@ Section Outputs.
             eapply state_bound_between_shrink; eauto.
             solve_block_count.
             solve_block_count.
-          - left.
-            subst.
-            admit.
+          - left; subst.
+            eapply incBlockNamed_bound_between in Heqs0.
+            eapply state_bound_between_shrink; eauto.
+            solve_block_count.
+            solve_not_ends_with.
         }
 
         eapply Forall_impl.
