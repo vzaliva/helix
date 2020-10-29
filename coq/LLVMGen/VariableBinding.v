@@ -215,6 +215,30 @@ Section StateBound.
     lia.
   Qed.
 
+  Lemma gen_state_bound :
+    forall name s1 s2 id,
+      not_ends_with_nat name ->
+      gen name s1 ≡ inr (s2, id) ->
+      state_bound s2 id.
+  Proof.
+    intros name s1 s2 id ENDS INC.
+    exists name. exists s1. exists s2.
+    repeat (split; auto).
+    eapply MONO; eauto.
+  Qed.
+
+  Lemma gen_state_bound_between :
+    forall name s1 s2 id,
+      not_ends_with_nat name ->
+      gen name s1 ≡ inr (s2, id) ->
+      state_bound_between s1 s2 id.
+  Proof.
+    intros name s1 s2 id NEND GEN.
+    apply state_bound_bound_between.
+    - eapply gen_state_bound; eauto.
+    - eapply gen_not_state_bound; eauto.
+  Qed.
+
   Lemma not_id_bound_gen_mono :
     forall name s1 s2 s' id,
       gen name s1 ≡ inr (s2, id) ->
