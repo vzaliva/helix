@@ -149,7 +149,7 @@ Section Freshness_Interface.
   Lemma freshness_pre_shrink_up:
     forall s1 s2 s3 l,
       freshness_pre s1 s3 l ->
-      s2 << s3 -> (* Also works with non-strict *)
+      s2 <<= s3 -> (* Also works with non-strict *)
       freshness_pre s1 s2 l.
   Proof.
     intros s1 s2 s3 l FRESH LT.
@@ -158,9 +158,6 @@ Section Freshness_Interface.
 
     eapply (FRESH _ _ AIN).
     eapply state_bound_between_shrink; eauto.
-    (* Replace with solve local count? *)
-    unfold IRState_lt in LT.
-    lia.
   Qed.
 
   Lemma freshness_fresh: forall s1 s2 l,
@@ -214,6 +211,38 @@ Section Freshness_Interface.
     intros * ? INCL.
     eapply freshness_pre_alist_fresh_gen; eauto with irs_lt.
   Qed.
+
+  Lemma freshness_pre_incLocal:
+    forall s1 s2 s3 r v l,
+      incLocal s1 ≡ inr (s2, r) ->
+      freshness_pre s1 s3 l ->
+      freshness_pre s2 s3 (alist_add r v l).
+  Proof.
+    intros * INC FRESH.
+    unfold freshness_pre in *.
+    Import LidBound VariableBinding.
+    unfold lid_bound_between, state_bound_between in *.
+    intros * IN.
+    intros (? & ? & ? & ? & ? & ? & ?).
+    destruct (id ?[ Logic.eq ] r) eqn:EQ.
+    - rewrite rel_dec_correct in EQ; subst.
+      apply alist_In_add_eq in IN; subst.
+      clear FRESH.
+      cbn in *.
+      simp.
+      cbn in *.
+      admit.
+    - apply neg_rel_dec_correct in EQ.
+      apply In_add_In_ineq in IN; auto.
+      eapply FRESH; eauto.
+      do 3 eexists.
+      split; eauto.
+      split; eauto.
+      split; eauto.
+      cbn in *; simp. 
+      cbn in *.
+      lia.
+  Admitted.
 
   (** * Q1 *)
   Lemma freshness_post_no_extension: forall s1 s2 l, freshness_post s1 s2 l l.
