@@ -453,7 +453,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       subst; eapply eutt_clo_bind_returns; [eapply genNExpr_correct_ind |..]; eauto.
       { split.
         - solve_state_invariant.
-        - admit.
+        - eapply freshness_pre_shrink; eauto; solve_local_count. (* TODO: make this part of solve_fresh *)
       }
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
@@ -464,7 +464,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       eapply eutt_clo_bind_returns; [eapply genNExpr_correct_ind |..]; eauto.
       { split.
         - solve_state_invariant.
-        - admit.
+        - solve_fresh.
       }
 
       introR; destruct_unit.
