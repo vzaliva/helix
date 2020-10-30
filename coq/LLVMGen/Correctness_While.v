@@ -1,9 +1,12 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
+Require Import Helix.LLVMGen.Freshness.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.Correctness_NExpr.
 
 Set Nested Proofs Allowed.
-
+Opaque incBlockNamed.
+Opaque incVoid.
+Opaque incLocal.
 
 Set Implicit Arguments.
 Set Strict Implicit.
@@ -656,7 +659,7 @@ Lemma genWhileLoop_correct:
     (body_blocks : list (LLVMAst.block typ)) (* (llvm) body to be iterated *)
     (nextblock : block_id)        (* exit point of the overall loop *)
     (entry_id : block_id)         (* entry point of the overall loop *)
-    (s1 s2 : IRState) σ
+    (s1 s2 : IRState) 
     (bks : list (LLVMAst.block typ)) ,
 
     In body_entry (block_ids body_blocks) ->
@@ -717,7 +720,7 @@ Lemma genWhileLoop_correct:
                             R mH (mV, (l', g))) ->
 
     (* R must entail the state invariant *)
-    imp_rel R (state_invariant σ s1) ->
+    (* imp_rel R (state_invariant σ s1) -> *)
 
     (forall g l mV mH ymem,
         (R mH (mV, (l, g)) -> I 0 mem_empty mH (mV, (l, g)) /\ l @ loopvar ≡ Some (uvalue_of_nat 0)) /\
@@ -726,6 +729,7 @@ Lemma genWhileLoop_correct:
     (* Main result. Need to know initially that R holds *)
     forall g l mV mH _label,
       R mH (mV,(l,g)) ->
+      Freshness.freshness_pre s1 s2 l ->
       eutt (succ_cfg
             (fun '(memH,vec') '(memV, (l, (g,x))) =>
                             (* Consider generalizing? *)
@@ -736,9 +740,8 @@ Lemma genWhileLoop_correct:
            (interp_helix (build_vec n bodyH mem_empty) mH)
            (interp_cfg (denote_bks (convert_typ [] bks) (_label ,entry_id)) g l mV).
 Proof with rauto.
-
   
-  intros * IN UNIQUE EXIT * GEN * BOUND * IND STABLE STABLE' IMPSTATE IND_INV * PRE.
+  intros * IN UNIQUE EXIT * GEN * BOUND * IND STABLE STABLE' IND_INV * PRE FRESH.
   pose proof @genWhileLoop_ind as GEN_IND.
   specialize (GEN_IND prefix loopvar loopcontblock body_entry body_blocks nextblock entry_id s1 s2 bks).
   specialize (GEN_IND IN UNIQUE EXIT n GEN).
@@ -777,12 +780,15 @@ Proof with rauto.
     hvred.
 
     (* We have only touched local variables that the invariant does not care about, we can reestablish it *)
+    clear GEN_IND STABLE.
     apply eutt_Ret. cbn. split. right. reflexivity.
-    eapply STABLE'. apply sub_alist_add. eapply state_invariant_alist_fresh.
-    eapply state_invariant_incBlockNamed. apply Heqs0.
-    eapply state_invariant_incBlockNamed. apply Heqs.
-    apply IMPSTATE. apply PRE. eauto. eauto.
-
+    eapply STABLE'; eauto. apply sub_alist_add.
+    rename r into foo, l into bar.
+    clear IND STABLE' IND_INV UNIQUE.
+    clean_goal.
+    (* This is a freshness goal that definitely holds, just need to solve it *)
+    admit.
+   
   - Opaque build_vec_gen.
     cbn.
     cbn in *.
@@ -903,4 +909,4 @@ Proof with rauto.
 
     destruct H as (? & ? & ?). inversion H0.
     Unshelve. eauto. exact mem_empty. eauto.
-Qed.
+Admitted.
