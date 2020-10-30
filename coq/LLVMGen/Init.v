@@ -30,9 +30,16 @@ Section EnvironmentConsistency.
   Fact intrinsics_unique:
     list_uniq id (declaration_names defined_intrinsics_decls).
   Proof.
-    remember (declaration_names defined_intrinsics_decls) as names eqn:N.
-    cbn in N.
-  Admitted.
+    cbn.
+    unfold list_uniq.
+    intros.
+    cbv in H1; subst b.
+    repeat match goal with
+           | [H : context[nth_error _ ?x] |- _ ] =>
+             destruct x; cbn in H
+           end.
+    all: congruence.
+  Qed.
 
 End EnvironmentConsistency.
 
@@ -633,144 +640,6 @@ Proof.
   lia.
 Qed.
 
-(* ZX TODO: remove when done
-Fact bind_ret_override
-      {A B C : Type}
-      {E : Type -> Type}
-      (f : A -> A -> C)
-      (b : B)
-      (i1 i2 : itree E A) :
-  (ITree.bind
-     (ITree.bind i1
-                 (λ a1 : A, ITree.bind i2
-                                       (λ a2 : A, Ret (f a1 a2))))
-     (λ _ : C, Ret b))
-  ≈
-  (ITree.bind i1 (λ _, ITree.bind i2 (λ _ : A, Ret b))).
-Proof.
-  repeat (rewrite bind_bind; apply eutt_eq_bind; intro).
-  rewrite bind_ret_l.
-  reflexivity.
-Qed.
-
-(* QOL, similar to [eutt_eq_bind] *)
-Lemma eutt_eq_bind_l :
-  forall E R U (t1 t2 : itree E U) (k : U -> itree E R),
-    t1 ≈ t2 -> ITree.bind t1 k ≈ ITree.bind t2 k.
-Proof.
-  intros.
-  rewrite H.
-  reflexivity.
-Qed.
-
-Lemma bind_comm {E : Type -> Type} {A B : Type} {x : B} (i1 i2 : itree E A) :
-    (exists i, i1 ≈ Ret i) ->
-    ITree.bind (ITree.bind i1 (fun _ => i2)) (fun _ => Ret x) ≈
-    ITree.bind (ITree.bind i2 (fun _ => i1)) (fun _ => Ret x).
-Proof.
-  intro I.
-  destruct I as [i I].
-  setoid_rewrite I.
-  rewrite bind_ret_l.
-  rewrite bind_bind.
-  setoid_rewrite bind_ret_l.
-  reflexivity.
-Qed.
-
-
-Lemma build_global_environment_globals_app
-      (m_name m_target m_datalayout : option string)
-      (m_globals_1 m_globals_2 : list (global dtyp))
-      (m_declarations : list (declaration dtyp))
-      (m_definitions : list (definition dtyp (cfg dtyp)))
-  :
-    build_global_environment {|
-        m_name := m_name;
-        m_target := m_target;
-        m_datalayout := m_datalayout;
-        m_type_defs := []; (* for simplicity, no type definitions *)
-        m_globals := (m_globals_1 ++ m_globals_2)%list;
-        m_declarations := m_declarations;
-        m_definitions := m_definitions
-      |}
-
-    ≈
-
-    ITree.bind
-      (build_global_environment {|
-           m_name := m_name;
-           m_target := m_target;
-           m_datalayout := m_datalayout;
-           m_type_defs := []; (* for simplicity, no type definitions *)
-           m_globals := m_globals_1;
-           m_declarations := []; (* no declarations *)
-           m_definitions := [] (* no definitions *)
-         |})
-      (fun _ => ITree.bind
-               (build_global_environment {|
-                    m_name := m_name;
-                    m_target := m_target;
-                    m_datalayout := m_datalayout;
-                    m_type_defs := []; (* for simplicity, no type definitions *)
-                    m_globals := m_globals_2;
-                    m_declarations := []; (* no declarations *)
-                    m_definitions := [] (* no definitions *)
-                  |})
-               (fun _ => build_global_environment {|
-                          m_name := m_name;
-                          m_target := m_target;
-                          m_datalayout := m_datalayout;
-                          m_type_defs := []; (* for simplicity, no type definitions *)
-                          m_globals := []; (* no globals *)
-                          m_declarations := m_declarations;
-                          m_definitions := m_definitions |})).
-Proof.
-  Opaque map_monad.
-  cbn.
-  setoid_rewrite map_monad_app.
-  cbn.
-  Transparent map_monad.
-  cbn.
-  repeat progress (try setoid_rewrite bind_ret_l;
-                   try setoid_rewrite translate_bind;
-                   try setoid_rewrite translate_ret).
-  repeat setoid_rewrite bind_ret_override.
-  repeat rewrite <-bind_bind.
-
-Abort.
-
-Fact bind_ret_override' {E : Type -> Type} {A B : Type} (i1 i2 : itree E A) (x y : B) :
-  forall f,
-    (ITree.bind (translate f (ITree.bind i1 (fun _ => Ret x)))
-                (fun _ => ITree.bind i2 (fun _ => Ret y))) ≈
-    ITree.bind (ITree.bind i1 (fun _ => i2)) (fun _ => Ret y).
-Proof.
-  intro.
-  repeat rewrite bind_bind.
-
-  apply eutt_eq_bind.
-  intro.
-  rewrite bind_ret_l.
-  reflexivity.
-Qed.
-
-Let etl := translate _exp_E_to_L0.
-Goal
-  forall lid lids m X Y,
-    interp_mcfg (allocate_globals X ;; etl (T:=()) (initialize_globals Y)) lid lids m
-    ≈
-    interp_mcfg (etl (initialize_globals Y) ;; allocate_globals X) lid lids m.
-Proof.
-  intros.
-  cbn.
-  norm_h.
-  setoid_rewrite bind_ret_l.
-  setoid_rewrite translate_bind.
-  unfold initialize_global.
-  setoid_rewrite unfold_translate.                                                            
-Admitted.
-*)
-
 From ITree Require Import
      Basics.Monad. 
 
@@ -1172,18 +1041,6 @@ Proof.
     reflexivity.
 Qed.
 
-Lemma init_with_data_app_global_uniq_chk_inv
-      (pre post : list (string * DSHType))
-      (s0 s' s1 : IRState)
-      (l0 l' l1 : list binary64)
-      (g1 g2 : list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ)))) 
-  :
-    init_with_data initOneIRGlobal global_uniq_chk l0 pre s0 ≡ inr (s', (l', g1)) ->
-    init_with_data initOneIRGlobal global_uniq_chk l' post s' ≡ inr (s1, (l1, g2)) ->
-    init_with_data initOneIRGlobal global_uniq_chk l0 (pre ++ post) s0
-    ≡ inr (s1, (l1, g1 ++ g2)).
-Admitted.
-
 Lemma init_with_data_no_overwrite
       (m0 m : memoryH)
       (hdata0 hdata : list binary64)
@@ -1222,6 +1079,102 @@ Proof.
     *
       unfold memory_set.
       now rewrite Memory.NP.F.add_neq_o by congruence.
+Qed.
+
+Lemma list_uniq_global_uniq_chk (h : string * DSHType) (tl : list (string * DSHType)) :
+  list_uniq fst (h::tl) ->
+  forall s, is_OK (global_uniq_chk h tl s).
+Proof.
+  intros.
+  unfold global_uniq_chk.
+  unfold ErrorWithState.err2errS.
+  break_match; try constructor.
+  exfalso.
+  unfold assert_false_to_err in Heqs0.
+  break_match; invc Heqs0.
+  unfold globals_name_present in Heqb.
+  assert (exists h', In h' tl /\ Misc.string_beq (fst h') (fst h)).
+  {
+    clear - Heqb.
+    generalize dependent tl.
+    intros.
+    induction tl; [inv Heqb |].
+    -
+      cbn in Heqb.
+      apply Bool.orb_prop in Heqb.
+      destruct Heqb.
+      +
+        specialize (IHtl H).
+        destruct IHtl as (h' & IH & EQH).
+        exists h'.
+        split.
+        apply in_cons; assumption.
+        assumption.
+      +
+        exists a.
+        intuition.
+  }
+  destruct H0 as (h' & IH & EQH).
+  unfold list_uniq in H.
+  apply In_nth_error in IH.
+  destruct IH as [n' NH].
+  specialize (H (S n') 0 h' h).
+  full_autospecialize H.
+  cbn.
+  assumption.
+  reflexivity.
+  unfold Misc.string_beq in EQH.
+  break_if; intuition.
+  lia.
+Qed.
+
+Lemma init_with_data_app_global_uniq_chk_inv
+      (pre post : list (string * DSHType))
+      (s0 s' s1 : IRState)
+      (l0 l' l1 : list binary64)
+      (g1 g2 : list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ))))
+  :
+    list_uniq fst (pre ++ post) ->
+    init_with_data initOneIRGlobal global_uniq_chk l0 pre s0 ≡ inr (s', (l', g1)) ->
+    init_with_data initOneIRGlobal global_uniq_chk l' post s' ≡ inr (s1, (l1, g2)) ->
+    init_with_data initOneIRGlobal global_uniq_chk l0 (pre ++ post) s0
+    ≡ inr (s1, (l1, g1 ++ g2)).
+Proof.
+  intros.
+  dependent induction pre.
+  -
+    cbn in *.
+    invc H0.
+    assumption.
+  -
+    cbn in *.
+    repeat break_match_hyp; invc H0.
+    pose proof H as H'.
+    apply list_uniq_global_uniq_chk with (s:=s0) in H.
+    inversion H.
+    break_let; subst.
+    symmetry in H2.
+    apply global_uniq_chk_preserves_st in Heqs.
+    apply global_uniq_chk_preserves_st in H2.
+    subst i i1.
+    rewrite Heqs0.
+    erewrite IHpre.
+    +
+      reflexivity.
+    +
+      clear - H'.
+      unfold list_uniq in *.
+      intros.
+      specialize (H' (S x) (S y) a0 b).
+      full_autospecialize H'.
+      cbn; assumption.
+      cbn; assumption.
+      assumption.
+      lia.
+    +
+      eassumption.
+    +
+      eassumption.
 Qed.
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
@@ -1556,19 +1509,17 @@ Proof.
     unfold allocate_declaration.
     cbn.
 
-    (* conditons like
-       [if (name =? "llvm.fabs.f32")%string]
-       are resolved using VFN hypothesis
-       @zoick Please fix this, it is broken since VFN changed
-     *)
     repeat match goal with
            | [ |- context[eqb name ?s]] =>
              destruct (eqb name s) eqn:TMP; [
                (apply eqb_eq in TMP;
-                rewrite TMP in VFN;
+                subst name;
+                unfold valid_program in VFN;
                 cbn in VFN;
-                admit)|] ; clear TMP
+                rewrite !Bool.andb_false_r in VFN;
+                discriminate) | clear TMP]
            end.
+
     autorewrite with itree.
 
     rewrite interp_to_L3_bind.
@@ -1644,6 +1595,7 @@ Proof.
       reflexivity.
       reflexivity.
       crush.
+
   }
 
   intros.
@@ -1839,7 +1791,6 @@ Proof.
         --
           cbn.
           repeat rewrite interp_to_L3_bind.
-          
           (* Alloca ng *)
           pose_interp_to_L3_alloca m'' a'' A' AE'.
           {
@@ -1851,14 +1802,15 @@ Proof.
             now rewrite typ_to_dtyp_D_array.
           }
           rewrite AE'.
-          
+
           (* GlobalWrite ng *)
           cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
           rewrite interp_to_L3_GW.
-          
+
           apply eutt_Ret.
           unfold alloc_glob_decl_inv_mcfg.
           split.
+
           ++
             unfold allocated_globals.
             intros.
@@ -1952,6 +1904,16 @@ Proof.
           repeat break_let.
           destruct le' as [le' stack'].
 
+          copy_apply global_uniq_chk_preserves_st Heqs.
+          subst i0.
+
+          rewrite GLOBALS in LG.
+          move LG at bottom.
+          rewrite <-ListUtil.list_app_first_last in LG.
+          unfold initIRGlobals in *.
+          apply init_with_data_app_global_uniq_chk in LG.
+          destruct LG as (l'' & s'' & g1'' & g2'' & PRE'' & POST'' & G'').
+
           eapply IHpost.
           ++
             clear - H.
@@ -1964,9 +1926,10 @@ Proof.
           ++
             (* [clear - PRE Heqs Heqs0.] doesn't work for some reason? *)
             clear IHpost; move PRE at bottom; move Heqs0 at bottom.
-            apply global_uniq_chk_preserves_st in Heqs.
-            subst i0.
+
             eapply init_with_data_app_global_uniq_chk_inv.
+            eapply initIRGlobals_names_unique.
+            apply PRE''.
             eassumption.
             cbn.
             rewrite Heqs0.
