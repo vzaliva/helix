@@ -650,6 +650,7 @@ Ltac solve_state_invariant :=
     eapply state_invariant_incVoid; [eapply H |solve_state_invariant]
   | |- state_invariant _ _ _ (_, (alist_add _ _ _, _)) =>
     eapply state_invariant_add_fresh; [now eauto | (eassumption || solve_state_invariant) | solve_fresh]
+  | |- state_invariant _ _ _ _ => eapply state_invariant_incVoid; [eassumption |]
   end.
 
 Definition state_invariant_pre σ s1 s2 := (state_invariant σ s1 ⩕ fresh_pre s1 s2).

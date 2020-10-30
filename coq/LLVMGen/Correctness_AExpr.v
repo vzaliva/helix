@@ -586,35 +586,39 @@ Section AExpr.
       cbn; match_rewrite; reflexivity.
       reflexivity.
 
-      apply eutt_Ret; split_post.
-      admit.
-      admit.
-      admit.
-      admit.
-
-      (* TODO incVoid in the mix *)
-      (* eapply state_invariant_incVoid; eauto. *)
-      (* solve_state_invariant. *)
-      (* split. *)
-      (* + cbn. *)
-      (*   eapply state_invariant_incVoid; eauto. *)
-      (*   repeat (eapply state_invariant_add_fresh; eauto). *)
-      (* + split; cbn; intuition. *)
-      (*   * vstep. *)
-      (*     cbn. 2: reflexivity. *)
-      (*     rewrite H2. *)
-      (*     apply H3. *)
-      (*     solve_lu. *)
-
-      (*   * rewrite H,H0. *)
-      (*     etransitivity; [apply sub_alist_add| apply sub_alist_add]. *)
-      (*     eapply concrete_fresh_fresh; eauto; eapply incLocal_is_fresh; eauto. *)
-      (*     eapply concrete_fresh_fresh; eauto; eapply incLocal_is_fresh; eauto. *)
-      (*     match goal with *)
-      (*       |- state_invariant _ _ _ (_, (alist_add _ _ _, _)) => *)
-      (*       eapply state_invariant_add_fresh; [now eauto | eassumption ] *)
-      (*     end. *)
-
-Admitted.
+      apply eutt_Ret. split; [split | split].
+      {
+        eapply state_invariant_incVoid; [eauto | ..].
+        eapply state_invariant_add_fresh; [eauto |..].
+        eapply state_invariant_add_fresh; [eauto | eauto | solve_fresh].
+        eapply freshness_pre_incLocal; [eassumption | ].
+        solve_fresh.
+      }
+      {
+        cbn.
+        eapply freshness_post_incVoid; eauto.
+        solve_fresh.
+      }
+      {
+        cbn; intros.
+        vstep.
+        solve_lu.
+        rewrite H2.
+        reflexivity.
+      }
+      {
+        cbn; intuition.
+        etransitivity; eauto.
+        etransitivity; eauto.
+        etransitivity.
+        apply sub_alist_add.
+        2:apply sub_alist_add.
+        eapply freshness_pre_alist_fresh; [| eassumption].
+        solve_fresh.
+        eapply freshness_pre_alist_fresh; [| eassumption].
+        eapply freshness_pre_incLocal; [eassumption | ].
+        solve_fresh.
+      }
+Qed.
 
 End AExpr.
