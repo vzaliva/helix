@@ -644,14 +644,15 @@ Ltac solve_lu :=
 Ltac solve_state_invariant :=
   cbn; try eassumption;
   match goal with
-  | H: incBlockNamed _ ?s1 ≡ inr (?s2, _) |- state_invariant _ ?s2 _ _ =>
-    eapply state_invariant_incBlockNamed; [eapply H |solve_state_invariant]             
-  | H: incVoid ?s1 ≡ inr (?s2, _) |- state_invariant _ ?s2 _ _ =>
-    eapply state_invariant_incVoid; [eapply H |solve_state_invariant]
   | |- state_invariant _ _ _ (_, (alist_add _ _ _, _)) =>
     eapply state_invariant_add_fresh; [now eauto | (eassumption || solve_state_invariant) | solve_fresh]
-  | |- state_invariant _ _ _ _ => eapply state_invariant_incVoid; [eassumption |]
+  | |- state_invariant _ _ _ _ =>
+    solve [eauto with SolveStateInv]
   end.
+
+Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incBlockNamed; [eassumption | solve_state_invariant] : SolveStateInv.
+Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incLocal; [eassumption | solve_state_invariant] : SolveStateInv.
+Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eassumption | solve_state_invariant] : SolveStateInv.
 
 Definition state_invariant_pre σ s1 s2 := (state_invariant σ s1 ⩕ fresh_pre s1 s2).
 Definition state_invariant_post σ s1 s2 l := (state_invariant σ s2 ⩕ fresh_post s1 s2 l).

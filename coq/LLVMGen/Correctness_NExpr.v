@@ -458,3 +458,23 @@ Proof.
   split; auto.
   split; auto.
 Qed.
+
+Lemma state_invariant_genNExpr :
+  ∀ (n : NExpr) (σ : evalContext) (s s' : IRState) (ec : exp typ * code typ) (memH : memoryH) (stV : config_cfg),
+    genNExpr n s ≡ inr (s', ec) → state_invariant σ s memH stV → state_invariant σ s' memH stV.
+Proof.
+  induction n;
+    intros σ s s' ec memH stV GEN SINV;
+    cbn in GEN; simp;
+      repeat
+        match goal with
+        | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
+          destruct (nth_error (Γ s1) n) eqn:FIND; inversion H; subst
+        end;
+      auto; try solve_state_invariant.
+
+  all: eapply IHn2 in Heqs1; try solve_state_invariant;
+    eapply IHn1 in Heqs0; try solve_state_invariant.
+Qed.
+
+Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_genNExpr; [eassumption | solve_state_invariant] : SolveStateInv.

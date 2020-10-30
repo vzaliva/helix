@@ -452,8 +452,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       (* Step 5. *)
       subst; eapply eutt_clo_bind_returns; [eapply genNExpr_correct_ind |..]; eauto.
       { split.
-        - admit.
-        - admit.
+        - solve_state_invariant.
+        - eapply freshness_pre_shrink; eauto; solve_local_count. (* TODO: make this part of solve_fresh *)
       }
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
@@ -463,8 +463,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       (* Step 6. *)
       eapply eutt_clo_bind_returns; [eapply genNExpr_correct_ind |..]; eauto.
       { split.
-        - admit.
-        - admit.
+        - solve_state_invariant.
+        - solve_fresh.
       }
 
       introR; destruct_unit.
@@ -502,15 +502,12 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         3: apply GETCELL.
         { vstep; solve_lu; reflexivity. }
         { rewrite EXP1; auto.
-          Set Printing Implicit.
-          cbn. 
-          (* replace (repr (Z.of_nat (MInt64asNT.to_nat src))) with src by admit. *)
-          (* reflexivity. *)
-          admit.
+          replace (repr (Z.of_nat (MInt64asNT.to_nat src))) with src by admit.
+          cbn; reflexivity.
         }
         clear EXP1.
         clean_goal.
-          
+
         subst_cont; vred.
         vred.
         (* load *)
@@ -518,34 +515,98 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         { vstep; solve_lu. }
         vred.
         hide_cont.
-        (* destruct vy_p as [vy_p | vy_p]. *)
-        (* {  *)
-        (*   edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |]. *)
-        (*   clean_goal. *)
-        (*   rewrite yLU in H0; symmetry in H0; inv H0. *)
-        (*   cbn in yINLG. *)
-        (*   (* How do we know that ymembk is allocated? *)
+
+        destruct vy_p as [vy_p | vy_p].
+        {
+          edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |].
+          assert (allocated yptr memV) as ALLOC by admit.
+          assert (allocated yptr memV) as ALLOC' by admit.
+          epose proof (write_array_exists _ _ _ _ _ _ ALLOC).
+          destruct H as (addr & HANDLE & WRITE).
+
+          clean_goal.
+          rewrite yLU in H0; symmetry in H0; inv H0.
+          cbn in yINLG.
+          (* How do we know that ymembk is allocated? *)
         (*      yGETCELL does not contain any information here. *)
-        (*    *) *)
-        (*   (* Oooh we don't, we're using [gep] but not for reading a cell here? *)
+        (*    *)
+          (* Oooh we don't, we're using [gep] but not for reading a cell here? *)
         (*      Not true though, the cell must be allocated, we are about to write in it. *)
         (*      We need another lemma about [OP_GetElementPtr] then. *)
-        (*    *) *)
-        (*   (* edestruct denote_instr_gep_array as (yptr' & yREAD & yEQ); cycle -1; [rewrite yEQ; clear yEQ | ..]; cycle 1. *) *)
-        (*   (* { vstep; solve_lu. *) *)
-        (*   (*   cbn; reflexivity. *) *)
-        (*   (* } *) *)
-        (*   (* { rewrite EXP2. *) *)
-        (*   (*   2:{ cbn. etransitivity. apply sub_alist_add. *) *)
-        (*   (*       2: apply sub_alist_add. *) *)
-        (*   (*       admit. admit. *) *)
-        (*   (*   } *) *)
-        (*   (*   replace (repr (Z.of_nat (MInt64asNT.to_nat dst))) with dst by admit. *) *)
-        (*   (*   cbn; reflexivity. *) *)
+        (*    *)
+          edestruct denote_instr_gep_array as (yptr' & yREAD & yEQ); cycle -1; [rewrite yEQ; clear yEQ | ..]; cycle 1.
+          { vstep; solve_lu.
+            cbn; reflexivity.
+          }
+          { rewrite EXP2.
+            2:{ cbn. etransitivity. apply sub_alist_add.
+                2: apply sub_alist_add.
+                admit. admit.
+            }
+            replace (repr (Z.of_nat (MInt64asNT.to_nat dst))) with dst by admit.
+            cbn; reflexivity.
+          }
+          eapply yGETCELL.
+          admit.
 
-        (*   (* } *) *)
-        (*   (* eapply yGETCELL. *) *)
-        admit. }
+          vstep.
+          subst_cont.
+          vred.
+
+          erewrite denote_instr_store; eauto.
+          2: {
+            vstep.
+            - cbn.
+
+              (* TODO: automate? *)
+              assert (r1 ≢ r0) as NEQ by admit.
+              assert (r0 ≢ r1) as NEQ' by auto.
+              apply eq_dec_neq in NEQ.
+              apply eq_dec_neq in NEQ'.
+              rewrite NEQ, NEQ'.
+              cbn.
+
+              assert (r1 ≡ r1) as EQ by auto.
+              eapply rel_dec_eq_true in EQ.
+
+              rewrite EQ.
+              reflexivity.
+              apply RelDec_Correct_eq_typ.
+            - cbn.
+              apply eqit_Ret.
+              cbn.
+              reflexivity.
+          }
+
+          2: {
+            vstep.
+            - cbn.
+
+              (* TODO: automate? *)
+              assert (r0 ≡ r0) as EQ by auto.
+              eapply rel_dec_eq_true in EQ.
+
+              rewrite EQ.
+              reflexivity.
+              apply RelDec_Correct_eq_typ.
+            - cbn.
+              apply eqit_Ret.
+              cbn.
+              reflexivity.
+          }
+
+          1: {
+            vstep.
+            rewrite denote_term_br_1.
+            vstep.
+            admit.
+          }
+          admit.
+          admit.
+          
+        }
+        admit.
+      }
       admit.
     -
       Opaque genWhileLoop.

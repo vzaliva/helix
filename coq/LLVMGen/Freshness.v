@@ -149,10 +149,25 @@ Section Freshness_Interface.
   Lemma freshness_pre_shrink_up:
     forall s1 s2 s3 l,
       freshness_pre s1 s3 l ->
-      s2 <<= s3 -> (* Also works with non-strict *)
+      s2 <<= s3 ->
       freshness_pre s1 s2 l.
   Proof.
     intros s1 s2 s3 l FRESH LT.
+    unfold freshness_pre in *.
+    intros id v AIN BOUND.
+
+    eapply (FRESH _ _ AIN).
+    eapply state_bound_between_shrink; eauto.
+  Qed.
+
+  Lemma freshness_pre_shrink:
+    forall s1 s2 s3 s4 l,
+      freshness_pre s1 s4 l ->
+      s1 <<= s2 ->
+      s3 <<= s4 ->
+      freshness_pre s2 s3 l.
+  Proof.
+    intros s1 s2 s3 s4 l FRESH LE1 LE2.
     unfold freshness_pre in *.
     intros id v AIN BOUND.
 
