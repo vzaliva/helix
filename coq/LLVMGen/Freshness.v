@@ -283,6 +283,19 @@ Section Freshness_Interface.
       intuition.
   Qed.
 
+  Lemma freshness_post_incVoid : forall s1 s2 s3 r l l',
+      incVoid s2 ≡ inr (s3,r) ->
+      freshness_post s1 s2 l l' ->
+      freshness_post s1 s3 l l'.
+  Proof.
+    unfold freshness_post. 
+    intros * INC FRESH * IN NIN.
+    cbn in *.
+    inv INC.
+    do 2 red.
+    edestruct FRESH; eauto.
+  Qed.
+  
   (** * PQ *)
   Lemma freshness_chain: forall s1 s2 s3 l1 l2 ,
       freshness_pre s1 s3 l1 ->
