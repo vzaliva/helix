@@ -444,14 +444,14 @@ Definition genFSHAssign
 
     .entry:
       (init_code)
-      %c0 = icmp slt i32 %start, %n
+      %c0 = icmp ult i32 %start, %n
       br i1 %c0, label %.loop, label %.nextblock
     .loop:
       %i = phi i32 [ %next_i, .loopcontblock], [ %start, .entry ]
      (body)
     .loopcontblock:
       %next_i = add nsw i32 %i, 1
-      %c = icmp slt i32 %next_i, %n
+      %c = icmp ult i32 %next_i, %n
       br i1 %c, label %.loop, label nextblock
     nextblock:
  *)
@@ -485,7 +485,7 @@ Definition genWhileLoop
             blk_code  :=
               init_code ++
                         [
-                          (IId loopcond, INSTR_Op (OP_ICmp Slt
+                          (IId loopcond, INSTR_Op (OP_ICmp Ult
                                                            IntType
                                                            from
                                                            to))
@@ -512,7 +512,7 @@ Definition genWhileLoop
                                                             IntType
                                                             (EXP_Ident (ID_Local loopvar))
                                                             (EXP_Integer 1%Z))) ;
-                            (IId loopcond1, INSTR_Op (OP_ICmp Slt
+                            (IId loopcond1, INSTR_Op (OP_ICmp Ult
                                                               IntType
                                                               (EXP_Ident (ID_Local nextvar))
                                                               to))
@@ -1347,16 +1347,31 @@ Definition dropFakeVars: cerr unit :=
         Γ := (globals ++ Γ'')
       |}.
 
-Definition valid_function_name (fname:string) : bool :=
-  andb
-    (negb (eqb fname "main"))
-    (is_None_bool
-       (List.find (fun x => function_name_eq (Name fname) (dc_name x)) defined_intrinsics_decls)).
+Definition not_in_globals (g: list (string * DSHType)) (n:string) : bool
+  := is_None_bool (List.find (fun x => eqb n (fst x)) g).
+
+(* Return list of names of declrations. E.g. defined_intrinsics_decls *)
+Fixpoint declaration_names (decls: list (declaration typ)) : list string :=
+  match decls with
+  | [] => []
+  | (d::ds) => match dc_name d with
+             | Name s => s::declaration_names ds
+             | _ => declaration_names ds
+             end
+  end.
+
+Definition valid_program (p: FSHCOLProgram) : bool :=
+  (negb (eqb (name p) "main")) &&
+  not_in_globals (globals p) "main" &&
+  not_in_globals (globals p) (name p) &&
+  (let dnames := declaration_names defined_intrinsics_decls in
+   (forallb (fun x => not_in_globals (globals p) x) (declaration_names defined_intrinsics_decls)) &&
+   (is_None_bool (List.find (fun x => eqb (name p) x) dnames))).
 
 Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): cerr (toplevel_entities typ (block typ * list (block typ))) :=
   match p with
   | mkFSHCOLProgram i o name globals op =>
-    if valid_function_name name then
+    if valid_program p then
       if just_compile then
         ginit <- genIRGlobals (FnBody:= block typ * list (block typ)) globals ;;
 
