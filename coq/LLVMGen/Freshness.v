@@ -613,6 +613,8 @@ Ltac get_local_count_hyps :=
     match goal with
     | H: incBlockNamed ?n ?s1 ≡ inr (?s2, _) |- _ =>
       apply incBlockNamed_local_count in H
+    | H: incLocalNamed ?n ?s1 ≡ inr (?s2, _) |- _ =>
+      apply incLocalNamed_local_count in H
     | H: incVoid ?s1 ≡ inr (?s2, _) |- _ =>
       apply incVoid_local_count in H
     | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>

@@ -782,13 +782,14 @@ Proof with rauto.
     (* We have only touched local variables that the invariant does not care about, we can reestablish it *)
     clear GEN_IND STABLE.
     apply eutt_Ret. cbn. split. right. reflexivity.
-    eapply STABLE'; eauto. apply sub_alist_add.
+    eapply STABLE'; eauto.
+    apply sub_alist_add.
     rename r into foo, l into bar.
-    clear IND STABLE' IND_INV UNIQUE.
+    clear -Heqs Heqs0 Heqs1 Heqs2 Heqs3 Heqs4 Heqs5 Heqs6 FRESH.
     clean_goal.
-    (* This is a freshness goal that definitely holds, just need to solve it *)
-    admit.
-   
+    eapply freshness_pre_alist_fresh; [| eassumption].
+    eapply freshness_pre_shrink; [eassumption | solve_local_count | solve_local_count].
+  
   - Opaque build_vec_gen.
     cbn.
     cbn in *.
@@ -909,4 +910,5 @@ Proof with rauto.
 
     destruct H as (? & ? & ?). inversion H0.
     Unshelve. eauto. exact mem_empty. eauto.
-Admitted.
+Qed.
+
