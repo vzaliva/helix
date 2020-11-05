@@ -1179,6 +1179,28 @@ Proof.
       eassumption.
 Qed.
 
+(* ZX TODO: this should become part of vellvm at some point *)
+Lemma interp_to_L3_GR : forall defs id g l m v,
+  Maps.lookup id g ≡ Some v ->
+  interp_to_L3 defs (trigger (GlobalRead id)) g l m ≈ Ret (m,(l,(g,v))).
+Proof.
+  intros * LU.
+  unfold interp_to_L3.
+  rewrite interp_intrinsics_trigger.
+  cbn.
+  unfold Intrinsics.F_trigger.
+  rewrite interp_global_trigger.
+  cbn in *; rewrite LU.
+  rewrite interp_local_stack_ret, interp_memory_ret.
+  reflexivity.
+Qed.
+
+Lemma _exp_E_to_L0_Global : forall {X} (e : LLVMGEnvE X),
+    _exp_E_to_L0 (subevent X e) ≡ subevent X e.
+Proof.
+  reflexivity.
+Qed.
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -1629,7 +1651,14 @@ Proof.
                 (flat_map (globals_of typ) gdecls))
     as GLOB.
 
-  rewrite <-bind_ret_r.
+  assert (FB : (LHS ≈ LHS ;; LHS)%monad); [| rewrite FB; clear FB].
+  {
+    subst LHS.
+    clear.
+    cbn.
+    rewrite Eq.bind_ret_l.
+    reflexivity.
+  }
   rewrite interp_to_L3_bind.
 
   subst LHS REL.
@@ -2028,7 +2057,62 @@ Proof.
         erewrite ListUtil.ith_eq; [eassumption | reflexivity].
   -
     intros.
-    admit.
+    
+    assert (TMP_EQ: eutt
+             (fun '(m,_) '(m',_) => m ≡ m')
+             (ret (memory_set (memory_set mg (S lg) mo) lg mi, ()))
+             (ITree.bind' (E:=E_mcfg)
+                          (fun mg' => ret (memory_set
+                                          (memory_set (fst mg') (S lg) mo)
+                                          lg mi, ()))
+                          (ret (mg, ()))))
+      by (setoid_rewrite Eq.bind_ret_l; apply eutt_Ret; reflexivity).
+
+    eapply eutt_weaken_left; [| exact TMP_EQ |]; clear TMP_EQ.
+    {
+      intros (?, ?) (?, ?) (? & [? ?] & ? & []).
+      congruence.
+    }
+
+    destruct u3 as (m', (l', (g', ?))).
+    rewrite translate_bind, interp_to_L3_bind.
+
+    apply eutt_clo_bind with (UU:=(λ '(memH, _) '(memV, (l, _, (g, _))),
+       post_init_invariant name σ
+         {|
+         block_count := block_count;
+         local_count := local_count;
+         void_count := void_count;
+         Γ := Γ_globals |} memH (memV, (l, g))
+       /\
+       allocated_xy memV g )).
+    +
+      admit.
+    +
+      intros.
+
+      move LX at bottom.
+      unfold initXYplaceholders, addVars in LX.
+      cbn in LX.
+      repeat break_let.
+      invc LX.
+      cbn.
+
+      repeat rewrite translate_bind, interp_to_L3_bind.
+      rewrite translate_trigger, _exp_E_to_L0_Global, subevent_subevent.
+      inversion_clear H1 as [[[MI] DI] AXY].
+      destruct AXY as (px & py & APX & APY & IX & IY).
+
+      rewrite interp_to_L3_GR.
+      2:{
+        unfold in_global_addr in IY.
+        unfold Maps.lookup.
+        break_let.
+        inversion Heqm2.
+        eassumption.
+      }
+      rewrite Eq.bind_ret_l.
+      admit.
 
   (* (* this is very old code at this point *)
   eapply eutt_clo_bind.
