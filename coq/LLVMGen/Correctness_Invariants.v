@@ -278,6 +278,14 @@ Section SimulationRelations.
     IRState_is_WF : WF_IRState σ s ;
     }.
 
+  Variant state_invariant' (σ : evalContext) (s1 s2 s : IRState) (li: local_env): memoryH -> config_cfg -> Prop :=
+  | mk_state_invariant : forall mH mV l g
+    (MINV : memory_invariant σ s mH (mV, (li, g)))
+    (WF   : WF_IRState σ s)
+    (EXT: extends s1 s2 li l)
+    (FRESH: is_fresh s1 s2 li),
+      state_invariant' σ s1 s2 s li mH (mV,(l,g)).
+
   (* Named function pointer exists in global environemnts *)
   Definition global_named_ptr_exists (fnname:string) : Pred_cfg :=
     fun '(mem_llvm, (ρ,g)) => exists mf, g @ (Name fnname) ≡ Some (DVALUE_Addr mf).
@@ -505,7 +513,7 @@ Lemma state_invariant_add_fresh :
     (l : local_env) (g : global_env) (v : uvalue),
     incLocal s1 ≡ inr (s2, id)
     → state_invariant σ s1 memH (memV, (l, g))
-    → freshness_pre s1 s2 l
+    → is_fresh s1 s2 l
     → state_invariant σ s2 memH (memV, (alist_add id v l, g)).
 Proof.
   intros * INC [MEM_INV WF] FRESH.

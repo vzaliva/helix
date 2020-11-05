@@ -331,12 +331,44 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     | h: visible_cont _ |- _ =>
       destruct h; subst
     end.
-  
+
+  Lemma state_invariant_sub_alist:
+    forall σ s mH mV l1 l2 g,
+      l1 ⊑ l2 ->
+      state_invariant σ s mH (mV,(l1,g)) ->
+      state_invariant σ s mH (mV,(l2,g)). 
+  Proof.
+    intros * SUB [MEM WF].
+    split; auto.
+    cbn; intros * LUH LUV.
+    eapply MEM in LUH; eapply LUH in LUV; clear MEM LUH.
+    destruct v, x; cbn in *; auto.
+    - apply SUB in LUV; auto.
+    - apply SUB in LUV; auto.
+    - destruct LUV as (? & ? & ? & LU & ?); do 2 eexists; repeat split; eauto.
+      apply SUB in LU; auto.
+  Qed.
+
+  Definition freshness (s1 s2 : IRState) (l1 : local_env) : local_env -> Prop :=
+    fun l2 =>
+      l1 ⊑ l2 /\
+      forall id v,
+        alist_In id l2 v ->
+        ~ alist_In id l1 v ->
+        lid_bound_between s1 s2 id.
+
+  Lemma freshness_ext : forall s1 s2 l1 l2,
+      freshness s1 s2 l1 l2 ->
+      l1 ⊑ l2.
+  Proof.
+    intros * FRESH; apply FRESH.
+  Qed.
+
   Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
       (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH) 
       (** Vellvm bits   *) (nextblock bid_in bid_from : block_id) (bks : list (LLVMAst.block typ))
-      (* (env : list (ident * typ)) *)  (g : global_env) (ρ : local_env) (memV : memoryV),
+      (* (env : list (ident * typ)) *)  (g : global_env) (ρi ρ : local_env) (memV : memoryV),
       bid_bound s1 nextblock ->
       (GenIR_Rel σ s1 bid_in ⩕ lift_Rel_cfg (fresh_pre s1 s2)) (memH,tt) (memV, (ρ, (g, (inl (bid_from, bid_in))))) ->
       no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ op) memH) -> (* Evaluation succeeds *)
@@ -839,7 +871,76 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       admit.
     - (* DSHMemMap2 *) admit.
     - (* DSHPower *) admit.
-    - (* DSHLoop *) admit.
+    - (* DSHLoop *)
+      Opaque genWhileLoop.
+      Require Import Correctness_While.
+      rewrite DSHLoop_interpreted_as_tfor.
+      cbn* in *; simp.
+      rewrite add_comment_eutt.
+
+
+      (*
+        sub_alist
+       parameterized by some l_i
+       start from l_i \subseteqeq_[s1;s2] l1
+       end in l2 such that l2 | dom(l_i) ~~ l_i
+
+        I l --> l ⊑ l' --> I l'
+
+        forall l ⊑_[s1;s2] l',
+
+        eutt op c
+
+        gencode op s1 = (s2,c)
+
+        pre: dom(l_i) ∩ [s1;s2] = nil
+        {c}
+        post: dom(l_f) \ dom(l_i) ⊆ [s1;s2]
+
+       *)
+
+      assert (IN: In b0 (block_ids l)).
+      {
+        (* Prpoerty of genIR *)
+        admit.
+      }
+      assert (NOREPET: blk_id_norepet l0).
+      {
+        (* Prpoerty of genWhileLoop *)
+        admit.
+      }
+      assert (FRESH: fresh_in_cfg l0 nextblock). 
+      {
+        (* Property of? *)
+        admit.
+      }
+      assert (NOTOVER: Z.of_nat n < Integers.Int64.modulus).
+      {
+        (* Property of no_failure of the source semantics, annoying to work with *)
+        admit.
+      }
+      (* let (I := fun _ mH => *)
+ (* nat → config_helix_OT () → memoryV * (alist raw_id uvalue * global_env) → Prop *)
+      eapply eutt_mon; cycle 1.
+      eapply (genWhileLoop_tfor_correct IN NOREPET FRESH _ Heqs4 _ NOTOVER).
+      Unshelve.
+      15:{
+        refine (fun _ mh '(mv,(l,g)) =>
+                  match mh with
+                  | None => False
+                  | Some mh => state_invariant σ s1 b mh _
+                  end
+               ).
+
+        (*
+          DSHLoop 2 ()
+         *)
+
+      admit.
+
+      4: eassumption.
+      
+
     - (* DSHAlloc *) admit.
     - (* DSHMemInit *) admit.
     - (* DSHSeq *)
