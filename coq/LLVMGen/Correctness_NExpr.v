@@ -327,8 +327,8 @@ Section NExpr.
   Definition local_scoped_preserved (s1 s2 : IRState) (l1 : local_env) : local_env -> Prop :=
     fun l2 =>
       forall id,
-        alist_find id l2 <> alist_find id l1 ->
-        ~ lid_bound_between s1 s2 id.
+         lid_bound_between s1 s2 id ->
+         alist_find id l2 ≡ alist_find id l1.
 
   Definition Gamma_preserved σ s (l1 l2 : local_env) : Prop :=
     forall id, in_Gamma σ s id ->
@@ -412,6 +412,15 @@ Section NExpr.
       {m2 @ k ≡ m1 @ k} + {m2 @ k <> m1 @ k}.
   Admitted.
 
+  Lemma alist_find_add_eq : 
+    forall {K V : Type} {RD:RelDec (@Logic.eq K)} {RDC:RelDec_Correct RD}
+      k v (m : alist K V),
+      (alist_add k v m) @ k ≡ Some v.
+  Proof.
+    intros.
+    cbn. rewrite eq_dec_eq; reflexivity.
+  Qed.
+
   Lemma local_scoped_modif_empty_scope:
     forall (l1 l2 : local_env) id s,
       local_scoped_modif s s l1 l2 ->
@@ -467,12 +476,14 @@ Section NExpr.
 
         (* We establish the postcondition *)
         apply eutt_Ret; split; [| split]; cbn; eauto.
-        * intros l' VAR; cbn*.
+        * intros l' LOC GAM; cbn*.
           inv PRE.
           vstep.
           cbn.
-          erewrite local_scoped_modif_empty_scope; eauto.
+          red in GAM.
+          erewrite <- GAM.
           eapply memory_invariant_LLU; eauto.
+          econstructor;eauto.
           reflexivity.
         * intros * EQ; inv EQ.
           left.
@@ -497,15 +508,12 @@ Section NExpr.
         vstep; eauto; reflexivity.
         apply eutt_Ret; cbn; split; [| split]; cbn; eauto.
         * eapply state_invariant_add_fresh''; eauto.
-        * intros l' SCOPE; cbn*.
+        * intros l' LOC GAM; cbn*.
           vstep; [ | reflexivity].
           cbn.
-          rename r into boo.
-          clear -SAFE SCOPE
-
-          erewrite local_scoped_modif_out; eauto.
-          erewrite VAR; eauto.
-          rewrite eq_dec_eq; reflexivity.
+          red in LOC; rewrite LOC.
+          rewrite alist_find_add_eq; reflexivity.
+          eauto using lid_bound_between_incLocal.          
         * apply local_scoped_modif_add.
           auto using lid_bound_between_incLocal.
         * intros * EQ; inv EQ; right.
