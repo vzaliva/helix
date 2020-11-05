@@ -187,53 +187,128 @@ Section NExpr.
     - solve_fresh.
   Qed.
 
-  Variant state_invariant'' (σ : evalContext) (s1 s2 s : IRState) (li: local_env): memoryH -> config_cfg -> Prop :=
-  | mk_state_invariant' : forall mH mV l g
-                            (MINV : memory_invariant σ s mH (mV, (li, g)))
-                            (WF   : WF_IRState σ s)
-                            (EXT  : li ⊑ l)
-                            (FRESH: is_fresh s1 s2 li),
-      state_invariant'' σ s1 s2 s li mH (mV,(l,g)).
+  (* Variant state_invariant'' (σ : evalContext) (s1 s2 s : IRState) (li: local_env): memoryH -> config_cfg -> Prop := *)
+  (* | mk_state_invariant' : forall mH mV l g *)
+  (*                           (MINV : memory_invariant σ s mH (mV, (li, g))) *)
+  (*                           (WF   : WF_IRState σ s) *)
+  (*                           (EXT  : li ⊑ l) *)
+  (*                           (FRESH: is_fresh s1 s2 li), *)
+  (*     state_invariant'' σ s1 s2 s li mH (mV,(l,g)). *)
 
+  Variant in_Gamma : evalContext -> IRState -> raw_id -> Prop :=
+  | mk_in_Gamma : forall σ s id τ n v,
+      nth_error σ n ≡ Some v ->
+      nth_error (Γ s) n ≡ Some (ID_Local id,τ) ->
+      WF_IRState σ s ->
+      in_Gamma σ s id.
+
+  Variant state_invariant'' (σ : evalContext) (s : IRState): memoryH -> config_cfg -> Prop :=
+  | mk_state_invariant' : forall mH mV l g
+                            (MINV : memory_invariant σ s mH (mV, (l, g)))
+                            (WF   : WF_IRState σ s),
+                            (* (EXT  : li ⊑ l) *)
+                            (* (FRESH: is_fresh s1 s2 li), *)
+      state_invariant'' σ s mH (mV,(l,g)).
+
+  Lemma state_invariant_same_Γ :
+    ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
+      (l : local_env) (g : global_env) (v : uvalue),
+      Γ s1 ≡ Γ s2 ->
+      ~ in_Gamma σ s1 id →
+      state_invariant'' σ s1 memH (memV, (l, g)) →
+      state_invariant'' σ s2 memH (memV, (alist_add id v l, g)).
+  Proof.
+    intros * EQ NIN INV; inv INV.
+    constructor; auto.
+    - cbn; rewrite <- EQ.
+      intros * LUH LUV.
+      generalize LUV; intros INLG;
+        eapply MINV in INLG; eauto.
+      destruct v0; cbn in *; auto.
+      + destruct x; cbn in *; auto.
+        break_match_goal.
+        * rewrite rel_dec_correct in Heqb; subst.
+          exfalso; eapply NIN.
+          econstructor; eauto.
+        * apply neg_rel_dec_correct in Heqb.
+          rewrite remove_neq_alist; eauto.
+          all: typeclasses eauto.
+      + destruct x; cbn; auto.
+        break_match_goal.
+        * rewrite rel_dec_correct in Heqb; subst.
+          exfalso; eapply NIN.
+          econstructor; eauto.
+        * apply neg_rel_dec_correct in Heqb.
+          rewrite remove_neq_alist; eauto.
+          all: typeclasses eauto.
+      + destruct x; cbn in *; auto.
+        destruct INLG as (? & ? & ? & ? &?).
+        do 2 eexists; split; [| split]; eauto.
+        break_match_goal.
+        * rewrite rel_dec_correct in Heqb; subst.
+          exfalso; eapply NIN.
+          econstructor; eauto.
+        * apply neg_rel_dec_correct in Heqb.
+          rewrite remove_neq_alist; eauto.
+          all: typeclasses eauto.
+    - red; rewrite <- EQ; apply WF.
+  Qed.
+
+  Definition Gamma_safe σ (s1 s2 : IRState) : Prop :=
+    forall id, lid_bound_between s1 s2 id ->
+          ~ in_Gamma σ s1 id.
+
+  Lemma is_fresh_is_safe: forall s1 s2 σ memH memV l g,
+      state_invariant'' σ s1 memH (memV, (l,g)) ->
+      is_fresh s1 s2 l ->
+      Gamma_safe σ s1 s2.
+  Proof.
+    intros * INV FRESH; red; intros * BOUND ING.
+    inv ING.
+    inv INV.
+    eapply MINV in H; eapply H in H0; clear H MINV.
+    cbn in *.
+    destruct v.
+    eapply FRESH; eauto.
+    eapply FRESH; eauto.
+    destruct H0 as (? & ? & ? & ? & ?).
+    eapply FRESH; eauto.
+  Qed.
 
   Lemma state_invariant_add_fresh'' :
     ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
-      (li l : local_env) (g : global_env) (v : uvalue),
+      (l : local_env) (g : global_env) (v : uvalue),
       incLocal s1 ≡ inr (s2, id)
-      → state_invariant'' σ s1 s2 s1 li memH (memV, (l, g))
-      → state_invariant'' σ s1 s2 s2 li memH (memV, (alist_add id v l, g)).
+      -> Gamma_safe σ s1 s2
+      → state_invariant'' σ s1 memH (memV, (l, g))
+      → state_invariant'' σ s2 memH (memV, (alist_add id v l, g)).
   Proof.
-    intros * INC INV; inv INV.
-    constructor.
-    - red; intros * LUH LUV.
-      erewrite incLocal_Γ in LUV; eauto.
-      generalize LUV; intros INLG;
-        eapply MINV in INLG; eauto.
-    - unfold WF_IRState; erewrite incLocal_Γ; eauto; apply WF.
-    - apply sub_alist_add'; auto.
-      eapply is_fresh_alist_fresh; eauto.
-    - solve_fresh.
+    intros * INC SAFE INV.
+    eapply state_invariant_same_Γ; [| | eauto].
+    symmetry; eapply incLocal_Γ; eauto.
+    apply SAFE.
+    auto using lid_bound_between_incLocal.
   Qed.
 
   Lemma state_invariant_memory_invariant' :
-    forall σ s1 s2 s li mH mV l g,
-      state_invariant'' σ s1 s2 s li mH (mV,(l,g)) ->
-      memory_invariant σ s mH (mV,(li,g)).
+    forall σ s mH mV l g,
+      state_invariant'' σ s mH (mV,(l,g)) ->
+      memory_invariant σ s mH (mV,(l,g)).
   Proof.
     intros * H; inv H; auto.
   Qed.
   Hint Resolve state_invariant_memory_invariant' : core.
 
-  Lemma state_invariant_sub_alist' :
-    forall σ s1 s2 s li mH mV l g,
-      state_invariant'' σ s1 s2 s li mH (mV,(l,g)) ->
-      li ⊑ l.
-  Proof.
-    intros * H; inv H; auto.
-  Qed.
-  Hint Resolve state_invariant_sub_alist' : core.
+  (* Lemma state_invariant_sub_alist' : *)
+  (*   forall σ s1 s2 s li mH mV l g, *)
+  (*     state_invariant'' σ s mH (mV,(l,g)) -> *)
+  (*     li ⊑ l. *)
+  (* Proof. *)
+  (*   intros * H; inv H; auto. *)
+  (* Qed. *)
+  (* Hint Resolve state_invariant_sub_alist' : core. *)
 
-  Definition ext_local {R S} (e : exp typ) : config_helix -> config_cfg -> Rel_cfg_T R S :=
+  Definition ext_local {R S} (* (e : exp typ) *) : config_helix -> config_cfg -> Rel_cfg_T R S :=
     fun mh '(mi,(li,gi)) '(mh',_) '(m,(l,(g,_))) =>
       mh ≡ mh' /\ mi ≡ m /\ gi ≡ g.
       (* /\ (forall id, e ≡ EXP_Ident (ID_Local id) -> alist_find id l ≡ alist_find id li). *)
@@ -243,13 +318,30 @@ Section NExpr.
       (*   ~ alist_In id li v -> *)
       (*   lid_bound_between s1 s2 id). *)
 
-  Definition genNExpr_exp_correct (e: exp typ) (* (li : local_env) *)
-  : Rel_cfg_T DynamicValues.int64 unit :=
+  Definition local_scoped_modif (s1 s2 : IRState) (l1 : local_env) : local_env -> Prop :=
+    fun l2 =>
+      forall id,
+        alist_find id l2 <> alist_find id l1 ->
+        lid_bound_between s1 s2 id.
+
+  Definition local_scoped_preserved (s1 s2 : IRState) (l1 : local_env) : local_env -> Prop :=
+    fun l2 =>
+      forall id,
+        alist_find id l2 <> alist_find id l1 ->
+        ~ lid_bound_between s1 s2 id.
+
+  Definition Gamma_preserved σ s (l1 l2 : local_env) : Prop :=
+    forall id, in_Gamma σ s id ->
+          l1 @ id ≡ l2 @ id.
+
+  Definition genNExpr_exp_correct σ s1 s2 (e: exp typ) (* (li : local_env) *)
+    : Rel_cfg_T DynamicValues.int64 unit :=
     fun '(x,i) '(memV,(l,(g,v))) =>
       forall l',
+        local_scoped_preserved s1 s2 l l' ->
+        Gamma_preserved σ s1 l l' ->
         (* li ⊑ l' -> *)
-        (forall id, e ≡ EXP_Ident (ID_Local id) -> alist_find id l' ≡ alist_find id l)
-        ->
+        (* (forall id, e ≡ EXP_Ident (ID_Local id) -> alist_find id l' ≡ alist_find id l) *)
         interp_cfg
           (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] e)))
           g l' memV ≈
@@ -267,21 +359,15 @@ Section NExpr.
     eapply Nat.neq_succ_diag_r; eauto.
   Qed.
 
-  Lemma state_invariant_sub_alist_alist_add: forall s1 s2 s r σ li memH memV l g v,
-      incLocal s1 ≡ inr (s2,r) ->
-      state_invariant'' σ s1 s2 s li memH (memV, (l,g)) ->
-      li ⊑ alist_add r v l.
-  Proof.
-    intros * INC PRE; inv PRE.
-    apply sub_alist_add'; auto.
-    eapply is_fresh_alist_fresh; eauto.
-  Qed.
-
-  Definition local_scoped_modif (s1 s2 : IRState) (l1 : local_env) : local_env -> Prop :=
-    fun l2 =>
-      forall id,
-        alist_find id l2 <> alist_find id l1 ->
-        lid_bound_between s1 s2 id.
+  (* Lemma state_invariant_sub_alist_alist_add: forall s1 s2 s r σ li memH memV l g v, *)
+  (*     incLocal s1 ≡ inr (s2,r) -> *)
+  (*     state_invariant'' σ s1 s2 s li memH (memV, (l,g)) -> *)
+  (*     li ⊑ alist_add r v l. *)
+  (* Proof. *)
+  (*   intros * INC PRE; inv PRE. *)
+  (*   apply sub_alist_add'; auto. *)
+  (*   eapply is_fresh_alist_fresh; eauto. *)
+  (* Qed. *)
 
   (**
      We package the local specific invariants. Additionally to the evaluation of the resulting expression,
@@ -290,18 +376,17 @@ Section NExpr.
    *)
   Record genNExpr_post
          (e : exp typ)
-         (li : local_env)
-         s1 s2
+         (* (li : local_env) *)
+         σ s1 s2
          (mi : memoryH) (sti : config_cfg)
          (mf : memoryH * DynamicValues.int64) (stf : config_cfg_T unit)
     : Prop :=
     {
-    exp_correct' : genNExpr_exp_correct e (* li *) mf stf;
-    almost_pure : ext_local e mi sti mf stf; 
+    exp_correct' : genNExpr_exp_correct σ s1 s2 e (* li *) mf stf;
+    almost_pure : ext_local mi sti mf stf; 
     extends : local_scoped_modif s1 s2 (fst (snd sti)) (fst (snd stf));
-    exp_in_scope : forall id, e ≡ EXP_Ident (ID_Local id) ->
-                         ((exists v, alist_In id li v) \/ (lid_bound_between s1 s2 id /\ s1 << s2));
-    ext_li : li ⊑ (fst (snd stf))
+    exp_in_scope : forall id, e ≡ EXP_Ident (ID_Local id) -> ((exists v, alist_In id (fst (snd sti)) v) \/ (lid_bound_between s1 s2 id /\ s1 << s2));
+    Gamma_cst : Γ s2 ≡ Γ s1
     }.
 
   Set Nested Proofs Allowed.
@@ -327,6 +412,18 @@ Section NExpr.
       {m2 @ k ≡ m1 @ k} + {m2 @ k <> m1 @ k}.
   Admitted.
 
+  Lemma local_scoped_modif_empty_scope:
+    forall (l1 l2 : local_env) id s,
+      local_scoped_modif s s l1 l2 ->
+      l2 @ id ≡ l1 @ id.
+  Proof.
+    intros * SCOPE.
+    red in SCOPE.
+    edestruct @alist_find_eq_dec as [EQ | NEQ]; [| eassumption |]; [typeclasses eauto |].
+    exfalso; apply SCOPE in NEQ; clear SCOPE.
+    (* should be true *)
+  Admitted.
+
   Lemma local_scoped_modif_out:
     forall (l1 l2 : local_env) id s1 s2 s3,
       s1 << s2 ->
@@ -341,21 +438,21 @@ Section NExpr.
     (* should be true *)
   Admitted.
 
-
   Lemma genNExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH) 
-      (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (li l : local_env) (memV : memoryV),
+      (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) ((* li *) l : local_env) (memV : memoryV),
 
       genNExpr nexp s1 ≡ inr (s2, (e, c))      -> (* Compilation succeeds *)
-      (state_invariant'' σ s1 s2 s1 li) memH (memV, (l, g)) -> (* The main state invariant is initially true *)
+      (state_invariant'' σ s1) memH (memV, (l, g)) -> (* The main state invariant is initially true *)
+      Gamma_safe σ s1 s2 ->
       no_failure (interp_helix (E := E_cfg) (denoteNExpr σ nexp) memH) -> (* Source semantics defined *)
-      eutt (succ_cfg (lift_Rel_cfg (state_invariant'' σ s1 s2 s2 li) ⩕
-                     genNExpr_post e li s1 s2 memH (mk_config_cfg memV l g)))
+      eutt (succ_cfg (lift_Rel_cfg (state_invariant'' σ s2) ⩕
+                     genNExpr_post e (* li *) σ s1 s2 memH (mk_config_cfg memV l g)))
            (interp_helix (denoteNExpr σ nexp) memH)
            (interp_cfg (denote_code (convert_typ [] c)) g l memV).
   Proof.
-    intros s1 s2 nexp; revert s1 s2; induction nexp; intros * COMPILE PRE NOFAIL.
+    intros s1 s2 nexp; revert s1 s2; induction nexp; intros * COMPILE PRE SAFE NOFAIL.
     - (* Variable case *)
       (* Reducing the successful compilation *)
       cbn* in COMPILE; simp.
@@ -374,7 +471,7 @@ Section NExpr.
           inv PRE.
           vstep.
           cbn.
-          rewrite VAR; auto.
+          erewrite local_scoped_modif_empty_scope; eauto.
           eapply memory_invariant_LLU; eauto.
           reflexivity.
         * intros * EQ; inv EQ.
@@ -399,16 +496,22 @@ Section NExpr.
         vstep.
         vstep; eauto; reflexivity.
         apply eutt_Ret; cbn; split; [| split]; cbn; eauto.
-        * apply state_invariant_add_fresh''; auto.
-        * intros l' VAR; cbn*.
+        * eapply state_invariant_add_fresh''; eauto.
+        * intros l' SCOPE; cbn*.
           vstep; [ | reflexivity].
-          cbn; erewrite VAR; eauto.
+          cbn.
+          rename r into boo.
+          clear -SAFE SCOPE
+
+          erewrite local_scoped_modif_out; eauto.
+          erewrite VAR; eauto.
           rewrite eq_dec_eq; reflexivity.
         * apply local_scoped_modif_add.
           auto using lid_bound_between_incLocal.
         * intros * EQ; inv EQ; right.
           split; [auto using lid_bound_between_incLocal | solve_local_count].
-        * eapply state_invariant_sub_alist_alist_add; eauto.
+        * eauto using incLocal_Γ.
+          (* eapply state_invariant_sub_alist_alist_add; eauto. *)
         (* eapply incLocal_ineq; eauto. *)
 
         (* * intuition. *)
@@ -442,34 +545,36 @@ Section NExpr.
       rename i into s2, i0 into s3, s2 into s4.
       clean_goal.
 
-      specialize (IHnexp1 _ _ σ memH _ _ g li l memV Heqs).
+      specialize (IHnexp1 _ _ σ memH _ _ g l memV Heqs).
       forward IHnexp1.
       { inv PRE; split; auto.
-        solve_fresh.
+        (* solve_fresh. *)
       }
+      forward IHnexp1; eauto. admit.
       forward IHnexp1; eauto.
      
       (* e1 *)
       eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp1].
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      destruct PRE0 as (PRE1 & [EXP1 EXT1 SCOPE1 VAR1 EXTI1]).
+      destruct PRE0 as (PRE1 & [EXP1 EXT1 SCOPE1 VAR1 GAM1]).
       cbn* in *; inv_eqs.
       (* rename H into VAR1. *)
       hvred.
 
       (* e2 *)
-      specialize (IHnexp2 _ _ σ memH _ _ g li l0 memV Heqs0).
+      specialize (IHnexp2 _ _ σ memH _ _ g l0 memV Heqs0).
       forward IHnexp2.
       {
         clean_goal.
         inv PRE; inv PRE1.
         constructor; auto.
-        eapply is_fresh_shrink with (1 := FRESH). 
-        solve_local_count.
-        solve_local_count.
+        (* eapply is_fresh_shrink with (1 := FRESH).  *)
+        (* solve_local_count. *)
+        (* solve_local_count. *)
       }
-      forward IHnexp2; eauto.
+      forward IHnexp2; eauto. admit.
+      forward IHnexp2; eauto. 
 
       eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp2].
       introR; destruct_unit.
@@ -511,7 +616,7 @@ Section NExpr.
       }
 
       apply eutt_Ret; cbn; split; [| split]; cbn; eauto.
-      + admit.
+      + admit. 
       + intros * VAREQ.
         specialize (VAREQ r eq_refl); rewrite eq_dec_eq in VAREQ.
         vstep; eauto; reflexivity.
@@ -525,7 +630,14 @@ Section NExpr.
         (* apply sub_alist_add. *)
         (* eapply freshness_pre_alist_fresh; eauto. *)
         (* solve_fresh. *)
-        
+
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+(*
     - (* NMod *)
       cbn* in *; simp; try_abs.
       hvred.
@@ -724,63 +836,65 @@ Section NExpr.
       (* Non-implemented by the compiler *)
       inversion COMPILE.
   Qed.
+ *)
+  Admitted.
 
 End NExpr.
 
-Definition genNExpr_exp_correct (σ : evalContext) (s : IRState) (e: exp typ)
-  : Rel_cfg_T DynamicValues.int64 unit :=
-  fun '(memH,i) '(memV,(l,(g,v))) => 
-    eutt Logic.eq 
-         (interp_cfg
-            (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] e)))
-            g l memV)
-         (Ret (memV,(l,(g,UVALUE_I64 i)))).
+(* Definition genNExpr_exp_correct (σ : evalContext) (s : IRState) (e: exp typ) *)
+(*   : Rel_cfg_T DynamicValues.int64 unit := *)
+(*   fun '(memH,i) '(memV,(l,(g,v))) =>  *)
+(*     eutt Logic.eq  *)
+(*          (interp_cfg *)
+(*             (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] e))) *)
+(*             g l memV) *)
+(*          (Ret (memV,(l,(g,UVALUE_I64 i)))). *)
 
-Lemma genNExpr_correct :
-  forall (* Compiler bits *) (s1 s2: IRState)
-    (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH) 
-    (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV),
+(* Lemma genNExpr_correct : *)
+(*   forall (* Compiler bits *) (s1 s2: IRState) *)
+(*     (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH)  *)
+(*     (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV), *)
 
-    genNExpr nexp s1 ≡ inr (s2, (e, c))      -> (* Compilation succeeds *)
-    (state_invariant_pre σ s1 s2) memH (memV, (l, g)) -> (* The main state invariant is initially true *)
-    no_failure (interp_helix (E := E_cfg) (denoteNExpr σ nexp) memH) -> (* Source semantics defined *)
-    eutt (succ_cfg
-            (lift_Rel_cfg (state_invariant_post σ s1 s2 l) ⩕
-                          genNExpr_exp_correct σ s2 e ⩕
-                          ext_local memH (memV,(l,g)))
-         )
-         (interp_helix (denoteNExpr σ nexp) memH)
-         (interp_cfg (denote_code (convert_typ [] c)) g l memV).
-Proof.
-  intros.
-  eapply eutt_mon; cycle -1.
-  eapply genNExpr_correct_ind; eauto.
-  intros [(? & ?) |] (? & ? & ? & []) INV; [destruct INV as ((SI & ?) & EXP & ?) | inv INV].
-  cbn in *.
-  specialize (EXP l0).
-  forward EXP; [reflexivity |].
-  split; auto.
-  split; auto.
-  split; auto.
-Qed.
+(*     genNExpr nexp s1 ≡ inr (s2, (e, c))      -> (* Compilation succeeds *) *)
+(*     (state_invariant_pre σ s1 s2) memH (memV, (l, g)) -> (* The main state invariant is initially true *) *)
+(*     no_failure (interp_helix (E := E_cfg) (denoteNExpr σ nexp) memH) -> (* Source semantics defined *) *)
+(*     eutt (succ_cfg *)
+(*             (lift_Rel_cfg (state_invariant_post σ s1 s2 l) ⩕ *)
+(*                           genNExpr_exp_correct σ s2 e ⩕ *)
+(*                           ext_local memH (memV,(l,g))) *)
+(*          ) *)
+(*          (interp_helix (denoteNExpr σ nexp) memH) *)
+(*          (interp_cfg (denote_code (convert_typ [] c)) g l memV). *)
+(* Proof. *)
+(*   intros. *)
+(*   eapply eutt_mon; cycle -1. *)
+(*   eapply genNExpr_correct_ind; eauto. *)
+(*   intros [(? & ?) |] (? & ? & ? & []) INV; [destruct INV as ((SI & ?) & EXP & ?) | inv INV]. *)
+(*   cbn in *. *)
+(*   specialize (EXP l0). *)
+(*   forward EXP; [reflexivity |]. *)
+(*   split; auto. *)
+(*   split; auto. *)
+(*   split; auto. *)
+(* Qed. *)
 
-Opaque incBlockNamed.
-Opaque incVoid.
-Opaque incLocal.
+(* Opaque incBlockNamed. *)
+(* Opaque incVoid. *)
+(* Opaque incLocal. *)
 
-Lemma state_invariant_genNExpr :
-  ∀ (n : NExpr) (σ : evalContext) (s s' : IRState) (ec : exp typ * code typ) (memH : memoryH) (stV : config_cfg),
-    genNExpr n s ≡ inr (s', ec) → state_invariant σ s memH stV → state_invariant σ s' memH stV.
-Proof.
-  induction n;
-    intros σ s s' ec memH stV GEN SINV;
-    cbn in GEN; simp;
-      repeat
-        match goal with
-        | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
-          destruct (nth_error (Γ s1) n) eqn:FIND; inversion H; subst
-        end;
-      auto; try solve_state_invariant.
-Qed.
+(* Lemma state_invariant_genNExpr : *)
+(*   ∀ (n : NExpr) (σ : evalContext) (s s' : IRState) (ec : exp typ * code typ) (memH : memoryH) (stV : config_cfg), *)
+(*     genNExpr n s ≡ inr (s', ec) → state_invariant σ s memH stV → state_invariant σ s' memH stV. *)
+(* Proof. *)
+(*   induction n; *)
+(*     intros σ s s' ec memH stV GEN SINV; *)
+(*     cbn in GEN; simp; *)
+(*       repeat *)
+(*         match goal with *)
+(*         | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ => *)
+(*           destruct (nth_error (Γ s1) n) eqn:FIND; inversion H; subst *)
+(*         end; *)
+(*       auto; try solve_state_invariant. *)
+(* Qed. *)
 
-Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_genNExpr; [eassumption | solve_state_invariant] : SolveStateInv.
+(* Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_genNExpr; [eassumption | solve_state_invariant] : SolveStateInv. *)
