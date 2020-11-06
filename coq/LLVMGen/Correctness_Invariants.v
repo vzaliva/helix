@@ -173,7 +173,10 @@ Section SimulationRelations.
 
   Definition mem_lookup_succeeds bk size :=
     forall i, 0 <= i /\ i < MInt64asNT.to_nat size -> exists v, mem_lookup i bk ≡ Some v.
-  
+
+  Definition no_pointer_aliasing (σ : evalContext) (n ptr : nat) : Prop :=
+    (forall n' sz, nth_error σ n' ≡ Some (DSHPtrVal ptr sz) -> n' ≡ n).
+
   (* Main memory invariant. Relies on Helix's evaluation context and the [IRState] built by the compiler.
      At any indices, the value and ident/types respectively found are related in that:
      - integers and floats have their translation in the appropriate VIR environment;
@@ -188,6 +191,7 @@ Section SimulationRelations.
         | DSHnatVal v   => in_local_or_global_scalar ρ g mem_llvm x (dvalue_of_int v) τ
         | DSHCTypeVal v => in_local_or_global_scalar ρ g mem_llvm x (dvalue_of_bin v) τ
         | DSHPtrVal ptr_helix ptr_size_helix =>
+          no_pointer_aliasing σ n ptr_helix /\
           exists bk_helix ptr_llvm,
           memory_lookup mem_helix ptr_helix ≡ Some bk_helix /\
           mem_lookup_succeeds bk_helix ptr_size_helix /\
@@ -261,6 +265,7 @@ Section SimulationRelations.
       memory_invariant σ s memH (memV, (l, g)) ->
       nth_error (Γ s) v ≡ Some (ID_Local id, t) ->
       nth_error σ v ≡ Some (DSHPtrVal m size) ->
+      no_pointer_aliasing σ v m /\
       exists (bk_h : mem_block) (ptr_v : Addr.addr),
         memory_lookup memH m ≡ Some bk_h
         /\ mem_lookup_succeeds bk_h size
@@ -397,6 +402,7 @@ Section Ext_Local.
     eapply in_local_or_global_scalar_ext_local; eauto.
     eapply in_local_or_global_scalar_ext_local; eauto.
     repeat destruct MEM_INV as (? & MEM_INV).
+    split; eauto.
     do 3 eexists; splits; eauto.
     eapply in_local_or_global_addr_ext_local; eauto.
   Qed.
@@ -532,6 +538,7 @@ Proof.
       eapply freshness_fresh; eauto using incLocal_lt.
     + subst.
       repeat destruct INLG as [? INLG].
+      split; eauto.
       do 3 eexists; splits; eauto.
       { apply incLocal_Γ in INC; rewrite INC in *. eauto. }
       eapply in_local_or_global_addr_add_fresh_old; eauto.

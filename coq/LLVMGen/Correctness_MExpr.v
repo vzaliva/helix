@@ -35,6 +35,7 @@ Section MExpr.
       state_invariant σ s memH (memV, (l, g)) ->
       nth_error σ vid ≡ Some (DSHPtrVal a size) ->
       nth_error (Γ s) vid ≡ Some (x, TYPE_Pointer (TYPE_Array sz TYPE_Double)) ->
+      no_pointer_aliasing σ vid a /\
       ∃ (bk_helix : mem_block) (ptr_llvm : Addr.addr),
         memory_lookup memH a ≡ Some bk_helix
         /\ mem_lookup_succeeds bk_helix size
@@ -67,7 +68,7 @@ Section MExpr.
     unfold denoteMExpr, denotePExpr in *; cbn* in *.
     simp; try_abs.
     hvred.
-    edestruct memory_invariant_Ptr as (bkH & ptrV & Mem_LU & MEM & FITS & INLG & EQ); eauto.
+    edestruct memory_invariant_Ptr as (NOALIAS & bkH & ptrV & Mem_LU & MEM & FITS & INLG & EQ); eauto.
     hstep.
     solve_lu.
     hvred.

@@ -489,7 +489,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
       (* Question 1: is [vx_p] global, local, or can be either? *)
       (* We access in memory vx_p[e] *)
-      edestruct memory_invariant_Ptr as (membk & ptr & LU & MEM_SUC & FITS & INLG & GETCELL); [| eauto | eauto |]; eauto.
+      edestruct memory_invariant_Ptr as (NOALIAS & membk & ptr & LU & MEM_SUC & FITS & INLG & GETCELL); [| eauto | eauto |]; eauto.
       clear FITS.
 
       rewrite LU in H; symmetry in H; inv H.
@@ -518,7 +518,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
         destruct vy_p as [vy_p | vy_p].
         { (* vy_p in global *)
-          edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yMEM_SUC & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |].
+          edestruct memory_invariant_Ptr as (yNOALIAS & ymembk & yptr & yLU & yMEM_SUC & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |].
 
           clean_goal.
           rewrite yLU in H0; symmetry in H0; inv H0.
@@ -527,10 +527,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
           (* TODO: clean this up *)
           unfold mem_lookup_succeeds in yMEM_SUC.
           edestruct (yMEM_SUC (MInt64asNT.to_nat dst)).
-          split.
-          admit.
-          admit. (* True by Heqb *)
-
+          apply Nat.ltb_lt in Heqb. lia.
 
           edestruct denote_instr_gep_array as (yptr' & yREAD & yEQ); cycle -1; [rewrite yEQ; clear yEQ | ..]; cycle 1.
           { vstep; solve_lu.
@@ -668,10 +665,11 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
                 destruct v0. (* Probably need to use WF_IRState to make sure we only consider valid types *)
                 admit.
                 admit.
-                destruct H4 as (bk_h & ptr_l & MINV). (* Do I need this? *)
+                destruct H4 as (yNOALIAS' & bk_h & ptr_l & MINV). (* Do I need this? *)
                 destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
                 - (* PTR aliases *)
                   subst; cbn.
+                  split; auto.
                   (* TODO: Opaque mem_lookup / mem_add and make lemmas for this... *)
                   exists (mem_add (MInt64asNT.to_nat dst) v ymembk).
                   rewrite Memory.NM.Raw.Proofs.add_find.
@@ -698,35 +696,73 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
                          Can I use WF_IRState to solve this?
                        *)
 
-                      (* TODO: make this a lemma *)
-                      unfold WF_IRState, evalContext_typechecks in IRState_is_WF.
-                      pose proof (IRState_is_WF _ _ H0) as (id_blah & blah).
-                      cbn in blah.
-                      rewrite H3 in blah.
-                      destruct id_blah; inversion blah.
+                      Set Nested Proofs Allowed.
+                      Lemma mem_lookup_mem_add_neq :
+                        forall x y v bk,
+                          x ≢ y ->
+                          mem_lookup x (mem_add y v bk) ≡ mem_lookup x bk.
+                      Proof.
+                        intros x y v bk H.
+                        cbn.
+                        rewrite Memory.NM.Raw.Proofs.add_find.
+                        assert (match OrderedTypeEx.Nat_as_OT.compare x y with
+                                | OrderedType.EQ _ => Some v
+                                | _ => Memory.NM.Raw.find x (Memory.NM.this bk)
+                                end ≡ Memory.NM.Raw.find x (Memory.NM.this bk)) by admit.
+                        setoid_rewrite H0.
+                        reflexivity.
+                        admit.
+                      Admitted.
 
-                      pose proof (IRState_is_WF _ _ Heqo0) as (id_blah2 & blah2).
-                      cbn in blah2.
+                      rewrite mem_lookup_mem_add_neq; eauto.
+                      eapply H5.
 
-                      assert (Γ si ≡ Γ sf) by admit.
-                      rewrite H6 in *.
+                      (* TODO: make lemma for this... *)
+                      Lemma ptr_alias_eq :
+                        forall σ n1 n2 sz2 p,
+                          no_pointer_aliasing σ n1 p ->
+                          nth_error σ n2 ≡ Some (DSHPtrVal p sz2) ->
+                          n1 ≡ n2.
+                      Proof.
+                        intros σ n1 n2 sz2 p H N2.
+                        unfold no_pointer_aliasing in H.
+                        apply H in N2.
+                        auto.
+                      Qed.
 
-                      rewrite LUn0 in blah2.
-                      destruct id_blah2; inversion blah2.
+                      Lemma ptr_alias_size_eq :
+                        forall σ n1 n2 sz1 sz2 p,
+                          no_pointer_aliasing σ n1 p ->
+                          nth_error σ n1 ≡ Some (DSHPtrVal p sz1) ->
+                          nth_error σ n2 ≡ Some (DSHPtrVal p sz2) ->
+                          sz1 ≡ sz2.
+                      Proof.
+                        intros σ n1 n2 sz1 sz2 p H N1 N2.
+                        unfold no_pointer_aliasing in H.
+                        pose proof (H _ _ N2); subst.
+                        rewrite N1 in N2; inversion N2.
+                        auto.
+                      Qed.
 
-                      cbn in blah2.
-                      cbn in blah.
-
+                      assert (size1 ≡ size0) by (eapply ptr_alias_size_eq; eauto).
                       subst.
-                      admit. (* Might be bogus *)
-
+                      lia.
                   }
                   split.
                   { admit. (* should hold, if I wrote to ptr_l it still fits... *)
+
+                    (* Might get rid of this anyway. *)
                   }
                   split.
-                  { admit.
+                  { (* Might need to get cases for id earlier... *)
+                    assert (id ?[ Logic.eq ] r0 ≡ false) by admit.
+                    rewrite H4.
+                    assert (negb (r0 ?[ Logic.eq ] r1) ≡ true) by admit. (* this just holds *)
+                    rewrite H5.
 
+                    (* What if id == r1?
+                       
+                     *)
                   }
                   admit.
                   admit.
