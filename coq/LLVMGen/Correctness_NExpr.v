@@ -318,13 +318,13 @@ Section NExpr.
       (*   ~ alist_In id li v -> *)
       (*   lid_bound_between s1 s2 id). *)
 
-  Definition local_scoped_modif (s1 s2 : IRState) (l1 : local_env) : local_env -> Prop :=
+  Definition local_scope_modif (s1 s2 : IRState) (l1 : local_env) : local_env -> Prop :=
     fun l2 =>
       forall id,
         alist_find id l2 <> alist_find id l1 ->
         lid_bound_between s1 s2 id.
 
-  Definition local_scoped_preserved (s1 s2 : IRState) (l1 : local_env) : local_env -> Prop :=
+  Definition local_scope_preserved (s1 s2 : IRState) (l1 : local_env) : local_env -> Prop :=
     fun l2 =>
       forall id,
          lid_bound_between s1 s2 id ->
@@ -338,7 +338,7 @@ Section NExpr.
     : Rel_cfg_T DynamicValues.int64 unit :=
     fun '(x,i) '(memV,(l,(g,v))) =>
       forall l',
-        local_scoped_preserved s1 s2 l l' ->
+        local_scope_preserved s1 s2 l l' ->
         Gamma_preserved σ s1 l l' ->
         (* li ⊑ l' -> *)
         (* (forall id, e ≡ EXP_Ident (ID_Local id) -> alist_find id l' ≡ alist_find id l) *)
@@ -384,19 +384,19 @@ Section NExpr.
     {
     exp_correct' : genNExpr_exp_correct σ s1 s2 e (* li *) mf stf;
     almost_pure : ext_local mi sti mf stf; 
-    extends : local_scoped_modif s1 s2 (fst (snd sti)) (fst (snd stf));
+    extends : local_scope_modif s1 s2 (fst (snd sti)) (fst (snd stf));
     exp_in_scope : forall id, e ≡ EXP_Ident (ID_Local id) -> ((exists v, alist_In id (fst (snd sti)) v) \/ (lid_bound_between s1 s2 id /\ s1 << s2));
     Gamma_cst : Γ s2 ≡ Γ s1
     }.
 
   Set Nested Proofs Allowed.
-  Lemma local_scoped_modif_refl: forall s1 s2 l, local_scoped_modif s1 s2 l l.
+  Lemma local_scope_modif_refl: forall s1 s2 l, local_scope_modif s1 s2 l l.
   Admitted.
-  Hint Resolve local_scoped_modif_refl: core.
+  Hint Resolve local_scope_modif_refl: core.
 
-  Lemma local_scoped_modif_add: forall s1 s2 l r v,
+  Lemma local_scope_modif_add: forall s1 s2 l r v,
       lid_bound_between s1 s2 r ->   
-      local_scoped_modif s1 s2 l (alist_add r v l).
+      local_scope_modif s1 s2 l (alist_add r v l).
   Admitted.
 
   Lemma sub_alist_alist_find_in :
@@ -421,9 +421,9 @@ Section NExpr.
     cbn. rewrite eq_dec_eq; reflexivity.
   Qed.
 
-  Lemma local_scoped_modif_empty_scope:
+  Lemma local_scope_modif_empty_scope:
     forall (l1 l2 : local_env) id s,
-      local_scoped_modif s s l1 l2 ->
+      local_scope_modif s s l1 l2 ->
       l2 @ id ≡ l1 @ id.
   Proof.
     intros * SCOPE.
@@ -433,11 +433,11 @@ Section NExpr.
     (* should be true *)
   Admitted.
 
-  Lemma local_scoped_modif_out:
+  Lemma local_scope_modif_out:
     forall (l1 l2 : local_env) id s1 s2 s3,
       s1 << s2 ->
       lid_bound_between s1 s2 id ->
-      local_scoped_modif s2 s3 l1 l2 ->
+      local_scope_modif s2 s3 l1 l2 ->
       l2 @ id ≡ l1 @ id.
   Proof.
     intros * LT BOUND SCOPE.
@@ -446,6 +446,132 @@ Section NExpr.
     exfalso; apply SCOPE in NEQ; clear SCOPE.
     (* should be true *)
   Admitted.
+
+  Lemma local_scope_preserved_refl : forall s1 s2 l,
+      local_scope_preserved s1 s2 l l.
+  Proof.
+    intros; red; intros; reflexivity.
+  Qed.
+
+  Lemma Gamma_preserved_refl : forall s1 s2 l,
+      Gamma_preserved s1 s2 l l.
+  Proof.
+    intros; red; intros; reflexivity.
+  Qed.
+
+  Lemma Gamma_safe_shrink : forall σ s1 s2 s3 s4,
+      Gamma_safe σ s1 s4 ->
+      Γ s1 ≡ Γ s2 ->
+      s1 <<= s2 ->
+      s3 <<= s4 ->
+      Gamma_safe σ s2 s3.
+  Proof.
+    unfold Gamma_safe; intros * SAFE EQ LE1 LE2 * (? & s & s' & ? & ? & ? & ?) IN.
+    apply SAFE with id.
+    exists x, s, s'.
+    repeat split; eauto.
+    solve_local_count.
+    solve_local_count.
+    inv IN.
+    econstructor.
+    eauto.
+    rewrite EQ; eauto.
+    eapply WF_IRState_Γ; eauto.
+  Qed.
+
+  Lemma local_scope_preserve_modif:
+    forall s1 s2 s3 l1 l2,
+      s2 <<= s3 ->
+      local_scope_modif s2 s3 l1 l2 ->
+      local_scope_preserved s1 s2 l1 l2. 
+  Proof.
+    intros * LE MOD.
+    red. intros * BOUND.
+    red in MOD.
+    edestruct @alist_find_eq_dec as [EQ | NEQ]; [| eassumption |]; [typeclasses eauto |].
+    apply MOD in NEQ.
+    admit.
+    (* This is a contradiction, to prove *)
+  Admitted.
+
+  Lemma in_Gamma_Gamma_eq:
+    forall σ s1 s2 id,
+      Γ s1 ≡ Γ s2 ->
+      in_Gamma σ s1 id ->
+      in_Gamma σ s2 id.
+  Proof.
+    intros * EQ IN; inv IN; econstructor; eauto.
+    rewrite <- EQ; eauto.
+    eapply WF_IRState_Γ; eauto.
+  Qed.
+
+  Lemma Gamma_preserved_Gamma_eq:
+    forall σ s1 s2 l1 l2,
+      Γ s1 ≡ Γ s2 ->
+      Gamma_preserved σ s1 l1 l2 ->
+      Gamma_preserved σ s2 l1 l2.
+  Proof.
+    unfold Gamma_preserved. intros * EQ PRE * IN.
+    apply PRE.
+    eauto using in_Gamma_Gamma_eq.
+  Qed.
+
+  Lemma Gamma_preserved_if_safe :
+    forall σ s1 s2 l1 l2,
+      Gamma_safe σ s1 s2 ->
+      local_scope_modif s1 s2 l1 l2 ->
+      Gamma_preserved σ s1 l1 l2.
+  Proof.
+    intros * GS L.
+    red.
+    intros ? IN.
+    red in GS.
+    red in L.
+    edestruct @alist_find_eq_dec as [EQ | NEQ]; [| eassumption |]; [typeclasses eauto |].
+    exfalso; eapply GS; eauto.
+  Qed.
+
+  Lemma lid_bound_between_shrink_down :
+    forall s1 s2 s3 id,
+      s1 <<= s2 ->
+      lid_bound_between s2 s3 id ->
+      lid_bound_between s1 s3 id.
+  Proof.
+    intros * LE (? & ? & ? & ? & ? & ? & ?).
+    do 3 eexists.
+    repeat split; eauto.
+    solve_local_count.
+  Qed.
+
+  Lemma lid_bound_between_shrink_up :
+    forall s1 s2 s3 id,
+      s2 <<= s3 ->
+      lid_bound_between s1 s2 id ->
+      lid_bound_between s1 s3 id.
+  Proof.
+    intros * EQ (? & s & s' & ? & ? & ? & ?).
+    do 3 eexists.
+    repeat split; eauto.
+    solve_local_count.
+  Qed.
+
+  Lemma local_scope_modif_trans :
+    forall s1 s2 s3 l1 l2 l3,
+      s1 <<= s2 ->
+      s2 <<= s3 ->
+      local_scope_modif s1 s2 l1 l2 ->
+      local_scope_modif s2 s3 l2 l3 ->
+      local_scope_modif s1 s3 l1 l3.
+  Proof.
+    unfold local_scope_modif; intros * LE1 LE2 MOD1 MOD2 * INEQ.
+    destruct (alist_find_eq_dec id l1 l2) as [EQ | NEQ].
+    - destruct (alist_find_eq_dec id l2 l3) as [EQ' | NEQ'].
+      + contradiction INEQ; rewrite <- EQ; auto.
+      + apply MOD2 in NEQ'.
+        eauto using lid_bound_between_shrink_down.
+    - apply MOD1 in NEQ.
+      eauto using lid_bound_between_shrink_up.
+  Qed.
 
   Lemma genNExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
@@ -514,7 +640,7 @@ Section NExpr.
           red in LOC; rewrite LOC.
           rewrite alist_find_add_eq; reflexivity.
           eauto using lid_bound_between_incLocal.          
-        * apply local_scoped_modif_add.
+        * apply local_scope_modif_add.
           auto using lid_bound_between_incLocal.
         * intros * EQ; inv EQ; right.
           split; [auto using lid_bound_between_incLocal | solve_local_count].
@@ -558,7 +684,8 @@ Section NExpr.
       { inv PRE; split; auto.
         (* solve_fresh. *)
       }
-      forward IHnexp1; eauto. admit.
+      forward IHnexp1; eauto.
+      eapply Gamma_safe_shrink; eauto; solve_local_count.
       forward IHnexp1; eauto.
      
       (* e1 *)
@@ -581,13 +708,15 @@ Section NExpr.
         (* solve_local_count. *)
         (* solve_local_count. *)
       }
-      forward IHnexp2; eauto. admit.
+
+      forward IHnexp2; eauto.
+      eapply Gamma_safe_shrink; eauto; solve_local_count.
       forward IHnexp2; eauto. 
 
       eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp2].
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      destruct PRE0 as (PRE2 & [EXP2 EXT2 SCOPE2 VAR2 EXTI2]).
+      destruct PRE0 as (PRE2 & [EXP2 EXT2 SCOPE2 VAR2 GAM2]).
       cbn* in *; inv_eqs.
       (* rename H into VAR2. *)
 
@@ -597,18 +726,20 @@ Section NExpr.
 
       specialize (EXP1 l1) .
       specialize (EXP2 l1) .
-      forward EXP2; [intros; reflexivity |].
+      forward EXP2.
+      auto using local_scope_preserved_refl.
+      forward EXP2.
+      auto using Gamma_preserved_refl.
       forward EXP1.
       {
-        clear EXP1 EXP2.
-        clean_goal.
-        intros * EQE.
-        apply VAR1 in EQE.
-        destruct EQE as [[?v IN] | [BOUND LT]].
-        erewrite sub_alist_alist_find_in; [| eauto | eauto].
-        erewrite (@sub_alist_alist_find_in l0); [| eauto | eauto]; reflexivity.
-        clear n Heqd NOFAIL VAR1 VAR2.
-        eapply local_scoped_modif_out; eauto.
+        eapply local_scope_preserve_modif; eauto.
+        solve_local_count.
+      }
+      forward EXP1.
+      {
+        apply Gamma_preserved_Gamma_eq with s2; auto.
+        eapply Gamma_preserved_if_safe; eauto.
+        eapply Gamma_safe_shrink; eauto; solve_local_count.
       }
 
       hvred.
@@ -624,20 +755,28 @@ Section NExpr.
       }
 
       apply eutt_Ret; cbn; split; [| split]; cbn; eauto.
-      + admit. 
-      + intros * VAREQ.
-        specialize (VAREQ r eq_refl); rewrite eq_dec_eq in VAREQ.
-        vstep; eauto; reflexivity.
-      + admit.
-      + admit.
-      + admit.
-        (* intros ? MONO; cbn. *)
-        (* vstep; solve_lu; reflexivity. *)
-        (* etransitivity; eauto. *)
-        (* etransitivity; eauto. *)
-        (* apply sub_alist_add. *)
-        (* eapply freshness_pre_alist_fresh; eauto. *)
-        (* solve_fresh. *)
+      + eapply state_invariant_add_fresh''; eauto.
+        eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
+        solve_local_count.
+        solve_local_count.
+      + intros * SCO GAM.
+        vstep; eauto.
+        cbn.
+        erewrite SCO,alist_find_add_eq.
+        reflexivity.
+        apply lid_bound_between_shrink_down with s3.
+        solve_local_count.
+        eapply lid_bound_between_incLocal; eauto.
+        reflexivity.
+      + eapply local_scope_modif_trans; eauto; [solve_local_count | solve_local_count |].
+        eapply local_scope_modif_trans; eauto; [solve_local_count | solve_local_count |].
+        eauto using local_scope_modif_add, lid_bound_between_incLocal.
+      + intros ? EQ; inv EQ.
+        right; split; [| solve_local_count].
+        apply lid_bound_between_shrink_down with s3; [solve_local_count |].
+        eauto using lid_bound_between_incLocal.
+      + rewrite <- GAM1, <- GAM2.
+        eapply incLocal_Γ; eauto.
 
     - admit.
     - admit.
