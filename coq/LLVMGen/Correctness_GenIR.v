@@ -489,14 +489,15 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
       (* Question 1: is [vx_p] global, local, or can be either? *)
       (* We access in memory vx_p[e] *)
-      edestruct memory_invariant_Ptr as (membk & ptr & LU & INLG & GETCELL); [| eauto | eauto |]; eauto.
+      edestruct memory_invariant_Ptr as (membk & ptr & LU & MEM_SUC & FITS & INLG & GETCELL); [| eauto | eauto |]; eauto.
+      clear FITS.
 
       rewrite LU in H; symmetry in H; inv H.
       specialize (GETCELL _ _ Heqo1).
       clean_goal.
       (* I find some pointer either in the local or global environment *)
       destruct vx_p as [vx_p | vx_p]; cbn in INLG.
-      {
+      { (* vx_p is in local environment *)
         edestruct denote_instr_gep_array as (ptr' & READ & EQ); cycle -1; [rewrite EQ; clear EQ | ..]; cycle 1.
         3: apply GETCELL.
         { vstep; solve_lu; reflexivity. }
@@ -516,23 +517,21 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         hide_cont.
 
         destruct vy_p as [vy_p | vy_p].
-        {
-          edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |].
-          assert (allocated yptr memV) as ALLOC by admit.
-          assert (allocated yptr memV) as ALLOC' by admit.
-          epose proof (write_array_exists _ _ _ _ _ _ ALLOC).
-          destruct H as (addr & HANDLE & WRITE).
+        { (* vy_p in global *)
+          edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yMEM_SUC & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |].
 
           clean_goal.
           rewrite yLU in H0; symmetry in H0; inv H0.
           cbn in yINLG.
-          (* How do we know that ymembk is allocated? *)
-        (*      yGETCELL does not contain any information here. *)
-        (*    *)
-          (* Oooh we don't, we're using [gep] but not for reading a cell here? *)
-        (*      Not true though, the cell must be allocated, we are about to write in it. *)
-        (*      We need another lemma about [OP_GetElementPtr] then. *)
-        (*    *)
+
+          (* TODO: clean this up *)
+          unfold mem_lookup_succeeds in yMEM_SUC.
+          edestruct (yMEM_SUC (MInt64asNT.to_nat dst)).
+          split.
+          admit.
+          admit. (* True by Heqb *)
+
+
           edestruct denote_instr_gep_array as (yptr' & yREAD & yEQ); cycle -1; [rewrite yEQ; clear yEQ | ..]; cycle 1.
           { vstep; solve_lu.
             cbn; reflexivity.
@@ -540,18 +539,22 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
           { rewrite EXP2.
             2:{ cbn. etransitivity. apply sub_alist_add.
                 2: apply sub_alist_add.
-                admit. admit.
+                admit. admit. (* These should hold *)
             }
             replace (repr (Z.of_nat (MInt64asNT.to_nat dst))) with dst by admit.
             cbn; reflexivity.
           }
-          eapply yGETCELL.
-          admit.
+
+          eapply yGETCELL; eauto.
 
           vstep.
           subst_cont.
           vred.
 
+          epose proof (@read_write_succeeds memV yptr' _ _ (DVALUE_Double v) yREAD) as (memV2 & WRITE_SUCCEEDS).
+          constructor.
+
+          (* Store *)
           erewrite denote_instr_store; eauto.
           2: {
             vstep.
@@ -594,20 +597,291 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
               reflexivity.
           }
 
+          2: {
+            cbn. reflexivity.
+          }
+
           1: {
             vstep.
             rewrite denote_term_br_1.
             vstep.
-            admit.
-          }
-          admit.
-          admit.
-          
-        }
-        admit.
-      }
-      admit.
+            rewrite denote_bks_unfold_not_in.
+            2: {
+              (* TODO: Add a subst_cfg *)
+              destruct VG; subst.
+              cbn.
 
+              unfold find_block.
+              cbn.
+              assert (bid_in ≢ nextblock) by admit.
+              assert ((if Eqv.eqv_dec_p bid_in nextblock then true else false) ≡ false) as BID_NEQ by admit.
+              rewrite BID_NEQ.
+              reflexivity.
+            }
+            
+            vstep.
+
+            apply eutt_Ret.
+            cbn.
+            split; cbn.
+            split; cbn; eauto.
+            - (* State invariant *)
+              cbn.
+              split; eauto.
+              destruct INV2.
+              cbn.
+              intros n1 v0 τ x0 H0 H3.
+              cbn in mem_is_inv.
+              pose proof (mem_is_inv n1 v0 τ x0 H0 H3).
+
+              (* TODO: can probably turn this into a lemma *)
+              (* All depends on whether x0 == r, r1, or r0 *)
+              destruct x0.
+              { (* x0 is a global *)
+
+                (* I should know that r, r1, and r0 are all used as local variables...
+
+                   So if x0 is a global, it can't equal any of these...
+                 *)
+                (* assert ({id ≡ r0} + {id ≢ r0}) as [IDR0 | NIDR0] by apply rel_dec_p. *)
+                (* - subst. cbn. *)
+                (*   destruct v0. *)
+                (*   cbn in H4. *)
+
+                (* assert ({id ≡ r} + {id ≢ r}) as [IDR | NIDR] by apply rel_dec_p. *)
+                (* - subst. cbn. *)
+                (*   destruct v0; cbn; auto. *)
+                (*   + unfold in_local_or_global_scalar in H4. *)
+                (*     destruct H4. destruct H4. *)
+                (*     exists x0. exists x1. *)
+                (*     cbn in H4. *)
+                (*     destruct H4, H5. *)
+                (*     repeat (split; auto). *)
+
+                (*     destruct x0. *)
+                (*     cbn. *)
+
+                (*     (* This means that this pointer (z, z0) has to be separate from yptr'... *) *)
+                admit.
+              }
+              { (* x0 is a local *)
+                destruct v0. (* Probably need to use WF_IRState to make sure we only consider valid types *)
+                admit.
+                admit.
+                destruct H4 as (bk_h & ptr_l & MINV). (* Do I need this? *)
+                destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
+                - (* PTR aliases *)
+                  subst; cbn.
+                  (* TODO: Opaque mem_lookup / mem_add and make lemmas for this... *)
+                  exists (mem_add (MInt64asNT.to_nat dst) v ymembk).
+                  rewrite Memory.NM.Raw.Proofs.add_find.
+                  esplit.
+                  esplit.
+                  admit.
+                  split.
+                  { unfold mem_lookup_succeeds.
+                    intros i H4.
+                    destruct (NPeano.Nat.eq_dec i (MInt64asNT.to_nat dst)) as [EQia | NEQia].
+                    - subst.
+                      exists v. cbn.
+                      rewrite Memory.NM.Raw.Proofs.add_find.
+                      admit.
+                      admit.
+                    - (* Use yMEM_SUC *)
+                      epose proof (yMEM_SUC i).
+
+                      (* I do know that 
+
+                         H0 : nth_error σ n1 ≡ Some (DSHPtrVal y_i size1)
+                         Heqo0 : nth_error σ y_p ≡ Some (DSHPtrVal y_i size0)
+
+                         Can I use WF_IRState to solve this?
+                       *)
+
+                      (* TODO: make this a lemma *)
+                      unfold WF_IRState, evalContext_typechecks in IRState_is_WF.
+                      pose proof (IRState_is_WF _ _ H0) as (id_blah & blah).
+                      cbn in blah.
+                      rewrite H3 in blah.
+                      destruct id_blah; inversion blah.
+
+                      pose proof (IRState_is_WF _ _ Heqo0) as (id_blah2 & blah2).
+                      cbn in blah2.
+
+                      assert (Γ si ≡ Γ sf) by admit.
+                      rewrite H6 in *.
+
+                      rewrite LUn0 in blah2.
+                      destruct id_blah2; inversion blah2.
+
+                      cbn in blah2.
+                      cbn in blah.
+
+                      subst.
+                      admit. (* Might be bogus *)
+
+                  }
+                  split.
+                  { admit. (* should hold, if I wrote to ptr_l it still fits... *)
+                  }
+                  split.
+                  { admit.
+
+                  }
+                  admit.
+                  admit.
+                - (* PTR doesn't alias *)
+                  exists bk_h. eexists.
+                  rewrite Memory.NM.Raw.Proofs.add_find.
+                  assert ((match OrderedTypeEx.Nat_as_OT.compare a y_i with
+                          | OrderedType.EQ _ => Some (mem_add (MInt64asNT.to_nat dst) v ymembk)
+                          | _ => Memory.NM.Raw.find a (Memory.NM.this memH)
+                          end) ≡ (Memory.NM.Raw.find a (Memory.NM.this memH))) by admit.
+                  setoid_rewrite H4.
+                  cbn.
+                  split.
+                  apply MINV.
+                  split; try apply MINV.
+                  split; try apply MINV.
+                  admit.
+
+                  split.
+                
+                assert ({id ≡ r0} + {id ≢ r0}) as [IDR0 | NIDR0] by apply rel_dec_p.
+                - subst.
+                  epose proof (WF_IRState_one_of_local_type _ _ H3 H0).
+                  destruct H5 as [T | [T | T]]; subst.
+                  destruct v0.
+                  cbn in *.
+                  cbn.
+
+                  assert (r0 ≡ r0) as EQ by auto.
+                  eapply rel_dec_eq_true in EQ.
+                  rewrite EQ.
+
+                  (* Need to get a contradiction here *)
+                  
+              }
+              destruct (Ident.eq_dec x0 r).
+              admit.
+            - (* freshness_post *)
+              cbn.
+              admit.
+          }
+        }
+
+        { (* vy_p in local *)
+          edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |].
+
+          clean_goal.
+          rewrite yLU in H0; symmetry in H0; inv H0.
+          cbn in yINLG.
+
+          edestruct denote_instr_gep_array as (yptr' & yREAD & yEQ); cycle -1; [rewrite yEQ; clear yEQ | ..]; cycle 1.
+          { vstep; solve_lu.
+            admit. (* ugh *)
+          }
+          { rewrite EXP2.
+            2:{ cbn. etransitivity. apply sub_alist_add.
+                2: apply sub_alist_add.
+                admit. admit. (* These should hold *)
+            }
+            replace (repr (Z.of_nat (MInt64asNT.to_nat dst))) with dst by admit.
+            cbn; reflexivity.
+          }
+          eapply yGETCELL.
+          admit. (* Should be true because dst < size *)
+
+          vstep.
+          subst_cont.
+          vred.
+
+          epose proof (@read_write_succeeds memV yptr' _ _ (DVALUE_Double v) yREAD) as (memV2 & WRITE_SUCCEEDS).
+          constructor.
+
+          (* Store *)
+          erewrite denote_instr_store; eauto.
+          2: {
+            vstep.
+            - cbn.
+
+              (* TODO: automate? *)
+              assert (r1 ≢ r0) as NEQ by admit.
+              assert (r0 ≢ r1) as NEQ' by auto.
+              apply eq_dec_neq in NEQ.
+              apply eq_dec_neq in NEQ'.
+              rewrite NEQ, NEQ'.
+              cbn.
+
+              assert (r1 ≡ r1) as EQ by auto.
+              eapply rel_dec_eq_true in EQ.
+
+              rewrite EQ.
+              reflexivity.
+              apply RelDec_Correct_eq_typ.
+            - cbn.
+              apply eqit_Ret.
+              cbn.
+              reflexivity.
+          }
+
+          2: {
+            vstep.
+            - cbn.
+
+              (* TODO: automate? *)
+              assert (r0 ≡ r0) as EQ by auto.
+              eapply rel_dec_eq_true in EQ.
+
+              rewrite EQ.
+              reflexivity.
+              apply RelDec_Correct_eq_typ.
+            - cbn.
+              apply eqit_Ret.
+              cbn.
+              reflexivity.
+          }
+
+          2: {
+            cbn. reflexivity.
+          }
+
+          1: {
+            vstep.
+            rewrite denote_term_br_1.
+            vstep.
+            rewrite denote_bks_unfold_not_in.
+            2: {
+              (* TODO: Add a subst_cfg *)
+              destruct VG; subst.
+              cbn.
+
+              unfold find_block.
+              cbn.
+              assert (bid_in ≢ nextblock) by admit.
+              assert ((if Eqv.eqv_dec_p bid_in nextblock then true else false) ≡ false) by admit.
+              rewrite H0.
+              reflexivity.
+            }
+            
+            vstep.
+
+            apply eutt_Ret.
+            cbn.
+            split; cbn.
+            split; cbn; eauto.
+            - cbn.
+              admit.
+            - cbn.
+              admit.
+          }
+        }
+        Unshelve.
+        all:admit.
+      }
+
+      (* vx_p is in global environment, should be largely the same. *)
+      admit.
     -
       Opaque genWhileLoop.
       cbn* in *.

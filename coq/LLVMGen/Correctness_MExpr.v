@@ -37,10 +37,12 @@ Section MExpr.
       nth_error (Γ s) vid ≡ Some (x, TYPE_Pointer (TYPE_Array sz TYPE_Double)) ->
       ∃ (bk_helix : mem_block) (ptr_llvm : Addr.addr),
         memory_lookup memH a ≡ Some bk_helix
+        /\ mem_lookup_succeeds bk_helix size
+        ∧ dtyp_fits memV ptr_llvm (typ_to_dtyp (Γ s) (TYPE_Pointer (TYPE_Array sz TYPE_Double)))
         ∧ in_local_or_global_addr l g x ptr_llvm
         ∧ (∀ (i : Memory.NM.key) (v : binary64), mem_lookup i bk_helix ≡ Some v → get_array_cell memV ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v)).
   Proof.
-    intros * [MEM _] LU1 LU2; eapply MEM in LU1; eapply LU1 in LU2; eauto.
+    intros * [MEM _] LU1 LU2; eapply MEM in LU1; eapply LU1 in LU2; eauto.    
   Qed.
 
   Lemma genMExpr_correct :
@@ -65,7 +67,7 @@ Section MExpr.
     unfold denoteMExpr, denotePExpr in *; cbn* in *.
     simp; try_abs.
     hvred.
-    edestruct memory_invariant_Ptr as (bkH & ptrV & Mem_LU & LUV & EQ); eauto.
+    edestruct memory_invariant_Ptr as (bkH & ptrV & Mem_LU & MEM & FITS & INLG & EQ); eauto.
     hstep.
     solve_lu.
     hvred.
@@ -73,7 +75,7 @@ Section MExpr.
     solve_fresh.
     eexists; split; eauto.
     break_match_goal; cbn.
-    all:vstep; eauto; reflexivity.
+    all: vstep; eauto; reflexivity.
   Qed.
 
   Lemma genMExpr_array : forall {s1 s2 m e c t},

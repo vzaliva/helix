@@ -171,6 +171,9 @@ Section SimulationRelations.
        | ID_Global x => g @ x ≡ Some (DVALUE_Addr a)
        end.
 
+  Definition mem_lookup_succeeds bk size :=
+    forall i, 0 <= i /\ i < MInt64asNT.to_nat size -> exists v, mem_lookup i bk ≡ Some v.
+  
   (* Main memory invariant. Relies on Helix's evaluation context and the [IRState] built by the compiler.
      At any indices, the value and ident/types respectively found are related in that:
      - integers and floats have their translation in the appropriate VIR environment;
@@ -187,6 +190,8 @@ Section SimulationRelations.
         | DSHPtrVal ptr_helix ptr_size_helix =>
           exists bk_helix ptr_llvm,
           memory_lookup mem_helix ptr_helix ≡ Some bk_helix /\
+          mem_lookup_succeeds bk_helix ptr_size_helix /\
+          dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp (Γ s) τ) /\ (* TODO: might not need this *)
           in_local_or_global_addr ρ g x ptr_llvm /\
           (forall i v, mem_lookup i bk_helix ≡ Some v ->
                   get_array_cell mem_llvm ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v))
@@ -258,6 +263,8 @@ Section SimulationRelations.
       nth_error σ v ≡ Some (DSHPtrVal m size) ->
       exists (bk_h : mem_block) (ptr_v : Addr.addr),
         memory_lookup memH m ≡ Some bk_h
+        /\ mem_lookup_succeeds bk_h size
+        /\ dtyp_fits memV ptr_v (typ_to_dtyp (Γ s) t)
         /\ in_local_or_global_addr l g (ID_Local id) ptr_v
         /\ (forall (i : Memory.NM.key) (v : binary64),
               mem_lookup i bk_h ≡ Some v -> get_array_cell memV ptr_v i DTYPE_Double ≡ inr (UVALUE_Double v)).
@@ -526,6 +533,7 @@ Proof.
     + subst.
       repeat destruct INLG as [? INLG].
       do 3 eexists; splits; eauto.
+      { apply incLocal_Γ in INC; rewrite INC in *. eauto. }
       eapply in_local_or_global_addr_add_fresh_old; eauto.
       eapply fresh_no_lu_addr; eauto.
       eapply freshness_fresh; eauto using incLocal_lt.
@@ -556,7 +564,7 @@ Proof.
   intros * INC [MEM_INV WF].
   split.
   - red; repeat break_let; intros * LUH LUV.
-    erewrite incVoid_Γ in LUV; eauto.
+    apply incVoid_Γ in INC; rewrite INC in *.
     generalize LUV; intros INLG;
       eapply MEM_INV in INLG; eauto.
   - unfold WF_IRState; erewrite incVoid_Γ; eauto; apply WF.
@@ -571,7 +579,7 @@ Proof.
   intros * INC [MEM_INV WF].
   split.
   - red; repeat break_let; intros * LUH LUV.
-    erewrite incLocal_Γ in LUV; eauto.
+    apply incLocal_Γ in INC; rewrite INC in *.
     generalize LUV; intros INLG;
       eapply MEM_INV in INLG; eauto.
   - unfold WF_IRState; erewrite incLocal_Γ; eauto; apply WF.
@@ -594,7 +602,7 @@ Proof.
   intros * INC [MEM_INV WF].
   split.
   - red; repeat break_let; intros * LUH LUV.
-    erewrite incLocalNamed_Γ in LUV; eauto.
+    apply incLocalNamed_Γ in INC; rewrite INC in *.
     generalize LUV; intros INLG;
       eapply MEM_INV in INLG; eauto. 
   - unfold WF_IRState; erewrite incLocalNamed_Γ; eauto; apply WF.
@@ -609,7 +617,7 @@ Proof.
   intros * INC [MEM_INV WF].
   split.
   - red; repeat break_let; intros * LUH LUV.
-    erewrite incBlockNamed_Γ in LUV; eauto.
+    apply incBlockNamed_Γ in INC; rewrite INC in *.
     generalize LUV; intros INLG;
       eapply MEM_INV in INLG; eauto.
   - unfold WF_IRState; erewrite incBlockNamed_Γ; eauto; apply WF.
@@ -658,4 +666,3 @@ Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eass
 
 Definition state_invariant_pre σ s1 s2 := (state_invariant σ s1 ⩕ fresh_pre s1 s2).
 Definition state_invariant_post σ s1 s2 l := (state_invariant σ s2 ⩕ fresh_post s1 s2 l).
-
