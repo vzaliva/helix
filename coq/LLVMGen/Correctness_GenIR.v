@@ -331,7 +331,12 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     | h: visible_cont _ |- _ =>
       destruct h; subst
     end.
-  
+
+  Opaque mem_lookup.
+  Opaque mem_add.
+  Opaque memory_lookup.
+  Opaque memory_set.
+
   Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
       (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH) 
@@ -618,6 +623,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
             
             vstep.
 
+            assert (Γ sf ≡ Γ si) as CONT by admit. (* This should hold *)
+            
             apply eutt_Ret.
             cbn.
             split; cbn.
@@ -626,7 +633,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
               cbn.
               split; eauto.
               destruct INV2.
-              cbn.
+              unfold memory_invariant.
               intros n1 v0 τ x0 H0 H3.
               cbn in mem_is_inv.
               pose proof (mem_is_inv n1 v0 τ x0 H0 H3).
@@ -635,7 +642,11 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
               (* All depends on whether x0 == r, r1, or r0 *)
               destruct x0.
               { (* x0 is a global *)
-
+                destruct v0.
+                admit.
+                admit.
+                destruct H4 as (yNOALIAS' & bk_h & ptr_l & MINV).
+                split; eauto.
                 (* I should know that r, r1, and r0 are all used as local variables...
 
                    So if x0 is a global, it can't equal any of these...
@@ -667,139 +678,140 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
                 admit.
                 destruct H4 as (yNOALIAS' & bk_h & ptr_l & MINV). (* Do I need this? *)
                 destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
-                - (* PTR aliases *)
-                  subst; cbn.
-                  split; auto.
-                  (* TODO: Opaque mem_lookup / mem_add and make lemmas for this... *)
-                  exists (mem_add (MInt64asNT.to_nat dst) v ymembk).
-                  rewrite Memory.NM.Raw.Proofs.add_find.
-                  esplit.
-                  esplit.
-                  admit.
-                  split.
-                  { unfold mem_lookup_succeeds.
-                    intros i H4.
-                    destruct (NPeano.Nat.eq_dec i (MInt64asNT.to_nat dst)) as [EQia | NEQia].
-                    - subst.
-                      exists v. cbn.
-                      rewrite Memory.NM.Raw.Proofs.add_find.
-                      admit.
-                      admit.
-                    - (* Use yMEM_SUC *)
-                      epose proof (yMEM_SUC i).
-
-                      (* I do know that 
-
-                         H0 : nth_error σ n1 ≡ Some (DSHPtrVal y_i size1)
-                         Heqo0 : nth_error σ y_p ≡ Some (DSHPtrVal y_i size0)
-
-                         Can I use WF_IRState to solve this?
-                       *)
-
-                      Set Nested Proofs Allowed.
-                      Lemma mem_lookup_mem_add_neq :
-                        forall x y v bk,
-                          x ≢ y ->
-                          mem_lookup x (mem_add y v bk) ≡ mem_lookup x bk.
-                      Proof.
-                        intros x y v bk H.
-                        cbn.
-                        rewrite Memory.NM.Raw.Proofs.add_find.
-                        assert (match OrderedTypeEx.Nat_as_OT.compare x y with
-                                | OrderedType.EQ _ => Some v
-                                | _ => Memory.NM.Raw.find x (Memory.NM.this bk)
-                                end ≡ Memory.NM.Raw.find x (Memory.NM.this bk)) by admit.
-                        setoid_rewrite H0.
-                        reflexivity.
-                        admit.
-                      Admitted.
-
-                      rewrite mem_lookup_mem_add_neq; eauto.
-                      eapply H5.
-
-                      (* TODO: make lemma for this... *)
-                      Lemma ptr_alias_eq :
-                        forall σ n1 n2 sz2 p,
-                          no_pointer_aliasing σ n1 p ->
-                          nth_error σ n2 ≡ Some (DSHPtrVal p sz2) ->
-                          n1 ≡ n2.
-                      Proof.
-                        intros σ n1 n2 sz2 p H N2.
-                        unfold no_pointer_aliasing in H.
-                        apply H in N2.
-                        auto.
-                      Qed.
-
-                      Lemma ptr_alias_size_eq :
-                        forall σ n1 n2 sz1 sz2 p,
-                          no_pointer_aliasing σ n1 p ->
-                          nth_error σ n1 ≡ Some (DSHPtrVal p sz1) ->
-                          nth_error σ n2 ≡ Some (DSHPtrVal p sz2) ->
-                          sz1 ≡ sz2.
-                      Proof.
-                        intros σ n1 n2 sz1 sz2 p H N1 N2.
-                        unfold no_pointer_aliasing in H.
-                        pose proof (H _ _ N2); subst.
-                        rewrite N1 in N2; inversion N2.
-                        auto.
-                      Qed.
-
-                      assert (size1 ≡ size0) by (eapply ptr_alias_size_eq; eauto).
-                      subst.
-                      lia.
-                  }
-                  split.
-                  { admit. (* should hold, if I wrote to ptr_l it still fits... *)
-
-                    (* Might get rid of this anyway. *)
-                  }
-                  split.
-                  { (* Might need to get cases for id earlier... *)
-                    assert (id ?[ Logic.eq ] r0 ≡ false) by admit.
-                    rewrite H4.
-                    assert (negb (r0 ?[ Logic.eq ] r1) ≡ true) by admit. (* this just holds *)
-                    rewrite H5.
-
-                    (* What if id == r1?
-                       
-                     *)
-                  }
-                  admit.
-                  admit.
-                - (* PTR doesn't alias *)
-                  exists bk_h. eexists.
-                  rewrite Memory.NM.Raw.Proofs.add_find.
-                  assert ((match OrderedTypeEx.Nat_as_OT.compare a y_i with
-                          | OrderedType.EQ _ => Some (mem_add (MInt64asNT.to_nat dst) v ymembk)
-                          | _ => Memory.NM.Raw.find a (Memory.NM.this memH)
-                          end) ≡ (Memory.NM.Raw.find a (Memory.NM.this memH))) by admit.
-                  setoid_rewrite H4.
-                  cbn.
-                  split.
-                  apply MINV.
-                  split; try apply MINV.
-                  split; try apply MINV.
-                  admit.
-
-                  split.
-                
-                assert ({id ≡ r0} + {id ≢ r0}) as [IDR0 | NIDR0] by apply rel_dec_p.
-                - subst.
-                  epose proof (WF_IRState_one_of_local_type _ _ H3 H0).
-                  destruct H5 as [T | [T | T]]; subst.
-                  destruct v0.
-                  cbn in *.
-                  cbn.
-
-                  assert (r0 ≡ r0) as EQ by auto.
-                  eapply rel_dec_eq_true in EQ.
-                  rewrite EQ.
-
-                  (* Need to get a contradiction here *)
+                - (* PTR aliases, local case should be bogus... *)
+                  Set Nested Proofs Allowed.
+                  Lemma mem_lookup_mem_add_neq :
+                    forall x y v bk,
+                      x ≢ y ->
+                      mem_lookup x (mem_add y v bk) ≡ mem_lookup x bk.
+                  Proof.
+                    intros x y v bk H.
+                    Transparent mem_lookup mem_add.
+                    cbn.
+                    Opaque mem_lookup mem_add.
+                    rewrite Memory.NM.Raw.Proofs.add_find.
+                    assert (match OrderedTypeEx.Nat_as_OT.compare x y with
+                            | OrderedType.EQ _ => Some v
+                            | _ => Memory.NM.Raw.find x (Memory.NM.this bk)
+                            end ≡ Memory.NM.Raw.find x (Memory.NM.this bk)) by admit.
+                    setoid_rewrite H0.
+                    reflexivity.
+                    admit.
+                  Admitted.
                   
+
+                  Lemma ptr_alias_eq :
+                    forall σ n1 n2 sz2 p,
+                      no_pointer_aliasing σ n1 p ->
+                      nth_error σ n2 ≡ Some (DSHPtrVal p sz2) ->
+                      n1 ≡ n2.
+                  Proof.
+                    intros σ n1 n2 sz2 p H N2.
+                    unfold no_pointer_aliasing in H.
+                    apply H in N2.
+                    auto.
+                  Qed.
+
+                  Lemma ptr_alias_size_eq :
+                    forall σ n1 n2 sz1 sz2 p,
+                      no_pointer_aliasing σ n1 p ->
+                      nth_error σ n1 ≡ Some (DSHPtrVal p sz1) ->
+                      nth_error σ n2 ≡ Some (DSHPtrVal p sz2) ->
+                      sz1 ≡ sz2.
+                  Proof.
+                    intros σ n1 n2 sz1 sz2 p H N1 N2.
+                    unfold no_pointer_aliasing in H.
+                    pose proof (H _ _ N2); subst.
+                    rewrite N1 in N2; inversion N2.
+                    auto.
+                  Qed.
+
+                  subst.
+                  pose proof (ptr_alias_eq _ yNOALIAS H0); subst.
+                  rewrite <- CONT in LUn0. rewrite LUn0 in H3.
+                  inversion H3.
+                - (* This is the branch where a and y_i don't
+                     alias. These are the DSHPtrVal pointers...
+
+                     DSHPtrVal a size1 corresponds to %id, which must be a local id.
+
+                     I need to show the memory invariant holds.
+
+                     - y_i points to ymembk
+                     - a points to bk_h
+
+                     no_pointer_aliasing is a given.
+
+                     We should say that there exists bk_h and ptr_l.
+
+                     The memory_lookup case should hold because we
+                     don't care about the memory_set operation because
+                     a <> y_i
+
+                     mem_lookup_succeeds is as before.
+
+                     dtyp_fits should hold because the write shouldn't
+                     change the block for ptr_l at all (no aliasing).
+                     
+                     I need in_local_or_global_addr to hold, meaning I can find
+
+                     l1 @ id = Some ptr_l
+
+                     If id is in l0 then this follows from freshness and the old MINV.
+
+                     Otherwise, there's actually a contradiction with
+                     MINV's in_local_or_global_addr... Because id
+                     would not be in l0.
+                   *)
+
+                  split; eauto.
+
+                  Lemma memory_lookup_memory_set_neq :
+                    forall m x y bk,
+                      x ≢ y ->
+                      memory_lookup (memory_set m x bk) y ≡ memory_lookup m y.
+                  Proof.
+                    intros m x y bk H.
+                    admit.
+                  Admitted.
+
+                  destruct MINV as (MLUP & MSUC & FITS & INLG' & GET).
+                  pose proof alist_In_dec id l0.
+                  edestruct H4 as [INl0 | NINl0].
+                  + subst.
+                    cbn.                  
+                    exists bk_h. exists ptr'.
+                    
+                    rewrite memory_lookup_memory_set_neq; auto.
+                    repeat (split; auto).
+                    * admit. (* should hold might not need *)
+                    * (* This should all hold from the fact that id is
+                       in l0 and everything is fresh... *)
+                      assert (id ?[ Logic.eq ] r0 ≡ false) as IDR0 by admit.
+                      rewrite IDR0.
+                      assert (negb (r0 ?[ Logic.eq ] r1) ≡ true) as R0R1 by admit.
+                      rewrite R0R1.
+                      cbn.
+                      assert (id ?[ Logic.eq ] r1 ≡ false) as IDR1 by admit.
+                      rewrite IDR1.
+                      cbn.
+                      assert (negb (r1 ?[ Logic.eq ] r) ≡ true) as R1R by admit.
+                      rewrite R1R.
+                      cbn.
+                      assert (negb (r0 ?[ Logic.eq ] r) ≡ true) as R0R by admit.
+                      rewrite R0R.
+                      cbn.
+                      assert (id ?[ Logic.eq ] r ≡ true) as IDR by admit.
+                      rewrite IDR.
+                      reflexivity.
+                    * intros i v0 H5.
+                      pose proof (GET i v0 H5).
+                      (* untouched part of memory, so this should hold *)
+                      admit.
+                  + cbn in INLG'.
+                    exfalso.
+                    apply NINl0. eauto.
               }
-              destruct (Ident.eq_dec x0 r).
-              admit.
             - (* freshness_post *)
               cbn.
               admit.
