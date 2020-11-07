@@ -332,10 +332,41 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       destruct h; subst
     end.
 
+  (* TODO: Move? *)
   Opaque mem_lookup.
   Opaque mem_add.
   Opaque memory_lookup.
   Opaque memory_set.
+
+  (* TODO: Move? *)
+  Lemma mem_lookup_mem_add_neq :
+    forall x y v bk,
+      x ≢ y ->
+      mem_lookup x (mem_add y v bk) ≡ mem_lookup x bk.
+  Proof.
+    intros x y v bk H.
+    Transparent mem_lookup mem_add.
+    cbn.
+    Opaque mem_lookup mem_add.
+    rewrite Memory.NM.Raw.Proofs.add_find.
+    assert (match OrderedTypeEx.Nat_as_OT.compare x y with
+            | OrderedType.EQ _ => Some v
+            | _ => Memory.NM.Raw.find x (Memory.NM.this bk)
+            end ≡ Memory.NM.Raw.find x (Memory.NM.this bk)) by admit.
+    setoid_rewrite H0.
+    reflexivity.
+    admit.
+  Admitted.
+
+  (* TODO: Move? *)
+  Lemma memory_lookup_memory_set_neq :
+    forall m x y bk,
+      x ≢ y ->
+      memory_lookup (memory_set m x bk) y ≡ memory_lookup m y.
+  Proof.
+    intros m x y bk H.
+    admit.
+  Admitted.
 
   Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
@@ -507,8 +538,14 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         3: apply GETCELL.
         { vstep; solve_lu; reflexivity. }
         { rewrite EXP1; auto.
-          replace (repr (Z.of_nat (MInt64asNT.to_nat src))) with src by admit.
+          replace (repr (Z.of_nat (MInt64asNT.to_nat src))) with src.
           cbn; reflexivity.
+
+          cbn.
+          unfold MInt64asNT.to_nat.
+          cbn.
+          rewrite Znat.Z2Nat.id, repr_intval; auto.
+          destruct (Int64.intrange src); lia.
         }
         clear EXP1.
         clean_goal.
@@ -543,8 +580,9 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
                 2: apply sub_alist_add.
                 admit. admit. (* These should hold *)
             }
-            replace (repr (Z.of_nat (MInt64asNT.to_nat dst))) with dst by admit.
+            replace (repr (Z.of_nat (MInt64asNT.to_nat dst))) with dst.
             cbn; reflexivity.
+            
           }
 
           eapply yGETCELL; eauto.
@@ -679,53 +717,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
                 destruct H4 as (yNOALIAS' & bk_h & ptr_l & MINV). (* Do I need this? *)
                 destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
                 - (* PTR aliases, local case should be bogus... *)
-                  Set Nested Proofs Allowed.
-                  Lemma mem_lookup_mem_add_neq :
-                    forall x y v bk,
-                      x ≢ y ->
-                      mem_lookup x (mem_add y v bk) ≡ mem_lookup x bk.
-                  Proof.
-                    intros x y v bk H.
-                    Transparent mem_lookup mem_add.
-                    cbn.
-                    Opaque mem_lookup mem_add.
-                    rewrite Memory.NM.Raw.Proofs.add_find.
-                    assert (match OrderedTypeEx.Nat_as_OT.compare x y with
-                            | OrderedType.EQ _ => Some v
-                            | _ => Memory.NM.Raw.find x (Memory.NM.this bk)
-                            end ≡ Memory.NM.Raw.find x (Memory.NM.this bk)) by admit.
-                    setoid_rewrite H0.
-                    reflexivity.
-                    admit.
-                  Admitted.
-                  
-
-                  Lemma ptr_alias_eq :
-                    forall σ n1 n2 sz2 p,
-                      no_pointer_aliasing σ n1 p ->
-                      nth_error σ n2 ≡ Some (DSHPtrVal p sz2) ->
-                      n1 ≡ n2.
-                  Proof.
-                    intros σ n1 n2 sz2 p H N2.
-                    unfold no_pointer_aliasing in H.
-                    apply H in N2.
-                    auto.
-                  Qed.
-
-                  Lemma ptr_alias_size_eq :
-                    forall σ n1 n2 sz1 sz2 p,
-                      no_pointer_aliasing σ n1 p ->
-                      nth_error σ n1 ≡ Some (DSHPtrVal p sz1) ->
-                      nth_error σ n2 ≡ Some (DSHPtrVal p sz2) ->
-                      sz1 ≡ sz2.
-                  Proof.
-                    intros σ n1 n2 sz1 sz2 p H N1 N2.
-                    unfold no_pointer_aliasing in H.
-                    pose proof (H _ _ N2); subst.
-                    rewrite N1 in N2; inversion N2.
-                    auto.
-                  Qed.
-
                   subst.
                   pose proof (ptr_alias_eq _ yNOALIAS H0); subst.
                   rewrite <- CONT in LUn0. rewrite LUn0 in H3.
@@ -765,16 +756,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
                    *)
 
                   split; eauto.
-
-                  Lemma memory_lookup_memory_set_neq :
-                    forall m x y bk,
-                      x ≢ y ->
-                      memory_lookup (memory_set m x bk) y ≡ memory_lookup m y.
-                  Proof.
-                    intros m x y bk H.
-                    admit.
-                  Admitted.
-
                   destruct MINV as (MLUP & MSUC & FITS & INLG' & GET).
                   pose proof alist_In_dec id l0.
                   edestruct H4 as [INl0 | NINl0].
@@ -787,6 +768,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
                     * admit. (* should hold might not need *)
                     * (* This should all hold from the fact that id is
                        in l0 and everything is fresh... *)
+
+                      (* This is hideous *)
                       assert (id ?[ Logic.eq ] r0 ≡ false) as IDR0 by admit.
                       rewrite IDR0.
                       assert (negb (r0 ?[ Logic.eq ] r1) ≡ true) as R0R1 by admit.

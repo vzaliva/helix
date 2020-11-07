@@ -279,6 +279,32 @@ Section SimulationRelations.
     auto.
   Qed.
 
+  Lemma ptr_alias_eq :
+    forall σ n1 n2 sz2 p,
+      no_pointer_aliasing σ n1 p ->
+      nth_error σ n2 ≡ Some (DSHPtrVal p sz2) ->
+      n1 ≡ n2.
+  Proof.
+    intros σ n1 n2 sz2 p H N2.
+    unfold no_pointer_aliasing in H.
+    apply H in N2.
+    auto.
+  Qed.
+
+  Lemma ptr_alias_size_eq :
+    forall σ n1 n2 sz1 sz2 p,
+      no_pointer_aliasing σ n1 p ->
+      nth_error σ n1 ≡ Some (DSHPtrVal p sz1) ->
+      nth_error σ n2 ≡ Some (DSHPtrVal p sz2) ->
+      sz1 ≡ sz2.
+  Proof.
+    intros σ n1 n2 sz1 sz2 p H N1 N2.
+    unfold no_pointer_aliasing in H.
+    pose proof (H _ _ N2); subst.
+    rewrite N1 in N2; inversion N2.
+    auto.
+  Qed.
+
   (** ** General state invariant
       The main invariant carried around combine the three properties defined:
       1. the memories satisfy the invariant;
