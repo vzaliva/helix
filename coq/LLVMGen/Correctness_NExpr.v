@@ -386,31 +386,46 @@ Section NExpr.
     almost_pure : ext_local mi sti mf stf; 
     extends : local_scope_modif s1 s2 (fst (snd sti)) (fst (snd stf));
     exp_in_scope : forall id, e ≡ EXP_Ident (ID_Local id) -> ((exists v, alist_In id (fst (snd sti)) v) \/ (lid_bound_between s1 s2 id /\ s1 << s2));
-    Gamma_cst : Γ s2 ≡ Γ s1
+    Gamma_cst : Γ s2 ≡ Γ s1;
+    Mono_IRState : s1 << s2 \/ fst (snd sti) ≡ fst (snd stf)
     }.
 
   Set Nested Proofs Allowed.
   Lemma local_scope_modif_refl: forall s1 s2 l, local_scope_modif s1 s2 l l.
-  Admitted.
+  Proof.
+    intros; red; intros * NEQ.
+    contradiction NEQ; auto.
+  Qed.
   Hint Resolve local_scope_modif_refl: core.
 
-  Lemma local_scope_modif_add: forall s1 s2 l r v,
-      lid_bound_between s1 s2 r ->   
-      local_scope_modif s1 s2 l (alist_add r v l).
-  Admitted.
-
-  Lemma sub_alist_alist_find_in :
-    forall (l2 l1 : local_env) id v,
-      alist_In id l1 v ->
-      l1 ⊑ l2 ->
-      l2 @ id ≡ l1 @ id.
-  Admitted.
-
   Lemma alist_find_eq_dec : 
-    forall {K V : Type} {RD:RelDec (@Logic.eq K)} {RDC:RelDec_Correct RD}
+    forall {K V : Type}
+      {RDK:RelDec (@Logic.eq K)} {RDCK:RelDec_Correct RDK}
+      {RDV:RelDec (@Logic.eq V)} {RDCV:RelDec_Correct RDV}
       k (m1 m2 : alist K V),
       {m2 @ k ≡ m1 @ k} + {m2 @ k <> m1 @ k}.
+  Proof.
+    intros.
+    destruct (m2 @ k) eqn:EQ2, (m1 @ k) eqn:EQ1.
+    - destruct (rel_dec v v0) eqn:H.
+      rewrite rel_dec_correct in H; subst; auto. 
+      rewrite <- neg_rel_dec_correct in H; right; intros abs; apply H; inv abs; auto.
+    - right; intros abs; inv abs.
+    - right; intros abs; inv abs.
+    - left; auto.
+  Qed.
+
+  Instance eq_dec_dvalue: RelDec (@Logic.eq uvalue).
   Admitted.
+  Instance eq_dec_uvalue_correct: @RelDec_Correct uvalue (@Logic.eq uvalue) _.
+  Admitted.
+
+  Lemma alist_find_eq_dec_local_env : 
+    forall k (m1 m2 : local_env),
+      {m2 @ k ≡ m1 @ k} + {m2 @ k <> m1 @ k}.
+  Proof.
+    intros; eapply alist_find_eq_dec.
+  Qed.
 
   Lemma alist_find_add_eq : 
     forall {K V : Type} {RD:RelDec (@Logic.eq K)} {RDC:RelDec_Correct RD}
@@ -421,6 +436,18 @@ Section NExpr.
     cbn. rewrite eq_dec_eq; reflexivity.
   Qed.
 
+  Lemma local_scope_modif_add: forall s1 s2 l r v,
+      lid_bound_between s1 s2 r ->   
+      local_scope_modif s1 s2 l (alist_add r v l).
+  Proof.
+    intros * BET.
+    red; intros * NEQ.
+    destruct (rel_dec_p r id).
+    - subst; rewrite alist_find_add_eq in NEQ; auto.
+    - rewrite alist_find_neq in NEQ; auto.
+      contradiction NEQ; auto.
+  Qed.
+
   Lemma local_scope_modif_empty_scope:
     forall (l1 l2 : local_env) id s,
       local_scope_modif s s l1 l2 ->
@@ -428,10 +455,12 @@ Section NExpr.
   Proof.
     intros * SCOPE.
     red in SCOPE.
-    edestruct @alist_find_eq_dec as [EQ | NEQ]; [| eassumption |]; [typeclasses eauto |].
+    edestruct @alist_find_eq_dec_local_env as [EQ | NEQ]; [eassumption|].
     exfalso; apply SCOPE in NEQ; clear SCOPE.
-    (* should be true *)
-  Admitted.
+    destruct NEQ as (? & ? & ? & ? & ? & ? & ?).
+    cbn in *; inv H2.
+    lia.
+  Qed.
 
   Lemma local_scope_modif_out:
     forall (l1 l2 : local_env) id s1 s2 s3,
@@ -442,10 +471,16 @@ Section NExpr.
   Proof.
     intros * LT BOUND SCOPE.
     red in SCOPE.
-    edestruct @alist_find_eq_dec as [EQ | NEQ]; [| eassumption |]; [typeclasses eauto |].
+    edestruct @alist_find_eq_dec_local_env as [EQ | NEQ]; [eassumption |].
     exfalso; apply SCOPE in NEQ; clear SCOPE.
-    (* should be true *)
-  Admitted.
+    destruct NEQ as (? & ? & ? & ? & ? & ? & ?).
+    destruct BOUND as (? & ? & ? & ? & ? & ? & ?).
+    cbn in *.
+    inv H2; inv H6.
+    unfold IRState_lt in *.
+    exfalso; eapply IdLemmas.not_ends_with_nat_neq; [| | | eassumption]; auto.
+    lia.
+  Qed.
 
   Lemma local_scope_preserved_refl : forall s1 s2 l,
       local_scope_preserved s1 s2 l l.
@@ -481,18 +516,28 @@ Section NExpr.
 
   Lemma local_scope_preserve_modif:
     forall s1 s2 s3 l1 l2,
-      s2 <<= s3 ->
+      s2 << s3 ->
       local_scope_modif s2 s3 l1 l2 ->
       local_scope_preserved s1 s2 l1 l2. 
   Proof.
     intros * LE MOD.
     red. intros * BOUND.
     red in MOD.
-    edestruct @alist_find_eq_dec as [EQ | NEQ]; [| eassumption |]; [typeclasses eauto |].
-    apply MOD in NEQ.
-    admit.
-    (* This is a contradiction, to prove *)
-  Admitted.
+    edestruct @alist_find_eq_dec_local_env as [EQ | NEQ]; [eassumption |].
+    apply MOD in NEQ; clear MOD.
+    destruct NEQ as (msg & s & s' & ? & ? & ? & ?).
+    cbn in *; inv H2.
+    destruct BOUND as (msg' & s' & s'' & ? & ? & ? & ?).
+    cbn in *; inv H5.
+    destruct s as [a s b]; cbn in *; clear a b.
+    destruct s' as [a s' b]; cbn in *; clear a b.
+    destruct s1 as [a s1 b]; cbn in *; clear a b.
+    destruct s2 as [a s2 b], s3 as [a' s3 b']; cbn in *.
+    red in LE; cbn in *.
+    clear a b a' b'.
+    exfalso; eapply IdLemmas.not_ends_with_nat_neq; [| | | eassumption]; auto.
+    lia.
+  Qed.
 
   Lemma in_Gamma_Gamma_eq:
     forall σ s1 s2 id,
@@ -527,7 +572,7 @@ Section NExpr.
     intros ? IN.
     red in GS.
     red in L.
-    edestruct @alist_find_eq_dec as [EQ | NEQ]; [| eassumption |]; [typeclasses eauto |].
+    edestruct @alist_find_eq_dec_local_env as [EQ | NEQ]; [eassumption |].
     exfalso; eapply GS; eauto.
   Qed.
 
@@ -564,8 +609,8 @@ Section NExpr.
       local_scope_modif s1 s3 l1 l3.
   Proof.
     unfold local_scope_modif; intros * LE1 LE2 MOD1 MOD2 * INEQ.
-    destruct (alist_find_eq_dec id l1 l2) as [EQ | NEQ].
-    - destruct (alist_find_eq_dec id l2 l3) as [EQ' | NEQ'].
+    destruct (alist_find_eq_dec_local_env id l1 l2) as [EQ | NEQ].
+    - destruct (alist_find_eq_dec_local_env id l2 l3) as [EQ' | NEQ'].
       + contradiction INEQ; rewrite <- EQ; auto.
       + apply MOD2 in NEQ'.
         eauto using lid_bound_between_shrink_down.
@@ -645,6 +690,7 @@ Section NExpr.
         * intros * EQ; inv EQ; right.
           split; [auto using lid_bound_between_incLocal | solve_local_count].
         * eauto using incLocal_Γ.
+        * left; solve_local_count.
           (* eapply state_invariant_sub_alist_alist_add; eauto. *)
         (* eapply incLocal_ineq; eauto. *)
 
@@ -692,7 +738,7 @@ Section NExpr.
       eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp1].
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      destruct PRE0 as (PRE1 & [EXP1 EXT1 SCOPE1 VAR1 GAM1]).
+      destruct PRE0 as (PRE1 & [EXP1 EXT1 SCOPE1 VAR1 GAM1 MONO1]).
       cbn* in *; inv_eqs.
       (* rename H into VAR1. *)
       hvred.
@@ -701,12 +747,8 @@ Section NExpr.
       specialize (IHnexp2 _ _ σ memH _ _ g l0 memV Heqs0).
       forward IHnexp2.
       {
-        clean_goal.
         inv PRE; inv PRE1.
         constructor; auto.
-        (* eapply is_fresh_shrink with (1 := FRESH).  *)
-        (* solve_local_count. *)
-        (* solve_local_count. *)
       }
 
       forward IHnexp2; eauto.
@@ -716,7 +758,7 @@ Section NExpr.
       eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp2].
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      destruct PRE0 as (PRE2 & [EXP2 EXT2 SCOPE2 VAR2 GAM2]).
+      destruct PRE0 as (PRE2 & [EXP2 EXT2 SCOPE2 VAR2 GAM2 MONO2]).
       cbn* in *; inv_eqs.
       (* rename H into VAR2. *)
 
@@ -732,8 +774,10 @@ Section NExpr.
       auto using Gamma_preserved_refl.
       forward EXP1.
       {
+        clear EXP1 EXP2 VAR1 VAR2.
+        clean_goal.
+        destruct MONO2 as [| <-]; [| apply local_scope_preserved_refl].
         eapply local_scope_preserve_modif; eauto.
-        solve_local_count.
       }
       forward EXP1.
       {
@@ -777,6 +821,7 @@ Section NExpr.
         eauto using lid_bound_between_incLocal.
       + rewrite <- GAM1, <- GAM2.
         eapply incLocal_Γ; eauto.
+      + left; solve_local_count.
 
     - admit.
     - admit.
