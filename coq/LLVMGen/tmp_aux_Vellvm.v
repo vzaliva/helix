@@ -706,16 +706,60 @@ Section WithDec.
     typeclasses eauto.
   Qed.
 
+  Lemma alist_find_eq_dec : 
+    forall {RDV:RelDec (@Logic.eq V)} {RDCV:RelDec_Correct RDV}
+                               k (m1 m2 : alist K V),
+    {m2 @ k = m1 @ k} + {m2 @ k <> m1 @ k}.
+  Proof.
+    intros.
+    destruct (m2 @ k) eqn:EQ2, (m1 @ k) eqn:EQ1.
+    - destruct (rel_dec v v0) eqn:H.
+      rewrite rel_dec_correct in H; subst; auto. 
+      rewrite <- neg_rel_dec_correct in H; right; intros abs; apply H; inv abs; auto.
+    - right; intros abs; inv abs.
+    - right; intros abs; inv abs.
+    - left; auto.
+  Qed.
+
+  Lemma alist_find_add_eq : 
+    forall {K V : Type} {RD:RelDec (@Logic.eq K)} {RDC:RelDec_Correct RD}
+      k v (m : alist K V),
+      (alist_add k v m) @ k = Some v.
+  Proof.
+    intros.
+    cbn. rewrite eq_dec_eq; reflexivity.
+  Qed.
+
   Lemma alist_In_dec :
-    forall (id : K) (l : alist K V) (v : V),
+    forall {RDV:RelDec (@Logic.eq V)} {RDCV:RelDec_Correct RDV}
+      (id : K) (l : alist K V) (v : V),
       {alist_In id l v} + {~(alist_In id l v)}.
   Proof.
-  Admitted.
+    intros.
+    destruct (l @ id) eqn:EQ.
+    - destruct (rel_dec v v0) eqn:H.
+      rewrite rel_dec_correct in H; subst; auto. 
+      rewrite <- neg_rel_dec_correct in H.
+      right; intros abs; red in abs; rewrite EQ in abs; inv abs; auto.
+    - right; intros abs; red in abs; rewrite EQ in abs; inv abs. 
+  Qed.
 
 End WithDec.
 
 Notation "m '@' x" := (alist_find x m).
 Notation "m '⊑' m'" := (sub_alist m m') (at level 45).
+
+Global Instance eq_dec_dvalue: RelDec (@Logic.eq uvalue).
+Admitted.
+Global Instance eq_dec_uvalue_correct: @RelDec_Correct uvalue (@Logic.eq uvalue) _.
+Admitted.
+
+Lemma alist_find_eq_dec_local_env : 
+  forall k (m1 m2 : local_env),
+    {m2 @ k = m1 @ k} + {m2 @ k <> m1 @ k}.
+Proof.
+  intros; eapply alist_find_eq_dec.
+Qed.
 
 Global Instance ConvertTyp_list {A} `{Traversal.Fmap A}: ConvertTyp (fun T => list (A T)) :=
   fun env => Traversal.fmap (typ_to_dtyp env).
