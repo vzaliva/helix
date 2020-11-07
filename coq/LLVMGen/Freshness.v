@@ -647,6 +647,8 @@ Ltac solve_local_count :=
     solve_local_count_tac
   | |- local_count ?s1 ≡ local_count ?s2 =>
     solve_local_count_tac
+  | |- local_count ?s1 ≢ local_count ?s2 =>
+    solve_local_count_tac
   end.
 
 (* Tactic to solve freshness goals *)

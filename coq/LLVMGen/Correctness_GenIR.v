@@ -368,6 +368,20 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     admit.
   Admitted.
 
+  (* TODO: Move this and use it in aexpr proof as well *)
+  Lemma repr_of_nat_to_nat :
+    forall x,
+      repr (Z.of_nat (MInt64asNT.to_nat x)) ≡ x.
+  Proof.
+    intros x.
+    cbn.
+    unfold MInt64asNT.to_nat.
+    cbn.
+    rewrite Znat.Z2Nat.id, repr_intval; auto.
+    destruct (Int64.intrange x); lia.
+  Qed.
+
+
   Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
       (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH) 
@@ -538,14 +552,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         3: apply GETCELL.
         { vstep; solve_lu; reflexivity. }
         { rewrite EXP1; auto.
-          replace (repr (Z.of_nat (MInt64asNT.to_nat src))) with src.
-          cbn; reflexivity.
-
-          cbn.
-          unfold MInt64asNT.to_nat.
-          cbn.
-          rewrite Znat.Z2Nat.id, repr_intval; auto.
-          destruct (Int64.intrange src); lia.
+          rewrite repr_of_nat_to_nat.
+          reflexivity.
         }
         clear EXP1.
         clean_goal.
@@ -580,9 +588,9 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
                 2: apply sub_alist_add.
                 admit. admit. (* These should hold *)
             }
-            replace (repr (Z.of_nat (MInt64asNT.to_nat dst))) with dst.
-            cbn; reflexivity.
-            
+
+            rewrite repr_of_nat_to_nat.
+            reflexivity.
           }
 
           eapply yGETCELL; eauto.
@@ -600,20 +608,47 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
             vstep.
             - cbn.
 
-              (* TODO: automate? *)
-              assert (r1 ≢ r0) as NEQ by admit.
-              assert (r0 ≢ r1) as NEQ' by auto.
-              apply eq_dec_neq in NEQ.
-              apply eq_dec_neq in NEQ'.
-              rewrite NEQ, NEQ'.
-              cbn.
+              Set Nested Proofs Allowed.
 
-              assert (r1 ≡ r1) as EQ by auto.
-              eapply rel_dec_eq_true in EQ.
+              (* TODO: move this? *)
+              Lemma incLocal_id_neq :
+                forall s1 s2 s3 s4 id1 id2,
+                  incLocal s1 ≡ inr (s2, id1) ->
+                  incLocal s3 ≡ inr (s4, id2) ->
+                  local_count s1 ≢ local_count s3 ->
+                  id1 ≢ id2.
+              Proof.
+                intros s1 s2 s3 s4 id1 id2 GEN1 GEN2 COUNT.
+                eapply incLocalNamed_count_gen_injective.
+                symmetry. rewrite incLocal_unfold in *. eapply GEN1.
+                symmetry. rewrite incLocal_unfold in *. eapply GEN2.
+                solve_local_count_tac.
+                solve_not_ends_with.
+                solve_not_ends_with.
+              Qed.
 
-              rewrite EQ.
-              reflexivity.
-              apply RelDec_Correct_eq_typ.
+              (* TODO: move this? *)
+              Ltac solve_local_lookup :=
+                repeat
+                  (match goal with
+                   | |- context [ if ?x ?[ Logic.eq ] ?x then _ else _ ]
+                     => rewrite  eq_dec_eq
+                   | GEN1 : incLocal ?s1 ≡ inr (?s2, ?x),
+                            GEN2 : incLocal ?s3 ≡ inr (?s4, ?y)
+                     |- context [ if ?x ?[ Logic.eq ] ?y then _ else _ ]
+                     =>
+                     let H := fresh "NEQ"
+                     in assert (local_count s1 ≢ local_count s3) as H by solve_local_count;
+                        rewrite (eq_dec_neq (incLocal_id_neq GEN1 GEN2 H))
+                   | GEN1 : incLocal ?s1 ≡ inr (?s2, ?x),
+                            GEN2 : incLocal ?s3 ≡ inr (?s4, ?y)
+                     |- context [ if negb (?x ?[ Logic.eq ] ?y) then _ else _ ]
+                     => let H := fresh "NEQ"
+                       in assert (local_count s1 ≢ local_count s3) as H by solve_local_count;
+                          rewrite (eq_dec_neq (incLocal_id_neq GEN1 GEN2 H))
+                   end; cbn; auto).
+
+              solve_local_lookup.
             - cbn.
               apply eqit_Ret.
               cbn.
@@ -623,14 +658,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
           2: {
             vstep.
             - cbn.
-
-              (* TODO: automate? *)
-              assert (r0 ≡ r0) as EQ by auto.
-              eapply rel_dec_eq_true in EQ.
-
-              rewrite EQ.
-              reflexivity.
-              apply RelDec_Correct_eq_typ.
+              solve_local_lookup.
             - cbn.
               apply eqit_Ret.
               cbn.
