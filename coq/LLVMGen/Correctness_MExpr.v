@@ -40,26 +40,38 @@ Section MExpr.
         ∧ in_local_or_global_addr l g x ptr_llvm
         ∧ (∀ (i : Memory.NM.key) (v : binary64), mem_lookup i bk_helix ≡ Some v → get_array_cell memV ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v)).
   Proof.
-    intros * [MEM _] LU1 LU2; eapply MEM in LU1; eapply LU1 in LU2; eauto.
+    intros * MEM LU1 LU2; inv MEM; eapply MINV in LU1; eapply LU1 in LU2; eauto.
   Qed.
+
+  Record genMExpr_post
+         (s1 s2 : IRState)
+         exp
+         (mi : memoryH) (sti : config_cfg)
+         (mf : memoryH * _) (stf : config_cfg_T unit)
+    : Prop :=
+    {
+    is_pure : preserves_states mi sti mf stf;
+    get_addr : invariant_MExpr exp mf stf ;
+    Gamma_cst : s2 ≡ s1
+    }.
 
   Lemma genMExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (mexp: MExpr) (σ: evalContext) (memH: memoryH) 
       (* Vellvm bits *)   (exp: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV) (τ: typ),
       genMExpr mexp s1 ≡ inr (s2, (exp, c, τ)) -> (* Compilation succeeds *)
-      state_invariant_pre σ s1 s2 memH (memV, (l, g)) ->
+      state_invariant σ s1 memH (memV, (l, g)) ->
       no_failure (interp_helix (E := E_cfg) (denoteMExpr σ mexp) memH) -> (* Source semantics defined *)
       eutt (succ_cfg
               (
-                lift_Rel_cfg (state_invariant_post σ s1 s2 l) ⩕
-                             preserves_states memH (memV,(l,g)) ⩕
-                             invariant_MExpr exp 
-           ))
+                lift_Rel_cfg (
+                    state_invariant σ s2) ⩕
+                             genMExpr_post s1 s2 exp memH (memV,(l,g)))
+           )
            (interp_helix (denoteMExpr σ mexp) memH)
            (interp_cfg (D.denote_code (convert_typ [] c)) g l memV).
   Proof.
-    intros * Hgen [Hmeminv FRESH] NOFAIL.
+    intros * Hgen INV NOFAIL.
     destruct mexp as [[vid] | mblock]; cbn* in Hgen; simp.
     cbn.
     unfold denoteMExpr, denotePExpr in *; cbn* in *.
@@ -69,8 +81,7 @@ Section MExpr.
     hstep.
     solve_lu.
     hvred.
-    apply eutt_Ret; split; [split | split]; cbn; auto.
-    solve_fresh.
+    apply eutt_Ret; split; [ | split]; cbn; auto.
     eexists; split; eauto.
     break_match_goal; cbn.
     all:vstep; eauto; reflexivity.

@@ -403,7 +403,7 @@ Section NExpr.
     : Prop :=
     {
     exp_correct : genNExpr_exp_correct σ s1 s2 e mf stf;
-    almost_pure : almost_pure mi sti mf stf; 
+    is_almost_pure : almost_pure mi sti mf stf; 
     extends : local_scope_modif s1 s2 (fst (snd sti)) (fst (snd stf));
     exp_in_scope : forall id, e ≡ EXP_Ident (ID_Local id) -> ((exists v, alist_In id (fst (snd sti)) v) \/ (lid_bound_between s1 s2 id /\ s1 << s2));
     Gamma_cst : Γ s2 ≡ Γ s1;
@@ -416,10 +416,10 @@ Section NExpr.
       (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) ((* li *) l : local_env) (memV : memoryV),
 
       genNExpr nexp s1 ≡ inr (s2, (e, c))      -> (* Compilation succeeds *)
-      (state_invariant'' σ s1) memH (memV, (l, g)) -> (* The main state invariant is initially true *)
+      (state_invariant σ s1) memH (memV, (l, g)) -> (* The main state invariant is initially true *)
       Gamma_safe σ s1 s2 ->
       no_failure (interp_helix (E := E_cfg) (denoteNExpr σ nexp) memH) -> (* Source semantics defined *)
-      eutt (succ_cfg (lift_Rel_cfg (state_invariant'' σ s2) ⩕
+      eutt (succ_cfg (lift_Rel_cfg (state_invariant σ s2) ⩕
                      genNExpr_post e (* li *) σ s1 s2 memH (mk_config_cfg memV l g)))
            (interp_helix (denoteNExpr σ nexp) memH)
            (interp_cfg (denote_code (convert_typ [] c)) g l memV).
@@ -470,7 +470,7 @@ Section NExpr.
         vstep.
         vstep; eauto; reflexivity.
         apply eutt_Ret; cbn; split; [| split]; cbn; eauto.
-        * eapply state_invariant_add_fresh''; eauto.
+        * eapply state_invariant_add_fresh; eauto.
         * intros l' LOC GAM; cbn*.
           vstep; [ | reflexivity].
           cbn.
@@ -574,7 +574,7 @@ Section NExpr.
       }
 
       apply eutt_Ret; cbn; split; [| split]; cbn; eauto.
-      + eapply state_invariant_add_fresh''; eauto.
+      + eapply state_invariant_add_fresh; eauto.
         eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
         solve_local_count.
         solve_local_count.
