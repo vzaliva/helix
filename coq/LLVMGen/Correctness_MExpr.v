@@ -19,29 +19,6 @@ Section MExpr.
         interp_cfg (translate exp_E_to_instr_E (D.denote_exp (Some DTYPE_Pointer) (convert_typ [] e))) g ρ memV ≈
                    Ret (memV,(ρ,(g,UVALUE_Addr ptr))) /\ 
         (forall i v, mem_lookup i mb ≡ Some v -> get_array_cell memV ptr i DTYPE_Double ≡ inr (UVALUE_Double v)).
-  
-  Definition preserves_states {R S}: memoryH -> config_cfg -> Rel_cfg_T R S :=
-    fun mh '(mi,(li,gi)) '(mh',_) '(m,(l,(g,_))) => mh ≡ mh' /\ mi ≡ m /\ gi ≡ g /\ li ≡ l.
-
-  Lemma preserves_states_refl:
-  forall {R S} memH memV l g n v,
-    @preserves_states R S memH (mk_config_cfg memV l g) (memH, n) (memV, (l, (g, v))).
-  Proof.
-    intros; repeat split; reflexivity.
-  Qed.
-  Hint Resolve preserves_states_refl: core.
-
-  Lemma memory_invariant_Ptr : forall vid σ s memH memV l g a size x sz,
-      state_invariant σ s memH (memV, (l, g)) ->
-      nth_error σ vid ≡ Some (DSHPtrVal a size) ->
-      nth_error (Γ s) vid ≡ Some (x, TYPE_Pointer (TYPE_Array sz TYPE_Double)) ->
-      ∃ (bk_helix : mem_block) (ptr_llvm : Addr.addr),
-        memory_lookup memH a ≡ Some bk_helix
-        ∧ in_local_or_global_addr l g x ptr_llvm
-        ∧ (∀ (i : Memory.NM.key) (v : binary64), mem_lookup i bk_helix ≡ Some v → get_array_cell memV ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v)).
-  Proof.
-    intros * MEM LU1 LU2; inv MEM; eapply MINV in LU1; eapply LU1 in LU2; eauto.
-  Qed.
 
   Record genMExpr_post
          (s1 s2 : IRState)
@@ -50,7 +27,7 @@ Section MExpr.
          (mf : memoryH * _) (stf : config_cfg_T unit)
     : Prop :=
     {
-    is_pure : preserves_states mi sti mf stf;
+    _is_pure : is_pure mi sti mf stf;
     get_addr : invariant_MExpr exp mf stf ;
     Gamma_cst : s2 ≡ s1
     }.

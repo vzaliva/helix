@@ -17,21 +17,6 @@ Opaque incLocal.
 
 Section AExpr.
 
-  (* Definition R_AExpr_start (σ : evalContext) (s : IRState) (memH : memoryH) (vellvm : memoryV * (local_env * global_env)) : Prop *)
-  (*   := state_invariant σ s memH vellvm. *)
-
-  (* Definition R_AExpr *)
-  (*            (σ : evalContext) (s : IRState) *)
-  (*            (helix : memoryH * binary64) *)
-  (*            (vellvm : memoryV * (local_env * res_L1)) : Prop *)
-  (*   := *)
-  (*     let '(memH, b) := helix in *)
-  (*     let '(memV, (ρ, (g, res))) := vellvm in *)
-  (*     state_invariant σ s memH (memV, (ρ, g)) /\ *)
-  (*     res ≡ UVALUE_Double b. *)
-
-  (* Hint Unfold R_AExpr: core. *)
-
   (* TODO: move this *)
   Lemma int_of_nat :
     forall (i : Int64.int),
@@ -164,21 +149,6 @@ Section AExpr.
     unfold Float_maxnum, MFloat64asCT.CTypeMax, Float64Max, Floats.Float.cmp.
     unfold Floats.Float.compare, Floats.cmp_of_comparison.
     destruct a,b; try break_if; repeat break_match ;try reflexivity; crush.
-  Qed.
-
-  Lemma state_invariant_incVoid :
-    forall σ s s' k memH stV,
-      incVoid s ≡ inr (s', k) ->
-      state_invariant σ s memH stV ->
-      state_invariant σ s' memH stV.
-  Proof.
-    intros * INC INV; inv INV.
-    split.
-    - red; repeat break_let; intros * LUH LUV.
-      erewrite incVoid_Γ in LUV; eauto.
-      generalize LUV; intros INLG;
-        eapply MINV in INLG; eauto.
-    - unfold WF_IRState; erewrite incVoid_Γ; eauto; apply WF.
   Qed.
 
   Definition genAExpr_exp_correct σ s1 s2 (e: exp typ) 

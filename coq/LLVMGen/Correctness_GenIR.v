@@ -22,7 +22,6 @@ Opaque incLocal.
 Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   Section GenIR.
 
-
   (* The result is a branch *)
   Definition branches (to : block_id) (mh : memoryH * ()) (c : config_cfg_T (block_id * block_id + uvalue)) : Prop :=
     match c with
@@ -338,10 +337,10 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       state_invariant σ s mH (mV,(l1,g)) ->
       state_invariant σ s mH (mV,(l2,g)). 
   Proof.
-    intros * SUB [MEM WF].
+    intros * SUB INV; inv INV.
     split; auto.
     cbn; intros * LUH LUV.
-    eapply MEM in LUH; eapply LUH in LUV; clear MEM LUH.
+    eapply MINV in LUH; eapply LUH in LUV; clear MINV LUH.
     destruct v, x; cbn in *; auto.
     - apply SUB in LUV; auto.
     - apply SUB in LUV; auto.
@@ -364,22 +363,36 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     intros * FRESH; apply FRESH.
   Qed.
 
+  Lemma state_invariant_Γ :
+    forall σ s1 s2 memH stV,
+      state_invariant σ s1 memH stV ->
+      Γ s2 ≡ Γ s1 ->
+      state_invariant σ s2 memH stV. 
+  Proof.
+    intros * INV EQ; inv INV.
+    split; cbn.
+    - rewrite EQ; apply MINV.
+    - red. rewrite EQ; apply WF.
+  Qed.
+  
   Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
       (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH) 
       (** Vellvm bits   *) (nextblock bid_in bid_from : block_id) (bks : list (LLVMAst.block typ))
-      (* (env : list (ident * typ)) *)  (g : global_env) (ρi ρ : local_env) (memV : memoryV),
+      (* (env : list (ident * typ)) *)  (g : global_env) ((* ρi  *)ρ : local_env) (memV : memoryV),
       bid_bound s1 nextblock ->
-      (GenIR_Rel σ s1 bid_in ⩕ lift_Rel_cfg (fresh_pre s1 s2)) (memH,tt) (memV, (ρ, (g, (inl (bid_from, bid_in))))) ->
+      (GenIR_Rel σ s1 bid_in (* ⩕ lift_Rel_cfg (fresh_pre s1 s2) *)) (memH,tt) (memV, (ρ, (g, (inl (bid_from, bid_in))))) ->
+      Gamma_safe σ s1 s2 ->
       no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ op) memH) -> (* Evaluation succeeds *)
       genIR op nextblock s1 ≡ inr (s2,(bid_in,bks)) ->
-      eutt (succ_cfg (GenIR_Rel σ s2 nextblock ⩕ lift_Rel_cfg (fresh_post s1 s2 ρ)))
+      eutt (succ_cfg (GenIR_Rel σ s2 nextblock (* ⩕ lift_Rel_cfg (fresh_post s1 s2 ρ) *)))
            (interp_helix (denoteDSHOperator σ op) memH)
            (interp_cfg (D.denote_bks (convert_typ [] bks) (bid_from,bid_in))
                        g ρ memV).
   Proof.
-    intros s1 s2 op; revert s1 s2; induction op; intros * NEXT BISIM NOFAIL GEN.
-    - cbn* in *.
+    intros s1 s2 op; revert s1 s2; induction op; intros * NEXT PRE GAM NOFAIL GEN.
+    - (* DSHNOp *)
+      cbn* in *.
       simp.
       cbn*.
       hvred.
@@ -418,15 +431,11 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       vred.
 
       apply eutt_Ret; auto.
-      destruct BISIM as [[STATE [from BRANCH]] FRESH].
-      cbn in STATE, BRANCH.
-      split; cbn; eauto.
-      2: solve_fresh.
+      destruct PRE as [STATE [from BRANCH]].
+      cbn in *; split; cbn; eauto.
+      eapply state_invariant_incVoid; eauto.
+      eapply state_invariant_incBlockNamed; eauto.
 
-      cbn in FRESH.
-      split; [solve_state_invariant|].
-      cbn. exists bid_in.
-      reflexivity.
     - (* ** DSHAssign (x_p, src_e) (y_p, dst_e):
          Helix side:
          1. x_i <- evalPExpr σ x_p ;;
@@ -446,7 +455,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
          py <- gep "dst_p"[dst_nexpr] ;;
          store v py
        *)
-      destruct BISIM as [[BISIM1 [_bid EQ]] FRESH]; inv EQ.
+      destruct PRE as [BISIM1 [_bid EQ]]; inv EQ.
       cbn* in *; simp.
       hide_cfg.
       inv_resolve_PVar Heqs0.
@@ -481,26 +490,41 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       vred.
 
       (* Step 5. *)
-      subst; eapply eutt_clo_bind_returns; [eapply genNExpr_correct_ind |..]; eauto.
-      { split.
-        - solve_state_invariant.
-        - eapply freshness_pre_shrink; eauto; solve_local_count. (* TODO: make this part of solve_fresh *)
-      }
+      subst. eapply eutt_clo_bind_returns; [eapply genNExpr_correct |..]; eauto.
+      solve_state_invariant.
+      eapply Gamma_safe_shrink; eauto.
+      repeat match goal with
+               | h : incLocal _ ≡ _ |- _ => eapply incLocal_Γ in h
+               | h : incVoid _ ≡ _ |- _ => eapply incVoid_Γ in h
+               | h : incBlockNamed _ _ ≡ _ |- _ => eapply incBlockNamed_Γ in h
+             end.
+      rewrite Heqs7, Heqs6, Heqs5, Heqs4, Heqs3; auto. 
+      solve_local_count.
+      solve_local_count.
+
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      cbn in PRE; destruct PRE as ((INV1 & FRESH1) & EXP1 & ?); cbn in *; inv_eqs.
+      destruct PRE as (PRE1 & [EXP1 EXT1 SCOPE1 VAR1 GAM1 MONO1]).
+      cbn in *; inv_eqs.
       hvred.
 
       (* Step 6. *)
-      eapply eutt_clo_bind_returns; [eapply genNExpr_correct_ind |..]; eauto.
-      { split.
-        - solve_state_invariant.
-        - solve_fresh.
-      }
+      eapply eutt_clo_bind_returns; [eapply genNExpr_correct |..]; eauto.
+      eapply Gamma_safe_shrink; eauto.
+      repeat match goal with
+             | h : incLocal _ ≡ _ |- _ => eapply incLocal_Γ in h
+             | h : incVoid _ ≡ _ |- _ => eapply incVoid_Γ in h
+             | h : incBlockNamed _ _ ≡ _ |- _ => eapply incBlockNamed_Γ in h
+             end.
+      rewrite <- Heqs, <- Heqs3, <- Heqs4, <- Heqs5, <- Heqs6, <- Heqs7; auto. 
+      solve_local_count.
+      solve_local_count.
 
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      cbn in PRE; destruct PRE as ((INV2 & FRESH2) & EXP2 & ?); cbn in *; inv_eqs.
+      destruct PRE as (PRE2 & [EXP2 EXT2 SCOPE2 VAR2 GAM2 MONO2]).
+      cbn in *; inv_eqs.
+      
       hvred.
       break_inner_match_hyp; break_inner_match_hyp; try_abs.
       2: apply no_failure_Ret in NOFAIL; try_abs.
@@ -532,10 +556,32 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         edestruct denote_instr_gep_array as (ptr' & READ & EQ); cycle -1; [rewrite EQ; clear EQ | ..]; cycle 1.
         3: apply GETCELL.
         { vstep; solve_lu; reflexivity. }
-        { rewrite EXP1; auto.
-          replace (repr (Z.of_nat (MInt64asNT.to_nat src))) with src by admit.
-          cbn; reflexivity.
+        {
+          destruct MONO2 as [| <-]. 
+          - rewrite EXP1; auto.
+            replace (repr (Z.of_nat (MInt64asNT.to_nat src))) with src by admit.
+            cbn; reflexivity.
+            eapply local_scope_preserve_modif; eauto.
+            clear EXP1 EXP2 VAR1 VAR2.
+            clean_goal.
+            eapply Gamma_preserved_Gamma_eq; [exact GAM1 |].
+            eapply Gamma_preserved_if_safe; [| exact SCOPE2].
+            eapply Gamma_safe_shrink; eauto.
+            repeat match goal with
+                   | h : incLocal _ ≡ _ |- _ => eapply incLocal_Γ in h
+                   | h : incVoid _ ≡ _ |- _ => eapply incVoid_Γ in h
+                   | h : incBlockNamed _ _ ≡ _ |- _ => eapply incBlockNamed_Γ in h
+                   end.
+            rewrite <- Heqs, <- Heqs3, <- Heqs4, <- Heqs5, <- Heqs6, <- Heqs7; auto. 
+            solve_local_count.
+            solve_local_count.
+          - rewrite EXP1.
+            replace (repr (Z.of_nat (MInt64asNT.to_nat src))) with src by admit.
+            reflexivity.
+            eauto using local_scope_preserved_refl.
+            eauto using Gamma_preserved_refl.
         }
+
         clear EXP1.
         clean_goal.
 
@@ -570,12 +616,12 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
             cbn; reflexivity.
           }
           { rewrite EXP2.
-            2:{ cbn. etransitivity. apply sub_alist_add.
-                2: apply sub_alist_add.
-                admit. admit.
-            }
-            replace (repr (Z.of_nat (MInt64asNT.to_nat dst))) with dst by admit.
-            cbn; reflexivity.
+            - replace (repr (Z.of_nat (MInt64asNT.to_nat dst))) with dst by admit.
+              reflexivity.
+            - clear EXP2.
+              clean_goal.
+              admit. (* Need additional lemmas about [local_scope_preserved] *)
+            - admit.
           }
           eapply yGETCELL.
           admit.
@@ -640,6 +686,112 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       }
       admit.
 
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - 
+      cbn.
+
+      pose proof GEN as GEN_DESTRUCT.
+      cbn in GEN_DESTRUCT; simp.
+
+      rename i into s_op1, l0 into bk_op1, l into bk_op2.
+      rename b into op2_entry, bid_in into op1_entry.
+      rename Heqs0 into GEN_OP2, Heqs2 into GEN_OP1.
+      rewrite add_comment_eutt.
+      cbn.
+      clean_goal.
+        
+      rewrite convert_typ_block_app.
+      rewrite denote_bks_app; eauto.
+      2: {
+        unfold no_reentrance.
+        pose proof GEN_OP1 as GEN_OP1'.
+
+        apply (inputs_not_earlier_bound _ _ _ NEXT) in GEN_OP1'.
+        apply inputs_bound_between in GEN_OP1.
+        apply outputs_bound_between in GEN_OP2.
+
+        pose proof (Forall_and GEN_OP1 GEN_OP1') as INPUTS.
+        cbn in INPUTS.
+
+        eapply (Forall_disjoint GEN_OP2 INPUTS).
+        intros x OUT_PRED [IN_BOUND IN_NEXT].
+        destruct OUT_PRED as [OUT_PRED | OUT_PRED]; auto.
+        eapply (state_bound_between_separate incBlockNamed_count_gen_injective OUT_PRED IN_BOUND).
+        lia. auto.
+        block_count_replace.
+        lia.
+      }
+      hvred.
+
+      (* Helix generates code for op2 *first*, so op2 gets earlier
+        variables from the irstate. Helix needs to do this because it
+        passes the block id for the next block that an operator should
+        jump to when it's done executing... So it generates code for
+        op2, which goes to the next block of the entire sequence, and
+        then passes the entry point for op2 as the "nextblock" for
+        op1.
+      *)
+      cbn in NOFAIL.
+      pose proof PRE as BISIM.
+      destruct BISIM as [SINV (?from & EQ)]; cbn in *; inv EQ.
+      simp.
+
+      rename Heqs0 into GEN_OP2, Heqs1 into GEN_OP1.
+
+      eapply eutt_clo_bind_returns.
+      {
+        eapply IHop1 with (s1:=s_op1) (s2:=s2).
+        - eapply bid_bound_genIR_entry; eauto.
+        - split.
+          + cbn.
+            apply genIR_Context in GEN_OP2.
+            eapply state_invariant_Γ; eauto.
+          + cbn; exists from; reflexivity.
+        - eapply Gamma_safe_shrink; eauto.
+          eauto using genIR_Context.
+          solve_local_count.
+          solve_local_count.
+        - eapply no_failure_helix_bind_prefix; eauto.
+        - auto.
+      }
+
+      clear IHop1.
+      introR; destruct_unit.
+      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
+      cbn in PRE0; destruct PRE0 as [INV2 [from2 BRANCH2]]; cbn in *; inv_eqs.
+      subst.
+
+      eapply eqit_mon; auto.
+      2: {
+        eapply IHop2; try exact GEN_OP2; eauto.
+        - split; cbn.
+          eapply state_invariant_Γ; eauto.
+          apply genIR_Context in GEN_OP1; apply genIR_Context in GEN_OP2; rewrite GEN_OP2; auto.
+          exists from2; reflexivity.
+        - eapply Gamma_safe_shrink; eauto.
+          eauto using genIR_Context.
+          solve_local_count.
+          solve_local_count.
+      }          
+      clear IHop2.
+
+      intros [[memH1 ?]|] (memV1 & l1 & g1 & res1) PR; [| inv PR].
+      destruct PR as [? [? BR]].
+      cbn in *.
+
+      destruct res1 as [[from1 next] | v]; simp.
+
+      split; cbn; eauto.
+      eapply state_invariant_Γ; eauto.
+      apply genIR_Context in GEN_OP1; auto.
+        
+(*
     -
       Opaque genWhileLoop.
       cbn* in *.
@@ -1113,6 +1265,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         * pose proof (FRESH1 _ _ AIN ANINL).
           eapply state_bound_between_shrink; eauto.
           apply genIR_local_count in GEN_OP1; lia.
+*)
   Admitted.
   End GenIR.
  
