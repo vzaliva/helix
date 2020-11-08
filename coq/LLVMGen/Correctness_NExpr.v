@@ -598,204 +598,392 @@ Section NExpr.
         eapply incLocal_Γ; eauto.
       + left; solve_local_count.
 
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-(*
     - (* NMod *)
       cbn* in *; simp; try_abs.
       hvred.
 
+      rename i into s2, i0 into s3, s2 into s4.
+      clean_goal.
+
       specialize (IHnexp1 _ _ σ memH _ _ g l memV Heqs).
       forward IHnexp1.
-      { split; auto.
-        solve_fresh.
+      { inv PRE; split; auto.
+        (* solve_fresh. *)
       }
       forward IHnexp1; eauto.
-
-      eapply eutt_clo_bind_returns; [eassumption | clear IHnexp1].
+      eapply Gamma_safe_shrink; eauto; solve_local_count.
+      forward IHnexp1; eauto.
+     
+      (* e1 *)
+      eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp1].
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      cbn in *.
-      destruct PRE0 as ((PRE1 & PREF1) & (EXPR1 & <- & <- & <- & MONO1)). 
+      destruct PRE0 as (PRE1 & [EXP1 EXT1 SCOPE1 VAR1 GAM1 MONO1]).
+      cbn* in *; inv_eqs.
+      (* rename H into VAR1. *)
       hvred.
-      cbn in *.
 
+      (* e2 *)
       specialize (IHnexp2 _ _ σ memH _ _ g l0 memV Heqs0).
       forward IHnexp2.
       {
-        split; auto.
-        solve_fresh.
+        inv PRE; inv PRE1.
+        constructor; auto.
       }
+
       forward IHnexp2; eauto.
-      eapply eutt_clo_bind_returns; [eassumption | clear IHnexp2].
+      eapply Gamma_safe_shrink; eauto; solve_local_count.
+      forward IHnexp2; eauto. 
+
+      eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp2].
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      destruct PRE0 as ((PRE2 & PREF2) & (EXPR2 & <- & <- & <- & MONO2)).
-      cbn; hvred.
-      break_match_goal; try_abs...
-      hvred.
-      
-      vstep.
-      (* Operator evaluation *)
-      {
-        vstep; cbn; eauto; try reflexivity.
-        eapply EXPR2; reflexivity.
-        reflexivity.
-        cbn; break_inner_match_goal; try reflexivity.
+      destruct PRE0 as (PRE2 & [EXP2 EXT2 SCOPE2 VAR2 GAM2 MONO2]).
+      cbn* in *; inv_eqs.
+      (* rename H into VAR2. *)
 
-        (* Division by 0 *)
-        exfalso.
+      (* division *)
+      simp; try_abs.
+      hvred.
+
+      specialize (EXP1 l1) .
+      specialize (EXP2 l1) .
+      forward EXP2.
+      auto using local_scope_preserved_refl.
+      forward EXP2.
+      auto using Gamma_preserved_refl.
+      forward EXP1.
+      {
+        clear EXP1 EXP2 VAR1 VAR2.
+        clean_goal.
+        destruct MONO2 as [| <-]; [| apply local_scope_preserved_refl].
+        eapply local_scope_preserve_modif; eauto.
+      }
+      forward EXP1.
+      {
+        apply Gamma_preserved_Gamma_eq with s2; auto.
+        eapply Gamma_preserved_if_safe; eauto.
+        eapply Gamma_safe_shrink; eauto; solve_local_count.
+      }
+
+      hvred.
+      vstep.
+      {
+        vstep; eauto; try reflexivity.
+        cbn; break_inner_match_goal; try reflexivity.
+        exfalso; apply n.
         apply Z.eqb_eq in Heqb.
-        exfalso. apply n.
         rewrite <- Int64.unsigned_zero in Heqb.
         unfold MInt64asNT.NTypeZero.
         apply unsigned_is_zero; auto.
       }
 
-      apply eutt_Ret; cbn; split_post.
-      intros ? MONO; cbn.
-      vstep; solve_lu; reflexivity.
-      etransitivity; eauto.
-      etransitivity; eauto.
-      apply sub_alist_add.
-      eapply freshness_pre_alist_fresh; eauto.
-      solve_fresh.
-  
+      apply eutt_Ret; cbn; split; [| split]; cbn; eauto.
+      + eapply state_invariant_add_fresh; eauto.
+        eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
+        solve_local_count.
+        solve_local_count.
+      + intros * SCO GAM.
+        vstep; eauto.
+        cbn.
+        erewrite SCO,alist_find_add_eq.
+        reflexivity.
+        apply lid_bound_between_shrink_down with s3.
+        solve_local_count.
+        eapply lid_bound_between_incLocal; eauto.
+        reflexivity.
+      + eapply local_scope_modif_trans; eauto; [solve_local_count | solve_local_count |].
+        eapply local_scope_modif_trans; eauto; [solve_local_count | solve_local_count |].
+        eauto using local_scope_modif_add, lid_bound_between_incLocal.
+      + intros ? EQ; inv EQ.
+        right; split; [| solve_local_count].
+        apply lid_bound_between_shrink_down with s3; [solve_local_count |].
+        eauto using lid_bound_between_incLocal.
+      + rewrite <- GAM1, <- GAM2.
+        eapply incLocal_Γ; eauto.
+      + left; solve_local_count.
+ 
    - (* NAdd *)
 
      cbn* in *; simp; try_abs.
      hvred.
 
+     rename i into s2, i0 into s3, s2 into s4.
+     clean_goal.
+
      specialize (IHnexp1 _ _ σ memH _ _ g l memV Heqs).
      forward IHnexp1.
-     { split; auto.
-       solve_fresh.
+     { inv PRE; split; auto.
+       (* solve_fresh. *)
      }
      forward IHnexp1; eauto.
-
-     eapply eutt_clo_bind_returns; [eassumption | clear IHnexp1].
+     eapply Gamma_safe_shrink; eauto; solve_local_count.
+     forward IHnexp1; eauto.
+     
+     (* e1 *)
+     eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp1].
      introR; destruct_unit.
      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-     destruct PRE0 as ((PRE1 & PREF1) & (EXPR1 & <- & <- & <- & MONO1)). 
+     destruct PRE0 as (PRE1 & [EXP1 EXT1 SCOPE1 VAR1 GAM1 MONO1]).
+     cbn* in *; inv_eqs.
+     (* rename H into VAR1. *)
      hvred.
-     cbn in *.
 
+     (* e2 *)
      specialize (IHnexp2 _ _ σ memH _ _ g l0 memV Heqs0).
      forward IHnexp2.
      {
-       split; auto.
-       solve_fresh.
+       inv PRE; inv PRE1.
+       constructor; auto.
      }
+
      forward IHnexp2; eauto.
-     eapply eutt_clo_bind_returns; [eassumption | clear IHnexp2].
+     eapply Gamma_safe_shrink; eauto; solve_local_count.
+     forward IHnexp2; eauto. 
+
+     eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp2].
      introR; destruct_unit.
      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-     destruct PRE0 as ((PRE2 & PREF2) & (EXPR2 & <- & <- & <- & MONO2)).
-     cbn; hvred.
+     destruct PRE0 as (PRE2 & [EXP2 EXT2 SCOPE2 VAR2 GAM2 MONO2]).
+     cbn* in *; inv_eqs.
 
-     vstep.
-     vstep; cbn; try (eapply EXPR2 || eapply EXPR1); eauto; reflexivity.
+     specialize (EXP1 l1) .
+     specialize (EXP2 l1) .
+     forward EXP2.
+     auto using local_scope_preserved_refl.
+     forward EXP2.
+     auto using Gamma_preserved_refl.
+     forward EXP1.
+     {
+       clear EXP1 EXP2 VAR1 VAR2.
+       clean_goal.
+       destruct MONO2 as [| <-]; [| apply local_scope_preserved_refl].
+       eapply local_scope_preserve_modif; eauto.
+     }
+     forward EXP1.
+     {
+       apply Gamma_preserved_Gamma_eq with s2; auto.
+       eapply Gamma_preserved_if_safe; eauto.
+       eapply Gamma_safe_shrink; eauto; solve_local_count.
+     }
 
-     apply eutt_Ret; cbn; split_post.
-     intros ? MONO; cbn.
-     vstep; solve_lu; reflexivity.
-     etransitivity; eauto.
-     etransitivity; eauto.
-     apply sub_alist_add.
-     eapply freshness_pre_alist_fresh; eauto.
-     solve_fresh.
-  
+     hvred.
+     vstep; cbn; eauto.
+     vstep; cbn; eauto; reflexivity.
+
+     apply eutt_Ret; cbn; split; [| split]; cbn; eauto.
+     + eapply state_invariant_add_fresh; eauto.
+       eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
+       solve_local_count.
+       solve_local_count.
+     + intros * SCO GAM.
+       vstep; eauto.
+       cbn.
+       erewrite SCO,alist_find_add_eq.
+       reflexivity.
+       apply lid_bound_between_shrink_down with s3.
+       solve_local_count.
+       eapply lid_bound_between_incLocal; eauto.
+       reflexivity.
+     + eapply local_scope_modif_trans; eauto; [solve_local_count | solve_local_count |].
+       eapply local_scope_modif_trans; eauto; [solve_local_count | solve_local_count |].
+       eauto using local_scope_modif_add, lid_bound_between_incLocal.
+     + intros ? EQ; inv EQ.
+       right; split; [| solve_local_count].
+       apply lid_bound_between_shrink_down with s3; [solve_local_count |].
+       eauto using lid_bound_between_incLocal.
+     + rewrite <- GAM1, <- GAM2.
+       eapply incLocal_Γ; eauto.
+     + left; solve_local_count.
+       
    - (* NMinus *)
 
      cbn* in *; simp; try_abs.
      hvred.
 
+     rename i into s2, i0 into s3, s2 into s4.
+     clean_goal.
+
      specialize (IHnexp1 _ _ σ memH _ _ g l memV Heqs).
      forward IHnexp1.
-     { split; auto.
-       solve_fresh.
+     { inv PRE; split; auto.
+       (* solve_fresh. *)
      }
      forward IHnexp1; eauto.
-     eapply eutt_clo_bind_returns; [eassumption | clear IHnexp1].
+     eapply Gamma_safe_shrink; eauto; solve_local_count.
+     forward IHnexp1; eauto.
+     
+     (* e1 *)
+     eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp1].
      introR; destruct_unit.
      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-     destruct PRE0 as ((PRE1 & PREF1) & (EXPR1 & <- & <- & <- & MONO1)). 
-     hvred; cbn in *.
+     destruct PRE0 as (PRE1 & [EXP1 EXT1 SCOPE1 VAR1 GAM1 MONO1]).
+     cbn* in *; inv_eqs.
+     (* rename H into VAR1. *)
+     hvred.
 
+     (* e2 *)
      specialize (IHnexp2 _ _ σ memH _ _ g l0 memV Heqs0).
      forward IHnexp2.
-     { split; auto.
-       solve_fresh.
+     {
+       inv PRE; inv PRE1.
+       constructor; auto.
      }
-      forward IHnexp2; eauto.
-     eapply eutt_clo_bind_returns; [eassumption | clear IHnexp2].
+
+     forward IHnexp2; eauto.
+     eapply Gamma_safe_shrink; eauto; solve_local_count.
+     forward IHnexp2; eauto. 
+
+     eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp2].
      introR; destruct_unit.
      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-     destruct PRE0 as ((PRE2 & PREF2) & (EXPR2 & <- & <- & <- & MONO2)).
-     cbn; hvred.
+     destruct PRE0 as (PRE2 & [EXP2 EXT2 SCOPE2 VAR2 GAM2 MONO2]).
+     cbn* in *; inv_eqs.
 
-     vstep.
-     vstep; cbn; try (eapply EXPR2 || eapply EXPR1); eauto; reflexivity.
+     specialize (EXP1 l1) .
+     specialize (EXP2 l1) .
+     forward EXP2.
+     auto using local_scope_preserved_refl.
+     forward EXP2.
+     auto using Gamma_preserved_refl.
+     forward EXP1.
+     {
+       clear EXP1 EXP2 VAR1 VAR2.
+       clean_goal.
+       destruct MONO2 as [| <-]; [| apply local_scope_preserved_refl].
+       eapply local_scope_preserve_modif; eauto.
+     }
+     forward EXP1.
+     {
+       apply Gamma_preserved_Gamma_eq with s2; auto.
+       eapply Gamma_preserved_if_safe; eauto.
+       eapply Gamma_safe_shrink; eauto; solve_local_count.
+     }
 
-     apply eutt_Ret; cbn; split_post.
-     intros ? MONO; cbn.
-     vstep; solve_lu; reflexivity.
-     etransitivity; eauto.
-     etransitivity; eauto.
-     apply sub_alist_add.
-     eapply freshness_pre_alist_fresh; eauto.
-     solve_fresh.
-  
+     hvred.
+     vstep; cbn; eauto.
+     vstep; cbn; eauto; reflexivity.
+
+     apply eutt_Ret; cbn; split; [| split]; cbn; eauto.
+     + eapply state_invariant_add_fresh; eauto.
+       eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
+       solve_local_count.
+       solve_local_count.
+     + intros * SCO GAM.
+       vstep; eauto.
+       cbn.
+       erewrite SCO,alist_find_add_eq.
+       reflexivity.
+       apply lid_bound_between_shrink_down with s3.
+       solve_local_count.
+       eapply lid_bound_between_incLocal; eauto.
+       reflexivity.
+     + eapply local_scope_modif_trans; eauto; [solve_local_count | solve_local_count |].
+       eapply local_scope_modif_trans; eauto; [solve_local_count | solve_local_count |].
+       eauto using local_scope_modif_add, lid_bound_between_incLocal.
+     + intros ? EQ; inv EQ.
+       right; split; [| solve_local_count].
+       apply lid_bound_between_shrink_down with s3; [solve_local_count |].
+       eauto using lid_bound_between_incLocal.
+     + rewrite <- GAM1, <- GAM2.
+       eapply incLocal_Γ; eauto.
+     + left; solve_local_count.
+ 
    - (* NMult *)
      
      cbn* in *; simp; try_abs.
      hvred.
 
+     rename i into s2, i0 into s3, s2 into s4.
+     clean_goal.
+
      specialize (IHnexp1 _ _ σ memH _ _ g l memV Heqs).
      forward IHnexp1.
-     { split; auto.
-       solve_fresh.
+     { inv PRE; split; auto.
+       (* solve_fresh. *)
      }
      forward IHnexp1; eauto.
-     eapply eutt_clo_bind_returns; [eassumption | clear IHnexp1].
+     eapply Gamma_safe_shrink; eauto; solve_local_count.
+     forward IHnexp1; eauto.
+     
+     (* e1 *)
+     eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp1].
      introR; destruct_unit.
      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-     destruct PRE0 as ((PRE1 & PREF1) & (EXPR1 & <- & <- & <- & MONO1)). 
-     hvred; cbn in *.
+     destruct PRE0 as (PRE1 & [EXP1 EXT1 SCOPE1 VAR1 GAM1 MONO1]).
+     cbn* in *; inv_eqs.
+     (* rename H into VAR1. *)
+     hvred.
 
+     (* e2 *)
      specialize (IHnexp2 _ _ σ memH _ _ g l0 memV Heqs0).
      forward IHnexp2.
-     { split; auto.
-       solve_fresh.
+     {
+       inv PRE; inv PRE1.
+       constructor; auto.
      }
-      forward IHnexp2; eauto.
-     eapply eutt_clo_bind_returns; [eassumption | clear IHnexp2].
+
+     forward IHnexp2; eauto.
+     eapply Gamma_safe_shrink; eauto; solve_local_count.
+     forward IHnexp2; eauto. 
+
+     eapply eutt_clo_bind_returns ; [eassumption | clear IHnexp2].
      introR; destruct_unit.
      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-     destruct PRE0 as ((PRE2 & PREF2) & (EXPR2 & <- & <- & <- & MONO2)).
-     cbn; hvred.
+     destruct PRE0 as (PRE2 & [EXP2 EXT2 SCOPE2 VAR2 GAM2 MONO2]).
+     cbn* in *; inv_eqs.
 
-     vstep.
-     (* Operator evaluation *)
+     specialize (EXP1 l1) .
+     specialize (EXP2 l1) .
+     forward EXP2.
+     auto using local_scope_preserved_refl.
+     forward EXP2.
+     auto using Gamma_preserved_refl.
+     forward EXP1.
      {
-        vstep; cbn; try (eapply EXPR2 || eapply EXPR1); eauto; try reflexivity.
-        cbn.
-        break_inner_match; reflexivity.
-      }
+       clear EXP1 EXP2 VAR1 VAR2.
+       clean_goal.
+       destruct MONO2 as [| <-]; [| apply local_scope_preserved_refl].
+       eapply local_scope_preserve_modif; eauto.
+     }
+     forward EXP1.
+     {
+       apply Gamma_preserved_Gamma_eq with s2; auto.
+       eapply Gamma_preserved_if_safe; eauto.
+       eapply Gamma_safe_shrink; eauto; solve_local_count.
+     }
 
-     apply eutt_Ret; cbn; split_post.
-     intros ? MONO; cbn.
-     vstep; solve_lu; reflexivity.
-     etransitivity; eauto.
-     etransitivity; eauto.
-     apply sub_alist_add.
-     eapply freshness_pre_alist_fresh; eauto.
-     solve_fresh.
-  
+     hvred.
+     vstep; cbn; eauto.
+     vstep; cbn; eauto; try reflexivity.
+     cbn.
+     break_inner_match; reflexivity.
+     
+     apply eutt_Ret; cbn; split; [| split]; cbn; eauto.
+     + eapply state_invariant_add_fresh; eauto.
+       eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
+       solve_local_count.
+       solve_local_count.
+     + intros * SCO GAM.
+       vstep; eauto.
+       cbn.
+       erewrite SCO,alist_find_add_eq.
+       reflexivity.
+       apply lid_bound_between_shrink_down with s3.
+       solve_local_count.
+       eapply lid_bound_between_incLocal; eauto.
+       reflexivity.
+     + eapply local_scope_modif_trans; eauto; [solve_local_count | solve_local_count |].
+       eapply local_scope_modif_trans; eauto; [solve_local_count | solve_local_count |].
+       eauto using local_scope_modif_add, lid_bound_between_incLocal.
+     + intros ? EQ; inv EQ.
+       right; split; [| solve_local_count].
+       apply lid_bound_between_shrink_down with s3; [solve_local_count |].
+       eauto using lid_bound_between_incLocal.
+     + rewrite <- GAM1, <- GAM2.
+       eapply incLocal_Γ; eauto.
+     + left; solve_local_count.
+ 
    - (* NMin *)
       (* Non-implemented by the compiler *)
       inversion COMPILE.
@@ -803,8 +991,6 @@ Section NExpr.
       (* Non-implemented by the compiler *)
       inversion COMPILE.
   Qed.
- *)
-  Admitted.
 
 End NExpr.
 
