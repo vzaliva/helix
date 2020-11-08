@@ -358,6 +358,33 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     admit.
   Admitted.
 
+  Lemma mem_lookup_mem_add_eq :
+    forall x v bk,
+      mem_lookup x (mem_add x v bk) ≡ Some v.
+  Proof.
+    intros x v bk.
+    Transparent mem_lookup mem_add.
+    cbn.
+    Opaque mem_lookup mem_add.
+    rewrite Memory.NM.Raw.Proofs.add_find.
+    admit.
+    admit.
+  Admitted.
+
+
+  Lemma memory_lookup_memory_set_eq :
+    forall x bk m,
+      memory_lookup (memory_set m x bk) x ≡ Some bk.
+  Proof.
+    intros x bk m.
+    Transparent memory_lookup memory_set.
+    unfold memory_lookup, memory_set.
+    Opaque memory_lookup memory_set.
+    setoid_rewrite Memory.NM.Raw.Proofs.add_find.
+    admit.
+    admit.
+  Admitted.
+
   (* TODO: Move? *)
   Lemma memory_lookup_memory_set_neq :
     forall m x y bk,
@@ -713,6 +740,160 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
                 admit.
                 destruct H4 as (yNOALIAS' & bk_h & ptr_l & MINV).
                 split; eauto.
+                destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
+                - (* PTR aliases *)
+                  subst.
+                  pose proof (ptr_alias_eq _ yNOALIAS H0); subst.
+                  exists (mem_add (MInt64asNT.to_nat dst) v ymembk). exists yptr.
+                  split.
+                  { rewrite memory_lookup_memory_set_eq. reflexivity. }
+                  split.
+                  { unfold mem_lookup_succeeds.
+                    intros i H4.
+                    destruct (NPeano.Nat.eq_dec i (MInt64asNT.to_nat dst)) as [EQDST | NEQDST].
+                    - subst. rewrite mem_lookup_mem_add_eq.
+                      exists v. reflexivity.
+                    - assert (size0 ≡ size1) by (eapply ptr_alias_size_eq; eauto); subst.
+                      rewrite mem_lookup_mem_add_neq; eauto.
+                  }
+                  split.
+                  admit. (* Might not need this, but should hold *)
+                  split.
+                  { cbn.
+                    rewrite Heqo0 in H0.
+                    rewrite <- CONT in LUn0. rewrite LUn0 in H3.
+                    inversion H3; subst; auto.
+                  }
+                  { intros i v0 H4.
+
+                    (* Probably want this to be a lemma *)
+                    apply write_correct in WRITE_SUCCEEDS.
+                    destruct WRITE_SUCCEEDS.
+
+
+                    (* Not sure about this... Will look at this tomorrow *)
+                    Set Nested Proofs Allowed.
+                    Lemma blah :
+                      forall m1 m2 ptr ptr' i τ v uv,
+                        write m1 ptr v ≡ inr m2 ->
+                        ptr ≢ ptr' ->
+                        get_array_cell m1 ptr' i τ ≡ inr uv ->
+                        get_array_cell m2 ptr' i τ ≡ inr uv.
+                    Proof.
+                      intros m1 m2 ptr ptr' i τ v dv WRITE NEQ GET.
+                      apply write_correct in WRITE.
+                      destruct WRITE.
+                      assert (dvalue_has_dtyp v τ) by admit. (* this is fantasy *)
+                      specialize (is_written0 τ H).
+                      destruct is_written0.
+
+                      pose proof (get_array_succeeds_allocated _ _ _ _ GET) as ALLOC.
+                      epose proof (read_array _ _ _ _ _ ALLOC).
+                      edestruct read_array_exists.
+                      admit.
+
+                      destruct H1.
+
+                      rewrite <- H2 in GET.
+
+                      erewrite <- read_array.
+
+                      rewrite old_lu0; eauto.
+
+                      eapply sizeof_dvalue_pos; eauto.
+
+                      admit.
+                    Qed.
+
+                    (* Should we show that yptr <> yptr' ?
+
+                       Actually, ideally they don't even have the same block...
+                     *)
+                    unfold get_array_cell.
+                    destruct (NPeano.Nat.eq_dec i (MInt64asNT.to_nat dst)) as [EQDST | NEQDST].
+                    - subst.
+                    destruct 
+                    
+                    eapply read_array.
+
+                    admit.
+                  }
+                - (* This is the branch where a and y_i don't
+                     alias. These are the DSHPtrVal pointers...
+
+                     DSHPtrVal a size1 corresponds to %id, which must be a local id.
+
+                     I need to show the memory invariant holds.
+
+                     - y_i points to ymembk
+                     - a points to bk_h
+
+                     no_pointer_aliasing is a given.
+
+                     We should say that there exists bk_h and ptr_l.
+
+                     The memory_lookup case should hold because we
+                     don't care about the memory_set operation because
+                     a <> y_i
+
+                     mem_lookup_succeeds is as before.
+
+                     dtyp_fits should hold because the write shouldn't
+                     change the block for ptr_l at all (no aliasing).
+                     
+                     I need in_local_or_global_addr to hold, meaning I can find
+
+                     l1 @ id = Some ptr_l
+
+                     If id is in l0 then this follows from freshness and the old MINV.
+
+                     Otherwise, there's actually a contradiction with
+                     MINV's in_local_or_global_addr... Because id
+                     would not be in l0.
+                   *)
+                  destruct MINV as (MLUP & MSUC & FITS & INLG' & GET).
+                  pose proof alist_In_dec id l0.
+                  edestruct H4 as [INl0 | NINl0].
+                  admit.
+                  admit.
+                  (* + subst. *)
+                  (*   cbn.                   *)
+                  (*   exists bk_h. exists ptr'. *)
+
+                  (*   rewrite memory_lookup_memory_set_neq; auto. *)
+                  (*   repeat (split; auto). *)
+                  (*   * admit. (* should hold might not need *) *)
+                  (*   * (* This should all hold from the fact that id is *)
+                  (*      in l0 and everything is fresh... *) *)
+
+                  (*     (* This is hideous *) *)
+                  (*     assert (id ?[ Logic.eq ] r0 ≡ false) as IDR0 by admit. *)
+                  (*     rewrite IDR0. *)
+                  (*     assert (negb (r0 ?[ Logic.eq ] r1) ≡ true) as R0R1 by admit. *)
+                  (*     rewrite R0R1. *)
+                  (*     cbn. *)
+                  (*     assert (id ?[ Logic.eq ] r1 ≡ false) as IDR1 by admit. *)
+                  (*     rewrite IDR1. *)
+                  (*     cbn. *)
+                  (*     assert (negb (r1 ?[ Logic.eq ] r) ≡ true) as R1R by admit. *)
+                  (*     rewrite R1R. *)
+                  (*     cbn. *)
+                  (*     assert (negb (r0 ?[ Logic.eq ] r) ≡ true) as R0R by admit. *)
+                  (*     rewrite R0R. *)
+                  (*     cbn. *)
+                  (*     assert (id ?[ Logic.eq ] r ≡ true) as IDR by admit. *)
+                  (*     rewrite IDR. *)
+                  (*     reflexivity. *)
+                  (*   * intros i v0 H5. *)
+                  (*     pose proof (GET i v0 H5). *)
+                  (*     (* untouched part of memory, so this should hold *) *)
+                  (*     admit. *)
+                  (* + cbn in INLG'. *)
+                  (*   exfalso. *)
+                  (*   apply NINl0. eauto. *)
+              }
+
+
                 (* I should know that r, r1, and r0 are all used as local variables...
 
                    So if x0 is a global, it can't equal any of these...
@@ -736,8 +917,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
                 (*     cbn. *)
 
                 (*     (* This means that this pointer (z, z0) has to be separate from yptr'... *) *)
-                admit.
-              }
+
               { (* x0 is a local *)
                 destruct v0. (* Probably need to use WF_IRState to make sure we only consider valid types *)
                 admit.
@@ -818,7 +998,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
                     * intros i v0 H5.
                       pose proof (GET i v0 H5).
                       (* untouched part of memory, so this should hold *)
-                      admit.
+                      admit. (* TODO: do this one *)
                   + cbn in INLG'.
                     exfalso.
                     apply NINl0. eauto.
