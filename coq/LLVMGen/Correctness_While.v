@@ -401,9 +401,6 @@ Qed.
 
 (* TODO: Move to Vellvm Denotation_Theory.v? *)
 
-Definition block_ids {T : Set} (b : list ((LLVMAst.block T))) :=
-  map (@blk_id T) b.
-
 Definition disjoint_bid_blocks {T : Set} (b b' : list ((LLVMAst.block T))) :=
   block_ids b ⊍ block_ids b'.
 
@@ -433,71 +430,11 @@ Proof.
     reflexivity.
 Qed.
 
-Definition imp_rel {A B : Type} (R S: A -> B -> Prop): Prop :=
-  forall a b, R a b -> S a b.
-
 Definition stable_exp_local (R: Rel_cfg) : Prop :=
     forall memH memV ρ1 ρ2 g,
       R memH (memV, (ρ1, g)) ->
       ρ1 ⊑ ρ2 ->
       R memH (memV, (ρ2, g)).
-
-(* TODO: Show symmetric case *)
-Lemma no_repet_app_not_in_l :
-  forall (T : Set) id (bs bs' : list (LLVMAst.block T)), In id (block_ids bs) ->
-    blk_id_norepet (bs' ++ bs) ->
-    not (In id (block_ids bs')).
-Proof.
-  intros. destruct bs.
-  inversion H.
-  inv H.
-  apply no_repeat_cons_not_in.
-  unfold blk_id_norepet in *.
-  rewrite map_app in H0.
-  rewrite map_cons. rewrite map_cons in H0.
-  rewrite list_cons_app in H0.
-  rewrite app_assoc in H0.
-  apply Coqlib.list_norepet_append_left in H0.
-  rewrite list_cons_app.
-  rewrite Coqlib.list_norepet_app in *.
-  intuition. apply Coqlib.list_disjoint_sym. auto.
-  unfold blk_id_norepet in H0.
-  rewrite map_app in H0. rewrite map_cons in H0. rewrite list_cons_app in H0.
-  apply Coqlib.list_norepet_append_commut in H0. rewrite <- app_assoc in H0.
-  apply Coqlib.list_norepet_append_right in H0.
-  rewrite Coqlib.list_norepet_app in H0.
-  destruct H0 as (? & ? & ?).
-  red in H2. intro. eapply H2; eauto.
-Qed.
-
-
-(* TODO: Show symmetric case *)
-Lemma no_repet_app_not_in_r :
-  forall (T : Set) id (bs bs' : list (LLVMAst.block T)), In id (block_ids bs) ->
-    blk_id_norepet (bs' ++ bs) ->
-    not (In id (block_ids bs')).
-Proof.
-  intros. destruct bs.
-  inversion H.
-  inv H.
-  apply no_repeat_cons_not_in.
-  unfold blk_id_norepet in *.
-  rewrite map_app in H0.
-  rewrite map_cons. rewrite map_cons in H0.
-  rewrite list_cons_app in H0.
-  rewrite app_assoc in H0.
-  apply Coqlib.list_norepet_append_left in H0.
-  rewrite list_cons_app.
-  rewrite Coqlib.list_norepet_app in *.
-  intuition. apply Coqlib.list_disjoint_sym. auto.
-  unfold blk_id_norepet in H0.
-  rewrite map_app in H0. rewrite map_cons in H0. rewrite list_cons_app in H0.
-  apply Coqlib.list_norepet_append_commut in H0. rewrite <- app_assoc in H0.
-  apply Coqlib.list_norepet_append_right in H0.
-  rewrite Coqlib.list_norepet_app in H0.
-  destruct H0 as (? & ? & ?).
-  red in H2. intro. eapply H2; eauto.
-Qed.
 
 (* Useful lemmas about rcompose. TODO: Move? *)
 Lemma rcompose_eq_r :
@@ -517,46 +454,8 @@ Proof.
 Qed.
 
 From Vellvm Require Import Numeric.Integers.
-Lemma denote_bks_prefix :
-  forall (prefix bks' postfix bks : list (LLVMAst.block dtyp)) (from to: block_id),
-    bks ≡ (prefix ++ bks' ++ postfix) ->
-    blk_id_norepet bks ->
-    denote_bks bks (from, to) ≈
-               ITree.bind (denote_bks bks' (from, to))
-               (fun x => match x with
-                      | inl x => denote_bks bks x
-                      | inr x => ret (inr x)
-                      end
-               ).
-Proof.
-  intros * ->; revert from to.
-  einit.
-  ecofix CIH.
-  clear CIH0.
-  intros * WF.
-  Transparent denote_bks.
-  destruct (find_block dtyp bks' to) as [bk |] eqn:EQ.
-  - unfold denote_bks at 1 3.
-    rewrite 2 KTreeFacts.unfold_iter_ktree.
-    cbn; rewrite !bind_bind.
-    assert (find_block dtyp (prefix ++ bks' ++ postfix) to ≡ Some bk).
-    {
-      erewrite find_block_app_r_wf; eauto.
-      erewrite find_block_app_l_wf; eauto.
-      eapply no_repeat_app_r; eauto.
-    }
-    do 2 match_rewrite.
-    rewrite !bind_bind.
-    eapply euttG_bind; econstructor; [reflexivity | intros [] ? <-].
-    + rewrite !bind_ret_l; cbn.
-      rewrite bind_tau; etau.
-    + rewrite !bind_ret_l.
-      reflexivity.
-  - edrop.
-    rewrite (denote_bks_unfold_not_in bks'); auto.
-    rewrite bind_ret_l.
-    reflexivity.
-Qed.
+Definition imp_rel {A B : Type} (R S: A -> B -> Prop): Prop :=
+  forall a b, R a b -> S a b.
 
 (* Another Useful Vellvm utility. Obviously true, but the proof might need some tricks.. *)
 (* Lemma string_of_nat_length_lt : *)

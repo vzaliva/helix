@@ -3,91 +3,129 @@ Require Import Helix.LLVMGen.Correctness_Prelude.
 Set Implicit Arguments.
 Set Strict Implicit.
 
-Definition not_ends_with_nat (str : string) : Prop
-  := forall pre n, str ≢ pre @@ string_of_nat n.
+Import  Ascii. 
+Definition is_connector (c : ascii) : bool :=
+  match c with
+  | "095" => true
+  | _ => false
+  end.
 
-Lemma not_ends_with_nat_string_of_nat :
-  forall s1 s2 n k,
-    not_ends_with_nat s1 ->
-    not_ends_with_nat s2 ->
-    (s1 @@ string_of_nat n ≡ s2 @@ string_of_nat k <-> n ≡ k /\ s1 ≡ s2).
-Proof.
-  intros s1 s2 n k NS1 NS2.
-  split.
-  { admit.
-  }
+Definition is_alpha (c : ascii) : bool :=
+  if CeresString.is_upper c then true else if
+      CeresString.is_lower c then true else
+      if is_connector c then true else false.
 
-  {
-    intros [NK S1S2].
-    subst.
-    auto.
-  }
+Definition is_correct_prefix (s : string) : bool :=
+  CeresString.string_forall is_alpha s.
+
+Lemma string_of_nat_not_alpha : forall n,
+  CeresString.string_forall (fun c => negb (is_alpha c)) (string_of_nat n).
 Admitted.
 
-Lemma not_ends_with_nat_neq :
+Lemma is_correct_prefix_String : forall c s,
+    is_correct_prefix (String c s) ->
+    is_correct_prefix s /\ is_alpha c.
+Proof.
+  intros.
+  cbn in H.
+  break_match_hyp; auto.
+  inv H.
+Qed.
+
+Import Ascii String.
+
+Lemma valid_prefix_string_of_nat_aux :
+  forall n k s,
+    is_correct_prefix s ->
+    string_of_nat n ≡ s @@ string_of_nat k ->
+    n ≡ k /\ s ≡ EmptyString.
+Proof.
+  induction s as [| c s IH].
+  - unfold append; cbn; intros _ EQ; split; auto.
+    edestruct NPeano.Nat.eq_dec; try eassumption.
+    apply string_of_nat_inj in n0; contradiction n0; auto. 
+  - intros COR EQ; apply is_correct_prefix_String in COR; destruct COR as [PRE ALPHA]. 
+    exfalso.
+    destruct (string_of_nat n) as [| c' ?] eqn:EQ'; [inv EQ |].
+    assert (c' ≡ c) by (unfold append in EQ; cbn in EQ; inv EQ; reflexivity).
+    subst.
+    pose proof string_of_nat_not_alpha n as H.
+    rewrite EQ' in H.
+    cbn in H.
+    break_match_hyp; auto.
+    rewrite ALPHA in Heqb; inv Heqb.
+    inv H.
+Qed.
+
+Lemma valid_prefix_string_of_nat_forward :
   forall s1 s2 n k,
-    not_ends_with_nat s1 ->
-    not_ends_with_nat s2 ->
+    is_correct_prefix s1 ->
+    is_correct_prefix s2 ->
+    s1 @@ string_of_nat n ≡ s2 @@ string_of_nat k ->
+    n ≡ k /\ s1 ≡ s2.
+Proof.
+  induction s1 as [| c s1 IH].
+  - cbn; intros.
+    unfold append at 1 in H1; cbn in H1.
+    apply valid_prefix_string_of_nat_aux in H1; auto; intuition.
+  - intros * CORR1 CORR2 EQ.
+    destruct s2 as [| c' s2].
+    + exfalso.
+      unfold append at 2 in EQ.
+      symmetry in EQ.
+      apply valid_prefix_string_of_nat_aux in EQ; auto.
+      destruct EQ as [_ abs]; inv abs.
+    +
+
+      assert (forall c s s', String c s @@ s' ≡ String c (s @@ s')) by (intros; unfold append; reflexivity).
+      rewrite 2 H in EQ.
+      inv EQ; clear H.
+      apply is_correct_prefix_String in CORR1; destruct CORR1 as [CORR1 ALPHA1].
+      apply is_correct_prefix_String in CORR2; destruct CORR2 as [CORR2 _].
+      edestruct IH; try eassumption.
+      subst; auto.
+Qed.
+      
+Lemma valid_prefix_string_of_nat_backward :
+  forall s1 s2 n k,
+    is_correct_prefix s1 ->
+    is_correct_prefix s2 ->
+    s1 @@ string_of_nat n ≡ s2 @@ string_of_nat k ->
+    n ≡ k /\ s1 ≡ s2.
+Proof.
+  induction s1 as [| c s1 IH].
+  - cbn; intros.
+    unfold append at 1 in H1; cbn in H1.
+    apply valid_prefix_string_of_nat_aux in H1; auto; intuition.
+  - intros * CORR1 CORR2 EQ.
+    destruct s2 as [| c' s2].
+    + exfalso.
+      unfold append at 2 in EQ.
+      symmetry in EQ.
+      apply valid_prefix_string_of_nat_aux in EQ; auto.
+      destruct EQ as [_ abs]; inv abs.
+    + assert (forall c s s', String c s @@ s' ≡ String c (s @@ s')) by (intros; unfold append; reflexivity).
+      rewrite 2 H in EQ.
+      inv EQ; clear H.
+      apply is_correct_prefix_String in CORR1; destruct CORR1 as [CORR1 ALPHA1].
+      apply is_correct_prefix_String in CORR2; destruct CORR2 as [CORR2 _].
+      edestruct IH; try eassumption.
+      subst; auto.
+Qed.
+
+ Lemma valid_prefix_neq_differ :
+  forall s1 s2 n k,
+    is_correct_prefix s1 ->
+    is_correct_prefix s2 ->
     n ≢ k ->
     s1 @@ string_of_nat n ≢ s2 @@ string_of_nat k.
 Proof.
   intros s1 s2 n k NS1 NS2 NK.
-  epose proof (not_ends_with_nat_string_of_nat n k NS1 NS2) as [CONTRA _].
-  intros H.
-  apply CONTRA in H as [NK_EQ _].
+  epose proof valid_prefix_string_of_nat_backward s1 s2 n k NS1 NS2 as contra.
+  intros abs.
+  apply contra in abs as [NK_EQ _].
   contradiction.
 Qed.
 
-Lemma not_ends_with_nat_nop :
-  not_ends_with_nat "Nop".
-Proof.
-Admitted.
-
-Lemma not_ends_with_nat_assign :
-  not_ends_with_nat "Assign".
-Proof.
-Admitted.
-
-Lemma not_ends_with_nat_imap_entry :
-  not_ends_with_nat ("IMap" @@ "_entry").
-Proof.
-Admitted.
-
-Lemma not_ends_with_nat_imap_loop :
-  not_ends_with_nat ("IMap" @@ "_loop").
-Proof.
-Admitted.
-
-Lemma not_ends_with_nat_imap_lcont :
-  not_ends_with_nat ("IMap_lcont").
-Proof.
-Admitted.
-
-Lemma not_ends_with_nat_binop_entry :
-  not_ends_with_nat ("BinOp" @@ "_entry").
-Proof.
-Admitted.
-
-Lemma not_ends_with_nat_binop_loop :
-  not_ends_with_nat ("BinOp" @@ "_loop").
-Proof.
-Admitted.
-
-(* TODO: This is obviously not true, but I want to discharge all
-     these goals that this *should* be true for *)
-Lemma not_ends_with_nat_all :
-  forall pre,
-    not_ends_with_nat pre.
-Proof.
-Admitted.
-
-Hint Resolve not_ends_with_nat_nop : NOT_ENDS_WITH.
-Hint Resolve not_ends_with_nat_assign : NOT_ENDS_WITH.
-Hint Resolve not_ends_with_nat_imap_entry : NOT_ENDS_WITH.
-Hint Resolve not_ends_with_nat_imap_loop : NOT_ENDS_WITH.
-Hint Resolve not_ends_with_nat_imap_lcont : NOT_ENDS_WITH.
-Hint Resolve not_ends_with_nat_binop_entry : NOT_ENDS_WITH.
-Hint Resolve not_ends_with_nat_binop_loop : NOT_ENDS_WITH.
-Hint Resolve not_ends_with_nat_all : NOT_ENDS_WITH.
-
-Ltac solve_not_ends_with := eauto with NOT_ENDS_WITH.
+Ltac solve_prefix :=
+  try now (unfold append; cbn; reflexivity).

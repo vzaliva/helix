@@ -246,7 +246,6 @@ Section Freshness_Interface.
     pose proof INC as INCBAK.
     eapply gen_state_bound_between in INC;
       eauto using incLocalNamed_count_gen_injective, incLocalNamed_count_gen_mono.
-    2: solve_not_ends_with.
 
     intros id v0 H.
     intros BOUND.

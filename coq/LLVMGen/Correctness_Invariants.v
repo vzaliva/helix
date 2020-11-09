@@ -477,7 +477,7 @@ Proof.
   cbn in *.
   inv H2; inv H6.
   unfold IRState_lt in *.
-  exfalso; eapply IdLemmas.not_ends_with_nat_neq; [| | | eassumption]; auto.
+  exfalso; eapply IdLemmas.valid_prefix_neq_differ; [| | | eassumption]; auto.
   lia.
 Qed.
 
@@ -538,7 +538,7 @@ Proof.
   destruct s2 as [a s2 b], s3 as [a' s3 b']; cbn in *.
   red in LE; cbn in *.
   clear a b a' b'.
-  exfalso; eapply IdLemmas.not_ends_with_nat_neq; [| | | eassumption]; auto.
+  exfalso; eapply IdLemmas.valid_prefix_neq_differ; [| | | eassumption]; auto.
   lia.
 Qed.
 

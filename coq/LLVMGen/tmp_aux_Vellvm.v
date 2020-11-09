@@ -855,51 +855,51 @@ Ltac show_cfg :=
 Notation "'hidden' G" := (hidden_cfg (G = _)) (only printing, at level 10).
 
 (* All labels in a list of blocks are distinct *)
-Definition blk_id_norepet {T} (bks : list (LLVMAst.block T)) :=
+Definition wf_cfg {T} (bks : list (LLVMAst.block T)) :=
   Coqlib.list_norepet (map blk_id bks).
 
-Lemma blk_id_norepet_nil:
-  forall T, blk_id_norepet (T := T) []. 
+Lemma wf_cfg_nil:
+  forall T, wf_cfg (T := T) []. 
 Proof.
   intros; apply Coqlib.list_norepet_nil.
 Qed.
 
-Lemma no_repeat_cons :
+Lemma wf_cfg_cons :
   forall T (b : LLVMAst.block T) bs,
-    blk_id_norepet (b :: bs) ->
-    blk_id_norepet bs.
+    wf_cfg (b :: bs) ->
+    wf_cfg bs.
 Proof.
   intros * NOREP; inv NOREP; eauto.
 Qed.
 
-Lemma no_repeat_cons_not_in :
+Lemma wf_cfg_cons_not_in :
   forall T (b : LLVMAst.block T) bs,
-    blk_id_norepet (b :: bs) ->
+    wf_cfg (b :: bs) ->
     not (In (blk_id b) (map blk_id bs)).
 Proof.
   intros * NOREP; inv NOREP; eauto.
 Qed.
 
-Lemma no_repeat_app_r :
+Lemma wf_cfg_app_r :
   forall T (bs1 bs2 : list (LLVMAst.block T)), 
-blk_id_norepet (bs1 ++ bs2) ->
-blk_id_norepet bs2.
+wf_cfg (bs1 ++ bs2) ->
+wf_cfg bs2.
 Proof.
   intros * NR.
   eapply Coqlib.list_norepet_append_right.
-  unfold blk_id_norepet in NR.
+  unfold wf_cfg in NR.
   rewrite map_app in NR.
   eauto.
 Qed.
 
-Lemma no_repeat_app_l :
+Lemma wf_cfg_app_l :
   forall T (bs1 bs2 : list (LLVMAst.block T)), 
-blk_id_norepet (bs1 ++ bs2) ->
-blk_id_norepet bs1.
+wf_cfg (bs1 ++ bs2) ->
+wf_cfg bs1.
 Proof.
   intros * NR.
   eapply Coqlib.list_norepet_append_left.
-  unfold blk_id_norepet in NR.
+  unfold wf_cfg in NR.
   rewrite map_app in NR.
   eauto.
 Qed.
@@ -917,19 +917,19 @@ Proof.
   f_equal; auto.
 Qed.
 
-Lemma no_repeat_convert_typ :
+Lemma wf_cfg_convert_typ :
   forall env (bs : list (LLVMAst.block typ)),
-    blk_id_norepet bs ->
-    blk_id_norepet (convert_typ env bs).
+    wf_cfg bs ->
+    wf_cfg (convert_typ env bs).
 Proof.
   induction bs as [| b bs IH]; intros NOREP.
   - cbn; auto.
   - cbn.
     apply Coqlib.list_norepet_cons. 
     + cbn.
-      apply no_repeat_cons_not_in in NOREP.
+      apply wf_cfg_cons_not_in in NOREP.
      rewrite blk_id_map_convert_typ; auto.
-    + eapply IH, no_repeat_cons; eauto. 
+    + eapply IH, wf_cfg_cons; eauto. 
 Qed.
 (** [break_inner_match' t] tries to destruct the innermost [match] it
     find in [t]. *)
@@ -963,7 +963,7 @@ Ltac break_inner_match := break_inner_match_goal || break_inner_match_hyp.
 
 Lemma find_block_app_r_wf :
   forall (T : Set) (x : block_id) (b : LLVMAst.block T) (bs1 bs2 : list (LLVMAst.block T)),
-    blk_id_norepet (bs1 ++ bs2)  ->
+    wf_cfg (bs1 ++ bs2)  ->
     find_block T bs2 x = Some b ->
     find_block T (bs1 ++ bs2) x = Some b.
 Proof.
@@ -971,7 +971,7 @@ Proof.
   - rewrite app_nil_l; auto.
   - cbn; break_inner_match_goal.
     + cbn in *.
-      apply no_repeat_cons_not_in in NOREP.
+      apply wf_cfg_cons_not_in in NOREP.
       exfalso; apply NOREP.
       rewrite e.
       apply find_some in FIND as [FIND EQ].
@@ -980,13 +980,13 @@ Proof.
       break_match; [| intuition].
       rewrite <- e.
       eapply in_map; auto.
-    + cbn in NOREP; apply no_repeat_cons in NOREP.
+    + cbn in NOREP; apply wf_cfg_cons in NOREP.
       apply IH; eauto.
 Qed.
 
 Lemma find_block_app_l_wf :
   forall (T : Set) (x : block_id) (b : LLVMAst.block T) (bs1 bs2 : list (LLVMAst.block T)),
-    blk_id_norepet (bs1 ++ bs2)  ->
+    wf_cfg (bs1 ++ bs2)  ->
     find_block T bs1 x = Some b ->
     find_block T (bs1 ++ bs2) x = Some b.
 Proof.
@@ -995,12 +995,12 @@ Proof.
   - cbn in FIND |- *.
     break_inner_match; auto.
     apply IH; eauto.
-    eapply no_repeat_cons, NOREP.
+    eapply wf_cfg_cons, NOREP.
 Qed.
 
 Lemma find_block_tail_wf :
   forall (T : Set) (x : block_id) (b b' : LLVMAst.block T) (bs : list (LLVMAst.block T)),
-    blk_id_norepet (b :: bs)  ->
+    wf_cfg (b :: bs)  ->
     find_block T bs x = Some b' ->
     find_block T (b :: bs) x = Some b'.
 Proof.
@@ -1064,12 +1064,12 @@ Ltac solve_find_block :=
   cbn;
   match goal with
     | |- find_block _ [_] _ = _ => apply find_block_eq; reflexivity
-    | h: blk_id_norepet _ |- find_block _ (_ :: _) _ = _ =>
+    | h: wf_cfg _ |- find_block _ (_ :: _) _ = _ =>
       first [apply find_block_eq; reflexivity |
-             apply find_block_tail_wf; [eassumption | apply no_repeat_cons in h; solve_find_block]]
-    | h: blk_id_norepet _ |- find_block _ (_ ++ _) _ = _ =>
-      first [apply find_block_app_l_wf; [eassumption | apply no_repeat_app_l in h; solve_find_block] |
-             apply find_block_app_r_wf; [eassumption | apply no_repeat_app_r in h; solve_find_block]]
+             apply find_block_tail_wf; [eassumption | apply wf_cfg_cons in h; solve_find_block]]
+    | h: wf_cfg _ |- find_block _ (_ ++ _) _ = _ =>
+      first [apply find_block_app_l_wf; [eassumption | apply wf_cfg_app_l in h; solve_find_block] |
+             apply find_block_app_r_wf; [eassumption | apply wf_cfg_app_r in h; solve_find_block]]
   end.
 
 Lemma convert_typ_block_app : forall (a b : list (LLVMAst.block typ)) env, (convert_typ env (a ++ b) = convert_typ env a ++ convert_typ env b)%list.
@@ -1348,4 +1348,110 @@ Ltac forwardr H H' :=
   | ?P -> _ => assert P as H'; [| specialize (H H')]
   end.
 Tactic Notation "forwardr" ident(H) ident(H') := forwardr H H'.
+
+Definition block_ids {T : Set} (b : list ((LLVMAst.block T))) :=
+  map (@blk_id T) b.
+
+(* TODO: Show symmetric case *)
+Lemma wf_cfg_app_not_in_l :
+  forall (T : Set) id (bs bs' : list (LLVMAst.block T)), In id (block_ids bs) ->
+    wf_cfg (bs' ++ bs) ->
+    not (In id (block_ids bs')).
+Proof.
+  intros. destruct bs.
+  inversion H.
+  inv H.
+  apply wf_cfg_cons_not_in.
+  unfold wf_cfg in *.
+  rewrite map_app in H0.
+  rewrite map_cons. rewrite map_cons in H0.
+  rewrite list_cons_app in H0.
+  rewrite app_assoc in H0.
+  apply Coqlib.list_norepet_append_left in H0.
+  rewrite list_cons_app.
+  rewrite Coqlib.list_norepet_app in *.
+  intuition. apply Coqlib.list_disjoint_sym. auto.
+  unfold wf_cfg in H0.
+  rewrite map_app in H0. rewrite map_cons in H0. rewrite list_cons_app in H0.
+  apply Coqlib.list_norepet_append_commut in H0. rewrite <- app_assoc in H0.
+  apply Coqlib.list_norepet_append_right in H0.
+  rewrite Coqlib.list_norepet_app in H0.
+  destruct H0 as (? & ? & ?).
+  red in H2. intro. eapply H2; eauto.
+Qed.
+
+(* TODO: Show symmetric case *)
+Lemma wf_cfg_app_not_in_r :
+  forall (T : Set) id (bs bs' : list (LLVMAst.block T)), In id (block_ids bs) ->
+    wf_cfg (bs' ++ bs) ->
+    not (In id (block_ids bs')).
+Proof.
+  intros. destruct bs.
+  inversion H.
+  inv H.
+  apply wf_cfg_cons_not_in.
+  unfold wf_cfg in *.
+  rewrite map_app in H0.
+  rewrite map_cons. rewrite map_cons in H0.
+  rewrite list_cons_app in H0.
+  rewrite app_assoc in H0.
+  apply Coqlib.list_norepet_append_left in H0.
+  rewrite list_cons_app.
+  rewrite Coqlib.list_norepet_app in *.
+  intuition. apply Coqlib.list_disjoint_sym. auto.
+  unfold wf_cfg in H0.
+  rewrite map_app in H0. rewrite map_cons in H0. rewrite list_cons_app in H0.
+  apply Coqlib.list_norepet_append_commut in H0. rewrite <- app_assoc in H0.
+  apply Coqlib.list_norepet_append_right in H0.
+  rewrite Coqlib.list_norepet_app in H0.
+  destruct H0 as (? & ? & ?).
+  red in H2. intro. eapply H2; eauto.
+Qed.
+
+Ltac match_rewrite :=
+  match goal with
+  | H : (?X = ?v) |-
+    context [ match ?X with | _ => _ end] =>
+    rewrite H
+  end.
+
+Lemma denote_bks_prefix :
+  forall (prefix bks' postfix bks : list (LLVMAst.block dtyp)) (from to: block_id),
+    bks = (prefix ++ bks' ++ postfix) ->
+    wf_cfg bks ->
+    denote_bks bks (from, to) ≈
+               ITree.bind (denote_bks bks' (from, to))
+               (fun x => match x with
+                      | inl x => denote_bks bks x
+                      | inr x => ret (inr x)
+                      end
+               ).
+Proof.
+  intros * ->; revert from to.
+  einit.
+  ecofix CIH.
+  clear CIH0.
+  intros * WF.
+  destruct (find_block dtyp bks' to) as [bk |] eqn:EQ.
+  - unfold denote_bks at 1 3.
+    rewrite 2 KTreeFacts.unfold_iter_ktree.
+    cbn; rewrite !bind_bind.
+    assert (find_block dtyp (prefix ++ bks' ++ postfix) to = Some bk).
+    {
+      erewrite find_block_app_r_wf; eauto.
+      erewrite find_block_app_l_wf; eauto.
+      eapply wf_cfg_app_r; eauto.
+    }
+    do 2 match_rewrite.
+    rewrite !bind_bind.
+    eapply euttG_bind; econstructor; [reflexivity | intros [] ? <-].
+    + rewrite !bind_ret_l; cbn.
+      rewrite bind_tau; etau.
+    + rewrite !bind_ret_l.
+      reflexivity.
+  - edrop.
+    rewrite (denote_bks_unfold_not_in bks'); auto.
+    rewrite bind_ret_l.
+    reflexivity.
+Qed.
 

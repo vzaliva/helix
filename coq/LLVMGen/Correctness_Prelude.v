@@ -153,14 +153,6 @@ Ltac splits :=
 Ltac abs_by H :=
   exfalso; eapply H; now eauto.
 
-(* TODO: move this *)
-Ltac match_rewrite :=
-  match goal with
-  | H : (?X ≡ ?v) |-
-    context [ match ?X with | _ => _ end] =>
-    rewrite H
-  end.
-
 (** Semantic domains
 
   - Facilities to work with the same interface of events on both sides through an outer trivial translation.

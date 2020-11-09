@@ -682,7 +682,7 @@ Definition genMemMap2Body
            (nextblock: block_id)
   : cerr segment
   :=
-    binopblock <- incBlockNamed "MemMap2LoopBody" ;;
+    binopblock <- incBlockNamed "MemMapTwoLoopBody" ;;
     binopret <- incVoid ;;
     storeid <- incVoid ;;
     px0 <- incLocal ;;
@@ -942,15 +942,15 @@ Fixpoint genIR
           add_comment
             (genWhileLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] nextblock)
         | DSHMemMap2 n x0_p x1_p y_p f =>
-          loopcontblock <- incBlockNamed "MemMap2_lcont" ;;
+          loopcontblock <- incBlockNamed "MemMapTwo_lcont" ;;
           '(x0,i0) <- resolve_PVar x0_p ;;
           '(x1,i1) <- resolve_PVar x1_p ;;
           '(y,o) <- resolve_PVar y_p ;;
           n' <- err2errS (MInt64asNT.from_nat n) ;;
-          loopvar <- incLocalNamed "MemMap2_i" ;;
+          loopvar <- incLocalNamed "MemMapTwo_i" ;;
           '(body_entry, body_blocks) <- genMemMap2Body i0 i1 o x0 x1 y f loopvar loopcontblock ;;
           add_comment
-            (genWhileLoop "MemMap2" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] nextblock)
+            (genWhileLoop "MemMapTwo" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] nextblock)
         | DSHPower n (src_p,src_n) (dst_p,dst_n) f initial =>
           '(x,i) <- resolve_PVar src_p ;;
           '(y,o) <- resolve_PVar dst_p ;;

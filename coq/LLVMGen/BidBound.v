@@ -1,6 +1,5 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Freshness.
-Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.VariableBinding.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.StateCounters.
@@ -35,22 +34,14 @@ Section BidBound.
     intros s1 s1' s2 s2' name1 name2 id1 id2 GEN1 GEN2 H1 H2 H3.
 
     Transparent incBlockNamed.    
-    inversion GEN1.
-    inversion GEN2.
+    inv GEN1.
+    inv GEN2.
     Opaque incBlockNamed.
     cbn in *.
-    subst.
 
     intros CONTRA.
     apply Name_inj in CONTRA.
-
-    match goal with
-    | H : ?s1 @@ string_of_nat ?n ≡ ?s2 @@ string_of_nat ?k,
-          NS1 : not_ends_with_nat ?s1,
-                NS2 : not_ends_with_nat ?s2
-      |- _ =>
-      eapply (@not_ends_with_nat_neq s1 s2 n k NS1 NS2); eauto
-    end.
+    apply valid_prefix_neq_differ in CONTRA; eauto.
   Qed.
 
   Lemma bid_bound_only_block_count :
@@ -103,16 +94,9 @@ Section BidBound.
     destruct s1'. cbn in *.
 
     inversion GEN_bid'.
-    intros H.
-    apply Name_inj in H.
-    match goal with
-    | H : ?s1 @@ string_of_nat ?n ≡ ?s2 @@ string_of_nat ?k,
-          NS1 : not_ends_with_nat ?s1,
-                NS2 : not_ends_with_nat ?s2
-      |- _ =>
-      eapply (@not_ends_with_nat_neq s1 s2 n k NS1 NS2); eauto
-    end.
-
+    intros CONTRA.
+    apply Name_inj in CONTRA.
+    apply valid_prefix_neq_differ in CONTRA; eauto.
     cbn.
     lia.
   Qed.
@@ -139,21 +123,9 @@ Section BidBound.
     - auto.
   Qed.
 
-  Lemma bid_bound_incBlockNamed :
-    forall name s1 s2 bid,
-      not_ends_with_nat name ->
-      incBlockNamed name s1 ≡ inr (s2, bid) ->
-      bid_bound s2 bid.
-  Proof.
-    intros name s1 s2 bid ENDS INC.
-    exists name. exists s1. exists s2.
-    repeat (split; auto).
-    erewrite incBlockNamed_block_count with (s':=s2); eauto.
-  Qed.
-
   Lemma not_bid_bound_incBlockNamed :
     forall s1 s2 n bid,
-      not_ends_with_nat n ->
+      is_correct_prefix n ->
       incBlockNamed n s1 ≡ inr (s2, bid) ->
       ~ (bid_bound s1 bid).
   Proof.
@@ -165,13 +137,26 @@ Section BidBound.
     Opaque incBlockNamed.
     cbn in *.
     simp.
-    apply not_ends_with_nat_string_of_nat in H1; auto.
+    apply valid_prefix_string_of_nat_backward in H1; auto.
     lia.
+  Qed.
+
+  Lemma bid_bound_incBlockNamed :
+    forall name s1 s2 bid,
+      is_correct_prefix name ->
+      incBlockNamed name s1 ≡ inr (s2, bid) ->
+      bid_bound s2 bid.
+  Proof.
+    intros name s1 s2 bid ENDS INC.
+    exists name. exists s1. exists s2.
+    repeat (split; auto).
+    
+    erewrite Freshness.incBlockNamed_block_count with (s':=s2); eauto.
   Qed.
 
   Lemma incBlockNamed_bound_between :
     forall s1 s2 n bid,
-      not_ends_with_nat n ->
+      is_correct_prefix n ->
       incBlockNamed n s1 ≡ inr (s2, bid) ->
       bid_bound_between s1 s2 bid.
   Proof.
@@ -223,7 +208,7 @@ Section BidBound.
     unfold bid_bound.
     exists n1. exists s1'. exists s1''.
     intuition.
-    apply incBlockNamed_block_count in INC.
+    apply Freshness.incBlockNamed_block_count in INC.
     lia.
   Qed.
 
@@ -234,7 +219,7 @@ Section BidBound.
       bid_bound s2 bid.
   Proof.
     intros s1 s2 bid nexp e c BOUND GEN.
-    apply genNExpr_block_count in GEN.
+    apply Freshness.genNExpr_block_count in GEN.
     destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
     unfold bid_bound.
     exists n1. exists s1'. exists s1''.
@@ -250,7 +235,7 @@ Section BidBound.
       bid_bound s2 bid.
   Proof.
     intros s1 s2 bid mexp e c BOUND GEN.
-    apply genMExpr_block_count in GEN.
+    apply Freshness.genMExpr_block_count in GEN.
     destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
     unfold bid_bound.
     exists n1. exists s1'. exists s1''.
@@ -266,7 +251,7 @@ Section BidBound.
       bid_bound s2 bid.
   Proof.
     intros s1 s2 bid nexp e c BOUND GEN.
-    apply genAExpr_block_count in GEN.
+    apply Freshness.genAExpr_block_count in GEN.
     destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
     unfold bid_bound.
     exists n1. exists s1'. exists s1''.
@@ -282,7 +267,7 @@ Section BidBound.
       bid_bound s2 bid.
   Proof.
     intros s1 s2 bid op nextblock b bks BOUND GEN.
-    apply genIR_block_count in GEN.
+    apply Freshness.genIR_block_count in GEN.
     destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
     unfold bid_bound.
     exists n1. exists s1'. exists s1''.
@@ -299,17 +284,17 @@ Ltac solve_bid_bound :=
     match goal with
     | H: incBlockNamed ?msg ?s1 ≡ inr (?s2, ?bid) |-
       bid_bound ?s2 ?bid =>
-      eapply bid_bound_incBlockNamed; try eapply H; solve_not_ends_with
+      eapply bid_bound_incBlockNamed; try eapply H; solve_prefix
     | H: incBlock ?s1 ≡ inr (?s2, ?bid) |-
       bid_bound ?s2 ?bid =>
-      eapply bid_bound_incBlockNamed; try eapply H; solve_not_ends_with
+      eapply bid_bound_incBlockNamed; try eapply H; solve_prefix
 
     | H: incBlockNamed ?msg ?s1 ≡ inr (_, ?bid) |-
       ~(bid_bound ?s1 ?bid) =>
-      eapply gen_not_state_bound; try eapply H; solve_not_ends_with
+      eapply gen_not_state_bound; try eapply H; solve_prefix
     | H: incBlock ?s1 ≡ inr (_, ?bid) |-
       ~(bid_bound ?s1 ?bid) =>
-      eapply gen_not_state_bound; try eapply H; solve_not_ends_with
+      eapply gen_not_state_bound; try eapply H; solve_prefix
 
     (* Monotonicity *)
     | |- bid_bound {| block_count := block_count ?s; local_count := ?lc; void_count := ?vc; Γ := ?γ |} ?bid =>
@@ -359,19 +344,19 @@ Ltac block_count_replace :=
          | H : incVoid ?s1 ≡ inr (?s2, ?bid) |- _
            => apply incVoid_block_count in H; cbn in H
          | H : incBlockNamed ?name ?s1 ≡ inr (?s2, ?bid) |- _
-           => apply incBlockNamed_block_count in H; cbn in H
+           => apply Freshness.incBlockNamed_block_count in H; cbn in H
          | H : incBlock ?s1 ≡ inr (?s2, ?bid) |- _
-           => apply incBlockNamed_block_count in H; cbn in H
+           => apply Freshness.incBlockNamed_block_count in H; cbn in H
          | H : incLocal ?s1 ≡ inr (?s2, ?bid) |- _
            => apply incLocal_block_count in H; cbn in H
          | H: genNExpr ?n ?s1 ≡ inr (?s2, _) |- _
-           => eapply genNExpr_block_count in H; cbn in H
+           => eapply Freshness.genNExpr_block_count in H; cbn in H
          | H: genMExpr ?n ?s1 ≡ inr (?s2, _) |- _
-           => eapply genMExpr_block_count in H; cbn in H
+           => eapply Freshness.genMExpr_block_count in H; cbn in H
          | H: genAExpr ?n ?s1 ≡ inr (?s2, _) |- _
-           => eapply genAExpr_block_count in H; cbn in H
+           => eapply Freshness.genAExpr_block_count in H; cbn in H
          | H: genIR ?op ?nextblock ?s1 ≡ inr (?s2, _) |- _
-           => eapply genIR_block_count in H; cbn in H
+           => eapply Freshness.genIR_block_count in H; cbn in H
          end.
 
 Ltac solve_block_count :=
@@ -386,10 +371,10 @@ Ltac solve_not_bid_bound :=
   match goal with
   | H: incBlockNamed ?name ?s1 ≡ inr (?s2, ?bid) |-
     ~(bid_bound ?s3 ?bid) =>
-    eapply (not_id_bound_gen_mono incBlockNamed_count_gen_injective _ H)
+    eapply (not_id_bound_gen_mono incBlockNamed_count_gen_injective); [eassumption |..]
   | H: incBlock ?s1 ≡ inr (?s2, ?bid) |-
     ~(bid_bound ?s3 ?bid) =>
-    eapply (not_id_bound_gen_mono incBlockNamed_count_gen_injective _ H)
+    eapply (not_id_bound_gen_mono incBlockNamed_count_gen_injective); [eassumption |..]
   end.
 
 Ltac solve_count_gen_injective :=
@@ -403,7 +388,7 @@ Ltac big_solve :=
     (try invert_err2errs;
      try solve_block_count;
      try solve_not_bid_bound;
-     try solve_not_ends_with;
+     try solve_prefix;
      try solve_count_gen_injective;
      try match goal with
          | |- Forall _ (?x::?xs) =>
@@ -413,7 +398,6 @@ Ltac big_solve :=
          | |- bid_bound_between ?s1 ?s2 ?bid ∨ ?bid ≡ ?nextblock =>
            try auto; try left
          end).
-
 
 Lemma bid_bound_genIR_entry :
   forall op s1 s2 nextblock bid bks,
@@ -460,7 +444,6 @@ Section Inputs.
       pose proof GEN as BACKUP_GEN;
       cbn in GEN; simp; cbn.
     all: try (solve [big_solve]).
-
     - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
 
       rewrite convert_typ_app_list.
@@ -590,7 +573,7 @@ Section Outputs.
         eapply state_bound_between_shrink; eauto.
         solve_block_count.
         solve_block_count.
-        solve_not_ends_with.
+        reflexivity.
       }
 
       assert (bid_bound_between s1 s2 b0) as B0.
@@ -622,7 +605,7 @@ Section Outputs.
             eapply incBlockNamed_bound_between in Heqs0.
             eapply state_bound_between_shrink; eauto.
             solve_block_count.
-            solve_not_ends_with.
+            reflexivity.
         }
 
         eapply Forall_impl.

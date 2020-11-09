@@ -18,21 +18,13 @@ Section LidBound.
     unfold count_gen_injective.
     intros s1 s1' s2 s2' name1 name2 id1 id2 GEN1 GEN2 H1 H2 H3.
 
-    inversion GEN1.
-    inversion GEN2.
-    cbn in *.
-    subst.
+    inv GEN1.
+    inv GEN2.
 
     intros CONTRA.
     apply Name_inj in CONTRA.
-
-    match goal with
-    | H : ?s1 @@ string_of_nat ?n ≡ ?s2 @@ string_of_nat ?k,
-          NS1 : not_ends_with_nat ?s1,
-                NS2 : not_ends_with_nat ?s2
-      |- _ =>
-      eapply (@not_ends_with_nat_neq s1 s2 n k NS1 NS2); eauto
-    end.
+    apply valid_prefix_string_of_nat_backward in CONTRA; auto.
+    intuition.
   Qed.
 
   Lemma incLocalNamed_count_gen_mono :
@@ -47,7 +39,7 @@ Section LidBound.
 
   Lemma lid_bound_incLocalNamed :
     forall name s1 s2 id,
-      not_ends_with_nat name ->
+      is_correct_prefix name ->
       incLocalNamed name s1 ≡ inr (s2, id) ->
       lid_bound s2 id.
   Proof.
@@ -59,7 +51,7 @@ Section LidBound.
 
   Lemma not_lid_bound_incLocalNamed :
     forall name s1 s2 id,
-      not_ends_with_nat name ->
+      is_correct_prefix name ->
       incLocalNamed name s1 ≡ inr (s2, id) ->
       ~ lid_bound s1 id.
   Proof.
@@ -71,7 +63,7 @@ Section LidBound.
 
   Lemma lid_bound_between_incLocalNamed :
     forall name s1 s2 id,
-      not_ends_with_nat name ->
+      is_correct_prefix name ->
       incLocalNamed name s1 ≡ inr (s2, id) ->
       lid_bound_between s1 s2 id.
   Proof.
@@ -89,7 +81,7 @@ Section LidBound.
     intros s1 s2 id GEN.
     Transparent incLocal.
     eapply not_lid_bound_incLocalNamed; eauto.
-    solve_not_ends_with.
+    reflexivity.
     Opaque incLocal.
   Qed.
 
@@ -101,7 +93,7 @@ Section LidBound.
     intros s1 s2 id GEN.
     Transparent incLocal.
     eapply lid_bound_between_incLocalNamed; eauto.
-    solve_not_ends_with.
+    reflexivity.
     Opaque incLocal.
   Qed.
 
@@ -182,14 +174,15 @@ Section LidBound.
 
   Lemma incLocalNamed_lid_bound :
     forall s1 s2 id name,
+      is_correct_prefix name ->
       incLocalNamed name s1 ≡ inr (s2, id) ->
       lid_bound s2 id.
   Proof.
-    intros s1 s2 id name INC.
+    intros s1 s2 id name CORR INC.
     unfold lid_bound.
     unfold state_bound.
     exists name. exists s1. exists s2.
-    split; try solve_not_ends_with.
+    split; eauto.
     split; auto.
     pose proof incLocalNamed_local_count INC.
     lia.
@@ -201,12 +194,12 @@ Section LidBound.
       lid_bound s2 id.
   Proof.
     intros s1 s2 id INC.
-    eapply incLocalNamed_lid_bound.
     Transparent incLocal.
-    eapply INC.
+    unfold incLocal in *.
+    eapply incLocalNamed_lid_bound; eauto.
+    reflexivity.
     Opaque incLocal.
   Qed.
-
 
   (* Lemma lid_bound_genNExpr_mono : *)
   (*   forall s1 s2 bid nexp e c, *)
