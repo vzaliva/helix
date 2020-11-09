@@ -20,7 +20,8 @@ Opaque incVoid.
 Opaque incLocal.
 
 Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
-  Section GenIR.
+
+Section GenIR.
 
   (* The result is a branch *)
   Definition branches (to : block_id) (mh : memoryH * ()) (c : config_cfg_T (block_id * block_id + uvalue)) : Prop :=
@@ -297,7 +298,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   Qed.
   Opaque interp_helix interp_Mem.
 
-  Import ProofMode.
+  (* Import ProofMode. *)
   Notation "'gep' τ e" := (OP_GetElementPtr τ e) (at level 10, only printing).
   Notation "'double'" := (DTYPE_Double) (at level 10, only printing).
   Notation "'arr'" := (DTYPE_Array) (at level 10, only printing).
@@ -691,9 +692,73 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     - admit.
     - admit.
     - admit.
+    - (* DSHAlloc *)
+      cbn* in *.
+      simp.
+      cbn.
+      clean_goal.
+      hvred.
+
+      Set Nested Proofs Allowed.
+  Lemma interp_Mem_MemAlloc :
+    forall size mem,
+      interp_Mem (trigger (MemAlloc size)) mem ≈
+                 Ret (mem, memory_next_key mem).
+  Proof.
+    intros size mem.
+    setoid_rewrite interp_Mem_vis_eqit; cbn.
+    rewrite bind_ret_l.
+    rewrite interp_Mem_ret.
+    apply tau_eutt.
+  Qed.
+
+  Lemma interp_helix_MemAlloc :
+    forall {E} size mem,
+      interp_helix (E := E) (trigger (MemAlloc size)) mem ≈
+      Ret (Some (mem, memory_next_key mem)).
+  Proof.
+    intros.
+    Transparent interp_helix.
+    unfold interp_helix.
+    Opaque interp_helix.
+    setoid_rewrite interp_Mem_vis_eqit.
+    cbn. rewrite Eq.bind_ret_l, tau_eutt.
+    cbn; rewrite interp_Mem_ret, interp_fail_Ret, translate_ret.
+    reflexivity.
+  Qed.
+
+  Import ProofMode.
+
+  rewrite interp_helix_MemAlloc.
+  hred.
+  rewrite interp_helix_MemSet.
+  hred.
+  unfold add_comments; cbn.
+  unfold fmap, Fmap_block; cbn.
+  vjmp.
+  rewrite find_block_eq; reflexivity.
+  cbn.
+  vred.
+  vred.
+  vred.
+  edestruct denote_instr_alloca_exists as (mV' & addr & Alloc & EQAlloc);
+    [| rewrite EQAlloc; clear EQAlloc].
+  red; easy.
+  vred.
+  vred.
+  admit.
+  (* (* no_repeat assumption  *) *)
+  (* rename b into target. *)
+  (* vjmp. *)
+  (* { *)
+  (*   rewrite find_block_ineq. *)
+
+  (*   apply find_block_tail_wf. *)
+  (*   admit. *)
+    
+
     - admit.
-    - admit.
-    - 
+    - (* DSHSeq *)
       cbn.
 
       pose proof GEN as GEN_DESTRUCT.
