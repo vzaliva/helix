@@ -44,15 +44,166 @@ Section StateBound.
       (count s' < count s)%nat /\
       inr (s'', id) ≡ gen name s'.
 
-  (* If an id has been bound between two states.
-
-     The primary use for this is in lemmas like, bid_bound_fresh,
-     which let us know that since a id was bound between two states,
-     it can not possibly collide with an id from an earlier state.
-   *)
   Definition state_bound_between (s1 s2 : IRState) (id : raw_id) : Prop
     := exists name s' s'',
       is_correct_prefix name /\
+      (count s' < count s2)%nat /\
+      count s' ≥ count s1 /\
+      inr (s'', id) ≡ gen name s'.
+
+  Lemma state_bound_fresh :
+    forall (s1 s2 : IRState) (id id' : raw_id),
+      state_bound s1 id ->
+      state_bound_between s1 s2 id' ->
+      id ≢ id'.
+  Proof.
+    intros s1 s2 id id' BOUND BETWEEN.
+    destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_id).
+    destruct BETWEEN as (n2 & sm' & sm'' & N_S2 & COUNT_Sm_ge & COUNT_Sm_lt & GEN_id').
+
+    eapply INJ.
+    apply GEN_id.
+    apply GEN_id'.
+    lia.
+    all: auto.
+  Qed.
+
+  Lemma state_bound_fresh' :
+    forall (s1 s2 s3 : IRState) (id id' : raw_id),
+      state_bound s1 id ->
+      (count s1 <= count s2)%nat ->
+      state_bound_between s2 s3 id' ->
+      id ≢ id'.
+  Proof.
+    intros s1 s2 s3 id id' BOUND COUNT BETWEEN.
+    destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_id).
+    destruct BETWEEN as (n2 & sm' & sm'' & N_S2 & COUNT_Sm_ge & COUNT_Sm_lt & GEN_id').
+
+    eapply INJ.
+    apply GEN_id.
+    apply GEN_id'.
+    lia.
+    all: auto.
+  Qed.
+
+  Lemma state_bound_bound_between :
+    forall (s1 s2 : IRState) (bid : block_id),
+      state_bound s2 bid ->
+      ~(state_bound s1 bid) ->
+      state_bound_between s1 s2 bid.
+  Proof.
+    intros s1 s2 bid BOUND NOTBOUND.
+    destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
+    unfold state_bound_between.
+    exists n1. exists s1'. exists s1''.
+    repeat (split; auto).
+    pose proof (NatUtil.lt_ge_dec (count s1') (count s1)) as [LT | GE].
+    - (* If this is the case, I must have a contradiction, which would mean that
+         bid_bound s1 bid... *)
+      assert (state_bound s1 bid).
+      unfold state_bound.
+      exists n1. exists s1'. exists s1''.
+      auto.
+      contradiction.
+    - auto.
+  Qed.
+
+  Lemma state_bound_mono :
+    forall s1 s2 bid,
+      state_bound s1 bid ->
+      (count s1 <= count s2)%nat ->
+      state_bound s2 bid.
+  Proof.
+    intros s1 s2 bid BOUND COUNT.
+    destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
+    unfold state_bound.
+    exists n1. exists s1'. exists s1''.
+    intuition.
+  Qed.
+
+  Lemma state_bound_between_shrink :
+    forall s1 s2 s1' s2' id,
+      state_bound_between s1 s2 id ->
+      (count s1' <= count s1)%nat ->
+      (count s2' >= count s2)%nat ->
+      state_bound_between s1' s2' id.
+  Proof.
+    intros s1 s2 s1' s2' id BOUND_BETWEEN S1LE S2GE.
+    unfold state_bound_between.
+    destruct BOUND_BETWEEN as (n & s' & s'' & NEND & LT & GE & INC).
+    exists n. exists s'. exists s''.
+    repeat (split; auto).
+    all: lia.
+  Qed.
+
+  Lemma all_state_bound_between_shrink :
+    forall s1 s2 s1' s2' ids,
+      Forall (state_bound_between s1 s2) ids ->
+      (count s1' <= count s1)%nat ->
+      (count s2' >= count s2)%nat ->
+      Forall (state_bound_between s1' s2') ids.
+  Proof.
+    intros s1 s2 s1' s2' bids BOUND_BETWEEN S1LE S2GE.
+    apply Forall_forall.
+    intros x IN.
+    eapply Forall_forall in BOUND_BETWEEN; eauto.
+    eapply state_bound_between_shrink; eauto.
+  Qed.
+  
+  Lemma state_bound_between_separate :
+    forall s1 s2 s3 s4 id id',
+      state_bound_between s1 s2 id ->
+      state_bound_between s3 s4 id' ->
+      (count s2 <= count s3)%nat ->
+      id ≢ id'.
+  Proof.
+    intros s1 s2 s3 s4 id id' BOUND1 BOUND2 BC.
+    destruct BOUND1 as (n1 & s1' & s1'' & NEND1 & LT1 & GE1 & INC1).
+    destruct BOUND2 as (n2 & s2' & s2'' & NEND2 & LT2 & GE2 & INC2).
+
+    assert (count s1' ≢ count s2') as NEQ by lia.
+    eapply INJ.
+    apply INC1.
+    apply INC2.
+    all: eauto.
+  Qed.
+
+  Lemma state_bound_between_id_separate :
+    forall s1 s2 s3 s4 id,
+      state_bound_between s1 s2 id ->
+      state_bound_between s3 s4 id ->
+      (count s2 <= count s3)%nat ->
+      False.
+  Proof.
+    intros s1 s2 s3 s4 id BOUND1 BOUND2 BC.
+    eapply (state_bound_between_separate BOUND1 BOUND2); auto.
+  Qed.
+
+  Lemma not_state_bound_between_split :
+    forall (s1 s2 s3 : IRState) id,
+      ~ state_bound_between s1 s2 id ->
+      ~ state_bound_between s2 s3 id ->
+      ~ state_bound_between s1 s3 id.
+  Proof.
+    intros s1 s2 s3 id S1S2 S2S3.
+    intros BOUND.
+    unfold state_bound_between in BOUND.
+    destruct BOUND as (name & s' & s'' & NEND & COUNT1 & COUNT2 & GEN).
+    assert (count s' < count s2 \/ count s' >= count s2)%nat as COUNT_MID by lia.
+    destruct COUNT_MID as [COUNT_MID | COUNT_MID].
+    - apply S1S2.
+      unfold state_bound_between.
+      exists name. exists s'. exists s''.
+      auto.
+    - apply S2S3.
+      unfold state_bound_between.
+      exists name. exists s'. exists s''.
+      auto.
+  Qed.
+
+  Lemma gen_not_state_bound :
+    forall name s1 s2 id,
+      is_correct_prefix name ->
       gen name s1 ≡ inr (s2, id) ->
       ~(state_bound s1 id).
   Proof.
@@ -65,7 +216,7 @@ Section StateBound.
     lia.
   Qed.
 
-  Lemma gen_state_bound :
+ Lemma gen_state_bound :
     forall name s1 s2 id,
       is_correct_prefix name ->
       gen name s1 ≡ inr (s2, id) ->
