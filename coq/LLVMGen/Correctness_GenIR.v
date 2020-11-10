@@ -606,7 +606,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
           edestruct (yMEM_SUC (MInt64asNT.to_nat dst)).
           apply Nat.ltb_lt in Heqb. lia.
 
-          edestruct denote_instr_gep_array as (yptr' & yREAD & yEQ); cycle -1; [rewrite yEQ; clear yEQ | ..]; cycle 1.
+          edestruct denote_instr_gep_array' as (yptr' & yREAD & yGEP & yEQ); cycle -1; [rewrite yEQ; clear yEQ | ..]; cycle 1.
           { vstep; solve_lu.
             cbn; reflexivity.
           }
@@ -696,8 +696,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
             cbn. reflexivity.
           }
 
-          1: {
-            vstep.
+          { vstep.
             rewrite denote_term_br_1.
             vstep.
             rewrite denote_bks_unfold_not_in.
@@ -708,7 +707,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
               unfold find_block.
               cbn.
-              assert (bid_in ≢ nextblock) by admit.
+              assert (bid_in ≢ nextblock) by admit. (* Should hold from NEXT and Heqs *)
               assert ((if Eqv.eqv_dec_p bid_in nextblock then true else false) ≡ false) as BID_NEQ by admit.
               rewrite BID_NEQ.
               reflexivity.
@@ -736,15 +735,26 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
               destruct x0.
               { (* x0 is a global *)
                 destruct v0.
+                cbn. cbn in H4. 
                 admit.
                 admit.
                 destruct H4 as (yNOALIAS' & bk_h & ptr_l & MINV).
+                destruct MINV as (MLUP & MSUC & FITS & INLG' & GET).
                 split; eauto.
                 destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
-                - (* PTR aliases *)
+                - (* DSHPtrVals alias *)
                   subst.
+                  rewrite yLU in MLUP.
+                  inv MLUP.
                   pose proof (ptr_alias_eq _ yNOALIAS H0); subst.
-                  exists (mem_add (MInt64asNT.to_nat dst) v ymembk). exists yptr.
+
+                  (* Since y_i = a, we know this matches the block that was written to *)
+                  exists (mem_add (MInt64asNT.to_nat dst) v bk_h).
+
+                  (* *)
+                  exists yptr.
+
+
                   split.
                   { rewrite memory_lookup_memory_set_eq. reflexivity. }
                   split.
@@ -764,159 +774,194 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
                     rewrite <- CONT in LUn0. rewrite LUn0 in H3.
                     inversion H3; subst; auto.
                   }
-                  { intros i v0 H4.
+                  { (* Need to show that every lookup matches *)
+                    intros i v0 H4.
 
-                    (* Probably want this to be a lemma *)
-                    apply write_correct in WRITE_SUCCEEDS.
-                    destruct WRITE_SUCCEEDS.
-
-
-                    (* Not sure about this... Will look at this tomorrow *)
-                    Set Nested Proofs Allowed.
-                    Lemma blah :
-                      forall m1 m2 ptr ptr' i τ v uv,
-                        write m1 ptr v ≡ inr m2 ->
-                        ptr ≢ ptr' ->
-                        get_array_cell m1 ptr' i τ ≡ inr uv ->
-                        get_array_cell m2 ptr' i τ ≡ inr uv.
+                    Lemma no_overlap_dec :
+                      forall ptr1 ptr2 s1 s2,
+                        {no_overlap ptr1 s1 ptr2 s2} + {~ (no_overlap ptr1 s1 ptr2 s2)}.
                     Proof.
-                      intros m1 m2 ptr ptr' i τ v dv WRITE NEQ GET.
-                      apply write_correct in WRITE.
-                      destruct WRITE.
-                      assert (dvalue_has_dtyp v τ) by admit. (* this is fantasy *)
-                      specialize (is_written0 τ H).
-                      destruct is_written0.
+                      intros [b1 o1] [b2 o2] s1 s2.
+                      unfold no_overlap.
+                      cbn.
 
-                      pose proof (get_array_succeeds_allocated _ _ _ _ GET) as ALLOC.
-                      epose proof (read_array _ _ _ _ _ ALLOC).
-                      edestruct read_array_exists.
-                      admit.
+                      destruct (Z.eq_dec b1 b2) as [B | B].
+                      2: { left. auto. }
 
-                      destruct H1.
+                      destruct (Int.Z_as_Int.gt_le_dec o1 (o2 + s2)).
+                      { left. auto. }
 
-                      rewrite <- H2 in GET.
+                      destruct (Int.Z_as_Int.gt_le_dec o2 (o1 + s1)).
+                      { left. auto. }
 
-                      erewrite <- read_array.
-
-                      rewrite old_lu0; eauto.
-
-                      eapply sizeof_dvalue_pos; eauto.
-
-                      admit.
+                      right. intuition.
                     Qed.
 
-                    (* Should we show that yptr <> yptr' ?
+                    Lemma no_overlap_dtyp_dec :
+                      forall ptr1 ptr2 τ1 τ2,
+                        {no_overlap_dtyp ptr1 τ1 ptr2 τ2} + {~ (no_overlap_dtyp ptr1 τ1 ptr2 τ2)}.
+                    Proof.
+                      intros ptr1 ptr2 τ1 τ2.
+                      apply no_overlap_dec.
+                    Qed.
 
-                       Actually, ideally they don't even have the same block...
+                    Lemma gep_array_ptr_overlap_dtyp :
+                      forall ptr ix sz τ elem_ptr,
+                        DynamicValues.Int64.unsigned ix < sz -> (* Not super happy about this *)
+                        0 < sizeof_dtyp τ ->
+                        handle_gep_addr (DTYPE_Array sz τ) ptr
+                                        [DVALUE_I64 (repr 0); DVALUE_I64 ix] ≡ inr elem_ptr ->
+                        ~(no_overlap_dtyp elem_ptr τ ptr (DTYPE_Array sz τ)).
+                    Proof.
+                      intros ptr ix sz τ elem_ptr BOUNDS SIZE GEP.
+                      intros NO_OVER.
+                      unfold no_overlap_dtyp, no_overlap in NO_OVER.
+
+                      destruct ptr as [ptr_b ptr_i].
+                      destruct elem_ptr as [elem_ptr_b elem_ptr_i].
+
+                      unfold handle_gep_addr in GEP.
+                      cbn in *.
+                      inversion GEP; subst.
+
+                      destruct NO_OVER as [NO_OVER | [NO_OVER | NO_OVER]].
+                      - auto.
+                      - rewrite Integers.Int64.unsigned_repr in NO_OVER; [|cbn; lia].
+                        replace (ptr_i + sz * sizeof_dtyp τ * 0 + DynamicValues.Int64.unsigned ix * sizeof_dtyp τ) with (ptr_i + DynamicValues.Int64.unsigned ix * sizeof_dtyp τ) in NO_OVER by lia.
+                        pose proof (Int64.unsigned_range ix) as [? ?].
+                        apply Zorder.Zplus_gt_reg_l in NO_OVER.
+                        apply Zorder.Zmult_gt_reg_r in NO_OVER; lia.
+                      - rewrite Integers.Int64.unsigned_repr in NO_OVER; [|cbn; lia].
+                        replace (ptr_i + sz * sizeof_dtyp τ * 0 + DynamicValues.Int64.unsigned ix * sizeof_dtyp τ) with (ptr_i + DynamicValues.Int64.unsigned ix * sizeof_dtyp τ) in NO_OVER by lia.
+                        pose proof (Int64.unsigned_range ix) as [? ?].
+                        lia.
+                    Qed.
+
+                    Lemma from_Z_intval :
+                      forall sz i,
+                        MInt64asNT.from_Z sz ≡ inr i ->
+                        sz ≡ Int64.intval i.
+                    Proof.
+                      intros sz i H.
+                    Admitted.
+
+                    (* TODO: do I even need this...? *)
+                    assert (~(no_overlap_dtyp yptr' DTYPE_Double yptr (DTYPE_Array sz0 DTYPE_Double))) as OVER.
+                    { erewrite <- from_Z_intval in yGEP; eauto.
+                      eapply gep_array_ptr_overlap_dtyp; cbn; eauto.
+                      admit.
+                      lia.
+                    }
+
+                    (* Because I know that there is overlap, I know that fst yptr' = fst yptr 
                      *)
-                    unfold get_array_cell.
-                    destruct (NPeano.Nat.eq_dec i (MInt64asNT.to_nat dst)) as [EQDST | NEQDST].
-                    - subst.
-                    destruct 
-                    
-                    eapply read_array.
 
-                    admit.
+                    pose proof (dtyp_fits_allocated yFITS) as yALLOC.
+                    epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
+                    rewrite WRITE_ARRAY in WRITE_SUCCEEDS.
+
+                    destruct (Nat.eq_dec i (MInt64asNT.to_nat dst)) as [EQdst | NEQdst].
+                    {
+                    (* In the case where i = dst
+
+                       I know v0 = v (which is the value from the source (GETCELL)
+
+                       I should be able to show that yptr' is GEP of yptr in this case...
+
+                       May be able to use write array lemmas...?
+                     *)
+
+                      Lemma write_array_cell_get_array_cell:
+                        ∀ (m m' : memoryV) (t : dtyp) (val : dvalue) (a : addr) (i : nat),
+                          write_array_cell m a i t val ≡ inr m' →
+                          dvalue_has_dtyp val t →
+                          get_array_cell m' a i t ≡ inr (dvalue_to_uvalue val).
+                      Proof.
+                      Admitted.
+
+                      subst.
+                      rewrite mem_lookup_mem_add_eq in H4; inv H4.
+
+                      change (UVALUE_Double v0) with (dvalue_to_uvalue (DVALUE_Double v0)).
+                      eapply write_array_cell_get_array_cell; eauto.
+                      constructor.
+                    }
+                    {
+                    (* In the case where i <> dst
+
+                       I should be able to use yGETCELL along with H4 (getting rid of mem_add)
+                     *)
+                      rewrite mem_lookup_mem_add_neq in H4; auto.
+
+                      Lemma write_array_cell_untouched :
+                        ∀ (m m' : memoryV) (t : dtyp) (val : dvalue) (a : addr) (i : nat) (i' : nat),
+                          write_array_cell m a i t val ≡ inr m' →
+                          dvalue_has_dtyp val t →
+                          i <> i' ->
+                          get_array_cell m' a i' t ≡ get_array_cell m a i' t.
+                      Proof.
+                        intros m m' t val a i i' H H0 H1.
+                      Admitted.
+
+                      erewrite write_array_cell_untouched; eauto.
+                      constructor.
+                    }
                   }
-                - (* This is the branch where a and y_i don't
-                     alias. These are the DSHPtrVal pointers...
+                - (* DSHPtrVals do not alias *)
 
-                     DSHPtrVal a size1 corresponds to %id, which must be a local id.
+                  (* This must be the case because if y_i <> a, then
+                  we're looking at a different helix block. *)
+                  exists bk_h.
 
-                     I need to show the memory invariant holds.
+                  cbn.
+                  cbn in INLG'.
+                  (* Need the pointer that matches up with @id *)
+                  exists ptr_l.
 
-                     - y_i points to ymembk
-                     - a points to bk_h
 
-                     no_pointer_aliasing is a given.
 
-                     We should say that there exists bk_h and ptr_l.
+                  rewrite memory_lookup_memory_set_neq; auto.
+                  intuition.
 
-                     The memory_lookup case should hold because we
-                     don't care about the memory_set operation because
-                     a <> y_i
+                  Lemma dtyp_fits_after_write :
+                    forall m m' ptr ptr' τ τ',
+                      dtyp_fits m ptr τ ->
+                      write m ptr' τ' ≡ inr m' ->
+                      dtyp_fits m' ptr τ.
+                  Proof.
+                  Admitted.
 
-                     mem_lookup_succeeds is as before.
+                  eapply dtyp_fits_after_write; eauto.
 
-                     dtyp_fits should hold because the write shouldn't
-                     change the block for ptr_l at all (no aliasing).
-                     
-                     I need in_local_or_global_addr to hold, meaning I can find
+                  (* What if... fst (ptr_l) = fst yptr' and vice versa?
 
-                     l1 @ id = Some ptr_l
-
-                     If id is in l0 then this follows from freshness and the old MINV.
-
-                     Otherwise, there's actually a contradiction with
-                     MINV's in_local_or_global_addr... Because id
-                     would not be in l0.
+                     I think if they don't equal then they don't overlap...
                    *)
-                  destruct MINV as (MLUP & MSUC & FITS & INLG' & GET).
-                  pose proof alist_In_dec id l0.
-                  edestruct H4 as [INl0 | NINl0].
-                  admit.
-                  admit.
-                  (* + subst. *)
-                  (*   cbn.                   *)
-                  (*   exists bk_h. exists ptr'. *)
 
-                  (*   rewrite memory_lookup_memory_set_neq; auto. *)
-                  (*   repeat (split; auto). *)
-                  (*   * admit. (* should hold might not need *) *)
-                  (*   * (* This should all hold from the fact that id is *)
-                  (*      in l0 and everything is fresh... *) *)
+                  (* Can ptr_l = yptr'? *)
 
-                  (*     (* This is hideous *) *)
-                  (*     assert (id ?[ Logic.eq ] r0 ≡ false) as IDR0 by admit. *)
-                  (*     rewrite IDR0. *)
-                  (*     assert (negb (r0 ?[ Logic.eq ] r1) ≡ true) as R0R1 by admit. *)
-                  (*     rewrite R0R1. *)
-                  (*     cbn. *)
-                  (*     assert (id ?[ Logic.eq ] r1 ≡ false) as IDR1 by admit. *)
-                  (*     rewrite IDR1. *)
-                  (*     cbn. *)
-                  (*     assert (negb (r1 ?[ Logic.eq ] r) ≡ true) as R1R by admit. *)
-                  (*     rewrite R1R. *)
-                  (*     cbn. *)
-                  (*     assert (negb (r0 ?[ Logic.eq ] r) ≡ true) as R0R by admit. *)
-                  (*     rewrite R0R. *)
-                  (*     cbn. *)
-                  (*     assert (id ?[ Logic.eq ] r ≡ true) as IDR by admit. *)
-                  (*     rewrite IDR. *)
-                  (*     reflexivity. *)
-                  (*   * intros i v0 H5. *)
-                  (*     pose proof (GET i v0 H5). *)
-                  (*     (* untouched part of memory, so this should hold *) *)
-                  (*     admit. *)
-                  (* + cbn in INLG'. *)
-                  (*   exfalso. *)
-                  (*   apply NINl0. eauto. *)
+                  (* TODO: This should hold from extra memory invariant aliasing stuff. *)
+                  assert (fst (ptr_l) ≢ fst yptr) as DIFF_BLOCKS. admit.
+                  
+                  Lemma write_array_cell_untouched_ptr_block :
+                    ∀ (m m' : memoryV) (t : dtyp) (val : dvalue) (a a' : addr) (i i' : nat),
+                      write_array_cell m a i t val ≡ inr m' →
+                      dvalue_has_dtyp val t →
+                      fst a' ≢ fst a ->
+                      get_array_cell m' a' i' t ≡ get_array_cell m a' i' t.
+                  Proof.
+                    intros m m' t val a a' i i' WRITE TYP BLOCK_NEQ.
+                    destruct a as [b1 o1].
+                    destruct a' as [b2 o2].
+                  Admitted.
+
+                  pose proof (dtyp_fits_allocated yFITS) as yALLOC.
+                  epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
+                  rewrite WRITE_ARRAY in WRITE_SUCCEEDS.
+
+                  erewrite write_array_cell_untouched_ptr_block; eauto.
+                  constructor.
               }
-
-
-                (* I should know that r, r1, and r0 are all used as local variables...
-
-                   So if x0 is a global, it can't equal any of these...
-                 *)
-                (* assert ({id ≡ r0} + {id ≢ r0}) as [IDR0 | NIDR0] by apply rel_dec_p. *)
-                (* - subst. cbn. *)
-                (*   destruct v0. *)
-                (*   cbn in H4. *)
-
-                (* assert ({id ≡ r} + {id ≢ r}) as [IDR | NIDR] by apply rel_dec_p. *)
-                (* - subst. cbn. *)
-                (*   destruct v0; cbn; auto. *)
-                (*   + unfold in_local_or_global_scalar in H4. *)
-                (*     destruct H4. destruct H4. *)
-                (*     exists x0. exists x1. *)
-                (*     cbn in H4. *)
-                (*     destruct H4, H5. *)
-                (*     repeat (split; auto). *)
-
-                (*     destruct x0. *)
-                (*     cbn. *)
-
-                (*     (* This means that this pointer (z, z0) has to be separate from yptr'... *) *)
 
               { (* x0 is a local *)
                 destruct v0. (* Probably need to use WF_IRState to make sure we only consider valid types *)
@@ -1010,7 +1055,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         }
 
         { (* vy_p in local *)
-          edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |].
+          edestruct memory_invariant_Ptr as (yNOALIAS & ymembk & yptr & yLU & yMEMSUC & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |].
 
           clean_goal.
           rewrite yLU in H0; symmetry in H0; inv H0.
