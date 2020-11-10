@@ -23,7 +23,7 @@ Section LidBound.
 
     intros CONTRA.
     apply Name_inj in CONTRA.
-    apply valid_prefix_string_of_nat_backward in CONTRA; auto.
+    apply valid_prefix_string_of_nat_forward in CONTRA; auto.
     intuition.
   Qed.
 

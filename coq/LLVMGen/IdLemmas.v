@@ -86,33 +86,6 @@ Proof.
       subst; auto.
 Qed.
       
-Lemma valid_prefix_string_of_nat_backward :
-  forall s1 s2 n k,
-    is_correct_prefix s1 ->
-    is_correct_prefix s2 ->
-    s1 @@ string_of_nat n ≡ s2 @@ string_of_nat k ->
-    n ≡ k /\ s1 ≡ s2.
-Proof.
-  induction s1 as [| c s1 IH].
-  - cbn; intros.
-    unfold append at 1 in H1; cbn in H1.
-    apply valid_prefix_string_of_nat_aux in H1; auto; intuition.
-  - intros * CORR1 CORR2 EQ.
-    destruct s2 as [| c' s2].
-    + exfalso.
-      unfold append at 2 in EQ.
-      symmetry in EQ.
-      apply valid_prefix_string_of_nat_aux in EQ; auto.
-      destruct EQ as [_ abs]; inv abs.
-    + assert (forall c s s', String c s @@ s' ≡ String c (s @@ s')) by (intros; unfold append; reflexivity).
-      rewrite 2 H in EQ.
-      inv EQ; clear H.
-      apply is_correct_prefix_String in CORR1; destruct CORR1 as [CORR1 ALPHA1].
-      apply is_correct_prefix_String in CORR2; destruct CORR2 as [CORR2 _].
-      edestruct IH; try eassumption.
-      subst; auto.
-Qed.
-
  Lemma valid_prefix_neq_differ :
   forall s1 s2 n k,
     is_correct_prefix s1 ->
@@ -121,7 +94,7 @@ Qed.
     s1 @@ string_of_nat n ≢ s2 @@ string_of_nat k.
 Proof.
   intros s1 s2 n k NS1 NS2 NK.
-  epose proof valid_prefix_string_of_nat_backward s1 s2 n k NS1 NS2 as contra.
+  epose proof valid_prefix_string_of_nat_forward s1 s2 n k NS1 NS2 as contra.
   intros abs.
   apply contra in abs as [NK_EQ _].
   contradiction.

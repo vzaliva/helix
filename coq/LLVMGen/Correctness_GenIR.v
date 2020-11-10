@@ -64,7 +64,7 @@ Ltac get_block_count_hyps :=
 
 
 Transparent incBlockNamed.
-Lemma foo :
+Lemma generates_wf_cfgs :
   ∀ (op : DSHOperator) (s1 s2 : IRState) (nextblock b : block_id) (bk_op : list (LLVMAst.block typ)),
     bid_bound s1 nextblock ->
     genIR op nextblock s1 ≡ inr (s2, (b, bk_op)) →
@@ -206,144 +206,94 @@ Proof.
     }
     eapply wf_cfg_singleton.
 
-  - simpl in *.
-    pose (incBlockNamed "Loop_lcont" s1).
-
-    (* assert (ALPHA: not_ends_with_nat "Loop_lcont") by admit. *)
-    pose proof bid_bound_incBlockNamed
-    cbn in s.
-    
-    assert (bid_bound s1 (Name ("Loop_lcont" @@ string_of_nat (block_count s1)))).
-    {
-      eapply bid_bound_incBlockNamed with (s1 := s1). [| reflexivity].     
-      }
-    destruct NEXT as (? & [?bid ? ? ?] & [?bid ? ? ?] & ? & ? & ?).
-    cbn* in *.
+  - cbn* in *.
     simp.
-    eapply IHop in Heqs0.
+    clean_goal.
+    apply IHop in Heqs0.
     2:{
-      eapply bid_bound_incLocal_mono.
-      eapply bid_bound_incBlockNamed with (s1 := s1) (name := "loop_lcont").
-      2:cbn.
-     
-    cbn* in *; simp; cbn in *.
-
-    clean_goal.
-    get_block_count_hyps; subst; cbn in *.
-    repeat match goal with
-           | h: IRState |- _ => destruct h as [?bid ? ? ?]
-           end; cbn in *.
-    subst.
-    eapply wf_cfg_cons'.
-    { cbn.
-      intuition;
-        match goal with
-        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
-        end. 
+      apply bid_bound_incBlockNamed with (name := "Loop_lcont")
+                                         (s1 := {|
+                                             block_count := (block_count s1);
+                                             local_count := S (local_count s1);
+                                             void_count := void_count s1;
+                                             Γ := (ID_Local (Name ("Loop_i" @@ string_of_nat (local_count s1))), TYPE_I 64) :: Γ s1 |}); reflexivity.
     }
-    eapply wf_cfg_cons'.
-    { cbn.
-      intuition;
-        match goal with
-        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
-        end. 
-    }
-    eapply wf_cfg_cons'.
-    { cbn.
-      intuition;
-        match goal with
-        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
-        end. 
-    }
-    eapply wf_cfg_singleton.
-
-  - destruct NEXT as (? & [?bid ? ? ?] & [?bid ? ? ?] & ? & ? & ?).
-    cbn* in *.
-    simp.
-    cbn* in *; simp; cbn in *.
-    clean_goal.
-    get_block_count_hyps; subst; cbn in *.
-    repeat match goal with
-           | h: IRState |- _ => destruct h as [?bid ? ? ?]
-           end; cbn in *.
-    subst.
-    eapply wf_cfg_cons'.
-    { cbn.
-      intuition;
-        match goal with
-        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
-        end. 
-    }
-    eapply wf_cfg_cons'.
-    { cbn.
-      intuition;
-        match goal with
-        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
-        end. 
-    }
-    eapply wf_cfg_cons'.
-    { cbn.
-      intuition;
-        match goal with
-        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
-        end. 
-    }
-    eapply wf_cfg_singleton.
-
-  - destruct NEXT as (? & [?bid ? ? ?] & [?bid ? ? ?] & ? & ? & ?).
-    cbn* in *.
-    simp.
-    cbn* in *; simp; cbn in *.
-    clean_goal.
-    get_block_count_hyps; subst; cbn in *.
-    repeat match goal with
-           | h: IRState |- _ => destruct h as [?bid ? ? ?]
-           end; cbn in *.
-    subst.
-    eapply wf_cfg_cons'.
-    { cbn.
-      intuition;
-        match goal with
-        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
-        end. 
-    }
-    eapply wf_cfg_cons'.
-    { cbn.
-      intuition;
-        match goal with
-        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
-        end. 
-    }
-    eapply wf_cfg_cons'.
-    { cbn.
-      intuition;
-        match goal with
-        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
-        end. 
-    }
-    eapply wf_cfg_singleton.
-
-
-
-      2:eapply wf_cfg_cons'.
-      3:eapply wf_cfg_cons'.
-      4:
-      all:cbn.
-      clean_goal.
-      intuition.
-      subst.
-      cbn in *.
-      subst.
-
+    clear IHop; clean_goal.
     cbn in *.
-    rewrite Heqs in *; clear Heqs.
+    simp.
+    cbn in *.
+    eapply wf_cfg_cons'.
+    { cbn.
+      intuition.
+      match goal with
+      | h: Name _ ≡ Name _ |- _ =>
+        apply Name_inj in h; 
+          first [now inv h | apply valid_prefix_string_of_nat_forward in h as [abs _]; intuition] 
+      end.
+      admit.
+    }
+    admit.
 
-    assert (b <> b0).
-
-    
+  - rename nextblock into entryblock, b into nextblock.
+    simpl in GEN.
+    break_match_hyp; [simp |].
+    inv GEN.
+    break_match_hyp; [simp |].
+    destruct s1 as [bid1  lid1  void1  Γ1]; cbn in *.
+    destruct NEXT as (? & [?bid ? ? ?] & [?bid ? ? ?] & ? & ? & ?); cbn in *.
+    inv H1; cbn in *.
+    destruct p as [s' [bblock bcode]]. 
+    destruct s' as [bid2  lid2  void2  Γ2]; cbn in *.
+    simp.
+    cbn* in *; simp; cbn in *.
+    clean_goal.
+    cbn* in *; simp; cbn in *.
+    generalize Heqs0; intros GEN.
+    apply genIR_block_count in Heqs0.
+    cbn in *.
+    assert (BOUND:bid_bound
+                    {|
+                      block_count := bid1;
+                      local_count := S lid1;
+                      void_count := void1;
+                      Γ := (ID_Local (Name ("a" @@ string_of_nat lid1)),
+                            TYPE_Pointer (TYPE_Array (Int64.intval size) TYPE_Double)) :: Γ1 |}
+                    (Name (x @@ string_of_nat bid))).
+    {
+      do 2 red.
+      exists x.
+      exists {|
+          block_count := bid;
+          local_count := S lid1;
+          void_count := void1;
+          Γ := (ID_Local (Name ("a" @@ string_of_nat lid1)),
+                TYPE_Pointer (TYPE_Array (Int64.intval size) TYPE_Double)) :: Γ1 |}. 
+      eexists; repeat split; cbn; eauto.
+    }
+    generalize GEN; intros WF;
+    apply IHop in WF; auto; clear IHop.
+    apply wf_cfg_cons'; auto; clear WF.
+    cbn.
+    cbn in *; intros abs; apply ListUtil.in_map_elim in abs as (? & ? & ?).
+    Transparent incVoid. cbn in Heqs2; inv Heqs2. Opaque incVoid.
+    cbn in *.
+    clear BOUND H Heql0.
+    clean_goal.
+    (* A bit lost *)
+    admit.
+    (* eapply inputs_not_earlier_bound in GEN. *)
+    (* unfold inputs,fmap,Fmap_list in GEN. *)
+    (* rewrite blk_id_map_convert_typ in GEN. *)
+    (* edestruct Forall_forall as [IMP _]. *)
+    (* specialize (IMP GEN (blk_id x0)). *)
+    (* cbn in *. *)
+    (* eapply IMP. *)
+    (* 2: symmetry; exact H2. *)
+    (* apply in_map; auto. *)
+    (* clear BOUND. *)
+Admitted. 
+   
 Opaque incBlockNamed.
-
-
 
 Section GenIR.
 

@@ -137,7 +137,7 @@ Section BidBound.
     Opaque incBlockNamed.
     cbn in *.
     simp.
-    apply valid_prefix_string_of_nat_backward in H1; auto.
+    apply valid_prefix_string_of_nat_forward in H1; auto.
     lia.
   Qed.
 
