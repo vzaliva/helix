@@ -62,7 +62,9 @@ Ltac get_block_count_hyps :=
       apply genIR_block_count in H
     end.
 
-
+(* This establishes that the generated code does not contain any two blocks with the same id.
+   The proof is extremely messy, and still has some admits, but conceptually is shouldn't be hard.
+ *)
 Transparent incBlockNamed.
 Lemma generates_wf_cfgs :
   ∀ (op : DSHOperator) (s1 s2 : IRState) (nextblock b : block_id) (bk_op : list (LLVMAst.block typ)),
@@ -650,8 +652,6 @@ Section GenIR.
     - red. rewrite EQ; apply WF.
   Qed.
 
-  
-
   Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
       (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH) 
@@ -697,11 +697,10 @@ Section GenIR.
             bid_bound ?s2 bid_in =>
             idtac H
           end.
-          eapply bid_bound_incBlockNamed; eauto;
-            solve_not_ends_with.
+          eapply bid_bound_incBlockNamed; eauto; reflexivity.
           solve_not_bid_bound.
           block_count_replace. lia.
-          solve_not_ends_with.
+          reflexivity.
         }
         auto.
       }
@@ -1035,10 +1034,11 @@ Section GenIR.
 
     - admit.
     - (* DSHSeq *)
+      Opaque add_comment.
       cbn.
 
       pose proof GEN as GEN_DESTRUCT.
-      cbn in GEN_DESTRUCT; simp.
+      cbn* in GEN_DESTRUCT; simp.
 
       rename i into s_op1, l0 into bk_op1, l into bk_op2.
       rename b into op2_entry, bid_in into op1_entry.
