@@ -408,6 +408,35 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     destruct (Int64.intrange x); lia.
   Qed.
 
+  (* TODO: move this and prove this *)
+  Lemma from_Z_intval :
+    forall sz i,
+      MInt64asNT.from_Z sz ≡ inr i ->
+      sz ≡ Int64.intval i.
+  Proof.
+    intros sz i H.
+  Admitted.
+
+  (* TODO: move this? *)
+  Ltac solve_local_lookup :=
+    repeat
+      (match goal with
+       | |- context [ if ?x ?[ Logic.eq ] ?x then _ else _ ]
+         => rewrite  eq_dec_eq
+       | GEN1 : incLocal ?s1 ≡ inr (?s2, ?x),
+                GEN2 : incLocal ?s3 ≡ inr (?s4, ?y)
+         |- context [ if ?x ?[ Logic.eq ] ?y then _ else _ ]
+         =>
+         let H := fresh "NEQ"
+         in assert (local_count s1 ≢ local_count s3) as H by solve_local_count;
+            rewrite (eq_dec_neq (incLocal_id_neq GEN1 GEN2 H))
+       | GEN1 : incLocal ?s1 ≡ inr (?s2, ?x),
+                GEN2 : incLocal ?s3 ≡ inr (?s4, ?y)
+         |- context [ if negb (?x ?[ Logic.eq ] ?y) then _ else _ ]
+         => let H := fresh "NEQ"
+           in assert (local_count s1 ≢ local_count s3) as H by solve_local_count;
+              rewrite (eq_dec_neq (incLocal_id_neq GEN1 GEN2 H))
+       end; cbn; auto).
 
   Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
@@ -634,47 +663,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
           2: {
             vstep.
             - cbn.
-
-              Set Nested Proofs Allowed.
-
-              (* TODO: move this? *)
-              Lemma incLocal_id_neq :
-                forall s1 s2 s3 s4 id1 id2,
-                  incLocal s1 ≡ inr (s2, id1) ->
-                  incLocal s3 ≡ inr (s4, id2) ->
-                  local_count s1 ≢ local_count s3 ->
-                  id1 ≢ id2.
-              Proof.
-                intros s1 s2 s3 s4 id1 id2 GEN1 GEN2 COUNT.
-                eapply incLocalNamed_count_gen_injective.
-                symmetry. rewrite incLocal_unfold in *. eapply GEN1.
-                symmetry. rewrite incLocal_unfold in *. eapply GEN2.
-                solve_local_count_tac.
-                solve_not_ends_with.
-                solve_not_ends_with.
-              Qed.
-
-              (* TODO: move this? *)
-              Ltac solve_local_lookup :=
-                repeat
-                  (match goal with
-                   | |- context [ if ?x ?[ Logic.eq ] ?x then _ else _ ]
-                     => rewrite  eq_dec_eq
-                   | GEN1 : incLocal ?s1 ≡ inr (?s2, ?x),
-                            GEN2 : incLocal ?s3 ≡ inr (?s4, ?y)
-                     |- context [ if ?x ?[ Logic.eq ] ?y then _ else _ ]
-                     =>
-                     let H := fresh "NEQ"
-                     in assert (local_count s1 ≢ local_count s3) as H by solve_local_count;
-                        rewrite (eq_dec_neq (incLocal_id_neq GEN1 GEN2 H))
-                   | GEN1 : incLocal ?s1 ≡ inr (?s2, ?x),
-                            GEN2 : incLocal ?s3 ≡ inr (?s4, ?y)
-                     |- context [ if negb (?x ?[ Logic.eq ] ?y) then _ else _ ]
-                     => let H := fresh "NEQ"
-                       in assert (local_count s1 ≢ local_count s3) as H by solve_local_count;
-                          rewrite (eq_dec_neq (incLocal_id_neq GEN1 GEN2 H))
-                   end; cbn; auto).
-
               solve_local_lookup.
             - cbn.
               apply eqit_Ret.
@@ -777,74 +765,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
                   { (* Need to show that every lookup matches *)
                     intros i v0 H4.
 
-                    Lemma no_overlap_dec :
-                      forall ptr1 ptr2 s1 s2,
-                        {no_overlap ptr1 s1 ptr2 s2} + {~ (no_overlap ptr1 s1 ptr2 s2)}.
-                    Proof.
-                      intros [b1 o1] [b2 o2] s1 s2.
-                      unfold no_overlap.
-                      cbn.
-
-                      destruct (Z.eq_dec b1 b2) as [B | B].
-                      2: { left. auto. }
-
-                      destruct (Int.Z_as_Int.gt_le_dec o1 (o2 + s2)).
-                      { left. auto. }
-
-                      destruct (Int.Z_as_Int.gt_le_dec o2 (o1 + s1)).
-                      { left. auto. }
-
-                      right. intuition.
-                    Qed.
-
-                    Lemma no_overlap_dtyp_dec :
-                      forall ptr1 ptr2 τ1 τ2,
-                        {no_overlap_dtyp ptr1 τ1 ptr2 τ2} + {~ (no_overlap_dtyp ptr1 τ1 ptr2 τ2)}.
-                    Proof.
-                      intros ptr1 ptr2 τ1 τ2.
-                      apply no_overlap_dec.
-                    Qed.
-
-                    Lemma gep_array_ptr_overlap_dtyp :
-                      forall ptr ix sz τ elem_ptr,
-                        DynamicValues.Int64.unsigned ix < sz -> (* Not super happy about this *)
-                        0 < sizeof_dtyp τ ->
-                        handle_gep_addr (DTYPE_Array sz τ) ptr
-                                        [DVALUE_I64 (repr 0); DVALUE_I64 ix] ≡ inr elem_ptr ->
-                        ~(no_overlap_dtyp elem_ptr τ ptr (DTYPE_Array sz τ)).
-                    Proof.
-                      intros ptr ix sz τ elem_ptr BOUNDS SIZE GEP.
-                      intros NO_OVER.
-                      unfold no_overlap_dtyp, no_overlap in NO_OVER.
-
-                      destruct ptr as [ptr_b ptr_i].
-                      destruct elem_ptr as [elem_ptr_b elem_ptr_i].
-
-                      unfold handle_gep_addr in GEP.
-                      cbn in *.
-                      inversion GEP; subst.
-
-                      destruct NO_OVER as [NO_OVER | [NO_OVER | NO_OVER]].
-                      - auto.
-                      - rewrite Integers.Int64.unsigned_repr in NO_OVER; [|cbn; lia].
-                        replace (ptr_i + sz * sizeof_dtyp τ * 0 + DynamicValues.Int64.unsigned ix * sizeof_dtyp τ) with (ptr_i + DynamicValues.Int64.unsigned ix * sizeof_dtyp τ) in NO_OVER by lia.
-                        pose proof (Int64.unsigned_range ix) as [? ?].
-                        apply Zorder.Zplus_gt_reg_l in NO_OVER.
-                        apply Zorder.Zmult_gt_reg_r in NO_OVER; lia.
-                      - rewrite Integers.Int64.unsigned_repr in NO_OVER; [|cbn; lia].
-                        replace (ptr_i + sz * sizeof_dtyp τ * 0 + DynamicValues.Int64.unsigned ix * sizeof_dtyp τ) with (ptr_i + DynamicValues.Int64.unsigned ix * sizeof_dtyp τ) in NO_OVER by lia.
-                        pose proof (Int64.unsigned_range ix) as [? ?].
-                        lia.
-                    Qed.
-
-                    Lemma from_Z_intval :
-                      forall sz i,
-                        MInt64asNT.from_Z sz ≡ inr i ->
-                        sz ≡ Int64.intval i.
-                    Proof.
-                      intros sz i H.
-                    Admitted.
-
                     (* TODO: do I even need this...? *)
                     assert (~(no_overlap_dtyp yptr' DTYPE_Double yptr (DTYPE_Array sz0 DTYPE_Double))) as OVER.
                     { erewrite <- from_Z_intval in yGEP; eauto.
@@ -871,14 +791,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
                        May be able to use write array lemmas...?
                      *)
 
-                      Lemma write_array_cell_get_array_cell:
-                        ∀ (m m' : memoryV) (t : dtyp) (val : dvalue) (a : addr) (i : nat),
-                          write_array_cell m a i t val ≡ inr m' →
-                          dvalue_has_dtyp val t →
-                          get_array_cell m' a i t ≡ inr (dvalue_to_uvalue val).
-                      Proof.
-                      Admitted.
-
                       subst.
                       rewrite mem_lookup_mem_add_eq in H4; inv H4.
 
@@ -892,17 +804,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
                        I should be able to use yGETCELL along with H4 (getting rid of mem_add)
                      *)
                       rewrite mem_lookup_mem_add_neq in H4; auto.
-
-                      Lemma write_array_cell_untouched :
-                        ∀ (m m' : memoryV) (t : dtyp) (val : dvalue) (a : addr) (i : nat) (i' : nat),
-                          write_array_cell m a i t val ≡ inr m' →
-                          dvalue_has_dtyp val t →
-                          i <> i' ->
-                          get_array_cell m' a i' t ≡ get_array_cell m a i' t.
-                      Proof.
-                        intros m m' t val a i i' H H0 H1.
-                      Admitted.
-
                       erewrite write_array_cell_untouched; eauto.
                       constructor.
                     }
@@ -923,14 +824,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
                   rewrite memory_lookup_memory_set_neq; auto.
                   intuition.
 
-                  Lemma dtyp_fits_after_write :
-                    forall m m' ptr ptr' τ τ',
-                      dtyp_fits m ptr τ ->
-                      write m ptr' τ' ≡ inr m' ->
-                      dtyp_fits m' ptr τ.
-                  Proof.
-                  Admitted.
-
                   eapply dtyp_fits_after_write; eauto.
 
                   (* What if... fst (ptr_l) = fst yptr' and vice versa?
@@ -942,18 +835,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
                   (* TODO: This should hold from extra memory invariant aliasing stuff. *)
                   assert (fst (ptr_l) ≢ fst yptr) as DIFF_BLOCKS. admit.
-                  
-                  Lemma write_array_cell_untouched_ptr_block :
-                    ∀ (m m' : memoryV) (t : dtyp) (val : dvalue) (a a' : addr) (i i' : nat),
-                      write_array_cell m a i t val ≡ inr m' →
-                      dvalue_has_dtyp val t →
-                      fst a' ≢ fst a ->
-                      get_array_cell m' a' i' t ≡ get_array_cell m a' i' t.
-                  Proof.
-                    intros m m' t val a a' i i' WRITE TYP BLOCK_NEQ.
-                    destruct a as [b1 o1].
-                    destruct a' as [b2 o2].
-                  Admitted.
 
                   pose proof (dtyp_fits_allocated yFITS) as yALLOC.
                   epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
