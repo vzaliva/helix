@@ -853,6 +853,8 @@ Proof.
   split; [reflexivity | eauto].
 Qed.
 
+Hint Resolve state_invariant_sub_local_no_aliasing_refl: core.
+
 Lemma unsigned_is_zero: forall a, Int64.unsigned a ≡ Int64.unsigned Int64.zero ->
                              a = Int64.zero.
 Proof.
@@ -867,6 +869,81 @@ Proof.
 Admitted.
 
 Hint Resolve memory_invariant_ext_local: core.
+
+Lemma no_local_global_alias_non_pointer:
+  forall l g v,
+    (forall p, v ≢ UVALUE_Addr p) ->
+    no_local_global_alias l g v.
+Proof.
+  intros l g v PTR.
+  unfold no_local_global_alias.
+  intros id p0 p' H0 H1.
+  specialize (PTR p0).
+  contradiction.
+Qed.
+
+Lemma sub_local_no_aliasing_add_non_ptr :
+  forall id v l g,
+    alist_fresh id l ->
+    no_llvm_ptr_aliasing l g ->
+    no_local_global_alias l g v ->
+    sub_local_no_aliasing l (alist_add id v l) g.
+Proof.
+  intros id v l g FRESH ALIAS NLG.
+  unfold sub_local_no_aliasing.
+  split.
+
+  - apply sub_alist_add; auto.
+  - epose proof (no_local_global_alias_no_llvm_ptr_aliasing _ ALIAS NLG).
+    unfold no_llvm_ptr_aliasing in ALIAS.
+    intros id0 id' ptr ptr' H0 H1 H2.
+    eapply H; eauto.
+Qed.
+
+Lemma sub_local_no_aliasing_transitive :
+  forall l0 l1 l2 g,
+    sub_local_no_aliasing l0 l1 g ->
+    sub_local_no_aliasing l1 l2 g ->
+    sub_local_no_aliasing l0 l2 g.
+Proof.
+  intros l0 l1 l2 g [L0L1 ALIAS1] [L1L2 ALIAS2].
+  split; eauto.
+  etransitivity; eauto.
+Qed.
+
+Lemma sub_local_no_aliasing_add_non_ptr' :
+  forall id v l l' g,
+    alist_fresh id l ->
+    no_llvm_ptr_aliasing l g ->
+    no_local_global_alias l g v ->
+    sub_local_no_aliasing l' l g ->
+    sub_local_no_aliasing l' (alist_add id v l) g.
+Proof.
+  intros id v l l' g FRESH ALIAS NLG [L'L ALIAS'].
+  unfold sub_local_no_aliasing.
+  split.
+
+  - rewrite L'L. apply sub_alist_add; auto.
+  - epose proof (no_local_global_alias_no_llvm_ptr_aliasing _ ALIAS NLG).
+    unfold no_llvm_ptr_aliasing in ALIAS.
+    intros id0 id' ptr ptr' H0 H1 H2.
+    eapply H; eauto.
+Qed.
+
+Ltac solve_no_local_global_alias :=
+  solve
+    [ let H := fresh in
+      apply no_local_global_alias_non_pointer; intros ? H; discriminate H ].
+
+Ltac solve_sub_local_no_aliasing :=
+  first [ solve [eauto using state_invariant_sub_local_no_aliasing_refl]
+        | eapply sub_local_no_aliasing_add_non_ptr';
+          [ solve_alist_fresh
+          | eauto using state_invariant_no_llvm_ptr_aliasing
+          | solve_no_local_global_alias
+          | solve_sub_local_no_aliasing
+          ]
+        | solve [eapply sub_local_no_aliasing_transitive; eauto]].
 
 Ltac solve_alist_in := first [apply In_add_eq | idtac].
 Ltac solve_lu :=
@@ -885,7 +962,7 @@ Ltac solve_state_invariant :=
   cbn; try eassumption;
   match goal with
   | |- state_invariant _ _ _ (_, (alist_add _ _ _, _)) =>
-    eapply state_invariant_add_fresh; [now eauto | (eassumption || solve_state_invariant) | solve_fresh]
+    eapply state_invariant_add_fresh; [now eauto | solve_no_local_global_alias | (eassumption || solve_state_invariant) | solve_fresh]
   | |- state_invariant _ _ _ _ =>
     solve [eauto with SolveStateInv]
   end.

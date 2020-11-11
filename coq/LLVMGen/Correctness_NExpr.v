@@ -40,7 +40,7 @@ Section NExpr.
   Definition genNExpr_exp_correct_ind (e: exp typ)
   : Rel_cfg_T DynamicValues.int64 unit :=
     fun '(x,i) '(memV,(l,(g,v))) =>
-      forall l', l ⊑ l' ->
+      forall l', sub_local_no_aliasing l l' g ->
             interp_cfg
               (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] e)))
               g l' memV ≈
@@ -58,7 +58,7 @@ Section NExpr.
     : Prop :=
     {
     exp_correct : genNExpr_exp_correct_ind e mf stf;
-    monotone : ext_local mi sti mf stf
+    monotone : ext_local_no_aliasing mi sti mf stf
     }.
 
 
@@ -95,7 +95,7 @@ Section NExpr.
   Opaque incVoid.
   Opaque incLocal.
 
-  Ltac split_post := split; [split | split]; [solve_state_invariant | solve_fresh | | cbn; intuition].
+  Ltac split_post := split; [split | split]; [solve_state_invariant | solve_fresh | | cbn; intuition; try solve_sub_local_no_aliasing].
 
   Lemma genNExpr_correct_ind :
     forall (* Compiler bits *) (s1 s2: IRState)
@@ -124,12 +124,11 @@ Section NExpr.
         destruct i0; try_abs.
 
         (* We establish the postcondition *)
-        apply eutt_Ret; cbn; split_post. 
-        intros l' MONO; cbn*.
+        apply eutt_Ret; cbn; split_post; eauto.
+        intros l' [MONO ALIAS]; cbn*.
         vstep.
         solve_lu.
         reflexivity.
-
       + (* The variable maps to a pointer *)
         unfold denoteNExpr in *; cbn* in *; simp; try_abs.
         break_inner_match_goal; try_abs.
@@ -144,20 +143,27 @@ Section NExpr.
         vstep; eauto; reflexivity.
 
         apply eutt_Ret; cbn; split_post.
-        intros l' MONO; cbn*.
-        vstep; [solve_lu | reflexivity].
-        repeat split.
-        solve_sub_alist.
 
+        Ltac solve_state_invariant :=
+          cbn; try eassumption;
+          match goal with
+          | |- state_invariant _ _ _ (_, (alist_add _ _ _, _)) =>
+            eapply state_invariant_add_fresh; [now eauto | (eassumption || solve_state_invariant) | solve_fresh]
+          | |- state_invariant _ _ _ _ =>
+            solve [eauto with SolveStateInv]
+          end.
+
+        
+        intros l' [MONO ALIAS]; cbn*.
+        vstep; [solve_lu | reflexivity].
     - (* Constant *)
       cbn* in COMPILE; simp.
       unfold denoteNExpr in *; cbn*.
       hvred.
 
       apply eutt_Ret; cbn; split_post. 
-      intros l' MONO; cbn*.
+      intros l' [MONO ALIAS]; cbn*.
       vstep; reflexivity.
-
     - (* NDiv *)
       cbn* in *; simp; try_abs.
       hvred.
@@ -196,8 +202,8 @@ Section NExpr.
       simp; try_abs.
       hvred.
 
-      specialize (EXPR1 _ MONO2) .
-      assert (l1 ⊑ l1) as L1L1 by reflexivity; specialize (EXPR2 _ L1L1). 
+      specialize (EXPR1 _ MONO2).
+      assert (sub_local_no_aliasing l1 l1 g) as L1L1 by solve_sub_local_no_aliasing; specialize (EXPR2 _ L1L1). 
       cbn in *.
       hvred.
       vstep.
@@ -213,14 +219,8 @@ Section NExpr.
       }
 
       apply eutt_Ret; cbn; split_post.
-      intros ? MONO; cbn.
-      vstep; solve_lu; reflexivity.
-      etransitivity; eauto.
-      etransitivity; eauto.
-      apply sub_alist_add.
-      eapply freshness_pre_alist_fresh; eauto.
-      solve_fresh.
-  
+      intros ? [MONO ALIAS]; cbn.
+      vstep; solve_lu; reflexivity.  
     - (* NMod *)
       cbn* in *; simp; try_abs.
       hvred.
@@ -259,8 +259,6 @@ Section NExpr.
       (* Operator evaluation *)
       {
         vstep; cbn; eauto; try reflexivity.
-        eapply EXPR2; reflexivity.
-        reflexivity.
         cbn; break_inner_match_goal; try reflexivity.
 
         (* Division by 0 *)
@@ -273,13 +271,8 @@ Section NExpr.
       }
 
       apply eutt_Ret; cbn; split_post.
-      intros ? MONO; cbn.
+      intros ? [MONO ALIAS]; cbn.
       vstep; solve_lu; reflexivity.
-      etransitivity; eauto.
-      etransitivity; eauto.
-      apply sub_alist_add.
-      eapply freshness_pre_alist_fresh; eauto.
-      solve_fresh.
   
    - (* NAdd *)
 
@@ -317,13 +310,8 @@ Section NExpr.
      vstep; cbn; try (eapply EXPR2 || eapply EXPR1); eauto; reflexivity.
 
      apply eutt_Ret; cbn; split_post.
-     intros ? MONO; cbn.
+     intros ? [MONO ALIAS]; cbn.
      vstep; solve_lu; reflexivity.
-     etransitivity; eauto.
-     etransitivity; eauto.
-     apply sub_alist_add.
-     eapply freshness_pre_alist_fresh; eauto.
-     solve_fresh.
   
    - (* NMinus *)
 
@@ -358,13 +346,8 @@ Section NExpr.
      vstep; cbn; try (eapply EXPR2 || eapply EXPR1); eauto; reflexivity.
 
      apply eutt_Ret; cbn; split_post.
-     intros ? MONO; cbn.
+     intros ? [MONO ALIAS]; cbn.
      vstep; solve_lu; reflexivity.
-     etransitivity; eauto.
-     etransitivity; eauto.
-     apply sub_alist_add.
-     eapply freshness_pre_alist_fresh; eauto.
-     solve_fresh.
   
    - (* NMult *)
      
@@ -404,14 +387,8 @@ Section NExpr.
       }
 
      apply eutt_Ret; cbn; split_post.
-     intros ? MONO; cbn.
+     intros ? [MONO ALIAS]; cbn.
      vstep; solve_lu; reflexivity.
-     etransitivity; eauto.
-     etransitivity; eauto.
-     apply sub_alist_add.
-     eapply freshness_pre_alist_fresh; eauto.
-     solve_fresh.
-  
    - (* NMin *)
       (* Non-implemented by the compiler *)
       inversion COMPILE.
@@ -442,7 +419,7 @@ Lemma genNExpr_correct :
     eutt (succ_cfg
             (lift_Rel_cfg (state_invariant_post σ s1 s2 l) ⩕
                           genNExpr_exp_correct σ s2 e ⩕
-                          ext_local memH (memV,(l,g)))
+                          ext_local_no_aliasing memH (memV,(l,g)))
          )
          (interp_helix (denoteNExpr σ nexp) memH)
          (interp_cfg (denote_code (convert_typ [] c)) g l memV).
@@ -453,7 +430,7 @@ Proof.
   intros [(? & ?) |] (? & ? & ? & []) INV; [destruct INV as ((SI & ?) & EXP & ?) | inv INV].
   cbn in *.
   specialize (EXP l0).
-  forward EXP; [reflexivity |].
+  forward EXP; [solve_sub_local_no_aliasing |].
   split; auto.
   split; auto.
   split; auto.
