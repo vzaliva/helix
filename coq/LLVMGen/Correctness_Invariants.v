@@ -193,6 +193,9 @@ Section SimulationRelations.
       id1 ≢ id2 ->
       fst ptrv1 ≢ fst ptrv2.
 
+  Definition no_llvm_ptr_aliasing_cfg : config_cfg -> Prop :=
+    fun '(mv, (ρ, g)) => no_llvm_ptr_aliasing ρ g.
+  
   (* TODO: might not keep this *)
   Definition dshptr_no_block_aliasing (σ : evalContext) ρ g dshp1 (ptrv1 : addr) : Prop :=
     forall dshp2 n2 sz2 s id2 ptrv2 τ,
@@ -212,9 +215,6 @@ Section SimulationRelations.
       forall (n: nat) v τ x,
         nth_error σ n ≡ Some v ->
         nth_error (Γ s) n ≡ Some (x,τ) ->
-        no_id_aliasing s /\
-        no_dshptr_aliasing σ /\
-        no_llvm_ptr_aliasing ρ g /\
         match v with
         | DSHnatVal v   => in_local_or_global_scalar ρ g mem_llvm x (dvalue_of_int v) τ
         | DSHCTypeVal v => in_local_or_global_scalar ρ g mem_llvm x (dvalue_of_bin v) τ
@@ -238,7 +238,6 @@ Section SimulationRelations.
   Proof.
     intros * MEM_INV NTH LU; cbn* in *.
     eapply MEM_INV in LU; clear MEM_INV; eauto.
-    destruct LU as (ID_ALIASING & DSHPTR_ALIASING & LLVM_ALIASING & LU).
     destruct LU as (ptr & τ & EQ & LU & READ); inv EQ.
     exists ptr; split; auto.
     cbn in *.
@@ -255,7 +254,6 @@ Section SimulationRelations.
     intros * MEM_INV NTH LU; cbn* in *.
     eapply MEM_INV in LU; clear MEM_INV; eauto.
     unfold in_local_or_global_scalar, dvalue_of_int in LU.
-    destruct LU as (ID_ALIASING & DSHPTR_ALIASING & LLVM_ALIASING & LU).
     rewrite repr_intval in LU; auto.
   Qed.
 
@@ -271,7 +269,6 @@ Section SimulationRelations.
     intros * MEM_INV NTH LU; cbn* in *.
     eapply MEM_INV in LU; clear MEM_INV; eauto.
     unfold in_local_or_global_scalar, dvalue_of_int in LU.
-    destruct LU as (ID_ALIASING & DSHPTR_ALIASING & LLVM_ALIASING & LU).
     cbn in LU; auto.
   Qed.
 
@@ -285,7 +282,6 @@ Section SimulationRelations.
   Proof.
     intros * MEM_INV NTH LU; cbn* in *.
     eapply MEM_INV in LU; clear MEM_INV; eauto.
-    destruct LU as (ID_ALIASING & DSHPTR_ALIASING & LLVM_ALIASING & LU).
     destruct LU as (ptr & τ & EQ & LU & READ); inv EQ.
     exists ptr; split; auto.
   Qed.
@@ -296,9 +292,6 @@ Section SimulationRelations.
       memory_invariant σ s memH (memV, (l, g)) ->
       nth_error (Γ s) v ≡ Some (ID_Local id, t) ->
       nth_error σ v ≡ Some (DSHPtrVal m size) ->
-      no_id_aliasing s /\
-      no_dshptr_aliasing σ /\
-      no_llvm_ptr_aliasing l g /\
       exists (bk_h : mem_block) (ptr_v : Addr.addr),
         memory_lookup memH m ≡ Some bk_h
         /\ mem_lookup_succeeds bk_h size
@@ -309,7 +302,6 @@ Section SimulationRelations.
   Proof.
     intros * MEM_INV NTH LU; cbn* in *.
     eapply MEM_INV in LU; clear MEM_INV; eauto.
-    destruct LU as (ID_ALIASING & DSHPTR_ALIASING & LLVM_ALIASING & LU).
     auto.
   Qed.
 
@@ -335,6 +327,9 @@ Section SimulationRelations.
     {
     mem_is_inv : memory_invariant σ s memH configV ;
     IRState_is_WF : WF_IRState σ s ;
+    st_no_id_aliasing : no_id_aliasing s ;
+    st_no_dshptr_aliasing : no_dshptr_aliasing σ ;
+    st_no_llvm_ptr_aliasing : no_llvm_ptr_aliasing_cfg configV
     }.
 
   (* Named function pointer exists in global environemnts *)
@@ -416,13 +411,16 @@ Section Ext_Local.
   Definition ext_local {R S}: config_helix -> config_cfg -> Rel_cfg_T R S :=
     fun mh '(mi,(li,gi)) '(mh',_) '(m,(l,(g,_))) => mh ≡ mh' /\ mi ≡ m /\ gi ≡ g /\ li ⊑ l.
 
-  Definition ext_local_no_aliasing (ρ1 ρ2 : local_env) (g : global_env) :=
+  Definition sub_local_no_aliasing (ρ1 ρ2 : local_env) (g : global_env) :=
     ρ1 ⊑ ρ2 /\
     (forall id id' ptr ptr',
         in_local_or_global_addr ρ2 g id ptr ->
         in_local_or_global_addr ρ2 g id' ptr' ->
         id ≢ id' ->
         fst ptr ≢ fst ptr').
+
+  Definition ext_local_no_aliasing {R S}: config_helix -> config_cfg -> Rel_cfg_T R S :=
+    fun mh '(mi,(li,gi)) '(mh',_) '(m,(l,(g,_))) => mh ≡ mh' /\ mi ≡ m /\ gi ≡ g /\ sub_local_no_aliasing li l g.
 
  Lemma in_local_or_global_scalar_ext_local :
     forall ρ1 ρ2 g m x dv τ,
@@ -447,7 +445,7 @@ Section Ext_Local.
   Lemma no_llvm_ptr_aliasing_ext_local :
     forall ρ1 ρ2 g,
       no_llvm_ptr_aliasing ρ1 g ->
-      ext_local_no_aliasing ρ1 ρ2 g ->
+      sub_local_no_aliasing ρ1 ρ2 g ->
       no_llvm_ptr_aliasing ρ2 g.
   Proof.
     intros ρ1 ρ2 g ALIAS [EXT EXT_ALIAS].
@@ -461,24 +459,16 @@ Section Ext_Local.
   Lemma memory_invariant_ext_local :
     forall σ s memH memV ρ1 ρ2 g,
       memory_invariant σ s memH (memV, (ρ1, g)) ->
-      ext_local_no_aliasing ρ1 ρ2 g ->
+      ρ1 ⊑ ρ2 ->
       memory_invariant σ s memH (memV, (ρ2, g)).
   Proof.
     intros * MEM_INV EXT_LOCAL.
-    pose proof EXT_LOCAL as [MONO NOALIAS].
     red; intros * NTH NTH'.
-    specialize (MEM_INV _ _ _ _ NTH NTH') as [ID_ALIASING [DSH_ALIASING [LLVM_ALIASING MEM_INV]]].
+    specialize (MEM_INV _ _ _ _ NTH NTH').
     destruct v; eauto.
-    repeat (split; auto);
-      [ eapply no_llvm_ptr_aliasing_ext_local; eauto
-      | eapply in_local_or_global_scalar_ext_local; eauto].
-    repeat (split; auto);
-      [ eapply no_llvm_ptr_aliasing_ext_local; eauto
-      | eapply in_local_or_global_scalar_ext_local; eauto].
+    eapply in_local_or_global_scalar_ext_local; eauto.
+    eapply in_local_or_global_scalar_ext_local; eauto.
     repeat destruct MEM_INV as (? & MEM_INV).
-    repeat (split; auto).
-    eapply no_llvm_ptr_aliasing_ext_local; eauto.
-
     do 3 eexists; splits; eauto.
     eapply in_local_or_global_addr_ext_local; eauto.
   Qed.
@@ -685,44 +675,33 @@ Lemma state_invariant_add_fresh :
     → state_invariant σ s2 memH (memV, (alist_add id v l, g)).
 Proof.
   intros * INC ALIAS [MEM_INV WF] FRESH.
-  split.
+  split; eauto.
   - red; intros * LUH LUV.
     erewrite incLocal_Γ in LUV; eauto.
     generalize LUV; intros INLG;
       eapply MEM_INV in INLG; eauto.
-    destruct INLG as (ID_ALIASING & DSHPTR_ALIASING & LLVM_ALIASING & LU).
     break_match.
     + subst.
       repeat (split; auto).
-      eapply incLocal_no_id_aliasing; eauto.
-      eapply no_local_global_alias_no_llvm_ptr_aliasing; eauto.
       eapply in_local_or_global_scalar_add_fresh_old; eauto.
       eapply fresh_no_lu; eauto.
       eapply freshness_fresh; eauto using incLocal_lt.
     + subst.
       repeat (split; auto).
-      eapply incLocal_no_id_aliasing; eauto.
-      eapply no_local_global_alias_no_llvm_ptr_aliasing; eauto.
       eapply in_local_or_global_scalar_add_fresh_old; eauto.
       eapply fresh_no_lu; eauto.
       eapply freshness_fresh; eauto using incLocal_lt.
     + subst.
       repeat destruct INLG as [? INLG].
       repeat (split; eauto).
-      eapply incLocal_no_id_aliasing; eauto.
-      eapply no_local_global_alias_no_llvm_ptr_aliasing; eauto.
-      destruct LU as (bk_h & ptr_l & LU).
       do 3 eexists; splits; eauto.
-      apply LU.
-      apply LU.
-      { apply incLocal_Γ in INC; rewrite INC in *. apply LU. }
+      { apply incLocal_Γ in INC; rewrite INC in *; auto. }
       eapply in_local_or_global_addr_add_fresh_old; eauto.
       eapply fresh_no_lu_addr; eauto.
       eapply freshness_fresh; eauto using incLocal_lt.
-      apply LU.
-      apply LU.
-      apply LU.
   - unfold WF_IRState; erewrite incLocal_Γ; eauto; apply WF.
+  - eapply incLocal_no_id_aliasing; eauto.
+  - eapply no_local_global_alias_no_llvm_ptr_aliasing; eauto.
 Qed.
 
 Lemma ext_local_subalist : forall {R S} memH memV l1 g vH vV l2,
@@ -759,17 +738,14 @@ Lemma state_invariant_incVoid :
     state_invariant σ s' memH stV.
 Proof.
   intros * INC [MEM_INV WF].
-  split.
+  split; eauto.
   - red; repeat break_let; intros * LUH LUV.
     pose proof INC as INC'.
     apply incVoid_Γ in INC; rewrite INC in *.
     generalize LUV; intros INLG;
       eapply MEM_INV in INLG; eauto.
-
-    destruct INLG as (ID_ALIASING & DSHPTR_ALIASING & LLVM_ALIASING & LU).
-    splits; eauto.
-    eapply incVoid_no_id_aliasing; eauto.
   - unfold WF_IRState; erewrite incVoid_Γ; eauto; apply WF.
+  - eapply incVoid_no_id_aliasing; eauto.
 Qed.
 
 Lemma state_invariant_incLocal :
@@ -779,17 +755,14 @@ Lemma state_invariant_incLocal :
     state_invariant σ s' memH stV.
 Proof.
   intros * INC [MEM_INV WF].
-  split.
+  split; eauto.
   - red; repeat break_let; intros * LUH LUV.
     pose proof INC as INC'.
     apply incLocal_Γ in INC; rewrite INC in *.
     generalize LUV; intros INLG;
       eapply MEM_INV in INLG; eauto.
-
-    destruct INLG as (ID_ALIASING & DSHPTR_ALIASING & LLVM_ALIASING & LU).
-    splits; eauto.
-    eapply incLocal_no_id_aliasing; eauto.    
   - unfold WF_IRState; erewrite incLocal_Γ; eauto; apply WF.
+  - eapply incLocal_no_id_aliasing; eauto.
 Qed.
 
 Lemma incLocalNamed_Γ:
@@ -820,17 +793,14 @@ Lemma state_invariant_incLocalNamed :
     state_invariant σ s' memH stV.
 Proof.
   intros * INC [MEM_INV WF].
-  split.
+  split; eauto.
   - red; repeat break_let; intros * LUH LUV.
     pose proof INC as INC'.
     apply incLocalNamed_Γ in INC; rewrite INC in *.
     generalize LUV; intros INLG;
       eapply MEM_INV in INLG; eauto.
-  
-    destruct INLG as (ID_ALIASING & DSHPTR_ALIASING & LLVM_ALIASING & LU).
-    splits; eauto.
-    eapply incLocalNamed_no_id_aliasing; eauto.    
   - unfold WF_IRState; erewrite incLocalNamed_Γ; eauto; apply WF.
+  - eapply incLocalNamed_no_id_aliasing; eauto.    
 Qed.
 
 Lemma incBlockNamed_no_id_aliasing :
@@ -853,17 +823,34 @@ Lemma state_invariant_incBlockNamed :
     state_invariant σ s' memH stV.
 Proof.
   intros * INC [MEM_INV WF].
-  split.
+  split; eauto.
   - red; repeat break_let; intros * LUH LUV.
     pose proof INC as INC'.
     apply incBlockNamed_Γ in INC; rewrite INC in *.
     generalize LUV; intros INLG;
       eapply MEM_INV in INLG; eauto.
-
-    destruct INLG as (ID_ALIASING & DSHPTR_ALIASING & LLVM_ALIASING & LU).
-    splits; eauto.
-    eapply incBlockNamed_no_id_aliasing; eauto.
   - unfold WF_IRState; erewrite incBlockNamed_Γ; eauto; apply WF.
+  - eapply incBlockNamed_no_id_aliasing; eauto.
+Qed.
+
+Lemma state_invariant_no_llvm_ptr_aliasing :
+  forall σ s mh mv l g,
+    state_invariant σ s mh (mv, (l, g)) ->
+    no_llvm_ptr_aliasing l g.
+Proof.
+  intros σ s mh mv l g SINV.
+  destruct SINV. cbn in *.
+  auto.
+Qed.
+
+Lemma state_invariant_sub_local_no_aliasing_refl :
+  forall l g s mh mv σ,
+    state_invariant σ s mh (mv, (l, g)) ->
+    sub_local_no_aliasing l l g.
+Proof.
+  intros l g s mh mv σ SINV.
+  destruct SINV. cbn in *.
+  split; [reflexivity | eauto].
 Qed.
 
 Lemma unsigned_is_zero: forall a, Int64.unsigned a ≡ Int64.unsigned Int64.zero ->
