@@ -174,8 +174,29 @@ Section SimulationRelations.
   Definition mem_lookup_succeeds bk size :=
     forall i, 0 <= i /\ i < MInt64asNT.to_nat size -> exists v, mem_lookup i bk ≡ Some v.
 
-  Definition no_pointer_aliasing (σ : evalContext) (n ptr : nat) : Prop :=
-    (forall n' sz, nth_error σ n' ≡ Some (DSHPtrVal ptr sz) -> n' ≡ n).
+  Definition no_dshptr_aliasing (σ : evalContext) (n ptr : nat) : Prop :=
+    forall n n' ptr sz sz',
+      nth_error σ n ≡ Some (DSHPtrVal ptr sz) ->
+      nth_error σ n' ≡ Some (DSHPtrVal ptr sz') ->
+      n' ≡ n.
+
+  Definition no_id_aliasing (s : IRState) (n : nat) (id : ident) : Prop :=
+    (forall n n' τ τ', nth_error (Γ s) n' ≡ Some (id, τ) -> n' ≡ n).
+
+  Definition no_llvm_ptr_aliasing (ρ : local_env) (g : global_env) : Prop :=
+    forall (id1 : ident) (ptrv1 : addr) (id2 : ident) (ptrv2 : addr),
+      in_local_or_global_addr ρ g id2 ptrv2 ->
+      id1 ≢ id2 ->
+      fst ptrv1 ≢ fst ptrv2.
+
+  (* TODO: might not keep this *)
+  Definition dshptr_no_block_aliasing (σ : evalContext) ρ g dshp1 (ptrv1 : addr) : Prop :=
+    forall dshp2 n2 sz2 s id2 ptrv2 τ,
+      dshp1 ≢ dshp2 ->
+      nth_error σ n2 ≡ Some (DSHPtrVal dshp2 sz2) ->
+      nth_error (Γ s) n2 ≡ Some (id2, τ) ->
+      in_local_or_global_addr ρ g id2 ptrv2 ->
+      fst ptrv1 ≢ fst ptrv2.
 
   (* Main memory invariant. Relies on Helix's evaluation context and the [IRState] built by the compiler.
      At any indices, the value and ident/types respectively found are related in that:
@@ -187,16 +208,18 @@ Section SimulationRelations.
       forall (n: nat) v τ x,
         nth_error σ n ≡ Some v ->
         nth_error (Γ s) n ≡ Some (x,τ) ->
+        no_id_aliasing s n x /\
         match v with
         | DSHnatVal v   => in_local_or_global_scalar ρ g mem_llvm x (dvalue_of_int v) τ
         | DSHCTypeVal v => in_local_or_global_scalar ρ g mem_llvm x (dvalue_of_bin v) τ
         | DSHPtrVal ptr_helix ptr_size_helix =>
-          no_pointer_aliasing σ n ptr_helix /\
+          no_dshptr_aliasing σ n ptr_helix /\
           exists bk_helix ptr_llvm,
           memory_lookup mem_helix ptr_helix ≡ Some bk_helix /\
           mem_lookup_succeeds bk_helix ptr_size_helix /\
           dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp (Γ s) τ) /\ (* TODO: might not need this *)
           in_local_or_global_addr ρ g x ptr_llvm /\
+          no_llvm_ptr_aliasing ρ g x ptr_llvm /\
           (forall i v, mem_lookup i bk_helix ≡ Some v ->
                   get_array_cell mem_llvm ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v))
         end.
@@ -211,6 +234,7 @@ Section SimulationRelations.
   Proof.
     intros * MEM_INV NTH LU; cbn* in *.
     eapply MEM_INV in LU; clear MEM_INV; eauto.
+    destruct LU as [ID_ALIASING LU].
     destruct LU as (ptr & τ & EQ & LU & READ); inv EQ.
     exists ptr; split; auto.
     cbn in *.
@@ -227,6 +251,7 @@ Section SimulationRelations.
     intros * MEM_INV NTH LU; cbn* in *.
     eapply MEM_INV in LU; clear MEM_INV; eauto.
     unfold in_local_or_global_scalar, dvalue_of_int in LU.
+    destruct LU as [ID_ALIASING LU].
     rewrite repr_intval in LU; auto.
   Qed.
 
@@ -242,6 +267,7 @@ Section SimulationRelations.
     intros * MEM_INV NTH LU; cbn* in *.
     eapply MEM_INV in LU; clear MEM_INV; eauto.
     unfold in_local_or_global_scalar, dvalue_of_int in LU.
+    destruct LU as [ID_ALIASING LU].
     cbn in LU; auto.
   Qed.
 
@@ -255,6 +281,7 @@ Section SimulationRelations.
   Proof.
     intros * MEM_INV NTH LU; cbn* in *.
     eapply MEM_INV in LU; clear MEM_INV; eauto.
+    destruct LU as [ID_ALIASING LU].
     destruct LU as (ptr & τ & EQ & LU & READ); inv EQ.
     exists ptr; split; auto.
   Qed.
@@ -265,41 +292,43 @@ Section SimulationRelations.
       memory_invariant σ s memH (memV, (l, g)) ->
       nth_error (Γ s) v ≡ Some (ID_Local id, t) ->
       nth_error σ v ≡ Some (DSHPtrVal m size) ->
-      no_pointer_aliasing σ v m /\
+      no_id_aliasing s v (ID_Local id) /\
       exists (bk_h : mem_block) (ptr_v : Addr.addr),
         memory_lookup memH m ≡ Some bk_h
         /\ mem_lookup_succeeds bk_h size
         /\ dtyp_fits memV ptr_v (typ_to_dtyp (Γ s) t)
         /\ in_local_or_global_addr l g (ID_Local id) ptr_v
+        /\ no_llvm_ptr_aliasing l g (ID_Local id) ptr_v
         /\ (forall (i : Memory.NM.key) (v : binary64),
               mem_lookup i bk_h ≡ Some v -> get_array_cell memV ptr_v i DTYPE_Double ≡ inr (UVALUE_Double v)).
   Proof.
     intros * MEM_INV NTH LU; cbn* in *.
     eapply MEM_INV in LU; clear MEM_INV; eauto.
+    destruct LU as [ID_ALIASING [DSHPTR_ALIASING LU]].
     auto.
   Qed.
 
   Lemma ptr_alias_eq :
     forall σ n1 n2 sz2 p,
-      no_pointer_aliasing σ n1 p ->
+      no_dshptr_aliasing σ n1 p ->
       nth_error σ n2 ≡ Some (DSHPtrVal p sz2) ->
       n1 ≡ n2.
   Proof.
     intros σ n1 n2 sz2 p H N2.
-    unfold no_pointer_aliasing in H.
+    unfold no_dshptr_aliasing in H.
     apply H in N2.
     auto.
   Qed.
 
   Lemma ptr_alias_size_eq :
     forall σ n1 n2 sz1 sz2 p,
-      no_pointer_aliasing σ n1 p ->
+      no_dshptr_aliasing σ n1 p ->
       nth_error σ n1 ≡ Some (DSHPtrVal p sz1) ->
       nth_error σ n2 ≡ Some (DSHPtrVal p sz2) ->
       sz1 ≡ sz2.
   Proof.
     intros σ n1 n2 sz1 sz2 p H N1 N2.
-    unfold no_pointer_aliasing in H.
+    unfold no_dshptr_aliasing in H.
     pose proof (H _ _ N2); subst.
     rewrite N1 in N2; inversion N2.
     auto.
@@ -395,6 +424,9 @@ Section Ext_Local.
   Definition ext_local {R S}: config_helix -> config_cfg -> Rel_cfg_T R S :=
     fun mh '(mi,(li,gi)) '(mh',_) '(m,(l,(g,_))) => mh ≡ mh' /\ mi ≡ m /\ gi ≡ g /\ li ⊑ l.
 
+  Definition ext_local_no_aliasing (ρ1 ρ2 : local_env) (ptr : addr) :=
+    ρ1 ⊑ ρ2 /\ (forall id ptr', ρ2 @ id ≡ Some (UVALUE_Addr ptr') -> ρ1 @ id ≡ None -> fst ptr ≢ fst ptr').
+
  Lemma in_local_or_global_scalar_ext_local :
     forall ρ1 ρ2 g m x dv τ,
       in_local_or_global_scalar ρ1 g m x dv τ ->
@@ -415,6 +447,48 @@ Section Ext_Local.
     apply MONO; auto.
   Qed.
 
+  (* TODO: might not keep this *)
+  Lemma dshptr_no_block_aliasing_ext_local :
+    forall σ ρ1 ρ2 g dshp1 ptrv1,
+      dshptr_no_block_aliasing σ ρ1 g dshp1 ptrv1 ->
+      ext_local_no_aliasing ρ1 ρ2 ptrv1 ->
+      dshptr_no_block_aliasing σ ρ2 g dshp1 ptrv1.
+  Proof.
+    intros σ ρ1 ρ2 g dshp1 ptrv1 ALIAS [EXT EXT_ALIAS].
+    unfold dshptr_no_block_aliasing in *.
+    intros dshp2 n2 sz2 s id2 ptrv2 τ H1 H2 H3 H4.
+    destruct id2; eauto.
+    cbn in *.
+    destruct (ρ1 @ id) eqn:AIN; eauto.
+    - pose proof (EXT _ _ AIN).
+      pose proof H.
+      rewrite H in H4. inversion H4; subst.
+      eauto.
+  Qed.
+
+  Lemma no_llvm_ptr_aliasing_ext_local :
+    forall ρ1 ρ2 g id1 ptrv1,
+      no_llvm_ptr_aliasing ρ1 g id1 ptrv1 ->
+      ext_local_no_aliasing ρ1 ρ2 ptrv1 ->
+      no_llvm_ptr_aliasing ρ2 g id1 ptrv1.
+  Proof.
+    intros ρ1 ρ2 g id1 ptrv1 ALIAS [EXT EXT_ALIAS].
+    unfold no_llvm_ptr_aliasing in *.
+
+    intros id2 ptrv2 INLG NEQ.
+    destruct id2.
+    - eapply ALIAS; eauto.
+      cbn in *; auto.
+    - cbn in *.
+      destruct (ρ1 @ id) eqn:AIN; eauto.
+      + pose proof (EXT _ _ AIN).
+        pose proof H.
+        rewrite H in INLG. inversion INLG; subst.
+        eapply ALIAS; eauto.
+        eauto.
+  Qed.
+
+
   Lemma memory_invariant_ext_local :
     forall σ s memH memV ρ1 ρ2 g,
       memory_invariant σ s memH (memV, (ρ1, g)) ->
@@ -423,14 +497,21 @@ Section Ext_Local.
   Proof.
     intros * MEM_INV MONO.
     red; intros * NTH NTH'.
-    specialize (MEM_INV _ _ _ _ NTH NTH').
+    specialize (MEM_INV _ _ _ _ NTH NTH') as [ID_ALIASING MEM_INV].
     destruct v; eauto.
-    eapply in_local_or_global_scalar_ext_local; eauto.
-    eapply in_local_or_global_scalar_ext_local; eauto.
+    split; [|eapply in_local_or_global_scalar_ext_local]; eauto.
+    split; [|eapply in_local_or_global_scalar_ext_local]; eauto.
     repeat destruct MEM_INV as (? & MEM_INV).
+    split; eauto.
     split; eauto.
     do 3 eexists; splits; eauto.
     eapply in_local_or_global_addr_ext_local; eauto.
+
+    unfold no_llvm_ptr_aliasing in *.
+    intros id2 ptrv2 H5 H6.
+
+    (* If I add a variable to the local environment, then I need to
+       know that it doesn't alias with existing pointers... *)
   Qed.
 
 End Ext_Local.

@@ -207,23 +207,6 @@ Section LidBound.
     Opaque incLocal.
   Qed.
 
-  (* TODO: move this? *)
-  Lemma incLocal_id_neq :
-    forall s1 s2 s3 s4 id1 id2,
-      incLocal s1 ≡ inr (s2, id1) ->
-      incLocal s3 ≡ inr (s4, id2) ->
-      local_count s1 ≢ local_count s3 ->
-      id1 ≢ id2.
-  Proof.
-    intros s1 s2 s3 s4 id1 id2 GEN1 GEN2 COUNT.
-    eapply incLocalNamed_count_gen_injective.
-    symmetry. rewrite incLocal_unfold in *. eapply GEN1.
-    symmetry. rewrite incLocal_unfold in *. eapply GEN2.
-    solve_local_count_tac.
-    solve_not_ends_with.
-    solve_not_ends_with.
-  Qed.
-
 
   (* Lemma lid_bound_genNExpr_mono : *)
   (*   forall s1 s2 bid nexp e c, *)
