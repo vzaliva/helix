@@ -22,6 +22,30 @@ Global Opaque resolve_PVar.
 
 Import ProofMode.
 
+From Paco Require Import paco.
+From ITree Require Import Basics.HeterogeneousRelations.
+
+(* Remove this later, this lemma exists in Correctness_While as well *)
+Lemma eutt_Proper_mono : forall {A B E},
+        Proper ((@subrelationH A B) ==> (@subrelationH _ _)) (eutt (E := E)).
+Proof.
+  intros A B. do 3 red.
+    intros E x y. pcofix CIH. pstep. red.
+    intros sub a b H.
+    do 2 red in H. punfold H. red in H.
+    remember (observe a) as a'.
+    remember (observe b) as b'.
+    generalize dependent a. generalize dependent b.
+    induction H; intros; eauto.
+    + constructor. red in REL. destruct REL.
+      right. apply CIH. assumption. assumption.
+      destruct H.
+    + constructor. red in REL. intros.
+      specialize (REL v). unfold id.
+      destruct REL. right. apply CIH. assumption. assumption.
+      destruct H.
+Qed.
+
 Lemma interp_helix_MemAlloc :
   forall {E} size mem,
     interp_helix (E := E) (trigger (MemAlloc size)) mem ≈
@@ -128,7 +152,7 @@ Proof.
   eapply IHop in genIR_op; eauto; clear IHop; cycle 1.
   { (* GenIR_Rel *)
     red. split. cbn.
-    split; cycle 1. Unshelve.
+    split; cycle 1.
     - (* Well-formedness *)
       unfold WF_IRState. cbn. red. intros. destruct n.
 
@@ -150,40 +174,87 @@ Proof.
       (* Pointer size variable *)
       cbn in *. inversion H; inversion H0; subst; clear H H0.
       (* Need to make sure that the memory is intialized properly, from NOFAIL_prefix *)
-      admit.
-
-      cbn in *. specialize (MINV _ _ _ _ H H0).
-      destruct v; eauto.
-      edestruct MINV as (bk_helix & ptr_llvm & mem & in_loc & mem_lookup).
-      exists bk_helix, ptr_llvm. split; [ | split ]; eauto.
-      Transparent memory_lookup. Transparent memory_set.
-      rewrite <- mem. cbn.
-      admit.
+      (* eexists. eexists. split; [| split ]. *) admit. admit.
     - cbn. exists from. reflexivity.
   }
   {
     (* Gamma_safe *) admit.
   }
 
+  (* Post condition weakening *)
+  eapply eutt_Proper_mono.
+  Unshelve.
+  6 : exact (succ_cfg (GenIR_Rel (DSHPtrVal (memory_next_key mH) size :: σ) i nextblock)).
+  (* TODO: Generalize this weakening relation in extending context *)
+  {
+    repeat intro. red. red. red in H. red in H. destruct x; try contradiction.
+    split. red. destruct p0. destruct y. destruct p0. destruct p0.
+    destruct H. destruct H. split.
+    - cbn in MINV0.
+      cbn. intros. eapply MINV0.
+      Unshelve. 3 : exact (S n). cbn. auto. rewrite context_l0. cbn. auto.
+    - unfold WF_IRState in *. cbn. rewrite context_l0 in WF0.
+      unfold evalContext_typechecks in *. intros. 
+      specialize (WF0 v (S n)). cbn in WF0. apply WF0 in H.
+      apply H.
+    - destruct H. apply H0.
+  }
+
+  hvred.
+
+  (* Useful lemmas about rcompose. TODO: Move? *)
+  Lemma rcompose_eq_r :
+    forall A B (R: relationH A B), eq_rel (R) (rcompose R (@Logic.eq B)).
+  Proof.
+    repeat intro. red. split; repeat intro; auto. econstructor.
+    apply H. reflexivity.
+    inversion H. subst. auto.
+  Qed.
+
+  Lemma rcompose_eq_l :
+    forall A B (R: relationH A B), eq_rel (R) (rcompose (@Logic.eq A) R).
+  Proof.
+    repeat intro. red. split; repeat intro; auto. econstructor.
+    reflexivity. apply H.
+    inversion H. subst. auto.
+  Qed.
+
+  setoid_rewrite rcompose_eq_r.
+  eapply eqit_trans.
+  eapply eutt_clo_bind_returns. apply genIR_op.
+  intros [ [memH t ] | ] (? & ? & ? & ?) [] ret1 ret2.
+  rewrite interp_helix_MemFree. cbn in *.
+  Unshelve.
+  6 : {
+    intros (? & ? & ? & ?).
+    refine (Ret _). red. eauto. } cbn.
+  apply eqit_Ret. cbn. split. split.
+  destruct H.
+  cbn in *. intros.
+
+  eapply MINV0 in H1. cbn in *.
+  Unshelve.
+  destruct v; eauto.
+
+  intros.
   (* Next step: using eutt_clo_bind_returns (or something similar.. ) apply genIR_op *)
-  (* setoid_rewrite <- bind_ret_l at 4. *)
 
   (* apply genIR_op. rewrite genIR_op.  *)
 
 
   (* Handle the Vellvm side, starting with a jump to the appropriate block *)
-  vjmp.
-  rewrite find_block_eq; reflexivity.
-  cbn.
-  vred.
-  vred.
-  vred.
-  edestruct denote_instr_alloca_exists as (mV' & addr & Alloc & EQAlloc);
-    [| rewrite EQAlloc; clear EQAlloc].
-  red; easy.
-  vred.
-  vred.
-  vjmp.
+  (* vjmp. *)
+  (* rewrite find_block_eq; reflexivity. *)
+  (* cbn. *)
+  (* vred. *)
+  (* vred. *)
+  (* vred. *)
+  (* edestruct denote_instr_alloca_exists as (mV' & addr & Alloc & EQAlloc); *)
+  (*   [| rewrite EQAlloc; clear EQAlloc]. *)
+  (* red; easy. *)
+  (* vred. *)
+  (* vred. *)
+  (* vjmp. *)
   (* no_repeat assumption *)
   (* rename b into target. *)
   (* vjmp. *)
