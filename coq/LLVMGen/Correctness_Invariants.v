@@ -961,6 +961,19 @@ Proof.
     eapply H; [apply H3 | apply H4 | apply H5 | apply H6 | apply H7 | apply H8 | apply H9 ].
 Qed.
 
+Lemma sub_local_no_aliasing_Γ :
+  forall σ s1 s2 l1 l2 g,
+    sub_local_no_aliasing σ s1 l1 l2 g ->
+    Γ s2 ≡ Γ s1 ->
+    sub_local_no_aliasing σ s2 l1 l2 g.
+Proof.
+  intros σ s1 s2 l1 l2 g [L1L2 SUB] GAMMA.
+  unfold sub_local_no_aliasing in *.
+  rewrite GAMMA.
+  auto.
+Qed.
+
+
 Ltac solve_no_local_global_alias :=
   solve
     [ let H := fresh in
@@ -992,8 +1005,35 @@ Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incBlockNamed;
 Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incLocal; [eassumption | solve_state_invariant] : SolveStateInv.
 Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eassumption | solve_state_invariant] : SolveStateInv.
 
+Ltac solve_sub_local_no_aliasing_gamma :=
+  match goal with
+  | H: incLocal ?s1 ≡ inr (?s2, _) |- sub_local_no_aliasing ?σ ?s2 ?l1 ?l2 ?g
+    => let GAMMA := fresh "GAMMA"
+      in assert (Γ s2 ≡ Γ s1) as GAMMA by eauto with helix_context;
+         eapply sub_local_no_aliasing_Γ;
+         eauto;
+         clear GAMMA
+
+  | H: genNExpr _ ?s1 ≡ inr (?s2, _) |- sub_local_no_aliasing ?σ ?s2 ?l1 ?l2 ?g
+    => let GAMMA := fresh "GAMMA"
+      in assert (Γ s2 ≡ Γ s1) as GAMMA by eauto with helix_context;
+         eapply sub_local_no_aliasing_Γ;
+         eauto;
+         clear GAMMA
+
+  | H: genNExpr _ ?s1 ≡ inr (?s2, _),
+       SUB: sub_local_no_aliasing ?σ ?s2 ?l1 ?l2 ?g |- _
+    => let GAMMA := fresh "GAMMA" in
+      let SUB2  := fresh "SUB" in
+      assert (Γ s1 ≡ Γ s2) as GAMMA by eauto with helix_context;
+      epose proof (sub_local_no_aliasing_Γ _ SUB GAMMA);
+      clear SUB;
+      eauto
+  end.
+
 Ltac solve_sub_local_no_aliasing :=
   first [ solve [eapply state_invariant_sub_local_no_aliasing_refl; solve_state_invariant]
+        | solve_sub_local_no_aliasing_gamma; solve_sub_local_no_aliasing
         | eapply sub_local_no_aliasing_add_non_ptr';
           [ solve_alist_fresh
           | eapply state_invariant_no_llvm_ptr_aliasing; solve_state_invariant
@@ -1001,7 +1041,6 @@ Ltac solve_sub_local_no_aliasing :=
           | solve_sub_local_no_aliasing
           ]
         | solve [eapply sub_local_no_aliasing_transitive; eauto]].
-
 Definition state_invariant_pre σ s1 s2 := (state_invariant σ s1 ⩕ fresh_pre s1 s2).
 Definition state_invariant_post σ s1 s2 l := (state_invariant σ s2 ⩕ fresh_post s1 s2 l).
 

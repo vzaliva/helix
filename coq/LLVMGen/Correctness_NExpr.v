@@ -194,40 +194,6 @@ Section NExpr.
       simp; try_abs.
       hvred.
 
-      Set Nested Proofs Allowed.
-      Lemma sub_local_no_aliasing_Γ :
-        forall σ s1 s2 l1 l2 g,
-        sub_local_no_aliasing σ s1 l1 l2 g ->
-        Γ s2 ≡ Γ s1 ->
-        sub_local_no_aliasing σ s2 l1 l2 g.
-      Proof.
-        intros σ s1 s2 l1 l2 g [L1L2 SUB] GAMMA.
-        unfold sub_local_no_aliasing in *.
-        rewrite GAMMA.
-        auto.
-      Qed.
-
-      Lemma genNExpr_context :
-        forall nexp s1 s2 e c,
-          genNExpr nexp s1 ≡ inr (s2, (e,c)) ->
-          Γ s1 ≡ Γ s2.
-      Proof.
-        induction nexp;
-          intros s1 s2 e c GEN;
-          cbn in GEN; simp;
-            repeat
-              match goal with
-              | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
-                destruct (nth_error (Γ s1) n); inversion H; subst
-              | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>
-                rewrite incLocal_unfold in H; cbn in H; inversion H; cbn; auto
-              | IH: ∀ (s1 s2 : IRState) (e : exp typ) (c : code typ), genNExpr ?nexp s1 ≡ inr (s2, (e, c)) → Γ s1 ≡ Γ s2,
-          GEN: genNExpr ?nexp _ ≡ inr _ |- _ =>
-        rewrite (IH _ _ _ _ GEN)
-        end; auto.
-      Qed.
-
-
       epose proof (genNExpr_context _ _ Heqs0) as GAMMA.
       epose proof (sub_local_no_aliasing_Γ _ MONO2 GAMMA) as SLNA.
 
@@ -250,30 +216,6 @@ Section NExpr.
       apply eutt_Ret; cbn; split_post.
       intros ? [MONO ALIAS]; cbn.
       vstep; solve_lu; reflexivity.
-
-      { eapply sub_local_no_aliasing_add_non_ptr'.
-        - solve_alist_fresh.
-        - eapply state_invariant_no_llvm_ptr_aliasing; solve_state_invariant.
-        - solve_no_local_global_alias.
-        - assert (Γ s2 ≡ Γ i0).
-          eauto with helix_context.
-          eapply sub_local_no_aliasing_Γ; eauto.
-          assert (Γ i0 ≡ Γ i).
-          eauto with helix_context.
-          eapply sub_local_no_aliasing_Γ; eauto.
-          solve_sub_local_no_aliasing.
-      }
-
-  first [ solve [eapply state_invariant_sub_local_no_aliasing_refl; solve_state_invariant]
-        | eapply sub_local_no_aliasing_add_non_ptr';
-          [ solve_alist_fresh
-          | eapply state_invariant_no_llvm_ptr_aliasing; solve_state_invariant
-          | solve_no_local_global_alias
-          | solve_sub_local_no_aliasing
-          ]
-        | solve [eapply sub_local_no_aliasing_transitive; eauto]].
-      
-      solve_sub_local_no_aliasing.
     - (* NMod *)
       cbn* in *; simp; try_abs.
       hvred.
@@ -312,7 +254,10 @@ Section NExpr.
       (* Operator evaluation *)
       {
         vstep; cbn; eauto; try reflexivity.
-        cbn; break_inner_match_goal; try reflexivity.
+        eapply EXPR1.
+        solve_sub_local_no_aliasing.
+        cbn; try reflexivity.
+        cbn. break_inner_match_goal; try reflexivity.
 
         (* Division by 0 *)
         exfalso.
@@ -360,7 +305,7 @@ Section NExpr.
      cbn; hvred.
 
      vstep.
-     vstep; cbn; try (eapply EXPR2 || eapply EXPR1); eauto; reflexivity.
+     vstep; cbn; try (eapply EXPR2 || eapply EXPR1); eauto; first [reflexivity | solve_sub_local_no_aliasing].
 
      apply eutt_Ret; cbn; split_post.
      intros ? [MONO ALIAS]; cbn.
@@ -396,7 +341,7 @@ Section NExpr.
      cbn; hvred.
 
      vstep.
-     vstep; cbn; try (eapply EXPR2 || eapply EXPR1); eauto; reflexivity.
+     vstep; cbn; try (eapply EXPR2 || eapply EXPR1); eauto; first [reflexivity | solve_sub_local_no_aliasing].
 
      apply eutt_Ret; cbn; split_post.
      intros ? [MONO ALIAS]; cbn.
@@ -434,7 +379,8 @@ Section NExpr.
      vstep.
      (* Operator evaluation *)
      {
-        vstep; cbn; try (eapply EXPR2 || eapply EXPR1); eauto; try reflexivity.
+       vstep; cbn; try (eapply EXPR2 || eapply EXPR1); eauto; try reflexivity.
+       solve_sub_local_no_aliasing.
         cbn.
         break_inner_match; reflexivity.
       }
@@ -472,7 +418,7 @@ Lemma genNExpr_correct :
     eutt (succ_cfg
             (lift_Rel_cfg (state_invariant_post σ s1 s2 l) ⩕
                           genNExpr_exp_correct σ s2 e ⩕
-                          ext_local_no_aliasing memH (memV,(l,g)))
+                          ext_local_no_aliasing σ s2 memH (memV,(l,g)))
          )
          (interp_helix (denoteNExpr σ nexp) memH)
          (interp_cfg (denote_code (convert_typ [] c)) g l memV).
