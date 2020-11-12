@@ -966,16 +966,6 @@ Ltac solve_no_local_global_alias :=
     [ let H := fresh in
       apply no_local_global_alias_non_pointer; intros ? H; discriminate H ].
 
-Ltac solve_sub_local_no_aliasing :=
-  first [ solve [eauto using state_invariant_sub_local_no_aliasing_refl]
-        | eapply sub_local_no_aliasing_add_non_ptr';
-          [ solve_alist_fresh
-          | eauto using state_invariant_no_llvm_ptr_aliasing
-          | solve_no_local_global_alias
-          | solve_sub_local_no_aliasing
-          ]
-        | solve [eapply sub_local_no_aliasing_transitive; eauto]].
-
 Ltac solve_alist_in := first [apply In_add_eq | idtac].
 Ltac solve_lu :=
   (try now eauto);
@@ -1002,5 +992,131 @@ Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incBlockNamed;
 Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incLocal; [eassumption | solve_state_invariant] : SolveStateInv.
 Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eassumption | solve_state_invariant] : SolveStateInv.
 
+Ltac solve_sub_local_no_aliasing :=
+  first [ solve [eapply state_invariant_sub_local_no_aliasing_refl; solve_state_invariant]
+        | eapply sub_local_no_aliasing_add_non_ptr';
+          [ solve_alist_fresh
+          | eapply state_invariant_no_llvm_ptr_aliasing; solve_state_invariant
+          | solve_no_local_global_alias
+          | solve_sub_local_no_aliasing
+          ]
+        | solve [eapply sub_local_no_aliasing_transitive; eauto]].
+
 Definition state_invariant_pre σ s1 s2 := (state_invariant σ s1 ⩕ fresh_pre s1 s2).
 Definition state_invariant_post σ s1 s2 l := (state_invariant σ s2 ⩕ fresh_post s1 s2 l).
+
+  (* TODO: Move this, and remove Transparent / Opaque *)
+  Lemma incLocal_unfold :
+    forall s,
+      incLocal s ≡ inr
+               ({|
+                   block_count := block_count s;
+                   local_count := S (local_count s);
+                   void_count := void_count s;
+                   Γ := Γ s
+                 |}
+                , Name ("l" @@ string_of_nat (local_count s))).
+  Proof.
+    intros s.
+    Transparent incLocal.
+    cbn.
+    reflexivity.
+    Opaque incLocal.
+  Qed.
+
+  (* TODO: Move this, and remove Transparent / Opaque *)
+  Lemma incVoid_unfold :
+    forall s,
+      incVoid s ≡ inr
+              ({|
+                  block_count := block_count s;
+                  local_count := local_count s;
+                  void_count := S (void_count s);
+                  Γ := Γ s
+                |}
+               , Z.of_nat (void_count s)).
+  Proof.
+    intros s.
+    Transparent incVoid.
+    cbn.
+    reflexivity.
+    Opaque incVoid.
+  Qed.
+
+  Lemma genNExpr_context :
+    forall nexp s1 s2 e c,
+      genNExpr nexp s1 ≡ inr (s2, (e,c)) ->
+      Γ s1 ≡ Γ s2.
+  Proof.
+    induction nexp;
+      intros s1 s2 e c GEN;
+      cbn in GEN; simp;
+        repeat
+          match goal with
+          | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
+            destruct (nth_error (Γ s1) n); inversion H; subst
+          | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>
+            rewrite incLocal_unfold in H; cbn in H; inversion H; cbn; auto
+          | IH: ∀ (s1 s2 : IRState) (e : exp typ) (c : code typ), genNExpr ?nexp s1 ≡ inr (s2, (e, c)) → Γ s1 ≡ Γ s2,
+      GEN: genNExpr ?nexp _ ≡ inr _ |- _ =>
+    rewrite (IH _ _ _ _ GEN)
+    end; auto.
+  Qed.
+
+  Lemma genMExpr_context :
+    forall mexp s1 s2 e c,
+      genMExpr mexp s1 ≡ inr (s2, (e,c)) ->
+      Γ s1 ≡ Γ s2.
+  Proof.
+    induction mexp;
+      intros s1 s2 e c GEN;
+      cbn in GEN; simp;
+        repeat
+          match goal with
+          | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
+            destruct (nth_error (Γ s1) n); inversion H; subst
+          | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>
+            rewrite incLocal_unfold in H; cbn in H; inversion H; cbn; auto
+          | IH: ∀ (s1 s2 : IRState) (e : exp typ) (c : code typ), genMExpr ?nexp s1 ≡ inr (s2, (e, c)) → Γ s1 ≡ Γ s2,
+      GEN: genMExpr ?nexp _ ≡ inr _ |- _ =>
+    rewrite (IH _ _ _ _ GEN)
+    end; auto.
+  Qed.
+
+  Hint Resolve genNExpr_context : helix_context.
+  Hint Resolve genMExpr_context : helix_context.
+  Hint Resolve incVoid_Γ        : helix_context.
+  Hint Resolve incLocal_Γ       : helix_context.
+  Hint Resolve incBlockNamed_Γ  : helix_context.
+
+  Lemma genAExpr_context :
+    forall aexp s1 s2 e c,
+      genAExpr aexp s1 ≡ inr (s2, (e,c)) ->
+      Γ s1 ≡ Γ s2.
+  Proof.
+    induction aexp;
+      intros s1 s2 e c GEN;
+      cbn in GEN; simp;
+        repeat
+          match goal with
+          | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
+            destruct (nth_error (Γ s1) n); inversion H; subst
+          | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>
+            rewrite incLocal_unfold in H; cbn in H; inversion H; cbn; auto
+          | H: incVoid ?s1 ≡ inr (?s2, _) |- _ =>
+            rewrite incVoid_unfold in H; cbn in H; inversion H; cbn; auto
+          | IH: ∀ (s1 s2 : IRState) (e : exp typ) (c : code typ), genAExpr ?aexp s1 ≡ inr (s2, (e, c)) → Γ s1 ≡ Γ s2,
+      GEN: genAExpr ?aexp _ ≡ inr _ |- _ =>
+    rewrite (IH _ _ _ _ GEN)
+  | GEN: genNExpr _ _ ≡ inr _ |- _ =>
+    rewrite (genNExpr_context _ _ GEN)
+  | GEN: genMExpr _ _ ≡ inr _ |- _ =>
+    rewrite (genMExpr_context _ _ GEN)
+    end; subst; auto.
+  Qed.
+  
+  Ltac subst_contexts :=
+    repeat match goal with
+           | H : Γ ?s1 ≡ Γ ?s2 |- _ =>
+             rewrite H in *; clear H
+           end.

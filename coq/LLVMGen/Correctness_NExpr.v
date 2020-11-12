@@ -37,10 +37,10 @@ Section NExpr.
       However this is not inductively stable, we only want to plug the expression at the top level.
       We therefore instead carry the fact about the denotation of the expression in the invariant. (Is there another clever way?)
    *)
-  Definition genNExpr_exp_correct_ind (e: exp typ)
+  Definition genNExpr_exp_correct_ind (σ : evalContext) (s : IRState) (e: exp typ)
   : Rel_cfg_T DynamicValues.int64 unit :=
     fun '(x,i) '(memV,(l,(g,v))) =>
-      forall l', sub_local_no_aliasing l l' g ->
+      forall l', sub_local_no_aliasing σ s l l' g ->
             interp_cfg
               (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] e)))
               g l' memV ≈
@@ -52,13 +52,15 @@ Section NExpr.
      allowed to be extended with fresh bindings.
    *)
   Record genNExpr_rel_ind
+         (σ : evalContext)
+         (s : IRState)
          (e : exp typ)
          (mi : memoryH) (sti : config_cfg)
          (mf : memoryH * DynamicValues.int64) (stf : config_cfg_T unit)
     : Prop :=
     {
-    exp_correct : genNExpr_exp_correct_ind e mf stf;
-    monotone : ext_local_no_aliasing mi sti mf stf
+    exp_correct : genNExpr_exp_correct_ind σ s e mf stf;
+    monotone : ext_local_no_aliasing σ s mi sti mf stf
     }.
 
 
@@ -106,7 +108,7 @@ Section NExpr.
       (state_invariant_pre σ s1 s2) memH (memV, (l, g)) -> (* The main state invariant is initially true *)
       no_failure (interp_helix (E := E_cfg) (denoteNExpr σ nexp) memH) -> (* Source semantics defined *)
       eutt (succ_cfg (lift_Rel_cfg (state_invariant_post σ s1 s2 l) ⩕
-                     genNExpr_rel_ind e memH (mk_config_cfg memV l g)))
+                     genNExpr_rel_ind σ s2 e memH (mk_config_cfg memV l g)))
            (interp_helix (denoteNExpr σ nexp) memH)
            (interp_cfg (denote_code (convert_typ [] c)) g l memV).
   Proof.
@@ -144,16 +146,6 @@ Section NExpr.
 
         apply eutt_Ret; cbn; split_post.
 
-        Ltac solve_state_invariant :=
-          cbn; try eassumption;
-          match goal with
-          | |- state_invariant _ _ _ (_, (alist_add _ _ _, _)) =>
-            eapply state_invariant_add_fresh; [now eauto | (eassumption || solve_state_invariant) | solve_fresh]
-          | |- state_invariant _ _ _ _ =>
-            solve [eauto with SolveStateInv]
-          end.
-
-        
         intros l' [MONO ALIAS]; cbn*.
         vstep; [solve_lu | reflexivity].
     - (* Constant *)
@@ -202,8 +194,45 @@ Section NExpr.
       simp; try_abs.
       hvred.
 
-      specialize (EXPR1 _ MONO2).
-      assert (sub_local_no_aliasing l1 l1 g) as L1L1 by solve_sub_local_no_aliasing; specialize (EXPR2 _ L1L1). 
+      Set Nested Proofs Allowed.
+      Lemma sub_local_no_aliasing_Γ :
+        forall σ s1 s2 l1 l2 g,
+        sub_local_no_aliasing σ s1 l1 l2 g ->
+        Γ s2 ≡ Γ s1 ->
+        sub_local_no_aliasing σ s2 l1 l2 g.
+      Proof.
+        intros σ s1 s2 l1 l2 g [L1L2 SUB] GAMMA.
+        unfold sub_local_no_aliasing in *.
+        rewrite GAMMA.
+        auto.
+      Qed.
+
+      Lemma genNExpr_context :
+        forall nexp s1 s2 e c,
+          genNExpr nexp s1 ≡ inr (s2, (e,c)) ->
+          Γ s1 ≡ Γ s2.
+      Proof.
+        induction nexp;
+          intros s1 s2 e c GEN;
+          cbn in GEN; simp;
+            repeat
+              match goal with
+              | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
+                destruct (nth_error (Γ s1) n); inversion H; subst
+              | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>
+                rewrite incLocal_unfold in H; cbn in H; inversion H; cbn; auto
+              | IH: ∀ (s1 s2 : IRState) (e : exp typ) (c : code typ), genNExpr ?nexp s1 ≡ inr (s2, (e, c)) → Γ s1 ≡ Γ s2,
+          GEN: genNExpr ?nexp _ ≡ inr _ |- _ =>
+        rewrite (IH _ _ _ _ GEN)
+        end; auto.
+      Qed.
+
+
+      epose proof (genNExpr_context _ _ Heqs0) as GAMMA.
+      epose proof (sub_local_no_aliasing_Γ _ MONO2 GAMMA) as SLNA.
+
+      specialize (EXPR1 _ SLNA).
+      assert (sub_local_no_aliasing σ i0 l1 l1 g) as L1L1 by solve_sub_local_no_aliasing; specialize (EXPR2 _ L1L1). 
       cbn in *.
       hvred.
       vstep.
@@ -220,7 +249,31 @@ Section NExpr.
 
       apply eutt_Ret; cbn; split_post.
       intros ? [MONO ALIAS]; cbn.
-      vstep; solve_lu; reflexivity.  
+      vstep; solve_lu; reflexivity.
+
+      { eapply sub_local_no_aliasing_add_non_ptr'.
+        - solve_alist_fresh.
+        - eapply state_invariant_no_llvm_ptr_aliasing; solve_state_invariant.
+        - solve_no_local_global_alias.
+        - assert (Γ s2 ≡ Γ i0).
+          eauto with helix_context.
+          eapply sub_local_no_aliasing_Γ; eauto.
+          assert (Γ i0 ≡ Γ i).
+          eauto with helix_context.
+          eapply sub_local_no_aliasing_Γ; eauto.
+          solve_sub_local_no_aliasing.
+      }
+
+  first [ solve [eapply state_invariant_sub_local_no_aliasing_refl; solve_state_invariant]
+        | eapply sub_local_no_aliasing_add_non_ptr';
+          [ solve_alist_fresh
+          | eapply state_invariant_no_llvm_ptr_aliasing; solve_state_invariant
+          | solve_no_local_global_alias
+          | solve_sub_local_no_aliasing
+          ]
+        | solve [eapply sub_local_no_aliasing_transitive; eauto]].
+      
+      solve_sub_local_no_aliasing.
     - (* NMod *)
       cbn* in *; simp; try_abs.
       hvred.
