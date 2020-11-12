@@ -54,8 +54,18 @@ Lemma bid_bound_incBlock_neq:
   incBlock i ≡ inr (i', bid) ->
   bid_bound i bid' ->
   bid ≢ bid'.
-Admitted.
-
+Proof.
+  intros.
+  destruct (rel_dec_p bid bid'); auto.
+  subst; exfalso.
+  cbn in H; inv H.
+  destruct H0 as (? & ? & ? & ? & ? & ?).
+  cbn in *.
+  inv H1.
+  apply valid_prefix_string_of_nat_forward in H4 as [? ?]; subst; cbn in *; auto.
+  lia.
+Qed.
+  
 Lemma memory_invariant_Ptr:
   ∀ (memH : memoryH) (σ : evalContext) (size : Int64.int) (i0 : IRState) k
   (mH : config_helix) (mV : memoryV) (l1 : local_env) (g1 : global_env),
