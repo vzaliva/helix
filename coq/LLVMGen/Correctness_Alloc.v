@@ -20,31 +20,20 @@ Set Strict Implicit.
 
 Global Opaque resolve_PVar.
 
-Import ProofMode.
 
 From Paco Require Import paco.
 From ITree Require Import Basics.HeterogeneousRelations.
 
-(* Remove this later, this lemma exists in Correctness_While as well *)
-Lemma eutt_Proper_mono : forall {A B E},
-        Proper ((@subrelationH A B) ==> (@subrelationH _ _)) (eutt (E := E)).
+
+Lemma not_bid_bound_genIR_entry :
+  forall op s1 s2 nextblock bid bks σ,
+    Gamma_safe σ s1 s2 ->
+    genIR op nextblock s1 ≡ inr (s2, (bid, bks)) ->
+    not (bid_bound s1 bid).
 Proof.
-  intros A B. do 3 red.
-    intros E x y. pcofix CIH. pstep. red.
-    intros sub a b H.
-    do 2 red in H. punfold H. red in H.
-    remember (observe a) as a'.
-    remember (observe b) as b'.
-    generalize dependent a. generalize dependent b.
-    induction H; intros; eauto.
-    + constructor. red in REL. destruct REL.
-      right. apply CIH. assumption. assumption.
-      destruct H.
-    + constructor. red in REL. intros.
-      specialize (REL v). unfold id.
-      destruct REL. right. apply CIH. assumption. assumption.
-      destruct H.
-Qed.
+  induction op;
+    intros s1 s2 nextblock b bks GEN.
+Admitted.
 
 Lemma interp_helix_MemAlloc :
   forall {E} size mem,
@@ -88,6 +77,53 @@ Proof.
   apply tau_eutt.
 Qed.
 
+
+(* Import ProofMode.  *)
+
+Lemma genIR_Rel_extend:
+  ∀ (p : ident * typ) (l : list (LLVMAst.block typ)) (b : block_id) 
+    (l0 : list (ident * typ)) (i : IRState) (nextblock branch_to : block_id) 
+    (memH : memoryH) (σ : evalContext) (s1 : IRState) (op : DSHOperator) 
+    (size : Int64.int) x',
+    Γ i ≡ p :: l0
+    → genIR op nextblock
+      {|
+        block_count := block_count s1;
+        local_count := S (local_count s1);
+        void_count := void_count s1;
+        Γ := (ID_Local (Name ("a" @@ string_of_nat (local_count s1))),
+              TYPE_Pointer (TYPE_Array (Int64.intval size) TYPE_Double)) :: Γ s1 |} ≡ inr (i, (b, l))
+    → ∀ x0 x1 i',
+        i' ≡ {| block_count := S (block_count i);
+                local_count := local_count i;
+                void_count := S (void_count i);
+                Γ := l0 |}
+        -> GenIR_Rel (x' :: σ) i branch_to x0 x1
+        → GenIR_Rel σ i' branch_to x0 x1.
+Proof.
+  intros p l b l0 i nextblock memH σ s1 op size * context_l0 genIR_op.
+  clear -genIR_op context_l0.
+
+  intros * PRE.
+  eapply genIR_Context in genIR_op. rewrite context_l0 in genIR_op.
+  cbn in genIR_op. inversion genIR_op; subst. intros PRE.
+  unfold GenIR_Rel in PRE. red in PRE. unfold succ_rel_l in PRE.
+  destruct x0; try inversion PRE.
+
+  rename H into state_PRE. rename H0 into branch_PRE. clear PRE.
+  split; red; cbn; repeat break_let; subst.
+  cbn in *.
+  destruct state_PRE. cbn in MINV.
+  split.
+  - cbn. intros. eapply (MINV (S n)).
+    cbn. auto. rewrite context_l0. cbn. auto.
+  - unfold WF_IRState in *. cbn. rewrite context_l0 in WF.
+    unfold evalContext_typechecks in *. intros.
+    specialize (WF v (S n)). cbn in WF. apply WF in H.
+    apply H.
+  - destruct branch_PRE. exists x. apply H.
+Qed.
+
 Lemma DSHAlloc_correct:
   ∀ (size : Int64.int) (op : DSHOperator),
     (∀ (s1 s2 : IRState) (σ : evalContext) (memH : memoryH) (nextblock bid_in bid_from : block_id)
@@ -111,13 +147,13 @@ Lemma DSHAlloc_correct:
               (interp_cfg (denote_bks (convert_typ [] bks) (bid_from, bid_in)) g ρ memV).
 Proof.
   intros size op IHop s1 s2 σ memH nextblock bid_in bid_from bks g ρ memV NEXT PRE GAM NOFAIL GEN.
+
   cbn* in *.
   simp.
+
   cbn.
   clean_goal.
   hvred.
-
-  Import ProofMode.
 
   rewrite interp_helix_MemAlloc.
   hred.
@@ -130,10 +166,12 @@ Proof.
   rename Heqs0 into genIR_op.
   rename Heql1 into context_l0.
 
+  assert (GEN_IR := PRE).
   destruct PRE as (state_inv & (from & branch_inv)).
-  destruct state_inv.
   cbn* in *.
-  inversion branch_inv. subst. clear branch_inv.
+  inversion branch_inv. subst.
+
+  cbn.
 
   (* Retrieving information from NOFAIL on denoting operator *)
   rewrite interp_helix_bind in NOFAIL.
@@ -148,119 +186,107 @@ Proof.
   rename NOFAIL into NOFAIL_prefix.
   rewrite interp_helix_bind in NOFAIL_cont.
 
-  (* Apply IH on generated IR op. *)
-  eapply IHop in genIR_op; eauto; clear IHop; cycle 1.
-  { (* GenIR_Rel *)
-    red. split. cbn.
-    split; cycle 1.
-    - (* Well-formedness *)
-      unfold WF_IRState. cbn. red. intros. destruct n.
-
-      (* Pointer size variable *)
-      cbn in *.
-      exists (ID_Local (Name
-          (append (String (Ascii.Ascii true false false false false true true false) EmptyString)
-                  (string_of_nat (local_count s1))))).
-      inversion H; subst. cbn. reflexivity.
-
-      (* Original σ *)
-      cbn in *.
-      eapply WF. auto.
-
-    - (* Memory inv *)
-      Opaque memory_lookup.
-      cbn. intros. destruct n.
-
-      (* Pointer size variable *)
-      cbn in *. inversion H; inversion H0; subst; clear H H0.
-      (* Need to make sure that the memory is intialized properly, from NOFAIL_prefix *)
-      (* eexists. eexists. split; [| split ]. *) admit. admit.
-    - cbn. exists from. reflexivity.
+  assert (genIR_op' := genIR_op).
+  apply generates_wf_cfgs in genIR_op. (* Generate ID 2047 *)
+  2 : {
+    solve_bid_bound. auto.
   }
-  {
-    (* Gamma_safe *) admit.
-  }
+
+  (* Stepping Vellvm side *)
+  vjmp.
+  vred. vred. vred. vred.
+
+  edestruct denote_instr_alloca_exists as (? & ? & EQ_alloca); eauto; cycle 1.
+
+  destruct EQ_alloca as (? & EQ_alloca). rewrite EQ_alloca. clear EQ_alloca.
+  vred. vred.
+  2 : { intros VT ; inversion VT. }
+
+  rewrite (@list_cons_app _ _ (convert_typ [] l)).
+  rewrite denote_bks_app_no_edges.
+  2 : {
+    rewrite find_block_ineq. apply find_block_nil. cbn.
+
+    eapply bid_bound_fresh; eauto. admit.
+    eapply bid_bound_bound_between. admit.
+    admit.
+
+  } 2 : { admit. }
+
+  rename genIR_op into wf.
+
+  assert (genIR_op := genIR_op').
+
+  setoid_rewrite <- bind_ret_r at 5.
+  rename H into alloc.
 
   (* Post condition weakening *)
-  eapply eutt_Proper_mono.
-  Unshelve.
-  6 : exact (succ_cfg (GenIR_Rel (DSHPtrVal (memory_next_key mH) size :: σ) i nextblock)).
-  (* TODO: Generalize this weakening relation in extending context *)
+  eapply eqit_mon with
+      (RR := succ_cfg (GenIR_Rel (DSHPtrVal (memory_next_key memH) size :: σ)
+                                 i nextblock)); auto.
   {
-    repeat intro. red. red. red in H. red in H. destruct x; try contradiction.
-    split. red. destruct p0. destruct y. destruct p0. destruct p0.
-    destruct H. destruct H. split.
-    - cbn in MINV0.
-      cbn. intros. eapply MINV0.
-      Unshelve. 3 : exact (S n). cbn. auto. rewrite context_l0. cbn. auto.
-    - unfold WF_IRState in *. cbn. rewrite context_l0 in WF0.
-      unfold evalContext_typechecks in *. intros. 
-      specialize (WF0 v (S n)). cbn in WF0. apply WF0 in H.
-      apply H.
-    - destruct H. apply H0.
+    (* Re-establish invariant *)
+    intros.
+    repeat red in PR. destruct x1.
+    eapply genIR_Rel_extend; eauto. contradiction.
   }
 
-  hvred.
+  clean_goal.
 
-  (* Useful lemmas about rcompose. TODO: Move? *)
-  Lemma rcompose_eq_r :
-    forall A B (R: relationH A B), eq_rel (R) (rcompose R (@Logic.eq B)).
-  Proof.
-    repeat intro. red. split; repeat intro; auto. econstructor.
-    apply H. reflexivity.
-    inversion H. subst. auto.
-  Qed.
+  eapply eutt_clo_bind_returns.
+  {
+    (* Prefix *)
+    eapply IHop; try exact genIR_op; eauto.
+    {
+      (* Re-establish invariant *)
+      clear -genIR_op context_l0 GEN_IR.
+      split; red; cbn; repeat break_let; subst.
+      cbn in *. destruct GEN_IR. cbn in H.
+      destruct H. cbn in MINV.
+      split.
+      - admit.
+      - unfold WF_IRState in *. cbn.
+        (* rewrite context_l0. *)
+        unfold evalContext_typechecks in *. intros.
+        destruct n.
+        exists (ID_Local (Name ("a" @@ string_of_nat (local_count s1)))).
+        cbn. cbn in H. inversion H. subst. cbn. reflexivity.
+        cbn in H.
+        specialize (WF v n). cbn in WF. apply WF in H.
+        apply H.
+      - destruct GEN_IR. destruct H0. inversion H0. subst.
+        eexists. reflexivity.
+    }
+    admit.
+  }
 
-  Lemma rcompose_eq_l :
-    forall A B (R: relationH A B), eq_rel (R) (rcompose (@Logic.eq A) R).
-  Proof.
-    repeat intro. red. split; repeat intro; auto. econstructor.
-    reflexivity. apply H.
-    inversion H. subst. auto.
-  Qed.
+  (* Continuation *)
+  intros [ [memH' t ] | ] (? & ? & ? & ?) UU ret1 ret2.
+  rewrite interp_helix_MemFree.
+  apply eutt_Ret. cbn.
+  2 : try_abs.
 
-  setoid_rewrite rcompose_eq_r.
-  eapply eqit_trans.
-  eapply eutt_clo_bind_returns. apply genIR_op.
-  intros [ [memH t ] | ] (? & ? & ? & ?) [] ret1 ret2.
-  rewrite interp_helix_MemFree. cbn in *.
+  destruct t. cbn in *. clear -UU ret1 ret2 context_l0.
+  {
+    split; red; cbn; repeat break_let; subst.
+    cbn in *. destruct UU. cbn in H.
+    destruct H. cbn in MINV.
+    split.
+    - repeat intro. rewrite context_l0 in H1. cbn in *.
+      destruct n. cbn in *. inversion H; inversion H1; subst.
+      admit.
+      cbn in *. rewrite context_l0 in MINV.
+      specialize (MINV (S n)). cbn in *. eapply MINV in H1; eauto.
+      destruct v; eauto.
+      destruct H1 as (? & ? & ? & ? & ?).
+      eexists. eexists. split; [ | split]; eauto.
+      rewrite <- H1.
+      admit.
+    - assumption.
+    - destruct UU. destruct H0. inversion H0. subst.
+      eexists. reflexivity.
+  }
+
   Unshelve.
-  6 : {
-    intros (? & ? & ? & ?).
-    refine (Ret _). red. eauto. } cbn.
-  apply eqit_Ret. cbn. split. split.
-  destruct H.
-  cbn in *. intros.
-
-  eapply MINV0 in H1. cbn in *.
-  Unshelve.
-  destruct v; eauto.
-
-  intros.
-  (* Next step: using eutt_clo_bind_returns (or something similar.. ) apply genIR_op *)
-
-  (* apply genIR_op. rewrite genIR_op.  *)
-
-
-  (* Handle the Vellvm side, starting with a jump to the appropriate block *)
-  (* vjmp. *)
-  (* rewrite find_block_eq; reflexivity. *)
-  (* cbn. *)
-  (* vred. *)
-  (* vred. *)
-  (* vred. *)
-  (* edestruct denote_instr_alloca_exists as (mV' & addr & Alloc & EQAlloc); *)
-  (*   [| rewrite EQAlloc; clear EQAlloc]. *)
-  (* red; easy. *)
-  (* vred. *)
-  (* vred. *)
-  (* vjmp. *)
-  (* no_repeat assumption *)
-  (* rename b into target. *)
-  (* vjmp. *)
-  (* { *)
-  (*   rewrite find_block_ineq. *)
-
-  (*   apply find_block_tail_wf. *)
-  (*   admit. *)
+  all : eauto. exact nat. exact "".
 Admitted.
