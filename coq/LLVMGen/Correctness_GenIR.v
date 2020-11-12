@@ -496,7 +496,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
       (* Question 1: is [vx_p] global, local, or can be either? *)
       (* We access in memory vx_p[e] *)
-      edestruct memory_invariant_Ptr as (NOALIAS & membk & ptr & LU & MEM_SUC & FITS & INLG & GETCELL); [| eauto | eauto |]; eauto.
+      edestruct memory_invariant_Ptr as (membk & ptr & LU & MEM_SUC & FITS & INLG & GETCELL); [| eauto | eauto |]; eauto.
       clear FITS.
 
       rewrite LU in H; symmetry in H; inv H.
@@ -511,6 +511,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         { rewrite EXP1; auto.
           rewrite repr_of_nat_to_nat.
           reflexivity.
+          solve_sub_local_no_aliasing.
         }
         clear EXP1.
         clean_goal.
@@ -525,7 +526,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
         destruct vy_p as [vy_p | vy_p].
         { (* vy_p in global *)
-          edestruct memory_invariant_Ptr as (yNOALIAS & ymembk & yptr & yLU & yMEM_SUC & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |].
+          edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yMEM_SUC & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |].
 
           clean_goal.
           rewrite yLU in H0; symmetry in H0; inv H0.
@@ -541,9 +542,16 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
             cbn; reflexivity.
           }
           { rewrite EXP2.
-            2:{ cbn. etransitivity. apply sub_alist_add.
-                2: apply sub_alist_add.
-                admit. admit. (* These should hold *)
+            2:{ apply sub_local_no_aliasing_add_non_ptr'.
+                solve_alist_fresh.
+                admit.
+                eapply no_llvm_ptr_aliasing_ext_local.
+                eapply state_invariant_no_llvm_ptr_aliasing; eauto.
+                solve_sub_local_no_aliasing.
+                admit.
+                solve_sub_local_no_aliasing.
+                unfold freshness_pre.
+                admit. (* not sure about these admits... *)
             }
 
             rewrite repr_of_nat_to_nat.
@@ -627,15 +635,15 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
                 cbn. cbn in H4. 
                 admit.
                 admit.
-                destruct H4 as (yNOALIAS' & bk_h & ptr_l & MINV).
+                destruct H4 as (bk_h & ptr_l & MINV).
                 destruct MINV as (MLUP & MSUC & FITS & INLG' & GET).
-                split; eauto.
                 destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
                 - (* DSHPtrVals alias *)
                   subst.
                   rewrite yLU in MLUP.
                   inv MLUP.
-                  pose proof (ptr_alias_eq _ yNOALIAS H0); subst.
+
+                  epose proof (st_no_dshptr_aliasing _ _ _ _ _ Heqo0 H0); subst.
 
                   (* Since y_i = a, we know this matches the block that was written to *)
                   exists (mem_add (MInt64asNT.to_nat dst) v bk_h).
@@ -749,11 +757,12 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
                 destruct v0. (* Probably need to use WF_IRState to make sure we only consider valid types *)
                 admit.
                 admit.
-                destruct H4 as (yNOALIAS' & bk_h & ptr_l & MINV). (* Do I need this? *)
+                destruct H4 as (bk_h & ptr_l & MINV). (* Do I need this? *)
                 destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
                 - (* PTR aliases, local case should be bogus... *)
                   subst.
-                  pose proof (ptr_alias_eq _ yNOALIAS H0); subst.
+
+                  epose proof (st_no_dshptr_aliasing _ _ _ _ _ Heqo0 H0); subst.
                   rewrite <- CONT in LUn0. rewrite LUn0 in H3.
                   inversion H3.
                 - (* This is the branch where a and y_i don't
@@ -790,7 +799,6 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
                      would not be in l0.
                    *)
 
-                  split; eauto.
                   destruct MINV as (MLUP & MSUC & FITS & INLG' & GET).
                   pose proof alist_In_dec id l0.
                   edestruct H4 as [INl0 | NINl0].
@@ -805,6 +813,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
                        in l0 and everything is fresh... *)
 
                       (* This is hideous *)
+                      (* automate. Make the add function opaque... *)
                       assert (id ?[ Logic.eq ] r0 ≡ false) as IDR0 by admit.
                       rewrite IDR0.
                       assert (negb (r0 ?[ Logic.eq ] r1) ≡ true) as R0R1 by admit.
@@ -830,6 +839,22 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
                     exfalso.
                     apply NINl0. eauto.
               }
+
+              + eapply st_no_id_aliasing; eauto.
+              + eapply st_no_dshptr_aliasing; eauto.
+              + cbn.
+                eapply no_llvm_ptr_aliasing_not_in_gamma.
+                eapply no_llvm_ptr_aliasing_not_in_gamma.
+                eapply no_llvm_ptr_aliasing_not_in_gamma.
+                eapply st_no_llvm_ptr_aliasing in INV2. cbn in INV2. eauto.
+
+                (* TODO: these admits scare me a little *)
+                solve_alist_fresh.
+                admit.
+                solve_alist_fresh.
+                admit.
+                solve_alist_fresh.
+                admit.
             - (* freshness_post *)
               cbn.
               admit.
@@ -837,7 +862,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         }
 
         { (* vy_p in local *)
-          edestruct memory_invariant_Ptr as (yNOALIAS & ymembk & yptr & yLU & yMEMSUC & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |].
+          edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yMEMSUC & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |].
 
           clean_goal.
           rewrite yLU in H0; symmetry in H0; inv H0.
@@ -848,11 +873,18 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
             admit. (* ugh *)
           }
           { rewrite EXP2.
-            2:{ cbn. etransitivity. apply sub_alist_add.
-                2: apply sub_alist_add.
-                admit. admit. (* These should hold *)
+            2:{ apply sub_local_no_aliasing_add_non_ptr'.
+                solve_alist_fresh.
+                admit.
+                eapply no_llvm_ptr_aliasing_ext_local.
+                eapply state_invariant_no_llvm_ptr_aliasing; eauto.
+                solve_sub_local_no_aliasing.
+                admit.
+                solve_sub_local_no_aliasing.
+                unfold freshness_pre.
+                admit. (* not sure about these admits... *)
             }
-            replace (repr (Z.of_nat (MInt64asNT.to_nat dst))) with dst by admit.
+            rewrite repr_of_nat_to_nat.
             cbn; reflexivity.
           }
           eapply yGETCELL.
@@ -1256,6 +1288,14 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
               -- unfold WF_IRState.
                  rewrite <- GEN_OP2.
                  apply SINV.
+              -- (* TODO: make this a lemma *)
+                unfold no_id_aliasing. rewrite <- GEN_OP2. eapply st_no_id_aliasing; eauto.
+              -- eapply st_no_dshptr_aliasing; eauto.
+              -- cbn.
+                 (* TODO: make this a lemma *)
+                 unfold no_llvm_ptr_aliasing.
+                 rewrite <- GEN_OP2.
+                 eapply st_no_llvm_ptr_aliasing in SINV. cbn in SINV. eauto.
             * cbn. exists from.
               reflexivity.
           + cbn.
@@ -1287,6 +1327,16 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
               cbn.
               apply mem_is_inv0.
             * apply SINV.
+            * eapply st_no_id_aliasing; eauto.
+            * eapply st_no_dshptr_aliasing; eauto.
+            * (* TODO: turn this into a lemma *)
+              cbn in st_no_llvm_ptr_aliasing0. cbn.
+              unfold no_llvm_ptr_aliasing.
+              assert (Γ s1 ≡ Γ s_op1) by (eapply genIR_Context; eauto).
+              assert (Γ s_op1 ≡ Γ s2) by (eapply genIR_Context; eauto).
+              assert (Γ s1 ≡ Γ s2) by congruence.
+              rewrite H1.
+              apply st_no_llvm_ptr_aliasing0.
           + exists from2. reflexivity.
         - cbn.
           (* TODO: make solve_fresh do this *)
@@ -1338,6 +1388,9 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         rewrite <- GEN_OP1.
         apply MINV1.
       + auto.
+      + admit.
+      + admit.
+      + admit.
       + cbn. cbn in BRANCHES1.
         destruct BRANCHES1 as [from1' BRANCHES1].
         exists from1. inversion BRANCHES1.
