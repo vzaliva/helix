@@ -27,22 +27,42 @@ Global Opaque resolve_PVar.
 From Paco Require Import paco.
 From ITree Require Import Basics.HeterogeneousRelations.
 
+(* TODO: Move to bidbound *)
 
-Lemma not_bid_bound_genIR_entry :
-  forall op s1 s2 nextblock bid bks σ,
-    Gamma_safe σ s1 s2 ->
-    genIR op nextblock s1 ≡ inr (s2, (bid, bks)) ->
-    not (bid_bound s1 bid).
+Lemma bid_bound_between_sep :
+  ∀ (bid : block_id) s1 s2 s3,
+    bid_bound_between s1 s2 bid → ¬ (bid_bound_between s2 s3 bid).
 Proof.
-  induction op;
-    intros s1 s2 nextblock b bks GEN.
-Admitted.
+  intros. cbn in H. red in H.
+  intro.
+  assert (((bid ≡ bid) -> False) -> False). auto. apply H1. clear H1.
+  eapply bid_bound_fresh; eauto.
+  destruct H as (? & ? & ? & ? & ? & ? & ?).
+  red. red. exists x. exists x0, x1. split; eauto.
+Qed.
+
+Lemma not_bid_bound_between :
+  forall bid s1 s2, bid_bound s1 bid -> not (bid_bound_between s1 s2 bid).
+Proof.
+  repeat intro.
+  assert (((bid ≡ bid) -> False) -> False). auto. apply H1. clear H1.
+  eapply bid_bound_fresh; eauto.
+Qed.
 
 Lemma bid_bound_incBlock_neq:
   forall i i' bid bid',
   incBlock i ≡ inr (i', bid) ->
   bid_bound i bid' ->
   bid ≢ bid'.
+Admitted.
+
+Lemma memory_invariant_Ptr:
+  ∀ (memH : memoryH) (σ : evalContext) (size : Int64.int) (i0 : IRState) k
+  (mH : config_helix) (mV : memoryV) (l1 : local_env) (g1 : global_env),
+      memory_invariant (DSHPtrVal k size :: σ) i0 mH (mV, (l1, g1))
+      → memory_invariant (DSHPtrVal k size :: σ) i0 (memory_remove mH k)
+                          (mV, (l1, g1)).
+Proof.
 Admitted.
 
 Lemma interp_helix_MemAlloc :
@@ -87,6 +107,34 @@ Proof.
   apply tau_eutt.
 Qed.
 
+(* Lemma memory_invariant_genIR: *)
+(* ∀ (allocated_ptr_addr : addr) (memV_allocated : memoryV), *)
+(* block_id *)
+(* → ∀ (p : ident * typ) (bk_op : list (LLVMAst.block typ)) (op_entry : block_id) (i2 : IRState) (l0 : list (ident * typ)), *)
+(*   memoryV *)
+(*   → ∀ (ρ : local_env) (g : global_env), *)
+(*     block_id *)
+(*     → ∀ (nextblock : block_id) (σ : evalContext) (s1 : IRState) (op : DSHOperator) (size : Int64.int) (i0 : IRState) (mH : config_helix)  *)
+(*         (mV : memoryV) (l : local_env) (g0 : global_env), *)
+(*       Γ i2 ≡ p :: l0 *)
+(*       → memory_invariant σ s1 mH (mV, (l, g0)) *)
+(*       → genIR op nextblock *)
+(*               {| *)
+(*                 block_count := block_count s1; *)
+(*                 local_count := S (local_count s1); *)
+(*                 void_count := void_count s1; *)
+(*                 Γ := (ID_Local (Name ("a" @@ string_of_nat (local_count s1))), TYPE_Pointer (TYPE_Array (Int64.intval size) TYPE_Double)) :: Γ s1 |} *)
+(*               ≡ inr (i0, (op_entry, bk_op)) *)
+(*       → memory_invariant (DSHPtrVal (memory_next_key mH) size :: σ) *)
+(*                           {| *)
+(*                             block_count := block_count s1; *)
+(*                             local_count := S (local_count s1); *)
+(*                             void_count := void_count s1; *)
+(*                             Γ := (ID_Local (Name ("a" @@ string_of_nat (local_count s1))), TYPE_Pointer (TYPE_Array (Int64.intval size) TYPE_Double)) :: Γ s1 |} *)
+(*                           (memory_set mH (memory_next_key mH) mem_empty) *)
+(*                           (memV_allocated, (alist_add (Name ("a" @@ string_of_nat (local_count s1))) (UVALUE_Addr allocated_ptr_addr) ρ, g)). *)
+(* Proof. *)
+(* intros allocated_ptr_addr memV_allocated from p bk_op op_entry i2 l0 memV ρ g bid_in nextblock σ s1 op size i0 mH mV l g0 context_l0 MINV genIR_op. *)
 
 (* Import ProofMode.  *)
 
@@ -169,7 +217,6 @@ Proof.
   rename i into s2.
   rename b into op_entry.
   rename l into bk_op.
-  (* rename l0 into s2_Gamma. *)
 
   cbn* in *; simp. clean_goal.
 
@@ -186,9 +233,24 @@ Proof.
     eapply bid_bound_incBlock_neq; eauto.
   }
 
-  Transparent incBlockNamed.
-  Transparent incVoid.
-  Transparent incLocal.
+  assert (nextblock ≢ bid_in). {
+    (* TODO: pull this out into automation *)
+    eapply bid_bound_fresh; eauto.
+    eapply bid_bound_bound_between; eauto.
+
+    unfold incBlock in *.
+    match goal with
+    | H: incBlockNamed ?msg ?s1 ≡ inr (_, ?bid) |-
+      bid_bound ?s2 bid_in =>
+      idtac H
+    end.
+    eapply bid_bound_incBlockNamed; eauto; reflexivity.
+    solve_not_bid_bound.
+    block_count_replace. rewrite <- Heqs in *.
+    Transparent newLocalVar. cbn in *. simp. cbn in *. lia.
+    reflexivity.
+  }
+
   Transparent newLocalVar.
 
   cbn* in *; simp.
@@ -267,17 +329,25 @@ Proof.
     eauto.
   }
   {
+    assert (genIR_op' := genIR_op)
+.
     unfold no_reentrance.
-    cbn.
     eapply outputs_bound_between in genIR_op.
-    eapply Forall_disjoint. apply genIR_op.
+    clear -NEXT Heqs2 Heqs genIR_op genIR_op'.
+
+    cbn.
+    eapply Forall_disjoint. eassumption.
+
     Unshelve.
-    3 : { refine (fun x => x ≡ (Name ("b" @@ string_of_nat (block_count i0)))). }
-    constructor; auto.
-    intros. red.
-    (* eapply bid_bound_fresh'.  *)
-    (* intros. subst. *)
-    admit.
+    3 : refine (fun bid : block_id => bid_bound_between i0 i2 bid).
+    big_solve.
+
+    clear genIR_op. clean_goal.
+    intros. cbn in *. destruct H.
+    eapply bid_bound_between_sep. eapply H.
+
+    subst.
+    eapply not_bid_bound_between; auto. solve_bid_bound; auto.
   }
 
   setoid_rewrite <- bind_ret_r at 5.
@@ -290,8 +360,16 @@ Proof.
     (* Re-establish invariant *)
     intros.
     repeat red in PR. destruct x0.
+    Transparent incBlockNamed.
+    Transparent incVoid.
+    Transparent incLocal.
+    cbn* in *. simp. cbn* in *.
     eapply genIR_Rel_extend; eauto. contradiction.
   }
+
+  Opaque incBlockNamed.
+  Opaque incVoid.
+  Opaque incLocal.
 
   clean_goal.
 
@@ -304,9 +382,10 @@ Proof.
       clear -genIR_op context_l0 GEN_IR.
       split; red; cbn; repeat break_let; subst.
       cbn in *. destruct GEN_IR. cbn in H.
-      destruct H. cbn in MINV.
+      destruct H.
       split.
-      - admit.
+      - clean_goal. clear WF H0. clean_goal.
+        admit.
       - unfold WF_IRState in *. cbn.
         (* rewrite context_l0. *)
         unfold evalContext_typechecks in *. intros.
@@ -319,6 +398,14 @@ Proof.
       - destruct GEN_IR. destruct H0. inversion H0. subst.
         eexists. reflexivity.
     }
+    eapply Gamma_safe_shrink; eauto; cycle 1.
+    red. cbn. lia.
+    Unshelve.
+    3 : exact ({| block_count := block_count i2; local_count := local_count i2; void_count := void_count i2; Γ := l0 |}).
+    red. cbn. apply genIR_local_count in genIR_op. cbn in *.
+
+    clear -GAM. (* TODO *)
+    admit.
     admit.
   }
 
@@ -332,18 +419,12 @@ Proof.
   {
     split; red; cbn; repeat break_let; subst.
     cbn in *. destruct UU. cbn in H.
-    destruct H. cbn in MINV.
+    destruct H.
     split.
-    - repeat intro. rewrite context_l0 in H1. cbn in *.
-      destruct n. cbn in *. inversion H; inversion H1; subst.
-      admit.
-      cbn in *. rewrite context_l0 in MINV.
-      specialize (MINV (S n)). cbn in *. eapply MINV in H1; eauto.
-      destruct v; eauto.
-      destruct H1 as (? & ? & ? & ? & ?).
-      eexists. eexists. split; [ | split]; eauto.
-      rewrite <- H1.
-      admit.
+    - clean_goal.
+      clear WF H0 ret1 ret2 context_l0.
+      clean_goal.
+      apply memory_invariant_Ptr; eauto.
     - assumption.
     - destruct UU. destruct H0. inversion H0. subst.
       eexists. reflexivity.
