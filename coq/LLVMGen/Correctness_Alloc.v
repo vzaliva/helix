@@ -9,6 +9,9 @@ Require Import Helix.LLVMGen.StateCounters.
 Require Import Helix.LLVMGen.VariableBinding.
 Require Import Helix.LLVMGen.BidBound.
 
+Require Import Helix.LLVMGen.Freshness.
+Require Import Helix.LLVMGen.LidBound.
+
 Set Nested Proofs Allowed.
 
 Import ListNotations.
@@ -33,6 +36,13 @@ Lemma not_bid_bound_genIR_entry :
 Proof.
   induction op;
     intros s1 s2 nextblock b bks GEN.
+Admitted.
+
+Lemma bid_bound_incBlock_neq:
+  forall i i' bid bid',
+  incBlock i ≡ inr (i', bid) ->
+  bid_bound i bid' ->
+  bid ≢ bid'.
 Admitted.
 
 Lemma interp_helix_MemAlloc :
@@ -148,13 +158,40 @@ Lemma DSHAlloc_correct:
 Proof.
   intros size op IHop s1 s2 σ memH nextblock bid_in bid_from bks g ρ memV NEXT PRE GAM NOFAIL GEN.
 
-  (* Opaque incBlockNamed. *)
-  (* Opaque incVoid. *)
-  (* Opaque incLocal. *)
-  (* Opaque newLocalVar. *)
+  Opaque incBlockNamed.
+  Opaque incVoid.
+  Opaque incLocal.
+  Opaque newLocalVar.
 
   cbn* in *.
   simp.
+
+  rename i into s2.
+  rename b into op_entry.
+  rename l into bk_op.
+  (* rename l0 into s2_Gamma. *)
+
+  cbn* in *; simp. clean_goal.
+
+  assert (bid_in ≢ op_entry). {
+    clean_goal.
+    clear -Heqs NEXT GAM Heqs0 Heqs1 Heqs2 Heql1.
+    Transparent newLocalVar. cbn in *. simp.
+
+    apply bid_bound_genIR_entry in Heqs1. red in GAM.
+    clear GAM. clear NEXT.
+    eapply bid_bound_incVoid_mono in Heqs1; eauto.
+
+    clear -Heqs2 Heqs1.
+    eapply bid_bound_incBlock_neq; eauto.
+  }
+
+  Transparent incBlockNamed.
+  Transparent incVoid.
+  Transparent incLocal.
+  Transparent newLocalVar.
+
+  cbn* in *; simp.
 
   cbn.
   clean_goal.
@@ -168,7 +205,7 @@ Proof.
   unfold fmap, Fmap_block; cbn.
   hvred.
 
-  rename Heqs0 into genIR_op.
+  rename Heqs1 into genIR_op.
   rename Heql1 into context_l0.
 
   assert (GEN_IR := PRE).
@@ -192,9 +229,10 @@ Proof.
   assert (genIR_op' := genIR_op).
   apply generates_wf_cfgs in genIR_op; cycle 1.
   {
-    Transparent newLocalVar. cbn* in *. simp.
-    solve_bid_bound. Opaque newLocalVar. auto.
+    solve_bid_bound. auto.
   }
+
+  rename genIR_op into wf.
 
   (* Stepping Vellvm side *)
   vjmp.
@@ -206,20 +244,14 @@ Proof.
   vred. vred.
   2 : { intros VT ; inversion VT. }
 
-  clear branch_inv.
-  clear NOFAIL_cont. (* Re-check that this isn't necessary later in the proof*)
-  rename genIR_op into wf.
-  rename i into s2.
-  rename b into op_entry.
-  rename l into bk_op.
-  rename l0 into s2_Gamma.
+  assert (genIR_op := genIR_op').
+
   rename H into alloc.
   Opaque allocate.
   rename x into memV_allocated.
   rename x0 into allocated_ptr_addr.
-
-
-  assert (genIR_op := genIR_op').
+  clear branch_inv.
+  clear NOFAIL_cont. (* Re-check that this isn't necessary later in the proof*)
 
   eapply genIR_Context in genIR_op'. cbn in *.
   inversion genIR_op'; subst; clear genIR_op'.
@@ -230,32 +262,35 @@ Proof.
   {
     (* op_blk_id is not in first part of computation. *)
     cbn.
-    destruct GEN_IR. destruct H1. inversion H1. subst.
-    assert (genIR_op' := genIR_op).
-    apply bid_bound_genIR_entry in genIR_op.
+    destruct GEN_IR.
     rewrite find_block_ineq. apply find_block_nil. cbn.
-
-
+    eauto.
+  }
+  {
+    unfold no_reentrance.
+    cbn.
+    eapply outputs_bound_between in genIR_op.
+    eapply Forall_disjoint. apply genIR_op.
+    Unshelve.
+    3 : { refine (fun x => x ≡ (Name ("b" @@ string_of_nat (block_count i0)))). }
+    constructor; auto.
+    intros. red.
+    (* eapply bid_bound_fresh'.  *)
+    (* intros. subst. *)
     admit.
   }
-  { admit. }
 
   setoid_rewrite <- bind_ret_r at 5.
-
-  rewrite context_l0 in *. inversion H0; subst. clear H0.
 
   (* Post condition weakening *)
   eapply eqit_mon with
       (RR := succ_cfg (GenIR_Rel (DSHPtrVal (memory_next_key memH) size :: σ)
-                                 s1 nextblock)); auto.
+                                 i0 nextblock)); auto.
   {
     (* Re-establish invariant *)
-
     intros.
     repeat red in PR. destruct x0.
-    eapply genIR_Rel_extend; eauto. (* Why doesn't this work anymore? *)
-    2: contradiction.
-    admit.
+    eapply genIR_Rel_extend; eauto. contradiction.
   }
 
   clean_goal.
@@ -299,24 +334,21 @@ Proof.
     cbn in *. destruct UU. cbn in H.
     destruct H. cbn in MINV.
     split.
-    - repeat intro.
-      (* rewrite context_l0 in H1. cbn in *. *)
+    - repeat intro. rewrite context_l0 in H1. cbn in *.
       destruct n. cbn in *. inversion H; inversion H1; subst.
       admit.
       cbn in *. rewrite context_l0 in MINV.
-      specialize (MINV (S n)). cbn in *.
-      (* eapply MINV in H1; eauto. *)
-      destruct v; eauto. admit.
-      (* destruct H1 as (? & ? & ? & ? & ?). *)
-      (* eexists. eexists. split; [ | split]; eauto. *)
-      (* rewrite <- H1. *)
-      (* admit. *) admit. admit.
-    - admit.
-      (* assumption. *)
+      specialize (MINV (S n)). cbn in *. eapply MINV in H1; eauto.
+      destruct v; eauto.
+      destruct H1 as (? & ? & ? & ? & ?).
+      eexists. eexists. split; [ | split]; eauto.
+      rewrite <- H1.
+      admit.
+    - assumption.
     - destruct UU. destruct H0. inversion H0. subst.
       eexists. reflexivity.
   }
 
   Unshelve.
-  all : eauto. 2 : exact nat. 2 : exact "".
+  all : eauto. exact nat. exact "".
 Admitted.
