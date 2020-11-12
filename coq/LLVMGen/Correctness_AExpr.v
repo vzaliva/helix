@@ -306,49 +306,21 @@ Section AExpr.
       clear EQEXP EQEXPm NOFAIL.
       apply eutt_Ret; split_post.
 
-      Ltac solve_state_invariant ::=
-        cbn; try eassumption;
-        match goal with
-        | |- state_invariant _ _ _ (_, (alist_add _ _ _, _)) =>
-          eapply state_invariant_add_fresh; [now eauto | solve_no_local_global_alias | (eassumption || solve_state_invariant) | solve_fresh]
-        | |- state_invariant _ _ _ _ =>
-          solve [eauto with SolveStateInv]
-        end.
-
-      { eapply state_invariant_add_fresh.
-        - now eauto.
-        - solve_no_local_global_alias.
-        - eapply state_invariant_add_fresh.
-          + now eauto.
-          + (* This is actually a pointer *)
-            (* Need to find out where the address "x" is coming from *)
-            (* Seems to be coming from GEP... *)
-            (* addr_m is coming from invariant_MExpr
-
-               I think "x" may not actually have a corresponding variable in sigma...
-             *)
-            unfold no_local_global_alias.
-            intros id p p' H0 H1.
-
-            cbn.
-          + solve_state_invariant.
-          + solve_fresh.
-        - solve_fresh.
+      intros l' H0.
+      vstep.
+      solve_lu.
+      reflexivity.
+      destruct H.
+      rewrite H.
+      etransitivity.
+      eapply sub_alist_add.
+      2: {
+        eapply sub_alist_add.
+        solve_alist_fresh.
       }
 
-      * intros.
-        vstep.
-        solve_lu.
-      * (* Would be good to automate *)
-        etransitivity; eauto.
-        etransitivity; eauto.
-        apply sub_alist_add.
-        eapply freshness_pre_alist_fresh; eauto.
-        solve_fresh.
-        apply sub_alist_add.
-        eapply freshness_pre_alist_fresh; eauto.
-        solve_fresh.
-        
+      solve_alist_fresh.
+  
     - (* AAbs *) 
       cbn* in *; simp.
       hvred.
@@ -378,12 +350,6 @@ Section AExpr.
       * intros; vstep.
         solve_lu.
         reflexivity.
-      * (* Automate *)
-        etransitivity; eauto.
-        apply sub_alist_add.
-        eapply freshness_pre_alist_fresh; eauto.
-        solve_fresh.
-       
     - (* APlus *)
       cbn* in *; simp...
       hvred.
@@ -413,13 +379,6 @@ Section AExpr.
       * intros; vstep.
         solve_lu.
         reflexivity.
-      * (* Automate *)
-        etransitivity; eauto.
-        etransitivity; eauto.
-        apply sub_alist_add.
-        eapply freshness_pre_alist_fresh; eauto.
-        solve_fresh.
-
     - (* AMinus *)
       cbn* in *; simp.
       hvred.
@@ -449,13 +408,6 @@ Section AExpr.
       * intros; vstep.
         solve_lu.
         reflexivity.
-      * (* Automate *)
-        etransitivity; eauto.
-        etransitivity; eauto.
-        apply sub_alist_add.
-        eapply freshness_pre_alist_fresh; eauto.
-        solve_fresh.
-
     - (* AMult *)
       cbn* in *; simp.
       hvred.
@@ -485,13 +437,6 @@ Section AExpr.
       * intros; vstep.
         solve_lu.
         reflexivity.
-      * (* Automate *)
-        etransitivity; eauto.
-        etransitivity; eauto.
-        apply sub_alist_add.
-        eapply freshness_pre_alist_fresh; eauto.
-        solve_fresh.
-
     - (* AMin *)
       cbn* in *; simp.
       hvred.
@@ -528,13 +473,6 @@ Section AExpr.
         solve_lu.
         rewrite min_float_correct.
         reflexivity.
-      * (* Automate *)
-        etransitivity; eauto.
-        etransitivity; eauto.
-        apply sub_alist_add.
-        eapply freshness_pre_alist_fresh; eauto.
-        solve_fresh.
-        
    - (* AMax *)
       cbn* in *; simp.
       hvred.
@@ -567,13 +505,6 @@ Section AExpr.
         solve_lu.
         rewrite max_float_correct.
         reflexivity.
-      * (* Automate *)
-        etransitivity; eauto.
-        etransitivity; eauto.
-        apply sub_alist_add.
-        eapply freshness_pre_alist_fresh; eauto.
-        solve_fresh.
-
    - (* AZless *)
       cbn* in *; simp.
       hvred.
@@ -620,7 +551,10 @@ Section AExpr.
       {
         eapply state_invariant_incVoid; [eauto | ..].
         eapply state_invariant_add_fresh; [eauto |..].
-        eapply state_invariant_add_fresh; [eauto | eauto | solve_fresh].
+        solve_alist_fresh.
+        eapply freshness_pre_incLocal; [eassumption | ].
+        solve_fresh.
+        solve_state_invariant.
         eapply freshness_pre_incLocal; [eassumption | ].
         solve_fresh.
       }
