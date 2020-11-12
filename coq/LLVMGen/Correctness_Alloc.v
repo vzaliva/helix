@@ -407,14 +407,14 @@ Proof.
 
     {
       (* Re-establish invariant *)
-      clear -genIR_op context_l0 GEN_IR Heqs Heqs0 Heqs2.
+      clear -genIR_op context_l0 GEN_IR Heqs Heqs0 Heqs2 H1.
       split; red; cbn; repeat break_let; subst.
       cbn in *. destruct GEN_IR. cbn in H.
-      destruct H.
+
+      inversion H. subst.
       split.
 
-      -
-        (* Import ProofMode. *)
+      - (* Import ProofMode. *)
         clean_goal. clear WF H0. clean_goal.
         assert (Γ s2 ≡ (ID_Local (Name ("a" @@ string_of_nat (local_count s1))),
             TYPE_Pointer (TYPE_Array (Int64.intval size) TYPE_Double)) :: Γ s1). {
@@ -428,19 +428,76 @@ Proof.
           Opaque incLocal.
           Opaque newLocalVar.
         }
-        clear Heqs Heqs2 context_l0. clear -Heqs0 MINV genIR_op H.
-        admit.
+        clear Heqs Heqs2 context_l0. clear -Heqs0 MINV genIR_op H H0 H1.
+        rename H1 into alloc. rename Heqs0 into locvar. rename H0 into gamma_ext.
+        clean_goal.
+        (* Now we have a clean context! *)
 
+        (* Getting info out of allocate. *)
+        Transparent allocate.
+        unfold allocate in alloc.
+        Opaque make_empty_logical_block.
+        Opaque next_logical_key.
+        Opaque add_logical_block. cbn in alloc.
+        inversion alloc. subst. clear alloc.
+
+        cbn. intros. rewrite gamma_ext in H1.
+        destruct n.
+        + cbn in *. inversion H; inversion H0; subst. clear H H0. cbn.
+          Transparent newLocalVar. cbn in locvar. simp.
+          eexists mem_empty. eexists.
+          split; [ | split].
+          * rewrite Memory.NM.Raw.Proofs.add_find.
+            Import Memory.NM.Raw.Proofs.
+            pose proof L.MX.elim_compare_eq.
+            edestruct H. reflexivity. rewrite H0.
+            reflexivity. apply Memory.NM.is_bst.
+          * assert (Name ("a" @@ string_of_nat (local_count s1))
+                         ?[ Logic.eq ] Name ("a" @@ string_of_nat (local_count s1))). {
+              apply rel_dec_eq_true. typeclasses eauto. reflexivity.
+            } cbn. cbn in H. rewrite H. reflexivity.
+          * intros. inversion H.
+        + cbn in *.
+          Transparent newLocalVar. cbn in locvar. simp.
+          specialize (MINV _ _ _ _ H0 H1). cbn* in *.
+
+          destruct v; clear -MINV.
+          * eapply in_local_or_global_scalar_ext_local in MINV.
+            Unshelve.
+            3 : { exact ((alist_add (Name ("a" @@ string_of_nat (local_count s1)))
+                                    (UVALUE_Addr (next_logical_key memV, 0)) ρ)). }
+            unfold in_local_or_global_scalar in *.
+
+            destruct x; intuition.
+            {
+              inversion MINV.
+              edestruct H as (? & ? & ? & ?). clear H.
+              eexists. eexists. split; eauto. split; eauto.
+              subst. clean_goal.
+              Search (read _ _ _ ≡ inr _).
+              admit.
+            }
+            admit.
+          * red. destruct x.
+
+            admit. admit.
+          * admit.
       - unfold WF_IRState in *. cbn.
-        (* unfold evalContext_typechecks in *. intros. *)
-        (* destruct n. *)
-        (* exists (ID_Local (Name ("a" @@ string_of_nat (local_count s1)))). *)
-        (* cbn. cbn in H. inversion H. subst. cbn. *)
-         admit.
-        (*                                           reflexivity. *)
-        (* cbn in H. *)
-        (* specialize (WF v n). cbn in WF. apply WF in H. *)
-        (* apply H. *)
+
+        Transparent incBlockNamed.
+        Transparent incVoid.
+        Transparent incLocal.
+        Transparent newLocalVar.
+        cbn* in *. simp. cbn.
+        unfold evalContext_typechecks in *. intros.
+        destruct n.
+        exists (ID_Local (Name ("a" @@ string_of_nat (local_count s1)))).
+        cbn. cbn in H1. inversion H1. subst. cbn.
+        reflexivity.
+        cbn in H.
+        specialize (WF v n). cbn in WF.
+        apply WF in H1.
+        apply H1.
       - destruct GEN_IR. destruct H0. inversion H0. subst.
         eexists. reflexivity.
     }
