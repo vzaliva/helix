@@ -148,6 +148,11 @@ Lemma DSHAlloc_correct:
 Proof.
   intros size op IHop s1 s2 σ memH nextblock bid_in bid_from bks g ρ memV NEXT PRE GAM NOFAIL GEN.
 
+  (* Opaque incBlockNamed. *)
+  (* Opaque incVoid. *)
+  (* Opaque incLocal. *)
+  (* Opaque newLocalVar. *)
+
   cbn* in *.
   simp.
 
@@ -169,9 +174,7 @@ Proof.
   assert (GEN_IR := PRE).
   destruct PRE as (state_inv & (from & branch_inv)).
   cbn* in *.
-  inversion branch_inv. subst.
-
-  cbn.
+  inversion branch_inv. subst. cbn.
 
   (* Retrieving information from NOFAIL on denoting operator *)
   rewrite interp_helix_bind in NOFAIL.
@@ -187,9 +190,10 @@ Proof.
   rewrite interp_helix_bind in NOFAIL_cont.
 
   assert (genIR_op' := genIR_op).
-  apply generates_wf_cfgs in genIR_op. (* Generate ID 2047 *)
-  2 : {
-    solve_bid_bound. auto.
+  apply generates_wf_cfgs in genIR_op; cycle 1.
+  {
+    Transparent newLocalVar. cbn* in *. simp.
+    solve_bid_bound. Opaque newLocalVar. auto.
   }
 
   (* Stepping Vellvm side *)
@@ -202,33 +206,56 @@ Proof.
   vred. vred.
   2 : { intros VT ; inversion VT. }
 
-  rewrite (@list_cons_app _ _ (convert_typ [] l)).
-  rewrite denote_bks_app_no_edges.
-  2 : {
-    rewrite find_block_ineq. apply find_block_nil. cbn.
-
-    eapply bid_bound_fresh; eauto. admit.
-    eapply bid_bound_bound_between. admit.
-    admit.
-
-  } 2 : { admit. }
-
+  clear branch_inv.
+  clear NOFAIL_cont. (* Re-check that this isn't necessary later in the proof*)
   rename genIR_op into wf.
+  rename i into s2.
+  rename b into op_entry.
+  rename l into bk_op.
+  rename l0 into s2_Gamma.
+  rename H into alloc.
+  Opaque allocate.
+  rename x into memV_allocated.
+  rename x0 into allocated_ptr_addr.
+
 
   assert (genIR_op := genIR_op').
 
+  eapply genIR_Context in genIR_op'. cbn in *.
+  inversion genIR_op'; subst; clear genIR_op'.
+
+  rewrite (@list_cons_app _ _ (convert_typ [] bk_op)).
+
+  rewrite denote_bks_app_no_edges; cycle 1.
+  {
+    (* op_blk_id is not in first part of computation. *)
+    cbn.
+    destruct GEN_IR. destruct H1. inversion H1. subst.
+    assert (genIR_op' := genIR_op).
+    apply bid_bound_genIR_entry in genIR_op.
+    rewrite find_block_ineq. apply find_block_nil. cbn.
+
+
+    admit.
+  }
+  { admit. }
+
   setoid_rewrite <- bind_ret_r at 5.
-  rename H into alloc.
+
+  rewrite context_l0 in *. inversion H0; subst. clear H0.
 
   (* Post condition weakening *)
   eapply eqit_mon with
       (RR := succ_cfg (GenIR_Rel (DSHPtrVal (memory_next_key memH) size :: σ)
-                                 i nextblock)); auto.
+                                 s1 nextblock)); auto.
   {
     (* Re-establish invariant *)
+
     intros.
-    repeat red in PR. destruct x1.
-    eapply genIR_Rel_extend; eauto. contradiction.
+    repeat red in PR. destruct x0.
+    eapply genIR_Rel_extend; eauto. (* Why doesn't this work anymore? *)
+    2: contradiction.
+    admit.
   }
 
   clean_goal.
@@ -272,21 +299,24 @@ Proof.
     cbn in *. destruct UU. cbn in H.
     destruct H. cbn in MINV.
     split.
-    - repeat intro. rewrite context_l0 in H1. cbn in *.
+    - repeat intro.
+      (* rewrite context_l0 in H1. cbn in *. *)
       destruct n. cbn in *. inversion H; inversion H1; subst.
       admit.
       cbn in *. rewrite context_l0 in MINV.
-      specialize (MINV (S n)). cbn in *. eapply MINV in H1; eauto.
-      destruct v; eauto.
-      destruct H1 as (? & ? & ? & ? & ?).
-      eexists. eexists. split; [ | split]; eauto.
-      rewrite <- H1.
-      admit.
-    - assumption.
+      specialize (MINV (S n)). cbn in *.
+      (* eapply MINV in H1; eauto. *)
+      destruct v; eauto. admit.
+      (* destruct H1 as (? & ? & ? & ? & ?). *)
+      (* eexists. eexists. split; [ | split]; eauto. *)
+      (* rewrite <- H1. *)
+      (* admit. *) admit. admit.
+    - admit.
+      (* assumption. *)
     - destruct UU. destruct H0. inversion H0. subst.
       eexists. reflexivity.
   }
 
   Unshelve.
-  all : eauto. exact nat. exact "".
+  all : eauto. 2 : exact nat. 2 : exact "".
 Admitted.
