@@ -186,16 +186,20 @@ Section SimulationRelations.
       nth_error (Γ s) n' ≡ Some (id, τ') ->
       n' ≡ n.
 
-  Definition no_llvm_ptr_aliasing (ρ : local_env) (g : global_env) : Prop :=
-    forall (id1 : ident) (ptrv1 : addr) (id2 : ident) (ptrv2 : addr),
+  Definition no_llvm_ptr_aliasing (σ : evalContext) (s : IRState) (ρ : local_env) (g : global_env) : Prop :=
+    forall (id1 : ident) (ptrv1 : addr) (id2 : ident) (ptrv2 : addr) n1 n2 τ τ' sz1 sz2 ptrh1 ptrh2,
+      nth_error σ n1 ≡ Some (DSHPtrVal ptrh1 sz1) ->
+      nth_error σ n2 ≡ Some (DSHPtrVal ptrh2 sz2) ->
+      nth_error (Γ s) n1 ≡ Some (id1, τ) ->
+      nth_error (Γ s) n2 ≡ Some (id2, τ') ->
       in_local_or_global_addr ρ g id1 ptrv1 ->
       in_local_or_global_addr ρ g id2 ptrv2 ->
       id1 ≢ id2 ->
       fst ptrv1 ≢ fst ptrv2.
 
-  Definition no_llvm_ptr_aliasing_cfg : config_cfg -> Prop :=
-    fun '(mv, (ρ, g)) => no_llvm_ptr_aliasing ρ g.
-  
+  Definition no_llvm_ptr_aliasing_cfg (σ : evalContext) (s : IRState) : config_cfg -> Prop :=
+    fun '(mv, (ρ, g)) => no_llvm_ptr_aliasing σ s ρ g.
+
   (* TODO: might not keep this *)
   Definition dshptr_no_block_aliasing (σ : evalContext) ρ g dshp1 (ptrv1 : addr) : Prop :=
     forall dshp2 n2 sz2 s id2 ptrv2 τ,
@@ -329,7 +333,7 @@ Section SimulationRelations.
     IRState_is_WF : WF_IRState σ s ;
     st_no_id_aliasing : no_id_aliasing s ;
     st_no_dshptr_aliasing : no_dshptr_aliasing σ ;
-    st_no_llvm_ptr_aliasing : no_llvm_ptr_aliasing_cfg configV
+    st_no_llvm_ptr_aliasing : no_llvm_ptr_aliasing_cfg σ s configV
     }.
 
   (* Named function pointer exists in global environemnts *)
@@ -411,16 +415,23 @@ Section Ext_Local.
   Definition ext_local {R S}: config_helix -> config_cfg -> Rel_cfg_T R S :=
     fun mh '(mi,(li,gi)) '(mh',_) '(m,(l,(g,_))) => mh ≡ mh' /\ mi ≡ m /\ gi ≡ g /\ li ⊑ l.
 
-  Definition sub_local_no_aliasing (ρ1 ρ2 : local_env) (g : global_env) :=
+  Definition sub_local_no_aliasing (σ : evalContext) (s : IRState) (ρ1 ρ2 : local_env) (g : global_env) :=
     ρ1 ⊑ ρ2 /\
-    (forall id id' ptr ptr',
+    (forall id id' ptr ptr' n1 n2 ptrh1 ptrh2 τ τ' sz1 sz2,
+        nth_error σ n1 ≡ Some (DSHPtrVal ptrh1 sz1) ->
+        nth_error σ n2 ≡ Some (DSHPtrVal ptrh2 sz2) ->
+        nth_error (Γ s) n1 ≡ Some (id, τ) ->
+        nth_error (Γ s) n2 ≡ Some (id', τ') ->
         in_local_or_global_addr ρ2 g id ptr ->
         in_local_or_global_addr ρ2 g id' ptr' ->
         id ≢ id' ->
         fst ptr ≢ fst ptr').
 
-  Definition ext_local_no_aliasing {R S}: config_helix -> config_cfg -> Rel_cfg_T R S :=
-    fun mh '(mi,(li,gi)) '(mh',_) '(m,(l,(g,_))) => mh ≡ mh' /\ mi ≡ m /\ gi ≡ g /\ sub_local_no_aliasing li l g.
+  Definition ext_local_no_aliasing {R S}
+             (σ : evalContext) (s  : IRState) :
+    config_helix -> config_cfg -> Rel_cfg_T R S
+    := fun mh '(mi,(li,gi)) '(mh',_) '(m,(l,(g,_))) =>
+         mh ≡ mh' /\ mi ≡ m /\ gi ≡ g /\ sub_local_no_aliasing σ s li l g.
 
  Lemma in_local_or_global_scalar_ext_local :
     forall ρ1 ρ2 g m x dv τ,
@@ -443,12 +454,12 @@ Section Ext_Local.
   Qed.
 
   Lemma no_llvm_ptr_aliasing_ext_local :
-    forall ρ1 ρ2 g,
-      no_llvm_ptr_aliasing ρ1 g ->
-      sub_local_no_aliasing ρ1 ρ2 g ->
-      no_llvm_ptr_aliasing ρ2 g.
+    forall σ s ρ1 ρ2 g,
+      no_llvm_ptr_aliasing σ s ρ1 g ->
+      sub_local_no_aliasing σ s ρ1 ρ2 g ->
+      no_llvm_ptr_aliasing σ s ρ2 g.
   Proof.
-    intros ρ1 ρ2 g ALIAS [EXT EXT_ALIAS].
+    intros σ s ρ1 ρ2 g ALIAS [EXT EXT_ALIAS].
     unfold no_llvm_ptr_aliasing in *.
 
     intros id1 ptrv1 id2 ptrv2 INP1 INP2 NEQ.
@@ -593,16 +604,16 @@ Definition no_local_global_alias (l : local_env) (g : global_env) (v : uvalue) :
   forall id p p', v ≡ UVALUE_Addr p -> in_local_or_global_addr l g id p' -> fst p ≢ fst p'.
 
 Lemma no_local_global_alias_no_llvm_ptr_aliasing :
-  forall id v l g,
-    no_llvm_ptr_aliasing l g ->
+  forall σ s id v l g,
+    no_llvm_ptr_aliasing σ s l g ->
     no_local_global_alias l g v ->
-    no_llvm_ptr_aliasing (alist_add id v l) g.
+    no_llvm_ptr_aliasing σ s (alist_add id v l) g.
 Proof.
-  intros id v l g LLVM_ALIAS NO_LG.
+  intros σ s id v l g LLVM_ALIAS NO_LG.
   unfold no_llvm_ptr_aliasing in *.
   unfold no_local_global_alias in *.
 
-  intros id1 ptrv1 id2 ptrv2 INp1 INp2 NEQ.
+  intros id1 ptrv1 id2 ptrv2 n1 n2 τ τ' sz1 sz2 ptrh1 ptrh2 N1σ N2σ N1 N2 INp1 INp2 NEQ.
   destruct id1, id2;
     eauto using in_local_or_global_addr_same_global.
   - destruct (id1 ?[ Logic.eq ] id) eqn:EQid;
@@ -611,8 +622,6 @@ Proof.
       intros CONTRA. symmetry in CONTRA. revert CONTRA.
       eapply NO_LG; eauto using in_local_or_global_addr_same_global.
     + rewrite remove_neq_alist in INp2; eauto.
-      eapply LLVM_ALIAS; eauto using in_local_or_global_addr_same_global.
-      eapply INp2.
 
       (* These are all obviously true... *)
       admit.
@@ -623,8 +632,6 @@ Proof.
     + inversion INp1; subst.
       eapply NO_LG; eauto using in_local_or_global_addr_same_global.
     + rewrite remove_neq_alist in INp1; eauto.
-      eapply LLVM_ALIAS; eauto using in_local_or_global_addr_same_global.
-      eapply INp1.
 
       (* These are all obviously true... *)
       admit.
@@ -657,7 +664,6 @@ Proof.
       admit.
       admit.
     + rewrite remove_neq_alist in INp1, INp2; eauto.
-      eapply (LLVM_ALIAS (ID_Local id0) _ (ID_Local id1)); cbn; eauto.
 
       all: admit. (* These should all hold too. *)
 Admitted.
@@ -701,7 +707,10 @@ Proof.
       eapply freshness_fresh; eauto using incLocal_lt.
   - unfold WF_IRState; erewrite incLocal_Γ; eauto; apply WF.
   - eapply incLocal_no_id_aliasing; eauto.
-  - eapply no_local_global_alias_no_llvm_ptr_aliasing; eauto.
+  - cbn. eapply no_local_global_alias_no_llvm_ptr_aliasing; eauto.
+    unfold no_llvm_ptr_aliasing in *.
+    apply incLocal_Γ in INC. rewrite INC.
+    eauto.
 Qed.
 
 Lemma ext_local_subalist : forall {R S} memH memV l1 g vH vV l2,
@@ -746,6 +755,11 @@ Proof.
       eapply MEM_INV in INLG; eauto.
   - unfold WF_IRState; erewrite incVoid_Γ; eauto; apply WF.
   - eapply incVoid_no_id_aliasing; eauto.
+  - apply incVoid_Γ in INC.
+    unfold no_llvm_ptr_aliasing_cfg, no_llvm_ptr_aliasing in *.
+    destruct stV as [mv [l g]].
+    rewrite INC in *.
+    eauto.
 Qed.
 
 Lemma state_invariant_incLocal :
@@ -763,6 +777,11 @@ Proof.
       eapply MEM_INV in INLG; eauto.
   - unfold WF_IRState; erewrite incLocal_Γ; eauto; apply WF.
   - eapply incLocal_no_id_aliasing; eauto.
+  - apply incLocal_Γ in INC.
+    unfold no_llvm_ptr_aliasing_cfg, no_llvm_ptr_aliasing in *.
+    destruct stV as [mv [l g]].
+    rewrite INC in *.
+    eauto.
 Qed.
 
 Lemma incLocalNamed_Γ:
@@ -800,7 +819,12 @@ Proof.
     generalize LUV; intros INLG;
       eapply MEM_INV in INLG; eauto.
   - unfold WF_IRState; erewrite incLocalNamed_Γ; eauto; apply WF.
-  - eapply incLocalNamed_no_id_aliasing; eauto.    
+  - eapply incLocalNamed_no_id_aliasing; eauto.
+  - apply incLocalNamed_Γ in INC.
+    unfold no_llvm_ptr_aliasing_cfg, no_llvm_ptr_aliasing in *.
+    destruct stV as [mv [l g]].
+    rewrite INC in *.
+    eauto.
 Qed.
 
 Lemma incBlockNamed_no_id_aliasing :
@@ -831,12 +855,17 @@ Proof.
       eapply MEM_INV in INLG; eauto.
   - unfold WF_IRState; erewrite incBlockNamed_Γ; eauto; apply WF.
   - eapply incBlockNamed_no_id_aliasing; eauto.
+  - apply incBlockNamed_Γ in INC.
+    unfold no_llvm_ptr_aliasing_cfg, no_llvm_ptr_aliasing in *.
+    destruct stV as [mv [l g]].
+    rewrite INC in *.
+    eauto.
 Qed.
 
 Lemma state_invariant_no_llvm_ptr_aliasing :
   forall σ s mh mv l g,
     state_invariant σ s mh (mv, (l, g)) ->
-    no_llvm_ptr_aliasing l g.
+    no_llvm_ptr_aliasing σ s l g.
 Proof.
   intros σ s mh mv l g SINV.
   destruct SINV. cbn in *.
@@ -846,7 +875,7 @@ Qed.
 Lemma state_invariant_sub_local_no_aliasing_refl :
   forall l g s mh mv σ,
     state_invariant σ s mh (mv, (l, g)) ->
-    sub_local_no_aliasing l l g.
+    sub_local_no_aliasing σ s l l g.
 Proof.
   intros l g s mh mv σ SINV.
   destruct SINV. cbn in *.
@@ -883,43 +912,44 @@ Proof.
 Qed.
 
 Lemma sub_local_no_aliasing_add_non_ptr :
-  forall id v l g,
+  forall σ s id v l g,
     alist_fresh id l ->
-    no_llvm_ptr_aliasing l g ->
+    no_llvm_ptr_aliasing σ s l g ->
     no_local_global_alias l g v ->
-    sub_local_no_aliasing l (alist_add id v l) g.
+    sub_local_no_aliasing σ s l (alist_add id v l) g.
 Proof.
-  intros id v l g FRESH ALIAS NLG.
+  intros σ s id v l g FRESH ALIAS NLG.
   unfold sub_local_no_aliasing.
   split.
 
   - apply sub_alist_add; auto.
   - epose proof (no_local_global_alias_no_llvm_ptr_aliasing _ ALIAS NLG).
     unfold no_llvm_ptr_aliasing in ALIAS.
-    intros id0 id' ptr ptr' H0 H1 H2.
-    eapply H; eauto.
+    intros id0 id' ptr ptr' n1 n2 ptrh1 ptrh2 τ τ' sz1 sz2 H0 H1 H2 H3 H4 H5 H6.
+    unfold no_llvm_ptr_aliasing in H.
+    eapply H; [apply H0 | apply H1 | apply H2 | apply H3 | apply H4 | apply H5 | apply H6 ].
 Qed.
 
 Lemma sub_local_no_aliasing_transitive :
-  forall l0 l1 l2 g,
-    sub_local_no_aliasing l0 l1 g ->
-    sub_local_no_aliasing l1 l2 g ->
-    sub_local_no_aliasing l0 l2 g.
+  forall σ s l0 l1 l2 g,
+    sub_local_no_aliasing σ s l0 l1 g ->
+    sub_local_no_aliasing σ s l1 l2 g ->
+    sub_local_no_aliasing σ s l0 l2 g.
 Proof.
-  intros l0 l1 l2 g [L0L1 ALIAS1] [L1L2 ALIAS2].
+  intros σ s l0 l1 l2 g [L0L1 ALIAS1] [L1L2 ALIAS2].
   split; eauto.
   etransitivity; eauto.
 Qed.
 
 Lemma sub_local_no_aliasing_add_non_ptr' :
-  forall id v l l' g,
+  forall σ s id v l l' g,
     alist_fresh id l ->
-    no_llvm_ptr_aliasing l g ->
+    no_llvm_ptr_aliasing σ s l g ->
     no_local_global_alias l g v ->
-    sub_local_no_aliasing l' l g ->
-    sub_local_no_aliasing l' (alist_add id v l) g.
+    sub_local_no_aliasing σ s l' l g ->
+    sub_local_no_aliasing σ s l' (alist_add id v l) g.
 Proof.
-  intros id v l l' g FRESH ALIAS NLG [L'L ALIAS'].
+  intros σ s id v l l' g FRESH ALIAS NLG [L'L ALIAS'].
   unfold sub_local_no_aliasing.
   split.
 
@@ -927,7 +957,8 @@ Proof.
   - epose proof (no_local_global_alias_no_llvm_ptr_aliasing _ ALIAS NLG).
     unfold no_llvm_ptr_aliasing in ALIAS.
     intros id0 id' ptr ptr' H0 H1 H2.
-    eapply H; eauto.
+    intros ptrh2 τ τ' sz1 sz2 H3 H4 H5 H6 H7 H8 H9.
+    eapply H; [apply H3 | apply H4 | apply H5 | apply H6 | apply H7 | apply H8 | apply H9 ].
 Qed.
 
 Ltac solve_no_local_global_alias :=

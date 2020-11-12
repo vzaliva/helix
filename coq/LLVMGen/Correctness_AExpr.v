@@ -281,7 +281,7 @@ Section AExpr.
       hvred.
 
       (* [vstep] does not handle gep currently *)
-      edestruct denote_instr_gep_array as (? & READ & EQ);
+      edestruct denote_instr_gep_array' as (? & READ & GEP & EQ);
         [exact EQEXPm | | eapply LU_ARRAY; eauto |].
       { clear LU_ARRAY EQEXPm.
         assert (EQ: vH ≡ repr (Z.of_nat (MInt64asNT.to_nat vH))).
@@ -304,11 +304,41 @@ Section AExpr.
         reflexivity.
       }
       clear EQEXP EQEXPm NOFAIL.
-      apply eutt_Ret; split_post. 
+      apply eutt_Ret; split_post.
+
+      Ltac solve_state_invariant ::=
+        cbn; try eassumption;
+        match goal with
+        | |- state_invariant _ _ _ (_, (alist_add _ _ _, _)) =>
+          eapply state_invariant_add_fresh; [now eauto | solve_no_local_global_alias | (eassumption || solve_state_invariant) | solve_fresh]
+        | |- state_invariant _ _ _ _ =>
+          solve [eauto with SolveStateInv]
+        end.
+
+      { eapply state_invariant_add_fresh.
+        - now eauto.
+        - solve_no_local_global_alias.
+        - eapply state_invariant_add_fresh.
+          + now eauto.
+          + (* This is actually a pointer *)
+            (* Need to find out where the address "x" is coming from *)
+            (* Seems to be coming from GEP... *)
+            (* addr_m is coming from invariant_MExpr
+
+               I think "x" may not actually have a corresponding variable in sigma...
+             *)
+            unfold no_local_global_alias.
+            intros id p p' H0 H1.
+
+            cbn.
+          + solve_state_invariant.
+          + solve_fresh.
+        - solve_fresh.
+      }
+
       * intros.
         vstep.
         solve_lu.
-        reflexivity.
       * (* Would be good to automate *)
         etransitivity; eauto.
         etransitivity; eauto.
