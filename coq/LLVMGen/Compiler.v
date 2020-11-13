@@ -957,6 +957,8 @@ Fixpoint genIR
           add_comment
             (genPower i o x y src_n dst_n n f initial nextblock)
         | DSHLoop n body =>
+          (* the following check ensures loop bound fits integer *)
+          _ <- err2errS (MInt64asNT.from_nat n) ;;
           loopcontblock <- incBlockNamed "Loop_lcont" ;;
 
           loopvar <- newLocalVar IntType "Loop_i" ;;
