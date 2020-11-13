@@ -545,11 +545,36 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
           }
           { rewrite EXP2.
             2:{ apply sub_local_no_aliasing_add_non_ptr'.
-                solve_alist_fresh.
-                admit.
+                { solve_alist_fresh.
+
+                  unfold freshness_pre.
+                  intros id v0 H0.
+
+                  (* With FRESH2 I know that everything bound in l0
+                     but not in l is bound between s7 and sf.
+
+                     s7 is later than s6, so anything in (Maps.add r blah l0)
+                     is bound 
+
+                     (r is bound in s4)
+
+                     So, r not bound between s5 and s6,
+                     anything in l0 but not l is bound between s7 and sf, so not between s5 and s6. (FRESH2)
+                     anything in l but not ρ is bound in s6 to s7 (FRESH1)
+                     anything in ρ is not bound in si to sf (FRESH), thus not bound in s5 to s6.
+                   *)
+
+                  (* TODO: automate this *)
+                  admit. (* Should hold *)
+                }
                 eapply no_llvm_ptr_aliasing_ext_local.
                 eapply state_invariant_no_llvm_ptr_aliasing; eauto.
                 solve_sub_local_no_aliasing.
+
+                (* anything in l0 but not l is bound between s7 and sf
+
+                 *)
+                (* TODO: automate this *)
                 admit.
                 solve_sub_local_no_aliasing.
                 unfold freshness_pre.
@@ -1410,4 +1435,3 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
           apply genIR_local_count in GEN_OP1; lia.
   Admitted.
   End GenIR.
- 
