@@ -564,12 +564,16 @@ Section Outputs.
       cbn in GEN; simp; cbn.
     all: try (solve [big_solve]).
     - cbn.
+      clear BACKUP_GEN.
+      cbn* in *; simp.
+      rename i into s1.
       rewrite convert_typ_app_list.
       rewrite fold_left_app.
       cbn.
-
+      clean_goal.
+      
       assert (bid_bound_between s1 s2 b2) as B2.
-      { eapply incBlockNamed_bound_between in Heqs2.
+      { eapply incBlockNamed_bound_between in Heqs3.
         eapply state_bound_between_shrink; eauto.
         solve_block_count.
         solve_block_count.
@@ -577,7 +581,7 @@ Section Outputs.
       }
 
       assert (bid_bound_between s1 s2 b0) as B0.
-      { eapply entry_bound_between in Heqs1.
+      { eapply entry_bound_between in Heqs2.
         eapply state_bound_between_shrink; eauto.
         solve_block_count.
         solve_block_count.
@@ -591,28 +595,21 @@ Section Outputs.
       split.
 
       + auto.
-      + epose proof (IHop _ _ _ _ _ Heqs1).
+      + epose proof (IHop _ _ _ _ _ Heqs2).
 
         (* TODO: may want to pull this out as a lemma *)
-        assert (forall bid, bid_bound_between i i0 bid \/ bid ≡ b -> bid_bound_between s1 s2 bid \/ bid ≡ nextblock) as WEAKEN.
-        { intros bid BOUND.
-          destruct BOUND.
-          - left.
-            eapply state_bound_between_shrink; eauto.
-            solve_block_count.
-            solve_block_count.
-          - left; subst.
-            eapply incBlockNamed_bound_between in Heqs0.
-            eapply state_bound_between_shrink; eauto.
-            solve_block_count.
-            reflexivity.
-        }
-
-        eapply Forall_impl.
-        * eapply WEAKEN.
-        * unfold bid_bound_between, state_bound_between in *.
-          cbn in *.
-          eapply H.
+        eapply Forall_impl; [| eapply H].
+        intros bid BOUND.
+        destruct BOUND.
+        * left.
+          eapply state_bound_between_shrink; eauto.
+          solve_block_count.
+          solve_block_count.
+        * left; subst.
+          eapply incBlockNamed_bound_between in Heqs1.
+          eapply state_bound_between_shrink; eauto.
+          solve_block_count.
+          reflexivity.
       + auto.
     -
       (* Should show me that the outputs of l (genIR op result) are all bound between s1 and i *)
