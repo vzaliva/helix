@@ -282,6 +282,7 @@ Proof.
     reflexivity.
   }
 
+  (* WARNING: this is not true, it only holds if [r] is fresh in [ρ], see [sub_alist_add] *)
   assert (forall m, ρ ⊑ alist_add r m ρ). admit.
 
   Opaque newLocalVar.
