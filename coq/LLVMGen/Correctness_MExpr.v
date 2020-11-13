@@ -54,14 +54,14 @@ Section MExpr.
     unfold denoteMExpr, denotePExpr in *; cbn* in *.
     simp; try_abs.
     hvred.
-    edestruct memory_invariant_Ptr as (bkH & ptrV & Mem_LU & LUV & EQ); eauto.
+    edestruct memory_invariant_Ptr as (bkH & ptrV & Mem_LU & MEM & FITS & INLG & EQ); eauto.
     hstep.
     solve_lu.
     hvred.
     apply eutt_Ret; split; [ | split]; cbn; auto.
     eexists; split; eauto.
     break_match_goal; cbn.
-    all:vstep; eauto; reflexivity.
+    all: vstep; eauto; reflexivity.
   Qed.
 
   Lemma genMExpr_array : forall {s1 s2 m e c t},
@@ -76,4 +76,3 @@ Section MExpr.
   Qed.
 
 End MExpr.
-

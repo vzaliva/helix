@@ -212,7 +212,9 @@ Section AExpr.
         vstep.
         { vstep; eauto; reflexivity. }
         apply eutt_Ret; split; [| split]; cbn; eauto.
-        * eapply state_invariant_add_fresh; eauto; split; eauto.
+        * eapply state_invariant_add_fresh; eauto.
+          eapply WF_IRState_Γ; eauto.
+          symmetry; eapply incLocal_Γ; eauto.
         * intros l' LOC GAM; cbn*.
           vstep; [ | reflexivity].
           cbn.
@@ -273,6 +275,7 @@ Section AExpr.
       hvred.
 
       (* denoting [m] *)
+      destruct SINV1.
       eapply eutt_clo_bind_returns; [eapply genMExpr_correct | ..]; eauto.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
@@ -286,7 +289,7 @@ Section AExpr.
       hvred.
 
       (* [vstep] does not handle gep currently *)
-      edestruct denote_instr_gep_array as (? & READ & EQ);
+      edestruct denote_instr_gep_array' as (? & READ & GEP & EQ);
         [exact EQEXPm | | eapply LU_ARRAY; eauto |].
       { clear LU_ARRAY EQEXPm.
         assert (EQ: vH ≡ repr (Z.of_nat (MInt64asNT.to_nat vH))).
@@ -315,11 +318,18 @@ Section AExpr.
       rename i0 into s2, i1 into s3, s2 into s4.
       apply eutt_Ret; split; [| split]; cbn; eauto.
       + eapply state_invariant_add_fresh; eauto.
+        eapply WF_IRState_Γ;
+          eauto; etransitivity;
+          symmetry; eapply incLocal_Γ; eauto.
+
         eapply Gamma_safe_shrink; eauto.
         rewrite <- Gamma_cst0; symmetry; eauto using incLocal_Γ.
         solve_local_count.
         solve_local_count.
         eapply state_invariant_add_fresh; eauto.
+        eapply WF_IRState_Γ;
+          eauto; symmetry; eapply incLocal_Γ; eauto.
+
         eapply Gamma_safe_shrink; eauto.
         solve_local_count.
         solve_local_count.
@@ -345,7 +355,6 @@ Section AExpr.
       + rewrite <- Gamma_cst0.
         etransitivity; eapply incLocal_Γ; eauto.
       + left; solve_local_count.
-
     - (* AAbs *) 
       cbn* in *; simp.
       hvred.
@@ -376,6 +385,9 @@ Section AExpr.
       clean_goal.
       apply eutt_Ret; split; [| split]; cbn; eauto.
       + eapply state_invariant_add_fresh; eauto.
+        eapply WF_IRState_Γ;
+          eauto; symmetry; eapply incLocal_Γ; eauto.
+
         eapply Gamma_safe_shrink; eauto.
         solve_local_count.
         solve_local_count.
@@ -384,6 +396,7 @@ Section AExpr.
         cbn.
         erewrite SCO,alist_find_add_eq.
         reflexivity.
+
         apply lid_bound_between_shrink_down with i.
         solve_local_count.
         eapply lid_bound_between_incLocal; eauto.
@@ -396,8 +409,7 @@ Section AExpr.
         eauto using lid_bound_between_incLocal.
       + rewrite <- GAM1.
         eapply incLocal_Γ; eauto.
-      + left; solve_local_count.
-        
+      + left; solve_local_count.        
     - (* APlus *)
       cbn* in *; simp...
       hvred.
@@ -446,6 +458,9 @@ Section AExpr.
 
       apply eutt_Ret; split; [| split]; cbn; eauto.
       + eapply state_invariant_add_fresh; eauto.
+        eapply WF_IRState_Γ;
+          eauto; symmetry; eapply incLocal_Γ; eauto.
+
         eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
         solve_local_count.
         solve_local_count.
@@ -454,6 +469,7 @@ Section AExpr.
         cbn.
         erewrite SCO,alist_find_add_eq.
         reflexivity.
+
         apply lid_bound_between_shrink_down with s3.
         solve_local_count.
         eapply lid_bound_between_incLocal; eauto.
@@ -468,7 +484,6 @@ Section AExpr.
       + rewrite <- GAM1, <- GAM2.
         eapply incLocal_Γ; eauto.
       + left; solve_local_count.
-
     - (* AMinus *)
       cbn* in *; simp.
       hvred.
@@ -517,6 +532,9 @@ Section AExpr.
 
       apply eutt_Ret; split; [| split]; cbn; eauto.
       + eapply state_invariant_add_fresh; eauto.
+        eapply WF_IRState_Γ;
+          eauto; symmetry; eapply incLocal_Γ; eauto.
+
         eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
         solve_local_count.
         solve_local_count.
@@ -539,7 +557,6 @@ Section AExpr.
       + rewrite <- GAM1, <- GAM2.
         eapply incLocal_Γ; eauto.
       + left; solve_local_count.
-
     - (* AMult *)
       cbn* in *; simp.
       hvred.
@@ -588,6 +605,9 @@ Section AExpr.
 
       apply eutt_Ret; split; [| split]; cbn; eauto.
       + eapply state_invariant_add_fresh; eauto.
+        eapply WF_IRState_Γ;
+          eauto; symmetry; eapply incLocal_Γ; eauto.
+
         eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
         solve_local_count.
         solve_local_count.
@@ -610,7 +630,6 @@ Section AExpr.
       + rewrite <- GAM1, <- GAM2.
         eapply incLocal_Γ; eauto.
       + left; solve_local_count.
-
     - (* AMin *)
       cbn* in *; simp.
       hvred.
@@ -666,6 +685,9 @@ Section AExpr.
 
       apply eutt_Ret; split; [| split]; cbn; eauto.
       + eapply state_invariant_add_fresh; eauto.
+        eapply WF_IRState_Γ;
+          eauto; symmetry; eapply incLocal_Γ; eauto.
+
         eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
         solve_local_count.
         solve_local_count.
@@ -689,7 +711,6 @@ Section AExpr.
       + rewrite <- GAM1, <- GAM2.
         eapply incLocal_Γ; eauto.
       + left; solve_local_count.
-        
    - (* AMax *)
       cbn* in *; simp.
       hvred.
@@ -745,6 +766,9 @@ Section AExpr.
 
       apply eutt_Ret; split; [| split]; cbn; eauto.
       + eapply state_invariant_add_fresh; eauto.
+        eapply WF_IRState_Γ;
+          eauto; symmetry; eapply incLocal_Γ; eauto.
+
         eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
         solve_local_count.
         solve_local_count.
@@ -768,7 +792,6 @@ Section AExpr.
       + rewrite <- GAM1, <- GAM2.
         eapply incLocal_Γ; eauto.
       + left; solve_local_count.
- 
    - (* AZless *)
       cbn* in *; simp.
       hvred.
@@ -841,12 +864,18 @@ Section AExpr.
       apply eutt_Ret; split; [| split]; cbn; eauto.
       + eapply state_invariant_incVoid; [eauto | ..].
         eapply state_invariant_add_fresh; [eauto |..].
+        eapply WF_IRState_Γ;
+          eauto; etransitivity; symmetry; eapply incLocal_Γ; eauto.
+
         eapply Gamma_safe_shrink; eauto.
         rewrite <- GAM1, <- GAM2; auto.
         symmetry; eapply incLocal_Γ; eauto.
         solve_local_count.
         solve_local_count.
         eapply state_invariant_add_fresh; [eauto |..].
+        eapply WF_IRState_Γ;
+          eauto; symmetry; eapply incLocal_Γ; eauto.
+
         eapply Gamma_safe_shrink; eauto.
         rewrite <- GAM1, <- GAM2; auto.
         solve_local_count.

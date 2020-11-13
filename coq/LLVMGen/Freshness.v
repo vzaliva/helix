@@ -344,18 +344,6 @@ Section Freshness_Interface.
 
 End Freshness_Interface.
 
-(* Tactic to solve goals of the shape [alist_fresh]  *)
-Ltac solve_alist_fresh :=
-  (eapply is_fresh_alist_fresh; now eauto with irs_lt).
-
-(* Tactic to solve goals of the shape l ⊑ l' *)
-Ltac solve_sub_alist :=
-  (reflexivity
-   || (apply sub_alist_add; solve_alist_fresh)
-   || (etransitivity; try eassumption; []; solve_sub_alist)
-  ).
-
-
 Create HintDb fresh.
 Hint Resolve freshness_post_no_extension: fresh.
 Hint Resolve freshness_post_inclocal : fresh.
@@ -654,6 +642,8 @@ Ltac solve_local_count :=
     solve_local_count_tac
   | |- local_count ?s1 ≡ local_count ?s2 =>
     solve_local_count_tac
+  | |- local_count ?s1 ≢ local_count ?s2 =>
+    solve_local_count_tac
   end.
 
 (* Tactic to solve freshness goals *)
@@ -667,3 +657,14 @@ Ltac solve_fresh :=
   | |- freshness_post _ _ _ (alist_add _ _ _) => first [eassumption | eapply freshness_post_inclocal; eassumption | eapply freshness_post_transitive; [ | eapply freshness_post_inclocal; eassumption | solve_local_count | solve_local_count]]; solve_fresh
   | |- freshness_post _ _ _ _ => first [eassumption | eapply freshness_post_transitive; [eassumption | | solve_local_count | solve_local_count]]; solve_fresh
   end.
+
+(* Tactic to solve goals of the shape [alist_fresh]  *)
+Ltac solve_alist_fresh :=
+  (eapply is_fresh_alist_fresh; now eauto with irs_lt).
+
+(* Tactic to solve goals of the shape l ⊑ l' *)
+Ltac solve_sub_alist :=
+  (reflexivity
+   || (apply sub_alist_add; solve_alist_fresh)
+   || (etransitivity; try eassumption; []; solve_sub_alist)
+  ).
