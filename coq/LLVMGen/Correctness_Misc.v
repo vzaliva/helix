@@ -40,7 +40,7 @@ Lemma bodyIMapCorrect : forall i o vx vy f loopvar loopcontblock s1 s2 bid_from 
                           memx memy
                           (σ : evalContext) (memH : memoryH) (memV : memoryV) l g
                           (* nx memx mx ix ny my iy *)
-                          nx ny szx szy 
+                          nx ny szx szy
                           mbkx mbky szx' szy'
   ,
     genIMapBody i o vx vy f loopvar loopcontblock s1 ≡ inr (s2, (bid_src,bodyV)) ->
@@ -80,7 +80,7 @@ Proof with rauto.
   cbn* in *.
   simp; cbn* in *; simp.
 
-     
+
       (* Require Import LibHyps.LibHyps. *)
       (* onAllHyps move_up_types. *)
 
@@ -107,7 +107,7 @@ Proof with rauto.
       cbn*.
       edestruct memory_invariant_LLU_Ptr as (bk_x & ptr_x & LUx & INLGx & VEC_LUx); [| exact H | exact H3 |]; eauto.
       norm_v.
-      2:eassumption. 
+      2:eassumption.
       cbn; norm_v.
       unfold IntType; rewrite typ_to_dtyp_I.
       cbn; repeat (norm_v; []).
@@ -121,7 +121,7 @@ Proof with rauto.
       unfold ITree.map.
       cbn; norm_v.
       rewrite exp_E_to_instr_E_Memory,subevent_subevent.
-      cbn in *. 
+      cbn in *.
        *)
 Admitted.
 
@@ -130,7 +130,7 @@ Admitted.
 (*       erewrite interp_cfg_to_L3_GEP_array. *)
 
 (*         | DSHIMap n (PVar ix) (PVar iy) f => *)
-          
+
 (*           (* Helix *) *)
 (*           nth_error σ ix = Some (DSHPtrVal vx sizex) *)
 (*           nth_error σ iy = Some (DSHPtrVal vy sizey) *)
@@ -138,7 +138,7 @@ Admitted.
 (*           memH[vy] = y *)
 (*   LUn : nth_error (Γ s1) n0 ≡ Some (i0, TYPE_Pointer (TYPE_Array sz TYPE_Double)) *)
 (*           (* Vellvm *) *)
-          
+
 
 
 (*           '(x,i) <- resolve_PVar x_p ;; *)
@@ -255,7 +255,7 @@ Fixpoint build_vec' {E} (n: nat) (body: nat -> mem_block -> itree E mem_block):
     | S n => memy' <- build_vec' n body memy;;
             body n memy'
     end.
- 
+
 (**
    General lemma for iteration over vectors.
  *)
@@ -301,7 +301,7 @@ From Vellvm Require Import Traversal.
 (*       bk ≡ mem_add k v bk_i /\ *)
 (*       inr memV ≡ write_array_cell memVi a k τ (dvalue_of_bin v). *)
 
-(* 
+(*
 HELIX SIDE:
   vectors x and y
   y is an accumulator
@@ -340,11 +340,11 @@ bodyV
 comm =
 res = 1
 for i = 0 to n do
-   
+
 
 P -> I(0)
 I(n) -> Q
-forall k, {I(k) /\ i = k} c {I(S k)} 
+forall k, {I(k) /\ i = k} c {I(S k)}
 --
 {P} comm {Q}
  *)
@@ -356,11 +356,11 @@ Fixpoint for_itree_aux {E A} (body : nat -> A -> itree E A) (a0 : A) (index rema
   end.
 Definition for_itree {E A} (body : nat -> A -> itree E A) (a0 : A) (from to : nat): itree E A :=
   for_itree_aux body a0 from (to - from).
-(* 
+(*
     genWhileLoop prefix (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
                        loopvar loopcontblock body_entry body_blocks [] nextblock s1
                        (* IY: Adding explicit exposure of entry_bk and loop_bk. *)
-                       ≡ inr (s2,(entry_id, bks)) 
+                       ≡ inr (s2,(entry_id, bks))
 
 forall g l mV,
 eutt (fun st st' => st ⊑ st')
@@ -594,9 +594,42 @@ Proof.
   intros ? ? ? LU; inv LU.
 Qed.
 
+Lemma no_id_aliasing_empty : no_id_aliasing newState.
+Proof.
+  unfold no_id_aliasing.
+  intros n n' id τ τ' N N'.
+  cbn in N.
+  rewrite nth_error_nil in N.
+  discriminate N.
+Qed.
+
+Lemma no_dshptr_aliasing_empty : no_dshptr_aliasing [].
+Proof.
+  unfold no_dshptr_aliasing.
+  intros n n' ptr sz sz' N N'.
+  cbn in N.
+  rewrite nth_error_nil in N.
+  discriminate N.
+Qed.
+
+Lemma no_llvm_ptr_aliasing_cfg_empty : no_llvm_ptr_aliasing_cfg [] newState llvm_empty_memory_state_partial.
+Proof.
+  unfold no_llvm_ptr_aliasing_cfg. cbn.
+  unfold no_llvm_ptr_aliasing.
+  intros id1 ptrv1 id2 ptrv2 n1 n2 τ τ' sz1 sz2 ptrh1 ptrh2 H H0 H1 H2 H3.
+  rewrite nth_error_nil in H.
+  discriminate H.
+Qed.
+
 Lemma state_invariant_empty: state_invariant [] newState helix_empty_memory llvm_empty_memory_state_partial.
 Proof.
-  split; auto using memory_invariant_empty, WF_IRState_empty, inc_local_fresh_empty.
+  split;
+    auto using memory_invariant_empty,
+    WF_IRState_empty,
+    inc_local_fresh_empty,
+    no_id_aliasing_empty,
+    no_dshptr_aliasing_empty,
+    no_llvm_ptr_aliasing_cfg_empty.
 Qed.
 
 Fact initFSHGlobals_globals_sigma_len_eq
