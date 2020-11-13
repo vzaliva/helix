@@ -111,6 +111,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       reflexivity.
   Qed.
 
+  Hint Resolve genIR_Context  : helix_context.
+
   (* TODO: Move *)
   Lemma add_comment_eutt :
     forall comments bks ids,
@@ -1288,14 +1290,13 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
               -- unfold WF_IRState.
                  rewrite <- GEN_OP2.
                  apply SINV.
-              -- (* TODO: make this a lemma *)
-                unfold no_id_aliasing. rewrite <- GEN_OP2. eapply st_no_id_aliasing; eauto.
+              -- eapply no_id_aliasing_gamma; eauto.
+                 eapply st_no_id_aliasing; eauto.
               -- eapply st_no_dshptr_aliasing; eauto.
-              -- cbn.
-                 (* TODO: make this a lemma *)
-                 unfold no_llvm_ptr_aliasing.
-                 rewrite <- GEN_OP2.
-                 eapply st_no_llvm_ptr_aliasing in SINV. cbn in SINV. eauto.
+              -- cbn in *.
+                 eapply no_llvm_ptr_aliasing_gamma; eauto.
+                 eapply st_no_llvm_ptr_aliasing in SINV. cbn in SINV.
+                 eauto.
             * cbn. exists from.
               reflexivity.
           + cbn.
@@ -1388,9 +1389,11 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
         rewrite <- GEN_OP1.
         apply MINV1.
       + auto.
-      + admit.
-      + admit.
-      + admit.
+      + eapply no_id_aliasing_gamma; eauto.
+        eapply genIR_Context; eauto.
+      + eauto.
+      + eapply no_llvm_ptr_aliasing_gamma; eauto.
+        eapply genIR_Context; eauto.
       + cbn. cbn in BRANCHES1.
         destruct BRANCHES1 as [from1' BRANCHES1].
         exists from1. inversion BRANCHES1.

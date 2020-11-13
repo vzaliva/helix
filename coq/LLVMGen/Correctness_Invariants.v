@@ -966,6 +966,30 @@ Proof.
   auto.
 Qed.
 
+Lemma no_llvm_ptr_aliasing_gamma :
+  forall σ s1 s2 l g,
+    no_llvm_ptr_aliasing σ s1 l g ->
+    Γ s1 ≡ Γ s2 ->
+    no_llvm_ptr_aliasing σ s2 l g.
+Proof.
+  intros σ s1 s2 l g ALIAS GAMMA.
+  unfold no_llvm_ptr_aliasing.
+  rewrite <- GAMMA.
+  auto.
+Qed.
+
+Lemma no_id_aliasing_gamma :
+  forall s1 s2,
+    no_id_aliasing s1 ->
+    Γ s1 ≡ Γ s2 ->
+    no_id_aliasing s2.
+Proof.
+  intros s1 s2 ALIAS GAMMA.
+  unfold no_id_aliasing.
+  rewrite <- GAMMA.
+  auto.
+Qed.
+
 
 (* TODO: might not need this anymore *)
 (* Ltac solve_no_local_global_alias := *)
@@ -1146,7 +1170,9 @@ Definition state_invariant_post σ s1 s2 l := (state_invariant σ s2 ⩕ fresh_p
     rewrite (genMExpr_context _ _ GEN)
     end; subst; auto.
   Qed.
-  
+
+  Hint Resolve genAExpr_context : helix_context.
+
   Ltac subst_contexts :=
     repeat match goal with
            | H : Γ ?s1 ≡ Γ ?s2 |- _ =>
