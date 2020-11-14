@@ -211,14 +211,14 @@ Proof.
   - cbn* in *.
     simp.
     clean_goal.
-    apply IHop in Heqs0.
+    apply IHop in Heqs1.
     2:{
-      apply bid_bound_incBlockNamed with (name := "Loop_lcont")
+      eapply bid_bound_incBlockNamed with (name := "Loop_lcont")
                                          (s1 := {|
-                                             block_count := (block_count s1);
-                                             local_count := S (local_count s1);
-                                             void_count := void_count s1;
-                                             Γ := (ID_Local (Name ("Loop_i" @@ string_of_nat (local_count s1))), TYPE_I 64) :: Γ s1 |}); reflexivity.
+                                             block_count := (block_count i);
+                                             local_count := S (local_count i);
+                                             void_count := void_count i;
+                                             Γ := (ID_Local (Name ("Loop_i" @@ string_of_nat (local_count i))), TYPE_I 64) :: Γ i |}); reflexivity.
     }
     clear IHop; clean_goal.
     cbn in *.
@@ -850,7 +850,7 @@ Section GenIR.
         {
           destruct MONO2 as [| <-]. 
           - rewrite EXP1; auto.
-            replace (repr (Z.of_nat (MInt64asNT.to_nat src))) with src by admit.
+            rewrite repr_of_nat_to_nat.
             cbn; reflexivity.
             eapply local_scope_preserve_modif; eauto.
             clear EXP1 EXP2 VAR1 VAR2.
@@ -867,7 +867,7 @@ Section GenIR.
             solve_local_count.
             solve_local_count.
           - rewrite EXP1.
-            replace (repr (Z.of_nat (MInt64asNT.to_nat src))) with src by admit.
+            rewrite repr_of_nat_to_nat.
             reflexivity.
             eauto using local_scope_preserved_refl.
             eauto using Gamma_preserved_refl.
@@ -906,8 +906,68 @@ Section GenIR.
               cbn; reflexivity.
             - clear EXP2.
               clean_goal.
+
+              (* TODO: make lemma *)
+              unfold local_scope_preserved.
+              intros id H0.
+              destruct PRE2.
+              cbn in H4.
+
+              (* id is bound between s7 and sf
+
+                 Heqs9
+
+                 r1 is bound in s6
+                 r is bound in s4
+               *)
+
+              
               admit. (* Need additional lemmas about [local_scope_preserved] *)
-            - admit.
+            - destruct PRE2.
+              Set Nested Proofs Allowed.
+              Lemma Gamma_preserved_extended_fresh :
+                forall σ s l l' id v memH memV g,
+                  Gamma_preserved σ s l l' ->
+                  memory_invariant σ s memH (memV, (l', g)) ->
+                  alist_fresh id l' ->
+                  Gamma_preserved σ s l (Maps.add id v l').
+              Proof.
+                intros σ s l l' id v memH memV g GAMMA MINV FRESH.
+                unfold Gamma_preserved in *.
+                intros id0 IN.
+                assert ({id ≡ id0} + {id ≢ id0}) as [EQ | NEQ] by admit. (* Should be fine... *)
+                - subst.
+                  destruct IN.
+                  exfalso.
+                  unfold alist_fresh in FRESH.
+                  unfold memory_invariant in MINV.
+                  destruct v0.
+                  + epose proof (memory_invariant_LLU _ MINV H0 H).
+                    cbn in H2.
+                    rewrite FRESH in H2. discriminate H2.
+                  + epose proof (memory_invariant_LLU_AExpr _ MINV H0 H).
+                    cbn in H2.
+                    rewrite FRESH in H2. discriminate H2.
+                  + epose proof (memory_invariant_LLU_Ptr _ MINV H0 H).
+                    cbn in H2.
+                    destruct H2 as (bk & ptr & MLUP & MSUC & FITS & LUP & ?).
+                    rewrite FRESH in LUP. discriminate LUP.
+                - cbn. break_match_goal.
+                  admit. (* I'm just lazy *)
+                  rewrite remove_neq_alist; eauto.
+                  (* These should hold *)
+                  admit. 
+                  admit.
+              Admitted.
+
+              eapply Gamma_preserved_extended_fresh.
+              eapply Gamma_preserved_extended_fresh.
+              eapply Gamma_preserved_refl.
+
+              admit.
+              admit.
+              admit.
+              admit.
           }
 
           eapply yGETCELL; eauto.
@@ -1494,12 +1554,8 @@ Section GenIR.
       split; cbn; eauto.
       eapply state_invariant_Γ; eauto.
       apply genIR_Context in GEN_OP1; auto.
-        
+
 (*
-=======
-      (* vx_p is in global environment, should be largely the same. *)
-      admit.
->>>>>>> dshassign
     -
       Opaque genWhileLoop.
       cbn* in *.
@@ -1994,7 +2050,6 @@ Section GenIR.
           apply genIR_local_count in GEN_OP2; lia.
         * pose proof (FRESH1 _ _ AIN ANINL).
           eapply state_bound_between_shrink; eauto.
-          apply genIR_local_count in GEN_OP1; lia.
-*)
+          apply genIR_local_count in GEN_OP1; lia. *)
   Admitted.
   End GenIR.
