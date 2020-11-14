@@ -524,12 +524,13 @@ Section SimulationRelations.
     ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
       (l : local_env) (g : global_env) (v : uvalue),
       Γ s1 ≡ Γ s2 ->
-      WF_IRState σ s2 ->
       ~ in_Gamma σ s1 id →
       state_invariant σ s1 memH (memV, (l, g)) →
       state_invariant σ s2 memH (memV, (alist_add id v l, g)).
   Proof.
-    intros * EQ WF NIN INV; inv INV.
+    intros * EQ NIN INV; inv INV.
+    assert (WF_IRState σ s2) as WF.
+    { red; rewrite <- EQ; auto. }
     constructor; auto.
     - cbn; rewrite <- EQ.
       intros * LUH LUV.
