@@ -670,7 +670,7 @@ Lemma genWhileLoop_tfor_ind:
     In body_entry (block_ids body_blocks) ->
 
     (* All labels generated are distinct *)
-    blk_id_norepet bks ->
+    wf_cfg bks ->
 
     fresh_in_cfg bks nextblock -> 
 
@@ -695,14 +695,14 @@ Lemma genWhileLoop_tfor_ind:
       (I : nat (* -> A *) -> A -> _),
 
       (* We assume that we know how to relate the iterations of the bodies *)
-      (forall g l mV a k _label _label',
+      (forall g l mV a k _label,
           (conj_rel (I k)
                     (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k))
                     a (mV,(l,g))) ->
           eutt
             ( (fun a' '(memV, (l, (g, x))) =>
                  l @ loopvar ≡ Some (uvalue_of_nat k) /\
-                 x ≡ inl (_label', loopcontblock) /\
+                 (exists _label', x ≡ inl (_label', loopcontblock)) /\
                  I (S k) (* a *) a' (memV, (l, g))))
             (bodyF k a)
             (interp_cfg (denote_bks (convert_typ [] body_blocks) (_label, body_entry)) g l mV)
@@ -747,7 +747,7 @@ Proof.
     intros  BOUND * (INV & LOOPVAR).
     (* Import ProofMode. *)
     (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
-    apply no_repeat_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
+    apply wf_cfg_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
     apply fresh_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_block_app in NEXTBLOCK_ID.
     cbn; rewrite ?convert_typ_block_app.
     hide_cfg.
@@ -809,7 +809,7 @@ Proof.
   - (* Inductive case *)
     cbn in *. intros [LT LE] * (INV & LOOPVAR).
     (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
-    apply no_repeat_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
+    apply wf_cfg_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
     apply fresh_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_block_app in NEXTBLOCK_ID.
     cbn; rewrite ?convert_typ_block_app.
     cbn in IH; rewrite ?convert_typ_block_app in IH.
@@ -926,12 +926,9 @@ Proof.
 
     (* Step 4 : Back to starting from loopcontblock and have reestablished everything at the next index:
         conclude by IH *)
-    intros ? (? & ? & ? & ?) (LOOPVAR' & HS & IH').
-    subst.
+    intros ? (? & ? & ? & ?) (LOOPVAR' & [? ->] & IH').
     eapply IH; try lia.
     split; auto.
-    Unshelve.
-    all: try auto.
 Qed.
 
 Lemma genWhileLoop_tfor_correct:
@@ -948,7 +945,7 @@ Lemma genWhileLoop_tfor_correct:
     In body_entry (block_ids body_blocks) ->
 
     (* All labels generated are distinct *)
-    blk_id_norepet bks ->
+    wf_cfg bks ->
 
     fresh_in_cfg bks nextblock ->
 
@@ -970,14 +967,14 @@ Lemma genWhileLoop_tfor_correct:
       (I : nat -> _) P Q,
 
       (* We assume that we know how to relate the iterations of the bodies *)
-      (forall g l mV a k _label _label',
+      (forall g l mV a k _label,
           (conj_rel (I k)
                     (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k))
                     a (mV,(l,g))) ->
           eutt
-            ( (fun a' '(memV, (l, (g, x))) =>
+            ( (fun a' '(memV, (l, (g, x))) => 
                  l @ loopvar ≡ Some (uvalue_of_nat k) /\
-                 x ≡ inl (_label', loopcontblock) /\
+                 (exists _label', x ≡ inl (_label', loopcontblock)) /\
                  I (S k) (* a *) a' (memV, (l, g))))
             (bodyF k a)
             (interp_cfg (denote_bks (convert_typ [] body_blocks) (_label, body_entry)) g l mV)
@@ -1067,7 +1064,7 @@ Proof.
 
     (* Clean up convert_typ junk *)
     apply fresh_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_block_app in EXIT.
-    apply no_repeat_convert_typ with (env := []) in UNIQUE; cbn in UNIQUE; rewrite ?convert_typ_block_app in UNIQUE.
+    apply wf_cfg_convert_typ with (env := []) in UNIQUE; cbn in UNIQUE; rewrite ?convert_typ_block_app in UNIQUE.
     cbn; rewrite ?convert_typ_block_app.
     cbn in GEN_IND; rewrite ?convert_typ_block_app in GEN_IND.
 
@@ -1140,7 +1137,7 @@ Proof.
       eapply STABLE; eauto.
       unfold Maps.add, Map_alist.
       apply alist_find_eq. typeclasses eauto.
-    + intros ? (? & ? & ? & ?) (LU & -> & ?).
+    + intros ? (? & ? & ? & ?) (LU & [? ->] & ?).
       eapply eutt_Proper_mono.
       2: apply GEN_IND.
       { clear - post; intros ? (? & ? & ? & ?) [-> ?]; split; eauto. }
@@ -1149,7 +1146,6 @@ Proof.
       eauto. 
       eapply STABLE; eauto.
       split; eauto.
-      Unshelve. eauto. 
 Qed.
 
 (* TODO: incLocalNamed should be opaque, and the stability hyp revisited *)
@@ -1193,7 +1189,7 @@ Lemma genWhileLoop_ind:
     In body_entry (block_ids body_blocks) ->
 
     (* All labels generated are distinct *)
-    blk_id_norepet bks ->
+    wf_cfg bks ->
 
     fresh_in_cfg bks nextblock ->
 
@@ -1270,7 +1266,7 @@ Proof.
     intros  BOUND * (INV & LOOPVAR).
     (* Import ProofMode. *)
     (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
-    apply no_repeat_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
+    apply wf_cfg_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
     apply fresh_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_block_app in NEXTBLOCK_ID.
     cbn; rewrite ?convert_typ_block_app.
     hide_cfg.
@@ -1333,7 +1329,7 @@ Proof.
     Opaque half_modulus.
     cbn in *. intros [LT LE] * (INV & LOOPVAR).
     (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
-    apply no_repeat_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
+    apply wf_cfg_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
     apply fresh_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_block_app in NEXTBLOCK_ID.
     cbn; rewrite ?convert_typ_block_app.
     cbn in IH; rewrite ?convert_typ_block_app in IH.
@@ -1457,7 +1453,8 @@ Proof.
     all: try auto.
 Qed.
 
-
+(* TODO: The freshness statement used in this lemma is obsolete. To fix it *)
+(*
 Lemma genWhileLoop_correct:
   forall (prefix : string)
     (loopvar : raw_id)            (* lvar storing the loop index *)
@@ -1721,4 +1718,5 @@ Proof.
     destruct H as (? & ? & ?). inversion H0.
     Unshelve. eauto. eauto. eauto.
 Qed.
+ *)
 
