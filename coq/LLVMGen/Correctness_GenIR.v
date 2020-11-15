@@ -951,6 +951,18 @@ Section GenIR.
               clean_goal.
               solve_local_scope_preserved.
             - destruct PRE2.
+
+              (* eapply Gamma_preserved_if_safe with (s2:=sf). *)
+              (* + eapply Gamma_safe_shrink. eauto. *)
+              (*   admit. *)
+              (*   * solve_local_count. *)
+              (*   * solve_local_count. *)
+              (* + (* This should be a lemma *) *)
+              (*   unfold local_scope_modif. *)
+              (*   intros id H4. *)
+              (*   (* Obviously id is either r1 or r *) *)
+              (*   (* But those are bound earlier... *) *)
+              
               Set Nested Proofs Allowed.
               Lemma Gamma_preserved_extended_fresh :
                 forall σ s l l' id v memH memV g,
@@ -979,14 +991,9 @@ Section GenIR.
                     cbn in H2.
                     destruct H2 as (bk & ptr & MLUP & MSUC & FITS & LUP & ?).
                     rewrite FRESH in LUP. discriminate LUP.
-                - cbn. break_match_goal.
-                  admit. (* I'm just lazy *)
-                  rewrite remove_neq_alist; eauto.
-                  (* These should hold *)
-                  admit. 
-                  admit.
+                - cbn.
+                  setoid_rewrite maps_add_neq; eauto.                 
               Admitted.
-
               eapply Gamma_preserved_extended_fresh.
               eapply Gamma_preserved_extended_fresh.
               eapply Gamma_preserved_refl.

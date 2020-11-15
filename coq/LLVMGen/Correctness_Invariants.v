@@ -194,8 +194,8 @@ Section SimulationRelations.
       nth_error (Γ s) n1 ≡ Some (id1, τ) ->
       nth_error (Γ s) n2 ≡ Some (id2, τ') ->
       id1 ≢ id2 ->
-      in_local_or_global_addr ρ g id1 ptrv1 /\
-      in_local_or_global_addr ρ g id2 ptrv2 /\
+      in_local_or_global_addr ρ g id1 ptrv1 ->
+      in_local_or_global_addr ρ g id2 ptrv2 ->
       fst ptrv1 ≢ fst ptrv2.
 
   Definition no_llvm_ptr_aliasing_cfg (σ : evalContext) (s : IRState) : config_cfg -> Prop :=
@@ -253,46 +253,6 @@ Section SimulationRelations.
     unfold in_local_or_global_addr.
     rewrite alist_find_neq; eauto.
   Qed.
-
-  Lemma no_llvm_ptr_aliasing_not_in_gamma' :
-    forall σ s id v l g,
-      no_llvm_ptr_aliasing σ s l g ->
-      alist_fresh id l ->
-      no_llvm_ptr_aliasing σ s (alist_add id v l) g.
-  Proof.
-    intros σ s id v l g ALIAS FRESH.
-    unfold no_llvm_ptr_aliasing in *.
-    intros id1 ptrv1 id2 ptrv2 n1 n2 τ0 τ' sz1 sz2 ptrh1 ptrh2 H H0 H1 H2 H3.
-    destruct id1, id2.
-    - epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3) as (? & ? & ?).
-      eauto.
-    - epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3) as (? & ? & ?).
-      assert ({id1 ≡ id} + {id1 ≢ id}) by admit. destruct H7.
-      + subst.
-        cbn in H5.
-        rewrite FRESH in H5. discriminate.
-      + eauto using in_local_or_global_addr_neq.
-    - epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3) as (? & ? & ?).
-      assert ({id0 ≡ id} + {id0 ≢ id}) by admit. destruct H7.
-      + subst.
-        cbn in H4.
-        rewrite FRESH in H4. discriminate.
-      + eauto using in_local_or_global_addr_neq.
-    - unfold alist_fresh in *.
-      assert ({id0 ≡ id} + {id0 ≢ id}) by admit. destruct H4.
-      + subst.
-        assert ({id1 ≡ id} + {id1 ≢ id}) by admit. destruct H4.
-        * subst.
-          contradiction.
-        * epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3) as (? & ? & ?).
-          cbn in H4. rewrite FRESH in H4. discriminate.
-      + assert ({id1 ≡ id} + {id1 ≢ id}) by admit. destruct H4.      
-        * subst.
-          epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3) as (? & ? & ?).
-          cbn in H5. rewrite FRESH in H5. discriminate.
-        * epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3) as (? & ? & ?).
-          eauto using in_local_or_global_addr_neq.
-  Admitted.
 
   (* Main memory invariant. Relies on Helix's evaluation context and the [IRState] built by the compiler.
      At any indices, the value and ident/types respectively found are related in that:
@@ -474,18 +434,19 @@ Section SimulationRelations.
   Proof.
     intros σ s id v l g ALIAS WF FRESH.
     unfold no_llvm_ptr_aliasing in *.
-    intros id1 ptrv1 id2 ptrv2 n1 n2 τ0 τ' sz1 sz2 ptrh1 ptrh2 H H0 H1 H2 H3.
+    intros id1 ptrv1 id2 ptrv2 n1 n2 τ0 τ' sz1 sz2 ptrh1 ptrh2 H H0 H1 H2 H3 H4 H5.
     destruct id1, id2.
-    - epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3) as (? & ? & ?).
+    - epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3 H4 H5).
       eauto.
-    - epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3) as (? & ? & ?).
+    - epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3 H4).
       assert ({id1 ≡ id} + {id1 ≢ id}) by admit. destruct H7.
       + subst.
         assert (in_Gamma σ s id).
         econstructor; eauto.
         exfalso; apply FRESH; auto.
-      + eauto using in_local_or_global_addr_neq.
-    - epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3) as (? & ? & ?).
+      + eapply H6.
+        admit.
+    - epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3).
       assert ({id0 ≡ id} + {id0 ≢ id}) by admit. destruct H7.
       + subst.
         assert (in_Gamma σ s id).
@@ -494,28 +455,27 @@ Section SimulationRelations.
           all:eauto.
         }
         exfalso; apply FRESH; auto.
-      + eauto using in_local_or_global_addr_neq.
+      + admit.
     - unfold alist_fresh in *.
-      assert ({id0 ≡ id} + {id0 ≢ id}) by admit. destruct H4.
+      assert ({id0 ≡ id} + {id0 ≢ id}) by admit. destruct H6.
       + subst.
-        assert ({id1 ≡ id} + {id1 ≢ id}) by admit. destruct H4.
+        assert ({id1 ≡ id} + {id1 ≢ id}) by admit. destruct H6.
         * subst.
           contradiction.
-        * epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3) as (? & ? & ?).
+        * epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3).
         assert (in_Gamma σ s id).
         { econstructor.
           2: eapply H1.
           all:eauto.
         }
         exfalso; apply FRESH; auto.
-      + assert ({id1 ≡ id} + {id1 ≢ id}) by admit. destruct H4.      
+      + assert ({id1 ≡ id} + {id1 ≢ id}) by admit. destruct H6.
         * subst.
-          epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3) as (? & ? & ?).
+          epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3).
         assert (in_Gamma σ s id).
         econstructor; eauto.
         exfalso; apply FRESH; auto.
-        * epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3) as (? & ? & ?).
-          eauto using in_local_or_global_addr_neq.
+        * admit.
   Admitted.
 
 
@@ -948,16 +908,7 @@ Section Ext_Local.
     fun mh '(mi,(li,gi)) '(mh',_) '(m,(l,(g,_))) => mh ≡ mh' /\ mi ≡ m /\ gi ≡ g /\ li ⊑ l.
 
   Definition sub_local_no_aliasing (σ : evalContext) (s : IRState) (ρ1 ρ2 : local_env) (g : global_env) :=
-    ρ1 ⊑ ρ2 /\
-    (forall id id' ptr ptr' n1 n2 ptrh1 ptrh2 τ τ' sz1 sz2,
-        nth_error σ n1 ≡ Some (DSHPtrVal ptrh1 sz1) ->
-        nth_error σ n2 ≡ Some (DSHPtrVal ptrh2 sz2) ->
-        nth_error (Γ s) n1 ≡ Some (id, τ) ->
-        nth_error (Γ s) n2 ≡ Some (id', τ') ->
-        id ≢ id' ->
-        in_local_or_global_addr ρ2 g id ptr /\
-        in_local_or_global_addr ρ2 g id' ptr' /\
-        fst ptr ≢ fst ptr').
+    ρ1 ⊑ ρ2 /\ no_llvm_ptr_aliasing σ s ρ2 g.
 
   Definition ext_local_no_aliasing {R S}
              (σ : evalContext) (s  : IRState) :
@@ -994,7 +945,7 @@ Section Ext_Local.
     intros σ s ρ1 ρ2 g ALIAS [EXT EXT_ALIAS].
     unfold no_llvm_ptr_aliasing in *.
 
-    intros id1 ptrv1 id2 ptrv2 INP1 INP2 NEQ.
+    intros id1 ptrv1 id2 ptrv2 n1 n2 τ τ' sz1 sz2 ptrh1 ptrh2 H H0 H1 H2 H3 H4 H5.
     eauto.
   Qed.
 
@@ -1259,23 +1210,23 @@ Proof.
   contradiction.
 Qed.
 
-Lemma sub_local_no_aliasing_add_non_ptr :
-  forall σ s id v l g,
-    alist_fresh id l ->
-    no_llvm_ptr_aliasing σ s l g ->
-    sub_local_no_aliasing σ s l (alist_add id v l) g.
-Proof.
-  intros σ s id v l g FRESH ALIAS.
-  unfold sub_local_no_aliasing.
-  split.
+(* Lemma sub_local_no_aliasing_add_non_ptr : *)
+(*   forall σ s id v l g, *)
+(*     alist_fresh id l -> *)
+(*     no_llvm_ptr_aliasing σ s l g -> *)
+(*     sub_local_no_aliasing σ s l (alist_add id v l) g. *)
+(* Proof. *)
+(*   intros σ s id v l g FRESH ALIAS. *)
+(*   unfold sub_local_no_aliasing. *)
+(*   split. *)
 
-  - apply sub_alist_add; auto.
-  - epose proof (no_llvm_ptr_aliasing_not_in_gamma' _ ALIAS FRESH).
-    unfold no_llvm_ptr_aliasing in ALIAS.
-    intros id0 id' ptr ptr' n1 n2 ptrh1 ptrh2 τ τ' sz1 sz2 H0 H1 H2 H3 H4.
-    unfold no_llvm_ptr_aliasing in H.
-    eapply H; [apply H0 | apply H1 | apply H2 | apply H3 | apply H4 ].
-Qed.
+(*   - apply sub_alist_add; auto. *)
+(*   - epose proof (no_llvm_ptr_aliasing_not_in_gamma' _ ALIAS FRESH). *)
+(*     unfold no_llvm_ptr_aliasing in ALIAS. *)
+(*     intros id0 id' ptr ptr' n1 n2 ptrh1 ptrh2 τ τ' sz1 sz2 H0 H1 H2 H3 H4. *)
+(*     unfold no_llvm_ptr_aliasing in H. *)
+(*     eapply H; [apply H0 | apply H1 | apply H2 | apply H3 | apply H4 ]. *)
+(* Qed. *)
 
 Lemma sub_local_no_aliasing_transitive :
   forall σ s l0 l1 l2 g,
@@ -1291,20 +1242,22 @@ Qed.
 Lemma sub_local_no_aliasing_add_non_ptr' :
   forall σ s id v l l' g,
     alist_fresh id l ->
+    ~ in_Gamma σ s id ->
+    WF_IRState σ s ->
     no_llvm_ptr_aliasing σ s l g ->
     sub_local_no_aliasing σ s l' l g ->
     sub_local_no_aliasing σ s l' (alist_add id v l) g.
 Proof.
-  intros σ s id v l l' g FRESH ALIAS [L'L ALIAS'].
+  intros σ s id v l l' g FRESH NGAMMA WF ALIAS [L'L ALIAS'].
   unfold sub_local_no_aliasing.
   split.
 
   - rewrite L'L. apply sub_alist_add; auto.
-  - epose proof (no_llvm_ptr_aliasing_not_in_gamma' _ ALIAS FRESH).
-    unfold no_llvm_ptr_aliasing in ALIAS.
-    intros id0 id' ptr ptr' H0 H1 H2.
-    intros ptrh2 τ τ' sz1 sz2 H3 H4 H5 H6 H7.
-    eapply H; [apply H3 | apply H4 | apply H5 | apply H6 | apply H7 ].
+  - epose proof (no_llvm_ptr_aliasing_not_in_gamma _ ALIAS).
+    unfold no_llvm_ptr_aliasing in *.
+    intros id1 ptrv1 id2 ptrv2 n1 n2 τ τ' sz1 sz2 ptrh1 ptrh2 H0 H1 H2 H3 H4 H5 H6.
+    eapply H;     
+      [eauto | eauto | apply H0 | apply H1 | apply H2 | apply H3 | apply H4 | apply H5 | apply H6].
 Qed.
 
 Lemma sub_local_no_aliasing_Γ :
@@ -1314,7 +1267,7 @@ Lemma sub_local_no_aliasing_Γ :
     sub_local_no_aliasing σ s2 l1 l2 g.
 Proof.
   intros σ s1 s2 l1 l2 g [L1L2 SUB] GAMMA.
-  unfold sub_local_no_aliasing in *.
+  unfold sub_local_no_aliasing, no_llvm_ptr_aliasing in *.
   rewrite GAMMA.
   auto.
 Qed.
@@ -1402,11 +1355,15 @@ Ltac solve_sub_local_no_aliasing_gamma :=
       eauto
   end.
 
+Ltac solve_not_in_gamma := eauto.
+
 Ltac solve_sub_local_no_aliasing :=
   first [ solve [eapply state_invariant_sub_local_no_aliasing_refl; solve_state_invariant]
         | solve_sub_local_no_aliasing_gamma; solve_sub_local_no_aliasing
         | eapply sub_local_no_aliasing_add_non_ptr';
           [ solve_alist_fresh
+          | solve_not_in_gamma
+          | eauto
           | eapply state_invariant_no_llvm_ptr_aliasing; solve_state_invariant
           | solve_sub_local_no_aliasing
           ]
