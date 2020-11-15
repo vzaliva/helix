@@ -855,10 +855,13 @@ Section GenIR.
       (∀ (i : nat) (v : binary64), mem_lookup i bkh ≡ Some v → get_array_cell mV ptrv i DTYPE_Double ≡ inr (UVALUE_Double v)) ->
 
       ~ In x (map fst (Γ s2)) ->
+      (forall s, ~ In (DSHPtrVal ptrh s) σ) ->
+
       state_invariant σ s2 stH (mV,(l,g)) ->
+
       state_invariant (DSHPtrVal ptrh sizeh ::σ) s1 stH (mV,(l,g)). 
   Proof.
-    intros * -> EQ LUB SUCC TYP IN LUA fresh [MEM WF ALIAS1 ALIAS2 ALIAS3].
+    intros * -> EQ LUB SUCC TYP IN LUA fresh1 fresh2 [MEM WF ALIAS1 ALIAS2 ALIAS3].
     split.
     - red; intros * LU1 LU2.
       destruct n as [| n].
@@ -891,7 +894,7 @@ Section GenIR.
         rewrite EQ in LU1.
         cbn in *.
         inv LU1.
-        apply fresh.
+        apply fresh1.
         apply nth_error_In in LU2.
         replace id with (fst (id,τ')) by reflexivity.
         apply in_map; auto.
@@ -901,7 +904,7 @@ Section GenIR.
         rewrite EQ in LU2.
         cbn in *.
         inv LU2.
-        apply fresh.
+        apply fresh1.
         apply nth_error_In in LU1.
         replace id with (fst (id,τ)) by reflexivity.
         apply in_map; auto.
@@ -911,16 +914,15 @@ Section GenIR.
         eapply ALIAS1 in LU1; apply LU1 in LU2; eauto. 
 
     - red; intros * LU1 LU2.
-        assert (freshPTR: forall s, ~ In (DSHPtrVal ptrh s) σ) by admit.
       destruct n as [| n], n' as [| n']; auto.
       + inv LU1.
         rewrite nth_error_Sn in LU2.
-        exfalso; apply (freshPTR sz').
+        exfalso; apply (fresh2 sz').
         eapply nth_error_In; eauto.
 
       + inv LU2.
         rewrite nth_error_Sn in LU1.
-        exfalso; apply (freshPTR sz).
+        exfalso; apply (fresh2 sz).
         eapply nth_error_In; eauto.
 
       + rewrite nth_error_Sn in LU1.
@@ -928,20 +930,30 @@ Section GenIR.
         eapply ALIAS2 in LU1; apply LU1 in LU2; eauto. 
 
     - (* Stuck, I believe that no_llvm_ptr_aliasing is bugged *)
-      do 2 red. intros * LU1 LU2 LU3 LU4 INEQ.
+      assert (forall ptrv', in_local_or_global_addr l g x ptrv' -> fst ptrv <> fst ptrv') by admit.
+      do 2 red. intros * LU1 LU2 LU3 LU4 INEQ IN1 IN2.
       destruct n1 as [| n1], n2 as [| n2]; auto.
-      (* + cbn in LU1,LU2. *)
-      (*   inv LU1; inv LU2. *)
-      (*   rewrite EQ in LU3. *)
-      (*   rewrite EQ in LU4. *)
-      (*   inv LU3; inv LU4. *)
-      (*   in_local_or_global_addr l g id2 ptrv1 -> *)
-      (*   in_local_or_global_addr l g id2 ptrv2 -> *)
-      (*   fst ptrv1 ≢ fst ptrv2 -> *)
-
+      + rewrite EQ in LU3.
+        rewrite EQ in LU4.
+        cbn in *.
+        inv LU1; inv LU2; inv LU3; inv LU4.
+        eauto.
+      + rewrite EQ in LU3,LU4.
+        cbn in *.
+        inv LU1; inv LU3.
+        red in IN1, IN.
+        (* destruct id1; cbn. *)
+        (* rewrite IN1 in IN; inv IN; eapply H; eauto. *)
+        (* {  *)
+        admit.
+      + admit.
+      + rewrite EQ in LU3,LU4.
+        cbn in *. 
+        eapply ALIAS3.
+        apply LU1.
+        all:eauto.
 
   Admitted.
-
 
   (* TODO: move this? *)
   Ltac solve_local_lookup :=
