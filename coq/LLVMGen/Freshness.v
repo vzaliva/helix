@@ -668,3 +668,19 @@ Ltac solve_sub_alist :=
    || (apply sub_alist_add; solve_alist_fresh)
    || (etransitivity; try eassumption; []; solve_sub_alist)
   ).
+
+Lemma lid_bound_earlier :
+  forall (s1 s2 s3 : IRState) (id1 id2 : local_id),
+    lid_bound s1 id1 ->
+    lid_bound_between s2 s3 id2 ->
+    s1 <<= s2 ->
+    id1 ≢ id2.
+Proof.
+  intros s1 s2 s3 id1 id2 BOUND BETWEEN COUNTS.
+  do 2 red in BOUND, BETWEEN.
+  destruct BOUND as (name1 & s1' & s1'' & PREF1 & COUNT1 & GEN1).
+  destruct BETWEEN as (name2 & s2' & s2'' & PREF2 & COUNT2 & COUNT2' & GEN2).
+
+  eapply incLocalNamed_count_gen_injective; eauto.
+  solve_local_count.
+Qed.
