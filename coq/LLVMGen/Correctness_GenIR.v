@@ -644,6 +644,305 @@ Section GenIR.
     intros sz i H.
   Admitted.
 
+  Lemma state_invariant_escape_scope : forall σ v x s1 s2 stH stV,
+      Γ s1 ≡ x :: Γ s2 ->
+      state_invariant (v::σ) s1 stH stV ->
+      state_invariant σ s2 stH stV.
+  Proof.
+    intros * EQ [MEM WF ALIAS1 ALIAS2 ALIAS3].
+    destruct stV as (? & ? & ?).
+    split.
+    - red; intros * LU1 LU2.
+      red in MEM.
+      specialize (MEM (S n)).
+      rewrite EQ, 2nth_error_Sn in MEM.
+      specialize (MEM _ _ _ LU1 LU2).
+      destruct v0; cbn; auto.
+      destruct MEM as (? & ? & ? & ? & ? & ? & ?).
+      do 2 eexists; repeat split; eauto.
+      clear - H1.
+      admit.
+
+    - repeat intro.
+      do 2 red in WF.
+      edestruct WF with (n := S n) as (?id & LU).
+      rewrite nth_error_Sn;eauto.
+      exists id.
+      rewrite EQ in LU.
+      rewrite nth_error_Sn in LU;eauto.
+
+    - red; intros * LU1 LU2.
+      specialize (ALIAS1 (S n) (S n')).
+      rewrite EQ, 2nth_error_Sn in ALIAS1.
+      eapply ALIAS1 in LU1; eauto.
+
+    - red; intros * LU1 LU2.
+      specialize (ALIAS2 (S n) (S n')).
+      rewrite 2nth_error_Sn in ALIAS2.
+      eapply ALIAS2 in LU1; eauto.
+
+    - do 2 red. intros * LU1 LU2 LU3 LU4 INEQ.
+      do 2 red in ALIAS3.
+      specialize (ALIAS3 id1 ptrv1 id2 ptrv2 (S n1) (S n2)).
+      rewrite !EQ, !nth_error_Sn in ALIAS3.
+      eapply ALIAS3 in LU1; eauto.
+  Admitted.
+
+
+  Lemma state_invariant_enter_scope_DSHnat : forall σ v x τ s1 s2 stH mV l g,
+      τ ≡ getWFType x DSHnat ->
+      Γ s1 ≡ (x,τ) :: Γ s2 ->
+      ~ In x (map fst (Γ s2)) -> 
+      in_local_or_global_scalar l g mV x (dvalue_of_int v) τ ->
+      state_invariant σ s2 stH (mV,(l,g)) ->
+      state_invariant (DSHnatVal v::σ) s1 stH (mV,(l,g)). 
+  Proof.
+    intros * -> EQ fresh IN [MEM WF ALIAS1 ALIAS2 ALIAS3].
+    split.
+    - red; intros * LU1 LU2.
+      destruct n as [| n].
+      + rewrite EQ in LU2; cbn in *.
+        inv LU1; inv LU2; auto.
+      + rewrite nth_error_Sn in LU1.
+        rewrite EQ, nth_error_Sn in LU2.
+        eapply MEM in LU2; eauto.
+        destruct v0; cbn; eauto.
+        destruct LU2 as (? & ? & ? & ? & ? & ? & ?).
+        do 2 eexists; repeat split; eauto.
+        clear - H1.
+        admit.
+
+    -  do 2 red.
+       intros ? [| n] LU.
+       + cbn in LU.
+         inv LU.
+         rewrite EQ; cbn; eauto.
+       + rewrite nth_error_Sn in LU.
+         rewrite EQ,nth_error_Sn.
+         apply WF in LU; auto.
+
+    - red; intros * LU1 LU2.
+      destruct n as [| n], n' as [| n']; auto.
+      + exfalso.
+        rewrite EQ, nth_error_Sn in LU2.
+        rewrite EQ in LU1.
+        cbn in *.
+        inv LU1.
+        apply fresh.
+        apply nth_error_In in LU2.
+        replace id with (fst (id,τ')) by reflexivity.
+        apply in_map; auto.
+
+      + exfalso.
+        rewrite EQ, nth_error_Sn in LU1.
+        rewrite EQ in LU2.
+        cbn in *.
+        inv LU2.
+        apply fresh.
+        apply nth_error_In in LU1.
+        replace id with (fst (id,τ)) by reflexivity.
+        apply in_map; auto.
+
+      + rewrite EQ, nth_error_Sn in LU1.
+        rewrite EQ, nth_error_Sn in LU2.
+        eapply ALIAS1 in LU1; apply LU1 in LU2; eauto. 
+
+    - red; intros * LU1 LU2.
+      destruct n as [| n], n' as [| n']; auto.
+      + inv LU1.
+
+      + inv LU2.
+
+
+      + rewrite nth_error_Sn in LU1.
+        rewrite nth_error_Sn in LU2.
+        eapply ALIAS2 in LU1; apply LU1 in LU2; eauto. 
+
+    - do 2 red. intros * LU1 LU2 LU3 LU4 INEQ.
+      destruct n1 as [| n1], n2 as [| n2]; auto.
+      + cbn in *.
+        inv LU1; inv LU2.
+
+      + cbn in *; inv LU1.
+      + cbn in *; inv LU2.
+  Admitted.
+
+  Lemma state_invariant_enter_scope_DSHCType : forall σ v x τ s1 s2 stH mV l g,
+      τ ≡ getWFType x DSHCType ->
+      Γ s1 ≡ (x,τ) :: Γ s2 ->
+      ~ In x (map fst (Γ s2)) ->
+      in_local_or_global_scalar l g mV x (dvalue_of_bin v) τ ->
+      state_invariant σ s2 stH (mV,(l,g)) ->
+      state_invariant (DSHCTypeVal v::σ) s1 stH (mV,(l,g)). 
+  Proof.
+    intros * -> EQ fresh IN [MEM WF ALIAS1 ALIAS2 ALIAS3].
+    split.
+    - red; intros * LU1 LU2.
+      destruct n as [| n].
+      + rewrite EQ in LU2; cbn in *.
+        inv LU1; inv LU2; auto.
+      + rewrite nth_error_Sn in LU1.
+        rewrite EQ, nth_error_Sn in LU2.
+        eapply MEM in LU2; eauto.
+        destruct v0; cbn; eauto.
+        destruct LU2 as (? & ? & ? & ? & ? & ? & ?).
+        do 2 eexists; repeat split; eauto.
+        clear - H1.
+        admit.
+
+    -  do 2 red.
+       intros ? [| n] LU.
+       + cbn in LU.
+         inv LU.
+         rewrite EQ; cbn; eauto.
+       + rewrite nth_error_Sn in LU.
+         rewrite EQ,nth_error_Sn.
+         apply WF in LU; auto.
+
+    - red; intros * LU1 LU2.
+      destruct n as [| n], n' as [| n']; auto.
+      + exfalso.
+        rewrite EQ, nth_error_Sn in LU2.
+        rewrite EQ in LU1.
+        cbn in *.
+        inv LU1.
+        apply fresh.
+        apply nth_error_In in LU2.
+        replace id with (fst (id,τ')) by reflexivity.
+        apply in_map; auto.
+
+      + exfalso.
+        rewrite EQ, nth_error_Sn in LU1.
+        rewrite EQ in LU2.
+        cbn in *.
+        inv LU2.
+        apply fresh.
+        apply nth_error_In in LU1.
+        replace id with (fst (id,τ)) by reflexivity.
+        apply in_map; auto.
+
+      + rewrite EQ, nth_error_Sn in LU1.
+        rewrite EQ, nth_error_Sn in LU2.
+        eapply ALIAS1 in LU1; apply LU1 in LU2; eauto. 
+
+    - red; intros * LU1 LU2.
+      destruct n as [| n], n' as [| n']; auto.
+      + inv LU1.
+
+      + inv LU2.
+
+
+      + rewrite nth_error_Sn in LU1.
+        rewrite nth_error_Sn in LU2.
+        eapply ALIAS2 in LU1; apply LU1 in LU2; eauto. 
+
+    - do 2 red. intros * LU1 LU2 LU3 LU4 INEQ.
+      destruct n1 as [| n1], n2 as [| n2]; auto.
+      + cbn in *.
+        inv LU1; inv LU2.
+
+      + cbn in *; inv LU1.
+      + cbn in *; inv LU2.
+  Admitted.
+
+  Lemma state_invariant_enter_scope_DSHPtr : forall σ ptrh sizeh bkh ptrv x τ s1 s2 stH mV l g,
+      τ ≡ getWFType x (DSHPtr sizeh) ->
+      Γ s1 ≡ (x,τ) :: Γ s2 ->
+      memory_lookup stH ptrh ≡ Some bkh ->
+      mem_lookup_succeeds bkh sizeh ->
+      dtyp_fits mV ptrv (typ_to_dtyp (Γ s1) τ) ->
+      in_local_or_global_addr l g x ptrv ->
+      (∀ (i : nat) (v : binary64), mem_lookup i bkh ≡ Some v → get_array_cell mV ptrv i DTYPE_Double ≡ inr (UVALUE_Double v)) ->
+
+      ~ In x (map fst (Γ s2)) ->
+      state_invariant σ s2 stH (mV,(l,g)) ->
+      state_invariant (DSHPtrVal ptrh sizeh ::σ) s1 stH (mV,(l,g)). 
+  Proof.
+    intros * -> EQ LUB SUCC TYP IN LUA fresh [MEM WF ALIAS1 ALIAS2 ALIAS3].
+    split.
+    - red; intros * LU1 LU2.
+      destruct n as [| n].
+      + rewrite EQ in LU2; cbn in *.
+        inv LU1; inv LU2; eauto 9.
+
+      + rewrite nth_error_Sn in LU1.
+        rewrite EQ, nth_error_Sn in LU2.
+        eapply MEM in LU2; eauto.
+        destruct v; cbn; eauto.
+        destruct LU2 as (? & ? & ? & ? & ? & ? & ?).
+        do 2 eexists; repeat split; eauto.
+        clear - H1.
+        admit.
+
+    - do 2 red.
+      intros ? [| n] LU.
+      + cbn in LU.
+        inv LU.
+        rewrite EQ; cbn; eauto.
+
+      + rewrite nth_error_Sn in LU.
+        rewrite EQ,nth_error_Sn.
+        apply WF in LU; auto.
+
+    - red; intros * LU1 LU2.
+      destruct n as [| n], n' as [| n']; auto.
+      + exfalso.
+        rewrite EQ, nth_error_Sn in LU2.
+        rewrite EQ in LU1.
+        cbn in *.
+        inv LU1.
+        apply fresh.
+        apply nth_error_In in LU2.
+        replace id with (fst (id,τ')) by reflexivity.
+        apply in_map; auto.
+
+      + exfalso.
+        rewrite EQ, nth_error_Sn in LU1.
+        rewrite EQ in LU2.
+        cbn in *.
+        inv LU2.
+        apply fresh.
+        apply nth_error_In in LU1.
+        replace id with (fst (id,τ)) by reflexivity.
+        apply in_map; auto.
+
+      + rewrite EQ, nth_error_Sn in LU1.
+        rewrite EQ, nth_error_Sn in LU2.
+        eapply ALIAS1 in LU1; apply LU1 in LU2; eauto. 
+
+    - red; intros * LU1 LU2.
+        assert (freshPTR: forall s, ~ In (DSHPtrVal ptrh s) σ) by admit.
+      destruct n as [| n], n' as [| n']; auto.
+      + inv LU1.
+        rewrite nth_error_Sn in LU2.
+        exfalso; apply (freshPTR sz').
+        eapply nth_error_In; eauto.
+
+      + inv LU2.
+        rewrite nth_error_Sn in LU1.
+        exfalso; apply (freshPTR sz).
+        eapply nth_error_In; eauto.
+
+      + rewrite nth_error_Sn in LU1.
+        rewrite nth_error_Sn in LU2.
+        eapply ALIAS2 in LU1; apply LU1 in LU2; eauto. 
+
+    - (* Stuck, I believe that no_llvm_ptr_aliasing is bugged *)
+      do 2 red. intros * LU1 LU2 LU3 LU4 INEQ.
+      destruct n1 as [| n1], n2 as [| n2]; auto.
+      (* + cbn in LU1,LU2. *)
+      (*   inv LU1; inv LU2. *)
+      (*   rewrite EQ in LU3. *)
+      (*   rewrite EQ in LU4. *)
+      (*   inv LU3; inv LU4. *)
+      (*   in_local_or_global_addr l g id2 ptrv1 -> *)
+      (*   in_local_or_global_addr l g id2 ptrv2 -> *)
+      (*   fst ptrv1 ≢ fst ptrv2 -> *)
+
+
+  Admitted.
+
+
   (* TODO: move this? *)
   Ltac solve_local_lookup :=
     repeat
@@ -1484,26 +1783,39 @@ Section GenIR.
             destruct PRE' as [SINV [? ->]] ; cbn in *.
             split; [|split]; eauto.
             (* TODO: add local_scope_modif to the postcondition of genIR *)
-            admit.
-            clear NOFAIL IHop.
-            rename i into s1, i0 into s2, i3 into s3, s2 into s4.
-            clean_goal.
-            apply genIR_Context in Heqs2.
-            Set Nested Proofs Allowed.
-            Lemma genWhileLoop_Context:
-              ∀ prefix j k b1 b2 b3 bks pre next s1 s2 res,
-                genWhileLoop prefix j k b1 b2 b3 bks pre next s1 ≡ inr (s2, res) ->
-                Γ s1 ≡ Γ s2.
-            Admitted.
-            apply genWhileLoop_Context in Heqs5.
-            cbn in *.
-            (* TODO: state_invariant stable by removal of both gamma and σ simultaneously *)
+            destruct HPRE as [SINVPRE LUPRE].
+            match type of Heqs2 with
+            | genIR _ _ ?s1 ≡ inr (?s2, _) =>
+              assert (local_scope_modif s1 s2 l2 a)
+            end.
             admit.
 
+            { clear NOFAIL IHop.
+              rewrite <- LUPRE.
+              eapply local_scope_modif_out with (s1 := i0). 
+              3:eauto.
+              destruct i0; cbn; red; cbn; lia.
+              do 3 eexists; cbn; repeat split; eauto. 
+            } 
+            clean_goal.
+            rename i into s1, i0 into s2, s2 into s4, i3 into s3.
+            assert (l1 ≡ Γ s4) by admit. (* genWhileLoop_Γ *)
+            apply genIR_Context in Heqs2.
+            apply incBlockNamed_Γ in Heqs1.
+            cbn in *.
+            clear - Heqs2 Heql2 H SINV.
+            subst.
+            rewrite Heql2 in Heqs2.
+            inv Heqs2.
+            eapply state_invariant_escape_scope; eauto.
           }
+          {
+            clear - Heqs1.
+            admit.
+          }
+          (* eapply state_invariant_enter_scope_DSHnat. *)
           admit.
           (* TODO: state_invariant stable by extension of both gamma and σ simultaneously *)
-          admit.
           admit.
           admit.
       }
