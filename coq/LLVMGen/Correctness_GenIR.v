@@ -964,6 +964,51 @@ Section GenIR.
               rewrite (eq_dec_neq (incLocal_id_neq GEN1 GEN2 H))
        end; cbn; auto).
 
+  Lemma maps_add_neq :
+    forall {K} {V} {eqk : K -> K -> Prop} {RD : RelDec eqk} `{RelDec_Correct _ eqk} `{Symmetric _ eqk} `{Transitive _ eqk} (x id : K) (v : V) m,
+      ~ eqk id x ->
+      Maps.add x v m @ id ≡ m @ id.
+  Proof.
+    intros K V eqk RD RDC SYM TRANS H x id v m H0.
+    cbn.
+    rewrite rel_dec_neq_false; eauto.
+    eapply remove_neq_alist; eauto.
+  Qed.
+
+  Ltac remove_neq_locals :=
+    match goal with
+    | |- Maps.add ?x ?v ?l1 @ ?id ≡ ?l2 @ ?id =>
+      assert (x ≢ id) by
+          (eapply lid_bound_earlier; eauto;
+           [eapply incLocal_lid_bound; eauto | solve_local_count]);
+      setoid_rewrite maps_add_neq; eauto
+    end.
+
+  Lemma local_scope_preserved_bound_earlier :
+    forall s1 s2 s3 x v l l',
+      lid_bound s1 x ->
+      s1 <<= s2 ->
+      local_scope_preserved s2 s3 l l' ->
+      local_scope_preserved s2 s3 l (Maps.add x v l').
+  Proof.
+    intros s1 s2 s3 x v l l' BOUND LT PRES.
+    unfold local_scope_preserved.
+    intros id BETWEEN.
+
+    epose proof (lid_bound_earlier _ _ _ _ _ BOUND BETWEEN LT) as NEQ.
+    unfold local_scope_preserved in PRES.
+    setoid_rewrite maps_add_neq; eauto.
+  Qed.
+
+  Ltac solve_lid_bound :=
+    eapply incLocal_lid_bound; eauto.
+
+  Ltac solve_local_scope_preserved :=
+    first [ apply local_scope_preserved_refl
+          | eapply local_scope_preserved_bound_earlier;
+            [solve_lid_bound | solve_local_count | solve_local_scope_preserved]
+          ].
+
   Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
       (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH) 
@@ -1203,23 +1248,7 @@ Section GenIR.
               cbn; reflexivity.
             - clear EXP2.
               clean_goal.
-
-              (* TODO: make lemma *)
-              unfold local_scope_preserved.
-              intros id H0.
-              destruct PRE2.
-              cbn in H4.
-
-              (* id is bound between s7 and sf
-
-                 Heqs9
-
-                 r1 is bound in s6
-                 r is bound in s4
-               *)
-
-              
-              admit. (* Need additional lemmas about [local_scope_preserved] *)
+              solve_local_scope_preserved.
             - destruct PRE2.
               Set Nested Proofs Allowed.
               Lemma Gamma_preserved_extended_fresh :
