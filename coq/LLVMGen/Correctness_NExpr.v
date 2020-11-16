@@ -104,7 +104,8 @@ Section NExpr.
       (state_invariant σ s1) memH (memV, (l, g)) -> (* The main state invariant is initially true *)
       Gamma_safe σ s1 s2 ->
       no_failure (interp_helix (E := E_cfg) (denoteNExpr σ nexp) memH) -> (* Source semantics defined *)
-      eutt (succ_cfg (lift_Rel_cfg (state_invariant_post σ s1 s2 l) ⩕
+      (* eutt (succ_cfg (lift_Rel_cfg (state_invariant_post σ s1 s2 l) ⩕ *)
+      eutt (succ_cfg (lift_Rel_cfg (state_invariant σ s2) ⩕
                      genNExpr_post e σ s1 s2 memH (mk_config_cfg memV l g)))
            (interp_helix (denoteNExpr σ nexp) memH)
            (interp_cfg (denote_code (convert_typ [] c)) g l memV).
@@ -124,10 +125,6 @@ Section NExpr.
 
         (* We establish the postcondition *)
         apply eutt_Ret; split; [| split]; cbn; eauto.
-        * split.
-          solve_state_invariant.
-          cbn.
-          solve_fresh.
         * intros l' LOC GAM; cbn*.
           inv PRE.
           vstep.
@@ -157,12 +154,10 @@ Section NExpr.
         vstep.
         vstep; eauto; reflexivity.
         apply eutt_Ret; cbn; split; [| split]; cbn; eauto.
-        * split.
-          eapply state_invariant_add_fresh; eauto.
-          -- eapply WF_IRState_Γ; eauto.
-             symmetry.
-             eapply incLocal_Γ; eauto.
-          -- solve_fresh.
+        * eapply state_invariant_add_fresh; eauto.
+          eapply WF_IRState_Γ; eauto.
+          symmetry.
+          eapply incLocal_Γ; eauto.
         * intros l' LOC GAM; cbn*.
           vstep; [ | reflexivity].
           cbn.
@@ -181,7 +176,6 @@ Section NExpr.
       hvred.
 
       apply eutt_Ret; split; [| split]; cbn; eauto.
-      split; [solve_state_invariant|solve_fresh].
       intros l' MONO; cbn*.
       vstep; reflexivity.
       intros * EQ; inv EQ.
@@ -212,11 +206,7 @@ Section NExpr.
 
       (* e2 *)
       specialize (IHnexp2 _ _ σ memH _ _ g l0 memV Heqs0).
-      forward IHnexp2.
-      {
-        inv PRE; inv PRE1; auto.
-      }
-
+      forward IHnexp2; auto.
       forward IHnexp2; eauto.
       eapply Gamma_safe_shrink; eauto; solve_local_count.
       forward IHnexp2; eauto. 
@@ -265,11 +255,7 @@ Section NExpr.
       }
 
       apply eutt_Ret; cbn; split; [| split]; cbn; eauto.
-      + destruct PRE2.
-        destruct PRE1.
-
-        split.
-        eapply state_invariant_add_fresh; eauto.
+      + eapply state_invariant_add_fresh; eauto.
         eapply WF_IRState_Γ; eauto.
         symmetry; eapply incLocal_Γ; eauto.
         
@@ -277,8 +263,6 @@ Section NExpr.
         solve_local_count.
         solve_local_count.
 
-        cbn in *.
-        solve_fresh.
       + intros * SCO GAM.
         vstep; eauto.
         cbn.
@@ -326,10 +310,7 @@ Section NExpr.
 
       (* e2 *)
       specialize (IHnexp2 _ _ σ memH _ _ g l0 memV Heqs0).
-      forward IHnexp2.
-      {
-        inv PRE; inv PRE1; auto.
-      }
+      forward IHnexp2; auto.
 
       forward IHnexp2; eauto.
       eapply Gamma_safe_shrink; eauto; solve_local_count.
@@ -381,20 +362,14 @@ Section NExpr.
       }
 
       apply eutt_Ret; cbn; split; [| split]; cbn; eauto.
-      + destruct PRE2.
-        destruct PRE1.
-
-        split.
-        eapply state_invariant_add_fresh; eauto.
+      + eapply state_invariant_add_fresh; eauto.
         eapply WF_IRState_Γ; eauto.
         symmetry; eapply incLocal_Γ; eauto.
         
         eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
         solve_local_count.
         solve_local_count.
-
-        cbn in *.
-        solve_fresh.
+        
       + intros * SCO GAM.
         vstep; eauto.
         cbn.
@@ -423,10 +398,8 @@ Section NExpr.
      clean_goal.
 
      specialize (IHnexp1 _ _ σ memH _ _ g l memV Heqs).
-     forward IHnexp1.
-     { inv PRE; split; auto.
-       (* solve_fresh. *)
-     }
+     forward IHnexp1; auto.
+     
      forward IHnexp1; eauto.
      eapply Gamma_safe_shrink; eauto; solve_local_count.
      forward IHnexp1; eauto.
@@ -442,10 +415,7 @@ Section NExpr.
 
      (* e2 *)
      specialize (IHnexp2 _ _ σ memH _ _ g l0 memV Heqs0).
-     forward IHnexp2.
-     {
-       inv PRE; inv PRE1; auto.
-     }
+     forward IHnexp2; auto.
 
      forward IHnexp2; eauto.
      eapply Gamma_safe_shrink; eauto; solve_local_count.
@@ -483,11 +453,7 @@ Section NExpr.
      vstep; cbn; eauto; reflexivity.
 
      apply eutt_Ret; cbn; split; [| split]; cbn; eauto.
-     + destruct PRE2.
-       destruct PRE1.
-
-       split.
-       eapply state_invariant_add_fresh; eauto.
+     + eapply state_invariant_add_fresh; eauto.
        eapply WF_IRState_Γ; eauto.
        symmetry; eapply incLocal_Γ; eauto.
        
@@ -495,8 +461,6 @@ Section NExpr.
        solve_local_count.
        solve_local_count.
 
-       cbn in *.
-       solve_fresh.
      + intros * SCO GAM.
        vstep; eauto.
        cbn.
@@ -526,10 +490,7 @@ Section NExpr.
      clean_goal.
 
      specialize (IHnexp1 _ _ σ memH _ _ g l memV Heqs).
-     forward IHnexp1.
-     { inv PRE; split; auto.
-       (* solve_fresh. *)
-     }
+     forward IHnexp1; auto.
      forward IHnexp1; eauto.
      eapply Gamma_safe_shrink; eauto; solve_local_count.
      forward IHnexp1; eauto.
@@ -545,10 +506,7 @@ Section NExpr.
 
      (* e2 *)
      specialize (IHnexp2 _ _ σ memH _ _ g l0 memV Heqs0).
-     forward IHnexp2.
-     {
-       inv PRE; inv PRE1; auto.
-     }
+     forward IHnexp2; auto.
 
      forward IHnexp2; eauto.
      eapply Gamma_safe_shrink; eauto; solve_local_count.
@@ -585,20 +543,14 @@ Section NExpr.
      vstep; cbn; eauto; reflexivity.
 
      apply eutt_Ret; cbn; split; [| split]; cbn; eauto.
-     + destruct PRE2.
-       destruct PRE1.
-
-       split.
-       eapply state_invariant_add_fresh; eauto.
+     + eapply state_invariant_add_fresh; eauto.
        eapply WF_IRState_Γ; eauto.
        symmetry; eapply incLocal_Γ; eauto.
        
        eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
        solve_local_count.
        solve_local_count.
-
-       cbn in *.
-       solve_fresh.
+       
      + intros * SCO GAM.
        vstep; eauto.
        cbn.
@@ -618,7 +570,8 @@ Section NExpr.
      + rewrite <- GAM1, <- GAM2.
        eapply incLocal_Γ; eauto.
      + left; solve_local_count.
-    - (* NMult *)
+
+   - (* NMult *)
      
      cbn* in *; simp; try_abs.
      hvred.
@@ -627,10 +580,7 @@ Section NExpr.
      clean_goal.
 
      specialize (IHnexp1 _ _ σ memH _ _ g l memV Heqs).
-     forward IHnexp1.
-     { inv PRE; split; auto.
-       (* solve_fresh. *)
-     }
+     forward IHnexp1; auto.
      forward IHnexp1; eauto.
      eapply Gamma_safe_shrink; eauto; solve_local_count.
      forward IHnexp1; eauto.
@@ -646,10 +596,7 @@ Section NExpr.
 
      (* e2 *)
      specialize (IHnexp2 _ _ σ memH _ _ g l0 memV Heqs0).
-     forward IHnexp2.
-     {
-       inv PRE; inv PRE1; auto.
-     }
+     forward IHnexp2; auto.
 
      forward IHnexp2; eauto.
      eapply Gamma_safe_shrink; eauto; solve_local_count.
@@ -688,20 +635,14 @@ Section NExpr.
      break_inner_match; reflexivity.
      
      apply eutt_Ret; cbn; split; [| split]; cbn; eauto.
-     + destruct PRE2.
-       destruct PRE1.
-
-       split.
-       eapply state_invariant_add_fresh; eauto.
+     + eapply state_invariant_add_fresh; eauto.
        eapply WF_IRState_Γ; eauto.
        symmetry; eapply incLocal_Γ; eauto.
        
        eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
        solve_local_count.
        solve_local_count.
-
-       cbn in *.
-       solve_fresh.
+       
      + intros * SCO GAM.
        vstep; eauto.
        cbn.
