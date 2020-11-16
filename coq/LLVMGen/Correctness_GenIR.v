@@ -1155,15 +1155,7 @@ Section GenIR.
       (* Step 5. *)
       subst. eapply eutt_clo_bind_returns; [eapply genNExpr_correct |..]; eauto.
       solve_state_invariant.
-      eapply Gamma_safe_shrink; eauto.
-      repeat match goal with
-               | h : incLocal _ ≡ _ |- _ => eapply incLocal_Γ in h
-               | h : incVoid _ ≡ _ |- _ => eapply incVoid_Γ in h
-               | h : incBlockNamed _ _ ≡ _ |- _ => eapply incBlockNamed_Γ in h
-             end.
-      rewrite Heqs7, Heqs6, Heqs5, Heqs4, Heqs3; auto. 
-      solve_local_count.
-      solve_local_count.
+      solve_gamma_safe.
 
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
@@ -1173,15 +1165,7 @@ Section GenIR.
 
       (* Step 6. *)
       eapply eutt_clo_bind_returns; [eapply genNExpr_correct |..]; eauto.
-      eapply Gamma_safe_shrink; eauto.
-      repeat match goal with
-             | h : incLocal _ ≡ _ |- _ => eapply incLocal_Γ in h
-             | h : incVoid _ ≡ _ |- _ => eapply incVoid_Γ in h
-             | h : incBlockNamed _ _ ≡ _ |- _ => eapply incBlockNamed_Γ in h
-             end.
-      rewrite <- Heqs, <- Heqs3, <- Heqs4, <- Heqs5, <- Heqs6, <- Heqs7; auto. 
-      solve_local_count.
-      solve_local_count.
+      solve_gamma_safe.
 
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
@@ -1230,15 +1214,7 @@ Section GenIR.
             clean_goal.
             eapply Gamma_preserved_Gamma_eq; [exact GAM1 |].
             eapply Gamma_preserved_if_safe; [| exact SCOPE2].
-            eapply Gamma_safe_shrink; eauto.
-            repeat match goal with
-                   | h : incLocal _ ≡ _ |- _ => eapply incLocal_Γ in h
-                   | h : incVoid _ ≡ _ |- _ => eapply incVoid_Γ in h
-                   | h : incBlockNamed _ _ ≡ _ |- _ => eapply incBlockNamed_Γ in h
-                   end.
-            rewrite <- Heqs, <- Heqs3, <- Heqs4, <- Heqs5, <- Heqs6, <- Heqs7; auto. 
-            solve_local_count.
-            solve_local_count.
+            solve_gamma_safe.
           - rewrite EXP1.
             rewrite repr_of_nat_to_nat.
             reflexivity.
@@ -1342,7 +1318,7 @@ Section GenIR.
             
             vstep.
 
-            assert (Γ sf ≡ Γ si) as CONT by admit. (* This should hold *)
+            assert (Γ sf ≡ Γ si) as CONT by solve_gamma.
             
             apply eutt_Ret.
             cbn.
@@ -1407,6 +1383,7 @@ Section GenIR.
                     assert (~(no_overlap_dtyp yptr' DTYPE_Double yptr (DTYPE_Array sz0 DTYPE_Double))) as OVER.
                     { erewrite <- from_Z_intval in yGEP; eauto.
                       eapply gep_array_ptr_overlap_dtyp; cbn; eauto.
+                      rewrite repr_of_nat_to_nat.
                       admit.
                       lia.
                     }
@@ -1590,7 +1567,7 @@ Section GenIR.
             - exists bid_in. reflexivity.
 
             - (* The only local variables modified are in [si;sf] *)
-              admit.
+              assert (local_scope_modif s6 sf ρ l0); solve_local_scope_modif.
           }
         }
 
