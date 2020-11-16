@@ -1239,7 +1239,6 @@ Section GenIR.
 
           clean_goal.
           rewrite yLU in H0; symmetry in H0; inv H0.
-          cbn in yINLG.
 
           (* TODO: clean this up *)
           unfold mem_lookup_succeeds in yMEM_SUC.
@@ -1430,7 +1429,6 @@ Section GenIR.
                   exists bk_h.
 
                   cbn.
-                  cbn in INLG'.
                   (* Need the pointer that matches up with @id *)
                   exists ptr_l.
 
@@ -1439,15 +1437,27 @@ Section GenIR.
 
                   eapply dtyp_fits_after_write; eauto.
 
-                  (* What if... fst (ptr_l) = fst yptr' and vice versa?
-
-                     I think if they don't equal then they don't overlap...
-                   *)
-
-                  (* Can ptr_l = yptr'? *)
-
-                  (* TODO: This should hold from extra memory invariant aliasing stuff. *)
-                  assert (fst (ptr_l) ≢ fst yptr) as DIFF_BLOCKS. admit.
+                  assert (fst (ptr_l) ≢ fst yptr) as DIFF_BLOCKS.
+                  { (* yINLG and INLG' *)
+                    eapply st_no_llvm_ptr_aliasing.
+                    6: eapply INLG'.
+                    6: eapply in_local_or_global_addr_same_global; eapply yINLG.
+                    3: eapply H5.
+                    3: { rewrite CONT; eapply LUn0. }
+                    all: eauto.
+                    intros CONTRA; inv CONTRA.
+                    (* H5 and LUN5, means that n1 = y_p, which means a = y_i *)
+                    assert (a ≡ y_i).
+                    { assert (n1 ≡ y_p).
+                      eapply st_no_id_aliasing; eauto.
+                      rewrite CONT; eauto.
+                      subst.
+                      rewrite Heqo0 in H4.
+                      inv H4.
+                      contradiction.
+                    }
+                    contradiction.
+                  }
 
                   pose proof (dtyp_fits_allocated yFITS) as yALLOC.
                   epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
