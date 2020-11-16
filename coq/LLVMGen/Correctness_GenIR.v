@@ -305,9 +305,6 @@ Section GenIR.
     | (m,(l,(g,res))) => exists from, res ≡ inl (from, to)
     end.
 
-  Definition GenIR_Rel σ (sinvs : IRState) to : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
-    lift_Rel_cfg (state_invariant σ sinvs) ⩕ branches to. 
-
   Hint Resolve state_invariant_incBlockNamed : state_invariant.
   Hint Resolve state_invariant_incLocal : state_invariant.
   Hint Resolve state_invariant_incVoid : state_invariant.
@@ -848,17 +845,28 @@ Section GenIR.
   Lemma state_invariant_enter_scope_DSHPtr : forall σ ptrh sizeh bkh ptrv x τ s1 s2 stH mV l g,
       τ ≡ getWFType x (DSHPtr sizeh) ->
       Γ s1 ≡ (x,τ) :: Γ s2 ->
+
+      (* Proof obligations to satisfy the memory relation between the addresses added on both sides *)
       memory_lookup stH ptrh ≡ Some bkh ->
       mem_lookup_succeeds bkh sizeh ->
       dtyp_fits mV ptrv (typ_to_dtyp (Γ s1) τ) ->
       in_local_or_global_addr l g x ptrv ->
       (∀ (i : nat) (v : binary64), mem_lookup i bkh ≡ Some v → get_array_cell mV ptrv i DTYPE_Double ≡ inr (UVALUE_Double v)) ->
 
-      ~ In x (map fst (Γ s2)) ->
+      (* Avoiding to introduce aliasing *)
+      ~ In x (map fst (Γ s2)) ->          (* The new ident is fresh *)
+      (forall s, ~ In (DSHPtrVal ptrh s) σ) -> (* The new Helix address is fresh *)
+      (forall ptrv' ptrh sz n id τ,           (* The new Vellvm address is fresh *)
+          nth_error σ n ≡ Some (DSHPtrVal ptrh sz) ->
+          nth_error (Γ s2) n ≡ Some (id, τ) ->
+          in_local_or_global_addr l g id ptrv' ->
+          fst ptrv <> fst ptrv') ->
+
       state_invariant σ s2 stH (mV,(l,g)) ->
+
       state_invariant (DSHPtrVal ptrh sizeh ::σ) s1 stH (mV,(l,g)). 
   Proof.
-    intros * -> EQ LUB SUCC TYP IN LUA fresh [MEM WF ALIAS1 ALIAS2 ALIAS3].
+    intros * -> EQ LUB SUCC TYP IN LUA fresh1 fresh2 fresh3 [MEM WF ALIAS1 ALIAS2 ALIAS3].
     split.
     - red; intros * LU1 LU2.
       destruct n as [| n].
@@ -891,7 +899,7 @@ Section GenIR.
         rewrite EQ in LU1.
         cbn in *.
         inv LU1.
-        apply fresh.
+        apply fresh1.
         apply nth_error_In in LU2.
         replace id with (fst (id,τ')) by reflexivity.
         apply in_map; auto.
@@ -901,7 +909,7 @@ Section GenIR.
         rewrite EQ in LU2.
         cbn in *.
         inv LU2.
-        apply fresh.
+        apply fresh1.
         apply nth_error_In in LU1.
         replace id with (fst (id,τ)) by reflexivity.
         apply in_map; auto.
@@ -911,37 +919,50 @@ Section GenIR.
         eapply ALIAS1 in LU1; apply LU1 in LU2; eauto. 
 
     - red; intros * LU1 LU2.
-        assert (freshPTR: forall s, ~ In (DSHPtrVal ptrh s) σ) by admit.
       destruct n as [| n], n' as [| n']; auto.
       + inv LU1.
         rewrite nth_error_Sn in LU2.
-        exfalso; apply (freshPTR sz').
+        exfalso; apply (fresh2 sz').
         eapply nth_error_In; eauto.
 
       + inv LU2.
         rewrite nth_error_Sn in LU1.
-        exfalso; apply (freshPTR sz).
+        exfalso; apply (fresh2 sz).
         eapply nth_error_In; eauto.
 
       + rewrite nth_error_Sn in LU1.
         rewrite nth_error_Sn in LU2.
         eapply ALIAS2 in LU1; apply LU1 in LU2; eauto. 
 
-    - (* Stuck, I believe that no_llvm_ptr_aliasing is bugged *)
-      do 2 red. intros * LU1 LU2 LU3 LU4 INEQ.
+    - do 2 red. intros * LU1 LU2 LU3 LU4 INEQ IN1 IN2.
       destruct n1 as [| n1], n2 as [| n2]; auto.
-      (* + cbn in LU1,LU2. *)
-      (*   inv LU1; inv LU2. *)
-      (*   rewrite EQ in LU3. *)
-      (*   rewrite EQ in LU4. *)
-      (*   inv LU3; inv LU4. *)
-      (*   in_local_or_global_addr l g id2 ptrv1 -> *)
-      (*   in_local_or_global_addr l g id2 ptrv2 -> *)
-      (*   fst ptrv1 ≢ fst ptrv2 -> *)
-
-
+      + rewrite EQ in LU3.
+        rewrite EQ in LU4.
+        cbn in *.
+        inv LU1; inv LU2; inv LU3; inv LU4.
+        eauto.
+      + rewrite EQ in LU3,LU4.
+        cbn in *.
+        inv LU1; inv LU3.
+        eapply fresh3 in IN2; eauto.
+        red in IN1, IN.
+        destruct id1; cbn; eauto.
+        rewrite IN1 in IN; inv IN; auto.
+        rewrite IN1 in IN; inv IN; auto.
+      + rewrite EQ in LU3,LU4.
+        cbn in *.
+        inv LU2; inv LU4.
+        eapply fresh3 in IN1; eauto.
+        red in IN2, IN.
+        destruct id2; cbn; eauto.
+        rewrite IN2 in IN; inv IN; auto.
+        rewrite IN2 in IN; inv IN; auto.
+      + rewrite EQ in LU3,LU4.
+        cbn in *. 
+        eapply ALIAS3.
+        apply LU1.
+        all:eauto.
   Admitted.
-
 
   (* TODO: move this? *)
   Ltac solve_local_lookup :=
@@ -1009,6 +1030,12 @@ Section GenIR.
             [solve_lid_bound | solve_local_count | solve_local_scope_preserved]
           ].
 
+  Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li : local_env)
+    : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
+    lift_Rel_cfg (state_invariant σ s2) ⩕
+                 branches to ⩕ 
+                 (fun sthf stvf => local_scope_modif s1 s2 li (fst (snd stvf))).
+
   Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
       (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH) 
@@ -1019,13 +1046,14 @@ Section GenIR.
       state_invariant σ s1 memH (memV, (ρ, g)) ->
       Gamma_safe σ s1 s2 ->
       no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ op) memH) -> (* Evaluation succeeds *)
-      eutt (succ_cfg (GenIR_Rel σ s2 nextblock))
+      eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ))
            (interp_helix (denoteDSHOperator σ op) memH)
            (interp_cfg (D.denote_bks (convert_typ [] bks) (bid_from,bid_in))
                        g ρ memV).
   Proof.
     intros s1 s2 op; revert s1 s2; induction op; intros * GEN NEXT PRE GAM NOFAIL.
     - (* DSHNOp *)
+      (* begin comment
       cbn* in *.
       simp.
       cbn*.
@@ -1063,10 +1091,13 @@ Section GenIR.
       }
       vred.
 
-      apply eutt_Ret; auto.
-      cbn in *; split; cbn; eauto.
+      apply eutt_Ret.
+      split; [| split]; cbn in *; eauto.
       eapply state_invariant_incVoid; eauto.
       eapply state_invariant_incBlockNamed; eauto.
+
+      end comment *)
+      admit.
 
     - (* ** DSHAssign (x_p, src_e) (y_p, dst_e):
          Helix side:
@@ -1087,6 +1118,7 @@ Section GenIR.
          py <- gep "dst_p"[dst_nexpr] ;;
          store v py
        *)
+
       cbn* in *; simp.
       hide_cfg.
       inv_resolve_PVar Heqs0.
@@ -1140,7 +1172,6 @@ Section GenIR.
       hvred.
 
       (* Step 6. *)
-      destruct  PRE1.
       eapply eutt_clo_bind_returns; [eapply genNExpr_correct |..]; eauto.
       eapply Gamma_safe_shrink; eauto.
       repeat match goal with
@@ -1315,12 +1346,11 @@ Section GenIR.
             
             apply eutt_Ret.
             cbn.
-            split; cbn.
+            split; [| split]; cbn.
             - (* State invariant *)
               cbn.
               split; eauto.
-              destruct PRE2 as [SINV ?].
-              destruct SINV.
+              destruct PRE2.
               unfold memory_invariant.
               intros n1 v0 τ x0 H4 H5.
               cbn in mem_is_inv.
@@ -1331,10 +1361,10 @@ Section GenIR.
               destruct x0.
               { (* x0 is a global *)
                 destruct v0.
-                cbn. cbn in H3. 
+                cbn. cbn in H4. 
                 admit.
                 admit.
-                destruct H3 as (bk_h & ptr_l & MINV).
+                destruct H0 as (bk_h & ptr_l & MINV).
                 destruct MINV as (MLUP & MSUC & FITS & INLG' & GET).
                 destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
                 - (* DSHPtrVals alias *)
@@ -1455,7 +1485,7 @@ Section GenIR.
                 destruct v0. (* Probably need to use WF_IRState to make sure we only consider valid types *)
                 admit.
                 admit.
-                destruct H3 as (bk_h & ptr_l & MINV). (* Do I need this? *)
+                destruct H0 as (bk_h & ptr_l & MINV). (* Do I need this? *)
                 destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
                 - (* PTR aliases, local case should be bogus... *)
                   subst.
@@ -1499,7 +1529,7 @@ Section GenIR.
 
                   destruct MINV as (MLUP & MSUC & FITS & INLG' & GET).
                   pose proof alist_In_dec id l0.
-                  edestruct H3 as [INl0 | NINl0].
+                  edestruct H0 as [INl0 | NINl0].
                   + subst.
                     cbn.                  
                     exists bk_h. exists ptr'.
@@ -1538,16 +1568,13 @@ Section GenIR.
                     apply NINl0. eauto.
               }
 
-              + eapply WF_IRState_Γ;
-                  eauto; symmetry; eapply incLocal_Γ; eauto.
               + destruct PRE2. eapply st_no_id_aliasing; eauto.
               + eapply st_no_dshptr_aliasing; eauto.
               + cbn.
-                destruct PRE2 as [INV2 ?].
                 eapply no_llvm_ptr_aliasing_not_in_gamma.
                 eapply no_llvm_ptr_aliasing_not_in_gamma.
                 eapply no_llvm_ptr_aliasing_not_in_gamma.
-                eapply st_no_llvm_ptr_aliasing in INV2. cbn in INV2. eauto.
+                eapply st_no_llvm_ptr_aliasing in PRE2. cbn in PRE2. eauto.
 
                 (* TODO: these admits scare me *)
                 eapply WF_IRState_Γ;
@@ -1559,7 +1586,11 @@ Section GenIR.
                 eapply WF_IRState_Γ;
                   eauto; symmetry; eapply incLocal_Γ; eauto.
                 admit.
+
             - exists bid_in. reflexivity.
+
+            - (* The only local variables modified are in [si;sf] *)
+              admit.
           }
         }
 
@@ -1660,11 +1691,10 @@ Section GenIR.
             
             vstep.
 
-            apply eutt_Ret.
-            cbn.
-            split; cbn.
+            apply eutt_Ret; split; [| split]; cbn.
             - admit. (* TODO: state_invariant *)
             - exists bid_in. reflexivity.
+            - admit.
           }
         }
       }
@@ -1672,6 +1702,7 @@ Section GenIR.
       { (* vx_p is in local *)
         admit.
       }
+
     - admit.
     - admit.
     - admit.
