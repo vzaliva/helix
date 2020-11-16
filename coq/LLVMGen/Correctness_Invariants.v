@@ -632,6 +632,19 @@ Proof.
     contradiction NEQ; auto.
 Qed.
 
+(* Gives a way to work with multiple changes made to locals *)
+Lemma local_scope_modif_add': forall s1 s2 l l' r v,
+    lid_bound_between s1 s2 r ->
+    local_scope_modif s1 s2 l l' ->
+    local_scope_modif s1 s2 l (alist_add r v l').
+Proof.
+  intros * BET MODIF.
+  red; intros * NEQ.
+  destruct (rel_dec_p r id).
+  - subst; rewrite alist_find_add_eq in NEQ; auto.
+  - rewrite alist_find_neq in NEQ; auto.
+Qed.
+
 (* If all changes made are in the empty interval, then no change has been made *)
 Lemma local_scope_modif_empty_scope:
   forall (l1 l2 : local_env) id s,
@@ -1496,3 +1509,18 @@ Ltac subst_contexts :=
          | H : Γ ?s1 ≡ Γ ?s2 |- _ =>
            rewrite H in *; clear H
          end.
+
+Ltac get_gammas :=
+  repeat
+    match goal with
+    | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>
+      eapply incLocal_Γ in H
+    | H: incVoid ?s1 ≡ inr (?s2, _) |- _ =>
+      eapply incVoid_Γ in H
+    | H: incBlockNamed ?msg ?s1 ≡ inr (?s2, _) |- _ =>
+      eapply incBlockNamed_Γ in H
+    | H: genNExpr ?n ?s1 ≡ inr (?s2, _) |- _ =>
+      eapply genNExpr_context in H
+    end.
+
+Ltac solve_gamma := solve [get_gammas; congruence].

@@ -1251,56 +1251,46 @@ Section GenIR.
               solve_local_scope_preserved.
             - destruct PRE2.
 
-              (* eapply Gamma_preserved_if_safe with (s2:=sf). *)
-              (* + eapply Gamma_safe_shrink. eauto. *)
-              (*   admit. *)
-              (*   * solve_local_count. *)
-              (*   * solve_local_count. *)
-              (* + (* This should be a lemma *) *)
-              (*   unfold local_scope_modif. *)
-              (*   intros id H4. *)
-              (*   (* Obviously id is either r1 or r *) *)
-              (*   (* But those are bound earlier... *) *)
-              
-              Set Nested Proofs Allowed.
-              Lemma Gamma_preserved_extended_fresh :
-                forall σ s l l' id v memH memV g,
-                  Gamma_preserved σ s l l' ->
-                  memory_invariant σ s memH (memV, (l', g)) ->
-                  alist_fresh id l' ->
-                  Gamma_preserved σ s l (Maps.add id v l').
-              Proof.
-                intros σ s l l' id v memH memV g GAMMA MINV FRESH.
-                unfold Gamma_preserved in *.
-                intros id0 IN.
-                assert ({id ≡ id0} + {id ≢ id0}) as [EQ | NEQ] by admit. (* Should be fine... *)
-                - subst.
-                  destruct IN.
-                  exfalso.
-                  unfold alist_fresh in FRESH.
-                  unfold memory_invariant in MINV.
-                  destruct v0.
-                  + epose proof (memory_invariant_LLU _ MINV H0 H).
-                    cbn in H2.
-                    rewrite FRESH in H2. discriminate H2.
-                  + epose proof (memory_invariant_LLU_AExpr _ MINV H0 H).
-                    cbn in H2.
-                    rewrite FRESH in H2. discriminate H2.
-                  + epose proof (memory_invariant_LLU_Ptr _ MINV H0 H).
-                    cbn in H2.
-                    destruct H2 as (bk & ptr & MLUP & MSUC & FITS & LUP & ?).
-                    rewrite FRESH in LUP. discriminate LUP.
-                - cbn.
-                  setoid_rewrite maps_add_neq; eauto.                 
-              Admitted.
-              eapply Gamma_preserved_extended_fresh.
-              eapply Gamma_preserved_extended_fresh.
-              eapply Gamma_preserved_refl.
+              (* Gamma_preserved = 
+                 λ (σ : evalContext) (s : IRState) (l1 l2 : local_env),
+                 ∀ id : raw_id, in_Gamma σ s id → l1 @ id ≡ l2 @ id
+                 : evalContext → IRState → local_env → local_env → Prop
 
+                 Variant in_Gamma : evalContext → IRState → raw_id → Prop :=
+                 mk_in_Gamma : ∀ (σ : list DSHVal) (s : IRState) (id : raw_id) (τ : typ) (n : nat) (v : DSHVal),
+                 nth_error σ n ≡ Some v →
+                 nth_error (Γ s) n ≡ Some (ID_Local id, τ) →
+                 WF_IRState σ s →
+                 in_Gamma σ s id
+
+                 An id is in_Gamma if there's something in evalContext
+                 that matches up with gamma, and the states are well
+                 formed...
+
+                 Gamma_preserved means that for all ids in gamma the
+                 ids in the local environments agree.
+
+                 Gamma_safe σ s1 s2 means that no id in gamma s1 is
+                 bound between s1 and s2...
+               *)
+
+              (* Here I should be able to get to
+                 Gamma_preserved σ s7 l0 l0,
+                 and then use Gamma_preserved_refl.
+
+                 In particular I know that r1 and r are bound between
+                 si and sf, which means that they're not in Γ si. We
+                 also know that Γ si = Γ s7 = Γ sf.
+               *)
+
+              assert (Γ si ≡ Γ s7) as GAMsisf by solve_gamma.
+              eapply Gamma_preserved_Gamma_eq. eapply GAMsisf.
+              eapply Gamma_preserved_if_safe with (s2:=sf); eauto.
+              eapply local_scope_modif_add'.
               admit.
+              eapply local_scope_modif_add'.
               admit.
-              admit.
-              admit.
+              eapply local_scope_modif_refl.
           }
 
           eapply yGETCELL; eauto.
