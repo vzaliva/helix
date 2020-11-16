@@ -1316,7 +1316,11 @@ Section GenIR.
                 eapply bid_bound_fresh; eauto.
                 solve_prefix.
               }
-              assert ((if Eqv.eqv_dec_p bid_in nextblock then true else false) ≡ false) as BID_NEQ by admit.
+              assert ((if Eqv.eqv_dec_p bid_in nextblock then true else false) ≡ false) as BID_NEQ.
+              {
+                unfold Eqv.eqv_dec_p.
+                break_match_goal; [contradiction | reflexivity].
+              }
               rewrite BID_NEQ.
               reflexivity.
             }
@@ -1683,7 +1687,11 @@ Section GenIR.
                 eapply bid_bound_fresh; eauto.
                 solve_prefix.
               }
-              assert ((if Eqv.eqv_dec_p bid_in nextblock then true else false) ≡ false) by admit.
+              assert ((if Eqv.eqv_dec_p bid_in nextblock then true else false) ≡ false).
+              {
+                unfold Eqv.eqv_dec_p.
+                break_match_goal; [contradiction | reflexivity].
+              }
               rewrite H0.
               reflexivity.
             }
