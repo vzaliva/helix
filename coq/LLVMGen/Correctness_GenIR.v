@@ -1250,46 +1250,22 @@ Section GenIR.
               clean_goal.
               solve_local_scope_preserved.
             - destruct PRE2.
-
-              (* Gamma_preserved = 
-                 λ (σ : evalContext) (s : IRState) (l1 l2 : local_env),
-                 ∀ id : raw_id, in_Gamma σ s id → l1 @ id ≡ l2 @ id
-                 : evalContext → IRState → local_env → local_env → Prop
-
-                 Variant in_Gamma : evalContext → IRState → raw_id → Prop :=
-                 mk_in_Gamma : ∀ (σ : list DSHVal) (s : IRState) (id : raw_id) (τ : typ) (n : nat) (v : DSHVal),
-                 nth_error σ n ≡ Some v →
-                 nth_error (Γ s) n ≡ Some (ID_Local id, τ) →
-                 WF_IRState σ s →
-                 in_Gamma σ s id
-
-                 An id is in_Gamma if there's something in evalContext
-                 that matches up with gamma, and the states are well
-                 formed...
-
-                 Gamma_preserved means that for all ids in gamma the
-                 ids in the local environments agree.
-
-                 Gamma_safe σ s1 s2 means that no id in gamma s1 is
-                 bound between s1 and s2...
-               *)
-
-              (* Here I should be able to get to
-                 Gamma_preserved σ s7 l0 l0,
-                 and then use Gamma_preserved_refl.
-
-                 In particular I know that r1 and r are bound between
-                 si and sf, which means that they're not in Γ si. We
-                 also know that Γ si = Γ s7 = Γ sf.
-               *)
-
+              (* TODO: can we automate this better? *)
               assert (Γ si ≡ Γ s7) as GAMsisf by solve_gamma.
               eapply Gamma_preserved_Gamma_eq. eapply GAMsisf.
               eapply Gamma_preserved_if_safe with (s2:=sf); eauto.
               eapply local_scope_modif_add'.
-              admit.
+              { eapply lid_bound_between_shrink_down; [|eapply lid_bound_between_shrink_up].
+                3: eapply lid_bound_between_incLocal; eauto.
+                solve_local_count.
+                solve_local_count.
+              }
               eapply local_scope_modif_add'.
-              admit.
+              { eapply lid_bound_between_shrink_down; [|eapply lid_bound_between_shrink_up].
+                3: eapply lid_bound_between_incLocal; eauto.
+                solve_local_count.
+                solve_local_count.
+              }
               eapply local_scope_modif_refl.
           }
 
