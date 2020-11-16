@@ -1309,7 +1309,13 @@ Section GenIR.
 
               unfold find_block.
               cbn.
-              assert (bid_in ≢ nextblock) by admit. (* Should hold from NEXT and Heqs *)
+              assert (bid_in ≢ nextblock).
+              { (* Should hold from NEXT and Heqs *)
+                eapply incBlockNamed_bound_between in Heqs.
+                intros CONTRA; symmetry in CONTRA; revert CONTRA.
+                eapply bid_bound_fresh; eauto.
+                solve_prefix.
+              }
               assert ((if Eqv.eqv_dec_p bid_in nextblock then true else false) ≡ false) as BID_NEQ by admit.
               rewrite BID_NEQ.
               reflexivity.
@@ -1396,7 +1402,7 @@ Section GenIR.
 
                     destruct (Nat.eq_dec i (MInt64asNT.to_nat dst)) as [EQdst | NEQdst].
                     {
-                    (* In the case where i = dst
+                    (* In the case where i = DST
 
                        I know v0 = v (which is the value from the source (GETCELL)
 
@@ -1670,7 +1676,13 @@ Section GenIR.
 
               unfold find_block.
               cbn.
-              assert (bid_in ≢ nextblock) by admit.
+              assert (bid_in ≢ nextblock).
+              { (* Should hold from NEXT and Heqs *)
+                eapply incBlockNamed_bound_between in Heqs.
+                intros CONTRA; symmetry in CONTRA; revert CONTRA.
+                eapply bid_bound_fresh; eauto.
+                solve_prefix.
+              }
               assert ((if Eqv.eqv_dec_p bid_in nextblock then true else false) ≡ false) by admit.
               rewrite H0.
               reflexivity.
