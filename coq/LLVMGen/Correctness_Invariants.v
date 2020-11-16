@@ -837,6 +837,19 @@ Proof.
     eauto using lid_bound_between_shrink_up.
 Qed.
 
+Lemma local_scope_modif_shrink :
+  forall (s1 s2 s3 s4 : IRState) l1 l2,
+    local_scope_modif s2 s3 l1 l2 ->
+    s1 <<= s2 ->
+    s3 <<= s4 ->
+    local_scope_modif s1 s4 l1 l2.
+Proof.
+  intros s1 s2 s3 s4 l1 l2 MODIF LT1 LT2.
+  unfold local_scope_modif in *.
+  intros id NEQ.
+  eapply lid_bound_between_shrink; eauto.
+Qed.
+
 Lemma memory_invariant_Ptr : forall vid σ s memH memV l g a size x sz,
     state_invariant σ s memH (memV, (l, g)) ->
     nth_error σ vid ≡ Some (DSHPtrVal a size) ->
@@ -1538,13 +1551,19 @@ Ltac get_gammas :=
 Ltac solve_gamma := solve [get_gammas; congruence].
 
 (* TODO: expand this *)
+Ltac solve_gamma_safe :=
+  eapply Gamma_safe_shrink; eauto; [solve_gamma| |]; solve_local_count.
+
+(* TODO: expand this *)
 Ltac solve_lid_bound_between :=
   eapply lid_bound_between_shrink; [eapply lid_bound_between_incLocal | | ]; eauto; solve_local_count.
 
 (* TODO: expand this *)
 Ltac solve_local_scope_modif :=
+  eauto;
   first
     [ eapply local_scope_modif_refl
-    | eapply local_scope_modif_add'; [solve_lid_bound_between| solve_local_scope_modif]
+    | solve [eapply local_scope_modif_shrink; [eassumption | solve_local_count | solve_local_count]]
+    | solve [eapply local_scope_modif_add'; [solve_lid_bound_between | solve_local_scope_modif]]
+    | eapply local_scope_modif_trans; eauto; solve_local_count
     ].
-
