@@ -806,6 +806,18 @@ Proof.
   solve_local_count.
 Qed.
 
+Lemma lid_bound_between_shrink :
+  ∀ (s1 s2 s3 s4 : IRState) (id : local_id),
+    lid_bound_between s2 s3 id →
+    s1 <<= s2 →
+    s3 <<= s4 ->
+    lid_bound_between s1 s4 id.
+Proof.
+  intros s1 s2 s3 s4 id H H0 H1.
+  eapply lid_bound_between_shrink_down; [|eapply lid_bound_between_shrink_up];
+    eauto.
+Qed.
+
 (* Transitivity of the changes belonging to intervals *)
 Lemma local_scope_modif_trans :
   forall s1 s2 s3 l1 l2 l3,
@@ -1524,3 +1536,15 @@ Ltac get_gammas :=
     end.
 
 Ltac solve_gamma := solve [get_gammas; congruence].
+
+(* TODO: expand this *)
+Ltac solve_lid_bound_between :=
+  eapply lid_bound_between_shrink; [eapply lid_bound_between_incLocal | | ]; eauto; solve_local_count.
+
+(* TODO: expand this *)
+Ltac solve_local_scope_modif :=
+  first
+    [ eapply local_scope_modif_refl
+    | eapply local_scope_modif_add'; [solve_lid_bound_between| solve_local_scope_modif]
+    ].
+

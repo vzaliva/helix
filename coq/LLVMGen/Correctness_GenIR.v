@@ -1254,19 +1254,7 @@ Section GenIR.
               assert (Γ si ≡ Γ s7) as GAMsisf by solve_gamma.
               eapply Gamma_preserved_Gamma_eq. eapply GAMsisf.
               eapply Gamma_preserved_if_safe with (s2:=sf); eauto.
-              eapply local_scope_modif_add'.
-              { eapply lid_bound_between_shrink_down; [|eapply lid_bound_between_shrink_up].
-                3: eapply lid_bound_between_incLocal; eauto.
-                solve_local_count.
-                solve_local_count.
-              }
-              eapply local_scope_modif_add'.
-              { eapply lid_bound_between_shrink_down; [|eapply lid_bound_between_shrink_up].
-                3: eapply lid_bound_between_incLocal; eauto.
-                solve_local_count.
-                solve_local_count.
-              }
-              eapply local_scope_modif_refl.
+              solve_local_scope_modif.
           }
 
           eapply yGETCELL; eauto.
