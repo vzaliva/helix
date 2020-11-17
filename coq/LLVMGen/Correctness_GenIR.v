@@ -1346,7 +1346,7 @@ Section GenIR.
               destruct x0.
               { (* x0 is a global *)
                 destruct v0.
-                cbn. cbn in H4. 
+                cbn. cbn in H4.
                 admit.
                 admit.
                 destruct H0 as (bk_h & ptr_l & MINV).
@@ -1607,7 +1607,7 @@ Section GenIR.
               cbn; reflexivity.
             - clear EXP2.
               clean_goal.
-              admit. (* Need additional lemmas about [local_scope_preserved] *)
+              solve_local_scope_preserved.
             - admit.
           }
 
@@ -1701,7 +1701,7 @@ Section GenIR.
             apply eutt_Ret; split; [| split]; cbn.
             - admit. (* TODO: state_invariant *)
             - exists bid_in. reflexivity.
-            - admit.
+            - assert (local_scope_modif s6 sf ρ l0); solve_local_scope_modif.
           }
         }
       }
