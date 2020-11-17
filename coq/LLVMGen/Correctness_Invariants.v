@@ -185,9 +185,6 @@ Section SimulationRelations.
        | ID_Global x => g @ x ≡ Some (DVALUE_Addr a)
        end.
 
-  Definition mem_lookup_succeeds bk size :=
-    forall i, 0 <= i /\ i < MInt64asNT.to_nat size -> exists v, mem_lookup i bk ≡ Some v.
-
   Definition no_dshptr_aliasing (σ : evalContext) : Prop :=
     forall n n' ptr sz sz',
       nth_error σ n ≡ Some (DSHPtrVal ptr sz) ->
@@ -283,8 +280,7 @@ Section SimulationRelations.
         | DSHPtrVal ptr_helix ptr_size_helix =>
           exists bk_helix ptr_llvm,
           memory_lookup mem_helix ptr_helix ≡ Some bk_helix /\
-          mem_lookup_succeeds bk_helix ptr_size_helix /\
-          dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp (Γ s) τ) /\ (* TODO: might not need this *)
+          dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp [] τ) /\
           in_local_or_global_addr ρ g x ptr_llvm /\
           (forall i v, mem_lookup i bk_helix ≡ Some v ->
                   get_array_cell mem_llvm ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v))
@@ -352,8 +348,7 @@ Section SimulationRelations.
       nth_error σ v ≡ Some (DSHPtrVal m size) ->
       exists (bk_h : mem_block) (ptr_v : Addr.addr),
         memory_lookup memH m ≡ Some bk_h
-        /\ mem_lookup_succeeds bk_h size
-        /\ dtyp_fits memV ptr_v (typ_to_dtyp (Γ s) t)
+        /\ dtyp_fits memV ptr_v (typ_to_dtyp [] t)
         /\ in_local_or_global_addr l g (ID_Local id) ptr_v
         /\ (forall (i : Memory.NM.key) (v : binary64),
               mem_lookup i bk_h ≡ Some v -> get_array_cell memV ptr_v i DTYPE_Double ≡ inr (UVALUE_Double v)).
@@ -913,9 +908,8 @@ Lemma memory_invariant_Ptr : forall vid σ s memH memV l g a size x sz,
     nth_error (Γ s) vid ≡ Some (x, TYPE_Pointer (TYPE_Array sz TYPE_Double)) ->
     ∃ (bk_helix : mem_block) (ptr_llvm : Addr.addr),
       memory_lookup memH a ≡ Some bk_helix
-      ∧ mem_lookup_succeeds bk_helix size
       ∧ dtyp_fits memV ptr_llvm
-                  (typ_to_dtyp (Γ s) (TYPE_Pointer (TYPE_Array sz TYPE_Double)))
+                  (typ_to_dtyp [] (TYPE_Pointer (TYPE_Array sz TYPE_Double)))
       ∧ in_local_or_global_addr l g x ptr_llvm
       ∧ (∀ (i : Memory.NM.key) (v : binary64), mem_lookup i bk_helix ≡ Some v → get_array_cell memV ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v)).
 Proof.
