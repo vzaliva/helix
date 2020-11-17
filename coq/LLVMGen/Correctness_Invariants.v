@@ -278,9 +278,10 @@ Section SimulationRelations.
         | DSHnatVal v   => in_local_or_global_scalar ρ g mem_llvm x (dvalue_of_int v) τ
         | DSHCTypeVal v => in_local_or_global_scalar ρ g mem_llvm x (dvalue_of_bin v) τ
         | DSHPtrVal ptr_helix ptr_size_helix =>
-          exists bk_helix ptr_llvm,
+          exists bk_helix ptr_llvm τ',
           memory_lookup mem_helix ptr_helix ≡ Some bk_helix /\
-          dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp [] τ) /\
+          τ ≡ TYPE_Pointer τ' /\
+          dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp [] τ') /\
           in_local_or_global_addr ρ g x ptr_llvm /\
           (forall i v, mem_lookup i bk_helix ≡ Some v ->
                   get_array_cell mem_llvm ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v))
@@ -346,9 +347,10 @@ Section SimulationRelations.
       memory_invariant σ s memH (memV, (l, g)) ->
       nth_error (Γ s) v ≡ Some (ID_Local id, t) ->
       nth_error σ v ≡ Some (DSHPtrVal m size) ->
-      exists (bk_h : mem_block) (ptr_v : Addr.addr),
+      exists (bk_h : mem_block) (ptr_v : Addr.addr) t',
         memory_lookup memH m ≡ Some bk_h
-        /\ dtyp_fits memV ptr_v (typ_to_dtyp [] t)
+        /\ t ≡ TYPE_Pointer t'
+        /\ dtyp_fits memV ptr_v (typ_to_dtyp [] t')
         /\ in_local_or_global_addr l g (ID_Local id) ptr_v
         /\ (forall (i : Memory.NM.key) (v : binary64),
               mem_lookup i bk_h ≡ Some v -> get_array_cell memV ptr_v i DTYPE_Double ≡ inr (UVALUE_Double v)).
@@ -522,8 +524,8 @@ Section SimulationRelations.
           rewrite remove_neq_alist; eauto.
           all: typeclasses eauto.
       + destruct x; cbn in *; auto.
-        destruct INLG as (? & ? & ? & ? &?).
-        do 2 eexists; split; [| split]; eauto.
+        destruct INLG as (? & ? & ? & ? & ? & ? & ? & ?).
+        do 3 eexists; split; [eauto | split]; eauto.
         break_match_goal.
         * rewrite rel_dec_correct in Heqb; subst.
           exfalso; eapply NIN.
@@ -909,11 +911,15 @@ Lemma memory_invariant_Ptr : forall vid σ s memH memV l g a size x sz,
     ∃ (bk_helix : mem_block) (ptr_llvm : Addr.addr),
       memory_lookup memH a ≡ Some bk_helix
       ∧ dtyp_fits memV ptr_llvm
-                  (typ_to_dtyp [] (TYPE_Pointer (TYPE_Array sz TYPE_Double)))
+                  (typ_to_dtyp [] (TYPE_Array sz TYPE_Double))
       ∧ in_local_or_global_addr l g x ptr_llvm
       ∧ (∀ (i : Memory.NM.key) (v : binary64), mem_lookup i bk_helix ≡ Some v → get_array_cell memV ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v)).
 Proof.
   intros * MEM LU1 LU2; inv MEM; eapply mem_is_inv0 in LU1; eapply LU1 in LU2; eauto.
+  destruct LU2 as (bk & ptr & τ' & ? & ? & ? & ? & ?).
+  exists bk. exists ptr.
+  inv H0.
+  repeat split; eauto.  
 Qed.
 
 

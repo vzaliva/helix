@@ -1209,259 +1209,255 @@ Section GenIR.
         vred.
         hide_cont.
 
-        (* destruct vy_p as [vy_p | vy_p]. *)
-        (* { (* vy_p in global *) *)
-        (*   edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |]. *)
+        destruct vy_p as [vy_p | vy_p].
+        { (* vy_p in global *)
+          edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |].
 
-        (*   clean_goal. *)
-        (*   rewrite yLU in H0; symmetry in H0; inv H0. *)
+          clean_goal.
+          rewrite yLU in H0; symmetry in H0; inv H0.
 
-        (*   edestruct denote_instr_gep_array' as (yptr' & yREAD & yGEP & yEQ); cycle -1; [rewrite yEQ; clear yEQ | ..]; cycle 1. *)
-        (*   { vstep; solve_lu. *)
-        (*     cbn; reflexivity. *)
-        (*   } *)
-        (*   { rewrite EXP2. *)
-        (*     - rewrite repr_of_nat_to_nat. *)
-        (*       cbn; reflexivity. *)
-        (*     - clear EXP2. *)
-        (*       clean_goal. *)
-        (*       solve_local_scope_preserved. *)
-        (*     - destruct PRE2. *)
-        (*       (* TODO: can we automate this better? *) *)
-        (*       assert (Γ si ≡ Γ s7) as GAMsisf by solve_gamma. *)
-        (*       eapply Gamma_preserved_Gamma_eq. eapply GAMsisf. *)
-        (*       eapply Gamma_preserved_if_safe with (s2:=sf); eauto. *)
-        (*       solve_local_scope_modif. *)
-        (*   } *)
+          edestruct denote_instr_gep_array_no_read as (yptr' & yGEP & yEQ); cycle -1; [rewrite yEQ; clear yEQ | ..]; cycle 1.
+          { vstep; solve_lu.
+            cbn.
+            admit.
+          }
+          { rewrite EXP2.
+            - rewrite repr_of_nat_to_nat.
+              cbn; reflexivity.
+            - clear EXP2.
+              clean_goal.
+              solve_local_scope_preserved.
+            - destruct PRE2.
+              (* TODO: can we automate this better? *)
+              assert (Γ si ≡ Γ s7) as GAMsisf by solve_gamma.
+              eapply Gamma_preserved_Gamma_eq. eapply GAMsisf.
+              eapply Gamma_preserved_if_safe with (s2:=sf); eauto.
+              solve_local_scope_modif.
+          }
 
-        (*   eapply yGETCELL; eauto. *)
+          { rewrite typ_to_dtyp_D_array in yFITS.
+            assert (sz0 ≡ Int64.intval i4) by
+                (apply from_Z_intval; eauto).
+            subst.
+            eauto.
+          }
 
-        (*   vstep. *)
-        (*   subst_cont. *)
-        (*   vred. *)
+          vstep.
+          subst_cont.
+          vred.
 
-        (*   epose proof (@read_write_succeeds memV yptr' _ _ (DVALUE_Double v) yREAD) as (memV2 & WRITE_SUCCEEDS). *)
-        (*   constructor. *)
+          epose proof (write_succeeds _ _) as [m2 WRITE_SUCCEEDS].
 
-        (*   (* Store *) *)
-        (*   erewrite denote_instr_store; eauto. *)
-        (*   2: { *)
-        (*     vstep. *)
-        (*     - cbn. *)
-        (*       solve_local_lookup. *)
-        (*     - cbn. *)
-        (*       apply eqit_Ret. *)
-        (*       cbn. *)
-        (*       reflexivity. *)
-        (*   } *)
+          (* Store *)
+          erewrite denote_instr_store; eauto.
+          2: {
+            vstep.
+            - cbn.
+              solve_local_lookup.
+            - cbn.
+              apply eqit_Ret.
+              cbn.
+              reflexivity.
+          }
 
-        (*   2: { *)
-        (*     vstep. *)
-        (*     - cbn. *)
-        (*       solve_local_lookup. *)
-        (*     - cbn. *)
-        (*       apply eqit_Ret. *)
-        (*       cbn. *)
-        (*       reflexivity. *)
-        (*   } *)
+          2: {
+            vstep.
+            - cbn.
+              solve_local_lookup.
+            - cbn.
+              apply eqit_Ret.
+              cbn.
+              reflexivity.
+          }
 
-        (*   2: { *)
-        (*     cbn. reflexivity. *)
-        (*   } *)
+          2: {
+            cbn. reflexivity.
+          }
 
-        (*   { vstep. *)
-        (*     rewrite denote_term_br_1. *)
-        (*     vstep. *)
-        (*     rewrite denote_bks_unfold_not_in. *)
-        (*     2: { *)
-        (*       (* TODO: Add a subst_cfg *) *)
-        (*       destruct VG; subst. *)
-        (*       cbn. *)
+          { vstep.
+            rewrite denote_term_br_1.
+            vstep.
+            rewrite denote_bks_unfold_not_in.
+            2: {
+              (* TODO: Add a subst_cfg *)
+              destruct VG; subst.
+              cbn.
 
-        (*       unfold find_block. *)
-        (*       cbn. *)
-        (*       assert (bid_in ≢ nextblock). *)
-        (*       { (* Should hold from NEXT and Heqs *) *)
-        (*         eapply incBlockNamed_bound_between in Heqs. *)
-        (*         intros CONTRA; symmetry in CONTRA; revert CONTRA. *)
-        (*         eapply bid_bound_fresh; eauto. *)
-        (*         solve_prefix. *)
-        (*       } *)
-        (*       assert ((if Eqv.eqv_dec_p bid_in nextblock then true else false) ≡ false) as BID_NEQ. *)
-        (*       { *)
-        (*         unfold Eqv.eqv_dec_p. *)
-        (*         break_match_goal; [contradiction | reflexivity]. *)
-        (*       } *)
-        (*       rewrite BID_NEQ. *)
-        (*       reflexivity. *)
-        (*     } *)
+              unfold find_block.
+              cbn.
+              assert (bid_in ≢ nextblock).
+              { (* Should hold from NEXT and Heqs *)
+                eapply incBlockNamed_bound_between in Heqs.
+                intros CONTRA; symmetry in CONTRA; revert CONTRA.
+                eapply bid_bound_fresh; eauto.
+                solve_prefix.
+              }
+              assert ((if Eqv.eqv_dec_p bid_in nextblock then true else false) ≡ false) as BID_NEQ.
+              {
+                unfold Eqv.eqv_dec_p.
+                break_match_goal; [contradiction | reflexivity].
+              }
+              rewrite BID_NEQ.
+              reflexivity.
+            }
             
-        (*     vstep. *)
+            vstep.
 
-        (*     assert (Γ sf ≡ Γ si) as CONT by solve_gamma. *)
+            assert (Γ sf ≡ Γ si) as CONT by solve_gamma.
             
-        (*     apply eutt_Ret. *)
-        (*     cbn. *)
-        (*     split; [| split]; cbn. *)
-        (*     - (* State invariant *) *)
-        (*       cbn. *)
-        (*       split; eauto. *)
-        (*       destruct PRE2. *)
-        (*       unfold memory_invariant. *)
-        (*       intros n1 v0 τ x0 H4 H5. *)
-        (*       cbn in mem_is_inv. *)
-        (*       pose proof (mem_is_inv n1 v0 τ x0 H4 H5). *)
+            apply eutt_Ret.
+            cbn.
+            split; [| split]; cbn.
+            - (* State invariant *)
+              cbn.
+              split; eauto.
+              destruct PRE2.
+              unfold memory_invariant.
+              intros n1 v0 τ x0 H4 H5.
+              cbn in mem_is_inv.
+              pose proof (mem_is_inv n1 v0 τ x0 H4 H5).
 
-        (*       (* TODO: can probably turn this into a lemma *) *)
-        (*       (* All depends on whether x0 == r, r1, or r0 *) *)
-        (*       destruct x0. *)
-        (*       { (* x0 is a global *) *)
-        (*         destruct v0. *)
-        (*         cbn. cbn in H4. *)
-        (*         admit. *)
-        (*         admit. *)
-        (*         destruct H0 as (bk_h & ptr_l & MINV). *)
-        (*         destruct MINV as (MLUP & MSUC & FITS & INLG' & GET). *)
-        (*         destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS]. *)
-        (*         - (* DSHPtrVals alias *) *)
-        (*           subst. *)
-        (*           rewrite yLU in MLUP. *)
-        (*           inv MLUP. *)
+              (* TODO: can probably turn this into a lemma *)
+              (* All depends on whether x0 == r, r1, or r0 *)
+              destruct x0.
+              { (* x0 is a global *)
+                destruct v0.
+                cbn. cbn in H4.
+                admit.
+                admit.
+                destruct H as (bk_h & ptr_l & τ' & MINV).
+                destruct MINV as (MLUP & MTYP & FITS & INLG' & GET).
+                destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
+                - (* DSHPtrVals alias *)
+                  subst.
+                  rewrite yLU in MLUP.
+                  inv MLUP.
 
-        (*           epose proof (st_no_dshptr_aliasing _ _ _ _ _ Heqo0 H4); subst. *)
+                  epose proof (st_no_dshptr_aliasing _ _ _ _ _ Heqo0 H4); subst.
 
-        (*           (* Since y_i = a, we know this matches the block that was written to *) *)
-        (*           exists (mem_add (MInt64asNT.to_nat dst) v bk_h). *)
+                  (* Since y_i = a, we know this matches the block that was written to *)
+                  exists (mem_add (MInt64asNT.to_nat dst) v bk_h).
 
-        (*           (* *) *)
-        (*           exists yptr. *)
+                  (* *)
+                  exists yptr. exists τ'.
 
+                  split.
+                  { rewrite memory_lookup_memory_set_eq. reflexivity. }
+                  split; auto.
+                  split.
+                  admit. (* TODO: dtyp_fits *)
+                  split.
+                  { cbn.
+                    rewrite Heqo0 in H4.
+                    rewrite <- CONT in LUn0. rewrite LUn0 in H5.
+                    inversion H5; subst; auto.
+                  }
+                  { (* Need to show that every lookup matches *)
+                    intros i v0 H3.
 
-        (*           split. *)
-        (*           { rewrite memory_lookup_memory_set_eq. reflexivity. } *)
-        (*           split. *)
-        (*           { unfold mem_lookup_succeeds. *)
-        (*             intros i BOUNDS. *)
-        (*             destruct (NPeano.Nat.eq_dec i (MInt64asNT.to_nat dst)) as [EQDST | NEQDST]. *)
-        (*             - subst. rewrite mem_lookup_mem_add_eq. *)
-        (*               exists v. reflexivity. *)
-        (*             - assert (size0 ≡ size1) by (eapply ptr_alias_size_eq; eauto); subst. *)
-        (*               rewrite mem_lookup_mem_add_neq; eauto. *)
-        (*           } *)
-        (*           split. *)
-        (*           admit. (* Might not need this, but should hold *) *)
-        (*           split. *)
-        (*           { cbn. *)
-        (*             rewrite Heqo0 in H4. *)
-        (*             rewrite <- CONT in LUn0. rewrite LUn0 in H5. *)
-        (*             inversion H5; subst; auto. *)
-        (*           } *)
-        (*           { (* Need to show that every lookup matches *) *)
-        (*             intros i v0 H3. *)
+                    (* TODO: do I even need this...? *)
+                    assert (~(no_overlap_dtyp yptr' DTYPE_Double yptr (DTYPE_Array sz0 DTYPE_Double))) as OVER.
+                    { erewrite <- from_Z_intval in yGEP; eauto.
+                      eapply gep_array_ptr_overlap_dtyp; cbn; eauto.
+                      rewrite repr_of_nat_to_nat.
+                      admit.
+                      lia.
+                    }
 
-        (*             (* TODO: do I even need this...? *) *)
-        (*             assert (~(no_overlap_dtyp yptr' DTYPE_Double yptr (DTYPE_Array sz0 DTYPE_Double))) as OVER. *)
-        (*             { erewrite <- from_Z_intval in yGEP; eauto. *)
-        (*               eapply gep_array_ptr_overlap_dtyp; cbn; eauto. *)
-        (*               rewrite repr_of_nat_to_nat. *)
-        (*               admit. *)
-        (*               lia. *)
-        (*             } *)
+                    (* Because I know that there is overlap, I know that fst yptr' = fst yptr  *)
+        (*              *)
 
-        (*             (* Because I know that there is overlap, I know that fst yptr' = fst yptr  *)
-        (*              *) *)
+                    pose proof (dtyp_fits_allocated yFITS) as yALLOC.
+                    epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
+                    erewrite WRITE_ARRAY in WRITE_SUCCEEDS.
 
-        (*             pose proof (dtyp_fits_allocated yFITS) as yALLOC. *)
-        (*             epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY. *)
-        (*             rewrite WRITE_ARRAY in WRITE_SUCCEEDS. *)
-
-        (*             destruct (Nat.eq_dec i (MInt64asNT.to_nat dst)) as [EQdst | NEQdst]. *)
-        (*             { *)
-        (*             (* In the case where i = DST *)
+                    destruct (Nat.eq_dec i (MInt64asNT.to_nat dst)) as [EQdst | NEQdst].
+                    {
+                    (* In the case where i = DST *)
 
         (*                I know v0 = v (which is the value from the source (GETCELL) *)
 
         (*                I should be able to show that yptr' is GEP of yptr in this case... *)
 
         (*                May be able to use write array lemmas...? *)
-        (*              *) *)
+        (*              *)
 
-        (*               subst. *)
-        (*               rewrite mem_lookup_mem_add_eq in H3; inv H3. *)
+                      subst.
+                      rewrite mem_lookup_mem_add_eq in H3; inv H3.
 
-        (*               change (UVALUE_Double v0) with (dvalue_to_uvalue (DVALUE_Double v0)). *)
-        (*               eapply write_array_cell_get_array_cell; eauto. *)
-        (*               constructor. *)
-        (*             } *)
-        (*             { *)
-        (*             (* In the case where i <> dst *)
+                      change (UVALUE_Double v0) with (dvalue_to_uvalue (DVALUE_Double v0)).
+                      eapply write_array_cell_get_array_cell; eauto.
+                      constructor.
+                    }
+                    {
+                    (* In the case where i <> dst *)
 
         (*                I should be able to use yGETCELL along with H4 (getting rid of mem_add) *)
-        (*              *) *)
-        (*               rewrite mem_lookup_mem_add_neq in H3; auto. *)
-        (*               erewrite write_array_cell_untouched; eauto. *)
-        (*               constructor. *)
-        (*             } *)
-        (*           } *)
-        (*         - (* DSHPtrVals do not alias *) *)
+        (*              *)
+                      rewrite mem_lookup_mem_add_neq in H3; auto.
+                      erewrite write_array_cell_untouched; eauto.
+                      constructor.
+                    }
+                  }
+                - (* DSHPtrVals do not alias *)
 
-        (*           (* This must be the case because if y_i <> a, then *)
-        (*           we're looking at a different helix block. *) *)
-        (*           exists bk_h. *)
+                  (* This must be the case because if y_i <> a, then *)
+        (*           we're looking at a different helix block. *)
+                  exists bk_h.
 
-        (*           cbn. *)
-        (*           (* Need the pointer that matches up with @id *) *)
-        (*           exists ptr_l. *)
+                  cbn.
+                  (* Need the pointer that matches up with @id *)
+                  exists ptr_l. exists τ'.
 
-        (*           rewrite memory_lookup_memory_set_neq; auto. *)
-        (*           repeat split; auto. *)
+                  rewrite memory_lookup_memory_set_neq; auto.
+                  repeat split; auto.
 
-        (*           eapply dtyp_fits_after_write; eauto. *)
+                  eapply dtyp_fits_after_write; eauto.
 
-        (*           assert (fst (ptr_l) ≢ fst yptr) as DIFF_BLOCKS. *)
-        (*           { (* yINLG and INLG' *) *)
-        (*             eapply st_no_llvm_ptr_aliasing. *)
-        (*             6: eapply INLG'. *)
-        (*             6: eapply in_local_or_global_addr_same_global; eapply yINLG. *)
-        (*             3: eapply H5. *)
-        (*             3: { rewrite CONT; eapply LUn0. } *)
-        (*             all: eauto. *)
-        (*             intros CONTRA; inv CONTRA. *)
-        (*             (* H5 and LUN5, means that n1 = y_p, which means a = y_i *) *)
-        (*             assert (a ≡ y_i). *)
-        (*             { assert (n1 ≡ y_p). *)
-        (*               eapply st_no_id_aliasing; eauto. *)
-        (*               rewrite CONT; eauto. *)
-        (*               subst. *)
-        (*               rewrite Heqo0 in H4. *)
-        (*               inv H4. *)
-        (*               contradiction. *)
-        (*             } *)
-        (*             contradiction. *)
-        (*           } *)
+                  assert (fst (ptr_l) ≢ fst yptr) as DIFF_BLOCKS.
+                  { (* yINLG and INLG' *)
+                    eapply st_no_llvm_ptr_aliasing.
+                    6: eapply INLG'.
+                    6: (* This is local now... *) { eapply in_local_or_global_addr_same_global. eapply yINLG. }
+                    3: eapply H5.
+                    3: { rewrite CONT; eapply LUn0. }
+                    all: eauto.
+                    intros CONTRA; inv CONTRA.
+                    (* H5 and LUN5, means that n1 = y_p, which means a = y_i *)
+                    assert (a ≡ y_i).
+                    { assert (n1 ≡ y_p).
+                      eapply st_no_id_aliasing; eauto.
+                      rewrite CONT; eauto.
+                      subst.
+                      rewrite Heqo0 in H4.
+                      inv H4.
+                      contradiction.
+                    }
+                    contradiction.
+                  }
 
-        (*           pose proof (dtyp_fits_allocated yFITS) as yALLOC. *)
-        (*           epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY. *)
-        (*           rewrite WRITE_ARRAY in WRITE_SUCCEEDS. *)
+                  pose proof (dtyp_fits_allocated yFITS) as yALLOC.
+                  epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
+                  rewrite WRITE_ARRAY in WRITE_SUCCEEDS.
 
-        (*           intros i v0 H3. *)
-        (*           erewrite write_array_cell_untouched_ptr_block; eauto. *)
-        (*           constructor. *)
-        (*       } *)
+                  intros i v0 H3.
+                  erewrite write_array_cell_untouched_ptr_block; eauto.
+                  constructor.
+              }
 
-        (*       { (* x0 is a local *) *)
-        (*         destruct v0. (* Probably need to use WF_IRState to make sure we only consider valid types *) *)
-        (*         admit. *)
-        (*         admit. *)
-        (*         destruct H0 as (bk_h & ptr_l & MINV). (* Do I need this? *) *)
-        (*         destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS]. *)
-        (*         - (* PTR aliases, local case should be bogus... *) *)
-        (*           subst. *)
+              { (* x0 is a local *)
+                destruct v0. (* Probably need to use WF_IRState to make sure we only consider valid types *)
+                admit.
+                admit.
+                destruct H as (bk_h & ptr_l & τ' & MINV). (* Do I need this? *)
+                destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
+                - (* PTR aliases, local case should be bogus... *)
+                  subst.
 
-        (*           epose proof (st_no_dshptr_aliasing _ _ _ _ _ Heqo0 H4); subst. *)
-        (*           rewrite <- CONT in LUn0. rewrite LUn0 in H5. *)
-        (*           inversion H5. *)
-        (*         - (* This is the branch where a and y_i don't *)
+                  epose proof (st_no_dshptr_aliasing _ _ _ _ _ Heqo0 H4); subst.
+                  rewrite <- CONT in LUn0. rewrite LUn0 in H5.
+                  inversion H5.
+                - (* This is the branch where a and y_i don't *)
         (*              alias. These are the DSHPtrVal pointers... *)
 
         (*              DSHPtrVal a size1 corresponds to %id, which must be a local id. *)
@@ -1493,189 +1489,191 @@ Section GenIR.
         (*              Otherwise, there's actually a contradiction with *)
         (*              MINV's in_local_or_global_addr... Because id *)
         (*              would not be in l0. *)
-        (*            *) *)
+        (*            *)
 
-        (*           destruct MINV as (MLUP & MSUC & FITS & INLG' & GET). *)
-        (*           pose proof alist_In_dec id l0. *)
-        (*           edestruct H0 as [INl0 | NINl0]. *)
-        (*           + subst. *)
-        (*             cbn.                   *)
-        (*             exists bk_h. exists ptr'. *)
+                  destruct MINV as (MLUP & MSUC & FITS & INLG' & GET).
+                  pose proof alist_In_dec id l0.
+                  edestruct H as [INl0 | NINl0].
+                  + subst.
+                    cbn.
+                    exists bk_h. exists ptr'. exists τ'.
                     
-        (*             rewrite memory_lookup_memory_set_neq; auto. *)
-        (*             repeat (split; auto). *)
-        (*             * admit. (* should hold might not need *) *)
-        (*             * (* This should all hold from the fact that id is *)
-        (*                in l0 and everything is fresh... *) *)
+                    rewrite memory_lookup_memory_set_neq; auto.
+                    repeat (split; auto).
+                    * admit. (* should hold might not need *)
+                    * (* This should all hold from the fact that id is *)
+        (*                in l0 and everything is fresh... *)
 
-        (*               (* This is hideous *) *)
-        (*               (* automate. Make the add function opaque... *) *)
-        (*               assert (id ?[ Logic.eq ] r0 ≡ false) as IDR0 by admit. *)
-        (*               rewrite IDR0. *)
-        (*               assert (negb (r0 ?[ Logic.eq ] r1) ≡ true) as R0R1 by admit. *)
-        (*               rewrite R0R1. *)
-        (*               cbn. *)
-        (*               assert (id ?[ Logic.eq ] r1 ≡ false) as IDR1 by admit. *)
-        (*               rewrite IDR1. *)
-        (*               cbn. *)
-        (*               assert (negb (r1 ?[ Logic.eq ] r) ≡ true) as R1R by admit. *)
-        (*               rewrite R1R. *)
-        (*               cbn. *)
-        (*               assert (negb (r0 ?[ Logic.eq ] r) ≡ true) as R0R by admit. *)
-        (*               rewrite R0R. *)
-        (*               cbn. *)
-        (*               assert (id ?[ Logic.eq ] r ≡ true) as IDR by admit. *)
-        (*               rewrite IDR. *)
-        (*               reflexivity. *)
-        (*             * intros i v0 H6. *)
-        (*               pose proof (GET i v0 H6). *)
-        (*               (* untouched part of memory, so this should hold *) *)
-        (*               admit. (* TODO: do this one *) *)
-        (*           + cbn in INLG'. *)
-        (*             exfalso. *)
-        (*             apply NINl0. eauto. *)
-        (*       } *)
+                      (* This is hideous *)
+                      (* automate. Make the add function opaque... *)
+                      assert (id ?[ Logic.eq ] r0 ≡ false) as IDR0 by admit.
+                      rewrite IDR0.
+                      assert (negb (r0 ?[ Logic.eq ] r1) ≡ true) as R0R1 by admit.
+                      rewrite R0R1.
+                      cbn.
+                      assert (id ?[ Logic.eq ] r1 ≡ false) as IDR1 by admit.
+                      rewrite IDR1.
+                      cbn.
+                      assert (negb (r1 ?[ Logic.eq ] r) ≡ true) as R1R by admit.
+                      rewrite R1R.
+                      cbn.
+                      assert (negb (r0 ?[ Logic.eq ] r) ≡ true) as R0R by admit.
+                      rewrite R0R.
+                      cbn.
+                      assert (id ?[ Logic.eq ] r ≡ true) as IDR by admit.
+                      rewrite IDR.
+                      reflexivity.
+                    * intros i v0 H6.
+                      pose proof (GET i v0 H6).
+                      (* untouched part of memory, so this should hold *)
+                      admit. (* TODO: do this one *)
+                  + cbn in INLG'.
+                    exfalso.
+                    apply NINl0. eauto.
+              }
 
-        (*       + destruct PRE2. eapply st_no_id_aliasing; eauto. *)
-        (*       + eapply st_no_dshptr_aliasing; eauto. *)
-        (*       + cbn. *)
-        (*         eapply no_llvm_ptr_aliasing_not_in_gamma. *)
-        (*         eapply no_llvm_ptr_aliasing_not_in_gamma. *)
-        (*         eapply no_llvm_ptr_aliasing_not_in_gamma. *)
-        (*         eapply st_no_llvm_ptr_aliasing in PRE2. cbn in PRE2. eauto. *)
+              + destruct PRE2. eapply st_no_id_aliasing; eauto.
+              + eapply st_no_dshptr_aliasing; eauto.
+              + cbn.
+                eapply no_llvm_ptr_aliasing_not_in_gamma.
+                eapply no_llvm_ptr_aliasing_not_in_gamma.
+                eapply no_llvm_ptr_aliasing_not_in_gamma.
+                eapply st_no_llvm_ptr_aliasing in PRE2. cbn in PRE2. eauto.
 
-        (*         (* TODO: these admits scare me *) *)
-        (*         eapply WF_IRState_Γ; *)
-        (*           eauto; symmetry; eapply incLocal_Γ; eauto. *)
-        (*         admit. *)
-        (*         eapply WF_IRState_Γ; *)
-        (*           eauto; symmetry; eapply incLocal_Γ; eauto. *)
-        (*         admit. *)
-        (*         eapply WF_IRState_Γ; *)
-        (*           eauto; symmetry; eapply incLocal_Γ; eauto. *)
-        (*         admit. *)
+                (* TODO: these admits scare me *)
+                eapply WF_IRState_Γ;
+                  eauto; symmetry; eapply incLocal_Γ; eauto.
+                admit.
+                eapply WF_IRState_Γ;
+                  eauto; symmetry; eapply incLocal_Γ; eauto.
+                admit.
+                eapply WF_IRState_Γ;
+                  eauto; symmetry; eapply incLocal_Γ; eauto.
+                admit.
 
-        (*     - exists bid_in. reflexivity. *)
+            - exists bid_in. reflexivity.
 
-        (*     - (* The only local variables modified are in [si;sf] *) *)
-        (*       assert (local_scope_modif s6 sf ρ l0); solve_local_scope_modif. *)
-        (*   } *)
-        (* } *)
+            - (* The only local variables modified are in [si;sf] *)
+              assert (local_scope_modif s6 sf ρ l0); solve_local_scope_modif.
+          }
+        }
 
-        (* { (* vy_p in local *) *)
-        (*   edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yMEMSUC & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |]. *)
+        { (* vy_p in local *)
+          edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |].
 
-        (*   clean_goal. *)
-        (*   rewrite yLU in H0; symmetry in H0; inv H0. *)
-        (*   cbn in yINLG. *)
+          clean_goal.
+          rewrite yLU in H0; symmetry in H0; inv H0.
+          cbn in yINLG.
 
-        (*   edestruct denote_instr_gep_array as (yptr' & yREAD & yEQ); cycle -1; [rewrite yEQ; clear yEQ | ..]; cycle 1. *)
-        (*   { vstep; solve_lu. *)
-        (*     admit. (* ugh *) *)
-        (*   } *)
-        (*   { rewrite EXP2. *)
-        (*     - rewrite repr_of_nat_to_nat. *)
-        (*       cbn; reflexivity. *)
-        (*     - clear EXP2. *)
-        (*       clean_goal. *)
-        (*       solve_local_scope_preserved. *)
-        (*     - admit. *)
-        (*   } *)
+          edestruct denote_instr_gep_array_no_read as (yptr' & yGEP & yEQ); cycle -1; [rewrite yEQ; clear yEQ | ..]; cycle 1.
+          { vstep; solve_lu.
+            admit. (* ugh *)
+          }
+          { rewrite EXP2.
+            - rewrite repr_of_nat_to_nat.
+              cbn; reflexivity.
+            - clear EXP2.
+              clean_goal.
+              solve_local_scope_preserved.
+            - admit.
+          }
 
-        (*   eapply yGETCELL. *)
-        (*   admit. (* Should be true because dst < size *) *)
+          { rewrite typ_to_dtyp_D_array in yFITS.
+            assert (sz0 ≡ Int64.intval i4) by
+                (apply from_Z_intval; eauto).
+            subst.
+            eauto.
+          }
 
-        (*   vstep. *)
-        (*   subst_cont. *)
-        (*   vred. *)
+          vstep.
+          subst_cont.
+          vred.
 
-        (*   epose proof (@read_write_succeeds memV yptr' _ _ (DVALUE_Double v) yREAD) as (memV2 & WRITE_SUCCEEDS). *)
-        (*   constructor. *)
+          epose proof (write_succeeds _ _) as [m2 WRITE_SUCCEEDS].
 
-        (*   (* Store *) *)
-        (*   erewrite denote_instr_store; eauto. *)
-        (*   2: { *)
-        (*     vstep. *)
-        (*     - cbn. *)
+          (* Store *)
+          erewrite denote_instr_store; eauto.
+          2: {
+            vstep.
+            - cbn.
 
-        (*       (* TODO: automate? *) *)
-        (*       assert (r1 ≢ r0) as NEQ by admit. *)
-        (*       assert (r0 ≢ r1) as NEQ' by auto. *)
-        (*       apply eq_dec_neq in NEQ. *)
-        (*       apply eq_dec_neq in NEQ'. *)
-        (*       rewrite NEQ, NEQ'. *)
-        (*       cbn. *)
+              (* TODO: automate? *)
+              assert (r1 ≢ r0) as NEQ by admit.
+              assert (r0 ≢ r1) as NEQ' by auto.
+              apply eq_dec_neq in NEQ.
+              apply eq_dec_neq in NEQ'.
+              rewrite NEQ, NEQ'.
+              cbn.
 
-        (*       assert (r1 ≡ r1) as EQ by auto. *)
-        (*       eapply rel_dec_eq_true in EQ. *)
+              assert (r1 ≡ r1) as EQ by auto.
+              eapply rel_dec_eq_true in EQ.
 
-        (*       rewrite EQ. *)
-        (*       reflexivity. *)
-        (*       apply RelDec_Correct_eq_typ. *)
-        (*     - cbn. *)
-        (*       apply eqit_Ret. *)
-        (*       cbn. *)
-        (*       reflexivity. *)
-        (*   } *)
+              rewrite EQ.
+              reflexivity.
+              apply RelDec_Correct_eq_typ.
+            - cbn.
+              apply eqit_Ret.
+              cbn.
+              reflexivity.
+          }
 
-        (*   2: { *)
-        (*     vstep. *)
-        (*     - cbn. *)
+          2: {
+            vstep.
+            - cbn.
 
-        (*       (* TODO: automate? *) *)
-        (*       assert (r0 ≡ r0) as EQ by auto. *)
-        (*       eapply rel_dec_eq_true in EQ. *)
+              (* TODO: automate? *)
+              assert (r0 ≡ r0) as EQ by auto.
+              eapply rel_dec_eq_true in EQ.
 
-        (*       rewrite EQ. *)
-        (*       reflexivity. *)
-        (*       apply RelDec_Correct_eq_typ. *)
-        (*     - cbn. *)
-        (*       apply eqit_Ret. *)
-        (*       cbn. *)
-        (*       reflexivity. *)
-        (*   } *)
+              rewrite EQ.
+              reflexivity.
+              apply RelDec_Correct_eq_typ.
+            - cbn.
+              apply eqit_Ret.
+              cbn.
+              reflexivity.
+          }
 
-        (*   2: { *)
-        (*     cbn. reflexivity. *)
-        (*   } *)
+          2: {
+            cbn. reflexivity.
+          }
 
-        (*   1: { *)
-        (*     vstep. *)
-        (*     rewrite denote_term_br_1. *)
-        (*     vstep. *)
-        (*     rewrite denote_bks_unfold_not_in. *)
-        (*     2: { *)
-        (*       (* TODO: Add a subst_cfg *) *)
-        (*       destruct VG; subst. *)
-        (*       cbn. *)
+          1: {
+            vstep.
+            rewrite denote_term_br_1.
+            vstep.
+            rewrite denote_bks_unfold_not_in.
+            2: {
+              (* TODO: Add a subst_cfg *)
+              destruct VG; subst.
+              cbn.
 
-        (*       unfold find_block. *)
-        (*       cbn. *)
-        (*       assert (bid_in ≢ nextblock). *)
-        (*       { (* Should hold from NEXT and Heqs *) *)
-        (*         eapply incBlockNamed_bound_between in Heqs. *)
-        (*         intros CONTRA; symmetry in CONTRA; revert CONTRA. *)
-        (*         eapply bid_bound_fresh; eauto. *)
-        (*         solve_prefix. *)
-        (*       } *)
-        (*       assert ((if Eqv.eqv_dec_p bid_in nextblock then true else false) ≡ false). *)
-        (*       { *)
-        (*         unfold Eqv.eqv_dec_p. *)
-        (*         break_match_goal; [contradiction | reflexivity]. *)
-        (*       } *)
-        (*       rewrite H0. *)
-        (*       reflexivity. *)
-        (*     } *)
+              unfold find_block.
+              cbn.
+              assert (bid_in ≢ nextblock).
+              { (* Should hold from NEXT and Heqs *)
+                eapply incBlockNamed_bound_between in Heqs.
+                intros CONTRA; symmetry in CONTRA; revert CONTRA.
+                eapply bid_bound_fresh; eauto.
+                solve_prefix.
+              }
+              assert ((if Eqv.eqv_dec_p bid_in nextblock then true else false) ≡ false).
+              {
+                unfold Eqv.eqv_dec_p.
+                break_match_goal; [contradiction | reflexivity].
+              }
+              rewrite H0.
+              reflexivity.
+            }
             
-        (*     vstep. *)
+            vstep.
 
-        (*     apply eutt_Ret; split; [| split]; cbn. *)
-        (*     - admit. (* TODO: state_invariant *) *)
-        (*     - exists bid_in. reflexivity. *)
-        (*     - assert (local_scope_modif s6 sf ρ l0); solve_local_scope_modif. *)
-        (*   } *)
-        (* } *)
-        admit.
+            apply eutt_Ret; split; [| split]; cbn.
+            - admit. (* TODO: state_invariant *)
+            - exists bid_in. reflexivity.
+            - assert (local_scope_modif s6 sf ρ l0); solve_local_scope_modif.
+          }
+        }
       }
 
       { (* vx_p is in local *)
