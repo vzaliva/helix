@@ -12,6 +12,7 @@ Section LidBound.
   Definition lid_bound_between (s1 s2 : IRState) (lid : local_id) : Prop
     := state_bound_between local_count incLocalNamed s1 s2 lid.
 
+
   Lemma incLocalNamed_count_gen_injective :
     count_gen_injective local_count incLocalNamed.
   Proof.
@@ -25,6 +26,17 @@ Section LidBound.
     apply Name_inj in CONTRA.
     apply valid_prefix_string_of_nat_forward in CONTRA; auto.
     intuition.
+  Qed.
+
+
+  Lemma lid_bound_fresh :
+    ∀ (s1 s2 : IRState) (id1 id2 : local_id),
+      lid_bound s1 id1 →
+      lid_bound_between s1 s2 id2 → id1 ≢ id2.
+  Proof.
+    intros s1 s2 lid lid' BOUND BETWEEN.
+    eapply state_bound_fresh; eauto.
+    apply incLocalNamed_count_gen_injective.
   Qed.
 
   Lemma incLocalNamed_count_gen_mono :

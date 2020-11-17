@@ -133,23 +133,23 @@ intros. rewrite Proofs.find_mapsto_equiv; auto.
 (* (* auto using find_1, add_1 with ordered_type. *) *)
 Admitted.
 
-Lemma memory_invariant_Ptr:
-  ∀ (memH : memoryH) (σ : evalContext) (size : Int64.int) (i0 : IRState) k
-  (mH : config_helix) (mV : memoryV) (l1 : local_env) (g1 : global_env),
-    (* Γ s2 ≡ -> *)
-    memory_invariant (DSHPtrVal k size :: σ) i0 mH (mV, (l1, g1))
-      → memory_invariant σ i0 (memory_remove mH k) (mV, (l1, g1)).
-Proof.
-  intros. cbn in *.
-  intros.
-  (* specialize (H _ _ _ _ H0 H1). *)
-  (* destruct v; eauto. *)
-  (* destruct H as (? & ? & ? & ? & ?). *)
-  (* eexists. exists x1. split; eauto. *)
-  (* rewrite remove_find. 2 : apply Memory.NM.is_bst. *)
-  (* break_match; eauto. *)
-  (* inversion e. subst. *)
-Admitted.
+(* Lemma memory_invariant_Ptr: *)
+(*   ∀ (memH : memoryH) (σ : evalContext) (size : Int64.int) (i0 : IRState) k *)
+(*   (mH : config_helix) (mV : memoryV) (l1 : local_env) (g1 : global_env), *)
+(*     (* Γ s2 ≡ -> *) *)
+(*     memory_invariant (DSHPtrVal k size :: σ) i0 mH (mV, (l1, g1)) *)
+(*       → memory_invariant σ i0 (memory_remove mH k) (mV, (l1, g1)). *)
+(* Proof. *)
+(*   intros. cbn in *. *)
+(*   intros. *)
+(*   (* specialize (H _ _ _ _ H0 H1). *) *)
+(*   (* destruct v; eauto. *) *)
+(*   (* destruct H as (? & ? & ? & ? & ?). *) *)
+(*   (* eexists. exists x1. split; eauto. *) *)
+(*   (* rewrite remove_find. 2 : apply Memory.NM.is_bst. *) *)
+(*   (* break_match; eauto. *) *)
+(*   (* inversion e. subst. *) *)
+(* Admitted. *)
 
 Lemma interp_helix_MemAlloc :
   forall {E} size mem,
@@ -243,6 +243,25 @@ Proof.
   - admit.
   - admit.
 Admitted.
+
+
+
+Lemma no_dshptr_aliasing_cons :
+  forall (memH : memoryH) (σ : evalContext) (size : Int64.int),
+    no_dshptr_aliasing (DSHPtrVal (memory_next_key memH) size :: σ) ->
+    no_dshptr_aliasing σ.
+Proof.
+  intros * st_no_dshptr_aliasing. repeat intro.
+  specialize (st_no_dshptr_aliasing (S n) (S n')). cbn in *.
+  specialize (st_no_dshptr_aliasing _ _ _ H H0).
+  inversion st_no_dshptr_aliasing. subst. reflexivity.
+Qed.
+
+
+Lemma typ_to_dtyp_P : forall s i, typ_to_dtyp s (TYPE_Pointer i) ≡ DTYPE_Pointer.
+Proof.
+  intros; rewrite typ_to_dtyp_equation; reflexivity.
+Qed.
 
 
 Lemma DSHAlloc_correct:
@@ -456,7 +475,7 @@ Proof.
         Unshelve.
         3 : exact (ID_Local (Name ("a" @@ string_of_nat (local_count s1)))).
         cbn. reflexivity. exact allocated_ptr_addr.
-      - admit. (* not true here. *)
+      - admit. (* mem_lookup_succeeds mem_empty size *) (* => Seems problematic. Change? *)
       - red. pose proof allocated_get_logical_block.
         Transparent allocate.
         Unshelve.
@@ -466,21 +485,24 @@ Proof.
         rewrite get_logical_block_of_add_logical_block.
         eexists. eexists. eexists. split. reflexivity.
 
-        Lemma typ_to_dtyp_P : forall s i, typ_to_dtyp s (TYPE_Pointer i) ≡ DTYPE_Pointer.
-        Proof.
-          intros; rewrite typ_to_dtyp_equation; reflexivity.
-        Qed.
         rewrite typ_to_dtyp_P. cbn.
+          (* 8 <= Int64.intval size * 8 *)
         admit.
       - Opaque alist_add. cbn.
         rewrite alist_add_find_eq. reflexivity.
       - intros. destruct GEN_IR. cbn in *. inversion H.
-      - red. admit.
-      - admit.
-      - intros. destruct GEN_IR. red in H4.
+      - red.
+        (* List.In (ID_Local (Name ("a" @@ string_of_nat (local_count s1)))) (List.map fst (Γ s1)) → False *)
         admit.
-      - admit.
-
+      - (* ∀ s : Int64.int, ¬ List.In (DSHPtrVal (memory_next_key memH) s) σ *)
+        admit.
+      - intros. destruct GEN_IR. red in H4.
+        (* fst allocated_ptr_addr ≢ fst ptrv' *)
+        admit.
+      - (* state_invariant σ s1 (memory_set memH (memory_next_key memH) mem_empty) *)
+        (*   (memV_allocated, *)
+        (*   (alist_add (Name ("a" @@ string_of_nat (local_count s1))) (UVALUE_Addr allocated_ptr_addr) ρ, g)) *)
+        admit.
     }
 
     Transparent incBlockNamed.
@@ -493,60 +515,13 @@ Proof.
     inversion genIR_op. subst.
     clear -GAM context_l0.
 
-    Lemma Gamma_safe_Context_extend :
-      forall σ s1 s2,
-        Gamma_safe σ s1 s2 ->
-        forall s1' s2' x v xτ,
-          (local_count s1 <= local_count s1')%nat ->
-          (local_count s2 >= local_count s2')%nat ->
-          Γ s1' ≡ (ID_Local x, v) :: Γ s1 ->
-          Γ s2' ≡ (ID_Local x, v) :: Γ s2 ->
-          (∀ id : local_id, lid_bound_between s1' s2' id → x ≢ id) ->
-          Gamma_safe (xτ :: σ) s1' s2'.
-    Proof.
-      intros. do 2 red. intros.
-      unfold Gamma_safe in H. red in H.
-      inversion H3; subst.
-      unfold lid_bound_between, state_bound_between in *.
-      eapply H.
-      - destruct H5 as (? & ? & ? & ? & ? & ? & ?).
-        cbn* in *. inversion e; subst. clear e.
-        exists x0, x1. eexists. split; auto.
-        split. clear H.
-        lia. split; auto. lia.
-      - inversion H6; subst.
-        econstructor.
-        3 : {
-          unfold WF_IRState in *.
-          clear -H10 H2 H4.
-
-          Lemma WF_IRState_extend:
-            ∀ (σ : evalContext) (s1 s1' : IRState) (x : ident * typ) (v : DSHVal),
-              Γ s1' ≡ x :: Γ s1 → evalContext_typechecks (v :: σ) (Γ s1') → evalContext_typechecks σ (Γ s1).
-          Proof.
-            intros σ s1 s1' x v H2 H9.
-            red. red in H9. intros.
-            rewrite H2 in H9. specialize (H9 _ (S n) H). cbn in *.
-            apply H9.
-          Qed.
-
-          eapply WF_IRState_extend; eauto.
-        }
-
-        rewrite H2 in H9.
-        destruct n eqn: n' .
-        + cbn in *. inversion H9. subst. specialize (H4 id H5).
-          contradiction.
-        + cbn in *. Unshelve.
-          3 : exact (n - 1)%nat. cbn.
-          rewrite Nat.sub_0_r. apply H7. eauto.
-        + rewrite H2 in H9. cbn in *. inversion H9. subst. specialize (H4 id H5).
-          contradiction.
-          rewrite H2 in H9.
-          cbn in *. rewrite Nat.sub_0_r. apply H9.
-    Qed.
     eapply Gamma_safe_Context_extend; eauto; cbn; try lia; try reflexivity.
-    intros. admit.
+    intros.
+
+    eapply lid_bound_fresh; eauto.
+    red. unfold state_bound. eexists. eexists. eexists.
+    split; try split; try split; try split.
+    cbn. eauto.
   }
 
   (* Continuation *)
@@ -557,29 +532,55 @@ Proof.
   2 : try_abs.
 
   destruct memH'.
-  destruct t. cbn in *.
-  (* clear -UU ret1 ret2 context_l0. *)
+  destruct t. cbn in *. simp. cbn in *.
+  clear -UU ret1 ret2 context_l0 H2.
   {
     split; red; cbn; repeat break_let; subst.
     cbn in *. destruct UU. cbn in H.
     destruct H.
     split.
-    - destruct GEN_IR. clean_goal.
-      clear H0 ret1 ret2 context_l0.
+    - clean_goal.
+      clear H0 ret1 ret2.
       clean_goal.
-      eapply memory_invariant_Ptr; eauto. admit.
+      cbn in *. intros.
+      specialize (mem_is_inv (S n)).
+      rewrite context_l0 in H2. inversion H2. subst.
+      rewrite context_l0 in mem_is_inv.
+      cbn in *. specialize (mem_is_inv _ _ _ H H0).
+      destruct v; try eapply mem_is_inv.
+      destruct mem_is_inv as (? & ? & ? & ? & ? & ? & ?).
+      eexists. eexists.
+      split; try split; try split; try split; eauto.
+      rewrite remove_find. 2 : eauto.
+      destruct (OrderedTypeEx.Nat_as_OT.compare a (memory_next_key memH)); auto.
+      2 : {
+        cbn. unfold dtyp_fits in *. edestruct H4 as (? & ? & ? & ?).
+        exists x2, x3, x4. destruct x1. cbn in *.
+        Unset Printing Notations.
+        admit. (* Seemingly simlar ones.. mysterious. *)
+      }
+      Set Printing Notations.
+
+      (* absurd *) (* From ptr aliasing *)
+      unfold no_llvm_ptr_aliasing in *.
+      unfold no_dshptr_aliasing in *.
+      (* specialize (st_no_llvm_ptr_aliasing x _ x _ (S n) (S n) _ _ _ _ _ _ ). *)
+      admit.
+
     - red in IRState_is_WF. red in IRState_is_WF. repeat intro.
       specialize (IRState_is_WF v (S n)). cbn in *.
       apply IRState_is_WF in H. destruct H. exists x.
-      destruct (Γ i0). inversion H. admit.
-      (* assumption. *)
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-      (* destruct UU. destruct H0. inversion H0. subst. *)
-      (* eexists. reflexivity. *)
-  }
+      destruct (Γ i0). inversion H. inversion context_l0; subst. auto.
+    - admit. (*newlocalvar*)
+    - clear -st_no_dshptr_aliasing.
+
+
+      eapply no_dshptr_aliasing_cons; eauto.
+    - cbn in *.
+      admit. (* newlocalvar*)
+    - split. destruct UU. destruct H0. cbn in H0. apply H0.
+      destruct UU. destruct H0. cbn in H1. admit.
+ }
 
   Unshelve.
   all : eauto. exact nat. exact "".

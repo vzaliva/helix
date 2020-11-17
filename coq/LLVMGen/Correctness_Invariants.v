@@ -1,6 +1,7 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Freshness.
 Require Import Helix.LLVMGen.LidBound.
+Require Import Helix.LLVMGen.VariableBinding.
 
 Set Implicit Arguments.
 Set Strict Implicit.
@@ -28,8 +29,20 @@ Section WF_IRState.
     forall v n, nth_error σ n ≡ Some v ->
            exists id, (nth_error Γ n ≡ Some (id, getWFType id (DSHType_of_DSHVal v))).
 
+
   Definition WF_IRState (σ : evalContext) (s : IRState) : Prop :=
     evalContext_typechecks σ (Γ s).
+
+  Lemma evalContext_typechecks_extend:
+    ∀ (σ : evalContext) (s1 s1' : IRState) (x : ident * typ) (v : DSHVal),
+      Γ s1' ≡ x :: Γ s1 → evalContext_typechecks (v :: σ) (Γ s1') →
+      evalContext_typechecks σ (Γ s1).
+  Proof.
+    intros σ s1 s1' x v H2 H9.
+    red. red in H9. intros.
+    rewrite H2 in H9. specialize (H9 _ (S n) H). cbn in *.
+    apply H9.
+  Qed.
 
   Lemma WF_IRState_lookups :
     forall σ s n v id τ,
@@ -714,6 +727,50 @@ Proof.
   eauto.
   rewrite EQ; eauto.
   eapply WF_IRState_Γ; eauto.
+Qed.
+
+
+Lemma Gamma_safe_Context_extend :
+  forall σ s1 s2,
+    Gamma_safe σ s1 s2 ->
+    forall s1' s2' x v xτ,
+      (local_count s1 <= local_count s1')%nat ->
+      (local_count s2 >= local_count s2')%nat ->
+      Γ s1' ≡ (ID_Local x, v) :: Γ s1 ->
+      Γ s2' ≡ (ID_Local x, v) :: Γ s2 ->
+      (∀ id : local_id, lid_bound_between s1' s2' id → x ≢ id) ->
+      Gamma_safe (xτ :: σ) s1' s2'.
+Proof.
+  intros. do 2 red. intros.
+  unfold Gamma_safe in H. red in H.
+  inversion H3; subst.
+  unfold lid_bound_between, state_bound_between in *.
+  eapply H.
+  - destruct H5 as (? & ? & ? & ? & ? & ? & ?).
+    cbn* in *. inversion e; subst. clear e.
+    exists x0, x1. eexists. split; auto.
+    split. clear H.
+    lia. split; auto. lia.
+  - inversion H6; subst.
+    econstructor.
+    3 : {
+      unfold WF_IRState in *.
+      clear -H10 H2 H4.
+
+      eapply evalContext_typechecks_extend; eauto.
+    }
+
+    rewrite H2 in H9.
+    destruct n eqn: n' .
+    + cbn in *. inversion H9. subst. specialize (H4 id H5).
+      contradiction.
+    + cbn in *. Unshelve.
+      3 : exact (n - 1)%nat. cbn.
+      rewrite Nat.sub_0_r. apply H7. eauto.
+    + rewrite H2 in H9. cbn in *. inversion H9. subst.
+      destruct n. cbn in *.
+      specialize (H4 id H5). inversion H9. subst. contradiction.
+      cbn. rewrite Nat.sub_0_r. cbn in *. auto.
 Qed.
 
 (* If I have modified an interval, other intervals are preserved *)
