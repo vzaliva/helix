@@ -1012,6 +1012,54 @@ Section GenIR.
                  branches to ⩕ 
                  (fun sthf stvf => local_scope_modif s1 s2 li (fst (snd stvf))).
 
+  (* TODO: move to vellvm *)
+  Lemma handle_gep_addr_array_same_block :
+    forall ptr ptr_elem ix sz τ,
+      handle_gep_addr (DTYPE_Array sz τ) ptr
+                      [DVALUE_I64 (repr 0); DVALUE_I64 ix] ≡ inr ptr_elem ->
+      fst ptr ≡ fst ptr_elem.
+  Proof.
+    intros [ptrb ptro] [ptr_elemb ptr_elemo] ix sz τ GEP.
+    cbn in GEP.
+    inversion GEP; subst.
+    reflexivity.
+  Qed.
+
+  (* TODO: move to vellvm *)
+  Lemma handle_gep_addr_array_offset :
+    forall ptr ptr_elem ix sz τ,
+      handle_gep_addr (DTYPE_Array sz τ) ptr
+                      [DVALUE_I64 (repr 0); DVALUE_I64 ix] ≡ inr ptr_elem ->
+      snd ptr + DynamicValues.Int64.unsigned ix * sizeof_dtyp τ ≡ snd ptr_elem.
+  Proof.
+    intros [ptrb ptro] [ptr_elemb ptr_elemo] ix sz τ GEP.
+    cbn in GEP.
+    inversion GEP; subst.
+    cbn.
+    admit. (* Should hold *)
+  Admitted.
+
+  (* TODO: move to vellvm *)
+  Lemma dtyp_fits_array_elem :
+    forall m ptr ptr_elem ix sz τ,
+      dtyp_fits m ptr (DTYPE_Array sz τ) ->
+      handle_gep_addr (DTYPE_Array sz τ) ptr
+                      [DVALUE_I64 (repr 0); DVALUE_I64 ix] ≡ inr ptr_elem ->
+      Int64.intval ix < sz ->
+      dtyp_fits m ptr_elem τ.
+  Proof.
+    intros m ptr ptr_elem ix sz τ FITS GEP SZ.
+    cbn in GEP.
+    unfold dtyp_fits in *.
+    destruct FITS as (sz' & bytes & cid & BLOCK & BOUND).
+    exists sz'. exists bytes. exists cid.
+    split.
+    erewrite <- handle_gep_addr_array_same_block; eauto.
+    erewrite <- handle_gep_addr_array_offset; eauto.
+    admit. (* Should hold *)
+  Admitted.
+
+
   Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
       (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH) 
@@ -1218,8 +1266,7 @@ Section GenIR.
 
           edestruct denote_instr_gep_array_no_read as (yptr' & yGEP & yEQ); cycle -1; [rewrite yEQ; clear yEQ | ..]; cycle 1.
           { vstep; solve_lu.
-            cbn.
-            admit.
+            cbn; reflexivity.
           }
           { rewrite EXP2.
             - rewrite repr_of_nat_to_nat.
@@ -1334,18 +1381,21 @@ Section GenIR.
                   inv MLUP.
 
                   epose proof (st_no_dshptr_aliasing _ _ _ _ _ Heqo0 H4); subst.
+                  pose proof H5 as IDS. rewrite CONT in IDS.
+                  rewrite LUn0 in IDS.
+                  inv IDS.
 
                   (* Since y_i = a, we know this matches the block that was written to *)
                   exists (mem_add (MInt64asNT.to_nat dst) v bk_h).
 
                   (* *)
-                  exists yptr. exists τ'.
+                  exists yptr. exists (TYPE_Array sz0 TYPE_Double).
 
                   split.
                   { rewrite memory_lookup_memory_set_eq. reflexivity. }
                   split; auto.
                   split.
-                  admit. (* TODO: dtyp_fits *)
+                  eapply dtyp_fits_after_write; eauto.
                   split.
                   { cbn.
                     rewrite Heqo0 in H4.
