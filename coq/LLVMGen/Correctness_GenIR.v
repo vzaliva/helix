@@ -746,11 +746,13 @@ Section GenIR.
 
     - do 2 red. intros * LU1 LU2 LU3 LU4 INEQ.
       destruct n1 as [| n1], n2 as [| n2]; auto.
-      + cbn in *.
-        inv LU1; inv LU2.
-
+      + cbn in LU1. inv LU1; inv LU2.
+        intros H H0.
+        admit. (* Probably need to make about locals only *)
       + cbn in *; inv LU1.
+        admit.
       + cbn in *; inv LU2.
+        admit.
   Admitted.
 
   Lemma state_invariant_enter_scope_DSHCType : forall σ v x τ s1 s2 stH mV l g,
@@ -820,9 +822,11 @@ Section GenIR.
       destruct n1 as [| n1], n2 as [| n2]; auto.
       + cbn in *.
         inv LU1; inv LU2.
-
+        admit.
       + cbn in *; inv LU1.
+        admit.
       + cbn in *; inv LU2.
+        admit.
   Admitted.
 
   Lemma state_invariant_enter_scope_DSHPtr : forall σ ptrh sizeh bkh ptrv x τ s1 s2 stH mV l g,
@@ -925,6 +929,7 @@ Section GenIR.
         destruct id1; cbn; eauto.
         rewrite IN1 in IN; inv IN; auto.
         rewrite IN1 in IN; inv IN; auto.
+        admit.
       + rewrite EQ in LU3,LU4.
         cbn in *.
         inv LU2; inv LU4.
@@ -933,6 +938,7 @@ Section GenIR.
         destruct id2; cbn; eauto.
         rewrite IN2 in IN; inv IN; auto.
         rewrite IN2 in IN; inv IN; auto.
+        admit.
       + rewrite EQ in LU3,LU4.
         cbn in *. 
         eapply ALIAS3.
@@ -1370,7 +1376,42 @@ Section GenIR.
               { (* x0 is a global *)
                 destruct v0.
                 cbn. cbn in H4.
-                admit.
+                { cbn in H. destruct H as (ptr_l & τ' & TYPE & INLG' & READ').
+                  do 2 eexists.
+                  repeat split; eauto.
+
+                  destruct (Z.eq_dec (fst ptr_l) (fst yptr)) as [EQ | NEQ].
+                  - destruct (Eqv.eqv_dec_p id vy_p) as [EQid | NEQid].
+                    + do 2 red in EQid.
+                      subst. cbn in yINLG.
+                      assert (n1 ≡ y_p).
+                      eapply st_no_id_aliasing; eauto.
+                      rewrite CONT. eauto.
+                      subst.
+                      rewrite Heqo0 in H4.
+                      discriminate H4.
+                    + unfold Eqv.eqv, eqv_raw_id in NEQid.
+                      assert (fst ptr_l ≢ fst yptr).
+                      { assert (ID_Global id ≢ ID_Global vy_p).
+                        injection. apply NEQid.
+
+                        eapply st_no_llvm_ptr_aliasing.
+                        eapply H4.
+                        eapply Heqo0.
+                        3: eapply  H.
+                        all: eauto.
+                        rewrite CONT. eauto.
+                      }
+                      contradiction.
+                  - erewrite write_untouched; eauto.
+                    constructor.
+                    eapply sizeof_dvalue_pos.
+                    admit. (* TODO: May need to strengthen invariant *)
+
+                    pose proof (handle_gep_addr_array_same_block _ _ _ _ yGEP) as YPTRBLOCK.
+                    rewrite YPTRBLOCK in NEQ.
+                    do 2 red. auto.
+                }
                 admit.
                 destruct H as (bk_h & ptr_l & τ' & MINV).
                 destruct MINV as (MLUP & MTYP & FITS & INLG' & GET).

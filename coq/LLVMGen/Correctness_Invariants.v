@@ -198,9 +198,9 @@ Section SimulationRelations.
       n' ≡ n.
 
   Definition no_llvm_ptr_aliasing (σ : evalContext) (s : IRState) (ρ : local_env) (g : global_env) : Prop :=
-    forall (id1 : ident) (ptrv1 : addr) (id2 : ident) (ptrv2 : addr) n1 n2 τ τ' sz1 sz2 ptrh1 ptrh2,
-      nth_error σ n1 ≡ Some (DSHPtrVal ptrh1 sz1) ->
-      nth_error σ n2 ≡ Some (DSHPtrVal ptrh2 sz2) ->
+    forall (id1 : ident) (ptrv1 : addr) (id2 : ident) (ptrv2 : addr) n1 n2 τ τ' v1 v2,
+      nth_error σ n1 ≡ Some v1 ->
+      nth_error σ n2 ≡ Some v2 ->
       nth_error (Γ s) n1 ≡ Some (id1, τ) ->
       nth_error (Γ s) n2 ≡ Some (id2, τ') ->
       id1 ≢ id2 ->
@@ -444,11 +444,11 @@ Section SimulationRelations.
   Proof.
     intros σ s id v l g ALIAS WF FRESH.
     unfold no_llvm_ptr_aliasing in *.
-    intros id1 ptrv1 id2 ptrv2 n1 n2 τ0 τ' sz1 sz2 ptrh1 ptrh2 H H0 H1 H2 H3 H4 H5.
+    intros id1 ptrv1 id2 ptrv2 n1 n2 τ0 τ' v1 v2 H H0 H1 H2 H3 H4 H5.
     destruct id1, id2.
-    - epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3 H4 H5).
+    - epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3 H4 H5).
       eauto.
-    - epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3 H4).
+    - epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3 H4).
       assert ({id1 ≡ id} + {id1 ≢ id}) by admit. destruct H7.
       + subst.
         assert (in_Gamma σ s id).
@@ -456,7 +456,7 @@ Section SimulationRelations.
         exfalso; apply FRESH; auto.
       + eapply H6.
         admit.
-    - epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3).
+    - epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3).
       assert ({id0 ≡ id} + {id0 ≢ id}) by admit. destruct H7.
       + subst.
         assert (in_Gamma σ s id).
@@ -472,7 +472,7 @@ Section SimulationRelations.
         assert ({id1 ≡ id} + {id1 ≢ id}) by admit. destruct H6.
         * subst.
           contradiction.
-        * epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3).
+        * epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3).
         assert (in_Gamma σ s id).
         { econstructor.
           2: eapply H1.
@@ -481,7 +481,7 @@ Section SimulationRelations.
         exfalso; apply FRESH; auto.
       + assert ({id1 ≡ id} + {id1 ≢ id}) by admit. destruct H6.
         * subst.
-          epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3).
+          epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3).
         assert (in_Gamma σ s id).
         econstructor; eauto.
         exfalso; apply FRESH; auto.
@@ -1038,9 +1038,6 @@ Section Ext_Local.
       no_llvm_ptr_aliasing σ s ρ2 g.
   Proof.
     intros σ s ρ1 ρ2 g ALIAS [EXT EXT_ALIAS].
-    unfold no_llvm_ptr_aliasing in *.
-
-    intros id1 ptrv1 id2 ptrv2 n1 n2 τ τ' sz1 sz2 ptrh1 ptrh2 H H0 H1 H2 H3 H4 H5.
     eauto.
   Qed.
 
@@ -1350,7 +1347,7 @@ Proof.
   - rewrite L'L. apply sub_alist_add; auto.
   - epose proof (no_llvm_ptr_aliasing_not_in_gamma _ ALIAS).
     unfold no_llvm_ptr_aliasing in *.
-    intros id1 ptrv1 id2 ptrv2 n1 n2 τ τ' sz1 sz2 ptrh1 ptrh2 H0 H1 H2 H3 H4 H5 H6.
+    intros * H0 H1 H2 H3 H4 H5 H6.
     eapply H;     
       [eauto | eauto | apply H0 | apply H1 | apply H2 | apply H3 | apply H4 | apply H5 | apply H6].
 Qed.
