@@ -260,6 +260,23 @@ Proof.
   intros; rewrite typ_to_dtyp_equation; reflexivity.
 Qed.
 
+
+
+Lemma newLocalVar_lid_bound_between :
+  forall size s1 s2 r str,
+    is_correct_prefix str ->
+    newLocalVar (TYPE_Pointer (TYPE_Array (Int64.intval size) TYPE_Double)) str s1 ≡ inr (s2, r) ->
+    lid_bound_between s1 s2 r.
+Proof.
+  Transparent newLocalVar.
+  cbn. intros * E H. inversion H. subst. clear H.
+  unfold lid_bound_between, state_bound_between.
+  eexists. eexists. eexists.
+  split; try split; try split; eauto.
+  2 : cbn; reflexivity. auto.
+  Opaque newLocalVar.
+Qed.
+
 Lemma DSHAlloc_correct:
   ∀ (size : Int64.int) (op : DSHOperator),
     (∀ (s1 s2 : IRState) (σ : evalContext) (memH : memoryH) (nextblock bid_in bid_from : block_id) 
@@ -460,6 +477,14 @@ Proof.
       apply genIR_Context in genIR_op.
       rename Heqs0 into new_local_var.
 
+      rename p into FOO.
+      Transparent incBlockNamed.
+      Transparent incVoid.
+      Transparent incLocal.
+      Transparent newLocalVar.
+      cbn* in *. simp. cbn in *.
+      rewrite context_l0 in genIR_op. inversion genIR_op; subst.
+
       eapply state_invariant_enter_scope_DSHPtr; eauto.
       2 : apply memory_lookup_memory_set_eq.
       - cbn.
@@ -495,58 +520,51 @@ Proof.
         Transparent newLocalVar. cbn* in *. simp.
         rewrite alist_add_find_eq. reflexivity.
       - intros. destruct GEN_IR. cbn in *. inversion H.
-      - eapply Gamma_safe_shrink in GAM.
-        Unshelve. 3 : red; reflexivity. 4 : exact s2.
-        2 : reflexivity. 
-        2 : { (* TODO : extend solve_local_count *)
-          Transparent newLocalVar.
-          Transparent incBlock. Transparent incVoid.
-          Transparent incBlockNamed.
-          cbn* in *. simp. cbn* in *.
-          red; cbn; solve_local_count_tac.
-          apply genIR_local_count in genIR_op'. cbn in *. lia.
-        } intro.
+      - destruct GEN_IR.
+        assert (not (in_Gamma σ s1 (Name ("a" @@ string_of_nat (local_count s1))))). {
+          eapply GAM.
 
-        Lemma newLocalVar_lid_bound_between :
-          forall size s1 s2 r str,
-            is_correct_prefix str ->
-            newLocalVar (TYPE_Pointer (TYPE_Array (Int64.intval size) TYPE_Double)) str s1 ≡ inr (s2, r) ->
-            lid_bound_between s1 s2 r.
-        Proof.
-          Transparent newLocalVar.
-          cbn. intros * E H. inversion H. subst. clear H.
           unfold lid_bound_between, state_bound_between.
           eexists. eexists. eexists.
-          split; try split; try split; eauto.
-          2 : cbn; reflexivity. auto.
-          Opaque newLocalVar.
-        Qed.
-
-        assert (lid_bound_between s1 s2 r). {
-          eapply newLocalVar_lid_bound_between.
-          2 : cbn; rewrite new_local_var.
-          auto. reflexivity. }
-        assert (r ≡ (Name ("a" @@ string_of_nat (local_count s1)))). {
-          Transparent newLocalVar.
-          cbn* in *. inversion new_local_var. reflexivity.
+          apply genIR_local_count in genIR_op'. cbn in *.
+          split; try split; try split; eauto. reflexivity.
         }
-        subst.
-        unfold lid_bound_between, state_bound_between in H3.
-        destruct H3 as (? & ? & ? & ? & ? & ? & ?).
-        cbn in *. inversion H6. simp. cbn* in *. clear H10.
+        intro. apply H.
+        eapply In_nth_error in H3; destruct H3.
+        destruct (nth_error (Γ s1) x) eqn: nth_destruct.
+        2 : {
+          eapply map_nth_error_none in nth_destruct.
+          rewrite nth_destruct in H3.
+          inversion H3.
+        }
 
+        destruct p.
+        esplit.
+        2 : {
+          rewrite nth_destruct.
+          eapply map_nth_error in nth_destruct.
+          rewrite nth_destruct in H3. cbn in H3; inversion H3; subst.
+          reflexivity.
+        }
+        2 : auto.
+
+        (* ?!! Wrong? TODO: Port over new [no_id_aliasing] and it should solve this goal. *)
         admit.
-        (* List.In (ID_Local (Name ("a" @@ string_of_nat (local_count s1)))) (List.map fst (Γ s1)) → False *)
-        (* admit. *)
       - (* ∀ s : Int64.int, ¬ List.In (DSHPtrVal (memory_next_key memH) s) σ *)
-
+        intros. (* Use fact about memory_next_key *)
+        pose proof @mem_block_exists_memory_next_key.
+        (* TODO : New Invariant ! [id_allocated] will derive a contradiction in this goal. *)
         admit.
-      - intros. destruct GEN_IR. red in H4.
-        (* fst allocated_ptr_addr ≢ fst ptrv' *)
+      - intros.
+        apply allocate_correct in H1. destruct H1.
+
+        (* TODO : Use lemma with state_invariant_enter_scope *)
         admit.
       - (* state_invariant σ s1 (memory_set memH (memory_next_key memH) mem_empty) *)
         (*   (memV_allocated, *)
-        (*   (alist_add (Name ("a" @@ string_of_nat (local_count s1))) (UVALUE_Addr allocated_ptr_addr) ρ, g)) *)
+        (*   (alist_add (Name ("a" @@ string_of_nat (local_count s1)))
+              (UVALUE_Addr allocated_ptr_addr) ρ, g)) *)
+
         admit.
     }
 

@@ -825,7 +825,7 @@ Section GenIR.
       + cbn in *; inv LU2.
   Admitted.
 
-  Lemma state_invariant_enter_scope_DSHPtr : forall σ ptrh sizeh bkh ptrv x τ s1 s2 stH mV l g,
+  Lemma state_invariant_enter_scope_DSHPtr : forall σ ptrh sizeh bkh ptrv x τ s1 s2 stH mV mV_a l g,
       τ ≡ getWFType x (DSHPtr sizeh) ->
       Γ s1 ≡ (x,τ) :: Γ s2 ->
 
@@ -840,7 +840,7 @@ Section GenIR.
       (* Avoiding to introduce aliasing *)
       ~ In x (map fst (Γ s2)) ->          (* The new ident is fresh *)
       (forall s, ~ In (DSHPtrVal ptrh s) σ) -> (* The new Helix address is fresh *)
-      (forall ptrv' ptrh sz n id τ,           (* The new Vellvm address is fresh *)
+      (forall ptrv' ptrh sz n id τ,           (* The new Vellvm address is fresh TODO --- BROKEN? *)
           nth_error σ n ≡ Some (DSHPtrVal ptrh sz) ->
           nth_error (Γ s2) n ≡ Some (id, τ) ->
           in_local_or_global_addr l g id ptrv' ->
@@ -848,7 +848,13 @@ Section GenIR.
 
       state_invariant σ s2 stH (mV,(l,g)) ->
 
-      state_invariant (DSHPtrVal ptrh sizeh ::σ) s1 stH (mV,(l,g)).
+      allocate mV (DTYPE_Array (Int64.intval sizeh) DTYPE_Double) ≡
+               inr (mV_a, ptrh) ->
+
+      (* TODO updated the local environment. *)
+      state_invariant (DSHPtrVal ptrh sizeh ::σ) s1
+                      (* perhaps bkh is mem_empty here?  *)
+                      (memory_set stH ptrh bkh) (mV_a, (alist_add x (UVALUE_Addr ptrv) l),g).
   Proof.
     intros * -> EQ LUB TYP IN LUA fresh1 fresh2 fresh3 [MEM WF ALIAS1 ALIAS2 ALIAS3].
     split.

@@ -191,8 +191,15 @@ Section SimulationRelations.
       nth_error σ n' ≡ Some (DSHPtrVal ptr sz') ->
       n' ≡ n.
 
-  Definition no_id_aliasing (s : IRState) : Prop :=
-    forall n n' id τ τ',
+  Definition id_allocated (σ : evalContext) (m : memoryH) : Prop :=
+    forall n addr σ s,
+      nth_error σ n ≡ Some (DSHPtrVal addr s) ->
+      mem_block_exists addr m.
+
+  Definition no_id_aliasing (s : IRState) (σ : evalContext) : Prop :=
+    forall n n' id τ τ' v,
+      nth_error σ n ≡ Some v ->
+      (* WF_IRState σ s -> *) (* TODO: See if we need this? *)
       nth_error (Γ s) n ≡ Some (id, τ) ->
       nth_error (Γ s) n' ≡ Some (id, τ') ->
       n' ≡ n.
