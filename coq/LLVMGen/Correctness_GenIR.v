@@ -831,9 +831,11 @@ Section GenIR.
 
       (* Proof obligations to satisfy the memory relation between the addresses added on both sides *)
       memory_lookup stH ptrh ≡ Some bkh ->
-      dtyp_fits mV ptrv (typ_to_dtyp (Γ s1) τ) ->
+      dtyp_fits mV ptrv (typ_to_dtyp [] (TYPE_Array (Int64.intval sizeh) TYPE_Double)) ->
       in_local_or_global_addr l g x ptrv ->
-      (∀ (i : nat) (v : binary64), mem_lookup i bkh ≡ Some v → get_array_cell mV ptrv i DTYPE_Double ≡ inr (UVALUE_Double v)) ->
+      (∀ (i : nat) (v : binary64),
+          mem_lookup i bkh ≡ Some v →
+          get_array_cell mV ptrv i DTYPE_Double ≡ inr (UVALUE_Double v)) ->
 
       (* Avoiding to introduce aliasing *)
       ~ In x (map fst (Γ s2)) ->          (* The new ident is fresh *)
@@ -846,7 +848,7 @@ Section GenIR.
 
       state_invariant σ s2 stH (mV,(l,g)) ->
 
-      state_invariant (DSHPtrVal ptrh sizeh ::σ) s1 stH (mV,(l,g)). 
+      state_invariant (DSHPtrVal ptrh sizeh ::σ) s1 stH (mV,(l,g)).
   Proof.
     intros * -> EQ LUB TYP IN LUA fresh1 fresh2 fresh3 [MEM WF ALIAS1 ALIAS2 ALIAS3].
     split.
@@ -854,7 +856,9 @@ Section GenIR.
       destruct n as [| n].
       + rewrite EQ in LU2; cbn in *.
         inv LU1; inv LU2; eauto.
-        admit.
+        exists bkh. exists ptrv. eexists.
+        split; auto. split. destruct x0; reflexivity.
+        split. auto. split; auto.
       + rewrite nth_error_Sn in LU1.
         rewrite EQ, nth_error_Sn in LU2.
         eapply MEM in LU2; eauto.
@@ -869,6 +873,7 @@ Section GenIR.
         apply WF in LU; auto.
 
     - red; intros * LU1 LU2.
+      destruct id. 
       destruct n as [| n], n' as [| n']; auto.
       + exfalso.
         rewrite EQ, nth_error_Sn in LU2.
@@ -878,7 +883,9 @@ Section GenIR.
         apply fresh1.
         apply nth_error_In in LU2.
         replace id with (fst (id,τ')) by reflexivity.
-        apply in_map; auto.
+        cbn.
+        eapply in_map in LU2; auto. Unshelve.
+        3 : exact fst. cbn in LU2. apply LU2.
 
       + exfalso.
         rewrite EQ, nth_error_Sn in LU1.
@@ -888,12 +895,34 @@ Section GenIR.
         apply fresh1.
         apply nth_error_In in LU1.
         replace id with (fst (id,τ)) by reflexivity.
-        apply in_map; auto.
 
+        eapply in_map in LU1; auto. Unshelve.
+        3 : exact fst. cbn in LU1. apply LU1.
       + rewrite EQ, nth_error_Sn in LU1.
         rewrite EQ, nth_error_Sn in LU2.
-        eapply ALIAS1 in LU1; apply LU1 in LU2; eauto. 
-
+        eapply ALIAS1 in LU1; apply LU1 in LU2; eauto.
+      + unfold no_id_aliasing in ALIAS1.
+        rewrite EQ in LU1, LU2.
+        clear -fresh1 fresh2 fresh3 ALIAS1 LU1 LU2.
+        destruct n.
+        * (* Derive absurdity from freshness *)
+          cbn in *. inversion LU1.
+          subst. destruct n'. reflexivity.
+          cbn in *. exfalso. apply fresh1.
+          eapply nth_error_In in LU2.
+          eapply in_map in LU2.
+          Unshelve. 3 : exact fst.
+          cbn in *; auto.
+        * cbn in *.
+          destruct n'.
+          -- cbn in LU2. inversion LU2; subst.
+             eapply nth_error_In in LU1.
+             eapply in_map in LU1. Unshelve.
+             3 : exact fst. exfalso. apply fresh1. cbn in LU1.
+             auto.
+          -- cbn in *.
+             specialize (ALIAS1 _ _ _ _ _ LU1 LU2).
+             subst. reflexivity.
     - red; intros * LU1 LU2.
       destruct n as [| n], n' as [| n']; auto.
       + inv LU1.
@@ -934,11 +963,12 @@ Section GenIR.
         rewrite IN2 in IN; inv IN; auto.
         rewrite IN2 in IN; inv IN; auto.
       + rewrite EQ in LU3,LU4.
-        cbn in *. 
+        cbn in *.
         eapply ALIAS3.
         apply LU1.
+        Unshelve.
         all:eauto.
-  Admitted.
+  Qed.
 
   (* TODO: move this? *)
   Ltac solve_local_lookup :=
@@ -1068,7 +1098,7 @@ Section GenIR.
       genIR op nextblock s1 ≡ inr (s2,(bid_in,bks)) ->
       bid_bound s1 nextblock ->
       state_invariant σ s1 memH (memV, (ρ, g)) ->
-      Gamma_safe σ s1 s2 ->
+      Gamma_local_safe σ s1 s2 ->
       no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ op) memH) -> (* Evaluation succeeds *)
       eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ))
            (interp_helix (denoteDSHOperator σ op) memH)
@@ -2008,7 +2038,7 @@ Section GenIR.
   (*       - eapply bid_bound_genIR_entry; eauto. *)
   (*       - apply genIR_Context in GEN_OP2. *)
   (*         eapply state_invariant_Γ; eauto. *)
-  (*       - eapply Gamma_safe_shrink; eauto. *)
+  (*       - eapply Gamma_local_safe_shrink; eauto. *)
   (*         eauto using genIR_Context. *)
   (*         solve_local_count. *)
   (*         solve_local_count. *)
@@ -2025,7 +2055,7 @@ Section GenIR.
   (*       eapply IHop2; try exact GEN_OP2; eauto. *)
   (*       - eapply state_invariant_Γ; eauto. *)
   (*         apply genIR_Context in GEN_OP1; apply genIR_Context in GEN_OP2; rewrite GEN_OP2; auto. *)
-  (*       - eapply Gamma_safe_shrink; eauto. *)
+  (*       - eapply Gamma_local_safe_shrink; eauto. *)
   (*         eauto using genIR_Context. *)
   (*         solve_local_count. *)
   (*         solve_local_count. *)
