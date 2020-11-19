@@ -1716,7 +1716,7 @@ Section GenIR.
                   
                   rewrite memory_lookup_memory_set_neq; auto.
                   repeat (split; auto).
-                  + admit. (* should hold might not need *)
+                  + eapply dtyp_fits_after_write; eauto.
                   + solve_local_lookup.
                   + intros i v0 H6.
                     pose proof (GET i v0 H6).
@@ -1729,7 +1729,7 @@ Section GenIR.
               + (* TODO: turn this into a tactic? *)
                 do 3 (eapply no_llvm_ptr_aliasing_not_in_gamma; [ | eauto | solve_not_in_gamma]).
                 eapply state_invariant_no_llvm_ptr_aliasing; eauto.
-              + admit.
+              + admit. (* id_allocated *)
             - exists bid_in. reflexivity.
 
             - (* The only local variables modified are in [si;sf] *)
@@ -1840,7 +1840,111 @@ Section GenIR.
               intros n1 v0 τ x H H0.
               destruct x.
               { (* Global *)
-                admit.
+                pose proof (dtyp_fits_allocated yFITS) as yALLOC.
+                epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
+                pose proof WRITE_SUCCEEDS as WRITE'.
+                erewrite WRITE_ARRAY in WRITE_SUCCEEDS.
+
+
+                assert (ID_Global id ≢ ID_Local vy_p) as IDNEQ by discriminate.
+                destruct v0.
+                - epose proof (mem_is_inv _ _ _ _ H H0) as INV.
+                  cbn in INV.
+                  cbn.
+                  destruct INV as (ptr_l & τ' & TYP & INLG' & READ').
+                  exists ptr_l. exists τ'.
+
+                  (* TODO: automate *)
+                  assert (fst ptr_l ≢ fst yptr).
+                  { eapply st_no_llvm_ptr_aliasing.
+                    5: eapply IDNEQ.
+                    eapply H.
+                    eapply Heqo0.
+                    all: eauto.
+                  }
+
+                  repeat (split; eauto).
+
+                  assert (fst yptr ≡ fst yptr') by (eapply handle_gep_addr_array_same_block; eauto).
+                  rewrite H2 in H1.
+                  eapply write_different_blocks; eauto.
+                  cbn. reflexivity.
+
+                  epose proof (IRState_is_WF _ n1 H) as (id' & N).
+                  rewrite H0 in N. inv N.
+                  cbn in H5. inversion H5.
+                  subst.
+                  eapply read_type in READ'.
+                  rewrite typ_to_dtyp_I.
+                  constructor.
+
+                  constructor.
+                - epose proof (mem_is_inv _ _ _ _ H H0) as INV.
+                  cbn in INV.
+                  cbn.
+                  destruct INV as (ptr_l & τ' & TYP & INLG' & READ').
+                  exists ptr_l. exists τ'.
+
+                  (* TODO: automate *)
+                  assert (fst ptr_l ≢ fst yptr).
+                  { eapply st_no_llvm_ptr_aliasing.
+                    5: eapply IDNEQ.
+                    eapply H.
+                    eapply Heqo0.
+                    all: eauto.
+                  }
+
+                  repeat (split; eauto).
+
+                  assert (fst yptr ≡ fst yptr') by (eapply handle_gep_addr_array_same_block; eauto).
+                  rewrite H2 in H1.
+                  eapply write_different_blocks; eauto.
+                  cbn. reflexivity.
+
+                  epose proof (IRState_is_WF _ n1 H) as (id' & N).
+                  rewrite H0 in N. inv N.
+                  cbn in H5. inversion H5.
+                  subst.
+                  eapply read_type in READ'.
+                  rewrite typ_to_dtyp_D.
+                  constructor.
+                  constructor.
+                - epose proof (mem_is_inv _ _ _ _ H H0) as INV.
+                  cbn in INV.
+                  destruct INV as (bk & ptr_l & τ' & MLUP & TYP & FITS & LOOKUP & GETCELL_ptr_l).
+
+                  destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
+                  { exists (mem_add (MInt64asNT.to_nat dst) v ymembk). exists ptr_l. exists τ'.
+
+                    subst.
+                    assert (n1 ≡ y_p) by eauto.
+                    rewrite yLU in MLUP.
+                    inv MLUP.
+
+                    repeat (split; eauto).
+                    - eapply memory_lookup_memory_set_eq.
+                    - eapply dtyp_fits_after_write; eauto.
+                    - intros i v0 H1.
+                      rewrite LUn0 in H0.
+                      inversion H0; subst.
+                  }
+                  { exists bk. exists ptr_l. exists τ'.
+                    repeat (split; eauto).
+                    - erewrite memory_lookup_memory_set_neq; eauto.
+                    - eapply dtyp_fits_after_write; eauto.
+                    - intros i v0 H1.
+
+                      assert (fst ptr_l ≢ fst yptr).
+                      { eapply st_no_llvm_ptr_aliasing.
+                        5: eapply IDNEQ.
+                        eapply H.
+                        eapply Heqo0.
+                        all: eauto.
+                      }
+
+                      erewrite write_array_cell_untouched_ptr_block; eauto.
+                      constructor.
+                  }
               }
 
               { (* Local *)
