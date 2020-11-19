@@ -1663,6 +1663,11 @@ Section GenIR.
               }
 
               { (* x0 is a local *)
+                pose proof (dtyp_fits_allocated yFITS) as yALLOC.
+                epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
+                pose proof WRITE_SUCCEEDS as WRITE'.
+                erewrite WRITE_ARRAY in WRITE_SUCCEEDS.
+
                 destruct v0. (* Probably need to use WF_IRState to make sure we only consider valid types *)
                 solve_in_local_or_global_scalar.
                 solve_in_local_or_global_scalar.
@@ -1720,8 +1725,18 @@ Section GenIR.
                   + solve_local_lookup.
                   + intros i v0 H6.
                     pose proof (GET i v0 H6).
-                    (* untouched part of memory, so this should hold *)
-                    admit. (* TODO: do this one *)
+                    assert (ID_Local id ≢ ID_Global vy_p) as IDNEQ by discriminate.
+                    assert (fst ptr_l ≢ fst yptr).
+                    { eapply st_no_llvm_ptr_aliasing.
+                      5: eapply IDNEQ.
+                      eapply H4.
+                      eapply Heqo0.
+                      all: eauto.
+                    }
+
+                    assert (fst yptr ≡ fst yptr') by (eapply handle_gep_addr_array_same_block; eauto).
+                    erewrite write_array_cell_untouched_ptr_block; eauto.
+                    constructor.
               }
 
               + destruct PRE2. eapply st_no_id_aliasing; eauto.
