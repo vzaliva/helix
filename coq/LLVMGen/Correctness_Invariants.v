@@ -713,6 +713,17 @@ Section SimulationRelations.
     lia.
   Qed.
 
+  Lemma local_scope_modif_external :
+    forall l1 l2 id s1 s2,
+      local_scope_modif s1 s2 l1 l2 ->
+      ~ lid_bound_between s1 s2 id ->
+      l1 @ id ≡ l2 @ id.
+  Proof.
+    intros l1 l2 id s1 s2 MODIF NBOUND.
+    edestruct @alist_find_eq_dec_local_env as [EQ | NEQ]; [eassumption |].
+    exfalso; apply NBOUND; apply MODIF; eauto.
+  Qed.
+
   (* If no change occurred, it left any interval untouched *)
   Lemma local_scope_preserved_refl : forall s1 s2 l,
       local_scope_preserved s1 s2 l l.
