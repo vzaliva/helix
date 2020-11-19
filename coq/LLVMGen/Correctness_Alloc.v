@@ -333,7 +333,7 @@ Proof.
     reflexivity.
   }
 
-  Opaque newLocalVar.
+ Opaque newLocalVar.
 
   cbn* in *; simp.
 

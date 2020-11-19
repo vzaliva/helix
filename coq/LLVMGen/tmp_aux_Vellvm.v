@@ -1455,3 +1455,48 @@ Proof.
     reflexivity.
 Qed.
 
+
+(* Definition def_sites_instr_id (id : instr_id) : list raw_id := *)
+(*   match id with *)
+(*   | IId id => [id] *)
+(*   | _ => [] *)
+(*   end. *)
+
+(* Definition def_sites_code {T} (c : code T) : list raw_id := *)
+(*   List.fold_left (fun acc '(id,_) => match id with | IId id => id :: acc | _ => acc end) c []. *)
+
+(* From Vellvm Require Import PostConditions. *)
+(* From Vellvm Require Import NoFailure. *)
+
+(* Lemma def_sites_modified_instr : forall defs id (i : instr _) g l m, *)
+(*     interp_cfg_to_L3 defs (denote_instr (id,i)) g l m ⤳ (fun '(_,(l',_)) => forall k, l' @ k <> l @ k -> In k (def_sites_instr_id id)). *)
+(* Proof. *)
+(*   intros.  *)
+(*   destruct i; cbn. *)
+(*   - rewrite denote_instr_comment; apply eutt_Ret; intros; intuition. *)
+(*   - destruct id. *)
+(*     + admit. *)
+(*     + Transparent denote_instr. *)
+(*       cbn. *)
+      
+
+(*       has_failure *)
+(*       unfold has_post. *)
+(*       rewrite denote_instr_op. apply eutt_Ret; intros; intuition. *)
+
+(* Lemma def_sites_modified_code : forall defs (c : code _) g l m, *)
+(*     interp_cfg_to_L3 defs (denote_code c) g l m ⤳ (fun '(_,(l',_)) => forall k, l' @ k <> l @ k -> In k (def_sites_code c)). *)
+(* Proof. *)
+(*   induction c as [| i c IH]; intros. *)
+(*   - cbn. *)
+(*     rewrite denote_code_nil, interp_cfg_to_L3_ret. *)
+(*     apply eutt_Ret. *)
+(*     intros; auto. *)
+(*   - cbn. *)
+(*     rewrite denote_code_cons, interp_cfg_to_L3_bind. *)
+(*     eapply has_post_bind_strong. *)
+    
+(*     apply eutt_Ret. *)
+(*     intros ? abs; auto. *)
+
+

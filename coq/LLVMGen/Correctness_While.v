@@ -664,7 +664,7 @@ Lemma genWhileLoop_tfor_ind:
     (body_blocks : list (LLVMAst.block typ)) (* (llvm) body to be iterated *)
     (nextblock : block_id)        (* exit point of the overall loop *)
     (entry_id : block_id)         (* entry point of the overall loop *)
-    (s1 s2 : IRState)
+    (s1 s2 sb1 sb2 : IRState)
     (bks : list (LLVMAst.block typ)) ,
 
     In body_entry (block_ids body_blocks) ->
@@ -692,22 +692,23 @@ Lemma genWhileLoop_tfor_ind:
       (NO_OVERFLOW : (Z.of_nat n < Int64.modulus)%Z)
 
       (* Main relations preserved by iteration *)
-      (I : nat (* -> A *) -> A -> _),
+      (I : nat -> A -> _),
 
       (* We assume that we know how to relate the iterations of the bodies *)
-      (forall g l mV a k _label,
+      (forall g li mV a k _label,
           (conj_rel (I k)
                     (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k))
-                    a (mV,(l,g))) ->
+                    a (mV,(li,g))) ->
           eutt
-            ( (fun a' '(memV, (l, (g, x))) =>
-                 l @ loopvar ≡ Some (uvalue_of_nat k) /\
-                 (exists _label', x ≡ inl (_label', loopcontblock)) /\
-                 I (S k) (* a *) a' (memV, (l, g))))
+            (fun a' '(memV, (l, (g, x))) =>
+               l @ loopvar ≡ Some (uvalue_of_nat k) /\
+               (exists _label', x ≡ inl (_label', loopcontblock)) /\
+               I (S k) a' (memV, (l, g)) /\
+               local_scope_modif sb1 sb2 li l)
             (bodyF k a)
-            (interp_cfg (denote_bks (convert_typ [] body_blocks) (_label, body_entry)) g l mV)
+            (interp_cfg (denote_bks (convert_typ [] body_blocks) (_label, body_entry)) g li mV)
       ) ->
-
+      
       (* Invariant is stable under the administrative bookkeeping that the loop performs *)
       (forall a sa b sb c sc d sd e se msg msg' msg'',
           incBlockNamed msg s1 ≡ inr (sa, a) ->
@@ -717,27 +718,29 @@ Lemma genWhileLoop_tfor_ind:
           incLocalNamed msg'' sd ≡ inr (se, e) ->
           forall k a l mV g id v,
             id ≡ c \/ id ≡ d \/ id ≡ e \/ id ≡ loopvar ->
-            I k a (mV, (l, g)) ->
-            I k a (mV, ((alist_add id v l), g))) ->
+            (I k a (mV, (l, g)) -> I k a (mV, ((alist_add id v l), g)))
+      ) ->
+      local_count sb2 ≡ local_count s1 ->
 
     (* Main result. Need to know initially that P holds *)
-    forall g l mV a _label,
+    forall g li mV a _label,
       (conj_rel
          (I j)
          (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat (j - 1)))
-         a (mV,(l,g))
+         a (mV,(li,g))
       ) ->
       eutt (fun a '(memV, (l, (g,x))) =>
               x ≡ inl (loopcontblock, nextblock) /\
-              I n a (memV,(l,g))
+              I n a (memV,(l,g)) /\
+              local_scope_modif sb1 s2 li l
            )
            (tfor bodyF j n a) 
            (interp_cfg (denote_bks (convert_typ [] bks)
-                                                (_label, loopcontblock)) g l mV).
+                                                (_label, loopcontblock)) g li mV).
 Proof.
-  intros * IN UNIQUE_IDENTS NEXTBLOCK_ID * GEN A LVAR_FRESH *.
+  intros * IN UNIQUE_IDENTS NEXTBLOCK_ID * GEN *. 
   unfold genWhileLoop in GEN. cbn* in GEN. simp.
-  intros BOUND OVER * FBODY STABLE.
+  intros BOUND OVER * FBODY STABLE INEQ.
   
   remember (n - j) as k eqn:K_EQ.
   revert j K_EQ BOUND.
@@ -802,9 +805,10 @@ Proof.
     rewrite tfor_0.
     (* We have only touched local variables that the invariant does not care about, we can reestablish it *)
     apply eutt_Ret.
-    split.
+    split; [| split].
     + reflexivity.
     + eapply STABLE; eauto.
+    + 
 
   - (* Inductive case *)
     cbn in *. intros [LT LE] * (INV & LOOPVAR).
