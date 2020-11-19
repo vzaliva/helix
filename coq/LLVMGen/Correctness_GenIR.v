@@ -1744,7 +1744,13 @@ Section GenIR.
               + (* TODO: turn this into a tactic? *)
                 do 3 (eapply no_llvm_ptr_aliasing_not_in_gamma; [ | eauto | solve_not_in_gamma]).
                 eapply state_invariant_no_llvm_ptr_aliasing; eauto.
-              + admit. (* id_allocated *)
+              + unfold id_allocated in *.
+                intros.
+                destruct PRE2.
+
+                specialize (st_id_allocated n1). cbn in *.
+                specialize (st_id_allocated _ _ H).
+                eapply mem_block_exists_memory_set; eauto.
             - exists bid_in. reflexivity.
 
             - (* The only local variables modified are in [si;sf] *)
@@ -2038,7 +2044,13 @@ Section GenIR.
                   }
               }
 
-              admit. (* new id_allocated thing *)
+              { (* id_allocated *)
+                unfold id_allocated in *.
+                intros n1 addr0 val H.
+                specialize (st_id_allocated n1). cbn in *.
+                specialize (st_id_allocated _ _ H).
+                eapply mem_block_exists_memory_set; eauto.
+              }
             - exists bid_in. reflexivity.
             - assert (local_scope_modif s6 sf ρ l0); solve_local_scope_modif.
           }
