@@ -1093,7 +1093,12 @@ Section GenIR.
   Qed.
 
   Ltac solve_in_gamma :=
-    econstructor; eauto.
+    match goal with
+    | GAM : nth_error (Γ ?s) ?n ≡ Some (ID_Local ?id, _),
+            SIG : nth_error ?σ ?n ≡ Some _ |-
+      in_Gamma _ _ ?id
+      => econstructor; [eapply SIG | eapply GAM | eauto]
+    end.
 
   Ltac solve_not_in_gamma :=
     first [
@@ -1322,6 +1327,8 @@ Section GenIR.
 
         destruct vy_p as [vy_p | vy_p].
         { (* vy_p in global *)
+          assert (Γ si ≡ Γ sf) as CONT by solve_gamma.
+          rewrite CONT in LUn0, LUn.
           edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |].
 
           clean_goal.
@@ -1413,8 +1420,6 @@ Section GenIR.
             
             vstep.
 
-            assert (Γ sf ≡ Γ si) as CONT by solve_gamma.
-            
             apply eutt_Ret.
             cbn.
             split; [| split]; cbn.
@@ -1443,7 +1448,6 @@ Section GenIR.
                       subst. cbn in yINLG.
                       assert (n1 ≡ y_p).
                       eapply st_no_id_aliasing; eauto.
-                      rewrite CONT. eauto.
                       subst.
                       rewrite Heqo0 in H4.
                       discriminate H4.
@@ -1457,7 +1461,6 @@ Section GenIR.
                         eapply Heqo0.
                         3: eapply  H.
                         all: eauto.
-                        rewrite CONT. eauto.
                       }
                       contradiction.
                   - epose proof (IRState_is_WF _ _ H4) as [idT NT].
@@ -1486,7 +1489,6 @@ Section GenIR.
                       subst. cbn in yINLG.
                       assert (n1 ≡ y_p).
                       eapply st_no_id_aliasing; eauto.
-                      rewrite CONT. eauto.
                       subst.
                       rewrite Heqo0 in H4.
                       discriminate H4.
@@ -1500,7 +1502,6 @@ Section GenIR.
                         eapply Heqo0.
                         3: eapply  H.
                         all: eauto.
-                        rewrite CONT. eauto.
                       }
                       contradiction.
                   - epose proof (IRState_is_WF _ _ H4) as [idT NT].
@@ -1528,7 +1529,7 @@ Section GenIR.
                   inv MLUP.
 
                   epose proof (st_no_dshptr_aliasing _ _ _ _ _ Heqo0 H4); subst.
-                  pose proof H5 as IDS. rewrite CONT in IDS.
+                  pose proof H5 as IDS.
                   rewrite LUn0 in IDS.
                   inv IDS.
 
@@ -1546,7 +1547,7 @@ Section GenIR.
                   split.
                   { cbn.
                     rewrite Heqo0 in H4.
-                    rewrite <- CONT in LUn0. rewrite LUn0 in H5.
+                    rewrite LUn0 in H5.
                     inversion H5; subst; auto.
                   }
                   { (* Need to show that every lookup matches *)
@@ -1617,14 +1618,13 @@ Section GenIR.
                     6: eapply INLG'.
                     6: (* This is local now... *) { eapply in_local_or_global_addr_same_global. eapply yINLG. }
                     3: eapply H5.
-                    3: { rewrite CONT; eapply LUn0. }
+                    3: eapply LUn0.
                     all: eauto.
                     intros CONTRA; inv CONTRA.
                     (* H5 and LUN5, means that n1 = y_p, which means a = y_i *)
                     assert (a ≡ y_i).
                     { assert (n1 ≡ y_p).
                       eapply st_no_id_aliasing; eauto.
-                      rewrite CONT; eauto.
                       subst.
                       rewrite Heqo0 in H4.
                       inv H4.
@@ -1644,19 +1644,16 @@ Section GenIR.
 
               { (* x0 is a local *)
                 destruct v0. (* Probably need to use WF_IRState to make sure we only consider valid types *)
-                { rewrite CONT in H5.
-                  solve_in_local_or_global_scalar.
-                }
-                { rewrite CONT in H5.
-                  solve_in_local_or_global_scalar.
-                }
+                solve_in_local_or_global_scalar.
+                solve_in_local_or_global_scalar.
+
                 destruct H as (bk_h & ptr_l & τ' & MINV). (* Do I need this? *)
                 destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
                 - (* PTR aliases, local case should be bogus... *)
                   subst.
 
                   epose proof (st_no_dshptr_aliasing _ _ _ _ _ Heqo0 H4); subst.
-                  rewrite <- CONT in LUn0. rewrite LUn0 in H5.
+                  rewrite LUn0 in H5.
                   inversion H5.
                 - (* This is the branch where a and y_i don't *)
         (*              alias. These are the DSHPtrVal pointers... *)
@@ -1700,8 +1697,7 @@ Section GenIR.
                   rewrite memory_lookup_memory_set_neq; auto.
                   repeat (split; auto).
                   + admit. (* should hold might not need *)
-                  + rewrite CONT in H5.
-                    solve_local_lookup.
+                  + solve_local_lookup.
                   + intros i v0 H6.
                     pose proof (GET i v0 H6).
                     (* untouched part of memory, so this should hold *)
@@ -1710,8 +1706,7 @@ Section GenIR.
 
               + destruct PRE2. eapply st_no_id_aliasing; eauto.
               + eapply st_no_dshptr_aliasing; eauto.
-              + symmetry in CONT.
-                (* TODO: turn this into a tactic? *)
+              + (* TODO: turn this into a tactic? *)
                 do 3 (eapply no_llvm_ptr_aliasing_not_in_gamma; [ | eauto | solve_not_in_gamma]).
                 eapply state_invariant_no_llvm_ptr_aliasing; eauto.
             - exists bid_in. reflexivity.
@@ -1722,15 +1717,18 @@ Section GenIR.
         }
 
         { (* vy_p in local *)
-          edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |].
+          assert (Γ si ≡ Γ sf) as CONT by solve_gamma.
+          rewrite CONT in LUn0, LUn.
+          edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant|].
 
           clean_goal.
           rewrite yLU in H0; symmetry in H0; inv H0.
           cbn in yINLG.
 
           edestruct denote_instr_gep_array_no_read as (yptr' & yGEP & yEQ); cycle -1; [rewrite yEQ; clear yEQ | ..]; cycle 1.
-          { vstep; solve_lu.
-            admit. (* ugh *)
+          { vstep.
+            do 3 (setoid_rewrite lookup_alist_add_ineq; [eauto | solve_id_neq ]).
+            reflexivity.
           }
           { rewrite EXP2.
             - rewrite repr_of_nat_to_nat.
