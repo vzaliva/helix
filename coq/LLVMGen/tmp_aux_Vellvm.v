@@ -48,9 +48,31 @@ Require Import ITree.Eq.Eq.
 
 Section MemoryModel.
 
-  Definition get_logical_block (mem: memory) (ptr: Addr.addr): option logical_block :=
-    let '(b,a) := ptr in
-    get_logical_block_mem b mem.
+  (* Definition get_logical_block (mem: memory) (ptr: Addr.addr): option logical_block := *)
+  (*   let '(b,a) := ptr in *)
+  (*   get_logical_block_mem b mem. *)
+
+  Lemma get_logical_block_of_add_to_frame :
+    forall (m : memory_stack) k x, get_logical_block (add_to_frame m k) x = get_logical_block m x.
+  Proof.
+    intros. destruct m. cbn. destruct m.
+    destruct f; unfold get_logical_block; cbn; reflexivity.
+  Qed.
+
+  Lemma get_logical_block_of_add_logical_frame_ineq :
+    forall x m k mv, m <> x ->
+                get_logical_block (add_logical_block m k mv) x = get_logical_block mv x.
+  Proof.
+    intros.
+    cbn in *.
+    unfold get_logical_block, get_logical_block_mem in *.
+    unfold add_logical_block. destruct mv. cbn.
+    unfold add_logical_block_mem. destruct m0.
+    Opaque lookup. Opaque Mem.add.
+    cbn in *.
+    rewrite lookup_add_ineq; auto.
+  Qed.
+
 
 End MemoryModel.
 

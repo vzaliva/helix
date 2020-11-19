@@ -54,7 +54,8 @@ Section MExpr.
     unfold denoteMExpr, denotePExpr in *; cbn* in *.
     simp; try_abs.
     hvred.
-    edestruct memory_invariant_Ptr as (bkH & ptrV & Mem_LU & MEM & INLG & EQ); eauto.
+    edestruct memory_invariant_Ptr
+      as (bkH & ptrV & Mem_LU & MEM & INLG & EQ); eauto.
     hstep.
     solve_lu.
     hvred.

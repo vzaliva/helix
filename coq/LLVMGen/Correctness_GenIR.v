@@ -328,6 +328,33 @@ Section GenIR.
     solve_prefix.
   Qed.
 
+  Lemma incLocal_id_neq_flipped :
+    forall s1 s2 s3 s4 id1 id2,
+      incLocal s1 ≡ inr (s2, id1) ->
+      incLocal s3 ≡ inr (s4, id2) ->
+      local_count s1 ≢ local_count s3 ->
+      id2 ≢ id1.
+  Proof.
+    intros s1 s2 s3 s4 id1 id2 GEN1 GEN2 COUNT.
+    intros EQ. symmetry in EQ. revert EQ.
+    eapply incLocal_id_neq; eauto.
+  Qed.
+
+  Lemma in_gamma_not_in_neq :
+    forall σ s id r,
+      in_Gamma σ s id ->
+      ~ in_Gamma σ s r ->
+      id ≢ r.
+  Proof.
+    intros σ s id r GAM NGAM.
+    destruct (Eqv.eqv_dec_p r id) as [EQ | NEQ].
+    - do 2 red in EQ.
+      subst.
+      contradiction.
+    - unfold Eqv.eqv, eqv_raw_id in NEQ.
+      eauto.
+  Qed.
+
   Lemma genIR_Context:
     ∀ (op : DSHOperator) (s1 s2 : IRState) (nextblock b : block_id) (bk_op : list (LLVMAst.block typ)),
       genIR op nextblock s1 ≡ inr (s2, (b, bk_op)) →
@@ -667,6 +694,7 @@ Section GenIR.
       specialize (ALIAS1 (S n) (S n')).
       rewrite EQ, 2nth_error_Sn in ALIAS1.
       eapply ALIAS1 in LU1; eauto.
+      admit.
 
     - red; intros * LU1 LU2.
       specialize (ALIAS2 (S n) (S n')).
@@ -709,7 +737,10 @@ Section GenIR.
 
     - red; intros * LU1 LU2.
       destruct n as [| n], n' as [| n']; auto.
-      + exfalso.
+      + rewrite EQ in LU2; cbn in *.
+        rewrite EQ in LU1; cbn in *.
+        inv LU1; inv LU2; auto. split; auto. eexists; auto.
+      + exfalso. 
         rewrite EQ, nth_error_Sn in LU2.
         rewrite EQ in LU1.
         cbn in *.
@@ -731,7 +762,8 @@ Section GenIR.
 
       + rewrite EQ, nth_error_Sn in LU1.
         rewrite EQ, nth_error_Sn in LU2.
-        eapply ALIAS1 in LU1; apply LU1 in LU2; eauto. 
+        eapply ALIAS1 in LU1; apply LU1 in LU2; eauto.
+        destruct LU2; split; auto.
 
     - red; intros * LU1 LU2.
       destruct n as [| n], n' as [| n']; auto.
@@ -746,11 +778,13 @@ Section GenIR.
 
     - do 2 red. intros * LU1 LU2 LU3 LU4 INEQ.
       destruct n1 as [| n1], n2 as [| n2]; auto.
-      + cbn in *.
-        inv LU1; inv LU2.
-
+      + cbn in LU1. inv LU1; inv LU2.
+        intros H H0.
+        admit. (* Probably need to make about locals only *)
       + cbn in *; inv LU1.
+        admit.
       + cbn in *; inv LU2.
+        admit.
   Admitted.
 
   Lemma state_invariant_enter_scope_DSHCType : forall σ v x τ s1 s2 stH mV l g,
@@ -781,7 +815,10 @@ Section GenIR.
 
     - red; intros * LU1 LU2.
       destruct n as [| n], n' as [| n']; auto.
-      + exfalso.
+      + rewrite EQ in LU2; cbn in *.
+        rewrite EQ in LU1; cbn in *.
+        inv LU1; inv LU2; auto. split; auto. eexists; auto.
+      + exfalso. 
         rewrite EQ, nth_error_Sn in LU2.
         rewrite EQ in LU1.
         cbn in *.
@@ -803,7 +840,8 @@ Section GenIR.
 
       + rewrite EQ, nth_error_Sn in LU1.
         rewrite EQ, nth_error_Sn in LU2.
-        eapply ALIAS1 in LU1; apply LU1 in LU2; eauto. 
+        eapply ALIAS1 in LU1; apply LU1 in LU2; eauto.
+        destruct LU2; split; auto.
 
     - red; intros * LU1 LU2.
       destruct n as [| n], n' as [| n']; auto.
@@ -820,56 +858,79 @@ Section GenIR.
       destruct n1 as [| n1], n2 as [| n2]; auto.
       + cbn in *.
         inv LU1; inv LU2.
-
+        admit.
       + cbn in *; inv LU1.
+        admit.
       + cbn in *; inv LU2.
+        admit.
   Admitted.
 
-  Lemma state_invariant_enter_scope_DSHPtr : forall σ ptrh sizeh bkh ptrv x τ s1 s2 stH mV l g,
-      τ ≡ getWFType x (DSHPtr sizeh) ->
-      Γ s1 ≡ (x,τ) :: Γ s2 ->
+  Lemma state_invariant_enter_scope_DSHPtr :
+    forall σ ptrh sizeh ptrv x τ s1 s2 stH mV mV_a l g,
+      τ ≡ getWFType (ID_Local x) (DSHPtr sizeh) ->
+      Γ s1 ≡ (ID_Local x,τ) :: Γ s2 ->
 
-      (* Proof obligations to satisfy the memory relation between the addresses added on both sides *)
-      memory_lookup stH ptrh ≡ Some bkh ->
-      dtyp_fits mV ptrv (typ_to_dtyp (Γ s1) τ) ->
-      in_local_or_global_addr l g x ptrv ->
-      (∀ (i : nat) (v : binary64), mem_lookup i bkh ≡ Some v → get_array_cell mV ptrv i DTYPE_Double ≡ inr (UVALUE_Double v)) ->
-
-      (* Avoiding to introduce aliasing *)
-      ~ In x (map fst (Γ s2)) ->          (* The new ident is fresh *)
-      (forall s, ~ In (DSHPtrVal ptrh s) σ) -> (* The new Helix address is fresh *)
-      (forall ptrv' ptrh sz n id τ,           (* The new Vellvm address is fresh *)
-          nth_error σ n ≡ Some (DSHPtrVal ptrh sz) ->
-          nth_error (Γ s2) n ≡ Some (id, τ) ->
-          in_local_or_global_addr l g id ptrv' ->
-          fst ptrv <> fst ptrv') ->
+      (* Freshness *)
+      ~ In (ID_Local x) (map fst (Γ s2)) ->          (* The new ident is fresh *)
+      (forall sz, ~ In (DSHPtrVal ptrh sz) σ) -> (* The new Helix address is fresh *)
+      no_llvm_ptr_aliasing_cfg σ s2 (mV, (l, g)) ->
 
       state_invariant σ s2 stH (mV,(l,g)) ->
 
-      state_invariant (DSHPtrVal ptrh sizeh ::σ) s1 stH (mV,(l,g)). 
+      (* We know that a certain ptr has been allocated *)
+      allocate mV (DTYPE_Array (Int64.intval sizeh) DTYPE_Double) ≡
+               inr (mV_a, ptrv) ->
+
+      state_invariant (DSHPtrVal ptrh sizeh :: σ) s1
+                      (memory_set stH ptrh mem_empty)
+                      (mV_a, (alist_add x (UVALUE_Addr ptrv) l,g)).
   Proof.
-    intros * -> EQ LUB TYP IN LUA fresh1 fresh2 fresh3 [MEM WF ALIAS1 ALIAS2 ALIAS3].
+    Opaque add_logical_block. Opaque next_logical_key.
+    intros * -> EQ fresh1 fresh2 fresh3 [MEM WF ALIAS1 ALIAS2 ALIAS3] alloc.
     split.
     - red; intros * LU1 LU2.
       destruct n as [| n].
       + rewrite EQ in LU2; cbn in *.
         inv LU1; inv LU2; eauto.
-        admit.
+        exists mem_empty. eexists ptrv. eexists.
+        split; auto.
+        apply memory_lookup_memory_set_eq.
+
+        split. reflexivity.
+        split. red.
+        inv alloc.
+        rewrite get_logical_block_of_add_to_frame. cbn.
+        rewrite get_logical_block_of_add_logical_block.
+
+        auto. eexists. eexists. eexists. split; auto.
+        reflexivity. cbn. rewrite typ_to_dtyp_D_array. cbn. lia.
+        split; auto. inv alloc.
+        red.
+        rewrite alist_add_find_eq. reflexivity.
+        inv alloc.
+        intros. inversion H.
+
       + rewrite nth_error_Sn in LU1.
         rewrite EQ, nth_error_Sn in LU2.
         eapply MEM in LU2; eauto.
+
+        admit.
     - do 2 red.
       intros ? [| n] LU.
       + cbn in LU.
         inv LU.
         rewrite EQ; cbn; eauto.
-
+        exists (ID_Local x). cbn. reflexivity.
       + rewrite nth_error_Sn in LU.
         rewrite EQ,nth_error_Sn.
         apply WF in LU; auto.
 
     - red; intros * LU1 LU2.
       destruct n as [| n], n' as [| n']; auto.
+      + rewrite EQ in LU2; cbn in *.
+        rewrite EQ in LU1; cbn in *.
+        inv LU1; inv LU2; auto. split; auto. eexists; auto.
+
       + exfalso.
         rewrite EQ, nth_error_Sn in LU2.
         rewrite EQ in LU1.
@@ -877,7 +938,7 @@ Section GenIR.
         inv LU1.
         apply fresh1.
         apply nth_error_In in LU2.
-        replace id with (fst (id,τ')) by reflexivity.
+        replace (ID_Local x) with (fst (ID_Local x,τ')) by reflexivity.
         apply in_map; auto.
 
       + exfalso.
@@ -887,28 +948,31 @@ Section GenIR.
         inv LU2.
         apply fresh1.
         apply nth_error_In in LU1.
-        replace id with (fst (id,τ)) by reflexivity.
+        replace (ID_Local x) with (fst (ID_Local x,τ)) by reflexivity.
         apply in_map; auto.
 
-      + rewrite EQ, nth_error_Sn in LU1.
-        rewrite EQ, nth_error_Sn in LU2.
-        eapply ALIAS1 in LU1; apply LU1 in LU2; eauto. 
+      + rewrite EQ in LU2; cbn in *.
+        rewrite EQ in LU1; cbn in *.
+        inv LU1; inv LU2; auto.
+        split.
+        assert (n ≡ n'). {
+          eapply ALIAS1; eauto.
+        } subst; auto.
+        admit.
 
     - red; intros * LU1 LU2.
       destruct n as [| n], n' as [| n']; auto.
-      + inv LU1.
-        rewrite nth_error_Sn in LU2.
-        exfalso; apply (fresh2 sz').
-        eapply nth_error_In; eauto.
-
-      + inv LU2.
-        rewrite nth_error_Sn in LU1.
-        exfalso; apply (fresh2 sz).
-        eapply nth_error_In; eauto.
-
-      + rewrite nth_error_Sn in LU1.
-        rewrite nth_error_Sn in LU2.
-        eapply ALIAS2 in LU1; apply LU1 in LU2; eauto. 
+      + cbn in *. inv LU1. exfalso.
+        eapply fresh2.
+        apply nth_error_In in LU2. eauto.
+      + cbn in *. inv LU2. exfalso.
+        eapply fresh2.
+        apply nth_error_In in LU1. eauto.
+      + cbn in *.
+        assert (n ≡ n'). {
+          eapply ALIAS2; eauto.
+        }
+        subst; auto.
 
     - do 2 red. intros * LU1 LU2 LU3 LU4 INEQ IN1 IN2.
       destruct n1 as [| n1], n2 as [| n2]; auto.
@@ -920,54 +984,36 @@ Section GenIR.
       + rewrite EQ in LU3,LU4.
         cbn in *.
         inv LU1; inv LU3.
-        eapply fresh3 in IN2; eauto.
-        red in IN1, IN.
-        destruct id1; cbn; eauto.
-        rewrite IN1 in IN; inv IN; auto.
-        rewrite IN1 in IN; inv IN; auto.
+        (* eapply fresh3 in IN1; eauto. *)
+        (* red in IN1, IN. *)
+        (* destruct id1; cbn; eauto. *)
+        (* rewrite IN1 in IN; inv IN; auto. *)
+        (* rewrite IN1 in IN; inv IN; auto. *)
+        admit.
       + rewrite EQ in LU3,LU4.
         cbn in *.
         inv LU2; inv LU4.
-        eapply fresh3 in IN1; eauto.
-        red in IN2, IN.
-        destruct id2; cbn; eauto.
-        rewrite IN2 in IN; inv IN; auto.
-        rewrite IN2 in IN; inv IN; auto.
+        (* eapply fresh3 in IN1; eauto. *)
+        (* red in IN2, IN. *)
+        (* destruct id2; cbn; eauto. *)
+        (* rewrite IN2 in IN; inv IN; auto. *)
+        (* rewrite IN2 in IN; inv IN; auto. *)
+        admit.
       + rewrite EQ in LU3,LU4.
-        cbn in *. 
+        cbn in *.
         eapply ALIAS3.
         apply LU1.
         all:eauto.
   Admitted.
 
   (* TODO: move this? *)
-  Ltac solve_local_lookup :=
-    repeat
-      (match goal with
-       | |- context [ if ?x ?[ Logic.eq ] ?x then _ else _ ]
-         => rewrite  eq_dec_eq
-       | GEN1 : incLocal ?s1 ≡ inr (?s2, ?x),
-                GEN2 : incLocal ?s3 ≡ inr (?s4, ?y)
-         |- context [ if ?x ?[ Logic.eq ] ?y then _ else _ ]
-         =>
-         let H := fresh "NEQ"
-         in assert (local_count s1 ≢ local_count s3) as H by solve_local_count;
-            rewrite (eq_dec_neq (incLocal_id_neq GEN1 GEN2 H))
-       | GEN1 : incLocal ?s1 ≡ inr (?s2, ?x),
-                GEN2 : incLocal ?s3 ≡ inr (?s4, ?y)
-         |- context [ if negb (?x ?[ Logic.eq ] ?y) then _ else _ ]
-         => let H := fresh "NEQ"
-           in assert (local_count s1 ≢ local_count s3) as H by solve_local_count;
-              rewrite (eq_dec_neq (incLocal_id_neq GEN1 GEN2 H))
-       end; cbn; auto).
-
   Lemma maps_add_neq :
     forall {K} {V} {eqk : K -> K -> Prop} {RD : RelDec eqk} `{RelDec_Correct _ eqk} `{Symmetric _ eqk} `{Transitive _ eqk} (x id : K) (v : V) m,
       ~ eqk id x ->
       Maps.add x v m @ id ≡ m @ id.
   Proof.
     intros K V eqk RD RDC SYM TRANS H x id v m H0.
-    cbn.
+    cbn. unfold alist_add. 
     rewrite rel_dec_neq_false; eauto.
     eapply remove_neq_alist; eauto.
   Qed.
@@ -1009,7 +1055,7 @@ Section GenIR.
   Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li : local_env)
     : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
     lift_Rel_cfg (state_invariant σ s2) ⩕
-                 branches to ⩕ 
+                 branches to ⩕
                  (fun sthf stvf => local_scope_modif s1 s2 li (fst (snd stvf))).
 
   (* TODO: move to vellvm *)
@@ -1059,6 +1105,61 @@ Section GenIR.
     admit. (* Should hold *)
   Admitted.
 
+  Opaque alist_add.
+
+  (* TODO: move these *)
+  Lemma in_local_or_global_scalar_not_in_gamma :
+    forall r v ρ g m id v_id τ σ s,
+      in_Gamma σ s id ->
+      ~ in_Gamma σ s r ->
+      in_local_or_global_scalar ρ g m (ID_Local id) v_id τ ->
+      in_local_or_global_scalar (alist_add r v ρ) g m (ID_Local id) v_id τ.
+  Proof.
+    intros r v ρ g m id v_id τ σ s GAM NGAM INLG.
+    destruct (Eqv.eqv_dec_p r id) as [EQ | NEQ].
+    - do 2 red in EQ.
+      subst.
+      contradiction.
+    - unfold Eqv.eqv, eqv_raw_id in NEQ.
+      cbn in *.
+      erewrite alist_find_neq; eauto.
+  Qed.
+
+  Ltac solve_in_gamma :=
+    match goal with
+    | GAM : nth_error (Γ ?s) ?n ≡ Some (ID_Local ?id, _),
+            SIG : nth_error ?σ ?n ≡ Some _ |-
+      in_Gamma _ _ ?id
+      => econstructor; [eapply SIG | eapply GAM | eauto]
+    end.
+
+  Ltac solve_not_in_gamma :=
+    first [
+        match goal with
+        | GAM : Gamma_safe ?σ ?si ?sf |- 
+          ~ in_Gamma ?σ ?si ?id =>
+          eapply GAM; solve_lid_bound_between
+        end
+      | solve [eapply not_in_Gamma_Gamma_eq; [eassumption | solve_not_in_gamma]]
+      ].
+
+  Ltac solve_id_neq :=
+    first [ solve [eapply incLocal_id_neq; eauto; solve_local_count]
+          | solve [eapply in_gamma_not_in_neq; [solve_in_gamma | solve_not_in_gamma]]
+          ].
+
+  Ltac solve_local_lookup :=
+    first
+      [ now eauto
+      | solve [erewrite alist_add_find_eq; eauto]
+      | solve [erewrite alist_find_neq; [solve_local_lookup|solve_id_neq]]
+      ].
+
+  Ltac solve_in_local_or_global_scalar :=
+    first
+      [ now eauto
+      | solve [eapply in_local_or_global_scalar_not_in_gamma; [solve_in_gamma | solve_not_in_gamma | solve_in_local_or_global_scalar]]
+      ].
 
   Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
@@ -1260,6 +1361,8 @@ Section GenIR.
 
         destruct vy_p as [vy_p | vy_p].
         { (* vy_p in global *)
+          assert (Γ si ≡ Γ sf) as CONT by solve_gamma.
+          rewrite CONT in LUn0, LUn.
           edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |].
 
           clean_goal.
@@ -1351,8 +1454,6 @@ Section GenIR.
             
             vstep.
 
-            assert (Γ sf ≡ Γ si) as CONT by solve_gamma.
-            
             apply eutt_Ret.
             cbn.
             split; [| split]; cbn.
@@ -1371,8 +1472,87 @@ Section GenIR.
               { (* x0 is a global *)
                 destruct v0.
                 cbn. cbn in H4.
-                admit.
-                admit.
+                { cbn in H. destruct H as (ptr_l & τ' & TYPE & INLG' & READ').
+                  do 2 eexists.
+                  repeat split; eauto.
+
+                  destruct (Z.eq_dec (fst ptr_l) (fst yptr)) as [EQ | NEQ].
+                  - destruct (Eqv.eqv_dec_p id vy_p) as [EQid | NEQid].
+                    + do 2 red in EQid.
+                      subst. cbn in yINLG.
+                      assert (n1 ≡ y_p).
+                      eapply st_no_id_aliasing; eauto.
+                      subst.
+                      rewrite Heqo0 in H4.
+                      discriminate H4.
+                    + unfold Eqv.eqv, eqv_raw_id in NEQid.
+                      assert (fst ptr_l ≢ fst yptr).
+                      { assert (ID_Global id ≢ ID_Global vy_p).
+                        injection. apply NEQid.
+
+                        eapply st_no_llvm_ptr_aliasing.
+                        eapply H4.
+                        eapply Heqo0.
+                        3: eapply  H.
+                        all: eauto.
+                      }
+                      contradiction.
+                  - epose proof (IRState_is_WF _ _ H4) as [idT NT].
+                    rewrite H5 in NT. cbn in NT. inv NT.
+                    inv H1.
+
+                    erewrite write_untouched; eauto.
+                    constructor.
+                    eapply sizeof_dvalue_pos.
+                    cbn.
+                    rewrite typ_to_dtyp_I.
+                    constructor.
+
+                    pose proof (handle_gep_addr_array_same_block _ _ _ _ yGEP) as YPTRBLOCK.
+                    rewrite YPTRBLOCK in NEQ.
+                    do 2 red. auto.
+                }
+
+                { cbn in H. destruct H as (ptr_l & τ' & TYPE & INLG' & READ').
+                  do 2 eexists.
+                  repeat split; eauto.
+
+                  destruct (Z.eq_dec (fst ptr_l) (fst yptr)) as [EQ | NEQ].
+                  - destruct (Eqv.eqv_dec_p id vy_p) as [EQid | NEQid].
+                    + do 2 red in EQid.
+                      subst. cbn in yINLG.
+                      assert (n1 ≡ y_p).
+                      eapply st_no_id_aliasing; eauto.
+                      subst.
+                      rewrite Heqo0 in H4.
+                      discriminate H4.
+                    + unfold Eqv.eqv, eqv_raw_id in NEQid.
+                      assert (fst ptr_l ≢ fst yptr).
+                      { assert (ID_Global id ≢ ID_Global vy_p).
+                        injection. apply NEQid.
+
+                        eapply st_no_llvm_ptr_aliasing.
+                        eapply H4.
+                        eapply Heqo0.
+                        3: eapply  H.
+                        all: eauto.
+                      }
+                      contradiction.
+                  - epose proof (IRState_is_WF _ _ H4) as [idT NT].
+                    rewrite H5 in NT. cbn in NT. inv NT.
+                    inv H1.
+
+                    erewrite write_untouched; eauto.
+                    constructor.
+                    eapply sizeof_dvalue_pos.
+                    cbn.
+                    rewrite typ_to_dtyp_D.
+                    constructor.
+
+                    pose proof (handle_gep_addr_array_same_block _ _ _ _ yGEP) as YPTRBLOCK.
+                    rewrite YPTRBLOCK in NEQ.
+                    do 2 red. auto.
+                }
                 destruct H as (bk_h & ptr_l & τ' & MINV).
                 destruct MINV as (MLUP & MTYP & FITS & INLG' & GET).
                 destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
@@ -1382,7 +1562,7 @@ Section GenIR.
                   inv MLUP.
 
                   epose proof (st_no_dshptr_aliasing _ _ _ _ _ Heqo0 H4); subst.
-                  pose proof H5 as IDS. rewrite CONT in IDS.
+                  pose proof H5 as IDS.
                   rewrite LUn0 in IDS.
                   inv IDS.
 
@@ -1400,7 +1580,7 @@ Section GenIR.
                   split.
                   { cbn.
                     rewrite Heqo0 in H4.
-                    rewrite <- CONT in LUn0. rewrite LUn0 in H5.
+                    rewrite LUn0 in H5.
                     inversion H5; subst; auto.
                   }
                   { (* Need to show that every lookup matches *)
@@ -1471,14 +1651,13 @@ Section GenIR.
                     6: eapply INLG'.
                     6: (* This is local now... *) { eapply in_local_or_global_addr_same_global. eapply yINLG. }
                     3: eapply H5.
-                    3: { rewrite CONT; eapply LUn0. }
+                    3: eapply LUn0.
                     all: eauto.
                     intros CONTRA; inv CONTRA.
                     (* H5 and LUN5, means that n1 = y_p, which means a = y_i *)
                     assert (a ≡ y_i).
                     { assert (n1 ≡ y_p).
                       eapply st_no_id_aliasing; eauto.
-                      rewrite CONT; eauto.
                       subst.
                       rewrite Heqo0 in H4.
                       inv H4.
@@ -1498,15 +1677,16 @@ Section GenIR.
 
               { (* x0 is a local *)
                 destruct v0. (* Probably need to use WF_IRState to make sure we only consider valid types *)
-                admit.
-                admit.
+                solve_in_local_or_global_scalar.
+                solve_in_local_or_global_scalar.
+
                 destruct H as (bk_h & ptr_l & τ' & MINV). (* Do I need this? *)
                 destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
                 - (* PTR aliases, local case should be bogus... *)
                   subst.
 
                   epose proof (st_no_dshptr_aliasing _ _ _ _ _ Heqo0 H4); subst.
-                  rewrite <- CONT in LUn0. rewrite LUn0 in H5.
+                  rewrite LUn0 in H5.
                   inversion H5.
                 - (* This is the branch where a and y_i don't *)
         (*              alias. These are the DSHPtrVal pointers... *)
@@ -1543,65 +1723,26 @@ Section GenIR.
         (*            *)
 
                   destruct MINV as (MLUP & MSUC & FITS & INLG' & GET).
-                  pose proof alist_In_dec id l0.
-                  edestruct H as [INl0 | NINl0].
-                  + subst.
-                    cbn.
-                    exists bk_h. exists ptr'. exists τ'.
-                    
-                    rewrite memory_lookup_memory_set_neq; auto.
-                    repeat (split; auto).
-                    * admit. (* should hold might not need *)
-                    * (* This should all hold from the fact that id is *)
-        (*                in l0 and everything is fresh... *)
-
-                      (* This is hideous *)
-                      (* automate. Make the add function opaque... *)
-                      assert (id ?[ Logic.eq ] r0 ≡ false) as IDR0 by admit.
-                      rewrite IDR0.
-                      assert (negb (r0 ?[ Logic.eq ] r1) ≡ true) as R0R1 by admit.
-                      rewrite R0R1.
-                      cbn.
-                      assert (id ?[ Logic.eq ] r1 ≡ false) as IDR1 by admit.
-                      rewrite IDR1.
-                      cbn.
-                      assert (negb (r1 ?[ Logic.eq ] r) ≡ true) as R1R by admit.
-                      rewrite R1R.
-                      cbn.
-                      assert (negb (r0 ?[ Logic.eq ] r) ≡ true) as R0R by admit.
-                      rewrite R0R.
-                      cbn.
-                      assert (id ?[ Logic.eq ] r ≡ true) as IDR by admit.
-                      rewrite IDR.
-                      reflexivity.
-                    * intros i v0 H6.
-                      pose proof (GET i v0 H6).
-                      (* untouched part of memory, so this should hold *)
-                      admit. (* TODO: do this one *)
-                  + cbn in INLG'.
-                    exfalso.
-                    apply NINl0. eauto.
+                  subst.
+                  cbn.
+                  exists bk_h. exists ptr_l. exists τ'.
+                  
+                  rewrite memory_lookup_memory_set_neq; auto.
+                  repeat (split; auto).
+                  + admit. (* should hold might not need *)
+                  + solve_local_lookup.
+                  + intros i v0 H6.
+                    pose proof (GET i v0 H6).
+                    (* untouched part of memory, so this should hold *)
+                    admit. (* TODO: do this one *)
               }
 
               + destruct PRE2. eapply st_no_id_aliasing; eauto.
               + eapply st_no_dshptr_aliasing; eauto.
-              + cbn.
-                eapply no_llvm_ptr_aliasing_not_in_gamma.
-                eapply no_llvm_ptr_aliasing_not_in_gamma.
-                eapply no_llvm_ptr_aliasing_not_in_gamma.
-                eapply st_no_llvm_ptr_aliasing in PRE2. cbn in PRE2. eauto.
-
-                (* TODO: these admits scare me *)
-                eapply WF_IRState_Γ;
-                  eauto; symmetry; eapply incLocal_Γ; eauto.
-                admit.
-                eapply WF_IRState_Γ;
-                  eauto; symmetry; eapply incLocal_Γ; eauto.
-                admit.
-                eapply WF_IRState_Γ;
-                  eauto; symmetry; eapply incLocal_Γ; eauto.
-                admit.
-
+              + (* TODO: turn this into a tactic? *)
+                do 3 (eapply no_llvm_ptr_aliasing_not_in_gamma; [ | eauto | solve_not_in_gamma]).
+                eapply state_invariant_no_llvm_ptr_aliasing; eauto.
+              + admit.
             - exists bid_in. reflexivity.
 
             - (* The only local variables modified are in [si;sf] *)
@@ -1610,15 +1751,18 @@ Section GenIR.
         }
 
         { (* vy_p in local *)
-          edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |].
+          assert (Γ si ≡ Γ sf) as CONT by solve_gamma.
+          rewrite CONT in LUn0, LUn.
+          edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant|].
 
           clean_goal.
           rewrite yLU in H0; symmetry in H0; inv H0.
           cbn in yINLG.
 
           edestruct denote_instr_gep_array_no_read as (yptr' & yGEP & yEQ); cycle -1; [rewrite yEQ; clear yEQ | ..]; cycle 1.
-          { vstep; solve_lu.
-            admit. (* ugh *)
+          { vstep.
+            do 3 (setoid_rewrite lookup_alist_add_ineq; [eauto | solve_id_neq ]).
+            reflexivity.
           }
           { rewrite EXP2.
             - rewrite repr_of_nat_to_nat.
@@ -1647,21 +1791,7 @@ Section GenIR.
           2: {
             vstep.
             - cbn.
-
-              (* TODO: automate? *)
-              assert (r1 ≢ r0) as NEQ by admit.
-              assert (r0 ≢ r1) as NEQ' by auto.
-              apply eq_dec_neq in NEQ.
-              apply eq_dec_neq in NEQ'.
-              rewrite NEQ, NEQ'.
-              cbn.
-
-              assert (r1 ≡ r1) as EQ by auto.
-              eapply rel_dec_eq_true in EQ.
-
-              rewrite EQ.
-              reflexivity.
-              apply RelDec_Correct_eq_typ.
+              solve_local_lookup.
             - cbn.
               apply eqit_Ret.
               cbn.
@@ -1671,14 +1801,7 @@ Section GenIR.
           2: {
             vstep.
             - cbn.
-
-              (* TODO: automate? *)
-              assert (r0 ≡ r0) as EQ by auto.
-              eapply rel_dec_eq_true in EQ.
-
-              rewrite EQ.
-              reflexivity.
-              apply RelDec_Correct_eq_typ.
+              solve_local_lookup.
             - cbn.
               apply eqit_Ret.
               cbn.
@@ -2069,30 +2192,24 @@ Section GenIR.
       unfold denotePExpr in *; cbn* in *.
       simp; try now (exfalso; clear -NOFAIL; try apply no_failure_Ret in NOFAIL; try_abs).
       apply no_failure_Ret in NOFAIL; simp; cbn in *; try_abs.
-
       hide_strings'.
       inv_resolve_PVar Heqs0.
       inv_resolve_PVar Heqs1.
       cbn* in *.
       simp.
-
       eutt_hide_right.
       repeat apply no_failure_Ret in NOFAIL.
       repeat (edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto). 
-
       rauto:L.
       all:eauto.
       Ltac rewrite_nth_error :=
         match goal with
         | h: nth_error _ _ ≡ _ |- _ => rewrite h
         end.
-
       Ltac rewrite_memory_lookup :=
         match goal with
         | h: memory_lookup _ _ ≡ _ |- _ => rewrite h
         end.
-
-
       subst; eutt_hide_left.
       Transparent genWhileLoop.
       cbn in *.
@@ -2101,13 +2218,10 @@ Section GenIR.
       unfold add_comments; cbn.
       repeat rewrite fmap_list_app.
       cbn.
-
-
       match goal with
         |- context[denote_bks ?x] =>
         remember x as bks
       end.
-
 (*
       erewrite denote_bks_unfold.
       2:{
@@ -2117,9 +2231,7 @@ Section GenIR.
         reflexivity.
         exfalso; apply foo; reflexivity.
       }
-
       Opaque find_block.
-
       cbn.
       norm_v.
       unfold IntType; rewrite typ_to_dtyp_I.
@@ -2143,7 +2255,6 @@ Section GenIR.
       cbn; norm_v.
       subst; cbn; norm_v.
       focus_single_step_v.
-
       (* Case analysis on whether we ever enter the loop or not *)
       unfold eval_int_icmp.
       cbn.
@@ -2151,11 +2262,9 @@ Section GenIR.
       -- (* We enter the loop *)
         cbn; norm_v.
         subst; cbn; norm_v.
-
         rewrite find_block_ineq, find_block_eq.
         2: reflexivity.
         2:cbn; admit.
-
         norm_v.
         (* loopblock  *)
         rewrite denote_bks_unfold.
@@ -2175,28 +2284,22 @@ Section GenIR.
         }
 *)
       (* Need to denote phis, I cannot denote the block directly :( *)
-
         admit.
-
       (* -- *)
       (*   (* from == to, we go from the entry block to the next one directly *) *)
       (*   cbn. *)
       (*   norm_v. *)
       (*   subst; cbn; norm_v. *)
-
       (*   repeat rewrite find_block_ineq. *)
       (*   2,3,4,5: cbn; admit. *)
       (*   cbn. *)
       (*   rewrite find_block_nil. *)
-
       (*   cbn; norm_v. *)
       (*   assert (n ≡ 0) by admit. *)
-
       (*   subst. *)
       (*   cbn; norm_h. *)
       (*   rewrite interp_Mem_MemSet. *)
       (*   norm_h. *)
-
       (*   apply eutt_Ret. *)
       (*   split; eauto. *)
       (*   { *)
@@ -2205,13 +2308,11 @@ Section GenIR.
       (*   { *)
       (*     admit. *)
       (*   } *)
-
     - (* DSHBinOp *)
       cbn* in *.
       simp.
       inv_resolve_PVar Heqs1.
       inv_resolve_PVar Heqs2.
-
       (* On the Helix side, the computation consists in:
          1. xi <- denotePExpr x
          2. yi <- denotePExpr y
@@ -2222,16 +2323,13 @@ Section GenIR.
        *)
       eutt_hide_right.
       rauto:L.
-
       subst; eutt_hide_left.
-
       unfold add_comments.
       cbn.
       match goal with
         |- context[denote_bks ?x] =>
         remember x as bks
       end.
-
       (* Lemma about while loop instead *)
       (* erewrite denote_bks_unfold. *)
       (* 2:{ *)
@@ -2262,25 +2360,19 @@ Section GenIR.
       (* unfold endo. *)
       (* unfold eval_int_icmp. *)
       (* cbn. *)
-
       (* focus_single_step_v. *)
-
       (* unfold Int64_eq_or_cerr, Z_eq_or_cerr, ErrorWithState.err2errS, Z_eq_or_err, memory_lookup_err in *. *)
       (* cbn* in *. *)
       (* simp. *)
       (* inv_resolve_PVar Heqs0. *)
       (* inv_resolve_PVar Heqs1. *)
-
       (* onAllHyps move_up_types.  *)
-
   (*     repeat match goal with *)
   (*            | h : Int64.intval _ ≡ Int64.intval _ |- _ => apply int_eq_inv in h; subst *)
   (*            end. *)
-
   (*     eutt_hide_left. *)
   (*     focus_single_step_v. *)
   (*     unfold MInt64asNT.from_nat in *. *)
-
   (*     rename n into index1. *)
   (*     break_if. *)
   (*     { *)
@@ -2289,7 +2381,6 @@ Section GenIR.
   (*       subst. *)
   (*       cbn. *)
   (*       norm_v. *)
-
       admit.
     - (* DSHMemMap2 *) admit.
     - (* DSHPower *) admit.
@@ -2299,28 +2390,19 @@ Section GenIR.
       rewrite DSHLoop_interpreted_as_tfor.
       cbn* in *; simp.
       rewrite add_comment_eutt.
-
-
       (*
         sub_alist
        parameterized by some l_i
        start from l_i \subseteqeq_[s1;s2] l1
        end in l2 such that l2 | dom(l_i) ~~ l_i
-
         I l --> l ⊑ l' --> I l'
-
         forall l ⊑_[s1;s2] l',
-
         eutt op c
-
         gencode op s1 = (s2,c)
-
         pre: dom(l_i) ∩ [s1;s2] = nil
         {c}
         post: dom(l_f) \ dom(l_i) ⊆ [s1;s2]
-
        *)
-
       assert (IN: In b0 (block_ids l)).
       {
         (* Prpoerty of genIR *)
@@ -2353,49 +2435,37 @@ Section GenIR.
                   | Some mh => state_invariant σ s1 b mh _
                   end
                ).
-
         (*
           DSHLoop 2 ()
          *)
-
       admit.
-
       4: eassumption.
       
-
     - (* DSHAlloc *) admit.
     - (* DSHMemInit *) admit.
     - (* DSHSeq *)
       cbn.
-
       pose proof GEN as GEN_DESTRUCT.
       cbn in GEN_DESTRUCT; simp.
-
       rename i into s_op1.
       rename l0 into bk_op1.
       rename l into bk_op2.
-
       rename b into op2_entry.
       rename bid_in into op1_entry.
-
       rename Heqs0 into GEN_OP2.
       rename Heqs2 into GEN_OP1.
       rewrite add_comment_eutt.
       cbn.
-
       rewrite convert_typ_block_app.
       rewrite denote_bks_app; eauto.
       2: {
         unfold no_reentrance.
         pose proof GEN_OP1 as GEN_OP1'.
-
         apply (inputs_not_earlier_bound _ _ _ NEXT) in GEN_OP1'.
         apply inputs_bound_between in GEN_OP1.
         apply outputs_bound_between in GEN_OP2.
-
         pose proof (Forall_and GEN_OP1 GEN_OP1') as INPUTS.
         cbn in INPUTS.
-
         eapply (Forall_disjoint GEN_OP2 INPUTS).
         intros x OUT_PRED [IN_BOUND IN_NEXT].
         destruct OUT_PRED as [OUT_PRED | OUT_PRED]; auto.
@@ -2404,9 +2474,7 @@ Section GenIR.
         block_count_replace.
         lia.
       }
-
       rauto.
-
       (* Helix generates code for op2 *first*, so op2 gets earlier
         variables from the irstate. Helix needs to do this because it
         passes the block id for the next block that an operator should
@@ -2419,10 +2487,8 @@ Section GenIR.
       pose proof BISIM as BISIM2.
       destruct BISIM as [[SINV (?from & EQ)] FRESH]; cbn in *; inv EQ.
       simp.
-
       rename Heqs0 into GEN_OP2.
       rename Heqs1 into GEN_OP1.
-
       eapply eutt_clo_bind_returns.
       {
         eapply IHop1 with (s1:=s_op1) (s2:=s2).
@@ -2453,12 +2519,10 @@ Section GenIR.
         - eapply no_failure_helix_bind_prefix; eauto.
         - auto.
       }
-
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       cbn in PRE; destruct PRE as [[INV2 [from2 BRANCH2]] FRESH2]; cbn in *; inv_eqs.
       subst...
-
       eapply eqit_mon; auto.
       2: {
         eapply IHop2; eauto.
@@ -2490,17 +2554,13 @@ Section GenIR.
           + exists from2. reflexivity.
         - cbn.
           (* TODO: make solve_fresh do this *)
-
           (* Nothing in ρ is bound between s1 and s2 *)
           unfold freshness_pre in FRESHNESS2.
-
           (* Everything new in l is bound between s_op1 and s2... *)
           unfold freshness_post in FRESH2.
-
           (* This is consistent so far... *)
           unfold freshness_pre.
           intros id v H.
-
           destruct (alist_In_dec id ρ v) as [AIN | ANIN].
           + pose proof (FRESHNESS2 _ _ AIN) as NBOUND.
             intros CONTRA.
@@ -2512,21 +2572,17 @@ Section GenIR.
             eapply (state_bound_between_id_separate incLocalNamed_count_gen_injective BOUND1 BOUND2).
             auto.
       }
-
       intros [[memH1 ?]|] (memV1 & l1 & g1 & res1) PR.
       2: {
         inversion PR.
       }
-
       destruct res1 as [[from1 next] | v].
       2: {
         destruct PR as [[? [? BR]] ?].
         inversion BR.
       }
-
       cbn in PR. destruct PR as [[SINV1 BRANCHES1] FRESH1].
       cbn.
-
       split; auto.
       cbn. cbn in SINV1.
       destruct SINV1 as [MINV1 WF1].
