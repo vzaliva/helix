@@ -1,6 +1,7 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Freshness.
 Require Import Helix.LLVMGen.LidBound.
+Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.VariableBinding.
 
 Set Implicit Arguments.
@@ -103,7 +104,7 @@ End WF_IRState.
 Ltac abs_by_WF :=
   match goal with
   | h  : nth_error (Γ ?s) _ ≡ ?rhs,
-    h': @nth_error DSHVal ?σ _ ≡ ?rhs'
+         h': @nth_error DSHVal ?σ _ ≡ ?rhs'
     |- _ =>
     match rhs with
     | Some (?id,?τ) =>
@@ -129,12 +130,12 @@ Ltac abs_by_WF :=
       eapply WF_IRState_one_of_global_type in h; eauto;
       now (let EQ := fresh in destruct h as [EQ | [EQ | [? EQ]]]; inv EQ)
     end
-   end.
+  end.
 
 
 Ltac try_abs :=
   try (abs_by_WF ||
-        abs_by failure_helix_throw || abs_by failure_helix_throw').
+       abs_by failure_helix_throw || abs_by failure_helix_throw').
 
 Section SimulationRelations.
 
@@ -154,7 +155,7 @@ Section SimulationRelations.
   (**
      Relation used to relate memories after the initialization phase.
      Recall: [Type_R_memory ≜ memoryH -> LLVM_memory_state_cfg -> Prop]
-  *)
+   *)
 
   (* Conversion from Helix values to VIR values *)
   Definition dvalue_of_int (v : Int64.int) : dvalue := DVALUE_I64 (DynamicValues.Int64.repr (Int64.intval v)).
@@ -304,7 +305,7 @@ Section SimulationRelations.
           dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp [] τ') /\
           in_local_or_global_addr ρ g x ptr_llvm /\
           (forall i v, mem_lookup i bk_helix ≡ Some v ->
-                  get_array_cell mem_llvm ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v))
+                       get_array_cell mem_llvm ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v))
         end.
 
   (* Lookups in [genv] are fully determined by lookups in [Γ] and [σ] *)
@@ -313,7 +314,7 @@ Section SimulationRelations.
       nth_error (Γ s) v ≡ Some (ID_Global id, TYPE_Pointer t) ->
       nth_error σ v ≡ Some (DSHnatVal n) ->
       exists ptr, Maps.lookup id g ≡ Some (DVALUE_Addr ptr) /\
-             read memV ptr (typ_to_dtyp [] t) ≡ inr (dvalue_to_uvalue (DVALUE_I64 n)).
+                  read memV ptr (typ_to_dtyp [] t) ≡ inr (dvalue_to_uvalue (DVALUE_I64 n)).
   Proof.
     intros * MEM_INV NTH LU; cbn* in *.
     eapply MEM_INV in LU; clear MEM_INV; eauto.
@@ -355,7 +356,7 @@ Section SimulationRelations.
       nth_error (Γ s) v ≡ Some (ID_Global id, TYPE_Pointer t) ->
       nth_error σ v ≡ Some (DSHCTypeVal f) ->
       exists ptr, Maps.lookup id g ≡ Some (DVALUE_Addr ptr) /\
-             read memV ptr (typ_to_dtyp [] t) ≡ inr (dvalue_to_uvalue (DVALUE_Double f)).
+                  read memV ptr (typ_to_dtyp [] t) ≡ inr (dvalue_to_uvalue (DVALUE_Double f)).
   Proof.
     intros * MEM_INV NTH LU; cbn* in *.
     eapply MEM_INV in LU; clear MEM_INV; eauto.
@@ -373,7 +374,7 @@ Section SimulationRelations.
         /\ dtyp_fits memV ptr_v (typ_to_dtyp [] t')
         /\ in_local_or_global_addr l g (ID_Local id) ptr_v
         /\ (forall (i : Memory.NM.key) (v : binary64),
-              mem_lookup i bk_h ≡ Some v -> get_array_cell memV ptr_v i DTYPE_Double ≡ inr (UVALUE_Double v)).
+               mem_lookup i bk_h ≡ Some v -> get_array_cell memV ptr_v i DTYPE_Double ≡ inr (UVALUE_Double v)).
   Proof.
     intros * MEM_INV NTH LU; cbn* in *.
     eapply MEM_INV in LU; clear MEM_INV; eauto.
@@ -419,12 +420,12 @@ Section SimulationRelations.
   (* Given a range defined by [s1;s2], ensures that the whole range is irrelevant to the memory invariant *)
   Definition Gamma_safe σ (s1 s2 : IRState) : Prop :=
     forall id, lid_bound_between s1 s2 id ->
-          ~ in_Gamma σ s1 id.
+               ~ in_Gamma σ s1 id.
 
   (* Given an initial local env [l1] that reduced to [l2], ensures that no variable relevant to the memory invariant has been modified *)
   Definition Gamma_preserved σ s (l1 l2 : local_env) : Prop :=
     forall id, in_Gamma σ s id ->
-          l1 @ id ≡ l2 @ id.
+               l1 @ id ≡ l2 @ id.
 
   (* Given an initial local env [l1] that reduced to [l2], and a range given by [s1;s2], ensures
    that all modified variables came from this range *)
@@ -494,18 +495,18 @@ Section SimulationRelations.
         * subst.
           contradiction.
         * epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3).
-        assert (in_Gamma σ s id).
-        { econstructor.
-          2: eapply H1.
-          all:eauto.
-        }
-        exfalso; apply FRESH; auto.
+          assert (in_Gamma σ s id).
+          { econstructor.
+            2: eapply H1.
+            all:eauto.
+          }
+          exfalso; apply FRESH; auto.
       + assert ({id1 ≡ id} + {id1 ≢ id}) by admit. destruct H6.
         * subst.
           epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3).
-        assert (in_Gamma σ s id).
-        econstructor; eauto.
-        exfalso; apply FRESH; auto.
+          assert (in_Gamma σ s id).
+          econstructor; eauto.
+          exfalso; apply FRESH; auto.
         * admit.
   Admitted.
 
@@ -573,395 +574,420 @@ Section SimulationRelations.
     intros * H; inv H; auto.
   Qed.
 
-(* The memory invariant is stable by extension of the local environment
+  (* The memory invariant is stable by extension of the local environment
    if the variable belongs to a Γ safe interval
- *)
-Lemma state_invariant_add_fresh :
-  ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
-    (l : local_env) (g : global_env) (v : uvalue),
-    incLocal s1 ≡ inr (s2, id)
-    -> WF_IRState σ s2
-    -> Gamma_safe σ s1 s2
-    → state_invariant σ s1 memH (memV, (l, g))
-    → state_invariant σ s2 memH (memV, (alist_add id v l, g)).
-Proof.
-  intros * INC SAFE INV.
-  eapply state_invariant_same_Γ; eauto using lid_bound_between_incLocal.
-  symmetry; eapply incLocal_Γ; eauto.
-Qed.
+   *)
+  Lemma state_invariant_add_fresh :
+    ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
+      (l : local_env) (g : global_env) (v : uvalue),
+      incLocal s1 ≡ inr (s2, id)
+      -> WF_IRState σ s2
+      -> Gamma_safe σ s1 s2
+      → state_invariant σ s1 memH (memV, (l, g))
+      → state_invariant σ s2 memH (memV, (alist_add id v l, g)).
+  Proof.
+    intros * INC SAFE INV.
+    eapply state_invariant_same_Γ; eauto using lid_bound_between_incLocal.
+    symmetry; eapply incLocal_Γ; eauto.
+  Qed.
 
-Lemma incVoid_Γ:
-  forall s s' id,
-    incVoid s ≡ inr (s', id) ->
-    Γ s' ≡ Γ s.
-Proof.
-  intros; cbn in *; inv_sum; reflexivity.
-Qed.
+  Lemma incVoid_Γ:
+    forall s s' id,
+      incVoid s ≡ inr (s', id) ->
+      Γ s' ≡ Γ s.
+  Proof.
+    intros; cbn in *; inv_sum; reflexivity.
+  Qed.
 
-Lemma incVoid_no_id_aliasing :
-  forall s1 s2 id σ,
-    incVoid s1 ≡ inr (s2, id) ->
-    no_id_aliasing s1 σ ->
-    no_id_aliasing s2 σ.
-Proof.
-  intros s1 s2 id SIG INC ALIAS.
-  unfold no_id_aliasing in *.
-  apply incVoid_Γ in INC.
-  rewrite INC.
-  auto.
-Qed.
+  Lemma incVoid_no_id_aliasing :
+    forall s1 s2 id σ,
+      incVoid s1 ≡ inr (s2, id) ->
+      no_id_aliasing s1 σ ->
+      no_id_aliasing s2 σ.
+  Proof.
+    intros s1 s2 id SIG INC ALIAS.
+    unfold no_id_aliasing in *.
+    apply incVoid_Γ in INC.
+    rewrite INC.
+    auto.
+  Qed.
 
-Lemma incVoid_no_llvm_ptr_aliasing :
-  forall σ s1 s2 id l g,
-    incVoid s1 ≡ inr (s2, id) ->
-    no_llvm_ptr_aliasing σ s1 l g ->
-    no_llvm_ptr_aliasing σ s2 l g.
-Proof.
-  intros σ s1 s2 id l g INC ALIAS.
-  unfold no_llvm_ptr_aliasing in *.
-  apply incVoid_Γ in INC.
-  rewrite INC.
-  auto.
-Qed.
+  Lemma incVoid_no_llvm_ptr_aliasing :
+    forall σ s1 s2 id l g,
+      incVoid s1 ≡ inr (s2, id) ->
+      no_llvm_ptr_aliasing σ s1 l g ->
+      no_llvm_ptr_aliasing σ s2 l g.
+  Proof.
+    intros σ s1 s2 id l g INC ALIAS.
+    unfold no_llvm_ptr_aliasing in *.
+    apply incVoid_Γ in INC.
+    rewrite INC.
+    auto.
+  Qed.
 
-Lemma state_invariant_incVoid :
-  forall σ s s' k memH stV,
-    incVoid s ≡ inr (s', k) ->
-    state_invariant σ s memH stV ->
-    state_invariant σ s' memH stV.
-Proof.
-  intros * INC INV; inv INV.
-  split; eauto.
-  - red; repeat break_let; intros * LUH LUV.
-    assert (Γ s' ≡ Γ s) as GAMMA by (eapply incVoid_Γ; eauto).
-    rewrite GAMMA in *.
-    generalize LUV; intros INLG;
-      eapply mem_is_inv0 in INLG; eauto. 
-  - unfold WF_IRState; erewrite incVoid_Γ; eauto; apply WF.
-  - eapply incVoid_no_id_aliasing; eauto.
-  - destruct stV as [m [l g]].
-    eapply incVoid_no_llvm_ptr_aliasing; eauto.
-Qed.
+  Lemma state_invariant_incVoid :
+    forall σ s s' k memH stV,
+      incVoid s ≡ inr (s', k) ->
+      state_invariant σ s memH stV ->
+      state_invariant σ s' memH stV.
+  Proof.
+    intros * INC INV; inv INV.
+    split; eauto.
+    - red; repeat break_let; intros * LUH LUV.
+      assert (Γ s' ≡ Γ s) as GAMMA by (eapply incVoid_Γ; eauto).
+      rewrite GAMMA in *.
+      generalize LUV; intros INLG;
+        eapply mem_is_inv0 in INLG; eauto. 
+    - unfold WF_IRState; erewrite incVoid_Γ; eauto; apply WF.
+    - eapply incVoid_no_id_aliasing; eauto.
+    - destruct stV as [m [l g]].
+      eapply incVoid_no_llvm_ptr_aliasing; eauto.
+  Qed.
 
-(* If no change has been made, all changes are certainly in the interval *)
-Lemma local_scope_modif_refl: forall s1 s2 l, local_scope_modif s1 s2 l l.
-Proof.
-  intros; red; intros * NEQ.
-  contradiction NEQ; auto.
-Qed.
-
-(* If a single change has been made, we just need to check that it was in the interval *)
-Lemma local_scope_modif_add: forall s1 s2 l r v,
-    lid_bound_between s1 s2 r ->   
-    local_scope_modif s1 s2 l (alist_add r v l).
-Proof.
-  intros * BET.
-  red; intros * NEQ.
-  destruct (rel_dec_p r id).
-  - subst; rewrite alist_find_add_eq in NEQ; auto.
-  - rewrite alist_find_neq in NEQ; auto.
+  (* If no change has been made, all changes are certainly in the interval *)
+  Lemma local_scope_modif_refl: forall s1 s2 l, local_scope_modif s1 s2 l l.
+  Proof.
+    intros; red; intros * NEQ.
     contradiction NEQ; auto.
-Qed.
+  Qed.
 
-(* Gives a way to work with multiple changes made to locals *)
-Lemma local_scope_modif_add': forall s1 s2 l l' r v,
-    lid_bound_between s1 s2 r ->
-    local_scope_modif s1 s2 l l' ->
-    local_scope_modif s1 s2 l (alist_add r v l').
-Proof.
-  intros * BET MODIF.
-  red; intros * NEQ.
-  destruct (rel_dec_p r id).
-  - subst; rewrite alist_find_add_eq in NEQ; auto.
-  - rewrite alist_find_neq in NEQ; auto.
-Qed.
+  (* If a single change has been made, we just need to check that it was in the interval *)
+  Lemma local_scope_modif_add: forall s1 s2 l r v,
+      lid_bound_between s1 s2 r ->   
+      local_scope_modif s1 s2 l (alist_add r v l).
+  Proof.
+    intros * BET.
+    red; intros * NEQ.
+    destruct (rel_dec_p r id).
+    - subst; rewrite alist_find_add_eq in NEQ; auto.
+    - rewrite alist_find_neq in NEQ; auto.
+      contradiction NEQ; auto.
+  Qed.
 
-(* If all changes made are in the empty interval, then no change has been made *)
-Lemma local_scope_modif_empty_scope:
-  forall (l1 l2 : local_env) id s,
-    local_scope_modif s s l1 l2 ->
-    l2 @ id ≡ l1 @ id.
-Proof.
-  intros * SCOPE.
-  red in SCOPE.
-  edestruct @alist_find_eq_dec_local_env as [EQ | NEQ]; [eassumption|].
-  exfalso; apply SCOPE in NEQ; clear SCOPE.
-  destruct NEQ as (? & ? & ? & ? & ? & ? & ?).
-  cbn in *; inv H2.
-  lia.
-Qed.
+  (* Gives a way to work with multiple changes made to locals *)
+  Lemma local_scope_modif_add': forall s1 s2 l l' r v,
+      lid_bound_between s1 s2 r ->
+      local_scope_modif s1 s2 l l' ->
+      local_scope_modif s1 s2 l (alist_add r v l').
+  Proof.
+    intros * BET MODIF.
+    red; intros * NEQ.
+    destruct (rel_dec_p r id).
+    - subst; rewrite alist_find_add_eq in NEQ; auto.
+    - rewrite alist_find_neq in NEQ; auto.
+  Qed.
 
-(* If I know that all changes came from [s2;s3] and that I consider a variable from another interval, then it hasn't changed *)
-Lemma local_scope_modif_out:
-  forall (l1 l2 : local_env) id s1 s2 s3,
-    s1 << s2 ->
-    lid_bound_between s1 s2 id ->
-    local_scope_modif s2 s3 l1 l2 ->
-    l2 @ id ≡ l1 @ id.
-Proof.
-  intros * LT BOUND SCOPE.
-  red in SCOPE.
-  edestruct @alist_find_eq_dec_local_env as [EQ | NEQ]; [eassumption |].
-  exfalso; apply SCOPE in NEQ; clear SCOPE.
-  destruct NEQ as (? & ? & ? & ? & ? & ? & ?).
-  destruct BOUND as (? & ? & ? & ? & ? & ? & ?).
-  cbn in *.
-  inv H2; inv H6.
-  unfold IRState_lt in *.
-  exfalso; eapply IdLemmas.valid_prefix_neq_differ; [| | | eassumption]; auto.
-  lia.
-Qed.
+  (* If all changes made are in the empty interval, then no change has been made *)
+  Lemma local_scope_modif_empty_scope:
+    forall (l1 l2 : local_env) id s,
+      local_scope_modif s s l1 l2 ->
+      l2 @ id ≡ l1 @ id.
+  Proof.
+    intros * SCOPE.
+    red in SCOPE.
+    edestruct @alist_find_eq_dec_local_env as [EQ | NEQ]; [eassumption|].
+    exfalso; apply SCOPE in NEQ; clear SCOPE.
+    destruct NEQ as (? & ? & ? & ? & ? & ? & ?).
+    cbn in *; inv H2.
+    lia.
+  Qed.
 
-(* If no change occurred, it left any interval untouched *)
-Lemma local_scope_preserved_refl : forall s1 s2 l,
-    local_scope_preserved s1 s2 l l.
-Proof.
-  intros; red; intros; reflexivity.
-Qed.
+  (* If I know that all changes came from [s2;s3] and that I consider a variable from another interval, then it hasn't changed *)
+  Lemma local_scope_modif_out:
+    forall (l1 l2 : local_env) id s1 s2 s3,
+      s1 << s2 ->
+      lid_bound_between s1 s2 id ->
+      local_scope_modif s2 s3 l1 l2 ->
+      l2 @ id ≡ l1 @ id.
+  Proof.
+    intros * LT BOUND SCOPE.
+    red in SCOPE.
+    edestruct @alist_find_eq_dec_local_env as [EQ | NEQ]; [eassumption |].
+    exfalso; apply SCOPE in NEQ; clear SCOPE.
+    destruct NEQ as (? & ? & ? & ? & ? & ? & ?).
+    destruct BOUND as (? & ? & ? & ? & ? & ? & ?).
+    cbn in *.
+    inv H2; inv H6.
+    unfold IRState_lt in *.
+    exfalso; eapply IdLemmas.valid_prefix_neq_differ; [| | | eassumption]; auto.
+    lia.
+  Qed.
 
-(* If no change occurred, it left Gamma safe *)
-Lemma Gamma_preserved_refl : forall s1 s2 l,
-    Gamma_preserved s1 s2 l l.
-Proof.
-  intros; red; intros; reflexivity.
-Qed.
+  (* If no change occurred, it left any interval untouched *)
+  Lemma local_scope_preserved_refl : forall s1 s2 l,
+      local_scope_preserved s1 s2 l l.
+  Proof.
+    intros; red; intros; reflexivity.
+  Qed.
 
-(* If I know that an interval leaves Gamma safe, I can shrink it on either side and it still lives Gamma safe *)
-Lemma Gamma_safe_shrink : forall σ s1 s2 s3 s4,
-    Gamma_safe σ s1 s4 ->
-    Γ s1 ≡ Γ s2 ->
-    s1 <<= s2 ->
-    s3 <<= s4 ->
-    Gamma_safe σ s2 s3.
-Proof.
-  unfold Gamma_safe; intros * SAFE EQ LE1 LE2 * (? & s & s' & ? & ? & ? & ?) IN.
-  apply SAFE with id.
-  exists x, s, s'.
-  repeat split; eauto.
-  solve_local_count.
-  solve_local_count.
-  inv IN.
-  econstructor.
-  eauto.
-  rewrite EQ; eauto.
-  eapply WF_IRState_Γ; eauto.
-Qed.
+  (* If no change occurred, it left Gamma safe *)
+  Lemma Gamma_preserved_refl : forall s1 s2 l,
+      Gamma_preserved s1 s2 l l.
+  Proof.
+    intros; red; intros; reflexivity.
+  Qed.
 
+  (* TODO: move this? *)
+  Lemma maps_add_neq :
+    forall {K} {V} {eqk : K -> K -> Prop} {RD : RelDec eqk} `{RelDec_Correct _ eqk} `{Symmetric _ eqk} `{Transitive _ eqk} (x id : K) (v : V) m,
+      ~ eqk id x ->
+      Maps.add x v m @ id ≡ m @ id.
+  Proof.
+    intros K V eqk RD RDC SYM TRANS H x id v m H0.
+    cbn. unfold alist_add. 
+    rewrite rel_dec_neq_false; eauto.
+    eapply remove_neq_alist; eauto.
+  Qed.
 
-Lemma Gamma_safe_Context_extend :
-  forall σ s1 s2,
-    Gamma_safe σ s1 s2 ->
-    forall s1' s2' x v xτ,
-      (local_count s1 <= local_count s1')%nat ->
-      (local_count s2 >= local_count s2')%nat ->
-      Γ s1' ≡ (ID_Local x, v) :: Γ s1 ->
-      Γ s2' ≡ (ID_Local x, v) :: Γ s2 ->
-      (∀ id : local_id, lid_bound_between s1' s2' id → x ≢ id) ->
-      Gamma_safe (xτ :: σ) s1' s2'.
-Proof.
-  intros. do 2 red. intros.
-  unfold Gamma_safe in H. red in H.
-  inversion H3; subst.
-  unfold lid_bound_between, state_bound_between in *.
-  eapply H.
-  - destruct H5 as (? & ? & ? & ? & ? & ? & ?).
-    cbn* in *. inversion e; subst. clear e.
-    exists x0, x1. eexists. split; auto.
-    split. clear H.
-    lia. split; auto. lia.
-  - inversion H6; subst.
+  Lemma Gamma_preserved_add_not_in_Gamma:
+    forall σ s l l' r v,
+      Gamma_preserved σ s l l' ->
+      ~ in_Gamma σ s r ->
+      Gamma_preserved σ s l (Maps.add r v l').
+  Proof.
+    intros σ s l l' r v PRES NGAM.
+    unfold Gamma_preserved in *.
+    intros id H.
+    assert (id ≢ r) by (intros CONTRA; subst; contradiction).
+    setoid_rewrite maps_add_neq; eauto.
+  Qed.
+
+  (* If I know that an interval leaves Gamma safe, I can shrink it on either side and it still lives Gamma safe *)
+  Lemma Gamma_safe_shrink : forall σ s1 s2 s3 s4,
+      Gamma_safe σ s1 s4 ->
+      Γ s1 ≡ Γ s2 ->
+      s1 <<= s2 ->
+      s3 <<= s4 ->
+      Gamma_safe σ s2 s3.
+  Proof.
+    unfold Gamma_safe; intros * SAFE EQ LE1 LE2 * (? & s & s' & ? & ? & ? & ?) IN.
+    apply SAFE with id.
+    exists x, s, s'.
+    repeat split; eauto.
+    solve_local_count.
+    solve_local_count.
+    inv IN.
     econstructor.
-    3 : {
-      unfold WF_IRState in *.
-      clear -H10 H2 H4.
-
-      eapply evalContext_typechecks_extend; eauto.
-    }
-
-    rewrite H2 in H9.
-    destruct n eqn: n' .
-    + cbn in *. inversion H9. subst. specialize (H4 id H5).
-      contradiction.
-    + cbn in *. Unshelve.
-      3 : exact (n - 1)%nat. cbn.
-      rewrite Nat.sub_0_r. apply H7. eauto.
-    + rewrite H2 in H9. cbn in *. inversion H9. subst.
-      destruct n. cbn in *.
-      specialize (H4 id H5). inversion H9. subst. contradiction.
-      cbn. rewrite Nat.sub_0_r. cbn in *. auto.
-Qed.
-
-(* If I have modified an interval, other intervals are preserved *)
-Lemma local_scope_preserve_modif:
-  forall s1 s2 s3 l1 l2,
-    s2 << s3 ->
-    local_scope_modif s2 s3 l1 l2 ->
-    local_scope_preserved s1 s2 l1 l2. 
-Proof.
-  intros * LE MOD.
-  red. intros * BOUND.
-  red in MOD.
-  edestruct @alist_find_eq_dec_local_env as [EQ | NEQ]; [eassumption |].
-  apply MOD in NEQ; clear MOD.
-  destruct NEQ as (msg & s & s' & ? & ? & ? & ?).
-  cbn in *; inv H2.
-  destruct BOUND as (msg' & s' & s'' & ? & ? & ? & ?).
-  cbn in *; inv H5.
-  destruct s as [a s b]; cbn in *; clear a b.
-  destruct s' as [a s' b]; cbn in *; clear a b.
-  destruct s1 as [a s1 b]; cbn in *; clear a b.
-  destruct s2 as [a s2 b], s3 as [a' s3 b']; cbn in *.
-  red in LE; cbn in *.
-  clear a b a' b'.
-  exfalso; eapply IdLemmas.valid_prefix_neq_differ; [| | | eassumption]; auto.
-  lia.
-Qed.
-
-Lemma in_Gamma_Gamma_eq:
-  forall σ s1 s2 id,
-    Γ s1 ≡ Γ s2 ->
-    in_Gamma σ s1 id ->
-    in_Gamma σ s2 id.
-Proof.
-  intros * EQ IN; inv IN; econstructor; eauto.
-  rewrite <- EQ; eauto.
-  eapply WF_IRState_Γ; eauto.
-Qed.
-
-Lemma not_in_Gamma_Gamma_eq:
-  forall σ s1 s2 id,
-    Γ s1 ≡ Γ s2 ->
-    ~ in_Gamma σ s1 id ->
-    ~ in_Gamma σ s2 id.
-Proof.
-  intros σ s1 s2 id EQ NGAM.
-  intros GAM.
-  apply NGAM.
-  inversion GAM; subst.
-  econstructor; eauto.
-  rewrite EQ. eauto.
-  eapply WF_IRState_Γ; eauto.
-Qed.
-
-Lemma Gamma_preserved_Gamma_eq:
-  forall σ s1 s2 l1 l2,
-    Γ s1 ≡ Γ s2 ->
-    Gamma_preserved σ s1 l1 l2 ->
-    Gamma_preserved σ s2 l1 l2.
-Proof.
-  unfold Gamma_preserved. intros * EQ PRE * IN.
-  apply PRE.
-  eauto using in_Gamma_Gamma_eq.
-Qed.
-
-(* If an interval is Gamma safe, and that all changes occurred in this interval, then the changes preserved Gamma. *)
-Lemma Gamma_preserved_if_safe :
-  forall σ s1 s2 l1 l2,
-    Gamma_safe σ s1 s2 ->
-    local_scope_modif s1 s2 l1 l2 ->
-    Gamma_preserved σ s1 l1 l2.
-Proof.
-  intros * GS L.
-  red.
-  intros ? IN.
-  red in GS.
-  red in L.
-  edestruct @alist_find_eq_dec_local_env as [EQ | NEQ]; [eassumption |].
-  exfalso; eapply GS; eauto.
-Qed.
-
-(* Belonging to an interval can relaxed down *)
-Lemma lid_bound_between_shrink_down :
-  forall s1 s2 s3 id,
-    s1 <<= s2 ->
-    lid_bound_between s2 s3 id ->
-    lid_bound_between s1 s3 id.
-Proof.
-  intros * LE (? & ? & ? & ? & ? & ? & ?).
-  do 3 eexists.
-  repeat split; eauto.
-  solve_local_count.
-Qed.
-
-(* Belonging to an interval can relaxed up *)
-Lemma lid_bound_between_shrink_up :
-  forall s1 s2 s3 id,
-    s2 <<= s3 ->
-    lid_bound_between s1 s2 id ->
-    lid_bound_between s1 s3 id.
-Proof.
-  intros * EQ (? & s & s' & ? & ? & ? & ?).
-  do 3 eexists.
-  repeat split; eauto.
-  solve_local_count.
-Qed.
-
-Lemma lid_bound_between_shrink :
-  ∀ (s1 s2 s3 s4 : IRState) (id : local_id),
-    lid_bound_between s2 s3 id →
-    s1 <<= s2 →
-    s3 <<= s4 ->
-    lid_bound_between s1 s4 id.
-Proof.
-  intros s1 s2 s3 s4 id H H0 H1.
-  eapply lid_bound_between_shrink_down; [|eapply lid_bound_between_shrink_up];
     eauto.
-Qed.
-
-(* Transitivity of the changes belonging to intervals *)
-Lemma local_scope_modif_trans :
-  forall s1 s2 s3 l1 l2 l3,
-    s1 <<= s2 ->
-    s2 <<= s3 ->
-    local_scope_modif s1 s2 l1 l2 ->
-    local_scope_modif s2 s3 l2 l3 ->
-    local_scope_modif s1 s3 l1 l3.
-Proof.
-  unfold local_scope_modif; intros * LE1 LE2 MOD1 MOD2 * INEQ.
-  destruct (alist_find_eq_dec_local_env id l1 l2) as [EQ | NEQ].
-  - destruct (alist_find_eq_dec_local_env id l2 l3) as [EQ' | NEQ'].
-    + contradiction INEQ; rewrite <- EQ; auto.
-    + apply MOD2 in NEQ'.
-      eauto using lid_bound_between_shrink_down.
-  - apply MOD1 in NEQ.
-    eauto using lid_bound_between_shrink_up.
-Qed.
-
-Lemma local_scope_modif_shrink :
-  forall (s1 s2 s3 s4 : IRState) l1 l2,
-    local_scope_modif s2 s3 l1 l2 ->
-    s1 <<= s2 ->
-    s3 <<= s4 ->
-    local_scope_modif s1 s4 l1 l2.
-Proof.
-  intros s1 s2 s3 s4 l1 l2 MODIF LT1 LT2.
-  unfold local_scope_modif in *.
-  intros id NEQ.
-  eapply lid_bound_between_shrink; eauto.
-Qed.
-
-Lemma memory_invariant_Ptr : forall vid σ s memH memV l g a size x sz,
-    state_invariant σ s memH (memV, (l, g)) ->
-    nth_error σ vid ≡ Some (DSHPtrVal a size) ->
-    nth_error (Γ s) vid ≡ Some (x, TYPE_Pointer (TYPE_Array sz TYPE_Double)) ->
-    ∃ (bk_helix : mem_block) (ptr_llvm : Addr.addr),
-      memory_lookup memH a ≡ Some bk_helix
-      ∧ dtyp_fits memV ptr_llvm
-                  (typ_to_dtyp [] (TYPE_Array sz TYPE_Double))
-      ∧ in_local_or_global_addr l g x ptr_llvm
-      ∧ (∀ (i : Memory.NM.key) (v : binary64), mem_lookup i bk_helix ≡ Some v → get_array_cell memV ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v)).
-Proof.
-  intros * MEM LU1 LU2; inv MEM; eapply mem_is_inv0 in LU1; eapply LU1 in LU2; eauto.
-  destruct LU2 as (bk & ptr & τ' & ? & ? & ? & ? & ?).
-  exists bk. exists ptr.
-  inv H0.
-  repeat split; eauto.  
-Qed.
+    rewrite EQ; eauto.
+    eapply WF_IRState_Γ; eauto.
+  Qed.
 
 
-(* Named function pointer exists in global environemnts *)
-Definition global_named_ptr_exists (fnname:string) : Pred_cfg :=
-  fun '(mem_llvm, (ρ,g)) => exists mf, g @ (Name fnname) ≡ Some (DVALUE_Addr mf).
+  Lemma Gamma_safe_Context_extend :
+    forall σ s1 s2,
+      Gamma_safe σ s1 s2 ->
+      forall s1' s2' x v xτ,
+        (local_count s1 <= local_count s1')%nat ->
+        (local_count s2 >= local_count s2')%nat ->
+        Γ s1' ≡ (ID_Local x, v) :: Γ s1 ->
+        Γ s2' ≡ (ID_Local x, v) :: Γ s2 ->
+        (∀ id : local_id, lid_bound_between s1' s2' id → x ≢ id) ->
+        Gamma_safe (xτ :: σ) s1' s2'.
+  Proof.
+    intros. do 2 red. intros.
+    unfold Gamma_safe in H. red in H.
+    inversion H3; subst.
+    unfold lid_bound_between, state_bound_between in *.
+    eapply H.
+    - destruct H5 as (? & ? & ? & ? & ? & ? & ?).
+      cbn* in *. inversion e; subst. clear e.
+      exists x0, x1. eexists. split; auto.
+      split. clear H.
+      lia. split; auto. lia.
+    - inversion H6; subst.
+      econstructor.
+      3 : {
+        unfold WF_IRState in *.
+        clear -H10 H2 H4.
+
+        eapply evalContext_typechecks_extend; eauto.
+      }
+
+      rewrite H2 in H9.
+      destruct n eqn: n' .
+      + cbn in *. inversion H9. subst. specialize (H4 id H5).
+        contradiction.
+      + cbn in *. Unshelve.
+        3 : exact (n - 1)%nat. cbn.
+        rewrite Nat.sub_0_r. apply H7. eauto.
+      + rewrite H2 in H9. cbn in *. inversion H9. subst.
+        destruct n. cbn in *.
+        specialize (H4 id H5). inversion H9. subst. contradiction.
+        cbn. rewrite Nat.sub_0_r. cbn in *. auto.
+  Qed.
+
+  (* If I have modified an interval, other intervals are preserved *)
+  Lemma local_scope_preserve_modif:
+    forall s1 s2 s3 l1 l2,
+      s2 << s3 ->
+      local_scope_modif s2 s3 l1 l2 ->
+      local_scope_preserved s1 s2 l1 l2. 
+  Proof.
+    intros * LE MOD.
+    red. intros * BOUND.
+    red in MOD.
+    edestruct @alist_find_eq_dec_local_env as [EQ | NEQ]; [eassumption |].
+    apply MOD in NEQ; clear MOD.
+    destruct NEQ as (msg & s & s' & ? & ? & ? & ?).
+    cbn in *; inv H2.
+    destruct BOUND as (msg' & s' & s'' & ? & ? & ? & ?).
+    cbn in *; inv H5.
+    destruct s as [a s b]; cbn in *; clear a b.
+    destruct s' as [a s' b]; cbn in *; clear a b.
+    destruct s1 as [a s1 b]; cbn in *; clear a b.
+    destruct s2 as [a s2 b], s3 as [a' s3 b']; cbn in *.
+    red in LE; cbn in *.
+    clear a b a' b'.
+    exfalso; eapply IdLemmas.valid_prefix_neq_differ; [| | | eassumption]; auto.
+    lia.
+  Qed.
+
+  Lemma in_Gamma_Gamma_eq:
+    forall σ s1 s2 id,
+      Γ s1 ≡ Γ s2 ->
+      in_Gamma σ s1 id ->
+      in_Gamma σ s2 id.
+  Proof.
+    intros * EQ IN; inv IN; econstructor; eauto.
+    rewrite <- EQ; eauto.
+    eapply WF_IRState_Γ; eauto.
+  Qed.
+
+  Lemma not_in_Gamma_Gamma_eq:
+    forall σ s1 s2 id,
+      Γ s1 ≡ Γ s2 ->
+      ~ in_Gamma σ s1 id ->
+      ~ in_Gamma σ s2 id.
+  Proof.
+    intros σ s1 s2 id EQ NGAM.
+    intros GAM.
+    apply NGAM.
+    inversion GAM; subst.
+    econstructor; eauto.
+    rewrite EQ. eauto.
+    eapply WF_IRState_Γ; eauto.
+  Qed.
+
+  Lemma Gamma_preserved_Gamma_eq:
+    forall σ s1 s2 l1 l2,
+      Γ s1 ≡ Γ s2 ->
+      Gamma_preserved σ s1 l1 l2 ->
+      Gamma_preserved σ s2 l1 l2.
+  Proof.
+    unfold Gamma_preserved. intros * EQ PRE * IN.
+    apply PRE.
+    eauto using in_Gamma_Gamma_eq.
+  Qed.
+
+  (* If an interval is Gamma safe, and that all changes occurred in this interval, then the changes preserved Gamma. *)
+  Lemma Gamma_preserved_if_safe :
+    forall σ s1 s2 l1 l2,
+      Gamma_safe σ s1 s2 ->
+      local_scope_modif s1 s2 l1 l2 ->
+      Gamma_preserved σ s1 l1 l2.
+  Proof.
+    intros * GS L.
+    red.
+    intros ? IN.
+    red in GS.
+    red in L.
+    edestruct @alist_find_eq_dec_local_env as [EQ | NEQ]; [eassumption |].
+    exfalso; eapply GS; eauto.
+  Qed.
+
+  (* Belonging to an interval can relaxed down *)
+  Lemma lid_bound_between_shrink_down :
+    forall s1 s2 s3 id,
+      s1 <<= s2 ->
+      lid_bound_between s2 s3 id ->
+      lid_bound_between s1 s3 id.
+  Proof.
+    intros * LE (? & ? & ? & ? & ? & ? & ?).
+    do 3 eexists.
+    repeat split; eauto.
+    solve_local_count.
+  Qed.
+
+  (* Belonging to an interval can relaxed up *)
+  Lemma lid_bound_between_shrink_up :
+    forall s1 s2 s3 id,
+      s2 <<= s3 ->
+      lid_bound_between s1 s2 id ->
+      lid_bound_between s1 s3 id.
+  Proof.
+    intros * EQ (? & s & s' & ? & ? & ? & ?).
+    do 3 eexists.
+    repeat split; eauto.
+    solve_local_count.
+  Qed.
+
+  Lemma lid_bound_between_shrink :
+    ∀ (s1 s2 s3 s4 : IRState) (id : local_id),
+      lid_bound_between s2 s3 id →
+      s1 <<= s2 →
+      s3 <<= s4 ->
+      lid_bound_between s1 s4 id.
+  Proof.
+    intros s1 s2 s3 s4 id H H0 H1.
+    eapply lid_bound_between_shrink_down; [|eapply lid_bound_between_shrink_up];
+      eauto.
+  Qed.
+
+  (* Transitivity of the changes belonging to intervals *)
+  Lemma local_scope_modif_trans :
+    forall s1 s2 s3 l1 l2 l3,
+      s1 <<= s2 ->
+      s2 <<= s3 ->
+      local_scope_modif s1 s2 l1 l2 ->
+      local_scope_modif s2 s3 l2 l3 ->
+      local_scope_modif s1 s3 l1 l3.
+  Proof.
+    unfold local_scope_modif; intros * LE1 LE2 MOD1 MOD2 * INEQ.
+    destruct (alist_find_eq_dec_local_env id l1 l2) as [EQ | NEQ].
+    - destruct (alist_find_eq_dec_local_env id l2 l3) as [EQ' | NEQ'].
+      + contradiction INEQ; rewrite <- EQ; auto.
+      + apply MOD2 in NEQ'.
+        eauto using lid_bound_between_shrink_down.
+    - apply MOD1 in NEQ.
+      eauto using lid_bound_between_shrink_up.
+  Qed.
+
+  Lemma local_scope_modif_shrink :
+    forall (s1 s2 s3 s4 : IRState) l1 l2,
+      local_scope_modif s2 s3 l1 l2 ->
+      s1 <<= s2 ->
+      s3 <<= s4 ->
+      local_scope_modif s1 s4 l1 l2.
+  Proof.
+    intros s1 s2 s3 s4 l1 l2 MODIF LT1 LT2.
+    unfold local_scope_modif in *.
+    intros id NEQ.
+    eapply lid_bound_between_shrink; eauto.
+  Qed.
+
+  Lemma memory_invariant_Ptr : forall vid σ s memH memV l g a size x sz,
+      state_invariant σ s memH (memV, (l, g)) ->
+      nth_error σ vid ≡ Some (DSHPtrVal a size) ->
+      nth_error (Γ s) vid ≡ Some (x, TYPE_Pointer (TYPE_Array sz TYPE_Double)) ->
+      ∃ (bk_helix : mem_block) (ptr_llvm : Addr.addr),
+        memory_lookup memH a ≡ Some bk_helix
+        ∧ dtyp_fits memV ptr_llvm
+                    (typ_to_dtyp [] (TYPE_Array sz TYPE_Double))
+        ∧ in_local_or_global_addr l g x ptr_llvm
+        ∧ (∀ (i : Memory.NM.key) (v : binary64), mem_lookup i bk_helix ≡ Some v → get_array_cell memV ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v)).
+  Proof.
+    intros * MEM LU1 LU2; inv MEM; eapply mem_is_inv0 in LU1; eapply LU1 in LU2; eauto.
+    destruct LU2 as (bk & ptr & τ' & ? & ? & ? & ? & ?).
+    exists bk. exists ptr.
+    inv H0.
+    repeat split; eauto.  
+  Qed.
+
+
+  (* Named function pointer exists in global environemnts *)
+  Definition global_named_ptr_exists (fnname:string) : Pred_cfg :=
+    fun '(mem_llvm, (ρ,g)) => exists mf, g @ (Name fnname) ≡ Some (DVALUE_Addr mf).
 
   (* For compiled FHCOL programs we need to ensure we have 2 declarations:
      1. "main" function
@@ -1015,13 +1041,13 @@ Definition global_named_ptr_exists (fnname:string) : Pred_cfg :=
     fun '(_, h_result) '(_,(_,(_,llvm_result))) =>
       match llvm_result with
       | UVALUE_Array arr => @List.Forall2 _ _
-                                         (fun ve de =>
-                                            match de with
-                                            | UVALUE_Double d =>
-                                              Floats.Float.cmp Integers.Ceq d ve
-                                            | _ => False
-                                            end)
-                                         h_result arr
+                                          (fun ve de =>
+                                             match de with
+                                             | UVALUE_Double d =>
+                                               Floats.Float.cmp Integers.Ceq d ve
+                                             | _ => False
+                                             end)
+                                          h_result arr
       | _ => False
       end.
 
@@ -1047,7 +1073,7 @@ Section Ext_Local.
     := fun mh '(mi,(li,gi)) '(mh',_) '(m,(l,(g,_))) =>
          mh ≡ mh' /\ mi ≡ m /\ gi ≡ g /\ sub_local_no_aliasing σ s li l g.
 
- Lemma in_local_or_global_scalar_ext_local :
+  Lemma in_local_or_global_scalar_ext_local :
     forall ρ1 ρ2 g m x dv τ,
       in_local_or_global_scalar ρ1 g m x dv τ ->
       ρ1 ⊑ ρ2 ->
@@ -1057,7 +1083,7 @@ Section Ext_Local.
     apply MONO; auto.
   Qed.
 
- Lemma in_local_or_global_addr_ext_local :
+  Lemma in_local_or_global_addr_ext_local :
     forall ρ1 ρ2 g x ptr,
       in_local_or_global_addr ρ1 g x ptr ->
       ρ1 ⊑ ρ2 ->
@@ -1314,7 +1340,7 @@ Qed.
 Hint Resolve state_invariant_sub_local_no_aliasing_refl: core.
 
 Lemma unsigned_is_zero: forall a, Int64.unsigned a ≡ Int64.unsigned Int64.zero ->
-                             a = Int64.zero.
+                                  a = Int64.zero.
 Proof.
   intros a H.
   unfold Int64.unsigned, Int64.intval in H.
@@ -1462,29 +1488,52 @@ Ltac solve_sub_local_no_aliasing_gamma :=
   match goal with
   | H: incLocal ?s1 ≡ inr (?s2, _) |- sub_local_no_aliasing ?σ ?s2 ?l1 ?l2 ?g
     => let GAMMA := fresh "GAMMA"
-      in assert (Γ s2 ≡ Γ s1) as GAMMA by eauto with helix_context;
-         eapply sub_local_no_aliasing_Γ;
-         eauto;
-         clear GAMMA
+       in assert (Γ s2 ≡ Γ s1) as GAMMA by eauto with helix_context;
+          eapply sub_local_no_aliasing_Γ;
+          eauto;
+          clear GAMMA
 
   | H: genNExpr _ ?s1 ≡ inr (?s2, _) |- sub_local_no_aliasing ?σ ?s2 ?l1 ?l2 ?g
     => let GAMMA := fresh "GAMMA"
-      in assert (Γ s2 ≡ Γ s1) as GAMMA by eauto with helix_context;
-         eapply sub_local_no_aliasing_Γ;
-         eauto;
-         clear GAMMA
+       in assert (Γ s2 ≡ Γ s1) as GAMMA by eauto with helix_context;
+          eapply sub_local_no_aliasing_Γ;
+          eauto;
+          clear GAMMA
 
   | H: genNExpr _ ?s1 ≡ inr (?s2, _),
        SUB: sub_local_no_aliasing ?σ ?s2 ?l1 ?l2 ?g |- _
     => let GAMMA := fresh "GAMMA" in
-      let SUB2  := fresh "SUB" in
-      assert (Γ s1 ≡ Γ s2) as GAMMA by eauto with helix_context;
-      epose proof (sub_local_no_aliasing_Γ _ SUB GAMMA);
-      clear SUB;
-      eauto
+       let SUB2  := fresh "SUB" in
+       assert (Γ s1 ≡ Γ s2) as GAMMA by eauto with helix_context;
+       epose proof (sub_local_no_aliasing_Γ _ SUB GAMMA);
+       clear SUB;
+       eauto
   end.
 
-Ltac solve_not_in_gamma := eauto.
+
+Ltac solve_in_gamma :=
+  match goal with
+  | GAM : nth_error (Γ ?s) ?n ≡ Some (ID_Local ?id, _),
+          SIG : nth_error ?σ ?n ≡ Some _ |-
+    in_Gamma _ _ ?id
+    => econstructor; [eapply SIG | eapply GAM | eauto]
+  end.
+
+(* TODO: expand this *)
+Ltac solve_lid_bound_between :=
+  eapply lid_bound_between_shrink; [eapply lid_bound_between_incLocal | | ]; eauto; solve_local_count.
+
+
+Ltac solve_not_in_gamma :=
+  first [ now eauto
+        |
+      match goal with
+      | GAM : Gamma_safe ?σ ?si ?sf |- 
+        ~ in_Gamma ?σ ?si ?id =>
+        eapply GAM; solve_lid_bound_between
+      end
+    | solve [eapply not_in_Gamma_Gamma_eq; [eassumption | solve_not_in_gamma]]
+    ].
 
 Ltac solve_sub_local_no_aliasing :=
   first [ solve [eapply state_invariant_sub_local_no_aliasing_refl; solve_state_invariant]
@@ -1646,10 +1695,6 @@ Ltac solve_gamma_safe :=
   eapply Gamma_safe_shrink; eauto; [solve_gamma| |]; solve_local_count.
 
 (* TODO: expand this *)
-Ltac solve_lid_bound_between :=
-  eapply lid_bound_between_shrink; [eapply lid_bound_between_incLocal | | ]; eauto; solve_local_count.
-
-(* TODO: expand this *)
 Ltac solve_local_scope_modif :=
   eauto;
   first
@@ -1657,4 +1702,93 @@ Ltac solve_local_scope_modif :=
     | solve [eapply local_scope_modif_shrink; [eassumption | solve_local_count | solve_local_count]]
     | solve [eapply local_scope_modif_add'; [solve_lid_bound_between | solve_local_scope_modif]]
     | eapply local_scope_modif_trans; eauto; solve_local_count
+    ].
+
+Ltac solve_gamma_preserved :=
+  first
+    [ solve [eapply Gamma_preserved_refl]
+    | eapply Gamma_preserved_add_not_in_Gamma; [solve_gamma_preserved | solve_not_in_gamma]
+    ].
+
+Opaque alist_add.
+
+(* TODO: move these *)
+Lemma in_local_or_global_scalar_not_in_gamma :
+  forall r v ρ g m id v_id τ σ s,
+    in_Gamma σ s id ->
+    ~ in_Gamma σ s r ->
+    in_local_or_global_scalar ρ g m (ID_Local id) v_id τ ->
+    in_local_or_global_scalar (alist_add r v ρ) g m (ID_Local id) v_id τ.
+Proof.
+  intros r v ρ g m id v_id τ σ s GAM NGAM INLG.
+  destruct (Eqv.eqv_dec_p r id) as [EQ | NEQ].
+  - do 2 red in EQ.
+    subst.
+    contradiction.
+  - unfold Eqv.eqv, eqv_raw_id in NEQ.
+    cbn in *.
+    erewrite alist_find_neq; eauto.
+Qed.
+
+(* TODO: move this? *)
+Lemma incLocal_id_neq :
+  forall s1 s2 s3 s4 id1 id2,
+    incLocal s1 ≡ inr (s2, id1) ->
+    incLocal s3 ≡ inr (s4, id2) ->
+    local_count s1 ≢ local_count s3 ->
+    id1 ≢ id2.
+Proof.
+  intros s1 s2 s3 s4 id1 id2 GEN1 GEN2 COUNT.
+  eapply incLocalNamed_count_gen_injective.
+  symmetry. rewrite incLocal_unfold in *. eapply GEN1.
+  symmetry. rewrite incLocal_unfold in *. eapply GEN2.
+  solve_local_count_tac.
+  solve_prefix.
+  solve_prefix.
+Qed.
+
+Lemma incLocal_id_neq_flipped :
+  forall s1 s2 s3 s4 id1 id2,
+    incLocal s1 ≡ inr (s2, id1) ->
+    incLocal s3 ≡ inr (s4, id2) ->
+    local_count s1 ≢ local_count s3 ->
+    id2 ≢ id1.
+Proof.
+  intros s1 s2 s3 s4 id1 id2 GEN1 GEN2 COUNT.
+  intros EQ. symmetry in EQ. revert EQ.
+  eapply incLocal_id_neq; eauto.
+Qed.
+
+Lemma in_gamma_not_in_neq :
+  forall σ s id r,
+    in_Gamma σ s id ->
+    ~ in_Gamma σ s r ->
+    id ≢ r.
+Proof.
+  intros σ s id r GAM NGAM.
+  destruct (Eqv.eqv_dec_p r id) as [EQ | NEQ].
+  - do 2 red in EQ.
+    subst.
+    contradiction.
+  - unfold Eqv.eqv, eqv_raw_id in NEQ.
+    eauto.
+Qed.
+
+
+Ltac solve_id_neq :=
+  first [ solve [eapply incLocal_id_neq; eauto; solve_local_count]
+        | solve [eapply in_gamma_not_in_neq; [solve_in_gamma | solve_not_in_gamma]]
+        ].
+
+Ltac solve_local_lookup :=
+  first
+    [ now eauto
+    | solve [erewrite alist_add_find_eq; eauto]
+    | solve [erewrite alist_find_neq; [solve_local_lookup|solve_id_neq]]
+    ].
+
+Ltac solve_in_local_or_global_scalar :=
+  first
+    [ now eauto
+    | solve [eapply in_local_or_global_scalar_not_in_gamma; [solve_in_gamma | solve_not_in_gamma | solve_in_local_or_global_scalar]]
     ].

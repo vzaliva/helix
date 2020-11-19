@@ -311,50 +311,6 @@ Section GenIR.
 
   Tactic Notation "state_inv_auto" := eauto with state_invariant.
 
-  (* TODO: move this? *)
-  Lemma incLocal_id_neq :
-    forall s1 s2 s3 s4 id1 id2,
-      incLocal s1 ≡ inr (s2, id1) ->
-      incLocal s3 ≡ inr (s4, id2) ->
-      local_count s1 ≢ local_count s3 ->
-      id1 ≢ id2.
-  Proof.
-    intros s1 s2 s3 s4 id1 id2 GEN1 GEN2 COUNT.
-    eapply incLocalNamed_count_gen_injective.
-    symmetry. rewrite incLocal_unfold in *. eapply GEN1.
-    symmetry. rewrite incLocal_unfold in *. eapply GEN2.
-    solve_local_count_tac.
-    solve_prefix.
-    solve_prefix.
-  Qed.
-
-  Lemma incLocal_id_neq_flipped :
-    forall s1 s2 s3 s4 id1 id2,
-      incLocal s1 ≡ inr (s2, id1) ->
-      incLocal s3 ≡ inr (s4, id2) ->
-      local_count s1 ≢ local_count s3 ->
-      id2 ≢ id1.
-  Proof.
-    intros s1 s2 s3 s4 id1 id2 GEN1 GEN2 COUNT.
-    intros EQ. symmetry in EQ. revert EQ.
-    eapply incLocal_id_neq; eauto.
-  Qed.
-
-  Lemma in_gamma_not_in_neq :
-    forall σ s id r,
-      in_Gamma σ s id ->
-      ~ in_Gamma σ s r ->
-      id ≢ r.
-  Proof.
-    intros σ s id r GAM NGAM.
-    destruct (Eqv.eqv_dec_p r id) as [EQ | NEQ].
-    - do 2 red in EQ.
-      subst.
-      contradiction.
-    - unfold Eqv.eqv, eqv_raw_id in NEQ.
-      eauto.
-  Qed.
-
   Lemma genIR_Context:
     ∀ (op : DSHOperator) (s1 s2 : IRState) (nextblock b : block_id) (bk_op : list (LLVMAst.block typ)),
       genIR op nextblock s1 ≡ inr (s2, (b, bk_op)) →
@@ -1006,18 +962,6 @@ Section GenIR.
         all:eauto.
   Admitted.
 
-  (* TODO: move this? *)
-  Lemma maps_add_neq :
-    forall {K} {V} {eqk : K -> K -> Prop} {RD : RelDec eqk} `{RelDec_Correct _ eqk} `{Symmetric _ eqk} `{Transitive _ eqk} (x id : K) (v : V) m,
-      ~ eqk id x ->
-      Maps.add x v m @ id ≡ m @ id.
-  Proof.
-    intros K V eqk RD RDC SYM TRANS H x id v m H0.
-    cbn. unfold alist_add. 
-    rewrite rel_dec_neq_false; eauto.
-    eapply remove_neq_alist; eauto.
-  Qed.
-
   Ltac remove_neq_locals :=
     match goal with
     | |- Maps.add ?x ?v ?l1 @ ?id ≡ ?l2 @ ?id =>
@@ -1106,61 +1050,6 @@ Section GenIR.
   Admitted.
 
   Opaque alist_add.
-
-  (* TODO: move these *)
-  Lemma in_local_or_global_scalar_not_in_gamma :
-    forall r v ρ g m id v_id τ σ s,
-      in_Gamma σ s id ->
-      ~ in_Gamma σ s r ->
-      in_local_or_global_scalar ρ g m (ID_Local id) v_id τ ->
-      in_local_or_global_scalar (alist_add r v ρ) g m (ID_Local id) v_id τ.
-  Proof.
-    intros r v ρ g m id v_id τ σ s GAM NGAM INLG.
-    destruct (Eqv.eqv_dec_p r id) as [EQ | NEQ].
-    - do 2 red in EQ.
-      subst.
-      contradiction.
-    - unfold Eqv.eqv, eqv_raw_id in NEQ.
-      cbn in *.
-      erewrite alist_find_neq; eauto.
-  Qed.
-
-  Ltac solve_in_gamma :=
-    match goal with
-    | GAM : nth_error (Γ ?s) ?n ≡ Some (ID_Local ?id, _),
-            SIG : nth_error ?σ ?n ≡ Some _ |-
-      in_Gamma _ _ ?id
-      => econstructor; [eapply SIG | eapply GAM | eauto]
-    end.
-
-  Ltac solve_not_in_gamma :=
-    first [
-        match goal with
-        | GAM : Gamma_safe ?σ ?si ?sf |- 
-          ~ in_Gamma ?σ ?si ?id =>
-          eapply GAM; solve_lid_bound_between
-        end
-      | solve [eapply not_in_Gamma_Gamma_eq; [eassumption | solve_not_in_gamma]]
-      ].
-
-  Ltac solve_id_neq :=
-    first [ solve [eapply incLocal_id_neq; eauto; solve_local_count]
-          | solve [eapply in_gamma_not_in_neq; [solve_in_gamma | solve_not_in_gamma]]
-          ].
-
-  Ltac solve_local_lookup :=
-    first
-      [ now eauto
-      | solve [erewrite alist_add_find_eq; eauto]
-      | solve [erewrite alist_find_neq; [solve_local_lookup|solve_id_neq]]
-      ].
-
-  Ltac solve_in_local_or_global_scalar :=
-    first
-      [ now eauto
-      | solve [eapply in_local_or_global_scalar_not_in_gamma; [solve_in_gamma | solve_not_in_gamma | solve_in_local_or_global_scalar]]
-      ].
-
   Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
       (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH) 
@@ -1778,7 +1667,7 @@ Section GenIR.
             - clear EXP2.
               clean_goal.
               solve_local_scope_preserved.
-            - admit. (* Gamma_preserved *)
+            - solve_gamma_preserved.
           }
 
           { rewrite typ_to_dtyp_D_array in yFITS.
