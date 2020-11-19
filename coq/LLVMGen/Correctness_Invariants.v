@@ -191,11 +191,17 @@ Section SimulationRelations.
       nth_error σ n' ≡ Some (DSHPtrVal ptr sz') ->
       n' ≡ n.
 
-  Definition no_id_aliasing (s : IRState) : Prop :=
+  Definition id_allocated (σ : evalContext) (m : memoryH) : Prop :=
+    forall n addr val,
+      nth_error σ n ≡ Some (DSHPtrVal addr val) ->
+      mem_block_exists addr m.
+
+  Definition no_id_aliasing (s : IRState) (σ : evalContext) : Prop :=
     forall n n' id τ τ',
+      (* WF_IRState σ s -> *) (* TODO: See if we need this? *)
       nth_error (Γ s) n ≡ Some (id, τ) ->
       nth_error (Γ s) n' ≡ Some (id, τ') ->
-      n' ≡ n.
+      n' ≡ n /\ exists v, nth_error σ n ≡ Some v.
 
   Definition no_llvm_ptr_aliasing (σ : evalContext) (s : IRState) (ρ : local_env) (g : global_env) : Prop :=
     forall (id1 : ident) (ptrv1 : addr) (id2 : ident) (ptrv2 : addr) n1 n2 τ τ' v1 v2,
@@ -229,12 +235,12 @@ Section SimulationRelations.
   Qed.
 
   Lemma incLocal_no_id_aliasing :
-    forall s1 s2 id,
+    forall s1 s2 id σ,
       incLocal s1 ≡ inr (s2, id) ->
-      no_id_aliasing s1 ->
-      no_id_aliasing s2.
+      no_id_aliasing s1 σ ->
+      no_id_aliasing s2 σ.
   Proof.
-    intros s1 s2 id INC ALIAS.
+    intros s1 s2 id * INC ALIAS.
     unfold no_id_aliasing in *.
     apply incLocal_Γ in INC.
     rewrite INC.
@@ -382,9 +388,10 @@ Section SimulationRelations.
     {
     mem_is_inv : memory_invariant σ s memH configV ;
     IRState_is_WF : WF_IRState σ s ;
-    st_no_id_aliasing : no_id_aliasing s ;
+    st_no_id_aliasing : no_id_aliasing s σ ;
     st_no_dshptr_aliasing : no_dshptr_aliasing σ ;
-    st_no_llvm_ptr_aliasing : no_llvm_ptr_aliasing_cfg σ s configV
+    st_no_llvm_ptr_aliasing : no_llvm_ptr_aliasing_cfg σ s configV ;
+    st_id_allocated : id_allocated σ memH
     }.
 
   (* Predicate stating that an (llvm) local variable is relevant to the memory invariant *)
@@ -578,12 +585,12 @@ Proof.
 Qed.
 
 Lemma incVoid_no_id_aliasing :
-  forall s1 s2 id,
+  forall s1 s2 id σ,
     incVoid s1 ≡ inr (s2, id) ->
-    no_id_aliasing s1 ->
-    no_id_aliasing s2.
+    no_id_aliasing s1 σ ->
+    no_id_aliasing s2 σ.
 Proof.
-  intros s1 s2 id INC ALIAS.
+  intros s1 s2 id SIG INC ALIAS.
   unfold no_id_aliasing in *.
   apply incVoid_Γ in INC.
   rewrite INC.
@@ -1169,6 +1176,7 @@ Proof.
   intros * SUB; cbn; splits; auto.
 Qed.
 
+
 Lemma state_invariant_incLocal :
   forall σ s s' k memH stV,
     incLocal s ≡ inr (s', k) ->
@@ -1200,12 +1208,12 @@ Proof.
 Qed.
 
 Lemma incLocalNamed_no_id_aliasing :
-  forall s1 s2 msg id,
+  forall s1 s2 msg id σ,
     incLocalNamed msg s1 ≡ inr (s2, id) ->
-    no_id_aliasing s1 ->
-    no_id_aliasing s2.
+    no_id_aliasing s1 σ ->
+    no_id_aliasing s2 σ.
 Proof.
-  intros s1 s2 msg id INC ALIAS.
+  intros s1 s2 msg id * INC ALIAS.
   unfold no_id_aliasing in *.
   apply incLocalNamed_Γ in INC.
   rewrite INC.
@@ -1235,12 +1243,12 @@ Proof.
 Qed.
 
 Lemma incBlockNamed_no_id_aliasing :
-  forall s1 s2 msg id,
+  forall s1 s2 msg id σ,
     incBlockNamed msg s1 ≡ inr (s2, id) ->
-    no_id_aliasing s1 ->
-    no_id_aliasing s2.
+    no_id_aliasing s1 σ ->
+    no_id_aliasing s2 σ.
 Proof.
-  intros s1 s2 msg id INC ALIAS.
+  intros s1 s2 msg id * INC ALIAS.
   unfold no_id_aliasing in *.
   apply incBlockNamed_Γ in INC.
   rewrite INC.
@@ -1392,12 +1400,12 @@ Proof.
 Qed.
 
 Lemma no_id_aliasing_gamma :
-  forall s1 s2,
-    no_id_aliasing s1 ->
+  forall s1 s2 σ,
+    no_id_aliasing s1 σ ->
     Γ s1 ≡ Γ s2 ->
-    no_id_aliasing s2.
+    no_id_aliasing s2 σ.
 Proof.
-  intros s1 s2 ALIAS GAMMA.
+  intros s1 s2 σ ALIAS GAMMA.
   unfold no_id_aliasing.
   rewrite <- GAMMA.
   auto.
