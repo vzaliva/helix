@@ -807,6 +807,21 @@ Proof.
   eapply WF_IRState_Γ; eauto.
 Qed.
 
+Lemma not_in_Gamma_Gamma_eq:
+  forall σ s1 s2 id,
+    Γ s1 ≡ Γ s2 ->
+    ~ in_Gamma σ s1 id ->
+    ~ in_Gamma σ s2 id.
+Proof.
+  intros σ s1 s2 id EQ NGAM.
+  intros GAM.
+  apply NGAM.
+  inversion GAM; subst.
+  econstructor; eauto.
+  rewrite EQ. eauto.
+  eapply WF_IRState_Γ; eauto.
+Qed.
+
 Lemma Gamma_preserved_Gamma_eq:
   forall σ s1 s2 l1 l2,
     Γ s1 ≡ Γ s2 ->
