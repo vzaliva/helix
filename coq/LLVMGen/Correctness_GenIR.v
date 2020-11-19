@@ -1553,18 +1553,6 @@ Section GenIR.
                   { (* Need to show that every lookup matches *)
                     intros i v0 H3.
 
-                    (* TODO: do I even need this...? *)
-                    assert (~(no_overlap_dtyp yptr' DTYPE_Double yptr (DTYPE_Array sz0 DTYPE_Double))) as OVER.
-                    { erewrite <- from_Z_intval in yGEP; eauto.
-                      eapply gep_array_ptr_overlap_dtyp; cbn; eauto.
-                      rewrite repr_of_nat_to_nat.
-                      admit.
-                      lia.
-                    }
-
-                    (* Because I know that there is overlap, I know that fst yptr' = fst yptr  *)
-        (*              *)
-
                     pose proof (dtyp_fits_allocated yFITS) as yALLOC.
                     epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
                     erewrite WRITE_ARRAY in WRITE_SUCCEEDS.
@@ -1736,7 +1724,7 @@ Section GenIR.
             - clear EXP2.
               clean_goal.
               solve_local_scope_preserved.
-            - admit.
+            - admit. (* Gamma_preserved *)
           }
 
           { rewrite typ_to_dtyp_D_array in yFITS.
@@ -1809,7 +1797,93 @@ Section GenIR.
             vstep.
 
             apply eutt_Ret; split; [| split]; cbn.
-            - admit. (* TODO: state_invariant *)
+            - (* TODO: add to solve_state_invariant *)
+              do 3 (eapply state_invariant_same_Γ; [reflexivity | solve_not_in_gamma | ]).
+              destruct PRE2.
+              split; eauto.
+
+              (* Solve memory invariant... *)
+              cbn. cbn in mem_is_inv.
+              intros n1 v0 τ x H H0.
+              destruct x.
+              { (* Global *)
+                admit.
+              }
+
+              { (* Local *)
+                destruct v0.
+                - epose proof (mem_is_inv _ _ _ _ H H0) as INV.
+                  cbn in INV.
+                  eauto.
+                - epose proof (mem_is_inv _ _ _ _ H H0) as INV.
+                  cbn in INV.
+                  eauto.
+                - epose proof (mem_is_inv _ _ _ _ H H0) as INV.
+                  cbn in INV.
+                  destruct INV as (bk & ptr_l & τ' & MLUP & TYP & FITS & LOCALS & GETCELL_ptr_l).
+
+                  pose proof (dtyp_fits_allocated yFITS) as yALLOC.
+                  epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
+                  pose proof WRITE_SUCCEEDS as WRITE'.
+                  erewrite WRITE_ARRAY in WRITE_SUCCEEDS.
+
+                  destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
+                  { exists (mem_add (MInt64asNT.to_nat dst) v ymembk). exists ptr_l. exists τ'.
+
+                    subst.
+                    assert (n1 ≡ y_p) by eauto.
+                    rewrite yLU in MLUP.
+                    inv MLUP.
+
+                    repeat (split; eauto).
+                    - eapply memory_lookup_memory_set_eq.
+                    - eapply dtyp_fits_after_write; eauto.
+                    - intros i v0 H1.
+                      rewrite LUn0 in H0.
+                      inversion H0; subst.
+
+                      rewrite yINLG in LOCALS.
+                      inversion LOCALS; subst.
+
+                      destruct (Nat.eq_dec i (MInt64asNT.to_nat dst)) as [EQdst | NEQdst].
+                      + subst.
+                        rewrite mem_lookup_mem_add_eq in H1; inv H1.
+
+                        change (UVALUE_Double v0) with (dvalue_to_uvalue (DVALUE_Double v0)).
+                        eapply write_array_cell_get_array_cell; eauto.
+                        constructor.
+                      + rewrite mem_lookup_mem_add_neq in H1; inv H1; eauto.
+                        erewrite write_array_cell_untouched; eauto.
+                        constructor.                        
+                  }
+                  { exists bk. exists ptr_l. exists τ'.
+                    repeat (split; eauto).
+                    - erewrite memory_lookup_memory_set_neq; eauto.
+                    - eapply dtyp_fits_after_write; eauto.
+                    - intros i v0 H1.
+                      destruct (Eqv.eqv_dec_p id vy_p) as [EQid | NEQid].
+                      + unfold Eqv.eqv, eqv_raw_id in EQid.
+                        subst.
+                        assert (n1 ≡ y_p); eauto.
+                        subst.
+                        rewrite Heqo0 in H.
+                        inversion H; subst; contradiction.
+                      + unfold Eqv.eqv, eqv_raw_id in NEQid.
+                        assert (fst ptr_l ≢ fst yptr).
+                        { assert (ID_Local id ≢ ID_Local vy_p) as NEQl.
+                          { intros CONTRA. inv CONTRA. contradiction. }
+
+                          (* May have to recover some things I rewrote / cbn'd *)
+                          eapply st_no_llvm_ptr_aliasing.
+                          5: eapply NEQl.
+                          eapply H.
+                          eapply Heqo0.
+                          all:eauto.
+                        }
+                        erewrite write_array_cell_untouched_ptr_block; eauto.
+                        constructor.
+                  }
+              }
             - exists bid_in. reflexivity.
             - assert (local_scope_modif s6 sf ρ l0); solve_local_scope_modif.
           }
