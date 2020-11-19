@@ -1244,7 +1244,6 @@ Section GenIR.
          store v py
        *)
 
-      (*
       cbn* in *; simp.
       hide_cfg.
       inv_resolve_PVar Heqs0.
@@ -1898,7 +1897,8 @@ Section GenIR.
                       destruct (Eqv.eqv_dec_p id vy_p) as [EQid | NEQid].
                       + unfold Eqv.eqv, eqv_raw_id in EQid.
                         subst.
-                        assert (n1 ≡ y_p); eauto.
+
+                        assert (n1 ≡ y_p) by (eapply no_id_aliasing_n_eq; eauto).
                         subst.
                         rewrite Heqo0 in H.
                         inversion H; subst; contradiction.
@@ -1918,6 +1918,8 @@ Section GenIR.
                         constructor.
                   }
               }
+
+              admit. (* new id_allocated thing *)
             - exists bid_in. reflexivity.
             - assert (local_scope_modif s6 sf ρ l0); solve_local_scope_modif.
           }
@@ -1927,8 +1929,6 @@ Section GenIR.
       { (* vx_p is in local *)
         admit.
       }
-       *)
-      admit.
     - admit.
     - admit.
     - admit.

@@ -247,6 +247,20 @@ Section SimulationRelations.
     auto.
   Qed.
 
+  Lemma no_id_aliasing_n_eq :
+    forall s σ n n' id τ τ',
+      no_id_aliasing s σ ->
+      nth_error (Γ s) n ≡ Some (id, τ) ->
+      nth_error (Γ s) n' ≡ Some (id, τ') ->
+      n' ≡ n.
+  Proof.
+    intros s σ n n' id τ τ' ALIAS N1 N2.
+    edestruct ALIAS.
+    eapply N1.
+    eapply N2.
+    eauto.
+  Qed.
+
   Definition no_local_global_alias (l : local_env) (g : global_env) (v : uvalue) : Prop :=
     forall id p p', v ≡ UVALUE_Addr p -> in_local_or_global_addr l g id p' -> fst p ≢ fst p'.
 
