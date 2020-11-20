@@ -849,7 +849,7 @@ Definition genPower
           blk_phis  := [];
           blk_code  := [
                         (IId px,  INSTR_Op (OP_GetElementPtr
-                                              xtyp (xtyp, (EXP_Ident x))
+                                              xtyp (xptyp, (EXP_Ident x))
                                               [(IntType, EXP_Integer 0%Z);
                                                  (IntType, src_nexpr)]
 

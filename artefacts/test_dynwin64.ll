@@ -94,7 +94,7 @@ Power_loop44:
   br label %PowerLoopBody42
 PowerLoopBody42:
   
-  %l96 = getelementptr [1 x double], [1 x double] %a82, i64 0, i64 0
+  %l96 = getelementptr [1 x double], [1 x double]* %a82, i64 0, i64 0
   %l98 = load double, double* %l96, align 8
   %l97 = load double, double* %l95, align 8
   %l99 = fmul double %l97, %l98
