@@ -1078,6 +1078,23 @@ Section GenIR.
     lia.
   Qed.
 
+  Lemma to_nat_unsigned :
+    forall x y,
+      MInt64asNT.to_nat x ≢ MInt64asNT.to_nat y ->
+      DynamicValues.Int64.unsigned (DynamicValues.Int64.repr (Z.of_nat (MInt64asNT.to_nat x))) ≢ DynamicValues.Int64.unsigned (DynamicValues.Int64.repr (Z.of_nat (MInt64asNT.to_nat y))).
+  Proof.
+    intros x y H.
+    repeat rewrite repr_of_nat_to_nat.
+    intros CONTRA.
+    unfold DynamicValues.Int64.unsigned, DynamicValues.Int64.intval in CONTRA.
+    destruct x, y.
+    unfold MInt64asNT.to_nat in *.
+    unfold Z.to_nat in *.
+    cbn in H.
+    apply H.
+    break_match; subst; reflexivity.
+  Qed.
+
   Opaque alist_add.
   Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
@@ -1507,7 +1524,7 @@ Section GenIR.
                     epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
                     erewrite WRITE_ARRAY in WRITE_SUCCEEDS.
 
-                    destruct (Nat.eq_dec i (MInt64asNT.to_nat dst)) as [EQdst | NEQdst].
+                    destruct (Nat.eq_dec (MInt64asNT.to_nat i) (MInt64asNT.to_nat dst)) as [EQdst | NEQdst].
                     {
                     (* In the case where i = DST *)
 
@@ -1518,7 +1535,7 @@ Section GenIR.
         (*                May be able to use write array lemmas...? *)
         (*              *)
 
-                      subst.
+                      rewrite EQdst in *.
                       rewrite mem_lookup_mem_add_eq in H3; inv H3.
 
                       change (UVALUE_Double v0) with (dvalue_to_uvalue (DVALUE_Double v0)).
@@ -1533,6 +1550,8 @@ Section GenIR.
                       rewrite mem_lookup_mem_add_neq in H3; auto.
                       erewrite write_array_cell_untouched; eauto.
                       constructor.
+
+                      apply to_nat_unsigned; auto.
                     }
                   }
                 - (* DSHPtrVals do not alias *)
@@ -1921,8 +1940,8 @@ Section GenIR.
                       rewrite yINLG in LOCALS.
                       inversion LOCALS; subst.
 
-                      destruct (Nat.eq_dec i (MInt64asNT.to_nat dst)) as [EQdst | NEQdst].
-                      + subst.
+                      destruct (Nat.eq_dec (MInt64asNT.to_nat i) (MInt64asNT.to_nat dst)) as [EQdst | NEQdst].
+                      + rewrite EQdst in *.
                         rewrite mem_lookup_mem_add_eq in H1; inv H1.
 
                         change (UVALUE_Double v0) with (dvalue_to_uvalue (DVALUE_Double v0)).
@@ -1931,6 +1950,7 @@ Section GenIR.
                       + rewrite mem_lookup_mem_add_neq in H1; inv H1; eauto.
                         erewrite write_array_cell_untouched; eauto.
                         constructor.
+                        apply to_nat_unsigned; auto.
                   }
                   { exists bk. exists ptr_l. exists τ'.
                     repeat (split; eauto).
@@ -2256,7 +2276,7 @@ Section GenIR.
                     epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
                     erewrite WRITE_ARRAY in WRITE_SUCCEEDS.
 
-                    destruct (Nat.eq_dec i (MInt64asNT.to_nat dst)) as [EQdst | NEQdst].
+                    destruct (Nat.eq_dec (MInt64asNT.to_nat i) (MInt64asNT.to_nat dst)) as [EQdst | NEQdst].
                     {
                     (* In the case where i = DST *)
 
@@ -2267,7 +2287,7 @@ Section GenIR.
         (*                May be able to use write array lemmas...? *)
         (*              *)
 
-                      subst.
+                      rewrite EQdst in *.
                       rewrite mem_lookup_mem_add_eq in H3; inv H3.
 
                       change (UVALUE_Double v0) with (dvalue_to_uvalue (DVALUE_Double v0)).
@@ -2282,6 +2302,7 @@ Section GenIR.
                       rewrite mem_lookup_mem_add_neq in H3; auto.
                       erewrite write_array_cell_untouched; eauto.
                       constructor.
+                      apply to_nat_unsigned; auto.
                     }
                   }
                 - (* DSHPtrVals do not alias *)
@@ -2670,8 +2691,8 @@ Section GenIR.
                       rewrite yINLG in LOCALS.
                       inversion LOCALS; subst.
 
-                      destruct (Nat.eq_dec i (MInt64asNT.to_nat dst)) as [EQdst | NEQdst].
-                      + subst.
+                      destruct (Nat.eq_dec (MInt64asNT.to_nat i) (MInt64asNT.to_nat dst)) as [EQdst | NEQdst].
+                      + rewrite EQdst in *.
                         rewrite mem_lookup_mem_add_eq in H1; inv H1.
 
                         change (UVALUE_Double v0) with (dvalue_to_uvalue (DVALUE_Double v0)).
@@ -2680,6 +2701,7 @@ Section GenIR.
                       + rewrite mem_lookup_mem_add_neq in H1; inv H1; eauto.
                         erewrite write_array_cell_untouched; eauto.
                         constructor.
+                        apply to_nat_unsigned; auto.
                   }
                   { exists bk. exists ptr_l. exists τ'.
                     repeat (split; eauto).

@@ -304,8 +304,8 @@ Section SimulationRelations.
           τ ≡ TYPE_Pointer τ' /\
           dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp [] τ') /\
           in_local_or_global_addr ρ g x ptr_llvm /\
-          (forall i v, mem_lookup i bk_helix ≡ Some v ->
-                       get_array_cell mem_llvm ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v))
+          (forall (i : Int64.int) v, mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v ->
+                       get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v))
         end.
 
   (* Lookups in [genv] are fully determined by lookups in [Γ] and [σ] *)
@@ -373,8 +373,8 @@ Section SimulationRelations.
         /\ t ≡ TYPE_Pointer t'
         /\ dtyp_fits memV ptr_v (typ_to_dtyp [] t')
         /\ in_local_or_global_addr l g (ID_Local id) ptr_v
-        /\ (forall (i : Memory.NM.key) (v : binary64),
-               mem_lookup i bk_h ≡ Some v -> get_array_cell memV ptr_v i DTYPE_Double ≡ inr (UVALUE_Double v)).
+        /\ (forall (i : Int64.int) (v : binary64),
+               mem_lookup (MInt64asNT.to_nat i) bk_h ≡ Some v -> get_array_cell memV ptr_v (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v)).
   Proof.
     intros * MEM_INV NTH LU; cbn* in *.
     eapply MEM_INV in LU; clear MEM_INV; eauto.
@@ -986,7 +986,7 @@ Section SimulationRelations.
         ∧ dtyp_fits memV ptr_llvm
                     (typ_to_dtyp [] (TYPE_Array sz TYPE_Double))
         ∧ in_local_or_global_addr l g x ptr_llvm
-        ∧ (∀ (i : Memory.NM.key) (v : binary64), mem_lookup i bk_helix ≡ Some v → get_array_cell memV ptr_llvm i DTYPE_Double ≡ inr (UVALUE_Double v)).
+        ∧ (∀ (i : Int64.int) (v : binary64), mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v → get_array_cell memV ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v)).
   Proof.
     intros * MEM LU1 LU2; inv MEM; eapply mem_is_inv0 in LU1; eapply LU1 in LU2; eauto.
     destruct LU2 as (bk & ptr & τ' & ? & ? & ? & ? & ?).
