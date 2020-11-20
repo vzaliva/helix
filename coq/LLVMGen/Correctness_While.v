@@ -2,6 +2,9 @@ Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Freshness.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.Correctness_NExpr.
+Require Import Helix.LLVMGen.LidBound.
+Require Import Helix.LLVMGen.IdLemmas.
+Require Import Helix.LLVMGen.VariableBinding.
 
 Set Nested Proofs Allowed.
 Opaque incBlockNamed.
@@ -629,7 +632,19 @@ Proof.
   rewrite rel_dec_eq_true; auto.
 Qed.
 
-
+Lemma string_forall_append:
+  forall s s' f,
+    CeresString.string_forall f s ->
+    CeresString.string_forall f s' ->
+    CeresString.string_forall f (s @@ s').
+Proof.
+  intros s s'. revert s.
+  induction s'.
+  - cbn. intros. cbn. rewrite append_EmptyString. auto.
+  - intros. cbn in H0.
+    destruct (f a) eqn: FA.
+    2 : { inversion H0. }
+Admitted.
 
 (** Inductive lemma to reason about while loops.
     The code generated is of the shape:
@@ -669,6 +684,7 @@ Lemma genWhileLoop_tfor_ind:
 
     In body_entry (block_ids body_blocks) ->
 
+    is_correct_prefix prefix ->
     (* All labels generated are distinct *)
     wf_cfg bks ->
 
@@ -720,7 +736,8 @@ Lemma genWhileLoop_tfor_ind:
             id ≡ c \/ id ≡ d \/ id ≡ e \/ id ≡ loopvar ->
             (I k a (mV, (l, g)) -> I k a (mV, ((alist_add id v l), g)))
       ) ->
-      local_count sb2 ≡ local_count s1 ->
+      sb1 << sb2 ->
+      local_count sb2 ≡ local_count s1 -> 
 
     (* Main result. Need to know initially that P holds *)
     forall g li mV a _label,
@@ -738,9 +755,9 @@ Lemma genWhileLoop_tfor_ind:
            (interp_cfg (denote_bks (convert_typ [] bks)
                                                 (_label, loopcontblock)) g li mV).
 Proof.
-  intros * IN UNIQUE_IDENTS NEXTBLOCK_ID * GEN *. 
+  intros * IN PREFIX UNIQUE_IDENTS NEXTBLOCK_ID * GEN *. 
   unfold genWhileLoop in GEN. cbn* in GEN. simp.
-  intros BOUND OVER * FBODY STABLE INEQ.
+  intros BOUND OVER * FBODY STABLE INEQ INEQ'.
   
   remember (n - j) as k eqn:K_EQ.
   revert j K_EQ BOUND.
@@ -808,7 +825,26 @@ Proof.
     split; [| split].
     + reflexivity.
     + eapply STABLE; eauto.
-    + 
+    + rename s2 into FINAL_STATE,
+              i into s2,
+              i0 into s3,
+              i1 into s4,
+              i2 into s5,
+              i3 into s6,
+              i4 into s7,
+              i6 into s8.
+
+      eapply local_scope_modif_add'.
+      2 : eapply local_scope_modif_add.
+      solve_lid_bound_between.
+      eapply lid_bound_between_shrink_down with (s2 := s5).
+      solve_local_count.
+      eapply lid_bound_between_shrink_up with (s2 := s6).
+      solve_local_count.
+      eapply lid_bound_between_incLocalNamed. 2 : eauto.
+      unfold is_correct_prefix.
+
+      apply string_forall_append. auto. auto.
 
   - (* Inductive case *)
     cbn in *. intros [LT LE] * (INV & LOOPVAR).
@@ -930,10 +966,48 @@ Proof.
 
     (* Step 4 : Back to starting from loopcontblock and have reestablished everything at the next index:
         conclude by IH *)
-    intros ? (? & ? & ? & ?) (LOOPVAR' & [? ->] & IH').
-    eapply IH; try lia.
-    split; auto.
-Qed.
+    intros ? (? & ? & ? & ?) (LOOPVAR' & [? ->] & IH' & LOCAL).
+    assert (AR1 : k ≡ n - S (S j)) by lia.
+    assert (AR2 : 0 < S (S j) ∧ S (S j) <= n) by lia.
+    unfold conj_rel in IH.
+    assert (INV_LO: I (S (S j)) u1 (m, (l, g0)) ∧
+            l @ loopvar ≡ Some (uvalue_of_nat (S (S j) - 1))). {
+      split; auto.
+    }
+
+    specialize (IH (S (S j)) AR1 AR2 _ _ _ _ x INV_LO).
+
+    (* rename li into LOCAL_INITIAL, l into LOCAL_FINAL. *)
+
+    (* What's the relation between [li] and [l]? *)
+    clear -IH.
+
+    eapply eqit_mon; auto.
+    2 : apply IH.
+    intros B (mv & l0 & g & x') (LO' & INV & LOC).
+    split; try split; auto.
+
+    assert (li ⊑ l /\ l ⊑ li). admit.
+
+    unfold local_scope_modif in *.
+    intros. unfold lid_bound_between, state_bound_between in *.
+    destruct (l0 @ id) eqn: Hl0; [ | destruct (li @ id) eqn: Hi0].
+    3 : { exfalso. apply H0. reflexivity. } (* Neither are None *)
+
+    (* There doesn't seem to be enough information here, even with the [⊑]
+       between the initial and final local environments. *)
+    specialize (LOC id).
+    subst. rewrite Hl0 in LOC.
+    apply LOC. admit.
+
+    (* Absurd case. because something was found in [li], we must have something
+        in [l]. *)
+    apply LOC. rewrite Hl0.
+    destruct H.
+    admit.
+
+Admitted.
+
 
 Lemma genWhileLoop_tfor_correct:
   forall (prefix : string)
