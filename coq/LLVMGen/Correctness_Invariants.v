@@ -267,11 +267,17 @@ Section SimulationRelations.
 
   (* TODO: Move this *)
   Lemma alist_add_find_eq :
-    forall {K V} `{RelDec K} (id : K) (v : V) (l : alist K V),
+    forall {K V} {eqk : K -> K -> Prop} {RD : RelDec eqk} `{RelDec_Correct _ eqk} `{Reflexive _ eqk} (id : K) (v : V) (l : alist K V),
       alist_add id v l @ id ≡ Some v.
   Proof.
-    intros V id v l.
-  Admitted.
+    intros K V eqk RD ED H H0 id v l.
+    cbn.
+    break_match.
+    reflexivity.
+    apply neg_rel_dec_correct in Heqb.
+    exfalso. apply Heqb.
+    reflexivity.
+  Qed.
 
   (* TODO: Move this *)
   Lemma in_local_or_global_addr_neq :
@@ -471,12 +477,17 @@ Section SimulationRelations.
     - epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3 H4 H5).
       eauto.
     - epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3 H4).
-      assert ({id1 ≡ id} + {id1 ≢ id}) by admit. destruct H7.
+      destruct (Eqv.eqv_dec_p id1 id) as [EQ | NEQ]; unfold Eqv.eqv, eqv_raw_id in *.
       + subst.
         assert (in_Gamma σ s id).
         econstructor; eauto.
         exfalso; apply FRESH; auto.
       + eapply H6.
+        cbn in *.
+        pose proof NEQ.
+        apply neg_rel_dec_correct in NEQ. rewrite NEQ in H5.
+        rewrite remove_neq_alist in H5; eauto.        
+        admit.
         admit.
     - epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3).
       assert ({id0 ≡ id} + {id0 ≢ id}) by admit. destruct H7.
@@ -1359,10 +1370,8 @@ Proof.
   destruct Int64.zero.
   inv Heqi0.
   unfold equiv, MInt64asNT.NTypeEquiv, Int64.eq, Int64.unsigned, Int64.intval.
-  (* apply Coqlib.zeq_true. *)
-  (* Qed. *)
-Admitted.
-
+  apply Coqlib.zeq_true.
+Qed.
 
 Lemma no_local_global_alias_non_pointer:
   forall l g v,
