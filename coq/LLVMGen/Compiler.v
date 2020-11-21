@@ -1376,8 +1376,6 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
   | mkFSHCOLProgram i o name globals op =>
     if valid_program p then
       if just_compile then
-        ginit <- genIRGlobals (FnBody:= block typ * list (block typ)) globals ;;
-
         (* While generate operator's function body, add parameters as
          locals X=PVar 1, Y=PVar 0.
 
@@ -1388,6 +1386,8 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
         let ytyp := TYPE_Pointer (getIRType (DSHPtr o)) in
 
         addVars [(ID_Local y, ytyp);(ID_Local x, xtyp)] ;;
+        ginit <- genIRGlobals (FnBody:= block typ * list (block typ)) globals ;;
+
         (* Γ := [y; x; fake_y; fake_x] *)
         prog <- LLVMGen i o op name ;;
         ret (ginit ++ prog)
