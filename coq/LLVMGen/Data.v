@@ -8,7 +8,7 @@ Require Import Helix.Util.ErrorSetoid.
 Require Import Helix.Util.ListUtil.
 Require Import Helix.Tactics.HelixTactics.
 
-Require Import Vellvm.LLVMAst.
+Require Import Vellvm.Syntax.LLVMAst.
 
 Require Import Flocq.IEEE754.Binary.
 Require Import Flocq.IEEE754.Bits.

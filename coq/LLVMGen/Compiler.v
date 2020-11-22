@@ -9,11 +9,11 @@ Require Import Helix.LLVMGen.Utils.
 Require Import Helix.Util.Misc.
 Require Import Helix.Tactics.HelixTactics.
 
-Require Import Vellvm.IntrinsicsDefinitions.
-Require Import Vellvm.Util.
+Require Import Vellvm.Semantics.IntrinsicsDefinitions.
+Require Import Vellvm.Utils.Util.
 Require Import Vellvm.Numeric.Floats.
-Require Import Vellvm.TopLevel.
-Require Import Vellvm.LLVMAst.
+Require Import Vellvm.Semantics.TopLevel.
+Require Import Vellvm.Syntax.LLVMAst.
 Require Import Helix.Util.ErrorSetoid.
 
 Require Import Flocq.IEEE754.Binary.

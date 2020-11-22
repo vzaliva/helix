@@ -6,7 +6,7 @@ Require Import ITree.Basics.HeterogeneousRelations.
 
 Require Import MathClasses.misc.util.
 
-Require Import Vellvm.IntrinsicsDefinitions.
+Require Import Vellvm.Semantics.IntrinsicsDefinitions.
 
 Import ListNotations.
 Import MonadNotation.
@@ -1212,7 +1212,7 @@ Lemma memory_invariant_after_init
       (post_init_invariant_mcfg p.(name) σ s)
       (Ret (hmem, ()))
       (interp_to_L3 defined_intrinsics
-                    (build_global_environment (mcfg_of_tle pll))
+                    (build_global_environment (convert_types (mcfg_of_tle pll)))
                     [] ([],[]) empty_memory_stack).
 Proof.
   intros hmem σ s hdata pll [HI LI].
@@ -2646,7 +2646,7 @@ Set Nested Proofs Allowed.
 Lemma initXYplaceholders_no_definitions :
   forall i o d x τ y τ' σ σ' b t,
     initXYplaceholders i o d x τ y τ' σ ≡ inr (σ', (b,t)) ->
-    m_definitions (mcfg_of_tle t) ≡ [].
+    m_definitions (convert_types (mcfg_of_tle t)) ≡ [].
 Proof.
   unfold initXYplaceholders; cbn; intros; simp; cbn in *; simp.
   reflexivity.
@@ -2655,16 +2655,17 @@ Qed.
 Lemma initOneIRGlobal_no_definitions :
   forall l a σ σ' l' t,
     initOneIRGlobal l a σ ≡ inr (σ', (l', t)) ->
-    m_definitions (mcfg_of_tle [t]) ≡ [ ].
+    m_definitions (convert_types (mcfg_of_tle [t])) ≡ [ ].
 Proof.
   unfold initOneIRGlobal; cbn; intros; simp; cbn in *; auto.
 Qed.
 
 Opaque mcfg_of_tle.
+Opaque convert_types.
 Lemma init_with_data_initOneIRGlobal_no_definitions :
   forall g l x σ σ' b t,
     init_with_data initOneIRGlobal x l g σ ≡ inr (σ', (b, t)) ->
-    m_definitions (mcfg_of_tle t) ≡ []. 
+    m_definitions (convert_types (mcfg_of_tle t)) ≡ []. 
 Proof.
   induction g as [| ? g IH]; intros; cbn in *; [simp; cbn; auto |].
   simp.
@@ -2675,7 +2676,7 @@ Qed.
 Lemma initIRGlobals_no_definitions :
   forall l g σ σ' b t,
     initIRGlobals l g σ ≡ inr (σ', (b,t)) -> 
-    m_definitions (mcfg_of_tle t) ≡ [].
+    m_definitions (convert_types (mcfg_of_tle t)) ≡ [].
 Proof.
   unfold initIRGlobals; cbn; intros; simp.
   eauto using init_with_data_initOneIRGlobal_no_definitions.
@@ -2685,7 +2686,7 @@ Transparent mcfg_of_tle.
 Lemma genMain_no_type_defs :
   forall s x τ τ' τ'' y t,
     genMain s x τ y τ' τ'' ≡ t ->
-    m_type_defs (mcfg_of_tle t) ≡ [].
+    m_type_defs (convert_types (mcfg_of_tle t)) ≡ [].
 Proof.
   unfold genMain; cbn; intros; simp; subst; reflexivity.
 Qed.
@@ -2693,7 +2694,7 @@ Qed.
 Lemma initXYplaceholders_no_type_defs :
   forall i o d x τ y τ' σ σ' b t,
     initXYplaceholders i o d x τ y τ' σ ≡ inr (σ', (b,t)) ->
-    m_type_defs (mcfg_of_tle t) ≡ [].
+    m_type_defs (convert_types (mcfg_of_tle t)) ≡ [].
 Proof.
   unfold initXYplaceholders; cbn; intros; simp; cbn in *; simp.
   reflexivity.
@@ -2702,7 +2703,7 @@ Qed.
 Lemma initOneIRGlobal_no_type_defs :
   forall l a σ σ' l' t,
     initOneIRGlobal l a σ ≡ inr (σ', (l', t)) ->
-    m_type_defs (mcfg_of_tle [t]) ≡ [ ].
+    m_type_defs (convert_types (mcfg_of_tle [t])) ≡ [ ].
 Proof.
   unfold initOneIRGlobal; cbn; intros; simp; cbn in *; auto.
 Qed.
@@ -2711,7 +2712,7 @@ Opaque mcfg_of_tle.
 Lemma init_with_data_initOneIRGlobal_no_type_defs :
   forall g l x σ σ' b t,
     init_with_data initOneIRGlobal x l g σ ≡ inr (σ', (b, t)) ->
-    m_type_defs (mcfg_of_tle t) ≡ []. 
+    m_type_defs (convert_types (mcfg_of_tle t)) ≡ []. 
 Proof.
   induction g as [| ? g IH]; intros; cbn in *; [simp; cbn; auto |].
   simp.
@@ -2722,7 +2723,7 @@ Qed.
 Lemma initIRGlobals_no_type_defs :
   forall l g σ σ' b t,
     initIRGlobals l g σ ≡ inr (σ', (b,t)) -> 
-    m_type_defs (mcfg_of_tle t) ≡ [].
+    m_type_defs (convert_types (mcfg_of_tle t)) ≡ [].
 Proof.
   unfold initIRGlobals; cbn; intros; simp.
   eauto using init_with_data_initOneIRGlobal_no_type_defs.
@@ -2762,7 +2763,7 @@ Hint Rewrite interp_to_L3_ret : local.
       |- context[mcfg_of_tle ?x] => remember x as M
     end.
 
-    assert (m_type_defs (mcfg_of_tle M) ≡ []).
+    assert (m_type_defs (convert_types (mcfg_of_tle M)) ≡ []).
     {
       subst M.
       rewrite ! mcfg_of_tle_app, !m_type_defs_app.
@@ -2777,7 +2778,8 @@ Hint Rewrite interp_to_L3_ret : local.
       remember name as x; remember main as y
     end.
 
-    assert (EQ: m_definitions (mcfg_of_tle M) ≡ m_definitions (mcfg_of_tle (body::main))).
+    assert (EQ: m_definitions (convert_types (mcfg_of_tle M)) ≡
+                              m_definitions (convert_types (mcfg_of_tle (body::main)))).
     { subst M.
       rewrite ! mcfg_of_tle_app, !m_definitions_app.
       erewrite initIRGlobals_no_definitions; eauto.
