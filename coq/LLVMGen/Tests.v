@@ -11,11 +11,11 @@ Require Import Helix.LLVMGen.Data.
 Require Import Helix.Util.ErrorSetoid.
 Require Import Helix.Util.ErrorWithState.
 
-Require Import Vellvm.LLVMEvents.
-Require Import Vellvm.Denotation.
+Require Import Vellvm.Semantics.LLVMEvents.
+Require Import Vellvm.Semantics.Denotation.
 Require Import Vellvm.Handlers.Handlers.
-Require Import Vellvm.TopLevel.
-Require Import Vellvm.LLVMAst.
+Require Import Vellvm.Semantics.TopLevel.
+Require Import Vellvm.Syntax.LLVMAst.
 
 Require Import Flocq.IEEE754.Binary.
 Require Import Flocq.IEEE754.Bits.

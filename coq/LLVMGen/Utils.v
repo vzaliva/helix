@@ -3,7 +3,7 @@ Require Import Coq.Lists.List.
 
 Require Import Helix.Util.Misc.
 
-Require Import Vellvm.LLVMAst.
+Require Import Vellvm.Syntax.LLVMAst.
 
 Require Import Flocq.IEEE754.Binary.
 Require Import Coq.Numbers.BinNums. (* for Z scope *)

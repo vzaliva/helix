@@ -6,7 +6,7 @@ Require Import ExtLib.Structures.MonadExc.
 
 Require Import MathClasses.interfaces.canonical_names.
 
-Require Export Vellvm.Error.
+Require Export Vellvm.Utils.Error.
 
 Require Import Ceres.CeresString.
 

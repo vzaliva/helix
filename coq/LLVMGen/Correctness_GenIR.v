@@ -1862,7 +1862,6 @@ Section GenIR.
 
     - (* DSHLoop *)
 
-      (*
       (* Require Import Correctness_While. *)
       (* Import ProofMode. *)
       Opaque add_comment.
@@ -1874,8 +1873,8 @@ Section GenIR.
       rewrite add_comment_eutt.
       clean_goal.
       rename i into s1, i0 into s2, i1 into s3, i2 into s4, i3 into s5, s2 into s6.
-
-      local_scope_modif s3 s4 li l
+      rename l0 into bodyV.
+      rename r into loopvar.
 
       pose proof
            @genWhileLoop_tfor_correct "Loop_loop" (Name ("Loop_i" @@ string_of_nat (local_count i0))) b b0 l nextblock bid_in
