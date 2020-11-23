@@ -18,7 +18,6 @@ From Vellvm Require Import
      Semantics.LLVMEvents
      Semantics.DynamicValues
      Semantics.TopLevel
-     Handlers.Memory
      Handlers.Handlers
      Theory.Refinement
      Theory.DenotationTheory
@@ -211,7 +210,6 @@ Section TLE_To_Modul.
     rewrite m_definitions_app, map_app; reflexivity.
   Qed.
 
-  From Vellvm Require Import Traversal.
   (* YZ TODO :  A bit annoying but should not be an issue.
      Actually: requires some assumptions to be able to split the environment in two.
      Some well-formedness/closedness of the respective mcfg under the respective environments.
@@ -722,8 +720,6 @@ Notation "m '⊑' m'" := (sub_alist m m') (at level 45).
 
 Global Instance ConvertTyp_list {A} `{Traversal.Fmap A}: ConvertTyp (fun T => list (A T)) :=
   fun env => Traversal.fmap (typ_to_dtyp env).
-
-From Vellvm Require Import Traversal.
 
 Lemma fmap_list_app: forall U V H H' c1 c2 f,
     @fmap code (@Fmap_code H H') U V f (c1 ++ c2) =
