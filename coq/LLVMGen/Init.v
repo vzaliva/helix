@@ -1201,6 +1201,25 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma body_non_empty_cast_preserves_st
+      (l : list (LLVMAst.block typ))
+      (s s' : IRState)
+      (r : LLVMAst.block typ * list (LLVMAst.block typ))
+  :
+    body_non_empty_cast l s ≡ inr (s', r) ->
+    s ≡ s'.
+Proof.
+  intro H.
+  unfold body_non_empty_cast in H.
+  break_match; invc H.
+  reflexivity.
+Qed.
+
+Ltac destruct_unit :=
+  repeat match goal with
+         | [x : unit |- _] => destruct x
+         end.
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -1273,6 +1292,9 @@ Proof.
   apply ListUtil.split_correct in Sg.
   rename Sg into Vs3.
 
+  copy_apply body_non_empty_cast_preserves_st BC.
+  subst s3.
+
   repeat rewrite app_assoc.
   unfold build_global_environment.
   setoid_rewrite interp_to_L3_bind.
@@ -1284,7 +1306,7 @@ Proof.
   simpl.
   (* no more [genMain] *)
 
-  destruct s3.
+  destruct s2.
 
   rename m into mo, m0 into mi.
   rename p13 into body_instr.
@@ -1525,6 +1547,8 @@ Proof.
 
   1:{
 
+    admit. (* TMPC
+
     eutt_hide_rel R.
 
     autorewrite with itree.
@@ -1620,6 +1644,8 @@ Proof.
       reflexivity.
       crush.
 
+    TMPC *)
+
   }
 
   intros.
@@ -1665,13 +1691,20 @@ Proof.
   destruct p0 as [le0 stack0].
   destruct x as [x_id x_typ].
 
-  remember (e ++ [DSHPtrVal (S (Datatypes.length globals)) o;
-            DSHPtrVal (Datatypes.length globals) i])
-    as σ.
   remember (Datatypes.length globals) as lg.
 
-  apply eutt_clo_bind with (UU:=post_alloc_invariant_mcfg globals).
-  -
+  pose (fun '(memH, t0) '(memV, (l, t1, (g, t2))) =>
+          post_alloc_invariant_mcfg globals (memH, t0) (memV, (l, t1, (g, t2)))
+          /\
+          declarations_invariant_mcfg name (memV, (l, t1, (g, t2))))
+    as post_alloc_invariant_mcfg'.
+
+  (* split the goal:
+     1) allocate
+     2) initialize
+   *)
+  apply eutt_clo_bind with (UU:=post_alloc_invariant_mcfg').
+  - (* allocate (globals ++ yx) *)
     assert (TMP_EQ: eutt
              (fun '(m,_) '(m',_) => m = m')
              (ret (memory_set (memory_set mg (S lg) mo) lg mi, ()))
@@ -1695,9 +1728,13 @@ Proof.
                              allocated_globals memV g globals) : Rel_mcfg_T () ())
       as allocated_globals_mcfg.
 
+    (* split the goal:
+       1) allocate globals
+       2) allocate yx
+     *)
     apply eutt_clo_bind
       with (UU:=allocated_globals_mcfg globals).
-    + 
+    + (* allocate globals *)
       subst.
 
       fold_map_monad_.
@@ -1971,7 +2008,7 @@ Proof.
             clear - H INV.
             unfold alloc_glob_decl_inv_mcfg in H.
             intuition.
-    +
+    + (* allocate yx *)
       intros.
       unfold initXYplaceholders, addVars in LX.
       cbn in LX.
@@ -2007,7 +2044,9 @@ Proof.
       rewrite interp_to_L3_ret.
 
       apply eutt_Ret.
-      unfold post_alloc_invariant_mcfg in *.
+      unfold post_alloc_invariant_mcfg', post_alloc_invariant_mcfg in *.
+      break_let.
+      split; [| admit].
       split.
       *
         unfold allocated_xy.
@@ -2055,38 +2094,115 @@ Proof.
         eassumption.
         eassumption.
         erewrite ListUtil.ith_eq; [eassumption | reflexivity].
-  -
+  - (* initialize (globals ++ yx) *)
     intros.
+
+    assert (T : Ret (memory_set (memory_set mg (S lg) mo) lg mi, ())
+                ≈
+                ITree.bind' (E:=E_mcfg)
+                            (fun mg' => ret (memory_set
+                                            (memory_set (fst mg') (S lg) mo)
+                                            lg mi, ()))
+                            (ret (mg, ())))
+      by (cbn; now rewrite Eq.bind_ret_l).
+    rewrite T; clear T.
+
+    destruct_unit.
+    unfold post_alloc_invariant_mcfg' in H0.
+    destruct u3 as (m', ((l', st'), (g', TU))); destruct_unit.
+    cbn in H0.
+    destruct u0 as (_ & _).
+    subst p p1 u2.
+    clear u1.
+    rename H0 into POST_ALLOC.
     
-    assert (TMP_EQ: eutt
-             (fun '(m,_) '(m',_) => m ≡ m')
-             (ret (memory_set (memory_set mg (S lg) mo) lg mi, ()))
-             (ITree.bind' (E:=E_mcfg)
-                          (fun mg' => ret (memory_set
-                                          (memory_set (fst mg') (S lg) mo)
-                                          lg mi, ()))
-                          (ret (mg, ()))))
-      by (setoid_rewrite Eq.bind_ret_l; apply eutt_Ret; reflexivity).
-
-    eapply eutt_weaken_left; [| exact TMP_EQ |]; clear TMP_EQ.
-    {
-      intros (?, ?) (?, ?) (? & [? ?] & ? & []).
-      congruence.
-    }
-
-    destruct u3 as (m', (l', (g', ?))).
     rewrite translate_bind, interp_to_L3_bind.
+    subst.
 
-    apply eutt_clo_bind with (UU:=(λ '(memH, _) '(memV, (l, _, (g, _))),
-       post_init_invariant name σ
-         {|
-         block_count := block_count;
-         local_count := local_count;
-         void_count := void_count;
-         Γ := Γ_globals |} memH (memV, (l, g))
-       /\
-       allocated_xy memV g )).
+    pose (fun globals : list (string * DSHType) =>
+            (fun '(memH, _) '(memV, (l, t1, (g, t2))) =>
+               post_init_invariant
+                 name
+                 (firstn (length globals) (e ++ [DSHPtrVal (S (Datatypes.length globals)) o;
+                        DSHPtrVal (Datatypes.length globals) i]))
+                 {|
+                   block_count := block_count;
+                   local_count := local_count;
+                   void_count := void_count;
+                   Γ := firstn (length globals) Γ_globals |} memH (memV, (l, g))
+               /\
+               post_alloc_invariant_mcfg globals (memH, ()) (memV, (l, t1, (g, t2))))
+            : Rel_mcfg_T () ())
+      as post_init_invariant'.
+
+    apply eutt_clo_bind with (UU:=post_init_invariant' globals).
     +
+      subst.
+      unfold initialize_globals.
+
+      remember {|
+          block_count := Compiler.block_count s0;
+          local_count := Compiler.local_count s0;
+          void_count := Compiler.void_count s0;
+          Γ := (ID_Local (Name "Y"), TYPE_Pointer (TYPE_Array (Int64.intval o) TYPE_Double))
+               :: (ID_Local (Name "X"),
+                  TYPE_Pointer (TYPE_Array (Int64.intval i) TYPE_Double)) :: 
+                  Γ s0 |} as s_yx.
+
+      enough (
+          forall pre post gdecls1 gdecls2 s' l',
+            globals ≡ pre ++ post -> 
+
+            gdecls ≡ gdecls1 ++ gdecls2 ->
+
+            init_with_data initOneIRGlobal
+                           global_uniq_chk l1 pre s_yx ≡ inr (s', (l', gdecls1)) ->
+
+            init_with_data initOneIRGlobal
+                           global_uniq_chk l' post s' ≡ inr (s1, (l2, gdecls2)) ->
+
+            post_init_invariant' pre (mg, ())
+                                      (m, (le0, stack0, (g, ()))) ->
+
+            eutt (post_init_invariant' (pre ++ post))
+                 (Ret (mg, ()))
+                    (interp_mcfg
+                       (translate _exp_E_to_L0
+                          (map_monad_ initialize_global
+                                      (map (Fmap_global typ dtyp (typ_to_dtyp []))
+                                           (flat_map (globals_of typ) gdecls))))
+                       g (le0, stack0) m)).
+      {
+        replace (globals) with ([] ++ globals) in * by reflexivity.
+        replace (Γ_globals) with ([] ++ Γ_globals) in * by reflexivity.
+        apply init_with_data_app_global_uniq_chk in LG.
+        destruct LG as (l'' & s' & gdecls1 & gdecls2 & PRE & POST & GDECLS).
+        specialize (H0 [] globals gdecls1 gdecls2 s' l'').
+        full_autospecialize H0; try congruence.
+        {
+          cbn.
+          split.
+          constructor.
+          constructor.
+          cbn.
+          intros ? ? ? ? ? C.
+          rewrite nth_error_nil in C.
+          inversion C.
+          unfold WF_IRState, evalContext_typechecks.
+          cbn.
+          intros ? ? C.
+          rewrite nth_error_nil in C.
+          inversion C.
+          assumption.
+          split.
+          admit.
+          unfold allocated_globals.
+          intros; cbn in jc; lia.
+        }
+        inv PRE.
+        admit. (* apply H0. *)
+      }
+      cbn.
       admit.
     +
       intros.
@@ -2100,6 +2216,7 @@ Proof.
 
       repeat rewrite translate_bind, interp_to_L3_bind.
       rewrite translate_trigger, _exp_E_to_L0_Global, subevent_subevent.
+      (*
       inversion_clear H1 as [[[MI] DI] AXY].
       destruct AXY as (px & py & APX & APY & IX & IY).
 
@@ -2111,7 +2228,9 @@ Proof.
         inversion Heqm2.
         eassumption.
       }
+      memory_invariant
       rewrite Eq.bind_ret_l.
+       *)
       admit.
 
   (* (* this is very old code at this point *)
