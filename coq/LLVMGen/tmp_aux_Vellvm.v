@@ -721,6 +721,8 @@ Notation "m '⊑' m'" := (sub_alist m m') (at level 45).
 Global Instance ConvertTyp_list {A} `{Traversal.Fmap A}: ConvertTyp (fun T => list (A T)) :=
   fun env => Traversal.fmap (typ_to_dtyp env).
 
+Import Traversal.
+
 Lemma fmap_list_app: forall U V H H' c1 c2 f,
     @fmap code (@Fmap_code H H') U V f (c1 ++ c2) =
           fmap f c1  ++ fmap f c2.
