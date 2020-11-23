@@ -18,7 +18,6 @@ From Vellvm Require Import
      Semantics.LLVMEvents
      Semantics.DynamicValues
      Semantics.TopLevel
-     Handlers.Memory
      Handlers.Handlers
      Theory.Refinement
      Theory.DenotationTheory
@@ -69,7 +68,7 @@ Section MemoryModel.
     unfold get_logical_block, get_logical_block_mem in *.
     unfold add_logical_block. destruct mv. cbn.
     unfold add_logical_block_mem. destruct m0.
-    Opaque lookup. Opaque Mem.add.
+    Opaque lookup. Opaque add.
     cbn in *.
     rewrite lookup_add_ineq; auto.
   Qed.
@@ -233,7 +232,6 @@ Section TLE_To_Modul.
     rewrite m_definitions_app, map_app; reflexivity.
   Qed.
 
-  From Vellvm Require Import Traversal.
   (* YZ TODO :  A bit annoying but should not be an issue.
      Actually: requires some assumptions to be able to split the environment in two.
      Some well-formedness/closedness of the respective mcfg under the respective environments.
