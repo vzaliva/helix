@@ -7,21 +7,22 @@ From ITree Require Import
      Eq.Eq.
 
 From Vellvm Require Import
-     Tactics
-     Util
-     AstLib
-     LLVMEvents
-     DynamicTypes
-     DynamicValues
-     CFG
+     Utils.Tactics
+     Utils.Util
+     Syntax.LLVMAst
+     Syntax.Traversal
+     Syntax.AstLib
+     Syntax.DynamicTypes
+     Syntax.CFG
+     Syntax.TypToDtyp
+     Semantics.LLVMEvents
+     Semantics.DynamicValues
+     Semantics.TopLevel
      Handlers.Memory
-     Refinement
-     TopLevel
-     LLVMAst
-     TypToDtyp
      Handlers.Handlers
-     Denotation_Theory
-     InterpreterCFG.
+     Theory.Refinement
+     Theory.DenotationTheory
+     Theory.InterpreterCFG.
 
 From ExtLib Require Import
      Structures.Functor.
@@ -110,7 +111,7 @@ Section TLE_To_Modul.
   Definition opt_first {T: Type} (o1 o2: option T): option T :=
     match o1 with | Some x => Some x | None => o2 end.
 
-  Definition modul_app {T X} (m1 m2: modul T X): modul T X :=
+  Definition modul_app {T X} (m1 m2: @modul T X): @modul T X :=
     let (name1, target1, layout1, tdefs1, globs1, decls1, defs1) := m1 in
     let (name2, target2, layout2, tdefs2, globs2, decls2, defs2) := m2 in
     {|
@@ -125,7 +126,7 @@ Section TLE_To_Modul.
 
   Lemma modul_of_toplevel_entities_cons:
     forall {T X} tle tles, 
-      @modul_of_toplevel_entities T X (tle :: tles) = modul_app (modul_of_toplevel_entities T [tle]) (modul_of_toplevel_entities T tles).
+      @modul_of_toplevel_entities T X (tle :: tles) = modul_app (modul_of_toplevel_entities [tle]) (modul_of_toplevel_entities tles).
   Proof.
     intros.
     unfold modul_of_toplevel_entities; cbn; f_equal;
@@ -134,7 +135,7 @@ Section TLE_To_Modul.
 
   Lemma modul_of_toplevel_entities_app:
     forall {T X} tle1 tle2, 
-    @modul_of_toplevel_entities T X (tle1 ++ tle2) = modul_app (modul_of_toplevel_entities T tle1) (modul_of_toplevel_entities T tle2).
+    @modul_of_toplevel_entities T X (tle1 ++ tle2) = modul_app (modul_of_toplevel_entities tle1) (modul_of_toplevel_entities tle2).
   Proof.
     induction tle1 as [| tle tle1 IH]; intros; cbn; [reflexivity |].
     rewrite modul_of_toplevel_entities_cons, IH; cbn.
@@ -145,43 +146,43 @@ Section TLE_To_Modul.
   Infix "@" := (modul_app) (at level 60).
 
   Open Scope list.
-  Lemma m_definitions_app: forall {T X} (p1 p2 : modul T X),
+  Lemma m_definitions_app: forall {T X} (p1 p2 : @modul T X),
       m_definitions (p1 @ p2) = m_definitions p1 ++ m_definitions p2.
   Proof.
     intros ? ? [] []; reflexivity.
   Qed.
 
-  Lemma m_name_app: forall {T X} (p1 p2 : modul T X),
+  Lemma m_name_app: forall {T X} (p1 p2 : @modul T X),
       m_name (p1 @ p2) = opt_first (m_name p1) (m_name p2).
   Proof.
     intros ? ? [] []; reflexivity.
   Qed.
 
-  Lemma m_target_app: forall {T X} (p1 p2 : modul T X),
+  Lemma m_target_app: forall {T X} (p1 p2 : @modul T X),
       m_target (p1 @ p2) = opt_first (m_target p1) (m_target p2).
   Proof.
     intros ? ? [] []; reflexivity.
   Qed.
 
-  Lemma m_datalayout_app: forall {T X} (p1 p2 : modul T X),
+  Lemma m_datalayout_app: forall {T X} (p1 p2 : @modul T X),
       m_datalayout (p1 @ p2) = opt_first (m_datalayout p1) (m_datalayout p2).
   Proof.
     intros ? ? [] []; reflexivity.
   Qed.
 
-  Lemma m_type_defs_app: forall {T X} (p1 p2 : modul T X),
+  Lemma m_type_defs_app: forall {T X} (p1 p2 : @modul T X),
       m_type_defs (p1 @ p2) = m_type_defs p1 ++ m_type_defs p2.
   Proof.
     intros ? ? [] []; reflexivity.
   Qed.
 
-  Lemma m_globals_app: forall {T X} (p1 p2 : modul T X),
+  Lemma m_globals_app: forall {T X} (p1 p2 : @modul T X),
       m_globals (p1 @ p2) = m_globals p1 ++ m_globals p2.
   Proof.
     intros ? ? [] []; reflexivity.
   Qed.
 
-  Lemma m_declarations_app: forall {T X} (p1 p2 : modul T X),
+  Lemma m_declarations_app: forall {T X} (p1 p2 : @modul T X),
       m_declarations (p1 @ p2) = m_declarations p1 ++ m_declarations p2.
   Proof.
     intros ? ? [] []; reflexivity.
@@ -223,8 +224,8 @@ Section TLE_To_Modul.
       apply map_option_cons; auto.
   Qed.
 
-  Lemma mcfg_of_app_modul: forall {T} (p1 p2 : modul T _), 
-      mcfg_of_modul _ (p1 @ p2) = mcfg_of_modul _ p1 @ mcfg_of_modul _ p2.
+  Lemma mcfg_of_app_modul: forall {T} (p1 p2 : @modul T _), 
+      mcfg_of_modul (p1 @ p2) = mcfg_of_modul p1 @ mcfg_of_modul p2.
   Proof.
     intros; cbn.
     unfold mcfg_of_modul.
@@ -238,7 +239,7 @@ Section TLE_To_Modul.
      Some well-formedness/closedness of the respective mcfg under the respective environments.
    *)
   Lemma convert_typ_mcfg_app:
-    forall mcfg1 mcfg2 : modul typ (cfg typ),
+    forall mcfg1 mcfg2 : modul (cfg typ),
       convert_typ (m_type_defs mcfg1 ++ m_type_defs mcfg2) (mcfg1 @ mcfg2) =
       convert_typ (m_type_defs mcfg1) mcfg1 @ convert_typ (m_type_defs mcfg2) mcfg2.
   Proof.
@@ -265,7 +266,8 @@ Section TLE_To_Modul.
     reflexivity.
   Qed.
 
-  Lemma mcfg_of_tle_app : forall x y, mcfg_of_tle (x ++ y) = modul_app (mcfg_of_tle x) (mcfg_of_tle y).
+  Lemma mcfg_of_tle_app : forall x y, convert_types (mcfg_of_tle (x ++ y)) =
+                                 modul_app (convert_types (mcfg_of_tle x)) (convert_types (mcfg_of_tle y)).
   Proof.
     intros ? ?.
     unfold mcfg_of_tle.
@@ -275,7 +277,8 @@ Section TLE_To_Modul.
     reflexivity.
   Qed.
 
-  Lemma mcfg_of_tle_cons : forall x y, mcfg_of_tle (x :: y) = modul_app (mcfg_of_tle [x]) (mcfg_of_tle y).
+  Lemma mcfg_of_tle_cons : forall x y, convert_types (mcfg_of_tle (x :: y)) =
+                                  modul_app (convert_types  (mcfg_of_tle [x])) (convert_types  (mcfg_of_tle y)).
   Proof.
     intros; rewrite list_cons_app; apply mcfg_of_tle_app.
   Qed.

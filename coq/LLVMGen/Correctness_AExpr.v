@@ -275,6 +275,7 @@ Section AExpr.
       hvred.
 
       (* denoting [m] *)
+      pose proof SINV1.
       destruct SINV1.
       eapply eutt_clo_bind_returns; [eapply genMExpr_correct | ..]; eauto.
       introR; destruct_unit.

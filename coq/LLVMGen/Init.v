@@ -6,7 +6,7 @@ Require Import ITree.Basics.HeterogeneousRelations.
 
 Require Import MathClasses.misc.util.
 
-Require Import Vellvm.IntrinsicsDefinitions.
+Require Import Vellvm.Semantics.IntrinsicsDefinitions.
 
 Import ListNotations.
 Import MonadNotation.
@@ -1179,6 +1179,28 @@ Proof.
       eassumption.
 Qed.
 
+(* ZX TODO: this should become part of vellvm at some point *)
+Lemma interp_to_L3_GR : forall defs id g l m v,
+  Maps.lookup id g ≡ Some v ->
+  interp_to_L3 defs (trigger (GlobalRead id)) g l m ≈ Ret (m,(l,(g,v))).
+Proof.
+  intros * LU.
+  unfold interp_to_L3.
+  rewrite interp_intrinsics_trigger.
+  cbn.
+  unfold Intrinsics.F_trigger.
+  rewrite interp_global_trigger.
+  cbn in *; rewrite LU.
+  rewrite interp_local_stack_ret, interp_memory_ret.
+  reflexivity.
+Qed.
+
+Lemma _exp_E_to_L0_Global : forall {X} (e : LLVMGEnvE X),
+    _exp_E_to_L0 (subevent X e) ≡ subevent X e.
+Proof.
+  reflexivity.
+Qed.
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -1190,7 +1212,7 @@ Lemma memory_invariant_after_init
       (post_init_invariant_mcfg p.(name) σ s)
       (Ret (hmem, ()))
       (interp_to_L3 defined_intrinsics
-                    (build_global_environment (mcfg_of_tle pll))
+                    (build_global_environment (convert_types (mcfg_of_tle pll)))
                     [] ([],[]) empty_memory_stack).
 Proof.
   intros hmem σ s hdata pll [HI LI].
@@ -1629,7 +1651,14 @@ Proof.
                 (flat_map (globals_of typ) gdecls))
     as GLOB.
 
-  rewrite <-bind_ret_r.
+  assert (FB : (LHS ≈ LHS ;; LHS)%monad); [| rewrite FB; clear FB].
+  {
+    subst LHS.
+    clear.
+    cbn.
+    rewrite Eq.bind_ret_l.
+    reflexivity.
+  }
   rewrite interp_to_L3_bind.
 
   subst LHS REL.
@@ -2028,7 +2057,62 @@ Proof.
         erewrite ListUtil.ith_eq; [eassumption | reflexivity].
   -
     intros.
-    admit.
+    
+    assert (TMP_EQ: eutt
+             (fun '(m,_) '(m',_) => m ≡ m')
+             (ret (memory_set (memory_set mg (S lg) mo) lg mi, ()))
+             (ITree.bind' (E:=E_mcfg)
+                          (fun mg' => ret (memory_set
+                                          (memory_set (fst mg') (S lg) mo)
+                                          lg mi, ()))
+                          (ret (mg, ()))))
+      by (setoid_rewrite Eq.bind_ret_l; apply eutt_Ret; reflexivity).
+
+    eapply eutt_weaken_left; [| exact TMP_EQ |]; clear TMP_EQ.
+    {
+      intros (?, ?) (?, ?) (? & [? ?] & ? & []).
+      congruence.
+    }
+
+    destruct u3 as (m', (l', (g', ?))).
+    rewrite translate_bind, interp_to_L3_bind.
+
+    apply eutt_clo_bind with (UU:=(λ '(memH, _) '(memV, (l, _, (g, _))),
+       post_init_invariant name σ
+         {|
+         block_count := block_count;
+         local_count := local_count;
+         void_count := void_count;
+         Γ := Γ_globals |} memH (memV, (l, g))
+       /\
+       allocated_xy memV g )).
+    +
+      admit.
+    +
+      intros.
+
+      move LX at bottom.
+      unfold initXYplaceholders, addVars in LX.
+      cbn in LX.
+      repeat break_let.
+      invc LX.
+      cbn.
+
+      repeat rewrite translate_bind, interp_to_L3_bind.
+      rewrite translate_trigger, _exp_E_to_L0_Global, subevent_subevent.
+      inversion_clear H1 as [[[MI] DI] AXY].
+      destruct AXY as (px & py & APX & APY & IX & IY).
+
+      rewrite interp_to_L3_GR.
+      2:{
+        unfold in_global_addr in IY.
+        unfold Maps.lookup.
+        break_let.
+        inversion Heqm2.
+        eassumption.
+      }
+      rewrite Eq.bind_ret_l.
+      admit.
 
   (* (* this is very old code at this point *)
   eapply eutt_clo_bind.
@@ -2562,7 +2646,7 @@ Set Nested Proofs Allowed.
 Lemma initXYplaceholders_no_definitions :
   forall i o d x τ y τ' σ σ' b t,
     initXYplaceholders i o d x τ y τ' σ ≡ inr (σ', (b,t)) ->
-    m_definitions (mcfg_of_tle t) ≡ [].
+    m_definitions (convert_types (mcfg_of_tle t)) ≡ [].
 Proof.
   unfold initXYplaceholders; cbn; intros; simp; cbn in *; simp.
   reflexivity.
@@ -2571,16 +2655,17 @@ Qed.
 Lemma initOneIRGlobal_no_definitions :
   forall l a σ σ' l' t,
     initOneIRGlobal l a σ ≡ inr (σ', (l', t)) ->
-    m_definitions (mcfg_of_tle [t]) ≡ [ ].
+    m_definitions (convert_types (mcfg_of_tle [t])) ≡ [ ].
 Proof.
   unfold initOneIRGlobal; cbn; intros; simp; cbn in *; auto.
 Qed.
 
 Opaque mcfg_of_tle.
+Opaque convert_types.
 Lemma init_with_data_initOneIRGlobal_no_definitions :
   forall g l x σ σ' b t,
     init_with_data initOneIRGlobal x l g σ ≡ inr (σ', (b, t)) ->
-    m_definitions (mcfg_of_tle t) ≡ []. 
+    m_definitions (convert_types (mcfg_of_tle t)) ≡ []. 
 Proof.
   induction g as [| ? g IH]; intros; cbn in *; [simp; cbn; auto |].
   simp.
@@ -2591,7 +2676,7 @@ Qed.
 Lemma initIRGlobals_no_definitions :
   forall l g σ σ' b t,
     initIRGlobals l g σ ≡ inr (σ', (b,t)) -> 
-    m_definitions (mcfg_of_tle t) ≡ [].
+    m_definitions (convert_types (mcfg_of_tle t)) ≡ [].
 Proof.
   unfold initIRGlobals; cbn; intros; simp.
   eauto using init_with_data_initOneIRGlobal_no_definitions.
@@ -2601,7 +2686,7 @@ Transparent mcfg_of_tle.
 Lemma genMain_no_type_defs :
   forall s x τ τ' τ'' y t,
     genMain s x τ y τ' τ'' ≡ t ->
-    m_type_defs (mcfg_of_tle t) ≡ [].
+    m_type_defs (convert_types (mcfg_of_tle t)) ≡ [].
 Proof.
   unfold genMain; cbn; intros; simp; subst; reflexivity.
 Qed.
@@ -2609,7 +2694,7 @@ Qed.
 Lemma initXYplaceholders_no_type_defs :
   forall i o d x τ y τ' σ σ' b t,
     initXYplaceholders i o d x τ y τ' σ ≡ inr (σ', (b,t)) ->
-    m_type_defs (mcfg_of_tle t) ≡ [].
+    m_type_defs (convert_types (mcfg_of_tle t)) ≡ [].
 Proof.
   unfold initXYplaceholders; cbn; intros; simp; cbn in *; simp.
   reflexivity.
@@ -2618,7 +2703,7 @@ Qed.
 Lemma initOneIRGlobal_no_type_defs :
   forall l a σ σ' l' t,
     initOneIRGlobal l a σ ≡ inr (σ', (l', t)) ->
-    m_type_defs (mcfg_of_tle [t]) ≡ [ ].
+    m_type_defs (convert_types (mcfg_of_tle [t])) ≡ [ ].
 Proof.
   unfold initOneIRGlobal; cbn; intros; simp; cbn in *; auto.
 Qed.
@@ -2627,7 +2712,7 @@ Opaque mcfg_of_tle.
 Lemma init_with_data_initOneIRGlobal_no_type_defs :
   forall g l x σ σ' b t,
     init_with_data initOneIRGlobal x l g σ ≡ inr (σ', (b, t)) ->
-    m_type_defs (mcfg_of_tle t) ≡ []. 
+    m_type_defs (convert_types (mcfg_of_tle t)) ≡ []. 
 Proof.
   induction g as [| ? g IH]; intros; cbn in *; [simp; cbn; auto |].
   simp.
@@ -2638,7 +2723,7 @@ Qed.
 Lemma initIRGlobals_no_type_defs :
   forall l g σ σ' b t,
     initIRGlobals l g σ ≡ inr (σ', (b,t)) -> 
-    m_type_defs (mcfg_of_tle t) ≡ [].
+    m_type_defs (convert_types (mcfg_of_tle t)) ≡ [].
 Proof.
   unfold initIRGlobals; cbn; intros; simp.
   eauto using init_with_data_initOneIRGlobal_no_type_defs.
@@ -2678,7 +2763,7 @@ Hint Rewrite interp_to_L3_ret : local.
       |- context[mcfg_of_tle ?x] => remember x as M
     end.
 
-    assert (m_type_defs (mcfg_of_tle M) ≡ []).
+    assert (m_type_defs (convert_types (mcfg_of_tle M)) ≡ []).
     {
       subst M.
       rewrite ! mcfg_of_tle_app, !m_type_defs_app.
@@ -2693,7 +2778,8 @@ Hint Rewrite interp_to_L3_ret : local.
       remember name as x; remember main as y
     end.
 
-    assert (EQ: m_definitions (mcfg_of_tle M) ≡ m_definitions (mcfg_of_tle (body::main))).
+    assert (EQ: m_definitions (convert_types (mcfg_of_tle M)) ≡
+                              m_definitions (convert_types (mcfg_of_tle (body::main)))).
     { subst M.
       rewrite ! mcfg_of_tle_app, !m_definitions_app.
       erewrite initIRGlobals_no_definitions; eauto.

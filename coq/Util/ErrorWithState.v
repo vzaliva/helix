@@ -6,7 +6,7 @@ Require Import ExtLib.Structures.MonadExc.
 Require Import ExtLib.Structures.MonadState.
 Require Import ExtLib.Data.Monads.EitherMonad.
 
-Require Import Vellvm.Error.
+Require Import Vellvm.Utils.Error.
 
 Import MonadNotation.
 Open Scope monad_scope.

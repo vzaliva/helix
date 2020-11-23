@@ -32,7 +32,7 @@ b54:
 ; --- Operator: DSHSeq---
 MemInit_loop_entry52:
   
-  %l111 = icmp slt i64 0, 1
+  %l111 = icmp ult i64 0, 1
   br i1 %l111, label %MemInit_loop_loop53, label %Loop_loop_entry48
 MemInit_loop_loop53:
   %MemInit_init_i110 = phi i64 [0, %MemInit_loop_entry52], [%MemInit_loop_next_i113, %MemInit_init_lcont51]
@@ -47,12 +47,12 @@ MemInit_init50:
 MemInit_init_lcont51:
   
   %MemInit_loop_next_i113 = add i64 %MemInit_init_i110, 1
-  %l112 = icmp slt i64 %MemInit_loop_next_i113, 1
+  %l112 = icmp ult i64 %MemInit_loop_next_i113, 1
   br i1 %l112, label %MemInit_loop_loop53, label %Loop_loop_entry48
 ; --- Operator: DSHLoop 3 ---
 Loop_loop_entry48:
   
-  %l106 = icmp slt i64 0, 3
+  %l106 = icmp ult i64 0, 3
   br i1 %l106, label %Loop_loop_loop49, label %Assign31
 Loop_loop_loop49:
   %Loop_i71 = phi i64 [0, %Loop_loop_entry48], [%Loop_loop_next_i108, %Loop_lcont32]
@@ -68,7 +68,7 @@ b47:
 ; --- Operator: DSHSeq---
 Assign46:
   
-  %l103 = getelementptr [3 x double], [3 x double]* @D, i64 0, i64 0
+  %l103 = getelementptr [5 x double], [5 x double]* %X, i64 0, i64 0
   %l105 = load double, double* %l103, align 8
   %l104 = getelementptr [1 x double], [1 x double]* %a82, i64 0, i64 0
   ; void instr 58
@@ -86,7 +86,7 @@ Power_entry43:
   %l95 = getelementptr [1 x double], [1 x double]* %a83, i64 0, i64 0
   ; void instr 49
   store double 0x3FF0000000000000, double* %l95, align 8
-  %l100 = icmp slt i64 0, %Loop_i71
+  %l100 = icmp ult i64 0, %Loop_i71
   br i1 %l100, label %Power_loop44, label %IMap_entry39
 Power_loop44:
   %Power_i94 = phi i64 [0, %Power_entry43], [%Power_next_i102, %Power_lcont41]
@@ -94,7 +94,7 @@ Power_loop44:
   br label %PowerLoopBody42
 PowerLoopBody42:
   
-  %l96 = getelementptr [1 x double], [1 x double] %a82, i64 0, i64 0
+  %l96 = getelementptr [1 x double], [1 x double]* %a82, i64 0, i64 0
   %l98 = load double, double* %l96, align 8
   %l97 = load double, double* %l95, align 8
   %l99 = fmul double %l97, %l98
@@ -104,12 +104,12 @@ PowerLoopBody42:
 Power_lcont41:
   
   %Power_next_i102 = add i64 %Power_i94, 1
-  %l101 = icmp slt i64 %Power_next_i102, %Loop_i71
+  %l101 = icmp ult i64 %Power_next_i102, %Loop_i71
   br i1 %l101, label %Power_loop44, label %IMap_entry39
 ; --- Operator: DSHIMap 1 (PVar 0) (PVar 4) ...---
 IMap_entry39:
   
-  %l91 = icmp slt i64 0, 1
+  %l91 = icmp ult i64 0, 1
   br i1 %l91, label %IMap_loop40, label %MemMap2_entry35
 IMap_loop40:
   %IMap_i84 = phi i64 [0, %IMap_entry39], [%IMap_next_i93, %IMap_lcont37]
@@ -119,7 +119,7 @@ IMapLoopBody38:
   
   %l85 = getelementptr [1 x double], [1 x double]* %a83, i64 0, i64 %IMap_i84
   %l87 = load double, double* %l85, align 8
-  %l88 = getelementptr [1 x double], [1 x double]* %Y, i64 0, i64 %Loop_i71
+  %l88 = getelementptr [3 x double], [3 x double]* @D, i64 0, i64 %Loop_i71
   %l89 = load double, double* %l88, align 8
   %l90 = fmul double %l87, %l89
   %l86 = getelementptr [1 x double], [1 x double]* %a66, i64 0, i64 %IMap_i84
@@ -129,12 +129,12 @@ IMapLoopBody38:
 IMap_lcont37:
   
   %IMap_next_i93 = add i64 %IMap_i84, 1
-  %l92 = icmp slt i64 %IMap_next_i93, 1
+  %l92 = icmp ult i64 %IMap_next_i93, 1
   br i1 %l92, label %IMap_loop40, label %MemMap2_entry35
 ; --- Operator: DSHMemMap2 1 (PVar 1) (PVar 2) (PVar 2) ...---
 MemMap2_entry35:
   
-  %l79 = icmp slt i64 0, 1
+  %l79 = icmp ult i64 0, 1
   br i1 %l79, label %MemMap2_loop36, label %Loop_lcont32
 MemMap2_loop36:
   %MemMap2_i72 = phi i64 [0, %MemMap2_entry35], [%MemMap2_next_i81, %MemMap2_lcont33]
@@ -154,12 +154,12 @@ MemMap2LoopBody34:
 MemMap2_lcont33:
   
   %MemMap2_next_i81 = add i64 %MemMap2_i72, 1
-  %l80 = icmp slt i64 %MemMap2_next_i81, 1
+  %l80 = icmp ult i64 %MemMap2_next_i81, 1
   br i1 %l80, label %MemMap2_loop36, label %Loop_lcont32
 Loop_lcont32:
   
   %Loop_loop_next_i108 = add i64 %Loop_i71, 1
-  %l107 = icmp slt i64 %Loop_loop_next_i108, 3
+  %l107 = icmp ult i64 %Loop_loop_next_i108, 3
   br i1 %l107, label %Loop_loop_loop49, label %Assign31
 ; --- Operator: DSHAssign ((PVar 0),0) ((PVar 1),0) ---
 Assign31:
@@ -185,7 +185,7 @@ b29:
 ; --- Operator: DSHSeq---
 MemInit_loop_entry27:
   
-  %l63 = icmp slt i64 0, 1
+  %l63 = icmp ult i64 0, 1
   br i1 %l63, label %MemInit_loop_loop28, label %Loop_loop_entry23
 MemInit_loop_loop28:
   %MemInit_init_i62 = phi i64 [0, %MemInit_loop_entry27], [%MemInit_loop_next_i65, %MemInit_init_lcont26]
@@ -200,12 +200,12 @@ MemInit_init25:
 MemInit_init_lcont26:
   
   %MemInit_loop_next_i65 = add i64 %MemInit_init_i62, 1
-  %l64 = icmp slt i64 %MemInit_loop_next_i65, 1
+  %l64 = icmp ult i64 %MemInit_loop_next_i65, 1
   br i1 %l64, label %MemInit_loop_loop28, label %Loop_loop_entry23
 ; --- Operator: DSHLoop 2 ---
 Loop_loop_entry23:
   
-  %l58 = icmp slt i64 0, 2
+  %l58 = icmp ult i64 0, 2
   br i1 %l58, label %Loop_loop_loop24, label %Assign6
 Loop_loop_loop24:
   %Loop_i18 = phi i64 [0, %Loop_loop_entry23], [%Loop_loop_next_i60, %Loop_lcont7]
@@ -221,7 +221,7 @@ b22:
 ; --- Operator: DSHSeq---
 Loop_loop_entry20:
   
-  %l55 = icmp slt i64 0, 2
+  %l55 = icmp ult i64 0, 2
   br i1 %l55, label %Loop_loop_loop21, label %BinOp_entry14
 Loop_loop_loop21:
   %Loop_i42 = phi i64 [0, %Loop_loop_entry20], [%Loop_loop_next_i57, %Loop_lcont16]
@@ -241,7 +241,7 @@ Assign18:
   %l52 = mul i64 2, 1
   %l53 = mul i64 %Loop_i42, %l52
   %l54 = add i64 %l51, %l53
-  %l47 = getelementptr [3 x double], [3 x double]* @D, i64 0, i64 %l54
+  %l47 = getelementptr [5 x double], [5 x double]* %X, i64 0, i64 %l54
   %l49 = load double, double* %l47, align 8
   %l48 = getelementptr [1 x double], [1 x double]* %a43, i64 0, i64 0
   ; void instr 21
@@ -259,12 +259,12 @@ Assign17:
 Loop_lcont16:
   
   %Loop_loop_next_i57 = add i64 %Loop_i42, 1
-  %l56 = icmp slt i64 %Loop_loop_next_i57, 2
+  %l56 = icmp ult i64 %Loop_loop_next_i57, 2
   br i1 %l56, label %Loop_loop_loop21, label %BinOp_entry14
 ; --- Operator: DSHBinOp 1 (PVar 0) (PVar 3) ...---
 BinOp_entry14:
   
-  %l39 = icmp slt i64 0, 1
+  %l39 = icmp ult i64 0, 1
   br i1 %l39, label %BinOp_loop15, label %MemMap2_entry10
 BinOp_loop15:
   %BinOp_i30 = phi i64 [0, %BinOp_entry14], [%BinOp_next_i41, %BinOp_lcont12]
@@ -286,12 +286,12 @@ BinOpLoopBody13:
 BinOp_lcont12:
   
   %BinOp_next_i41 = add i64 %BinOp_i30, 1
-  %l40 = icmp slt i64 %BinOp_next_i41, 1
+  %l40 = icmp ult i64 %BinOp_next_i41, 1
   br i1 %l40, label %BinOp_loop15, label %MemMap2_entry10
 ; --- Operator: DSHMemMap2 1 (PVar 1) (PVar 2) (PVar 2) ...---
 MemMap2_entry10:
   
-  %l26 = icmp slt i64 0, 1
+  %l26 = icmp ult i64 0, 1
   br i1 %l26, label %MemMap2_loop11, label %Loop_lcont7
 MemMap2_loop11:
   %MemMap2_i19 = phi i64 [0, %MemMap2_entry10], [%MemMap2_next_i28, %MemMap2_lcont8]
@@ -311,12 +311,12 @@ MemMap2LoopBody9:
 MemMap2_lcont8:
   
   %MemMap2_next_i28 = add i64 %MemMap2_i19, 1
-  %l27 = icmp slt i64 %MemMap2_next_i28, 1
+  %l27 = icmp ult i64 %MemMap2_next_i28, 1
   br i1 %l27, label %MemMap2_loop11, label %Loop_lcont7
 Loop_lcont7:
   
   %Loop_loop_next_i60 = add i64 %Loop_i18, 1
-  %l59 = icmp slt i64 %Loop_loop_next_i60, 2
+  %l59 = icmp ult i64 %Loop_loop_next_i60, 2
   br i1 %l59, label %Loop_loop_loop24, label %Assign6
 ; --- Operator: DSHAssign ((PVar 0),0) ((PVar 1),1) ---
 Assign6:
@@ -330,7 +330,7 @@ Assign6:
 ; --- Operator: DSHBinOp 1 (PVar 0) (PVar 2) ...---
 BinOp_entry4:
   
-  %l10 = icmp slt i64 0, 1
+  %l10 = icmp ult i64 0, 1
   br i1 %l10, label %BinOp_loop5, label %b0
 BinOp_loop5:
   %BinOp_i1 = phi i64 [0, %BinOp_entry4], [%BinOp_next_i12, %BinOp_lcont2]
@@ -347,14 +347,14 @@ BinOpLoopBody3:
   ; void instr 2
   ; Casting bool to float
   %l9 = uitofp i1 %l8 to double
-  %l5 = getelementptr [5 x double], [5 x double]* %X, i64 0, i64 %BinOp_i1
+  %l5 = getelementptr [1 x double], [1 x double]* %Y, i64 0, i64 %BinOp_i1
   ; void instr 1
   store double %l9, double* %l5, align 8
   br label %BinOp_lcont2
 BinOp_lcont2:
   
   %BinOp_next_i12 = add i64 %BinOp_i1, 1
-  %l11 = icmp slt i64 %BinOp_next_i12, 1
+  %l11 = icmp ult i64 %BinOp_next_i12, 1
   br i1 %l11, label %BinOp_loop5, label %b0
 b0:
   

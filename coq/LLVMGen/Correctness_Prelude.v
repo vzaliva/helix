@@ -38,28 +38,27 @@ Require Export Helix.Util.ErrorSetoid.
 Require Export Helix.Util.ListUtil.
 Require Export Helix.Tactics.HelixTactics.
 
-Require Export Vellvm.Tactics.
-Require Export Vellvm.Util.
-Require Export Vellvm.LLVMEvents.
-Require Export Vellvm.DynamicTypes.
-Require Export Vellvm.Denotation.
+Require Export Vellvm.Utils.Tactics.
+Require Export Vellvm.Utils.Util.
+Require Export Vellvm.Utils.PostConditions.
+Require Export Vellvm.Utils.NoFailure.
+Require Export Vellvm.Utils.PropT.
+Require Export Vellvm.Syntax.LLVMAst.
+Require Export Vellvm.Syntax.CFG.
+Require Export Vellvm.Syntax.AstLib.
+Require Export Vellvm.Syntax.DynamicTypes.
+Require Export Vellvm.Syntax.TypToDtyp.
+Require Export Vellvm.Syntax.Traversal.
+Require Export Vellvm.Semantics.Denotation.
+Require Export Vellvm.Semantics.LLVMEvents.
+Require Export Vellvm.Semantics.TopLevel.
 Require Export Vellvm.Handlers.Handlers.
-Require Export Vellvm.TopLevel.
-Require Export Vellvm.LLVMAst.
-Require Export Vellvm.AstLib.
-Require Export Vellvm.CFG.
-Require Export Vellvm.InterpreterMCFG.
-Require Export Vellvm.InterpreterCFG.
-Require Export Vellvm.TopLevelRefinements.
-Require Export Vellvm.TypToDtyp.
-Require Export Vellvm.LLVMEvents.
-Require Export Vellvm.Transformations.Traversal.
-Require Export Vellvm.PostConditions.
-Require Export Vellvm.Denotation_Theory.
-Require Export Vellvm.InstrLemmas.
-Require Export Vellvm.ExpLemmas.
-Require Export Vellvm.NoFailure.
-Require Export Vellvm.PropT.
+Require Export Vellvm.Theory.InterpreterMCFG.
+Require Export Vellvm.Theory.InterpreterCFG.
+Require Export Vellvm.Theory.TopLevelRefinements.
+Require Export Vellvm.Theory.DenotationTheory.
+Require Export Vellvm.Theory.InstrLemmas.
+Require Export Vellvm.Theory.ExpLemmas.
 
 Require Export ExtLib.Structures.Monads.
 Require Export ExtLib.Data.Map.FMapAList.
@@ -190,7 +189,7 @@ Section EventTranslation.
   Definition semantics_llvm_mcfg p : itree E_mcfg _ := model_to_L3 DTYPE_Void "main" main_args defined_intrinsics p.
   (* Which get lifted to [toplevel_entity] as usual: *)
   Definition semantics_llvm (prog: list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ)))) :=
-    semantics_llvm_mcfg (mcfg_of_tle prog).
+    semantics_llvm_mcfg (convert_types (mcfg_of_tle prog)).
 
   (* On the Helix side: *)
   (* We first define what amount to initializing the runtime before starting executing the operator *)
