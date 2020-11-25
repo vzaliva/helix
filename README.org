@@ -74,6 +74,7 @@ To install *optional* dependencies:
 #+END_SRC
 
 ** Papers
+    - [[http://www.crocodile.org/lord/vzaliva-VSTTE20.pdf][Verified Translation Between Purely Functional and Imperative Domain Specific Languages in HELIX (VSTTE 20)]]
     - [[http://www.crocodile.org/lord/vzaliva-CoqPL19.pdf][Reification of shallow-embedded DSLs in Coq with automated verification (CoqPL 2019)]]
     - [[http://www.crocodile.org/lord/vzaliva-fhpc2018.pdf][HELIX: A Case Study of a Formal Verification of High Performance Program Generation (FHPC 2018)]]
     - [[http://www.crocodile.org/lord/Formal_Verification_of_HCOL_Rewriting_FMCAD15.pdf][Formal Verification of HCOL Rewriting (FMCAD 2015)]]
