@@ -672,6 +672,9 @@ Admitted.
    The WIP to generalize these lemmas are commented right after the old versions of the lemmas.
  *)
 
+Ltac vbranch_r := vred_BR3.
+Ltac vbranch_l := vred_BL3.
+
 Lemma genWhileLoop_tfor_ind: 
   forall (prefix : string)
     (loopvar : raw_id)            (* lvar storing the loop index *)
@@ -766,6 +769,7 @@ Proof.
     apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
     apply free_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_block_app in NEXTBLOCK_ID.
     cbn; rewrite ?convert_typ_block_app.
+    cbn.
     hide_cfg.
     (* We jump into [loopcontblock]
        We denote the content of the block.
@@ -811,6 +815,10 @@ Proof.
     }
 
     vjmp_out.
+
+    (* TODO *)
+    admit.
+
     cbn.
     replace (j - j) with 0 by lia.
     cbn; vred.
@@ -870,8 +878,6 @@ Proof.
     (* We update [loopvar] via the phi-node *)
     cbn; vred.
 
-    focus_single_step_v.
-
     (* BEGIN TODO: infrastructure to deal with non-empty phis *)
     unfold denote_phis.
     cbn.
@@ -914,7 +920,7 @@ Proof.
 
     (* In order to use our body hypothesis, we need to restrict the ambient cfg to only the body *)
     inv VG.
-    rewrite denote_ocfg_prefix; cycle 1; auto.
+    rewrite denote_bks_prefix; cycle 1; auto.
     {
       match goal with
         |- ?x::?y::?z ≡ _ => replace (x::y::z) with ([x;y]++z)%list by reflexivity
@@ -945,7 +951,7 @@ Proof.
     intros ? (? & ? & ? & ?) (LOOPVAR' & [? ->] & IH').
     eapply IH; try lia.
     split; auto.
-Qed.
+Admitted.
 
 Lemma genWhileLoop_tfor_correct:
   forall (prefix : string)
@@ -1113,8 +1119,6 @@ Proof.
     (* We update [loopvar] via the phi-node *)
     cbn; vred.
 
-    focus_single_step_v.
-
     (* BEGIN TODO: infrastructure to deal with non-empty phis *)
     unfold denote_phis.
     cbn.
@@ -1135,7 +1139,7 @@ Proof.
     vred.
     inv VG.
 
-    rewrite denote_ocfg_prefix; cycle 1; auto.
+    rewrite denote_bks_prefix; cycle 1; auto.
     {
       match goal with
         |- ?x::?y::?z ≡ _ => replace (x::y::z) with ([x;y]++z)%list by reflexivity
@@ -1949,8 +1953,6 @@ Proof.
     (* We update [loopvar] via the phi-node *)
     cbn; vred.
 
-    focus_single_step_v.
-
     (* BEGIN TODO: infrastructure to deal with non-empty phis *)
     unfold denote_phis.
     cbn.
@@ -1993,7 +1995,7 @@ Proof.
 
     (* In order to use our body hypothesis, we need to restrict the ambient cfg to only the body *)
     inv VG.
-    rewrite denote_ocfg_prefix; cycle 1; auto.
+    rewrite denote_bks_prefix; cycle 1; auto.
     {
       match goal with
         |- ?x::?y::?z ≡ _ => replace (x::y::z) with ([x;y]++z)%list by reflexivity
