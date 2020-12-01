@@ -18,7 +18,7 @@ Section MExpr.
       exists (ptr : Addr.addr), 
         interp_cfg (translate exp_E_to_instr_E (D.denote_exp (Some DTYPE_Pointer) (convert_typ [] e))) g ρ memV ≈
                    Ret (memV,(ρ,(g,UVALUE_Addr ptr))) /\ 
-        (forall i v, mem_lookup i mb ≡ Some v -> get_array_cell memV ptr i DTYPE_Double ≡ inr (UVALUE_Double v)).
+        (forall (i : Int64.int) v, mem_lookup (MInt64asNT.to_nat i) mb ≡ Some v -> get_array_cell memV ptr (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v)).
 
   Record genMExpr_post
          (s1 s2 : IRState)
@@ -62,7 +62,7 @@ Section MExpr.
     apply eutt_Ret; split; [ | split]; cbn; auto.
     eexists; split; eauto.
     break_match_goal; cbn.
-    all: vstep; eauto; reflexivity.
+    all: vstep; eauto; try reflexivity.
   Qed.
 
   Lemma genMExpr_array : forall {s1 s2 m e c t},

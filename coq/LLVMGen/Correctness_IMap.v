@@ -337,7 +337,8 @@ Lemma compile_DSHIMap_correct:
     (ρ : local_env)
     (memV : memoryV)
     (NEXT : bid_bound s1 nextblock)
-    (BISIM : GenIR_Rel σ s1 bid_in (memH, ()) (memV, (ρ, (g, inl (bid_from, bid_in)))))
+    (STATE : state_invariant σ s1 memH (memV, (ρ, g)))
+    (GAM: Gamma_safe σ s1 s2)
     (NOFAIL : @no_failure E_cfg (memoryH * ())
                           (interp_helix (denoteDSHOperator σ (DSHIMap n x_p y_p f)) memH))
     (GEN : genIR (DSHIMap n x_p y_p f) nextblock s1 ≡ inr (s2, (bid_in, bks)))
@@ -345,7 +346,7 @@ Lemma compile_DSHIMap_correct:
     (* Added constraints related to bounds-checking / freshness*)
     (OVERFLOW : Z.of_nat n < Integers.Int64.modulus),
 
-    eutt (succ_cfg (GenIR_Rel σ s2 nextblock))
+    eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ))
          (interp_helix (denoteDSHOperator σ (DSHIMap n x_p y_p f)) memH)
          (interp_cfg (denote_bks (convert_typ [] bks) (bid_from, bid_in)) g ρ memV).
 Proof.
@@ -363,9 +364,6 @@ Proof.
   inv_resolve_PVar Heqs1.
   cbn* in *.
   simp.
-
-  destruct BISIM as (STATE & BRANCHES).
-  red in STATE.
 
   (* Duplicate work as genMExpr_correct, needed for GEP later. *)
   edestruct memory_invariant_Ptr as (bkH & ptrV & Mem_LU & LUV & EQ); eauto.
@@ -395,7 +393,8 @@ Proof.
 
   subst; eutt_hide_left.
   cbn in *.
-  rewrite add_comment_eutt. subst.
+  (* rewrite add_comment_eutt. *)
+  subst.
 
   (* Gather information from AExpr correctness *)
   (* denoting [f] *)
@@ -412,6 +411,8 @@ Proof.
       ` H0 : MInt64asNT.t <- lift_Serr (MInt64asNT.from_nat n');;
       ` H1 : binary64 <- denoteIUnCType σ f H0 H;; Ret (mem_add n' H1 mem_bl)) as FN.
 
+(* Needs to be revisited with respect to all the changes to the invariants. Let's first sovle completely the Loop operator
+  
 
   pose proof @genWhileLoop_correct as GEN_W.
   assert (IN: In b0 (block_ids body_blocks)). {
@@ -646,6 +647,8 @@ Proof.
   (*   subst. red in STATE. intros. *)
   (*   (* TODO: The mem_block should be instantiated concretely. *) *)
   (*   intros. shelve. *)
-  (* } *)
+    (* } *)
+
+    *)
 Admitted.
 

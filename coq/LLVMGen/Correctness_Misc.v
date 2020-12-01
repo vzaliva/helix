@@ -36,6 +36,10 @@ Definition bodyIMap (f : AExpr) (σ : evalContext) (x: mem_block) (n: nat) (y: m
 Definition IMap_Rel σ Γ : Rel_cfg_T mem_block (block_id * block_id + uvalue) :=
   lift_Rel_cfg (state_invariant σ Γ).
 
+(* This file contains some dead code that may be useful to revive later  *)
+
+(*
+
 Lemma bodyIMapCorrect : forall i o vx vy f loopvar loopcontblock s1 s2 bid_from bid_src bodyV
                           memx memy
                           (σ : evalContext) (memH : memoryH) (memV : memoryV) l g
@@ -672,3 +676,4 @@ Proof.
     eapply U; eauto.
   - apply nth_error_None in Heqo; lia.
 Qed.
+*)

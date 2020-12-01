@@ -28,7 +28,7 @@ Proof.
   intros.
   red.
   eapply Coqlib.list_norepet_cons; eauto.
-  eapply Coqlib.list_norepet_nil. 
+  eapply Coqlib.list_norepet_nil.
 Qed.
 
 Lemma wf_cfg_cons' : forall {T} (b : _ T) bks,
@@ -70,7 +70,7 @@ Lemma generates_wf_cfgs :
   ∀ (op : DSHOperator) (s1 s2 : IRState) (nextblock b : block_id) (bk_op : list (LLVMAst.block typ)),
     bid_bound s1 nextblock ->
     genIR op nextblock s1 ≡ inr (s2, (b, bk_op)) →
-    wf_cfg bk_op. 
+    wf_cfg bk_op.
 Proof.
   induction op; intros * NEXT GEN.
   - cbn* in *; simp; cbn.
@@ -92,21 +92,21 @@ Proof.
       intuition;
         match goal with
         | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
-        end. 
+        end.
     }
     eapply wf_cfg_cons'.
     { cbn.
       intuition;
         match goal with
         | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
-        end. 
+        end.
     }
     eapply wf_cfg_cons'.
     { cbn.
       intuition;
         match goal with
         | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
-        end. 
+        end.
     }
     eapply wf_cfg_singleton.
   - destruct NEXT as (? & [?bid ? ? ?] & [?bid ? ? ?] & ? & ? & ?).
@@ -124,54 +124,21 @@ Proof.
       intuition;
         match goal with
         | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
-        end. 
+        end.
     }
     eapply wf_cfg_cons'.
     { cbn.
       intuition;
         match goal with
         | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
-        end. 
+        end.
     }
     eapply wf_cfg_cons'.
     { cbn.
       intuition;
         match goal with
         | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
-        end. 
-    }
-    eapply wf_cfg_singleton.
-
-  - destruct NEXT as (? & [?bid ? ? ?] & [?bid ? ? ?] & ? & ? & ?).
-    cbn* in *.
-    simp.
-    cbn* in *; simp; cbn in *.
-    clean_goal.
-    get_block_count_hyps; subst; cbn in *.
-    repeat match goal with
-           | h: IRState |- _ => destruct h as [?bid ? ? ?]
-           end; cbn in *.
-    subst.
-    eapply wf_cfg_cons'.
-    { cbn.
-      intuition;
-        match goal with
-        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
-        end. 
-    }
-    eapply wf_cfg_cons'.
-    { cbn.
-      intuition;
-        match goal with
-        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
-        end. 
-    }
-    eapply wf_cfg_cons'.
-    { cbn.
-      intuition;
-        match goal with
-        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
-        end. 
+        end.
     }
     eapply wf_cfg_singleton.
 
@@ -190,21 +157,54 @@ Proof.
       intuition;
         match goal with
         | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
-        end. 
+        end.
     }
     eapply wf_cfg_cons'.
     { cbn.
       intuition;
         match goal with
         | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
-        end. 
+        end.
     }
     eapply wf_cfg_cons'.
     { cbn.
       intuition;
         match goal with
         | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
-        end. 
+        end.
+    }
+    eapply wf_cfg_singleton.
+
+  - destruct NEXT as (? & [?bid ? ? ?] & [?bid ? ? ?] & ? & ? & ?).
+    cbn* in *.
+    simp.
+    cbn* in *; simp; cbn in *.
+    clean_goal.
+    get_block_count_hyps; subst; cbn in *.
+    repeat match goal with
+           | h: IRState |- _ => destruct h as [?bid ? ? ?]
+           end; cbn in *.
+    subst.
+    eapply wf_cfg_cons'.
+    { cbn.
+      intuition;
+        match goal with
+        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
+        end.
+    }
+    eapply wf_cfg_cons'.
+    { cbn.
+      intuition;
+        match goal with
+        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
+        end.
+    }
+    eapply wf_cfg_cons'.
+    { cbn.
+      intuition;
+        match goal with
+        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
+        end.
     }
     eapply wf_cfg_singleton.
 
@@ -229,8 +229,8 @@ Proof.
       intuition.
       match goal with
       | h: Name _ ≡ Name _ |- _ =>
-        apply Name_inj in h; 
-          first [now inv h | apply valid_prefix_string_of_nat_forward in h as [abs _]; intuition] 
+        apply Name_inj in h;
+          first [now inv h | apply valid_prefix_string_of_nat_forward in h as [abs _]; intuition]
       end.
       admit.
     }
@@ -244,7 +244,7 @@ Proof.
     destruct s1 as [bid1  lid1  void1  Γ1]; cbn in *.
     destruct NEXT as (? & [?bid ? ? ?] & [?bid ? ? ?] & ? & ? & ?); cbn in *.
     inv H1; cbn in *.
-    destruct p as [s' [bblock bcode]]. 
+    destruct p as [s' [bblock bcode]].
     destruct s' as [bid2  lid2  void2  Γ2]; cbn in *.
     simp.
     cbn* in *; simp; cbn in *.
@@ -269,7 +269,7 @@ Proof.
           local_count := S lid1;
           void_count := void1;
           Γ := (ID_Local (Name ("a" @@ string_of_nat lid1)),
-                TYPE_Pointer (TYPE_Array (Int64.intval size) TYPE_Double)) :: Γ1 |}. 
+                TYPE_Pointer (TYPE_Array (Int64.intval size) TYPE_Double)) :: Γ1 |}.
       eexists; repeat split; cbn; eauto.
     }
     generalize GEN; intros WF;
@@ -293,8 +293,8 @@ Proof.
     (* 2: symmetry; exact H2. *)
     (* apply in_map; auto. *)
     (* clear BOUND. *)
-Admitted. 
-   
+Admitted.
+
 Opaque incBlockNamed.
 
 Section GenIR.
@@ -310,50 +310,6 @@ Section GenIR.
   Hint Resolve state_invariant_incVoid : state_invariant.
 
   Tactic Notation "state_inv_auto" := eauto with state_invariant.
-
-  (* TODO: move this? *)
-  Lemma incLocal_id_neq :
-    forall s1 s2 s3 s4 id1 id2,
-      incLocal s1 ≡ inr (s2, id1) ->
-      incLocal s3 ≡ inr (s4, id2) ->
-      local_count s1 ≢ local_count s3 ->
-      id1 ≢ id2.
-  Proof.
-    intros s1 s2 s3 s4 id1 id2 GEN1 GEN2 COUNT.
-    eapply incLocalNamed_count_gen_injective.
-    symmetry. rewrite incLocal_unfold in *. eapply GEN1.
-    symmetry. rewrite incLocal_unfold in *. eapply GEN2.
-    solve_local_count_tac.
-    solve_prefix.
-    solve_prefix.
-  Qed.
-
-  Lemma incLocal_id_neq_flipped :
-    forall s1 s2 s3 s4 id1 id2,
-      incLocal s1 ≡ inr (s2, id1) ->
-      incLocal s3 ≡ inr (s4, id2) ->
-      local_count s1 ≢ local_count s3 ->
-      id2 ≢ id1.
-  Proof.
-    intros s1 s2 s3 s4 id1 id2 GEN1 GEN2 COUNT.
-    intros EQ. symmetry in EQ. revert EQ.
-    eapply incLocal_id_neq; eauto.
-  Qed.
-
-  Lemma in_gamma_not_in_neq :
-    forall σ s id r,
-      in_Gamma σ s id ->
-      ~ in_Gamma σ s r ->
-      id ≢ r.
-  Proof.
-    intros σ s id r GAM NGAM.
-    destruct (Eqv.eqv_dec_p r id) as [EQ | NEQ].
-    - do 2 red in EQ.
-      subst.
-      contradiction.
-    - unfold Eqv.eqv, eqv_raw_id in NEQ.
-      eauto.
-  Qed.
 
   Lemma genIR_Context:
     ∀ (op : DSHOperator) (s1 s2 : IRState) (nextblock b : block_id) (bk_op : list (LLVMAst.block typ)),
@@ -573,7 +529,7 @@ Section GenIR.
     forall σ s1 s2 memH stV,
       state_invariant σ s1 memH stV ->
       Γ s2 ≡ Γ s1 ->
-      state_invariant σ s2 memH stV. 
+      state_invariant σ s2 memH stV.
   Proof.
     intros * INV EQ; inv INV.
     split; cbn; eauto.
@@ -599,15 +555,18 @@ Section GenIR.
     Transparent mem_lookup mem_add.
     cbn.
     Opaque mem_lookup mem_add.
-    rewrite Memory.NM.Raw.Proofs.add_find.
+    rewrite Memory.NM.Raw.Proofs.add_find; eauto.
     assert (match OrderedTypeEx.Nat_as_OT.compare x y with
             | OrderedType.EQ _ => Some v
             | _ => Memory.NM.Raw.find x (Memory.NM.this bk)
-            end ≡ Memory.NM.Raw.find x (Memory.NM.this bk)) by admit.
+            end ≡ Memory.NM.Raw.find x (Memory.NM.this bk)).
+    { break_match; try reflexivity.
+      red in e. contradiction.
+    }
     setoid_rewrite H0.
     reflexivity.
-    admit.
-  Admitted.
+    apply Memory.NM.is_bst.
+  Qed.
 
   Lemma mem_lookup_mem_add_eq :
     forall x v bk,
@@ -618,10 +577,10 @@ Section GenIR.
     cbn.
     Opaque mem_lookup mem_add.
     rewrite Memory.NM.Raw.Proofs.add_find.
-    admit.
-    admit.
-  Admitted.
-
+    break_match; try reflexivity;
+      red in l; lia.
+    apply Memory.NM.is_bst.
+  Qed.
 
   Lemma memory_lookup_memory_set_eq :
     forall x bk m,
@@ -632,9 +591,9 @@ Section GenIR.
     unfold memory_lookup, memory_set.
     Opaque memory_lookup memory_set.
     setoid_rewrite Memory.NM.Raw.Proofs.add_find.
-    admit.
-    admit.
-  Admitted.
+    break_match; try reflexivity; red in l; lia.
+    apply Memory.NM.is_bst.
+  Qed.
 
   (* TODO: Move? *)
   Lemma memory_lookup_memory_set_neq :
@@ -643,8 +602,14 @@ Section GenIR.
       memory_lookup (memory_set m x bk) y ≡ memory_lookup m y.
   Proof.
     intros m x y bk H.
-    admit.
-  Admitted.
+    Transparent memory_lookup memory_set.
+    unfold memory_lookup, memory_set.
+    Opaque memory_lookup memory_set.
+    setoid_rewrite Memory.NM.Raw.Proofs.add_find.
+    break_match; try reflexivity.
+    red in e. clear Heqc. symmetry in e. contradiction.
+    apply Memory.NM.is_bst.
+  Qed.
 
   (* TODO: Move this and use it in aexpr proof as well *)
   Lemma repr_of_nat_to_nat :
@@ -694,8 +659,9 @@ Section GenIR.
       specialize (ALIAS1 (S n) (S n')).
       rewrite EQ, 2nth_error_Sn in ALIAS1.
       eapply ALIAS1 in LU1; eauto.
-      admit.
-
+      destruct LU1 as (SN & N).
+      inv SN.
+      auto.
     - red; intros * LU1 LU2.
       specialize (ALIAS2 (S n) (S n')).
       rewrite 2nth_error_Sn in ALIAS2.
@@ -712,10 +678,10 @@ Section GenIR.
   Lemma state_invariant_enter_scope_DSHnat : forall σ v x τ s1 s2 stH mV l g,
       τ ≡ getWFType x DSHnat ->
       Γ s1 ≡ (x,τ) :: Γ s2 ->
-      ~ In x (map fst (Γ s2)) -> 
+      ~ In x (map fst (Γ s2)) ->
       in_local_or_global_scalar l g mV x (dvalue_of_int v) τ ->
       state_invariant σ s2 stH (mV,(l,g)) ->
-      state_invariant (DSHnatVal v::σ) s1 stH (mV,(l,g)). 
+      state_invariant (DSHnatVal v::σ) s1 stH (mV,(l,g)).
   Proof.
     intros * -> EQ fresh IN [MEM WF ALIAS1 ALIAS2 ALIAS3].
     split.
@@ -740,7 +706,7 @@ Section GenIR.
       + rewrite EQ in LU2; cbn in *.
         rewrite EQ in LU1; cbn in *.
         inv LU1; inv LU2; auto. split; auto. eexists; auto.
-      + exfalso. 
+      + exfalso.
         rewrite EQ, nth_error_Sn in LU2.
         rewrite EQ in LU1.
         cbn in *.
@@ -774,7 +740,7 @@ Section GenIR.
 
       + rewrite nth_error_Sn in LU1.
         rewrite nth_error_Sn in LU2.
-        eapply ALIAS2 in LU1; apply LU1 in LU2; eauto. 
+        eapply ALIAS2 in LU1; apply LU1 in LU2; eauto.
 
     - do 2 red. intros * LU1 LU2 LU3 LU4 INEQ.
       destruct n1 as [| n1], n2 as [| n2]; auto.
@@ -793,7 +759,7 @@ Section GenIR.
       ~ In x (map fst (Γ s2)) ->
       in_local_or_global_scalar l g mV x (dvalue_of_bin v) τ ->
       state_invariant σ s2 stH (mV,(l,g)) ->
-      state_invariant (DSHCTypeVal v::σ) s1 stH (mV,(l,g)). 
+      state_invariant (DSHCTypeVal v::σ) s1 stH (mV,(l,g)).
   Proof.
     intros * -> EQ fresh IN [MEM WF ALIAS1 ALIAS2 ALIAS3].
     split.
@@ -818,7 +784,7 @@ Section GenIR.
       + rewrite EQ in LU2; cbn in *.
         rewrite EQ in LU1; cbn in *.
         inv LU1; inv LU2; auto. split; auto. eexists; auto.
-      + exfalso. 
+      + exfalso.
         rewrite EQ, nth_error_Sn in LU2.
         rewrite EQ in LU1.
         cbn in *.
@@ -852,7 +818,7 @@ Section GenIR.
 
       + rewrite nth_error_Sn in LU1.
         rewrite nth_error_Sn in LU2.
-        eapply ALIAS2 in LU1; apply LU1 in LU2; eauto. 
+        eapply ALIAS2 in LU1; apply LU1 in LU2; eauto.
 
     - do 2 red. intros * LU1 LU2 LU3 LU4 INEQ.
       destruct n1 as [| n1], n2 as [| n2]; auto.
@@ -1006,18 +972,6 @@ Section GenIR.
         all:eauto.
   Admitted.
 
-  (* TODO: move this? *)
-  Lemma maps_add_neq :
-    forall {K} {V} {eqk : K -> K -> Prop} {RD : RelDec eqk} `{RelDec_Correct _ eqk} `{Symmetric _ eqk} `{Transitive _ eqk} (x id : K) (v : V) m,
-      ~ eqk id x ->
-      Maps.add x v m @ id ≡ m @ id.
-  Proof.
-    intros K V eqk RD RDC SYM TRANS H x id v m H0.
-    cbn. unfold alist_add. 
-    rewrite rel_dec_neq_false; eauto.
-    eapply remove_neq_alist; eauto.
-  Qed.
-
   Ltac remove_neq_locals :=
     match goal with
     | |- Maps.add ?x ?v ?l1 @ ?id ≡ ?l2 @ ?id =>
@@ -1071,6 +1025,12 @@ Section GenIR.
     reflexivity.
   Qed.
 
+  Lemma unsigned_repr_0_i64 :
+    DynamicValues.Int64.unsigned (DynamicValues.Int64.repr 0) ≡ 0.
+  Proof.
+    apply Integers.Int64.unsigned_zero.
+  Qed.
+
   (* TODO: move to vellvm *)
   Lemma handle_gep_addr_array_offset :
     forall ptr ptr_elem ix sz τ,
@@ -1082,8 +1042,9 @@ Section GenIR.
     cbn in GEP.
     inversion GEP; subst.
     cbn.
-    admit. (* Should hold *)
-  Admitted.
+    rewrite unsigned_repr_0_i64.
+    lia.
+  Qed.
 
   (* TODO: move to vellvm *)
   Lemma dtyp_fits_array_elem :
@@ -1092,9 +1053,10 @@ Section GenIR.
       handle_gep_addr (DTYPE_Array sz τ) ptr
                       [DVALUE_I64 (repr 0); DVALUE_I64 ix] ≡ inr ptr_elem ->
       Int64.intval ix < sz ->
+      0 <= sizeof_dtyp τ ->
       dtyp_fits m ptr_elem τ.
   Proof.
-    intros m ptr ptr_elem ix sz τ FITS GEP SZ.
+    intros m ptr ptr_elem ix sz τ FITS GEP SZ TYPSZ.
     cbn in GEP.
     unfold dtyp_fits in *.
     destruct FITS as (sz' & bytes & cid & BLOCK & BOUND).
@@ -1102,68 +1064,41 @@ Section GenIR.
     split.
     erewrite <- handle_gep_addr_array_same_block; eauto.
     erewrite <- handle_gep_addr_array_offset; eauto.
-    admit. (* Should hold *)
-  Admitted.
-
-  Opaque alist_add.
-
-  (* TODO: move these *)
-  Lemma in_local_or_global_scalar_not_in_gamma :
-    forall r v ρ g m id v_id τ σ s,
-      in_Gamma σ s id ->
-      ~ in_Gamma σ s r ->
-      in_local_or_global_scalar ρ g m (ID_Local id) v_id τ ->
-      in_local_or_global_scalar (alist_add r v ρ) g m (ID_Local id) v_id τ.
-  Proof.
-    intros r v ρ g m id v_id τ σ s GAM NGAM INLG.
-    destruct (Eqv.eqv_dec_p r id) as [EQ | NEQ].
-    - do 2 red in EQ.
-      subst.
-      contradiction.
-    - unfold Eqv.eqv, eqv_raw_id in NEQ.
-      cbn in *.
-      erewrite alist_find_neq; eauto.
+    cbn in BOUND.
+    assert (DynamicValues.Int64.unsigned ix ≡ Int64.intval ix) by reflexivity.
+    rewrite H.
+    assert (1 + Int64.intval ix <= sz) by lia.
+    rewrite <- Z.add_assoc.
+    assert (snd ptr + (Int64.intval ix * sizeof_dtyp τ + sizeof_dtyp τ) <= snd ptr + sz * sizeof_dtyp τ).
+    { eapply Zorder.Zplus_le_compat_l.
+      replace (Int64.intval ix * sizeof_dtyp τ + sizeof_dtyp τ) with ((1 + Int64.intval ix) * sizeof_dtyp τ).
+      eapply Z.mul_le_mono_nonneg_r; lia.
+      lia.
+    }
+    lia.
   Qed.
 
-  Ltac solve_in_gamma :=
-    match goal with
-    | GAM : nth_error (Γ ?s) ?n ≡ Some (ID_Local ?id, _),
-            SIG : nth_error ?σ ?n ≡ Some _ |-
-      in_Gamma _ _ ?id
-      => econstructor; [eapply SIG | eapply GAM | eauto]
-    end.
+  Lemma to_nat_unsigned :
+    forall x y,
+      MInt64asNT.to_nat x ≢ MInt64asNT.to_nat y ->
+      DynamicValues.Int64.unsigned (DynamicValues.Int64.repr (Z.of_nat (MInt64asNT.to_nat x))) ≢ DynamicValues.Int64.unsigned (DynamicValues.Int64.repr (Z.of_nat (MInt64asNT.to_nat y))).
+  Proof.
+    intros x y H.
+    repeat rewrite repr_of_nat_to_nat.
+    intros CONTRA.
+    unfold DynamicValues.Int64.unsigned, DynamicValues.Int64.intval in CONTRA.
+    destruct x, y.
+    unfold MInt64asNT.to_nat in *.
+    unfold Z.to_nat in *.
+    cbn in H.
+    apply H.
+    break_match; subst; reflexivity.
+  Qed.
 
-  Ltac solve_not_in_gamma :=
-    first [
-        match goal with
-        | GAM : Gamma_safe ?σ ?si ?sf |- 
-          ~ in_Gamma ?σ ?si ?id =>
-          eapply GAM; solve_lid_bound_between
-        end
-      | solve [eapply not_in_Gamma_Gamma_eq; [eassumption | solve_not_in_gamma]]
-      ].
-
-  Ltac solve_id_neq :=
-    first [ solve [eapply incLocal_id_neq; eauto; solve_local_count]
-          | solve [eapply in_gamma_not_in_neq; [solve_in_gamma | solve_not_in_gamma]]
-          ].
-
-  Ltac solve_local_lookup :=
-    first
-      [ now eauto
-      | solve [erewrite alist_add_find_eq; eauto]
-      | solve [erewrite alist_find_neq; [solve_local_lookup|solve_id_neq]]
-      ].
-
-  Ltac solve_in_local_or_global_scalar :=
-    first
-      [ now eauto
-      | solve [eapply in_local_or_global_scalar_not_in_gamma; [solve_in_gamma | solve_not_in_gamma | solve_in_local_or_global_scalar]]
-      ].
-
+  Opaque alist_add.
   Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
-      (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH) 
+      (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH)
       (** Vellvm bits   *) (nextblock bid_in bid_from : block_id) (bks : list (LLVMAst.block typ))
       (* (env : list (ident * typ)) *)  (g : global_env) ((* ρi  *)ρ : local_env) (memV : memoryV),
       genIR op nextblock s1 ≡ inr (s2,(bid_in,bks)) ->
@@ -1244,7 +1179,6 @@ Section GenIR.
          store v py
        *)
 
-      (*
       cbn* in *; simp.
       hide_cfg.
       inv_resolve_PVar Heqs0.
@@ -1297,7 +1231,7 @@ Section GenIR.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
       destruct PRE0 as (PRE2 & [EXP2 EXT2 SCOPE2 VAR2 GAM2 MONO2]).
       cbn in *; inv_eqs.
-      
+
       hvred.
       break_inner_match_hyp; break_inner_match_hyp; try_abs.
       2: apply no_failure_Ret in NOFAIL; try_abs.
@@ -1331,7 +1265,7 @@ Section GenIR.
         3: apply GETCELL.
         { vstep; solve_lu; reflexivity. }
         {
-          destruct MONO2 as [| <-]. 
+          destruct MONO2 as [| <-].
           - rewrite EXP1; auto.
             rewrite repr_of_nat_to_nat.
             cbn; reflexivity.
@@ -1350,7 +1284,7 @@ Section GenIR.
 
         clear EXP1.
         clean_goal.
-        
+
         subst_cont; vred.
         vred.
         (* load *)
@@ -1451,7 +1385,7 @@ Section GenIR.
               rewrite BID_NEQ.
               reflexivity.
             }
-            
+
             vstep.
 
             apply eutt_Ret.
@@ -1586,23 +1520,11 @@ Section GenIR.
                   { (* Need to show that every lookup matches *)
                     intros i v0 H3.
 
-                    (* TODO: do I even need this...? *)
-                    assert (~(no_overlap_dtyp yptr' DTYPE_Double yptr (DTYPE_Array sz0 DTYPE_Double))) as OVER.
-                    { erewrite <- from_Z_intval in yGEP; eauto.
-                      eapply gep_array_ptr_overlap_dtyp; cbn; eauto.
-                      rewrite repr_of_nat_to_nat.
-                      admit.
-                      lia.
-                    }
-
-                    (* Because I know that there is overlap, I know that fst yptr' = fst yptr  *)
-        (*              *)
-
                     pose proof (dtyp_fits_allocated yFITS) as yALLOC.
                     epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
                     erewrite WRITE_ARRAY in WRITE_SUCCEEDS.
 
-                    destruct (Nat.eq_dec i (MInt64asNT.to_nat dst)) as [EQdst | NEQdst].
+                    destruct (Nat.eq_dec (MInt64asNT.to_nat i) (MInt64asNT.to_nat dst)) as [EQdst | NEQdst].
                     {
                     (* In the case where i = DST *)
 
@@ -1613,7 +1535,7 @@ Section GenIR.
         (*                May be able to use write array lemmas...? *)
         (*              *)
 
-                      subst.
+                      rewrite EQdst in *.
                       rewrite mem_lookup_mem_add_eq in H3; inv H3.
 
                       change (UVALUE_Double v0) with (dvalue_to_uvalue (DVALUE_Double v0)).
@@ -1628,6 +1550,8 @@ Section GenIR.
                       rewrite mem_lookup_mem_add_neq in H3; auto.
                       erewrite write_array_cell_untouched; eauto.
                       constructor.
+
+                      apply to_nat_unsigned; auto.
                     }
                   }
                 - (* DSHPtrVals do not alias *)
@@ -1676,6 +1600,11 @@ Section GenIR.
               }
 
               { (* x0 is a local *)
+                pose proof (dtyp_fits_allocated yFITS) as yALLOC.
+                epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
+                pose proof WRITE_SUCCEEDS as WRITE'.
+                erewrite WRITE_ARRAY in WRITE_SUCCEEDS.
+
                 destruct v0. (* Probably need to use WF_IRState to make sure we only consider valid types *)
                 solve_in_local_or_global_scalar.
                 solve_in_local_or_global_scalar.
@@ -1710,7 +1639,7 @@ Section GenIR.
 
         (*              dtyp_fits should hold because the write shouldn't *)
         (*              change the block for ptr_l at all (no aliasing). *)
-                     
+
         (*              I need in_local_or_global_addr to hold, meaning I can find *)
 
         (*              l1 @ id = Some ptr_l *)
@@ -1726,15 +1655,25 @@ Section GenIR.
                   subst.
                   cbn.
                   exists bk_h. exists ptr_l. exists τ'.
-                  
+
                   rewrite memory_lookup_memory_set_neq; auto.
                   repeat (split; auto).
-                  + admit. (* should hold might not need *)
+                  + eapply dtyp_fits_after_write; eauto.
                   + solve_local_lookup.
                   + intros i v0 H6.
                     pose proof (GET i v0 H6).
-                    (* untouched part of memory, so this should hold *)
-                    admit. (* TODO: do this one *)
+                    assert (ID_Local id ≢ ID_Global vy_p) as IDNEQ by discriminate.
+                    assert (fst ptr_l ≢ fst yptr).
+                    { eapply st_no_llvm_ptr_aliasing.
+                      5: eapply IDNEQ.
+                      eapply H4.
+                      eapply Heqo0.
+                      all: eauto.
+                    }
+
+                    assert (fst yptr ≡ fst yptr') by (eapply handle_gep_addr_array_same_block; eauto).
+                    erewrite write_array_cell_untouched_ptr_block; eauto.
+                    constructor.
               }
 
               + destruct PRE2. eapply st_no_id_aliasing; eauto.
@@ -1742,7 +1681,13 @@ Section GenIR.
               + (* TODO: turn this into a tactic? *)
                 do 3 (eapply no_llvm_ptr_aliasing_not_in_gamma; [ | eauto | solve_not_in_gamma]).
                 eapply state_invariant_no_llvm_ptr_aliasing; eauto.
-              + admit.
+              + unfold id_allocated in *.
+                intros.
+                destruct PRE2.
+
+                specialize (st_id_allocated n1). cbn in *.
+                specialize (st_id_allocated _ _ H).
+                eapply mem_block_exists_memory_set; eauto.
             - exists bid_in. reflexivity.
 
             - (* The only local variables modified are in [si;sf] *)
@@ -1770,7 +1715,7 @@ Section GenIR.
             - clear EXP2.
               clean_goal.
               solve_local_scope_preserved.
-            - admit.
+            - solve_gamma_preserved.
           }
 
           { rewrite typ_to_dtyp_D_array in yFITS.
@@ -1839,29 +1784,239 @@ Section GenIR.
               rewrite H0.
               reflexivity.
             }
-            
+
             vstep.
 
             apply eutt_Ret; split; [| split]; cbn.
-            - admit. (* TODO: state_invariant *)
+            - (* TODO: add to solve_state_invariant *)
+              do 3 (eapply state_invariant_same_Γ; [reflexivity | solve_not_in_gamma | ]).
+              destruct PRE2.
+              split; eauto.
+
+              (* Solve memory invariant... *)
+              cbn. cbn in mem_is_inv.
+              intros n1 v0 τ x H H0.
+              destruct x.
+              { (* Global *)
+                pose proof (dtyp_fits_allocated yFITS) as yALLOC.
+                epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
+                pose proof WRITE_SUCCEEDS as WRITE'.
+                erewrite WRITE_ARRAY in WRITE_SUCCEEDS.
+
+
+                assert (ID_Global id ≢ ID_Local vy_p) as IDNEQ by discriminate.
+                destruct v0.
+                - epose proof (mem_is_inv _ _ _ _ H H0) as INV.
+                  cbn in INV.
+                  cbn.
+                  destruct INV as (ptr_l & τ' & TYP & INLG' & READ').
+                  exists ptr_l. exists τ'.
+
+                  (* TODO: automate *)
+                  assert (fst ptr_l ≢ fst yptr).
+                  { eapply st_no_llvm_ptr_aliasing.
+                    5: eapply IDNEQ.
+                    eapply H.
+                    eapply Heqo0.
+                    all: eauto.
+                  }
+
+                  repeat (split; eauto).
+
+                  assert (fst yptr ≡ fst yptr') by (eapply handle_gep_addr_array_same_block; eauto).
+                  rewrite H2 in H1.
+                  eapply write_different_blocks; eauto.
+                  cbn. reflexivity.
+
+                  epose proof (IRState_is_WF _ n1 H) as (id' & N).
+                  rewrite H0 in N. inv N.
+                  cbn in H5. inversion H5.
+                  subst.
+                  eapply read_type in READ'.
+                  rewrite typ_to_dtyp_I.
+                  constructor.
+
+                  constructor.
+                - epose proof (mem_is_inv _ _ _ _ H H0) as INV.
+                  cbn in INV.
+                  cbn.
+                  destruct INV as (ptr_l & τ' & TYP & INLG' & READ').
+                  exists ptr_l. exists τ'.
+
+                  (* TODO: automate *)
+                  assert (fst ptr_l ≢ fst yptr).
+                  { eapply st_no_llvm_ptr_aliasing.
+                    5: eapply IDNEQ.
+                    eapply H.
+                    eapply Heqo0.
+                    all: eauto.
+                  }
+
+                  repeat (split; eauto).
+
+                  assert (fst yptr ≡ fst yptr') by (eapply handle_gep_addr_array_same_block; eauto).
+                  rewrite H2 in H1.
+                  eapply write_different_blocks; eauto.
+                  cbn. reflexivity.
+
+                  epose proof (IRState_is_WF _ n1 H) as (id' & N).
+                  rewrite H0 in N. inv N.
+                  cbn in H5. inversion H5.
+                  subst.
+                  eapply read_type in READ'.
+                  rewrite typ_to_dtyp_D.
+                  constructor.
+                  constructor.
+                - epose proof (mem_is_inv _ _ _ _ H H0) as INV.
+                  cbn in INV.
+                  destruct INV as (bk & ptr_l & τ' & MLUP & TYP & FITS & LOOKUP & GETCELL_ptr_l).
+
+                  destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
+                  { exists (mem_add (MInt64asNT.to_nat dst) v ymembk). exists ptr_l. exists τ'.
+
+                    subst.
+                    assert (n1 ≡ y_p) by eauto.
+                    rewrite yLU in MLUP.
+                    inv MLUP.
+
+                    repeat (split; eauto).
+                    - eapply memory_lookup_memory_set_eq.
+                    - eapply dtyp_fits_after_write; eauto.
+                    - intros i v0 H1.
+                      rewrite LUn0 in H0.
+                      inversion H0; subst.
+                  }
+                  { exists bk. exists ptr_l. exists τ'.
+                    repeat (split; eauto).
+                    - erewrite memory_lookup_memory_set_neq; eauto.
+                    - eapply dtyp_fits_after_write; eauto.
+                    - intros i v0 H1.
+
+                      assert (fst ptr_l ≢ fst yptr).
+                      { eapply st_no_llvm_ptr_aliasing.
+                        5: eapply IDNEQ.
+                        eapply H.
+                        eapply Heqo0.
+                        all: eauto.
+                      }
+
+                      erewrite write_array_cell_untouched_ptr_block; eauto.
+                      constructor.
+                  }
+              }
+
+              { (* Local *)
+                destruct v0.
+                - epose proof (mem_is_inv _ _ _ _ H H0) as INV.
+                  cbn in INV.
+                  eauto.
+                - epose proof (mem_is_inv _ _ _ _ H H0) as INV.
+                  cbn in INV.
+                  eauto.
+                - epose proof (mem_is_inv _ _ _ _ H H0) as INV.
+                  cbn in INV.
+                  destruct INV as (bk & ptr_l & τ' & MLUP & TYP & FITS & LOCALS & GETCELL_ptr_l).
+
+                  pose proof (dtyp_fits_allocated yFITS) as yALLOC.
+                  epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
+                  pose proof WRITE_SUCCEEDS as WRITE'.
+                  erewrite WRITE_ARRAY in WRITE_SUCCEEDS.
+
+                  destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
+                  { exists (mem_add (MInt64asNT.to_nat dst) v ymembk). exists ptr_l. exists τ'.
+
+                    subst.
+                    assert (n1 ≡ y_p) by eauto.
+                    rewrite yLU in MLUP.
+                    inv MLUP.
+
+                    repeat (split; eauto).
+                    - eapply memory_lookup_memory_set_eq.
+                    - eapply dtyp_fits_after_write; eauto.
+                    - intros i v0 H1.
+                      rewrite LUn0 in H0.
+                      inversion H0; subst.
+
+                      rewrite yINLG in LOCALS.
+                      inversion LOCALS; subst.
+
+                      destruct (Nat.eq_dec (MInt64asNT.to_nat i) (MInt64asNT.to_nat dst)) as [EQdst | NEQdst].
+                      + rewrite EQdst in *.
+                        rewrite mem_lookup_mem_add_eq in H1; inv H1.
+
+                        change (UVALUE_Double v0) with (dvalue_to_uvalue (DVALUE_Double v0)).
+                        eapply write_array_cell_get_array_cell; eauto.
+                        constructor.
+                      + rewrite mem_lookup_mem_add_neq in H1; inv H1; eauto.
+                        erewrite write_array_cell_untouched; eauto.
+                        constructor.
+                        apply to_nat_unsigned; auto.
+                  }
+                  { exists bk. exists ptr_l. exists τ'.
+                    repeat (split; eauto).
+                    - erewrite memory_lookup_memory_set_neq; eauto.
+                    - eapply dtyp_fits_after_write; eauto.
+                    - intros i v0 H1.
+                      destruct (Eqv.eqv_dec_p id vy_p) as [EQid | NEQid].
+                      + unfold Eqv.eqv, eqv_raw_id in EQid.
+                        subst.
+
+                        assert (n1 ≡ y_p) by (eapply no_id_aliasing_n_eq; eauto).
+                        subst.
+                        rewrite Heqo0 in H.
+                        inversion H; subst; contradiction.
+                      + unfold Eqv.eqv, eqv_raw_id in NEQid.
+                        assert (fst ptr_l ≢ fst yptr).
+                        { assert (ID_Local id ≢ ID_Local vy_p) as NEQl.
+                          { intros CONTRA. inv CONTRA. contradiction. }
+
+                          (* May have to recover some things I rewrote / cbn'd *)
+                          eapply st_no_llvm_ptr_aliasing.
+                          5: eapply NEQl.
+                          eapply H.
+                          eapply Heqo0.
+                          all:eauto.
+                        }
+                        erewrite write_array_cell_untouched_ptr_block; eauto.
+                        constructor.
+                  }
+              }
+
+              { (* id_allocated *)
+                unfold id_allocated in *.
+                intros n1 addr0 val H.
+                specialize (st_id_allocated n1). cbn in *.
+                specialize (st_id_allocated _ _ H).
+                eapply mem_block_exists_memory_set; eauto.
+              }
             - exists bid_in. reflexivity.
             - assert (local_scope_modif s6 sf ρ l0); solve_local_scope_modif.
           }
         }
       }
 
-      { (* vx_p is in local *)
-        admit.
-      }
-       *)
-      admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
+      { (* vx_p is in local environment *)
+        edestruct denote_instr_gep_array as (ptr' & READ & EQ); cycle -1; [rewrite EQ; clear EQ | ..]; cycle 1.
+        3: apply GETCELL.
+        { vstep; cbn; try reflexivity.
+          assert (local_scope_modif s6 sf ρ l0) by solve_local_scope_modif.
+          assert (in_Gamma σ si vx_p) by solve_in_gamma.
+          rewrite <- INLG.
+          destruct PRE2.
 
-    - (* DSHLoop *)
+          assert (~ lid_bound_between si sf vx_p).
+          { intros BETWEEN.
+            eapply GAM; eauto.
+          }
 
+          symmetry.
+          eapply local_scope_modif_external; eauto.
+          intros BETWEEN.
+          eapply H2.
+          eapply lid_bound_between_shrink; eauto; solve_local_count.
+        }
+
+ (* HEAD 
       (* Require Import Correctness_While. *)
       (* Import ProofMode. *)
       Opaque add_comment.
@@ -1875,6 +2030,757 @@ Section GenIR.
       rename i into s1, i0 into s2, i1 into s3, i2 into s4, i3 into s5, s2 into s6.
       rename l0 into bodyV.
       rename r into loopvar.
+*)
+        {
+          destruct MONO2 as [| <-].
+          - rewrite EXP1; auto.
+            rewrite repr_of_nat_to_nat.
+            cbn; reflexivity.
+            eapply local_scope_preserve_modif; eauto.
+            clear EXP1 EXP2 VAR1 VAR2.
+            clean_goal.
+            eapply Gamma_preserved_Gamma_eq; [exact GAM1 |].
+            eapply Gamma_preserved_if_safe; [| exact SCOPE2].
+            solve_gamma_safe.
+          - rewrite EXP1.
+            rewrite repr_of_nat_to_nat.
+            reflexivity.
+            eauto using local_scope_preserved_refl.
+            eauto using Gamma_preserved_refl.
+        }
+
+        clear EXP1.
+        clean_goal.
+
+        subst_cont; vred.
+        vred.
+        (* load *)
+        vstep.
+        { vstep; solve_lu. }
+        vred.
+        hide_cont.
+
+        destruct vy_p as [vy_p | vy_p].
+        { (* vy_p in global *)
+          assert (Γ si ≡ Γ sf) as CONT by solve_gamma.
+          rewrite CONT in LUn0, LUn.
+          edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |].
+
+          clean_goal.
+          rewrite yLU in H0; symmetry in H0; inv H0.
+
+          edestruct denote_instr_gep_array_no_read as (yptr' & yGEP & yEQ); cycle -1; [rewrite yEQ; clear yEQ | ..]; cycle 1.
+          { vstep; solve_lu.
+            cbn; reflexivity.
+          }
+          { rewrite EXP2.
+            - rewrite repr_of_nat_to_nat.
+              cbn; reflexivity.
+            - clear EXP2.
+              clean_goal.
+              solve_local_scope_preserved.
+            - destruct PRE2.
+              (* TODO: can we automate this better? *)
+              assert (Γ si ≡ Γ s7) as GAMsisf by solve_gamma.
+              eapply Gamma_preserved_Gamma_eq. eapply GAMsisf.
+              eapply Gamma_preserved_if_safe with (s2:=sf); eauto.
+              solve_local_scope_modif.
+          }
+
+          { rewrite typ_to_dtyp_D_array in yFITS.
+            assert (sz0 ≡ Int64.intval i4) by
+                (apply from_Z_intval; eauto).
+            subst.
+            eauto.
+          }
+
+          vstep.
+          subst_cont.
+          vred.
+
+          epose proof (write_succeeds _ _) as [m2 WRITE_SUCCEEDS].
+
+          (* Store *)
+          erewrite denote_instr_store; eauto.
+          2: {
+            vstep.
+            - cbn.
+              solve_local_lookup.
+            - cbn.
+              apply eqit_Ret.
+              cbn.
+              reflexivity.
+          }
+
+          2: {
+            vstep.
+            - cbn.
+              solve_local_lookup.
+            - cbn.
+              apply eqit_Ret.
+              cbn.
+              reflexivity.
+          }
+
+          2: {
+            cbn. reflexivity.
+          }
+
+          { vstep.
+            rewrite denote_term_br_1.
+            vstep.
+            rewrite denote_bks_unfold_not_in.
+            2: {
+              (* TODO: Add a subst_cfg *)
+              destruct VG; subst.
+              cbn.
+
+              unfold find_block.
+              cbn.
+              assert (bid_in ≢ nextblock).
+              { (* Should hold from NEXT and Heqs *)
+                eapply incBlockNamed_bound_between in Heqs.
+                intros CONTRA; symmetry in CONTRA; revert CONTRA.
+                eapply bid_bound_fresh; eauto.
+                solve_prefix.
+              }
+              assert ((if Eqv.eqv_dec_p bid_in nextblock then true else false) ≡ false) as BID_NEQ.
+              {
+                unfold Eqv.eqv_dec_p.
+                break_match_goal; [contradiction | reflexivity].
+              }
+              rewrite BID_NEQ.
+              reflexivity.
+            }
+
+            vstep.
+
+            apply eutt_Ret.
+            cbn.
+            split; [| split]; cbn.
+            - (* State invariant *)
+              cbn.
+              split; eauto.
+              destruct PRE2.
+              unfold memory_invariant.
+              intros n1 v0 τ x0 H4 H5.
+              cbn in mem_is_inv.
+              pose proof (mem_is_inv n1 v0 τ x0 H4 H5).
+
+              (* TODO: can probably turn this into a lemma *)
+              (* All depends on whether x0 == r, r1, or r0 *)
+              destruct x0.
+              { (* x0 is a global *)
+                destruct v0.
+                cbn. cbn in H4.
+                { cbn in H. destruct H as (ptr_l & τ' & TYPE & INLG' & READ').
+                  do 2 eexists.
+                  repeat split; eauto.
+
+                  destruct (Z.eq_dec (fst ptr_l) (fst yptr)) as [EQ | NEQ].
+                  - destruct (Eqv.eqv_dec_p id vy_p) as [EQid | NEQid].
+                    + do 2 red in EQid.
+                      subst. cbn in yINLG.
+                      assert (n1 ≡ y_p).
+                      eapply st_no_id_aliasing; eauto.
+                      subst.
+                      rewrite Heqo0 in H4.
+                      discriminate H4.
+                    + unfold Eqv.eqv, eqv_raw_id in NEQid.
+                      assert (fst ptr_l ≢ fst yptr).
+                      { assert (ID_Global id ≢ ID_Global vy_p).
+                        injection. apply NEQid.
+
+                        eapply st_no_llvm_ptr_aliasing.
+                        eapply H4.
+                        eapply Heqo0.
+                        3: eapply  H.
+                        all: eauto.
+                      }
+                      contradiction.
+                  - epose proof (IRState_is_WF _ _ H4) as [idT NT].
+                    rewrite H5 in NT. cbn in NT. inv NT.
+                    inv H1.
+
+                    erewrite write_untouched; eauto.
+                    constructor.
+                    eapply sizeof_dvalue_pos.
+                    cbn.
+                    rewrite typ_to_dtyp_I.
+                    constructor.
+
+                    pose proof (handle_gep_addr_array_same_block _ _ _ _ yGEP) as YPTRBLOCK.
+                    rewrite YPTRBLOCK in NEQ.
+                    do 2 red. auto.
+                }
+
+                { cbn in H. destruct H as (ptr_l & τ' & TYPE & INLG' & READ').
+                  do 2 eexists.
+                  repeat split; eauto.
+
+                  destruct (Z.eq_dec (fst ptr_l) (fst yptr)) as [EQ | NEQ].
+                  - destruct (Eqv.eqv_dec_p id vy_p) as [EQid | NEQid].
+                    + do 2 red in EQid.
+                      subst. cbn in yINLG.
+                      assert (n1 ≡ y_p).
+                      eapply st_no_id_aliasing; eauto.
+                      subst.
+                      rewrite Heqo0 in H4.
+                      discriminate H4.
+                    + unfold Eqv.eqv, eqv_raw_id in NEQid.
+                      assert (fst ptr_l ≢ fst yptr).
+                      { assert (ID_Global id ≢ ID_Global vy_p).
+                        injection. apply NEQid.
+
+                        eapply st_no_llvm_ptr_aliasing.
+                        eapply H4.
+                        eapply Heqo0.
+                        3: eapply  H.
+                        all: eauto.
+                      }
+                      contradiction.
+                  - epose proof (IRState_is_WF _ _ H4) as [idT NT].
+                    rewrite H5 in NT. cbn in NT. inv NT.
+                    inv H1.
+
+                    erewrite write_untouched; eauto.
+                    constructor.
+                    eapply sizeof_dvalue_pos.
+                    cbn.
+                    rewrite typ_to_dtyp_D.
+                    constructor.
+
+                    pose proof (handle_gep_addr_array_same_block _ _ _ _ yGEP) as YPTRBLOCK.
+                    rewrite YPTRBLOCK in NEQ.
+                    do 2 red. auto.
+                }
+                destruct H as (bk_h & ptr_l & τ' & MINV).
+                destruct MINV as (MLUP & MTYP & FITS & INLG' & GET).
+                destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
+                - (* DSHPtrVals alias *)
+                  subst.
+                  rewrite yLU in MLUP.
+                  inv MLUP.
+
+                  epose proof (st_no_dshptr_aliasing _ _ _ _ _ Heqo0 H4); subst.
+                  pose proof H5 as IDS.
+                  rewrite LUn0 in IDS.
+                  inv IDS.
+
+                  (* Since y_i = a, we know this matches the block that was written to *)
+                  exists (mem_add (MInt64asNT.to_nat dst) v bk_h).
+
+                  (* *)
+                  exists yptr. exists (TYPE_Array sz0 TYPE_Double).
+
+                  split.
+                  { rewrite memory_lookup_memory_set_eq. reflexivity. }
+                  split; auto.
+                  split.
+                  eapply dtyp_fits_after_write; eauto.
+                  split.
+                  { cbn.
+                    rewrite Heqo0 in H4.
+                    rewrite LUn0 in H5.
+                    inversion H5; subst; auto.
+                  }
+                  { (* Need to show that every lookup matches *)
+                    intros i v0 H3.
+
+                    pose proof (dtyp_fits_allocated yFITS) as yALLOC.
+                    epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
+                    erewrite WRITE_ARRAY in WRITE_SUCCEEDS.
+
+                    destruct (Nat.eq_dec (MInt64asNT.to_nat i) (MInt64asNT.to_nat dst)) as [EQdst | NEQdst].
+                    {
+                    (* In the case where i = DST *)
+
+        (*                I know v0 = v (which is the value from the source (GETCELL) *)
+
+        (*                I should be able to show that yptr' is GEP of yptr in this case... *)
+
+        (*                May be able to use write array lemmas...? *)
+        (*              *)
+
+                      rewrite EQdst in *.
+                      rewrite mem_lookup_mem_add_eq in H3; inv H3.
+
+                      change (UVALUE_Double v0) with (dvalue_to_uvalue (DVALUE_Double v0)).
+                      eapply write_array_cell_get_array_cell; eauto.
+                      constructor.
+                    }
+                    {
+                    (* In the case where i <> dst *)
+
+        (*                I should be able to use yGETCELL along with H4 (getting rid of mem_add) *)
+        (*              *)
+                      rewrite mem_lookup_mem_add_neq in H3; auto.
+                      erewrite write_array_cell_untouched; eauto.
+                      constructor.
+                      apply to_nat_unsigned; auto.
+                    }
+                  }
+                - (* DSHPtrVals do not alias *)
+
+                  (* This must be the case because if y_i <> a, then *)
+        (*           we're looking at a different helix block. *)
+                  exists bk_h.
+
+                  cbn.
+                  (* Need the pointer that matches up with @id *)
+                  exists ptr_l. exists τ'.
+
+                  rewrite memory_lookup_memory_set_neq; auto.
+                  repeat split; auto.
+
+                  eapply dtyp_fits_after_write; eauto.
+
+                  assert (fst (ptr_l) ≢ fst yptr) as DIFF_BLOCKS.
+                  { (* yINLG and INLG' *)
+                    eapply st_no_llvm_ptr_aliasing.
+                    6: eapply INLG'.
+                    6: (* This is local now... *) { eapply in_local_or_global_addr_same_global. eapply yINLG. }
+                    3: eapply H5.
+                    3: eapply LUn0.
+                    all: eauto.
+                    intros CONTRA; inv CONTRA.
+                    (* H5 and LUN5, means that n1 = y_p, which means a = y_i *)
+                    assert (a ≡ y_i).
+                    { assert (n1 ≡ y_p).
+                      eapply st_no_id_aliasing; eauto.
+                      subst.
+                      rewrite Heqo0 in H4.
+                      inv H4.
+                      contradiction.
+                    }
+                    contradiction.
+                  }
+
+                  pose proof (dtyp_fits_allocated yFITS) as yALLOC.
+                  epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
+                  rewrite WRITE_ARRAY in WRITE_SUCCEEDS.
+
+                  intros i v0 H3.
+                  erewrite write_array_cell_untouched_ptr_block; eauto.
+                  constructor.
+              }
+
+              { (* x0 is a local *)
+                pose proof (dtyp_fits_allocated yFITS) as yALLOC.
+                epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
+                pose proof WRITE_SUCCEEDS as WRITE'.
+                erewrite WRITE_ARRAY in WRITE_SUCCEEDS.
+
+                destruct v0. (* Probably need to use WF_IRState to make sure we only consider valid types *)
+                solve_in_local_or_global_scalar.
+                solve_in_local_or_global_scalar.
+
+                destruct H as (bk_h & ptr_l & τ' & MINV). (* Do I need this? *)
+                destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
+                - (* PTR aliases, local case should be bogus... *)
+                  subst.
+
+                  epose proof (st_no_dshptr_aliasing _ _ _ _ _ Heqo0 H4); subst.
+                  rewrite LUn0 in H5.
+                  inversion H5.
+                - (* This is the branch where a and y_i don't *)
+        (*              alias. These are the DSHPtrVal pointers... *)
+
+        (*              DSHPtrVal a size1 corresponds to %id, which must be a local id. *)
+
+        (*              I need to show the memory invariant holds. *)
+
+        (*              - y_i points to ymembk *)
+        (*              - a points to bk_h *)
+
+        (*              no_pointer_aliasing is a given. *)
+
+        (*              We should say that there exists bk_h and ptr_l. *)
+
+        (*              The memory_lookup case should hold because we *)
+        (*              don't care about the memory_set operation because *)
+        (*              a <> y_i *)
+
+        (*              mem_lookup_succeeds is as before. *)
+
+        (*              dtyp_fits should hold because the write shouldn't *)
+        (*              change the block for ptr_l at all (no aliasing). *)
+
+        (*              I need in_local_or_global_addr to hold, meaning I can find *)
+
+        (*              l1 @ id = Some ptr_l *)
+
+        (*              If id is in l0 then this follows from freshness and the old MINV. *)
+
+        (*              Otherwise, there's actually a contradiction with *)
+        (*              MINV's in_local_or_global_addr... Because id *)
+        (*              would not be in l0. *)
+        (*            *)
+
+                  destruct MINV as (MLUP & MSUC & FITS & INLG' & GET).
+                  subst.
+                  cbn.
+                  exists bk_h. exists ptr_l. exists τ'.
+
+                  rewrite memory_lookup_memory_set_neq; auto.
+                  repeat (split; auto).
+                  + eapply dtyp_fits_after_write; eauto.
+                  + solve_local_lookup.
+                  + intros i v0 H6.
+                    pose proof (GET i v0 H6).
+                    assert (ID_Local id ≢ ID_Global vy_p) as IDNEQ by discriminate.
+                    assert (fst ptr_l ≢ fst yptr).
+                    { eapply st_no_llvm_ptr_aliasing.
+                      5: eapply IDNEQ.
+                      eapply H4.
+                      eapply Heqo0.
+                      all: eauto.
+                    }
+
+                    assert (fst yptr ≡ fst yptr') by (eapply handle_gep_addr_array_same_block; eauto).
+                    erewrite write_array_cell_untouched_ptr_block; eauto.
+                    constructor.
+              }
+
+              + destruct PRE2. eapply st_no_id_aliasing; eauto.
+              + eapply st_no_dshptr_aliasing; eauto.
+              + (* TODO: turn this into a tactic? *)
+                do 3 (eapply no_llvm_ptr_aliasing_not_in_gamma; [ | eauto | solve_not_in_gamma]).
+                eapply state_invariant_no_llvm_ptr_aliasing; eauto.
+              + unfold id_allocated in *.
+                intros.
+                destruct PRE2.
+
+                specialize (st_id_allocated n1). cbn in *.
+                specialize (st_id_allocated _ _ H).
+                eapply mem_block_exists_memory_set; eauto.
+            - exists bid_in. reflexivity.
+
+            - (* The only local variables modified are in [si;sf] *)
+              assert (local_scope_modif s6 sf ρ l0); solve_local_scope_modif.
+          }
+        }
+
+        { (* vy_p in local *)
+          assert (Γ si ≡ Γ sf) as CONT by solve_gamma.
+          rewrite CONT in LUn0, LUn.
+          edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant|].
+
+          clean_goal.
+          rewrite yLU in H0; symmetry in H0; inv H0.
+          cbn in yINLG.
+
+          edestruct denote_instr_gep_array_no_read as (yptr' & yGEP & yEQ); cycle -1; [rewrite yEQ; clear yEQ | ..]; cycle 1.
+          { vstep.
+            do 3 (setoid_rewrite lookup_alist_add_ineq; [eauto | solve_id_neq ]).
+            reflexivity.
+          }
+          { rewrite EXP2.
+            - rewrite repr_of_nat_to_nat.
+              cbn; reflexivity.
+            - clear EXP2.
+              clean_goal.
+              solve_local_scope_preserved.
+            - solve_gamma_preserved.
+          }
+
+          { rewrite typ_to_dtyp_D_array in yFITS.
+            assert (sz0 ≡ Int64.intval i4) by
+                (apply from_Z_intval; eauto).
+            subst.
+            eauto.
+          }
+
+          vstep.
+          subst_cont.
+          vred.
+
+          epose proof (write_succeeds _ _) as [m2 WRITE_SUCCEEDS].
+
+          (* Store *)
+          erewrite denote_instr_store; eauto.
+          2: {
+            vstep.
+            - cbn.
+              solve_local_lookup.
+            - cbn.
+              apply eqit_Ret.
+              cbn.
+              reflexivity.
+          }
+
+          2: {
+            vstep.
+            - cbn.
+              solve_local_lookup.
+            - cbn.
+              apply eqit_Ret.
+              cbn.
+              reflexivity.
+          }
+
+          2: {
+            cbn. reflexivity.
+          }
+
+          1: {
+            vstep.
+            rewrite denote_term_br_1.
+            vstep.
+            rewrite denote_bks_unfold_not_in.
+            2: {
+              (* TODO: Add a subst_cfg *)
+              destruct VG; subst.
+              cbn.
+
+              unfold find_block.
+              cbn.
+              assert (bid_in ≢ nextblock).
+              { (* Should hold from NEXT and Heqs *)
+                eapply incBlockNamed_bound_between in Heqs.
+                intros CONTRA; symmetry in CONTRA; revert CONTRA.
+                eapply bid_bound_fresh; eauto.
+                solve_prefix.
+              }
+              assert ((if Eqv.eqv_dec_p bid_in nextblock then true else false) ≡ false).
+              {
+                unfold Eqv.eqv_dec_p.
+                break_match_goal; [contradiction | reflexivity].
+              }
+              rewrite H0.
+              reflexivity.
+            }
+
+            vstep.
+
+            apply eutt_Ret; split; [| split]; cbn.
+            - (* TODO: add to solve_state_invariant *)
+              do 3 (eapply state_invariant_same_Γ; [reflexivity | solve_not_in_gamma | ]).
+              destruct PRE2.
+              split; eauto.
+
+              (* Solve memory invariant... *)
+              cbn. cbn in mem_is_inv.
+              intros n1 v0 τ x H H0.
+              destruct x.
+              { (* Global *)
+                pose proof (dtyp_fits_allocated yFITS) as yALLOC.
+                epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
+                pose proof WRITE_SUCCEEDS as WRITE'.
+                erewrite WRITE_ARRAY in WRITE_SUCCEEDS.
+
+
+                assert (ID_Global id ≢ ID_Local vy_p) as IDNEQ by discriminate.
+                destruct v0.
+                - epose proof (mem_is_inv _ _ _ _ H H0) as INV.
+                  cbn in INV.
+                  cbn.
+                  destruct INV as (ptr_l & τ' & TYP & INLG' & READ').
+                  exists ptr_l. exists τ'.
+
+                  (* TODO: automate *)
+                  assert (fst ptr_l ≢ fst yptr).
+                  { eapply st_no_llvm_ptr_aliasing.
+                    5: eapply IDNEQ.
+                    eapply H.
+                    eapply Heqo0.
+                    all: eauto.
+                  }
+
+                  repeat (split; eauto).
+
+                  assert (fst yptr ≡ fst yptr') by (eapply handle_gep_addr_array_same_block; eauto).
+                  rewrite H2 in H1.
+                  eapply write_different_blocks; eauto.
+                  cbn. reflexivity.
+
+                  epose proof (IRState_is_WF _ n1 H) as (id' & N).
+                  rewrite H0 in N. inv N.
+                  cbn in H5. inversion H5.
+                  subst.
+                  eapply read_type in READ'.
+                  rewrite typ_to_dtyp_I.
+                  constructor.
+
+                  constructor.
+                - epose proof (mem_is_inv _ _ _ _ H H0) as INV.
+                  cbn in INV.
+                  cbn.
+                  destruct INV as (ptr_l & τ' & TYP & INLG' & READ').
+                  exists ptr_l. exists τ'.
+
+                  (* TODO: automate *)
+                  assert (fst ptr_l ≢ fst yptr).
+                  { eapply st_no_llvm_ptr_aliasing.
+                    5: eapply IDNEQ.
+                    eapply H.
+                    eapply Heqo0.
+                    all: eauto.
+                  }
+
+                  repeat (split; eauto).
+
+                  assert (fst yptr ≡ fst yptr') by (eapply handle_gep_addr_array_same_block; eauto).
+                  rewrite H2 in H1.
+                  eapply write_different_blocks; eauto.
+                  cbn. reflexivity.
+
+                  epose proof (IRState_is_WF _ n1 H) as (id' & N).
+                  rewrite H0 in N. inv N.
+                  cbn in H5. inversion H5.
+                  subst.
+                  eapply read_type in READ'.
+                  rewrite typ_to_dtyp_D.
+                  constructor.
+                  constructor.
+                - epose proof (mem_is_inv _ _ _ _ H H0) as INV.
+                  cbn in INV.
+                  destruct INV as (bk & ptr_l & τ' & MLUP & TYP & FITS & LOOKUP & GETCELL_ptr_l).
+
+                  destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
+                  { exists (mem_add (MInt64asNT.to_nat dst) v ymembk). exists ptr_l. exists τ'.
+
+                    subst.
+                    assert (n1 ≡ y_p) by eauto.
+                    rewrite yLU in MLUP.
+                    inv MLUP.
+
+                    repeat (split; eauto).
+                    - eapply memory_lookup_memory_set_eq.
+                    - eapply dtyp_fits_after_write; eauto.
+                    - intros i v0 H1.
+                      rewrite LUn0 in H0.
+                      inversion H0; subst.
+                  }
+                  { exists bk. exists ptr_l. exists τ'.
+                    repeat (split; eauto).
+                    - erewrite memory_lookup_memory_set_neq; eauto.
+                    - eapply dtyp_fits_after_write; eauto.
+                    - intros i v0 H1.
+
+                      assert (fst ptr_l ≢ fst yptr).
+                      { eapply st_no_llvm_ptr_aliasing.
+                        5: eapply IDNEQ.
+                        eapply H.
+                        eapply Heqo0.
+                        all: eauto.
+                      }
+
+                      erewrite write_array_cell_untouched_ptr_block; eauto.
+                      constructor.
+                  }
+              }
+
+              { (* Local *)
+                destruct v0.
+                - epose proof (mem_is_inv _ _ _ _ H H0) as INV.
+                  cbn in INV.
+                  eauto.
+                - epose proof (mem_is_inv _ _ _ _ H H0) as INV.
+                  cbn in INV.
+                  eauto.
+                - epose proof (mem_is_inv _ _ _ _ H H0) as INV.
+                  cbn in INV.
+                  destruct INV as (bk & ptr_l & τ' & MLUP & TYP & FITS & LOCALS & GETCELL_ptr_l).
+
+                  pose proof (dtyp_fits_allocated yFITS) as yALLOC.
+                  epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
+                  pose proof WRITE_SUCCEEDS as WRITE'.
+                  erewrite WRITE_ARRAY in WRITE_SUCCEEDS.
+
+                  destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
+                  { exists (mem_add (MInt64asNT.to_nat dst) v ymembk). exists ptr_l. exists τ'.
+
+                    subst.
+                    assert (n1 ≡ y_p) by eauto.
+                    rewrite yLU in MLUP.
+                    inv MLUP.
+
+                    repeat (split; eauto).
+                    - eapply memory_lookup_memory_set_eq.
+                    - eapply dtyp_fits_after_write; eauto.
+                    - intros i v0 H1.
+                      rewrite LUn0 in H0.
+                      inversion H0; subst.
+
+                      rewrite yINLG in LOCALS.
+                      inversion LOCALS; subst.
+
+                      destruct (Nat.eq_dec (MInt64asNT.to_nat i) (MInt64asNT.to_nat dst)) as [EQdst | NEQdst].
+                      + rewrite EQdst in *.
+                        rewrite mem_lookup_mem_add_eq in H1; inv H1.
+
+                        change (UVALUE_Double v0) with (dvalue_to_uvalue (DVALUE_Double v0)).
+                        eapply write_array_cell_get_array_cell; eauto.
+                        constructor.
+                      + rewrite mem_lookup_mem_add_neq in H1; inv H1; eauto.
+                        erewrite write_array_cell_untouched; eauto.
+                        constructor.
+                        apply to_nat_unsigned; auto.
+                  }
+                  { exists bk. exists ptr_l. exists τ'.
+                    repeat (split; eauto).
+                    - erewrite memory_lookup_memory_set_neq; eauto.
+                    - eapply dtyp_fits_after_write; eauto.
+                    - intros i v0 H1.
+                      destruct (Eqv.eqv_dec_p id vy_p) as [EQid | NEQid].
+                      + unfold Eqv.eqv, eqv_raw_id in EQid.
+                        subst.
+
+                        assert (n1 ≡ y_p) by (eapply no_id_aliasing_n_eq; eauto).
+                        subst.
+                        rewrite Heqo0 in H.
+                        inversion H; subst; contradiction.
+                      + unfold Eqv.eqv, eqv_raw_id in NEQid.
+                        assert (fst ptr_l ≢ fst yptr).
+                        { assert (ID_Local id ≢ ID_Local vy_p) as NEQl.
+                          { intros CONTRA. inv CONTRA. contradiction. }
+
+                          (* May have to recover some things I rewrote / cbn'd *)
+                          eapply st_no_llvm_ptr_aliasing.
+                          5: eapply NEQl.
+                          eapply H.
+                          eapply Heqo0.
+                          all:eauto.
+                        }
+                        erewrite write_array_cell_untouched_ptr_block; eauto.
+                        constructor.
+                  }
+              }
+
+              { (* id_allocated *)
+                unfold id_allocated in *.
+                intros n1 addr0 val H.
+                specialize (st_id_allocated n1). cbn in *.
+                specialize (st_id_allocated _ _ H).
+                eapply mem_block_exists_memory_set; eauto.
+              }
+            - exists bid_in. reflexivity.
+            - assert (local_scope_modif s6 sf ρ l0); solve_local_scope_modif.
+          }
+        }
+      }
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+
+    - (* DSHLoop *)
+
+      (*
+      (* Require Import Correctness_While. *)
+      (* Import ProofMode. *)
+      Opaque add_comment.
+      Opaque dropVars.
+      Opaque newLocalVar.
+      Opaque genWhileLoop.
+      (* rewrite DSHLoop_interpreted_as_tfor. *)
+      cbn* in *; simp; cbn in *.
+      rewrite add_comment_eutt.
+      clean_goal.
+      rename i into s1, i0 into s2, i1 into s3, i2 into s4, i3 into s5, s2 into s6.
+
+      local_scope_modif s3 s4 li l
 
       pose proof
            @genWhileLoop_tfor_correct "Loop_loop" (Name ("Loop_i" @@ string_of_nat (local_count i0))) b b0 l nextblock bid_in
@@ -1883,7 +2789,7 @@ Section GenIR.
       {
         rename l into bodyV, b0 into entry_body.
 
-     
+
         (* Lemma genIR_entry_entry_in_bids : *)
 
 
@@ -1933,7 +2839,7 @@ Section GenIR.
                           | None => False
                           | Some (mH,tt) => state_invariant σ s2 mH stV
                           end)).
-      
+
       {
         clear GENC.
         cbn.
@@ -2089,7 +2995,7 @@ Section GenIR.
 
   (* (*   apply find_block_tail_wf. *) *)
   (* (*   admit. *) *)
-    
+
 
   (*   - admit. *)
   (*   - (* DSHSeq *) *)
@@ -2105,7 +3011,7 @@ Section GenIR.
   (*     rewrite add_comment_eutt. *)
   (*     cbn. *)
   (*     clean_goal. *)
-        
+
   (*     rewrite convert_typ_block_app. *)
   (*     rewrite denote_bks_app; eauto. *)
   (*     2: { *)
@@ -2198,7 +3104,7 @@ Section GenIR.
       simp.
       eutt_hide_right.
       repeat apply no_failure_Ret in NOFAIL.
-      repeat (edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto). 
+      repeat (edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto).
       rauto:L.
       all:eauto.
       Ltac rewrite_nth_error :=
@@ -2412,7 +3318,7 @@ Section GenIR.
         (* Prpoerty of genWhileLoop *)
         admit.
       }
-      assert (FRESH: fresh_in_cfg l0 nextblock). 
+      assert (FRESH: fresh_in_cfg l0 nextblock).
       {
         (* Property of? *)
         admit.
@@ -2439,7 +3345,7 @@ Section GenIR.
          *)
       admit.
       4: eassumption.
-      
+
     - (* DSHAlloc *) admit.
     - (* DSHMemInit *) admit.
     - (* DSHSeq *)

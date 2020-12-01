@@ -849,7 +849,7 @@ Definition genPower
           blk_phis  := [];
           blk_code  := [
                         (IId px,  INSTR_Op (OP_GetElementPtr
-                                              xtyp (xtyp, (EXP_Ident x))
+                                              xtyp (xptyp, (EXP_Ident x))
                                               [(IntType, EXP_Integer 0%Z);
                                                  (IntType, src_nexpr)]
 
@@ -957,7 +957,7 @@ Fixpoint genIR
           add_comment
             (genPower i o x y src_n dst_n n f initial nextblock)
         | DSHLoop n body =>
-          (* the following check ensures loop bound fits integer *)
+          (* the following check ensures loop bound fits integer. *)
           _ <- err2errS (MInt64asNT.from_nat n) ;;
           loopcontblock <- incBlockNamed "Loop_lcont" ;;
 
@@ -1375,8 +1375,6 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
   | mkFSHCOLProgram i o name globals op =>
     if valid_program p then
       if just_compile then
-        ginit <- genIRGlobals (FnBody:= block typ * list (block typ)) globals ;;
-
         (* While generate operator's function body, add parameters as
          locals X=PVar 1, Y=PVar 0.
 
@@ -1387,6 +1385,8 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
         let ytyp := TYPE_Pointer (getIRType (DSHPtr o)) in
 
         addVars [(ID_Local y, ytyp);(ID_Local x, xtyp)] ;;
+        ginit <- genIRGlobals (FnBody:= block typ * list (block typ)) globals ;;
+
         (* Γ := [y; x; fake_y; fake_x] *)
         prog <- LLVMGen i o op name ;;
         ret (ginit ++ prog)
