@@ -39,6 +39,7 @@ Require Export Helix.Util.ListUtil.
 Require Export Helix.Tactics.HelixTactics.
 
 Require Export Vellvm.Utils.Tactics.
+Require Export Vellvm.Utils.AListFacts.
 Require Export Vellvm.Utils.Util.
 Require Export Vellvm.Utils.PostConditions.
 Require Export Vellvm.Utils.NoFailure.
@@ -46,9 +47,11 @@ Require Export Vellvm.Utils.PropT.
 Require Export Vellvm.Syntax.LLVMAst.
 Require Export Vellvm.Syntax.CFG.
 Require Export Vellvm.Syntax.AstLib.
+Require Export Vellvm.Syntax.Scope.
 Require Export Vellvm.Syntax.DynamicTypes.
 Require Export Vellvm.Syntax.TypToDtyp.
 Require Export Vellvm.Syntax.Traversal.
+Require Export Vellvm.Syntax.SurfaceSyntax.
 Require Export Vellvm.Semantics.Denotation.
 Require Export Vellvm.Semantics.LLVMEvents.
 Require Export Vellvm.Semantics.TopLevel.
@@ -59,6 +62,7 @@ Require Export Vellvm.Theory.TopLevelRefinements.
 Require Export Vellvm.Theory.DenotationTheory.
 Require Export Vellvm.Theory.InstrLemmas.
 Require Export Vellvm.Theory.ExpLemmas.
+Require Export Vellvm.Theory.SymbolicInterpreter.
 
 Require Export ExtLib.Structures.Monads.
 Require Export ExtLib.Data.Map.FMapAList.
@@ -85,6 +89,8 @@ Require Export MathClasses.misc.decision.
 
 (* Require Export LibHyps.LibHyps. *)
 
+Import AlistNotations.
+
 Open Scope string_scope.
 Open Scope char_scope.
 
@@ -104,40 +110,6 @@ Open Scope nat_scope.
 Import ListNotations.
 Import MonadNotation.
 Local Open Scope monad_scope.
-
-(* Starting to toy around tactics to process proofs at a decent level of abstraction.
-   Very naive as is.
- *)
-
-(* When working with [denote_bks], we need to lookup for the block associated to
-   a given id. This tactic looks for the block, assuming that the identifiers
-   can be unified by [reflexivity] or [auto].
-
-   It generates on the way proof obligations of inequality with all the other block
-   identifiers encountered on the way. The intent is naturally to pair it with a
-   tactic discharging these proof obligations automatically, but this tactic should
-   depend on naming schemes.
-
-  *)
-Ltac find_block :=
-  match goal with
-    |- find_block _ (?bk::_) ?b' ≡ _ => 
-    first [rewrite find_block_eq; [| (reflexivity || auto)]; reflexivity | rewrite find_block_ineq; [find_block |]]
-  end.
-
-(* For when the next step is to process [denote_bks], and that we know the
-   identifier we are jumping to is in the list of blocks considered. *)
-Ltac jump_in := rewrite denote_bks_unfold_in; [| find_block].
-
-(* Similar in spirit: when processing a single Phi node, this tactic finds the
-   assignment that needs to be performed.
- *)
-Ltac find_phi :=
-  match goal with
-    |- context[denote_phi ?b (_,Phi _ ((?b,_)::_))] =>
-    rewrite denote_phi_hd
-  | _ =>  rewrite denote_phi_tl; [find_phi |]
-  end.
 
 Arguments IntType /.
 (* General purpose tactics.
@@ -282,8 +254,6 @@ Section EventTranslation.
 
 End EventTranslation.
 
-Notation "'with_cfg'"  := (@translate _ E_cfg (fun _ (x:void1 _) => match x with end)).
-Notation "'with_mcfg'" := (@translate _ E_mcfg (fun _ (x:void1 _) => match x with end)).
 Notation "'interp_cfg'"  := (interp_cfg_to_L3 defined_intrinsics).
 Notation "'interp_mcfg'" := (interp_to_L3 defined_intrinsics).
 
@@ -433,73 +403,6 @@ Infix "⩕" := conj_rel (at level 85, right associativity).
 Ltac introR :=
   intros [[?memH ?vH] |] (?memV & ?l & ?g & ?vV) ?PRE; [| now inv PRE].
 
-
-(** Long term dream: a cute proof mode in the spirit of Iris
-    For now, some naive notations to lighten the goal.
- *)
-
-(* A few print-only notations lightening the display of proof goals
-   Those are very dumb at the moment, please feel free to refine, modify or
-   simply comment about them.
- *)
-Module ProofNotations.
-
-  Export ITreeNotations.
-
-  Notation "⟦ b , p , c , t ⟧" := (fmap _ (mk_block b p c t _)) (only printing). 
-  Notation "e" := (EXP_Integer e) (at level 10,only printing). 
-  Notation "i" := (EXP_Ident i) (at level 10,only printing). 
-  Notation "x ← 'Φ' xs" := (x,Phi _ xs) (at level 10,only printing). 
-  Notation "'denote_blocks' '...' id " := (denote_bks _ id) (at level 10,only printing). 
-  Notation "'IRS' ctx" := (mkIRState _ _ _ ctx) (only printing, at level 10). 
-  Notation "x" := (with_cfg x) (only printing, at level 10). 
-  Notation "x" := (with_mcfg x) (only printing, at level 10). 
-  Notation "⟦ t ⟧ g l m" := (interp_cfg t g l m) (only printing, at level 10).
-  (* Notation "'CODE' c" := (denote_code c) (only printing, at level 10, format "'CODE' '//' c"). *)
-  Notation "c" := (denote_code c) (only printing, at level 10).
-  (* Notation "'INSTR' i" := (denote_instr i) (only printing, at level 10, format "'INSTR' '//' i"). *)
-  Notation "i" := (denote_instr i) (only printing, at level 10).
-  Notation "'ι' x" := (DTYPE_I x) (at level 10,only printing).
-  Notation "⋆" := (DTYPE_Pointer) (at level 10,only printing).
-  Notation "x" := (convert_typ _ x) (at level 10, only printing).
-  Notation "x" := (fmap (typ_to_dtyp _) x) (at level 10, only printing).
-  Notation "x" := (translate exp_E_to_instr_E (denote_exp _ x)) (only printing, at level 10). 
-  Notation "⟦ t ⟧ m" := (interp_helix t m) (only printing, at level 10).
-  
-  Notation "'ret' τ e" := (TERM_Ret (τ, e)) (at level 10, only printing).
-  Notation "'ret' 'void'" := (TERM_Ret_void) (at level 10, only printing).
-  Notation "'br' c ',' 'label' e ',' 'label' f" := (TERM_Br c e f) (at level 10, only printing).
-  Notation "'br' 'label' e" := (TERM_Br_1 e) (at level 10, only printing).
-
-  Notation "r '←' 'op' x" := ((IId r, INSTR_Op x)) (at level 10, only printing).
-  Notation "r '←' 'call' x args" := ((IId r, INSTR_Call x args)) (at level 10, only printing).
-  Notation "'call' x args" := ((IVoid, INSTR_Call x args)) (at level 10, only printing).
-  Notation "r '←' 'alloca' t" := ((IId r, INSTR_Alloca t _ _)) (at level 10, only printing).
-  Notation "r '←' 'load' t ',' e" := ((IId r, INSTR_Load _ t e _)) (at level 10, only printing).
-  Notation "r '←' 'store' e ',' f" := ((IId r, INSTR_Store _ e f _)) (at level 10, only printing).
-
-  Notation "'add' e f"  := (OP_IBinop (Add _ _) _ e f) (at level 10, only printing).
-  Notation "'sub' e f"  := (OP_IBinop (Sub _ _) _ e f) (at level 10, only printing).
-  Notation "'mul' e f"  := (OP_IBinop (Mul _ _) _ e f) (at level 10, only printing).
-  Notation "'shl' e f"  := (OP_IBinop (Shl _ _) _ e f) (at level 10, only printing).
-  Notation "'udiv' e f" := (OP_IBinop (UDiv _) _ e f)  (at level 10, only printing).
-  Notation "'sdiv' e f" := (OP_IBinop (SDiv _) _ e f)  (at level 10, only printing).
-  Notation "'lshr' e f" := (OP_IBinop (LShr _) _ e f)  (at level 10, only printing).
-  Notation "'ashr' e f" := (OP_IBinop (AShr _) _ e f)  (at level 10, only printing).
-  Notation "'urem' e f" := (OP_IBinop URem _ e f)      (at level 10, only printing).
-  Notation "'srem' e f" := (OP_IBinop SRem _ e f)      (at level 10, only printing).
-  Notation "'and' e f"  := (OP_IBinop And _ e f)       (at level 10, only printing).
-  Notation "'or' e f"   := (OP_IBinop Or _ e f)        (at level 10, only printing).
-  Notation "'xor' e f"  := (OP_IBinop Xor _ e f)       (at level 10, only printing).
-
-  Notation "t '======================' '======================' u '======================' '{' R '}'"
-    := (eutt R t u)
-         (only printing, at level 200,
-          format "'//' '//' t '//' '======================' '======================' '//' u '//' '======================' '//' '{' R '}'"
-         ).
-
-End ProofNotations.
-
 (** Proof automation *)
 
 Ltac unfolder_vellvm       := unfold Traversal.Endo_id.
@@ -541,15 +444,6 @@ Ltac inv_mem_lookup_err :=
 Ltac inv_memory_lookup_err :=
   unfold memory_lookup_err, trywith in *;
   break_match_hyp; cbn in *; try (inl_inr || inv_sum || inv_sum).
-
-(* with hypothesis name provided *)
-Tactic Notation "eutt_hide_rel" ident(hypname) :=
-  eutt_hide_rel_named hypname.
-
-(* with hypothesis name auto-generated *)
-Tactic Notation "eutt_hide_rel" :=
-  let H := fresh "EU" in
-  eutt_hide_rel_named H.
 
 Ltac hide_string_goal :=
   match goal with
@@ -782,154 +676,146 @@ Section InterpHelix.
 
 End InterpHelix.
 
-       
+(* YZ TODO: rename this into [break_prod] and move to vellvm *)
 Ltac break_and :=
   repeat match goal with
          | h: _ * _ |- _ => destruct h
          end.
 
-
-  (** **
+(** **
       TODO YZ : This needs to leave other hypotheses that H untouched
-   *)
-  Ltac simp_comp H :=
-    cbn in H; unfolder in H;
-    cbn in H; repeat (inv_sum || break_and || break_match_hyp).
+ *)
+Ltac simp_comp H :=
+  cbn in H; unfolder in H;
+  cbn in H; repeat (inv_sum || break_and || break_match_hyp).
 
-  Lemma subevent_subevent : forall {E F} `{E -< F} {X} (e : E X),
-      @subevent F F _ X (@subevent E F _ X e) ≡ subevent X e.
-  Proof.
-    reflexivity.
-  Qed.
+Variant Box (T: Type): Type := box (t: T).
+(* Protects from "direct" pattern matching but not from context one *)
+Ltac protect H := apply box in H.
+Ltac hide_string_hyp' H :=
+  match type of H with
+  | context [String ?x ?y] =>
+    let msg := fresh "msg" in
+    let eqmsg := fresh "EQ_msg" in
+    remember (String x y) as msg eqn:eqmsg; protect eqmsg
+  end.
 
-  Variant Box (T: Type): Type := box (t: T).
-  (* Protects from "direct" pattern matching but not from context one *)
-  Ltac protect H := apply box in H.
-  Ltac hide_string_hyp' H :=
-    match type of H with
-    | context [String ?x ?y] =>
-      let msg := fresh "msg" in
-      let eqmsg := fresh "EQ_msg" in
-      remember (String x y) as msg eqn:eqmsg; protect eqmsg
-    end.
+Ltac hide_strings' :=
+  repeat (
+      match goal with
+      | h: Box _ |- _ => idtac
+      | h: context [String ?x ?y] |- _ =>
+        let msg := fresh "msg" in
+        let eqmsg := fresh "EQ_msg" in
+        remember (String x y) as msg eqn:eqmsg;
+        protect eqmsg
+      | |- context [String ?x ?y] =>
+        let msg := fresh "msg" in
+        let eqmsg := fresh "EQ_msg" in
+        remember (String x y) as msg eqn:eqmsg;
+        protect eqmsg
+      end).
 
-  Ltac hide_strings' :=
-    repeat (
-        match goal with
-        | h: Box _ |- _ => idtac
-        | h: context [String ?x ?y] |- _ =>
-          let msg := fresh "msg" in
-          let eqmsg := fresh "EQ_msg" in
-          remember (String x y) as msg eqn:eqmsg;
-          protect eqmsg
-        | |- context [String ?x ?y] =>
-          let msg := fresh "msg" in
-          let eqmsg := fresh "EQ_msg" in
-          remember (String x y) as msg eqn:eqmsg;
-          protect eqmsg
-        end).
+Ltac forget_strings :=
+  repeat (
+      match goal with
+      | h: context [String ?x ?y] |- _ =>
+        let msg := fresh "msg" in
+        generalize (String x y) as msg
+      | |- context [String ?x ?y] =>
+        let msg := fresh "msg" in
+        generalize (String x y) as msg
+      end).
 
-  Ltac forget_strings :=
-    repeat (
-        match goal with
-        | h: context [String ?x ?y] |- _ =>
-          let msg := fresh "msg" in
-          generalize (String x y) as msg
-        | |- context [String ?x ?y] =>
-          let msg := fresh "msg" in
-          generalize (String x y) as msg
-        end).
+(* Autorewrite and hint databases for more modular rewriting. *)
+(* "Normalizing" rewriting hint database. *)
+Hint Rewrite @translate_bind : itree.
+Hint Rewrite @interp_bind : itree.
+Hint Rewrite @bind_bind : itree.
+Hint Rewrite @bind_ret_l : itree.
 
+Hint Rewrite @translate_ret : itree.
+Hint Rewrite @interp_ret : itree.
 
-  (* Autorewrite and hint databases for more modular rewriting. *)
-  (* "Normalizing" rewriting hint database. *)
-  Hint Rewrite @translate_bind : itree.
-  Hint Rewrite @interp_bind : itree.
-  Hint Rewrite @bind_bind : itree.
-  Hint Rewrite @bind_ret_l : itree.
-  
-  Hint Rewrite @translate_ret : itree.
-  Hint Rewrite @interp_ret : itree.
+Hint Rewrite @translate_trigger : itree.
+Hint Rewrite @interp_trigger : itree.
 
-  Hint Rewrite @translate_trigger : itree.
-  Hint Rewrite @interp_trigger : itree.
+Hint Rewrite interp_cfg_to_L3_bind : vellvm.
+Hint Rewrite interp_cfg_to_L3_ret : vellvm.
+Hint Rewrite interp_cfg_to_L3_GR : vellvm.
+Hint Rewrite interp_cfg_to_L3_LR : vellvm.
 
-  Hint Rewrite interp_cfg_to_L3_bind : vellvm.
-  Hint Rewrite interp_cfg_to_L3_ret : vellvm.
-  Hint Rewrite interp_cfg_to_L3_GR : vellvm.
-  Hint Rewrite interp_cfg_to_L3_LR : vellvm.
+Hint Rewrite @lookup_E_to_exp_E_Global : vellvm.
+Hint Rewrite @lookup_E_to_exp_E_Local : vellvm.
+Hint Rewrite @subevent_subevent : vellvm.
+Hint Rewrite @exp_E_to_instr_E_Global : vellvm.
+Hint Rewrite @exp_E_to_instr_E_Local : vellvm.
+Hint Rewrite @typ_to_dtyp_equation : vellvm.
+Hint Rewrite denote_code_nil : vellvm.
+Hint Rewrite denote_code_singleton : vellvm.
 
-  Hint Rewrite @lookup_E_to_exp_E_Global : vellvm.
-  Hint Rewrite @lookup_E_to_exp_E_Local : vellvm.
-  Hint Rewrite @subevent_subevent : vellvm.
-  Hint Rewrite @exp_E_to_instr_E_Global : vellvm.
-  Hint Rewrite @exp_E_to_instr_E_Local : vellvm.
-  Hint Rewrite @typ_to_dtyp_equation : vellvm.
-  Hint Rewrite denote_code_nil : vellvm.
-  Hint Rewrite denote_code_singleton : vellvm.
+Hint Rewrite interp_helix_bind : helix.
+Hint Rewrite interp_helix_Ret : helix.
+Hint Rewrite @interp_helix_MemLU : helix.
 
-  Hint Rewrite interp_helix_bind : helix.
-  Hint Rewrite interp_helix_Ret : helix.
-  Hint Rewrite @interp_helix_MemLU : helix.
-
-  Tactic Notation "rauto:R" :=
-    repeat (
+Tactic Notation "rauto:R" :=
+  repeat (
       match goal with
       | |- eutt _ ?t _ => let x := fresh in remember t as x;
-                                            autorewrite with itree;
-                                            autorewrite with vellvm;
-                                            autorewrite with helix; subst x
+                                          autorewrite with itree;
+                                          autorewrite with vellvm;
+                                          autorewrite with helix; subst x
       end
-      ).
+    ).
 
-  Tactic Notation "rauto:L" :=
-    repeat (
+Tactic Notation "rauto:L" :=
+  repeat (
       match goal with
       | |- eutt _ _ ?t => let x := fresh in remember t as x;
-                                            autorewrite with itree;
-                                            autorewrite with vellvm;
-                                            autorewrite with helix; subst x
+                                          autorewrite with itree;
+                                          autorewrite with vellvm;
+                                          autorewrite with helix; subst x
       end
-      ).
+    ).
 
-  Tactic Notation "rauto" := (repeat (autorewrite with itree; autorewrite with vellvm; autorewrite with helix)).
-  Tactic Notation "rauto" "in" hyp(h) :=
-    (repeat (autorewrite with itree in h; autorewrite with vellvm in h; autorewrite with helix in h)).
+Tactic Notation "rauto" := (repeat (autorewrite with itree; autorewrite with vellvm; autorewrite with helix)).
+Tactic Notation "rauto" "in" hyp(h) :=
+  (repeat (autorewrite with itree in h; autorewrite with vellvm in h; autorewrite with helix in h)).
 
-  (* We derive lemmas specialized to [interp_helix] to reason about [no_failure] and easily derive contradictions *)
-  Section Interp_Helix_No_Failure.
+(* We derive lemmas specialized to [interp_helix] to reason about [no_failure] and easily derive contradictions *)
+Section Interp_Helix_No_Failure.
 
-    Lemma no_failure_helix_Ret : forall E X x m,
-      no_failure (interp_helix (X := X) (E := E) (Ret x) m).
-    Proof.
-      intros.
-      rewrite interp_helix_ret. apply eutt_Ret; intros abs; inv abs.
-    Qed.
+  Lemma no_failure_helix_Ret : forall E X x m,
+    no_failure (interp_helix (X := X) (E := E) (Ret x) m).
+  Proof.
+    intros.
+    rewrite interp_helix_ret. apply eutt_Ret; intros abs; inv abs.
+  Qed.
 
-    Lemma failure_helix_throw : forall E X s m,
-        ~ no_failure (interp_helix (X := X) (E := E) (throw s) m).
-    Proof.
-      intros * abs.
-      unfold Exception.throw in *.
-      unfold interp_helix in *.
-      setoid_rewrite interp_Mem_vis_eqit in abs.
-      unfold pure_state in *; cbn in *.
-      rewrite interp_fail_bind in abs.
-      rewrite interp_fail_vis in abs.
-      cbn in *.
-      rewrite Eq.bind_bind, !bind_ret_l in abs.
-      rewrite translate_ret in abs.
-      eapply eutt_Ret in abs.
-      apply abs; auto.
-    Qed.
+  Lemma failure_helix_throw : forall E X s m,
+      ~ no_failure (interp_helix (X := X) (E := E) (throw s) m).
+  Proof.
+    intros * abs.
+    unfold Exception.throw in *.
+    unfold interp_helix in *.
+    setoid_rewrite interp_Mem_vis_eqit in abs.
+    unfold pure_state in *; cbn in *.
+    rewrite interp_fail_bind in abs.
+    rewrite interp_fail_vis in abs.
+    cbn in *.
+    rewrite Eq.bind_bind, !bind_ret_l in abs.
+    rewrite translate_ret in abs.
+    eapply eutt_Ret in abs.
+    apply abs; auto.
+  Qed.
 
-    Lemma failure_helix_throw' : forall E Y X s (k : Y -> _) m,
-        ~ no_failure (interp_helix (X := X) (E := E) (ITree.bind (throw s) k) m).
-    Proof.
-      intros * abs.
-      rewrite interp_helix_bind in abs.
-      eapply no_failure_bind_prefix, failure_helix_throw in abs; auto.
-    Qed.
+  Lemma failure_helix_throw' : forall E Y X s (k : Y -> _) m,
+      ~ no_failure (interp_helix (X := X) (E := E) (ITree.bind (throw s) k) m).
+  Proof.
+    intros * abs.
+    rewrite interp_helix_bind in abs.
+    eapply no_failure_bind_prefix, failure_helix_throw in abs; auto.
+  Qed.
 
     Lemma no_failure_helix_bind_prefix : forall {E X Y} (t : itree _ X) (k : X -> itree _ Y) m,
         no_failure (interp_helix (E := E) (ITree.bind t k) m) ->

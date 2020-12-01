@@ -425,6 +425,15 @@ Section Inputs.
     rewrite IHa; reflexivity.
   Qed.
 
+  (* TODO: Move this to Vellvm *)
+  Lemma convert_typ_app_ocfg :
+    forall (a b : ocfg typ) (env : list (ident * typ)),
+      convert_typ env (a ++ b)%list ≡ (convert_typ env a ++ convert_typ env b)%list.
+  Proof.
+    intros F H a.
+    apply convert_typ_app_list.
+  Qed.
+
   (* TODO: move this *)
   Lemma add_comment_inputs :
     forall (bs : list (LLVMAst.block typ)) env (comments : list string),
@@ -446,7 +455,7 @@ Section Inputs.
     all: try (solve [big_solve]).
     - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
 
-      rewrite convert_typ_app_list.
+      rewrite convert_typ_app_ocfg.
 
       (* TODO: clean this up *)
       unfold fmap.
@@ -474,7 +483,7 @@ Section Inputs.
         block_count_replace.
         lia.
     - rewrite add_comment_inputs.
-      rewrite convert_typ_app_list.
+      rewrite convert_typ_app_ocfg.
 
       unfold inputs.
       setoid_rewrite map_app.
@@ -544,6 +553,11 @@ Section Outputs.
     solve_block_count.
   Qed.
 
+Opaque incBlockNamed.
+Opaque incVoid.
+Opaque incLocal.
+
+
   (* TODO: move this? *)
   Lemma add_comment_outputs :
     forall (bs : list (LLVMAst.block typ)) env (comments : list string),
@@ -566,8 +580,8 @@ Section Outputs.
     - cbn.
       clear BACKUP_GEN.
       cbn* in *; simp.
-      rename i into s1.
-      rewrite convert_typ_app_list.
+      rename i into s1, i6 into s2.
+      rewrite convert_typ_app_ocfg.
       rewrite fold_left_app.
       cbn.
       clean_goal.
@@ -643,7 +657,7 @@ Section Outputs.
         * eapply WEAKEN.
         * eauto.
     - rewrite add_comment_outputs.
-      rewrite convert_typ_app_list.
+      rewrite convert_typ_app_ocfg.
       setoid_rewrite outputs_app.
       apply Forall_app.
       split.

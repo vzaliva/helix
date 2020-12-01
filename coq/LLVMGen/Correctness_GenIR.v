@@ -23,7 +23,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
 Arguments add_comment /.
 Arguments add_comments /.
-Lemma wf_cfg_singleton : forall {T} (b : _ T), wf_cfg [b].
+Lemma wf_ocfg_bid_singleton : forall {T} (b : _ T), wf_ocfg_bid [b].
 Proof.
   intros.
   red.
@@ -31,10 +31,10 @@ Proof.
   eapply Coqlib.list_norepet_nil.
 Qed.
 
-Lemma wf_cfg_cons' : forall {T} (b : _ T) bks,
+Lemma wf_ocfg_bid_cons' : forall {T} (b : _ T) bks,
     ¬ In (blk_id b) (map blk_id bks) ->
-    wf_cfg bks ->
-    wf_cfg (b :: bks).
+    wf_ocfg_bid bks ->
+    wf_ocfg_bid (b :: bks).
 Proof.
   intros.
   eapply Coqlib.list_norepet_cons; eauto.
@@ -66,17 +66,17 @@ Ltac get_block_count_hyps :=
    The proof is extremely messy, and still has some admits, but conceptually is shouldn't be hard.
  *)
 Transparent incBlockNamed.
-Lemma generates_wf_cfgs :
+Lemma generates_wf_ocfg_bids :
   ∀ (op : DSHOperator) (s1 s2 : IRState) (nextblock b : block_id) (bk_op : list (LLVMAst.block typ)),
     bid_bound s1 nextblock ->
     genIR op nextblock s1 ≡ inr (s2, (b, bk_op)) →
-    wf_cfg bk_op.
+    wf_ocfg_bid bk_op.
 Proof.
   induction op; intros * NEXT GEN.
   - cbn* in *; simp; cbn.
-    eapply wf_cfg_singleton.
+    eapply wf_ocfg_bid_singleton.
   - cbn* in *; simp; cbn in *.
-    eapply wf_cfg_singleton.
+    eapply wf_ocfg_bid_singleton.
   - destruct NEXT as (? & [?bid ? ? ?] & [?bid ? ? ?] & ? & ? & ?).
     cbn* in *.
     simp.
@@ -87,28 +87,28 @@ Proof.
            | h: IRState |- _ => destruct h as [?bid ? ? ?]
            end; cbn in *.
     subst.
-    eapply wf_cfg_cons'.
+    eapply wf_ocfg_bid_cons'.
     { cbn.
       intuition;
         match goal with
         | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
         end.
     }
-    eapply wf_cfg_cons'.
+    eapply wf_ocfg_bid_cons'.
     { cbn.
       intuition;
         match goal with
         | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
         end.
     }
-    eapply wf_cfg_cons'.
+    eapply wf_ocfg_bid_cons'.
     { cbn.
       intuition;
         match goal with
         | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
         end.
     }
-    eapply wf_cfg_singleton.
+    eapply wf_ocfg_bid_singleton.
   - destruct NEXT as (? & [?bid ? ? ?] & [?bid ? ? ?] & ? & ? & ?).
     cbn* in *.
     simp.
@@ -119,28 +119,28 @@ Proof.
            | h: IRState |- _ => destruct h as [?bid ? ? ?]
            end; cbn in *.
     subst.
-    eapply wf_cfg_cons'.
+    eapply wf_ocfg_bid_cons'.
     { cbn.
       intuition;
         match goal with
         | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
         end.
     }
-    eapply wf_cfg_cons'.
+    eapply wf_ocfg_bid_cons'.
     { cbn.
       intuition;
         match goal with
         | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
         end.
     }
-    eapply wf_cfg_cons'.
+    eapply wf_ocfg_bid_cons'.
     { cbn.
       intuition;
         match goal with
         | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
         end.
     }
-    eapply wf_cfg_singleton.
+    eapply wf_ocfg_bid_singleton.
 
   - destruct NEXT as (? & [?bid ? ? ?] & [?bid ? ? ?] & ? & ? & ?).
     cbn* in *.
@@ -152,28 +152,28 @@ Proof.
            | h: IRState |- _ => destruct h as [?bid ? ? ?]
            end; cbn in *.
     subst.
-    eapply wf_cfg_cons'.
+    eapply wf_ocfg_bid_cons'.
     { cbn.
       intuition;
         match goal with
         | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
         end.
     }
-    eapply wf_cfg_cons'.
+    eapply wf_ocfg_bid_cons'.
     { cbn.
       intuition;
         match goal with
         | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
         end.
     }
-    eapply wf_cfg_cons'.
+    eapply wf_ocfg_bid_cons'.
     { cbn.
       intuition;
         match goal with
         | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
         end.
     }
-    eapply wf_cfg_singleton.
+    eapply wf_ocfg_bid_singleton.
 
   - destruct NEXT as (? & [?bid ? ? ?] & [?bid ? ? ?] & ? & ? & ?).
     cbn* in *.
@@ -185,28 +185,28 @@ Proof.
            | h: IRState |- _ => destruct h as [?bid ? ? ?]
            end; cbn in *.
     subst.
-    eapply wf_cfg_cons'.
+    eapply wf_ocfg_bid_cons'.
     { cbn.
       intuition;
         match goal with
         | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
         end.
     }
-    eapply wf_cfg_cons'.
+    eapply wf_ocfg_bid_cons'.
     { cbn.
       intuition;
         match goal with
         | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
         end.
     }
-    eapply wf_cfg_cons'.
+    eapply wf_ocfg_bid_cons'.
     { cbn.
       intuition;
         match goal with
         | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
         end.
     }
-    eapply wf_cfg_singleton.
+    eapply wf_ocfg_bid_singleton.
 
   - cbn* in *.
     simp.
@@ -224,7 +224,7 @@ Proof.
     cbn in *.
     simp.
     cbn in *.
-    eapply wf_cfg_cons'.
+    eapply wf_ocfg_bid_cons'.
     { cbn.
       intuition.
       match goal with
@@ -274,12 +274,10 @@ Proof.
     }
     generalize GEN; intros WF;
     apply IHop in WF; auto; clear IHop.
-    apply wf_cfg_cons'; auto; clear WF.
+    apply wf_ocfg_bid_cons'; auto; clear WF.
     cbn.
     cbn in *; intros abs; apply ListUtil.in_map_elim in abs as (? & ? & ?).
-    Transparent incVoid. cbn in Heqs2; inv Heqs2. Opaque incVoid.
     cbn in *.
-    clear BOUND H Heql0.
     clean_goal.
     (* A bit lost *)
     admit.
@@ -294,7 +292,6 @@ Proof.
     (* apply in_map; auto. *)
     (* clear BOUND. *)
 Admitted.
-
 Opaque incBlockNamed.
 
 Section GenIR.
@@ -356,7 +353,7 @@ Section GenIR.
         subst_contexts;
         auto.
     - inversion Heqs; subst.
-      apply incBlockNamed_Γ in Heqs3.
+      apply incBlockNamed_Γ in Heqs1.
       subst_contexts.
       rewrite <- Heqs0 in Heql1.
       inversion Heql1.
@@ -372,7 +369,7 @@ Section GenIR.
   (* TODO: Move *)
   Lemma add_comment_eutt :
     forall comments bks ids,
-      denote_bks (convert_typ [] (add_comment bks comments)) ids ≈ denote_bks (convert_typ [] bks) ids.
+      denote_ocfg (convert_typ [] (add_comment bks comments)) ids ≈ denote_ocfg (convert_typ [] bks) ids.
   Proof.
     intros comments bks ids.
     induction bks.
@@ -380,8 +377,8 @@ Section GenIR.
     - cbn.
       destruct ids as (bid_from, bid_src); cbn.
       match goal with
-      | |- context[denote_bks ?bks (_, ?bid_src)] =>
-        destruct (find_block dtyp bks bid_src) eqn:FIND
+      | |- context[denote_ocfg ?bks (_, ?bid_src)] =>
+        destruct (find_block bks bid_src) eqn:FIND
       end.
   Admitted.
 
@@ -389,8 +386,8 @@ Section GenIR.
   (* Could probably have something more general... *)
   Lemma add_comments_eutt :
     forall bk comments bids,
-      denote_bks
-        [fmap (typ_to_dtyp [ ]) (add_comments bk comments)] bids ≈ denote_bks [fmap (typ_to_dtyp [ ]) bk] bids.
+      denote_ocfg
+        [fmap (typ_to_dtyp [ ]) (add_comments bk comments)] bids ≈ denote_ocfg [fmap (typ_to_dtyp [ ]) bk] bids.
   Proof.
     intros bk comments bids.
   Admitted.
@@ -414,6 +411,7 @@ Section GenIR.
     auto.
   Qed.
 
+  Infix "⊍" := Coqlib.list_disjoint (at level 60).
   (* TODO: move, add a file for disjoint list stuff? *)
   Lemma Forall_disjoint :
     forall {A} (l1 l2 : list A) (P1 P2 : A -> Prop),
@@ -510,6 +508,7 @@ Section GenIR.
   (*   - cbn in *. *)
   (* Qed. *)
 
+  Import AlistNotations.
   Definition freshness (s1 s2 : IRState) (l1 : local_env) : local_env -> Prop :=
     fun l2 =>
       l1 ⊑ l2 /\
@@ -1108,7 +1107,7 @@ Section GenIR.
       no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ op) memH) -> (* Evaluation succeeds *)
       eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ))
            (interp_helix (denoteDSHOperator σ op) memH)
-           (interp_cfg (D.denote_bks (convert_typ [] bks) (bid_from,bid_in))
+           (interp_cfg (D.denote_ocfg (convert_typ [] bks) (bid_from,bid_in))
                        g ρ memV).
   Proof.
     intros s1 s2 op; revert s1 s2; induction op; intros * GEN NEXT PRE GAM NOFAIL.
@@ -1126,7 +1125,7 @@ Section GenIR.
       vred.
       vred.
 
-      rewrite denote_bks_unfold_not_in; cycle 1.
+      rewrite denote_ocfg_unfold_not_in; cycle 1.
       {
         (* TODO: auto and part of vjmp_out *)
         rewrite find_block_ineq; [apply find_block_nil | cbn].
@@ -1192,9 +1191,8 @@ Section GenIR.
       edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
       rename s1 into si, s2 into sf,
       i5 into s1, i6 into s2,
-      i8 into s3, i10 into s4,
-      i11 into s5, i12 into s6,
-      i13 into s7.
+      i8 into s3, i9 into s4,
+      i10 into s5, i11 into s6.
       rename n1 into x_p, n2 into y_p.
       rename a into x_i, a0 into y_i.
       rename x0 into y.
@@ -1314,7 +1312,7 @@ Section GenIR.
               solve_local_scope_preserved.
             - destruct PRE2.
               (* TODO: can we automate this better? *)
-              assert (Γ si ≡ Γ s7) as GAMsisf by solve_gamma.
+              assert (Γ si ≡ Γ s6) as GAMsisf by solve_gamma.
               eapply Gamma_preserved_Gamma_eq. eapply GAMsisf.
               eapply Gamma_preserved_if_safe with (s2:=sf); eauto.
               solve_local_scope_modif.
@@ -1362,7 +1360,7 @@ Section GenIR.
           { vstep.
             rewrite denote_term_br_1.
             vstep.
-            rewrite denote_bks_unfold_not_in.
+            rewrite denote_ocfg_unfold_not_in.
             2: {
               (* TODO: Add a subst_cfg *)
               destruct VG; subst.
@@ -1691,7 +1689,7 @@ Section GenIR.
             - exists bid_in. reflexivity.
 
             - (* The only local variables modified are in [si;sf] *)
-              assert (local_scope_modif s6 sf ρ l0); solve_local_scope_modif.
+              assert (local_scope_modif s5 sf ρ l0); solve_local_scope_modif.
           }
         }
 
@@ -1761,7 +1759,7 @@ Section GenIR.
             vstep.
             rewrite denote_term_br_1.
             vstep.
-            rewrite denote_bks_unfold_not_in.
+            rewrite denote_ocfg_unfold_not_in.
             2: {
               (* TODO: Add a subst_cfg *)
               destruct VG; subst.
@@ -1990,7 +1988,7 @@ Section GenIR.
                 eapply mem_block_exists_memory_set; eauto.
               }
             - exists bid_in. reflexivity.
-            - assert (local_scope_modif s6 sf ρ l0); solve_local_scope_modif.
+            - assert (local_scope_modif s5 sf ρ l0); solve_local_scope_modif.
           }
         }
       }
@@ -1999,7 +1997,7 @@ Section GenIR.
         edestruct denote_instr_gep_array as (ptr' & READ & EQ); cycle -1; [rewrite EQ; clear EQ | ..]; cycle 1.
         3: apply GETCELL.
         { vstep; cbn; try reflexivity.
-          assert (local_scope_modif s6 sf ρ l0) by solve_local_scope_modif.
+          assert (local_scope_modif s5 sf ρ l0) by solve_local_scope_modif.
           assert (in_Gamma σ si vx_p) by solve_in_gamma.
           rewrite <- INLG.
           destruct PRE2.
@@ -2081,7 +2079,7 @@ Section GenIR.
               solve_local_scope_preserved.
             - destruct PRE2.
               (* TODO: can we automate this better? *)
-              assert (Γ si ≡ Γ s7) as GAMsisf by solve_gamma.
+              assert (Γ si ≡ Γ s6) as GAMsisf by solve_gamma.
               eapply Gamma_preserved_Gamma_eq. eapply GAMsisf.
               eapply Gamma_preserved_if_safe with (s2:=sf); eauto.
               solve_local_scope_modif.
@@ -2129,7 +2127,7 @@ Section GenIR.
           { vstep.
             rewrite denote_term_br_1.
             vstep.
-            rewrite denote_bks_unfold_not_in.
+            rewrite denote_ocfg_unfold_not_in.
             2: {
               (* TODO: Add a subst_cfg *)
               destruct VG; subst.
@@ -2457,7 +2455,7 @@ Section GenIR.
             - exists bid_in. reflexivity.
 
             - (* The only local variables modified are in [si;sf] *)
-              assert (local_scope_modif s6 sf ρ l0); solve_local_scope_modif.
+              assert (local_scope_modif s5 sf ρ l0); solve_local_scope_modif.
           }
         }
 
@@ -2527,7 +2525,7 @@ Section GenIR.
             vstep.
             rewrite denote_term_br_1.
             vstep.
-            rewrite denote_bks_unfold_not_in.
+            rewrite denote_ocfg_unfold_not_in.
             2: {
               (* TODO: Add a subst_cfg *)
               destruct VG; subst.
@@ -2756,7 +2754,7 @@ Section GenIR.
                 eapply mem_block_exists_memory_set; eauto.
               }
             - exists bid_in. reflexivity.
-            - assert (local_scope_modif s6 sf ρ l0); solve_local_scope_modif.
+            - assert (local_scope_modif s5 sf ρ l0); solve_local_scope_modif.
           }
         }
       }
@@ -2798,7 +2796,7 @@ Section GenIR.
       }
       forward GENC; [clear GENC |].
       {
-        (* wf_cfg of the graph generated by genWhileLopo *)
+        (* wf_ocfg_bid of the graph generated by genWhileLopo *)
         admit.
       }
       forward GENC; [clear GENC |].
@@ -3013,7 +3011,7 @@ Section GenIR.
   (*     clean_goal. *)
 
   (*     rewrite convert_typ_block_app. *)
-  (*     rewrite denote_bks_app; eauto. *)
+  (*     rewrite denote_ocfg_app; eauto. *)
   (*     2: { *)
   (*       unfold no_reentrance. *)
   (*       pose proof GEN_OP1 as GEN_OP1'. *)
@@ -3124,11 +3122,11 @@ Section GenIR.
       repeat rewrite fmap_list_app.
       cbn.
       match goal with
-        |- context[denote_bks ?x] =>
+        |- context[denote_ocfg ?x] =>
         remember x as bks
       end.
 (*
-      erewrite denote_bks_unfold.
+      erewrite denote_ocfg_unfold.
       2:{
         subst; cbn.
         clear.
@@ -3172,7 +3170,7 @@ Section GenIR.
         2:cbn; admit.
         norm_v.
         (* loopblock  *)
-        rewrite denote_bks_unfold.
+        rewrite denote_ocfg_unfold.
         2:{
           cbn.
           match goal with
@@ -3232,11 +3230,11 @@ Section GenIR.
       unfold add_comments.
       cbn.
       match goal with
-        |- context[denote_bks ?x] =>
+        |- context[denote_ocfg ?x] =>
         remember x as bks
       end.
       (* Lemma about while loop instead *)
-      (* erewrite denote_bks_unfold. *)
+      (* erewrite denote_ocfg_unfold. *)
       (* 2:{ *)
       (*   subst; cbn. *)
       (*   destruct (Eqv.eqv_dec_p bid_in bid_in).  *)
@@ -3362,7 +3360,7 @@ Section GenIR.
       rewrite add_comment_eutt.
       cbn.
       rewrite convert_typ_block_app.
-      rewrite denote_bks_app; eauto.
+      rewrite denote_ocfg_app; eauto.
       2: {
         unfold no_reentrance.
         pose proof GEN_OP1 as GEN_OP1'.

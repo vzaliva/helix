@@ -37,7 +37,7 @@ Hint Resolve incLocal_lt : irs_lt.
     (for the sequence case), hence forcing us to explicitly reason about windows of
     freshness
  *)
-
+Import AlistNotations.
 Definition extends (s1 s2 : IRState) (l1 : local_env) : local_env -> Prop :=
   fun l2 =>
     l1 ⊑ l2 /\
@@ -665,7 +665,7 @@ Ltac solve_alist_fresh :=
 (* Tactic to solve goals of the shape l ⊑ l' *)
 Ltac solve_sub_alist :=
   (reflexivity
-   || (apply sub_alist_add; solve_alist_fresh)
+   || (apply alist_le_add; solve_alist_fresh)
    || (etransitivity; try eassumption; []; solve_sub_alist)
   ).
 

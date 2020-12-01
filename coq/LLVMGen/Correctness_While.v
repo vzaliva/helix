@@ -404,22 +404,22 @@ Qed.
 
 (* TODO: Move to Vellvm Denotation_Theory.v? *)
 
-Definition disjoint_bid_blocks {T : Set} (b b' : list ((LLVMAst.block T))) :=
-  block_ids b ⊍ block_ids b'.
+(* Definition disjoint_bid_blocks {T : Set} (b b' : list ((LLVMAst.block T))) := *)
+(*   block_ids b ⊍ block_ids b'. *)
 
-Lemma disjoint_bid_blocks_not_in_r {T : Set} (b b' : list (LLVMAst.block T)) :
-  disjoint_bid_blocks b b' ->
-  forall x, In x (block_ids b) -> ~ In x (block_ids b').
-Proof.
-  intros; eauto using Coqlib.list_disjoint_notin, Coqlib.list_disjoint_sym.
-Qed.
+(* Lemma disjoint_bid_blocks_not_in_r {T : Set} (b b' : list (LLVMAst.block T)) : *)
+(*   disjoint_bid_blocks b b' -> *)
+(*   forall x, In x (block_ids b) -> ~ In x (block_ids b'). *)
+(* Proof. *)
+(*   intros; eauto using Coqlib.list_disjoint_notin, Coqlib.list_disjoint_sym. *)
+(* Qed. *)
 
-Lemma disjoint_bid_blocks_not_in_l {T : Set} (b b' : list (LLVMAst.block T)) :
-  disjoint_bid_blocks b b' ->
-  forall x, In x (block_ids b') -> ~ In x (block_ids b).
-Proof.
-  intros; eauto using Coqlib.list_disjoint_notin, Coqlib.list_disjoint_sym.
-Qed.
+(* Lemma disjoint_bid_blocks_not_in_l {T : Set} (b b' : list (LLVMAst.block T)) : *)
+(*   disjoint_bid_blocks b b' -> *)
+(*   forall x, In x (block_ids b') -> ~ In x (block_ids b). *)
+(* Proof. *)
+(*   intros; eauto using Coqlib.list_disjoint_notin, Coqlib.list_disjoint_sym. *)
+(* Qed. *)
 
 Lemma fold_left_acc_app : forall {a t} (l : list t) (f : t -> list a) acc,
     (fold_left (fun acc bk => acc ++ f bk) l acc ≡
@@ -432,12 +432,6 @@ Proof.
     rewrite app_assoc.
     reflexivity.
 Qed.
-
-Definition stable_exp_local (R: Rel_cfg) : Prop :=
-    forall memH memV ρ1 ρ2 g,
-      R memH (memV, (ρ1, g)) ->
-      ρ1 ⊑ ρ2 ->
-      R memH (memV, (ρ2, g)).
 
 (* Useful lemmas about rcompose. TODO: Move? *)
 Lemma rcompose_eq_r :
@@ -623,6 +617,7 @@ Proof.
   1,2:unfold max_unsigned; lia.
 Qed.
 
+Import AlistNotations.
 Lemma alist_find_eq:
   ∀ (K V : Type) (RR : RelDec Logic.eq),
     RelDec_Correct RR → ∀ (m : alist K V) (k : K) (v : V), alist_add k v m @ k ≡ Some v.
@@ -688,12 +683,12 @@ Lemma genWhileLoop_tfor_ind:
     (s1 s2 : IRState)
     (bks : list (LLVMAst.block typ)) ,
 
-    In body_entry (block_ids body_blocks) ->
+    In body_entry (inputs body_blocks) ->
 
     (* All labels generated are distinct *)
-    wf_cfg bks ->
+    wf_ocfg_bid bks ->
 
-    fresh_in_cfg bks nextblock -> 
+    free_in_cfg bks nextblock -> 
 
     forall (n : nat)                     (* Number of iterations *)
 
@@ -726,7 +721,7 @@ Lemma genWhileLoop_tfor_ind:
                  (exists _label', x ≡ inl (_label', loopcontblock)) /\
                  I (S k) (* a *) a' (memV, (l, g))))
             (bodyF k a)
-            (interp_cfg (denote_bks (convert_typ [] body_blocks) (_label, body_entry)) g l mV)
+            (interp_cfg (denote_ocfg (convert_typ [] body_blocks) (_label, body_entry)) g l mV)
       ) ->
 
       (* Invariant is stable under the administrative bookkeeping that the loop performs *)
@@ -753,7 +748,7 @@ Lemma genWhileLoop_tfor_ind:
               I n a (memV,(l,g))
            )
            (tfor bodyF j n a) 
-           (interp_cfg (denote_bks (convert_typ [] bks)
+           (interp_cfg (denote_ocfg (convert_typ [] bks)
                                                 (_label, loopcontblock)) g l mV).
 Proof.
   intros * IN UNIQUE_IDENTS NEXTBLOCK_ID * GEN A LVAR_FRESH *.
@@ -768,8 +763,8 @@ Proof.
     intros  BOUND * (INV & LOOPVAR).
     (* Import ProofMode. *)
     (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
-    apply wf_cfg_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
-    apply fresh_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_block_app in NEXTBLOCK_ID.
+    apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
+    apply free_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_block_app in NEXTBLOCK_ID.
     cbn; rewrite ?convert_typ_block_app.
     hide_cfg.
     (* We jump into [loopcontblock]
@@ -830,8 +825,8 @@ Proof.
   - (* Inductive case *)
     cbn in *. intros [LT LE] * (INV & LOOPVAR).
     (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
-    apply wf_cfg_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
-    apply fresh_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_block_app in NEXTBLOCK_ID.
+    apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
+    apply free_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_block_app in NEXTBLOCK_ID.
     cbn; rewrite ?convert_typ_block_app.
     cbn in IH; rewrite ?convert_typ_block_app in IH.
     hide_cfg.
@@ -919,7 +914,7 @@ Proof.
 
     (* In order to use our body hypothesis, we need to restrict the ambient cfg to only the body *)
     inv VG.
-    rewrite denote_bks_prefix; cycle 1; auto.
+    rewrite denote_ocfg_prefix; cycle 1; auto.
     {
       match goal with
         |- ?x::?y::?z ≡ _ => replace (x::y::z) with ([x;y]++z)%list by reflexivity
@@ -963,12 +958,12 @@ Lemma genWhileLoop_tfor_correct:
     (s1 s2 : IRState) 
     (bks : list (LLVMAst.block typ)) ,
 
-    In body_entry (block_ids body_blocks) ->
+    In body_entry (inputs body_blocks) ->
 
     (* All labels generated are distinct *)
-    wf_cfg bks ->
+    wf_ocfg_bid bks ->
 
-    fresh_in_cfg bks nextblock ->
+    free_in_cfg bks nextblock ->
 
     forall (n : nat)                     (* Number of iterations *)
       
@@ -998,7 +993,7 @@ Lemma genWhileLoop_tfor_correct:
                  (exists _label', x ≡ inl (_label', loopcontblock)) /\
                  I (S k) (* a *) a' (memV, (l, g))))
             (bodyF k a)
-            (interp_cfg (denote_bks (convert_typ [] body_blocks) (_label, body_entry)) g l mV)
+            (interp_cfg (denote_ocfg (convert_typ [] body_blocks) (_label, body_entry)) g l mV)
       ) ->
 
 
@@ -1037,7 +1032,7 @@ Lemma genWhileLoop_tfor_correct:
                x ≡ inl (entry_id, nextblock)) /\
               Q a (memV,(l,g)))
            (tfor bodyF 0 n a) 
-           (interp_cfg (denote_bks (convert_typ [] bks) (_label ,entry_id)) g l mV).
+           (interp_cfg (denote_ocfg (convert_typ [] bks) (_label ,entry_id)) g l mV).
 Proof. 
 
   intros * IN UNIQUE EXIT * GEN * BOUND * IND STABLE pre post IMPSTATE IND_INV * PRE.
@@ -1049,7 +1044,7 @@ Proof.
   - (* 0th index *)
     cbn.
 
-    apply fresh_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_block_app in EXIT.
+    apply free_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_block_app in EXIT.
     cbn; rewrite ?convert_typ_block_app.
     cbn in GEN_IND; rewrite ?convert_typ_block_app in GEN_IND.
 
@@ -1084,8 +1079,8 @@ Proof.
   - cbn in *.
 
     (* Clean up convert_typ junk *)
-    apply fresh_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_block_app in EXIT.
-    apply wf_cfg_convert_typ with (env := []) in UNIQUE; cbn in UNIQUE; rewrite ?convert_typ_block_app in UNIQUE.
+    apply free_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_block_app in EXIT.
+    apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE; cbn in UNIQUE; rewrite ?convert_typ_block_app in UNIQUE.
     cbn; rewrite ?convert_typ_block_app.
     cbn in GEN_IND; rewrite ?convert_typ_block_app in GEN_IND.
 
@@ -1140,7 +1135,7 @@ Proof.
     vred.
     inv VG.
 
-    rewrite denote_bks_prefix; cycle 1; auto.
+    rewrite denote_ocfg_prefix; cycle 1; auto.
     {
       match goal with
         |- ?x::?y::?z ≡ _ => replace (x::y::z) with ([x;y]++z)%list by reflexivity
@@ -1182,13 +1177,13 @@ Lemma genWhileLoop_tfor_ind:
     (s1 s2 sb1 sb2 : IRState)
     (bks : list (LLVMAst.block typ)) ,
 
-    In body_entry (block_ids body_blocks) ->
+    In body_entry (inputs body_blocks) ->
 
     is_correct_prefix prefix ->
     (* All labels generated are distinct *)
-    wf_cfg bks ->
+    wf_ocfg_bid bks ->
 
-    fresh_in_cfg bks nextblock -> 
+    free_in_cfg bks nextblock -> 
 
     forall (n : nat)                     (* Number of iterations *)
 
@@ -1222,7 +1217,7 @@ Lemma genWhileLoop_tfor_ind:
                I (S k) a' (memV, (l, g)) /\
                local_scope_modif sb1 sb2 li l)
             (bodyF k a)
-            (interp_cfg (denote_bks (convert_typ [] body_blocks) (_label, body_entry)) g li mV)
+            (interp_cfg (denote_ocfg (convert_typ [] body_blocks) (_label, body_entry)) g li mV)
       ) ->
       
       (* Invariant is stable under the administrative bookkeeping that the loop performs *)
@@ -1252,7 +1247,7 @@ Lemma genWhileLoop_tfor_ind:
               local_scope_modif sb1 s2 li l
            )
            (tfor bodyF j n a) 
-           (interp_cfg (denote_bks (convert_typ [] bks)
+           (interp_cfg (denote_ocfg (convert_typ [] bks)
                                                 (_label, loopcontblock)) g li mV).
 Proof.
   intros * IN PREFIX UNIQUE_IDENTS NEXTBLOCK_ID * GEN *. 
@@ -1267,8 +1262,8 @@ Proof.
     intros  BOUND * (INV & LOOPVAR).
     (* Import ProofMode. *)
     (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
-    apply wf_cfg_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
-    apply fresh_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_block_app in NEXTBLOCK_ID.
+    apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
+    apply free_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_block_app in NEXTBLOCK_ID.
     cbn; rewrite ?convert_typ_block_app.
     hide_cfg.
     (* We jump into [loopcontblock]
@@ -1349,8 +1344,8 @@ Proof.
   - (* Inductive case *)
     cbn in *. intros [LT LE] * (INV & LOOPVAR).
     (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
-    apply wf_cfg_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
-    apply fresh_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_block_app in NEXTBLOCK_ID.
+    apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
+    apply free_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_block_app in NEXTBLOCK_ID.
     cbn; rewrite ?convert_typ_block_app.
     cbn in IH; rewrite ?convert_typ_block_app in IH.
     hide_cfg.
@@ -1438,7 +1433,7 @@ Proof.
 
     (* In order to use our body hypothesis, we need to restrict the ambient cfg to only the body *)
     inv VG.
-    rewrite denote_bks_prefix; cycle 1; auto.
+    rewrite denote_ocfg_prefix; cycle 1; auto.
     {
       match goal with
         |- ?x::?y::?z ≡ _ => replace (x::y::z) with ([x;y]++z)%list by reflexivity
@@ -1520,12 +1515,12 @@ Lemma genWhileLoop_tfor_correct:
     (s1 s2 : IRState) 
     (bks : list (LLVMAst.block typ)) ,
 
-    In body_entry (block_ids body_blocks) ->
+    In body_entry (inputs body_blocks) ->
 
     (* All labels generated are distinct *)
-    wf_cfg bks ->
+    wf_ocfg_bid bks ->
 
-    fresh_in_cfg bks nextblock ->
+    free_in_cfg bks nextblock ->
 
     forall (n : nat)                     (* Number of iterations *)
       
@@ -1555,7 +1550,7 @@ Lemma genWhileLoop_tfor_correct:
                  (exists _label', x ≡ inl (_label', loopcontblock)) /\
                  I (S k) (* a *) a' (memV, (l, g))))
             (bodyF k a)
-            (interp_cfg (denote_bks (convert_typ [] body_blocks) (_label, body_entry)) g l mV)
+            (interp_cfg (denote_ocfg (convert_typ [] body_blocks) (_label, body_entry)) g l mV)
       ) ->
 
 
@@ -1594,7 +1589,7 @@ Lemma genWhileLoop_tfor_correct:
                x ≡ inl (entry_id, nextblock)) /\
               Q a (memV,(l,g)))
            (tfor bodyF 0 n a) 
-           (interp_cfg (denote_bks (convert_typ [] bks) (_label ,entry_id)) g l mV).
+           (interp_cfg (denote_ocfg (convert_typ [] bks) (_label ,entry_id)) g l mV).
 Proof. 
 
   intros * IN UNIQUE EXIT * GEN * BOUND * IND STABLE pre post IMPSTATE IND_INV * PRE.
@@ -1606,7 +1601,7 @@ Proof.
   - (* 0th index *)
     cbn.
 
-    apply fresh_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_block_app in EXIT.
+    apply free_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_block_app in EXIT.
     cbn; rewrite ?convert_typ_block_app.
     cbn in GEN_IND; rewrite ?convert_typ_block_app in GEN_IND.
 
@@ -1641,8 +1636,8 @@ Proof.
   - cbn in *.
 
     (* Clean up convert_typ junk *)
-    apply fresh_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_block_app in EXIT.
-    apply wf_cfg_convert_typ with (env := []) in UNIQUE; cbn in UNIQUE; rewrite ?convert_typ_block_app in UNIQUE.
+    apply free_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_block_app in EXIT.
+    apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE; cbn in UNIQUE; rewrite ?convert_typ_block_app in UNIQUE.
     cbn; rewrite ?convert_typ_block_app.
     cbn in GEN_IND; rewrite ?convert_typ_block_app in GEN_IND.
 
@@ -1697,7 +1692,7 @@ Proof.
     vred.
     inv VG.
 
-    rewrite denote_bks_prefix; cycle 1; auto.
+    rewrite denote_ocfg_prefix; cycle 1; auto.
     {
       match goal with
         |- ?x::?y::?z ≡ _ => replace (x::y::z) with ([x;y]++z)%list by reflexivity
@@ -1766,12 +1761,12 @@ Lemma genWhileLoop_ind:
     (s1 s2 : IRState)
     (bks : list (LLVMAst.block typ)) ,
 
-    In body_entry (block_ids body_blocks) ->
+    In body_entry (inputs body_blocks) ->
 
     (* All labels generated are distinct *)
-    wf_cfg bks ->
+    wf_ocfg_bid bks ->
 
-    fresh_in_cfg bks nextblock ->
+    free_in_cfg bks nextblock ->
 
     forall (n : nat)                     (* Number of iterations *)
 
@@ -1803,7 +1798,7 @@ Lemma genWhileLoop_ind:
                          I (S k) vec' memH (memV, (l, g))))
             (interp_helix (bodyH k ymem) mH)
             (interp_cfg
-               (denote_bks (convert_typ [] body_blocks) (_label, body_entry)) g l mV)
+               (denote_ocfg (convert_typ [] body_blocks) (_label, body_entry)) g l mV)
       ) ->
 
       (* Invariant is stable under the administrative bookkeeping that the loop performs *)
@@ -1830,7 +1825,7 @@ Lemma genWhileLoop_ind:
               I n vec' memH (memV,(l,g))
            ))
            (interp_helix (build_vec_gen j n bodyH ymem) mH)
-           (interp_cfg (denote_bks (convert_typ [] bks)
+           (interp_cfg (denote_ocfg (convert_typ [] bks)
                                                 (_label, loopcontblock)) g l mV).
 Proof.
   intros * IN UNIQUE_IDENTS NEXTBLOCK_ID * GEN LVAR_FRESH *.
@@ -1846,8 +1841,8 @@ Proof.
     intros  BOUND * (INV & LOOPVAR).
     (* Import ProofMode. *)
     (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
-    apply wf_cfg_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
-    apply fresh_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_block_app in NEXTBLOCK_ID.
+    apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
+    apply free_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_block_app in NEXTBLOCK_ID.
     cbn; rewrite ?convert_typ_block_app.
     hide_cfg.
     (* We jump into [loopcontblock]
@@ -1909,8 +1904,8 @@ Proof.
     Opaque half_modulus.
     cbn in *. intros [LT LE] * (INV & LOOPVAR).
     (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
-    apply wf_cfg_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
-    apply fresh_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_block_app in NEXTBLOCK_ID.
+    apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_block_app in UNIQUE_IDENTS.
+    apply free_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_block_app in NEXTBLOCK_ID.
     cbn; rewrite ?convert_typ_block_app.
     cbn in IH; rewrite ?convert_typ_block_app in IH.
     hide_cfg.
@@ -1998,7 +1993,7 @@ Proof.
 
     (* In order to use our body hypothesis, we need to restrict the ambient cfg to only the body *)
     inv VG.
-    rewrite denote_bks_prefix; cycle 1; auto.
+    rewrite denote_ocfg_prefix; cycle 1; auto.
     {
       match goal with
         |- ?x::?y::?z ≡ _ => replace (x::y::z) with ([x;y]++z)%list by reflexivity
@@ -2046,12 +2041,12 @@ Lemma genWhileLoop_correct:
     (s1 s2 : IRState) 
     (bks : list (LLVMAst.block typ)) ,
 
-    In body_entry (block_ids body_blocks) ->
+    In body_entry (inputs body_blocks) ->
 
     (* All labels generated are distinct *)
     blk_id_norepet bks ->
 
-    fresh_in_cfg bks nextblock ->
+    free_in_cfg bks nextblock ->
 
     forall (n : nat)                     (* Number of iterations *)
 
@@ -2082,7 +2077,7 @@ Lemma genWhileLoop_correct:
                          I (S k) vec' memH (memV, (l, g))))
             (interp_helix (bodyH k ymem) mH)
             (interp_cfg
-               (denote_bks (convert_typ [] body_blocks) (_label, body_entry)) g l mV)
+               (denote_ocfg (convert_typ [] body_blocks) (_label, body_entry)) g l mV)
       ) ->
 
     (* Invariant is stable under the administrative bookkeeping that the loop performs *)
@@ -2124,7 +2119,7 @@ Lemma genWhileLoop_correct:
                           R memH (memV,(l,g))))
 
            (interp_helix (build_vec n bodyH vec) mH)
-           (interp_cfg (denote_bks (convert_typ [] bks) (_label ,entry_id)) g l mV).
+           (interp_cfg (denote_ocfg (convert_typ [] bks) (_label ,entry_id)) g l mV).
 Proof. 
   
   intros * IN UNIQUE EXIT * GEN * BOUND * IND STABLE STABLE' IND_INV * PRE FRESH.
@@ -2137,7 +2132,7 @@ Proof.
   - (* 0th index *)
     cbn.
 
-    apply fresh_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_block_app in EXIT.
+    apply free_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_block_app in EXIT.
     cbn; rewrite ?convert_typ_block_app.
     cbn in GEN_IND; rewrite ?convert_typ_block_app in GEN_IND.
 
@@ -2179,7 +2174,7 @@ Proof.
     cbn in *.
 
     (* Clean up convert_typ junk *)
-    apply fresh_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_block_app in EXIT.
+    apply free_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_block_app in EXIT.
     apply no_repeat_convert_typ with (env := []) in UNIQUE; cbn in UNIQUE; rewrite ?convert_typ_block_app in UNIQUE.
 
     cbn; rewrite ?convert_typ_block_app.
@@ -2252,7 +2247,7 @@ Proof.
     reflexivity.
     rewrite AUX.
 
-    rewrite (denote_bks_prefix).
+    rewrite (denote_ocfg_prefix).
     2 : reflexivity.
     2 : {
       (* Seems like a case we can add to solve_lu. *)

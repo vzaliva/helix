@@ -61,7 +61,7 @@ Section NExpr.
 
  *)
 
-  Import ProofMode.
+  (* Import ProofMode. *)
   Opaque incBlockNamed.
   Opaque incVoid.
   Opaque incLocal.

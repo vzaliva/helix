@@ -8,6 +8,7 @@ Set Implicit Arguments.
 Set Strict Implicit.
 
 Import ListNotations.
+Import AlistNotations.
 Section WF_IRState.
 
   (**
@@ -1427,7 +1428,7 @@ Proof.
   unfold sub_local_no_aliasing.
   split.
 
-  - rewrite L'L. apply sub_alist_add; auto.
+  - rewrite L'L. apply alist_le_add; auto.
   - epose proof (no_llvm_ptr_aliasing_not_in_gamma _ ALIAS).
     unfold no_llvm_ptr_aliasing in *.
     intros * H0 H1 H2 H3 H4 H5 H6.
