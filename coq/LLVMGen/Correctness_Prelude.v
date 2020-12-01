@@ -47,6 +47,7 @@ Require Export Vellvm.Syntax.LLVMAst.
 Require Export Vellvm.Syntax.CFG.
 Require Export Vellvm.Syntax.AstLib.
 Require Export Vellvm.Syntax.DynamicTypes.
+Require Export Vellvm.Syntax.Scope.
 Require Export Vellvm.Syntax.TypToDtyp.
 Require Export Vellvm.Syntax.Traversal.
 Require Export Vellvm.Semantics.Denotation.
@@ -121,13 +122,13 @@ Local Open Scope monad_scope.
   *)
 Ltac find_block :=
   match goal with
-    |- find_block _ (?bk::_) ?b' ≡ _ => 
+    |- find_block (?bk::_) ?b' ≡ _ => 
     first [rewrite find_block_eq; [| (reflexivity || auto)]; reflexivity | rewrite find_block_ineq; [find_block |]]
   end.
 
 (* For when the next step is to process [denote_bks], and that we know the
    identifier we are jumping to is in the list of blocks considered. *)
-Ltac jump_in := rewrite denote_bks_unfold_in; [| find_block].
+Ltac jump_in := rewrite denote_ocfg_unfold_in; [| find_block].
 
 (* Similar in spirit: when processing a single Phi node, this tactic finds the
    assignment that needs to be performed.
@@ -458,7 +459,7 @@ Module ProofNotations.
   Notation "e" := (EXP_Integer e) (at level 10,only printing). 
   Notation "i" := (EXP_Ident i) (at level 10,only printing). 
   Notation "x ← 'Φ' xs" := (x,Phi _ xs) (at level 10,only printing). 
-  Notation "'denote_blocks' '...' id " := (denote_bks _ id) (at level 10,only printing). 
+  Notation "'denote_blocks' '...' id " := (denote_ocfg _ id) (at level 10,only printing). 
   Notation "'IRS' ctx" := (mkIRState _ _ _ ctx) (only printing, at level 10). 
   Notation "x" := (with_cfg x) (only printing, at level 10). 
   Notation "x" := (with_mcfg x) (only printing, at level 10). 

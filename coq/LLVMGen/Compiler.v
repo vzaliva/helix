@@ -216,7 +216,7 @@ Definition allocTempArrayBlock
            blk_id    := bid ;
            blk_phis  := [];
            blk_code  := allocTempArrayCode name size;
-           blk_term  := (IVoid retid, TERM_Br_1 nextblock) ;
+           blk_term  := TERM_Br_1 nextblock ;
            blk_comments := None
          |}).
 
@@ -435,7 +435,7 @@ Definition genFSHAssign
                                                                        (ret 8%Z))
 
                                        ];
-             blk_term  := (IVoid retentry, TERM_Br_1 nextblock);
+             blk_term  := TERM_Br_1 nextblock;
              blk_comments := None
            |}
         ]).
@@ -491,7 +491,7 @@ Definition genWhileLoop
                                                            to))
 
                         ];
-            blk_term  := (IVoid void0, TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local loopcond)) loopblock nextblock);
+            blk_term  := TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local loopcond)) loopblock nextblock;
             blk_comments := None
           |} ;
 
@@ -499,7 +499,7 @@ Definition genWhileLoop
               blk_id    := loopblock ;
               blk_phis  := [(loopvar, Phi IntType [(entryblock, from); (loopcontblock, EXP_Ident (ID_Local nextvar))])];
               blk_code  := [];
-              blk_term  := (IVoid void1, TERM_Br_1 body_entry);
+              blk_term  := TERM_Br_1 body_entry;
               blk_comments := None
             |}
         ] in
@@ -518,7 +518,7 @@ Definition genWhileLoop
                                                               to))
 
                         ];
-            blk_term  := (IVoid retloop, TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local loopcond1)) loopblock nextblock );
+            blk_term  := TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local loopcond1)) loopblock nextblock;
             blk_comments := None
           |}
         ] in
@@ -582,7 +582,7 @@ Definition genIMapBody
 
 
                             ];
-             blk_term  := (IVoid pwret, TERM_Br_1 nextblock);
+             blk_term  := TERM_Br_1 nextblock;
              blk_comments := None
            |}
         ]).
@@ -669,7 +669,7 @@ Definition genBinOpBody
 
 
                             ];
-             blk_term  := (IVoid binopret, TERM_Br_1 nextblock);
+             blk_term  := TERM_Br_1 nextblock;
              blk_comments := None
            |}
         ]).
@@ -749,7 +749,7 @@ Definition genMemMap2Body
 
 
                             ];
-             blk_term  := (IVoid binopret, TERM_Br_1 nextblock);
+             blk_term  := TERM_Br_1 nextblock;
              blk_comments := None
            |}
         ]).
@@ -791,7 +791,7 @@ Definition genMemInit
 
 
                       ];
-          blk_term  := (IVoid void0, TERM_Br_1 loopcontblock);
+          blk_term  := TERM_Br_1 loopcontblock;
           blk_comments := None
         |} in
     genWhileLoop "MemInit_loop" (EXP_Integer 0%Z) (EXP_Integer (Int64.intval size)) loopvar loopcontblock init_block_id [init_block] [] nextblock.
@@ -871,7 +871,7 @@ Definition genPower
                                                          (EXP_Ident (ID_Local py)))
                                                         (ret 8%Z))
                          ];
-          blk_term  := (IVoid void2, TERM_Br_1 loopcontblock);
+          blk_term  := TERM_Br_1 loopcontblock;
           blk_comments := None
         |} in
     genWhileLoop "Power" (EXP_Integer 0%Z) nexp loopvar loopcontblock body_block_id [body_block] init_code nextblock.
@@ -901,7 +901,7 @@ Definition genNop (nextblock: block_id) : cerr segment
              blk_id    := nopblock ;
              blk_phis  := [];
              blk_code  := [];
-             blk_term  := (IVoid nopret, TERM_Br_1 nextblock);
+             blk_term  := TERM_Br_1 nextblock;
              blk_comments := None
            |}
         ]).
@@ -1004,7 +1004,7 @@ Definition LLVMGen
           blk_id    := rid ;
           blk_phis  := [];
           blk_code  := [];
-          blk_term  := (IId rsid, TERM_Ret_void);
+          blk_term  := TERM_Ret_void;
           blk_comments := None
         |} in
 
@@ -1327,7 +1327,7 @@ Definition genMain
                                    ]
                                  ;
 
-                                 blk_term  := (IId (Name "main_ret"), TERM_Ret (ytyp, EXP_Ident (ID_Local z))) ;
+                                 blk_term  := TERM_Ret (ytyp, EXP_Ident (ID_Local z));
                                  blk_comments := None
                                |}, [])
           |}].

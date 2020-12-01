@@ -9,6 +9,8 @@ Require Import Helix.LLVMGen.BidBound.
 Require Import Helix.LLVMGen.LidBound.
 Require Import Helix.LLVMGen.Freshness.
 
+Require Import Vellvm.Syntax.Scope.
+
 Import ListNotations.
 
 Set Implicit Arguments.
@@ -213,7 +215,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   (* TODO: Move *)
   Lemma add_comment_eutt :
     forall comments bks ids,
-      denote_bks (convert_typ [] (add_comment bks comments)) ids ≈ denote_bks (convert_typ [] bks) ids.
+      denote_ocfg (convert_typ [] (add_comment bks comments)) ids ≈ denote_ocfg (convert_typ [] bks) ids.
   Proof.
     intros comments bks ids.
     induction bks.
@@ -221,8 +223,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
     - cbn.
       destruct ids as (bid_from, bid_src); cbn.
       match goal with
-      | |- context[denote_bks ?bks (_, ?bid_src)] =>
-        destruct (find_block dtyp bks bid_src) eqn:FIND
+      | |- context[denote_ocfg ?bks (_, ?bid_src)] =>
+        destruct (find_block bks bid_src) eqn:FIND
       end.
   Admitted.
 
@@ -230,8 +232,8 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
   (* Could probably have something more general... *)
   Lemma add_comments_eutt :
     forall bk comments bids,
-      denote_bks
-        [fmap (typ_to_dtyp [ ]) (add_comments bk comments)] bids ≈ denote_bks [fmap (typ_to_dtyp [ ]) bk] bids.
+      denote_ocfg
+        [fmap (typ_to_dtyp [ ]) (add_comments bk comments)] bids ≈ denote_ocfg [fmap (typ_to_dtyp [ ]) bk] bids.
   Proof.
     intros bk comments bids.
   Admitted.
@@ -261,7 +263,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       Forall P1 l1 ->
       Forall P2 l2 ->
       (forall x, P1 x -> ~(P2 x)) ->
-      l1 ⊍ l2.
+      Coqlib.list_disjoint l1 l2.
   Proof.
     induction l1;
       intros l2 P1 P2 L1 L2 P1NP2.
@@ -343,7 +345,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       genIR op nextblock s1 ≡ inr (s2,(bid_in,bks)) ->
       eutt (succ_cfg (GenIR_Rel σ s2 nextblock ⩕ lift_Rel_cfg (fresh_post s1 s2 ρ)))
            (interp_helix (denoteDSHOperator σ op) memH)
-           (interp_cfg (D.denote_bks (convert_typ [] bks) (bid_from,bid_in))
+           (interp_cfg (D.denote_ocfg (convert_typ [] bks) (bid_from,bid_in))
                        g ρ memV).
   Proof.
     intros s1 s2 op; revert s1 s2; induction op; intros * NEXT BISIM NOFAIL GEN.
@@ -359,7 +361,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       vred.
       vred.
 
-      rewrite denote_bks_unfold_not_in; cycle 1.
+      rewrite denote_ocfg_unfold_not_in; cycle 1.
       {
         (* TODO: auto and part of vjmp_out *)
         rewrite find_block_ineq; [apply find_block_nil | cbn].
@@ -650,12 +652,12 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
 
       match goal with
-        |- context[denote_bks ?x] =>
+        |- context[denote_ocfg ?x] =>
         remember x as bks
       end.
 
 (*
-      erewrite denote_bks_unfold.
+      erewrite denote_ocfg_unfold.
       2:{
         subst; cbn.
         clear.
@@ -704,7 +706,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
 
         norm_v.
         (* loopblock  *)
-        rewrite denote_bks_unfold.
+        rewrite denote_ocfg_unfold.
         2:{
           cbn.
           match goal with
@@ -774,12 +776,12 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       unfold add_comments.
       cbn.
       match goal with
-        |- context[denote_bks ?x] =>
+        |- context[denote_ocfg ?x] =>
         remember x as bks
       end.
 
       (* Lemma about while loop instead *)
-      (* erewrite denote_bks_unfold. *)
+      (* erewrite denote_ocfg_unfold. *)
       (* 2:{ *)
       (*   subst; cbn. *)
       (*   destruct (Eqv.eqv_dec_p bid_in bid_in).  *)
@@ -861,7 +863,7 @@ Axiom int_eq_inv: forall a b, Int64.intval a ≡ Int64.intval b -> a ≡ b.
       cbn.
 
       rewrite convert_typ_block_app.
-      rewrite denote_bks_app; eauto.
+      rewrite denote_ocfg_app; eauto.
       2: {
         unfold no_reentrance.
         pose proof GEN_OP1 as GEN_OP1'.
