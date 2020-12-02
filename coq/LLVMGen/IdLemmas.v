@@ -1,3 +1,15 @@
+(** * Valid identifiers
+
+    When generating variable and block id names, we allow any purely alphabetical prefix
+    to be appended with the current freshness generator.
+    
+    The predicate [is_correct_prefix] is used to check prefixes. It computes and can therefore always simply be discharged by [reflexivity].
+    In particular [solve_prefix] takes care of it.
+
+    The main result of this file is [valid_prefix_neq_differ] ensuring that the variables we generate are distinct without having to worry about the prefixes.
+
+ *)
+
 Require Import Helix.LLVMGen.Correctness_Prelude.
 
 Set Implicit Arguments.
