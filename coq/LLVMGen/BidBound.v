@@ -1,3 +1,7 @@
+(** * Block labels and freshness frames
+
+    Specialization of [VariableBinding] to block labels.
+ *)
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Freshness.
 Require Import Helix.LLVMGen.VariableBinding.

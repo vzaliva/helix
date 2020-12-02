@@ -1,5 +1,4 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
-Require Import Helix.LLVMGen.Freshness.
 Require Import Helix.LLVMGen.LidBound.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.VariableBinding.

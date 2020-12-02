@@ -1,6 +1,12 @@
+(** * Local identifiers and freshness frames
+
+    Specialization of [VariableBinding] to local identifiers.
+ *)
+
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.VariableBinding.
 Require Import Helix.LLVMGen.IdLemmas.
+Require Import Helix.LLVMGen.StateCounters.
 Set Implicit Arguments.
 Set Strict Implicit.
 
@@ -11,7 +17,6 @@ Section LidBound.
 
   Definition lid_bound_between (s1 s2 : IRState) (lid : local_id) : Prop
     := state_bound_between local_count incLocalNamed s1 s2 lid.
-
 
   Lemma incLocalNamed_count_gen_injective :
     count_gen_injective local_count incLocalNamed.
@@ -27,7 +32,6 @@ Section LidBound.
     apply valid_prefix_string_of_nat_forward in CONTRA; auto.
     intuition.
   Qed.
-
 
   Lemma lid_bound_fresh :
     ∀ (s1 s2 : IRState) (id1 id2 : local_id),
@@ -72,7 +76,6 @@ Section LidBound.
     apply incLocalNamed_count_gen_injective.
   Qed.
 
-
   Lemma lid_bound_between_incLocalNamed :
     forall name s1 s2 id,
       is_correct_prefix name ->
@@ -107,38 +110,6 @@ Section LidBound.
     eapply lid_bound_between_incLocalNamed; eauto.
     reflexivity.
     Opaque incLocal.
-  Qed.
-
-  Lemma incBlockNamed_local_count:
-    forall s s' msg id,
-      incBlockNamed msg s ≡ inr (s', id) ->
-      local_count s' ≡ local_count s.
-  Proof.
-    intros; cbn in *; inv_sum; reflexivity.
-  Qed.
-
-  Lemma incVoid_local_count:
-    forall s s' id,
-      incVoid s ≡ inr (s', id) ->
-      local_count s' ≡ local_count s.
-  Proof.
-    intros; cbn in *; inv_sum; reflexivity.
-  Qed.
-
-  Lemma incLocal_local_count: forall s s' x,
-      incLocal s ≡ inr (s',x) ->
-      local_count s' ≡ S (local_count s).
-  Proof.
-    Transparent incLocal.
-    intros; cbn in *; inv_sum; reflexivity.
-    Opaque incLocal.
-  Qed.
-
-  Lemma incLocalNamed_local_count: forall s s' msg x,
-      incLocalNamed msg s ≡ inr (s',x) ->
-      local_count s' ≡ S (local_count s).
-  Proof.
-    intros; cbn in *; inv_sum; reflexivity.
   Qed.
 
   Lemma lid_bound_incBlockNamed_mono :
@@ -211,6 +182,22 @@ Section LidBound.
     eapply incLocalNamed_lid_bound; eauto.
     reflexivity.
     Opaque incLocal.
+  Qed.
+
+  Lemma lid_bound_earlier :
+    forall (s1 s2 s3 : IRState) (id1 id2 : local_id),
+      lid_bound s1 id1 ->
+      lid_bound_between s2 s3 id2 ->
+      s1 <<= s2 ->
+      id1 ≢ id2.
+  Proof.
+    intros s1 s2 s3 id1 id2 BOUND BETWEEN COUNTS.
+    do 2 red in BOUND, BETWEEN.
+    destruct BOUND as (name1 & s1' & s1'' & PREF1 & COUNT1 & GEN1).
+    destruct BETWEEN as (name2 & s2' & s2'' & PREF2 & COUNT2 & COUNT2' & GEN2).
+
+    eapply incLocalNamed_count_gen_injective; eauto.
+    solve_local_count.
   Qed.
 
   (* Lemma lid_bound_genNExpr_mono : *)

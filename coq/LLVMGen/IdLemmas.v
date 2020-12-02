@@ -87,9 +87,7 @@ Proof.
       symmetry in EQ.
       apply valid_prefix_string_of_nat_aux in EQ; auto.
       destruct EQ as [_ abs]; inv abs.
-    +
-
-      assert (forall c s s', String c s @@ s' ≡ String c (s @@ s')) by (intros; unfold append; reflexivity).
+    + assert (forall c s s', String c s @@ s' ≡ String c (s @@ s')) by (intros; unfold append; reflexivity).
       rewrite 2 H in EQ.
       inv EQ; clear H.
       apply is_correct_prefix_String in CORR1; destruct CORR1 as [CORR1 ALPHA1].
