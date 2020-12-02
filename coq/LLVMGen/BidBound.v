@@ -417,33 +417,6 @@ Qed.
 
 Section Inputs.
 
-  (* TODO: Move this to Vellvm *)
-  Lemma convert_typ_app_list :
-    forall {F} `{Traversal.Fmap F} (a b : list (F typ)) (env : list (ident * typ)),
-      convert_typ env (a ++ b)%list ≡ (convert_typ env a ++ convert_typ env b)%list.
-  Proof.
-    intros F H a.
-    induction a; cbn; intros; auto.
-    rewrite IHa; reflexivity.
-  Qed.
-
-  (* TODO: Move this to Vellvm *)
-  Lemma convert_typ_app_ocfg :
-    forall (a b : ocfg typ) (env : list (ident * typ)),
-      convert_typ env (a ++ b)%list ≡ (convert_typ env a ++ convert_typ env b)%list.
-  Proof.
-    intros F H a.
-    apply convert_typ_app_list.
-  Qed.
-
-  (* TODO: move this *)
-  Lemma add_comment_inputs :
-    forall (bs : list (LLVMAst.block typ)) env (comments : list string),
-      inputs (convert_typ env (add_comment bs comments)) ≡ inputs (convert_typ env bs).
-  Proof.
-    induction bs; intros env comments; auto.
-  Qed.
-
   (* Lemmas about the inputs to blocks *)
   Lemma inputs_bound_between :
     forall (op : DSHOperator) (s1 s2 : IRState) (nextblock op_entry : block_id) (bk_op : list (LLVMAst.block typ)),
@@ -457,7 +430,7 @@ Section Inputs.
     all: try (solve [big_solve]).
     - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
 
-      rewrite convert_typ_app_ocfg.
+      rewrite convert_typ_ocfg_app.
 
       (* TODO: clean this up *)
       unfold fmap.
@@ -485,7 +458,7 @@ Section Inputs.
         block_count_replace.
         lia.
     - rewrite add_comment_inputs.
-      rewrite convert_typ_app_ocfg.
+      rewrite convert_typ_ocfg_app.
 
       unfold inputs.
       setoid_rewrite map_app.
@@ -583,7 +556,7 @@ Opaque incLocal.
       clear BACKUP_GEN.
       cbn* in *; simp.
       rename i into s1, i6 into s2.
-      rewrite convert_typ_app_ocfg.
+      rewrite convert_typ_ocfg_app.
       rewrite fold_left_app.
       cbn.
       clean_goal.
@@ -659,7 +632,7 @@ Opaque incLocal.
         * eapply WEAKEN.
         * eauto.
     - rewrite add_comment_outputs.
-      rewrite convert_typ_app_ocfg.
+      rewrite convert_typ_ocfg_app.
       setoid_rewrite outputs_app.
       apply Forall_app.
       split.

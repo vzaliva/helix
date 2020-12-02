@@ -419,6 +419,13 @@ Section Add_Comment.
       + inv H.
   Qed.
 
+  Lemma add_comment_inputs :
+    forall (bs : list (LLVMAst.block typ)) env (comments : list string),
+      inputs (convert_typ env (add_comment bs comments)) ≡ inputs (convert_typ env bs).
+  Proof.
+    induction bs; intros env comments; auto.
+  Qed.
+
 End Add_Comment.
 
 Global Opaque interp_cfg_to_L3.
