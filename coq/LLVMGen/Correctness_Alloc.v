@@ -196,7 +196,7 @@ Lemma DSHAlloc_correct:
         → Gamma_safe σ s1 s2
         → @no_failure E_cfg (memoryH * ()) (interp_helix (denoteDSHOperator σ op) memH)
         → eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ)) (interp_helix (denoteDSHOperator σ op) memH)
-                (interp_cfg (denote_bks (convert_typ [] bks) (bid_from, bid_in)) g ρ memV))
+                (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from, bid_in)) g ρ memV))
     → ∀ (s1 s2 : IRState) (σ : evalContext) (memH : memoryH) (nextblock bid_in bid_from : block_id) 
         (bks : list (LLVMAst.block typ)) (g : global_env) (ρ : local_env) (memV : memoryV),
       genIR (DSHAlloc size op) nextblock s1 ≡ inr (s2, (bid_in, bks))
@@ -206,7 +206,7 @@ Lemma DSHAlloc_correct:
       → @no_failure E_cfg (memoryH * ()) (interp_helix (denoteDSHOperator σ (DSHAlloc size op)) memH)
       → eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ))
               (interp_helix (denoteDSHOperator σ (DSHAlloc size op)) memH)
-              (interp_cfg (denote_bks (convert_typ [] bks) (bid_from, bid_in)) g ρ memV).
+              (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from, bid_in)) g ρ memV).
 Proof.
   intros size op IHop s1 s2 σ memH nextblock bid_in bid_from bks g ρ memV GEN NEXT PRE GAM NOFAIL.
 
@@ -226,14 +226,10 @@ Proof.
 
   assert (bid_in ≢ op_entry). {
     clean_goal.
-    clear -Heqs NEXT GAM Heqs0 Heqs1 Heqs2 Heql1.
+    clear -Heqs NEXT GAM Heqs0 Heqs1 Heql1.
     Transparent newLocalVar. cbn in *. simp.
 
     apply bid_bound_genIR_entry in Heqs1. red in GAM.
-    clear GAM. clear NEXT.
-    eapply bid_bound_incVoid_mono in Heqs1; eauto.
-
-    clear -Heqs2 Heqs1.
     eapply bid_bound_incBlock_neq; eauto.
   }
 
@@ -250,7 +246,7 @@ Proof.
     end.
     eapply bid_bound_incBlockNamed; eauto; reflexivity.
     solve_not_bid_bound.
-    block_count_replace. rewrite <- Heqs in *.
+    block_count_replace.
     Transparent newLocalVar. cbn in *. simp. cbn in *. lia.
     reflexivity.
   }
@@ -292,7 +288,7 @@ Proof.
   rewrite interp_helix_bind in NOFAIL_cont.
 
   assert (genIR_op' := genIR_op).
-  apply generates_wf_cfgs in genIR_op; cycle 1.
+  apply generates_wf_ocfg_bids in genIR_op; cycle 1.
   {
     Transparent newLocalVar. cbn in *. simp. cbn in *.
     solve_bid_bound. auto.
@@ -325,7 +321,7 @@ Proof.
 
   rewrite (@list_cons_app _ _ (convert_typ [] bk_op)).
 
-  rewrite denote_bks_app_no_edges; cycle 1.
+  rewrite denote_ocfg_app_no_edges; cycle 1.
   {
     (* op_blk_id is not in first part of computation. *)
     cbn.
@@ -339,7 +335,7 @@ Proof.
 
     unfold no_reentrance.
     eapply outputs_bound_between in genIR_op.
-    clear -NEXT Heqs2 Heqs genIR_op genIR_op' genIR_op'' Heqs0.
+    clear -NEXT Heqs genIR_op genIR_op' genIR_op'' Heqs0.
 
     cbn.
     eapply Forall_disjoint. eassumption.

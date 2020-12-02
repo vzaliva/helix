@@ -348,7 +348,7 @@ Lemma compile_DSHIMap_correct:
 
     eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ))
          (interp_helix (denoteDSHOperator σ (DSHIMap n x_p y_p f)) memH)
-         (interp_cfg (denote_bks (convert_typ [] bks) (bid_from, bid_in)) g ρ memV).
+         (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from, bid_in)) g ρ memV).
 Proof.
   intros.
 
@@ -651,4 +651,3 @@ Proof.
 
     *)
 Admitted.
-
