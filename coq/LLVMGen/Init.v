@@ -8,6 +8,7 @@ Require Import MathClasses.misc.util.
 
 Require Import Vellvm.Semantics.IntrinsicsDefinitions.
 
+Import AlistNotations.
 Import ListNotations.
 Import MonadNotation.
 Import ITreeNotations.
@@ -2193,7 +2194,11 @@ Proof.
           intros ? ? C.
           rewrite nth_error_nil in C.
           inversion C.
-          assumption.
+          admit.
+          admit.
+          admit.
+          admit.
+          admit.
           split.
           admit.
           unfold allocated_globals.
