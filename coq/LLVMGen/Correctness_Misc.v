@@ -73,7 +73,7 @@ What should be exactly the post?
     forall k,
       eutt (succ_cfg (IMap_Rel σ s1))
            (interp_helix (bodyIMap f σ memx k memy) memH)
-           (interp_cfg (D.denote_ocfg (convert_typ [] bodyV) (bid_from, bid_src)) g l memV).
+           (interp_cfg (D.denote_bks (convert_typ [] bodyV) (bid_from, bid_src)) g l memV).
 Proof with rauto.
   intros * GEN PRE; intros.
 
@@ -92,7 +92,7 @@ Proof with rauto.
       cbn*. cbn...
       unfold denoteIUnCType.
 
-      rewrite denote_ocfg_unfold_in.
+      rewrite denote_bks_unfold_in.
       Opaque find_block.
       2: rewrite find_block_eq; reflexivity.
       cbn...

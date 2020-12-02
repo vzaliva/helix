@@ -462,7 +462,8 @@ Section Inputs.
     all: try (solve [big_solve]).
 
     - big_solve; cbn in *; try solve_not_bid_bound; cbn in *; big_solve.
-      setoid_rewrite convert_typ_app_list.
+
+      rewrite convert_typ_app_list.
 
       (* TODO: clean this up *)
       unfold fmap.
@@ -490,7 +491,7 @@ Section Inputs.
         block_count_replace.
         lia.
     - rewrite add_comment_inputs.
-      setoid_rewrite convert_typ_app_list.
+      rewrite convert_typ_app_list.
 
       unfold inputs.
       setoid_rewrite map_app.
@@ -580,7 +581,7 @@ Section Outputs.
       cbn in GEN; simp; cbn.
     all: try (solve [big_solve]).
     - cbn.
-      setoid_rewrite convert_typ_app_list.
+      rewrite convert_typ_app_list.
       rewrite fold_left_app.
       cbn.
 
@@ -662,7 +663,7 @@ Section Outputs.
         * eapply WEAKEN.
         * eauto.
     - rewrite add_comment_outputs.
-      setoid_rewrite convert_typ_app_list.
+      rewrite convert_typ_app_list.
       setoid_rewrite outputs_app.
       apply Forall_app.
       split.

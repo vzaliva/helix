@@ -14,7 +14,6 @@ From Vellvm Require Import
      Syntax.AstLib
      Syntax.DynamicTypes
      Syntax.CFG
-     Syntax.Scope
      Syntax.TypToDtyp
      Semantics.LLVMEvents
      Semantics.DynamicValues
@@ -103,7 +102,7 @@ Section TLE_To_Modul.
     |}.
 
   Lemma modul_of_toplevel_entities_cons:
-    forall {T X} tle tles,
+    forall {T X} tle tles, 
       @modul_of_toplevel_entities T X (tle :: tles) = modul_app (modul_of_toplevel_entities [tle]) (modul_of_toplevel_entities tles).
   Proof.
     intros.
@@ -112,7 +111,7 @@ Section TLE_To_Modul.
   Qed.
 
   Lemma modul_of_toplevel_entities_app:
-    forall {T X} tle1 tle2,
+    forall {T X} tle1 tle2, 
     @modul_of_toplevel_entities T X (tle1 ++ tle2) = modul_app (modul_of_toplevel_entities tle1) (modul_of_toplevel_entities tle2).
   Proof.
     induction tle1 as [| tle tle1 IH]; intros; cbn; [reflexivity |].
@@ -172,10 +171,10 @@ Section TLE_To_Modul.
         f a = Some b /\
         map_option f l = Some r' /\
         r = b :: r'.
-  Proof.
+  Proof.      
     intros.
     (* YZ TODO : Test on 8.11 if cbn also behaves annoyingly here *)
-    simpl in H; do 2 (break_match_hyp; try inv_option).
+    simpl in H; do 2 (break_match_hyp; try inv_option). 
     do 2 eexists; repeat split; auto.
   Qed.
 
@@ -183,7 +182,7 @@ Section TLE_To_Modul.
         f a = Some b ->
         map_option f l = Some r ->
         map_option f (a :: l) = Some (b :: r).
-  Proof.
+  Proof.      
     intros * EQ1 EQ2; simpl; rewrite EQ1, EQ2; reflexivity.
   Qed.
 
@@ -195,26 +194,26 @@ Section TLE_To_Modul.
         r = r1 ++ r2.
   Proof.
     induction l1 as [| x l1 IH]; intros * EQ.
-    - do 2 eexists; repeat split; try reflexivity; auto.
-    - generalize EQ; intros EQ'; apply map_option_cons_inv in EQ'; destruct EQ' as (b & ? & EQ1 & EQ2 & ->).
+    - do 2 eexists; repeat split; try reflexivity; auto. 
+    - generalize EQ; intros EQ'; apply map_option_cons_inv in EQ'; destruct EQ' as (b & ? & EQ1 & EQ2 & ->). 
       apply IH in EQ2; destruct EQ2 as (r1 & r2 & EQ2 & EQ3 & ->).
-      exists (b::r1), r2; repeat split; auto.
+      exists (b::r1), r2; repeat split; auto. 
       apply map_option_cons; auto.
   Qed.
 
-  Lemma mcfg_of_app_modul: forall {T} (p1 p2 : @modul T _),
+  Lemma mcfg_of_app_modul: forall {T} (p1 p2 : @modul T _), 
       mcfg_of_modul (p1 @ p2) = mcfg_of_modul p1 @ mcfg_of_modul p2.
   Proof.
     intros; cbn.
     unfold mcfg_of_modul.
-    rewrite  m_name_app, m_target_app, m_datalayout_app, m_type_defs_app, m_globals_app, m_declarations_app; f_equal; try reflexivity.
+    rewrite  m_name_app, m_target_app, m_datalayout_app, m_type_defs_app, m_globals_app, m_declarations_app; f_equal; try reflexivity. 
     rewrite m_definitions_app, map_app; reflexivity.
   Qed.
 
-  (* YZ TODO :  A bit annoying but should not be an issue. *)
-(*      Actually: requires some assumptions to be able to split the environment in two. *)
-(*      Some well-formedness/closedness of the respective mcfg under the respective environments. *)
-(*    *)
+  (* YZ TODO :  A bit annoying but should not be an issue.
+     Actually: requires some assumptions to be able to split the environment in two.
+     Some well-formedness/closedness of the respective mcfg under the respective environments.
+   *)
   Lemma convert_typ_mcfg_app:
     forall mcfg1 mcfg2 : modul (cfg typ),
       convert_typ (m_type_defs mcfg1 ++ m_type_defs mcfg2) (mcfg1 @ mcfg2) =
@@ -279,7 +278,7 @@ Section alistFacts.
 
   Arguments alist_add {_ _ _ _}.
   Arguments alist_find {_ _ _ _}.
-  Arguments alist_remove {_ _ _ _}.
+  Arguments alist_remove {_ _ _ _}. 
 
   Context {K V: Type}.
   Context {RR : @RelDec K (@eq K)}.
@@ -289,7 +288,7 @@ Section alistFacts.
     forall k v (m: alist K V),
       alist_In k (alist_add k v m) v.
   Proof.
-    intros; unfold alist_add, alist_In; simpl; flatten_goal; [reflexivity | rewrite <- neg_rel_dec_correct in Heq; tauto].
+    intros; unfold alist_add, alist_In; simpl; flatten_goal; [reflexivity | rewrite <- neg_rel_dec_correct in Heq; tauto]. 
   Qed.
 
   (* A removed key is not contained in the resulting map *)
@@ -298,13 +297,13 @@ Section alistFacts.
       ~ alist_In k (alist_remove k m) v.
   Proof.
     induction m as [| [k1 v1] m IH]; intros.
-    - simpl; intros abs; inv abs.
+    - simpl; intros abs; inv abs. 
     - simpl; flatten_goal.
       + unfold alist_In; simpl.
         rewrite Bool.negb_true_iff in Heq; rewrite Heq.
         intros abs; eapply IH; eassumption.
       + rewrite Bool.negb_false_iff, rel_dec_correct in Heq; subst.
-        intros abs; eapply IH; eauto.
+        intros abs; eapply IH; eauto. 
   Qed.
 
   (* Removing a key does not alter other keys *)
@@ -323,7 +322,7 @@ Section alistFacts.
     - unfold alist_In in *; simpl in *.
       rewrite Bool.negb_false_iff, rel_dec_correct in Heq; subst.
       flatten_hyp IN; [rewrite rel_dec_correct in Heq; subst; tauto | eapply IH; eauto].
-  Qed.
+  Qed.       
 
   Lemma In_remove_In_ineq:
     forall (m : alist K V) (k : K) (v : V) (k' : K),
@@ -336,11 +335,11 @@ Section alistFacts.
       flatten_all; auto.
       eapply IH; eauto.
     -rewrite Bool.negb_false_iff, rel_dec_correct in Heq; subst.
-     unfold alist_In; simpl.
+     unfold alist_In; simpl. 
      flatten_goal; [rewrite rel_dec_correct in Heq; subst |].
      exfalso; eapply not_In_remove; eauto.
      eapply IH; eauto.
-  Qed.
+  Qed.       
 
   Lemma In_remove_In_ineq_iff:
     forall (m : alist K V) (k : K) (v : V) (k' : K),
@@ -349,7 +348,7 @@ Section alistFacts.
       alist_In k m v.
   Proof.
     intros; split; eauto using In_In_remove_ineq, In_remove_In_ineq.
-  Qed.
+  Qed.       
 
   (* Adding a value to a key does not alter other keys *)
   Lemma In_In_add_ineq:
@@ -367,14 +366,14 @@ Section alistFacts.
     forall k v k' v' (m: alist K V),
       k <> k' ->
       alist_In k (alist_add k' v' m) v ->
-      alist_In k m v.
+      alist_In k m v. 
   Proof.
     intros k v k' v' m ineq IN.
     unfold alist_In in IN; simpl in IN; flatten_hyp IN; [rewrite rel_dec_correct in Heq; subst; tauto |].
     eapply In_remove_In_ineq; eauto.
   Qed.
 
-  Lemma In_add_ineq_iff:
+  Lemma In_add_ineq_iff: 
     forall m (v v' : V) (k k' : K),
       k <> k' ->
       alist_In k m v <-> alist_In k (alist_add k' v' m) v.
@@ -388,12 +387,12 @@ Section alistFacts.
       (forall v, ~ In (k,v) m) <-> alist_find k m = None.
   Proof.
     induction m as [| [k1 v1] m IH]; [simpl; easy |].
-    simpl; split; intros H.
+    simpl; split; intros H. 
     - flatten_goal; [rewrite rel_dec_correct in Heq; subst; exfalso | rewrite <- neg_rel_dec_correct in Heq].
       apply (H v1); left; reflexivity.
       apply IH; intros v abs; apply (H v); right; assumption.
     - intros v; flatten_hyp H; [inv H | rewrite <- IH in H].
-      intros [EQ | abs]; [inv EQ; rewrite <- neg_rel_dec_correct in Heq; tauto | apply (H v); assumption].
+      intros [EQ | abs]; [inv EQ; rewrite <- neg_rel_dec_correct in Heq; tauto | apply (H v); assumption]. 
   Qed.
 
   Lemma alist_In_add_eq : forall m (k:K) (v n:V), alist_In k (alist_add k n m) v -> n = v.
@@ -457,7 +456,7 @@ Section alistFacts.
   Qed.
     
   Lemma alist_find_add_none:
-    forall m (k r :K) (v:V),
+    forall m (k r :K) (v:V), 
     alist_find k (alist_add r v m) = None ->
     alist_find k m = None.
   Proof.
@@ -477,7 +476,7 @@ Section alistFacts.
       apply (alist_find_remove_none _ k r); auto.
       rewrite rel_dec_sym in Heqx; eauto.
       apply neg_rel_dec_correct. symmetry in Heqx. assumption.
-  Qed.
+  Qed.      
 
   Lemma alist_find_neq : forall m (k r:K) (v:V), k <> r -> alist_find k (alist_add r v m) = alist_find k m.
   Proof.
@@ -748,7 +747,7 @@ Ltac focus_single_step :=
   end.
 
 (* YZ: Should they be Opaque or simpl never? *)
-Global Opaque D.denote_ocfg.
+Global Opaque D.denote_bks.
 Global Opaque assoc.
 Global Opaque D.denote_instr.
 Global Opaque D.denote_terminator.
@@ -782,7 +781,7 @@ Proof.
 Qed.
 
 Ltac inv_eqs :=
-  repeat
+  repeat 
     match goal with
     | h : ?x = ?x |- _ => clear h
     | h : _ = ?x |- _ => subst x
@@ -799,7 +798,7 @@ Ltac hide_cfg :=
     let EQ := fresh "VG" in
     destruct h as [EQ];
     apply boxh_cfg in EQ
-  | |- context[denote_ocfg ?cfg _] =>
+  | |- context[denote_bks ?cfg _] =>
     remember cfg as G eqn:VG;
     apply boxh_cfg in VG
   end.
@@ -817,7 +816,7 @@ Definition blk_id_norepet {T} (bks : list (LLVMAst.block T)) :=
   Coqlib.list_norepet (map blk_id bks).
 
 Lemma blk_id_norepet_nil:
-  forall T, blk_id_norepet (T := T) [].
+  forall T, blk_id_norepet (T := T) []. 
 Proof.
   intros; apply Coqlib.list_norepet_nil.
 Qed.
@@ -839,7 +838,7 @@ Proof.
 Qed.
 
 Lemma no_repeat_app_r :
-  forall T (bs1 bs2 : list (LLVMAst.block T)),
+  forall T (bs1 bs2 : list (LLVMAst.block T)), 
 blk_id_norepet (bs1 ++ bs2) ->
 blk_id_norepet bs2.
 Proof.
@@ -851,7 +850,7 @@ Proof.
 Qed.
 
 Lemma no_repeat_app_l :
-  forall T (bs1 bs2 : list (LLVMAst.block T)),
+  forall T (bs1 bs2 : list (LLVMAst.block T)), 
 blk_id_norepet (bs1 ++ bs2) ->
 blk_id_norepet bs1.
 Proof.
@@ -883,14 +882,14 @@ Proof.
   induction bs as [| b bs IH]; intros NOREP.
   - cbn; auto.
   - cbn.
-    apply Coqlib.list_norepet_cons.
+    apply Coqlib.list_norepet_cons. 
     + cbn.
       apply no_repeat_cons_not_in in NOREP.
      rewrite blk_id_map_convert_typ; auto.
-    + eapply IH, no_repeat_cons; eauto.
+    + eapply IH, no_repeat_cons; eauto. 
 Qed.
-(** [break_inner_match' t] tries to destruct the innermost [match] it *)
-(*     find in [t]. *)
+(** [break_inner_match' t] tries to destruct the innermost [match] it
+    find in [t]. *)
 Ltac break_inner_match' t :=
  match t with
    | context[match ?X with _ => _ end] =>
@@ -898,32 +897,32 @@ Ltac break_inner_match' t :=
    | _ => destruct t eqn:?
  end.
 
-(** [break_inner_match_goal] tries to destruct the innermost [match] it *)
-(*     find in your goal. *)
+(** [break_inner_match_goal] tries to destruct the innermost [match] it
+    find in your goal. *)
 Ltac break_inner_match_goal :=
  match goal with
    | [ |- context[match ?X with _ => _ end] ] =>
      break_inner_match' X
  end.
 
-(** [break_inner_match_hyp] tries to destruct the innermost [match] it *)
-(*     find in a hypothesis. *)
+(** [break_inner_match_hyp] tries to destruct the innermost [match] it
+    find in a hypothesis. *)
 Ltac break_inner_match_hyp :=
  match goal with
    | [ H : context[match ?X with _ => _ end] |- _ ] =>
      break_inner_match' X
  end.
 
-(** [break_inner_match] tries to destruct the innermost [match] it *)
-(*     find in your goal or a hypothesis. *)
+(** [break_inner_match] tries to destruct the innermost [match] it
+    find in your goal or a hypothesis. *)
 Ltac break_inner_match := break_inner_match_goal || break_inner_match_hyp.
 
 
 Lemma find_block_app_r_wf :
   forall (T : Set) (x : block_id) (b : LLVMAst.block T) (bs1 bs2 : list (LLVMAst.block T)),
     blk_id_norepet (bs1 ++ bs2)  ->
-    find_block bs2 x = Some b ->
-    find_block (bs1 ++ bs2) x = Some b.
+    find_block T bs2 x = Some b ->
+    find_block T (bs1 ++ bs2) x = Some b.
 Proof.
   intros T x b; induction bs1 as [| hd bs1 IH]; intros * NOREP FIND.
   - rewrite app_nil_l; auto.
@@ -945,8 +944,8 @@ Qed.
 Lemma find_block_app_l_wf :
   forall (T : Set) (x : block_id) (b : LLVMAst.block T) (bs1 bs2 : list (LLVMAst.block T)),
     blk_id_norepet (bs1 ++ bs2)  ->
-    find_block bs1 x = Some b ->
-    find_block (bs1 ++ bs2) x = Some b.
+    find_block T bs1 x = Some b ->
+    find_block T (bs1 ++ bs2) x = Some b.
 Proof.
   intros T x b; induction bs1 as [| hd bs1 IH]; intros * NOREP FIND.
   - inv FIND.
@@ -959,8 +958,8 @@ Qed.
 Lemma find_block_tail_wf :
   forall (T : Set) (x : block_id) (b b' : LLVMAst.block T) (bs : list (LLVMAst.block T)),
     blk_id_norepet (b :: bs)  ->
-    find_block bs x = Some b' ->
-    find_block (b :: bs) x = Some b'.
+    find_block T bs x = Some b' ->
+    find_block T (b :: bs) x = Some b'.
 Proof.
   intros.
   rewrite list_cons_app.
@@ -982,7 +981,7 @@ Qed.
 Lemma find_block_fresh_id :
   forall {T} (cfg : list (LLVMAst.block T)) id,
     fresh_in_cfg cfg id ->
-    find_block cfg id = None.
+    find_block T cfg id = None.
 Proof.
   induction cfg as [| b bs IH]; cbn; intros * FRESH; auto.
   break_inner_match_goal.
@@ -1021,11 +1020,11 @@ Arguments find_block : simpl never.
 Ltac solve_find_block :=
   cbn;
   match goal with
-    | |- find_block [_] _ = _ => apply find_block_eq; reflexivity
-    | h: blk_id_norepet _ |- find_block (_ :: _) _ = _ =>
+    | |- find_block _ [_] _ = _ => apply find_block_eq; reflexivity
+    | h: blk_id_norepet _ |- find_block _ (_ :: _) _ = _ =>
       first [apply find_block_eq; reflexivity |
              apply find_block_tail_wf; [eassumption | apply no_repeat_cons in h; solve_find_block]]
-    | h: blk_id_norepet _ |- find_block (_ ++ _) _ = _ =>
+    | h: blk_id_norepet _ |- find_block _ (_ ++ _) _ = _ =>
       first [apply find_block_app_l_wf; [eassumption | apply no_repeat_app_l in h; solve_find_block] |
              apply find_block_app_r_wf; [eassumption | apply no_repeat_app_r in h; solve_find_block]]
   end.
@@ -1037,7 +1036,7 @@ Proof.
 Qed.
 
 Ltac vjmp :=
-  rewrite denote_ocfg_unfold_in; cycle 1;
+  rewrite denote_bks_unfold_in; cycle 1;
   [match goal with
    | h: hidden_cfg _ |- _ => inv h
    | h: visible_cfg _ |- _ => inv h
@@ -1047,8 +1046,8 @@ Ltac vjmp :=
    try solve_find_block |].
 
 Ltac vjmp_out :=
-  rewrite denote_ocfg_unfold_not_in; cycle 1;
-  [apply find_block_fresh_id; eauto |].
+  rewrite denote_bks_unfold_not_in; cycle 1;
+  [apply find_block_fresh_id; eauto |]. 
 
 Module eutt_Notations.
   Notation "t '======================' '======================' u '======================' '{' R '}'"
@@ -1066,8 +1065,8 @@ Module VIR_Notations.
   Notation "'@'" := ID_Global (only printing).
 
   (* Expressions *)
-  Notation "e" := (EXP_Integer e) (at level 10,only printing).
-  Notation "i" := (EXP_Ident i) (at level 10,only printing).
+  Notation "e" := (EXP_Integer e) (at level 10,only printing). 
+  Notation "i" := (EXP_Ident i) (at level 10,only printing). 
   Notation "'add' e f"  := (OP_IBinop (LLVMAst.Add _ _) _ e f) (at level 10, only printing).
   Notation "'sub' e f"  := (OP_IBinop (Sub _ _) _ e f) (at level 10, only printing).
   Notation "'mul' e f"  := (OP_IBinop (Mul _ _) _ e f) (at level 10, only printing).
@@ -1146,7 +1145,7 @@ Lemma denote_block_unfold_cont :
                  ≈
                  denote_phis origin phis;;
     denote_code c;;
-    translate exp_E_to_instr_E (denote_terminator t) >>= k.
+    translate exp_E_to_instr_E (denote_terminator (snd t)) >>= k.
 Proof.
   intros; cbn; repeat setoid_rewrite bind_bind.
   reflexivity.
@@ -1158,7 +1157,7 @@ Lemma denote_block_unfold :
                  ≈
                  denote_phis origin phis;;
     denote_code c;;
-    translate exp_E_to_instr_E (denote_terminator t).
+    translate exp_E_to_instr_E (denote_terminator (snd t)). 
 Proof.
   intros; cbn; reflexivity.
 Qed.
@@ -1188,7 +1187,7 @@ Ltac vred_any :=
     (* Structural handling: code case *)
     first [rewrite denote_term_br_1];
     idtac "Reduced direct jump"
-   | |- context[denote_exp] =>
+   | |- context[denote_exp] => 
     (* Structural handling: expression case *)
     first [rewrite translate_trigger; (rewrite lookup_E_to_exp_E_Local || rewrite lookup_E_to_exp_E_Global);
            rewrite subevent_subevent, translate_trigger;
@@ -1282,11 +1281,11 @@ Ltac vstep :=
 Ltac tred := autorewrite with itree.
 
 Arguments denote_exp : simpl never.
-(* TODO: fmap (mk_block _ _ _ _ _) does not reduce, although we would like. *)
-(*    However if I do the following to force the unfolding, then fmap always *)
-(*    unfolds even in many other cases where we don't want it to do so. *)
-(*    Solution? *)
-(*  *)
+(* TODO: fmap (mk_block _ _ _ _ _) does not reduce, although we would like.
+   However if I do the following to force the unfolding, then fmap always
+   unfolds even in many other cases where we don't want it to do so.
+   Solution?
+ *)
 (* Arguments fmap /. *)
 (* Arguments Fmap_block /. *)
 Arguments denote_phis : simpl never.
