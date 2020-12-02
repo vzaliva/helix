@@ -282,7 +282,7 @@ End TLE_To_Modul.
 
 From Vellvm Require Import Utils.AListFacts.
 
-From Vellvm Require Import Traversal.
+Import Traversal.
 
 (* YZ: Should they be Opaque or simpl never? *)
 Global Opaque D.denote_ocfg.
