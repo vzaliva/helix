@@ -87,7 +87,7 @@ Require Export Flocq.IEEE754.Bits.
 Require Export MathClasses.interfaces.canonical_names.
 Require Export MathClasses.misc.decision.
 
-(* Require Export LibHyps.LibHyps. *)
+Require Export LibHyps.LibHyps.
 
 Import AlistNotations.
 
@@ -112,17 +112,6 @@ Import MonadNotation.
 Local Open Scope monad_scope.
 
 Arguments IntType /.
-(* General purpose tactics.
-   TODO: create a curated library of tactics in Vellvm.
-   TODO: when creating such library, ILLUSTRATE EACH TACTIC WITH EXAMPLES!
- *)
-Ltac splits :=
-  repeat match goal with
-           |- _ /\ _ => split
-         end.
-
-Ltac abs_by H :=
-  exfalso; eapply H; now eauto.
 
 (** Semantic domains
 
@@ -208,39 +197,9 @@ Section EventTranslation.
     bk <- trigger (MemLU "denote_FSHCOL" yindex);;
     lift_Derr (mem_to_list "Invalid output memory block" (MInt64asNT.to_nat p.(o)) bk).
 
-  (* TO MOVE *)
-
   Definition handle_failure: (StaticFailE +' DynamicFailE) ~> failT (itree void1) :=
     fun _ _ => ret None.
  
-  Definition errorT (m : Type -> Type) (a : Type) : Type :=
-    m (unit + a)%type.
-  Global Instance errotT_fun `{Functor.Functor m} : Functor.Functor (errorT m) :=
-    {| Functor.fmap := fun x y f => 
-                         Functor.fmap (fun x => match x with | inl _ => inl () | inr x => inr (f x) end) |}.
-
-  Global Instance errorT_monad `{Monad m} : Monad (errorT m) :=
-    {| ret := fun _ x => ret (inr x);
-       bind := fun _ _ c k =>
-                 bind (m := m) c 
-                      (fun x => match x with | inl _ => ret (inl ()) | inr x => k x end)
-    |}.
-  
-  Global Instance errotT_iter `{Monad m} `{MonadIter m} : MonadIter (errorT m) :=
-    fun A I body i => Basics.iter (M := m) (I := I) (R := unit + A) 
-                               (fun i => bind (m := m)
-                                           (body i)
-                                           (fun x => match x with
-                                                  | inl _       => ret (inr (inl ()))
-                                                  | inr (inl j) => ret (inl j)
-                                                  | inr (inr a) => ret (inr (inr a))
-                                                  end))
-                               i.
-
-  Definition handle_error: (StaticFailE +' DynamicFailE) ~> errorT (itree void1) :=
-    fun _ _ => ret (inl ()).
-  Definition interp_error := interp handle_error.
-
   Definition inject_signature {E} : void1 ~> E := fun _ (x:void1 _) => match x with end.
   Hint Unfold inject_signature : core.
 
@@ -431,39 +390,6 @@ Tactic Notation "cbn*" "in" "*" := (repeat (cbn in *; unfolder in *)).
  *)
 Ltac simp := repeat (inv_sum || inv_option || break_and || break_match_hyp).
 
-(* begin tactics *)
-
-(* TODOYZ: This is a redefinition from [DSigmaHCOLITree]. To remove after proper reorganization into two files *)
-(* TODOYZ: Actually even more so there should be a clean part of the tactics that do the generic structural
-   rewriting, and a wrapper around it doing stuff specific to this denotation. We should only need the former
-   here I believe *)
-Ltac inv_mem_lookup_err :=
-  unfold mem_lookup_err, trywith in *;
-  break_match_hyp; cbn in *; try (inl_inr || inv_sum || inv_sum).
-
-Ltac inv_memory_lookup_err :=
-  unfold memory_lookup_err, trywith in *;
-  break_match_hyp; cbn in *; try (inl_inr || inv_sum || inv_sum).
-
-Ltac hide_string_goal :=
-  match goal with
-  | |- context [String ?x ?y] => remember (String x y)
-  end.
-
-Ltac hide_string_hyp H :=
-  match type of H with
-  | context [String ?x ?y] => remember (String x y)
-  end.
-
-Ltac hide_strings :=
-  repeat (
-      match goal with
-      | h: context [String ?x ?y] |- _ => remember (String x y)
-      | |- context [String ?x ?y] => remember (String x y)
-      end).
-
-(* end tactics *)
-
 Section Add_Comment.
 
   (* NOTEYZ:
@@ -494,6 +420,8 @@ Section Add_Comment.
   Qed.
 
 End Add_Comment.
+
+Global Opaque interp_cfg_to_L3.
 
 Section InterpMem.
 
@@ -560,14 +488,7 @@ Section InterpMem.
 
 End InterpMem.
 
-(* We should do all reasoning about [interp_Mem] through these lemmas, let's make it Opaque to be sure that reduction does not mess with it *)
 Global Opaque interp_Mem.
-Global Opaque interp_cfg_to_L3.
-From Coq Require Import
-     Program
-     Setoid
-     Morphisms
-     RelationClasses.
 
 Section InterpHelix.
 
@@ -628,21 +549,6 @@ Section InterpHelix.
     rewrite translate_ret; reflexivity.
   Qed.
 
-  (* Lemma interp_helix_vis : *)
-  (*   forall T R E mem (e : Event T) (k : T -> itree Event R), *)
-  (*     interp_helix (E := E) (vis e k) mem ≈ *)
-  (*     interp_helix (vis e k) mem.  *)
-  (*     (* ITree.bind ((case_ Mem_handler handle_failure helix_handler MDSHCOLOnFloat64.pure_state) T e mem) *) *)
-  (*                (* (fun sx => Tau (interp_helix (k (snd sx)) (fst sx))). *) *)
-  (* Proof. *)
-  (*   intros.  *)
-  (*   unfold interp_helix. *)
-  (*   rewrite interp_Mem_vis_eqit. *)
-  (*   rewrite interp_fail_bind, translate_bind. *)
-    
-  (*   apply interp_cbn.state_vis. *)
-  (* Qed. *)
-
   Lemma interp_helix_MemLU :
     forall {E} str mem m x,
       memory_lookup mem x ≡ Some m ->
@@ -669,63 +575,7 @@ Section InterpHelix.
     reflexivity.
   Qed.
 
-  (* Global Instance interp_helix_eutt {X E} {R : X -> X -> Prop} : *)
-  (*   Proper (eutt R ==> eutt (option_rel R)) (@interp_helix X E). *)
-  (* Proof. *)
-  (* Qed. *)
-
 End InterpHelix.
-
-(* YZ TODO: rename this into [break_prod] and move to vellvm *)
-Ltac break_and :=
-  repeat match goal with
-         | h: _ * _ |- _ => destruct h
-         end.
-
-(** **
-      TODO YZ : This needs to leave other hypotheses that H untouched
- *)
-Ltac simp_comp H :=
-  cbn in H; unfolder in H;
-  cbn in H; repeat (inv_sum || break_and || break_match_hyp).
-
-Variant Box (T: Type): Type := box (t: T).
-(* Protects from "direct" pattern matching but not from context one *)
-Ltac protect H := apply box in H.
-Ltac hide_string_hyp' H :=
-  match type of H with
-  | context [String ?x ?y] =>
-    let msg := fresh "msg" in
-    let eqmsg := fresh "EQ_msg" in
-    remember (String x y) as msg eqn:eqmsg; protect eqmsg
-  end.
-
-Ltac hide_strings' :=
-  repeat (
-      match goal with
-      | h: Box _ |- _ => idtac
-      | h: context [String ?x ?y] |- _ =>
-        let msg := fresh "msg" in
-        let eqmsg := fresh "EQ_msg" in
-        remember (String x y) as msg eqn:eqmsg;
-        protect eqmsg
-      | |- context [String ?x ?y] =>
-        let msg := fresh "msg" in
-        let eqmsg := fresh "EQ_msg" in
-        remember (String x y) as msg eqn:eqmsg;
-        protect eqmsg
-      end).
-
-Ltac forget_strings :=
-  repeat (
-      match goal with
-      | h: context [String ?x ?y] |- _ =>
-        let msg := fresh "msg" in
-        generalize (String x y) as msg
-      | |- context [String ?x ?y] =>
-        let msg := fresh "msg" in
-        generalize (String x y) as msg
-      end).
 
 (* Autorewrite and hint databases for more modular rewriting. *)
 (* "Normalizing" rewriting hint database. *)
@@ -872,145 +722,144 @@ Section Interp_Helix_No_Failure.
       apply Returns_helix_throw in abs. auto.
     Qed.
 
-  End Interp_Helix_No_Failure.
+End Interp_Helix_No_Failure.
 
-  Opaque interp_helix.
+Opaque interp_helix.
 
-  Hint Resolve no_failure_helix_Ret : core.
-  Hint Resolve no_failure_helix_bind_prefix : core.
-  Hint Extern 4 (no_failure _) =>
-  (match goal with
-   | h : no_failure (interp_helix (ITree.bind _ _) _) |- _ =>
-     eapply no_failure_helix_bind_continuation in h
-   end) : core.
+Hint Resolve no_failure_helix_Ret : core.
+Hint Resolve no_failure_helix_bind_prefix : core.
+Hint Extern 4 (no_failure _) =>
+(match goal with
+ | h : no_failure (interp_helix (ITree.bind _ _) _) |- _ =>
+   eapply no_failure_helix_bind_continuation in h
+ end) : core.
 
-  Remove Hints
-        abstract_algebra.AbGroup
-        abstract_algebra.Bijective
-        abstract_algebra.BoundedJoinSemiLattice
-        abstract_algebra.BoundedJoinSemiLattice_Morphism
-        abstract_algebra.BoundedSemiLattice
-        abstract_algebra.Category
-        abstract_algebra.CommutativeMonoid
-        abstract_algebra.CommutativeSemiGroup
-        abstract_algebra.DistributiveLattice
-        abstract_algebra.Group
-        abstract_algebra.Injective
-        abstract_algebra.JoinSemiLattice
-        abstract_algebra.JoinSemiLattice_Morphism
-        abstract_algebra.Lattice
-        abstract_algebra.Lattice_Morphism
-        abstract_algebra.MeetSemiLattice
-        abstract_algebra.MeetSemiLattice_Morphism
-        abstract_algebra.Monoid
-        abstract_algebra.Monoid_Morphism
-        abstract_algebra.Ring
-        abstract_algebra.SemiGroup
-        abstract_algebra.SemiGroup_Morphism
-        abstract_algebra.SemiLattice
-        abstract_algebra.SemiRing
-        abstract_algebra.SemiRing_Morphism
-        abstract_algebra.Setoid
-        abstract_algebra.Setoid_Morphism
-        abstract_algebra.StrongSetoid
-        abstract_algebra.StrongSetoid_BinaryMorphism
-        abstract_algebra.StrongSetoid_Morphism
-        abstract_algebra.Surjective
-        abstract_algebra.abgroup_commutative
-        abstract_algebra.abgroup_group
-        abstract_algebra.arrow_equiv
-        abstract_algebra.bijective_injective
-        abstract_algebra.bijective_surjective
-        abstract_algebra.bounded_join_semilattice
-        abstract_algebra.bounded_join_slmor_monmor
-        abstract_algebra.bounded_semilattice_idempotent
-        abstract_algebra.bounded_semilattice_mon
-        abstract_algebra.commonoid_commutative
-        abstract_algebra.commonoid_mon
-        abstract_algebra.comp_assoc
-        abstract_algebra.comp_proper
-        abstract_algebra.comsg_ass
-        abstract_algebra.comsg_setoid
-        abstract_algebra.dec_recip_proper
-        abstract_algebra.decfield_nontrivial
-        abstract_algebra.decfield_ring
-        abstract_algebra.distr_lattice_lattice
-        abstract_algebra.field_mult_ext
-        abstract_algebra.field_nontrivial
-        abstract_algebra.field_plus_ext
-        abstract_algebra.field_ring
-        abstract_algebra.field_strongsetoid
-        abstract_algebra.group_monoid
-        abstract_algebra.id_l
-        abstract_algebra.id_r
-        abstract_algebra.intdom_nontrivial
-        abstract_algebra.intdom_nozeroes
-        abstract_algebra.intdom_ring
-        abstract_algebra.join_meet_absorption
-        abstract_algebra.join_meet_distr_l
-        abstract_algebra.join_semilattice
-        abstract_algebra.join_slmor_sgmor
-        abstract_algebra.lattice_join
-        abstract_algebra.lattice_meet
-        abstract_algebra.latticemor_join_mor
-        abstract_algebra.latticemor_meet_mor
-        abstract_algebra.meet_join_absorption
-        abstract_algebra.meet_semilattice
-        abstract_algebra.meet_slmor_sgmor
-        abstract_algebra.monmor_sgmor
-        abstract_algebra.monoid_left_id
-        abstract_algebra.monoid_right_id
-        abstract_algebra.monoid_semigroup
-        abstract_algebra.negate_l
-        abstract_algebra.negate_proper
-        abstract_algebra.negate_r
-        abstract_algebra.recip_proper
-        abstract_algebra.ring_dist
-        abstract_algebra.ring_group
-        abstract_algebra.ring_monoid
-        abstract_algebra.semilattice_idempotent
-        abstract_algebra.semilattice_sg
-        abstract_algebra.semimult_monoid
-        abstract_algebra.semiplus_monoid
-        abstract_algebra.semiring_distr
-        abstract_algebra.semiring_left_absorb
-        abstract_algebra.semiringmor_mult_mor
-        abstract_algebra.semiringmor_plus_mor
-        abstract_algebra.setoid_eq
-        abstract_algebra.sg_ass
-        abstract_algebra.sg_op_proper
-        abstract_algebra.sg_setoid
-        abstract_algebra.sgmor_setmor
-        abstract_algebra.sm_proper
-        abstract_algebra.strong_semiringmor_sr_mor
-        abstract_algebra.strong_semiringmor_strong_mor
-        abstract_algebra.strong_setoid_cotrans
-        abstract_algebra.strong_setoid_irreflexive
-        abstract_algebra.strong_setoid_symmetric
-        additional_operations.ModEuclid MonadIter categories.Mono
-        equiv_default_relation
-        minmax.LatticeOrder_instance_0
-        orders.join_sl_order
-        orders.lattice_order_join
-        orders.lattice_order_meet
-        orders.le_total
-        orders.po_preorder
-        orders.srorder_po
-        orders.strict_po_po
-        orders.total_order_po
-        semirings.FullPseudoOrder_instance_0
-        strong_setoids.binary_strong_morphism_proper
-        workarounds.equivalence_proper : typeclass_instances.
-
-
-  Module Helix_Notations.
-    Notation "'ℐ' '(' t ')' m" := (interp_helix t m) (only printing, at level 10).
-    Notation "'Name' i" := (Name (_ @@ string_of_nat (local_count i))) (only printing, at level 0, format "'Name' i").
-    Notation "'Name' i" := (Name (_ @@ string_of_nat (block_count i))) (only printing, at level 0, format "'Name' i").
-    Notation "'Name' i" := (Name (_ @@ string_of_nat (void_count i))) (only printing, at level 0, format "'Name' i").
+Remove Hints
+       abstract_algebra.AbGroup
+       abstract_algebra.Bijective
+       abstract_algebra.BoundedJoinSemiLattice
+       abstract_algebra.BoundedJoinSemiLattice_Morphism
+       abstract_algebra.BoundedSemiLattice
+       abstract_algebra.Category
+       abstract_algebra.CommutativeMonoid
+       abstract_algebra.CommutativeSemiGroup
+       abstract_algebra.DistributiveLattice
+       abstract_algebra.Group
+       abstract_algebra.Injective
+       abstract_algebra.JoinSemiLattice
+       abstract_algebra.JoinSemiLattice_Morphism
+       abstract_algebra.Lattice
+       abstract_algebra.Lattice_Morphism
+       abstract_algebra.MeetSemiLattice
+       abstract_algebra.MeetSemiLattice_Morphism
+       abstract_algebra.Monoid
+       abstract_algebra.Monoid_Morphism
+       abstract_algebra.Ring
+       abstract_algebra.SemiGroup
+       abstract_algebra.SemiGroup_Morphism
+       abstract_algebra.SemiLattice
+       abstract_algebra.SemiRing
+       abstract_algebra.SemiRing_Morphism
+       abstract_algebra.Setoid
+       abstract_algebra.Setoid_Morphism
+       abstract_algebra.StrongSetoid
+       abstract_algebra.StrongSetoid_BinaryMorphism
+       abstract_algebra.StrongSetoid_Morphism
+       abstract_algebra.Surjective
+       abstract_algebra.abgroup_commutative
+       abstract_algebra.abgroup_group
+       abstract_algebra.arrow_equiv
+       abstract_algebra.bijective_injective
+       abstract_algebra.bijective_surjective
+       abstract_algebra.bounded_join_semilattice
+       abstract_algebra.bounded_join_slmor_monmor
+       abstract_algebra.bounded_semilattice_idempotent
+       abstract_algebra.bounded_semilattice_mon
+       abstract_algebra.commonoid_commutative
+       abstract_algebra.commonoid_mon
+       abstract_algebra.comp_assoc
+       abstract_algebra.comp_proper
+       abstract_algebra.comsg_ass
+       abstract_algebra.comsg_setoid
+       abstract_algebra.dec_recip_proper
+       abstract_algebra.decfield_nontrivial
+       abstract_algebra.decfield_ring
+       abstract_algebra.distr_lattice_lattice
+       abstract_algebra.field_mult_ext
+       abstract_algebra.field_nontrivial
+       abstract_algebra.field_plus_ext
+       abstract_algebra.field_ring
+       abstract_algebra.field_strongsetoid
+       abstract_algebra.group_monoid
+       abstract_algebra.id_l
+       abstract_algebra.id_r
+       abstract_algebra.intdom_nontrivial
+       abstract_algebra.intdom_nozeroes
+       abstract_algebra.intdom_ring
+       abstract_algebra.join_meet_absorption
+       abstract_algebra.join_meet_distr_l
+       abstract_algebra.join_semilattice
+       abstract_algebra.join_slmor_sgmor
+       abstract_algebra.lattice_join
+       abstract_algebra.lattice_meet
+       abstract_algebra.latticemor_join_mor
+       abstract_algebra.latticemor_meet_mor
+       abstract_algebra.meet_join_absorption
+       abstract_algebra.meet_semilattice
+       abstract_algebra.meet_slmor_sgmor
+       abstract_algebra.monmor_sgmor
+       abstract_algebra.monoid_left_id
+       abstract_algebra.monoid_right_id
+       abstract_algebra.monoid_semigroup
+       abstract_algebra.negate_l
+       abstract_algebra.negate_proper
+       abstract_algebra.negate_r
+       abstract_algebra.recip_proper
+       abstract_algebra.ring_dist
+       abstract_algebra.ring_group
+       abstract_algebra.ring_monoid
+       abstract_algebra.semilattice_idempotent
+       abstract_algebra.semilattice_sg
+       abstract_algebra.semimult_monoid
+       abstract_algebra.semiplus_monoid
+       abstract_algebra.semiring_distr
+       abstract_algebra.semiring_left_absorb
+       abstract_algebra.semiringmor_mult_mor
+       abstract_algebra.semiringmor_plus_mor
+       abstract_algebra.setoid_eq
+       abstract_algebra.sg_ass
+       abstract_algebra.sg_op_proper
+       abstract_algebra.sg_setoid
+       abstract_algebra.sgmor_setmor
+       abstract_algebra.sm_proper
+       abstract_algebra.strong_semiringmor_sr_mor
+       abstract_algebra.strong_semiringmor_strong_mor
+       abstract_algebra.strong_setoid_cotrans
+       abstract_algebra.strong_setoid_irreflexive
+       abstract_algebra.strong_setoid_symmetric
+       additional_operations.ModEuclid MonadIter categories.Mono
+       equiv_default_relation
+       minmax.LatticeOrder_instance_0
+       orders.join_sl_order
+       orders.lattice_order_join
+       orders.lattice_order_meet
+       orders.le_total
+       orders.po_preorder
+       orders.srorder_po
+       orders.strict_po_po
+       orders.total_order_po
+       semirings.FullPseudoOrder_instance_0
+       strong_setoids.binary_strong_morphism_proper
+       workarounds.equivalence_proper : typeclass_instances.
 
 
-  End Helix_Notations.
+Module Helix_Notations.
+  Notation "'ℐ' '(' t ')' m" := (interp_helix t m) (only printing, at level 10).
+  Notation "'Name' i" := (Name (_ @@ string_of_nat (local_count i))) (only printing, at level 0, format "'Name' i").
+  Notation "'Name' i" := (Name (_ @@ string_of_nat (block_count i))) (only printing, at level 0, format "'Name' i").
+  Notation "'Name' i" := (Name (_ @@ string_of_nat (void_count i))) (only printing, at level 0, format "'Name' i").
+
+End Helix_Notations.
 
 Module ProofMode.
 
