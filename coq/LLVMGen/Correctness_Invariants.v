@@ -2,6 +2,7 @@ Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.LidBound.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.VariableBinding.
+Require Import Helix.LLVMGen.StateCounters.
 
 Set Implicit Arguments.
 Set Strict Implicit.

@@ -1,5 +1,5 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
-Require Import Helix.LLVMGen.Freshness.
+Require Import Helix.LLVMGen.StateCounters.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.Correctness_NExpr.
 

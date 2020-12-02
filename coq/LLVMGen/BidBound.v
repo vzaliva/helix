@@ -3,7 +3,6 @@
     Specialization of [VariableBinding] to block labels.
  *)
 Require Import Helix.LLVMGen.Correctness_Prelude.
-Require Import Helix.LLVMGen.Freshness.
 Require Import Helix.LLVMGen.VariableBinding.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.StateCounters.
@@ -154,8 +153,7 @@ Section BidBound.
     intros name s1 s2 bid ENDS INC.
     exists name. exists s1. exists s2.
     repeat (split; auto).
-    
-    erewrite Freshness.incBlockNamed_block_count with (s':=s2); eauto.
+    erewrite incBlockNamed_block_count with (s':=s2); eauto.
   Qed.
 
   Lemma incBlockNamed_bound_between :
@@ -212,7 +210,7 @@ Section BidBound.
     unfold bid_bound.
     exists n1. exists s1'. exists s1''.
     intuition.
-    apply Freshness.incBlockNamed_block_count in INC.
+    apply incBlockNamed_block_count in INC.
     lia.
   Qed.
 
@@ -223,7 +221,7 @@ Section BidBound.
       bid_bound s2 bid.
   Proof.
     intros s1 s2 bid nexp e c BOUND GEN.
-    apply Freshness.genNExpr_block_count in GEN.
+    apply genNExpr_block_count in GEN.
     destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
     unfold bid_bound.
     exists n1. exists s1'. exists s1''.
@@ -239,7 +237,7 @@ Section BidBound.
       bid_bound s2 bid.
   Proof.
     intros s1 s2 bid mexp e c BOUND GEN.
-    apply Freshness.genMExpr_block_count in GEN.
+    apply genMExpr_block_count in GEN.
     destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
     unfold bid_bound.
     exists n1. exists s1'. exists s1''.
@@ -255,7 +253,7 @@ Section BidBound.
       bid_bound s2 bid.
   Proof.
     intros s1 s2 bid nexp e c BOUND GEN.
-    apply Freshness.genAExpr_block_count in GEN.
+    apply genAExpr_block_count in GEN.
     destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
     unfold bid_bound.
     exists n1. exists s1'. exists s1''.
@@ -271,7 +269,7 @@ Section BidBound.
       bid_bound s2 bid.
   Proof.
     intros s1 s2 bid op nextblock b bks BOUND GEN.
-    apply Freshness.genIR_block_count in GEN.
+    apply genIR_block_count in GEN.
     destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
     unfold bid_bound.
     exists n1. exists s1'. exists s1''.
@@ -348,19 +346,19 @@ Ltac block_count_replace :=
          | H : incVoid ?s1 ≡ inr (?s2, ?bid) |- _
            => apply incVoid_block_count in H; cbn in H
          | H : incBlockNamed ?name ?s1 ≡ inr (?s2, ?bid) |- _
-           => apply Freshness.incBlockNamed_block_count in H; cbn in H
+           => apply incBlockNamed_block_count in H; cbn in H
          | H : incBlock ?s1 ≡ inr (?s2, ?bid) |- _
-           => apply Freshness.incBlockNamed_block_count in H; cbn in H
+           => apply incBlockNamed_block_count in H; cbn in H
          | H : incLocal ?s1 ≡ inr (?s2, ?bid) |- _
            => apply incLocal_block_count in H; cbn in H
          | H: genNExpr ?n ?s1 ≡ inr (?s2, _) |- _
-           => eapply Freshness.genNExpr_block_count in H; cbn in H
+           => eapply genNExpr_block_count in H; cbn in H
          | H: genMExpr ?n ?s1 ≡ inr (?s2, _) |- _
-           => eapply Freshness.genMExpr_block_count in H; cbn in H
+           => eapply genMExpr_block_count in H; cbn in H
          | H: genAExpr ?n ?s1 ≡ inr (?s2, _) |- _
-           => eapply Freshness.genAExpr_block_count in H; cbn in H
+           => eapply genAExpr_block_count in H; cbn in H
          | H: genIR ?op ?nextblock ?s1 ≡ inr (?s2, _) |- _
-           => eapply Freshness.genIR_block_count in H; cbn in H
+           => eapply genIR_block_count in H; cbn in H
          end.
 
 Ltac solve_block_count :=
