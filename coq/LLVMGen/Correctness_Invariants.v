@@ -1563,3 +1563,5 @@ Ltac solve_in_local_or_global_scalar :=
     [ now eauto
     | solve [eapply in_local_or_global_scalar_not_in_gamma; [solve_in_gamma | solve_not_in_gamma | solve_in_local_or_global_scalar]]
     ].
+
+Hint Resolve state_invariant_memory_invariant state_invariant_WF_IRState : core.

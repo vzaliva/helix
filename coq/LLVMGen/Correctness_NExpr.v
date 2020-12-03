@@ -92,9 +92,6 @@ Section NExpr.
     Mono_IRState : s1 << s2 \/ fst (snd sti) ≡ fst (snd stf)
     }.
 
-  Ltac split_post := split; [split | split]; [solve_state_invariant | solve_fresh | | cbn; intuition; try solve_sub_local_no_aliasing].
-
-
   Lemma genNExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH) 
@@ -138,10 +135,10 @@ Section NExpr.
           left.
           eexists.
           eapply memory_invariant_LLU; eauto.
+
       + (* The variable maps to a pointer *)
         unfold denoteNExpr in *; cbn* in *; simp; try_abs.
         break_inner_match_goal; try_abs.
- 
         hvred.
         (* We need to be a bit careful: when stepping the [load], we will need to provide the memory address
            at which we load. This address needs to be in scope when introducing the evar, we are therefore
@@ -149,7 +146,6 @@ Section NExpr.
          *)
 
         edestruct memory_invariant_GLU as (ptr & LU & READ); eauto.
-
         rewrite typ_to_dtyp_equation in READ.
         vstep.
         vstep; eauto; reflexivity.
@@ -170,6 +166,7 @@ Section NExpr.
           split; [auto using lid_bound_between_incLocal | solve_local_count].
         * eauto using incLocal_Γ.
         * left; solve_local_count.
+
     - (* Constant *)
       cbn* in COMPILE; simp.
       unfold denoteNExpr in *; cbn*.
@@ -672,60 +669,3 @@ Section NExpr.
 
 End NExpr.
 
-(* Definition genNExpr_exp_correct (σ : evalContext) (s : IRState) (e: exp typ) *)
-(*   : Rel_cfg_T DynamicValues.int64 unit := *)
-(*   fun '(memH,i) '(memV,(l,(g,v))) =>  *)
-(*     eutt Logic.eq  *)
-(*          (interp_cfg *)
-(*             (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] e))) *)
-(*             g l memV) *)
-(*          (Ret (memV,(l,(g,UVALUE_I64 i)))). *)
-
-(* Lemma genNExpr_correct : *)
-(*   forall (* Compiler bits *) (s1 s2: IRState) *)
-(*     (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH)  *)
-(*     (* Vellvm bits *)   (e: exp typ) (c: code typ) (g : global_env) (l : local_env) (memV : memoryV), *)
-
-(*     genNExpr nexp s1 ≡ inr (s2, (e, c))      -> (* Compilation succeeds *) *)
-(*     (state_invariant_pre σ s1 s2) memH (memV, (l, g)) -> (* The main state invariant is initially true *) *)
-(*     no_failure (interp_helix (E := E_cfg) (denoteNExpr σ nexp) memH) -> (* Source semantics defined *) *)
-(*     eutt (succ_cfg *)
-(*             (lift_Rel_cfg (state_invariant_post σ s1 s2 l) ⩕ *)
-(*                           genNExpr_exp_correct σ s2 e ⩕ *)
-(*                           ext_local memH (memV,(l,g))) *)
-(*          ) *)
-(*          (interp_helix (denoteNExpr σ nexp) memH) *)
-(*          (interp_cfg (denote_code (convert_typ [] c)) g l memV). *)
-(* Proof. *)
-(*   intros. *)
-(*   eapply eutt_mon; cycle -1. *)
-(*   eapply genNExpr_correct_ind; eauto. *)
-(*   intros [(? & ?) |] (? & ? & ? & []) INV; [destruct INV as ((SI & ?) & EXP & ?) | inv INV]. *)
-(*   cbn in *. *)
-(*   specialize (EXP l0). *)
-(*   forward EXP; [reflexivity |]. *)
-(*   split; auto. *)
-(*   split; auto. *)
-(*   split; auto. *)
-(* Qed. *)
-
-(* Opaque incBlockNamed. *)
-(* Opaque incVoid. *)
-(* Opaque incLocal. *)
-
-(* Lemma state_invariant_genNExpr : *)
-(*   ∀ (n : NExpr) (σ : evalContext) (s s' : IRState) (ec : exp typ * code typ) (memH : memoryH) (stV : config_cfg), *)
-(*     genNExpr n s ≡ inr (s', ec) → state_invariant σ s memH stV → state_invariant σ s' memH stV. *)
-(* Proof. *)
-(*   induction n; *)
-(*     intros σ s s' ec memH stV GEN SINV; *)
-(*     cbn in GEN; simp; *)
-(*       repeat *)
-(*         match goal with *)
-(*         | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ => *)
-(*           destruct (nth_error (Γ s1) n) eqn:FIND; inversion H; subst *)
-(*         end; *)
-(*       auto; try solve_state_invariant. *)
-(* Qed. *)
-
-(* Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_genNExpr; [eassumption | solve_state_invariant] : SolveStateInv. *)

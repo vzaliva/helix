@@ -577,5 +577,5 @@ Ltac solve_sub_local_no_aliasing :=
 Definition state_invariant_pre σ s1 s2 := (state_invariant σ s1 ⩕ fresh_pre s1 s2).
 Definition state_invariant_post σ s1 s2 l := (state_invariant σ s2 ⩕ fresh_post s1 s2 l).
 
-Hint Resolve state_invariant_memory_invariant state_invariant_WF_IRState ext_local_refl: core.
+Hint Resolve ext_local_refl: core.
 Hint Resolve memory_invariant_ext_local: core.
