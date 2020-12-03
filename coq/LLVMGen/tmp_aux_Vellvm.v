@@ -328,7 +328,7 @@ Proof.
 Qed.
 
 Lemma wf_ocfg_bid_convert_typ :
-  forall env (bs : list (LLVMAst.block typ)),
+  forall env (bs : ocfg typ),
     wf_ocfg_bid bs ->
     wf_ocfg_bid (convert_typ env bs).
 Proof.

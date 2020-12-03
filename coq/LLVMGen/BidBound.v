@@ -532,15 +532,6 @@ Opaque incBlockNamed.
 Opaque incVoid.
 Opaque incLocal.
 
-
-  (* TODO: move this? *)
-  Lemma add_comment_outputs :
-    forall (bs : list (LLVMAst.block typ)) env (comments : list string),
-      outputs (convert_typ env (add_comment bs comments)) ≡ outputs (convert_typ env bs).
-  Proof.
-    induction bs; intros env comments; auto.
-  Qed.
-
   
   Lemma outputs_bound_between :
     forall (op : DSHOperator) (s1 s2 : IRState) (nextblock op_entry : block_id) (bk_op : list (LLVMAst.block typ)),
