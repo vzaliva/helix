@@ -280,4 +280,53 @@ Section StateBound.
     all: auto.
   Qed.
 
+  Lemma state_bound_between_disjoint_neq :
+    forall x y s1 s2 s3 s4,
+      state_bound_between s1 s2 x ->
+      state_bound_between s3 s4 y ->
+      (count s2 <= count s3)%nat ->
+      x ≢ y.
+  Proof.
+    intros x y s1 s2 s3 s4 BOUND1 BOUND2 COUNT.
+
+    destruct BOUND1 as (name1 & s1' & s1'' & PREF & COUNT1 & COUNT2 & GEN).
+    destruct BOUND2 as (name2 & s2' & s2'' & PREF' & COUNT1' & COUNT2' & GEN').
+
+    eapply INJ; eauto.
+    lia.
+  Qed.
+
+  Lemma state_bound_between_list_disjoint :
+    forall l1 l2 s1 s2 s3 s4,
+      Forall (state_bound_between s1 s2) l1 ->
+      Forall (state_bound_between s3 s4) l2 ->
+      (count s2 <= count s3)%nat ->
+      Coqlib.list_disjoint l1 l2.
+  Proof.
+    intros l1 l2 s1 s2 s3 s4 BOUND1 BOUND2 COUNT.
+
+    unfold Coqlib.list_disjoint.
+    intros x y IN1 IN2.
+
+    eapply Forall_forall in BOUND1; eauto.
+    eapply Forall_forall in BOUND2; eauto.
+
+    eapply state_bound_between_disjoint_neq; eauto.
+  Qed.
+
+  Lemma state_bound_between_disjoint_norepet :
+    forall l1 l2 s1 s2 s3 s4,
+      Coqlib.list_norepet l1 ->
+      Coqlib.list_norepet l2 ->
+      Forall (state_bound_between s1 s2) l1 ->
+      Forall (state_bound_between s3 s4) l2 ->
+      (count s2 <= count s3)%nat ->
+      Coqlib.list_norepet (l1 ++ l2).
+  Proof.
+    intros l1 l2 s1 s2 s3 s4 NR1 NR2 BOUND1 BOUND2 COUNT.
+    apply Coqlib.list_norepet_append; eauto.
+
+    eapply state_bound_between_list_disjoint; eauto.
+  Qed.
+
 End StateBound.
