@@ -352,3 +352,230 @@ Ltac solve_sub_alist :=
    || (etransitivity; try eassumption; []; solve_sub_alist)
   ).
 
+
+Lemma fresh_no_lu :
+  forall s s' id l g m x dv τ,
+    incLocal s ≡ inr (s', id) ->
+    incLocal_fresh l s ->
+    in_local_or_global_scalar l g m x dv τ ->
+    x <> ID_Local id.
+Proof.
+  intros * INC FRESH IN abs; subst.
+  apply FRESH in INC.
+  unfold alist_fresh in *.
+  cbn in *; rewrite INC in IN; inv IN.
+Qed.
+
+Lemma fresh_no_lu_addr :
+  forall s s' id l g x ptr,
+    incLocal s ≡ inr (s', id) ->
+    incLocal_fresh l s ->
+    in_local_or_global_addr l g x ptr ->
+    x <> ID_Local id.
+Proof.
+  intros * INC FRESH IN abs; subst.
+  apply FRESH in INC.
+  unfold alist_fresh in *.
+  cbn in *; rewrite INC in IN; inv IN.
+Qed.
+
+Lemma ext_local_subalist : forall {R S} memH memV l1 g vH vV l2,
+    l1 ⊑ l2 ->
+    @ext_local R S memH (mk_config_cfg memV l1 g) (memH, vH) (memV, (l2, (g, vV))).
+Proof.
+  intros * SUB; cbn; splits; auto.
+Qed.
+
+  Definition sub_local_no_aliasing (σ : evalContext) (s : IRState) (ρ1 ρ2 : local_env) (g : global_env) :=
+    ρ1 ⊑ ρ2 /\ no_llvm_ptr_aliasing σ s ρ2 g.
+
+Section Ext_Local.
+
+  (** When compiling expressions, we need to carry on the invariant that
+      the meaning of the generated expression will be stable by execution of the
+      intermediate code corresponding to the evaluation of the second operand.
+      To this end, we rely on the fact that this code does not alter the configuration
+      except to extend it with fresh bindings.
+   *)
+  Definition ext_local {R S}: config_helix -> config_cfg -> Rel_cfg_T R S :=
+    fun mh '(mi,(li,gi)) '(mh',_) '(m,(l,(g,_))) => mh ≡ mh' /\ mi ≡ m /\ gi ≡ g /\ li ⊑ l.
+
+  Definition sub_local_no_aliasing (σ : evalContext) (s : IRState) (ρ1 ρ2 : local_env) (g : global_env) :=
+    ρ1 ⊑ ρ2 /\ no_llvm_ptr_aliasing σ s ρ2 g.
+
+  Definition ext_local_no_aliasing {R S}
+             (σ : evalContext) (s  : IRState) :
+    config_helix -> config_cfg -> Rel_cfg_T R S
+    := fun mh '(mi,(li,gi)) '(mh',_) '(m,(l,(g,_))) =>
+         mh ≡ mh' /\ mi ≡ m /\ gi ≡ g /\ sub_local_no_aliasing σ s li l g.
+
+  Lemma in_local_or_global_scalar_ext_local :
+    forall ρ1 ρ2 g m x dv τ,
+      in_local_or_global_scalar ρ1 g m x dv τ ->
+      ρ1 ⊑ ρ2 ->
+      in_local_or_global_scalar ρ2 g m x dv τ.
+  Proof.
+    unfold in_local_or_global_scalar; intros ? ? ? ? [] ? ? IN MONO; auto.
+    apply MONO; auto.
+  Qed.
+
+  Lemma in_local_or_global_addr_ext_local :
+    forall ρ1 ρ2 g x ptr,
+      in_local_or_global_addr ρ1 g x ptr ->
+      ρ1 ⊑ ρ2 ->
+      in_local_or_global_addr ρ2 g x ptr.
+  Proof.
+    unfold in_local_or_global_addr; intros ρ1 ρ2 g [] ptr IN MONO; auto.
+    apply MONO; auto.
+  Qed.
+
+  Lemma no_llvm_ptr_aliasing_ext_local :
+    forall σ s ρ1 ρ2 g,
+      no_llvm_ptr_aliasing σ s ρ1 g ->
+      sub_local_no_aliasing σ s ρ1 ρ2 g ->
+      no_llvm_ptr_aliasing σ s ρ2 g.
+  Proof.
+    intros σ s ρ1 ρ2 g ALIAS [EXT EXT_ALIAS].
+    eauto.
+  Qed.
+
+
+  Lemma memory_invariant_ext_local :
+    forall σ s memH memV ρ1 ρ2 g,
+      memory_invariant σ s memH (memV, (ρ1, g)) ->
+      ρ1 ⊑ ρ2 ->
+      memory_invariant σ s memH (memV, (ρ2, g)).
+  Proof.
+    intros * MEM_INV EXT_LOCAL.
+    red; intros * NTH NTH'.
+    specialize (MEM_INV _ _ _ _ NTH NTH').
+    destruct v; eauto.
+    eapply in_local_or_global_scalar_ext_local; eauto.
+    eapply in_local_or_global_scalar_ext_local; eauto.
+    repeat destruct MEM_INV as (? & MEM_INV).
+    do 3 eexists; splits; eauto.
+    eapply in_local_or_global_addr_ext_local; eauto.
+  Qed.
+
+End Ext_Local.
+
+Lemma ext_local_refl:
+  forall {R S} memH memV l g n v,
+    @ext_local R S memH (mk_config_cfg memV l g) (memH, n) (memV, (l, (g, v))).
+Proof.
+  intros; repeat split; reflexivity.
+Qed.
+
+Lemma state_invariant_sub_local_no_aliasing_refl :
+  forall l g s mh mv σ,
+    state_invariant σ s mh (mv, (l, g)) ->
+    sub_local_no_aliasing σ s l l g.
+Proof.
+  intros l g s mh mv σ SINV.
+  destruct SINV. cbn in *.
+  split; [reflexivity | eauto].
+Qed.
+
+
+Hint Resolve state_invariant_sub_local_no_aliasing_refl: core.
+
+Lemma sub_local_no_aliasing_transitive :
+  forall σ s l0 l1 l2 g,
+    sub_local_no_aliasing σ s l0 l1 g ->
+    sub_local_no_aliasing σ s l1 l2 g ->
+    sub_local_no_aliasing σ s l0 l2 g.
+Proof.
+  intros σ s l0 l1 l2 g [L0L1 ALIAS1] [L1L2 ALIAS2].
+  split; eauto.
+  etransitivity; eauto.
+Qed.
+
+Lemma sub_local_no_aliasing_add_non_ptr' :
+  forall σ s id v l l' g,
+    alist_fresh id l ->
+    ~ in_Gamma σ s id ->
+    WF_IRState σ s ->
+    no_llvm_ptr_aliasing σ s l g ->
+    sub_local_no_aliasing σ s l' l g ->
+    sub_local_no_aliasing σ s l' (alist_add id v l) g.
+Proof.
+  intros σ s id v l l' g FRESH NGAMMA WF ALIAS [L'L ALIAS'].
+  unfold sub_local_no_aliasing.
+  split.
+
+  - rewrite L'L. apply alist_le_add; auto.
+  - epose proof (no_llvm_ptr_aliasing_not_in_gamma _ ALIAS).
+    unfold no_llvm_ptr_aliasing in *.
+    intros * H0 H1 H2 H3 H4 H5 H6.
+    eapply H;     
+      [eauto | eauto | apply H0 | apply H1 | apply H2 | apply H3 | apply H4 | apply H5 | apply H6].
+Qed.
+
+Lemma sub_local_no_aliasing_Γ :
+  forall σ s1 s2 l1 l2 g,
+    sub_local_no_aliasing σ s1 l1 l2 g ->
+    Γ s2 ≡ Γ s1 ->
+    sub_local_no_aliasing σ s2 l1 l2 g.
+Proof.
+  intros σ s1 s2 l1 l2 g [L1L2 SUB] GAMMA.
+  unfold sub_local_no_aliasing, no_llvm_ptr_aliasing in *.
+  rewrite GAMMA.
+  auto.
+Qed.
+
+Ltac solve_state_invariant :=
+  cbn; try eassumption;
+  match goal with
+  | |- state_invariant _ _ _ (_, (alist_add _ _ _, _)) =>
+    eapply state_invariant_add_fresh; [now eauto | solve_alist_fresh | (eassumption || solve_state_invariant) | solve_fresh]
+  | |- state_invariant _ _ _ _ =>
+    solve [eauto with SolveStateInv]
+  end.
+
+Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incBlockNamed; [eassumption | solve_state_invariant] : SolveStateInv.
+Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incLocal; [eassumption | solve_state_invariant] : SolveStateInv.
+Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eassumption | solve_state_invariant] : SolveStateInv.
+
+Ltac solve_sub_local_no_aliasing_gamma :=
+  match goal with
+  | H: incLocal ?s1 ≡ inr (?s2, _) |- sub_local_no_aliasing ?σ ?s2 ?l1 ?l2 ?g
+    => let GAMMA := fresh "GAMMA"
+       in assert (Γ s2 ≡ Γ s1) as GAMMA by eauto with helix_context;
+          eapply sub_local_no_aliasing_Γ;
+          eauto;
+          clear GAMMA
+
+  | H: genNExpr _ ?s1 ≡ inr (?s2, _) |- sub_local_no_aliasing ?σ ?s2 ?l1 ?l2 ?g
+    => let GAMMA := fresh "GAMMA"
+       in assert (Γ s2 ≡ Γ s1) as GAMMA by eauto with helix_context;
+          eapply sub_local_no_aliasing_Γ;
+          eauto;
+          clear GAMMA
+
+  | H: genNExpr _ ?s1 ≡ inr (?s2, _),
+       SUB: sub_local_no_aliasing ?σ ?s2 ?l1 ?l2 ?g |- _
+    => let GAMMA := fresh "GAMMA" in
+       let SUB2  := fresh "SUB" in
+       assert (Γ s1 ≡ Γ s2) as GAMMA by eauto with helix_context;
+       epose proof (sub_local_no_aliasing_Γ _ SUB GAMMA);
+       clear SUB;
+       eauto
+  end.
+
+
+Ltac solve_sub_local_no_aliasing :=
+  first [ solve [eapply state_invariant_sub_local_no_aliasing_refl; solve_state_invariant]
+        | solve_sub_local_no_aliasing_gamma; solve_sub_local_no_aliasing
+        | eapply sub_local_no_aliasing_add_non_ptr';
+          [ solve_alist_fresh
+          | solve_not_in_gamma
+          | eauto
+          | eapply state_invariant_no_llvm_ptr_aliasing; solve_state_invariant
+          | solve_sub_local_no_aliasing
+          ]
+        | solve [eapply sub_local_no_aliasing_transitive; eauto]].
+Definition state_invariant_pre σ s1 s2 := (state_invariant σ s1 ⩕ fresh_pre s1 s2).
+Definition state_invariant_post σ s1 s2 l := (state_invariant σ s2 ⩕ fresh_post s1 s2 l).
+
+Hint Resolve state_invariant_memory_invariant state_invariant_WF_IRState ext_local_refl: core.
+Hint Resolve memory_invariant_ext_local: core.
