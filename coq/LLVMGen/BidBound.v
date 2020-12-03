@@ -123,6 +123,18 @@ Section BidBound.
     - auto.
   Qed.
 
+  Lemma bid_bound_between_bound_earlier :
+    forall s1 s2 bid,
+      bid_bound_between s1 s2 bid ->
+      bid_bound s2 bid.
+  Proof.
+    intros s1 s2 bid BOUND.
+    unfold bid_bound_between, state_bound_between in BOUND.
+    destruct BOUND as (name & s1' & s2' & PREF' & COUNT1 & COUNT2 & GEN).
+    exists name. exists s1'. exists s2'.
+    repeat (split; auto).
+  Qed.
+
   Lemma not_bid_bound_incBlockNamed :
     forall s1 s2 n bid,
       is_correct_prefix n ->
@@ -139,6 +151,20 @@ Section BidBound.
     simp.
     apply valid_prefix_string_of_nat_forward in H1; auto.
     lia.
+  Qed.
+
+  Lemma bid_bound_name :
+    forall s1 n x,
+      is_correct_prefix n ->
+      bid_bound s1 (Name (n @@ string_of_nat x)) ->
+      (x < block_count s1)%nat.
+  Proof.
+    intros s1 s2 n PREF BOUND.
+    unfold bid_bound, state_bound in BOUND.
+    destruct BOUND as (name & s' & s'' & PREF' & COUNT & GEN).
+    cbn in GEN.
+    inv GEN.
+    eapply valid_prefix_string_of_nat_forward in H1; eauto; lia.
   Qed.
 
   Lemma bid_bound_incBlockNamed :
