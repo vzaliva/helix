@@ -73,6 +73,35 @@ Section TFor.
       reflexivity.
   Qed.
 
+  Lemma tfor_ss : forall {E A} i j (body : nat -> A -> itree E A) a0,
+      (forall x i j, body i x ≈ body j x) ->
+      i <= j ->
+      tfor body (S i) (S j) a0 ≈ tfor body i j a0.
+  Proof.
+    intros; unfold tfor; cbn.
+    unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
+
+    apply eutt_iter'' with (RI1:=fun '(a,x) '(b, y) => a ≡ S b /\ x ≡ y) (RI2:=fun '(a,x) '(b, y) => a ≡ S b /\ x ≡ y); auto.
+
+    intros [j1 acc1] [j2 acc2] H1.
+    destruct H1. subst.
+    cbn.
+
+    pose proof (Nat.eq_dec j2 j) as [EQ | NEQ].
+
+    - subst. rewrite Nat.eqb_refl.
+      apply eutt_Ret.
+      constructor; auto.
+    - apply NPeano.Nat.eqb_neq in NEQ.
+      rewrite NEQ.
+      eapply eutt_clo_bind.
+      rewrite H.
+      reflexivity.
+      intros; subst.
+      apply eutt_Ret.
+      constructor; auto.
+  Qed.
+
   Lemma tfor_unroll_down: forall {E A} i j (body : nat -> A -> itree E A) a0,
       i < S j ->
       (forall x i j, body i x ≈ body j x) ->
@@ -102,10 +131,12 @@ Section TFor.
         eapply eutt_clo_bind.
         erewrite H0; reflexivity.
         intros; subst.
-        admit.
-      + subst; repeat rewrite tfor_refl.
+        do 2 (rewrite tfor_ss; auto); [|lia].
         reflexivity.
-  Admitted.
+      + subst.
+        repeat rewrite tfor_refl.
+        reflexivity.
+  Qed.
 
   Lemma tfor_split: forall {E A} (body : nat -> A -> itree E A) i j k a0,
       i <= j ->
