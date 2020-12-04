@@ -59,11 +59,59 @@ Section TFor.
     reflexivity.
   Qed.
 
+  Lemma tfor_refl : forall  {E A} i (body : nat -> A -> itree E A) a0,
+      tfor body i i a0 ≈ Ret a0.
+  Proof.
+    induction i; intros body a0.
+    - apply tfor_0.
+    - unfold tfor.
+      unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
+      rewrite unfold_iter.
+      cbn.
+      rewrite Nat.eqb_refl.
+      rewrite bind_ret_l.
+      reflexivity.
+  Qed.
+
+  Lemma tfor_unroll_down: forall {E A} i j (body : nat -> A -> itree E A) a0,
+      i < S j ->
+      (forall x i j, body i x ≈ body j x) ->
+      tfor body i (S j) a0 ≈
+      a <- body i a0;; tfor body i j a.
+  Proof.
+    intros E A i j. revert E A i.
+    induction j; intros E A i body a0 H H0.
+    - rewrite tfor_unroll; auto.
+      eapply eutt_clo_bind; [reflexivity|].
+      intros u1 u2 H1.
+      subst.
+
+      assert (i ≡ 0) by lia; subst.
+      repeat rewrite tfor_refl.
+      reflexivity.
+    - rewrite tfor_unroll; auto.
+      eapply eutt_clo_bind; [reflexivity|].
+      intros u1 u2 H1.
+      subst.
+
+      assert (i <= S j) by lia.
+      apply le_lt_or_eq in H1.
+      destruct H1.
+      + rewrite IHj; [|lia|auto].
+        rewrite tfor_unroll; [|lia].
+        eapply eutt_clo_bind.
+        erewrite H0; reflexivity.
+        intros; subst.
+        admit.
+      + subst; repeat rewrite tfor_refl.
+        reflexivity.
+  Admitted.
+
   Lemma tfor_split: forall {E A} (body : nat -> A -> itree E A) i j k a0,
       i <= j ->
       j <= k ->
       tfor body i k a0 ≈
-      a <- tfor body i j a0;; tfor body j k a. 
+      a <- tfor body i j a0;; tfor body j k a.
   Proof.
     intros * LE1 LE2.
     remember (j - i) as p; revert a0 i LE1 Heqp.
@@ -102,21 +150,21 @@ Section DSHLoop_is_tfor.
   (* MOVE prelude *)
   Global Instance interp_Mem_proper {X} : Proper (eutt Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_Mem X).
   Proof.
-    intros ? ? EQ ? ? <-. 
+    intros ? ? EQ ? ? <-.
     unfold interp_Mem.
     rewrite EQ.
     reflexivity.
-  Qed.  
+  Qed.
   Global Instance interp_helix_proper {E X} : Proper (eutt Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_helix X E).
   Proof.
-    intros ? ? EQ ? ? <-. 
+    intros ? ? EQ ? ? <-.
     unfold interp_helix.
     rewrite EQ.
     reflexivity.
   Qed.
 
   (* MOVE itree *)
-  Lemma interp_fail_iter : 
+  Lemma interp_fail_iter :
     forall {A R : Type} (E F : Type -> Type) (a0 : A) (h : E ~> failT (itree F)) f,
       interp_fail (E := E) (T := R) h (ITree.iter f a0) ≈
                   @Basics.iter _ failT_iter _ _ (fun a => interp_fail h (f a)) a0.
@@ -139,9 +187,9 @@ Section DSHLoop_is_tfor.
   Qed.
 
   (* MOVE itree *)
-  Lemma interp_state_iter : 
+  Lemma interp_state_iter :
     forall {A R S : Type} (E F : Type -> Type) (s0 : S) (a0 : A) (h : E ~> Monads.stateT S (itree F)) f,
-      interp_state (E := E) (T := R) h (iter f a0) s0 ≈ 
+      interp_state (E := E) (T := R) h (iter f a0) s0 ≈
                    @Basics.iter _ MonadIter_stateT0 _ _ (fun a s => interp_state h (f a) s) a0 s0.
   Proof.
     unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree in *; cbn.
@@ -159,7 +207,7 @@ Section DSHLoop_is_tfor.
   Qed.
 
   (* MOVE itree *)
-  Lemma translate_iter : 
+  Lemma translate_iter :
     forall {A R : Type} (E F : Type -> Type) (a0 : A) (h : E ~> F) f,
       translate (E := E) (F := F) (T := R) h (ITree.iter f a0) ≈
                 ITree.iter (fun a => translate h (f a)) a0.
@@ -171,7 +219,7 @@ Section DSHLoop_is_tfor.
     ebind; econstructor; eauto.
     - reflexivity.
     - intros [|] [] EQ; inv EQ.
-      + rewrite translate_tau; estep. 
+      + rewrite translate_tau; estep.
       + rewrite translate_ret; apply reflexivity.
   Qed.
 
@@ -180,7 +228,7 @@ Section DSHLoop_is_tfor.
     forall {X : Type} (E : Type -> Type) (m0 : memoryH) A (a0 : A) f,
       @interp_helix X E (iter f a0) m0 ≈
                     iter
-                    (fun '(m,a) => 
+                    (fun '(m,a) =>
                        ITree.bind (interp_helix (f a) m)
                                   (fun x => match x with
                                          | None => Ret (inr None)
@@ -212,8 +260,8 @@ Section DSHLoop_is_tfor.
     intros [[s []] |]; cbn; rewrite ?interp_fail_Ret, ?translate_ret, ?bind_ret_l, ?translate_ret; reflexivity.
   Qed.
 
-  Lemma __interp_helix_tfor: 
-    forall {E : Type -> Type} (X : Type) (body : nat -> X -> _) k n, 
+  Lemma __interp_helix_tfor:
+    forall {E : Type -> Type} (X : Type) (body : nat -> X -> _) k n,
       k <= n ->
         tfor (E := E) (fun k x =>
                 match x with
@@ -248,7 +296,7 @@ Section DSHLoop_is_tfor.
       reflexivity.
   Qed.
 
-  Lemma interp_helix_tfor {E : Type -> Type} : 
+  Lemma interp_helix_tfor {E : Type -> Type} :
     forall (X : Type) body k n m (x : X),
       k <= n ->
       interp_helix (E := E) (tfor body k n x) m
@@ -328,6 +376,77 @@ Section DSHLoop_is_tfor.
     apply eutt_Ret; auto.
   Qed.
 
+  Definition DSHPower_tfor
+             (σ: evalContext)
+             (n: nat)
+             (f: AExpr)
+             (x y: mem_block)
+             (xoffset yoffset: nat) :
+    itree Event mem_block
+    :=
+    tfor (fun i acc =>
+            xv <- lift_Derr (mem_lookup_err "Error reading 'xv' memory in denoteDSHBinOp" xoffset x) ;;
+            yv <- lift_Derr (mem_lookup_err "Error reading 'yv' memory in denoteDSHBinOp" yoffset acc) ;;
+            v' <- denoteBinCType σ f yv xv ;;
+            ret (mem_add yoffset v' acc)
+         ) 0 n y.
+
+  Lemma denoteDSHPower_as_tfor :
+    forall (σ: evalContext)
+      (n: nat)
+      (f: AExpr)
+      (x y: mem_block)
+      (xoffset yoffset: nat),
+    denoteDSHPower σ n f x y xoffset yoffset
+                   ≈
+    DSHPower_tfor σ n f x y xoffset yoffset.
+  Proof.
+    intros σ n; revert σ.
+    induction n; unfold DSHPower_tfor; intros σ f x y xoffset yoffset.
+    - cbn.
+      rewrite tfor_0.
+      reflexivity.
+    - cbn.
+      rewrite tfor_unroll_down; [|lia|].
+      + cbn.
+        repeat setoid_rewrite bind_bind.
+        eapply eutt_clo_bind; [reflexivity|].
+        intros u1 u2 H.
+        eapply eutt_clo_bind; [reflexivity|].
+        intros u0 u3 H0.
+        subst.
+        eapply eutt_clo_bind; [reflexivity|].
+        intros u1 u0 H.
+        rewrite bind_ret_l.
+        unfold DSHPower_tfor in IHn.
+        subst.
+        apply IHn.
+      + intros x0 i j.
+        reflexivity.
+  Qed.
+
+  Lemma DSHPower_as_tfor : forall σ ne x_p xoffset y_p yoffset f initial,
+      denoteDSHOperator σ (DSHPower ne (x_p,xoffset) (y_p,yoffset) f initial)
+                        ≈
+      '(x_i,x_size) <- denotePExpr σ x_p ;;
+      '(y_i,y_sixe) <- denotePExpr σ y_p ;;
+      x <- trigger (MemLU "Error looking up 'x' in DSHPower" x_i) ;;
+      y <- trigger (MemLU "Error looking up 'y' in DSHPower" y_i) ;;
+      n <- denoteNExpr σ ne ;; (* [n] denoteuated once at the beginning *)
+      xoff <- denoteNExpr σ xoffset ;;
+      yoff <- denoteNExpr σ yoffset ;;
+      let y' := mem_add (MInt64asNT.to_nat yoff) initial y in
+      y'' <-  DSHPower_tfor σ (MInt64asNT.to_nat n) f x y' (MInt64asNT.to_nat xoff) (MInt64asNT.to_nat yoff) ;;
+      trigger (MemSet y_i y'').
+  Proof.
+    intros σ ne x_p xoffset y_p yoffset f initial.
+    unfold denoteDSHOperator.
+    cbn.
+    repeat (eapply eutt_clo_bind; [reflexivity|intros; try break_match_goal; subst]).
+    setoid_rewrite denoteDSHPower_as_tfor.
+    reflexivity.
+  Qed.
+
   (* The denotation of the [DSHLoop] combinator can be rewritten in terms of the [do_n] combinator.
      So if we specify [genWhileLoop] in terms of this same combinator, then we might be good to go
      with a generic spec that of [GenWhileLoop] that does not depend on Helix.
@@ -356,7 +475,7 @@ Section DSHLoop_is_tfor.
     apply eutt_eq_bind.
     intros [|]; reflexivity.
   Qed.
-    
+
 End DSHLoop_is_tfor.
 
 (* TODO: Move to Prelude *)
@@ -657,7 +776,7 @@ Admitted.
  But to be inductive, this lemma talks only about the looping part:
  - we start from [loopcontblock]
  - we assume that [j] iterations have already been executed
- We therefore assume (I j) initially, and always end with (I n). 
+ We therefore assume (I j) initially, and always end with (I n).
  We proceed by induction on the number of iterations remaining, i.e. (n - j).
 
  Since in order to reach [loopcontblock], we need to have performed at least one iteration, we have the
@@ -675,7 +794,7 @@ Admitted.
 Ltac vbranch_r := vred_BR3.
 Ltac vbranch_l := vred_BL3.
 
-Lemma genWhileLoop_tfor_ind: 
+Lemma genWhileLoop_tfor_ind:
   forall (prefix : string)
     (loopvar : raw_id)            (* lvar storing the loop index *)
     (loopcontblock : block_id)    (* reentry point from the body back to the loop *)
@@ -691,14 +810,14 @@ Lemma genWhileLoop_tfor_ind:
     (* All labels generated are distinct *)
     wf_ocfg_bid bks ->
 
-    free_in_cfg bks nextblock -> 
+    free_in_cfg bks nextblock ->
 
     forall (n : nat)                     (* Number of iterations *)
 
       (* Generation of the LLVM code wrapping the loop around bodyV *)
       (HGEN: genWhileLoop prefix (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
                           loopvar loopcontblock body_entry body_blocks [] nextblock s1
-                          ≡ inr (s2,(entry_id, bks))) 
+                          ≡ inr (s2,(entry_id, bks)))
 
       (* Computation on the other side, operating over some type of accumulator [A], *)
       (* i.e. the counterpart to bodyV (body_blocks) *)
@@ -750,14 +869,14 @@ Lemma genWhileLoop_tfor_ind:
               x ≡ inl (loopcontblock, nextblock) /\
               I n a (memV,(l,g))
            )
-           (tfor bodyF j n a) 
+           (tfor bodyF j n a)
            (interp_cfg (denote_ocfg (convert_typ [] bks)
                                                 (_label, loopcontblock)) g l mV).
 Proof.
   intros * IN UNIQUE_IDENTS NEXTBLOCK_ID * GEN A LVAR_FRESH *.
   unfold genWhileLoop in GEN. cbn* in GEN. simp.
   intros BOUND OVER * FBODY STABLE.
-  
+
   remember (n - j) as k eqn:K_EQ.
   revert j K_EQ BOUND.
   induction k as [| k IH]; intros j EQidx.
@@ -783,7 +902,7 @@ Proof.
     vred.
     vred.
     vred.
-    vstep. 
+    vstep.
     {
       vstep.
       vstep; solve_lu; reflexivity.
@@ -798,7 +917,7 @@ Proof.
       vstep; solve_lu; reflexivity.
       vstep; reflexivity.
       all:reflexivity.
-    }      
+    }
 
     (* We now branch to [nextblock] *)
     vbranch_r.
@@ -864,7 +983,7 @@ Proof.
     vred.
 
     (* Step 2 : Jump to b0, i.e. loopblock (since we have checked k < n). *)
-    vbranch_l. 
+    vbranch_l.
     { cbn; vstep;  try solve_lu.
       rewrite __arithu; try lia.
       apply eutt_Ret.
@@ -961,7 +1080,7 @@ Lemma genWhileLoop_tfor_correct:
     (body_blocks : list (LLVMAst.block typ)) (* (llvm) body to be iterated *)
     (nextblock : block_id)        (* exit point of the overall loop *)
     (entry_id : block_id)         (* entry point of the overall loop *)
-    (s1 s2 : IRState) 
+    (s1 s2 : IRState)
     (bks : list (LLVMAst.block typ)) ,
 
     In body_entry (inputs body_blocks) ->
@@ -972,11 +1091,11 @@ Lemma genWhileLoop_tfor_correct:
     free_in_cfg bks nextblock ->
 
     forall (n : nat)                     (* Number of iterations *)
-      
+
       (* Generation of the LLVM code wrapping the loop around bodyV *)
       (HGEN: genWhileLoop prefix (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
                           loopvar loopcontblock body_entry body_blocks [] nextblock s1
-                          ≡ inr (s2,(entry_id, bks))) 
+                          ≡ inr (s2,(entry_id, bks)))
 
       (* Computation on the Helix side performed at each cell of the vector, *)
       (*    the counterpart to bodyV (body_blocks) *)
@@ -994,7 +1113,7 @@ Lemma genWhileLoop_tfor_correct:
                     (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k))
                     a (mV,(l,g))) ->
           eutt
-            ( (fun a' '(memV, (l, (g, x))) => 
+            ( (fun a' '(memV, (l, (g, x))) =>
                  l @ loopvar ≡ Some (uvalue_of_nat k) /\
                  (exists _label', x ≡ inl (_label', loopcontblock)) /\
                  I (S k) (* a *) a' (memV, (l, g))))
@@ -1037,9 +1156,9 @@ Lemma genWhileLoop_tfor_correct:
               (x ≡ inl (loopcontblock, nextblock) \/
                x ≡ inl (entry_id, nextblock)) /\
               Q a (memV,(l,g)))
-           (tfor bodyF 0 n a) 
+           (tfor bodyF 0 n a)
            (interp_cfg (denote_ocfg (convert_typ [] bks) (_label ,entry_id)) g l mV).
-Proof. 
+Proof.
 
   intros * IN UNIQUE EXIT * GEN * BOUND * IND STABLE pre post IMPSTATE IND_INV * PRE.
   pose proof @genWhileLoop_tfor_ind as GEN_IND.
@@ -1101,7 +1220,7 @@ Proof.
       vstep; solve_lu.
       all :reflexivity.
     }
-    vstep. 
+    vstep.
 
     (* Step 1 : Jump to b0, i.e. loopblock (since we have checked k < n). *)
     vbranch_l.
@@ -1131,7 +1250,7 @@ Proof.
       rewrite ?interp_cfg_to_L3_bind, ?bind_bind.
 
     vstep. tred. repeat vred.
-    unfold map_monad. cbn. vred. 
+    unfold map_monad. cbn. vred.
     rewrite interp_cfg_to_L3_LW. vred. vred. vred. vred.
 
     subst.
@@ -1163,14 +1282,14 @@ Proof.
       { clear - post; intros ? (? & ? & ? & ?) [-> ?]; split; eauto. }
       lia.
       lia.
-      eauto. 
+      eauto.
       eapply STABLE; eauto.
       split; eauto.
 Qed.
 
 (* BEGIN work in progress to add the transport of [] as a postcondition through the loop *)
 (*
-Lemma genWhileLoop_tfor_ind: 
+Lemma genWhileLoop_tfor_ind:
   forall (prefix : string)
     (loopvar : raw_id)            (* lvar storing the loop index *)
     (loopcontblock : block_id)    (* reentry point from the body back to the loop *)
@@ -1187,14 +1306,14 @@ Lemma genWhileLoop_tfor_ind:
     (* All labels generated are distinct *)
     wf_ocfg_bid bks ->
 
-    free_in_cfg bks nextblock -> 
+    free_in_cfg bks nextblock ->
 
     forall (n : nat)                     (* Number of iterations *)
 
       (* Generation of the LLVM code wrapping the loop around bodyV *)
       (HGEN: genWhileLoop prefix (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
                           loopvar loopcontblock body_entry body_blocks [] nextblock s1
-                          ≡ inr (s2,(entry_id, bks))) 
+                          ≡ inr (s2,(entry_id, bks)))
 
       (* Computation on the other side, operating over some type of accumulator [A], *)
       (* i.e. the counterpart to bodyV (body_blocks) *)
@@ -1223,7 +1342,7 @@ Lemma genWhileLoop_tfor_ind:
             (bodyF k a)
             (interp_cfg (denote_ocfg (convert_typ [] body_blocks) (_label, body_entry)) g li mV)
       ) ->
-      
+
       (* Invariant is stable under the administrative bookkeeping that the loop performs *)
       (forall a sa b sb c sc d sd e se msg msg' msg'',
           incBlockNamed msg s1 ≡ inr (sa, a) ->
@@ -1236,7 +1355,7 @@ Lemma genWhileLoop_tfor_ind:
             (I k a (mV, (l, g)) -> I k a (mV, ((alist_add id v l), g)))
       ) ->
       sb1 << sb2 ->
-      local_count sb2 ≡ local_count s1 -> 
+      local_count sb2 ≡ local_count s1 ->
 
     (* Main result. Need to know initially that P holds *)
     forall g li mV a _label,
@@ -1250,14 +1369,14 @@ Lemma genWhileLoop_tfor_ind:
               I n a (memV,(l,g)) /\
               local_scope_modif sb1 s2 li l
            )
-           (tfor bodyF j n a) 
+           (tfor bodyF j n a)
            (interp_cfg (denote_ocfg (convert_typ [] bks)
                                                 (_label, loopcontblock)) g li mV).
 Proof.
-  intros * IN PREFIX UNIQUE_IDENTS NEXTBLOCK_ID * GEN *. 
+  intros * IN PREFIX UNIQUE_IDENTS NEXTBLOCK_ID * GEN *.
   unfold genWhileLoop in GEN. cbn* in GEN. simp.
   intros BOUND OVER * FBODY STABLE INEQ INEQ'.
-  
+
   remember (n - j) as k eqn:K_EQ.
   revert j K_EQ BOUND.
   induction k as [| k IH]; intros j EQidx.
@@ -1282,7 +1401,7 @@ Proof.
     vred.
     vred.
     vred.
-    vstep. 
+    vstep.
     {
       vstep.
       vstep; solve_lu; reflexivity.
@@ -1297,7 +1416,7 @@ Proof.
       vstep; solve_lu; reflexivity.
       vstep; reflexivity.
       all:reflexivity.
-    }      
+    }
 
     (* We now branch to [nextblock] *)
     vbranch_r.
@@ -1379,7 +1498,7 @@ Proof.
     vred.
 
     (* Step 2 : Jump to b0, i.e. loopblock (since we have checked k < n). *)
-    vbranch_l. 
+    vbranch_l.
     { cbn; vstep;  try solve_lu.
       rewrite __arithu; try lia.
       apply eutt_Ret.
@@ -1516,7 +1635,7 @@ Lemma genWhileLoop_tfor_correct:
     (body_blocks : list (LLVMAst.block typ)) (* (llvm) body to be iterated *)
     (nextblock : block_id)        (* exit point of the overall loop *)
     (entry_id : block_id)         (* entry point of the overall loop *)
-    (s1 s2 : IRState) 
+    (s1 s2 : IRState)
     (bks : list (LLVMAst.block typ)) ,
 
     In body_entry (inputs body_blocks) ->
@@ -1527,11 +1646,11 @@ Lemma genWhileLoop_tfor_correct:
     free_in_cfg bks nextblock ->
 
     forall (n : nat)                     (* Number of iterations *)
-      
+
       (* Generation of the LLVM code wrapping the loop around bodyV *)
       (HGEN: genWhileLoop prefix (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
                           loopvar loopcontblock body_entry body_blocks [] nextblock s1
-                          ≡ inr (s2,(entry_id, bks))) 
+                          ≡ inr (s2,(entry_id, bks)))
 
       (* Computation on the Helix side performed at each cell of the vector, *)
       (*    the counterpart to bodyV (body_blocks) *)
@@ -1549,7 +1668,7 @@ Lemma genWhileLoop_tfor_correct:
                     (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k))
                     a (mV,(l,g))) ->
           eutt
-            ( (fun a' '(memV, (l, (g, x))) => 
+            ( (fun a' '(memV, (l, (g, x))) =>
                  l @ loopvar ≡ Some (uvalue_of_nat k) /\
                  (exists _label', x ≡ inl (_label', loopcontblock)) /\
                  I (S k) (* a *) a' (memV, (l, g))))
@@ -1592,9 +1711,9 @@ Lemma genWhileLoop_tfor_correct:
               (x ≡ inl (loopcontblock, nextblock) \/
                x ≡ inl (entry_id, nextblock)) /\
               Q a (memV,(l,g)))
-           (tfor bodyF 0 n a) 
+           (tfor bodyF 0 n a)
            (interp_cfg (denote_ocfg (convert_typ [] bks) (_label ,entry_id)) g l mV).
-Proof. 
+Proof.
 
   intros * IN UNIQUE EXIT * GEN * BOUND * IND STABLE pre post IMPSTATE IND_INV * PRE.
   pose proof @genWhileLoop_tfor_ind as GEN_IND.
@@ -1656,7 +1775,7 @@ Proof.
       vstep; solve_lu.
       all :reflexivity.
     }
-    vstep. 
+    vstep.
 
     (* Step 1 : Jump to b0, i.e. loopblock (since we have checked k < n). *)
     vbranch_l.
@@ -1688,7 +1807,7 @@ Proof.
       rewrite ?interp_cfg_to_L3_bind, ?bind_bind.
 
     vstep. tred. repeat vred.
-    unfold map_monad. cbn. vred. 
+    unfold map_monad. cbn. vred.
     rewrite interp_cfg_to_L3_LW. vred. vred. vred. vred.
 
     subst.
@@ -1720,7 +1839,7 @@ Proof.
       { clear - post; intros ? (? & ? & ? & ?) [-> ?]; split; eauto. }
       lia.
       lia.
-      eauto. 
+      eauto.
       eapply STABLE; eauto.
       split; eauto.
 Qed.
@@ -1745,7 +1864,7 @@ Qed.
  But to be inductive, this lemma talks only about the looping part:
  - we start from [loopcontblock]
  - we assume that [j] iterations have already been executed
- We therefore assume (I j) initially, and always end with (I n). 
+ We therefore assume (I j) initially, and always end with (I n).
  We proceed by induction on the number of iterations remaining, i.e. (n - j).
 
  Since in order to reach [loopcontblock], we need to have performed at least one iteration, we have the
@@ -1777,8 +1896,8 @@ Lemma genWhileLoop_ind:
       (* Generation of the LLVM code wrapping the loop around bodyV *)
       (HGEN: genWhileLoop prefix (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
                           loopvar loopcontblock body_entry body_blocks [] nextblock s1
-                          ≡ inr (s2,(entry_id, bks))) 
-      
+                          ≡ inr (s2,(entry_id, bks)))
+
       (* Computation on the Helix side performed at each cell of the vector, *)
       (*    the counterpart to bodyV (body_blocks) *)
       (bodyH: nat -> mem_block -> itree _ mem_block)
@@ -1836,7 +1955,7 @@ Proof.
   unfold genWhileLoop in GEN. cbn* in GEN. simp.
   intros BOUND OVER * HBODY STABLE.
   unfold build_vec_gen.
-  
+
   remember (n - j) as k eqn:K_EQ.
   revert j K_EQ BOUND.
   induction k as [| k IH]; intros j EQidx.
@@ -1861,7 +1980,7 @@ Proof.
     vred.
     vred.
     vred.
-    vstep. 
+    vstep.
     {
       vstep.
       vstep; solve_lu; reflexivity.
@@ -1876,7 +1995,7 @@ Proof.
       vstep; solve_lu; reflexivity.
       vstep; reflexivity.
       all:reflexivity.
-    }      
+    }
 
     (* We now branch to [nextblock] *)
     vbranch_r.
@@ -1939,7 +2058,7 @@ Proof.
     vred.
 
     (* Step 2 : Jump to b0, i.e. loopblock (since we have checked k < n). *)
-    vbranch_l. 
+    vbranch_l.
     { cbn; vstep;  try solve_lu.
       rewrite __arithu; try lia.
       apply eutt_Ret.
@@ -2040,7 +2159,7 @@ Lemma genWhileLoop_correct:
     (body_blocks : list (LLVMAst.block typ)) (* (llvm) body to be iterated *)
     (nextblock : block_id)        (* exit point of the overall loop *)
     (entry_id : block_id)         (* entry point of the overall loop *)
-    (s1 s2 : IRState) 
+    (s1 s2 : IRState)
     (bks : list (LLVMAst.block typ)) ,
 
     In body_entry (inputs body_blocks) ->
@@ -2055,7 +2174,7 @@ Lemma genWhileLoop_correct:
       (* Generation of the LLVM code wrapping the loop around bodyV *)
       (HGEN: genWhileLoop prefix (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
                           loopvar loopcontblock body_entry body_blocks [] nextblock s1
-                          ≡ inr (s2,(entry_id, bks))) 
+                          ≡ inr (s2,(entry_id, bks)))
 
       (* Computation on the Helix side performed at each cell of the vector, *)
       (*    the counterpart to bodyV (body_blocks) *)
@@ -2122,8 +2241,8 @@ Lemma genWhileLoop_correct:
 
            (interp_helix (build_vec n bodyH vec) mH)
            (interp_cfg (denote_ocfg (convert_typ [] bks) (_label ,entry_id)) g l mV).
-Proof. 
-  
+Proof.
+
   intros * IN UNIQUE EXIT * GEN * BOUND * IND STABLE STABLE' IND_INV * PRE FRESH.
   pose proof @genWhileLoop_ind as GEN_IND.
   specialize (GEN_IND prefix loopvar loopcontblock body_entry body_blocks nextblock entry_id s1 s2 bks).
@@ -2170,7 +2289,7 @@ Proof.
     clean_goal.
     eapply freshness_pre_alist_fresh; [| eassumption].
     eapply freshness_pre_shrink; [eassumption | solve_local_count | solve_local_count].
-  
+
   - Opaque build_vec_gen.
     cbn.
     cbn in *.
@@ -2232,7 +2351,7 @@ Proof.
       rewrite ?interp_cfg_to_L3_bind, ?bind_bind.
 
     vstep. tred. repeat vred.
-    unfold map_monad. cbn. vred. 
+    unfold map_monad. cbn. vred.
     rewrite interp_cfg_to_L3_LW. vred. vred. vred. vred.
 
     subst. vred.
@@ -2296,4 +2415,3 @@ Proof.
     Unshelve. eauto. eauto. eauto.
 Qed.
  *)
-
