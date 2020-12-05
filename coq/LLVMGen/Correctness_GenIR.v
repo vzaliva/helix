@@ -595,64 +595,13 @@ Section GenIR.
         eapply Forall_forall in L2; eauto.
   Qed.
 
-  Lemma no_failure_helix_LU : forall {E X} s a (k : _ -> itree _ X) m,
-      no_failure (E := E) (interp_helix (ITree.bind (trigger (MemLU s a)) k) m) ->
-      exists v,
-        no_failure (E := E) (interp_helix (k v) m) /\ memory_lookup m a ≡ Some v.
-  Proof.
-    intros * NOFAIL.
-    rewrite interp_helix_bind in NOFAIL.
-    Transparent interp_helix interp_Mem.
-    unfold interp_helix in NOFAIL.
-    unfold interp_Mem in NOFAIL.
-    rewrite interp_state_trigger in NOFAIL.
-    cbn* in *.
-    simp.
-    - unfold throw in *.
-      rewrite interp_fail_vis in NOFAIL.
-      cbn in *.
-      rewrite bind_ret_l, translate_ret, bind_ret_l in NOFAIL.
-      apply eutt_Ret in NOFAIL; contradiction NOFAIL; auto.
-    - rewrite interp_fail_ret in NOFAIL.
-      cbn in *; rewrite translate_ret, bind_ret_l in NOFAIL.
-      eexists; split; eauto.
-  Qed.
-  Opaque interp_helix interp_Mem.
-
   (* Import ProofMode. *)
   Notation "'gep' τ e" := (OP_GetElementPtr τ e) (at level 10, only printing).
   Notation "'double'" := (DTYPE_Double) (at level 10, only printing).
   Notation "'arr'" := (DTYPE_Array) (at level 10, only printing).
   Notation "'to_nat'" := (MInt64asNT.to_nat) (only printing).
 
-  Variant hidden_cont  (T: Type) : Type := boxh_cont (t: T).
-  Variant visible_cont (T: Type) : Type := boxv_cont (t: T).
-  Ltac hide_cont :=
-    match goal with
-    | h : visible_cont _ |- _ =>
-      let EQ := fresh "HK" in
-      destruct h as [EQ];
-      apply boxh_cont in EQ
-    | |- context[ITree.bind _ ?k] =>
-      remember k as K eqn:VK;
-      apply boxh_cont in VK
-    end.
-  Ltac show_cont :=
-    match goal with
-    | h: hidden_cont _ |- _ =>
-      let EQ := fresh "VK" in
-      destruct h as [EQ];
-      apply boxv_cont in EQ
-    end.
-  Notation "'hidden' K" := (hidden_cont (K ≡ _)) (only printing, at level 10).
-  Ltac subst_cont :=
-    match goal with
-    | h: hidden_cont _ |- _ =>
-      destruct h; subst
-    | h: visible_cont _ |- _ =>
-      destruct h; subst
-    end.
-  
+ 
   (* Lemma state_invariant_sub_alist: *)
   (*   forall σ s mH mV l1 l2 g, *)
   (*     l1 ⊑ l2 -> *)
@@ -701,100 +650,6 @@ Section GenIR.
     - eapply no_id_aliasing_gamma; eauto.
     - destruct stV as (? & ? & ?); cbn in *; eapply no_llvm_ptr_aliasing_gamma; eauto.
   Qed.
-
-  (* TODO: Move? *)
-  Opaque mem_lookup.
-  Opaque mem_add.
-  Opaque memory_lookup.
-  Opaque memory_set.
-
-  (* TODO: Move? *)
-  Lemma mem_lookup_mem_add_neq :
-    forall x y v bk,
-      x ≢ y ->
-      mem_lookup x (mem_add y v bk) ≡ mem_lookup x bk.
-  Proof.
-    intros x y v bk H.
-    Transparent mem_lookup mem_add.
-    cbn.
-    Opaque mem_lookup mem_add.
-    rewrite Memory.NM.Raw.Proofs.add_find; eauto.
-    assert (match OrderedTypeEx.Nat_as_OT.compare x y with
-            | OrderedType.EQ _ => Some v
-            | _ => Memory.NM.Raw.find x (Memory.NM.this bk)
-            end ≡ Memory.NM.Raw.find x (Memory.NM.this bk)).
-    { break_match; try reflexivity.
-      red in e. contradiction.
-    }
-    setoid_rewrite H0.
-    reflexivity.
-    apply Memory.NM.is_bst.
-  Qed.
-
-  Lemma mem_lookup_mem_add_eq :
-    forall x v bk,
-      mem_lookup x (mem_add x v bk) ≡ Some v.
-  Proof.
-    intros x v bk.
-    Transparent mem_lookup mem_add.
-    cbn.
-    Opaque mem_lookup mem_add.
-    rewrite Memory.NM.Raw.Proofs.add_find.
-    break_match; try reflexivity;
-      red in l; lia.
-    apply Memory.NM.is_bst.
-  Qed.
-
-  Lemma memory_lookup_memory_set_eq :
-    forall x bk m,
-      memory_lookup (memory_set m x bk) x ≡ Some bk.
-  Proof.
-    intros x bk m.
-    Transparent memory_lookup memory_set.
-    unfold memory_lookup, memory_set.
-    Opaque memory_lookup memory_set.
-    setoid_rewrite Memory.NM.Raw.Proofs.add_find.
-    break_match; try reflexivity; red in l; lia.
-    apply Memory.NM.is_bst.
-  Qed.
-
-  (* TODO: Move? *)
-  Lemma memory_lookup_memory_set_neq :
-    forall m x y bk,
-      x ≢ y ->
-      memory_lookup (memory_set m x bk) y ≡ memory_lookup m y.
-  Proof.
-    intros m x y bk H.
-    Transparent memory_lookup memory_set.
-    unfold memory_lookup, memory_set.
-    Opaque memory_lookup memory_set.
-    setoid_rewrite Memory.NM.Raw.Proofs.add_find.
-    break_match; try reflexivity.
-    red in e. clear Heqc. symmetry in e. contradiction.
-    apply Memory.NM.is_bst.
-  Qed.
-
-  (* TODO: Move this and use it in aexpr proof as well *)
-  Lemma repr_of_nat_to_nat :
-    forall x,
-      repr (Z.of_nat (MInt64asNT.to_nat x)) ≡ x.
-  Proof.
-    intros x.
-    cbn.
-    unfold MInt64asNT.to_nat.
-    cbn.
-    rewrite Znat.Z2Nat.id, repr_intval; auto.
-    destruct (Int64.intrange x); lia.
-  Qed.
-
-  (* TODO: move this and prove this *)
-  Lemma from_Z_intval :
-    forall sz i,
-      MInt64asNT.from_Z sz ≡ inr i ->
-      sz ≡ Int64.intval i.
-  Proof.
-    intros sz i H.
-  Admitted.
 
   Lemma state_invariant_escape_scope : forall σ v x s1 s2 stH stV,
       Γ s1 ≡ x :: Γ s2 ->
@@ -1144,120 +999,13 @@ Section GenIR.
       setoid_rewrite maps_add_neq; eauto
     end.
 
-  Lemma local_scope_preserved_bound_earlier :
-    forall s1 s2 s3 x v l l',
-      lid_bound s1 x ->
-      s1 <<= s2 ->
-      local_scope_preserved s2 s3 l l' ->
-      local_scope_preserved s2 s3 l (Maps.add x v l').
-  Proof.
-    intros s1 s2 s3 x v l l' BOUND LT PRES.
-    unfold local_scope_preserved.
-    intros id BETWEEN.
-
-    epose proof (lid_bound_earlier BOUND BETWEEN LT) as NEQ.
-    unfold local_scope_preserved in PRES.
-    setoid_rewrite maps_add_neq; eauto.
-  Qed.
-
-  Ltac solve_lid_bound :=
-    eapply incLocal_lid_bound; eauto.
-
-  Ltac solve_local_scope_preserved :=
-    first [ apply local_scope_preserved_refl
-          | eapply local_scope_preserved_bound_earlier;
-            [solve_lid_bound | solve_local_count | solve_local_scope_preserved]
-          ].
-
   Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li : local_env)
     : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
     lift_Rel_cfg (state_invariant σ s2) ⩕
                  branches to ⩕
                  (fun sthf stvf => local_scope_modif s1 s2 li (fst (snd stvf))).
 
-  (* TODO: move to vellvm *)
-  Lemma handle_gep_addr_array_same_block :
-    forall ptr ptr_elem ix sz τ,
-      handle_gep_addr (DTYPE_Array sz τ) ptr
-                      [DVALUE_I64 (repr 0); DVALUE_I64 ix] ≡ inr ptr_elem ->
-      fst ptr ≡ fst ptr_elem.
-  Proof.
-    intros [ptrb ptro] [ptr_elemb ptr_elemo] ix sz τ GEP.
-    cbn in GEP.
-    inversion GEP; subst.
-    reflexivity.
-  Qed.
-
-  Lemma unsigned_repr_0_i64 :
-    DynamicValues.Int64.unsigned (DynamicValues.Int64.repr 0) ≡ 0.
-  Proof.
-    apply Integers.Int64.unsigned_zero.
-  Qed.
-
-  (* TODO: move to vellvm *)
-  Lemma handle_gep_addr_array_offset :
-    forall ptr ptr_elem ix sz τ,
-      handle_gep_addr (DTYPE_Array sz τ) ptr
-                      [DVALUE_I64 (repr 0); DVALUE_I64 ix] ≡ inr ptr_elem ->
-      snd ptr + DynamicValues.Int64.unsigned ix * sizeof_dtyp τ ≡ snd ptr_elem.
-  Proof.
-    intros [ptrb ptro] [ptr_elemb ptr_elemo] ix sz τ GEP.
-    cbn in GEP.
-    inversion GEP; subst.
-    cbn.
-    rewrite unsigned_repr_0_i64.
-    lia.
-  Qed.
-
-  (* TODO: move to vellvm *)
-  Lemma dtyp_fits_array_elem :
-    forall m ptr ptr_elem ix sz τ,
-      dtyp_fits m ptr (DTYPE_Array sz τ) ->
-      handle_gep_addr (DTYPE_Array sz τ) ptr
-                      [DVALUE_I64 (repr 0); DVALUE_I64 ix] ≡ inr ptr_elem ->
-      Int64.intval ix < sz ->
-      0 <= sizeof_dtyp τ ->
-      dtyp_fits m ptr_elem τ.
-  Proof.
-    intros m ptr ptr_elem ix sz τ FITS GEP SZ TYPSZ.
-    cbn in GEP.
-    unfold dtyp_fits in *.
-    destruct FITS as (sz' & bytes & cid & BLOCK & BOUND).
-    exists sz'. exists bytes. exists cid.
-    split.
-    erewrite <- handle_gep_addr_array_same_block; eauto.
-    erewrite <- handle_gep_addr_array_offset; eauto.
-    cbn in BOUND.
-    assert (DynamicValues.Int64.unsigned ix ≡ Int64.intval ix) by reflexivity.
-    rewrite H.
-    assert (1 + Int64.intval ix <= sz) by lia.
-    rewrite <- Z.add_assoc.
-    assert (snd ptr + (Int64.intval ix * sizeof_dtyp τ + sizeof_dtyp τ) <= snd ptr + sz * sizeof_dtyp τ).
-    { eapply Zorder.Zplus_le_compat_l.
-      replace (Int64.intval ix * sizeof_dtyp τ + sizeof_dtyp τ) with ((1 + Int64.intval ix) * sizeof_dtyp τ).
-      eapply Z.mul_le_mono_nonneg_r; lia.
-      lia.
-    }
-    lia.
-  Qed.
-
-  Lemma to_nat_unsigned :
-    forall x y,
-      MInt64asNT.to_nat x ≢ MInt64asNT.to_nat y ->
-      DynamicValues.Int64.unsigned (DynamicValues.Int64.repr (Z.of_nat (MInt64asNT.to_nat x))) ≢ DynamicValues.Int64.unsigned (DynamicValues.Int64.repr (Z.of_nat (MInt64asNT.to_nat y))).
-  Proof.
-    intros x y H.
-    repeat rewrite repr_of_nat_to_nat.
-    intros CONTRA.
-    unfold DynamicValues.Int64.unsigned, DynamicValues.Int64.intval in CONTRA.
-    destruct x, y.
-    unfold MInt64asNT.to_nat in *.
-    unfold Z.to_nat in *.
-    cbn in H.
-    apply H.
-    break_match; subst; reflexivity.
-  Qed.
-
+ 
   Opaque alist_add.
   Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)

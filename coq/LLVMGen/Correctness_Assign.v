@@ -69,160 +69,146 @@ Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li :
 Proof. 
   intros * GEN NEXT PRE GAM NOFAIL.
 
-      cbn* in *; simp.
-      hide_cfg.
-      inv_resolve_PVar Heqs0.
-      inv_resolve_PVar Heqs1.
-      unfold denotePExpr in *; cbn* in *.
-      simp. Time all:try_abs.
-      all: apply no_failure_Ret in NOFAIL; try_abs.
-      clean_goal.
-      repeat apply no_failure_Ret in NOFAIL.
-      edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
-      edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
-      rename s1 into si, s2 into sf,
-      i5 into s1, i6 into s2,
-      i8 into s3, i9 into s4,
-      i10 into s5, i11 into s6.
-      rename n1 into x_p, n2 into y_p.
-      rename n4 into x_i, n3 into y_i.
-      rename x0 into y.
-      clean_goal.
+  cbn* in *; simp.
+  hide_cfg.
+  inv_resolve_PVar Heqs0.
+  inv_resolve_PVar Heqs1.
+  unfold denotePExpr in *; cbn* in *.
+  simp. Time all:try_abs.
+  all: apply no_failure_Ret in NOFAIL; try_abs.
+  clean_goal.
+  repeat apply no_failure_Ret in NOFAIL.
+  edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
+  edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
+  rename s1 into si, s2 into sf,
+  i5 into s1, i6 into s2,
+  i8 into s3, i9 into s4,
+  i10 into s5, i11 into s6.
+  rename n1 into x_p, n2 into y_p.
+  rename n4 into x_i, n3 into y_i.
+  rename x0 into y.
+  clean_goal.
 
-      hred.
-      hstep; [eauto |].
-      hred; hstep; [eauto |].
-      hred.
+  hred.
+  hstep; [eauto |].
+  hred; hstep; [eauto |].
+  hred.
 
-      subst; eutt_hide_left.
-      vjmp.
-      unfold fmap, Fmap_block; cbn.
-      vred.
-      vred.
-      vred.
+  subst; eutt_hide_left.
+  vjmp.
+  unfold fmap, Fmap_block; cbn.
+  vred.
+  vred.
+  vred.
 
-      (* Step 5. *)
-      subst. eapply eutt_clo_bind_returns; [eapply genNExpr_correct |..]; eauto.
+  (* Step 5. *)
+  subst. eapply eutt_clo_bind_returns; [eapply genNExpr_correct |..]; eauto.
 
-      Ltac solve_state_invariant :=
-        cbn; try eassumption;
-        match goal with
-        | |- state_invariant _ _ _ (_, (alist_add _ _ _, _)) =>
-          eapply state_invariant_add_fresh; [now eauto |  | (eassumption || solve_state_invariant) | ]
-        | |- state_invariant _ _ _ _ =>
-          solve [eauto with SolveStateInv]
-        end.
+  solve_state_invariant.
+  solve_gamma_safe.
 
-Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incBlockNamed; [eassumption | solve_state_invariant] : SolveStateInv.
-Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incLocal; [eassumption | solve_state_invariant] : SolveStateInv.
-Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eassumption | solve_state_invariant] : SolveStateInv.
+  introR; destruct_unit.
+  intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
+  destruct PRE0 as (PRE1 & [EXP1 EXT1 SCOPE1 VAR1 GAM1 MONO1]).
+  cbn in *; inv_eqs.
+  hvred.
 
+  (* Step 6. *)
+  eapply eutt_clo_bind_returns; [eapply genNExpr_correct |..]; eauto.
+  solve_gamma_safe.
 
-      solve_state_invariant.
-      solve_gamma_safe.
+  introR; destruct_unit.
+  intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
+  destruct PRE0 as (PRE2 & [EXP2 EXT2 SCOPE2 VAR2 GAM2 MONO2]).
+  cbn in *; inv_eqs.
 
-      introR; destruct_unit.
-      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      destruct PRE0 as (PRE1 & [EXP1 EXT1 SCOPE1 VAR1 GAM1 MONO1]).
-      cbn in *; inv_eqs.
-      hvred.
+  hvred.
+  break_inner_match_hyp; break_inner_match_hyp; try_abs.
+  2: apply no_failure_Ret in NOFAIL; try_abs.
+  destruct_unit.
 
-      (* Step 6. *)
-      eapply eutt_clo_bind_returns; [eapply genNExpr_correct |..]; eauto.
-      solve_gamma_safe.
+  rename vH into src, vH0 into dst, b into v.
+  clean_goal.
+  (* Step 7. *)
+  hvred.
+  hstep.
+  unfold assert_NT_lt,assert_true_to_err in *; simp.
+  hide_cont.
+  clear NOFAIL.
+  rename i1 into vsz.
+  rename i0 into vx_p, i3 into vy_p.
+  rename e into esrc.
+  clean_goal.
 
-      introR; destruct_unit.
-      intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      destruct PRE0 as (PRE2 & [EXP2 EXT2 SCOPE2 VAR2 GAM2 MONO2]).
-      cbn in *; inv_eqs.
+  (* Question 1: is [vx_p] global, local, or can be either? *)
+  (* We access in memory vx_p[e] *)
+  edestruct memory_invariant_Ptr as (membk & ptr & LU & FITS & INLG & GETCELL); [| eauto | eauto |]; eauto.
+  clear FITS.
 
-      hvred.
-      break_inner_match_hyp; break_inner_match_hyp; try_abs.
-      2: apply no_failure_Ret in NOFAIL; try_abs.
-      destruct_unit.
-
-      rename vH into src, vH0 into dst, b into v.
-      clean_goal.
-      (* Step 7. *)
-      hvred.
-      hstep.
-      unfold assert_NT_lt,assert_true_to_err in *; simp.
-      hide_cont.
-      clear NOFAIL.
-      rename i1 into vsz.
-      rename i0 into vx_p, i3 into vy_p.
-      rename e into esrc.
-      clean_goal.
-
-      (* Question 1: is [vx_p] global, local, or can be either? *)
-      (* We access in memory vx_p[e] *)
-      edestruct memory_invariant_Ptr as (membk & ptr & LU & FITS & INLG & GETCELL); [| eauto | eauto |]; eauto.
-      clear FITS.
-
-      rewrite LU in H; symmetry in H; inv H.
-      specialize (GETCELL _ _ Heqo1).
-      clean_goal.
-      (* I find some pointer either in the local or global environment *)
-      destruct vx_p as [vx_p | vx_p]; cbn in INLG.
-      { (* vx_p is in global environment *)
-        edestruct denote_instr_gep_array as (ptr' & READ & EQ); cycle -1; [rewrite EQ; clear EQ | ..]; cycle 1.
-        3: apply GETCELL.
-        { vstep; solve_lu; reflexivity. }
-        {
-          destruct MONO2 as [| <-].
-          - rewrite EXP1; auto.
-            rewrite repr_of_nat_to_nat.
-            cbn; reflexivity.
-            eapply local_scope_preserve_modif; eauto.
-            clear EXP1 EXP2 VAR1 VAR2.
-            clean_goal.
-            eapply Gamma_preserved_Gamma_eq; [exact GAM1 |].
-            eapply Gamma_preserved_if_safe; [| exact SCOPE2].
-            solve_gamma_safe.
-          - rewrite EXP1.
-            rewrite repr_of_nat_to_nat.
-            reflexivity.
-            eauto using local_scope_preserved_refl.
-            eauto using Gamma_preserved_refl.
-        }
-
-        clear EXP1.
+  rewrite LU in H; symmetry in H; inv H.
+  specialize (GETCELL _ _ Heqo1).
+  clean_goal.
+  (* I find some pointer either in the local or global environment *)
+  destruct vx_p as [vx_p | vx_p]; cbn in INLG.
+  { (* vx_p is in global environment *)
+    edestruct denote_instr_gep_array as (ptr' & READ & EQ); cycle -1; [rewrite EQ; clear EQ | ..]; cycle 1.
+    3: apply GETCELL.
+    { vstep; solve_lu; reflexivity. }
+    {
+      destruct MONO2 as [| <-].
+      - rewrite EXP1; auto.
+        rewrite repr_of_nat_to_nat.
+        cbn; reflexivity.
+        eapply local_scope_preserve_modif; eauto.
+        clear EXP1 EXP2 VAR1 VAR2.
         clean_goal.
+        eapply Gamma_preserved_Gamma_eq; [exact GAM1 |].
+        eapply Gamma_preserved_if_safe; [| exact SCOPE2].
+        solve_gamma_safe.
+      - rewrite EXP1.
+        rewrite repr_of_nat_to_nat.
+        reflexivity.
+        eauto using local_scope_preserved_refl.
+        eauto using Gamma_preserved_refl.
+    }
 
-        subst_cont; vred.
-        vred.
-        (* load *)
-        vstep.
-        { vstep; solve_lu. }
-        vred.
-        hide_cont.
+    clear EXP1.
+    clean_goal.
 
-        destruct vy_p as [vy_p | vy_p].
-        { (* vy_p in global *)
-          assert (Γ si ≡ Γ sf) as CONT by solve_gamma.
-          rewrite CONT in LUn0, LUn.
-          edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |].
+    subst_cont; vred.
+    vred.
+    (* load *)
+    vstep.
+    { vstep; solve_lu. }
+    vred.
+    hide_cont.
 
+    destruct vy_p as [vy_p | vy_p].
+    { (* vy_p in global *)
+      assert (Γ si ≡ Γ sf) as CONT by solve_gamma.
+      rewrite CONT in LUn0, LUn.
+      edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |].
+
+      clean_goal.
+      rewrite yLU in H0; symmetry in H0; inv H0.
+
+      edestruct denote_instr_gep_array_no_read as (yptr' & yGEP & yEQ); cycle -1; [rewrite yEQ; clear yEQ | ..]; cycle 1.
+      { vstep; solve_lu.
+        cbn; reflexivity.
+      }
+      { rewrite EXP2.
+        - rewrite repr_of_nat_to_nat.
+          cbn; reflexivity.
+        - clear EXP2.
           clean_goal.
-          rewrite yLU in H0; symmetry in H0; inv H0.
-
-          edestruct denote_instr_gep_array_no_read as (yptr' & yGEP & yEQ); cycle -1; [rewrite yEQ; clear yEQ | ..]; cycle 1.
-          { vstep; solve_lu.
-            cbn; reflexivity.
-          }
-          { rewrite EXP2.
-            - rewrite repr_of_nat_to_nat.
-              cbn; reflexivity.
-            - clear EXP2.
-              clean_goal.
-              solve_local_scope_preserved.
-            - destruct PRE2.
-              (* TODO: can we automate this better? *)
-              assert (Γ si ≡ Γ s6) as GAMsisf by solve_gamma.
-              eapply Gamma_preserved_Gamma_eq. eapply GAMsisf.
-              eapply Gamma_preserved_if_safe with (s2:=sf); eauto.
-              solve_local_scope_modif.
-          }
+          solve_local_scope_preserved.
+        - destruct PRE2.
+          (* TODO: can we automate this better? *)
+          assert (Γ si ≡ Γ s6) as GAMsisf by solve_gamma.
+          eapply Gamma_preserved_Gamma_eq. eapply GAMsisf.
+          eapply Gamma_preserved_if_safe with (s2:=sf); eauto.
+          solve_local_scope_modif.
+      }
 
           { rewrite typ_to_dtyp_D_array in yFITS.
             assert (sz0 ≡ Int64.intval i4) by
@@ -422,13 +408,13 @@ Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eass
                     inversion H5; subst; auto.
                   }
                   { (* Need to show that every lookup matches *)
-                    intros i v0 H3.
+                    intros idx v0 H3.
 
                     pose proof (dtyp_fits_allocated yFITS) as yALLOC.
                     epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
                     erewrite WRITE_ARRAY in WRITE_SUCCEEDS.
 
-                    destruct (Nat.eq_dec (MInt64asNT.to_nat i) (MInt64asNT.to_nat dst)) as [EQdst | NEQdst].
+                    destruct (Nat.eq_dec (MInt64asNT.to_nat idx) (MInt64asNT.to_nat dst)) as [EQdst | NEQdst].
                     {
                     (* In the case where i = DST *)
 
@@ -498,7 +484,7 @@ Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eass
                   epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
                   rewrite WRITE_ARRAY in WRITE_SUCCEEDS.
 
-                  intros i v0 H3.
+                  intros idx v0 H3.
                   erewrite write_array_cell_untouched_ptr_block; eauto.
                   constructor.
               }
@@ -564,8 +550,8 @@ Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eass
                   repeat (split; auto).
                   + eapply dtyp_fits_after_write; eauto.
                   + solve_local_lookup.
-                  + intros i v0 H6.
-                    pose proof (GET i v0 H6).
+                  + intros idx v0 H6.
+                    pose proof (GET idx v0 H6).
                     assert (ID_Local id ≢ ID_Global vy_p) as IDNEQ by discriminate.
                     assert (fst ptr_l ≢ fst yptr).
                     { eapply st_no_llvm_ptr_aliasing.
@@ -786,7 +772,7 @@ Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eass
                     repeat (split; eauto).
                     - eapply memory_lookup_memory_set_eq.
                     - eapply dtyp_fits_after_write; eauto.
-                    - intros i v0 H1.
+                    - intros idx v0 H1.
                       rewrite LUn0 in H0.
                       inversion H0; subst.
                   }
@@ -794,7 +780,7 @@ Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eass
                     repeat (split; eauto).
                     - erewrite memory_lookup_memory_set_neq; eauto.
                     - eapply dtyp_fits_after_write; eauto.
-                    - intros i v0 H1.
+                    - intros idx v0 H1.
 
                       assert (fst ptr_l ≢ fst yptr).
                       { eapply st_no_llvm_ptr_aliasing.
@@ -837,14 +823,14 @@ Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eass
                     repeat (split; eauto).
                     - eapply memory_lookup_memory_set_eq.
                     - eapply dtyp_fits_after_write; eauto.
-                    - intros i v0 H1.
+                    - intros idx v0 H1.
                       rewrite LUn0 in H0.
                       inversion H0; subst.
 
                       rewrite yINLG in LOCALS.
                       inversion LOCALS; subst.
 
-                      destruct (Nat.eq_dec (MInt64asNT.to_nat i) (MInt64asNT.to_nat dst)) as [EQdst | NEQdst].
+                      destruct (Nat.eq_dec (MInt64asNT.to_nat idx) (MInt64asNT.to_nat dst)) as [EQdst | NEQdst].
                       + rewrite EQdst in *.
                         rewrite mem_lookup_mem_add_eq in H1; inv H1.
 
@@ -860,7 +846,7 @@ Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eass
                     repeat (split; eauto).
                     - erewrite memory_lookup_memory_set_neq; eauto.
                     - eapply dtyp_fits_after_write; eauto.
-                    - intros i v0 H1.
+                    - intros idx v0 H1.
                       destruct (Eqv.eqv_dec_p id vy_p) as [EQid | NEQid].
                       + unfold Eqv.eqv, eqv_raw_id in EQid.
                         subst.
@@ -1189,13 +1175,13 @@ Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eass
                     inversion H5; subst; auto.
                   }
                   { (* Need to show that every lookup matches *)
-                    intros i v0 H3.
+                    intros idx v0 H3.
 
                     pose proof (dtyp_fits_allocated yFITS) as yALLOC.
                     epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
                     erewrite WRITE_ARRAY in WRITE_SUCCEEDS.
 
-                    destruct (Nat.eq_dec (MInt64asNT.to_nat i) (MInt64asNT.to_nat dst)) as [EQdst | NEQdst].
+                    destruct (Nat.eq_dec (MInt64asNT.to_nat idx) (MInt64asNT.to_nat dst)) as [EQdst | NEQdst].
                     {
                     (* In the case where i = DST *)
 
@@ -1264,7 +1250,7 @@ Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eass
                   epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
                   rewrite WRITE_ARRAY in WRITE_SUCCEEDS.
 
-                  intros i v0 H3.
+                  intros idx v0 H3.
                   erewrite write_array_cell_untouched_ptr_block; eauto.
                   constructor.
               }
@@ -1330,8 +1316,8 @@ Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eass
                   repeat (split; auto).
                   + eapply dtyp_fits_after_write; eauto.
                   + solve_local_lookup.
-                  + intros i v0 H6.
-                    pose proof (GET i v0 H6).
+                  + intros idx v0 H6.
+                    pose proof (GET idx v0 H6).
                     assert (ID_Local id ≢ ID_Global vy_p) as IDNEQ by discriminate.
                     assert (fst ptr_l ≢ fst yptr).
                     { eapply st_no_llvm_ptr_aliasing.
@@ -1552,7 +1538,7 @@ Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eass
                     repeat (split; eauto).
                     - eapply memory_lookup_memory_set_eq.
                     - eapply dtyp_fits_after_write; eauto.
-                    - intros i v0 H1.
+                    - intros idx v0 H1.
                       rewrite LUn0 in H0.
                       inversion H0; subst.
                   }
@@ -1560,7 +1546,7 @@ Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eass
                     repeat (split; eauto).
                     - erewrite memory_lookup_memory_set_neq; eauto.
                     - eapply dtyp_fits_after_write; eauto.
-                    - intros i v0 H1.
+                    - intros idx v0 H1.
 
                       assert (fst ptr_l ≢ fst yptr).
                       { eapply st_no_llvm_ptr_aliasing.
@@ -1603,14 +1589,14 @@ Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eass
                     repeat (split; eauto).
                     - eapply memory_lookup_memory_set_eq.
                     - eapply dtyp_fits_after_write; eauto.
-                    - intros i v0 H1.
+                    - intros idx v0 H1.
                       rewrite LUn0 in H0.
                       inversion H0; subst.
 
                       rewrite yINLG in LOCALS.
                       inversion LOCALS; subst.
 
-                      destruct (Nat.eq_dec (MInt64asNT.to_nat i) (MInt64asNT.to_nat dst)) as [EQdst | NEQdst].
+                      destruct (Nat.eq_dec (MInt64asNT.to_nat idx) (MInt64asNT.to_nat dst)) as [EQdst | NEQdst].
                       + rewrite EQdst in *.
                         rewrite mem_lookup_mem_add_eq in H1; inv H1.
 
@@ -1626,7 +1612,7 @@ Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eass
                     repeat (split; eauto).
                     - erewrite memory_lookup_memory_set_neq; eauto.
                     - eapply dtyp_fits_after_write; eauto.
-                    - intros i v0 H1.
+                    - intros idx v0 H1.
                       destruct (Eqv.eqv_dec_p id vy_p) as [EQid | NEQid].
                       + unfold Eqv.eqv, eqv_raw_id in EQid.
                         subst.
@@ -1663,5 +1649,15 @@ Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eass
             - assert (local_scope_modif s5 sf ρ l0); solve_local_scope_modif.
           }
         }
-      }
- 
+                                                    }
+
+                                                  (* Theres's somewhere a leaky lemma, we get lots of existentials *)
+ Unshelve.
+                                                    all: eauto.
+                                                   2,5,8,11:constructor. 
+                                                   admit.
+                                                   admit.
+                                                   admit.
+                                                   admit.
+
+Admitted.

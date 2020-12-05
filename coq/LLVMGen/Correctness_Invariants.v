@@ -265,20 +265,6 @@ Section SimulationRelations.
     forall id p p', v ≡ UVALUE_Addr p -> in_local_or_global_addr l g id p' -> fst p ≢ fst p'.
 
   (* TODO: Move this *)
-  Lemma alist_add_find_eq :
-    forall {K V} {eqk : K -> K -> Prop} {RD : RelDec eqk} `{RelDec_Correct _ eqk} `{Reflexive _ eqk} (id : K) (v : V) (l : alist K V),
-      alist_add id v l @ id ≡ Some v.
-  Proof.
-    intros K V eqk RD ED H H0 id v l.
-    cbn.
-    break_match.
-    reflexivity.
-    apply neg_rel_dec_correct in Heqb.
-    exfalso. apply Heqb.
-    reflexivity.
-  Qed.
-
-  (* TODO: Move this *)
   Lemma in_local_or_global_addr_neq :
     forall l g id id' v ptr,
       in_local_or_global_addr l g (ID_Local id) ptr ->
@@ -485,10 +471,7 @@ Section SimulationRelations.
       + eapply H6.
         cbn in *.
         pose proof NEQ.
-        apply neg_rel_dec_correct in NEQ. rewrite NEQ in H5.
-        rewrite remove_neq_alist in H5; eauto.        
-        admit.
-        admit.
+        rewrite alist_find_neq in H5; auto.
     - epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3).
       assert ({id0 ≡ id} + {id0 ≢ id}) by admit. destruct H7.
       + subst.
@@ -541,6 +524,7 @@ Section SimulationRelations.
         eapply mem_is_inv0 in INLG; eauto.
       destruct v0; cbn in *; auto.
       + destruct x; cbn in *; auto.
+        unfold alist_add; cbn.
         break_match_goal.
         * rewrite rel_dec_correct in Heqb; subst.
           exfalso; eapply NIN.
@@ -549,6 +533,7 @@ Section SimulationRelations.
           rewrite remove_neq_alist; eauto.
           all: typeclasses eauto.
       + destruct x; cbn; auto.
+        unfold alist_add; cbn.
         break_match_goal.
         * rewrite rel_dec_correct in Heqb; subst.
           exfalso; eapply NIN.
@@ -559,6 +544,7 @@ Section SimulationRelations.
       + destruct x; cbn in *; auto.
         destruct INLG as (? & ? & ? & ? & ? & ? & ? & ?).
         do 3 eexists; split; [eauto | split]; eauto.
+        unfold alist_add; cbn.
         break_match_goal.
         * rewrite rel_dec_correct in Heqb; subst.
           exfalso; eapply NIN.
@@ -756,7 +742,7 @@ Section SimulationRelations.
       Maps.add x v m @ id ≡ m @ id.
   Proof.
     intros K V eqk RD RDC SYM TRANS H x id v m H0.
-    cbn. unfold alist_add. 
+    cbn. unfold alist_add; cbn. 
     rewrite rel_dec_neq_false; eauto.
     eapply remove_neq_alist; eauto.
   Qed.
@@ -1103,6 +1089,7 @@ Lemma in_local_or_global_scalar_add_fresh_old :
 Proof.
   intros * INEQ LUV'.
   destruct x; cbn in *; auto.
+  unfold alist_add; cbn.
   rewrite rel_dec_neq_false; try typeclasses eauto; [| intros ->; auto].
   rewrite remove_neq_alist; auto; try typeclasses eauto; intros ->; auto.
 Qed.
@@ -1115,6 +1102,7 @@ Lemma in_local_or_global_addr_add_fresh_old :
 Proof.
   intros * INEQ LUV'.
   destruct x; cbn in *; auto.
+  unfold alist_add; cbn.
   rewrite rel_dec_neq_false; try typeclasses eauto; [| intros ->; auto].
   rewrite remove_neq_alist; auto; try typeclasses eauto; intros ->; auto.
 Qed.
@@ -1554,7 +1542,7 @@ Ltac solve_id_neq :=
 Ltac solve_local_lookup :=
   first
     [ now eauto
-    | solve [erewrite alist_add_find_eq; eauto]
+    | solve [erewrite alist_find_add_eq; eauto]
     | solve [erewrite alist_find_neq; [solve_local_lookup|solve_id_neq]]
     ].
 
@@ -1565,3 +1553,34 @@ Ltac solve_in_local_or_global_scalar :=
     ].
 
 Hint Resolve state_invariant_memory_invariant state_invariant_WF_IRState : core.
+
+Lemma local_scope_preserved_bound_earlier :
+  forall s1 s2 s3 x v l l',
+    lid_bound s1 x ->
+    s1 <<= s2 ->
+    local_scope_preserved s2 s3 l l' ->
+    local_scope_preserved s2 s3 l (Maps.add x v l').
+Proof.
+  intros s1 s2 s3 x v l l' BOUND LT PRES.
+  unfold local_scope_preserved.
+  intros id BETWEEN.
+
+  epose proof (lid_bound_earlier BOUND BETWEEN LT) as NEQ.
+  unfold local_scope_preserved in PRES.
+  setoid_rewrite maps_add_neq; eauto.
+Qed.
+
+Ltac solve_lid_bound :=
+  eapply incLocal_lid_bound; eauto.
+
+Ltac solve_local_scope_preserved :=
+  first [ apply local_scope_preserved_refl
+        | eapply local_scope_preserved_bound_earlier;
+          [solve_lid_bound | solve_local_count | solve_local_scope_preserved]
+        ].
+
+Ltac solve_state_invariant := eauto with SolveStateInv.
+Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incBlockNamed; [eassumption | solve_state_invariant] : SolveStateInv.
+Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incLocal; [eassumption | solve_state_invariant] : SolveStateInv.
+Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eassumption | solve_state_invariant] : SolveStateInv.
+

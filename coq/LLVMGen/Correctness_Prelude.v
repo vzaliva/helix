@@ -736,8 +736,32 @@ Section Interp_Helix_No_Failure.
       apply Returns_helix_throw in abs. auto.
     Qed.
 
+    Lemma no_failure_helix_LU : forall {E X} s a (k : _ -> itree _ X) m,
+        no_failure (E := E) (interp_helix (ITree.bind (trigger (MemLU s a)) k) m) ->
+        exists v,
+          no_failure (E := E) (interp_helix (k v) m) /\ memory_lookup m a ≡ Some v.
+    Proof.
+      intros * NOFAIL.
+      rewrite interp_helix_bind in NOFAIL.
+      unfold interp_helix in NOFAIL.
+      Transparent interp_Mem.
+      unfold interp_Mem in NOFAIL.
+      rewrite interp_state_trigger in NOFAIL.
+      cbn* in *.
+      simp.
+      - unfold throw in *.
+        rewrite interp_fail_vis in NOFAIL.
+        cbn in *.
+        rewrite bind_ret_l, translate_ret, bind_ret_l in NOFAIL.
+        apply eutt_Ret in NOFAIL; contradiction NOFAIL; auto.
+      - rewrite interp_fail_ret in NOFAIL.
+        cbn in *; rewrite translate_ret, bind_ret_l in NOFAIL.
+        eexists; split; eauto.
+    Qed.
+
 End Interp_Helix_No_Failure.
 
+Opaque interp_Mem.
 Opaque interp_helix.
 
 Hint Resolve no_failure_helix_Ret : core.
@@ -942,3 +966,112 @@ Ltac clean_goal :=
       end;
 
   onAllHyps move_up_types.
+
+Section Helix_Mem_Extra_Lemmas.
+
+  Lemma mem_lookup_mem_add_neq :
+    forall x y v bk,
+      x ≢ y ->
+      mem_lookup x (mem_add y v bk) ≡ mem_lookup x bk.
+  Proof.
+    intros x y v bk H.
+    Transparent mem_lookup mem_add.
+    cbn.
+    Opaque mem_lookup mem_add.
+    rewrite Memory.NM.Raw.Proofs.add_find; eauto.
+    assert (match OrderedTypeEx.Nat_as_OT.compare x y with
+            | OrderedType.EQ _ => Some v
+            | _ => Memory.NM.Raw.find x (Memory.NM.this bk)
+            end ≡ Memory.NM.Raw.find x (Memory.NM.this bk)).
+    { break_match; try reflexivity.
+      red in e. contradiction.
+    }
+    setoid_rewrite H0.
+    reflexivity.
+    apply Memory.NM.is_bst.
+  Qed.
+
+  Lemma mem_lookup_mem_add_eq :
+    forall x v bk,
+      mem_lookup x (mem_add x v bk) ≡ Some v.
+  Proof.
+    intros x v bk.
+    Transparent mem_lookup mem_add.
+    cbn.
+    Opaque mem_lookup mem_add.
+    rewrite Memory.NM.Raw.Proofs.add_find.
+    break_match; try reflexivity;
+      red in l; lia.
+    apply Memory.NM.is_bst.
+  Qed.
+
+  Lemma memory_lookup_memory_set_eq :
+    forall x bk m,
+      memory_lookup (memory_set m x bk) x ≡ Some bk.
+  Proof.
+    intros x bk m.
+    Transparent memory_lookup memory_set.
+    unfold memory_lookup, memory_set.
+    Opaque memory_lookup memory_set.
+    setoid_rewrite Memory.NM.Raw.Proofs.add_find.
+    break_match; try reflexivity; red in l; lia.
+    apply Memory.NM.is_bst.
+  Qed.
+
+  Lemma memory_lookup_memory_set_neq :
+    forall m x y bk,
+      x ≢ y ->
+      memory_lookup (memory_set m x bk) y ≡ memory_lookup m y.
+  Proof.
+    intros m x y bk H.
+    Transparent memory_lookup memory_set.
+    unfold memory_lookup, memory_set.
+    Opaque memory_lookup memory_set.
+    setoid_rewrite Memory.NM.Raw.Proofs.add_find.
+    break_match; try reflexivity.
+    red in e. clear Heqc. symmetry in e. contradiction.
+    apply Memory.NM.is_bst.
+  Qed.
+
+End Helix_Mem_Extra_Lemmas.
+
+Lemma repr_of_nat_to_nat :
+  forall x,
+    repr (Z.of_nat (MInt64asNT.to_nat x)) ≡ x.
+Proof.
+  intros x.
+  cbn.
+  unfold MInt64asNT.to_nat.
+  cbn.
+  rewrite Znat.Z2Nat.id, repr_intval; auto.
+  destruct (Int64.intrange x); lia.
+Qed.
+
+Lemma to_nat_unsigned :
+  forall x y,
+    MInt64asNT.to_nat x ≢ MInt64asNT.to_nat y ->
+    DynamicValues.Int64.unsigned (DynamicValues.Int64.repr (Z.of_nat (MInt64asNT.to_nat x))) ≢ DynamicValues.Int64.unsigned (DynamicValues.Int64.repr (Z.of_nat (MInt64asNT.to_nat y))).
+Proof.
+  intros x y H.
+  repeat rewrite repr_of_nat_to_nat.
+  intros CONTRA.
+  unfold DynamicValues.Int64.unsigned, DynamicValues.Int64.intval in CONTRA.
+  destruct x, y.
+  unfold MInt64asNT.to_nat in *.
+  unfold Z.to_nat in *.
+  cbn in H.
+  apply H.
+  break_match; subst; reflexivity.
+Qed.
+
+(* TODO: prove this *)
+Lemma from_Z_intval :
+  forall sz i,
+    MInt64asNT.from_Z sz ≡ inr i ->
+    sz ≡ Int64.intval i.
+Proof.
+  intros sz i H.
+Admitted.
+
+Arguments alist_add : simpl never.
+
