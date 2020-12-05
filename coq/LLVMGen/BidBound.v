@@ -687,3 +687,422 @@ Opaque incLocal.
         * eauto.
   Qed.
 End Outputs.
+
+Ltac get_block_count_hyps :=
+  repeat
+    match goal with
+    (* | H: incBlockNamed ?n ?s1 ≡ inr (?s2, _) |- _ => *)
+      (* apply incBlockNamed_block_count in H *)
+    (* | H: incLocalNamed ?n ?s1 ≡ inr (?s2, _) |- _ => *)
+    (* apply incLocalNamed_block_count in H *)
+    | H: resolve_PVar _ _ ≡ _ |- _ => apply resolve_PVar_state in H
+    | H: incVoid ?s1 ≡ inr (?s2, _) |- _ =>
+      apply incVoid_block_count in H
+    | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>
+      apply incLocal_block_count in H
+    | H : genNExpr _ _ ≡ inr _ |- _ =>
+      apply genNExpr_local_count in H
+    | H: genMExpr ?m ?s1 ≡ inr (?s2, _) |- _ =>
+      apply genMExpr_block_count in H
+    | H: genAExpr ?a ?s1 ≡ inr (?s2, _) |- _ =>
+      apply genAExpr_block_count in H
+    | H: genIR ?op ?id ?s1 ≡ inr (?s2, _) |- _ =>
+      apply genIR_block_count in H
+    end.
+
+(* This establishes that the generated code does not contain any two blocks with the same id.
+   The proof is extremely messy, and still has some admits, but conceptually is shouldn't be hard.
+ *)
+Transparent incBlockNamed.
+Lemma generates_wf_ocfg_bids :
+  ∀ (op : DSHOperator) (s1 s2 : IRState) (nextblock b : block_id) (bk_op : list (LLVMAst.block typ)),
+    bid_bound s1 nextblock ->
+    genIR op nextblock s1 ≡ inr (s2, (b, bk_op)) →
+    wf_ocfg_bid bk_op.
+Proof.
+  induction op; intros * NEXT GEN.
+  - cbn* in *; simp; cbn.
+    eapply wf_ocfg_bid_singleton.
+  - cbn* in *; simp; cbn in *.
+    eapply wf_ocfg_bid_singleton.
+  - destruct NEXT as (? & [?bid ? ? ?] & [?bid ? ? ?] & ? & ? & ?).
+    cbn* in *.
+    simp.
+    cbn* in *; simp; cbn in *.
+    clean_goal.
+    get_block_count_hyps; subst; cbn in *.
+    repeat match goal with
+           | h: IRState |- _ => destruct h as [?bid ? ? ?]
+           end; cbn in *.
+    subst.
+    eapply wf_ocfg_bid_cons'.
+    { cbn.
+      intuition;
+        match goal with
+        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
+        end.
+    }
+    eapply wf_ocfg_bid_cons'.
+    { cbn.
+      intuition;
+        match goal with
+        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
+        end.
+    }
+    eapply wf_ocfg_bid_cons'.
+    { cbn.
+      intuition;
+        match goal with
+        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
+        end.
+    }
+    eapply wf_ocfg_bid_singleton.
+  - destruct NEXT as (? & [?bid ? ? ?] & [?bid ? ? ?] & ? & ? & ?).
+    cbn* in *.
+    simp.
+    cbn* in *; simp; cbn in *.
+    clean_goal.
+    get_block_count_hyps; subst; cbn in *.
+    repeat match goal with
+           | h: IRState |- _ => destruct h as [?bid ? ? ?]
+           end; cbn in *.
+    subst.
+    eapply wf_ocfg_bid_cons'.
+    { cbn.
+      intuition;
+        match goal with
+        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
+        end.
+    }
+    eapply wf_ocfg_bid_cons'.
+    { cbn.
+      intuition;
+        match goal with
+        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
+        end.
+    }
+    eapply wf_ocfg_bid_cons'.
+    { cbn.
+      intuition;
+        match goal with
+        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
+        end.
+    }
+    eapply wf_ocfg_bid_singleton.
+
+  - destruct NEXT as (? & [?bid ? ? ?] & [?bid ? ? ?] & ? & ? & ?).
+    cbn* in *.
+    simp.
+    cbn* in *; simp; cbn in *.
+    clean_goal.
+    get_block_count_hyps; subst; cbn in *.
+    repeat match goal with
+           | h: IRState |- _ => destruct h as [?bid ? ? ?]
+           end; cbn in *.
+    subst.
+    eapply wf_ocfg_bid_cons'.
+    { cbn.
+      intuition;
+        match goal with
+        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
+        end.
+    }
+    eapply wf_ocfg_bid_cons'.
+    { cbn.
+      intuition;
+        match goal with
+        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
+        end.
+    }
+    eapply wf_ocfg_bid_cons'.
+    { cbn.
+      intuition;
+        match goal with
+        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
+        end.
+    }
+    eapply wf_ocfg_bid_singleton.
+
+  - destruct NEXT as (? & [?bid ? ? ?] & [?bid ? ? ?] & ? & ? & ?).
+    cbn* in *.
+    simp.
+    cbn* in *; simp; cbn in *.
+    clean_goal.
+    get_block_count_hyps; subst; cbn in *.
+    repeat match goal with
+           | h: IRState |- _ => destruct h as [?bid ? ? ?]
+           end; cbn in *.
+    subst.
+    eapply wf_ocfg_bid_cons'.
+    { cbn.
+      intuition;
+        match goal with
+        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
+        end.
+    }
+    eapply wf_ocfg_bid_cons'.
+    { cbn.
+      intuition;
+        match goal with
+        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
+        end.
+    }
+    eapply wf_ocfg_bid_cons'.
+    { cbn.
+      intuition;
+        match goal with
+        | h: Name _ ≡ Name _ |- _ => apply Name_inj in h; inv h
+        end.
+    }
+    eapply wf_ocfg_bid_singleton.
+
+  - cbn* in *.
+    simp.
+    clean_goal.
+
+    pose proof Heqs1.
+    eapply inputs_bound_between in H.
+
+    apply IHop in Heqs1.
+    2:{
+      eapply bid_bound_incBlockNamed with (name := "Loop_lcont")
+                                         (s1 := {|
+                                             block_count := (block_count i);
+                                             local_count := S (local_count i);
+                                             void_count := void_count i;
+                                             Γ := (ID_Local (Name ("Loop_i" @@ string_of_nat (local_count i))), TYPE_I 64%Z) :: Γ i |}); reflexivity.
+    }
+    clear IHop; clean_goal.
+    cbn in *.
+    simp.
+    cbn in *.
+    eapply wf_ocfg_bid_cons'.
+    { cbn.
+      intuition.
+      match goal with
+      | h: Name _ ≡ Name _ |- _ =>
+        apply Name_inj in h;
+          first [now inv h | apply valid_prefix_string_of_nat_forward in h as [abs _]; intuition]
+      end.
+
+      rewrite map_app in H1.
+      eapply in_app_or in H1.
+      destruct H1.
+      - unfold inputs in H.
+
+        rewrite blk_id_map_convert_typ in H.
+
+        eapply Forall_forall in H0; eauto.
+        eapply bid_bound_between_bound_earlier in H0.
+
+        eapply bid_bound_name in H0; [lia | solve_prefix].
+      - cbn in H0. destruct H0; inversion H0.
+    }
+
+    (* TODO: Automate this... *)
+    eapply wf_ocfg_bid_cons'.
+    { cbn.
+      intuition.
+
+      rewrite inputs_app in H0.
+      eapply in_app_or in H0.
+      destruct H0.
+      - unfold inputs in H.
+
+        rewrite blk_id_map_convert_typ in H.
+
+        eapply Forall_forall in H0; eauto.
+        eapply bid_bound_between_bound_earlier in H0.
+
+        eapply bid_bound_name in H0; [lia | solve_prefix].
+      - cbn in H0. destruct H0; inversion H0.
+    }
+
+    unfold wf_ocfg_bid.
+    rewrite map_app. cbn.
+    apply Coqlib.list_norepet_append; eauto.
+
+    { constructor.
+      intros CONTRA; inv CONTRA.
+      constructor.
+    }
+
+    unfold Coqlib.list_disjoint.
+    intros x y H0 H1.
+
+    cbn in H1. destruct H1; inv H1.
+    
+    unfold inputs in H.
+    rewrite blk_id_map_convert_typ in H.
+
+    eapply Forall_forall in H0; eauto.
+
+    destruct H0 as (name & s' & s'' & PREF & COUNT & GEN).
+    cbn in GEN; inv GEN.
+    intros NAME. inv H1.
+    rename H4 into NAME.
+    apply Name_inj in NAME.
+    eapply valid_prefix_string_of_nat_forward in NAME; eauto.
+    destruct NAME; subst.
+    lia.
+
+  - rename nextblock into entryblock, b into nextblock.
+    simpl in GEN.
+    break_match_hyp; [simp |].
+    inv GEN.
+    break_match_hyp; [simp |].
+    destruct s1 as [bid1  lid1  void1  Γ1]; cbn in *.
+    destruct NEXT as (? & [?bid ? ? ?] & [?bid ? ? ?] & ? & ? & ?); cbn in *.
+    inv H1; cbn in *.
+    destruct p as [s' [bblock bcode]].
+    destruct s' as [bid2  lid2  void2  Γ2]; cbn in *.
+    simp.
+    cbn* in *; simp; cbn in *.
+    clean_goal.
+    cbn* in *; simp; cbn in *.
+    generalize Heqs0; intros GEN.
+    apply genIR_block_count in Heqs0.
+    cbn in *.
+    assert (BOUND:bid_bound
+                    {|
+                      block_count := bid1;
+                      local_count := S lid1;
+                      void_count := void1;
+                      Γ := (ID_Local (Name ("a" @@ string_of_nat lid1)),
+                            TYPE_Pointer (TYPE_Array (Int64.intval size) TYPE_Double)) :: Γ1 |}
+                    (Name (x @@ string_of_nat bid))).
+    {
+      do 2 red.
+      exists x.
+      exists {|
+          block_count := bid;
+          local_count := S lid1;
+          void_count := void1;
+          Γ := (ID_Local (Name ("a" @@ string_of_nat lid1)),
+                TYPE_Pointer (TYPE_Array (Int64.intval size) TYPE_Double)) :: Γ1 |}.
+      eexists; repeat split; cbn; eauto.
+    }
+    generalize GEN; intros WF;
+    apply IHop in WF; auto; clear IHop.
+    apply wf_ocfg_bid_cons'; auto; clear WF.
+    cbn.
+    cbn in *; intros abs; apply ListUtil.in_map_elim in abs as (? & ? & ?).
+    cbn in *.
+    clean_goal.
+
+    eapply inputs_bound_between in GEN.
+    unfold inputs in GEN.
+    rewrite blk_id_map_convert_typ in GEN.
+
+    assert (In (blk_id x0) (map blk_id bcode)).
+    { apply in_map; eauto. }
+
+    eapply Forall_forall in GEN; eauto.
+    rewrite <- H2 in GEN.
+    destruct GEN as (n & s' & s'' & PREF & COUNT1 & COUNT2 & GEN').
+    cbn in *.
+
+    inv GEN'.
+    eapply valid_prefix_string_of_nat_forward in H6; eauto.
+    destruct H6; subst.
+    lia.
+  - rename nextblock into entryblock, b into nextblock.
+    simpl in GEN.
+    break_match_hyp; [simp |].
+    inv GEN.
+    break_match_hyp; [simp |].
+    destruct s1 as [bid1  lid1  void1  Γ1]; cbn in *.
+    destruct NEXT as (? & [?bid ? ? ?] & [?bid ? ? ?] & ? & ? & ?); cbn in *.
+    inv H1; cbn in *.
+    destruct p as [s' [bblock bcode]].
+    destruct s' as [bid2  lid2  void2  Γ2]; cbn in *.
+    simp.
+    cbn* in *; simp; cbn in *.
+    clean_goal.
+    cbn* in *; simp; cbn in *.
+    generalize Heqs0; intros GEN.
+    apply resolve_PVar_state in Heqs0.
+    inv Heqs0.
+    cbn in *.
+
+    apply wf_ocfg_bid_cons'; cbn.
+    { intros CONTRA.
+      destruct CONTRA; inv H1.
+      inv H2.
+      inv H2.
+      inv H1.
+      auto.
+    }
+
+    apply wf_ocfg_bid_cons'; cbn.
+    { intros CONTRA.
+      destruct CONTRA; inv H1.
+      inv H2.
+      inv H2.
+    }
+
+    apply wf_ocfg_bid_cons'; cbn.
+    { intros CONTRA.
+      destruct CONTRA; auto.
+
+      rename H1 into NAME.
+      eapply Name_inj in NAME.
+      eapply valid_prefix_string_of_nat_forward in NAME; eauto.
+      destruct NAME. inv H2.
+    }
+
+    unfold wf_ocfg_bid.
+    cbn.
+    constructor.
+    auto.
+    constructor.
+  - rename nextblock into entryblock, b into nextblock.
+    simpl in GEN.
+    break_match_hyp; [simp |].
+    inv GEN.
+    break_match_hyp; [simp |].
+    destruct s1 as [bid1  lid1  void1  Γ1]; cbn in *.
+    destruct NEXT as (? & s' & s'' & ? & ? & ?); cbn in *.
+    inv H1; cbn in *.
+    destruct p as [s''' [bblock bcode]].
+    simp.
+    cbn* in *; simp; cbn in *.
+    clean_goal.
+    cbn* in *; simp; cbn in *.
+    generalize Heqs0; intros GEN.
+    apply genIR_block_count in Heqs0.
+    cbn in *.
+
+    unfold wf_ocfg_bid.
+    unfold add_comment; cbn.
+    break_match_goal.
+    constructor.
+    cbn.
+
+    pose proof Heqs1 as OP1BOUND; eapply inputs_bound_between in OP1BOUND.
+    pose proof GEN as OP2BOUND; eapply inputs_bound_between in OP2BOUND.
+
+    eapply IHop1 in Heqs1.
+    eapply IHop2 in GEN.
+
+    change (blk_id b :: map blk_id l0) with (map blk_id (b :: l0)).
+    rewrite <- Heql0.
+
+    rewrite map_app.
+    unfold inputs in *.
+    rewrite blk_id_map_convert_typ in *.
+
+    {  apply Coqlib.list_norepet_append_commut.
+       unfold wf_ocfg_bid in *.
+       eapply state_bound_between_disjoint_norepet; eauto.
+       apply incBlockNamed_count_gen_injective.
+    }
+
+    { exists x. do 2 eexists.
+      repeat split; eauto.
+    }
+
+    { eapply bid_bound_genIR_entry; eauto.
+    }
+Qed.
+

@@ -579,3 +579,18 @@ Definition state_invariant_post σ s1 s2 l := (state_invariant σ s2 ⩕ fresh_p
 
 Hint Resolve ext_local_refl: core.
 Hint Resolve memory_invariant_ext_local: core.
+  Definition freshness (s1 s2 : IRState) (l1 : local_env) : local_env -> Prop :=
+    fun l2 =>
+      l1 ⊑ l2 /\
+      forall id v,
+        alist_In id l2 v ->
+        ~ alist_In id l1 v ->
+        lid_bound_between s1 s2 id.
+
+  Lemma freshness_ext : forall s1 s2 l1 l2,
+      freshness s1 s2 l1 l2 ->
+      l1 ⊑ l2.
+  Proof.
+    intros * FRESH; apply FRESH.
+  Qed.
+
