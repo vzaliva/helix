@@ -434,14 +434,14 @@ Section GenIR.
         reflexivity. cbn. rewrite typ_to_dtyp_D_array. cbn. lia.
         split; auto. inv alloc.
         red.
-        rewrite alist_add_find_eq. reflexivity.
+        rewrite alist_find_add_eq. reflexivity.
         inv alloc.
         intros. inversion H.
 
       + rewrite nth_error_Sn in LU1.
         rewrite EQ, nth_error_Sn in LU2.
         eapply MEM in LU2; eauto.
-
+        (* Why do we have an admit here now? TO FIX *)
         admit.
     - do 2 red.
       intros ? [| n] LU.
@@ -568,7 +568,6 @@ Section GenIR.
   Proof.
     intros s1 s2 op; revert s1 s2; induction op; intros * GEN NEXT PRE GAM NOFAIL.
     - (* DSHNOp *)
-      (* begin comment
       cbn* in *.
       simp.
       cbn*.
@@ -608,13 +607,8 @@ Section GenIR.
 
       apply eutt_Ret.
       split; [| split]; cbn in *; eauto.
-      eapply state_invariant_incVoid; eauto.
       eapply state_invariant_incBlockNamed; eauto.
-
-      end comment *)
-      admit.
-
-    -
+    - apply compile_DSHAssign_correct; auto.
 
     - admit.
     - admit.
