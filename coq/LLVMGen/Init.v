@@ -2793,8 +2793,8 @@ Lemma init_with_data_initOneIRGlobal_no_definitions :
 Proof.
   induction g as [| ? g IH]; intros; cbn in *; [simp; cbn; auto |].
   simp.
-  apply IH in Heqs1.
-  erewrite list_cons_app, mcfg_of_tle_app, m_definitions_app, Heqs1, <- app_nil_end, initOneIRGlobal_no_definitions; eauto.
+  apply IH in Heqs2.
+  erewrite list_cons_app, mcfg_of_tle_app, m_definitions_app, Heqs2, <- app_nil_end, initOneIRGlobal_no_definitions; eauto.
 Qed.
 
 Lemma initIRGlobals_no_definitions :
@@ -2840,8 +2840,8 @@ Lemma init_with_data_initOneIRGlobal_no_type_defs :
 Proof.
   induction g as [| ? g IH]; intros; cbn in *; [simp; cbn; auto |].
   simp.
-  apply IH in Heqs1.
-  erewrite list_cons_app, mcfg_of_tle_app, m_type_defs_app, Heqs1, <- app_nil_end, initOneIRGlobal_no_type_defs; eauto.
+  apply IH in Heqs2.
+  erewrite list_cons_app, mcfg_of_tle_app, m_type_defs_app, Heqs2, <- app_nil_end, initOneIRGlobal_no_type_defs; eauto.
 Qed.
 
 Lemma initIRGlobals_no_type_defs :
