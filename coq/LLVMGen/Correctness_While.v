@@ -519,13 +519,15 @@ Proof.
 
   - (* Base case: we enter through [loopcontblock] and jump out immediately to [nextblock] *)
     intros  BOUND * (INV & LOOPVAR).
-    (* Import ProofMode. *)
+    Import ProofMode.
     (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
-    apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_ocfg_app in UNIQUE_IDENTS.
-    apply free_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_ocfg_app in NEXTBLOCK_ID.
-    cbn; rewrite ?convert_typ_ocfg_app.
+    apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_ocfg_app in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS.
+    apply free_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_ocfg_app in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID.
+    cbn; rewrite ?convert_typ_ocfg_app. 
+
     cbn.
     hide_cfg.
+
     (* We jump into [loopcontblock]
        We denote the content of the block.
      *)
@@ -571,9 +573,6 @@ Proof.
     }
 
     vjmp_out.
-
-    (* TODO *)
-    admit.
 
     cbn.
     replace (j - j) with 0 by lia.
