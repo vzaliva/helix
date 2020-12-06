@@ -51,6 +51,7 @@ install:
   - opam install -y --verbose -j 1 core
   - opam install -y --verbose -j 1 core_kernel
   - opam install -y --verbose -j 1 dune
+  - opam install -y --verbose -j 1 qcheck
   - opam update -y
   - travis_wait 90 opam upgrade -j 1 -y
 
