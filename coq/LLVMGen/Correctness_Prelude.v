@@ -44,6 +44,7 @@ Require Export Vellvm.Utils.Util.
 Require Export Vellvm.Utils.PostConditions.
 Require Export Vellvm.Utils.NoFailure.
 Require Export Vellvm.Utils.PropT.
+Require Export Vellvm.Utils.TFor.
 Require Export Vellvm.Syntax.LLVMAst.
 Require Export Vellvm.Syntax.CFG.
 Require Export Vellvm.Syntax.AstLib.
@@ -500,9 +501,15 @@ Section InterpMem.
     apply tau_eutt.
   Qed.
 
-End InterpMem.
+  Global Instance interp_Mem_proper {X} : Proper (eutt Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_Mem X).
+  Proof.
+    intros ? ? EQ ? ? <-.
+    unfold interp_Mem.
+    rewrite EQ.
+    reflexivity.
+  Qed.
 
-Global Opaque interp_Mem.
+End InterpMem.
 
 Section InterpHelix.
 
@@ -587,6 +594,148 @@ Section InterpHelix.
     cbn. rewrite Eq.bind_ret_l, tau_eutt.
     cbn; rewrite interp_Mem_ret, interp_fail_Ret, translate_ret.
     reflexivity.
+  Qed.
+
+  Global Instance interp_helix_proper {E X} : Proper (eutt Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_helix X E).
+  Proof.
+    intros ? ? EQ ? ? <-.
+    unfold interp_helix.
+    rewrite EQ.
+    reflexivity.
+  Qed.
+
+  Import ListNotations.
+  Import MonadNotation.
+  Local Open Scope monad_scope.
+  Local Open Scope nat_scope.
+
+
+  Lemma interp_helix_iter :
+    forall {X : Type} (E : Type -> Type) (m0 : memoryH) A (a0 : A) f,
+      @interp_helix X E (ITree.iter f a0) m0 ≈
+                    ITree.iter
+                    (fun '(m,a) =>
+                       ITree.bind (interp_helix (f a) m)
+                                  (fun x => match x with
+                                         | None => Ret (inr None)
+                                         | Some (m',x) => match x with
+                                                         | inl x => Ret (inl (m',x))
+                                                         | inr a => Ret (inr (Some (m',a)))
+                                                         end
+                                         end)
+                    )
+                    (m0,a0).
+  Proof.
+    unfold interp_helix, interp_Mem.
+    intros. 
+    rewrite NoFailure.interp_state_iter.
+    unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree.
+    rewrite interp_fail_iter.
+    unfold iter, CategoryKleisli.Iter_Kleisli.
+    unfold Basics.iter, failT_iter, MonadIter_stateT0, Basics.iter, MonadIter_itree.
+    cbn.
+    rewrite translate_iter.
+    apply KTreeFacts.eutt_iter.
+    intros [m a].
+    rewrite translate_bind.
+    cbn.
+    rewrite interp_fail_bind.
+    rewrite translate_bind.
+    rewrite !bind_bind.
+    eapply eutt_eq_bind.
+    intros [[s []] |]; cbn; rewrite ?interp_fail_Ret, ?translate_ret, ?bind_ret_l, ?translate_ret; reflexivity.
+  Qed.
+
+  Lemma __interp_helix_tfor:
+    forall {E : Type -> Type} (X : Type) (body : nat -> X -> _) k n,
+      k <= n ->
+        tfor (E := E) (fun k x =>
+                match x with
+                | None => Ret None
+                | Some (m',y) =>
+                  ITree.bind (interp_helix (body k y) m')
+                             (fun x => match x with
+                                    | None => Ret None
+                                    | Some y => Ret (Some y)
+                                    end)
+                end) k n None ≈ Ret None.
+  Proof.
+    intros.
+    remember (n - k) as rem.
+    revert k Heqrem H.
+    induction rem as [| rem IH].
+    - intros ? ? ?; assert (k ≡ n) by lia; subst.
+      unfold tfor.
+      cbn.
+      unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
+      rewrite unfold_iter.
+      rewrite Nat.eqb_refl, bind_ret_l.
+      reflexivity.
+    - intros.
+      unfold tfor.
+      unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
+      cbn.
+      rewrite unfold_iter.
+      assert (k =? n ≡ false) by (apply Nat.eqb_neq; lia).
+      rewrite H0; rewrite !bind_ret_l, tau_eutt.
+      rewrite <- (IH (S k)); try lia.
+      reflexivity.
+  Qed.
+
+  Lemma interp_helix_tfor {E : Type -> Type} :
+    forall (X : Type) body k n m (x : X),
+      k <= n ->
+      interp_helix (E := E) (tfor body k n x) m
+                   ≈
+                   tfor (fun k x =>
+                           match x with
+                           | None => Ret None
+                           | Some (m',y) =>
+                             ITree.bind (interp_helix (body k y) m')
+                                        (fun x => match x with
+                                               | None => Ret None
+                                               | Some y => Ret (Some y)
+                                               end)
+                           end) k n (Some (m,x)).
+  Proof.
+    intros * LE.
+    remember (n - k) as rem.
+    revert m x k Heqrem LE.
+    induction rem as [| rem IH].
+    - intros.
+      assert (k ≡ n) by lia.
+      unfold tfor.
+      cbn.
+      unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
+      rewrite unfold_iter.
+      rewrite H, Nat.eqb_refl, bind_ret_l, interp_helix_Ret.
+      rewrite unfold_iter.
+      rewrite Nat.eqb_refl, bind_ret_l.
+      reflexivity.
+    - intros * EQ INEQ.
+      unfold tfor.
+      unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
+      rewrite 2 unfold_iter.
+      assert (k =? n ≡ false) by (apply Nat.eqb_neq; lia).
+      cbn; rewrite !H.
+      rewrite !bind_bind.
+      rewrite interp_helix_bind.
+      apply eutt_eq_bind; intros [[]|].
+      + cbn; rewrite ?bind_ret_l.
+        rewrite 2tau_eutt.
+        specialize (IH m0 x0 (S k)).
+        unfold tfor in IH.
+        unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree in IH.
+        cbn in *. rewrite IH;try lia.
+        reflexivity.
+      + rewrite !bind_ret_l.
+        rewrite tau_eutt.
+        rewrite <- __interp_helix_tfor.
+        unfold tfor.
+        unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
+        cbn.
+        reflexivity.
+        lia.
   Qed.
 
 End InterpHelix.

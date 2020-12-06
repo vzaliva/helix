@@ -22,366 +22,7 @@ Import MonadNotation.
 Local Open Scope monad_scope.
 Local Open Scope nat_scope.
 
-Section TFor.
-  (* Experimenting with a pure vellvm specification of genWhileLoop via a [tfor] itree combinator *)
-  Import ITreeNotations.
-
-  Definition tfor {E X} (body : nat -> X -> itree E X) from to : X -> itree E X :=
-    fun x => iter (fun '(p,x) =>
-                  if EqNat.beq_nat p to
-                  then Ret (inr x)
-                  else
-                    y <- (body p x);; (Ret (inl (S p,y)))
-               ) (from,x).
-
-
-  Lemma tfor_0: forall {E A} k (body : nat -> A -> itree E A) a0,
-      tfor body k k a0 ≈ Ret a0.
-  Proof.
-    intros; unfold tfor; cbn.
-    unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
-    rewrite unfold_iter, Nat.eqb_refl, bind_ret_l.
-    reflexivity.
-  Qed.
-
-  Lemma tfor_unroll: forall {E A} i j (body : nat -> A -> itree E A) a0,
-      i < j ->
-      tfor body i j a0 ≈
-      a <- body i a0;; tfor body (S i) j a.
-  Proof.
-    intros; unfold tfor; cbn.
-    unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
-    rewrite unfold_iter at 1.
-    pose proof Nat.eqb_neq i j as [_ EQ].
-    rewrite EQ; try lia.
-    rewrite bind_bind.
-    apply eutt_eq_bind; intros ?; rewrite bind_ret_l, tau_eutt.
-    reflexivity.
-  Qed.
-
-  Lemma tfor_refl : forall  {E A} i (body : nat -> A -> itree E A) a0,
-      tfor body i i a0 ≈ Ret a0.
-  Proof.
-    induction i; intros body a0.
-    - apply tfor_0.
-    - unfold tfor.
-      unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
-      rewrite unfold_iter.
-      cbn.
-      rewrite Nat.eqb_refl.
-      rewrite bind_ret_l.
-      reflexivity.
-  Qed.
-
-  Lemma tfor_ss : forall {E A} i j (body : nat -> A -> itree E A) a0,
-      (forall x i j, body i x ≈ body j x) ->
-      i <= j ->
-      tfor body (S i) (S j) a0 ≈ tfor body i j a0.
-  Proof.
-    intros; unfold tfor; cbn.
-    unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
-
-    apply eutt_iter'' with (RI1:=fun '(a,x) '(b, y) => a ≡ S b /\ x ≡ y) (RI2:=fun '(a,x) '(b, y) => a ≡ S b /\ x ≡ y); auto.
-
-    intros [j1 acc1] [j2 acc2] H1.
-    destruct H1. subst.
-    cbn.
-
-    pose proof (Nat.eq_dec j2 j) as [EQ | NEQ].
-
-    - subst. rewrite Nat.eqb_refl.
-      apply eutt_Ret.
-      constructor; auto.
-    - apply NPeano.Nat.eqb_neq in NEQ.
-      rewrite NEQ.
-      eapply eutt_clo_bind.
-      rewrite H.
-      reflexivity.
-      intros; subst.
-      apply eutt_Ret.
-      constructor; auto.
-  Qed.
-
-  Lemma tfor_unroll_down: forall {E A} i j (body : nat -> A -> itree E A) a0,
-      i < S j ->
-      (forall x i j, body i x ≈ body j x) ->
-      tfor body i (S j) a0 ≈
-      a <- body i a0;; tfor body i j a.
-  Proof.
-    intros E A i j. revert E A i.
-    induction j; intros E A i body a0 H H0.
-    - rewrite tfor_unroll; auto.
-      eapply eutt_clo_bind; [reflexivity|].
-      intros u1 u2 H1.
-      subst.
-
-      assert (i ≡ 0) by lia; subst.
-      repeat rewrite tfor_refl.
-      reflexivity.
-    - rewrite tfor_unroll; auto.
-      eapply eutt_clo_bind; [reflexivity|].
-      intros u1 u2 H1.
-      subst.
-
-      assert (i <= S j) by lia.
-      apply le_lt_or_eq in H1.
-      destruct H1.
-      + rewrite IHj; [|lia|auto].
-        rewrite tfor_unroll; [|lia].
-        eapply eutt_clo_bind.
-        erewrite H0; reflexivity.
-        intros; subst.
-        do 2 (rewrite tfor_ss; auto); [|lia].
-        reflexivity.
-      + subst.
-        repeat rewrite tfor_refl.
-        reflexivity.
-  Qed.
-
-  Lemma tfor_split: forall {E A} (body : nat -> A -> itree E A) i j k a0,
-      i <= j ->
-      j <= k ->
-      tfor body i k a0 ≈
-      a <- tfor body i j a0;; tfor body j k a.
-  Proof.
-    intros * LE1 LE2.
-    remember (j - i) as p; revert a0 i LE1 Heqp.
-    induction p as [| p IH]; intros ? ? LE1 EQ.
-    - replace i with j by lia.
-      rewrite tfor_0, bind_ret_l.
-      reflexivity.
-    - rewrite tfor_unroll; [| lia].
-      rewrite tfor_unroll; [| lia].
-      rewrite bind_bind.
-      apply eutt_eq_bind; intros ?.
-      eapply IH; lia.
-  Qed.
-
-  Lemma eutt_tfor: forall {E A} (body body' : nat -> A -> itree E A) i j a0,
-      (forall k i, body i k ≈ body' i k) ->
-      (tfor body i j a0) ≈ (tfor body' i j a0).
-  Proof.
-    intros.
-    unfold tfor, iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
-    eapply KTreeFacts.eutt_iter.
-    intros [].
-    break_match_goal.
-    reflexivity.
-    cbn.
-    rewrite H.
-    reflexivity.
-  Qed.
-
-End TFor.
-
 Section DSHLoop_is_tfor.
-
-  Transparent interp_Mem.
-
-  (* MOVE prelude *)
-  Global Instance interp_Mem_proper {X} : Proper (eutt Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_Mem X).
-  Proof.
-    intros ? ? EQ ? ? <-.
-    unfold interp_Mem.
-    rewrite EQ.
-    reflexivity.
-  Qed.
-  Global Instance interp_helix_proper {E X} : Proper (eutt Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_helix X E).
-  Proof.
-    intros ? ? EQ ? ? <-.
-    unfold interp_helix.
-    rewrite EQ.
-    reflexivity.
-  Qed.
-
-  (* MOVE itree *)
-  Lemma interp_fail_iter :
-    forall {A R : Type} (E F : Type -> Type) (a0 : A) (h : E ~> failT (itree F)) f,
-      interp_fail (E := E) (T := R) h (ITree.iter f a0) ≈
-                  @Basics.iter _ failT_iter _ _ (fun a => interp_fail h (f a)) a0.
-  Proof.
-    unfold Basics.iter, failT_iter, Basics.iter, MonadIter_itree in *; cbn.
-    einit. ecofix CIH; intros *.
-    rewrite 2 unfold_iter; cbn.
-    rewrite !bind_bind.
-    rewrite interp_fail_bind.
-    ebind; econstructor; eauto.
-    reflexivity.
-    intros [[a1|r1]|] [[a2|r2]|] EQ; inv EQ.
-    - rewrite bind_ret_l.
-      rewrite interp_fail_tau.
-      estep.
-    - rewrite bind_ret_l, interp_fail_ret.
-      eret.
-    - rewrite bind_ret_l.
-      eret.
-  Qed.
-
-  (* MOVE itree *)
-  Lemma interp_state_iter :
-    forall {A R S : Type} (E F : Type -> Type) (s0 : S) (a0 : A) (h : E ~> Monads.stateT S (itree F)) f,
-      interp_state (E := E) (T := R) h (iter f a0) s0 ≈
-                   @Basics.iter _ MonadIter_stateT0 _ _ (fun a s => interp_state h (f a) s) a0 s0.
-  Proof.
-    unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree in *; cbn.
-    einit. ecofix CIH; intros.
-    rewrite 2 unfold_iter; cbn.
-    rewrite !bind_bind.
-    setoid_rewrite bind_ret_l.
-    rewrite interp_state_bind.
-    ebind; econstructor; eauto.
-    - reflexivity.
-    - intros [s' []] _ []; cbn.
-      + rewrite interp_state_tau.
-        estep.
-      + rewrite interp_state_ret; apply reflexivity.
-  Qed.
-
-  (* MOVE itree *)
-  Lemma translate_iter :
-    forall {A R : Type} (E F : Type -> Type) (a0 : A) (h : E ~> F) f,
-      translate (E := E) (F := F) (T := R) h (ITree.iter f a0) ≈
-                ITree.iter (fun a => translate h (f a)) a0.
-  Proof.
-    intros; revert a0.
-    einit; ecofix CIH; intros.
-    rewrite 2 unfold_iter; cbn.
-    rewrite translate_bind.
-    ebind; econstructor; eauto.
-    - reflexivity.
-    - intros [|] [] EQ; inv EQ.
-      + rewrite translate_tau; estep.
-      + rewrite translate_ret; apply reflexivity.
-  Qed.
-
-  Transparent interp_Mem.
-  Lemma interp_helix_iter :
-    forall {X : Type} (E : Type -> Type) (m0 : memoryH) A (a0 : A) f,
-      @interp_helix X E (iter f a0) m0 ≈
-                    iter
-                    (fun '(m,a) =>
-                       ITree.bind (interp_helix (f a) m)
-                                  (fun x => match x with
-                                         | None => Ret (inr None)
-                                         | Some (m',x) => match x with
-                                                         | inl x => Ret (inl (m',x))
-                                                         | inr a => Ret (inr (Some (m',a)))
-                                                         end
-                                         end)
-                    )
-                    (m0,a0).
-  Proof.
-    unfold interp_helix, interp_Mem.
-    intros.
-    rewrite interp_state_iter.
-    unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree.
-    rewrite interp_fail_iter.
-    unfold iter, CategoryKleisli.Iter_Kleisli.
-    unfold Basics.iter, failT_iter, MonadIter_stateT0, Basics.iter, MonadIter_itree.
-    cbn.
-    rewrite translate_iter.
-    apply KTreeFacts.eutt_iter.
-    intros [m a].
-    rewrite translate_bind.
-    cbn.
-    rewrite interp_fail_bind.
-    rewrite translate_bind.
-    rewrite !bind_bind.
-    eapply eutt_eq_bind.
-    intros [[s []] |]; cbn; rewrite ?interp_fail_Ret, ?translate_ret, ?bind_ret_l, ?translate_ret; reflexivity.
-  Qed.
-
-  Lemma __interp_helix_tfor:
-    forall {E : Type -> Type} (X : Type) (body : nat -> X -> _) k n,
-      k <= n ->
-        tfor (E := E) (fun k x =>
-                match x with
-                | None => Ret None
-                | Some (m',y) =>
-                  ITree.bind (interp_helix (body k y) m')
-                             (fun x => match x with
-                                    | None => Ret None
-                                    | Some y => Ret (Some y)
-                                    end)
-                end) k n None ≈ Ret None.
-  Proof.
-    intros.
-    remember (n - k) as rem.
-    revert k Heqrem H.
-    induction rem as [| rem IH].
-    - intros ? ? ?; assert (k ≡ n) by lia; subst.
-      unfold tfor.
-      cbn.
-      unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
-      rewrite unfold_iter.
-      rewrite Nat.eqb_refl, bind_ret_l.
-      reflexivity.
-    - intros.
-      unfold tfor.
-      unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
-      cbn.
-      rewrite unfold_iter.
-      assert (k =? n ≡ false) by (apply Nat.eqb_neq; lia).
-      rewrite H0; rewrite !bind_ret_l, tau_eutt.
-      rewrite <- (IH (S k)); try lia.
-      reflexivity.
-  Qed.
-
-  Lemma interp_helix_tfor {E : Type -> Type} :
-    forall (X : Type) body k n m (x : X),
-      k <= n ->
-      interp_helix (E := E) (tfor body k n x) m
-                   ≈
-                   tfor (fun k x =>
-                           match x with
-                           | None => Ret None
-                           | Some (m',y) =>
-                             ITree.bind (interp_helix (body k y) m')
-                                        (fun x => match x with
-                                               | None => Ret None
-                                               | Some y => Ret (Some y)
-                                               end)
-                           end) k n (Some (m,x)).
-  Proof.
-    intros * LE.
-    remember (n - k) as rem.
-    revert m x k Heqrem LE.
-    induction rem as [| rem IH].
-    - intros.
-      assert (k ≡ n) by lia.
-      unfold tfor.
-      cbn.
-      unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
-      rewrite unfold_iter.
-      rewrite H, Nat.eqb_refl, bind_ret_l, interp_helix_Ret.
-      rewrite unfold_iter.
-      rewrite Nat.eqb_refl, bind_ret_l.
-      reflexivity.
-    - intros * EQ INEQ.
-      unfold tfor.
-      unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
-      rewrite 2 unfold_iter.
-      assert (k =? n ≡ false) by (apply Nat.eqb_neq; lia).
-      cbn; rewrite !H.
-      rewrite !bind_bind.
-      rewrite interp_helix_bind.
-      apply eutt_eq_bind; intros [[]|].
-      + cbn; rewrite ?bind_ret_l.
-        rewrite 2tau_eutt.
-        specialize (IH m0 x0 (S k)).
-        unfold tfor in IH.
-        unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree in IH.
-        cbn in *. rewrite IH;try lia.
-        reflexivity.
-      + rewrite !bind_ret_l.
-        rewrite tau_eutt.
-        rewrite <- __interp_helix_tfor.
-        unfold tfor.
-        unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
-        cbn.
-        reflexivity.
-        lia.
-  Qed.
 
   (* The denotation of the [DSHLoop] combinator can be rewritten in terms of the [do_n] combinator.
      So if we specify [genWhileLoop] in terms of this same combinator, then we might be good to go
@@ -390,8 +31,8 @@ Section DSHLoop_is_tfor.
   Lemma DSHLoop_as_tfor: forall σ n op,
       denoteDSHOperator σ (DSHLoop n op)
                         ≈
-      tfor (fun p _ => vp <- lift_Serr (MInt64asNT.from_nat p) ;;
-                    denoteDSHOperator (DSHnatVal vp :: σ) op) 0 n tt.
+                        tfor (fun p _ => vp <- lift_Serr (MInt64asNT.from_nat p) ;;
+                                      denoteDSHOperator (DSHnatVal vp :: σ) op) 0 n tt.
   Proof.
     intros.
     unfold tfor.
@@ -407,6 +48,35 @@ Section DSHLoop_is_tfor.
     apply eutt_Ret; auto.
   Qed.
 
+  (* The denotation of the [DSHLoop] combinator can be rewritten in terms of the [do_n] combinator.
+     So if we specify [genWhileLoop] in terms of this same combinator, then we might be good to go
+     with a generic spec that of [GenWhileLoop] that does not depend on Helix.
+   *)
+  Lemma DSHLoop_interpreted_as_tfor:
+    forall E σ n op m,
+      interp_helix (E := E) (denoteDSHOperator σ (DSHLoop n op)) m
+                   ≈
+                   tfor (fun k x => match x with
+                                 | None => Ret None
+                                 | Some (m',_) => interp_helix (vp <- lift_Serr (MInt64asNT.from_nat k) ;;
+                                                               denoteDSHOperator (DSHnatVal vp :: σ) op) m'
+                                 end)
+                   0 n (Some (m, ())).
+  Proof.
+    intros.
+    rewrite DSHLoop_as_tfor.
+    rewrite interp_helix_tfor; [|lia].
+    cbn.
+    apply eutt_tfor.
+    intros [[m' _]|] i; [| reflexivity].
+    rewrite interp_helix_bind.
+    rewrite bind_bind.
+    apply eutt_eq_bind; intros [[?m ?] |]; [| rewrite bind_ret_l; reflexivity].
+    bind_ret_r2.
+    apply eutt_eq_bind.
+    intros [|]; reflexivity.
+  Qed.
+
   Definition DSHPower_tfor
              (σ: evalContext)
              (n: nat)
@@ -415,12 +85,12 @@ Section DSHLoop_is_tfor.
              (xoffset yoffset: nat) :
     itree Event mem_block
     :=
-    tfor (fun i acc =>
-            xv <- lift_Derr (mem_lookup_err "Error reading 'xv' memory in denoteDSHBinOp" xoffset x) ;;
-            yv <- lift_Derr (mem_lookup_err "Error reading 'yv' memory in denoteDSHBinOp" yoffset acc) ;;
-            v' <- denoteBinCType σ f yv xv ;;
-            ret (mem_add yoffset v' acc)
-         ) 0 n y.
+      tfor (fun i acc =>
+              xv <- lift_Derr (mem_lookup_err "Error reading 'xv' memory in denoteDSHBinOp" xoffset x) ;;
+              yv <- lift_Derr (mem_lookup_err "Error reading 'yv' memory in denoteDSHBinOp" yoffset acc) ;;
+              v' <- denoteBinCType σ f yv xv ;;
+              ret (mem_add yoffset v' acc)
+           ) 0 n y.
 
   Lemma denoteDSHPower_as_tfor :
     forall (σ: evalContext)
@@ -428,9 +98,9 @@ Section DSHLoop_is_tfor.
       (f: AExpr)
       (x y: mem_block)
       (xoffset yoffset: nat),
-    denoteDSHPower σ n f x y xoffset yoffset
-                   ≈
-    DSHPower_tfor σ n f x y xoffset yoffset.
+      denoteDSHPower σ n f x y xoffset yoffset
+                     ≈
+                     DSHPower_tfor σ n f x y xoffset yoffset.
   Proof.
     intros σ n; revert σ.
     induction n; unfold DSHPower_tfor; intros σ f x y xoffset yoffset.
@@ -459,7 +129,7 @@ Section DSHLoop_is_tfor.
   Lemma DSHPower_as_tfor : forall σ ne x_p xoffset y_p yoffset f initial,
       denoteDSHOperator σ (DSHPower ne (x_p,xoffset) (y_p,yoffset) f initial)
                         ≈
-      '(x_i,x_size) <- denotePExpr σ x_p ;;
+                        '(x_i,x_size) <- denotePExpr σ x_p ;;
       '(y_i,y_sixe) <- denotePExpr σ y_p ;;
       x <- trigger (MemLU "Error looking up 'x' in DSHPower" x_i) ;;
       y <- trigger (MemLU "Error looking up 'y' in DSHPower" y_i) ;;
@@ -478,54 +148,10 @@ Section DSHLoop_is_tfor.
     reflexivity.
   Qed.
 
-  (* The denotation of the [DSHLoop] combinator can be rewritten in terms of the [do_n] combinator.
-     So if we specify [genWhileLoop] in terms of this same combinator, then we might be good to go
-     with a generic spec that of [GenWhileLoop] that does not depend on Helix.
-   *)
-  Lemma DSHLoop_interpreted_as_tfor:
-    forall E σ n op m,
-      interp_helix (E := E) (denoteDSHOperator σ (DSHLoop n op)) m
-      ≈
-      tfor (fun k x => match x with
-                    | None => Ret None
-                    | Some (m',_) => interp_helix (vp <- lift_Serr (MInt64asNT.from_nat k) ;;
-                                                  denoteDSHOperator (DSHnatVal vp :: σ) op) m'
-                    end)
-      0 n (Some (m, ())).
-  Proof.
-    intros.
-    rewrite DSHLoop_as_tfor.
-    rewrite interp_helix_tfor; [|lia].
-    cbn.
-    apply eutt_tfor.
-    intros [[m' _]|] i; [| reflexivity].
-    rewrite interp_helix_bind.
-    rewrite bind_bind.
-    apply eutt_eq_bind; intros [[?m ?] |]; [| rewrite bind_ret_l; reflexivity].
-    bind_ret_r2.
-    apply eutt_eq_bind.
-    intros [|]; reflexivity.
-  Qed.
-
 End DSHLoop_is_tfor.
 
 (* TODO: Move to Prelude *)
 Definition uvalue_of_nat k := UVALUE_I64 (Int64.repr (Z.of_nat k)).
-
-Fixpoint build_vec_gen_aux {E} (from remains: nat)
-         (body : nat -> mem_block -> itree E mem_block) : mem_block -> itree E mem_block :=
-  fun vec =>
-    match remains with
-    | 0 => ret vec
-    | S remains' =>
-      vec' <- body from vec;;
-      build_vec_gen_aux (S from) remains' body vec'
-    end.
-
-Definition build_vec_gen {E} (from to: nat) :=
-  @build_vec_gen_aux E from (to - from).
-
-Definition build_vec {E} := @build_vec_gen E 0.
 
 From Paco Require Import paco.
 From ITree Require Import Basics.HeterogeneousRelations.
@@ -551,25 +177,6 @@ Proof.
       destruct H.
 Qed.
 
-
-(* TODO: Move to Vellvm Denotation_Theory.v? *)
-
-(* Definition disjoint_bid_blocks {T : Set} (b b' : list ((LLVMAst.block T))) := *)
-(*   block_ids b ⊍ block_ids b'. *)
-
-(* Lemma disjoint_bid_blocks_not_in_r {T : Set} (b b' : list (LLVMAst.block T)) : *)
-(*   disjoint_bid_blocks b b' -> *)
-(*   forall x, In x (block_ids b) -> ~ In x (block_ids b'). *)
-(* Proof. *)
-(*   intros; eauto using Coqlib.list_disjoint_notin, Coqlib.list_disjoint_sym. *)
-(* Qed. *)
-
-(* Lemma disjoint_bid_blocks_not_in_l {T : Set} (b b' : list (LLVMAst.block T)) : *)
-(*   disjoint_bid_blocks b b' -> *)
-(*   forall x, In x (block_ids b') -> ~ In x (block_ids b). *)
-(* Proof. *)
-(*   intros; eauto using Coqlib.list_disjoint_notin, Coqlib.list_disjoint_sym. *)
-(* Qed. *)
 
 Lemma fold_left_acc_app : forall {a t} (l : list t) (f : t -> list a) acc,
     (fold_left (fun acc bk => acc ++ f bk) l acc ≡
@@ -614,7 +221,8 @@ Definition imp_rel {A B : Type} (R S: A -> B -> Prop): Prop :=
 
 Lemma incLocal_fresh:
     forall i i' i'' r r' , incLocal i ≡ inr (i', r) ->
-                                          incLocal  i' ≡ inr (i'', r') -> r ≢ r'.
+                      incLocal i' ≡ inr (i'', r') ->
+                      r ≢ r'.
 Proof.
   intros. cbn in H, H0. Transparent incLocal. unfold incLocal in *.
   intro. cbn in *. inversion H. inversion H0. subst. cbn in H6. clear -H6.
