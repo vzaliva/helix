@@ -1,15 +1,11 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.Correctness_NExpr.
-(* Require Import Helix.LLVMGen.Correctness_MExpr. *)
-(* Require Import Helix.LLVMGen.Correctness_AExpr. *)
 Require Import Helix.LLVMGen.Correctness_GenIR.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.StateCounters.
 Require Import Helix.LLVMGen.VariableBinding.
 Require Import Helix.LLVMGen.BidBound.
-
-Require Import Helix.LLVMGen.Freshness.
 Require Import Helix.LLVMGen.LidBound.
 
 Set Nested Proofs Allowed.
@@ -381,7 +377,6 @@ Proof.
       apply genIR_Context in genIR_op.
       rename Heqs0 into new_local_var.
 
-      rename p into FOO.
       Transparent incBlockNamed.
       Transparent incVoid.
       Transparent incLocal.
@@ -455,14 +450,14 @@ Proof.
   }
 
   (* Continuation *)
-  intros [ [memH' t ] | ] (? & ? & ? & ?) UU ret1 ret2.
+  intros [ [memH' []] | ] (? & ? & ? & ?) UU ret1 ret2.
   rewrite interp_helix_MemFree.
   apply eutt_Ret. cbn.
   2 : try_abs.
 
   rename ρ into RHO.
   rename l into LOCAL_ENV. 
-  destruct t. clear ret1 ret2.
+  clear ret1 ret2.
   cbn in *. simp. cbn in *.
   (* Establish something between i0 and s1 *)
   {

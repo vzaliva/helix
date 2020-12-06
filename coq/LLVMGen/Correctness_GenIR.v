@@ -862,7 +862,7 @@ Section GenIR.
   (*     cbn. *)
   (*     clean_goal. *)
 
-  (*     rewrite convert_typ_block_app. *)
+  (*     rewrite convert_typ_ocfg_app. *)
   (*     rewrite denote_ocfg_app; eauto. *)
   (*     2: { *)
   (*       unfold no_reentrance. *)
@@ -1211,7 +1211,7 @@ Section GenIR.
       rename Heqs2 into GEN_OP1.
       rewrite add_comment_eutt.
       cbn.
-      rewrite convert_typ_block_app.
+      rewrite convert_typ_ocfg_app.
       rewrite denote_ocfg_app; eauto.
       2: {
         unfold no_reentrance.
