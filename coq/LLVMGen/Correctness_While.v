@@ -377,20 +377,6 @@ Qed.
 
 Import AlistNotations.
 
-Lemma string_forall_append:
-  forall s s' f,
-    CeresString.string_forall f s ->
-    CeresString.string_forall f s' ->
-    CeresString.string_forall f (s @@ s').
-Proof.
-  intros s s'. revert s.
-  induction s'.
-  - cbn. intros. cbn. rewrite append_EmptyString. auto.
-  - intros. cbn in H0.
-    destruct (f a) eqn: FA.
-    2 : { inversion H0. }
-Admitted.
-
 (** Inductive lemma to reason about while loops.
     The code generated is of the shape:
          block_entry ---> nextblock
@@ -441,7 +427,7 @@ Lemma genWhileLoop_tfor_ind:
     is_correct_prefix prefix ->
     (* All labels generated are distinct *)
     wf_ocfg_bid bks ->
-
+    lid_bound_between sb1 sb2 loopvar ->
     free_in_cfg bks nextblock ->
 
     forall (n : nat)                     (* Number of iterations *)
@@ -509,7 +495,7 @@ Lemma genWhileLoop_tfor_ind:
            (interp_cfg (denote_ocfg (convert_typ [] bks)
                                                 (_label, loopcontblock)) g li mV).
 Proof.
-  intros * IN PREF UNIQUE_IDENTS NEXTBLOCK_ID * GEN A LVAR_FRESH *.
+  intros * IN PREF UNIQUE_IDENTS LOOPVAR_SCOPE NEXTBLOCK_ID * GEN A *. 
   unfold genWhileLoop in GEN. cbn* in GEN. simp.
   intros BOUND OVER * FBODY STABLE LAB LAB'.
 
@@ -587,8 +573,7 @@ Proof.
               i into s2,
               i0 into s3,
               i1 into s4,
-              i2 into s5
-      .
+              i2 into s5.
 
       eapply local_scope_modif_add'.
       solve_lid_bound_between.
@@ -601,10 +586,10 @@ Proof.
   - (* Inductive case *)
     cbn in *. intros [LT LE] * (INV & LOOPVAR).
     (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
-    apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_ocfg_app in UNIQUE_IDENTS.
-    apply free_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_ocfg_app in NEXTBLOCK_ID.
-    cbn; rewrite ?convert_typ_ocfg_app.
-    cbn in IH; rewrite ?convert_typ_ocfg_app in IH.
+    apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_ocfg_app in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS.
+    apply free_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_ocfg_app in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID.
+    cbn; rewrite ?convert_typ_ocfg_app; cbn.
+    cbn in IH; rewrite ?convert_typ_ocfg_app in IH; cbn in IH.
     hide_cfg.
 
     (* RHS : Reducing RHS to apply Body Hypothesis *)
@@ -645,530 +630,6 @@ Proof.
     vjmp.
     (* We update [loopvar] via the phi-node *)
     cbn; vred.
-
-    (* BEGIN TODO: infrastructure to deal with non-empty phis *)
-    unfold denote_phis.
-    cbn.
-    rewrite denote_phi_tl; cycle 1.
-    {
-      inv VG. inversion UNIQUE_IDENTS.
-      subst. intro. subst. apply H1. right.
-      rewrite map_app.
-      apply in_or_app. right. constructor. reflexivity.
-    }
-
-    rewrite denote_phi_hd.
-    cbn.
-    (* TOFIX: broken automation, a wild translate sneaked in where it shouldn't *)
-    rewrite translate_bind.
-    rewrite ?interp_cfg_to_L3_ret, ?bind_ret_l;
-      rewrite ?interp_cfg_to_L3_bind, ?bind_bind.
-
-    vstep.
-    {
-      setoid_rewrite lookup_alist_add_ineq.
-      setoid_rewrite lookup_alist_add_eq. reflexivity. subst.
-      intros ?; eapply __fresh; eauto.
-    }
-    (* TOFIX: broken automation, a wild translate sneaked in where it shouldn't *)
-    rewrite translate_ret.
-    repeat vred.
-    cbn.
-    repeat vred.
-    (* TOFIX: we leak a [LocalWrite] event *)
-    rewrite interp_cfg_to_L3_LW.
-    repeat vred.
-    subst.
-    cbn.
-    (* END TODO: infrastructure to deal with non-empty phis *)
-
-    vred.
-    (* Step 3 : we jump into the body *)
-    vred.
-
-    (* In order to use our body hypothesis, we need to restrict the ambient cfg to only the body *)
-    inv VG.
-    rewrite denote_bks_prefix; cycle 1; auto.
-    {
-      match goal with
-        |- ?x::?y::?z ≡ _ => replace (x::y::z) with ([x;y]++z)%list by reflexivity
-      end; f_equal.
-    }
-    hide_cfg.
-    (* rewrite <- EQidx. *)
-
-    cbn; vred.
-    destruct j as [| j]; [lia |].
-    rewrite tfor_unroll; [| lia].
-
-    eapply eutt_clo_bind.
-    (* We can now use the body hypothesis *)
-    eapply FBODY.
-    {
-      (* A bit of arithmetic is needed to prove that we have the right precondition *)
-      split.
-      + repeat (eapply STABLE; eauto).
-
-      + rewrite alist_find_add_eq.
-        reflexivity.
-    }
-
-    (* Step 4 : Back to starting from loopcontblock and have reestablished everything at the next index:
-        conclude by IH *)
-    intros ? (? & ? & ? & ?) (LOOPVAR' & [? ->] & (IH' & LOC)).
-    eapply eqit_mon; auto.
-    2 : apply IH; try lia; try split; auto.
-    intros B (? & ? & ? & ?) (? & INV' & LOC').
-    split; try split; auto.
-    Notation "k '!->' v ';' l" := (alist_add k v l)
-                                    (at level 100, v at next level, right associativity).
-    cbn.
-    (* try to relate [li] and [l] somehow. *)
-
-Admitted.
-
-Lemma genWhileLoop_tfor_correct:
-  forall (prefix : string)
-    (loopvar : raw_id)            (* lvar storing the loop index *)
-    (loopcontblock : block_id)    (* reentry point from the body back to the loop *)
-    (body_entry : block_id)       (* entry point of the body *)
-    (body_blocks : list (LLVMAst.block typ)) (* (llvm) body to be iterated *)
-    (nextblock : block_id)        (* exit point of the overall loop *)
-    (entry_id : block_id)         (* entry point of the overall loop *)
-    (s1 s2 : IRState)
-    (bks : list (LLVMAst.block typ)) ,
-
-    In body_entry (inputs body_blocks) ->
-
-    (* All labels generated are distinct *)
-    wf_ocfg_bid bks ->
-
-    free_in_cfg bks nextblock ->
-
-    forall (n : nat)                     (* Number of iterations *)
-
-      (* Generation of the LLVM code wrapping the loop around bodyV *)
-      (HGEN: genWhileLoop prefix (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
-                          loopvar loopcontblock body_entry body_blocks [] nextblock s1
-                          ≡ inr (s2,(entry_id, bks)))
-
-      (* Computation on the Helix side performed at each cell of the vector, *)
-      (*    the counterpart to bodyV (body_blocks) *)
-      A
-      (bodyF: nat -> A -> itree _ A)
-
-      (NO_OVERFLOW : (Z.of_nat n < Int64.modulus)%Z)
-
-      (* Main relations preserved by iteration *)
-      (I : nat -> _) P Q,
-
-      (* We assume that we know how to relate the iterations of the bodies *)
-      (forall g l mV a k _label,
-          (conj_rel (I k)
-                    (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k))
-                    a (mV,(l,g))) ->
-          eutt
-            ( (fun a' '(memV, (l, (g, x))) =>
-                 l @ loopvar ≡ Some (uvalue_of_nat k) /\
-                 (exists _label', x ≡ inl (_label', loopcontblock)) /\
-                 I (S k) (* a *) a' (memV, (l, g))))
-            (bodyF k a)
-            (interp_cfg (denote_ocfg (convert_typ [] body_blocks) (_label, body_entry)) g l mV)
-      ) ->
-
-
-    (* Invariant is stable under the administrative bookkeeping that the loop performs *)
-    (forall a sa b sb c sc d sd e se msg msg' msg'',
-          incBlockNamed msg s1 ≡ inr (sa, a) ->
-          incBlockNamed msg' sa ≡ inr (sb, b) ->
-          incLocal sb ≡ inr (sc,c) ->
-          incLocal sc ≡ inr (sd,d) ->
-          incLocalNamed msg'' sd ≡ inr (se, e) ->
-          forall k a l mV g id v,
-            id ≡ c \/ id ≡ d \/ id ≡ e \/ id ≡ loopvar ->
-            I k a (mV, (l, g)) ->
-            I k a (mV, ((alist_add id v l), g))) ->
-
-    (* R must be stable by extension of the local env *)
-      (* (forall mH mV g l l', *)
-      (*     l ⊑ l' -> *)
-      (*                       R mH (mV, (l, g)) -> *)
-      (*                       R mH (mV, (l', g))) -> *)
-
-    (* We bake in the weakening on the extremities to ease the use of the lemma *)
-    imp_rel P (I 0) ->
-    imp_rel (I n) Q ->
-
-    (* (forall g l mV a ymem, *)
-    (*     (R a (mV, (l, g)) -> I 0 mem_empty mH (mV, (l, g)) /\ l @ loopvar ≡ Some (uvalue_of_nat 0)) /\ *)
-    (*     (I n ymem mH (mV, (l, g)) -> R mH (mV, (l, g)))) -> *)
-
-    (* Main result. Need to know initially that R holds *)
-    forall g l mV a _label,
-      P a (mV,(l,g)) ->
-      eutt (fun a '(memV, (l, (g,x))) =>
-              (* Consider generalizing? *)
-              (x ≡ inl (loopcontblock, nextblock) \/
-               x ≡ inl (entry_id, nextblock)) /\
-              Q a (memV,(l,g)))
-           (tfor bodyF 0 n a)
-           (interp_cfg (denote_ocfg (convert_typ [] bks) (_label ,entry_id)) g l mV).
-Proof.
-
-  intros * IN UNIQUE EXIT * GEN * BOUND * IND STABLE pre post IMPSTATE IND_INV * PRE.
-  pose proof @genWhileLoop_tfor_ind as GEN_IND.
-
-  (* specialize (GEN_IND prefix loopvar loopcontblock body_entry body_blocks nextblock entry_id s1 s2 bks). *)
-  (* specialize (GEN_IND IN UNIQUE EXIT n GEN). *)
-  (* unfold genWhileLoop in GEN. cbn* in GEN. simp. *)
-  (* destruct n as [| n]. *)
-  (* - (* 0th index *) *)
-  (*   cbn. *)
-
-  (*   apply free_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_ocfg_app in EXIT. *)
-  (*   cbn; rewrite ?convert_typ_ocfg_app. *)
-  (*   cbn in GEN_IND; rewrite ?convert_typ_ocfg_app in GEN_IND. *)
-
-  (*   hide_cfg. *)
-  (*   vjmp. *)
-
-  (*   vred. vred. vred. vstep. *)
-  (*   { *)
-  (*     cbn. *)
-  (*     vstep. *)
-  (*     vstep; solve_lu; reflexivity. *)
-  (*     vstep; reflexivity. *)
-  (*     all:reflexivity. *)
-  (*   } *)
-
-  (*   (* We now branch to [nextblock] *) *)
-  (*   vbranch_r. *)
-  (*   { vstep. *)
-  (*     solve_lu. *)
-  (*     apply eutt_Ret; repeat f_equal. *)
-  (*   } *)
-
-  (*   vjmp_out. *)
-  (*   vred. *)
-  (*   cbn. *)
-  (*   rewrite tfor_0. *)
-
-  (*   (* We have only touched local variables that the invariant does not care about, we can reestablish it *) *)
-  (*   apply eutt_Ret. cbn. split. right. reflexivity. *)
-  (*   eapply post; eapply STABLE; eauto. *)
-
-  (* - cbn in *. *)
-
-  (*   (* Clean up convert_typ junk *) *)
-  (*   apply free_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_ocfg_app in EXIT. *)
-  (*   apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE; cbn in UNIQUE; rewrite ?convert_typ_ocfg_app in UNIQUE. *)
-  (*   cbn; rewrite ?convert_typ_ocfg_app. *)
-  (*   cbn in GEN_IND; rewrite ?convert_typ_ocfg_app in GEN_IND. *)
-
-  (*   hide_cfg. *)
-
-  (*   vjmp. *)
-  (*   cbn. *)
-  (*   vred. vred. vred. *)
-  (*   vstep. *)
-  (*   { *)
-  (*     vstep. vstep; solve_lu. *)
-  (*     vstep; solve_lu. *)
-  (*     all :reflexivity. *)
-  (*   } *)
-  (*   vstep.  *)
-
-  (*   (* Step 1 : Jump to b0, i.e. loopblock (since we have checked k < n). *) *)
-  (*   vbranch_l. *)
-  (*   { *)
-  (*     cbn; vstep. *)
-  (*     match goal with *)
-  (*       |- Maps.lookup ?k (alist_add ?k ?a ?b) ≡ _ => *)
-  (*       rewrite (lookup_alist_add_eq _ _ b) *)
-  (*     end; reflexivity. *)
-  (*     unfold eval_int_icmp. cbn. *)
-  (*     rewrite ltu_Z_to_Int64; try lia. *)
-  (*     reflexivity. *)
-  (*   } *)
-  (*   vjmp. vred. *)
-  (*   (* We update [loopvar] via the phi-node *) *)
-  (*   cbn; vred. *)
-
-  (*   (* BEGIN TODO: infrastructure to deal with non-empty phis *) *)
-  (*   unfold denote_phis. *)
-  (*   cbn. *)
-  (*   rewrite denote_phi_hd. *)
-  (*   cbn. *)
-
-  (*   (* TOFIX: broken automation, a wild translate sneaked in where it shouldn't *) *)
-  (*   rewrite translate_bind. *)
-  (*   rewrite ?interp_cfg_to_L3_ret, ?bind_ret_l; *)
-  (*     rewrite ?interp_cfg_to_L3_bind, ?bind_bind. *)
-
-  (*   vstep. tred. repeat vred. *)
-  (*   unfold map_monad. cbn. vred.  *)
-  (*   rewrite interp_cfg_to_L3_LW. vred. vred. vred. vred. *)
-
-  (*   subst. *)
-  (*   vred. *)
-  (*   vred. *)
-  (*   inv VG. *)
-
-  (*   rewrite denote_bks_prefix; cycle 1; auto. *)
-  (*   { *)
-  (*     match goal with *)
-  (*       |- ?x::?y::?z ≡ _ => replace (x::y::z) with ([x;y]++z)%list by reflexivity *)
-  (*     end; f_equal. *)
-  (*   } *)
-  (*   hide_cfg. *)
-  (*   vred. *)
-
-  (*   rewrite tfor_unroll; [| lia]. *)
-  (*   eapply eutt_clo_bind. *)
-
-  (*   + (* Base case : first iteration of loop. *) *)
-  (*     eapply IND. *)
-  (*     split. *)
-  (*     eapply STABLE; eauto. *)
-  (*     unfold Maps.add, Map_alist. *)
-  (*     apply alist_find_add_eq. typeclasses eauto. *)
-  (*   + intros ? (? & ? & ? & ?) (LU & [? ->] & ?). *)
-  (*     eapply eutt_Proper_mono. *)
-  (*     2: apply GEN_IND. *)
-  (*     { clear - post; intros ? (? & ? & ? & ?) [-> ?]; split; eauto. } *)
-  (*     lia. *)
-  (*     lia. *)
-  (*     eauto.  *)
-  (*     eapply STABLE; eauto. *)
-  (*     split; eauto. *)
-Admitted.
-
-(* BEGIN work in progress to add the transport of [] as a postcondition through the loop *)
-(*
-Lemma genWhileLoop_tfor_ind:
-  forall (prefix : string)
-    (loopvar : raw_id)            (* lvar storing the loop index *)
-    (loopcontblock : block_id)    (* reentry point from the body back to the loop *)
-    (body_entry : block_id)       (* entry point of the body *)
-    (body_blocks : list (LLVMAst.block typ)) (* (llvm) body to be iterated *)
-    (nextblock : block_id)        (* exit point of the overall loop *)
-    (entry_id : block_id)         (* entry point of the overall loop *)
-    (s1 s2 sb1 sb2 : IRState)
-    (bks : list (LLVMAst.block typ)) ,
-
-    In body_entry (inputs body_blocks) ->
-
-    is_correct_prefix prefix ->
-    (* All labels generated are distinct *)
-    wf_ocfg_bid bks ->
-
-    free_in_cfg bks nextblock ->
-
-    forall (n : nat)                     (* Number of iterations *)
-
-      (* Generation of the LLVM code wrapping the loop around bodyV *)
-      (HGEN: genWhileLoop prefix (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
-                          loopvar loopcontblock body_entry body_blocks [] nextblock s1
-                          ≡ inr (s2,(entry_id, bks)))
-
-      (* Computation on the other side, operating over some type of accumulator [A], *)
-      (* i.e. the counterpart to bodyV (body_blocks) *)
-      (A : Type)
-      (bodyF: nat -> A -> itree _ A)
-
-
-      (j : nat)                       (* Next iteration to be performed *)
-      (UPPER_BOUND : 0 < j <= n)
-      (NO_OVERFLOW : (Z.of_nat n < Int64.modulus)%Z)
-
-      (* Main relations preserved by iteration *)
-      (I : nat -> A -> _),
-
-      (* We assume that we know how to relate the iterations of the bodies *)
-      (forall g li mV a k _label,
-          (conj_rel (I k)
-                    (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k))
-                    a (mV,(li,g))) ->
-          eutt
-            (fun a' '(memV, (l, (g, x))) =>
-               l @ loopvar ≡ Some (uvalue_of_nat k) /\
-               (exists _label', x ≡ inl (_label', loopcontblock)) /\
-               I (S k) a' (memV, (l, g)) /\
-               local_scope_modif sb1 sb2 li l)
-            (bodyF k a)
-            (interp_cfg (denote_ocfg (convert_typ [] body_blocks) (_label, body_entry)) g li mV)
-      ) ->
-
-      (* Invariant is stable under the administrative bookkeeping that the loop performs *)
-      (forall a sa b sb c sc d sd e se msg msg' msg'',
-          incBlockNamed msg s1 ≡ inr (sa, a) ->
-          incBlockNamed msg' sa ≡ inr (sb, b) ->
-          incLocal sb ≡ inr (sc,c) ->
-          incLocal sc ≡ inr (sd,d) ->
-          incLocalNamed msg'' sd ≡ inr (se, e) ->
-          forall k a l mV g id v,
-            id ≡ c \/ id ≡ d \/ id ≡ e \/ id ≡ loopvar ->
-            (I k a (mV, (l, g)) -> I k a (mV, ((alist_add id v l), g)))
-      ) ->
-      sb1 << sb2 ->
-      local_count sb2 ≡ local_count s1 ->
-
-    (* Main result. Need to know initially that P holds *)
-    forall g li mV a _label,
-      (conj_rel
-         (I j)
-         (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat (j - 1)))
-         a (mV,(li,g))
-      ) ->
-      eutt (fun a '(memV, (l, (g,x))) =>
-              x ≡ inl (loopcontblock, nextblock) /\
-              I n a (memV,(l,g)) /\
-              local_scope_modif sb1 s2 li l
-           )
-           (tfor bodyF j n a)
-           (interp_cfg (denote_ocfg (convert_typ [] bks)
-                                                (_label, loopcontblock)) g li mV).
-Proof.
-  intros * IN PREFIX UNIQUE_IDENTS NEXTBLOCK_ID * GEN *.
-  unfold genWhileLoop in GEN. cbn* in GEN. simp.
-  intros BOUND OVER * FBODY STABLE INEQ INEQ'.
-
-  remember (n - j) as k eqn:K_EQ.
-  revert j K_EQ BOUND.
-  induction k as [| k IH]; intros j EQidx.
-
-  - (* Base case: we enter through [loopcontblock] and jump out immediately to [nextblock] *)
-    intros  BOUND * (INV & LOOPVAR).
-    (* Import ProofMode. *)
-    (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
-    apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_ocfg_app in UNIQUE_IDENTS.
-    apply free_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_ocfg_app in NEXTBLOCK_ID.
-    cbn; rewrite ?convert_typ_ocfg_app.
-    hide_cfg.
-    (* We jump into [loopcontblock]
-       We denote the content of the block.
-     *)
-    vjmp.
-
-    cbn.
-    assert (n ≡ j) by lia; subst.
-    (* replace (j - S j) with 0 by lia. *)
-
-    vred.
-    vred.
-    vred.
-    vstep.
-    {
-      vstep.
-      vstep; solve_lu; reflexivity.
-      vstep; reflexivity.
-      all: reflexivity.
-    }
-    vred.
-    vstep.
-    {
-      cbn.
-      vstep.
-      vstep; solve_lu; reflexivity.
-      vstep; reflexivity.
-      all:reflexivity.
-    }
-
-    (* We now branch to [nextblock] *)
-    vbranch_r.
-    { vstep.
-      solve_lu.
-      apply eutt_Ret; repeat f_equal.
-      cbn.
-      clear - BOUND OVER.
-      destruct BOUND as [? _].
-      rewrite __arithu; try lia.
-      unfold eval_int_icmp.
-      rewrite ltu_antisym.
-      reflexivity.
-    }
-
-    vjmp_out.
-    cbn.
-    replace (j - j) with 0 by lia.
-    cbn; vred.
-
-    rewrite tfor_0.
-    (* We have only touched local variables that the invariant does not care about, we can reestablish it *)
-    apply eutt_Ret.
-    split; [| split].
-    + reflexivity.
-    + eapply STABLE; eauto.
-    + rename s2 into FINAL_STATE,
-              i into s2,
-              i0 into s3,
-              i1 into s4,
-              i2 into s5,
-              i3 into s6,
-              i4 into s7,
-              i6 into s8.
-
-      eapply local_scope_modif_add'.
-      2 : eapply local_scope_modif_add.
-      solve_lid_bound_between.
-      eapply lid_bound_between_shrink_down with (s2 := s5).
-      solve_local_count.
-      eapply lid_bound_between_shrink_up with (s2 := s6).
-      solve_local_count.
-      eapply lid_bound_between_incLocalNamed. 2 : eauto.
-      unfold is_correct_prefix.
-
-      apply string_forall_append. auto. auto.
-
-  - (* Inductive case *)
-    cbn in *. intros [LT LE] * (INV & LOOPVAR).
-    (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
-    apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_ocfg_app in UNIQUE_IDENTS.
-    apply free_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_ocfg_app in NEXTBLOCK_ID.
-    cbn; rewrite ?convert_typ_ocfg_app.
-    cbn in IH; rewrite ?convert_typ_ocfg_app in IH.
-    hide_cfg.
-
-    (* RHS : Reducing RHS to apply Body Hypothesis *)
-    (* Step 1 : First, process [loopcontblock] and check that k<n, and hence that we do not exit *)
-    vjmp.
-    cbn.
-    vred.
-    vred.
-    vred.
-    vstep.
-    {
-      vstep.
-      vstep; solve_lu.
-      vstep; solve_lu.
-      all: reflexivity.
-    }
-    vred.
-    vstep.
-    {
-      cbn; vstep.
-      vstep; solve_lu.
-      vstep; solve_lu.
-      all: reflexivity.
-    }
-    vred.
-
-    (* Step 2 : Jump to b0, i.e. loopblock (since we have checked k < n). *)
-    vbranch_l.
-    { cbn; vstep;  try solve_lu.
-      rewrite __arithu; try lia.
-      apply eutt_Ret.
-      repeat f_equal.
-      clear - EQidx LT LE OVER.
-      unfold eval_int_icmp; rewrite ltu_nat_to_Int64; try lia.
-      reflexivity.
-    }
-
-    vjmp.
-    (* We update [loopvar] via the phi-node *)
-    cbn; vred.
-
-    focus_single_step_v.
 
     (* BEGIN TODO: infrastructure to deal with non-empty phis *)
     unfold denote_phis.
@@ -1235,53 +696,38 @@ Proof.
 
       + rewrite alist_find_add_eq.
         reflexivity.
-        typeclasses eauto.
     }
 
     (* Step 4 : Back to starting from loopcontblock and have reestablished everything at the next index:
         conclude by IH *)
-    intros ? (? & ? & ? & ?) (LOOPVAR' & [? ->] & IH' & LOCAL).
-    assert (AR1 : k ≡ n - S (S j)) by lia.
-    assert (AR2 : 0 < S (S j) ∧ S (S j) <= n) by lia.
-    unfold conj_rel in IH.
-    assert (INV_LO: I (S (S j)) u1 (m, (l, g0)) ∧
-            l @ loopvar ≡ Some (uvalue_of_nat (S (S j) - 1))). {
-      split; auto.
-    }
-
-    specialize (IH (S (S j)) AR1 AR2 _ _ _ _ x INV_LO).
-
-    (* rename li into LOCAL_INITIAL, l into LOCAL_FINAL. *)
-
-    (* What's the relation between [li] and [l]? *)
-    clear -IH.
+    intros a1 (m1 & l1 & g1 & ?) (LOOPVAR' & [? ->] & (IH' & LOC)).
 
     eapply eqit_mon; auto.
-    2 : apply IH.
-    intros B (mv & l0 & g & x') (LO' & INV & LOC).
+    2 : apply IH; try lia; try split; auto.
+    intros acc (mf & lf & gf & ?) (? & INV' & LOC').
     split; try split; auto.
-
-    assert (li ⊑ l /\ l ⊑ li). admit.
-
-    unfold local_scope_modif in *.
-    intros. unfold lid_bound_between, state_bound_between in *.
-    destruct (l0 @ id) eqn: Hl0; [ | destruct (li @ id) eqn: Hi0].
-    3 : { exfalso. apply H0. reflexivity. } (* Neither are None *)
-
-    (* There doesn't seem to be enough information here, even with the [⊑]
-       between the initial and final local environments. *)
-    specialize (LOC id).
-    subst. rewrite Hl0 in LOC.
-    apply LOC. admit.
-
-    (* Absurd case. because something was found in [li], we must have something
-        in [l]. *)
-    apply LOC. rewrite Hl0.
-    destruct H.
-    admit.
-
-Admitted.
-
+    subst.
+    clear STABLE FBODY OVER IH IN LOOPVAR' LOOPVAR. 
+    clean_goal.
+    
+    eapply local_scope_modif_trans'; [| eassumption]. 
+    clear LOC'.
+    eapply local_scope_modif_trans'.
+    2:{
+      eapply local_scope_modif_shrink; eauto.
+      solve_local_count.
+      solve_local_count.
+    }
+    repeat apply local_scope_modif_add'. 
+    4: apply local_scope_modif_refl.
+    eapply lid_bound_between_shrink; eauto; solve_local_count.
+    solve_lid_bound_between.
+    eapply lid_bound_between_shrink.
+    eapply lid_bound_between_incLocalNamed; [| eauto |..].
+    apply is_correct_prefix_append; auto.
+    solve_local_count.
+    solve_local_count.
+Qed.
 
 Lemma genWhileLoop_tfor_correct:
   forall (prefix : string)
@@ -1291,14 +737,15 @@ Lemma genWhileLoop_tfor_correct:
     (body_blocks : list (LLVMAst.block typ)) (* (llvm) body to be iterated *)
     (nextblock : block_id)        (* exit point of the overall loop *)
     (entry_id : block_id)         (* entry point of the overall loop *)
-    (s1 s2 : IRState)
+    (s1 s2 sb1 sb2 : IRState)
     (bks : list (LLVMAst.block typ)) ,
 
     In body_entry (inputs body_blocks) ->
+    is_correct_prefix prefix ->
 
     (* All labels generated are distinct *)
     wf_ocfg_bid bks ->
-
+    lid_bound_between sb1 sb2 loopvar ->
     free_in_cfg bks nextblock ->
 
     forall (n : nat)                     (* Number of iterations *)
@@ -1319,19 +766,20 @@ Lemma genWhileLoop_tfor_correct:
       (I : nat -> _) P Q,
 
       (* We assume that we know how to relate the iterations of the bodies *)
-      (forall g l mV a k _label,
+      (forall g li mV a k _label,
           (conj_rel (I k)
                     (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k))
-                    a (mV,(l,g))) ->
+                    a (mV,(li,g))) ->
           eutt
-            ( (fun a' '(memV, (l, (g, x))) =>
-                 l @ loopvar ≡ Some (uvalue_of_nat k) /\
-                 (exists _label', x ≡ inl (_label', loopcontblock)) /\
-                 I (S k) (* a *) a' (memV, (l, g))))
+            (fun a' '(memV, (l, (g, x))) =>
+               l @ loopvar ≡ Some (uvalue_of_nat k) /\
+               (exists _label', x ≡ inl (_label', loopcontblock)) /\
+               I (S k) a' (memV, (l, g)) /\
+               local_scope_modif sb1 sb2 li l)
             (bodyF k a)
-            (interp_cfg (denote_ocfg (convert_typ [] body_blocks) (_label, body_entry)) g l mV)
-      ) ->
-
+            (interp_cfg (denote_ocfg (convert_typ [] body_blocks) (_label, body_entry)) g li mV)
+      )
+      ->
 
     (* Invariant is stable under the administrative bookkeeping that the loop performs *)
     (forall a sa b sb c sc d sd e se msg msg' msg'',
@@ -1345,36 +793,29 @@ Lemma genWhileLoop_tfor_correct:
             I k a (mV, (l, g)) ->
             I k a (mV, ((alist_add id v l), g))) ->
 
-    (* R must be stable by extension of the local env *)
-      (* (forall mH mV g l l', *)
-      (*     l ⊑ l' -> *)
-      (*                       R mH (mV, (l, g)) -> *)
-      (*                       R mH (mV, (l', g))) -> *)
+      sb1 << sb2 ->
+      local_count sb2 ≡ local_count s1 ->
 
     (* We bake in the weakening on the extremities to ease the use of the lemma *)
     imp_rel P (I 0) ->
     imp_rel (I n) Q ->
 
-    (* (forall g l mV a ymem, *)
-    (*     (R a (mV, (l, g)) -> I 0 mem_empty mH (mV, (l, g)) /\ l @ loopvar ≡ Some (uvalue_of_nat 0)) /\ *)
-    (*     (I n ymem mH (mV, (l, g)) -> R mH (mV, (l, g)))) -> *)
-
-    (* Main result. Need to know initially that R holds *)
-    forall g l mV a _label,
-      P a (mV,(l,g)) ->
+    (* Main result. Need to know initially that P holds *)
+    forall g li mV a _label,
+      P a (mV,(li,g)) ->
       eutt (fun a '(memV, (l, (g,x))) =>
-              (* Consider generalizing? *)
-              (x ≡ inl (loopcontblock, nextblock) \/
-               x ≡ inl (entry_id, nextblock)) /\
-              Q a (memV,(l,g)))
+              (x ≡ inl (loopcontblock, nextblock) \/ x ≡ inl (entry_id, nextblock)) /\
+              Q a (memV,(l,g)) /\
+              local_scope_modif sb1 s2 li l)
            (tfor bodyF 0 n a)
-           (interp_cfg (denote_ocfg (convert_typ [] bks) (_label ,entry_id)) g l mV).
+           (interp_cfg (denote_ocfg (convert_typ [] bks) (_label ,entry_id)) g li mV).
 Proof.
 
-  intros * IN UNIQUE EXIT * GEN * BOUND * IND STABLE pre post IMPSTATE IND_INV * PRE.
+  intros * IN PREFIX UNIQUE LOOPVAR EXIT * GEN * BOUND * IND STABLE LE1 LE2 pre post * PRE.
   pose proof @genWhileLoop_tfor_ind as GEN_IND.
-  specialize (GEN_IND prefix loopvar loopcontblock body_entry body_blocks nextblock entry_id s1 s2 bks).
-  specialize (GEN_IND IN UNIQUE EXIT n GEN).
+
+  specialize (GEN_IND prefix loopvar loopcontblock body_entry body_blocks nextblock entry_id s1 s2 sb1 sb2 bks).
+  specialize (GEN_IND IN PREFIX UNIQUE LOOPVAR EXIT n GEN).
   unfold genWhileLoop in GEN. cbn* in GEN. simp.
   destruct n as [| n].
   - (* 0th index *)
@@ -1410,15 +851,17 @@ Proof.
 
     (* We have only touched local variables that the invariant does not care about, we can reestablish it *)
     apply eutt_Ret. cbn. split. right. reflexivity.
-    eapply post; eapply STABLE; eauto.
+    split.
+    + eapply post; eapply STABLE; eauto.
+    + solve_local_scope_modif.
 
   - cbn in *.
 
     (* Clean up convert_typ junk *)
-    apply free_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_ocfg_app in EXIT.
-    apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE; cbn in UNIQUE; rewrite ?convert_typ_ocfg_app in UNIQUE.
-    cbn; rewrite ?convert_typ_ocfg_app.
-    cbn in GEN_IND; rewrite ?convert_typ_ocfg_app in GEN_IND.
+    apply free_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_ocfg_app in EXIT; cbn in EXIT.
+    apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE; cbn in UNIQUE; rewrite ?convert_typ_ocfg_app in UNIQUE; cbn in UNIQUE.
+    cbn; rewrite ?convert_typ_ocfg_app; cbn.
+    cbn in GEN_IND; rewrite ?convert_typ_ocfg_app in GEN_IND; cbn in GEN_IND.
 
     hide_cfg.
 
@@ -1449,8 +892,6 @@ Proof.
     (* We update [loopvar] via the phi-node *)
     cbn; vred.
 
-    focus_single_step_v.
-
     (* BEGIN TODO: infrastructure to deal with non-empty phis *)
     unfold denote_phis.
     cbn.
@@ -1470,7 +911,8 @@ Proof.
     vred.
     vred.
     inv VG.
-
+    (* show_cfg. *)
+    
     rewrite denote_ocfg_prefix; cycle 1; auto.
     {
       match goal with
@@ -1488,17 +930,25 @@ Proof.
       split.
       eapply STABLE; eauto.
       unfold Maps.add, Map_alist.
-      apply alist_find_add_eq. typeclasses eauto.
-    + intros ? (? & ? & ? & ?) (LU & [? ->] & ?).
+      apply alist_find_add_eq. 
+    + intros ? (? & ? & ? & ?) (LU & [? ->] & []).
       eapply eutt_Proper_mono.
-      2: apply GEN_IND.
-      { clear - post; intros ? (? & ? & ? & ?) [-> ?]; split; eauto. }
+      2: apply GEN_IND; eauto.
+      { intros ? (? & ? & ? & ?) [-> []]; split; [|split]; eauto.
+        clear GEN_IND IND STABLE.
+        eapply local_scope_modif_trans'; [| eassumption]. 
+        eapply local_scope_modif_trans'.
+        2:{
+          eapply local_scope_modif_shrink; eauto.
+          solve_local_count.
+          solve_local_count.
+        }
+        repeat apply local_scope_modif_add'.
+        3: apply local_scope_modif_refl.
+        eapply lid_bound_between_shrink; eauto; solve_local_count.
+        solve_lid_bound_between.
+      }
       lia.
-      lia.
-      eauto.
-      eapply STABLE; eauto.
       split; eauto.
 Qed.
- *)
-(* END work in progress to add the transport of [] as a postcondition through the loop *)
 

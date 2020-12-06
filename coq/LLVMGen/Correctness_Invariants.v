@@ -961,6 +961,23 @@ Section SimulationRelations.
       eauto using lid_bound_between_shrink_up.
   Qed.
 
+  (* Alternate notion of transitivity, with respect to a fix interval *)
+  Lemma local_scope_modif_trans' :
+    forall s1 s2 l1 l2 l3,
+      local_scope_modif s1 s2 l1 l2 ->
+      local_scope_modif s1 s2 l2 l3 ->
+      local_scope_modif s1 s2 l1 l3.
+  Proof.
+    unfold local_scope_modif; intros * MOD1 MOD2 * INEQ.
+    destruct (alist_find_eq_dec_local_env id l1 l2) as [EQ | NEQ].
+    - destruct (alist_find_eq_dec_local_env id l2 l3) as [EQ' | NEQ'].
+      + contradiction INEQ; rewrite <- EQ; auto.
+      + apply MOD2 in NEQ'.
+        eauto using lid_bound_between_shrink_down.
+    - apply MOD1 in NEQ.
+      eauto using lid_bound_between_shrink_up.
+  Qed.
+
   Lemma local_scope_modif_shrink :
     forall (s1 s2 s3 s4 : IRState) l1 l2,
       local_scope_modif s2 s3 l1 l2 ->

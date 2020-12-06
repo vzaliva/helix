@@ -110,5 +110,27 @@ Proof.
   contradiction.
 Qed.
 
+Lemma string_forall_append:
+  forall s s' f,
+    CeresString.string_forall f s ->
+    CeresString.string_forall f s' ->
+    CeresString.string_forall f (s @@ s').
+Proof.
+  intros s s'. revert s.
+  induction s'.
+  - cbn. intros. cbn. rewrite append_EmptyString. auto.
+  - intros. cbn in H0.
+    destruct (f a) eqn: FA.
+    2 : { inversion H0. }
+Admitted.
+
+Lemma is_correct_prefix_append: forall s1 s2,
+    is_correct_prefix s1 ->
+    is_correct_prefix s2 ->
+    is_correct_prefix (s1 @@ s2).
+Proof.
+  intros; apply string_forall_append; auto.
+Qed.
+
 Ltac solve_prefix :=
   try now (unfold append; cbn; reflexivity).
