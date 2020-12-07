@@ -52,20 +52,20 @@ Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li :
          store v py
        *)
 
-  Lemma compile_DSHAssign_correct :
-    forall (** Compiler bits *) (s1 s2: IRState)
-      (** Helix bits    *) src dst (σ : evalContext) (memH : memoryH)
-      (** Vellvm bits   *) (nextblock bid_in bid_from : block_id) (bks : ocfg typ)
-      (g : global_env) (ρ : local_env) (memV : memoryV),
-      genIR (DSHAssign src dst) nextblock s1 ≡ inr (s2,(bid_in,bks)) ->
-      bid_bound s1 nextblock ->
-      state_invariant σ s1 memH (memV, (ρ, g)) ->
-      Gamma_safe σ s1 s2 ->
-      no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ (DSHAssign src dst)) memH) -> (* Evaluation succeeds *)
-      eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ))
-           (interp_helix (denoteDSHOperator σ (DSHAssign src dst)) memH)
-           (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from,bid_in))
-                       g ρ memV).
+Lemma compile_DSHAssign_correct :
+  forall (** Compiler bits *) (s1 s2: IRState)
+    (** Helix bits    *) src dst (σ : evalContext) (memH : memoryH)
+    (** Vellvm bits   *) (nextblock bid_in bid_from : block_id) (bks : ocfg typ)
+    (g : global_env) (ρ : local_env) (memV : memoryV),
+    genIR (DSHAssign src dst) nextblock s1 ≡ inr (s2,(bid_in,bks)) ->
+    bid_bound s1 nextblock ->
+    state_invariant σ s1 memH (memV, (ρ, g)) ->
+    Gamma_safe σ s1 s2 ->
+    no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ (DSHAssign src dst)) memH) -> (* Evaluation succeeds *)
+    eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ))
+         (interp_helix (denoteDSHOperator σ (DSHAssign src dst)) memH)
+         (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from,bid_in))
+                     g ρ memV).
 Proof. 
   intros * GEN NEXT PRE GAM NOFAIL.
 
@@ -74,8 +74,8 @@ Proof.
   inv_resolve_PVar Heqs0.
   inv_resolve_PVar Heqs1.
   unfold denotePExpr in *; cbn* in *.
-  simp. Time all:try_abs.
-  all: apply no_failure_Ret in NOFAIL; try_abs.
+  simp; try_abs.
+
   clean_goal.
   repeat apply no_failure_Ret in NOFAIL.
   edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
@@ -124,7 +124,6 @@ Proof.
 
   hvred.
   break_inner_match_hyp; break_inner_match_hyp; try_abs.
-  2: apply no_failure_Ret in NOFAIL; try_abs.
   destruct_unit.
 
   rename vH into src, vH0 into dst, b into v.

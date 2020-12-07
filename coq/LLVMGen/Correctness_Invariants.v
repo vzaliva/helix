@@ -103,24 +103,12 @@ End WF_IRState.
 
 Ltac abs_by_WF :=
   match goal with
-  | h  : nth_error (Γ ?s) _ ≡ ?rhs,
-         h': @nth_error DSHVal ?σ _ ≡ ?rhs'
+  | h  : nth_error (Γ ?s) _ ≡ Some (?id,?τ),
+         h': @nth_error DSHVal ?σ _ ≡ Some ?val
     |- _ =>
-    match rhs with
-    | Some (?id,?τ) =>
-      match rhs' with
-      | None => fail
-      | Some ?val =>
-        let WF := fresh "WF" in
-        assert (WF : WF_IRState σ s) by eauto;
-        let H := fresh in pose proof (WF_IRState_lookups _ WF h h') as H; now (destruct id; inv H)
-      end
-    | None =>
-      match rhs' with
-      | None => fail
-      | Some ?val => fail
-      end
-    end
+    let WF := fresh "WF" in
+    assert (WF : WF_IRState σ s) by eauto;
+    let H := fresh in pose proof (WF_IRState_lookups _ WF h h') as H; now (destruct id; inv H)
   | h : nth_error (Γ ?s) _ ≡ Some (?id,?τ) |- _ =>
     match id with
     | ID_Local _ =>
@@ -132,9 +120,24 @@ Ltac abs_by_WF :=
     end
   end.
 
+Ltac abs_failure :=
+  exfalso;
+  unfold Dfail, Sfail in *;
+  match goal with
+  | h: no_failure (interp_helix (throw _) _) |- _ =>
+    exact (failure_helix_throw _ _ h)
+  | h: no_failure (interp_helix (ITree.bind (throw _) _) _) |- _ =>
+    exact (failure_helix_throw' _ _ _ h)
+  | h: no_failure (interp_helix (ITree.bind (Ret _) _)  _) |- _ =>
+    eapply no_failure_Ret in h; abs_failure
+  end.
 Ltac try_abs :=
-  try (abs_by_WF ||
-       abs_by failure_helix_throw || abs_by failure_helix_throw').
+  try (abs_by_WF || abs_failure).
+
+
+(* Ltac try_abs := *)
+(*   try (abs_by_WF || *)
+(*        abs_by failure_helix_throw || abs_by failure_helix_throw'). *)
 
 Section SimulationRelations.
 

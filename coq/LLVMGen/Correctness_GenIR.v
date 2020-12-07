@@ -567,6 +567,7 @@ Section GenIR.
                        g ρ memV).
   Proof.
     intros s1 s2 op; revert s1 s2; induction op; intros * GEN NEXT PRE GAM NOFAIL.
+
     - (* DSHNOp *)
       cbn* in *.
       simp.
@@ -608,7 +609,9 @@ Section GenIR.
       apply eutt_Ret.
       split; [| split]; cbn in *; eauto.
       eapply state_invariant_incBlockNamed; eauto.
-    - apply compile_DSHAssign_correct; auto.
+
+    - (* DSHAssign *)
+      apply compile_DSHAssign_correct; auto.
 
     - admit.
     - admit.

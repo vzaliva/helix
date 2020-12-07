@@ -215,7 +215,7 @@ Section NExpr.
       cbn* in *; inv_eqs.
       (* rename H into VAR2. *)
 
-      (* division *)
+      (* division *) 
       simp; try_abs.
       hvred.
 
