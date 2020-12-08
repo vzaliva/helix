@@ -2,6 +2,7 @@ Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.Correctness_NExpr.
 Require Import Helix.LLVMGen.LidBound.
+Require Import Helix.LLVMGen.BidBound.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.VariableBinding.
 Require Import Helix.LLVMGen.StateCounters.
@@ -401,11 +402,6 @@ Import AlistNotations.
  - j > 0
  - j <= n
  - Z.of_nat n < Int64.modulus (or the index would overflow)
- *)
-
-(* NOTE: The current lemma are not strong enough to prove the While case as is: we also need to be able to transport
-   the [local_scope_modif sb1 sb2 li l] postcondition.
-   The WIP to generalize these lemmas are commented right after the old versions of the lemmas.
  *)
 
 Ltac vbranch_r := vred_BR3.

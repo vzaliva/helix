@@ -106,6 +106,21 @@ Section GenIR.
   Qed.
   Transparent add_comment.
 
+  Lemma wf_ocfg_bid_add_comment :
+    forall bks s,
+      wf_ocfg_bid (add_comment bks s) ->
+      wf_ocfg_bid bks.
+  Proof.
+    induction bks as [| bk bks IH]; cbn; auto.
+  Qed.
+
+  Lemma inputs_convert_typ : forall σ bks,
+      inputs (convert_typ σ bks) ≡ inputs bks.
+  Proof.
+    induction bks as [| bk bks IH]; cbn; auto.
+    f_equal; auto.
+  Qed.
+
   Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li : local_env)
     : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
     lift_Rel_cfg (state_invariant σ s2) ⩕
@@ -184,6 +199,7 @@ Section GenIR.
       Opaque genWhileLoop.
 
       pose proof generates_wf_ocfg_bids _ NEXT GEN as WFOCFG.
+      pose proof inputs_bound_between _ _ _ GEN as INPUTS_BETWEEN.
 
       (* We know that the Helix denotation can be expressed via the [tfor] operator *)
       rewrite DSHLoop_interpreted_as_tfor.
@@ -210,24 +226,7 @@ Section GenIR.
 
       forward GENC; [clear GENC |].
       {
-
-        Set Nested Proofs Allowed.
-        Lemma wf_ocfg_bid_add_comment :
-          forall bks s,
-            wf_ocfg_bid (add_comment bks s) ->
-            wf_ocfg_bid bks.
-        Proof.
-          induction bks as [| bk bks IH]; cbn; auto.
-        Qed.
         eauto using wf_ocfg_bid_add_comment.
-
-        Lemma inputs_convert_typ : forall σ bks,
-            inputs (convert_typ σ bks) ≡ inputs bks.
-        Proof.
-          induction bks as [| bk bks IH]; cbn; auto.
-          f_equal; auto.
-        Qed.
-
       }
 
       forward GENC; [clear GENC |].
@@ -237,8 +236,10 @@ Section GenIR.
 
       forward GENC; [clear GENC |].
       {
-        (* need [free_in_cfg] for genWhileLoop and genIR *)
-        admit.
+        clear -INPUTS_BETWEEN NEXT.
+        intros IN; rewrite inputs_convert_typ, add_comment_inputs in INPUTS_BETWEEN.
+        rewrite Forall_forall in INPUTS_BETWEEN; apply INPUTS_BETWEEN in IN; clear INPUTS_BETWEEN.
+        eapply not_bid_bound_between; eauto.
       }
 
       specialize (GENC n Heqs6 (option (memoryH * unit)%type)).
