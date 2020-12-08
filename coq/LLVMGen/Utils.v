@@ -8,6 +8,7 @@ Require Import Vellvm.Syntax.LLVMAst.
 Require Import Flocq.IEEE754.Binary.
 Require Import Coq.Numbers.BinNums. (* for Z scope *)
 Require Import Coq.ZArith.BinInt.
+From Coq Require Import ZArith.
 
 Require Import ExtLib.Structures.Monads.
 
@@ -23,7 +24,7 @@ Set Strict Implicit.
 (* Placeholder section for config variables. Probably should be a
 module in future *)
 Section Config.
-  Definition IntType := TYPE_I 64%Z.
+  Definition IntType := TYPE_I 64%N.
   Definition PtrAlignment := 16%Z.
   Definition ArrayPtrParamAttrs := [ PARAMATTR_Align PtrAlignment; PARAMATTR_Nonnull ].
 End Config.
@@ -43,9 +44,9 @@ Definition string_of_ident (i:ident) : string :=
 
 Fixpoint string_of_IRType (t: typ) :=
   match t with
-  | TYPE_I 64%Z => "int64"
+  | TYPE_I 64%N => "int64"
   | TYPE_Double => "float64"
-  | TYPE_Array n TYPE_Double => append "float64[" ((Ceres.CeresString.string_of_Z n) ++ "]")
+  | TYPE_Array n TYPE_Double => append "float64[" ((Ceres.CeresString.string_of_N n) ++ "]")
   | TYPE_Pointer p => append "*" (string_of_IRType p)
   | _ => "#INVALID"
   end.

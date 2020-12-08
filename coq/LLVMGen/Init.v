@@ -8,6 +8,8 @@ Require Import MathClasses.misc.util.
 
 Require Import Vellvm.Semantics.IntrinsicsDefinitions.
 
+From Coq Require Import ZArith.
+
 Import AlistNotations.
 Import ListNotations.
 Import MonadNotation.
@@ -525,7 +527,7 @@ Lemma resolve_PVar_simple : forall p s s' x v,
     resolve_PVar p s ≡ inr (s', (x, v)) ->
     exists sz n,
       nth_error (Γ s') n ≡ Some (x, TYPE_Pointer (TYPE_Array sz TYPE_Double)) /\
-      MInt64asNT.from_Z sz ≡ inr v /\ p ≡ PVar n /\ s ≡ s'.
+      MInt64asNT.from_N sz ≡ inr v /\ p ≡ PVar n /\ s ≡ s'.
 Proof.
   intros * H.
   unfold resolve_PVar in H.
@@ -1364,11 +1366,11 @@ Proof.
     cbn.
 
     generalize [(ID_Local (Name "Y"),
-                 TYPE_Pointer (TYPE_Array (Int64.intval o) TYPE_Double));
+                 TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
                 (ID_Local (Name "X"),
-                 TYPE_Pointer (TYPE_Array (Int64.intval i) TYPE_Double));
-                (ID_Global (Anon 1%Z), TYPE_Array (Int64.intval o) TYPE_Double);
-                (ID_Global (Anon 0%Z), TYPE_Array (Int64.intval i) TYPE_Double)] as v.
+                 TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double));
+                (ID_Global (Anon 1%Z), TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double);
+                (ID_Global (Anon 0%Z), TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double)] as v.
 
     induction globals; intros v gdecls data data' H.
     -
@@ -1422,11 +1424,11 @@ Proof.
     cbn.
 
     generalize [(ID_Local (Name "Y"),
-                 TYPE_Pointer (TYPE_Array (Int64.intval o) TYPE_Double));
+                 TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
                 (ID_Local (Name "X"),
-                 TYPE_Pointer (TYPE_Array (Int64.intval i) TYPE_Double));
-                (ID_Global (Anon 1%Z), TYPE_Array (Int64.intval o) TYPE_Double);
-                (ID_Global (Anon 0%Z), TYPE_Array (Int64.intval i) TYPE_Double)] as v.
+                 TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double));
+                (ID_Global (Anon 1%Z), TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double);
+                (ID_Global (Anon 0%Z), TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double)] as v.
 
     induction globals; intros v gdecls data data' H.
     -
@@ -1482,11 +1484,11 @@ Proof.
     cbn.
 
     generalize [(ID_Local (Name "Y"),
-                 TYPE_Pointer (TYPE_Array (Int64.intval o) TYPE_Double));
+                 TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
                 (ID_Local (Name "X"),
-                 TYPE_Pointer (TYPE_Array (Int64.intval i) TYPE_Double));
-                (ID_Global (Anon 1%Z), TYPE_Array (Int64.intval o) TYPE_Double);
-                (ID_Global (Anon 0%Z), TYPE_Array (Int64.intval i) TYPE_Double)] as v.
+                 TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double));
+                (ID_Global (Anon 1%Z), TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double);
+                (ID_Global (Anon 0%Z), TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double)] as v.
 
     induction globals; intros v gdecls data data' H.
     -
@@ -1744,9 +1746,9 @@ Proof.
           block_count := Compiler.block_count s0;
           local_count := Compiler.local_count s0;
           void_count := Compiler.void_count s0;
-          Γ := (ID_Local (Name "Y"), TYPE_Pointer (TYPE_Array (Int64.intval o) TYPE_Double))
+          Γ := (ID_Local (Name "Y"), TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double))
                :: (ID_Local (Name "X"),
-                  TYPE_Pointer (TYPE_Array (Int64.intval i) TYPE_Double)) :: 
+                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double)) :: 
                   Γ s0 |} as s_yx.
      
       enough (
@@ -2145,9 +2147,9 @@ Proof.
           block_count := Compiler.block_count s0;
           local_count := Compiler.local_count s0;
           void_count := Compiler.void_count s0;
-          Γ := (ID_Local (Name "Y"), TYPE_Pointer (TYPE_Array (Int64.intval o) TYPE_Double))
+          Γ := (ID_Local (Name "Y"), TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double))
                :: (ID_Local (Name "X"),
-                  TYPE_Pointer (TYPE_Array (Int64.intval i) TYPE_Double)) :: 
+                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double)) :: 
                   Γ s0 |} as s_yx.
 
       enough (

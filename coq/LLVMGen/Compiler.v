@@ -21,6 +21,7 @@ Require Import Flocq.IEEE754.Bits.
 
 Require Import Coq.Numbers.BinNums. (* for Z scope *)
 Require Import Coq.ZArith.BinInt.
+From Coq Require Import ZArith.
 
 Require Import ExtLib.Structures.Monads.
 Require Import Helix.Util.ErrorWithState.
@@ -99,7 +100,7 @@ Definition getIRType (t: DSHType): typ :=
   match t with
   | DSHnat => IntType
   | DSHCType => TYPE_Double
-  | DSHPtr n => TYPE_Array (Int64.intval n) TYPE_Double
+  | DSHPtr n => TYPE_Array (Z.to_N (Int64.intval n)) TYPE_Double
   end.
 
 Definition add_comments (b:block typ) (xs:list string): block typ :=
@@ -238,13 +239,13 @@ Fixpoint genNExpr
     | NVar n => '(i,t) <- getStateVar "NVar out of range" n ;;
                 match t, IntType with
                 | TYPE_I z, TYPE_I zi =>
-                  if Z.eq_dec z zi then
+                  if BinNat.N.eq_dec z zi then
                     ret (EXP_Ident i, [])
                   else
                     (sΓ <- getVarsAsString ;;
                      raise ("NVar #" @@ string_of_nat n @@ " dimensions mismatch in " @@ sΓ))
                 | TYPE_Pointer (TYPE_I z), TYPE_I zi =>
-                  if Z.eq_dec z zi then
+                  if BinNat.N.eq_dec z zi then
                     res <- incLocal ;;
                     ret (EXP_Ident (ID_Local res),
                          [(IId res, INSTR_Load false (IntType)
@@ -376,7 +377,7 @@ Fixpoint genAExpr
                     (IVoid void0, INSTR_Comment "Casting bool to float") ;
                     (IId fres, INSTR_Op (OP_Conversion
                                            Uitofp
-                                           (TYPE_I 1%Z)
+                                           (TYPE_I 1%N)
                                            (EXP_Ident (ID_Local ires))
                                            TYPE_Double))
           ])
@@ -486,7 +487,7 @@ Definition genWhileLoop
                                                            to))
 
                         ];
-            blk_term  := TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local loopcond)) loopblock nextblock;
+            blk_term  := TERM_Br (TYPE_I 1%N, EXP_Ident (ID_Local loopcond)) loopblock nextblock;
             blk_comments := None
           |} ;
 
@@ -513,7 +514,7 @@ Definition genWhileLoop
                                                               to))
 
                         ];
-            blk_term  := TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local loopcond1)) loopblock nextblock;
+            blk_term  := TERM_Br (TYPE_I 1%N, EXP_Ident (ID_Local loopcond1)) loopblock nextblock;
             blk_comments := None
           |}
         ] in
@@ -875,7 +876,7 @@ Definition resolve_PVar (p:PExpr): cerr (ident*Int64.int)
       '(l,t) <- getStateVar ("NVar#" @@ ns @@ " out of range in " @@ sΓ) n ;;
       match t with
       | TYPE_Pointer (TYPE_Array sz TYPE_Double) =>
-        sz' <- err2errS (MInt64asNT.from_Z sz) ;;
+        sz' <- err2errS (MInt64asNT.from_N sz) ;;
         ret (l, sz')
       | _ => raise ("Invalid type of PVar#" @@ ns @@ " in " @@ sΓ)
       end

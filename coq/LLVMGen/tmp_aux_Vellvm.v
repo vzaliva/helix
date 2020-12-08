@@ -451,7 +451,6 @@ Lemma write_different_blocks :
 Proof.
   intros m m2 p p' v v2 dv2 τ τ' WRITE READ NEQ UVDV TYP1 TYP2.
   erewrite write_untouched; eauto.
-  eapply sizeof_dvalue_pos; eauto.
   unfold no_overlap_dtyp.
   unfold no_overlap.
   left. auto.

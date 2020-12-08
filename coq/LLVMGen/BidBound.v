@@ -7,6 +7,8 @@ Require Import Helix.LLVMGen.VariableBinding.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.StateCounters.
 
+From Coq Require Import ZArith.
+
 Import ListNotations.
 
 Set Implicit Arguments.
@@ -922,7 +924,7 @@ Proof.
                                              block_count := (block_count i);
                                              local_count := S (local_count i);
                                              void_count := void_count i;
-                                             Γ := (ID_Local (Name ("Loop_i" @@ string_of_nat (local_count i))), TYPE_I 64%Z) :: Γ i |}); reflexivity.
+                                             Γ := (ID_Local (Name ("Loop_i" @@ string_of_nat (local_count i))), TYPE_I 64%N) :: Γ i |}); reflexivity.
     }
     clear IHop; clean_goal.
     cbn in *.
@@ -1021,7 +1023,7 @@ Proof.
                       local_count := S lid1;
                       void_count := void1;
                       Γ := (ID_Local (Name ("a" @@ string_of_nat lid1)),
-                            TYPE_Pointer (TYPE_Array (Int64.intval size) TYPE_Double)) :: Γ1 |}
+                            TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval size)) TYPE_Double)) :: Γ1 |}
                     (Name (x @@ string_of_nat bid))).
     {
       do 2 red.
@@ -1031,7 +1033,7 @@ Proof.
           local_count := S lid1;
           void_count := void1;
           Γ := (ID_Local (Name ("a" @@ string_of_nat lid1)),
-                TYPE_Pointer (TYPE_Array (Int64.intval size) TYPE_Double)) :: Γ1 |}.
+                TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval size)) TYPE_Double)) :: Γ1 |}.
       eexists; repeat split; cbn; eauto.
     }
     generalize GEN; intros WF;

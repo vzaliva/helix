@@ -18,7 +18,7 @@ Lemma resolve_PVar_simple : forall p s s' x v,
     resolve_PVar p s ≡ inr (s', (x, v)) ->
     exists sz n,
       nth_error (Γ s') n ≡ Some (x, TYPE_Pointer (TYPE_Array sz TYPE_Double)) /\
-      MInt64asNT.from_Z sz ≡ inr v /\ p ≡ PVar n /\ s ≡ s'.
+      MInt64asNT.from_N sz ≡ inr v /\ p ≡ PVar n /\ s ≡ s'.
 Proof.
   intros * H.
   unfold resolve_PVar in H.
