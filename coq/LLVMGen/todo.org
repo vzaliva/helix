@@ -1,0 +1,91 @@
+* Major
+
+** State invariant
+  
+*** Definition
+
+    Almost certainly [no_id_aliasing] is incorrect: remove from its conclusion [exists v, nth_error σ n ≡ Some v]
+
+*** Change of scope
+
+    Need to fix proofs of
+    - [state_invariant_escape_scope],
+    - [state_invariant_enter_scope_DSHnat],
+    - [state_invariant_enter_scope_DSHCType],
+    - [state_invariant_enter_scope_DSHPtr]
+
+** Loop operator
+
+*** Generalizing [genWhileLoop_tfor_ind] and [genWhileLoop_tfor_correct]
+
+    The [genIR_correct] lemma requires us to prove as a postcondition that [local_scope_modif s1 s2 li l] where [s1] and [s2] are the IRState used to generate the code.
+
+    In the case of [Loop n op], we therefore know that [op] satisfies [local_scope_modif sb1 sb2 li l] as a postcondition for the intermediate IRStates used to generate
+    the code corresponding to [op].
+    How can we lift this fact to the whole loop? We need to extend [genWhileLoop_tfor_correct] to assume such a postcondition is provided for the body, and lift it appropriately
+    in the conclusion.
+
+*** Applying [genWhileLoop_tfor_correct] concretely
+
+    It is finicky to apply the lemma: [Ik, P, Q] need to be provided appropriately and a lot of minor proof obligations need to be discharged. TODO
+
+** IMap
+
+*** IMap as [tfor]
+
+    We need to establish first that [interp_helix (denoteDSHOperator σ (IMap n x_p y_p f))] is eutt to [tfor body] for some body in the style of [DSHLoop_interpreted_as_tfor].
+    For IMap specifically, this is almost already done by Irene: it should be very close to expressing it as a [build_vec] as she did.
+
+    WARNING: we must reverse the order of iteration as an intermediate step.
+
+*** Applying [genWhileLoop_tfor_correct] concretely
+
+** MemMap2
+
+*** MemMap2 as [tfor]
+   
+*** Applying [genWhileLoop_tfor_correct] concretely
+
+** BinOp
+
+*** BinOp as [tfor]
+   
+*** Applying [genWhileLoop_tfor_correct] concretely
+
+** Power
+
+*** Power as [tfor]
+   
+*** Applying [genWhileLoop_tfor_correct] concretely
+ 
+    
+* Minor
+
+**  About identifiers
+ 
+*** IlLemmas.string_of_nat_not_alpha
+
+    No character in the string resulting from the conversion of a natural number is alphabetical.
+
+    
+** About VIR's memory model
+
+*** read_in_mem_block_type 
+
+** About arithmetic stuff
+
+***  from_Z_intval
+
+   
+* Clean up
+
+** Automation
+
+   The proofs are back to being quite low level. We should step back, inventory
+   each invariant and each elementary transformation of states we are interested
+   in, and prove a battery of adequate lemma + automation for the mundane stuff.
+   
+** Transfer the commenting faciliy for vir code to vellvm
+
+  
+**  
