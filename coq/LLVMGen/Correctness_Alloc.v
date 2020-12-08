@@ -52,21 +52,6 @@ Proof.
   intros; rewrite typ_to_dtyp_equation; reflexivity.
 Qed.
 
-Lemma newLocalVar_lid_bound_between :
-  forall size s1 s2 r str,
-    is_correct_prefix str ->
-    newLocalVar (TYPE_Pointer (TYPE_Array (Int64.intval size) TYPE_Double)) str s1 ≡ inr (s2, r) ->
-    lid_bound_between s1 s2 r.
-Proof.
-  Transparent newLocalVar.
-  cbn. intros * E H. inversion H. subst. clear H.
-  unfold lid_bound_between, state_bound_between.
-  eexists. eexists. eexists.
-  split; try split; try split; eauto.
-  2 : cbn; reflexivity. auto.
-  Opaque newLocalVar.
-Qed.
-
 (* The result is a branch *)
 Definition branches (to : block_id) (mh : memoryH * ()) (c : config_cfg_T (block_id * block_id + uvalue)) : Prop :=
   match c with
@@ -436,7 +421,7 @@ Proof.
       2 : red; cbn; lia. 2 : red; cbn; lia. 2 : apply local_scope_modif_refl.
 
       apply local_scope_modif_add.
-      eapply newLocalVar_lid_bound_between.
+      eapply lid_bound_between_newLocalVar.
       2 : cbn; reflexivity. reflexivity.
   }
 

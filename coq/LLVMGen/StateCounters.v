@@ -114,6 +114,14 @@ Proof.
   Opaque incLocal.
 Qed.
 
+Lemma dropVars_local_count:
+  forall s s' k,
+    dropVars k s ≡ inr (s', tt) ->
+    local_count s' ≡ local_count s.
+Proof.
+  intros; cbn in *; simp; reflexivity.
+Qed.
+
 Lemma incLocalNamed_local_count: forall s s' msg x,
     incLocalNamed msg s ≡ inr (s',x) ->
     local_count s' ≡ S (local_count s).
@@ -394,7 +402,9 @@ Ltac get_local_count_hyps :=
       apply incVoid_local_count in H
     | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>
       apply incLocal_local_count in H
-    | H: genNExpr ?n ?s1 ≡ inr (?s2, _) |- _ =>
+    | H: dropVars _ ?s1 ≡ inr (?s2, _) |- _ =>
+      apply dropVars_local_count in H
+     | H: genNExpr ?n ?s1 ≡ inr (?s2, _) |- _ =>
       apply genNExpr_local_count in H
     | H: genMExpr ?m ?s1 ≡ inr (?s2, _) |- _ =>
       apply genMExpr_local_count in H

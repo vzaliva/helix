@@ -411,12 +411,13 @@ Import AlistNotations.
 Ltac vbranch_r := vred_BR3.
 Ltac vbranch_l := vred_BL3.
 
+(* Requiring [wf_ocfg_bid bks] is a bit strong, we should be able to only require something on [body_blocks] *)
 Lemma genWhileLoop_tfor_ind:
   forall (prefix : string)
     (loopvar : raw_id)            (* lvar storing the loop index *)
     (loopcontblock : block_id)    (* reentry point from the body back to the loop *)
     (body_entry : block_id)       (* entry point of the body *)
-    (body_blocks : list (LLVMAst.block typ)) (* (llvm) body to be iterated *)
+    (body_blocks : ocfg typ) (* (llvm) body to be iterated *)
     (nextblock : block_id)        (* exit point of the overall loop *)
     (entry_id : block_id)         (* entry point of the overall loop *)
     (s1 s2 sb1 sb2 : IRState)

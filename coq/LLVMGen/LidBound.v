@@ -112,6 +112,21 @@ Section LidBound.
     Opaque incLocal.
   Qed.
 
+  Lemma lid_bound_between_newLocalVar :
+    forall τ s1 s2 r str,
+      is_correct_prefix str ->
+      newLocalVar τ str s1 ≡ inr (s2, r) ->
+      lid_bound_between s1 s2 r.
+  Proof.
+    Transparent newLocalVar.
+    cbn. intros * E H. inversion H. subst. clear H.
+    unfold lid_bound_between, state_bound_between.
+    eexists. eexists. eexists.
+    split; try split; try split; eauto.
+    2 : cbn; reflexivity. auto.
+    Opaque newLocalVar.
+  Qed.
+
   Lemma lid_bound_incBlockNamed_mono :
     forall name s1 s2 bid bid',
       lid_bound s1 bid ->

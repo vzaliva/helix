@@ -183,6 +183,8 @@ Section GenIR.
       Opaque newLocalVar.
       Opaque genWhileLoop.
 
+      pose proof generates_wf_ocfg_bids _ NEXT GEN as WFOCFG.
+
       (* We know that the Helix denotation can be expressed via the [tfor] operator *)
       rewrite DSHLoop_interpreted_as_tfor.
       cbn* in *; simp; cbn in *.
@@ -210,20 +212,27 @@ Section GenIR.
       {
 
         Set Nested Proofs Allowed.
-        Lemma genWhileLoop_wf_ocfg_bid :
-          forall prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 s2 entryblock bks,
-            genWhileLoop prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 ≡ inr (s2, (entryblock, bks)) ->
+        Lemma wf_ocfg_bid_add_comment :
+          forall bks s,
+            wf_ocfg_bid (add_comment bks s) ->
             wf_ocfg_bid bks.
-        Admitted.
-        eauto using genWhileLoop_wf_ocfg_bid.
+        Proof.
+          induction bks as [| bk bks IH]; cbn; auto.
+        Qed.
+        eauto using wf_ocfg_bid_add_comment.
+
+        Lemma inputs_convert_typ : forall σ bks,
+            inputs (convert_typ σ bks) ≡ inputs bks.
+        Proof.
+          induction bks as [| bk bks IH]; cbn; auto.
+          f_equal; auto.
+        Qed.
 
       }
 
       forward GENC; [clear GENC |].
       {
-        (* need lemma about newLocalVar *)
-        (* solve_lid_bound_between. *)
-        admit.
+        eapply lid_bound_between_shrink; [eapply lid_bound_between_newLocalVar | | ]; eauto; try reflexivity; solve_local_count.
       }
 
       forward GENC; [clear GENC |].
