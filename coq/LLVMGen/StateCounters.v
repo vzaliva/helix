@@ -63,6 +63,18 @@ Proof.
   Opaque incLocal.
 Qed.
 
+Lemma newLocalVar_block_count :
+  ∀ (s1 s2 : IRState) bid p x,
+    newLocalVar p x s1 ≡ inr (s2, bid) →
+    block_count s1 ≡ block_count s2.
+Proof.
+  intros s1 s2 bid * H.
+  unfold newLocalVar in H.
+  cbn in H.
+  simp.
+  destruct s1; cbn; auto.
+Qed.
+
 (* TODO: uncertain if this belongs somewhere else *)
 Lemma resolve_PVar_state :
   forall p s1 s2 x,
@@ -239,7 +251,6 @@ Lemma genIR_local_count :
 Proof.
   induction op; intros; cbn in H; simp; __local_ltac; lia. 
 Qed.
-
 
 Lemma genNExpr_block_count :
   ∀ (nexp : NExpr) (s1 s2 : IRState) (e : exp typ) (c : code typ),

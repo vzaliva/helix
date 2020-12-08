@@ -478,3 +478,23 @@ Proof.
   eapply read_in_mem_block_type; eauto.
 Qed.
 
+Infix "⊍" := Coqlib.list_disjoint (at level 60).
+
+Lemma Forall_disjoint :
+  forall {A} (l1 l2 : list A) (P1 P2 : A -> Prop),
+    Forall P1 l1 ->
+    Forall P2 l2 ->
+    (forall x, P1 x -> ~(P2 x)) ->
+    l1 ⊍ l2.
+Proof.
+  induction l1;
+    intros l2 P1 P2 L1 L2 P1NP2.
+  - intros ? ? CONTRA. inversion CONTRA.
+  - apply Coqlib.list_disjoint_cons_l.
+    + eapply IHl1; eauto using Forall_inv_tail.
+    + apply Forall_inv in L1.
+      apply P1NP2 in L1.
+      intros IN.
+      eapply Forall_forall in L2; eauto.
+Qed.
+

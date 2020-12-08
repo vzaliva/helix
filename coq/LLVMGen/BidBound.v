@@ -225,6 +225,58 @@ Section BidBound.
     lia.
   Qed.
 
+  Lemma bid_bound_between_sep :
+    ∀ (bid : block_id) s1 s2 s3,
+      bid_bound_between s1 s2 bid → ¬ (bid_bound_between s2 s3 bid).
+  Proof.
+    intros. cbn in H. red in H.
+    intro.
+    assert (((bid ≡ bid) -> False) -> False). auto. apply H1. clear H1.
+    eapply bid_bound_fresh; eauto.
+    destruct H as (? & ? & ? & ? & ? & ? & ?).
+    red. red. exists x. exists x0, x1. split; eauto.
+  Qed.
+
+  Lemma not_bid_bound_between :
+    forall bid s1 s2, bid_bound s1 bid -> not (bid_bound_between s1 s2 bid).
+  Proof.
+    repeat intro.
+    assert (((bid ≡ bid) -> False) -> False). auto. apply H1. clear H1.
+    eapply bid_bound_fresh; eauto.
+  Qed.
+
+  Lemma bid_bound_newLocalVar_mono :
+    forall s1 s2 bid bid' p x,
+      bid_bound s1 bid ->
+      newLocalVar p x s1 ≡ inr (s2, bid') ->
+      bid_bound s2 bid.
+  Proof.
+    intros s1 s2 bid bid' * BOUND INC.
+    destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
+    unfold bid_bound.
+    exists n1. exists s1'. exists s1''.
+    intuition.
+    apply newLocalVar_block_count in INC.
+    lia.
+  Qed.
+
+  Lemma bid_bound_incBlock_neq:
+    forall i i' bid bid',
+      incBlock i ≡ inr (i', bid) ->
+      bid_bound i bid' ->
+      bid ≢ bid'.
+  Proof.
+    intros.
+    destruct (rel_dec_p bid bid'); auto.
+    subst; exfalso.
+    cbn in H; inv H.
+    destruct H0 as (? & ? & ? & ? & ? & ?).
+    cbn in *.
+    inv H1.
+    apply valid_prefix_string_of_nat_forward in H4 as [? ?]; subst; cbn in *; auto.
+    lia.
+  Qed.
+
  Lemma bid_bound_incBlockNamed_mono :
     forall name s1 s2 bid bid',
       bid_bound s1 bid ->
@@ -483,7 +535,7 @@ Section Inputs.
         cbn. auto.
         block_count_replace.
         lia.
-    - rewrite add_comment_inputs.
+    - rewrite add_comment_inputs_typ.
       rewrite convert_typ_ocfg_app.
 
       unfold inputs.
@@ -648,7 +700,7 @@ Opaque incLocal.
         eapply Forall_impl.
         * eapply WEAKEN.
         * eauto.
-    - rewrite add_comment_outputs.
+    - rewrite add_comment_outputs_typ.
       rewrite convert_typ_ocfg_app.
       setoid_rewrite outputs_app.
       apply Forall_app.

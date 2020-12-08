@@ -1,7 +1,6 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.Correctness_NExpr.
-Require Import Helix.LLVMGen.Correctness_GenIR.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.StateCounters.
 Require Import Helix.LLVMGen.VariableBinding.
@@ -19,135 +18,23 @@ Set Strict Implicit.
 
 Global Opaque resolve_PVar.
 
-
 From Paco Require Import paco.
 From ITree Require Import Basics.HeterogeneousRelations.
-
-(* TODO: Move to bidbound *)
-
-Lemma bid_bound_between_sep :
-  ∀ (bid : block_id) s1 s2 s3,
-    bid_bound_between s1 s2 bid → ¬ (bid_bound_between s2 s3 bid).
-Proof.
-  intros. cbn in H. red in H.
-  intro.
-  assert (((bid ≡ bid) -> False) -> False). auto. apply H1. clear H1.
-  eapply bid_bound_fresh; eauto.
-  destruct H as (? & ? & ? & ? & ? & ? & ?).
-  red. red. exists x. exists x0, x1. split; eauto.
-Qed.
-
-Lemma not_bid_bound_between :
-  forall bid s1 s2, bid_bound s1 bid -> not (bid_bound_between s1 s2 bid).
-Proof.
-  repeat intro.
-  assert (((bid ≡ bid) -> False) -> False). auto. apply H1. clear H1.
-  eapply bid_bound_fresh; eauto.
-Qed.
-
-Lemma newLocalVar_block_count :
-  ∀ (s1 s2 : IRState) bid p x,
-    newLocalVar p x s1 ≡ inr (s2, bid) →
-    block_count s1 ≡ block_count s2.
-Proof.
-  intros s1 s2 bid * H.
-  Transparent newLocalVar.
-  unfold newLocalVar in H.
-  cbn in H.
-  simp.
-  destruct s1; cbn; auto.
-  Opaque newLocalVar.
-Qed.
-
-Lemma bid_bound_newLocalVar_mono :
-  forall s1 s2 bid bid' p x,
-    bid_bound s1 bid ->
-    newLocalVar p x s1 ≡ inr (s2, bid') ->
-    bid_bound s2 bid.
-Proof.
-  intros s1 s2 bid bid' * BOUND INC.
-  destruct BOUND as (n1 & s1' & s1'' & N_S1 & COUNT_S1 & GEN_bid).
-  unfold bid_bound.
-  exists n1. exists s1'. exists s1''.
-  intuition.
-  apply newLocalVar_block_count in INC.
-  lia.
-Qed.
-
-Lemma bid_bound_incBlock_neq:
-  forall i i' bid bid',
-  incBlock i ≡ inr (i', bid) ->
-  bid_bound i bid' ->
-  bid ≢ bid'.
-Proof.
-  intros.
-  destruct (rel_dec_p bid bid'); auto.
-  subst; exfalso.
-  cbn in H; inv H.
-  destruct H0 as (? & ? & ? & ? & ? & ?).
-  cbn in *.
-  inv H1.
-  apply valid_prefix_string_of_nat_forward in H4 as [? ?]; subst; cbn in *; auto.
-  lia.
-Qed.
 
 Import Memory.NM.Raw.
 Lemma remove_find : forall e m x y,
     bst m ->
     find (elt := e) y (remove x m) ≡
-      match OrderedTypeEx.Nat_as_OT.compare y x with
-        OrderedType.EQ _ => find y (remove x m) | _ => find y m end.
+         match OrderedTypeEx.Nat_as_OT.compare y x with
+           OrderedType.EQ _ => find y (remove x m) | _ => find y m end.
 Proof.
-intros.
-assert (~OrderedTypeEx.Nat_as_OT.eq x y -> find (elt := e) y (remove x m) ≡ find y m).
-intros. rewrite Proofs.find_mapsto_equiv; auto.
-(*  split; eauto using Proofs.add_2, Proofs.add_3. *)
-(* destruct X.compare; try (apply H0; order). *)
-(* (* auto using find_1, add_1 with ordered_type. *) *)
+  intros.
+  assert (~OrderedTypeEx.Nat_as_OT.eq x y -> find (elt := e) y (remove x m) ≡ find y m).
+  intros. rewrite Proofs.find_mapsto_equiv; auto.
+  (*  split; eauto using Proofs.add_2, Proofs.add_3. *)
+  (* destruct X.compare; try (apply H0; order). *)
+  (* (* auto using find_1, add_1 with ordered_type. *) *)
 Admitted.
-
-Lemma interp_helix_MemAlloc :
-  forall {E} size mem,
-    interp_helix (E := E) (trigger (MemAlloc size)) mem ≈
-    Ret (Some (mem, memory_next_key mem)).
-Proof.
-  intros.
-  Transparent interp_helix.
-  unfold interp_helix.
-  Opaque interp_helix.
-  setoid_rewrite interp_Mem_vis_eqit.
-  cbn. rewrite Eq.bind_ret_l, tau_eutt.
-  cbn; rewrite interp_Mem_ret, interp_fail_Ret, translate_ret.
-  reflexivity.
-Qed.
-
-Lemma interp_helix_MemFree :
-  forall {E} size mem,
-    interp_helix (E := E) (trigger (MemFree size)) mem ≈
-    Ret (Some (memory_remove mem size, ())).
-Proof.
-  intros.
-  Transparent interp_helix.
-  unfold interp_helix.
-  Opaque interp_helix.
-  setoid_rewrite interp_Mem_vis_eqit.
-  cbn. rewrite Eq.bind_ret_l, tau_eutt.
-  cbn; rewrite interp_Mem_ret, interp_fail_Ret, translate_ret.
-  reflexivity.
-Qed.
-
-Lemma interp_Mem_MemAlloc :
-  forall size mem,
-    interp_Mem (trigger (MemAlloc size)) mem ≈
-                Ret (mem, memory_next_key mem).
-Proof.
-  intros size mem.
-  setoid_rewrite interp_Mem_vis_eqit; cbn.
-  rewrite bind_ret_l.
-  rewrite interp_Mem_ret.
-  apply tau_eutt.
-Qed.
-
 
 Lemma no_dshptr_aliasing_cons :
   forall (memH : memoryH) (σ : evalContext) (size : Int64.int),
@@ -165,8 +52,6 @@ Proof.
   intros; rewrite typ_to_dtyp_equation; reflexivity.
 Qed.
 
-
-
 Lemma newLocalVar_lid_bound_between :
   forall size s1 s2 r str,
     is_correct_prefix str ->
@@ -181,6 +66,18 @@ Proof.
   2 : cbn; reflexivity. auto.
   Opaque newLocalVar.
 Qed.
+
+(* The result is a branch *)
+Definition branches (to : block_id) (mh : memoryH * ()) (c : config_cfg_T (block_id * block_id + uvalue)) : Prop :=
+  match c with
+  | (m,(l,(g,res))) => exists from, res ≡ inl (from, to)
+  end.
+
+Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li : local_env)
+  : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
+  lift_Rel_cfg (state_invariant σ s2) ⩕
+               branches to ⩕
+               (fun sthf stvf => local_scope_modif s1 s2 li (fst (snd stvf))).
 
 Lemma DSHAlloc_correct:
   ∀ (size : Int64.int) (op : DSHOperator),
@@ -450,11 +347,9 @@ Proof.
   }
 
   (* Continuation *)
-  intros [ [memH' []] | ] (? & ? & ? & ?) UU ret1 ret2.
+  intros [ [memH' []] | ] (? & ? & ? & ?) UU ret1 ret2; [|cbn in *; intuition].
   rewrite interp_helix_MemFree.
   apply eutt_Ret. cbn.
-  2 : try_abs.
-
   rename ρ into RHO.
   rename l into LOCAL_ENV. 
   clear ret1 ret2.
@@ -546,6 +441,6 @@ Proof.
   }
 
   Unshelve.
-  all : eauto. exact nat. exact "".
+  all : eauto. 
 Qed.
 

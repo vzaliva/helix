@@ -421,13 +421,27 @@ Section Add_Comment.
   Qed.
 
   Lemma add_comment_inputs :
+    forall (bs : ocfg typ) (comments : list string),
+      inputs (add_comment bs comments) ≡ inputs bs.
+  Proof.
+    induction bs; intros comments; auto.
+  Qed.
+
+  Lemma add_comment_outputs :
+    forall (bs : ocfg typ) (comments : list string),
+      outputs (add_comment bs comments) ≡ outputs bs.
+  Proof.
+    induction bs; intros comments; auto.
+  Qed.
+
+  Lemma add_comment_inputs_typ :
     forall (bs : list (LLVMAst.block typ)) env (comments : list string),
       inputs (convert_typ env (add_comment bs comments)) ≡ inputs (convert_typ env bs).
   Proof.
     induction bs; intros env comments; auto.
   Qed.
 
-  Lemma add_comment_outputs :
+  Lemma add_comment_outputs_typ :
     forall (bs : list (LLVMAst.block typ)) env (comments : list string),
       outputs (convert_typ env (add_comment bs comments)) ≡ outputs (convert_typ env bs).
   Proof.
@@ -495,6 +509,18 @@ Section InterpMem.
       interp_Mem (trigger (MemSet dst blk)) mem ≈ Ret (memory_set mem dst blk, tt).
   Proof.
     intros dst blk mem.
+    setoid_rewrite interp_Mem_vis_eqit; cbn.
+    rewrite bind_ret_l.
+    rewrite interp_Mem_ret.
+    apply tau_eutt.
+  Qed.
+
+  Lemma interp_Mem_MemAlloc :
+    forall size mem,
+      interp_Mem (trigger (MemAlloc size)) mem ≈
+                 Ret (mem, memory_next_key mem).
+  Proof.
+    intros size mem.
     setoid_rewrite interp_Mem_vis_eqit; cbn.
     rewrite bind_ret_l.
     rewrite interp_Mem_ret.
@@ -596,6 +622,32 @@ Section InterpHelix.
     reflexivity.
   Qed.
 
+  Lemma interp_helix_MemFree :
+    forall {E} size mem,
+      interp_helix (E := E) (trigger (MemFree size)) mem ≈
+                   Ret (Some (memory_remove mem size, ())).
+  Proof.
+    intros.
+    unfold interp_helix.
+    setoid_rewrite interp_Mem_vis_eqit.
+    cbn. rewrite Eq.bind_ret_l, tau_eutt.
+    cbn; rewrite interp_Mem_ret, interp_fail_Ret, translate_ret.
+    reflexivity.
+  Qed.
+
+  Lemma interp_helix_MemAlloc :
+    forall {E} size mem,
+      interp_helix (E := E) (trigger (MemAlloc size)) mem ≈
+                   Ret (Some (mem, memory_next_key mem)).
+  Proof.
+    intros.
+    unfold interp_helix.
+    setoid_rewrite interp_Mem_vis_eqit.
+    cbn. rewrite Eq.bind_ret_l, tau_eutt.
+    cbn; rewrite interp_Mem_ret, interp_fail_Ret, translate_ret.
+    reflexivity.
+  Qed.
+
   Global Instance interp_helix_proper {E X} : Proper (eutt Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_helix X E).
   Proof.
     intros ? ? EQ ? ? <-.
@@ -608,7 +660,6 @@ Section InterpHelix.
   Import MonadNotation.
   Local Open Scope monad_scope.
   Local Open Scope nat_scope.
-
 
   Lemma interp_helix_iter :
     forall {X : Type} (E : Type -> Type) (m0 : memoryH) A (a0 : A) f,
