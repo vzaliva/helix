@@ -1623,6 +1623,24 @@ Proof.
       all:eauto.
 Admitted.
 
+Lemma vellvm_helix_ptr_size:
+  forall σ s memH memV ρ g n id (sz : N) dsh_ptr (dsh_sz : Int64.int),
+    nth_error (Γ s) n ≡ Some (id, TYPE_Pointer (TYPE_Array sz TYPE_Double)) ->
+    nth_error σ n ≡ Some (DSHPtrVal dsh_ptr dsh_sz) ->
+    state_invariant σ s memH (memV, (ρ, g)) ->
+    sz ≡ Z.to_N (Int64.intval dsh_sz).
+Proof.
+  intros σ s memH memV ρ g n id sz dsh_ptr dsh_sz GAM SIG SINV.
+  apply IRState_is_WF in SINV.
+  unfold WF_IRState in SINV.
+  unfold evalContext_typechecks in SINV.
+  pose proof (SINV (DSHPtrVal dsh_ptr dsh_sz) n SIG) as H.
+  destruct H as (id' & NTH).
+  cbn in NTH.
+  rewrite GAM in NTH.
+  inv NTH.
+  destruct id'; inv H1; reflexivity.
+Qed.
 
 Lemma unsigned_is_zero: forall a, Int64.unsigned a ≡ Int64.unsigned Int64.zero ->
                                   a = Int64.zero.

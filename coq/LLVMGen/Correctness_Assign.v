@@ -248,7 +248,37 @@ Proof.
       2: reflexivity.
       2: constructor.
       2:{
-        admit.
+        eapply dtyp_fits_array_elem.
+        rewrite typ_to_dtyp_D_array in yFITS.
+        eapply yFITS.
+        epose proof (@from_N_intval _ _ EQsz0).
+        subst.
+        eapply yGEP.
+
+        (* Need to relate sz0 with i *)
+        assert (sz0 ≡ Z.to_N (Int64.intval i)) as SZI. eapply vellvm_helix_ptr_size; eauto.
+        subst.
+
+        pose proof (DynamicValues.Int64.intrange dst).
+        pose proof (Int64.intrange i4).
+        pose proof (Int64.intrange i).
+
+        (* Maybe Heqb *)
+        unfold MInt64asNT.from_N in EQsz0.
+        rewrite Znat.Z2N.id in EQsz0; [|lia].
+
+        pose proof EQsz0 as EQsz0'.
+        apply from_Z_intval in EQsz0'.
+
+        rewrite EQsz0'.
+
+        rewrite repr_of_nat_to_nat.
+        apply Znat.Z2Nat.inj_lt; [lia|lia|].
+
+        apply NPeano.Nat.ltb_lt in Heqb.
+        rewrite Znat.Z2N.id; [|lia].
+        rewrite <- EQsz0'.
+        auto.
       }
 
       { vstep.
@@ -654,7 +684,37 @@ Proof.
       2: reflexivity.
       2: constructor.
       2:{
-        admit.
+        eapply dtyp_fits_array_elem.
+        rewrite typ_to_dtyp_D_array in yFITS.
+        eapply yFITS.
+        epose proof (@from_N_intval _ _ EQsz0).
+        subst.
+        eapply yGEP.
+
+        (* Need to relate sz0 with i *)
+        assert (sz0 ≡ Z.to_N (Int64.intval i)) as SZI. eapply vellvm_helix_ptr_size; eauto.
+        subst.
+
+        pose proof (DynamicValues.Int64.intrange dst).
+        pose proof (Int64.intrange i4).
+        pose proof (Int64.intrange i).
+
+        (* Maybe Heqb *)
+        unfold MInt64asNT.from_N in EQsz0.
+        rewrite Znat.Z2N.id in EQsz0; [|lia].
+
+        pose proof EQsz0 as EQsz0'.
+        apply from_Z_intval in EQsz0'.
+
+        rewrite EQsz0'.
+
+        rewrite repr_of_nat_to_nat.
+        apply Znat.Z2Nat.inj_lt; [lia|lia|].
+
+        apply NPeano.Nat.ltb_lt in Heqb.
+        rewrite Znat.Z2N.id; [|lia].
+        rewrite <- EQsz0'.
+        auto.
       }
 
       vstep.
@@ -1009,7 +1069,37 @@ Proof.
       2: reflexivity.
       2: constructor.
       2:{
-        admit.
+        eapply dtyp_fits_array_elem.
+        rewrite typ_to_dtyp_D_array in yFITS.
+        eapply yFITS.
+        epose proof (@from_N_intval _ _ EQsz0).
+        subst.
+        eapply yGEP.
+
+        (* Need to relate sz0 with i *)
+        assert (sz0 ≡ Z.to_N (Int64.intval i)) as SZI. eapply vellvm_helix_ptr_size; eauto.
+        subst.
+
+        pose proof (DynamicValues.Int64.intrange dst).
+        pose proof (Int64.intrange i4).
+        pose proof (Int64.intrange i).
+
+        (* Maybe Heqb *)
+        unfold MInt64asNT.from_N in EQsz0.
+        rewrite Znat.Z2N.id in EQsz0; [|lia].
+
+        pose proof EQsz0 as EQsz0'.
+        apply from_Z_intval in EQsz0'.
+
+        rewrite EQsz0'.
+
+        rewrite repr_of_nat_to_nat.
+        apply Znat.Z2Nat.inj_lt; [lia|lia|].
+
+        apply NPeano.Nat.ltb_lt in Heqb.
+        rewrite Znat.Z2N.id; [|lia].
+        rewrite <- EQsz0'.
+        auto.
       }
 
       vstep.
@@ -1406,7 +1496,37 @@ Proof.
       2: reflexivity.
       2: constructor.
       2:{
-        admit.
+        eapply dtyp_fits_array_elem.
+        rewrite typ_to_dtyp_D_array in yFITS.
+        eapply yFITS.
+        epose proof (@from_N_intval _ _ EQsz0).
+        subst.
+        eapply yGEP.
+
+        (* Need to relate sz0 with i *)
+        assert (sz0 ≡ Z.to_N (Int64.intval i)) as SZI. eapply vellvm_helix_ptr_size; eauto.
+        subst.
+
+        pose proof (DynamicValues.Int64.intrange dst).
+        pose proof (Int64.intrange i4).
+        pose proof (Int64.intrange i).
+
+        (* Maybe Heqb *)
+        unfold MInt64asNT.from_N in EQsz0.
+        rewrite Znat.Z2N.id in EQsz0; [|lia].
+
+        pose proof EQsz0 as EQsz0'.
+        apply from_Z_intval in EQsz0'.
+
+        rewrite EQsz0'.
+
+        rewrite repr_of_nat_to_nat.
+        apply Znat.Z2Nat.inj_lt; [lia|lia|].
+
+        apply NPeano.Nat.ltb_lt in Heqb.
+        rewrite Znat.Z2N.id; [|lia].
+        rewrite <- EQsz0'.
+        auto.
       }
 
       vstep.
@@ -1644,5 +1764,4 @@ Proof.
       - assert (local_scope_modif s5 sf ρ l0); solve_local_scope_modif.
     }
   }
-
-Admitted.
+Qed.
