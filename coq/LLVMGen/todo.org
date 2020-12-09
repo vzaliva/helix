@@ -77,6 +77,10 @@
 
 *** TODO from_Z_intval
 
+** About VIR's equational theory: phi nodes
+
+   When it comes to non empty phi-nodes, we currently get back down to business by unfolding everything.
+   We need a bit of theory there.
    
 * Clean up
 
@@ -89,3 +93,12 @@
 ** TODO Transfer the commenting faciliy for vir code to vellvm
 
   
+* Long term
+
+** Code generator combinators for VIR
+
+   Can we provide enough combinator for the compiler to be written without any explicit reference to any concrete variable or block id, and get the static well-formedness of the produced code for free out of it?
+
+** Static def sites and dynamic updates of local state
+
+   Can we prove once and for all in Vellvm that the only (possibly) modified local variables are the def sites of the piece of code considered?
