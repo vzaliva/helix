@@ -200,6 +200,7 @@ Section GenIR.
 
       pose proof generates_wf_ocfg_bids _ NEXT GEN as WFOCFG.
       pose proof inputs_bound_between _ _ _ GEN as INPUTS_BETWEEN.
+      pose proof genIR_Context _ _ _ GEN as GENIR_Γ.
 
       (* We know that the Helix denotation can be expressed via the [tfor] operator *)
       rewrite DSHLoop_interpreted_as_tfor.
@@ -334,6 +335,25 @@ Section GenIR.
             intros * EQ; inv EQ; reflexivity.
           Qed.
           Opaque newLocalVar.
+          Transparent dropVars.
+          Lemma dropVars_local_count :
+            ∀ (s1 s2 : IRState), 
+              dropVars 1 s1 ≡ inr (s2,tt) ->
+              local_count s1 ≡ local_count s2.
+          Proof.
+            cbn; intros * EQ; simp; auto. 
+          Qed.
+          Lemma dropVars_Γ :
+            forall s1 s2 hd tl,
+              dropVars 1 s1 ≡ inr (s2,tt) ->
+              Γ s1 ≡ hd::tl ->
+              Γ s2 ≡ tl.
+          Proof.
+            intros * DR EQ. cbn in *.
+            rewrite EQ in DR; cbn in *; inv DR.
+            reflexivity.
+          Qed.
+          Opaque dropVars.
           
           eapply state_invariant_enter_scope_DSHnat_local; eauto.
           admit.
@@ -375,7 +395,9 @@ Section GenIR.
 
       forward GENC; [clear GENC |].
       {
-        admit.
+        apply newLocalVar_local_count in Heqs2.
+        apply dropVars_local_count in Heqs5.
+        solve_local_count.
       }
 
       forward GENC; [clear GENC |].
@@ -401,7 +423,9 @@ Section GenIR.
         intros [[? []] | ] (? & ? & ? & ?) (H1 & H2 & H3); cbn.
         split; [| split]; cbn; eauto.
         - (* Need to enter scope,then escape it to link with s2 *)
-          admit.
+          eapply state_invariant_Γ; eauto.
+          apply incBlockNamed_Γ in Heqs1.
+          rewrite <- GENIR_Γ, Heqs1; reflexivity.
         - destruct H1; eauto.
         - eauto.
       }
