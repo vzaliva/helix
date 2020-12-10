@@ -3,6 +3,8 @@ Require Import Helix.LLVMGen.StateCounters.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Import LidBound.
 
+From Coq Require Import ZArith.
+
 (* Import ProofNotations. *)
 Import ListNotations.
 
@@ -73,7 +75,7 @@ Section NExpr.
         local_scope_preserved s1 s2 l l' ->
         Gamma_preserved σ s1 l l' ->
         interp_cfg
-          (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I 64%Z)) (convert_typ [] e)))
+          (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I 64%N)) (convert_typ [] e)))
           g l' memV ≈
           Ret (memV,(l',(g,UVALUE_I64 i))).
 
@@ -668,4 +670,3 @@ Section NExpr.
   Qed.
 
 End NExpr.
-

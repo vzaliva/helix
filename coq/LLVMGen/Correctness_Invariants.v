@@ -4,6 +4,8 @@ Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.VariableBinding.
 Require Import Helix.LLVMGen.StateCounters.
 
+From Coq Require Import ZArith.
+
 Set Implicit Arguments.
 Set Strict Implicit.
 
@@ -23,7 +25,7 @@ Section WF_IRState.
     | ID_Global _ , DSHnat   => TYPE_Pointer IntType
     | ID_Local _  , DSHCType => TYPE_Double
     | ID_Global _ , DSHCType => TYPE_Pointer TYPE_Double
-    | _           , DSHPtr n => TYPE_Pointer (TYPE_Array (Int64.intval n) TYPE_Double)
+    | _           , DSHPtr n => TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval n)) TYPE_Double)
     end.
 
   (* True if σ typechecks in Γ *)
@@ -64,7 +66,7 @@ Section WF_IRState.
       nth_error σ n ≡ Some v ->
       τ ≡ IntType \/
       τ ≡ TYPE_Double \/
-      exists k, τ ≡ TYPE_Pointer (TYPE_Array (Int64.intval k) TYPE_Double).
+      exists k, τ ≡ TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval k)) TYPE_Double).
   Proof.
     intros * WF LU LU'.
     eapply WF in LU'; destruct LU' as (id & LU''); rewrite LU in LU''; inv LU''.
@@ -78,7 +80,7 @@ Section WF_IRState.
       nth_error σ n ≡ Some v ->
       τ ≡ TYPE_Pointer IntType \/
       τ ≡ TYPE_Pointer TYPE_Double \/
-      exists k, τ ≡ TYPE_Pointer (TYPE_Array (Int64.intval k) TYPE_Double).
+      exists k, τ ≡ TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval k)) TYPE_Double).
   Proof.
     intros * WF LU LU'.
     edestruct WF as (id & LU''); eauto.
@@ -1493,7 +1495,7 @@ Lemma state_invariant_enter_scope_DSHPtr :
     state_invariant σ s2 stH (mV,(l,g)) ->
 
     (* We know that a certain ptr has been allocated *)
-    allocate mV (DTYPE_Array (Int64.intval sizeh) DTYPE_Double) ≡
+    allocate mV (DTYPE_Array (Z.to_N (Int64.intval sizeh)) DTYPE_Double) ≡
              inr (mV_a, ptrv) ->
 
     state_invariant (DSHPtrVal ptrh sizeh :: σ) s1
@@ -1621,6 +1623,24 @@ Proof.
       all:eauto.
 Admitted.
 
+Lemma vellvm_helix_ptr_size:
+  forall σ s memH memV ρ g n id (sz : N) dsh_ptr (dsh_sz : Int64.int),
+    nth_error (Γ s) n ≡ Some (id, TYPE_Pointer (TYPE_Array sz TYPE_Double)) ->
+    nth_error σ n ≡ Some (DSHPtrVal dsh_ptr dsh_sz) ->
+    state_invariant σ s memH (memV, (ρ, g)) ->
+    sz ≡ Z.to_N (Int64.intval dsh_sz).
+Proof.
+  intros σ s memH memV ρ g n id sz dsh_ptr dsh_sz GAM SIG SINV.
+  apply IRState_is_WF in SINV.
+  unfold WF_IRState in SINV.
+  unfold evalContext_typechecks in SINV.
+  pose proof (SINV (DSHPtrVal dsh_ptr dsh_sz) n SIG) as H.
+  destruct H as (id' & NTH).
+  cbn in NTH.
+  rewrite GAM in NTH.
+  inv NTH.
+  destruct id'; inv H1; reflexivity.
+Qed.
 
 Lemma unsigned_is_zero: forall a, Int64.unsigned a ≡ Int64.unsigned Int64.zero ->
                                   a = Int64.zero.
@@ -2009,4 +2029,3 @@ Ltac solve_state_invariant := eauto with SolveStateInv.
 Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incBlockNamed; [eassumption | solve_state_invariant] : SolveStateInv.
 Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incLocal; [eassumption | solve_state_invariant] : SolveStateInv.
 Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eassumption | solve_state_invariant] : SolveStateInv.
-

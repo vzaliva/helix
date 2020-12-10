@@ -17,6 +17,8 @@ Open Scope string_scope.
 
 Module Int64 := Integers.Int64.
 
+From Coq Require Import ZArith.
+
 (* [Int64.int] as [NType]
 
 We are using singed integer type here because LLVM does not make a
@@ -106,6 +108,8 @@ Module MInt64asNT <: NType.
       end
     | in_right => inl "negative"
     end.
+
+  Definition from_N (n:N): err t := from_Z (Z.of_N n).
 
   (* not all nats could be converted to `t` *)
   Definition from_nat (n:nat): err t :=

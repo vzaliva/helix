@@ -1273,5 +1273,13 @@ Proof.
   intros sz i H.
 Admitted.
 
+Lemma from_N_intval :
+  forall sz i,
+    MInt64asNT.from_N sz ≡ inr i ->
+    sz ≡ Z.to_N (Int64.intval i).
+Proof.
+  intros sz i H.
+Admitted.
+
 Arguments alist_add : simpl never.
 
