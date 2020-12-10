@@ -463,16 +463,22 @@ Lemma genWhileLoop_tfor_ind:
       ) ->
 
       (* Invariant is stable under the administrative bookkeeping that the loop performs *)
-      (forall a sa b sb c sc d sd e se msg msg' msg'',
-          incBlockNamed msg s1 ≡ inr (sa, a) ->
-          incBlockNamed msg' sa ≡ inr (sb, b) ->
-          incLocal sb ≡ inr (sc,c) ->
-          incLocal sc ≡ inr (sd,d) ->
-          incLocalNamed msg'' sd ≡ inr (se, e) ->
-          forall k a l mV g id v,
-            id ≡ c \/ id ≡ d \/ id ≡ e \/ id ≡ loopvar ->
-            I k a (mV, (l, g)) ->
-            I k a (mV, ((alist_add id v l), g))) ->
+      (forall k a l mV g id v,
+          (lid_bound_between s1 s2 id \/ lid_bound_between sb1 sb2 id) ->
+          I k a (mV, (l, g)) ->
+          I k a (mV, ((alist_add id v l), g))) ->
+
+      (* (forall a sa b sb c sc d sd e se msg msg' msg'', *)
+      (*     incBlockNamed msg s1 ≡ inr (sa, a) -> *)
+      (*     incBlockNamed msg' sa ≡ inr (sb, b) -> *)
+      (*     incLocal sb ≡ inr (sc,c) -> *)
+      (*     incLocal sc ≡ inr (sd,d) -> *)
+      (*     incLocalNamed msg'' sd ≡ inr (se, e) -> *)
+      (*     forall k a l mV g id v, *)
+      (*       id ≡ c \/ id ≡ d \/ id ≡ e \/ id ≡ loopvar -> *)
+      (*       I k a (mV, (l, g)) -> *)
+      (*       I k a (mV, ((alist_add id v l), g))) -> *)
+
       sb1 << sb2 ->
       local_count sb2 ≡ local_count s1 ->
 
@@ -491,7 +497,7 @@ Lemma genWhileLoop_tfor_ind:
            (tfor bodyF j n a)
            (interp_cfg (denote_ocfg (convert_typ [] bks)
                                                 (_label, loopcontblock)) g li mV).
-Proof.
+Proof. 
   intros * IN PREF UNIQUE_IDENTS LOOPVAR_SCOPE NEXTBLOCK_ID * GEN A *. 
   unfold genWhileLoop in GEN. cbn* in GEN. simp.
   intros BOUND OVER * FBODY STABLE LAB LAB'.
@@ -563,16 +569,14 @@ Proof.
 
     rewrite tfor_0.
     (* We have only touched local variables that the invariant does not care about, we can reestablish it *)
+    rename s2 into FINAL_STATE, i into s2, i0 into s3, i1 into s4, i2 into s5.
     apply eutt_Ret.
     split; split.
-    + eapply STABLE; eauto.
-    + rename s2 into FINAL_STATE,
-              i into s2,
-              i0 into s3,
-              i1 into s4,
-              i2 into s5.
+    + eapply STABLE; [left; solve_lid_bound_between |].
+      eapply STABLE; [| eauto].
+      left; eapply lid_bound_between_shrink; [eapply lid_bound_between_incLocalNamed; [| eauto]; eapply is_correct_prefix_append; auto | | ]; solve_local_count.
 
-      eapply local_scope_modif_add'.
+    + eapply local_scope_modif_add'.
       solve_lid_bound_between.
       eapply local_scope_modif_add'.
       eapply lid_bound_between_shrink_down with (s2 := s5).
@@ -690,6 +694,8 @@ Proof.
       (* A bit of arithmetic is needed to prove that we have the right precondition *)
       split.
       + repeat (eapply STABLE; eauto).
+        left; solve_lid_bound_between.
+        left; eapply lid_bound_between_shrink; [eapply lid_bound_between_incLocalNamed; [| eauto]; eapply is_correct_prefix_append; auto | | ]; solve_local_count.
 
       + rewrite alist_find_add_eq.
         reflexivity.
@@ -778,17 +784,22 @@ Lemma genWhileLoop_tfor_correct:
       )
       ->
 
-    (* Invariant is stable under the administrative bookkeeping that the loop performs *)
-    (forall a sa b sb c sc d sd e se msg msg' msg'',
-          incBlockNamed msg s1 ≡ inr (sa, a) ->
-          incBlockNamed msg' sa ≡ inr (sb, b) ->
-          incLocal sb ≡ inr (sc,c) ->
-          incLocal sc ≡ inr (sd,d) ->
-          incLocalNamed msg'' sd ≡ inr (se, e) ->
-          forall k a l mV g id v,
-            id ≡ c \/ id ≡ d \/ id ≡ e \/ id ≡ loopvar ->
-            I k a (mV, (l, g)) ->
-            I k a (mV, ((alist_add id v l), g))) ->
+      (* Invariant is stable under the administrative bookkeeping that the loop performs *)
+      (forall k a l mV g id v,
+          (lid_bound_between s1 s2 id \/ lid_bound_between sb1 sb2 id) ->
+          I k a (mV, (l, g)) ->
+          I k a (mV, ((alist_add id v l), g))) ->
+
+      (* (forall a sa b sb c sc d sd e se msg msg' msg'', *)
+      (*       incBlockNamed msg s1 ≡ inr (sa, a) -> *)
+      (*       incBlockNamed msg' sa ≡ inr (sb, b) -> *)
+      (*       incLocal sb ≡ inr (sc,c) -> *)
+      (*       incLocal sc ≡ inr (sd,d) -> *)
+      (*       incLocalNamed msg'' sd ≡ inr (se, e) -> *)
+      (*       forall k a l mV g id v, *)
+      (*         id ≡ c \/ id ≡ d \/ id ≡ e \/ id ≡ loopvar -> *)
+      (*         I k a (mV, (l, g)) -> *)
+      (*         I k a (mV, ((alist_add id v l), g))) -> *)
 
       sb1 << sb2 ->
       local_count sb2 ≡ local_count s1 ->
@@ -850,6 +861,7 @@ Proof.
     apply eutt_Ret. cbn. split. right. reflexivity.
     split.
     + eapply post; eapply STABLE; eauto.
+      left; solve_lid_bound_between.
     + solve_local_scope_modif.
 
   - cbn in *.
@@ -926,6 +938,8 @@ Proof.
       eapply IND.
       split.
       eapply STABLE; eauto.
+      eapply STABLE; eauto.
+      left; solve_lid_bound_between.
       unfold Maps.add, Map_alist.
       apply alist_find_add_eq. 
     + intros ? (? & ? & ? & ?) (LU & [? ->] & []).
