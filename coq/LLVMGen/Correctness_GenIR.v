@@ -257,123 +257,166 @@ Section GenIR.
         apply l0.
       }
 
-      admit.
+      specialize (IHop s3 s4).
 
-      (* (* Invariant at each iteration *) *)
-      (* specialize (GENC (fun k mH stV => *)
-      (*                     match mH with *)
-      (*                     | None => False *)
-      (*                     | Some (mH,tt) => state_invariant σ s2 (* b *) mH stV *)
-      (*                     end)). *)
-      (* (* Precondition *) *)
-      (* specialize (GENC (fun mH stV => *)
-      (*                     match mH with *)
-      (*                     | None => False *)
-      (*                     | Some (mH,tt) => state_invariant σ s2 mH stV *)
-      (*                     end)). *)
-      (* (* Postcondition *) *)
-      (* specialize (GENC (fun mH stV => *)
-      (*                     match mH with *)
-      (*                     | None => False *)
-      (*                     | Some (mH,tt) => state_invariant σ s2 mH stV *)
-      (*                     end)). *)
+      (*
+        s1
+        incBlockNamed
+        s2
+        newLocalVar
+        s3
+        genIR
+        s4
+        dropVars
+        s5
+        genWhileLoop
+        s6
+       *)
 
-      (* { *)
-      (*   clear GENC. *)
-      (*   cbn. *)
-      (*   intros x (? & ? & ? & ?). *)
-      (*   intros (H1 & H2). *)
-      (*   destruct x as [[mH []] | ?]; [| intuition]. *)
-      (*   split; cbn; auto. *)
-      (*   destruct H1; eauto. *)
-      (* } *)
+      (* Invariant at each iteration *)
+      set (I := (fun (k : nat) (mH : option (memoryH * ())) (stV : memoryV * (local_env * global_env)) =>
+                   match mH with
+                   | None => False
+                   | Some (mH,tt) => state_invariant σ s2 mH stV
+                   end)).
+      (* Precondition and postcondition *)
+      set (P := (fun (mH : option (memoryH * ())) (stV : memoryV * (local_env * global_env)) =>
+                   match mH with
+                   | None => False
+                   | Some (mH,tt) => state_invariant σ s2 mH stV
+                   end)).
 
-      (* { *)
-      (*   clear GENC. *)
-      (*   cbn. *)
-      (*   intros x (? & ? & ? & ?). *)
-      (*   intros [H1 H2]. *)
-      (*   destruct x as [[mH []] | ?]; [| intuition]. *)
-      (*   split; cbn; auto. *)
-      (*   destruct H1; eauto. *)
-      (*   admit. (* TODO: might have broken when adjusting meminv *) *)
-      (*   admit. (* TODO: might have broken when adjusting meminv *) *)
-      (* } *)
+      specialize (GENC I P P).
 
-      (* { *)
-      (*   (* Body correct *) *)
-      (*   clear GENC. *)
-      (*   intros * HPRE. *)
-      (*   destruct a as [[mH[]] |]; cbn in HPRE; [| destruct HPRE as [abs _]; inv abs]. *)
-      (*   break_match_goal. *)
-      (*   - (* TODO: invariant that ~ k < n *) *)
-      (*     exfalso. admit. *)
-      (*   - hvred. *)
-      (*     eapply eutt_mon. *)
-      (*     2:eapply IHop. *)
-      (*     2:eassumption. *)
-      (*     { *)
-      (*       intros [[?mH []] |] (? & ? & ? & ?) PRE'; cbn in PRE'; [| inv PRE']. *)
-      (*       destruct PRE' as [SINV [? ->]] ; cbn in *. *)
-      (*       split; [|split]; eauto. *)
-      (*       (* TODO: add local_scope_modif to the postcondition of genIR *) *)
-      (*       destruct HPRE as [SINVPRE LUPRE]. *)
-      (*       match type of Heqs2 with *)
-      (*       | genIR _ _ ?s1 ≡ inr (?s2, _) => *)
-      (*         assert (local_scope_modif s1 s2 l2 a) *)
-      (*       end. *)
-      (*       admit. *)
+      forward GENC; [clear GENC |].
+      {
+        subst I P; intros ? ? ? [[? []]|] * [INV LOOPVAR]; [| inv INV]; cbn in *.
 
-      (*       { clear NOFAIL IHop. *)
-      (*         rewrite <- LUPRE. *)
-      (*         eapply local_scope_modif_out with (s1 := i0).  *)
-      (*         3:eauto. *)
-      (*         destruct i0; cbn; red; cbn; lia. *)
-      (*         do 3 eexists; cbn; repeat split; eauto.  *)
-      (*       }  *)
-      (*       clean_goal. *)
-      (*       rename i into s1, i0 into s2, s2 into s4, i3 into s3. *)
-      (*       assert (l1 ≡ Γ s4) by admit. (* genWhileLoop_Γ *) *)
-      (*       apply genIR_Context in Heqs2. *)
-      (*       apply incBlockNamed_Γ in Heqs1. *)
-      (*       cbn in *. *)
-      (*       clear - Heqs2 Heql2 H SINV. *)
-      (*       subst. *)
-      (*       rewrite Heql2 in Heqs2. *)
-      (*       inv Heqs2. *)
-      (*       eapply state_invariant_escape_scope; eauto. *)
-      (*     } *)
-      (*     { *)
-      (*       clear - Heqs1. *)
-      (*       admit. *)
-      (*     } *)
-      (*     (* eapply state_invariant_enter_scope_DSHnat. *) *)
-      (*     admit. *)
-      (*     (* TODO: state_invariant stable by extension of both gamma and σ simultaneously *) *)
-      (*     admit. *)
-      (*     admit. *)
-      (* } *)
+        pose proof Heqs3 as GENIR.
+        eapply IHop in Heqs3; clear IHop; cycle 1.
+        - Set Nested Proofs Allowed.
+          Lemma bid_bound_mono : forall s1 s2 b,
+              bid_bound s1 b ->
+              (block_count s1 <= block_count s2)%nat ->
+              bid_bound s2 b.
+          Proof.
+            intros; eapply state_bound_mono; eauto.
+          Qed.
+          eapply bid_bound_mono.
+          eapply bid_bound_incBlockNamed; eauto; reflexivity.
+          erewrite newLocalVar_block_count; eauto.
 
-      (* { *)
-      (*   (* Rephrase this : really the invariant should be stable by modifications in [s1;s2] *) *)
-      (*   admit. *)
-      (* } *)
-      (* { *)
-      (*   intros ?; auto. *)
-      (* } *)
-      (* { *)
-      (*   intros ?; auto. *)
-      (* } *)
-      (* { *)
-      (*   admit. *)
-      (* } *)
-      (* *) 
+        - Transparent newLocalVar.
+          Lemma state_invariant_enter_scope_DSHnat_local :
+            forall σ v prefix x s1 s2 stH mV l g,
+              newLocalVar IntType prefix s1 ≡ inr (s2, x) ->
+              ~ In (ID_Local x) (map fst (Γ s1)) ->
+              l @ x ≡ Some (uvalue_of_nat v) ->
+              state_invariant σ s1 stH (mV,(l,g)) ->
+              state_invariant (DSHnatVal (Int64.repr (Z.of_nat v))::σ) s2 stH (mV,(l,g)).
+          Proof.
+            intros * EQ FRESH LU INV.
+            inv EQ; eapply state_invariant_enter_scope_DSHnat; eauto.
+            reflexivity.
+            cbn; rewrite repr_intval; auto.
+          Qed.
+          Lemma newLocalVar_Γ : forall τ prefix s1 s2 x,
+              newLocalVar τ prefix s1 ≡ inr (s2,x) ->
+              Γ s2 ≡ (ID_Local x,τ) :: Γ s1.
+          Proof.
+            intros * EQ; inv EQ; reflexivity.
+          Qed.
+          Lemma newLocalVar_local_count :
+            ∀ (s1 s2 : IRState) bid p x,
+              newLocalVar p x s1 ≡ inr (s2, bid) →
+              local_count s2 ≡ S (local_count s1).
+          Proof.
+            intros * EQ; inv EQ; reflexivity.
+          Qed.
+          Opaque newLocalVar.
+          
+          eapply state_invariant_enter_scope_DSHnat_local; eauto.
+          admit.
+
+        - admit.
+
+        - admit.
+
+        -
+          destruct (MInt64asNT.from_nat k) as [| kh] eqn:EQk.
+          { admit. }
+          hred.
+          apply from_Z_intval in EQk.
+          rewrite EQk,repr_intval in Heqs3.
+          eapply eutt_mon, Heqs3.
+          clear Heqs3 NOFAIL INPUTS_BETWEEN WFOCFG.
+          intros [[? []]|] (mVf & lf & gf & ?) POST; [destruct POST as (P1 & P2 & P3) | inv POST].
+          split; [| split; [| split]].
+          + rewrite <- LOOPVAR; eapply local_scope_modif_out; eauto.
+            2: eapply lid_bound_between_newLocalVar; eauto.
+            eapply newLocalVar_local_count in Heqs2; solve_local_count.
+            reflexivity.
+          + eauto.
+          + cbn in P1.
+            eapply state_invariant_escape_scope; eauto.
+            erewrite <- genIR_Context; eauto.
+            eapply newLocalVar_Γ; eauto.
+          + cbn in *.
+            clear INV P1 P2.
+            apply local_scope_modif_shrink with s3 s4; auto.
+            apply newLocalVar_local_count in Heqs2; solve_local_count.
+            solve_local_count.
+      }
+
+      forward GENC; [clear GENC |].
+      {
+        admit.
+      }
+
+      forward GENC; [clear GENC |].
+      {
+        admit.
+      }
+
+      forward GENC; [clear GENC |].
+      {
+        reflexivity.
+      }
+
+      forward GENC; [clear GENC |].
+      {
+        subst P I; red; intros; auto. 
+      }
+
+      forward GENC; [clear GENC |].
+      {
+        subst I P; red; intros; auto. 
+      }
+
+      specialize (GENC g ρ memV (Some (memH,())) bid_from).
+      eapply eutt_mon; [| apply GENC].
+      {
+        (* state_invariant between s1 and s2 or s6? or something else? *)
+        clear GENC NOFAIL INPUTS_BETWEEN IHop WFOCFG;subst P I.
+        intros [[? []] | ] (? & ? & ? & ?) (H1 & H2 & H3); cbn.
+        split; [| split]; cbn; eauto.
+        - (* Need to enter scope,then escape it to link with s2 *)
+          admit.
+        - destruct H1; eauto.
+        - eauto.
+      }
+      { subst P; cbn.
+        clear -PRE Heqs1.
+        solve_state_invariant.
+      }
 
     - (* DSHAlloc *)
       apply DSHAlloc_correct; auto. 
 
+    - (* DSHMemInit *)
 
-  (*   - admit. *)
+      admit.
+
   (*   - (* DSHSeq *) *)
   (*     Opaque add_comment. *)
   (*     cbn. *)
@@ -445,7 +488,7 @@ Section GenIR.
 
   (*     eapply eqit_mon; auto. *)
   (*     2: { *)
-  (*       eapply IHop2; try exact GEN_OP2; eauto. *)
+  (*       eapply ISugoku kawaiikute muccha kininarimasu Hop2; try exact GEN_OP2; eauto. *)
   (*       - eapply state_invariant_Γ; eauto. *)
   (*         apply genIR_Context in GEN_OP1; apply genIR_Context in GEN_OP2; rewrite GEN_OP2; auto. *)
   (*       - eapply Gamma_safe_shrink; eauto. *)
