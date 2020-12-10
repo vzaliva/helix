@@ -201,6 +201,7 @@ Section GenIR.
       pose proof generates_wf_ocfg_bids _ NEXT GEN as WFOCFG.
       pose proof inputs_bound_between _ _ _ GEN as INPUTS_BETWEEN.
       pose proof genIR_Context _ _ _ GEN as GENIR_Γ.
+      pose proof genIR_local_count _ _ _ GEN as GENIR_local.
 
       (* We know that the Helix denotation can be expressed via the [tfor] operator *)
       rewrite DSHLoop_interpreted_as_tfor.
@@ -390,7 +391,47 @@ Section GenIR.
 
       forward GENC; [clear GENC |].
       {
-        admit.
+        subst I P; cbn.
+        intros _ * BOUND INV; simp; auto.
+
+        Lemma state_invariant_add_fresh :
+          ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
+            (l : local_env) (g : global_env) (v : uvalue),
+            Gamma_safe σ s1 s2
+            -> lid_bound_between s1 s2 id
+            → state_invariant σ s1 memH (memV, (l, g))
+            → state_invariant σ s1 memH (memV, (alist_add id v l, g)).
+        Proof.
+          intros * GAM BOUND INV.
+          apply GAM in BOUND.
+          eapply state_invariant_same_Γ; eauto.
+        Qed.
+        apply state_invariant_Γ with s1; eauto using incBlockNamed_Γ.
+        eapply state_invariant_Γ with (s2 := s1) in INV; [| symmetry; eauto using incBlockNamed_Γ].
+        eapply state_invariant_Γ in INV; [| symmetry; eassumption].
+        eapply state_invariant_add_fresh with s6; eauto.
+        destruct BOUND as [BOUND | BOUND].
+        - eapply lid_bound_between_shrink_down; [| apply BOUND].
+          apply newLocalVar_local_count in Heqs2.
+          apply dropVars_local_count in Heqs5.
+          solve_local_count.
+        - Transparent genWhileLoop.
+          Lemma genWhile_local_count :
+            forall prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 s2 seg,
+              genWhileLoop prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 ≡ inr (s2, seg) ->
+              local_count s2 ≥ local_count s1.
+          Proof.
+            intros.
+            cbn in H; simp; __local_ltac; lia. 
+          Qed.
+          Opaque genWhileLoop.
+
+          apply genWhile_local_count in  Heqs6.
+          apply newLocalVar_local_count in Heqs2.
+          apply dropVars_local_count in Heqs5.
+          eapply lid_bound_between_shrink_up; [| apply BOUND].
+          solve_local_count.
+        - eapply state_invariant_Γ; eauto.
       }
 
       forward GENC; [clear GENC |].
