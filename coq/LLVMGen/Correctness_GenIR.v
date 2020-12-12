@@ -309,19 +309,6 @@ Section GenIR.
           erewrite newLocalVar_block_count; eauto.
 
         - Transparent newLocalVar.
-          Lemma state_invariant_enter_scope_DSHnat_local :
-            forall σ v prefix x s1 s2 stH mV l g,
-              newLocalVar IntType prefix s1 ≡ inr (s2, x) ->
-              ~ In (ID_Local x) (map fst (Γ s1)) ->
-              l @ x ≡ Some (uvalue_of_nat v) ->
-              state_invariant σ s1 stH (mV,(l,g)) ->
-              state_invariant (DSHnatVal (Int64.repr (Z.of_nat v))::σ) s2 stH (mV,(l,g)).
-          Proof.
-            intros * EQ FRESH LU INV.
-            inv EQ; eapply state_invariant_enter_scope_DSHnat; eauto.
-            reflexivity.
-            cbn; rewrite repr_intval; auto.
-          Qed.
           Lemma newLocalVar_Γ : forall τ prefix s1 s2 x,
               newLocalVar τ prefix s1 ≡ inr (s2,x) ->
               Γ s2 ≡ (ID_Local x,τ) :: Γ s1.
@@ -355,16 +342,33 @@ Section GenIR.
             reflexivity.
           Qed.
           Opaque dropVars.
+          Transparent genWhileLoop.
+          Lemma genWhile_local_count :
+            forall prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 s2 seg,
+              genWhileLoop prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 ≡ inr (s2, seg) ->
+              local_count s2 ≥ local_count s1.
+          Proof.
+            intros.
+            cbn in H; simp; __local_ltac; lia. 
+          Qed.
+          Opaque genWhileLoop.
           
-          eapply state_invariant_enter_scope_DSHnat_local; eauto.
-          admit.
+          eapply state_invariant_enter_scope_DSHnat; eauto.
+          intros abs; eapply in_Gamma_Gamma_eq in abs; [| eapply incBlockNamed_Γ ; eauto].
+          eapply GAM; eauto.
+          eapply lid_bound_between_newLocalVar in Heqs2.
+          2:reflexivity.
+          eapply lid_bound_between_shrink; eauto.
+          solve_local_count.
+          apply dropVars_local_count in Heqs5.
+          apply genWhile_local_count in  Heqs6.
+          solve_local_count.
 
         - admit.
 
         - admit.
 
-        -
-          destruct (MInt64asNT.from_nat k) as [| kh] eqn:EQk.
+        - destruct (MInt64asNT.from_nat k) as [| kh] eqn:EQk.
           { admit. }
           hred.
           apply from_Z_intval in EQk.
@@ -415,18 +419,7 @@ Section GenIR.
           apply newLocalVar_local_count in Heqs2.
           apply dropVars_local_count in Heqs5.
           solve_local_count.
-        - Transparent genWhileLoop.
-          Lemma genWhile_local_count :
-            forall prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 s2 seg,
-              genWhileLoop prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 ≡ inr (s2, seg) ->
-              local_count s2 ≥ local_count s1.
-          Proof.
-            intros.
-            cbn in H; simp; __local_ltac; lia. 
-          Qed.
-          Opaque genWhileLoop.
-
-          apply genWhile_local_count in  Heqs6.
+        - apply genWhile_local_count in  Heqs6.
           apply newLocalVar_local_count in Heqs2.
           apply dropVars_local_count in Heqs5.
           eapply lid_bound_between_shrink_up; [| apply BOUND].

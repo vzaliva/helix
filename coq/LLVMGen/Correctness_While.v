@@ -151,8 +151,6 @@ Section DSHLoop_is_tfor.
 
 End DSHLoop_is_tfor.
 
-(* TODO: Move to Prelude *)
-Definition uvalue_of_nat k := UVALUE_I64 (Int64.repr (Z.of_nat k)).
 
 From Paco Require Import paco.
 From ITree Require Import Basics.HeterogeneousRelations.
