@@ -9,10 +9,10 @@
 *** TODO Change of scope
 
     Need to fix proofs of
-    - [state_invariant_escape_scope],
-    - [state_invariant_enter_scope_DSHnat],
-    - [state_invariant_enter_scope_DSHCType],
-    - [state_invariant_enter_scope_DSHPtr]
+    - [state_invariant_escape_scope], (done)
+    - [state_invariant_enter_scope_DSHnat], (done)
+    - [state_invariant_enter_scope_DSHCType], (commented out because not used so far)
+    - [state_invariant_enter_scope_DSHPtr] (TODO: does not look immediate at first glance)
 
 ** Loop operator
 
