@@ -717,7 +717,6 @@ Proof.
     2:{
       eapply local_scope_modif_shrink; eauto.
       solve_local_count.
-      solve_local_count.
     }
     repeat apply local_scope_modif_add'. 
     4: apply local_scope_modif_refl.
@@ -949,7 +948,6 @@ Proof.
         eapply local_scope_modif_trans'.
         2:{
           eapply local_scope_modif_shrink; eauto.
-          solve_local_count.
           solve_local_count.
         }
         repeat apply local_scope_modif_add'.

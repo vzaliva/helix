@@ -497,3 +497,9 @@ Proof.
       eapply Forall_forall in L2; eauto.
 Qed.
 
+Lemma inputs_convert_typ : forall σ bks,
+    inputs (convert_typ σ bks) = inputs bks.
+Proof.
+  induction bks as [| bk bks IH]; cbn; auto.
+  f_equal; auto.
+Qed.

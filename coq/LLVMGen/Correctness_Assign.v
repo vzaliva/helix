@@ -8,6 +8,7 @@ Require Import Helix.LLVMGen.VariableBinding.
 Require Import Helix.LLVMGen.BidBound.
 Require Import Helix.LLVMGen.LidBound.
 Require Import Helix.LLVMGen.StateCounters.
+Require Import Helix.LLVMGen.Context.
 
 Import ListNotations.
 

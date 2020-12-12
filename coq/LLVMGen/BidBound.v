@@ -73,6 +73,14 @@ Section BidBound.
     repeat (split; auto).
   Qed.
 
+  Lemma bid_bound_mono : forall s1 s2 b,
+      bid_bound s1 b ->
+      (block_count s1 <= block_count s2)%nat ->
+      bid_bound s2 b.
+  Proof.
+    intros; eapply state_bound_mono; eauto.
+  Qed.
+
   Lemma bid_bound_fresh :
     forall (s1 s2 : IRState) (bid bid' : block_id),
       bid_bound s1 bid ->

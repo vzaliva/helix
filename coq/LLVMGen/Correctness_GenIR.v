@@ -11,6 +11,7 @@ Require Import Helix.LLVMGen.VariableBinding.
 Require Import Helix.LLVMGen.BidBound.
 Require Import Helix.LLVMGen.LidBound.
 Require Import Helix.LLVMGen.StateCounters.
+Require Import Helix.LLVMGen.Context.
 
 Import ListNotations.
 
@@ -106,21 +107,6 @@ Section GenIR.
   Qed.
   Transparent add_comment.
 
-  Lemma wf_ocfg_bid_add_comment :
-    forall bks s,
-      wf_ocfg_bid (add_comment bks s) ->
-      wf_ocfg_bid bks.
-  Proof.
-    induction bks as [| bk bks IH]; cbn; auto.
-  Qed.
-
-  Lemma inputs_convert_typ : forall σ bks,
-      inputs (convert_typ σ bks) ≡ inputs bks.
-  Proof.
-    induction bks as [| bk bks IH]; cbn; auto.
-    f_equal; auto.
-  Qed.
-
   Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li : local_env)
     : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
     lift_Rel_cfg (state_invariant σ s2) ⩕
@@ -200,7 +186,7 @@ Section GenIR.
 
       pose proof generates_wf_ocfg_bids _ NEXT GEN as WFOCFG.
       pose proof inputs_bound_between _ _ _ GEN as INPUTS_BETWEEN.
-      pose proof genIR_Context _ _ _ GEN as GENIR_Γ.
+      pose proof genIR_Γ _ _ _ GEN as GENIR_Γ.
       pose proof genIR_local_count _ _ _ GEN as GENIR_local.
 
       (* We know that the Helix denotation can be expressed via the [tfor] operator *)
@@ -296,64 +282,11 @@ Section GenIR.
 
         pose proof Heqs3 as GENIR.
         eapply IHop in Heqs3; clear IHop; cycle 1.
-        - Set Nested Proofs Allowed.
-          Lemma bid_bound_mono : forall s1 s2 b,
-              bid_bound s1 b ->
-              (block_count s1 <= block_count s2)%nat ->
-              bid_bound s2 b.
-          Proof.
-            intros; eapply state_bound_mono; eauto.
-          Qed.
-          eapply bid_bound_mono.
+        - eapply bid_bound_mono.
           eapply bid_bound_incBlockNamed; eauto; reflexivity.
           erewrite newLocalVar_block_count; eauto.
 
-        - Transparent newLocalVar.
-          Lemma newLocalVar_Γ : forall τ prefix s1 s2 x,
-              newLocalVar τ prefix s1 ≡ inr (s2,x) ->
-              Γ s2 ≡ (ID_Local x,τ) :: Γ s1.
-          Proof.
-            intros * EQ; inv EQ; reflexivity.
-          Qed.
-          Lemma newLocalVar_local_count :
-            ∀ (s1 s2 : IRState) bid p x,
-              newLocalVar p x s1 ≡ inr (s2, bid) →
-              local_count s2 ≡ S (local_count s1).
-          Proof.
-            intros * EQ; inv EQ; reflexivity.
-          Qed.
-          Opaque newLocalVar.
-          Transparent dropVars.
-          Lemma dropVars_local_count :
-            ∀ (s1 s2 : IRState), 
-              dropVars 1 s1 ≡ inr (s2,tt) ->
-              local_count s1 ≡ local_count s2.
-          Proof.
-            cbn; intros * EQ; simp; auto. 
-          Qed.
-          Lemma dropVars_Γ :
-            forall s1 s2 hd tl,
-              dropVars 1 s1 ≡ inr (s2,tt) ->
-              Γ s1 ≡ hd::tl ->
-              Γ s2 ≡ tl.
-          Proof.
-            intros * DR EQ. cbn in *.
-            rewrite EQ in DR; cbn in *; inv DR.
-            reflexivity.
-          Qed.
-          Opaque dropVars.
-          Transparent genWhileLoop.
-          Lemma genWhile_local_count :
-            forall prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 s2 seg,
-              genWhileLoop prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 ≡ inr (s2, seg) ->
-              local_count s2 ≥ local_count s1.
-          Proof.
-            intros.
-            cbn in H; simp; __local_ltac; lia. 
-          Qed.
-          Opaque genWhileLoop.
-          
-          eapply state_invariant_enter_scope_DSHnat; eauto.
+        - eapply state_invariant_enter_scope_DSHnat; eauto.
           intros abs; eapply in_Gamma_Gamma_eq in abs; [| eapply incBlockNamed_Γ ; eauto].
           eapply GAM; eauto.
           eapply lid_bound_between_newLocalVar in Heqs2.
@@ -374,17 +307,6 @@ Section GenIR.
             inv H0.
             inv H.
             eapply lid_bound_earlier with (id1 := id) in BOUND.
-            Transparent newLocalVar.
-            Lemma newLocalVar_lid_bound :
-              forall s1 s2 prefix τ id,
-                is_correct_prefix prefix ->
-                newLocalVar τ prefix s1 ≡ inr (s2, id) ->
-                lid_bound s2 id.
-            Proof.
-              intros * PRE EQ; inv EQ; cbn.
-              do 3 eexists; repeat split; eauto.
-            Qed.
-            Opaque newLocalVar.
             2: eapply newLocalVar_lid_bound; eauto; reflexivity.
             2: solve_local_count.
             apply BOUND; auto.
@@ -424,7 +346,7 @@ Section GenIR.
           + eauto.
           + cbn in P1.
             eapply state_invariant_escape_scope; eauto.
-            erewrite <- genIR_Context; eauto.
+            erewrite <- genIR_Γ; eauto.
             eapply newLocalVar_Γ; eauto.
           + cbn in *.
             clear INV P1 P2.
@@ -437,23 +359,10 @@ Section GenIR.
       {
         subst I P; cbn.
         intros _ * BOUND INV; simp; auto.
-
-        Lemma state_invariant_add_fresh :
-          ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
-            (l : local_env) (g : global_env) (v : uvalue),
-            Gamma_safe σ s1 s2
-            -> lid_bound_between s1 s2 id
-            → state_invariant σ s1 memH (memV, (l, g))
-            → state_invariant σ s1 memH (memV, (alist_add id v l, g)).
-        Proof.
-          intros * GAM BOUND INV.
-          apply GAM in BOUND.
-          eapply state_invariant_same_Γ; eauto.
-        Qed.
         apply state_invariant_Γ with s1; eauto using incBlockNamed_Γ.
         eapply state_invariant_Γ with (s2 := s1) in INV; [| symmetry; eauto using incBlockNamed_Γ].
         eapply state_invariant_Γ in INV; [| symmetry; eassumption].
-        eapply state_invariant_add_fresh with s6; eauto.
+        eapply state_invariant_add_fresh' with s6; eauto.
         destruct BOUND as [BOUND | BOUND].
         - eapply lid_bound_between_shrink_down; [| apply BOUND].
           apply newLocalVar_local_count in Heqs2.
@@ -570,10 +479,10 @@ Section GenIR.
   (*     { *)
   (*       eapply IHop1 with (s1:=s_op1) (s2:=s2); eauto. *)
   (*       - eapply bid_bound_genIR_entry; eauto. *)
-  (*       - apply genIR_Context in GEN_OP2. *)
+  (*       - apply genIR_Γ in GEN_OP2. *)
   (*         eapply state_invariant_Γ; eauto. *)
   (*       - eapply Gamma_safe_shrink; eauto. *)
-  (*         eauto using genIR_Context. *)
+  (*         eauto using genIR_Γ. *)
   (*         solve_local_count. *)
   (*         solve_local_count. *)
   (*     } *)
@@ -588,9 +497,9 @@ Section GenIR.
   (*     2: { *)
   (*       eapply ISugoku kawaiikute muccha kininarimasu Hop2; try exact GEN_OP2; eauto. *)
   (*       - eapply state_invariant_Γ; eauto. *)
-  (*         apply genIR_Context in GEN_OP1; apply genIR_Context in GEN_OP2; rewrite GEN_OP2; auto. *)
+  (*         apply genIR_Γ in GEN_OP1; apply genIR_Context in GEN_OP2; rewrite GEN_OP2; auto. *)
   (*       - eapply Gamma_safe_shrink; eauto. *)
-  (*         eauto using genIR_Context. *)
+  (*         eauto using genIR_Γ. *)
   (*         solve_local_count. *)
   (*         solve_local_count. *)
   (*     }           *)
@@ -604,7 +513,7 @@ Section GenIR.
 
   (*     split; cbn; eauto. *)
   (*     eapply state_invariant_Γ; eauto. *)
-  (*     apply genIR_Context in GEN_OP1; auto. *)
+  (*     apply genIR_Γ in GEN_OP1; auto. *)
 
 (*
     -
@@ -918,7 +827,7 @@ Section GenIR.
           + cbn.
             split.
             * cbn.
-              apply genIR_Context in GEN_OP2.
+              apply genIR_Γ in GEN_OP2.
               split.
               -- unfold memory_invariant.
                  rewrite <- GEN_OP2.
@@ -955,8 +864,8 @@ Section GenIR.
           destruct INV2.
           split; cbn; auto.
           + split.
-            * apply genIR_Context in GEN_OP2.
-              apply genIR_Context in GEN_OP1.
+            * apply genIR_Γ in GEN_OP2.
+              apply genIR_Γ in GEN_OP1.
               unfold memory_invariant.
               subst_contexts.
               cbn.
@@ -967,8 +876,8 @@ Section GenIR.
             * (* TODO: turn this into a lemma *)
               cbn in st_no_llvm_ptr_aliasing0. cbn.
               unfold no_llvm_ptr_aliasing.
-              assert (Γ s1 ≡ Γ s_op1) by (eapply genIR_Context; eauto).
-              assert (Γ s_op1 ≡ Γ s2) by (eapply genIR_Context; eauto).
+              assert (Γ s1 ≡ Γ s_op1) by (eapply genIR_Γ; eauto).
+              assert (Γ s_op1 ≡ Γ s2) by (eapply genIR_Γ; eauto).
               assert (Γ s1 ≡ Γ s2) by congruence.
               rewrite H1.
               apply st_no_llvm_ptr_aliasing0.
@@ -1011,15 +920,15 @@ Section GenIR.
       split.
       split.
       + cbn.
-        apply genIR_Context in GEN_OP1.
+        apply genIR_Γ in GEN_OP1.
         rewrite <- GEN_OP1.
         apply MINV1.
       + auto.
       + eapply no_id_aliasing_gamma; eauto.
-        eapply genIR_Context; eauto.
+        eapply genIR_Γ; eauto.
       + eauto.
       + eapply no_llvm_ptr_aliasing_gamma; eauto.
-        eapply genIR_Context; eauto.
+        eapply genIR_Γ; eauto.
       + cbn. cbn in BRANCHES1.
         destruct BRANCHES1 as [from1' BRANCHES1].
         exists from1. inversion BRANCHES1.

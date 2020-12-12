@@ -448,6 +448,14 @@ Section Add_Comment.
     induction bs; intros env comments; auto.
   Qed.
 
+  Lemma wf_ocfg_bid_add_comment :
+    forall bks s,
+      wf_ocfg_bid (add_comment bks s) ->
+      wf_ocfg_bid bks.
+  Proof.
+    induction bks as [| bk bks IH]; cbn; auto.
+  Qed.
+
 End Add_Comment.
 
 Global Opaque interp_cfg_to_L3.
@@ -1282,4 +1290,4 @@ Proof.
 Admitted.
 
 Arguments alist_add : simpl never.
-
+Arguments String.append : simpl never.

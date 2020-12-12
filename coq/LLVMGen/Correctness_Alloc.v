@@ -6,6 +6,7 @@ Require Import Helix.LLVMGen.StateCounters.
 Require Import Helix.LLVMGen.VariableBinding.
 Require Import Helix.LLVMGen.BidBound.
 Require Import Helix.LLVMGen.LidBound.
+Require Import Helix.LLVMGen.Context.
 
 Set Nested Proofs Allowed.
 
@@ -194,7 +195,7 @@ Proof.
   rename x0 into allocated_ptr_addr.
   clear NOFAIL_cont. (* Re-check that this isn't necessary later in the proof*)
 
-  eapply genIR_Context in genIR_op'. cbn in *.
+  eapply genIR_Γ in genIR_op'. cbn in *.
   inversion genIR_op'; subst; clear genIR_op'.
 
   rewrite (@list_cons_app _ _ (convert_typ [] bk_op)).
@@ -256,7 +257,7 @@ Proof.
 
     {
       assert (genIR_op' := genIR_op).
-      apply genIR_Context in genIR_op.
+      apply genIR_Γ in genIR_op.
       rename Heqs0 into new_local_var.
 
       Transparent incBlockNamed.
@@ -294,7 +295,7 @@ Proof.
     Transparent newLocalVar.
     cbn* in *. simp. cbn* in *. rewrite H2.
 
-    apply genIR_Context in genIR_op. cbn in *. rewrite context_l0 in *.
+    apply genIR_Γ in genIR_op. cbn in *. rewrite context_l0 in *.
     inversion genIR_op. subst.
     clear -GAM context_l0.
 
@@ -318,7 +319,7 @@ Proof.
   (* Establish something between i0 and s1 *)
   {
     assert (genIR_op'' := genIR_op).
-    eapply genIR_Context in genIR_op. rewrite context_l0 in genIR_op.
+    eapply genIR_Γ in genIR_op. rewrite context_l0 in genIR_op.
     cbn in genIR_op. inversion genIR_op; subst.
     unfold genIR_post in UU. red in UU. unfold succ_rel_l in UU.
     try inversion UU.
@@ -394,15 +395,12 @@ Proof.
 
       eapply local_scope_modif_trans. 4 : eapply local_scope_modif_trans.
       6 : eauto.
-      red; cbn; lia. red; cbn; lia.
-      2 : red; cbn; lia. 2 : red; cbn; lia. 2 : apply local_scope_modif_refl.
-
+      1,2,4,5:cbn; solve_local_count.
+      2 : apply local_scope_modif_refl.
       apply local_scope_modif_add.
       eapply lid_bound_between_newLocalVar.
       2 : cbn; reflexivity. reflexivity.
   }
 
-  Unshelve.
-  all : eauto. 
 Qed.
 

@@ -3,6 +3,7 @@ Require Import Helix.LLVMGen.LidBound.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.VariableBinding.
 Require Import Helix.LLVMGen.StateCounters.
+Require Import Helix.LLVMGen.Context.
 
 From Coq Require Import ZArith.
 
@@ -231,14 +232,6 @@ Section SimulationRelations.
       nth_error (Γ s) n2 ≡ Some (id2, τ) ->
       in_local_or_global_addr ρ g id2 ptrv2 ->
       fst ptrv1 ≢ fst ptrv2.
-
-  Lemma incLocal_Γ:
-    forall s s' id,
-      incLocal s ≡ inr (s', id) ->
-      Γ s' ≡ Γ s.
-  Proof.
-    intros; cbn in *; inv_sum; reflexivity.
-  Qed.
 
   Lemma incLocal_no_id_aliasing :
     forall s1 s2 id σ,
@@ -593,14 +586,6 @@ Section SimulationRelations.
     symmetry; eapply incLocal_Γ; eauto.
   Qed.
 
-  Lemma incVoid_Γ:
-    forall s s' id,
-      incVoid s ≡ inr (s', id) ->
-      Γ s' ≡ Γ s.
-  Proof.
-    intros; cbn in *; inv_sum; reflexivity.
-  Qed.
-
   Lemma incVoid_no_id_aliasing :
     forall s1 s2 id σ,
       incVoid s1 ≡ inr (s2, id) ->
@@ -710,7 +695,6 @@ Section SimulationRelations.
     destruct BOUND as (? & ? & ? & ? & ? & ? & ?).
     cbn in *.
     inv H2; inv H6.
-    unfold IRState_lt in *.
     exfalso; eapply IdLemmas.valid_prefix_neq_differ; [| | | eassumption]; auto.
     lia.
   Qed.
@@ -1159,14 +1143,6 @@ Proof.
     eauto.
 Qed.
 
-Lemma incLocalNamed_Γ:
-  forall s s' msg id,
-    incLocalNamed msg s ≡ inr (s', id) ->
-    Γ s' ≡ Γ s.
-Proof.
-  intros; cbn in *; inv_sum; reflexivity.
-Qed.
-
 Lemma incLocalNamed_no_id_aliasing :
   forall s1 s2 msg id σ,
     incLocalNamed msg s1 ≡ inr (s2, id) ->
@@ -1285,6 +1261,19 @@ Proof.
   - destruct stV as (? & ? & ?); cbn in *; eapply no_llvm_ptr_aliasing_gamma; eauto.
 Qed.
 
+Lemma state_invariant_add_fresh' :
+  ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
+    (l : local_env) (g : global_env) (v : uvalue),
+    Gamma_safe σ s1 s2
+    -> lid_bound_between s1 s2 id
+    → state_invariant σ s1 memH (memV, (l, g))
+    → state_invariant σ s1 memH (memV, (alist_add id v l, g)).
+Proof.
+  intros * GAM BOUND INV.
+  apply GAM in BOUND.
+  eapply state_invariant_same_Γ; eauto.
+Qed.
+
 Lemma state_invariant_escape_scope : forall σ v x s1 s2 stH stV,
     Γ s1 ≡ x :: Γ s2 ->
     state_invariant (v::σ) s1 stH stV ->
@@ -1390,15 +1379,15 @@ Proof.
     eapply st_id_allocated0; eauto.
 Qed.
 
-(* TO FIX *)
-(* Lemma state_invariant_enter_scope_DSHCType : forall σ v x τ s1 s2 stH mV l g, *)
-(*     τ ≡ getWFType x DSHCType -> *)
-(*     Γ s1 ≡ (x,τ) :: Γ s2 -> *)
-(*     ~ In x (map fst (Γ s2)) -> *)
-(*     in_local_or_global_scalar l g mV x (dvalue_of_bin v) τ -> *)
-(*     state_invariant σ s2 stH (mV,(l,g)) -> *)
-(*     state_invariant (DSHCTypeVal v::σ) s1 stH (mV,(l,g)). *)
-(* Proof. *)
+(* TO FIX, although for now it us not used anywhere, so first check if we need it *)
+Lemma state_invariant_enter_scope_DSHCType : forall σ v x τ s1 s2 stH mV l g,
+    τ ≡ getWFType x DSHCType ->
+    Γ s1 ≡ (x,τ) :: Γ s2 ->
+    ~ In x (map fst (Γ s2)) ->
+    in_local_or_global_scalar l g mV x (dvalue_of_bin v) τ ->
+    state_invariant σ s2 stH (mV,(l,g)) ->
+    state_invariant (DSHCTypeVal v::σ) s1 stH (mV,(l,g)).
+Proof.
 (*   intros * -> EQ fresh IN [MEM WF ALIAS1 ALIAS2 ALIAS3]. *)
 (*   split. *)
 (*   - red; intros * LU1 LU2. *)
@@ -1460,7 +1449,7 @@ Qed.
 (*       admit. *)
 (*     + cbn in *; inv LU2. *)
 (*       admit. *)
-(* Admitted. *)
+Admitted.
 
 Lemma state_invariant_enter_scope_DSHPtr :
   forall σ ptrh sizeh ptrv x τ s1 s2 stH mV mV_a l g,
@@ -1681,196 +1670,17 @@ Hint Resolve memory_invariant_GLU memory_invariant_LLU memory_invariant_LLU_AExp
 Hint Resolve is_pure_refl: core.
 Hint Resolve local_scope_modif_refl: core.
 
-(* TODO: Move this, and remove Transparent / Opaque *)
-Lemma incLocal_unfold :
-  forall s,
-    incLocal s ≡ inr
-             ({|
-                 block_count := block_count s;
-                 local_count := S (local_count s);
-                 void_count := void_count s;
-                 Γ := Γ s
-               |}
-              , Name ("l" @@ string_of_nat (local_count s))).
-Proof.
-  intros s.
-  Transparent incLocal.
-  cbn.
-  reflexivity.
-  Opaque incLocal.
-Qed.
-
-(* TODO: Move this, and remove Transparent / Opaque *)
-Lemma incVoid_unfold :
-  forall s,
-    incVoid s ≡ inr
-            ({|
-                block_count := block_count s;
-                local_count := local_count s;
-                void_count := S (void_count s);
-                Γ := Γ s
-              |}
-             , Z.of_nat (void_count s)).
-Proof.
-  intros s.
-  Transparent incVoid.
-  cbn.
-  reflexivity.
-  Opaque incVoid.
-Qed.
-
-Lemma genNExpr_context :
-  forall nexp s1 s2 e c,
-    genNExpr nexp s1 ≡ inr (s2, (e,c)) ->
-    Γ s1 ≡ Γ s2.
-Proof.
-  induction nexp;
-    intros s1 s2 e c GEN;
-    cbn in GEN; simp;
-      repeat
-        match goal with
-        | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
-          destruct (nth_error (Γ s1) n); inversion H; subst
-        | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>
-          rewrite incLocal_unfold in H; cbn in H; inversion H; cbn; auto
-        | IH: ∀ (s1 s2 : IRState) (e : exp typ) (c : code typ), genNExpr ?nexp s1 ≡ inr (s2, (e, c)) → Γ s1 ≡ Γ s2,
-    GEN: genNExpr ?nexp _ ≡ inr _ |- _ =>
-  rewrite (IH _ _ _ _ GEN)
-  end; auto.
-Qed.
-
-Lemma genMExpr_context :
-  forall mexp s1 s2 e c,
-    genMExpr mexp s1 ≡ inr (s2, (e,c)) ->
-    Γ s1 ≡ Γ s2.
-Proof.
-  induction mexp;
-    intros s1 s2 e c GEN;
-    cbn in GEN; simp;
-      repeat
-        match goal with
-        | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
-          destruct (nth_error (Γ s1) n); inversion H; subst
-        | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>
-          rewrite incLocal_unfold in H; cbn in H; inversion H; cbn; auto
-        | IH: ∀ (s1 s2 : IRState) (e : exp typ) (c : code typ), genMExpr ?nexp s1 ≡ inr (s2, (e, c)) → Γ s1 ≡ Γ s2,
-    GEN: genMExpr ?nexp _ ≡ inr _ |- _ =>
-  rewrite (IH _ _ _ _ GEN)
-  end; auto.
-Qed.
-
-Hint Resolve genNExpr_context : helix_context.
-Hint Resolve genMExpr_context : helix_context.
+Hint Resolve genNExpr_Γ : helix_context.
+Hint Resolve genMExpr_Γ : helix_context.
 Hint Resolve incVoid_Γ        : helix_context.
 Hint Resolve incLocal_Γ       : helix_context.
 Hint Resolve incBlockNamed_Γ  : helix_context.
-
-Lemma genAExpr_context :
-  forall aexp s1 s2 e c,
-    genAExpr aexp s1 ≡ inr (s2, (e,c)) ->
-    Γ s1 ≡ Γ s2.
-Proof.
-  induction aexp;
-    intros s1 s2 e c GEN;
-    cbn in GEN; simp;
-      repeat
-        match goal with
-        | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
-          destruct (nth_error (Γ s1) n); inversion H; subst
-        | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>
-          rewrite incLocal_unfold in H; cbn in H; inversion H; cbn; auto
-        | H: incVoid ?s1 ≡ inr (?s2, _) |- _ =>
-          rewrite incVoid_unfold in H; cbn in H; inversion H; cbn; auto
-        | IH: ∀ (s1 s2 : IRState) (e : exp typ) (c : code typ), genAExpr ?aexp s1 ≡ inr (s2, (e, c)) → Γ s1 ≡ Γ s2,
-    GEN: genAExpr ?aexp _ ≡ inr _ |- _ =>
-  rewrite (IH _ _ _ _ GEN)
-| GEN: genNExpr _ _ ≡ inr _ |- _ =>
-  rewrite (genNExpr_context _ _ GEN)
-| GEN: genMExpr _ _ ≡ inr _ |- _ =>
-  rewrite (genMExpr_context _ _ GEN)
-  end; subst; auto.
-Qed.
-
-Hint Resolve genAExpr_context : helix_context.
-
-Ltac subst_contexts :=
-  repeat match goal with
-         | H : Γ ?s1 ≡ Γ ?s2 |- _ =>
-           rewrite H in *; clear H
-         end.
-
-Lemma genIR_Context:
-  ∀ (op : DSHOperator) (s1 s2 : IRState) (nextblock b : block_id) (bk_op : list (LLVMAst.block typ)),
-    genIR op nextblock s1 ≡ inr (s2, (b, bk_op)) →
-    Γ s1 ≡ Γ s2.
-Proof.
-  induction op;
-    intros s1 s2 nextblock b bk_op H;
-    cbn in H; simp;
-      repeat
-        (match goal with
-         | H : ErrorWithState.err2errS (MInt64asNT.from_nat ?n) ?s1 ≡ inr (?s2, _) |- _ =>
-           destruct (MInt64asNT.from_nat n); inversion H; subst
-         | H: _ :: Γ ?s1 ≡ Γ ?s2,
-              R: Γ ?s2 ≡ _ |- _ =>
-           rewrite <- H in R; inversion R; subst
-         | H: _ :: _ :: Γ ?s1 ≡ Γ ?s2,
-              R: Γ ?s2 ≡ _ |- _ =>
-           rewrite <- H in R; inversion R; subst
-         | H: _ :: _ :: _ :: Γ ?s1 ≡ Γ ?s2,
-              R: Γ ?s2 ≡ _ |- _ =>
-           rewrite <- H in R; inversion R; subst
-         | H: inl _ ≡ inr _ |- _ =>
-           inversion H
-         | H: inr (?i1, Γ ?s1) ≡ inr (?i2, Γ ?s2) |- _ =>
-           inversion H; clear H
-         | RES : resolve_PVar ?p ?s1 ≡ inr (?s2, ?x) |- _ =>
-           rewrite <- (@resolve_PVar_state p s1 s2 x RES) in *
-         | H: incBlockNamed _ _ ≡ inr _ |- _ =>
-           apply incBlockNamed_Γ in H
-         | H: incLocal _ ≡ inr _ |- _ =>
-           apply incLocal_Γ in H
-         | H: incVoid _ ≡ inr _ |- _ =>
-           apply incVoid_Γ in H
-         | GEN: genNExpr _ _ ≡ inr _ |- _ =>
-           apply genNExpr_context in GEN; cbn in GEN; inversion GEN; subst
-         | GEN: genMExpr _ _ ≡ inr _ |- _ =>
-           apply genMExpr_context in GEN; cbn in GEN; inversion GEN; subst
-         | GEN: genAExpr _ _ ≡ inr _ |- _ =>
-           apply genAExpr_context in GEN; cbn in GEN; inversion GEN; subst
-         | GEN : genIR ?op ?b ?s1 ≡ inr _ |- _ =>
-           apply IHop in GEN; cbn in GEN; eauto
-         end; cbn in *; subst);
-      subst_contexts;
-      auto.
-  - inversion Heqs; subst.
-    inv Heqs; auto.
-  - eapply IHop1 in Heqs2; eauto.
-    eapply IHop2 in Heqs0; eauto.
-    subst_contexts.
-    reflexivity.
-Qed.
-
-Hint Resolve genIR_Context  : helix_context.
-
-Ltac get_gammas :=
-  repeat
-    match goal with
-    | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>
-      eapply incLocal_Γ in H
-    | H: incVoid ?s1 ≡ inr (?s2, _) |- _ =>
-      eapply incVoid_Γ in H
-    | H: incBlockNamed ?msg ?s1 ≡ inr (?s2, _) |- _ =>
-      eapply incBlockNamed_Γ in H
-    | H: genNExpr ?n ?s1 ≡ inr (?s2, _) |- _ =>
-      eapply genNExpr_context in H
-    end.
-
-Ltac solve_gamma := solve [get_gammas; congruence].
+Hint Resolve genAExpr_Γ : helix_context.
+Hint Resolve genIR_Γ  : helix_context.
 
 (* TODO: expand this *)
 Ltac solve_gamma_safe :=
-  eapply Gamma_safe_shrink; eauto; [solve_gamma| |]; solve_local_count.
+  eapply Gamma_safe_shrink; eauto; [solve_gamma|..]; solve_local_count.
 
 (* TODO: expand this *)
 Ltac solve_local_scope_modif :=
@@ -1879,7 +1689,7 @@ Ltac solve_local_scope_modif :=
     [ eapply local_scope_modif_refl
     | solve [eapply local_scope_modif_shrink; [eassumption | solve_local_count | solve_local_count]]
     | solve [eapply local_scope_modif_add'; [solve_lid_bound_between | solve_local_scope_modif]]
-    | eapply local_scope_modif_trans; eauto; solve_local_count
+    | eapply local_scope_modif_trans; cycle 2; eauto; solve_local_count
     ].
 
 Ltac solve_gamma_preserved :=
@@ -1918,9 +1728,9 @@ Lemma incLocal_id_neq :
 Proof.
   intros s1 s2 s3 s4 id1 id2 GEN1 GEN2 COUNT.
   eapply incLocalNamed_count_gen_injective.
-  symmetry. rewrite incLocal_unfold in *. eapply GEN1.
-  symmetry. rewrite incLocal_unfold in *. eapply GEN2.
-  solve_local_count_tac.
+  symmetry; eapply GEN1.
+  symmetry; eapply GEN2.
+  solve_local_count.
   solve_prefix.
   solve_prefix.
 Qed.
