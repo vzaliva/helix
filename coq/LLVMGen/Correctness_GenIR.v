@@ -364,7 +364,47 @@ Section GenIR.
           apply genWhile_local_count in  Heqs6.
           solve_local_count.
 
-        - admit.
+        -
+          clear NOFAIL INPUTS_BETWEEN WFOCFG.
+          intros ? BOUND IN.
+          inv IN.
+          destruct n0 as [| idx].
+          + cbn in H. 
+            erewrite newLocalVar_Γ in H0; eauto.
+            inv H0.
+            inv H.
+            eapply lid_bound_earlier with (id1 := id) in BOUND.
+            Transparent newLocalVar.
+            Lemma newLocalVar_lid_bound :
+              forall s1 s2 prefix τ id,
+                is_correct_prefix prefix ->
+                newLocalVar τ prefix s1 ≡ inr (s2, id) ->
+                lid_bound s2 id.
+            Proof.
+              intros * PRE EQ; inv EQ; cbn.
+              do 3 eexists; repeat split; eauto.
+            Qed.
+            Opaque newLocalVar.
+            2: eapply newLocalVar_lid_bound; eauto; reflexivity.
+            2: solve_local_count.
+            apply BOUND; auto.
+
+          + rewrite nth_error_Sn in H.
+            eapply GAM; cycle 1. 
+            econstructor; eauto.
+            apply newLocalVar_Γ in Heqs2.
+            apply incBlockNamed_Γ in Heqs1.
+            rewrite <- Heqs1.
+            rewrite Heqs2 in H0.
+            rewrite nth_error_Sn in H0.
+            eauto.
+            eapply lid_bound_between_shrink.
+            eauto.
+            apply newLocalVar_local_count in Heqs2.
+            solve_local_count.
+            apply dropVars_local_count in Heqs5.
+            apply genWhile_local_count in  Heqs6.
+            solve_local_count.
 
         - admit.
 
