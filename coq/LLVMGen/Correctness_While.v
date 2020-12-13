@@ -448,7 +448,7 @@ Lemma genWhileLoop_tfor_ind:
       (* We assume that we know how to relate the iterations of the bodies *)
       (forall g li mV a k _label,
           (conj_rel (I k)
-                    (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k))
+                    (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k) /\ 0 <= k < n)
                     a (mV,(li,g))) ->
           eutt
             (fun a' '(memV, (l, (g, x))) =>
@@ -690,13 +690,14 @@ Proof.
     eapply FBODY.
     {
       (* A bit of arithmetic is needed to prove that we have the right precondition *)
-      split.
+      split; [| split].
       + repeat (eapply STABLE; eauto).
         left; solve_lid_bound_between.
         left; eapply lid_bound_between_shrink; [eapply lid_bound_between_incLocalNamed; [| eauto]; eapply is_correct_prefix_append; auto | | ]; solve_local_count.
 
-      + rewrite alist_find_add_eq.
-        reflexivity.
+      + rewrite alist_find_add_eq; reflexivity.
+
+      + split; lia.
     }
 
     (* Step 4 : Back to starting from loopcontblock and have reestablished everything at the next index:
@@ -768,7 +769,7 @@ Lemma genWhileLoop_tfor_correct:
       (* We assume that we know how to relate the iterations of the bodies *)
       (forall g li mV a k _label,
           (conj_rel (I k)
-                    (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k))
+                    (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k) /\ 0 <= k < n)
                     a (mV,(li,g))) ->
           eutt
             (fun a' '(memV, (l, (g, x))) =>
@@ -933,12 +934,13 @@ Proof.
 
     + (* Base case : first iteration of loop. *)
       eapply IND.
-      split.
+      split; [| split].
       eapply STABLE; eauto.
       eapply STABLE; eauto.
       left; solve_lid_bound_between.
       unfold Maps.add, Map_alist.
-      apply alist_find_add_eq. 
+      apply alist_find_add_eq.
+      lia.
     + intros ? (? & ? & ? & ?) (LU & [? ->] & []).
       eapply eutt_Proper_mono.
       2: apply GEN_IND; eauto.

@@ -191,6 +191,8 @@ Section GenIR.
 
       (* We know that the Helix denotation can be expressed via the [tfor] operator *)
       rewrite DSHLoop_interpreted_as_tfor.
+      rewrite DSHLoop_interpreted_as_tfor in NOFAIL.
+
       cbn* in *; simp; cbn in *.
       rewrite add_comment_eutt.
       rename i into s1, i0 into s2, i1 into s3, i2 into s4, i3 into s5, s2 into s6.
@@ -237,7 +239,6 @@ Section GenIR.
 
       forward GENC; [clear GENC |].
       {
-        rename n into foo.
         clear -Heqs.
         unfold MInt64asNT.from_nat in Heqs.
         unfold MInt64asNT.from_Z in Heqs.
@@ -278,7 +279,23 @@ Section GenIR.
 
       forward GENC; [clear GENC |].
       {
-        subst I P; intros ? ? ? [[? []]|] * [INV LOOPVAR]; [| inv INV]; cbn in *.
+        subst I P; intros ? ? ? [[? []]|] * (INV & LOOPVAR & BOUNDk); [| inv INV]; cbn in *.
+
+        assert (EQk: MInt64asNT.from_nat k ≡ inr (Int64.repr (Z.of_nat k))).
+        {clear - BOUNDk Heqs.
+         destruct (MInt64asNT.from_nat k) eqn:EQ.
+         - exfalso.
+           unfold MInt64asNT.from_nat in *.
+           unfold MInt64asNT.from_Z in *.
+           simp; lia.
+         - unfold MInt64asNT.from_nat in *.
+           apply from_Z_intval in EQ.
+           rewrite EQ, repr_intval.
+           reflexivity.
+        }
+
+        rewrite EQk.
+        hred.
 
         pose proof Heqs3 as GENIR.
         eapply IHop in Heqs3; clear IHop; cycle 1.
@@ -297,8 +314,7 @@ Section GenIR.
           apply genWhile_local_count in  Heqs6.
           solve_local_count.
 
-        -
-          clear NOFAIL INPUTS_BETWEEN WFOCFG.
+        - clear NOFAIL INPUTS_BETWEEN WFOCFG.
           intros ? BOUND IN.
           inv IN.
           destruct n0 as [| idx].
@@ -328,14 +344,26 @@ Section GenIR.
             apply genWhile_local_count in  Heqs6.
             solve_local_count.
 
-        - admit.
-
-        - destruct (MInt64asNT.from_nat k) as [| kh] eqn:EQk.
+        - Set Nested Proofs Allowed.
+          Lemma no_failure_tfor : forall {E A} (body : nat -> option A -> itree E (option A)) n m a0,
+              no_failure (tfor body n m a0) ->
+              forall k a,
+                (n <= k < m)%nat ->
+                Returns a (tfor body n k a0) ->
+                no_failure (body k a).
+          Proof.
+          Admitted.
+          pose proof no_failure_tfor _ _ NOFAIL; clear NOFAIL.
+          specialize (H k (Some (m,tt))).
+          cbn in *.
+          forward H; auto.
+          forward H.
           { admit. }
-          hred.
-          apply from_Z_intval in EQk.
-          rewrite EQk,repr_intval in Heqs3.
-          eapply eutt_mon, Heqs3.
+          rewrite EQk in H.
+          apply no_failure_Ret in H.
+          auto.
+
+        - eapply eutt_mon, Heqs3.
           clear Heqs3 NOFAIL INPUTS_BETWEEN WFOCFG.
           intros [[? []]|] (mVf & lf & gf & ?) POST; [destruct POST as (P1 & P2 & P3) | inv POST].
           split; [| split; [| split]].
