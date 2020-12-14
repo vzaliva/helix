@@ -104,4 +104,48 @@ Section DSHLoop_is_tfor.
 
 End DSHLoop_is_tfor.
 
+(* The result is a branch *)
+Definition branches (to : block_id) (mh : memoryH * ()) (c : config_cfg_T (block_id * block_id + uvalue)) : Prop :=
+  match c with
+  | (m,(l,(g,res))) => exists from, res ≡ inl (from, to)
+  end.
+
+Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li : local_env)
+  : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
+  lift_Rel_cfg (state_invariant σ s2) ⩕
+               branches to ⩕
+               (fun sthf stvf => local_scope_modif s1 s2 li (fst (snd stvf))).
+
+Lemma DSHPower_correct:
+  ∀ (n : NExpr) (src dst : MemRef) (f : AExpr) (initial : binary64) (s1 s2 : IRState) (σ : evalContext) (memH : memoryH) (nextblock bid_in bid_from : block_id) (bks : list (LLVMAst.block typ)) (g : global_env) 
+    (ρ : local_env) (memV : memoryV),
+    genIR (DSHPower n src dst f initial) nextblock s1 ≡ inr (s2, (bid_in, bks))
+    → bid_bound s1 nextblock
+    → state_invariant σ s1 memH (memV, (ρ, g))
+    → Gamma_safe σ s1 s2
+    → no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ (DSHPower n src dst f initial)) memH)
+    → eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ)) (interp_helix (denoteDSHOperator σ (DSHPower n src dst f initial)) memH) (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from, bid_in)) g ρ memV).
+Proof.
+  intros n src dst f initial s1 s2 σ memH nextblock bid_in bid_from bks g ρ memV GEN NEXT PRE GAM NOFAIL.
+
+  cbn in * |-; simp.
+  rewrite DSHPower_as_tfor; cbn.
+  inv_resolve_PVar Heqs0.
+  inv_resolve_PVar Heqs1.
+  unfold denotePExpr in *.
+  cbn* in *.
+  destruct u.
+  simp; try_abs.
+  repeat apply no_failure_Ret in NOFAIL.
+  do 2 (apply no_failure_helix_LU in NOFAIL; destruct NOFAIL as (? & NOFAIL & ?); cbn in NOFAIL).
+
+  (* Symbolically reducing the concrete prefix on the Helix side *)
+  hred.
+  hstep; [eassumption |].
+  hred; hstep; [eassumption |].
+  hred.
+
+  (* Symbolically reducing the concrete prefix on the VIR side *)
+
+Admitted.
 
