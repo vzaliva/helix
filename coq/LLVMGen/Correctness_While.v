@@ -23,281 +23,6 @@ Import MonadNotation.
 Local Open Scope monad_scope.
 Local Open Scope nat_scope.
 
-Section DSHLoop_is_tfor.
-
-  (* The denotation of the [DSHLoop] combinator can be rewritten in terms of the [do_n] combinator.
-     So if we specify [genWhileLoop] in terms of this same combinator, then we might be good to go
-     with a generic spec that of [GenWhileLoop] that does not depend on Helix.
-   *)
-  Lemma DSHLoop_as_tfor: forall σ n op,
-      denoteDSHOperator σ (DSHLoop n op)
-                        ≈
-                        tfor (fun p _ => vp <- lift_Serr (MInt64asNT.from_nat p) ;;
-                                      denoteDSHOperator (DSHnatVal vp :: σ) op) 0 n tt.
-  Proof.
-    intros.
-    unfold tfor.
-    cbn.
-    eapply (eutt_iter'' (fun a '(b,_) => a ≡ b) (fun a '(b,_) => a ≡ b)); auto.
-    intros ? [? []] <-.
-    cbn.
-    break_match_goal.
-    apply eutt_Ret; auto.
-    rewrite bind_bind.
-    eapply eutt_eq_bind; intros ?.
-    eapply eutt_eq_bind; intros ?.
-    apply eutt_Ret; auto.
-  Qed.
-
-  (* The denotation of the [DSHLoop] combinator can be rewritten in terms of the [do_n] combinator.
-     So if we specify [genWhileLoop] in terms of this same combinator, then we might be good to go
-     with a generic spec that of [GenWhileLoop] that does not depend on Helix.
-   *)
-  Lemma DSHLoop_interpreted_as_tfor:
-    forall E σ n op m,
-      interp_helix (E := E) (denoteDSHOperator σ (DSHLoop n op)) m
-                   ≈
-                   tfor (fun k x => match x with
-                                 | None => Ret None
-                                 | Some (m',_) => interp_helix (vp <- lift_Serr (MInt64asNT.from_nat k) ;;
-                                                               denoteDSHOperator (DSHnatVal vp :: σ) op) m'
-                                 end)
-                   0 n (Some (m, ())).
-  Proof.
-    intros.
-    rewrite DSHLoop_as_tfor.
-    rewrite interp_helix_tfor; [|lia].
-    cbn.
-    apply eutt_tfor.
-    intros [[m' _]|] i; [| reflexivity].
-    rewrite interp_helix_bind.
-    rewrite bind_bind.
-    apply eutt_eq_bind; intros [[?m ?] |]; [| rewrite bind_ret_l; reflexivity].
-    bind_ret_r2.
-    apply eutt_eq_bind.
-    intros [|]; reflexivity.
-  Qed.
-
-  Definition DSHPower_tfor_body (σ : evalContext) (f : AExpr) (x y : mem_block) (xoffset yoffset : nat) (acc : mem_block) :=
-    xv <- lift_Derr (mem_lookup_err "Error reading 'xv' memory in denoteDSHBinOp" xoffset x) ;;
-    yv <- lift_Derr (mem_lookup_err "Error reading 'yv' memory in denoteDSHBinOp" yoffset acc) ;;
-    v' <- denoteBinCType σ f yv xv ;;
-    ret (mem_add yoffset v' acc).
-
-  Definition DSHPower_tfor
-             (σ: evalContext)
-             (n: nat)
-             (f: AExpr)
-             (x y: mem_block)
-             (xoffset yoffset: nat) :
-    itree Event mem_block
-    :=
-      tfor (fun i acc =>
-              DSHPower_tfor_body σ f x y xoffset yoffset acc
-           ) 0 n y.
-
-  Definition DSHPower_interpreted_tfor
-             {E}
-             (σ: evalContext)
-             (n: nat)
-             (f: AExpr)
-             (x y: mem_block)
-             (xoffset yoffset: nat) m
-    : itree E (option (memoryH * mem_block))
-    :=
-      tfor (fun i acc =>
-              match acc with
-              | None => Ret None
-              | Some (m',acc) =>
-                interp_helix (DSHPower_tfor_body σ f x y xoffset yoffset acc) m'
-              end
-           ) 0 n (Some (m, y)).
-
-  Lemma denoteDSHPower_as_tfor :
-    forall (σ: evalContext)
-      (n: nat)
-      (f: AExpr)
-      (x y: mem_block)
-      (xoffset yoffset: nat),
-      denoteDSHPower σ n f x y xoffset yoffset
-                     ≈
-                     DSHPower_tfor σ n f x y xoffset yoffset.
-  Proof.
-    intros σ n; revert σ.
-    induction n; unfold DSHPower_tfor; intros σ f x y xoffset yoffset.
-    - cbn.
-      rewrite tfor_0.
-      reflexivity.
-    - cbn.
-      rewrite tfor_unroll_down; [|lia|].
-      + cbn.
-        repeat setoid_rewrite bind_bind.
-        eapply eutt_clo_bind; [reflexivity|].
-        intros u1 u2 H.
-        eapply eutt_clo_bind; [reflexivity|].
-        intros u0 u3 H0.
-        subst.
-        eapply eutt_clo_bind; [reflexivity|].
-        intros u1 u0 H.
-        rewrite bind_ret_l.
-        unfold DSHPower_tfor in IHn.
-        subst.
-        apply IHn.
-      + intros x0 i j.
-        reflexivity.
-  Qed.
-
-  Lemma denoteDSHPower_interpreted_as_tfor :
-    forall (σ: evalContext)
-      (n: nat)
-      (f: AExpr)
-      (x y: mem_block)
-      (xoffset yoffset: nat) m E,
-      interp_helix (E:=E) (denoteDSHPower σ n f x y xoffset yoffset) m
-                     ≈
-                     DSHPower_interpreted_tfor σ n f x y xoffset yoffset m.
-  Proof.
-    intros.
-    rewrite denoteDSHPower_as_tfor.
-    unfold DSHPower_tfor.
-    rewrite interp_helix_tfor; [|lia].
-    cbn.
-    apply eutt_tfor.
-    intros [[m' acc]|] i; [| reflexivity].
-    unfold DSHPower_tfor_body.
-    cbn.
-    repeat rewrite interp_helix_bind.
-    rewrite bind_bind.
-    apply eutt_eq_bind; intros [[?m ?] |]; [| rewrite bind_ret_l; reflexivity].
-    bind_ret_r2.
-    apply eutt_eq_bind.
-    intros [|]; reflexivity.
-  Qed.
-
-  Lemma DSHPower_as_tfor : forall σ ne x_p xoffset y_p yoffset f initial,
-      denoteDSHOperator σ (DSHPower ne (x_p,xoffset) (y_p,yoffset) f initial)
-                        ≈
-                        '(x_i,x_size) <- denotePExpr σ x_p ;;
-      '(y_i,y_sixe) <- denotePExpr σ y_p ;;
-      x <- trigger (MemLU "Error looking up 'x' in DSHPower" x_i) ;;
-      y <- trigger (MemLU "Error looking up 'y' in DSHPower" y_i) ;;
-      n <- denoteNExpr σ ne ;; (* [n] denoteuated once at the beginning *)
-      xoff <- denoteNExpr σ xoffset ;;
-      yoff <- denoteNExpr σ yoffset ;;
-      let y' := mem_add (MInt64asNT.to_nat yoff) initial y in
-      y'' <-  DSHPower_tfor σ (MInt64asNT.to_nat n) f x y' (MInt64asNT.to_nat xoff) (MInt64asNT.to_nat yoff) ;;
-      trigger (MemSet y_i y'').
-  Proof.
-    intros σ ne x_p xoffset y_p yoffset f initial.
-    unfold denoteDSHOperator.
-    cbn.
-    repeat (eapply eutt_clo_bind; [reflexivity|intros; try break_match_goal; subst]).
-    setoid_rewrite denoteDSHPower_as_tfor.
-    reflexivity.
-  Qed.
-
-  Lemma DSHPower_intepreted_as_tfor : forall σ ne x_p xoffset y_p yoffset f initial E m,
-      interp_helix (E := E) (denoteDSHOperator σ (DSHPower ne (x_p,xoffset) (y_p,yoffset) f initial)) m
-                        ≈
-      interp_helix (E := E)
-      ('(x_i,x_size) <- denotePExpr σ x_p ;;
-       '(y_i,y_sixe) <- denotePExpr σ y_p ;;
-       x <- trigger (MemLU "Error looking up 'x' in DSHPower" x_i) ;;
-       y <- trigger (MemLU "Error looking up 'y' in DSHPower" y_i) ;;
-       n <- denoteNExpr σ ne ;; (* [n] denoteuated once at the beginning *)
-       xoff <- denoteNExpr σ xoffset ;;
-       yoff <- denoteNExpr σ yoffset ;;
-       let y' := mem_add (MInt64asNT.to_nat yoff) initial y in
-       y'' <-  DSHPower_tfor σ (MInt64asNT.to_nat n) f x y' (MInt64asNT.to_nat xoff) (MInt64asNT.to_nat yoff) ;;
-       trigger (MemSet y_i y')) m.
-  Proof.
-    intros σ ne x_p xoffset y_p yoffset f initial E m.
-    rewrite DSHPower_as_tfor.
-    cbn.
-
-    repeat rewrite interp_helix_bind.
-    eapply eutt_eq_bind; intros [[?m ?] |]; try reflexivity.
-    destruct p.
-
-    repeat rewrite interp_helix_bind.
-    eapply eutt_eq_bind; intros [[?m ?] |]; try reflexivity.
-    destruct p.
-
-    repeat (repeat rewrite interp_helix_bind;
-            eapply eutt_eq_bind; intros [[?m ?] |]; try reflexivity).
-  Abort.
-
-  Definition DSHPower_code (px py xv yv : raw_id) (xtyp xptyp : typ) (x : ident) (src_nexpr : exp typ) (fexpr : exp typ) (fexpcode : code typ) (storeid1 : int) :=
-    [
-      (IId px,  INSTR_Op (OP_GetElementPtr
-                            xtyp (xptyp, (EXP_Ident x))
-                            [(IntType, EXP_Integer 0%Z);
-                            (IntType, src_nexpr)]
-
-      ));
-    (IId xv, INSTR_Load false TYPE_Double
-                        (TYPE_Pointer TYPE_Double,
-                         (EXP_Ident (ID_Local px)))
-                        (ret 8%Z));
-    (IId yv, INSTR_Load false TYPE_Double
-                        (TYPE_Pointer TYPE_Double,
-                         (EXP_Ident (ID_Local py)))
-                        (ret 8%Z))
-    ]
-      ++ fexpcode ++
-      [
-        (IVoid storeid1, INSTR_Store false
-                                     (TYPE_Double, fexpr)
-                                     (TYPE_Pointer TYPE_Double,
-                                      (EXP_Ident (ID_Local py)))
-                                     (ret 8%Z))
-      ].
-
-  Definition DSHPower_block body_block_id loopcontblock (px py xv yv : raw_id) (xtyp xptyp : typ) (x : ident) (src_nexpr : exp typ) (fexpr : exp typ) (fexpcode : code typ) (storeid1 : int) : LLVMAst.block typ :=
-    {|
-    blk_id    := body_block_id ;
-    blk_phis  := [];
-    blk_code  := DSHPower_code px py xv yv xtyp xptyp x src_nexpr fexpr fexpcode storeid1;
-    blk_term  := TERM_Br_1 loopcontblock;
-    blk_comments := None
-    |}.
-
-  Lemma DSHPower_body_eutt :
-    forall σ f x y xoffset yoffset acc px py xv yv xtyp xptyp x_c src_nexpr fexpr fexpcode storeid loopcontblock g li mV mH _label body_entry,
-          eutt
-            (fun x y => True)
-            (interp_helix (DSHPower_tfor_body σ f x y xoffset yoffset acc) mH)
-            (interp_cfg (denote_ocfg (convert_typ [] [(DSHPower_block body_entry loopcontblock px py xv yv xtyp xptyp x_c src_nexpr fexpr fexpcode storeid)]) (_label, body_entry)) g li mV).
-  Proof.
-    intros σ f x y xoffset yoffset acc px py xv yv xtyp xptyp x_c src_nexpr fexpr fexpcode storeid loopcontblock
-           g li mV mH _label body_entry.
-    cbn* in *; simp.
-    break_match_goal; simp.
-    - admit.
-    - break_match_goal; simp.
-      + admit.
-      + unfold DSHPower_block. cbn.
-        unfold fmap. unfold Fmap_block.
-        cbn.
-        rewrite denote_ocfg_unfold_in.
-        2: { apply find_block_eq; auto. }
-
-        cbn.
-        rewrite denote_block_unfold.
-        cbn.
-        vstep.
-        hstep.
-        rewrite denote_no_phis.
-        rewrite bind_ret_l.
-        vstep.
-        rewrite denote_code_cons.
-  Abort.
-
-End DSHLoop_is_tfor.
-
-(* TODO: Move to Prelude *)
-Definition uvalue_of_nat k := UVALUE_I64 (Int64.repr (Z.of_nat k)).
-
 From Paco Require Import paco.
 From ITree Require Import Basics.HeterogeneousRelations.
 
@@ -321,7 +46,6 @@ Proof.
       destruct REL. right. apply CIH. assumption. assumption.
       destruct H.
 Qed.
-
 
 Lemma fold_left_acc_app : forall {a t} (l : list t) (f : t -> list a) acc,
     (fold_left (fun acc bk => acc ++ f bk) l acc ≡
@@ -589,12 +313,15 @@ Lemma genWhileLoop_tfor_ind:
       (NO_OVERFLOW : (Z.of_nat n < Int64.modulus)%Z)
 
       (* Main relations preserved by iteration *)
-      (I : nat (* -> A *) -> A -> _),
+      (I : nat (* -> A *) -> A -> _)
+      a0,
 
       (* We assume that we know how to relate the iterations of the bodies *)
       (forall g li mV a k _label,
           (conj_rel (I k)
-                    (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k))
+                    (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k)
+                                        /\ j <= k < n
+                                        /\ Returns a (tfor bodyF j k a0))
                     a (mV,(li,g))) ->
           eutt
             (fun a' '(memV, (l, (g, x))) =>
@@ -607,45 +334,40 @@ Lemma genWhileLoop_tfor_ind:
       ) ->
 
       (* Invariant is stable under the administrative bookkeeping that the loop performs *)
-      (forall a sa b sb c sc d sd e se msg msg' msg'',
-          incBlockNamed msg s1 ≡ inr (sa, a) ->
-          incBlockNamed msg' sa ≡ inr (sb, b) ->
-          incLocal sb ≡ inr (sc,c) ->
-          incLocal sc ≡ inr (sd,d) ->
-          incLocalNamed msg'' sd ≡ inr (se, e) ->
-          forall k a l mV g id v,
-            id ≡ c \/ id ≡ d \/ id ≡ e \/ id ≡ loopvar ->
-            I k a (mV, (l, g)) ->
-            I k a (mV, ((alist_add id v l), g))) ->
+      (forall k a l mV g id v,
+          (lid_bound_between s1 s2 id \/ lid_bound_between sb1 sb2 id) ->
+          I k a (mV, (l, g)) ->
+          I k a (mV, ((alist_add id v l), g))) ->
+
       sb1 << sb2 ->
       local_count sb2 ≡ local_count s1 ->
 
     (* Main result. Need to know initially that P holds *)
-    forall g li mV a _label,
+    forall g li mV _label,
       (conj_rel
          (I j)
          (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat (j - 1)))
-         a (mV,(li,g))
+         a0 (mV,(li,g))
       ) ->
       eutt (fun a '(memV, (l, (g,x))) =>
               x ≡ inl (loopcontblock, nextblock) /\
               I n a (memV,(l,g)) /\
               local_scope_modif sb1 s2 li l
            )
-           (tfor bodyF j n a)
+           (tfor bodyF j n a0)
            (interp_cfg (denote_ocfg (convert_typ [] bks)
                                                 (_label, loopcontblock)) g li mV).
-Proof.
+Proof. 
   intros * IN PREF UNIQUE_IDENTS LOOPVAR_SCOPE NEXTBLOCK_ID * GEN A *. 
   unfold genWhileLoop in GEN. cbn* in GEN. simp.
   intros BOUND OVER * FBODY STABLE LAB LAB'.
 
   remember (n - j) as k eqn:K_EQ.
-  revert j K_EQ BOUND.
-  induction k as [| k IH]; intros j EQidx.
+  revert j a0 K_EQ BOUND FBODY.
+  induction k as [| k IH]; intros j a0 EQidx.
 
   - (* Base case: we enter through [loopcontblock] and jump out immediately to [nextblock] *)
-    intros  BOUND * (INV & LOOPVAR).
+    intros BOUND FBODY * (INV & LOOPVAR).
     Import ProofMode.
     (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
     apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_ocfg_app in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS.
@@ -658,7 +380,7 @@ Proof.
     (* We jump into [loopcontblock]
        We denote the content of the block.
      *)
- 
+  
     vjmp.
 
     cbn.
@@ -707,16 +429,14 @@ Proof.
 
     rewrite tfor_0.
     (* We have only touched local variables that the invariant does not care about, we can reestablish it *)
+    rename s2 into FINAL_STATE, i into s2, i0 into s3, i1 into s4, i2 into s5.
     apply eutt_Ret.
     split; split.
-    + eapply STABLE; eauto.
-    + rename s2 into FINAL_STATE,
-              i into s2,
-              i0 into s3,
-              i1 into s4,
-              i2 into s5.
+    + eapply STABLE; [left; solve_lid_bound_between |].
+      eapply STABLE; [| eauto].
+      left; eapply lid_bound_between_shrink; [eapply lid_bound_between_incLocalNamed; [| eauto]; eapply is_correct_prefix_append; auto | | ]; solve_local_count.
 
-      eapply local_scope_modif_add'.
+    + eapply local_scope_modif_add'.
       solve_lid_bound_between.
       eapply local_scope_modif_add'.
       eapply lid_bound_between_shrink_down with (s2 := s5).
@@ -725,7 +445,7 @@ Proof.
       apply string_forall_append. auto. auto. auto.
 
   - (* Inductive case *)
-    cbn in *. intros [LT LE] * (INV & LOOPVAR).
+    cbn in *. intros [LT LE] FBODY * (INV & LOOPVAR).
     (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
     apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_ocfg_app in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS.
     apply free_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_ocfg_app in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID.
@@ -827,24 +547,40 @@ Proof.
     destruct j as [| j]; [lia |].
     rewrite tfor_unroll; [| lia].
 
-    eapply eutt_clo_bind.
+    eapply eutt_clo_bind_returns.
     (* We can now use the body hypothesis *)
     eapply FBODY.
     {
       (* A bit of arithmetic is needed to prove that we have the right precondition *)
-      split.
+      split; [| split; [| split]].
       + repeat (eapply STABLE; eauto).
+        left; solve_lid_bound_between.
+        left; eapply lid_bound_between_shrink; [eapply lid_bound_between_incLocalNamed; [| eauto]; eapply is_correct_prefix_append; auto | | ]; solve_local_count.
 
-      + rewrite alist_find_add_eq.
-        reflexivity.
+      + rewrite alist_find_add_eq; reflexivity.
+
+      + lia.
+
+      + rewrite tfor_0; apply ReturnsRet; reflexivity.
     }
 
     (* Step 4 : Back to starting from loopcontblock and have reestablished everything at the next index:
         conclude by IH *)
-    intros a1 (m1 & l1 & g1 & ?) (LOOPVAR' & [? ->] & (IH' & LOC)).
+    intros a1 (m1 & l1 & g1 & ?) (LOOPVAR' & [? ->] & (IH' & LOC)) RET1 _.
 
     eapply eqit_mon; auto.
-    2 : apply IH; try lia; try split; auto.
+    2 :{
+      eapply IH.
+      lia.
+      lia.
+     - intros * (? & ? & ? & ?).
+        apply FBODY.
+        do 3 (split; auto).
+        lia.
+        rewrite tfor_unroll; [| lia]. 
+        eapply Returns_bind; eauto.
+     - split; auto.
+    }     
     intros acc (mf & lf & gf & ?) (? & INV' & LOC').
     split; try split; auto.
     subst.
@@ -856,7 +592,6 @@ Proof.
     eapply local_scope_modif_trans'.
     2:{
       eapply local_scope_modif_shrink; eauto.
-      solve_local_count.
       solve_local_count.
     }
     repeat apply local_scope_modif_add'. 
@@ -904,12 +639,16 @@ Lemma genWhileLoop_tfor_correct:
       (NO_OVERFLOW : (Z.of_nat n < Int64.modulus)%Z)
 
       (* Main relations preserved by iteration *)
-      (I : nat -> _) P Q,
+      (I : nat -> _) P Q
+      (* Initial value of the accumulator *)
+      a0,
 
       (* We assume that we know how to relate the iterations of the bodies *)
       (forall g li mV a k _label,
           (conj_rel (I k)
-                    (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k))
+                    (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k)
+                                        /\ k < n
+                                        /\ Returns a (tfor bodyF 0 k a0))
                     a (mV,(li,g))) ->
           eutt
             (fun a' '(memV, (l, (g, x))) =>
@@ -922,17 +661,11 @@ Lemma genWhileLoop_tfor_correct:
       )
       ->
 
-    (* Invariant is stable under the administrative bookkeeping that the loop performs *)
-    (forall a sa b sb c sc d sd e se msg msg' msg'',
-          incBlockNamed msg s1 ≡ inr (sa, a) ->
-          incBlockNamed msg' sa ≡ inr (sb, b) ->
-          incLocal sb ≡ inr (sc,c) ->
-          incLocal sc ≡ inr (sd,d) ->
-          incLocalNamed msg'' sd ≡ inr (se, e) ->
-          forall k a l mV g id v,
-            id ≡ c \/ id ≡ d \/ id ≡ e \/ id ≡ loopvar ->
-            I k a (mV, (l, g)) ->
-            I k a (mV, ((alist_add id v l), g))) ->
+      (* Invariant is stable under the administrative bookkeeping that the loop performs *)
+      (forall k a l mV g id v,
+          (lid_bound_between s1 s2 id \/ lid_bound_between sb1 sb2 id) ->
+          I k a (mV, (l, g)) ->
+          I k a (mV, ((alist_add id v l), g))) ->
 
       sb1 << sb2 ->
       local_count sb2 ≡ local_count s1 ->
@@ -942,13 +675,13 @@ Lemma genWhileLoop_tfor_correct:
     imp_rel (I n) Q ->
 
     (* Main result. Need to know initially that P holds *)
-    forall g li mV a _label,
-      P a (mV,(li,g)) ->
+    forall g li mV _label,
+      P a0 (mV,(li,g)) ->
       eutt (fun a '(memV, (l, (g,x))) =>
               (x ≡ inl (loopcontblock, nextblock) \/ x ≡ inl (entry_id, nextblock)) /\
               Q a (memV,(l,g)) /\
               local_scope_modif sb1 s2 li l)
-           (tfor bodyF 0 n a)
+           (tfor bodyF 0 n a0)
            (interp_cfg (denote_ocfg (convert_typ [] bks) (_label ,entry_id)) g li mV).
 Proof.
 
@@ -956,7 +689,7 @@ Proof.
   pose proof @genWhileLoop_tfor_ind as GEN_IND.
 
   specialize (GEN_IND prefix loopvar loopcontblock body_entry body_blocks nextblock entry_id s1 s2 sb1 sb2 bks).
-  specialize (GEN_IND IN PREFIX UNIQUE LOOPVAR EXIT n GEN).
+  specialize (GEN_IND IN PREFIX UNIQUE LOOPVAR EXIT n GEN A bodyF).
   unfold genWhileLoop in GEN. cbn* in GEN. simp.
   destruct n as [| n].
   - (* 0th index *)
@@ -994,10 +727,14 @@ Proof.
     apply eutt_Ret. cbn. split. right. reflexivity.
     split.
     + eapply post; eapply STABLE; eauto.
+      left; solve_lid_bound_between.
     + solve_local_scope_modif.
 
   - cbn in *.
-
+    specialize (GEN_IND 1).
+    forward GEN_IND; [lia |].
+    forward GEN_IND; [lia |].
+    
     (* Clean up convert_typ junk *)
     apply free_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_ocfg_app in EXIT; cbn in EXIT.
     apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE; cbn in UNIQUE; rewrite ?convert_typ_ocfg_app in UNIQUE; cbn in UNIQUE.
@@ -1052,7 +789,6 @@ Proof.
     vred.
     vred.
     inv VG.
-    (* show_cfg. *)
     
     rewrite denote_ocfg_prefix; cycle 1; auto.
     {
@@ -1064,15 +800,19 @@ Proof.
     vred.
 
     rewrite tfor_unroll; [| lia].
-    eapply eutt_clo_bind.
+    eapply eutt_clo_bind_returns.
 
     + (* Base case : first iteration of loop. *)
       eapply IND.
-      split.
+      split; [| split; [|split]].
       eapply STABLE; eauto.
+      eapply STABLE; eauto.
+      left; solve_lid_bound_between.
       unfold Maps.add, Map_alist.
-      apply alist_find_add_eq. 
-    + intros ? (? & ? & ? & ?) (LU & [? ->] & []).
+      apply alist_find_add_eq.
+      lia.
+      rewrite tfor_0; apply ReturnsRet; reflexivity.
+    + intros ? (? & ? & ? & ?) (LU & [? ->] & []) RET1 _.
       eapply eutt_Proper_mono.
       2: apply GEN_IND; eauto.
       { intros ? (? & ? & ? & ?) [-> []]; split; [|split]; eauto.
@@ -1082,13 +822,20 @@ Proof.
         2:{
           eapply local_scope_modif_shrink; eauto.
           solve_local_count.
-          solve_local_count.
         }
         repeat apply local_scope_modif_add'.
         3: apply local_scope_modif_refl.
         eapply lid_bound_between_shrink; eauto; solve_local_count.
         solve_lid_bound_between.
       }
-      lia.
-      split; eauto.
+      clear GEN_IND.
+      {
+        intros * (? & ? & ? & ?).
+        eapply IND.
+        do 3 (split; auto).
+        lia.
+        rewrite tfor_unroll; [| lia].
+        eapply Returns_bind; eauto.
+      }
+      split; auto.
 Qed.

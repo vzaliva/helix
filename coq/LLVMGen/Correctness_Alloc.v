@@ -6,6 +6,7 @@ Require Import Helix.LLVMGen.StateCounters.
 Require Import Helix.LLVMGen.VariableBinding.
 Require Import Helix.LLVMGen.BidBound.
 Require Import Helix.LLVMGen.LidBound.
+Require Import Helix.LLVMGen.Context.
 
 Set Nested Proofs Allowed.
 
@@ -194,7 +195,7 @@ Proof.
   rename x0 into allocated_ptr_addr.
   clear NOFAIL_cont. (* Re-check that this isn't necessary later in the proof*)
 
-  eapply genIR_Context in genIR_op'. cbn in *.
+  eapply genIR_Γ in genIR_op'. cbn in *.
   inversion genIR_op'; subst; clear genIR_op'.
 
   rewrite (@list_cons_app _ _ (convert_typ [] bk_op)).
@@ -256,7 +257,7 @@ Proof.
 
     {
       assert (genIR_op' := genIR_op).
-      apply genIR_Context in genIR_op.
+      apply genIR_Γ in genIR_op.
       rename Heqs0 into new_local_var.
 
       Transparent incBlockNamed.
@@ -276,30 +277,8 @@ Proof.
           apply genIR_local_count in genIR_op'. cbn in *.
           split; try split; try split; eauto. reflexivity.
         }
-        intro. apply H.
-        eapply In_nth_error in H3; destruct H3.
-        destruct (nth_error (Γ s1) x) eqn: nth_destruct.
-        2 : {
-          eapply map_nth_error_none in nth_destruct.
-          rewrite nth_destruct in H3.
-          inversion H3.
-        }
-
-        destruct p.
-
-        red in st_no_id_aliasing.
-        specialize (st_no_id_aliasing _ _ _ _ _ nth_destruct nth_destruct).
-        destruct st_no_id_aliasing as (? & ? & X).
-
-        esplit.
-        2 : {
-          rewrite nth_destruct.
-          eapply map_nth_error in nth_destruct.
-          rewrite nth_destruct in H3. cbn in H3; inversion H3; subst.
-          reflexivity.
-        }
-        2 : auto. exact X.
-      - (* ∀ s : Int64.int, ¬ List.In (DSHPtrVal (memory_next_key memH) s) σ *)
+        auto.
+     - (* ∀ s : Int64.int, ¬ List.In (DSHPtrVal (memory_next_key memH) s) σ *)
         intros. (* Use fact about memory_next_key *)
         pose proof @mem_block_exists_memory_next_key.
         destruct PRE.
@@ -308,8 +287,6 @@ Proof.
         intro. apply H.
         apply In_nth_error in H3. destruct H3.
         eapply st_id_allocated. apply H3.
-      - destruct PRE. clear -st_no_llvm_ptr_aliasing.
-        eauto.
     }
 
     Transparent incBlockNamed.
@@ -318,7 +295,7 @@ Proof.
     Transparent newLocalVar.
     cbn* in *. simp. cbn* in *. rewrite H2.
 
-    apply genIR_Context in genIR_op. cbn in *. rewrite context_l0 in *.
+    apply genIR_Γ in genIR_op. cbn in *. rewrite context_l0 in *.
     inversion genIR_op. subst.
     clear -GAM context_l0.
 
@@ -342,7 +319,7 @@ Proof.
   (* Establish something between i0 and s1 *)
   {
     assert (genIR_op'' := genIR_op).
-    eapply genIR_Context in genIR_op. rewrite context_l0 in genIR_op.
+    eapply genIR_Γ in genIR_op. rewrite context_l0 in genIR_op.
     cbn in genIR_op. inversion genIR_op; subst.
     unfold genIR_post in UU. red in UU. unfold succ_rel_l in UU.
     try inversion UU.
@@ -350,6 +327,7 @@ Proof.
 
     split; red; cbn; repeat break_let; subst.
     cbn in *.
+    (* TODO: avoid inlining this proof, figure out why it's true and derive it from a lemma *)
     destruct state_PRE. cbn in mem_is_inv.
     split.
     - cbn. intros. rewrite context_l0 in mem_is_inv.
@@ -378,9 +356,9 @@ Proof.
       specialize (IRState_is_WF v (S n)). cbn in IRState_is_WF. apply IRState_is_WF in H4.
       apply H4.
     - red. cbn in *. intros. red in st_no_id_aliasing.
-      rewrite context_l0 in st_no_id_aliasing. specialize (st_no_id_aliasing (S n) (S n')).
-      cbn in *. specialize (st_no_id_aliasing _ _ _ H4 H5). destruct st_no_id_aliasing.
-      inv H1. split; auto.
+      rewrite context_l0 in st_no_id_aliasing. specialize (st_no_id_aliasing (S n1) (S n2)).
+      cbn in *. specialize (st_no_id_aliasing _ _ _ _ _ H4 H5 H6 H7).
+      inv st_no_id_aliasing; auto.
     - unfold no_dshptr_aliasing in *. intros.
       specialize (st_no_dshptr_aliasing (S n) (S n')).
       cbn in st_no_dshptr_aliasing.
@@ -417,15 +395,12 @@ Proof.
 
       eapply local_scope_modif_trans. 4 : eapply local_scope_modif_trans.
       6 : eauto.
-      red; cbn; lia. red; cbn; lia.
-      2 : red; cbn; lia. 2 : red; cbn; lia. 2 : apply local_scope_modif_refl.
-
+      1,2,4,5:cbn; solve_local_count.
+      2 : apply local_scope_modif_refl.
       apply local_scope_modif_add.
       eapply lid_bound_between_newLocalVar.
       2 : cbn; reflexivity. reflexivity.
   }
 
-  Unshelve.
-  all : eauto. 
 Qed.
 

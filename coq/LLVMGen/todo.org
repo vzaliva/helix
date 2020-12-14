@@ -2,19 +2,21 @@
 
 ** State invariant
   
-*** TODO Definition
+*** DONE Definition
+    CLOSED: [2020-12-14 Mon 09:44]
 
     Almost certainly [no_id_aliasing] is incorrect: remove from its conclusion [exists v, nth_error σ n ≡ Some v]
 
 *** TODO Change of scope
 
     Need to fix proofs of
-    - [state_invariant_escape_scope],
-    - [state_invariant_enter_scope_DSHnat],
-    - [state_invariant_enter_scope_DSHCType],
-    - [state_invariant_enter_scope_DSHPtr]
+    - [state_invariant_escape_scope], (done)
+    - [state_invariant_enter_scope_DSHnat], (done)
+    - [state_invariant_enter_scope_DSHCType], (TODO but not used so far)
+    - [state_invariant_enter_scope_DSHPtr] (TODO: does not look immediate at first glance)
 
-** Loop operator
+** DONE Loop operator
+   CLOSED: [2020-12-14 Mon 09:43]
 
 *** DONE Generalizing [genWhileLoop_tfor_ind] and [genWhileLoop_tfor_correct]
     CLOSED: [2020-12-08 Tue 17:34]
@@ -26,7 +28,8 @@
     How can we lift this fact to the whole loop? We need to extend [genWhileLoop_tfor_correct] to assume such a postcondition is provided for the body, and lift it appropriately
     in the conclusion.
 
-*** TODO Applying [genWhileLoop_tfor_correct] concretely (Yannick on it)
+*** DONE Applying [genWhileLoop_tfor_correct] concretely (Yannick on it)
+    CLOSED: [2020-12-14 Mon 09:43]
 
     It is finicky to apply the lemma: [Ik, P, Q] need to be provided appropriately and a lot of minor proof obligations need to be discharged. TODO
 
@@ -81,6 +84,9 @@
 
    When it comes to non empty phi-nodes, we currently get back down to business by unfolding everything.
    We need a bit of theory there.
+
+** About add_comment
+   In the Prelude, [add_comment_eutt] and [add_comments_eutt]
    
 * Clean up
 

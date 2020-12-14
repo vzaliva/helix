@@ -73,6 +73,14 @@ Section BidBound.
     repeat (split; auto).
   Qed.
 
+  Lemma bid_bound_mono : forall s1 s2 b,
+      bid_bound s1 b ->
+      (block_count s1 <= block_count s2)%nat ->
+      bid_bound s2 b.
+  Proof.
+    intros; eapply state_bound_mono; eauto.
+  Qed.
+
   Lemma bid_bound_fresh :
     forall (s1 s2 : IRState) (bid bid' : block_id),
       bid_bound s1 bid ->
@@ -1158,5 +1166,15 @@ Proof.
 
     { eapply bid_bound_genIR_entry; eauto.
     }
+Qed.
+
+Lemma genWhileLoop_entry_in_scope : forall op b s1 s2 entry_body bodyV,
+    genIR op b s1 ≡ inr (s2, (entry_body, bodyV)) ->
+    In entry_body (inputs bodyV).
+Proof.
+  induction op; intros *; try (cbn; intros GEN; clear -GEN; simp; cbn; auto; fail).
+  cbn; intros GEN; simp.
+  rewrite add_comment_inputs, inputs_app.
+  apply ListUtil.in_appl; eauto.
 Qed.
 

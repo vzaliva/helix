@@ -3,6 +3,7 @@ Require Import Helix.LLVMGen.LidBound.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.VariableBinding.
 Require Import Helix.LLVMGen.StateCounters.
+Require Import Helix.LLVMGen.Context.
 
 From Coq Require Import ZArith.
 
@@ -201,12 +202,13 @@ Section SimulationRelations.
       nth_error σ n ≡ Some (DSHPtrVal addr val) ->
       mem_block_exists addr m.
 
-  Definition no_id_aliasing (s : IRState) (σ : evalContext) : Prop :=
-    forall n n' id τ τ',
-      (* WF_IRState σ s -> *) (* TODO: See if we need this? *)
-      nth_error (Γ s) n ≡ Some (id, τ) ->
-      nth_error (Γ s) n' ≡ Some (id, τ') ->
-      n' ≡ n /\ exists v, nth_error σ n ≡ Some v.
+  Definition no_id_aliasing (σ : evalContext) (s : IRState) : Prop :=
+    forall n1 n2 id τ τ' v1 v2,
+      nth_error σ n1 ≡ Some v1 ->
+      nth_error σ n2 ≡ Some v2 ->
+      nth_error (Γ s) n1 ≡ Some (id, τ) ->
+      nth_error (Γ s) n2 ≡ Some (id, τ') ->
+      n2 ≡ n1. 
 
   Definition no_llvm_ptr_aliasing (σ : evalContext) (s : IRState) (ρ : local_env) (g : global_env) : Prop :=
     forall (id1 : ident) (ptrv1 : addr) (id2 : ident) (ptrv2 : addr) n1 n2 τ τ' v1 v2,
@@ -231,19 +233,11 @@ Section SimulationRelations.
       in_local_or_global_addr ρ g id2 ptrv2 ->
       fst ptrv1 ≢ fst ptrv2.
 
-  Lemma incLocal_Γ:
-    forall s s' id,
-      incLocal s ≡ inr (s', id) ->
-      Γ s' ≡ Γ s.
-  Proof.
-    intros; cbn in *; inv_sum; reflexivity.
-  Qed.
-
   Lemma incLocal_no_id_aliasing :
     forall s1 s2 id σ,
       incLocal s1 ≡ inr (s2, id) ->
-      no_id_aliasing s1 σ ->
-      no_id_aliasing s2 σ.
+      no_id_aliasing σ s1 ->
+      no_id_aliasing σ s2.
   Proof.
     intros s1 s2 id * INC ALIAS.
     unfold no_id_aliasing in *.
@@ -253,17 +247,16 @@ Section SimulationRelations.
   Qed.
 
   Lemma no_id_aliasing_n_eq :
-    forall s σ n n' id τ τ',
-      no_id_aliasing s σ ->
+    forall s σ n n' id τ τ' v v',
+      no_id_aliasing σ s ->
+      nth_error σ n ≡ Some v ->
+      nth_error σ n' ≡ Some v' ->
       nth_error (Γ s) n ≡ Some (id, τ) ->
       nth_error (Γ s) n' ≡ Some (id, τ') ->
       n' ≡ n.
   Proof.
     intros s σ n n' id τ τ' ALIAS N1 N2.
-    edestruct ALIAS.
-    eapply N1.
-    eapply N2.
-    eauto.
+    edestruct ALIAS; eauto. 
   Qed.
 
   Definition no_local_global_alias (l : local_env) (g : global_env) (v : uvalue) : Prop :=
@@ -400,7 +393,7 @@ Section SimulationRelations.
     {
     mem_is_inv : memory_invariant σ s memH configV ;
     IRState_is_WF : WF_IRState σ s ;
-    st_no_id_aliasing : no_id_aliasing s σ ;
+    st_no_id_aliasing : no_id_aliasing σ s ;
     st_no_dshptr_aliasing : no_dshptr_aliasing σ ;
     st_no_llvm_ptr_aliasing : no_llvm_ptr_aliasing_cfg σ s configV ;
     st_id_allocated : id_allocated σ memH
@@ -593,19 +586,11 @@ Section SimulationRelations.
     symmetry; eapply incLocal_Γ; eauto.
   Qed.
 
-  Lemma incVoid_Γ:
-    forall s s' id,
-      incVoid s ≡ inr (s', id) ->
-      Γ s' ≡ Γ s.
-  Proof.
-    intros; cbn in *; inv_sum; reflexivity.
-  Qed.
-
   Lemma incVoid_no_id_aliasing :
     forall s1 s2 id σ,
       incVoid s1 ≡ inr (s2, id) ->
-      no_id_aliasing s1 σ ->
-      no_id_aliasing s2 σ.
+      no_id_aliasing σ s1 ->
+      no_id_aliasing σ s2.
   Proof.
     intros s1 s2 id SIG INC ALIAS.
     unfold no_id_aliasing in *.
@@ -710,7 +695,6 @@ Section SimulationRelations.
     destruct BOUND as (? & ? & ? & ? & ? & ? & ?).
     cbn in *.
     inv H2; inv H6.
-    unfold IRState_lt in *.
     exfalso; eapply IdLemmas.valid_prefix_neq_differ; [| | | eassumption]; auto.
     lia.
   Qed.
@@ -1159,19 +1143,11 @@ Proof.
     eauto.
 Qed.
 
-Lemma incLocalNamed_Γ:
-  forall s s' msg id,
-    incLocalNamed msg s ≡ inr (s', id) ->
-    Γ s' ≡ Γ s.
-Proof.
-  intros; cbn in *; inv_sum; reflexivity.
-Qed.
-
 Lemma incLocalNamed_no_id_aliasing :
   forall s1 s2 msg id σ,
     incLocalNamed msg s1 ≡ inr (s2, id) ->
-    no_id_aliasing s1 σ ->
-    no_id_aliasing s2 σ.
+    no_id_aliasing σ s1 ->
+    no_id_aliasing σ s2.
 Proof.
   intros s1 s2 msg id * INC ALIAS.
   unfold no_id_aliasing in *.
@@ -1205,8 +1181,8 @@ Qed.
 Lemma incBlockNamed_no_id_aliasing :
   forall s1 s2 msg id σ,
     incBlockNamed msg s1 ≡ inr (s2, id) ->
-    no_id_aliasing s1 σ ->
-    no_id_aliasing s2 σ.
+    no_id_aliasing σ s1 ->
+    no_id_aliasing σ s2.
 Proof.
   intros s1 s2 msg id * INC ALIAS.
   unfold no_id_aliasing in *.
@@ -1249,9 +1225,9 @@ Qed.
 
 Lemma no_id_aliasing_gamma :
   forall s1 s2 σ,
-    no_id_aliasing s1 σ ->
+    no_id_aliasing σ s1 ->
     Γ s1 ≡ Γ s2 ->
-    no_id_aliasing s2 σ.
+    no_id_aliasing σ s2.
 Proof.
   intros s1 s2 σ ALIAS GAMMA.
   unfold no_id_aliasing.
@@ -1285,6 +1261,19 @@ Proof.
   - destruct stV as (? & ? & ?); cbn in *; eapply no_llvm_ptr_aliasing_gamma; eauto.
 Qed.
 
+Lemma state_invariant_add_fresh' :
+  ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
+    (l : local_env) (g : global_env) (v : uvalue),
+    Gamma_safe σ s1 s2
+    -> lid_bound_between s1 s2 id
+    → state_invariant σ s1 memH (memV, (l, g))
+    → state_invariant σ s1 memH (memV, (alist_add id v l, g)).
+Proof.
+  intros * GAM BOUND INV.
+  apply GAM in BOUND.
+  eapply state_invariant_same_Γ; eauto.
+Qed.
+
 Lemma state_invariant_escape_scope : forall σ v x s1 s2 stH stV,
     Γ s1 ≡ x :: Γ s2 ->
     state_invariant (v::σ) s1 stH stV ->
@@ -1307,103 +1296,90 @@ Proof.
     rewrite EQ in LU.
     rewrite nth_error_Sn in LU;eauto.
 
-  - red; intros * LU1 LU2.
-    specialize (ALIAS1 (S n) (S n')).
+  - red; intros * LU1 LU2 LU3 LU4.
+    specialize (ALIAS1 (S n1) (S n2)).
     rewrite EQ, 2nth_error_Sn in ALIAS1.
     eapply ALIAS1 in LU1; eauto.
-    destruct LU1 as (SN & N).
-    inv SN.
-    auto.
   - red; intros * LU1 LU2.
     specialize (ALIAS2 (S n) (S n')).
     rewrite 2nth_error_Sn in ALIAS2.
     eapply ALIAS2 in LU1; eauto.
 
-  - do 2 red. intros * LU1 LU2 LU3 LU4 INEQ.
+  - do 2 red. intros * LU1 LU2 LU3 LU4 INEQ IN1 IN2.
     do 2 red in ALIAS3.
     specialize (ALIAS3 id1 ptrv1 id2 ptrv2 (S n1) (S n2)).
     rewrite !EQ, !nth_error_Sn in ALIAS3.
     eapply ALIAS3 in LU1; eauto.
-Admitted.
 
-Lemma state_invariant_enter_scope_DSHnat : forall σ v x τ s1 s2 stH mV l g,
-    τ ≡ getWFType x DSHnat ->
-    Γ s1 ≡ (x,τ) :: Γ s2 ->
-    ~ In x (map fst (Γ s2)) ->
-    in_local_or_global_scalar l g mV x (dvalue_of_int v) τ ->
-    state_invariant σ s2 stH (mV,(l,g)) ->
-    state_invariant (DSHnatVal v::σ) s1 stH (mV,(l,g)).
+  - red.
+    intros * LU.
+    eapply (st_id_allocated0 (S n)); eauto.
+Qed.
+
+(* TO MOVE *)
+Definition uvalue_of_nat k := UVALUE_I64 (Int64.repr (Z.of_nat k)).
+
+Lemma state_invariant_enter_scope_DSHnat : 
+  forall σ v prefix x s1 s2 stH mV l g,
+    newLocalVar IntType prefix s1 ≡ inr (s2, x) ->
+    ~ in_Gamma σ s1 x ->
+    l @ x ≡ Some (uvalue_of_nat v) ->
+    state_invariant σ s1 stH (mV,(l,g)) ->
+    state_invariant (DSHnatVal (Int64.repr (Z.of_nat v))::σ) s2 stH (mV,(l,g)).
 Proof.
-  intros * -> EQ fresh IN [MEM WF ALIAS1 ALIAS2 ALIAS3].
+  intros * EQ GAM LU [MEM WF ALIAS1 ALIAS2 ALIAS3]; inv EQ; cbn in *.
   split.
   - red; intros * LU1 LU2.
     destruct n as [| n].
-    + rewrite EQ in LU2; cbn in *.
-      inv LU1; inv LU2; auto.
+    + cbn in *; inv LU1; inv LU2; auto.
+      cbn; rewrite repr_intval; auto.
     + rewrite nth_error_Sn in LU1.
-      rewrite EQ, nth_error_Sn in LU2.
+      cbn in *.
       eapply MEM in LU2; eauto.
   -  do 2 red.
-     intros ? [| n] LU.
-     + cbn in LU.
-       inv LU.
-       rewrite EQ; cbn; eauto.
-     + rewrite nth_error_Sn in LU.
-       rewrite EQ,nth_error_Sn.
-       apply WF in LU; auto.
+     cbn.
+     intros ? [| n] LU'.
+     + cbn in LU'.
+       inv LU'.
+       cbn.
+       exists (ID_Local (Name (prefix @@ string_of_nat (local_count s1)))); reflexivity.
+     + rewrite nth_error_Sn in LU'.
+       rewrite nth_error_Sn.
+       apply WF in LU'; auto.
 
-  - red; intros * LU1 LU2.
-    destruct n as [| n], n' as [| n']; auto.
-    + rewrite EQ in LU2; cbn in *.
-      rewrite EQ in LU1; cbn in *.
-      inv LU1; inv LU2; auto. split; auto. eexists; auto.
+  - red; intros * LU1 LU2 LU3 LU4.
+    destruct n1 as [| n1], n2 as [| n2]; auto.
+    + exfalso. cbn in *.
+      apply GAM.
+      inv LU3; eapply mk_in_Gamma; eauto.
     + exfalso.
-      rewrite EQ, nth_error_Sn in LU2.
-      rewrite EQ in LU1.
-      cbn in *.
-      inv LU1.
-      apply fresh.
-      apply nth_error_In in LU2.
-      replace id with (fst (id,τ')) by reflexivity.
-      apply in_map; auto.
-
-    + exfalso.
-      rewrite EQ, nth_error_Sn in LU1.
-      rewrite EQ in LU2.
-      cbn in *.
-      inv LU2.
-      apply fresh.
-      apply nth_error_In in LU1.
-      replace id with (fst (id,τ)) by reflexivity.
-      apply in_map; auto.
-
-    + rewrite EQ, nth_error_Sn in LU1.
-      rewrite EQ, nth_error_Sn in LU2.
-      eapply ALIAS1 in LU1; apply LU1 in LU2; eauto.
-      destruct LU2; split; auto.
+      apply GAM; inv LU4; eapply mk_in_Gamma; eauto.
+    + inv LU3; inv LU4; eapply ALIAS1 in LU1; apply LU1 in LU2; eauto.
 
   - red; intros * LU1 LU2.
     destruct n as [| n], n' as [| n']; auto.
     + inv LU1.
-
     + inv LU2.
-
-
     + rewrite nth_error_Sn in LU1.
       rewrite nth_error_Sn in LU2.
       eapply ALIAS2 in LU1; apply LU1 in LU2; eauto.
 
-  - do 2 red. intros * LU1 LU2 LU3 LU4 INEQ.
+  - do 2 red. intros * LU1 LU2 LU3 LU4 INEQ IN1 IN2.
+    cbn in *.
     destruct n1 as [| n1], n2 as [| n2]; auto.
-    + cbn in LU1. inv LU1; inv LU2.
-      intros H H0.
-      admit. (* Probably need to make about locals only *)
-    + cbn in *; inv LU1.
-      admit.
-    + cbn in *; inv LU2.
-      admit.
-Admitted.
+    + cbn in *. inv LU1; inv LU2; inv LU3; inv LU4; auto.
+    + cbn in *; inv LU1; inv LU3; eauto.
+      cbn in *.
+      rewrite LU in IN1; inv IN1.
+    + cbn in *; inv LU2; inv LU4.
+      cbn in *; rewrite LU in IN2; inv IN2.
+    + cbn in *.
+      eapply ALIAS3; [exact LU1 | exact LU2 |..]; eauto.
+  - intros [| n] * LUn; [inv LUn |].
+    eapply st_id_allocated0; eauto.
+Qed.
 
+(* TO FIX, although for now it us not used anywhere, so first check if we need it *)
 Lemma state_invariant_enter_scope_DSHCType : forall σ v x τ s1 s2 stH mV l g,
     τ ≡ getWFType x DSHCType ->
     Γ s1 ≡ (x,τ) :: Γ s2 ->
@@ -1412,98 +1388,90 @@ Lemma state_invariant_enter_scope_DSHCType : forall σ v x τ s1 s2 stH mV l g,
     state_invariant σ s2 stH (mV,(l,g)) ->
     state_invariant (DSHCTypeVal v::σ) s1 stH (mV,(l,g)).
 Proof.
-  intros * -> EQ fresh IN [MEM WF ALIAS1 ALIAS2 ALIAS3].
-  split.
-  - red; intros * LU1 LU2.
-    destruct n as [| n].
-    + rewrite EQ in LU2; cbn in *.
-      inv LU1; inv LU2; auto.
-    + rewrite nth_error_Sn in LU1.
-      rewrite EQ, nth_error_Sn in LU2.
-      eapply MEM in LU2; eauto.
-  -  do 2 red.
-     intros ? [| n] LU.
-     + cbn in LU.
-       inv LU.
-       rewrite EQ; cbn; eauto.
-     + rewrite nth_error_Sn in LU.
-       rewrite EQ,nth_error_Sn.
-       apply WF in LU; auto.
+(*   intros * -> EQ fresh IN [MEM WF ALIAS1 ALIAS2 ALIAS3]. *)
+(*   split. *)
+(*   - red; intros * LU1 LU2. *)
+(*     destruct n as [| n]. *)
+(*     + rewrite EQ in LU2; cbn in *. *)
+(*       inv LU1; inv LU2; auto. *)
+(*     + rewrite nth_error_Sn in LU1. *)
+(*       rewrite EQ, nth_error_Sn in LU2. *)
+(*       eapply MEM in LU2; eauto. *)
+(*   -  do 2 red. *)
+(*      intros ? [| n] LU. *)
+(*      + cbn in LU. *)
+(*        inv LU. *)
+(*        rewrite EQ; cbn; eauto. *)
+(*      + rewrite nth_error_Sn in LU. *)
+(*        rewrite EQ,nth_error_Sn. *)
+(*        apply WF in LU; auto. *)
 
-  - red; intros * LU1 LU2.
-    destruct n as [| n], n' as [| n']; auto.
-    + rewrite EQ in LU2; cbn in *.
-      rewrite EQ in LU1; cbn in *.
-      inv LU1; inv LU2; auto. split; auto. eexists; auto.
-    + exfalso.
-      rewrite EQ, nth_error_Sn in LU2.
-      rewrite EQ in LU1.
-      cbn in *.
-      inv LU1.
-      apply fresh.
-      apply nth_error_In in LU2.
-      replace id with (fst (id,τ')) by reflexivity.
-      apply in_map; auto.
+(*   - red; intros * LU1 LU2 LU3 LU4. *)
+(*     destruct n1 as [| n1], n2 as [| n2]; auto. *)
+(*     + exfalso. *)
+(*       inv LU3; apply GAM. *)
+(*       apply nth_error_In in LU2. *)
+(*       replace id with (fst (id,τ')) by reflexivity. *)
+(*       apply in_map; auto. *)
 
-    + exfalso.
-      rewrite EQ, nth_error_Sn in LU1.
-      rewrite EQ in LU2.
-      cbn in *.
-      inv LU2.
-      apply fresh.
-      apply nth_error_In in LU1.
-      replace id with (fst (id,τ)) by reflexivity.
-      apply in_map; auto.
+(*     + exfalso. *)
+(*       rewrite EQ, nth_error_Sn in LU1. *)
+(*       rewrite EQ in LU2. *)
+(*       cbn in *. *)
+(*       inv LU2. *)
+(*       apply fresh. *)
+(*       apply nth_error_In in LU1. *)
+(*       replace id with (fst (id,τ)) by reflexivity. *)
+(*       apply in_map; auto. *)
 
-    + rewrite EQ, nth_error_Sn in LU1.
-      rewrite EQ, nth_error_Sn in LU2.
-      eapply ALIAS1 in LU1; apply LU1 in LU2; eauto.
-      destruct LU2; split; auto.
+(*     + rewrite EQ, nth_error_Sn in LU1. *)
+(*       rewrite EQ, nth_error_Sn in LU2. *)
+(*       eapply ALIAS1 in LU1; apply LU1 in LU2; eauto. *)
+(*       destruct LU2; split; auto. *)
 
-  - red; intros * LU1 LU2.
-    destruct n as [| n], n' as [| n']; auto.
-    + inv LU1.
+(*   - red; intros * LU1 LU2. *)
+(*     destruct n as [| n], n' as [| n']; auto. *)
+(*     + inv LU1. *)
 
-    + inv LU2.
+(*     + inv LU2. *)
 
 
-    + rewrite nth_error_Sn in LU1.
-      rewrite nth_error_Sn in LU2.
-      eapply ALIAS2 in LU1; apply LU1 in LU2; eauto.
+(*     + rewrite nth_error_Sn in LU1. *)
+(*       rewrite nth_error_Sn in LU2. *)
+(*       eapply ALIAS2 in LU1; apply LU1 in LU2; eauto. *)
 
-  - do 2 red. intros * LU1 LU2 LU3 LU4 INEQ.
-    destruct n1 as [| n1], n2 as [| n2]; auto.
-    + cbn in *.
-      inv LU1; inv LU2.
-      admit.
-    + cbn in *; inv LU1.
-      admit.
-    + cbn in *; inv LU2.
-      admit.
+(*   - do 2 red. intros * LU1 LU2 LU3 LU4 INEQ. *)
+(*     destruct n1 as [| n1], n2 as [| n2]; auto. *)
+(*     + cbn in *. *)
+(*       inv LU1; inv LU2. *)
+(*       admit. *)
+(*     + cbn in *; inv LU1. *)
+(*       admit. *)
+(*     + cbn in *; inv LU2. *)
+(*       admit. *)
 Admitted.
 
 Lemma state_invariant_enter_scope_DSHPtr :
   forall σ ptrh sizeh ptrv x τ s1 s2 stH mV mV_a l g,
     τ ≡ getWFType (ID_Local x) (DSHPtr sizeh) ->
-    Γ s1 ≡ (ID_Local x,τ) :: Γ s2 ->
+    Γ s2 ≡ (ID_Local x,τ) :: Γ s1 ->
 
     (* Freshness *)
-    ~ In (ID_Local x) (map fst (Γ s2)) ->          (* The new ident is fresh *)
+    ~ in_Gamma σ s1 x ->
+    (* ~ In (ID_Local x) (map fst (Γ s2)) ->          (* The new ident is fresh *) *)
     (forall sz, ~ In (DSHPtrVal ptrh sz) σ) -> (* The new Helix address is fresh *)
-    no_llvm_ptr_aliasing_cfg σ s2 (mV, (l, g)) ->
-
-    state_invariant σ s2 stH (mV,(l,g)) ->
 
     (* We know that a certain ptr has been allocated *)
-    allocate mV (DTYPE_Array (Z.to_N (Int64.intval sizeh)) DTYPE_Double) ≡
-             inr (mV_a, ptrv) ->
+    allocate mV (DTYPE_Array (Z.to_N (Int64.intval sizeh)) DTYPE_Double) ≡ inr (mV_a, ptrv) ->
 
-    state_invariant (DSHPtrVal ptrh sizeh :: σ) s1
+    state_invariant σ s1 stH (mV,(l,g)) ->
+
+    state_invariant (DSHPtrVal ptrh sizeh :: σ) s2
                     (memory_set stH ptrh mem_empty)
                     (mV_a, (alist_add x (UVALUE_Addr ptrv) l,g)).
 Proof.
   Opaque add_logical_block. Opaque next_logical_key.
-  intros * -> EQ fresh1 fresh2 fresh3 [MEM WF ALIAS1 ALIAS2 ALIAS3] alloc.
+  intros * -> EQ GAM fresh alloc [MEM WF ALIAS1 ALIAS2 ALIAS3 ALLOC].
   split.
   - red; intros * LU1 LU2.
     destruct n as [| n].
@@ -1530,8 +1498,9 @@ Proof.
     + rewrite nth_error_Sn in LU1.
       rewrite EQ, nth_error_Sn in LU2.
       eapply MEM in LU2; eauto.
-      (* Why do we have an admit here now? TO FIX *)
+  (* There is some reasoning on the memory (on [alloc] in particular) to be done here *)
       admit.
+
   - do 2 red.
     intros ? [| n] LU.
     + cbn in LU.
@@ -1542,54 +1511,34 @@ Proof.
       rewrite EQ,nth_error_Sn.
       apply WF in LU; auto.
 
-  - red; intros * LU1 LU2.
-    destruct n as [| n], n' as [| n']; auto.
-    + rewrite EQ in LU2; cbn in *.
-      rewrite EQ in LU1; cbn in *.
-      inv LU1; inv LU2; auto. split; auto. eexists; auto.
+  - red; intros * LU1 LU2 LU3 LU4.
+    destruct n1 as [| n1], n2 as [| n2]; auto.
 
     + exfalso.
-      rewrite EQ, nth_error_Sn in LU2.
-      rewrite EQ in LU1.
-      cbn in *.
-      inv LU1.
-      apply fresh1.
-      apply nth_error_In in LU2.
-      replace (ID_Local x) with (fst (ID_Local x,τ')) by reflexivity.
-      apply in_map; auto.
-
+      inv LU1; rewrite EQ in LU3; inv LU3.
+      rewrite EQ in LU4.
+      cbn in LU2.
+      cbn in LU4.
+      apply GAM; eapply mk_in_Gamma; eauto.
+ 
     + exfalso.
-      rewrite EQ, nth_error_Sn in LU1.
-      rewrite EQ in LU2.
-      cbn in *.
-      inv LU2.
-      apply fresh1.
-      apply nth_error_In in LU1.
-      replace (ID_Local x) with (fst (ID_Local x,τ)) by reflexivity.
-      apply in_map; auto.
+      inv LU2; rewrite EQ in LU4; inv LU4.
+      rewrite EQ in LU3.
+      apply GAM; eapply mk_in_Gamma; eauto.
 
-    + rewrite EQ in LU2; cbn in *.
-      rewrite EQ in LU1; cbn in *.
-      inv LU1; inv LU2; auto.
-      split.
-      assert (n ≡ n'). {
-        eapply ALIAS1; eauto.
-      } subst; auto.
-      admit.
+    + rewrite EQ in LU3,LU4; cbn in *.
+      f_equal. eapply ALIAS1; eauto.
 
   - red; intros * LU1 LU2.
     destruct n as [| n], n' as [| n']; auto.
     + cbn in *. inv LU1. exfalso.
-      eapply fresh2.
+      eapply fresh.
       apply nth_error_In in LU2. eauto.
     + cbn in *. inv LU2. exfalso.
-      eapply fresh2.
+      eapply fresh.
       apply nth_error_In in LU1. eauto.
     + cbn in *.
-      assert (n ≡ n'). {
-        eapply ALIAS2; eauto.
-      }
-      subst; auto.
+      f_equal; eapply ALIAS2; eauto.
 
   - do 2 red. intros * LU1 LU2 LU3 LU4 INEQ IN1 IN2.
     destruct n1 as [| n1], n2 as [| n2]; auto.
@@ -1599,28 +1548,41 @@ Proof.
       inv LU1; inv LU2; inv LU3; inv LU4.
       eauto.
     + rewrite EQ in LU3,LU4.
+      Opaque allocate.
+      clear MEM.
       cbn in *.
       inv LU1; inv LU3.
-      (* eapply fresh3 in IN1; eauto. *)
-      (* red in IN1, IN. *)
-      (* destruct id1; cbn; eauto. *)
-      (* rewrite IN1 in IN; inv IN; auto. *)
-      (* rewrite IN1 in IN; inv IN; auto. *)
-      admit.
+      cbn in *.
+      rewrite alist_find_add_eq in IN1; inv IN1.
+      red in ALLOC.
+      (* - ptrv1 is fresh in [mV] by alloc
+         - ptrv2 was already loaded in a variable stored in Gamma: it _should_ therefore has already been allocated.
+         -> do I already have the intel to prove that?
+         TO FIGURE OUT
+       *)
+
+     admit.
     + rewrite EQ in LU3,LU4.
+      Opaque allocate.
+      clear MEM.
       cbn in *.
       inv LU2; inv LU4.
-      (* eapply fresh3 in IN1; eauto. *)
-      (* red in IN2, IN. *)
-      (* destruct id2; cbn; eauto. *)
-      (* rewrite IN2 in IN; inv IN; auto. *)
-      (* rewrite IN2 in IN; inv IN; auto. *)
+      cbn in *.
+      rewrite alist_find_add_eq in IN2; inv IN2.
+      red in ALLOC.
+      (* - ptrv2 is fresh in [mV] by alloc
+         - ptrv1 was already loaded in a variable stored in Gamma: it _should_ therefore has already been allocated.
+         -> do I already have the intel to prove that?
+         TO FIGURE OUT
+       *)
+
       admit.
     + rewrite EQ in LU3,LU4.
       cbn in *.
       eapply ALIAS3.
       apply LU1.
       all:eauto.
+      admit.
 Admitted.
 
 Lemma vellvm_helix_ptr_size:
@@ -1708,196 +1670,17 @@ Hint Resolve memory_invariant_GLU memory_invariant_LLU memory_invariant_LLU_AExp
 Hint Resolve is_pure_refl: core.
 Hint Resolve local_scope_modif_refl: core.
 
-(* TODO: Move this, and remove Transparent / Opaque *)
-Lemma incLocal_unfold :
-  forall s,
-    incLocal s ≡ inr
-             ({|
-                 block_count := block_count s;
-                 local_count := S (local_count s);
-                 void_count := void_count s;
-                 Γ := Γ s
-               |}
-              , Name ("l" @@ string_of_nat (local_count s))).
-Proof.
-  intros s.
-  Transparent incLocal.
-  cbn.
-  reflexivity.
-  Opaque incLocal.
-Qed.
-
-(* TODO: Move this, and remove Transparent / Opaque *)
-Lemma incVoid_unfold :
-  forall s,
-    incVoid s ≡ inr
-            ({|
-                block_count := block_count s;
-                local_count := local_count s;
-                void_count := S (void_count s);
-                Γ := Γ s
-              |}
-             , Z.of_nat (void_count s)).
-Proof.
-  intros s.
-  Transparent incVoid.
-  cbn.
-  reflexivity.
-  Opaque incVoid.
-Qed.
-
-Lemma genNExpr_context :
-  forall nexp s1 s2 e c,
-    genNExpr nexp s1 ≡ inr (s2, (e,c)) ->
-    Γ s1 ≡ Γ s2.
-Proof.
-  induction nexp;
-    intros s1 s2 e c GEN;
-    cbn in GEN; simp;
-      repeat
-        match goal with
-        | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
-          destruct (nth_error (Γ s1) n); inversion H; subst
-        | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>
-          rewrite incLocal_unfold in H; cbn in H; inversion H; cbn; auto
-        | IH: ∀ (s1 s2 : IRState) (e : exp typ) (c : code typ), genNExpr ?nexp s1 ≡ inr (s2, (e, c)) → Γ s1 ≡ Γ s2,
-    GEN: genNExpr ?nexp _ ≡ inr _ |- _ =>
-  rewrite (IH _ _ _ _ GEN)
-  end; auto.
-Qed.
-
-Lemma genMExpr_context :
-  forall mexp s1 s2 e c,
-    genMExpr mexp s1 ≡ inr (s2, (e,c)) ->
-    Γ s1 ≡ Γ s2.
-Proof.
-  induction mexp;
-    intros s1 s2 e c GEN;
-    cbn in GEN; simp;
-      repeat
-        match goal with
-        | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
-          destruct (nth_error (Γ s1) n); inversion H; subst
-        | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>
-          rewrite incLocal_unfold in H; cbn in H; inversion H; cbn; auto
-        | IH: ∀ (s1 s2 : IRState) (e : exp typ) (c : code typ), genMExpr ?nexp s1 ≡ inr (s2, (e, c)) → Γ s1 ≡ Γ s2,
-    GEN: genMExpr ?nexp _ ≡ inr _ |- _ =>
-  rewrite (IH _ _ _ _ GEN)
-  end; auto.
-Qed.
-
-Hint Resolve genNExpr_context : helix_context.
-Hint Resolve genMExpr_context : helix_context.
+Hint Resolve genNExpr_Γ : helix_context.
+Hint Resolve genMExpr_Γ : helix_context.
 Hint Resolve incVoid_Γ        : helix_context.
 Hint Resolve incLocal_Γ       : helix_context.
 Hint Resolve incBlockNamed_Γ  : helix_context.
-
-Lemma genAExpr_context :
-  forall aexp s1 s2 e c,
-    genAExpr aexp s1 ≡ inr (s2, (e,c)) ->
-    Γ s1 ≡ Γ s2.
-Proof.
-  induction aexp;
-    intros s1 s2 e c GEN;
-    cbn in GEN; simp;
-      repeat
-        match goal with
-        | H: ErrorWithState.option2errS _ (nth_error (Γ ?s1) ?n) ?s1 ≡ inr (?s2, _) |- _ =>
-          destruct (nth_error (Γ s1) n); inversion H; subst
-        | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>
-          rewrite incLocal_unfold in H; cbn in H; inversion H; cbn; auto
-        | H: incVoid ?s1 ≡ inr (?s2, _) |- _ =>
-          rewrite incVoid_unfold in H; cbn in H; inversion H; cbn; auto
-        | IH: ∀ (s1 s2 : IRState) (e : exp typ) (c : code typ), genAExpr ?aexp s1 ≡ inr (s2, (e, c)) → Γ s1 ≡ Γ s2,
-    GEN: genAExpr ?aexp _ ≡ inr _ |- _ =>
-  rewrite (IH _ _ _ _ GEN)
-| GEN: genNExpr _ _ ≡ inr _ |- _ =>
-  rewrite (genNExpr_context _ _ GEN)
-| GEN: genMExpr _ _ ≡ inr _ |- _ =>
-  rewrite (genMExpr_context _ _ GEN)
-  end; subst; auto.
-Qed.
-
-Hint Resolve genAExpr_context : helix_context.
-
-Ltac subst_contexts :=
-  repeat match goal with
-         | H : Γ ?s1 ≡ Γ ?s2 |- _ =>
-           rewrite H in *; clear H
-         end.
-
-Lemma genIR_Context:
-  ∀ (op : DSHOperator) (s1 s2 : IRState) (nextblock b : block_id) (bk_op : list (LLVMAst.block typ)),
-    genIR op nextblock s1 ≡ inr (s2, (b, bk_op)) →
-    Γ s1 ≡ Γ s2.
-Proof.
-  induction op;
-    intros s1 s2 nextblock b bk_op H;
-    cbn in H; simp;
-      repeat
-        (match goal with
-         | H : ErrorWithState.err2errS (MInt64asNT.from_nat ?n) ?s1 ≡ inr (?s2, _) |- _ =>
-           destruct (MInt64asNT.from_nat n); inversion H; subst
-         | H: _ :: Γ ?s1 ≡ Γ ?s2,
-              R: Γ ?s2 ≡ _ |- _ =>
-           rewrite <- H in R; inversion R; subst
-         | H: _ :: _ :: Γ ?s1 ≡ Γ ?s2,
-              R: Γ ?s2 ≡ _ |- _ =>
-           rewrite <- H in R; inversion R; subst
-         | H: _ :: _ :: _ :: Γ ?s1 ≡ Γ ?s2,
-              R: Γ ?s2 ≡ _ |- _ =>
-           rewrite <- H in R; inversion R; subst
-         | H: inl _ ≡ inr _ |- _ =>
-           inversion H
-         | H: inr (?i1, Γ ?s1) ≡ inr (?i2, Γ ?s2) |- _ =>
-           inversion H; clear H
-         | RES : resolve_PVar ?p ?s1 ≡ inr (?s2, ?x) |- _ =>
-           rewrite <- (@resolve_PVar_state p s1 s2 x RES) in *
-         | H: incBlockNamed _ _ ≡ inr _ |- _ =>
-           apply incBlockNamed_Γ in H
-         | H: incLocal _ ≡ inr _ |- _ =>
-           apply incLocal_Γ in H
-         | H: incVoid _ ≡ inr _ |- _ =>
-           apply incVoid_Γ in H
-         | GEN: genNExpr _ _ ≡ inr _ |- _ =>
-           apply genNExpr_context in GEN; cbn in GEN; inversion GEN; subst
-         | GEN: genMExpr _ _ ≡ inr _ |- _ =>
-           apply genMExpr_context in GEN; cbn in GEN; inversion GEN; subst
-         | GEN: genAExpr _ _ ≡ inr _ |- _ =>
-           apply genAExpr_context in GEN; cbn in GEN; inversion GEN; subst
-         | GEN : genIR ?op ?b ?s1 ≡ inr _ |- _ =>
-           apply IHop in GEN; cbn in GEN; eauto
-         end; cbn in *; subst);
-      subst_contexts;
-      auto.
-  - inversion Heqs; subst.
-    inv Heqs; auto.
-  - eapply IHop1 in Heqs2; eauto.
-    eapply IHop2 in Heqs0; eauto.
-    subst_contexts.
-    reflexivity.
-Qed.
-
-Hint Resolve genIR_Context  : helix_context.
-
-Ltac get_gammas :=
-  repeat
-    match goal with
-    | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>
-      eapply incLocal_Γ in H
-    | H: incVoid ?s1 ≡ inr (?s2, _) |- _ =>
-      eapply incVoid_Γ in H
-    | H: incBlockNamed ?msg ?s1 ≡ inr (?s2, _) |- _ =>
-      eapply incBlockNamed_Γ in H
-    | H: genNExpr ?n ?s1 ≡ inr (?s2, _) |- _ =>
-      eapply genNExpr_context in H
-    end.
-
-Ltac solve_gamma := solve [get_gammas; congruence].
+Hint Resolve genAExpr_Γ : helix_context.
+Hint Resolve genIR_Γ  : helix_context.
 
 (* TODO: expand this *)
 Ltac solve_gamma_safe :=
-  eapply Gamma_safe_shrink; eauto; [solve_gamma| |]; solve_local_count.
+  eapply Gamma_safe_shrink; eauto; [solve_gamma|..]; solve_local_count.
 
 (* TODO: expand this *)
 Ltac solve_local_scope_modif :=
@@ -1906,7 +1689,7 @@ Ltac solve_local_scope_modif :=
     [ eapply local_scope_modif_refl
     | solve [eapply local_scope_modif_shrink; [eassumption | solve_local_count | solve_local_count]]
     | solve [eapply local_scope_modif_add'; [solve_lid_bound_between | solve_local_scope_modif]]
-    | eapply local_scope_modif_trans; eauto; solve_local_count
+    | eapply local_scope_modif_trans; cycle 2; eauto; solve_local_count
     ].
 
 Ltac solve_gamma_preserved :=
@@ -1945,9 +1728,9 @@ Lemma incLocal_id_neq :
 Proof.
   intros s1 s2 s3 s4 id1 id2 GEN1 GEN2 COUNT.
   eapply incLocalNamed_count_gen_injective.
-  symmetry. rewrite incLocal_unfold in *. eapply GEN1.
-  symmetry. rewrite incLocal_unfold in *. eapply GEN2.
-  solve_local_count_tac.
+  symmetry; eapply GEN1.
+  symmetry; eapply GEN2.
+  solve_local_count.
   solve_prefix.
   solve_prefix.
 Qed.

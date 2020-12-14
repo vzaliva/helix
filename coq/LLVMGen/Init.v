@@ -2,6 +2,7 @@
 
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
+Require Import Helix.LLVMGen.Context.
 Require Import ITree.Basics.HeterogeneousRelations.
 
 Require Import MathClasses.misc.util.

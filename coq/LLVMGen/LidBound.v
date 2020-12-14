@@ -88,6 +88,16 @@ Section LidBound.
     - eapply not_lid_bound_incLocalNamed; eauto.
   Qed.
 
+  Lemma newLocalVar_lid_bound :
+    forall s1 s2 prefix τ id,
+      is_correct_prefix prefix ->
+      newLocalVar τ prefix s1 ≡ inr (s2, id) ->
+      lid_bound s2 id.
+  Proof.
+    intros * PRE EQ; inv EQ; cbn.
+    do 3 eexists; repeat split; eauto.
+  Qed.
+
   Lemma not_lid_bound_incLocal :
     forall s1 s2 id,
       incLocal s1 ≡ inr (s2, id) ->

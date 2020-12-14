@@ -8,6 +8,7 @@ Require Import Helix.LLVMGen.VariableBinding.
 Require Import Helix.LLVMGen.BidBound.
 Require Import Helix.LLVMGen.LidBound.
 Require Import Helix.LLVMGen.StateCounters.
+Require Import Helix.LLVMGen.Context.
 
 Import ListNotations.
 
@@ -52,7 +53,7 @@ Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li :
          store v py
        *)
 
-Lemma compile_DSHAssign_correct :
+Lemma DSHAssign_correct :
   forall (** Compiler bits *) (s1 s2: IRState)
     (** Helix bits    *) src dst (σ : evalContext) (memH : memoryH)
     (** Vellvm bits   *) (nextblock bid_in bid_from : block_id) (bks : ocfg typ)

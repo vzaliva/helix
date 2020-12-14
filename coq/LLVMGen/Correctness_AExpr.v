@@ -4,6 +4,7 @@ Require Import Helix.LLVMGen.LidBound.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.Correctness_NExpr.
 Require Import Helix.LLVMGen.Correctness_MExpr.
+Require Import Helix.LLVMGen.Context.
 
 Import ListNotations.
 
@@ -343,12 +344,7 @@ Section AExpr.
         solve_local_count.
         eapply lid_bound_between_incLocal; eauto.
         reflexivity.
-      + eapply local_scope_modif_trans; eauto; [solve_local_count | solve_local_count |].
-        apply local_scope_modif_trans with (s2 := s3) (l2 := alist_add r (UVALUE_Addr x) l0).
-        solve_local_count.
-        solve_local_count.
-        eauto using local_scope_modif_add, lid_bound_between_incLocal.
-        eauto using local_scope_modif_add, lid_bound_between_incLocal.
+      + solve_local_scope_modif. 
       + intros ? EQ; inv EQ.
         right; split; [| solve_local_count].
         apply lid_bound_between_shrink_down with s3; [solve_local_count |].
@@ -391,7 +387,6 @@ Section AExpr.
 
         eapply Gamma_safe_shrink; eauto.
         solve_local_count.
-        solve_local_count.
       + intros * SCO GAM.
         vstep; eauto.
         cbn.
@@ -402,8 +397,7 @@ Section AExpr.
         solve_local_count.
         eapply lid_bound_between_incLocal; eauto.
         reflexivity.
-      + eapply local_scope_modif_trans; eauto; [solve_local_count | solve_local_count |].
-        eauto using local_scope_modif_add, lid_bound_between_incLocal.
+      + solve_local_scope_modif. 
       + intros ? EQ; inv EQ.
         right; split; [| solve_local_count].
         apply lid_bound_between_shrink_down with i; [solve_local_count |].
@@ -464,7 +458,6 @@ Section AExpr.
 
         eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
         solve_local_count.
-        solve_local_count.
       + intros * SCO GAM.
         vstep; eauto.
         cbn.
@@ -475,9 +468,8 @@ Section AExpr.
         solve_local_count.
         eapply lid_bound_between_incLocal; eauto.
         reflexivity.
-      + eapply local_scope_modif_trans; eauto; [solve_local_count | solve_local_count |].
-        eapply local_scope_modif_trans; eauto; [solve_local_count | solve_local_count |].
-        eauto using local_scope_modif_add, lid_bound_between_incLocal.
+      + solve_local_scope_modif.
+        solve_local_scope_modif. 
       + intros ? EQ; inv EQ.
         right; split; [| solve_local_count].
         apply lid_bound_between_shrink_down with s3; [solve_local_count |].
@@ -538,7 +530,6 @@ Section AExpr.
 
         eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
         solve_local_count.
-        solve_local_count.
       + intros * SCO GAM.
         vstep; eauto.
         cbn.
@@ -548,9 +539,8 @@ Section AExpr.
         solve_local_count.
         eapply lid_bound_between_incLocal; eauto.
         reflexivity.
-      + eapply local_scope_modif_trans; eauto; [solve_local_count | solve_local_count |].
-        eapply local_scope_modif_trans; eauto; [solve_local_count | solve_local_count |].
-        eauto using local_scope_modif_add, lid_bound_between_incLocal.
+      + solve_local_scope_modif.
+        solve_local_scope_modif.
       + intros ? EQ; inv EQ.
         right; split; [| solve_local_count].
         apply lid_bound_between_shrink_down with s3; [solve_local_count |].
@@ -611,7 +601,6 @@ Section AExpr.
 
         eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
         solve_local_count.
-        solve_local_count.
       + intros * SCO GAM.
         vstep; eauto.
         cbn.
@@ -621,9 +610,8 @@ Section AExpr.
         solve_local_count.
         eapply lid_bound_between_incLocal; eauto.
         reflexivity.
-      + eapply local_scope_modif_trans; eauto; [solve_local_count | solve_local_count |].
-        eapply local_scope_modif_trans; eauto; [solve_local_count | solve_local_count |].
-        eauto using local_scope_modif_add, lid_bound_between_incLocal.
+      + solve_local_scope_modif.
+        solve_local_scope_modif.
       + intros ? EQ; inv EQ.
         right; split; [| solve_local_count].
         apply lid_bound_between_shrink_down with s3; [solve_local_count |].
@@ -691,7 +679,6 @@ Section AExpr.
 
         eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
         solve_local_count.
-        solve_local_count.
       + intros * SCO GAM.
         vstep; eauto.
         cbn.
@@ -702,9 +689,8 @@ Section AExpr.
         eapply lid_bound_between_incLocal; eauto.
         rewrite min_float_correct. 
         reflexivity.
-      + eapply local_scope_modif_trans; eauto; [solve_local_count | solve_local_count |].
-        eapply local_scope_modif_trans; eauto; [solve_local_count | solve_local_count |].
-        eauto using local_scope_modif_add, lid_bound_between_incLocal.
+      + solve_local_scope_modif.
+        solve_local_scope_modif.
       + intros ? EQ; inv EQ.
         right; split; [| solve_local_count].
         apply lid_bound_between_shrink_down with s3; [solve_local_count |].
@@ -772,7 +758,6 @@ Section AExpr.
 
         eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
         solve_local_count.
-        solve_local_count.
       + intros * SCO GAM.
         vstep; eauto.
         cbn.
@@ -783,9 +768,8 @@ Section AExpr.
         eapply lid_bound_between_incLocal; eauto.
         rewrite max_float_correct. 
         reflexivity.
-      + eapply local_scope_modif_trans; eauto; [solve_local_count | solve_local_count |].
-        eapply local_scope_modif_trans; eauto; [solve_local_count | solve_local_count |].
-        eauto using local_scope_modif_add, lid_bound_between_incLocal.
+      + solve_local_scope_modif.
+        solve_local_scope_modif.
       + intros ? EQ; inv EQ.
         right; split; [| solve_local_count].
         apply lid_bound_between_shrink_down with s3; [solve_local_count |].
@@ -893,17 +877,8 @@ Section AExpr.
         solve_local_count.
         eapply lid_bound_between_incLocal; eauto.
         rewrite H0; reflexivity.
-      + eapply local_scope_modif_trans; eauto; [solve_local_count | solve_local_count |].
-        eapply local_scope_modif_trans; eauto; [solve_local_count | solve_local_count |].
-        apply local_scope_modif_trans
-          with (s2 := s4) (l2 := alist_add r (dvalue_to_uvalue (double_cmp FOlt vH vH0)) l1); [solve_local_count | solve_local_count | |].
-        eauto using local_scope_modif_add, lid_bound_between_incLocal.
-        apply local_scope_modif_trans with
-            (s2 := s5)
-            (l2 := alist_add r0 (UVALUE_Double (Floats.Float.of_longu (DynamicValues.Int64.repr (DynamicValues.Int1.unsigned x)))) (alist_add r (dvalue_to_uvalue (double_cmp FOlt vH vH0)) l1))
-        ; [solve_local_count | solve_local_count | |].
-        eauto using local_scope_modif_add, lid_bound_between_incLocal.
-        eapply local_scope_modif_refl.
+      + solve_local_scope_modif.
+        solve_local_scope_modif.
       + intros ? EQ; inv EQ.
         right; split; [| solve_local_count].
         apply lid_bound_between_shrink_down with s4; [solve_local_count |].

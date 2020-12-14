@@ -5,12 +5,14 @@ Require Import Helix.LLVMGen.Correctness_MExpr.
 Require Import Helix.LLVMGen.Correctness_Assign.
 Require Import Helix.LLVMGen.Correctness_Alloc.
 Require Import Helix.LLVMGen.Correctness_While.
+Require Import Helix.LLVMGen.Correctness_Loop.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.StateCounters.
 Require Import Helix.LLVMGen.VariableBinding.
 Require Import Helix.LLVMGen.BidBound.
 Require Import Helix.LLVMGen.LidBound.
 Require Import Helix.LLVMGen.StateCounters.
+Require Import Helix.LLVMGen.Context.
 
 Import ListNotations.
 
@@ -40,32 +42,6 @@ Section GenIR.
 
   Tactic Notation "state_inv_auto" := eauto with state_invariant.
 
-  (* TODO: Move *)
-  Lemma add_comment_eutt :
-    forall comments bks ids,
-      denote_ocfg (convert_typ [] (add_comment bks comments)) ids ≈ denote_ocfg (convert_typ [] bks) ids.
-  Proof.
-    intros comments bks ids.
-    induction bks.
-    - cbn. reflexivity.
-    - cbn.
-      destruct ids as (bid_from, bid_src); cbn.
-      match goal with
-      | |- context[denote_ocfg ?bks (_, ?bid_src)] =>
-        destruct (find_block bks bid_src) eqn:FIND
-      end.
-  Admitted.
-
-  (* TODO: Move *)
-  (* Could probably have something more general... *)
-  Lemma add_comments_eutt :
-    forall bk comments bids,
-      denote_ocfg
-        [fmap (typ_to_dtyp [ ]) (add_comments bk comments)] bids ≈ denote_ocfg [fmap (typ_to_dtyp [ ]) bk] bids.
-  Proof.
-    intros bk comments bids.
-  Admitted.
-
   Lemma assert_NT_lt_success :
     forall {s1 s2 x y v},
       assert_NT_lt s1 x y ≡ inr v ->
@@ -85,41 +61,6 @@ Section GenIR.
   Notation "'to_nat'" := (MInt64asNT.to_nat) (only printing).
 
   Import AlistNotations.
-  Ltac remove_neq_locals :=
-    match goal with
-    | |- Maps.add ?x ?v ?l1 @ ?id ≡ ?l2 @ ?id =>
-      assert (x ≢ id) by
-          (eapply lid_bound_earlier; eauto;
-           [eapply incLocal_lid_bound; eauto | solve_local_count]);
-      setoid_rewrite maps_add_neq; eauto
-    end.
-
-  Lemma genWhileLoop_entry_in_scope : forall op b s1 s2 entry_body bodyV,
-      genIR op b s1 ≡ inr (s2, (entry_body, bodyV)) ->
-      In entry_body (inputs bodyV).
-  Proof.
-    induction op; intros *; try (cbn; intros GEN; clear -GEN; simp; cbn; auto; fail).
-    Opaque add_comment.
-    cbn; intros GEN; simp.
-    rewrite add_comment_inputs, inputs_app.
-    apply ListUtil.in_appl; eauto.
-  Qed.
-  Transparent add_comment.
-
-  Lemma wf_ocfg_bid_add_comment :
-    forall bks s,
-      wf_ocfg_bid (add_comment bks s) ->
-      wf_ocfg_bid bks.
-  Proof.
-    induction bks as [| bk bks IH]; cbn; auto.
-  Qed.
-
-  Lemma inputs_convert_typ : forall σ bks,
-      inputs (convert_typ σ bks) ≡ inputs bks.
-  Proof.
-    induction bks as [| bk bks IH]; cbn; auto.
-    f_equal; auto.
-  Qed.
 
   Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li : local_env)
     : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
@@ -183,7 +124,7 @@ Section GenIR.
       eapply state_invariant_incBlockNamed; eauto.
 
     - (* DSHAssign *)
-      apply compile_DSHAssign_correct; auto.
+      apply DSHAssign_correct; auto.
 
     - admit.
     - admit.
@@ -191,224 +132,7 @@ Section GenIR.
     - admit.
 
     - (* DSHLoop *)
-      Import ProofMode.
-
-      Opaque add_comment.
-      Opaque dropVars.
-      Opaque newLocalVar.
-      Opaque genWhileLoop.
-
-      pose proof generates_wf_ocfg_bids _ NEXT GEN as WFOCFG.
-      pose proof inputs_bound_between _ _ _ GEN as INPUTS_BETWEEN.
-
-      (* We know that the Helix denotation can be expressed via the [tfor] operator *)
-      rewrite DSHLoop_interpreted_as_tfor.
-      cbn* in *; simp; cbn in *.
-      rewrite add_comment_eutt.
-      rename i into s1, i0 into s2, i1 into s3, i2 into s4, i3 into s5, s2 into s6.
-      destruct_unit.
-      clean_goal.
-      rename l0 into bks, r into loopvar.
-
-      (* So really, it is a direct application of [genWhileLoop_tfor_correct] with
-         our induction hypothesis filling in for the equivalence of bodies in the lemma.
-         Except that the lemma is a mouthful, so doing so is a tad bit of work!
-       *)
-
-      (* Let's step through carefully: we provide manually the first batch of arguments *)
-      pose proof
-           @genWhileLoop_tfor_correct "Loop_loop" loopvar b b0 l nextblock bid_in s5 s6 s1 s5 bks as GENC.
-      forward GENC; [clear GENC |].
-      eauto using genWhileLoop_entry_in_scope.
-      
-      forward GENC; [clear GENC |].
-      reflexivity.
-
-      forward GENC; [clear GENC |].
-      {
-        eauto using wf_ocfg_bid_add_comment.
-      }
-
-      forward GENC; [clear GENC |].
-      {
-        eapply lid_bound_between_shrink; [eapply lid_bound_between_newLocalVar | | ]; eauto; try reflexivity; solve_local_count.
-      }
-
-      forward GENC; [clear GENC |].
-      {
-        clear -INPUTS_BETWEEN NEXT.
-        intros IN; rewrite inputs_convert_typ, add_comment_inputs in INPUTS_BETWEEN.
-        rewrite Forall_forall in INPUTS_BETWEEN; apply INPUTS_BETWEEN in IN; clear INPUTS_BETWEEN.
-        eapply not_bid_bound_between; eauto.
-      }
-
-      specialize (GENC n Heqs6 (option (memoryH * unit)%type)).
-      match goal with
-        |- eutt _ (tfor ?bod _ _ _) _ => specialize (GENC bod)
-      end.
-
-      forward GENC; [clear GENC |].
-      {
-        rename n into foo.
-        clear -Heqs.
-        unfold MInt64asNT.from_nat in Heqs.
-        unfold MInt64asNT.from_Z in Heqs.
-        simp.
-        apply l0.
-      }
-
-      specialize (IHop s3 s4).
-
-      (*
-        s1
-        incBlockNamed
-        s2
-        newLocalVar
-        s3
-        genIR
-        s4
-        dropVars
-        s5
-        genWhileLoop
-        s6
-       *)
-
-      (* Invariant at each iteration *)
-      set (I := (fun (k : nat) (mH : option (memoryH * ())) (stV : memoryV * (local_env * global_env)) =>
-                   match mH with
-                   | None => False
-                   | Some (mH,tt) => state_invariant σ s2 mH stV
-                   end)).
-      (* Precondition and postcondition *)
-      set (P := (fun (mH : option (memoryH * ())) (stV : memoryV * (local_env * global_env)) =>
-                   match mH with
-                   | None => False
-                   | Some (mH,tt) => state_invariant σ s2 mH stV
-                   end)).
-
-      specialize (GENC I P P).
-
-      forward GENC; [clear GENC |].
-      {
-        subst I P; intros ? ? ? [[? []]|] * [INV LOOPVAR]; [| inv INV]; cbn in *.
-
-        pose proof Heqs3 as GENIR.
-        eapply IHop in Heqs3; clear IHop; cycle 1.
-        - Set Nested Proofs Allowed.
-          Lemma bid_bound_mono : forall s1 s2 b,
-              bid_bound s1 b ->
-              (block_count s1 <= block_count s2)%nat ->
-              bid_bound s2 b.
-          Proof.
-            intros; eapply state_bound_mono; eauto.
-          Qed.
-          eapply bid_bound_mono.
-          eapply bid_bound_incBlockNamed; eauto; reflexivity.
-          erewrite newLocalVar_block_count; eauto.
-
-        - Transparent newLocalVar.
-          Lemma state_invariant_enter_scope_DSHnat_local :
-            forall σ v prefix x s1 s2 stH mV l g,
-              newLocalVar IntType prefix s1 ≡ inr (s2, x) ->
-              ~ In (ID_Local x) (map fst (Γ s1)) ->
-              l @ x ≡ Some (uvalue_of_nat v) ->
-              state_invariant σ s1 stH (mV,(l,g)) ->
-              state_invariant (DSHnatVal (Int64.repr (Z.of_nat v))::σ) s2 stH (mV,(l,g)).
-          Proof.
-            intros * EQ FRESH LU INV.
-            inv EQ; eapply state_invariant_enter_scope_DSHnat; eauto.
-            reflexivity.
-            cbn; rewrite repr_intval; auto.
-          Qed.
-          Lemma newLocalVar_Γ : forall τ prefix s1 s2 x,
-              newLocalVar τ prefix s1 ≡ inr (s2,x) ->
-              Γ s2 ≡ (ID_Local x,τ) :: Γ s1.
-          Proof.
-            intros * EQ; inv EQ; reflexivity.
-          Qed.
-          Lemma newLocalVar_local_count :
-            ∀ (s1 s2 : IRState) bid p x,
-              newLocalVar p x s1 ≡ inr (s2, bid) →
-              local_count s2 ≡ S (local_count s1).
-          Proof.
-            intros * EQ; inv EQ; reflexivity.
-          Qed.
-          Opaque newLocalVar.
-          
-          eapply state_invariant_enter_scope_DSHnat_local; eauto.
-          admit.
-
-        - admit.
-
-        - admit.
-
-        -
-          destruct (MInt64asNT.from_nat k) as [| kh] eqn:EQk.
-          { admit. }
-          hred.
-          apply from_Z_intval in EQk.
-          rewrite EQk,repr_intval in Heqs3.
-          eapply eutt_mon, Heqs3.
-          clear Heqs3 NOFAIL INPUTS_BETWEEN WFOCFG.
-          intros [[? []]|] (mVf & lf & gf & ?) POST; [destruct POST as (P1 & P2 & P3) | inv POST].
-          split; [| split; [| split]].
-          + rewrite <- LOOPVAR; eapply local_scope_modif_out; eauto.
-            2: eapply lid_bound_between_newLocalVar; eauto.
-            eapply newLocalVar_local_count in Heqs2; solve_local_count.
-            reflexivity.
-          + eauto.
-          + cbn in P1.
-            eapply state_invariant_escape_scope; eauto.
-            erewrite <- genIR_Context; eauto.
-            eapply newLocalVar_Γ; eauto.
-          + cbn in *.
-            clear INV P1 P2.
-            apply local_scope_modif_shrink with s3 s4; auto.
-            apply newLocalVar_local_count in Heqs2; solve_local_count.
-            solve_local_count.
-      }
-
-      forward GENC; [clear GENC |].
-      {
-        admit.
-      }
-
-      forward GENC; [clear GENC |].
-      {
-        admit.
-      }
-
-      forward GENC; [clear GENC |].
-      {
-        reflexivity.
-      }
-
-      forward GENC; [clear GENC |].
-      {
-        subst P I; red; intros; auto. 
-      }
-
-      forward GENC; [clear GENC |].
-      {
-        subst I P; red; intros; auto. 
-      }
-
-      specialize (GENC g ρ memV (Some (memH,())) bid_from).
-      eapply eutt_mon; [| apply GENC].
-      {
-        (* state_invariant between s1 and s2 or s6? or something else? *)
-        clear GENC NOFAIL INPUTS_BETWEEN IHop WFOCFG;subst P I.
-        intros [[? []] | ] (? & ? & ? & ?) (H1 & H2 & H3); cbn.
-        split; [| split]; cbn; eauto.
-        - (* Need to enter scope,then escape it to link with s2 *)
-          admit.
-        - destruct H1; eauto.
-        - eauto.
-      }
-      { subst P; cbn.
-        clear -PRE Heqs1.
-        solve_state_invariant.
-      }
+      apply DSHLoop_correct; auto. 
 
     - (* DSHAlloc *)
       apply DSHAlloc_correct; auto. 
@@ -472,10 +196,10 @@ Section GenIR.
   (*     { *)
   (*       eapply IHop1 with (s1:=s_op1) (s2:=s2); eauto. *)
   (*       - eapply bid_bound_genIR_entry; eauto. *)
-  (*       - apply genIR_Context in GEN_OP2. *)
+  (*       - apply genIR_Γ in GEN_OP2. *)
   (*         eapply state_invariant_Γ; eauto. *)
   (*       - eapply Gamma_safe_shrink; eauto. *)
-  (*         eauto using genIR_Context. *)
+  (*         eauto using genIR_Γ. *)
   (*         solve_local_count. *)
   (*         solve_local_count. *)
   (*     } *)
@@ -490,9 +214,9 @@ Section GenIR.
   (*     2: { *)
   (*       eapply ISugoku kawaiikute muccha kininarimasu Hop2; try exact GEN_OP2; eauto. *)
   (*       - eapply state_invariant_Γ; eauto. *)
-  (*         apply genIR_Context in GEN_OP1; apply genIR_Context in GEN_OP2; rewrite GEN_OP2; auto. *)
+  (*         apply genIR_Γ in GEN_OP1; apply genIR_Context in GEN_OP2; rewrite GEN_OP2; auto. *)
   (*       - eapply Gamma_safe_shrink; eauto. *)
-  (*         eauto using genIR_Context. *)
+  (*         eauto using genIR_Γ. *)
   (*         solve_local_count. *)
   (*         solve_local_count. *)
   (*     }           *)
@@ -506,7 +230,7 @@ Section GenIR.
 
   (*     split; cbn; eauto. *)
   (*     eapply state_invariant_Γ; eauto. *)
-  (*     apply genIR_Context in GEN_OP1; auto. *)
+  (*     apply genIR_Γ in GEN_OP1; auto. *)
 
 (*
     -
@@ -820,7 +544,7 @@ Section GenIR.
           + cbn.
             split.
             * cbn.
-              apply genIR_Context in GEN_OP2.
+              apply genIR_Γ in GEN_OP2.
               split.
               -- unfold memory_invariant.
                  rewrite <- GEN_OP2.
@@ -857,8 +581,8 @@ Section GenIR.
           destruct INV2.
           split; cbn; auto.
           + split.
-            * apply genIR_Context in GEN_OP2.
-              apply genIR_Context in GEN_OP1.
+            * apply genIR_Γ in GEN_OP2.
+              apply genIR_Γ in GEN_OP1.
               unfold memory_invariant.
               subst_contexts.
               cbn.
@@ -869,8 +593,8 @@ Section GenIR.
             * (* TODO: turn this into a lemma *)
               cbn in st_no_llvm_ptr_aliasing0. cbn.
               unfold no_llvm_ptr_aliasing.
-              assert (Γ s1 ≡ Γ s_op1) by (eapply genIR_Context; eauto).
-              assert (Γ s_op1 ≡ Γ s2) by (eapply genIR_Context; eauto).
+              assert (Γ s1 ≡ Γ s_op1) by (eapply genIR_Γ; eauto).
+              assert (Γ s_op1 ≡ Γ s2) by (eapply genIR_Γ; eauto).
               assert (Γ s1 ≡ Γ s2) by congruence.
               rewrite H1.
               apply st_no_llvm_ptr_aliasing0.
@@ -913,15 +637,15 @@ Section GenIR.
       split.
       split.
       + cbn.
-        apply genIR_Context in GEN_OP1.
+        apply genIR_Γ in GEN_OP1.
         rewrite <- GEN_OP1.
         apply MINV1.
       + auto.
       + eapply no_id_aliasing_gamma; eauto.
-        eapply genIR_Context; eauto.
+        eapply genIR_Γ; eauto.
       + eauto.
       + eapply no_llvm_ptr_aliasing_gamma; eauto.
-        eapply genIR_Context; eauto.
+        eapply genIR_Γ; eauto.
       + cbn. cbn in BRANCHES1.
         destruct BRANCHES1 as [from1' BRANCHES1].
         exists from1. inversion BRANCHES1.
@@ -940,4 +664,4 @@ Section GenIR.
   Admitted.
 
 
-  End GenIR.
+End GenIR.
