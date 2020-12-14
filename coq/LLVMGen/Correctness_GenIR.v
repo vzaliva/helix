@@ -369,11 +369,11 @@ Section GenIR.
                    | Some (mH,tt) => state_invariant σ s2 mH stV
                    end)).
 
-      specialize (GENC I P P).
+      specialize (GENC I P P (Some (memH, ()))).
 
       forward GENC; [clear GENC |].
       {
-        subst I P; intros ? ? ? [[? []]|] * (INV & LOOPVAR & BOUNDk); [| inv INV]; cbn in *.
+        subst I P; intros ? ? ? [[? []]|] * (INV & LOOPVAR & BOUNDk & RET); [| inv INV]; cbn in *.
 
         assert (EQk: MInt64asNT.from_nat k ≡ inr (Int64.repr (Z.of_nat k))).
         {clear - BOUNDk Heqs.
@@ -441,9 +441,8 @@ Section GenIR.
         - pose proof no_failure_tfor _ _ NOFAIL; clear NOFAIL.
           specialize (H k (m,tt)).
           cbn in *.
+          forward H; [lia |].
           forward H; auto.
-          forward H.
-          { admit. }
           rewrite EQk in H.
           apply no_failure_Ret in H.
           auto.
@@ -511,7 +510,7 @@ Section GenIR.
         subst I P; red; intros; auto. 
       }
 
-      specialize (GENC g ρ memV (Some (memH,())) bid_from).
+      specialize (GENC g ρ memV bid_from).
       eapply eutt_mon; [| apply GENC].
       {
         (* state_invariant between s1 and s2 or s6? or something else? *)

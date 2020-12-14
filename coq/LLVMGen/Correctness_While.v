@@ -443,12 +443,15 @@ Lemma genWhileLoop_tfor_ind:
       (NO_OVERFLOW : (Z.of_nat n < Int64.modulus)%Z)
 
       (* Main relations preserved by iteration *)
-      (I : nat (* -> A *) -> A -> _),
+      (I : nat (* -> A *) -> A -> _)
+      a0,
 
       (* We assume that we know how to relate the iterations of the bodies *)
       (forall g li mV a k _label,
           (conj_rel (I k)
-                    (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k) /\ 0 <= k < n)
+                    (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k)
+                                        /\ j <= k < n
+                                        /\ Returns a (tfor bodyF j k a0))
                     a (mV,(li,g))) ->
           eutt
             (fun a' '(memV, (l, (g, x))) =>
@@ -466,33 +469,22 @@ Lemma genWhileLoop_tfor_ind:
           I k a (mV, (l, g)) ->
           I k a (mV, ((alist_add id v l), g))) ->
 
-      (* (forall a sa b sb c sc d sd e se msg msg' msg'', *)
-      (*     incBlockNamed msg s1 ≡ inr (sa, a) -> *)
-      (*     incBlockNamed msg' sa ≡ inr (sb, b) -> *)
-      (*     incLocal sb ≡ inr (sc,c) -> *)
-      (*     incLocal sc ≡ inr (sd,d) -> *)
-      (*     incLocalNamed msg'' sd ≡ inr (se, e) -> *)
-      (*     forall k a l mV g id v, *)
-      (*       id ≡ c \/ id ≡ d \/ id ≡ e \/ id ≡ loopvar -> *)
-      (*       I k a (mV, (l, g)) -> *)
-      (*       I k a (mV, ((alist_add id v l), g))) -> *)
-
       sb1 << sb2 ->
       local_count sb2 ≡ local_count s1 ->
 
     (* Main result. Need to know initially that P holds *)
-    forall g li mV a _label,
+    forall g li mV _label,
       (conj_rel
          (I j)
          (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat (j - 1)))
-         a (mV,(li,g))
+         a0 (mV,(li,g))
       ) ->
       eutt (fun a '(memV, (l, (g,x))) =>
               x ≡ inl (loopcontblock, nextblock) /\
               I n a (memV,(l,g)) /\
               local_scope_modif sb1 s2 li l
            )
-           (tfor bodyF j n a)
+           (tfor bodyF j n a0)
            (interp_cfg (denote_ocfg (convert_typ [] bks)
                                                 (_label, loopcontblock)) g li mV).
 Proof. 
@@ -501,11 +493,11 @@ Proof.
   intros BOUND OVER * FBODY STABLE LAB LAB'.
 
   remember (n - j) as k eqn:K_EQ.
-  revert j K_EQ BOUND.
-  induction k as [| k IH]; intros j EQidx.
+  revert j a0 K_EQ BOUND FBODY.
+  induction k as [| k IH]; intros j a0 EQidx.
 
   - (* Base case: we enter through [loopcontblock] and jump out immediately to [nextblock] *)
-    intros  BOUND * (INV & LOOPVAR).
+    intros BOUND FBODY * (INV & LOOPVAR).
     Import ProofMode.
     (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
     apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_ocfg_app in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS.
@@ -518,7 +510,7 @@ Proof.
     (* We jump into [loopcontblock]
        We denote the content of the block.
      *)
- 
+  
     vjmp.
 
     cbn.
@@ -583,7 +575,7 @@ Proof.
       apply string_forall_append. auto. auto. auto.
 
   - (* Inductive case *)
-    cbn in *. intros [LT LE] * (INV & LOOPVAR).
+    cbn in *. intros [LT LE] FBODY * (INV & LOOPVAR).
     (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
     apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_ocfg_app in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS.
     apply free_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_ocfg_app in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID.
@@ -685,27 +677,40 @@ Proof.
     destruct j as [| j]; [lia |].
     rewrite tfor_unroll; [| lia].
 
-    eapply eutt_clo_bind.
+    eapply eutt_clo_bind_returns.
     (* We can now use the body hypothesis *)
     eapply FBODY.
     {
       (* A bit of arithmetic is needed to prove that we have the right precondition *)
-      split; [| split].
+      split; [| split; [| split]].
       + repeat (eapply STABLE; eauto).
         left; solve_lid_bound_between.
         left; eapply lid_bound_between_shrink; [eapply lid_bound_between_incLocalNamed; [| eauto]; eapply is_correct_prefix_append; auto | | ]; solve_local_count.
 
       + rewrite alist_find_add_eq; reflexivity.
 
-      + split; lia.
+      + lia.
+
+      + rewrite tfor_0; apply ReturnsRet; reflexivity.
     }
 
     (* Step 4 : Back to starting from loopcontblock and have reestablished everything at the next index:
         conclude by IH *)
-    intros a1 (m1 & l1 & g1 & ?) (LOOPVAR' & [? ->] & (IH' & LOC)).
+    intros a1 (m1 & l1 & g1 & ?) (LOOPVAR' & [? ->] & (IH' & LOC)) RET1 _.
 
     eapply eqit_mon; auto.
-    2 : apply IH; try lia; try split; auto.
+    2 :{
+      eapply IH.
+      lia.
+      lia.
+     - intros * (? & ? & ? & ?).
+        apply FBODY.
+        do 3 (split; auto).
+        lia.
+        rewrite tfor_unroll; [| lia]. 
+        eapply Returns_bind; eauto.
+     - split; auto.
+    }     
     intros acc (mf & lf & gf & ?) (? & INV' & LOC').
     split; try split; auto.
     subst.
@@ -764,12 +769,16 @@ Lemma genWhileLoop_tfor_correct:
       (NO_OVERFLOW : (Z.of_nat n < Int64.modulus)%Z)
 
       (* Main relations preserved by iteration *)
-      (I : nat -> _) P Q,
+      (I : nat -> _) P Q
+      (* Initial value of the accumulator *)
+      a0,
 
       (* We assume that we know how to relate the iterations of the bodies *)
       (forall g li mV a k _label,
           (conj_rel (I k)
-                    (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k) /\ 0 <= k < n)
+                    (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k)
+                                        /\ k < n
+                                        /\ Returns a (tfor bodyF 0 k a0))
                     a (mV,(li,g))) ->
           eutt
             (fun a' '(memV, (l, (g, x))) =>
@@ -788,17 +797,6 @@ Lemma genWhileLoop_tfor_correct:
           I k a (mV, (l, g)) ->
           I k a (mV, ((alist_add id v l), g))) ->
 
-      (* (forall a sa b sb c sc d sd e se msg msg' msg'', *)
-      (*       incBlockNamed msg s1 ≡ inr (sa, a) -> *)
-      (*       incBlockNamed msg' sa ≡ inr (sb, b) -> *)
-      (*       incLocal sb ≡ inr (sc,c) -> *)
-      (*       incLocal sc ≡ inr (sd,d) -> *)
-      (*       incLocalNamed msg'' sd ≡ inr (se, e) -> *)
-      (*       forall k a l mV g id v, *)
-      (*         id ≡ c \/ id ≡ d \/ id ≡ e \/ id ≡ loopvar -> *)
-      (*         I k a (mV, (l, g)) -> *)
-      (*         I k a (mV, ((alist_add id v l), g))) -> *)
-
       sb1 << sb2 ->
       local_count sb2 ≡ local_count s1 ->
 
@@ -807,13 +805,13 @@ Lemma genWhileLoop_tfor_correct:
     imp_rel (I n) Q ->
 
     (* Main result. Need to know initially that P holds *)
-    forall g li mV a _label,
-      P a (mV,(li,g)) ->
+    forall g li mV _label,
+      P a0 (mV,(li,g)) ->
       eutt (fun a '(memV, (l, (g,x))) =>
               (x ≡ inl (loopcontblock, nextblock) \/ x ≡ inl (entry_id, nextblock)) /\
               Q a (memV,(l,g)) /\
               local_scope_modif sb1 s2 li l)
-           (tfor bodyF 0 n a)
+           (tfor bodyF 0 n a0)
            (interp_cfg (denote_ocfg (convert_typ [] bks) (_label ,entry_id)) g li mV).
 Proof.
 
@@ -821,7 +819,7 @@ Proof.
   pose proof @genWhileLoop_tfor_ind as GEN_IND.
 
   specialize (GEN_IND prefix loopvar loopcontblock body_entry body_blocks nextblock entry_id s1 s2 sb1 sb2 bks).
-  specialize (GEN_IND IN PREFIX UNIQUE LOOPVAR EXIT n GEN).
+  specialize (GEN_IND IN PREFIX UNIQUE LOOPVAR EXIT n GEN A bodyF).
   unfold genWhileLoop in GEN. cbn* in GEN. simp.
   destruct n as [| n].
   - (* 0th index *)
@@ -863,7 +861,10 @@ Proof.
     + solve_local_scope_modif.
 
   - cbn in *.
-
+    specialize (GEN_IND 1).
+    forward GEN_IND; [lia |].
+    forward GEN_IND; [lia |].
+    
     (* Clean up convert_typ junk *)
     apply free_in_convert_typ with (env := []) in EXIT; cbn in EXIT; rewrite ?convert_typ_ocfg_app in EXIT; cbn in EXIT.
     apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE; cbn in UNIQUE; rewrite ?convert_typ_ocfg_app in UNIQUE; cbn in UNIQUE.
@@ -918,7 +919,6 @@ Proof.
     vred.
     vred.
     inv VG.
-    (* show_cfg. *)
     
     rewrite denote_ocfg_prefix; cycle 1; auto.
     {
@@ -930,18 +930,19 @@ Proof.
     vred.
 
     rewrite tfor_unroll; [| lia].
-    eapply eutt_clo_bind.
+    eapply eutt_clo_bind_returns.
 
     + (* Base case : first iteration of loop. *)
       eapply IND.
-      split; [| split].
+      split; [| split; [|split]].
       eapply STABLE; eauto.
       eapply STABLE; eauto.
       left; solve_lid_bound_between.
       unfold Maps.add, Map_alist.
       apply alist_find_add_eq.
       lia.
-    + intros ? (? & ? & ? & ?) (LU & [? ->] & []).
+      rewrite tfor_0; apply ReturnsRet; reflexivity.
+    + intros ? (? & ? & ? & ?) (LU & [? ->] & []) RET1 _.
       eapply eutt_Proper_mono.
       2: apply GEN_IND; eauto.
       { intros ? (? & ? & ? & ?) [-> []]; split; [|split]; eauto.
@@ -957,7 +958,15 @@ Proof.
         eapply lid_bound_between_shrink; eauto; solve_local_count.
         solve_lid_bound_between.
       }
-      lia.
-      split; eauto.
+      clear GEN_IND.
+      {
+        intros * (? & ? & ? & ?).
+        eapply IND.
+        do 3 (split; auto).
+        lia.
+        rewrite tfor_unroll; [| lia].
+        eapply Returns_bind; eauto.
+      }
+      split; auto.
 Qed.
 
