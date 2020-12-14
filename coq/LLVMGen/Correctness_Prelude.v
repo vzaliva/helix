@@ -456,6 +456,30 @@ Section Add_Comment.
     induction bks as [| bk bks IH]; cbn; auto.
   Qed.
 
+  Lemma add_comment_eutt :
+    forall comments bks ids,
+      denote_ocfg (convert_typ [] (add_comment bks comments)) ids ≈ denote_ocfg (convert_typ [] bks) ids.
+  Proof.
+    intros comments bks ids.
+    induction bks.
+    - cbn. reflexivity.
+    - cbn.
+      destruct ids as (bid_from, bid_src); cbn.
+      match goal with
+      | |- context[denote_ocfg ?bks (_, ?bid_src)] =>
+        destruct (find_block bks bid_src) eqn:FIND
+      end.
+  Admitted.
+
+  (* Could probably have something more general... *)
+  Lemma add_comments_eutt :
+    forall bk comments bids,
+      denote_ocfg
+        [fmap (typ_to_dtyp [ ]) (add_comments bk comments)] bids ≈ denote_ocfg [fmap (typ_to_dtyp [ ]) bk] bids.
+  Proof.
+    intros bk comments bids.
+  Admitted.
+
 End Add_Comment.
 
 Global Opaque interp_cfg_to_L3.

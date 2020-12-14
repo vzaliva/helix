@@ -1168,3 +1168,13 @@ Proof.
     }
 Qed.
 
+Lemma genWhileLoop_entry_in_scope : forall op b s1 s2 entry_body bodyV,
+    genIR op b s1 ≡ inr (s2, (entry_body, bodyV)) ->
+    In entry_body (inputs bodyV).
+Proof.
+  induction op; intros *; try (cbn; intros GEN; clear -GEN; simp; cbn; auto; fail).
+  cbn; intros GEN; simp.
+  rewrite add_comment_inputs, inputs_app.
+  apply ListUtil.in_appl; eauto.
+Qed.
+
