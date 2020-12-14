@@ -124,7 +124,7 @@ Section GenIR.
       eapply state_invariant_incBlockNamed; eauto.
 
     - (* DSHAssign *)
-      apply compile_DSHAssign_correct; auto.
+      apply DSHAssign_correct; auto.
 
     - admit.
     - admit.
