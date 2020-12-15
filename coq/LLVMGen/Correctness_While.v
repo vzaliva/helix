@@ -840,7 +840,6 @@ Proof.
       split; auto.
 Qed.
 
-
 Lemma wf_ocfg_bid_find_None_app_l :
   forall {T} (bks1 bks2 : ocfg T) b bk,
     wf_ocfg_bid (bks1 ++ bks2)%list ->
