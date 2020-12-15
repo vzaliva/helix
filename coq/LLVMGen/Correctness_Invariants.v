@@ -460,8 +460,8 @@ Section SimulationRelations.
     destruct id1, id2.
     - epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3 H4 H5).
       eauto.
-    - epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3 H4).
-      destruct (Eqv.eqv_dec_p id1 id) as [EQ | NEQ]; unfold Eqv.eqv, eqv_raw_id in *.
+    - epose proof (ALIAS _ _ _ ptrv2 _ _ _ _ _ _ H H0 H1 H2 H3 H4).
+      destruct (rel_dec_p id1 id) as [EQ | NEQ]; unfold Eqv.eqv, eqv_raw_id in *.
       + subst.
         assert (in_Gamma σ s id).
         econstructor; eauto.
@@ -470,8 +470,8 @@ Section SimulationRelations.
         cbn in *.
         pose proof NEQ.
         rewrite alist_find_neq in H5; auto.
-    - epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3).
-      assert ({id0 ≡ id} + {id0 ≢ id}) by admit. destruct H7.
+    - epose proof (ALIAS _ ptrv1 _ ptrv2 _ _ _ _ _ _ H H0 H1 H2 H3).
+      destruct (rel_dec_p id0 id).
       + subst.
         assert (in_Gamma σ s id).
         { econstructor.
@@ -479,28 +479,31 @@ Section SimulationRelations.
           all:eauto.
         }
         exfalso; apply FRESH; auto.
-      + admit.
+      + cbn in *.
+        apply In_add_ineq_iff in H4; eauto.
     - unfold alist_fresh in *.
-      assert ({id0 ≡ id} + {id0 ≢ id}) by admit. destruct H6.
+      destruct (rel_dec_p id0 id).
       + subst.
-        assert ({id1 ≡ id} + {id1 ≢ id}) by admit. destruct H6.
+        destruct (rel_dec_p id1 id).
         * subst.
           contradiction.
-        * epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3).
+        * epose proof (ALIAS _ ptrv1 _ ptrv2 _ _ _ _ _ _ H H0 H1 H2 H3).
           assert (in_Gamma σ s id).
           { econstructor.
             2: eapply H1.
             all:eauto.
           }
           exfalso; apply FRESH; auto.
-      + assert ({id1 ≡ id} + {id1 ≢ id}) by admit. destruct H6.
+      + destruct (rel_dec_p id1 id).
         * subst.
-          epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3).
+          epose proof (ALIAS _ ptrv1 _ ptrv2 _ _ _ _ _ _ H H0 H1 H2 H3).
           assert (in_Gamma σ s id).
           econstructor; eauto.
           exfalso; apply FRESH; auto.
-        * admit.
-  Admitted.
+        * cbn in *.
+          apply In_add_ineq_iff in H4; eauto.
+          apply In_add_ineq_iff in H5; eauto.
+  Qed.
 
 
   (* The memory invariant is stable by evolution of IRStates that preserve Γ *)
@@ -1540,7 +1543,9 @@ Proof.
     + cbn in *.
       f_equal; eapply ALIAS2; eauto.
 
-  - do 2 red. intros * LU1 LU2 LU3 LU4 INEQ IN1 IN2.
+  - cbn in ALIAS3.
+    do 2 red. intros * LU1 LU2 LU3 LU4 INEQ IN1 IN2.
+    epose proof (no_llvm_ptr_aliasing_not_in_gamma (UVALUE_Addr ptrv1) ALIAS3 WF GAM).
     destruct n1 as [| n1], n2 as [| n2]; auto.
     + rewrite EQ in LU3.
       rewrite EQ in LU4.
@@ -1556,11 +1561,21 @@ Proof.
       rewrite alist_find_add_eq in IN1; inv IN1.
       red in ALLOC.
       (* - ptrv1 is fresh in [mV] by alloc
+           + Know it's not allocated...
          - ptrv2 was already loaded in a variable stored in Gamma: it _should_ therefore has already been allocated.
          -> do I already have the intel to prove that?
          TO FIGURE OUT
        *)
 
+      (* Just need to know that there's no aliasing with (DSHPtrVal ptrh sizeh) added to σ *)
+      red in H.
+      cbn.
+      destruct id2; cbn in IN2.
+      * admit.
+      * (* If ptrv2 corresponds to a local id, then I know that id <> x, therefor, ptrv2 is in l
+
+           
+         *)
      admit.
     + rewrite EQ in LU3,LU4.
       Opaque allocate.
