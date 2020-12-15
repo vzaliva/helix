@@ -133,10 +133,6 @@ Admitted.
 Opaque incLocalNamed.
 Opaque incLocal.
 
-(* TODO: Figure out how to avoid this *)
-Arguments fmap _ _ /.
-Arguments Fmap_block _ _ _ _/.
-
 Lemma lt_antisym: forall x, Int64.lt x x ≡ false.
 Proof.
   intros.
@@ -245,6 +241,136 @@ Proof.
 Qed.
 
 Import AlistNotations.
+
+
+Lemma wf_ocfg_bid_find_None_app_l :
+  forall {T} (bks1 bks2 : ocfg T) b bk,
+    wf_ocfg_bid (bks1 ++ bks2)%list ->
+    find_block bks2 b ≡ Some bk ->
+    find_block bks1 b ≡ None.
+Admitted.
+
+Lemma free_in_cfg_app : forall {T} (bks1 bks2 : ocfg T) b,
+    free_in_cfg (bks1 ++ bks2)%list b <->
+    (free_in_cfg bks1 b /\ free_in_cfg bks2 b).
+Proof.
+  intros; split; unfold free_in_cfg; intro FREE.
+  - split; intros abs; eapply FREE; rewrite inputs_app; eauto using ListUtil.in_appl, ListUtil.in_appr.
+  - rewrite inputs_app; intros abs; apply in_app_or in abs; destruct FREE as [FREEL FREER]; destruct abs; [eapply FREEL | eapply FREER]; eauto.
+Qed.
+Import Coqlib.
+
+Lemma list_disjoint_nil_l : forall {A} (l : list A),
+    [] ⊍ l.
+Proof.
+  repeat intro; intuition.
+Qed.
+
+Lemma list_disjoint_nil_r : forall {A} (l : list A),
+    l ⊍ [].
+Proof.
+  repeat intro; intuition.
+Qed.
+
+Lemma list_disjoint_cons_l_iff:
+  forall (A: Type) (a: A) (l1 l2: list A),
+    list_disjoint (a :: l1) l2 <->
+    (list_disjoint l1 l2 /\ Logic.not (In a l2)).
+Proof.
+  split; intros H.
+  - split; [eapply list_disjoint_cons_left; eauto |].
+    intros abs; eapply H; eauto; constructor; reflexivity.
+  - apply list_disjoint_cons_l; apply H. 
+Qed.
+
+Lemma list_disjoint_app : forall {A} (l1 l2 l3 : list A),
+    (l1 ++ l2)%list ⊍ l3 <->
+    (l1 ⊍ l3 /\ l2 ⊍ l3).
+Proof.
+  intros; induction l1 as [| hd l1 IH]; cbn.
+  - split; intros H.
+    + split; auto using list_disjoint_nil_l. 
+    + apply H.
+  - split; intros H.
+    + apply list_disjoint_cons_l_iff in H as [H1 H2].
+      apply IH in H1 as [? ?].
+      split; auto. 
+      apply list_disjoint_cons_l; auto. 
+    + destruct H as [H1 H2].
+      apply list_disjoint_cons_l_iff in H1 as [? ?]. 
+      eapply list_disjoint_cons_l.
+      apply IH; auto.
+      auto.
+Qed.
+
+Lemma no_reentrance_app_r :
+  forall {T} (bks1 bks2 bks2' : ocfg T),
+    no_reentrance bks1 (bks2 ++ bks2')%list <->
+    no_reentrance bks1 bks2 /\ no_reentrance bks1 bks2'.
+Proof.
+  intros; unfold no_reentrance; split; [intros H | intros [H1 H2]].
+  - rewrite outputs_app,list_disjoint_app in H; auto.
+  - rewrite outputs_app, list_disjoint_app; auto.
+Qed.
+
+Lemma genWhileLoop_init : 
+  forall prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 s2 entry_id bks _label,
+    genWhileLoop prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 ≡ inr (s2, (entry_id,bks)) ->
+    wf_ocfg_bid bks ->
+    free_in_cfg bks nextblock ->
+    In body_entry (inputs body_blocks) ->
+    exists bks', genWhileLoop prefix from to loopvar loopcontblock body_entry body_blocks [] nextblock s1 ≡ inr (s2, (entry_id,bks'))
+            /\ denote_ocfg (convert_typ [] bks) (_label ,entry_id) ≈
+                          denote_code (convert_typ [] init_code);; denote_ocfg (convert_typ [] bks') (_label ,entry_id).
+Proof.
+  Transparent genWhileLoop.
+
+  intros * GEN WF FREE_NEXT IN_ENTRY; cbn in *; simp.
+  apply free_in_convert_typ with (env := []) in FREE_NEXT; cbn in FREE_NEXT; rewrite ?convert_typ_ocfg_app in FREE_NEXT; cbn in FREE_NEXT.
+  eexists; split; [reflexivity |].
+  cbn; rewrite !convert_typ_ocfg_app.
+  unfold fmap, Fmap_block at 1; cbn.
+  unfold Fmap_block at 1; cbn.
+  vjmp.
+  cbn; vred.
+  vred_l.
+  vred_l.
+  vred_l.
+  apply eutt_eq_bind; intros [].
+  eutt_hide_left.
+  vjmp.
+  cbn.
+  unfold Fmap_block; cbn.
+  vred_r.
+  vred_r.
+  subst.
+  cbn.
+  rewrite typ_to_dtyp_equation; cbn.
+  apply eutt_eq_bind; intros [].
+  eapply eutt_post_bind; [apply has_post_translate, denote_terminator_exits_in_outputs |].
+  intros []; [|reflexivity].
+  cbn.
+  intros [<- | [<- | abs]]; [| | inv abs].
+  - (* We enter the loop *)
+    rewrite list_cons_app, denote_ocfg_app_no_edges; cycle 1.
+    + cbn.
+      rewrite list_cons_app in WF.
+      eapply (wf_ocfg_bid_find_None_app_l _ _ b0) in WF.
+      * unfold find_block in *; cbn in *.
+        destruct (Eqv.eqv_dec_p entry_id b0) as [EQ | INEQ]; [inv WF | auto].
+      * apply wf_ocfg_bid_app_r in WF.
+        solve_find_block.
+    + admit.
+    + admit.
+  - (* We don't enter the loop *)
+    vjmp_out.
+    vjmp_out.
+    reflexivity.
+Admitted.
+
+(* TODO: Figurapply eutt_eq_bind.e out how to avoid this *)
+Arguments fmap _ _ /.
+Arguments Fmap_block _ _ _ _/.
 
 (** Inductive lemma to reason about while loops.
     The code generated is of the shape:
