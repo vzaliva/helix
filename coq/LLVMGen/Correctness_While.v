@@ -840,12 +840,37 @@ Proof.
       split; auto.
 Qed.
 
+Lemma find_block_Some_In_inputs : forall {T} (bks : ocfg T) b bk,
+    find_block bks b ≡ Some bk ->
+    In b (inputs bks).
+Proof.
+  induction bks as [| hd bks IH]; cbn; intros.
+  inv H.
+  destruct (Eqv.eqv_dec_p (blk_id hd) b).
+  rewrite e; auto.
+  right; eapply IH.
+  rewrite find_block_ineq in H; eauto.
+Qed.
+
 Lemma wf_ocfg_bid_find_None_app_l :
   forall {T} (bks1 bks2 : ocfg T) b bk,
     wf_ocfg_bid (bks1 ++ bks2)%list ->
     find_block bks2 b ≡ Some bk ->
     find_block bks1 b ≡ None.
-Admitted.
+Proof.
+  induction bks1 as [| b bks1 IH]; cbn; intros * WF FIND.
+  apply find_block_nil.
+  destruct (Eqv.eqv_dec_p (blk_id b) b0).
+  - exfalso.
+    eapply wf_ocfg_bid_cons_not_in in WF.
+    apply WF.
+    rewrite map_app. 
+    apply ListUtil.in_appr.
+    rewrite e.
+    apply find_block_Some_In_inputs in FIND; auto.
+  - rewrite find_block_ineq; auto.
+    eapply IH; eauto using wf_ocfg_bid_cons.
+Qed.    
 
 Lemma free_in_cfg_app : forall {T} (bks1 bks2 : ocfg T) b,
     free_in_cfg (bks1 ++ bks2)%list b <->
@@ -910,9 +935,6 @@ Proof.
   - rewrite outputs_app, list_disjoint_app; auto.
 Qed.
 
-(* Arguments Fmap_block _ _ _ _/. *)
-
-
 Arguments Fmap_code _ _ _ _/.
 Arguments Fmap_list _ _ _ _/.
 Lemma list_disjoint_singletons : forall {A} (x y : A),
@@ -940,7 +962,12 @@ Qed.
 Lemma convert_typ_terminator_outputs : forall t,
     terminator_outputs (convert_typ [] t) ≡ terminator_outputs t.
 Proof.
-Admitted.
+  intros []; cbn; try reflexivity.
+  - induction brs as [| [τ i] brs IH]; cbn; auto.
+    do 2 f_equal.
+    inv IH; auto.
+  - induction brs; cbn; auto; f_equal; auto. 
+Qed. 
 
 Lemma convert_typ_outputs : forall (bks : ocfg typ),
     outputs (convert_typ [] bks) ≡ outputs bks.
@@ -987,7 +1014,6 @@ Proof.
   intros * GEN WF NIN FREE_NEXT IN_ENTRY; cbn in *; simp.
   apply free_in_convert_typ with (env := []) in FREE_NEXT; cbn in FREE_NEXT; rewrite ?convert_typ_ocfg_app in FREE_NEXT; cbn in FREE_NEXT.
   eexists; split; [reflexivity |].
-  (* Arguments fmap _ _ _ _ _/. *)
   cbn.
   cbn; rewrite !convert_typ_ocfg_app.
   cbn in *.
