@@ -915,6 +915,63 @@ Qed.
 
 Arguments Fmap_code _ _ _ _/.
 Arguments Fmap_list _ _ _ _/.
+Lemma list_disjoint_singletons : forall {A} (x y : A),
+    [x] ⊍ [y] <-> x <> y.
+Proof.
+  unfold list_disjoint; intros; split; intro H.
+  apply H; constructor; auto.
+  intros ? ? [] []; subst; auto.
+Qed.
+
+Lemma wf_ocfg_bid_distinct_labels :
+  forall {T} (bks1 bks2 : ocfg T) b1 b2,
+    wf_ocfg_bid (bks1 ++ bks2) ->
+    In b1 (inputs bks1) ->
+    In b2 (inputs bks2) ->
+    b1 <> b2.
+Proof.
+  intros * WF IN1 IN2.
+  eapply wf_ocfg_bid_app_not_in_l in IN2; eauto.
+  destruct (Eqv.eqv_dec_p b1 b2).
+  rewrite e in IN1; contradiction IN2; auto.
+  auto.
+Qed.
+
+Lemma convert_typ_terminator_outputs : forall t,
+    terminator_outputs (convert_typ [] t) ≡ terminator_outputs t.
+Proof.
+Admitted.
+
+Lemma convert_typ_outputs : forall (bks : ocfg typ),
+    outputs (convert_typ [] bks) ≡ outputs bks.
+Proof.
+  induction bks as [| bk bks IH]; [reflexivity |].
+  unfold convert_typ.
+  simpl ConvertTyp_list.
+  rewrite !outputs_cons, <- IH.
+  f_equal.
+  destruct bk; cbn.
+  unfold bk_outputs.
+  rewrite <- convert_typ_terminator_outputs.
+  reflexivity.
+Qed.
+
+Lemma list_disjoint_singleton_left : forall {A} (l : list A) (x : A),
+    [x] ⊍ l <-> Logic.not (In x l).
+Proof.
+  unfold list_disjoint; intros; split; intro H.
+  intros * IN; eapply H in IN; [|left; eauto]; intuition.
+  intros ? ? [] IN abs; [subst; intuition | intuition].
+Qed.
+
+Lemma list_disjoint_singleton_right : forall {A} (l : list A) (x : A),
+    l ⊍ [x] <-> Logic.not (In x l).
+Proof.
+  unfold list_disjoint; intros; split; intro H.
+  intros * IN; eapply H in IN; [|left; eauto]; intuition.
+  intros ? ? IN [] abs; [subst; intuition | intuition].
+Qed.
+
 Lemma genWhileLoop_init : 
   forall prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 s2 entry_id bks _label,
     genWhileLoop prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 ≡ inr (s2, (entry_id,bks)) ->
@@ -970,11 +1027,31 @@ Proof.
       end.
       apply no_reentrance_app_r; split.
       { unfold no_reentrance; cbn.
-        admit. }
+        apply list_disjoint_singletons.
+        rewrite list_cons_app in WF.
+        intros abs; symmetry in abs.
+        eapply wf_ocfg_bid_distinct_labels in WF; eauto.
+        cbn; auto.
+        cbn; right.
+        rewrite map_app.
+        apply ListUtil.in_appl; auto.
+      }
       apply no_reentrance_app_r; split.
-      red; cbn.
-      admit.
-      { red; cbn. admit. }
+      {
+        red; cbn.
+        rewrite convert_typ_outputs.
+        apply list_disjoint_singleton_right.
+        auto.
+      }
+      { red; cbn.
+        clear - WF NIN FREE_NEXT IN_ENTRY.
+        apply list_disjoint_singleton_right.
+        cbn.
+        intros [-> | [-> | []]].
+        - apply wf_ocfg_bid_cons_not_in in WF; eapply WF; left; auto.
+        - eapply FREE_NEXT; left; auto.
+      }
+
     + cbn.
       rewrite list_cons_app in WF.
       eapply (wf_ocfg_bid_find_None_app_l _ _ b0) in WF.
@@ -982,13 +1059,41 @@ Proof.
         destruct (Eqv.eqv_dec_p entry_id b0) as [EQ | INEQ]; [inv WF | auto].
       * apply wf_ocfg_bid_app_r in WF.
         solve_find_block.
-    + admit.
+    + match goal with
+        |- no_reentrance _ (cons ?x ?y) => rewrite (list_cons_app x y)
+      end.
+      apply no_reentrance_app_r; split.
+      { unfold no_reentrance; cbn.
+        apply list_disjoint_singletons.
+        rewrite list_cons_app in WF.
+        intros abs; symmetry in abs.
+        eapply wf_ocfg_bid_distinct_labels in WF; eauto.
+        cbn; auto.
+        cbn; right.
+        rewrite map_app.
+        apply ListUtil.in_appl; auto.
+      }
+      apply no_reentrance_app_r; split.
+      {
+        red; cbn.
+        rewrite convert_typ_outputs.
+        apply list_disjoint_singleton_right.
+        auto.
+      }
+      { red; cbn.
+        clear - WF NIN FREE_NEXT IN_ENTRY.
+        apply list_disjoint_singleton_right.
+        cbn.
+        intros [-> | [-> | []]].
+        - apply wf_ocfg_bid_cons_not_in in WF; eapply WF; left; auto.
+        - eapply FREE_NEXT; left; auto.
+      }
   - (* We don't enter the loop *)
     rewrite !typ_to_dtyp_equation in FREE_NEXT.
     cbn in *.
     vjmp_out.
     vjmp_out.
     reflexivity.
-Admitted.
+Qed.
 
 Opaque genWhileLoop.
