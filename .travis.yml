@@ -24,7 +24,7 @@ env:
   global:
   - NJOBS=2
   matrix:
-  - TEST_TARGET="8.12.0"
+  - TEST_TARGET="8.12.2"
 
 before_script:
   -  ./ci/keep_alive.sh &
@@ -66,4 +66,4 @@ script:
   - make test
 
 notifications:
- slack: codemindersw:EqDgyov45kk75iskZ4lBLOhM
+ slack: plclub:TeNb2Z15gcRsDnDSxj0p5Mpv
