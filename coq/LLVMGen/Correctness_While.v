@@ -499,7 +499,7 @@ Proof.
     {
       inv VG. inversion UNIQUE_IDENTS.
       subst. intro. subst. apply H1. right.
-      rewrite map_app.
+      rewrite inputs_app.
       apply in_or_app. right. constructor. reflexivity.
     }
 
