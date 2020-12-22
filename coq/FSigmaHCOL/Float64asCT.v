@@ -126,22 +126,22 @@ Module MFloat64asCT <: CType.
   Instance Zless_proper: Proper ((=) ==> (=) ==> (=)) CTypeZLess.
   Proof. solve_proper. Qed.
 
-  Definition abs_proper: Proper ((=) ==> (=)) b64_abs.
+  Instance abs_proper: Proper ((=) ==> (=)) b64_abs.
   Proof. solve_proper. Qed.
 
-  Definition plus_proper: Proper ((=) ==> (=) ==> (=)) (b64_plus FT_Rounding).
+  Instance plus_proper: Proper ((=) ==> (=) ==> (=)) (b64_plus FT_Rounding).
   Proof. solve_proper. Qed.
 
-  Definition sub_proper: Proper ((=) ==> (=) ==> (=)) (b64_minus FT_Rounding).
+  Instance sub_proper: Proper ((=) ==> (=) ==> (=)) (b64_minus FT_Rounding).
   Proof. solve_proper. Qed.
 
-  Definition mult_proper: Proper ((=) ==> (=) ==> (=)) (b64_mult FT_Rounding).
+  Instance mult_proper: Proper ((=) ==> (=) ==> (=)) (b64_mult FT_Rounding).
   Proof. solve_proper. Qed.
 
-  Definition min_proper: Proper ((=) ==> (=) ==> (=)) (Float64Min).
+  Instance min_proper: Proper ((=) ==> (=) ==> (=)) (Float64Min).
   Proof. solve_proper. Qed.
 
-  Definition max_proper: Proper ((=) ==> (=) ==> (=)) (Float64Max).
+  Instance max_proper: Proper ((=) ==> (=) ==> (=)) (Float64Max).
   Proof. solve_proper. Qed.
 
 End MFloat64asCT.
