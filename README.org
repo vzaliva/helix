@@ -28,8 +28,8 @@ LLVM IR.
 ** Example
 
    An application of HELIX to a real-life situation of high-assurance
-   vehicle control [[http://spiral.ece.cmu.edu:8080/pub-spiral/abstract.jsp?id=281][[1]​]] using a dynamic window vehicle control approach
-   [[https://doi.org/10.1109/100.580977][[2]​]] is shown below:
+   vehicle control [[http://spiral.ece.cmu.edu:8080/pub-spiral/abstract.jsp?id=281][(paper)]] using a dynamic window vehicle control
+   approach [[https://doi.org/10.1109/100.580977][(paper)​]] is shown below:
 
    [[doc/bigpicture.png]]
 
