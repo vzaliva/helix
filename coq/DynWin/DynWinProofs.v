@@ -1341,7 +1341,7 @@ Section MSHCOL_to_DSHCOL.
 End MSHCOL_to_DSHCOL.
 
 Section DHCOL_to_FHCOL.
-  Definition dynwin_FSHCOL := DSCHOLtoFHCOL dynwin_DSHCOL1.
+  Definition dynwin_FSHCOL := DSCHOLtoFHCOL.translate dynwin_DSHCOL1.
 
   Lemma simplCarrierARefl:
     forall a,

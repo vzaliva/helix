@@ -20,6 +20,13 @@ Module MRasCT <: CType.
   Definition CTypeEquiv := R_Equiv.
   Definition CTypeSetoid := R_Setoid.
 
+  Instance CTypeEquivDec: forall x y: t, Decision (x = y).
+  Proof.
+    intros.
+    unfold Decision.
+    apply R.OT.eq_dec.
+  Qed.
+
   Definition CTypeZero := R0.
   Definition CTypeOne  := R1.
 
