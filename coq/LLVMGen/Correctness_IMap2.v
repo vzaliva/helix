@@ -63,14 +63,13 @@ Section DSHIMap_is_tfor.
     intros [j1 acc1] [j2 acc2] H1.
     destruct H1. subst.
     cbn.
-    pose proof (Nat.eq_dec j2 j) as [EQ | NEQ].
-    - subst. rewrite H1. rewrite 2 Nat.eqb_refl.
+    destruct (j <=? j2) eqn:J.
+    - rewrite H1.
+      rewrite J.
       apply eutt_Ret.
       constructor; auto.
-    - rewrite H1. apply Nat.eqb_neq in NEQ.
-      rewrite NEQ.
-      assert (S j2 ≢ S j). rewrite Nat.eqb_neq in NEQ. lia.
-      rewrite <- Nat.eqb_neq in H2. rewrite H2.
+    -
+      rewrite H1. rewrite J.
       eapply eutt_clo_bind.
       rewrite H.
       reflexivity.
