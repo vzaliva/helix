@@ -752,14 +752,14 @@ Section InterpHelix.
       cbn.
       unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
       rewrite unfold_iter.
-      rewrite Nat.eqb_refl, bind_ret_l.
+      rewrite Nat.leb_refl, bind_ret_l.
       reflexivity.
     - intros.
       unfold tfor.
       unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
       cbn.
       rewrite unfold_iter.
-      assert (k =? n ≡ false) by (apply Nat.eqb_neq; lia).
+      assert (n <=? k ≡ false) by (apply Nat.leb_gt; lia).
       rewrite H0; rewrite !bind_ret_l, tau_eutt.
       rewrite <- (IH (S k)); try lia.
       reflexivity.
@@ -791,15 +791,16 @@ Section InterpHelix.
       cbn.
       unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
       rewrite unfold_iter.
-      rewrite H, Nat.eqb_refl, bind_ret_l, interp_helix_Ret.
+      assert(n <=? k ≡ true) by (apply Nat.leb_le; lia).
+      rewrite H0, bind_ret_l, interp_helix_Ret.
       rewrite unfold_iter.
-      rewrite Nat.eqb_refl, bind_ret_l.
+      rewrite H0, bind_ret_l.
       reflexivity.
     - intros * EQ INEQ.
       unfold tfor.
       unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
       rewrite 2 unfold_iter.
-      assert (k =? n ≡ false) by (apply Nat.eqb_neq; lia).
+      assert(n <=? k ≡ false) by (apply Nat.leb_gt; lia).
       cbn; rewrite !H.
       rewrite !bind_bind.
       rewrite interp_helix_bind.

@@ -2,14 +2,15 @@
 
 [[https://travis-ci.com/vzaliva/helix][https://travis-ci.com/vzaliva/helix.svg?token=x87izvm44MdTPLHzuxzF&branch=master]]
 
-HELIX project allows for the synthesis of high-performance implementations of numerical 
-algorithms by providing a certified compiler for formally-specified DSL. 
-Based on the existing [[http://spiral.net/][SPIRAL]] system, HELIX adds
-the rigor of formal verification of its correctness using the Coq
-proof assistant. It formally defines a series of domain-specific
-languages starting with HCOL, which represents a computation data
-flow. HELIX works by transforming the original program through a
-series of intermediate languages, culminating in LLVM IR.
+HELIX project allows for the synthesis of high-performance
+implementations of numerical algorithms by providing a certified
+compiler for formally-specified DSL.  Based on the existing [[http://spiral.net/][SPIRAL]]
+system, HELIX adds the rigor of formal verification of its correctness
+using the Coq proof assistant. It formally defines a series of
+domain-specific languages starting with HCOL, which represents a
+computation data flow. HELIX works by transforming the original
+program through a series of intermediate languages, culminating in
+LLVM IR.
 
 - HELIX focuses on automatic translation a class of mathematical.
   expressions to code.
@@ -23,6 +24,14 @@ series of intermediate languages, culminating in LLVM IR.
   certifies its findings.
 - LLVM is used machine code generation backend.
 - Main application: Cyber-physical systems.
+
+** Example
+
+   An application of HELIX to a real-life situation of high-assurance
+   vehicle control [[http://spiral.ece.cmu.edu:8080/pub-spiral/abstract.jsp?id=281][(paper)]] using a dynamic window vehicle control
+   approach [[https://doi.org/10.1109/100.580977][(paper)​]] is shown below:
+
+   [[doc/bigpicture.png]]
 
 ** Dependencies
 

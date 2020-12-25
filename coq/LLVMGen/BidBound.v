@@ -979,9 +979,9 @@ Proof.
         eapply bid_bound_name in H0; [lia | solve_prefix].
       - cbn in H0. destruct H0; inversion H0.
     }
-
+    
     unfold wf_ocfg_bid.
-    rewrite map_app. cbn.
+    rewrite inputs_app. cbn.
     apply Coqlib.list_norepet_append; eauto.
 
     { constructor.
