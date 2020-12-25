@@ -6,11 +6,11 @@ Require Import Helix.LLVMGen.Correctness_MExpr.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.StateCounters.
 Require Import Helix.LLVMGen.VariableBinding.
-(* Require Import Helix.LLVMGen.BidBound. *)
-(* Require Import Helix.LLVMGen.LidBound. *)
-(* Require Import Helix.LLVMGen.StateCounters. *)
-(* Require Import Helix.LLVMGen.Context. *)
-(* Require Import Helix.LLVMGen.Correctness_While. *)
+Require Import Helix.LLVMGen.BidBound.
+Require Import Helix.LLVMGen.LidBound.
+Require Import Helix.LLVMGen.StateCounters.
+Require Import Helix.LLVMGen.Context.
+Require Import Helix.LLVMGen.Correctness_While.
 
 Import ProofMode.
 
@@ -55,32 +55,6 @@ Section DSHIMap_is_tfor.
     tfor (fun i acc => DSHIMap_tfor_body σ f (n - i) x acc) 1 (S n) y.
 
   (* TODO: Move to Vellvm *)
-  Lemma tfor_ss_dep : forall {E A} i j (body body' : nat -> A -> itree E A) a0,
-      (forall x i, body' (S i) x ≈ body i x) ->
-      i <= j ->
-      tfor body' (S i) (S j) a0 ≈ tfor body i j a0.
-  Proof.
-    intros; unfold tfor; cbn.
-    unfold iter, CategoryKleisli.Iter_Kleisli, Basics.iter, MonadIter_itree.
-    eapply eutt_iter'' with (RI1:=fun '(a,x) '(b, y) => a = S b /\ x ≡ y) (RI2:=fun '(a,x) '(b, y) => a = S b /\ x ≡ y); auto.
-    intros [j1 acc1] [j2 acc2] H1.
-    destruct H1. subst.
-    cbn.
-    destruct (j <=? j2) eqn:J.
-    - rewrite H1.
-      rewrite J.
-      apply eutt_Ret.
-      constructor; auto.
-    -
-      rewrite H1. rewrite J.
-      eapply eutt_clo_bind.
-      rewrite H.
-      reflexivity.
-      intros; subst.
-      apply eutt_Ret.
-      constructor; auto.
-  Qed.
-
 
   Import Memory.NM.
 
