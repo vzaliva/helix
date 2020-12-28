@@ -2170,7 +2170,7 @@ Proof.
                        (translate _exp_E_to_L0
                           (map_monad_ initialize_global
                                       (map (Fmap_global typ dtyp (typ_to_dtyp []))
-                                           (flat_map (globals_of typ) gdecls))))
+                                           (flat_map (globals_of typ) gdecls2))))
                        g (le0, stack0) m)).
       {
         replace (globals) with ([] ++ globals) in * by reflexivity.
@@ -2182,26 +2182,48 @@ Proof.
         {
           cbn.
           split.
-          constructor.
-          constructor.
-          cbn.
-          intros ? ? ? ? ? C.
-          rewrite nth_error_nil in C.
-          inversion C.
-          unfold WF_IRState, evalContext_typechecks.
-          cbn.
-          intros ? ? C.
-          rewrite nth_error_nil in C.
-          inversion C.
-          admit.
-          admit.
-          admit.
-          admit.
-          admit.
-          split.
-          admit.
-          unfold allocated_globals.
-          intros; cbn in jc; lia.
+          -
+            constructor.
+            +
+              constructor.
+              *
+                cbn.
+                intros ? ? ? ? C.
+                rewrite nth_error_nil in C.
+                inversion C.
+              *
+                econstructor.
+                rewrite nth_error_nil in H0.
+                inversion H0.
+              *
+                unfold no_id_aliasing.
+                intros.
+                rewrite nth_error_nil in H0.
+                inversion H0.
+              *
+                unfold no_dshptr_aliasing.
+                intros.
+                rewrite nth_error_nil in H0.
+                inversion H0.
+              *
+                cbn.
+                unfold no_llvm_ptr_aliasing.
+                intros.
+                rewrite nth_error_nil in H0.
+                inversion H0.
+              *
+                econstructor.
+                rewrite nth_error_nil in H0.
+                inversion H0.
+            +
+              apply H.
+          -
+            split.
+            +
+              admit.
+            +
+              unfold allocated_globals.
+              intros; cbn in jc; lia.
         }
         inv PRE.
         admit. (* apply H0. *)
