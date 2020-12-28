@@ -1551,8 +1551,6 @@ Proof.
 
   1:{
 
-    admit. (* TMPC
-
     eutt_hide_rel R.
 
     autorewrite with itree.
@@ -1647,8 +1645,6 @@ Proof.
       reflexivity.
       reflexivity.
       crush.
-
-    TMPC *)
 
   }
 
