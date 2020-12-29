@@ -2144,25 +2144,27 @@ Proof.
           block_count := Compiler.block_count s0;
           local_count := Compiler.local_count s0;
           void_count := Compiler.void_count s0;
-          Γ := (ID_Local (Name "Y"), TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double))
+          Γ := (ID_Local (Name "Y"),
+                TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double))
                :: (ID_Local (Name "X"),
-                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double)) :: 
-                  Γ s0 |} as s_yx.
+                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))
+               :: Γ s0 |}
+        as s_yx.
 
       enough (
-          forall pre post gdecls1 gdecls2 s' l',
+          forall pre post gdecls1 gdecls2 s' l1',
             globals ≡ pre ++ post -> 
 
             gdecls ≡ gdecls1 ++ gdecls2 ->
 
             init_with_data initOneIRGlobal
-                           global_uniq_chk l1 pre s_yx ≡ inr (s', (l', gdecls1)) ->
+                           global_uniq_chk l1 pre s_yx ≡ inr (s', (l1', gdecls1)) ->
 
             init_with_data initOneIRGlobal
-                           global_uniq_chk l' post s' ≡ inr (s1, (l2, gdecls2)) ->
+                           global_uniq_chk l1' post s' ≡ inr (s1, (l2, gdecls2)) ->
 
             post_init_invariant' pre (mg, ())
-                                      (m, (le0, stack0, (g, ()))) ->
+                                      (m', (l', st', (g', ()))) ->
 
             eutt (post_init_invariant' (pre ++ post))
                  (Ret (mg, ()))
@@ -2171,7 +2173,7 @@ Proof.
                           (map_monad_ initialize_global
                                       (map (Fmap_global typ dtyp (typ_to_dtyp []))
                                            (flat_map (globals_of typ) gdecls2))))
-                       g (le0, stack0) m)).
+                       g' (l', st') m')).
       {
         replace (globals) with ([] ++ globals) in * by reflexivity.
         replace (Γ_globals) with ([] ++ Γ_globals) in * by reflexivity.
@@ -2185,51 +2187,62 @@ Proof.
           -
             constructor.
             +
-              constructor.
-              *
-                cbn.
-                intros ? ? ? ? C.
-                rewrite nth_error_nil in C.
-                inversion C.
-              *
-                econstructor.
-                rewrite nth_error_nil in H0.
-                inversion H0.
-              *
-                unfold no_id_aliasing.
-                intros.
-                rewrite nth_error_nil in H0.
-                inversion H0.
-              *
-                unfold no_dshptr_aliasing.
-                intros.
-                rewrite nth_error_nil in H0.
-                inversion H0.
-              *
-                cbn.
-                unfold no_llvm_ptr_aliasing.
-                intros.
-                rewrite nth_error_nil in H0.
-                inversion H0.
-              *
-                econstructor.
-                rewrite nth_error_nil in H0.
-                inversion H0.
+              cbn.
+              intros ? ? ? ? C.
+              rewrite nth_error_nil in C.
+              inversion C.
             +
-              apply H.
+              econstructor.
+              rewrite nth_error_nil in H0.
+              inversion H0.
+            +
+              unfold no_id_aliasing.
+              intros.
+              rewrite nth_error_nil in H0.
+              inversion H0.
+            +
+              unfold no_dshptr_aliasing.
+              intros.
+              rewrite nth_error_nil in H0.
+              inversion H0.
+            +
+              cbn.
+              unfold no_llvm_ptr_aliasing.
+              intros.
+              rewrite nth_error_nil in H0.
+              inversion H0.
+            +
+              econstructor.
+              rewrite nth_error_nil in H0.
+              inversion H0.
           -
-            split.
-            +
-              admit.
-            +
-              unfold allocated_globals.
-              intros; cbn in jc; lia.
+            intuition.
         }
         inv PRE.
-        admit. (* apply H0. *)
+        replace ([] ++ gdecls2)
+          with gdecls2
+          by apply app_nil_l.
+        apply H0.
       }
-      cbn.
-      admit.
+
+      intros pre post; revert pre.
+      generalize dependent g'.
+      generalize dependent l'.
+      generalize dependent st'.
+      generalize dependent m'.
+      induction post;
+        intros ? ? ? ? DI ? ? ? ? ? GLOBALS GDECLS PRE POST INV.
+      *
+        cbn in POST.
+        inv POST.
+        cbn.
+        autorewrite with itree.
+        rewrite interp_to_L3_ret.
+        apply eutt_Ret.
+        rewrite app_nil_r.
+        apply INV.
+      *
+        admit.
     +
       intros.
 
