@@ -1841,6 +1841,7 @@ Proof.
         subst p p1 p2 e_post.
         destruct p0 as [mg0 hdata0].
 
+        cbn.
         rewrite interp_to_L3_bind.
 
         eutt_hide_left LHS.
@@ -2233,7 +2234,7 @@ Proof.
       generalize dependent st'.
       generalize dependent m'.
       induction post;
-        intros ? ? ? ? DI ? ? ? ? ? GLOBALS GDECLS PRE POST INV.
+        intros ? ? ? ? GINV ? ? ? ? ? GLOBALS GDECLS PRE POST PINV.
       *
         cbn in POST.
         inv POST.
@@ -2242,9 +2243,74 @@ Proof.
         rewrite interp_to_L3_ret.
         apply eutt_Ret.
         rewrite app_nil_r.
-        apply INV.
+        apply PINV.
       *
-        admit.
+        cbn in POST.
+        repeat break_match_hyp; try inl_inr.
+        inversion POST; clear POST.
+        rename l5 into gdecls2', t0 into g2';
+          subst gdecls2.
+        subst p p0 p1 p2 p3.
+        subst i2 l4.
+        
+        replace (g2' :: gdecls2')
+          with ([g2'] ++ gdecls2')
+          in * by reflexivity.
+        rewrite flat_map_app, map_app, map_monad_app_.
+        simpl.
+        rewrite app_nil_r.
+
+        copy_apply initOneIRGlobal_is_global Heqs0.
+        destruct H0 as [tg2 G2]; subst g2'.
+        simpl.
+        repeat rewrite Eq.bind_bind.
+        do 2 setoid_rewrite Eq.bind_ret_l.
+
+        rewrite GLOBALS in G.
+        move G after PINV.
+        apply init_with_data_app in G.
+        destruct G as ((m_pre & hdata_pre) & e_pre & e_post & IPRE & IPOST & E).
+        cbn in IPOST.
+
+        repeat break_match; try inl_inr.
+        inversion IPOST; clear IPOST.
+        rename d into ne', l4 into e_post'.
+        subst p p1 p2 e_post.
+        destruct p0 as [mg0 hdata0].
+
+        rewrite translate_bind.
+        rewrite interp_to_L3_bind.
+
+        eutt_hide_left LHS.
+        assert (FB : (LHS ≈ LHS ;; LHS)%monad); [| rewrite FB; clear FB; subst LHS].
+        {
+          subst LHS.
+          clear.
+          cbn.
+          rewrite Eq.bind_ret_l.
+          reflexivity.
+        }
+
+        (* ZX TODO: might want to change the relation here *)
+        apply eutt_clo_bind with (UU:=post_init_invariant' (pre ++ [a])).
+        -- (* initialize the "new" global [a] *)
+          cbn.
+          autorewrite with itree.
+
+          rewrite _exp_E_to_L0_Global, subevent_subevent.
+          rewrite interp_to_L3_bind.
+
+          inversion_clear GINV as ((AXY & AG) & DI).
+
+          erewrite interp_to_L3_GR.
+          2:{
+            unfold allocated_globals in AG.
+            admit.
+          }
+
+          admit.
+        -- (* initialize [post] *)
+          admit.
     +
       intros.
 
