@@ -1097,6 +1097,21 @@ Ltac destruct_unit :=
          | [x : unit |- _] => destruct x
          end.
 
+Lemma initOneIRGlobal_some_g_exp
+      (data data' : list binary64)
+      (nmt : string * DSHType)
+      (tg : global typ) 
+      (s s' : IRState)
+  :
+    initOneIRGlobal data nmt s ≡ inr (s', (data', TLE_Global tg)) →
+    is_Some (g_exp tg).
+Proof.
+  intros.
+  unfold initOneIRGlobal in H.
+  repeat break_match; inv H.
+  all: reflexivity.
+Qed.
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -2175,13 +2190,44 @@ Proof.
 
           inversion_clear GINV as ((AXY & AG) & DI).
 
-          erewrite interp_to_L3_GR.
-          2:{
+          assert (exists v, Maps.lookup (g_ident tg2) g' ≡ Some v).
+          {
+            destruct a as (a_nm, a_t).
+            subst globals.
             unfold allocated_globals in AG.
-            admit.
-          }
+            cbn in *.
+            unfold in_global_addr in AG.
+            specialize (AG (length pre)).
+            autospecialize AG;
+              [subst; rewrite ListUtil.length_app; cbn; lia |].
+            destruct AG as [a_ptr [AA AIG]].
+            erewrite ListUtil.ith_eq with (j:=length pre + 0)
+              in AIG; [| lia].
+            erewrite ith_eq_app_r in AIG.
+            cbn in AIG.
+            enough (TNM : g_ident tg2 ≡ Name a_nm).
+            rewrite TNM.
+            rewrite AIG.
+            eexists.
+            reflexivity.
 
-          admit.
+            clear - Heqs0.
+            repeat break_match;
+              inv Heqs0;
+              reflexivity.
+          }
+          destruct H0 as [av AV].
+          rewrite (interp_to_L3_GR) by apply AV.
+
+          autorewrite with itree.
+          destruct (g_exp tg2) as [tg2e |] eqn:TG2E;
+            [| apply initOneIRGlobal_some_g_exp in Heqs0;
+             rewrite TG2E in Heqs0;
+             inversion Heqs0].
+          cbn.
+          destruct tg2e.
+          all: cbn.
+          all: admit.
         -- (* initialize [post] *)
           admit.
     +
