@@ -1112,6 +1112,18 @@ Proof.
   all: reflexivity.
 Qed.
 
+(* ZX TODO: need something along these lines. See [denote_exp_i64] also. *)
+(*
+Lemma denote_exp_i64_mcfg : forall defs t g l m,
+    interp_mcfg
+      (translate _exp_E_to_L0
+                 (denote_exp (Some (DTYPE_I 64))
+                             (EXP_Integer (bits_of_b64 t))))
+       g l m
+    ≈
+    Ret (m, (l, (g, UVALUE_I64 t))).
+*)
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -2189,10 +2201,10 @@ Proof.
           rewrite interp_to_L3_bind.
 
           inversion_clear GINV as ((AXY & AG) & DI).
+          destruct a as (a_nm, a_t).
 
           assert (exists v, Maps.lookup (g_ident tg2) g' ≡ Some v).
           {
-            destruct a as (a_nm, a_t).
             subst globals.
             unfold allocated_globals in AG.
             cbn in *.
@@ -2220,14 +2232,30 @@ Proof.
           rewrite (interp_to_L3_GR) by apply AV.
 
           autorewrite with itree.
-          destruct (g_exp tg2) as [tg2e |] eqn:TG2E;
-            [| apply initOneIRGlobal_some_g_exp in Heqs0;
-             rewrite TG2E in Heqs0;
-             inversion Heqs0].
-          cbn.
-          destruct tg2e.
-          all: cbn.
-          all: admit.
+
+          rename Heqs0 into IA.
+          move IA at bottom.
+          cbn in IA.
+          repeat break_match_hyp;
+            inv IA; cbn.
+          ++
+            rewrite typ_to_dtyp_I.
+            rewrite interp_to_L3_bind.
+            admit.
+
+            (*
+              destruct (g_exp tg2) as [tg2e |] eqn:TG2E;
+              [| apply initOneIRGlobal_some_g_exp in Heqs0;
+              rewrite TG2E in Heqs0;
+              inversion Heqs0].
+              cbn.
+              destruct tg2e.
+              all: cbn.
+             *)
+          ++
+            admit.
+          ++
+            admit.
         -- (* initialize [post] *)
           admit.
     +
