@@ -1,4 +1,4 @@
-dist: xenial
+dist: focal
 sudo: required
 language: generic
 
@@ -15,8 +15,6 @@ cache:
 addons:
   apt:
     update: true
-    sources:
-    - sourceline: "ppa:avsm/ppa"
     packages:
     - opam
     - aspcud
@@ -65,5 +63,5 @@ script:
   - make -j ${NJOBS}
   - make test
 
-notifications:
- slack: plclub:TeNb2Z15gcRsDnDSxj0p5Mpv
+#notifications:
+# slack: plclub:TeNb2Z15gcRsDnDSxj0p5Mpv
