@@ -18,6 +18,7 @@ addons:
     packages:
     - opam
     - aspcud
+    - libipc-system-simple-perl
 env:
   global:
   - NJOBS=2
