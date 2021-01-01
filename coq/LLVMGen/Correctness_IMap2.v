@@ -38,10 +38,10 @@ Section DSHIMap_is_tfor.
              (f : AExpr)
              (offset : nat)
              (init acc : mem_block) :=
-    ` v : binary64 <-
-      lift_Derr (mem_lookup_err "Error reading memory denoteDSHIMap" offset init);;
-    ` vn : MInt64asNT.t <- lift_Serr (MInt64asNT.from_nat offset);;
-    ` v' : binary64 <- denoteIUnCType σ f vn v;;
+    v <-
+       lift_Derr (mem_lookup_err "Error reading memory denoteDSHIMap" offset init);;
+    vn <- lift_Serr (MInt64asNT.from_nat offset);;
+    v'<- denoteIUnCType σ f vn v;;
     ret (mem_add offset v' acc).
 
   (* TODO: to 0 to n *)
