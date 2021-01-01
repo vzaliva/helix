@@ -13,7 +13,7 @@ Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.MSigmaHCOL.MSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
-Require Import Helix.DSigmaHCOL.DSHCOLOnCarrierA.
+Require Import Helix.ASigmaHCOL.ASigmaHCOL.
 
 Require Import Helix.Tactics.HelixTactics.
 
@@ -28,7 +28,7 @@ Require Import MathClasses.misc.util.
    ".") *)
 Require Import Coq.Program.Basics.
 
-Import MDSHCOLOnCarrierA.
+Import AHCOL.
 
 Import MonadNotation.
 
@@ -341,12 +341,12 @@ Definition reifyMSHCOL
 
 
 (*
-Require Import Helix.DSigmaHCOL.DSHCOLOnCarrierA.
+Require Import Helix.ASigmaHCOL.ASigmaHCOL.
 Require Import Helix.HCOL.HCOL.
 Require Import Helix.SigmaHCOL.SigmaHCOL.
 Require Import Helix.SigmaHCOL.IndexFunctions.
 Require Import Helix.SigmaHCOL.SigmaHCOLRewriting.
-Import MDSHCOLOnCarrierA.
+Import AHCOL.
 
 
 Definition foo := MSHPointwise (n:=4) (IgnoreIndex (fun x => abs x)).

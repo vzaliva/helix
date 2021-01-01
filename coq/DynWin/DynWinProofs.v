@@ -39,11 +39,15 @@ Require Import Helix.MSigmaHCOL.MSigmaHCOL.
 Require Import Helix.MSigmaHCOL.ReifyProofs.
 Require Import Helix.Util.MonoidalRestriction.
 
-Require Import Helix.DSigmaHCOL.ReifyMSHCOL.
-Require Import Helix.DSigmaHCOL.DSHCOLOnCarrierA.
-Require Import Helix.DSigmaHCOL.ReifyProofs.
+Require Import Helix.ASigmaHCOL.ASigmaHCOL.
+Require Import Helix.ASigmaHCOL.ReifyMSHCOL.
+Require Import Helix.ASigmaHCOL.ReifyProofs.
 
-Require Import Helix.FSigmaHCOL.ReifyDSHCOL.
+Require Import Helix.RSigmaHCOL.RSigmaHCOL.
+Require Import Helix.RSigmaHCOL.ReifyAHCOL.
+
+Require Import Helix.FSigmaHCOL.FSigmaHCOL.
+Require Import Helix.FSigmaHCOL.ReifyRHCOL.
 Require Import Helix.FSigmaHCOL.Int64asNT.
 Require Import Coq.Bool.Sumbool.
 Require Import MathClasses.misc.decision.
@@ -892,15 +896,15 @@ Section SHCOL_to_MSHCOL.
 
 End SHCOL_to_MSHCOL.
 
-Section MSHCOL_to_DSHCOL.
+Section MSHCOL_to_AHCOL.
 
-  Import MDSHCOLOnCarrierA.
+  Import AHCOL.
 
-  MetaCoq Run (reifyMSHCOL dynwin_MSHCOL1 [(BasicAst.MPfile ["DynWinProofs"; "DynWin"; "Helix"], "dynwin_MSHCOL1")] "dynwin_DSHCOL1" "dynwin_DSHCOL1_globals").
+  MetaCoq Run (reifyMSHCOL dynwin_MSHCOL1 [(BasicAst.MPfile ["DynWinProofs"; "DynWin"; "Helix"], "dynwin_MSHCOL1")] "dynwin_AHCOL" "dynwin_AHCOL_globals").
 
   (* Import DSHNotation. *)
 
-  Definition nglobals := List.length (dynwin_DSHCOL1_globals). (* 1 *)
+  Definition nglobals := List.length (dynwin_AHCOL_globals). (* 1 *)
   Definition DSH_x_p := PVar (nglobals+1). (* PVar 2 *)
   Definition DSH_y_p := PVar (nglobals+0). (* PVar 1 *)
 
@@ -958,9 +962,9 @@ Section MSHCOL_to_DSHCOL.
   (* TODO: This is a manual proof. To be automated in future. See [[../../doc/TODO.org]] for details *)
   Instance DynWin_pure
     :
-      DSH_pure (dynwin_DSHCOL1) DSH_y_p.
+      DSH_pure (dynwin_AHCOL) DSH_y_p.
   Proof.
-    unfold dynwin_DSHCOL1, DSH_y_p, DSH_x_p.
+    unfold dynwin_AHCOL, DSH_y_p, DSH_x_p.
     solve_MSH_DSH_compat.
   Qed.
 
@@ -1013,13 +1017,13 @@ Section MSHCOL_to_DSHCOL.
     (* This lemma could be auto-generated from TemplateCoq *)
     Theorem DynWin_MSH_DSH_compat
       :
-        @MSH_DSH_compat dynwin_i dynwin_o (dynwin_MSHCOL1 a) (dynwin_DSHCOL1)
+        @MSH_DSH_compat dynwin_i dynwin_o (dynwin_MSHCOL1 a) (dynwin_AHCOL)
                         dynwin_σ
                         dynwin_memory
                         DSH_x_p DSH_y_p
                         DynWin_pure.
     Proof.
-      unfold dynwin_DSHCOL1, DSH_y_p, DSH_x_p.
+      unfold dynwin_AHCOL, DSH_y_p, DSH_x_p.
       unfold dynwin_x_addr, dynwin_y_addr, dynwin_a_addr, nglobals in *.
       unfold dynwin_MSHCOL1.
       cbn in *.
@@ -1338,26 +1342,22 @@ Section MSHCOL_to_DSHCOL.
 
   End DummyEnv.
 
-End MSHCOL_to_DSHCOL.
+End MSHCOL_to_AHCOL.
 
-Section DHCOL_to_AHCOL.
-  Definition dynwin_FSHCOL := DSCHOLtoFHCOL.translate dynwin_DSHCOL1.
-End.
-
-Section DHCOL_to_FHCOL.
-  Definition dynwin_FSHCOL := DSCHOLtoFHCOL.translate dynwin_DSHCOL1.
+Section AHCOL_to_RHCOL.
+  Definition dynwin_RHCOL := AHCOLtoRHCOL.translate dynwin_AHCOL.
 
   Lemma simplCarrierARefl:
     forall a,
       (CarrierAequivdec a a) ≡ left
-                             (@reflexivity
-                                (Zero CarrierA)
-                                (@equiv (Zero CarrierA) CarrierAe)
-                                (@Equivalence_Reflexive (Zero CarrierA)
-                                                        (@equiv (Zero CarrierA) CarrierAe)
-                                                        (@abstract_algebra.setoid_eq (Zero CarrierA) CarrierAe CarrierAsetoid))
-                                a
-                              : @equiv (Zero CarrierA) CarrierAe a a).
+                                 (@reflexivity
+                                    (Zero CarrierA)
+                                    (@equiv (Zero CarrierA) CarrierAe)
+                                    (@Equivalence_Reflexive (Zero CarrierA)
+                                                            (@equiv (Zero CarrierA) CarrierAe)
+                                                            (@abstract_algebra.setoid_eq (Zero CarrierA) CarrierAe CarrierAsetoid))
+                                    a
+                                  : @equiv (Zero CarrierA) CarrierAe a a).
   Proof.
     intros a.
     destruct (CarrierAequivdec a a) as [H|NH].
@@ -1423,7 +1423,29 @@ Section DHCOL_to_FHCOL.
        simplCarrierARefl:
     CarrierAZ1equalities.
 
-  Import FSigmaHCOL.MDSHCOLOnFloat64.
+  Definition dynwin_RHCOL1 : RHCOL.DSHOperator.
+  Proof.
+    remember dynwin_RHCOL as a eqn:H.
+    cbv in H.
+    autorewrite with CarrierAZ1equalities in H.
+    cbv in H.
+    destruct a.
+    -
+      inv H.
+    -
+      inl_inr_inv.
+      (* Set Printing All.
+      Redirect "dynwin_RHCOL" Show 1. *)
+      exact d.
+  Defined.
+
+End AHCOL_to_RHCOL.
+
+Section RHCOL_to_FHCOL.
+  Definition dynwin_FSHCOL := RHCOLtoFHCOL.translate dynwin_RHCOL1.
+
+  (*
+  Import FSigmaHCOL.FHCOL.
   Require Import AltBinNotations.
 
   (* Import DSHNotation. *)
@@ -1432,12 +1454,12 @@ Section DHCOL_to_FHCOL.
   Local Notation "v" := (Int64.mkint v _) (at level 10, only printing) : int64.
   Local Delimit Scope int64 with int64.
 
-  Definition dynwin_FSHCOL1 : FSigmaHCOL.MDSHCOLOnFloat64.DSHOperator.
+  Definition dynwin_FSHCOL1 : FHCOL.DSHOperator.
   Proof.
     remember dynwin_FSHCOL as a eqn:H.
     Opaque Float64asCT.Float64Zero.
     Opaque Float64asCT.Float64One.
-    cbv in H.
+    compute in H.
     autorewrite with CarrierAZ1equalities in H.
     cbv in H.
     destruct a.
@@ -1449,5 +1471,5 @@ Section DHCOL_to_FHCOL.
       (* Redirect "dynwin_FSHCOL" Show 1. *)
       exact d.
   Defined.
-
-End DHCOL_to_FHCOL.
+  *)
+End RHCOL_to_FHCOL.
