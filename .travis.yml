@@ -65,5 +65,5 @@ script:
   - make -j ${NJOBS}
   - make test
 
-#notifications:
-# slack: plclub:TeNb2Z15gcRsDnDSxj0p5Mpv
+notifications:
+ slack: plclub:TeNb2Z15gcRsDnDSxj0p5Mpv
