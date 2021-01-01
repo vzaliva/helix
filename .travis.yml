@@ -19,6 +19,7 @@ addons:
     - opam
     - aspcud
     - libipc-system-simple-perl
+    - libstring-shellquote-perl
 env:
   global:
   - NJOBS=2
