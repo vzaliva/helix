@@ -6,4 +6,4 @@ Require Import Helix.DSigmaHCOL.DSigmaHCOLITree.
 Require Import Helix.RSigmaHCOL.RasCT.
 Require Import Helix.DSigmaHCOL.NatAsNT.
 
-Module Export MDSHCOLOnR := MDSigmaHCOLITree(MRasCT)(MNatAsNT).
+Module Export RHCOL := MDSigmaHCOLITree(MRasCT)(MNatAsNT).

@@ -3,5 +3,4 @@ Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
 Require Import Helix.DSigmaHCOL.NatAsNT.
 
-Module Export MDSHCOLOnCarrierA :=
-  MDSigmaHCOLEval(CarrierAasCT)(MNatAsNT).
+Module Export AHCOL := MDSigmaHCOLEval(CarrierAasCT)(MNatAsNT).
