@@ -1558,6 +1558,55 @@ Proof.
           + rewrite memory_lookup_memory_set_neq; auto.
           +
             Set Nested Proofs Allowed.
+            Lemma allocated_next_key_diff :
+              forall m ptr,
+                allocated ptr m ->
+                next_logical_key m ≢ fst ptr.
+            Proof.
+              intros [[cm lm] fs] [ptr_a ptr_o] H.
+              Transparent next_logical_key.
+              unfold next_logical_key, next_logical_key_mem, logical_next_key.
+              cbn.
+              unfold allocated in H.
+              epose proof maximumBy_Z_correct.
+              assert (In ptr_a (map fst (IM.elements (elt:=logical_block) lm))).
+              { admit. }
+
+              eapply H0 with (def:= (-1)%Z) in H1.
+              apply Z.leb_le in H1.
+
+              destruct (maximumBy Z.leb (-1)%Z (map fst (IM.elements (elt:=logical_block) lm))) eqn:BLAH.              - lia.
+              - destruct p; lia.
+              - destruct ptr_a; try lia.
+                assert (p0 >= p)%positive by lia.
+                assert (p ≡ 1 \/ 1 < p)%positive by lia.
+                destruct H3.
+                + subst.
+                  cbn. lia.
+                + pose proof H3. apply Z.pos_sub_lt in H3. rewrite H3.
+                  lia.
+            Admitted.
+            
+            Lemma get_logical_block_frames :
+              forall cm lm f1 f2,
+                get_logical_block ((cm, lm), f1) ≡ get_logical_block ((cm, lm), f2).
+            Proof.
+              intros cm lm f1 f2.
+              unfold get_logical_block.
+              cbn.
+              reflexivity.
+            Qed.
+
+            Lemma get_logical_block_add_to_frame :
+              forall m key ptr,
+                get_logical_block (add_to_frame m key) ptr ≡ get_logical_block m ptr.
+            Proof.
+              intros [[cm lm] fs] key ptr.
+              cbn.
+              destruct fs;
+                erewrite get_logical_block_frames; reflexivity.
+            Qed.
+
             Lemma get_logical_block_allocated:
               forall m1 m2 τ ptr ptr_allocated,
                 allocate m1 τ ≡ inr (m2, ptr_allocated) ->
@@ -1568,21 +1617,12 @@ Proof.
               pose proof (allocate_correct ALLOC) as (ALLOC_FRESH & ALLOC_NEW & ALLOC_OLD).
               unfold allocate in ALLOC.
               destruct τ; inversion ALLOC.
+              all :
+                rewrite get_logical_block_add_to_frame;
+                rewrite get_logical_block_of_add_logical_block_neq;
+                [auto | apply allocated_next_key_diff; auto].
+            Qed.
 
-              {
-                unfold add_to_frame.
-                Transparent add_logical_block.
-                unfold add_logical_block.
-                destruct fs1.
-                pose proof get_logical_block_of_add_logical_block_mem_neq.
-                erewrite get_logical_block_of_add_logical_block_mem_neq.
-                reflexivity.
-                admit.
-                admit.
-              }
-              
-            Admitted.
-              
             Lemma dtyp_fits_after_allocated:
               forall m1 m2 τ ptr τ' ptr_allocated,
                 allocate m1 τ ≡ inr (m2, ptr_allocated) ->
