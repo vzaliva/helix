@@ -12,6 +12,10 @@ Require Import Helix.LLVMGen.StateCounters.
 Require Import Helix.LLVMGen.Context.
 Require Import Helix.LLVMGen.Correctness_While.
 
+From Vellvm Require Import Utils.Commutation.
+
+Require Import Paco.paco.
+
 Import ProofMode.
 
 Set Implicit Arguments.
@@ -25,14 +29,15 @@ Opaque incVoid.
 Opaque incLocal.
 Opaque genWhileLoop.
 
+Import Memory.NM.
 Import ListNotations.
 Import MonadNotation.
 Local Open Scope monad_scope.
 Local Open Scope nat_scope.
 
-
 Section DSHIMap_is_tfor.
 
+  (* Iterative body of [IMap] *)
   Definition DSHIMap_tfor_body
              (σ : evalContext)
              (f : AExpr)
@@ -44,7 +49,7 @@ Section DSHIMap_is_tfor.
     ` v' : binary64 <- denoteIUnCType σ f vn v;;
     ret (mem_add offset v' acc).
 
-  (* TODO: to 0 to n *)
+  (* [tfor] formulation of [DSHIMap]. *)
   Definition DSHIMap_tfor
              (σ : evalContext)
              (n : nat)
@@ -52,37 +57,98 @@ Section DSHIMap_is_tfor.
              (x y : mem_block):
     itree Event mem_block :=
     (* IMap has "reverse indexing" on its body *)
-    tfor (fun i acc => DSHIMap_tfor_body σ f (n - i) x acc) 1 (S n) y.
+    tfor (fun i acc => DSHIMap_tfor_body σ f (n - 1 - i) x acc) 0 n y.
 
-  (* TODO: Move to Vellvm *)
+  (* [denoteDSHIMap] is equivalent to [tfor] with "reverse indexing" on an
+     [IMap] body. *)
+  Lemma denoteDSHIMap_as_tfor:
+    forall (σ : evalContext) n f x y,
+      denoteDSHIMap n f σ x y ≈ DSHIMap_tfor σ n f x y.
+  Proof.
+    intros.
+    unfold DSHIMap_tfor. revert y.
+    induction n.
+    - cbn. intros.
+      setoid_rewrite tfor_0.
+      reflexivity.
+    - intros.
+      rewrite tfor_unroll; [| lia].
+      assert (S n - 1 - 0 ≡ n) by lia. rewrite H. cbn.
+      repeat setoid_rewrite bind_bind.
+      cbn.
+      eapply eutt_clo_bind; [reflexivity|].
+      intros u1 u2 H'.
+      eapply eutt_clo_bind; [reflexivity|].
+      intros u0 u3 H''. subst.
+      eapply eutt_clo_bind; [reflexivity|].
+      intros; subst. rewrite bind_ret_l.
+      rewrite IHn.
 
-  Import Memory.NM.
+      setoid_rewrite tfor_ss_dep. 3 : lia.
+      reflexivity. intros.
+      cbn. assert (n - 0 - S i ≡ n - 1 - i) by lia. rewrite H0. reflexivity.
+  Qed.
 
   Definition mem_block_Equiv_up_to (n : nat) (m m' : mem_block) :=
     forall k, k < n -> find k m = find k m'.
 
+  (* < Desired Lemma > *)
+  (* Lemma mem_block_equiv_is_order_independent : *)
+  (*   forall n mem init_vec, *)
+  (*       eutt (equiv_mem_block /2\ eq_mem) *)
+  (*       interp_helix (tfor body_up   0 n) (m, init_vec) *)
+  (*       interp_helix (tfor body_down 0 n) (m, init_vec) *)
+  (*       equiv_mem_block_frag i n *)
+  (*       equiv_mem_block <-> equiv_mem_block_frag 0 n. *)
+
+  (* TODO *)
+
+  (* < Generalized Lemma >
+        Equivalent to Desired lemma when i = 0
+   *)
+  (* TODO *)
+
+  (*
+        forall i, 0 <= i < n,
+        eutt (equiv_mem_block ** eq_mem)
+        interp_helix (vec <- (tfor body_up i n) init ;;
+                          (tfor body_down (n-i) n) vec)
+                    (vec <- tfor body_down i n) init ;;
+                          (tfor body_up  (n-i) n)
+   *)
+  (*
+        (* Inductive hypothesis with one step "bubbled up" *)
+        equiv_mem_block_frag i n 
+          ((vec0 <- (tfor body_up (S i) j) init ;;
+            (veci <- (body_up i) vec0 ;;
+          (vecn <- (tfor body_up j n) veci;;
+          (tfor body_down (n-i) n) vecn)
+          ((vec0 <- (tfor body_up (S i) n) init ;;
+          (veci <- (body_up i) vec0 ;;
+          (tfor body_down (n-i) n) vecn)
+  *)
+
+
   (* Wishful? *)
-  (* Lemma tfor_IMap_rev_fixed : *)
-  (*   forall {E} (σ : evalContext) (n : nat) (f : AExpr) (x y : mem_block) mem, *)
-  (*   exists vec, *)
-  (*     eutt (E:=E) (fun x y => *)
-  (*             match x, y with *)
-  (*             | None, None => True *)
-  (*             | Some (mH, mem_bl), Some (mH', mem_bl') => *)
-  (*                 mH ≡ mH' /\ *)
-  (*                 mem_block_Equiv_up_to n mem_bl mem_bl' *)
-  (*             | _, _ => False *)
-  (*             end) *)
-  (*   (interp_helix (tfor (fun i acc => DSHIMap_tfor_body σ f (n - i) x acc) 0 n y) mem) *)
-  (*   (Ret vec) *)
-  (*     (* /\ (forall k, k < n -> exists v, find k vec = Some v). *). *)
-  (* Admitted. *)
+  Lemma tfor_IMap_rev_fixed :
+    forall {E} (σ : evalContext) (n : nat) (f : AExpr) (x y : mem_block) mem,
+    exists vec,
+      eutt (E:=E) (fun x y =>
+              match x, y with
+              | None, None => True
+              | Some (mH, mem_bl), Some (mH', mem_bl') =>
+                  mH ≡ mH' /\
+                  mem_block_Equiv_up_to n mem_bl mem_bl'
+              | _, _ => False
+              end)
+    (interp_helix (tfor (fun i acc => DSHIMap_tfor_body σ f (n - i) x acc) 0 n y) mem)
+    (Ret vec)
+      (* /\ (forall k, k < n -> exists v, find k vec = Some v). *).
+  Admitted.
 
   (* Lemma mem_block_Equiv_up_to_eq : *)
   (* ... *)
   (*   mem_block_Equiv m m' ~ mem_block_Equiv_up_to n m m' *)
-
-  Require Import Paco.paco.
 
 
   (* TODO: 1. Prove this
@@ -174,34 +240,6 @@ Proof.
 
   Notation "m1 ⊍ m2" := (mem_union m1 m2).
   Notation "m1 ⟂ m2" := (mem_disjoint m1 m2) (at level 40).
-
-  Lemma denoteDSHIMap_as_tfor:
-    forall (σ : evalContext) n f x y,
-      denoteDSHIMap n f σ x y ≈ DSHIMap_tfor σ n f x y.
-  Proof.
-    intros.
-    unfold DSHIMap_tfor. revert y.
-    induction n.
-    - cbn. intros.
-      setoid_rewrite tfor_0.
-      reflexivity.
-    - intros.
-      assert (S n ≡ n + 1). lia. rewrite H. rewrite <- H at 1. rewrite <- H at 1. clear H.
-      cbn. rewrite tfor_unroll; [| lia].
-      assert (n + 1 - 1 ≡ n) by lia. rewrite H. clear H.
-      repeat setoid_rewrite bind_bind.
-      eapply eutt_clo_bind; [reflexivity|].
-      intros u1 u2 H'.
-      eapply eutt_clo_bind; [reflexivity|].
-      intros u0 u3 H''. subst.
-      eapply eutt_clo_bind; [reflexivity|].
-      intros; subst. rewrite bind_ret_l.
-      rewrite IHn.
-      setoid_rewrite tfor_ss_dep at 2. 3 : lia.
-      reflexivity. intros.
-      cbn. assert (n + 1 - S i ≡ n - i) by lia. rewrite H. reflexivity.
-  Qed.
-
 
 
 End DSHIMap_is_tfor.
