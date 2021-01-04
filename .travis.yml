@@ -1,4 +1,4 @@
-dist: xenial
+dist: focal
 sudo: required
 language: generic
 
@@ -15,11 +15,11 @@ cache:
 addons:
   apt:
     update: true
-    sources:
-    - sourceline: "ppa:avsm/ppa"
     packages:
     - opam
     - aspcud
+    - libipc-system-simple-perl
+    - libstring-shellquote-perl
 env:
   global:
   - NJOBS=2
