@@ -1665,108 +1665,22 @@ Proof.
       eapply LU1.
       eapply LU2.
       all: eauto.
-    + rewrite EQ in LU3,LU4.
-      Opaque allocate.
-      cbn in *.
-      inv LU1; inv LU3.
-      cbn in *.
-      rewrite alist_find_add_eq in IN1; inv IN1.
-      red in ALLOC.
+  - unfold id_allocated.
+    intros n addr0 val H.
+    destruct n.
+    + cbn in H. inv H.
+      apply mem_block_exists_memory_set_eq.
+      reflexivity.
+    + cbn in H.
+      pose proof (nth_error_In _ _ H).
+      assert (addr0 ≢ ptrh) as NEQ.
+      { intros CONTRA; subst.
+        apply fresh in H0.
+        contradiction.
+      }
 
-      (* Supposedly I know ptrv2 is allocated by ALLOC. *)
-      
-      destruct id2; cbn in IN2.
-      * admit.
-      * apply In_add_ineq_iff in IN2.
-        2: admit.
-        
-        unfold WF_IRState in WF.
-        unfold evalContext_typechecks in WF.
-
-        pose proof LU2.
-        apply WF in H0.
-        destruct H0.
-        rewrite LU4 in H0.
-        inv H0.
-        cbn in LU4.
-
-      Set Nested Proofs Allowed.
-
-      Lemma blah :
-        forall σ s1 s2 l g x τ ptrh sizeh mV mV_a ptrv1,
-          ~ in_Gamma σ s1 x ->
-          Γ s2 ≡ (ID_Local x, τ) :: Γ s1 ->
-          allocate mV (DTYPE_Array (Z.to_N (Int64.intval sizeh)) DTYPE_Double) ≡ inr (mV_a, ptrv1) ->
-          no_llvm_ptr_aliasing σ s1 l g ->
-          no_llvm_ptr_aliasing (DSHPtrVal ptrh sizeh :: σ) s2 (alist_add x (UVALUE_Addr ptrv1) l) g.
-      Proof.
-        intros σ s1 s2 l g x τ ptrh sizeh mV mV_a ptrv1 NIN_GAMMA GAMMA ALLOC ALIAS.
-        unfold no_llvm_ptr_aliasing in *.
-        intros id1 ptrv0 id2 ptrv2 n1 n2 τ0 τ' v1 v2 H H0 H1 H2 H3 H4 H5.
-        rewrite GAMMA in *.
-        induction n1, n2.
-        - inv H1. inv H2.
-          contradiction.
-        - cbn in H, H1.
-          inv H. inv H1.
-        - admit.
-        - rewrite nth_error_Sn in H.
-          rewrite nth_error_Sn in H0.
-          rewrite nth_error_Sn in H1.
-          rewrite nth_error_Sn in H2.
-          eauto.
-      Abort.
-
-        
-      * assert (ID_Global id ≢ ID_Local x) as INEQ' by auto.
-        eapply H.
-        5: apply INEQ'.
-        all: eauto.
-      * (* If ptrv2 corresponds to a local id, then I know that id <> x, therefor, ptrv2 is in l
-
-
-      (* - ptrv1 is fresh in [mV] by alloc
-           + Know it's not allocated...
-         - ptrv2 was already loaded in a variable stored in Gamma: it
-           _should_ therefore have already been allocated.
-         -> do I already have the intel to prove that?
-         TO FIGURE OUT
-       *)
-
-      (* Just need to know that there's no aliasing with (DSHPtrVal ptrh sizeh) added to σ *)
-      red in H.
-      cbn.
-      destruct id2; cbn in IN2.
-      * assert (ID_Global id ≢ ID_Local x) as INEQ' by auto.
-        eapply H.
-        5: apply INEQ'.
-        all: eauto.
-      * (* If ptrv2 corresponds to a local id, then I know that id <> x, therefor, ptrv2 is in l
-
-           
-         *)
-     admit.
-    + rewrite EQ in LU3,LU4.
-      Opaque allocate.
-      clear MEM.
-      cbn in *.
-      inv LU2; inv LU4.
-      cbn in *.
-      rewrite alist_find_add_eq in IN2; inv IN2.
-      red in ALLOC.
-      (* - ptrv2 is fresh in [mV] by alloc
-         - ptrv1 was already loaded in a variable stored in Gamma: it _should_ therefore has already been allocated.
-         -> do I already have the intel to prove that?
-         TO FIGURE OUT
-       *)
-
-      admit.
-    + rewrite EQ in LU3,LU4.
-      cbn in *.
-      eapply ALIAS3.
-      apply LU1.
-      all:eauto.
-      admit.
+      apply (@mem_block_exists_memory_set_neq _ _ stH mem_empty NEQ).
+      eauto.
 Admitted.
 
 Lemma vellvm_helix_ptr_size:
