@@ -505,7 +505,6 @@ Section SimulationRelations.
           apply In_add_ineq_iff in H5; eauto.
   Qed.
 
-
   (* The memory invariant is stable by evolution of IRStates that preserve Γ *)
   Lemma state_invariant_same_Γ :
     ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
@@ -1498,11 +1497,154 @@ Proof.
       inv alloc.
       intros. inversion H.
 
-    + rewrite nth_error_Sn in LU1.
+    + pose proof LU1 as LU1'.
+      pose proof LU2 as LU2'.
+      rewrite nth_error_Sn in LU1.
       rewrite EQ, nth_error_Sn in LU2.
       eapply MEM in LU2; eauto.
-  (* There is some reasoning on the memory (on [alloc] in particular) to be done here *)
-      admit.
+
+      (* There is some reasoning on the memory (on [alloc] in particular) to be done here *)
+      (* I've allocated a new pointer, and added it to the local environment.
+       *)
+      pose proof (allocate_correct alloc) as (ALLOC_FRESH & ALLOC_NEW & ALLOC_OLD).
+      { destruct v.
+        - destruct x0.
+          + (* The only complication here is read mV_a *)
+            destruct LU2 as (ptr & τ' & TEQ & G & READ).
+            exists ptr. exists τ'.
+            repeat (split; auto).
+            erewrite ALLOC_OLD; eauto.
+
+            eapply can_read_allocated; eauto.
+            eapply freshly_allocated_no_overlap_dtyp; eauto.
+            eapply can_read_allocated; eauto.
+          + cbn. cbn in LU2.
+            destruct (Eqv.eqv_dec_p x id) as [EQid | NEQid].
+            * do 2 red in EQid; subst.
+              (* Need a contradiction *)
+              exfalso. apply GAM.
+              rewrite EQ, nth_error_Sn in LU2'.
+              econstructor; eauto.
+            * unfold Eqv.eqv, eqv_raw_id in NEQid.
+              rewrite alist_find_neq; eauto.
+        - destruct x0.
+          + (* The only complication here is read mV_a *)
+            destruct LU2 as (ptr & τ' & TEQ & G & READ).
+            exists ptr. exists τ'.
+            repeat (split; auto).
+            erewrite ALLOC_OLD; eauto.
+
+            eapply can_read_allocated; eauto.
+            eapply freshly_allocated_no_overlap_dtyp; eauto.
+            eapply can_read_allocated; eauto.
+          + cbn. cbn in LU2.
+            destruct (Eqv.eqv_dec_p x id) as [EQid | NEQid].
+            * do 2 red in EQid; subst.
+              (* Need a contradiction *)
+              exfalso. apply GAM.
+              rewrite EQ, nth_error_Sn in LU2'.
+              econstructor; eauto.
+            * unfold Eqv.eqv, eqv_raw_id in NEQid.
+              rewrite alist_find_neq; eauto.
+        - destruct LU2 as (bkh & ptr_llvm & τ' & MLUP & TEQ & FITS & INLG & GET).
+          exists bkh. exists ptr_llvm. exists τ'.
+          assert (ptrh ≢ a) as NEQa.
+          { intros CONTRA.
+            subst.
+            apply nth_error_In in LU1.
+            apply (fresh size). auto.
+          }
+          repeat (split; eauto).
+          + rewrite memory_lookup_memory_set_neq; auto.
+          +
+            Set Nested Proofs Allowed.
+            Lemma get_logical_block_allocated:
+              forall m1 m2 τ ptr ptr_allocated,
+                allocate m1 τ ≡ inr (m2, ptr_allocated) ->
+                allocated ptr m1 ->
+                get_logical_block m2 (fst ptr) ≡ get_logical_block m1 (fst ptr).
+            Proof.
+              intros [[cm1 lm1] fs1] [[cm2 lm2] fs2] τ ptr ptr_allocated ALLOC INm1.
+              pose proof (allocate_correct ALLOC) as (ALLOC_FRESH & ALLOC_NEW & ALLOC_OLD).
+              unfold allocate in ALLOC.
+              destruct τ; inversion ALLOC.
+
+              {
+                unfold add_to_frame.
+                Transparent add_logical_block.
+                unfold add_logical_block.
+                destruct fs1.
+                pose proof get_logical_block_of_add_logical_block_mem_neq.
+                erewrite get_logical_block_of_add_logical_block_mem_neq.
+                reflexivity.
+                admit.
+                admit.
+              }
+              
+            Admitted.
+              
+            Lemma dtyp_fits_after_allocated:
+              forall m1 m2 τ ptr τ' ptr_allocated,
+                allocate m1 τ ≡ inr (m2, ptr_allocated) ->
+                dtyp_fits m1 ptr τ' ->
+                dtyp_fits m2 ptr τ'.
+            Proof.
+              intros m1 m2 τ ptr τ' ptr_allocated ALLOC FITS.
+              pose proof FITS as ALLOCATED.
+              apply dtyp_fits_allocated in ALLOCATED.
+              pose proof (freshly_allocated_different_blocks _ _ _ ALLOC ALLOCATED) as DIFF.
+              
+              unfold dtyp_fits in *.
+              erewrite get_logical_block_allocated; eauto.
+            Qed.
+
+            eapply dtyp_fits_after_allocated; eauto.
+          + destruct x0; auto.
+            destruct (Eqv.eqv_dec_p x id) as [EQid | NEQid].
+            * do 2 red in EQid; subst.
+              exfalso. apply GAM.
+              rewrite EQ, nth_error_Sn in LU2'.
+              econstructor; eauto.
+            * unfold Eqv.eqv, eqv_raw_id in NEQid.
+              cbn.
+              rewrite alist_find_neq; eauto.
+          + intros i v H.
+            unfold get_array_cell in *.
+
+            (* TODO: is there a better way to do this...? *)
+            assert ((let
+                       '(b, o) := ptr_llvm in
+                     match get_logical_block mV_a b with
+                     | Some (LBlock _ bk _) => get_array_cell_mem_block bk o (MInt64asNT.to_nat i) 0 DTYPE_Double
+                     | None => failwith "Memory function [get_array_cell] called at a non-allocated address"
+                     end) ≡
+                     (
+                         match get_logical_block mV_a (fst ptr_llvm) with
+                         | Some (LBlock _ bk _) => get_array_cell_mem_block bk (snd ptr_llvm) (MInt64asNT.to_nat i) 0 DTYPE_Double
+                         | None => failwith "Memory function [get_array_cell] called at a non-allocated address"
+                         end)).
+            { destruct ptr_llvm. cbn. reflexivity. }
+
+            assert ((let
+                       '(b, o) := ptr_llvm in
+                     match get_logical_block mV b with
+                     | Some (LBlock _ bk _) => get_array_cell_mem_block bk o (MInt64asNT.to_nat i) 0 DTYPE_Double
+                     | None => failwith "Memory function [get_array_cell] called at a non-allocated address"
+                     end) ≡
+                     (
+                         match get_logical_block mV (fst ptr_llvm) with
+                         | Some (LBlock _ bk _) => get_array_cell_mem_block bk (snd ptr_llvm) (MInt64asNT.to_nat i) 0 DTYPE_Double
+                         | None => failwith "Memory function [get_array_cell] called at a non-allocated address"
+                         end)).
+            { destruct ptr_llvm. cbn. reflexivity. }
+
+            rewrite H0.
+            erewrite get_logical_block_allocated.
+            rewrite <- H1.
+            eauto.
+            eauto.
+            eapply dtyp_fits_allocated; eauto.
+      }
 
   - do 2 red.
     intros ? [| n] LU.
