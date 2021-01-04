@@ -1556,89 +1556,7 @@ Proof.
           }
           repeat (split; eauto).
           + rewrite memory_lookup_memory_set_neq; auto.
-          +
-            Set Nested Proofs Allowed.
-            Lemma allocated_next_key_diff :
-              forall m ptr,
-                allocated ptr m ->
-                next_logical_key m ≢ fst ptr.
-            Proof.
-              intros [[cm lm] fs] [ptr_a ptr_o] H.
-              Transparent next_logical_key.
-              unfold next_logical_key, next_logical_key_mem, logical_next_key.
-              cbn.
-              unfold allocated in H.
-              epose proof maximumBy_Z_correct.
-              assert (In ptr_a (map fst (IM.elements (elt:=logical_block) lm))).
-              { admit. }
-
-              eapply H0 with (def:= (-1)%Z) in H1.
-              apply Z.leb_le in H1.
-
-              destruct (maximumBy Z.leb (-1)%Z (map fst (IM.elements (elt:=logical_block) lm))) eqn:BLAH.              - lia.
-              - destruct p; lia.
-              - destruct ptr_a; try lia.
-                assert (p0 >= p)%positive by lia.
-                assert (p ≡ 1 \/ 1 < p)%positive by lia.
-                destruct H3.
-                + subst.
-                  cbn. lia.
-                + pose proof H3. apply Z.pos_sub_lt in H3. rewrite H3.
-                  lia.
-            Admitted.
-            
-            Lemma get_logical_block_frames :
-              forall cm lm f1 f2,
-                get_logical_block ((cm, lm), f1) ≡ get_logical_block ((cm, lm), f2).
-            Proof.
-              intros cm lm f1 f2.
-              unfold get_logical_block.
-              cbn.
-              reflexivity.
-            Qed.
-
-            Lemma get_logical_block_add_to_frame :
-              forall m key ptr,
-                get_logical_block (add_to_frame m key) ptr ≡ get_logical_block m ptr.
-            Proof.
-              intros [[cm lm] fs] key ptr.
-              cbn.
-              destruct fs;
-                erewrite get_logical_block_frames; reflexivity.
-            Qed.
-
-            Lemma get_logical_block_allocated:
-              forall m1 m2 τ ptr ptr_allocated,
-                allocate m1 τ ≡ inr (m2, ptr_allocated) ->
-                allocated ptr m1 ->
-                get_logical_block m2 (fst ptr) ≡ get_logical_block m1 (fst ptr).
-            Proof.
-              intros [[cm1 lm1] fs1] [[cm2 lm2] fs2] τ ptr ptr_allocated ALLOC INm1.
-              pose proof (allocate_correct ALLOC) as (ALLOC_FRESH & ALLOC_NEW & ALLOC_OLD).
-              unfold allocate in ALLOC.
-              destruct τ; inversion ALLOC.
-              all :
-                rewrite get_logical_block_add_to_frame;
-                rewrite get_logical_block_of_add_logical_block_neq;
-                [auto | apply allocated_next_key_diff; auto].
-            Qed.
-
-            Lemma dtyp_fits_after_allocated:
-              forall m1 m2 τ ptr τ' ptr_allocated,
-                allocate m1 τ ≡ inr (m2, ptr_allocated) ->
-                dtyp_fits m1 ptr τ' ->
-                dtyp_fits m2 ptr τ'.
-            Proof.
-              intros m1 m2 τ ptr τ' ptr_allocated ALLOC FITS.
-              pose proof FITS as ALLOCATED.
-              apply dtyp_fits_allocated in ALLOCATED.
-              pose proof (freshly_allocated_different_blocks _ _ _ ALLOC ALLOCATED) as DIFF.
-              
-              unfold dtyp_fits in *.
-              erewrite get_logical_block_allocated; eauto.
-            Qed.
-
-            eapply dtyp_fits_after_allocated; eauto.
+          + eapply dtyp_fits_after_allocated; eauto.
           + destruct x0; auto.
             destruct (Eqv.eqv_dec_p x id) as [EQid | NEQid].
             * do 2 red in EQid; subst.
@@ -1727,24 +1645,90 @@ Proof.
 
   - cbn in ALIAS3.
     do 2 red. intros * LU1 LU2 LU3 LU4 INEQ IN1 IN2.
-    epose proof (no_llvm_ptr_aliasing_not_in_gamma (UVALUE_Addr ptrv1) ALIAS3 WF GAM).
+
+    rewrite EQ in *.
     destruct n1 as [| n1], n2 as [| n2]; auto.
-    + rewrite EQ in LU3.
-      rewrite EQ in LU4.
-      cbn in *.
+    + (* Both pointers are the same *)
       inv LU1; inv LU2; inv LU3; inv LU4.
-      eauto.
+      contradiction.
+    + (* One pointer from Γ s2, one from Γ s1 *)
+      admit.
+    + (* One pointer from Γ s2, one from Γ s1 *)
+      admit.
+    + (* Both pointers from Γ s1, can fall back to assumption (ALIAS3) *)
+      rewrite nth_error_Sn in LU1, LU2.
+      rewrite nth_error_Sn in LU3, LU4.
+      assert (id2 ≢ id1) as INEQ' by auto.
+
+      eapply (no_llvm_ptr_aliasing_not_in_gamma (UVALUE_Addr ptrv) ALIAS3 WF GAM).
+
+      eapply LU1.
+      eapply LU2.
+      all: eauto.
     + rewrite EQ in LU3,LU4.
       Opaque allocate.
-      clear MEM.
       cbn in *.
       inv LU1; inv LU3.
       cbn in *.
       rewrite alist_find_add_eq in IN1; inv IN1.
       red in ALLOC.
+
+      (* Supposedly I know ptrv2 is allocated by ALLOC. *)
+      
+      destruct id2; cbn in IN2.
+      * admit.
+      * apply In_add_ineq_iff in IN2.
+        2: admit.
+        
+        unfold WF_IRState in WF.
+        unfold evalContext_typechecks in WF.
+
+        pose proof LU2.
+        apply WF in H0.
+        destruct H0.
+        rewrite LU4 in H0.
+        inv H0.
+        cbn in LU4.
+
+      Set Nested Proofs Allowed.
+
+      Lemma blah :
+        forall σ s1 s2 l g x τ ptrh sizeh mV mV_a ptrv1,
+          ~ in_Gamma σ s1 x ->
+          Γ s2 ≡ (ID_Local x, τ) :: Γ s1 ->
+          allocate mV (DTYPE_Array (Z.to_N (Int64.intval sizeh)) DTYPE_Double) ≡ inr (mV_a, ptrv1) ->
+          no_llvm_ptr_aliasing σ s1 l g ->
+          no_llvm_ptr_aliasing (DSHPtrVal ptrh sizeh :: σ) s2 (alist_add x (UVALUE_Addr ptrv1) l) g.
+      Proof.
+        intros σ s1 s2 l g x τ ptrh sizeh mV mV_a ptrv1 NIN_GAMMA GAMMA ALLOC ALIAS.
+        unfold no_llvm_ptr_aliasing in *.
+        intros id1 ptrv0 id2 ptrv2 n1 n2 τ0 τ' v1 v2 H H0 H1 H2 H3 H4 H5.
+        rewrite GAMMA in *.
+        induction n1, n2.
+        - inv H1. inv H2.
+          contradiction.
+        - cbn in H, H1.
+          inv H. inv H1.
+        - admit.
+        - rewrite nth_error_Sn in H.
+          rewrite nth_error_Sn in H0.
+          rewrite nth_error_Sn in H1.
+          rewrite nth_error_Sn in H2.
+          eauto.
+      Abort.
+
+        
+      * assert (ID_Global id ≢ ID_Local x) as INEQ' by auto.
+        eapply H.
+        5: apply INEQ'.
+        all: eauto.
+      * (* If ptrv2 corresponds to a local id, then I know that id <> x, therefor, ptrv2 is in l
+
+
       (* - ptrv1 is fresh in [mV] by alloc
            + Know it's not allocated...
-         - ptrv2 was already loaded in a variable stored in Gamma: it _should_ therefore has already been allocated.
+         - ptrv2 was already loaded in a variable stored in Gamma: it
+           _should_ therefore have already been allocated.
          -> do I already have the intel to prove that?
          TO FIGURE OUT
        *)
@@ -1753,7 +1737,10 @@ Proof.
       red in H.
       cbn.
       destruct id2; cbn in IN2.
-      * admit.
+      * assert (ID_Global id ≢ ID_Local x) as INEQ' by auto.
+        eapply H.
+        5: apply INEQ'.
+        all: eauto.
       * (* If ptrv2 corresponds to a local id, then I know that id <> x, therefor, ptrv2 is in l
 
            
