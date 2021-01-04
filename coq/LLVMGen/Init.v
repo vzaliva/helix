@@ -2286,17 +2286,17 @@ Proof.
           ++
             rewrite typ_to_dtyp_I.
             rewrite interp_to_L3_bind.
-            admit.
+            rewrite denote_exp_i64_mcfg.
+            autorewrite with itree.
+            cbn.
+            autorewrite with itree.
 
-            (*
-              destruct (g_exp tg2) as [tg2e |] eqn:TG2E;
-              [| apply initOneIRGlobal_some_g_exp in Heqs0;
-              rewrite TG2E in Heqs0;
-              inversion Heqs0].
-              cbn.
-              destruct tg2e.
-              all: cbn.
-             *)
+            rewrite _exp_E_to_L0_Memory.
+            rewrite subevent_subevent.
+
+            cbn in AV.
+            (* rewrite interp_mcfg_store. *)
+            admit.
           ++
             admit.
           ++
