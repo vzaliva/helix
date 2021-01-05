@@ -74,28 +74,28 @@ Proof.
   hred.
   rename x into mem_bkH.
 
-  (* Should mem_bkH be empty? *)
+  (* (* Should mem_bkH be empty? *) *)
 
    
 
-  Memory.NM.map2
+  (* (* Memory.NM.map2 *) *)
 
 
-  rewrite DSHPower_as_tfor; cbn.
-  inv_resolve_PVar Heqs0.
-  inv_resolve_PVar Heqs1.
-  unfold denotePExpr in *.
-  cbn* in *.
-  destruct u.
-  simp; try_abs.
-  repeat apply no_failure_Ret in NOFAIL.
-  do 2 (apply no_failure_helix_LU in NOFAIL; destruct NOFAIL as (? & NOFAIL & ?); cbn in NOFAIL).
+  (* rewrite DSHPower_as_tfor; cbn. *)
+  (* inv_resolve_PVar Heqs0. *)
+  (* inv_resolve_PVar Heqs1. *)
+  (* unfold denotePExpr in *. *)
+  (* cbn* in *. *)
+  (* destruct u. *)
+  (* simp; try_abs. *)
+  (* repeat apply no_failure_Ret in NOFAIL. *)
+  (* do 2 (apply no_failure_helix_LU in NOFAIL; destruct NOFAIL as (? & NOFAIL & ?); cbn in NOFAIL). *)
 
-  (* Symbolically reducing the concrete prefix on the Helix side *)
-  hred.
-  hstep; [eassumption |].
-  hred; hstep; [eassumption |].
-  hred.
+  (* (* Symbolically reducing the concrete prefix on the Helix side *) *)
+  (* hred. *)
+  (* hstep; [eassumption |]. *)
+  (* hred; hstep; [eassumption |]. *)
+  (* hred. *)
 
   (* Symbolically reducing the concrete prefix on the VIR side *)
 
