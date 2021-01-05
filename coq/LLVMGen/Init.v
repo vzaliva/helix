@@ -1121,6 +1121,7 @@ Proof.
   rewrite subevent_subevent.
   cbn.
   rewrite interp_local_stack_bind.
+  rewrite subevent_subevent.
 Admitted.
 
 Lemma _exp_E_to_L0_Global : forall {X} (e : LLVMGEnvE X),
@@ -2295,9 +2296,50 @@ Proof.
             rewrite subevent_subevent.
 
             cbn in AV.
-            (* rewrite interp_mcfg_store. *)
-            admit.
-          ++
+            unfold allocated_globals in AG.
+            specialize (AG (length pre)).
+            autospecialize AG;
+              [rewrite ListUtil.length_app; cbn; lia |].
+            destruct AG as [a_ptr [AL IG]].
+            erewrite ListUtil.ith_eq with (j:=length pre + 0)
+              in IG; [| lia].
+            erewrite ith_eq_app_r in IG.
+            cbn in IG.
+            unfold write.
+            unfold in_global_addr in IG.
+            replace av with (DVALUE_Addr a_ptr) in * by congruence; clear IG.
+            destruct a_ptr as (a_ptr, a_off).
+            copy_apply allocated_get_logical_block AL;
+              rename H0 into AMB.
+            destruct AMB as [[a_sz a_bytes a_id] AMB].
+            rewrite interp_mcfg_store
+              with
+                (m' :=
+                   add_logical_block a_ptr
+                         (LBlock a_sz
+                            (add_all_index
+                               (serialize_dvalue
+                                  (DVALUE_I64 (DynamicValues.Int64.repr (bits_of_b64 b0))))
+                               a_off a_bytes) a_id) m')
+            by (unfold write; rewrite AMB; reflexivity).
+            apply eutt_Ret.
+            constructor.
+            **
+              constructor; admit.
+              (*
+              ---
+                unfold memory_invariant.
+                intros.
+                admit.
+
+              all: admit.
+               *)
+            **
+              constructor.
+              all: cbn; clear - DI.
+              all: unfold declarations_invariant in DI.
+              all: intuition.
+          ++ (* ZX TODO: see how these bullets can be done all in one *)
             admit.
           ++
             admit.
