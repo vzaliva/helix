@@ -1056,7 +1056,8 @@ Proof.
       eassumption.
 Qed.
 
-(* ZX TODO: this should become part of vellvm at some point *)
+(* ZX TODO: might want to move to vellvm *)
+(* similar to [interp_cfg_to_L3_GR] *)
 Lemma interp_to_L3_GR : forall defs id g l m v,
   Maps.lookup id g ≡ Some v ->
   interp_to_L3 defs (trigger (GlobalRead id)) g l m ≈ Ret (m,(l,(g,v))).
@@ -1072,7 +1073,63 @@ Proof.
   reflexivity.
 Qed.
 
+(* ZX TODO: might want to move to vellvm *)
+(* similar to [denote_exp_double] *)
+Lemma denote_exp_double_mcfg : forall t g l m,
+    interp_mcfg
+      (translate _exp_E_to_L0
+                 (denote_exp (Some (DTYPE_Double))
+                             (EXP_Double t)))
+      g l m
+    ≈
+    Ret (m, (l, (g, UVALUE_Double t))).
+Proof.
+  intros; unfold denote_exp; cbn.
+  rewrite translate_ret, interp_to_L3_ret.
+  reflexivity.
+Qed.
+
+(* ZX TODO: might want to move to vellvm *)
+(* similar to [denote_exp_i64] *)
+Lemma denote_exp_i64_mcfg : forall t g l m,
+    interp_mcfg
+      (translate _exp_E_to_L0
+                 (denote_exp (Some (DTYPE_I 64))
+                             (EXP_Integer (bits_of_b64 t))))
+       g l m
+    ≈
+    Ret (m, (l, (g, UVALUE_I64 (DynamicValues.Int64.repr (bits_of_b64 t))))).
+Proof.
+  intros; unfold denote_exp; cbn.
+  rewrite translate_ret, interp_to_L3_ret.
+  reflexivity.
+Qed.
+
+(* ZX TODO: might want to move to vellvm *)
+(* similar to [interp_cfg_to_L3_store] *)
+Lemma interp_mcfg_store:
+  ∀ (m m' : memoryV) (val : dvalue) (a : addr) g l,
+    write m a val ≡ inr m' →
+    interp_mcfg (trigger (Store (DVALUE_Addr a) val)) g l m ≈ Ret (m', (l, (g, ()))).
+Proof.
+  intros m m' val a g l WRITE.
+  unfold interp_to_L3.
+  rewrite interp_intrinsics_trigger.
+  cbn.
+  unfold Intrinsics.F_trigger.
+  rewrite interp_global_trigger.
+  rewrite subevent_subevent.
+  cbn.
+  rewrite interp_local_stack_bind.
+Admitted.
+
 Lemma _exp_E_to_L0_Global : forall {X} (e : LLVMGEnvE X),
+    _exp_E_to_L0 (subevent X e) ≡ subevent X e.
+Proof.
+  reflexivity.
+Qed.
+
+Lemma _exp_E_to_L0_Memory : forall {X} (e : MemoryE X),
     _exp_E_to_L0 (subevent X e) ≡ subevent X e.
 Proof.
   reflexivity.
@@ -1111,18 +1168,6 @@ Proof.
   repeat break_match; inv H.
   all: reflexivity.
 Qed.
-
-(* ZX TODO: need something along these lines. See [denote_exp_i64] also. *)
-(*
-Lemma denote_exp_i64_mcfg : forall defs t g l m,
-    interp_mcfg
-      (translate _exp_E_to_L0
-                 (denote_exp (Some (DTYPE_I 64))
-                             (EXP_Integer (bits_of_b64 t))))
-       g l m
-    ≈
-    Ret (m, (l, (g, UVALUE_I64 t))).
-*)
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
@@ -2241,17 +2286,17 @@ Proof.
           ++
             rewrite typ_to_dtyp_I.
             rewrite interp_to_L3_bind.
-            admit.
+            rewrite denote_exp_i64_mcfg.
+            autorewrite with itree.
+            cbn.
+            autorewrite with itree.
 
-            (*
-              destruct (g_exp tg2) as [tg2e |] eqn:TG2E;
-              [| apply initOneIRGlobal_some_g_exp in Heqs0;
-              rewrite TG2E in Heqs0;
-              inversion Heqs0].
-              cbn.
-              destruct tg2e.
-              all: cbn.
-             *)
+            rewrite _exp_E_to_L0_Memory.
+            rewrite subevent_subevent.
+
+            cbn in AV.
+            (* rewrite interp_mcfg_store. *)
+            admit.
           ++
             admit.
           ++
