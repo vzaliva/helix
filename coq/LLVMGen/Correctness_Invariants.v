@@ -1652,7 +1652,63 @@ Proof.
       inv LU1; inv LU2; inv LU3; inv LU4.
       contradiction.
     + (* One pointer from Γ s2, one from Γ s1 *)
-      admit.
+      cbn in *.
+      inv LU3.
+      unfold WF_IRState, evalContext_typechecks in WF.
+      pose proof LU2.
+      apply WF in H.
+      destruct H. rewrite LU4 in H.
+      cbn in H.
+      inv H.
+
+      cbn in *.
+      apply alist_In_add_eq in IN1.
+      inv IN1.
+      epose proof (MEM _ _ _ _ LU2 LU4).
+      destruct v2; cbn in *.
+      * destruct x0; cbn in *.
+        -- destruct H as (ptr & τ' & TEQ & G & READ).
+           inv TEQ.
+           rewrite typ_to_dtyp_I in READ.
+           rewrite IN2 in G. inv G.
+           apply can_read_allocated in READ.
+           (* I know ptrv1 is allocated later *)
+           (* Go back and proof ~ allocated ptrv1 mV *)
+           admit.
+        -- assert (x ≢ id) as NEQ by (intros CONTRA; subst; contradiction).
+           apply In_add_ineq_iff in IN2; auto.
+           unfold alist_In in IN2.
+           rewrite IN2 in H.
+           inv H.
+      * destruct x0; cbn in *.
+        -- destruct H as (ptr & τ' & TEQ & G & READ).
+           inv TEQ.
+           rewrite typ_to_dtyp_D in READ.
+           rewrite IN2 in G. inv G.
+           apply can_read_allocated in READ.
+           (* I know ptrv1 is allocated later *)
+           (* Go back and proof ~ allocated ptrv1 mV *)
+           admit.
+        -- assert (x ≢ id) as NEQ by (intros CONTRA; subst; contradiction).
+           apply In_add_ineq_iff in IN2; auto.
+           unfold alist_In in IN2.
+           rewrite IN2 in H.
+           inv H.
+      * destruct H as (bk_helix & ptr & τ' & MLUP & WFT & FITS & INLG & GETARRAY).
+        destruct x0; cbn in *.
+        -- rewrite IN2 in INLG. inv INLG.
+           apply dtyp_fits_allocated in FITS.
+           (* I know ptrv1 is allocated later *)
+           (* Go back and proof ~ allocated ptrv1 mV *)
+           admit.
+        -- assert (x ≢ id) as NEQ by (intros CONTRA; subst; contradiction).
+           apply In_add_ineq_iff in IN2; auto.
+           unfold alist_In in IN2.
+           rewrite IN2 in INLG.
+           inv INLG.
+           (* I know ptrv1 is allocated later *)
+           (* Go back and proof ~ allocated ptrv1 mV *)
+           admit.
     + (* One pointer from Γ s2, one from Γ s1 *)
       admit.
     + (* Both pointers from Γ s1, can fall back to assumption (ALIAS3) *)
