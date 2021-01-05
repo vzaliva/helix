@@ -1,6 +1,7 @@
 Require Import ZArith.
 Require Import Coq.Reals.Reals.
 Require Import Coq.Reals.Rminmax.
+Require Import micromega.RMicromega.
 
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.interfaces.abstract_algebra.
@@ -29,6 +30,13 @@ Module MRasCT <: CType.
 
   Definition CTypeZero := R0.
   Definition CTypeOne  := R1.
+
+  Lemma CTypeZeroOneApart: R0 ≠ R1.
+  Proof.
+    unfold equiv.
+    eapply OrderedRing.SORneq_0_1.
+    apply Rsor.
+  Qed.
 
   Definition CTypePlus     := Rplus.
   Definition CTypeNeg      := Ropp.

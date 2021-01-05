@@ -13,9 +13,9 @@ Module CarrierAasCT <: CType.
   Definition CTypeSetoid := CarrierAsetoid.
   Definition CTypeEquivDec := CarrierAequivdec.
 
-
   Definition CTypeZero  := CarrierAz.
   Definition CTypeOne   := CarrierA1.
+  Definition CTypeZeroOneApart := CarrierA_Z_neq_One.
   Definition CTypePlus  := CarrierAplus.
   Definition CTypeNeg   := CarrierAneg.
   Definition CTypeMult  := CarrierAmult.

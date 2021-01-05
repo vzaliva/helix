@@ -14,6 +14,7 @@ Module Type CType.
   (* Values *)
   Parameter CTypeZero: t.
   Parameter CTypeOne: t.
+  Parameter CTypeZeroOneApart: CTypeZero ≠ CTypeOne.
 
   (* operations *)
   Parameter CTypePlus : t -> t -> t.

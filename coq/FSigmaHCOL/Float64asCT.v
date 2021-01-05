@@ -113,6 +113,14 @@ Module MFloat64asCT <: CType.
 
   Definition CTypeZero := Float64Zero.
   Definition CTypeOne  := Float64One.
+
+  Lemma CTypeZeroOneApart: Float64Zero ≠ Float64One.
+  Proof.
+    unfold Float64Zero, Float64One.
+    intros H.
+    inversion H.
+  Qed.
+
   Definition CTypeEquivDec := binary64_equiv_dec.
 
   Definition CTypePlus     := b64_plus FT_Rounding.
