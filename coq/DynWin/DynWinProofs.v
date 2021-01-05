@@ -1344,23 +1344,17 @@ Section MSHCOL_to_AHCOL.
 
 End MSHCOL_to_AHCOL.
 
-Section AHCOL_to_RHCOL.
-  Definition dynwin_RHCOL := AHCOLtoRHCOL.translate dynwin_AHCOL.
+Require Import Helix.MSigmaHCOL.CType.
 
-  Lemma simplCarrierARefl:
+Module CTypeSimpl(CTM:CType).
+  Import CTM.
+
+  Lemma simplCTypeRefl:
     forall a,
-      (CarrierAequivdec a a) ≡ left
-                                 (@reflexivity
-                                    (Zero CarrierA)
-                                    (@equiv (Zero CarrierA) CarrierAe)
-                                    (@Equivalence_Reflexive (Zero CarrierA)
-                                                            (@equiv (Zero CarrierA) CarrierAe)
-                                                            (@abstract_algebra.setoid_eq (Zero CarrierA) CarrierAe CarrierAsetoid))
-                                    a
-                                  : @equiv (Zero CarrierA) CarrierAe a a).
+      (CTypeEquivDec a a) ≡ left (reflexivity _).
   Proof.
     intros a.
-    destruct (CarrierAequivdec a a) as [H|NH].
+    destruct (CTypeEquivDec a a) as [H|NH].
     -
       f_equiv.
       apply proof_irrelevance.
@@ -1369,66 +1363,66 @@ Section AHCOL_to_RHCOL.
       reflexivity.
   Qed.
 
-  Lemma CarrierA_One_neq_Z: CarrierA1 ≠ CarrierAz.
+  Lemma simplCType_Z_neq_One:
+    CTypeEquivDec CTypeZero CTypeOne ≡ right CTypeZeroOneApart.
   Proof.
-    destruct (CarrierAequivdec CarrierA1 CarrierAz) as [H|NH].
-    -
-      symmetry in H.
-      contradict H.
-      apply CarrierA_Z_neq_One.
-    -
-      assumption.
-  Qed.
-
-  Lemma simplCarrierA_Z_neq_One:
-    CarrierAequivdec CarrierAz CarrierA1 ≡ right CarrierA_Z_neq_One.
-  Proof.
-    destruct (CarrierAequivdec CarrierAz CarrierA1) as [H|NH].
+    destruct (CTypeEquivDec _ _) as [H|NH].
     -
       contradict H.
-      apply CarrierA_Z_neq_One.
+      apply CTypeZeroOneApart.
     -
       f_equiv.
       apply proof_irrelevance.
   Qed.
 
-  Lemma simplCarrierA_One_neq_Z:
-    CarrierAequivdec CarrierA1 CarrierAz ≡ right CarrierA_One_neq_Z.
+  Fact CType_One_neq_Z: CTypeOne ≠ CTypeZero.
   Proof.
-    destruct (CarrierAequivdec CarrierA1 CarrierAz) as [H|NH].
+    intros H.
+    pose proof CTypeZeroOneApart as P.
+    auto.
+  Qed.
+
+  Lemma simplCType_One_neq_Z:
+    CTypeEquivDec CTypeOne CTypeZero ≡ right CType_One_neq_Z.
+  Proof.
+    destruct (CTypeEquivDec _ _) as [H|NH].
     -
       contradict H.
-      apply CarrierA_One_neq_Z.
+      apply CType_One_neq_Z.
     -
       f_equiv.
       apply proof_irrelevance.
   Qed.
 
-  Lemma simplCarrierA_One_eq_Z:
-    CarrierAequivdec CarrierA1 CarrierAz ≡ right CarrierA_One_neq_Z.
-  Proof.
-    destruct (CarrierAequivdec CarrierA1 CarrierAz) as [H|NH].
-    -
-      contradict H.
-      apply CarrierA_One_neq_Z.
-    -
-      f_equiv.
-      apply proof_irrelevance.
-  Qed.
+End CTypeSimpl.
 
-  Hint Rewrite
-       simplCarrierA_Z_neq_One
-       simplCarrierA_Z_neq_One
-       simplCarrierA_One_eq_Z
-       simplCarrierARefl:
-    CarrierAZ1equalities.
+Require Import Helix.MSigmaHCOL.CarrierAasCT.
+Require Import Helix.RSigmaHCOL.RasCT.
+Module CarrierASimpl := CTypeSimpl(CarrierAasCT).
+
+Lemma AzCtZ: CarrierAz ≡ CarrierAasCT.CTypeZero.  Proof. reflexivity. Qed.
+Lemma A1Cr1: CarrierA1 ≡ CarrierAasCT.CTypeOne.  Proof. reflexivity. Qed.
+Lemma AeCtE: CarrierAequivdec ≡ CarrierAasCT.CTypeEquivDec. Proof. reflexivity. Qed.
+
+Hint Rewrite
+     AzCtZ
+     A1Cr1
+     AeCtE
+     CarrierASimpl.simplCTypeRefl
+     CarrierASimpl.simplCType_Z_neq_One
+     CarrierASimpl.simplCType_One_neq_Z
+  : CarrierAZ1equalities.
+
+(* Print Rewrite HintDb CarrierAZ1equalities. *)
+
+Section AHCOL_to_RHCOL.
+  Definition dynwin_RHCOL := AHCOLtoRHCOL.translate dynwin_AHCOL.
 
   Definition dynwin_RHCOL1 : RHCOL.DSHOperator.
   Proof.
     remember dynwin_RHCOL as a eqn:H.
     cbv in H.
     autorewrite with CarrierAZ1equalities in H.
-    cbv in H.
     destruct a.
     -
       inv H.
@@ -1441,12 +1435,25 @@ Section AHCOL_to_RHCOL.
 
 End AHCOL_to_RHCOL.
 
-Section RHCOL_to_FHCOL.
-  Definition dynwin_FSHCOL := RHCOLtoFHCOL.translate dynwin_RHCOL1.
+Require Import Rdefinitions.
+Module RSimpl := CTypeSimpl(MRasCT).
 
-  (*
-  Import FSigmaHCOL.FHCOL.
-  Require Import AltBinNotations.
+Lemma RzCtZ: R0 ≡ MRasCT.CTypeZero. Proof. reflexivity. Qed.
+Lemma R1Cr1: R1 ≡ MRasCT.CTypeOne. Proof. reflexivity. Qed.
+
+Hint Rewrite
+     RzCtZ
+     R1Cr1
+     RSimpl.simplCTypeRefl
+     RSimpl.simplCType_Z_neq_One
+     RSimpl.simplCType_One_neq_Z
+  : RZ1equalities.
+
+
+Require Import AltBinNotations.
+
+Section RHCOL_to_FHCOL.
+  Definition dynwin_FHCOL := RHCOLtoFHCOL.translate dynwin_RHCOL1.
 
   (* Import DSHNotation. *)
   (* Notation for shorter printing of `int64` constants *)
@@ -1456,12 +1463,29 @@ Section RHCOL_to_FHCOL.
 
   Definition dynwin_FSHCOL1 : FHCOL.DSHOperator.
   Proof.
-    remember dynwin_FSHCOL as a eqn:H.
+    remember dynwin_FHCOL as a eqn:H.
     Opaque Float64asCT.Float64Zero.
     Opaque Float64asCT.Float64One.
-    compute in H.
-    autorewrite with CarrierAZ1equalities in H.
+
+    (* Simplify AHCOL *)
+    unfold dynwin_FHCOL in H.
+    remember dynwin_RHCOL1 as rhcol eqn:R.
+    cbv in R.
+    (* Not sure why the following does not work here:
+       `autorewrite with CarrierAZ1equalities in R.`
+       but manual rewrite works:
+     *)
+    repeat rewrite AzCtZ in R.
+    repeat rewrite A1Cr1 in R.
+    repeat rewrite AeCtE in R.
+    repeat rewrite CarrierASimpl.simplCTypeRefl in R.
+    repeat rewrite CarrierASimpl.simplCType_Z_neq_One in R.
+    repeat rewrite CarrierASimpl.simplCType_One_neq_Z in R.
+    subst rhcol.
+
+    (* Simpl RHCOL *)
     cbv in H.
+    autorewrite with RZ1equalities in H.
     destruct a.
     -
       inv H.
@@ -1471,5 +1495,5 @@ Section RHCOL_to_FHCOL.
       (* Redirect "dynwin_FSHCOL" Show 1. *)
       exact d.
   Defined.
-  *)
+
 End RHCOL_to_FHCOL.
