@@ -1652,65 +1652,109 @@ Proof.
       inv LU1; inv LU2; inv LU3; inv LU4.
       contradiction.
     + (* One pointer from Γ s2, one from Γ s1 *)
-      cbn in *.
       inv LU3.
       unfold WF_IRState, evalContext_typechecks in WF.
       pose proof LU2.
       apply WF in H.
-      destruct H. rewrite LU4 in H.
+      destruct H. cbn in LU4. rewrite LU4 in H.
       cbn in H.
       inv H.
 
-      cbn in *.
       apply alist_In_add_eq in IN1.
       inv IN1.
       epose proof (MEM _ _ _ _ LU2 LU4).
-      destruct v2; cbn in *.
-      * destruct x0; cbn in *.
+      destruct v2.
+      * destruct x0.
         -- destruct H as (ptr & τ' & TEQ & G & READ).
            inv TEQ.
            rewrite typ_to_dtyp_I in READ.
            rewrite IN2 in G. inv G.
            apply can_read_allocated in READ.
-           (* I know ptrv1 is allocated later *)
-           (* Go back and proof ~ allocated ptrv1 mV *)
-           admit.
+           eapply freshly_allocated_different_blocks in alloc; eauto.
         -- assert (x ≢ id) as NEQ by (intros CONTRA; subst; contradiction).
            apply In_add_ineq_iff in IN2; auto.
            unfold alist_In in IN2.
+           cbn in H.
            rewrite IN2 in H.
            inv H.
-      * destruct x0; cbn in *.
+      * destruct x0.
         -- destruct H as (ptr & τ' & TEQ & G & READ).
            inv TEQ.
            rewrite typ_to_dtyp_D in READ.
            rewrite IN2 in G. inv G.
            apply can_read_allocated in READ.
-           (* I know ptrv1 is allocated later *)
-           (* Go back and proof ~ allocated ptrv1 mV *)
-           admit.
+           eapply freshly_allocated_different_blocks in alloc; eauto.
         -- assert (x ≢ id) as NEQ by (intros CONTRA; subst; contradiction).
            apply In_add_ineq_iff in IN2; auto.
            unfold alist_In in IN2.
+           cbn in H.
            rewrite IN2 in H.
            inv H.
       * destruct H as (bk_helix & ptr & τ' & MLUP & WFT & FITS & INLG & GETARRAY).
-        destruct x0; cbn in *.
-        -- rewrite IN2 in INLG. inv INLG.
+        destruct x0.
+        -- cbn in INLG. rewrite IN2 in INLG. inv INLG.
            apply dtyp_fits_allocated in FITS.
-           (* I know ptrv1 is allocated later *)
-           (* Go back and proof ~ allocated ptrv1 mV *)
-           admit.
+           eapply freshly_allocated_different_blocks in alloc; eauto.
         -- assert (x ≢ id) as NEQ by (intros CONTRA; subst; contradiction).
            apply In_add_ineq_iff in IN2; auto.
            unfold alist_In in IN2.
+           cbn in INLG.
            rewrite IN2 in INLG.
            inv INLG.
-           (* I know ptrv1 is allocated later *)
-           (* Go back and proof ~ allocated ptrv1 mV *)
-           admit.
+           apply dtyp_fits_allocated in FITS.
+           eapply freshly_allocated_different_blocks in alloc; eauto.
     + (* One pointer from Γ s2, one from Γ s1 *)
-      admit.
+      inv LU4.
+      unfold WF_IRState, evalContext_typechecks in WF.
+      pose proof LU1.
+      apply WF in H.
+      destruct H. cbn in LU3. rewrite LU3 in H.
+      cbn in H.
+      inv H.
+
+      apply alist_In_add_eq in IN2.
+      inv IN2.
+      epose proof (MEM _ _ _ _ LU1 LU3).
+      destruct v1.
+      * destruct x0.
+        -- destruct H as (ptr & τ' & TEQ & G & READ).
+           inv TEQ.
+           rewrite typ_to_dtyp_I in READ.
+           rewrite IN1 in G. inv G.
+           apply can_read_allocated in READ.
+           eapply freshly_allocated_different_blocks in alloc; eauto.
+        -- assert (x ≢ id) as NEQ by (intros CONTRA; subst; contradiction).
+           apply In_add_ineq_iff in IN1; auto.
+           unfold alist_In in IN1.
+           cbn in H.
+           rewrite IN1 in H.
+           inv H.
+      * destruct x0.
+        -- destruct H as (ptr & τ' & TEQ & G & READ).
+           inv TEQ.
+           rewrite typ_to_dtyp_D in READ.
+           rewrite IN1 in G. inv G.
+           apply can_read_allocated in READ.
+           eapply freshly_allocated_different_blocks in alloc; eauto.
+        -- assert (x ≢ id) as NEQ by (intros CONTRA; subst; contradiction).
+           apply In_add_ineq_iff in IN1; auto.
+           unfold alist_In in IN1.
+           cbn in H.
+           rewrite IN1 in H.
+           inv H.
+      * destruct H as (bk_helix & ptr & τ' & MLUP & WFT & FITS & INLG & GETARRAY).
+        destruct x0.
+        -- cbn in INLG. rewrite IN1 in INLG. inv INLG.
+           apply dtyp_fits_allocated in FITS.
+           eapply freshly_allocated_different_blocks in alloc; eauto.
+        -- assert (x ≢ id) as NEQ by (intros CONTRA; subst; contradiction).
+           apply In_add_ineq_iff in IN1; auto.
+           unfold alist_In in IN1.
+           cbn in INLG.
+           rewrite IN1 in INLG.
+           inv INLG.
+           apply dtyp_fits_allocated in FITS.
+           eapply freshly_allocated_different_blocks in alloc; eauto.
     + (* Both pointers from Γ s1, can fall back to assumption (ALIAS3) *)
       rewrite nth_error_Sn in LU1, LU2.
       rewrite nth_error_Sn in LU3, LU4.
@@ -1737,7 +1781,7 @@ Proof.
 
       apply (@mem_block_exists_memory_set_neq _ _ stH mem_empty NEQ).
       eauto.
-Admitted.
+Qed.
 
 Lemma vellvm_helix_ptr_size:
   forall σ s memH memV ρ g n id (sz : N) dsh_ptr (dsh_sz : Int64.int),
