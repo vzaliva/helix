@@ -538,53 +538,6 @@ Proof.
 Qed.
 Opaque resolve_PVar.
 
-(* This lemma states that [genIR] if succeeds does not leak
-   compiler state variable *)
-Lemma genIR_prserves_Γ
-      {op: DSHOperator}
-      {nextblock: block_id}
-      {s s' segment}:
-  genIR op nextblock s ≡ inr (s', segment) ->
-  Γ s ≡ Γ s'.
-Proof.
-  intros.
-  induction op.
-  -
-    cbn in H; inversion H; reflexivity.
-  -
-    unfold genIR in H.
-    repeat break_let; subst.
-    unfold catch in H.
-    repeat break_let; subst.
-    unfold ErrorWithState.Exception_errS in Heqm.
-    inversion Heqm; subst; clear Heqm.
-    remember
-      ["--- Operator: " @@ string_of_DSHOperator (DSHAssign (p, n) (p0, n0)) @@ "---"]
-      as T; clear HeqT.
-    simpl bind in H.
-    repeat break_match; try inl_inr; try (inversion H; fail).
-    repeat inl_inr_inv; subst.
-    inversion H0; subst; clear H0.
-    replace i with s in * by
-        (apply resolve_PVar_simple in Heqs1;
-         destruct Heqs1 as [t1 [t2 H]];
-           apply H).
-    replace i2 with s in *
-      by (apply resolve_PVar_simple in Heqs2;
-          destruct Heqs2 as [t1 [t2 H]];
-          apply H).
-    clear Heqs1 Heqs2 p p0.
-    unfold genFSHAssign in Heqs3.
-    remember "Assign"%string as A.
-    simpl bind in Heqs3.
-    repeat break_match; try inl_inr.
-    repeat inl_inr_inv; subst.
-    apply genNExpr_preserves_Γ in Heqs0.
-    apply genNExpr_preserves_Γ in Heqs1.
-    cbn in Heqs0, Heqs1.
-    congruence.
-Admitted.
-
 (* Helper boolean predicate to check if member of [Γ] in [IRState] is global *)
 Definition is_var_Global (v:ident * typ): bool :=
   match (fst v) with
@@ -1089,6 +1042,7 @@ Proof.
   reflexivity.
 Qed.
 
+
 (* ZX TODO: might want to move to vellvm *)
 (* similar to [denote_exp_i64] *)
 Lemma denote_exp_i64_mcfg : forall t g l m,
@@ -1120,9 +1074,15 @@ Proof.
   rewrite interp_global_trigger.
   rewrite subevent_subevent.
   cbn.
-  rewrite interp_local_stack_bind.
-  rewrite subevent_subevent.
-Admitted.
+  rewrite interp_local_stack_bind, interp_local_stack_trigger.
+  cbn; rewrite subevent_subevent.
+  rewrite Eq.bind_bind.
+  rewrite interp_memory_bind, interp_memory_store; eauto.
+  cbn; rewrite Eq.bind_ret_l.
+  rewrite interp_memory_bind, interp_memory_ret, Eq.bind_ret_l.
+  rewrite interp_local_stack_ret, interp_memory_ret.
+  reflexivity.
+Qed.
 
 Lemma _exp_E_to_L0_Global : forall {X} (e : LLVMGEnvE X),
     _exp_E_to_L0 (subevent X e) ≡ subevent X e.
