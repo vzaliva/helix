@@ -2285,15 +2285,59 @@ Proof.
             apply eutt_Ret.
             constructor.
             **
-              constructor; admit.
-              (*
+              constructor.
               ---
                 unfold memory_invariant.
                 intros.
+                cbn in H1.
+                pose IPRE as E_PRE_LEN;
+                  apply init_with_data_len in E_PRE_LEN.
+                replace ((e_pre ++ ne' :: e_post') ++
+                          [DSHPtrVal (S (Datatypes.length (pre ++ [(a_nm, DSHnat)]))) o;
+                          DSHPtrVal (Datatypes.length (pre ++ [(a_nm, DSHnat)])) i])
+                  with
+                    ((e_pre ++ [ne']) ++ (e_post' ++
+                          [DSHPtrVal (S (Datatypes.length (pre ++ [(a_nm, DSHnat)]))) o;
+                           DSHPtrVal (Datatypes.length (pre ++ [(a_nm, DSHnat)])) i]))
+                    in *
+                    by now rewrite <- ! app_assoc.
+                rewrite firstn_app in H0.
+                replace (Datatypes.length (pre ++ [(a_nm, DSHnat)]) -
+                         Datatypes.length (e_pre ++ [ne']))
+                  with 0 in H0
+                  by (rewrite !ListUtil.length_app; cbn; lia).
+                cbn in H0.
+                rewrite firstn_all2 in H0
+                  by (rewrite !ListUtil.length_app; cbn; lia).
+                rewrite app_nil_r in H0.
+                destruct (Nat.eq_dec n (length e_pre)).
+                +++
+                  subst n.
+                  rewrite nth_error_app2 in H0 by reflexivity.
+                  rewrite Nat.sub_diag in H0.
+                  cbn in H0.
+                  some_inv; subst v.
+                  move Heqs2 at bottom.
+                  unfold initOneFSHGlobal in Heqs2.
+                  cbn in Heqs2.
+                  repeat break_match_hyp; try inl_inr.
+                  inversion Heqs2; clear Heqs2.
+                  rename t0 into ne.
+                  subst mg0 l4 ne'.
+                  unfold in_local_or_global_scalar.
+                  admit.
+                +++
+                  admit.
+              ---
                 admit.
-
-              all: admit.
-               *)
+              ---
+                admit.
+              ---
+                admit.
+              ---
+                admit.
+              ---
+                admit.
             **
               constructor.
               all: cbn; clear - DI.
