@@ -29,7 +29,7 @@ Import MonadNotation.
 Local Open Scope monad_scope.
 Local Open Scope nat_scope.
 
-Section DSHLoop_is_tfor.
+Section DSHPower_is_tfor.
 
   Definition DSHPower_tfor_body (σ : evalContext) (f : AExpr) (x y : mem_block) (xoffset yoffset : nat) (acc : mem_block) :=
     xv <- lift_Derr (mem_lookup_err "Error reading 'xv' memory in denoteDSHBinOp" xoffset x) ;;
@@ -162,23 +162,13 @@ Section DSHLoop_is_tfor.
        yoff <- denoteNExpr σ yoffset ;;
        let y' := mem_add (MInt64asNT.to_nat yoff) initial y in
        y'' <-  DSHPower_tfor σ (MInt64asNT.to_nat n) f x y' (MInt64asNT.to_nat xoff) (MInt64asNT.to_nat yoff) ;;
-       trigger (MemSet y_i y')) m.
+       trigger (MemSet y_i y'')) m.
   Proof.
     intros σ ne x_p xoffset y_p yoffset f initial E m.
+
     rewrite DSHPower_as_tfor.
-    cbn.
-
-    repeat rewrite interp_helix_bind.
-    eapply eutt_eq_bind; intros [[?m ?] |]; try reflexivity.
-    destruct p.
-
-    repeat rewrite interp_helix_bind.
-    eapply eutt_eq_bind; intros [[?m ?] |]; try reflexivity.
-    destruct p.
-
-    repeat (repeat rewrite interp_helix_bind;
-            eapply eutt_eq_bind; intros [[?m ?] |]; try reflexivity).
-  Abort.
+    reflexivity.
+  Qed.
 
   Definition DSHPower_code (px py xv yv : raw_id) (xtyp xptyp : typ) (x : ident) (src_nexpr : exp typ) (fexpr : exp typ) (fexpcode : code typ) (storeid1 : int) :=
     ([
@@ -248,7 +238,7 @@ Section DSHLoop_is_tfor.
   Abort.
 
 
-End DSHLoop_is_tfor.
+End DSHPower_is_tfor.
 
 (* The result is a branch *)
 Definition branches (to : block_id) (mh : memoryH * ()) (c : config_cfg_T (block_id * block_id + uvalue)) : Prop :=
@@ -291,6 +281,232 @@ Proof.
   hred; hstep; [eassumption |].
   hred.
 
-  (* Symbolically reducing the concrete prefix on the VIR side *)
+  rename l into loop_blocks.
 
+  pose proof genWhileLoop_tfor_correct.
+
+  assert (wf_ocfg_bid loop_blocks) as WFBLAH by admit.
+  assert (free_in_cfg loop_blocks nextblock) as FREEBLAH by admit.
+  assert (~ (b ≡ bid_in \/ False)) as BBID_IN.
+  { intros [CONTRA | []].
+    admit.
+  }
+  assert (b0 ≡ b0 ∨ False) as B0B0 by auto.
+  epose proof @genWhileLoop_init _ _ _ _ _ _ _ _ _ _ _ _ _ bid_from Heqs2 WFBLAH BBID_IN FREEBLAH B0B0 as INIT.
+  cbn in INIT.
+  destruct INIT as (body_bks' & GEN' & INIT).
+
+  (* TODO: i5 and i21 are just an uneducated guess *)
+  match goal with
+  | H: genWhileLoop ?prefix ?x ?y ?loopvar ?loopcontblock ?body_entry ?body_blocks [] ?nextblock ?s1 ≡ inr (?s2, (?bid_in, ?bks)) |- _
+    => epose proof @genWhileLoop_tfor_correct prefix loopvar loopcontblock body_entry body_blocks nextblock bid_in s1 s2 i5 i21 bks as LOOPTFOR
+  end.
+
+
+  assert (In b0
+               (inputs
+                  [{| blk_id := b0;
+                      blk_phis := [];
+                      blk_code :=
+                        (IId r0,
+                         (INSTR_Op (OP_GetElementPtr
+                                      (TYPE_Array (Z.to_N (Int64.intval i1)) TYPE_Double)
+                                      (TYPE_Pointer
+                                         (TYPE_Array (Z.to_N (Int64.intval i1))
+                                                     TYPE_Double), EXP_Ident i0)
+                                      [(TYPE_I (Npos 64), EXP_Integer 0%Z); (TYPE_I (Npos 64), e)]))) ::
+                                                                                                      (IId r2, INSTR_Load false TYPE_Double (TYPE_Pointer TYPE_Double, (EXP_Ident (ID_Local r0))) (Some 8%Z)) ::
+                                                                                                      (IId r1, INSTR_Load false TYPE_Double (TYPE_Pointer TYPE_Double, (EXP_Ident (ID_Local r))) (Some 8%Z))
+                                                                                                      :: c2 ++
+                                                                                                      [(IVoid i14,
+                                                                                                        INSTR_Store false (TYPE_Double, e2)
+                                                                                                                    (TYPE_Pointer TYPE_Double, (EXP_Ident (ID_Local r))) (Some 8%Z)) : (instr_id * instr typ)];
+                      blk_term := TERM_Br_1 b;
+                      blk_comments := None
+                   |}])) as Inb0 by auto.
+
+  assert (is_correct_prefix "Power") as PREF_POWER by solve_prefix.
+
+  assert (wf_ocfg_bid body_bks') as WF_BODY_BKS' by admit.
+
+  (* TODO: make solve_lid_bound_between do this *)
+  assert (lid_bound_between i5 i21
+                 ("Power_i" @@ string_of_nat (local_count i5))) as LID_BOUND_BETWEEN_POWER_I by admit.
+
+  assert (free_in_cfg body_bks' nextblock) as FREE_BODY_BKS'_NEXTBLOCK by admit.
+
+  specialize (LOOPTFOR Inb0 PREF_POWER WF_BODY_BKS' LID_BOUND_BETWEEN_POWER_I).
+  specialize (LOOPTFOR FREE_BODY_BKS'_NEXTBLOCK).
+
+  (* Need to know how many times we loop, this is determined by the
+  result of evaluating the expression e1 *)
+  pose proof Heqs7 as LOOP_END.
+
+  (* Clean up LLVM side a bit *)
+  setoid_rewrite add_comment_eutt.
+
+  (* Substitute blocks *)
+  rewrite INIT.
+
+  rename c into xoff_code.
+  rename c0 into yoff_code.
+  rename c1 into loop_end_code.
+
+  rename n0 into xoff_nexpr.
+  rename n1 into yoff_nexpr.
+  rename n into loop_end_nexpr.
+
+  (* Need to reorder the nexprs to line things up.
+
+     In helix we evaluate:
+
+     1) loop_end
+     2) xoff
+     3) yoff
+
+     In LLVM the loop_end is calculated last:
+
+     1) xoff
+     2) yoff
+     3) loop_end
+
+     I should be able to commute loop_end_code in order to match it up
+     with denoteNExpr σ loop_end_nexpr.
+   *)
+
+
+  assert (eutt Logic.eq
+               (interp_cfg (denote_code (convert_typ [] (xoff_code ++ yoff_code ++ loop_end_code)%list)) g ρ memV)
+               (interp_cfg (denote_code (convert_typ [] (loop_end_code ++ xoff_code ++ yoff_code)%list)) g ρ memV)) as COMMUTE_INIT.
+  { admit.
+  }
+
+  repeat rewrite app_assoc.
+  replace ((xoff_code ++ yoff_code) ++ loop_end_code)%list with (xoff_code ++ yoff_code ++ loop_end_code)%list by apply app_assoc.
+
+  rewrite convert_typ_code_app.
+  rewrite denote_code_app.
+
+  (* TODO: this is a complete lie *)
+  replace (xoff_code ++ yoff_code ++ loop_end_code)%list with (loop_end_code ++ xoff_code ++ yoff_code)%list by admit.
+
+  repeat rewrite convert_typ_code_app.
+  repeat setoid_rewrite denote_code_app.
+
+  vstep.
+  vred.
+
+  eapply eutt_clo_bind.
+  { eapply genNExpr_correct; eauto.
+    admit.
+    admit.
+  }
+
+  intros [[m t] |] [mV' [l' [g' []]]] H2; [|inversion H2].
+
+  vred; hred.
+  vred.
+
+  eapply eutt_clo_bind.
+  { eapply genNExpr_correct.
+    apply Heqs3.
+    admit.
+    admit.
+    admit.
+  }
+
+  intros [[m' t'] |] [mV'' [l'' [g'' []]]] H3; [|inversion H3].
+
+  vred; hred; vred.
+
+  eapply eutt_clo_bind.
+  { eapply genNExpr_correct.
+    apply Heqs4.
+    admit.
+    admit.
+    admit.
+  }
+
+  intros [[m'' t''] |] [mV''' [l''' [g''' []]]] H4; [|inversion H4].
+
+  vred; hred; vred.
+
+  cbn.
+  vred.
+
+  (* Need to figure out the corresponding pointer for id (i3).
+
+     Need to get this from the memory_invariant *)
+
+  pose proof state_invariant_memory_invariant PRE as MINV.
+  unfold memory_invariant in MINV.
+  specialize (MINV n3 _ _ _ Heqo0 LUn0).
+  cbn in MINV.
+  destruct MINV as (bkh & ptrll & τ' & MLUP & TEQ & FITS & INLG & GETARRAYCELL).
+  inv TEQ.
+  destruct i3.
+  { (* Global case *)
+    edestruct denote_instr_gep_array_no_read with (m:=mV''') (g:=g''') (ρ:=l''') (size:=(Z.to_N (Int64.intval i4))) (τ:=DTYPE_Double) (i:=r) (ptr := @EXP_Ident dtyp (ID_Global id)) (a:= ptrll).
+    4: {
+      destruct H5.
+      cbn.
+      rewrite H6.
+
+      rewrite bind_ret_l.
+      vred.
+
+      edestruct denote_instr_store_exists with (a := x1) (m:=mV''').
+
+      { cbn.
+        apply denote_exp_double.
+      }
+
+      { apply denote_exp_LR.
+        apply alist_find_add_eq.
+      }
+
+      { reflexivity.
+      }
+
+      { constructor.
+      }
+
+      { eapply dtyp_fits_array_elem; eauto.
+      }
+
+      2: { destruct H7.
+           cbn in *.
+           rewrite H8.
+           admit.
+         }
+      {
+      (* Will need to set up loop invariants and such, just like loop case *)
+      admit.
+      }
+    }
+
+    { rewrite denote_exp_GR.
+      change (UVALUE_Addr ptrll) with (dvalue_to_uvalue (DVALUE_Addr ptrll)).
+      reflexivity.
+
+      cbn in INLG.
+      (* I think g = g''' *)
+      admit.
+    }
+
+    { admit.
+
+    }
+
+    { (* Should hold in new memory too *)
+      rewrite typ_to_dtyp_D_array in FITS.
+      (* EQsz0 : MInt64asNT.from_N sz0 ≡ inr i4 *)
+      admit.
+    }
+  }
+
+  { (* Should be pretty much the same as above... Local case. *)
+
+  }
+  
 Admitted.
