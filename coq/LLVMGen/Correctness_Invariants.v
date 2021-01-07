@@ -505,7 +505,6 @@ Section SimulationRelations.
           apply In_add_ineq_iff in H5; eauto.
   Qed.
 
-
   (* The memory invariant is stable by evolution of IRStates that preserve Γ *)
   Lemma state_invariant_same_Γ :
     ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
@@ -1498,11 +1497,112 @@ Proof.
       inv alloc.
       intros. inversion H.
 
-    + rewrite nth_error_Sn in LU1.
+    + pose proof LU1 as LU1'.
+      pose proof LU2 as LU2'.
+      rewrite nth_error_Sn in LU1.
       rewrite EQ, nth_error_Sn in LU2.
       eapply MEM in LU2; eauto.
-  (* There is some reasoning on the memory (on [alloc] in particular) to be done here *)
-      admit.
+
+      (* There is some reasoning on the memory (on [alloc] in particular) to be done here *)
+      (* I've allocated a new pointer, and added it to the local environment.
+       *)
+      pose proof (allocate_correct alloc) as (ALLOC_FRESH & ALLOC_NEW & ALLOC_OLD).
+      { destruct v.
+        - destruct x0.
+          + (* The only complication here is read mV_a *)
+            destruct LU2 as (ptr & τ' & TEQ & G & READ).
+            exists ptr. exists τ'.
+            repeat (split; auto).
+            erewrite ALLOC_OLD; eauto.
+
+            eapply can_read_allocated; eauto.
+            eapply freshly_allocated_no_overlap_dtyp; eauto.
+            eapply can_read_allocated; eauto.
+          + cbn. cbn in LU2.
+            destruct (Eqv.eqv_dec_p x id) as [EQid | NEQid].
+            * do 2 red in EQid; subst.
+              (* Need a contradiction *)
+              exfalso. apply GAM.
+              rewrite EQ, nth_error_Sn in LU2'.
+              econstructor; eauto.
+            * unfold Eqv.eqv, eqv_raw_id in NEQid.
+              rewrite alist_find_neq; eauto.
+        - destruct x0.
+          + (* The only complication here is read mV_a *)
+            destruct LU2 as (ptr & τ' & TEQ & G & READ).
+            exists ptr. exists τ'.
+            repeat (split; auto).
+            erewrite ALLOC_OLD; eauto.
+
+            eapply can_read_allocated; eauto.
+            eapply freshly_allocated_no_overlap_dtyp; eauto.
+            eapply can_read_allocated; eauto.
+          + cbn. cbn in LU2.
+            destruct (Eqv.eqv_dec_p x id) as [EQid | NEQid].
+            * do 2 red in EQid; subst.
+              (* Need a contradiction *)
+              exfalso. apply GAM.
+              rewrite EQ, nth_error_Sn in LU2'.
+              econstructor; eauto.
+            * unfold Eqv.eqv, eqv_raw_id in NEQid.
+              rewrite alist_find_neq; eauto.
+        - destruct LU2 as (bkh & ptr_llvm & τ' & MLUP & TEQ & FITS & INLG & GET).
+          exists bkh. exists ptr_llvm. exists τ'.
+          assert (ptrh ≢ a) as NEQa.
+          { intros CONTRA.
+            subst.
+            apply nth_error_In in LU1.
+            apply (fresh size). auto.
+          }
+          repeat (split; eauto).
+          + rewrite memory_lookup_memory_set_neq; auto.
+          + eapply dtyp_fits_after_allocated; eauto.
+          + destruct x0; auto.
+            destruct (Eqv.eqv_dec_p x id) as [EQid | NEQid].
+            * do 2 red in EQid; subst.
+              exfalso. apply GAM.
+              rewrite EQ, nth_error_Sn in LU2'.
+              econstructor; eauto.
+            * unfold Eqv.eqv, eqv_raw_id in NEQid.
+              cbn.
+              rewrite alist_find_neq; eauto.
+          + intros i v H.
+            unfold get_array_cell in *.
+
+            (* TODO: is there a better way to do this...? *)
+            assert ((let
+                       '(b, o) := ptr_llvm in
+                     match get_logical_block mV_a b with
+                     | Some (LBlock _ bk _) => get_array_cell_mem_block bk o (MInt64asNT.to_nat i) 0 DTYPE_Double
+                     | None => failwith "Memory function [get_array_cell] called at a non-allocated address"
+                     end) ≡
+                     (
+                         match get_logical_block mV_a (fst ptr_llvm) with
+                         | Some (LBlock _ bk _) => get_array_cell_mem_block bk (snd ptr_llvm) (MInt64asNT.to_nat i) 0 DTYPE_Double
+                         | None => failwith "Memory function [get_array_cell] called at a non-allocated address"
+                         end)).
+            { destruct ptr_llvm. cbn. reflexivity. }
+
+            assert ((let
+                       '(b, o) := ptr_llvm in
+                     match get_logical_block mV b with
+                     | Some (LBlock _ bk _) => get_array_cell_mem_block bk o (MInt64asNT.to_nat i) 0 DTYPE_Double
+                     | None => failwith "Memory function [get_array_cell] called at a non-allocated address"
+                     end) ≡
+                     (
+                         match get_logical_block mV (fst ptr_llvm) with
+                         | Some (LBlock _ bk _) => get_array_cell_mem_block bk (snd ptr_llvm) (MInt64asNT.to_nat i) 0 DTYPE_Double
+                         | None => failwith "Memory function [get_array_cell] called at a non-allocated address"
+                         end)).
+            { destruct ptr_llvm. cbn. reflexivity. }
+
+            rewrite H0.
+            erewrite get_logical_block_allocated.
+            rewrite <- H1.
+            eauto.
+            eauto.
+            eapply dtyp_fits_allocated; eauto.
+      }
 
   - do 2 red.
     intros ? [| n] LU.
@@ -1545,60 +1645,143 @@ Proof.
 
   - cbn in ALIAS3.
     do 2 red. intros * LU1 LU2 LU3 LU4 INEQ IN1 IN2.
-    epose proof (no_llvm_ptr_aliasing_not_in_gamma (UVALUE_Addr ptrv1) ALIAS3 WF GAM).
+
+    rewrite EQ in *.
     destruct n1 as [| n1], n2 as [| n2]; auto.
-    + rewrite EQ in LU3.
-      rewrite EQ in LU4.
-      cbn in *.
+    + (* Both pointers are the same *)
       inv LU1; inv LU2; inv LU3; inv LU4.
+      contradiction.
+    + (* One pointer from Γ s2, one from Γ s1 *)
+      inv LU3.
+      unfold WF_IRState, evalContext_typechecks in WF.
+      pose proof LU2.
+      apply WF in H.
+      destruct H. cbn in LU4. rewrite LU4 in H.
+      cbn in H.
+      inv H.
+
+      apply alist_In_add_eq in IN1.
+      inv IN1.
+      epose proof (MEM _ _ _ _ LU2 LU4).
+      destruct v2.
+      * destruct x0.
+        -- destruct H as (ptr & τ' & TEQ & G & READ).
+           inv TEQ.
+           rewrite typ_to_dtyp_I in READ.
+           rewrite IN2 in G. inv G.
+           apply can_read_allocated in READ.
+           eapply freshly_allocated_different_blocks in alloc; eauto.
+        -- assert (x ≢ id) as NEQ by (intros CONTRA; subst; contradiction).
+           apply In_add_ineq_iff in IN2; auto.
+           unfold alist_In in IN2.
+           cbn in H.
+           rewrite IN2 in H.
+           inv H.
+      * destruct x0.
+        -- destruct H as (ptr & τ' & TEQ & G & READ).
+           inv TEQ.
+           rewrite typ_to_dtyp_D in READ.
+           rewrite IN2 in G. inv G.
+           apply can_read_allocated in READ.
+           eapply freshly_allocated_different_blocks in alloc; eauto.
+        -- assert (x ≢ id) as NEQ by (intros CONTRA; subst; contradiction).
+           apply In_add_ineq_iff in IN2; auto.
+           unfold alist_In in IN2.
+           cbn in H.
+           rewrite IN2 in H.
+           inv H.
+      * destruct H as (bk_helix & ptr & τ' & MLUP & WFT & FITS & INLG & GETARRAY).
+        destruct x0.
+        -- cbn in INLG. rewrite IN2 in INLG. inv INLG.
+           apply dtyp_fits_allocated in FITS.
+           eapply freshly_allocated_different_blocks in alloc; eauto.
+        -- assert (x ≢ id) as NEQ by (intros CONTRA; subst; contradiction).
+           apply In_add_ineq_iff in IN2; auto.
+           unfold alist_In in IN2.
+           cbn in INLG.
+           rewrite IN2 in INLG.
+           inv INLG.
+           apply dtyp_fits_allocated in FITS.
+           eapply freshly_allocated_different_blocks in alloc; eauto.
+    + (* One pointer from Γ s2, one from Γ s1 *)
+      inv LU4.
+      unfold WF_IRState, evalContext_typechecks in WF.
+      pose proof LU1.
+      apply WF in H.
+      destruct H. cbn in LU3. rewrite LU3 in H.
+      cbn in H.
+      inv H.
+
+      apply alist_In_add_eq in IN2.
+      inv IN2.
+      epose proof (MEM _ _ _ _ LU1 LU3).
+      destruct v1.
+      * destruct x0.
+        -- destruct H as (ptr & τ' & TEQ & G & READ).
+           inv TEQ.
+           rewrite typ_to_dtyp_I in READ.
+           rewrite IN1 in G. inv G.
+           apply can_read_allocated in READ.
+           eapply freshly_allocated_different_blocks in alloc; eauto.
+        -- assert (x ≢ id) as NEQ by (intros CONTRA; subst; contradiction).
+           apply In_add_ineq_iff in IN1; auto.
+           unfold alist_In in IN1.
+           cbn in H.
+           rewrite IN1 in H.
+           inv H.
+      * destruct x0.
+        -- destruct H as (ptr & τ' & TEQ & G & READ).
+           inv TEQ.
+           rewrite typ_to_dtyp_D in READ.
+           rewrite IN1 in G. inv G.
+           apply can_read_allocated in READ.
+           eapply freshly_allocated_different_blocks in alloc; eauto.
+        -- assert (x ≢ id) as NEQ by (intros CONTRA; subst; contradiction).
+           apply In_add_ineq_iff in IN1; auto.
+           unfold alist_In in IN1.
+           cbn in H.
+           rewrite IN1 in H.
+           inv H.
+      * destruct H as (bk_helix & ptr & τ' & MLUP & WFT & FITS & INLG & GETARRAY).
+        destruct x0.
+        -- cbn in INLG. rewrite IN1 in INLG. inv INLG.
+           apply dtyp_fits_allocated in FITS.
+           eapply freshly_allocated_different_blocks in alloc; eauto.
+        -- assert (x ≢ id) as NEQ by (intros CONTRA; subst; contradiction).
+           apply In_add_ineq_iff in IN1; auto.
+           unfold alist_In in IN1.
+           cbn in INLG.
+           rewrite IN1 in INLG.
+           inv INLG.
+           apply dtyp_fits_allocated in FITS.
+           eapply freshly_allocated_different_blocks in alloc; eauto.
+    + (* Both pointers from Γ s1, can fall back to assumption (ALIAS3) *)
+      rewrite nth_error_Sn in LU1, LU2.
+      rewrite nth_error_Sn in LU3, LU4.
+      assert (id2 ≢ id1) as INEQ' by auto.
+
+      eapply (no_llvm_ptr_aliasing_not_in_gamma (UVALUE_Addr ptrv) ALIAS3 WF GAM).
+
+      eapply LU1.
+      eapply LU2.
+      all: eauto.
+  - unfold id_allocated.
+    intros n addr0 val H.
+    destruct n.
+    + cbn in H. inv H.
+      apply mem_block_exists_memory_set_eq.
+      reflexivity.
+    + cbn in H.
+      pose proof (nth_error_In _ _ H).
+      assert (addr0 ≢ ptrh) as NEQ.
+      { intros CONTRA; subst.
+        apply fresh in H0.
+        contradiction.
+      }
+
+      apply (@mem_block_exists_memory_set_neq _ _ stH mem_empty NEQ).
       eauto.
-    + rewrite EQ in LU3,LU4.
-      Opaque allocate.
-      clear MEM.
-      cbn in *.
-      inv LU1; inv LU3.
-      cbn in *.
-      rewrite alist_find_add_eq in IN1; inv IN1.
-      red in ALLOC.
-      (* - ptrv1 is fresh in [mV] by alloc
-           + Know it's not allocated...
-         - ptrv2 was already loaded in a variable stored in Gamma: it _should_ therefore has already been allocated.
-         -> do I already have the intel to prove that?
-         TO FIGURE OUT
-       *)
-
-      (* Just need to know that there's no aliasing with (DSHPtrVal ptrh sizeh) added to σ *)
-      red in H.
-      cbn.
-      destruct id2; cbn in IN2.
-      * admit.
-      * (* If ptrv2 corresponds to a local id, then I know that id <> x, therefor, ptrv2 is in l
-
-           
-         *)
-     admit.
-    + rewrite EQ in LU3,LU4.
-      Opaque allocate.
-      clear MEM.
-      cbn in *.
-      inv LU2; inv LU4.
-      cbn in *.
-      rewrite alist_find_add_eq in IN2; inv IN2.
-      red in ALLOC.
-      (* - ptrv2 is fresh in [mV] by alloc
-         - ptrv1 was already loaded in a variable stored in Gamma: it _should_ therefore has already been allocated.
-         -> do I already have the intel to prove that?
-         TO FIGURE OUT
-       *)
-
-      admit.
-    + rewrite EQ in LU3,LU4.
-      cbn in *.
-      eapply ALIAS3.
-      apply LU1.
-      all:eauto.
-      admit.
-Admitted.
+Qed.
 
 Lemma vellvm_helix_ptr_size:
   forall σ s memH memV ρ g n id (sz : N) dsh_ptr (dsh_sz : Int64.int),

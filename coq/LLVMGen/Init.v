@@ -538,53 +538,6 @@ Proof.
 Qed.
 Opaque resolve_PVar.
 
-(* This lemma states that [genIR] if succeeds does not leak
-   compiler state variable *)
-Lemma genIR_prserves_Γ
-      {op: DSHOperator}
-      {nextblock: block_id}
-      {s s' segment}:
-  genIR op nextblock s ≡ inr (s', segment) ->
-  Γ s ≡ Γ s'.
-Proof.
-  intros.
-  induction op.
-  -
-    cbn in H; inversion H; reflexivity.
-  -
-    unfold genIR in H.
-    repeat break_let; subst.
-    unfold catch in H.
-    repeat break_let; subst.
-    unfold ErrorWithState.Exception_errS in Heqm.
-    inversion Heqm; subst; clear Heqm.
-    remember
-      ["--- Operator: " @@ string_of_DSHOperator (DSHAssign (p, n) (p0, n0)) @@ "---"]
-      as T; clear HeqT.
-    simpl bind in H.
-    repeat break_match; try inl_inr; try (inversion H; fail).
-    repeat inl_inr_inv; subst.
-    inversion H0; subst; clear H0.
-    replace i with s in * by
-        (apply resolve_PVar_simple in Heqs1;
-         destruct Heqs1 as [t1 [t2 H]];
-           apply H).
-    replace i2 with s in *
-      by (apply resolve_PVar_simple in Heqs2;
-          destruct Heqs2 as [t1 [t2 H]];
-          apply H).
-    clear Heqs1 Heqs2 p p0.
-    unfold genFSHAssign in Heqs3.
-    remember "Assign"%string as A.
-    simpl bind in Heqs3.
-    repeat break_match; try inl_inr.
-    repeat inl_inr_inv; subst.
-    apply genNExpr_preserves_Γ in Heqs0.
-    apply genNExpr_preserves_Γ in Heqs1.
-    cbn in Heqs0, Heqs1.
-    congruence.
-Admitted.
-
 (* Helper boolean predicate to check if member of [Γ] in [IRState] is global *)
 Definition is_var_Global (v:ident * typ): bool :=
   match (fst v) with
@@ -1089,6 +1042,7 @@ Proof.
   reflexivity.
 Qed.
 
+
 (* ZX TODO: might want to move to vellvm *)
 (* similar to [denote_exp_i64] *)
 Lemma denote_exp_i64_mcfg : forall t g l m,
@@ -1120,8 +1074,15 @@ Proof.
   rewrite interp_global_trigger.
   rewrite subevent_subevent.
   cbn.
-  rewrite interp_local_stack_bind.
-Admitted.
+  rewrite interp_local_stack_bind, interp_local_stack_trigger.
+  cbn; rewrite subevent_subevent.
+  rewrite Eq.bind_bind.
+  rewrite interp_memory_bind, interp_memory_store; eauto.
+  cbn; rewrite Eq.bind_ret_l.
+  rewrite interp_memory_bind, interp_memory_ret, Eq.bind_ret_l.
+  rewrite interp_local_stack_ret, interp_memory_ret.
+  reflexivity.
+Qed.
 
 Lemma _exp_E_to_L0_Global : forall {X} (e : LLVMGEnvE X),
     _exp_E_to_L0 (subevent X e) ≡ subevent X e.
@@ -2295,9 +2256,94 @@ Proof.
             rewrite subevent_subevent.
 
             cbn in AV.
-            (* rewrite interp_mcfg_store. *)
-            admit.
-          ++
+            unfold allocated_globals in AG.
+            specialize (AG (length pre)).
+            autospecialize AG;
+              [rewrite ListUtil.length_app; cbn; lia |].
+            destruct AG as [a_ptr [AL IG]].
+            erewrite ListUtil.ith_eq with (j:=length pre + 0)
+              in IG; [| lia].
+            erewrite ith_eq_app_r in IG.
+            cbn in IG.
+            unfold write.
+            unfold in_global_addr in IG.
+            replace av with (DVALUE_Addr a_ptr) in * by congruence; clear IG.
+            destruct a_ptr as (a_ptr, a_off).
+            copy_apply allocated_get_logical_block AL;
+              rename H0 into AMB.
+            destruct AMB as [[a_sz a_bytes a_id] AMB].
+            rewrite interp_mcfg_store
+              with
+                (m' :=
+                   add_logical_block a_ptr
+                         (LBlock a_sz
+                            (add_all_index
+                               (serialize_dvalue
+                                  (DVALUE_I64 (DynamicValues.Int64.repr (bits_of_b64 b0))))
+                               a_off a_bytes) a_id) m')
+            by (unfold write; rewrite AMB; reflexivity).
+            apply eutt_Ret.
+            constructor.
+            **
+              constructor.
+              ---
+                unfold memory_invariant.
+                intros.
+                cbn in H1.
+                pose IPRE as E_PRE_LEN;
+                  apply init_with_data_len in E_PRE_LEN.
+                replace ((e_pre ++ ne' :: e_post') ++
+                          [DSHPtrVal (S (Datatypes.length (pre ++ [(a_nm, DSHnat)]))) o;
+                          DSHPtrVal (Datatypes.length (pre ++ [(a_nm, DSHnat)])) i])
+                  with
+                    ((e_pre ++ [ne']) ++ (e_post' ++
+                          [DSHPtrVal (S (Datatypes.length (pre ++ [(a_nm, DSHnat)]))) o;
+                           DSHPtrVal (Datatypes.length (pre ++ [(a_nm, DSHnat)])) i]))
+                    in *
+                    by now rewrite <- ! app_assoc.
+                rewrite firstn_app in H0.
+                replace (Datatypes.length (pre ++ [(a_nm, DSHnat)]) -
+                         Datatypes.length (e_pre ++ [ne']))
+                  with 0 in H0
+                  by (rewrite !ListUtil.length_app; cbn; lia).
+                cbn in H0.
+                rewrite firstn_all2 in H0
+                  by (rewrite !ListUtil.length_app; cbn; lia).
+                rewrite app_nil_r in H0.
+                destruct (Nat.eq_dec n (length e_pre)).
+                +++
+                  subst n.
+                  rewrite nth_error_app2 in H0 by reflexivity.
+                  rewrite Nat.sub_diag in H0.
+                  cbn in H0.
+                  some_inv; subst v.
+                  move Heqs2 at bottom.
+                  unfold initOneFSHGlobal in Heqs2.
+                  cbn in Heqs2.
+                  repeat break_match_hyp; try inl_inr.
+                  inversion Heqs2; clear Heqs2.
+                  rename t0 into ne.
+                  subst mg0 l4 ne'.
+                  unfold in_local_or_global_scalar.
+                  admit.
+                +++
+                  admit.
+              ---
+                admit.
+              ---
+                admit.
+              ---
+                admit.
+              ---
+                admit.
+              ---
+                admit.
+            **
+              constructor.
+              all: cbn; clear - DI.
+              all: unfold declarations_invariant in DI.
+              all: intuition.
+          ++ (* ZX TODO: see how these bullets can be done all in one *)
             admit.
           ++
             admit.

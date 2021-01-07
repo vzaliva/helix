@@ -1,3 +1,5 @@
+#+TODO: TODO(t@) CALVIN(c@) | DONE(d@) DEFERRED(@) CANCELLED(c@)
+
 * Major
 
 ** State invariant
@@ -7,13 +9,13 @@
 
     Almost certainly [no_id_aliasing] is incorrect: remove from its conclusion [exists v, nth_error σ n ≡ Some v]
 
-*** TODO Change of scope
+*** TODO [3/4] Change of scope
 
     Need to fix proofs of
-    - [state_invariant_escape_scope], (done)
-    - [state_invariant_enter_scope_DSHnat], (done)
-    - [state_invariant_enter_scope_DSHCType], (TODO but not used so far)
-    - [state_invariant_enter_scope_DSHPtr] (TODO: does not look immediate at first glance)
+    - [X] [state_invariant_escape_scope]
+    - [X] [state_invariant_enter_scope_DSHnat]
+    - [ ] [state_invariant_enter_scope_DSHCType], (TODO but not used so far, may or may not be needed.)
+    - [X] [state_invariant_enter_scope_DSHPtr]
 
 ** DONE Loop operator
    CLOSED: [2020-12-14 Mon 09:43]
@@ -61,8 +63,7 @@
 *** DONE Power as [tfor]
     CLOSED: [2020-12-08 Tue 17:35]
    
-*** Applying [genWhileLoop_tfor_correct] concretely
- 
+*** CALVIN Applying [genWhileLoop_tfor_correct] concretely
     
 * Minor
 

@@ -215,6 +215,7 @@ Section DSHLoop_is_tfor.
     blk_comments := None
     |}.
 
+  (* be careful about local_scope_modif *)
   Lemma DSHPower_body_eutt :
     forall σ f x y xoffset yoffset acc px py xv yv xtyp xptyp x_c src_nexpr fexpr fexpcode storeid loopcontblock g li mV mH _label body_entry,
           eutt
