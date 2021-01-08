@@ -134,24 +134,38 @@ Proof.
      We now groom the VIR semantics: not much to do. *)
   rewrite add_comment_eutt.
   bind_ret_r2.
+  assert (s1 ≡ i0) by (apply resolve_PVar_state in Heqs1; subst; auto); subst i0.
 
   (* We need to settle on the relation that holds at the end of the loops.
      It is not quite [state_invariant]: on the helix side, the memory has not been touched,
      we performed a pure computation.
      On the Vellvm side, we are done, everything is written in memory.
    *)
-  eapply eutt_clo_bind with (UU := succ_cfg (genIR_post σ i7 s2 nextblock ρ)).
+  eapply eutt_clo_bind with (UU := succ_cfg (genIR_post σ s1 s2 nextblock ρ)).
 
-  - match type of Heqs2 with
+  -
+    match type of Heqs2 with
     | genWhileLoop ?a _ _ ?b ?c ?d ?e _ ?f _ ≡ inr (_,(?g,?h)) =>
       set (prefix := a); set (body_blocks := e);
         rename b into loopvar, c into loopcontblock, d into body_entry, f into nextblock, g into entry_id, h into bks
     end.
 
     clean_goal.
-    rename i0 into s2, i3 into s3, i4 into s4, i5 into s5, i6 into s6, i7 into s7, s2 into s8.
+    rename i2 into intV, i into intH.
+    assert (intV ≡ intH).
+    { clear - Heqs Heqs1.
+      apply resolve_PVar_simple in Heqs1.
+      destruct Heqs1 as (size & addr_n & LUn & EQsize & -> & _).
+      cbn in *.
+      simp.
+      admit.
+    }
+
+    subst.
+    rename i3 into s2, i4 into s3, i5 into s4, i6 into s5, i7 into s6, s2 into s7.
+
     pose proof
-         @genWhileLoop_tfor_correct prefix loopvar loopcontblock body_entry body_blocks nextblock entry_id s7 s8 s1 s8 bks as LOOP.
+         @genWhileLoop_tfor_correct prefix loopvar loopcontblock body_entry body_blocks nextblock entry_id s6 s7 s1 s6 bks as LOOP.
 
     forward LOOP.
     {
@@ -181,7 +195,7 @@ Proof.
       rewrite Forall_forall in INPUTS_BETWEEN; apply INPUTS_BETWEEN in IN; clear INPUTS_BETWEEN.
       eapply not_bid_bound_between; eauto.
     }      
-    specialize (LOOP (Z.to_nat (DynamicValues.Int64.intval i2))).
+    specialize (LOOP (Z.to_nat (DynamicValues.Int64.intval intH))).
 
     forward LOOP; [clear LOOP |].
     {
@@ -199,17 +213,106 @@ Proof.
 
     forward LOOP; [clear LOOP |].
     {
+      (* No overflow *)
       admit.
     }
 
-    specialize (LOOP (fun k o stV =>
-                        match o with
-                        | None => False
-                        | Some (mH,bkH) =>
-                          bkH ≡ mem_union (mem_const_block k value) mem_bkH
-                        end)).
+    set (I := fun k o stV =>
+                match o with
+                | None => False
+                | Some (mH,bkH) =>
+                  bkH ≡ mem_union (mem_const_block k value) mem_bkH /\
+                  state_invariant σ s6 mH stV
+                end).
 
+    set (P := fun o stV =>
+                match o with
+                | None => False
+                | Some (mH,bkH) =>
+                  bkH ≡ mem_union (mem_const_block 0 value) mem_bkH /\
+                  state_invariant σ s6 mH stV
+                end).
 
+    set (Q := fun o stV =>
+                match o with
+                | None => False
+                | Some (mH,bkH) =>
+                  bkH ≡ mem_union (mem_const_block (MInt64asNT.to_nat intH) value) mem_bkH /\
+                  state_invariant σ s6 mH stV
+                end).
 
+    specialize (LOOP I P Q (Some (memH,mem_bkH))).
+
+    forward LOOP.
+    {
+      (* Relating bodies *)
+      admit.
+    }
+
+    forward LOOP.
+    {
+      (* Local stability of I *)
+      admit.
+    }
+
+    forward LOOP.
+    {
+      apply resolve_PVar_state in Heqs1; subst.
+      solve_local_count.
+    }
+
+    forward LOOP; [reflexivity |].
+
+    forward LOOP; [clear LOOP |].
+    {
+      subst P I.
+      clear; red; intros; auto.
+    }
+
+    forward LOOP; [clear LOOP |].
+    {
+      subst Q I.
+      clear; red; intros.
+      break_match_goal; auto.
+    }
+
+    eapply eutt_mon; cycle 1.
+    {
+      apply LOOP.
+      subst P; cbn; split; auto using mem_union_mem_empty.
+      solve_state_invariant.
+    }
+
+    { subst Q.
+      intros [[? []] | ] (? & ? & ? & ?) (H1 & H2 & H3); cbn; eauto.
+      split; [| split]; cbn; eauto.
+      - cbn.
+        admit.
+      - destruct H1; cbn; eauto.
+    }
+
+  - intros [[? []] | ] (? & ? & ? & ?); [| cbn in *; intuition].
+    intros (H1 & H2 & H3); cbn in *; eauto.
+    rewrite interp_helix_MemSet.
+    apply eutt_Ret.
+    split; [| split]; cbn; auto.
+    (* Need to transport information about what has been written on the Vellvm side during the loop *)
+    clear - H1.
+    destruct H1; split; auto.
+    + Opaque memory_set.
+      cbn; intros * LU1 LU2.
+      eapply mem_is_inv in LU2; eauto.
+      destruct v; auto.
+      destruct LU2 as (? & ? & ? & ?).
+      destruct (n =? a) eqn:EQ.
+      * apply beq_nat_true in EQ; subst.
+        rewrite memory_lookup_memory_set_eq.
+        do 3 eexists.
+        split; [reflexivity |].
+        (* do 2 (split; [reflexivity |]). *)
+        admit.
+      * rewrite memory_lookup_memory_set_neq; [| apply NPeano.Nat.eqb_neq in EQ; auto].
+        eauto.
+    + admit.
 
 Admitted.
