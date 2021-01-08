@@ -299,12 +299,13 @@ Module MDSigmaHCOLITree
 
         | DSHPower ne (x_p,xoffset) (y_p,yoffset) f initial =>
           '(x_i,x_size) <- denotePExpr σ x_p ;;
-          '(y_i,y_sixe) <- denotePExpr σ y_p ;;
+          '(y_i,y_size) <- denotePExpr σ y_p ;;
           x <- trigger (MemLU "Error looking up 'x' in DSHPower" x_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHPower" y_i) ;;
           n <- denoteNExpr σ ne ;; (* [n] denoteuated once at the beginning *)
           xoff <- denoteNExpr σ xoffset ;;
           yoff <- denoteNExpr σ yoffset ;;
+          lift_Derr (assert_NT_lt "DSHPower 'y' offset out of bounds" yoff y_size) ;;
           let y' := mem_add (to_nat yoff) initial y in
           y'' <- denoteDSHPower σ (to_nat n) f x y' (to_nat xoff) (to_nat yoff) ;;
           trigger (MemSet y_i y'')

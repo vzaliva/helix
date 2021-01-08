@@ -235,5 +235,5 @@ Ltac get_gammas :=
       apply genIR_Γ in GEN
     end.
 
-Ltac solve_gamma := solve [get_gammas; congruence].
+Ltac solve_gamma := solve [get_gammas; cbn in *; congruence].
 

@@ -131,12 +131,13 @@ Section DSHPower_is_tfor.
       denoteDSHOperator σ (DSHPower ne (x_p,xoffset) (y_p,yoffset) f initial)
                         ≈
                         '(x_i,x_size) <- denotePExpr σ x_p ;;
-      '(y_i,y_sixe) <- denotePExpr σ y_p ;;
+      '(y_i,y_size) <- denotePExpr σ y_p ;;
       x <- trigger (MemLU "Error looking up 'x' in DSHPower" x_i) ;;
       y <- trigger (MemLU "Error looking up 'y' in DSHPower" y_i) ;;
       n <- denoteNExpr σ ne ;; (* [n] denoteuated once at the beginning *)
       xoff <- denoteNExpr σ xoffset ;;
       yoff <- denoteNExpr σ yoffset ;;
+      lift_Derr (assert_NT_lt "DSHPower 'y' offset out of bounds" yoff y_size) ;;
       let y' := mem_add (MInt64asNT.to_nat yoff) initial y in
       y'' <-  DSHPower_tfor σ (MInt64asNT.to_nat n) f x y' (MInt64asNT.to_nat xoff) (MInt64asNT.to_nat yoff) ;;
       trigger (MemSet y_i y'').
@@ -154,12 +155,13 @@ Section DSHPower_is_tfor.
                         ≈
       interp_helix (E := E)
       ('(x_i,x_size) <- denotePExpr σ x_p ;;
-       '(y_i,y_sixe) <- denotePExpr σ y_p ;;
+       '(y_i,y_size) <- denotePExpr σ y_p ;;
        x <- trigger (MemLU "Error looking up 'x' in DSHPower" x_i) ;;
        y <- trigger (MemLU "Error looking up 'y' in DSHPower" y_i) ;;
        n <- denoteNExpr σ ne ;; (* [n] denoteuated once at the beginning *)
        xoff <- denoteNExpr σ xoffset ;;
        yoff <- denoteNExpr σ yoffset ;;
+       lift_Derr (assert_NT_lt "DSHPower 'y' offset out of bounds" yoff y_size) ;;
        let y' := mem_add (MInt64asNT.to_nat yoff) initial y in
        y'' <-  DSHPower_tfor σ (MInt64asNT.to_nat n) f x y' (MInt64asNT.to_nat xoff) (MInt64asNT.to_nat yoff) ;;
        trigger (MemSet y_i y'')) m.
@@ -396,61 +398,120 @@ Proof.
   vstep.
   vred.
 
-  eapply eutt_clo_bind.
+  eapply eutt_clo_bind_returns.
   { eapply genNExpr_correct; eauto.
-    admit.
-    admit.
+    admit. (* solve_state_invariant. *)
+    solve_gamma_safe.
   }
 
-  intros [[m t] |] [mV' [l' [g' []]]] H2; [|inversion H2].
+  intros [[m t] |] [mV' [l' [g' []]]] PostLoopEnd RetLoopNExp RetLoopCode; [|inversion PostLoopEnd].
 
   vred; hred.
   vred.
 
-  eapply eutt_clo_bind.
+  eapply eutt_clo_bind_returns.
   { eapply genNExpr_correct.
-    apply Heqs3.
-    admit.
-    admit.
-    admit.
+    eauto.
+    admit. (* solve_state_invariant. *)
+    solve_gamma_safe. (* TODO: make solve_gamma_safe work here *)
+    cbn.
+    solve_local_count.
+
+    (* TODO: Should look into automating this. In particular we need
+    to fix the hint DB for eauto which can loop indefinitely. *)
+    eapply no_failure_helix_bind_continuation in NOFAIL; [|eassumption].
+    eauto.
   }
 
-  intros [[m' t'] |] [mV'' [l'' [g'' []]]] H3; [|inversion H3].
+  intros [[m' t'] |] [mV'' [l'' [g'' []]]] PostXoff RetXoffNExp RetXoffCode; [|inversion PostXoff].
 
   vred; hred; vred.
 
-  eapply eutt_clo_bind.
+  Ltac solve_no_failure_helix :=
+    first [ eassumption
+          | eapply no_failure_helix_bind_prefix; solve_no_failure_helix
+          ].
+
+  eapply eutt_clo_bind_returns.
   { eapply genNExpr_correct.
-    apply Heqs4.
-    admit.
-    admit.
-    admit.
+    eauto.
+    admit. (* solve_state_invariant. *)
+    solve_gamma_safe. (* TODO: make solve_gamma_safe work here *)
+    cbn.
+    solve_local_count.
+
+    (* TODO: Should look into automating this. In particular we need
+    to fix the hint DB for eauto which can loop indefinitely. *)
+    eapply no_failure_helix_bind_continuation in NOFAIL; [|eassumption].
+    eapply no_failure_helix_bind_continuation in NOFAIL; [|eassumption].
+    eauto.
   }
 
-  intros [[m'' t''] |] [mV''' [l''' [g''' []]]] H4; [|inversion H4].
+  intros [[m'' t''] |] [mV''' [l''' [g''' []]]] PostYoff RetYoffNExp RetYoffCode; [|inversion PostYoff].
 
-  vred; hred; vred.
+  hred.
 
-  cbn.
-  vred.
+  (* TODO: clean this up? *)
+  pose proof NOFAIL as NOFAIL_Assert.
+  eapply no_failure_helix_bind_continuation in NOFAIL_Assert; [|eassumption].
+  eapply no_failure_helix_bind_continuation in NOFAIL_Assert; [|eassumption].
+  eapply no_failure_helix_bind_continuation in NOFAIL_Assert; [|eassumption].
+  eapply no_failure_helix_bind_prefix in NOFAIL_Assert.
+
+  break_match_goal; [exfalso; eapply failure_helix_throw; eassumption|].
+  unfold assert_NT_lt, assert_true_to_err in Heqs0.
+  break_match_hyp; inv Heqs0.
+
+  hred.
+
+  unfold DSHPower_tfor, DSHPower_tfor_body.
 
   (* Need to figure out the corresponding pointer for id (i3).
 
      Need to get this from the memory_invariant *)
+
+
+  (* TODO: move this *)
+  Set Nested Proofs Allowed.
+  Lemma typ_to_dtyp_P :
+    forall t s,
+      typ_to_dtyp s (TYPE_Pointer t) ≡ DTYPE_Pointer.
+  Proof.
+    intros t s.
+    apply typ_to_dtyp_equation.
+  Qed.
+
+  Ltac typ_to_dtyp_simplify :=
+    repeat
+      (try rewrite typ_to_dtyp_I in *;
+       try rewrite typ_to_dtyp_D in *;
+       try rewrite typ_to_dtyp_D_array in *;
+       try rewrite typ_to_dtyp_P in *).
 
   pose proof state_invariant_memory_invariant PRE as MINV.
   unfold memory_invariant in MINV.
   specialize (MINV n3 _ _ _ Heqo0 LUn0).
   cbn in MINV.
   destruct MINV as (bkh & ptrll & τ' & MLUP & TEQ & FITS & INLG & GETARRAYCELL).
-  inv TEQ.
+  inv TEQ. cbn. vred.
   destruct i3.
   { (* Global case *)
-    edestruct denote_instr_gep_array_no_read with (m:=mV''') (g:=g''') (ρ:=l''') (size:=(Z.to_N (Int64.intval i4))) (τ:=DTYPE_Double) (i:=r) (ptr := @EXP_Ident dtyp (ID_Global id)) (a:= ptrll).
-    4: {
-      destruct H5.
+    (* TODO: can I automate this? *)
+    edestruct denote_instr_gep_array_no_read with (m:=mV''') (g:=g''') (ρ:=l''') (size:=(Z.to_N (Int64.intval i4))) (τ:=DTYPE_Double) (i:=r) (ptr := @EXP_Ident dtyp (ID_Global id)) (a:= ptrll) (e_ix:=fmap (typ_to_dtyp []) e0) (ix:=(MInt64asNT.to_nat t'')).
+    2: {
+      (* TODO: wrap into automation? *)
+      destruct PostYoff.
+      destruct g0.
+      cbn in exp_correct.
+      rewrite repr_of_nat_to_nat.
+      eapply exp_correct.
+      solve_local_scope_preserved.
+      solve_gamma_preserved.
+    }
+    3: {
+      destruct H2.
       cbn.
-      rewrite H6.
+      rewrite H3.
 
       rewrite bind_ret_l.
       vred.
@@ -471,18 +532,87 @@ Proof.
       { constructor.
       }
 
-      { eapply dtyp_fits_array_elem; eauto.
+      { 
+
+        Lemma genNExpr_post_memoryV :
+          forall e σ s1 s2 mh mv ρ g mh' t mv' ρ' g',
+            genNExpr_post e σ s1 s2 mh (mk_config_cfg mv ρ g) (mh', t) (mv', (ρ', (g', ()))) ->
+            mv ≡ mv'.
+        Proof.
+          intros e σ s1 s2 mh mv ρ g mh' t mv' ρ' g' H.
+          destruct H.
+          unfold almost_pure in is_almost_pure.
+          cbn in is_almost_pure.
+          apply is_almost_pure.
+        Qed.
+
+        Lemma genNExpr_memoryV :
+          forall e σ s1 s2 s3 mh mv ρ g mh' t mv' ρ' g',
+            (lift_Rel_cfg (state_invariant σ s3) ⩕ genNExpr_post e σ s1 s2 mh (mk_config_cfg mv ρ g)) (mh', t) (mv', (ρ', (g', ()))) ->
+            mv ≡ mv'.
+        Proof.
+          intros e σ s1 s2 s3 mh mv ρ g mh' t mv' ρ' g' H.
+          destruct H.
+          eapply genNExpr_post_memoryV; eauto.
+        Qed.
+
+        Ltac get_mem_eqs :=
+          cbn in *;
+          repeat match goal with
+          | H: (lift_Rel_cfg (state_invariant ?σ1 ?s3) ⩕ genNExpr_post ?e ?σ2 ?s1 ?s2 ?mh (mk_config_cfg ?mv ?ρ ?g)) (?mh', ?t) (?mv', (?ρ', (?g', ()))) |- _
+            => apply genNExpr_memoryV in H
+          end.
+        
+        Ltac solve_mem_eq :=
+          get_mem_eqs; subst;
+          reflexivity.
+
+        Ltac solve_dtyp_fits_mem_eq :=
+          match goal with
+          | H: dtyp_fits ?m1 ?ptr ?τ
+            |- dtyp_fits ?m2 ?ptr ?τ
+            => let MEM := fresh "MEM" in assert (m2 ≡ m1) as MEM by solve_mem_eq; rewrite MEM; assumption
+          end.
+
+        (* TODO: expand this. Just trying to figure out this case first *)
+        Ltac solve_dtyp_fits :=
+          first [ solve_dtyp_fits_mem_eq
+                | eapply dtyp_fits_array_elem; [eauto|eassumption|eauto]
+                ].
+
+        typ_to_dtyp_simplify.
+        solve_dtyp_fits.
+        - erewrite <- from_N_intval; eauto; solve_dtyp_fits.
+        - rewrite repr_of_nat_to_nat.
+          erewrite <- from_N_intval; eauto.
+
+          epose proof (vellvm_helix_ptr_size _ LUn0 Heqo0 PRE).
+          subst.
+
+          Lemma Int64_intval_pos :
+            forall i,
+              (0 <= Int64.intval i)%Z.
+          Proof.
+            intros i.
+            pose proof Int64.intrange i; lia.
+          Qed.
+
+          rewrite Znat.Z2N.id; [|apply Int64_intval_pos].
+          apply NPeano.Nat.ltb_lt in Heqb1.
+          pose proof Znat.inj_lt _ _ Heqb1.
+          unfold MInt64asNT.to_nat in H4.
+          rewrite Znat.Z2Nat.id in H4; [|apply Int64_intval_pos].
+          rewrite Znat.Z2Nat.id in H4; [|apply Int64_intval_pos].
+          auto.
       }
 
-      2: { destruct H7.
-           cbn in *.
-           rewrite H8.
-           admit.
-         }
-      {
+      destruct H4; cbn in *.
+      rewrite H5.
+
+      vred.
+
       (* Will need to set up loop invariants and such, just like loop case *)
       admit.
-      }
     }
 
     { rewrite denote_exp_GR.
@@ -494,15 +624,10 @@ Proof.
       admit.
     }
 
-    { admit.
-
-    }
-
-    { (* Should hold in new memory too *)
-      rewrite typ_to_dtyp_D_array in FITS.
-      (* EQsz0 : MInt64asNT.from_N sz0 ≡ inr i4 *)
+    { (* Should hold, pretty much the same as earlier case *)
       admit.
     }
+
   }
 
   { (* Should be pretty much the same as above... Local case. *)

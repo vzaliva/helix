@@ -431,54 +431,54 @@ Ltac get_local_count_hyps :=
   repeat
     match goal with
     | H: incBlockNamed ?n ?s1 ≡ inr (?s2, _) |- _ =>
-      apply incBlockNamed_local_count in H
+      apply incBlockNamed_local_count in H; cbn in H
     | H: incLocalNamed ?n ?s1 ≡ inr (?s2, _) |- _ =>
-      apply incLocalNamed_local_count in H
+      apply incLocalNamed_local_count in H; cbn in H
     | H: incVoid ?s1 ≡ inr (?s2, _) |- _ =>
-      apply incVoid_local_count in H
+      apply incVoid_local_count in H; cbn in H
     | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>
-      apply incLocal_local_count in H
+      apply incLocal_local_count in H; cbn in H
     | H: newLocalVar _ _ ?s1 ≡ inr (?s2, _) |- _ =>
-      apply newLocalVar_local_count in H
+      apply newLocalVar_local_count in H; cbn in H
     | H: dropVars _ ?s1 ≡ inr (?s2, _) |- _ =>
-      apply dropVars_local_count in H
+      apply dropVars_local_count in H; cbn in H
 
     | H: genNExpr ?n ?s1 ≡ inr (?s2, _) |- _ =>
-      apply genNExpr_local_count in H
+      apply genNExpr_local_count in H; cbn in H
     | H: genMExpr ?m ?s1 ≡ inr (?s2, _) |- _ =>
-      apply genMExpr_local_count in H
+      apply genMExpr_local_count in H; cbn in H
     | H: genAExpr ?a ?s1 ≡ inr (?s2, _) |- _ =>
-      apply genAExpr_local_count in H
+      apply genAExpr_local_count in H; cbn in H
     | H: genWhileLoop _ _ _ _ _ _ _ _ _ _ ≡ inr _ |- _ =>
-      apply genWhile_local_count in H
+      apply genWhile_local_count in H; cbn in H
      | H: genIR ?op ?id ?s1 ≡ inr (?s2, _) |- _ =>
-      apply genIR_local_count in H
+      apply genIR_local_count in H; cbn in H
     end.
 
 Ltac get_block_count_hyps :=
   repeat
     match goal with
     | H: incBlockNamed ?n ?s1 ≡ inr (?s2, _) |- _ =>
-      apply incBlockNamed_block_count in H
+      apply incBlockNamed_block_count in H; cbn in H
     | H: incLocalNamed ?n ?s1 ≡ inr (?s2, _) |- _ =>
-      apply incLocalNamed_block_count in H
+      apply incLocalNamed_block_count in H; cbn in H
     | H: incVoid ?s1 ≡ inr (?s2, _) |- _ =>
-      apply incVoid_block_count in H
+      apply incVoid_block_count in H; cbn in H
     | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>
-      apply incLocal_block_count in H
+      apply incLocal_block_count in H; cbn in H
     | H: newLocalVar _ _ ?s1 ≡ inr (?s2, _) |- _ =>
-      apply newLocalVar_block_count in H
+      apply newLocalVar_block_count in H; cbn in H
     | H: dropVars _ ?s1 ≡ inr (?s2, _) |- _ =>
-      apply dropVars_block_count in H
+      apply dropVars_block_count in H; cbn in H
 
     | H: genNExpr ?n ?s1 ≡ inr (?s2, _) |- _ =>
-      apply genNExpr_block_count in H
+      apply genNExpr_block_count in H; cbn in H
     | H: genMExpr ?m ?s1 ≡ inr (?s2, _) |- _ =>
-      apply genMExpr_block_count in H
+      apply genMExpr_block_count in H; cbn in H
     | H: genAExpr ?a ?s1 ≡ inr (?s2, _) |- _ =>
-      apply genAExpr_block_count in H
+      apply genAExpr_block_count in H; cbn in H
      | H: genIR ?op ?id ?s1 ≡ inr (?s2, _) |- _ =>
-      apply genIR_block_count in H
+      apply genIR_block_count in H; cbn in H
     end.
 
 Ltac solve_local_count := try solve [get_local_count_hyps; lia].
