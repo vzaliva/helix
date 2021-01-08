@@ -29,24 +29,55 @@ Local Open Scope monad_scope.
 Local Open Scope nat_scope.
 
 (* The result is a branch *)
-Definition branches (to : block_id) (mh : memoryH * ()) (c : config_cfg_T (block_id * block_id + uvalue)) : Prop :=
+Definition branches {T : Type} (to : block_id) (mh : memoryH * T) (c : config_cfg_T (block_id * block_id + uvalue)) : Prop :=
   match c with
   | (m,(l,(g,res))) => exists from, res ≡ inl (from, to)
   end.
 
-Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li : local_env)
-  : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
+Definition genIR_post {T} (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li : local_env)
+  : Rel_cfg_T T ((block_id * block_id) + uvalue) :=
   lift_Rel_cfg (state_invariant σ s2) ⩕
                branches to ⩕
                (fun sthf stvf => local_scope_modif s1 s2 li (fst (snd stvf))).
 
-Lemma mem_union_tfor : 
-  forall i value x,
-    Ret (mem_union (mem_const_block (MInt64asNT.to_nat i) value) x) ≈
-        tfor (E := Event) (fun k x => Ret (mem_add k value x)) 0 (S (MInt64asNT.to_nat i)) x.
-Proof.
+Lemma mem_union_mem_empty : forall x, mem_union mem_empty x ≡ x.
+Admitted.
+Lemma mem_union_mem_add_commut :
+  forall i value x, mem_union (mem_add i value (mem_const_block i value)) x ≡ mem_add i value (mem_union (mem_const_block i value) x).
 Admitted.
 
+(* One step unrolling of the combinator *)
+Lemma tfor_unroll_right: forall {E A} i j (body : nat -> A -> itree E A) a0,
+    i <= j ->
+    tfor body i (S j) a0 ≈
+         a <- tfor body i j a0;; body j a.
+Proof.
+  intros * ineq.
+  rewrite tfor_split; eauto.
+  apply eutt_eq_bind; intros.
+  rewrite tfor_unroll; [| lia].
+  bind_ret_r2.
+  apply eutt_eq_bind; intros.
+  rewrite tfor_0; reflexivity.
+Qed.
+
+Lemma mem_union_tfor : 
+  forall i value x,
+    Ret (mem_union (mem_const_block i value) x) ≈
+        tfor (E := Event) (fun k x => Ret (mem_add k value x)) 0 i x.
+Proof.
+  intros i value.
+  induction i as [| i IH].
+  - intros; cbn.
+    rewrite tfor_0, mem_union_mem_empty.
+    reflexivity.
+  - intros; cbn.
+    rewrite tfor_unroll_right; [| lia].
+    rewrite <- IH.
+    cbn; rewrite bind_ret_l.
+    rewrite mem_union_mem_add_commut.
+    reflexivity.
+Qed.
 
 Opaque dropVars.
 Opaque newLocalVar.
@@ -56,8 +87,6 @@ Opaque incBlockNamed.
 Opaque incVoid.
 Opaque incLocal.
 Opaque genWhileLoop.
-
-
 
 Set Nested Proofs Allowed.
 Lemma MemInit_Correct:
@@ -111,7 +140,7 @@ Proof.
      we performed a pure computation.
      On the Vellvm side, we are done, everything is written in memory.
    *)
-  eapply eutt_clo_bind.
+  eapply eutt_clo_bind with (UU := succ_cfg (genIR_post σ i7 s2 nextblock ρ)).
 
   - match type of Heqs2 with
     | genWhileLoop ?a _ _ ?b ?c ?d ?e _ ?f _ ≡ inr (_,(?g,?h)) =>
@@ -122,7 +151,7 @@ Proof.
     clean_goal.
     rename i0 into s2, i3 into s3, i4 into s4, i5 into s5, i6 into s6, i7 into s7, s2 into s8.
     pose proof
-         @genWhileLoop_tfor_correct prefix loopvar loopcontblock body_entry body_blocks nextblock entry_id s1 s8 s1 s8 bks as LOOP.
+         @genWhileLoop_tfor_correct prefix loopvar loopcontblock body_entry body_blocks nextblock entry_id s7 s8 s1 s8 bks as LOOP.
 
     forward LOOP.
     {
@@ -152,7 +181,35 @@ Proof.
       rewrite Forall_forall in INPUTS_BETWEEN; apply INPUTS_BETWEEN in IN; clear INPUTS_BETWEEN.
       eapply not_bid_bound_between; eauto.
     }      
+    specialize (LOOP (Z.to_nat (DynamicValues.Int64.intval i2))).
 
-    (* Urg, need to rephrase i2 into some kind of int_of_ant *)
+    forward LOOP; [clear LOOP |].
+    {
+      subst body_blocks prefix.
+      clear - Heqs2.
+      rewrite intval_to_from_nat_id. 
+      apply Heqs2.
+    }
+
+    rewrite interp_helix_tfor; [| lia].
+    match goal with
+      |- context[tfor ?bod] => 
+      specialize (LOOP _ bod)
+    end.
+
+    forward LOOP; [clear LOOP |].
+    {
+      admit.
+    }
+
+    specialize (LOOP (fun k o stV =>
+                        match o with
+                        | None => False
+                        | Some (mH,bkH) =>
+                          bkH ≡ mem_union (mem_const_block k value) mem_bkH
+                        end)).
+
+
+
 
 Admitted.
