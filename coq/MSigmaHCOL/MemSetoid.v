@@ -254,6 +254,41 @@ Module Type MMemSetoid (CT : CType).
       eauto.
   Qed.
 
+  Lemma mem_union_mem_empty : forall x, mem_union mem_empty x = x.
+  Proof.
+    intros x.
+    unfold equiv, mem_block_Equiv.
+    intros k.
+    unfold mem_empty, mem_union.
+    rewrite NP.F.map2_1bis; [|reflexivity].
+    rewrite NP.F.empty_o.
+    reflexivity.
+  Qed.
+
+  Lemma mem_union_mem_add_commut :
+    forall i value x,
+      mem_union (mem_add i value (mem_const_block i value)) x =
+      mem_add i value (mem_union (mem_const_block i value) x).
+  Proof.
+    intros i value x.
+    unfold equiv, mem_block_Equiv.
+    intros k.
+    unfold mem_add, mem_union.
+    destruct (PeanoNat.Nat.eq_dec i k).
+    -
+      subst.
+      rewrite NP.F.add_eq_o; [|reflexivity].
+      rewrite NP.F.map2_1bis; [|reflexivity].
+      rewrite NP.F.add_eq_o; [|reflexivity].
+      reflexivity.
+    -
+      rewrite NP.F.add_neq_o; [|assumption].
+      repeat (rewrite NP.F.map2_1bis; [|reflexivity]).
+      rewrite NP.F.add_neq_o; [|assumption].
+      reflexivity.
+  Qed.
+
+
 End MMemSetoid.
 
 
