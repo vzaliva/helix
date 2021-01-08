@@ -1400,8 +1400,8 @@ Require Import Helix.MSigmaHCOL.CarrierAasCT.
 Require Import Helix.RSigmaHCOL.RasCT.
 Module CarrierASimpl := CTypeSimpl(CarrierAasCT).
 
-Lemma AzCtZ: CarrierAz ≡ CarrierAasCT.CTypeZero.  Proof. reflexivity. Qed.
-Lemma A1Cr1: CarrierA1 ≡ CarrierAasCT.CTypeOne.  Proof. reflexivity. Qed.
+Lemma AzCtZ: CarrierAz ≡ CarrierAasCT.CTypeZero. Proof. reflexivity. Qed.
+Lemma A1Cr1: CarrierA1 ≡ CarrierAasCT.CTypeOne. Proof. reflexivity. Qed.
 Lemma AeCtE: CarrierAequivdec ≡ CarrierAasCT.CTypeEquivDec. Proof. reflexivity. Qed.
 
 Hint Rewrite
@@ -1418,6 +1418,8 @@ Hint Rewrite
 Section AHCOL_to_RHCOL.
   Definition dynwin_RHCOL := AHCOLtoRHCOL.translate dynwin_AHCOL.
 
+  (*
+     For debug printing
   Definition dynwin_RHCOL1 : RHCOL.DSHOperator.
   Proof.
     remember dynwin_RHCOL as a eqn:H.
@@ -1432,6 +1434,7 @@ Section AHCOL_to_RHCOL.
       Redirect "dynwin_RHCOL" Show 1. *)
       exact d.
   Defined.
+   *)
 
 End AHCOL_to_RHCOL.
 
@@ -1452,7 +1455,66 @@ Hint Rewrite
 
 Require Import AltBinNotations.
 
+
 Section RHCOL_to_FHCOL.
+
+  (* Notation for shorter printing of `int64` constants *)
+  Local Declare Scope int64.
+  Local Notation "v" := (Int64.mkint v _) (at level 10, only printing) : int64.
+  Local Delimit Scope int64 with int64.
+
+  (* Relation between RCHOL and DHCOL programs.
+     It is parametrized by:
+
+    - [InMemRel] - describes relation between initial memory states
+    - [InSigmaRel] - describes relation between initial env. states
+    - [OutMemRel] - describes relation which must hold between resulting memory states.
+   *)
+  Definition RHCOL_FHCOL_rel
+             (InMemRel: RHCOL.memory → FHCOL.memory -> Prop)
+             (InSigmaRel: RHCOL.evalContext -> FHCOL.evalContext -> Prop)
+             (OutMemRel: RHCOL.memory → FHCOL.memory -> Prop):
+    RHCOL.DSHOperator -> FHCOL.DSHOperator -> Prop :=
+    fun rhcol fhcol =>
+      forall fuel rsigma fsigma rmem fmem,
+        InMemRel rmem fmem ->
+        InSigmaRel rsigma fsigma ->
+        hopt_r (herr_c OutMemRel)
+               (RHCOL.evalDSHOperator rsigma rhcol rmem fuel)
+               (FHCOL.evalDSHOperator fsigma fhcol fmem fuel).
+
+  (* This is the most generic fomulation of semantic preservation lemma for
+     RHCOL to FHCOL translation. It allows to specify arbitrary user-defined
+     relations between states.
+   *)
+  Theorem RHCOL_to_FHCOL_correctness
+          (InMemRel: RHCOL.memory → FHCOL.memory -> Prop)
+          (InSigmaRel: RHCOL.evalContext -> FHCOL.evalContext -> Prop)
+          (OutMemRel: RHCOL.memory → FHCOL.memory -> Prop)
+    :
+      forall rhcol, dynwin_RHCOL ≡ inr rhcol ->
+               forall fhcol, RHCOLtoFHCOL.translate rhcol ≡ inr fhcol ->
+                        RHCOL_FHCOL_rel InMemRel InSigmaRel OutMemRel rhcol fhcol.
+  Proof.
+    intros rhcol R fhcol F.
+    cbv in R.
+    autorewrite with CarrierAZ1equalities in R.
+    inl_inr_inv.
+    subst rhcol.
+    Opaque Float64asCT.Float64Zero Float64asCT.Float64One.
+    cbv in F.
+    autorewrite with RZ1equalities in F.
+    inl_inr_inv.
+    subst.
+    match goal with
+    | [|- RHCOL_FHCOL_rel _ _ _ ?r ?f] => remember r as rhcol; remember f as fhcol
+    end.
+    admit.
+  Admitted.
+
+  (*
+     For debug printing
+
   Definition dynwin_FHCOL := RHCOLtoFHCOL.translate dynwin_RHCOL1.
 
   (* Import DSHNotation. *)
@@ -1495,5 +1557,6 @@ Section RHCOL_to_FHCOL.
       (* Redirect "dynwin_FSHCOL" Show 1. *)
       exact d.
   Defined.
+   *)
 
 End RHCOL_to_FHCOL.
