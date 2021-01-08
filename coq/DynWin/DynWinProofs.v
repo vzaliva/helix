@@ -1483,32 +1483,45 @@ Section RHCOL_to_FHCOL.
                (RHCOL.evalDSHOperator rsigma rhcol rmem fuel)
                (FHCOL.evalDSHOperator fsigma fhcol fmem fuel).
 
-  (* This is the most generic fomulation of semantic preservation lemma for
+
+  Inductive ferr_c {A B:Type} (f: A -> err B) (R: A -> B -> Prop) : (err A) -> Prop :=
+  | ferr_c_inl : forall e, ferr_c f R (inl e)
+  | ferr_c_inr : forall a, err_p (R a) (f a) -> ferr_c f R (inr a).
+
+  (* This is the most generic formulation of semantic preservation lemma for
      RHCOL to FHCOL translation. It allows to specify arbitrary user-defined
      relations between states.
    *)
-  Theorem RHCOL_to_FHCOL_correctness
+  Definition RHCOL_to_FHCOL_correctness
+             (InMemRel: RHCOL.memory → FHCOL.memory -> Prop)
+             (InSigmaRel: RHCOL.evalContext -> FHCOL.evalContext -> Prop)
+             (OutMemRel: RHCOL.memory → FHCOL.memory -> Prop)
+    : err RHCOL.DSHOperator -> Prop :=
+    ferr_c RHCOLtoFHCOL.translate (RHCOL_FHCOL_rel InMemRel InSigmaRel OutMemRel).
+
+  Theorem dynwin_RHCOL_to_FHCOL_correctness
           (InMemRel: RHCOL.memory → FHCOL.memory -> Prop)
           (InSigmaRel: RHCOL.evalContext -> FHCOL.evalContext -> Prop)
           (OutMemRel: RHCOL.memory → FHCOL.memory -> Prop)
-    :
-      forall rhcol, dynwin_RHCOL ≡ inr rhcol ->
-               forall fhcol, RHCOLtoFHCOL.translate rhcol ≡ inr fhcol ->
-                        RHCOL_FHCOL_rel InMemRel InSigmaRel OutMemRel rhcol fhcol.
+    : RHCOL_to_FHCOL_correctness InMemRel InSigmaRel OutMemRel
+        dynwin_RHCOL.
   Proof.
-    intros rhcol R fhcol F.
+    unfold RHCOL_to_FHCOL_correctness.
+    destruct dynwin_RHCOL as [errs|rhcol] eqn:R;constructor.
     cbv in R.
     autorewrite with CarrierAZ1equalities in R.
     inl_inr_inv.
     subst rhcol.
     Opaque Float64asCT.Float64Zero Float64asCT.Float64One.
+    remember (translate _) as fhcol eqn:F.
     cbv in F.
     autorewrite with RZ1equalities in F.
-    inl_inr_inv.
-    subst.
+    subst fhcol.
+    constructor.
     match goal with
     | [|- RHCOL_FHCOL_rel _ _ _ ?r ?f] => remember r as rhcol; remember f as fhcol
     end.
+    (* ... proof specific to given relations here *)
     admit.
   Admitted.
 
