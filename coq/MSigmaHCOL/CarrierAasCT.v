@@ -5,8 +5,9 @@ Require Import MathClasses.interfaces.canonical_names.
 
 Require Import Helix.HCOL.CarrierType.
 
+(*
 (* =CarrierA= as =CarrierType= *)
-Module CarrierAasCT <: CType.
+Module CarrierAasCT <: CType
   Definition t := CarrierA.
 
   Definition CTypeEquiv := CarrierAe.
@@ -35,3 +36,4 @@ Module CarrierAasCT <: CType.
   Definition max_proper := CarrierA_max_proper.
 
 End CarrierAasCT.
+*)
