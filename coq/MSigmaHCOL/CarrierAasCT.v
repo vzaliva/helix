@@ -5,7 +5,7 @@ Require Import MathClasses.interfaces.canonical_names.
 
 Require Import Helix.HCOL.CarrierType.
 
-(*
+(* TODO: fix
 (* =CarrierA= as =CarrierType= *)
 Module CarrierAasCT <: CType
   Definition t := CarrierA.
