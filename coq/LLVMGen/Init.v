@@ -538,26 +538,40 @@ Proof.
 Qed.
 Opaque resolve_PVar.
 
-(* Helper boolean predicate to check if member of [Γ] in [IRState] is global *)
-Definition is_var_Global (v:ident * typ): bool :=
-  match (fst v) with
-  | ID_Global _ => true
-  | _ => false
-  end.
-
-(* See also: [init_with_data_len] *)
-Lemma init_with_data_env_len
+Lemma initIRGlobals_Γ_len
       (globals : list (string * DSHType))
-      (d0 d1 : list binary64)
-      (s0 s1: IRState)
-      (chk : string * DSHType → list (string * DSHType) → cerr ())
+      (d d' : list binary64)
+      (s s': IRState)
       (gdecls : list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ))))
   :
-    init_with_data initOneIRGlobal chk d0 globals s0 ≡ inr (s1, (d1, gdecls)) →
-    List.length (Γ s1) ≡
-    List.length (List.filter is_var_Global (Γ s0)) + List.length globals.
+    initIRGlobals d globals s ≡ inr (s', (d', gdecls)) →
+    List.length (Γ s') ≡
+    List.length globals + List.length (Γ s).
 Proof.
-Admitted.
+  intros.
+  dependent induction globals.
+  -
+    cbn in *.
+    invc H.
+    lia.
+  -
+    cbn in H.
+    repeat break_match; invc H.
+    rename i into s0,
+           i0 into s1.
+    apply IHglobals in Heqs2.
+    rewrite_clear Heqs2.
+    apply global_uniq_chk_preserves_st in Heqs0.
+    subst s0.
+    enough (length (Γ s1) ≡ length (Γ s) + 1)
+      by (cbn; lia).
+    clear - Heqs1.
+    destruct a.
+    eapply initOneIRGlobal_state_change in Heqs1.
+    invc Heqs1.
+    cbn.
+    lia.
+Qed.
 
 Lemma split_hd_len {A : Type} (l l1 l2 : list A) (n : nat) :
   ListUtil.split l n ≡ Some (l1, l2) -> length l1 ≡ n.
