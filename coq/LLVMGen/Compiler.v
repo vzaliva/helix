@@ -808,6 +808,7 @@ Definition genPower
     '(dst_nexpr, dst_nexpcode) <- genNExpr dst  ;;
     py <- incLocal ;;
     storeid0 <- incVoid ;;
+    px <- incLocal ;;
     '(nexp, ncode) <- genNExpr n ;;
     let ini := genFloatV initial in
     let init_code := src_nexpcode ++ dst_nexpcode ++ ncode ++ [
@@ -822,14 +823,19 @@ Definition genPower
                                                             (TYPE_Double, ini)
                                                             (TYPE_Pointer TYPE_Double,
                                                              (EXP_Ident (ID_Local py)))
-                                                            (ret 8%Z))
+                                                            (ret 8%Z));
 
+                                  (IId px,  INSTR_Op (OP_GetElementPtr
+                                                        xtyp (xptyp, (EXP_Ident x))
+                                                        [(IntType, EXP_Integer 0%Z);
+                                                        (IntType, src_nexpr)]
+
+                                  ))
                            ] in
 
     body_block_id <- incBlockNamed "PowerLoopBody" ;;
     storeid1 <- incVoid ;;
     void2 <- incVoid ;;
-    px <- incLocal ;;
     yv <- incLocal ;;
     xv <- incLocal ;;
     addVars [(ID_Local xv, TYPE_Double); (ID_Local yv, TYPE_Double)] ;;
@@ -839,12 +845,6 @@ Definition genPower
           blk_id    := body_block_id ;
           blk_phis  := [];
           blk_code  := [
-                        (IId px,  INSTR_Op (OP_GetElementPtr
-                                              xtyp (xptyp, (EXP_Ident x))
-                                              [(IntType, EXP_Integer 0%Z);
-                                                 (IntType, src_nexpr)]
-
-                        ));
                           (IId xv, INSTR_Load false TYPE_Double
                                               (TYPE_Pointer TYPE_Double,
                                                (EXP_Ident (ID_Local px)))

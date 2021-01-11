@@ -2,6 +2,7 @@ Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.Correctness_NExpr.
 Require Import Helix.LLVMGen.Correctness_MExpr.
+Require Import Helix.LLVMGen.Correctness_AExpr.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.StateCounters.
 Require Import Helix.LLVMGen.VariableBinding.
@@ -285,8 +286,6 @@ Proof.
 
   rename l into loop_blocks.
 
-  pose proof genWhileLoop_tfor_correct.
-
   assert (wf_ocfg_bid loop_blocks) as WFBLAH by admit.
   assert (free_in_cfg loop_blocks nextblock) as FREEBLAH by admit.
   assert (~ (b ≡ bid_in \/ False)) as BBID_IN.
@@ -297,13 +296,13 @@ Proof.
   epose proof @genWhileLoop_init _ _ _ _ _ _ _ _ _ _ _ _ _ bid_from Heqs2 WFBLAH BBID_IN FREEBLAH B0B0 as INIT.
   cbn in INIT.
   destruct INIT as (body_bks' & GEN' & INIT).
+  clear Heqs2.
 
   (* TODO: i5 and i21 are just an uneducated guess *)
   match goal with
   | H: genWhileLoop ?prefix ?x ?y ?loopvar ?loopcontblock ?body_entry ?body_blocks [] ?nextblock ?s1 ≡ inr (?s2, (?bid_in, ?bks)) |- _
     => epose proof @genWhileLoop_tfor_correct prefix loopvar loopcontblock body_entry body_blocks nextblock bid_in s1 s2 i5 i21 bks as LOOPTFOR
   end.
-
 
   assert (In b0
                (inputs
@@ -350,6 +349,8 @@ Proof.
   (* Substitute blocks *)
   rewrite INIT.
 
+  rename e into xoff_exp.
+  rename e0 into yoff_exp.
   rename c into xoff_code.
   rename c0 into yoff_code.
   rename c1 into loop_end_code.
@@ -464,8 +465,6 @@ Proof.
 
   hred.
 
-  unfold DSHPower_tfor, DSHPower_tfor_body.
-
   (* Need to figure out the corresponding pointer for id (i3).
 
      Need to get this from the memory_invariant *)
@@ -497,7 +496,7 @@ Proof.
   destruct i3.
   { (* Global case *)
     (* TODO: can I automate this? *)
-    edestruct denote_instr_gep_array_no_read with (m:=mV''') (g:=g''') (ρ:=l''') (size:=(Z.to_N (Int64.intval i4))) (τ:=DTYPE_Double) (i:=r) (ptr := @EXP_Ident dtyp (ID_Global id)) (a:= ptrll) (e_ix:=fmap (typ_to_dtyp []) e0) (ix:=(MInt64asNT.to_nat t'')).
+    edestruct denote_instr_gep_array_no_read with (m:=mV''') (g:=g''') (ρ:=l''') (size:=(Z.to_N (Int64.intval i4))) (τ:=DTYPE_Double) (i:=r) (ptr := @EXP_Ident dtyp (ID_Global id)) (a:= ptrll) (e_ix:=convert_typ [] yoff_exp) (ix:=(MInt64asNT.to_nat t'')).
     2: {
       (* TODO: wrap into automation? *)
       destruct PostYoff.
@@ -508,10 +507,11 @@ Proof.
       solve_local_scope_preserved.
       solve_gamma_preserved.
     }
+    
     3: {
-      destruct H2.
+      destruct H1.
       cbn.
-      rewrite H3.
+      rewrite H2.
 
       rewrite bind_ret_l.
       vred.
@@ -600,18 +600,221 @@ Proof.
           rewrite Znat.Z2N.id; [|apply Int64_intval_pos].
           apply NPeano.Nat.ltb_lt in Heqb1.
           pose proof Znat.inj_lt _ _ Heqb1.
-          unfold MInt64asNT.to_nat in H4.
-          rewrite Znat.Z2Nat.id in H4; [|apply Int64_intval_pos].
-          rewrite Znat.Z2Nat.id in H4; [|apply Int64_intval_pos].
+          unfold MInt64asNT.to_nat in H3.
+          rewrite Znat.Z2Nat.id in H3; [|apply Int64_intval_pos].
+          rewrite Znat.Z2Nat.id in H3; [|apply Int64_intval_pos].
           auto.
       }
 
-      destruct H4; cbn in *.
-      rewrite H5.
+      destruct H3; cbn in *.
+      rewrite H4.
 
       vred.
 
+      destruct PostLoopEnd as [PostLoopEndSINV PostLoopEnd].
+      cbn in PostLoopEnd.
+      pose proof Correctness_NExpr.exp_correct PostLoopEnd as PostLoopEndExpCorrect.
+      cbn in PostLoopEndExpCorrect.
+
+      (* I need to show that e1 is equivalent to (EXP_Integer (Z.of_nat n)) *)
+      epose proof (denote_exp_i64 _ t).
+      assert (eutt Logic.eq (interp_cfg (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I (Npos 64))) (EXP_Integer (Integers.Int64.intval t)))) g' ρ mV')
+                   (interp_cfg
+                      (translate exp_E_to_instr_E
+                                 (denote_exp (Some (DTYPE_I (Npos 64)))
+                                             (convert_typ [] e1))) g' ρ mV')) as EUTT_INT.
+      rewrite H5.
+      rewrite PostLoopEndExpCorrect.
+      reflexivity.
+
+      admit.
+      admit.
+
+      specialize (LOOPTFOR (MInt64asNT.to_nat t)).
+      forward LOOPTFOR.
+      { cbn.
+        unfold MInt64asNT.to_nat.
+        rewrite Znat.Z2Nat.id; [|apply Int64_intval_pos].
+
+        (* TODO: this isn't actually true because e1 is different than
+           EXP_Integer n, but this should be eutt *)
+        admit.
+      }.
+
+      unfold DSHPower_tfor.
+      rewrite interp_helix_tfor.
+
+      match goal with
+        |- eutt _ (ITree.bind' _ (tfor ?bod _ _ _)) _ => specialize (LOOPTFOR _ bod)
+      end.
+
+      forward LOOPTFOR.
+      { (* TODO: automate this kind of thing / separate into lemma? *)
+        unfold MInt64asNT.to_nat.
+        rewrite intval_to_from_nat_id.
+        pose proof (Integers.Int64.intrange t).
+        lia.
+      }
+
       (* Will need to set up loop invariants and such, just like loop case *)
+
+      (* TODO: these are just stolen and probably lies *)
+      (* Invariant at each iteration *)
+      set (I := (fun (k : nat) (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
+                   match mH with
+                   | None => False
+                   | Some (mH,mb) => state_invariant σ s2 mH stV /
+                   end)).
+      (* Precondition and postcondition *)
+      set (P := (fun (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
+                   match mH with
+                   | None => False
+                   | Some (mH,mb) => state_invariant σ s2 mH stV
+                   end)).
+
+      specialize (LOOPTFOR I P P (Some (m'', mem_add (MInt64asNT.to_nat t'') initial x0))).
+
+      forward LOOPTFOR.
+      { intros g0 li mV [[mH mb] |] k _label [HI [POWERI [POWERI_VAL RETURNS]]]; [|inv HI].
+        cbn in HI.
+        unfold DSHPower_tfor_body.
+
+        (* r2 and r1 correspond to loads of the src and dst pointers... *)
+        rename t' into xoff_res.
+        rename t'' into yoff_res.
+
+        unfold mem_lookup_err.
+        unfold trywith.
+        break_match_goal; [|admit]. (* Failure should be caught by NOFAIL *)
+        break_match_goal; [|admit]. (* Failure should be caught by NOFAIL *)
+
+        cbn.
+        hred; vred.
+        unfold denoteBinCType.
+
+        match goal with
+        | H: genAExpr ?f ?s1 ≡ inr (?s2, (?e, ?c)) |- _
+          => idtac H
+        end.
+
+        rewrite denote_ocfg_unfold_in.
+        2: {
+          apply find_block_eq; auto.
+        }
+
+        cbn; vred.
+
+        rewrite denote_no_phis.
+        vred.
+
+        destruct i0.
+        { (* Global case for xoff *)
+
+          (* TODO: I may need an invariant (I) about g0, li, and mV
+
+             In particular, I need to be able to use PostXoff...
+           *)
+
+        (* TODO: can I automate this? *)
+        edestruct denote_instr_gep_array_no_read with (m:=mV) (g:=g0) (ρ:=li) (size:=(Z.to_N (Int64.intval i1))) (τ:=DTYPE_Double) (i:=r0) (ptr := @EXP_Ident dtyp (ID_Global id0)) (a:= ptrll) (e_ix:=fmap (typ_to_dtyp []) xoff_exp) (ix:=(MInt64asNT.to_nat xoff_res)).
+        2: {
+          assert (mV ≡ mV''). {
+            apply genNExpr_memoryV in PostXoff.
+            apply genNExpr_post_memoryV in PostLoopEnd.
+            subst.
+            eauto.
+          }
+
+          (* TODO: wrap into automation? *)
+          destruct PostXoff.
+          destruct g1.
+          cbn in exp_correct.
+          rewrite repr_of_nat_to_nat.
+
+          get_mem_eqs.
+          assert (
+          eapply exp_correct.
+          solve_local_scope_preserved.
+          solve_gamma_preserved.
+        }
+
+          assert (g'' ≡ g0) by admit.
+          assert (l'' ≡ li) by admit.
+          assert (mV'' ≡ mV) by admit.
+
+
+        3: {
+          destruct H6.
+          subst.
+          cbn.
+          vred.
+          rewrite H7.
+
+          rewrite bind_ret_l.
+          vred.
+
+          edestruct denote_instr_store_exists with (a := x1) (m:=mV''').
+
+          { cbn.
+            apply denote_exp_double.
+          }
+
+          { apply denote_exp_LR.
+            apply alist_find_add_eq.
+          }
+
+          { reflexivity.
+          }
+
+          { constructor.
+          }
+
+      { 
+
+
+
+
+          
+        }
+
+          admit.
+        }
+        { (* Local case for xoff -- should be basically the same *)
+          admit.
+        }
+        
+        { cbn.
+          pose proof True.
+          Unset Printing Notations.
+        }
+
+        epose proof genAExpr_correct _ Heqs14 as AEXP.
+
+        forward AEXP. admit.
+        forward AEXP. admit.
+        forward AEXP. admit.
+
+
+        rewrite denote_instr_gep_array.
+        Unset Printing Notations.C
+        
+        unfold denote_ocfg.
+      }
+      specialize (LOOPTFOR g'''). (alist_add r (UVALUE_Addr x1) l''') x2).
+  global. g'''
+  local. l''' [r : UVALUE_Addr x1]
+  memory. x2
+
+      (* This is the body for tfor on the HELIX side... I need the VELLVM side expressed as a tfor *)
+      Check DSHPower_tfor_body σ f x (mem_add (MInt64asNT.to_nat t'') initial x0) (MInt64asNT.to_nat t').
+
+      specialize (LOOPTFOR (DSHPower_tfor_body σ f x (mem_add (MInt64asNT.to_nat t'') initial x0) (MInt64asNT.to_nat t'))).
+      forward LOOPTFOR. admit.
+
+      rewrite EUTT_INT in GEN'.
+
+      rewrite PostLoopEndExpCorrect in GEN'.
+      epose proof (LOOPTFOR _ GEN').
       admit.
     }
 
