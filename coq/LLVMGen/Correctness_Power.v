@@ -399,17 +399,19 @@ Proof.
   vstep.
   vred.
 
+  (* loop_end *)
   eapply eutt_clo_bind_returns.
   { eapply genNExpr_correct; eauto.
     admit. (* solve_state_invariant. *)
     solve_gamma_safe.
   }
 
-  intros [[m t] |] [mV' [l' [g' []]]] PostLoopEnd RetLoopNExp RetLoopCode; [|inversion PostLoopEnd].
+  intros [[m_loopend t_loopend] |] [mV_loopend [l_loopend [g_loopend []]]] PostLoopEnd RetLoopNExp RetLoopCode; [|inversion PostLoopEnd].
 
   vred; hred.
   vred.
 
+  (* xoff *)
   eapply eutt_clo_bind_returns.
   { eapply genNExpr_correct.
     eauto.
@@ -424,7 +426,7 @@ Proof.
     eauto.
   }
 
-  intros [[m' t'] |] [mV'' [l'' [g'' []]]] PostXoff RetXoffNExp RetXoffCode; [|inversion PostXoff].
+  intros [[m_xoff xoff_res] |] [mV_xoff [l_xoff [g_xoff []]]] PostXoff RetXoffNExp RetXoffCode; [|inversion PostXoff].
 
   vred; hred; vred.
 
@@ -433,6 +435,7 @@ Proof.
           | eapply no_failure_helix_bind_prefix; solve_no_failure_helix
           ].
 
+  (* yoff *)
   eapply eutt_clo_bind_returns.
   { eapply genNExpr_correct.
     eauto.
@@ -448,7 +451,7 @@ Proof.
     eauto.
   }
 
-  intros [[m'' t''] |] [mV''' [l''' [g''' []]]] PostYoff RetYoffNExp RetYoffCode; [|inversion PostYoff].
+  intros [[m_yoff yoff_res] |] [mV_yoff [l_yoff [g_yoff []]]] PostYoff RetYoffNExp RetYoffCode; [|inversion PostYoff].
 
   hred.
 
@@ -496,7 +499,7 @@ Proof.
   destruct i3.
   { (* Global case *)
     (* TODO: can I automate this? *)
-    edestruct denote_instr_gep_array_no_read with (m:=mV''') (g:=g''') (ρ:=l''') (size:=(Z.to_N (Int64.intval i4))) (τ:=DTYPE_Double) (i:=r) (ptr := @EXP_Ident dtyp (ID_Global id)) (a:= ptrll) (e_ix:=convert_typ [] yoff_exp) (ix:=(MInt64asNT.to_nat t'')).
+    edestruct denote_instr_gep_array_no_read with (m:=mV_yoff) (g:=g_yoff) (ρ:=l_yoff) (size:=(Z.to_N (Int64.intval i4))) (τ:=DTYPE_Double) (i:=r) (ptr := @EXP_Ident dtyp (ID_Global id)) (a:= ptrll) (e_ix:=convert_typ [] yoff_exp) (ix:=(MInt64asNT.to_nat yoff_res)).
     2: {
       (* TODO: wrap into automation? *)
       destruct PostYoff.
@@ -516,7 +519,7 @@ Proof.
       rewrite bind_ret_l.
       vred.
 
-      edestruct denote_instr_store_exists with (a := x1) (m:=mV''').
+      edestruct denote_instr_store_exists with (a := x1) (m:=mV_yoff).
 
       { cbn.
         apply denote_exp_double.
@@ -617,12 +620,12 @@ Proof.
       cbn in PostLoopEndExpCorrect.
 
       (* I need to show that e1 is equivalent to (EXP_Integer (Z.of_nat n)) *)
-      epose proof (denote_exp_i64 _ t).
-      assert (eutt Logic.eq (interp_cfg (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I (Npos 64))) (EXP_Integer (Integers.Int64.intval t)))) g' ρ mV')
+      epose proof (denote_exp_i64 _ t_loopend).
+      assert (eutt Logic.eq (interp_cfg (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I (Npos 64))) (EXP_Integer (Integers.Int64.intval t_loopend)))) g_loopend ρ mV_loopend)
                    (interp_cfg
                       (translate exp_E_to_instr_E
                                  (denote_exp (Some (DTYPE_I (Npos 64)))
-                                             (convert_typ [] e1))) g' ρ mV')) as EUTT_INT.
+                                             (convert_typ [] e1))) g_loopend ρ mV_loopend)) as EUTT_INT.
       rewrite H5.
       rewrite PostLoopEndExpCorrect.
       reflexivity.
@@ -630,7 +633,7 @@ Proof.
       admit.
       admit.
 
-      specialize (LOOPTFOR (MInt64asNT.to_nat t)).
+      specialize (LOOPTFOR (MInt64asNT.to_nat t_loopend)).
       forward LOOPTFOR.
       { cbn.
         unfold MInt64asNT.to_nat.
@@ -652,13 +655,14 @@ Proof.
       { (* TODO: automate this kind of thing / separate into lemma? *)
         unfold MInt64asNT.to_nat.
         rewrite intval_to_from_nat_id.
-        pose proof (Integers.Int64.intrange t).
+        pose proof (Integers.Int64.intrange t_loopend).
         lia.
       }
 
       (* Will need to set up loop invariants and such, just like loop case *)
 
       (* TODO: these are just stolen and probably lies *)
+      (* TODO: this happens way too soon. I need to finish GEPs *)
       (* Invariant at each iteration *)
       set (I := (fun (k : nat) (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
                    match mH with
@@ -666,9 +670,10 @@ Proof.
                    | Some (mH,mb) =>
                      match stV with
                      | (mV, (ρ, g)) =>
-                       state_invariant σ s2 mH stV
+                       state_invariant σ s2 mH stV /\ local_scope_modif i21 s2 l_yoff ρ
                      end
                    end)).
+
       (* Precondition and postcondition *)
       set (P := (fun (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
                    match mH with
@@ -676,16 +681,13 @@ Proof.
                    | Some (mH,mb) => state_invariant σ s2 mH stV
                    end)).
 
-      specialize (LOOPTFOR I P P (Some (m'', mem_add (MInt64asNT.to_nat t'') initial x0))).
+      specialize (LOOPTFOR I P P (Some (m_yoff, mem_add (MInt64asNT.to_nat yoff_res) initial x0))).
 
       forward LOOPTFOR.
       { intros g0 li mV [[mH mb] |] k _label [HI [POWERI [POWERI_VAL RETURNS]]]; [|inv HI].
         cbn in HI.
+        destruct HI as [LINV_SINV LINV_LSM].
         unfold DSHPower_tfor_body.
-
-        (* r2 and r1 correspond to loads of the src and dst pointers... *)
-        rename t' into xoff_res.
-        rename t'' into yoff_res.
 
         unfold mem_lookup_err.
         unfold trywith.
@@ -720,7 +722,7 @@ Proof.
            *)
 
         (* TODO: can I automate this? *)
-        edestruct denote_instr_gep_array_no_read with (m:=mV'') (g:=g'') (ρ:=l'') (size:=(Z.to_N (Int64.intval i1))) (τ:=DTYPE_Double) (i:=r0) (ptr := @EXP_Ident dtyp (ID_Global id0)) (a:= ptrll) (e_ix:=fmap (typ_to_dtyp []) xoff_exp) (ix:=(MInt64asNT.to_nat xoff_res)).
+        edestruct denote_instr_gep_array_no_read with (m:=mV_xoff) (g:=g_xoff) (ρ:=l_xoff) (size:=(Z.to_N (Int64.intval i1))) (τ:=DTYPE_Double) (i:=r0) (ptr := @EXP_Ident dtyp (ID_Global id0)) (a:= ptrll) (e_ix:=fmap (typ_to_dtyp []) xoff_exp) (ix:=(MInt64asNT.to_nat xoff_res)).
         2: {
           (* TODO: wrap into automation? *)
           destruct PostXoff.
@@ -743,6 +745,9 @@ Proof.
             apply denote_exp_LR.
 
             (* TODO: probably need something in the loop invariant? *)
+            cbn.
+            (* TODO: this is wrong *)
+            (* erewrite local_scope_modif_external with (l2:=(Maps.add r0 (UVALUE_Addr x3) l_xoff)). *)
             assert (Maps.lookup r0 li ≡ Some (UVALUE_Addr x3)) by admit.
             eapply H6.
           }
@@ -862,7 +867,9 @@ Proof.
   }
 
   { (* Should be pretty much the same as above... Local case. *)
-
+    admit.
   }
-  
+      }
+
+      
 Admitted.
