@@ -654,7 +654,6 @@ Local Ltac fold_map_monad_ :=
       by reflexivity
   end.
 
-
 Local Ltac fold_initialization :=
   repeat
   match goal with
@@ -1142,6 +1141,145 @@ Proof.
   unfold initOneIRGlobal in H.
   repeat break_match; inv H.
   all: reflexivity.
+Qed.
+
+Lemma skipn_skipn
+      {A : Type}
+      (n1 n2 : nat)
+      (l : list A)
+  :
+    skipn n1 (skipn n2 l) ≡ skipn (n1 + n2) l.
+Proof.
+  move l before A.
+  dependent induction l.
+  -
+    rewrite !skipn_nil.
+    reflexivity.
+  -
+    destruct n2.
+    +
+      cbn.
+      rewrite Nat.add_0_r.
+      reflexivity.
+    +
+      rewrite Nat.add_succ_r.
+      rewrite !skipn_cons.
+      apply IHl.
+Qed.
+
+Definition IR_of_global (g : string * DSHType) :=
+  let '(nm, t) := g in
+  (ID_Global (Name nm), TYPE_Pointer (getIRType t)).
+
+Lemma initIRGlobals_Γ_preserved
+      (globals : list (string * DSHType))
+      (data0 data1 : list binary64)
+      (s0 s1 : IRState)
+      ginit
+  :
+    initIRGlobals data0 globals s0 ≡ inr (s1, (data1, ginit)) ->
+    skipn (length globals) (Γ s1) ≡ Γ s0.
+Proof.
+  intros.
+  dependent induction globals.
+  -
+    cbn in *.
+    invc H.
+    reflexivity.
+  -
+    cbn in H.
+    repeat break_match; try inl_inr.
+    invc H.
+    apply global_uniq_chk_preserves_st in Heqs; subst i.
+    rename Heqs0 into I0,
+           Heqs1 into I1,
+           t into ts,
+           l into data',
+           i0 into s'.
+    eapply IHglobals in I1.
+    destruct a as (nm, t).
+    eapply initOneIRGlobal_state_change in I0.
+    cbn in I0.
+    invc I0.
+    cbn [Γ] in *.
+
+    apply f_equal with (f:=skipn 1) in I1.
+    rewrite skipn_skipn in I1.
+    cbn in *.
+    assumption.
+Qed.
+
+Lemma initIRGlobals_Γ_appended
+      (globals : list (string * DSHType))
+      (data0 data1 : list binary64)
+      (s0 s1 : IRState)
+      ginit
+  :
+    initIRGlobals data0 globals s0 ≡ inr (s1, (data1, ginit)) ->
+    firstn (length globals) (Γ s1) ≡
+    map IR_of_global (rev globals).
+Proof.
+  intros I.
+  dependent induction globals. (* using list_rev_ind. *)
+  -
+    reflexivity.
+  -
+    rewrite list_cons_app in I.
+    apply init_with_data_app_global_uniq_chk in I.
+    destruct I as (data' & s' & g1 & g2 & I1 & I2 & G).
+    copy_apply initIRGlobals_Γ_len I1; rename H into L1.
+    copy_apply initIRGlobals_Γ_len I2; rename H into L2.
+    cbn in L1.
+
+    cbn [rev length].
+    rewrite ListUtil.map_app.
+    cbn [map].
+
+    erewrite <-IHglobals with (s1:=s1).
+    2: eassumption.
+    clear IHglobals.
+
+    rewrite <-(firstn_skipn (length globals) (Γ s1)).
+    rewrite firstn_app.
+    rewrite (firstn_skipn (length globals) (Γ s1)).
+    replace (S (Datatypes.length globals) -
+     Datatypes.length (firstn (Datatypes.length globals) (Γ s1)))
+      with 1
+      by (rewrite firstn_length_le; lia).
+    rewrite firstn_firstn.
+    rewrite Min.min_r by lia.
+    enough
+      (firstn 1 (skipn (Datatypes.length globals) (Γ s1)) ≡
+       [IR_of_global a])
+      by congruence.
+
+    cbn in I1.
+    repeat break_match; invc I1.
+    rename t into ts, Heqs into I1.
+    destruct a as (nm', t').
+    apply initOneIRGlobal_state_change in I1.
+    cbn in I1.
+    invc I1.
+    cbn [Γ] in *.
+    apply initIRGlobals_Γ_preserved in I2.
+    rewrite I2.
+    reflexivity.
+Qed.
+
+Lemma initIRGlobals_Γ
+      (globals : list (string * DSHType))
+      (data0 data1 : list binary64)
+      (s0 s1 : IRState)
+      ginit
+  :
+    initIRGlobals data0 globals s0 ≡ inr (s1, (data1, ginit)) ->
+    Γ s1 ≡ map IR_of_global (rev globals) ++ (Γ s0).
+Proof.
+  intros.
+  rewrite <-(firstn_skipn (length globals) (Γ s1)).
+  erewrite initIRGlobals_Γ_appended by eassumption.
+  erewrite initIRGlobals_Γ_preserved by eassumption.
+  reflexivity.
 Qed.
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
