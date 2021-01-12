@@ -319,7 +319,7 @@ Proof.
                                                                                                       (IId r2, INSTR_Load false TYPE_Double (TYPE_Pointer TYPE_Double, (EXP_Ident (ID_Local r0))) (Some 8%Z)) ::
                                                                                                       (IId r1, INSTR_Load false TYPE_Double (TYPE_Pointer TYPE_Double, (EXP_Ident (ID_Local r))) (Some 8%Z))
                                                                                                       :: c2 ++
-                                                                                                      [(IVoid i14,
+                                                                                                      [(IVoid i15,
                                                                                                         INSTR_Store false (TYPE_Double, e2)
                                                                                                                     (TYPE_Pointer TYPE_Double, (EXP_Ident (ID_Local r))) (Some 8%Z)) : (instr_id * instr typ)];
                       blk_term := TERM_Br_1 b;
@@ -663,7 +663,11 @@ Proof.
       set (I := (fun (k : nat) (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
                    match mH with
                    | None => False
-                   | Some (mH,mb) => state_invariant σ s2 mH stV /
+                   | Some (mH,mb) =>
+                     match stV with
+                     | (mV, (ρ, g)) =>
+                       state_invariant σ s2 mH stV
+                     end
                    end)).
       (* Precondition and postcondition *)
       set (P := (fun (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
@@ -716,107 +720,132 @@ Proof.
            *)
 
         (* TODO: can I automate this? *)
-        edestruct denote_instr_gep_array_no_read with (m:=mV) (g:=g0) (ρ:=li) (size:=(Z.to_N (Int64.intval i1))) (τ:=DTYPE_Double) (i:=r0) (ptr := @EXP_Ident dtyp (ID_Global id0)) (a:= ptrll) (e_ix:=fmap (typ_to_dtyp []) xoff_exp) (ix:=(MInt64asNT.to_nat xoff_res)).
+        edestruct denote_instr_gep_array_no_read with (m:=mV'') (g:=g'') (ρ:=l'') (size:=(Z.to_N (Int64.intval i1))) (τ:=DTYPE_Double) (i:=r0) (ptr := @EXP_Ident dtyp (ID_Global id0)) (a:= ptrll) (e_ix:=fmap (typ_to_dtyp []) xoff_exp) (ix:=(MInt64asNT.to_nat xoff_res)).
         2: {
-          assert (mV ≡ mV''). {
-            apply genNExpr_memoryV in PostXoff.
-            apply genNExpr_post_memoryV in PostLoopEnd.
-            subst.
-            eauto.
-          }
-
           (* TODO: wrap into automation? *)
           destruct PostXoff.
           destruct g1.
           cbn in exp_correct.
           rewrite repr_of_nat_to_nat.
-
-          get_mem_eqs.
-          assert (
-          eapply exp_correct.
+          apply exp_correct.
           solve_local_scope_preserved.
           solve_gamma_preserved.
         }
 
-          assert (g'' ≡ g0) by admit.
-          assert (l'' ≡ li) by admit.
-          assert (mV'' ≡ mV) by admit.
-
-
         3: {
-          destruct H6.
-          subst.
           cbn.
           vred.
-          rewrite H7.
 
-          rewrite bind_ret_l.
+          rewrite denote_instr_load.
+          2: {
+            destruct H6.
+
+            apply denote_exp_LR.
+
+            (* TODO: probably need something in the loop invariant? *)
+            assert (Maps.lookup r0 li ≡ Some (UVALUE_Addr x3)) by admit.
+            eapply H6.
+          }
+          2: {
+            admit.
+          }
+
+          vred. cbn.
+          rewrite denote_code_cons.
           vred.
 
-          edestruct denote_instr_store_exists with (a := x1) (m:=mV''').
+          rewrite denote_instr_load.
+          2: {
+            apply denote_exp_LR.
 
-          { cbn.
-            apply denote_exp_double.
+            (* TODO: probably need something in the loop invariant? *)
+            match goal with
+            | |- Maps.lookup ?r ?l ≡ Some (UVALUE_Addr ?x)
+              => assert (Maps.lookup r l  ≡ Some (UVALUE_Addr x1)) by admit
+            end.
+
+            eapply H7.
+          }
+          2: {
+            admit.
           }
 
-          { apply denote_exp_LR.
-            apply alist_find_add_eq.
+          vred.
+          rewrite map_app.
+          cbn.
+          typ_to_dtyp_simplify.
+          rewrite denote_code_app.
+          rewrite bind_bind.
+          vred.
+
+          eapply eutt_clo_bind.
+          {
+            eapply genAExpr_correct.
+            eauto.
+            admit. (* solve_state_invariant. *)
+            admit. (* solve_gamma_safe. *)
+            admit. (* solve_no_failure. *)
           }
 
-          { reflexivity.
+          intros [[mH_Aexpr t_Aexpr]|] [mV_Aexpr [l_Aexpr [g_Aexpr []]]] POST; [|inv POST].
+          destruct POST as [POSTAEXPRSINV POSTAEXPR].
+
+          hred.
+          vred.
+
+          erewrite denote_instr_store; eauto.
+          2: {
+            destruct POSTAEXPR.
+            cbn in exp_correct.
+            eapply exp_correct.
+            solve_local_scope_preserved.
+            solve_gamma_preserved.
+          }
+          3: {
+            cbn. reflexivity.
+          }
+          2: {
+            eapply denote_exp_LR.
+            destruct POSTAEXPR.
+            (* Should follow from extends. Need to solve some evars... *)
+            (*
+  extends : local_scope_modif
+              {|
+              block_count := block_count i19;
+              local_count := local_count i19;
+              void_count := void_count i19;
+              Γ := (%r2, TYPE_Double) :: (%r1, TYPE_Double) :: Γ i19 |} i20
+              ((li [r2 : ?Goal28@{r:=important}]) [r1 : ?Goal27@{r:=important}]) l_Aexpr
+             *)
+            admit. (* solve_local_lookup. *)
+          }
+          2: {
+            admit. (* Write *)
           }
 
-          { constructor.
+          vred.
+          rewrite denote_term_br_1.
+          vred.
+
+          cbn.
+          rename b into jump_label.
+          rewrite denote_ocfg_unfold_not_in.
+          vred.
+          2: {
+            cbn.
+            (* Is bid_in b0? I think it might not be... *)
+            (* Probably know b0 <> jump_label by states, though... *)
+            assert (b0 ≢ jump_label) as NEQ by admit.
+            rewrite find_block_ineq; eauto.
           }
 
-      { 
-
-
-
-
-          
+          apply eqit_Ret.
+          split; [|split; [|split]].
+          - admit.
+          - exists b0. reflexivity.
+          - admit. (* I *)
+          - admit.
         }
-
-          admit.
-        }
-        { (* Local case for xoff -- should be basically the same *)
-          admit.
-        }
-        
-        { cbn.
-          pose proof True.
-          Unset Printing Notations.
-        }
-
-        epose proof genAExpr_correct _ Heqs14 as AEXP.
-
-        forward AEXP. admit.
-        forward AEXP. admit.
-        forward AEXP. admit.
-
-
-        rewrite denote_instr_gep_array.
-        Unset Printing Notations.C
-        
-        unfold denote_ocfg.
-      }
-      specialize (LOOPTFOR g'''). (alist_add r (UVALUE_Addr x1) l''') x2).
-  global. g'''
-  local. l''' [r : UVALUE_Addr x1]
-  memory. x2
-
-      (* This is the body for tfor on the HELIX side... I need the VELLVM side expressed as a tfor *)
-      Check DSHPower_tfor_body σ f x (mem_add (MInt64asNT.to_nat t'') initial x0) (MInt64asNT.to_nat t').
-
-      specialize (LOOPTFOR (DSHPower_tfor_body σ f x (mem_add (MInt64asNT.to_nat t'') initial x0) (MInt64asNT.to_nat t'))).
-      forward LOOPTFOR. admit.
-
-      rewrite EUTT_INT in GEN'.
-
-      rewrite PostLoopEndExpCorrect in GEN'.
-      epose proof (LOOPTFOR _ GEN').
-      admit.
-    }
 
     { rewrite denote_exp_GR.
       change (UVALUE_Addr ptrll) with (dvalue_to_uvalue (DVALUE_Addr ptrll)).
@@ -830,7 +859,6 @@ Proof.
     { (* Should hold, pretty much the same as earlier case *)
       admit.
     }
-
   }
 
   { (* Should be pretty much the same as above... Local case. *)
