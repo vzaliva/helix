@@ -812,25 +812,25 @@ Definition genPower
     '(nexp, ncode) <- genNExpr n ;;
     let ini := genFloatV initial in
     let init_code := src_nexpcode ++ dst_nexpcode ++ ncode ++ [
-                             (IId py,  INSTR_Op (OP_GetElementPtr
-                                                   ytyp (yptyp, (EXP_Ident y))
-                                                   [(IntType, EXP_Integer 0%Z);
-                                                      (IntType,dst_nexpr)]
+                                    (IId px,  INSTR_Op (OP_GetElementPtr
+                                                          xtyp (xptyp, (EXP_Ident x))
+                                                          [(IntType, EXP_Integer 0%Z);
+                                                          (IntType, src_nexpr)]
 
-                             ));
-
-                               (IVoid storeid0, INSTR_Store false
-                                                            (TYPE_Double, ini)
-                                                            (TYPE_Pointer TYPE_Double,
-                                                             (EXP_Ident (ID_Local py)))
-                                                            (ret 8%Z));
-
-                                  (IId px,  INSTR_Op (OP_GetElementPtr
-                                                        xtyp (xptyp, (EXP_Ident x))
+                                    ));
+           
+                                  (IId py,  INSTR_Op (OP_GetElementPtr
+                                                        ytyp (yptyp, (EXP_Ident y))
                                                         [(IntType, EXP_Integer 0%Z);
-                                                        (IntType, src_nexpr)]
+                                                        (IntType,dst_nexpr)]
 
-                                  ))
+                                  ));
+
+                                  (IVoid storeid0, INSTR_Store false
+                                                               (TYPE_Double, ini)
+                                                               (TYPE_Pointer TYPE_Double,
+                                                                (EXP_Ident (ID_Local py)))
+                                                               (ret 8%Z))
                            ] in
 
     body_block_id <- incBlockNamed "PowerLoopBody" ;;
