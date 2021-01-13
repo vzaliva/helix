@@ -1213,11 +1213,25 @@ Definition genIRGlobals
 
   NOTE: Could not use [monadic_fold_left] here because of error check.
 *)
+Definition rev_finstn_Γ (n : nat) (st : IRState) : IRState :=
+    let '{| block_count:=bc;
+            local_count:=lc;
+            void_count:=vc;
+            Γ:=Γ |} := st in
+    {| block_count:=bc;
+       local_count:=lc;
+       void_count:=vc;
+       Γ:=rev (firstn n Γ) ++ skipn n Γ |}.
+
 Definition initIRGlobals
          (data: list binary64)
          (x: list (string * DSHType))
   : cerr (list binary64 * list (toplevel_entity typ (block typ * list (block typ))))
-  := init_with_data initOneIRGlobal global_uniq_chk (data) x.
+  := fun st =>
+       match (init_with_data initOneIRGlobal global_uniq_chk (data) x st) with
+       | inr (st, r) => inr (rev_finstn_Γ (length x) st, r)
+       | l => l
+       end.
 
 (*
    When code genration generates [main], the input
