@@ -55,6 +55,7 @@ Fact initIRGlobals_cons_head_uniq:
     initIRGlobals data (a :: globals) st ≡ inr res ->
     forall (j : nat) (n : string) (v : DSHType),
       (nth_error globals j ≡ Some (n, v) /\ n ≡ fst a) → False.
+Abort. (*
 Proof.
   intros a globals data st res H j n v C.
   unfold initIRGlobals, global_uniq_chk in H.
@@ -78,11 +79,13 @@ Proof.
       apply C.
     }
     congruence.
-Qed.
+Qed. *)
+
 
 (* If [initIRGlobals] suceeds, the names of variables in [globals] were unique *)
 Lemma initIRGlobals_names_unique {globals data st res}:
   initIRGlobals data globals st ≡ inr res → list_uniq fst globals.
+Abort. (*
 Proof.
   revert st res data.
   induction globals; intros.
@@ -110,7 +113,7 @@ Proof.
       intros C.
       destruct C as (j & [n v] & C); cbn in C.
       eapply initIRGlobals_cons_head_uniq; eauto.
-Qed.
+Qed. *)
 
 (* Note: this could not be proben for arbitrary [chk] function,
    so we prove this only for [no_chk] *)
@@ -547,6 +550,7 @@ Lemma initIRGlobals_Γ_len
     initIRGlobals d globals s ≡ inr (s', (d', gdecls)) →
     List.length (Γ s') ≡
     List.length globals + List.length (Γ s).
+Abort. (*
 Proof.
   intros.
   dependent induction globals.
@@ -571,7 +575,7 @@ Proof.
     invc Heqs1.
     cbn.
     lia.
-Qed.
+Qed. *)
 
 Lemma split_hd_len {A : Type} (l l1 l2 : list A) (n : nat) :
   ListUtil.split l n ≡ Some (l1, l2) -> length l1 ≡ n.
@@ -1179,6 +1183,7 @@ Lemma initIRGlobals_Γ_preserved
   :
     initIRGlobals data0 globals s0 ≡ inr (s1, (data1, ginit)) ->
     skipn (length globals) (Γ s1) ≡ Γ s0.
+Abort. (*
 Proof.
   intros.
   dependent induction globals.
@@ -1207,7 +1212,7 @@ Proof.
     rewrite skipn_skipn in I1.
     cbn in *.
     assumption.
-Qed.
+Qed. *)
 
 Lemma initIRGlobals_Γ_appended
       (globals : list (string * DSHType))
@@ -1218,6 +1223,7 @@ Lemma initIRGlobals_Γ_appended
     initIRGlobals data0 globals s0 ≡ inr (s1, (data1, ginit)) ->
     firstn (length globals) (Γ s1) ≡
     map IR_of_global (rev globals).
+Abort. (*
 Proof.
   intros I.
   dependent induction globals. (* using list_rev_ind. *)
@@ -1264,7 +1270,7 @@ Proof.
     apply initIRGlobals_Γ_preserved in I2.
     rewrite I2.
     reflexivity.
-Qed.
+Qed. *)
 
 Lemma initIRGlobals_Γ
       (globals : list (string * DSHType))
@@ -1274,13 +1280,14 @@ Lemma initIRGlobals_Γ
   :
     initIRGlobals data0 globals s0 ≡ inr (s1, (data1, ginit)) ->
     Γ s1 ≡ map IR_of_global (rev globals) ++ (Γ s0).
+Abort. (*
 Proof.
   intros.
   rewrite <-(firstn_skipn (length globals) (Γ s1)).
   erewrite initIRGlobals_Γ_appended by eassumption.
   erewrite initIRGlobals_Γ_preserved by eassumption.
   reflexivity.
-Qed.
+Qed. *)
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
@@ -1438,6 +1445,7 @@ Proof.
     -
       cbn in H.
       repeat break_match_hyp; try inl_inr.
+      (*
       apply global_uniq_chk_preserves_st in Heqs; subst i0.
       inl_inr_inv; subst.
       cbn.
@@ -2529,7 +2537,7 @@ Proof.
       rewrite Eq.bind_ret_l.
        *)
       admit.
-Admitted.
+Abort.
 
 (* with init step  *)
 Lemma compiler_correct_aux:
@@ -2539,7 +2547,7 @@ Lemma compiler_correct_aux:
     forall s, compile_w_main p data newState ≡ inr (s,pll) ->
     eutt (succ_mcfg (bisim_full [] s)) (semantics_FSHCOL p data) (semantics_llvm pll).
 Proof.
-Admitted.
+Abort.
 
 (** Relation bewteen the final states of evaluation and execution
     of DHCOL program.
@@ -2739,7 +2747,7 @@ Hint Rewrite interp_to_L3_ret : local.
       intros * POST s.
       unfold has_post in *.
       eapply eutt_interp_state in POST.
-    Admitted.
+    Abort.
 
 
     
@@ -2874,4 +2882,5 @@ Hint Rewrite interp_to_L3_ret : local.
 
 
     (*         unfold global_YX,constArray in EQ1. *)
-Admitted.
+*)
+Abort.
