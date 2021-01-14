@@ -403,10 +403,56 @@ Proof.
   vstep.
   vred.
 
+  
+
   (* loop_end *)
   eapply eutt_clo_bind_returns.
   { eapply genNExpr_correct; eauto.
+    Set Nested Proofs Allowed.
+    Lemma genNExpr_state_invariant :
+      forall nexp memH memV l g σ s1 s2 e c,
+        state_invariant σ s1 memH (memV, (l, g)) ->
+        Gamma_safe σ s1 s2 ->
+        genNExpr nexp s1 ≡ inr (s2, (e, c)) ->
+        state_invariant σ s2 memH (memV, (l, g)).
+    Proof.
+      induction nexp;
+        intros memH memV l g σ s1 s2 e c SINV GAM GEN;
+        first [solve [cbn in GEN; simp;
+                      unfold ErrorWithState.option2errS in *; break_match;
+                      inv Heqs; solve_state_invariant]
+              | solve [cbn in GEN; inv GEN; solve_state_invariant]
+              | solve [cbn in GEN; repeat break_match; inv GEN;
+                       pose proof Heqs as TMP;
+                       eapply IHnexp1 in TMP; [|solve_state_invariant|solve_gamma_safe];
+                       eapply IHnexp2 in Heqs0; [|solve_state_invariant|solve_gamma_safe];
+                       solve_state_invariant]
+              ].
+    Qed.
+
+    pose proof Heqs3 as SINV_xoff.
+    pose proof Heqs4 as SINV_yoff.
+    pose proof Heqs9 as SINV_loop_end.
+    2: solve_gamma_safe.
+    eapply genNExpr_state_invariant in SINV_xoff; [|solve_state_invariant|solve_gamma_safe].
+    eapply genNExpr_state_invariant in SINV_yoff; [|solve_state_invariant|solve_gamma_safe].
+    eapply genNExpr_state_invariant in SINV_loop_end; [|solve_state_invariant|solve_gamma_safe].
+    solve_state_invariant.
+
+    solve [solve_state_invariant].
+    solve_state_invariant.
+    solve_gamma_safe.
+    solve_gamma_safe.
+    admit.
+    solve_gamma_safe.
+    solve_gamma_safe.
+    { eapply Gamma_safe_shrink; eauto; try solve_gamma; cbn; solve_local_count.
+    }
+    solve [solve_gamma_safe].
+
+
     admit. (* solve_state_invariant. *)
+    
     solve_gamma_safe.
   }
 
@@ -419,15 +465,22 @@ Proof.
   eapply eutt_clo_bind_returns.
   { eapply genNExpr_correct.
     eauto.
+    assert (state_invariant σ i5 m_loopend (mV_loopend, (l_loopend, g_loopend))).
+    { eapply state_invariant_incBlockNamed. eauto.
+      destruct PostLoopEndNExpr.
+      cbn in is_almost_pure.
+      cbn in extends.
+    }
+      solve_state_invariant.
+    solve_state_invariant.
     admit. (* solve_state_invariant. *)
-    solve_gamma_safe. (* TODO: make solve_gamma_safe work here *)
-    cbn.
-    solve_local_count.
+
+    Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incBlockNamed; [eassumption | solve_state_invariant] : SolveStateInv.
+    solve_gamma_safe.
 
     (* TODO: Should look into automating this. In particular we need
     to fix the hint DB for eauto which can loop indefinitely. *)
-    eapply no_failure_helix_bind_continuation in NOFAIL; [|eassumption].
-    eauto.
+    eapply no_failure_helix_bind_continuation in NOFAIL; [eauto|eassumption].
   }
 
   intros [[m_xoff xoff_res] |] [mV_xoff [l_xoff [g_xoff []]]] PostXoff RetXoffNExp RetXoffCode; [|inversion PostXoff].
@@ -445,7 +498,7 @@ Proof.
   { eapply genNExpr_correct.
     eauto.
     admit. (* solve_state_invariant. *)
-    solve_gamma_safe. (* TODO: make solve_gamma_safe work here *)
+    solve_gamma_safe.
     cbn.
     solve_local_count.
 
@@ -647,7 +700,10 @@ Proof.
 
          erewrite read_array; eauto.
 
-         eapply dtyp_fits_allocated; eauto.
+         Ltac solve_allocated :=
+           first [solve [eapply dtyp_fits_allocated; eauto]].
+
+         solve_allocated.
     }
 
     vred.
@@ -955,22 +1011,10 @@ Proof.
       }
 
       (* TODO: Might want to do more forward reasoning first *)
-      (* I have some extra stuff after the loop, so I can't directly apply LOOPTFOR here.
-
-         May be able to use bind_ret_r and then eutt_clo_bind... Or something.
-       *)
-      replace     (interp_cfg_to_L3 defined_intrinsics
-       (denote_ocfg (convert_typ nil body_bks') (pair bid_from bid_in)) g_yoff
-       (alist_add r (UVALUE_Addr dst_addr)
-          (alist_add r1 (UVALUE_Double b1)
-             (alist_add r0 (UVALUE_Addr src_addr) l_yoff)))
-       mV_init) with     (interp_cfg_to_L3 defined_intrinsics
-       (x <- denote_ocfg (convert_typ nil body_bks') (pair bid_from bid_in) ;; ret x) g_yoff
-
-       (alist_add r (UVALUE_Addr dst_addr)
-          (alist_add r1 (UVALUE_Double b1)
-                     (alist_add r0 (UVALUE_Addr src_addr) l_yoff)))
-       mV_init) by admit. (* Obviously this is wrong because replace uses eq instead of eutt, but should give us an idea of how this reasoning should go *)
+      match goal with
+      | H: _ |- eutt ?R ?x (interp_cfg ?y ?g ?l ?m)
+        => rewrite <- (bind_ret_r y)
+      end.
 
       setoid_rewrite interp_cfg_to_L3_bind.
       eapply eutt_clo_bind.
@@ -986,165 +1030,26 @@ Proof.
         unfold genIR_post.
         admit.
       }
-      
-      rewrite LOOPTFOR.
-    rewrite denote_ocfg_unfold_in.
-    2: {
-      apply find_block_eq; auto.
-    }
 
-      destruct i0.
-      { (* Global case for xoff *)
-        (* TODO: can I automate this? *)
-        rename x1 into ptrll_x.
+      (* TODO: bunch of stuff to deal with here...
 
-        edestruct denote_instr_gep_array_no_read with (m:=x2) (g:=g_yoff) (ρ:=(alist_add r (UVALUE_Addr ptrll_x) l_yoff)) (size:=(Z.to_N (Int64.intval i1))) (τ:=DTYPE_Double) (i:=r0) (ptr := @EXP_Ident dtyp (ID_Global id0)) (a:= ptrll_x) (e_ix:=fmap (typ_to_dtyp []) xoff_exp) (ix:=(MInt64asNT.to_nat xoff_res)).
-        2: {
-          (* TODO: wrap into automation? *)
-          destruct PostXoff.
-          destruct g0.
-          cbn in exp_correct.
-          rewrite repr_of_nat_to_nat.
-          pose proof exp_correct.
-          Unset Printing Notations.
+         Better nail down the other admits first so we're more
+         confident in the loop invariant.
+      *)
 
-          (* g_yoff should = g_xoff *)
-          (* mV_xoff = x2?? mV_yoff after a write to ptrll_x... and I think mV_yoff = mV_xoff *)
-          (* I don't think NEXprs read from memory anyway... *)
-          apply exp_correct.
-          solve_local_scope_preserved.
-          solve_gamma_preserved.
-        }
-        2: {
-          (* dtyp_fits *)
-          admit.
-        }
 
-        { change (UVALUE_Addr ptrll_x) with (dvalue_to_uvalue (DVALUE_Addr ptrll_x)).
-          rewrite denote_exp_GR; eauto.
+      { rewrite denote_exp_GR.
+        change (UVALUE_Addr ptrll) with (dvalue_to_uvalue (DVALUE_Addr ptrll)).
+        reflexivity.
 
-          reflexivity.
+        cbn in INLG.
+        (* I think g = g''' *)
+        admit.
+      }
 
-          cbn in INLG_xoff.
-          cbn.
-          (* I think g = g_xoff *)
-          admit.
-        }
-
-        destruct H6.
-        cbn.
-        vred.
-        rewrite H7.
-        
-        vred. cbn.
-        rewrite denote_code_cons.
-        vred.
-
-        rewrite denote_instr_load.
-        2: {
-          apply denote_exp_LR.
-
-          (* TODO: probably need something in the loop invariant? *)
-          match goal with
-          | |- Maps.lookup ?r ?l ≡ Some (UVALUE_Addr ?x)
-            => assert (Maps.lookup r l  ≡ Some (UVALUE_Addr x1)) by admit
-          end.
-
-          eapply H7.
-        }
-          2: {
-            admit.
-          }
-
-          vred.
-          rewrite map_app.
-          cbn.
-          typ_to_dtyp_simplify.
-          rewrite denote_code_app.
-          rewrite bind_bind.
-          vred.
-
-          eapply eutt_clo_bind.
-          {
-            eapply genAExpr_correct.
-            eauto.
-            admit. (* solve_state_invariant. *)
-            admit. (* solve_gamma_safe. *)
-            admit. (* solve_no_failure. *)
-          }
-
-          intros [[mH_Aexpr t_Aexpr]|] [mV_Aexpr [l_Aexpr [g_Aexpr []]]] POST; [|inv POST].
-          destruct POST as [POSTAEXPRSINV POSTAEXPR].
-
-          hred.
-          vred.
-
-          erewrite denote_instr_store; eauto.
-          2: {
-            destruct POSTAEXPR.
-            cbn in exp_correct.
-            eapply exp_correct.
-            solve_local_scope_preserved.
-            solve_gamma_preserved.
-          }
-          3: {
-            cbn. reflexivity.
-          }
-          2: {
-            eapply denote_exp_LR.
-            destruct POSTAEXPR.
-            (* Should follow from extends. Need to solve some evars... *)
-            (*
-  extends : local_scope_modif
-              {|
-              block_count := block_count i19;
-              local_count := local_count i19;
-              void_count := void_count i19;
-              Γ := (%r2, TYPE_Double) :: (%r1, TYPE_Double) :: Γ i19 |} i20
-              ((li [r2 : ?Goal28@{r:=important}]) [r1 : ?Goal27@{r:=important}]) l_Aexpr
-             *)
-            admit. (* solve_local_lookup. *)
-          }
-          2: {
-            admit. (* Write *)
-          }
-
-          vred.
-          rewrite denote_term_br_1.
-          vred.
-
-          cbn.
-          rename b into jump_label.
-          rewrite denote_ocfg_unfold_not_in.
-          vred.
-          2: {
-            cbn.
-            (* Is bid_in b0? I think it might not be... *)
-            (* Probably know b0 <> jump_label by states, though... *)
-            assert (b0 ≢ jump_label) as NEQ by admit.
-            rewrite find_block_ineq; eauto.
-          }
-
-          apply eqit_Ret.
-          split; [|split; [|split]].
-          - admit.
-          - exists b0. reflexivity.
-          - admit. (* I *)
-          - admit.
-        }
-
-        { rewrite denote_exp_GR.
-          change (UVALUE_Addr ptrll) with (dvalue_to_uvalue (DVALUE_Addr ptrll)).
-          reflexivity.
-
-          cbn in INLG.
-          (* I think g = g''' *)
-          admit.
-        }
-
-        { (* Should hold, pretty much the same as earlier case *)
-          admit.
-        }
+      { (* Should hold, pretty much the same as earlier case *)
+        admit.
+      }
       }
 
       { (* Should be pretty much the same as above... Local case. *)

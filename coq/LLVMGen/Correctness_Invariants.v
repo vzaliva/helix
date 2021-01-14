@@ -1878,7 +1878,7 @@ Hint Resolve genIR_Γ  : helix_context.
 
 (* TODO: expand this *)
 Ltac solve_gamma_safe :=
-  eapply Gamma_safe_shrink; eauto; [solve_gamma|..]; solve_local_count.
+  eapply Gamma_safe_shrink; eauto; try solve_gamma; cbn; solve_local_count.
 
 (* TODO: expand this *)
 Ltac solve_local_scope_modif :=

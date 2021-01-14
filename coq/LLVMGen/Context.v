@@ -213,26 +213,26 @@ Ltac get_gammas :=
   repeat
     match goal with
     | H: incBlock _ ≡ inr _ |- _ =>
-      apply incBlock_Γ in H
+      apply incBlock_Γ in H; cbn in H
     | H: newLocalVar _ _ _ ≡ inr _ |- _ =>
-      apply newLocalVar_Γ in H
+      apply newLocalVar_Γ in H; cbn in H
     | H: dropVars _ _ ≡ inr _ |- _ =>
-      apply dropVars in H
+      apply dropVars in H; cbn in H
      | H: incLocal _ ≡ inr (_, _) |- _ =>
-      eapply incLocal_Γ in H
+      eapply incLocal_Γ in H; cbn in H
     | H: incVoid _ ≡ inr (_, _) |- _ =>
-      eapply incVoid_Γ in H
+      eapply incVoid_Γ in H; cbn in H
     | H: incBlockNamed _ _ ≡ inr (_, _) |- _ =>
-      eapply incBlockNamed_Γ in H
+      eapply incBlockNamed_Γ in H; cbn in H
 
     | GEN: genNExpr _ _ ≡ inr (_, _) |- _ =>
-      eapply genNExpr_Γ in GEN
+      eapply genNExpr_Γ in GEN; cbn in GEN
     | GEN: genMExpr _ _ ≡ inr _ |- _ =>
-      apply genMExpr_Γ in GEN
+      apply genMExpr_Γ in GEN; cbn in GEN
     | GEN: genAExpr _ _ ≡ inr _ |- _ =>
-      apply genAExpr_Γ in GEN
+      apply genAExpr_Γ in GEN; cbn in GEN
     | GEN : genIR _ _ _ ≡ inr _ |- _ =>
-      apply genIR_Γ in GEN
+      apply genIR_Γ in GEN; cbn in GEN
     end.
 
 Ltac solve_gamma := solve [get_gammas; cbn in *; congruence].
