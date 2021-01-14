@@ -47,18 +47,188 @@ Section EnvironmentConsistency.
 
 End EnvironmentConsistency.
 
-Fact initIRGlobals_cons_head_uniq:
+Lemma list_app_eqlen_eq_l
+      {A : Type}
+      (l r l' r' : list A)
+  :
+    l ++ r ≡ l' ++ r' ->
+    length l ≡ length l' ->
+    l ≡ l' /\ r ≡ r'.
+Proof.
+  intros EQ L.
+  split.
+  -
+    apply f_equal with (f:=firstn (length l + 0)) in EQ.
+    rewrite firstn_app_2 in EQ.
+    rewrite L in EQ.
+    rewrite firstn_app_2 in EQ.
+    cbn in EQ.
+    rewrite !app_nil_r in EQ.
+    assumption.
+  -
+    apply f_equal with (f:=skipn (length l)) in EQ.
+    rewrite skipn_length_app in EQ.
+    rewrite L in EQ.
+    rewrite skipn_length_app in EQ.
+    assumption.
+Qed.
+
+Lemma list_app_eqlen_eq_r
+      {A : Type}
+      (l r l' r' : list A)
+  :
+    l ++ r ≡ l' ++ r' ->
+    length r ≡ length r' ->
+    l ≡ l' /\ r ≡ r'.
+Proof.
+  intros EQ R.
+  enough (L : length l ≡ length l')
+    by now apply list_app_eqlen_eq_l.
+  assert (length (l ++ r) ≡ length (l' ++ r'))
+    by now rewrite EQ.
+  rewrite !ListUtil.length_app in H.
+  lia.
+Qed.
+
+Lemma rev_inj
+      {A : Type}
+      (l1 l2 : list A)
+  :
+    rev l1 ≡ rev l2 ->
+    l1 ≡ l2.
+Proof.
+  intros.
+  dependent induction l1.
+  -
+    cbn in H.
+    apply rev_nil_rev in H.
+    congruence.
+  -
+    rename a into a1.
+    cbn in H.
+    destruct l2 as [|a2 l2].
+    +
+      apply app_eq_nil in H.
+      destruct H as [_ H].
+      inv H.
+    +
+      cbn in H.
+      apply list_app_eqlen_eq_r in H; [| reflexivity].
+      destruct H.
+      apply IHl1 in H.
+      congruence.
+Qed.
+
+Lemma rev_firstn_skipn
+      {A : Type}
+      (n : nat)
+      (l1 l2 : list A)
+  :
+    rev (firstn n l1) ++ skipn n l1 ≡ rev (firstn n l2) ++ skipn n l2 →
+    l1 ≡ l2.
+Proof.
+  intros H.
+
+  assert (L : length (rev (firstn n l1) ++ skipn n l1) ≡
+              length (rev (firstn n l2) ++ skipn n l2))
+    by now f_equal.
+  rewrite !ListUtil.length_app in L.
+  rewrite !rev_length in L.
+  rewrite <-!ListUtil.length_app in L.
+  rewrite !firstn_skipn in L.
+    
+  destruct (le_lt_dec (length l1) n) as [L1|L1];
+    destruct (le_lt_dec (length l2) n) as [L2|L2];
+    try lia.
+  all: repeat try rewrite firstn_all2 in H by assumption.
+  all: repeat try rewrite skipn_all2 in H by assumption.
+  -
+    apply rev_inj.
+    rewrite !app_nil_r in H.
+    assumption.
+  -
+    apply list_app_eqlen_eq_l in H.
+    2: now rewrite !rev_length, !firstn_length_le by lia.
+    rewrite <-(firstn_skipn n l1), <-(firstn_skipn n l2).
+    destruct H as [LEQ REQ].
+    apply rev_inj in LEQ.
+    congruence.
+Qed.
+    
+Lemma rev_firstn_Γ_inj
+      (n : nat)
+      (st1 st2 : IRState)
+  :
+    rev_firstn_Γ n st1 ≡ rev_firstn_Γ n st2 ->
+    st1 ≡ st2.
+Proof.
+  intros.
+  unfold rev_firstn_Γ in *.
+  inv H.
+  destruct st1, st2.
+  cbn in *.
+  f_equal; try assumption.
+  apply rev_firstn_skipn in H4.
+  assumption.
+Qed.
+
+Lemma initIRGlobals_inl
+      (data : list binary64)
+      (globals : list (string * DSHType))
+      (st : IRState)
+      (s : string)
+  :
+    initIRGlobals' data globals st ≡ inl s
+    <->
+    initIRGlobals data globals st ≡ inl s.
+Proof.
+  unfold initIRGlobals, initIRGlobals'.
+  repeat break_match.
+  intuition.
+  split; intros C; inv C.
+Qed.
+
+Lemma initIRGlobals_inr
+      (data : list binary64)
+      (globals : list (string * DSHType))
+      (st st' : IRState)
+      (s : string)
+      w
+  :
+    initIRGlobals' data globals st ≡ inr (st', w)
+    <->
+    initIRGlobals data globals st ≡ inr (rev_firstn_Γ (length globals) st', w).
+Proof.
+  unfold initIRGlobals, initIRGlobals'.
+  repeat break_match.
+  split; intros C; inv C.
+  subst.
+  split.
+  -
+    intros.
+    invc H.
+    reflexivity.
+  -
+    intros.
+    clear - H.
+    invc H.
+    apply rev_firstn_skipn in H4.
+    destruct i, st'; cbn in *.
+    repeat f_equal; assumption.
+Qed.
+
+(* ZX TODO: similar without ' *)
+Fact initIRGlobals_cons_head_uniq' :
   ∀ (a : string * DSHType) (globals : list (string * DSHType))
     (data : list binary64)
     (st: IRState)
     {res},
-    initIRGlobals data (a :: globals) st ≡ inr res ->
+    initIRGlobals' data (a :: globals) st ≡ inr res ->
     forall (j : nat) (n : string) (v : DSHType),
       (nth_error globals j ≡ Some (n, v) /\ n ≡ fst a) → False.
-Abort. (*
 Proof.
   intros a globals data st res H j n v C.
-  unfold initIRGlobals, global_uniq_chk in H.
+  unfold initIRGlobals', global_uniq_chk in H.
   cbn in H.
   repeat break_match_hyp; repeat try inl_inr.
   unfold assert_false_to_err in Heqs.
@@ -79,13 +249,12 @@ Proof.
       apply C.
     }
     congruence.
-Qed. *)
+Qed.
 
-
+(* ZX TODO: similar without ' *)
 (* If [initIRGlobals] suceeds, the names of variables in [globals] were unique *)
-Lemma initIRGlobals_names_unique {globals data st res}:
-  initIRGlobals data globals st ≡ inr res → list_uniq fst globals.
-Abort. (*
+Lemma initIRGlobals_names_unique' {globals data st res}:
+  initIRGlobals' data globals st ≡ inr res → list_uniq fst globals.
 Proof.
   revert st res data.
   induction globals; intros.
@@ -112,8 +281,8 @@ Proof.
       unfold not.
       intros C.
       destruct C as (j & [n v] & C); cbn in C.
-      eapply initIRGlobals_cons_head_uniq; eauto.
-Qed. *)
+      eapply initIRGlobals_cons_head_uniq'; eauto.
+Qed.
 
 (* Note: this could not be proben for arbitrary [chk] function,
    so we prove this only for [no_chk] *)
@@ -541,16 +710,16 @@ Proof.
 Qed.
 Opaque resolve_PVar.
 
-Lemma initIRGlobals_Γ_len
+(* ZX TODO: similar without ' *)
+Lemma initIRGlobals_Γ_len'
       (globals : list (string * DSHType))
       (d d' : list binary64)
       (s s': IRState)
       (gdecls : list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ))))
   :
-    initIRGlobals d globals s ≡ inr (s', (d', gdecls)) →
+    initIRGlobals' d globals s ≡ inr (s', (d', gdecls)) →
     List.length (Γ s') ≡
     List.length globals + List.length (Γ s).
-Abort. (*
 Proof.
   intros.
   dependent induction globals.
@@ -575,7 +744,7 @@ Proof.
     invc Heqs1.
     cbn.
     lia.
-Qed. *)
+Qed.
 
 Lemma split_hd_len {A : Type} (l l1 l2 : list A) (n : nat) :
   ListUtil.split l n ≡ Some (l1, l2) -> length l1 ≡ n.
@@ -1175,15 +1344,15 @@ Definition IR_of_global (g : string * DSHType) :=
   let '(nm, t) := g in
   (ID_Global (Name nm), TYPE_Pointer (getIRType t)).
 
-Lemma initIRGlobals_Γ_preserved
+(* ZX TODO: similar without ' *)
+Lemma initIRGlobals_Γ_preserved'
       (globals : list (string * DSHType))
       (data0 data1 : list binary64)
       (s0 s1 : IRState)
       ginit
   :
-    initIRGlobals data0 globals s0 ≡ inr (s1, (data1, ginit)) ->
+    initIRGlobals' data0 globals s0 ≡ inr (s1, (data1, ginit)) ->
     skipn (length globals) (Γ s1) ≡ Γ s0.
-Abort. (*
 Proof.
   intros.
   dependent induction globals.
@@ -1212,18 +1381,18 @@ Proof.
     rewrite skipn_skipn in I1.
     cbn in *.
     assumption.
-Qed. *)
+Qed.
 
-Lemma initIRGlobals_Γ_appended
+(* ZX TODO: similar without ' *)
+Lemma initIRGlobals_Γ_appended'
       (globals : list (string * DSHType))
       (data0 data1 : list binary64)
       (s0 s1 : IRState)
       ginit
   :
-    initIRGlobals data0 globals s0 ≡ inr (s1, (data1, ginit)) ->
+    initIRGlobals' data0 globals s0 ≡ inr (s1, (data1, ginit)) ->
     firstn (length globals) (Γ s1) ≡
     map IR_of_global (rev globals).
-Abort. (*
 Proof.
   intros I.
   dependent induction globals. (* using list_rev_ind. *)
@@ -1233,8 +1402,8 @@ Proof.
     rewrite list_cons_app in I.
     apply init_with_data_app_global_uniq_chk in I.
     destruct I as (data' & s' & g1 & g2 & I1 & I2 & G).
-    copy_apply initIRGlobals_Γ_len I1; rename H into L1.
-    copy_apply initIRGlobals_Γ_len I2; rename H into L2.
+    copy_apply initIRGlobals_Γ_len' I1; rename H into L1.
+    copy_apply initIRGlobals_Γ_len' I2; rename H into L2.
     cbn in L1.
 
     cbn [rev length].
@@ -1267,27 +1436,27 @@ Proof.
     cbn in I1.
     invc I1.
     cbn [Γ] in *.
-    apply initIRGlobals_Γ_preserved in I2.
+    apply initIRGlobals_Γ_preserved' in I2.
     rewrite I2.
     reflexivity.
-Qed. *)
+Qed.
 
-Lemma initIRGlobals_Γ
+(* ZX TODO: similar without ' *)
+Lemma initIRGlobals_Γ'
       (globals : list (string * DSHType))
       (data0 data1 : list binary64)
       (s0 s1 : IRState)
       ginit
   :
-    initIRGlobals data0 globals s0 ≡ inr (s1, (data1, ginit)) ->
+    initIRGlobals' data0 globals s0 ≡ inr (s1, (data1, ginit)) ->
     Γ s1 ≡ map IR_of_global (rev globals) ++ (Γ s0).
-Abort. (*
 Proof.
   intros.
   rewrite <-(firstn_skipn (length globals) (Γ s1)).
-  erewrite initIRGlobals_Γ_appended by eassumption.
-  erewrite initIRGlobals_Γ_preserved by eassumption.
+  erewrite initIRGlobals_Γ_appended' by eassumption.
+  erewrite initIRGlobals_Γ_preserved' by eassumption.
   reflexivity.
-Qed. *)
+Qed.
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
