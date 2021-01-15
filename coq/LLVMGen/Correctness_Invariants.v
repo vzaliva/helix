@@ -1893,7 +1893,8 @@ Ltac solve_local_scope_modif :=
 Ltac solve_gamma_preserved :=
   first
     [ solve [eapply Gamma_preserved_refl]
-    | eapply Gamma_preserved_add_not_in_Gamma; [solve_gamma_preserved | solve_not_in_gamma]
+    | solve [eapply Gamma_preserved_add_not_in_Gamma; [solve_gamma_preserved | solve_not_in_gamma]]
+    | solve [eapply Gamma_preserved_if_safe; [solve_gamma_safe | solve_local_scope_modif]]
     ].
 
 Opaque alist_add.

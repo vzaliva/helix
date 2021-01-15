@@ -298,14 +298,14 @@ Proof.
 
   rename l into loop_blocks.
 
-  assert (wf_ocfg_bid loop_blocks) as WFBLAH by admit.
-  assert (free_in_cfg loop_blocks nextblock) as FREEBLAH by admit.
+  assert (wf_ocfg_bid loop_blocks) as WF_loop_blocks by admit.
+  assert (free_in_cfg loop_blocks nextblock) as FREE_loop_blocks_nextblock by admit.
   assert (~ (b ≡ bid_in \/ False)) as BBID_IN.
   { intros [CONTRA | []].
     admit.
   }
   assert (b0 ≡ b0 ∨ False) as B0B0 by auto.
-  epose proof @genWhileLoop_init _ _ _ _ _ _ _ _ _ _ _ _ _ bid_from Heqs2 WFBLAH BBID_IN FREEBLAH B0B0 as INIT.
+  epose proof @genWhileLoop_init _ _ _ _ _ _ _ _ _ _ _ _ _ bid_from Heqs2 WF_loop_blocks BBID_IN FREE_loop_blocks_nextblock B0B0 as INIT.
   cbn in INIT.
   destruct INIT as (body_bks' & GEN' & INIT).
   clear Heqs2.
@@ -396,39 +396,6 @@ Proof.
   vstep.
   vred.
 
-
-  Set Nested Proofs Allowed.
-  (* Lemma genNExpr_state_invariant : *)
-  (*   forall nexp memH memV l g σ s1 s2 e c, *)
-  (*     state_invariant σ s1 memH (memV, (l, g)) -> *)
-  (*     Gamma_safe σ s1 s2 -> *)
-  (*     genNExpr nexp s1 ≡ inr (s2, (e, c)) -> *)
-  (*     state_invariant σ s2 memH (memV, (l, g)). *)
-  (* Proof. *)
-  (*   induction nexp; *)
-  (*     intros memH memV l g σ s1 s2 e c SINV GAM GEN; *)
-  (*     first [solve [cbn in GEN; simp; *)
-  (*                   unfold ErrorWithState.option2errS in *; break_match; *)
-  (*                   inv Heqs; solve_state_invariant] *)
-  (*           | solve [cbn in GEN; inv GEN; solve_state_invariant] *)
-  (*           | solve [cbn in GEN; repeat break_match; inv GEN; *)
-  (*                    pose proof Heqs as TMP; *)
-  (*                    eapply IHnexp1 in TMP; [|solve_state_invariant|solve_gamma_safe]; *)
-  (*                    eapply IHnexp2 in Heqs0; [|solve_state_invariant|solve_gamma_safe]; *)
-  (*                    solve_state_invariant] *)
-  (*           ]. *)
-  (* Qed. *)
-
-  (* (* TODO: better automate this? *) *)
-  (* pose proof Heqs3 as SINV_xoff. *)
-  (* pose proof Heqs4 as SINV_yoff. *)
-  (* pose proof Heqs9 as SINV_loop_end. *)
-
-  (* (* TODO: finnicky ordering here *) *)
-  (* eapply genNExpr_state_invariant in SINV_xoff; [|solve_state_invariant|solve_gamma_safe].  *)
-  (* eapply genNExpr_state_invariant in SINV_yoff; [|solve_state_invariant|solve_gamma_safe]. *)
-  (* eapply genNExpr_state_invariant in SINV_loop_end; [|solve_state_invariant|solve_gamma_safe].   *)
-
   (* loop_end *)
   eapply eutt_clo_bind_returns.
   { eapply genNExpr_correct; [eauto|solve_state_invariant|solve_gamma_safe|eauto].
@@ -439,76 +406,16 @@ Proof.
   pose proof (Correctness_NExpr.is_almost_pure PostLoopEndNExpr) as [MHPURE [MVPURE GPURE]]; subst.
   vred; hred; vred.
 
+  pose proof NOFAIL as NOFAIL_loopend.
+  eapply no_failure_helix_bind_prefix in NOFAIL_loopend.
+  eapply no_failure_helix_bind_continuation in NOFAIL; [eauto|eassumption].  
+
+  pose proof NOFAIL as NOFAIL_xoff.
+  eapply no_failure_helix_bind_prefix in NOFAIL_xoff.
+
   (* xoff *)
   eapply eutt_clo_bind_returns.
-  { eapply genNExpr_correct.
-    eauto.
-
-    assert (state_invariant σ i5 m_loopend (mV_loopend, (l_loopend, g_loopend))).
-    { eapply state_invariant_incBlockNamed. eauto.
-      destruct PostLoopEndNExpr.
-      cbn in is_almost_pure.
-      cbn in extends.
-
-      (* Have ρ in the context... Need to know about l_loopend... *)
-      (* What matters in the state_invariant for local_env?
-
-         memory_invariant cares about the local env, and
-         no_llvm_ptr_aliasing cares about the local
-         environment... Nothing else does.
-
-no_llvm_ptr_aliasing = 
-λ (σ : evalContext) (s : IRState) (ρ : local_env) (g : global_env),
-  ∀ (id1 : ident) (ptrv1 : addr) (id2 : ident) (ptrv2 : addr) (n1 n2 : nat) 
-    (τ τ' : typ) (v1 v2 : DSHVal),
-    nth_error σ n1 ≡ Some v1
-    → nth_error σ n2 ≡ Some v2
-      → nth_error (Γ s) n1 ≡ Some (id1, τ)
-        → nth_error (Γ s) n2 ≡ Some (id2, τ')
-          → id1 ≢ id2
-            → in_local_or_global_addr ρ g id1 ptrv1
-              → in_local_or_global_addr ρ g id2 ptrv2 → fst ptrv1 ≢ fst ptrv2
-     : evalContext → IRState → local_env → global_env → Prop
-
-          Having local_scope_modif means anything in l_loopend that
-          differs from ρ is actually bound later than s1...
-
-          Gammas are the same because the state is the same... So
-          everything is in ρ...
-
-          Do I know that everything in Gamma is bound before?
-       *)
-
-      Lemma state_invariant_local_env_swap:
-        forall σ s mH mV l1 l2 g,
-          state_invariant σ s mH (mV, (l1, g)) ->
-          state_invariant σ s mH (mV, (l2, g)).
-      Proof.
-        intros σ s mH mV l1 l2 g H.
-        destruct H.
-        split; eauto.
-        - cbn in *.
-          intros n v τ x HLUP VLUP.
-          pose proof (mem_is_inv n v τ x HLUP VLUP).
-          destruct x; cbn in *; eauto.
-          destruct v; cbn in *.
-          + 
-      Qed.
-
-      pose proof state_invariant_local_env_swap.
-      specialize (H1 σ s1 m_loopend mV_loopend ρ l_loopend g).
-      eapply H1.
-    }
-      solve_state_invariant.
-    solve_state_invariant.
-    admit. (* solve_state_invariant. *)
-
-    Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incBlockNamed; [eassumption | solve_state_invariant] : SolveStateInv.
-    solve_gamma_safe.
-
-    (* TODO: Should look into automating this. In particular we need
-    to fix the hint DB for eauto which can loop indefinitely. *)
-    eapply no_failure_helix_bind_continuation in NOFAIL; [eauto|eassumption].
+  { eapply genNExpr_correct; [eauto|solve_state_invariant|solve_gamma_safe|eauto].
   }
 
   intros [[m_xoff xoff_res] |] [mV_xoff [l_xoff [g_xoff []]]] PostXoff RetXoffNExp RetXoffCode; [|inversion PostXoff].
@@ -516,25 +423,13 @@ no_llvm_ptr_aliasing =
   pose proof (Correctness_NExpr.is_almost_pure PostXoffNExpr) as [MHPURE [MVPURE GPURE]]; subst.
   vred; hred; vred.
 
-  Ltac solve_no_failure_helix :=
-    first [ eassumption
-          | eapply no_failure_helix_bind_prefix; solve_no_failure_helix
-          ].
+  eapply no_failure_helix_bind_continuation in NOFAIL; [eauto|eassumption].
+  pose proof NOFAIL as NOFAIL_yoff.
+  eapply no_failure_helix_bind_prefix in NOFAIL_yoff.
 
   (* yoff *)
   eapply eutt_clo_bind_returns.
-  { eapply genNExpr_correct.
-    eauto.
-    admit. (* solve_state_invariant. *)
-    solve_gamma_safe.
-    cbn.
-    solve_local_count.
-
-    (* TODO: Should look into automating this. In particular we need
-    to fix the hint DB for eauto which can loop indefinitely. *)
-    eapply no_failure_helix_bind_continuation in NOFAIL; [|eassumption].
-    eapply no_failure_helix_bind_continuation in NOFAIL; [|eassumption].
-    eauto.
+  { eapply genNExpr_correct; [eauto|solve_state_invariant|solve_gamma_safe|eauto].
   }
 
   intros [[m_yoff yoff_res] |] [mV_yoff [l_yoff [g_yoff []]]] PostYoff RetYoffNExp RetYoffCode; [|inversion PostYoff].
@@ -543,25 +438,20 @@ no_llvm_ptr_aliasing =
 
   hred.
 
-  (* TODO: clean this up? *)
+  eapply no_failure_helix_bind_continuation in NOFAIL; [eauto|eassumption].
   pose proof NOFAIL as NOFAIL_Assert.
-  eapply no_failure_helix_bind_continuation in NOFAIL_Assert; [|eassumption].
-  eapply no_failure_helix_bind_continuation in NOFAIL_Assert; [|eassumption].
-  eapply no_failure_helix_bind_continuation in NOFAIL_Assert; [|eassumption].
-  pose proof NOFAIL_Assert as NOFAIL_MLUP_xoff.
   eapply no_failure_helix_bind_prefix in NOFAIL_Assert.
 
   (* TODO: I feel like I should be able to automate all of this no failure stuff. *)
   break_match_goal; break_match_hyp.
   { exfalso; eapply failure_helix_throw; eassumption. }
-  { rewrite bind_ret_l in NOFAIL_MLUP_xoff; eapply no_failure_helix_bind_prefix in NOFAIL_MLUP_xoff;
+  { rewrite bind_ret_l in NOFAIL; eapply no_failure_helix_bind_prefix in NOFAIL;
     exfalso; eapply failure_helix_throw; eassumption. }
-  { eapply no_failure_helix_bind_prefix in NOFAIL_MLUP_xoff;
+  { eapply no_failure_helix_bind_prefix in NOFAIL;
     exfalso; eapply failure_helix_throw; eassumption. }
 
   hred.
-  repeat rewrite bind_ret_l in NOFAIL_MLUP_xoff.
-  rename NOFAIL_MLUP_xoff into NOFAIL_Power.
+  repeat rewrite bind_ret_l in NOFAIL.
 
   unfold assert_NT_lt, assert_true_to_err in Heqs1.
   break_if; inv Heqs1. rename Heqb2 into LT_yoff.
@@ -622,8 +512,21 @@ no_llvm_ptr_aliasing =
       rewrite repr_of_nat_to_nat.
       eapply PostXoffNExpr.
 
-      admit. (* solve_local_scope_preserved. *)
-      admit. (* solve_gamma_preserved. *)
+      { (* TODO: wrap this into solve_local_scope_preserved? *)
+        destruct PostYoffNExpr.
+        cbn in extends.
+        cbn in Mono_IRState.
+        destruct Mono_IRState.
+        - eapply local_scope_preserve_modif in extends; eauto.
+        - subst. solve_local_scope_preserved.
+      }
+
+      { (* TODO: wrap this into solve_gamma_preserved? *)
+        destruct PostYoffNExpr.
+        cbn in extends.
+        cbn in Mono_IRState.
+        destruct Mono_IRState; solve_gamma_preserved.
+      }
     }
 
     (* TODO: move all of this *)
@@ -701,8 +604,22 @@ no_llvm_ptr_aliasing =
       rewrite repr_of_nat_to_nat.
       eapply PostYoffNExpr.
 
-      admit. (* solve_local_scope_preserved. *)
-      admit. (* solve_gamma_preserved. *)
+      { unfold local_scope_preserved.
+        intros id1 H.
+        rewrite alist_find_neq.
+        rewrite alist_find_neq.
+        reflexivity.
+        { eapply state_bound_between_disjoint_neq; eauto.
+          2: solve_lid_bound_between.
+          apply incLocalNamed_count_gen_injective.
+        }
+        { eapply state_bound_between_disjoint_neq; eauto.
+          2: solve_lid_bound_between.
+          apply incLocalNamed_count_gen_injective.
+        }
+      }
+
+      solve_gamma_preserved.
     }
 
     { typ_to_dtyp_simplify.
@@ -789,7 +706,8 @@ no_llvm_ptr_aliasing =
 
     rename x into mV_init.
     destruct H as [WRITE_INIT STORE_INIT].
-    cbn in *.
+    cbn in STORE_INIT.
+    cbn.
     rewrite STORE_INIT.
 
     vred.
@@ -799,17 +717,17 @@ no_llvm_ptr_aliasing =
     cbn in PostLoopEndNExprCorrect.
 
     epose proof (denote_exp_i64 _ t_loopend) as T_LOOPEND_EUTT.
-    assert (eutt Logic.eq (interp_cfg (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I (Npos 64))) (EXP_Integer (Integers.Int64.intval t_loopend)))) g_yoff ρ mV_yoff)
+    assert (eutt Logic.eq (interp_cfg (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I (Npos 64))) (EXP_Integer (Integers.Int64.intval t_loopend)))) g_yoff l_loopend mV_yoff)
                    (interp_cfg
                       (translate exp_E_to_instr_E
                                  (denote_exp (Some (DTYPE_I (Npos 64)))
-                                             (convert_typ [] loop_end_exp))) g_yoff ρ mV_yoff)) as EUTT_INT.
+                                             (convert_typ [] loop_end_exp))) g_yoff l_loopend mV_yoff)) as EUTT_INT.
     rewrite T_LOOPEND_EUTT.
     rewrite PostLoopEndNExprCorrect.
     reflexivity.
 
-    admit. (* solve_local_scope_preserved. *)
-    admit. (* solve_gamma_preserved. *)
+    solve_local_scope_preserved.
+    solve_gamma_preserved.
 
     specialize (LOOPTFOR (MInt64asNT.to_nat t_loopend)).
     forward LOOPTFOR.
@@ -818,8 +736,8 @@ no_llvm_ptr_aliasing =
       rewrite Znat.Z2Nat.id; [|apply Int64_intval_pos].
 
       (* ** WARNING ** *)
-      (* TODO: this isn't actually true because e1 is different than
-         EXP_Integer n, but this should be eutt *)
+      (* TODO: this isn't actually true because loop_end_exp is different than
+         t_loopend, but this should be eutt *)
       admit.
     }.
 
@@ -873,6 +791,7 @@ no_llvm_ptr_aliasing =
 
         unfold mem_lookup_err.
         unfold trywith.
+
         break_match_goal; [|admit]. (* Failure should be caught by NOFAIL *)
 
         cbn.
