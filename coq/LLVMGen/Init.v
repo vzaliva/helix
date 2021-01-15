@@ -119,27 +119,49 @@ Proof.
       congruence.
 Qed.
 
-Lemma rev_firstn_skipn
+Lemma rev_firstn_len
+      {A : Type}
+      (n : nat)
+      (l : list A)
+  :
+    length (rev_firstn n l) ≡ length l.
+Proof.
+  unfold rev_firstn.
+  now rewrite ListUtil.length_app,
+              rev_length,
+              <-ListUtil.length_app,
+              firstn_skipn.
+Qed.
+
+Lemma rev_firstn_Γ_len
+      (n : nat)
+      (st : IRState)
+  :
+    length (Γ (rev_firstn_Γ n st)) ≡ length (Γ st).
+Proof.
+  unfold rev_firstn_Γ.
+  destruct st; cbn.
+  apply rev_firstn_len.
+Qed.
+
+Lemma rev_firstn_inj
       {A : Type}
       (n : nat)
       (l1 l2 : list A)
   :
-    rev (firstn n l1) ++ skipn n l1 ≡ rev (firstn n l2) ++ skipn n l2 →
+    rev_firstn n l1 ≡ rev_firstn n l2 →
     l1 ≡ l2.
 Proof.
   intros H.
 
-  assert (L : length (rev (firstn n l1) ++ skipn n l1) ≡
-              length (rev (firstn n l2) ++ skipn n l2))
+  assert (L : length (rev_firstn n l1) ≡ length (rev_firstn n l2))
     by now f_equal.
-  rewrite !ListUtil.length_app in L.
-  rewrite !rev_length in L.
-  rewrite <-!ListUtil.length_app in L.
-  rewrite !firstn_skipn in L.
+  rewrite !rev_firstn_len in L.
     
   destruct (le_lt_dec (length l1) n) as [L1|L1];
     destruct (le_lt_dec (length l2) n) as [L2|L2];
     try lia.
+  unfold rev_firstn in *.
   all: repeat try rewrite firstn_all2 in H by assumption.
   all: repeat try rewrite skipn_all2 in H by assumption.
   -
@@ -168,8 +190,104 @@ Proof.
   destruct st1, st2.
   cbn in *.
   f_equal; try assumption.
-  apply rev_firstn_skipn in H4.
-  assumption.
+  eapply rev_firstn_inj.
+  eassumption.
+Qed.
+
+Lemma rev_firstn_involutive
+      {A : Type}
+      (n : nat)
+      (l : list A)
+  :
+    rev_firstn n (rev_firstn n l) ≡ l.
+Proof.
+  unfold rev_firstn.
+  destruct (le_lt_dec (length l) n) as [L|L].
+  -
+    rewrite firstn_app.
+    rewrite !skipn_all2 by assumption.
+    rewrite !firstn_nil, !app_nil_r.
+    rewrite !skipn_all2
+      by (rewrite rev_length; apply firstn_le_length).
+    rewrite firstn_all2
+      by (rewrite rev_length; apply firstn_le_length).
+    rewrite rev_involutive.
+    rewrite firstn_all2 by assumption.
+    now apply app_nil_r.
+  -
+    rewrite firstn_app, skipn_app.
+    rewrite rev_length, firstn_length_le by lia.
+    rewrite Nat.sub_diag; cbn; rewrite app_nil_r.
+    rewrite skipn_all2
+      by now rewrite rev_length, firstn_length_le by lia.
+    rewrite app_nil_l.
+    rewrite firstn_rev.
+    rewrite rev_involutive.
+    replace (Datatypes.length (firstn n l) - n)
+      with 0
+      by (rewrite firstn_length_le; lia).
+    rewrite skipn_O.
+    apply firstn_skipn.
+Qed.
+
+Lemma rev_firstn_Γ_involutive
+      (n : nat)
+      (st : IRState)
+  :
+    rev_firstn_Γ n (rev_firstn_Γ n st) ≡ st.
+Proof.
+  unfold rev_firstn_Γ.
+  cbn.
+  rewrite rev_firstn_involutive.
+  destruct st; reflexivity.
+Qed.
+
+Lemma skipn_rev_firstn
+      {A : Type}
+      (n : nat)
+      (l : list A)
+  :
+    skipn n (rev_firstn n l) ≡ skipn n l.
+Proof.
+  unfold rev_firstn.
+  rewrite skipn_app.
+  rewrite rev_length.
+  rewrite skipn_all2
+    by (rewrite rev_length; apply firstn_le_length).
+  rewrite app_nil_l.
+  destruct (le_lt_dec (length l) n) as [L|L].
+  -
+    rewrite !skipn_all2; try congruence.
+    rewrite firstn_length, skipn_length.
+    lia.
+  -
+    rewrite firstn_length.
+    replace (n - min n (length l)) with 0 by lia.
+    now rewrite skipn_O.
+Qed.
+
+Lemma firstn_rev_firstn
+      {A : Type}
+      (n : nat)
+      (l : list A)
+  :
+    firstn n (rev_firstn n l) ≡ rev (firstn n l).
+Proof.
+  unfold rev_firstn.
+  rewrite firstn_app.
+  rewrite rev_length.
+  rewrite firstn_all2
+    by (rewrite rev_length; apply firstn_le_length).
+  destruct (le_lt_dec (length l) n) as [L|L].
+  -
+    rewrite !skipn_all2; try congruence.
+    rewrite firstn_nil.
+    now rewrite app_nil_r.
+  -
+    rewrite firstn_length.
+    replace (n - min n (length l)) with 0 by lia.
+    rewrite firstn_O.
+    now rewrite app_nil_r.
 Qed.
 
 Lemma initIRGlobals_inl
@@ -188,11 +306,10 @@ Proof.
   split; intros C; inv C.
 Qed.
 
-Lemma initIRGlobals_inr
+Lemma initIRGlobals_inr'
       (data : list binary64)
       (globals : list (string * DSHType))
       (st st' : IRState)
-      (s : string)
       w
   :
     initIRGlobals' data globals st ≡ inr (st', w)
@@ -212,12 +329,29 @@ Proof.
     intros.
     clear - H.
     invc H.
-    apply rev_firstn_skipn in H4.
+    apply rev_firstn_inj in H4.
     destruct i, st'; cbn in *.
     repeat f_equal; assumption.
 Qed.
 
-(* ZX TODO: similar without ' *)
+Lemma initIRGlobals_inr
+      (data : list binary64)
+      (globals : list (string * DSHType))
+      (st st' : IRState)
+      w
+  :
+    initIRGlobals' data globals st ≡ inr (rev_firstn_Γ (length globals) st', w)
+    <->
+    initIRGlobals data globals st ≡ inr (st', w).
+Proof.
+  remember (rev_firstn_Γ (length globals) st') as x.
+  replace st' with (rev_firstn_Γ (length globals)
+                                 (rev_firstn_Γ (length globals) st')).
+  subst x.
+  apply initIRGlobals_inr'.
+  apply rev_firstn_Γ_involutive.
+Qed.
+
 Fact initIRGlobals_cons_head_uniq' :
   ∀ (a : string * DSHType) (globals : list (string * DSHType))
     (data : list binary64)
@@ -251,8 +385,21 @@ Proof.
     congruence.
 Qed.
 
-(* ZX TODO: similar without ' *)
-(* If [initIRGlobals] suceeds, the names of variables in [globals] were unique *)
+Fact initIRGlobals_cons_head_uniq :
+  ∀ (a : string * DSHType) (globals : list (string * DSHType))
+    (data : list binary64)
+    (st: IRState)
+    {res},
+    initIRGlobals data (a :: globals) st ≡ inr res ->
+    forall (j : nat) (n : string) (v : DSHType),
+      (nth_error globals j ≡ Some (n, v) /\ n ≡ fst a) → False.
+Proof.
+  intros.
+  unfold initIRGlobals in H.
+  break_match; try inl_inr.
+  eapply initIRGlobals_cons_head_uniq'; eassumption.
+Qed.
+
 Lemma initIRGlobals_names_unique' {globals data st res}:
   initIRGlobals' data globals st ≡ inr res → list_uniq fst globals.
 Proof.
@@ -282,6 +429,17 @@ Proof.
       intros C.
       destruct C as (j & [n v] & C); cbn in C.
       eapply initIRGlobals_cons_head_uniq'; eauto.
+Qed.
+
+
+(* If [initIRGlobals] suceeds, the names of variables in [globals] were unique *)
+Lemma initIRGlobals_names_unique {globals data st res}:
+  initIRGlobals data globals st ≡ inr res → list_uniq fst globals.
+Proof.
+  intros.
+  destruct res.
+  eapply initIRGlobals_names_unique', initIRGlobals_inr.
+  eassumption.
 Qed.
 
 (* Note: this could not be proben for arbitrary [chk] function,
@@ -710,7 +868,6 @@ Proof.
 Qed.
 Opaque resolve_PVar.
 
-(* ZX TODO: similar without ' *)
 Lemma initIRGlobals_Γ_len'
       (globals : list (string * DSHType))
       (d d' : list binary64)
@@ -718,8 +875,8 @@ Lemma initIRGlobals_Γ_len'
       (gdecls : list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ))))
   :
     initIRGlobals' d globals s ≡ inr (s', (d', gdecls)) →
-    List.length (Γ s') ≡
-    List.length globals + List.length (Γ s).
+    length (Γ s') ≡
+    length globals + length (Γ s).
 Proof.
   intros.
   dependent induction globals.
@@ -746,6 +903,23 @@ Proof.
     lia.
 Qed.
 
+Lemma initIRGlobals_Γ_len
+      (globals : list (string * DSHType))
+      (d d' : list binary64)
+      (s s': IRState)
+      (gdecls : list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ))))
+  :
+    initIRGlobals d globals s ≡ inr (s', (d', gdecls)) →
+    length (Γ s') ≡
+    length globals + length (Γ s).
+Proof.
+  intros.
+  rewrite <-rev_firstn_Γ_len with (n:=length globals) (st:=s').
+  eapply initIRGlobals_Γ_len'.
+  apply initIRGlobals_inr in H.
+  eassumption.
+Qed.
+  
 Lemma split_hd_len {A : Type} (l l1 l2 : list A) (n : nat) :
   ListUtil.split l n ≡ Some (l1, l2) -> length l1 ≡ n.
 Proof.
@@ -1344,7 +1518,6 @@ Definition IR_of_global (g : string * DSHType) :=
   let '(nm, t) := g in
   (ID_Global (Name nm), TYPE_Pointer (getIRType t)).
 
-(* ZX TODO: similar without ' *)
 Lemma initIRGlobals_Γ_preserved'
       (globals : list (string * DSHType))
       (data0 data1 : list binary64)
@@ -1383,7 +1556,29 @@ Proof.
     assumption.
 Qed.
 
-(* ZX TODO: similar without ' *)
+Lemma Γ_rev_firstn_Γ (n : nat) (st : IRState) :
+  Γ (rev_firstn_Γ n st) ≡ rev_firstn n (Γ st).
+Proof.
+  now compute.
+Qed.
+
+Lemma initIRGlobals_Γ_preserved
+      (globals : list (string * DSHType))
+      (data0 data1 : list binary64)
+      (s0 s1 : IRState)
+      ginit
+  :
+    initIRGlobals data0 globals s0 ≡ inr (s1, (data1, ginit)) ->
+    skipn (length globals) (Γ s1) ≡ Γ s0.
+Proof.
+  intros.
+  apply initIRGlobals_inr in H.
+  eapply initIRGlobals_Γ_preserved' in H.
+  rewrite Γ_rev_firstn_Γ in H.
+  rewrite skipn_rev_firstn in H.
+  assumption.
+Qed.
+
 Lemma initIRGlobals_Γ_appended'
       (globals : list (string * DSHType))
       (data0 data1 : list binary64)
@@ -1441,7 +1636,26 @@ Proof.
     reflexivity.
 Qed.
 
-(* ZX TODO: similar without ' *)
+Lemma initIRGlobals_Γ_appended
+      (globals : list (string * DSHType))
+      (data0 data1 : list binary64)
+      (s0 s1 : IRState)
+      ginit
+  :
+    initIRGlobals data0 globals s0 ≡ inr (s1, (data1, ginit)) ->
+    firstn (length globals) (Γ s1) ≡
+    map IR_of_global globals.
+Proof.
+  intros.
+  apply initIRGlobals_inr in H.
+  eapply initIRGlobals_Γ_appended' in H.
+  rewrite Γ_rev_firstn_Γ in H.
+  rewrite firstn_rev_firstn in H.
+  rewrite map_rev in H.
+  apply rev_inj in H.
+  assumption.
+Qed.
+
 Lemma initIRGlobals_Γ'
       (globals : list (string * DSHType))
       (data0 data1 : list binary64)
@@ -1455,6 +1669,23 @@ Proof.
   rewrite <-(firstn_skipn (length globals) (Γ s1)).
   erewrite initIRGlobals_Γ_appended' by eassumption.
   erewrite initIRGlobals_Γ_preserved' by eassumption.
+  reflexivity.
+Qed.
+
+Lemma initIRGlobals_Γ
+      (globals : list (string * DSHType))
+      (data0 data1 : list binary64)
+      (s0 s1 : IRState)
+      ginit
+  :
+    initIRGlobals data0 globals s0 ≡ inr (s1, (data1, ginit)) ->
+    Γ s1 ≡ map IR_of_global globals ++ (Γ s0).
+Proof.
+  intros.
+  intros.
+  rewrite <-(firstn_skipn (length globals) (Γ s1)).
+  erewrite initIRGlobals_Γ_appended by eassumption.
+  erewrite initIRGlobals_Γ_preserved by eassumption.
   reflexivity.
 Qed.
 
