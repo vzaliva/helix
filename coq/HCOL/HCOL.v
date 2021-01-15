@@ -414,3 +414,6 @@ Section WithCarrierA.
   End HCOL_Operator_Lemmas.
 
 End WithCarrierA.
+
+(* re-declare outside Section *)
+Ltac HOperator_reflexivity := eapply HOperator_functional_extensionality; reflexivity.

@@ -398,7 +398,7 @@ Section SigmaHCOL_rewriting.
         {f: CarrierA -> CarrierA}
         `{f_mor: !Proper ((=) ==> (=)) f}
         {P: CarrierA -> Prop}
-        (F: @SHOperator fm m n svalue)
+        (F: @SHOperator _ fm m n svalue)
     :
       (forall x, P (f x)) ->
       op_Vforall_P fm (liftRthetaP P)
@@ -517,6 +517,7 @@ Section SigmaHCOL_rewriting.
      *)
     match goal with
     | |- context [(SHFamilyOperatorCompose _ ?f _)] =>
+      idtac f
       match f with
       | (fun jf => UnSafeCast (?torewrite ⊚ ?rest )) =>
         setoid_replace f with (fun (jf:FinNat 2) => UnSafeCast rest)
