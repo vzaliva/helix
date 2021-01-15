@@ -816,11 +816,17 @@ Proof.
         2: {
           apply denote_exp_LR.
 
-          (* TODO: probably need something in the loop invariant? *)
           cbn.
           erewrite <- local_scope_modif_external.
-          2: { eapply local_scope_modif_trans'. eapply LINV_LSM. admit. (* Should be fine... *) }
-          2: { intros CONTRA. admit. (* Seems fine... *) }
+          2: { eapply local_scope_modif_trans'. eapply LINV_LSM. solve_local_scope_modif. }
+          2: { intros CONTRA.
+               eapply state_bound_between_id_separate.
+               apply incLocalNamed_count_gen_injective.
+               2: eapply CONTRA.
+               clear CONTRA.
+               solve_lid_bound_between.
+               solve_local_count.
+          }
 
           apply alist_find_add_eq.
         }
