@@ -278,6 +278,15 @@ Proof.
   cbn* in *.
   destruct u.
   simp; try_abs.
+
+  assert (incLocalNamed "Power_i" i5
+                        ≡ inr
+                        ({|
+                            block_count := block_count i5;
+                            local_count := S (local_count i5);
+                            void_count := void_count i5;
+                            Γ := Γ i5 |}, Name ("Power_i" @@ string_of_nat (local_count i5)))) as LC_Gen by reflexivity.
+
   repeat apply no_failure_Ret in NOFAIL.
   do 2 (apply no_failure_helix_LU in NOFAIL; destruct NOFAIL as (? & NOFAIL & ?); cbn in NOFAIL).
 
@@ -352,12 +361,12 @@ Proof.
   (* Substitute blocks *)
   rewrite INIT.
 
-  rename e into xoff_exp.
-  rename e0 into yoff_exp.
-  rename e1 into loop_end_exp.
-  rename c into xoff_code.
-  rename c0 into yoff_code.
-  rename c1 into loop_end_code.
+  rename e0 into xoff_exp.
+  rename e1 into yoff_exp.
+  rename e into loop_end_exp.
+  rename c0 into xoff_code.
+  rename c1 into yoff_code.
+  rename c into loop_end_code.
 
   rename n0 into xoff_nexpr.
   rename n1 into yoff_nexpr.
@@ -381,79 +390,48 @@ Proof.
      with denoteNExpr σ loop_end_nexpr.
    *)
 
-
-  assert (eutt Logic.eq
-               (interp_cfg (denote_code (convert_typ [] (xoff_code ++ yoff_code ++ loop_end_code)%list)) g ρ memV)
-               (interp_cfg (denote_code (convert_typ [] (loop_end_code ++ xoff_code ++ yoff_code)%list)) g ρ memV)) as COMMUTE_INIT.
-  { admit.
-  }
-
-  repeat rewrite app_assoc.
-  replace ((xoff_code ++ yoff_code) ++ loop_end_code)%list with (xoff_code ++ yoff_code ++ loop_end_code)%list by apply app_assoc.
-
-  rewrite convert_typ_code_app.
-  rewrite denote_code_app.
-
-  (* TODO: this is a complete lie *)
-  replace (xoff_code ++ yoff_code ++ loop_end_code)%list with (loop_end_code ++ xoff_code ++ yoff_code)%list by admit.
-
   repeat rewrite convert_typ_code_app.
   repeat setoid_rewrite denote_code_app.
 
   vstep.
   vred.
 
-  
+
+  Set Nested Proofs Allowed.
+  (* Lemma genNExpr_state_invariant : *)
+  (*   forall nexp memH memV l g σ s1 s2 e c, *)
+  (*     state_invariant σ s1 memH (memV, (l, g)) -> *)
+  (*     Gamma_safe σ s1 s2 -> *)
+  (*     genNExpr nexp s1 ≡ inr (s2, (e, c)) -> *)
+  (*     state_invariant σ s2 memH (memV, (l, g)). *)
+  (* Proof. *)
+  (*   induction nexp; *)
+  (*     intros memH memV l g σ s1 s2 e c SINV GAM GEN; *)
+  (*     first [solve [cbn in GEN; simp; *)
+  (*                   unfold ErrorWithState.option2errS in *; break_match; *)
+  (*                   inv Heqs; solve_state_invariant] *)
+  (*           | solve [cbn in GEN; inv GEN; solve_state_invariant] *)
+  (*           | solve [cbn in GEN; repeat break_match; inv GEN; *)
+  (*                    pose proof Heqs as TMP; *)
+  (*                    eapply IHnexp1 in TMP; [|solve_state_invariant|solve_gamma_safe]; *)
+  (*                    eapply IHnexp2 in Heqs0; [|solve_state_invariant|solve_gamma_safe]; *)
+  (*                    solve_state_invariant] *)
+  (*           ]. *)
+  (* Qed. *)
+
+  (* (* TODO: better automate this? *) *)
+  (* pose proof Heqs3 as SINV_xoff. *)
+  (* pose proof Heqs4 as SINV_yoff. *)
+  (* pose proof Heqs9 as SINV_loop_end. *)
+
+  (* (* TODO: finnicky ordering here *) *)
+  (* eapply genNExpr_state_invariant in SINV_xoff; [|solve_state_invariant|solve_gamma_safe].  *)
+  (* eapply genNExpr_state_invariant in SINV_yoff; [|solve_state_invariant|solve_gamma_safe]. *)
+  (* eapply genNExpr_state_invariant in SINV_loop_end; [|solve_state_invariant|solve_gamma_safe].   *)
 
   (* loop_end *)
   eapply eutt_clo_bind_returns.
-  { eapply genNExpr_correct; eauto.
-    Set Nested Proofs Allowed.
-    Lemma genNExpr_state_invariant :
-      forall nexp memH memV l g σ s1 s2 e c,
-        state_invariant σ s1 memH (memV, (l, g)) ->
-        Gamma_safe σ s1 s2 ->
-        genNExpr nexp s1 ≡ inr (s2, (e, c)) ->
-        state_invariant σ s2 memH (memV, (l, g)).
-    Proof.
-      induction nexp;
-        intros memH memV l g σ s1 s2 e c SINV GAM GEN;
-        first [solve [cbn in GEN; simp;
-                      unfold ErrorWithState.option2errS in *; break_match;
-                      inv Heqs; solve_state_invariant]
-              | solve [cbn in GEN; inv GEN; solve_state_invariant]
-              | solve [cbn in GEN; repeat break_match; inv GEN;
-                       pose proof Heqs as TMP;
-                       eapply IHnexp1 in TMP; [|solve_state_invariant|solve_gamma_safe];
-                       eapply IHnexp2 in Heqs0; [|solve_state_invariant|solve_gamma_safe];
-                       solve_state_invariant]
-              ].
-    Qed.
-
-    pose proof Heqs3 as SINV_xoff.
-    pose proof Heqs4 as SINV_yoff.
-    pose proof Heqs9 as SINV_loop_end.
-    2: solve_gamma_safe.
-    eapply genNExpr_state_invariant in SINV_xoff; [|solve_state_invariant|solve_gamma_safe].
-    eapply genNExpr_state_invariant in SINV_yoff; [|solve_state_invariant|solve_gamma_safe].
-    eapply genNExpr_state_invariant in SINV_loop_end; [|solve_state_invariant|solve_gamma_safe].
-    solve_state_invariant.
-
-    solve [solve_state_invariant].
-    solve_state_invariant.
-    solve_gamma_safe.
-    solve_gamma_safe.
-    admit.
-    solve_gamma_safe.
-    solve_gamma_safe.
-    { eapply Gamma_safe_shrink; eauto; try solve_gamma; cbn; solve_local_count.
-    }
-    solve [solve_gamma_safe].
-
-
-    admit. (* solve_state_invariant. *)
-    
-    solve_gamma_safe.
+  { eapply genNExpr_correct; [eauto|solve_state_invariant|solve_gamma_safe|eauto].
   }
 
   intros [[m_loopend t_loopend] |] [mV_loopend [l_loopend [g_loopend []]]] PostLoopEnd RetLoopNExp RetLoopCode; [|inversion PostLoopEnd].
@@ -465,11 +443,61 @@ Proof.
   eapply eutt_clo_bind_returns.
   { eapply genNExpr_correct.
     eauto.
+
     assert (state_invariant σ i5 m_loopend (mV_loopend, (l_loopend, g_loopend))).
     { eapply state_invariant_incBlockNamed. eauto.
       destruct PostLoopEndNExpr.
       cbn in is_almost_pure.
       cbn in extends.
+
+      (* Have ρ in the context... Need to know about l_loopend... *)
+      (* What matters in the state_invariant for local_env?
+
+         memory_invariant cares about the local env, and
+         no_llvm_ptr_aliasing cares about the local
+         environment... Nothing else does.
+
+no_llvm_ptr_aliasing = 
+λ (σ : evalContext) (s : IRState) (ρ : local_env) (g : global_env),
+  ∀ (id1 : ident) (ptrv1 : addr) (id2 : ident) (ptrv2 : addr) (n1 n2 : nat) 
+    (τ τ' : typ) (v1 v2 : DSHVal),
+    nth_error σ n1 ≡ Some v1
+    → nth_error σ n2 ≡ Some v2
+      → nth_error (Γ s) n1 ≡ Some (id1, τ)
+        → nth_error (Γ s) n2 ≡ Some (id2, τ')
+          → id1 ≢ id2
+            → in_local_or_global_addr ρ g id1 ptrv1
+              → in_local_or_global_addr ρ g id2 ptrv2 → fst ptrv1 ≢ fst ptrv2
+     : evalContext → IRState → local_env → global_env → Prop
+
+          Having local_scope_modif means anything in l_loopend that
+          differs from ρ is actually bound later than s1...
+
+          Gammas are the same because the state is the same... So
+          everything is in ρ...
+
+          Do I know that everything in Gamma is bound before?
+       *)
+
+      Lemma state_invariant_local_env_swap:
+        forall σ s mH mV l1 l2 g,
+          state_invariant σ s mH (mV, (l1, g)) ->
+          state_invariant σ s mH (mV, (l2, g)).
+      Proof.
+        intros σ s mH mV l1 l2 g H.
+        destruct H.
+        split; eauto.
+        - cbn in *.
+          intros n v τ x HLUP VLUP.
+          pose proof (mem_is_inv n v τ x HLUP VLUP).
+          destruct x; cbn in *; eauto.
+          destruct v; cbn in *.
+          + 
+      Qed.
+
+      pose proof state_invariant_local_env_swap.
+      specialize (H1 σ s1 m_loopend mV_loopend ρ l_loopend g).
+      eapply H1.
     }
       solve_state_invariant.
     solve_state_invariant.

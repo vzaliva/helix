@@ -804,15 +804,15 @@ Definition genPower
     let xptyp := TYPE_Pointer xtyp in
     let ytyp := getIRType (DSHPtr o) in
     let yptyp := TYPE_Pointer ytyp in
+    '(nexp, ncode) <- genNExpr n ;;
     '(src_nexpr, src_nexpcode) <- genNExpr src  ;;
     '(dst_nexpr, dst_nexpcode) <- genNExpr dst  ;;
     py <- incLocal ;;
     storeid0 <- incVoid ;;
     px <- incLocal ;;
     xv <- incLocal ;;
-    '(nexp, ncode) <- genNExpr n ;;
     let ini := genFloatV initial in
-    let init_code := src_nexpcode ++ dst_nexpcode ++ ncode ++ [
+    let init_code := ncode ++ src_nexpcode ++ dst_nexpcode ++ [
                                     (IId px,  INSTR_Op (OP_GetElementPtr
                                                           xtyp (xptyp, (EXP_Ident x))
                                                           [(IntType, EXP_Integer 0%Z);
