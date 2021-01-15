@@ -63,7 +63,6 @@ Open Scope nat_scope.
 
 Section WithCarrierA.
 
-  Context `{CAPROPS: CarrierProperties}.
   Add Ring RingA: (stdlib_ring_theory CarrierA).
 
   Import MMemoryOfCarrierA.
@@ -515,7 +514,7 @@ Section WithCarrierA.
         {i o: nat}
         {fm: Monoid RthetaFlags}
         {svalue: CarrierA}
-        (sop: @SHOperator fm i o svalue)
+        (sop: @SHOperator _ fm i o svalue)
         (mop: @MSHOperator i o)
     :=
       {
@@ -555,15 +554,15 @@ Section WithCarrierA.
       Global Instance SHCompose_SH_MSH_Operator_compat
              {svalue: CarrierA}
              {i1 o2 o3: nat}
-             (op1: @SHOperator fm o2 o3 svalue)
-             (op2: @SHOperator fm i1 o2 svalue)
+             (op1: @SHOperator _ fm o2 o3 svalue)
+             (op2: @SHOperator _ fm i1 o2 svalue)
              (compat: Included _ (in_index_set fm op1) (out_index_set fm op2))
              (mop1: @MSHOperator o2 o3)
              (mop2: @MSHOperator i1 o2)
              `{Meq1: SH_MSH_Operator_compat _ _ _ _ op1 mop1}
              `{Meq2: SH_MSH_Operator_compat _ _ _ _ op2 mop2}
-             `{facts1: SHOperator_Facts fm _ _ _ op1}
-             `{facts2: SHOperator_Facts fm _ _ _ op2}
+             `{facts1: @SHOperator_Facts _ fm _ _ _ op1}
+             `{facts2: @SHOperator_Facts _ fm _ _ _ op2}
              `{mfacts1: MSHOperator_Facts _ _ mop1}
              `{mfacts2: MSHOperator_Facts _ _ mop2}
         : SH_MSH_Operator_compat
@@ -1078,7 +1077,7 @@ Section WithCarrierA.
       Global Instance SafeCast_SH_MSH_Operator_compat
              {svalue: CarrierA}
              {i o: nat}
-             (f: @SHOperator Monoid_RthetaSafeFlags i o svalue)
+             (f: @SHOperator _ Monoid_RthetaSafeFlags i o svalue)
              (mf: @MSHOperator i o)
              `{f_mem: SH_MSH_Operator_compat _ _ _ _ f mf}
       :
@@ -1117,7 +1116,7 @@ Section WithCarrierA.
       Global Instance UnSafeCast_SH_MSH_Operator_compat
              {svalue: CarrierA}
              {i o}
-             (f: @SHOperator Monoid_RthetaFlags i o svalue)
+             (f: @SHOperator _ Monoid_RthetaFlags i o svalue)
              (mf: @MSHOperator i o)
              `{f_mem: SH_MSH_Operator_compat _ _ _ _ f mf}
         :
@@ -1159,7 +1158,7 @@ Section WithCarrierA.
              (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
              `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
         : SH_MSH_Operator_compat
-            (@SHBinOp Monoid_RthetaSafeFlags svalue o f pF)
+            (@SHBinOp _ _ Monoid_RthetaSafeFlags svalue o f pF)
             (MSHBinOp f).
       Proof.
         split.
@@ -1281,9 +1280,9 @@ Section WithCarrierA.
              {i o: nat}
              `{dot: SgOp CarrierA}
              `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
-             (op1 op2: @SHOperator Monoid_RthetaFlags i o a_zero)
+             (op1 op2: @SHOperator _ Monoid_RthetaFlags i o a_zero)
              (mop1 mop2: @MSHOperator i o)
-             `{scompat: BFixpoint a_zero dot}
+             `{scompat: @BFixpoint _ a_zero dot}
              {compat: Disjoint _
                                (out_index_set _ op1)
                                (out_index_set _ op2)}
@@ -1294,9 +1293,7 @@ Section WithCarrierA.
              `{af_mon: @MathClasses.interfaces.abstract_algebra.Monoid CarrierA CarrierAe dot a_zero}
 
         : SH_MSH_Operator_compat
-            (Apply2Union Monoid_RthetaFlags dot op1 op2
-                         (scompat:=scompat)
-            )
+            (@Apply2Union _ _ Monoid_RthetaFlags _ _ _ dot _ scompat op1 op2)
             (MApply2Union dot mop1 mop2).
       Proof.
         split.
@@ -1933,7 +1930,7 @@ Section WithCarrierA.
             {fm}
             {i o: nat}
             (x: svector fm i)
-            (xop : @SHOperator fm i o svalue)
+            (xop : @SHOperator _ fm i o svalue)
             (facts: SHOperator_Facts fm xop)
             (H: forall (j : nat) (jc : j < i), in_index_set fm xop
                                                             (mkFinNat jc) → Is_Val (Vnth x jc))
@@ -1970,7 +1967,7 @@ Section WithCarrierA.
             {fm}
             {i o: nat}
             (x: svector fm i)
-            (xop : @SHOperator fm i o svalue)
+            (xop : @SHOperator _ fm i o svalue)
             (facts: SHOperator_Facts fm xop)
             (H: forall (j : nat) (jc : j < i), in_index_set fm xop
                                                             (mkFinNat jc) → Is_Val (Vnth x jc))
@@ -3190,7 +3187,7 @@ Section WithCarrierA.
            (svalue : CarrierA)
            `{SGP : SgPred CarrierA}
            `{SPGP: !Proper ((=) ==> impl) SGP}
-           (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k svalue)
+           (op_family: @SHOperatorFamily _ Monoid_RthetaSafeFlags i o k svalue)
            (mop_family : MSHOperatorFamily)
            (Upoz: Apply_Family_Vforall_P _ (liftRthetaP SGP) op_family)
            (Meq: forall j (jc:j<k), SH_MSH_Operator_compat
@@ -3306,8 +3303,8 @@ Section WithCarrierA.
              `{SGP : SgPred CarrierA}
              `{SPGP: !Proper ((=) ==> impl) SGP}
              `{CM: @CommutativeRMonoid _ _ dot svalue SGP}
-             `{scompat: BFixpoint svalue dot} (* TODO: try to remove. Follows from CommutativeRMonoid *)
-             (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k svalue)
+             `{scompat: @BFixpoint _ svalue dot} (* TODO: try to remove. Follows from CommutativeRMonoid *)
+             (op_family: @SHOperatorFamily _ Monoid_RthetaSafeFlags i o k svalue)
              (mop_family: MSHOperatorFamily)
              (Meq: forall j (jc:j<k), SH_MSH_Operator_compat
                                         (op_family (mkFinNat jc))
@@ -3474,7 +3471,7 @@ Section WithCarrierA.
             {svalue: CarrierA}
             {fm}
             {i o n m: nat}
-            {op_family: @SHOperatorFamily fm i o m svalue}
+            {op_family: @SHOperatorFamily _ fm i o m svalue}
             (op_family_facts : forall (j: nat) (jc: j < m),
                 SHOperator_Facts fm
                                  (op_family (mkFinNat jc)))
@@ -3490,7 +3487,7 @@ Section WithCarrierA.
             {svalue: CarrierA}
             {fm}
             {i o n m: nat}
-            {op_family: @SHOperatorFamily fm i o m svalue}
+            {op_family: @SHOperatorFamily _ fm i o m svalue}
             {mop_family: @MSHOperatorFamily i o m}
             {op_family_facts : forall (j: nat) (jc: j < m),
                 SHOperator_Facts fm (op_family (mkFinNat jc))}
@@ -3519,12 +3516,12 @@ Section WithCarrierA.
             (Et: t ≡ t')
             {tm: t<m}
             {tn: t'<n}
-            {op_family: @SHOperatorFamily fm i o m svalue}
+            {op_family: @SHOperatorFamily _ fm i o m svalue}
             (E: m≡n):
 
-        @get_family_op fm i o m svalue op_family t tm x
+        @get_family_op _ fm i o m svalue op_family t tm x
         ≡
-        @get_family_op fm i o n svalue
+        @get_family_op _ fm i o n svalue
                        (cast_op_family _ op_family E) t' tn x.
       Proof.
         subst.
@@ -3539,7 +3536,7 @@ Section WithCarrierA.
             (t: nat)
             {tm: t<m}
             {tn: t<n}
-            {op_family: @SHOperatorFamily fm i o m svalue}
+            {op_family: @SHOperatorFamily _ fm i o m svalue}
             {op_family_facts : forall (j: nat) (jc: j < m),
                 SHOperator_Facts fm (op_family (mkFinNat jc))}
             (E: m≡n):
@@ -3560,7 +3557,7 @@ Section WithCarrierA.
             (t: nat)
             {tm: t<m}
             {tn: t<n}
-            {op_family: @SHOperatorFamily fm i o m svalue}
+            {op_family: @SHOperatorFamily _ fm i o m svalue}
             {op_family_facts : forall (j: nat) (jc: j < m),
                 SHOperator_Facts fm (op_family (mkFinNat jc))}
             (E: m≡n):
@@ -3578,7 +3575,7 @@ Section WithCarrierA.
            {svalue: CarrierA}
            {i o n : nat}
            (d: nat)
-           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o (n+d) svalue)
+           (op_family: @SHOperatorFamily _ Monoid_RthetaFlags i o (n+d) svalue)
            (mop_family: MSHOperatorFamily)
            (Meq: forall j (jc: j < (n+d)), SH_MSH_Operator_compat
                                              (op_family (mkFinNat jc))
@@ -3587,8 +3584,8 @@ Section WithCarrierA.
            (compat : ∀ (m0 : nat) (mc : m0 < (n+d)) (n0 : nat) (nc : n0 < (n+d)),
                m0 ≢ n0
                → Disjoint (FinNat o)
-                          (@out_index_set Monoid_RthetaFlags i o _ (op_family (mkFinNat mc)))
-                          (@out_index_set Monoid_RthetaFlags i o _ (op_family (mkFinNat nc))))
+                          (@out_index_set _ Monoid_RthetaFlags i o _ (op_family (mkFinNat mc)))
+                          (@out_index_set _ Monoid_RthetaFlags i o _ (op_family (mkFinNat nc))))
 
            (m m0 m1 : mem_block)
            (l: list mem_block)
@@ -3730,7 +3727,7 @@ Section WithCarrierA.
       Fact IUnion_mem_1_step_disjoint
            {svalue: CarrierA}
            {i o n : nat}
-           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o (S n) svalue)
+           (op_family: @SHOperatorFamily _ Monoid_RthetaFlags i o (S n) svalue)
            (mop_family: MSHOperatorFamily)
            (Meq: forall j (jc: j < (S n)), SH_MSH_Operator_compat
                                              (op_family (mkFinNat jc))
@@ -3739,8 +3736,8 @@ Section WithCarrierA.
            (compat : ∀ (m0 : nat) (mc : m0 < (S n)) (n0 : nat) (nc : n0 < (S n)),
                m0 ≢ n0
                → Disjoint (FinNat o)
-                          (@out_index_set Monoid_RthetaFlags i o _ (op_family (mkFinNat mc)))
-                          (@out_index_set Monoid_RthetaFlags i o _ (op_family (mkFinNat nc))))
+                          (@out_index_set _ Monoid_RthetaFlags i o _ (op_family (mkFinNat mc)))
+                          (@out_index_set _ Monoid_RthetaFlags i o _ (op_family (mkFinNat nc))))
 
            (m m0 m1 : mem_block)
            (l: list mem_block)
@@ -3837,7 +3834,7 @@ Section WithCarrierA.
             {i o t: nat}
             (tc: t<o)
             (x: svector fm i)
-            (xop: @SHOperator fm i o svalue)
+            (xop: @SHOperator _ fm i o svalue)
             (facts: SHOperator_Facts fm xop)
             (G: forall (j : nat) (jc : j < i), in_index_set fm xop
                                                             (mkFinNat jc) → Is_Val (Vnth x jc))
@@ -3904,7 +3901,7 @@ Section WithCarrierA.
             {i o n : nat}
             (dot : CarrierA → CarrierA → CarrierA)
             (x : vector (Rtheta' _) i)
-            (op_family : @SHOperatorFamily Monoid_RthetaFlags i o n svalue)
+            (op_family : @SHOperatorFamily _ Monoid_RthetaFlags i o n svalue)
             {op_family_facts : forall (j : nat) (jc : j < n),
                 SHOperator_Facts _ (op_family (mkFinNat jc))}
             {H : ∀ (j : nat) (jc : j < i), family_in_index_set Monoid_RthetaFlags op_family
@@ -3916,9 +3913,7 @@ Section WithCarrierA.
           ≡ family_out_index_set' _ op_family.
       Proof.
         unfold Apply_Family.
-
-
-        rewrite family_in_index_set_eq in *.
+        rewrite family_in_index_set_eq in H.
         dependent induction n.
         -
           apply vector_val_index_set_Vconst_Empty.
@@ -3975,16 +3970,16 @@ Section WithCarrierA.
             (tc1: t<n+d)
 
             (dot : CarrierA → CarrierA → CarrierA)
-            (op_family : @SHOperatorFamily Monoid_RthetaFlags i o (n+d) svalue)
+            (op_family : @SHOperatorFamily _ Monoid_RthetaFlags i o (n+d) svalue)
             {op_family_facts : forall (j : nat) (jc : j < (n+d)), SHOperator_Facts Monoid_RthetaFlags
                                                                                    (op_family (mkFinNat jc))}
             (compat: ∀ (m : nat) (mc : m < (n+d)) (n0 : nat) (nc : n0 < (n+d)),
                 m ≢ n0
                 →
                 Disjoint (FinNat o)
-                         (@out_index_set _ i o svalue
+                         (@out_index_set _ _ i o svalue
                                          (op_family (mkFinNat mc)))
-                         (@out_index_set _ i o svalue
+                         (@out_index_set _ _ i o svalue
                                          (op_family (mkFinNat nc))))
 
             (x : vector (Rtheta' Monoid_RthetaFlags) i)
@@ -3992,7 +3987,7 @@ Section WithCarrierA.
 
             (V : v ≡ Apply_Family (get_family_op _ (shrink_op_family_up_n _ d op_family)) x)
 
-            (f0 : @SHOperator Monoid_RthetaFlags i o svalue)
+            (f0 : @SHOperator _ Monoid_RthetaFlags i o svalue)
             (F0 : f0 ≡ op_family (@mkFinNat (n+d) t tc1))
             {H : ∀ (j : nat) (jc : j < i), family_in_index_set Monoid_RthetaFlags op_family
                                                                (mkFinNat jc) → Is_Val (Vnth x jc)}
@@ -4006,7 +4001,7 @@ Section WithCarrierA.
                                              (Vconst
                                                 (@mkStruct Monoid_RthetaFlags svalue) o)
                                              v))
-                   (@out_index_set _ i o svalue f0).
+                   (@out_index_set _ _ i o svalue f0).
       Proof.
 
         subst v.
@@ -4129,7 +4124,7 @@ Section WithCarrierA.
           apply family_in_set_implies_members in H0.
           destruct H0 as [t [tc H0]].
           assert(tc1: t < S n) by lia.
-          apply family_in_set_includes_members with (jc:=tc1).
+          apply family_in_set_includes_members with (jc0:=tc1).
           rewrite cast_in_index_set_eq with (E0:=E) (tn:=tc).
           apply H0.
           assumption.
@@ -4141,7 +4136,7 @@ Section WithCarrierA.
              `{dot: SgOp CarrierA}
              `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
              `{af_mon: @MathClasses.interfaces.abstract_algebra.Monoid CarrierA CarrierAe dot svalue}
-             (op_family: @SHOperatorFamily Monoid_RthetaFlags i o k svalue)
+             (op_family: @SHOperatorFamily _ Monoid_RthetaFlags i o k svalue)
              (mop_family: MSHOperatorFamily)
              (Meq: forall j (jc:j<k), SH_MSH_Operator_compat
                                         (op_family (mkFinNat jc))
