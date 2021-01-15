@@ -1216,7 +1216,7 @@ Definition rev_firstn_Γ (n : nat) (st : IRState) : IRState :=
 
  
 (* [initIRGlobals], except globals are appended to the start of [Γ] in reverse *)
-Definition initIRGlobals'
+Definition initIRGlobals_rev
          (data: list binary64)
          (x: list (string * DSHType))
   : cerr (list binary64 * list (toplevel_entity typ (block typ * list (block typ))))
@@ -1235,7 +1235,7 @@ Definition initIRGlobals
          (x: list (string * DSHType))
   : cerr (list binary64 * list (toplevel_entity typ (block typ * list (block typ))))
   := fun st =>
-       match initIRGlobals' data x st with
+       match initIRGlobals_rev data x st with
        | inr (st, r) => inr (rev_firstn_Γ (length x) st, r)
        | l => l
        end.
