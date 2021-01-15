@@ -28,10 +28,7 @@ Open Scope vector_scope.
 
 Section WithCarrierA.
 
-  Context `{CarrierA : Type}.
-  Context `{CAPROPS: CarrierProperties CarrierA}.
-
-  Notation avector n := (vector CarrierA n) (only parsing).
+  Context `{CAPROPS: CarrierProperties}.
 
   (* === HCOL operators === *)
 

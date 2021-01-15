@@ -22,9 +22,7 @@ Import VectorNotations.
 Open Scope vector_scope.
 
 Section WithCarrierA.
-  Context `{CAPROPS: @CarrierProperties CarrierA CADEFS}.
-
-  Notation avector n := (vector CarrierA n) (only parsing).
+  Context `{CAPROPS: @CarrierProperties CADEFS}.
 
   (* --------- *)
 

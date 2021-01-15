@@ -24,9 +24,8 @@ Open Scope vector_scope.
 Open Scope nat_scope.
 
 Section WithCarrierA.
-  Context `{CAPROPS: @CarrierProperties CarrierA CADEFS}.
+  Context `{CAPROPS: @CarrierProperties CADEFS}.
 
-  Notation avector n := (vector CarrierA n) (only parsing).
   Add Ring RingA: (stdlib_ring_theory CarrierA).
 
   (* --------- *)

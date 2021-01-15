@@ -25,11 +25,7 @@ Import VectorNotations.
 Open Scope vector_scope.
 
 Section WithCarrierA.
-
-  Context `{CarrierA : Type}.
-  Context `{CAPROPS: CarrierProperties CarrierA}.
-
-  Notation avector n := (vector CarrierA n) (only parsing).
+  Context `{CAPROPS: CarrierProperties}.
 
   (* Templete HCOL operator which uses two HOperators to build a new HOperator *)
   Class THOperator2 {i1 o1 i2 o2 ix ox} (top: (avector i1 -> avector o1) -> (avector i2 -> avector o2) -> avector ix -> avector ox) :=
@@ -37,8 +33,8 @@ Section WithCarrierA.
 
   (* Curried Templete HCOL operator with arity 2 is HOperators *)
   Global Instance THOperator_HOperator
-         `{O1: @HOperator _ _ i1 o1 op1}
-         `{O2: @HOperator _ _ i2 o2 op2}
+         `{O1: @HOperator _ i1 o1 op1}
+         `{O2: @HOperator _ i2 o2 op2}
          `{T: @THOperator2 i1 o1 i2 o2 ix ox to}:
     HOperator (to op1 op2).
   Proof.
@@ -108,10 +104,10 @@ Section WithCarrierA.
 
   Global Instance compose_HOperator
          {i1 o2 o3}
-         `{hop1: @HOperator _ _ o2 o3 op1}
-         `{hop2: @HOperator _ _ i1 o2 op2}
+         `{hop1: @HOperator _ o2 o3 op1}
+         `{hop2: @HOperator _ i1 o2 op2}
     :
-      @HOperator _ _ _ _ (op1 ∘ op2).
+      @HOperator _ _ _ (op1 ∘ op2).
   Proof.
     intros x y E.
     unfold compose.
@@ -152,10 +148,10 @@ Section WithCarrierA.
      vector. Since Coq formalization of HCross is already dfined this way
      we just alias DirectSum to it.
    *)
-  Notation HTDirectSum := HCross.
-
-  (* Not sure if this is needed *)
-  Global Instance HTDirectSum_THOperator2 {i1 o1 i2 o2}:
-    THOperator2 (@HTDirectSum i1 o1 i2 o2) := HCross_THOperator2.
-
 End WithCarrierA.
+
+Notation HTDirectSum := HCross.
+
+(* Not sure if this is needed *)
+Global Instance HTDirectSum_THOperator2 `{CAPROPS: CarrierProperties} {i1 o1 i2 o2}:
+  THOperator2 (@HTDirectSum i1 o1 i2 o2) := HCross_THOperator2.

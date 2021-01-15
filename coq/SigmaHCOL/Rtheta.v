@@ -25,8 +25,7 @@ Local Open Scope monad_scope.
 
 Section WithCarrierA.
 
-  Context `{CarrierA : Type}.
-  Context `{CAPROPS: CarrierProperties CarrierA}.
+  Context `{CAPROPS: CarrierProperties}.
 
   (* Both safe and collision tracking flags monads share same underlying data structure *)
 
@@ -1025,9 +1024,10 @@ Section WithCarrierA.
       @Is_ValZero fm mkSZero.
     Proof.
       unfold Is_ValZero.
+      destruct CAPROPS.
       cbv.
       break_let.
-      reflexivity.
+      apply CarrierAsetoid.
     Qed.
 
     Lemma Is_ValX_mkStruct
@@ -1037,6 +1037,7 @@ Section WithCarrierA.
     Proof.
       intros x.
       unfold mkStruct, Is_ValX.
+      destruct CAPROPS.
       cbv.
       break_let.
       reflexivity.
@@ -1099,3 +1100,12 @@ Section WithCarrierA.
   Qed.
 
 End WithCarrierA.
+
+Ltac unfold_Rtheta_equiv := unfold equiv, Rtheta_equiv, Rtheta'_equiv in *.
+Ltac unfold_RStheta_equiv := unfold equiv, RStheta_equiv, Rtheta'_equiv in *.
+
+Ltac fold_Rtheta'_equiv :=
+  match goal with
+  | [ |- @evalWriter _ _ ?fm ?a = @evalWriter _ _ ?fm ?b ] =>
+    change (@evalWriter _ _ ?fm ?a = @evalWriter _ _ ?fm ?b) with (a=b)
+  end.

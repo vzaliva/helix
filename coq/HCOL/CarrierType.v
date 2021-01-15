@@ -12,8 +12,12 @@ Require Import MathClasses.orders.minmax.
 
 Require Import Helix.Util.Misc.
 
+Parameter CarrierA : Type.
+
+Notation avector n := (vector CarrierA n) (only parsing).
+
 Set Implicit Arguments.
-Class CarrierDefs (CarrierA : Type) : Type :=
+Class CarrierDefs : Type :=
   {
   (* Relations *)
   CarrierAe    :> Equiv CarrierA
@@ -32,7 +36,7 @@ Class CarrierDefs (CarrierA : Type) : Type :=
   ; CarrierAabs  :> @Abs CarrierA CarrierAe CarrierAle CarrierAz CarrierAneg
   }.
 
-Class CarrierProperties (CarrierA : Type)(CADEFS: CarrierDefs CarrierA): Prop :=
+Class CarrierProperties `{CADEFS: CarrierDefs}: Prop :=
   {
   (* Equality *)
   CarrierAsetoid :> @Setoid CarrierA CarrierAe
@@ -45,7 +49,7 @@ Class CarrierProperties (CarrierA : Type)(CADEFS: CarrierDefs CarrierA): Prop :=
   }.
 
 Section CarrierAExtraProperties.
-  Context `{CAPROPS: @CarrierProperties CarrierA CADEFS}.
+  Context `{CAPROPS: @CarrierProperties CADEFS}.
 
   Global Instance CarrierAledec: forall x y: CarrierA, Decision (x ≤ y).
   Proof.
@@ -72,7 +76,7 @@ Section CarrierAExtraProperties.
   Add Ring RingA: (stdlib_ring_theory CarrierA).
 
   Global Instance CarrierAPlus_proper:
-    Proper ((=) ==> (=) ==> (=)) plus.
+    Proper ((=) ==> (=) ==> (=)) CarrierAplus.
   Proof.
     solve_proper.
   Qed.
@@ -93,15 +97,6 @@ Section CarrierAExtraProperties.
   Proof.
     typeclasses eauto.
   Qed.
-
-  Notation avector n := (vector CarrierA n) (only parsing).
-
-  Ltac decide_CarrierA_equality E NE :=
-    let E' := fresh E in
-    let NE' := fresh NE in
-    match goal with
-    | [ |- @equiv CarrierA CarrierAe ?A ?B ] => destruct (CarrierAequivdec A B) as [E'|NE']
-    end.
 
   (* Poor man's minus *)
   Definition sub {T:Type}
@@ -150,3 +145,10 @@ Section CarrierAExtraProperties.
   Qed.
 
 End CarrierAExtraProperties.
+
+Ltac decide_CarrierA_equality E NE :=
+  let E' := fresh E in
+  let NE' := fresh NE in
+  match goal with
+  | [ |- @equiv CarrierA CarrierAe ?A ?B ] => destruct (CarrierAequivdec A B) as [E'|NE']
+  end.
