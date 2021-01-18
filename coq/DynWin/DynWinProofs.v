@@ -55,6 +55,8 @@ Require Import MathClasses.misc.decision.
 
 Section HCOL_Breakdown.
 
+  Context `{CAPROPS: CarrierProperties}.
+
   (* Initial HCOL breakdown proof *)
   Theorem DynWinHCOL:  forall (a: avector 3),
       dynwin_orig a = dynwin_HCOL a.
@@ -73,7 +75,7 @@ Section HCOL_Breakdown.
 
 End HCOL_Breakdown.
 
-Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ _ g f) (at level 40, left associativity) : type_scope.
+Local Notation "g ⊚ f" := (@SHCompose _ _ Monoid_RthetaFlags _ _ _ _ g f) (at level 40, left associativity) : type_scope.
 
 (* This tactics solves both [SHOperator_Facts] and [MSHOperator_Facts]
    as well [SH_MSH_Operator_compat].
@@ -135,6 +137,8 @@ Ltac solve_facts :=
   end.
 
 Section HCOL_to_SigmaHCOL.
+
+  Context `{CAPROPS: CarrierProperties}.
 
   (* --- HCOL -> Sigma->HCOL --- *)
 
@@ -516,8 +520,7 @@ Section SigmaHCOL_rewriting.
      But it does not (hangs forever), so we have to do some manual rewriting
      *)
     match goal with
-    | |- context [(SHFamilyOperatorCompose _ ?f _)] =>
-      idtac f
+    | |- context [(SHFamilyOperatorCompose _ ?f)] =>
       match f with
       | (fun jf => UnSafeCast (?torewrite ⊚ ?rest )) =>
         setoid_replace f with (fun (jf:FinNat 2) => UnSafeCast rest)
@@ -753,7 +756,7 @@ Section SigmaHCOL_rewriting.
   Theorem SHCOL_to_SHCOL1_Rewriting
           (a: avector 3)
     : @SHOperator_subtyping
-        _ _ _ _
+        _ _ _ _ _
         (dynwin_SHCOL1 a)
         (dynwin_SHCOL a)
         (DynWinSigmaHCOL1_Facts _)
