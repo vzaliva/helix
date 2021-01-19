@@ -872,6 +872,47 @@ Proof.
         {
           eapply genAExpr_correct.
           eauto.
+          (* { eapply state_invariant_enter_scope_DSHCType with (x := ID_Local r1) (s2:={| block_count := block_count i19; local_count := local_count i19; void_count := void_count i19; Γ := (ID_Local r2, TYPE_Double) :: Γ i19 |}); cbn; eauto. *)
+
+          (*   { intros CONTRA. *)
+          (*     destruct CONTRA. *)
+          (*     - inv H. *)
+          (*       eapply lid_bound_between_incLocal in Heqs9. *)
+          (*       eapply lid_bound_between_incLocal in Heqs13. *)
+          (*       eapply state_bound_between_id_separate. *)
+          (*       2: { eapply Heqs9. } *)
+          (*       2: { eapply Heqs13. } *)
+          (*       2: { solve_local_count. } *)
+          (*       eapply incLocalNamed_count_gen_injective. *)
+          (*     - assert (~ in_Gamma σ i19 r1). *)
+          (*       { intros CONTRA. *)
+          (*         destruct CONTRA. *)
+          (*         rename s into blahblah. *)
+          (*         admit. *)
+          (*       } *)
+          (*       admit. *)
+          (*   } *)
+          (*   admit. (* I believe this *) *)
+
+          (*   eapply state_invariant_enter_scope_DSHCType with (x := ID_Local r2) (s2:=i19); cbn; eauto. *)
+
+          (*   admit. (* Not sure how to show this right now, but should be true *) *)
+          (*   { inv LINV_HELIX_MB_NEW. *)
+          (*     apply alist_find_add_eq. *)
+          (*   } *)
+
+          (*   eapply state_invariant_same_Γ. *)
+          (*   4: { *)
+          (*     eapply state_invariant_enter_scope_DSHCType; eauto. *)
+          (*     4: { *)
+          (*       eapply state_invariant_add_fresh'; eauto. *)
+          (*       solve_lid_bound_between. *)
+          (*     } *)
+          (*   } *)
+
+            
+          (* } *)
+
           { split; cbn.
             - (* Memory invariant *)
               admit.
@@ -900,8 +941,21 @@ Proof.
 
               (* TODO: should be able to automate this *)
               do 2 (eapply evalContext_typechecks_cons; eauto).
+              apply state_invariant_WF_IRState in PostXoffSINV.
+              eapply WF_IRState_Γ; eauto.
+              solve_gamma.
+            - Lemma no_id_aliasing_cons :
+                forall σ s1 s2 id τ hv,
+                  no_id_aliasing σ s1 ->
+                  Γ s2 ≡ (id, τ) :: Γ s1 ->
+                  no_id_aliasing (hv :: σ) s2.
+              Proof.
+                intros σ s1 s2 id τ hv NOALIAS GAM.
+                unfold no_id_aliasing.
+                intros n1 n2 id0 τ0 τ' v1 v2 H H0 H1 H2.
+                rewrite GAM in *.
+              Abort.
               admit.
-            - admit.
             - admit.
             - admit.
             - admit.
@@ -931,27 +985,44 @@ Proof.
         3: {
           cbn. reflexivity.
         }
-        2: {
-          eapply denote_exp_LR.
-          destruct POSTAEXPR.
-          (* Should follow from extends. Need to solve some evars... *)
-          (*
-  extends : local_scope_modif
-              {|
-              block_count := block_count i19;
-              local_count := local_count i19;
-              void_count := void_count i19;
-              Γ := (%r2, TYPE_Double) :: (%r1, TYPE_Double) :: Γ i19 |} i20
-              ((li [r2 : ?Goal28@{r:=important}]) [r1 : ?Goal27@{r:=important}]) l_Aexpr
-           *)
-          admit. (* solve_local_lookup. *)
-        }
-        2: {
+        3: {
           (* TODO: this is the result of the AExpr being written to memory *)
           (* I can either use write_succeeds, read_write_succeeds, or write_array_lemma *)
           destruct POSTAEXPR; cbn in is_almost_pure.
           assert (mV_Aexpr ≡ mV_loop) by intuition; subst.
           apply WRITE.
+        }
+        2: {
+          eapply denote_exp_LR.
+          destruct POSTAEXPR.
+
+          cbn in extends.
+          cbn.
+
+          erewrite local_scope_modif_out.
+          4: eapply extends.
+          3: solve_lid_bound_between; cbn; solve_local_count.
+          2: cbn; solve_local_count.
+
+          erewrite local_scope_modif_out.
+          4: { eapply local_scope_modif_add'.
+               solve_lid_bound_between.
+               solve_local_scope_modif.
+          }
+          3: solve_lid_bound_between.
+          2: solve_local_count.
+
+          rewrite <- (local_scope_modif_external LINV_LSM).
+          apply alist_find_add_eq.
+          intros CONTRA.
+          match goal with
+          | H: incLocal ?s1 ≡ inr (?s2, r) |- _
+            => apply lid_bound_between_incLocal in H;
+                eapply state_bound_between_id_separate; [eapply incLocalNamed_count_gen_injective
+                                                        |apply H
+                                                        |apply CONTRA
+                                                        |solve_local_count]
+          end.
         }
 
         vred.
@@ -1039,37 +1110,6 @@ Proof.
             eapply ext_memory_trans; eauto.
             eapply WRITTEN. constructor.
           }
-
-          { (* power returns t_Aexpr *)
-            destruct POSTAEXPR. cbn in exp_correct.
-            symmetry in LINV_HELIX_MB_NEW.
-            inv LINV_HELIX_MB_NEW.
-
-            (* I know that (powerVal k σ f initial b1) is b2 *)
-            cbn.
-            rewrite interp_helix_bind.
-            eapply Returns_bind; eauto.
-            cbn.
-
-            unfold denoteBinCType.
-
-            (* This should relate to e2... which should evaluate to
-               t_Aexpr, so this is definitely on the right track...               
-             *)
-            pose proof Heqs14 as AEXP.
-            eapply genAExpr_correct in AEXP.
-
-            cbn in POSTAEXPRSINV.
-            rewrite exp_correct in AEXP.
-            rewrite AEXP.
-            
-            Unset Printing Notations.
-            rewrite AEXP.
-            rewrite <- genAExpr_correct.
-            admit.
-          }
-
-          split.
 
           split.
           { (* Helix memory extended *)
