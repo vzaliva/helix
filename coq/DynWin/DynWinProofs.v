@@ -1515,7 +1515,9 @@ Section RHCOL_to_FHCOL.
     unfold RHCOL_to_FHCOL_correctness.
     destruct dynwin_RHCOL as [errs|rhcol] eqn:R;constructor.
     cbv in R.
+    break_let.
     autorewrite with CarrierAZ1equalities in R.
+    (* TODO: fix
     inl_inr_inv.
     subst rhcol.
     Opaque Float64asCT.Float64Zero Float64asCT.Float64One.
@@ -1527,6 +1529,7 @@ Section RHCOL_to_FHCOL.
     match goal with
     | [|- RHCOL_FHCOL_rel _ _ _ ?r ?f] => remember r as rhcol; remember f as fhcol
     end.
+     *)
     (* ... proof specific to given relations here *)
     admit.
   Admitted.
