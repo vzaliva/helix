@@ -414,7 +414,7 @@ Proof.
   eapply no_failure_helix_bind_prefix in NOFAIL_xoff.
 
   (* xoff *)
-  eapply eutt_clo_bind_returns.
+   eapply eutt_clo_bind_returns.
   { eapply genNExpr_correct; [eauto|solve_state_invariant|solve_gamma_safe|eauto].
   }
 
@@ -762,6 +762,18 @@ Proof.
     (* TODO: these are just stolen and probably lies *)
     (* TODO: this happens way too soon. I need to finish GEPs *)
     (* Invariant at each iteration *)
+
+    (* TODO: move this *)
+    Fixpoint powerVal (n : nat) (σ : evalContext) (f : AExpr)
+    (yv : binary64) (xv : binary64)
+      : itree Event binary64 :=
+      match n with
+      | 0 => ret yv
+      | S n =>
+        yv' <- powerVal n σ f yv xv ;;
+        denoteBinCType σ f yv' xv
+      end.
+
     set (I := (fun (k : nat) (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
                  match mH with
                  | None => False
@@ -770,7 +782,11 @@ Proof.
                    | (mV, (ρ, g)) =>
                      state_invariant σ s2 mH stV /\
                      local_scope_modif i21 s2 (alist_add r (UVALUE_Addr dst_addr) (alist_add r0 (UVALUE_Addr src_addr) l_yoff)) ρ /\
-                     ext_memory mV_init dst_addr DTYPE_Double (UVALUE_Double initial) mV (* TODO: obviously initial is wrong here *)
+                     (* Not sure if this is the right block *)
+                     exists v,
+                       ext_memory mV_init dst_addr DTYPE_Double (UVALUE_Double v) mV /\
+                       (forall y, y ≢ (MInt64asNT.to_nat yoff_res) -> mem_lookup y mb ≡ mem_lookup y bkh_yoff) /\
+                       mem_lookup (MInt64asNT.to_nat yoff_res) mb ≡ Some v
                    end
                  end)).
 
@@ -786,9 +802,10 @@ Proof.
       forward LOOPTFOR.
       { intros g_loop l_loop mV_loop [[mH_loop mb_loop] |] k _label [HI [POWERI [POWERI_VAL RETURNS]]]; [|inv HI].
         cbn in HI.
-        destruct HI as [LINV_SINV [LINV_LSM [LINV_MEXT_NEW LINV_MEXT_OLD]]].
+        destruct HI as [LINV_SINV [LINV_LSM [v [LINV_MEXT [LINV_HELIX_MB_OLD LINV_HELIX_MB_NEW]]]]].
+        pose proof LINV_MEXT as [LINV_MEXT_NEW LINV_MEXT_OLD].
         unfold DSHPower_tfor_body.
-
+        
         unfold mem_lookup_err.
         unfold trywith.
 
@@ -840,7 +857,7 @@ Proof.
 
           (* I *think* src and dst can actually alias, which will make
           the invariant more difficult *)
-          admit.
+          apply LINV_MEXT_NEW. (* TODO: This is obviously a lie *)
         }
 
         vred.
@@ -899,6 +916,8 @@ Proof.
         hred.
         vred.
 
+        edestruct (@read_write_succeeds mV_loop dst_addr _ _ (DVALUE_Double t_Aexpr) LINV_MEXT_NEW) as [mV' WRITE]; [constructor|].
+
         erewrite denote_instr_store; eauto.
 
         2: {
@@ -929,14 +948,10 @@ Proof.
         }
         2: {
           (* TODO: this is the result of the AExpr being written to memory *)
-          destruct POSTAEXPR.
-          cbn in exp_correct.
-          cbn in is_almost_pure.
-          cbn in POSTAEXPRSINV.
-          destruct POSTAEXPRSINV.
-          cbn in mem_is_inv.
-          assert (mV_Aexpr ≡ mV_loop) by admit; subst.
-          admit. (* Write *)
+          (* I can either use write_succeeds, read_write_succeeds, or write_array_lemma *)
+          destruct POSTAEXPR; cbn in is_almost_pure.
+          assert (mV_Aexpr ≡ mV_loop) by intuition; subst.
+          apply WRITE.
         }
 
         vred.
@@ -959,8 +974,111 @@ Proof.
         split; [|split; [|split]].
         - admit.
         - exists b0. reflexivity.
-        - admit. (* I *)
-        - admit.        
+        - (* I *)
+          Opaque mem_lookup. (* TODO: HMMM *)
+          cbn.
+          split.
+          admit.
+          split.
+          admit.
+
+          (* TODO: This is the thing we need *)
+          exists t_Aexpr.
+          split.
+          { eapply write_correct in WRITE.
+            destruct WRITE as [ALLOCATED WRITTEN].
+
+            Lemma allocated_can_read :
+              forall a m τ,
+                allocated a m ->
+                exists v, read m a τ ≡ inr v.
+            Proof.
+              intros a [[cm lm] fs] τ ALLOC.
+              apply allocated_get_logical_block in ALLOC.
+              destruct ALLOC as [b GET].
+              unfold read.
+              rewrite GET.
+              destruct b.
+              cbn.
+              exists (read_in_mem_block bytes (snd a) τ). reflexivity.
+            Qed.
+
+            Lemma no_overlap_dtyp_different_blocks :
+              forall a b τ τ',
+                fst a ≢ fst b ->
+                no_overlap_dtyp a τ b τ'.
+            Proof.
+              intros a b τ τ' H.
+              unfold no_overlap_dtyp, no_overlap.
+              auto.
+            Qed.
+
+            (* ext_memory only talks in terms of reads... Does not
+            necessarily preserved what's allocated, because you might
+            not be able to read from an allocated block *)
+            Lemma ext_memory_trans :
+              forall m1 m2 m3 τ v1 v2 dst,
+                ext_memory m1 dst τ v1 m2 ->
+                ext_memory m2 dst τ v2 m3 ->
+                ext_memory m1 dst τ v2 m3.
+            Proof.
+              intros m1 m2 m3 τ v1 v2 dst [NEW1 OLD1] [NEW2 OLD2].
+              split; auto.
+
+              intros a' τ' ALLOC DISJOINT.
+
+
+              rewrite <- OLD1; eauto.
+
+              pose proof (allocated_can_read _ _ τ' ALLOC) as [v READ].
+              rewrite <- OLD1 in READ; eauto.
+              apply can_read_allocated in READ.
+              rewrite <- OLD2; eauto.
+            Qed.
+
+            eapply ext_memory_trans; eauto.
+            eapply WRITTEN. constructor.
+          }
+
+          { (* power returns t_Aexpr *)
+            destruct POSTAEXPR. cbn in exp_correct.
+            symmetry in LINV_HELIX_MB_NEW.
+            inv LINV_HELIX_MB_NEW.
+
+            (* I know that (powerVal k σ f initial b1) is b2 *)
+            cbn.
+            rewrite interp_helix_bind.
+            eapply Returns_bind; eauto.
+            cbn.
+
+            unfold denoteBinCType.
+
+            (* This should relate to e2... which should evaluate to
+               t_Aexpr, so this is definitely on the right track...               
+             *)
+            pose proof Heqs14 as AEXP.
+            eapply genAExpr_correct in AEXP.
+
+            cbn in POSTAEXPRSINV.
+            rewrite exp_correct in AEXP.
+            rewrite AEXP.
+            
+            Unset Printing Notations.
+            rewrite AEXP.
+            rewrite <- genAExpr_correct.
+            admit.
+          }
+
+          split.
+
+          split.
+          { (* Helix memory extended *)
+            intros y H.
+            rewrite mem_lookup_mem_add_neq; eauto.
+          }
+          { rewrite mem_lookup_mem_add_eq; eauto.
+          }
+        - admit.
       }
 
       (* TODO: Might want to do more forward reasoning first *)
