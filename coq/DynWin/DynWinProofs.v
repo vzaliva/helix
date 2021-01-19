@@ -118,7 +118,7 @@ Ltac solve_facts :=
          | [ |- SH_MSH_Operator_compat (IReduction _ _) _     ] => apply IReduction_SH_MSH_Operator_compat; intros
          | [ |- SH_MSH_Operator_compat (Embed _ _) _           ] => apply Embed_SH_MSH_Operator_compat
          | [ |- SH_MSH_Operator_compat (SHBinOp _ _) _        ] => apply SHBinOp_RthetaSafe_SH_MSH_Operator_compat
-         | [ |- SH_MSH_Operator_compat (IUnion _ _) _         ] => apply IUnion_SH_MSH_Operator_compat; intros
+         | [ |- SH_MSH_Operator_compat (IUnion _ _) _         ] => apply (@IUnion_SH_MSH_Operator_compat _ _); intros
          | [ |- SH_MSH_Operator_compat (Pick _ _) _          ] => apply Pick_SH_MSH_Operator_compat
          | [ |- SH_MSH_Operator_compat _ _                    ] => apply SHCompose_SH_MSH_Operator_compat
          | [ |- Monoid.MonoidLaws Monoid_RthetaFlags] => apply MonoidLaws_RthetaFlags
@@ -797,9 +797,9 @@ Import ListNotations.
 Section SHCOL_to_MSHCOL.
 
   (*
-           This assumptions is required for reasoning about non-negativity and [abs].
-           It is specific to [abs] and this we do not make it a global assumption
-           on [CarrierA] but rather assume for this particular SHCOL expression.
+    This assumptions is required for reasoning about non-negativity and [abs].
+    It is specific to [abs] and this we do not make it a global assumption
+    on [CarrierA] but rather assume for this particular SHCOL expression.
    *)
   Context `{CarrierASRO: @orders.SemiRingOrder CarrierA CarrierAe CarrierAplus CarrierAmult CarrierAz CarrierA1 CarrierAle}.
 
@@ -832,7 +832,7 @@ Section SHCOL_to_MSHCOL.
         {fm}
         {i o n}
         {svalue: CarrierA}
-        (op_family: @SHOperatorFamily fm i o n svalue):
+        (op_family: @SHOperatorFamily _ fm i o n svalue):
     Apply_Family_Vforall_P fm (liftRthetaP (ATT CarrierA)) op_family.
   Proof.
     intros x j jc.
@@ -865,6 +865,8 @@ Section SHCOL_to_MSHCOL.
       apply Apply_Family_Vforall_ATT.
     -
       apply Set_Obligation_1.
+    -
+      typeclasses eauto.
     -
       (* TODO: refactor to lemma
          [Apply_Family_Vforall_SHCompose_move_P].

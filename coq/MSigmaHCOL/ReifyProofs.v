@@ -4144,7 +4144,7 @@ Section WithCarrierA.
              (compat: forall m (mc:m<k) n (nc:n<k), m ≢ n -> Disjoint _
                                                                       (out_index_set _ (op_family (mkFinNat mc)))
                                                                       (out_index_set _ (op_family (mkFinNat nc))))
-             `{scompat: BFixpoint svalue dot}
+             `{scompat: @BFixpoint _ svalue dot}
         :  SH_MSH_Operator_compat
              (IUnion dot op_family (pdot:=pdot))
              (MSHIUnion mop_family).
