@@ -885,15 +885,16 @@ Proof.
                 2: { eapply Heqs13. }
                 2: { solve_local_count. }
                 eapply incLocalNamed_count_gen_injective.
-              - apply in_Gamma_Gamma_eq in H.
-
-                assert (~ in_Gamma σ s1 r1).
-                apply GAM.
-                solve_lid_bound_between.
+              - assert (~ in_Gamma σ s1 r1).
+                apply GAM; [solve_lid_bound_between|..].
                 assert (Γ i19 ≡ Γ s1) by solve_gamma.
                 rewrite H1 in H.
                 apply H0.
+                pose proof H as ERR.
+                apply in_nth_error in ERR. destruct ERR as [n NTH].
                 esplit.
+                erewrite map_nth_error in NTH.
+                2: { 
                 unfold in_Gamma.
             }
             admit. (* I believe this *)
