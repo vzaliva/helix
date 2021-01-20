@@ -799,6 +799,7 @@ Proof.
 
       specialize (LOOPTFOR I P P (Some (m_yoff, mem_add (MInt64asNT.to_nat yoff_res) initial bkh_yoff))).
 
+      (* Relating iterations of the bodies *)
       forward LOOPTFOR.
       { intros g_loop l_loop mV_loop [[mH_loop mb_loop] |] k _label [HI [POWERI [POWERI_VAL RETURNS]]]; [|inv HI].
         cbn in HI.
@@ -872,46 +873,49 @@ Proof.
         {
           eapply genAExpr_correct.
           eauto.
-          (* { eapply state_invariant_enter_scope_DSHCType with (x := ID_Local r1) (s2:={| block_count := block_count i19; local_count := local_count i19; void_count := void_count i19; Γ := (ID_Local r2, TYPE_Double) :: Γ i19 |}); cbn; eauto. *)
+          { eapply state_invariant_enter_scope_DSHCType with (x := ID_Local r1) (s2:={| block_count := block_count i19; local_count := local_count i19; void_count := void_count i19; Γ := (ID_Local r2, TYPE_Double) :: Γ i19 |}); cbn; eauto.
+            
+            { intros CONTRA.
+              destruct CONTRA.
+              - inv H.
+                eapply lid_bound_between_incLocal in Heqs9.
+                eapply lid_bound_between_incLocal in Heqs13.
+                eapply state_bound_between_id_separate.
+                2: { eapply Heqs9. }
+                2: { eapply Heqs13. }
+                2: { solve_local_count. }
+                eapply incLocalNamed_count_gen_injective.
+              - apply in_Gamma_Gamma_eq in H.
 
-          (*   { intros CONTRA. *)
-          (*     destruct CONTRA. *)
-          (*     - inv H. *)
-          (*       eapply lid_bound_between_incLocal in Heqs9. *)
-          (*       eapply lid_bound_between_incLocal in Heqs13. *)
-          (*       eapply state_bound_between_id_separate. *)
-          (*       2: { eapply Heqs9. } *)
-          (*       2: { eapply Heqs13. } *)
-          (*       2: { solve_local_count. } *)
-          (*       eapply incLocalNamed_count_gen_injective. *)
-          (*     - assert (~ in_Gamma σ i19 r1). *)
-          (*       { intros CONTRA. *)
-          (*         destruct CONTRA. *)
-          (*         rename s into blahblah. *)
-          (*         admit. *)
-          (*       } *)
-          (*       admit. *)
-          (*   } *)
-          (*   admit. (* I believe this *) *)
+                assert (~ in_Gamma σ s1 r1).
+                apply GAM.
+                solve_lid_bound_between.
+                assert (Γ i19 ≡ Γ s1) by solve_gamma.
+                rewrite H1 in H.
+                apply H0.
+                esplit.
+                unfold in_Gamma.
+            }
+            admit. (* I believe this *)
 
-          (*   eapply state_invariant_enter_scope_DSHCType with (x := ID_Local r2) (s2:=i19); cbn; eauto. *)
+            eapply state_invariant_enter_scope_DSHCType with (x := ID_Local r2) (s2:=i19); cbn; eauto.
 
-          (*   admit. (* Not sure how to show this right now, but should be true *) *)
-          (*   { inv LINV_HELIX_MB_NEW. *)
-          (*     apply alist_find_add_eq. *)
-          (*   } *)
+            admit. (* Not sure how to show this right now, but should be true *)
+            { inv LINV_HELIX_MB_NEW.
+              apply alist_find_add_eq.
+            }
 
-          (*   eapply state_invariant_same_Γ. *)
-          (*   4: { *)
-          (*     eapply state_invariant_enter_scope_DSHCType; eauto. *)
-          (*     4: { *)
-          (*       eapply state_invariant_add_fresh'; eauto. *)
-          (*       solve_lid_bound_between. *)
-          (*     } *)
-          (*   } *)
+            eapply state_invariant_same_Γ.
+            4: {
+              eapply state_invariant_enter_scope_DSHCType; eauto.
+              4: {
+                eapply state_invariant_add_fresh'; eauto.
+                solve_lid_bound_between.
+              }
+            }
 
             
-          (* } *)
+          }
 
           { split; cbn.
             - (* Memory invariant *)
@@ -1043,12 +1047,63 @@ Proof.
 
         apply eqit_Ret.
         split; [|split; [|split]].
-        - admit.
+        - admit. (* This should be similar reasoning to the above. Desperately need to automate this, then *)
         - exists b0. reflexivity.
         - (* I *)
           Opaque mem_lookup. (* TODO: HMMM *)
           cbn.
           split.
+          { (* TODO: destruct POSTAEXPR in like one place? Maybe
+               automate pulling out almost_pure? *)
+            pose proof POSTAEXPR as PUREAEXPR.
+            apply is_almost_pure in PUREAEXPR.
+            cbn in PUREAEXPR. destruct PUREAEXPR as [? [? ?]].
+            subst.
+            eauto.
+
+            pose proof POSTAEXPR as AEXPR_LSM.
+            eapply extends in AEXPR_LSM.
+            cbn in AEXPR_LSM.
+
+            (* I should really automate this local_scope_modif state_invariant reasoning...
+               
+               Let's think about this a little...
+
+               All other things being equal, how can I modify the
+               local environment for the state_invariant safely?
+
+               - state_invariant_same_Γ
+               - state_invariant_add_fresh
+
+               local_scope_modif says that if the local environments
+               differ on an id, then that id was bound between two
+               states...
+
+               state_invariant only cares about the local environment
+               for no_llvm_ptr_aliasing
+
+               I can add any id I want to the local environment, as
+               long as it's not in Gamma, because we only care about
+               aliasing of the variables in Gamma.
+
+               Both r2 and r1 are NOT in Gamma because of Heqs15,
+               dropVars for the state before generating the loop.
+
+               I'm also going to need to prove that they're not in
+               i19, because Gamma is just a simple list... But we do
+               have no_id_aliasing which ensures that the list has no
+               duplicate ids. Unfortunately, I don't know that the
+               state with r2 and r1 follows the state invariant. This
+               state is the result of addVars, and I need to know that
+               those variables added are fresh...
+
+               Seems like I would need something about the variables
+               in gamma being bound earlier... But we don't seem to
+               have that.
+
+               newLocalVar_Γ
+            *)
+          }
           admit.
           split.
           admit.
@@ -1118,7 +1173,8 @@ Proof.
           }
           { rewrite mem_lookup_mem_add_eq; eauto.
           }
-        - admit.
+        - destruct POSTAEXPR. cbn in extends.
+          admit. (* Should hold *)
       }
 
       (* TODO: Might want to do more forward reasoning first *)
@@ -1148,24 +1204,34 @@ Proof.
          confident in the loop invariant.
       *)
 
-
-      { rewrite denote_exp_GR.
-        change (UVALUE_Addr ptrll) with (dvalue_to_uvalue (DVALUE_Addr ptrll)).
-        reflexivity.
-
-        cbn in INLG.
-        (* I think g = g''' *)
+      { intros k a l mV g id1 v BOUND HI.
+        unfold I in *.
+        destruct a; try inv HI.
+        destruct p.
+        destruct HI as [HI_SINV [HI_LSM [HI_v [HI_EXT [HI_OLD HI_NEW]]]]].
+        split.
         admit.
-      }
-
-      { (* Should hold, pretty much the same as earlier case *)
+        split.
         admit.
-      }
-      }
-
-      { (* Should be pretty much the same as above... Local case. *)
-        admit.
+        exists HI_v.
+        auto.
       }
 
-      
+      { solve_local_count.
+      }
+
+      { reflexivity. }
+
+      (* TODO: May need to modify P / Q here *)
+      { unfold imp_rel. intros a b2 H. admit. }
+      admit.
+      admit.
+    }
+    { (* Local case for yoff *)
+      admit.
+    }
+  }
+  { (* Local case for xoff *)
+    admit.
+  }      
 Admitted.

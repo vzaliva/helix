@@ -226,8 +226,8 @@ Proof.
       erewrite newLocalVar_block_count; eauto.
 
     - eapply state_invariant_enter_scope_DSHnat; eauto.
-      intros abs; eapply in_Gamma_Gamma_eq in abs; [| eapply incBlockNamed_Γ ; eauto].
-      eapply GAM; eauto.
+      { intros abs; eapply in_Gamma_Gamma_eq in abs; [| eapply incBlockNamed_Γ ; eauto].
+        eapply GAM; eauto.
       eapply lid_bound_between_newLocalVar in Heqs2.
       2:reflexivity.
       eapply lid_bound_between_shrink; eauto.
