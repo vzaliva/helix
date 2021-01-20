@@ -111,14 +111,23 @@ Fixpoint compileAExpr (res:var_resolver) (a_e:term): TemplateMonad AExpr :=
   match a_e with
   | tApp (tConst (MPfile ["canonical_names"; "interfaces"; "MathClasses"], "abs") [])
          [tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierA") [];
-            _; _; _;  _; _; a_a] =>
+         _; _; _; a_a] =>
     d_a <- compileAExpr res a_a ;;
         tmReturn (AAbs d_a)
+  | tApp (tConst (MPfile ["canonical_names"; "interfaces"; "MathClasses"], "abs") [])
+         [tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierA") [];
+         _; _; _; _; _; a_a] =>
+    d_a <- compileAExpr res a_a ;;
+        tmReturn (AAbs d_a)
+  | tApp (tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "sub") []) [_; _; _; _; _; a_a ; a_b] =>
+    d_a <- compileAExpr res a_a ;;
+        d_b <- compileAExpr res a_b ;;
+        tmReturn (AMinus d_a d_b)
   | tApp (tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "sub") []) [_; _; _; a_a ; a_b] =>
     d_a <- compileAExpr res a_a ;;
         d_b <- compileAExpr res a_b ;;
         tmReturn (AMinus d_a d_b)
-  | tApp (tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierAmult") []) [a_a ; a_b] =>
+  | tApp (tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierAmult") []) [_; a_a ; a_b] =>
     d_a <- compileAExpr res a_a ;;
         d_b <- compileAExpr res a_b ;;
         tmReturn (AMult d_a d_b)
@@ -152,11 +161,11 @@ Definition compileDSHBinCarrierA (res:var_resolver) (a_f:term): TemplateMonad AE
   | tApp (tConst (MPfile ["minmax"; "orders"; "MathClasses"], "max") [])
          [tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierA") []; _; _ ] =>
     tmReturn (AMax (AVar 1) (AVar 0))
-  | tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "Zless") [] =>
+  | tApp (tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "Zless") []) [_] =>
     tmReturn (AZless (AVar 1) (AVar 0))
-  | tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierAplus") [] =>
+  | tApp (tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierAplus") []) [_] =>
     tmReturn (APlus (AVar 1) (AVar 0))
-  | tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierAmult") [] =>
+  | tApp (tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierAmult") []) [_] =>
     tmReturn (AMult (AVar 1) (AVar 0))
   (* TODO: check types of lambda's arguments. Fail if not [CarrierA], [CarrierA] *)
   | tLambda _ _ (tLambda _ _ a_f') => compileAExpr (Lambda_var_resolver res 2) a_f'

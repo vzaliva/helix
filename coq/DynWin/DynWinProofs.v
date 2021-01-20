@@ -55,6 +55,8 @@ Require Import MathClasses.misc.decision.
 
 Section HCOL_Breakdown.
 
+  Context `{CAPROPS: CarrierProperties}.
+
   (* Initial HCOL breakdown proof *)
   Theorem DynWinHCOL:  forall (a: avector 3),
       dynwin_orig a = dynwin_HCOL a.
@@ -73,7 +75,7 @@ Section HCOL_Breakdown.
 
 End HCOL_Breakdown.
 
-Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ _ g f) (at level 40, left associativity) : type_scope.
+Local Notation "g ⊚ f" := (@SHCompose _ _ Monoid_RthetaFlags _ _ _ _ g f) (at level 40, left associativity) : type_scope.
 
 (* This tactics solves both [SHOperator_Facts] and [MSHOperator_Facts]
    as well [SH_MSH_Operator_compat].
@@ -116,7 +118,7 @@ Ltac solve_facts :=
          | [ |- SH_MSH_Operator_compat (IReduction _ _) _     ] => apply IReduction_SH_MSH_Operator_compat; intros
          | [ |- SH_MSH_Operator_compat (Embed _ _) _           ] => apply Embed_SH_MSH_Operator_compat
          | [ |- SH_MSH_Operator_compat (SHBinOp _ _) _        ] => apply SHBinOp_RthetaSafe_SH_MSH_Operator_compat
-         | [ |- SH_MSH_Operator_compat (IUnion _ _) _         ] => apply IUnion_SH_MSH_Operator_compat; intros
+         | [ |- SH_MSH_Operator_compat (IUnion _ _) _         ] => apply (@IUnion_SH_MSH_Operator_compat _ _); intros
          | [ |- SH_MSH_Operator_compat (Pick _ _) _          ] => apply Pick_SH_MSH_Operator_compat
          | [ |- SH_MSH_Operator_compat _ _                    ] => apply SHCompose_SH_MSH_Operator_compat
          | [ |- Monoid.MonoidLaws Monoid_RthetaFlags] => apply MonoidLaws_RthetaFlags
@@ -135,6 +137,8 @@ Ltac solve_facts :=
   end.
 
 Section HCOL_to_SigmaHCOL.
+
+  Context `{CAPROPS: CarrierProperties}.
 
   (* --- HCOL -> Sigma->HCOL --- *)
 
@@ -157,10 +161,6 @@ Section HCOL_to_SigmaHCOL.
 
     (* normalize associativity of composition *)
     repeat rewrite <- SHCompose_assoc.
-
-    (* TODO: remove this once =CarrierAabs_proper= moved to =CarrierType.v= *)
-    replace abstract_algebra.sm_proper with CarrierAabs_proper by apply proof_irrelevance.
-    replace abstract_algebra.sg_op_proper with CarrierA_max_proper by apply proof_irrelevance.
     reflexivity.
     Transparent SHCompose.
   Qed.
@@ -398,7 +398,7 @@ Section SigmaHCOL_rewriting.
         {f: CarrierA -> CarrierA}
         `{f_mor: !Proper ((=) ==> (=)) f}
         {P: CarrierA -> Prop}
-        (F: @SHOperator fm m n svalue)
+        (F: @SHOperator _ fm m n svalue)
     :
       (forall x, P (f x)) ->
       op_Vforall_P fm (liftRthetaP P)
@@ -516,7 +516,7 @@ Section SigmaHCOL_rewriting.
      But it does not (hangs forever), so we have to do some manual rewriting
      *)
     match goal with
-    | |- context [(SHFamilyOperatorCompose _ ?f _)] =>
+    | |- context [(SHFamilyOperatorCompose _ ?f)] =>
       match f with
       | (fun jf => UnSafeCast (?torewrite ⊚ ?rest )) =>
         setoid_replace f with (fun (jf:FinNat 2) => UnSafeCast rest)
@@ -752,7 +752,7 @@ Section SigmaHCOL_rewriting.
   Theorem SHCOL_to_SHCOL1_Rewriting
           (a: avector 3)
     : @SHOperator_subtyping
-        _ _ _ _
+        _ _ _ _ _
         (dynwin_SHCOL1 a)
         (dynwin_SHCOL a)
         (DynWinSigmaHCOL1_Facts _)
@@ -793,9 +793,9 @@ Import ListNotations.
 Section SHCOL_to_MSHCOL.
 
   (*
-           This assumptions is required for reasoning about non-negativity and [abs].
-           It is specific to [abs] and this we do not make it a global assumption
-           on [CarrierA] but rather assume for this particular SHCOL expression.
+    This assumptions is required for reasoning about non-negativity and [abs].
+    It is specific to [abs] and this we do not make it a global assumption
+    on [CarrierA] but rather assume for this particular SHCOL expression.
    *)
   Context `{CarrierASRO: @orders.SemiRingOrder CarrierA CarrierAe CarrierAplus CarrierAmult CarrierAz CarrierA1 CarrierAle}.
 
@@ -828,7 +828,7 @@ Section SHCOL_to_MSHCOL.
         {fm}
         {i o n}
         {svalue: CarrierA}
-        (op_family: @SHOperatorFamily fm i o n svalue):
+        (op_family: @SHOperatorFamily _ fm i o n svalue):
     Apply_Family_Vforall_P fm (liftRthetaP (ATT CarrierA)) op_family.
   Proof.
     intros x j jc.
@@ -861,6 +861,8 @@ Section SHCOL_to_MSHCOL.
       apply Apply_Family_Vforall_ATT.
     -
       apply Set_Obligation_1.
+    -
+      typeclasses eauto.
     -
       (* TODO: refactor to lemma
          [Apply_Family_Vforall_SHCompose_move_P].
@@ -900,7 +902,9 @@ Section MSHCOL_to_AHCOL.
 
   Import AHCOL.
 
+  Opaque CarrierAz zero CarrierA1 one.
   MetaCoq Run (reifyMSHCOL dynwin_MSHCOL1 [(BasicAst.MPfile ["DynWinProofs"; "DynWin"; "Helix"], "dynwin_MSHCOL1")] "dynwin_AHCOL" "dynwin_AHCOL_globals").
+  Transparent CarrierAz zero CarrierA1 one.
 
   (* Import DSHNotation. *)
 
@@ -1396,6 +1400,7 @@ Module CTypeSimpl(CTM:CType).
 
 End CTypeSimpl.
 
+
 Require Import Helix.MSigmaHCOL.CarrierAasCT.
 Require Import Helix.RSigmaHCOL.RasCT.
 Module CarrierASimpl := CTypeSimpl(CarrierAasCT).
@@ -1405,9 +1410,9 @@ Lemma A1Cr1: CarrierA1 ≡ CarrierAasCT.CTypeOne. Proof. reflexivity. Qed.
 Lemma AeCtE: CarrierAequivdec ≡ CarrierAasCT.CTypeEquivDec. Proof. reflexivity. Qed.
 
 Hint Rewrite
+     AeCtE
      AzCtZ
      A1Cr1
-     AeCtE
      CarrierASimpl.simplCTypeRefl
      CarrierASimpl.simplCType_Z_neq_One
      CarrierASimpl.simplCType_One_neq_Z
@@ -1451,7 +1456,6 @@ Hint Rewrite
      RSimpl.simplCType_Z_neq_One
      RSimpl.simplCType_One_neq_Z
   : RZ1equalities.
-
 
 Require Import AltBinNotations.
 
@@ -1508,6 +1512,8 @@ Section RHCOL_to_FHCOL.
   Proof.
     unfold RHCOL_to_FHCOL_correctness.
     destruct dynwin_RHCOL as [errs|rhcol] eqn:R;constructor.
+
+    Opaque CarrierAequivdec CarrierAz CarrierA1 CarrierAe CarrierAle CarrierAlt CarrierAneg CarrierAasCT.CTypeZero.
     cbv in R.
     autorewrite with CarrierAZ1equalities in R.
     inl_inr_inv.
@@ -1521,6 +1527,8 @@ Section RHCOL_to_FHCOL.
     match goal with
     | [|- RHCOL_FHCOL_rel _ _ _ ?r ?f] => remember r as rhcol; remember f as fhcol
     end.
+    Transparent CarrierAequivdec CarrierAz CarrierA1 CarrierAe CarrierAle CarrierAlt CarrierAneg CarrierAasCT.CTypeZero.
+    Transparent Float64asCT.Float64Zero Float64asCT.Float64One.
     (* ... proof specific to given relations here *)
     admit.
   Admitted.

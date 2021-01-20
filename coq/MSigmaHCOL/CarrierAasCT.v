@@ -7,6 +7,8 @@ Require Import Helix.HCOL.CarrierType.
 
 (* =CarrierA= as =CarrierType= *)
 Module CarrierAasCT <: CType.
+  Context `{CAPROPS: CarrierProperties}.
+
   Definition t := CarrierA.
 
   Definition CTypeEquiv := CarrierAe.
@@ -16,7 +18,8 @@ Module CarrierAasCT <: CType.
   Definition CTypeZero  := CarrierAz.
   Definition CTypeOne   := CarrierA1.
   Definition CTypeZeroOneApart := CarrierA_Z_neq_One.
-  Definition CTypePlus  := CarrierAplus.
+  Definition CTypePlus := CarrierAplus.
+
   Definition CTypeNeg   := CarrierAneg.
   Definition CTypeMult  := CarrierAmult.
 
