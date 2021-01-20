@@ -161,10 +161,6 @@ Section HCOL_to_SigmaHCOL.
 
     (* normalize associativity of composition *)
     repeat rewrite <- SHCompose_assoc.
-
-    (* TODO: remove this once =CarrierAabs_proper= moved to =CarrierType.v= *)
-    replace abstract_algebra.sm_proper with CarrierAabs_proper by apply proof_irrelevance.
-    replace abstract_algebra.sg_op_proper with CarrierA_max_proper by apply proof_irrelevance.
     reflexivity.
     Transparent SHCompose.
   Qed.
@@ -906,7 +902,9 @@ Section MSHCOL_to_AHCOL.
 
   Import AHCOL.
 
+  Opaque CarrierAz zero CarrierA1 one.
   MetaCoq Run (reifyMSHCOL dynwin_MSHCOL1 [(BasicAst.MPfile ["DynWinProofs"; "DynWin"; "Helix"], "dynwin_MSHCOL1")] "dynwin_AHCOL" "dynwin_AHCOL_globals").
+  Transparent CarrierAz zero CarrierA1 one.
 
   (* Import DSHNotation. *)
 
@@ -1402,6 +1400,7 @@ Module CTypeSimpl(CTM:CType).
 
 End CTypeSimpl.
 
+
 Require Import Helix.MSigmaHCOL.CarrierAasCT.
 Require Import Helix.RSigmaHCOL.RasCT.
 Module CarrierASimpl := CTypeSimpl(CarrierAasCT).
@@ -1411,9 +1410,9 @@ Lemma A1Cr1: CarrierA1 ≡ CarrierAasCT.CTypeOne. Proof. reflexivity. Qed.
 Lemma AeCtE: CarrierAequivdec ≡ CarrierAasCT.CTypeEquivDec. Proof. reflexivity. Qed.
 
 Hint Rewrite
+     AeCtE
      AzCtZ
      A1Cr1
-     AeCtE
      CarrierASimpl.simplCTypeRefl
      CarrierASimpl.simplCType_Z_neq_One
      CarrierASimpl.simplCType_One_neq_Z
@@ -1457,7 +1456,6 @@ Hint Rewrite
      RSimpl.simplCType_Z_neq_One
      RSimpl.simplCType_One_neq_Z
   : RZ1equalities.
-
 
 Require Import AltBinNotations.
 
@@ -1514,10 +1512,10 @@ Section RHCOL_to_FHCOL.
   Proof.
     unfold RHCOL_to_FHCOL_correctness.
     destruct dynwin_RHCOL as [errs|rhcol] eqn:R;constructor.
+
+    Opaque CarrierAequivdec CarrierAz CarrierA1 CarrierAe CarrierAle CarrierAlt CarrierAneg CarrierAasCT.CTypeZero.
     cbv in R.
-    break_let.
     autorewrite with CarrierAZ1equalities in R.
-    (* TODO: fix
     inl_inr_inv.
     subst rhcol.
     Opaque Float64asCT.Float64Zero Float64asCT.Float64One.
@@ -1529,7 +1527,8 @@ Section RHCOL_to_FHCOL.
     match goal with
     | [|- RHCOL_FHCOL_rel _ _ _ ?r ?f] => remember r as rhcol; remember f as fhcol
     end.
-     *)
+    Transparent CarrierAequivdec CarrierAz CarrierA1 CarrierAe CarrierAle CarrierAlt CarrierAneg CarrierAasCT.CTypeZero.
+    Transparent Float64asCT.Float64Zero Float64asCT.Float64One.
     (* ... proof specific to given relations here *)
     admit.
   Admitted.
