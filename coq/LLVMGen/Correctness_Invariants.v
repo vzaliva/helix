@@ -1381,77 +1381,64 @@ Proof.
     eapply st_id_allocated0; eauto.
 Qed.
 
-(* TO FIX, although for now it us not used anywhere, so first check if we need it *)
-Lemma state_invariant_enter_scope_DSHCType : forall σ v x τ s1 s2 stH mV l g,
-    τ ≡ getWFType x DSHCType ->
-    Γ s1 ≡ (x,τ) :: Γ s2 ->
-    ~ In x (map fst (Γ s2)) ->
-    in_local_or_global_scalar l g mV x (dvalue_of_bin v) τ ->
-    state_invariant σ s2 stH (mV,(l,g)) ->
-    state_invariant (DSHCTypeVal v::σ) s1 stH (mV,(l,g)).
+Lemma state_invariant_enter_scope_DSHCType : 
+  forall σ v prefix x s1 s2 stH mV l g,
+    newLocalVar TYPE_Double prefix s1 ≡ inr (s2, x) ->
+    ~ in_Gamma σ s1 x ->
+    l @ x ≡ Some (UVALUE_Double v) ->
+    state_invariant σ s1 stH (mV,(l,g)) ->
+    state_invariant (DSHCTypeVal v::σ) s2 stH (mV,(l,g)).
 Proof.
-(*   intros * -> EQ fresh IN [MEM WF ALIAS1 ALIAS2 ALIAS3]. *)
-(*   split. *)
-(*   - red; intros * LU1 LU2. *)
-(*     destruct n as [| n]. *)
-(*     + rewrite EQ in LU2; cbn in *. *)
-(*       inv LU1; inv LU2; auto. *)
-(*     + rewrite nth_error_Sn in LU1. *)
-(*       rewrite EQ, nth_error_Sn in LU2. *)
-(*       eapply MEM in LU2; eauto. *)
-(*   -  do 2 red. *)
-(*      intros ? [| n] LU. *)
-(*      + cbn in LU. *)
-(*        inv LU. *)
-(*        rewrite EQ; cbn; eauto. *)
-(*      + rewrite nth_error_Sn in LU. *)
-(*        rewrite EQ,nth_error_Sn. *)
-(*        apply WF in LU; auto. *)
+  intros * EQ GAM LU [MEM WF ALIAS1 ALIAS2 ALIAS3]; inv EQ; cbn in *.
+  split.
+  - red; intros * LU1 LU2.
+    destruct n as [| n].
+    + cbn in *; inv LU1; inv LU2; auto.
+    + rewrite nth_error_Sn in LU1.
+      cbn in *.
+      eapply MEM in LU2; eauto.
+  -  do 2 red.
+     cbn.
+     intros ? [| n] LU'.
+     + cbn in LU'.
+       inv LU'.
+       cbn.
+       exists (ID_Local (Name (prefix @@ string_of_nat (local_count s1)))); reflexivity.
+     + rewrite nth_error_Sn in LU'.
+       rewrite nth_error_Sn.
+       apply WF in LU'; auto.
 
-(*   - red; intros * LU1 LU2 LU3 LU4. *)
-(*     destruct n1 as [| n1], n2 as [| n2]; auto. *)
-(*     + exfalso. *)
-(*       inv LU3; apply GAM. *)
-(*       apply nth_error_In in LU2. *)
-(*       replace id with (fst (id,τ')) by reflexivity. *)
-(*       apply in_map; auto. *)
+  - red; intros * LU1 LU2 LU3 LU4.
+    destruct n1 as [| n1], n2 as [| n2]; auto.
+    + exfalso. cbn in *.
+      apply GAM.
+      inv LU3; eapply mk_in_Gamma; eauto.
+    + exfalso.
+      apply GAM; inv LU4; eapply mk_in_Gamma; eauto.
+    + inv LU3; inv LU4; eapply ALIAS1 in LU1; apply LU1 in LU2; eauto.
 
-(*     + exfalso. *)
-(*       rewrite EQ, nth_error_Sn in LU1. *)
-(*       rewrite EQ in LU2. *)
-(*       cbn in *. *)
-(*       inv LU2. *)
-(*       apply fresh. *)
-(*       apply nth_error_In in LU1. *)
-(*       replace id with (fst (id,τ)) by reflexivity. *)
-(*       apply in_map; auto. *)
+  - red; intros * LU1 LU2.
+    destruct n as [| n], n' as [| n']; auto.
+    + inv LU1.
+    + inv LU2.
+    + rewrite nth_error_Sn in LU1.
+      rewrite nth_error_Sn in LU2.
+      eapply ALIAS2 in LU1; apply LU1 in LU2; eauto.
 
-(*     + rewrite EQ, nth_error_Sn in LU1. *)
-(*       rewrite EQ, nth_error_Sn in LU2. *)
-(*       eapply ALIAS1 in LU1; apply LU1 in LU2; eauto. *)
-(*       destruct LU2; split; auto. *)
-
-(*   - red; intros * LU1 LU2. *)
-(*     destruct n as [| n], n' as [| n']; auto. *)
-(*     + inv LU1. *)
-
-(*     + inv LU2. *)
-
-
-(*     + rewrite nth_error_Sn in LU1. *)
-(*       rewrite nth_error_Sn in LU2. *)
-(*       eapply ALIAS2 in LU1; apply LU1 in LU2; eauto. *)
-
-(*   - do 2 red. intros * LU1 LU2 LU3 LU4 INEQ. *)
-(*     destruct n1 as [| n1], n2 as [| n2]; auto. *)
-(*     + cbn in *. *)
-(*       inv LU1; inv LU2. *)
-(*       admit. *)
-(*     + cbn in *; inv LU1. *)
-(*       admit. *)
-(*     + cbn in *; inv LU2. *)
-(*       admit. *)
-Admitted.
+  - do 2 red. intros * LU1 LU2 LU3 LU4 INEQ IN1 IN2.
+    cbn in *.
+    destruct n1 as [| n1], n2 as [| n2]; auto.
+    + cbn in *. inv LU1; inv LU2; inv LU3; inv LU4; auto.
+    + cbn in *; inv LU1; inv LU3; eauto.
+      cbn in *.
+      rewrite LU in IN1; inv IN1.
+    + cbn in *; inv LU2; inv LU4.
+      cbn in *; rewrite LU in IN2; inv IN2.
+    + cbn in *.
+      eapply ALIAS3; [exact LU1 | exact LU2 |..]; eauto.
+  - intros [| n] * LUn; [inv LUn |].
+    eapply st_id_allocated0; eauto.
+Qed.
 
 Lemma state_invariant_enter_scope_DSHPtr :
   forall σ ptrh sizeh ptrv x τ s1 s2 stH mV mV_a l g,
