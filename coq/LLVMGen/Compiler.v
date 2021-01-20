@@ -1208,6 +1208,23 @@ Definition genIRGlobals
      end.
 
 
+Definition rev_firstn {A : Type} (n : nat) (l : list A) : list A :=
+  rev (firstn n l) ++ skipn n l.
+
+Definition rev_firstn_Γ (n : nat) (st : IRState) : IRState :=
+  {| block_count := block_count st;
+     local_count := local_count st;
+     void_count := void_count st;
+     Γ := rev_firstn n (Γ st) |}.
+
+ 
+(* [initIRGlobals], except globals are appended to the start of [Γ] in reverse *)
+Definition initIRGlobals_rev
+         (data: list binary64)
+         (x: list (string * DSHType))
+  : cerr (list binary64 * list (toplevel_entity typ (block typ * list (block typ))))
+  := init_with_data initOneIRGlobal global_uniq_chk data x.
+
 (*
   Generate delclarations for all globals. They are all internally linked
   and initialized in-place.
@@ -1220,7 +1237,11 @@ Definition initIRGlobals
          (data: list binary64)
          (x: list (string * DSHType))
   : cerr (list binary64 * list (toplevel_entity typ (block typ * list (block typ))))
-  := init_with_data initOneIRGlobal global_uniq_chk (data) x.
+  := fun st =>
+       match initIRGlobals_rev data x st with
+       | inr (st, r) => inr (rev_firstn_Γ (length x) st, r)
+       | l => l
+       end.
 
 (*
    When code genration generates [main], the input
