@@ -201,6 +201,23 @@ Definition dropVars (n: nat): cerr unit :=
       Γ := Γ'
     |}.
 
+Definition swap_err {A:Type} (lst:list A) : err (list A)
+  := match lst with
+     | (x :: y :: xs) => ret (y :: x :: xs)
+     | _ => raise "drop on empty list"
+     end.
+
+(* Swap top most elements on list. Used in IMapLoopBody *)
+Definition swapVars : cerr unit :=
+  st <- get ;;
+  Γ' <- err2errS (swap_err (Γ st)) ;;
+  put {|
+      block_count := block_count st ;
+      local_count := local_count st ;
+      void_count  := void_count st ;
+      Γ := Γ'
+    |}.
+
 Definition allocTempArrayCode (name: local_id) (size:Int64.int)
   :=
     [(IId name, INSTR_Alloca (getIRType (DSHPtr size)) None (Some PtrAlignment))].
@@ -538,9 +555,10 @@ Definition genIMapBody
     let xptyp := TYPE_Pointer xtyp in
     let yptyp := TYPE_Pointer ytyp in
     let loopvarid := ID_Local loopvar in
-    addVars [(ID_Local v, TYPE_Double); (loopvarid, IntType)] ;;
+    addVars [(ID_Local v, TYPE_Double)];;
+    swapVars ;;
     '(fexpr, fexpcode) <- genAExpr f ;;
-    dropVars 2 ;;
+    dropVars 1 ;;
     ret (pwblock,
          [
            {|
