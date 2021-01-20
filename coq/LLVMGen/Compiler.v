@@ -916,11 +916,14 @@ Fixpoint genIR
           add_comment
             (genFSHAssign i o x y src_n dst_n nextblock)
         | DSHIMap n x_p y_p f =>
+          (* the following check ensures loop bound fits integer. *)
+          _ <- err2errS (MInt64asNT.from_nat n) ;;
           '(x,i) <- resolve_PVar x_p ;;
           '(y,o) <- resolve_PVar y_p ;;
           loopcontblock <- incBlockNamed "IMap_lcont" ;;
-          loopvar <- incLocalNamed "IMap_i" ;;
+          loopvar <- newLocalVar IntType "IMap_i" ;;
           '(body_entry, body_blocks) <- genIMapBody i o x y f loopvar loopcontblock ;;
+          dropVars 1 ;;
           add_comment
             (genWhileLoop "IMap" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] nextblock)
         | DSHBinOp n x_p y_p f =>
