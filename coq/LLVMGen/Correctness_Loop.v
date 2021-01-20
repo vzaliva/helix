@@ -341,7 +341,6 @@ Proof.
   specialize (GENC g ρ memV bid_from).
   eapply eutt_mon; [| apply GENC].
   {
-    (* state_invariant between s1 and s2 or s6? or something else? *)
     clear GENC NOFAIL INPUTS_BETWEEN IHop WFOCFG;subst P I.
     intros [[? []] | ] (? & ? & ? & ?) (H1 & H2 & H3); cbn.
     split; [| split]; cbn; eauto.

@@ -147,6 +147,7 @@ Ltac subst_Γs :=
          end.
 
 Opaque incLocal.
+(* Opaque incLocalNamed. *)
 Opaque incVoid.
 Opaque incBlockNamed.
 Opaque newLocalVar.
@@ -201,8 +202,10 @@ Proof.
       subst_Γs;
       auto.
   - simp.
-    rewrite Heqs2 in Heql1; inv Heql1; auto.
-  - simp; rewrite Heqs0 in Heql1; inv Heql1; auto.
+    rewrite Heql2 in H2. inv H2; auto.
+    rewrite Heqs4 in Heql4. inv Heql4; auto.
+  - simp. rewrite Heqs2 in Heql1; inv Heql1; auto.
+  - simp. rewrite Heqs0 in Heql1; inv Heql1; auto.
   - eapply IHop1 in Heqs2; eauto.
     eapply IHop2 in Heqs0; eauto.
     subst_Γs.

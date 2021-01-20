@@ -223,7 +223,7 @@ Section BlockCount.
   Proof.
     induction op; intros; cbn in H; simp; __local_ltac'; try lia.
   Qed.
-  
+
 End BlockCount.
        
 Section LocalCount.
@@ -392,6 +392,14 @@ Section LocalCount.
     cbn in H; simp; __local_ltac; lia. 
   Qed.
 
+  Lemma genIMapBody_local_count:
+    ∀ (f : AExpr) (i0 : ident) (i1 : Int64.int) (i3 : ident) (i4 : Int64.int) (i6 : IRState) (loopcontblock : block_id) (loopvar : raw_id) 
+      (body_entry : block_id) (body_blocks : list (LLVMAst.block typ)) (s1_ : IRState),
+      genIMapBody i1 i4 i0 i3 f loopvar loopcontblock i6 ≡ inr (s1_, (body_entry, body_blocks)) →
+      local_count s1_ >= local_count i6 .
+  Proof.
+  Admitted.
+
   Lemma genIR_local_count :
     forall op s1 s2 nextblock b bk_op,
       genIR op nextblock s1 ≡ inr (s2, (b, bk_op)) ->
@@ -451,6 +459,8 @@ Ltac get_local_count_hyps :=
       apply genAExpr_local_count in H; cbn in H
     | H: genWhileLoop _ _ _ _ _ _ _ _ _ _ ≡ inr _ |- _ =>
       apply genWhile_local_count in H; cbn in H
+    | H: genIMapBody _ _ _ _ _ _ _ ≡ inr _ |- _ =>
+      apply genIMapBody_local_count in H; cbn in H
      | H: genIR ?op ?id ?s1 ≡ inr (?s2, _) |- _ =>
       apply genIR_local_count in H; cbn in H
     end.
