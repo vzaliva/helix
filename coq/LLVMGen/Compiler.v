@@ -201,6 +201,23 @@ Definition dropVars (n: nat): cerr unit :=
       Γ := Γ'
     |}.
 
+Definition swap_err {A:Type} (lst:list A) : err (list A)
+  := match lst with
+     | (x :: y :: xs) => ret (y :: x :: xs)
+     | _ => raise "drop on empty list"
+     end.
+
+(* Swap top most elements on list. Used in IMapLoopBody *)
+Definition swapVars : cerr unit :=
+  st <- get ;;
+  Γ' <- err2errS (swap_err (Γ st)) ;;
+  put {|
+      block_count := block_count st ;
+      local_count := local_count st ;
+      void_count  := void_count st ;
+      Γ := Γ'
+    |}.
+
 Definition allocTempArrayCode (name: local_id) (size:Int64.int)
   :=
     [(IId name, INSTR_Alloca (getIRType (DSHPtr size)) None (Some PtrAlignment))].
@@ -538,9 +555,10 @@ Definition genIMapBody
     let xptyp := TYPE_Pointer xtyp in
     let yptyp := TYPE_Pointer ytyp in
     let loopvarid := ID_Local loopvar in
-    addVars [(ID_Local v, TYPE_Double); (loopvarid, IntType)] ;;
+    addVars [(ID_Local v, TYPE_Double)];;
+    swapVars ;;
     '(fexpr, fexpcode) <- genAExpr f ;;
-    dropVars 2 ;;
+    dropVars 1 ;;
     ret (pwblock,
          [
            {|
@@ -916,11 +934,14 @@ Fixpoint genIR
           add_comment
             (genFSHAssign i o x y src_n dst_n nextblock)
         | DSHIMap n x_p y_p f =>
+          (* the following check ensures loop bound fits integer. *)
+          _ <- err2errS (MInt64asNT.from_nat n) ;;
           '(x,i) <- resolve_PVar x_p ;;
           '(y,o) <- resolve_PVar y_p ;;
           loopcontblock <- incBlockNamed "IMap_lcont" ;;
-          loopvar <- incLocalNamed "IMap_i" ;;
+          loopvar <- newLocalVar IntType "IMap_i" ;;
           '(body_entry, body_blocks) <- genIMapBody i o x y f loopvar loopcontblock ;;
+          dropVars 1 ;;
           add_comment
             (genWhileLoop "IMap" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] nextblock)
         | DSHBinOp n x_p y_p f =>
@@ -1205,6 +1226,23 @@ Definition genIRGlobals
      end.
 
 
+Definition rev_firstn {A : Type} (n : nat) (l : list A) : list A :=
+  rev (firstn n l) ++ skipn n l.
+
+Definition rev_firstn_Γ (n : nat) (st : IRState) : IRState :=
+  {| block_count := block_count st;
+     local_count := local_count st;
+     void_count := void_count st;
+     Γ := rev_firstn n (Γ st) |}.
+
+ 
+(* [initIRGlobals], except globals are appended to the start of [Γ] in reverse *)
+Definition initIRGlobals_rev
+         (data: list binary64)
+         (x: list (string * DSHType))
+  : cerr (list binary64 * list (toplevel_entity typ (block typ * list (block typ))))
+  := init_with_data initOneIRGlobal global_uniq_chk data x.
+
 (*
   Generate delclarations for all globals. They are all internally linked
   and initialized in-place.
@@ -1217,7 +1255,11 @@ Definition initIRGlobals
          (data: list binary64)
          (x: list (string * DSHType))
   : cerr (list binary64 * list (toplevel_entity typ (block typ * list (block typ))))
-  := init_with_data initOneIRGlobal global_uniq_chk (data) x.
+  := fun st =>
+       match initIRGlobals_rev data x st with
+       | inr (st, r) => inr (rev_firstn_Γ (length x) st, r)
+       | l => l
+       end.
 
 (*
    When code genration generates [main], the input

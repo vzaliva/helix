@@ -44,6 +44,9 @@ Definition IMap_plus1_test :=
 Definition IMap_plusD_test :=
   DSHIMap 8 (PVar 2) (PVar 1) (APlus (AVar 0) (AVar 2)).
 
+Definition IMap_plus2G_test :=
+  DSHIMap 8 (PVar 3) (PVar 2) (APlus (AVar 0) (AVar 3)).
+
 Definition Compose_pointwise_test :=
   DSHSeq IMap_plus1_test IMap_plus1_test.
 
@@ -174,7 +177,7 @@ Definition all_tests :=
   {| i:=Int64_4; o:=Int64_4; name:="sumunion"; op:=SUMUnion_test; globals:=[("D", DSHPtr Int64_4)] |} ;
   {| i:=Int64_8; o:=Int64_8; name:="pointwise_plus1"; op:=IMap_plus1_test; globals:=[] |} ;
   {| i:=Int64_8; o:=Int64_8; name:="pointwise_plusD"; op:=IMap_plusD_test; globals:=[("D", DSHCType)] |} ;
-
+  {| i:=Int64_8; o:=Int64_8; name:="pointwise_plus2G"; op:=IMap_plus2G_test; globals:=[("G0", DSHCType); ("G1", DSHCType)] |} ;
   {| i:=Int64_8; o:=Int64_8; name:="compose_pointwise"; op:=Compose_pointwise_test ; globals:=[]|}
   ].
 
