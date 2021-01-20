@@ -556,7 +556,7 @@ Definition genIMapBody
     let yptyp := TYPE_Pointer ytyp in
     let loopvarid := ID_Local loopvar in
     addVars [(ID_Local v, TYPE_Double)];;
-    swapVars ;;
+    (* swapVars ;; *)
     '(fexpr, fexpcode) <- genAExpr f ;;
     dropVars 1 ;;
     ret (pwblock,
