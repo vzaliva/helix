@@ -148,6 +148,25 @@ Section DSHIMap_is_tfor.
   Qed.
 
 
+  Lemma DSHIMap_as_tfor : forall σ n x y f,
+      denoteDSHOperator σ (DSHIMap n x y f) ≈
+      '(x_i, _) <- denotePExpr σ x;;
+      '(y_i, _) <- denotePExpr σ y;;
+       x2 <- trigger (MemLU "Error looking up 'x' in DSHIMap" x_i);;
+       y0 <- trigger (MemLU "Error looking up 'y' in DSHIMap" y_i);;
+       y' <- DSHIMap_tfor_up σ f 0 n x2 y0 ;;
+        trigger (MemSet y_i y').
+  Proof.
+    intros.
+    unfold denoteDSHOperator.
+    cbn.
+    repeat (eapply eutt_clo_bind; [reflexivity|intros; try break_match_goal; subst]).
+    setoid_rewrite denoteDSHIMap_as_tfor.
+    rewrite eq_rev.
+    reflexivity.
+  Qed.
+
+
 End DSHIMap_is_tfor.
 
 (* The result is a branch *)
@@ -161,6 +180,72 @@ Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li :
   lift_Rel_cfg (state_invariant σ s2) ⩕
                branches to ⩕
                (fun sthf stvf => local_scope_modif s1 s2 li (fst (snd stvf))).
+
+Import AlistNotations.
+
+(* Yet another tweak at DSHCType *)
+Lemma state_invariant_enter_scope_DSHCType : 
+  forall σ v x s1 s2 stH mV l g,
+    Γ s2 ≡ (ID_Local x, TYPE_Double) :: Γ s1 ->
+    ~ in_Gamma σ s1 x ->
+    l @ x ≡ Some (UVALUE_Double v) ->
+    state_invariant σ s1 stH (mV,(l,g)) ->
+    state_invariant (DSHCTypeVal v::σ) s2 stH (mV,(l,g)).
+Proof.
+  intros * EQ GAM LU [MEM WF ALIAS1 ALIAS2 ALIAS3]; inv EQ; cbn in *.
+  split.
+  - red; intros * LU1 LU2.
+    destruct n as [| n].
+    + cbn in *; inv LU1; inv LU2; auto. rewrite H0 in H1. inv H1. eauto.
+    + rewrite nth_error_Sn in LU1.
+      cbn in *. rewrite H0 in *.
+      eapply MEM in LU2; eauto.
+  -  do 2 red.
+    cbn.
+    intros ? [| n] LU'.
+    + cbn in LU'.
+      inv LU'.
+      cbn.
+
+      rewrite H0.
+      exists (ID_Local x); reflexivity.
+    + rewrite nth_error_Sn in LU'.
+      apply WF in LU'; auto.
+      rewrite H0. cbn. auto.
+
+  - red; intros * LU1 LU2 LU3 LU4.
+    destruct n1 as [| n1], n2 as [| n2]; auto.
+    + exfalso. cbn in *.
+      apply GAM.
+      inv LU3; eapply mk_in_Gamma; eauto.
+      rewrite H0 in *. inv H1. eauto.
+    + exfalso.
+      apply GAM; inv LU4; eapply mk_in_Gamma; eauto.
+      rewrite H0 in H1. inv H1. cbn in *. rewrite H0 in *. eauto.
+    + rewrite H0 in *; inv LU3; inv LU4; eapply ALIAS1 in LU1; apply LU1 in LU2; eauto.
+
+  - red; intros * LU1 LU2.
+    destruct n as [| n], n' as [| n']; auto.
+    + inv LU1.
+    + inv LU2.
+    + rewrite nth_error_Sn in LU1.
+      rewrite nth_error_Sn in LU2.
+      eapply ALIAS2 in LU1; apply LU1 in LU2; eauto.
+
+  - do 2 red. intros * LU1 LU2 LU3 LU4 INEQ IN1 IN2.
+    cbn in *.
+    destruct n1 as [| n1], n2 as [| n2]; auto.
+    + cbn in *. rewrite H0 in *; inv LU1; inv LU2; inv LU3; inv LU4; auto.
+    + rewrite H0 in *; cbn in *; inv LU1; inv LU3; eauto.
+      cbn in *.
+      Transparent addVars. cbn* in *. rewrite LU in IN1. inv IN1.
+    + rewrite H0 in *; cbn in *; inv LU2; inv LU4.
+      cbn in *; rewrite LU in IN2; inv IN2.
+    + rewrite H0 in *; cbn in *.
+      eapply ALIAS3; [exact LU1 | exact LU2 |..]; eauto.
+  - intros [| n] * LUn; [inv LUn |].
+    eapply st_id_allocated; eauto.
+Qed.
 
 Lemma DSHIMap_correct:
   ∀ (n : nat) (x_p y_p : PExpr) (f : AExpr) (s1 s2 : IRState) (σ : evalContext) (memH : memoryH) 
@@ -176,11 +261,15 @@ Lemma DSHIMap_correct:
             (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from, bid_in)) g ρ memV).
 Proof.
   intros n x_p y_p f s1 s2 σ memH nextblock bid_in bid_from bks g ρ memV GEN NEXT PRE GAM NOFAIL.
-  Opaque genIMapBody.
+  (* Opaque genIMapBody. *)
   Opaque genAExpr.
   Opaque IntType.
   Opaque incLocalNamed.
   Opaque newLocalVar.
+  Opaque addVars.
+  Opaque swapVars.
+
+  (* rewrite DSHIMap_as_tfor; cbn. *)
 
   pose proof generates_wf_ocfg_bids _ NEXT GEN as WFOCFG.
   pose proof inputs_bound_between _ _ _ GEN as INPUTS_BETWEEN.
@@ -197,6 +286,10 @@ Proof.
   simp; try_abs.
 
   clean_goal.
+
+  (* Duplicate work as genMExpr_correct, needed for GEP later. *)
+  edestruct memory_invariant_Ptr as (bkH & ptrV & Mem_LU & LUV & ADR & EQ); eauto.
+  edestruct memory_invariant_Ptr with (a := n2) as (bkH' & ptrV' & Mem_LU' & LUV' & ADR' & EQ'); eauto.
 
   repeat apply no_failure_Ret in NOFAIL.
   edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
@@ -215,45 +308,26 @@ Proof.
   rewrite DSHIMap_interpreted_as_tfor.
   rewrite DSHIMap_interpreted_as_tfor in NOFAIL.
 
+  cbn* in *; simp; cbn in *.
+  clean_goal.
+  (* rename i into s1, i0 into s2, i1 into s3, i2 into s4, i3 into s5, s2 into s6. *)
+  destruct_unit.
+  clean_goal.
+  rename l0 into bks, r into loopvar.
+
+  cbn* in *; simp; cbn* in *.
+
   match goal with
-  | [H : genWhileLoop ?prefix' _ _ ?loopvar' ?loopcontblock' ?body_entry' ?body_blocks' _ ?nextblock' ?s1' ≡ inr (?s2', (?entry_id', ?bks')) |- _] =>
-    remember prefix' as prefix
-      ; rename loopvar' into loopvar
-      ; rename loopcontblock' into loopcontblock
-      ; rename body_entry' into body_entry
-      ; rename body_blocks' into body_blocks
-      ; rename nextblock' into nextblock_
-      ; rename s1' into s1_
-      ; rename s2' into s2_
-      ; rename entry_id' into entry_id
-      ; rename bks' into bks
+  | [H : genWhileLoop ?prefix _ _ ?loopvar ?loopcontblock ?body_entry ?body_blocks _ ?nextblock ?s1 ≡ inr (?s2, (?entry_id, ?bks)) |- _]
+    => epose proof @genWhileLoop_tfor_correct prefix loopvar loopcontblock body_entry body_blocks nextblock bid_in s1 s2 i6 i7 bks as GENC
   end.
 
-  cbn* in *; simp; cbn in *.
-
   Transparent genIMapBody.
-  pose proof @genWhileLoop_tfor_correct prefix loopvar loopcontblock body_entry body_blocks nextblock_ entry_id s1_ s2_ i s1_ bks as GENC.
   forward GENC; [clear GENC |].
-  {
-
-    clear -Heqs5.
-    rename Heqs5 into GEN.
-    Set Nested Proofs Allowed.
-
-    Lemma genWhileLoop_entry_in_scope_IMap:
-      ∀ (f : AExpr) (i0 : ident) (i1 : Int64.int) (i3 : ident) (i4 : Int64.int) (i6 : IRState) (loopcontblock : block_id) (loopvar : raw_id) 
-        (body_entry : block_id) (body_blocks : list (LLVMAst.block typ)) (s1_ : IRState),
-        genIMapBody i1 i4 i0 i3 f loopvar loopcontblock i6 ≡ inr (s1_, (body_entry, body_blocks)) → List.In body_entry (inputs body_blocks).
-    Proof.
-      induction f; intros *; try (cbn; intros GEN; clear -GEN; simp; cbn; auto; fail).
-    Qed.
-
-    eapply genWhileLoop_entry_in_scope_IMap; eauto.
-  }
+  cbn. left; reflexivity.
 
   forward GENC; [clear GENC |].
-  eauto. subst.
-  reflexivity.
+  eauto.
 
   forward GENC; [clear GENC |].
   {
@@ -263,16 +337,9 @@ Proof.
   forward GENC; [clear GENC |].
   {
     eapply lid_bound_between_shrink; [eapply lid_bound_between_newLocalVar | | ]; eauto; try reflexivity; solve_local_count.
-    subst.
-
-    destruct u.
-    eapply dropVars_local_count in Heqs7. rewrite Heqs7.
-    eapply genIMapBody_local_count in Heqs5. apply Heqs5.
-    (* TODO: solve_local_count doesn't work for dropVars properly? *)
   }
 
-  forward GENC; [clear GENC |].
-  {
+  forward GENC; [clear GENC |].  {
     rewrite Forall_forall in INPUTS_BETWEEN. intros IN. subst.
     inv VG.
     rewrite inputs_convert_typ, add_comment_inputs in INPUTS_BETWEEN.
@@ -280,52 +347,56 @@ Proof.
     eapply not_bid_bound_between; eauto.
   }
 
-  rename Heqs8 into WHILE.
+  rename Heqs7 into WHILE.
 
   specialize (GENC n WHILE).
+
   match goal with
-    |- context[tfor ?bod _ _ _] => specialize (GENC _ bod)
+    |- context [tfor ?bod _ _ _] => specialize (GENC _ bod)
   end.
 
   forward GENC; [clear GENC |].
   {
-    clear -Heqs.
-    unfold MInt64asNT.from_nat in Heqs.
-    unfold MInt64asNT.from_Z in Heqs.
+    clear -Heqs5.
+    unfold MInt64asNT.from_nat in Heqs5.
+    unfold MInt64asNT.from_Z in Heqs5.
     simp.
     apply l0.
   }
+
+  inv VG.
+  rewrite add_comment_eutt.
 
   (* Invariant at each iteration *)
   set (I := (fun (k : nat) (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
                match mH with
                | None => False
-               | Some (mH, b) => state_invariant σ s2_ mH stV
+               | Some (mH, b) => state_invariant σ s2 mH stV
                end)).
   (* Precondition and postcondition *)
   set (P := (fun (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
                match mH with
                | None => False
-               | Some (mH,b) => state_invariant σ s2_ mH stV
+               | Some (mH,b) => state_invariant σ s2 mH stV
                end)).
 
   specialize (GENC I P P (Some (memH, x0))).
 
-
+  (* Loop body match *)
   forward GENC; [clear GENC |].
   {
     subst I P; intros ? ? ? [[? []]|] * (INV & LOOPVAR & BOUNDk & RET); [| inv INV].
 
     assert (EQk: MInt64asNT.from_nat k ≡ inr (Int64.repr (Z.of_nat k))).
-    {clear - BOUNDk Heqs.
-     destruct (MInt64asNT.from_nat k) eqn:EQ.
+    {
+     destruct (MInt64asNT.from_nat k) eqn:EQN.
      - exfalso.
        unfold MInt64asNT.from_nat in *.
        unfold MInt64asNT.from_Z in *.
        simp; lia.
      - unfold MInt64asNT.from_nat in *.
-       apply from_Z_intval in EQ.
-       rewrite EQ, repr_intval.
+       apply from_Z_intval in EQN.
+       rewrite EQN, repr_intval.
        reflexivity.
     }
 
@@ -341,89 +412,159 @@ Proof.
     hvred.
     eapply no_failure_bind_cont in NOFAIL'; cycle 1.
     rewrite interp_helix_ret. constructor. cbn. reflexivity.
-    cbn in NOFAIL'.
+    cbn in NOFAIL'. rewrite bind_ret_l in NOFAIL'. rewrite interp_helix_bind in NOFAIL'.
+    clear RET. clear WFOCFG. clear INPUTS_BETWEEN.
 
-    Require Import Helix.LLVMGen.Correctness_AExpr.
-    pose proof @genAExpr_correct.
     unfold denoteIUnCType.
-    clear RET.
+    Transparent genIMapBody. cbn in Heqs5. simp; try_abs.
+    rewrite denote_ocfg_unfold_in.
+    2: {
+      apply find_block_eq; auto.
+    }
 
-    Transparent genIMapBody. cbn in Heqs5. simp.
-    rename Heqs10 into AEXP.
+    cbn; vred. Transparent IntType. cbn.
+
+    rewrite denote_no_phis.
+    vred; cbn.
+
+    rewrite denote_code_cons.
+    rename n3 into x_addr.
+    rename n2 into x0_addr.
+
+
+    Set Nested Proofs Allowed.
+
+    Lemma typ_to_dtyp_P :
+        forall t s,
+          typ_to_dtyp s (TYPE_Pointer t) ≡ DTYPE_Pointer.
+    Proof.
+      intros t s.
+      apply typ_to_dtyp_equation.
+    Qed.
+
+    Ltac typ_to_dtyp_simplify :=
+      repeat (try rewrite typ_to_dtyp_I in *; try rewrite typ_to_dtyp_D in *; try rewrite typ_to_dtyp_D_array in *; try rewrite typ_to_dtyp_P in *) .
+
+    (* TODO: Move*)
+    Lemma denote_exp_ID :forall defs g l m id τ ptr,
+        in_local_or_global_addr l g id ptr ->
+        interp_cfg_to_L3 defs (translate exp_E_to_instr_E (denote_exp (Some τ) (EXP_Ident id))) g l m
+        ≈
+        Ret (m,(l,(g,UVALUE_Addr ptr))).
+    Proof.
+      intros. destruct id eqn: Hh; [ rewrite denote_exp_GR | rewrite denote_exp_LR ] ; eauto; try reflexivity.
+    Qed.
 
     match goal with
-    | [ |- context[denoteAExpr ?σ f]] => remember σ as aσ
+    | [|- context[OP_GetElementPtr (DTYPE_Array ?size' ?τ') (_, ?ptr') _]] =>
+      edestruct denote_instr_gep_array_no_read with (ρ := li) (g := g0) (m := mV)
+                                                    (i := r0) (size := size') (τ := τ')
+                                                    (ptr := ptr') (e_ix := @EXP_Ident dtyp (ID_Local loopvar)) as (? & ? & ?)
     end.
 
+    apply denote_exp_ID. destruct i1; eauto.
+    admit. admit. (* local extension *)
+    unfold denote_exp; cbn.
+    rewrite translate_trigger, lookup_E_to_exp_E_Local, subevent_subevent,
+      translate_trigger, exp_E_to_instr_E_Local, subevent_subevent.
 
-    destruct u, u1.
-    eapply H1 in AEXP; clear H1; cycle 1.
-    - eapply state_invariant_enter_scope_DSHCType; cycle 1.
+    setoid_rewrite interp_cfg_to_L3_LR; cycle -1.
+    2 : reflexivity.
+    eauto.
+    typ_to_dtyp_simplify.
+     erewrite <- from_N_intval; eauto. admit.
+
+    vred.
+
+    setoid_rewrite H2. clear H2.
+    vred.
+
+    (* Get information out of memory before load *)
+    pose proof state_invariant_memory_invariant PRE as MINV_YOFF.
+    pose proof state_invariant_memory_invariant PRE as MINV_XOFF.
+    unfold memory_invariant in MINV_YOFF.
+    unfold memory_invariant in MINV_XOFF.
+    specialize (MINV_YOFF _ _ _ _ Heqo0 LUn0).
+    specialize (MINV_XOFF _ _ _ _ Heqo LUn).
+    cbn in MINV_YOFF, MINV_XOFF.
+
+    destruct MINV_YOFF as (bkh_yoff & ptrll_yoff & τ_yoff & MLUP_yoff & TEQ_yoff & FITS_yoff & INLG_yoff & GETARRAYCELL_yoff).
+    destruct MINV_XOFF as (bkh_xoff & ptrll_xoff & τ_xoff & MLUP_xoff & TEQ_xoff & FITS_xoff & INLG_xoff & GETARRAYCELL_xoff).
+    rewrite MLUP_xoff in H; symmetry in H; inv H.
+    rewrite MLUP_yoff in H0; symmetry in H0; inv H0.
+
+    inv TEQ_yoff. inv TEQ_xoff. cbn.
+
+    vred.
+    rewrite denote_instr_load.
+    vred.
+    2: {
+      apply denote_exp_LR.
+
+      cbn.
+      apply alist_find_add_eq.
+    }
+    2: {
+      cbn in H1.
+      Search (nat -> Int64.int).
+      specialize (GETARRAYCELL_xoff (Int64.repr (Z.of_nat k)) b1).
+      assert (MInt64asNT.to_nat (Int64.repr (Z.of_nat k)) ≡ k). admit.
+      rewrite H in GETARRAYCELL_xoff.
+      specialize (GETARRAYCELL_xoff Heqo1).
+
+      erewrite read_array; eauto.
+      Ltac solve_allocated :=
+        first [solve [eapply dtyp_fits_allocated; eauto]].
+
+
+      admit. admit.
+    }
+
+    vred.
+    rewrite map_app.
+    cbn.
+    typ_to_dtyp_simplify.
+    rewrite denote_code_app.
+    vred.
+
+    Require Import Helix.LLVMGen.Correctness_AExpr.
+    eapply eutt_clo_bind.
+    {
+      eapply genAExpr_correct.
+      eassumption.
       {
-        cbn.
+        eapply state_invariant_enter_scope_DSHCType; eauto; cycle 1.
 
-        clear WFOCFG INPUTS_BETWEEN NOFAIL'.
-        clear NOFAIL_cont H H0 NEXT LOOPVAR EQk BOUNDk Heqo1.
-        clear Heqs LUn EQsz LUn0 EQsz0 Heqo0 Heqo.
-
-        solve_gamma.
-      }
-
-      3 : eapply state_invariant_enter_scope_DSHnat; eauto.
-      3 : {
-        intros abs. eapply in_Gamma_Gamma_eq in abs; [| eapply incBlockNamed_Γ ; eauto].
+        intros abs; eapply in_Gamma_Gamma_eq in abs; [| eapply incBlockNamed_Γ ; eauto].
         eapply GAM; eauto.
+        solve_lid_bound_between.
+        admit. admit. admit. admit. admit.
 
-        eapply lid_bound_between_newLocalVar in Heqs4.
-        2:reflexivity.
-        eapply lid_bound_between_shrink; eauto.
-        solve_local_count.
-        apply dropVars_local_count in Heqs7.
+      } admit. admit.
+    }
 
-        apply genWhile_local_count in WHILE.
-        clear WFOCFG INPUTS_BETWEEN NOFAIL_cont NOFAIL'.
-        apply genAExpr_local_count in AEXP.
-        cbn in AEXP.
-        solve_local_count.
-      }
-      3 : {
-        clear WFOCFG INPUTS_BETWEEN NOFAIL'.
-        clear NOFAIL_cont H H0 NEXT LOOPVAR EQk BOUNDk Heqo1.
-        clear Heqs LUn EQsz LUn0 EQsz0 Heqo0 Heqo.
-
-        eapply state_invariant_Γ in GENIR_Γ; eauto.
-        solve_state_invariant.
-      }
-      3 : { reflexivity. }
-      solve_gamma.
-      solve_gamma.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-  }
-
-  forward GENC; [clear GENC |].
-  {
-    subst I P; cbn.
-    intros _ * BOUND INV; simp; auto.
-    (* TODO 1 *)
     admit.
   }
+
+
+  forward GENC; [clear GENC |].
+              {
+                admit.
+    (* apply newLocalVar_local_count in Heqs2. *)
+    (* apply dropVars_local_count in Heqs5. *)
+  }
+
+  forward GENC; [clear GENC |]. admit.
 
   forward GENC; [clear GENC |].
   {
     admit.
   }
 
-  forward GENC; [clear GENC |].
-  {
-    reflexivity.
-  }
 
   forward GENC; [clear GENC |].
   {
-    subst P I; red; intros; auto. 
+    subst I P; red; intros; auto. 
   }
 
   forward GENC; [clear GENC |].
@@ -431,21 +572,10 @@ Proof.
     subst I P; red; intros; auto. 
   }
 
+  (* eapply eutt_mon; [| apply GENC]. *)
+
   specialize (GENC g ρ memV bid_from).
-  eapply eutt_mon.
-  {
-    clear GENC NOFAIL INPUTS_BETWEEN WFOCFG;subst P I.
-    intros [[? []] | ] (? & ? & ? & ?) *; cbn.
-    split; [| split]; cbn; eauto; admit.
-    - (* Need to enter scope,then escape it to link with s2 *)
-      (* eapply state_invariant_Γ; eauto; admit. *)
-      admit.
-  }
-  { subst P; cbn.
-    clear -PRE.
-    solve_state_invariant.
-    admit.
-  }
+  admit.
 Admitted.
 
 Section Swap.
