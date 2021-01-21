@@ -781,12 +781,19 @@ Proof.
                    match stV with
                    | (mV, (ρ, g)) =>
                      state_invariant σ s2 mH stV /\
-                     local_scope_modif i21 s2 (alist_add r (UVALUE_Addr dst_addr) (alist_add r0 (UVALUE_Addr src_addr) l_yoff)) ρ /\
-                     (* Not sure if this is the right block *)
                      exists v,
+                       local_scope_modif i21 s2 (alist_add r (UVALUE_Addr dst_addr) (alist_add r1 (UVALUE_Double v) (alist_add r0 (UVALUE_Addr src_addr) l_yoff))) ρ /\
+                     (* Not sure if this is the right block *)
                        ext_memory mV_init dst_addr DTYPE_Double (UVALUE_Double v) mV /\
                        (forall y, y ≢ (MInt64asNT.to_nat yoff_res) -> mem_lookup y mb ≡ mem_lookup y bkh_yoff) /\
-                       mem_lookup (MInt64asNT.to_nat yoff_res) mb ≡ Some v
+                       mem_lookup (MInt64asNT.to_nat yoff_res) mb ≡ Some v /\
+                       Returns (Some (mH, mb))
+                               (@interp_helix _ E_cfg (tfor
+                                  (λ (_ : nat) (acc : mem_block),
+                                   DSHPower_tfor_body σ f b1
+                                                      (mem_add (MInt64asNT.to_nat yoff_res) initial bkh_yoff)
+                                                      (MInt64asNT.to_nat yoff_res) acc) 0 k
+                                  (mem_add (MInt64asNT.to_nat yoff_res) initial bkh_yoff)) m_yoff)
                    end
                  end)).
 
@@ -803,7 +810,7 @@ Proof.
       forward LOOPTFOR.
       { intros g_loop l_loop mV_loop [[mH_loop mb_loop] |] k _label [HI [POWERI [POWERI_VAL RETURNS]]]; [|inv HI].
         cbn in HI.
-        destruct HI as [LINV_SINV [LINV_LSM [v [LINV_MEXT [LINV_HELIX_MB_OLD LINV_HELIX_MB_NEW]]]]].
+        destruct HI as [LINV_SINV [v [LINV_LSM [LINV_MEXT [LINV_HELIX_MB_OLD [LINV_HELIX_MB_NEW LINV_RET]]]]]].
         pose proof LINV_MEXT as [LINV_MEXT_NEW LINV_MEXT_OLD].
         unfold DSHPower_tfor_body.
         
@@ -873,100 +880,135 @@ Proof.
         {
           eapply genAExpr_correct.
           eauto.
-          { eapply state_invariant_enter_scope_DSHCType with (x := ID_Local r1) (s2:={| block_count := block_count i19; local_count := local_count i19; void_count := void_count i19; Γ := (ID_Local r2, TYPE_Double) :: Γ i19 |}); cbn; eauto.
+          { eapply state_invariant_enter_scope_DSHCType with (s1:={| block_count := block_count i19; local_count := local_count i17; void_count := void_count i19; Γ := (ID_Local r2, TYPE_Double) :: Γ i19 |}); cbn; eauto.
             
-            { intros CONTRA.
-              destruct CONTRA.
-              - inv H.
-                eapply lid_bound_between_incLocal in Heqs9.
-                eapply lid_bound_between_incLocal in Heqs13.
-                eapply state_bound_between_id_separate.
-                2: { eapply Heqs9. }
-                2: { eapply Heqs13. }
-                2: { solve_local_count. }
-                eapply incLocalNamed_count_gen_injective.
-              - assert (~ in_Gamma σ s1 r1).
-                apply GAM; [solve_lid_bound_between|..].
-                assert (Γ i19 ≡ Γ s1) by solve_gamma.
-                rewrite H1 in H.
-                apply H0.
-                pose proof H as ERR.
-                apply in_nth_error in ERR. destruct ERR as [n NTH].
-                esplit.
-                erewrite map_nth_error in NTH.
-                2: { 
-                unfold in_Gamma.
+            { pose proof GAM.
+              unfold Gamma_safe in H.
+              assert (~ in_Gamma σ s1 r1) by solve_not_in_gamma.
+              assert (Γ s1 ≡ Γ i19) by solve_gamma.
+
+              Lemma not_in_gamma_cons :
+                forall σ s1 s2 id id' τ v,
+                  Γ s2 ≡ (ID_Local id', τ) :: Γ s1 ->
+                  ~ in_Gamma σ s1 id ->
+                  id ≢ id' ->
+                  ~ in_Gamma (v :: σ) s2 id.
+              Proof.
+                intros σ s1 s2 id id' τ v GAM NIN NEQ.
+                intros CONTRA.
+                inv CONTRA.
+                apply NIN.
+                rewrite GAM in *.
+                destruct n.
+                - cbn in *; inv H; inv H0.
+                  contradiction.
+                - esplit; eauto.
+                  eapply evalContext_typechecks_extend; eauto.
+              Qed.
+
+              eapply not_in_gamma_cons.
+              cbn. reflexivity.
+              solve_not_in_gamma.
+              intros CONTRA; subst.
+
+              eapply lid_bound_between_incLocal in Heqs9.
+              eapply lid_bound_between_incLocal in Heqs13.
+              eapply state_bound_between_id_separate.
+              2: { eapply Heqs9. }
+              2: { eapply Heqs13. }
+              2: { solve_local_count. }
+              eapply incLocalNamed_count_gen_injective.
             }
-            admit. (* I believe this *)
+            admit. (* I believe this. Also, if I have any problems then I can modify the loop invariant *)
 
-            eapply state_invariant_enter_scope_DSHCType with (x := ID_Local r2) (s2:=i19); cbn; eauto.
+            eapply state_invariant_enter_scope_DSHCType; eauto.
+            reflexivity.
+            eapply not_in_Gamma_Gamma_eq with (s1 := s1); [solve_gamma|solve_not_in_gamma].
 
-            admit. (* Not sure how to show this right now, but should be true *)
             { inv LINV_HELIX_MB_NEW.
               apply alist_find_add_eq.
             }
 
-            eapply state_invariant_same_Γ.
+            
+            eapply state_invariant_same_Γ with (s1:=s2); eauto.
+            admit. (* This *might* be true *)
+            admit. (* True because of dropVars *)
+          }
+
+          { eapply Gamma_safe_Context_extend.
+            eapply Gamma_safe_Context_extend.
+            9: { cbn.
+                 change ((ID_Local r2, TYPE_Double) :: Γ i19) with (Γ {| block_count := block_count i19; local_count := local_count i19; void_count := void_count i19; Γ := (ID_Local r2, TYPE_Double) :: Γ i19 |}).
+                 reflexivity.
+            }
             4: {
-              eapply state_invariant_enter_scope_DSHCType; eauto.
-              4: {
-                eapply state_invariant_add_fresh'; eauto.
-                solve_lid_bound_between.
-              }
+              cbn.
+              reflexivity.
             }
 
-            
+            eapply Gamma_safe_shrink; eauto.
+            solve_gamma.
+            all: try (solve [cbn; solve_local_count]).
+
+            instantiate (1:= {| block_count := block_count i19; local_count := local_count i21; void_count := void_count i19; Γ := (ID_Local r2, TYPE_Double) :: Γ i19 |}).
+            all: try (solve [cbn; solve_local_count]).
+
+            cbn.
+            admit. (* Should be true, but need to reason about dropVars *)
+
+            { intros id1 H.
+              admit.
+            }
+
+            cbn.
+            solve_gamma.
+
+            { intros id1 H.
+              admit.
+            }
           }
 
-          { split; cbn.
-            - (* Memory invariant *)
-              admit.
-            - cbn.
-              (* TODO: WF_IRState cons lemma *)
+          { rewrite denoteDSHPower_as_tfor in NOFAIL.
+            unfold DSHPower_tfor in NOFAIL.
 
-              unfold WF_IRState.
+            eapply no_failure_helix_bind_prefix in NOFAIL.
+            rewrite interp_helix_tfor in NOFAIL.
+            eapply no_failure_tfor in NOFAIL.
+
+            unfold DSHPower_tfor_body in NOFAIL.
+
+            3: {
+              pose proof LINV_RET as RET.
+              rewrite interp_helix_tfor in RET.
+              unfold DSHPower_tfor_body.
+              eapply RET.
+              lia.
+            }
+            2: lia.
+            2: lia.
+
+            cbn in NOFAIL.
+            repeat setoid_rewrite interp_helix_bind in NOFAIL.
+            pose proof NOFAIL as NOFAIL_loop.
+            eapply no_failure_bind_prefix in NOFAIL_loop.
+
+            pose proof NOFAIL_loop as NOFAIL_y.
+            eapply no_failure_bind_prefix in NOFAIL_y.
+
+            eapply no_failure_bind_cont in NOFAIL_loop.
+            2: {
+              eapply mem_lookup_err_inr_Some_eq in Heqo1.
+              erewrite Heqo1.
               cbn.
-              Lemma evalContext_typechecks_cons :
-                forall σ Γ v id τ,
-                  evalContext_typechecks σ Γ ->
-                  getWFType id (DSHType_of_DSHVal v) ≡ τ ->
-                  evalContext_typechecks (v :: σ) ((id, τ) :: Γ).
-              Proof.
-                intros σ Γ v id τ TC TYP.
-                unfold evalContext_typechecks.
-                intros v0 [|n] LUP.
-                - cbn in LUP. inv LUP.
-                  exists id. reflexivity.
-                - rewrite nth_error_Sn in LUP.
-                  rewrite nth_error_Sn.
-                  apply TC in LUP.
-                  auto.
-              Qed.
+              rewrite interp_helix_ret.
+              cbn.
+              constructor.
+              reflexivity.
+            }
 
-
-              (* TODO: should be able to automate this *)
-              do 2 (eapply evalContext_typechecks_cons; eauto).
-              apply state_invariant_WF_IRState in PostXoffSINV.
-              eapply WF_IRState_Γ; eauto.
-              solve_gamma.
-            - Lemma no_id_aliasing_cons :
-                forall σ s1 s2 id τ hv,
-                  no_id_aliasing σ s1 ->
-                  Γ s2 ≡ (id, τ) :: Γ s1 ->
-                  no_id_aliasing (hv :: σ) s2.
-              Proof.
-                intros σ s1 s2 id τ hv NOALIAS GAM.
-                unfold no_id_aliasing.
-                intros n1 n2 id0 τ0 τ' v1 v2 H H0 H1 H2.
-                rewrite GAM in *.
-              Abort.
-              admit.
-            - admit.
-            - admit.
-            - admit.
+            cbn in NOFAIL_loop.
+            eapply no_failure_helix_bind_prefix. eapply NOFAIL_loop.
           }
-          admit. (* solve_gamma_safe. *)
-          admit. (* solve_no_failure. *)
         }
 
         intros [[mH_Aexpr t_Aexpr]|] [mV_Aexpr [l_Aexpr [g_Aexpr []]]] POST; [|inv POST].
