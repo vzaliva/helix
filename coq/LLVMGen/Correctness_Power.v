@@ -471,14 +471,14 @@ Proof.
       { constructor.
       }
 
-      { eapply dtyp_fits_array_elem; eauto.
+      { eapply dtyp_fits_array_elem; eauto. admit. admit.
       }
 
-      2: { destruct H7.
-           cbn in *.
-           rewrite H8.
-           admit.
-         }
+      (* 2: { destruct H7. *)
+      (*      cbn in *. *)
+      (*      rewrite H8. *)
+      (*      admit. *)
+      (*    } *)
       {
       (* Will need to set up loop invariants and such, just like loop case *)
       admit.
@@ -507,6 +507,5 @@ Proof.
 
   { (* Should be pretty much the same as above... Local case. *)
 
-  }
   
 Admitted.
