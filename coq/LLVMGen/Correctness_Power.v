@@ -876,7 +876,7 @@ Proof.
         rewrite bind_bind.
         vred.
 
-        eapply eutt_clo_bind.
+        eapply eutt_clo_bind_returns.
         {
           eapply genAExpr_correct.
           eauto.
@@ -1011,7 +1011,7 @@ Proof.
           }
         }
 
-        intros [[mH_Aexpr t_Aexpr]|] [mV_Aexpr [l_Aexpr [g_Aexpr []]]] POST; [|inv POST].
+        intros [[mH_Aexpr t_Aexpr]|] [mV_Aexpr [l_Aexpr [g_Aexpr []]]] POST RetAexp RetAexpCode; [|inv POST].
         destruct POST as [POSTAEXPRSINV POSTAEXPR].
 
         hred.
@@ -1145,14 +1145,14 @@ Proof.
                have that.
 
                newLocalVar_Γ
-            *)
+             *)
+            admit.
           }
-          admit.
-          split.
-          admit.
 
           (* TODO: This is the thing we need *)
           exists t_Aexpr.
+          split.
+          admit. (* local_scope_modif *)
           split.
           { eapply write_correct in WRITE.
             destruct WRITE as [ALLOCATED WRITTEN].
@@ -1214,7 +1214,44 @@ Proof.
             intros y H.
             rewrite mem_lookup_mem_add_neq; eauto.
           }
-          { rewrite mem_lookup_mem_add_eq; eauto.
+          split.
+          { (* Helix memory old *)
+            rewrite mem_lookup_mem_add_eq; eauto.
+          }
+          { (* Returns... *)
+            rewrite tfor_split with (i0 := 0) (j:= k) (k0:= S k); try lia.
+            rewrite interp_helix_bind.
+            eapply Returns_bind; eauto.
+            cbn.
+
+            rewrite tfor_unroll; [|lia].
+            rewrite interp_helix_bind.
+            
+            eapply mem_lookup_err_inr_Some_eq in Heqo1.
+            erewrite Heqo1.
+            cbn.
+            rewrite bind_ret_l.
+            unfold denoteBinCType.
+
+            eapply Returns_bind.
+
+            { rewrite interp_helix_bind.
+              eapply Returns_bind; eauto.
+
+              cbn.
+              rewrite interp_helix_ret.
+              cbn.
+
+              constructor.
+              reflexivity.
+            }
+
+            cbn.
+            rewrite tfor_0.
+            rewrite interp_helix_ret.
+            cbn.
+            constructor.
+            reflexivity.
           }
         - destruct POSTAEXPR. cbn in extends.
           admit. (* Should hold *)
