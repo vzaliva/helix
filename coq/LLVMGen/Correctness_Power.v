@@ -957,14 +957,14 @@ Proof.
             admit. (* Should be true, but need to reason about dropVars *)
 
             { intros id1 H.
-              admit.
+              admit. (* bound between reasoning, but should hold *)
             }
 
             cbn.
             solve_gamma.
 
             { intros id1 H.
-              admit.
+              admit. (* bound between reasoning, but should hold *)
             }
           }
 
@@ -1146,7 +1146,7 @@ Proof.
 
                newLocalVar_Γ
              *)
-            admit.
+            admit. (* TODO *)
           }
 
           (* TODO: This is the thing we need *)
@@ -1288,13 +1288,12 @@ Proof.
         unfold I in *.
         destruct a; try inv HI.
         destruct p.
-        destruct HI as [HI_SINV [HI_LSM [HI_v [HI_EXT [HI_OLD HI_NEW]]]]].
-        split.
-        admit.
+        destruct HI as [HI_SINV [HI_v [HI_LSM [HI_EXT [HI_OLD HI_NEW]]]]].
         split.
         admit.
         exists HI_v.
-        auto.
+        split; auto.
+        admit. (* LSM *)
       }
 
       { solve_local_count.
