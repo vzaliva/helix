@@ -1,4 +1,6 @@
 Require Import ZArith.
+Require Import Coq.Bool.Bool.
+
 From Flocq Require Import Binary Bits.
 
 Require Import MathClasses.interfaces.abstract_algebra.
@@ -44,6 +46,46 @@ Program Definition Float64One : binary64 := Bone _ _ eq_refl eq_refl.
 
 Instance binary64_Equiv: Equiv binary64 := eq.
 
+(* Should be somewhere in stdlib but I could not find it *)
+Lemma positive_dec : forall p1 p2 : positive, {p1 ≡ p2} + {p1 ≢ p2}.
+Proof.
+  decide equality.
+Defined.
+
+Instance binary64_equiv_dec: forall x y: binary64, Decision (x = y).
+Proof.
+  intros.
+  unfold Decision, equiv, binary64_Equiv.
+  unfold binary64 in *.
+
+  destruct x,y; try (right; unfold not; intros C; inversion C; reflexivity).
+  1,2:
+    destruct (bool_dec s s0) as [HB|NB] ;
+    [left; subst; reflexivity| right; contradict NB; inversion NB; auto].
+  -
+    destruct (bool_dec s s0) as [HB|NB].
+    +
+      subst.
+      destruct (positive_dec pl pl0) as [HP|NP].
+      *
+        left; subst; f_equiv; apply proof_irrelevance.
+      *
+        right; contradict NP; inversion NP; auto.
+    +
+      right; contradict NB; inversion NB; auto.
+  -
+    destruct (bool_dec s s0) as [HB|NB], (Z.eq_dec e e1) as [HZ|NZ], (positive_dec m m0) as [HP|NP]; subst; try (replace e0 with e2 by (apply proof_irrelevance); clear e0).
+    + left; reflexivity.
+    + right; contradict NP; inversion NP; auto.
+    + right; contradict NZ; inversion NZ; auto.
+    + right; contradict NZ; inversion NZ; auto.
+    + right; contradict NB; inversion NB; auto.
+    + right; contradict NB; inversion NB; auto.
+    + right; contradict NB; inversion NB; auto.
+    + right; contradict NB; inversion NB; auto.
+Qed.
+
+
 Instance binary64_Setoid: Setoid binary64.
 Proof.
   split.
@@ -71,6 +113,15 @@ Module MFloat64asCT <: CType.
 
   Definition CTypeZero := Float64Zero.
   Definition CTypeOne  := Float64One.
+
+  Lemma CTypeZeroOneApart: Float64Zero ≠ Float64One.
+  Proof.
+    unfold Float64Zero, Float64One.
+    intros H.
+    inversion H.
+  Qed.
+
+  Definition CTypeEquivDec := binary64_equiv_dec.
 
   Definition CTypePlus     := b64_plus FT_Rounding.
   Definition CTypeNeg      := b64_opp.
@@ -126,22 +177,22 @@ Module MFloat64asCT <: CType.
   Instance Zless_proper: Proper ((=) ==> (=) ==> (=)) CTypeZLess.
   Proof. solve_proper. Qed.
 
-  Definition abs_proper: Proper ((=) ==> (=)) b64_abs.
+  Instance abs_proper: Proper ((=) ==> (=)) b64_abs.
   Proof. solve_proper. Qed.
 
-  Definition plus_proper: Proper ((=) ==> (=) ==> (=)) (b64_plus FT_Rounding).
+  Instance plus_proper: Proper ((=) ==> (=) ==> (=)) (b64_plus FT_Rounding).
   Proof. solve_proper. Qed.
 
-  Definition sub_proper: Proper ((=) ==> (=) ==> (=)) (b64_minus FT_Rounding).
+  Instance sub_proper: Proper ((=) ==> (=) ==> (=)) (b64_minus FT_Rounding).
   Proof. solve_proper. Qed.
 
-  Definition mult_proper: Proper ((=) ==> (=) ==> (=)) (b64_mult FT_Rounding).
+  Instance mult_proper: Proper ((=) ==> (=) ==> (=)) (b64_mult FT_Rounding).
   Proof. solve_proper. Qed.
 
-  Definition min_proper: Proper ((=) ==> (=) ==> (=)) (Float64Min).
+  Instance min_proper: Proper ((=) ==> (=) ==> (=)) (Float64Min).
   Proof. solve_proper. Qed.
 
-  Definition max_proper: Proper ((=) ==> (=) ==> (=)) (Float64Max).
+  Instance max_proper: Proper ((=) ==> (=) ==> (=)) (Float64Max).
   Proof. solve_proper. Qed.
 
 End MFloat64asCT.

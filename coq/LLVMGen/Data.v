@@ -22,7 +22,7 @@ Import ListNotations.
 Import MonadNotation.
 Open Scope monad_scope.
 
-Import MDSHCOLOnFloat64.
+Import FHCOL.
 
 Definition genFloatV (fv:binary64) : (exp typ) :=  EXP_Double fv.
 
@@ -169,7 +169,7 @@ Definition helix_empty_memory := memory_empty.
 Definition helix_initial_memory
            (p: FSHCOLProgram)
            (data: list binary64)
-  : err (MDSHCOLOnFloat64.memory * list binary64 * evalContext)
+  : err (FHCOL.memory * list binary64 * evalContext)
   := match p with
      | mkFSHCOLProgram i o name globals op =>
        let '(data, y) := constMemBlock (MInt64asNT.to_nat o) data in

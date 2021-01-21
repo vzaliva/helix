@@ -77,56 +77,56 @@ Fixpoint compileSHCOL2MSHCOL (t:term) (fuel: nat) {struct fuel}: TemplateMonad (
               tmReturn(tLambda (nNamed n) vt c)
     | tApp (tConst (_,opname) u) args =>
       match parse_SHCOL_Op_Name opname, args with
-      | Some n_Embed, [fm ; svalue; o ; b ; bc] =>
+      | Some n_Embed, [_; _; fm ; svalue; o ; b ; bc] =>
         tmPrint "Embed" ;;
                 tmReturn  (tApp (tConst (kmshop "MSHEmbed") u)
                                 [o; b ; bc])
-      | Some n_Pick, [fm ; svalue; i ; b ; bc] =>
+      | Some n_Pick, [_; fm ; svalue; i ; b ; bc] =>
         tmPrint "Pick" ;;
                 tmReturn  (tApp (tConst (kmshop "MSHPick") u)
                                 [i; b; bc])
-      | Some n_SHPointwise, [fm ; svalue; n ; f ; pF ] =>
+      | Some n_SHPointwise, [_; fm ; svalue; n ; f ; pF ] =>
         tmPrint "SHPointwise" ;;
                 tmReturn  (tApp (tConst (kmshop "MSHPointwise") u)
                                 [n; f; pF])
-      | Some n_SHBinOp, [fm ; svalue; o ; f ; pF]
+      | Some n_SHBinOp, [_; _; fm ; svalue; o ; f ; pF]
         =>
         tmPrint "SHBinOp" ;;
                 tmReturn  (tApp (tConst (kmshop "MSHBinOp") u)
                                 [o; f; pF])
-      | Some n_SHInductor, [fm ; svalue; n ; f ; pF ; z] =>
+      | Some n_SHInductor, [ _; _; fm ; svalue; n ; f ; pF ; z] =>
         tmPrint "SHInductor" ;;
                 tmReturn  (tApp (tConst (kmshop "MSHInductor") u)
                                 [n; f; pF; z])
-      | Some n_IUnion, [svalue; i ; o ; n ; f ; pF ; scompat ; op_family] =>
+      | Some n_IUnion, [_; _; svalue; i ; o ; n ; f ; pF ; scompat ; op_family] =>
         tmPrint "IUnion" ;;
                 c <- compileSHCOL2MSHCOL op_family fuel' ;;
                 tmReturn  (tApp (tConst (kmshop "MSHIUnion") u)
                                 [i; o; n; c])
-      | Some n_ISumUnion, [i ; o ; n ; op_family] =>
+      | Some n_ISumUnion, [_; _; i ; o ; n ; op_family] =>
         (* Same as [IUnion] *)
         tmPrint "ISumUnion" ;;
                 c <- compileSHCOL2MSHCOL op_family fuel';;
                 tmReturn  (tApp (tConst (kmshop "MSHIUnion") u)
                                 [i; o; n; c])
-      | Some n_IReduction, [svalue; i ; o ; n ; f ; pF ; scompat ; op_family] =>
+      | Some n_IReduction, [_; _; svalue; i ; o ; n ; f ; pF ; scompat ; op_family] =>
         tmPrint "IReduction" ;;
                 c <- compileSHCOL2MSHCOL op_family fuel' ;;
                 tmReturn  (tApp (tConst (kmshop "MSHIReduction") u)
                                 [i; o; n; svalue; f; pF; c])
-      | Some n_SHCompose, [fm ; svalue; i1 ; o2 ; o3 ; op1 ; op2] =>
+      | Some n_SHCompose, [_; _; fm ; svalue; i1 ; o2 ; o3 ; op1 ; op2] =>
         tmPrint "SHCompose" ;;
                 c1 <- compileSHCOL2MSHCOL op1 fuel' ;;
                 c2 <- compileSHCOL2MSHCOL op2 fuel' ;;
                 tmReturn  (tApp (tConst (kmshop "MSHCompose") u)
                                 [i1; o2; o3; c1; c2])
-      | Some n_SafeCast, [svalue; i ; o ; c] =>
+      | Some n_SafeCast, [_; _; svalue; i ; o ; c] =>
         tmPrint "SafeCast" ;;
                 compileSHCOL2MSHCOL c fuel'
-      | Some n_UnSafeCast, [svalue; i ; o ; c] =>
+      | Some n_UnSafeCast, [_; _; svalue; i ; o ; c] =>
         tmPrint "UnSafeCast" ;;
                 compileSHCOL2MSHCOL c fuel'
-      | Some n_Apply2Union, [fm ; i ; o ; svalue; dot ; _ ; _; op1 ; op2] =>
+      | Some n_Apply2Union, [_; _; fm ; i ; o ; svalue; dot ; _ ; _; op1 ; op2] =>
         tmPrint "Apply2Union" ;;
                 c1 <- compileSHCOL2MSHCOL op1 fuel' ;;
                 c2 <- compileSHCOL2MSHCOL op2 fuel' ;;

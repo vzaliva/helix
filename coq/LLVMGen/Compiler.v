@@ -34,7 +34,7 @@ Open Scope monad_scope.
 Set Implicit Arguments.
 Set Strict Implicit.
 
-Import MDSHCOLOnFloat64.
+Import FHCOL.
 
 (* Both [String] and [List] define [(++)] notation. We use both.
    To avoid implicit scoping, we re-define one for String *)

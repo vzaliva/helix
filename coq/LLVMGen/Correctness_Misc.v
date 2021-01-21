@@ -4,7 +4,7 @@ Require Import Helix.LLVMGen.Correctness_Invariants.
 Set Implicit Arguments.
 Set Strict Implicit.
 
-Import MDSHCOLOnFloat64.
+Import FHCOL.
 Import D.
 
 Import ListNotations.

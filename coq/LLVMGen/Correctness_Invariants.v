@@ -280,7 +280,7 @@ Section SimulationRelations.
      - pointers have a corresponding pointer in the appropriate VIR environment such that they map on identical arrays
    *)
   Definition memory_invariant (σ : evalContext) (s : IRState) : Rel_cfg :=
-    fun (mem_helix : MDSHCOLOnFloat64.memory) '(mem_llvm, (ρ,g)) =>
+    fun (mem_helix : FHCOL.memory) '(mem_llvm, (ρ,g)) =>
       forall (n: nat) v τ x,
         nth_error σ n ≡ Some v ->
         nth_error (Γ s) n ≡ Some (x,τ) ->

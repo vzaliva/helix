@@ -29,6 +29,9 @@ Open Scope vector_scope.
 
 Section HCOLBreakdown.
 
+  Context `{CAPROPS: CarrierProperties}.
+  Add Ring RingA: (stdlib_ring_theory CarrierA).
+
   Lemma Vmap2Indexed_to_VMap2 `{Setoid A} {n} {a b: vector A n}
         (f:A->A->A)
   :
@@ -204,14 +207,15 @@ Section HCOLBreakdown.
     apply HOperator_functional_extensionality; intros v.
     unfold HTLess, HBinOp, HCross.
     unfold compose, BinOp.
-    simpl.
+    cbn.
     rewrite vp2pv.
     repeat break_let.
     unfold vector2pair in Heqp.
     rewrite Heqp in Heqp1.
-    inversion Heqp0.
-    inversion Heqp1.
-    apply Vmap2Indexed_to_VMap2.
+    tuple_inversion.
+    tuple_inversion.
+    rewrite Vmap2Indexed_to_VMap2.
+    reflexivity.
   Qed.
 
 End HCOLBreakdown.
