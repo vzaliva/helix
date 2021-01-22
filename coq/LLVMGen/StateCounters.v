@@ -386,7 +386,7 @@ Section LocalCount.
   Lemma genWhile_local_count :
     forall prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 s2 seg,
       genWhileLoop prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 ≡ inr (s2, seg) ->
-      local_count s2 ≥ local_count s1.
+      local_count s2 > local_count s1.
   Proof.
     intros.
     cbn in H; simp; __local_ltac; lia. 
@@ -396,14 +396,16 @@ Section LocalCount.
     ∀ (f : AExpr) (i0 : ident) (i1 : Int64.int) (i3 : ident) (i4 : Int64.int) (i6 : IRState) (loopcontblock : block_id) (loopvar : raw_id) 
       (body_entry : block_id) (body_blocks : list (LLVMAst.block typ)) (s1_ : IRState),
       genIMapBody i1 i4 i0 i3 f loopvar loopcontblock i6 ≡ inr (s1_, (body_entry, body_blocks)) →
-      local_count s1_ >= local_count i6 .
+      local_count s1_ > local_count i6 .
   Proof.
-  Admitted.
+    intros.
+    cbn in H; simp; __local_ltac; lia. 
+  Qed.
 
   Lemma genIR_local_count :
     forall op s1 s2 nextblock b bk_op,
       genIR op nextblock s1 ≡ inr (s2, (b, bk_op)) ->
-      local_count s2 ≥ local_count s1.
+      local_count s2 >= local_count s1.
   Proof.
     induction op; intros; cbn in H; simp; __local_ltac; try lia. 
   Qed.
