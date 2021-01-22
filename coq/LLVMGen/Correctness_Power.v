@@ -941,8 +941,22 @@ Proof.
             }
 
             eapply state_invariant_same_Γ with (s1:=s2); eauto.
-            admit. (* This *might* be true *)
-            admit. (* True because of dropVars *)
+            { get_gammas.
+              apply dropVars_Γ' in Heqs15.
+              rewrite <- Heqs14 in Heqs15.
+              solve_gamma.
+            }
+
+            { eapply not_in_Gamma_Gamma_eq.
+              2: { eapply GAM.
+                   solve_lid_bound_between.
+              }
+
+              get_gammas.
+              apply dropVars_Γ' in Heqs15.
+              rewrite <- Heqs14 in Heqs15.
+              solve_gamma.
+            }
           }
 
           { eapply Gamma_safe_Context_extend.
@@ -1103,7 +1117,9 @@ Proof.
 
         apply eqit_Ret.
         split; [|split; [|split]].
-        - admit. (* This should be similar reasoning to the above. Desperately need to automate this, then *)
+        - destruct POSTAEXPR.
+          cbn in *.
+          admit.
         - exists b0. reflexivity.
         - (* I *)
           Opaque mem_lookup. (* TODO: HMMM *)
@@ -1321,9 +1337,7 @@ Proof.
           - pose proof (NO_ALIAS_DSHPTR _ _ _ _ _ NTH_σ Heqo0); subst.
 
             (* want to know that Γ s1 = Γ s2 *)
-            rewrite LUn0 in NTH_Γ.
-
-
+            (* rewrite LUn0 in NTH_Γ. *)
             exists mb_post. exists ptrll_yoff. exists τ'.
 
             (* 
@@ -1333,6 +1347,8 @@ Proof.
             *)
             repeat split; eauto.
             apply memory_lookup_memory_set_eq.
+            admit.
+            admit.
 
             (* In the post condition Q I'm going to need to know something about
             mb_block and the corresponding LLVM pointer... *)
@@ -1391,5 +1407,5 @@ Proof.
   }
   { (* Local case for xoff *)
     admit.
-  }      
+  }
 Admitted.
