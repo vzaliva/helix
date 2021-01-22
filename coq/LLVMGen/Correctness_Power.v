@@ -918,16 +918,7 @@ Proof.
               eapply incLocalNamed_count_gen_injective.
             }
 
-            { rewrite alist_find_neq.
-              erewrite local_scope_preserve_modif; eauto.
-              2: solve_local_count.
-              2: solve_lid_bound_between.
-              2: admit. (* r1 <> r2, do this earlier *)
-
-              rewrite alist_find_neq.
-              2: admit. (* r1 <> r *)
-
-              apply alist_find_add_eq.
+            { solve_alist_in.
             }
 
             eapply state_invariant_enter_scope_DSHCType; eauto.

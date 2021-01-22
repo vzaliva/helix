@@ -1926,19 +1926,6 @@ Proof.
   contradiction.
 Qed.
 
-Ltac solve_alist_in := first [apply In_add_eq | idtac].
-Ltac solve_lu :=
-  (try now eauto);
-  match goal with
-  | |- @Maps.lookup _ _ local_env _ ?id ?l ≡ Some _ =>
-    eapply memory_invariant_LLU; [| eassumption | eassumption]; eauto
-  | h: _ ⊑ ?l |- @Maps.lookup _ _ local_env _ ?id ?l ≡ Some _ =>
-    eapply h; solve_lu
-  | |- @Maps.lookup _ _ global_env _ ?id ?l ≡ Some _ =>
-    eapply memory_invariant_GLU; [| eassumption | eassumption]; eauto
-  | _ => solve_alist_in
-  end.
-
 Ltac solve_in_gamma :=
   match goal with
   | GAM : nth_error (Γ ?s) ?n ≡ Some (ID_Local ?id, _),
@@ -2066,6 +2053,25 @@ Ltac solve_id_neq :=
   first [ solve [eapply incLocal_id_neq; eauto; solve_local_count]
         | solve [eapply in_gamma_not_in_neq; [solve_in_gamma | solve_not_in_gamma]]
         ].
+
+Ltac solve_alist_in :=
+                first [apply In_add_eq
+                      | solve [rewrite alist_find_neq; [solve_alist_in | solve_id_neq]]
+                      | erewrite local_scope_preserve_modif; [| |solve_local_scope_modif|solve_lid_bound_between]; [solve_alist_in|solve [solve_local_count]]
+                      ].
+
+Ltac solve_lu :=
+  (try now eauto);
+  match goal with
+  | |- @Maps.lookup _ _ local_env _ ?id ?l ≡ Some _ =>
+    eapply memory_invariant_LLU; [| eassumption | eassumption]; eauto
+  | h: _ ⊑ ?l |- @Maps.lookup _ _ local_env _ ?id ?l ≡ Some _ =>
+    eapply h; solve_lu
+  | |- @Maps.lookup _ _ global_env _ ?id ?l ≡ Some _ =>
+    eapply memory_invariant_GLU; [| eassumption | eassumption]; eauto
+  | _ => solve_alist_in
+  end.
+
 
 Ltac solve_local_lookup :=
   first
