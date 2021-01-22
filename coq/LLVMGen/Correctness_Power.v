@@ -321,19 +321,11 @@ Proof.
                   [{| blk_id := b0;
                       blk_phis := [];
                       blk_code :=
-                        (IId r0,
-                         (INSTR_Op (OP_GetElementPtr
-                                      (TYPE_Array (Z.to_N (Int64.intval i1)) TYPE_Double)
-                                      (TYPE_Pointer
-                                         (TYPE_Array (Z.to_N (Int64.intval i1))
-                                                     TYPE_Double), EXP_Ident i0)
-                                      [(TYPE_I (Npos 64), EXP_Integer 0%Z); (TYPE_I (Npos 64), e)]))) ::
-                                                                                                      (IId r2, INSTR_Load false TYPE_Double (TYPE_Pointer TYPE_Double, (EXP_Ident (ID_Local r0))) (Some 8%Z)) ::
-                                                                                                      (IId r1, INSTR_Load false TYPE_Double (TYPE_Pointer TYPE_Double, (EXP_Ident (ID_Local r))) (Some 8%Z))
-                                                                                                      :: c2 ++
-                                                                                                      [(IVoid i16,
-                                                                                                        INSTR_Store false (TYPE_Double, e2)
-                                                                                                                    (TYPE_Pointer TYPE_Double, (EXP_Ident (ID_Local r))) (Some 8%Z)) : (instr_id * instr typ)];
+                        (IId r2, INSTR_Load false TYPE_Double (TYPE_Pointer TYPE_Double, (EXP_Ident (ID_Local r))) (Some 8%Z))
+                          :: c2 ++
+                          [(IVoid i16,
+                            INSTR_Store false (TYPE_Double, e2)
+                                        (TYPE_Pointer TYPE_Double, (EXP_Ident (ID_Local r))) (Some 8%Z)) : (instr_id * instr typ)];
                       blk_term := TERM_Br_1 b;
                       blk_comments := None
                    |}])) as Inb0 by auto.
@@ -360,6 +352,11 @@ Proof.
 
   (* Substitute blocks *)
   rewrite INIT.
+
+  rename r0 into src_ptr_id.
+  rename r1 into src_val_id.
+  rename r into dst_ptr_id.
+  rename r2 into dst_val_id.
 
   rename e0 into xoff_exp.
   rename e1 into yoff_exp.
@@ -499,7 +496,7 @@ Proof.
   destruct i0 as [id0 | id0].
   { (* Global case *)
     (* TODO: can I automate this? *)
-    edestruct denote_instr_gep_array_no_read with (m:=mV_yoff) (g:=g_yoff) (ρ:=l_yoff) (size:=(Z.to_N (Int64.intval i1))) (τ:=DTYPE_Double) (i:=r0) (ptr := @EXP_Ident dtyp (ID_Global id0)) (a:= ptrll_xoff) (e_ix:=convert_typ [] xoff_exp) (ix:=(MInt64asNT.to_nat xoff_res)).
+    edestruct denote_instr_gep_array_no_read with (m:=mV_yoff) (g:=g_yoff) (ρ:=l_yoff) (size:=(Z.to_N (Int64.intval i1))) (τ:=DTYPE_Double) (i:=src_ptr_id) (ptr := @EXP_Ident dtyp (ID_Global id0)) (a:= ptrll_xoff) (e_ix:=convert_typ [] xoff_exp) (ix:=(MInt64asNT.to_nat xoff_res)).
     { rewrite denote_exp_GR.
       change (UVALUE_Addr ptrll_xoff) with (dvalue_to_uvalue (DVALUE_Addr ptrll_xoff)).
       reflexivity.
@@ -590,7 +587,7 @@ Proof.
     destruct i3 as [id | id].
     { (* Global case for yoff *)
       (* TODO: can I automate this? *)
-        edestruct denote_instr_gep_array_no_read with (m:=mV_yoff) (g:=g_yoff) (ρ:=(alist_add r1 (UVALUE_Double b1) (alist_add r0 (UVALUE_Addr src_addr) l_yoff))) (size:=(Z.to_N (Int64.intval i4))) (τ:=DTYPE_Double) (i:=r) (ptr := @EXP_Ident dtyp (ID_Global id)) (a:= ptrll_yoff) (e_ix:=fmap (typ_to_dtyp []) yoff_exp) (ix:=(MInt64asNT.to_nat yoff_res)).
+        edestruct denote_instr_gep_array_no_read with (m:=mV_yoff) (g:=g_yoff) (ρ:=(alist_add src_val_id (UVALUE_Double b1) (alist_add src_ptr_id (UVALUE_Addr src_addr) l_yoff))) (size:=(Z.to_N (Int64.intval i4))) (τ:=DTYPE_Double) (i:=dst_ptr_id) (ptr := @EXP_Ident dtyp (ID_Global id)) (a:= ptrll_yoff) (e_ix:=fmap (typ_to_dtyp []) yoff_exp) (ix:=(MInt64asNT.to_nat yoff_res)).
 
     { rewrite denote_exp_GR.
       change (UVALUE_Addr ptrll_yoff) with (dvalue_to_uvalue (DVALUE_Addr ptrll_yoff)).
@@ -782,7 +779,7 @@ Proof.
                    | (mV, (ρ, g)) =>
                      state_invariant σ s2 mH stV /\
                      exists v,
-                       local_scope_modif i21 s2 (alist_add r (UVALUE_Addr dst_addr) (alist_add r1 (UVALUE_Double v) (alist_add r0 (UVALUE_Addr src_addr) l_yoff))) ρ /\
+                       local_scope_modif i21 s2 (alist_add dst_ptr_id (UVALUE_Addr dst_addr) (alist_add src_val_id (UVALUE_Double b1) (alist_add src_ptr_id (UVALUE_Addr src_addr) l_yoff))) ρ /\
                      (* Not sure if this is the right block *)
                        ext_memory mV_init dst_addr DTYPE_Double (UVALUE_Double v) mV /\
                        (forall y, y ≢ (MInt64asNT.to_nat yoff_res) -> mem_lookup y mb ≡ mem_lookup y bkh_yoff) /\
@@ -817,7 +814,8 @@ Proof.
         unfold mem_lookup_err.
         unfold trywith.
 
-        break_match_goal; [|admit]. (* Failure should be caught by NOFAIL *)
+        break_match_goal; inv LINV_HELIX_MB_NEW.
+        rename v into b2.
 
         cbn.
         hred; vred.
@@ -880,11 +878,11 @@ Proof.
         {
           eapply genAExpr_correct.
           eauto.
-          { eapply state_invariant_enter_scope_DSHCType with (s1:={| block_count := block_count i19; local_count := local_count i17; void_count := void_count i19; Γ := (ID_Local r2, TYPE_Double) :: Γ i19 |}); cbn; eauto.
+          { eapply state_invariant_enter_scope_DSHCType with (s1:={| block_count := block_count i19; local_count := local_count i17; void_count := void_count i19; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}); cbn; eauto.
             
             { pose proof GAM.
               unfold Gamma_safe in H.
-              assert (~ in_Gamma σ s1 r1) by solve_not_in_gamma.
+              assert (~ in_Gamma σ s1 src_val_id) by solve_not_in_gamma.
               assert (Γ s1 ≡ Γ i19) by solve_gamma.
 
               Lemma not_in_gamma_cons :
@@ -919,17 +917,26 @@ Proof.
               2: { solve_local_count. }
               eapply incLocalNamed_count_gen_injective.
             }
-            admit. (* I believe this. Also, if I have any problems then I can modify the loop invariant *)
+
+            { rewrite alist_find_neq.
+              erewrite local_scope_preserve_modif; eauto.
+              2: solve_local_count.
+              2: solve_lid_bound_between.
+              2: admit. (* r1 <> r2, do this earlier *)
+
+              rewrite alist_find_neq.
+              2: admit. (* r1 <> r *)
+
+              apply alist_find_add_eq.
+            }
 
             eapply state_invariant_enter_scope_DSHCType; eauto.
             reflexivity.
             eapply not_in_Gamma_Gamma_eq with (s1 := s1); [solve_gamma|solve_not_in_gamma].
 
-            { inv LINV_HELIX_MB_NEW.
-              apply alist_find_add_eq.
+            { apply alist_find_add_eq.
             }
 
-            
             eapply state_invariant_same_Γ with (s1:=s2); eauto.
             admit. (* This *might* be true *)
             admit. (* True because of dropVars *)
@@ -938,7 +945,7 @@ Proof.
           { eapply Gamma_safe_Context_extend.
             eapply Gamma_safe_Context_extend.
             9: { cbn.
-                 change ((ID_Local r2, TYPE_Double) :: Γ i19) with (Γ {| block_count := block_count i19; local_count := local_count i19; void_count := void_count i19; Γ := (ID_Local r2, TYPE_Double) :: Γ i19 |}).
+                 change ((ID_Local dst_val_id, TYPE_Double) :: Γ i19) with (Γ {| block_count := block_count i19; local_count := local_count i19; void_count := void_count i19; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}).
                  reflexivity.
             }
             4: {
@@ -950,7 +957,7 @@ Proof.
             solve_gamma.
             all: try (solve [cbn; solve_local_count]).
 
-            instantiate (1:= {| block_count := block_count i19; local_count := local_count i21; void_count := void_count i19; Γ := (ID_Local r2, TYPE_Double) :: Γ i19 |}).
+            instantiate (1:= {| block_count := block_count i19; local_count := local_count i21; void_count := void_count i19; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}).
             all: try (solve [cbn; solve_local_count]).
 
             cbn.
@@ -1063,7 +1070,7 @@ Proof.
           apply alist_find_add_eq.
           intros CONTRA.
           match goal with
-          | H: incLocal ?s1 ≡ inr (?s2, r) |- _
+          | H: incLocal ?s1 ≡ inr (?s2, dst_ptr_id) |- _
             => apply lid_bound_between_incLocal in H;
                 eapply state_bound_between_id_separate; [eapply incLocalNamed_count_gen_injective
                                                         |apply H
