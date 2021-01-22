@@ -687,8 +687,8 @@ Lemma initOneIRGlobal_state_change
       (s0 s1 : IRState)
       r
   :
-    initOneIRGlobal data0 a s0 ≡ inr (s1, (data1, r))
-    -> s1 ≡ addVar a s0.
+    initOneIRGlobal data0 a s0 ≡ inr (s1, (data1, r)) ->
+    s1 ≡ addVar a s0.
 Proof.
   intros.
   destruct a.
@@ -1677,14 +1677,22 @@ Proof.
   reflexivity.
 Qed.
 
-Definition append_globals_rev
+Definition append_to_Γ
            (globals : list (string * DSHType))
            (s : IRState)
-  : IRState :=
-  {| block_count := block_count s;
-     local_count := local_count s;
-     void_count := void_count s;
-     Γ := map IR_of_global (rev globals) ++ (Γ s) |}.
+  : IRState
+  :=
+    {| block_count := block_count s;
+       local_count := local_count s;
+       void_count := void_count s;
+       Γ := map IR_of_global globals ++ (Γ s) |}.
+
+Definition append_to_Γ_rev
+           (globals : list (string * DSHType))
+           (s : IRState)
+  : IRState
+  :=
+    rev_firstn_Γ (length globals) (append_to_Γ globals s).
 
 Lemma initIRGlobals_rev_state_change
       (globals : list (string * DSHType))
@@ -1693,13 +1701,28 @@ Lemma initIRGlobals_rev_state_change
       ginit
   :
     initIRGlobals_rev data0 globals s0 ≡ inr (s1, (data1, ginit)) ->
-    s1 ≡ append_globals_rev globals s0.
+    s1 ≡ append_to_Γ_rev globals s0.
 Proof.
   intros.
   destruct s1.
-  unfold append_globals_rev.
+  unfold append_to_Γ_rev, append_to_Γ, rev_firstn_Γ.
   f_equal.
-  4: apply initIRGlobals_rev_Γ in H; assumption.
+  4: {
+    cbn.
+    unfold rev_firstn.
+    rewrite firstn_app, skipn_app.
+    assert (L : length globals ≡ length (map IR_of_global globals))
+           by now rewrite map_length.
+    replace (length globals - length (map IR_of_global globals))
+      with 0
+      by lia.
+    rewrite firstn_all2 by lia.
+    rewrite skipn_all2 by lia.
+    cbn.
+    rewrite app_nil_r.
+    rewrite <-map_rev.
+    now apply initIRGlobals_rev_Γ in H.
+  }
   all: dependent induction globals; [now invc H |].
   all: cbn in *.
   all: repeat break_match; invc H.
@@ -1708,6 +1731,22 @@ Proof.
   all: apply IHglobals in Heqs1.
   all: subst.
   all: unfold addVar; break_let; reflexivity.
+Qed.
+
+Lemma initIRGlobals_state_change
+      (globals : list (string * DSHType))
+      (data0 data1 : list binary64)
+      (s0 s1 : IRState)
+      ginit
+  :
+    initIRGlobals data0 globals s0 ≡ inr (s1, (data1, ginit)) ->
+    s1 ≡ append_to_Γ globals s0.
+Proof.
+  intros.
+  apply initIRGlobals_inr in H.
+  apply initIRGlobals_rev_state_change in H.
+  unfold append_to_Γ_rev in H.
+  now apply rev_firstn_Γ_inj in H.
 Qed.
 
 Lemma initOneIRglobal_state_writer
@@ -1727,17 +1766,17 @@ Proof.
   all: now invc H.
 Qed.
 
-Lemma initIRGlobals_state_writer
+Lemma initIRGlobals_rev_state_writer
       (globals : list (string * DSHType))
       (s0 s1 : IRState)
-      (data0 data1 : list binary64)
-      (g : list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ)))) 
+      (data0 : list binary64)
+      r
   :
-    initIRGlobals_rev data0 globals s0 ≡ inr (s1, (data1, g)) →
+    initIRGlobals_rev data0 globals s0 ≡ inr (s1, r) →
     forall s',
-      initIRGlobals_rev data0 globals s' ≡ inr (append_globals_rev globals s', (data1, g)).
+      initIRGlobals_rev data0 globals s' ≡ inr (append_to_Γ_rev globals s', r).
 Proof.
-  unfold append_globals_rev.
+  unfold append_to_Γ_rev.
   dependent induction globals; intros I s'; cbn in *.
   -
     invc I.
@@ -1775,7 +1814,7 @@ Proof.
     { (* [init_with_data] inconsistent *)
       exfalso.
       repeat break_let; subst.
-      inversion I; clear I; subst i l0.
+      inversion I; clear I; subst i r.
       fold_initIRGlobals_rev.
       apply IHglobals with (s':=addVar a s') in Heqs3.
       congruence.
@@ -1789,8 +1828,63 @@ Proof.
     unfold addVar.
     destruct a.
     cbn.
-    f_equal.
-    rewrite map_app; rewrite <-app_assoc; reflexivity.
+    unfold append_to_Γ, rev_firstn_Γ; cbn.
+    do 3 f_equal.
+    rewrite <-app_assoc.
+    unfold rev_firstn.
+    assert (L : length globals ≡ length (map IR_of_global globals))
+           by now rewrite map_length.
+    rewrite !firstn_app, !skipn_app.
+    replace (length globals - length (map IR_of_global globals))
+      with 0
+      by lia.
+    cbn.
+    rewrite !firstn_all2 by lia.
+    rewrite !skipn_all2 by lia.
+    reflexivity.
+Qed.
+
+Lemma initIRGlobals_rev_state_writer'
+      (globals : list (string * DSHType))
+      (s0 s1 s0' s1' : IRState)
+      (data : list binary64)
+      r r'
+  :
+    initIRGlobals_rev data globals s0 ≡ inr (s1, r) →
+    initIRGlobals_rev data globals s0' ≡ inr (s1', r') →
+    r ≡ r'.
+Proof.
+  intros.
+  apply initIRGlobals_rev_state_writer with (s':=s0') in H.
+  congruence.
+Qed.
+
+Lemma list_uniq_initIRGlobals_rev_OK (globals : list (string * DSHType)) :
+  list_uniq fst globals ->
+  forall data s,
+    is_OK (initIRGlobals_rev data globals s).
+Proof.
+  intros.
+  dependent induction globals;
+    [constructor |].
+  cbn.
+  repeat break_match; subst.
+  -
+    apply list_uniq_global_uniq_chk with (s:=s) in H.
+    inv H.
+    congruence.
+  -
+    unfold initOneIRGlobal in Heqs1.
+    repeat break_match; inv Heqs1.
+  -
+    autospecialize IHglobals;
+      [now apply list_uniq_de_cons in H |].
+    specialize (IHglobals l i0).
+    inv IHglobals.
+    fold_initIRGlobals_rev.
+    congruence.
+  -
+    constructor.
 Qed.
 
 Ltac dedup_states :=
@@ -1801,20 +1895,9 @@ Ltac dedup_states :=
            copy_apply initOneIRGlobal_state_change H; subst s
          | [ H : initIRGlobals_rev _ _ _ ≡ inr (?s, _) |- _] =>
            copy_apply initIRGlobals_rev_state_change H; subst s
+         | [ H : initIRGlobals _ _ _ ≡ inr (?s, _) |- _] =>
+           copy_apply initIRGlobals_state_change H; subst s
          end.
-
-Lemma initIRGlobals_app_inv
-      (pre post : list (string * DSHType))
-      (s0 s1 : IRState)
-      (l0 l1 : list binary64)
-      (g : list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ)))) 
-  :
-    initIRGlobals l0 (pre ++ post) s0 ≡ inr (s1, (l1, g)) →
-    ∃ l' s' g1 g2,
-      initIRGlobals l0 pre s0 ≡ inr (s', (l', g1)) ∧
-      initIRGlobals l' post s' ≡ inr (s1, (l1, g2)) ∧
-      g ≡ g1 ++ g2.
-Abort.
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
