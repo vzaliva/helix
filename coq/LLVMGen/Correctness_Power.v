@@ -369,6 +369,11 @@ Proof.
   rename n1 into yoff_nexpr.
   rename n into loop_end_nexpr.
 
+  rename n4 into dst_addr_h.
+  rename i into dst_size_h.
+  rename n5 into src_addr_h.
+  rename i2 into src_size_h.
+
   (* Need to reorder the nexprs to line things up.
 
      In helix we evaluate:
@@ -794,14 +799,21 @@ Proof.
                    end
                  end)).
 
-    (* Precondition and postcondition *)
+    (* Precondition *)
     set (P := (fun (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
                  match mH with
                  | None => False
                  | Some (mH,mb) => state_invariant σ s2 mH stV
                  end)).
 
-      specialize (LOOPTFOR I P P (Some (m_yoff, mem_add (MInt64asNT.to_nat yoff_res) initial bkh_yoff))).
+    (* Postcondition *)
+    set (Q := (fun (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
+                 match mH with
+                 | None => False
+                 | Some (mH,mb) => state_invariant σ s2 mH stV
+                 end)).
+
+      specialize (LOOPTFOR I P Q (Some (m_yoff, mem_add (MInt64asNT.to_nat yoff_res) initial bkh_yoff))).
 
       (* Relating iterations of the bodies *)
       forward LOOPTFOR.
@@ -952,17 +964,20 @@ Proof.
             all: try (solve [cbn; solve_local_count]).
 
             cbn.
-            admit. (* Should be true, but need to reason about dropVars *)
+            get_gammas.
+            apply dropVars_Γ' in Heqs15.
+            rewrite <- Heqs14 in Heqs15.
+            solve_gamma.
 
             { intros id1 H.
-              admit. (* bound between reasoning, but should hold *)
+              solve_id_neq.
             }
 
             cbn.
             solve_gamma.
 
             { intros id1 H.
-              admit. (* bound between reasoning, but should hold *)
+              solve_id_neq.
             }
           }
 
@@ -1217,7 +1232,7 @@ Proof.
             rewrite mem_lookup_mem_add_eq; eauto.
           }
           { (* Returns... *)
-            rewrite tfor_split with (i0 := 0) (j:= k) (k0:= S k); try lia.
+            rewrite tfor_split with (i := 0) (j:= k) (k0:= S k); try lia.
             rewrite interp_helix_bind.
             eapply Returns_bind; eauto.
             cbn.
@@ -1266,14 +1281,80 @@ Proof.
       eapply LOOPTFOR.
 
       7: {
-        intros [[mH_meh mb_meh]|] [mV_meh [l_meh [g_meh x_meh]]] [MEH [P_MEH LSM_MEH]]; [|inv P_MEH].
+        intros [[mH_post mb_post]|] [mV_post [l_post [g_post x_pos]]] [POST [Q_POST LSM_POST]]; [|inv Q_POST].
         rewrite interp_helix_MemSet.
         cbn.
         vred.
 
         apply eutt_Ret.
         unfold genIR_post.
-        admit.
+        split; cbn.
+
+        cbn in Q_POST.
+        { (* State invariant preserved *)
+          split; eauto.
+          2: eapply st_no_id_aliasing; eauto.
+          2: eapply st_no_dshptr_aliasing; eauto.
+          2: eapply st_no_llvm_ptr_aliasing; eauto.
+
+          (* memory_invariant and id_allocated are the only things that care
+             about the altered memory
+           *)
+          2: { unfold id_allocated.
+               intros n addr0 val H.
+
+               apply mem_block_exists_memory_set.
+               eapply st_id_allocated in Q_POST.
+               eauto.
+          }
+
+          pose proof (mem_is_inv Q_POST) as MINV_POST.
+          pose proof (st_no_dshptr_aliasing Q_POST) as NO_ALIAS_DSHPTR.
+          unfold memory_invariant in *.
+          intros n v τ x NTH_σ NTH_Γ.
+
+          specialize (MINV_POST n v τ x NTH_σ NTH_Γ).
+          destruct v; eauto.
+
+          destruct MINV_POST as [bkh [pll [τ' [MLUP_POST [TEQ [FITS [INLG LUP_POST]]]]]]].
+          destruct (Nat.eq_dec a dst_addr_h) as [EQ | NEQ]; subst.
+          - pose proof (NO_ALIAS_DSHPTR _ _ _ _ _ NTH_σ Heqo0); subst.
+
+            (* want to know that Γ s1 = Γ s2 *)
+            rewrite LUn0 in NTH_Γ.
+
+
+            exists mb_post. exists ptrll_yoff. exists τ'.
+
+            (* 
+            I know n = n3, which means...
+
+            LUn0 : nth_error (Γ s1) n3 ≡ Some (@id, (⋆) (TYPE_Array sz0 TYPE_Double))
+            *)
+            repeat split; eauto.
+            apply memory_lookup_memory_set_eq.
+
+            (* In the post condition Q I'm going to need to know something about
+            mb_block and the corresponding LLVM pointer... *)
+            intros i v H.
+            admit.
+          - exists bkh. exists pll. exists τ'.
+            repeat split; eauto.
+            erewrite memory_lookup_memory_set_neq; eauto.
+        }
+
+        split.
+        { (* branches *)
+          cbn.
+          inv POST; eexists; eauto.
+        }
+
+        { (* local_scope_modif *)
+          cbn.
+          (* Should hold might want to add genNExpr post and friends to automation *)
+          (* Probably best to add this to the post condition. *)
+          admit.
+        }
       }
 
       (* TODO: bunch of stuff to deal with here...
