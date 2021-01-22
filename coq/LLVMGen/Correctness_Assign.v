@@ -193,8 +193,7 @@ Proof.
       rewrite yLU in H0; symmetry in H0; inv H0.
 
       edestruct denote_instr_gep_array_no_read as (yptr' & yGEP & yEQ); cycle -1; [rewrite yEQ; clear yEQ | ..]; cycle 1.
-      { vstep; solve_lu.
-        cbn; reflexivity.
+      { vstep; [solve_lu|cbn; reflexivity].
       }
       { rewrite EXP2.
         - rewrite repr_of_nat_to_nat.
@@ -1015,8 +1014,7 @@ Proof.
       rewrite yLU in H0; symmetry in H0; inv H0.
 
       edestruct denote_instr_gep_array_no_read as (yptr' & yGEP & yEQ); cycle -1; [rewrite yEQ; clear yEQ | ..]; cycle 1.
-      { vstep; solve_lu.
-        cbn; reflexivity.
+      { vstep; [solve_lu|cbn; reflexivity].
       }
       { rewrite EXP2.
         - rewrite repr_of_nat_to_nat.

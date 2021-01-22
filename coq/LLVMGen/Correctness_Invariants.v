@@ -2055,10 +2055,10 @@ Ltac solve_id_neq :=
         ].
 
 Ltac solve_alist_in :=
-                first [apply In_add_eq
-                      | solve [rewrite alist_find_neq; [solve_alist_in | solve_id_neq]]
-                      | erewrite local_scope_preserve_modif; [| |solve_local_scope_modif|solve_lid_bound_between]; [solve_alist_in|solve [solve_local_count]]
-                      ].
+  first [apply In_add_eq
+        | solve [rewrite alist_find_neq; [solve_alist_in | solve_id_neq]]
+        | solve [erewrite local_scope_preserve_modif; [| |solve_local_scope_modif|solve_lid_bound_between]; [solve_alist_in|solve [solve_local_count]]]
+        ].
 
 Ltac solve_lu :=
   (try now eauto);
