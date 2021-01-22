@@ -649,35 +649,6 @@ Definition declarations_invariant_mcfg (fnname:string) : Pred_mcfg_T unit :=
   fun '(memV,((l,sl),(g,_))) =>
     declarations_invariant fnname (memV,(l,g)).
 
-Lemma memory_set_seq2 {E}
-      (i1 i2: nat)
-      (b1 b2: mem_block)
-      (m0: memoryH)
-  :
-    (Ret (memory_set (memory_set m0 i1 b1) i2 b2, ()) : itree E _)
-    ≈
-    ITree.bind (Ret (m0,()))
-     (fun '(x,_) => Ret (memory_set (memory_set m0 i1 b1) i2 b2, ())).
-Proof.
-  cbn; rewrite bind_ret_l; reflexivity.
-Qed.
-
-Lemma memory_set_seq {E}
-      (i1: nat)
-      (b1: mem_block)
-      (m0: memoryH)
-  :
-    (Ret (memory_set m0 i1 b1, ()) : itree E _)
-    ≈
-    ITree.bind
-      (Ret (m0, ()))
-      (fun '(x,_) => Ret (memory_set x i1 b1, ())).
-Proof.
-  cbn; rewrite bind_ret_l; reflexivity.
-Qed.
-
-
-
 (* YZ TODO : Move *)
 Arguments allocate : simpl never.
 
