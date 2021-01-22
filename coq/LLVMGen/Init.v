@@ -2436,7 +2436,8 @@ Proof.
             globals ≡ pre ++ post -> 
             gdecls ≡ gdecls1 ++ gdecls2 ->
             initIRGlobals_rev l1 pre s_yx ≡ inr (s', (l', gdecls1)) ->
-            initIRGlobals_rev l' post s' ≡ inr (s1, (l2, gdecls2)) ->
+            initIRGlobals_rev l' post s' ≡ inr (rev_firstn_Γ (length globals) s1,
+                                                (l2, gdecls2)) ->
             allocated_globals_mcfg pre (mg, ())
                                       (m, (le0, stack0, (g, ()))) ->
             eutt (allocated_globals_mcfg (pre ++ post))
@@ -2446,10 +2447,9 @@ Proof.
                                    (map (Fmap_global typ dtyp (typ_to_dtyp []))
                                         (flat_map (globals_of typ) gdecls2)))
                        g (le0, stack0) m)).
-      (*
       {
-        replace (globals) with ([] ++ globals) in * by reflexivity.
         apply initIRGlobals_inr in LG.
+        replace (globals) with ([] ++ globals) in * by reflexivity.
         apply initIRGlobals_rev_app_inv in LG.
         destruct LG as (l' & s' & gdecls1 & gdecls2 & PRE & POST & GDECLS).
         specialize (H0 [] globals gdecls1 gdecls2 s' l').
@@ -2657,8 +2657,8 @@ Proof.
           rewrite GLOBALS in LG.
           move LG at bottom.
           rewrite <-ListUtil.list_app_first_last in LG.
-          unfold initIRGlobals in *.
-          apply init_with_data_app_global_uniq_chk in LG.
+          apply initIRGlobals_inr in LG.
+          apply initIRGlobals_rev_app_inv in LG.
           destruct LG as (l'' & s'' & g1'' & g2'' & PRE'' & POST'' & G'').
 
           eapply IHpost.
@@ -2674,9 +2674,10 @@ Proof.
             (* [clear - PRE Heqs Heqs0.] doesn't work for some reason? *)
             clear IHpost; move PRE at bottom; move Heqs0 at bottom.
 
-            eapply init_with_data_app_global_uniq_chk_inv.
+            eapply initIRGlobals_rev_app.
             eapply initIRGlobals_names_unique.
-            apply PRE''.
+            eapply initIRGlobals_rev_inr.
+            eapply PRE''.
             eassumption.
             cbn.
             rewrite Heqs0.
@@ -2834,11 +2835,10 @@ Proof.
 
             gdecls ≡ gdecls1 ++ gdecls2 ->
 
-            init_with_data initOneIRGlobal
-                           global_uniq_chk l1 pre s_yx ≡ inr (s', (l1', gdecls1)) ->
+            initIRGlobals_rev l1 pre s_yx ≡ inr (s', (l1', gdecls1)) ->
 
-            init_with_data initOneIRGlobal
-                           global_uniq_chk l1' post s' ≡ inr (s1, (l2, gdecls2)) ->
+            initIRGlobals_rev l1' post s' ≡ inr (rev_firstn_Γ (length globals) s1,
+                                                 (l2, gdecls2)) ->
 
             post_init_invariant' pre (mg, ())
                                       (m', (l', st', (g', ()))) ->
@@ -2854,7 +2854,8 @@ Proof.
       {
         replace (globals) with ([] ++ globals) in * by reflexivity.
         replace (Γ_globals) with ([] ++ Γ_globals) in * by reflexivity.
-        apply init_with_data_app_global_uniq_chk in LG.
+        apply initIRGlobals_inr in LG.
+        apply initIRGlobals_rev_app_inv in LG.
         destruct LG as (l'' & s' & gdecls1 & gdecls2 & PRE & POST & GDECLS).
         specialize (H0 [] globals gdecls1 gdecls2 s' l'').
         full_autospecialize H0; try congruence.
@@ -3093,6 +3094,10 @@ Proof.
                   rename t0 into ne.
                   subst mg0 l4 ne'.
                   unfold in_local_or_global_scalar.
+                  copy_apply genIR_Γ IR.
+                  cbn in H0.
+
+
                   admit.
                 +++
                   admit.
@@ -3145,7 +3150,6 @@ Proof.
       rewrite Eq.bind_ret_l.
        *)
       admit.
-*)
 Abort.
 
 (* with init step  *)
