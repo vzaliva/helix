@@ -1936,7 +1936,9 @@ Ltac solve_in_gamma :=
 
 (* TODO: expand this *)
 Ltac solve_lid_bound_between :=
-  eapply lid_bound_between_shrink; [eapply lid_bound_between_incLocal | | ]; eauto; solve_local_count.
+  first [ solve [eauto]
+        | eapply lid_bound_between_shrink; [eapply lid_bound_between_incLocal | | ]; eauto; solve_local_count
+        ].
 
 Ltac solve_not_in_gamma :=
   first [ now eauto
@@ -2052,6 +2054,10 @@ Qed.
 Ltac solve_id_neq :=
   first [ solve [eapply incLocal_id_neq; eauto; solve_local_count]
         | solve [eapply in_gamma_not_in_neq; [solve_in_gamma | solve_not_in_gamma]]
+        | solve [eapply state_bound_between_separate; [eapply incLocalNamed_count_gen_injective
+                                                      | solve_lid_bound_between
+                                                      | solve_lid_bound_between
+                                                      | cbn; solve_local_count]]
         ].
 
 Ltac solve_alist_in :=

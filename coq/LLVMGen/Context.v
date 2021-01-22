@@ -137,7 +137,27 @@ Proof.
 | GEN: genMExpr _ _ ≡ inr _ |- _ =>
   rewrite (genMExpr_Γ _ _ GEN)
   end; subst; auto.
-  
+Qed.
+
+Lemma dropVars_Γ' :
+  forall n s1 s2,
+    dropVars n s1 ≡ inr (s2, ()) ->
+    drop_err n (Γ s1) ≡ inr (Γ s2).
+Proof.
+  induction n; intros s1 s2 H; cbn in *; simp; cbn; eauto.
+  - inv Heqs.
+  - unfold ErrorWithState.err2errS in Heqs.
+    break_match_hyp; inv Heqs; eauto.
+Qed.
+
+Lemma genWhileLoop_Γ :
+  forall s1 s2 x (prefix : string) (from to : exp typ) (loopvar : raw_id) (loopcontblock body_entry : block_id) 
+    (body_blocks : list (LLVMAst.block typ)) (init_code : code typ) (nextblock : block_id),
+    genWhileLoop prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 ≡ inr (s2, x) ->
+    Γ s1 ≡ Γ s2.
+Proof.
+  intros s1 s2 x prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock H.
+  cbn in * |-; simp; cbn; auto.
 Qed.
 
 Ltac subst_Γs :=
@@ -235,6 +255,8 @@ Ltac get_gammas :=
       apply genAExpr_Γ in GEN; cbn in GEN
     | GEN : genIR _ _ _ ≡ inr _ |- _ =>
       apply genIR_Γ in GEN; cbn in GEN
+    | GEN : genWhileLoop _ _ _ _ _ _ _ _ _ _ ≡ inr _ |- _ =>
+      apply genWhileLoop_Γ in GEN; cbn in GEN
     end.
 
 Ltac solve_gamma := solve [get_gammas; cbn in *; congruence].
