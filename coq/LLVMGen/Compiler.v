@@ -816,8 +816,6 @@ Definition genPower
            (nextblock: block_id): cerr segment
   :=
     loopcontblock <- incBlockNamed "Power_lcont" ;;
-    loopvar <- incLocalNamed "Power_i" ;;
-
     let xtyp := getIRType (DSHPtr i) in
     let xptyp := TYPE_Pointer xtyp in
     let ytyp := getIRType (DSHPtr o) in
@@ -884,6 +882,7 @@ Definition genPower
           blk_term  := TERM_Br_1 loopcontblock;
           blk_comments := None
         |} in
+    loopvar <- incLocalNamed "Power_i" ;;
     genWhileLoop "Power" (EXP_Integer 0%Z) nexp loopvar loopcontblock body_block_id [body_block] init_code nextblock.
 
 Definition resolve_PVar (p:PExpr): cerr (ident*Int64.int)

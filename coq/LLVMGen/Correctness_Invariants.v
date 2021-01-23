@@ -2086,7 +2086,8 @@ Ltac solve_id_neq :=
         ].
 
 Ltac solve_alist_in :=
-  first [apply In_add_eq
+  first [ apply In_add_eq
+        | solve [eauto]
         | solve [rewrite alist_find_neq; [solve_alist_in | solve_id_neq]]
         | solve [erewrite local_scope_preserve_modif; [| |solve_local_scope_modif|solve_lid_bound_between]; [solve_alist_in|solve [solve_local_count]]]
         | solve [erewrite local_scope_preserve_modif_up; [| |solve_local_scope_modif|solve_lid_bound_between]; [solve_alist_in|solve [solve_local_count]]]

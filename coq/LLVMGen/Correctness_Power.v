@@ -279,13 +279,13 @@ Proof.
   destruct u.
   simp; try_abs.
 
-  assert (incLocalNamed "Power_i" i5
+  assert (incLocalNamed "Power_i" i21
                         ≡ inr
                         ({|
-                            block_count := block_count i5;
-                            local_count := S (local_count i5);
-                            void_count := void_count i5;
-                            Γ := Γ i5 |}, Name ("Power_i" @@ string_of_nat (local_count i5)))) as LC_Gen by reflexivity.
+                            block_count := block_count i21;
+                            local_count := S (local_count i21);
+                            void_count := void_count i21;
+                            Γ := Γ i21 |}, Name ("Power_i" @@ string_of_nat (local_count i21)))) as LC_Gen by reflexivity.
 
   repeat apply no_failure_Ret in NOFAIL.
   do 2 (apply no_failure_helix_LU in NOFAIL; destruct NOFAIL as (? & NOFAIL & ?); cbn in NOFAIL).
@@ -310,10 +310,10 @@ Proof.
   destruct INIT as (body_bks' & GEN' & INIT).
   clear Heqs2.
 
-  (* TODO: i5 and i21 are just an uneducated guess *)
+  (* TODO: i5 and i6 are just a guess *)
   match goal with
   | H: genWhileLoop ?prefix ?x ?y ?loopvar ?loopcontblock ?body_entry ?body_blocks [] ?nextblock ?s1 ≡ inr (?s2, (?bid_in, ?bks)) |- _
-    => epose proof @genWhileLoop_tfor_correct prefix loopvar loopcontblock body_entry body_blocks nextblock bid_in s1 s2 i5 i21 bks as LOOPTFOR
+    => epose proof @genWhileLoop_tfor_correct prefix loopvar loopcontblock body_entry body_blocks nextblock bid_in s1 s2 i21 {|block_count := block_count i21; local_count := S (local_count i21); void_count := void_count i21; Γ := Γ i21 |} bks as LOOPTFOR
   end.
 
   assert (In b0
@@ -335,8 +335,12 @@ Proof.
   assert (wf_ocfg_bid body_bks') as WF_BODY_BKS' by admit.
 
   (* TODO: make solve_lid_bound_between do this *)
-  assert (lid_bound_between i5 i21
-                 ("Power_i" @@ string_of_nat (local_count i5))) as LID_BOUND_BETWEEN_POWER_I by admit.
+  assert (lid_bound_between i21 {|
+                            block_count := block_count i21;
+                            local_count := S (local_count i21);
+                            void_count := void_count i21;
+                            Γ := Γ i21 |}
+                 ("Power_i" @@ string_of_nat (local_count i21))) as LID_BOUND_BETWEEN_POWER_I by admit.
 
   assert (free_in_cfg body_bks' nextblock) as FREE_BODY_BKS'_NEXTBLOCK by admit.
 
@@ -784,7 +788,9 @@ Proof.
                    | (mV, (ρ, g)) =>
                      state_invariant σ s2 mH stV /\
                      exists v,
-                       local_scope_modif i21 s2 (alist_add dst_ptr_id (UVALUE_Addr dst_addr) (alist_add src_val_id (UVALUE_Double b1) (alist_add src_ptr_id (UVALUE_Addr src_addr) l_yoff))) ρ /\
+                       alist_find dst_ptr_id ρ ≡ Some (UVALUE_Addr dst_addr) /\
+                       alist_find src_ptr_id ρ ≡ Some (UVALUE_Addr src_addr) /\
+                       alist_find src_val_id ρ ≡ Some (UVALUE_Double b1) /\
                      (* Not sure if this is the right block *)
                        ext_memory mV_init dst_addr DTYPE_Double (UVALUE_Double v) mV /\
                        (forall y, y ≢ (MInt64asNT.to_nat yoff_res) -> mem_lookup y mb ≡ mem_lookup y bkh_yoff) /\
@@ -819,7 +825,7 @@ Proof.
       forward LOOPTFOR.
       { intros g_loop l_loop mV_loop [[mH_loop mb_loop] |] k _label [HI [POWERI [POWERI_VAL RETURNS]]]; [|inv HI].
         cbn in HI.
-        destruct HI as [LINV_SINV [v [LINV_LSM [LINV_MEXT [LINV_HELIX_MB_OLD [LINV_HELIX_MB_NEW LINV_RET]]]]]].
+        destruct HI as [LINV_SINV [v [LINV_DST_PTR [LINV_SRC_PTR [LINV_SRC_VAL [LINV_MEXT [LINV_HELIX_MB_OLD [LINV_HELIX_MB_NEW LINV_RET]]]]]]]].
         pose proof LINV_MEXT as [LINV_MEXT_NEW LINV_MEXT_OLD].
         unfold DSHPower_tfor_body.
         
@@ -852,18 +858,7 @@ Proof.
           apply denote_exp_LR.
 
           cbn.
-          erewrite <- local_scope_modif_external.
-          2: { eapply local_scope_modif_trans'. eapply LINV_LSM. solve_local_scope_modif. }
-          2: { intros CONTRA.
-               eapply state_bound_between_id_separate.
-               apply incLocalNamed_count_gen_injective.
-               2: eapply CONTRA.
-               clear CONTRA.
-               solve_lid_bound_between.
-               solve_local_count.
-          }
-
-          apply alist_find_add_eq.
+          eauto.
         }
         2: {
           pose proof GETARRAYCELL_yoff.
@@ -937,7 +932,7 @@ Proof.
             reflexivity.
             eapply not_in_Gamma_Gamma_eq with (s1 := s1); [solve_gamma|solve_not_in_gamma].
 
-            { apply alist_find_add_eq.
+            { solve_alist_in.
             }
 
             eapply state_invariant_same_Γ with (s1:=s2); eauto.
@@ -1078,25 +1073,7 @@ Proof.
           3: solve_lid_bound_between; cbn; solve_local_count.
           2: cbn; solve_local_count.
 
-          erewrite local_scope_modif_out.
-          4: { eapply local_scope_modif_add'.
-               solve_lid_bound_between.
-               solve_local_scope_modif.
-          }
-          3: solve_lid_bound_between.
-          2: solve_local_count.
-
-          rewrite <- (local_scope_modif_external LINV_LSM).
-          apply alist_find_add_eq.
-          intros CONTRA.
-          match goal with
-          | H: incLocal ?s1 ≡ inr (?s2, dst_ptr_id) |- _
-            => apply lid_bound_between_incLocal in H;
-                eapply state_bound_between_id_separate; [eapply incLocalNamed_count_gen_injective
-                                                        |apply H
-                                                        |apply CONTRA
-                                                        |solve_local_count]
-          end.
+          solve_alist_in.
         }
 
         vred.
@@ -1180,9 +1157,15 @@ Proof.
 
           (* TODO: This is the thing we need *)
           exists t_Aexpr.
-          split.
-          admit. (* local_scope_modif *)
-          split.
+          destruct POSTAEXPR. cbn in extends.
+          repeat split.
+          (* dst_ptr_id *)
+          admit.
+          (* src_ptr_id *)
+          admit.
+          (* src_val_id *)
+          admit.
+
           { eapply write_correct in WRITE.
             destruct WRITE as [ALLOCATED WRITTEN].
 
@@ -1238,12 +1221,13 @@ Proof.
             eapply WRITTEN. constructor.
           }
 
-          split.
+          admit.
+
           { (* Helix memory extended *)
             intros y H.
             rewrite mem_lookup_mem_add_neq; eauto.
           }
-          split.
+
           { (* Helix memory old *)
             rewrite mem_lookup_mem_add_eq; eauto.
           }
@@ -1381,11 +1365,12 @@ Proof.
          confident in the loop invariant.
       *)
 
-      { intros k a l mV g id1 v BOUND HI.
+      { (* Invariant is stable under the administrative bookkeeping that the loop performs *)
+        intros k a l mV g id1 v BOUND HI.
         unfold I in *.
         destruct a; try inv HI.
         destruct p.
-        destruct HI as [HI_SINV [HI_v [HI_LSM [HI_EXT [HI_OLD HI_NEW]]]]].
+        destruct HI as [HI_SINV [HI_v [HI_lcount [HI_LSM_C [HI_LSM [HI_EXT [HI_OLD HI_NEW]]]]]]].
         split.
         { destruct BOUND.
           - eapply state_invariant_same_Γ; eauto.
@@ -1402,6 +1387,7 @@ Proof.
             eapply GAM.
             eapply lid_bound_between_shrink_down.
             2: eapply H.
+            cbn.
             solve_local_count.
           - eapply state_invariant_same_Γ; eauto.
 
@@ -1418,17 +1404,56 @@ Proof.
             eapply lid_bound_between_shrink.
             eauto.
             solve_local_count.
-            solve_local_count.
+            cbn; solve_local_count.
         }
         exists HI_v.
-        split; auto.
-        admit. (* LSM *)
+        split.
+        { destruct BOUND.
+          solve_alist_in.
+          erewrite alist_find_neq.
+          solve_alist_in.
+
+          (* TODO: automate this *)
+          eapply state_bound_between_separate.
+          eapply incLocalNamed_count_gen_injective.
+          solve_lid_bound_between.
+          solve_lid_bound_between.
+          cbn; solve_local_count.
+        }
+        split.
+        { destruct BOUND.
+          solve_alist_in.
+          erewrite alist_find_neq.
+          solve_alist_in.
+
+          (* TODO: automate this *)
+          eapply state_bound_between_separate.
+          eapply incLocalNamed_count_gen_injective.
+          solve_lid_bound_between.
+          solve_lid_bound_between.
+          solve_local_count.
+        }
+        split.
+        { destruct BOUND.
+          solve_alist_in.
+          erewrite alist_find_neq.
+          solve_alist_in.
+
+          (* TODO: automate this *)
+          eapply state_bound_between_separate.
+          eapply incLocalNamed_count_gen_injective.
+          solve_lid_bound_between.
+          solve_lid_bound_between.
+          solve_local_count.
+        }
+
+        auto.
       }
 
-      { solve_local_count.
+      { cbn; solve_local_count.
       }
 
-      { reflexivity. }
+      { cbn; solve_local_count. }
 
       (* TODO: May need to modify P / Q here *)
       { unfold imp_rel. intros a b2 H. admit. }
