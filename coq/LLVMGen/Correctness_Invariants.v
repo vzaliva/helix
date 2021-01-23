@@ -946,6 +946,31 @@ Section SimulationRelations.
     lia.
   Qed.
 
+  Lemma local_scope_preserve_modif_up :
+    forall s1 s2 s3 l1 l2,
+      s1 << s2 ->
+      local_scope_modif s1 s2 l1 l2 ->
+      local_scope_preserved s2 s3 l1 l2. 
+  Proof.
+    intros * LE MOD.
+    red. intros * BOUND.
+    red in MOD.
+    edestruct @alist_find_eq_dec_local_env as [EQ | NEQ]; [eassumption |].
+    apply MOD in NEQ; clear MOD.
+    destruct NEQ as (msg & s & s' & ? & ? & ? & ?).
+    cbn in *; inv H2.
+    destruct BOUND as (msg' & s' & s'' & ? & ? & ? & ?).
+    cbn in *; inv H5.
+    destruct s as [a s b]; cbn in *; clear a b.
+    destruct s' as [a s' b]; cbn in *; clear a b.
+    destruct s1 as [a s1 b]; cbn in *; clear a b.
+    destruct s2 as [a s2 b], s3 as [a' s3 b']; cbn in *.
+    red in LE; cbn in *.
+    clear a b a' b'.
+    exfalso; eapply IdLemmas.valid_prefix_neq_differ; [| | | eassumption]; auto.
+    lia.
+  Qed.
+
   Lemma in_Gamma_Gamma_eq:
     forall σ s1 s2 id,
       Γ s1 ≡ Γ s2 ->
@@ -2064,6 +2089,7 @@ Ltac solve_alist_in :=
   first [apply In_add_eq
         | solve [rewrite alist_find_neq; [solve_alist_in | solve_id_neq]]
         | solve [erewrite local_scope_preserve_modif; [| |solve_local_scope_modif|solve_lid_bound_between]; [solve_alist_in|solve [solve_local_count]]]
+        | solve [erewrite local_scope_preserve_modif_up; [| |solve_local_scope_modif|solve_lid_bound_between]; [solve_alist_in|solve [solve_local_count]]]
         ].
 
 Ltac solve_lu :=
