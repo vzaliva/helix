@@ -24,7 +24,7 @@ Require Import ExtLib.Structures.Monads.
 
 Import ListNotations.
 
-Import MDSHCOLOnFloat64.
+Import FHCOL.
 
 (* sample definition to be moved to DynWin.v *)
 Local Open Scope nat_scope.

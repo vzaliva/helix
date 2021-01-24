@@ -9,10 +9,12 @@ Module Type CType.
 
   Declare Instance CTypeEquiv: Equiv t.
   Declare Instance CTypeSetoid: @Setoid t CTypeEquiv.
+  Declare Instance CTypeEquivDec: forall x y: t, Decision (x = y).
 
   (* Values *)
   Parameter CTypeZero: t.
   Parameter CTypeOne: t.
+  Parameter CTypeZeroOneApart: CTypeZero ≠ CTypeOne.
 
   (* operations *)
   Parameter CTypePlus : t -> t -> t.
@@ -32,5 +34,4 @@ Module Type CType.
   Declare Instance mult_proper: Proper((=) ==> (=) ==> (=)) CTypeMult.
   Declare Instance min_proper: Proper((=) ==> (=) ==> (=)) CTypeMin.
   Declare Instance max_proper: Proper((=) ==> (=) ==> (=)) CTypeMax.
-
 End CType.

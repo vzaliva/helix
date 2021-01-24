@@ -290,6 +290,20 @@ Proof.
     now rewrite app_nil_r.
 Qed.
 
+Ltac fold_initIRGlobals_rev :=
+  repeat match goal with
+         | [H : context[init_with_data initOneIRGlobal global_uniq_chk ?l ?globals ?s] |- _ ] =>
+           replace (init_with_data initOneIRGlobal global_uniq_chk l globals s)
+             with (initIRGlobals_rev l globals s)
+             in *
+             by reflexivity
+         | [|- context[init_with_data initOneIRGlobal global_uniq_chk ?l ?globals ?s]] =>
+           replace (init_with_data initOneIRGlobal global_uniq_chk l globals s)
+             with (initIRGlobals_rev l globals s)
+             in *
+             by reflexivity
+         end.
+
 Lemma initIRGlobals_inl
       (data : list binary64)
       (globals : list (string * DSHType))
@@ -635,35 +649,6 @@ Definition declarations_invariant_mcfg (fnname:string) : Pred_mcfg_T unit :=
   fun '(memV,((l,sl),(g,_))) =>
     declarations_invariant fnname (memV,(l,g)).
 
-Lemma memory_set_seq2 {E}
-      (i1 i2: nat)
-      (b1 b2: mem_block)
-      (m0: memoryH)
-  :
-    (Ret (memory_set (memory_set m0 i1 b1) i2 b2, ()) : itree E _)
-    ≈
-    ITree.bind (Ret (m0,()))
-     (fun '(x,_) => Ret (memory_set (memory_set m0 i1 b1) i2 b2, ())).
-Proof.
-  cbn; rewrite bind_ret_l; reflexivity.
-Qed.
-
-Lemma memory_set_seq {E}
-      (i1: nat)
-      (b1: mem_block)
-      (m0: memoryH)
-  :
-    (Ret (memory_set m0 i1 b1, ()) : itree E _)
-    ≈
-    ITree.bind
-      (Ret (m0, ()))
-      (fun '(x,_) => Ret (memory_set x i1 b1, ())).
-Proof.
-  cbn; rewrite bind_ret_l; reflexivity.
-Qed.
-
-
-
 (* YZ TODO : Move *)
 Arguments allocate : simpl never.
 
@@ -689,20 +674,27 @@ Proof.
   reflexivity.
 Qed.
 
+Definition addVar (a : string * DSHType) (s : IRState) : IRState :=
+  let '(nm, t) := a in
+  {| block_count := block_count s;
+     local_count := local_count s;
+     void_count := void_count s;
+     Γ := (ID_Global (Name nm), TYPE_Pointer (getIRType t)) :: Γ s |}.
 
-Fact initOneIRGlobal_state_change:
-  forall data nm t g' i0 i1 r,
-    initOneIRGlobal data (nm,t) i0 ≡ inr (i1, (g', r))
-    -> inr (i1,()) ≡ (addVars [(ID_Global (Name nm), TYPE_Pointer (getIRType t))]) i0.
+Lemma initOneIRGlobal_state_change
+      (data0 data1 : list binary64)
+      (a : string * DSHType)
+      (s0 s1 : IRState)
+      r
+  :
+    initOneIRGlobal data0 a s0 ≡ inr (s1, (data1, r)) ->
+    s1 ≡ addVar a s0.
 Proof.
-  intros data nm t g' i0 i1 r H.
-  unfold initOneIRGlobal in H.
-  destruct t.
-  - break_let.
-    inv H.
-    reflexivity.
-  - break_let; cbn in H; inl_inr_inv; reflexivity.
-  - break_let; cbn in H; inl_inr_inv; reflexivity.
+  intros.
+  destruct a.
+  cbn in *.
+  repeat break_match.
+  all: now invc H.
 Qed.
 
 Lemma getStateVar_preserves_st
@@ -1194,19 +1186,19 @@ Proof.
   - cbn. rewrite IHg1. now subst.
 Qed.
 
-Lemma init_with_data_app_global_uniq_chk
+Lemma initIRGlobals_rev_app_inv
       (pre post : list (string * DSHType))
       (s0 s1 : IRState)
       (l0 l1 : list binary64)
       (g : list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ)))) 
   :
-    init_with_data initOneIRGlobal
-                   global_uniq_chk l0 (pre ++ post) s0 ≡ inr (s1, (l1, g)) →
+    initIRGlobals_rev l0 (pre ++ post) s0 ≡ inr (s1, (l1, g)) →
     ∃ l' s' g1 g2,
-      init_with_data initOneIRGlobal global_uniq_chk l0 pre s0 ≡ inr (s', (l', g1)) ∧
-      init_with_data initOneIRGlobal global_uniq_chk l' post s' ≡ inr (s1, (l1, g2)) ∧
+      initIRGlobals_rev l0 pre s0 ≡ inr (s', (l', g1)) ∧
+      initIRGlobals_rev l' post s' ≡ inr (s1, (l1, g2)) ∧
       g ≡ g1 ++ g2.
 Proof.
+  unfold initIRGlobals_rev.
   dependent induction pre; intros A.
   -
     intros.
@@ -1320,18 +1312,19 @@ Proof.
   lia.
 Qed.
 
-Lemma init_with_data_app_global_uniq_chk_inv
+Lemma initIRGlobals_rev_app
       (pre post : list (string * DSHType))
       (s0 s' s1 : IRState)
       (l0 l' l1 : list binary64)
       (g1 g2 : list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ))))
   :
     list_uniq fst (pre ++ post) ->
-    init_with_data initOneIRGlobal global_uniq_chk l0 pre s0 ≡ inr (s', (l', g1)) ->
-    init_with_data initOneIRGlobal global_uniq_chk l' post s' ≡ inr (s1, (l1, g2)) ->
-    init_with_data initOneIRGlobal global_uniq_chk l0 (pre ++ post) s0
+    initIRGlobals_rev l0 pre s0 ≡ inr (s', (l', g1)) ->
+    initIRGlobals_rev l' post s' ≡ inr (s1, (l1, g2)) ->
+    initIRGlobals_rev l0 (pre ++ post) s0
     ≡ inr (s1, (l1, g1 ++ g2)).
 Proof.
+  unfold initIRGlobals_rev.
   intros.
   dependent induction pre.
   -
@@ -1470,11 +1463,6 @@ Proof.
   reflexivity.
 Qed.
 
-Ltac destruct_unit :=
-  repeat match goal with
-         | [x : unit |- _] => destruct x
-         end.
-
 Lemma initOneIRGlobal_some_g_exp
       (data data' : list binary64)
       (nmt : string * DSHType)
@@ -1595,7 +1583,7 @@ Proof.
     reflexivity.
   -
     rewrite list_cons_app in I.
-    apply init_with_data_app_global_uniq_chk in I.
+    apply initIRGlobals_rev_app_inv in I.
     destruct I as (data' & s' & g1 & g2 & I1 & I2 & G).
     copy_apply initIRGlobals_rev_Γ_len I1; rename H into L1.
     copy_apply initIRGlobals_rev_Γ_len I2; rename H into L2.
@@ -1688,6 +1676,228 @@ Proof.
   erewrite initIRGlobals_Γ_preserved by eassumption.
   reflexivity.
 Qed.
+
+Definition append_to_Γ
+           (globals : list (string * DSHType))
+           (s : IRState)
+  : IRState
+  :=
+    {| block_count := block_count s;
+       local_count := local_count s;
+       void_count := void_count s;
+       Γ := map IR_of_global globals ++ (Γ s) |}.
+
+Definition append_to_Γ_rev
+           (globals : list (string * DSHType))
+           (s : IRState)
+  : IRState
+  :=
+    rev_firstn_Γ (length globals) (append_to_Γ globals s).
+
+Lemma initIRGlobals_rev_state_change
+      (globals : list (string * DSHType))
+      (data0 data1 : list binary64)
+      (s0 s1 : IRState)
+      ginit
+  :
+    initIRGlobals_rev data0 globals s0 ≡ inr (s1, (data1, ginit)) ->
+    s1 ≡ append_to_Γ_rev globals s0.
+Proof.
+  intros.
+  destruct s1.
+  unfold append_to_Γ_rev, append_to_Γ, rev_firstn_Γ.
+  f_equal.
+  4: {
+    cbn.
+    unfold rev_firstn.
+    rewrite firstn_app, skipn_app.
+    assert (L : length globals ≡ length (map IR_of_global globals))
+           by now rewrite map_length.
+    replace (length globals - length (map IR_of_global globals))
+      with 0
+      by lia.
+    rewrite firstn_all2 by lia.
+    rewrite skipn_all2 by lia.
+    cbn.
+    rewrite app_nil_r.
+    rewrite <-map_rev.
+    now apply initIRGlobals_rev_Γ in H.
+  }
+  all: dependent induction globals; [now invc H |].
+  all: cbn in *.
+  all: repeat break_match; invc H.
+  all: copy_apply global_uniq_chk_preserves_st Heqs; subst i.
+  all: copy_apply initOneIRGlobal_state_change Heqs0; subst i0.
+  all: apply IHglobals in Heqs1.
+  all: subst.
+  all: unfold addVar; break_let; reflexivity.
+Qed.
+
+Lemma initIRGlobals_state_change
+      (globals : list (string * DSHType))
+      (data0 data1 : list binary64)
+      (s0 s1 : IRState)
+      ginit
+  :
+    initIRGlobals data0 globals s0 ≡ inr (s1, (data1, ginit)) ->
+    s1 ≡ append_to_Γ globals s0.
+Proof.
+  intros.
+  apply initIRGlobals_inr in H.
+  apply initIRGlobals_rev_state_change in H.
+  unfold append_to_Γ_rev in H.
+  now apply rev_firstn_Γ_inj in H.
+Qed.
+
+Lemma initOneIRglobal_state_writer
+      (data0 data1 : list binary64)
+      (s0 s1 : IRState)
+      (a : string * DSHType)
+      (r : toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ)))
+  :
+    initOneIRGlobal data0 a s0 ≡ inr (s1, (data1, r)) →
+    forall s',
+      initOneIRGlobal data0 a s' ≡ inr (addVar a s', (data1, r)).
+Proof.
+  intros.
+  destruct a.
+  cbn in *.
+  repeat break_match.
+  all: now invc H.
+Qed.
+
+Lemma initIRGlobals_rev_state_writer
+      (globals : list (string * DSHType))
+      (s0 s1 : IRState)
+      (data0 : list binary64)
+      r
+  :
+    initIRGlobals_rev data0 globals s0 ≡ inr (s1, r) →
+    forall s',
+      initIRGlobals_rev data0 globals s' ≡ inr (append_to_Γ_rev globals s', r).
+Proof.
+  unfold append_to_Γ_rev.
+  dependent induction globals; intros I s'; cbn in *.
+  -
+    invc I.
+    now destruct s'.
+  -
+    break_match_goal; break_match_hyp; try congruence.
+    { (* [global_uniq_chk] inconsistent *)
+      exfalso; clear - Heqs Heqs2.
+      unfold global_uniq_chk in *.
+      destruct (assert_false_to_err ("duplicate global name: " @@ fst a)
+                                    (globals_name_present (fst a) globals) ()).
+      all: cbn in *; congruence.
+    }
+    repeat break_let; subst.
+
+    break_match_goal; break_match_hyp; try congruence.
+    { (* [initOnrIRGlobal] inconsistent *)
+      exfalso; clear - Heqs1 Heqs2.
+      destruct a.
+      cbn in *.
+      repeat break_match; congruence.
+    }
+    repeat break_let; subst.
+
+    copy_apply global_uniq_chk_preserves_st Heqs0; subst i.
+    copy_apply global_uniq_chk_preserves_st Heqs; subst i0.
+    repeat destruct_unit.
+    copy_apply initOneIRGlobal_state_change Heqs1; subst i2.
+    copy_apply initOneIRGlobal_state_change Heqs2; subst i1.
+
+    apply initOneIRglobal_state_writer with (s':=s') in Heqs2.
+    rewrite Heqs1 in Heqs2.
+    inversion Heqs2; clear Heqs2; subst l0 t0.
+    break_match_goal; break_match_hyp; try congruence.
+    { (* [init_with_data] inconsistent *)
+      exfalso.
+      repeat break_let; subst.
+      inversion I; clear I; subst i r.
+      fold_initIRGlobals_rev.
+      apply IHglobals with (s':=addVar a s') in Heqs3.
+      congruence.
+    }
+    repeat break_let; subst.
+    invc I.
+    apply IHglobals with (s':=addVar a s') in Heqs3.
+    fold_initIRGlobals_rev.
+    rewrite Heqs2 in Heqs3.
+    invc Heqs3.
+    unfold addVar.
+    destruct a.
+    cbn.
+    unfold append_to_Γ, rev_firstn_Γ; cbn.
+    do 3 f_equal.
+    rewrite <-app_assoc.
+    unfold rev_firstn.
+    assert (L : length globals ≡ length (map IR_of_global globals))
+           by now rewrite map_length.
+    rewrite !firstn_app, !skipn_app.
+    replace (length globals - length (map IR_of_global globals))
+      with 0
+      by lia.
+    cbn.
+    rewrite !firstn_all2 by lia.
+    rewrite !skipn_all2 by lia.
+    reflexivity.
+Qed.
+
+Lemma initIRGlobals_rev_state_writer'
+      (globals : list (string * DSHType))
+      (s0 s1 s0' s1' : IRState)
+      (data : list binary64)
+      r r'
+  :
+    initIRGlobals_rev data globals s0 ≡ inr (s1, r) →
+    initIRGlobals_rev data globals s0' ≡ inr (s1', r') →
+    r ≡ r'.
+Proof.
+  intros.
+  apply initIRGlobals_rev_state_writer with (s':=s0') in H.
+  congruence.
+Qed.
+
+Lemma list_uniq_initIRGlobals_rev_OK (globals : list (string * DSHType)) :
+  list_uniq fst globals ->
+  forall data s,
+    is_OK (initIRGlobals_rev data globals s).
+Proof.
+  intros.
+  dependent induction globals;
+    [constructor |].
+  cbn.
+  repeat break_match; subst.
+  -
+    apply list_uniq_global_uniq_chk with (s:=s) in H.
+    inv H.
+    congruence.
+  -
+    unfold initOneIRGlobal in Heqs1.
+    repeat break_match; inv Heqs1.
+  -
+    autospecialize IHglobals;
+      [now apply list_uniq_de_cons in H |].
+    specialize (IHglobals l i0).
+    inv IHglobals.
+    fold_initIRGlobals_rev.
+    congruence.
+  -
+    constructor.
+Qed.
+
+Ltac dedup_states :=
+  repeat match goal with
+         | [ H : global_uniq_chk _ _ _ ≡ inr (?s, _) |- _] =>
+           copy_apply global_uniq_chk_preserves_st H; subst s
+         | [ H : initOneIRGlobal _ _ _ ≡ inr (?s, _) |- _] =>
+           copy_apply initOneIRGlobal_state_change H; subst s
+         | [ H : initIRGlobals_rev _ _ _ ≡ inr (?s, _) |- _] =>
+           copy_apply initIRGlobals_rev_state_change H; subst s
+         | [ H : initIRGlobals _ _ _ ≡ inr (?s, _) |- _] =>
+           copy_apply initIRGlobals_state_change H; subst s
+         end.
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
@@ -1837,7 +2047,8 @@ Proof.
                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double));
                 (ID_Global (Anon 1%Z), TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double);
                 (ID_Global (Anon 0%Z), TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double)] as v.
-    induction globals; intros v gdecls data data' H.
+    generalize dependent s1.
+    induction globals; intros s v gdecls data data' H.
     -
       cbn in *.
       inl_inr_inv.
@@ -1845,14 +2056,14 @@ Proof.
     -
       cbn in H.
       repeat break_match_hyp; try inl_inr.
-      (*
-      apply global_uniq_chk_preserves_st in Heqs; subst i0.
-      inl_inr_inv; subst.
+      apply global_uniq_chk_preserves_st in Heqs1; subst i1.
+      repeat inl_inr_inv; subst.
+      invc H3.
       cbn.
       apply ListUtil.app_nil.
       +
-        clear - Heqs0.
-        rename Heqs0 into H.
+        clear - Heqs2.
+        rename Heqs2 into H.
         unfold initOneIRGlobal in H.
         cbn in *.
         repeat break_match.
@@ -1860,17 +2071,17 @@ Proof.
         all: reflexivity.
       +
         destruct a.
-        apply initOneIRGlobal_state_change in Heqs0; cbn in Heqs0; inl_inr_inv.
-        destruct i1.
-        inversion H0.
+        copy_apply initOneIRGlobal_state_change Heqs2; subst i2.
         erewrite IHglobals with
             (data:=l)
             (data':=data')
             (v:=(ID_Global (Name s), TYPE_Pointer (getIRType d)) :: v)
         ; clear IHglobals; try reflexivity.
 
-        subst Γ. subst.
-        apply Heqs1.
+        fold_initIRGlobals_rev.
+        unfold addVar in *; cbn in *.
+        rewrite Heqs3.
+        reflexivity.
   }
   replace (flat_map (declarations_of typ) gdecls) with (@nil (declaration typ)) in *.
   2:{
@@ -1895,8 +2106,8 @@ Proof.
                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double));
                 (ID_Global (Anon 1%Z), TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double);
                 (ID_Global (Anon 0%Z), TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double)] as v.
-
-    induction globals; intros v gdecls data data' H.
+    generalize dependent s1.
+    induction globals; intros s v gdecls data data' H.
     -
       cbn in *.
       inl_inr_inv.
@@ -1904,13 +2115,14 @@ Proof.
     -
       cbn in H.
       repeat break_match_hyp; try inl_inr.
-      apply global_uniq_chk_preserves_st in Heqs; subst i0.
-      inl_inr_inv; subst.
+      apply global_uniq_chk_preserves_st in Heqs1; subst i1.
+      repeat inl_inr_inv; subst.
+      invc H3.
       cbn.
       apply ListUtil.app_nil.
       +
-        clear - Heqs0.
-        rename Heqs0 into H.
+        clear - Heqs2.
+        rename Heqs2 into H.
         unfold initOneIRGlobal in H.
         cbn in *.
         repeat break_match.
@@ -1918,17 +2130,17 @@ Proof.
         all: reflexivity.
       +
         destruct a.
-        apply initOneIRGlobal_state_change in Heqs0; cbn in Heqs0; inl_inr_inv.
-        destruct i1.
-        inversion H0.
+        copy_apply initOneIRGlobal_state_change Heqs2; subst i2.
         erewrite IHglobals with
             (data:=l)
             (data':=data')
             (v:=(ID_Global (Name s), TYPE_Pointer (getIRType d)) :: v)
         ; clear IHglobals; try reflexivity.
 
-        subst Γ. subst.
-        apply Heqs1.
+        fold_initIRGlobals_rev.
+        unfold addVar in *; cbn in *.
+        rewrite Heqs3.
+        reflexivity.
   }
   replace (flat_map (definitions_of typ) gdecls)
     with (@nil (definition typ (LLVMAst.block typ * list (LLVMAst.block typ))))
@@ -1955,8 +2167,8 @@ Proof.
                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double));
                 (ID_Global (Anon 1%Z), TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double);
                 (ID_Global (Anon 0%Z), TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double)] as v.
-
-    induction globals; intros v gdecls data data' H.
+    generalize dependent s1.
+    induction globals; intros s v gdecls data data' H.
     -
       cbn in *.
       inl_inr_inv.
@@ -1964,13 +2176,14 @@ Proof.
     -
       cbn in H.
       repeat break_match_hyp; try inl_inr.
-      apply global_uniq_chk_preserves_st in Heqs; subst i0.
-      inl_inr_inv; subst.
+      apply global_uniq_chk_preserves_st in Heqs1; subst i1.
+      repeat inl_inr_inv; subst.
+      invc H3.
       cbn.
       apply ListUtil.app_nil.
       +
-        clear - Heqs0.
-        rename Heqs0 into H.
+        clear - Heqs2.
+        rename Heqs2 into H.
         unfold initOneIRGlobal in H.
         cbn in *.
         repeat break_match.
@@ -1978,17 +2191,17 @@ Proof.
         all: reflexivity.
       +
         destruct a.
-        apply initOneIRGlobal_state_change in Heqs0; cbn in Heqs0; inl_inr_inv.
-        destruct i1.
-        inversion H0.
+        copy_apply initOneIRGlobal_state_change Heqs2; subst i2.
         erewrite IHglobals with
             (data:=l)
             (data':=data')
             (v:=(ID_Global (Name s), TYPE_Pointer (getIRType d)) :: v)
         ; clear IHglobals; try reflexivity.
 
-        subst Γ. subst.
-        apply Heqs1.
+        fold_initIRGlobals_rev.
+        unfold addVar in *; cbn in *.
+        rewrite Heqs3.
+        reflexivity.
   }
 
   repeat rewrite app_nil_r.
@@ -2221,18 +2434,12 @@ Proof.
       enough (
           forall pre post gdecls1 gdecls2 s' l',
             globals ≡ pre ++ post -> 
-
             gdecls ≡ gdecls1 ++ gdecls2 ->
-
-            init_with_data initOneIRGlobal
-                           global_uniq_chk l1 pre s_yx ≡ inr (s', (l', gdecls1)) ->
-
-            init_with_data initOneIRGlobal
-                           global_uniq_chk l' post s' ≡ inr (s1, (l2, gdecls2)) ->
-
+            initIRGlobals_rev l1 pre s_yx ≡ inr (s', (l', gdecls1)) ->
+            initIRGlobals_rev l' post s' ≡ inr (rev_firstn_Γ (length globals) s1,
+                                                (l2, gdecls2)) ->
             allocated_globals_mcfg pre (mg, ())
                                       (m, (le0, stack0, (g, ()))) ->
-
             eutt (allocated_globals_mcfg (pre ++ post))
                  (Ret (mg, ()))
                     (interp_mcfg
@@ -2241,8 +2448,9 @@ Proof.
                                         (flat_map (globals_of typ) gdecls2)))
                        g (le0, stack0) m)).
       {
+        apply initIRGlobals_inr in LG.
         replace (globals) with ([] ++ globals) in * by reflexivity.
-        apply init_with_data_app_global_uniq_chk in LG.
+        apply initIRGlobals_rev_app_inv in LG.
         destruct LG as (l' & s' & gdecls1 & gdecls2 & PRE & POST & GDECLS).
         specialize (H0 [] globals gdecls1 gdecls2 s' l').
         full_autospecialize H0; try congruence.
@@ -2449,8 +2657,8 @@ Proof.
           rewrite GLOBALS in LG.
           move LG at bottom.
           rewrite <-ListUtil.list_app_first_last in LG.
-          unfold initIRGlobals in *.
-          apply init_with_data_app_global_uniq_chk in LG.
+          apply initIRGlobals_inr in LG.
+          apply initIRGlobals_rev_app_inv in LG.
           destruct LG as (l'' & s'' & g1'' & g2'' & PRE'' & POST'' & G'').
 
           eapply IHpost.
@@ -2466,9 +2674,10 @@ Proof.
             (* [clear - PRE Heqs Heqs0.] doesn't work for some reason? *)
             clear IHpost; move PRE at bottom; move Heqs0 at bottom.
 
-            eapply init_with_data_app_global_uniq_chk_inv.
+            eapply initIRGlobals_rev_app.
             eapply initIRGlobals_names_unique.
-            apply PRE''.
+            eapply initIRGlobals_rev_inr.
+            eapply PRE''.
             eassumption.
             cbn.
             rewrite Heqs0.
@@ -2626,11 +2835,10 @@ Proof.
 
             gdecls ≡ gdecls1 ++ gdecls2 ->
 
-            init_with_data initOneIRGlobal
-                           global_uniq_chk l1 pre s_yx ≡ inr (s', (l1', gdecls1)) ->
+            initIRGlobals_rev l1 pre s_yx ≡ inr (s', (l1', gdecls1)) ->
 
-            init_with_data initOneIRGlobal
-                           global_uniq_chk l1' post s' ≡ inr (s1, (l2, gdecls2)) ->
+            initIRGlobals_rev l1' post s' ≡ inr (rev_firstn_Γ (length globals) s1,
+                                                 (l2, gdecls2)) ->
 
             post_init_invariant' pre (mg, ())
                                       (m', (l', st', (g', ()))) ->
@@ -2646,7 +2854,8 @@ Proof.
       {
         replace (globals) with ([] ++ globals) in * by reflexivity.
         replace (Γ_globals) with ([] ++ Γ_globals) in * by reflexivity.
-        apply init_with_data_app_global_uniq_chk in LG.
+        apply initIRGlobals_inr in LG.
+        apply initIRGlobals_rev_app_inv in LG.
         destruct LG as (l'' & s' & gdecls1 & gdecls2 & PRE & POST & GDECLS).
         specialize (H0 [] globals gdecls1 gdecls2 s' l'').
         full_autospecialize H0; try congruence.
@@ -2885,6 +3094,10 @@ Proof.
                   rename t0 into ne.
                   subst mg0 l4 ne'.
                   unfold in_local_or_global_scalar.
+                  copy_apply genIR_Γ IR.
+                  cbn in H0.
+
+
                   admit.
                 +++
                   admit.
@@ -3282,5 +3495,4 @@ Hint Rewrite interp_to_L3_ret : local.
 
 
     (*         unfold global_YX,constArray in EQ1. *)
-*)
 Abort.

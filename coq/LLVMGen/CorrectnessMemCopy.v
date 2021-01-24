@@ -71,7 +71,7 @@ Require Import Coq.micromega.Lia.
 Set Implicit Arguments.
 Set Strict Implicit.
 
-Import MDSHCOLOnFloat64.
+Import FHCOL.
 Import D.
 Import ListNotations.
 Import MonadNotation.
@@ -79,7 +79,7 @@ Local Open Scope monad_scope.
 
 (* A couple of notations to avoid ambiguities while not having to worry about imports and qualified names *)
 Notation memoryV := memory_stack.
-Notation memoryH := MDSHCOLOnFloat64.memory.
+Notation memoryH := FHCOL.memory.
 
 
 Section MemCopy.

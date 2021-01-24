@@ -98,7 +98,7 @@ Open Scope char_scope.
 Set Implicit Arguments.
 Set Strict Implicit.
 
-Export MDSHCOLOnFloat64.
+Export FHCOL.
 Export D.
 
 Import ListNotations.
@@ -126,7 +126,7 @@ Arguments IntType /.
 
 (* A couple of notations to avoid ambiguities while not having to worry about imports and qualified names *)
 Notation memoryV := memory_stack.
-Notation memoryH := MDSHCOLOnFloat64.memory.
+Notation memoryH := FHCOL.memory.
 
 Section EventTranslation.
 
@@ -506,7 +506,7 @@ Section InterpMem.
 
   Lemma interp_Mem_vis_eqit :
     forall T R mem (e : Event T) (k : T -> itree Event R),
-      interp_Mem (vis e k) mem ≅ ITree.bind ((case_ Mem_handler MDSHCOLOnFloat64.pure_state) T e mem) (fun sx => Tau (interp_Mem (k (snd sx)) (fst sx))).
+      interp_Mem (vis e k) mem ≅ ITree.bind ((case_ Mem_handler FHCOL.pure_state) T e mem) (fun sx => Tau (interp_Mem (k (snd sx)) (fst sx))).
   Proof.
     intros T R mem e k.
     unfold interp_Mem.

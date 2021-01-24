@@ -16,7 +16,7 @@ Require Import Helix.MSigmaHCOL.MemoryOfCarrierA.
 
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
-Require Import Helix.DSigmaHCOL.DSHCOLOnCarrierA.
+Require Import Helix.ASigmaHCOL.ASigmaHCOL.
 
 (* When proving concrete functions we need to use
    some implementation defs from this packages *)
@@ -47,7 +47,7 @@ Open Scope list_scope.
 Local Open Scope monad_scope.
 Local Open Scope nat_scope.
 
-Import DSHCOLOnCarrierA.
+Import AHCOL.
 
 (* TODO: move *)
 Section list_aux.

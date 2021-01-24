@@ -21,75 +21,79 @@ Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Import VectorNotations.
 Open Scope vector_scope.
 
-Section THCOL_implementations.
+Section WithCarrierA.
+  Context `{CAPROPS: @CarrierProperties CADEFS}.
 
-  (* Apply 2 functions to the same input returning tuple of results *)
-  Definition Stack {D R F: Type} (fg:(D->R)*(D->F)) (x:D) : (R*F) :=
-    match fg with
-    | (f,g) => pair (f x) (g x)
-    end.
+  (* --------- *)
 
-  (* Apply 2 functions to 2 inputs returning tuple of results *)
-  Definition Cross {D R E F: Type} (fg:(D->R)*(E->F)) (x:D*E) : (R*F) :=
-    match fg with
-    | (f,g) => match x with
-              | (x0,x1) => pair (f x0) (g x1)
-              end
-    end.
+  Section THCOL_implementations.
 
-  (* --- Pointwise Comparison --- *)
+    (* Apply 2 functions to the same input returning tuple of results *)
+    Definition Stack {D R F: Type} (fg:(D->R)*(D->F)) (x:D) : (R*F) :=
+      match fg with
+      | (f,g) => pair (f x) (g x)
+      end.
 
-  (* Zero/One version *)
-  Definition ZVLess {n}
-             (ab: (avector n)*(avector n)) : avector n :=
-    match ab with
-    | (a,b) => Vmap2 (Zless) a b
-    end.
+    (* Apply 2 functions to 2 inputs returning tuple of results *)
+    Definition Cross {D R E F: Type} (fg:(D->R)*(E->F)) (x:D*E) : (R*F) :=
+      match fg with
+      | (f,g) => match x with
+                | (x0,x1) => pair (f x0) (g x1)
+                end
+      end.
 
-  Global Instance ZVLess_proper {n:nat}:
-    Proper ((=) ==> (=))  (@ZVLess n).
-  Proof.
-    (* solve_proper. *)
-    intros x y E.
-    unfold ZVLess.
-    repeat break_let.
-    inversion E. simpl in *.
-    unfold equiv, vec_Equiv.
-    rewrite H0, H.
-    reflexivity.
-  Qed.
+    (* --- Pointwise Comparison --- *)
 
-End THCOL_implementations.
+    (* Zero/One version *)
+    Definition ZVLess {n}
+               (ab: (avector n)*(avector n)) : avector n :=
+      match ab with
+      | (a,b) => Vmap2 (Zless) a b
+      end.
 
+    Instance ZVLess_proper {n:nat}:
+      Proper ((=) ==> (=))  (@ZVLess n).
+    Proof.
+      (* solve_proper. *)
+      intros x y E.
+      unfold ZVLess.
+      repeat break_let.
+      inversion E. simpl in *.
+      unfold equiv, vec_Equiv.
+      rewrite H0, H.
+      reflexivity.
+    Qed.
 
-Section THCOL_implementation_proper.
+  End THCOL_implementations.
 
-  Global Instance Cross_arg_proper
-         `{Equiv D,Equiv R,Equiv E,Equiv F}
-         `{pF: !Proper ((=) ==> (=)) (f: D -> R)}
-         `{pG: !Proper ((=) ==> (=)) (g: E -> F)}:
-    Proper ((=) ==> (=))  (Cross (f,g)).
-  Proof.
-    intros fg fg' fgE.
-    destruct fg, fg'.
-    destruct fgE as [M2 M1]. simpl in *.
-    split; simpl.
-    apply pF; assumption.
-    apply pG; assumption.
-  Qed.
+  Section THCOL_implementation_proper.
 
-  Global Instance Stack_arg_proper
-         `{Equiv D,Equiv R,Equiv F}
-         `{pF: !Proper ((=) ==> (=)) (f: D -> R)}
-         `{pG: !Proper ((=) ==> (=)) (g: D -> F)}:
-    Proper ((=) ==> (=))  (Stack (f,g)).
-  Proof.
-    intros fg fg' fgE.
-    split; simpl.
-    apply pF; assumption.
-    apply pG; assumption.
-  Qed.
+    Global Instance Cross_arg_proper
+           `{Equiv D,Equiv R,Equiv E,Equiv F}
+           `{pF: !Proper ((=) ==> (=)) (f: D -> R)}
+           `{pG: !Proper ((=) ==> (=)) (g: E -> F)}:
+      Proper ((=) ==> (=))  (Cross (f,g)).
+    Proof.
+      intros fg fg' fgE.
+      destruct fg, fg'.
+      destruct fgE as [M2 M1]. simpl in *.
+      split; simpl.
+      apply pF; assumption.
+      apply pG; assumption.
+    Qed.
 
-End THCOL_implementation_proper.
+    Global Instance Stack_arg_proper
+           `{Equiv D,Equiv R,Equiv F}
+           `{pF: !Proper ((=) ==> (=)) (f: D -> R)}
+           `{pG: !Proper ((=) ==> (=)) (g: D -> F)}:
+      Proper ((=) ==> (=))  (Stack (f,g)).
+    Proof.
+      intros fg fg' fgE.
+      split; simpl.
+      apply pF; assumption.
+      apply pG; assumption.
+    Qed.
 
+  End THCOL_implementation_proper.
 
+End WithCarrierA.
