@@ -2083,6 +2083,7 @@ Ltac solve_id_neq :=
                                                       | solve_lid_bound_between
                                                       | solve_lid_bound_between
                                                       | cbn; solve_local_count]]
+        | solve [let CONTRA := fresh "CONTRA" in intros CONTRA; symmetry in CONTRA; revert CONTRA; solve_id_neq]
         ].
 
 Ltac solve_alist_in :=

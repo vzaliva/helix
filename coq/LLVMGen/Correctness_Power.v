@@ -364,6 +364,14 @@ Proof.
   specialize (LOOPTFOR Inb0 PREF_POWER WF_BODY_BKS' LID_BOUND_BETWEEN_POWER_I).
   specialize (LOOPTFOR FREE_BODY_BKS'_NEXTBLOCK).
 
+  clear LID_BOUND_BETWEEN_POWER_I.
+  assert (lid_bound_between i21 {|
+                              block_count := block_count i21;
+                              local_count := S (local_count i21);
+                              void_count := void_count i21;
+                              Γ := Γ i21 |}
+                            ("Power_i" @@ string_of_nat (local_count i21))) as LID_BOUND_BETWEEN_POWER_I by admit.
+
   (* Need to know how many times we loop, this is determined by the
   result of evaluating the expression e1 *)
   pose proof Heqs7 as LOOP_END.
@@ -1113,7 +1121,28 @@ Proof.
         split; [|split; [|split]].
         - destruct POSTAEXPR.
           cbn in *.
-          admit.
+          destruct Mono_IRState.
+          + eapply local_scope_preserve_modif_up in extends.
+            2: solve_local_count.
+            unfold local_scope_preserved in extends.
+            rewrite extends.
+            rewrite alist_find_neq.
+            2: solve_id_neq.
+            2: { unfold lid_bound_between.
+                 unfold state_bound_between.
+                 exists "Power_i". eexists. eexists.
+                 repeat split; eauto.
+                 2: solve_local_count.
+                 instantiate (1 := {|
+                                block_count := block_count i21;
+                                local_count := S (local_count i21);
+                                void_count := void_count i21;
+                                Γ := Γ i21 |}).
+                 solve_local_count.
+            }
+            solve_alist_in.
+          + subst.
+            solve_alist_in.
         - exists b0. reflexivity.
         - (* I *)
           Opaque mem_lookup. (* TODO: HMMM *)
