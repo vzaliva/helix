@@ -1158,14 +1158,24 @@ Proof.
           (* TODO: This is the thing we need *)
           exists t_Aexpr.
           destruct POSTAEXPR. cbn in extends.
-          repeat split.
-          (* dst_ptr_id *)
-          admit.
-          (* src_ptr_id *)
-          admit.
-          (* src_val_id *)
-          admit.
+          cbn in Mono_IRState.
 
+          split.
+          { (* dst_ptr_id *)
+            destruct Mono_IRState; subst; solve_alist_in.
+          }
+
+          split.
+          { (* src_ptr_id *)
+            destruct Mono_IRState; subst; solve_alist_in.
+          }
+
+          split.
+          { (* src_val_id *)
+            destruct Mono_IRState; subst; solve_alist_in.
+          }
+
+          split.
           { eapply write_correct in WRITE.
             destruct WRITE as [ALLOCATED WRITTEN].
 
@@ -1221,16 +1231,17 @@ Proof.
             eapply WRITTEN. constructor.
           }
 
-          admit.
-
+          split.
           { (* Helix memory extended *)
             intros y H.
             rewrite mem_lookup_mem_add_neq; eauto.
           }
 
+          split.
           { (* Helix memory old *)
             rewrite mem_lookup_mem_add_eq; eauto.
           }
+
           { (* Returns... *)
             rewrite tfor_split with (i := 0) (j:= k) (k0:= S k); try lia.
             rewrite interp_helix_bind.
