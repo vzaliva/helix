@@ -313,8 +313,25 @@ Proof.
   (* TODO: i5 and i6 are just a guess *)
   match goal with
   | H: genWhileLoop ?prefix ?x ?y ?loopvar ?loopcontblock ?body_entry ?body_blocks [] ?nextblock ?s1 ≡ inr (?s2, (?bid_in, ?bks)) |- _
-    => epose proof @genWhileLoop_tfor_correct prefix loopvar loopcontblock body_entry body_blocks nextblock bid_in s1 s2 i21 {|block_count := block_count i21; local_count := S (local_count i21); void_count := void_count i21; Γ := Γ i21 |} bks as LOOPTFOR
+    => epose proof @genWhileLoop_tfor_correct prefix loopvar loopcontblock body_entry body_blocks nextblock bid_in {|
+           block_count := block_count i21;
+           local_count := S (local_count i21);
+           void_count := void_count i21;
+           Γ := Γ i21 |} s2 i17 {|
+           block_count := block_count i21;
+           local_count := S (local_count i21);
+           void_count := void_count i21;
+           Γ := Γ i21 |} bks as LOOPTFOR
   end.
+
+  (* s1 s2 sb1 sb2
+
+     sb1 << sb2
+     local_count sb2 ≡ local_count s1
+
+     What's modified in l_loop and l_AExpr?
+
+   *)
 
   assert (In b0
                (inputs
@@ -335,11 +352,11 @@ Proof.
   assert (wf_ocfg_bid body_bks') as WF_BODY_BKS' by admit.
 
   (* TODO: make solve_lid_bound_between do this *)
-  assert (lid_bound_between i21 {|
-                            block_count := block_count i21;
-                            local_count := S (local_count i21);
-                            void_count := void_count i21;
-                            Γ := Γ i21 |}
+  assert (lid_bound_between i17 {|
+           block_count := block_count i21;
+           local_count := S (local_count i21);
+           void_count := void_count i21;
+           Γ := Γ i21 |}
                  ("Power_i" @@ string_of_nat (local_count i21))) as LID_BOUND_BETWEEN_POWER_I by admit.
 
   assert (free_in_cfg body_bks' nextblock) as FREE_BODY_BKS'_NEXTBLOCK by admit.
@@ -1278,7 +1295,40 @@ Proof.
             reflexivity.
           }
         - destruct POSTAEXPR. cbn in extends.
-          admit. (* Should hold *)
+          cbn in Mono_IRState.
+          cbn in Gamma_cst.
+
+          Lemma local_scope_modif_sub':
+            ∀ (s1 s2 : IRState) (l l' : local_env) (r : local_id) (v : uvalue),
+              lid_bound_between s1 s2 r → local_scope_modif s1 s2 l (alist_add r v l') → local_scope_modif s1 s2 l l'.
+          Proof.
+            intros s1 s2 l l' r v BOUND MODIF.
+
+            unfold local_scope_modif in *.
+            intros id H.
+            pose proof (rel_dec_p id r) as [EQ | NEQ].
+            - subst; auto.
+            - specialize (MODIF id).
+              rewrite alist_find_neq in MODIF; auto.
+          Qed.
+
+          Lemma local_scope_modif_sub'_l :
+            ∀ (s1 s2 : IRState) (l l' : local_env) (r : local_id) (v : uvalue),
+              lid_bound_between s1 s2 r → local_scope_modif s1 s2 (alist_add r v l) l' → local_scope_modif s1 s2 l l'.
+          Proof.
+            intros s1 s2 l l' r v BOUND MODIF.
+
+            unfold local_scope_modif in *.
+            intros id H.
+            pose proof (rel_dec_p id r) as [EQ | NEQ].
+            - subst; auto.
+            - specialize (MODIF id).
+              rewrite alist_find_neq in MODIF; auto.
+          Qed.            
+
+          eapply local_scope_modif_sub'_l.
+          2: solve_local_scope_modif.
+          solve_lid_bound_between.
       }
 
       (* TODO: Might want to do more forward reasoning first *)
