@@ -389,11 +389,6 @@ Proof.
        try rewrite typ_to_dtyp_D_array in *;
        try rewrite typ_to_dtyp_P in *).
 
-  (* (* eapply alist_find_add_eq. *) *)
-  (* admit. *)
-
-
-
   (* TODO : "s1" and "s2" might need to be changed *)
   match goal with
   | [H : genWhileLoop ?prefix _ _ ?loopvar ?loopcontblock ?body_entry ?body_blocks _ ?nextblock ?s1' ≡ inr (?s2', (?entry_id, ?bks)) |- _]
@@ -604,58 +599,142 @@ Proof.
 
     Transparent addVars. unfold addVars in Heqs12. inv Heqs12.
 
+
+    assert (UNIQ0 : v ≢ loopvarid). {
+      intros CONTRA; subst.
+      eapply lid_bound_between_newLocalVar in Heqs4.
+      eapply lid_bound_between_incLocal in Heqs11.
+      eapply state_bound_between_id_separate.
+      2 : eapply Heqs4.
+      2 : eapply Heqs11.
+      eapply incLocalNamed_count_gen_injective.
+      solve_local_count. reflexivity.
+    }
+
+    assert (UNIQ1 : loopvarid ≢ px). {
+      intros CONTRA; subst.
+
+      eapply lid_bound_between_newLocalVar in Heqs4.
+      eapply lid_bound_between_incLocal in Heqs9.
+      eapply state_bound_between_id_separate.
+      2 : eapply Heqs4.
+      2 : eapply Heqs9.
+      eapply incLocalNamed_count_gen_injective.
+      solve_local_count. reflexivity.
+    }
+
+
+    Lemma not_in_gamma_cons :
+      forall σ s1 s2 id id' τ v,
+        Γ s2 ≡ (ID_Local id', τ) :: Γ s1 ->
+        ~ in_Gamma σ s1 id ->
+        id ≢ id' ->
+        ~ in_Gamma (v :: σ) s2 id.
+    Proof.
+      intros σ s1 s2 id id' τ v GAM NIN NEQ.
+      intros CONTRA.
+      inv CONTRA.
+      apply NIN.
+      rewrite GAM in *.
+      destruct n.
+      - cbn in *; inv H; inv H0.
+        contradiction.
+      - esplit; eauto.
+        eapply evalContext_typechecks_extend; eauto.
+    Qed.
+
+    assert (s2_ext : Γ s7 ≡ (ID_Local loopvarid, IntType) :: Γ s1). {
+      assert (H1 :Γ s2 ≡ Γ s7) by solve_gamma.
+      rewrite <- H1.
+      apply newLocalVar_Γ in Heqs4. eauto.
+    }
+
+    assert (neg0 : ~ in_Gamma σ s0 v) by solve_not_in_gamma.
+
+    assert (neg1 : ¬ in_Gamma (DSHnatVal (Int64.repr (Z.of_nat k)) :: σ) s7 v). {
+        eapply not_in_gamma_cons.
+        assert (Heqs4' := Heqs4).
+        eauto.
+        eapply not_in_Gamma_Gamma_eq. 2 : eauto. solve_gamma.
+        auto.
+    }
+
     (* [BOTH] Finally eached AExpr / FMap. Step both of them. *)
-    eapply eutt_clo_bind.
+    eapply eutt_clo_bind_returns.
     {
       eapply genAExpr_correct.
       eassumption.
       - eapply state_invariant_enter_scope_DSHCType with (s1 := s7); eauto.
         + reflexivity.
-        + assert (~ in_Gamma σ s0 v) by solve_not_in_gamma.
-
-          Lemma not_in_gamma_cons :
-            forall σ s1 s2 id id' τ v,
-              Γ s2 ≡ (ID_Local id', τ) :: Γ s1 ->
-              ~ in_Gamma σ s1 id ->
-              id ≢ id' ->
-              ~ in_Gamma (v :: σ) s2 id.
-          Proof.
-            intros σ s1 s2 id id' τ v GAM NIN NEQ.
-            intros CONTRA.
-            inv CONTRA.
-            apply NIN.
-            rewrite GAM in *.
-            destruct n.
-            - cbn in *; inv H; inv H0.
-              contradiction.
-            - esplit; eauto.
-              eapply evalContext_typechecks_extend; eauto.
-          Qed.
-
-          eapply not_in_gamma_cons.
-          assert (Γ s2 ≡ Γ s7) by solve_gamma.
-          rewrite <- H1.
-          assert (Heqs4' := Heqs4).
-          apply newLocalVar_Γ in Heqs4. eauto.
-
-          eapply not_in_Gamma_Gamma_eq. 2 : eauto. solve_gamma.
-
-          intros CONTRA; subst.
-          eapply lid_bound_between_newLocalVar in Heqs4.
-          eapply lid_bound_between_incLocal in Heqs11.
-          eapply state_bound_between_id_separate.
-          2 : eapply Heqs4.
-          2 : eapply Heqs11.
-          eapply incLocalNamed_count_gen_injective.
-          solve_local_count. reflexivity.
         + solve_alist_in.
-        + admit.
-      - admit.
+        + (* use LOOPVAR *)
+          eapply state_invariant_Γ with (s1 := s2).
+          2 : solve_gamma.
+
+          eapply state_invariant_enter_scope_DSHnat with (x := loopvarid); eauto.
+          * apply not_in_Gamma_Gamma_eq with (s1 := s0). solve_gamma.
+            eapply GAM. eapply lid_bound_between_shrink with (s2 := s1) (s3 := s2); try solve_local_count.
+            clear -Heqs4. Transparent newLocalVar.
+            eapply lid_bound_between_newLocalVar; eauto. reflexivity.
+          * rewrite alist_find_neq; auto. rewrite alist_find_neq; auto.
+          * eapply state_invariant_Γ with (s1 := s12). 2 : eauto.
+            eapply state_invariant_same_Γ; eauto using lid_bound_between_incLocal.
+            eapply state_invariant_same_Γ; eauto using lid_bound_between_incLocal.
+            solve_not_in_gamma.
+            eapply state_invariant_Γ. eauto. eauto. solve_gamma.
+      - (* eapply Gamma_safe_Context_extend. *)
         (* eapply Gamma_safe_Context_extend. *)
-      - (* no failure *)
+        (* eauto. *)
         admit.
+      - clear -NOFAIL'. unfold denoteIUnCType in NOFAIL'.
+        apply no_failure_bind_prefix in NOFAIL'. eauto.
     }
 
+    (* "Final" simultaneous step inside the loop body *)
+    intros [ [mH' bin] | ] [mV' [li' [g0' []]]].
+    intros (PRE_INV & AEXP) RET1 RET2.
+
+    (* [HELIX] easy clean-up. *)
+    hred.
+
+    (* [Vellvm] GEP and Store the result so we can re-establish loop invariant. *)
+
+    (* 1. GEP *)
+    set (y_size := Z.to_N (Int64.intval yp_typ_)).
+    match goal with
+    | [|- context[OP_GetElementPtr (DTYPE_Array y_size _) (_, ?ptr')]] =>
+        edestruct denote_instr_gep_array with
+          (ρ := li') (g := g0') (m := mV') (i := py) (τ := DTYPE_Double)
+            (size := y_size) (a := ptrll_yoff_l) (ptr := ptr') as (? & ? & ?)
+    end.
+
+    admit. admit. admit.
+
+    (* rewrite & step *)
+    vred.
+    rewrite H1; clear H1.
+    vred.
+
+    2 : try_abs.
+
+    (* 2. Store  *)
+    vred.
+    rewrite denote_instr_store.
+    2 : admit.
+    2 : admit. 2 : admit. 2 : admit.
+    vred.
+    rewrite denote_term_br_1.
+    vred.
+
+    cbn.
+    rename b into loopcont.
+    rewrite denote_ocfg_unfold_not_in.
+    vred.
+    2 : admit.
+
+    (* Re-establish INV in post condition *)
+    apply eqit_Ret.
+    split; [|split; [|split]]; eauto.
     admit.
   }
 
