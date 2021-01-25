@@ -303,7 +303,7 @@ Proof.
 
   (* Clean up [no_failure] *)
   repeat apply no_failure_Ret in NOFAIL.
-  
+
   edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
   edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
   clean_goal.
@@ -328,10 +328,10 @@ Proof.
   rename i8 into s10.
   rename i9 into s11.
 
+  rename l0 into bks.
+
   (* [Hyp] Get memory/ptr information for xtyp, ytyp, xptyp, yptyp. *)
   (* Duplicate work as genMExpr_correct, needed for GEP later. *)
-  edestruct memory_invariant_Ptr as (bkH & ptrV & Mem_LU & LUV & ADR & EQ); eauto.
-  edestruct memory_invariant_Ptr with (a := n2) as (bkH' & ptrV' & Mem_LU' & LUV' & ADR' & EQ'); eauto.
 
   (* Memory invariant *)
   pose proof state_invariant_memory_invariant PRE as MINV_YOFF.
@@ -345,12 +345,12 @@ Proof.
   destruct MINV_YOFF as (bkh_yoff & ptrll_yoff & τ_yoff & MLUP_yoff & TEQ_yoff & FITS_yoff & INLG_yoff & GETARRAYCELL_yoff).
   destruct MINV_XOFF as (bkh_xoff & ptrll_xoff & τ_xoff & MLUP_xoff & TEQ_xoff & FITS_xoff & INLG_xoff & GETARRAYCELL_xoff).
   (* Duplicating, as we need to do the same inside the loop body *)
-  assert (H' := H).
-  assert (H0' := H0).
+  assert (H' := H). assert (H0' := H0).
   rewrite MLUP_xoff in H; symmetry in H; inv H.
   rewrite MLUP_yoff in H0; symmetry in H0; inv H0.
 
   inv TEQ_yoff. inv TEQ_xoff. cbn.
+
 
   (* We know that the Helix denotation can be expressed via the [tfor] operator *)
   assert (NOFAIL_cont := NOFAIL).
@@ -361,9 +361,38 @@ Proof.
 
   cbn* in *; simp; cbn in *.
   clean_goal.
-  rename l0 into bks.
 
-  cbn* in *; simp; cbn* in *.
+  Set Nested Proofs Allowed.
+
+  Lemma typ_to_dtyp_P :
+      forall t s,
+        typ_to_dtyp s (TYPE_Pointer t) ≡ DTYPE_Pointer.
+  Proof.
+    intros t s.
+    apply typ_to_dtyp_equation.
+  Qed.
+
+  (* TODO: Move*)
+  Lemma denote_exp_ID :forall defs g l m id τ ptr,
+      in_local_or_global_addr l g id ptr ->
+      interp_cfg_to_L3 defs (translate exp_E_to_instr_E (denote_exp (Some τ) (EXP_Ident id))) g l m
+      ≈
+      Ret (m,(l,(g,UVALUE_Addr ptr))).
+  Proof.
+    intros. destruct id eqn: Hh; [ rewrite denote_exp_GR | rewrite denote_exp_LR ] ; eauto; try reflexivity.
+  Qed.
+
+  Ltac typ_to_dtyp_simplify :=
+    repeat
+      (try rewrite typ_to_dtyp_I in *;
+       try rewrite typ_to_dtyp_D in *;
+       try rewrite typ_to_dtyp_D_array in *;
+       try rewrite typ_to_dtyp_P in *).
+
+  (* (* eapply alist_find_add_eq. *) *)
+  (* admit. *)
+
+
 
   (* TODO : "s1" and "s2" might need to be changed *)
   match goal with
@@ -417,14 +446,17 @@ Proof.
   inv VG.
   rewrite add_comment_eutt.
 
+  rename memV into mV_init.
+
   (* Invariant at each iteration *)
   set (I := (fun (k : nat) (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
                match mH with
                | None => False
-               | Some (mH, b) => state_invariant σ s12 mH stV /\
-                      (no_failure (E := E_cfg)
-                                  (interp_helix (trigger (MemLU "Error looking up 'x' in DSHIMap" n3) ;;
-                                                trigger (MemLU "Error looking up 'y' in DSHIMap" n2)) mH))
+               | Some (mH, b) =>
+                 let '(mV, (p, g)) := stV in
+                 state_invariant σ s12 mH stV /\
+                 mH ≡ memH /\
+                  exists v, ext_memory mV_init ptrll_yoff DTYPE_Double (UVALUE_Double v) mV
                end)).
   (* Precondition and postcondition *)
   set (P := (fun (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
@@ -489,33 +521,11 @@ Proof.
     rename n3 into x_addr.
     rename n2 into x0_addr.
 
-    Set Nested Proofs Allowed.
-
-    Lemma typ_to_dtyp_P :
-        forall t s,
-          typ_to_dtyp s (TYPE_Pointer t) ≡ DTYPE_Pointer.
-    Proof.
-      intros t s.
-      apply typ_to_dtyp_equation.
-    Qed.
-
-    Ltac typ_to_dtyp_simplify :=
-      repeat (try rewrite typ_to_dtyp_I in *; try rewrite typ_to_dtyp_D in *; try rewrite typ_to_dtyp_D_array in *; try rewrite typ_to_dtyp_P in *) .
-
-    (* TODO: Move*)
-    Lemma denote_exp_ID :forall defs g l m id τ ptr,
-        in_local_or_global_addr l g id ptr ->
-        interp_cfg_to_L3 defs (translate exp_E_to_instr_E (denote_exp (Some τ) (EXP_Ident id))) g l m
-        ≈
-        Ret (m,(l,(g,UVALUE_Addr ptr))).
-    Proof.
-      intros. destruct id eqn: Hh; [ rewrite denote_exp_GR | rewrite denote_exp_LR ] ; eauto; try reflexivity.
-    Qed.
-
-
     (* Get mem information from PRE condition here (global and local state has changed). *)
-    (* Needed for the following GEP *)
-    destruct INV as (INV & NOFAIL_BODY).
+    (* Needed for the following GEP and Load instructions *)
+    destruct INV as (INV & -> & (py_val & EXT_MEM)).
+
+    destruct EXT_MEM.
     pose proof state_invariant_memory_invariant INV as MINV_YOFF.
     pose proof state_invariant_memory_invariant INV as MINV_XOFF.
     unfold memory_invariant in MINV_YOFF.
@@ -530,15 +540,8 @@ Proof.
     destruct MINV_XOFF as (bkh_xoff_l & ptrll_xoff_l & τ_xoff_l & MLUP_xoff_l & TEQ_xoff_l & FITS_xoff_l
                            & INLG_xoff_l & GETARRAYCELL_xoff_l).
 
-    (* Use more informative invariant here (no_failure on MemLU) *)
-    edestruct @no_failure_helix_LU as (? & NOFAIL'' & ?). cbn in NOFAIL_BODY.
-    apply NOFAIL_BODY. clear NOFAIL_BODY. rename NOFAIL'' into NOFAIL. cbn in NOFAIL.
-    edestruct @no_failure_helix_LU as (? & NOFAIL'' & ?).
-    setoid_rewrite <- bind_ret_r in NOFAIL at 2.
-    apply NOFAIL. clear NOFAIL''.
-
-    rewrite MLUP_xoff_l in H; symmetry in H; inv H.
-    rewrite MLUP_yoff_l in H0; symmetry in H0; inv H0.
+    rewrite MLUP_xoff_l in H'; symmetry in H'; inv H'.
+    rewrite MLUP_yoff_l in H0'; symmetry in H0'; inv H0'.
 
     inv TEQ_yoff_l.
     inv TEQ_xoff_l. cbn.
@@ -546,7 +549,7 @@ Proof.
     (* [Vellvm] GEP Instruction *)
     match goal with
     | [|- context[OP_GetElementPtr (DTYPE_Array ?size' ?τ') (_, ?ptr') _]] =>
-    edestruct denote_instr_gep_array_no_read with
+    edestruct denote_instr_gep_array with
         (ρ := li) (g := g0) (m := mV) (i := px)
         (size := size') (a := ptrll_xoff_l) (ptr := ptr') as (? & ? & ?)
     end.
@@ -567,44 +570,29 @@ Proof.
 
     setoid_rewrite interp_cfg_to_L3_LR; cycle -1.
     2 : reflexivity.
-    cbn in ADR.
     2 : {
       typ_to_dtyp_simplify; eauto.
-      erewrite <- from_N_intval; eauto.
+      assert (GET := GETARRAYCELL_xoff_l).
+      assert (KNat : MInt64asNT.to_nat (Int64.repr (Z.of_nat k )) ≡ k). admit.
+      specialize (GET (Int64.repr (Z.of_nat k))).
+      rewrite KNat in GET. eapply GET. eauto.
     }
     eauto.
 
     vred.
-    setoid_rewrite H0. clear H0.
+    setoid_rewrite H0; clear H0.
     vred.
 
-    (* [HELIX] : Load *)
-
+    (* [Vellvm] : Load *)
     vred.
-    rewrite denote_instr_load; cycle 1.
-    apply denote_exp_LR; cycle 1.
-    2: {
-      assert (GET := GETARRAYCELL_xoff_l).
-      specialize (GET (Int64.repr (Z.of_nat k))).
-      assert (MInt64asNT.to_nat (Int64.repr (Z.of_nat k)) ≡ k). admit.
-      rewrite H0 in GET.
-      (* rename Heqo1 *)
+    rewrite denote_instr_load.
+    2 : {
+      apply denote_exp_LR.
+      cbn. apply alist_find_add_eq.
+    }
+    2: eauto.
 
-      (* inv MLUP_xoff_l. *)
-      (* specialize (GET _ MLUP_xoff_l). *)
-      (* rewrite H0 in GETARRAYCELL_xoff_l. *)
-
-      (* specialize (GETARRAYCELL_xoff_l Heqo1). *)
-      erewrite read_array; eauto.
-      (* apply GETARRAYCELL_xoff_l. *)
-      Ltac solve_allocated :=
-        first [solve [eapply dtyp_fits_allocated; eauto]].
-      (* solve_allocated. *)
-
-
-      admit. admit.
-    } admit.
-
+    (* [Vellvm] : Clean up *)
     vred.
     rewrite map_app.
     cbn.
@@ -612,25 +600,60 @@ Proof.
     rewrite denote_code_app.
     vred.
 
-    (* Require Import Helix.LLVMGen.Correctness_AExpr. *)
+    Require Import Helix.LLVMGen.Correctness_AExpr.
 
+    Transparent addVars. unfold addVars in Heqs12. inv Heqs12.
+
+    (* [BOTH] Finally eached AExpr / FMap. Step both of them. *)
     eapply eutt_clo_bind.
     {
-      (* eapply genAExpr_correct. *)
-      (* eassumption. *)
-      (* { *)
-      (*   eapply state_invariant_enter_scope_DSHCType; eauto; cycle 1. *)
+      eapply genAExpr_correct.
+      eassumption.
+      - eapply state_invariant_enter_scope_DSHCType with (s1 := s7); eauto.
+        + reflexivity.
+        + assert (~ in_Gamma σ s0 v) by solve_not_in_gamma.
 
-      (*   intros abs; eapply in_Gamma_Gamma_eq in abs; [| eapply incBlockNamed_Γ ; eauto]. *)
-      (*   eapply GAM; eauto. *)
-      (*   solve_lid_bound_between. *)
-      (*   solve_local_count. *)
+          Lemma not_in_gamma_cons :
+            forall σ s1 s2 id id' τ v,
+              Γ s2 ≡ (ID_Local id', τ) :: Γ s1 ->
+              ~ in_Gamma σ s1 id ->
+              id ≢ id' ->
+              ~ in_Gamma (v :: σ) s2 id.
+          Proof.
+            intros σ s1 s2 id id' τ v GAM NIN NEQ.
+            intros CONTRA.
+            inv CONTRA.
+            apply NIN.
+            rewrite GAM in *.
+            destruct n.
+            - cbn in *; inv H; inv H0.
+              contradiction.
+            - esplit; eauto.
+              eapply evalContext_typechecks_extend; eauto.
+          Qed.
 
-      (*   admit. admit. admit. admit. admit. *)
+          eapply not_in_gamma_cons.
+          assert (Γ s2 ≡ Γ s7) by solve_gamma.
+          rewrite <- H1.
+          assert (Heqs4' := Heqs4).
+          apply newLocalVar_Γ in Heqs4. eauto.
 
-    (* } *)
-      (* admit. *)
-      admit.
+          eapply not_in_Gamma_Gamma_eq. 2 : eauto. solve_gamma.
+
+          intros CONTRA; subst.
+          eapply lid_bound_between_newLocalVar in Heqs4.
+          eapply lid_bound_between_incLocal in Heqs11.
+          eapply state_bound_between_id_separate.
+          2 : eapply Heqs4.
+          2 : eapply Heqs11.
+          eapply incLocalNamed_count_gen_injective.
+          solve_local_count. reflexivity.
+        + solve_alist_in.
+        + admit.
+      - admit.
+        (* eapply Gamma_safe_Context_extend. *)
+      - (* no failure *)
+        admit.
     }
 
     admit.
@@ -664,7 +687,7 @@ Proof.
 
   (* eapply eutt_mon; [| apply GENC]. *)
 
-  specialize (GENC g ρ memV bid_from).
+  (* specialize (GENC g ρ memV bid_from). *)
   admit.
 Admitted.
 
