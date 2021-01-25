@@ -682,10 +682,41 @@ Proof.
             eapply state_invariant_same_Γ; eauto using lid_bound_between_incLocal.
             solve_not_in_gamma.
             eapply state_invariant_Γ. eauto. eauto. solve_gamma.
-      - (* eapply Gamma_safe_Context_extend. *)
-        (* eapply Gamma_safe_Context_extend. *)
-        (* eauto. *)
-        admit.
+      - eapply Gamma_safe_Context_extend with (s1 := s2) (s2 := s10).
+        4 : { cbn. assert (Γ s2 ≡ Γ s7) by solve_gamma. rewrite H0. reflexivity. }
+        2 : solve_local_count.
+        2 : solve_local_count.
+        2 : {
+          apply genAExpr_Γ in Heqs13. cbn in Heqs13.
+          eapply dropVars_Γ in Heqs14. 2 : eauto. rewrite Heqs14. auto.
+        }
+        2 : { intros. cbn in *. solve_id_neq. }
+
+        assert (Heqs4' := Heqs4).
+        eapply Gamma_safe_Context_extend with (s1 := s0) (s2 := s12).
+        auto.
+        solve_local_count. solve_local_count.
+        apply incBlockNamed_Γ in Heqs3.
+        apply newLocalVar_Γ in Heqs4.
+        rewrite Heqs4. rewrite Heqs3. reflexivity.
+        eapply dropVars_Γ in Heqs6.
+
+        2 : {
+          apply genAExpr_Γ in Heqs13. cbn in Heqs13. rewrite s2_ext in Heqs13.
+          eapply dropVars_Γ in Heqs14 ; eauto.
+        }
+        assert (Γ s11 ≡ Γ s12) by solve_gamma. rewrite <- H0.
+
+        apply genAExpr_Γ in Heqs13. cbn in Heqs13. rewrite s2_ext in Heqs13.
+        eapply dropVars_Γ in Heqs14 ; eauto.
+        rewrite <- Heqs13. rewrite Heqs6. reflexivity.
+
+        intros. eapply state_bound_between_separate.
+        eapply incLocalNamed_count_gen_injective.
+        2 : apply H0.
+        2 : reflexivity. Unshelve. 2 : exact s1.
+        eapply lid_bound_between_newLocalVar. 2 : eauto. cbn. reflexivity.
+
       - clear -NOFAIL'. unfold denoteIUnCType in NOFAIL'.
         apply no_failure_bind_prefix in NOFAIL'. eauto.
     }
