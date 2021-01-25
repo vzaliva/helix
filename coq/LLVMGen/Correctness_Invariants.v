@@ -582,92 +582,44 @@ Section SimulationRelations.
   Qed.
 
   Lemma no_llvm_ptr_aliasing_cons :
-    ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (v : uvalue) hv (l : local_env) (g : global_env) τ,
-      Γ s2 ≡ (ID_Local id, τ) :: Γ s1 ->
-      no_llvm_ptr_aliasing σ s1 l g ->
-      WF_IRState σ s1 →
-      WF_IRState (hv :: σ) s2 →
-      ¬ in_Gamma σ s1 id →
-      no_llvm_ptr_aliasing (hv :: σ) s2 (alist_add id v l) g.
+    forall s1 s2 l g x σ v,
+      no_llvm_ptr_aliasing (v :: σ) s1 l g ->
+      Γ s1 ≡ x :: Γ s2 ->
+      no_llvm_ptr_aliasing σ s2 l g.
   Proof.
-    intros σ s1 s2 id v hv l g τ GAM ALIAS WF WF2 NIN.
-    unfold no_llvm_ptr_aliasing in *.
-    intros id1 ptrv1 id2 ptrv2 n1 n2 τ1 τ2 v1 v2 NTH_σ1 NTH_σ2 NTH_Γ1 NTH_Γ2 IDNEQ INLG1 INLG2.
-    destruct n1, n2; cbn in *; rewrite GAM in *.
-    - inv NTH_Γ1; inv NTH_Γ2.
-      contradiction.
-    - inversion NTH_Γ1; inversion NTH_σ1.
-      subst.
-      cbn in *.
-      rewrite alist_find_add_eq in INLG1; inversion INLG1; subst.
-      destruct id2; cbn in *.
-      + intros CONTRA.
-        apply NIN.
+    intros s1 s2 l g x σ v ALIAS EQ.
+    red in ALIAS.
+    red.
+    intros id1 ptrv1 id2 ptrv2 n1 n2 τ τ' v1 v2 NTH_σ1 NTH_σ2 NTH_Γ1 NTH_Γ2 NEQ INLG1 INLG2.
 
-        pose proof NTH_σ2 as NTH'.
-        apply WF in NTH'.
-        destruct NTH'. rewrite H in NTH_Γ2.
-        inv NTH_Γ2.
-        cbn in H.
-        destruct v2; cbn in *.
-        econstructor; eauto.
-  Abort.
+    assert (nth_error (v :: σ) (S n1) ≡ Some v1) as NTH_σ1' by auto.
+    assert (nth_error (v :: σ) (S n2) ≡ Some v2) as NTH_σ2' by auto.
 
-  Lemma state_invariant_Γ_cons_double :
-    ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
-      (l : local_env) (g : global_env) (v : binary64) (τ : typ),
-      getWFType (ID_Local id) DSHCType ≡ τ ->
-      (ID_Local id, τ) :: Γ s1 ≡ Γ s2 ->
-      ~ in_Gamma σ s1 id →
-      state_invariant σ s1 memH (memV, (l, g)) →
-      state_invariant (DSHCTypeVal v :: σ) s2 memH (memV, (alist_add id (UVALUE_Double v) l, g)).
+    assert (nth_error (Γ s1) (S n1) ≡ Some (id1, τ)) as NTH_Γ1' by (rewrite EQ; auto).
+    assert (nth_error (Γ s1) (S n2) ≡ Some (id2, τ')) as NTH_Γ2' by (rewrite EQ; auto).
+
+    eauto.
+  Qed.
+
+  Lemma no_llvm_ptr_aliasing_cons2 :
+    forall s1 s2 l g x1 x2 σ hv1 hv2,
+      no_llvm_ptr_aliasing (hv1 :: hv2 :: σ) s1 l g ->
+      Γ s1 ≡ x1 :: x2 :: Γ s2 ->
+      no_llvm_ptr_aliasing σ s2 l g.
   Proof.
-    intros * TYP EQ NIN INV; inv INV.
-    assert (WF_IRState (DSHCTypeVal v :: σ) s2) as WF.
-    { red; rewrite <- EQ; eapply evalContext_typechecks_cons; eauto. }
-    constructor; auto.
-    - cbn; rewrite <- EQ.
-      intros * LUH LUV.
-      generalize LUV; intros INLG.
-      destruct n.
-      + cbn in *. inv LUH; inv INLG.
-        cbn.
-        apply alist_find_add_eq.
-      + cbn in *.
-        pose proof (mem_is_inv0 _ _ _ _ LUH LUV).
-        destruct x; eauto.
-        destruct v0; cbn in *; eauto.
-        * rewrite alist_find_neq; eauto.
-          intros CONTRA; subst.
-          apply NIN.
-          esplit; eauto.
-        * rewrite alist_find_neq; eauto.
-          intros CONTRA; subst.
-          apply NIN.
-          esplit; eauto.
-        * destruct H as [bkh [ptrll [t' [MLUP [TEQ [FITS [LUP GET]]]]]]].
-          exists bkh. exists ptrll. exists t'.
-          repeat split; auto.
-          rewrite alist_find_neq; eauto.
-          intros CONTRA; subst.
-          apply NIN.
-          esplit; eauto.
-    - red; rewrite <- EQ.
-      intros n1 n2 id0 τ τ' v1 v2 H H0 H1 H2.
-      (* Fiddly. *)
-      admit.
-    - (* Similarly fiddly *)
-      admit.
-    - apply no_llvm_ptr_aliasing_not_in_gamma; eauto.
-      red; rewrite <- EQ; auto.
-      intros id1 ptrv1 id2 ptrv2 n1 n2 τ τ' v1 v2 H H0 H1 H2 H3 H4 H5.
+    intros s1 s2 l g x1 x2 σ hv1 hv2 ALIAS EQ.
+    red in ALIAS.
+    red.
+    intros id1 ptrv1 id2 ptrv2 n1 n2 τ τ' v1 v2 NTH_σ1 NTH_σ2 NTH_Γ1 NTH_Γ2 NEQ INLG1 INLG2.
 
-      2: { intros INGAMMA.
-           destruct INGAMMA.
-           apply NIN.
-           rewrite <- EQ in H0.
-           econstructor; eauto. 
-  Abort.
+    assert (nth_error (hv1 :: hv2 :: σ) (S (S n1)) ≡ Some v1) as NTH_σ1' by auto.
+    assert (nth_error (hv1 :: hv2 :: σ) (S (S n2)) ≡ Some v2) as NTH_σ2' by auto.
+
+    assert (nth_error (Γ s1) (S (S n1)) ≡ Some (id1, τ)) as NTH_Γ1' by (rewrite EQ; auto).
+    assert (nth_error (Γ s1) (S (S n2)) ≡ Some (id2, τ')) as NTH_Γ2' by (rewrite EQ; auto).
+
+    eauto.
+  Qed.
 
   Lemma state_invariant_memory_invariant :
     forall σ s mH mV l g,
