@@ -1111,9 +1111,7 @@ Proof.
         vred.
         2: {
           cbn.
-          (* Is bid_in b0? I think it might not be... *)
-          (* Probably know b0 <> jump_label by states, though... *)
-          assert (b0 ≢ jump_label) as NEQ by admit.
+          assert (b0 ≢ jump_label) as NEQ by solve_id_neq.
           rewrite find_block_ineq; eauto.
         }
 

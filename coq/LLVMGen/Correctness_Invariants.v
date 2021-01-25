@@ -1,5 +1,6 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.LidBound.
+Require Import Helix.LLVMGen.BidBound.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.VariableBinding.
 Require Import Helix.LLVMGen.StateCounters.
@@ -2060,6 +2061,19 @@ Proof.
   eapply incLocal_id_neq; eauto.
 Qed.
 
+Lemma incBlockNamed_id_neq :
+  forall s1 s2 s3 s4 id1 id2 n1 n2,
+    incBlockNamed n1 s1 ≡ inr (s2, id1) ->
+    incBlockNamed n2 s3 ≡ inr (s4, id2) ->
+    is_correct_prefix n1 ->
+    is_correct_prefix n2 ->
+    block_count s1 ≢ block_count s3 ->
+    id1 ≢ id2.
+Proof.
+  intros s1 s2 s3 s4 id1 id2 n1 n2 GEN1 GEN2 PRE1 PRE2 COUNT.
+  eapply incBlockNamed_count_gen_injective; eauto.
+Qed.
+
 Lemma in_gamma_not_in_neq :
   forall σ s id r,
     in_Gamma σ s id ->
@@ -2078,6 +2092,7 @@ Qed.
 
 Ltac solve_id_neq :=
   first [ solve [eapply incLocal_id_neq; eauto; solve_local_count]
+        | solve [eapply incBlockNamed_id_neq; eauto; solve_block_count]
         | solve [eapply in_gamma_not_in_neq; [solve_in_gamma | solve_not_in_gamma]]
         | solve [eapply state_bound_between_separate; [eapply incLocalNamed_count_gen_injective
                                                       | solve_lid_bound_between
