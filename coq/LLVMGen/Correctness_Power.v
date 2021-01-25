@@ -495,17 +495,8 @@ Proof.
 
      Need to get this from the memory_invariant *)
 
-
   (* TODO: move this *)
   Set Nested Proofs Allowed.
-  Lemma typ_to_dtyp_P :
-    forall t s,
-      typ_to_dtyp s (TYPE_Pointer t) ≡ DTYPE_Pointer.
-  Proof.
-    intros t s.
-    apply typ_to_dtyp_equation.
-  Qed.
-
   Ltac typ_to_dtyp_simplify :=
     repeat
       (try rewrite typ_to_dtyp_I in *;
@@ -561,28 +552,6 @@ Proof.
     }
 
     (* TODO: move all of this *)
-    Lemma genNExpr_post_memoryV :
-      forall e σ s1 s2 mh mv ρ g mh' t mv' ρ' g',
-        genNExpr_post e σ s1 s2 mh (mk_config_cfg mv ρ g) (mh', t) (mv', (ρ', (g', ()))) ->
-        mv ≡ mv'.
-    Proof.
-      intros e σ s1 s2 mh mv ρ g mh' t mv' ρ' g' H.
-      destruct H.
-      unfold almost_pure in is_almost_pure.
-      cbn in is_almost_pure.
-      apply is_almost_pure.
-    Qed.
-
-    Lemma genNExpr_memoryV :
-      forall e σ s1 s2 s3 mh mv ρ g mh' t mv' ρ' g',
-        (lift_Rel_cfg (state_invariant σ s3) ⩕ genNExpr_post e σ s1 s2 mh (mk_config_cfg mv ρ g)) (mh', t) (mv', (ρ', (g', ()))) ->
-        mv ≡ mv'.
-    Proof.
-      intros e σ s1 s2 s3 mh mv ρ g mh' t mv' ρ' g' H.
-      destruct H.
-      eapply genNExpr_post_memoryV; eauto.
-    Qed.
-
     Ltac get_mem_eqs :=
       cbn in *;
       repeat match goal with
@@ -917,25 +886,6 @@ Proof.
               assert (~ in_Gamma σ s1 src_val_id) by solve_not_in_gamma.
               assert (Γ s1 ≡ Γ i19) by solve_gamma.
 
-              Lemma not_in_gamma_cons :
-                forall σ s1 s2 id id' τ v,
-                  Γ s2 ≡ (ID_Local id', τ) :: Γ s1 ->
-                  ~ in_Gamma σ s1 id ->
-                  id ≢ id' ->
-                  ~ in_Gamma (v :: σ) s2 id.
-              Proof.
-                intros σ s1 s2 id id' τ v GAM NIN NEQ.
-                intros CONTRA.
-                inv CONTRA.
-                apply NIN.
-                rewrite GAM in *.
-                destruct n.
-                - cbn in *; inv H; inv H0.
-                  contradiction.
-                - esplit; eauto.
-                  eapply evalContext_typechecks_extend; eauto.
-              Qed.
-
               eapply not_in_gamma_cons.
               cbn. reflexivity.
               solve_not_in_gamma.
@@ -1196,7 +1146,74 @@ Proof.
 
                newLocalVar_Γ
              *)
-            admit. (* TODO *)
+
+
+            (* When is the state invariant preserved by a write?
+
+               LINV_SINV : state_invariant σ s2 mH_Aexpr (mV_Aexpr, (l_loop, g_Aexpr))
+               WRITE : write mV_Aexpr dst_addr (DVALUE_Double t_Aexpr) ≡ inr mV'
+
+               Goal is:
+
+                 state_invariant σ s2 mH_Aexpr (mV', (l_Aexpr, g_Aexpr))
+
+              Two things are different here.
+
+              1) mV' instead of mV_Aexpr
+              2) l_Aexpr instead of l_loop
+
+              The only parts affected by this in the state_invariant are...
+
+              - memory_invariant
+              - no_llvm_ptr_aliasing
+
+              *CAUTION:* One scary thing... mH_Aexpr is the same?
+               Shouldn't it be updated after the write? Looks like
+               it's the same by POSTAEXPR... Should be fiiiine.
+               
+             *)
+
+            pose proof LINV_SINV. destruct H.
+            split; auto.
+            (* TODO: can I pull these out into lemmas? *)
+            - admit.
+            - do 2 red.
+              intros id1 ptrv1 id2 ptrv2 n1 n0 τ τ' v1 v2 NTH_σ1 NTH_σ2 NTH_Γ1 NTH_Γ2 NEQ INLG1 INLG2.
+              do 2 red in st_no_llvm_ptr_aliasing.
+              destruct id1, id2.
+              + (* Global + global *)
+                eauto.
+              + (* Global + local *)
+                cbn in INLG1, INLG2.
+
+                (* There's a case where the local lookup is in
+                   l_Aexpr, and one where it's in l_loop...  In the
+                   l_loop case it follows simply from
+                   st_no_llvm_ptr_aliasing...
+
+                   However, in the other case the id must be
+                   dst_val_id... And if we look it up, it's actually
+                   just a double, so we should get a contradiction in
+                   INLG.
+                 *)
+                pose proof alist_find_eq_dec id2 (alist_add dst_val_id (UVALUE_Double b2) l_loop) l_Aexpr as [IN_loop | NIN_loop].
+                rewrite IN_loop in INLG2.
+                * (* id2 can't be dst_val_id because of contradiction *)
+                  admit.
+                * apply AEXPR_LSM in NIN_loop.
+                  (* id2 *must* be dst_val_id technically... Not sure
+                     I know the prefix is the same, though... *)
+                  assert (id2 ≡ dst_val_id).
+                pose proof AEXPR_LSM.
+                unfold local_scope_modif in H.
+                eauto.
+                admit.
+
+                admit.
+              + (* Local + global *)
+                admit.
+              + (* Local + local *)
+                admit.
           }
 
           (* TODO: This is the thing we need *)
@@ -1222,54 +1239,6 @@ Proof.
           split.
           { eapply write_correct in WRITE.
             destruct WRITE as [ALLOCATED WRITTEN].
-
-            Lemma allocated_can_read :
-              forall a m τ,
-                allocated a m ->
-                exists v, read m a τ ≡ inr v.
-            Proof.
-              intros a [[cm lm] fs] τ ALLOC.
-              apply allocated_get_logical_block in ALLOC.
-              destruct ALLOC as [b GET].
-              unfold read.
-              rewrite GET.
-              destruct b.
-              cbn.
-              exists (read_in_mem_block bytes (snd a) τ). reflexivity.
-            Qed.
-
-            Lemma no_overlap_dtyp_different_blocks :
-              forall a b τ τ',
-                fst a ≢ fst b ->
-                no_overlap_dtyp a τ b τ'.
-            Proof.
-              intros a b τ τ' H.
-              unfold no_overlap_dtyp, no_overlap.
-              auto.
-            Qed.
-
-            (* ext_memory only talks in terms of reads... Does not
-            necessarily preserved what's allocated, because you might
-            not be able to read from an allocated block *)
-            Lemma ext_memory_trans :
-              forall m1 m2 m3 τ v1 v2 dst,
-                ext_memory m1 dst τ v1 m2 ->
-                ext_memory m2 dst τ v2 m3 ->
-                ext_memory m1 dst τ v2 m3.
-            Proof.
-              intros m1 m2 m3 τ v1 v2 dst [NEW1 OLD1] [NEW2 OLD2].
-              split; auto.
-
-              intros a' τ' ALLOC DISJOINT.
-
-
-              rewrite <- OLD1; eauto.
-
-              pose proof (allocated_can_read _ _ τ' ALLOC) as [v READ].
-              rewrite <- OLD1 in READ; eauto.
-              apply can_read_allocated in READ.
-              rewrite <- OLD2; eauto.
-            Qed.
 
             eapply ext_memory_trans; eauto.
             eapply WRITTEN. constructor.
@@ -1324,34 +1293,6 @@ Proof.
         - destruct POSTAEXPR. cbn in extends.
           cbn in Mono_IRState.
           cbn in Gamma_cst.
-
-          Lemma local_scope_modif_sub':
-            ∀ (s1 s2 : IRState) (l l' : local_env) (r : local_id) (v : uvalue),
-              lid_bound_between s1 s2 r → local_scope_modif s1 s2 l (alist_add r v l') → local_scope_modif s1 s2 l l'.
-          Proof.
-            intros s1 s2 l l' r v BOUND MODIF.
-
-            unfold local_scope_modif in *.
-            intros id H.
-            pose proof (rel_dec_p id r) as [EQ | NEQ].
-            - subst; auto.
-            - specialize (MODIF id).
-              rewrite alist_find_neq in MODIF; auto.
-          Qed.
-
-          Lemma local_scope_modif_sub'_l :
-            ∀ (s1 s2 : IRState) (l l' : local_env) (r : local_id) (v : uvalue),
-              lid_bound_between s1 s2 r → local_scope_modif s1 s2 (alist_add r v l) l' → local_scope_modif s1 s2 l l'.
-          Proof.
-            intros s1 s2 l l' r v BOUND MODIF.
-
-            unfold local_scope_modif in *.
-            intros id H.
-            pose proof (rel_dec_p id r) as [EQ | NEQ].
-            - subst; auto.
-            - specialize (MODIF id).
-              rewrite alist_find_neq in MODIF; auto.
-          Qed.            
 
           eapply local_scope_modif_sub'_l.
           2: solve_local_scope_modif.
