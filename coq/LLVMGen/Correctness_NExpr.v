@@ -665,4 +665,26 @@ Section NExpr.
       inversion COMPILE.
   Qed.
 
+  Lemma genNExpr_post_memoryV :
+    forall e σ s1 s2 mh mv ρ g mh' t mv' ρ' g',
+      genNExpr_post e σ s1 s2 mh (mk_config_cfg mv ρ g) (mh', t) (mv', (ρ', (g', ()))) ->
+      mv ≡ mv'.
+  Proof.
+    intros e σ s1 s2 mh mv ρ g mh' t mv' ρ' g' H.
+    destruct H.
+    unfold almost_pure in is_almost_pure0.
+    cbn in is_almost_pure0.
+    apply is_almost_pure0.
+  Qed.
+
+  Lemma genNExpr_memoryV :
+    forall e σ s1 s2 s3 mh mv ρ g mh' t mv' ρ' g',
+      (lift_Rel_cfg (state_invariant σ s3) ⩕ genNExpr_post e σ s1 s2 mh (mk_config_cfg mv ρ g)) (mh', t) (mv', (ρ', (g', ()))) ->
+      mv ≡ mv'.
+  Proof.
+    intros e σ s1 s2 s3 mh mv ρ g mh' t mv' ρ' g' H.
+    destruct H.
+    eapply genNExpr_post_memoryV; eauto.
+  Qed.
+
 End NExpr.

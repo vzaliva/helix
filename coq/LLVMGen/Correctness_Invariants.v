@@ -1,5 +1,6 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.LidBound.
+Require Import Helix.LLVMGen.BidBound.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.VariableBinding.
 Require Import Helix.LLVMGen.StateCounters.
@@ -771,6 +772,34 @@ Section SimulationRelations.
     - rewrite alist_find_neq in NEQ; auto.
   Qed.
 
+  Lemma local_scope_modif_sub':
+    ∀ (s1 s2 : IRState) (l l' : local_env) (r : local_id) (v : uvalue),
+      lid_bound_between s1 s2 r → local_scope_modif s1 s2 l (alist_add r v l') → local_scope_modif s1 s2 l l'.
+  Proof.
+    intros s1 s2 l l' r v BOUND MODIF.
+
+    unfold local_scope_modif in *.
+    intros id H.
+    pose proof (rel_dec_p id r) as [EQ | NEQ].
+    - subst; auto.
+    - specialize (MODIF id).
+      rewrite alist_find_neq in MODIF; auto.
+  Qed.
+
+  Lemma local_scope_modif_sub'_l :
+    ∀ (s1 s2 : IRState) (l l' : local_env) (r : local_id) (v : uvalue),
+      lid_bound_between s1 s2 r → local_scope_modif s1 s2 (alist_add r v l) l' → local_scope_modif s1 s2 l l'.
+  Proof.
+    intros s1 s2 l l' r v BOUND MODIF.
+
+    unfold local_scope_modif in *.
+    intros id H.
+    pose proof (rel_dec_p id r) as [EQ | NEQ].
+    - subst; auto.
+    - specialize (MODIF id).
+      rewrite alist_find_neq in MODIF; auto.
+  Qed.
+
   (* If all changes made are in the empty interval, then no change has been made *)
   Lemma local_scope_modif_empty_scope:
     forall (l1 l2 : local_env) id s,
@@ -854,6 +883,25 @@ Section SimulationRelations.
     intros id H.
     assert (id ≢ r) by (intros CONTRA; subst; contradiction).
     setoid_rewrite maps_add_neq; eauto.
+  Qed.
+
+  Lemma not_in_gamma_cons :
+    forall σ s1 s2 id id' τ v,
+      Γ s2 ≡ (ID_Local id', τ) :: Γ s1 ->
+      ~ in_Gamma σ s1 id ->
+      id ≢ id' ->
+      ~ in_Gamma (v :: σ) s2 id.
+  Proof.
+    intros σ s1 s2 id id' τ v GAM NIN NEQ.
+    intros CONTRA.
+    inv CONTRA.
+    apply NIN.
+    rewrite GAM in *.
+    destruct n.
+    - cbn in *; inv H; inv H0.
+      contradiction.
+    - esplit; eauto.
+      eapply evalContext_typechecks_extend; eauto.
   Qed.
 
   (* If I know that an interval leaves Gamma safe, I can shrink it on either side and it still lives Gamma safe *)
@@ -2060,6 +2108,19 @@ Proof.
   eapply incLocal_id_neq; eauto.
 Qed.
 
+Lemma incBlockNamed_id_neq :
+  forall s1 s2 s3 s4 id1 id2 n1 n2,
+    incBlockNamed n1 s1 ≡ inr (s2, id1) ->
+    incBlockNamed n2 s3 ≡ inr (s4, id2) ->
+    is_correct_prefix n1 ->
+    is_correct_prefix n2 ->
+    block_count s1 ≢ block_count s3 ->
+    id1 ≢ id2.
+Proof.
+  intros s1 s2 s3 s4 id1 id2 n1 n2 GEN1 GEN2 PRE1 PRE2 COUNT.
+  eapply incBlockNamed_count_gen_injective; eauto.
+Qed.
+
 Lemma in_gamma_not_in_neq :
   forall σ s id r,
     in_Gamma σ s id ->
@@ -2078,6 +2139,7 @@ Qed.
 
 Ltac solve_id_neq :=
   first [ solve [eapply incLocal_id_neq; eauto; solve_local_count]
+        | solve [eapply incBlockNamed_id_neq; eauto; solve_block_count]
         | solve [eapply in_gamma_not_in_neq; [solve_in_gamma | solve_not_in_gamma]]
         | solve [eapply state_bound_between_separate; [eapply incLocalNamed_count_gen_injective
                                                       | solve_lid_bound_between
