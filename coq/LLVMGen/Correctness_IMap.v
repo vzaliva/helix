@@ -346,6 +346,7 @@ Proof.
   destruct MINV_XOFF as (bkh_xoff & ptrll_xoff & τ_xoff & MLUP_xoff & TEQ_xoff & FITS_xoff & INLG_xoff & GETARRAYCELL_xoff).
   (* Duplicating, as we need to do the same inside the loop body *)
   assert (H' := H). assert (H0' := H0).
+  assert (H0'' := H0). (* Another for py !*)
   rewrite MLUP_xoff in H; symmetry in H; inv H.
   rewrite MLUP_yoff in H0; symmetry in H0; inv H0.
 
@@ -450,8 +451,10 @@ Proof.
                | Some (mH, b) =>
                  let '(mV, (p, g)) := stV in
                  state_invariant σ s12 mH stV /\
-                 mH ≡ memH /\
-                  exists v, ext_memory mV_init ptrll_yoff DTYPE_Double (UVALUE_Double v) mV
+                 mH ≡ memH
+                 (* exists v, ext_memory mV_init ptrll_yoff DTYPE_Double (UVALUE_Double v) mV /\ *)
+                      (* Accessing py pointer doesn't go out of bounds *) /\
+                (DynamicValues.Int64.intval (repr (Z.of_nat n)) < Z.of_N sz0)%Z
                end)).
   (* Precondition and postcondition *)
   set (P := (fun (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
@@ -460,7 +463,9 @@ Proof.
                | Some (mH,b) => state_invariant σ s12 mH stV /\
                  let '(mV, (p, g)) := stV in
                  mH ≡ memH /\
-                  exists v, ext_memory mV_init ptrll_yoff DTYPE_Double (UVALUE_Double v) mV
+
+                (DynamicValues.Int64.intval (repr (Z.of_nat n)) < Z.of_N sz0)%Z
+                  (* exists v, ext_memory mV_init ptrll_yoff DTYPE_Double (UVALUE_Double v) mV *)
                end)).
 
   specialize (GENC I P P (Some (memH, bkh_yoff))).
@@ -468,7 +473,7 @@ Proof.
   (* Loop body match *)
   forward GENC; [clear GENC |].
   {
-    subst I P; intros ? ? ? [[? []]|] * (INV & LOOPVAR & BOUNDk & RET); [| inv INV].
+    subst I P; intros ? ? ? [[? ?]|] * (INV & LOOPVAR & BOUNDk & RET); [| inv INV].
 
     (* [HELIX] Clean-up (match breaks using no failure) *)
     assert (EQk: MInt64asNT.from_nat k ≡ inr (Int64.repr (Z.of_nat k))).
@@ -521,9 +526,8 @@ Proof.
 
     (* Get mem information from PRE condition here (global and local state has changed). *)
     (* Needed for the following GEP and Load instructions *)
-    destruct INV as (INV & -> & (py_val & EXT_MEM)).
+    destruct INV as (INV & -> & BOUNDS).
 
-    destruct EXT_MEM.
     pose proof state_invariant_memory_invariant INV as MINV_YOFF.
     pose proof state_invariant_memory_invariant INV as MINV_XOFF.
     unfold memory_invariant in MINV_YOFF.
@@ -563,6 +567,18 @@ Proof.
       eapply state_bound_between_id_separate.
       2 : eapply Heqs4.
       2 : eapply Heqs9.
+      eapply incLocalNamed_count_gen_injective.
+      solve_local_count. reflexivity.
+    }
+
+    assert (UNIQ2 : loopvarid ≢ py). {
+      intros CONTRA; subst.
+
+      eapply lid_bound_between_newLocalVar in Heqs4.
+      eapply lid_bound_between_incLocal in Heqs10.
+      eapply state_bound_between_id_separate.
+      2 : eapply Heqs4.
+      2 : eapply Heqs10.
       eapply incLocalNamed_count_gen_injective.
       solve_local_count. reflexivity.
     }
@@ -625,7 +641,6 @@ Proof.
 
     Transparent addVars. unfold addVars in Heqs12. inv Heqs12.
 
-
     Lemma not_in_gamma_cons :
       forall σ s1 s2 id id' τ v,
         Γ s2 ≡ (ID_Local id', τ) :: Γ s1 ->
@@ -645,15 +660,15 @@ Proof.
         eapply evalContext_typechecks_extend; eauto.
     Qed.
 
-    assert (s2_ext : Γ s7 ≡ (ID_Local loopvarid, IntType) :: Γ s1). {
-      assert (H1 :Γ s2 ≡ Γ s7) by solve_gamma.
-      rewrite <- H1.
+    assert (s2_ext : Γ s5 ≡ (ID_Local loopvarid, IntType) :: Γ s1). {
+      assert (H5 :Γ s2 ≡ Γ s5) by solve_gamma.
+      rewrite <- H5.
       apply newLocalVar_Γ in Heqs4. eauto.
     }
 
     assert (neg0 : ~ in_Gamma σ s0 v) by solve_not_in_gamma.
 
-    assert (neg1 : ¬ in_Gamma (DSHnatVal (Int64.repr (Z.of_nat k)) :: σ) s7 v). {
+    assert (neg1 : ¬ in_Gamma (DSHnatVal (Int64.repr (Z.of_nat k)) :: σ) s5 v). {
         eapply not_in_gamma_cons.
         assert (Heqs4' := Heqs4).
         eauto.
@@ -661,13 +676,16 @@ Proof.
         auto.
     }
 
+
+    assert (E : Γ s5 ≡ Γ s7) by solve_gamma.
+    rewrite E in *.
     (* [BOTH] Finally eached AExpr / FMap. Step both of them. *)
     eapply eutt_clo_bind_returns.
     {
       eapply genAExpr_correct.
       eassumption.
-      - eapply state_invariant_enter_scope_DSHCType with (s1 := s7); eauto.
-        + reflexivity.
+      - eapply state_invariant_enter_scope_DSHCType with (s1 := s5); eauto.
+        + rewrite E. reflexivity.
         + solve_alist_in.
         + (* use LOOPVAR *)
           eapply state_invariant_Γ with (s1 := s2).
@@ -685,7 +703,7 @@ Proof.
             solve_not_in_gamma.
             eapply state_invariant_Γ. eauto. eauto. solve_gamma.
       - eapply Gamma_safe_Context_extend with (s1 := s2) (s2 := s10).
-        4 : { cbn. assert (Γ s2 ≡ Γ s7) by solve_gamma. rewrite H0. reflexivity. }
+        4 : { cbn. assert (GAM_E: Γ s2 ≡ Γ s7) by solve_gamma. rewrite GAM_E. reflexivity. }
         2 : solve_local_count.
         2 : solve_local_count.
         2 : {
@@ -707,7 +725,8 @@ Proof.
           apply genAExpr_Γ in Heqs13. cbn in Heqs13. rewrite s2_ext in Heqs13.
           eapply dropVars_Γ in Heqs14 ; eauto.
         }
-        assert (Γ s11 ≡ Γ s12) by solve_gamma. rewrite <- H0.
+        assert (GAM_E : Γ s11 ≡ Γ s12) by solve_gamma. rewrite <- GAM_E.
+
 
         apply genAExpr_Γ in Heqs13. cbn in Heqs13. rewrite s2_ext in Heqs13.
         eapply dropVars_Γ in Heqs14 ; eauto.
@@ -743,42 +762,63 @@ Proof.
 
     (* [Vellvm] GEP and Store the result so we can re-establish loop invariant. *)
 
+    pose proof state_invariant_memory_invariant PRE_INV as MINV_YOFF.
+    unfold memory_invariant in MINV_YOFF.
+    rewrite Gamma_cst in MINV_YOFF.
+    rewrite s2_ext in MINV_YOFF.
+
+    specialize (MINV_YOFF (S (S n1))).
+    cbn in MINV_YOFF.
+
+    pose proof LUn0.
+    assert (Γ s1 ≡ Γ s12) by solve_gamma.
+    rewrite H1 in MINV_YOFF.
+
+    specialize (MINV_YOFF _ _ _ Heqo0 LUn0).
+    cbn in MINV_YOFF.
+
+    destruct MINV_YOFF as (bkh_yoff_l' & ptrll_yoff_l' & τ_yoff_l' & MLUP_yoff_l' &
+                           TEQ_yoff_l' & FITS_yoff_l' & INLG_yoff_l' & GETARRAYCELL_yoff_l').
+
+    rewrite MLUP_yoff in H0'' ; symmetry in H0''; inv H0''.
+
+    inv TEQ_yoff_l'.
+
     (* 1. GEP *)
     set (y_size := Z.to_N (Int64.intval yp_typ_)).
     match goal with
     | [|- context[OP_GetElementPtr (DTYPE_Array y_size _) (_, ?ptr')]] =>
-        edestruct denote_instr_gep_array with
+        edestruct denote_instr_gep_array_no_read with
           (ρ := li') (g := g0) (m := mV) (i := py) (τ := DTYPE_Double)
-            (size := y_size) (a := ptrll_yoff_l) (ptr := ptr') as (? & ? & ?)
+            (size := y_size) (a := ptrll_yoff_l') (ptr := ptr') as (? & ? & ?)
     end; cycle 3.
 
     (* rewrite & step *)
     vred.
-    rewrite H1.
+    rewrite H3.
     vred.
 
     3 : {
         erewrite denote_exp_LR with (id := loopvarid).
-        2 : { cbn.
-        erewrite local_scope_modif_out.
-        4: eapply extends.
-        2: cbn; solve_local_count.
-        rewrite alist_find_neq.
-        rewrite alist_find_neq. eauto.
-        auto. eauto.
-        Unshelve. 5 : exact s0.
-        get_local_count_hyps.
-        inv Heqs4. cbn in Heqs. lia.
+        2 : {
+          cbn.
+          erewrite local_scope_modif_out.
+          4: eapply extends.
+          2: cbn; solve_local_count.
+          rewrite alist_find_neq.
+          rewrite alist_find_neq. eauto.
+          auto. eauto.
+          Unshelve. 4 : exact s0.
+          get_local_count_hyps.
+          inv Heqs4. cbn in Heqs. lia.
 
-        eapply lid_bound_between_newLocalVar in Heqs4.
-        eapply lid_bound_between_shrink. eauto.
-        solve_local_count. solve_local_count. reflexivity.
-        eauto.
-        (* ? *)
-        exact (UVALUE_Double b1).
+          eapply lid_bound_between_newLocalVar in Heqs4.
+          eapply lid_bound_between_shrink. eauto.
+          solve_local_count. solve_local_count. reflexivity.
+          eauto.
         }
         unfold uvalue_of_nat. reflexivity.
-      }
+    }
 
     2 : {
       destruct y;
@@ -786,41 +826,40 @@ Proof.
       - rewrite denote_exp_GR. 2 : eauto.
         cbn. reflexivity.
       - rewrite denote_exp_LR.
-        2 : {
-          cbn.
-          erewrite local_scope_modif_out.
-          4 : eapply extends. (* "extends" is not enough. the lid isn't "bound" here? *)
-
-          2: cbn; solve_local_count.
-          rewrite alist_find_neq.
-          rewrite alist_find_neq. eauto.
-          admit. admit. (* UNIQUENESS OF YID ? *)
-          admit. admit.
-        }
-        reflexivity.
+        2 : eauto. reflexivity.
     }
     2 : {
-
-      typ_to_dtyp_simplify; eauto.
-      assert (GET := GETARRAYCELL_yoff_l).
-
-      assert (KNat : MInt64asNT.to_nat (Int64.repr (Z.of_nat k )) ≡ k). admit.
-      specialize (GET (Int64.repr (Z.of_nat k))).
-      rewrite KNat in GET. eapply GET. eauto.
-      (* ?? *) admit.
+      typ_to_dtyp_simplify.
+      subst y_size.
+      erewrite <- from_N_intval; eauto.
     }
-    clear H1.
 
     (* 2. Store  *)
+    edestruct write_succeeds with (m1 := mV) (v := DVALUE_Double t_Aexpr) (a := x1).
+    apply DVALUE_Double_typ.
+    eapply dtyp_fits_array_elem. typ_to_dtyp_simplify. apply FITS_yoff_l'.
+    pose proof (from_N_intval _ EQsz0) as EQ.
+    rewrite EQ. eauto.
+    clear -BOUNDS BOUNDk.
+    admit. (* arithm *)
 
-    edestruct (@read_write_succeeds mV _ _ _ (DVALUE_Double t_Aexpr) H0) as [mV''' WRITE']; [constructor|].
     vred.
     rewrite denote_instr_store.
     2 : {
       eapply exp_correct.
       solve_local_scope_preserved.
-      admit.
-      (* solve_gamma_preserved.  *)
+      cbn.
+      eapply Gamma_preserved_add_not_in_Gamma.
+      solve_gamma_preserved.
+      eapply not_in_gamma_cons. cbn. reflexivity.
+      2 : solve_id_neq.
+
+      eapply not_in_gamma_cons. eauto.
+      eapply not_in_Gamma_Gamma_eq.
+      2 : {
+        assert (neg2 : ~ in_Gamma σ s0 py) by solve_not_in_gamma.
+        eauto.
+      } solve_gamma. eauto.
     }
     3 : { cbn. reflexivity. }
     2: {
@@ -829,7 +868,7 @@ Proof.
       cbn.
       solve_alist_in.
     }
-    2 : apply WRITE'.
+    2 : eauto.
 
     vred.
     rewrite denote_term_br_1.
@@ -846,17 +885,26 @@ Proof.
     }
 
     (* Re-establish INV in post condition *)
+    (* TODO 1. Retrieve more information out of [li'].
+            2. Re-establishing the index bounds condition seems odd.
+                Is there another way to state the invariant?
+                (sz0 is independent of n, which is perhaps the weird part..)
+     *)
     apply eqit_Ret.
     split; [|split; [|split]].
     - erewrite local_scope_modif_out.
-      eauto. admit. admit. admit.
+      eauto.
+      2 : {
+        apply lid_bound_between_newLocalVar in Heqs4.
+        2 : reflexivity. eauto.
+      }
+      solve_local_count.
+      solve_local_scope_modif.
+      admit.
     - exists b0. reflexivity.
-    - split.
-      + admit.
-      + split; eauto.
-        exists py_val. admit. (* ext mem*)
+    - split; [| split ]; eauto.
+      admit.
     - admit.
-      (* solve_local_scope_modif. *)
   }
 
 
@@ -904,12 +952,14 @@ Proof.
 
   eapply GENC.
   {
-    subst P I.
+    subst P I. clear GENC.
+    cbn. split; [|split]; eauto.
+    admit.
     admit.
   }
 
   intros [[]|]; intros (? & ? & ? & []) (? & ? & ?); subst P I; try_abs;
-  cbn in H0; destruct H0 as (? & <- & (? & ?));
+  cbn in H0; destruct H0 as (? & <- & ?).
     rewrite interp_helix_MemSet.
   2 : { destruct H; inv H. } (* absurd *)
 
