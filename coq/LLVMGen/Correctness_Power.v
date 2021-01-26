@@ -1378,46 +1378,6 @@ Proof.
             eapply st_id_allocated in Q_POST.
             eauto.
           }
-
-          pose proof (mem_is_inv Q_POST) as MINV_POST.
-          pose proof (st_no_dshptr_aliasing Q_POST) as NO_ALIAS_DSHPTR.
-          unfold memory_invariant in *.
-          intros n v τ x NTH_σ NTH_Γ.
-
-          specialize (MINV_POST n v τ x NTH_σ NTH_Γ).
-          destruct v; eauto.
-
-          destruct MINV_POST as [bkh [pll [τ' [MLUP_POST [TEQ [FITS [INLG LUP_POST]]]]]]].
-          destruct (Nat.eq_dec a dst_addr_h) as [EQ | NEQ]; subst.
-          - pose proof (NO_ALIAS_DSHPTR _ _ _ _ _ NTH_σ Heqo0); subst.
-
-            (* want to know that Γ s1 = Γ s2 *)
-            (* rewrite LUn0 in NTH_Γ. *)
-            exists mb_post. exists ptrll_yoff. exists τ'.
-
-            rewrite <- Γ_S1S2 in NTH_Γ.
-
-            (* 
-            I know n = n3, which means...
-
-            LUn0 : nth_error (Γ s1) n3 ≡ Some (@id, (⋆) (TYPE_Array sz0 TYPE_Double))
-            *)
-            rewrite LUn0 in NTH_Γ; inv NTH_Γ.
-            cbn in INLG, INLG_yoff.
-            (* TODO: I need to know that g_yoff and g_post agree... They should be the same. *)
-            assert (g_yoff ≡ g_post) by admit; subst.
-            rewrite INLG_yoff in INLG; inv INLG.
-
-            repeat split; eauto.
-            apply memory_lookup_memory_set_eq.
-
-            (* In the post condition Q I'm going to need to know something about
-            mb_block and the corresponding LLVM pointer... *)
-            intros i v H.
-            admit.
-          - exists bkh. exists pll. exists τ'.
-            repeat split; eauto.
-            erewrite memory_lookup_memory_set_neq; eauto.
         }
 
         split.
@@ -1611,10 +1571,10 @@ Proof.
 
             (* Now, I want to say that if fst ptr ≡ fst dst_addr / fst ptrll that n0 = n *)
             epose proof (no_llvm_ptr_aliasing_same_block st_no_llvm_ptr_aliasing NTH_Γ NTH_σ NTH_Γ0 NTH_σ0 INLG FIND) as BLOCKID.
-              
-            fst dst_addr
-        Qed.
+        Abort.
         eauto.
+        admit.
+        admit.
       }
     }
     { (* Local case for yoff *)
