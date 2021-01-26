@@ -298,6 +298,35 @@ Section SimulationRelations.
                        get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v))
         end.
 
+  Definition memory_invariant_relaxed (σ : evalContext) (s : IRState) (memH : memoryH) (configV : config_cfg) (ptr : nat) : Prop :=
+    ∀ (n : nat) (v : DSHVal) (τ : typ) (x : ident),
+      let '(mem_llvm, (ρ, g)) := configV in
+      nth_error σ n ≡ Some v
+      → nth_error (Γ s) n ≡ Some (x, τ)
+        → match v with
+          | DSHnatVal v0 => in_local_or_global_scalar ρ g mem_llvm x (dvalue_of_int v0) τ
+          | DSHCTypeVal v0 => in_local_or_global_scalar ρ g mem_llvm x (dvalue_of_bin v0) τ
+          | DSHPtrVal ptr_helix _ =>
+              ptr ≢ ptr_helix ->
+              ∃ (bk_helix : mem_block) (ptr_llvm : addr) (τ' : typ),
+                memory_lookup memH ptr_helix ≡ Some bk_helix
+                ∧ τ ≡ TYPE_Pointer τ'
+                  ∧ dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp [] τ')
+                    ∧ in_local_or_global_addr ρ g x ptr_llvm
+                      ∧ (∀ (i : Int64.int) (v0 : binary64),
+                          mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v0
+                          → get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0))
+          end.
+
+  Definition memory_invariant_partial_write (configV : config_cfg) (index : nat) (ptr_llvm : addr) (bk_helix : mem_block) (x : ident) sz : Prop :=
+      let '(mem_llvm, (ρ, g)) := configV in
+          dtyp_fits mem_llvm ptr_llvm (DTYPE_Array sz DTYPE_Double)
+              ∧ in_local_or_global_addr ρ g x ptr_llvm
+              ∧ (∀ (i : Int64.int) (v0 : binary64),
+                  (MInt64asNT.to_nat i) < index ->
+                  mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v0
+                  → get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0)).
+
   (* Lookups in [genv] are fully determined by lookups in [Γ] and [σ] *)
   Lemma memory_invariant_GLU : forall σ s v id memH memV t l g n,
       memory_invariant σ s memH (memV, (l, g)) ->
@@ -399,6 +428,15 @@ Section SimulationRelations.
     st_no_llvm_ptr_aliasing : no_llvm_ptr_aliasing_cfg σ s configV ;
     st_id_allocated : id_allocated σ memH
     }.
+
+  Record state_invariant_relaxed (σ : evalContext) (s : IRState) (memH : memoryH) (configV : config_cfg) (ptr : nat) : Prop :=
+    Build_state_invariant_relaxed
+    { mem_is_inv_relax : memory_invariant_relaxed σ s memH configV ptr;
+      IRState_is_WF : WF_IRState σ s;
+      st_no_id_aliasing : no_id_aliasing σ s;
+      st_no_dshptr_aliasing : no_dshptr_aliasing σ;
+      st_no_llvm_ptr_aliasing : no_llvm_ptr_aliasing_cfg σ s configV;
+      st_id_allocated : id_allocated σ memH }.
 
   (* Predicate stating that an (llvm) local variable is relevant to the memory invariant *)
   Variant in_Gamma : evalContext -> IRState -> raw_id -> Prop :=

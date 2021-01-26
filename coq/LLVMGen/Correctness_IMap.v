@@ -444,12 +444,37 @@ Proof.
 
   rename memV into mV_init.
 
+  rename n3 into x_ptr_addr.
+  rename n2 into y_ptr_addr.
+
+  (* TODO *)
+  (* Lemma init_loop_ : *)
+  (*     state_invariant σ s12 mH stV  -> *)
+  (*     state_invariant_relaxed σ s12 mH stV y_ptr_addr /\ *)
+
+  (* TODO *)
+  (* Lemma init_loop_' : *)
+    (* TODO : Add as assumption more information about memory from context *)
+  (*     state_invariant σ s12 mH stV  -> *)
+  (*     state_invariant_relaxed σ s12 mH stV y_ptr_addr /\ *)
+  (*     memory_invariant_partial_write stV k ptrll_yoff bkh_yoff y n *)
+
+  (* TODO *)
+  (* Lemma end_of_loop_ : *)
+  (*     state_invariant_relaxed σ s12 mH stV y_ptr_addr /\ *)
+  (*     memory_invariant_partial_write stV k ptrll_yoff bkh_yoff y n -> *)
+  (*     state_invariant σ s12 mH stV *)
+
   (* Invariant at each iteration *)
   set (I := (fun (k : nat) (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
                match mH with
                | None => False
                | Some (mH, b) =>
                  let '(mV, (p, g)) := stV in
+                 (* 1. Relaxed state invariant *)
+                 (* state_invariant_relaxed σ s12 mH stV y_ptr_addr /\ *)
+                 (* (* 2. Preserved state invariant *) *)
+                 (* memory_invariant_partial_write stV k ptrll_yoff bkh_yoff y sz0 *)
                  state_invariant σ s12 mH stV /\
                  mH ≡ memH
                  (* exists v, ext_memory mV_init ptrll_yoff DTYPE_Double (UVALUE_Double v) mV /\ *)
@@ -529,8 +554,8 @@ Proof.
     vred; cbn.
 
     rewrite denote_code_cons.
-    rename n3 into x_addr.
-    rename n2 into x0_addr.
+    (* rename n3 into x_addr. *)
+    (* rename n2 into x0_addr. *)
 
     (* Get mem information from PRE condition here (global and local state has changed). *)
     (* Needed for the following GEP and Load instructions *)
@@ -889,9 +914,13 @@ Proof.
       Unshelve. 4 : exact s0. red.
       all : solve_local_count.
     - exists b0. reflexivity.
-    - split; [| split ]; eauto.
 
-      clear -PRE_INV extends EE Gamma_cst.
+    - split; [| split ]; eauto.
+      eapply state_invariant_same_Γ with (s1 := s0); eauto using lid_bound_between_incLocal.
+      solve_not_in_gamma.
+      eauto.
+      eapply state_invariant_Γ with (s1 := s12); eauto.
+      clear -PRE_INV extends EE Gamma_cst x2 H4 H2 x1.
       destruct PRE_INV.
       split; eauto.
       6 : {
@@ -899,18 +928,6 @@ Proof.
         unfold id_allocated in st_id_allocated.
         specialize (st_id_allocated (S (S n))). cbn in st_id_allocated.
         eauto.
-      }
-      5 : {
-        unfold no_llvm_ptr_aliasing_cfg, no_llvm_ptr_aliasing in *.
-        intros.
-        rewrite <- EE in st_no_llvm_ptr_aliasing.
-        specialize (st_no_llvm_ptr_aliasing id1 ptrv1 id2 ptrv2 (S (S n1)) (S (S n2))).
-        cbn in st_no_llvm_ptr_aliasing.
-        eapply st_no_llvm_ptr_aliasing; eauto.
-        unfold in_local_or_global_addr in *.  destruct id1; eauto.
-        admit.
-        unfold in_local_or_global_addr in *.  destruct id2; eauto.
-        admit.
       }
       2 : {
         red.
@@ -925,7 +942,7 @@ Proof.
         specialize (st_no_id_aliasing (S (S n1)) (S (S n2))).
         rewrite <- EE in st_no_id_aliasing. cbn in *.
         assert (S (S n2) ≡ S (S n1) -> n2 ≡ n1) by lia.
-        apply H3.
+        apply H5.
         eapply st_no_id_aliasing ; eauto.
       }
       2 : {
@@ -935,18 +952,38 @@ Proof.
         assert (S (S n') ≡ S (S n) -> n' ≡ n) by lia.
         apply H1; eauto.
       }
-      unfold memory_invariant in *.
-      rewrite <- EE in *. intros.
-      specialize (mem_is_inv (S (S n))). cbn in *.
-      specialize (mem_is_inv _ _ _ H H0).
-      destruct v0; eauto.
-      + admit. + admit.
-      + destruct mem_is_inv as (? & ? & ? & ? & ? & ? & ? & ?).
-        eexists.
-        eexists.
-        eexists.
-        repeat (split; eauto).
-        admit. admit. admit.
+
+      (* Memory invariant re-established after a write to memory (?) *)
+      {
+        unfold memory_invariant in *.
+        rewrite <- EE in *. intros.
+        specialize (mem_is_inv (S (S n))). cbn in *.
+        specialize (mem_is_inv _ _ _ H H0).
+        destruct v0; eauto.
+        + admit. + admit.
+        + destruct mem_is_inv as (? & ? & ? & ? & ? & ? & ? & ?).
+          eexists.
+          eexists.
+          eexists.
+          repeat (split; eauto).
+          * admit.
+          * intros. eapply get_array_cell_write_no_overlap; eauto.
+      }
+
+      {
+        unfold no_llvm_ptr_aliasing_cfg, no_llvm_ptr_aliasing in *.
+        intros.
+        rewrite <- EE in st_no_llvm_ptr_aliasing.
+        specialize (st_no_llvm_ptr_aliasing id1 ptrv1 id2 ptrv2 (S (S n1)) (S (S n2))).
+        cbn in st_no_llvm_ptr_aliasing.
+        eapply st_no_llvm_ptr_aliasing; eauto.
+        unfold in_local_or_global_addr in *.
+        destruct id1; eauto.
+        (* solve_alist_in. *)
+        admit.
+        unfold in_local_or_global_addr in *.  destruct id2; eauto.
+        admit.
+      }
     - apply local_scope_modif_add'.
       solve_lid_bound_between.
       eapply local_scope_modif_sub'_l; cycle 1.
