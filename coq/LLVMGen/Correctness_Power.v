@@ -817,7 +817,7 @@ Proof.
     set (Q := (fun (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
                  match mH with
                  | None => False
-                 | Some (mH,mb) => state_invariant σ s2 mH stV
+                 | Some (mH,mb) => state_invariant σ s2 (memory_set mH dst_addr_h mb) stV
                  end)).
 
       specialize (LOOPTFOR I P Q (Some (m_yoff, mem_add (MInt64asNT.to_nat yoff_res) initial bkh_yoff))).
@@ -1365,19 +1365,18 @@ Proof.
         cbn in Q_POST.
         { (* State invariant preserved *)
           split; eauto.
-          2: eapply st_no_id_aliasing; eauto.
-          2: eapply st_no_dshptr_aliasing; eauto.
-          2: eapply st_no_llvm_ptr_aliasing; eauto.
+          eapply st_no_id_aliasing; eauto.
+          eapply st_no_dshptr_aliasing; eauto.
+          eapply st_no_llvm_ptr_aliasing; eauto.
 
           (* memory_invariant and id_allocated are the only things that care
              about the altered memory
            *)
-          2: { unfold id_allocated.
-               intros n addr0 val H.
+          { unfold id_allocated.
+            intros n addr0 val H.
 
-               apply mem_block_exists_memory_set.
-               eapply st_id_allocated in Q_POST.
-               eauto.
+            eapply st_id_allocated in Q_POST.
+            eauto.
           }
 
           pose proof (mem_is_inv Q_POST) as MINV_POST.
@@ -1521,9 +1520,102 @@ Proof.
       { cbn; solve_local_count. }
 
       (* TODO: May need to modify P / Q here *)
-      { unfold imp_rel. intros a b2 H. admit. }
-      admit.
-      admit.
+      { (* P -> I 0 *)
+        unfold imp_rel. intros a b2 H. admit.
+      }
+
+      { (* I loop_end -> Q *)
+        unfold imp_rel. intros a b2 H.
+        admit.
+      }
+
+      { (* P holds initially *)
+        red.
+        repeat (eapply state_invariant_same_Γ; eauto; [solve_not_in_gamma|]).
+        eapply state_invariant_Γ.
+
+        (* PostYoffSINV : state_invariant σ i8 m_yoff (mV_yoff, (l_yoff, g_yoff))
+           PRE : state_invariant σ s1 m_yoff (mV_yoff, (ρ, g_yoff))
+
+           WRITE_INIT : write mV_yoff dst_addr (DVALUE_Double initial) ≡ inr mV_init
+         *)
+
+        Lemma write_state_invariant :
+          forall σ s mH mV1 mV2 l g dst_addr v,
+            memory_invariant σ s mH (mV1, (l, g)) ->
+            write mV1 dst_addr v ≡ inr mV2 ->
+            memory_invariant σ s mH (mV2, (l, g)).
+        Proof.
+          intros σ s mH mV1 mV2 l g dst_addr v MINV WRITE.
+          unfold memory_invariant in *.
+        Abort.
+
+        cbn in INLG_yoff.
+        Lemma no_llvm_ptr_aliasing_same_block :
+          forall {σ s l g n1 n2 v1 v2 id1 id2 τ1 τ2 ptrv1 ptrv2},
+            no_llvm_ptr_aliasing σ s l g ->
+            nth_error (Γ s) n1 ≡ Some (id1, τ1) ->
+            nth_error σ n1 ≡ Some v1 ->
+            nth_error (Γ s) n2 ≡ Some (id2, τ2) ->
+            nth_error σ n2 ≡ Some v2 ->
+            in_local_or_global_addr l g id1 ptrv1 ->
+            in_local_or_global_addr l g id2 ptrv2 ->
+            fst ptrv1 ≡ fst ptrv2 ->
+            id1 ≡ id2.
+        Proof.
+          intros σ s l g n1 n2 v1 v2 id1 id2 τ1 τ2 ptrv1 ptrv2 ALIAS NTH_Γ1 NTH_σ1 NTH_Γ2 NTH_σ2 INLG1 INLG2 BLOCK.
+          pose proof (ALIAS id1 ptrv1 id2 ptrv2 n1 n2 τ1 τ2 v1 v2 NTH_σ1 NTH_σ2 NTH_Γ1 NTH_Γ2) as CONTRA.
+          destruct id1, id2.
+          - (* global + global *)
+            pose proof (rel_dec_p id id0) as [EQ | NEQ]; subst; auto.
+            assert (ID_Global id ≢ ID_Global id0) as NEQ' by (intros H; inv H; contradiction).
+            specialize (CONTRA NEQ' INLG1 INLG2).
+            contradiction.
+          - (* global + local *)
+            assert (ID_Global id ≢ ID_Local id0) as NEQ' by (intros H; inv H; contradiction).
+            specialize (CONTRA NEQ' INLG1 INLG2).
+            contradiction.
+          - (* local + global *)
+            assert (ID_Local id ≢ ID_Global id0) as NEQ' by (intros H; inv H; contradiction).
+            specialize (CONTRA NEQ' INLG1 INLG2).
+            contradiction.
+          - (* local + local *)
+            pose proof (rel_dec_p id id0) as [EQ | NEQ]; subst; auto.
+            assert (ID_Local id ≢ ID_Local id0) as NEQ' by (intros H; inv H; contradiction).
+            specialize (CONTRA NEQ' INLG1 INLG2).
+            contradiction.
+        Qed.
+
+        (* TODO: see if this can just be memory_invariant *)
+        Lemma write_state_invariant :
+          forall σ s mH mV1 mV2 l g dst_addr (id_addr : ident) hv v ptrll (τ : typ) n,
+            state_invariant σ s mH (mV1, (l, g)) ->
+            nth_error (Γ s) n ≡ Some (id_addr, τ) ->
+            nth_error σ n ≡ Some hv ->
+            in_local_or_global_addr l g id_addr ptrll ->
+            fst ptrll ≡ fst dst_addr ->
+            write mV1 dst_addr v ≡ inr mV2 ->
+            state_invariant σ s mH (mV2, (l, g)).
+        Proof.
+          intros σ s mH mV1 mV2 l g dst_addr id_addr hv v ptrll τ n SINV NTH_Γ NTH_σ INLG BLOCK WRITE.
+          destruct SINV.
+          split; eauto.
+
+          unfold memory_invariant in *.
+
+          intros n0 v0 τ0 x NTH_σ0 NTH_Γ0.
+          pose proof (mem_is_inv n0 v0 τ0 x NTH_σ0 NTH_Γ0) as M.
+          destruct x, v0; cbn in *; eauto.
+          - (* Global integer... *)
+            destruct M as (ptr & τ' & TEQ & FIND & READ); inv TEQ.
+
+            (* Now, I want to say that if fst ptr ≡ fst dst_addr / fst ptrll that n0 = n *)
+            epose proof (no_llvm_ptr_aliasing_same_block st_no_llvm_ptr_aliasing NTH_Γ NTH_σ NTH_Γ0 NTH_σ0 INLG FIND) as BLOCKID.
+              
+            fst dst_addr
+        Qed.
+        eauto.
+      }
     }
     { (* Local case for yoff *)
       admit.
