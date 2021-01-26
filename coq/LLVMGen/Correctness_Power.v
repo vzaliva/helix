@@ -1452,33 +1452,19 @@ Proof.
         destruct HI as [HI_SINV [HI_v [HI_lcount [HI_LSM_C [HI_LSM [HI_EXT [HI_OLD HI_NEW]]]]]]].
         split.
         { destruct BOUND.
-          - eapply state_invariant_same_Γ; eauto.
+          - eapply state_invariant_same_Γ with (s1 := s2); eauto.
 
             (* No variables were bound between i21 and s2, so H should give us a contradiction *)
-            assert (Γ s1 ≡ Γ s2).
-            { get_gammas.
-              apply dropVars_Γ' in Heqs15.
-              rewrite <- Heqs14 in Heqs15.
-              solve_gamma.
-            }
-
-            eapply not_in_Gamma_Gamma_eq. apply H0.
+            eapply not_in_Gamma_Gamma_eq; eauto.
             eapply GAM.
             eapply lid_bound_between_shrink_down.
             2: eapply H.
             cbn.
             solve_local_count.
-          - eapply state_invariant_same_Γ; eauto.
+          - eapply state_invariant_same_Γ with (s1 := s2); eauto.
 
             (* No variables were bound between i21 and s2, so H should give us a contradiction *)
-            assert (Γ s1 ≡ Γ s2).
-            { get_gammas.
-              apply dropVars_Γ' in Heqs15.
-              rewrite <- Heqs14 in Heqs15.
-              solve_gamma.
-            }
-
-            eapply not_in_Gamma_Gamma_eq. apply H0.
+            eapply not_in_Gamma_Gamma_eq; eauto.
             eapply GAM.
             eapply lid_bound_between_shrink.
             eauto.
