@@ -457,7 +457,10 @@ Proof.
   set (P := (fun (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
                match mH with
                | None => False
-               | Some (mH,b) => state_invariant σ s12 mH stV
+               | Some (mH,b) => state_invariant σ s12 mH stV /\
+                 let '(mV, (p, g)) := stV in
+                 mH ≡ memH /\
+                  exists v, ext_memory mV_init ptrll_yoff DTYPE_Double (UVALUE_Double v) mV
                end)).
 
   specialize (GENC I P P (Some (memH, bkh_yoff))).
@@ -541,6 +544,29 @@ Proof.
     inv TEQ_yoff_l.
     inv TEQ_xoff_l. cbn.
 
+    assert (UNIQ0 : v ≢ loopvarid). {
+      intros CONTRA; subst.
+      eapply lid_bound_between_newLocalVar in Heqs4.
+      eapply lid_bound_between_incLocal in Heqs11.
+      eapply state_bound_between_id_separate.
+      2 : eapply Heqs4.
+      2 : eapply Heqs11.
+      eapply incLocalNamed_count_gen_injective.
+      solve_local_count. reflexivity.
+    }
+
+    assert (UNIQ1 : loopvarid ≢ px). {
+      intros CONTRA; subst.
+
+      eapply lid_bound_between_newLocalVar in Heqs4.
+      eapply lid_bound_between_incLocal in Heqs9.
+      eapply state_bound_between_id_separate.
+      2 : eapply Heqs4.
+      2 : eapply Heqs9.
+      eapply incLocalNamed_count_gen_injective.
+      solve_local_count. reflexivity.
+    }
+
     (* [Vellvm] GEP Instruction *)
     match goal with
     | [|- context[OP_GetElementPtr (DTYPE_Array ?size' ?τ') (_, ?ptr') _]] =>
@@ -598,30 +624,6 @@ Proof.
     Require Import Helix.LLVMGen.Correctness_AExpr.
 
     Transparent addVars. unfold addVars in Heqs12. inv Heqs12.
-
-
-    assert (UNIQ0 : v ≢ loopvarid). {
-      intros CONTRA; subst.
-      eapply lid_bound_between_newLocalVar in Heqs4.
-      eapply lid_bound_between_incLocal in Heqs11.
-      eapply state_bound_between_id_separate.
-      2 : eapply Heqs4.
-      2 : eapply Heqs11.
-      eapply incLocalNamed_count_gen_injective.
-      solve_local_count. reflexivity.
-    }
-
-    assert (UNIQ1 : loopvarid ≢ px). {
-      intros CONTRA; subst.
-
-      eapply lid_bound_between_newLocalVar in Heqs4.
-      eapply lid_bound_between_incLocal in Heqs9.
-      eapply state_bound_between_id_separate.
-      2 : eapply Heqs4.
-      2 : eapply Heqs9.
-      eapply incLocalNamed_count_gen_injective.
-      solve_local_count. reflexivity.
-    }
 
 
     Lemma not_in_gamma_cons :
@@ -722,11 +724,22 @@ Proof.
     }
 
     (* "Final" simultaneous step inside the loop body *)
-    intros [ [mH' bin] | ] [mV' [li' [g0' []]]].
+    intros [ [mH' t_Aexpr] | ] [mV' [li' [g0' []]]].
     intros (PRE_INV & AEXP) RET1 RET2.
+    2 : try_abs.
 
     (* [HELIX] easy clean-up. *)
     hred.
+    vred.
+
+    edestruct (@read_write_succeeds mV _ _ _ (DVALUE_Double t_Aexpr) H) as [mV'' WRITE]; [constructor|].
+
+    destruct AEXP. destruct is_almost_pure as (-> & -> & ->).
+    rename mV' into mV.
+    rename mH' into memH.
+    rename g0' into g0.
+    Opaque newLocalVar.
+    cbn in *.
 
     (* [Vellvm] GEP and Store the result so we can re-establish loop invariant. *)
 
@@ -735,24 +748,89 @@ Proof.
     match goal with
     | [|- context[OP_GetElementPtr (DTYPE_Array y_size _) (_, ?ptr')]] =>
         edestruct denote_instr_gep_array with
-          (ρ := li') (g := g0') (m := mV') (i := py) (τ := DTYPE_Double)
+          (ρ := li') (g := g0) (m := mV) (i := py) (τ := DTYPE_Double)
             (size := y_size) (a := ptrll_yoff_l) (ptr := ptr') as (? & ? & ?)
-    end.
-
-    admit. admit. admit.
+    end; cycle 3.
 
     (* rewrite & step *)
     vred.
-    rewrite H1; clear H1.
+    rewrite H1.
     vred.
 
-    2 : try_abs.
+    3 : {
+        erewrite denote_exp_LR with (id := loopvarid).
+        2 : { cbn.
+        erewrite local_scope_modif_out.
+        4: eapply extends.
+        2: cbn; solve_local_count.
+        rewrite alist_find_neq.
+        rewrite alist_find_neq. eauto.
+        auto. eauto.
+        Unshelve. 5 : exact s0.
+        get_local_count_hyps.
+        inv Heqs4. cbn in Heqs. lia.
+
+        eapply lid_bound_between_newLocalVar in Heqs4.
+        eapply lid_bound_between_shrink. eauto.
+        solve_local_count. solve_local_count. reflexivity.
+        eauto.
+        (* ? *)
+        exact (UVALUE_Double b1).
+        }
+        unfold uvalue_of_nat. reflexivity.
+      }
+
+    2 : {
+      destruct y;
+      rename id into YID.
+      - rewrite denote_exp_GR. 2 : eauto.
+        cbn. reflexivity.
+      - rewrite denote_exp_LR.
+        2 : {
+          cbn.
+          erewrite local_scope_modif_out.
+          4 : eapply extends. (* "extends" is not enough. the lid isn't "bound" here? *)
+
+          2: cbn; solve_local_count.
+          rewrite alist_find_neq.
+          rewrite alist_find_neq. eauto.
+          admit. admit. (* UNIQUENESS OF YID ? *)
+          admit. admit.
+        }
+        reflexivity.
+    }
+    2 : {
+
+      typ_to_dtyp_simplify; eauto.
+      assert (GET := GETARRAYCELL_yoff_l).
+
+      assert (KNat : MInt64asNT.to_nat (Int64.repr (Z.of_nat k )) ≡ k). admit.
+      specialize (GET (Int64.repr (Z.of_nat k))).
+      rewrite KNat in GET. eapply GET. eauto.
+      (* ?? *) admit.
+    }
+    clear H1.
 
     (* 2. Store  *)
+
+    edestruct (@read_write_succeeds mV _ _ _ (DVALUE_Double t_Aexpr) H0) as [mV''' WRITE']; [constructor|].
     vred.
     rewrite denote_instr_store.
-    2 : admit.
-    2 : admit. 2 : admit. 2 : admit.
+    2 : {
+      eapply exp_correct.
+      solve_local_scope_preserved.
+      admit.
+      (* solve_gamma_preserved.  *)
+    }
+    3 : { cbn. reflexivity. }
+    2: {
+      eapply denote_exp_LR.
+
+      cbn.
+      solve_alist_in.
+    }
+    2 : apply WRITE'.
+
     vred.
     rewrite denote_term_br_1.
     vred.
@@ -761,44 +839,93 @@ Proof.
     rename b into loopcont.
     rewrite denote_ocfg_unfold_not_in.
     vred.
-    2 : admit.
+    2: {
+      cbn.
+      assert (b0 ≢ loopcont) as NEQ by solve_id_neq.
+      rewrite find_block_ineq; eauto.
+    }
 
     (* Re-establish INV in post condition *)
     apply eqit_Ret.
-    split; [|split; [|split]]; eauto.
+    split; [|split; [|split]].
+    - erewrite local_scope_modif_out.
+      eauto. admit. admit. admit.
+    - exists b0. reflexivity.
+    - split.
+      + admit.
+      + split; eauto.
+        exists py_val. admit. (* ext mem*)
+    - admit.
+      (* solve_local_scope_modif. *)
+  }
+
+
+  forward GENC; [clear GENC |].
+  {
+    intros.
+    unfold I in *.
+    destruct a eqn : AEQ.
+    destruct p eqn: AEP.
+    destruct H0 as (? & ? & ?).
+    split; eauto.
+    edestruct H2. subst.
+    admit.
+    auto.
+  }
+
+  forward GENC; [clear GENC |].
+  {
+    get_local_count_hyps.
+    unfold addVars in Heqs12. inv Heqs12.
+    cbn in Heqs13. lia.
+  }
+
+  forward GENC; [clear GENC |].
+  {
+    reflexivity.
+  }
+
+  forward GENC; [clear GENC |].
+  {
+    subst I P; red; intros; auto. destruct a; eauto.
+    destruct p; eauto. destruct b1; eauto. destruct p; eauto.
+  }
+
+  forward GENC; [clear GENC |].
+  {
+    subst I P; red; intros; auto. destruct a; auto.
+    destruct p; eauto. destruct b1; eauto. destruct p; eauto.
+  }
+
+  setoid_rewrite <- bind_ret_r at 6.
+
+  vstep.
+  eapply eutt_clo_bind.
+
+  eapply GENC.
+  {
+    subst P I.
     admit.
   }
 
+  intros [[]|]; intros (? & ? & ? & []) (? & ? & ?); subst P I; try_abs;
+  cbn in H0; destruct H0 as (? & <- & (? & ?));
+    rewrite interp_helix_MemSet.
+  2 : { destruct H; inv H. } (* absurd *)
 
-  forward GENC; [clear GENC |].
-              {
-                admit.
-    (* apply newLocalVar_local_count in Heqs2. *)
-    (* apply dropVars_local_count in Heqs5. *)
-  }
+  vred.
+  apply eqit_Ret.
 
-  forward GENC; [clear GENC |]. admit.
-
-  forward GENC; [clear GENC |].
+  (* genIR *)
   {
-    admit.
+    split; [| split]; cbn; eauto.
+    - (* Need to enter scope,then escape it to link with appropriate state *)
+      eapply state_invariant_Γ; eauto. admit.
+    - destruct H; eauto.
+    - solve_local_scope_modif.
+      Unshelve.
+      all : eauto.
   }
-
-
-  forward GENC; [clear GENC |].
-  {
-    subst I P; red; intros; auto. admit.
-  }
-
-  forward GENC; [clear GENC |].
-  {
-    subst I P; red; intros; auto. admit.
-  }
-
-  (* eapply eutt_mon; [| apply GENC]. *)
-
-  (* specialize (GENC g ρ memV bid_from). *)
-  admit.
 Admitted.
 
 Section Swap.
