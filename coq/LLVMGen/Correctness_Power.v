@@ -403,6 +403,13 @@ Proof.
   rename n5 into src_addr_h.
   rename i2 into src_size_h.
 
+  assert (Γ s1 ≡ Γ s2) as Γ_S1S2.
+  { get_gammas.
+    apply dropVars_Γ' in Heqs15.
+    rewrite <- Heqs14 in Heqs15.
+    solve_gamma.
+  }
+
   (* Need to reorder the nexprs to line things up.
 
      In helix we evaluate:
@@ -911,21 +918,11 @@ Proof.
             }
 
             eapply state_invariant_same_Γ with (s1:=s2); eauto.
-            { get_gammas.
-              apply dropVars_Γ' in Heqs15.
-              rewrite <- Heqs14 in Heqs15.
-              solve_gamma.
-            }
+            solve_gamma.
 
-            { eapply not_in_Gamma_Gamma_eq.
-              2: { eapply GAM.
-                   solve_lid_bound_between.
-              }
-
-              get_gammas.
-              apply dropVars_Γ' in Heqs15.
-              rewrite <- Heqs14 in Heqs15.
-              solve_gamma.
+            { eapply not_in_Gamma_Gamma_eq; eauto.
+              eapply GAM.
+              solve_lid_bound_between.
             }
           }
 
@@ -948,9 +945,6 @@ Proof.
             all: try (solve [cbn; solve_local_count]).
 
             cbn.
-            get_gammas.
-            apply dropVars_Γ' in Heqs15.
-            rewrite <- Heqs14 in Heqs15.
             solve_gamma.
 
             { intros id1 H.
@@ -1108,6 +1102,9 @@ Proof.
             eapply extends in AEXPR_LSM.
             cbn in AEXPR_LSM.
 
+            destruct POSTAEXPR.
+            cbn in POSTAEXPRSINV.
+
             (* I should really automate this local_scope_modif state_invariant reasoning...
                
                Let's think about this a little...
@@ -1173,47 +1170,93 @@ Proof.
                
              *)
 
-            pose proof LINV_SINV. destruct H.
+            destruct POSTAEXPRSINV.
+            cbn in st_no_llvm_ptr_aliasing.
+
+            destruct LINV_SINV.
+            eauto.
             split; auto.
             (* TODO: can I pull these out into lemmas? *)
-            - admit.
-            - do 2 red.
-              intros id1 ptrv1 id2 ptrv2 n1 n0 τ τ' v1 v2 NTH_σ1 NTH_σ2 NTH_Γ1 NTH_Γ2 NEQ INLG1 INLG2.
-              do 2 red in st_no_llvm_ptr_aliasing.
-              destruct id1, id2.
-              + (* Global + global *)
-                eauto.
-              + (* Global + local *)
-                cbn in INLG1, INLG2.
+            (* TODO: probably similar to state_invariant_escape_scope, but with a write *)
+            - (* unfold memory_invariant. *)
+              (* pose proof mem_is_inv as MINV. *)
 
-                (* There's a case where the local lookup is in
-                   l_Aexpr, and one where it's in l_loop...  In the
-                   l_loop case it follows simply from
-                   st_no_llvm_ptr_aliasing...
+              (* (* If x does not equal dst_ptr_id this should be smooth sailing... *)
 
-                   However, in the other case the id must be
-                   dst_val_id... And if we look it up, it's actually
-                   just a double, so we should get a contradiction in
-                   INLG.
-                 *)
-                pose proof alist_find_eq_dec id2 (alist_add dst_val_id (UVALUE_Double b2) l_loop) l_Aexpr as [IN_loop | NIN_loop].
-                rewrite IN_loop in INLG2.
-                * (* id2 can't be dst_val_id because of contradiction *)
-                  admit.
-                * apply AEXPR_LSM in NIN_loop.
-                  (* id2 *must* be dst_val_id technically... Not sure
-                     I know the prefix is the same, though... *)
-                  assert (id2 ≡ dst_val_id).
-                pose proof AEXPR_LSM.
-                unfold local_scope_modif in H.
-                eauto.
-                admit.
+              (*    If x does equal dst_ptr_id... *)
+              (*  *) *)
+              (* unfold memory_invariant in MINV. *)
+              (* intros n v τ x NTH_σ NTH_Γ. *)
 
-                admit.
-              + (* Local + global *)
-                admit.
-              + (* Local + local *)
-                admit.
+              (* assert (nth_error (DSHCTypeVal b1 :: DSHCTypeVal b2 :: σ) (S (S n)) ≡ Some v) as NTH_σ' by auto. *)
+              (* assert (Γ i20 ≡ (ID_Local src_val_id, TYPE_Double) :: (ID_Local dst_val_id, TYPE_Double) :: Γ s2) as GAM20. *)
+              (* { get_gammas. *)
+              (*   apply dropVars_Γ' in Heqs15. *)
+              (*   rewrite <- Heqs14 in Heqs15. *)
+              (*   cbn in Gamma_cst. *)
+              (*   rewrite Gamma_cst. *)
+              (*   apply ListUtil.tail_eq. *)
+              (*   apply ListUtil.tail_eq. *)
+              (*   solve_gamma. *)
+              (* } *)
+
+              (* assert (nth_error (Γ i20) (S (S n)) ≡ Some (x, τ)) as NTH_Γ' by (rewrite GAM20; auto). *)
+
+              (* specialize (MINV _ v τ x NTH_σ' NTH_Γ'). *)
+
+              (* pose proof (write_correct WRITE) as [ALLOC WRITTEN]. *)
+              (* pose proof (rel_dec_p x (ID_Local dst_ptr_id)) as [EQdst | NEQdst]; subst. *)
+              (* + (* x = dst_ptr_id *) *)
+              (*   destruct v; eauto. *)
+              (*   destruct MINV as (bkh & ptrll & τ' & TEQ & FIND & FITS & INLG & READ); inv TEQ. *)
+              (*   cbn in INLG. *)
+
+              (*   erewrite local_scope_preserve_modif in INLG. *)
+              (*   erewrite INLG in LINV_DST_PTR; inv LINV_DST_PTR. *)
+              (*   4: solve_lid_bound_between. *)
+              (*   3: { eapply local_scope_modif_sub'_l. *)
+              (*        2: solve_local_scope_modif. *)
+              (*        solve_lid_bound_between. *)
+              (*   } *)
+              (*   2: solve_local_count. *)
+              (*   exists bkh. exists dst_addr. exists τ'. *)
+              (*   repeat split; cbn in *; eauto. *)
+              (*   eapply dtyp_fits_after_write; eauto. *)
+              (*   destruct Mono_IRState; subst; solve_alist_in. *)
+              (*   intros i v H. *)
+              (*   erewrite <- read_array. *)
+              (*   eauto. *)
+              (* + (* x <> dst_ptr_id *) *)
+              (*   destruct x, v; cbn in MINV; cbn; eauto. *)
+               
+
+
+
+              (* destruct x, v; cbn in MINV; cbn; auto. *)
+              (* { destruct MINV as (ptr & τ' & TEQ & FIND & READ); inv TEQ. *)
+              (*   destruct (@no_overlap_dtyp_dec dst_addr ptr DTYPE_Double (typ_to_dtyp [] τ')). *)
+              (*   + exists ptr. exists τ'. *)
+              (*     repeat split; auto. *)
+              (*     edestruct WRITTEN. *)
+              (*     constructor. *)
+              (*     rewrite old_lu0; eauto. *)
+              (*     eapply can_read_allocated; eauto. *)
+              (*   + exists dst_addr. exists τ'. *)
+              (*     repeat split; auto. *)
+              (* } *)
+              
+              (* destruct H. *)
+              (* eapply MINV. *)
+              (* destruct v; auto. *)
+            (* cbn in MINV. *)
+              admit.
+            - eapply no_llvm_ptr_aliasing_cons2; eauto.
+              { cbn in Gamma_cst.
+                rewrite Gamma_cst.
+                apply ListUtil.tail_eq.
+                apply ListUtil.tail_eq.
+                solve_gamma.
+              }
           }
 
           (* TODO: This is the thing we need *)
@@ -1353,15 +1396,21 @@ Proof.
             (* rewrite LUn0 in NTH_Γ. *)
             exists mb_post. exists ptrll_yoff. exists τ'.
 
+            rewrite <- Γ_S1S2 in NTH_Γ.
+
             (* 
             I know n = n3, which means...
 
             LUn0 : nth_error (Γ s1) n3 ≡ Some (@id, (⋆) (TYPE_Array sz0 TYPE_Double))
             *)
+            rewrite LUn0 in NTH_Γ; inv NTH_Γ.
+            cbn in INLG, INLG_yoff.
+            (* TODO: I need to know that g_yoff and g_post agree... They should be the same. *)
+            assert (g_yoff ≡ g_post) by admit; subst.
+            rewrite INLG_yoff in INLG; inv INLG.
+
             repeat split; eauto.
             apply memory_lookup_memory_set_eq.
-            admit.
-            admit.
 
             (* In the post condition Q I'm going to need to know something about
             mb_block and the corresponding LLVM pointer... *)
@@ -1380,6 +1429,7 @@ Proof.
 
         { (* local_scope_modif *)
           cbn.
+
           (* solve_local_scope_modif. *)
 
           (* Should hold might want to add genNExpr post and friends to automation *)
