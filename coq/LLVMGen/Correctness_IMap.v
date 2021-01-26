@@ -470,6 +470,14 @@ Proof.
 
   specialize (GENC I P P (Some (memH, bkh_yoff))).
 
+  assert (EE : (ID_Local v, TYPE_Double) :: (ID_Local loopvarid, IntType) ::  Γ s12 ≡ Γ s9). {
+    get_gammas; eauto.
+
+    Transparent addVars. unfold addVars in Heqs12. inv Heqs12.
+    Opaque addVars. cbn in Heqs13.
+    congruence.
+  }
+
   (* Loop body match *)
   forward GENC; [clear GENC |].
   {
@@ -641,25 +649,6 @@ Proof.
 
     Transparent addVars. unfold addVars in Heqs12. inv Heqs12.
 
-    Lemma not_in_gamma_cons :
-      forall σ s1 s2 id id' τ v,
-        Γ s2 ≡ (ID_Local id', τ) :: Γ s1 ->
-        ~ in_Gamma σ s1 id ->
-        id ≢ id' ->
-        ~ in_Gamma (v :: σ) s2 id.
-    Proof.
-      intros σ s1 s2 id id' τ v GAM NIN NEQ.
-      intros CONTRA.
-      inv CONTRA.
-      apply NIN.
-      rewrite GAM in *.
-      destruct n.
-      - cbn in *; inv H; inv H0.
-        contradiction.
-      - esplit; eauto.
-        eapply evalContext_typechecks_extend; eauto.
-    Qed.
-
     assert (s2_ext : Γ s5 ≡ (ID_Local loopvarid, IntType) :: Γ s1). {
       assert (H5 :Γ s2 ≡ Γ s5) by solve_gamma.
       rewrite <- H5.
@@ -730,7 +719,9 @@ Proof.
 
         apply genAExpr_Γ in Heqs13. cbn in Heqs13. rewrite s2_ext in Heqs13.
         eapply dropVars_Γ in Heqs14 ; eauto.
-        rewrite <- Heqs13. rewrite Heqs6. reflexivity.
+        rewrite <- Heqs13.
+        assert (Γ s1 ≡ Γ s11) by solve_gamma.
+        rewrite H0. reflexivity.
 
         intros. eapply state_bound_between_separate.
         eapply incLocalNamed_count_gen_injective.
@@ -784,6 +775,22 @@ Proof.
 
     inv TEQ_yoff_l'.
 
+    assert (LI': li' @ loopvarid ≡ Some (uvalue_of_nat k)). {
+      erewrite local_scope_modif_out.
+      4: eapply extends.
+      2: cbn; solve_local_count.
+      rewrite alist_find_neq.
+      rewrite alist_find_neq. eauto.
+      auto. eauto.
+      Unshelve. 3 : exact s0.
+      get_local_count_hyps.
+      inv Heqs4. cbn in Heqs. lia.
+
+      eapply lid_bound_between_newLocalVar in Heqs4.
+      eapply lid_bound_between_shrink. eauto.
+      solve_local_count. solve_local_count. reflexivity.
+    }
+
     (* 1. GEP *)
     set (y_size := Z.to_N (Int64.intval yp_typ_)).
     match goal with
@@ -799,25 +806,9 @@ Proof.
     vred.
 
     3 : {
-        erewrite denote_exp_LR with (id := loopvarid).
-        2 : {
-          cbn.
-          erewrite local_scope_modif_out.
-          4: eapply extends.
-          2: cbn; solve_local_count.
-          rewrite alist_find_neq.
-          rewrite alist_find_neq. eauto.
-          auto. eauto.
-          Unshelve. 4 : exact s0.
-          get_local_count_hyps.
-          inv Heqs4. cbn in Heqs. lia.
-
-          eapply lid_bound_between_newLocalVar in Heqs4.
-          eapply lid_bound_between_shrink. eauto.
-          solve_local_count. solve_local_count. reflexivity.
-          eauto.
-        }
-        unfold uvalue_of_nat. reflexivity.
+      erewrite denote_exp_LR with (id := loopvarid).
+      2 : eauto.
+      unfold uvalue_of_nat. reflexivity.
     }
 
     2 : {
@@ -885,28 +876,85 @@ Proof.
     }
 
     (* Re-establish INV in post condition *)
-    (* TODO 1. Retrieve more information out of [li'].
-            2. Re-establishing the index bounds condition seems odd.
-                Is there another way to state the invariant?
-                (sz0 is independent of n, which is perhaps the weird part..)
-     *)
+
     apply eqit_Ret.
     split; [|split; [|split]].
-    - erewrite local_scope_modif_out.
+    - clear Mono_IRState.
+      erewrite local_scope_modif_out.
+      4 : apply local_scope_modif_add.
       eauto.
-      2 : {
-        apply lid_bound_between_newLocalVar in Heqs4.
-        2 : reflexivity. eauto.
-      }
-      solve_local_count.
-      solve_local_scope_modif.
-      admit.
+      2 : eapply lid_bound_between_shrink.
+      2 : { apply lid_bound_between_newLocalVar in Heqs4. eauto. reflexivity. }
+      4 : solve_lid_bound_between.
+      Unshelve. 4 : exact s0. red.
+      all : solve_local_count.
     - exists b0. reflexivity.
     - split; [| split ]; eauto.
-      admit.
-    - admit.
-  }
 
+      clear -PRE_INV extends EE Gamma_cst.
+      destruct PRE_INV.
+      split; eauto.
+      6 : {
+        unfold id_allocated. intros.
+        unfold id_allocated in st_id_allocated.
+        specialize (st_id_allocated (S (S n))). cbn in st_id_allocated.
+        eauto.
+      }
+      5 : {
+        unfold no_llvm_ptr_aliasing_cfg, no_llvm_ptr_aliasing in *.
+        intros.
+        rewrite <- EE in st_no_llvm_ptr_aliasing.
+        specialize (st_no_llvm_ptr_aliasing id1 ptrv1 id2 ptrv2 (S (S n1)) (S (S n2))).
+        cbn in st_no_llvm_ptr_aliasing.
+        eapply st_no_llvm_ptr_aliasing; eauto.
+        unfold in_local_or_global_addr in *.  destruct id1; eauto.
+        admit.
+        unfold in_local_or_global_addr in *.  destruct id2; eauto.
+        admit.
+      }
+      2 : {
+        red.
+        eapply evalContext_typechecks_extend.
+        2 : eapply evalContext_typechecks_extend.
+        3 : eauto. rewrite Gamma_cst in EE. inv EE. eauto.
+        eauto.
+      }
+      2 : {
+        unfold no_id_aliasing in *.
+        intros.
+        specialize (st_no_id_aliasing (S (S n1)) (S (S n2))).
+        rewrite <- EE in st_no_id_aliasing. cbn in *.
+        assert (S (S n2) ≡ S (S n1) -> n2 ≡ n1) by lia.
+        apply H3.
+        eapply st_no_id_aliasing ; eauto.
+      }
+      2 : {
+        unfold no_dshptr_aliasing in *.
+        intros.
+        specialize (st_no_dshptr_aliasing (S (S n)) (S (S n'))).
+        assert (S (S n') ≡ S (S n) -> n' ≡ n) by lia.
+        apply H1; eauto.
+      }
+      unfold memory_invariant in *.
+      rewrite <- EE in *. intros.
+      specialize (mem_is_inv (S (S n))). cbn in *.
+      specialize (mem_is_inv _ _ _ H H0).
+      destruct v0; eauto.
+      + admit. + admit.
+      + destruct mem_is_inv as (? & ? & ? & ? & ? & ? & ? & ?).
+        eexists.
+        eexists.
+        eexists.
+        repeat (split; eauto).
+        admit. admit. admit.
+    - apply local_scope_modif_add'.
+      solve_lid_bound_between.
+      eapply local_scope_modif_sub'_l; cycle 1.
+      eapply local_scope_modif_sub'_l; cycle 1.
+      eapply local_scope_modif_shrink. apply extends.
+      solve_local_count. solve_local_count.
+      solve_lid_bound_between. solve_lid_bound_between.
+  }
 
   forward GENC; [clear GENC |].
   {
