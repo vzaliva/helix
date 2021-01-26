@@ -1057,6 +1057,25 @@ Definition LLVMGen
                         |}
       ]).
 
+
+(* Creates 64 bit integer from floating pointer data list by interpreting
+   first 64 floating point values as bit values. *)
+Definition int64FromData (data:list binary64) : (Int64.int*(list binary64)) :=
+  let fix int64FromData (n: nat) (data:list binary64) (i: Int64.int) {struct n}: (Int64.int*(list binary64)) :=
+      match n with
+      | O => (Int64.zero, data)
+      | S m =>
+        let '(f,data) := rotate Float64Zero data in
+        let si := Int64.add i Int64.one in
+        match f with
+        | B754_zero _ => int64FromData m data si
+        | _ =>
+          let '(x,data) := int64FromData m data si in
+          (Int64.add (Int64.repr (two_power_nat m)) x, data)
+        end
+      end
+  in int64FromData 64 data Int64.zero.
+
 Definition initOneIRGlobal
            (data: list binary64)
            (nmt:string * DSHType)
@@ -1065,15 +1084,15 @@ Definition initOneIRGlobal
     let (nm,t) := nmt in
     match t with
     | DSHnat =>
-      let '(x, data) := rotate Float64Zero data in
-      let xi := bits_of_b64 x in (* a potential size overflow here ? *)
+      let '(xi, data) := int64FromData data in
+      let xu := Integers.Int64.unsigned xi in
       let v_id := Name nm in
       let v_typ := getIRType t in
       let g := TLE_Global {|
                    g_ident        := v_id;
                    g_typ          := v_typ ;
                    g_constant     := true ;
-                   g_exp          := Some (EXP_Integer xi);
+                   g_exp          := Some (EXP_Integer xu);
                    g_linkage      := Some LINKAGE_Internal ;
                    g_visibility   := None ;
                    g_dll_storage  := None ;

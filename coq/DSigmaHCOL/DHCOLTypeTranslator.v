@@ -9,6 +9,7 @@ Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Util.ErrorSetoid.
+Require Import Helix.Tactics.StructTactics.
 
 Require Import ExtLib.Structures.Monads.
 Require Import ExtLib.Data.Monads.OptionMonad.
@@ -208,5 +209,141 @@ Module MDHCOLTypeTranslator
         g' <- translate g ;;
         ret (DSHSeq f' g')
       end.
+
+  Section Relations.
+
+    Parameter heq_CType: CT.t -> CT'.t -> Prop.
+
+    (* Well-defined [heq_CType] must be compatible with [translateCTypeValue] *)
+    Parameter heq_CType_translateCTypeValue_compat:
+      forall x x', translateCTypeValue x = inr x' -> heq_CType x x'.
+
+    (* Well-defined [heq_CType] preserves constnats *)
+    Fact heq_CType_zero_one_wd:
+      heq_CType CT.CTypeZero CT'.CTypeZero /\
+      heq_CType CT.CTypeOne CT'.CTypeOne.
+    Proof.
+      split; apply heq_CType_translateCTypeValue_compat; cbv.
+      -
+        break_if.
+        + reflexivity.
+        + break_if; clear -n; contradict n; reflexivity.
+      -
+        break_if.
+        +
+          clear -e.
+          symmetry in e.
+          contradict e.
+          apply CT.CTypeZeroOneApart.
+        +
+          break_if.
+          * reflexivity.
+          * clear -n0; contradict n0; reflexivity.
+    Qed.
+
+    Definition heq_NType: NT.t -> NT'.t -> Prop :=
+      fun n n' => NT.to_nat n = NT'.to_nat n'.
+
+    Definition heq_mem_block: L.mem_block -> L'.mem_block -> Prop :=
+      fun m m' => forall k : NM.key, hopt_r heq_CType (NM.find k m) (NM.find k m').
+
+    Inductive heq_NExpr: L.NExpr -> L'.NExpr -> Prop :=
+    | heq_NVar: forall x x', x=x' -> heq_NExpr (L.NVar x) (L'.NVar x')
+    | heq_NConst: forall x x', heq_NType x x' -> heq_NExpr (L.NConst x) (L'.NConst x')
+    | heq_NDiv : forall x y x' y', heq_NExpr x x' -> heq_NExpr y y' -> heq_NExpr (L.NDiv x y) (L'.NDiv x' y')
+    | heq_NMod : forall x y x' y', heq_NExpr x x' -> heq_NExpr y y' -> heq_NExpr (L.NMod x y) (L'.NMod x' y')
+    | heq_NPlus : forall x y x' y', heq_NExpr x x' -> heq_NExpr y y' -> heq_NExpr (L.NPlus x y) (L'.NPlus x' y')
+    | heq_NMinus : forall x y x' y', heq_NExpr x x' -> heq_NExpr y y' -> heq_NExpr (L.NMinus x y) (L'.NMinus x' y')
+    | heq_NMult : forall x y x' y', heq_NExpr x x' -> heq_NExpr y y' -> heq_NExpr (L.NMult x y) (L'.NMult x' y')
+    | heq_NMin : forall x y x' y', heq_NExpr x x' -> heq_NExpr y y' -> heq_NExpr (L.NMin x y) (L'.NMin x' y')
+    | heq_NMax : forall x y x' y', heq_NExpr x x' -> heq_NExpr y y' -> heq_NExpr (L.NMax x y) (L'.NMax x' y').
+
+    Inductive heq_PExpr: L.PExpr -> L'.PExpr -> Prop :=
+    | heq_PVar: forall x x', x=x' -> heq_PExpr (L.PVar x) (L'.PVar x').
+
+    Inductive heq_MExpr: L.MExpr -> L'.MExpr -> Prop :=
+    | heq_MPtrDeref: forall x x', heq_PExpr x x' -> heq_MExpr (L.MPtrDeref x) (L'.MPtrDeref x')
+    | heq_MConst: forall m m' n n', heq_NType n n' -> heq_mem_block m m' -> heq_MExpr (L.MConst m n) (L'.MConst m' n').
+
+    Inductive heq_AExpr: L.AExpr -> L'.AExpr -> Prop :=
+    | heq_AVar: forall x x', x=x' -> heq_AExpr (L.AVar x) (L'.AVar x)
+    | heq_ANth: forall m m' n n', heq_MExpr m m' ->  heq_NExpr n n' -> heq_AExpr (L.ANth m n) (L'.ANth m' n')
+    | heq_AAbs: forall x x', heq_AExpr x x' ->  heq_AExpr (L.AAbs x) (L'.AAbs x')
+    | heq_AConst: forall x x', heq_CType x x' -> heq_AExpr (L.AConst x) (L'.AConst x')
+    | heq_APlus : forall x y x' y', heq_AExpr x x' -> heq_AExpr y y' -> heq_AExpr (L.APlus x y) (L'.APlus x' y')
+    | heq_AMinus : forall x y x' y', heq_AExpr x x' -> heq_AExpr y y' -> heq_AExpr (L.AMinus x y) (L'.AMinus x' y')
+    | heq_AMult : forall x y x' y', heq_AExpr x x' -> heq_AExpr y y' -> heq_AExpr (L.AMult x y) (L'.AMult x' y')
+    | heq_AMin : forall x y x' y', heq_AExpr x x' -> heq_AExpr y y' -> heq_AExpr (L.AMin x y) (L'.AMin x' y')
+    | heq_AMax : forall x y x' y', heq_AExpr x x' -> heq_AExpr y y' -> heq_AExpr (L.AMax x y) (L'.AMax x' y')
+    | heq_AZless: forall x y x' y', heq_AExpr x x' -> heq_AExpr y y' -> heq_AExpr (L.AZless x y) (L'.AZless x' y').
+
+    Inductive heq_DSHOperator: L.DSHOperator -> L'.DSHOperator -> Prop :=
+    | heq_DSHNop: heq_DSHOperator L.DSHNop L'.DSHNop
+    | heq_DSHAssign:
+        forall src_p src_n dst_p dst_n src_p' src_n' dst_p' dst_n',
+          heq_NExpr src_n src_n' ->
+          heq_NExpr dst_n dst_n' ->
+          heq_PExpr src_p src_p' ->
+          heq_PExpr dst_p dst_p' ->
+          heq_DSHOperator (L.DSHAssign (src_p,src_n) (dst_p, dst_n))
+                          (L'.DSHAssign (src_p',src_n') (dst_p', dst_n'))
+    | heq_DSHIMap:
+        forall n x_p y_p f n' x_p' y_p' f',
+          n=n' ->
+          heq_PExpr x_p x_p' ->
+          heq_PExpr y_p y_p' ->
+          heq_AExpr f f' ->
+          heq_DSHOperator (L.DSHIMap n x_p y_p f) (L'.DSHIMap n' x_p' y_p' f')
+
+    | heq_DSHBinOp:
+        forall n x_p y_p f n' x_p' y_p' f',
+          n=n' ->
+          heq_PExpr x_p x_p' ->
+          heq_PExpr y_p y_p' ->
+          heq_AExpr f f' ->
+          heq_DSHOperator (L.DSHBinOp n x_p y_p f) (L'.DSHBinOp n' x_p' y_p' f')
+    | heq_DSHMemMap2:
+        forall n x0_p x1_p y_p f n' x0_p' x1_p' y_p' f',
+          n=n' ->
+          heq_PExpr x0_p x0_p' ->
+          heq_PExpr x1_p x1_p' ->
+          heq_PExpr y_p y_p' ->
+          heq_AExpr f f' ->
+          heq_DSHOperator (L.DSHMemMap2 n x0_p x1_p y_p f) (L'.DSHMemMap2 n' x0_p' x1_p' y_p' f')
+    | heq_DSHPower:
+        forall n src_p src_n dst_p dst_n f ini n' src_p' src_n' dst_p' dst_n' f' ini',
+          heq_NExpr n n' ->
+          heq_NExpr src_n src_n' ->
+          heq_NExpr dst_n dst_n' ->
+          heq_PExpr src_p src_p' ->
+          heq_PExpr dst_p dst_p' ->
+          heq_AExpr f f' ->
+          heq_CType ini ini' ->
+          heq_DSHOperator
+            (L.DSHPower n (src_p,src_n) (dst_p, dst_n) f ini)
+            (L'.DSHPower n' (src_p',src_n') (dst_p', dst_n') f' ini')
+    | heq_DSHLoop:
+        forall n n' body body',
+          n=n' ->
+          heq_DSHOperator body body' ->
+          heq_DSHOperator (L.DSHLoop n body) (L'.DSHLoop n' body')
+    | heq_DSHAlloc:
+        forall n n' body body',
+          heq_NType n n' ->
+          heq_DSHOperator body body' ->
+          heq_DSHOperator (L.DSHAlloc n body) (L'.DSHAlloc n' body')
+    | heq_DSHMemInit:
+        forall p p' v v',
+          heq_PExpr p p' ->
+          heq_CType v v' ->
+          heq_DSHOperator (L.DSHMemInit p v) (L'.DSHMemInit p' v')
+    | heq_DSHSeq:
+        forall f f' g g',
+          heq_DSHOperator f f' ->
+          heq_DSHOperator g g' ->
+          heq_DSHOperator (L.DSHSeq f g) (L'.DSHSeq f' g').
+
+  End Relations.
+
 
 End MDHCOLTypeTranslator.
