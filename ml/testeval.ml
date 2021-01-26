@@ -26,7 +26,7 @@ let output_ll_file filename ast =
   Out_channel.close channel
 
 let gsize t =
-  let open FSigmaHCOL.MDSHCOLOnFloat64 in
+  let open FSigmaHCOL.FHCOL in
   match t with
   | DSHnat -> 1
   | DSHCType -> 1

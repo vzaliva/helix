@@ -221,11 +221,11 @@ Section err_p.
 
   Variables (A : Type) (P : A -> Prop).
 
-  (* lifting Predicate to option. None is not allowed *)
+  (* lifting Predicate to err. None is not allowed *)
   Inductive err_p : (err A) -> Prop :=
   | err_p_intro : forall x, P x -> err_p (inr x).
 
-  (* lifting Predicate to option. None is allowed *)
+  (* lifting Predicate to err. None is allowed *)
   Inductive err_p_n : (err A) -> Prop :=
   | err_p_inl_intro: forall x, err_p_n (inl x)
   | err_p_inr_intro : forall x, P x -> err_p_n (inr x).

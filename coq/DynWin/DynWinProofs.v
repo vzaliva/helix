@@ -39,17 +39,23 @@ Require Import Helix.MSigmaHCOL.MSigmaHCOL.
 Require Import Helix.MSigmaHCOL.ReifyProofs.
 Require Import Helix.Util.MonoidalRestriction.
 
-Require Import Helix.DSigmaHCOL.ReifyMSHCOL.
-Require Import Helix.DSigmaHCOL.DSHCOLOnCarrierA.
-Require Import Helix.DSigmaHCOL.ReifyProofs.
+Require Import Helix.ASigmaHCOL.ASigmaHCOL.
+Require Import Helix.ASigmaHCOL.ReifyMSHCOL.
+Require Import Helix.ASigmaHCOL.ReifyProofs.
 
-Require Import Helix.FSigmaHCOL.ReifyDSHCOL.
+Require Import Helix.RSigmaHCOL.RSigmaHCOL.
+Require Import Helix.RSigmaHCOL.ReifyAHCOL.
+
+Require Import Helix.FSigmaHCOL.FSigmaHCOL.
+Require Import Helix.FSigmaHCOL.ReifyRHCOL.
 Require Import Helix.FSigmaHCOL.Int64asNT.
 Require Import Coq.Bool.Sumbool.
 Require Import MathClasses.misc.decision.
 
 
 Section HCOL_Breakdown.
+
+  Context `{CAPROPS: CarrierProperties}.
 
   (* Initial HCOL breakdown proof *)
   Theorem DynWinHCOL:  forall (a: avector 3),
@@ -69,7 +75,7 @@ Section HCOL_Breakdown.
 
 End HCOL_Breakdown.
 
-Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ _ g f) (at level 40, left associativity) : type_scope.
+Local Notation "g ⊚ f" := (@SHCompose _ _ Monoid_RthetaFlags _ _ _ _ g f) (at level 40, left associativity) : type_scope.
 
 (* This tactics solves both [SHOperator_Facts] and [MSHOperator_Facts]
    as well [SH_MSH_Operator_compat].
@@ -112,7 +118,7 @@ Ltac solve_facts :=
          | [ |- SH_MSH_Operator_compat (IReduction _ _) _     ] => apply IReduction_SH_MSH_Operator_compat; intros
          | [ |- SH_MSH_Operator_compat (Embed _ _) _           ] => apply Embed_SH_MSH_Operator_compat
          | [ |- SH_MSH_Operator_compat (SHBinOp _ _) _        ] => apply SHBinOp_RthetaSafe_SH_MSH_Operator_compat
-         | [ |- SH_MSH_Operator_compat (IUnion _ _) _         ] => apply IUnion_SH_MSH_Operator_compat; intros
+         | [ |- SH_MSH_Operator_compat (IUnion _ _) _         ] => apply (@IUnion_SH_MSH_Operator_compat _ _); intros
          | [ |- SH_MSH_Operator_compat (Pick _ _) _          ] => apply Pick_SH_MSH_Operator_compat
          | [ |- SH_MSH_Operator_compat _ _                    ] => apply SHCompose_SH_MSH_Operator_compat
          | [ |- Monoid.MonoidLaws Monoid_RthetaFlags] => apply MonoidLaws_RthetaFlags
@@ -131,6 +137,8 @@ Ltac solve_facts :=
   end.
 
 Section HCOL_to_SigmaHCOL.
+
+  Context `{CAPROPS: CarrierProperties}.
 
   (* --- HCOL -> Sigma->HCOL --- *)
 
@@ -153,10 +161,6 @@ Section HCOL_to_SigmaHCOL.
 
     (* normalize associativity of composition *)
     repeat rewrite <- SHCompose_assoc.
-
-    (* TODO: remove this once =CarrierAabs_proper= moved to =CarrierType.v= *)
-    replace abstract_algebra.sm_proper with CarrierAabs_proper by apply proof_irrelevance.
-    replace abstract_algebra.sg_op_proper with CarrierA_max_proper by apply proof_irrelevance.
     reflexivity.
     Transparent SHCompose.
   Qed.
@@ -394,7 +398,7 @@ Section SigmaHCOL_rewriting.
         {f: CarrierA -> CarrierA}
         `{f_mor: !Proper ((=) ==> (=)) f}
         {P: CarrierA -> Prop}
-        (F: @SHOperator fm m n svalue)
+        (F: @SHOperator _ fm m n svalue)
     :
       (forall x, P (f x)) ->
       op_Vforall_P fm (liftRthetaP P)
@@ -512,7 +516,7 @@ Section SigmaHCOL_rewriting.
      But it does not (hangs forever), so we have to do some manual rewriting
      *)
     match goal with
-    | |- context [(SHFamilyOperatorCompose _ ?f _)] =>
+    | |- context [(SHFamilyOperatorCompose _ ?f)] =>
       match f with
       | (fun jf => UnSafeCast (?torewrite ⊚ ?rest )) =>
         setoid_replace f with (fun (jf:FinNat 2) => UnSafeCast rest)
@@ -748,7 +752,7 @@ Section SigmaHCOL_rewriting.
   Theorem SHCOL_to_SHCOL1_Rewriting
           (a: avector 3)
     : @SHOperator_subtyping
-        _ _ _ _
+        _ _ _ _ _
         (dynwin_SHCOL1 a)
         (dynwin_SHCOL a)
         (DynWinSigmaHCOL1_Facts _)
@@ -789,9 +793,9 @@ Import ListNotations.
 Section SHCOL_to_MSHCOL.
 
   (*
-           This assumptions is required for reasoning about non-negativity and [abs].
-           It is specific to [abs] and this we do not make it a global assumption
-           on [CarrierA] but rather assume for this particular SHCOL expression.
+    This assumptions is required for reasoning about non-negativity and [abs].
+    It is specific to [abs] and this we do not make it a global assumption
+    on [CarrierA] but rather assume for this particular SHCOL expression.
    *)
   Context `{CarrierASRO: @orders.SemiRingOrder CarrierA CarrierAe CarrierAplus CarrierAmult CarrierAz CarrierA1 CarrierAle}.
 
@@ -824,7 +828,7 @@ Section SHCOL_to_MSHCOL.
         {fm}
         {i o n}
         {svalue: CarrierA}
-        (op_family: @SHOperatorFamily fm i o n svalue):
+        (op_family: @SHOperatorFamily _ fm i o n svalue):
     Apply_Family_Vforall_P fm (liftRthetaP (ATT CarrierA)) op_family.
   Proof.
     intros x j jc.
@@ -857,6 +861,8 @@ Section SHCOL_to_MSHCOL.
       apply Apply_Family_Vforall_ATT.
     -
       apply Set_Obligation_1.
+    -
+      typeclasses eauto.
     -
       (* TODO: refactor to lemma
          [Apply_Family_Vforall_SHCompose_move_P].
@@ -892,15 +898,17 @@ Section SHCOL_to_MSHCOL.
 
 End SHCOL_to_MSHCOL.
 
-Section MSHCOL_to_DSHCOL.
+Section MSHCOL_to_AHCOL.
 
-  Import MDSHCOLOnCarrierA.
+  Import AHCOL.
 
-  MetaCoq Run (reifyMSHCOL dynwin_MSHCOL1 [(BasicAst.MPfile ["DynWinProofs"; "DynWin"; "Helix"], "dynwin_MSHCOL1")] "dynwin_DSHCOL1" "dynwin_DSHCOL1_globals").
+  Opaque CarrierAz zero CarrierA1 one.
+  MetaCoq Run (reifyMSHCOL dynwin_MSHCOL1 [(BasicAst.MPfile ["DynWinProofs"; "DynWin"; "Helix"], "dynwin_MSHCOL1")] "dynwin_AHCOL" "dynwin_AHCOL_globals").
+  Transparent CarrierAz zero CarrierA1 one.
 
   (* Import DSHNotation. *)
 
-  Definition nglobals := List.length (dynwin_DSHCOL1_globals). (* 1 *)
+  Definition nglobals := List.length (dynwin_AHCOL_globals). (* 1 *)
   Definition DSH_x_p := PVar (nglobals+1). (* PVar 2 *)
   Definition DSH_y_p := PVar (nglobals+0). (* PVar 1 *)
 
@@ -958,9 +966,9 @@ Section MSHCOL_to_DSHCOL.
   (* TODO: This is a manual proof. To be automated in future. See [[../../doc/TODO.org]] for details *)
   Instance DynWin_pure
     :
-      DSH_pure (dynwin_DSHCOL1) DSH_y_p.
+      DSH_pure (dynwin_AHCOL) DSH_y_p.
   Proof.
-    unfold dynwin_DSHCOL1, DSH_y_p, DSH_x_p.
+    unfold dynwin_AHCOL, DSH_y_p, DSH_x_p.
     solve_MSH_DSH_compat.
   Qed.
 
@@ -1013,13 +1021,13 @@ Section MSHCOL_to_DSHCOL.
     (* This lemma could be auto-generated from TemplateCoq *)
     Theorem DynWin_MSH_DSH_compat
       :
-        @MSH_DSH_compat dynwin_i dynwin_o (dynwin_MSHCOL1 a) (dynwin_DSHCOL1)
+        @MSH_DSH_compat dynwin_i dynwin_o (dynwin_MSHCOL1 a) (dynwin_AHCOL)
                         dynwin_σ
                         dynwin_memory
                         DSH_x_p DSH_y_p
                         DynWin_pure.
     Proof.
-      unfold dynwin_DSHCOL1, DSH_y_p, DSH_x_p.
+      unfold dynwin_AHCOL, DSH_y_p, DSH_x_p.
       unfold dynwin_x_addr, dynwin_y_addr, dynwin_a_addr, nglobals in *.
       unfold dynwin_MSHCOL1.
       cbn in *.
@@ -1338,25 +1346,19 @@ Section MSHCOL_to_DSHCOL.
 
   End DummyEnv.
 
-End MSHCOL_to_DSHCOL.
+End MSHCOL_to_AHCOL.
 
-Section DHCOL_to_FHCOL.
-  Definition dynwin_FSHCOL := DSCHOLtoFHCOL dynwin_DSHCOL1.
+Require Import Helix.MSigmaHCOL.CType.
 
-  Lemma simplCarrierARefl:
+Module CTypeSimpl(CTM:CType).
+  Import CTM.
+
+  Lemma simplCTypeRefl:
     forall a,
-      (CarrierAequivdec a a) ≡ left
-                             (@reflexivity
-                                (Zero CarrierA)
-                                (@equiv (Zero CarrierA) CarrierAe)
-                                (@Equivalence_Reflexive (Zero CarrierA)
-                                                        (@equiv (Zero CarrierA) CarrierAe)
-                                                        (@abstract_algebra.setoid_eq (Zero CarrierA) CarrierAe CarrierAsetoid))
-                                a
-                              : @equiv (Zero CarrierA) CarrierAe a a).
+      (CTypeEquivDec a a) ≡ left (reflexivity _).
   Proof.
     intros a.
-    destruct (CarrierAequivdec a a) as [H|NH].
+    destruct (CTypeEquivDec a a) as [H|NH].
     -
       f_equiv.
       apply proof_irrelevance.
@@ -1365,62 +1367,176 @@ Section DHCOL_to_FHCOL.
       reflexivity.
   Qed.
 
-  Lemma CarrierA_One_neq_Z: CarrierA1 ≠ CarrierAz.
+  Lemma simplCType_Z_neq_One:
+    CTypeEquivDec CTypeZero CTypeOne ≡ right CTypeZeroOneApart.
   Proof.
-    destruct (CarrierAequivdec CarrierA1 CarrierAz) as [H|NH].
-    -
-      symmetry in H.
-      contradict H.
-      apply CarrierA_Z_neq_One.
-    -
-      assumption.
-  Qed.
-
-  Lemma simplCarrierA_Z_neq_One:
-    CarrierAequivdec CarrierAz CarrierA1 ≡ right CarrierA_Z_neq_One.
-  Proof.
-    destruct (CarrierAequivdec CarrierAz CarrierA1) as [H|NH].
+    destruct (CTypeEquivDec _ _) as [H|NH].
     -
       contradict H.
-      apply CarrierA_Z_neq_One.
+      apply CTypeZeroOneApart.
     -
       f_equiv.
       apply proof_irrelevance.
   Qed.
 
-  Lemma simplCarrierA_One_neq_Z:
-    CarrierAequivdec CarrierA1 CarrierAz ≡ right CarrierA_One_neq_Z.
+  Fact CType_One_neq_Z: CTypeOne ≠ CTypeZero.
   Proof.
-    destruct (CarrierAequivdec CarrierA1 CarrierAz) as [H|NH].
+    intros H.
+    pose proof CTypeZeroOneApart as P.
+    auto.
+  Qed.
+
+  Lemma simplCType_One_neq_Z:
+    CTypeEquivDec CTypeOne CTypeZero ≡ right CType_One_neq_Z.
+  Proof.
+    destruct (CTypeEquivDec _ _) as [H|NH].
     -
       contradict H.
-      apply CarrierA_One_neq_Z.
+      apply CType_One_neq_Z.
     -
       f_equiv.
       apply proof_irrelevance.
   Qed.
 
-  Lemma simplCarrierA_One_eq_Z:
-    CarrierAequivdec CarrierA1 CarrierAz ≡ right CarrierA_One_neq_Z.
+End CTypeSimpl.
+
+
+Require Import Helix.MSigmaHCOL.CarrierAasCT.
+Require Import Helix.RSigmaHCOL.RasCT.
+Module CarrierASimpl := CTypeSimpl(CarrierAasCT).
+
+Lemma AzCtZ: CarrierAz ≡ CarrierAasCT.CTypeZero. Proof. reflexivity. Qed.
+Lemma A1Cr1: CarrierA1 ≡ CarrierAasCT.CTypeOne. Proof. reflexivity. Qed.
+Lemma AeCtE: CarrierAequivdec ≡ CarrierAasCT.CTypeEquivDec. Proof. reflexivity. Qed.
+
+Hint Rewrite
+     AeCtE
+     AzCtZ
+     A1Cr1
+     CarrierASimpl.simplCTypeRefl
+     CarrierASimpl.simplCType_Z_neq_One
+     CarrierASimpl.simplCType_One_neq_Z
+  : CarrierAZ1equalities.
+
+(* Print Rewrite HintDb CarrierAZ1equalities. *)
+
+Section AHCOL_to_RHCOL.
+  Definition dynwin_RHCOL := AHCOLtoRHCOL.translate dynwin_AHCOL.
+
+  (*
+     For debug printing
+  Definition dynwin_RHCOL1 : RHCOL.DSHOperator.
   Proof.
-    destruct (CarrierAequivdec CarrierA1 CarrierAz) as [H|NH].
+    remember dynwin_RHCOL as a eqn:H.
+    cbv in H.
+    autorewrite with CarrierAZ1equalities in H.
+    destruct a.
     -
-      contradict H.
-      apply CarrierA_One_neq_Z.
+      inv H.
     -
-      f_equiv.
-      apply proof_irrelevance.
-  Qed.
+      inl_inr_inv.
+      (* Set Printing All.
+      Redirect "dynwin_RHCOL" Show 1. *)
+      exact d.
+  Defined.
+   *)
 
-  Hint Rewrite
-       simplCarrierA_Z_neq_One
-       simplCarrierA_Z_neq_One
-       simplCarrierA_One_eq_Z
-       simplCarrierARefl:
-    CarrierAZ1equalities.
+End AHCOL_to_RHCOL.
 
-  Import FSigmaHCOL.MDSHCOLOnFloat64.
-  Require Import AltBinNotations.
+Require Import Rdefinitions.
+Module RSimpl := CTypeSimpl(MRasCT).
+
+Lemma RzCtZ: R0 ≡ MRasCT.CTypeZero. Proof. reflexivity. Qed.
+Lemma R1Cr1: R1 ≡ MRasCT.CTypeOne. Proof. reflexivity. Qed.
+
+Hint Rewrite
+     RzCtZ
+     R1Cr1
+     RSimpl.simplCTypeRefl
+     RSimpl.simplCType_Z_neq_One
+     RSimpl.simplCType_One_neq_Z
+  : RZ1equalities.
+
+Require Import AltBinNotations.
+
+
+Section RHCOL_to_FHCOL.
+
+  (* Notation for shorter printing of `int64` constants *)
+  Local Declare Scope int64.
+  Local Notation "v" := (Int64.mkint v _) (at level 10, only printing) : int64.
+  Local Delimit Scope int64 with int64.
+
+  (* Relation between RCHOL and DHCOL programs.
+     It is parametrized by:
+
+    - [InMemRel] - describes relation between initial memory states
+    - [InSigmaRel] - describes relation between initial env. states
+    - [OutMemRel] - describes relation which must hold between resulting memory states.
+   *)
+  Definition RHCOL_FHCOL_rel
+             (InMemRel: RHCOL.memory → FHCOL.memory -> Prop)
+             (InSigmaRel: RHCOL.evalContext -> FHCOL.evalContext -> Prop)
+             (OutMemRel: RHCOL.memory → FHCOL.memory -> Prop):
+    RHCOL.DSHOperator -> FHCOL.DSHOperator -> Prop :=
+    fun rhcol fhcol =>
+      forall fuel rsigma fsigma rmem fmem,
+        InMemRel rmem fmem ->
+        InSigmaRel rsigma fsigma ->
+        hopt_r (herr_c OutMemRel)
+               (RHCOL.evalDSHOperator rsigma rhcol rmem fuel)
+               (FHCOL.evalDSHOperator fsigma fhcol fmem fuel).
+
+
+  Inductive ferr_c {A B:Type} (f: A -> err B) (R: A -> B -> Prop) : (err A) -> Prop :=
+  | ferr_c_inl : forall e, ferr_c f R (inl e)
+  | ferr_c_inr : forall a, err_p (R a) (f a) -> ferr_c f R (inr a).
+
+  (* This is the most generic formulation of semantic preservation lemma for
+     RHCOL to FHCOL translation. It allows to specify arbitrary user-defined
+     relations between states.
+   *)
+  Definition RHCOL_to_FHCOL_correctness
+             (InMemRel: RHCOL.memory → FHCOL.memory -> Prop)
+             (InSigmaRel: RHCOL.evalContext -> FHCOL.evalContext -> Prop)
+             (OutMemRel: RHCOL.memory → FHCOL.memory -> Prop)
+    : err RHCOL.DSHOperator -> Prop :=
+    ferr_c RHCOLtoFHCOL.translate (RHCOL_FHCOL_rel InMemRel InSigmaRel OutMemRel).
+
+  Theorem dynwin_RHCOL_to_FHCOL_correctness
+          (InMemRel: RHCOL.memory → FHCOL.memory -> Prop)
+          (InSigmaRel: RHCOL.evalContext -> FHCOL.evalContext -> Prop)
+          (OutMemRel: RHCOL.memory → FHCOL.memory -> Prop)
+    : RHCOL_to_FHCOL_correctness InMemRel InSigmaRel OutMemRel
+        dynwin_RHCOL.
+  Proof.
+    unfold RHCOL_to_FHCOL_correctness.
+    destruct dynwin_RHCOL as [errs|rhcol] eqn:R;constructor.
+
+    Opaque CarrierAequivdec CarrierAz CarrierA1 CarrierAe CarrierAle CarrierAlt CarrierAneg CarrierAasCT.CTypeZero.
+    cbv in R.
+    autorewrite with CarrierAZ1equalities in R.
+    inl_inr_inv.
+    subst rhcol.
+    Opaque Float64asCT.Float64Zero Float64asCT.Float64One.
+    remember (translate _) as fhcol eqn:F.
+    cbv in F.
+    autorewrite with RZ1equalities in F.
+    subst fhcol.
+    constructor.
+    match goal with
+    | [|- RHCOL_FHCOL_rel _ _ _ ?r ?f] => remember r as rhcol; remember f as fhcol
+    end.
+    Transparent CarrierAequivdec CarrierAz CarrierA1 CarrierAe CarrierAle CarrierAlt CarrierAneg CarrierAasCT.CTypeZero.
+    Transparent Float64asCT.Float64Zero Float64asCT.Float64One.
+    (* ... proof specific to given relations here *)
+    admit.
+  Admitted.
+
+  (*
+     For debug printing
+
+  Definition dynwin_FHCOL := RHCOLtoFHCOL.translate dynwin_RHCOL1.
 
   (* Import DSHNotation. *)
   (* Notation for shorter printing of `int64` constants *)
@@ -1428,14 +1544,31 @@ Section DHCOL_to_FHCOL.
   Local Notation "v" := (Int64.mkint v _) (at level 10, only printing) : int64.
   Local Delimit Scope int64 with int64.
 
-  Definition dynwin_FSHCOL1 : FSigmaHCOL.MDSHCOLOnFloat64.DSHOperator.
+  Definition dynwin_FSHCOL1 : FHCOL.DSHOperator.
   Proof.
-    remember dynwin_FSHCOL as a eqn:H.
+    remember dynwin_FHCOL as a eqn:H.
     Opaque Float64asCT.Float64Zero.
     Opaque Float64asCT.Float64One.
+
+    (* Simplify AHCOL *)
+    unfold dynwin_FHCOL in H.
+    remember dynwin_RHCOL1 as rhcol eqn:R.
+    cbv in R.
+    (* Not sure why the following does not work here:
+       `autorewrite with CarrierAZ1equalities in R.`
+       but manual rewrite works:
+     *)
+    repeat rewrite AzCtZ in R.
+    repeat rewrite A1Cr1 in R.
+    repeat rewrite AeCtE in R.
+    repeat rewrite CarrierASimpl.simplCTypeRefl in R.
+    repeat rewrite CarrierASimpl.simplCType_Z_neq_One in R.
+    repeat rewrite CarrierASimpl.simplCType_One_neq_Z in R.
+    subst rhcol.
+
+    (* Simpl RHCOL *)
     cbv in H.
-    autorewrite with CarrierAZ1equalities in H.
-    cbv in H.
+    autorewrite with RZ1equalities in H.
     destruct a.
     -
       inv H.
@@ -1445,5 +1578,6 @@ Section DHCOL_to_FHCOL.
       (* Redirect "dynwin_FSHCOL" Show 1. *)
       exact d.
   Defined.
+   *)
 
-End DHCOL_to_FHCOL.
+End RHCOL_to_FHCOL.

@@ -1,0 +1,126 @@
+subgoal 1 (ID 73) is:
+  
+  d : RHCOL.DSHOperator
+  H1 : @eq RHCOL.DSHOperator d
+         (RHCOL.DSHAlloc (S (S O))
+            (RHCOL.DSHSeq
+               (RHCOL.DSHSeq
+                  (RHCOL.DSHAlloc (S O)
+                     (RHCOL.DSHSeq
+                        (RHCOL.DSHSeq
+                           (RHCOL.DSHMemInit (RHCOL.PVar O)
+                              Rdefinitions.RbaseSymbolsImpl.R0)
+                           (RHCOL.DSHAlloc (S O)
+                              (RHCOL.DSHLoop (S (S (S O)))
+                                 (RHCOL.DSHSeq
+                                    (RHCOL.DSHAlloc (S O)
+                                       (RHCOL.DSHSeq
+                                          (RHCOL.DSHAssign
+                                             (@pair RHCOL.PExpr RHCOL.NExpr
+                                                (RHCOL.PVar
+                                                   (S (S (S (S (S (S ...)))))))
+                                                (RHCOL.NConst O))
+                                             (@pair RHCOL.PExpr RHCOL.NExpr
+                                                (RHCOL.PVar O) 
+                                                (RHCOL.NConst O)))
+                                          (RHCOL.DSHAlloc 
+                                             (S O)
+                                             (RHCOL.DSHSeq
+                                                (RHCOL.DSHPower
+                                                   (RHCOL.NVar (S (S O)))
+                                                   (@pair RHCOL.PExpr RHCOL.NExpr
+                                                     (RHCOL.PVar (S O))
+                                                     (RHCOL.NConst O))
+                                                   (@pair RHCOL.PExpr RHCOL.NExpr
+                                                     (RHCOL.PVar O)
+                                                     (RHCOL.NConst O))
+                                                   (RHCOL.AMult 
+                                                     (RHCOL.AVar (S O))
+                                                     (RHCOL.AVar O))
+                                                   Rdefinitions.RbaseSymbolsImpl.R1)
+                                                (RHCOL.DSHIMap 
+                                                   (S O) 
+                                                   (RHCOL.PVar O)
+                                                   (RHCOL.PVar (S (S (S O))))
+                                                   (RHCOL.AMult 
+                                                     (RHCOL.AVar O)
+                                                     (RHCOL.ANth
+                                                     (RHCOL.MPtrDeref
+                                                     (RHCOL.PVar (S (S ...))))
+                                                     (RHCOL.NVar (S (S (S ...)))))))))))
+                                    (RHCOL.DSHMemMap2 
+                                       (S O) (RHCOL.PVar (S (S O)))
+                                       (RHCOL.PVar (S O)) 
+                                       (RHCOL.PVar (S (S O)))
+                                       (RHCOL.APlus (RHCOL.AVar (S O))
+                                          (RHCOL.AVar O)))))))
+                        (RHCOL.DSHAssign
+                           (@pair RHCOL.PExpr RHCOL.NExpr 
+                              (RHCOL.PVar O) (RHCOL.NConst O))
+                           (@pair RHCOL.PExpr RHCOL.NExpr 
+                              (RHCOL.PVar (S O)) (RHCOL.NConst O)))))
+                  (RHCOL.DSHAlloc (S O)
+                     (RHCOL.DSHSeq
+                        (RHCOL.DSHSeq
+                           (RHCOL.DSHMemInit (RHCOL.PVar O)
+                              Rdefinitions.RbaseSymbolsImpl.R0)
+                           (RHCOL.DSHAlloc (S O)
+                              (RHCOL.DSHLoop (S (S O))
+                                 (RHCOL.DSHSeq
+                                    (RHCOL.DSHAlloc (S (S O))
+                                       (RHCOL.DSHSeq
+                                          (RHCOL.DSHLoop 
+                                             (S (S O))
+                                             (RHCOL.DSHAlloc 
+                                                (S O)
+                                                (RHCOL.DSHSeq
+                                                   (RHCOL.DSHAssign
+                                                     (@pair RHCOL.PExpr
+                                                     RHCOL.NExpr
+                                                     (RHCOL.PVar (S (S (S ...))))
+                                                     (RHCOL.NPlus
+                                                     (RHCOL.NPlus
+                                                     (RHCOL.NConst (S O))
+                                                     (RHCOL.NMult 
+                                                     (RHCOL.NVar ...)
+                                                     (RHCOL.NConst ...)))
+                                                     (RHCOL.NMult
+                                                     (RHCOL.NVar (S O))
+                                                     (RHCOL.NMult
+                                                     (RHCOL.NConst ...)
+                                                     (RHCOL.NConst ...)))))
+                                                     (@pair RHCOL.PExpr
+                                                     RHCOL.NExpr 
+                                                     (RHCOL.PVar O)
+                                                     (RHCOL.NConst O)))
+                                                   (RHCOL.DSHAssign
+                                                     (@pair RHCOL.PExpr
+                                                     RHCOL.NExpr 
+                                                     (RHCOL.PVar O)
+                                                     (RHCOL.NConst O))
+                                                     (@pair RHCOL.PExpr
+                                                     RHCOL.NExpr
+                                                     (RHCOL.PVar (S (S O)))
+                                                     (RHCOL.NVar (S O)))))))
+                                          (RHCOL.DSHBinOp 
+                                             (S O) (RHCOL.PVar O)
+                                             (RHCOL.PVar (S (S O)))
+                                             (RHCOL.AAbs
+                                                (RHCOL.AMinus 
+                                                   (RHCOL.AVar (S O))
+                                                   (RHCOL.AVar O))))))
+                                    (RHCOL.DSHMemMap2 
+                                       (S O) (RHCOL.PVar (S (S O)))
+                                       (RHCOL.PVar (S O)) 
+                                       (RHCOL.PVar (S (S O)))
+                                       (RHCOL.AMax (RHCOL.AVar (S O))
+                                          (RHCOL.AVar O)))))))
+                        (RHCOL.DSHAssign
+                           (@pair RHCOL.PExpr RHCOL.NExpr 
+                              (RHCOL.PVar O) (RHCOL.NConst O))
+                           (@pair RHCOL.PExpr RHCOL.NExpr 
+                              (RHCOL.PVar (S O)) (RHCOL.NConst (S O)))))))
+               (RHCOL.DSHBinOp (S O) (RHCOL.PVar O) (RHCOL.PVar (S (S O)))
+                  (RHCOL.AZless (RHCOL.AVar (S O)) (RHCOL.AVar O)))))
+  ============================
+  RHCOL.DSHOperator
