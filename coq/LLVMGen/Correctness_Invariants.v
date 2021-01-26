@@ -432,11 +432,11 @@ Section SimulationRelations.
   Record state_invariant_relaxed (σ : evalContext) (s : IRState) (memH : memoryH) (configV : config_cfg) (ptr : nat) : Prop :=
     Build_state_invariant_relaxed
     { mem_is_inv_relax : memory_invariant_relaxed σ s memH configV ptr;
-      IRState_is_WF : WF_IRState σ s;
-      st_no_id_aliasing : no_id_aliasing σ s;
-      st_no_dshptr_aliasing : no_dshptr_aliasing σ;
-      st_no_llvm_ptr_aliasing : no_llvm_ptr_aliasing_cfg σ s configV;
-      st_id_allocated : id_allocated σ memH }.
+      IRState_is_WF_relax : WF_IRState σ s;
+      st_no_id_aliasing_relax : no_id_aliasing σ s;
+      st_no_dshptr_aliasing_relax : no_dshptr_aliasing σ;
+      st_no_llvm_ptr_aliasing_relax : no_llvm_ptr_aliasing_cfg σ s configV;
+      st_id_allocated_relax : id_allocated σ memH }.
 
   (* Predicate stating that an (llvm) local variable is relevant to the memory invariant *)
   Variant in_Gamma : evalContext -> IRState -> raw_id -> Prop :=

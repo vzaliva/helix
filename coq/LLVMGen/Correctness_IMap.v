@@ -967,7 +967,7 @@ Proof.
           eexists.
           repeat (split; eauto).
           * admit.
-          * intros. eapply get_array_cell_write_no_overlap; eauto.
+          * intros. eapply get_array_cell_write_no_overlap; eauto. admit. admit. admit. admit. admit.
       }
 
       {
@@ -977,12 +977,12 @@ Proof.
         specialize (st_no_llvm_ptr_aliasing id1 ptrv1 id2 ptrv2 (S (S n1)) (S (S n2))).
         cbn in st_no_llvm_ptr_aliasing.
         eapply st_no_llvm_ptr_aliasing; eauto.
-        unfold in_local_or_global_addr in *.
-        destruct id1; eauto.
-        (* solve_alist_in. *)
-        admit.
-        unfold in_local_or_global_addr in *.  destruct id2; eauto.
-        admit.
+        (* unfold in_local_or_global_addr in *. *)
+        (* destruct id1; eauto. *)
+        (* (* solve_alist_in. *) *)
+        (* admit. *)
+        (* unfold in_local_or_global_addr in *.  destruct id2; eauto. *)
+        (* admit. *)
       }
     - apply local_scope_modif_add'.
       solve_lid_bound_between.
@@ -1059,7 +1059,7 @@ Proof.
     - destruct H; eauto.
     - solve_local_scope_modif.
       Unshelve.
-      all : eauto.
+      all : eauto. admit.
   }
 Admitted.
 
