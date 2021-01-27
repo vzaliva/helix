@@ -2008,8 +2008,9 @@ Ltac solve_in_gamma :=
 
 (* TODO: expand this *)
 Ltac solve_lid_bound_between :=
-  first [ solve [eauto]
+  solve [ eauto
         | eapply lid_bound_between_shrink; [eapply lid_bound_between_incLocal | | ]; eauto; solve_local_count
+        | eapply lid_bound_between_shrink; [eapply lid_bound_between_incLocalNamed; cycle 1; [eauto | solve_prefix]| solve_local_count | solve_local_count]
         ].
 
 Ltac solve_not_in_gamma :=

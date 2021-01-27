@@ -281,13 +281,14 @@ Proof.
   clear Heqs2.
 
   (* TODO: i5 and i6 are just a guess *)
+  (* TODO: use matches to get sb1 / sb2 *)
   match goal with
   | H: genWhileLoop ?prefix ?x ?y ?loopvar ?loopcontblock ?body_entry ?body_blocks [] ?nextblock ?s1 ≡ inr (?s2, (?bid_in, ?bks)) |- _
     => epose proof @genWhileLoop_tfor_correct prefix loopvar loopcontblock body_entry body_blocks nextblock bid_in {|
            block_count := block_count i21;
            local_count := S (local_count i21);
            void_count := void_count i21;
-           Γ := Γ i21 |} s2 i17 {|
+           Γ := Γ i21 |} s2 i21 {|
            block_count := block_count i21;
            local_count := S (local_count i21);
            void_count := void_count i21;
@@ -310,7 +311,7 @@ Proof.
                       blk_code :=
                         (IId r2, INSTR_Load false TYPE_Double (TYPE_Pointer TYPE_Double, (EXP_Ident (ID_Local r))) (Some 8%Z))
                           :: c2 ++
-                          [(IVoid i16,
+                          [(IVoid i15,
                             INSTR_Store false (TYPE_Double, e2)
                                         (TYPE_Pointer TYPE_Double, (EXP_Ident (ID_Local r))) (Some 8%Z)) : (instr_id * instr typ)];
                       blk_term := TERM_Br_1 b;
@@ -322,25 +323,17 @@ Proof.
   assert (wf_ocfg_bid body_bks') as WF_BODY_BKS' by admit.
 
   (* TODO: make solve_lid_bound_between do this *)
-  assert (lid_bound_between i17 {|
+  assert (lid_bound_between i21 {|
            block_count := block_count i21;
            local_count := S (local_count i21);
            void_count := void_count i21;
            Γ := Γ i21 |}
-                 ("Power_i" @@ string_of_nat (local_count i21))) as LID_BOUND_BETWEEN_POWER_I by admit.
+                            ("Power_i" @@ string_of_nat (local_count i21))) as LID_BOUND_BETWEEN_POWER_I by solve_lid_bound_between.
 
   assert (free_in_cfg body_bks' nextblock) as FREE_BODY_BKS'_NEXTBLOCK by admit.
 
   specialize (LOOPTFOR Inb0 PREF_POWER WF_BODY_BKS' LID_BOUND_BETWEEN_POWER_I).
   specialize (LOOPTFOR FREE_BODY_BKS'_NEXTBLOCK).
-
-  clear LID_BOUND_BETWEEN_POWER_I.
-  assert (lid_bound_between i21 {|
-                              block_count := block_count i21;
-                              local_count := S (local_count i21);
-                              void_count := void_count i21;
-                              Γ := Γ i21 |}
-                            ("Power_i" @@ string_of_nat (local_count i21))) as LID_BOUND_BETWEEN_POWER_I by admit.
 
   (* Need to know how many times we loop, this is determined by the
   result of evaluating the expression e1 *)
@@ -597,31 +590,6 @@ Proof.
     rename x into dst_addr.
     destruct H as [HDST_GEP HDST_GEP_EUTT].
     cbn.
-
-    (* Load src *)
-    unfold DSHPower_tfor.
-    unfold DSHPower_tfor_body.
-    rewrite denote_instr_load.
-    2: {
-      apply denote_exp_LR.
-
-      cbn.
-      apply alist_find_add_eq.
-    }
-    2: { pose proof GETARRAYCELL_xoff as GET.
-         specialize (GET _ _ MEMLUP_xoff).
-
-         erewrite read_array; eauto.
-
-         Ltac solve_allocated :=
-           first [solve [eapply dtyp_fits_allocated; eauto]].
-
-         solve_allocated.
-    }
-
-    vred.
-    rewrite denote_code_cons.
-    vred.
 
     rewrite HDST_GEP_EUTT.
 

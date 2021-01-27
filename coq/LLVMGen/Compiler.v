@@ -826,7 +826,6 @@ Definition genPower
     py <- incLocal ;;
     storeid0 <- incVoid ;;
     px <- incLocal ;;
-    xv <- incLocal ;;
     let ini := genFloatV initial in
     let init_code := ncode ++ src_nexpcode ++ dst_nexpcode ++ [
                                     (IId px,  INSTR_Op (OP_GetElementPtr
@@ -835,11 +834,6 @@ Definition genPower
                                                           (IntType, src_nexpr)]
 
                                     ));
-
-                                  (IId xv, INSTR_Load false TYPE_Double
-                                              (TYPE_Pointer TYPE_Double,
-                                               (EXP_Ident (ID_Local px)))
-                                              (ret 8%Z));
            
                                   (IId py,  INSTR_Op (OP_GetElementPtr
                                                         ytyp (yptyp, (EXP_Ident y))
@@ -858,6 +852,7 @@ Definition genPower
     body_block_id <- incBlockNamed "PowerLoopBody" ;;
     storeid1 <- incVoid ;;
     void2 <- incVoid ;;
+    xv <- incLocal ;;
     yv <- incLocal ;;
     addVars [(ID_Local xv, TYPE_Double); (ID_Local yv, TYPE_Double)] ;;
     '(fexpr, fexpcode) <- genAExpr f ;;
@@ -865,7 +860,11 @@ Definition genPower
     let body_block := {|
           blk_id    := body_block_id ;
           blk_phis  := [];
-          blk_code  := [
+          blk_code  := [ (IId xv, INSTR_Load false TYPE_Double
+                                              (TYPE_Pointer TYPE_Double,
+                                               (EXP_Ident (ID_Local px)))
+                                              (ret 8%Z));
+
                           (IId yv, INSTR_Load false TYPE_Double
                                               (TYPE_Pointer TYPE_Double,
                                                (EXP_Ident (ID_Local py)))
