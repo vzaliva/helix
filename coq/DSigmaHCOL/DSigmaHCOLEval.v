@@ -19,6 +19,8 @@ Require Import Helix.Util.ErrorSetoid.
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.misc.decision.
 Require Import MathClasses.misc.util.
+Require Import MathClasses.implementations.bool.
+Require Import MathClasses.theory.products.
 
 Global Open Scope nat_scope.
 
@@ -28,13 +30,40 @@ Require Import ExtLib.Data.Monads.OptionMonad.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
+
+(* Surpsingly I could not find this in Mathclasses.
+   Should move it somewhere *)
+Instance oprod_equiv_Equivalence
+         `{Ae:Equiv A}
+         `{Be: Equiv B}
+         `{Aeq: Equivalence A Ae}
+         `{Beq: Equivalence B Be}
+  :
+    Equivalence (@prod_equiv A Ae B Be).
+Proof.
+  split.
+  -
+    intros x.
+    unfold prod_equiv.
+    split;auto.
+  -
+    intros x y [H1 H2].
+    unfold prod_equiv.
+    split;auto.
+  -
+    intros x y z [H1 H2] [H3 H4].
+    unfold prod_equiv.
+    split;auto.
+Qed.
+
 Module MDSigmaHCOLEval
        (Import CT : CType)
        (Import NT : NType).
 
   Include MDSigmaHCOL CT NT.
 
-  Definition evalContext:Type := list DSHVal.
+  (* Evaluation context is De-Bruijn-indexed list of typed variable values and "protection" flags *)
+  Definition evalContext:Type := list (DSHVal*bool).
 
   Local Open Scope string_scope.
 
@@ -93,26 +122,38 @@ Module MDSigmaHCOLEval
              (msg: string)
              (c: evalContext)
              (n: var_id)
-    : err DSHVal
+    : err (DSHVal*bool)
     := trywith msg (nth_error c n).
-
 
   Instance context_lookup_proper:
     Proper ((=) ==> (=) ==> (=) ==> (=)) context_lookup.
   Proof.
     unfold context_lookup.
-    solve_proper.
+    intros m m' Em c c' Ec n n' En.
+    apply trywith_proper.
+    assumption.
+    eapply nth_error_proper; assumption.
   Qed.
 
   Definition context_tl (σ: evalContext) : evalContext
     := List.tl σ.
 
-    (* Evaluation of expressions does not allow for side-effects *)
+  (* Evaluation of expressions does not allow for side-effects *)
   Definition evalPExpr (σ: evalContext) (exp:PExpr): err (nat*NT.t) :=
     match exp with
     | @PVar i =>
       match nth_error σ i with
-      | Some (@DSHPtrVal v size) => ret (v,size)
+      | Some ((@DSHPtrVal v size),f)  => ret (v,size)
+      | _ => raise "error looking up PVar"
+      end
+    end.
+
+  (* Similar to [evalPExpr] but also returns protection flag *)
+  Definition evalPExpr' (σ: evalContext) (exp:PExpr): err (nat*NT.t*bool) :=
+    match exp with
+    | @PVar i =>
+      match nth_error σ i with
+      | Some ((@DSHPtrVal v size),f)  => ret (v,size,f)
       | _ => raise "error looking up PVar"
       end
     end.
@@ -121,16 +162,19 @@ Module MDSigmaHCOLEval
   Definition evalMExpr (mem:memory) (σ: evalContext) (exp:MExpr): err (mem_block*NT.t) :=
     match exp with
     | @MPtrDeref p =>
-      '(bi,size) <- evalPExpr σ p ;;
-      m <- memory_lookup_err "MPtrDeref lookup failed" mem bi ;;
-      ret (m,size)
+      '(bi,size,f) <- evalPExpr' σ p ;;
+      if f:bool then
+        raise "Attempt to access protected variable in evalMExpr"
+      else
+        (m <- memory_lookup_err "MPtrDeref lookup failed" mem bi ;;
+         ret (m,size))
     | @MConst t size => ret (t,size)
     end.
 
   (* Evaluation of expressions does not allow for side-effects *)
   Fixpoint evalNExpr (σ: evalContext) (e:NExpr): err NT.t :=
     match e with
-    | NVar i => v <- (context_lookup "NVar not found" σ i) ;;
+    | NVar i => '(v,_) <- (context_lookup "NVar not found" σ i) ;;
                (match v with
                 | DSHnatVal x => ret x
                 | _ => raise "invalid NVar type"
@@ -180,7 +224,7 @@ Module MDSigmaHCOLEval
   (* Evaluation of expressions does not allow for side-effects *)
   Fixpoint evalAExpr (mem:memory) (σ: evalContext) (e:AExpr): err CT.t :=
     match e with
-    | AVar i => v <- (context_lookup "AVar not found" σ i) ;;
+    | AVar i => '(v,_) <- (context_lookup "AVar not found" σ i) ;;
                  (match v with
                   | DSHCTypeVal x => ret x
                   | _ => raise "invalid AVar type"
@@ -203,17 +247,17 @@ Module MDSigmaHCOLEval
   (* Evaluation of functions does not allow for side-effects *)
   Definition evalIUnCType (mem:memory) (σ: evalContext) (f: AExpr)
              (i:NT.t) (a:CT.t): err CT.t :=
-    evalAExpr mem (DSHCTypeVal a :: DSHnatVal i :: σ) f.
+    evalAExpr mem ((DSHCTypeVal a, false) :: (DSHnatVal i, false) :: σ) f.
 
   (* Evaluation of functions does not allow for side-effects *)
   Definition evalIBinCType (mem:memory) (σ: evalContext) (f: AExpr)
              (i:NT.t) (a b:CT.t): err CT.t :=
-    evalAExpr mem (DSHCTypeVal b :: DSHCTypeVal a :: DSHnatVal i :: σ) f.
+    evalAExpr mem ((DSHCTypeVal b, false) :: (DSHCTypeVal a, false) :: (DSHnatVal i, false) :: σ) f.
 
   (* Evaluation of functions does not allow for side-effects *)
   Definition evalBinCType (mem:memory) (σ: evalContext) (f: AExpr)
              (a b:CT.t): err CT.t :=
-    evalAExpr mem (DSHCTypeVal b :: DSHCTypeVal a :: σ) f.
+    evalAExpr mem ((DSHCTypeVal b, false) :: (DSHCTypeVal a, false) :: σ) f.
 
   Fixpoint evalDSHIMap
            (mem:memory)
@@ -381,14 +425,14 @@ Module MDSigmaHCOLEval
           | inl msg => Some (inl msg)
           | inr nv =>
             match evalDSHOperator σ (DSHLoop n body) mem fuel with
-            | Some (inr mem) => evalDSHOperator (DSHnatVal nv :: σ) body mem fuel
+            | Some (inr mem) => evalDSHOperator ((DSHnatVal nv, false) :: σ) body mem fuel
             | Some (inl msg) => Some (inl msg)
             | None => None
             end
           end
         | DSHAlloc size body =>
           let t_i := memory_next_key mem in
-          match evalDSHOperator (DSHPtrVal t_i size :: σ) body (memory_set mem t_i (mem_empty)) fuel with
+          match evalDSHOperator ((DSHPtrVal t_i size, false) :: σ) body (memory_set mem t_i (mem_empty)) fuel with
           | Some (inr mem') => Some (ret (memory_remove mem' t_i))
           | Some (inl msg) => Some (inl msg)
           | None => None
@@ -532,7 +576,7 @@ Module MDSigmaHCOLEval
   Qed.
 
   Lemma evalDSHOperator_fuel_monotone_None:
-    ∀ (op : DSHOperator)  (σ : list DSHVal) (fuel : nat) (m : memory),
+    ∀ (op : DSHOperator)  (σ : evalContext) (fuel : nat) (m : memory),
       evalDSHOperator σ op m (S fuel) ≡ None
       → evalDSHOperator σ op m fuel ≡ None.
   Proof.
@@ -694,14 +738,14 @@ Module MDSigmaHCOLEval
           eapply IHdop.
           nia.
         *
-          specialize (IHdop (DSHnatVal t1 :: σ) m0).
+          specialize (IHdop ((DSHnatVal t1, false) :: σ) m0).
           eapply evalDSHOperator_fuel_ge_is_Some with (f':=(S n0 + f * S (S n0)))
             in IHdop.
           norm_some_none.
           some_none.
           nia.
         *
-          specialize (IHdop (DSHnatVal t1 :: σ) m0).
+          specialize (IHdop ((DSHnatVal t1, false) :: σ) m0).
           eapply evalDSHOperator_fuel_ge_is_Some with (f':=(S n0 + f * S (S n0)))
             in IHdop.
           norm_some_none.
@@ -723,7 +767,7 @@ Module MDSigmaHCOLEval
       (* Alloc *)
       repeat break_match_goal; try some_none.
       exfalso.
-      specialize (IHdop (DSHPtrVal (memory_next_key m) size :: σ)
+      specialize (IHdop ((DSHPtrVal (memory_next_key m) size, false) :: σ)
                         (memory_set m (memory_next_key m) mem_empty)).
 
       apply is_Some_ne_None in IHdop.
@@ -772,7 +816,7 @@ Module MDSigmaHCOLEval
         reflexivity.
       }
       repeat break_match; try inversion E; subst; try (constructor;auto);
-      try (inversion H1;auto).
+        try (inversion H1;auto);  inl_inr_inv; cbn in *; try inversion H; auto.
     -
       rewrite H.
       constructor.
@@ -808,10 +852,31 @@ Module MDSigmaHCOLEval
        reflexivity.
      }
      repeat break_match; try inversion E; subst; try (constructor;subst;auto);
-       try (inversion H1;subst;auto).
-     destruct H0.
+       try (inversion H1;subst;auto); cbn in *; some_inv; try inversion H.
+     destruct H3.
      subst.
-     rewrite H0, H.
+     rewrite H3, H7.
+     reflexivity.
+  Qed.
+
+  Instance evalPExpr'_proper:
+    Proper ((=) ==> (=) ==> (=)) (evalPExpr').
+  Proof.
+    intros c1 c2 Ec e1 e2 Ee.
+     destruct Ee; simpl.
+     unfold equiv, peano_naturals.nat_equiv in H.
+     subst n1. rename n0 into v.
+     assert_match_equiv E.
+     {
+       apply nth_error_proper.
+       apply Ec.
+       reflexivity.
+     }
+     repeat break_match; try inversion E; subst; try (constructor;subst;auto);
+       try (inversion H1;subst;auto); cbn in *; some_inv; try inversion H.
+     destruct H3.
+     subst.
+     rewrite H3, H7, H0.
      reflexivity.
   Qed.
 
@@ -828,20 +893,17 @@ Module MDSigmaHCOLEval
         reflexivity.
       }
       repeat break_match ; inversion_clear E;  try (constructor;auto);
-        inversion_clear H0; cbn in *; subst.
+        inversion_clear H0; cbn in *; subst; try inversion H2; inversion_clear H1; cbn in *; err_eq_to_equiv_hyp.
       +
-        err_eq_to_equiv_hyp.
-        rewrite Em, H1 in Heqs0.
+        rewrite Em, H0 in Heqs0.
         rewrite Heqs0 in Heqs2.
         inl_inr.
       +
-        err_eq_to_equiv_hyp.
-        rewrite Em, H1 in Heqs0.
+        rewrite Em, H0 in Heqs0.
         rewrite Heqs0 in Heqs2.
         inl_inr.
       +
-        err_eq_to_equiv_hyp.
-        rewrite Em, H1 in Heqs0.
+        rewrite Em, H0 in Heqs0.
         rewrite Heqs0 in Heqs2.
         inv Heqs2.
         unfold equiv, products.prod_equiv.
@@ -869,7 +931,7 @@ Module MDSigmaHCOLEval
         reflexivity.
       }
       repeat break_match; try inversion E; subst; try (constructor;auto);
-      try (inversion H1;auto).
+      try (inversion H1;auto); inl_inr_inv;cbn in *; try inversion H; auto.
     - f_equiv. apply H.
     - assert(C1:  evalMExpr m1 c1 v1 = evalMExpr m2 c2 v2)
         by (apply evalMExpr_proper; auto).
@@ -934,8 +996,11 @@ Module MDSigmaHCOLEval
       assumption.
     -
       unfold equiv, List_equiv.
-      apply List.Forall2_cons; constructor; auto.
-      constructor; auto.
+      apply List.Forall2_cons; cbn; constructor; cbn; auto.
+      cbn;constructor; auto.
+      unshelve eapply pair_proper; auto.
+      constructor.
+      assumption.
     -
       auto.
   Qed.
@@ -945,14 +1010,17 @@ Module MDSigmaHCOLEval
   Proof.
     intros mem1 mem2 ME σ' σ ΣE f' f FE i' i IE a' a AE.
     unfold evalIUnCType.
-    enough (T : DSHCTypeVal a' :: DSHnatVal i' :: σ' = DSHCTypeVal a :: DSHnatVal i :: σ)
+    enough (T : (DSHCTypeVal a', false) :: (DSHnatVal i',false) :: σ' = (DSHCTypeVal a,false) :: (DSHnatVal i,false) :: σ)
       by (rewrite T, ME, FE; reflexivity).
     f_equiv.
+    apply pair_proper; [|reflexivity].
     constructor 2.
     assumption.
-    constructor.
+    rewrite ΣE.
+    f_equiv.
+    constructor;cbn.
     constructor; assumption.
-    rewrite ΣE; reflexivity.
+    reflexivity.
   Qed.
 
   Global Instance evalIBinCType_proper :
@@ -960,16 +1028,19 @@ Module MDSigmaHCOLEval
   Proof.
     intros mem1 mem2 ME σ' σ ΣE f' f FE i' i IE a' a AE b' b BE.
     unfold evalIBinCType.
-    enough (T : DSHCTypeVal b' :: DSHCTypeVal a' :: DSHnatVal i' :: σ' =
-                DSHCTypeVal b  :: DSHCTypeVal a  :: DSHnatVal i  :: σ)
+    enough (T : (DSHCTypeVal b', false) :: (DSHCTypeVal a', false) :: (DSHnatVal i', false) :: σ' =
+                (DSHCTypeVal b, false)  :: (DSHCTypeVal a, false)  :: (DSHnatVal i, false)  :: σ)
       by (rewrite ME, T, FE; reflexivity).
     f_equiv.
+    apply pair_proper; [|reflexivity].
     constructor; assumption.
     f_equiv.
+    apply pair_proper; [|reflexivity].
     constructor; assumption.
-    constructor.
+    f_equiv.
+    apply pair_proper; [|reflexivity].
     constructor; assumption.
-    rewrite ΣE; reflexivity.
+    assumption.
   Qed.
 
   Fixpoint NExpr_var_subst
@@ -1774,9 +1845,9 @@ Module MDSigmaHCOLEval
         repeat break_match; try some_none; intuition.
       }
       
-      assert (evalDSHOperator (DSHPtrVal (memory_next_key mem2) size :: σ) dop
+      assert (evalDSHOperator ((DSHPtrVal (memory_next_key mem2) size, false) :: σ) dop
                               (memory_set mem1 (memory_next_key mem2) mem_empty) fuel =
-              evalDSHOperator (DSHPtrVal (memory_next_key mem2) size :: σ) dop
+              evalDSHOperator ((DSHPtrVal (memory_next_key mem2) size, false) :: σ) dop
                               (memory_set mem2 (memory_next_key mem2) mem_empty) fuel)
         by (apply IHdop; rewrite ME; reflexivity).
       
@@ -1823,8 +1894,19 @@ Module MDSigmaHCOLEval
     Lemma evalPExpr_incrPVar
           (p : PExpr)
           (σ : evalContext)
-          (foo: DSHVal):
-      evalPExpr (foo :: σ) (incrPVar 0 p) ≡ evalPExpr σ p.
+          (foo: DSHVal)
+          (f:bool):
+      evalPExpr ((foo,f) :: σ) (incrPVar 0 p) ≡ evalPExpr σ p.
+    Proof.
+      destruct p;constructor.
+    Qed.
+
+    Lemma evalPExpr'_incrPVar
+          (p : PExpr)
+          (σ : evalContext)
+          (foo: DSHVal)
+          (f:bool):
+      evalPExpr' ((foo,f) :: σ) (incrPVar 0 p) ≡ evalPExpr' σ p.
     Proof.
       destruct p;constructor.
     Qed.
@@ -1833,14 +1915,16 @@ Module MDSigmaHCOLEval
           (mem: memory)
           (m : MExpr)
           (σ : evalContext)
-          (foo: DSHVal):
-      evalMExpr mem (foo :: σ) (incrMVar 0 m) ≡ evalMExpr mem σ m.
+          (foo: DSHVal)
+          (f:bool)
+      :
+      evalMExpr mem ((foo,f) :: σ) (incrMVar 0 m) ≡ evalMExpr mem σ m.
     Proof.
       destruct m.
       -
         simpl.
         assert_match_eq E.
-        apply evalPExpr_incrPVar.
+        apply evalPExpr'_incrPVar.
         repeat break_match; try inl_inr; try inl_inr_inv; subst; auto.
         +
           rewrite Heqs0 in Heqs2.
@@ -1863,8 +1947,9 @@ Module MDSigmaHCOLEval
     Lemma evalNExpr_incrNVar
           (n : NExpr)
           (σ : evalContext)
-          (foo: DSHVal):
-      evalNExpr (foo :: σ) (incrNVar 0 n) ≡ evalNExpr σ n.
+          (foo: DSHVal)
+          (f:bool):
+      evalNExpr ((foo,f) :: σ) (incrNVar 0 n) ≡ evalNExpr σ n.
     Proof.
       induction n; try constructor;
         (simpl;
@@ -1876,8 +1961,9 @@ Module MDSigmaHCOLEval
           (mem: memory)
           (a : AExpr)
           (σ : evalContext)
-          (foo: DSHVal):
-      evalAExpr mem (foo :: σ) (incrAVar 0 a) ≡ evalAExpr mem σ a.
+          (foo: DSHVal)
+          (f:bool):
+      evalAExpr mem ((foo,f) :: σ) (incrAVar 0 a) ≡ evalAExpr mem σ a.
     Proof.
       induction a; try constructor; simpl;
         (try rewrite evalMExpr_incrMVar;
