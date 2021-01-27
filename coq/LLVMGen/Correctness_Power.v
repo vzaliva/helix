@@ -762,11 +762,31 @@ Proof.
         unfold mem_lookup_err.
         unfold trywith.
 
-        break_match_goal; inv LINV_HELIX_MB_NEW.
-        rename v into b2.
+        rewrite denoteDSHPower_as_tfor in NOFAIL.
+        unfold DSHPower_tfor in NOFAIL.
 
-        cbn.
-        hred; vred.
+        eapply no_failure_helix_bind_prefix in NOFAIL.
+        rewrite interp_helix_tfor in NOFAIL; [|lia].
+        eapply no_failure_tfor with (k0:=k) in NOFAIL; [|lia|eauto].
+        cbn in NOFAIL.
+
+        break_match_goal.
+        2: { unfold mem_lookup_err in *.
+             rewrite Heqo1 in NOFAIL.
+             cbn in NOFAIL.
+             eapply no_failure_bind_prefix in NOFAIL.
+             eapply no_failure_helix_bind_prefix in NOFAIL.
+             eapply failure_helix_throw in NOFAIL.
+             inv NOFAIL.
+        }
+        rename Heqo1 into MEMLUP_xoff.
+
+        unfold mem_lookup_err in NOFAIL.
+        rewrite MEMLUP_xoff in NOFAIL.
+        rewrite LINV_HELIX_MB_NEW in NOFAIL.
+        cbn in NOFAIL.
+        repeat rewrite bind_ret_l in NOFAIL.
+
         unfold denoteBinCType.
 
         rewrite denote_ocfg_unfold_in.
@@ -774,6 +794,7 @@ Proof.
           apply find_block_eq; auto.
         }
 
+        rewrite LINV_HELIX_MB_NEW.
         cbn; vred.
 
         rewrite denote_no_phis.
@@ -781,6 +802,24 @@ Proof.
 
         rewrite denote_code_cons.
         vred.
+
+        pose proof (write_correct WRITE_INIT) as [WRITE_ALLOCATED WRITE_WRITTEN].
+        specialize (WRITE_WRITTEN DTYPE_Double).
+        forward WRITE_WRITTEN; [constructor|].
+        destruct WRITE_WRITTEN as [MEXT_INIT_NEW MEXT_INIT_OLD].
+
+        Ltac solve_allocated :=
+          solve [ eauto
+                | eapply dtyp_fits_allocated; eauto
+                | eapply handle_gep_addr_allocated; cycle 1; [solve [eauto] | solve_allocated]
+                | eapply write_preserves_allocated; cycle 1; [solve [eauto] | solve_allocated]
+                ].
+
+        assert (allocated ptrll_xoff mV_yoff) as PTRLL_XOFF_ALLOCATED_mV_yoff by solve_allocated.
+        assert (allocated src_addr mV_yoff) as SRC_ALLOCATED_mV_yoff by solve_allocated.
+
+        (* TODO: aliasing result that we should be able to clear up soon *)
+        assert (no_overlap_dtyp dst_addr DTYPE_Double src_addr DTYPE_Double) as NOALIAS by admit.
 
         (* Load src *)
         rewrite denote_instr_load.
@@ -791,25 +830,6 @@ Proof.
           eauto.
         }
         2: {
-          pose proof WRITE_INIT.
-          pose proof (write_correct WRITE_INIT) as [WRITE_ALLOCATED WRITE_WRITTEN].
-          specialize (WRITE_WRITTEN DTYPE_Double).
-          forward WRITE_WRITTEN; [constructor|].
-          destruct WRITE_WRITTEN as [MEXT_INIT_NEW MEXT_INIT_OLD].
-
-          Ltac solve_allocated :=
-            solve [ eauto
-                  | eapply dtyp_fits_allocated; eauto
-                  | eapply handle_gep_addr_allocated; cycle 1; [solve [eauto] | solve_allocated]
-                  | eapply write_preserves_allocated; cycle 1; [solve [eauto] | solve_allocated]
-                  ].
-
-          assert (allocated ptrll_xoff mV_yoff) as PTRLL_XOFF_ALLOCATED_mV_yoff by solve_allocated.
-          assert (allocated src_addr mV_yoff) as SRC_ALLOCATED_mV_yoff by solve_allocated.
-
-          (* TODO: aliasing result that we should be able to clear up soon *)
-          assert (no_overlap_dtyp dst_addr DTYPE_Double src_addr DTYPE_Double) as NOALIAS by admit.
-
           erewrite LINV_MEXT_OLD; eauto; [|solve_allocated].
           erewrite MEXT_INIT_OLD; eauto.
 
@@ -831,7 +851,8 @@ Proof.
           Qed.
 
           Ltac solve_read :=
-            solve [ (* read from an array *)
+            solve [ eauto
+                  | (* read from an array *)
                     erewrite read_array; cycle 2; [solve [eauto] | | solve_allocated]; eauto
                   ].
 
@@ -842,15 +863,26 @@ Proof.
         rewrite map_app.
         cbn.
         typ_to_dtyp_simplify.
-        rewrite denote_code_app.
-        rewrite bind_bind.
+        rewrite denote_code_cons.
+        vred; hred.
+
+        (* Load dst *)
+        rewrite denote_instr_load; [|apply denote_exp_LR; cbn; solve_alist_in|solve_read].
+
+        cbn.
         vred.
+
+        rewrite denote_code_app.
+        vred.
+        rewrite bind_bind.
+
+        change (map (λ '(id1, i), (Endo_instr_id id1, Fmap_instr typ dtyp (typ_to_dtyp []) i)) c2) with (convert_typ [] c2).
 
         eapply eutt_clo_bind_returns.
         {
           eapply genAExpr_correct.
           eauto.
-          { eapply state_invariant_enter_scope_DSHCType with (s1:={| block_count := block_count i19; local_count := local_count i17; void_count := void_count i19; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}); cbn; eauto.
+          { eapply state_invariant_enter_scope_DSHCType with (s1:={| block_count := block_count i19; local_count := local_count i19; void_count := void_count i19; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}); cbn; eauto.
             
             { pose proof GAM.
               unfold Gamma_safe in H.
@@ -862,13 +894,14 @@ Proof.
               solve_not_in_gamma.
               intros CONTRA; subst.
 
-              eapply lid_bound_between_incLocal in Heqs9.
-              eapply lid_bound_between_incLocal in Heqs13.
-              eapply state_bound_between_id_separate.
-              2: { eapply Heqs9. }
-              2: { eapply Heqs13. }
-              2: { solve_local_count. }
-              eapply incLocalNamed_count_gen_injective.
+              match goal with
+              | H1: incLocal _ ≡ inr (_, dst_val_id),
+                    H2: incLocal _ ≡ inr (_, dst_val_id) |- _
+                => eapply lid_bound_between_incLocal in H1;
+                    eapply lid_bound_between_incLocal in H2;
+                    eapply state_bound_between_id_separate;[|eapply H1|eapply H2|solve_local_count];
+                      eapply incLocalNamed_count_gen_injective
+              end.
             }
 
             { solve_alist_in.
@@ -884,6 +917,12 @@ Proof.
             eapply state_invariant_same_Γ with (s1:=s2); eauto.
             solve_gamma.
 
+            { eapply not_in_Gamma_Gamma_eq; eauto.
+              eapply GAM.
+              solve_lid_bound_between.
+            }
+
+            eapply state_invariant_same_Γ with (s1:=s2); eauto.
             { eapply not_in_Gamma_Gamma_eq; eauto.
               eapply GAM.
               solve_lid_bound_between.
@@ -911,58 +950,22 @@ Proof.
             cbn.
             solve_gamma.
 
-            { intros id1 H.
+            { intros ? ?.
               solve_id_neq.
             }
 
             cbn.
             solve_gamma.
 
-            { intros id1 H.
+            { intros ? ?.
               solve_id_neq.
             }
           }
 
-          { rewrite denoteDSHPower_as_tfor in NOFAIL.
-            unfold DSHPower_tfor in NOFAIL.
-
+          { unfold denoteBinCType in NOFAIL.
+            eapply no_failure_bind_prefix in NOFAIL.
             eapply no_failure_helix_bind_prefix in NOFAIL.
-            rewrite interp_helix_tfor in NOFAIL.
-            eapply no_failure_tfor in NOFAIL.
-
-            unfold DSHPower_tfor_body in NOFAIL.
-
-            3: {
-              pose proof LINV_RET as RET.
-              rewrite interp_helix_tfor in RET.
-              unfold DSHPower_tfor_body.
-              eapply RET.
-              lia.
-            }
-            2: lia.
-            2: lia.
-
-            cbn in NOFAIL.
-            repeat setoid_rewrite interp_helix_bind in NOFAIL.
-            pose proof NOFAIL as NOFAIL_loop.
-            eapply no_failure_bind_prefix in NOFAIL_loop.
-
-            pose proof NOFAIL_loop as NOFAIL_y.
-            eapply no_failure_bind_prefix in NOFAIL_y.
-
-            eapply no_failure_bind_cont in NOFAIL_loop.
-            2: {
-              eapply mem_lookup_err_inr_Some_eq in Heqo1.
-              erewrite Heqo1.
-              cbn.
-              rewrite interp_helix_ret.
-              cbn.
-              constructor.
-              reflexivity.
-            }
-
-            cbn in NOFAIL_loop.
-            eapply no_failure_helix_bind_prefix. eapply NOFAIL_loop.
+            eauto.
           }
         }
 
@@ -1239,11 +1242,6 @@ Proof.
           }
 
           split.
-          { (* src_val_id *)
-            destruct Mono_IRState; subst; solve_alist_in.
-          }
-
-          split.
           { eapply write_correct in WRITE.
             destruct WRITE as [ALLOCATED WRITTEN].
 
@@ -1271,8 +1269,8 @@ Proof.
             rewrite tfor_unroll; [|lia].
             rewrite interp_helix_bind.
             
-            eapply mem_lookup_err_inr_Some_eq in Heqo1.
-            erewrite Heqo1.
+            eapply mem_lookup_err_inr_Some_eq in MEMLUP_xoff.
+            erewrite MEMLUP_xoff.
             cbn.
             rewrite bind_ret_l.
             unfold denoteBinCType.
@@ -1281,8 +1279,19 @@ Proof.
 
             { rewrite interp_helix_bind.
               eapply Returns_bind; eauto.
-
+              unfold mem_lookup_err.
+              rewrite LINV_HELIX_MB_NEW.
               cbn.
+              rewrite interp_helix_ret.
+              cbn.
+
+              constructor.
+              reflexivity.
+
+              rewrite interp_helix_bind.
+              eapply Returns_bind; eauto.
+              cbn.
+
               rewrite interp_helix_ret.
               cbn.
 
@@ -1304,6 +1313,7 @@ Proof.
           eapply local_scope_modif_sub'_l.
           2: solve_local_scope_modif.
           solve_lid_bound_between.
+          admit. (* BLAH *)
       }
 
       (* TODO: Might want to do more forward reasoning first *)
@@ -1407,19 +1417,6 @@ Proof.
           solve_lid_bound_between.
           solve_lid_bound_between.
           cbn; solve_local_count.
-        }
-        split.
-        { destruct BOUND.
-          solve_alist_in.
-          erewrite alist_find_neq.
-          solve_alist_in.
-
-          (* TODO: automate this *)
-          eapply state_bound_between_separate.
-          eapply incLocalNamed_count_gen_injective.
-          solve_lid_bound_between.
-          solve_lid_bound_between.
-          solve_local_count.
         }
         split.
         { destruct BOUND.
