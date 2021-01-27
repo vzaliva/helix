@@ -668,6 +668,42 @@ Section SimulationRelations.
     eauto.
   Qed.
 
+  Lemma no_llvm_ptr_aliasing_same_block :
+    forall {σ s l g n1 n2 v1 v2 id1 id2 τ1 τ2 ptrv1 ptrv2},
+      no_llvm_ptr_aliasing σ s l g ->
+      nth_error (Γ s) n1 ≡ Some (id1, τ1) ->
+      nth_error σ n1 ≡ Some v1 ->
+      nth_error (Γ s) n2 ≡ Some (id2, τ2) ->
+      nth_error σ n2 ≡ Some v2 ->
+      in_local_or_global_addr l g id1 ptrv1 ->
+      in_local_or_global_addr l g id2 ptrv2 ->
+      fst ptrv1 ≡ fst ptrv2 ->
+      id1 ≡ id2.
+  Proof.
+    intros σ s l g n1 n2 v1 v2 id1 id2 τ1 τ2 ptrv1 ptrv2 ALIAS NTH_Γ1 NTH_σ1 NTH_Γ2 NTH_σ2 INLG1 INLG2 BLOCK.
+    pose proof (ALIAS id1 ptrv1 id2 ptrv2 n1 n2 τ1 τ2 v1 v2 NTH_σ1 NTH_σ2 NTH_Γ1 NTH_Γ2) as CONTRA.
+    destruct id1, id2.
+    - (* global + global *)
+      pose proof (rel_dec_p id id0) as [EQ | NEQ]; subst; auto.
+      assert (ID_Global id ≢ ID_Global id0) as NEQ' by (intros H; inv H; contradiction).
+      specialize (CONTRA NEQ' INLG1 INLG2).
+      contradiction.
+    - (* global + local *)
+      assert (ID_Global id ≢ ID_Local id0) as NEQ' by (intros H; inv H; contradiction).
+      specialize (CONTRA NEQ' INLG1 INLG2).
+      contradiction.
+    - (* local + global *)
+      assert (ID_Local id ≢ ID_Global id0) as NEQ' by (intros H; inv H; contradiction).
+      specialize (CONTRA NEQ' INLG1 INLG2).
+      contradiction.
+    - (* local + local *)
+      pose proof (rel_dec_p id id0) as [EQ | NEQ]; subst; auto.
+      assert (ID_Local id ≢ ID_Local id0) as NEQ' by (intros H; inv H; contradiction).
+      specialize (CONTRA NEQ' INLG1 INLG2).
+      contradiction.
+  Qed.
+
+
   Lemma state_invariant_memory_invariant :
     forall σ s mH mV l g,
       state_invariant σ s mH (mV,(l,g)) ->
