@@ -32,7 +32,8 @@ Local Open Scope nat_scope.
 
 Section DSHPower_is_tfor.
 
-  Definition DSHPower_tfor_body (σ : evalContext) (f : AExpr) (xv : binary64) (y : mem_block) (yoffset : nat) (acc : mem_block) :=
+  Definition DSHPower_tfor_body (σ : evalContext) (f : AExpr) (x y : mem_block) (xoffset yoffset : nat) (acc : mem_block) :=
+    xv <- lift_Derr (mem_lookup_err "Error reading 'xv' memory in denoteDSHBinOp" xoffset x) ;;
     yv <- lift_Derr (mem_lookup_err "Error reading 'yv' memory in denoteDSHBinOp" yoffset acc) ;;
     v' <- denoteBinCType σ f yv xv ;;
     ret (mem_add yoffset v' acc).
@@ -41,13 +42,12 @@ Section DSHPower_is_tfor.
              (σ: evalContext)
              (n: nat)
              (f: AExpr)
-             (xv : binary64)
-             (y: mem_block)
-             (yoffset: nat) :
+             (x y: mem_block)
+             (xoffset yoffset: nat) :
     itree Event mem_block
     :=
       tfor (fun i acc =>
-              DSHPower_tfor_body σ f xv y yoffset acc
+              DSHPower_tfor_body σ f x y xoffset yoffset acc
            ) 0 n y.
 
   Definition DSHPower_interpreted_tfor
@@ -55,16 +55,15 @@ Section DSHPower_is_tfor.
              (σ: evalContext)
              (n: nat)
              (f: AExpr)
-             (xv : binary64)
-             (y: mem_block)
-             (yoffset: nat) m
+             (x y: mem_block)
+             (xoffset yoffset: nat) m
     : itree E (option (memoryH * mem_block))
     :=
       tfor (fun i acc =>
               match acc with
               | None => Ret None
               | Some (m',acc) =>
-                interp_helix (DSHPower_tfor_body σ f xv y yoffset acc) m'
+                interp_helix (DSHPower_tfor_body σ f x y xoffset yoffset acc) m'
               end
            ) 0 n (Some (m, y)).
 
@@ -72,27 +71,28 @@ Section DSHPower_is_tfor.
     forall (σ: evalContext)
       (n: nat)
       (f: AExpr)
-      (xv : binary64)
-      (y: mem_block)
-      (yoffset: nat),
-      denoteDSHPower σ n f xv y yoffset
+      (x y: mem_block)
+      (xoffset yoffset: nat),
+      denoteDSHPower σ n f x y xoffset yoffset
                      ≈
-                     DSHPower_tfor σ n f xv y yoffset.
+                     DSHPower_tfor σ n f x y xoffset yoffset.
   Proof.
     intros σ n; revert σ.
-    induction n; unfold DSHPower_tfor; intros σ f xv y yoffset.
+    induction n; unfold DSHPower_tfor; intros σ f x y xoffset yoffset.
     - cbn.
       rewrite tfor_0.
       reflexivity.
     - cbn.
       rewrite tfor_unroll_down; [|lia|].
       + cbn.
+        unfold mem_lookup_err.
         repeat setoid_rewrite bind_bind.
         eapply eutt_clo_bind; [reflexivity|].
         intros u1 u2 H; subst.
         eapply eutt_clo_bind; [reflexivity|].
-        intros u0 u3 H0.
-        subst.
+        intros u0 u3 H0; subst.
+        eapply eutt_clo_bind; [reflexivity|].
+        intros u1 u0 H.
         rewrite bind_ret_l.
         unfold DSHPower_tfor in IHn.
         subst.
@@ -101,55 +101,26 @@ Section DSHPower_is_tfor.
         reflexivity.
   Qed.
 
-  Lemma denoteDSHPower_interpreted_as_tfor :
-    forall (σ: evalContext)
-      (n: nat)
-      (f: AExpr)
-      (xv : binary64)
-      (y: mem_block)
-      (yoffset: nat) m E,
-      interp_helix (E:=E) (denoteDSHPower σ n f xv y yoffset) m
-                     ≈
-                     DSHPower_interpreted_tfor σ n f xv y yoffset m.
-  Proof.
-    intros.
-    rewrite denoteDSHPower_as_tfor.
-    unfold DSHPower_tfor.
-    rewrite interp_helix_tfor; [|lia].
-    cbn.
-    apply eutt_tfor.
-    intros [[m' acc]|] i; [| reflexivity].
-    unfold DSHPower_tfor_body.
-    cbn.
-    repeat rewrite interp_helix_bind.
-    rewrite bind_bind.
-    apply eutt_eq_bind; intros [[?m ?] |]; [| rewrite bind_ret_l; reflexivity].
-    bind_ret_r2.
-    apply eutt_eq_bind.
-    intros [|]; reflexivity.
-  Qed.
-
   Lemma DSHPower_as_tfor : forall σ ne x_p xoffset y_p yoffset f initial,
       denoteDSHOperator σ (DSHPower ne (x_p,xoffset) (y_p,yoffset) f initial)
                         ≈
-                        '(x_i,x_size) <- denotePExpr σ x_p ;;
-      '(y_i,y_size) <- denotePExpr σ y_p ;;
-      x <- trigger (MemLU "Error looking up 'x' in DSHPower" x_i) ;;
-      y <- trigger (MemLU "Error looking up 'y' in DSHPower" y_i) ;;
-      n <- denoteNExpr σ ne ;; (* [n] denoteuated once at the beginning *)
-      xoff <- denoteNExpr σ xoffset ;;
-      yoff <- denoteNExpr σ yoffset ;;
-      lift_Derr (assert_NT_lt "DSHPower 'y' offset out of bounds" yoff y_size) ;;
-      xv <- lift_Derr (mem_lookup_err "Error reading 'xv' memory in denoteDSHBinOp" (MInt64asNT.to_nat xoff) x) ;;
-      let y' := mem_add (MInt64asNT.to_nat yoff) initial y in
-      y'' <- DSHPower_tfor σ (MInt64asNT.to_nat n) f xv y' (MInt64asNT.to_nat yoff) ;;
-      trigger (MemSet y_i y'').
+          '(x_i,x_size) <- denotePExpr σ x_p ;;
+          '(y_i,y_size) <- denotePExpr σ y_p ;;
+          x <- trigger (MemLU "Error looking up 'x' in DSHPower" x_i) ;;
+          y <- trigger (MemLU "Error looking up 'y' in DSHPower" y_i) ;;
+          n <- denoteNExpr σ ne ;; (* [n] denoteuated once at the beginning *)
+          xoff <- denoteNExpr σ xoffset ;;
+          yoff <- denoteNExpr σ yoffset ;;
+          lift_Derr (assert_NT_lt "DSHPower 'y' offset out of bounds" yoff y_size) ;;
+          let y' := mem_add (MInt64asNT.to_nat yoff) initial y in
+          y'' <- DSHPower_tfor σ (MInt64asNT.to_nat n) f x y' (MInt64asNT.to_nat xoff) (MInt64asNT.to_nat yoff) ;;
+          trigger (MemSet y_i y'').
   Proof.
     intros σ ne x_p xoffset y_p yoffset f initial.
     unfold denoteDSHOperator.
     cbn.
-    repeat (eapply eutt_clo_bind; [reflexivity|intros; try break_match_goal; subst]).
-    setoid_rewrite denoteDSHPower_as_tfor.
+    repeat (eapply eutt_clo_bind_returns; [reflexivity|intros; try break_match_goal; subst]).
+    rewrite denoteDSHPower_as_tfor.
     reflexivity.
   Qed.
 
@@ -165,9 +136,8 @@ Section DSHPower_is_tfor.
        xoff <- denoteNExpr σ xoffset ;;
        yoff <- denoteNExpr σ yoffset ;;
        lift_Derr (assert_NT_lt "DSHPower 'y' offset out of bounds" yoff y_size) ;;
-       xv <- lift_Derr (mem_lookup_err "Error reading 'xv' memory in denoteDSHBinOp" (MInt64asNT.to_nat xoff) x) ;;
        let y' := mem_add (MInt64asNT.to_nat yoff) initial y in
-       y'' <- DSHPower_tfor σ (MInt64asNT.to_nat n) f xv y' (MInt64asNT.to_nat yoff) ;;
+       y'' <- DSHPower_tfor σ (MInt64asNT.to_nat n) f x y' (MInt64asNT.to_nat xoff) (MInt64asNT.to_nat yoff) ;;
        trigger (MemSet y_i y'')) m.
   Proof.
     intros σ ne x_p xoffset y_p yoffset f initial E m.
@@ -213,14 +183,14 @@ Section DSHPower_is_tfor.
 
   (* be careful about local_scope_modif *)
   Lemma DSHPower_body_eutt :
-    forall σ f y yoffset acc px py xv xvid yv xtyp xptyp x_c src_nexpr fexpr fexpcode storeid loopcontblock g li mV mH _label body_entry,
+    forall σ f x y xoffset yoffset acc px py xvid yv xtyp xptyp x_c src_nexpr fexpr fexpcode storeid loopcontblock g li mV mH _label body_entry,
           eutt
             (fun x y => True)
-            (interp_helix (DSHPower_tfor_body σ f xv y yoffset acc) mH)
+            (interp_helix (DSHPower_tfor_body σ f x y xoffset yoffset acc) mH)
             (interp_cfg (denote_ocfg (convert_typ [] [(DSHPower_block body_entry loopcontblock px py xvid yv xtyp xptyp x_c src_nexpr fexpr fexpcode storeid)]) (_label, body_entry)) g li mV).
   Proof.
-    intros σ f y yoffset acc px py xv xvid yv xtyp xptyp x_c src_nexpr fexpr fexpcode storeid loopcontblock g li
-           mV mH _label body_entry.
+    intros σ f x y xoffset yoffset acc px py xvid yv xtyp xptyp x_c src_nexpr fexpr fexpcode storeid
+           loopcontblock g li mV mH _label body_entry.
     cbn* in *; simp.
     break_match_goal; simp.
     - admit.
@@ -481,22 +451,23 @@ Proof.
   eapply no_failure_helix_bind_prefix in NOFAIL_Assert.
 
   (* TODO: I feel like I should be able to automate all of this no failure stuff. *)
-  break_match_goal; break_match_hyp.
+  break_match_goal.
   { exfalso; eapply failure_helix_throw; eassumption. }
-  { rewrite bind_ret_l in NOFAIL; eapply no_failure_helix_bind_prefix in NOFAIL;
-    exfalso; eapply failure_helix_throw; eassumption. }
-  { eapply no_failure_helix_bind_prefix in NOFAIL;
-    exfalso; eapply failure_helix_throw; eassumption. }
+  rewrite bind_ret_l in NOFAIL.
 
   hred.
-  repeat rewrite bind_ret_l in NOFAIL.
 
-  unfold assert_NT_lt, assert_true_to_err in Heqs1.
-  break_if; inv Heqs1. rename Heqb2 into LT_yoff.
+  match goal with
+  | H: assert_NT_lt _ _ _ ≡ inr _ |- _
+    =>
+    unfold assert_NT_lt, assert_true_to_err in H;
+      break_if; inv H
+  end.
 
-  break_match_hyp; inv Heqs0.
-  rename Heqo1 into MEMLUP_xoff.
-  
+  match goal with
+  | H: (_ <? _) ≡ true |- _
+    => rename H into LT_yoff
+  end.
 
   (* Need to figure out the corresponding pointer for id (i3).
 
@@ -597,7 +568,7 @@ Proof.
     destruct i3 as [id | id].
     { (* Global case for yoff *)
       (* TODO: can I automate this? *)
-        edestruct denote_instr_gep_array_no_read with (m:=mV_yoff) (g:=g_yoff) (ρ:=(alist_add src_val_id (UVALUE_Double b1) (alist_add src_ptr_id (UVALUE_Addr src_addr) l_yoff))) (size:=(Z.to_N (Int64.intval i4))) (τ:=DTYPE_Double) (i:=dst_ptr_id) (ptr := @EXP_Ident dtyp (ID_Global id)) (a:= ptrll_yoff) (e_ix:=fmap (typ_to_dtyp []) yoff_exp) (ix:=(MInt64asNT.to_nat yoff_res)).
+        edestruct denote_instr_gep_array_no_read with (m:=mV_yoff) (g:=g_yoff) (ρ:=(alist_add src_ptr_id (UVALUE_Addr src_addr) l_yoff)) (size:=(Z.to_N (Int64.intval i4))) (τ:=DTYPE_Double) (i:=dst_ptr_id) (ptr := @EXP_Ident dtyp (ID_Global id)) (a:= ptrll_yoff) (e_ix:=fmap (typ_to_dtyp []) yoff_exp) (ix:=(MInt64asNT.to_nat yoff_res)).
 
     { rewrite denote_exp_GR.
       change (UVALUE_Addr ptrll_yoff) with (dvalue_to_uvalue (DVALUE_Addr ptrll_yoff)).
@@ -613,17 +584,7 @@ Proof.
 
       { unfold local_scope_preserved.
         intros id1 H.
-        rewrite alist_find_neq.
-        rewrite alist_find_neq.
-        reflexivity.
-        { eapply state_bound_between_disjoint_neq; eauto.
-          2: solve_lid_bound_between.
-          apply incLocalNamed_count_gen_injective.
-        }
-        { eapply state_bound_between_disjoint_neq; eauto.
-          2: solve_lid_bound_between.
-          apply incLocalNamed_count_gen_injective.
-        }
+        solve_alist_in.
       }
 
       solve_gamma_preserved.
@@ -648,7 +609,7 @@ Proof.
       apply alist_find_add_eq.
     }
     2: { pose proof GETARRAYCELL_xoff as GET.
-         specialize (GET  _ _ MEMLUP_xoff).
+         specialize (GET _ _ MEMLUP_xoff).
 
          erewrite read_array; eauto.
 

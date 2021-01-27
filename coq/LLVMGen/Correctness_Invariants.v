@@ -327,6 +327,15 @@ Section SimulationRelations.
                   mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v0
                   → get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0)).
 
+  (* TODO: might be able to simplify this *)
+  Definition memory_invariant_partial_single_write (configV : config_cfg) (index : nat) (ptr_llvm : addr) (bk_helix : mem_block) (x : ident) sz : Prop :=
+      let '(mem_llvm, (ρ, g)) := configV in
+          dtyp_fits mem_llvm ptr_llvm (DTYPE_Array sz DTYPE_Double)
+              ∧ in_local_or_global_addr ρ g x ptr_llvm
+              ∧ (∀ (v0 : binary64),
+                  mem_lookup index bk_helix ≡ Some v0
+                  → get_array_cell mem_llvm ptr_llvm index DTYPE_Double ≡ inr (UVALUE_Double v0)).
+
   (* Lookups in [genv] are fully determined by lookups in [Γ] and [σ] *)
   Lemma memory_invariant_GLU : forall σ s v id memH memV t l g n,
       memory_invariant σ s memH (memV, (l, g)) ->
