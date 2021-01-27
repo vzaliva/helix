@@ -318,12 +318,17 @@ Section SimulationRelations.
                           → get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0))
           end.
 
-  Definition memory_invariant_partial_write (configV : config_cfg) (index : nat) (ptr_llvm : addr) (bk_helix : mem_block) (x : ident) sz : Prop :=
+
+  Definition memory_invariant_partial_write (configV : config_cfg) (index loopsize : nat) (ptr_llvm : addr) (bk_helix : mem_block) ptr sz : Prop :=
       let '(mem_llvm, (ρ, g)) := configV in
-          dtyp_fits mem_llvm ptr_llvm (DTYPE_Array sz DTYPE_Double)
+      forall n size τ s σ x,
+        nth_error σ n ≡ Some (DSHPtrVal ptr size) ->
+        nth_error (Γ s) n ≡ Some (x, τ) ->
+        τ ≡ (TYPE_Pointer (TYPE_Array sz TYPE_Double)) /\
+          dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp [] (TYPE_Array sz TYPE_Double))
               ∧ in_local_or_global_addr ρ g x ptr_llvm
               ∧ (∀ (i : Int64.int) (v0 : binary64),
-                  (MInt64asNT.to_nat i) < index ->
+                  ((MInt64asNT.to_nat i) < loopsize -> (MInt64asNT.to_nat i) < index) ->
                   mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v0
                   → get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0)).
 
@@ -484,6 +489,49 @@ Section SimulationRelations.
       @is_pure R S memH (mk_config_cfg memV l g) (memH, n) (memV, (l, (g, v))).
   Proof.
     intros; repeat split; reflexivity.
+  Qed.
+
+
+  (* A couple lemmas about [state_invariant_relaxed] *)
+  Lemma relax_state_invariant :
+    forall σ s mH stV ptr,
+      state_invariant σ s mH stV ->
+      state_invariant_relaxed σ s mH stV ptr.
+  Proof.
+    intros * [].
+    split; eauto.
+    unfold memory_invariant_relaxed.
+    intros. destruct stV as (? &? & ?).
+    intros. unfold memory_invariant in mem_is_inv0.
+    specialize (mem_is_inv0 n v τ x H H0).
+    destruct v; eauto.
+  Qed.
+
+  Lemma stengthen_state_invariant :
+    forall σ s mH stV ptr ptr_llvm loop_n bk_helix sz,
+      state_invariant_relaxed σ s mH stV ptr ->
+      memory_lookup mH ptr ≡ Some bk_helix ->
+      memory_invariant_partial_write stV loop_n loop_n ptr_llvm bk_helix ptr sz ->
+      state_invariant σ s mH stV.
+  Proof.
+    intros * [] M MINV.
+    split; eauto.
+    unfold memory_invariant, memory_invariant_relaxed, memory_invariant_partial_write in *.
+    destruct stV as (? & ? & ?).
+    intros.
+    specialize (mem_is_inv_relax0 _ _ _ _ H H0).
+    destruct v; eauto.
+    destruct (ptr =? a) eqn: PEQ; cycle 1.
+    - apply beq_nat_false in PEQ. specialize (mem_is_inv_relax0 PEQ).
+      edestruct mem_is_inv_relax0 as (? & ? & ? & ? & ? & ? & ? & ?).
+      eexists x0, x1, x2.
+      split; [|split; [|split;[|split]]]; eauto.
+    - apply beq_nat_true in PEQ. subst.
+      clear mem_is_inv_relax0.
+      specialize (MINV _ _ _ _ _ _ H H0).
+      destruct MINV as (? & ? & ? & ?).
+      exists bk_helix, ptr_llvm, (TYPE_Array sz TYPE_Double).
+      split; [|split; [|split;[|split]]]; eauto.
   Qed.
 
   Lemma no_llvm_ptr_aliasing_not_in_gamma :
