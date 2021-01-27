@@ -800,37 +800,42 @@ Proof.
           Ltac solve_allocated :=
             solve [ eauto
                   | eapply dtyp_fits_allocated; eauto
-                  | eapply handle_gep_addr_allocated; cycle 1; [eauto | solve_allocated]
+                  | eapply handle_gep_addr_allocated; cycle 1; [solve [eauto] | solve_allocated]
+                  | eapply write_preserves_allocated; cycle 1; [solve [eauto] | solve_allocated]
                   ].
 
           assert (allocated ptrll_xoff mV_yoff) as PTRLL_XOFF_ALLOCATED_mV_yoff by solve_allocated.
           assert (allocated src_addr mV_yoff) as SRC_ALLOCATED_mV_yoff by solve_allocated.
 
-          erewrite LINV_MEXT_OLD.
-          { erewrite MEXT_INIT_OLD.
-            { erewrite read_array; eauto.
-            }
-            auto.
-            admit. (* Aliasing *)
-          }
-          solve_allocated.
-          [solve_allocated|].
-          erewrite MEXT_INIT_OLD.
+          (* TODO: aliasing result that we should be able to clear up soon *)
+          assert (no_overlap_dtyp dst_addr DTYPE_Double src_addr DTYPE_Double) as NOALIAS by admit.
 
+          erewrite LINV_MEXT_OLD; eauto; [|solve_allocated].
+          erewrite MEXT_INIT_OLD; eauto.
 
-          pose proof GETARRAYCELL_xoff.
-          rewrite LINV_MEXT_OLD.
-          erewrite read_array.
-          erewrite GETARRAYCELL_xoff.
+          (* If I write to a different area, it doesn't affect the allocation of other addresses *)
+          Lemma write_untouched_allocated:
+            forall m1 m2 a τa v,
+              dvalue_has_dtyp v τa ->
+              write m1 a v ≡ inr m2 ->
+              forall b τb, no_overlap_dtyp a τa b τb ->
+                      allocated b m2 ->
+                      allocated b m1.
+          Proof.
+            intros m1 m2 a τa v TYP WRITE b τb OVERLAP ALLOC.
 
-          (* H is not sufficient! It's in terms of mV_yoff, not
-             mV_loop. Need to extend invariant. *)
+            eapply allocated_can_read in ALLOC as [v' READ].
+            eapply can_read_allocated.
 
-          (* ALSO mb_loop instead of bkh_yoff here *)
+            erewrite write_untouched in READ; eauto.
+          Qed.
 
-          (* I *think* src and dst can actually alias, which will make
-          the invariant more difficult *)
-          apply LINV_MEXT_NEW. (* TODO: This is obviously a lie *)
+          Ltac solve_read :=
+            solve [ (* read from an array *)
+                    erewrite read_array; cycle 2; [solve [eauto] | | solve_allocated]; eauto
+                  ].
+
+          solve_read.
         }
 
         vred.
