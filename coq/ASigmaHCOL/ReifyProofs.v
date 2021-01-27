@@ -1329,9 +1329,14 @@ Section BinCarrierA.
       assumption.
   Qed.
 
-  Lemma evalNExpr_cons_CTypeVal (a b : CarrierA) (σ1 σ2 : evalContext) (n : NExpr) :
+  Lemma evalNExpr_cons_CTypeVal
+        (a b : CarrierA)
+        (σ1 σ2 : evalContext)
+        (n : NExpr)
+        {f}
+    :
     (forall n', evalNExpr σ1 n' = evalNExpr σ2 n') ->
-    evalNExpr (DSHCTypeVal a :: σ1) n = evalNExpr (DSHCTypeVal b :: σ2) n.
+    evalNExpr ((DSHCTypeVal a,f) :: σ1) n = evalNExpr ((DSHCTypeVal b,f) :: σ2) n.
   Proof.
     intros.
     induction n.
@@ -1349,10 +1354,10 @@ Section BinCarrierA.
 
     (* inductive cases *)
     all: cbn.
-    all: destruct (evalNExpr (DSHCTypeVal a :: σ1) n1),
-                  (evalNExpr (DSHCTypeVal a :: σ1) n2),
-                  (evalNExpr (DSHCTypeVal b :: σ2) n1),
-                  (evalNExpr (DSHCTypeVal b :: σ2) n2); try inl_inr; try constructor.
+    all: destruct (evalNExpr ((DSHCTypeVal a,f) :: σ1) n1),
+                  (evalNExpr ((DSHCTypeVal a,f) :: σ1) n2),
+                  (evalNExpr ((DSHCTypeVal b,f) :: σ2) n1),
+                  (evalNExpr ((DSHCTypeVal b,f) :: σ2) n2); try inl_inr; try constructor.
     all: repeat inl_inr_inv; cbv in IHn1, IHn2; subst.
     all: try reflexivity.
     all: break_match; constructor.
@@ -1384,9 +1389,11 @@ Section BinCarrierA.
         (a b : CarrierA)
         (σ1 σ2 : evalContext)
         (mem: memory)
-        (m : MExpr) :
+        (m : MExpr)
+        {f}
+    :
     (forall m', evalMExpr mem σ1 m' = evalMExpr mem σ2 m') ->
-    evalMExpr mem (DSHCTypeVal a :: σ1) m = evalMExpr mem (DSHCTypeVal b :: σ2) m.
+    evalMExpr mem ((DSHCTypeVal a,f) :: σ1) m = evalMExpr mem ((DSHCTypeVal b,f) :: σ2) m.
   Proof.
     intros.
     destruct m as [[v] | t] ; [| reflexivity].
@@ -1817,8 +1824,8 @@ Proof.
     some_none.
 Qed.
 
-Lemma lookup_PExpr_wsize_incrPVar (foo : DSHVal) (σ : evalContext) (m : memory) (p : PExpr) :
-  lookup_PExpr_wsize (foo :: σ) m (incrPVar 0 p) ≡
+Lemma lookup_PExpr_wsize_incrPVar (foo : DSHVal) (σ : evalContext) (m : memory) (p : PExpr) {f} :
+  lookup_PExpr_wsize ((foo,f) :: σ) m (incrPVar 0 p) ≡
   lookup_PExpr_wsize σ m p.
 Proof.
   unfold lookup_PExpr_wsize.
@@ -1826,8 +1833,8 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma lookup_PExpr_incrPVar (foo : DSHVal) (σ : evalContext) (m : memory) (p : PExpr) :
-  lookup_PExpr (foo :: σ) m (incrPVar 0 p) ≡
+Lemma lookup_PExpr_incrPVar (foo : DSHVal) (σ : evalContext) (m : memory) (p : PExpr) {f}:
+  lookup_PExpr ((foo,f) :: σ) m (incrPVar 0 p) ≡
   lookup_PExpr σ m p.
 Proof.
   unfold lookup_PExpr.
