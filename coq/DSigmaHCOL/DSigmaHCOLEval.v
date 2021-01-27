@@ -19,6 +19,7 @@ Require Import Helix.Util.ErrorSetoid.
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.misc.decision.
 Require Import MathClasses.misc.util.
+Require Import MathClasses.implementations.bool.
 
 Global Open Scope nat_scope.
 
@@ -107,12 +108,12 @@ Module MDSigmaHCOLEval
   Definition context_tl (σ: evalContext) : evalContext
     := List.tl σ.
 
-    (* Evaluation of expressions does not allow for side-effects *)
-  Definition evalPExpr (σ: evalContext) (exp:PExpr): err (nat*NT.t) :=
+  (* Evaluation of expressions does not allow for side-effects *)
+  Definition evalPExpr (σ: evalContext) (exp:PExpr): err (nat*NT.t*bool) :=
     match exp with
     | @PVar i =>
       match nth_error σ i with
-      | Some (@DSHPtrVal v size) => ret (v,size)
+      | Some (@DSHPtrVal v size ro) => ret (v,size,ro)
       | _ => raise "error looking up PVar"
       end
     end.
@@ -121,9 +122,12 @@ Module MDSigmaHCOLEval
   Definition evalMExpr (mem:memory) (σ: evalContext) (exp:MExpr): err (mem_block*NT.t) :=
     match exp with
     | @MPtrDeref p =>
-      '(bi,size) <- evalPExpr σ p ;;
-      m <- memory_lookup_err "MPtrDeref lookup failed" mem bi ;;
-      ret (m,size)
+      '(bi,size,ro) <- evalPExpr σ p ;;
+      if ro:bool then
+        m <- memory_lookup_err "MPtrDeref lookup failed" mem bi ;;
+        ret (m,size)
+      else
+        raise "r/w PExpr in MExpr"
     | @MConst t size => ret (t,size)
     end.
 
@@ -311,8 +315,9 @@ Module MDSigmaHCOLEval
         | DSHNop => Some (ret mem)
         | DSHAssign (x_p, src_e) (y_p, dst_e) =>
           Some (
-              '(x_i,x_size) <- evalPExpr σ x_p ;;
-              '(y_i,y_size) <- evalPExpr σ y_p ;;
+              '(x_i,x_size,_) <- evalPExpr σ x_p ;;
+              '(y_i,y_size,yro) <- evalPExpr σ y_p ;;
+              assert_false_to_err "'y' is readonly in DSHAssign" yro tt ;;
               x <- memory_lookup_err "Error looking up 'x' in DSHAssign" mem x_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHAssign" mem y_i ;;
               src <- evalNExpr σ src_e ;;
@@ -324,9 +329,10 @@ Module MDSigmaHCOLEval
         | @DSHIMap n x_p y_p f =>
           Some (
               n' <- from_nat n ;;
-              '(x_i,x_size) <- evalPExpr σ x_p ;;
+              '(x_i,x_size,_) <- evalPExpr σ x_p ;;
               (* assert_NT_le "DSHIMap 'n' larger than 'x_size'" n' x_size ;; *)
-              '(y_i,y_size) <- evalPExpr σ y_p ;;
+              '(y_i,y_size,yro) <- evalPExpr σ y_p ;;
+              assert_false_to_err "'y' is readonly in DSHIMap" yro tt ;;
               assert_NT_le "DSHIMap 'n' larger than 'y_size'" n' x_size ;;
               x <- memory_lookup_err "Error looking up 'x' in DSHIMap" mem x_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHIMap" mem y_i ;;
@@ -336,11 +342,12 @@ Module MDSigmaHCOLEval
         | @DSHMemMap2 n x0_p x1_p y_p f =>
           Some (
               n' <- from_nat n ;;
-              '(x0_i,x0_size) <- evalPExpr σ x0_p ;;
+              '(x0_i,x0_size,_) <- evalPExpr σ x0_p ;;
               (* assert_NT_le "DSHMemMap2 'n' larger than 'x0_size'" n' x0_size ;; *)
-              '(x1_i,x1_size) <- evalPExpr σ x1_p ;;
+              '(x1_i,x1_size,_) <- evalPExpr σ x1_p ;;
               (* assert_NT_le "DSHMemMap2 'n' larger than 'x0_size'" n' x1_size ;; *)
-              '(y_i,y_size) <- evalPExpr σ y_p ;;
+              '(y_i,y_size,yro) <- evalPExpr σ y_p ;;
+              assert_false_to_err "'y' is readonly in DSHMemMap2" yro tt ;;
               assert_NT_le "DSHMemMap2 'n' larger than 'y_size'" n' y_size ;;
               x0 <- memory_lookup_err "Error looking up 'x0' in DSHMemMap2" mem x0_i ;;
               x1 <- memory_lookup_err "Error looking up 'x1' in DSHMemMap2" mem x1_i ;;
@@ -352,9 +359,10 @@ Module MDSigmaHCOLEval
           Some (
               n' <- from_nat n ;;
               (* nn' <- from_nat (n+n) ;; *)
-              '(x_i,x_size) <- evalPExpr σ x_p ;;
+              '(x_i,x_size,_) <- evalPExpr σ x_p ;;
               (* assert_NT_le "DSHBinOp 'n' larger than 'x_size/2'" nn' x_size ;; *)
-              '(y_i,y_size) <- evalPExpr σ y_p ;;
+              '(y_i,y_size,yro) <- evalPExpr σ y_p ;;
+              assert_false_to_err "'y' is readonly in DSHBinOp" yro tt ;;
               assert_NT_le "DSHBinOp 'n' larger than 'y_size'" n' y_size ;;
               x <- memory_lookup_err "Error looking up 'x' in DSHBinOp" mem x_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHBinOp" mem y_i ;;
@@ -363,8 +371,9 @@ Module MDSigmaHCOLEval
             )
         | DSHPower ne (x_p,xoffset) (y_p,yoffset) f initial =>
           Some (
-              '(x_i,x_size) <- evalPExpr σ x_p ;;
-              '(y_i,y_size) <- evalPExpr σ y_p ;;
+              '(x_i,x_size,_) <- evalPExpr σ x_p ;;
+              '(y_i,y_size,yro) <- evalPExpr σ y_p ;;
+              assert_false_to_err "'y' is readonly in DSHPower" yro tt ;;
               x <- memory_lookup_err "Error looking up 'x' in DSHPower" mem x_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHPower" mem y_i ;;
               n <- evalNExpr σ ne ;; (* [n] evaluated once at the beginning *)
@@ -388,14 +397,15 @@ Module MDSigmaHCOLEval
           end
         | DSHAlloc size body =>
           let t_i := memory_next_key mem in
-          match evalDSHOperator (DSHPtrVal t_i size :: σ) body (memory_set mem t_i (mem_empty)) fuel with
+          match evalDSHOperator (DSHPtrVal t_i size false :: σ) body (memory_set mem t_i (mem_empty)) fuel with
           | Some (inr mem') => Some (ret (memory_remove mem' t_i))
           | Some (inl msg) => Some (inl msg)
           | None => None
           end
         | DSHMemInit y_p value =>
           Some (
-              '(y_i,y_size) <- evalPExpr σ y_p ;;
+              '(y_i,y_size,yro) <- evalPExpr σ y_p ;;
+              assert_false_to_err "'y' is readonly in DSHMemInit" yro tt ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHMemInit" mem y_i ;;
               let y' := mem_union (mem_const_block (to_nat y_size) value) y in
               ret (memory_set mem y_i y')
@@ -723,7 +733,7 @@ Module MDSigmaHCOLEval
       (* Alloc *)
       repeat break_match_goal; try some_none.
       exfalso.
-      specialize (IHdop (DSHPtrVal (memory_next_key m) size :: σ)
+      specialize (IHdop (DSHPtrVal (memory_next_key m) size false :: σ)
                         (memory_set m (memory_next_key m) mem_empty)).
 
       apply is_Some_ne_None in IHdop.
@@ -810,8 +820,9 @@ Module MDSigmaHCOLEval
      repeat break_match; try inversion E; subst; try (constructor;subst;auto);
        try (inversion H1;subst;auto).
      destruct H0.
+     destruct H0.
      subst.
-     rewrite H0, H.
+     rewrite H0, H2.
      reflexivity.
   Qed.
 
@@ -828,24 +839,28 @@ Module MDSigmaHCOLEval
         reflexivity.
       }
       repeat break_match ; inversion_clear E;  try (constructor;auto);
-        inversion_clear H0; cbn in *; subst.
+        inversion_clear H0; inversion_clear H1; cbn in *; subst.
       +
         err_eq_to_equiv_hyp.
-        rewrite Em, H1 in Heqs0.
+        rewrite Em, H0 in Heqs0.
         rewrite Heqs0 in Heqs2.
         inl_inr.
       +
         err_eq_to_equiv_hyp.
-        rewrite Em, H1 in Heqs0.
+        rewrite Em, H0 in Heqs0.
         rewrite Heqs0 in Heqs2.
         inl_inr.
       +
         err_eq_to_equiv_hyp.
-        rewrite Em, H1 in Heqs0.
+        rewrite Em, H0 in Heqs0.
         rewrite Heqs0 in Heqs2.
         inv Heqs2.
         unfold equiv, products.prod_equiv.
-        auto.
+        repeat split; auto.
+      +
+        inv H2.
+      +
+        inv H2.
     -
       constructor.
       auto.
@@ -1673,13 +1688,13 @@ Module MDSigmaHCOLEval
       all: memory_lookup_err_to_option.
       all: eq_to_equiv_hyp; err_eq_to_equiv_hyp.
       all: rewrite ME in *; try some_none.
-      all: rewrite Heqs1 in Heqs7; some_inv.
-      all: rewrite Heqs7 in Heqs6.
-      all: rewrite Heqs6 in Heqs9.
+      all: rewrite Heqs2 in Heqs8; some_inv.
+      all: rewrite Heqs8 in Heqs7.
+      all: rewrite Heqs7 in Heqs10.
       all: try inl_inr; inl_inr_inv.
+      rewrite Heqs10.
+      rewrite Heqs3 in Heqs9; some_inv.
       rewrite Heqs9.
-      rewrite Heqs2 in Heqs8; some_inv.
-      rewrite Heqs8.
       reflexivity.
     -
       intros.
@@ -1689,11 +1704,11 @@ Module MDSigmaHCOLEval
       all: memory_lookup_err_to_option.
       all: eq_to_equiv_hyp; err_eq_to_equiv_hyp.
       all: rewrite ME in *; try some_none.
-      all: rewrite Heqs3 in Heqs6; some_inv; rewrite Heqs6 in *.
       all: rewrite Heqs4 in Heqs7; some_inv; rewrite Heqs7 in *.
-      all: rewrite Heqs5 in Heqs8; try inl_inr; inl_inr_inv.
+      all: rewrite Heqs5 in Heqs8; some_inv; rewrite Heqs8 in *.
+      all: rewrite Heqs6 in Heqs9; try inl_inr; inl_inr_inv.
       do 2 f_equiv.
-      rewrite Heqs8.
+      rewrite Heqs9.
       reflexivity.
     -
       intros.
@@ -1703,11 +1718,11 @@ Module MDSigmaHCOLEval
       all: memory_lookup_err_to_option.
       all: eq_to_equiv_hyp; err_eq_to_equiv_hyp.
       all: rewrite ME in *; try some_none.
-      all: rewrite Heqs3 in Heqs6; some_inv; rewrite Heqs6 in *.
       all: rewrite Heqs4 in Heqs7; some_inv; rewrite Heqs7 in *.
-      all: rewrite Heqs5 in Heqs8; try inl_inr; inl_inr_inv.
+      all: rewrite Heqs5 in Heqs8; some_inv; rewrite Heqs8 in *.
+      all: rewrite Heqs6 in Heqs9; try inl_inr; inl_inr_inv.
       do 2 f_equiv.
-      rewrite Heqs8.
+      rewrite Heqs9.
       reflexivity.
     -
       intros.
@@ -1717,26 +1732,26 @@ Module MDSigmaHCOLEval
       all: memory_lookup_err_to_option.
       all: eq_to_equiv_hyp; err_eq_to_equiv_hyp.
       all: rewrite ME in *; try some_none.
-      all: rewrite Heqs5 in Heqs9; some_inv; rewrite Heqs9 in *.
       all: rewrite Heqs6 in Heqs10; some_inv; rewrite Heqs10 in *.
-      all: rewrite Heqs4 in Heqs8; some_inv; rewrite Heqs8 in *.
-      all: rewrite Heqs7 in Heqs11; try inl_inr; inl_inr_inv.
+      all: rewrite Heqs7 in Heqs11; some_inv; rewrite Heqs11 in *.
+      all: rewrite Heqs5 in Heqs9; some_inv; rewrite Heqs9 in *.
+      all: rewrite Heqs8 in Heqs12; try inl_inr; inl_inr_inv.
+      do 2 f_equiv.
+      rewrite Heqs12.
+      reflexivity.
+    -
+      intros.
+      destruct fuel; [reflexivity |].
+      cbn.
+      repeat (break_match; try (repeat constructor; fail)).
+      all: memory_lookup_err_to_option.
+      all: eq_to_equiv_hyp; err_eq_to_equiv_hyp.
+      all: rewrite ME in *; try some_none.
+      all: rewrite Heqs2 in Heqs9; some_inv; rewrite Heqs9 in *.
+      all: rewrite Heqs3 in Heqs10; some_inv; rewrite Heqs10 in *.
+      all: rewrite Heqs8 in Heqs11; try inl_inr; inl_inr_inv.
       do 2 f_equiv.
       rewrite Heqs11.
-      reflexivity.
-    -
-      intros.
-      destruct fuel; [reflexivity |].
-      cbn.
-      repeat (break_match; try (repeat constructor; fail)).
-      all: memory_lookup_err_to_option.
-      all: eq_to_equiv_hyp; err_eq_to_equiv_hyp.
-      all: rewrite ME in *; try some_none.
-      all: rewrite Heqs1 in Heqs8; some_inv; rewrite Heqs8 in *.
-      all: rewrite Heqs2 in Heqs9; some_inv; rewrite Heqs9 in *.
-      all: rewrite Heqs7 in Heqs10; try inl_inr; inl_inr_inv.
-      do 2 f_equiv.
-      rewrite Heqs10.
       reflexivity.
     -
       intros.
@@ -1774,9 +1789,9 @@ Module MDSigmaHCOLEval
         repeat break_match; try some_none; intuition.
       }
       
-      assert (evalDSHOperator (DSHPtrVal (memory_next_key mem2) size :: σ) dop
+      assert (evalDSHOperator (DSHPtrVal (memory_next_key mem2) size false :: σ) dop
                               (memory_set mem1 (memory_next_key mem2) mem_empty) fuel =
-              evalDSHOperator (DSHPtrVal (memory_next_key mem2) size :: σ) dop
+              evalDSHOperator (DSHPtrVal (memory_next_key mem2) size false :: σ) dop
                               (memory_set mem2 (memory_next_key mem2) mem_empty) fuel)
         by (apply IHdop; rewrite ME; reflexivity).
       
@@ -1797,13 +1812,13 @@ Module MDSigmaHCOLEval
       all: err_eq_to_equiv_hyp; eq_to_equiv_hyp.
       all: memory_lookup_err_to_option.
       all: rewrite ME in *; try some_none.
-      rewrite Heqs0 in Heqs1; some_inv.
+      rewrite Heqs1 in Heqs2; some_inv.
       do 3 f_equiv.
       intros k.
       unfold mem_union.
       repeat rewrite NP.F.map2_1bis by reflexivity.
       break_match; try reflexivity.
-      apply Heqs1.
+      apply Heqs2.
     -
       intros.
       destruct fuel; [reflexivity |].

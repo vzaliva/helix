@@ -30,7 +30,7 @@ let gsize t =
   match t with
   | DSHnat -> 1
   | DSHCType -> 1
-  | DSHPtr n -> int_of_Int64 n
+  | DSHPtr (n,_) -> int_of_Int64 n
 
 let string_of_FloatV fv =
   Float.to_string (camlfloat_of_coqfloat fv)

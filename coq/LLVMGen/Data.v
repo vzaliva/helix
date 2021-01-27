@@ -149,11 +149,11 @@ Definition initOneFSHGlobal
     | DSHCType =>
       let '(x, data) := rotate Float64Zero data in
       ret (mem, data, DSHCTypeVal x)
-    | DSHPtr n =>
+    | DSHPtr n f =>
       let (data,mb) := constMemBlock (MInt64asNT.to_nat n) data in
       let k := memory_next_key mem in
       let mem := memory_set mem k mb in
-      let p := DSHPtrVal k n in
+      let p := DSHPtrVal k n f in
       ret (mem, data, p)
     end.
 
@@ -180,7 +180,8 @@ Definition helix_initial_memory
        let Y_nat : nat := S (length globals) in
        let mem := memory_set mem Y_nat y in
        let mem := memory_set mem X_nat x in
-       let σ := globals_σ ++ [DSHPtrVal Y_nat o; DSHPtrVal X_nat i] in
+       (* TODO: check is these must be readonly *)
+       let σ := globals_σ ++ [DSHPtrVal Y_nat o false; DSHPtrVal X_nat i false] in
        ret (mem, data, σ)
      end.
 

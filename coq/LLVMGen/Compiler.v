@@ -100,7 +100,7 @@ Definition getIRType (t: DSHType): typ :=
   match t with
   | DSHnat => IntType
   | DSHCType => TYPE_Double
-  | DSHPtr n => TYPE_Array (Z.to_N (Int64.intval n)) TYPE_Double
+  | DSHPtr n _ => TYPE_Array (Z.to_N (Int64.intval n)) TYPE_Double
   end.
 
 Definition add_comments (b:block typ) (xs:list string): block typ :=
@@ -220,7 +220,7 @@ Definition swapVars : cerr unit :=
 
 Definition allocTempArrayCode (name: local_id) (size:Int64.int)
   :=
-    [(IId name, INSTR_Alloca (getIRType (DSHPtr size)) None (Some PtrAlignment))].
+    [(IId name, INSTR_Alloca (getIRType (DSHPtr size false)) None (Some PtrAlignment))].
 
 Definition allocTempArrayBlock
            (name: local_id)
@@ -292,13 +292,19 @@ Definition genMExpr
     cerr ((exp typ) * (code typ) * typ)
   := match mexp with
      | MPtrDeref (PVar x) => '(i,t) <- getStateVar "PVar un MPtrDeref out of range" x ;;
-                             match t with
-                             | TYPE_Pointer (TYPE_Array zi TYPE_Double) =>
-                               ret (EXP_Ident i, [], (TYPE_Array zi TYPE_Double))
-                             | _  =>
-                               sΓ <- getVarsAsString ;;
-                               raise ("MPtrDeref's PVar #" @@ string_of_nat x @@ " type mismatch in " @@ sΓ)
-                             end
+                            match i with
+                            | ID_Global _ =>
+                              match t with
+                              | TYPE_Pointer (TYPE_Array zi TYPE_Double) =>
+                                ret (EXP_Ident i, [], (TYPE_Array zi TYPE_Double))
+                              | _  =>
+                                sΓ <- getVarsAsString ;;
+                                raise ("MPtrDeref's PVar #" @@ string_of_nat x @@ " type mismatch in " @@ sΓ)
+                              end
+                            | _ =>
+                                sΓ <- getVarsAsString ;;
+                                raise ("MPtrDeref's PVar #" @@ string_of_nat x @@ " attempted access to non-global " @@ sΓ)
+                            end
      | MConst _ _ => raise "MConst not implemented" (* TODO *)
      end.
 
@@ -415,9 +421,9 @@ Definition genFSHAssign
     px <- incLocal ;;
     py <- incLocal ;;
     v <- incLocal ;;
-    let xtyp := getIRType (DSHPtr i) in
+    let xtyp := getIRType (DSHPtr i false) in
     let xptyp := TYPE_Pointer xtyp in
-    let ytyp := getIRType (DSHPtr o) in
+    let ytyp := getIRType (DSHPtr o false) in
     let yptyp := TYPE_Pointer ytyp in
     '(src_nexpr, src_nexpcode) <- genNExpr src  ;;
     '(dst_nexpr, dst_nexpcode) <- genNExpr dst  ;;
@@ -550,8 +556,8 @@ Definition genIMapBody
     px <- incLocal ;;
     py <- incLocal ;;
     v <- incLocal ;;
-    let xtyp := getIRType (DSHPtr i) in
-    let ytyp := getIRType (DSHPtr o) in
+    let xtyp := getIRType (DSHPtr i false) in
+    let ytyp := getIRType (DSHPtr o false) in
     let xptyp := TYPE_Pointer xtyp in
     let yptyp := TYPE_Pointer ytyp in
     let loopvarid := ID_Local loopvar in
@@ -618,9 +624,9 @@ Definition genBinOpBody
     v0 <- incLocal ;;
     v1 <- incLocal ;;
     n' <- err2errS (MInt64asNT.from_nat n) ;;
-    let xtyp := getIRType (DSHPtr i) in
+    let xtyp := getIRType (DSHPtr i false) in
     let xptyp := TYPE_Pointer xtyp in
-    let ytyp := getIRType (DSHPtr o) in
+    let ytyp := getIRType (DSHPtr o false) in
     let yptyp := TYPE_Pointer ytyp in
     let loopvarid := ID_Local loopvar in
     addVars [(ID_Local v1, TYPE_Double); (ID_Local v0, TYPE_Double); (loopvarid, IntType)] ;;
@@ -701,9 +707,9 @@ Definition genMemMap2Body
     py <- incLocal ;;
     v0 <- incLocal ;;
     v1 <- incLocal ;;
-    let x0typ := getIRType (DSHPtr i0) in
-    let x1typ := getIRType (DSHPtr i1) in
-    let ytyp := getIRType (DSHPtr o) in
+    let x0typ := getIRType (DSHPtr i0 false) in
+    let x1typ := getIRType (DSHPtr i1 false) in
+    let ytyp := getIRType (DSHPtr o false) in
     let x0ptyp := TYPE_Pointer x0typ in
     let x1ptyp := TYPE_Pointer x1typ in
     let yptyp := TYPE_Pointer ytyp in
@@ -773,7 +779,7 @@ Definition genMemInit
   cerr segment
   :=
     let ini := genFloatV initial in
-    let ttyp := getIRType (DSHPtr size) in
+    let ttyp := getIRType (DSHPtr size false) in
     let tptyp := TYPE_Pointer ttyp in
     pt <- incLocal ;;
     init_block_id <- incBlockNamed "MemInit_init" ;;
@@ -818,9 +824,9 @@ Definition genPower
     loopcontblock <- incBlockNamed "Power_lcont" ;;
     loopvar <- incLocalNamed "Power_i" ;;
 
-    let xtyp := getIRType (DSHPtr i) in
+    let xtyp := getIRType (DSHPtr i false) in
     let xptyp := TYPE_Pointer xtyp in
-    let ytyp := getIRType (DSHPtr o) in
+    let ytyp := getIRType (DSHPtr o false) in
     let yptyp := TYPE_Pointer ytyp in
     '(src_nexpr, src_nexpcode) <- genNExpr src  ;;
     '(dst_nexpr, dst_nexpcode) <- genNExpr dst  ;;
@@ -979,7 +985,7 @@ Fixpoint genIR
             (genWhileLoop "Loop_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
                           loopvar loopcontblock child_block_id child_blocks[] nextblock)
         | DSHAlloc size body =>
-          aname <- newLocalVar (TYPE_Pointer (getIRType (DSHPtr size))) "a" ;;
+          aname <- newLocalVar (TYPE_Pointer (getIRType (DSHPtr size false))) "a" ;;
           '(bblock, bcode) <- genIR body nextblock ;;
           '(ablock,acode) <- allocTempArrayBlock aname bblock size ;;
           dropVars 1 ;;
@@ -1026,9 +1032,9 @@ Definition LLVMGen
     in
 
     let x := Name "X" in
-    let xtyp := TYPE_Pointer (getIRType (DSHPtr i)) in
+    let xtyp := TYPE_Pointer (getIRType (DSHPtr i false)) in
     let y := Name "Y" in
-    let ytyp := TYPE_Pointer (getIRType (DSHPtr o)) in
+    let ytyp := TYPE_Pointer (getIRType (DSHPtr o false)) in
 
     ret
       (all_intrinsics ++
@@ -1127,14 +1133,14 @@ Definition initOneIRGlobal
                  |} in
       addVars [(ID_Global v_id, TYPE_Pointer v_typ)] ;;
       ret (data, g)
-    | DSHPtr n =>
+    | DSHPtr n ro =>
       let (data, arr) := constArray (MInt64asNT.to_nat n) data in
       let v_id := Name nm in
       let v_typ := getIRType t in
       let g := TLE_Global {|
                    g_ident        := v_id;
                    g_typ          := v_typ;
-                   g_constant     := true ;
+                   g_constant     := ro ;
                    g_exp          := Some (EXP_Array arr);
                    g_linkage      := Some LINKAGE_Internal ;
                    g_visibility   := None ;
@@ -1430,9 +1436,9 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
 
         We want them to be in `Γ` before globals *)
         let x := Name "X" in
-        let xtyp := TYPE_Pointer (getIRType (DSHPtr i)) in
+        let xtyp := TYPE_Pointer (getIRType (DSHPtr i false)) in
         let y := Name "Y" in
-        let ytyp := TYPE_Pointer (getIRType (DSHPtr o)) in
+        let ytyp := TYPE_Pointer (getIRType (DSHPtr o false)) in
 
         addVars [(ID_Local y, ytyp);(ID_Local x, xtyp)] ;;
         ginit <- genIRGlobals (FnBody:= block typ * list (block typ)) globals ;;
@@ -1443,11 +1449,11 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
       else
         (* Global placeholders for X,Y *)
         let gx := Anon 0%Z in
-        let gxtyp := getIRType (DSHPtr i) in
+        let gxtyp := getIRType (DSHPtr i false) in
         let gxptyp := TYPE_Pointer gxtyp in
 
         let gy := Anon 1%Z in
-        let gytyp := getIRType (DSHPtr o) in
+        let gytyp := getIRType (DSHPtr o false) in
         let gyptyp := TYPE_Pointer gytyp in
 
         '(data,yxinit) <- initXYplaceholders i o data gx gxtyp gy gytyp ;;
@@ -1458,9 +1464,9 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
 
         We want them to be in `Γ` before globals *)
         let x := Name "X" in
-        let xtyp := TYPE_Pointer (getIRType (DSHPtr i)) in
+        let xtyp := TYPE_Pointer (getIRType (DSHPtr i false)) in
         let y := Name "Y" in
-        let ytyp := TYPE_Pointer (getIRType (DSHPtr o)) in
+        let ytyp := TYPE_Pointer (getIRType (DSHPtr o false)) in
 
         addVars [(ID_Local y, ytyp);(ID_Local x, xtyp)] ;;
         (* Γ := [y; x; fake_y; fake_x] *)

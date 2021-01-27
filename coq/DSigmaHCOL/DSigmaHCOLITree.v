@@ -107,13 +107,14 @@ Module MDSigmaHCOLITree
     | inr x => ret x
     end.
 
-  Definition denotePExpr (σ: evalContext) (exp:PExpr): itree Event (nat*NT.t) :=
+  Definition denotePExpr (σ: evalContext) (exp:PExpr): itree Event (nat*NT.t*bool) :=
     lift_Serr (evalPExpr σ exp).
 
   Definition denoteMExpr (σ: evalContext) (exp:MExpr): itree Event (mem_block*NT.t) :=
     match exp with
     | @MPtrDeref p =>
-      '(bi,size) <- denotePExpr σ p ;;
+      '(bi,size,ro) <- denotePExpr σ p ;;
+      lift_Serr (assert_true_to_err "r/w PExpr in MExpr" ro tt) ;;
       bi' <- trigger (MemLU "MPtrDeref" bi) ;;
       ret (bi', size)
     | @MConst t size => ret (t,size)
@@ -262,8 +263,9 @@ Module MDSigmaHCOLITree
         | DSHNop => ret tt
 
         | DSHAssign (x_p, src_e) (y_p, dst_e) =>
-          '(x_i,x_size) <- denotePExpr σ x_p ;;
-          '(y_i,y_size) <- denotePExpr σ y_p ;;
+          '(x_i,x_size,_) <- denotePExpr σ x_p ;;
+          '(y_i,y_size,yro) <- denotePExpr σ y_p ;;
+          lift_Serr (assert_false_to_err "'y' is readonly in DSHAssign" yro tt) ;;
           x <- trigger (MemLU "Error looking up 'x' in DSHAssign" x_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHAssign" y_i) ;;
           src <- denoteNExpr σ src_e ;;
@@ -273,33 +275,37 @@ Module MDSigmaHCOLITree
           trigger (MemSet y_i (mem_add (to_nat dst) v y))
 
         | @DSHIMap n x_p y_p f =>
-          '(x_i,x_size) <- denotePExpr σ x_p ;;
-          '(y_i,y_sixe) <- denotePExpr σ y_p ;;
+          '(x_i,x_size,_) <- denotePExpr σ x_p ;;
+          '(y_i,y_sixe,yro) <- denotePExpr σ y_p ;;
+          lift_Serr (assert_false_to_err "'y' is readonly in DSHIMap" yro tt) ;;
           x <- trigger (MemLU "Error looking up 'x' in DSHIMap" x_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHIMap" y_i) ;;
           y' <- denoteDSHIMap n f σ x y ;;
           trigger (MemSet y_i y')
 
         | @DSHMemMap2 n x0_p x1_p y_p f =>
-          '(x0_i,x0_size) <- denotePExpr σ x0_p ;;
-          '(x1_i,x1_size) <- denotePExpr σ x1_p ;;
-          '(y_i,y_size) <- denotePExpr σ y_p ;;
+          '(x0_i,x0_size,_) <- denotePExpr σ x0_p ;;
+          '(x1_i,x1_size,_) <- denotePExpr σ x1_p ;;
+          '(y_i,y_size,yro) <- denotePExpr σ y_p ;;
+          lift_Serr (assert_false_to_err "'y' is readonly in DSHMemMap2" yro tt) ;;
           x0 <- trigger (MemLU "Error looking up 'x0' in DSHMemMap2" x0_i) ;;
           x1 <- trigger (MemLU "Error looking up 'x1' in DSHMemMap2" x1_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHMemMap2" y_i) ;;
           y' <- denoteDSHMap2 n f σ x0 x1 y ;;
           trigger (MemSet y_i y')
         | @DSHBinOp n x_p y_p f =>
-          '(x_i,x_size) <- denotePExpr σ x_p ;;
-          '(y_i,y_sixe) <- denotePExpr σ y_p ;;
+          '(x_i,x_size,_) <- denotePExpr σ x_p ;;
+          '(y_i,y_sixe,yro) <- denotePExpr σ y_p ;;
+          lift_Serr (assert_false_to_err "'y' is readonly in DSHBinOp" yro tt) ;;
           x <- trigger (MemLU "Error looking up 'x' in DSHBinOp" x_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHBinOp" y_i) ;;
           y' <- denoteDSHBinOp n n f σ x y ;;
           trigger (MemSet y_i y')
 
         | DSHPower ne (x_p,xoffset) (y_p,yoffset) f initial =>
-          '(x_i,x_size) <- denotePExpr σ x_p ;;
-          '(y_i,y_sixe) <- denotePExpr σ y_p ;;
+          '(x_i,x_size,_) <- denotePExpr σ x_p ;;
+          '(y_i,y_sixe,yro) <- denotePExpr σ y_p ;;
+          lift_Serr (assert_false_to_err "'y' is readonly in DSHPower" yro tt) ;;
           x <- trigger (MemLU "Error looking up 'x' in DSHPower" x_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHPower" y_i) ;;
           n <- denoteNExpr σ ne ;; (* [n] denoteuated once at the beginning *)
@@ -320,11 +326,12 @@ Module MDSigmaHCOLITree
         | DSHAlloc size body =>
           t_i <- trigger (MemAlloc size) ;;
           trigger (MemSet t_i (mem_empty)) ;;
-          denoteDSHOperator (DSHPtrVal t_i size :: σ) body ;;
+          denoteDSHOperator (DSHPtrVal t_i size false :: σ) body ;;
           trigger (MemFree t_i)
 
         | DSHMemInit y_p value =>
-          '(y_i,y_size) <- denotePExpr σ y_p ;;
+          '(y_i,y_size,yro) <- denotePExpr σ y_p ;;
+          lift_Serr (assert_false_to_err "'y' is readonly in DSHMemInit" yro tt) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHMemInit" y_i) ;;
           let y' := mem_union (mem_const_block (to_nat y_size) value) y in
           trigger (MemSet y_i y')

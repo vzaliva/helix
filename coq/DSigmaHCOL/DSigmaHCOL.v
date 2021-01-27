@@ -30,13 +30,14 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
   Inductive DSHType :=
   | DSHnat : DSHType
   | DSHCType : DSHType
-  (* pointer to memory block of size [n] *)
-  | DSHPtr (n:NT.t) : DSHType.
+  (* pointer to memory block of size [n]. [ro] is read-only flag *)
+  | DSHPtr (n:NT.t) (ro:bool) : DSHType.
 
   Inductive DSHVal :=
   | DSHnatVal (n:NT.t): DSHVal
   | DSHCTypeVal (a:CT.t): DSHVal
-  | DSHPtrVal (a:nat) (size:NT.t): DSHVal.
+  (* address of a memory block of size [size]. [ro] is read-only flag *)
+  | DSHPtrVal (a:nat) (size:NT.t) (ro:bool): DSHVal.
 
   (* Expressions which evaluate to `NT.t` *)
   Inductive NExpr : Type :=
@@ -95,7 +96,7 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
     match v with
     | DSHnatVal _ => DSHnat
     | DSHCTypeVal _ => DSHCType
-    | DSHPtrVal _ size => DSHPtr size
+    | DSHPtrVal _ size ro => DSHPtr size ro
     end.
 
   (* Some Setoid stuff below *)
@@ -103,7 +104,7 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
   Inductive DSHType_equiv: Equiv DSHType :=
   | DSHnat_equiv: DSHType_equiv DSHnat DSHnat
   | DSHCType_equiv: DSHType_equiv DSHCType DSHCType
-  | DSHPtr_equiv {s0 s1:NT.t}: s0 = s1 -> DSHType_equiv (DSHPtr s0) (DSHPtr s1).
+  | DSHPtr_equiv {s0 s1:NT.t} (f0 f1:bool): f0 ≡ f1 /\ s0 = s1 -> DSHType_equiv (DSHPtr s0 f0) (DSHPtr s1 f1).
 
   Existing Instance DSHType_equiv.
 
@@ -114,9 +115,18 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
     destruct a,b.
     1,5: left;constructor.
     7:{
-      destruct (NTypeEqDec n n0).
-      left;constructor;assumption.
-      right; intros H; inv H; congruence.
+      destruct (Bool.bool_dec ro0 ro).
+      -
+        subst.
+        destruct (NTypeEqDec n n0).
+        + left. constructor; split; [reflexivity|assumption].
+        + right. intros H. inv H.  destruct H1. congruence.
+      -
+        right.
+        intros H.
+        inv H.
+        destruct H1.
+        auto.
     }
     all: right; intros H; inversion H.
   Qed.
@@ -124,7 +134,7 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
   Inductive DSHVal_equiv: Equiv DSHVal :=
   | DSHnatVal_equiv {n0 n1:NT.t}: n0=n1 -> DSHVal_equiv (DSHnatVal n0) (DSHnatVal n1)
   | DSHCTypeVal_equiv {a b: CT.t}: a=b -> DSHVal_equiv (DSHCTypeVal a) (DSHCTypeVal b)
-  | DSHPtrVal_equiv {p0 p1: nat} {s0 s1:NT.t}: s0 = s1 /\ p0=p1 -> DSHVal_equiv (DSHPtrVal p0 s0) (DSHPtrVal p1 s1).
+  | DSHPtrVal_equiv {p0 p1: nat} {s0 s1:NT.t} {f0 f1:bool}: f0 ≡ f1 /\ s0 = s1 /\ p0=p1 -> DSHVal_equiv (DSHPtrVal p0 s0 f0) (DSHPtrVal p1 s1 f1).
 
   Existing Instance DSHVal_equiv.
 
@@ -137,7 +147,10 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
       destruct x; constructor; auto.
     -
       intros x y E.
-      inversion E; constructor; try split; symmetry; apply H.
+      inversion E; constructor.
+      + symmetry; apply H.
+      + symmetry; apply H.
+      + repeat split; destruct H; destruct H2; auto.
     -
       intros x y z Exy Eyz.
       inversion Exy; inversion Eyz; subst y; try inversion H3.
@@ -158,7 +171,7 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
         destruct H2 as [H2s H2p].
         split.
         * rewrite Hs; auto.
-        * rewrite Hp; auto.
+        * destruct H2p, Hp; auto.
   Qed.
 
   Inductive NExpr_equiv: NExpr -> NExpr -> Prop :=
