@@ -1265,13 +1265,13 @@ Proof.
     reflexivity.
 Qed.
 
-Lemma init_with_data_no_overwrite
+Lemma initFSHGlobals_no_overwrite
       (m0 m : memoryH)
       (hdata0 hdata : list binary64)
       (globals : list (string * DSHType)) 
-      (e : list DSHVal)
+      (σ : list DSHVal)
   :
-    init_with_data initOneFSHGlobal no_chk (m0, hdata0) globals ≡ inr (m, hdata, e) →
+    initFSHGlobals hdata0 m0 globals ≡ inr (m, hdata, σ) →
     m = memory_union m0 m.
 Proof.
   intros I k.
@@ -1303,6 +1303,22 @@ Proof.
     *
       unfold memory_set.
       now rewrite Memory.NP.F.add_neq_o by congruence.
+Qed.
+
+Lemma initOneFSHGlobal_no_overwrite
+      (m0 m : memoryH)
+      (hdata0 hdata : list binary64)
+      (g : string * DSHType)
+      (e : DSHVal)
+  :
+    initOneFSHGlobal (m0, hdata0) g ≡ inr (m, hdata, e) →
+    m = memory_union m0 m.
+Proof.
+  intros.
+  eapply initFSHGlobals_no_overwrite
+    with (globals:=[g]).
+  cbn.
+  now rewrite H.
 Qed.
 
 Lemma list_uniq_global_uniq_chk (h : string * DSHType) (tl : list (string * DSHType)) :
@@ -1938,6 +1954,160 @@ Ltac dedup_states :=
          | [ H : initIRGlobals _ _ _ ≡ inr (?s, _) |- _] =>
            copy_apply initIRGlobals_state_change H; subst s
          end.
+
+Lemma initFSHGlobals_app_inv
+      (m0 m : memoryH)
+      (hdata0 hdata : list binary64)
+      (pre post : list (string * DSHType)) 
+      (σ : evalContext)
+  :
+    initFSHGlobals hdata0 m0 (pre ++ post) ≡ inr (m, hdata, σ) ->
+    ∃ m' hdata' σ1 σ2,
+      initFSHGlobals hdata0 m0 pre ≡ inr (m', hdata', σ1) /\
+      initFSHGlobals hdata' m' post ≡ inr (m, hdata, σ2) /\
+      σ ≡ σ1 ++ σ2.
+Proof.
+  unfold initFSHGlobals.
+  intros.
+  apply init_with_data_app in H.
+  destruct H as ((m', hdata') & σ1 & σ2 & PRE & POST & Σ).
+  repeat eexists; eassumption.
+Qed.
+
+Lemma initFSHGlobals_app
+      (pre post : list (string * DSHType)) 
+      (σ1 σ2 : evalContext)
+      (m0 m' m : memoryH)
+      (hdata0 hdata' hdata : list binary64)
+  :
+      initFSHGlobals hdata0 m0 pre ≡ inr (m', hdata', σ1) ->
+      initFSHGlobals hdata' m' post ≡ inr (m, hdata, σ2) ->
+      initFSHGlobals hdata0 m0 (pre ++ post) ≡ inr (m, hdata, (σ1 ++ σ2)).
+Proof.
+  unfold initFSHGlobals.
+  intros.
+  dependent induction pre.
+  -
+    cbn in *.
+    invc H.
+    assumption.
+  -
+    cbn in *.
+    repeat break_match_hyp; invc H.
+    destruct p0 as (m1, hdata1).
+    now erewrite IHpre; eauto.
+Qed.
+
+Lemma initFSHGlobals_evalContext_typechecks
+      (globals : list (string * DSHType)) 
+      (σ : list DSHVal) 
+      (m0 m : memoryH)
+      (hdata0 hdata : list binary64)
+  :
+    initFSHGlobals hdata0 m0 globals ≡ inr (m, hdata, σ) →
+    evalContext_typechecks σ (map IR_of_global globals).
+Proof.
+  intros.
+  unfold evalContext_typechecks.
+  dependent induction globals.
+  -
+    cbn in *.
+    invc H.
+    intros.
+    rewrite nth_error_nil in H.
+    discriminate.
+  -
+    intros.
+    cbn in H.
+    repeat break_match; invc H.
+    destruct n.
+    +
+      cbn in H0.
+      invc H0.
+      destruct a.
+      cbn.
+      eexists.
+      do 2 f_equal.
+      cbn.
+      unfold initOneFSHGlobal in Heqs.
+      repeat break_match.
+      all: invc Heqs; cbn in *.
+      all: try congruence.
+      all: repeat break_match; invc H0; cbn in *.
+      all: try congruence.
+    +
+      cbn [map].
+      rewrite nth_error_Sn in *.
+      destruct p0.
+      eapply IHglobals; eassumption.
+Qed.
+
+Lemma initFSHGlobals_id_allocated
+      (globals : list (string * DSHType))
+      (m0 m : memoryH)
+      (hdata0 hdata : list binary64) 
+      (σ : evalContext)
+  :
+    initFSHGlobals hdata0 m0 globals ≡ inr (m, hdata, σ) →
+    id_allocated σ m.
+Proof.
+  intros.
+  unfold id_allocated.
+  dependent induction globals.
+  -
+    cbn in H.
+    invc H.
+    intros.
+    rewrite nth_error_nil in H.
+    discriminate.
+  -
+    intros.
+    cbn in H.
+    repeat break_match; invc H.
+    destruct n.
+    +
+      cbn in H0.
+      invc H0.
+      unfold initOneFSHGlobal in Heqs.
+      repeat break_match; inv Heqs.
+      break_match; inv H0.
+      apply initFSHGlobals_no_overwrite in Heqs0.
+      clear - Heqs0.
+      admit. (* [Proper mem_block_exists] *)
+    +
+      rewrite nth_error_Sn in H0.
+      destruct p0.
+      eapply IHglobals; eassumption.
+Admitted.
+
+Lemma initFSHGlobals_id_allocated_preserve
+      (globals : list (string * DSHType))
+      (m0 m : memoryH)
+      (hdata0 hdata : list binary64) 
+      (σ σ' : evalContext)
+  :
+    id_allocated σ m0 ->
+    initFSHGlobals hdata0 m0 globals ≡ inr (m, hdata, σ') →
+    id_allocated σ m.
+Proof.
+  unfold id_allocated.
+  intros IA0 I; intros.
+  induction globals.
+  -
+    cbn in I.
+    invc I.
+    eapply IA0.
+    eassumption.
+  -
+    intros.
+    cbn in I.
+    repeat break_match; invc I.
+    destruct p0 as (m1, hdata1).
+    apply initOneFSHGlobal_no_overwrite in Heqs.
+    apply initFSHGlobals_no_overwrite in Heqs0.
+    apply IA0 in H.
+    clear - H Heqs Heqs0.
+Admitted.
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
