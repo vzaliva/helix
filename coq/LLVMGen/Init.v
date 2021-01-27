@@ -47,6 +47,9 @@ Section EnvironmentConsistency.
 
 End EnvironmentConsistency.
 
+(* ZX TODO: remove this *)
+Opaque int64FromData.
+
 Lemma list_app_eqlen_eq_l
       {A : Type}
       (l r l' r' : list A)
@@ -88,6 +91,43 @@ Proof.
     by now rewrite EQ.
   rewrite !ListUtil.length_app in H.
   lia.
+Qed.
+
+Lemma nth_error_firstn_in
+      {A : Type}
+      (n k : nat)
+      (l : list A)
+  :
+    k < n ->
+    nth_error (firstn n l) k ≡ nth_error l k.
+Proof.
+  intros.
+  destruct (le_lt_dec (length l) k) as [L|L].
+  - (* OOB *)
+    now rewrite firstn_all2 by lia.
+  - (* INB *)
+    remember (firstn n l) as t.
+    rewrite <-firstn_skipn with (l:=l) (n:=n).
+    subst t.
+    now rewrite nth_error_app1
+      by (rewrite firstn_length; lia).
+Qed.
+
+Lemma nth_error_firstn_some
+      {A : Type}
+      (a : A)
+      (n k : nat)
+      (l : list A)
+  :
+    nth_error (firstn n l) k ≡ Some a <->
+    nth_error l k ≡ Some a /\ k < n.
+Proof.
+  split; intros.
+  destruct (le_lt_dec n k) as [L|L].
+  now rewrite ListUtil.nth_beyond in H
+    by (rewrite firstn_length; lia).
+  now rewrite nth_error_firstn_in in H.
+  now rewrite nth_error_firstn_in.
 Qed.
 
 Lemma rev_inj
@@ -680,9 +720,6 @@ Definition addVar (a : string * DSHType) (s : IRState) : IRState :=
      local_count := local_count s;
      void_count := void_count s;
      Γ := (ID_Global (Name nm), TYPE_Pointer (getIRType t)) :: Γ s |}.
-
-(* TODO: @zoickx remove this *)
-Opaque int64FromData.
 
 Lemma initOneIRGlobal_state_change
       (data0 data1 : list binary64)
