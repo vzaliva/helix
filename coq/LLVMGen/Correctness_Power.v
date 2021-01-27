@@ -720,7 +720,7 @@ Proof.
                      exists v,
                        alist_find dst_ptr_id ρ ≡ Some (UVALUE_Addr dst_addr) /\
                        alist_find src_ptr_id ρ ≡ Some (UVALUE_Addr src_addr) /\
-                       alist_find src_val_id ρ ≡ Some (UVALUE_Double b1) /\
+                       (* alist_find src_val_id ρ ≡ Some (UVALUE_Double b1) /\ (* I no longer have this because the initial read has not happened *) *)
                      (* Not sure if this is the right block *)
                        ext_memory mV_init dst_addr DTYPE_Double (UVALUE_Double v) mV /\
                        (forall y, y ≢ (MInt64asNT.to_nat yoff_res) -> mem_lookup y mb ≡ mem_lookup y bkh_yoff) /\
@@ -728,9 +728,9 @@ Proof.
                        Returns (Some (mH, mb))
                                (@interp_helix _ E_cfg (tfor
                                   (λ (_ : nat) (acc : mem_block),
-                                   DSHPower_tfor_body σ f b1
+                                   DSHPower_tfor_body σ f bkh_xoff
                                                       (mem_add (MInt64asNT.to_nat yoff_res) initial bkh_yoff)
-                                                      (MInt64asNT.to_nat yoff_res) acc) 0 k
+                                                      (MInt64asNT.to_nat xoff_res) (MInt64asNT.to_nat yoff_res) acc) 0 k
                                   (mem_add (MInt64asNT.to_nat yoff_res) initial bkh_yoff)) m_yoff)
                    end
                  end)).
@@ -755,7 +755,7 @@ Proof.
       forward LOOPTFOR.
       { intros g_loop l_loop mV_loop [[mH_loop mb_loop] |] k _label [HI [POWERI [POWERI_VAL RETURNS]]]; [|inv HI].
         cbn in HI.
-        destruct HI as [LINV_SINV [v [LINV_DST_PTR [LINV_SRC_PTR [LINV_SRC_VAL [LINV_MEXT [LINV_HELIX_MB_OLD [LINV_HELIX_MB_NEW LINV_RET]]]]]]]].
+        destruct HI as [LINV_SINV [v [LINV_DST_PTR [LINV_SRC_PTR [LINV_MEXT [LINV_HELIX_MB_OLD [LINV_HELIX_MB_NEW LINV_RET]]]]]]].
         pose proof LINV_MEXT as [LINV_MEXT_NEW LINV_MEXT_OLD].
         unfold DSHPower_tfor_body.
         
@@ -782,7 +782,7 @@ Proof.
         rewrite denote_code_cons.
         vred.
 
-        (* Load dst *)
+        (* Load src *)
         rewrite denote_instr_load.
         2: {
           apply denote_exp_LR.
@@ -791,7 +791,37 @@ Proof.
           eauto.
         }
         2: {
-          pose proof GETARRAYCELL_yoff.
+          pose proof WRITE_INIT.
+          pose proof (write_correct WRITE_INIT) as [WRITE_ALLOCATED WRITE_WRITTEN].
+          specialize (WRITE_WRITTEN DTYPE_Double).
+          forward WRITE_WRITTEN; [constructor|].
+          destruct WRITE_WRITTEN as [MEXT_INIT_NEW MEXT_INIT_OLD].
+
+          Ltac solve_allocated :=
+            solve [ eauto
+                  | eapply dtyp_fits_allocated; eauto
+                  | eapply handle_gep_addr_allocated; cycle 1; [eauto | solve_allocated]
+                  ].
+
+          assert (allocated ptrll_xoff mV_yoff) as PTRLL_XOFF_ALLOCATED_mV_yoff by solve_allocated.
+          assert (allocated src_addr mV_yoff) as SRC_ALLOCATED_mV_yoff by solve_allocated.
+
+          erewrite LINV_MEXT_OLD.
+          { erewrite MEXT_INIT_OLD.
+            { erewrite read_array; eauto.
+            }
+            auto.
+            admit. (* Aliasing *)
+          }
+          solve_allocated.
+          [solve_allocated|].
+          erewrite MEXT_INIT_OLD.
+
+
+          pose proof GETARRAYCELL_xoff.
+          rewrite LINV_MEXT_OLD.
+          erewrite read_array.
+          erewrite GETARRAYCELL_xoff.
 
           (* H is not sufficient! It's in terms of mV_yoff, not
              mV_loop. Need to extend invariant. *)
