@@ -22,6 +22,8 @@ Require Import MathClasses.misc.util.
 Require Import MathClasses.implementations.bool.
 Require Import MathClasses.theory.products.
 
+Require Import CoLoR.Util.List.ListUtil.
+
 Global Open Scope nat_scope.
 
 Require Import ExtLib.Structures.Monads.
@@ -342,6 +344,17 @@ Module MDSigmaHCOLEval
       S (Nat.max (estimateFuel f) (estimateFuel g))
     end.
 
+  Definition protect (σ:evalContext) (n:nat) : evalContext :=
+    match List.nth_error σ n with
+    | None => σ
+    | Some (v,f) => replace_at σ n (v,true)
+    end.
+
+  Definition protect_p (σ:evalContext) (p:PExpr) : evalContext :=
+    match p with
+    | PVar n =>  protect σ n
+    end.
+
   Fixpoint evalDSHOperator
            (σ: evalContext)
            (op: DSHOperator)
@@ -374,7 +387,7 @@ Module MDSigmaHCOLEval
               assert_NT_le "DSHIMap 'n' larger than 'y_size'" n' x_size ;;
               x <- memory_lookup_err "Error looking up 'x' in DSHIMap" mem x_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHIMap" mem y_i ;;
-              y' <- evalDSHIMap mem n f σ x y ;;
+              y' <- evalDSHIMap mem n f (protect_p σ y_p) x y ;;
               ret (memory_set mem y_i y')
             )
         | @DSHMemMap2 n x0_p x1_p y_p f =>
@@ -389,7 +402,7 @@ Module MDSigmaHCOLEval
               x0 <- memory_lookup_err "Error looking up 'x0' in DSHMemMap2" mem x0_i ;;
               x1 <- memory_lookup_err "Error looking up 'x1' in DSHMemMap2" mem x1_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHMemMap2" mem y_i ;;
-              y' <- evalDSHMap2 mem n f σ x0 x1 y ;;
+              y' <- evalDSHMap2 mem n f (protect_p σ y_p) x0 x1 y ;;
               ret (memory_set mem y_i y')
             )
         | @DSHBinOp n x_p y_p f =>
@@ -402,7 +415,7 @@ Module MDSigmaHCOLEval
               assert_NT_le "DSHBinOp 'n' larger than 'y_size'" n' y_size ;;
               x <- memory_lookup_err "Error looking up 'x' in DSHBinOp" mem x_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHBinOp" mem y_i ;;
-              y' <- evalDSHBinOp mem n n f σ x y ;;
+              y' <- evalDSHBinOp mem n n f (protect_p σ y_p) x y ;;
               ret (memory_set mem y_i y')
             )
         | DSHPower ne (x_p,xoffset) (y_p,yoffset) f initial =>
@@ -416,7 +429,7 @@ Module MDSigmaHCOLEval
               yoff <- evalNExpr σ yoffset ;;
               assert_NT_lt "DSHPower 'y' offset out of bounds" yoff y_size ;;
               let y' := mem_add (to_nat yoff) initial y in
-              y'' <- evalDSHPower mem σ (to_nat n) f x y' (to_nat xoff) (to_nat yoff) ;;
+              y'' <- evalDSHPower mem (protect_p σ y_p) (to_nat n) f x y' (to_nat xoff) (to_nat yoff) ;;
               ret (memory_set mem y_i y'')
             )
         | DSHLoop O body => Some (ret mem)
