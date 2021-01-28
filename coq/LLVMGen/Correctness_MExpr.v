@@ -51,23 +51,13 @@ Section MExpr.
   Proof.
     intros * Hgen INV NOFAIL.
     destruct mexp as [[vid] | mblock]; cbn* in Hgen; simp.
-    (* cbn. *)
     unfold denoteMExpr, denotePExpr in *; cbn* in *.
-    unfold denotePExpr', evalPExpr' in *.
 
     simp; try_abs. subst.
     hvred.
-    unfold lift_Serr in *.
-    simp; try_abs.
-    hvred.
-    cbn. hvred. cbn in NOFAIL.
-    rewrite bind_ret_l in NOFAIL.
-    simp; try_abs.
-    inv Heqs.
     edestruct memory_invariant_Ptr
       as (bkH & ptrV & Mem_LU & MEM & INLG & EQ); eauto.
     cbn.
-    hred.
     hstep.
     solve_lu.
     hvred.

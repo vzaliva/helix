@@ -18,7 +18,6 @@ Section Eval_Denote_Equiv.
            (Ret (mem, (bk,size))).
   Proof.
     intros mem σ [] * EVAL; cbn* in *; simp; go; try reflexivity.
-    unfold denotePExpr'.
     rewrite Heqs; cbn*; go.
     reflexivity.
     cbn*; match_rewrite; reflexivity.

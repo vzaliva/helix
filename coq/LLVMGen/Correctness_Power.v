@@ -444,7 +444,8 @@ Proof.
   unfold memory_invariant in MINV.
   specialize (MINV n3 _ _ _ _ Heqo0 LUn0).
   cbn in MINV.
-  destruct MINV as (bkh & ptrll & τ' & MLUP & TEQ & FITS & INLG & GETARRAYCELL). admit.
+  destruct MINV as (ptrll & τ' & TEQ & FITS & INLG & GETARRAYCELL).
+
   inv TEQ.
   destruct i3.
   { (* Global case *)

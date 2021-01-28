@@ -2040,8 +2040,8 @@ Proof.
       rewrite nth_error_Sn in *.
       destruct p0.
       unfold initFSHGlobals in *.
-      specialize (IHglobals _ _ _ _ _ Heqs0 _ _ H0).
-      destruct (d, b) eqn: Hd. inv Hd. eauto. 
+      specialize (IHglobals _ _ _ _ _ Heqs0 _ _ _ H0).
+      eauto.
 Qed.
 
 Lemma initFSHGlobals_id_allocated
@@ -3083,7 +3083,7 @@ Proof.
               intros ? ? ? ? ? C.
               rewrite nth_error_nil in C.
               inversion C.
-            + repeat intro. destruct v.
+            + repeat intro.
               econstructor.
               rewrite nth_error_nil in H0.
               inversion H0.

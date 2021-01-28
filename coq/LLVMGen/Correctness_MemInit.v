@@ -302,12 +302,12 @@ Proof.
     + Opaque memory_set.
       cbn; intros * LU1 LU2.
       eapply mem_is_inv in LU2; eauto.
-      destruct v, d; auto.
+      destruct v; auto.
       destruct LU2 as (? & ? & ? & ?).
       destruct (n =? a) eqn:EQ.
       * apply beq_nat_true in EQ; subst.
         rewrite memory_lookup_memory_set_eq.
-        do 3 eexists.
+        do 2 eexists.
         split; [reflexivity |].
         (* do 2 (split; [reflexivity |]). *)
         admit.

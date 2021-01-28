@@ -31,8 +31,8 @@ Section WF_IRState.
 
   (* True if σ typechecks in Γ *)
   Definition evalContext_typechecks (σ : evalContext) (Γ : list (ident * typ)) : Prop :=
-    forall v n, nth_error σ n ≡ Some v -> let (val, _) := v in
-           exists id, (nth_error Γ n ≡ Some (id, getWFType id (DSHType_of_DSHVal val))).
+    forall v n b, nth_error σ n ≡ Some (v, b) ->
+           exists id, (nth_error Γ n ≡ Some (id, getWFType id (DSHType_of_DSHVal v))).
 
   Definition WF_IRState (σ : evalContext) (s : IRState) : Prop :=
     evalContext_typechecks σ (Γ s).
@@ -45,53 +45,50 @@ Section WF_IRState.
   Proof.
     intros σ s1 s1' x v H2 H9.
     red. red in H9. intros.
-    rewrite H2 in H9. specialize (H9 _ (S n) H). cbn in *.
+    rewrite H2 in H9. specialize (H9 _ (S n) _ H). cbn in *.
     apply H9.
   Qed.
 
   Lemma WF_IRState_lookups :
-    forall σ s n v id τ,
+    forall σ s n v id τ b,
       WF_IRState σ s ->
       nth_error (Γ s) n ≡ Some (id, τ) ->
-      nth_error σ n ≡ Some v ->
-      let (val, _) := v in
-      τ ≡ getWFType id (DSHType_of_DSHVal val).
+      nth_error σ n ≡ Some (v, b) ->
+      τ ≡ getWFType id (DSHType_of_DSHVal v).
   Proof.
-    intros * WF LU_IR LU_SIGMA. destruct v. 
-    apply WF in LU_SIGMA; destruct LU_SIGMA as (id' & LU); rewrite LU in LU_IR; inv LU_IR.
-    reflexivity.
+    intros * WF LU_IR LU_SIGMA.
+    apply WF in LU_SIGMA; destruct LU_SIGMA as (id' & LU); rewrite LU in LU_IR; inv LU_IR; eauto.
   Qed.
 
   Lemma WF_IRState_one_of_local_type:
-    forall σ x τ s n v,
+    forall σ x τ s n v b,
       WF_IRState σ s ->
       nth_error (Γ s) n ≡ Some (ID_Local x,τ) ->
-      nth_error σ n ≡ Some v ->
+      nth_error σ n ≡ Some (v, b) ->
       τ ≡ IntType \/
       τ ≡ TYPE_Double \/
       exists k, τ ≡ TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval k)) TYPE_Double).
   Proof.
     intros * WF LU LU'.
-    eapply WF in LU'; destruct v; destruct LU' as (id & LU''); rewrite LU in LU''; inv LU''.
+    eapply WF in LU'; destruct LU' as (id & LU''); rewrite LU in LU''; inv LU''.
     cbn; break_match_goal; eauto.
   Qed.
 
   Lemma WF_IRState_one_of_global_type:
-    forall σ x τ s n v,
+    forall σ x τ s n v b,
       WF_IRState σ s ->
       nth_error (Γ s) n ≡ Some (ID_Global x,τ) ->
-      nth_error σ n ≡ Some v ->
+      nth_error σ n ≡ Some (v, b) ->
       τ ≡ TYPE_Pointer IntType \/
       τ ≡ TYPE_Pointer TYPE_Double \/
       exists k, τ ≡ TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval k)) TYPE_Double).
   Proof.
     intros * WF LU LU'.
-    destruct v.
     unfold WF_IRState, evalContext_typechecks in WF.
-    specialize (WF _ _ LU'). cbn in WF.
+    specialize (WF _ _ _ LU'). cbn in WF.
     edestruct WF as (id & LU''); eauto.
     rewrite LU in LU''; inv LU''.
-    cbn in *.
+    cbn in *; eauto.
     break_match_goal; eauto.
   Qed.
 
@@ -216,9 +213,9 @@ Section SimulationRelations.
       n2 ≡ n1. 
 
   Definition no_llvm_ptr_aliasing (σ : evalContext) (s : IRState) (ρ : local_env) (g : global_env) : Prop :=
-    forall (id1 : ident) (ptrv1 : addr) (id2 : ident) (ptrv2 : addr) n1 n2 τ τ' v1 v2,
-      nth_error σ n1 ≡ Some (v1, false) ->
-      nth_error σ n2 ≡ Some (v2, false) ->
+    forall (id1 : ident) (ptrv1 : addr) (id2 : ident) (ptrv2 : addr) n1 n2 τ τ' v1 v2 b b',
+      nth_error σ n1 ≡ Some (v1, b) ->
+      nth_error σ n2 ≡ Some (v2, b') ->
       nth_error (Γ s) n1 ≡ Some (id1, τ) ->
       nth_error (Γ s) n2 ≡ Some (id2, τ') ->
       id1 ≢ id2 ->
@@ -293,14 +290,15 @@ Section SimulationRelations.
         | DSHnatVal v   => in_local_or_global_scalar ρ g mem_llvm x (dvalue_of_int v) τ
         | DSHCTypeVal v => in_local_or_global_scalar ρ g mem_llvm x (dvalue_of_bin v) τ
         | DSHPtrVal ptr_helix ptr_size_helix =>
-          b ≡ false ->
-          exists bk_helix ptr_llvm τ',
-          memory_lookup mem_helix ptr_helix ≡ Some bk_helix /\
+          exists ptr_llvm τ',
           τ ≡ TYPE_Pointer τ' /\
           dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp [] τ') /\
           in_local_or_global_addr ρ g x ptr_llvm /\
+          (b ≡ false ->
+          exists bk_helix ,
+          memory_lookup mem_helix ptr_helix ≡ Some bk_helix /\
           (forall (i : Int64.int) v, mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v ->
-                       get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v))
+                       get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v)))
         end.
 
   (* TODO Prove lemma *)
@@ -366,14 +364,15 @@ Section SimulationRelations.
       memory_invariant σ s memH (memV, (l, g)) ->
       nth_error (Γ s) v ≡ Some (ID_Local id, t) ->
       nth_error σ v ≡ Some (DSHPtrVal m size, b) ->
-      b ≡ false ->
-      exists (bk_h : mem_block) (ptr_v : Addr.addr) t',
-        memory_lookup memH m ≡ Some bk_h
-        /\ t ≡ TYPE_Pointer t'
-        /\ dtyp_fits memV ptr_v (typ_to_dtyp [] t')
-        /\ in_local_or_global_addr l g (ID_Local id) ptr_v
-        /\ (forall (i : Int64.int) (v : binary64),
-               mem_lookup (MInt64asNT.to_nat i) bk_h ≡ Some v -> get_array_cell memV ptr_v (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v)).
+      exists ptr_llvm τ',
+      t ≡ TYPE_Pointer τ' /\
+      dtyp_fits memV ptr_llvm (typ_to_dtyp [] τ') /\
+      in_local_or_global_addr l g (ID_Local id) ptr_llvm /\
+      (b ≡ false ->
+      exists bk_helix ,
+      memory_lookup memH m ≡ Some bk_helix /\
+      (forall (i : Int64.int) v, mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v ->
+                    get_array_cell memV ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v))).
   Proof.
     intros * MEM_INV NTH LU; cbn* in *.
     eapply MEM_INV in LU; clear MEM_INV; eauto.
@@ -466,11 +465,11 @@ Section SimulationRelations.
   Proof.
     intros σ s id v l g ALIAS WF FRESH.
     unfold no_llvm_ptr_aliasing in *.
-    intros id1 ptrv1 id2 ptrv2 n1 n2 τ0 τ' v1 v2 H H0 H1 H2 H3 H4 H5.
+    intros id1 ptrv1 id2 ptrv2 n1 n2 τ0 τ' v1 v2 b b' H H0 H1 H2 H3 H4 H5.
     destruct id1, id2.
-    - epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3 H4 H5).
+    - epose proof (ALIAS _ _ _ _ _ _ _ _ _ _ _ _ H H0 H1 H2 H3 H4 H5).
       eauto.
-    - epose proof (ALIAS _ _ _ ptrv2 _ _ _ _ _ _ H H0 H1 H2 H3 H4).
+    - epose proof (ALIAS _ _ _ ptrv2 _ _ _ _ _ _ _ _ H H0 H1 H2 H3 H4).
       destruct (rel_dec_p id1 id) as [EQ | NEQ]; unfold Eqv.eqv, eqv_raw_id in *.
       + subst.
         assert (in_Gamma σ s id).
@@ -480,7 +479,7 @@ Section SimulationRelations.
         cbn in *.
         pose proof NEQ.
         rewrite alist_find_neq in H5; auto.
-    - epose proof (ALIAS _ ptrv1 _ ptrv2 _ _ _ _ _ _ H H0 H1 H2 H3).
+    - epose proof (ALIAS _ ptrv1 _ ptrv2 _ _ _ _ _ _ _ _ H H0 H1 H2 H3).
       destruct (rel_dec_p id0 id).
       + subst.
         assert (in_Gamma σ s id).
@@ -497,7 +496,7 @@ Section SimulationRelations.
         destruct (rel_dec_p id1 id).
         * subst.
           contradiction.
-        * epose proof (ALIAS _ ptrv1 _ ptrv2 _ _ _ _ _ _ H H0 H1 H2 H3).
+        * epose proof (ALIAS _ ptrv1 _ ptrv2 _ _ _ _ _ _ _ _ H H0 H1 H2 H3).
           assert (in_Gamma σ s id).
           { econstructor.
             2: eapply H1.
@@ -506,7 +505,7 @@ Section SimulationRelations.
           exfalso; apply FRESH; auto.
       + destruct (rel_dec_p id1 id).
         * subst.
-          epose proof (ALIAS _ ptrv1 _ ptrv2 _ _ _ _ _ _ H H0 H1 H2 H3).
+          epose proof (ALIAS _ ptrv1 _ ptrv2 _ _ _ _ _ _ _ _ H H0 H1 H2 H3).
           assert (in_Gamma σ s id).
           econstructor; eauto.
           exfalso; apply FRESH; auto.
@@ -552,9 +551,9 @@ Section SimulationRelations.
         * apply neg_rel_dec_correct in Heqb0.
           rewrite remove_neq_alist; eauto.
           all: typeclasses eauto.
-      + intros; destruct INLG as (? & ? & ? & ? & ? & ? & ? & ?); auto.
+      + intros; destruct INLG as (? & ? & ? & ? & ? & ?); eauto.
         destruct x.
-        do 3 eexists; split; [eauto | split]; eauto.
+        do 2 eexists; split; [eauto | split]; eauto.
         unfold alist_add; cbn.
         break_match_goal.
         * rewrite rel_dec_correct in Heqb0; subst.
@@ -562,7 +561,7 @@ Section SimulationRelations.
           econstructor; eauto.
         * apply neg_rel_dec_correct in Heqb0.
           rewrite remove_neq_alist; eauto.
-          do 3 eexists; split; [eauto | split]; eauto.
+          do 2 eexists; split; [eauto | split]; eauto.
 
           all: typeclasses eauto.
     - red; rewrite <- EQ; auto.
@@ -998,19 +997,19 @@ Section SimulationRelations.
       state_invariant σ s memH (memV, (l, g)) ->
       nth_error σ vid ≡ Some (DSHPtrVal a size, b) ->
       nth_error (Γ s) vid ≡ Some (x, TYPE_Pointer (TYPE_Array sz TYPE_Double)) ->
-      b ≡ false ->
-      ∃ (bk_helix : mem_block) (ptr_llvm : Addr.addr),
-        memory_lookup memH a ≡ Some bk_helix
-        ∧ dtyp_fits memV ptr_llvm
+      ∃ (ptr_llvm : Addr.addr),
+        dtyp_fits memV ptr_llvm
                     (typ_to_dtyp [] (TYPE_Array sz TYPE_Double))
-        ∧ in_local_or_global_addr l g x ptr_llvm
-        ∧ (∀ (i : Int64.int) (v : binary64), mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v → get_array_cell memV ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v)).
+        ∧ in_local_or_global_addr l g x ptr_llvm /\
+
+        (b ≡ false ->
+      exists bk_helix,
+        memory_lookup memH a ≡ Some bk_helix
+        ∧ (∀ (i : Int64.int) (v : binary64), mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v → get_array_cell memV ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v))).
   Proof.
-    intros * MEM LU1 LU2 ?; inv MEM; eapply mem_is_inv0 in LU1; eapply LU1 in LU2; eauto.
-    destruct LU2 as (bk & ptr & τ' & ? & ? & ? & ? & ?).
-    exists bk. exists ptr.
-    inv H0.
-    repeat split; eauto.  
+    intros * MEM LU1 LU2; inv MEM; eapply mem_is_inv0 in LU1; eapply LU1 in LU2; eauto.
+    destruct LU2 as (bk & ptr & τ' & ? & ? & ?).
+    exists bk. split; eauto. inv τ'. eauto.
   Qed.
 
 
@@ -1308,7 +1307,7 @@ Proof.
     do 2 red in WF.
     specialize (WF v0 (S n)).
     cbn in WF.
-    specialize (WF H). destruct v0.
+    specialize (WF _ H).
     edestruct WF as (?id & LU).
     clear WF.
     (* rewrite nth_error_Sn ; eauto. *)
@@ -1358,7 +1357,7 @@ Proof.
       eapply MEM in LU2; eauto.
   -  do 2 red.
      cbn.
-     intros ? [| n] LU'.
+     intros ? [| n] * LU'.
      + cbn in LU'.
        inv LU'.
        cbn.
@@ -1417,7 +1416,7 @@ Proof.
       eapply MEM in LU2; eauto.
   -  do 2 red.
      cbn.
-     intros ? [| n] LU'.
+     intros ? [| n] * LU'.
      + cbn in LU'.
        inv LU'.
        cbn.
@@ -1484,11 +1483,8 @@ Proof.
     destruct n as [| n].
     + rewrite EQ in LU2; cbn in *.
       inv LU1; inv LU2; eauto.
-      exists mem_empty. eexists ptrv. eexists.
+      eexists ptrv. eexists.
       split; auto.
-      apply memory_lookup_memory_set_eq.
-
-      split. reflexivity.
       split. red.
       inv alloc.
       rewrite get_logical_block_of_add_to_frame. cbn.
@@ -1501,6 +1497,11 @@ Proof.
       rewrite alist_find_add_eq. reflexivity.
       inv alloc.
       intros. inversion H.
+      exists mem_empty.
+
+      split; auto.
+      apply memory_lookup_memory_set_eq.
+      intros. inv H1.
 
     + pose proof LU1 as LU1'.
       pose proof LU2 as LU2'.
@@ -1551,16 +1552,18 @@ Proof.
               econstructor; eauto.
             * unfold Eqv.eqv, eqv_raw_id in NEQid.
               rewrite alist_find_neq; eauto.
-        - intros; destruct LU2 as (bkh & ptr_llvm & τ' & MLUP & TEQ & FITS & INLG & GET); auto.
-          exists bkh. exists ptr_llvm. exists τ'.
+        - intros; destruct LU2 as (ptr_llvm & τ' & MLUP & TEQ & FITS & GET); auto.
+          (* & INLG & GET); auto. *)
+          (* exists bkh. *)
+          exists ptr_llvm. exists τ'.
           assert (ptrh ≢ a) as NEQa.
           { intros CONTRA.
             subst.
             apply nth_error_In in LU1.
-            apply (fresh size false). auto.
+            apply (fresh size b0). auto.
           }
           repeat (split; eauto).
-          + rewrite memory_lookup_memory_set_neq; auto.
+          (* + rewrite memory_lookup_memory_set_neq; auto. *)
           + eapply dtyp_fits_after_allocated; eauto.
           + destruct x0; auto.
             destruct (Eqv.eqv_dec_p x id) as [EQid | NEQid].
@@ -1571,7 +1574,10 @@ Proof.
             * unfold Eqv.eqv, eqv_raw_id in NEQid.
               cbn.
               rewrite alist_find_neq; eauto.
-          + intros i v H'.
+          + intros. destruct (GET H) as ( ? & ? & ?).
+            exists x1. split.
+            rewrite memory_lookup_memory_set_neq; auto.
+            intros i v H'.
             unfold get_array_cell in *.
 
             (* TODO: is there a better way to do this...? *)
@@ -1601,16 +1607,16 @@ Proof.
                          end)).
             { destruct ptr_llvm. cbn. reflexivity. }
 
-            rewrite H0.
+            rewrite H2.
             erewrite get_logical_block_allocated.
-            rewrite <- H1.
+            rewrite <- H3.
             eauto.
             eauto.
             eapply dtyp_fits_allocated; eauto.
       }
 
   - do 2 red.
-    intros ? [| n] LU.
+    intros ? [| n] * LU.
     + cbn in LU.
       inv LU.
       rewrite EQ; cbn; eauto.
@@ -1640,6 +1646,7 @@ Proof.
   - red; intros * LU1 LU2.
     destruct n as [| n], n' as [| n']; auto.
     + cbn in *. inv LU1. exfalso.
+      inv alloc.
       eapply fresh.
       apply nth_error_In in LU2. eauto.
     + cbn in *. inv LU2. exfalso.
@@ -1660,6 +1667,7 @@ Proof.
       inv LU3.
       unfold WF_IRState, evalContext_typechecks in WF.
       pose proof LU2.
+      cbn in H.
       apply WF in H.
       destruct H. cbn in LU4. rewrite LU4 in H.
       cbn in H.
@@ -1695,8 +1703,10 @@ Proof.
            cbn in H.
            rewrite IN2 in H.
            inv H.
-      * destruct H as (bk_helix & ptr & τ' & MLUP & WFT & FITS & INLG & GETARRAY).
-        reflexivity.
+      * cbn in LU1. inv LU1.
+        cbn in LU2.
+        destruct H as (τ' & MLUP & WFT & FITS & INLG & GETARRAY).
+        (* reflexivity. *)
         destruct x0.
         -- cbn in INLG. rewrite IN2 in INLG. inv INLG.
            apply dtyp_fits_allocated in FITS.
@@ -1748,8 +1758,7 @@ Proof.
            cbn in H.
            rewrite IN1 in H.
            inv H.
-      * destruct H as (bk_helix & ptr & τ' & MLUP & WFT & FITS & INLG & GETARRAY).
-        reflexivity.
+      * destruct H as (ptr & τ' & WFT & FITS & INLG & GET).
         destruct x0.
         -- cbn in INLG. rewrite IN1 in INLG. inv INLG.
            apply dtyp_fits_allocated in FITS.
@@ -1801,7 +1810,7 @@ Proof.
   apply IRState_is_WF in SINV.
   unfold WF_IRState in SINV.
   unfold evalContext_typechecks in SINV.
-  pose proof (SINV (DSHPtrVal dsh_ptr dsh_sz, b) n SIG) as H.
+  pose proof (SINV (DSHPtrVal dsh_ptr dsh_sz) n  b SIG) as H.
   destruct H as (id' & NTH).
   cbn in NTH.
   rewrite GAM in NTH.

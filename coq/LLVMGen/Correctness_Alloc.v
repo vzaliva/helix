@@ -332,25 +332,27 @@ Proof.
     split.
     - cbn. intros. rewrite context_l0 in mem_is_inv.
       cbn in *. specialize (mem_is_inv (S n)). cbn in *.
-      specialize (mem_is_inv _ _ _ H4 H5).
-      destruct v, d; eauto.
+      specialize (mem_is_inv _ _ _ _ H4 H5).
+      destruct v; eauto.
       destruct PRE.
       clear -mem_is_inv st_id_allocated st_id_allocated0 H4 H5.
 
-      destruct mem_is_inv as (? & ? & ? & ? & ? & ? & ? & ?).
-      eexists. eexists. eexists.
+      destruct mem_is_inv as (? & ? & ? & ? & ? & ?).
+      eexists. eexists.
       split; try split; try split; try split; eauto.
+      eintros. destruct (H2 H3) as (? & ? & ?).
+      exists x2. split; eauto.
       rewrite remove_find.
       2 : apply Memory.NM.is_bst.
 
       unfold id_allocated in *.
       assert (a ≢ (memory_next_key memH)). {
         pose proof mem_block_exists_memory_next_key.
-        intro. eapply H6. subst.
+        intro. eapply H8. subst.
         eapply st_id_allocated0. apply H4.
       }
       break_match. auto. 2 : auto.
-      exfalso. apply H6. rewrite e. reflexivity.
+      exfalso. apply H8. rewrite e. reflexivity.
     - unfold WF_IRState in *. cbn. rewrite context_l0 in IRState_is_WF.
       unfold evalContext_typechecks in *. intros.
       specialize (IRState_is_WF v (S n)). cbn in IRState_is_WF. apply IRState_is_WF in H4.
@@ -369,7 +371,7 @@ Proof.
       unfold no_llvm_ptr_aliasing in *.
       rewrite context_l0 in st_no_llvm_ptr_aliasing.
       intros. specialize (st_no_llvm_ptr_aliasing id1 ptrv1 id2 ptrv2 (S n1) (S n2)).
-      cbn in *. specialize (st_no_llvm_ptr_aliasing _ _ _ _ H4 H5 H6 H7).
+      cbn in *. specialize (st_no_llvm_ptr_aliasing _ _ _ _ _ _ H4 H5 H6 H7).
       apply st_no_llvm_ptr_aliasing; auto.
     - (* Get more information about the new memH. *)
       destruct GEN_IR.
