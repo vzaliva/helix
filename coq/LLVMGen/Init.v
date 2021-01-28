@@ -681,6 +681,9 @@ Definition addVar (a : string * DSHType) (s : IRState) : IRState :=
      void_count := void_count s;
      Γ := (ID_Global (Name nm), TYPE_Pointer (getIRType t)) :: Γ s |}.
 
+(* TODO: @zoickx remove this *)
+Opaque int64FromData.
+
 Lemma initOneIRGlobal_state_change
       (data0 data1 : list binary64)
       (a : string * DSHType)
@@ -3014,6 +3017,7 @@ Proof.
           repeat break_match_hyp;
             inv IA; cbn.
           ++
+            (*
             rewrite typ_to_dtyp_I.
             rewrite interp_to_L3_bind.
             rewrite denote_exp_i64_mcfg.
@@ -3116,6 +3120,8 @@ Proof.
               all: cbn; clear - DI.
               all: unfold declarations_invariant in DI.
               all: intuition.
+             *)
+            admit.
           ++ (* ZX TODO: see how these bullets can be done all in one *)
             admit.
           ++
