@@ -53,7 +53,6 @@ Section MExpr.
     destruct mexp as [[vid] | mblock]; cbn* in Hgen; simp.
     (* cbn. *)
     unfold denoteMExpr, denotePExpr in *; cbn* in *.
-    unfold denotePExpr', evalPExpr' in *.
 
     simp; try_abs. subst.
     hvred.
@@ -63,11 +62,8 @@ Section MExpr.
     hred.
     unfold lift_Serr in NOFAIL. cbn in NOFAIL.
     rewrite bind_ret_l in NOFAIL.
-    destruct b; try_abs.
+    rewrite interp_helix_MemLU; eauto.
     hred.
-    hstep.
-    solve_lu.
-    hvred.
     apply eutt_Ret; split; [ | split]; cbn; auto.
     eexists; split; eauto.
     break_match_goal; cbn.

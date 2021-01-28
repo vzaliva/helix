@@ -426,7 +426,7 @@ Proof.
               inv IDS.
 
               (* Since y_i = a, we know this matches the block that was written to *)
-              exists (mem_add (MInt64asNT.to_nat dst) b1 bk_h).
+              exists (mem_add (MInt64asNT.to_nat dst) v bk_h).
 
               (* *)
               exists yptr. exists (TYPE_Array sz0 TYPE_Double).
@@ -837,7 +837,7 @@ Proof.
             destruct INV as (bk & ptr_l & τ' & MLUP & TYP & FITS & LOOKUP & GETCELL_ptr_l).
 
             destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
-            { exists (mem_add (MInt64asNT.to_nat dst) b1 ymembk). exists ptr_l. exists τ'.
+            { exists (mem_add (MInt64asNT.to_nat dst) v ymembk). exists ptr_l. exists τ'.
 
               subst.
               assert (n1 ≡ y_p) by eauto.
@@ -888,7 +888,7 @@ Proof.
             erewrite WRITE_ARRAY in WRITE_SUCCEEDS.
 
             destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
-            { exists (mem_add (MInt64asNT.to_nat dst) b1 ymembk). exists ptr_l. exists τ'.
+            { exists (mem_add (MInt64asNT.to_nat dst) v ymembk). exists ptr_l. exists τ'.
 
               subst.
               assert (n1 ≡ y_p) by eauto.
@@ -1247,7 +1247,7 @@ Proof.
             inv IDS.
 
             (* Since y_i = a, we know this matches the block that was written to *)
-            exists (mem_add (MInt64asNT.to_nat dst) b1 bk_h).
+            exists (mem_add (MInt64asNT.to_nat dst) v bk_h).
 
             (* *)
             exists yptr. exists (TYPE_Array sz0 TYPE_Double).
@@ -1649,7 +1649,7 @@ Proof.
             destruct INV as (bk & ptr_l & τ' & MLUP & TYP & FITS & LOOKUP & GETCELL_ptr_l).
 
             destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
-            { exists (mem_add (MInt64asNT.to_nat dst) b1 ymembk). exists ptr_l. exists τ'.
+            { exists (mem_add (MInt64asNT.to_nat dst) v ymembk). exists ptr_l. exists τ'.
 
               subst.
               assert (n1 ≡ y_p) by eauto.
@@ -1700,7 +1700,7 @@ Proof.
             erewrite WRITE_ARRAY in WRITE_SUCCEEDS.
 
             destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
-            { exists (mem_add (MInt64asNT.to_nat dst) b1 ymembk). exists ptr_l. exists τ'.
+            { exists (mem_add (MInt64asNT.to_nat dst) v ymembk). exists ptr_l. exists τ'.
 
               subst.
               assert (n1 ≡ y_p) by eauto.
