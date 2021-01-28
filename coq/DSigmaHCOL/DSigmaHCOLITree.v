@@ -110,18 +110,12 @@ Module MDSigmaHCOLITree
   Definition denotePExpr (σ: evalContext) (exp:PExpr): itree Event (nat*NT.t) :=
     lift_Serr (evalPExpr σ exp).
 
-  Definition denotePExpr' (σ: evalContext) (exp:PExpr): itree Event (nat*NT.t*bool) :=
-    lift_Serr (evalPExpr' σ exp).
-
   Definition denoteMExpr (σ: evalContext) (exp:MExpr): itree Event (mem_block*NT.t) :=
     match exp with
     | @MPtrDeref p =>
-      '(bi,size,f) <- denotePExpr' σ p ;;
-      if f:bool then
-        Sfail "Attempt to access protected variable in evalMExpr"
-      else
-        (bi' <- trigger (MemLU "MPtrDeref" bi) ;;
-         ret (bi', size))
+      '(bi,size) <- denotePExpr σ p ;;
+      (bi' <- trigger (MemLU "MPtrDeref" bi) ;;
+       ret (bi', size))
     | @MConst t size => ret (t,size)
     end.
 

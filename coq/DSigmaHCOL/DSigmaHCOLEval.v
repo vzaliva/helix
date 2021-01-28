@@ -145,17 +145,8 @@ Module MDSigmaHCOLEval
     match exp with
     | @PVar i =>
       match nth_error σ i with
-      | Some ((@DSHPtrVal v size),f)  => ret (v,size)
-      | _ => raise "error looking up PVar"
-      end
-    end.
-
-  (* Similar to [evalPExpr] but also returns protection flag *)
-  Definition evalPExpr' (σ: evalContext) (exp:PExpr): err (nat*NT.t*bool) :=
-    match exp with
-    | @PVar i =>
-      match nth_error σ i with
-      | Some ((@DSHPtrVal v size),f)  => ret (v,size,f)
+      | Some ((@DSHPtrVal v size), false)  => ret (v,size)
+      | Some (_,true)  => raise "Attempt to access protected variable in evalMExpr"
       | _ => raise "error looking up PVar"
       end
     end.
@@ -164,12 +155,9 @@ Module MDSigmaHCOLEval
   Definition evalMExpr (mem:memory) (σ: evalContext) (exp:MExpr): err (mem_block*NT.t) :=
     match exp with
     | @MPtrDeref p =>
-      '(bi,size,f) <- evalPExpr' σ p ;;
-      if f:bool then
-        raise "Attempt to access protected variable in evalMExpr"
-      else
-        (m <- memory_lookup_err "MPtrDeref lookup failed" mem bi ;;
-         ret (m,size))
+      '(bi,size) <- evalPExpr σ p ;;
+      m <- memory_lookup_err "MPtrDeref lookup failed" mem bi ;;
+      ret (m,size)
     | @MConst t size => ret (t,size)
     end.
 
@@ -868,28 +856,10 @@ Module MDSigmaHCOLEval
        try (inversion H1;subst;auto); cbn in *; some_inv; try inversion H.
      destruct H3.
      subst.
-     rewrite H3, H7.
-     reflexivity.
-  Qed.
-
-  Instance evalPExpr'_proper:
-    Proper ((=) ==> (=) ==> (=)) (evalPExpr').
-  Proof.
-    intros c1 c2 Ec e1 e2 Ee.
-     destruct Ee; simpl.
-     unfold equiv, peano_naturals.nat_equiv in H.
-     subst n1. rename n0 into v.
-     assert_match_equiv E.
-     {
-       apply nth_error_proper.
-       apply Ec.
-       reflexivity.
-     }
-     repeat break_match; try inversion E; subst; try (constructor;subst;auto);
-       try (inversion H1;subst;auto); cbn in *; some_inv; try inversion H.
-     destruct H3.
-     subst.
-     rewrite H3, H7, H0.
+     inversion E; inversion H0.
+     inversion H0.
+     destruct H3 as [Hs Ha].
+     rewrite Hs, Ha.
      reflexivity.
   Qed.
 
@@ -906,17 +876,20 @@ Module MDSigmaHCOLEval
         reflexivity.
       }
       repeat break_match ; inversion_clear E;  try (constructor;auto);
-        inversion_clear H0; cbn in *; subst; try inversion H2; inversion_clear H1; cbn in *; err_eq_to_equiv_hyp.
+        inversion_clear H0; cbn in *; subst; err_eq_to_equiv_hyp;
+          rewrite Ec, H in Heqs;
+          rewrite Heqs in Heqs1;
+          inversion_clear Heqs1.
       +
-        rewrite Em, H0 in Heqs0.
+        rewrite Em, H1 in Heqs0.
         rewrite Heqs0 in Heqs2.
         inl_inr.
       +
-        rewrite Em, H0 in Heqs0.
+        rewrite Em, H1 in Heqs0.
         rewrite Heqs0 in Heqs2.
         inl_inr.
       +
-        rewrite Em, H0 in Heqs0.
+        rewrite Em, H1 in Heqs0.
         rewrite Heqs0 in Heqs2.
         inv Heqs2.
         unfold equiv, products.prod_equiv.
@@ -1914,16 +1887,6 @@ Module MDSigmaHCOLEval
       destruct p;constructor.
     Qed.
 
-    Lemma evalPExpr'_incrPVar
-          (p : PExpr)
-          (σ : evalContext)
-          (foo: DSHVal)
-          (f:bool):
-      evalPExpr' ((foo,f) :: σ) (incrPVar 0 p) ≡ evalPExpr' σ p.
-    Proof.
-      destruct p;constructor.
-    Qed.
-
     Lemma evalMExpr_incrMVar
           (mem: memory)
           (m : MExpr)
@@ -1937,7 +1900,7 @@ Module MDSigmaHCOLEval
       -
         simpl.
         assert_match_eq E.
-        apply evalPExpr'_incrPVar.
+        apply evalPExpr_incrPVar.
         repeat break_match; try inl_inr; try inl_inr_inv; subst; auto.
         +
           rewrite Heqs0 in Heqs2.
