@@ -330,6 +330,10 @@ Proof.
 
   rename l0 into bks.
 
+  rename n3 into x_ptr_addr.
+  rename n2 into y_ptr_addr.
+
+
   (* [Hyp] Get memory/ptr information for xtyp, ytyp, xptyp, yptyp. *)
   (* Duplicate work as genMExpr_correct, needed for GEP later. *)
 
@@ -411,7 +415,12 @@ Proof.
   forward GENC; [clear GENC |].
   {
     eapply lid_bound_between_shrink; [eapply lid_bound_between_newLocalVar | | ]; eauto; try reflexivity; solve_local_count.
-    admit.
+    get_local_count_hyps.
+    Transparent addVars.
+    inv Heqs12.
+    cbn in Heqs13.
+    solve_local_count.
+    Opaque addVars.
   }
 
   forward GENC; [clear GENC |].  {
@@ -444,41 +453,27 @@ Proof.
 
   rename memV into mV_init.
 
-  rename n3 into x_ptr_addr.
-  rename n2 into y_ptr_addr.
-
-  (* TODO *)
-  (* Lemma init_loop_ : *)
-  (*     state_invariant σ s12 mH stV  -> *)
-  (*     state_invariant_relaxed σ s12 mH stV y_ptr_addr /\ *)
-
-  (* TODO *)
-  (* Lemma init_loop_' : *)
-    (* TODO : Add as assumption more information about memory from context *)
-  (*     state_invariant σ s12 mH stV  -> *)
-  (*     state_invariant_relaxed σ s12 mH stV y_ptr_addr /\ *)
-  (*     memory_invariant_partial_write stV k ptrll_yoff bkh_yoff y n *)
-
-  (* TODO *)
-  (* Lemma end_of_loop_ : *)
-  (*     state_invariant_relaxed σ s12 mH stV y_ptr_addr /\ *)
-  (*     memory_invariant_partial_write stV k ptrll_yoff bkh_yoff y n -> *)
-  (*     state_invariant σ s12 mH stV *)
+  (* Lemma split_state_invariant : *)
+  (*   forall σ s mH stV ptr n y, *)
+  (*     state_invariant σ s mH stV -> *)
+  (*   TODO : Add as assumption more information about memory from context *)
+  (*     (* TODO *) *)
+  (*     state_invariant_relaxed σ s mH stV ptr /\ *)
+  (*     memory_invariant_partial_write stV k ptrll_yoff bkh_yoff y n. *)
 
   (* Invariant at each iteration *)
   set (I := (fun (k : nat) (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
                match mH with
                | None => False
                | Some (mH, b) =>
-                 let '(mV, (p, g)) := stV in
+                 let '(mV, (p, g')) := stV in
                  (* 1. Relaxed state invariant *)
-                 (* state_invariant_relaxed σ s12 mH stV y_ptr_addr /\ *)
-                 (* (* 2. Preserved state invariant *) *)
-                 (* memory_invariant_partial_write stV k ptrll_yoff bkh_yoff y sz0 *)
-                 state_invariant σ s12 mH stV /\
-                 mH ≡ memH
+                 state_invariant_relaxed σ s12 mH stV y_ptr_addr /\
+                 (* 2. Preserved state invariant *)
+                 memory_invariant_partial_write stV k n ptrll_yoff bkh_yoff y_ptr_addr sz0 /\
+                 mH ≡ memH /\ g ≡ g' /\
                  (* exists v, ext_memory mV_init ptrll_yoff DTYPE_Double (UVALUE_Double v) mV /\ *)
-                      (* Accessing py pointer doesn't go out of bounds *) /\
+                      (* Accessing py pointer doesn't go out of bounds *)
                 (DynamicValues.Int64.intval (repr (Z.of_nat n)) < Z.of_N sz0)%Z
                end)).
   (* Precondition and postcondition *)
@@ -554,32 +549,37 @@ Proof.
     vred; cbn.
 
     rewrite denote_code_cons.
-    (* rename n3 into x_addr. *)
-    (* rename n2 into x0_addr. *)
 
     (* Get mem information from PRE condition here (global and local state has changed). *)
     (* Needed for the following GEP and Load instructions *)
-    destruct INV as (INV & -> & BOUNDS).
+    destruct INV as (INV_r & INV_p & -> & -> & BOUNDS).
 
-    pose proof state_invariant_memory_invariant INV as MINV_YOFF.
-    pose proof state_invariant_memory_invariant INV as MINV_XOFF.
-    unfold memory_invariant in MINV_YOFF.
-    unfold memory_invariant in MINV_XOFF.
+    pose proof INV_p as MINV_YOFF.
+    unfold memory_invariant_partial_write in MINV_YOFF.
     rewrite GENIR_Γ in LUn0, LUn.
-    specialize (MINV_YOFF _ _ _ _ Heqo0 LUn0).
-    specialize (MINV_XOFF _ _ _ _ Heqo LUn).
-    cbn in MINV_YOFF , MINV_XOFF.
 
-    destruct MINV_YOFF as (bkh_yoff_l & ptrll_yoff_l & τ_yoff_l & MLUP_yoff_l &
-                           TEQ_yoff_l & FITS_yoff_l & INLG_yoff_l & GETARRAYCELL_yoff_l).
-    destruct MINV_XOFF as (bkh_xoff_l & ptrll_xoff_l & τ_xoff_l & MLUP_xoff_l & TEQ_xoff_l & FITS_xoff_l
-                           & INLG_xoff_l & GETARRAYCELL_xoff_l).
+    specialize (MINV_YOFF _ _ _ _ _ _ Heqo0 LUn0).
+    destruct MINV_YOFF as (_ & FITS_yoff_l & INLG_yoff_l & GETARRAYCELL_yoff_l).
+
+    Lemma state_invariant_relaxed_memory_invariant :
+      ∀ (σ : evalContext) (s : IRState) (mH : memoryH) (mV : memoryV) (l : local_env) (g : global_env) ptr,
+        state_invariant_relaxed σ s mH (mV, (l, g)) ptr → memory_invariant_relaxed σ s mH (mV, (l, g)) ptr.
+    Proof.
+      intros * []; eauto.
+    Qed.
+
+    (* Memory invariant for x *)
+    pose proof state_invariant_relaxed_memory_invariant INV_r as MINV_XOFF.
+    unfold memory_invariant_relaxed in MINV_XOFF.
+    specialize (MINV_XOFF _ _ _ _ Heqo LUn).
+    cbn in MINV_XOFF.
+
+    destruct MINV_XOFF as (bkh_xoff_l & ptrll_xoff_l & τ_xoff & MLUP_xoff_l & TEQ_xoff & FITS_xoff_l & INLG_xoff_l & GETARRAYCELL_xoff_l).
+
+    (* y_ptr_addr ≢ x_ptr_addr *) admit. (* TODO : This will be part of our assumption *)
 
     rewrite MLUP_xoff_l in H'; symmetry in H'; inv H'.
-    rewrite MLUP_yoff_l in H0'; symmetry in H0'; inv H0'.
-
-    inv TEQ_yoff_l.
-    inv TEQ_xoff_l. cbn.
+    inv TEQ_xoff.
 
     assert (UNIQ0 : v ≢ loopvarid). {
       intros CONTRA; subst.
@@ -616,6 +616,7 @@ Proof.
       solve_local_count. reflexivity.
     }
 
+
     (* [Vellvm] GEP Instruction *)
     match goal with
     | [|- context[OP_GetElementPtr (DTYPE_Array ?size' ?τ') (_, ?ptr') _]] =>
@@ -643,9 +644,21 @@ Proof.
     2 : {
       typ_to_dtyp_simplify; eauto.
       assert (GET := GETARRAYCELL_xoff_l).
-      assert (KNat : MInt64asNT.to_nat (Int64.repr (Z.of_nat k )) ≡ k). admit.
+      Lemma to_nat_repr_nat :
+        forall k, MInt64asNT.from_nat k ≡ inr (Int64.repr (Z.of_nat k)) ->
+             MInt64asNT.to_nat (Int64.repr (Z.of_nat k)) ≡ k.
+      Proof.
+        intros.
+        unfold MInt64asNT.to_nat.
+        unfold MInt64asNT.from_nat in H.
+        apply from_Z_intval in H.
+        rewrite <- H.
+        apply Znat.Nat2Z.id.
+      Qed.
+
       specialize (GET (Int64.repr (Z.of_nat k))).
-      rewrite KNat in GET. eapply GET. eauto.
+      rewrite to_nat_repr_nat in GET; auto.
+      eapply GET. eauto.
     }
     eauto.
 
@@ -715,7 +728,8 @@ Proof.
             eapply state_invariant_same_Γ; eauto using lid_bound_between_incLocal.
             eapply state_invariant_same_Γ; eauto using lid_bound_between_incLocal.
             solve_not_in_gamma.
-            eapply state_invariant_Γ. eauto. eauto. solve_gamma.
+            eapply state_invariant_Γ. admit. admit. admit.
+            (* eauto. eauto. solve_gamma. *)
       - eapply Gamma_safe_Context_extend with (s1 := s2) (s2 := s10).
         4 : { cbn. assert (GAM_E: Γ s2 ≡ Γ s7) by solve_gamma. rewrite GAM_E. reflexivity. }
         2 : solve_local_count.
@@ -856,8 +870,14 @@ Proof.
     eapply dtyp_fits_array_elem. typ_to_dtyp_simplify. apply FITS_yoff_l'.
     pose proof (from_N_intval _ EQsz0) as EQ.
     rewrite EQ. eauto.
-    clear -BOUNDS BOUNDk.
-    admit. (* arithm *)
+    clear -BOUNDS BOUNDk EQk Heqs5.
+    unfold MInt64asNT.from_nat in EQk.
+    apply from_Z_intval in EQk. setoid_rewrite <- EQk.
+
+    unfold MInt64asNT.from_nat in Heqs5.
+    apply from_Z_intval in Heqs5. rewrite Heqs5 in BOUNDS.
+    rewrite repr_intval in BOUNDS. rewrite <- Heqs5 in BOUNDS.
+    lia.
 
     vred.
     rewrite denote_instr_store.
@@ -916,13 +936,16 @@ Proof.
     - exists b0. reflexivity.
 
     - split; [| split ]; eauto.
-      eapply state_invariant_same_Γ with (s1 := s0); eauto using lid_bound_between_incLocal.
-      solve_not_in_gamma.
-      eauto.
-      eapply state_invariant_Γ with (s1 := s12); eauto.
+
+      (* eapply state_invariant_same_Γ with (s1 := s0); eauto using lid_bound_between_incLocal. *)
+      (* solve_not_in_gamma. *)
+      (* eauto. *)
+      (* eapply state_invariant_Γ with (s1 := s12); eauto. *)
       clear -PRE_INV extends EE Gamma_cst x2 H4 H2 x1.
       destruct PRE_INV.
+
       split; eauto.
+      (* split; eauto. *)
       6 : {
         unfold id_allocated. intros.
         unfold id_allocated in st_id_allocated.
@@ -957,17 +980,18 @@ Proof.
       {
         unfold memory_invariant in *.
         rewrite <- EE in *. intros.
-        specialize (mem_is_inv (S (S n))). cbn in *.
-        specialize (mem_is_inv _ _ _ H H0).
-        destruct v0; eauto.
-        + admit. + admit.
-        + destruct mem_is_inv as (? & ? & ? & ? & ? & ? & ? & ?).
-          eexists.
-          eexists.
-          eexists.
-          repeat (split; eauto).
-          * admit.
-          * intros. eapply get_array_cell_write_no_overlap; eauto. admit. admit. admit. admit. admit.
+        (* specialize (mem_is_inv (S (S n))). cbn in *. *)
+        (* specialize (mem_is_inv _ _ _ H H0). *)
+        (* destruct v0; eauto. *)
+        (* + admit. + admit. *)
+        (* + destruct mem_is_inv as (? & ? & ? & ? & ? & ? & ? & ?). *)
+        (*   eexists. *)
+        (*   eexists. *)
+        (*   eexists. *)
+        (*   repeat (split; eauto). *)
+        (*   * admit. *)
+        (*   * intros. eapply get_array_cell_write_no_overlap; eauto. admit. admit. admit. admit. admit. *)
+        admit.
       }
 
       {
@@ -976,13 +1000,16 @@ Proof.
         rewrite <- EE in st_no_llvm_ptr_aliasing.
         specialize (st_no_llvm_ptr_aliasing id1 ptrv1 id2 ptrv2 (S (S n1)) (S (S n2))).
         cbn in st_no_llvm_ptr_aliasing.
-        eapply st_no_llvm_ptr_aliasing; eauto.
+        eapply st_no_llvm_ptr_aliasing; eauto. admit. admit.
         (* unfold in_local_or_global_addr in *. *)
         (* destruct id1; eauto. *)
         (* (* solve_alist_in. *) *)
         (* admit. *)
         (* unfold in_local_or_global_addr in *.  destruct id2; eauto. *)
         (* admit. *)
+      }
+      {
+        admit.
       }
     - apply local_scope_modif_add'.
       solve_lid_bound_between.
@@ -991,6 +1018,7 @@ Proof.
       eapply local_scope_modif_shrink. apply extends.
       solve_local_count. solve_local_count.
       solve_lid_bound_between. solve_lid_bound_between.
+    - admit. (* absurd case *)
   }
 
   forward GENC; [clear GENC |].
@@ -1002,7 +1030,7 @@ Proof.
     destruct H0 as (? & ? & ?).
     split; eauto.
     edestruct H2. subst.
-    admit.
+    admit. admit.
     auto.
   }
 
@@ -1022,12 +1050,14 @@ Proof.
   {
     subst I P; red; intros; auto. destruct a; eauto.
     destruct p; eauto. destruct b1; eauto. destruct p; eauto.
+    admit.
   }
 
   forward GENC; [clear GENC |].
   {
     subst I P; red; intros; auto. destruct a; auto.
     destruct p; eauto. destruct b1; eauto. destruct p; eauto.
+    admit.
   }
 
   setoid_rewrite <- bind_ret_r at 6.
@@ -1058,8 +1088,8 @@ Proof.
       eapply state_invariant_Γ; eauto. admit.
     - destruct H; eauto.
     - solve_local_scope_modif.
-      Unshelve.
-      all : eauto. admit.
+      (* Unshelve. *)
+      (* all : eauto. admit. *)
   }
 Admitted.
 

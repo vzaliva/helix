@@ -491,7 +491,6 @@ Section SimulationRelations.
     intros; repeat split; reflexivity.
   Qed.
 
-
   (* A couple lemmas about [state_invariant_relaxed] *)
   Lemma relax_state_invariant :
     forall σ s mH stV ptr,
