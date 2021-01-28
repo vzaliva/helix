@@ -319,12 +319,13 @@ Section SimulationRelations.
           end.
 
 
-  Definition memory_invariant_partial_write (configV : config_cfg) (index loopsize : nat) (ptr_llvm : addr) (bk_helix : mem_block) ptr sz : Prop :=
+  Definition memory_invariant_partial_write (configV : config_cfg) (index loopsize : nat) (ptr_llvm : addr)
+             (bk_helix : mem_block) (x : ident) sz : Prop :=
       let '(mem_llvm, (ρ, g)) := configV in
-      forall n size τ s σ x,
-        nth_error σ n ≡ Some (DSHPtrVal ptr size) ->
-        nth_error (Γ s) n ≡ Some (x, τ) ->
-        τ ≡ (TYPE_Pointer (TYPE_Array sz TYPE_Double)) /\
+      (* forall n size τ s σ x, *)
+        (* nth_error σ n ≡ Some (DSHPtrVal ptr size) -> *)
+        (* nth_error (Γ s) n ≡ Some (x, τ) -> *)
+        (* τ ≡ (TYPE_Pointer (TYPE_Array sz TYPE_Double)) /\ *)
           dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp [] (TYPE_Array sz TYPE_Double))
               ∧ in_local_or_global_addr ρ g x ptr_llvm
               ∧ (∀ (i : Int64.int) (v0 : binary64),
@@ -516,30 +517,47 @@ Section SimulationRelations.
   Qed.
 
   Lemma stengthen_state_invariant :
-    forall σ s mH stV ptr ptr_llvm loop_n bk_helix sz,
+    forall σ s mH stV ptr ptr_llvm loop_n bk_helix,
       state_invariant_relaxed σ s mH stV ptr ->
       memory_lookup mH ptr ≡ Some bk_helix ->
-      memory_invariant_partial_write stV loop_n loop_n ptr_llvm bk_helix ptr sz ->
+      forall n size τ x,
+        nth_error σ n ≡ Some (DSHPtrVal ptr size) ->
+        nth_error (Γ s) n ≡ Some (x, τ) ->
+      memory_invariant_partial_write stV loop_n loop_n ptr_llvm bk_helix x (Z.to_N (Int64.intval size))  ->
       state_invariant σ s mH stV.
   Proof.
-    intros * [] M MINV.
+    intros * [] M ? ? ? ? ? ? MINV.
     split; eauto.
     unfold memory_invariant, memory_invariant_relaxed, memory_invariant_partial_write in *.
     destruct stV as (? & ? & ?).
     intros.
-    specialize (mem_is_inv_relax0 _ _ _ _ H H0).
+    specialize (mem_is_inv_relax0 _ _ _ _ H1 H2).
+    cbn in mem_is_inv_relax0.
     destruct v; eauto.
     destruct (ptr =? a) eqn: PEQ; cycle 1.
     - apply beq_nat_false in PEQ. specialize (mem_is_inv_relax0 PEQ).
       edestruct mem_is_inv_relax0 as (? & ? & ? & ? & ? & ? & ? & ?).
-      eexists x0, x1, x2.
+      eexists x1, x2, x3.
       split; [|split; [|split;[|split]]]; eauto.
     - apply beq_nat_true in PEQ. subst.
       clear mem_is_inv_relax0.
-      specialize (MINV _ _ _ _ _ _ H H0).
-      destruct MINV as (? & ? & ? & ?).
-      exists bk_helix, ptr_llvm, (TYPE_Array sz TYPE_Double).
+      destruct MINV as (? & ? & ?).
+      exists bk_helix, ptr_llvm, (TYPE_Array (Z.to_N (Int64.intval size0)) TYPE_Double).
+      unfold WF_IRState in IRState_is_WF_relax0.
+      unfold evalContext_typechecks in IRState_is_WF_relax0.
+      specialize (IRState_is_WF_relax0 _ _ H1).
+      do 2 cbn in IRState_is_WF_relax0.
+      edestruct IRState_is_WF_relax0 as (? & ?). rewrite H2 in H6. inv H6.
+
+      unfold no_dshptr_aliasing in st_no_dshptr_aliasing_relax0.
+      specialize (st_no_dshptr_aliasing_relax0 _ _ _ _ _ H H1). subst.
+      rewrite H in H1. inv H1.
+
       split; [|split; [|split;[|split]]]; eauto.
+      unfold getWFType. destruct x1; eauto.
+      eauto.
+
+      rewrite H0 in H2. inv H2. auto.
   Qed.
 
   Lemma no_llvm_ptr_aliasing_not_in_gamma :
@@ -637,6 +655,64 @@ Section SimulationRelations.
           rewrite remove_neq_alist; eauto.
           all: typeclasses eauto.
       + destruct x; cbn in *; auto.
+        destruct INLG as (? & ? & ? & ? & ? & ? & ? & ?).
+        do 3 eexists; split; [eauto | split]; eauto.
+        unfold alist_add; cbn.
+        break_match_goal.
+        * rewrite rel_dec_correct in Heqb; subst.
+          exfalso; eapply NIN.
+          econstructor; eauto.
+        * apply neg_rel_dec_correct in Heqb.
+          rewrite remove_neq_alist; eauto.
+          all: typeclasses eauto.
+    - red; rewrite <- EQ; auto.
+    - apply no_llvm_ptr_aliasing_not_in_gamma; eauto.
+      red; rewrite <- EQ; auto.
+
+      intros INGAMMA.
+      destruct INGAMMA.
+      apply NIN.
+      rewrite <- EQ in H0.
+      econstructor; eauto.
+  Qed.
+
+  Lemma state_invariant_relaxed_same_Γ :
+    ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
+      (l : local_env) (g : global_env) (v : uvalue) p,
+      Γ s1 ≡ Γ s2 ->
+      ~ in_Gamma σ s1 id →
+      state_invariant_relaxed σ s1 memH (memV, (l, g)) p →
+      state_invariant_relaxed σ s2 memH (memV, (alist_add id v l, g)) p.
+  Proof.
+    intros * EQ NIN INV; inv INV.
+    assert (WF_IRState σ s2) as WF.
+    { red; rewrite <- EQ; auto. }
+    constructor; auto.
+    - red. cbn; rewrite <- EQ.
+      intros * LUH LUV.
+      generalize LUV; intros INLG;
+        eapply mem_is_inv_relax0 in INLG; eauto.
+      destruct v0; cbn in *; auto.
+      + destruct x; cbn in *; auto.
+        unfold alist_add; cbn.
+        break_match_goal.
+        * rewrite rel_dec_correct in Heqb; subst.
+          exfalso; eapply NIN.
+          econstructor; eauto.
+        * apply neg_rel_dec_correct in Heqb.
+          rewrite remove_neq_alist; eauto.
+          all: typeclasses eauto.
+      + destruct x; cbn; auto.
+        unfold alist_add; cbn.
+        break_match_goal.
+        * rewrite rel_dec_correct in Heqb; subst.
+          exfalso; eapply NIN.
+          econstructor; eauto.
+        * apply neg_rel_dec_correct in Heqb.
+          rewrite remove_neq_alist; eauto.
+          all: typeclasses eauto.
+      + destruct x; cbn in *; auto.
+        intros. specialize (INLG H).
         destruct INLG as (? & ? & ? & ? & ? & ? & ? & ?).
         do 3 eexists; split; [eauto | split]; eauto.
         unfold alist_add; cbn.
@@ -1523,6 +1599,24 @@ Proof.
   - destruct stV as (? & ? & ?); cbn in *; eapply no_llvm_ptr_aliasing_gamma; eauto.
 Qed.
 
+Lemma state_invariant_relaxed_Γ :
+  forall σ s1 s2 memH stV p,
+    state_invariant_relaxed σ s1 memH stV p ->
+    Γ s2 ≡ Γ s1 ->
+    state_invariant_relaxed σ s2 memH stV p.
+Proof.
+  intros * INV EQ; inv INV.
+  split; cbn; eauto.
+  - red; rewrite EQ; apply mem_is_inv_relax0.
+  - red. rewrite EQ; apply IRState_is_WF_relax0.
+  - repeat intro; eapply st_no_id_aliasing_relax0; eauto; rewrite <- EQ; eauto.
+  - destruct stV as (? & ? & ?); cbn in *. repeat intro.
+    revert H6.
+    rewrite EQ in *. unfold no_llvm_ptr_aliasing in *.
+    specialize (st_no_llvm_ptr_aliasing_relax0 _ _ _ _ _ _ _ _ _ _ H H0 H1 H2  H3 H4 H5).
+    eauto.
+Qed.
+
 Lemma state_invariant_add_fresh' :
   ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
     (l : local_env) (g : global_env) (v : uvalue),
@@ -1535,6 +1629,20 @@ Proof.
   apply GAM in BOUND.
   eapply state_invariant_same_Γ; eauto.
 Qed.
+
+Lemma state_invariant_relaxed_add_fresh' :
+  ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
+    (l : local_env) (g : global_env) (v : uvalue) p,
+    Gamma_safe σ s1 s2
+    -> lid_bound_between s1 s2 id
+    → state_invariant_relaxed σ s1 memH (memV, (l, g)) p
+    → state_invariant_relaxed σ s1 memH (memV, (alist_add id v l, g)) p.
+Proof.
+  intros * GAM BOUND INV.
+  apply GAM in BOUND.
+  eapply state_invariant_relaxed_same_Γ; eauto.
+Qed.
+
 
 Lemma state_invariant_escape_scope : forall σ v x s1 s2 stH stV,
     Γ s1 ≡ x :: Γ s2 ->
