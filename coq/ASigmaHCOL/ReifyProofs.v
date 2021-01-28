@@ -6760,7 +6760,7 @@ Global Instance IReduction_MSH_DSH_compat_S
        (DC : forall m' y_id d1 d2,
            evalPExpr_id σ y_p ≡ inr y_id ->
            memory_subset_except y_id m m'  ->
-           MSH_DSH_BinCarrierA_compat dot (protect_p (d1 :: d2 :: σ) y_p) df m')
+           MSH_DSH_BinCarrierA_compat dot (protect_p (d1 :: d2 :: σ) (incrPVar 0 (incrPVar 0 y_p))) df m')
        (FC : forall m' tmpk t y_id mb,
            evalPExpr_id σ y_p ≡ inr y_id ->
            memory_subset_except y_id m m'  ->
@@ -7084,7 +7084,7 @@ Proof.
         reflexivity.
       }
       assert (Dot_compat_dm : MSH_DSH_BinCarrierA_compat dot
-                                               (protect_p ((DSHnatVal 0,false) :: (DSHPtrVal t_id o,false) :: σ) y_p)
+                                               (protect_p ((DSHnatVal 0,false) :: (DSHPtrVal t_id o,false) :: σ) (incrPVar 0 (incrPVar 0 y_p)) )
                                                df dm);
         [| clear DC].
       {
@@ -7288,7 +7288,7 @@ Proof.
             reflexivity.
       * (* Map2 runs out of fuel *)
         clear - Heqo0.
-        assert (is_Some (evalDSHOperator (DSHnatVal 0 :: DSHPtrVal t_id o :: σ)
+        assert (is_Some (evalDSHOperator ((DSHnatVal 0,false) :: (DSHPtrVal t_id o,false) :: σ)
             (DSHMemMap2 o (incrPVar 0 (incrPVar 0 y_p)) (PVar 1)
                (incrPVar 0 (incrPVar 0 y_p)) df) dm
             (estimateFuel
@@ -7786,7 +7786,7 @@ Proof.
         }
 
         assert (
-            evalDSHOperator (DSHnatVal n :: DSHPtrVal t_id o :: σ)
+            evalDSHOperator ((DSHnatVal n,false) :: (DSHPtrVal t_id o,false) :: σ)
                             (DSHMemMap2 o (incrPVar 0 (incrPVar 0 y_p)) (PVar 1)
                                         (incrPVar 0 (incrPVar 0 y_p)) df)
                             rr_m
@@ -8100,7 +8100,7 @@ Proof.
             rewrite Y_LoopNM in OPF_LoopN.
             inversion OPF_LoopN; subst x.
             
-            assert (T : lookup_PExpr (DSHnatVal n :: DSHPtrVal t_id o :: σ) rr_m (PVar 1)
+            assert (T : lookup_PExpr ((DSHnatVal n,false) :: (DSHPtrVal t_id o,false) :: σ) rr_m (PVar 1)
                         = inr t_rrm)
               by (cbn; unfold memory_lookup_err; rewrite T_RRM; reflexivity).
             rewrite T in R; clear T.
