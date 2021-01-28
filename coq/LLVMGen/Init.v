@@ -3080,7 +3080,7 @@ Proof.
             constructor.
             +
               cbn.
-              intros ? ? ? ? C.
+              intros ? ? ? ? ? C.
               rewrite nth_error_nil in C.
               inversion C.
             + repeat intro. destruct v.
@@ -3356,7 +3356,7 @@ Proof.
                   rewrite nth_error_app2 in H0 by reflexivity.
                   rewrite Nat.sub_diag in H0.
                   cbn in H0.
-                  some_inv; subst v.
+                  some_inv; subst.
                   move Heqs2 at bottom.
                   unfold initOneFSHGlobal in Heqs2.
                   cbn in Heqs2.

@@ -57,13 +57,16 @@ Section MExpr.
 
     simp; try_abs. subst.
     hvred.
+    unfold lift_Serr in *.
+    simp; try_abs.
+    hvred.
+    cbn. hvred. cbn in NOFAIL.
+    rewrite bind_ret_l in NOFAIL.
+    simp; try_abs.
+    inv Heqs.
     edestruct memory_invariant_Ptr
       as (bkH & ptrV & Mem_LU & MEM & INLG & EQ); eauto.
     cbn.
-    hred.
-    unfold lift_Serr in NOFAIL. cbn in NOFAIL.
-    rewrite bind_ret_l in NOFAIL.
-    destruct b; try_abs.
     hred.
     hstep.
     solve_lu.

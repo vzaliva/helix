@@ -122,18 +122,20 @@ Proof.
   intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
   destruct PRE0 as (PRE2 & [EXP2 EXT2 SCOPE2 VAR2 GAM2 MONO2]).
   cbn in *; inv_eqs.
+  (* simp; try_abs. *)
 
   hvred.
   break_inner_match_hyp; break_inner_match_hyp; try_abs.
   destruct_unit.
 
-  rename vH into src, vH0 into dst, b into v.
+  rename vH into src, vH0 into dst, b1 into v.
   clean_goal.
   (* Step 7. *)
   hvred.
   hstep.
   unfold assert_NT_lt,assert_true_to_err in *; simp.
   hide_cont.
+
   clear NOFAIL.
   rename i1 into vsz.
   rename i0 into vx_p, i3 into vy_p.
@@ -142,7 +144,10 @@ Proof.
 
   (* Question 1: is [vx_p] global, local, or can be either? *)
   (* We access in memory vx_p[e] *)
-  edestruct memory_invariant_Ptr as (membk & ptr & LU & FITS & INLG & GETCELL); [| eauto | eauto |]; eauto.
+
+  edestruct memory_invariant_Ptr as (membk & ptr & LU & FITS & INLG & GETCELL); [| eauto | eauto | |]; eauto.
+  admit.
+
   clear FITS.
 
   rewrite LU in H; symmetry in H; inv H.
@@ -187,7 +192,8 @@ Proof.
     { (* vy_p in global *)
       assert (Γ si ≡ Γ sf) as CONT by solve_gamma.
       rewrite CONT in LUn0, LUn.
-      edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |].
+      edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 | |]; [solve_state_invariant | |].
+      admit.
 
       clean_goal.
       rewrite yLU in H0; symmetry in H0; inv H0.
@@ -316,19 +322,20 @@ Proof.
         split; [| split]; cbn.
         - (* State invariant *)
           cbn.
-          split; eauto.
+
           destruct PRE2.
+          split; eauto.
           unfold memory_invariant.
-          intros n1 v0 τ x0 H4 H5.
+          intros n1 v0 b τ x0 H4 H5.
           cbn in mem_is_inv.
-          pose proof (mem_is_inv n1 v0 τ x0 H4 H5).
+          pose proof (mem_is_inv n1 v0 b τ x0 H4 H5).
 
           (* TODO: can probably turn this into a lemma *)
           (* All depends on whether x0 == r, r1, or r0 *)
           destruct v0. destruct x0.
 
           { (* x0 is a global *)
-            destruct d.
+            (* destruct d. *)
             cbn. cbn in H4.
             { cbn in H. destruct H as (ptr_l & τ' & TYPE & INLG' & READ').
               do 2 eexists.

@@ -442,9 +442,9 @@ Proof.
 
   pose proof state_invariant_memory_invariant PRE as MINV.
   unfold memory_invariant in MINV.
-  specialize (MINV n3 _ _ _ Heqo0 LUn0).
+  specialize (MINV n3 _ _ _ _ Heqo0 LUn0).
   cbn in MINV.
-  destruct MINV as (bkh & ptrll & τ' & MLUP & TEQ & FITS & INLG & GETARRAYCELL).
+  destruct MINV as (bkh & ptrll & τ' & MLUP & TEQ & FITS & INLG & GETARRAYCELL). admit.
   inv TEQ.
   destruct i3.
   { (* Global case *)
