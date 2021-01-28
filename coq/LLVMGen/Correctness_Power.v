@@ -676,7 +676,7 @@ Proof.
       (* TODO: this isn't actually true because loop_end_exp is different than
          t_loopend, but this should be eutt *)
       admit.
-    }.
+    }
 
     (* TODO: may be able to separate this out into the DSHPower_body_eutt lemma *)
     unfold DSHPower_tfor.
