@@ -1,3 +1,4 @@
+
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.Correctness_NExpr.
@@ -1439,11 +1440,13 @@ Proof.
         Proof.
           intros σ s mH mV1 mV2 l g dst_addr v MINV WRITE.
           unfold memory_invariant in *.
+          intros n v0 τ x NTH_σ NTH_Γ.
         Abort.
 
         cbn in INLG_yoff.
 
         (* TODO: see if this can just be memory_invariant *)
+        (* TODO: this will have to be state_invariant_relaxed *)
         Lemma write_state_invariant :
           forall σ s mH mV1 mV2 l g dst_addr (id_addr : ident) hv v ptrll (τ : typ) n,
             state_invariant σ s mH (mV1, (l, g)) ->
@@ -1462,12 +1465,28 @@ Proof.
 
           intros n0 v0 τ0 x NTH_σ0 NTH_Γ0.
           pose proof (mem_is_inv n0 v0 τ0 x NTH_σ0 NTH_Γ0) as M.
+          pose proof (write_correct WRITE) as [WRITE_ALLOC WRITTEN].
           destruct x, v0; cbn in *; eauto.
           - (* Global integer... *)
             destruct M as (ptr & τ' & TEQ & FIND & READ); inv TEQ.
 
             (* Now, I want to say that if fst ptr ≡ fst dst_addr / fst ptrll that n0 = n *)
             epose proof (no_llvm_ptr_aliasing_same_block st_no_llvm_ptr_aliasing NTH_Γ NTH_σ NTH_Γ0 NTH_σ0 INLG FIND) as BLOCKID.
+            destruct (Z.eq_dec (fst ptrll) (fst ptr)) as [EQ | NEQ].
+            + apply BLOCKID in EQ. subst.
+              (* n0 = n *)
+              pose proof (st_no_id_aliasing _ _ _ _ _ _ _ NTH_σ NTH_σ0 NTH_Γ NTH_Γ0); subst.
+              rewrite NTH_Γ in NTH_Γ0; inv NTH_Γ0.
+              exists ptrll. exists τ'.
+              repeat split; eauto.
+              admit.
+            + admit.
+          - (* Global double... *)
+            admit.
+          - (* Global ptr... *)
+            admit.
+          - (* Local ptr... *)
+            admit.
         Abort.
         eauto.
         admit.
