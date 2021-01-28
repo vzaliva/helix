@@ -229,6 +229,33 @@ Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li :
                branches to ⩕
                (fun sthf stvf => local_scope_modif s1 s2 li (fst (snd stvf))).
 
+
+(* TODO: probably want to move this ltac *)
+Ltac get_mem_eqs :=
+  cbn in *;
+  repeat match goal with
+         | H: (lift_Rel_cfg (state_invariant ?σ1 ?s3) ⩕ genNExpr_post ?e ?σ2 ?s1 ?s2 ?mh (mk_config_cfg ?mv ?ρ ?g)) (?mh', ?t) (?mv', (?ρ', (?g', ()))) |- _
+           => apply genNExpr_memoryV in H
+         end.
+
+Ltac solve_mem_eq :=
+  get_mem_eqs; subst;
+  reflexivity.
+
+Ltac solve_dtyp_fits_mem_eq :=
+  match goal with
+  | H: dtyp_fits ?m1 ?ptr ?τ
+    |- dtyp_fits ?m2 ?ptr ?τ
+    => let MEM := fresh "MEM" in assert (m2 ≡ m1) as MEM by solve_mem_eq; rewrite MEM; assumption
+  end.
+
+(* TODO: expand this. Just trying to figure out this case first *)
+Ltac solve_dtyp_fits :=
+  first [ solve_dtyp_fits_mem_eq
+        | eapply dtyp_fits_array_elem; [eauto|eassumption|eauto]
+        ].
+
+
 Lemma DSHPower_correct:
   ∀ (n : NExpr) (src dst : MemRef) (f : AExpr) (initial : binary64) (s1 s2 : IRState) (σ : evalContext) (memH : memoryH) (nextblock bid_in bid_from : block_id) (bks : list (LLVMAst.block typ)) (g : global_env) 
     (ρ : local_env) (memV : memoryV),
@@ -469,12 +496,6 @@ Proof.
 
   (* TODO: move this *)
   Set Nested Proofs Allowed.
-  Ltac typ_to_dtyp_simplify :=
-    repeat
-      (try rewrite typ_to_dtyp_I in *;
-       try rewrite typ_to_dtyp_D in *;
-       try rewrite typ_to_dtyp_D_array in *;
-       try rewrite typ_to_dtyp_P in *).
 
   pose proof state_invariant_memory_invariant PRE as MINV_YOFF.
   pose proof state_invariant_memory_invariant PRE as MINV_XOFF.
@@ -522,31 +543,6 @@ Proof.
         destruct Mono_IRState; solve_gamma_preserved.
       }
     }
-
-    (* TODO: move all of this *)
-    Ltac get_mem_eqs :=
-      cbn in *;
-      repeat match goal with
-             | H: (lift_Rel_cfg (state_invariant ?σ1 ?s3) ⩕ genNExpr_post ?e ?σ2 ?s1 ?s2 ?mh (mk_config_cfg ?mv ?ρ ?g)) (?mh', ?t) (?mv', (?ρ', (?g', ()))) |- _
-               => apply genNExpr_memoryV in H
-             end.
-    
-    Ltac solve_mem_eq :=
-      get_mem_eqs; subst;
-      reflexivity.
-
-    Ltac solve_dtyp_fits_mem_eq :=
-      match goal with
-      | H: dtyp_fits ?m1 ?ptr ?τ
-        |- dtyp_fits ?m2 ?ptr ?τ
-        => let MEM := fresh "MEM" in assert (m2 ≡ m1) as MEM by solve_mem_eq; rewrite MEM; assumption
-      end.
-
-    (* TODO: expand this. Just trying to figure out this case first *)
-    Ltac solve_dtyp_fits :=
-      first [ solve_dtyp_fits_mem_eq
-            | eapply dtyp_fits_array_elem; [eauto|eassumption|eauto]
-            ].
 
     { typ_to_dtyp_simplify.
       erewrite <- from_N_intval; eauto.

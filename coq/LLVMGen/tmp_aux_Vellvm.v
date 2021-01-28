@@ -318,6 +318,13 @@ Proof.
   reflexivity.
 Qed.
 
+Ltac typ_to_dtyp_simplify :=
+  repeat
+    (try rewrite typ_to_dtyp_I in *;
+     try rewrite typ_to_dtyp_D in *;
+     try rewrite typ_to_dtyp_D_array in *;
+     try rewrite typ_to_dtyp_P in *).
+
 From Paco Require Import paco.
 Lemma eutt_mon {E R1 R2} (RR RR' : R1 -> R2 -> Prop)
       (LERR: RR <2= RR') :
