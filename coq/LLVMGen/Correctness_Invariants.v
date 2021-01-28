@@ -332,6 +332,15 @@ Section SimulationRelations.
                   mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v0
                   → get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0)).
 
+  (* TODO: might be able to simplify this *)
+  Definition memory_invariant_partial_single_write (configV : config_cfg) (index : nat) (ptr_llvm : addr) (bk_helix : mem_block) (x : ident) sz : Prop :=
+      let '(mem_llvm, (ρ, g)) := configV in
+          dtyp_fits mem_llvm ptr_llvm (DTYPE_Array sz DTYPE_Double)
+              ∧ in_local_or_global_addr ρ g x ptr_llvm
+              ∧ (∀ (v0 : binary64),
+                  mem_lookup index bk_helix ≡ Some v0
+                  → get_array_cell mem_llvm ptr_llvm index DTYPE_Double ≡ inr (UVALUE_Double v0)).
+
   (* Lookups in [genv] are fully determined by lookups in [Γ] and [σ] *)
   Lemma memory_invariant_GLU : forall σ s v id memH memV t l g n,
       memory_invariant σ s memH (memV, (l, g)) ->
@@ -705,6 +714,42 @@ Section SimulationRelations.
 
     eauto.
   Qed.
+
+  Lemma no_llvm_ptr_aliasing_same_block :
+    forall {σ s l g n1 n2 v1 v2 id1 id2 τ1 τ2 ptrv1 ptrv2},
+      no_llvm_ptr_aliasing σ s l g ->
+      nth_error (Γ s) n1 ≡ Some (id1, τ1) ->
+      nth_error σ n1 ≡ Some v1 ->
+      nth_error (Γ s) n2 ≡ Some (id2, τ2) ->
+      nth_error σ n2 ≡ Some v2 ->
+      in_local_or_global_addr l g id1 ptrv1 ->
+      in_local_or_global_addr l g id2 ptrv2 ->
+      fst ptrv1 ≡ fst ptrv2 ->
+      id1 ≡ id2.
+  Proof.
+    intros σ s l g n1 n2 v1 v2 id1 id2 τ1 τ2 ptrv1 ptrv2 ALIAS NTH_Γ1 NTH_σ1 NTH_Γ2 NTH_σ2 INLG1 INLG2 BLOCK.
+    pose proof (ALIAS id1 ptrv1 id2 ptrv2 n1 n2 τ1 τ2 v1 v2 NTH_σ1 NTH_σ2 NTH_Γ1 NTH_Γ2) as CONTRA.
+    destruct id1, id2.
+    - (* global + global *)
+      pose proof (rel_dec_p id id0) as [EQ | NEQ]; subst; auto.
+      assert (ID_Global id ≢ ID_Global id0) as NEQ' by (intros H; inv H; contradiction).
+      specialize (CONTRA NEQ' INLG1 INLG2).
+      contradiction.
+    - (* global + local *)
+      assert (ID_Global id ≢ ID_Local id0) as NEQ' by (intros H; inv H; contradiction).
+      specialize (CONTRA NEQ' INLG1 INLG2).
+      contradiction.
+    - (* local + global *)
+      assert (ID_Local id ≢ ID_Global id0) as NEQ' by (intros H; inv H; contradiction).
+      specialize (CONTRA NEQ' INLG1 INLG2).
+      contradiction.
+    - (* local + local *)
+      pose proof (rel_dec_p id id0) as [EQ | NEQ]; subst; auto.
+      assert (ID_Local id ≢ ID_Local id0) as NEQ' by (intros H; inv H; contradiction).
+      specialize (CONTRA NEQ' INLG1 INLG2).
+      contradiction.
+  Qed.
+
 
   Lemma state_invariant_memory_invariant :
     forall σ s mH mV l g,
@@ -2046,8 +2091,9 @@ Ltac solve_in_gamma :=
 
 (* TODO: expand this *)
 Ltac solve_lid_bound_between :=
-  first [ solve [eauto]
+  solve [ eauto
         | eapply lid_bound_between_shrink; [eapply lid_bound_between_incLocal | | ]; eauto; solve_local_count
+        | eapply lid_bound_between_shrink; [eapply lid_bound_between_incLocalNamed; cycle 1; [eauto | solve_prefix]| solve_local_count | solve_local_count]
         ].
 
 Ltac solve_not_in_gamma :=

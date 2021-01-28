@@ -240,18 +240,19 @@ Module MDSigmaHCOLITree
            (σ: evalContext)
            (n: nat)
            (f: AExpr)
-           (xv : CT.t)
-           (y: mem_block)
-           (yoffset: nat)
+           (x y: mem_block)
+           (xoffset yoffset: nat)
     : itree Event (mem_block)
     :=
       match n with
       | O => ret y
       | S p =>
+        xv <- lift_Derr (mem_lookup_err "Error reading 'xv' memory in denoteDSHBinOp" xoffset x) ;;
         yv <- lift_Derr (mem_lookup_err "Error reading 'yv' memory in denoteDSHBinOp" yoffset y) ;;
         v' <- denoteBinCType σ f yv xv ;;
-        denoteDSHPower σ p f xv (mem_add yoffset v' y) yoffset
+        denoteDSHPower σ p f x (mem_add yoffset v' y) xoffset yoffset
       end.
+
 
   Notation iter := (@iter _ (ktree _) sum _ _ _).
 
@@ -306,10 +307,10 @@ Module MDSigmaHCOLITree
           xoff <- denoteNExpr σ xoffset ;;
           yoff <- denoteNExpr σ yoffset ;;
           lift_Derr (assert_NT_lt "DSHPower 'y' offset out of bounds" yoff y_size) ;;
-          xv <- lift_Derr (mem_lookup_err "Error reading 'xv' memory in denoteDSHBinOp" (to_nat xoff) x) ;;
           let y' := mem_add (to_nat yoff) initial y in
-          y'' <- denoteDSHPower σ (to_nat n) f xv y' (to_nat yoff) ;;
+          y'' <- denoteDSHPower σ (to_nat n) f x y' (to_nat xoff) (to_nat yoff) ;;
           trigger (MemSet y_i y'')
+
         | DSHLoop n body =>
           iter (fun (p: nat) =>
                   if EqNat.beq_nat p n

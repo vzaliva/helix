@@ -682,3 +682,34 @@ Proof.
   apply can_read_allocated in READ.
   rewrite <- OLD2; eauto.
 Qed.
+
+(* TODO: this should probably be moved to vellvm *)
+Ltac solve_allocated :=
+  solve [ eauto
+        | eapply dtyp_fits_allocated; eauto
+        | eapply handle_gep_addr_allocated; cycle 1; [solve [eauto] | solve_allocated]
+        | eapply write_preserves_allocated; cycle 1; [solve [eauto] | solve_allocated]
+        ].
+
+(* If I write to a different area, it doesn't affect the allocation of other addresses *)
+Lemma write_untouched_allocated:
+  forall m1 m2 a τa v,
+    dvalue_has_dtyp v τa ->
+    write m1 a v = inr m2 ->
+    forall b τb, no_overlap_dtyp a τa b τb ->
+            allocated b m2 ->
+            allocated b m1.
+Proof.
+  intros m1 m2 a τa v TYP WRITE b τb OVERLAP ALLOC.
+
+  eapply allocated_can_read in ALLOC as [v' READ].
+  eapply can_read_allocated.
+
+  erewrite write_untouched in READ; eauto.
+Qed.
+
+Ltac solve_read :=
+  solve [ eauto
+        | (* read from an array *)
+        erewrite read_array; cycle 2; [solve [eauto] | | solve_allocated]; eauto
+        ].
