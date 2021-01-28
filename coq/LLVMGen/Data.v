@@ -136,7 +136,7 @@ Qed.
 
 Definition initOneFSHGlobal
            (st: memory * list binary64)
-           (gp: string*DSHType) : err (memory * list binary64 * DSHVal)
+           (gp: string*DSHType) : err (memory * list binary64 * (DSHVal*bool))
   :=
     let (_,gt) := gp in
     let '(mem,data) := st in
@@ -145,15 +145,15 @@ Definition initOneFSHGlobal
       let '(x, data) := rotate Float64Zero data in
       let xz := bits_of_b64 x in (* a potential size overflow here ? *)
       xi <- MInt64asNT.from_Z xz ;;
-      ret (mem, data, DSHnatVal xi)
+      ret (mem, data, (DSHnatVal xi,false))
     | DSHCType =>
       let '(x, data) := rotate Float64Zero data in
-      ret (mem, data, DSHCTypeVal x)
+      ret (mem, data, (DSHCTypeVal x,false))
     | DSHPtr n =>
       let (data,mb) := constMemBlock (MInt64asNT.to_nat n) data in
       let k := memory_next_key mem in
       let mem := memory_set mem k mb in
-      let p := DSHPtrVal k n in
+      let p := (DSHPtrVal k n,false) in
       ret (mem, data, p)
     end.
 
@@ -180,7 +180,7 @@ Definition helix_initial_memory
        let Y_nat : nat := S (length globals) in
        let mem := memory_set mem Y_nat y in
        let mem := memory_set mem X_nat x in
-       let σ := globals_σ ++ [DSHPtrVal Y_nat o; DSHPtrVal X_nat i] in
+       let σ := globals_σ ++ [(DSHPtrVal Y_nat o,false); (DSHPtrVal X_nat i,false)] in
        ret (mem, data, σ)
      end.
 

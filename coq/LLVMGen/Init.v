@@ -1269,7 +1269,7 @@ Lemma initFSHGlobals_no_overwrite
       (m0 m : memoryH)
       (hdata0 hdata : list binary64)
       (globals : list (string * DSHType)) 
-      (σ : list DSHVal)
+      (σ : list (DSHVal * bool))
   :
     initFSHGlobals hdata0 m0 globals ≡ inr (m, hdata, σ) →
     m = memory_union m0 m.
@@ -1309,7 +1309,7 @@ Lemma initOneFSHGlobal_no_overwrite
       (m0 m : memoryH)
       (hdata0 hdata : list binary64)
       (g : string * DSHType)
-      (e : DSHVal)
+      (e : DSHVal * bool)
   :
     initOneFSHGlobal (m0, hdata0) g ≡ inr (m, hdata, e) →
     m = memory_union m0 m.
@@ -2000,7 +2000,7 @@ Qed.
 
 Lemma initFSHGlobals_evalContext_typechecks
       (globals : list (string * DSHType)) 
-      (σ : list DSHVal) 
+      (σ : list (DSHVal * bool))
       (m0 m : memoryH)
       (hdata0 hdata : list binary64)
   :
@@ -2039,7 +2039,9 @@ Proof.
       cbn [map].
       rewrite nth_error_Sn in *.
       destruct p0.
-      eapply IHglobals; eassumption.
+      unfold initFSHGlobals in *.
+      specialize (IHglobals _ _ _ _ _ Heqs0 _ _ _ H0).
+      eauto.
 Qed.
 
 Lemma initFSHGlobals_id_allocated
@@ -2721,8 +2723,10 @@ Proof.
 
         repeat break_match; try inl_inr.
         inversion IPOST; clear IPOST.
-        rename d into ne', l4 into e_post'.
-        subst p p1 p2 e_post.
+        subst.
+        (* rename d into ne', *)
+        rename l4 into e_post'.
+        (* subst p1 p2 e_post. *)
         destruct p0 as [mg0 hdata0].
 
         cbn.
@@ -2864,7 +2868,7 @@ Proof.
           copy_apply global_uniq_chk_preserves_st Heqs.
           subst i0.
 
-          rewrite GLOBALS in LG.
+          (* rewrite GLOBALS in LG. *)
           move LG at bottom.
           rewrite <-ListUtil.list_app_first_last in LG.
           apply initIRGlobals_inr in LG.
@@ -2877,9 +2881,9 @@ Proof.
             unfold alloc_glob_decl_inv_mcfg in H.
             intuition.
           ++
-            rewrite <-ListUtil.list_app_first_last in GLOBALS; assumption.
+            rewrite ListUtil.list_app_first_last. reflexivity.
           ++
-            rewrite <-ListUtil.list_app_first_last in GDECLS; eassumption.
+            rewrite ListUtil.list_app_first_last. reflexivity.
           ++
             (* [clear - PRE Heqs Heqs0.] doesn't work for some reason? *)
             clear IHpost; move PRE at bottom; move Heqs0 at bottom.
@@ -3013,8 +3017,8 @@ Proof.
             (fun '(memH, _) '(memV, (l, t1, (g, t2))) =>
                post_init_invariant
                  name
-                 (firstn (length globals) (e ++ [DSHPtrVal (S (Datatypes.length globals)) o;
-                        DSHPtrVal (Datatypes.length globals) i]))
+                 (firstn (length globals) (e ++ [(DSHPtrVal (S (Datatypes.length globals)) o, true);
+                        (DSHPtrVal (Datatypes.length globals) i, true)]))
                  {|
                    block_count := block_count;
                    local_count := local_count;
@@ -3076,10 +3080,10 @@ Proof.
             constructor.
             +
               cbn.
-              intros ? ? ? ? C.
+              intros ? ? ? ? ? C.
               rewrite nth_error_nil in C.
               inversion C.
-            +
+            + repeat intro.
               econstructor.
               rewrite nth_error_nil in H0.
               inversion H0.
@@ -3159,8 +3163,9 @@ Proof.
 
         repeat break_match; try inl_inr.
         inversion IPOST; clear IPOST.
-        rename d into ne', l4 into e_post'.
-        subst p p1 p2 e_post.
+        (* rename d into ne', *)
+        rename l4 into e_post'. subst.
+        (* subst p p1 p2 e_post. *)
         destruct p0 as [mg0 hdata0].
 
         rewrite translate_bind.
@@ -3305,17 +3310,17 @@ Proof.
 
               replace
                 (firstn (Datatypes.length (pre ++ [(a_nm, DSHnat)]))
-                   ((e_pre ++ ne' :: e_post') ++
-                    [DSHPtrVal (S (Datatypes.length (pre ++ [(a_nm, DSHnat)]))) o;
-                    DSHPtrVal (Datatypes.length (pre ++ [(a_nm, DSHnat)])) i]))
+                   ((e_pre ++ p1 :: e_post') ++
+                    [(DSHPtrVal (S (Datatypes.length (pre ++ [(a_nm, DSHnat)]))) o, true);
+                    (DSHPtrVal (Datatypes.length (pre ++ [(a_nm, DSHnat)])) i , true)]))
                 with
-                  (e_pre ++ [ne']).
+                  (e_pre ++ [p1]).
               2:{
                 rewrite !app_length; cbn.
                 rewrite list_cons_app with (l4:=e_post').
                 rewrite <-!app_assoc, ->app_assoc.
                 rewrite firstn_app.
-                replace (length pre + 1 - length (e_pre ++ [ne']))
+                replace (length pre + 1 - length (e_pre ++ [p1]))
                   with 0
                   by (rewrite app_length; cbn; lia).
                 rewrite firstn_O, firstn_all2, app_nil_r.
@@ -3351,14 +3356,14 @@ Proof.
                   rewrite nth_error_app2 in H0 by reflexivity.
                   rewrite Nat.sub_diag in H0.
                   cbn in H0.
-                  some_inv; subst v.
+                  some_inv; subst.
                   move Heqs2 at bottom.
                   unfold initOneFSHGlobal in Heqs2.
                   cbn in Heqs2.
                   repeat break_match_hyp; try inl_inr.
                   inversion Heqs2; clear Heqs2.
                   rename t0 into ne.
-                  subst mg0 l4 ne'.
+                  subst mg0 l4 .
                   unfold in_local_or_global_scalar.
 
                   apply nth_map_inv in H1.

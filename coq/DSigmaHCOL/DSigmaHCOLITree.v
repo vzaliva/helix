@@ -114,8 +114,8 @@ Module MDSigmaHCOLITree
     match exp with
     | @MPtrDeref p =>
       '(bi,size) <- denotePExpr σ p ;;
-      bi' <- trigger (MemLU "MPtrDeref" bi) ;;
-      ret (bi', size)
+      (bi' <- trigger (MemLU "MPtrDeref" bi) ;;
+       ret (bi', size))
     | @MConst t size => ret (t,size)
     end.
 
@@ -124,7 +124,7 @@ Module MDSigmaHCOLITree
   Fixpoint denoteNExpr (σ: evalContext) (e:NExpr): itree Event NT.t :=
     match e with
     | NVar i =>  lift_Serr
-                 (v <- (context_lookup "NVar not found" σ i) ;;
+                 ('(v,_) <- (context_lookup "NVar not found" σ i) ;;
                   (match v with
                    | DSHnatVal x => ret x
                    | _ => raise "invalid NVar type"
@@ -155,7 +155,7 @@ Module MDSigmaHCOLITree
   Fixpoint denoteAExpr (σ: evalContext) (e:AExpr): itree Event CT.t :=
     match e with
     | AVar i =>
-      v <- lift_Serr (context_lookup "AVar not found" σ i);;
+      '(v,_) <- lift_Serr (context_lookup "AVar not found" σ i);;
         (match v with
          | DSHCTypeVal x => ret x
          | _ => Sfail "invalid AVar type"
@@ -180,15 +180,15 @@ Module MDSigmaHCOLITree
 
   Definition denoteIUnCType (σ: evalContext) (f: AExpr)
              (i:NT.t) (a:CT.t): itree Event CT.t :=
-    denoteAExpr (DSHCTypeVal a :: DSHnatVal i :: σ) f.
+    denoteAExpr ((DSHCTypeVal a,false) :: (DSHnatVal i,false) :: σ) f.
 
   Definition denoteIBinCType (σ: evalContext) (f: AExpr)
              (i:NT.t) (a b:CT.t): itree Event CT.t :=
-    denoteAExpr (DSHCTypeVal b :: DSHCTypeVal a :: DSHnatVal i :: σ) f.
+    denoteAExpr ((DSHCTypeVal b,false) :: (DSHCTypeVal a,false) :: (DSHnatVal i,false) :: σ) f.
 
   Definition denoteBinCType (σ: evalContext) (f: AExpr)
              (a b:CT.t): itree Event CT.t :=
-    denoteAExpr (DSHCTypeVal b :: DSHCTypeVal a :: σ) f.
+    denoteAExpr ((DSHCTypeVal b,false) :: (DSHCTypeVal a,false) :: σ) f.
 
   Fixpoint denoteDSHIMap
            (n: nat)
@@ -277,7 +277,7 @@ Module MDSigmaHCOLITree
           '(y_i,y_sixe) <- denotePExpr σ y_p ;;
           x <- trigger (MemLU "Error looking up 'x' in DSHIMap" x_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHIMap" y_i) ;;
-          y' <- denoteDSHIMap n f σ x y ;;
+          y' <- denoteDSHIMap n f (protect_p σ y_p) x y ;;
           trigger (MemSet y_i y')
 
         | @DSHMemMap2 n x0_p x1_p y_p f =>
@@ -287,14 +287,14 @@ Module MDSigmaHCOLITree
           x0 <- trigger (MemLU "Error looking up 'x0' in DSHMemMap2" x0_i) ;;
           x1 <- trigger (MemLU "Error looking up 'x1' in DSHMemMap2" x1_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHMemMap2" y_i) ;;
-          y' <- denoteDSHMap2 n f σ x0 x1 y ;;
+          y' <- denoteDSHMap2 n f (protect_p σ y_p) x0 x1 y ;;
           trigger (MemSet y_i y')
         | @DSHBinOp n x_p y_p f =>
           '(x_i,x_size) <- denotePExpr σ x_p ;;
           '(y_i,y_sixe) <- denotePExpr σ y_p ;;
           x <- trigger (MemLU "Error looking up 'x' in DSHBinOp" x_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHBinOp" y_i) ;;
-          y' <- denoteDSHBinOp n n f σ x y ;;
+          y' <- denoteDSHBinOp n n f (protect_p σ y_p) x y ;;
           trigger (MemSet y_i y')
 
         | DSHPower ne (x_p,xoffset) (y_p,yoffset) f initial =>
@@ -306,7 +306,7 @@ Module MDSigmaHCOLITree
           xoff <- denoteNExpr σ xoffset ;;
           yoff <- denoteNExpr σ yoffset ;;
           let y' := mem_add (to_nat yoff) initial y in
-          y'' <- denoteDSHPower σ (to_nat n) f x y' (to_nat xoff) (to_nat yoff) ;;
+          y'' <- denoteDSHPower (protect_p σ y_p) (to_nat n) f x y' (to_nat xoff) (to_nat yoff) ;;
           trigger (MemSet y_i y'')
         | DSHLoop n body =>
           iter (fun (p: nat) =>
@@ -314,13 +314,13 @@ Module MDSigmaHCOLITree
                   then ret (inr tt)
                   else
                     vp <- lift_Serr (NT.from_nat p) ;;
-                    denoteDSHOperator (DSHnatVal vp :: σ) body ;; ret (inl (S p))
+                    denoteDSHOperator ((DSHnatVal vp,false) :: σ) body ;; ret (inl (S p))
                ) 0
 
         | DSHAlloc size body =>
           t_i <- trigger (MemAlloc size) ;;
           trigger (MemSet t_i (mem_empty)) ;;
-          denoteDSHOperator (DSHPtrVal t_i size :: σ) body ;;
+          denoteDSHOperator ((DSHPtrVal t_i size,false) :: σ) body ;;
           trigger (MemFree t_i)
 
         | DSHMemInit y_p value =>

@@ -1329,9 +1329,14 @@ Section BinCarrierA.
       assumption.
   Qed.
 
-  Lemma evalNExpr_cons_CTypeVal (a b : CarrierA) (σ1 σ2 : evalContext) (n : NExpr) :
+  Lemma evalNExpr_cons_CTypeVal
+        (a b : CarrierA)
+        (σ1 σ2 : evalContext)
+        (n : NExpr)
+        {f}
+    :
     (forall n', evalNExpr σ1 n' = evalNExpr σ2 n') ->
-    evalNExpr (DSHCTypeVal a :: σ1) n = evalNExpr (DSHCTypeVal b :: σ2) n.
+    evalNExpr ((DSHCTypeVal a,f) :: σ1) n = evalNExpr ((DSHCTypeVal b,f) :: σ2) n.
   Proof.
     intros.
     induction n.
@@ -1349,10 +1354,10 @@ Section BinCarrierA.
 
     (* inductive cases *)
     all: cbn.
-    all: destruct (evalNExpr (DSHCTypeVal a :: σ1) n1),
-                  (evalNExpr (DSHCTypeVal a :: σ1) n2),
-                  (evalNExpr (DSHCTypeVal b :: σ2) n1),
-                  (evalNExpr (DSHCTypeVal b :: σ2) n2); try inl_inr; try constructor.
+    all: destruct (evalNExpr ((DSHCTypeVal a,f) :: σ1) n1),
+                  (evalNExpr ((DSHCTypeVal a,f) :: σ1) n2),
+                  (evalNExpr ((DSHCTypeVal b,f) :: σ2) n1),
+                  (evalNExpr ((DSHCTypeVal b,f) :: σ2) n2); try inl_inr; try constructor.
     all: repeat inl_inr_inv; cbv in IHn1, IHn2; subst.
     all: try reflexivity.
     all: break_match; constructor.
@@ -1384,9 +1389,11 @@ Section BinCarrierA.
         (a b : CarrierA)
         (σ1 σ2 : evalContext)
         (mem: memory)
-        (m : MExpr) :
+        (m : MExpr)
+        {f}
+    :
     (forall m', evalMExpr mem σ1 m' = evalMExpr mem σ2 m') ->
-    evalMExpr mem (DSHCTypeVal a :: σ1) m = evalMExpr mem (DSHCTypeVal b :: σ2) m.
+    evalMExpr mem ((DSHCTypeVal a,f) :: σ1) m = evalMExpr mem ((DSHCTypeVal b,f) :: σ2) m.
   Proof.
     intros.
     destruct m as [[v] | t] ; [| reflexivity].
@@ -1817,8 +1824,8 @@ Proof.
     some_none.
 Qed.
 
-Lemma lookup_PExpr_wsize_incrPVar (foo : DSHVal) (σ : evalContext) (m : memory) (p : PExpr) :
-  lookup_PExpr_wsize (foo :: σ) m (incrPVar 0 p) ≡
+Lemma lookup_PExpr_wsize_incrPVar (foo : DSHVal) (σ : evalContext) (m : memory) (p : PExpr) {f} :
+  lookup_PExpr_wsize ((foo,f) :: σ) m (incrPVar 0 p) ≡
   lookup_PExpr_wsize σ m p.
 Proof.
   unfold lookup_PExpr_wsize.
@@ -1826,8 +1833,8 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma lookup_PExpr_incrPVar (foo : DSHVal) (σ : evalContext) (m : memory) (p : PExpr) :
-  lookup_PExpr (foo :: σ) m (incrPVar 0 p) ≡
+Lemma lookup_PExpr_incrPVar (foo : DSHVal) (σ : evalContext) (m : memory) (p : PExpr) {f}:
+  lookup_PExpr ((foo,f) :: σ) m (incrPVar 0 p) ≡
   lookup_PExpr σ m p.
 Proof.
   unfold lookup_PExpr.
@@ -2210,7 +2217,7 @@ Global Instance Pointwise_MSH_DSH_compat
        {x_p y_p : PExpr}
        {σ : evalContext}
        {m : memory}
-       (FDF : MSH_DSH_IUnCarrierA_compat f σ df m)
+       (FDF : MSH_DSH_IUnCarrierA_compat f (protect_p σ y_p) df m)
        (P : DSH_pure (DSHIMap n x_p y_p df) y_p)
   :
     @MSH_DSH_compat _ _ (@MSHPointwise n f pF) (DSHIMap n x_p y_p df) σ m x_p y_p P.
@@ -2371,8 +2378,8 @@ Proof.
     *
       rewrite H, H1 in *.
       contradict Heqs3.
-      enough (T : is_Err (evalDSHIMap m (S n) df σ mx mb))
-        by (destruct (evalDSHIMap m (S n) df σ mx mb);
+      enough (T : is_Err (evalDSHIMap m (S n) df (protect_p σ y_p) mx mb))
+        by (destruct (evalDSHIMap m (S n) df (protect_p σ y_p) mx mb);
             [intros C; inl_inr | inversion T ]).
       apply evalDSHIMap_is_Err; try typeclasses eauto.
       lia.
@@ -2446,7 +2453,7 @@ Global Instance BinOp_MSH_DSH_compat
        {df : AExpr}
        {σ: evalContext}
        (m: memory)
-       (FDF : MSH_DSH_IBinCarrierA_compat f σ df m)
+       (FDF : MSH_DSH_IBinCarrierA_compat f (protect_p σ y_p) df m)
        (BP: DSH_pure (DSHBinOp o x_p y_p df) y_p)
   :
     @MSH_DSH_compat _ _ (MSHBinOp f) (DSHBinOp o x_p y_p df) σ m x_p y_p BP.
@@ -2618,8 +2625,8 @@ Proof.
     *
       contradict Heqs4.
       rewrite H, H1 in *.
-      enough (T : is_Err (evalDSHBinOp m (S o) (S o) df σ mx mb))
-        by (destruct (evalDSHBinOp m (S o) (S o) df σ mx mb);
+      enough (T : is_Err (evalDSHBinOp m (S o) (S o) df (protect_p σ y_p) mx mb))
+        by (destruct (evalDSHBinOp m (S o) (S o) df (protect_p σ y_p) mx mb);
             [intros C; inl_inr | inversion T ]).
       apply evalDSHBinOp_is_Err; try typeclasses eauto.
       lia.
@@ -2710,7 +2717,7 @@ Global Instance Inductor_MSH_DSH_compat
        {init : CarrierA}
        {a : AExpr}
        {x_p y_p : PExpr}
-       (FA : MSH_DSH_BinCarrierA_compat f σ a m)
+       (FA : MSH_DSH_BinCarrierA_compat f (protect_p σ y_p) a m)
        (PD : DSH_pure (DSHPower nx (x_p, NConst 0) (y_p, NConst 0) a init) y_p)
   :
     @MSH_DSH_compat _ _
@@ -3052,7 +3059,7 @@ Proof.
               cbn in Y_DMA; try inl_inr.
             inversion FA; clear FA;
               rename bin_equiv0 into FA; specialize (FA init xm'0 ).
-            destruct (evalBinCType m σ a init xm'0 ) as [|df] eqn:DF;
+            destruct (evalBinCType m (protect_p σ y_p) a init xm'0 ) as [|df] eqn:DF;
               try inl_inr; inl_inr_inv.
             (* abstract: this gets Y_DMA to "the previous step" for induction *)
             rewrite mem_add_overwrite in Y_DMA.
@@ -3392,7 +3399,7 @@ Global Instance IUnion_MSH_DSH_compat
            evalPExpr σ y_p ≡ inr (y_i, y_size) ->
            memory_equiv_except m m' y_i ->
            @MSH_DSH_compat _ _ (opf t) dop
-                           ((DSHnatVal (proj1_sig t)) :: σ)
+                           (((DSHnatVal (proj1_sig t)),false) :: σ)
                            m' (incrPVar 0 x_p) (incrPVar 0 y_p) DP)
   
 :
@@ -3429,7 +3436,7 @@ Proof.
       assert (T2: (∀ t m' y_i y_sz,
                       evalPExpr σ y_p ≡ inr (y_i, y_sz) ->
                       memory_equiv_except m m' y_i ->
-                      MSH_DSH_compat (opf' t) dop (DSHnatVal (proj1_sig t) :: σ) m'
+                      MSH_DSH_compat (opf' t) dop ((DSHnatVal (proj1_sig t),false) :: σ) m'
                                      (incrPVar 0 x_p) (incrPVar 0 y_p))).
       {
         clear - FC.
@@ -3467,7 +3474,7 @@ Proof.
       assert (T2: (∀ t m' y_i y_sz,
                       evalPExpr σ y_p ≡ inr (y_i, y_sz) ->
                       memory_equiv_except m m' y_i ->
-                      MSH_DSH_compat (opf' t) dop (DSHnatVal (proj1_sig t) :: σ) m'
+                      MSH_DSH_compat (opf' t) dop ((DSHnatVal (proj1_sig t),false) :: σ) m'
                                      (incrPVar 0 x_p) (incrPVar 0 y_p))).
       {
         clear - FC.
@@ -3515,7 +3522,7 @@ Proof.
       cbn in FC.
       inversion_clear FC as [F].
 
-      assert (T1 : lookup_PExpr_wsize (DSHnatVal n :: σ) loop_m (incrPVar 0 x_p) = inr (x_m, i)).
+      assert (T1 : lookup_PExpr_wsize ((DSHnatVal n,false) :: σ) loop_m (incrPVar 0 x_p) = inr (x_m, i)).
       {
         rewrite lookup_PExpr_wsize_incrPVar.
         clear - Heqo0 DP Y_M X_M XY YI.
@@ -3548,7 +3555,7 @@ Proof.
           reflexivity.
       }
 
-      assert (T2 : lookup_PExpr_wsize (DSHnatVal n :: σ) loop_m (incrPVar 0 y_p)
+      assert (T2 : lookup_PExpr_wsize ((DSHnatVal n,false) :: σ) loop_m (incrPVar 0 y_p)
                    = inr (y_lm, o)).
       {
         unfold lookup_PExpr_wsize in *.
@@ -3571,7 +3578,7 @@ Proof.
       specialize (F x_m y_lm T1 T2); clear T1 T2.
 
       rewrite evalDSHOperator_estimateFuel_ge by nia.
-      remember (evalDSHOperator (DSHnatVal n :: σ) dop loop_m (estimateFuel dop)) as dm;
+      remember (evalDSHOperator ((DSHnatVal n,false) :: σ) dop loop_m (estimateFuel dop)) as dm;
         clear Heqdm.
       remember (mem_op (S_opf (mkFinNat (Nat.lt_succ_diag_r n))) x_m) as mmb;
         clear Heqmmb.
@@ -3666,7 +3673,7 @@ Proof.
     rename Heqo into E1, Heqo0 into E2.
     remember (memory_next_key m0) as t_i.
     remember (memory_set m0 t_i mem_empty) as m1.
-    remember (DSHPtrVal t_i n :: σ) as σ'.
+    remember ((DSHPtrVal t_i n,false) :: σ) as σ'.
     intros k ky.
 
 
@@ -3867,14 +3874,14 @@ Global Instance Compose_MSH_DSH_compat
          (P2: DSH_pure dop2 (PVar 0))
          (P1: DSH_pure dop1 (incrPVar 0 y_p))
          (C2: @MSH_DSH_compat _ _ mop2 dop2
-                              (DSHPtrVal (memory_next_key m) o2 :: σ)
+                              ((DSHPtrVal (memory_next_key m) o2,false) :: σ)
                               (memory_set m (memory_next_key m) mem_empty)
                               (incrPVar 0 x_p) (PVar 0)
                               P2
           )
          (C1: forall m'', memory_equiv_except m m'' (memory_next_key m) ->
                       @MSH_DSH_compat _ _ mop1 dop1
-                                     (DSHPtrVal (memory_next_key m) o2 :: σ)
+                                     ((DSHPtrVal (memory_next_key m) o2,false) :: σ)
                                      m''
                                      (PVar 0) (incrPVar 0 y_p) P1)
   :
@@ -3890,7 +3897,7 @@ Proof.
   simpl.
 
   remember (memory_next_key m) as t_i.
-  remember (DSHPtrVal t_i o2 :: σ) as σ'.
+  remember ((DSHPtrVal t_i o2,false) :: σ) as σ'.
   remember (memory_set m t_i mem_empty) as m'.
 
   destruct (option_compose (mem_op mop1) (mem_op mop2) mx) as [md|] eqn:MD;
@@ -4183,7 +4190,7 @@ Proof.
       apply Option_equiv_eq in E2.
       specialize (mem_write_safe2 _ _ _ _ E2).
 
-      assert(TS: evalPExpr (DSHPtrVal t_i o2 :: σ) (PVar 0) = inr (t_i, o2))
+      assert(TS: evalPExpr ((DSHPtrVal t_i o2,false) :: σ) (PVar 0) = inr (t_i, o2))
         by reflexivity.
       specialize (mem_write_safe2 _ _ TS).
 
@@ -4397,7 +4404,7 @@ Proof.
       apply Option_equiv_eq in E2.
       specialize (mem_write_safe2 _ _ _ _ E2).
 
-      assert(TS: evalPExpr (DSHPtrVal t_i o2 :: σ) (PVar 0) = inr (t_i, o2))
+      assert(TS: evalPExpr ((DSHPtrVal t_i o2,false) :: σ) (PVar 0) = inr (t_i, o2))
         by reflexivity.
       specialize (mem_write_safe2 _ _ TS).
 
@@ -4616,7 +4623,7 @@ Proof.
       apply Option_equiv_eq in E2.
       specialize (mem_write_safe2 _ _ _ _ E2).
 
-      assert(TS: evalPExpr (DSHPtrVal t_i o2 :: σ) (PVar 0) = inr (t_i, o2))
+      assert(TS: evalPExpr ((DSHPtrVal t_i o2,false) :: σ) (PVar 0) = inr (t_i, o2))
         by reflexivity.
       specialize (mem_write_safe2 _ _ TS).
 
@@ -4916,7 +4923,7 @@ Proof.
         apply Option_equiv_eq in E2.
         specialize (mem_write_safe2 _ _ _ _ E2).
         
-        assert(TS: evalPExpr (DSHPtrVal t_i o2 :: σ) (PVar 0) = inr (t_i, o2))
+        assert(TS: evalPExpr ((DSHPtrVal t_i o2,false) :: σ) (PVar 0) = inr (t_i, o2))
           by reflexivity.
         specialize (mem_write_safe2 _ _ TS).
         
@@ -5923,7 +5930,7 @@ Lemma DSHMap2_succeeds
       (D2 : forall k, k < o -> mem_in k x2_m)
 
       (dot : CarrierA -> CarrierA -> CarrierA)
-      (DC : MSH_DSH_BinCarrierA_compat dot σ df m)
+      (DC : MSH_DSH_BinCarrierA_compat dot (protect_p σ y_p) df m)
   :
     exists m', evalDSHOperator σ (DSHMemMap2 o x1_p x2_p y_p df) m
                     (estimateFuel (DSHMemMap2 o x1_p x2_p y_p df)) = Some (inr m').
@@ -6035,7 +6042,7 @@ Lemma MemMap2_merge_with_def
       (LX2 : lookup_PExpr σ m x2_p = inr x2_m)
       (LY : lookup_PExpr σ m y_p = inr y_m)
 
-      (DC : MSH_DSH_BinCarrierA_compat dot σ df m)
+      (DC : MSH_DSH_BinCarrierA_compat dot (protect_p σ y_p) df m)
   :
     evalDSHOperator σ (DSHMemMap2 o x1_p x2_p y_p df) m
                     (estimateFuel (DSHMemMap2 o x1_p x2_p y_p df)) = Some (inr m') ->
@@ -6104,7 +6111,7 @@ Lemma MemMap2_merge_with_def_firstn
       (D1 : forall k, k < o -> mem_in k x1_m)
       (D2 : forall k, k < o -> mem_in k x2_m)
 
-      (DC : MSH_DSH_BinCarrierA_compat dot σ df m)
+      (DC : MSH_DSH_BinCarrierA_compat dot (protect_p σ y_p) df m)
   :
     evalDSHOperator σ (DSHMemMap2 o x1_p x2_p y_p df) m
                     (estimateFuel (DSHMemMap2 o x1_p x2_p y_p df))
@@ -6486,11 +6493,11 @@ Lemma Alloc_Loop_step
       (σ : evalContext)
       (t_id : nat)
       (T_ID : t_id ≡ memory_next_key m)
-      (LoopN : evalDSHOperator (DSHPtrVal t_id o :: σ) (DSHLoop n body)
+      (LoopN : evalDSHOperator ((DSHPtrVal t_id o,false) :: σ) (DSHLoop n body)
                                (memory_set m t_id mem_empty)
                                (estimateFuel (DSHLoop n body))
                = Some (inr loopN_m))
-      (IterSN : evalDSHOperator (DSHnatVal n :: DSHPtrVal t_id o :: σ)
+      (IterSN : evalDSHOperator ((DSHnatVal n,false) :: (DSHPtrVal t_id o,false) :: σ)
                                 body
                                 loopN_m
                                 (estimateFuel body) = Some (inr iterSN_m))
@@ -6503,7 +6510,7 @@ Proof.
   rewrite <-T_ID.
   rewrite evalDSHOperator_estimateFuel_ge
     by (pose proof estimateFuel_positive body; cbn; nia).
-  destruct (evalDSHOperator (DSHPtrVal t_id o :: σ) (DSHLoop n body)
+  destruct (evalDSHOperator ((DSHPtrVal t_id o,false) :: σ) (DSHLoop n body)
                             (memory_set m t_id mem_empty) (estimateFuel (DSHLoop n body)))
            as [t|] eqn:LoopN'; [destruct t as [|loopN_m'] |];
     try some_none; some_inv; try inl_inr; inl_inr_inv.
@@ -6523,7 +6530,7 @@ Lemma Alloc_Loop_error1
       (t_id : nat)
       (T_ID : t_id ≡ memory_next_key m)
       (msg : string)
-      (LoopN : evalDSHOperator (DSHPtrVal t_id o :: σ) (DSHLoop n body)
+      (LoopN : evalDSHOperator ((DSHPtrVal t_id o,false) :: σ) (DSHLoop n body)
                                (memory_set m t_id mem_empty)
                                (estimateFuel (DSHLoop n body))
                = Some (inl msg))
@@ -6536,7 +6543,7 @@ Proof.
   rewrite <-T_ID.
   rewrite evalDSHOperator_estimateFuel_ge
     by (pose proof estimateFuel_positive body; cbn; lia).
-  destruct (evalDSHOperator (DSHPtrVal t_id o :: σ) (DSHLoop n body)
+  destruct (evalDSHOperator ((DSHPtrVal t_id o,false) :: σ) (DSHLoop n body)
                             (memory_set m t_id mem_empty) (estimateFuel (DSHLoop n body)))
            as [t|] eqn:LoopN'; [destruct t as [|loopN_m'] |].
   - repeat constructor.
@@ -6552,11 +6559,11 @@ Lemma Alloc_Loop_error2
       (t_id : nat)
       (T_ID : t_id ≡ memory_next_key m)
       (msg : string)
-      (LoopN : evalDSHOperator (DSHPtrVal t_id o :: σ) (DSHLoop n body)
+      (LoopN : evalDSHOperator ((DSHPtrVal t_id o,false) :: σ) (DSHLoop n body)
                                (memory_set m t_id mem_empty)
                                (estimateFuel (DSHLoop n body))
                = Some (inr loopN_m))
-      (IterSN : evalDSHOperator (DSHnatVal n :: DSHPtrVal t_id o :: σ)
+      (IterSN : evalDSHOperator ((DSHnatVal n,false) :: (DSHPtrVal t_id o,false) :: σ)
                                 body
                                 loopN_m
                                 (estimateFuel body) = Some (inl msg))
@@ -6569,7 +6576,7 @@ Proof.
   rewrite <-T_ID.
   rewrite evalDSHOperator_estimateFuel_ge
     by (pose proof estimateFuel_positive body; cbn; nia).
-  destruct (evalDSHOperator (DSHPtrVal t_id o :: σ) (DSHLoop n body)
+  destruct (evalDSHOperator ((DSHPtrVal t_id o,false) :: σ) (DSHLoop n body)
                             (memory_set m t_id mem_empty) (estimateFuel (DSHLoop n body)))
            as [t|] eqn:LoopN'; [destruct t as [|loopN_m'] |];
     try some_none; some_inv; try inl_inr; inl_inr_inv.
@@ -6588,7 +6595,7 @@ Lemma DSHAlloc_inv
       (T_ID : t_id ≡ memory_next_key m)
   :
     evalDSHOperator σ (DSHAlloc o dop) m (estimateFuel (DSHAlloc o dop)) = Some (inr rm) ->
-    exists m', evalDSHOperator (DSHPtrVal t_id o :: σ) dop (memory_set m t_id mem_empty)
+    exists m', evalDSHOperator ((DSHPtrVal t_id o,false) :: σ) dop (memory_set m t_id mem_empty)
                           (estimateFuel dop) = Some (inr m') /\
           rm = memory_remove m' t_id.
 Proof.
@@ -6678,7 +6685,7 @@ Lemma DSHLoop_invariant
       (P : memory -> Prop)
       (PP : Proper ((=) ==> iff) P)
       (body_inv : forall n m m', P m ->
-                            evalDSHOperator (DSHnatVal n :: σ) body m
+                            evalDSHOperator ((DSHnatVal n,false) :: σ) body m
                                             (estimateFuel body) = Some (inr m') ->
                             P m')
   :
@@ -6753,13 +6760,13 @@ Global Instance IReduction_MSH_DSH_compat_S
        (DC : forall m' y_id d1 d2,
            evalPExpr_id σ y_p ≡ inr y_id ->
            memory_subset_except y_id m m'  ->
-           MSH_DSH_BinCarrierA_compat dot (d1 :: d2 :: σ) df m')
+           MSH_DSH_BinCarrierA_compat dot (protect_p (d1 :: d2 :: σ) (incrPVar 0 (incrPVar 0 y_p))) df m')
        (FC : forall m' tmpk t y_id mb,
            evalPExpr_id σ y_p ≡ inr y_id ->
            memory_subset_except y_id m m'  ->
            tmpk ≡ memory_next_key m ->
            @MSH_DSH_compat _ _ (op_family t) rr
-                           (DSHnatVal (proj1_sig t) :: DSHPtrVal tmpk o :: σ)
+                           ((DSHnatVal (proj1_sig t),false) :: (DSHPtrVal tmpk o,false) :: σ)
                            (memory_set m' tmpk mb)
                            (incrPVar 0 (incrPVar 0 x_p)) (PVar 1) P)
 
@@ -7026,7 +7033,7 @@ Proof.
           reflexivity.
       }
       assert (T : exists t_dm,
-                   lookup_PExpr (DSHnatVal 0 :: DSHPtrVal t_id o :: σ) dm (PVar 1) = inr t_dm);
+                   lookup_PExpr ((DSHnatVal 0,false) :: (DSHPtrVal t_id o,false) :: σ) dm (PVar 1) = inr t_dm);
         [| destruct T as [t_dm T_DM]].
       {
         cbn.
@@ -7061,10 +7068,10 @@ Proof.
         rewrite memory_lookup_memory_set_eq by congruence.
         reflexivity.
       }
-      assert (Y_ID_in_dm : evalPExpr (DSHnatVal 0 :: DSHPtrVal t_id 0 :: σ)
+      assert (Y_ID_in_dm : evalPExpr ((DSHnatVal 0,false) :: (DSHPtrVal t_id 0,false) :: σ)
                                     (incrPVar 0 (incrPVar 0 y_p)) = inr (y_id, o))
         by (repeat rewrite evalPExpr_incrPVar; rewrite Y_ID; reflexivity).
-      assert (Y_DM : lookup_PExpr (DSHnatVal 0 :: DSHPtrVal t_id o :: σ)
+      assert (Y_DM : lookup_PExpr ((DSHnatVal 0,false) :: (DSHPtrVal t_id o,false) :: σ)
                                dm (incrPVar 0 (incrPVar 0 y_p)) =
                      inr (mem_union (mem_const_block o init) y_m)).
       {
@@ -7077,7 +7084,7 @@ Proof.
         reflexivity.
       }
       assert (Dot_compat_dm : MSH_DSH_BinCarrierA_compat dot
-                                               (DSHnatVal 0 :: DSHPtrVal t_id o :: σ)
+                                               (protect_p ((DSHnatVal 0,false) :: (DSHPtrVal t_id o,false) :: σ) (incrPVar 0 (incrPVar 0 y_p)) )
                                                df dm);
         [| clear DC].
       {
@@ -7121,7 +7128,7 @@ Proof.
       * (* Map2 fails *)
         exfalso.
         eq_to_equiv.
-        enough (exists m', evalDSHOperator (DSHnatVal 0 :: DSHPtrVal t_id o :: σ)
+        enough (exists m', evalDSHOperator ((DSHnatVal 0,false) :: (DSHPtrVal t_id o,false) :: σ)
             (DSHMemMap2 o (incrPVar 0 (incrPVar 0 y_p)) (PVar 1)
                (incrPVar 0 (incrPVar 0 y_p)) df) dm
             (estimateFuel
@@ -7281,7 +7288,7 @@ Proof.
             reflexivity.
       * (* Map2 runs out of fuel *)
         clear - Heqo0.
-        assert (is_Some (evalDSHOperator (DSHnatVal 0 :: DSHPtrVal t_id o :: σ)
+        assert (is_Some (evalDSHOperator ((DSHnatVal 0,false) :: (DSHPtrVal t_id o,false) :: σ)
             (DSHMemMap2 o (incrPVar 0 (incrPVar 0 y_p)) (PVar 1)
                (incrPVar 0 (incrPVar 0 y_p)) df) dm
             (estimateFuel
@@ -7779,7 +7786,7 @@ Proof.
         }
 
         assert (
-            evalDSHOperator (DSHnatVal n :: DSHPtrVal t_id o :: σ)
+            evalDSHOperator ((DSHnatVal n,false) :: (DSHPtrVal t_id o,false) :: σ)
                             (DSHMemMap2 o (incrPVar 0 (incrPVar 0 y_p)) (PVar 1)
                                         (incrPVar 0 (incrPVar 0 y_p)) df)
                             rr_m
@@ -8093,7 +8100,7 @@ Proof.
             rewrite Y_LoopNM in OPF_LoopN.
             inversion OPF_LoopN; subst x.
             
-            assert (T : lookup_PExpr (DSHnatVal n :: DSHPtrVal t_id o :: σ) rr_m (PVar 1)
+            assert (T : lookup_PExpr ((DSHnatVal n,false) :: (DSHPtrVal t_id o,false) :: σ) rr_m (PVar 1)
                         = inr t_rrm)
               by (cbn; unfold memory_lookup_err; rewrite T_RRM; reflexivity).
             rewrite T in R; clear T.

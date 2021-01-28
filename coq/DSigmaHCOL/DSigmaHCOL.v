@@ -161,6 +161,12 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
         * rewrite Hp; auto.
   Qed.
 
+  Instance DSHVar_Setoid:
+    @Setoid DSHVal DSHVal_equiv.
+  Proof.
+    apply DSHVar_Equivalence.
+  Qed.
+
   Inductive NExpr_equiv: NExpr -> NExpr -> Prop :=
   | NVar_equiv  {n1 n2}: n1=n2 -> NExpr_equiv (NVar n1)  (NVar n2)
   | NConst_equiv {a b}: a=b -> NExpr_equiv (NConst a) (NConst b)

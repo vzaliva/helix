@@ -169,13 +169,13 @@ Section EventTranslation.
       | DSHCType =>
         '(data,σ) <- denote_initFSHGlobals data gs ;;
         let '(x, data) := rotate Float64Zero data in
-         ret (data, (DSHCTypeVal x)::σ)
+         ret (data, (DSHCTypeVal x, false)::σ)
       | DSHPtr n =>
         '(data,σ) <- denote_initFSHGlobals data gs ;;
         let (data,mb) := constMemBlock (MInt64asNT.to_nat n) data in
         k <- trigger (MemAlloc n);;
         trigger (MemSet k mb);;
-        let p := DSHPtrVal k n in
+        let p := (DSHPtrVal k n,false) in
         ret (data, (p::σ))
       end
     end.
@@ -193,7 +193,7 @@ Section EventTranslation.
     let '(data, x) := constMemBlock (MInt64asNT.to_nat p.(i)) data in
     trigger (MemSet xindex x);;
 
-    let σ := List.app σ [DSHPtrVal yindex p.(o); DSHPtrVal xindex p.(i)] in
+    let σ := List.app σ [(DSHPtrVal yindex p.(o),false); (DSHPtrVal xindex p.(i),false)] in
     denoteDSHOperator σ (p.(Data.op) : DSHOperator);;
     bk <- trigger (MemLU "denote_FSHCOL" yindex);;
     lift_Derr (mem_to_list "Invalid output memory block" (MInt64asNT.to_nat p.(o)) bk).
