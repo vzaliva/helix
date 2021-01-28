@@ -1232,7 +1232,7 @@ Lemma init_with_data_no_overwrite
       (m0 m : memoryH)
       (hdata0 hdata : list binary64)
       (globals : list (string * DSHType)) 
-      (e : list DSHVal)
+      (e : list (DSHVal * bool))
   :
     init_with_data initOneFSHGlobal no_chk (m0, hdata0) globals ≡ inr (m, hdata, e) →
     m = memory_union m0 m.
@@ -2514,8 +2514,10 @@ Proof.
 
         repeat break_match; try inl_inr.
         inversion IPOST; clear IPOST.
-        rename d into ne', l4 into e_post'.
-        subst p p1 p2 e_post.
+        subst.
+        (* rename d into ne', *)
+        rename l4 into e_post'.
+        (* subst p1 p2 e_post. *)
         destruct p0 as [mg0 hdata0].
 
         cbn.
@@ -2657,7 +2659,7 @@ Proof.
           copy_apply global_uniq_chk_preserves_st Heqs.
           subst i0.
 
-          rewrite GLOBALS in LG.
+          (* rewrite GLOBALS in LG. *)
           move LG at bottom.
           rewrite <-ListUtil.list_app_first_last in LG.
           apply initIRGlobals_inr in LG.
@@ -2670,9 +2672,9 @@ Proof.
             unfold alloc_glob_decl_inv_mcfg in H.
             intuition.
           ++
-            rewrite <-ListUtil.list_app_first_last in GLOBALS; assumption.
+            rewrite ListUtil.list_app_first_last. reflexivity.
           ++
-            rewrite <-ListUtil.list_app_first_last in GDECLS; eassumption.
+            rewrite ListUtil.list_app_first_last. reflexivity.
           ++
             (* [clear - PRE Heqs Heqs0.] doesn't work for some reason? *)
             clear IHpost; move PRE at bottom; move Heqs0 at bottom.
@@ -2806,8 +2808,8 @@ Proof.
             (fun '(memH, _) '(memV, (l, t1, (g, t2))) =>
                post_init_invariant
                  name
-                 (firstn (length globals) (e ++ [DSHPtrVal (S (Datatypes.length globals)) o;
-                        DSHPtrVal (Datatypes.length globals) i]))
+                 (firstn (length globals) (e ++ [(DSHPtrVal (S (Datatypes.length globals)) o, true);
+                        (DSHPtrVal (Datatypes.length globals) i, true)]))
                  {|
                    block_count := block_count;
                    local_count := local_count;
@@ -2872,7 +2874,7 @@ Proof.
               intros ? ? ? ? C.
               rewrite nth_error_nil in C.
               inversion C.
-            +
+            + repeat intro. destruct v.
               econstructor.
               rewrite nth_error_nil in H0.
               inversion H0.
@@ -2952,8 +2954,9 @@ Proof.
 
         repeat break_match; try inl_inr.
         inversion IPOST; clear IPOST.
-        rename d into ne', l4 into e_post'.
-        subst p p1 p2 e_post.
+        (* rename d into ne', *)
+        rename l4 into e_post'. subst.
+        (* subst p p1 p2 e_post. *)
         destruct p0 as [mg0 hdata0].
 
         rewrite translate_bind.
@@ -2983,7 +2986,7 @@ Proof.
 
           assert (exists v, Maps.lookup (g_ident tg2) g' ≡ Some v).
           {
-            subst globals.
+            (* subst globals. *)
             unfold allocated_globals in AG.
             cbn in *.
             unfold in_global_addr in AG.

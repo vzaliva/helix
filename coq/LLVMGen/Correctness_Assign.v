@@ -325,9 +325,10 @@ Proof.
 
           (* TODO: can probably turn this into a lemma *)
           (* All depends on whether x0 == r, r1, or r0 *)
-          destruct x0.
+          destruct v0. destruct x0.
+
           { (* x0 is a global *)
-            destruct v0.
+            destruct d.
             cbn. cbn in H4.
             { cbn in H. destruct H as (ptr_l & τ' & TYPE & INLG' & READ').
               do 2 eexists.
@@ -368,7 +369,10 @@ Proof.
                 do 2 red. auto.
             }
 
-            { cbn in H. destruct H as (ptr_l & τ' & TYPE & INLG' & READ').
+
+          {
+            (* destruct x0. *)
+            cbn in H. destruct H as (ptr_l & τ' & TYPE & INLG' & READ').
               do 2 eexists.
               repeat split; eauto.
 
@@ -416,13 +420,13 @@ Proof.
               rewrite yLU in MLUP.
               inv MLUP.
 
-              epose proof (st_no_dshptr_aliasing _ _ _ _ _ Heqo0 H4); subst.
+              epose proof (st_no_dshptr_aliasing _ _ _ _ _ _ _ Heqo0 H4); subst.
               pose proof H5 as IDS.
               rewrite LUn0 in IDS.
               inv IDS.
 
               (* Since y_i = a, we know this matches the block that was written to *)
-              exists (mem_add (MInt64asNT.to_nat dst) v bk_h).
+              exists (mem_add (MInt64asNT.to_nat dst) b1 bk_h).
 
               (* *)
               exists yptr. exists (TYPE_Array sz0 TYPE_Double).
@@ -534,7 +538,7 @@ Proof.
             pose proof WRITE_SUCCEEDS as WRITE'.
             erewrite WRITE_ARRAY in WRITE_SUCCEEDS.
 
-            destruct v0. (* Probably need to use WF_IRState to make sure we only consider valid types *)
+            destruct d. (* Probably need to use WF_IRState to make sure we only consider valid types *)
             solve_in_local_or_global_scalar.
             solve_in_local_or_global_scalar.
 
@@ -543,7 +547,7 @@ Proof.
             - (* PTR aliases, local case should be bogus... *)
               subst.
 
-              epose proof (st_no_dshptr_aliasing _ _ _ _ _ Heqo0 H4); subst.
+              epose proof (st_no_dshptr_aliasing _ _ _ _ _ _ _ Heqo0 H4); subst.
               rewrite LUn0 in H5.
               inversion H5.
             - (* This is the branch where a and y_i don't *)
@@ -615,7 +619,7 @@ Proof.
             destruct PRE2.
 
             specialize (st_id_allocated n1). cbn in *.
-            specialize (st_id_allocated _ _ H).
+            specialize (st_id_allocated _ _ _ H).
             eapply mem_block_exists_memory_set; eauto.
         - exists bid_in. reflexivity.
 
@@ -765,6 +769,7 @@ Proof.
 
           assert (ID_Global id ≢ ID_Local vy_p) as IDNEQ by discriminate.
           destruct v0.
+          destruct d.
           - epose proof (mem_is_inv _ _ _ _ H H0) as INV.
             cbn in INV.
             cbn.
@@ -832,7 +837,7 @@ Proof.
             destruct INV as (bk & ptr_l & τ' & MLUP & TYP & FITS & LOOKUP & GETCELL_ptr_l).
 
             destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
-            { exists (mem_add (MInt64asNT.to_nat dst) v ymembk). exists ptr_l. exists τ'.
+            { exists (mem_add (MInt64asNT.to_nat dst) b1 ymembk). exists ptr_l. exists τ'.
 
               subst.
               assert (n1 ≡ y_p) by eauto.
@@ -866,7 +871,7 @@ Proof.
         }
 
         { (* Local *)
-          destruct v0.
+          destruct v0. destruct d.
           - epose proof (mem_is_inv _ _ _ _ H H0) as INV.
             cbn in INV.
             eauto.
@@ -883,7 +888,7 @@ Proof.
             erewrite WRITE_ARRAY in WRITE_SUCCEEDS.
 
             destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
-            { exists (mem_add (MInt64asNT.to_nat dst) v ymembk). exists ptr_l. exists τ'.
+            { exists (mem_add (MInt64asNT.to_nat dst) b1 ymembk). exists ptr_l. exists τ'.
 
               subst.
               assert (n1 ≡ y_p) by eauto.
@@ -944,9 +949,9 @@ Proof.
 
         { (* id_allocated *)
           unfold id_allocated in *.
-          intros n1 addr0 val H.
+          intros n1 addr0 val ? H.
           specialize (st_id_allocated n1). cbn in *.
-          specialize (st_id_allocated _ _ H).
+          specialize (st_id_allocated _ _ _ H).
           eapply mem_block_exists_memory_set; eauto.
         }
       - exists bid_in. reflexivity.
@@ -1148,7 +1153,7 @@ Proof.
         (* All depends on whether x0 == r, r1, or r0 *)
         destruct x0.
         { (* x0 is a global *)
-          destruct v0.
+          destruct v0. destruct d.
           cbn. cbn in H4.
           { cbn in H. destruct H as (ptr_l & τ' & TYPE & INLG' & READ').
             do 2 eexists.
@@ -1236,13 +1241,13 @@ Proof.
             rewrite yLU in MLUP.
             inv MLUP.
 
-            epose proof (st_no_dshptr_aliasing _ _ _ _ _ Heqo0 H4); subst.
+            epose proof (st_no_dshptr_aliasing _ _ _ _ _ _ _ Heqo0 H4); subst.
             pose proof H5 as IDS.
             rewrite LUn0 in IDS.
             inv IDS.
 
             (* Since y_i = a, we know this matches the block that was written to *)
-            exists (mem_add (MInt64asNT.to_nat dst) v bk_h).
+            exists (mem_add (MInt64asNT.to_nat dst) b1 bk_h).
 
             (* *)
             exists yptr. exists (TYPE_Array sz0 TYPE_Double).
@@ -1346,7 +1351,7 @@ Proof.
           pose proof WRITE_SUCCEEDS as WRITE'.
           erewrite WRITE_ARRAY in WRITE_SUCCEEDS.
 
-          destruct v0. (* Probably need to use WF_IRState to make sure we only consider valid types *)
+          destruct v0. (* Probably need to use WF_IRState to make sure we only consider valid types *) destruct d.
           solve_in_local_or_global_scalar.
           solve_in_local_or_global_scalar.
 
@@ -1355,7 +1360,7 @@ Proof.
           - (* PTR aliases, local case should be bogus... *)
             subst.
 
-            epose proof (st_no_dshptr_aliasing _ _ _ _ _ Heqo0 H4); subst.
+            epose proof (st_no_dshptr_aliasing _ _ _ _ _ _ _ Heqo0 H4); subst.
             rewrite LUn0 in H5.
             inversion H5.
           - (* This is the branch where a and y_i don't *)
@@ -1427,7 +1432,7 @@ Proof.
           destruct PRE2.
 
           specialize (st_id_allocated n1). cbn in *.
-          specialize (st_id_allocated _ _ H).
+          specialize (st_id_allocated _ _ _ H).
           eapply mem_block_exists_memory_set; eauto.
       - exists bid_in. reflexivity.
 
@@ -1577,7 +1582,7 @@ Proof.
 
 
           assert (ID_Global id ≢ ID_Local vy_p) as IDNEQ by discriminate.
-          destruct v0.
+          destruct v0. destruct d.
           - epose proof (mem_is_inv _ _ _ _ H H0) as INV.
             cbn in INV.
             cbn.
@@ -1644,7 +1649,7 @@ Proof.
             destruct INV as (bk & ptr_l & τ' & MLUP & TYP & FITS & LOOKUP & GETCELL_ptr_l).
 
             destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
-            { exists (mem_add (MInt64asNT.to_nat dst) v ymembk). exists ptr_l. exists τ'.
+            { exists (mem_add (MInt64asNT.to_nat dst) b1 ymembk). exists ptr_l. exists τ'.
 
               subst.
               assert (n1 ≡ y_p) by eauto.
@@ -1678,7 +1683,7 @@ Proof.
         }
 
         { (* Local *)
-          destruct v0.
+          destruct v0. destruct d.
           - epose proof (mem_is_inv _ _ _ _ H H0) as INV.
             cbn in INV.
             eauto.
@@ -1695,7 +1700,7 @@ Proof.
             erewrite WRITE_ARRAY in WRITE_SUCCEEDS.
 
             destruct (NPeano.Nat.eq_dec a y_i) as [ALIAS | NALIAS].
-            { exists (mem_add (MInt64asNT.to_nat dst) v ymembk). exists ptr_l. exists τ'.
+            { exists (mem_add (MInt64asNT.to_nat dst) b1 ymembk). exists ptr_l. exists τ'.
 
               subst.
               assert (n1 ≡ y_p) by eauto.
@@ -1756,9 +1761,9 @@ Proof.
 
         { (* id_allocated *)
           unfold id_allocated in *.
-          intros n1 addr0 val H.
+          intros n1 addr0 val ? H.
           specialize (st_id_allocated n1). cbn in *.
-          specialize (st_id_allocated _ _ H).
+          specialize (st_id_allocated _ _ _ H).
           eapply mem_block_exists_memory_set; eauto.
         }
       - exists bid_in. reflexivity.
