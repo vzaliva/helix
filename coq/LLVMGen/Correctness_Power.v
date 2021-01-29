@@ -715,21 +715,19 @@ Proof.
                    match stV with
                    | (mV, (ρ, g)) =>
                      state_invariant (protect σ n3) s2 mH stV /\
-                     exists v,
-                       alist_find dst_ptr_id ρ ≡ Some (UVALUE_Addr dst_addr) /\
-                       alist_find src_ptr_id ρ ≡ Some (UVALUE_Addr src_addr) /\
-                       (* alist_find src_val_id ρ ≡ Some (UVALUE_Double b1) /\ (* I no longer have this because the initial read has not happened *) *)
+                     alist_find dst_ptr_id ρ ≡ Some (UVALUE_Addr dst_addr) /\
+                     alist_find src_ptr_id ρ ≡ Some (UVALUE_Addr src_addr) /\
                      (* Not sure if this is the right block *)
-                       ext_memory mV_init dst_addr DTYPE_Double (UVALUE_Double v) mV /\
-                       (forall y, y ≢ (MInt64asNT.to_nat yoff_res) -> mem_lookup y mb ≡ mem_lookup y bkh_yoff) /\
-                       mem_lookup (MInt64asNT.to_nat yoff_res) mb ≡ Some v /\
                        Returns (Some (mH, mb))
                                (@interp_helix _ E_cfg (tfor
                                   (λ (_ : nat) (acc : mem_block),
                                    DSHPower_tfor_body (protect σ n3) f bkh_xoff
                                                       (mem_add (MInt64asNT.to_nat yoff_res) initial bkh_yoff)
                                                       (MInt64asNT.to_nat xoff_res) (MInt64asNT.to_nat yoff_res) acc) 0 k
-                                  (mem_add (MInt64asNT.to_nat yoff_res) initial bkh_yoff)) m_yoff)
+                                  (mem_add (MInt64asNT.to_nat yoff_res) initial bkh_yoff)) m_yoff) /\
+                       (forall y, y ≢ (MInt64asNT.to_nat yoff_res) -> mem_lookup y mb ≡ mem_lookup y bkh_yoff) /\
+                       exists v, mem_lookup (MInt64asNT.to_nat yoff_res) mb ≡ Some v /\
+                            ext_memory mV_init dst_addr DTYPE_Double (UVALUE_Double v) mV
                    end
                  end)).
 
@@ -753,7 +751,7 @@ Proof.
       forward LOOPTFOR.
       { intros g_loop l_loop mV_loop [[mH_loop mb_loop] |] k _label [HI [POWERI [POWERI_VAL RETURNS]]]; [|inv HI].
         cbn in HI.
-        destruct HI as [LINV_SINV [v [LINV_DST_PTR [LINV_SRC_PTR [LINV_MEXT [LINV_HELIX_MB_OLD [LINV_HELIX_MB_NEW LINV_RET]]]]]]].
+        destruct HI as [LINV_SINV [LINV_DST_PTR_ID [LINV_SRC_PTR_ID [LINV_RET [LINV_HELIX_MB_OLD [v [LINV_HELIX_MB_NEW LINV_MEXT]]]]]]].
         pose proof LINV_MEXT as [LINV_MEXT_NEW LINV_MEXT_OLD].
         unfold DSHPower_tfor_body.
         
@@ -781,18 +779,20 @@ Proof.
 
         unfold mem_lookup_err in NOFAIL.
         rewrite MEMLUP_xoff in NOFAIL.
+
+
         rewrite LINV_HELIX_MB_NEW in NOFAIL.
         cbn in NOFAIL.
         repeat rewrite bind_ret_l in NOFAIL.
-
-        unfold denoteBinCType.
+        rewrite LINV_HELIX_MB_NEW.
+        cbn.
+        repeat rewrite bind_ret_l.
 
         rewrite denote_ocfg_unfold_in.
         2: {
           apply find_block_eq; auto.
         }
 
-        rewrite LINV_HELIX_MB_NEW.
         cbn; vred.
 
         rewrite denote_no_phis.
@@ -1197,8 +1197,6 @@ Proof.
               }
           }
 
-          (* TODO: This is the thing we need *)
-          exists t_Aexpr.
           destruct POSTAEXPR. cbn in extends.
           cbn in Mono_IRState.
 
@@ -1213,24 +1211,6 @@ Proof.
           }
 
           split.
-          { eapply write_correct in WRITE.
-            destruct WRITE as [ALLOCATED WRITTEN].
-
-            eapply ext_memory_trans; eauto.
-            eapply WRITTEN. constructor.
-          }
-
-          split.
-          { (* Helix memory extended *)
-            intros y H.
-            rewrite mem_lookup_mem_add_neq; eauto.
-          }
-
-          split.
-          { (* Helix memory old *)
-            rewrite mem_lookup_mem_add_eq; eauto.
-          }
-
           { (* Returns... *)
             rewrite tfor_split with (i := 0) (j:= k) (k0:= S k); try lia.
             rewrite interp_helix_bind.
@@ -1277,6 +1257,26 @@ Proof.
             constructor.
             reflexivity.
           }
+
+          split.
+          { (* Helix memory old *)
+            intros y H.
+            rewrite mem_lookup_mem_add_neq; eauto.
+          }
+
+          exists t_Aexpr.
+          split.
+          { (* Helix memory extended *)
+            rewrite mem_lookup_mem_add_eq; eauto.
+          }
+
+          { eapply write_correct in WRITE.
+            destruct WRITE as [ALLOCATED WRITTEN].
+
+            eapply ext_memory_trans; eauto.
+            eapply WRITTEN. constructor.
+          }
+
         - destruct POSTAEXPR. cbn in extends.
           cbn in Mono_IRState.
           cbn in Gamma_cst.
@@ -1334,11 +1334,18 @@ Proof.
         { (* local_scope_modif *)
           cbn.
 
-          (* solve_local_scope_modif. *)
+          (* TODO: incorporate this into solve_local_scope_modif? *)
+          repeat
+            match goal with
+            | POST: genNExpr_post _ _ _ _ _ _ _ _ |- _
+              =>  apply Correctness_NExpr.extends in POST; cbn in POST
+            end.
 
-          (* Should hold might want to add genNExpr post and friends to automation *)
-          (* Probably best to add this to the post condition. *)
-          admit.
+          eapply local_scope_modif_shrink with (s3:=s2) (s4:=s2) (s1:=i8) in LSM_POST; [|solve_local_count|solve_local_count].
+          apply local_scope_modif_sub'_l in LSM_POST; [|solve_lid_bound_between].
+          apply local_scope_modif_sub'_l in LSM_POST; [|solve_lid_bound_between].
+
+          solve_local_scope_modif_trans.
         }
       }
 
@@ -1353,7 +1360,8 @@ Proof.
         unfold I in *.
         destruct a; try inv HI.
         destruct p.
-        destruct HI as [HI_SINV [HI_v [HI_lcount [HI_LSM_C [HI_LSM [HI_EXT [HI_OLD HI_NEW]]]]]]].
+        destruct HI as [HI_SINV [HI_DST_PTR_ID [HI_SRC_PTR_ID [HI_RET [HI_HELIX_MB_OLD [HI_v [HI_HELIX_MB_NEW HI_MEXT]]]]]]].
+        pose proof HI_MEXT as [HI_MEXT_NEW HI_MEXT_OLD].
         split.
         { destruct BOUND.
           - eapply state_invariant_same_Γ with (s1 := s2); eauto.
@@ -1377,7 +1385,7 @@ Proof.
             solve_local_count.
             cbn; solve_local_count.
         }
-        exists HI_v.
+
         split.
         { destruct BOUND.
           solve_alist_in.
@@ -1405,11 +1413,12 @@ Proof.
           solve_local_count.
         }
 
+        repeat split; auto.
+        exists HI_v.
         auto.
       }
 
-      { cbn; solve_local_count.
-      }
+      { cbn; solve_local_count. }
 
       { cbn; solve_local_count. }
 
@@ -1500,6 +1509,6 @@ Proof.
     }
   }
   { (* Local case for xoff *)
-    admit.
+ admit.
   }
 Admitted.

@@ -2277,6 +2277,16 @@ Ltac solve_local_scope_modif :=
     | eapply local_scope_modif_trans; cycle 2; eauto; solve_local_count
     ].
 
+(* Slightly more aggressive with transitivity... May get stuck *)
+Ltac solve_local_scope_modif_trans :=
+  eauto;
+  first
+    [ eapply local_scope_modif_refl
+    | solve [eapply local_scope_modif_shrink; [eassumption | solve_local_count | solve_local_count]]
+    | solve [eapply local_scope_modif_add'; [solve_lid_bound_between | solve_local_scope_modif]]
+    | eapply local_scope_modif_trans; cycle 3; [solve_local_scope_modif_trans | solve_local_count | solve_local_count | solve_local_scope_modif_trans]
+    ].
+
 Ltac solve_gamma_preserved :=
   first
     [ solve [eapply Gamma_preserved_refl]
