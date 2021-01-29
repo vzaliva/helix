@@ -816,57 +816,55 @@ Definition genPower
            (nextblock: block_id): cerr segment
   :=
     loopcontblock <- incBlockNamed "Power_lcont" ;;
-    loopvar <- incLocalNamed "Power_i" ;;
-
     let xtyp := getIRType (DSHPtr i) in
     let xptyp := TYPE_Pointer xtyp in
     let ytyp := getIRType (DSHPtr o) in
     let yptyp := TYPE_Pointer ytyp in
+    '(nexp, ncode) <- genNExpr n ;;
     '(src_nexpr, src_nexpcode) <- genNExpr src  ;;
     '(dst_nexpr, dst_nexpcode) <- genNExpr dst  ;;
     py <- incLocal ;;
     storeid0 <- incVoid ;;
-    '(nexp, ncode) <- genNExpr n ;;
+    px <- incLocal ;;
     let ini := genFloatV initial in
-    let init_code := src_nexpcode ++ dst_nexpcode ++ ncode ++ [
-                             (IId py,  INSTR_Op (OP_GetElementPtr
-                                                   ytyp (yptyp, (EXP_Ident y))
-                                                   [(IntType, EXP_Integer 0%Z);
-                                                      (IntType,dst_nexpr)]
+    let init_code := ncode ++ src_nexpcode ++ dst_nexpcode ++ [
+                                    (IId px,  INSTR_Op (OP_GetElementPtr
+                                                          xtyp (xptyp, (EXP_Ident x))
+                                                          [(IntType, EXP_Integer 0%Z);
+                                                          (IntType, src_nexpr)]
 
-                             ));
+                                    ));
+           
+                                  (IId py,  INSTR_Op (OP_GetElementPtr
+                                                        ytyp (yptyp, (EXP_Ident y))
+                                                        [(IntType, EXP_Integer 0%Z);
+                                                        (IntType,dst_nexpr)]
 
-                               (IVoid storeid0, INSTR_Store false
-                                                            (TYPE_Double, ini)
-                                                            (TYPE_Pointer TYPE_Double,
-                                                             (EXP_Ident (ID_Local py)))
-                                                            (ret 8%Z))
+                                  ));
 
+                                  (IVoid storeid0, INSTR_Store false
+                                                               (TYPE_Double, ini)
+                                                               (TYPE_Pointer TYPE_Double,
+                                                                (EXP_Ident (ID_Local py)))
+                                                               (ret 8%Z))
                            ] in
 
     body_block_id <- incBlockNamed "PowerLoopBody" ;;
     storeid1 <- incVoid ;;
     void2 <- incVoid ;;
-    px <- incLocal ;;
-    yv <- incLocal ;;
     xv <- incLocal ;;
+    yv <- incLocal ;;
     addVars [(ID_Local xv, TYPE_Double); (ID_Local yv, TYPE_Double)] ;;
     '(fexpr, fexpcode) <- genAExpr f ;;
     dropVars 2 ;;
     let body_block := {|
           blk_id    := body_block_id ;
           blk_phis  := [];
-          blk_code  := [
-                        (IId px,  INSTR_Op (OP_GetElementPtr
-                                              xtyp (xptyp, (EXP_Ident x))
-                                              [(IntType, EXP_Integer 0%Z);
-                                                 (IntType, src_nexpr)]
-
-                        ));
-                          (IId xv, INSTR_Load false TYPE_Double
+          blk_code  := [ (IId xv, INSTR_Load false TYPE_Double
                                               (TYPE_Pointer TYPE_Double,
                                                (EXP_Ident (ID_Local px)))
                                               (ret 8%Z));
+
                           (IId yv, INSTR_Load false TYPE_Double
                                               (TYPE_Pointer TYPE_Double,
                                                (EXP_Ident (ID_Local py)))
@@ -883,6 +881,7 @@ Definition genPower
           blk_term  := TERM_Br_1 loopcontblock;
           blk_comments := None
         |} in
+    loopvar <- incLocalNamed "Power_i" ;;
     genWhileLoop "Power" (EXP_Integer 0%Z) nexp loopvar loopcontblock body_block_id [body_block] init_code nextblock.
 
 Definition resolve_PVar (p:PExpr): cerr (ident*Int64.int)

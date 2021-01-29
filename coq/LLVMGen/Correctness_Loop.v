@@ -226,16 +226,16 @@ Proof.
       erewrite newLocalVar_block_count; eauto.
 
     - eapply state_invariant_enter_scope_DSHnat; eauto.
-      intros abs; eapply in_Gamma_Gamma_eq in abs; [| eapply incBlockNamed_Γ ; eauto].
-      eapply GAM; eauto.
-      eapply lid_bound_between_newLocalVar in Heqs2.
-      2:reflexivity.
-      eapply lid_bound_between_shrink; eauto.
-      solve_local_count.
-      apply dropVars_local_count in Heqs5.
-      apply genWhile_local_count in  Heqs6.
-      solve_local_count.
-
+      { intros abs; eapply in_Gamma_Gamma_eq in abs; [| eapply incBlockNamed_Γ ; eauto].
+        eapply GAM; eauto.
+        eapply lid_bound_between_newLocalVar in Heqs2.
+        2:reflexivity.
+        eapply lid_bound_between_shrink; eauto.
+        solve_local_count.
+        apply dropVars_local_count in Heqs5.
+        apply genWhile_local_count in  Heqs6.
+        solve_local_count.
+      }
     - clear NOFAIL INPUTS_BETWEEN WFOCFG.
       intros ? BOUND IN.
       inv IN.
@@ -357,4 +357,3 @@ Proof.
   }
 
 Qed.
-

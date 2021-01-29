@@ -1,5 +1,6 @@
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.LidBound.
+Require Import Helix.LLVMGen.BidBound.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.VariableBinding.
 Require Import Helix.LLVMGen.StateCounters.
@@ -301,6 +302,29 @@ Section SimulationRelations.
                        get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v)))
         end.
 
+  Definition memory_invariant_partial_write (configV : config_cfg) (index loopsize : nat) (ptr_llvm : addr)
+             (bk_helix : mem_block) (x : ident) sz : Prop :=
+      let '(mem_llvm, (ρ, g)) := configV in
+      (* forall n size τ s σ x, *)
+        (* nth_error σ n ≡ Some (DSHPtrVal ptr size) -> *)
+        (* nth_error (Γ s) n ≡ Some (x, τ) -> *)
+        (* τ ≡ (TYPE_Pointer (TYPE_Array sz TYPE_Double)) /\ *)
+          dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp [] (TYPE_Array sz TYPE_Double))
+              ∧ in_local_or_global_addr ρ g x ptr_llvm
+              ∧ (∀ (i : Int64.int) (v0 : binary64),
+                  ((MInt64asNT.to_nat i) < loopsize -> (MInt64asNT.to_nat i) < index) ->
+                  mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v0
+                  → get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0)).
+
+  (* TODO: might be able to simplify this *)
+  Definition memory_invariant_partial_single_write (configV : config_cfg) (index : nat) (ptr_llvm : addr) (bk_helix : mem_block) (x : ident) sz : Prop :=
+      let '(mem_llvm, (ρ, g)) := configV in
+          dtyp_fits mem_llvm ptr_llvm (DTYPE_Array sz DTYPE_Double)
+              ∧ in_local_or_global_addr ρ g x ptr_llvm
+              ∧ (∀ (v0 : binary64),
+                  mem_lookup index bk_helix ≡ Some v0
+                  → get_array_cell mem_llvm ptr_llvm index DTYPE_Double ≡ inr (UVALUE_Double v0)).
+
   (* TODO Prove lemma *)
   (* lookup y (protect σ) ≡ true..? *)
 
@@ -575,6 +599,99 @@ Section SimulationRelations.
       econstructor; eauto.
   Qed.
 
+  Lemma evalContext_typechecks_cons :
+    forall σ Γ v id τ b,
+      evalContext_typechecks σ Γ ->
+      getWFType id (DSHType_of_DSHVal v) ≡ τ ->
+      evalContext_typechecks ((v, b) :: σ) ((id, τ) :: Γ).
+  Proof.
+    intros σ Γ v id τ b TC TYP.
+    unfold evalContext_typechecks.
+    intros v0 [|n] b0 LUP.
+    - cbn in LUP. inv LUP.
+      exists id. reflexivity.
+    - rewrite nth_error_Sn in LUP.
+      rewrite nth_error_Sn.
+      apply TC in LUP.
+      auto.
+  Qed.
+
+  Lemma no_llvm_ptr_aliasing_cons :
+    forall s1 s2 l g x σ v,
+      no_llvm_ptr_aliasing (v :: σ) s1 l g ->
+      Γ s1 ≡ x :: Γ s2 ->
+      no_llvm_ptr_aliasing σ s2 l g.
+  Proof.
+    intros s1 s2 l g x σ v ALIAS EQ.
+    red in ALIAS.
+    red.
+    intros id1 ptrv1 id2 ptrv2 n1 n2 τ τ' v1 v2 b1 b2 NTH_σ1 NTH_σ2 NTH_Γ1 NTH_Γ2 NEQ INLG1 INLG2.
+
+    assert (nth_error (v :: σ) (S n1) ≡ Some (v1, b1)) as NTH_σ1' by auto.
+    assert (nth_error (v :: σ) (S n2) ≡ Some (v2, b2)) as NTH_σ2' by auto.
+
+    assert (nth_error (Γ s1) (S n1) ≡ Some (id1, τ)) as NTH_Γ1' by (rewrite EQ; auto).
+    assert (nth_error (Γ s1) (S n2) ≡ Some (id2, τ')) as NTH_Γ2' by (rewrite EQ; auto).
+
+    eauto.
+  Qed.
+
+  Lemma no_llvm_ptr_aliasing_cons2 :
+    forall s1 s2 l g x1 x2 σ hv1 hv2,
+      no_llvm_ptr_aliasing (hv1 :: hv2 :: σ) s1 l g ->
+      Γ s1 ≡ x1 :: x2 :: Γ s2 ->
+      no_llvm_ptr_aliasing σ s2 l g.
+  Proof.
+    intros s1 s2 l g x1 x2 σ hv1 hv2 ALIAS EQ.
+    red in ALIAS.
+    red.
+    intros id1 ptrv1 id2 ptrv2 n1 n2 τ τ' v1 v2 b1 b2 NTH_σ1 NTH_σ2 NTH_Γ1 NTH_Γ2 NEQ INLG1 INLG2.
+
+    assert (nth_error (hv1 :: hv2 :: σ) (S (S n1)) ≡ Some (v1, b1)) as NTH_σ1' by auto.
+    assert (nth_error (hv1 :: hv2 :: σ) (S (S n2)) ≡ Some (v2, b2)) as NTH_σ2' by auto.
+
+    assert (nth_error (Γ s1) (S (S n1)) ≡ Some (id1, τ)) as NTH_Γ1' by (rewrite EQ; auto).
+    assert (nth_error (Γ s1) (S (S n2)) ≡ Some (id2, τ')) as NTH_Γ2' by (rewrite EQ; auto).
+
+    eauto.
+  Qed.
+
+  Lemma no_llvm_ptr_aliasing_same_block :
+    forall {σ s l g n1 n2 v1 v2 id1 id2 τ1 τ2 ptrv1 ptrv2},
+      no_llvm_ptr_aliasing σ s l g ->
+      nth_error (Γ s) n1 ≡ Some (id1, τ1) ->
+      nth_error σ n1 ≡ Some v1 ->
+      nth_error (Γ s) n2 ≡ Some (id2, τ2) ->
+      nth_error σ n2 ≡ Some v2 ->
+      in_local_or_global_addr l g id1 ptrv1 ->
+      in_local_or_global_addr l g id2 ptrv2 ->
+      fst ptrv1 ≡ fst ptrv2 ->
+      id1 ≡ id2.
+  Proof.
+    intros σ s l g n1 n2 [v1 b1] [v2 b2] id1 id2 τ1 τ2 ptrv1 ptrv2 ALIAS NTH_Γ1 NTH_σ1 NTH_Γ2 NTH_σ2 INLG1 INLG2 BLOCK.
+    pose proof (ALIAS id1 ptrv1 id2 ptrv2 n1 n2 τ1 τ2 v1 v2 b1 b2 NTH_σ1 NTH_σ2 NTH_Γ1 NTH_Γ2) as CONTRA.
+    destruct id1, id2.
+    - (* global + global *)
+      pose proof (rel_dec_p id id0) as [EQ | NEQ]; subst; auto.
+      assert (ID_Global id ≢ ID_Global id0) as NEQ' by (intros H; inv H; contradiction).
+      specialize (CONTRA NEQ' INLG1 INLG2).
+      contradiction.
+    - (* global + local *)
+      assert (ID_Global id ≢ ID_Local id0) as NEQ' by (intros H; inv H; contradiction).
+      specialize (CONTRA NEQ' INLG1 INLG2).
+      contradiction.
+    - (* local + global *)
+      assert (ID_Local id ≢ ID_Global id0) as NEQ' by (intros H; inv H; contradiction).
+      specialize (CONTRA NEQ' INLG1 INLG2).
+      contradiction.
+    - (* local + local *)
+      pose proof (rel_dec_p id id0) as [EQ | NEQ]; subst; auto.
+      assert (ID_Local id ≢ ID_Local id0) as NEQ' by (intros H; inv H; contradiction).
+      specialize (CONTRA NEQ' INLG1 INLG2).
+      contradiction.
+  Qed.
+
+
   Lemma state_invariant_memory_invariant :
     forall σ s mH mV l g,
       state_invariant σ s mH (mV,(l,g)) ->
@@ -678,6 +795,34 @@ Section SimulationRelations.
     - rewrite alist_find_neq in NEQ; auto.
   Qed.
 
+  Lemma local_scope_modif_sub':
+    ∀ (s1 s2 : IRState) (l l' : local_env) (r : local_id) (v : uvalue),
+      lid_bound_between s1 s2 r → local_scope_modif s1 s2 l (alist_add r v l') → local_scope_modif s1 s2 l l'.
+  Proof.
+    intros s1 s2 l l' r v BOUND MODIF.
+
+    unfold local_scope_modif in *.
+    intros id H.
+    pose proof (rel_dec_p id r) as [EQ | NEQ].
+    - subst; auto.
+    - specialize (MODIF id).
+      rewrite alist_find_neq in MODIF; auto.
+  Qed.
+
+  Lemma local_scope_modif_sub'_l :
+    ∀ (s1 s2 : IRState) (l l' : local_env) (r : local_id) (v : uvalue),
+      lid_bound_between s1 s2 r → local_scope_modif s1 s2 (alist_add r v l) l' → local_scope_modif s1 s2 l l'.
+  Proof.
+    intros s1 s2 l l' r v BOUND MODIF.
+
+    unfold local_scope_modif in *.
+    intros id H.
+    pose proof (rel_dec_p id r) as [EQ | NEQ].
+    - subst; auto.
+    - specialize (MODIF id).
+      rewrite alist_find_neq in MODIF; auto.
+  Qed.
+
   (* If all changes made are in the empty interval, then no change has been made *)
   Lemma local_scope_modif_empty_scope:
     forall (l1 l2 : local_env) id s,
@@ -763,6 +908,25 @@ Section SimulationRelations.
     setoid_rewrite maps_add_neq; eauto.
   Qed.
 
+  Lemma not_in_gamma_cons :
+    forall σ s1 s2 id id' τ v,
+      Γ s2 ≡ (ID_Local id', τ) :: Γ s1 ->
+      ~ in_Gamma σ s1 id ->
+      id ≢ id' ->
+      ~ in_Gamma (v :: σ) s2 id.
+  Proof.
+    intros σ s1 s2 id id' τ v GAM NIN NEQ.
+    intros CONTRA.
+    inv CONTRA.
+    apply NIN.
+    rewrite GAM in *.
+    destruct n.
+    - cbn in *; inv H; inv H0.
+      contradiction.
+    - esplit; eauto.
+      eapply evalContext_typechecks_extend; eauto.
+  Qed.
+
   (* If I know that an interval leaves Gamma safe, I can shrink it on either side and it still lives Gamma safe *)
   Lemma Gamma_safe_shrink : forall σ s1 s2 s3 s4,
       Gamma_safe σ s1 s4 ->
@@ -833,6 +997,31 @@ Section SimulationRelations.
       s2 << s3 ->
       local_scope_modif s2 s3 l1 l2 ->
       local_scope_preserved s1 s2 l1 l2. 
+  Proof.
+    intros * LE MOD.
+    red. intros * BOUND.
+    red in MOD.
+    edestruct @alist_find_eq_dec_local_env as [EQ | NEQ]; [eassumption |].
+    apply MOD in NEQ; clear MOD.
+    destruct NEQ as (msg & s & s' & ? & ? & ? & ?).
+    cbn in *; inv H2.
+    destruct BOUND as (msg' & s' & s'' & ? & ? & ? & ?).
+    cbn in *; inv H5.
+    destruct s as [a s b]; cbn in *; clear a b.
+    destruct s' as [a s' b]; cbn in *; clear a b.
+    destruct s1 as [a s1 b]; cbn in *; clear a b.
+    destruct s2 as [a s2 b], s3 as [a' s3 b']; cbn in *.
+    red in LE; cbn in *.
+    clear a b a' b'.
+    exfalso; eapply IdLemmas.valid_prefix_neq_differ; [| | | eassumption]; auto.
+    lia.
+  Qed.
+
+  Lemma local_scope_preserve_modif_up :
+    forall s1 s2 s3 l1 l2,
+      s1 << s2 ->
+      local_scope_modif s1 s2 l1 l2 ->
+      local_scope_preserved s2 s3 l1 l2. 
   Proof.
     intros * LE MOD.
     red. intros * BOUND.
@@ -1457,6 +1646,73 @@ Proof.
     eapply st_id_allocated0; eauto.
 Qed.
 
+Lemma state_invariant_enter_scope_DSHCType' : 
+  forall σ v b x s1 s2 stH mV l g τ,
+    τ ≡ getWFType (ID_Local x) DSHCType ->
+    Γ s2 ≡ (ID_Local x,τ) :: Γ s1 ->
+
+    (* Freshness *)
+    ~ in_Gamma σ s1 x ->
+
+    l @ x ≡ Some (UVALUE_Double v) ->
+    state_invariant σ s1 stH (mV,(l,g)) ->
+    state_invariant ((DSHCTypeVal v, b)::σ) s2 stH (mV,(l,g)).
+Proof.
+  intros * TYP EQ GAM LU [MEM WF ALIAS1 ALIAS2 ALIAS3]; cbn in TYP; inv TYP.
+  split.
+  - red; intros * LU1 LU2.
+    rewrite EQ in *.
+    destruct n as [| n].
+    + inv LU1; inv LU2; auto.
+    + rewrite nth_error_Sn in LU1.
+      cbn in *.
+      eapply MEM in LU2; eauto.
+  -  do 2 red.
+     rewrite EQ.
+     cbn.
+     intros ? [| n] * LU'.
+     + cbn in LU'.
+       inv LU'.
+       cbn.
+       exists (ID_Local x); reflexivity.
+     + rewrite nth_error_Sn in LU'.
+       rewrite nth_error_Sn.
+       apply WF in LU'; auto.
+
+  - red; intros * LU1 LU2 LU3 LU4.
+    rewrite EQ in *.
+    destruct n1 as [| n1], n2 as [| n2]; auto.
+    + exfalso. cbn in *.
+      apply GAM.
+      inv LU3; eapply mk_in_Gamma; eauto.
+    + exfalso.
+      apply GAM; inv LU4; eapply mk_in_Gamma; eauto.
+    + inv LU3; inv LU4; eapply ALIAS1 in LU1; apply LU1 in LU2; eauto.
+
+  - red; intros * LU1 LU2.
+    destruct n as [| n], n' as [| n']; auto.
+    + inv LU1.
+    + inv LU2.
+    + rewrite nth_error_Sn in LU1.
+      rewrite nth_error_Sn in LU2.
+      eapply ALIAS2 in LU1; apply LU1 in LU2; eauto.
+
+  - do 2 red. intros * LU1 LU2 LU3 LU4 INEQ IN1 IN2.
+    rewrite EQ in *.
+    cbn in *.
+    destruct n1 as [| n1], n2 as [| n2]; auto.
+    + cbn in *. inv LU1; inv LU2; inv LU3; inv LU4; auto.
+    + cbn in *; inv LU1; inv LU3; eauto.
+      cbn in *.
+      rewrite LU in IN1; inv IN1.
+    + cbn in *; inv LU2; inv LU4.
+      cbn in *; rewrite LU in IN2; inv IN2.
+    + cbn in *.
+      eapply ALIAS3; [exact LU1 | exact LU2 |..]; eauto.
+  - intros [| n] * LUn; [inv LUn |].
+    eapply st_id_allocated0; eauto.
+Qed.
+
 Lemma state_invariant_enter_scope_DSHPtr :
   forall σ ptrh sizeh ptrv x τ s1 s2 stH mV mV_a l g b,
     τ ≡ getWFType (ID_Local x) (DSHPtr sizeh) ->
@@ -1799,6 +2055,276 @@ Proof.
       eauto.
 Qed.
 
+Lemma protect_nil :
+  forall n,
+    protect [] n ≡ [].
+Proof.
+  destruct n; auto.
+Qed.
+
+Lemma protect_cons_S :
+  forall p σ n,
+    protect (p :: σ) (S n) ≡ p :: protect σ n.
+Proof.
+  intros p σ n.
+  unfold protect.
+  rewrite nth_error_Sn.
+  break_match; auto.
+  destruct p0; auto.
+Qed.
+
+Lemma nth_error_protect_neq :
+  forall n1 n2 σ,
+    n1 ≢ n2 ->
+    nth_error (protect σ n2) n1 ≡ nth_error σ n1.
+Proof.
+  induction n1; intros n2 σ NEQ.
+  - cbn. destruct n2; try contradiction.
+    unfold protect. cbn.
+    destruct σ; auto.
+    cbn.
+    destruct (nth_error σ n2); auto.
+    destruct p0; reflexivity.
+  - destruct σ.
+    + rewrite protect_nil.
+      reflexivity.
+    + cbn. destruct n2; cbn.
+      * destruct p. reflexivity.
+      * rewrite protect_cons_S.
+        auto.
+Qed.
+
+Lemma nth_error_protect_eq :
+  forall n σ v b',
+    nth_error (protect σ n) n ≡ Some (v, b') ->
+    exists b, nth_error σ n ≡ Some (v, b).
+Proof.
+  induction n;
+    intros σ v b' NTH.
+  - destruct σ; cbn in *; inv NTH.
+    destruct p. inv H0.
+    eexists. reflexivity.
+  - destruct σ.
+    + inv NTH.
+    + rewrite protect_cons_S in NTH.
+      rewrite nth_error_Sn in NTH.
+      apply IHn in NTH.
+      destruct NTH as [b NTH].
+      eexists; eauto.
+Qed.
+
+Lemma nth_error_protect_eq' :
+  forall n σ v b,
+    nth_error σ n ≡ Some (v, b) ->
+    nth_error (protect σ n) n ≡ Some (v, true).
+Proof.
+  induction n;
+    intros σ v b NTH.
+  - destruct σ; cbn in *; inv NTH.
+    reflexivity.
+  - destruct σ.
+    + inv NTH.
+    + rewrite protect_cons_S.
+      rewrite nth_error_Sn in NTH.
+      rewrite nth_error_Sn.
+      eauto.
+Qed.
+
+Lemma WF_IRState_protect :
+  forall n σ s,
+    WF_IRState (protect σ n) s <->
+    WF_IRState σ s.
+Proof.
+  unfold WF_IRState, evalContext_typechecks.
+  intros n σ s.
+  split; intros.
+  - destruct (Nat.eq_dec n n0); subst.
+    + apply nth_error_protect_eq' in H0.
+      eauto.
+    + erewrite <- nth_error_protect_neq in H0; eauto.
+  - destruct (Nat.eq_dec n n0); subst.
+    + apply nth_error_protect_eq in H0 as [b' NTH].
+      eauto.
+    + rewrite nth_error_protect_neq in H0; eauto.
+Qed.
+
+Lemma not_in_gamma_protect :
+  forall σ s id n,
+    ~ in_Gamma σ s id ->
+    ~ in_Gamma (protect σ n) s id.
+Proof.
+  intros σ s id n NIN.
+  intros CONTRA; inv CONTRA.
+  apply NIN.
+
+  destruct (Nat.eq_dec n n0); subst.
+  - destruct v.
+    pose proof (nth_error_protect_eq n0 σ H) as [b' NTH].
+    econstructor; eauto.
+    eapply WF_IRState_protect; eauto.
+  - rewrite nth_error_protect_neq in H; eauto.
+    econstructor; eauto.
+    eapply WF_IRState_protect; eauto.
+Qed.
+
+Lemma Gamma_safe_protect :
+  forall σ s1 s2 n,
+    Gamma_safe σ s1 s2 ->
+    Gamma_safe (protect σ n) s1 s2.
+Proof.
+  unfold Gamma_safe.
+  intros σ s1 s2 n H id H0.
+  apply not_in_gamma_protect.
+  eauto.
+Qed.
+
+Lemma protect_eq_true :
+  forall n σ v b,
+    nth_error (protect σ n) n ≡ Some (v, b) ->
+    b ≡ true.
+Proof.
+  induction n;
+    intros σ v b NTH; cbn in NTH.
+  - destruct σ; cbn in NTH; inv NTH.
+    destruct p. inv H0.
+    reflexivity.
+  - destruct σ; cbn in NTH; inv NTH.
+    rewrite protect_cons_S in H0.
+    eauto.
+Qed.
+
+Lemma memory_invariant_protect :
+  forall σ s mH mV l g hid,
+    memory_invariant σ s mH (mV, (l, g)) ->
+    memory_invariant (protect σ hid) s mH (mV, (l, g)).
+Proof.
+  intros σ s mH mV l g hid MINV.
+  unfold memory_invariant in *.
+  intros n v b τ x NTH_σ NTH_Γ.
+
+  destruct (Nat.eq_dec hid n); subst.
+  - pose proof (protect_eq_true _ _ NTH_σ); subst.
+    eapply nth_error_protect_eq in NTH_σ as [b' NTH_σ].
+    pose proof (MINV n v b' τ x NTH_σ NTH_Γ).
+    destruct v; eauto.
+
+    destruct H as (ptrll & τ' & TEQ & FITS & INLG & LUP).
+    inv TEQ.
+    exists ptrll. exists τ'.
+    repeat split; auto.
+    intros CONTRA. inv CONTRA.
+  - erewrite nth_error_protect_neq in NTH_σ; eauto.
+    pose proof (MINV n v b τ x NTH_σ NTH_Γ).
+    eauto.
+Qed.
+
+Lemma no_id_aliasing_protect :
+  forall σ s hid,
+    no_id_aliasing σ s ->
+    no_id_aliasing (protect σ hid) s.
+Proof.
+  intros σ s hid H.
+  unfold no_id_aliasing in *.
+  intros n1 n2 id τ τ' v1 v2 NTH_σ1 NTH_σ2 NTH_Γ1 NTH_Γ2.
+
+  destruct (Nat.eq_dec hid n1), (Nat.eq_dec hid n2); subst; auto.
+  - (* hid = n1 *)
+    erewrite nth_error_protect_neq in NTH_σ2; [|eauto].
+    destruct v1.
+    eapply nth_error_protect_eq in NTH_σ1 as [b' NTH_σ1].
+    eauto.
+  - (* hid = n2 *)
+    erewrite nth_error_protect_neq in NTH_σ1; [|eauto].
+    destruct v2.
+    eapply nth_error_protect_eq in NTH_σ2 as [b' NTH_σ2].
+    eauto.
+  - (* hid = neither *)
+    erewrite nth_error_protect_neq in NTH_σ1; [|eauto].
+    erewrite nth_error_protect_neq in NTH_σ2; [|eauto].
+    eauto.
+Qed.
+
+Lemma no_dshptr_aliasing_protect :
+  forall σ hid,
+    no_dshptr_aliasing σ ->
+    no_dshptr_aliasing (protect σ hid).
+Proof.
+  intros σ hid H.
+  unfold no_dshptr_aliasing in *.
+  intros n1 n2 ptr sz sz' b b' NTH_σ1 NTH_σ2.
+  destruct (Nat.eq_dec hid n1), (Nat.eq_dec hid n2); subst; auto.
+  - (* hid = n1 *)
+    erewrite nth_error_protect_neq in NTH_σ2; [|eauto].
+    eapply nth_error_protect_eq in NTH_σ1 as [? NTH_σ1].
+    eauto.
+  - (* hid = n2 *)
+    erewrite nth_error_protect_neq in NTH_σ1; [|eauto].
+    eapply nth_error_protect_eq in NTH_σ2 as [? NTH_σ2].
+    eauto.
+  - (* hid = neither *)
+    erewrite nth_error_protect_neq in NTH_σ1; [|eauto].
+    erewrite nth_error_protect_neq in NTH_σ2; [|eauto].
+    eauto.
+Qed.
+
+Lemma no_llvm_ptr_aliasing_protect :
+  forall σ hid s l g,
+    no_llvm_ptr_aliasing σ s l g ->
+    no_llvm_ptr_aliasing (protect σ hid) s l g.
+Proof.
+  intros σ hid H.
+  unfold no_llvm_ptr_aliasing in *.
+  intros l g H0 id1 ptrv1 id2 ptrv2 n1 n2 τ τ' v1 v2 b b' NTH_σ1 NTH_σ2 H3 H4 H5 H6 H7.
+
+  destruct (Nat.eq_dec hid n1), (Nat.eq_dec hid n2); subst.
+  - (* hid = n1 = n2 *)
+    eapply nth_error_protect_eq in NTH_σ1 as [? NTH_σ1].
+    eapply nth_error_protect_eq in NTH_σ2 as [? NTH_σ2].
+    eauto.
+  - (* hid = n1 *)
+    erewrite nth_error_protect_neq in NTH_σ2; [|eauto].
+    eapply nth_error_protect_eq in NTH_σ1 as [? NTH_σ1].
+    eauto.
+  - (* hid = n2 *)
+    erewrite nth_error_protect_neq in NTH_σ1; [|eauto].
+    eapply nth_error_protect_eq in NTH_σ2 as [? NTH_σ2].
+    eauto.
+  - (* hid = neither *)
+    erewrite nth_error_protect_neq in NTH_σ1; [|eauto].
+    erewrite nth_error_protect_neq in NTH_σ2; [|eauto].
+    eauto.
+Qed.
+
+Lemma id_allocated_protect :
+  forall σ hid mh,
+    id_allocated σ mh ->
+    id_allocated (protect σ hid) mh.
+Proof.
+  intros σ hid mh H.
+  unfold id_allocated in *.
+  intros n addr0 val b NTH.
+  destruct (Nat.eq_dec hid n); subst.
+  - eapply nth_error_protect_eq in NTH as [b' NTH].
+    eauto.
+  - erewrite nth_error_protect_neq in NTH; eauto.
+Qed.
+
+Lemma state_invariant_protect :
+  forall σ hid s mh cv,
+    state_invariant σ s mh cv ->
+    state_invariant (protect σ hid) s mh cv.
+Proof.
+  intros σ hid s mh cv H.
+  destruct H, cv, p.
+  split.
+  - eapply memory_invariant_protect; eauto.
+  - eapply WF_IRState_protect; eauto.
+  - eapply no_id_aliasing_protect; eauto.
+  - eapply no_dshptr_aliasing_protect; eauto.
+  - eapply no_llvm_ptr_aliasing_protect; eauto.
+  - eapply id_allocated_protect; eauto.
+Qed.
+
 Lemma vellvm_helix_ptr_size:
   forall σ s memH memV ρ g n id (sz : N) dsh_ptr (dsh_sz : Int64.int) b,
     nth_error (Γ s) n ≡ Some (id, TYPE_Pointer (TYPE_Array sz TYPE_Double)) ->
@@ -1842,19 +2368,6 @@ Proof.
   contradiction.
 Qed.
 
-Ltac solve_alist_in := first [apply In_add_eq | idtac].
-Ltac solve_lu :=
-  (try now eauto);
-  match goal with
-  | |- @Maps.lookup _ _ local_env _ ?id ?l ≡ Some _ =>
-    eapply memory_invariant_LLU; [| eassumption | eassumption]; eauto
-  | h: _ ⊑ ?l |- @Maps.lookup _ _ local_env _ ?id ?l ≡ Some _ =>
-    eapply h; solve_lu
-  | |- @Maps.lookup _ _ global_env _ ?id ?l ≡ Some _ =>
-    eapply memory_invariant_GLU; [| eassumption | eassumption]; eauto
-  | _ => solve_alist_in
-  end.
-
 Ltac solve_in_gamma :=
   match goal with
   | GAM : nth_error (Γ ?s) ?n ≡ Some (ID_Local ?id, _),
@@ -1865,7 +2378,10 @@ Ltac solve_in_gamma :=
 
 (* TODO: expand this *)
 Ltac solve_lid_bound_between :=
-  eapply lid_bound_between_shrink; [eapply lid_bound_between_incLocal | | ]; eauto; solve_local_count.
+  solve [ eauto
+        | eapply lid_bound_between_shrink; [eapply lid_bound_between_incLocal | | ]; eauto; solve_local_count
+        | eapply lid_bound_between_shrink; [eapply lid_bound_between_incLocalNamed; cycle 1; [eauto | solve_prefix]| solve_local_count | solve_local_count]
+        ].
 
 Ltac solve_not_in_gamma :=
   first [ now eauto
@@ -1876,6 +2392,8 @@ Ltac solve_not_in_gamma :=
         eapply GAM; solve_lid_bound_between
       end
     | solve [eapply not_in_Gamma_Gamma_eq; [eassumption | solve_not_in_gamma]]
+    | solve [eapply not_in_gamma_protect; solve_not_in_gamma]
+    | solve [eapply not_in_gamma_cons; [cbn; eauto; try solve_gamma | solve_not_in_gamma |]]
     ].
 
 Hint Resolve state_invariant_memory_invariant : core.
@@ -1894,7 +2412,7 @@ Hint Resolve genIR_Γ  : helix_context.
 
 (* TODO: expand this *)
 Ltac solve_gamma_safe :=
-  eapply Gamma_safe_shrink; eauto; [solve_gamma|..]; solve_local_count.
+  eapply Gamma_safe_shrink; eauto; try solve_gamma; cbn; solve_local_count.
 
 (* TODO: expand this *)
 Ltac solve_local_scope_modif :=
@@ -1906,10 +2424,21 @@ Ltac solve_local_scope_modif :=
     | eapply local_scope_modif_trans; cycle 2; eauto; solve_local_count
     ].
 
+(* Slightly more aggressive with transitivity... May get stuck *)
+Ltac solve_local_scope_modif_trans :=
+  eauto;
+  first
+    [ eapply local_scope_modif_refl
+    | solve [eapply local_scope_modif_shrink; [eassumption | solve_local_count | solve_local_count]]
+    | solve [eapply local_scope_modif_add'; [solve_lid_bound_between | solve_local_scope_modif]]
+    | eapply local_scope_modif_trans; cycle 3; [solve_local_scope_modif_trans | solve_local_count | solve_local_count | solve_local_scope_modif_trans]
+    ].
+
 Ltac solve_gamma_preserved :=
   first
     [ solve [eapply Gamma_preserved_refl]
-    | eapply Gamma_preserved_add_not_in_Gamma; [solve_gamma_preserved | solve_not_in_gamma]
+    | solve [eapply Gamma_preserved_add_not_in_Gamma; [solve_gamma_preserved | solve_not_in_gamma]]
+    | solve [eapply Gamma_preserved_if_safe; [solve_gamma_safe | solve_local_scope_modif]]
     ].
 
 Opaque alist_add.
@@ -1961,6 +2490,19 @@ Proof.
   eapply incLocal_id_neq; eauto.
 Qed.
 
+Lemma incBlockNamed_id_neq :
+  forall s1 s2 s3 s4 id1 id2 n1 n2,
+    incBlockNamed n1 s1 ≡ inr (s2, id1) ->
+    incBlockNamed n2 s3 ≡ inr (s4, id2) ->
+    is_correct_prefix n1 ->
+    is_correct_prefix n2 ->
+    block_count s1 ≢ block_count s3 ->
+    id1 ≢ id2.
+Proof.
+  intros s1 s2 s3 s4 id1 id2 n1 n2 GEN1 GEN2 PRE1 PRE2 COUNT.
+  eapply incBlockNamed_count_gen_injective; eauto.
+Qed.
+
 Lemma in_gamma_not_in_neq :
   forall σ s id r,
     in_Gamma σ s id ->
@@ -1979,8 +2521,35 @@ Qed.
 
 Ltac solve_id_neq :=
   first [ solve [eapply incLocal_id_neq; eauto; solve_local_count]
+        | solve [eapply incBlockNamed_id_neq; eauto; solve_block_count]
         | solve [eapply in_gamma_not_in_neq; [solve_in_gamma | solve_not_in_gamma]]
+        | solve [eapply state_bound_between_separate; [eapply incLocalNamed_count_gen_injective
+                                                      | solve_lid_bound_between
+                                                      | solve_lid_bound_between
+                                                      | cbn; solve_local_count]]
+        | solve [let CONTRA := fresh "CONTRA" in intros CONTRA; symmetry in CONTRA; revert CONTRA; solve_id_neq]
         ].
+
+Ltac solve_alist_in :=
+  first [ apply In_add_eq
+        | solve [eauto]
+        | solve [rewrite alist_find_neq; [solve_alist_in | solve_id_neq]]
+        | solve [erewrite local_scope_preserve_modif; [| |solve_local_scope_modif|solve_lid_bound_between]; [solve_alist_in|solve [solve_local_count]]]
+        | solve [erewrite local_scope_preserve_modif_up; [| |solve_local_scope_modif|solve_lid_bound_between]; [solve_alist_in|solve [solve_local_count]]]
+        ].
+
+Ltac solve_lu :=
+  (try now eauto);
+  match goal with
+  | |- @Maps.lookup _ _ local_env _ ?id ?l ≡ Some _ =>
+    eapply memory_invariant_LLU; [| eassumption | eassumption]; eauto
+  | h: _ ⊑ ?l |- @Maps.lookup _ _ local_env _ ?id ?l ≡ Some _ =>
+    eapply h; solve_lu
+  | |- @Maps.lookup _ _ global_env _ ?id ?l ≡ Some _ =>
+    eapply memory_invariant_GLU; [| eassumption | eassumption]; eauto
+  | _ => solve_alist_in
+  end.
+
 
 Ltac solve_local_lookup :=
   first
@@ -2025,5 +2594,6 @@ Ltac solve_local_scope_preserved :=
 Ltac solve_state_invariant := eauto with SolveStateInv.
 Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incBlockNamed; [eassumption | solve_state_invariant] : SolveStateInv.
 Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incLocal; [eassumption | solve_state_invariant] : SolveStateInv.
+Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incLocalNamed; [eassumption | solve_state_invariant] : SolveStateInv.
 Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eassumption | solve_state_invariant] : SolveStateInv.
 Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incLocalNamed; [eassumption | solve_state_invariant] : SolveStateInv.
