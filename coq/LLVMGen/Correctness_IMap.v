@@ -395,8 +395,19 @@ Proof.
                 (* Accessing py pointer doesn't go out of bounds *)
                 (DynamicValues.Int64.intval (repr (Z.of_nat n)) < Z.of_N sz0)%Z
                end)).
+
   (* Precondition and postcondition *)
   set (P := (fun (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
+               match mH with
+               | None => False
+               | Some (mH,b) => state_invariant (protect σ n1) s12 mH stV /\
+                 let '(mV, (p, g')) := stV in
+                 mH ≡ memH /\ g ≡ g' /\ mV ≡ mV_init /\
+                (DynamicValues.Int64.intval (repr (Z.of_nat n)) < Z.of_N sz0)%Z
+                  (* exists v, ext_memory mV_init ptrll_yoff DTYPE_Double (UVALUE_Double v) mV *)
+               end)).
+
+  set (Q := (fun (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
                match mH with
                | None => False
                | Some (mH,b) => state_invariant σ s12 mH stV /\
@@ -406,7 +417,8 @@ Proof.
                   (* exists v, ext_memory mV_init ptrll_yoff DTYPE_Double (UVALUE_Double v) mV *)
                end)).
 
-  specialize (GENC I P P (Some (memH, bkh_yoff))).
+
+  specialize (GENC I P Q (Some (memH, bkh_yoff))).
 
   assert (EE : (ID_Local v, TYPE_Double) :: (ID_Local loopvarid, IntType) ::  Γ s12 ≡ Γ s9). {
     get_gammas; eauto.
@@ -419,7 +431,7 @@ Proof.
   (* Loop body match *)
   forward GENC; [clear GENC |].
   {
-    subst I P; intros ? ? ? [[? ?]|] * (INV & LOOPVAR & BOUNDk & RET); [| inv INV].
+    subst I P Q ; intros ? ? ? [[? ?]|] * (INV & LOOPVAR & BOUNDk & RET); [| inv INV].
 
     (* [HELIX] Clean-up (match breaks using no failure) *)
     assert (EQk: MInt64asNT.from_nat k ≡ inr (Int64.repr (Z.of_nat k))).
@@ -468,36 +480,34 @@ Proof.
 
     rewrite denote_code_cons.
 
-
-
+    assert (n0 ≢ n1). admit.
 
     (* Get mem information from PRE condition here (global and local state has changed). *)
     (* Needed for the following GEP and Load instructions *)
     destruct INV as (INV_r & INV_p & -> & -> & bky & EXT_mV & BOUNDS).
 
     (* Read info as if we're reading from a protected σ *)
-    apply nth_error_protect_eq' in Heqo.
+    erewrite <- nth_error_protect_neq with (n2 := n1) in Heqo; auto.
     apply nth_error_protect_eq' in Heqo0.
 
     pose proof INV_p as MINV_YOFF.
     unfold memory_invariant_partial_write in MINV_YOFF.
     rewrite GENIR_Γ in LUn0, LUn.
 
-    (* specialize (MINV_YOFF _ _ _ _ _ _ Heqo0 LUn0). *)
-    (* destruct MINV_YOFF as (FITS_yoff_l & INLG_yoff_l & GETARRAYCELL_yoff_l). *)
+    destruct MINV_YOFF as (FITS_yoff_l & INLG_yoff_l & GETARRAYCELL_yoff_l).
 
     (* Memory invariant for x *)
     pose proof state_invariant_memory_invariant INV_r as MINV_XOFF.
     unfold memory_invariant in MINV_XOFF.
-    specialize (MINV_XOFF _ _ _ _ _ _ Heqo LUn).
-    (* cbn in MINV_XOFF. *)
+    specialize (MINV_XOFF _ _ _ _ _ Heqo LUn).
+    cbn in MINV_XOFF.
 
-    (* (* destruct MINV_XOFF as (bkh_xoff_l & ptrll_xoff_l & τ_xoff & MLUP_xoff_l & TEQ_xoff & FITS_xoff_l & INLG_xoff_l & GETARRAYCELL_xoff_l). *) *)
+    destruct MINV_XOFF as (ptrll_xoff_l & τ_xoff & TEQ_xoff & FITS_xoff_l & INLG_xoff_l & bkh_xoff_l & MLUP_xoff_l & GETARRAYCELL_xoff_l); eauto.
 
     (* (* (* y_ptr_addr ≢ x_ptr_addr *) admit. (* TODO : This will be part of our assumption *) *) *)
 
-    (* (* rewrite MLUP_xoff_l in H'; symmetry in H'; inv H'. *) *)
-    (* (* inv TEQ_xoff. *) *)
+    rewrite MLUP_xoff_l in H'; symmetry in H'; inv H'.
+    inv TEQ_xoff.
 
     assert (UNIQ0 : v ≢ loopvarid). {
       intros CONTRA; subst.
@@ -534,10 +544,12 @@ Proof.
       solve_local_count. reflexivity.
     }
 
-From Vellvm Require Import
-     Numeric.Coqlib
-     Numeric.Integers
-     Numeric.Floats.
+    From Vellvm Require Import
+        Numeric.Coqlib
+        Numeric.Integers
+        Numeric.Floats.
+
+    (* TODO: Move to Vellvm *)
     Lemma read_array_addr : forall m size τ i z z0,
         allocated (z, z0) m ->
         let elem_addr :=
@@ -567,20 +579,13 @@ From Vellvm Require Import
         rewrite N2Z.inj_mul. reflexivity.
     Qed.
 
-
-    assert (ALLOC: allocated ptrll_xoff mV_init) by solve_allocated.
-    destruct ptrll_xoff as (x_ptr & x_ptr') eqn: PTRLL_XOFF.
-    pose proof (read_array_addr _ sz DTYPE_Double k _ _ ALLOC) as (HGA_x & READ_x).
-
-    destruct EXT_mV.
-
     (* [Vellvm] GEP Instruction *)
-    (* match goal with *)
-    (* | [|- context[OP_GetElementPtr (DTYPE_Array ?size' ?τ') (_, ?ptr') _]] => *)
-    (* edestruct denote_instr_gep_array with *)
-    (*     (ρ := li) (g := g0) (m := mV) (i := px) *)
-    (*     (size := size') (a := ptrll_xoff) (ptr := ptr') as (? & ? & ?) *)
-    (* end. *)
+    match goal with
+    | [|- context[OP_GetElementPtr (DTYPE_Array ?size' ?τ') (_, ?ptr') _]] =>
+    edestruct denote_instr_gep_array with
+        (ρ := li) (g := g0) (m := mV) (i := px)
+        (size := size') (a := ptrll_xoff_l) (ptr := ptr') as (? & ? & ?)
+    end.
 
     destruct x;
     rename id into XID.
@@ -614,32 +619,15 @@ From Vellvm Require Import
       Qed.
 
       specialize (GET (Int64.repr (Z.of_nat k))).
-      erewrite <- read_array. 3 : eauto.
-      rewrite old_lu0. rewrite READ_x. rewrite <- to_nat_repr_nat with (k := k).
-      eapply GET. rewrite to_nat_repr_nat. eauto.
-      auto. auto. solve_allocated.
-      unfold no_overlap_dtyp. red. left. cbn.
-      assert (fst ptrll_yoff ≢ fst ptrll_xoff). admit.
-      subst. cbn in *. eauto.
-      eapply dtyp_fits_allocated.
-      (* destruct INV_r. eauto. *)
-      (* eapply can_read_allocated. 2: subst; eauto. *)
-      (* rewrite old_lu0. subst. rewrite READ_x. eauto. eauto.  *)
-      (* solve_allocated.  *)
-      
-      (* 2 : solve_allocated. clear new_lu0. erewrite old_lu0. *)
-      (* erewrite read_array. eapply GET; eauto. *)
-      (* rewrite to_nat_repr_nat. eauto. *)
-      (* eauto. solve_allocated. *)
-      (* rewrite to_nat_repr_nat. eauto. *)
-      (*   in GET; auto. *)
-      (* eapply GET. eauto. *)
-      admit. admit.
+      pose proof EQk.
+      apply to_nat_repr_nat in EQk. rewrite <- EQk.
+      eapply GETARRAYCELL_xoff_l.
+      rewrite to_nat_repr_nat. eauto. auto.
     }
     eauto.
 
     vred.
-    setoid_rewrite H0; clear H0.
+    setoid_rewrite H1; clear H1.
     vred.
 
     (* [Vellvm] : Load *)
@@ -670,8 +658,9 @@ From Vellvm Require Import
     }
 
     assert (neg0 : ~ in_Gamma σ s0 v) by solve_not_in_gamma.
+    eapply not_in_gamma_protect in neg0.
 
-    assert (neg1 : ¬ in_Gamma (DSHnatVal (Int64.repr (Z.of_nat k)) :: σ) s5 v). {
+    assert (neg1 : ¬ in_Gamma ((DSHnatVal (Int64.repr (Z.of_nat k)), false) :: (protect σ n1)) s5 v). {
         eapply not_in_gamma_cons.
         assert (Heqs4' := Heqs4).
         eauto.
@@ -689,7 +678,7 @@ From Vellvm Require Import
       eassumption.
       - (* From our . [state_invariant_relaxed] and [memory_invariant_partial_write],
           we should be able to retrieve the normal state invariant. *)
-        eapply state_invariant_enter_scope_DSHCType with (s1 := s5); eauto.
+        eapply state_invariant_enter_scope_DSHCType' with (s1 := s5); eauto.
         + rewrite E. reflexivity.
         + solve_alist_in.
         + (* use LOOPVAR *)
@@ -698,6 +687,7 @@ From Vellvm Require Import
 
           eapply state_invariant_enter_scope_DSHnat with (x := loopvarid); eauto.
           * apply not_in_Gamma_Gamma_eq with (s1 := s0). solve_gamma.
+            eapply Gamma_safe_protect in GAM.
             eapply GAM. eapply lid_bound_between_shrink with (s2 := s1) (s3 := s2); try solve_local_count.
             clear -Heqs4. Transparent newLocalVar.
             eapply lid_bound_between_newLocalVar; eauto. reflexivity.
@@ -707,16 +697,7 @@ From Vellvm Require Import
             eapply state_invariant_same_Γ; eauto using lid_bound_between_incLocal.
             solve_not_in_gamma.
             eapply state_invariant_Γ.
-
-            (* cbn. cbn in INV_p. intros. *)
-            (* destr *)
-            (* eapply INV_p. *)
-            (* clear -INV_p. *)
-            (* apply INV_p.  *)
-            (* eauto. *)
-            
-            admit.
-            eauto. solve_gamma.
+            eauto. solve_gamma. solve_gamma.
       - eapply Gamma_safe_Context_extend with (s1 := s2) (s2 := s10).
         4 : { cbn. assert (GAM_E: Γ s2 ≡ Γ s7) by solve_gamma. rewrite GAM_E. reflexivity. }
         2 : solve_local_count.
@@ -729,6 +710,7 @@ From Vellvm Require Import
 
         assert (Heqs4' := Heqs4).
         eapply Gamma_safe_Context_extend with (s1 := s0) (s2 := s12).
+        apply Gamma_safe_protect.
         auto.
         solve_local_count. solve_local_count.
         apply incBlockNamed_Γ in Heqs3.
@@ -747,11 +729,11 @@ From Vellvm Require Import
         eapply dropVars_Γ in Heqs14 ; eauto.
         rewrite <- Heqs13.
         assert (Γ s1 ≡ Γ s11) by solve_gamma.
-        rewrite H0. reflexivity.
+        rewrite H1. reflexivity.
 
         intros. eapply state_bound_between_separate.
         eapply incLocalNamed_count_gen_injective.
-        2 : apply H0.
+        2 : apply H1.
         2 : reflexivity. Unshelve. 2 : exact s1.
         eapply lid_bound_between_newLocalVar. 2 : eauto. cbn. reflexivity.
         all : eauto.
@@ -769,6 +751,7 @@ From Vellvm Require Import
     hred.
     vred.
 
+    (* Checkpoint : AExpr restored.  *)
     edestruct (@read_write_succeeds mV _ _ _ (DVALUE_Double t_Aexpr) H) as [mV'' WRITE]; [constructor|].
 
     destruct AEXP. destruct is_almost_pure as (-> & -> & ->).
