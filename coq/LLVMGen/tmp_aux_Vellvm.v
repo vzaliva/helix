@@ -720,3 +720,41 @@ Ltac solve_read :=
         | (* read from an array *)
         erewrite read_array; cycle 2; [solve [eauto] | | solve_allocated]; eauto
         ].
+
+Lemma write_get_logical_block_neq :
+  forall (m m' : memory_stack) (t : dtyp) (val : dvalue) (a a' : addr) (i i' : nat),
+    write m a val = inr m' ->
+    fst a' <> fst a ->
+    get_logical_block m (fst a') = get_logical_block m' (fst a').
+Proof.
+  intros m m' t val a a' i i' WRITE NEQ.
+  unfold write in WRITE.
+  break_match_hyp.
+  - destruct l, a.
+    cbn in WRITE; inv WRITE.
+    symmetry.
+    apply get_logical_block_of_add_logical_frame_ineq.
+    eauto.
+  - inv WRITE.
+Qed.
+
+Lemma write_untouched_ptr_block_get_array_cell :
+  forall (m m' : memory_stack) (t : dtyp) (val : dvalue) (a a' : addr) (i i' : nat),
+    write m a val = inr m' ->
+    fst a' <> fst a ->
+    get_array_cell m' a' i' t = get_array_cell m a' i' t.
+Proof.
+  intros m m' t val a a' i i' WRITE NEQ.
+
+  destruct a as [b1 o1].
+  destruct a' as [b2 o2].
+  unfold get_array_cell.
+
+  assert (get_logical_block m b2 = get_logical_block m' b2).
+  { change b2 with (fst (b2, o2)).
+    eapply write_get_logical_block_neq; eauto.
+  }
+
+  rewrite H.
+  reflexivity.
+Qed.

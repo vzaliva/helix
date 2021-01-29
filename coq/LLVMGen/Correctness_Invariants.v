@@ -2325,6 +2325,163 @@ Proof.
   - eapply id_allocated_protect; eauto.
 Qed.
 
+Lemma write_state_invariant :
+  forall σ s mH mV1 mV2 l g dst_addr (id_addr : ident) sz v ptrll n b addr_h sz_h,
+    state_invariant σ s mH (mV1, (l, g)) ->
+    nth_error (Γ s) n ≡ Some (id_addr, TYPE_Pointer (TYPE_Array sz TYPE_Double)) ->
+    nth_error σ n ≡ Some (DSHPtrVal addr_h sz_h, b) ->
+    in_local_or_global_addr l g id_addr ptrll ->
+    fst ptrll ≡ fst dst_addr ->
+    write mV1 dst_addr v ≡ inr mV2 ->
+    dvalue_has_dtyp v DTYPE_Double ->
+    state_invariant (protect σ n) s mH (mV2, (l, g)).
+Proof.
+  intros σ s mH mV1 mV2 l g dst_addr id_addr sz v ptrll n b addr_h sz_h SINV NTH_Γ NTH_σ INLG BLOCK WRITE DTYP.
+  destruct SINV.
+  split.
+
+  unfold memory_invariant in *.
+
+  intros n0 v0 b0 τ0 x NTH_σ0 NTH_Γ0.
+  { (* Memory invariant *)
+    destruct (Nat.eq_dec n n0); subst.
+    - (* n = n0 *)
+      pose proof (protect_eq_true _ _ NTH_σ0); subst.
+      eapply nth_error_protect_eq in NTH_σ0 as [b' NTH_σ0].
+      rewrite NTH_Γ in NTH_Γ0; inv NTH_Γ0.
+      pose proof (mem_is_inv0 n0 v0 b' (TYPE_Pointer (TYPE_Array sz TYPE_Double)) x NTH_σ0 NTH_Γ).
+      rewrite NTH_σ in NTH_σ0; inv NTH_σ0.
+      destruct H as (ptr & τ' & TEQ & FIND & INLG' & LUP); inv TEQ.
+      exists ptr. eexists.
+      repeat split; auto.
+      eapply dtyp_fits_after_write; eauto.
+      intros CONTRA; inv CONTRA.
+    - rewrite nth_error_protect_neq in NTH_σ0; auto.
+      pose proof (mem_is_inv0 n0 v0 b0 τ0 x NTH_σ0 NTH_Γ0).
+      eauto.
+      destruct x, v0; cbn in *; eauto.
+      + destruct H as (ptr & τ' & TEQ & FIND & READ).
+        exists ptr. exists τ'.
+        repeat split; eauto.
+
+        (* id can not be id_addr because of the different
+                     type, and thus must be in a different block *)
+
+        (* Find τ' *)
+        pose proof (IRState_is_WF0 _ _ _ NTH_σ0) as (id' & NTH_Γ0').
+        rewrite NTH_Γ0 in NTH_Γ0'; inv NTH_Γ0'.
+        cbn in H1. inv H1.
+        
+        eapply write_different_blocks; eauto.
+        2: reflexivity.
+        2: { typ_to_dtyp_simplify. constructor. }
+
+        rewrite <- BLOCK.
+        eapply st_no_llvm_ptr_aliasing0.
+        eapply NTH_σ.
+        eapply NTH_σ0.
+        eapply NTH_Γ.
+        eapply NTH_Γ0.
+        2-3: eauto.
+        intros CONTRA; inv CONTRA.
+        assert (n ≡ n0).
+        { eapply st_no_id_aliasing0; eauto. }
+        subst.
+        contradiction.
+      + destruct H as (ptr & τ' & TEQ & FIND & READ).
+        exists ptr. exists τ'.
+        repeat split; eauto.
+
+        (* id can not be id_addr because of the different
+                     type, and thus must be in a different block *)
+
+        (* Find τ' *)
+        pose proof (IRState_is_WF0 _ _ _ NTH_σ0) as (id' & NTH_Γ0').
+        rewrite NTH_Γ0 in NTH_Γ0'; inv NTH_Γ0'.
+        cbn in H1. inv H1.
+        
+        eapply write_different_blocks; eauto.
+        2: reflexivity.
+        2: { typ_to_dtyp_simplify. constructor. }
+
+        rewrite <- BLOCK.
+        eapply st_no_llvm_ptr_aliasing0.
+        eapply NTH_σ.
+        eapply NTH_σ0.
+        eapply NTH_Γ.
+        eapply NTH_Γ0.
+        2-3: eauto.
+        intros CONTRA; inv CONTRA.
+        assert (n ≡ n0).
+        { eapply st_no_id_aliasing0; eauto. }
+        subst.
+        contradiction.
+      + (* Global vector *)
+        destruct H as (ptr & τ' & TEQ & FITS & INLG' & LUP).
+        inv TEQ.
+        exists ptr. exists τ'.
+        repeat split; eauto.
+        eapply dtyp_fits_after_write; eauto.
+        intros H; destruct b0; inv H.
+        specialize (LUP eq_refl).
+        destruct LUP as (bkh & MLUP_bk & GETARRAYCELL).
+        exists bkh.
+        split; eauto.
+        intros i v0 H.
+        specialize (GETARRAYCELL _ _ H).
+
+        erewrite write_untouched_ptr_block_get_array_cell; eauto.
+
+        rewrite <- BLOCK.
+        eapply st_no_llvm_ptr_aliasing0.
+        eapply NTH_σ0.
+        eapply NTH_σ.
+        eapply NTH_Γ0.
+        eapply NTH_Γ.
+        2-3: eauto.
+        intros CONTRA; inv CONTRA.
+        assert (n ≡ n0).
+        { eapply st_no_id_aliasing0; eauto. }
+        subst.
+        contradiction.
+      + (* Local vector *)
+        destruct H as (ptr & τ' & TEQ & FITS & INLG' & LUP).
+        inv TEQ.
+        exists ptr. exists τ'.
+        repeat split; eauto.
+        eapply dtyp_fits_after_write; eauto.
+        intros H; destruct b0; inv H.
+        specialize (LUP eq_refl).
+        destruct LUP as (bkh & MLUP_bk & GETARRAYCELL).
+        exists bkh.
+        split; eauto.
+        intros i v0 H.
+        specialize (GETARRAYCELL _ _ H).
+
+        erewrite write_untouched_ptr_block_get_array_cell; eauto.
+
+        rewrite <- BLOCK.
+        eapply st_no_llvm_ptr_aliasing0.
+        eapply NTH_σ0.
+        eapply NTH_σ.
+        eapply NTH_Γ0.
+        eapply NTH_Γ.
+        2-3: eauto.
+        intros CONTRA; inv CONTRA.
+        assert (n ≡ n0).
+        { eapply st_no_id_aliasing0; eauto. }
+        subst.
+        contradiction.
+  }
+
+  - eapply WF_IRState_protect; eauto.
+  - eapply no_id_aliasing_protect; eauto.
+  - eapply no_dshptr_aliasing_protect; eauto.
+  - eapply no_llvm_ptr_aliasing_protect; eauto.
+  - eapply id_allocated_protect; eauto.
+Qed.
+
+
 Lemma vellvm_helix_ptr_size:
   forall σ s memH memV ρ g n id (sz : N) dsh_ptr (dsh_sz : Int64.int) b,
     nth_error (Γ s) n ≡ Some (id, TYPE_Pointer (TYPE_Array sz TYPE_Double)) ->
