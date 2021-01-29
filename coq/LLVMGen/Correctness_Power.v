@@ -735,7 +735,16 @@ Proof.
     set (P := (fun (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
                  match mH with
                  | None => False
-                 | Some (mH,mb) => state_invariant σ s2 mH stV
+                 | Some (mH,mb) =>
+                   match stV with
+                   | (mV, (ρ, g)) =>
+                     state_invariant (protect σ n3) s2 mH stV /\
+                     alist_find dst_ptr_id ρ ≡ Some (UVALUE_Addr dst_addr) /\
+                     alist_find src_ptr_id ρ ≡ Some (UVALUE_Addr src_addr) /\
+                     mH ≡ m_yoff /\
+                     mb ≡ mem_add (MInt64asNT.to_nat yoff_res) initial bkh_yoff /\
+                     mV ≡ mV_init
+                   end
                  end)).
 
     (* Postcondition *)
@@ -1429,12 +1438,34 @@ Proof.
         destruct a. 2: inv PR.
         destruct p as [mH mb].
         destruct b2 as [mV [l g]].
+        destruct PR as [SINV [DST [SRC [MH [MB MV]]]]].
 
         split.
-        apply state_invariant_protect; eauto.
+        solve [eauto].
 
-        (* TODO: these don't hold afaik *)
-        admit.
+        subst.
+        repeat split; eauto.
+
+        { rewrite tfor_0.
+          rewrite interp_helix_ret. cbn.
+          constructor.
+          reflexivity.
+        }
+
+        { intros y H.
+          rewrite mem_lookup_mem_add_neq; eauto.
+        }
+
+        { exists initial.
+          pose proof (write_correct WRITE_INIT) as [WRITE_ALLOCATED WRITE_EXT].
+          split.
+          - apply mem_lookup_mem_add_eq.
+          - (* extended LLVM memory *)
+            specialize (WRITE_EXT DTYPE_Double).
+            forward WRITE_EXT; [constructor|].
+            destruct WRITE_EXT as [WRITE_NEW WRITE_OLD].            
+            split; eauto.
+        }
       }
 
       { (* I loop_end -> Q *)
@@ -1444,74 +1475,22 @@ Proof.
 
       { (* P holds initially *)
         red.
-        repeat (eapply state_invariant_same_Γ; eauto; [solve_not_in_gamma|]).
-        eapply state_invariant_Γ.
+        split.
+        { (* State invariant *)
+          repeat (eapply state_invariant_same_Γ; eauto; [solve_not_in_gamma|]).
+          eapply state_invariant_Γ.
 
-        (* PostYoffSINV : state_invariant σ i8 m_yoff (mV_yoff, (l_yoff, g_yoff))
-           PRE : state_invariant σ s1 m_yoff (mV_yoff, (ρ, g_yoff))
+          assert (Γ s1 ≡ Γ i8) as Γ_s1i8 by solve_gamma.
+          eapply write_state_invariant with (ptrll := ptrll_yoff) (dst_addr := dst_addr); eauto.
+          rewrite <- Γ_s1i8. eauto.
+          eauto.
+          eapply handle_gep_addr_array_same_block; eauto.
+          constructor.
+          solve_gamma.
+        }
 
-           WRITE_INIT : write mV_yoff dst_addr (DVALUE_Double initial) ≡ inr mV_init
-         *)
-
-        Lemma write_state_invariant :
-          forall σ s mH mV1 mV2 l g dst_addr v,
-            memory_invariant σ s mH (mV1, (l, g)) ->
-            write mV1 dst_addr v ≡ inr mV2 ->
-            memory_invariant σ s mH (mV2, (l, g)).
-        Proof.
-          intros σ s mH mV1 mV2 l g dst_addr v MINV WRITE.
-          unfold memory_invariant in *.
-          intros n v0 τ x NTH_σ NTH_Γ.
-        Abort.
-
-        cbn in INLG_yoff.
-
-        (* TODO: see if this can just be memory_invariant *)
-        (* TODO: this will have to be state_invariant_relaxed *)
-        Lemma write_state_invariant :
-          forall σ s mH mV1 mV2 l g dst_addr (id_addr : ident) hv v ptrll (τ : typ) n,
-            state_invariant σ s mH (mV1, (l, g)) ->
-            nth_error (Γ s) n ≡ Some (id_addr, τ) ->
-            nth_error σ n ≡ Some hv ->
-            in_local_or_global_addr l g id_addr ptrll ->
-            fst ptrll ≡ fst dst_addr ->
-            write mV1 dst_addr v ≡ inr mV2 ->
-            state_invariant σ s mH (mV2, (l, g)).
-        Proof.
-          intros σ s mH mV1 mV2 l g dst_addr id_addr hv v ptrll τ n SINV NTH_Γ NTH_σ INLG BLOCK WRITE.
-          destruct SINV.
-          split; eauto.
-
-          unfold memory_invariant in *.
-
-          intros n0 v0 b τ0 x NTH_σ0 NTH_Γ0.
-          pose proof (mem_is_inv n0 v0 b τ0 x NTH_σ0 NTH_Γ0) as M.
-          pose proof (write_correct WRITE) as [WRITE_ALLOC WRITTEN].
-          destruct x, v0; cbn in *; eauto.
-          - (* Global integer... *)
-            destruct M as (ptr & τ' & TEQ & FIND & READ); inv TEQ.
-
-            (* Now, I want to say that if fst ptr ≡ fst dst_addr / fst ptrll that n0 = n *)
-            epose proof (no_llvm_ptr_aliasing_same_block st_no_llvm_ptr_aliasing NTH_Γ NTH_σ NTH_Γ0 NTH_σ0 INLG FIND) as BLOCKID.
-            destruct (Z.eq_dec (fst ptrll) (fst ptr)) as [EQ | NEQ].
-            + apply BLOCKID in EQ. subst.
-              (* n0 = n *)
-              pose proof (st_no_id_aliasing _ _ _ _ _ _ _ NTH_σ NTH_σ0 NTH_Γ NTH_Γ0); subst.
-              rewrite NTH_Γ in NTH_Γ0; inv NTH_Γ0.
-              exists ptrll. exists τ'.
-              repeat split; eauto.
-              admit.
-            + admit.
-          - (* Global double... *)
-            admit.
-          - (* Global ptr... *)
-            admit.
-          - (* Local ptr... *)
-            admit.
-        Abort.
-        eauto.
-        admit.
-        admit.
+        (* Local environments *)
+        repeat split; solve_alist_in.
       }
     }
     { (* Local case for yoff *)
