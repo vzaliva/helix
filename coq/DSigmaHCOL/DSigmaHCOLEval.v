@@ -197,6 +197,9 @@ Module MDSigmaHCOLEval
   Definition assert_NT_le (msg:string) (a b:NT.t) : err unit :=
     assert_true_to_err msg (Nat.leb (to_nat a) (to_nat b)) tt.
 
+  Definition assert_nat_neq (msg:string) (a b:nat) : err unit :=
+    assert_false_to_err msg (Nat.eqb a b) tt.
+
   (** The following maybe should be moved somwehere. Baiscally it is
       needed for setoid rewriting to work in cases where we deal with units.
       For example, in case or [assert_NT_lt] *)
@@ -372,6 +375,7 @@ Module MDSigmaHCOLEval
               '(x_i,x_size) <- evalPExpr σ x_p ;;
               (* assert_NT_le "DSHIMap 'n' larger than 'x_size'" n' x_size ;; *)
               '(y_i,y_size) <- evalPExpr σ y_p ;;
+              assert_nat_neq "DSHIMap 'x' must not be equal 'y'" x_i y_i ;;
               assert_NT_le "DSHIMap 'n' larger than 'y_size'" n' x_size ;;
               x <- memory_lookup_err "Error looking up 'x' in DSHIMap" mem x_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHIMap" mem y_i ;;
@@ -386,6 +390,8 @@ Module MDSigmaHCOLEval
               '(x1_i,x1_size) <- evalPExpr σ x1_p ;;
               (* assert_NT_le "DSHMemMap2 'n' larger than 'x0_size'" n' x1_size ;; *)
               '(y_i,y_size) <- evalPExpr σ y_p ;;
+              assert_nat_neq "DSHMemMap2 'x0' must not be equal 'y'" x0_i y_i ;;
+              assert_nat_neq "DSHMemMap2 'x1' must not be equal 'y'" x1_i y_i ;;
               assert_NT_le "DSHMemMap2 'n' larger than 'y_size'" n' y_size ;;
               x0 <- memory_lookup_err "Error looking up 'x0' in DSHMemMap2" mem x0_i ;;
               x1 <- memory_lookup_err "Error looking up 'x1' in DSHMemMap2" mem x1_i ;;
@@ -400,6 +406,7 @@ Module MDSigmaHCOLEval
               '(x_i,x_size) <- evalPExpr σ x_p ;;
               (* assert_NT_le "DSHBinOp 'n' larger than 'x_size/2'" nn' x_size ;; *)
               '(y_i,y_size) <- evalPExpr σ y_p ;;
+              assert_nat_neq "DSHBinOp 'x' must not be equal 'y'" x_i y_i ;;
               assert_NT_le "DSHBinOp 'n' larger than 'y_size'" n' y_size ;;
               x <- memory_lookup_err "Error looking up 'x' in DSHBinOp" mem x_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHBinOp" mem y_i ;;
@@ -410,6 +417,7 @@ Module MDSigmaHCOLEval
           Some (
               '(x_i,x_size) <- evalPExpr σ x_p ;;
               '(y_i,y_size) <- evalPExpr σ y_p ;;
+              assert_nat_neq "DSHPower 'x' must not be equal 'y'" x_i y_i ;;
               x <- memory_lookup_err "Error looking up 'x' in DSHPower" mem x_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHPower" mem y_i ;;
               n <- evalNExpr σ ne ;; (* [n] evaluated once at the beginning *)
@@ -1746,11 +1754,11 @@ Module MDSigmaHCOLEval
       all: memory_lookup_err_to_option.
       all: eq_to_equiv_hyp; err_eq_to_equiv_hyp.
       all: rewrite ME in *; try some_none.
-      all: rewrite Heqs3 in Heqs6; some_inv; rewrite Heqs6 in *.
       all: rewrite Heqs4 in Heqs7; some_inv; rewrite Heqs7 in *.
-      all: rewrite Heqs5 in Heqs8; try inl_inr; inl_inr_inv.
+      all: rewrite Heqs5 in Heqs8; some_inv; rewrite Heqs8 in *.
+      all: rewrite Heqs6 in Heqs9; try inl_inr; inl_inr_inv.
       do 2 f_equiv.
-      rewrite Heqs8.
+      rewrite Heqs9.
       reflexivity.
     -
       intros.
@@ -1760,11 +1768,11 @@ Module MDSigmaHCOLEval
       all: memory_lookup_err_to_option.
       all: eq_to_equiv_hyp; err_eq_to_equiv_hyp.
       all: rewrite ME in *; try some_none.
-      all: rewrite Heqs3 in Heqs6; some_inv; rewrite Heqs6 in *.
       all: rewrite Heqs4 in Heqs7; some_inv; rewrite Heqs7 in *.
-      all: rewrite Heqs5 in Heqs8; try inl_inr; inl_inr_inv.
+      all: rewrite Heqs5 in Heqs8; some_inv; rewrite Heqs8 in *.
+      all: rewrite Heqs6 in Heqs9; try inl_inr; inl_inr_inv.
       do 2 f_equiv.
-      rewrite Heqs8.
+      rewrite Heqs9.
       reflexivity.
     -
       intros.
@@ -1774,26 +1782,26 @@ Module MDSigmaHCOLEval
       all: memory_lookup_err_to_option.
       all: eq_to_equiv_hyp; err_eq_to_equiv_hyp.
       all: rewrite ME in *; try some_none.
-      all: rewrite Heqs5 in Heqs9; some_inv; rewrite Heqs9 in *.
       all: rewrite Heqs6 in Heqs10; some_inv; rewrite Heqs10 in *.
-      all: rewrite Heqs4 in Heqs8; some_inv; rewrite Heqs8 in *.
-      all: rewrite Heqs7 in Heqs11; try inl_inr; inl_inr_inv.
+      all: rewrite Heqs7 in Heqs11; some_inv; rewrite Heqs11 in *.
+      all: rewrite Heqs8 in Heqs12; some_inv; rewrite Heqs12 in *.
+      all: rewrite Heqs9 in Heqs13; try inl_inr; inl_inr_inv.
+      do 2 f_equiv.
+      rewrite Heqs13.
+      reflexivity.
+    -
+      intros.
+      destruct fuel; [reflexivity |].
+      cbn.
+      repeat (break_match; try (repeat constructor; fail)).
+      all: memory_lookup_err_to_option.
+      all: eq_to_equiv_hyp; err_eq_to_equiv_hyp.
+      all: rewrite ME in *; try some_none.
+      all: rewrite Heqs2 in Heqs9; some_inv; rewrite Heqs9 in *.
+      all: rewrite Heqs3 in Heqs10; some_inv; rewrite Heqs10 in *.
+      all: rewrite Heqs8 in Heqs11; try inl_inr; inl_inr_inv.
       do 2 f_equiv.
       rewrite Heqs11.
-      reflexivity.
-    -
-      intros.
-      destruct fuel; [reflexivity |].
-      cbn.
-      repeat (break_match; try (repeat constructor; fail)).
-      all: memory_lookup_err_to_option.
-      all: eq_to_equiv_hyp; err_eq_to_equiv_hyp.
-      all: rewrite ME in *; try some_none.
-      all: rewrite Heqs1 in Heqs8; some_inv; rewrite Heqs8 in *.
-      all: rewrite Heqs2 in Heqs9; some_inv; rewrite Heqs9 in *.
-      all: rewrite Heqs7 in Heqs10; try inl_inr; inl_inr_inv.
-      do 2 f_equiv.
-      rewrite Heqs10.
       reflexivity.
     -
       intros.

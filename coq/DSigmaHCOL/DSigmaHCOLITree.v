@@ -275,6 +275,7 @@ Module MDSigmaHCOLITree
         | @DSHIMap n x_p y_p f =>
           '(x_i,x_size) <- denotePExpr σ x_p ;;
           '(y_i,y_sixe) <- denotePExpr σ y_p ;;
+          lift_Serr (assert_nat_neq "DSHIMap 'x' must not be equal 'y'" x_i y_i) ;;
           x <- trigger (MemLU "Error looking up 'x' in DSHIMap" x_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHIMap" y_i) ;;
           y' <- denoteDSHIMap n f (protect_p σ y_p) x y ;;
@@ -284,14 +285,18 @@ Module MDSigmaHCOLITree
           '(x0_i,x0_size) <- denotePExpr σ x0_p ;;
           '(x1_i,x1_size) <- denotePExpr σ x1_p ;;
           '(y_i,y_size) <- denotePExpr σ y_p ;;
+          lift_Serr (assert_nat_neq "DSHMemMap2 'x0' must not be equal 'y'" x0_i y_i) ;;
+          lift_Serr (assert_nat_neq "DSHMemMap2 'x1' must not be equal 'y'" x1_i y_i) ;;
           x0 <- trigger (MemLU "Error looking up 'x0' in DSHMemMap2" x0_i) ;;
           x1 <- trigger (MemLU "Error looking up 'x1' in DSHMemMap2" x1_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHMemMap2" y_i) ;;
           y' <- denoteDSHMap2 n f (protect_p σ y_p) x0 x1 y ;;
           trigger (MemSet y_i y')
+
         | @DSHBinOp n x_p y_p f =>
           '(x_i,x_size) <- denotePExpr σ x_p ;;
           '(y_i,y_sixe) <- denotePExpr σ y_p ;;
+          lift_Serr (assert_nat_neq "DSHBinOp 'x' must not be equal 'y'" x_i y_i) ;;
           x <- trigger (MemLU "Error looking up 'x' in DSHBinOp" x_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHBinOp" y_i) ;;
           y' <- denoteDSHBinOp n n f (protect_p σ y_p) x y ;;
@@ -300,6 +305,7 @@ Module MDSigmaHCOLITree
         | DSHPower ne (x_p,xoffset) (y_p,yoffset) f initial =>
           '(x_i,x_size) <- denotePExpr σ x_p ;;
           '(y_i,y_sixe) <- denotePExpr σ y_p ;;
+          lift_Serr (assert_nat_neq "DSHPower 'x' must not be equal 'y'" x_i y_i) ;;
           x <- trigger (MemLU "Error looking up 'x' in DSHPower" x_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHPower" y_i) ;;
           n <- denoteNExpr σ ne ;; (* [n] denoteuated once at the beginning *)
