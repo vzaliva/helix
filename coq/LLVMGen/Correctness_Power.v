@@ -1424,7 +1424,16 @@ Proof.
 
       (* TODO: May need to modify P / Q here *)
       { (* P -> I 0 *)
-        unfold imp_rel. intros a b2 H. admit.
+        unfold imp_rel. intros a b2 PR.
+        red. red in PR.
+        destruct a. 2: inv PR.
+        destruct p as [mH mb].
+        destruct b2 as [mV [l g]].
+
+        split.
+        apply state_invariant_protect; eauto.
+
+        (* TODO: these don't hold afaik *)
       }
 
       { (* I loop_end -> Q *)
