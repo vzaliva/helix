@@ -90,7 +90,7 @@ Section Eval_Denote_Equiv.
               then ret (inr tt)
               else
                 vp <- lift_Serr (from_nat p) ;;
-                denoteDSHOperator (DSHnatVal vp :: σ) body;;
+                denoteDSHOperator ((DSHnatVal vp , false):: σ) body;;
                 Ret (inl (S p))
            ) i.
 
@@ -128,7 +128,7 @@ Section Eval_Denote_Equiv.
               match from_nat N with
               | inl msg => Some (inl msg)
               | inr vN =>
-                evalDSHOperator (DSHnatVal vN :: σ) body mem fuel
+                evalDSHOperator ((DSHnatVal vN , false) :: σ) body mem fuel
               end
             | Some (inl msg) => Some (inl msg)
             | None => None
@@ -167,7 +167,7 @@ Section Eval_Denote_Equiv.
         from_nat i ≡ inr ii ->
         eval_Loop_for_i_to_N σ op i N mem_i fuel ≡ Some (inr mem_f) ->
         exists mem_aux,
-          evalDSHOperator (DSHnatVal ii :: σ) op mem_i fuel ≡ Some (inr mem_aux) /\
+          evalDSHOperator ((DSHnatVal ii , false) :: σ) op mem_i fuel ≡ Some (inr mem_aux) /\
           eval_Loop_for_i_to_N σ op (S i) N mem_aux fuel ≡ Some (inr mem_f).
     Proof.
       (* This proof is surprisingly painful to go through *)

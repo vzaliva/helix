@@ -12,6 +12,7 @@ Typeclasses Opaque equiv.
 
 Section MExpr.
 
+  Import ProofMode.
   Definition invariant_MExpr
              (e : exp typ) : Rel_cfg_T (mem_block * Int64.int) unit :=
     fun '(memH, (mb, mb_sz)) '(memV, (ρ, (g, _))) => 
@@ -50,12 +51,13 @@ Section MExpr.
   Proof.
     intros * Hgen INV NOFAIL.
     destruct mexp as [[vid] | mblock]; cbn* in Hgen; simp.
-    cbn.
     unfold denoteMExpr, denotePExpr in *; cbn* in *.
-    simp; try_abs.
+
+    simp; try_abs. subst.
     hvred.
     edestruct memory_invariant_Ptr
       as (bkH & ptrV & Mem_LU & MEM & INLG & EQ); eauto.
+    cbn.
     hstep.
     solve_lu.
     hvred.

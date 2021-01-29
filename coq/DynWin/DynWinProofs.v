@@ -995,14 +995,14 @@ Section MSHCOL_to_AHCOL.
 
     Definition dynwin_σ_globals:evalContext :=
       [
-        DSHPtrVal dynwin_a_addr 3
+        (DSHPtrVal dynwin_a_addr 3,false)
       ].
 
     Definition dynwin_σ:evalContext :=
       dynwin_σ_globals ++
       [
-        DSHPtrVal dynwin_y_addr dynwin_o
-        ; DSHPtrVal dynwin_x_addr dynwin_i
+        (DSHPtrVal dynwin_y_addr dynwin_o,false)
+        ; (DSHPtrVal dynwin_x_addr dynwin_i,false)
       ].
 
     (* TODO: move, but not sure where. We do not have MemorySetoid.v *)

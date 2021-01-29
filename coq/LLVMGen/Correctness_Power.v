@@ -1,4 +1,3 @@
-
 Require Import Helix.LLVMGen.Correctness_Prelude.
 Require Import Helix.LLVMGen.Correctness_Invariants.
 Require Import Helix.LLVMGen.Correctness_NExpr.
@@ -114,7 +113,7 @@ Section DSHPower_is_tfor.
           yoff <- denoteNExpr σ yoffset ;;
           lift_Derr (assert_NT_lt "DSHPower 'y' offset out of bounds" yoff y_size) ;;
           let y' := mem_add (MInt64asNT.to_nat yoff) initial y in
-          y'' <- DSHPower_tfor σ (MInt64asNT.to_nat n) f x y' (MInt64asNT.to_nat xoff) (MInt64asNT.to_nat yoff) ;;
+          y'' <- DSHPower_tfor (protect_p σ y_p) (MInt64asNT.to_nat n) f x y' (MInt64asNT.to_nat xoff) (MInt64asNT.to_nat yoff) ;;
           trigger (MemSet y_i y'').
   Proof.
     intros σ ne x_p xoffset y_p yoffset f initial.
@@ -138,7 +137,7 @@ Section DSHPower_is_tfor.
        yoff <- denoteNExpr σ yoffset ;;
        lift_Derr (assert_NT_lt "DSHPower 'y' offset out of bounds" yoff y_size) ;;
        let y' := mem_add (MInt64asNT.to_nat yoff) initial y in
-       y'' <- DSHPower_tfor σ (MInt64asNT.to_nat n) f x y' (MInt64asNT.to_nat xoff) (MInt64asNT.to_nat yoff) ;;
+       y'' <- DSHPower_tfor (protect_p σ y_p) (MInt64asNT.to_nat n) f x y' (MInt64asNT.to_nat xoff) (MInt64asNT.to_nat yoff) ;;
        trigger (MemSet y_i y'')) m.
   Proof.
     intros σ ne x_p xoffset y_p yoffset f initial E m.
@@ -494,19 +493,20 @@ Proof.
 
      Need to get this from the memory_invariant *)
 
-  (* TODO: move this *)
-  Set Nested Proofs Allowed.
-
   pose proof state_invariant_memory_invariant PRE as MINV_YOFF.
   pose proof state_invariant_memory_invariant PRE as MINV_XOFF.
   unfold memory_invariant in MINV_YOFF.
   unfold memory_invariant in MINV_XOFF.
-  specialize (MINV_YOFF n3 _ _ _ Heqo0 LUn0).
-  specialize (MINV_XOFF n2 _ _ _ Heqo LUn).
+  specialize (MINV_YOFF n3 _ _ _ _ Heqo0 LUn0).
+  specialize (MINV_XOFF n2 _ _ _ _ Heqo LUn).
   cbn in MINV_YOFF, MINV_XOFF.
 
-  destruct MINV_YOFF as (bkh_yoff & ptrll_yoff & τ_yoff & MLUP_yoff & TEQ_yoff & FITS_yoff & INLG_yoff & GETARRAYCELL_yoff).
-  destruct MINV_XOFF as (bkh_xoff & ptrll_xoff & τ_xoff & MLUP_xoff & TEQ_xoff & FITS_xoff & INLG_xoff & GETARRAYCELL_xoff).
+  destruct MINV_YOFF as (ptrll_yoff & τ_yoff & TEQ_yoff & FITS_yoff & INLG_yoff & MLUP_yoff).
+  specialize (MLUP_yoff eq_refl) as (bkh_yoff & MLUP_yoff & GETARRAYCELL_yoff).
+
+  destruct MINV_XOFF as (ptrll_xoff & τ_xoff & TEQ_xoff & FITS_xoff & INLG_xoff & MLUP_xoff).
+  specialize (MLUP_xoff eq_refl) as (bkh_xoff & MLUP_xoff & GETARRAYCELL_xoff).
+
   rewrite MLUP_xoff in H; symmetry in H; inv H.
   rewrite MLUP_yoff in H0; symmetry in H0; inv H0.
 
@@ -612,6 +612,7 @@ Proof.
     { typ_to_dtyp_simplify.
       epose proof (vellvm_helix_ptr_size _ LUn0 Heqo0 PRE); subst.
 
+      Set Nested Proofs Allowed.
       Lemma Int64_intval_pos :
         forall i,
           (0 <= Int64.intval i)%Z.
@@ -713,7 +714,7 @@ Proof.
                  | Some (mH,mb) =>
                    match stV with
                    | (mV, (ρ, g)) =>
-                     state_invariant σ s2 mH stV /\
+                     state_invariant (protect σ n3) s2 mH stV /\
                      exists v,
                        alist_find dst_ptr_id ρ ≡ Some (UVALUE_Addr dst_addr) /\
                        alist_find src_ptr_id ρ ≡ Some (UVALUE_Addr src_addr) /\
@@ -725,7 +726,7 @@ Proof.
                        Returns (Some (mH, mb))
                                (@interp_helix _ E_cfg (tfor
                                   (λ (_ : nat) (acc : mem_block),
-                                   DSHPower_tfor_body σ f bkh_xoff
+                                   DSHPower_tfor_body (protect σ n3) f bkh_xoff
                                                       (mem_add (MInt64asNT.to_nat yoff_res) initial bkh_yoff)
                                                       (MInt64asNT.to_nat xoff_res) (MInt64asNT.to_nat yoff_res) acc) 0 k
                                   (mem_add (MInt64asNT.to_nat yoff_res) initial bkh_yoff)) m_yoff)
@@ -849,16 +850,18 @@ Proof.
         {
           eapply genAExpr_correct.
           eauto.
-          { eapply state_invariant_enter_scope_DSHCType with (s1:={| block_count := block_count i19; local_count := local_count i19; void_count := void_count i19; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}); cbn; eauto.
-            
+          { eapply state_invariant_enter_scope_DSHCType' with (s1:={| block_count := block_count i19; local_count := local_count i19; void_count := void_count i19; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}); cbn; eauto.
+
+            2: solve_alist_in.
+
             { pose proof GAM.
               unfold Gamma_safe in H.
               assert (~ in_Gamma σ s1 src_val_id) by solve_not_in_gamma.
               assert (Γ s1 ≡ Γ i19) by solve_gamma.
 
-              eapply not_in_gamma_cons.
-              cbn. reflexivity.
-              solve_not_in_gamma.
+              eapply not_in_gamma_cons; [cbn; eauto; try solve_gamma | solve_not_in_gamma |].
+
+              (* TODO: add this to solve_not_in_gamma? *)
               intros CONTRA; subst.
 
               match goal with
@@ -871,10 +874,7 @@ Proof.
               end.
             }
 
-            { solve_alist_in.
-            }
-
-            eapply state_invariant_enter_scope_DSHCType; eauto.
+            eapply state_invariant_enter_scope_DSHCType'; eauto.
             reflexivity.
             eapply not_in_Gamma_Gamma_eq with (s1 := s1); [solve_gamma|solve_not_in_gamma].
 
@@ -885,15 +885,18 @@ Proof.
             solve_gamma.
 
             { eapply not_in_Gamma_Gamma_eq; eauto.
+              eapply not_in_gamma_protect.
               eapply GAM.
               solve_lid_bound_between.
             }
 
             eapply state_invariant_same_Γ with (s1:=s2); eauto.
             { eapply not_in_Gamma_Gamma_eq; eauto.
+              eapply not_in_gamma_protect.
               eapply GAM.
               solve_lid_bound_between.
             }
+            
           }
 
           { eapply Gamma_safe_Context_extend.
@@ -907,6 +910,7 @@ Proof.
               reflexivity.
             }
 
+            eapply Gamma_safe_protect.
             eapply Gamma_safe_shrink; eauto.
             solve_gamma.
             all: try (solve [cbn; solve_local_count]).
@@ -1356,6 +1360,7 @@ Proof.
 
             (* No variables were bound between i21 and s2, so H should give us a contradiction *)
             eapply not_in_Gamma_Gamma_eq; eauto.
+            eapply not_in_gamma_protect.
             eapply GAM.
             eapply lid_bound_between_shrink_down.
             2: eapply H.
@@ -1365,6 +1370,7 @@ Proof.
 
             (* No variables were bound between i21 and s2, so H should give us a contradiction *)
             eapply not_in_Gamma_Gamma_eq; eauto.
+            eapply not_in_gamma_protect.
             eapply GAM.
             eapply lid_bound_between_shrink.
             eauto.
@@ -1459,8 +1465,8 @@ Proof.
 
           unfold memory_invariant in *.
 
-          intros n0 v0 τ0 x NTH_σ0 NTH_Γ0.
-          pose proof (mem_is_inv n0 v0 τ0 x NTH_σ0 NTH_Γ0) as M.
+          intros n0 v0 b τ0 x NTH_σ0 NTH_Γ0.
+          pose proof (mem_is_inv n0 v0 b τ0 x NTH_σ0 NTH_Γ0) as M.
           pose proof (write_correct WRITE) as [WRITE_ALLOC WRITTEN].
           destruct x, v0; cbn in *; eauto.
           - (* Global integer... *)

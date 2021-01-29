@@ -39,7 +39,7 @@ Section DSHLoop_is_tfor.
     denoteDSHOperator σ (DSHLoop n op)
                       ≈
                       tfor (fun p _ => vp <- lift_Serr (MInt64asNT.from_nat p) ;;
-                                    denoteDSHOperator (DSHnatVal vp :: σ) op) 0 n tt.
+                                    denoteDSHOperator ((DSHnatVal vp , false):: σ) op) 0 n tt.
   Proof.
     intros.
     unfold tfor.
@@ -66,7 +66,7 @@ Section DSHLoop_is_tfor.
                    tfor (fun k x => match x with
                                  | None => Ret None
                                  | Some (m',_) => interp_helix (vp <- lift_Serr (MInt64asNT.from_nat k) ;;
-                                                               denoteDSHOperator (DSHnatVal vp :: σ) op) m'
+                                                               denoteDSHOperator ((DSHnatVal vp, false):: σ) op) m'
                                  end)
                    0 n (Some (m, ())).
   Proof.
@@ -273,7 +273,7 @@ Proof.
       forward H; auto.
       rewrite EQk in H.
       apply no_failure_Ret in H.
-      auto.
+      eauto.
 
     - eapply eutt_mon, Heqs3.
       clear Heqs3 NOFAIL INPUTS_BETWEEN WFOCFG.

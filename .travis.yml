@@ -40,7 +40,7 @@ install:
   - opam install -y --verbose -j 1 coq-color
   - opam install -y --verbose -j 1 coq-ext-lib
   - opam install -y --verbose -j 1 coq-math-classes
-  - opam install -y --verbose -j 1 coq-metacoq-template
+  - opam install -y --verbose -j 1 coq-metacoq-template.1.0~beta1+8.12 && opam pin add coq-metacoq-template 1.0~beta1+8.12 -y
   - opam install -y --verbose -j 1 coq-switch
   - opam install -y --verbose -j 1 ANSITerminal
   - opam install -y --verbose -j 1 coq-flocq

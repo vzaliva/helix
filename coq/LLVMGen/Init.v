@@ -47,6 +47,9 @@ Section EnvironmentConsistency.
 
 End EnvironmentConsistency.
 
+(* ZX TODO: remove this *)
+Opaque int64FromData.
+
 Lemma list_app_eqlen_eq_l
       {A : Type}
       (l r l' r' : list A)
@@ -88,6 +91,43 @@ Proof.
     by now rewrite EQ.
   rewrite !ListUtil.length_app in H.
   lia.
+Qed.
+
+Lemma nth_error_firstn_in
+      {A : Type}
+      (n k : nat)
+      (l : list A)
+  :
+    k < n ->
+    nth_error (firstn n l) k ≡ nth_error l k.
+Proof.
+  intros.
+  destruct (le_lt_dec (length l) k) as [L|L].
+  - (* OOB *)
+    now rewrite firstn_all2 by lia.
+  - (* INB *)
+    remember (firstn n l) as t.
+    rewrite <-firstn_skipn with (l:=l) (n:=n).
+    subst t.
+    now rewrite nth_error_app1
+      by (rewrite firstn_length; lia).
+Qed.
+
+Lemma nth_error_firstn_some
+      {A : Type}
+      (a : A)
+      (n k : nat)
+      (l : list A)
+  :
+    nth_error (firstn n l) k ≡ Some a <->
+    nth_error l k ≡ Some a /\ k < n.
+Proof.
+  split; intros.
+  destruct (le_lt_dec n k) as [L|L].
+  now rewrite ListUtil.nth_beyond in H
+    by (rewrite firstn_length; lia).
+  now rewrite nth_error_firstn_in in H.
+  now rewrite nth_error_firstn_in.
 Qed.
 
 Lemma rev_inj
@@ -681,9 +721,6 @@ Definition addVar (a : string * DSHType) (s : IRState) : IRState :=
      void_count := void_count s;
      Γ := (ID_Global (Name nm), TYPE_Pointer (getIRType t)) :: Γ s |}.
 
-(* TODO: @zoickx remove this *)
-Opaque int64FromData.
-
 Lemma initOneIRGlobal_state_change
       (data0 data1 : list binary64)
       (a : string * DSHType)
@@ -1228,13 +1265,13 @@ Proof.
     reflexivity.
 Qed.
 
-Lemma init_with_data_no_overwrite
+Lemma initFSHGlobals_no_overwrite
       (m0 m : memoryH)
       (hdata0 hdata : list binary64)
       (globals : list (string * DSHType)) 
-      (e : list DSHVal)
+      (σ : list (DSHVal * bool))
   :
-    init_with_data initOneFSHGlobal no_chk (m0, hdata0) globals ≡ inr (m, hdata, e) →
+    initFSHGlobals hdata0 m0 globals ≡ inr (m, hdata, σ) →
     m = memory_union m0 m.
 Proof.
   intros I k.
@@ -1266,6 +1303,22 @@ Proof.
     *
       unfold memory_set.
       now rewrite Memory.NP.F.add_neq_o by congruence.
+Qed.
+
+Lemma initOneFSHGlobal_no_overwrite
+      (m0 m : memoryH)
+      (hdata0 hdata : list binary64)
+      (g : string * DSHType)
+      (e : DSHVal * bool)
+  :
+    initOneFSHGlobal (m0, hdata0) g ≡ inr (m, hdata, e) →
+    m = memory_union m0 m.
+Proof.
+  intros.
+  eapply initFSHGlobals_no_overwrite
+    with (globals:=[g]).
+  cbn.
+  now rewrite H.
 Qed.
 
 Lemma list_uniq_global_uniq_chk (h : string * DSHType) (tl : list (string * DSHType)) :
@@ -1405,10 +1458,10 @@ Lemma denote_exp_i64_mcfg : forall t g l m,
     interp_mcfg
       (translate _exp_E_to_L0
                  (denote_exp (Some (DTYPE_I 64))
-                             (EXP_Integer (bits_of_b64 t))))
+                             (EXP_Integer (unsigned t))))
        g l m
     ≈
-    Ret (m, (l, (g, UVALUE_I64 (DynamicValues.Int64.repr (bits_of_b64 t))))).
+    Ret (m, (l, (g, UVALUE_I64 (DynamicValues.Int64.repr (unsigned t))))).
 Proof.
   intros; unfold denote_exp; cbn.
   rewrite translate_ret, interp_to_L3_ret.
@@ -1901,6 +1954,162 @@ Ltac dedup_states :=
          | [ H : initIRGlobals _ _ _ ≡ inr (?s, _) |- _] =>
            copy_apply initIRGlobals_state_change H; subst s
          end.
+
+Lemma initFSHGlobals_app_inv
+      (m0 m : memoryH)
+      (hdata0 hdata : list binary64)
+      (pre post : list (string * DSHType)) 
+      (σ : evalContext)
+  :
+    initFSHGlobals hdata0 m0 (pre ++ post) ≡ inr (m, hdata, σ) ->
+    ∃ m' hdata' σ1 σ2,
+      initFSHGlobals hdata0 m0 pre ≡ inr (m', hdata', σ1) /\
+      initFSHGlobals hdata' m' post ≡ inr (m, hdata, σ2) /\
+      σ ≡ σ1 ++ σ2.
+Proof.
+  unfold initFSHGlobals.
+  intros.
+  apply init_with_data_app in H.
+  destruct H as ((m', hdata') & σ1 & σ2 & PRE & POST & Σ).
+  repeat eexists; eassumption.
+Qed.
+
+Lemma initFSHGlobals_app
+      (pre post : list (string * DSHType)) 
+      (σ1 σ2 : evalContext)
+      (m0 m' m : memoryH)
+      (hdata0 hdata' hdata : list binary64)
+  :
+      initFSHGlobals hdata0 m0 pre ≡ inr (m', hdata', σ1) ->
+      initFSHGlobals hdata' m' post ≡ inr (m, hdata, σ2) ->
+      initFSHGlobals hdata0 m0 (pre ++ post) ≡ inr (m, hdata, (σ1 ++ σ2)).
+Proof.
+  unfold initFSHGlobals.
+  intros.
+  dependent induction pre.
+  -
+    cbn in *.
+    invc H.
+    assumption.
+  -
+    cbn in *.
+    repeat break_match_hyp; invc H.
+    destruct p0 as (m1, hdata1).
+    now erewrite IHpre; eauto.
+Qed.
+
+Lemma initFSHGlobals_evalContext_typechecks
+      (globals : list (string * DSHType)) 
+      (σ : list (DSHVal * bool))
+      (m0 m : memoryH)
+      (hdata0 hdata : list binary64)
+  :
+    initFSHGlobals hdata0 m0 globals ≡ inr (m, hdata, σ) →
+    evalContext_typechecks σ (map IR_of_global globals).
+Proof.
+  intros.
+  unfold evalContext_typechecks.
+  dependent induction globals.
+  -
+    cbn in *.
+    invc H.
+    intros.
+    rewrite nth_error_nil in H.
+    discriminate.
+  -
+    intros.
+    cbn in H.
+    repeat break_match; invc H.
+    destruct n.
+    +
+      cbn in H0.
+      invc H0.
+      destruct a.
+      cbn.
+      eexists.
+      do 2 f_equal.
+      cbn.
+      unfold initOneFSHGlobal in Heqs.
+      repeat break_match.
+      all: invc Heqs; cbn in *.
+      all: try congruence.
+      all: repeat break_match; invc H0; cbn in *.
+      all: try congruence.
+    +
+      cbn [map].
+      rewrite nth_error_Sn in *.
+      destruct p0.
+      unfold initFSHGlobals in *.
+      specialize (IHglobals _ _ _ _ _ Heqs0 _ _ _ H0).
+      eauto.
+Qed.
+
+Lemma initFSHGlobals_id_allocated
+      (globals : list (string * DSHType))
+      (m0 m : memoryH)
+      (hdata0 hdata : list binary64) 
+      (σ : evalContext)
+  :
+    initFSHGlobals hdata0 m0 globals ≡ inr (m, hdata, σ) →
+    id_allocated σ m.
+Proof.
+  intros.
+  unfold id_allocated.
+  dependent induction globals.
+  -
+    cbn in H.
+    invc H.
+    intros.
+    rewrite nth_error_nil in H.
+    discriminate.
+  -
+    intros.
+    cbn in H.
+    repeat break_match; invc H.
+    destruct n.
+    +
+      cbn in H0.
+      invc H0.
+      unfold initOneFSHGlobal in Heqs.
+      repeat break_match; inv Heqs.
+      break_match; inv H0.
+      apply initFSHGlobals_no_overwrite in Heqs0.
+      clear - Heqs0.
+      admit. (* [Proper mem_block_exists] *)
+    +
+      rewrite nth_error_Sn in H0.
+      destruct p0.
+      eapply IHglobals; eassumption.
+Admitted.
+
+Lemma initFSHGlobals_id_allocated_preserve
+      (globals : list (string * DSHType))
+      (m0 m : memoryH)
+      (hdata0 hdata : list binary64) 
+      (σ σ' : evalContext)
+  :
+    id_allocated σ m0 ->
+    initFSHGlobals hdata0 m0 globals ≡ inr (m, hdata, σ') →
+    id_allocated σ m.
+Proof.
+  unfold id_allocated.
+  intros IA0 I; intros.
+  induction globals.
+  -
+    cbn in I.
+    invc I.
+    eapply IA0.
+    eassumption.
+  -
+    intros.
+    cbn in I.
+    repeat break_match; invc I.
+    destruct p0 as (m1, hdata1).
+    apply initOneFSHGlobal_no_overwrite in Heqs.
+    apply initFSHGlobals_no_overwrite in Heqs0.
+    apply IA0 in H.
+    clear - H Heqs Heqs0.
+Admitted.
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
@@ -2514,8 +2723,10 @@ Proof.
 
         repeat break_match; try inl_inr.
         inversion IPOST; clear IPOST.
-        rename d into ne', l4 into e_post'.
-        subst p p1 p2 e_post.
+        subst.
+        (* rename d into ne', *)
+        rename l4 into e_post'.
+        (* subst p1 p2 e_post. *)
         destruct p0 as [mg0 hdata0].
 
         cbn.
@@ -2657,7 +2868,7 @@ Proof.
           copy_apply global_uniq_chk_preserves_st Heqs.
           subst i0.
 
-          rewrite GLOBALS in LG.
+          (* rewrite GLOBALS in LG. *)
           move LG at bottom.
           rewrite <-ListUtil.list_app_first_last in LG.
           apply initIRGlobals_inr in LG.
@@ -2670,9 +2881,9 @@ Proof.
             unfold alloc_glob_decl_inv_mcfg in H.
             intuition.
           ++
-            rewrite <-ListUtil.list_app_first_last in GLOBALS; assumption.
+            rewrite ListUtil.list_app_first_last. reflexivity.
           ++
-            rewrite <-ListUtil.list_app_first_last in GDECLS; eassumption.
+            rewrite ListUtil.list_app_first_last. reflexivity.
           ++
             (* [clear - PRE Heqs Heqs0.] doesn't work for some reason? *)
             clear IHpost; move PRE at bottom; move Heqs0 at bottom.
@@ -2806,8 +3017,8 @@ Proof.
             (fun '(memH, _) '(memV, (l, t1, (g, t2))) =>
                post_init_invariant
                  name
-                 (firstn (length globals) (e ++ [DSHPtrVal (S (Datatypes.length globals)) o;
-                        DSHPtrVal (Datatypes.length globals) i]))
+                 (firstn (length globals) (e ++ [(DSHPtrVal (S (Datatypes.length globals)) o, true);
+                        (DSHPtrVal (Datatypes.length globals) i, true)]))
                  {|
                    block_count := block_count;
                    local_count := local_count;
@@ -2869,10 +3080,10 @@ Proof.
             constructor.
             +
               cbn.
-              intros ? ? ? ? C.
+              intros ? ? ? ? ? C.
               rewrite nth_error_nil in C.
               inversion C.
-            +
+            + repeat intro.
               econstructor.
               rewrite nth_error_nil in H0.
               inversion H0.
@@ -2952,8 +3163,9 @@ Proof.
 
         repeat break_match; try inl_inr.
         inversion IPOST; clear IPOST.
-        rename d into ne', l4 into e_post'.
-        subst p p1 p2 e_post.
+        (* rename d into ne', *)
+        rename l4 into e_post'. subst.
+        (* subst p p1 p2 e_post. *)
         destruct p0 as [mg0 hdata0].
 
         rewrite translate_bind.
@@ -2969,11 +3181,50 @@ Proof.
           reflexivity.
         }
 
+        (* some state/Γ simplification *)
+        copy_apply genIR_Γ IR.
+        dedup_states.
+        cbn [Γ append_to_Γ] in *.
+        apply list_app_eqlen_eq_r in H0.
+        2: {
+          cbn.
+          subst.
+          clear - LX.
+          unfold initXYplaceholders in LX.
+          cbn in LX.
+          repeat break_match; inv LX.
+          reflexivity.
+        }
+        destruct H0 as [ΓG XY].
+
+        subst.
+
+        cbn in XY.
+        inversion XY; clear XY.
+        rename H1 into YID, H2 into YT, x_id into y_id, x_typ into y_typ.
+        destruct y as (x_id, x_typ).
+        inversion H3; clear H3.
+        rename H1 into XID, H2 into XT.
+        rename H4 into Γ0.
+        rewrite !XID, !YID, !XT, !YT in *.
+
+        cbn in *.
+        remember
+          {|
+            block_count := Compiler.block_count s0;
+            local_count := Compiler.local_count s0;
+            void_count := Compiler.void_count s0;
+            Γ := (y_id, y_typ) :: (x_id, x_typ) :: Γ s0 |}
+          as s_yx.
+
         (* ZX TODO: might want to change the relation here *)
         apply eutt_clo_bind with (UU:=post_init_invariant' (pre ++ [a])).
         -- (* initialize the "new" global [a] *)
           cbn.
           autorewrite with itree.
+
+          pose IPRE as E_PRE_LEN;
+            apply init_with_data_len in E_PRE_LEN.
 
           rewrite _exp_E_to_L0_Global, subevent_subevent.
           rewrite interp_to_L3_bind.
@@ -2981,9 +3232,9 @@ Proof.
           inversion_clear GINV as ((AXY & AG) & DI).
           destruct a as (a_nm, a_t).
 
-          assert (exists v, Maps.lookup (g_ident tg2) g' ≡ Some v).
+          assert (T : exists v, Maps.lookup (g_ident tg2) g' ≡ Some v);
+            [| destruct T as [av AV]].
           {
-            subst globals.
             unfold allocated_globals in AG.
             cbn in *.
             unfold in_global_addr in AG.
@@ -3006,7 +3257,6 @@ Proof.
               inv Heqs0;
               reflexivity.
           }
-          destruct H0 as [av AV].
           rewrite (interp_to_L3_GR) by apply AV.
 
           autorewrite with itree.
@@ -3017,7 +3267,6 @@ Proof.
           repeat break_match_hyp;
             inv IA; cbn.
           ++
-            (*
             rewrite typ_to_dtyp_I.
             rewrite interp_to_L3_bind.
             rewrite denote_exp_i64_mcfg.
@@ -3052,76 +3301,143 @@ Proof.
                          (LBlock a_sz
                             (add_all_index
                                (serialize_dvalue
-                                  (DVALUE_I64 (DynamicValues.Int64.repr (bits_of_b64 b0))))
+                                  (DVALUE_I64 (DynamicValues.Int64.repr (unsigned i0))))
                                a_off a_bytes) a_id) m')
             by (unfold write; rewrite AMB; reflexivity).
             apply eutt_Ret.
             constructor.
             **
+
+              replace
+                (firstn (Datatypes.length (pre ++ [(a_nm, DSHnat)]))
+                   ((e_pre ++ p1 :: e_post') ++
+                    [(DSHPtrVal (S (Datatypes.length (pre ++ [(a_nm, DSHnat)]))) o, true);
+                    (DSHPtrVal (Datatypes.length (pre ++ [(a_nm, DSHnat)])) i , true)]))
+                with
+                  (e_pre ++ [p1]).
+              2:{
+                rewrite !app_length; cbn.
+                rewrite list_cons_app with (l4:=e_post').
+                rewrite <-!app_assoc, ->app_assoc.
+                rewrite firstn_app.
+                replace (length pre + 1 - length (e_pre ++ [p1]))
+                  with 0
+                  by (rewrite app_length; cbn; lia).
+                rewrite firstn_O, firstn_all2, app_nil_r.
+                reflexivity.
+                rewrite app_length; cbn; lia.
+              }
+
+              replace (firstn (Datatypes.length (pre ++ [(a_nm, DSHnat)]))
+                              (map IR_of_global (pre ++ (a_nm, DSHnat) :: post)))
+                with (map IR_of_global (pre ++ [(a_nm, DSHnat)]))
+              in *.
+              2:{
+                rewrite list_cons_app with (l4:=post).
+                rewrite app_assoc, !map_app, firstn_app.
+                replace
+                  (length (pre ++ [(a_nm, DSHnat)]) -
+                   length (map IR_of_global pre ++ map IR_of_global [(a_nm, DSHnat)]))
+                  with 0
+                  by (rewrite !app_length, !map_length; lia).
+                rewrite firstn_O, firstn_all2, app_nil_r.
+                reflexivity.
+                rewrite !app_length, !map_length; lia.
+              }
+
               constructor.
               ---
                 unfold memory_invariant.
                 intros.
                 cbn in H1.
-                pose IPRE as E_PRE_LEN;
-                  apply init_with_data_len in E_PRE_LEN.
-                replace ((e_pre ++ ne' :: e_post') ++
-                          [DSHPtrVal (S (Datatypes.length (pre ++ [(a_nm, DSHnat)]))) o;
-                          DSHPtrVal (Datatypes.length (pre ++ [(a_nm, DSHnat)])) i])
-                  with
-                    ((e_pre ++ [ne']) ++ (e_post' ++
-                          [DSHPtrVal (S (Datatypes.length (pre ++ [(a_nm, DSHnat)]))) o;
-                           DSHPtrVal (Datatypes.length (pre ++ [(a_nm, DSHnat)])) i]))
-                    in *
-                    by now rewrite <- ! app_assoc.
-                rewrite firstn_app in H0.
-                replace (Datatypes.length (pre ++ [(a_nm, DSHnat)]) -
-                         Datatypes.length (e_pre ++ [ne']))
-                  with 0 in H0
-                  by (rewrite !ListUtil.length_app; cbn; lia).
-                cbn in H0.
-                rewrite firstn_all2 in H0
-                  by (rewrite !ListUtil.length_app; cbn; lia).
-                rewrite app_nil_r in H0.
                 destruct (Nat.eq_dec n (length e_pre)).
                 +++
                   subst n.
                   rewrite nth_error_app2 in H0 by reflexivity.
                   rewrite Nat.sub_diag in H0.
                   cbn in H0.
-                  some_inv; subst v.
+                  some_inv; subst.
                   move Heqs2 at bottom.
                   unfold initOneFSHGlobal in Heqs2.
                   cbn in Heqs2.
                   repeat break_match_hyp; try inl_inr.
                   inversion Heqs2; clear Heqs2.
                   rename t0 into ne.
-                  subst mg0 l4 ne'.
+                  subst mg0 l4 .
                   unfold in_local_or_global_scalar.
-                  copy_apply genIR_Γ IR.
-                  cbn in H0.
 
+                  apply nth_map_inv in H1.
+                  destruct H1 as [a' [A' AX']].
+                  rewrite nth_error_app2 in A'.
+                  replace (length e_pre - length pre)
+                    with 0 in * by lia.
+                  cbn in A'.
+                  inversion A'; clear A'; subst a'.
+                  cbn in AX'.
+                  invc AX'.
+                  repeat eexists; eauto.
+                  2: lia.
+                  unfold read.
+                  cbn [fst snd].
+                  rewrite get_logical_block_of_add_logical_block.
+                  unfold read_in_mem_block.
+                  rewrite deserialize_serialize
+                    by (rewrite typ_to_dtyp_I; constructor).
+                  cbn.
+                  do 3 f_equal.
+                  (*
+                  Search i2.       (* l1' -[rotate]-> i2 *)
+                  Search l1'.      (* l1 -[initIRGlobals]-> l1' *)
+                  Search l1.       (* data -[initXYplaceholders]-> l1 *)
 
+                  Search ne.        (* b0 -[from_Z . bits_of_b46]-> ne *)
+                  Search b0.        (* hdata_pre -[rotate]-> b0 *)
+                  Search hdata_pre. (* l0 -[initFSHglobals]-> hdata_pre *)
+                  Search l0.        (* l -[constMemBlock]-> l0 *)
+                  Search l.         (* data -[constMemBlock]-> l *)
+                   *)
                   admit.
                 +++
                   admit.
               ---
+                unfold WF_IRState.
+                cbn.
+                clear - Heqs2 IPRE.
+                eapply initFSHGlobals_evalContext_typechecks.
+                eapply initFSHGlobals_app.
+                eassumption.
+                unfold initFSHGlobals.
+                unfold init_with_data.
+                rewrite Heqs2.
+                reflexivity.
+              ---
+                unfold no_id_aliasing.
+                cbn.
+                intros.
                 admit.
               ---
+                unfold no_dshptr_aliasing.
                 admit.
               ---
+                cbn.
+                unfold no_llvm_ptr_aliasing.
+                cbn.
                 admit.
               ---
-                admit.
-              ---
-                admit.
+                eapply initFSHGlobals_id_allocated_preserve.
+                2: eassumption.
+                eapply initFSHGlobals_id_allocated.
+                eapply initFSHGlobals_app with (post:=[(a_nm, DSHnat)]).
+                eassumption.
+                unfold initFSHGlobals.
+                unfold init_with_data.
+                rewrite Heqs2.
+                reflexivity.
             **
               constructor.
               all: cbn; clear - DI.
               all: unfold declarations_invariant in DI.
               all: intuition.
-             *)
-            admit.
           ++ (* ZX TODO: see how these bullets can be done all in one *)
             admit.
           ++
