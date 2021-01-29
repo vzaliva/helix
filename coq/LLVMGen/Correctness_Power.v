@@ -1434,6 +1434,7 @@ Proof.
         apply state_invariant_protect; eauto.
 
         (* TODO: these don't hold afaik *)
+        admit.
       }
 
       { (* I loop_end -> Q *)
