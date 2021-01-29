@@ -50,15 +50,6 @@ Section DSHIMap_is_tfor.
     v'<- denoteIUnCType σ f vn v;;
     ret (mem_add offset v' acc).
 
-  (* | DSHIMap n x_p y_p f => *)
-  (*   '(x,i) <- resolve_PVar x_p ;; *)
-  (*   '(y,o) <- resolve_PVar y_p ;; *)
-  (*   loopcontblock <- incBlockNamed "IMap_lcont" ;; *)
-  (*   loopvar <- incLocalNamed "IMap_i" ;; *)
-  (*   '(body_entry, body_blocks) <- genIMapBody i o x y f loopvar loopcontblock ;; *)
-  (*   add_comment *)
-  (*     (genWhileLoop "IMap" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] nextblock) *)
-
   (* [tfor] formulation of [DSHIMap].
      "Reverse/downward" indexing ([n - 1 .. 0]). *)
   Definition DSHIMap_tfor_down
@@ -153,7 +144,7 @@ Section DSHIMap_is_tfor.
       '(y_i, _) <- denotePExpr σ y;;
        x2 <- trigger (MemLU "Error looking up 'x' in DSHIMap" x_i);;
        y0 <- trigger (MemLU "Error looking up 'y' in DSHIMap" y_i);;
-       y' <- DSHIMap_tfor_up σ f 0 n x2 y0 ;;
+       y' <- DSHIMap_tfor_up (protect_p σ y) f 0 n x2 y0 ;;
         trigger (MemSet y_i y').
   Proof.
     intros.
@@ -161,11 +152,10 @@ Section DSHIMap_is_tfor.
     cbn.
     repeat (eapply eutt_clo_bind; [reflexivity|intros; try break_match_goal; subst]).
     setoid_rewrite denoteDSHIMap_as_tfor.
-    rewrite eq_rev.
-  Admitted.
 
-  (*   reflexivity. *)
-  (* Qed. *)
+    rewrite eq_rev.
+    reflexivity.
+  Qed.
 
 
 End DSHIMap_is_tfor.
@@ -183,70 +173,6 @@ Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li :
                (fun sthf stvf => local_scope_modif s1 s2 li (fst (snd stvf))).
 
 Import AlistNotations.
-
-(* Yet another tweak at DSHCType *)
-Lemma state_invariant_enter_scope_DSHCType : 
-  forall σ v x s1 s2 stH mV l g b,
-    Γ s2 ≡ (ID_Local x, TYPE_Double) :: Γ s1 ->
-    ~ in_Gamma σ s1 x ->
-    l @ x ≡ Some (UVALUE_Double v) ->
-    state_invariant σ s1 stH (mV,(l,g)) ->
-    state_invariant ((DSHCTypeVal v, b)::σ) s2 stH (mV,(l,g)).
-Proof.
-  intros * EQ GAM LU [MEM WF ALIAS1 ALIAS2 ALIAS3]; inv EQ; cbn in *.
-  split.
-  - red; intros * LU1 LU2.
-    destruct n as [| n].
-    + cbn in *; inv LU1; inv LU2; auto. rewrite H0 in H1. inv H1. eauto.
-    + rewrite nth_error_Sn in LU1.
-      cbn in *. rewrite H0 in *.
-      eapply MEM in LU2; eauto.
-  -  do 2 red.
-    cbn.
-    intros ? [| n] * LU'.
-    + cbn in LU'.
-      inv LU'.
-      cbn.
-
-      rewrite H0.
-      exists (ID_Local x); reflexivity.
-    + rewrite nth_error_Sn in LU'.
-      apply WF in LU'; auto.
-      rewrite H0. cbn. auto.
-
-  - red; intros * LU1 LU2 LU3 LU4.
-    destruct n1 as [| n1], n2 as [| n2]; auto.
-    + exfalso. cbn in *.
-      apply GAM.
-      inv LU3; eapply mk_in_Gamma; eauto.
-      rewrite H0 in *. inv H1. eauto.
-    + exfalso.
-      apply GAM; inv LU4; eapply mk_in_Gamma; eauto.
-      rewrite H0 in H1. inv H1. cbn in *. rewrite H0 in *. eauto.
-    + rewrite H0 in *; inv LU3; inv LU4; eapply ALIAS1 in LU1; apply LU1 in LU2; eauto.
-
-  - red; intros * LU1 LU2.
-    destruct n as [| n], n' as [| n']; auto.
-    + inv LU1.
-    + inv LU2.
-    + rewrite nth_error_Sn in LU1.
-      rewrite nth_error_Sn in LU2.
-      eapply ALIAS2 in LU1; apply LU1 in LU2; eauto.
-
-  - do 2 red. intros * LU1 LU2 LU3 LU4 INEQ IN1 IN2.
-    cbn in *.
-    destruct n1 as [| n1], n2 as [| n2]; auto.
-    + cbn in *. rewrite H0 in *; inv LU1; inv LU2; inv LU3; inv LU4; auto.
-    + rewrite H0 in *; cbn in *; inv LU1; inv LU3; eauto.
-      cbn in *.
-      Transparent addVars. cbn* in *. rewrite LU in IN1. inv IN1.
-    + rewrite H0 in *; cbn in *; inv LU2; inv LU4.
-      cbn in *; rewrite LU in IN2; inv IN2.
-    + rewrite H0 in *; cbn in *.
-      eapply ALIAS3; [exact LU1 | exact LU2 |..]; eauto.
-  - intros [| n] * LUn; [inv LUn |].
-    eapply st_id_allocated; eauto.
-Qed.
 
 Lemma DSHIMap_correct:
   ∀ (n : nat) (x_p y_p : PExpr) (f : AExpr) (s1 s2 : IRState) (σ : evalContext) (memH : memoryH) 
@@ -331,8 +257,8 @@ Proof.
 
   rename l0 into bks.
 
-  rename n3 into x_ptr_addr.
-  rename n2 into y_ptr_addr.
+  rename n3 into x_h_ptr.
+  rename n2 into y_h_ptr.
 
 
   (* [Hyp] Get memory/ptr information for xtyp, ytyp, xptyp, yptyp. *)
@@ -454,14 +380,6 @@ Proof.
 
   rename memV into mV_init.
 
-  (* Lemma split_state_invariant : *)
-  (*   forall σ s mH stV ptr n y, *)
-  (*     state_invariant σ s mH stV -> *)
-  (* (*   TODO : Add as assumption more information about memory from context *) *)
-  (* (*     (* TODO *) *) *)
-  (*     state_invariant_relaxed σ s mH stV ptr /\ *)
-  (*     memory_invariant_partial_write stV k ptrll_yoff bkh_yoff y n. *)
-
   (* Invariant at each iteration *)
   set (I := (fun (k : nat) (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
                match mH with
@@ -473,8 +391,8 @@ Proof.
                  (* 2. Preserved state invariant *)
                  memory_invariant_partial_write stV k n ptrll_yoff bkh_yoff y sz /\
                  mH ≡ memH /\ g ≡ g' /\
-                 (* exists v, ext_memory mV_init ptrll_yoff DTYPE_Double (UVALUE_Double v) mV /\ *)
-                      (* Accessing py pointer doesn't go out of bounds *)
+                 exists v, ext_memory mV_init ptrll_yoff DTYPE_Double (UVALUE_Double v) mV /\
+                (* Accessing py pointer doesn't go out of bounds *)
                 (DynamicValues.Int64.intval (repr (Z.of_nat n)) < Z.of_N sz0)%Z
                end)).
   (* Precondition and postcondition *)
@@ -552,30 +470,29 @@ Proof.
 
     (* Get mem information from PRE condition here (global and local state has changed). *)
     (* Needed for the following GEP and Load instructions *)
-    destruct INV as (INV_r & INV_p & -> & -> & BOUNDS).
+    destruct INV as (INV_r & INV_p & -> & -> & bky & EXT_mV & BOUNDS).
 
-    pose proof INV_p as MINV_YOFF.
-    unfold memory_invariant_partial_write in MINV_YOFF.
-    rewrite GENIR_Γ in LUn0, LUn.
 
-    (* specialize (MINV_YOFF _ _ _ _ _ _ Heqo0 LUn0). *)
-    destruct MINV_YOFF as (FITS_yoff_l & INLG_yoff_l & GETARRAYCELL_yoff_l).
+    (* pose proof INV_p as MINV_YOFF. *)
+    (* unfold memory_invariant_partial_write in MINV_YOFF. *)
+    (* rewrite GENIR_Γ in LUn0, LUn. *)
 
-    (* Memory invariant for x *)
-    pose proof state_invariant_memory_invariant INV_r as MINV_XOFF.
-    unfold memory_invariant in MINV_XOFF.
+    (* (* specialize (MINV_YOFF _ _ _ _ _ _ Heqo0 LUn0). *) *)
+    (* destruct MINV_YOFF as (FITS_yoff_l & INLG_yoff_l & GETARRAYCELL_yoff_l). *)
+
+    (* (* Memory invariant for x *) *)
+    (* pose proof state_invariant_memory_invariant INV_r as MINV_XOFF. *)
+    (* unfold memory_invariant in MINV_XOFF. *)
     (* specialize (MINV_XOFF _ _ _ _ _ Heqo LUn). *)
-    (* cbn in MINV_XOFF. *)
+    (* (* cbn in MINV_XOFF. *) *)
 
-    (* destruct MINV_XOFF as (bkh_xoff_l & ptrll_xoff_l & τ_xoff & MLUP_xoff_l & TEQ_xoff & FITS_xoff_l & INLG_xoff_l & GETARRAYCELL_xoff_l). *)
+    (* (* destruct MINV_XOFF as (bkh_xoff_l & ptrll_xoff_l & τ_xoff & MLUP_xoff_l & TEQ_xoff & FITS_xoff_l & INLG_xoff_l & GETARRAYCELL_xoff_l). *) *)
 
-    (* (* y_ptr_addr ≢ x_ptr_addr *) admit. (* TODO : This will be part of our assumption *) *)
+    (* (* (* y_ptr_addr ≢ x_ptr_addr *) admit. (* TODO : This will be part of our assumption *) *) *)
 
-    (* rewrite MLUP_xoff_l in H'; symmetry in H'; inv H'. *)
-    (* inv TEQ_xoff. *)
+    (* (* rewrite MLUP_xoff_l in H'; symmetry in H'; inv H'. *) *)
+    (* (* inv TEQ_xoff. *) *)
 
-    admit.
-    (*
     assert (UNIQ0 : v ≢ loopvarid). {
       intros CONTRA; subst.
       eapply lid_bound_between_newLocalVar in Heqs4.
@@ -611,19 +528,58 @@ Proof.
       solve_local_count. reflexivity.
     }
 
+From Vellvm Require Import
+     Numeric.Coqlib
+     Numeric.Integers
+     Numeric.Floats.
+    Lemma read_array_addr : forall m size τ i z z0,
+        allocated (z, z0) m ->
+        let elem_addr :=
+              (z, z0 + Z.of_N size * Z.of_N (sizeof_dtyp τ) * DynamicValues.Int64.unsigned (DynamicValues.Int64.repr 0) +
+              DynamicValues.Int64.unsigned (DynamicValues.Int64.repr (Z.of_nat i)) * Z.of_N (sizeof_dtyp τ))%Z in
+        handle_gep_addr (DTYPE_Array size τ) (z, z0) [DVALUE_I64 (repr 0); DVALUE_I64 (repr (Z.of_nat i))] ≡ inr elem_addr /\
+        read m elem_addr τ ≡ get_array_cell m (z, z0) i τ.
+    Proof.
+      intros m size τ i z z0 * ALLOC.
+      intros. unfold elem_addr.
+      split.
+      - cbn.
+        rewrite Int64.unsigned_repr.
+        match goal with
+        | |- inr(_ , ?r) ≡ inr(_, ?r') => remember r; remember r'
+        end.
+
+        replace z1
+          with (z0 + DynamicValues.Int64.unsigned (DynamicValues.Int64.repr (Z.of_nat i)) * Z.of_N (sizeof_dtyp τ))%Z
+          by lia.
+        replace
+          z2
+          with (z0 + DynamicValues.Int64.unsigned (DynamicValues.Int64.repr (Z.of_nat i)) * Z.of_N (sizeof_dtyp τ)) by lia.
+        reflexivity.
+        unfold Int64.max_unsigned. cbn. lia.
+      - eapply read_array; cbn; eauto.
+        rewrite N2Z.inj_mul. reflexivity.
+    Qed.
+
+
+    assert (ALLOC: allocated ptrll_xoff mV_init) by solve_allocated.
+    destruct ptrll_xoff as (x_ptr & x_ptr') eqn: PTRLL_XOFF.
+    pose proof (read_array_addr _ sz DTYPE_Double k _ _ ALLOC) as (HGA_x & READ_x).
+
+    destruct EXT_mV.
 
     (* [Vellvm] GEP Instruction *)
-    match goal with
-    | [|- context[OP_GetElementPtr (DTYPE_Array ?size' ?τ') (_, ?ptr') _]] =>
-    edestruct denote_instr_gep_array with
-        (ρ := li) (g := g0) (m := mV) (i := px)
-        (size := size') (a := ptrll_xoff_l) (ptr := ptr') as (? & ? & ?)
-    end.
+    (* match goal with *)
+    (* | [|- context[OP_GetElementPtr (DTYPE_Array ?size' ?τ') (_, ?ptr') _]] => *)
+    (* edestruct denote_instr_gep_array with *)
+    (*     (ρ := li) (g := g0) (m := mV) (i := px) *)
+    (*     (size := size') (a := ptrll_xoff) (ptr := ptr') as (? & ? & ?) *)
+    (* end. *)
 
     destruct x;
     rename id into XID.
     rewrite denote_exp_GR. 2 : eauto.
-    cbn. reflexivity.
+    cbn. subst. reflexivity.
     2 : {
       rewrite denote_exp_LR. 2 : eauto.
       cbn.
@@ -638,7 +594,7 @@ Proof.
     2 : reflexivity.
     2 : {
       typ_to_dtyp_simplify; eauto.
-      assert (GET := GETARRAYCELL_xoff_l).
+      assert (GET := GETARRAYCELL_xoff).
       Lemma to_nat_repr_nat :
         forall k, MInt64asNT.from_nat k ≡ inr (Int64.repr (Z.of_nat k)) ->
              MInt64asNT.to_nat (Int64.repr (Z.of_nat k)) ≡ k.
@@ -652,8 +608,27 @@ Proof.
       Qed.
 
       specialize (GET (Int64.repr (Z.of_nat k))).
-      rewrite to_nat_repr_nat in GET; auto.
-      eapply GET. eauto.
+      erewrite <- read_array. 3 : eauto.
+      rewrite old_lu0. rewrite READ_x. rewrite <- to_nat_repr_nat with (k := k).
+      eapply GET. rewrite to_nat_repr_nat. eauto.
+      auto. auto. solve_allocated.
+      unfold no_overlap_dtyp. red. left. cbn.
+      assert (fst ptrll_yoff ≢ fst ptrll_xoff). admit.
+      subst. cbn in *. eauto.
+      eapply dtyp_fits_allocated.
+      (* destruct INV_r. eauto. *)
+      (* eapply can_read_allocated. 2: subst; eauto. *)
+      (* rewrite old_lu0. subst. rewrite READ_x. eauto. eauto.  *)
+      (* solve_allocated.  *)
+      
+      (* 2 : solve_allocated. clear new_lu0. erewrite old_lu0. *)
+      (* erewrite read_array. eapply GET; eauto. *)
+      (* rewrite to_nat_repr_nat. eauto. *)
+      (* eauto. solve_allocated. *)
+      (* rewrite to_nat_repr_nat. eauto. *)
+      (*   in GET; auto. *)
+      (* eapply GET. eauto. *)
+      admit. admit.
     }
     eauto.
 
