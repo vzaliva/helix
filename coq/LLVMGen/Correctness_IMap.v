@@ -347,11 +347,12 @@ Proof.
   specialize (MINV_XOFF _ _ _ _  _ Heqo LUn).
   cbn in MINV_YOFF, MINV_XOFF.
 
+  destruct MINV_YOFF as (ptrll_yoff & τ_yoff & TEQ_yoff & FITS_yoff & INLG_yoff & MLUP_yoff).
+  specialize (MLUP_yoff eq_refl) as (bkh_yoff & MLUP_yoff & GETARRAYCELL_yoff).
 
+  destruct MINV_XOFF as (ptrll_xoff & τ_xoff & TEQ_xoff & FITS_xoff & INLG_xoff & MLUP_xoff).
+  specialize (MLUP_xoff eq_refl) as (bkh_xoff & MLUP_xoff & GETARRAYCELL_xoff).
 
-<<<<<<< HEAD
-  destruct MINV_YOFF as (bkh_yoff & ptrll_yoff & τ_yoff & MLUP_yoff & TEQ_yoff & FITS_yoff & INLG_yoff & GETARRAYCELL_yoff).
-  destruct MINV_XOFF as (bkh_xoff & ptrll_xoff & τ_xoff & MLUP_xoff & TEQ_xoff & FITS_xoff & INLG_xoff & GETARRAYCELL_xoff).
   (* Duplicating, as we need to do the same inside the loop body *)
   assert (H' := H). assert (H0' := H0).
   assert (H0'' := H0). (* Another for py !*)
@@ -472,7 +473,7 @@ Proof.
                | Some (mH, b) =>
                  let '(mV, (p, g')) := stV in
                  (* 1. Relaxed state invariant *)
-                 state_invariant_relaxed σ s12 mH stV y_ptr_addr /\
+                 state_invariant (protect σ n1) s12 mH stV y_ptr_addr /\
                  (* 2. Preserved state invariant *)
                  memory_invariant_partial_write stV k n ptrll_yoff bkh_yoff y sz /\
                  mH ≡ memH /\ g ≡ g' /\
