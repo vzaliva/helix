@@ -468,23 +468,29 @@ Proof.
 
     rewrite denote_code_cons.
 
+
+
+
     (* Get mem information from PRE condition here (global and local state has changed). *)
     (* Needed for the following GEP and Load instructions *)
     destruct INV as (INV_r & INV_p & -> & -> & bky & EXT_mV & BOUNDS).
 
+    (* Read info as if we're reading from a protected σ *)
+    apply nth_error_protect_eq' in Heqo.
+    apply nth_error_protect_eq' in Heqo0.
 
-    (* pose proof INV_p as MINV_YOFF. *)
-    (* unfold memory_invariant_partial_write in MINV_YOFF. *)
-    (* rewrite GENIR_Γ in LUn0, LUn. *)
+    pose proof INV_p as MINV_YOFF.
+    unfold memory_invariant_partial_write in MINV_YOFF.
+    rewrite GENIR_Γ in LUn0, LUn.
 
-    (* (* specialize (MINV_YOFF _ _ _ _ _ _ Heqo0 LUn0). *) *)
+    (* specialize (MINV_YOFF _ _ _ _ _ _ Heqo0 LUn0). *)
     (* destruct MINV_YOFF as (FITS_yoff_l & INLG_yoff_l & GETARRAYCELL_yoff_l). *)
 
-    (* (* Memory invariant for x *) *)
-    (* pose proof state_invariant_memory_invariant INV_r as MINV_XOFF. *)
-    (* unfold memory_invariant in MINV_XOFF. *)
-    (* specialize (MINV_XOFF _ _ _ _ _ Heqo LUn). *)
-    (* (* cbn in MINV_XOFF. *) *)
+    (* Memory invariant for x *)
+    pose proof state_invariant_memory_invariant INV_r as MINV_XOFF.
+    unfold memory_invariant in MINV_XOFF.
+    specialize (MINV_XOFF _ _ _ _ _ _ Heqo LUn).
+    (* cbn in MINV_XOFF. *)
 
     (* (* destruct MINV_XOFF as (bkh_xoff_l & ptrll_xoff_l & τ_xoff & MLUP_xoff_l & TEQ_xoff & FITS_xoff_l & INLG_xoff_l & GETARRAYCELL_xoff_l). *) *)
 

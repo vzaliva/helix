@@ -2130,6 +2130,28 @@ Proof.
       eauto.
 Qed.
 
+
+Lemma nth_error_protect_ineq :
+  forall n n' σ v b,
+    n' <> n ->
+    nth_error σ n ≡ Some (v, b) ->
+    nth_error (protect σ n') n ≡ Some (v, b).
+Proof.
+  intros. rewrite <- H0. clear H0.
+  revert n' H σ. induction n.
+  - intros. cbn. destruct σ eqn: Hσ. unfold protect. cbn.
+    destruct (nth_error [] n') eqn: Hn. destruct p. reflexivity. auto.
+    unfold protect. cbn.
+    destruct (nth_error (p :: l) n') eqn: Hn. destruct p0.
+    destruct n'. lia. reflexivity. reflexivity.
+  - intros. destruct σ eqn: Hσ. unfold protect. cbn.
+    destruct (nth_error [] n') eqn: Hn. destruct p. reflexivity. reflexivity.
+    destruct n'. cbn. destruct p. reflexivity. 
+    rewrite protect_cons_S.
+    rewrite nth_error_Sn.
+    rewrite nth_error_Sn. eapply IHn. lia.
+Qed.
+
 Lemma WF_IRState_protect :
   forall n σ s,
     WF_IRState (protect σ n) s <->
