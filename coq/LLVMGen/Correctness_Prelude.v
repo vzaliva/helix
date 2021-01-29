@@ -98,7 +98,7 @@ Open Scope char_scope.
 Set Implicit Arguments.
 Set Strict Implicit.
 
-Export FHCOL.
+Export FHCOLITree.
 Export D.
 
 Import ListNotations.
@@ -506,7 +506,7 @@ Section InterpMem.
 
   Lemma interp_Mem_vis_eqit :
     forall T R mem (e : Event T) (k : T -> itree Event R),
-      interp_Mem (vis e k) mem ≅ ITree.bind ((case_ Mem_handler FHCOL.pure_state) T e mem) (fun sx => Tau (interp_Mem (k (snd sx)) (fst sx))).
+      interp_Mem (vis e k) mem ≅ ITree.bind ((case_ Mem_handler FHCOLITree.pure_state) T e mem) (fun sx => Tau (interp_Mem (k (snd sx)) (fst sx))).
   Proof.
     intros T R mem e k.
     unfold interp_Mem.

@@ -5,6 +5,7 @@ Require Import Coq.Strings.String.
 Require Import Helix.MSigmaHCOL.CType.
 Require Import Helix.DSigmaHCOL.NType.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
+Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
 
 Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.Util.OptionSetoid.
@@ -29,7 +30,9 @@ Module MDHCOLTypeTranslator
        (Import NT: NType)
        (Import NT': NType)
        (Import L: MDSigmaHCOL(CT)(NT))
-       (Import L': MDSigmaHCOL(CT')(NT')).
+       (Import L': MDSigmaHCOL(CT')(NT'))
+       (Import LE: MDSigmaHCOLEval(CT)(NT)(L))
+       (Import LE': MDSigmaHCOLEval(CT')(NT')(L')).
 
   Definition translateNTypeValue (a:NT.t): err NT'.t
     := NT'.from_nat (NT.to_nat a).
