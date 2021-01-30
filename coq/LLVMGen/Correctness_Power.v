@@ -106,7 +106,7 @@ Section DSHPower_is_tfor.
                         ≈
           '(x_i,x_size) <- denotePExpr σ x_p ;;
           '(y_i,y_size) <- denotePExpr σ y_p ;;
-          _ <- lift_Serr (assert_nat_neq "DSHPower 'x' must not be equal 'y'" x_i y_i);;
+          lift_Serr (assert_nat_neq "DSHPower 'x' must not be equal 'y'" x_i y_i);;
           x <- trigger (MemLU "Error looking up 'x' in DSHPower" x_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHPower" y_i) ;;
           n <- denoteNExpr σ ne ;; (* [n] denoteuated once at the beginning *)
@@ -289,12 +289,13 @@ Proof.
   repeat apply no_failure_Ret in NOFAIL.
   break_match_hyp; try_abs.
   repeat apply no_failure_Ret in NOFAIL.
+  rename Heqs0 into NO_ALIAS_XY.
 
   do 2 (apply no_failure_helix_LU in NOFAIL; destruct NOFAIL as (? & NOFAIL & ?); cbn in NOFAIL).
 
   (* Symbolically reducing the concrete prefix on the Helix side *)
   hred.
-  rewrite Heqs0.
+  rewrite NO_ALIAS_XY.
   hred.
   hstep; [eassumption |].
   hred; hstep; [eassumption |].
@@ -818,8 +819,42 @@ Proof.
         assert (allocated ptrll_xoff mV_yoff) as PTRLL_XOFF_ALLOCATED_mV_yoff by solve_allocated.
         assert (allocated src_addr mV_yoff) as SRC_ALLOCATED_mV_yoff by solve_allocated.
 
-        (* TODO: aliasing result that we should be able to clear up soon *)
-        assert (no_overlap_dtyp dst_addr DTYPE_Double src_addr DTYPE_Double) as NOALIAS by admit.
+        assert (no_overlap_dtyp dst_addr DTYPE_Double src_addr DTYPE_Double) as NOALIAS.
+        { pose proof NO_ALIAS_XY.
+          clear NO_ALIAS_XY.
+          rename H into NO_ALIAS_XY.
+          unfold assert_nat_neq in NO_ALIAS_XY.
+
+          destruct (src_addr_h =? dst_addr_h) eqn:EQ.
+          - inv NO_ALIAS_XY.
+          - apply beq_nat_false in EQ.
+            destruct PRE.
+
+            assert (ID_Global id0 ≢ ID_Global id) as ID_NEQ.
+            { intros CONTRA.
+              rewrite CONTRA in LUn.
+              epose proof (st_no_id_aliasing _ _ _ _ _ _ _ Heqo Heqo0 LUn LUn0).
+              subst.
+
+              rewrite Heqo0 in Heqo.
+              inv Heqo.
+              contradiction.
+            }
+
+            unfold no_overlap_dtyp.
+            unfold no_overlap.
+            left.
+
+            rewrite <- (handle_gep_addr_array_same_block _ _ _ _ HDST_GEP).
+            rewrite <- (handle_gep_addr_array_same_block _ _ _ _ HSRC_GEP).
+            intros BLOCKS; symmetry in BLOCKS; revert BLOCKS.
+
+            cbn in st_no_llvm_ptr_aliasing.
+            eapply st_no_llvm_ptr_aliasing.
+            5: eauto.
+            3-4: eauto.
+            all: eauto.
+        }
 
         (* Load src *)
         rewrite denote_instr_load.
