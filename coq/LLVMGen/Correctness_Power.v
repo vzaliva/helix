@@ -717,6 +717,7 @@ Proof.
                      alist_find dst_ptr_id ρ ≡ Some (UVALUE_Addr dst_addr) /\
                      alist_find src_ptr_id ρ ≡ Some (UVALUE_Addr src_addr) /\
                      g ≡ g_yoff /\
+                     allocated ptrll_yoff mV /\
                      (* Not sure if this is the right block *)
                        Returns (Some (mH, mb))
                                (@interp_helix _ E_cfg (tfor
@@ -761,7 +762,7 @@ Proof.
       forward LOOPTFOR.
       { intros g_loop l_loop mV_loop [[mH_loop mb_loop] |] k _label [HI [POWERI [POWERI_VAL RETURNS]]]; [|inv HI].
         cbn in HI.
-        destruct HI as [LINV_SINV [LINV_DST_PTR_ID [LINV_SRC_PTR_ID [LINV_GLOBALS [LINV_RET [LINV_HELIX_MB_OLD [v [LINV_HELIX_MB_NEW LINV_MEXT]]]]]]]].
+        destruct HI as [LINV_SINV [LINV_DST_PTR_ID [LINV_SRC_PTR_ID [LINV_GLOBALS [LINV_ALLOC [LINV_RET [LINV_HELIX_MB_OLD [v [LINV_HELIX_MB_NEW LINV_MEXT]]]]]]]]].
         pose proof LINV_MEXT as [LINV_MEXT_NEW LINV_MEXT_OLD].
         unfold DSHPower_tfor_body.
         
@@ -1264,6 +1265,10 @@ Proof.
           }
 
           split.
+          { eapply write_preserves_allocated; eauto.
+          }
+
+          split.
           { (* Returns... *)
             rewrite tfor_split with (i := 0) (j:= k) (k0:= S k); try lia.
             rewrite interp_helix_bind.
@@ -1413,7 +1418,7 @@ Proof.
         unfold I in *.
         destruct a; try inv HI.
         destruct p.
-        destruct HI as [HI_SINV [HI_DST_PTR_ID [HI_SRC_PTR_ID [HI_G [HI_RET [HI_HELIX_MB_OLD [HI_v [HI_HELIX_MB_NEW HI_MEXT]]]]]]]].
+        destruct HI as [HI_SINV [HI_DST_PTR_ID [HI_SRC_PTR_ID [HI_G [HI_ALLOC [HI_RET [HI_HELIX_MB_OLD [HI_v [HI_HELIX_MB_NEW HI_MEXT]]]]]]]]].
         pose proof HI_MEXT as [HI_MEXT_NEW HI_MEXT_OLD].
         split.
         { destruct BOUND.
@@ -1490,6 +1495,10 @@ Proof.
         subst.
         repeat split; eauto.
 
+        { assert (allocated ptrll_yoff mV_yoff); [solve_allocated|].
+          eapply write_preserves_allocated; eauto.
+        }
+
         { rewrite tfor_0.
           rewrite interp_helix_ret. cbn.
           constructor.
@@ -1519,7 +1528,7 @@ Proof.
         break_match_hyp.
         break_match_hyp.
         break_match_hyp.
-        destruct H as [SINV [DST [SRC [G [RET [MEMH_OLD [v [MEMH_NEW EXT_MEM]]]]]]]].
+        destruct H as [SINV [DST [SRC [G [ALLOCI [RET [MEMH_OLD [v [MEMH_NEW EXT_MEM]]]]]]]]].
         subst.
 
         eapply state_invariant_write_double_result with (sz:=sz0); eauto.
@@ -1538,10 +1547,8 @@ Proof.
              epose proof @get_array_cell_mlup_ext' bkh_yoff ptrll_yoff _ _ _ mV_init m1.
              epose proof @get_array_cell_mlup_ext' bkh_yoff ptrll_yoff _ _ _ mV_init m1 v H3.
 
-             eapply H5.
-             all: eauto.
-             2: rewrite repr_of_nat_to_nat; eauto.
-             admit. (* Silly allocated that I might have to maintain *)
+             eapply H5; eauto.
+             rewrite repr_of_nat_to_nat; eauto.
         }
         rewrite <- Γ_S1S2; eauto.
         eauto.
