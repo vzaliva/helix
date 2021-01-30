@@ -619,15 +619,6 @@ Proof.
     { typ_to_dtyp_simplify.
       epose proof (vellvm_helix_ptr_size _ LUn0 Heqo0 PRE); subst.
 
-      Set Nested Proofs Allowed.
-      Lemma Int64_intval_pos :
-        forall i,
-          (0 <= Int64.intval i)%Z.
-      Proof.
-        intros i.
-        pose proof Int64.intrange i; lia.
-      Qed.
-
       pose proof (from_N_intval _ EQsz0) as EQ.
       apply Znat.Z2N.inj in EQ; [|apply Int64_intval_pos|apply Int64_intval_pos].
 
@@ -724,6 +715,7 @@ Proof.
                      state_invariant (protect σ n3) s2 mH stV /\
                      alist_find dst_ptr_id ρ ≡ Some (UVALUE_Addr dst_addr) /\
                      alist_find src_ptr_id ρ ≡ Some (UVALUE_Addr src_addr) /\
+                     g ≡ g_yoff /\
                      (* Not sure if this is the right block *)
                        Returns (Some (mH, mb))
                                (@interp_helix _ E_cfg (tfor
@@ -748,6 +740,7 @@ Proof.
                      state_invariant (protect σ n3) s2 mH stV /\
                      alist_find dst_ptr_id ρ ≡ Some (UVALUE_Addr dst_addr) /\
                      alist_find src_ptr_id ρ ≡ Some (UVALUE_Addr src_addr) /\
+                     g ≡ g_yoff /\
                      mH ≡ m_yoff /\
                      mb ≡ mem_add (MInt64asNT.to_nat yoff_res) initial bkh_yoff /\
                      mV ≡ mV_init
@@ -767,7 +760,7 @@ Proof.
       forward LOOPTFOR.
       { intros g_loop l_loop mV_loop [[mH_loop mb_loop] |] k _label [HI [POWERI [POWERI_VAL RETURNS]]]; [|inv HI].
         cbn in HI.
-        destruct HI as [LINV_SINV [LINV_DST_PTR_ID [LINV_SRC_PTR_ID [LINV_RET [LINV_HELIX_MB_OLD [v [LINV_HELIX_MB_NEW LINV_MEXT]]]]]]].
+        destruct HI as [LINV_SINV [LINV_DST_PTR_ID [LINV_SRC_PTR_ID [LINV_GLOBALS [LINV_RET [LINV_HELIX_MB_OLD [v [LINV_HELIX_MB_NEW LINV_MEXT]]]]]]]].
         pose proof LINV_MEXT as [LINV_MEXT_NEW LINV_MEXT_OLD].
         unfold DSHPower_tfor_body.
         
@@ -1129,9 +1122,11 @@ Proof.
 
             destruct LINV_SINV.
             eauto.
+
             split; auto.
             (* TODO: can I pull these out into lemmas? *)
             (* TODO: probably similar to state_invariant_escape_scope, but with a write *)
+            (* TODO: might want to not destruct and look at the state_invariant_write_double stuff? *)
             - (* unfold memory_invariant. *)
               (* pose proof mem_is_inv as MINV. *)
 
@@ -1224,6 +1219,13 @@ Proof.
           split.
           { (* src_ptr_id *)
             destruct Mono_IRState; subst; solve_alist_in.
+          }
+
+          split.
+          { cbn in is_almost_pure.
+            destruct is_almost_pure as [_ [_ G]].
+            subst.
+            auto.
           }
 
           split.
@@ -1376,7 +1378,7 @@ Proof.
         unfold I in *.
         destruct a; try inv HI.
         destruct p.
-        destruct HI as [HI_SINV [HI_DST_PTR_ID [HI_SRC_PTR_ID [HI_RET [HI_HELIX_MB_OLD [HI_v [HI_HELIX_MB_NEW HI_MEXT]]]]]]].
+        destruct HI as [HI_SINV [HI_DST_PTR_ID [HI_SRC_PTR_ID [HI_G [HI_RET [HI_HELIX_MB_OLD [HI_v [HI_HELIX_MB_NEW HI_MEXT]]]]]]]].
         pose proof HI_MEXT as [HI_MEXT_NEW HI_MEXT_OLD].
         split.
         { destruct BOUND.
@@ -1445,7 +1447,7 @@ Proof.
         destruct a. 2: inv PR.
         destruct p as [mH mb].
         destruct b2 as [mV [l g]].
-        destruct PR as [SINV [DST [SRC [MH [MB MV]]]]].
+        destruct PR as [SINV [DST [SRC [G [MH [MB MV]]]]]].
 
         split.
         solve [eauto].
@@ -1477,7 +1479,37 @@ Proof.
 
       { (* I loop_end -> Q *)
         unfold imp_rel. intros a b2 H.
-        admit.
+        red. red in H.
+        break_match; try inv H.
+        break_match_hyp.
+        break_match_hyp.
+        break_match_hyp.
+        destruct H as [SINV [DST [SRC [G [RET [MEMH_OLD [v [MEMH_NEW EXT_MEM]]]]]]]].
+        subst.
+
+        eapply state_invariant_write_double_result with (sz:=sz0); eauto.
+        3: { intros i v0 H H0.
+             pose proof GETARRAYCELL_yoff.
+             pose proof get_array_cell_mlup_ext.
+
+             pose proof (write_correct WRITE_INIT) as [ALLOC WRITE_EXT].
+             specialize (WRITE_EXT DTYPE_Double).
+             forward WRITE_EXT; [constructor|].
+
+             (* GETARRAYCELL_yoff starts at mV_yoff. mV_init extends that, and m1 extends mV_init *)
+             epose proof get_array_cell_mlup_ext bkh_yoff ptrll_yoff _ _ _ _ WRITE_EXT.
+             forward H3. solve_allocated.
+
+             epose proof @get_array_cell_mlup_ext' bkh_yoff ptrll_yoff _ _ _ mV_init m1.
+             epose proof @get_array_cell_mlup_ext' bkh_yoff ptrll_yoff _ _ _ mV_init m1 v H3.
+
+             eapply H5.
+             all: eauto.
+             2: rewrite repr_of_nat_to_nat; eauto.
+             admit. (* Silly allocated that I might have to maintain *)
+        }
+        rewrite <- Γ_S1S2; eauto.
+        eauto.
       }
 
       { (* P holds initially *)

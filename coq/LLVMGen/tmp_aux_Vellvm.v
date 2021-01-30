@@ -640,57 +640,7 @@ Proof.
       lia.
 Qed.
 
-
-(* Memory stuff *)
-Lemma allocated_can_read :
-  forall a m τ,
-    allocated a m ->
-    exists v, read m a τ = inr v.
-Proof.
-  intros a [[cm lm] fs] τ ALLOC.
-  apply allocated_get_logical_block in ALLOC.
-  destruct ALLOC as [b GET].
-  unfold read.
-  rewrite GET.
-  destruct b.
-  cbn.
-  exists (read_in_mem_block bytes (snd a) τ). reflexivity.
-Qed.
-
-Lemma no_overlap_dtyp_different_blocks :
-  forall a b τ τ',
-    fst a <> fst b ->
-    no_overlap_dtyp a τ b τ'.
-Proof.
-  intros a b τ τ' H.
-  unfold no_overlap_dtyp, no_overlap.
-  auto.
-Qed.
-
-(* ext_memory only talks in terms of reads... Does not
-            necessarily preserved what's allocated, because you might
-            not be able to read from an allocated block *)
-Lemma ext_memory_trans :
-  forall m1 m2 m3 τ v1 v2 dst,
-    ext_memory m1 dst τ v1 m2 ->
-    ext_memory m2 dst τ v2 m3 ->
-    ext_memory m1 dst τ v2 m3.
-Proof.
-  intros m1 m2 m3 τ v1 v2 dst [NEW1 OLD1] [NEW2 OLD2].
-  split; auto.
-
-  intros a' τ' ALLOC DISJOINT.
-
-
-  rewrite <- OLD1; eauto.
-
-  pose proof (allocated_can_read _ _ τ' ALLOC) as [v READ].
-  rewrite <- OLD1 in READ; eauto.
-  apply can_read_allocated in READ.
-  rewrite <- OLD2; eauto.
-Qed.
-
-(* TODO: this should probably be moved to vellvm *)
+(* TODO: tactics? *)
 Ltac solve_allocated :=
   solve [ eauto
         | eapply dtyp_fits_allocated; eauto
@@ -698,63 +648,8 @@ Ltac solve_allocated :=
         | eapply write_preserves_allocated; cycle 1; [solve [eauto] | solve_allocated]
         ].
 
-(* If I write to a different area, it doesn't affect the allocation of other addresses *)
-Lemma write_untouched_allocated:
-  forall m1 m2 a τa v,
-    dvalue_has_dtyp v τa ->
-    write m1 a v = inr m2 ->
-    forall b τb, no_overlap_dtyp a τa b τb ->
-            allocated b m2 ->
-            allocated b m1.
-Proof.
-  intros m1 m2 a τa v TYP WRITE b τb OVERLAP ALLOC.
-
-  eapply allocated_can_read in ALLOC as [v' READ].
-  eapply can_read_allocated.
-
-  erewrite write_untouched in READ; eauto.
-Qed.
-
 Ltac solve_read :=
   solve [ eauto
         | (* read from an array *)
         erewrite read_array; cycle 2; [solve [eauto] | | solve_allocated]; eauto
         ].
-
-Lemma write_get_logical_block_neq :
-  forall (m m' : memory_stack) (t : dtyp) (val : dvalue) (a a' : addr) (i i' : nat),
-    write m a val = inr m' ->
-    fst a' <> fst a ->
-    get_logical_block m (fst a') = get_logical_block m' (fst a').
-Proof.
-  intros m m' t val a a' i i' WRITE NEQ.
-  unfold write in WRITE.
-  break_match_hyp.
-  - destruct l, a.
-    cbn in WRITE; inv WRITE.
-    symmetry.
-    apply get_logical_block_of_add_logical_frame_ineq.
-    eauto.
-  - inv WRITE.
-Qed.
-
-Lemma write_untouched_ptr_block_get_array_cell :
-  forall (m m' : memory_stack) (t : dtyp) (val : dvalue) (a a' : addr) (i i' : nat),
-    write m a val = inr m' ->
-    fst a' <> fst a ->
-    get_array_cell m' a' i' t = get_array_cell m a' i' t.
-Proof.
-  intros m m' t val a a' i i' WRITE NEQ.
-
-  destruct a as [b1 o1].
-  destruct a' as [b2 o2].
-  unfold get_array_cell.
-
-  assert (get_logical_block m b2 = get_logical_block m' b2).
-  { change b2 with (fst (b2, o2)).
-    eapply write_get_logical_block_neq; eauto.
-  }
-
-  rewrite H.
-  reflexivity.
-Qed.
