@@ -323,7 +323,7 @@ Proof.
            block_count := block_count i21;
            local_count := S (local_count i21);
            void_count := void_count i21;
-           Γ := Γ i21 |} s2 i21 {|
+           Γ := Γ i21 |} s2 i16 {|
            block_count := block_count i21;
            local_count := S (local_count i21);
            void_count := void_count i21;
@@ -358,7 +358,7 @@ Proof.
   assert (wf_ocfg_bid body_bks') as WF_BODY_BKS' by admit.
 
   (* TODO: make solve_lid_bound_between do this *)
-  assert (lid_bound_between i21 {|
+  assert (lid_bound_between i16 {|
            block_count := block_count i21;
            local_count := S (local_count i21);
            void_count := void_count i21;
@@ -369,6 +369,15 @@ Proof.
 
   specialize (LOOPTFOR Inb0 PREF_POWER WF_BODY_BKS' LID_BOUND_BETWEEN_POWER_I).
   specialize (LOOPTFOR FREE_BODY_BKS'_NEXTBLOCK).
+
+  clear LID_BOUND_BETWEEN_POWER_I.
+  assert (lid_bound_between i21 {|
+           block_count := block_count i21;
+           local_count := S (local_count i21);
+           void_count := void_count i21;
+           Γ := Γ i21 |}
+                            ("Power_i" @@ string_of_nat (local_count i21))) as LID_BOUND_BETWEEN_POWER_I by solve_lid_bound_between.
+  
 
   (* Need to know how many times we loop, this is determined by the
   result of evaluating the expression e1 *)
@@ -895,7 +904,7 @@ Proof.
         {
           eapply genAExpr_correct.
           eauto.
-          { eapply state_invariant_enter_scope_DSHCType' with (s1:={| block_count := block_count i19; local_count := local_count i19; void_count := void_count i19; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}); cbn; eauto.
+          { eapply state_invariant_enter_scope_DSHCType' with (s1:={| block_count := block_count i19; local_count := local_count i16; void_count := void_count i19; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}); cbn; eauto.
 
             2: solve_alist_in.
 
@@ -1052,7 +1061,13 @@ Proof.
             unfold local_scope_preserved in extends.
             rewrite extends.
             rewrite alist_find_neq.
-            2: solve_id_neq.
+            2: { intros ID; symmetry in ID; revert ID.
+                 eapply state_bound_between_separate.
+                 eapply incLocalNamed_count_gen_injective.
+                 solve_lid_bound_between.
+                 solve_lid_bound_between.
+                 solve_local_count.
+            }
             2: { unfold lid_bound_between.
                  unfold state_bound_between.
                  exists "Power_i". eexists. eexists.
@@ -1360,14 +1375,19 @@ Proof.
             eapply WRITTEN. constructor.
           }
 
-        - destruct POSTAEXPR. cbn in extends.
+        - (* local_scope_modif sb1 sb2 li l *)
+          destruct POSTAEXPR. cbn in extends.
+
           cbn in Mono_IRState.
           cbn in Gamma_cst.
 
-          eapply local_scope_modif_sub'_l.
-          2: solve_local_scope_modif.
+          eapply local_scope_modif_sub'_l with (r:=src_val_id).
           solve_lid_bound_between.
-          admit. (* BLAH *)
+
+          eapply local_scope_modif_sub'_l with (r:=dst_val_id).
+          solve_lid_bound_between.
+
+          solve_local_scope_modif.
       }
 
       (* TODO: Might want to do more forward reasoning first *)
