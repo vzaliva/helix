@@ -552,6 +552,9 @@ Section Eval_Denote_Equiv.
         rewrite Denote_Eval_Equiv_NExpr; eauto; go.
         rewrite Denote_Eval_Equiv_NExpr; eauto; go.
         rewrite Denote_Eval_Equiv_NExpr; eauto; go.
+
+        rewrite Heqs7. rewrite interp_Mem_ret. rewrite bind_ret_l.
+        rewrite interp_Mem_bind.
         rewrite Denote_Eval_Equiv_DSHPower; eauto; go.
         2,3: cbn*; match_rewrite; eauto.
         rewrite interp_Mem_MemSet; reflexivity.

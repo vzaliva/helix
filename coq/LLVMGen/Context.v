@@ -137,7 +137,27 @@ Proof.
 | GEN: genMExpr _ _ ≡ inr _ |- _ =>
   rewrite (genMExpr_Γ _ _ GEN)
   end; subst; auto.
-  
+Qed.
+
+Lemma dropVars_Γ' :
+  forall n s1 s2,
+    dropVars n s1 ≡ inr (s2, ()) ->
+    drop_err n (Γ s1) ≡ inr (Γ s2).
+Proof.
+  induction n; intros s1 s2 H; cbn in *; simp; cbn; eauto.
+  - inv Heqs.
+  - unfold ErrorWithState.err2errS in Heqs.
+    break_match_hyp; inv Heqs; eauto.
+Qed.
+
+Lemma genWhileLoop_Γ :
+  forall s1 s2 x (prefix : string) (from to : exp typ) (loopvar : raw_id) (loopcontblock body_entry : block_id) 
+    (body_blocks : list (LLVMAst.block typ)) (init_code : code typ) (nextblock : block_id),
+    genWhileLoop prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 ≡ inr (s2, x) ->
+    Γ s1 ≡ Γ s2.
+Proof.
+  intros s1 s2 x prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock H.
+  cbn in * |-; simp; cbn; auto.
 Qed.
 
 Ltac subst_Γs :=
@@ -215,27 +235,29 @@ Ltac get_gammas :=
   repeat
     match goal with
     | H: incBlock _ ≡ inr _ |- _ =>
-      apply incBlock_Γ in H
+      apply incBlock_Γ in H; cbn in H
     | H: newLocalVar _ _ _ ≡ inr _ |- _ =>
-      apply newLocalVar_Γ in H
+      apply newLocalVar_Γ in H; cbn in H
     | H: dropVars _ _ ≡ inr _ |- _ =>
-      apply dropVars in H
+      apply dropVars in H; cbn in H
      | H: incLocal _ ≡ inr (_, _) |- _ =>
-      eapply incLocal_Γ in H
+      eapply incLocal_Γ in H; cbn in H
     | H: incVoid _ ≡ inr (_, _) |- _ =>
-      eapply incVoid_Γ in H
+      eapply incVoid_Γ in H; cbn in H
     | H: incBlockNamed _ _ ≡ inr (_, _) |- _ =>
-      eapply incBlockNamed_Γ in H
+      eapply incBlockNamed_Γ in H; cbn in H
 
     | GEN: genNExpr _ _ ≡ inr (_, _) |- _ =>
-      eapply genNExpr_Γ in GEN
+      eapply genNExpr_Γ in GEN; cbn in GEN
     | GEN: genMExpr _ _ ≡ inr _ |- _ =>
-      apply genMExpr_Γ in GEN
+      apply genMExpr_Γ in GEN; cbn in GEN
     | GEN: genAExpr _ _ ≡ inr _ |- _ =>
-      apply genAExpr_Γ in GEN
+      apply genAExpr_Γ in GEN; cbn in GEN
     | GEN : genIR _ _ _ ≡ inr _ |- _ =>
-      apply genIR_Γ in GEN
+      apply genIR_Γ in GEN; cbn in GEN
+    | GEN : genWhileLoop _ _ _ _ _ _ _ _ _ _ ≡ inr _ |- _ =>
+      apply genWhileLoop_Γ in GEN; cbn in GEN
     end.
 
-Ltac solve_gamma := solve [get_gammas; congruence].
+Ltac solve_gamma := solve [get_gammas; cbn in *; congruence].
 

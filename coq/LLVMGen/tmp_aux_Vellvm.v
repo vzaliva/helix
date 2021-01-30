@@ -302,6 +302,14 @@ Proof.
   intros; rewrite typ_to_dtyp_equation; reflexivity.
 Qed.
 
+Lemma typ_to_dtyp_P :
+  forall t s,
+    typ_to_dtyp s (TYPE_Pointer t) = DTYPE_Pointer.
+Proof.
+  intros t s.
+  apply typ_to_dtyp_equation.
+Qed.
+
 Lemma typ_to_dtyp_D_array : forall n s, typ_to_dtyp s (TYPE_Array n TYPE_Double) = DTYPE_Array n DTYPE_Double.
 Proof.
   intros.
@@ -309,6 +317,13 @@ Proof.
   rewrite typ_to_dtyp_D.
   reflexivity.
 Qed.
+
+Ltac typ_to_dtyp_simplify :=
+  repeat
+    (try rewrite typ_to_dtyp_I in *;
+     try rewrite typ_to_dtyp_D in *;
+     try rewrite typ_to_dtyp_D_array in *;
+     try rewrite typ_to_dtyp_P in *).
 
 From Paco Require Import paco.
 Lemma eutt_mon {E R1 R2} (RR RR' : R1 -> R2 -> Prop)
@@ -625,3 +640,83 @@ Proof.
       lia.
 Qed.
 
+
+(* Memory stuff *)
+Lemma allocated_can_read :
+  forall a m τ,
+    allocated a m ->
+    exists v, read m a τ = inr v.
+Proof.
+  intros a [[cm lm] fs] τ ALLOC.
+  apply allocated_get_logical_block in ALLOC.
+  destruct ALLOC as [b GET].
+  unfold read.
+  rewrite GET.
+  destruct b.
+  cbn.
+  exists (read_in_mem_block bytes (snd a) τ). reflexivity.
+Qed.
+
+Lemma no_overlap_dtyp_different_blocks :
+  forall a b τ τ',
+    fst a <> fst b ->
+    no_overlap_dtyp a τ b τ'.
+Proof.
+  intros a b τ τ' H.
+  unfold no_overlap_dtyp, no_overlap.
+  auto.
+Qed.
+
+(* ext_memory only talks in terms of reads... Does not
+            necessarily preserved what's allocated, because you might
+            not be able to read from an allocated block *)
+Lemma ext_memory_trans :
+  forall m1 m2 m3 τ v1 v2 dst,
+    ext_memory m1 dst τ v1 m2 ->
+    ext_memory m2 dst τ v2 m3 ->
+    ext_memory m1 dst τ v2 m3.
+Proof.
+  intros m1 m2 m3 τ v1 v2 dst [NEW1 OLD1] [NEW2 OLD2].
+  split; auto.
+
+  intros a' τ' ALLOC DISJOINT.
+
+
+  rewrite <- OLD1; eauto.
+
+  pose proof (allocated_can_read _ _ τ' ALLOC) as [v READ].
+  rewrite <- OLD1 in READ; eauto.
+  apply can_read_allocated in READ.
+  rewrite <- OLD2; eauto.
+Qed.
+
+(* TODO: this should probably be moved to vellvm *)
+Ltac solve_allocated :=
+  solve [ eauto
+        | eapply dtyp_fits_allocated; eauto
+        | eapply handle_gep_addr_allocated; cycle 1; [solve [eauto] | solve_allocated]
+        | eapply write_preserves_allocated; cycle 1; [solve [eauto] | solve_allocated]
+        ].
+
+(* If I write to a different area, it doesn't affect the allocation of other addresses *)
+Lemma write_untouched_allocated:
+  forall m1 m2 a τa v,
+    dvalue_has_dtyp v τa ->
+    write m1 a v = inr m2 ->
+    forall b τb, no_overlap_dtyp a τa b τb ->
+            allocated b m2 ->
+            allocated b m1.
+Proof.
+  intros m1 m2 a τa v TYP WRITE b τb OVERLAP ALLOC.
+
+  eapply allocated_can_read in ALLOC as [v' READ].
+  eapply can_read_allocated.
+
+  erewrite write_untouched in READ; eauto.
+Qed.
+
+Ltac solve_read :=
+  solve [ eauto
+        | (* read from an array *)
+        erewrite read_array; cycle 2; [solve [eauto] | | solve_allocated]; eauto
+        ].

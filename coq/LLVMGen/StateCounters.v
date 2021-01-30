@@ -386,7 +386,7 @@ Section LocalCount.
   Lemma genWhile_local_count :
     forall prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 s2 seg,
       genWhileLoop prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 ≡ inr (s2, seg) ->
-      local_count s2 ≥ local_count s1.
+      local_count s2 > local_count s1.
   Proof.
     intros.
     cbn in H; simp; __local_ltac; lia. 
@@ -396,14 +396,16 @@ Section LocalCount.
     ∀ (f : AExpr) (i0 : ident) (i1 : Int64.int) (i3 : ident) (i4 : Int64.int) (i6 : IRState) (loopcontblock : block_id) (loopvar : raw_id) 
       (body_entry : block_id) (body_blocks : list (LLVMAst.block typ)) (s1_ : IRState),
       genIMapBody i1 i4 i0 i3 f loopvar loopcontblock i6 ≡ inr (s1_, (body_entry, body_blocks)) →
-      local_count s1_ >= local_count i6 .
+      local_count s1_ > local_count i6 .
   Proof.
-  Admitted.
+    intros.
+    cbn in H; simp; __local_ltac; lia. 
+  Qed.
 
   Lemma genIR_local_count :
     forall op s1 s2 nextblock b bk_op,
       genIR op nextblock s1 ≡ inr (s2, (b, bk_op)) ->
-      local_count s2 ≥ local_count s1.
+      local_count s2 >= local_count s1.
   Proof.
     induction op; intros; cbn in H; simp; __local_ltac; try lia. 
   Qed.
@@ -439,61 +441,61 @@ Ltac get_local_count_hyps :=
   repeat
     match goal with
     | H: incBlockNamed ?n ?s1 ≡ inr (?s2, _) |- _ =>
-      apply incBlockNamed_local_count in H
+      apply incBlockNamed_local_count in H; cbn in H
     | H: incLocalNamed ?n ?s1 ≡ inr (?s2, _) |- _ =>
-      apply incLocalNamed_local_count in H
+      apply incLocalNamed_local_count in H; cbn in H
     | H: incVoid ?s1 ≡ inr (?s2, _) |- _ =>
-      apply incVoid_local_count in H
+      apply incVoid_local_count in H; cbn in H
     | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>
-      apply incLocal_local_count in H
+      apply incLocal_local_count in H; cbn in H
     | H: newLocalVar _ _ ?s1 ≡ inr (?s2, _) |- _ =>
-      apply newLocalVar_local_count in H
+      apply newLocalVar_local_count in H; cbn in H
     | H: dropVars _ ?s1 ≡ inr (?s2, _) |- _ =>
-      apply dropVars_local_count in H
+      apply dropVars_local_count in H; cbn in H
 
     | H: genNExpr ?n ?s1 ≡ inr (?s2, _) |- _ =>
-      apply genNExpr_local_count in H
+      apply genNExpr_local_count in H; cbn in H
     | H: genMExpr ?m ?s1 ≡ inr (?s2, _) |- _ =>
-      apply genMExpr_local_count in H
+      apply genMExpr_local_count in H; cbn in H
     | H: genAExpr ?a ?s1 ≡ inr (?s2, _) |- _ =>
-      apply genAExpr_local_count in H
+      apply genAExpr_local_count in H; cbn in H
     | H: genWhileLoop _ _ _ _ _ _ _ _ _ _ ≡ inr _ |- _ =>
-      apply genWhile_local_count in H
+      apply genWhile_local_count in H; cbn in H
     | H: genIMapBody _ _ _ _ _ _ _ ≡ inr _ |- _ =>
-      apply genIMapBody_local_count in H
+      apply genIMapBody_local_count in H; cbn in H
      | H: genIR ?op ?id ?s1 ≡ inr (?s2, _) |- _ =>
-      apply genIR_local_count in H
+      apply genIR_local_count in H; cbn in H
     end.
 
 Ltac get_block_count_hyps :=
   repeat
     match goal with
     | H: incBlockNamed ?n ?s1 ≡ inr (?s2, _) |- _ =>
-      apply incBlockNamed_block_count in H
+      apply incBlockNamed_block_count in H; cbn in H
     | H: incLocalNamed ?n ?s1 ≡ inr (?s2, _) |- _ =>
-      apply incLocalNamed_block_count in H
+      apply incLocalNamed_block_count in H; cbn in H
     | H: incVoid ?s1 ≡ inr (?s2, _) |- _ =>
-      apply incVoid_block_count in H
+      apply incVoid_block_count in H; cbn in H
     | H: incLocal ?s1 ≡ inr (?s2, _) |- _ =>
-      apply incLocal_block_count in H
+      apply incLocal_block_count in H; cbn in H
     | H: newLocalVar _ _ ?s1 ≡ inr (?s2, _) |- _ =>
-      apply newLocalVar_block_count in H
+      apply newLocalVar_block_count in H; cbn in H
     | H: dropVars _ ?s1 ≡ inr (?s2, _) |- _ =>
-      apply dropVars_block_count in H
+      apply dropVars_block_count in H; cbn in H
 
     | H: genNExpr ?n ?s1 ≡ inr (?s2, _) |- _ =>
-      apply genNExpr_block_count in H
+      apply genNExpr_block_count in H; cbn in H
     | H: genMExpr ?m ?s1 ≡ inr (?s2, _) |- _ =>
-      apply genMExpr_block_count in H
+      apply genMExpr_block_count in H; cbn in H
     | H: genAExpr ?a ?s1 ≡ inr (?s2, _) |- _ =>
-      apply genAExpr_block_count in H
+      apply genAExpr_block_count in H; cbn in H
      | H: genIR ?op ?id ?s1 ≡ inr (?s2, _) |- _ =>
-      apply genIR_block_count in H
+      apply genIR_block_count in H; cbn in H
     end.
 
-Ltac solve_local_count := try solve [get_local_count_hyps; lia].
+Ltac solve_local_count := try solve [cbn; get_local_count_hyps; lia].
 
-Ltac solve_block_count := try solve [get_block_count_hyps; lia].
+Ltac solve_block_count := try solve [cbn; get_block_count_hyps; lia].
 
 Notation "s1 << s2" := (local_count s1 < local_count s2) (at level 50).
 Notation "s1 <<= s2" := (local_count s1 <= local_count s2) (at level 50).

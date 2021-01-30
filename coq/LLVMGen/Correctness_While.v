@@ -479,7 +479,8 @@ Proof.
 
     (* Step 2 : Jump to b0, i.e. loopblock (since we have checked k < n). *)
     vbranch_l.
-    { cbn; vstep;  try solve_lu.
+    { cbn; vstep.
+      solve_lu.
       rewrite __arithu; try lia.
       apply eutt_Ret.
       repeat f_equal.
