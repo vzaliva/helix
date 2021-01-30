@@ -11,6 +11,7 @@ Require Import Helix.LLVMGen.LidBound.
 Require Import Helix.LLVMGen.StateCounters.
 Require Import Helix.LLVMGen.Context.
 Require Import Helix.LLVMGen.Correctness_While.
+Require Import Helix.LLVMGen.Correctness_AExpr.
 
 From Vellvm Require Import Utils.Commutation.
 
@@ -393,7 +394,7 @@ Proof.
                  (* 1. Relaxed state invariant *)
                  state_invariant (protect σ n1) s12 mH stV /\
                  (* 2. Preserved state invariant *)
-                 memory_invariant_partial_write stV k n ptrll_yoff b y y_sz /\
+                 memory_invariant_partial_write stV k ptrll_yoff b y y_sz /\
                  mH ≡ memH /\ g ≡ g'
                  (* exists v, ext_memory mV_init ptrll_yoff DTYPE_Double (UVALUE_Double v) mV /\ *)
                 (* Accessing py pointer doesn't go out of bounds *)
@@ -428,10 +429,88 @@ Proof.
     congruence.
   }
 
+
+  assert (INV_STABLE : forall (k : nat) (a : option (prod memory mem_block)) (l : alist raw_id uvalue) (mV : memory_stack) (g0 : global_env) 
+    (id : local_id) (v0 : uvalue) (_ : Logic.or (lid_bound_between s11 s12 id) (lid_bound_between s1 s11 id)) (_ : I k a (pair mV (pair l g0))),
+             I k a (pair mV (pair (alist_add id v0 l) g0))).
+  {
+    intros.
+    unfold I in *.
+    destruct a eqn : AEQ ; eauto.
+    destruct p eqn: AEP.
+    destruct H0 as (? & ? & ? & ?). subst.
+    split; [|split;[|split]];eauto.
+
+    - eapply state_invariant_Γ with (s1 := s1).
+      2 : solve_gamma.
+      eapply state_invariant_Γ with (s2 := s1) in H0; try solve_gamma.
+
+      eapply state_invariant_add_fresh' with s12; eauto.
+      apply Gamma_safe_protect. solve_gamma_safe.
+
+      Transparent addVars.
+      inv Heqs12.
+      cbn in Heqs13.
+      destruct H as [BOUND | BOUND].
+      eapply lid_bound_between_shrink_down; [| apply BOUND].
+      solve_local_count.
+
+      eapply lid_bound_between_shrink_up; [| apply BOUND].
+      solve_local_count.
+
+    - unfold memory_invariant_partial_write in *.
+      destruct H1 as (? & ? & ?).
+      intuition.
+      + unfold alist_add; cbn. cbn.
+        destruct y; auto. cbn in *.
+          break_match_goal.
+        * rewrite rel_dec_correct in Heqb1; subst.
+          assert (Gamma_safe σ s0 s12). solve_gamma_safe.
+
+          Transparent addVars.
+          inv Heqs12.
+          cbn in Heqs13.
+
+          assert (NIN: not (in_Gamma σ s0 id)). apply H.
+          eapply lid_bound_between_shrink. apply H4.
+          Transparent newLocalVar.
+          cbn in *.
+          inv Heqs4.
+          solve_local_count. solve_local_count.
+          exfalso; eapply NIN.
+          econstructor. apply Heqo0. eauto.
+          eauto.
+        * apply neg_rel_dec_correct in Heqb1.
+          rewrite remove_neq_alist; eauto.
+          all: typeclasses eauto.
+
+      + unfold alist_add; cbn. cbn.
+        destruct y; auto. cbn in *.
+          break_match_goal.
+        * rewrite rel_dec_correct in Heqb1; subst.
+          assert (Gamma_safe σ s0 s12). solve_gamma_safe.
+
+          Transparent addVars.
+          inv Heqs12.
+          cbn in Heqs13.
+
+          assert (NIN: not (in_Gamma σ s0 id)). apply H.
+          eapply lid_bound_between_shrink. apply H4. solve_local_count. solve_local_count.
+          exfalso; eapply NIN.
+          econstructor. apply Heqo0. eauto.
+          eauto.
+        * apply neg_rel_dec_correct in Heqb1.
+          rewrite remove_neq_alist; eauto.
+          all: typeclasses eauto.
+  }
+
   (* Loop body match *)
   forward GENC; [clear GENC |].
   {
-    subst I P Q ; intros ? ? ? [[? ?]|] * (INV & LOOPVAR & BOUNDk & RET); [| inv INV].
+    intros ? ? ? [[? ?]|] * (INV & LOOPVAR & BOUNDk & RET); [| inv INV].
+    assert (INV' := INV).
+
+    subst I P Q ;
 
     (* [HELIX] Clean-up (match breaks using no failure) *)
     assert (EQk: MInt64asNT.from_nat k ≡ inr (Int64.repr (Z.of_nat k))).
@@ -484,6 +563,9 @@ Proof.
     (* Get mem information from PRE condition here (global and local state has changed). *)
     (* Needed for the following GEP and Load instructions *)
     destruct INV as (INV_r & INV_p & -> & ->).
+
+    assert (Heqo' := Heqo).
+    assert (Heqo0' := Heqo0).
 
     (* Read info as if we're reading from a protected σ *)
     erewrite <- nth_error_protect_neq with (n2 := n1) in Heqo; auto.
@@ -621,8 +703,6 @@ Proof.
     typ_to_dtyp_simplify.
     rewrite denote_code_app.
     vred.
-
-    Require Import Helix.LLVMGen.Correctness_AExpr.
 
     Transparent addVars. unfold addVars in Heqs12. inv Heqs12.
 
@@ -927,8 +1007,6 @@ Proof.
 
     (* Memory invariant re-established after a write to memory (?) *)
     {
-      destruct INV_r.
-      (* clear -mem_is_inv_relax mem_is_inv. *)
       unfold memory_invariant, memory_invariant_partial_write in *.
       intros n' v' b' τ' y' Yσ YΓ.
       rewrite <- EE in *.
@@ -938,7 +1016,6 @@ Proof.
       specialize (mem_is_inv' _ _ _ _ Yσ YΓ).
       revert mem_is_inv'; intros.
       destruct v'; eauto.
-
       (* in_local_or_global_scalar *)
       {
         destruct y'. cbn in mem_is_inv'.
@@ -946,8 +1023,38 @@ Proof.
         inv TYPE.
         do 2 eexists.
         repeat split; eauto.
-        - cbn. rewrite <- READ'. admit.
-        - cbn. cbn in *. rewrite <- mem_is_inv'. admit.
+        - cbn. rewrite <- READ'.
+          eapply write_untouched. 2 : eauto. constructor.
+
+          (* TODO: waiting for bug fix on vellvm side *)
+          (* no_overlap_dtyp y_GEP_addr DTYPE_Double ptr_l (typ_to_dtyp [] τ'') *)
+          admit.
+        - cbn. cbn in *. unfold alist_add. cbn.
+          break_match_goal.
+          + rewrite rel_dec_correct in Heqb; subst.
+            assert (Gamma_safe σ s0 s12). solve_gamma_safe.
+
+            Transparent addVars.
+            inv Heqs4.
+            cbn in *.
+
+            assert (NIN: not (in_Gamma σ s0 py)). apply H.
+            eapply lid_bound_between_shrink. solve_lid_bound_between. solve_local_count. solve_local_count.
+
+            exfalso; eapply NIN.
+
+            destruct (n' =? n1) eqn: EQ.
+            * apply beq_nat_true in EQ. subst.
+              eapply nth_error_protect_eq in Yσ.
+              destruct Yσ.
+              econstructor.
+              eauto. rewrite GENIR_Γ.
+              eauto. eauto.
+            * erewrite nth_error_protect_neq in Yσ. 2 : apply beq_nat_false; eauto.
+              econstructor. eauto. rewrite GENIR_Γ. eauto. eauto.
+        +  apply neg_rel_dec_correct in Heqb.
+          rewrite remove_neq_alist; eauto.
+          all: typeclasses eauto.
       }
 
       (* in_local_or_global_scalar *)
@@ -957,8 +1064,38 @@ Proof.
         inv TYPE.
         do 2 eexists.
         repeat split; eauto.
-        - cbn. rewrite <- READ'. admit.
-        - cbn. cbn in *. rewrite <- mem_is_inv'. admit.
+        - cbn. rewrite <- READ'.
+          eapply write_untouched. 2 : eauto. constructor.
+
+          (* TODO: Need fix from Vellvm side *)
+          (* no_overlap_dtyp y_GEP_addr DTYPE_Double ptr_l (typ_to_dtyp [] τ'') *)
+          admit.
+        - cbn. cbn in *. unfold alist_add. cbn.
+          break_match_goal.
+          + rewrite rel_dec_correct in Heqb; subst.
+            assert (Gamma_safe σ s0 s12). solve_gamma_safe.
+
+            Transparent addVars.
+            inv Heqs4.
+            cbn in *.
+
+            assert (NIN: not (in_Gamma σ s0 py)). apply H.
+            eapply lid_bound_between_shrink. solve_lid_bound_between. solve_local_count. solve_local_count.
+
+            exfalso; eapply NIN.
+
+            destruct (n' =? n1) eqn: EQ.
+            * apply beq_nat_true in EQ. subst.
+              eapply nth_error_protect_eq in Yσ.
+              destruct Yσ.
+              econstructor.
+              eauto. rewrite GENIR_Γ.
+              eauto. eauto.
+            * erewrite nth_error_protect_neq in Yσ. 2 : apply beq_nat_false; eauto.
+              econstructor. eauto. rewrite GENIR_Γ. eauto. eauto.
+        +  apply neg_rel_dec_correct in Heqb.
+          rewrite remove_neq_alist; eauto.
+          all: typeclasses eauto.
       }
 
       (* pointer case *)
@@ -967,12 +1104,43 @@ Proof.
         inv TYp.
         exists ptr_y', τ'0. split; eauto.
         split; [|split].
+        (* dtyp_fits mV_EXTENDED_WITH_AEXPR_RESULT ptr_y' (typ_to_dtyp [] τ'0) *)
         - admit.
-        - destruct y'; cbn in *; eauto. admit.
+        - destruct y'.
+          + cbn. eauto.
+
+          + cbn. cbn in *. unfold alist_add. cbn.
+            break_match_goal.
+            *  rewrite rel_dec_correct in Heqb; subst.
+            assert (Gamma_safe σ s0 s12). solve_gamma_safe.
+
+              Transparent addVars.
+              inv Heqs4.
+              cbn in *.
+
+              assert (NIN: not (in_Gamma σ s0 py)). apply H.
+              eapply lid_bound_between_shrink. solve_lid_bound_between. solve_local_count. solve_local_count.
+
+              exfalso; eapply NIN.
+
+              destruct (n' =? n1) eqn: EQ.
+              -- apply beq_nat_true in EQ. subst.
+                eapply nth_error_protect_eq in Yσ.
+                destruct Yσ.
+                econstructor.
+                eauto. rewrite GENIR_Γ.
+                eauto. eauto.
+              -- erewrite nth_error_protect_neq in Yσ. 2 : apply beq_nat_false; eauto.
+                econstructor. eauto. rewrite GENIR_Γ. eauto. eauto.
+            * apply neg_rel_dec_correct in Heqb.
+              rewrite remove_neq_alist; eauto.
+              all: typeclasses eauto.
         - intros.
           specialize (MM H).
           destruct MM as (? & ? & ?).
           exists x0. split; auto. intros.
+
+          (* get_array_cell mV_EXTENDED_WITH_AEXPR_RESULT ptr_y' (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0) *)
           admit.
       }
     }
@@ -986,8 +1154,36 @@ Proof.
     }
   }
     admit.
-    admit.
-    admit.
+    {
+      destruct y.
+      - cbn. eauto.
+      - cbn. cbn in *. unfold alist_add. cbn.
+        break_match_goal.
+        *  rewrite rel_dec_correct in Heqb; subst.
+        assert (Gamma_safe σ s0 s12). solve_gamma_safe.
+
+          Transparent addVars.
+          inv Heqs4.
+          cbn in *.
+
+          assert (NIN: not (in_Gamma σ s0 py)). apply H.
+          eapply lid_bound_between_shrink. solve_lid_bound_between. solve_local_count. solve_local_count.
+          exfalso; eapply NIN.
+          econstructor.
+          eauto. rewrite GENIR_Γ.
+          eauto. eauto.
+        * apply neg_rel_dec_correct in Heqb.
+          rewrite remove_neq_alist; eauto.
+          admit.
+          all : typeclasses eauto.
+    }
+    {
+
+    (* get_array_cell mV_EXTENDED_WITH_AEXPR_RESULT ptrll_yoff (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0) *)
+      intros. admit.
+    }
+
+  (* local_scope_modif s1 s11 li (li' [py : UVALUE_Addr y_GEP_addr]) *)
   - admit.
 }
 
@@ -995,6 +1191,7 @@ Proof.
 (* I stable under local env extension *)
 forward GENC; [clear GENC |].
 {
+  (* Unset Printing Notations. *)
   intros.
   unfold I in *.
   destruct a eqn : AEQ ; eauto.
@@ -1127,7 +1324,8 @@ apply eqit_Ret.
 {
   split; [| split]; cbn; eauto.
   - (* Need to enter scope,then escape it to link with appropriate state *)
-    eapply state_invariant_Γ; eauto. admit.
+    eapply state_invariant_Γ; eauto.
+    admit.
   - destruct H; eauto.
   - solve_local_scope_modif.
 }
