@@ -302,13 +302,13 @@ Section SimulationRelations.
                        get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v)))
         end.
 
-  Definition memory_invariant_partial_write (configV : config_cfg) (index loopsize : nat) (ptr_llvm : addr)
+  Definition memory_invariant_partial_write (configV : config_cfg) (index : nat) (ptr_llvm : addr)
              (bk_helix : mem_block) (x : ident) sz : Prop :=
       let '(mem_llvm, (ρ, g)) := configV in
           dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp [] (TYPE_Array sz TYPE_Double))
               ∧ in_local_or_global_addr ρ g x ptr_llvm
               ∧ (∀ (i : Int64.int) (v0 : binary64),
-                  ((MInt64asNT.to_nat i) < loopsize -> (MInt64asNT.to_nat i) < index) ->
+                  ((MInt64asNT.to_nat i) < N.to_nat sz -> (MInt64asNT.to_nat i) < index) ->
                   mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v0
                   → get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0)).
 
