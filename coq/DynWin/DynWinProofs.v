@@ -1041,8 +1041,88 @@ Section MSHCOL_to_AHCOL.
         lia.
       }
 
+      repeat match goal with
+      | [|- evalPExpr_id _ _ ≢ evalPExpr_id _ _] => cbn; apply inr_neq; auto
+      end.
+
+      1:{
+        cbn; apply inr_neq.
+        admit.
+      }
+
+      2:{
+        cbn; apply inr_neq.
+        admit.
+      }
+
+      4:{
+        cbn in *.
+        symmetry in H.
+        memory_lookup_err_to_option.
+        apply memory_lookup_not_next_equiv in H.
+        congruence.
+      }
+
+      4:{
+        cbn in *.
+        unfold dynwin_x_addr in *.
+        intros C.
+        inl_inr_inv.
+        subst.
+
+        symmetry in H.
+        memory_lookup_err_to_option.
+        apply equiv_Some_is_Some in H.
+        apply memory_is_set_is_Some in H.
+
+        rename H into M0.
+        rename m' into m0.
+        remember (memory_set m0 (memory_next_key m0) mem_empty) as m1 eqn:M1.
+        remember (memory_set m1 (memory_next_key m1) mb) as m2 eqn:M2.
+        rename m'0 into m1_plus.
+        inl_inr_inv.
+
+        assert(memory_next_key m0 > 2) as LM0.
+        {
+          apply mem_block_exists_next_key_gt in M0.
+          apply M0.
+        }
+
+        assert(memory_next_key m1 > 3) as LM1.
+        {
+          apply memory_set_memory_next_key_gt in M1.
+          lia.
+        }
+
+        remember (memory_set m1_plus (memory_next_key m1_plus) mb) as
+            m1_plus'.
+
+        apply memory_set_memory_next_key_gt in Heqm1_plus'.
+        apply memory_subset_except_next_keys in H1.
+        subst_max.
+
+        remember (memory_next_key (memory_set m0 (memory_next_key m0) mem_empty)) as x.
+        clear Heqx.
+        pose proof memory_set_memory_next_key_gt m1_plus (memory_set m1_plus x mb) mb x.
+        autospecialize H; [reflexivity |].
+        rewrite <-H4 in H.
+        lia.
+      }
+
+      4:{
+        cbn; apply inr_neq.
+        cbn in *.
+        clear.
+        admit.
+      }
+
+      6:{
+        cbn; apply inr_neq.
+        auto.
+      }
+
       (* This remailing obligation proof is not yet automated *)
-      2: {
+      1: {
         (* [a] is defined in section *)
         constructor; intros.
         unfold evalIUnCType, Fin1SwapIndex.
@@ -1176,11 +1256,6 @@ Section MSHCOL_to_AHCOL.
       }
 
       {
-        cbn.
-        discriminate.
-      }
-
-      {
         apply IReduction_MFacts.
         -
           intros.
@@ -1207,61 +1282,6 @@ Section MSHCOL_to_AHCOL.
         apply SHPointwise_MFacts.
         apply SHInductor_MFacts.
         apply Pick_MFacts.
-      }
-
-      {
-        cbn in *.
-        symmetry in H.
-        memory_lookup_err_to_option.
-        apply memory_lookup_not_next_equiv in H.
-        congruence.
-      }
-
-      {
-
-        cbn in *.
-        unfold dynwin_x_addr in *.
-        intros C.
-        inl_inr_inv.
-        subst.
-
-        symmetry in H.
-        memory_lookup_err_to_option.
-        apply equiv_Some_is_Some in H.
-        apply memory_is_set_is_Some in H.
-
-        rename H into M0.
-        rename m' into m0.
-        remember (memory_set m0 (memory_next_key m0) mem_empty) as m1 eqn:M1.
-        remember (memory_set m1 (memory_next_key m1) mb) as m2 eqn:M2.
-        rename m'0 into m1_plus.
-        inl_inr_inv.
-
-        assert(memory_next_key m0 > 2) as LM0.
-        {
-          apply mem_block_exists_next_key_gt in M0.
-          apply M0.
-        }
-
-        assert(memory_next_key m1 > 3) as LM1.
-        {
-          apply memory_set_memory_next_key_gt in M1.
-          lia.
-        }
-
-        remember (memory_set m1_plus (memory_next_key m1_plus) mb) as
-            m1_plus'.
-
-        apply memory_set_memory_next_key_gt in Heqm1_plus'.
-        apply memory_subset_except_next_keys in H1.
-        subst_max.
-
-        remember (memory_next_key (memory_set m0 (memory_next_key m0) mem_empty)) as x.
-        clear Heqx.
-        pose proof memory_set_memory_next_key_gt m1_plus (memory_set m1_plus x mb) mb x.
-        autospecialize H; [reflexivity |].
-        rewrite <-H4 in H.
-        lia.
       }
 
       {
@@ -1341,8 +1361,7 @@ Section MSHCOL_to_AHCOL.
         -
           solve_facts.
       }
-
-    Qed.
+    Admitted.
 
   End DummyEnv.
 
