@@ -5897,14 +5897,14 @@ Proof.
   unfold lookup_PExpr, memory_lookup_err in *.
   rewrite Heqs1 in *.
   cbn in *.
-  rewrite Heqs7 in Y_M.
+  rewrite Heqs5 in Y_M.
   rewrite <-H in *.
   rewrite memory_lookup_memory_set_eq in * by reflexivity.
   cbn in *.
   repeat inl_inr_inv.
   eq_to_equiv.
   rewrite Y_M, Y_RM in *; clear Y_M Y_RM.
-  eapply evalDSHMap2_rest_preserved in Heqs8; [| eassumption].
+  eapply evalDSHMap2_rest_preserved in Heqs6; [| eassumption].
   assumption.
 Qed.
 
@@ -5936,8 +5936,8 @@ Proof.
   inl_inr_inv.
   eq_to_equiv.
   rewrite Y_RM in *; clear Y_RM.
-  clear - Heqs8 H0.
-  rename Heqs8 into M, H0 into KO.
+  clear - Heqs6 H0.
+  rename Heqs6 into M, H0 into KO.
 
   generalize dependent k.
   generalize dependent m2.
@@ -5986,8 +5986,6 @@ Lemma DSHMap2_succeeds
 
       (dot : CarrierA -> CarrierA -> CarrierA)
       (DC : MSH_DSH_BinCarrierA_compat dot (protect_p σ y_p) df m)
-      {XY1 : evalPExpr_id σ x1_p <> evalPExpr_id σ y_p}
-      {XY2 : evalPExpr_id σ x2_p <> evalPExpr_id σ y_p}
   :
     exists m', evalDSHOperator σ (DSHMemMap2 o x1_p x2_p y_p df) m
                     (estimateFuel (DSHMemMap2 o x1_p x2_p y_p df)) = Some (inr m').
@@ -6008,35 +6006,6 @@ Proof.
   repeat break_match;
     try some_none; repeat some_inv;
       try inl_inr; repeat inl_inr_inv.
-
-  1:{
-    exfalso.
-    cbn in XY1.
-    rewrite Heqs1, Heqs in XY1.
-    rename Heqs2 into NE.
-    clear - XY1 NE.
-    rewrite inr_neq in XY1.
-    unfold assert_nat_neq, assert_false_to_err in NE.
-    destruct (Nat.eqb n n3) eqn:E.
-    -- apply beq_nat_true in E.
-       congruence.
-    --
-      inl_inr.
-  }
-  1:{
-    exfalso.
-    cbn in XY2.
-    rewrite Heqs1, Heqs0 in XY2.
-    rename Heqs3 into NE.
-    clear - XY2 NE.
-    rewrite inr_neq in XY2.
-    unfold assert_nat_neq, assert_false_to_err in NE.
-    destruct (Nat.eqb n1 n3) eqn:E.
-    -- apply beq_nat_true in E.
-       congruence.
-    --
-      inl_inr.
-  }
   all: tuple_inversion_equiv; subst_nat; subst.
   all: eq_to_equiv.
   all: rename Heqs into X1_ID, Heqs0 into X2_ID, Heqs1 into Y_ID.
@@ -6044,7 +6013,7 @@ Proof.
   all: subst.
   1: {
     exfalso.
-    unfold assert_NT_le, assert_true_to_err in Heqs4.
+    unfold assert_NT_le, assert_true_to_err in Heqs2.
     break_if; try inl_inr.
     apply leb_complete_conv in Heqb.
     unfold NatAsNT.MNatAsNT.to_nat in Heqb.
@@ -6053,7 +6022,7 @@ Proof.
   all: rewrite Heqo2, Heqo1, Heqo0 in *; repeat some_inv.
   all: rewrite X1_M, X2_M, Y_M in *; clear X1_M X2_M Y_M.
   all: rename Heqo2 into X1_M, Heqo1 into X2_M, Heqo0 into Y_M.
-  all: rename Heqs8 into M.
+  all: rename Heqs6 into M.
   - (* evalDSHMap2 fails *)
     exfalso.
     contradict M; generalize s; apply is_OK_neq_inl.
@@ -6076,16 +6045,16 @@ Proof.
       autospecialize IHo; [intros; apply D2; lia |].
       autospecialize IHo.
       {
-        clear - Heqs4.
+        clear - Heqs2.
         unfold assert_NT_le, assert_true_to_err in *.
         break_if; try inl_inr.
-        destruct u1.
+        destruct u.
         reflexivity.
         exfalso.
         break_if; try inl_inr.
         apply leb_complete_conv in Heqb.
         apply leb_complete in Heqb0.
-        clear Heqs4 u1.
+        clear Heqs2 u.
         unfold NatAsNT.MNatAsNT.to_nat in *.
         lia.
       }
@@ -6129,8 +6098,6 @@ Lemma MemMap2_merge_with_def
       (LY : lookup_PExpr σ m y_p = inr y_m)
 
       (DC : MSH_DSH_BinCarrierA_compat dot (protect_p σ y_p) df m)
-      {XY1 : evalPExpr_id σ x1_p <> evalPExpr_id σ y_p}
-      {XY2 : evalPExpr_id σ x2_p <> evalPExpr_id σ y_p}
   :
     evalDSHOperator σ (DSHMemMap2 o x1_p x2_p y_p df) m
                     (estimateFuel (DSHMemMap2 o x1_p x2_p y_p df)) = Some (inr m') ->
@@ -6152,62 +6119,6 @@ Proof.
   repeat break_match;
     try some_none; repeat some_inv;
       try inl_inr; repeat inl_inr_inv.
-  1:{
-    exfalso.
-    cbn in XY1.
-    rewrite Heqs1, Heqs in XY1.
-    rename Heqs2 into NE.
-    clear - XY1 NE.
-    rewrite inr_neq in XY1.
-    unfold assert_nat_neq, assert_false_to_err in NE.
-    destruct (Nat.eqb n n3) eqn:E.
-    -- apply beq_nat_true in E.
-       congruence.
-    --
-      inl_inr.
-  }
-  1:{
-    exfalso.
-    cbn in XY1.
-    rewrite Heqs1, Heqs in XY1.
-    rename Heqs2 into NE.
-    clear - XY1 NE.
-    rewrite inr_neq in XY1.
-    unfold assert_nat_neq, assert_false_to_err in NE.
-    destruct (Nat.eqb n n3) eqn:E.
-    -- apply beq_nat_true in E.
-       congruence.
-    --
-      inl_inr.
-  }
-  1:{
-    exfalso.
-    cbn in XY2.
-    rewrite Heqs1, Heqs0 in XY2.
-    rename Heqs3 into NE.
-    clear - XY2 NE.
-    rewrite inr_neq in XY2.
-    unfold assert_nat_neq, assert_false_to_err in NE.
-    destruct (Nat.eqb n1 n3) eqn:E.
-    -- apply beq_nat_true in E.
-       congruence.
-    --
-      inl_inr.
-  }
-  1:{
-    exfalso.
-    cbn in XY2.
-    rewrite Heqs1, Heqs0 in XY2.
-    rename Heqs3 into NE.
-    clear - XY2 NE.
-    rewrite inr_neq in XY2.
-    unfold assert_nat_neq, assert_false_to_err in NE.
-    destruct (Nat.eqb n1 n3) eqn:E.
-    -- apply beq_nat_true in E.
-       congruence.
-    --
-      inl_inr.
-  }
   all: tuple_inversion_equiv; subst_nat; subst.
   all: eq_to_equiv.
   all: rename Heqs into X1_ID, Heqs0 into X2_ID, Heqs1 into Y_ID.
@@ -6218,7 +6129,7 @@ Proof.
   rewrite Heqo3, Heqo2, Heqo1 in *; repeat some_inv.
   rewrite X1_M, X2_M, Y_M in *; clear X1_M X2_M Y_M.
   rename Heqo3 into X1_M, Heqo2 into X2_M, Heqo1 into Y_M.
-  rename Heqs8 into M.
+  rename Heqs6 into M.
   rewrite <-H in Heqo0.
   rewrite memory_lookup_memory_set_eq in Heqo0 by reflexivity.
   some_inv.
@@ -6256,8 +6167,6 @@ Lemma MemMap2_merge_with_def_firstn
       (D2 : forall k, k < o -> mem_in k x2_m)
 
       (DC : MSH_DSH_BinCarrierA_compat dot (protect_p σ y_p) df m)
-      {XY1 : evalPExpr_id σ x1_p <> evalPExpr_id σ y_p}
-      {XY2 : evalPExpr_id σ x2_p <> evalPExpr_id σ y_p}
   :
     evalDSHOperator σ (DSHMemMap2 o x1_p x2_p y_p df) m
                     (estimateFuel (DSHMemMap2 o x1_p x2_p y_p df))
@@ -6343,7 +6252,7 @@ Proof.
       reflexivity.
     +
       erewrite MemMap2_merge_with_def.
-      9: eapply MA.
+      7: eapply MA.
       all: try eassumption.
       2: {
         unfold lookup_PExpr, memory_lookup_err, trywith.
