@@ -718,12 +718,6 @@ Proof.
                      alist_find dst_ptr_id ρ ≡ Some (UVALUE_Addr dst_addr) /\
                      alist_find src_ptr_id ρ ≡ Some (UVALUE_Addr src_addr) /\
                      g ≡ g_yoff /\
-                     (* (* TODO: maybe give this a definition *) *)
-                     (in_local_or_global_addr ρ g (ID_Global id) ptrll_yoff /\
-                      (forall i v,
-                         ((MInt64asNT.to_nat i) < BinNat.N.to_nat sz0 -> (MInt64asNT.to_nat i) ≢ (MInt64asNT.to_nat yoff_res)) ->
-                         mem_lookup (MInt64asNT.to_nat i) bkh_yoff ≡ Some v ->
-                         get_array_cell mV ptrll_yoff (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v))) /\
                      (* Not sure if this is the right block *)
                        Returns (Some (mH, mb))
                                (@interp_helix _ E_cfg (tfor
@@ -768,8 +762,7 @@ Proof.
       forward LOOPTFOR.
       { intros g_loop l_loop mV_loop [[mH_loop mb_loop] |] k _label [HI [POWERI [POWERI_VAL RETURNS]]]; [|inv HI].
         cbn in HI.
-        destruct HI as [LINV_SINV [LINV_DST_PTR_ID [LINV_SRC_PTR_ID [LINV_GLOBALS [LINV_GAC [LINV_RET [LINV_HELIX_MB_OLD [v [LINV_HELIX_MB_NEW LINV_MEXT]]]]]]]]].
-        clear LINV_GAC.
+        destruct HI as [LINV_SINV [LINV_DST_PTR_ID [LINV_SRC_PTR_ID [LINV_GLOBALS [LINV_RET [LINV_HELIX_MB_OLD [v [LINV_HELIX_MB_NEW LINV_MEXT]]]]]]]].
         pose proof LINV_MEXT as [LINV_MEXT_NEW LINV_MEXT_OLD].
         unfold DSHPower_tfor_body.
         
@@ -1236,33 +1229,6 @@ Proof.
           }
 
           split.
-          { cbn in is_almost_pure, INLG_yoff.
-            destruct is_almost_pure as [_ [_ G]].
-            subst.
-            split; auto.
-            intros i v0 H H0.
-            (* destruct LINV_GAC as [INLG_GAC LINV_GAC]. *)
-            (* pose proof (LINV_GAC i v0 H H0). *)
-            (* pose proof (get_array_succeeds_allocated _ _ _ _ H1) as ALLOC. *)
-            (* assert (allocated ptrll_yoff mV') as ALLOC' by solve_allocated. *)
-
-            (* epose proof (read_array_exists mV' _ _ _ ptrll_yoff ALLOC') as (elem_addr & GEP & READ). *)
-            (* epose proof (read_array_exists mV_loop _ _ _ ptrll_yoff ALLOC) as (elem_addr' & GEP' & READ'). *)
-            (* erewrite <- read_array; eauto. *)
-
-            (* pose proof (write_correct WRITE) as [ALLOCATED WRITTEN]. *)
-            (* specialize (WRITTEN DTYPE_Double). *)
-            (* forward WRITTEN. constructor. *)
-            (* destruct WRITTEN as [EXT_NEW EXT_OLD]. *)
-
-            (* rewrite EXT_OLD. eauto. *)
-            (* rewrite READ'. eauto. *)
-            (* solve_allocated. *)
-
-            admit. (* TODO: solve this no_overlap... *)
-          }
-
-          split.
           { (* Returns... *)
             rewrite tfor_split with (i := 0) (j:= k) (k0:= S k); try lia.
             rewrite interp_helix_bind.
@@ -1412,7 +1378,7 @@ Proof.
         unfold I in *.
         destruct a; try inv HI.
         destruct p.
-        destruct HI as [HI_SINV [HI_DST_PTR_ID [HI_SRC_PTR_ID [HI_G [HI_GAC [HI_RET [HI_HELIX_MB_OLD [HI_v [HI_HELIX_MB_NEW HI_MEXT]]]]]]]]].
+        destruct HI as [HI_SINV [HI_DST_PTR_ID [HI_SRC_PTR_ID [HI_G [HI_RET [HI_HELIX_MB_OLD [HI_v [HI_HELIX_MB_NEW HI_MEXT]]]]]]]].
         pose proof HI_MEXT as [HI_MEXT_NEW HI_MEXT_OLD].
         split.
         { destruct BOUND.
@@ -1465,12 +1431,6 @@ Proof.
           solve_local_count.
         }
 
-        split; auto.
-        split.
-        { destruct HI_GAC.
-          split; cbn; auto.
-        }
-
         repeat split; auto.
         exists HI_v.
         auto.
@@ -1495,49 +1455,19 @@ Proof.
         subst.
         repeat split; eauto.
 
-        { intros i v H H0.
-          (* TODO: pull out into lemma... *)
-          (* TODO: do I need GAC, or just GETARRAYCELL_yoff???? *)
-          pose proof (write_correct WRITE_INIT) as [WRITE_ALLOC WRITE_EXT].
-          specialize (WRITE_EXT DTYPE_Double).
+        Lemma to_nat_unsigned' :
+          forall x y,
+            MInt64asNT.to_nat x ≢ MInt64asNT.to_nat y ->
+            DynamicValues.Int64.unsigned x ≢ DynamicValues.Int64.unsigned y.
+        Proof.
+          intros x y H.
+          apply to_nat_unsigned in H.
+          do 2 rewrite repr_of_nat_to_nat in H.
+          auto.
+        Qed.
 
-          (* Lemma ext_memory_allocated : *)
-          (*   forall a b m m' τ v, *)
-          (*     allocated a m -> *)
-          (*     ext_memory m b τ v m' -> *)
-          (*     allocated a m'. *)
-          (* Proof. *)
-          (*   intros a b m m' τ v ALLOC EXT. *)
-          (*   destruct EXT. *)
-          (*   epose proof no_overlap_dtyp_dec as [NOOVER | OVER]. *)
-          (*   - epose proof (old_lu0 _ _ ALLOC NOOVER). *)
-          (*     eapply allocated_can_read in ALLOC as [v' READ]. *)
-          (*     rewrite <- H in READ. *)
-          (*     apply can_read_allocated in READ. *)
-          (*     auto. *)
-          (*   - apply can_read_allocated in new_lu0. *)
-          (*     exfalso. *)
-          (*     (* Might not be able to prove this... *) *)
-          (*     apply OVER. *)
-          (*     constructor. *)
-          (*     intros AB. *)
-          (*     unfold allocated in *. *)
-          (*     rewrite AB in new_lu0. *)
-          (* Qed. *)
-
-          Lemma to_nat_unsigned' :
-            forall x y,
-              MInt64asNT.to_nat x ≢ MInt64asNT.to_nat y ->
-              DynamicValues.Int64.unsigned x ≢ DynamicValues.Int64.unsigned y.
-          Proof.
-            intros x y H.
-            apply to_nat_unsigned in H.
-            do 2 rewrite repr_of_nat_to_nat in H.
-            auto.
-          Qed.
-
-          Lemma get_array_cell_mlup_ext :
-            forall bkh ptrll dst_addr sz ix mV mV' v',
+        Lemma get_array_cell_mlup_ext :
+          forall bkh ptrll dst_addr sz ix mV mV' v',
             (∀ (i : Int64.int) (v : binary64),
                 mem_lookup (MInt64asNT.to_nat i) bkh ≡ Some v
                 → get_array_cell mV ptrll (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v)) ->
@@ -1548,26 +1478,26 @@ Proof.
                 MInt64asNT.to_nat ix ≢ MInt64asNT.to_nat i ->
                 mem_lookup (MInt64asNT.to_nat i) bkh ≡ Some v ->
                 get_array_cell mV' ptrll (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v)).
-          Proof.
-            intros bkh ptrll dst_addr sz ix mV mV' v' GAC GEP_INIT [EXT_NEW EXT_OLD] ALLOC' i v NEQ MLUP.
+        Proof.
+          intros bkh ptrll dst_addr sz ix mV mV' v' GAC GEP_INIT [EXT_NEW EXT_OLD] ALLOC' i v NEQ MLUP.
 
-            pose proof (GAC _ _ MLUP) as G.
-            pose proof (get_array_succeeds_allocated _ _ _ _ G) as ALLOC.
+          pose proof (GAC _ _ MLUP) as G.
+          pose proof (get_array_succeeds_allocated _ _ _ _ G) as ALLOC.
 
-            epose proof (read_array_exists mV _ _ _ ptrll ALLOC) as (elem_addr & GEP & READ).
+          epose proof (read_array_exists mV _ _ _ ptrll ALLOC) as (elem_addr & GEP & READ).
 
-            erewrite <- read_array; eauto.
-            rewrite EXT_OLD; eauto.
-            rewrite READ; eauto.
-            solve_allocated.
+          erewrite <- read_array; eauto.
+          rewrite EXT_OLD; eauto.
+          rewrite READ; eauto.
+          solve_allocated.
 
-            rewrite repr_of_nat_to_nat in GEP.
-            eapply no_overlap_dtyp_array_different_indices; eauto.
-            apply to_nat_unsigned'; eauto.
-          Qed.
+          rewrite repr_of_nat_to_nat in GEP.
+          eapply no_overlap_dtyp_array_different_indices; eauto.
+          apply to_nat_unsigned'; eauto.
+        Qed.
 
-          Lemma get_array_cell_mlup_ext' :
-            forall bkh ptrll dst_addr sz ix mV mV' v',
+        Lemma get_array_cell_mlup_ext' :
+          forall bkh ptrll dst_addr sz ix mV mV' v',
             (∀ (i : Int64.int) (v : binary64),
                 MInt64asNT.to_nat ix ≢ MInt64asNT.to_nat i ->
                 mem_lookup (MInt64asNT.to_nat i) bkh ≡ Some v
@@ -1579,50 +1509,23 @@ Proof.
                 MInt64asNT.to_nat ix ≢ MInt64asNT.to_nat i ->
                 mem_lookup (MInt64asNT.to_nat i) bkh ≡ Some v ->
                 get_array_cell mV' ptrll (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v)).
-          Proof.
-            intros bkh ptrll dst_addr sz ix mV mV' v' GAC GEP_INIT [EXT_NEW EXT_OLD] ALLOC' i v NEQ MLUP.
+        Proof.
+          intros bkh ptrll dst_addr sz ix mV mV' v' GAC GEP_INIT [EXT_NEW EXT_OLD] ALLOC' i v NEQ MLUP.
 
-            pose proof (GAC _ _ NEQ MLUP) as G.
-            pose proof (get_array_succeeds_allocated _ _ _ _ G) as ALLOC.
+          pose proof (GAC _ _ NEQ MLUP) as G.
+          pose proof (get_array_succeeds_allocated _ _ _ _ G) as ALLOC.
 
-            epose proof (read_array_exists mV _ _ _ ptrll ALLOC) as (elem_addr & GEP & READ).
+          epose proof (read_array_exists mV _ _ _ ptrll ALLOC) as (elem_addr & GEP & READ).
 
-            erewrite <- read_array; eauto.
-            rewrite EXT_OLD; eauto.
-            rewrite READ; eauto.
-            solve_allocated.
+          erewrite <- read_array; eauto.
+          rewrite EXT_OLD; eauto.
+          rewrite READ; eauto.
+          solve_allocated.
 
-            rewrite repr_of_nat_to_nat in GEP.
-            eapply no_overlap_dtyp_array_different_indices; eauto.
-            apply to_nat_unsigned'; eauto.
-          Qed.
-              
-          forward WRITE_EXT. constructor.
-          destruct WRITE_EXT as [WRITE_NEW WRITE_OLD].
-
-          eapply get_array_cell_mlup_ext; eauto.
-          all: admit.
-          (* eapply GETARRAYCELL_yoff. *)
-          (* eauto. *)
-
-          (* eapply mem_is_inv in SINV. *)
-          (* unfold memory_invariant in SINV. *)
-
-          (* rewrite <- Γ_S1S2 in SINV. *)
-          (* apply nth_error_protect_eq' in Heqo0. *)
-          (* epose proof (SINV _ _ _ _ _ Heqo0 LUn0) as MINV. *)
-          (* cbn in MINV. *)
-
-          (* destruct MINV as (ptrll & τ' & TEQ & FITS & FIND & LUP). *)
-          (* clear LUP. *)
-
-          (* cbn in INLG_yoff. *)
-          (* rewrite INLG_yoff in FIND; inv FIND. *)
-
-          (* destruct LUP as (bkh & MLUP & GETARRAYCELL). *)
-          (* rewrite MLUP_yoff in MLUP; inv MLUP. *)
-          (* eauto. *)
-        }
+          rewrite repr_of_nat_to_nat in GEP.
+          eapply no_overlap_dtyp_array_different_indices; eauto.
+          apply to_nat_unsigned'; eauto.
+        Qed.
 
         { rewrite tfor_0.
           rewrite interp_helix_ret. cbn.
@@ -1653,8 +1556,7 @@ Proof.
         break_match_hyp.
         break_match_hyp.
         break_match_hyp.
-        destruct H as [SINV [DST [SRC [G [GAC [RET [MEMH_OLD [v [MEMH_NEW EXT_MEM]]]]]]]]].
-        destruct GAC as [_ GAC].
+        destruct H as [SINV [DST [SRC [G [RET [MEMH_OLD [v [MEMH_NEW EXT_MEM]]]]]]]].
         subst.
 
         Lemma state_invariant_write_double_result :
@@ -1747,7 +1649,6 @@ inr dst_addr ->
           - admit. (* eapply id_allocated_protect; eauto. *)
         Admitted.
 
-        clear GAC.
         eapply state_invariant_write_double_result with (sz:=sz0); eauto.
         3: { intros i v0 H H0.
              pose proof GETARRAYCELL_yoff.
