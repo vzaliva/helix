@@ -143,6 +143,7 @@ Section DSHIMap_is_tfor.
       denoteDSHOperator σ (DSHIMap n x y f) ≈
       '(x_i, _) <- denotePExpr σ x;;
       '(y_i, _) <- denotePExpr σ y;;
+        _ <- lift_Serr (assert_nat_neq "DSHIMap 'x' must not be equal 'y'" x_i y_i);;
        x2 <- trigger (MemLU "Error looking up 'x' in DSHIMap" x_i);;
        y0 <- trigger (MemLU "Error looking up 'y' in DSHIMap" y_i);;
        y' <- DSHIMap_tfor_up (protect_p σ y) f 0 n x2 y0 ;;
@@ -231,11 +232,17 @@ Proof.
 
   (* Clean up [no_failure] *)
   repeat apply no_failure_Ret in NOFAIL.
+  break_match_hyp; try_abs.
+
+  repeat apply no_failure_Ret in NOFAIL.
+
 
   edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
   edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
   clean_goal.
 
+  hred.
+  rewrite Heqs0.
   hred.
   hstep; [eauto |].
   hred; hstep; [eauto |].
