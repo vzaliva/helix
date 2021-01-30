@@ -1124,9 +1124,11 @@ Proof.
 
             destruct LINV_SINV.
             eauto.
+
             split; auto.
             (* TODO: can I pull these out into lemmas? *)
             (* TODO: probably similar to state_invariant_escape_scope, but with a write *)
+            (* TODO: might want to not destruct and look at the state_invariant_write_double stuff? *)
             - (* unfold memory_invariant. *)
               (* pose proof mem_is_inv as MINV. *)
 
@@ -1558,96 +1560,6 @@ Proof.
         break_match_hyp.
         destruct H as [SINV [DST [SRC [G [RET [MEMH_OLD [v [MEMH_NEW EXT_MEM]]]]]]]].
         subst.
-
-        Lemma state_invariant_write_double_result :
-          forall σ s hid mH mV mV_init l g v mb mb_old dst_addr_h ptrll (dst_addr : addr) dst_size_h b_hid y id_addr sz sz',
-            state_invariant (protect σ hid) s mH (mV, (l, g)) ->
-            nth_error (Γ s) hid ≡ Some (id_addr, TYPE_Pointer (TYPE_Array sz TYPE_Double)) ->
-            nth_error σ hid ≡ Some (DSHPtrVal dst_addr_h dst_size_h, b_hid) ->
-            in_local_or_global_addr l g id_addr ptrll ->
-            ext_memory mV_init dst_addr DTYPE_Double (UVALUE_Double v) mV ->
-            handle_gep_addr (DTYPE_Array sz' DTYPE_Double) ptrll
-                            [DVALUE_I64 (repr 0); DVALUE_I64 (repr (Z.of_nat (MInt64asNT.to_nat y)))] ≡ 
-inr dst_addr ->
-            (∀ x : nat, x ≢ MInt64asNT.to_nat y → mem_lookup x mb ≡ mem_lookup x mb_old) ->
-            mem_lookup (MInt64asNT.to_nat y) mb ≡ Some v ->
-            (* TODO: update this *)
-            (∀ (i : MInt64asNT.t) (v : binary64),
-              (MInt64asNT.to_nat i ≢ MInt64asNT.to_nat y)
-              → mem_lookup (MInt64asNT.to_nat i) mb_old ≡ Some v
-              → get_array_cell mV ptrll (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v)) ->
-            state_invariant σ s (memory_set mH dst_addr_h mb) (mV, (l, g)).
-        Proof.
-          intros σ s hid mH mV mV_init l g v mb mb_old dst_addr_h ptrll_dst dst_addr dst_size_h b_hid y id_addr sz sz' SINV NTH_Γ_hid NTH_σ_hid INLG [MEXT_NEW MEXT_OLD] GEP MLUP_OLD MLUP_NEW MGAC.
-          destruct SINV.
-          split.
-          { unfold memory_invariant in *.
-            intros n v0 b τ x NTH_σ NTH_Γ.
-            destruct (Nat.eq_dec hid n); subst.
-            - (* hid = n *)
-              apply nth_error_protect_eq' in NTH_σ.
-              apply nth_error_protect_eq' in NTH_σ_hid.
-              pose proof (mem_is_inv _ _ _ _ _ NTH_σ NTH_Γ).
-              destruct v0; eauto.
-              destruct H as (ptrll & τ' & TEQ & FITS & INLG' & LUP); inv TEQ.
-              exists ptrll. exists τ'.
-              repeat split; eauto.
-              intros H; destruct b; inv H.
-
-              (* Because n = hid I want to conclude that a = dst_addr_h *)
-              rewrite NTH_σ_hid in NTH_σ; inv NTH_σ.
-              rewrite NTH_Γ_hid in NTH_Γ; inv NTH_Γ.
-              assert (ptrll_dst ≡ ptrll) as PTREQ.
-              { destruct x; cbn in INLG, INLG';
-                  rewrite INLG in INLG'; inv INLG'; auto.
-              }
-              subst.
-
-              rename a into dst_addr_h.
-              exists mb.
-              split.
-              + apply memory_lookup_memory_set_eq.
-              + intros i v0 H.
-                destruct (Nat.eq_dec (MInt64asNT.to_nat i) (MInt64asNT.to_nat y)) as [EQ | NEQ].
-                * rewrite EQ in H; rewrite MLUP_NEW in H; inv H.
-                  erewrite <- read_array.
-                  solve_read.
-                  solve_allocated.
-                  eauto.
-                  eauto.
-                  rewrite EQ. eauto.
-                * clear LUP.
-                  eapply MGAC; eauto.
-                  rewrite <- MLUP_OLD; eauto.
-            - rewrite <- nth_error_protect_neq with (n2 := hid) in NTH_σ; eauto.
-              apply nth_error_protect_eq' in NTH_σ_hid.
-              pose proof (mem_is_inv _ _ _ _ _ NTH_σ NTH_Γ).
-              destruct v0; eauto.
-              destruct H as (ptrll & τ' & TEQ & FITS & INLG' & LUP); inv TEQ.
-              exists ptrll. exists τ'.
-              repeat split; eauto.
-              intros H; destruct b; inv H.
-              specialize (LUP eq_refl).
-              destruct LUP as (bkh & MEMLUP & GETARRAYCELL).
-              exists bkh.
-              split; eauto.
-
-              rewrite memory_lookup_memory_set_neq; eauto.
-
-              intros CONTRA; subst.
-              assert (hid ≡ n).
-              { eapply st_no_dshptr_aliasing; eauto.
-              }
-              contradiction.
-          }
-
-          (* In theory all should hold, but different direction *)
-          - eapply WF_IRState_protect; eauto.
-          - admit. (* eapply no_id_aliasing_protect; eauto. *)
-          - admit. (* eapply no_dshptr_aliasing_protect; eauto. *)
-          - admit. (* eapply no_llvm_ptr_aliasing_protect; eauto. *)
-          - admit. (* eapply id_allocated_protect; eauto. *)
-        Admitted.
 
         eapply state_invariant_write_double_result with (sz:=sz0); eauto.
         3: { intros i v0 H H0.

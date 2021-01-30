@@ -2220,93 +2220,171 @@ Qed.
 
 Lemma no_id_aliasing_protect :
   forall σ s hid,
-    no_id_aliasing σ s ->
+    no_id_aliasing σ s <->
     no_id_aliasing (protect σ hid) s.
 Proof.
-  intros σ s hid H.
-  unfold no_id_aliasing in *.
-  intros n1 n2 id τ τ' v1 v2 NTH_σ1 NTH_σ2 NTH_Γ1 NTH_Γ2.
+  intros σ s hid;
+    split; intros H.
+  {
+    unfold no_id_aliasing in *.
+    intros n1 n2 id τ τ' v1 v2 NTH_σ1 NTH_σ2 NTH_Γ1 NTH_Γ2.
 
-  destruct (Nat.eq_dec hid n1), (Nat.eq_dec hid n2); subst; auto.
-  - (* hid = n1 *)
-    erewrite nth_error_protect_neq in NTH_σ2; [|eauto].
-    destruct v1.
-    eapply nth_error_protect_eq in NTH_σ1 as [b' NTH_σ1].
-    eauto.
-  - (* hid = n2 *)
-    erewrite nth_error_protect_neq in NTH_σ1; [|eauto].
-    destruct v2.
-    eapply nth_error_protect_eq in NTH_σ2 as [b' NTH_σ2].
-    eauto.
-  - (* hid = neither *)
-    erewrite nth_error_protect_neq in NTH_σ1; [|eauto].
-    erewrite nth_error_protect_neq in NTH_σ2; [|eauto].
-    eauto.
+    destruct (Nat.eq_dec hid n1), (Nat.eq_dec hid n2); subst; auto.
+    - (* hid = n1 *)
+      erewrite nth_error_protect_neq in NTH_σ2; [|eauto].
+      destruct v1.
+      eapply nth_error_protect_eq in NTH_σ1 as [b' NTH_σ1].
+      eauto.
+    - (* hid = n2 *)
+      erewrite nth_error_protect_neq in NTH_σ1; [|eauto].
+      destruct v2.
+      eapply nth_error_protect_eq in NTH_σ2 as [b' NTH_σ2].
+      eauto.
+    - (* hid = neither *)
+      erewrite nth_error_protect_neq in NTH_σ1; [|eauto].
+      erewrite nth_error_protect_neq in NTH_σ2; [|eauto].
+      eauto.
+  }
+  {
+    unfold no_id_aliasing in *.
+    intros n1 n2 id τ τ' v1 v2 NTH_σ1 NTH_σ2 NTH_Γ1 NTH_Γ2.
+
+    destruct (Nat.eq_dec hid n1), (Nat.eq_dec hid n2); subst; auto.
+    - (* hid = n1 *)
+      erewrite <- nth_error_protect_neq with (n2 := n1) in NTH_σ2; [|eauto].
+      destruct v1.
+      eapply nth_error_protect_eq' in NTH_σ1.
+      eauto.
+    - (* hid = n2 *)
+      erewrite <- nth_error_protect_neq with (n2 := n2) in NTH_σ1; [|eauto].
+      destruct v2.
+      eapply nth_error_protect_eq' in NTH_σ2.
+      eauto.
+    - (* hid = neither *)
+      erewrite <- nth_error_protect_neq with (n2 := hid) in NTH_σ1; [|eauto].
+      erewrite <- nth_error_protect_neq with (n2 := hid) in NTH_σ2; [|eauto].
+      eauto.
+  }
 Qed.
 
 Lemma no_dshptr_aliasing_protect :
   forall σ hid,
-    no_dshptr_aliasing σ ->
+    no_dshptr_aliasing σ <->
     no_dshptr_aliasing (protect σ hid).
 Proof.
-  intros σ hid H.
-  unfold no_dshptr_aliasing in *.
-  intros n1 n2 ptr sz sz' b b' NTH_σ1 NTH_σ2.
-  destruct (Nat.eq_dec hid n1), (Nat.eq_dec hid n2); subst; auto.
-  - (* hid = n1 *)
-    erewrite nth_error_protect_neq in NTH_σ2; [|eauto].
-    eapply nth_error_protect_eq in NTH_σ1 as [? NTH_σ1].
-    eauto.
-  - (* hid = n2 *)
-    erewrite nth_error_protect_neq in NTH_σ1; [|eauto].
-    eapply nth_error_protect_eq in NTH_σ2 as [? NTH_σ2].
-    eauto.
-  - (* hid = neither *)
-    erewrite nth_error_protect_neq in NTH_σ1; [|eauto].
-    erewrite nth_error_protect_neq in NTH_σ2; [|eauto].
-    eauto.
+  intros σ hid;
+    split; intros H.
+  {
+    unfold no_dshptr_aliasing in *.
+    intros n1 n2 ptr sz sz' b b' NTH_σ1 NTH_σ2.
+    destruct (Nat.eq_dec hid n1), (Nat.eq_dec hid n2); subst; auto.
+    - (* hid = n1 *)
+      erewrite nth_error_protect_neq in NTH_σ2; [|eauto].
+      eapply nth_error_protect_eq in NTH_σ1 as [? NTH_σ1].
+      eauto.
+    - (* hid = n2 *)
+      erewrite nth_error_protect_neq in NTH_σ1; [|eauto].
+      eapply nth_error_protect_eq in NTH_σ2 as [? NTH_σ2].
+      eauto.
+    - (* hid = neither *)
+      erewrite nth_error_protect_neq in NTH_σ1; [|eauto].
+      erewrite nth_error_protect_neq in NTH_σ2; [|eauto].
+      eauto.
+  }
+  {
+    unfold no_dshptr_aliasing in *.
+    intros n1 n2 ptr sz sz' b b' NTH_σ1 NTH_σ2.
+
+    destruct (Nat.eq_dec hid n1), (Nat.eq_dec hid n2); subst; auto.
+    - (* hid = n1 *)
+      erewrite <- nth_error_protect_neq with (n2 := n1) in NTH_σ2; [|eauto].
+      eapply nth_error_protect_eq' in NTH_σ1.
+      eauto.
+    - (* hid = n2 *)
+      erewrite <- nth_error_protect_neq with (n2 := n2) in NTH_σ1; [|eauto].
+      eapply nth_error_protect_eq' in NTH_σ2.
+      eauto.
+    - (* hid = neither *)
+      erewrite <- nth_error_protect_neq with (n2 := hid) in NTH_σ1; [|eauto].
+      erewrite <- nth_error_protect_neq with (n2 := hid) in NTH_σ2; [|eauto].
+      eauto.
+  }
 Qed.
 
 Lemma no_llvm_ptr_aliasing_protect :
   forall σ hid s l g,
-    no_llvm_ptr_aliasing σ s l g ->
+    no_llvm_ptr_aliasing σ s l g <->
     no_llvm_ptr_aliasing (protect σ hid) s l g.
 Proof.
-  intros σ hid H.
-  unfold no_llvm_ptr_aliasing in *.
-  intros l g H0 id1 ptrv1 id2 ptrv2 n1 n2 τ τ' v1 v2 b b' NTH_σ1 NTH_σ2 H3 H4 H5 H6 H7.
+  intros σ hid; split; intros H.
+  {
+    unfold no_llvm_ptr_aliasing in *.
+    intros id1 ptrv1 id2 ptrv2 n1 n2 τ τ' v1 v2 b b' NTH_σ1 NTH_σ2 H3 H4 H5 H6 H7.
 
-  destruct (Nat.eq_dec hid n1), (Nat.eq_dec hid n2); subst.
-  - (* hid = n1 = n2 *)
-    eapply nth_error_protect_eq in NTH_σ1 as [? NTH_σ1].
-    eapply nth_error_protect_eq in NTH_σ2 as [? NTH_σ2].
-    eauto.
-  - (* hid = n1 *)
-    erewrite nth_error_protect_neq in NTH_σ2; [|eauto].
-    eapply nth_error_protect_eq in NTH_σ1 as [? NTH_σ1].
-    eauto.
-  - (* hid = n2 *)
-    erewrite nth_error_protect_neq in NTH_σ1; [|eauto].
-    eapply nth_error_protect_eq in NTH_σ2 as [? NTH_σ2].
-    eauto.
-  - (* hid = neither *)
-    erewrite nth_error_protect_neq in NTH_σ1; [|eauto].
-    erewrite nth_error_protect_neq in NTH_σ2; [|eauto].
-    eauto.
+    destruct (Nat.eq_dec hid n1), (Nat.eq_dec hid n2); subst.
+    - (* hid = n1 = n2 *)
+      eapply nth_error_protect_eq in NTH_σ1 as [? NTH_σ1].
+      eapply nth_error_protect_eq in NTH_σ2 as [? NTH_σ2].
+      eauto.
+    - (* hid = n1 *)
+      erewrite nth_error_protect_neq in NTH_σ2; [|eauto].
+      eapply nth_error_protect_eq in NTH_σ1 as [? NTH_σ1].
+      eauto.
+    - (* hid = n2 *)
+      erewrite nth_error_protect_neq in NTH_σ1; [|eauto].
+      eapply nth_error_protect_eq in NTH_σ2 as [? NTH_σ2].
+      eauto.
+    - (* hid = neither *)
+      erewrite nth_error_protect_neq in NTH_σ1; [|eauto].
+      erewrite nth_error_protect_neq in NTH_σ2; [|eauto].
+      eauto.
+  }
+  {
+    unfold no_llvm_ptr_aliasing in *.
+    intros id1 ptrv1 id2 ptrv2 n1 n2 τ τ' v1 v2 b b' NTH_σ1 NTH_σ2 H3 H4 H5 H6 H7.
+
+    destruct (Nat.eq_dec hid n1), (Nat.eq_dec hid n2); subst; auto.
+    - (* hid = n1 = n2 *)
+      eapply nth_error_protect_eq' in NTH_σ1.
+      eapply nth_error_protect_eq' in NTH_σ2.
+      eauto.
+    - (* hid = n1 *)
+      erewrite <- nth_error_protect_neq with (n2 := n1) in NTH_σ2; [|eauto].
+      eapply nth_error_protect_eq' in NTH_σ1.
+      eauto.
+    - (* hid = n2 *)
+      erewrite <- nth_error_protect_neq with (n2 := n2) in NTH_σ1; [|eauto].
+      eapply nth_error_protect_eq' in NTH_σ2.
+      eauto.
+    - (* hid = neither *)
+      erewrite <- nth_error_protect_neq with (n2 := hid) in NTH_σ1; [|eauto].
+      erewrite <- nth_error_protect_neq with (n2 := hid) in NTH_σ2; [|eauto].
+      eauto.
+  }
 Qed.
 
 Lemma id_allocated_protect :
   forall σ hid mh,
-    id_allocated σ mh ->
+    id_allocated σ mh <->
     id_allocated (protect σ hid) mh.
 Proof.
-  intros σ hid mh H.
-  unfold id_allocated in *.
-  intros n addr0 val b NTH.
-  destruct (Nat.eq_dec hid n); subst.
-  - eapply nth_error_protect_eq in NTH as [b' NTH].
-    eauto.
-  - erewrite nth_error_protect_neq in NTH; eauto.
+  intros σ hid mh; split; intros H.
+  {
+    unfold id_allocated in *.
+    intros n addr0 val b NTH.
+    destruct (Nat.eq_dec hid n); subst.
+    - eapply nth_error_protect_eq in NTH as [b' NTH].
+      eauto.
+    - erewrite nth_error_protect_neq in NTH; eauto.
+  }
+  {
+    unfold id_allocated in *.
+    intros n addr0 val b NTH.
+    destruct (Nat.eq_dec hid n); subst.
+    - eapply nth_error_protect_eq' in NTH.
+      eauto.
+    - erewrite <- nth_error_protect_neq in NTH; eauto.
+  }
 Qed.
 
 Lemma state_invariant_protect :
@@ -2319,10 +2397,10 @@ Proof.
   split.
   - eapply memory_invariant_protect; eauto.
   - eapply WF_IRState_protect; eauto.
-  - eapply no_id_aliasing_protect; eauto.
-  - eapply no_dshptr_aliasing_protect; eauto.
-  - eapply no_llvm_ptr_aliasing_protect; eauto.
-  - eapply id_allocated_protect; eauto.
+  - apply no_id_aliasing_protect; eauto.
+  - apply no_dshptr_aliasing_protect; eauto.
+  - apply no_llvm_ptr_aliasing_protect; eauto.
+  - apply id_allocated_protect; eauto.
 Qed.
 
 Lemma write_state_invariant :
@@ -2475,12 +2553,114 @@ Proof.
   }
 
   - eapply WF_IRState_protect; eauto.
+  - apply no_id_aliasing_protect; eauto.
+  - apply no_dshptr_aliasing_protect; eauto.
+  - apply no_llvm_ptr_aliasing_protect; eauto.
+  - apply id_allocated_protect; eauto.
+Qed.
+
+Lemma id_allocated_memory_set :
+  forall σ mH addr mb,
+    id_allocated σ mH ->
+    id_allocated σ (memory_set mH addr mb).
+Proof.
+  intros σ mH addr0 mb H.
+  unfold id_allocated in *.
+  intros n addr1 val b H0.
+  apply mem_block_exists_memory_set.
+  eauto.
+Qed.
+
+Lemma state_invariant_write_double_result :
+  forall σ s hid mH mV mV_init l g v mb mb_old dst_addr_h ptrll (dst_addr : addr) dst_size_h b_hid y id_addr sz sz',
+    state_invariant (protect σ hid) s mH (mV, (l, g)) ->
+    nth_error (Γ s) hid ≡ Some (id_addr, TYPE_Pointer (TYPE_Array sz TYPE_Double)) ->
+    nth_error σ hid ≡ Some (DSHPtrVal dst_addr_h dst_size_h, b_hid) ->
+    in_local_or_global_addr l g id_addr ptrll ->
+    ext_memory mV_init dst_addr DTYPE_Double (UVALUE_Double v) mV ->
+    handle_gep_addr (DTYPE_Array sz' DTYPE_Double) ptrll
+                    [DVALUE_I64 (repr 0); DVALUE_I64 (repr (Z.of_nat (MInt64asNT.to_nat y)))] ≡ 
+                    inr dst_addr ->
+    (∀ x : nat, x ≢ MInt64asNT.to_nat y → mem_lookup x mb ≡ mem_lookup x mb_old) ->
+    mem_lookup (MInt64asNT.to_nat y) mb ≡ Some v ->
+    (* TODO: update this *)
+    (∀ (i : MInt64asNT.t) (v : binary64),
+        (MInt64asNT.to_nat i ≢ MInt64asNT.to_nat y)
+        → mem_lookup (MInt64asNT.to_nat i) mb_old ≡ Some v
+        → get_array_cell mV ptrll (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v)) ->
+    state_invariant σ s (memory_set mH dst_addr_h mb) (mV, (l, g)).
+Proof.
+  intros σ s hid mH mV mV_init l g v mb mb_old dst_addr_h ptrll_dst dst_addr dst_size_h b_hid y id_addr sz sz' SINV NTH_Γ_hid NTH_σ_hid INLG [MEXT_NEW MEXT_OLD] GEP MLUP_OLD MLUP_NEW MGAC.
+  destruct SINV.
+  split.
+  { unfold memory_invariant in *.
+    intros n v0 b τ x NTH_σ NTH_Γ.
+    destruct (Nat.eq_dec hid n); subst.
+    - (* hid = n *)
+      apply nth_error_protect_eq' in NTH_σ.
+      apply nth_error_protect_eq' in NTH_σ_hid.
+      pose proof (mem_is_inv0 _ _ _ _ _ NTH_σ NTH_Γ).
+      destruct v0; eauto.
+      destruct H as (ptrll & τ' & TEQ & FITS & INLG' & LUP); inv TEQ.
+      exists ptrll. exists τ'.
+      repeat split; eauto.
+      intros H; destruct b; inv H.
+
+      (* Because n = hid I want to conclude that a = dst_addr_h *)
+      rewrite NTH_σ_hid in NTH_σ; inv NTH_σ.
+      rewrite NTH_Γ_hid in NTH_Γ; inv NTH_Γ.
+      assert (ptrll_dst ≡ ptrll) as PTREQ.
+      { destruct x; cbn in INLG, INLG';
+          rewrite INLG in INLG'; inv INLG'; auto.
+      }
+      subst.
+
+      rename a into dst_addr_h.
+      exists mb.
+      split.
+      + apply memory_lookup_memory_set_eq.
+      + intros i v0 H.
+        destruct (Nat.eq_dec (MInt64asNT.to_nat i) (MInt64asNT.to_nat y)) as [EQ | NEQ].
+        * rewrite EQ in H; rewrite MLUP_NEW in H; inv H.
+          erewrite <- read_array.
+          solve_read.
+          solve_allocated.
+          eauto.
+          eauto.
+          rewrite EQ. eauto.
+        * clear LUP.
+          eapply MGAC; eauto.
+          rewrite <- MLUP_OLD; eauto.
+    - rewrite <- nth_error_protect_neq with (n2 := hid) in NTH_σ; eauto.
+      apply nth_error_protect_eq' in NTH_σ_hid.
+      pose proof (mem_is_inv0 _ _ _ _ _ NTH_σ NTH_Γ).
+      destruct v0; eauto.
+      destruct H as (ptrll & τ' & TEQ & FITS & INLG' & LUP); inv TEQ.
+      exists ptrll. exists τ'.
+      repeat split; eauto.
+      intros H; destruct b; inv H.
+      specialize (LUP eq_refl).
+      destruct LUP as (bkh & MEMLUP & GETARRAYCELL).
+      exists bkh.
+      split; eauto.
+
+      rewrite memory_lookup_memory_set_neq; eauto.
+
+      intros CONTRA; subst.
+      assert (hid ≡ n).
+      { eapply st_no_dshptr_aliasing0; eauto.
+      }
+      contradiction.
+  }
+
+  (* In theory all should hold, but different direction *)
+  - eapply WF_IRState_protect; eauto.
   - eapply no_id_aliasing_protect; eauto.
   - eapply no_dshptr_aliasing_protect; eauto.
   - eapply no_llvm_ptr_aliasing_protect; eauto.
-  - eapply id_allocated_protect; eauto.
+  - eapply id_allocated_protect;
+      eapply id_allocated_memory_set; eauto.
 Qed.
-
 
 Lemma vellvm_helix_ptr_size:
   forall σ s memH memV ρ g n id (sz : N) dsh_ptr (dsh_sz : Int64.int) b,
