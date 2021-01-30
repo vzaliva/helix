@@ -510,7 +510,7 @@ Proof.
     intros ? ? ? [[? ?]|] * (INV & LOOPVAR & BOUNDk & RET); [| inv INV].
     assert (INV' := INV).
 
-    subst I P Q ;
+    subst P Q ;
 
     (* [HELIX] Clean-up (match breaks using no failure) *)
     assert (EQk: MInt64asNT.from_nat k ≡ inr (Int64.repr (Z.of_nat k))).
@@ -625,13 +625,6 @@ Proof.
       eapply incLocalNamed_count_gen_injective.
       solve_local_count. reflexivity.
     }
-
-    (* From Vellvm Require Import *)
-    (*     Numeric.Coqlib *)
-    (*     Numeric.Integers *)
-    (*     Numeric.Floats. *)
-
-    (* TODO: Move to Vellvm *)
 
     (* [Vellvm] GEP Instruction *)
     match goal with
@@ -802,6 +795,8 @@ Proof.
     intros (PRE_INV & AEXP) RET1 RET2.
     2 : { intros. cbn in *. contradiction. }
 
+    cbn in PRE_INV.
+    assert (PRE_INV' := PRE_INV).
     (* [HELIX] easy clean-up. *)
     hred.
     vred.
@@ -977,205 +972,23 @@ Proof.
     }
   - exists b0. reflexivity.
 
-  - split; [| split ;[split ;[|split]| split;[|split]]]; eauto.
+  - eapply INV_STABLE. right. solve_lid_bound_between.
+
+    split; [| split ;[split ;[|split]| split;[|split]]]; eauto.
+
 
     (* Establish the relaxed state invariant with changed states and extended local environment *)
     {
-      split; eauto.
-      5 : {
-        unfold id_allocated. intros.
-        unfold id_allocated in st_id_allocated.
-        specialize (st_id_allocated (S (S n2))). cbn in st_id_allocated.
-        eauto.
-      }
-      2 : {
-        unfold no_id_aliasing in *.
-        intros.
-        specialize (st_no_id_aliasing (S (S n3)) (S (S n2))).
-        rewrite <- EE in st_no_id_aliasing. cbn in *.
-        assert (H12 : S (S n2) ≡ S (S n3) -> n3 ≡ n2) by lia.
-        apply H12.
-        eapply st_no_id_aliasing ; eauto.
-      }
-      2 : {
-        unfold no_dshptr_aliasing in *.
-        intros.
-        specialize (st_no_dshptr_aliasing (S (S n2)) (S (S n'))).
-        assert (H10: S (S n') ≡ S (S n2) -> n' ≡ n2) by lia.
-        apply H10; eauto.
-      }
-
-    (* Memory invariant re-established after a write to memory (?) *)
-    {
-      unfold memory_invariant, memory_invariant_partial_write in *.
-      intros n' v' b' τ' y' Yσ YΓ.
-      rewrite <- EE in *.
-      clear INV_p.
-      (* pose proof mem_is_inv'. *)
-      specialize (mem_is_inv' (S (S n'))). cbn in *.
-      specialize (mem_is_inv' _ _ _ _ Yσ YΓ).
-      revert mem_is_inv'; intros.
-      destruct v'; eauto.
-      (* in_local_or_global_scalar *)
-      {
-        destruct y'. cbn in mem_is_inv'.
-        destruct mem_is_inv' as (ptr_l & τ'' & TYPE & INLG' & READ').
-        inv TYPE.
-        do 2 eexists.
-        repeat split; eauto.
-        - cbn. rewrite <- READ'.
-          eapply write_untouched. 2 : eauto. constructor.
-
-          (* TODO: waiting for bug fix on vellvm side *)
-          (* no_overlap_dtyp y_GEP_addr DTYPE_Double ptr_l (typ_to_dtyp [] τ'') *)
-          admit.
-        - cbn. cbn in *. unfold alist_add. cbn.
-          break_match_goal.
-          + rewrite rel_dec_correct in Heqb; subst.
-            assert (Gamma_safe σ s0 s12). solve_gamma_safe.
-
-            Transparent addVars.
-            inv Heqs4.
-            cbn in *.
-
-            assert (NIN: not (in_Gamma σ s0 py)). apply H.
-            eapply lid_bound_between_shrink. solve_lid_bound_between. solve_local_count. solve_local_count.
-
-            exfalso; eapply NIN.
-
-            destruct (n' =? n1) eqn: EQ.
-            * apply beq_nat_true in EQ. subst.
-              eapply nth_error_protect_eq in Yσ.
-              destruct Yσ.
-              econstructor.
-              eauto. rewrite GENIR_Γ.
-              eauto. eauto.
-            * erewrite nth_error_protect_neq in Yσ. 2 : apply beq_nat_false; eauto.
-              econstructor. eauto. rewrite GENIR_Γ. eauto. eauto.
-        +  apply neg_rel_dec_correct in Heqb.
-          rewrite remove_neq_alist; eauto.
-          all: typeclasses eauto.
-      }
-
-      (* in_local_or_global_scalar *)
-      {
-        destruct y'. cbn in mem_is_inv'.
-        destruct mem_is_inv' as (ptr_l & τ'' & TYPE & INLG' & READ').
-        inv TYPE.
-        do 2 eexists.
-        repeat split; eauto.
-        - cbn. rewrite <- READ'.
-          eapply write_untouched. 2 : eauto. constructor.
-
-          (* TODO: Need fix from Vellvm side *)
-          (* no_overlap_dtyp y_GEP_addr DTYPE_Double ptr_l (typ_to_dtyp [] τ'') *)
-          admit.
-        - cbn. cbn in *. unfold alist_add. cbn.
-          break_match_goal.
-          + rewrite rel_dec_correct in Heqb; subst.
-            assert (Gamma_safe σ s0 s12). solve_gamma_safe.
-
-            Transparent addVars.
-            inv Heqs4.
-            cbn in *.
-
-            assert (NIN: not (in_Gamma σ s0 py)). apply H.
-            eapply lid_bound_between_shrink. solve_lid_bound_between. solve_local_count. solve_local_count.
-
-            exfalso; eapply NIN.
-
-            destruct (n' =? n1) eqn: EQ.
-            * apply beq_nat_true in EQ. subst.
-              eapply nth_error_protect_eq in Yσ.
-              destruct Yσ.
-              econstructor.
-              eauto. rewrite GENIR_Γ.
-              eauto. eauto.
-            * erewrite nth_error_protect_neq in Yσ. 2 : apply beq_nat_false; eauto.
-              econstructor. eauto. rewrite GENIR_Γ. eauto. eauto.
-        +  apply neg_rel_dec_correct in Heqb.
-          rewrite remove_neq_alist; eauto.
-          all: typeclasses eauto.
-      }
-
-      (* pointer case *)
-      {
-        destruct mem_is_inv' as (ptr_y' & τ'0 & TYp & FITS' & INLG & MM).
-        inv TYp.
-        exists ptr_y', τ'0. split; eauto.
-        split; [|split].
-        (* dtyp_fits mV_EXTENDED_WITH_AEXPR_RESULT ptr_y' (typ_to_dtyp [] τ'0) *)
-        - admit.
-        - destruct y'.
-          + cbn. eauto.
-
-          + cbn. cbn in *. unfold alist_add. cbn.
-            break_match_goal.
-            *  rewrite rel_dec_correct in Heqb; subst.
-            assert (Gamma_safe σ s0 s12). solve_gamma_safe.
-
-              Transparent addVars.
-              inv Heqs4.
-              cbn in *.
-
-              assert (NIN: not (in_Gamma σ s0 py)). apply H.
-              eapply lid_bound_between_shrink. solve_lid_bound_between. solve_local_count. solve_local_count.
-
-              exfalso; eapply NIN.
-
-              destruct (n' =? n1) eqn: EQ.
-              -- apply beq_nat_true in EQ. subst.
-                eapply nth_error_protect_eq in Yσ.
-                destruct Yσ.
-                econstructor.
-                eauto. rewrite GENIR_Γ.
-                eauto. eauto.
-              -- erewrite nth_error_protect_neq in Yσ. 2 : apply beq_nat_false; eauto.
-                econstructor. eauto. rewrite GENIR_Γ. eauto. eauto.
-            * apply neg_rel_dec_correct in Heqb.
-              rewrite remove_neq_alist; eauto.
-              all: typeclasses eauto.
-        - intros.
-          specialize (MM H).
-          destruct MM as (? & ? & ?).
-          exists x0. split; auto. intros.
-
-          (* get_array_cell mV_EXTENDED_WITH_AEXPR_RESULT ptr_y' (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0) *)
-          admit.
-      }
+      eapply write_state_invariant. 6 : eauto.  all : eauto. 3 : constructor.
+      2 : admit.
+      eapply state_invariant_cons2; eauto. admit.
     }
 
-    (* [no_llvm_ptr_aliasing_cfg] re-establishment ~ *)
-    {
-      (* clear -st_no_llvm_ptr_aliasing. *)
-      eapply no_llvm_ptr_aliasing_cons2; eauto.
-      apply no_llvm_ptr_aliasing_not_in_gamma; eauto.
-      admit.
-    }
-  }
     admit.
     {
       destruct y.
       - cbn. eauto.
-      - cbn. cbn in *. unfold alist_add. cbn.
-        break_match_goal.
-        *  rewrite rel_dec_correct in Heqb; subst.
-        assert (Gamma_safe σ s0 s12). solve_gamma_safe.
-
-          Transparent addVars.
-          inv Heqs4.
-          cbn in *.
-
-          assert (NIN: not (in_Gamma σ s0 py)). apply H.
-          eapply lid_bound_between_shrink. solve_lid_bound_between. solve_local_count. solve_local_count.
-          exfalso; eapply NIN.
-          econstructor.
-          eauto. rewrite GENIR_Γ.
-          eauto. eauto.
-        * apply neg_rel_dec_correct in Heqb.
-          rewrite remove_neq_alist; eauto.
-          admit.
-          all : typeclasses eauto.
+      - cbn. cbn in *. admit.
     }
     {
 
