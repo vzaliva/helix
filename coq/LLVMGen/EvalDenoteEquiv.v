@@ -527,12 +527,15 @@ Section Eval_Denote_Equiv.
         reflexivity.
       - cbn* in *; simp; go.
         cbn*; repeat match_rewrite; go.
+        rewrite Heqs2. repeat match_rewrite; go.
         3: cbn*; match_rewrite; eauto.
         2: cbn*; match_rewrite; eauto.
         rewrite  Denote_Eval_Equiv_IMap; eauto; go.
         rewrite interp_Mem_MemSet; reflexivity.
       - cbn* in *; simp; go.
         cbn*; repeat match_rewrite; go.
+        rewrite Heqs2.
+        repeat match_rewrite; go.
         2,3: cbn*; match_rewrite; eauto.
         rewrite  Denote_Eval_Equiv_BinOp; eauto; go.
         go.
@@ -544,11 +547,13 @@ Section Eval_Denote_Equiv.
         rewrite interp_Mem_MemSet; reflexivity.
       - cbn* in *; simp; go.
         cbn*; repeat match_rewrite; go.
+        rewrite Heqs1.
+        repeat match_rewrite; go.
         rewrite Denote_Eval_Equiv_NExpr; eauto; go.
         rewrite Denote_Eval_Equiv_NExpr; eauto; go.
         rewrite Denote_Eval_Equiv_NExpr; eauto; go.
 
-        rewrite Heqs6. rewrite interp_Mem_ret. rewrite bind_ret_l.
+        rewrite Heqs7. rewrite interp_Mem_ret. rewrite bind_ret_l.
         rewrite interp_Mem_bind.
         rewrite Denote_Eval_Equiv_DSHPower; eauto; go.
         2,3: cbn*; match_rewrite; eauto.

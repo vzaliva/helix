@@ -106,6 +106,7 @@ Section DSHPower_is_tfor.
                         ≈
           '(x_i,x_size) <- denotePExpr σ x_p ;;
           '(y_i,y_size) <- denotePExpr σ y_p ;;
+          _ <- lift_Serr (assert_nat_neq "DSHPower 'x' must not be equal 'y'" x_i y_i);;
           x <- trigger (MemLU "Error looking up 'x' in DSHPower" x_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHPower" y_i) ;;
           n <- denoteNExpr σ ne ;; (* [n] denoteuated once at the beginning *)
@@ -130,6 +131,7 @@ Section DSHPower_is_tfor.
       interp_helix (E := E)
       ('(x_i,x_size) <- denotePExpr σ x_p ;;
        '(y_i,y_size) <- denotePExpr σ y_p ;;
+        _ <- lift_Serr (assert_nat_neq "DSHPower 'x' must not be equal 'y'" x_i y_i);;
        x <- trigger (MemLU "Error looking up 'x' in DSHPower" x_i) ;;
        y <- trigger (MemLU "Error looking up 'y' in DSHPower" y_i) ;;
        n <- denoteNExpr σ ne ;; (* [n] denoteuated once at the beginning *)
@@ -285,9 +287,14 @@ Proof.
                             Γ := Γ i21 |}, Name ("Power_i" @@ string_of_nat (local_count i21)))) as LC_Gen by reflexivity.
 
   repeat apply no_failure_Ret in NOFAIL.
+  break_match_hyp; try_abs.
+  repeat apply no_failure_Ret in NOFAIL.
+
   do 2 (apply no_failure_helix_LU in NOFAIL; destruct NOFAIL as (? & NOFAIL & ?); cbn in NOFAIL).
 
   (* Symbolically reducing the concrete prefix on the Helix side *)
+  hred.
+  rewrite Heqs0.
   hred.
   hstep; [eassumption |].
   hred; hstep; [eassumption |].

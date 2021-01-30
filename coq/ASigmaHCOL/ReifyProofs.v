@@ -2191,7 +2191,7 @@ Proof.
       destruct H0; [assumption |].
       subst.
       apply memory_is_set_is_Some.
-      apply memory_lookup_err_inr_is_Some in Heqs3.
+      apply memory_lookup_err_inr_is_Some in Heqs4.
       assumption.
   -
     intros.
@@ -2219,6 +2219,7 @@ Global Instance Pointwise_MSH_DSH_compat
        {m : memory}
        (FDF : MSH_DSH_IUnCarrierA_compat f (protect_p σ y_p) df m)
        (P : DSH_pure (DSHIMap n x_p y_p df) y_p)
+       {XY : evalPExpr_id σ x_p <> evalPExpr_id σ y_p}
   :
     @MSH_DSH_compat _ _ (@MSHPointwise n f pF) (DSHIMap n x_p y_p df) σ m x_p y_p P.
 Proof.
@@ -2235,10 +2236,23 @@ Proof.
         try inl_inr; repeat inl_inr_inv;
           subst.
     +
+      exfalso.
+      cbn in XY.
+      rewrite Heqs, Heqs0 in XY.
+      rename Heqs1 into NE.
+      clear - XY NE.
+      rewrite inr_neq in XY.
+      unfold assert_nat_neq, assert_false_to_err in NE.
+      destruct (Nat.eqb n2 n0) eqn:E.
+      * apply beq_nat_true in E.
+        congruence.
+      *
+        inl_inr.
+    +
       (* mem_op succeeded with [Some md] while evaluation of DHS failed *)
       eq_to_equiv; tuple_inversion_equiv; subst_nat; minimize_eq.
 
-      rename Heqs1 into E.
+      rename Heqs2 into E.
 
       apply equiv_Some_is_Some in MD.
       pose proof (mem_op_of_hop_x_density MD) as DX.
@@ -2257,7 +2271,7 @@ Proof.
       (* mem_op succeeded with [Some md] while evaluation of DHS failed *)
       eq_to_equiv; tuple_inversion_equiv; subst_nat; minimize_eq.
 
-      rename Heqs4 into E.
+      rename Heqs5 into E.
 
       apply equiv_Some_is_Some in MD.
       pose proof (mem_op_of_hop_x_density MD) as DX.
@@ -2289,7 +2303,7 @@ Proof.
 
       eq_to_equiv_hyp; err_eq_to_equiv_hyp.
 
-      rename Heqs4 into ME.
+      rename Heqs5 into ME.
       intros k.
 
       unfold mem_op_of_hop in MD.
@@ -2424,7 +2438,7 @@ Proof.
       destruct H0; [assumption |].
       subst.
       apply memory_is_set_is_Some.
-      apply memory_lookup_err_inr_is_Some in Heqs3.
+      apply memory_lookup_err_inr_is_Some in Heqs4.
       assumption.
   -
     intros σ m m' fuel E y_i size P.
@@ -2455,6 +2469,7 @@ Global Instance BinOp_MSH_DSH_compat
        (m: memory)
        (FDF : MSH_DSH_IBinCarrierA_compat f (protect_p σ y_p) df m)
        (BP: DSH_pure (DSHBinOp o x_p y_p df) y_p)
+       {XY : evalPExpr_id σ x_p <> evalPExpr_id σ y_p}
   :
     @MSH_DSH_compat _ _ (MSHBinOp f) (DSHBinOp o x_p y_p df) σ m x_p y_p BP.
 Proof.
@@ -2470,10 +2485,23 @@ Proof.
       try some_none; repeat some_inv;
       try inl_inr; repeat inl_inr_inv;
       subst.
-    all: eq_to_equiv; tuple_inversion_equiv; subst_nat; minimize_eq.
+    2,3,4: eq_to_equiv; tuple_inversion_equiv; subst_nat; minimize_eq.
+    +
+      exfalso.
+      cbn in XY.
+      rewrite Heqs, Heqs0 in XY.
+      rename Heqs1 into NE.
+      clear - XY NE.
+      rewrite inr_neq in XY.
+      unfold assert_nat_neq, assert_false_to_err in NE.
+      destruct (Nat.eqb n1 n) eqn:E.
+      * apply beq_nat_true in E.
+        congruence.
+      *
+        inl_inr.
     + (* mem_op succeeded with [Some md] while evaluation of DHS failed *)
       exfalso.
-      rename Heqs1 into E.
+      rename Heqs2 into E.
 
       apply equiv_Some_is_Some in MD.
       pose proof (mem_op_of_hop_x_density MD) as DX.
@@ -2490,7 +2518,7 @@ Proof.
       constructor.
     + (* mem_op succeeded with [Some md] while evaluation of DHS failed *)
       exfalso.
-      rename Heqs4 into E.
+      rename Heqs5 into E.
 
       apply equiv_Some_is_Some in MD.
       pose proof (mem_op_of_hop_x_density MD) as DX.
@@ -2530,7 +2558,7 @@ Proof.
       rewrite NP.F.add_eq_o by reflexivity.
       constructor.
       repeat some_inv.
-      rename Heqs4 into ME.
+      rename Heqs5 into ME.
       intros k.
       unfold mem_op_of_hop in MD.
       break_match_hyp; try some_none.
@@ -2681,7 +2709,7 @@ Proof.
       destruct H0; [assumption |].
       subst.
       apply memory_is_set_is_Some.
-      apply memory_lookup_err_inr_is_Some in Heqs2.
+      apply memory_lookup_err_inr_is_Some in Heqs3.
       assumption.
   -
     intros.
@@ -2719,6 +2747,7 @@ Global Instance Inductor_MSH_DSH_compat
        {x_p y_p : PExpr}
        (FA : MSH_DSH_BinCarrierA_compat f (protect_p σ y_p) a m)
        (PD : DSH_pure (DSHPower nx (x_p, NConst 0) (y_p, NConst 0) a init) y_p)
+       {XY : evalPExpr_id σ x_p <> evalPExpr_id σ y_p}
   :
     @MSH_DSH_compat _ _
                     (MSHInductor n f init)
@@ -2757,19 +2786,32 @@ Proof.
       repeat break_match_hyp; try inl_inr;
         repeat inl_inr_inv; repeat some_inv; try some_none; subst.
       *
-        repeat err_eq_to_equiv_hyp.
-        apply memory_lookup_err_inl_None in Heqs1.
-        repeat eq_to_equiv_hyp.
-        some_none.
+        exfalso.
+        cbn in XY.
+        rewrite Heqs, Heqs0 in XY.
+        rename Heqs1 into NE.
+        clear - XY NE.
+        rewrite inr_neq in XY.
+        unfold assert_nat_neq, assert_false_to_err in NE.
+        destruct (Nat.eqb x_id y_id) eqn:E.
+        -- apply beq_nat_true in E.
+           congruence.
+        --
+          inl_inr.
       *
         repeat err_eq_to_equiv_hyp.
         apply memory_lookup_err_inl_None in Heqs2.
         repeat eq_to_equiv_hyp.
         some_none.
       *
+        repeat err_eq_to_equiv_hyp.
+        apply memory_lookup_err_inl_None in Heqs3.
+        repeat eq_to_equiv_hyp.
+        some_none.
+      *
         (* assert_NT_lt fails *)
-        unfold assert_NT_lt, assert_true_to_err in Heqs4.
-        cbn in Heqs4.
+        unfold assert_NT_lt, assert_true_to_err in Heqs5.
+        cbn in Heqs5.
         break_if; try inl_inr.
         break_match_hyp; [| inversion Heqb].
         unfold NatAsNT.MNatAsNT.to_nat in Heqn.
@@ -2779,11 +2821,11 @@ Proof.
         inv H0.
       *
         unfold memory_lookup_err, trywith in *.
-        rewrite X_M' in Heqs1.
-        rewrite Y_M' in Heqs2.
+        rewrite X_M' in Heqs2.
+        rewrite Y_M' in Heqs3.
         repeat inl_inr_inv.
         subst.
-        cbn in Heqs5.
+        cbn in Heqs6.
         inl_inr.
     +
       cbn in MOP.
@@ -2803,19 +2845,32 @@ Proof.
         try some_none; repeat some_inv; 
           try inl_inr; repeat inl_inr_inv;
             subst.
+      1: {
+        cbn in XY.
+        rewrite Heqs, Heqs0 in XY.
+        rename Heqs1 into NE.
+        clear - XY NE.
+        rewrite inr_neq in XY.
+        unfold assert_nat_neq, assert_false_to_err in NE.
+        destruct (Nat.eqb x_id y_id) eqn:E.
+        -- apply beq_nat_true in E.
+           congruence.
+        --
+          inl_inr.
+      }
       all: memory_lookup_err_to_option; tuple_inversion_equiv;
         minimize_eq; eq_to_equiv; subst_nat; subst.
       all: try some_none.
-      1: inv Heqs3.
+      1: inv Heqs4.
       unfold memory_lookup_err, trywith in *.
-      rewrite X_M' in Heqs1.
-      rewrite Y_M' in Heqs2.
+      rewrite X_M' in Heqs2.
+      rewrite Y_M' in Heqs3.
       repeat some_inv.
 
-      rewrite <-Heqs1, <-Heqs2, H, H1 in *;
-        clear Heqs1 Heqs2 H H1 y_m' x_m'.
+      rewrite <-Heqs2, <-Heqs3, H, H1 in *;
+        clear Heqs2 Heqs3 H H1 y_m' x_m'.
 
-      rename Heqs4 into EV.
+      rename Heqs5 into EV.
       clear - EV XD FA.
       apply equiv_Some_is_Some in XD.
       revert x_m XD EV.
@@ -2915,15 +2970,15 @@ Proof.
       minimize_eq; subst_nat; subst.
     rename H into YME, H1 into XME.
 
-    rename Heqs4 into EV.
+    rename Heqs5 into EV.
 
     (* [x_m] is not dense *)
     rename Heqo into XD.
     apply mem_block_to_avector_eq_None in XD.
 
     unfold memory_lookup_err, trywith in *.
-    rewrite X_M' in Heqs1.
-    rewrite Y_M' in Heqs2.
+    rewrite X_M' in Heqs2.
+    rewrite Y_M' in Heqs3.
     repeat some_inv.
     eq_to_equiv; subst y_m' x_m'.
     rewrite XME, YME in *; clear XME YME m0.
@@ -2987,7 +3042,7 @@ Proof.
       rewrite N in DOP.
       repeat break_match; try inl_inr.
       inl_inr_inv.
-      rename m0 into pm, Heqs0 into PM,
+      rename m0 into pm, Heqs1 into PM,
       H0 into DMA.
       rewrite <-DMA in *.
       unfold memory_lookup, memory_set in Y_DMA.
@@ -5950,7 +6005,7 @@ Proof.
   unfold memory_lookup_err, trywith.
   repeat break_match;
     try some_none; repeat some_inv;
-    try inl_inr; repeat inl_inr_inv.
+      try inl_inr; repeat inl_inr_inv.
   all: tuple_inversion_equiv; subst_nat; subst.
   all: eq_to_equiv.
   all: rename Heqs into X1_ID, Heqs0 into X2_ID, Heqs1 into Y_ID.
@@ -6063,7 +6118,7 @@ Proof.
   unfold memory_lookup_err, trywith.
   repeat break_match;
     try some_none; repeat some_inv;
-    try inl_inr; repeat inl_inr_inv.
+      try inl_inr; repeat inl_inr_inv.
   all: tuple_inversion_equiv; subst_nat; subst.
   all: eq_to_equiv.
   all: rename Heqs into X1_ID, Heqs0 into X2_ID, Heqs1 into Y_ID.
