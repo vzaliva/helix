@@ -162,7 +162,7 @@ Section DSHIMap_is_tfor.
     cbn.
     repeat (eapply eutt_clo_bind; [reflexivity|intros; try break_match_goal; subst]).
     setoid_rewrite denoteDSHIMap_as_tfor.
-    rewrite eq_rev.
+    (* rewrite eq_rev. *)
   Admitted.
 
   (*   reflexivity. *)
@@ -305,11 +305,17 @@ Proof.
 
   (* Clean up [no_failure] *)
   repeat apply no_failure_Ret in NOFAIL.
-  
+  break_match_hyp; try_abs.
+
+  repeat apply no_failure_Ret in NOFAIL.
+
+
   edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
   edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
   clean_goal.
 
+  hred.
+  rewrite Heqs0.
   hred.
   hstep; [eauto |].
   hred; hstep; [eauto |].

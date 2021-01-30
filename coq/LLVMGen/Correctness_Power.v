@@ -275,6 +275,9 @@ Proof.
   destruct u.
   simp; try_abs.
   repeat apply no_failure_Ret in NOFAIL.
+  break_match_hyp; try_abs.
+  repeat apply no_failure_Ret in NOFAIL.
+
   do 2 (apply no_failure_helix_LU in NOFAIL; destruct NOFAIL as (? & NOFAIL & ?); cbn in NOFAIL).
 
   (* Symbolically reducing the concrete prefix on the Helix side *)
