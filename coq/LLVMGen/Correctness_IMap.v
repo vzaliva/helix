@@ -382,6 +382,8 @@ Proof.
   rename sz0 into y_sz.
   rename sz into x_sz.
 
+  assert (UNIQ_INV : n0 ≢ n1). admit.
+
   (* Invariant at each iteration *)
   set (I := (fun (k : nat) (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
                match mH with
@@ -393,7 +395,7 @@ Proof.
                  (* 2. Preserved state invariant *)
                  memory_invariant_partial_write stV k n ptrll_yoff b y y_sz /\
                  mH ≡ memH /\ g ≡ g' /\
-                 exists v, ext_memory mV_init ptrll_yoff DTYPE_Double (UVALUE_Double v) mV /\
+                 (* exists v, ext_memory mV_init ptrll_yoff DTYPE_Double (UVALUE_Double v) mV /\ *)
                 (* Accessing py pointer doesn't go out of bounds *)
                 (DynamicValues.Int64.intval (repr (Z.of_nat n)) < Z.of_N y_sz)%Z
                end)).
@@ -404,7 +406,7 @@ Proof.
                | None => False
                | Some (mH,b) => state_invariant (protect σ n1) s12 mH stV /\
                  let '(mV, (p, g')) := stV in
-                 mH ≡ memH /\ g ≡ g' /\ mV ≡ mV_init /\
+                 mH ≡ memH /\ g ≡ g' /\ mV ≡ mV_init /\ ρ ≡ p /\ b ≡ bkh_yoff /\
                 (DynamicValues.Int64.intval (repr (Z.of_nat n)) < Z.of_N y_sz)%Z
                   (* exists v, ext_memory mV_init ptrll_yoff DTYPE_Double (UVALUE_Double v) mV *)
                end)).
@@ -412,7 +414,7 @@ Proof.
   set (Q := (fun (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
                match mH with
                | None => False
-               | Some (mH,b) => state_invariant σ s12 mH stV /\
+               | Some (mH,b) => state_invariant (protect σ n1) s12 mH stV /\
                  let '(mV, (p, g')) := stV in
                  mH ≡ memH /\ g ≡ g' /\
                 (DynamicValues.Int64.intval (repr (Z.of_nat n)) < Z.of_N y_sz)%Z
@@ -482,11 +484,10 @@ Proof.
 
     rewrite denote_code_cons.
 
-    assert (n0 ≢ n1). admit.
 
     (* Get mem information from PRE condition here (global and local state has changed). *)
     (* Needed for the following GEP and Load instructions *)
-    destruct INV as (INV_r & INV_p & -> & -> & bky & EXT_mV & BOUNDS).
+    destruct INV as (INV_r & INV_p & -> & -> & BOUNDS).
 
     (* Read info as if we're reading from a protected σ *)
     erewrite <- nth_error_protect_neq with (n2 := n1) in Heqo; auto.
@@ -605,7 +606,7 @@ Proof.
     rename H0 into x_HGEP.
 
     vred.
-    setoid_rewrite H1; clear H1.
+    setoid_rewrite x_HGEP; clear x_HGEP.
     vred.
 
     (* [Vellvm] : Load *)
@@ -729,6 +730,7 @@ Proof.
     hred.
     vred.
 
+    rename H into x_HGEP.
     edestruct (@read_write_succeeds mV _ _ _ (DVALUE_Double t_Aexpr) x_HGEP) as [mV'' WRITE]; [constructor|].
     pose proof x_HGEP.
     apply can_read_allocated in x_HGEP.
@@ -859,9 +861,9 @@ Proof.
       assert (b0 ≢ loopcont) as NEQ by solve_id_neq.
       rewrite find_block_ineq; eauto.
     }
-    rename H0 into READ_XP.
+    rename H into READ_XP.
     rename x0 into mV_EXTENDED_WITH_AEXPR_RESULT.
-    rename H1 into WRITE_MEM.
+    rename H0 into WRITE_MEM.
 
     (* Re-establish INV in post condition *)
 
@@ -970,7 +972,8 @@ Proof.
           split; [|split].
           - admit.
           - destruct y'; cbn in *; eauto. admit.
-          - intros. specialize (MM H0).
+          - intros.
+            specialize (MM H).
             destruct MM as (? & ? & ?).
             exists x0. split; auto. intros.
             admit.
@@ -985,7 +988,6 @@ Proof.
         admit.
       }
     }
-      admit.
       admit.
       admit.
       admit.
@@ -1076,28 +1078,29 @@ Proof.
     reflexivity.
   }
 
+  (* P -> I 0 *)
   forward GENC; [clear GENC |].
   {
     subst I P; red; intros; auto. destruct a; eauto.
     destruct p; eauto. destruct b1; eauto. destruct p; eauto.
-    intuition.
-    admit. eauto.
+    intuition. subst.
     destruct H0.
+    cbn.
     unfold memory_invariant in mem_is_inv.
-    unfold memory_invariant_partial_write.
-    intros. 
-    cbn. intros.
-    admit.
+    erewrite <- nth_error_protect_neq in Heqo.
+    rewrite GENIR_Γ in LUn.
+    specialize (mem_is_inv _ _ _ _ _ Heqo LUn).
+    cbn in mem_is_inv.
+    edestruct mem_is_inv as (?  & ? & ? & ? & ? & ?). inv H.
+    split; eauto. eauto.
   }
 
+  (* I n -> Q *)
   forward GENC; [clear GENC |].
   {
     subst I P Q; red; intros; auto. destruct a; auto.
-    destruct p; eauto. destruct b1; eauto. destruct p; eauto. admit.
-    (* destruct H as (? & ? & -> & -> & ? & ? & ?). *)
-    (* split; try split; try split; eauto. *)
-    (* cbn in H0. *)
-    (* admit. admit. *)
+    destruct p; eauto. destruct b1; eauto. destruct p; eauto.
+    destruct H as (? & ? & ? & ? & ?). subst. split; eauto.
   }
 
   setoid_rewrite <- bind_ret_r at 6.
@@ -1105,11 +1108,15 @@ Proof.
   vstep.
   eapply eutt_clo_bind.
 
+  (* PRECONDITION *)
   eapply GENC.
   {
     subst P I. clear GENC.
     cbn. split; [|split]; eauto.
-    admit.
+    apply state_invariant_protect.
+    eapply state_invariant_Γ. eauto.
+    solve_gamma.
+    split; [| split; split; split]; auto.
     admit.
   }
 
@@ -1132,21 +1139,7 @@ Proof.
       (* all : eauto. admit. *)
   }
 
-
-  (* forward GENC; [clear GENC |]. *)
-  (* { *)
-  (*   subst I P; red; intros; auto. admit. *)
-  (* } *)
-
-  (* forward GENC; [clear GENC |]. *)
-  (* { *)
-  (*   subst I P; red; intros; auto. admit. *)
-  (* } *)
-
-  (* (* eapply eutt_mon; [| apply GENC]. *) *)
-
-  (* specialize (GENC g ρ memV bid_from). *)
-  (* admit. *)
+  contradiction. contradiction.
 Admitted.
 
 Section Swap.

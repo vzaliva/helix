@@ -305,10 +305,6 @@ Section SimulationRelations.
   Definition memory_invariant_partial_write (configV : config_cfg) (index loopsize : nat) (ptr_llvm : addr)
              (bk_helix : mem_block) (x : ident) sz : Prop :=
       let '(mem_llvm, (ρ, g)) := configV in
-      (* forall n size τ s σ x, *)
-        (* nth_error σ n ≡ Some (DSHPtrVal ptr size) -> *)
-        (* nth_error (Γ s) n ≡ Some (x, τ) -> *)
-        (* τ ≡ (TYPE_Pointer (TYPE_Array sz TYPE_Double)) /\ *)
           dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp [] (TYPE_Array sz TYPE_Double))
               ∧ in_local_or_global_addr ρ g x ptr_llvm
               ∧ (∀ (i : Int64.int) (v0 : binary64),
