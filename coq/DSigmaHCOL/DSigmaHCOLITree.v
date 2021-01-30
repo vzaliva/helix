@@ -285,8 +285,6 @@ Module MDSigmaHCOLITree
           '(x0_i,x0_size) <- denotePExpr σ x0_p ;;
           '(x1_i,x1_size) <- denotePExpr σ x1_p ;;
           '(y_i,y_size) <- denotePExpr σ y_p ;;
-          lift_Serr (assert_nat_neq "DSHMemMap2 'x0' must not be equal 'y'" x0_i y_i) ;;
-          lift_Serr (assert_nat_neq "DSHMemMap2 'x1' must not be equal 'y'" x1_i y_i) ;;
           x0 <- trigger (MemLU "Error looking up 'x0' in DSHMemMap2" x0_i) ;;
           x1 <- trigger (MemLU "Error looking up 'x1' in DSHMemMap2" x1_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHMemMap2" y_i) ;;

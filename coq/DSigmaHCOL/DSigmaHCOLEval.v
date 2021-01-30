@@ -390,8 +390,6 @@ Module MDSigmaHCOLEval
               '(x1_i,x1_size) <- evalPExpr σ x1_p ;;
               (* assert_NT_le "DSHMemMap2 'n' larger than 'x0_size'" n' x1_size ;; *)
               '(y_i,y_size) <- evalPExpr σ y_p ;;
-              assert_nat_neq "DSHMemMap2 'x0' must not be equal 'y'" x0_i y_i ;;
-              assert_nat_neq "DSHMemMap2 'x1' must not be equal 'y'" x1_i y_i ;;
               assert_NT_le "DSHMemMap2 'n' larger than 'y_size'" n' y_size ;;
               x0 <- memory_lookup_err "Error looking up 'x0' in DSHMemMap2" mem x0_i ;;
               x1 <- memory_lookup_err "Error looking up 'x1' in DSHMemMap2" mem x1_i ;;
@@ -1782,12 +1780,12 @@ Module MDSigmaHCOLEval
       all: memory_lookup_err_to_option.
       all: eq_to_equiv_hyp; err_eq_to_equiv_hyp.
       all: rewrite ME in *; try some_none.
+      all: rewrite Heqs4 in Heqs8; some_inv; rewrite Heqs8 in *.
+      all: rewrite Heqs5 in Heqs9; some_inv; rewrite Heqs9 in *.
       all: rewrite Heqs6 in Heqs10; some_inv; rewrite Heqs10 in *.
-      all: rewrite Heqs7 in Heqs11; some_inv; rewrite Heqs11 in *.
-      all: rewrite Heqs8 in Heqs12; some_inv; rewrite Heqs12 in *.
-      all: rewrite Heqs9 in Heqs13; try inl_inr; inl_inr_inv.
+      all: rewrite Heqs7 in Heqs11; try inl_inr; inl_inr_inv.
       do 2 f_equiv.
-      rewrite Heqs13.
+      rewrite Heqs11.
       reflexivity.
     -
       intros.
