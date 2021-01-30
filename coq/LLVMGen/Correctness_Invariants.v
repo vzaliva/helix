@@ -546,19 +546,19 @@ Section SimulationRelations.
     rewrite <- GAM in *.
     cbn in *.
     split; eauto; red; repeat intro.
-    - intros. specialize (mem_is_inv (S (S n))).
+    - intros. specialize (mem_is_inv0 (S (S n))).
       cbn in *.
-      specialize (mem_is_inv _ _ _ _ H H0). destruct v; eauto.
-    - red in IRState_is_WF. specialize (IRState_is_WF v (S (S n))).
+      specialize (mem_is_inv0 _ _ _ _ H H0). destruct v; eauto.
+    - red in IRState_is_WF0. specialize (IRState_is_WF0 v (S (S n))).
       cbn in *. eauto.
     - assert (S (S n2) ≡ S (S n1) -> n2 ≡ n1) by lia. apply H3.
-      eapply st_no_id_aliasing; eauto.
+      eapply st_no_id_aliasing0; eauto.
     - assert (S (S n') ≡ S (S n) -> n' ≡ n) by lia. apply H1.
-      eapply st_no_dshptr_aliasing; eauto.
-    - red in st_no_llvm_ptr_aliasing.
-      specialize (st_no_llvm_ptr_aliasing id1 ptrv1 id2 ptrv2 (S (S n1)) (S (S n2))).
-      cbn in *. rewrite <- GAM in *. revert H6. eapply st_no_llvm_ptr_aliasing;eauto.
-    - specialize (st_id_allocated (S (S n))). cbn in *. eauto.
+      eapply st_no_dshptr_aliasing0; eauto.
+    - red in st_no_llvm_ptr_aliasing0.
+      specialize (st_no_llvm_ptr_aliasing0 id1 ptrv1 id2 ptrv2 (S (S n1)) (S (S n2))).
+      cbn in *. rewrite <- GAM in *. revert H6. eapply st_no_llvm_ptr_aliasing0;eauto.
+    - specialize (st_id_allocated0 (S (S n))). cbn in *. eauto.
   Qed.
 
   (* The memory invariant is stable by evolution of IRStates that preserve Γ *)
