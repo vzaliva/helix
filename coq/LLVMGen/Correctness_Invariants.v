@@ -2662,6 +2662,69 @@ Proof.
       eapply id_allocated_memory_set; eauto.
 Qed.
 
+(* TODO: is there a better spot for this? *)
+Lemma get_array_cell_mlup_ext :
+  forall bkh ptrll dst_addr sz ix mV mV' v',
+    (∀ (i : Int64.int) (v : binary64),
+        mem_lookup (MInt64asNT.to_nat i) bkh ≡ Some v
+        → get_array_cell mV ptrll (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v)) ->
+    handle_gep_addr (DTYPE_Array sz DTYPE_Double) ptrll [DVALUE_I64 (repr 0); DVALUE_I64 ix] ≡ inr dst_addr ->
+    ext_memory mV dst_addr DTYPE_Double (dvalue_to_uvalue (DVALUE_Double v')) mV' ->
+    allocated ptrll mV' ->
+    (∀ (i : Int64.int) (v : binary64),
+        MInt64asNT.to_nat ix ≢ MInt64asNT.to_nat i ->
+        mem_lookup (MInt64asNT.to_nat i) bkh ≡ Some v ->
+        get_array_cell mV' ptrll (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v)).
+Proof.
+  intros bkh ptrll dst_addr sz ix mV mV' v' GAC GEP_INIT [EXT_NEW EXT_OLD] ALLOC' i v NEQ MLUP.
+
+  pose proof (GAC _ _ MLUP) as G.
+  pose proof (get_array_succeeds_allocated _ _ _ _ G) as ALLOC.
+
+  epose proof (read_array_exists mV _ _ _ ptrll ALLOC) as (elem_addr & GEP & READ).
+
+  erewrite <- read_array; eauto.
+  rewrite EXT_OLD; eauto.
+  rewrite READ; eauto.
+  solve_allocated.
+
+  rewrite repr_of_nat_to_nat in GEP.
+  eapply no_overlap_dtyp_array_different_indices; eauto.
+  apply to_nat_unsigned'; eauto.
+Qed.
+
+(* TODO: is there a better spot for this? *)
+Lemma get_array_cell_mlup_ext' :
+  forall bkh ptrll dst_addr sz ix mV mV' v',
+    (∀ (i : Int64.int) (v : binary64),
+        MInt64asNT.to_nat ix ≢ MInt64asNT.to_nat i ->
+        mem_lookup (MInt64asNT.to_nat i) bkh ≡ Some v
+        → get_array_cell mV ptrll (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v)) ->
+    handle_gep_addr (DTYPE_Array sz DTYPE_Double) ptrll [DVALUE_I64 (repr 0); DVALUE_I64 ix] ≡ inr dst_addr ->
+    ext_memory mV dst_addr DTYPE_Double (dvalue_to_uvalue (DVALUE_Double v')) mV' ->
+    allocated ptrll mV' ->
+    (∀ (i : Int64.int) (v : binary64),
+        MInt64asNT.to_nat ix ≢ MInt64asNT.to_nat i ->
+        mem_lookup (MInt64asNT.to_nat i) bkh ≡ Some v ->
+        get_array_cell mV' ptrll (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v)).
+Proof.
+  intros bkh ptrll dst_addr sz ix mV mV' v' GAC GEP_INIT [EXT_NEW EXT_OLD] ALLOC' i v NEQ MLUP.
+
+  pose proof (GAC _ _ NEQ MLUP) as G.
+  pose proof (get_array_succeeds_allocated _ _ _ _ G) as ALLOC.
+
+  epose proof (read_array_exists mV _ _ _ ptrll ALLOC) as (elem_addr & GEP & READ).
+
+  erewrite <- read_array; eauto.
+  rewrite EXT_OLD; eauto.
+  rewrite READ; eauto.
+  solve_allocated.
+
+  rewrite repr_of_nat_to_nat in GEP.
+  eapply no_overlap_dtyp_array_different_indices; eauto.
+  apply to_nat_unsigned'; eauto.
+Qed.
+
 Lemma vellvm_helix_ptr_size:
   forall σ s memH memV ρ g n id (sz : N) dsh_ptr (dsh_sz : Int64.int) b,
     nth_error (Γ s) n ≡ Some (id, TYPE_Pointer (TYPE_Array sz TYPE_Double)) ->

@@ -1296,6 +1296,25 @@ Proof.
   break_match; subst; reflexivity.
 Qed.
 
+Lemma to_nat_unsigned' :
+  forall x y,
+    MInt64asNT.to_nat x ≢ MInt64asNT.to_nat y ->
+    DynamicValues.Int64.unsigned x ≢ DynamicValues.Int64.unsigned y.
+Proof.
+  intros x y H.
+  apply to_nat_unsigned in H.
+  do 2 rewrite repr_of_nat_to_nat in H.
+  auto.
+Qed.
+
+Lemma Int64_intval_pos :
+  forall i,
+    (0 <= Int64.intval i)%Z.
+Proof.
+  intros i.
+  pose proof Int64.intrange i; lia.
+Qed.
+
 (* TODO: prove this *)
 Lemma from_Z_intval :
   forall sz i,
