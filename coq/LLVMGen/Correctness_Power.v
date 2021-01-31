@@ -906,7 +906,9 @@ Proof.
           eauto.
           { eapply state_invariant_enter_scope_DSHCType' with (s1:={| block_count := block_count i19; local_count := local_count i16; void_count := void_count i19; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}); cbn; eauto.
 
-            2: solve_alist_in.
+            admit. (* LID BOUND... Should hold *)
+            3: solve_alist_in.
+            2: solve_local_count.
 
             { pose proof GAM.
               unfold Gamma_safe in H.
@@ -928,15 +930,28 @@ Proof.
               end.
             }
 
-            eapply state_invariant_enter_scope_DSHCType'; eauto.
-            reflexivity.
+            assert (Γ i19 ≡ Γ i16) as Γ_i19i16 by solve_gamma.
+            eapply state_invariant_enter_scope_DSHCType'; cbn.
+            eauto.
+            rewrite Γ_i19i16. eauto.
+            3: solve_local_count.
+
+            admit. (* LID BOUND... should hold *)
+
             eapply not_in_Gamma_Gamma_eq with (s1 := s1); [solve_gamma|solve_not_in_gamma].
 
             { solve_alist_in.
             }
 
-            eapply state_invariant_same_Γ with (s1:=s2); eauto.
+            eapply state_invariant_same_Γ' with (s1:=s2); eauto.
             solve_gamma.
+            { get_gamma_bounds.
+              assert (Γ i8 ≡ Γ i16) by solve_gamma.
+              eapply gamma_bound_mono.
+              apply PostYoffSINV.
+              solve_local_count.
+              eauto.
+            }
 
             { eapply not_in_Gamma_Gamma_eq; eauto.
               eapply not_in_gamma_protect.
@@ -1426,6 +1441,8 @@ Proof.
             eapply st_id_allocated in Q_POST.
             eauto.
           }
+
+          get_gamma_bounds; solve_gamma_bound.
         }
 
         split.
@@ -1603,16 +1620,19 @@ Proof.
         red.
         split.
         { (* State invariant *)
-          repeat (eapply state_invariant_same_Γ; eauto; [solve_not_in_gamma|]).
-          eapply state_invariant_Γ.
+          repeat
+            (eapply state_invariant_same_Γ'; cycle 1;
+             [get_gamma_bounds; solve_gamma_bound | solve_not_in_gamma | | solve_gamma]).
+
+          assert (Γ s2 ≡ Γ i8) as Γ_s2i8 by solve_gamma.
+          eapply state_invariant_Γ' with (s1:=i8); [eauto|eauto|get_gamma_bounds; solve_gamma_bound].
+          eapply write_state_invariant with (ptrll := ptrll_yoff) (dst_addr := dst_addr); eauto.
 
           assert (Γ s1 ≡ Γ i8) as Γ_s1i8 by solve_gamma.
-          eapply write_state_invariant with (ptrll := ptrll_yoff) (dst_addr := dst_addr); eauto.
           rewrite <- Γ_s1i8. eauto.
           eauto.
           eapply handle_gep_addr_array_same_block; eauto.
           constructor.
-          solve_gamma.
         }
 
         (* Local environments *)
