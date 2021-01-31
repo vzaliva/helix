@@ -1046,10 +1046,19 @@ Section MSHCOL_to_AHCOL.
       end.
 
       1:{
-        cbn; apply inr_neq.
-        cbn in *.
+        cbn in *; apply inr_neq.
         inl_inr_inv.
         subst.
+        rename m' into m, H2 into H1.
+        clear t H0.
+        remember (memory_set m 5 mb) as m'.
+        remember (memory_next_key m') as k.
+
+        assert(kc: k>5).
+        {
+          subst k.
+          eapply memory_set_memory_next_key_gt; eauto.
+        }
         admit.
       }
 
