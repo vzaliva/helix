@@ -3311,3 +3311,9 @@ Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incLocal; [eas
 Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incLocalNamed; [eassumption | solve_state_invariant] : SolveStateInv.
 Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eassumption | solve_state_invariant] : SolveStateInv.
 Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incLocalNamed; [eassumption | solve_state_invariant] : SolveStateInv.
+
+Ltac get_gamma_bounds :=
+  repeat match goal with
+         | SINV : state_invariant _ _ _ _ |- _
+           => apply st_gamma_bound in SINV
+         end.

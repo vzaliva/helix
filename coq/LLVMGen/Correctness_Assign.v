@@ -779,7 +779,7 @@ Proof.
 
       apply eutt_Ret; split; [| split]; cbn.
       - (* TODO: add to solve_state_invariant *)
-        do 3 (eapply state_invariant_same_Γ; [reflexivity | solve_not_in_gamma | ]).
+        do 3 (eapply state_invariant_same_Γ; [reflexivity | solve_local_count | solve_not_in_gamma | ]).
         destruct PRE2.
         split; eauto.
 
@@ -1526,6 +1526,7 @@ Proof.
             specialize (st_id_allocated n1). cbn in *.
             specialize (st_id_allocated _ _ _ H).
             eapply mem_block_exists_memory_set; eauto.
+          + get_gamma_bounds; solve_gamma_bound.
         - exists bid_in. reflexivity.
 
         - (* The only local variables modified are in [si;sf] *)
@@ -1657,7 +1658,7 @@ Proof.
 
       apply eutt_Ret; split; [| split]; cbn.
       - (* TODO: add to solve_state_invariant *)
-        do 3 (eapply state_invariant_same_Γ; [reflexivity | solve_not_in_gamma | ]).
+        do 3 (eapply state_invariant_same_Γ; [reflexivity | solve_local_count | solve_not_in_gamma | ]).
         destruct PRE2.
         split; eauto.
 
