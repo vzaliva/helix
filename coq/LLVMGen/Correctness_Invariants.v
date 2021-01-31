@@ -76,8 +76,22 @@ Proof.
     eauto.
 Qed.
 
+Lemma gamma_bound_nil :
+  forall s,
+    Γ s ≡ [] ->
+    gamma_bound s.
+Proof.
+  intros s H.
+  unfold gamma_bound.
+  intros n id τ NTH.
+  rewrite H in NTH.
+  rewrite ListNth.nth_error_nil in NTH.
+  inv NTH.
+Qed.
+
 Ltac solve_gamma_bound :=
   solve [ eauto
+        | apply gamma_bound_nil; solve_gamma
         | eapply gamma_bound_mono; [solve_gamma_bound | solve_local_count | solve_gamma]
         | eapply gamma_bound_uncons; [solve_gamma_bound | solve_local_count | eauto]
         | eapply gamma_bound_cons; [solve_gamma_bound | solve_local_count | cbn; eauto | solve_lid_bound]

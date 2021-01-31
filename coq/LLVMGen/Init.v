@@ -3107,6 +3107,7 @@ Proof.
               econstructor.
               rewrite nth_error_nil in H0.
               inversion H0.
+            + solve_gamma_bound.
           -
             intuition.
         }
@@ -3433,6 +3434,7 @@ Proof.
                 unfold init_with_data.
                 rewrite Heqs2.
                 reflexivity.
+              --- admit. (* TODO: figure out gamma_bound here *)
             **
               constructor.
               all: cbn; clear - DI.
