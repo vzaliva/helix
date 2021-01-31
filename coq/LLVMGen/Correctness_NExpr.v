@@ -157,6 +157,7 @@ Section NExpr.
           eapply WF_IRState_Γ; eauto.
           symmetry.
           eapply incLocal_Γ; eauto.
+          solve_local_count.
         * intros l' LOC GAM; cbn*.
           vstep; [ | reflexivity].
           cbn.
@@ -261,7 +262,7 @@ Section NExpr.
         
         eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
         solve_local_count.
-
+        solve_local_count.
       + intros * SCO GAM.
         vstep; eauto.
         cbn.
@@ -367,7 +368,7 @@ Section NExpr.
         
         eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
         solve_local_count.
-        
+        solve_local_count.
       + intros * SCO GAM.
         vstep; eauto.
         cbn.
@@ -457,7 +458,7 @@ Section NExpr.
        
        eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
        solve_local_count.
-
+       solve_local_count.
      + intros * SCO GAM.
        vstep; eauto.
        cbn.
@@ -546,7 +547,7 @@ Section NExpr.
        
        eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
        solve_local_count.
-       
+       solve_local_count.
      + intros * SCO GAM.
        vstep; eauto.
        cbn.
@@ -637,7 +638,7 @@ Section NExpr.
        
        eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
        solve_local_count.
-       
+       solve_local_count.
      + intros * SCO GAM.
        vstep; eauto.
        cbn.

@@ -133,4 +133,7 @@ Proof.
 Qed.
 
 Ltac solve_prefix :=
-  try now (unfold append; cbn; reflexivity).
+  try solve
+      [ eauto
+      | now (unfold append; cbn; reflexivity)
+      ].

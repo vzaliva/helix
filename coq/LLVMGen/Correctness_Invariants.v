@@ -13,6 +13,76 @@ Set Strict Implicit.
 
 Import ListNotations.
 Import AlistNotations.
+
+Definition gamma_bound (s : IRState) : Prop :=
+  forall n id τ,
+    nth_error (Γ s) n ≡ Some (ID_Local id, τ) ->
+    lid_bound s id.
+
+Lemma gamma_bound_mono :
+  forall s1 s2,
+    gamma_bound s1 ->
+    s1 <<= s2 ->
+    Γ s1 ≡ Γ s2 ->
+    gamma_bound s2.
+Proof.
+  intros s1 s2 GAM LT GAMEQ.
+  unfold gamma_bound in *.
+  intros n id τ NTH.
+  eapply state_bound_mono.
+  eapply GAM.
+  2: solve_local_count.
+  rewrite GAMEQ.
+  eauto.
+Qed.
+
+Lemma gamma_bound_uncons :
+  forall s1 s2 x ,
+    gamma_bound s1 ->
+    s1 <<= s2 ->
+    Γ s1 ≡ x :: Γ s2 ->
+    gamma_bound s2.
+Proof.
+  intros s1 s2 x BOUND LT GAM.
+  unfold gamma_bound in *.
+  intros n id τ NTH.
+  eapply state_bound_mono.
+  eapply BOUND.
+  2: solve_local_count.
+  rewrite GAM.
+  rewrite nth_error_Sn.
+  eauto.
+Qed.
+
+Lemma gamma_bound_cons :
+  forall s1 s2 x τ,
+    gamma_bound s1 ->
+    s1 <<= s2 ->
+    (ID_Local x, τ) :: Γ s1 ≡ Γ s2 ->
+    lid_bound s2 x ->
+    gamma_bound s2.
+Proof.
+  intros s1 s2 x τ BOUND LT GAM LID_BOUND.
+  unfold gamma_bound in *.
+  intros [|n] id τ' NTH.
+  - rewrite <- GAM in NTH.
+    cbn in NTH. inv NTH.
+    eauto.
+  - eapply state_bound_mono.
+    eapply BOUND.
+    2: solve_local_count.
+    rewrite <- GAM in NTH.
+    rewrite nth_error_Sn in NTH.
+    eauto.
+Qed.
+
+Ltac solve_gamma_bound :=
+  solve [ eauto
+        | eapply gamma_bound_mono; [solve_gamma_bound | solve_local_count | solve_gamma]
+        | eapply gamma_bound_uncons; [solve_gamma_bound | solve_local_count | eauto]
+        | eapply gamma_bound_cons; [solve_gamma_bound | solve_local_count | cbn; eauto | solve_lid_bound]
+        ].
+
 Section WF_IRState.
 
   (**
@@ -37,11 +107,6 @@ Section WF_IRState.
 
   Definition WF_IRState (σ : evalContext) (s : IRState) : Prop :=
     evalContext_typechecks σ (Γ s).
-
-  Definition gamma_bound (s : IRState) : Prop :=
-    forall n id τ,
-      nth_error (Γ s) n ≡ Some (ID_Local id, τ) ->
-      lid_bound s id.
 
   Lemma evalContext_typechecks_extend:
     ∀ (σ : evalContext) (s1 s1' : IRState) (x : ident * typ) (v : DSHVal * bool),
@@ -542,11 +607,12 @@ Section SimulationRelations.
 
   Lemma state_invariant_cons2 :
     forall a b x y s' s σ mH mV l g,
-    x :: y  :: Γ s' ≡ Γ s ->
-    state_invariant (a :: b :: σ) s mH (mV, (l, g)) ->
-    state_invariant σ s' mH (mV, (l, g)).
+      s <<= s' ->
+      x :: y  :: Γ s' ≡ Γ s ->
+      state_invariant (a :: b :: σ) s mH (mV, (l, g)) ->
+      state_invariant σ s' mH (mV, (l, g)).
   Proof.
-    intros * GAM INV.
+    intros * LT GAM INV.
     destruct INV.
     unfold memory_invariant, WF_IRState, no_id_aliasing, no_dshptr_aliasing, no_llvm_ptr_aliasing, id_allocated in *.
     rewrite <- GAM in *.
@@ -565,6 +631,13 @@ Section SimulationRelations.
       specialize (st_no_llvm_ptr_aliasing0 id1 ptrv1 id2 ptrv2 (S (S n1)) (S (S n2))).
       cbn in *. rewrite <- GAM in *. revert H6. eapply st_no_llvm_ptr_aliasing0;eauto.
     - specialize (st_id_allocated0 (S (S n))). cbn in *. eauto.
+    - unfold gamma_bound in st_gamma_bound0.
+      eapply state_bound_mono.
+      eapply st_gamma_bound0.
+      2: solve_local_count.
+      rewrite <- GAM.
+      do 2 rewrite nth_error_Sn.
+      eauto.
   Qed.
 
   (* The memory invariant is stable by evolution of IRStates that preserve Γ *)
@@ -572,11 +645,12 @@ Section SimulationRelations.
     ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
       (l : local_env) (g : global_env) (v : uvalue),
       Γ s1 ≡ Γ s2 ->
+      s1 <<= s2 ->
       ~ in_Gamma σ s1 id →
       state_invariant σ s1 memH (memV, (l, g)) →
       state_invariant σ s2 memH (memV, (alist_add id v l, g)).
   Proof.
-    intros * EQ NIN INV; inv INV.
+    intros * EQ LT NIN INV; inv INV.
     assert (WF_IRState σ s2) as WF.
     { red; rewrite <- EQ; auto. }
     constructor; auto.
@@ -626,6 +700,7 @@ Section SimulationRelations.
       apply NIN.
       rewrite <- EQ in H0.
       econstructor; eauto.
+    - solve_gamma_bound.
   Qed.
 
   Lemma evalContext_typechecks_cons :
@@ -738,10 +813,11 @@ Section SimulationRelations.
       incLocal s1 ≡ inr (s2, id)
       -> WF_IRState σ s2
       -> Gamma_safe σ s1 s2
+      -> s1 <<= s2
       → state_invariant σ s1 memH (memV, (l, g))
       → state_invariant σ s2 memH (memV, (alist_add id v l, g)).
   Proof.
-    intros * INC SAFE INV.
+    intros * INC SAFE LT INV.
     eapply state_invariant_same_Γ; eauto using lid_bound_between_incLocal.
     symmetry; eapply incLocal_Γ; eauto.
   Qed.
@@ -789,7 +865,8 @@ Section SimulationRelations.
     - eapply incVoid_no_id_aliasing; eauto.
     - destruct stV as [m [l g]].
       eapply incVoid_no_llvm_ptr_aliasing; eauto.
-  Qed.
+    - solve_gamma_bound.
+  Qed.    
 
   (* If no change has been made, all changes are certainly in the interval *)
   Lemma local_scope_modif_refl: forall s1 s2 l, local_scope_modif s1 s2 l l.
@@ -1374,6 +1451,7 @@ Proof.
     destruct stV as [mv [l g]].
     rewrite INC in *.
     eauto.
+  - solve_gamma_bound.
 Qed.
 
 Lemma incLocalNamed_no_id_aliasing :
@@ -1409,6 +1487,7 @@ Proof.
     destruct stV as [mv [l g]].
     rewrite INC in *.
     eauto.
+  - solve_gamma_bound.
 Qed.
 
 Lemma incBlockNamed_no_id_aliasing :
@@ -1444,6 +1523,7 @@ Proof.
     destruct stV as [mv [l g]].
     rewrite INC in *.
     eauto.
+  - solve_gamma_bound.
 Qed.
 
 Lemma state_invariant_no_llvm_ptr_aliasing :
@@ -1484,14 +1564,16 @@ Lemma state_invariant_Γ :
   forall σ s1 s2 memH stV,
     state_invariant σ s1 memH stV ->
     Γ s2 ≡ Γ s1 ->
+    s1 <<= s2 ->
     state_invariant σ s2 memH stV.
 Proof.
-  intros * INV EQ; inv INV.
+  intros * INV EQ LT; inv INV.
   split; cbn; eauto.
   - red; rewrite EQ; apply mem_is_inv0.
   - red. rewrite EQ; apply IRState_is_WF0.
   - eapply no_id_aliasing_gamma; eauto.
   - destruct stV as (? & ? & ?); cbn in *; eapply no_llvm_ptr_aliasing_gamma; eauto.
+  - solve_gamma_bound.
 Qed.
 
 Lemma state_invariant_add_fresh' :
@@ -1509,10 +1591,11 @@ Qed.
 
 Lemma state_invariant_escape_scope : forall σ v x s1 s2 stH stV,
     Γ s1 ≡ x :: Γ s2 ->
+    s1 <<= s2 ->
     state_invariant (v::σ) s1 stH stV ->
     state_invariant σ s2 stH stV.
 Proof.
-  intros * EQ [MEM WF ALIAS1 ALIAS2 ALIAS3].
+  intros * EQ LT [MEM WF ALIAS1 ALIAS2 ALIAS3].
   destruct stV as (? & ? & ?).
   split.
   - red; intros * LU1 LU2.
@@ -1551,6 +1634,7 @@ Proof.
   - red.
     intros * LU.
     eapply (st_id_allocated0 (S n)); eauto.
+  - solve_gamma_bound.
 Qed.
 
 (* TO MOVE *)
@@ -1559,12 +1643,13 @@ Definition uvalue_of_nat k := UVALUE_I64 (Int64.repr (Z.of_nat k)).
 Lemma state_invariant_enter_scope_DSHnat : 
   forall σ v prefix x s1 s2 stH mV l g b,
     newLocalVar IntType prefix s1 ≡ inr (s2, x) ->
+    is_correct_prefix prefix ->
     ~ in_Gamma σ s1 x ->
     l @ x ≡ Some (uvalue_of_nat v) ->
     state_invariant σ s1 stH (mV,(l,g)) ->
     state_invariant ((DSHnatVal (Int64.repr (Z.of_nat v)), b)::σ) s2 stH (mV,(l,g)).
 Proof.
-  intros * EQ GAM LU [MEM WF ALIAS1 ALIAS2 ALIAS3]; inv EQ; cbn in *.
+  intros * EQ PREF GAM LU [MEM WF ALIAS1 ALIAS2 ALIAS3]; inv EQ; cbn in *.
   split.
   - red; intros * LU1 LU2.
     destruct n as [| n].
@@ -1614,17 +1699,19 @@ Proof.
       eapply ALIAS3; [exact LU1 | exact LU2 |..]; eauto.
   - intros [| n] * LUn; [inv LUn |].
     eapply st_id_allocated0; eauto.
+  - solve_gamma_bound.
 Qed.
 
 Lemma state_invariant_enter_scope_DSHCType : 
   forall σ v prefix x s1 s2 stH mV l g b,
     newLocalVar TYPE_Double prefix s1 ≡ inr (s2, x) ->
+    is_correct_prefix prefix ->
     ~ in_Gamma σ s1 x ->
     l @ x ≡ Some (UVALUE_Double v) ->
     state_invariant σ s1 stH (mV,(l,g)) ->
     state_invariant ((DSHCTypeVal v, b)::σ) s2 stH (mV,(l,g)).
 Proof.
-  intros * EQ GAM LU [MEM WF ALIAS1 ALIAS2 ALIAS3]; inv EQ; cbn in *.
+  intros * EQ PREF GAM LU [MEM WF ALIAS1 ALIAS2 ALIAS3]; inv EQ; cbn in *.
   split.
   - red; intros * LU1 LU2.
     destruct n as [| n].
@@ -1673,21 +1760,24 @@ Proof.
       eapply ALIAS3; [exact LU1 | exact LU2 |..]; eauto.
   - intros [| n] * LUn; [inv LUn |].
     eapply st_id_allocated0; eauto.
+  - solve_gamma_bound.
 Qed.
 
 Lemma state_invariant_enter_scope_DSHCType' : 
   forall σ v b x s1 s2 stH mV l g τ,
     τ ≡ getWFType (ID_Local x) DSHCType ->
     Γ s2 ≡ (ID_Local x,τ) :: Γ s1 ->
+    lid_bound s2 x ->
 
     (* Freshness *)
     ~ in_Gamma σ s1 x ->
+    s1 <<= s2 ->
 
     l @ x ≡ Some (UVALUE_Double v) ->
     state_invariant σ s1 stH (mV,(l,g)) ->
     state_invariant ((DSHCTypeVal v, b)::σ) s2 stH (mV,(l,g)).
 Proof.
-  intros * TYP EQ GAM LU [MEM WF ALIAS1 ALIAS2 ALIAS3]; cbn in TYP; inv TYP.
+  intros * TYP EQ LID_BOUND GAM LT LU [MEM WF ALIAS1 ALIAS2 ALIAS3]; cbn in TYP; inv TYP.
   split.
   - red; intros * LU1 LU2.
     rewrite EQ in *.
@@ -1740,15 +1830,19 @@ Proof.
       eapply ALIAS3; [exact LU1 | exact LU2 |..]; eauto.
   - intros [| n] * LUn; [inv LUn |].
     eapply st_id_allocated0; eauto.
+  - solve_gamma_bound.
 Qed.
 
 Lemma state_invariant_enter_scope_DSHPtr :
   forall σ ptrh sizeh ptrv x τ s1 s2 stH mV mV_a l g b,
     τ ≡ getWFType (ID_Local x) (DSHPtr sizeh) ->
     Γ s2 ≡ (ID_Local x,τ) :: Γ s1 ->
+    lid_bound s2 x ->
 
     (* Freshness *)
     ~ in_Gamma σ s1 x ->
+    s1 <<= s2 ->
+
     (* ~ In (ID_Local x) (map fst (Γ s2)) ->          (* The new ident is fresh *) *)
     (forall sz b, ~ In ((DSHPtrVal ptrh sz), b) σ) -> (* The new Helix address is fresh *)
 
@@ -1762,7 +1856,7 @@ Lemma state_invariant_enter_scope_DSHPtr :
                     (mV_a, (alist_add x (UVALUE_Addr ptrv) l,g)).
 Proof.
   Opaque add_logical_block. Opaque next_logical_key.
-  intros * -> EQ GAM fresh alloc [MEM WF ALIAS1 ALIAS2 ALIAS3 ALLOC].
+  intros * -> EQ LID_BOUND GAM LT fresh alloc [MEM WF ALIAS1 ALIAS2 ALIAS3 ALLOC].
   split.
   - red; intros * LU1 LU2.
     destruct n as [| n].
@@ -2082,6 +2176,7 @@ Proof.
 
       apply (@mem_block_exists_memory_set_neq _ _ stH mem_empty NEQ).
       eauto.
+  - solve_gamma_bound.
 Qed.
 
 Lemma protect_nil :
@@ -2452,6 +2547,7 @@ Proof.
   - apply no_dshptr_aliasing_protect; eauto.
   - apply no_llvm_ptr_aliasing_protect; eauto.
   - apply id_allocated_protect; eauto.
+  - eauto.
 Qed.
 
 
@@ -2759,6 +2855,7 @@ Proof.
   - apply no_dshptr_aliasing_protect; eauto.
   - apply no_llvm_ptr_aliasing_protect; eauto.
   - apply id_allocated_protect; eauto.
+  - solve_gamma_bound.
 Qed.
 
 Lemma id_allocated_memory_set :
@@ -2862,6 +2959,7 @@ Proof.
   - eapply no_llvm_ptr_aliasing_protect; eauto.
   - eapply id_allocated_protect;
       eapply id_allocated_memory_set; eauto.
+  - solve_gamma_bound.
 Qed.
 
 (* TODO: is there a better spot for this? *)
@@ -2997,6 +3095,7 @@ Ltac solve_in_gamma :=
 (* TODO: expand this *)
 Ltac solve_lid_bound_between :=
   solve [ eauto
+        | eapply lid_bound_between_count; [solve_prefix | solve_local_count | solve_local_count]
         | eapply lid_bound_between_shrink; [eapply lid_bound_between_incLocal | | ]; eauto; solve_local_count
         | eapply lid_bound_between_shrink; [eapply lid_bound_between_incLocalNamed; cycle 1; [eauto | solve_prefix]| solve_local_count | solve_local_count]
         ].
@@ -3199,9 +3298,6 @@ Proof.
   unfold local_scope_preserved in PRES.
   setoid_rewrite maps_add_neq; eauto.
 Qed.
-
-Ltac solve_lid_bound :=
-  eapply incLocal_lid_bound; eauto.
 
 Ltac solve_local_scope_preserved :=
   first [ apply local_scope_preserved_refl

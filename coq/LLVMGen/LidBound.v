@@ -225,4 +225,52 @@ Section LidBound.
     solve_local_count.
   Qed.
 
+  Lemma lid_bound_before :
+    forall s1 s2 x,
+      lid_bound s1 x ->
+      s1 <<= s2 ->
+      lid_bound s2 x.
+  Proof.
+    intros s1 s2 x BOUND LT.
+    unfold lid_bound, state_bound in *.
+    destruct BOUND as (prefix & s1' & s2' & PREF & LT' & INC).
+    do 3 eexists.
+    repeat split.
+    all: eauto.
+    solve_local_count.
+  Qed.
+
+  Lemma lid_bound_count :
+    forall s1 s2 pref,
+      is_correct_prefix pref ->
+      (local_count s2 < local_count s1)%nat ->
+      lid_bound s1 (Name (pref @@ string_of_nat (local_count s2))).
+  Proof.
+    intros s1 s2 pref.
+    unfold lid_bound, state_bound in *.
+    do 3 eexists.
+    repeat split; eauto.
+  Qed.
+
+  Lemma lid_bound_between_count :
+    forall s1 s2 s pref,
+      is_correct_prefix pref ->
+      (local_count s1 <= local_count s)%nat ->
+      (local_count s < local_count s2)%nat ->
+      lid_bound_between s1 s2 (Name (pref @@ string_of_nat (local_count s))).
+  Proof.
+    intros s1 s2 s pref PREF LE LT.
+    unfold lid_bound, state_bound in *.
+    do 3 eexists.
+    repeat split; eauto.
+  Qed.
 End LidBound.
+
+Ltac solve_lid_bound :=
+  solve
+    [ eauto
+    | eapply incLocal_lid_bound; cbn; eauto
+    | eapply incLocalNamed_lid_bound; [solve_prefix | cbn; eauto]
+    | eapply newLocalVar_lid_bound; [solve_prefix | cbn; eauto]
+    | eapply lid_bound_count; [solve_prefix | solve_local_count]
+    ].

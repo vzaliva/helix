@@ -277,8 +277,11 @@ Proof.
           apply genIR_local_count in genIR_op'. cbn in *.
           split; try split; try split; eauto. reflexivity.
         }
-        auto.
-     - (* ∀ s : Int64.int, ¬ List.In (DSHPtrVal (memory_next_key memH) s) σ *)
+
+        solve_lid_bound.
+      - solve_not_in_gamma.
+      - solve_local_count.
+      - (* ∀ s : Int64.int, ¬ List.In (DSHPtrVal (memory_next_key memH) s) σ *)
         intros. (* Use fact about memory_next_key *)
         pose proof @mem_block_exists_memory_next_key.
         destruct PRE.
@@ -387,6 +390,7 @@ Proof.
       rewrite <- mem_block_exists_memory_remove_neq. auto.
       intro. eapply H. subst. eauto.
 
+    - solve_gamma_bound.
     - split. destruct H3. cbn in H3.
       { apply H3. }
       destruct H3. cbn in *.

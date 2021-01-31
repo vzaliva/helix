@@ -216,6 +216,7 @@ Section AExpr.
         * eapply state_invariant_add_fresh; eauto.
           eapply WF_IRState_Γ; eauto.
           symmetry; eapply incLocal_Γ; eauto.
+          solve_local_count.
         * intros l' LOC GAM; cbn*.
           vstep; [ | reflexivity].
           cbn.
@@ -335,6 +336,7 @@ Section AExpr.
         eapply Gamma_safe_shrink; eauto.
         solve_local_count.
         solve_local_count.
+        solve_local_count.
       + intros * SCO GAM.
         vstep; eauto.
         cbn.
@@ -386,6 +388,7 @@ Section AExpr.
           eauto; symmetry; eapply incLocal_Γ; eauto.
 
         eapply Gamma_safe_shrink; eauto.
+        solve_local_count.
         solve_local_count.
       + intros * SCO GAM.
         vstep; eauto.
@@ -457,6 +460,7 @@ Section AExpr.
           eauto; symmetry; eapply incLocal_Γ; eauto.
 
         eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
+        solve_local_count.
         solve_local_count.
       + intros * SCO GAM.
         vstep; eauto.
@@ -530,6 +534,7 @@ Section AExpr.
 
         eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
         solve_local_count.
+        solve_local_count.
       + intros * SCO GAM.
         vstep; eauto.
         cbn.
@@ -600,6 +605,7 @@ Section AExpr.
           eauto; symmetry; eapply incLocal_Γ; eauto.
 
         eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
+        solve_local_count.
         solve_local_count.
       + intros * SCO GAM.
         vstep; eauto.
@@ -679,6 +685,7 @@ Section AExpr.
 
         eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
         solve_local_count.
+        solve_local_count.
       + intros * SCO GAM.
         vstep; eauto.
         cbn.
@@ -757,6 +764,7 @@ Section AExpr.
           eauto; symmetry; eapply incLocal_Γ; eauto.
 
         eapply Gamma_safe_shrink; eauto. rewrite GAM2; auto.
+        solve_local_count.
         solve_local_count.
       + intros * SCO GAM.
         vstep; eauto.
@@ -857,12 +865,14 @@ Section AExpr.
         symmetry; eapply incLocal_Γ; eauto.
         solve_local_count.
         solve_local_count.
+        solve_local_count.
         eapply state_invariant_add_fresh; [eauto |..].
         eapply WF_IRState_Γ;
           eauto; symmetry; eapply incLocal_Γ; eauto.
 
         eapply Gamma_safe_shrink; eauto.
         rewrite <- GAM1, <- GAM2; auto.
+        solve_local_count.
         solve_local_count.
         solve_local_count.
         auto.

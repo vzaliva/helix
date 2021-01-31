@@ -285,9 +285,12 @@ Proof.
         reflexivity.
       + eauto.
       + cbn in P1.
-        eapply state_invariant_escape_scope; eauto.
-        erewrite <- genIR_Γ; eauto.
+        (* TODO: ugh *)
+        eapply state_invariant_escape_scope.
+        instantiate (2:=s3).
         eapply newLocalVar_Γ; eauto.
+        solve_local_count.
+        
       + cbn in *.
         clear INV P1 P2.
         apply local_scope_modif_shrink with s3 s4; auto.

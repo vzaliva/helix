@@ -240,8 +240,10 @@ Ltac get_gammas :=
       apply newLocalVar_Γ in H; cbn in H
     | H: dropVars _ _ ≡ inr _ |- _ =>
       apply dropVars in H; cbn in H
-     | H: incLocal _ ≡ inr (_, _) |- _ =>
+    | H: incLocal _ ≡ inr (_, _) |- _ =>
       eapply incLocal_Γ in H; cbn in H
+    | H: incLocalNamed _ _ ≡ inr (_, _) |- _ =>
+      eapply incLocalNamed_Γ in H; cbn in H
     | H: incVoid _ ≡ inr (_, _) |- _ =>
       eapply incVoid_Γ in H; cbn in H
     | H: incBlockNamed _ _ ≡ inr (_, _) |- _ =>
