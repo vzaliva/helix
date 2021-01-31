@@ -38,6 +38,11 @@ Section WF_IRState.
   Definition WF_IRState (σ : evalContext) (s : IRState) : Prop :=
     evalContext_typechecks σ (Γ s).
 
+  Definition gamma_bound (s : IRState) : Prop :=
+    forall n id τ,
+      nth_error (Γ s) n ≡ Some (ID_Local id, τ) ->
+      lid_bound s id.
+
   Lemma evalContext_typechecks_extend:
     ∀ (σ : evalContext) (s1 s1' : IRState) (x : ident * typ) (v : DSHVal * bool),
       Γ s1' ≡ x :: Γ s1 →
@@ -425,7 +430,8 @@ Section SimulationRelations.
     st_no_id_aliasing : no_id_aliasing σ s ;
     st_no_dshptr_aliasing : no_dshptr_aliasing σ ;
     st_no_llvm_ptr_aliasing : no_llvm_ptr_aliasing_cfg σ s configV ;
-    st_id_allocated : id_allocated σ memH
+    st_id_allocated : id_allocated σ memH ;
+    st_gamma_bound : gamma_bound s
     }.
 
   (* Predicate stating that an (llvm) local variable is relevant to the memory invariant *)
