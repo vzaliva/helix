@@ -1585,8 +1585,8 @@ Lemma state_invariant_Γ' :
 Proof.
   intros * INV EQ LT; inv INV.
   split; cbn; eauto.
-  - red; rewrite EQ; apply mem_is_inv.
-  - red. rewrite EQ; apply IRState_is_WF.
+  - red; rewrite EQ; apply mem_is_inv0.
+  - red. rewrite EQ; apply IRState_is_WF0.
   - eapply no_id_aliasing_gamma; eauto.
   - destruct stV as (? & ? & ?); cbn in *; eapply no_llvm_ptr_aliasing_gamma; eauto.
 Qed.
