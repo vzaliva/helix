@@ -323,7 +323,7 @@ Proof.
            block_count := block_count i21;
            local_count := S (local_count i21);
            void_count := void_count i21;
-           Γ := Γ i21 |} s2 i21 {|
+           Γ := Γ i21 |} s2 i16 {|
            block_count := block_count i21;
            local_count := S (local_count i21);
            void_count := void_count i21;
@@ -358,7 +358,7 @@ Proof.
   assert (wf_ocfg_bid body_bks') as WF_BODY_BKS' by admit.
 
   (* TODO: make solve_lid_bound_between do this *)
-  assert (lid_bound_between i21 {|
+  assert (lid_bound_between i16 {|
            block_count := block_count i21;
            local_count := S (local_count i21);
            void_count := void_count i21;
@@ -369,6 +369,15 @@ Proof.
 
   specialize (LOOPTFOR Inb0 PREF_POWER WF_BODY_BKS' LID_BOUND_BETWEEN_POWER_I).
   specialize (LOOPTFOR FREE_BODY_BKS'_NEXTBLOCK).
+
+  clear LID_BOUND_BETWEEN_POWER_I.
+  assert (lid_bound_between i21 {|
+           block_count := block_count i21;
+           local_count := S (local_count i21);
+           void_count := void_count i21;
+           Γ := Γ i21 |}
+                            ("Power_i" @@ string_of_nat (local_count i21))) as LID_BOUND_BETWEEN_POWER_I by solve_lid_bound_between.
+  
 
   (* Need to know how many times we loop, this is determined by the
   result of evaluating the expression e1 *)
@@ -717,6 +726,7 @@ Proof.
                      alist_find dst_ptr_id ρ ≡ Some (UVALUE_Addr dst_addr) /\
                      alist_find src_ptr_id ρ ≡ Some (UVALUE_Addr src_addr) /\
                      g ≡ g_yoff /\
+                     allocated ptrll_yoff mV /\
                      (* Not sure if this is the right block *)
                        Returns (Some (mH, mb))
                                (@interp_helix _ E_cfg (tfor
@@ -761,7 +771,7 @@ Proof.
       forward LOOPTFOR.
       { intros g_loop l_loop mV_loop [[mH_loop mb_loop] |] k _label [HI [POWERI [POWERI_VAL RETURNS]]]; [|inv HI].
         cbn in HI.
-        destruct HI as [LINV_SINV [LINV_DST_PTR_ID [LINV_SRC_PTR_ID [LINV_GLOBALS [LINV_RET [LINV_HELIX_MB_OLD [v [LINV_HELIX_MB_NEW LINV_MEXT]]]]]]]].
+        destruct HI as [LINV_SINV [LINV_DST_PTR_ID [LINV_SRC_PTR_ID [LINV_GLOBALS [LINV_ALLOC [LINV_RET [LINV_HELIX_MB_OLD [v [LINV_HELIX_MB_NEW LINV_MEXT]]]]]]]]].
         pose proof LINV_MEXT as [LINV_MEXT_NEW LINV_MEXT_OLD].
         unfold DSHPower_tfor_body.
         
@@ -894,7 +904,7 @@ Proof.
         {
           eapply genAExpr_correct.
           eauto.
-          { eapply state_invariant_enter_scope_DSHCType' with (s1:={| block_count := block_count i19; local_count := local_count i19; void_count := void_count i19; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}); cbn; eauto.
+          { eapply state_invariant_enter_scope_DSHCType' with (s1:={| block_count := block_count i19; local_count := local_count i16; void_count := void_count i19; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}); cbn; eauto.
 
             2: solve_alist_in.
 
@@ -1051,7 +1061,13 @@ Proof.
             unfold local_scope_preserved in extends.
             rewrite extends.
             rewrite alist_find_neq.
-            2: solve_id_neq.
+            2: { intros ID; symmetry in ID; revert ID.
+                 eapply state_bound_between_separate.
+                 eapply incLocalNamed_count_gen_injective.
+                 solve_lid_bound_between.
+                 solve_lid_bound_between.
+                 solve_local_count.
+            }
             2: { unfold lid_bound_between.
                  unfold state_bound_between.
                  exists "Power_i". eexists. eexists.
@@ -1087,71 +1103,6 @@ Proof.
             destruct POSTAEXPR.
             cbn in POSTAEXPRSINV.
 
-            (* I should really automate this local_scope_modif state_invariant reasoning...
-               
-               Let's think about this a little...
-
-               All other things being equal, how can I modify the
-               local environment for the state_invariant safely?
-
-               - state_invariant_same_Γ
-               - state_invariant_add_fresh
-
-               local_scope_modif says that if the local environments
-               differ on an id, then that id was bound between two
-               states...
-
-               state_invariant only cares about the local environment
-               for no_llvm_ptr_aliasing
-
-               I can add any id I want to the local environment, as
-               long as it's not in Gamma, because we only care about
-               aliasing of the variables in Gamma.
-
-               Both r2 and r1 are NOT in Gamma because of Heqs15,
-               dropVars for the state before generating the loop.
-
-               I'm also going to need to prove that they're not in
-               i19, because Gamma is just a simple list... But we do
-               have no_id_aliasing which ensures that the list has no
-               duplicate ids. Unfortunately, I don't know that the
-               state with r2 and r1 follows the state invariant. This
-               state is the result of addVars, and I need to know that
-               those variables added are fresh...
-
-               Seems like I would need something about the variables
-               in gamma being bound earlier... But we don't seem to
-               have that.
-
-               newLocalVar_Γ
-             *)
-
-
-            (* When is the state invariant preserved by a write?
-
-               LINV_SINV : state_invariant σ s2 mH_Aexpr (mV_Aexpr, (l_loop, g_Aexpr))
-               WRITE : write mV_Aexpr dst_addr (DVALUE_Double t_Aexpr) ≡ inr mV'
-
-               Goal is:
-
-                 state_invariant σ s2 mH_Aexpr (mV', (l_Aexpr, g_Aexpr))
-
-              Two things are different here.
-
-              1) mV' instead of mV_Aexpr
-              2) l_Aexpr instead of l_loop
-
-              The only parts affected by this in the state_invariant are...
-
-              - memory_invariant
-              - no_llvm_ptr_aliasing
-
-              *CAUTION:* One scary thing... mH_Aexpr is the same?
-               Shouldn't it be updated after the write? Looks like
-               it's the same by POSTAEXPR... Should be fiiiine.
-               
-             *)
-
             destruct POSTAEXPRSINV.
             cbn in st_no_llvm_ptr_aliasing.
 
@@ -1162,78 +1113,168 @@ Proof.
             (* TODO: can I pull these out into lemmas? *)
             (* TODO: probably similar to state_invariant_escape_scope, but with a write *)
             (* TODO: might want to not destruct and look at the state_invariant_write_double stuff? *)
-            - (* unfold memory_invariant. *)
-              (* pose proof mem_is_inv as MINV. *)
+            - cbn in extends.
+              unfold memory_invariant.
+              pose proof mem_is_inv as MINV.
+              unfold memory_invariant in MINV.
+              intros n v0 b τ x NTH_σ NTH_Γ.
 
-              (* (* If x does not equal dst_ptr_id this should be smooth sailing... *)
+              pose proof NTH_σ as NTH_σ_orig.
+              pose proof NTH_Γ as NTH_Γ_orig.
+              do 2 erewrite <- nth_error_Sn in NTH_σ.
+              do 2 erewrite <- nth_error_Sn in NTH_Γ.
 
-              (*    If x does equal dst_ptr_id... *)
-              (*  *) *)
-              (* unfold memory_invariant in MINV. *)
-              (* intros n v τ x NTH_σ NTH_Γ. *)
+              pose proof Heqo0 as NTH_σ_dst.
+              apply nth_error_protect_eq' in NTH_σ_dst.
+              do 2 erewrite <- nth_error_Sn in NTH_σ_dst.
 
-              (* assert (nth_error (DSHCTypeVal b1 :: DSHCTypeVal b2 :: σ) (S (S n)) ≡ Some v) as NTH_σ' by auto. *)
-              (* assert (Γ i20 ≡ (ID_Local src_val_id, TYPE_Double) :: (ID_Local dst_val_id, TYPE_Double) :: Γ s2) as GAM20. *)
-              (* { get_gammas. *)
-              (*   apply dropVars_Γ' in Heqs15. *)
-              (*   rewrite <- Heqs14 in Heqs15. *)
-              (*   cbn in Gamma_cst. *)
-              (*   rewrite Gamma_cst. *)
-              (*   apply ListUtil.tail_eq. *)
-              (*   apply ListUtil.tail_eq. *)
-              (*   solve_gamma. *)
-              (* } *)
+              cbn in Gamma_cst.
+              assert (Γ s2 ≡ Γ i19) as Γ_s2i19 by solve_gamma.
 
-              (* assert (nth_error (Γ i20) (S (S n)) ≡ Some (x, τ)) as NTH_Γ' by (rewrite GAM20; auto). *)
+              pose proof LUn0 as NTH_Γ_dst.
+              do 2 erewrite <- nth_error_Sn in NTH_Γ_dst.
+              rewrite Γ_S1S2 in NTH_Γ_dst.
+              rewrite Γ_s2i19 in NTH_Γ_dst.
+              rewrite <- Gamma_cst in NTH_Γ_dst.
 
-              (* specialize (MINV _ v τ x NTH_σ' NTH_Γ'). *)
+              rewrite Γ_s2i19 in NTH_Γ.
+              rewrite <- Gamma_cst in NTH_Γ.
 
-              (* pose proof (write_correct WRITE) as [ALLOC WRITTEN]. *)
-              (* pose proof (rel_dec_p x (ID_Local dst_ptr_id)) as [EQdst | NEQdst]; subst. *)
-              (* + (* x = dst_ptr_id *) *)
-              (*   destruct v; eauto. *)
-              (*   destruct MINV as (bkh & ptrll & τ' & TEQ & FIND & FITS & INLG & READ); inv TEQ. *)
-              (*   cbn in INLG. *)
+              specialize (MINV _ _ _ _ _ NTH_σ NTH_Γ).
 
-              (*   erewrite local_scope_preserve_modif in INLG. *)
-              (*   erewrite INLG in LINV_DST_PTR; inv LINV_DST_PTR. *)
-              (*   4: solve_lid_bound_between. *)
-              (*   3: { eapply local_scope_modif_sub'_l. *)
-              (*        2: solve_local_scope_modif. *)
-              (*        solve_lid_bound_between. *)
-              (*   } *)
-              (*   2: solve_local_count. *)
-              (*   exists bkh. exists dst_addr. exists τ'. *)
-              (*   repeat split; cbn in *; eauto. *)
-              (*   eapply dtyp_fits_after_write; eauto. *)
-              (*   destruct Mono_IRState; subst; solve_alist_in. *)
-              (*   intros i v H. *)
-              (*   erewrite <- read_array. *)
-              (*   eauto. *)
-              (* + (* x <> dst_ptr_id *) *)
-              (*   destruct x, v; cbn in MINV; cbn; eauto. *)
-               
+              destruct x, v0; eauto.
+              + cbn in MINV. cbn.
+                destruct MINV as (ptr & τ' & TEQ & FIND & READ).
+                exists ptr. exists τ'.
+                repeat split; eauto.
 
+                pose proof (IRState_is_WF _ _ _ NTH_σ) as (id' & NTH_Γ').
+                (* id can not be id_addr because of the different
+                     type, and thus must be in a different block *)
 
+                (* Find τ' *)
+                rewrite NTH_Γ in NTH_Γ'; inv NTH_Γ'.
+                cbn in H1. inv H1.
 
-              (* destruct x, v; cbn in MINV; cbn; auto. *)
-              (* { destruct MINV as (ptr & τ' & TEQ & FIND & READ); inv TEQ. *)
-              (*   destruct (@no_overlap_dtyp_dec dst_addr ptr DTYPE_Double (typ_to_dtyp [] τ')). *)
-              (*   + exists ptr. exists τ'. *)
-              (*     repeat split; auto. *)
-              (*     edestruct WRITTEN. *)
-              (*     constructor. *)
-              (*     rewrite old_lu0; eauto. *)
-              (*     eapply can_read_allocated; eauto. *)
-              (*   + exists dst_addr. exists τ'. *)
-              (*     repeat split; auto. *)
-              (* } *)
-              
-              (* destruct H. *)
-              (* eapply MINV. *)
-              (* destruct v; auto. *)
-            (* cbn in MINV. *)
-              admit.
+                eapply write_different_blocks; eauto.
+                2: reflexivity.
+                2-3: typ_to_dtyp_simplify; constructor.
+
+                rewrite <- (handle_gep_addr_array_same_block _ _ _ _ HDST_GEP); eauto.
+
+                intros EQ; symmetry in EQ; revert EQ.
+                eapply st_no_llvm_ptr_aliasing.
+                eapply NTH_σ.
+                { do 2 rewrite nth_error_Sn.
+                  apply (nth_error_protect_eq' n3 _ Heqo0).
+                }
+                eapply NTH_Γ.
+                rewrite Gamma_cst.
+                do 2 rewrite nth_error_Sn.
+                rewrite <- Γ_s2i19. rewrite <- Γ_S1S2.
+                eauto.
+                { intros CONTRA; inv CONTRA.
+                  epose proof (st_no_id_aliasing _ _ _ _ _ _ _ NTH_σ NTH_σ_dst NTH_Γ NTH_Γ_dst) as EQ; inv EQ.
+
+                  rewrite NTH_Γ in NTH_Γ_dst; inv NTH_Γ_dst.
+                }
+                eauto.
+                eauto.
+              + cbn in MINV. cbn.
+                destruct MINV as (ptr & τ' & TEQ & FIND & READ).
+                exists ptr. exists τ'.
+                repeat split; eauto.
+
+                pose proof (IRState_is_WF _ _ _ NTH_σ) as (id' & NTH_Γ').
+                (* id can not be id_addr because of the different
+                     type, and thus must be in a different block *)
+
+                (* Find τ' *)
+                rewrite NTH_Γ in NTH_Γ'; inv NTH_Γ'.
+                cbn in H1. inv H1.
+
+                eapply write_different_blocks; eauto.
+                2: reflexivity.
+                2-3: typ_to_dtyp_simplify; constructor.
+
+                rewrite <- (handle_gep_addr_array_same_block _ _ _ _ HDST_GEP); eauto.
+
+                intros EQ; symmetry in EQ; revert EQ.
+                eapply st_no_llvm_ptr_aliasing.
+                eapply NTH_σ.
+                { do 2 rewrite nth_error_Sn.
+                  apply (nth_error_protect_eq' n3 _ Heqo0).
+                }
+                eapply NTH_Γ.
+                rewrite Gamma_cst.
+                do 2 rewrite nth_error_Sn.
+                rewrite <- Γ_s2i19. rewrite <- Γ_S1S2.
+                eauto.
+                { intros CONTRA; inv CONTRA.
+
+                  epose proof (st_no_id_aliasing _ _ _ _ _ _ _ NTH_σ NTH_σ_dst NTH_Γ NTH_Γ_dst) as EQ; inv EQ.
+
+                  rewrite NTH_Γ in NTH_Γ_dst; inv NTH_Γ_dst.
+                }
+                eauto.
+                eauto.
+              + (* Global vector *)
+                cbn in MINV.
+                destruct MINV as (ptr & τ' & TEQ & FITS & INLG' & LUP).
+                inv TEQ.
+                exists ptr. exists τ'.
+                repeat split; eauto.
+                eapply dtyp_fits_after_write; eauto.
+                intros H; destruct b; inv H.
+                specialize (LUP eq_refl).
+                destruct LUP as (bkh & MLUP_bk & GETARRAYCELL).
+                exists bkh.
+                split; eauto.
+                intros i v0 H.
+                specialize (GETARRAYCELL _ _ H).
+
+                erewrite write_untouched_ptr_block_get_array_cell; eauto.
+
+                rewrite <- (handle_gep_addr_array_same_block _ _ _ _ HDST_GEP); eauto.
+
+                eapply st_no_llvm_ptr_aliasing.
+                eapply NTH_σ.
+                eapply NTH_σ_dst.
+                eapply NTH_Γ.
+                eapply NTH_Γ_dst.
+                2-3: eauto.
+                intros CONTRA; inv CONTRA.
+                assert (S (S n) ≡ S (S n3)).
+                { eapply st_no_id_aliasing; eauto. }
+                inv H0.
+                apply protect_eq_true in NTH_σ_orig.
+                inv NTH_σ_orig.
+              + (* Local vector *)
+                cbn in MINV.
+                destruct MINV as (ptr & τ' & TEQ & FITS & INLG' & LUP).
+                inv TEQ.
+                exists ptr. exists τ'.
+                repeat split; eauto.
+                eapply dtyp_fits_after_write; eauto.
+                intros H; destruct b; inv H.
+                specialize (LUP eq_refl).
+                destruct LUP as (bkh & MLUP_bk & GETARRAYCELL).
+                exists bkh.
+                split; eauto.
+                intros i v0 H.
+                specialize (GETARRAYCELL _ _ H).
+
+                erewrite write_untouched_ptr_block_get_array_cell; eauto.
+
+                rewrite <- (handle_gep_addr_array_same_block _ _ _ _ HDST_GEP); eauto.
+
+                eapply st_no_llvm_ptr_aliasing.
+                eapply NTH_σ.
+                eapply NTH_σ_dst.
+                eapply NTH_Γ.
+                eapply NTH_Γ_dst.
+                2-3: eauto.
+                intros CONTRA; inv CONTRA.
             - eapply no_llvm_ptr_aliasing_cons2; eauto.
               { cbn in Gamma_cst.
                 rewrite Gamma_cst.
@@ -1261,6 +1302,10 @@ Proof.
             destruct is_almost_pure as [_ [_ G]].
             subst.
             auto.
+          }
+
+          split.
+          { eapply write_preserves_allocated; eauto.
           }
 
           split.
@@ -1330,14 +1375,19 @@ Proof.
             eapply WRITTEN. constructor.
           }
 
-        - destruct POSTAEXPR. cbn in extends.
+        - (* local_scope_modif sb1 sb2 li l *)
+          destruct POSTAEXPR. cbn in extends.
+
           cbn in Mono_IRState.
           cbn in Gamma_cst.
 
-          eapply local_scope_modif_sub'_l.
-          2: solve_local_scope_modif.
+          eapply local_scope_modif_sub'_l with (r:=src_val_id).
           solve_lid_bound_between.
-          admit. (* BLAH *)
+
+          eapply local_scope_modif_sub'_l with (r:=dst_val_id).
+          solve_lid_bound_between.
+
+          solve_local_scope_modif.
       }
 
       (* TODO: Might want to do more forward reasoning first *)
@@ -1413,7 +1463,7 @@ Proof.
         unfold I in *.
         destruct a; try inv HI.
         destruct p.
-        destruct HI as [HI_SINV [HI_DST_PTR_ID [HI_SRC_PTR_ID [HI_G [HI_RET [HI_HELIX_MB_OLD [HI_v [HI_HELIX_MB_NEW HI_MEXT]]]]]]]].
+        destruct HI as [HI_SINV [HI_DST_PTR_ID [HI_SRC_PTR_ID [HI_G [HI_ALLOC [HI_RET [HI_HELIX_MB_OLD [HI_v [HI_HELIX_MB_NEW HI_MEXT]]]]]]]]].
         pose proof HI_MEXT as [HI_MEXT_NEW HI_MEXT_OLD].
         split.
         { destruct BOUND.
@@ -1490,6 +1540,10 @@ Proof.
         subst.
         repeat split; eauto.
 
+        { assert (allocated ptrll_yoff mV_yoff); [solve_allocated|].
+          eapply write_preserves_allocated; eauto.
+        }
+
         { rewrite tfor_0.
           rewrite interp_helix_ret. cbn.
           constructor.
@@ -1519,7 +1573,7 @@ Proof.
         break_match_hyp.
         break_match_hyp.
         break_match_hyp.
-        destruct H as [SINV [DST [SRC [G [RET [MEMH_OLD [v [MEMH_NEW EXT_MEM]]]]]]]].
+        destruct H as [SINV [DST [SRC [G [ALLOCI [RET [MEMH_OLD [v [MEMH_NEW EXT_MEM]]]]]]]]].
         subst.
 
         eapply state_invariant_write_double_result with (sz:=sz0); eauto.
@@ -1538,10 +1592,8 @@ Proof.
              epose proof @get_array_cell_mlup_ext' bkh_yoff ptrll_yoff _ _ _ mV_init m1.
              epose proof @get_array_cell_mlup_ext' bkh_yoff ptrll_yoff _ _ _ mV_init m1 v H3.
 
-             eapply H5.
-             all: eauto.
-             2: rewrite repr_of_nat_to_nat; eauto.
-             admit. (* Silly allocated that I might have to maintain *)
+             eapply H5; eauto.
+             rewrite repr_of_nat_to_nat; eauto.
         }
         rewrite <- Γ_S1S2; eauto.
         eauto.
