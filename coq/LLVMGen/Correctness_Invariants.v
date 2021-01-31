@@ -2789,6 +2789,22 @@ Proof.
   destruct id'; inv H1; reflexivity.
 Qed.
 
+Definition pointers_untouched (σ : evalContext) (s : IRState) (l1 l2 : local_env) :=
+  forall id ptr ptr_h sz n τ,
+    nth_error σ n ≡ Some (DSHPtrVal ptr_h sz, true) ->
+    nth_error (Γ s) n ≡ Some (ID_Local id, TYPE_Pointer τ) ->
+    alist_find id l1 ≡ Some (UVALUE_Addr ptr) ->
+    alist_find id l2 ≡ Some (UVALUE_Addr ptr).
+
+Lemma pointers_untouched_refl :
+  forall σ s l,
+    pointers_untouched σ s l l.
+Proof.
+  intros l.
+  unfold pointers_untouched.
+  auto.
+Qed.
+
 Lemma unsigned_is_zero: forall a, Int64.unsigned a ≡ Int64.unsigned Int64.zero ->
                                   a = Int64.zero.
 Proof.
