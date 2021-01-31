@@ -1046,19 +1046,44 @@ Section MSHCOL_to_AHCOL.
       end.
 
       1:{
-        cbn; apply inr_neq.
-        cbn in *.
+        cbn in *; apply inr_neq.
         inl_inr_inv.
         subst.
+        rename m' into m, H2 into H1.
+        clear t H0.
+        remember (memory_set m 5 mb) as m'.
+        remember (memory_next_key m') as k.
+
+        assert(kc: k>5).
+        {
+          subst k.
+          eapply memory_set_memory_next_key_gt; eauto.
+        }
         admit.
       }
 
       2:{
-        cbn; apply inr_neq.
-        cbn in *.
+        cbn in *; apply inr_neq.
         inl_inr_inv.
         subst.
-        admit.
+
+        rename m' into m, m'' into m', m''0 into m'', H2 into H1, H3 into H2.
+        clear H2.
+
+        remember (memory_next_key (memory_set m 5 mb)) as k.
+        assert(kc: k>5).
+        {
+          subst k.
+          eapply memory_set_memory_next_key_gt; eauto.
+        }
+        clear Heqk.
+        specialize (H1 5).
+        autospecialize H1.
+        lia.
+        rewrite memory_lookup_memory_set_eq in H1 by reflexivity.
+        symmetry in H1.
+        apply memory_lookup_not_next_equiv in H1.
+        auto.
       }
 
       4:{
