@@ -1576,6 +1576,21 @@ Proof.
   - solve_gamma_bound.
 Qed.
 
+Lemma state_invariant_Γ' :
+  forall σ s1 s2 memH stV,
+    state_invariant σ s1 memH stV ->
+    Γ s2 ≡ Γ s1 ->
+    gamma_bound s2 ->
+    state_invariant σ s2 memH stV.
+Proof.
+  intros * INV EQ LT; inv INV.
+  split; cbn; eauto.
+  - red; rewrite EQ; apply mem_is_inv.
+  - red. rewrite EQ; apply IRState_is_WF.
+  - eapply no_id_aliasing_gamma; eauto.
+  - destruct stV as (? & ? & ?); cbn in *; eapply no_llvm_ptr_aliasing_gamma; eauto.
+Qed.
+
 Lemma state_invariant_add_fresh' :
   ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
     (l : local_env) (g : global_env) (v : uvalue),
@@ -1591,11 +1606,11 @@ Qed.
 
 Lemma state_invariant_escape_scope : forall σ v x s1 s2 stH stV,
     Γ s1 ≡ x :: Γ s2 ->
-    s1 <<= s2 ->
+    gamma_bound s2 ->
     state_invariant (v::σ) s1 stH stV ->
     state_invariant σ s2 stH stV.
 Proof.
-  intros * EQ LT [MEM WF ALIAS1 ALIAS2 ALIAS3].
+  intros * EQ BOUND [MEM WF ALIAS1 ALIAS2 ALIAS3].
   destruct stV as (? & ? & ?).
   split.
   - red; intros * LU1 LU2.
@@ -1634,7 +1649,7 @@ Proof.
   - red.
     intros * LU.
     eapply (st_id_allocated0 (S n)); eauto.
-  - solve_gamma_bound.
+  - eauto.
 Qed.
 
 (* TO MOVE *)

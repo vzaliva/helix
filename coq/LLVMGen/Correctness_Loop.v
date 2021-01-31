@@ -285,12 +285,12 @@ Proof.
         reflexivity.
       + eauto.
       + cbn in P1.
-        (* TODO: ugh *)
         eapply state_invariant_escape_scope.
-        instantiate (2:=s3).
+        assert (Γ s4 ≡ Γ s3) by solve_gamma.
+        rewrite H in *.
         eapply newLocalVar_Γ; eauto.
-        solve_local_count.
-        
+        2: eauto.
+        get_gamma_bounds; solve_gamma_bound.
       + cbn in *.
         clear INV P1 P2.
         apply local_scope_modif_shrink with s3 s4; auto.
@@ -299,12 +299,11 @@ Proof.
   }
 
   forward GENC; [clear GENC |].
-  {
-    subst I P; cbn.
+  { subst I P; cbn.
     intros _ * BOUND INV; simp; auto.
-    apply state_invariant_Γ with s1; eauto using incBlockNamed_Γ.
-    eapply state_invariant_Γ with (s2 := s1) in INV; [| symmetry; eauto using incBlockNamed_Γ].
-    eapply state_invariant_Γ in INV; [| symmetry; eassumption].
+    apply state_invariant_Γ' with s1; eauto using incBlockNamed_Γ; [|get_gamma_bounds; solve_gamma_bound].
+    eapply state_invariant_Γ with (s2 := s1) in INV; [| symmetry; eauto using incBlockNamed_Γ | solve_local_count].
+    eapply state_invariant_Γ in INV; [| symmetry; eassumption | solve_local_count].
     eapply state_invariant_add_fresh' with s6; eauto.
     destruct BOUND as [BOUND | BOUND].
     - eapply lid_bound_between_shrink_down; [| apply BOUND].
@@ -316,7 +315,8 @@ Proof.
       apply dropVars_local_count in Heqs5.
       eapply lid_bound_between_shrink_up; [| apply BOUND].
       solve_local_count.
-    - eapply state_invariant_Γ; eauto.
+    - eapply state_invariant_Γ'; eauto.
+      get_gamma_bounds; solve_gamma_bound.
   }
 
   forward GENC; [clear GENC |].
@@ -348,9 +348,8 @@ Proof.
     intros [[? []] | ] (? & ? & ? & ?) (H1 & H2 & H3); cbn.
     split; [| split]; cbn; eauto.
     - (* Need to enter scope,then escape it to link with s2 *)
-      eapply state_invariant_Γ; eauto.
-      apply incBlockNamed_Γ in Heqs1.
-      rewrite <- GENIR_Γ, Heqs1; reflexivity.
+      eapply state_invariant_Γ'; eauto.
+      solve_gamma. get_gamma_bounds; solve_gamma_bound.
     - destruct H1; eauto.
     - eauto.
   }
