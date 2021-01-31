@@ -703,6 +703,67 @@ Section SimulationRelations.
     - solve_gamma_bound.
   Qed.
 
+  Lemma state_invariant_same_Γ' :
+    ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV) 
+      (l : local_env) (g : global_env) (v : uvalue),
+      Γ s1 ≡ Γ s2 ->
+      gamma_bound s2 ->
+      ~ in_Gamma σ s1 id →
+      state_invariant σ s1 memH (memV, (l, g)) →
+      state_invariant σ s2 memH (memV, (alist_add id v l, g)).
+  Proof.
+    intros * EQ LT NIN INV; inv INV.
+    assert (WF_IRState σ s2) as WF.
+    { red; rewrite <- EQ; auto. }
+    constructor; auto.
+    - cbn; rewrite <- EQ.
+      intros * LUH LUV.
+      generalize LUV; intros INLG;
+        eapply mem_is_inv0 in INLG; eauto.
+      destruct v0; cbn in *; auto.
+      + destruct x; cbn in *; auto.
+        unfold alist_add; cbn.
+        break_match_goal.
+        * subst.
+          rewrite rel_dec_correct in Heqb0; subst.
+          exfalso; eapply NIN.
+          econstructor; eauto.
+        * apply neg_rel_dec_correct in Heqb0.
+          rewrite remove_neq_alist; eauto.
+          all: typeclasses eauto.
+      + destruct x; cbn; auto.
+        unfold alist_add; cbn.
+        break_match_goal.
+        * rewrite rel_dec_correct in Heqb0; subst.
+          exfalso; eapply NIN.
+          econstructor; eauto.
+        * apply neg_rel_dec_correct in Heqb0.
+          rewrite remove_neq_alist; eauto.
+          all: typeclasses eauto.
+      + intros; destruct INLG as (? & ? & ? & ? & ? & ?); eauto.
+        destruct x.
+        do 2 eexists; split; [eauto | split]; eauto.
+        unfold alist_add; cbn.
+        break_match_goal.
+        * rewrite rel_dec_correct in Heqb0; subst.
+          exfalso; eapply NIN.
+          econstructor; eauto.
+        * apply neg_rel_dec_correct in Heqb0.
+          rewrite remove_neq_alist; eauto.
+          do 2 eexists; split; [eauto | split]; eauto.
+
+          all: typeclasses eauto.
+    - red; rewrite <- EQ; auto.
+    - apply no_llvm_ptr_aliasing_not_in_gamma; eauto.
+      red; rewrite <- EQ; auto.
+
+      intros INGAMMA.
+      destruct INGAMMA.
+      apply NIN.
+      rewrite <- EQ in H0.
+      econstructor; eauto.
+  Qed.
+
   Lemma evalContext_typechecks_cons :
     forall σ Γ v id τ b,
       evalContext_typechecks σ Γ ->
