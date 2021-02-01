@@ -1654,6 +1654,8 @@ Proof.
       }
     }
     { (* Local case for yoff *)
+      assert (lid_bound s1 id) as LID_BOUND by (eapply st_gamma_bound; solve_lid_bound).
+
       (* TODO: can I automate this? *)
         edestruct denote_instr_gep_array_no_read with (m:=mV_yoff) (g:=g_yoff) (ρ:=(alist_add src_ptr_id (UVALUE_Addr src_addr) l_yoff)) (size:=(Z.to_N (Int64.intval i4))) (τ:=DTYPE_Double) (i:=dst_ptr_id) (ptr := @EXP_Ident dtyp (ID_Local id)) (a:= ptrll_yoff) (e_ix:=fmap (typ_to_dtyp []) yoff_exp) (ix:=(MInt64asNT.to_nat yoff_res)).
 
@@ -1661,20 +1663,35 @@ Proof.
       change (UVALUE_Addr ptrll_yoff) with (dvalue_to_uvalue (DVALUE_Addr ptrll_yoff)).
       reflexivity.
       cbn.
-      assert (lid_bound s1 id) as LID_BOUND by (eapply st_gamma_bound; solve_lid_bound).
 
-      erewrite <- local_scope_modif_bound_before; eauto.
+      Ltac nexpr_modifs :=
+        repeat
+          match goal with
+          | POST : genNExpr_post _ _ _ _ _ _ _ _ |- _
+            => eapply Correctness_NExpr.extends in POST; cbn in POST
+          end.
 
-      repeat
+      nexpr_modifs.
+
+      Ltac lsm_chain upper :=
         match goal with
-        | POST : genNExpr_post _ _ _ _ _ _ _ _ |- _
-          => eapply Correctness_NExpr.extends in POST; cbn in POST
+        | H : local_scope_modif ?s1 ?s2 ?lower upper |- _
+          => lsm_chain lower
+        | H : _ |- _
+          => idtac upper
         end.
 
-      eapply local_scope_modif_add'.
-      solve_lid_bound_between.
-      solve_local_scope_modif.
-      admit.
+      Ltac solve_alist_in_yoff upper :=
+        erewrite <- local_scope_modif_bound_before with (s2:=upper); eauto;
+        repeat (eapply local_scope_modif_add'; [solve_lid_bound_between|]);
+        match goal with
+        | LSM1 : local_scope_modif ?s1 ?s2 _ ?l2,
+          LSM2 : local_scope_modif ?s12 ?s22 ?l1 _
+          |- local_scope_modif _ _ ?l1 ?l2
+          => eapply (@local_scope_modif_shrink _ s12 s2); [solve_local_scope_modif| |]; solve_local_count
+        end.
+
+      solve_alist_in_yoff s2.
     }
 
     { (* TODO: wrap into automation? *)
@@ -1808,6 +1825,7 @@ Proof.
                      state_invariant (protect σ n3) s2 mH stV /\
                      alist_find dst_ptr_id ρ ≡ Some (UVALUE_Addr dst_addr) /\
                      alist_find src_ptr_id ρ ≡ Some (UVALUE_Addr src_addr) /\
+                     local_scope_modif i16 s2 l_yoff ρ /\
                      g ≡ g_yoff /\
                      allocated ptrll_yoff mV /\
                      (* Not sure if this is the right block *)
@@ -1834,6 +1852,7 @@ Proof.
                      state_invariant (protect σ n3) s2 mH stV /\
                      alist_find dst_ptr_id ρ ≡ Some (UVALUE_Addr dst_addr) /\
                      alist_find src_ptr_id ρ ≡ Some (UVALUE_Addr src_addr) /\
+                     local_scope_modif i16 s2 l_yoff ρ /\
                      g ≡ g_yoff /\
                      mH ≡ m_yoff /\
                      mb ≡ mem_add (MInt64asNT.to_nat yoff_res) initial bkh_yoff /\
@@ -1854,7 +1873,7 @@ Proof.
       forward LOOPTFOR.
       { intros g_loop l_loop mV_loop [[mH_loop mb_loop] |] k _label [HI [POWERI [POWERI_VAL RETURNS]]]; [|inv HI].
         cbn in HI.
-        destruct HI as [LINV_SINV [LINV_DST_PTR_ID [LINV_SRC_PTR_ID [LINV_GLOBALS [LINV_ALLOC [LINV_RET [LINV_HELIX_MB_OLD [v [LINV_HELIX_MB_NEW LINV_MEXT]]]]]]]]].
+        destruct HI as [LINV_SINV [LINV_DST_PTR_ID [LINV_SRC_PTR_ID [LINV_LSM [LINV_GLOBALS [LINV_ALLOC [LINV_RET [LINV_HELIX_MB_OLD [v [LINV_HELIX_MB_NEW LINV_MEXT]]]]]]]]]].
         pose proof LINV_MEXT as [LINV_MEXT_NEW LINV_MEXT_OLD].
         unfold DSHPower_tfor_body.
         
@@ -2272,6 +2291,16 @@ Proof.
                 { intros CONTRA; inv CONTRA.
                 }
                 eauto.
+                nexpr_modifs.
+                cbn.
+                erewrite <- local_scope_modif_bound_before with (s2:=s2); eauto.
+                match goal with
+                | LSM1 : local_scope_modif ?s1 ?s2 _ ?l2,
+                         LSM2 : local_scope_modif ?s12 ?s22 ?l1 _
+                  |- local_scope_modif _ _ ?l1 ?l2
+                  => eapply (@local_scope_modif_shrink _ s12 s2); [solve_local_scope_modif| |]; solve_local_count
+                end.
+                solve_local_scope_modif.
                 admit. (* another alist in thing *)
               + cbn in MINV. cbn.
                 destruct MINV as (ptr & τ' & TEQ & FIND & READ).
@@ -2386,6 +2415,19 @@ Proof.
           split.
           { (* src_ptr_id *)
             destruct Mono_IRState; subst; solve_alist_in.
+          }
+
+          split.
+          { eapply local_scope_modif_trans'.
+            solve_local_scope_modif.
+
+            eapply local_scope_modif_sub'_l with (r := src_val_id).
+            solve_lid_bound_between.
+
+            eapply local_scope_modif_sub'_l with (r := dst_val_id).
+            solve_lid_bound_between.
+
+            solve_local_scope_modif.
           }
 
           split.
@@ -2556,7 +2598,7 @@ Proof.
         unfold I in *.
         destruct a; try inv HI.
         destruct p.
-        destruct HI as [HI_SINV [HI_DST_PTR_ID [HI_SRC_PTR_ID [HI_G [HI_ALLOC [HI_RET [HI_HELIX_MB_OLD [HI_v [HI_HELIX_MB_NEW HI_MEXT]]]]]]]]].
+        destruct HI as [HI_SINV [HI_DST_PTR_ID [HI_SRC_PTR_ID [HI_LSM [HI_G [HI_ALLOC [HI_RET [HI_HELIX_MB_OLD [HI_v [HI_HELIX_MB_NEW HI_MEXT]]]]]]]]]].
         pose proof HI_MEXT as [HI_MEXT_NEW HI_MEXT_OLD].
         split.
         { destruct BOUND.
@@ -2610,6 +2652,19 @@ Proof.
         }
 
         repeat split; auto.
+
+        { destruct BOUND.
+          - eapply local_scope_modif_add'.
+            eapply lid_bound_between_shrink. (* TODO: fix lid_bound_between *)
+            eauto.
+            solve_local_count.
+            solve_local_count.
+            solve_local_scope_modif.
+          - eapply local_scope_modif_add'.
+            eapply lid_bound_between_shrink; [solve_lid_bound_between | | ]; eauto; solve_local_count.
+            solve_local_scope_modif.
+        }
+        
         exists HI_v.
         auto.
       }
@@ -2625,7 +2680,7 @@ Proof.
         destruct a. 2: inv PR.
         destruct p as [mH mb].
         destruct b2 as [mV [l g]].
-        destruct PR as [SINV [DST [SRC [G [MH [MB MV]]]]]].
+        destruct PR as [SINV [DST [SRC [LSM [G [MH [MB MV]]]]]]].
 
         split.
         solve [eauto].
@@ -2666,7 +2721,7 @@ Proof.
         break_match_hyp.
         break_match_hyp.
         break_match_hyp.
-        destruct H as [SINV [DST [SRC [G [ALLOCI [RET [MEMH_OLD [v [MEMH_NEW EXT_MEM]]]]]]]]].
+        destruct H as [SINV [DST [SRC [G [LSM [ALLOCI [RET [MEMH_OLD [v [MEMH_NEW EXT_MEM]]]]]]]]]].
         subst.
 
         eapply state_invariant_write_double_result with (sz:=sz0); eauto.

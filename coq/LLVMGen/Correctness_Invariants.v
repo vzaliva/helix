@@ -3266,13 +3266,16 @@ Ltac solve_gamma_safe :=
 
 (* TODO: expand this *)
 Ltac solve_local_scope_modif :=
-  eauto;
-  first
-    [ eapply local_scope_modif_refl
-    | solve [eapply local_scope_modif_shrink; [eassumption | solve_local_count | solve_local_count]]
-    | solve [eapply local_scope_modif_add'; [solve_lid_bound_between | solve_local_scope_modif]]
-    | eapply local_scope_modif_trans; cycle 2; eauto; solve_local_count
-    ].
+  eauto with LSM.
+
+Hint Immediate local_scope_modif_refl : LSM.
+Hint Extern 2 (local_scope_modif _ _ _ _) => solve [eapply local_scope_modif_shrink; [eassumption | solve_local_count | solve_local_count]] : LSM.
+Hint Extern 1 (lid_bound_between _ _ _) => solve_lid_bound_between : LSM.
+Hint Extern 1 (lid_bound _ _) => solve_lid_bound : LSM.
+Hint Resolve local_scope_modif_add' : LSM.
+Hint Extern 2 (local_scope_modif _ _ _ (Maps.add ?x ?v ?l)) => eapply local_scope_modif_add'; [solve_lid_bound_between | eauto with LSM] : LSM. (* Why do I need this? *)
+Hint Extern 2 (local_scope_modif _ _ _ _) => eapply local_scope_modif_trans; cycle 2; eauto; solve_local_count : LSM.
+Hint Extern 2 (_ <<= _) => solve_local_count : LSM.  
 
 (* Slightly more aggressive with transitivity... May get stuck *)
 Ltac solve_local_scope_modif_trans :=

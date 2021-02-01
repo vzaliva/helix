@@ -473,7 +473,6 @@ Section AExpr.
         eapply lid_bound_between_incLocal; eauto.
         reflexivity.
       + solve_local_scope_modif.
-        solve_local_scope_modif. 
       + intros ? EQ; inv EQ.
         right; split; [| solve_local_count].
         apply lid_bound_between_shrink_down with s3; [solve_local_count |].
@@ -545,7 +544,6 @@ Section AExpr.
         eapply lid_bound_between_incLocal; eauto.
         reflexivity.
       + solve_local_scope_modif.
-        solve_local_scope_modif.
       + intros ? EQ; inv EQ.
         right; split; [| solve_local_count].
         apply lid_bound_between_shrink_down with s3; [solve_local_count |].
@@ -617,7 +615,6 @@ Section AExpr.
         eapply lid_bound_between_incLocal; eauto.
         reflexivity.
       + solve_local_scope_modif.
-        solve_local_scope_modif.
       + intros ? EQ; inv EQ.
         right; split; [| solve_local_count].
         apply lid_bound_between_shrink_down with s3; [solve_local_count |].
@@ -697,7 +694,6 @@ Section AExpr.
         rewrite min_float_correct. 
         reflexivity.
       + solve_local_scope_modif.
-        solve_local_scope_modif.
       + intros ? EQ; inv EQ.
         right; split; [| solve_local_count].
         apply lid_bound_between_shrink_down with s3; [solve_local_count |].
@@ -777,7 +773,6 @@ Section AExpr.
         rewrite max_float_correct. 
         reflexivity.
       + solve_local_scope_modif.
-        solve_local_scope_modif.
       + intros ? EQ; inv EQ.
         right; split; [| solve_local_count].
         apply lid_bound_between_shrink_down with s3; [solve_local_count |].
@@ -888,7 +883,6 @@ Section AExpr.
         eapply lid_bound_between_incLocal; eauto.
         rewrite H0; reflexivity.
       + solve_local_scope_modif.
-        solve_local_scope_modif.
       + intros ? EQ; inv EQ.
         right; split; [| solve_local_count].
         apply lid_bound_between_shrink_down with s4; [solve_local_count |].
