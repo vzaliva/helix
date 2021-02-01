@@ -408,6 +408,33 @@ Proof.
   rename Heqb0 into BOUNDS.
   apply Nat.ltb_lt in BOUNDS.
 
+
+  (* Definition memory_invariant_partial_write' (configV : config_cfg) (index : nat) (ptr_llvm : addr) *)
+  (*            (bk_helix : mem_block) (x : ident) sz : Prop := *)
+  (*     let '(mem_llvm, (ρ, g)) := configV in *)
+  (*         dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp [] (TYPE_Array sz TYPE_Double)) *)
+  (*             ∧ in_local_or_global_addr ρ g x ptr_llvm *)
+  (*             ∧ (∀ (i : Int64.int) (v0 : binary64), *)
+  (*                 ((MInt64asNT.to_nat i) < N.to_nat sz -> (MInt64asNT.to_nat i) < index) -> *)
+  (*                 mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v0 *)
+  (*                 → get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0)). *)
+
+
+
+  Definition memory_invariant_partial_write' (configV : config_cfg) (index : nat) (ptr_llvm : addr)
+             (bk_helix : mem_block) (x : ident) sz : Prop :=
+      let '(mem_llvm, (ρ, g)) := configV in
+      dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp [] (TYPE_Array sz TYPE_Double)) /\
+      in_local_or_global_addr ρ g x ptr_llvm /\
+          forall k dst_addr, k <= index ->
+            handle_gep_addr (DTYPE_Array sz DTYPE_Double) ptr_llvm
+                        [DVALUE_I64 (DynamicValues.Int64.repr 0); DVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat k))] ≡ inr dst_addr ->
+              in_local_or_global_addr ρ g x dst_addr /\
+              (∀ (i : Int64.int) (v0 : binary64),
+                  ((MInt64asNT.to_nat i) < BinNat.N.to_nat sz -> (MInt64asNT.to_nat i) < index) ->
+                  mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v0
+                  → get_array_cell mem_llvm dst_addr (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0)).
+
   (* TODO : Add something like ext_memory but which talks about a range of pointers being extended. *)
   (* Invariant at each iteration *)
   set (I := (fun (k : nat) (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
@@ -418,9 +445,14 @@ Proof.
                  (* 1. Relaxed state invariant *)
                  state_invariant (protect σ n1) s12 mH stV /\
                  (* 2. Preserved state invariant *)
-                 memory_invariant_partial_write stV k ptrll_yoff b y y_sz /\
+                 memory_invariant_partial_write' stV k ptrll_yoff b y y_sz /\
                  mH ≡ memH /\ g ≡ g' /\
-                 allocated ptrll_yoff mV
+                 allocated ptrll_yoff mV /\
+                  forall i, i <= k ->
+                  exists dst_addr, handle_gep_addr (DTYPE_Array y_sz DTYPE_Double) ptrll_yoff
+                    [DVALUE_I64 (DynamicValues.Int64.repr 0); DVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat i))] ≡ inr dst_addr /\
+                    exists v, mem_lookup i b ≡ Some v /\
+                        ext_memory mV_init dst_addr DTYPE_Double (UVALUE_Double v) mV
                  (* exists v, ext_memory mV_init ptrll_yoff DTYPE_Double (UVALUE_Double v) mV /\ *)
                end)).
 
@@ -502,51 +534,52 @@ Proof.
 
       solve_local_count.
 
-    - unfold memory_invariant_partial_write in *.
-      destruct H1 as (? & ? & ?).
-      intuition.
-      + unfold alist_add; cbn. cbn.
-        destruct y; auto. cbn in *.
-          break_match_goal.
-        * rewrite rel_dec_correct in Heqb1; subst.
-          assert (Gamma_safe σ s0 s12). solve_gamma_safe.
+    - unfold memory_invariant_partial_write in *. admit.
 
-          Transparent addVars.
-          inv Heqs12.
-          cbn in Heqs13.
+      (* destruct H1 as (? & ? & ?). *)
+      (* intuition. *)
+      (* + unfold alist_add; cbn. cbn. *)
+      (*   destruct y; auto. cbn in *. *)
+      (*    break_match_goal. *)
+      (*   * rewrite rel_dec_correct in Heqb1; subst. *)
+      (*     assert (Gamma_safe σ s0 s12). solve_gamma_safe. *)
 
-          assert (NIN: not (in_Gamma σ s0 id)). apply H.
-          eapply lid_bound_between_shrink. eauto.
-          Transparent newLocalVar.
-          cbn in *.
-          inv Heqs4.
-          solve_local_count. solve_local_count.
-          exfalso; eapply NIN.
-          econstructor. apply Heqo0. eauto.
-          eauto.
-        * apply neg_rel_dec_correct in Heqb1.
-          rewrite remove_neq_alist; eauto.
-          all: typeclasses eauto.
+      (*     Transparent addVars. *)
+      (*     inv Heqs12. *)
+      (*     cbn in Heqs13. *)
 
-      + unfold alist_add; cbn. cbn.
-        destruct y; auto. cbn in *.
-          break_match_goal.
-        * rewrite rel_dec_correct in Heqb1; subst.
-          assert (Gamma_safe σ s0 s12). solve_gamma_safe.
+      (*     assert (NIN: not (in_Gamma σ s0 id)). apply H. *)
+      (*     eapply lid_bound_between_shrink. eauto. *)
+      (*     Transparent newLocalVar. *)
+      (*     cbn in *. *)
+      (*     inv Heqs4. *)
+      (*     solve_local_count. solve_local_count. *)
+      (*     exfalso; eapply NIN. *)
+      (*     econstructor. apply Heqo0. eauto. *)
+      (*     eauto. *)
+      (*   * apply neg_rel_dec_correct in Heqb1. *)
+      (*     rewrite remove_neq_alist; eauto. *)
+      (*     all: typeclasses eauto. *)
 
-          Transparent addVars.
-          inv Heqs12.
-          cbn in Heqs13.
+      (* + *)
+      (* + unfold alist_add; cbn. cbn. *)
+      (*   destruct y; auto. cbn in *. *)
+      (*     break_match_goal. *)
+      (*   * rewrite rel_dec_correct in Heqb1; subst. *)
+      (*     assert (Gamma_safe σ s0 s12). solve_gamma_safe. *)
 
-          assert (NIN: not (in_Gamma σ s0 id)). apply H.
-          eapply lid_bound_between_shrink. eauto. solve_local_count. solve_local_count.
-          exfalso; eapply NIN.
-          econstructor. apply Heqo0. eauto.
-          eauto.
-        * apply neg_rel_dec_correct in Heqb1.
-          rewrite remove_neq_alist; eauto.
-          all: typeclasses eauto.
+      (*     Transparent addVars. *)
+      (*     inv Heqs12. *)
+      (*     cbn in Heqs13. *)
 
+      (*     assert (NIN: not (in_Gamma σ s0 id)). apply H. *)
+      (*     eapply lid_bound_between_shrink. eauto. solve_local_count. solve_local_count. *)
+      (*     exfalso; eapply NIN. *)
+      (*     econstructor. apply Heqo0. eauto. *)
+      (*     eauto. *)
+      (*   * apply neg_rel_dec_correct in Heqb1. *)
+      (*     rewrite remove_neq_alist; eauto. *)
+      (*     all: typeclasses eauto. *)
   }
 
   (* Loop body match *)
@@ -616,11 +649,7 @@ Proof.
 
     apply nth_error_protect_eq' in Heqo0.
 
-    pose proof INV_p as MINV_YOFF.
-    unfold memory_invariant_partial_write in MINV_YOFF.
     rewrite GENIR_Γ in LUn0, LUn.
-
-    destruct MINV_YOFF as (FITS_yoff_l & INLG_yoff_l & GETARRAYCELL_yoff_l).
 
     (* Memory invariant for x *)
     pose proof state_invariant_memory_invariant INV_r as MINV_XOFF.
@@ -669,7 +698,12 @@ Proof.
       solve_local_count. reflexivity.
     }
 
-    (* [Vellvm] GEP Instruction *)
+
+    pose proof INV_p as MINV_YOFF.
+    unfold memory_invariant_partial_write' in MINV_YOFF.
+    destruct MINV_YOFF as (FITS_yoff_l & INLG_YOFF & MINV_YOFF).
+
+    (* [Vellvm] GEP Instruction for [x] *)
     match goal with
     | [|- context[OP_GetElementPtr (DTYPE_Array ?size' ?τ') (_, ?ptr') _]] =>
     edestruct denote_instr_gep_array' with
@@ -933,7 +967,7 @@ Proof.
     assert (in_local_or_global_addr li' g0 y ptrll_yoff). {
       destruct y. cbn in *. eauto.
       cbn.
-      cbn in INLG_yoff_l.
+      cbn in INLG_yoff.
       destruct PRE_INV.
       clear IRState_is_WF.
       clear st_id_allocated st_no_id_aliasing.
@@ -1143,22 +1177,22 @@ Proof.
       destruct INV_p as (FITS_p & INLG_p & MLU_f).
       (* "Clean your room" *)
       clear RET1 RET2 Mono_IRState extends exp_in_scope exp_correct.
-      clear NOFAIL' ptrll_xoff_l FITS_xoff_l INLG_xoff_l MLUP_xoff_l GETARRAYCELL_xoff_l UNIQ0 UNIQ1 UNIQ2 HSRC_GEP
-            PTRLL_XOFF_ALLOCATED_mV_yoff. clear EQ_y_HG.
+      clear NOFAIL' FITS_xoff_l INLG_xoff_l MLUP_xoff_l GETARRAYCELL_xoff_l UNIQ0 UNIQ1 UNIQ2.
+      clear EQ_y_HG.
       clean_goal.
       rename WRITE_MEM into ptrll_INLG.
       rename H1 into WRITE_dst.
 
       pose proof LUn0. pose proof Heqo0.
-      intros.
-      rewrite <- EE in H3.
+      intros * CLU CEq.
+      rewrite <- EE in CEq.
       destruct (Nat.eq_dec n2 (S (S n1))) eqn : IS_IT_THE_WRITTEN_ADDRESS ; subst.
       (* Yes, it is the address being written to (ptrll_yoff). *)
       {
         intros. specialize (mem_is_inv (S (S n1))). cbn in mem_is_inv.
         rewrite <- EE in mem_is_inv. specialize (mem_is_inv _ _ _ _ H1 H0).
-        cbn in H3, H2. rewrite H0 in H3.
-        rewrite H1 in H2. inv H3. inv H2.
+        cbn in CLU, CEq. rewrite H0 in CEq.
+        rewrite H1 in CLU. inv CEq. inv CLU.
         edestruct mem_is_inv as (? & ? & ? & ? & ? & ?); clear mem_is_inv.
         inv H2. clear H5.
         exists x1. eexists. split; eauto. split.
@@ -1168,11 +1202,126 @@ Proof.
 
       (* No, but perhaps it is still covered by the partial write invariant. *)
       {
-        (* Is it covered by the partial write on mV? *)
-        (* Yes *) (* TODO *)
-        (*       Insert proof here.                  *)
-        (* No *)
-        admit.
+        intros. rewrite EE in CEq.
+        assert (x0 ≢ y). {
+          intro. subst. apply n3.
+          eapply st_no_id_aliasing; eauto.
+          rewrite <- EE. eauto.
+        }
+
+        specialize (mem_is_inv n2). cbn in mem_is_inv.
+        specialize (mem_is_inv _ _ _ _ CLU CEq).
+        destruct v0; eauto.
+        {
+          (* [Case] v0 is a natVal *)
+          (* WTS: in_local_or_global_scalar li' g0 mV_yoff @id (dvalue_of_int n4) τ *)
+          destruct x0; eauto.
+          red in mem_is_inv.
+          edestruct mem_is_inv as (? & ? & ? & ? & ?); clear mem_is_inv.
+          cbn. inv H3. eexists x0. eexists. split; eauto. split; eauto.
+          (* Is it covered by the partial write on mV? *)
+
+          assert (no_overlap_dtyp dst_addr DTYPE_Double x0 (typ_to_dtyp [] x1)) as NOALIAS'.
+          {
+            unfold no_overlap_dtyp.
+            unfold no_overlap.
+            left.
+
+            rewrite <- (handle_gep_addr_array_same_block _ _ _ _ HDST_GEP).
+
+            intros BLOCKS; symmetry in BLOCKS; revert BLOCKS.
+
+            do 2 red in st_no_llvm_ptr_aliasing.
+            rewrite <- EE in CEq. 
+            specialize (st_no_llvm_ptr_aliasing (ID_Global id) x0 y ptrll_yoff n2 (S (S n1))).
+            cbn in st_no_llvm_ptr_aliasing.
+            eapply st_no_llvm_ptr_aliasing. eauto. eauto. rewrite <- EE. eauto. rewrite <- EE. eauto. eauto. eauto.
+            eauto.
+          }
+          (* No *)
+          cbn in H4.
+          erewrite write_untouched; eauto. constructor.
+        }
+        {
+          (* [Case] v0 is a CTypeVal *)
+          red in mem_is_inv.
+          destruct x0; eauto.
+
+          edestruct mem_is_inv as (? & ? & ? & ? & ?); clear mem_is_inv.
+
+          cbn. inv H3. eexists x0. eexists. split; eauto. split; eauto.
+          (* Is it covered by the partial write on mV? *)
+
+          assert (no_overlap_dtyp dst_addr DTYPE_Double x0 (typ_to_dtyp [] x1)) as NOALIAS'.
+          {
+            unfold no_overlap_dtyp.
+            unfold no_overlap.
+            left.
+
+            rewrite <- (handle_gep_addr_array_same_block _ _ _ _ HDST_GEP).
+
+            intros BLOCKS; symmetry in BLOCKS; revert BLOCKS.
+
+            do 2 red in st_no_llvm_ptr_aliasing.
+            rewrite <- EE in CEq. 
+            specialize (st_no_llvm_ptr_aliasing (ID_Global id) x0 y ptrll_yoff n2 (S (S n1))).
+            cbn in st_no_llvm_ptr_aliasing.
+            eapply st_no_llvm_ptr_aliasing. eauto. eauto. rewrite <- EE. eauto. rewrite <- EE. eauto. eauto. eauto.
+            eauto.
+          }
+          (* No *)
+          cbn in H4.
+          erewrite write_untouched; eauto. constructor.
+        }
+        {
+          pose proof MINV_YOFF as PARTIAL_WRITE.
+          specialize (PARTIAL_WRITE k dst_addr). forward PARTIAL_WRITE.
+          lia.
+          forward PARTIAL_WRITE.
+          pose proof HDST_GEP.
+          pose proof (from_N_intval _ EQsz0) as EQ.
+          rewrite EQ. subst y_size. eauto.
+          edestruct mem_is_inv as (? & ? & ? & ? & ? & ?); clear mem_is_inv.
+
+
+          eexists. eexists. split; eauto.
+
+          split. eapply dtyp_fits_after_write; eauto.
+
+          split; eauto. destruct PARTIAL_WRITE.
+          destruct (Nat.eq_dec y_h_ptr a).
+          {
+
+            intros.
+
+            pose proof H as MEM.
+            edestruct MEM as (MEM_ALLOC & M').
+
+            eexists. subst. split; eauto.
+            intros.
+            destruct (@peano_naturals.nat_le_dec (MInt64asNT.to_nat i) k). {
+              specialize (M' _ l). edestruct M' as (? & ? & ? & ?).
+              erewrite <- read_array; eauto.
+              2 : solve_allocated.
+              2 : eauto.
+              pose proof HDST_GEP.
+
+              destruct H. 2 : eauto.
+              (* The address has been written to already. *)
+              admit. admit.
+
+            }
+            admit.
+          }
+
+            clear H3 H4 H5.
+            intros. eexists.
+
+          split.
+
+          intros. admit.
+          admit.
+        }
       }
     }
 
