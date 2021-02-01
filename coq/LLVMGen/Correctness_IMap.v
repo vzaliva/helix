@@ -408,6 +408,7 @@ Proof.
   rename Heqb0 into BOUNDS.
   apply Nat.ltb_lt in BOUNDS.
 
+  (* TODO : Add something like ext_memory but which talks about a range of pointers being extended. *)
   (* Invariant at each iteration *)
   set (I := (fun (k : nat) (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
                match mH with
@@ -832,8 +833,9 @@ Proof.
           we should be able to retrieve the normal state invariant. *)
         eapply state_invariant_enter_scope_DSHCType' with (s1 := s5); eauto.
         + rewrite E. reflexivity.
-        + (* lid_bound and addVar don't interact nicely with each other :-\ *) admit.
-        + solve_local_count. (* cbn. solve_lid_bound. *)
+        + eapply lid_bound_before.
+          solve_lid_bound. eauto.
+        + solve_local_count.
         + solve_alist_in.
         + (* use LOOPVAR *)
           eapply state_invariant_Γ with (s1 := s2).
@@ -1129,23 +1131,56 @@ Proof.
     {
       (* TODO: The write state invariant doesn't take account to when pointers are different.
       Need to specify a range that is not being written to and state that the dst_addr is contained in it*)
-      eapply write_state_invariant_protected. 6 : eauto.
-      4 : eauto. all : eauto. 3 : constructor.
 
+      eapply state_invariant_cons2 with (s := s9). solve_local_count.
+      eapply EE.
       destruct PRE_INV'.
-      eapply state_invariant_cons2. 3 : eapply PRE_INV.
-      solve_local_count.
-      eauto.
-      (* ILG *)
-      (* in_local_or_global_addr li' g0 y dst_addr *)
-      admit.
+      split; eauto.
+      (* TRICKY MEMORY INVARIANT RE-STATING -.- *)
+      cbn.
+      cbn in mem_is_inv. clear INV' INV_r.
+      (* partial memory write invariant *)
+      destruct INV_p as (FITS_p & INLG_p & MLU_f).
+      (* "Clean your room" *)
+      clear RET1 RET2 Mono_IRState extends exp_in_scope exp_correct.
+      clear NOFAIL' ptrll_xoff_l FITS_xoff_l INLG_xoff_l MLUP_xoff_l GETARRAYCELL_xoff_l UNIQ0 UNIQ1 UNIQ2 HSRC_GEP
+            PTRLL_XOFF_ALLOCATED_mV_yoff. clear EQ_y_HG.
+      clean_goal.
+      rename WRITE_MEM into ptrll_INLG.
+      rename H1 into WRITE_dst.
+
+      pose proof LUn0. pose proof Heqo0.
+      intros.
+      rewrite <- EE in H3.
+      destruct (Nat.eq_dec n2 (S (S n1))) eqn : IS_IT_THE_WRITTEN_ADDRESS ; subst.
+      (* Yes, it is the address being written to (ptrll_yoff). *)
+      {
+        intros. specialize (mem_is_inv (S (S n1))). cbn in mem_is_inv.
+        rewrite <- EE in mem_is_inv. specialize (mem_is_inv _ _ _ _ H1 H0).
+        cbn in H3, H2. rewrite H0 in H3.
+        rewrite H1 in H2. inv H3. inv H2.
+        edestruct mem_is_inv as (? & ? & ? & ? & ? & ?); clear mem_is_inv.
+        inv H2. clear H5.
+        exists x1. eexists. split; eauto. split.
+        eapply dtyp_fits_after_write; eauto.
+        split; eauto. intros. inv H2.
+      }
+
+      (* No, but perhaps it is still covered by the partial write invariant. *)
+      {
+        (* Is it covered by the partial write on mV? *)
+        (* Yes *) (* TODO *)
+        (*       Insert proof here.                  *)
+        (* No *)
+        admit.
+      }
     }
 
-    (* Partial write mem invariant *)
     {
       eapply dtyp_fits_after_write; eauto.
       destruct INV_p; auto.
     }
+
     {
       intros.
 
@@ -1185,76 +1220,7 @@ Proof.
 
 
 (* I stable under local env extension *)
-forward GENC; [clear GENC |].
-{
-  (* Unset Printing Notations. *)
-  intros.
-  unfold I in *.
-  destruct a eqn : AEQ ; eauto.
-  destruct p eqn: AEP.
-  destruct H0 as (? & ? & ? & ?). subst.
-  split; [|split;[|split]];eauto.
-
-  - eapply state_invariant_Γ with (s1 := s1).
-    2 : solve_gamma.
-    eapply state_invariant_Γ with (s2 := s1) in H0; try solve_gamma.
-
-    eapply state_invariant_add_fresh' with s12; eauto.
-    apply Gamma_safe_protect. solve_gamma_safe.
-
-    Transparent addVars.
-    inv Heqs12.
-    cbn in Heqs13.
-    destruct H as [BOUND | BOUND].
-    eapply lid_bound_between_shrink_down; [| apply BOUND].
-    solve_local_count.
-
-    eapply lid_bound_between_shrink_up; [| apply BOUND].
-    solve_local_count.
-    admit. solve_local_count. 
-  - unfold memory_invariant_partial_write in *.
-    destruct H1 as (? & ? & ?).
-    intuition.
-    + unfold alist_add; cbn. cbn.
-      destruct y; auto. cbn in *.
-        break_match_goal.
-      * rewrite rel_dec_correct in Heqb1; subst.
-        assert (Gamma_safe σ s0 s12). solve_gamma_safe.
-
-        Transparent addVars.
-        inv Heqs12.
-        cbn in Heqs13.
-
-        assert (NIN: not (in_Gamma σ s0 id)). apply H.
-        eapply lid_bound_between_shrink. apply H3.
-        inv Heqs4.
-        solve_local_count. solve_local_count.
-        exfalso; eapply NIN.
-        econstructor. apply Heqo0. eauto.
-        eauto.
-      * apply neg_rel_dec_correct in Heqb1.
-        rewrite remove_neq_alist; eauto.
-        all: typeclasses eauto.
-
-    + unfold alist_add; cbn. cbn.
-      destruct y; auto. cbn in *.
-        break_match_goal.
-      * rewrite rel_dec_correct in Heqb1; subst.
-        assert (Gamma_safe σ s0 s12). solve_gamma_safe.
-
-        Transparent addVars.
-        inv Heqs12.
-        cbn in Heqs13.
-
-        assert (NIN: not (in_Gamma σ s0 id)). apply H.
-        eapply lid_bound_between_shrink. apply H3. solve_local_count. solve_local_count.
-        exfalso; eapply NIN.
-        econstructor. apply Heqo0. eauto.
-        eauto.
-      * apply neg_rel_dec_correct in Heqb1.
-        rewrite remove_neq_alist; eauto.
-        all: typeclasses eauto.
-}
+forward GENC; [clear GENC |]; eauto.
 
 forward GENC; [clear GENC |].
 {
@@ -1300,6 +1266,7 @@ vstep.
 eapply eutt_clo_bind.
 
 (* PRECONDITION *)
+
 eapply GENC.
 {
   subst P I. clear GENC.
@@ -1314,14 +1281,19 @@ cbn in H0; try destruct H0 as (? & <- & <- & ?).
   rewrite interp_helix_MemSet.
 2 : { destruct H; inv H. } (* absurd *)
 
+
 vred.
 apply eqit_Ret.
+
 
 (* genIR *)
 {
   split; [| split]; cbn; eauto.
   - (* Need to enter scope,then escape it to link with appropriate state *)
     destruct H0 as (? & ? & ?); subst.
+
+    (* Need to enter scope,then escape it to link with s2 *)
+    (* TODO : Need "RANGE, cell writing up to [n]th cell" version of this lemma *)
     eapply state_invariant_write_double_result; eauto.
     rewrite <- GENIR_Γ; eauto.
 
@@ -1356,7 +1328,18 @@ apply eqit_Ret.
     {
       admit.
     }
-    admit. admit. admit.
+
+    {
+      admit.
+    }
+
+    {
+      admit.
+    }
+
+    {
+      admit.
+    }
   - destruct H; eauto.
   - solve_local_scope_modif.
 }
