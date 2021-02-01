@@ -2768,7 +2768,10 @@ Proof.
         }
 
         (* Local environments *)
-        repeat split; solve_alist_in.
+        repeat split.
+        1-2: solve_alist_in.
+
+        admit. (* Sigh, another local_scope_modif thing *)
       }
     }
   }
