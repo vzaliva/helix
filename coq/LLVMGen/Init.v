@@ -3777,11 +3777,6 @@ TMPC *)
                   intros C; contradict H4; do 2 f_equal.
                   destruct ptrv2 as (a_ptr', e_off).
                   cbn in C; subst a_ptr'.
-                  Search e2_nm.
-                  Search g'.
-                  Search a_nm.
-
-                  Search m'.
 
                   
 
