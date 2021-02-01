@@ -404,6 +404,14 @@ Module MDHCOLTypeTranslator
           heq_DSHOperator g g' ->
           heq_DSHOperator (L.DSHSeq f g) (L'.DSHSeq f' g').
 
+    (* Correctness of translator could be proven.
+       But we will use an alternative approach of translation validation
+       for now.
+    Lemma translation_heq:
+      forall x x', translate x = inr x' ->
+              heq_DSHOperator x x'.
+     *)
+
   End Relations.
 
 
