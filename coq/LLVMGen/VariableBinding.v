@@ -131,6 +131,29 @@ Section StateBound.
     - auto.
   Qed.
 
+  Lemma state_bound_before_not_bound_between :
+    forall (s s1 s2 : IRState) (bid : block_id),
+      state_bound s bid ->
+      (count s <= count s1)%nat ->
+      ~ (state_bound_between s1 s2 bid).
+  Proof.
+    intros s s1 s2 bid BOUND COUNT.
+    intros BETWEEN.
+
+    unfold state_bound in BOUND.
+    unfold state_bound_between in BETWEEN.
+
+    destruct BOUND as (bname & bs1 & bs2 & bpref & bcount & bgen).
+    destruct BETWEEN as (wname & ws1 & ws2 & wpref & wcount1 & wcount2 & wgen).
+
+    eapply INJ.
+    eapply bgen.
+    eapply wgen.
+    all: eauto.
+    intros CONTRA.
+    lia.
+  Qed.
+
   Lemma state_bound_mono :
     forall s1 s2 bid,
       state_bound s1 bid ->

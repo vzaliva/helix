@@ -1363,6 +1363,49 @@ Section SimulationRelations.
     eapply lid_bound_between_shrink; eauto.
   Qed.
 
+  Lemma local_scope_modif_bound_before:
+    forall s s1 s2 l1 l2 id,
+      local_scope_modif s1 s2 l1 l2 ->
+      s <<= s1 ->
+      lid_bound s id ->
+      alist_find id l1 ≡ alist_find id l2.
+  Proof.
+    intros s s1 s2 l1 l2 id MODIF LE BOUND.
+    unfold local_scope_modif in MODIF.
+    eapply state_bound_before_not_bound_between in BOUND.
+    2: eapply incLocalNamed_count_gen_injective.
+    2: eauto.
+
+    destruct (l1 @ id) as [u1|] eqn:EQ1;
+    destruct (l2 @ id) as [u2|] eqn:EQ2.
+
+    - destruct (rel_dec_p u1 u2) as [EQ | NEQ]; subst; auto.
+      assert (l2 @ id ≢ l1 @ id).
+      { intros CONTRA. rewrite EQ1, EQ2 in CONTRA.
+        inv CONTRA. contradiction.
+      }
+
+      pose proof (MODIF id H) as BETWEEN.
+      instantiate (1 := s2) in BOUND.
+      contradiction.
+    - assert (l2 @ id ≢ l1 @ id).
+      { intros CONTRA. rewrite EQ1, EQ2 in CONTRA.
+        inv CONTRA.
+      }
+
+      pose proof (MODIF id H) as BETWEEN.
+      contradiction.
+    - assert (l2 @ id ≢ l1 @ id).
+      { intros CONTRA. rewrite EQ1, EQ2 in CONTRA.
+        inv CONTRA.
+      }
+
+      pose proof (MODIF id H) as BETWEEN.
+      contradiction.
+    - reflexivity.
+  Qed.
+
+
   Lemma memory_invariant_Ptr : forall vid σ s memH memV l g a size x sz b,
       state_invariant σ s memH (memV, (l, g)) ->
       nth_error σ vid ≡ Some (DSHPtrVal a size, b) ->
