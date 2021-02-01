@@ -3944,7 +3944,7 @@ Global Instance Compose_MSH_DSH_compat
       (MSHCompose mop1 mop2)
       (DSHAlloc o2 (DSHSeq dop2 dop1))
       σ m x_p y_p P.
-Admitted. (* Proof.
+Proof.
   (* TODO: (refactoring proof)
      [full_autospecialize] and [assert (_ <> _)] blocks are C-c C-v *)
   split.
@@ -4205,19 +4205,30 @@ Admitted. (* Proof.
     clear C2 mt'.
 
     specialize (C1 m'').
+    copy_apply mem_block_exists_exists ET''.
+    destruct H1 as [m''_t M''T].
+    specialize (C1 m''_t).
     destruct C1 as [C1].
-
     1:{
-      eapply memory_equiv_except_trans.
-      eapply memory_equiv_except_memory_set.
-      eapply Heqm'.
-      intros.
-      destruct P2.
-      eapply mem_write_safe0.
-      rewrite E2.
-      reflexivity.
-      subst σ'.
-      repeat constructor.
+      rewrite <-memory_set_overwrite with (k:=t_i) (mb:=mem_empty)
+        by reflexivity.
+      rewrite <-Heqm'.
+      intros k.
+      destruct (Nat.eq_dec t_i k).
+      -
+        subst.
+        unfold memory_set.
+        erewrite NP.F.add_eq_o by reflexivity.
+        now rewrite <-M''T.
+      -
+        unfold memory_set.
+        erewrite NP.F.add_neq_o by assumption.
+        inversion P2 as [_ S].
+        apply Option_equiv_eq in E2.
+        subst σ'.
+        eapply S in E2; [| cbn; reflexivity].
+        unfold memory_equiv_except, memory_lookup in E2.
+        rewrite E2; auto.
     }
 
     specialize (C1 mt mb).
@@ -4423,21 +4434,31 @@ Admitted. (* Proof.
     clear C2 mt'.
 
     specialize (C1 m'').
+    copy_apply mem_block_exists_exists ET''.
+    destruct H1 as [m''_t M''T].
+    specialize (C1 m''_t).
     destruct C1 as [C1].
-
     1:{
-      eapply memory_equiv_except_trans.
-      eapply memory_equiv_except_memory_set.
-      eapply Heqm'.
-      intros.
-      destruct P2.
-      eapply mem_write_safe0.
-      rewrite E2.
-      reflexivity.
-      subst σ'.
-      repeat constructor.
+      rewrite <-memory_set_overwrite with (k:=t_i) (mb:=mem_empty)
+        by reflexivity.
+      rewrite <-Heqm'.
+      intros i.
+      destruct (Nat.eq_dec t_i i).
+      -
+        subst.
+        unfold memory_set.
+        erewrite NP.F.add_eq_o by reflexivity.
+        now rewrite <-M''T.
+      -
+        unfold memory_set.
+        erewrite NP.F.add_neq_o by assumption.
+        inversion P2 as [_ S].
+        apply Option_equiv_eq in E2.
+        subst σ'.
+        eapply S in E2; [| cbn; reflexivity].
+        unfold memory_equiv_except, memory_lookup in E2.
+        rewrite E2; auto.
     }
-
 
     specialize (C1 mt mb).
     full_autospecialize C1.
@@ -4638,19 +4659,30 @@ Admitted. (* Proof.
     clear C2 mt'.
 
     specialize (C1 m'').
+    copy_apply mem_block_exists_exists ET''.
+    destruct H1 as [m''_t M''T].
+    specialize (C1 m''_t).
     destruct C1 as [C1].
-
     1:{
-      eapply memory_equiv_except_trans.
-      eapply memory_equiv_except_memory_set.
-      eapply Heqm'.
-      intros.
-      destruct P2.
-      eapply mem_write_safe0.
-      rewrite E2.
-      reflexivity.
-      subst σ'.
-      repeat constructor.
+      rewrite <-memory_set_overwrite with (k:=t_i) (mb:=mem_empty)
+        by reflexivity.
+      rewrite <-Heqm'.
+      intros i.
+      destruct (Nat.eq_dec t_i i).
+      -
+        subst.
+        unfold memory_set.
+        erewrite NP.F.add_eq_o by reflexivity.
+        now rewrite <-M''T.
+      -
+        unfold memory_set.
+        erewrite NP.F.add_neq_o by assumption.
+        inversion P2 as [_ S].
+        apply Option_equiv_eq in E2.
+        subst σ'.
+        eapply S in E2; [| cbn; reflexivity].
+        unfold memory_equiv_except, memory_lookup in E2.
+        rewrite E2; auto.
     }
 
     specialize (C1 mt mb).
@@ -4938,19 +4970,30 @@ Admitted. (* Proof.
       clear C2 mt'.
 
       specialize (C1 m'').
+      copy_apply mem_block_exists_exists ET''.
+      destruct H1 as [m''_t M''T].
+      specialize (C1 m''_t).
       destruct C1 as [C1].
-
       1:{
-        eapply memory_equiv_except_trans.
-        eapply memory_equiv_except_memory_set.
-        eapply Heqm'.
-        intros.
-        destruct P2.
-        eapply mem_write_safe0.
-        rewrite E2.
-        reflexivity.
-        subst σ'.
-        repeat constructor.
+        rewrite <-memory_set_overwrite with (k:=t_i) (mb:=mem_empty)
+          by reflexivity.
+        rewrite <-Heqm'.
+        intros i.
+        destruct (Nat.eq_dec t_i i).
+        -
+          subst.
+          unfold memory_set.
+          erewrite NP.F.add_eq_o by reflexivity.
+          now rewrite <-M''T.
+        -
+          unfold memory_set.
+          erewrite NP.F.add_neq_o by assumption.
+          inversion P2 as [_ S].
+          apply Option_equiv_eq in E2.
+          subst σ'.
+          eapply S in E2; [| cbn; reflexivity].
+          unfold memory_equiv_except, memory_lookup in E2.
+          rewrite E2; auto.
       }
 
       specialize (C1 mt mb).
@@ -5036,7 +5079,7 @@ Admitted. (* Proof.
 
       rewrite E2 in C2.
       inversion C2; subst a b; clear C2; rename H4 into C2.
-Qed. *)
+Qed.
 
 
 

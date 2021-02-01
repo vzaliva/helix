@@ -72,6 +72,7 @@ Section HCOL_Breakdown.
     rewrite breakdown_OTInfinityNorm.
     HOperator_reflexivity.
   Qed.
+  
 
 End HCOL_Breakdown.
 
@@ -1047,19 +1048,17 @@ Section MSHCOL_to_AHCOL.
 
       1:{
         cbn in *; apply inr_neq.
-        inl_inr_inv.
         subst.
-        rename m' into m, H2 into H1.
-        clear t H0.
-        remember (memory_set m 5 mb) as m'.
-        remember (memory_next_key m') as k.
-
-        assert(kc: k>5).
-        {
-          subst k.
-          eapply memory_set_memory_next_key_gt; eauto.
-        }
-        admit.
+        invc H; clear H0.
+        generalize dependent (memory_set m' 5 mb).
+        clear.
+        rename m'' into m'; intros m M'.
+        intros C.
+        rewrite C in M'; clear C.
+        assert (memory_lookup m' (memory_next_key m') = Some mbt)
+          by (remember (memory_next_key m') as k;
+              now rewrite M', memory_lookup_memory_set_eq by reflexivity).
+        now apply memory_lookup_not_next_equiv in H.
       }
 
       2:{
@@ -1078,12 +1077,11 @@ Section MSHCOL_to_AHCOL.
         }
         clear Heqk.
         specialize (H1 5).
-        autospecialize H1.
-        lia.
-        rewrite memory_lookup_memory_set_eq in H1 by reflexivity.
-        symmetry in H1.
+        unfold memory_set in *.
+        rewrite Memory.NP.F.add_neq_o in H1 by lia.
+        rewrite Memory.NP.F.add_eq_o in H1 by reflexivity.
         apply memory_lookup_not_next_equiv in H1.
-        auto.
+        congruence.
       }
 
       4:{
@@ -1232,40 +1230,42 @@ Section MSHCOL_to_AHCOL.
           apply L.
         }
 
+        (*
         assert(LM0: memory_lookup m0 dynwin_a_addr = Some v).
         {
-          subst m0.
+          rewrite H2.
           rewrite memory_lookup_memory_set_neq.
           auto.
           apply memory_lookup_not_next_equiv in LM.
           auto.
         }
+         *)
 
         assert(LM'': memory_lookup m'' dynwin_a_addr = Some v).
         {
-          clear -LM0 H2 Heqv.
-          specialize (H2 dynwin_a_addr).
-          full_autospecialize H2.
-          -
-            apply memory_lookup_not_next_equiv in LM0.
-            auto.
-          -
-            rewrite <- H2.
-            apply LM0.
+          rewrite H2.
+          rewrite memory_lookup_memory_set_neq.
+          rewrite memory_lookup_memory_set_neq.
+          assumption.
+          apply memory_lookup_not_next_equiv in LM.
+          congruence.
+          assert (memory_next_key m1 > dynwin_a_addr)
+            by (apply mem_block_exists_next_key_gt,
+                  mem_block_exists_exists_equiv; eauto).
+          remember(memory_set m' (memory_next_key m1) mb) as tm.
+          apply memory_set_memory_next_key_gt in Heqtm.
+          lia.
         }
 
         assert(LM''0: memory_lookup m''0 dynwin_a_addr = Some v).
         {
-          clear - LM'' H3 Heqv.
-          specialize (H3 dynwin_a_addr).
-          full_autospecialize H3.
-          -
-            apply memory_lookup_not_next_equiv in LM''.
-            auto.
-          -
-            rewrite <- H3.
-            apply LM''.
+          rewrite H3.
+          rewrite memory_lookup_memory_set_neq.
+          assumption.
+          apply memory_lookup_not_next_equiv in LM''.
+          congruence.
         }
+
 
         repeat break_match; try inl_inr; try some_none.
         -
@@ -1292,7 +1292,7 @@ Section MSHCOL_to_AHCOL.
             eq_to_equiv_hyp.
             rewrite LM''0 in Heqs2.
             some_inv.
-            inversion Heqs0; subst m2 n.
+            inversion Heqs0; subst m0 n.
             rewrite <- Heqs2.
             rewrite Heqv.
             reflexivity.
