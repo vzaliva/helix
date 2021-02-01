@@ -471,21 +471,20 @@ Proof.
     destruct H0 as (? & ? & <- & <- & ?). subst.
     split; [|split;[|split]];eauto.
 
-    - eapply state_invariant_Γ with (s1 := s1).
-      2 : solve_gamma.
-      eapply state_invariant_Γ with (s2 := s1) in H0; try solve_gamma.
+    - eapply state_invariant_same_Γ with (s1 := s12); eauto.
+      eapply not_in_Gamma_Gamma_eq; eauto.
+      eapply not_in_gamma_protect.
+      eapply GAM.
+      eapply lid_bound_between_shrink_down.
+      2 : {
+        destruct H; eapply lid_bound_between_shrink. eauto. 3 :  eauto.
+        2 : solve_local_count. 3 : solve_local_count. 2 : reflexivity.
+        Transparent addVars.
+        inv Heqs12.
+        cbn in Heqs13.
+        solve_local_count.
+      }
 
-      eapply state_invariant_add_fresh' with s12; eauto.
-      apply Gamma_safe_protect. solve_gamma_safe.
-
-      Transparent addVars.
-      inv Heqs12.
-      cbn in Heqs13.
-      destruct H as [BOUND | BOUND].
-      eapply lid_bound_between_shrink_down; [| apply BOUND].
-      solve_local_count.
-
-      eapply lid_bound_between_shrink_up; [| apply BOUND].
       solve_local_count.
 
     - unfold memory_invariant_partial_write in *.
@@ -819,6 +818,8 @@ Proof.
           we should be able to retrieve the normal state invariant. *)
         eapply state_invariant_enter_scope_DSHCType' with (s1 := s5); eauto.
         + rewrite E. reflexivity.
+        + admit.
+        + solve_local_count. (* cbn. solve_lid_bound. *)
         + solve_alist_in.
         + (* use LOOPVAR *)
           eapply state_invariant_Γ with (s1 := s2).
@@ -831,12 +832,15 @@ Proof.
             clear -Heqs4. Transparent newLocalVar.
             eapply lid_bound_between_newLocalVar; eauto. reflexivity.
           * rewrite alist_find_neq; auto. rewrite alist_find_neq; auto.
-          * eapply state_invariant_Γ with (s1 := s12). 2 : eauto.
+          * eapply state_invariant_Γ with (s1 := s0). 2 : solve_gamma. 2 : solve_local_count.
             eapply state_invariant_same_Γ; eauto using lid_bound_between_incLocal.
             eapply state_invariant_same_Γ; eauto using lid_bound_between_incLocal.
             solve_not_in_gamma.
-            eapply state_invariant_Γ.
-            eauto. solve_gamma. solve_gamma.
+            eapply state_invariant_Γ'.
+            eauto. solve_gamma.
+            destruct PRE.
+            eauto.
+          * solve_local_count.
       - eapply Gamma_safe_Context_extend with (s1 := s2) (s2 := s10).
         4 : { cbn. assert (GAM_E: Γ s2 ≡ Γ s7) by solve_gamma. rewrite GAM_E. reflexivity. }
         2 : solve_local_count.
@@ -909,16 +913,11 @@ Proof.
            as EQ_y_HG'
     end.
 
-    forward EQ_y_HG'; [clear EQ_y_HG' | ].
-    {
-      destruct y.
-      rewrite denote_exp_GR. 2 : eauto.
-      cbn. subst. reflexivity.
-      rewrite denote_exp_LR. reflexivity.
-      clear -PRE_INV extends INLG_yoff_l LUn0 Heqo0 EE.
+
+    assert (in_local_or_global_addr li' g0 y ptrll_yoff). {
+      destruct y. cbn in *. eauto.
       cbn.
       cbn in INLG_yoff_l.
-      red in extends.
       destruct PRE_INV.
       clear IRState_is_WF.
       clear st_id_allocated st_no_id_aliasing.
@@ -926,11 +925,36 @@ Proof.
       specialize (mem_is_inv (S (S n1))). cbn in mem_is_inv.
       specialize (mem_is_inv _ _ _ _ Heqo0 LUn0). cbn in mem_is_inv.
       edestruct mem_is_inv as (? & ? & ? & ? & ?); clear mem_is_inv.
-      inv H. destruct H1. clear H1.
+      inv H0. destruct H2. clear H2.
       rename st_no_dshptr_aliasing into DSH.
       rename st_no_llvm_ptr_aliasing into LLVM.
       red in DSH, LLVM. red in LLVM.
-      (* Should be able to retrieve the fact that the protected thing didn't get written to. *) admit.
+      red in st_gamma_bound.
+      rewrite <- EE in st_gamma_bound.
+      rewrite <- GENIR_Γ in LUn0.
+      rewrite <- GENIR_Γ in st_gamma_bound.
+
+      destruct PRE.
+      specialize (st_gamma_bound0 n1 id). cbn in st_gamma_bound.
+      specialize (st_gamma_bound0 _ LUn0).
+      erewrite <- local_scope_modif_bound_before. 2 : eauto. 3 : eauto.
+      2 : solve_local_count.
+      erewrite alist_find_neq.
+      erewrite alist_find_neq.
+      eauto.
+      eapply in_gamma_not_in_neq.
+      solve_in_gamma. solve_not_in_gamma.
+      eapply in_gamma_not_in_neq.
+      solve_in_gamma. solve_not_in_gamma.
+    }
+
+    forward EQ_y_HG'; [clear EQ_y_HG' | ].
+    {
+      destruct y.
+      rewrite denote_exp_GR. 2 : eauto.
+      cbn. subst. reflexivity.
+      rewrite denote_exp_LR. reflexivity.
+      cbn. eauto.
     }
 
     forward EQ_y_HG'; [clear EQ_y_HG' | ].
@@ -953,7 +977,6 @@ Proof.
       solve_local_count.
       solve_local_count.
     }
-
 
     forward EQ_y_HG'; [clear EQ_y_HG' | ].
     {
@@ -1070,24 +1093,20 @@ Proof.
     (* Establish the relaxed state invariant with changed states and extended local environment *)
     {
       eapply write_state_invariant_protected. 6 : eauto.  all : eauto. 3 : constructor.
-      eapply state_invariant_cons2; eauto.
-      destruct PRE_INV'.
 
+      destruct PRE_INV'.
+      eapply state_invariant_cons2. 3 : eapply PRE_INV.
+      solve_local_count.
+      eauto.
       (* ILG *)
       (* in_local_or_global_addr li' g0 y dst_addr *)
       admit.
-
     }
 
     (* Partial write mem invariant *)
     {
       eapply dtyp_fits_after_write; eauto.
       destruct INV_p; auto.
-    }
-    {
-      (* ILG *)
-      (* in_local_or_global_addr li' g0 y ptrll_yoff *)
-      admit.
     }
     {
       intros.
@@ -1142,7 +1161,7 @@ forward GENC; [clear GENC |].
 
     eapply lid_bound_between_shrink_up; [| apply BOUND].
     solve_local_count.
-
+    admit. solve_local_count. 
   - unfold memory_invariant_partial_write in *.
     destruct H1 as (? & ? & ?).
     intuition.
