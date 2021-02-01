@@ -893,11 +893,10 @@ Proof.
         {
           eapply genAExpr_correct.
           eauto.
-          { eapply state_invariant_enter_scope_DSHCType' with (s1:={| block_count := block_count i19; local_count := local_count i16; void_count := void_count i19; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}); cbn; eauto.
+          { eapply state_invariant_enter_scope_DSHCType' with (s1:={| block_count := block_count i19; local_count := local_count i19; void_count := void_count i19; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}); cbn; eauto.
 
-            admit. (* LID BOUND... Should hold *)
-            3: solve_alist_in.
-            2: solve_local_count.
+            solve_lid_bound.
+            2: solve_alist_in.
 
             { pose proof GAM.
               unfold Gamma_safe in H.
@@ -919,14 +918,40 @@ Proof.
               end.
             }
 
-            assert (Γ i19 ≡ Γ i16) as Γ_i19i16 by solve_gamma.
             eapply state_invariant_enter_scope_DSHCType'; cbn.
             eauto.
-            rewrite Γ_i19i16. eauto.
+            eauto.
             3: solve_local_count.
 
-            admit. (* LID BOUND... should hold *)
+            Set Nested Proofs Allowed.
+            Lemma lid_bound_count_incLocalNamed :
+              forall (s1 s2 s3 : IRState) (pref : string) (id : raw_id),
+                is_correct_prefix pref ->
+                (local_count s2 < local_count s1)%nat ->
+                incLocalNamed pref s2 ≡ inr (s3, id) ->
+                lid_bound s1 id.
+            Proof.
+              intros s1 s2 s3 pref id PREF COUNT GEN.
+              unfold lid_bound, state_bound in *.
+              do 3 eexists.
+              repeat split; eauto.
+            Qed.
 
+            Lemma lid_bound_count_incLocal :
+              forall (s1 s2 s3 : IRState) (id : raw_id),
+                (local_count s2 < local_count s1)%nat ->
+                incLocal s2 ≡ inr (s3, id) ->
+                lid_bound s1 id.
+            Proof.
+              intros s1 s2 s3 id COUNT GEN.
+              Transparent incLocal.
+              unfold incLocal in GEN.
+              Opaque incLocal.
+              eapply lid_bound_count_incLocalNamed; eauto.
+              solve_prefix.
+            Qed.
+            
+            solve_lid_bound.
             eapply not_in_Gamma_Gamma_eq with (s1 := s1); [solve_gamma|solve_not_in_gamma].
 
             { solve_alist_in.
@@ -935,7 +960,7 @@ Proof.
             eapply state_invariant_same_Γ' with (s1:=s2); eauto.
             solve_gamma.
             { get_gamma_bounds.
-              assert (Γ i8 ≡ Γ i16) by solve_gamma.
+              assert (Γ i8 ≡ Γ i19) by solve_gamma.
               eapply gamma_bound_mono.
               apply PostYoffSINV.
               solve_local_count.
@@ -1962,11 +1987,10 @@ Proof.
         {
           eapply genAExpr_correct.
           eauto.
-          { eapply state_invariant_enter_scope_DSHCType' with (s1:={| block_count := block_count i19; local_count := local_count i16; void_count := void_count i19; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}); cbn; eauto.
+          { eapply state_invariant_enter_scope_DSHCType' with (s1:={| block_count := block_count i19; local_count := local_count i19; void_count := void_count i19; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}); cbn; eauto.
 
-            admit. (* LID BOUND... Should hold *)
-            3: solve_alist_in.
-            2: solve_local_count.
+            solve_lid_bound.
+            2: solve_alist_in.
 
             { pose proof GAM.
               unfold Gamma_safe in H.
@@ -1988,15 +2012,14 @@ Proof.
               end.
             }
 
-            assert (Γ i19 ≡ Γ i16) as Γ_i19i16 by solve_gamma.
             eapply state_invariant_enter_scope_DSHCType'; cbn.
             eauto.
-            rewrite Γ_i19i16. eauto.
-            3: solve_local_count.
+            eauto.
 
-            admit. (* LID BOUND... should hold *)
+            solve_lid_bound.
 
             eapply not_in_Gamma_Gamma_eq with (s1 := s1); [solve_gamma|solve_not_in_gamma].
+            solve_local_count.
 
             { solve_alist_in.
             }
@@ -2004,7 +2027,7 @@ Proof.
             eapply state_invariant_same_Γ' with (s1:=s2); eauto.
             solve_gamma.
             { get_gamma_bounds.
-              assert (Γ i8 ≡ Γ i16) by solve_gamma.
+              assert (Γ i8 ≡ Γ i19) by solve_gamma.
               eapply gamma_bound_mono.
               apply PostYoffSINV.
               solve_local_count.
