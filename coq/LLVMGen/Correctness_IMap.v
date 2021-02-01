@@ -142,10 +142,11 @@ Section DSHIMap_is_tfor.
   Lemma DSHIMap_as_tfor : forall σ n x y f,
       denoteDSHOperator σ (DSHIMap n x y f) ≈
       '(x_i, _) <- denotePExpr σ x;;
-      '(y_i, _) <- denotePExpr σ y;;
+      '(y_i, y_size) <- denotePExpr σ y;;
         _ <- lift_Serr (assert_nat_neq "DSHIMap 'x' must not be equal 'y'" x_i y_i);;
        x2 <- trigger (MemLU "Error looking up 'x' in DSHIMap" x_i);;
        y0 <- trigger (MemLU "Error looking up 'y' in DSHIMap" y_i);;
+       v <- lift_Derr (assert_nat_lt "DSHIMap 'n' index out of bounds" n (MInt64asNT.to_nat y_size));;
        y' <- DSHIMap_tfor_up (protect_p σ y) f 0 n x2 y0 ;;
         trigger (MemSet y_i y').
   Proof.
@@ -232,20 +233,28 @@ Proof.
 
   (* Clean up [no_failure] *)
   repeat apply no_failure_Ret in NOFAIL.
-  break_match_hyp; try_abs.
+  destruct (assert_nat_neq "DSHIMap 'x' must not be equal 'y'" n3 n2) eqn : XNEQY; try_abs.
 
   repeat apply no_failure_Ret in NOFAIL.
-
-
   edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
   edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
+
+
   clean_goal.
 
   hred.
-  rewrite Heqs0.
+  destruct (assert_nat_lt "DSHIMap 'n' index out of bounds" n (MInt64asNT.to_nat i0)) eqn : BOUNDS; try_abs.
+
+  repeat apply no_failure_Ret in NOFAIL.
+  rewrite XNEQY.
+
   hred.
   hstep; [eauto |].
   hred; hstep; [eauto |].
+  hred.
+
+  hred.
+
   hred.
 
   (* Rename states in order *)
@@ -390,9 +399,14 @@ Proof.
   rename sz0 into y_sz.
   rename sz into x_sz.
 
-  destruct u. unfold assert_nat_neq in Heqs0.
-  unfold assert_false_to_err in Heqs0. break_match_hyp; try inv Heqs0.
+  destruct u. unfold assert_nat_neq in XNEQY.
+  unfold assert_false_to_err in XNEQY. break_match_hyp; try inv XNEQY.
   apply beq_nat_false in Heqb1.
+  unfold assert_nat_lt, assert_true_to_err in BOUNDS.
+  break_match_hyp; inv BOUNDS.
+  rename Heqb1 into XNEQY.
+  rename Heqb0 into BOUNDS.
+  apply Nat.ltb_lt in BOUNDS.
 
   (* Invariant at each iteration *)
   set (I := (fun (k : nat) (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
@@ -493,7 +507,7 @@ Proof.
       + unfold alist_add; cbn. cbn.
         destruct y; auto. cbn in *.
           break_match_goal.
-        * rewrite rel_dec_correct in Heqb0; subst.
+        * rewrite rel_dec_correct in Heqb1; subst.
           assert (Gamma_safe σ s0 s12). solve_gamma_safe.
 
           Transparent addVars.
@@ -509,14 +523,14 @@ Proof.
           exfalso; eapply NIN.
           econstructor. apply Heqo0. eauto.
           eauto.
-        * apply neg_rel_dec_correct in Heqb0.
+        * apply neg_rel_dec_correct in Heqb1.
           rewrite remove_neq_alist; eauto.
           all: typeclasses eauto.
 
       + unfold alist_add; cbn. cbn.
         destruct y; auto. cbn in *.
           break_match_goal.
-        * rewrite rel_dec_correct in Heqb0; subst.
+        * rewrite rel_dec_correct in Heqb1; subst.
           assert (Gamma_safe σ s0 s12). solve_gamma_safe.
 
           Transparent addVars.
@@ -528,7 +542,7 @@ Proof.
           exfalso; eapply NIN.
           econstructor. apply Heqo0. eauto.
           eauto.
-        * apply neg_rel_dec_correct in Heqb0.
+        * apply neg_rel_dec_correct in Heqb1.
           rewrite remove_neq_alist; eauto.
           all: typeclasses eauto.
 
@@ -722,7 +736,6 @@ Proof.
     typ_to_dtyp_simplify.
     rewrite denote_code_app.
     vred.
-
     Transparent addVars. unfold addVars in Heqs12. inv Heqs12.
 
     assert (s2_ext : Γ s5 ≡ (ID_Local loopvarid, IntType) :: Γ s1). {
@@ -809,6 +822,7 @@ Proof.
     assert (E : Γ s5 ≡ Γ s7) by solve_gamma.
     rewrite E in *.
 
+
     (* [BOTH] Finally eached AExpr / FMap. Step both of them. *)
     eapply eutt_clo_bind_returns.
     {
@@ -818,7 +832,7 @@ Proof.
           we should be able to retrieve the normal state invariant. *)
         eapply state_invariant_enter_scope_DSHCType' with (s1 := s5); eauto.
         + rewrite E. reflexivity.
-        + admit.
+        + (* lid_bound and addVar don't interact nicely with each other :-\ *) admit.
         + solve_local_count. (* cbn. solve_lid_bound. *)
         + solve_alist_in.
         + (* use LOOPVAR *)
@@ -995,15 +1009,38 @@ Proof.
     (* 2. Store  *)
     edestruct write_succeeds with (m1 := mV) (v := DVALUE_Double t_Aexpr) (a := dst_addr).
     apply DVALUE_Double_typ.
-    eapply dtyp_fits_array_elem. typ_to_dtyp_simplify.
-    subst y_size. 2 : eauto.
-    pose proof (from_N_intval _ EQsz0) as EQ. rewrite <- EQ. eauto.
-    unfold MInt64asNT.from_nat in EQk.
-    apply from_Z_intval in EQk.
-    setoid_rewrite <- EQk.
+    {
+      typ_to_dtyp_simplify.
+      epose proof (vellvm_helix_ptr_size _ LUn0 Heqo0).
+      eapply state_invariant_cons2 in PRE_INV'. 3 : eauto. 2 : solve_local_count.
+      specialize (H1 PRE_INV').
 
-    assert (BOUNDS: (Z.of_nat k < Z.of_N y_size)%Z). admit.
-    apply BOUNDS.
+      pose proof (from_N_intval _ EQsz0) as EQ.
+      rewrite H1 in EQ.
+      eapply dtyp_fits_array_elem.
+      subst y_size. 2 : eauto.
+      rewrite <- EQ. rewrite <- H1. eauto.
+      subst y_size. rewrite <- EQ.
+      clear -BOUNDS BOUNDk EQk.
+
+      rewrite Znat.Z2N.id; [|apply Int64_intval_pos].
+      apply to_nat_repr_nat in EQk.
+
+      pose proof Znat.inj_lt _ _ BOUNDS as LT.
+      unfold MInt64asNT.to_nat in LT.
+
+      rewrite Znat.Z2Nat.id in LT; [|apply Int64_intval_pos].
+      etransitivity. 2 : eauto.
+      clear -BOUNDk.
+      rewrite <- intval_to_from_nat_id.
+      eapply Znat.inj_lt.
+
+      unfold DynamicValues.Int64.intval. unfold Z.of_nat.
+      destruct k eqn: Hk; subst. apply BOUNDk.
+      destruct (DynamicValues.Int64.repr (Z.pos (Pos.of_succ_nat n0))) eqn: Ha.
+      Transparent DynamicValues.Int64.repr.
+      admit. (* arithmetic *)
+    }
 
 
     vred.
@@ -1088,11 +1125,12 @@ Proof.
 
     split; [| split ;[split ;[|split]| split;[|split]]]; eauto.
 
-
-
     (* Establish the relaxed state invariant with changed states and extended local environment *)
     {
-      eapply write_state_invariant_protected. 6 : eauto.  all : eauto. 3 : constructor.
+      (* TODO: The write state invariant doesn't take account to when pointers are different.
+      Need to specify a range that is not being written to and state that the dst_addr is contained in it*)
+      eapply write_state_invariant_protected. 6 : eauto.
+      4 : eauto. all : eauto. 3 : constructor.
 
       destruct PRE_INV'.
       eapply state_invariant_cons2. 3 : eapply PRE_INV.
@@ -1113,17 +1151,29 @@ Proof.
 
       eapply read_array_exists with (i := MInt64asNT.to_nat i) in H .
       destruct H as (? & ? & ?).  eauto.
-      eapply get_array_cell_write_no_overlap; eauto.
-      constructor.
-      3 : {
-        (* rewrite <- H2. *)
-        eapply GETARRAYCELL_yoff_l; eauto.
-        intros. (* Why is it S k here? *) admit.
-        erewrite <- mem_lookup_mem_add_neq. eauto.
-        (* MInt64asNT.to_nat i ≢ k *) admit. (* TODO ; SHould do a case analysis here. *)
-      }
-      (* no_overlap_dtyp dst_addr DTYPE_Double ptrll_yoff (DTYPE_Array ?sz DTYPE_Double) *)
-      admit.
+      (* TODO : write_array_cell_get_array_cell but with a write and gep. *)
+    (* Lemma write_get_array_cell : *)
+    (*   forall (m m' : memory_stack) (t : dtyp) (val : dvalue) (a : addr) (i : nat), *)
+    (*     write a i t val = inr m' -> *)
+
+    (*     handle_gep_addr (DTYPE_Array ?size ?τ) ptrll_yoff *)
+    (*           [DVALUE_I64 (repr 0); DVALUE_I64 (repr (Z.of_nat (MInt64asNT.to_nat i)))] ≡ inr x0 -> *)
+    (*     dvalue_has_dtyp val t -> *)
+    (*     get_array_cell m' a i t = inr (dvalue_to_uvalue val). *)
+    (* Proof. *)
+    (*   intros m m' t val a i WRITE TYP. *)
+    (*   destruct a; cbn in *. *)
+    (*   break_match_hyp; inv WRITE. *)
+    (*   destruct l. *)
+    (*   inversion H0; subst. *)
+    (*   rewrite get_logical_block_of_add_logical_block. *)
+    (*   rewrite read_in_mem_block_write_to_mem_block; eauto. *)
+    (* Qed. *)
+      (* pose proof write_array_cell_get_array_cell. *)
+      (* specialize  *)
+      (* write_preserves_allocated *)
+      (* eapply get_array_cell_write_no_overlap; eauto. *)
+      (* constructor. *)
       admit.
     }
 
@@ -1168,7 +1218,7 @@ forward GENC; [clear GENC |].
     + unfold alist_add; cbn. cbn.
       destruct y; auto. cbn in *.
         break_match_goal.
-      * rewrite rel_dec_correct in Heqb0; subst.
+      * rewrite rel_dec_correct in Heqb1; subst.
         assert (Gamma_safe σ s0 s12). solve_gamma_safe.
 
         Transparent addVars.
@@ -1182,14 +1232,14 @@ forward GENC; [clear GENC |].
         exfalso; eapply NIN.
         econstructor. apply Heqo0. eauto.
         eauto.
-      * apply neg_rel_dec_correct in Heqb0.
+      * apply neg_rel_dec_correct in Heqb1.
         rewrite remove_neq_alist; eauto.
         all: typeclasses eauto.
 
     + unfold alist_add; cbn. cbn.
       destruct y; auto. cbn in *.
         break_match_goal.
-      * rewrite rel_dec_correct in Heqb0; subst.
+      * rewrite rel_dec_correct in Heqb1; subst.
         assert (Gamma_safe σ s0 s12). solve_gamma_safe.
 
         Transparent addVars.
@@ -1201,7 +1251,7 @@ forward GENC; [clear GENC |].
         exfalso; eapply NIN.
         econstructor. apply Heqo0. eauto.
         eauto.
-      * apply neg_rel_dec_correct in Heqb0.
+      * apply neg_rel_dec_correct in Heqb1.
         rewrite remove_neq_alist; eauto.
         all: typeclasses eauto.
 }
@@ -1256,7 +1306,7 @@ eapply GENC.
   cbn. split; [|split]; eauto.
   apply state_invariant_protect.
   eapply state_invariant_Γ. eauto.
-  solve_gamma.
+  solve_gamma. solve_local_count.
 }
 
 intros [[]|]; intros (? & ? & ? & []) (? & ? & ?); subst P I; try_abs;
@@ -1274,7 +1324,39 @@ apply eqit_Ret.
     destruct H0 as (? & ? & ?); subst.
     eapply state_invariant_write_double_result; eauto.
     rewrite <- GENIR_Γ; eauto.
-    admit. admit. admit. admit. admit.
+
+    {
+      destruct y. cbn in *. eauto.
+      cbn.
+      cbn in INLG_yoff.
+      destruct H0.
+      clear IRState_is_WF.
+      clear st_id_allocated st_no_id_aliasing.
+      cbn in mem_is_inv.
+      specialize (mem_is_inv n1). cbn in mem_is_inv.
+      rewrite <- GENIR_Γ in mem_is_inv. cbn in *.
+      eapply nth_error_protect_eq' in Heqo0.
+      specialize (mem_is_inv _ _ _ _ Heqo0 LUn0). cbn in mem_is_inv.
+      edestruct mem_is_inv as (? & ? & ? & ? & ?); clear mem_is_inv.
+      inv H0. destruct H3. clear H3.
+      rename st_no_dshptr_aliasing into DSH.
+      rename st_no_llvm_ptr_aliasing into LLVM.
+      red in DSH, LLVM. red in LLVM.
+      red in st_gamma_bound.
+      rewrite <- GENIR_Γ in st_gamma_bound.
+
+      clear st_gamma_bound.
+      destruct PRE.
+      specialize (st_gamma_bound n1 id). cbn in st_gamma_bound.
+      specialize (st_gamma_bound _ LUn0).
+      erewrite <- local_scope_modif_bound_before. 2 : eauto.
+      eauto. 2 : eauto. solve_local_count.
+    }
+
+    {
+      admit.
+    }
+    admit. admit. admit.
   - destruct H; eauto.
   - solve_local_scope_modif.
 }

@@ -197,6 +197,9 @@ Module MDSigmaHCOLEval
   Definition assert_NT_le (msg:string) (a b:NT.t) : err unit :=
     assert_true_to_err msg (Nat.leb (to_nat a) (to_nat b)) tt.
 
+  Definition assert_nat_lt (msg:string) (a b:nat) : err unit :=
+    assert_true_to_err msg (Nat.ltb a b) tt.
+
   Definition assert_nat_neq (msg:string) (a b:nat) : err unit :=
     assert_false_to_err msg (Nat.eqb a b) tt.
 
