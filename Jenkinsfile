@@ -1,5 +1,5 @@
 /* Change this variable to your baranch name if you want build it. */
-BUILD_IF_BRANCH = 'master'
+BUILD_IF_BRANCH = 'newmodules'
 
 pipeline {
     agent { 
