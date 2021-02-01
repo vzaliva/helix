@@ -63,7 +63,7 @@ Module MDHCOLTypeTranslator
 
   (* This one is tricky. There are only 2 known constants we know how to translate:
    '1' and '0'. Everything else will trigger an error *)
-  Definition translateCTypeValue (a:CT.t): err CT'.t :=
+  Definition translateCTypeConst (a:CT.t): err CT'.t :=
     if CT.CTypeEquivDec a CT.CTypeZero then inr CT'.CTypeZero
     else if CT.CTypeEquivDec a CT.CTypeOne then inr CT'.CTypeOne
          else (inl "unknown CType constant").
@@ -101,7 +101,7 @@ Module MDHCOLTypeTranslator
 
   (* This should use [NM_sequence] directly making [NM_err_sequence] unecessary, but we run into universe inconsistency *)
   Definition translate_mem_block (m:L.mem_block) : err L'.mem_block
-    := NM_err_sequence (NM.map translateCTypeValue m).
+    := NM_err_sequence (NM.map translateCTypeConst m).
 
   Definition translateMExpr (m:L.MExpr) : err L'.MExpr :=
     match m with
@@ -115,7 +115,7 @@ Module MDHCOLTypeTranslator
   Fixpoint translateAExpr (a:L.AExpr): err L'.AExpr :=
     match a with
     | L.AVar x => ret (AVar x)
-    | L.AConst x => x' <- translateCTypeValue x ;; ret (AConst x')
+    | L.AConst x => x' <- translateCTypeConst x ;; ret (AConst x')
     | L.ANth m n =>
       m' <- translateMExpr m ;;
       n' <- translateNExpr n ;;
@@ -182,7 +182,7 @@ Module MDHCOLTypeTranslator
                f')
       | L.DSHPower n src dst f initial =>
         f' <- translateAExpr f ;;
-        initial' <- translateCTypeValue initial ;;
+        initial' <- translateCTypeConst initial ;;
         n' <- translateNExpr n ;;
         src' <- translateMemRef src ;;
         dst' <- translateMemRef dst ;;
@@ -203,7 +203,7 @@ Module MDHCOLTypeTranslator
                size'
                body')
       | L.DSHMemInit y_p value =>
-        value' <- translateCTypeValue value ;;
+        value' <- translateCTypeConst value ;;
         ret (DSHMemInit
                (translatePExpr y_p)
                value')
@@ -213,20 +213,78 @@ Module MDHCOLTypeTranslator
         ret (DSHSeq f' g')
       end.
 
+
+  Class TranslationOp :=
+    {
+
+    (* Heterogeneous equality *)
+    heq_CType: CT.t -> CT'.t -> Prop ;
+
+    (* Partial mapping of [CT.t] values to [CT'.t] *)
+    translateCTypeValue: CT.t -> err CT'.t ;
+    }.
+
+  Class BinOpTranslation
+        `{TranslationOp}
+        (f: CT.t -> CT.t -> CT.t)
+        (f': CT'.t -> CT'.t -> CT'.t)
+    :=
+      {
+    binop_translate_compat: forall x x' y y',
+          translateCTypeValue x = inr x' ->
+          translateCTypeValue y = inr y' ->
+          translateCTypeValue (f x y) = inr (f' x' y')
+      }.
+
+  Class UnOpTranslation
+        `{TranslationOp}
+        (f: CT.t -> CT.t)
+        (f': CT'.t -> CT'.t)
+    :=
+      {
+    unop_translate_compat: forall x x',
+          translateCTypeValue x = inr x' ->
+          translateCTypeValue (f x) = inr (f' x')
+      }.
+
+  Class TranslationProps `{C: TranslationOp} :=
+    {
+    (* Value mapping should result in "equal" values *)
+    heq_CType_translateCTypeValue_compat:
+      forall x x', translateCTypeValue x = inr x' -> heq_CType x x';
+
+    (* Ensure [translateCTypeConst] is compatible with [translateCTypeValue] *)
+    translateCTypeConst_translateCTypeValue_compat:
+      forall x x', translateCTypeConst x = inr x' ->
+              translateCTypeValue x = inr x';
+
+    (* Surjectivity: all values in CT't should have correspoding CT.t values *)
+    translate_surj: forall (x':CT'.t), exists x, translateCTypeValue x = inr x';
+
+    CTypePlus_translation  : BinOpTranslation CT.CTypePlus  CT'.CTypePlus ;
+    CTypeMult_translation  : BinOpTranslation CT.CTypeMult  CT'.CTypeMult ;
+    CTypeZLess_translation : BinOpTranslation CT.CTypeZLess CT'.CTypeZLess;
+    CTypeMin_translation   : BinOpTranslation CT.CTypeMin   CT'.CTypeMin  ;
+    CTypeMax_translation   : BinOpTranslation CT.CTypeMax   CT'.CTypeMax  ;
+    CTypeSub_translation   : BinOpTranslation CT.CTypeSub   CT'.CTypeSub  ;
+
+    CTypeNeg_translation: UnOpTranslation CT.CTypeNeg CT'.CTypeNeg ;
+    CTypeAbs_translation: UnOpTranslation CT.CTypeAbs CT'.CTypeAbs ;
+    }.
+
+
   Section Relations.
 
-    Parameter heq_CType: CT.t -> CT'.t -> Prop.
-
-    (* Well-defined [heq_CType] must be compatible with [translateCTypeValue] *)
-    Parameter heq_CType_translateCTypeValue_compat:
-      forall x x', translateCTypeValue x = inr x' -> heq_CType x x'.
+    Context `{C: TranslationOp}
+            `{CP: @TranslationProps C}.
 
     (* Well-defined [heq_CType] preserves constnats *)
     Fact heq_CType_zero_one_wd:
       heq_CType CT.CTypeZero CT'.CTypeZero /\
       heq_CType CT.CTypeOne CT'.CTypeOne.
     Proof.
-      split; apply heq_CType_translateCTypeValue_compat; cbv.
+      split;
+        apply heq_CType_translateCTypeValue_compat, translateCTypeConst_translateCTypeValue_compat; cbv.
       -
         break_if.
         + reflexivity.
