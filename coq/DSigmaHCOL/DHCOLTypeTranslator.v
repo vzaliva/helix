@@ -327,7 +327,7 @@ Module MDHCOLTypeTranslator
     | heq_MConst: forall m m' n n', heq_NType n n' -> heq_mem_block m m' -> heq_MExpr (L.MConst m n) (L'.MConst m' n').
 
     Inductive heq_AExpr: L.AExpr -> L'.AExpr -> Prop :=
-    | heq_AVar: forall x x', x=x' -> heq_AExpr (L.AVar x) (L'.AVar x)
+    | heq_AVar: forall x x', x=x' -> heq_AExpr (L.AVar x) (L'.AVar x')
     | heq_ANth: forall m m' n n', heq_MExpr m m' ->  heq_NExpr n n' -> heq_AExpr (L.ANth m n) (L'.ANth m' n')
     | heq_AAbs: forall x x', heq_AExpr x x' ->  heq_AExpr (L.AAbs x) (L'.AAbs x')
     | heq_AConst: forall x x', heq_CType x x' -> heq_AExpr (L.AConst x) (L'.AConst x')
