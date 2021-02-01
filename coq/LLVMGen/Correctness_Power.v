@@ -1825,7 +1825,7 @@ Proof.
                      state_invariant (protect σ n3) s2 mH stV /\
                      alist_find dst_ptr_id ρ ≡ Some (UVALUE_Addr dst_addr) /\
                      alist_find src_ptr_id ρ ≡ Some (UVALUE_Addr src_addr) /\
-                     local_scope_modif i16 s2 l_yoff ρ /\
+                     local_scope_modif i16 s2 (alist_add dst_ptr_id (UVALUE_Addr dst_addr) (alist_add src_ptr_id (UVALUE_Addr src_addr) l_yoff)) ρ /\
                      g ≡ g_yoff /\
                      allocated ptrll_yoff mV /\
                      (* Not sure if this is the right block *)
@@ -1852,7 +1852,7 @@ Proof.
                      state_invariant (protect σ n3) s2 mH stV /\
                      alist_find dst_ptr_id ρ ≡ Some (UVALUE_Addr dst_addr) /\
                      alist_find src_ptr_id ρ ≡ Some (UVALUE_Addr src_addr) /\
-                     local_scope_modif i16 s2 l_yoff ρ /\
+                     local_scope_modif i16 s2 (alist_add dst_ptr_id (UVALUE_Addr dst_addr) (alist_add src_ptr_id (UVALUE_Addr src_addr) l_yoff)) ρ /\
                      g ≡ g_yoff /\
                      mH ≡ m_yoff /\
                      mb ≡ mem_add (MInt64asNT.to_nat yoff_res) initial bkh_yoff /\
@@ -2771,7 +2771,7 @@ Proof.
         repeat split.
         1-2: solve_alist_in.
 
-        admit. (* Sigh, another local_scope_modif thing *)
+        solve_local_scope_modif.
       }
     }
   }
