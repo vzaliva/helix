@@ -1261,14 +1261,15 @@ Proof.
           erewrite write_untouched; eauto. constructor.
         }
         {
+          (* It's a pointer! Pointer ! *)
           clean_goal. subst I. clear INV_STABLE. clear WHILE Heqs6 Heqs14 Heqs13.
           clear E.
           clean_goal.
           clear EQ_y_HG'.
+          revert MINV_YOFF; intros.
 
-          pose proof MINV_YOFF as PARTIAL_WRITE.
-          pose proof HDST_GEP.
-          pose proof (from_N_intval _ EQsz0) as EQ.
+          (* pose proof HDST_GEP. *)
+          (* pose proof (from_N_intval _ EQsz0) as EQ. *)
           edestruct mem_is_inv as (? & ? & ? & ? & ? & ?); clear mem_is_inv.
 
           eexists. eexists. split; eauto.
@@ -1276,9 +1277,15 @@ Proof.
           split. eapply dtyp_fits_after_write; eauto.
 
           split; eauto. intros.
-          specialize (H7 H8).
-          destruct H7 as (? & ? & ? ).
-          eexists. split; eauto. 
+          specialize (H6 H7).
+          destruct H6 as (? & ? & ? ).
+          eexists. split; eauto.
+          intros.
+          inv H3.
+          erewrite write_untouched_ptr_block_get_array_cell.
+          2 : eauto.
+          2 : eauto.
+          eauto.
 
           assert (fst x1 ≢ fst ptrll_yoff). {
             do 2 red in st_no_llvm_ptr_aliasing.
@@ -1289,35 +1296,12 @@ Proof.
             eauto.
           }
 
-          assert (no_overlap_dtyp dst_addr DTYPE_Double x1 (typ_to_dtyp [] x2)) as NOALIAS'.
-          {
-            unfold no_overlap_dtyp.
-            unfold no_overlap.
-            left.
-
-            rewrite <- (handle_gep_addr_array_same_block _ _ _ _ HDST_GEP).
-
-            intros BLOCKS; symmetry in BLOCKS; revert BLOCKS.
-            eauto.
+          assert (fst ptrll_yoff ≡ fst dst_addr). {
+            revert HDST_GEP; intros.
+            unfold handle_gep_addr in HDST_GEP.
+            destruct ptrll_yoff. cbn in HDST_GEP. inv HDST_GEP. cbn. auto.
           }
-          subst.
-          intros.
-          destruct x1 as (c & coff).
-          erewrite <- read_array.  2 : solve_allocated.
-          2 : {
-            unfold handle_gep_addr. cbn.
-            rewrite Z.mul_0_r.
-            rewrite Z.add_0_r.
-            reflexivity.
-          }
-
-          (* Here, we need to show that the address being read has _no overlap_
-              with the dst addr. We should be able to show this because ... *)
-
-            (* read mV_yoff (c, (coff + DynamicValues.Int64.unsigned
-                (DynamicValues.Int64.repr (Z.of_nat (MInt64asNT.to_nat i))) * 8)%Z) DTYPE_Double *)
-            (* ≡ inr (UVALUE_Double v0) *)
-          admit.
+          rewrite <- H7. auto.
         }
       }
     }
@@ -1519,7 +1503,6 @@ forward GENC; [clear GENC |].
     revert BOUNDS; intro.
     lia.
   }
-  Unshelve. eauto.
 }
 
 setoid_rewrite <- bind_ret_r at 6.
@@ -1557,8 +1540,7 @@ apply eqit_Ret.
   - destruct H; eauto.
   - solve_local_scope_modif.
 }
-
-Admitted.
+Qed.
 
 Section Swap.
 
