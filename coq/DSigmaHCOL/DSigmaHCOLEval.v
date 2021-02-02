@@ -377,7 +377,7 @@ Module Type MDSigmaHCOLEval
               (* assert_NT_le "DSHIMap 'n' larger than 'x_size'" n' x_size ;; *)
               '(y_i,y_size) <- evalPExpr σ y_p ;;
               assert_nat_neq "DSHIMap 'x' must not be equal 'y'" x_i y_i ;;
-              assert_NT_le "DSHIMap 'n' larger than 'y_size'" n' x_size ;;
+              assert_NT_le "DSHIMap 'n' larger than 'x_size'" n' x_size ;;
               x <- memory_lookup_err "Error looking up 'x' in DSHIMap" mem x_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHIMap" mem y_i ;;
               y' <- evalDSHIMap mem n f (protect_p σ y_p) x y ;;
@@ -389,7 +389,7 @@ Module Type MDSigmaHCOLEval
               '(x0_i,x0_size) <- evalPExpr σ x0_p ;;
               (* assert_NT_le "DSHMemMap2 'n' larger than 'x0_size'" n' x0_size ;; *)
               '(x1_i,x1_size) <- evalPExpr σ x1_p ;;
-              (* assert_NT_le "DSHMemMap2 'n' larger than 'x0_size'" n' x1_size ;; *)
+              (* assert_NT_le "DSHMemMap2 'n' larger than 'x1_size'" n' x1_size ;; *)
               '(y_i,y_size) <- evalPExpr σ y_p ;;
               assert_NT_le "DSHMemMap2 'n' larger than 'y_size'" n' y_size ;;
               x0 <- memory_lookup_err "Error looking up 'x0' in DSHMemMap2" mem x0_i ;;
