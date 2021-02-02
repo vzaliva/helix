@@ -326,25 +326,6 @@ Proof.
     subst.
 
     Set Nested Proofs Allowed.
-    Lemma genWhileLoop_entry_block :
-      forall prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock loop_entry loop_blocks s1 s2,
-        genWhileLoop prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 ≡ inr (s2, (loop_entry, loop_blocks)) ->
-        loop_entry ≡ ((prefix @@ "_entry") @@ string_of_nat (block_count s1)).
-    Proof.
-      intros prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock loop_entry loop_blocks s1 s2 GEN.
-      Transparent genWhileLoop.
-      unfold genWhileLoop in GEN.
-      inv GEN.
-      repeat break_match; eauto.
-      all: inv Heqs.
-      Transparent incBlockNamed.
-      unfold incBlockNamed in Heqs0.
-      inv Heqs0.
-      reflexivity.
-      Opaque incBlockNamed.
-      Opaque genWhileLoop.
-    Qed.
-
     eapply genWhileLoop_entry_block in Heqs2.
     inv Heqs2.
     Transparent incBlockNamed.
@@ -354,9 +335,9 @@ Proof.
 
   (* body_etry (* b0 *) is in inputs body_blocks *)
   assert (b0 ≡ b0 ∨ False) as B0B0 by auto.
-  epose proof @genWhileLoop_init _ _ _ _ _ _ _ _ _ _ _ _ _ bid_from Heqs2 WF_loop_blocks BBID_IN FREE_loop_blocks_nextblock B0B0 as INIT.
+  epose proof @genWhileLoop_init' _ _ _ _ _ _ _ _ _ _ _ _ _ bid_from Heqs2 WF_loop_blocks BBID_IN FREE_loop_blocks_nextblock B0B0 as INIT.
   cbn in INIT.
-  destruct INIT as (body_bks' & GEN' & INIT).
+  destruct INIT as (body_bks' & GEN' & INIT & WF_BODY_BKS' & FREE_BODY_BKS'_NEXTBLOCK).
   clear Heqs2.
 
   (* TODO: i5 and i6 are just a guess *)
@@ -399,8 +380,6 @@ Proof.
 
   assert (is_correct_prefix "Power") as PREF_POWER by solve_prefix.
 
-  assert (wf_ocfg_bid body_bks') as WF_BODY_BKS' by admit.
-
   (* TODO: make solve_lid_bound_between do this *)
   assert (lid_bound_between i16 {|
            block_count := block_count i21;
@@ -408,8 +387,6 @@ Proof.
            void_count := void_count i21;
            Γ := Γ i21 |}
                             ("Power_i" @@ string_of_nat (local_count i21))) as LID_BOUND_BETWEEN_POWER_I by solve_lid_bound_between.
-
-  assert (free_in_cfg body_bks' nextblock) as FREE_BODY_BKS'_NEXTBLOCK by admit.
 
   specialize (LOOPTFOR Inb0 PREF_POWER WF_BODY_BKS' LID_BOUND_BETWEEN_POWER_I).
   specialize (LOOPTFOR FREE_BODY_BKS'_NEXTBLOCK).
