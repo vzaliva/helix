@@ -409,32 +409,20 @@ Proof.
   rename Heqb0 into BOUNDS.
   apply Nat.ltb_lt in BOUNDS.
 
-
-  (* Definition memory_invariant_partial_write' (configV : config_cfg) (index : nat) (ptr_llvm : addr) *)
-  (*            (bk_helix : mem_block) (x : ident) sz : Prop := *)
-  (*     let '(mem_llvm, (ρ, g)) := configV in *)
-  (*         dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp [] (TYPE_Array sz TYPE_Double)) *)
-  (*             ∧ in_local_or_global_addr ρ g x ptr_llvm *)
-  (*             ∧ (∀ (i : Int64.int) (v0 : binary64), *)
-  (*                 ((MInt64asNT.to_nat i) < N.to_nat sz -> (MInt64asNT.to_nat i) < index) -> *)
-  (*                 mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v0 *)
-  (*                 → get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0)). *)
-
-
-
-  Definition memory_invariant_partial_write' (configV : config_cfg) (index : nat) (ptr_llvm : addr)
+  Definition memory_invariant_partial_write' (configV : config_cfg) (index loopsize : nat) (ptr_llvm : addr)
              (bk_helix : mem_block) (x : ident) sz : Prop :=
       let '(mem_llvm, (ρ, g)) := configV in
       dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp [] (TYPE_Array sz TYPE_Double)) /\
       in_local_or_global_addr ρ g x ptr_llvm /\
-          (* forall k dst_addr, k <= index -> *)
-          (*   handle_gep_addr (DTYPE_Array sz DTYPE_Double) ptr_llvm *)
-          (*               [DVALUE_I64 (DynamicValues.Int64.repr 0); DVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat k))] ≡ inr dst_addr -> *)
-          (*     in_local_or_global_addr ρ g x dst_addr /\ *)
               (∀ (i : Int64.int) (v0 : binary64),
-                  (MInt64asNT.to_nat i) < BinNat.N.to_nat sz -> (MInt64asNT.to_nat i) < index ->
-                  mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v0
-                  → get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0)).
+                  (MInt64asNT.to_nat i) < index \/ (MInt64asNT.to_nat i) >= loopsize ->
+                    (mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v0
+                     → get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0))).
+
+              (*     (((MInt64asNT.to_nat i) >= BinNat.N.to_nat sz) /\ *)
+              (*       (mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v0 *)
+              (*       → get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0))) *)
+              (* ). *)
 
   (* TODO : Add something like ext_memory but which talks about a range of pointers being extended. *)
   (* Invariant at each iteration *)
@@ -446,7 +434,7 @@ Proof.
                  (* 1. Relaxed state invariant *)
                  state_invariant (protect σ n1) s12 mH stV /\
                  (* 2. Preserved state invariant *)
-                 memory_invariant_partial_write' stV k ptrll_yoff b y y_sz /\
+                 memory_invariant_partial_write' stV k n ptrll_yoff b y y_sz /\
                  mH ≡ memH /\ g ≡ g' /\
                  allocated ptrll_yoff mV
                   (* forall i, i <= k -> *)
@@ -470,7 +458,7 @@ Proof.
   set (Q := (fun (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
                match mH with
                | None => False
-               | Some (mH,b) => state_invariant (protect σ n1) s12 mH stV /\
+               | Some (mH,mb) => state_invariant σ s12 (memory_set mH y_h_ptr mb) stV /\
                  let '(mV, (p, g')) := stV in
                  mH ≡ memH /\ g ≡ g'
                   (* exists v, ext_memory mV_init ptrll_yoff DTYPE_Double (UVALUE_Double v) mV *)
@@ -1042,20 +1030,23 @@ Proof.
     rewrite EQ_y_HG'.
     vred.
 
+    assert (Y_SIZE : y_sz ≡ Z.to_N (Int64.intval i0)). {
+      epose proof (vellvm_helix_ptr_size _ LUn0 Heqo0).
+      eapply state_invariant_cons2 in PRE_INV'. 3 : eauto. 2 : solve_local_count.
+      specialize (H1 PRE_INV'). eauto.
+    }
+
     (* 2. Store  *)
     edestruct write_succeeds with (m1 := mV) (v := DVALUE_Double t_Aexpr) (a := dst_addr).
     apply DVALUE_Double_typ.
     {
       typ_to_dtyp_simplify.
-      epose proof (vellvm_helix_ptr_size _ LUn0 Heqo0).
-      eapply state_invariant_cons2 in PRE_INV'. 3 : eauto. 2 : solve_local_count.
-      specialize (H1 PRE_INV').
 
       pose proof (from_N_intval _ EQsz0) as EQ.
-      rewrite H1 in EQ.
+      rewrite Y_SIZE in EQ.
       eapply dtyp_fits_array_elem.
       subst y_size. 2 : eauto.
-      rewrite <- EQ. rewrite <- H1. eauto.
+      rewrite <- EQ. rewrite <- Y_SIZE. eauto.
       subst y_size. rewrite <- EQ.
 
       eapply to_nat_repr_nat in EQk.
@@ -1275,17 +1266,10 @@ Proof.
           clean_goal.
           clear EQ_y_HG'.
 
-
-          (* TODO Cleanup and explain proof strategy *)
           pose proof MINV_YOFF as PARTIAL_WRITE.
-          (* specialize (PARTIAL_WRITE k dst_addr). forward PARTIAL_WRITE. *)
-          (* lia. *)
-          (* forward PARTIAL_WRITE. *)
           pose proof HDST_GEP.
           pose proof (from_N_intval _ EQsz0) as EQ.
-          (* rewrite EQ. subst y_size. eauto. *)
           edestruct mem_is_inv as (? & ? & ? & ? & ? & ?); clear mem_is_inv.
-
 
           eexists. eexists. split; eauto.
 
@@ -1326,6 +1310,13 @@ Proof.
             rewrite Z.add_0_r.
             reflexivity.
           }
+
+          (* Here, we need to show that the address being read has _no overlap_
+              with the dst addr. We should be able to show this because ... *)
+
+            (* read mV_yoff (c, (coff + DynamicValues.Int64.unsigned
+                (DynamicValues.Int64.repr (Z.of_nat (MInt64asNT.to_nat i))) * 8)%Z) DTYPE_Double *)
+            (* ≡ inr (UVALUE_Double v0) *)
           admit.
         }
       }
@@ -1338,11 +1329,12 @@ Proof.
 
     (* Partial memory up to (S k) *)
     {
-      intros index v0 Bounds_sz Bounds_partial MLU_k.
+      (* intros. *)
+      intros i v0 Bounds_sz MLU_k.
       rename MINV_YOFF into MINV_partial.
       revert MINV_partial; intros.
 
-      destruct (@dec_eq_nat (MInt64asNT.to_nat index) k).
+      destruct (@dec_eq_nat (MInt64asNT.to_nat i) k).
       {
         (* This is the index that _was_ written to. *)
         subst.
@@ -1356,32 +1348,61 @@ Proof.
       {
         (* This wasn't written to, and is covered by the partial memory
            invariant up to this point. *)
-        assert (Bounds_rest: MInt64asNT.to_nat index < k). {
+        destruct Bounds_sz.
+        assert (Bounds_rest: MInt64asNT.to_nat i < k). {
           lia.
         }
-        specialize (MINV_partial _ v0 Bounds_sz Bounds_rest).
+        specialize (MINV_partial i v0).
 
-        erewrite write_array_cell_untouched.
-        eapply MINV_partial. rewrite mem_lookup_mem_add_neq in MLU_k; eauto.
-        erewrite <- write_array_lemma. eauto. solve_allocated. eauto. constructor.
-        pose proof @to_nat_unsigned.
+        - erewrite write_array_cell_untouched.
+          eapply MINV_partial.
+          left; auto.
+          rewrite mem_lookup_mem_add_neq in MLU_k; eauto.
+          erewrite <- write_array_lemma. eauto. solve_allocated. eauto. constructor.
+          pose proof @to_nat_unsigned.
 
-        repeat rewrite repr_of_nat_to_nat.
-        pose proof EQk.
-        eapply to_nat_repr_nat in H3.
+          repeat rewrite repr_of_nat_to_nat.
+          pose proof EQk.
+          eapply to_nat_repr_nat in H4.
 
-        intros CONTRA.
-        rewrite <- H3 in H0.
-        eapply to_nat_unsigned in H0. apply H0.
-        rewrite repr_of_nat_to_nat. rewrite <- CONTRA.
-        rewrite H3. reflexivity.
+          intros CONTRA.
+          rewrite <- H4 in H0.
+          eapply to_nat_unsigned in H0. apply H0.
+          rewrite repr_of_nat_to_nat. rewrite <- CONTRA.
+          rewrite H4. reflexivity.
+
+
+        - erewrite write_array_cell_untouched.
+          eapply MINV_partial.
+          right; auto.
+          rewrite mem_lookup_mem_add_neq in MLU_k; eauto.
+          erewrite <- write_array_lemma. eauto. solve_allocated. eauto. constructor.
+          pose proof @to_nat_unsigned.
+
+          repeat rewrite repr_of_nat_to_nat.
+          pose proof EQk.
+          eapply to_nat_repr_nat in H4.
+
+          intros CONTRA.
+          rewrite <- H4 in H0.
+          eapply to_nat_unsigned in H0. apply H0.
+          rewrite repr_of_nat_to_nat. rewrite <- CONTRA.
+          rewrite H4. reflexivity.
+
       }
     }
 
     solve_allocated.
 
     (* local_scope_modif s1 s11 li (li' [py : UVALUE_Addr y_GEP_addr]) *)
-  - admit.
+  -  eapply local_scope_modif_add'.
+     solve_lid_bound_between.
+     eapply local_scope_modif_sub'_l; cycle 1.
+     eapply local_scope_modif_sub'_l; cycle 1.
+     eapply local_scope_modif_shrink. eauto.
+     solve_local_count. solve_local_count.
+     solve_lid_bound_between.
+     solve_lid_bound_between.
 }
 
 
@@ -1422,14 +1443,89 @@ forward GENC; [clear GENC |].
 {
   subst I P Q; red; intros; auto. destruct a; auto.
   destruct p; eauto. destruct b1; eauto. destruct p; eauto.
-  destruct H as (? & ? & ? & ?). subst. split; eauto.
-  split; eauto. destruct H2. auto.
+  destruct H as (? & ? & ? & ?). subst. destruct H2.
+  subst.
+  split ;[|split]; eauto.
+  destruct H.
+  split; eauto; cycle 1.
+  eapply WF_IRState_protect; eauto.
+  eapply no_id_aliasing_protect; eauto.
+  eapply no_dshptr_aliasing_protect; eauto.
+  eapply no_llvm_ptr_aliasing_protect; eauto.
+
+  (* id's are still well-allocated. *)
+  {
+    red in st_id_allocated. red. intros.
+    destruct (@dec_eq_nat n1 n2). subst.
+    rewrite Heqo0 in H. inv H.
+    apply mem_block_exists_memory_set_eq. reflexivity.
+    apply mem_block_exists_memory_set. eapply st_id_allocated.
+    eapply nth_error_protect_ineq in H. 2 : eauto.
+    eauto.
+  }
+
+  clear INV_STABLE. clear NOFAIL_cont.
+
+  cbn in *. intros.
+  rename H0 into PARTIAL_MEM_COMPLETE.
+  destruct PARTIAL_MEM_COMPLETE as (FITS & INLG & MLU).
+  (* Two possible cases : either the index isn't with the pointer location,
+     which is where we can use the normal memory invariant [mem_is_inv].
+     Ohterwise, we can show that the [partial memory write] is complete
+     and use [MLU] to restate the memory lookup. *)
+  destruct (Nat.eq_dec n1 n2); cycle 1.
+  {
+    (* Case 1 : The address in question was not written to : use normal memory
+      invariant. *)
+    subst. eapply nth_error_protect_ineq in H; eauto.
+    specialize (mem_is_inv _ _ _ _ _ H H1). destruct v0; eauto.
+    destruct mem_is_inv as (ptrll & τ' & TEQ & FITS' & INLG' & MLUP).
+    inv TEQ. eexists. eexists.
+    split; eauto. split; eauto. split; eauto.
+    intros.
+    specialize (MLUP H0).
+    destruct MLUP as (bkh & MLU_ & MLU__).
+    exists bkh.
+    assert (a0 ≢ y_h_ptr). {
+      intro. apply n3.
+      red in st_no_dshptr_aliasing.
+      pose proof Heqo0.
+      eapply nth_error_protect_eq' in H4.
+      eapply st_no_dshptr_aliasing; eauto. subst. eauto.
+    }
+    split.
+    pose proof memory_lookup_memory_set_neq.
+    cbn in H4. erewrite H4. eauto.
+    eauto.
+    intros.
+    eauto.
+  }
+  {
+    (* Case 2 : The address in question is definitely written to, and the
+     complete partial memory invariant ensures that we have the right cells. *)
+    subst.
+    rewrite <- GENIR_Γ in H1.
+    rewrite LUn0 in H1.
+    inv H1. rewrite Heqo0 in H. inv H.
+
+    clear mem_is_inv.
+    eexists. eexists. split; eauto. split; eauto.
+    split; eauto. intros. eexists.
+    split.
+    pose proof memory_lookup_memory_set_eq. cbn in H0.
+    eapply H0.
+    intros. eapply MLU. 2 : eauto.
+
+    revert BOUNDS; intro.
+    lia.
+  }
+  Unshelve. eauto.
 }
 
 setoid_rewrite <- bind_ret_r at 6.
 
 vstep.
-eapply eutt_clo_bind.
+eapply eutt_clo_bind_returns.
 
 (* PRECONDITION *)
 
@@ -1442,11 +1538,10 @@ eapply GENC.
   solve_gamma. solve_local_count.
 }
 
-intros [[]|]; intros (? & ? & ? & []) (? & ? & ?); subst P I; try_abs;
-cbn in H0; try destruct H0 as (? & <- & <- & ?).
+intros [[]|]; intros (? & ? & ? & []) (? & ? & ?) RET1 RET2; subst P I; try_abs;
+cbn in H0; try destruct H0 as (? & <- & <- & ?); try contradiction.
   rewrite interp_helix_MemSet.
 2 : { destruct H; inv H. } (* absurd *)
-
 
 vred.
 apply eqit_Ret.
@@ -1455,62 +1550,14 @@ apply eqit_Ret.
 (* genIR *)
 {
   split; [| split]; cbn; eauto.
-  - (* Need to enter scope,then escape it to link with appropriate state *)
-    destruct H0 as (? & ? & ?); subst.
+  - destruct H0 as (? & ? & ?); subst.
+    destruct H0.
 
-    (* Need to enter scope,then escape it to link with s2 *)
-    (* TODO : Need "RANGE, cell writing up to [n]th cell" version of this lemma *)
-    eapply state_invariant_write_double_result; eauto.
-    rewrite <- GENIR_Γ; eauto.
-
-    {
-      destruct y. cbn in *. eauto.
-      cbn.
-      cbn in INLG_yoff.
-      destruct H0.
-      clear IRState_is_WF.
-      clear st_id_allocated st_no_id_aliasing.
-      cbn in mem_is_inv.
-      specialize (mem_is_inv n1). cbn in mem_is_inv.
-      rewrite <- GENIR_Γ in mem_is_inv. cbn in *.
-      eapply nth_error_protect_eq' in Heqo0.
-      specialize (mem_is_inv _ _ _ _ Heqo0 LUn0). cbn in mem_is_inv.
-      edestruct mem_is_inv as (? & ? & ? & ? & ?); clear mem_is_inv.
-      inv H0. destruct H3. clear H3.
-      rename st_no_dshptr_aliasing into DSH.
-      rename st_no_llvm_ptr_aliasing into LLVM.
-      red in DSH, LLVM. red in LLVM.
-      red in st_gamma_bound.
-      rewrite <- GENIR_Γ in st_gamma_bound.
-
-      clear st_gamma_bound.
-      destruct PRE.
-      specialize (st_gamma_bound n1 id). cbn in st_gamma_bound.
-      specialize (st_gamma_bound _ LUn0).
-      erewrite <- local_scope_modif_bound_before. 2 : eauto.
-      eauto. 2 : eauto. solve_local_count.
-    }
-
-    {
-      admit.
-    }
-
-    {
-      admit.
-    }
-
-    {
-      admit.
-    }
-
-    {
-      admit.
-    }
+    split; eauto.
   - destruct H; eauto.
   - solve_local_scope_modif.
 }
 
-contradiction. contradiction.
 Admitted.
 
 Section Swap.
