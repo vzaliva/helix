@@ -2780,7 +2780,24 @@ Proof.
         rewrite <- Γ_S1S2; eauto.
         eauto.
 
-        admit. (* another alist in thing *)
+        { (* Should be able to use INLG_yoff *)
+          cbn. cbn in INLG_yoff.
+
+          nexpr_modifs.
+          epose proof local_scope_modif_trans'' PostLoopEndNExpr PostXoffNExpr.
+          repeat (forward H; solve_local_count).
+          epose proof local_scope_modif_trans'' H PostYoffNExpr.
+          repeat (forward H0; solve_local_count).
+          pose proof LSM.
+          eapply local_scope_modif_shrink with (s1 := i8) (s4:= s2) in H1; solve_local_count.
+          eapply local_scope_modif_sub'_l in H1; [|solve_lid_bound_between].
+          eapply local_scope_modif_sub'_l in H1; [|solve_lid_bound_between].
+          epose proof local_scope_modif_trans'' H0 H1.
+          repeat (forward H2; solve_local_count).
+
+          cbn; erewrite <- local_scope_modif_bound_before with (s2:=s2); eauto.
+          solve_lid_bound.
+        }
       }
 
       { (* P holds initially *)
@@ -2797,7 +2814,17 @@ Proof.
 
           assert (Γ s1 ≡ Γ i8) as Γ_s1i8 by solve_gamma.
           rewrite <- Γ_s1i8. eauto.
-          admit. (* another alist in thing *)
+          { (* another alist in thing *)
+            cbn. cbn in INLG_yoff.
+
+            nexpr_modifs.
+            epose proof local_scope_modif_trans'' PostLoopEndNExpr PostXoffNExpr.
+            repeat (forward H; solve_local_count).
+            epose proof local_scope_modif_trans'' H PostYoffNExpr.
+            repeat (forward H0; solve_local_count).
+            cbn; erewrite <- local_scope_modif_bound_before with (s2:=i8); eauto.
+            solve_lid_bound.
+          }
           eapply handle_gep_addr_array_same_block; eauto.
           constructor.
         }
