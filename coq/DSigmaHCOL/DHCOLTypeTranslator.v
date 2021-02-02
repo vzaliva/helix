@@ -34,7 +34,7 @@ Module MDHCOLTypeTranslator
        (Import LE: MDSigmaHCOLEval(CT)(NT)(L))
        (Import LE': MDSigmaHCOLEval(CT')(NT')(L')).
 
-  Definition translateNTypeValue (a:NT.t): err NT'.t
+  Definition translateNTypeConst (a:NT.t): err NT'.t
     := NT'.from_nat (NT.to_nat a).
 
   Definition translatePExpr (p:L.PExpr): L'.PExpr :=
@@ -46,7 +46,7 @@ Module MDHCOLTypeTranslator
     match n with
     | L.NVar x => inr (NVar x)
     | L.NConst x =>
-      x' <- translateNTypeValue x ;; ret (NConst x')
+      x' <- translateNTypeConst x ;; ret (NConst x')
     | L.NDiv x x0 => liftM2 NDiv (translateNExpr x) (translateNExpr x0)
     | L.NMod x x0 => liftM2 NMod (translateNExpr x) (translateNExpr x0)
     | L.NPlus x x0 => liftM2 NPlus (translateNExpr x) (translateNExpr x0)
@@ -108,7 +108,7 @@ Module MDHCOLTypeTranslator
     | L.MPtrDeref x => ret (MPtrDeref (translatePExpr x))
     | L.MConst x size =>
       x' <- translate_mem_block x ;;
-      size' <- translateNTypeValue size ;;
+      size' <- translateNTypeConst size ;;
       ret (MConst x' size')
     end.
 
@@ -198,7 +198,7 @@ Module MDHCOLTypeTranslator
                body')
       | L.DSHAlloc size body =>
         body' <- translate body ;;
-        size' <- translateNTypeValue size ;;
+        size' <- translateNTypeConst size ;;
         ret (DSHAlloc
                size'
                body')
@@ -213,10 +213,8 @@ Module MDHCOLTypeTranslator
         ret (DSHSeq f' g')
       end.
 
-
-  Class TranslationOp :=
+  Class CTranslationOp :=
     {
-
     (* Heterogeneous equality *)
     heq_CType: CT.t -> CT'.t -> Prop ;
 
@@ -224,8 +222,56 @@ Module MDHCOLTypeTranslator
     translateCTypeValue: CT.t -> err CT'.t ;
     }.
 
-  Class BinOpTranslation
-        `{TranslationOp}
+    Class NTranslationOp :=
+    {
+
+    (* Heterogeneous equality *)
+    heq_NType: NT.t -> NT'.t -> Prop ;
+
+    (* Partial mapping of [NT.t] values to [NT'.t] *)
+    translateNTypeValue: NT.t -> err NT'.t ;
+    }.
+
+  Class NBinOpTranslation
+        `{NTranslationOp}
+        (f: NT.t -> NT.t -> NT.t)
+        (f': NT'.t -> NT'.t -> NT'.t)
+    :=
+      {
+    nbinop_translate_compat: forall x x' y y',
+          translateNTypeValue x = inr x' ->
+          translateNTypeValue y = inr y' ->
+          translateNTypeValue (f x y) = inr (f' x' y')
+      }.
+
+  Class NTranslationProps `{NTT: NTranslationOp} :=
+    {
+    (* Value mapping should result in "equal" values *)
+    heq_NType_translateNTypeValue_compat:
+      forall x x', translateNTypeValue x = inr x' -> heq_NType x x';
+
+    (* Ensure [translateNTypeConst] is compatible with [translateNTypeValue] *)
+    translateNTypeConst_translateNTypeValue_compat:
+      forall x x', translateNTypeConst x = inr x' ->
+              translateNTypeValue x = inr x';
+
+    (* So surjectivity property. This allows use for example map
+       natural numbers to signed integers *)
+
+    heq_NType_to_from_nat:
+      forall x x', heq_NType x x' -> NT.to_nat x = NT'.to_nat x';
+
+    NTypeDiv_translation   : NBinOpTranslation NT.NTypeDiv   NT'.NTypeDiv  ;
+    NTypeMod_translation   : NBinOpTranslation NT.NTypeMod   NT'.NTypeMod  ;
+    NTypePlus_translation  : NBinOpTranslation NT.NTypePlus  NT'.NTypePlus ;
+    NTypeMinus_translation : NBinOpTranslation NT.NTypeMinus NT'.NTypeMinus;
+    NTypeMult_translation  : NBinOpTranslation NT.NTypeMult  NT'.NTypeMult ;
+    NTypeMin_translation   : NBinOpTranslation NT.NTypeMin   NT'.NTypeMin  ;
+    NTypeMax_translation   : NBinOpTranslation NT.NTypeMax   NT'.NTypeMax  ;
+    }.
+
+  Class CBinOpTranslation
+        `{CTranslationOp}
         (f: CT.t -> CT.t -> CT.t)
         (f': CT'.t -> CT'.t -> CT'.t)
     :=
@@ -236,8 +282,8 @@ Module MDHCOLTypeTranslator
           translateCTypeValue (f x y) = inr (f' x' y')
       }.
 
-  Class UnOpTranslation
-        `{TranslationOp}
+  Class CUnOpTranslation
+        `{CTranslationOp}
         (f: CT.t -> CT.t)
         (f': CT'.t -> CT'.t)
     :=
@@ -247,7 +293,7 @@ Module MDHCOLTypeTranslator
           translateCTypeValue (f x) = inr (f' x')
       }.
 
-  Class TranslationProps `{C: TranslationOp} :=
+  Class CTranslationProps `{C: CTranslationOp} :=
     {
     (* Value mapping should result in "equal" values *)
     heq_CType_translateCTypeValue_compat:
@@ -258,25 +304,29 @@ Module MDHCOLTypeTranslator
       forall x x', translateCTypeConst x = inr x' ->
               translateCTypeValue x = inr x';
 
-    (* Surjectivity: all values in CT't should have correspoding CT.t values *)
-    translate_surj: forall (x':CT'.t), exists x, translateCTypeValue x = inr x';
+    (* Surjectivity: all values in CT't should have correspoding CT.t values
+       Not sure if we need this
+       translate_surj: forall (x':CT'.t), exists x, translateCTypeValue x = inr x';
+     *)
 
-    CTypePlus_translation  : BinOpTranslation CT.CTypePlus  CT'.CTypePlus ;
-    CTypeMult_translation  : BinOpTranslation CT.CTypeMult  CT'.CTypeMult ;
-    CTypeZLess_translation : BinOpTranslation CT.CTypeZLess CT'.CTypeZLess;
-    CTypeMin_translation   : BinOpTranslation CT.CTypeMin   CT'.CTypeMin  ;
-    CTypeMax_translation   : BinOpTranslation CT.CTypeMax   CT'.CTypeMax  ;
-    CTypeSub_translation   : BinOpTranslation CT.CTypeSub   CT'.CTypeSub  ;
+    CTypePlus_translation  : CBinOpTranslation CT.CTypePlus  CT'.CTypePlus ;
+    CTypeMult_translation  : CBinOpTranslation CT.CTypeMult  CT'.CTypeMult ;
+    CTypeZLess_translation : CBinOpTranslation CT.CTypeZLess CT'.CTypeZLess;
+    CTypeMin_translation   : CBinOpTranslation CT.CTypeMin   CT'.CTypeMin  ;
+    CTypeMax_translation   : CBinOpTranslation CT.CTypeMax   CT'.CTypeMax  ;
+    CTypeSub_translation   : CBinOpTranslation CT.CTypeSub   CT'.CTypeSub  ;
 
-    CTypeNeg_translation: UnOpTranslation CT.CTypeNeg CT'.CTypeNeg ;
-    CTypeAbs_translation: UnOpTranslation CT.CTypeAbs CT'.CTypeAbs ;
+    CTypeNeg_translation: CUnOpTranslation CT.CTypeNeg CT'.CTypeNeg ;
+    CTypeAbs_translation: CUnOpTranslation CT.CTypeAbs CT'.CTypeAbs ;
     }.
 
 
   Section Relations.
 
-    Context `{C: TranslationOp}
-            `{CP: @TranslationProps C}.
+    Context `{CTT: CTranslationOp}
+            `{CTP: @CTranslationProps CTT}
+            `{NTT: NTranslationOp}
+            `{NTP: @NTranslationProps NTT}.
 
     (* Well-defined [heq_CType] preserves constnats *)
     Fact heq_CType_zero_one_wd:
@@ -301,9 +351,6 @@ Module MDHCOLTypeTranslator
           * reflexivity.
           * clear -n0; contradict n0; reflexivity.
     Qed.
-
-    Definition heq_NType: NT.t -> NT'.t -> Prop :=
-      fun n n' => NT.to_nat n = NT'.to_nat n'.
 
     Definition heq_mem_block: L.mem_block -> L'.mem_block -> Prop :=
       fun m m' => forall k : NM.key, hopt_r heq_CType (NM.find k m) (NM.find k m').
@@ -404,13 +451,39 @@ Module MDHCOLTypeTranslator
           heq_DSHOperator g g' ->
           heq_DSHOperator (L.DSHSeq f g) (L'.DSHSeq f' g').
 
-    (* Correctness of translator could be proven.
-       But we will use an alternative approach of translation validation
-       for now.
-    Lemma translation_heq:
+    Lemma translation_syntax_correctenss:
       forall x x', translate x = inr x' ->
               heq_DSHOperator x x'.
-     *)
+    Proof.
+    Admitted.
+
+    Inductive heq_DSHVal: LE.DSHVal -> LE'.DSHVal -> Prop :=
+    | heq_DSHnatVal: forall x x', heq_NType x x' -> heq_DSHVal (LE.DSHnatVal x) (LE'.DSHnatVal x')
+    | heq_DSHCTypeVal: forall x x', heq_CType x x' -> heq_DSHVal (LE.DSHCTypeVal x) (LE'.DSHCTypeVal x')
+    | heq_DSHPtrVal: forall a a' s s', a=a' -> heq_NType s s' -> heq_DSHVal (LE.DSHPtrVal a s) (LE'.DSHPtrVal a s').
+
+    Definition heq_evalContext: LE.evalContext -> LE'.evalContext -> Prop :=
+      List.Forall2 (fun '(x,p) '(x',p') => p=p' /\ heq_DSHVal x x').
+
+    Definition heq_memory: L.memory -> L'.memory -> Prop.
+      Admitted.
+
+    Lemma translation_semantics_correctness
+          (σ: LE.evalContext) (σ': LE'.evalContext)
+          (Eσ: heq_evalContext σ σ')
+
+          (op: L.DSHOperator) (op': L'.DSHOperator)
+          (Eop: heq_DSHOperator op op')
+
+          (imem omem: L.memory) (imem' omem': L'.memory)
+          (Emem: heq_memory imem imem')
+          (fuel: nat):
+
+      LE.evalDSHOperator σ op imem fuel = Some (inr omem) ->
+      LE'.evalDSHOperator σ' op' imem' fuel = Some (inr omem') ->
+      heq_memory imem imem'.
+    Proof.
+    Admitted.
 
   End Relations.
 

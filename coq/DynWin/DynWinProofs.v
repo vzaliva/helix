@@ -1421,35 +1421,13 @@ Hint Rewrite
 (* Print Rewrite HintDb CarrierAZ1equalities. *)
 
 Section AHCOL_to_RHCOL.
-  Context `{T:AHCOLtoRHCOL.TranslationOp}
-          `{TP: @AHCOLtoRHCOL.TranslationProps T}.
+    Context `{CTT: AHCOLtoRHCOL.CTranslationOp}
+            `{CTP: @AHCOLtoRHCOL.CTranslationProps CTT}
+            `{NTT: AHCOLtoRHCOL.NTranslationOp}
+            `{NTP: @AHCOLtoRHCOL.NTranslationProps NTT}.
 
   Definition dynwin_RHCOL := AHCOLtoRHCOL.translate dynwin_AHCOL.
 
-  Lemma structurally_same:
-    forall rhcol, dynwin_RHCOL ≡ inr rhcol ->
-             AHCOLtoRHCOL.heq_DSHOperator dynwin_AHCOL rhcol.
-  Proof.
-    intros rhcol H.
-    unfold dynwin_RHCOL in *.
-    cbn in H.
-    unfold AHCOLtoRHCOL.translateCTypeConst in H.
-    unfold zero, one in H.
-    repeat autorewrite with CarrierAZ1equalities in H.
-    inversion_clear H; clear rhcol.
-
-    repeat match goal with
-           | [|- AHCOLtoRHCOL.heq_DSHOperator _ _ ] => constructor
-           | [|- AHCOLtoRHCOL.heq_NType _ _] => cbv; reflexivity
-           | [|- AHCOLtoRHCOL.heq_PExpr _ _] => constructor; reflexivity
-           | [|- AHCOLtoRHCOL.heq_CType _ _] => apply AHCOLtoRHCOL.heq_CType_zero_one_wd
-           | [|- AHCOLtoRHCOL.heq_NExpr _ _] => constructor
-           | [|- AHCOLtoRHCOL.heq_AExpr _ _] => constructor
-           | [|- AHCOLtoRHCOL.heq_MExpr _ _] => constructor
-           | [|-_] => auto
-           end.
-  Qed.
-  
   (*
      For debug printing
   Definition dynwin_RHCOL1 : RHCOL.DSHOperator.
