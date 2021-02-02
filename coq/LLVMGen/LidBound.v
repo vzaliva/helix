@@ -273,4 +273,5 @@ Ltac solve_lid_bound :=
     | eapply incLocalNamed_lid_bound; [solve_prefix | cbn; eauto]
     | eapply newLocalVar_lid_bound; [solve_prefix | cbn; eauto]
     | eapply lid_bound_count; [solve_prefix | solve_local_count]
+    | eapply lid_bound_before; [solve_lid_bound | solve_local_count]
     ].

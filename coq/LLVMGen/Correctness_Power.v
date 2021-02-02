@@ -893,11 +893,10 @@ Proof.
         {
           eapply genAExpr_correct.
           eauto.
-          { eapply state_invariant_enter_scope_DSHCType' with (s1:={| block_count := block_count i19; local_count := local_count i16; void_count := void_count i19; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}); cbn; eauto.
+          { eapply state_invariant_enter_scope_DSHCType' with (s1:={| block_count := block_count i19; local_count := local_count i19; void_count := void_count i19; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}); cbn; eauto.
 
-            admit. (* LID BOUND... Should hold *)
-            3: solve_alist_in.
-            2: solve_local_count.
+            solve_lid_bound.
+            2: solve_alist_in.
 
             { pose proof GAM.
               unfold Gamma_safe in H.
@@ -919,14 +918,40 @@ Proof.
               end.
             }
 
-            assert (Γ i19 ≡ Γ i16) as Γ_i19i16 by solve_gamma.
             eapply state_invariant_enter_scope_DSHCType'; cbn.
             eauto.
-            rewrite Γ_i19i16. eauto.
+            eauto.
             3: solve_local_count.
 
-            admit. (* LID BOUND... should hold *)
+            Set Nested Proofs Allowed.
+            Lemma lid_bound_count_incLocalNamed :
+              forall (s1 s2 s3 : IRState) (pref : string) (id : raw_id),
+                is_correct_prefix pref ->
+                (local_count s2 < local_count s1)%nat ->
+                incLocalNamed pref s2 ≡ inr (s3, id) ->
+                lid_bound s1 id.
+            Proof.
+              intros s1 s2 s3 pref id PREF COUNT GEN.
+              unfold lid_bound, state_bound in *.
+              do 3 eexists.
+              repeat split; eauto.
+            Qed.
 
+            Lemma lid_bound_count_incLocal :
+              forall (s1 s2 s3 : IRState) (id : raw_id),
+                (local_count s2 < local_count s1)%nat ->
+                incLocal s2 ≡ inr (s3, id) ->
+                lid_bound s1 id.
+            Proof.
+              intros s1 s2 s3 id COUNT GEN.
+              Transparent incLocal.
+              unfold incLocal in GEN.
+              Opaque incLocal.
+              eapply lid_bound_count_incLocalNamed; eauto.
+              solve_prefix.
+            Qed.
+            
+            solve_lid_bound.
             eapply not_in_Gamma_Gamma_eq with (s1 := s1); [solve_gamma|solve_not_in_gamma].
 
             { solve_alist_in.
@@ -935,7 +960,7 @@ Proof.
             eapply state_invariant_same_Γ' with (s1:=s2); eauto.
             solve_gamma.
             { get_gamma_bounds.
-              assert (Γ i8 ≡ Γ i16) by solve_gamma.
+              assert (Γ i8 ≡ Γ i19) by solve_gamma.
               eapply gamma_bound_mono.
               apply PostYoffSINV.
               solve_local_count.
@@ -1629,6 +1654,8 @@ Proof.
       }
     }
     { (* Local case for yoff *)
+      assert (lid_bound s1 id) as LID_BOUND by (eapply st_gamma_bound; solve_lid_bound).
+
       (* TODO: can I automate this? *)
         edestruct denote_instr_gep_array_no_read with (m:=mV_yoff) (g:=g_yoff) (ρ:=(alist_add src_ptr_id (UVALUE_Addr src_addr) l_yoff)) (size:=(Z.to_N (Int64.intval i4))) (τ:=DTYPE_Double) (i:=dst_ptr_id) (ptr := @EXP_Ident dtyp (ID_Local id)) (a:= ptrll_yoff) (e_ix:=fmap (typ_to_dtyp []) yoff_exp) (ix:=(MInt64asNT.to_nat yoff_res)).
 
@@ -1636,20 +1663,35 @@ Proof.
       change (UVALUE_Addr ptrll_yoff) with (dvalue_to_uvalue (DVALUE_Addr ptrll_yoff)).
       reflexivity.
       cbn.
-      assert (lid_bound s1 id) as LID_BOUND by (eapply st_gamma_bound; solve_lid_bound).
 
-      erewrite <- local_scope_modif_bound_before; eauto.
+      Ltac nexpr_modifs :=
+        repeat
+          match goal with
+          | POST : genNExpr_post _ _ _ _ _ _ _ _ |- _
+            => eapply Correctness_NExpr.extends in POST; cbn in POST
+          end.
 
-      repeat
+      nexpr_modifs.
+
+      Ltac lsm_chain upper :=
         match goal with
-        | POST : genNExpr_post _ _ _ _ _ _ _ _ |- _
-          => eapply Correctness_NExpr.extends in POST; cbn in POST
+        | H : local_scope_modif ?s1 ?s2 ?lower upper |- _
+          => lsm_chain lower
+        | H : _ |- _
+          => idtac upper
         end.
 
-      eapply local_scope_modif_add'.
-      solve_lid_bound_between.
-      solve_local_scope_modif.
-      admit.
+      Ltac solve_alist_in_yoff upper :=
+        erewrite <- local_scope_modif_bound_before with (s2:=upper); eauto;
+        repeat (eapply local_scope_modif_add'; [solve_lid_bound_between|]);
+        match goal with
+        | LSM1 : local_scope_modif ?s1 ?s2 _ ?l2,
+          LSM2 : local_scope_modif ?s12 ?s22 ?l1 _
+          |- local_scope_modif _ _ ?l1 ?l2
+          => eapply (@local_scope_modif_shrink _ s12 s2); [solve_local_scope_modif| |]; solve_local_count
+        end.
+
+      solve_alist_in_yoff s2.
     }
 
     { (* TODO: wrap into automation? *)
@@ -1783,6 +1825,7 @@ Proof.
                      state_invariant (protect σ n3) s2 mH stV /\
                      alist_find dst_ptr_id ρ ≡ Some (UVALUE_Addr dst_addr) /\
                      alist_find src_ptr_id ρ ≡ Some (UVALUE_Addr src_addr) /\
+                     local_scope_modif i16 s2 (alist_add dst_ptr_id (UVALUE_Addr dst_addr) (alist_add src_ptr_id (UVALUE_Addr src_addr) l_yoff)) ρ /\
                      g ≡ g_yoff /\
                      allocated ptrll_yoff mV /\
                      (* Not sure if this is the right block *)
@@ -1809,6 +1852,7 @@ Proof.
                      state_invariant (protect σ n3) s2 mH stV /\
                      alist_find dst_ptr_id ρ ≡ Some (UVALUE_Addr dst_addr) /\
                      alist_find src_ptr_id ρ ≡ Some (UVALUE_Addr src_addr) /\
+                     local_scope_modif i16 s2 (alist_add dst_ptr_id (UVALUE_Addr dst_addr) (alist_add src_ptr_id (UVALUE_Addr src_addr) l_yoff)) ρ /\
                      g ≡ g_yoff /\
                      mH ≡ m_yoff /\
                      mb ≡ mem_add (MInt64asNT.to_nat yoff_res) initial bkh_yoff /\
@@ -1829,7 +1873,7 @@ Proof.
       forward LOOPTFOR.
       { intros g_loop l_loop mV_loop [[mH_loop mb_loop] |] k _label [HI [POWERI [POWERI_VAL RETURNS]]]; [|inv HI].
         cbn in HI.
-        destruct HI as [LINV_SINV [LINV_DST_PTR_ID [LINV_SRC_PTR_ID [LINV_GLOBALS [LINV_ALLOC [LINV_RET [LINV_HELIX_MB_OLD [v [LINV_HELIX_MB_NEW LINV_MEXT]]]]]]]]].
+        destruct HI as [LINV_SINV [LINV_DST_PTR_ID [LINV_SRC_PTR_ID [LINV_LSM [LINV_GLOBALS [LINV_ALLOC [LINV_RET [LINV_HELIX_MB_OLD [v [LINV_HELIX_MB_NEW LINV_MEXT]]]]]]]]]].
         pose proof LINV_MEXT as [LINV_MEXT_NEW LINV_MEXT_OLD].
         unfold DSHPower_tfor_body.
         
@@ -1962,11 +2006,10 @@ Proof.
         {
           eapply genAExpr_correct.
           eauto.
-          { eapply state_invariant_enter_scope_DSHCType' with (s1:={| block_count := block_count i19; local_count := local_count i16; void_count := void_count i19; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}); cbn; eauto.
+          { eapply state_invariant_enter_scope_DSHCType' with (s1:={| block_count := block_count i19; local_count := local_count i19; void_count := void_count i19; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}); cbn; eauto.
 
-            admit. (* LID BOUND... Should hold *)
-            3: solve_alist_in.
-            2: solve_local_count.
+            solve_lid_bound.
+            2: solve_alist_in.
 
             { pose proof GAM.
               unfold Gamma_safe in H.
@@ -1988,15 +2031,14 @@ Proof.
               end.
             }
 
-            assert (Γ i19 ≡ Γ i16) as Γ_i19i16 by solve_gamma.
             eapply state_invariant_enter_scope_DSHCType'; cbn.
             eauto.
-            rewrite Γ_i19i16. eauto.
-            3: solve_local_count.
+            eauto.
 
-            admit. (* LID BOUND... should hold *)
+            solve_lid_bound.
 
             eapply not_in_Gamma_Gamma_eq with (s1 := s1); [solve_gamma|solve_not_in_gamma].
+            solve_local_count.
 
             { solve_alist_in.
             }
@@ -2004,7 +2046,7 @@ Proof.
             eapply state_invariant_same_Γ' with (s1:=s2); eauto.
             solve_gamma.
             { get_gamma_bounds.
-              assert (Γ i8 ≡ Γ i16) by solve_gamma.
+              assert (Γ i8 ≡ Γ i19) by solve_gamma.
               eapply gamma_bound_mono.
               apply PostYoffSINV.
               solve_local_count.
@@ -2215,6 +2257,50 @@ Proof.
 
               specialize (MINV _ _ _ _ _ NTH_σ NTH_Γ).
 
+
+                Set Nested Proofs Allowed.
+                Lemma local_scope_modif_trans'' :
+                  forall s1 s2 s3 s4 l1 l2 l3,
+                    local_scope_modif s1 s2 l1 l2 →
+                    local_scope_modif s3 s4 l2 l3 →
+                    s1 <<= s2 ->
+                    s1 <<= s3 ->
+                    s2 <<= s4 ->
+                    s3 <<= s4 ->
+                    local_scope_modif s1 s4 l1 l3.
+                Proof.
+                  unfold local_scope_modif; intros * MOD1 MOD2 LE1 LE2 LE3 LE4 * INEQ.
+                  destruct (alist_find_eq_dec_local_env id l1 l2) as [EQ | NEQ].
+                  - destruct (alist_find_eq_dec_local_env id l2 l3) as [EQ' | NEQ'].
+                    + contradiction INEQ; rewrite <- EQ; auto.
+                    + apply MOD2 in NEQ'.
+                      eauto using lid_bound_between_shrink_down.
+                  - apply MOD1 in NEQ.
+                    eauto using lid_bound_between_shrink_up.
+                Qed.
+
+              (* TODO: automate this? *)
+              assert (local_scope_modif s1 s2 ρ l_Aexpr) as LSM_FULL.
+              { nexpr_modifs.
+                epose proof local_scope_modif_trans'' PostLoopEndNExpr PostXoffNExpr.
+                repeat (forward H; solve_local_count).
+                epose proof local_scope_modif_trans'' H PostYoffNExpr.
+                repeat (forward H0; solve_local_count).
+                pose proof LINV_LSM.
+                eapply local_scope_modif_shrink with (s1 := i8) (s4:= s2) in H1; solve_local_count.
+                eapply local_scope_modif_sub'_l in H1; [|solve_lid_bound_between].
+                eapply local_scope_modif_sub'_l in H1; [|solve_lid_bound_between].
+                epose proof local_scope_modif_trans'' H0 H1.
+                repeat (forward H2; solve_local_count).
+                pose proof extends.
+                eapply local_scope_modif_shrink with (s1 := i8) (s4:= s2) in H3; solve_local_count.
+                eapply local_scope_modif_sub'_l in H3; [|solve_lid_bound_between].
+                eapply local_scope_modif_sub'_l in H3; [|solve_lid_bound_between].
+                epose proof local_scope_modif_trans'' H2 H3.
+                repeat (forward H4; solve_local_count).
+                solve_local_scope_modif.
+              }
+
               destruct x, v0; eauto.
               + cbn in MINV. cbn.
                 destruct MINV as (ptr & τ' & TEQ & FIND & READ).
@@ -2249,7 +2335,7 @@ Proof.
                 { intros CONTRA; inv CONTRA.
                 }
                 eauto.
-                admit. (* another alist in thing *)
+                cbn; erewrite <- local_scope_modif_bound_before with (s2:=s2); eauto.
               + cbn in MINV. cbn.
                 destruct MINV as (ptr & τ' & TEQ & FIND & READ).
                 exists ptr. exists τ'.
@@ -2283,7 +2369,7 @@ Proof.
                 { intros CONTRA; inv CONTRA.
                 }
                 eauto.
-                admit. (* another alist in thing *)
+                cbn; erewrite <- local_scope_modif_bound_before with (s2:=s2); eauto.
               + (* Global vector *)
                 cbn in MINV.
                 destruct MINV as (ptr & τ' & TEQ & FITS & INLG' & LUP).
@@ -2310,7 +2396,7 @@ Proof.
                 eapply NTH_Γ_dst.
                 2-3: eauto.
                 intros CONTRA; inv CONTRA.
-                admit. (* another alist thing *)
+                cbn; erewrite <- local_scope_modif_bound_before with (s2:=s2); eauto.
               + (* Local vector *)
                 cbn in MINV.
                 destruct MINV as (ptr & τ' & TEQ & FITS & INLG' & LUP).
@@ -2342,7 +2428,7 @@ Proof.
                 inv H0.
                 apply protect_eq_true in NTH_σ_orig.
                 inv NTH_σ_orig.
-                admit. (* another alist thing *)
+                cbn; erewrite <- local_scope_modif_bound_before with (s2:=s2); eauto.
             - eapply no_llvm_ptr_aliasing_cons2; eauto.
               { cbn in Gamma_cst.
                 rewrite Gamma_cst.
@@ -2363,6 +2449,19 @@ Proof.
           split.
           { (* src_ptr_id *)
             destruct Mono_IRState; subst; solve_alist_in.
+          }
+
+          split.
+          { eapply local_scope_modif_trans'.
+            solve_local_scope_modif.
+
+            eapply local_scope_modif_sub'_l with (r := src_val_id).
+            solve_lid_bound_between.
+
+            eapply local_scope_modif_sub'_l with (r := dst_val_id).
+            solve_lid_bound_between.
+
+            solve_local_scope_modif.
           }
 
           split.
@@ -2533,7 +2632,7 @@ Proof.
         unfold I in *.
         destruct a; try inv HI.
         destruct p.
-        destruct HI as [HI_SINV [HI_DST_PTR_ID [HI_SRC_PTR_ID [HI_G [HI_ALLOC [HI_RET [HI_HELIX_MB_OLD [HI_v [HI_HELIX_MB_NEW HI_MEXT]]]]]]]]].
+        destruct HI as [HI_SINV [HI_DST_PTR_ID [HI_SRC_PTR_ID [HI_LSM [HI_G [HI_ALLOC [HI_RET [HI_HELIX_MB_OLD [HI_v [HI_HELIX_MB_NEW HI_MEXT]]]]]]]]]].
         pose proof HI_MEXT as [HI_MEXT_NEW HI_MEXT_OLD].
         split.
         { destruct BOUND.
@@ -2587,6 +2686,19 @@ Proof.
         }
 
         repeat split; auto.
+
+        { destruct BOUND.
+          - eapply local_scope_modif_add'.
+            eapply lid_bound_between_shrink. (* TODO: fix lid_bound_between *)
+            eauto.
+            solve_local_count.
+            solve_local_count.
+            solve_local_scope_modif.
+          - eapply local_scope_modif_add'.
+            eapply lid_bound_between_shrink; [solve_lid_bound_between | | ]; eauto; solve_local_count.
+            solve_local_scope_modif.
+        }
+        
         exists HI_v.
         auto.
       }
@@ -2602,7 +2714,7 @@ Proof.
         destruct a. 2: inv PR.
         destruct p as [mH mb].
         destruct b2 as [mV [l g]].
-        destruct PR as [SINV [DST [SRC [G [MH [MB MV]]]]]].
+        destruct PR as [SINV [DST [SRC [LSM [G [MH [MB MV]]]]]]].
 
         split.
         solve [eauto].
@@ -2643,7 +2755,7 @@ Proof.
         break_match_hyp.
         break_match_hyp.
         break_match_hyp.
-        destruct H as [SINV [DST [SRC [G [ALLOCI [RET [MEMH_OLD [v [MEMH_NEW EXT_MEM]]]]]]]]].
+        destruct H as [SINV [DST [SRC [LSM [G [ALLOCI [RET [MEMH_OLD [v [MEMH_NEW EXT_MEM]]]]]]]]]].
         subst.
 
         eapply state_invariant_write_double_result with (sz:=sz0); eauto.
@@ -2667,6 +2779,7 @@ Proof.
         }
         rewrite <- Γ_S1S2; eauto.
         eauto.
+
         admit. (* another alist in thing *)
       }
 
@@ -2690,7 +2803,10 @@ Proof.
         }
 
         (* Local environments *)
-        repeat split; solve_alist_in.
+        repeat split.
+        1-2: solve_alist_in.
+
+        solve_local_scope_modif.
       }
     }
   }
