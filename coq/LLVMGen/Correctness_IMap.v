@@ -383,14 +383,15 @@ Proof.
     |- context [tfor ?bod _ _ _] => specialize (GENC _ bod)
   end.
 
-  forward GENC; [clear GENC |].
-  {
+  assert (OVERFLOW: (Z.of_nat n < Integers.Int64.modulus)%Z). {
     clear -Heqs5.
     unfold MInt64asNT.from_nat in Heqs5.
     unfold MInt64asNT.from_Z in Heqs5.
     simp.
     apply l0.
   }
+
+  forward GENC; [clear GENC |]; eauto.
 
   inv VG.
   rewrite add_comment_eutt.
@@ -534,52 +535,51 @@ Proof.
 
       solve_local_count.
 
-    - unfold memory_invariant_partial_write in *. admit.
+    - unfold memory_invariant_partial_write in *.
 
-      (* destruct H1 as (? & ? & ?). *)
-      (* intuition. *)
-      (* + unfold alist_add; cbn. cbn. *)
-      (*   destruct y; auto. cbn in *. *)
-      (*    break_match_goal. *)
-      (*   * rewrite rel_dec_correct in Heqb1; subst. *)
-      (*     assert (Gamma_safe σ s0 s12). solve_gamma_safe. *)
+      destruct H1 as (? & ? & ?).
+      intuition.
+      + unfold alist_add; cbn. cbn.
+        destruct y; auto. cbn in *.
+         break_match_goal.
+        * rewrite rel_dec_correct in Heqb1; subst.
+          assert (Gamma_safe σ s0 s12). solve_gamma_safe.
 
-      (*     Transparent addVars. *)
-      (*     inv Heqs12. *)
-      (*     cbn in Heqs13. *)
+          Transparent addVars.
+          inv Heqs12.
+          cbn in Heqs13.
 
-      (*     assert (NIN: not (in_Gamma σ s0 id)). apply H. *)
-      (*     eapply lid_bound_between_shrink. eauto. *)
-      (*     Transparent newLocalVar. *)
-      (*     cbn in *. *)
-      (*     inv Heqs4. *)
-      (*     solve_local_count. solve_local_count. *)
-      (*     exfalso; eapply NIN. *)
-      (*     econstructor. apply Heqo0. eauto. *)
-      (*     eauto. *)
-      (*   * apply neg_rel_dec_correct in Heqb1. *)
-      (*     rewrite remove_neq_alist; eauto. *)
-      (*     all: typeclasses eauto. *)
+          assert (NIN: not (in_Gamma σ s0 id)). apply H.
+          eapply lid_bound_between_shrink. eauto.
+          Transparent newLocalVar.
+          cbn in *.
+          inv Heqs4.
+          solve_local_count. solve_local_count.
+          exfalso; eapply NIN.
+          econstructor. apply Heqo0. eauto.
+          eauto.
+        * apply neg_rel_dec_correct in Heqb1.
+          rewrite remove_neq_alist; eauto.
+          all: typeclasses eauto.
 
-      (* + *)
-      (* + unfold alist_add; cbn. cbn. *)
-      (*   destruct y; auto. cbn in *. *)
-      (*     break_match_goal. *)
-      (*   * rewrite rel_dec_correct in Heqb1; subst. *)
-      (*     assert (Gamma_safe σ s0 s12). solve_gamma_safe. *)
+      + unfold alist_add; cbn. cbn.
+        destruct y; auto. cbn in *.
+          break_match_goal.
+        * rewrite rel_dec_correct in Heqb1; subst.
+          assert (Gamma_safe σ s0 s12). solve_gamma_safe.
 
-      (*     Transparent addVars. *)
-      (*     inv Heqs12. *)
-      (*     cbn in Heqs13. *)
+          Transparent addVars.
+          inv Heqs12.
+          cbn in Heqs13.
 
-      (*     assert (NIN: not (in_Gamma σ s0 id)). apply H. *)
-      (*     eapply lid_bound_between_shrink. eauto. solve_local_count. solve_local_count. *)
-      (*     exfalso; eapply NIN. *)
-      (*     econstructor. apply Heqo0. eauto. *)
-      (*     eauto. *)
-      (*   * apply neg_rel_dec_correct in Heqb1. *)
-      (*     rewrite remove_neq_alist; eauto. *)
-      (*     all: typeclasses eauto. *)
+          assert (NIN: not (in_Gamma σ s0 id)). apply H.
+          eapply lid_bound_between_shrink. eauto. solve_local_count. solve_local_count.
+          exfalso; eapply NIN.
+          econstructor. apply Heqo0. eauto.
+          eauto.
+        * apply neg_rel_dec_correct in Heqb1.
+          rewrite remove_neq_alist; eauto.
+          all: typeclasses eauto.
   }
 
   (* Loop body match *)
@@ -1057,27 +1057,22 @@ Proof.
       subst y_size. 2 : eauto.
       rewrite <- EQ. rewrite <- H1. eauto.
       subst y_size. rewrite <- EQ.
-      clear -BOUNDS BOUNDk EQk.
+
+      eapply to_nat_repr_nat in EQk.
+
 
       rewrite Znat.Z2N.id; [|apply Int64_intval_pos].
-      apply to_nat_repr_nat in EQk.
 
       pose proof Znat.inj_lt _ _ BOUNDS as LT.
       unfold MInt64asNT.to_nat in LT.
 
       rewrite Znat.Z2Nat.id in LT; [|apply Int64_intval_pos].
       etransitivity. 2 : eauto.
-      clear -BOUNDk.
-      rewrite <- intval_to_from_nat_id.
-      eapply Znat.inj_lt.
 
-      unfold DynamicValues.Int64.intval. unfold Z.of_nat.
-      destruct k eqn: Hk; subst. apply BOUNDk.
-      destruct (DynamicValues.Int64.repr (Z.pos (Pos.of_succ_nat n0))) eqn: Ha.
-      Transparent DynamicValues.Int64.repr.
-      admit. (* arithmetic *)
+      rewrite !Int64.unsigned_repr_eq.
+      f_equal.
+      rewrite Zdiv.Zmod_small; try lia.
     }
-
 
     vred.
     rewrite denote_instr_store.
