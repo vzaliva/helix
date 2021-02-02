@@ -109,4 +109,5 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 ** Use =coq-equations= package.
    It could be used to represent index functions and function
    arguments of =BinOp=, =Pointwise=, etc.
-
+** Might want to strengthen MSH_DSH_compat instances
+similar to what was done in ~b122bd3~
