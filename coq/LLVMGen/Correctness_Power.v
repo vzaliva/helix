@@ -2257,6 +2257,50 @@ Proof.
 
               specialize (MINV _ _ _ _ _ NTH_σ NTH_Γ).
 
+
+                Set Nested Proofs Allowed.
+                Lemma local_scope_modif_trans'' :
+                  forall s1 s2 s3 s4 l1 l2 l3,
+                    local_scope_modif s1 s2 l1 l2 →
+                    local_scope_modif s3 s4 l2 l3 →
+                    s1 <<= s2 ->
+                    s1 <<= s3 ->
+                    s2 <<= s4 ->
+                    s3 <<= s4 ->
+                    local_scope_modif s1 s4 l1 l3.
+                Proof.
+                  unfold local_scope_modif; intros * MOD1 MOD2 LE1 LE2 LE3 LE4 * INEQ.
+                  destruct (alist_find_eq_dec_local_env id l1 l2) as [EQ | NEQ].
+                  - destruct (alist_find_eq_dec_local_env id l2 l3) as [EQ' | NEQ'].
+                    + contradiction INEQ; rewrite <- EQ; auto.
+                    + apply MOD2 in NEQ'.
+                      eauto using lid_bound_between_shrink_down.
+                  - apply MOD1 in NEQ.
+                    eauto using lid_bound_between_shrink_up.
+                Qed.
+
+              (* TODO: automate this? *)
+              assert (local_scope_modif s1 s2 ρ l_Aexpr) as LSM_FULL.
+              { nexpr_modifs.
+                epose proof local_scope_modif_trans'' PostLoopEndNExpr PostXoffNExpr.
+                repeat (forward H; solve_local_count).
+                epose proof local_scope_modif_trans'' H PostYoffNExpr.
+                repeat (forward H0; solve_local_count).
+                pose proof LINV_LSM.
+                eapply local_scope_modif_shrink with (s1 := i8) (s4:= s2) in H1; solve_local_count.
+                eapply local_scope_modif_sub'_l in H1; [|solve_lid_bound_between].
+                eapply local_scope_modif_sub'_l in H1; [|solve_lid_bound_between].
+                epose proof local_scope_modif_trans'' H0 H1.
+                repeat (forward H2; solve_local_count).
+                pose proof extends.
+                eapply local_scope_modif_shrink with (s1 := i8) (s4:= s2) in H3; solve_local_count.
+                eapply local_scope_modif_sub'_l in H3; [|solve_lid_bound_between].
+                eapply local_scope_modif_sub'_l in H3; [|solve_lid_bound_between].
+                epose proof local_scope_modif_trans'' H2 H3.
+                repeat (forward H4; solve_local_count).
+                solve_local_scope_modif.
+              }
+
               destruct x, v0; eauto.
               + cbn in MINV. cbn.
                 destruct MINV as (ptr & τ' & TEQ & FIND & READ).
@@ -2291,17 +2335,7 @@ Proof.
                 { intros CONTRA; inv CONTRA.
                 }
                 eauto.
-                nexpr_modifs.
-                cbn.
-                erewrite <- local_scope_modif_bound_before with (s2:=s2); eauto.
-                match goal with
-                | LSM1 : local_scope_modif ?s1 ?s2 _ ?l2,
-                         LSM2 : local_scope_modif ?s12 ?s22 ?l1 _
-                  |- local_scope_modif _ _ ?l1 ?l2
-                  => eapply (@local_scope_modif_shrink _ s12 s2); [solve_local_scope_modif| |]; solve_local_count
-                end.
-                solve_local_scope_modif.
-                admit. (* another alist in thing *)
+                cbn; erewrite <- local_scope_modif_bound_before with (s2:=s2); eauto.
               + cbn in MINV. cbn.
                 destruct MINV as (ptr & τ' & TEQ & FIND & READ).
                 exists ptr. exists τ'.
@@ -2335,7 +2369,7 @@ Proof.
                 { intros CONTRA; inv CONTRA.
                 }
                 eauto.
-                admit. (* another alist in thing *)
+                cbn; erewrite <- local_scope_modif_bound_before with (s2:=s2); eauto.
               + (* Global vector *)
                 cbn in MINV.
                 destruct MINV as (ptr & τ' & TEQ & FITS & INLG' & LUP).
@@ -2362,7 +2396,7 @@ Proof.
                 eapply NTH_Γ_dst.
                 2-3: eauto.
                 intros CONTRA; inv CONTRA.
-                admit. (* another alist thing *)
+                cbn; erewrite <- local_scope_modif_bound_before with (s2:=s2); eauto.
               + (* Local vector *)
                 cbn in MINV.
                 destruct MINV as (ptr & τ' & TEQ & FITS & INLG' & LUP).
@@ -2394,7 +2428,7 @@ Proof.
                 inv H0.
                 apply protect_eq_true in NTH_σ_orig.
                 inv NTH_σ_orig.
-                admit. (* another alist thing *)
+                cbn; erewrite <- local_scope_modif_bound_before with (s2:=s2); eauto.
             - eapply no_llvm_ptr_aliasing_cons2; eauto.
               { cbn in Gamma_cst.
                 rewrite Gamma_cst.
@@ -2721,7 +2755,7 @@ Proof.
         break_match_hyp.
         break_match_hyp.
         break_match_hyp.
-        destruct H as [SINV [DST [SRC [G [LSM [ALLOCI [RET [MEMH_OLD [v [MEMH_NEW EXT_MEM]]]]]]]]]].
+        destruct H as [SINV [DST [SRC [LSM [G [ALLOCI [RET [MEMH_OLD [v [MEMH_NEW EXT_MEM]]]]]]]]]].
         subst.
 
         eapply state_invariant_write_double_result with (sz:=sz0); eauto.
@@ -2745,6 +2779,7 @@ Proof.
         }
         rewrite <- Γ_S1S2; eauto.
         eauto.
+
         admit. (* another alist in thing *)
       }
 
