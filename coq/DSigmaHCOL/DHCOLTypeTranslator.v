@@ -10,10 +10,12 @@ Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
 Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Util.ErrorSetoid.
-Require Import Helix.Tactics.StructTactics.
+Require Import Helix.Tactics.HelixTactics.
 
 Require Import ExtLib.Structures.Monads.
 Require Import ExtLib.Data.Monads.OptionMonad.
+
+Require Import MathClasses.interfaces.canonical_names.
 
 Import MonadNotation.
 Open Scope monad_scope.
@@ -47,13 +49,13 @@ Module MDHCOLTypeTranslator
     | L.NVar x => inr (NVar x)
     | L.NConst x =>
       x' <- translateNTypeConst x ;; ret (NConst x')
-    | L.NDiv x x0 => liftM2 NDiv (translateNExpr x) (translateNExpr x0)
-    | L.NMod x x0 => liftM2 NMod (translateNExpr x) (translateNExpr x0)
-    | L.NPlus x x0 => liftM2 NPlus (translateNExpr x) (translateNExpr x0)
+    | L.NDiv   x x0 => liftM2 NDiv   (translateNExpr x) (translateNExpr x0)
+    | L.NMod   x x0 => liftM2 NMod   (translateNExpr x) (translateNExpr x0)
+    | L.NPlus  x x0 => liftM2 NPlus  (translateNExpr x) (translateNExpr x0)
     | L.NMinus x x0 => liftM2 NMinus (translateNExpr x) (translateNExpr x0)
-    | L.NMult x x0 => liftM2 NMult (translateNExpr x) (translateNExpr x0)
-    | L.NMin x x0 => liftM2 NMin (translateNExpr x) (translateNExpr x0)
-    | L.NMax x x0 => liftM2 NMax (translateNExpr x) (translateNExpr x0)
+    | L.NMult  x x0 => liftM2 NMult  (translateNExpr x) (translateNExpr x0)
+    | L.NMin   x x0 => liftM2 NMin   (translateNExpr x) (translateNExpr x0)
+    | L.NMax   x x0 => liftM2 NMax   (translateNExpr x) (translateNExpr x0)
     end.
 
   Definition translateMemRef: L.MemRef -> err L'.MemRef
@@ -61,7 +63,7 @@ Module MDHCOLTypeTranslator
          n' <- translateNExpr n ;;
          ret (translatePExpr p, n').
 
-  (* This one is tricky. There are only 2 known constants we know how to translate:
+  (* There are only 2 known constants we know how to translate:
    '1' and '0'. Everything else will trigger an error *)
   Definition translateCTypeConst (a:CT.t): err CT'.t :=
     if CT.CTypeEquivDec a CT.CTypeZero then inr CT'.CTypeZero
@@ -452,9 +454,25 @@ Module MDHCOLTypeTranslator
           heq_DSHOperator (L.DSHSeq f g) (L'.DSHSeq f' g').
 
     Lemma translation_syntax_correctenss:
-      forall x x', translate x = inr x' ->
+      forall x x', translate x ≡ inr x' ->
               heq_DSHOperator x x'.
     Proof.
+      intros x x' H.
+    (*
+      destruct x, x'; try constructor; try (cbn in H; inversion H); try inl_inr.
+
+      all: repeat  match goal with
+(*           | [|- context[L.DSHAssign ?s ?d]] => destruct s,d
+           | [|- context[L.DSHPower _ ?s ?d _ _]] => destruct s,d *)
+           | [H: context[translateMemRef ?s] |- _ ] =>
+             destruct s; unfold translateMemRef in H; cbn in H; repeat break_match_hyp
+               end.
+
+      all: try inl_inr.
+      all: try inl_inr_inv.
+      all: try constructor.
+      all:crush.
+     *)
     Admitted.
 
     Inductive heq_DSHVal: LE.DSHVal -> LE'.DSHVal -> Prop :=
