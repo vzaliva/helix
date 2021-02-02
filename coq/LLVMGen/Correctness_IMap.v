@@ -426,14 +426,14 @@ Proof.
       let '(mem_llvm, (ρ, g)) := configV in
       dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp [] (TYPE_Array sz TYPE_Double)) /\
       in_local_or_global_addr ρ g x ptr_llvm /\
-          forall k dst_addr, k <= index ->
-            handle_gep_addr (DTYPE_Array sz DTYPE_Double) ptr_llvm
-                        [DVALUE_I64 (DynamicValues.Int64.repr 0); DVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat k))] ≡ inr dst_addr ->
-              in_local_or_global_addr ρ g x dst_addr /\
+          (* forall k dst_addr, k <= index -> *)
+          (*   handle_gep_addr (DTYPE_Array sz DTYPE_Double) ptr_llvm *)
+          (*               [DVALUE_I64 (DynamicValues.Int64.repr 0); DVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat k))] ≡ inr dst_addr -> *)
+          (*     in_local_or_global_addr ρ g x dst_addr /\ *)
               (∀ (i : Int64.int) (v0 : binary64),
-                  ((MInt64asNT.to_nat i) < BinNat.N.to_nat sz -> (MInt64asNT.to_nat i) < index) ->
+                  (MInt64asNT.to_nat i) < BinNat.N.to_nat sz -> (MInt64asNT.to_nat i) < index ->
                   mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v0
-                  → get_array_cell mem_llvm dst_addr (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0)).
+                  → get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0)).
 
   (* TODO : Add something like ext_memory but which talks about a range of pointers being extended. *)
   (* Invariant at each iteration *)
@@ -447,12 +447,12 @@ Proof.
                  (* 2. Preserved state invariant *)
                  memory_invariant_partial_write' stV k ptrll_yoff b y y_sz /\
                  mH ≡ memH /\ g ≡ g' /\
-                 allocated ptrll_yoff mV /\
-                  forall i, i <= k ->
-                  exists dst_addr, handle_gep_addr (DTYPE_Array y_sz DTYPE_Double) ptrll_yoff
-                    [DVALUE_I64 (DynamicValues.Int64.repr 0); DVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat i))] ≡ inr dst_addr /\
-                    exists v, mem_lookup i b ≡ Some v /\
-                        ext_memory mV_init dst_addr DTYPE_Double (UVALUE_Double v) mV
+                 allocated ptrll_yoff mV
+                  (* forall i, i <= k -> *)
+                  (* exists dst_addr, handle_gep_addr (DTYPE_Array y_sz DTYPE_Double) ptrll_yoff *)
+                  (*   [DVALUE_I64 (DynamicValues.Int64.repr 0); DVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat i))] ≡ inr dst_addr /\ *)
+                    (* exists v, mem_lookup i b ≡ Some v /\ *)
+                    (*     ext_memory mV_init dst_addr DTYPE_Double (UVALUE_Double v) mV *)
                  (* exists v, ext_memory mV_init ptrll_yoff DTYPE_Double (UVALUE_Double v) mV /\ *)
                end)).
 
@@ -1157,7 +1157,8 @@ Proof.
     }
   - exists b0. reflexivity.
 
-  - eapply INV_STABLE. right. solve_lid_bound_between.
+  - (* Re-establish loop invariant *)
+    eapply INV_STABLE. right. solve_lid_bound_between.
 
     split; [| split ;[split ;[|split]| split;[|split]]]; eauto.
 
@@ -1274,13 +1275,20 @@ Proof.
           erewrite write_untouched; eauto. constructor.
         }
         {
+          clean_goal. subst I. clear INV_STABLE. clear WHILE Heqs6 Heqs14 Heqs13.
+          clear E.
+          clean_goal.
+          clear EQ_y_HG'.
+
+
+          (* TODO Cleanup and explain proof strategy *)
           pose proof MINV_YOFF as PARTIAL_WRITE.
-          specialize (PARTIAL_WRITE k dst_addr). forward PARTIAL_WRITE.
-          lia.
-          forward PARTIAL_WRITE.
+          (* specialize (PARTIAL_WRITE k dst_addr). forward PARTIAL_WRITE. *)
+          (* lia. *)
+          (* forward PARTIAL_WRITE. *)
           pose proof HDST_GEP.
           pose proof (from_N_intval _ EQsz0) as EQ.
-          rewrite EQ. subst y_size. eauto.
+          (* rewrite EQ. subst y_size. eauto. *)
           edestruct mem_is_inv as (? & ? & ? & ? & ? & ?); clear mem_is_inv.
 
 
@@ -1288,38 +1296,41 @@ Proof.
 
           split. eapply dtyp_fits_after_write; eauto.
 
-          split; eauto. destruct PARTIAL_WRITE.
-          destruct (Nat.eq_dec y_h_ptr a).
-          {
+          split; eauto. intros.
+          specialize (H7 H8).
+          destruct H7 as (? & ? & ? ).
+          eexists. split; eauto. 
 
-            intros.
-
-            pose proof H as MEM.
-            edestruct MEM as (MEM_ALLOC & M').
-
-            eexists. subst. split; eauto.
-            intros.
-            destruct (@peano_naturals.nat_le_dec (MInt64asNT.to_nat i) k). {
-              specialize (M' _ l). edestruct M' as (? & ? & ? & ?).
-              erewrite <- read_array; eauto.
-              2 : solve_allocated.
-              2 : eauto.
-              pose proof HDST_GEP.
-
-              destruct H. 2 : eauto.
-              (* The address has been written to already. *)
-              admit. admit.
-
-            }
-            admit.
+          assert (fst x1 ≢ fst ptrll_yoff). {
+            do 2 red in st_no_llvm_ptr_aliasing.
+            rewrite <- EE in CEq. 
+            specialize (st_no_llvm_ptr_aliasing x0 x1 y ptrll_yoff n2 (S (S n1))).
+            cbn in st_no_llvm_ptr_aliasing.
+            eapply st_no_llvm_ptr_aliasing. eauto. eauto. rewrite <- EE. eauto. rewrite <- EE. eauto. eauto. eauto.
+            eauto.
           }
 
-            clear H3 H4 H5.
-            intros. eexists.
+          assert (no_overlap_dtyp dst_addr DTYPE_Double x1 (typ_to_dtyp [] x2)) as NOALIAS'.
+          {
+            unfold no_overlap_dtyp.
+            unfold no_overlap.
+            left.
 
-          split.
+            rewrite <- (handle_gep_addr_array_same_block _ _ _ _ HDST_GEP).
 
-          intros. admit.
+            intros BLOCKS; symmetry in BLOCKS; revert BLOCKS.
+            eauto.
+          }
+          subst.
+          intros.
+          destruct x1 as (c & coff).
+          erewrite <- read_array.  2 : solve_allocated.
+          2 : {
+            unfold handle_gep_addr. cbn.
+            rewrite Z.mul_0_r.
+            rewrite Z.add_0_r.
+            reflexivity.
+          }
           admit.
         }
       }
@@ -1330,35 +1341,46 @@ Proof.
       destruct INV_p; auto.
     }
 
+    (* Partial memory up to (S k) *)
     {
-      intros.
+      intros index v0 Bounds_sz Bounds_partial MLU_k.
+      rename MINV_YOFF into MINV_partial.
+      revert MINV_partial; intros.
 
-      eapply read_array_exists with (i := MInt64asNT.to_nat i) in H .
-      destruct H as (? & ? & ?).  eauto.
-      (* TODO : write_array_cell_get_array_cell but with a write and gep. *)
-    (* Lemma write_get_array_cell : *)
-    (*   forall (m m' : memory_stack) (t : dtyp) (val : dvalue) (a : addr) (i : nat), *)
-    (*     write a i t val = inr m' -> *)
+      destruct (@dec_eq_nat (MInt64asNT.to_nat index) k).
+      {
+        (* This is the index that _was_ written to. *)
+        subst.
+        rewrite mem_lookup_mem_add_eq in MLU_k. inv MLU_k.
+        erewrite <- read_array.
+        pose proof @write_read as WR.
+        specialize (WR _ _ DTYPE_Double  _ _ H1).
+        cbn in WR. eapply WR. constructor. solve_allocated.
+        eauto.
+      }
+      {
+        (* This wasn't written to, and is covered by the partial memory
+           invariant up to this point. *)
+        assert (Bounds_rest: MInt64asNT.to_nat index < k). {
+          lia.
+        }
+        specialize (MINV_partial _ v0 Bounds_sz Bounds_rest).
 
-    (*     handle_gep_addr (DTYPE_Array ?size ?τ) ptrll_yoff *)
-    (*           [DVALUE_I64 (repr 0); DVALUE_I64 (repr (Z.of_nat (MInt64asNT.to_nat i)))] ≡ inr x0 -> *)
-    (*     dvalue_has_dtyp val t -> *)
-    (*     get_array_cell m' a i t = inr (dvalue_to_uvalue val). *)
-    (* Proof. *)
-    (*   intros m m' t val a i WRITE TYP. *)
-    (*   destruct a; cbn in *. *)
-    (*   break_match_hyp; inv WRITE. *)
-    (*   destruct l. *)
-    (*   inversion H0; subst. *)
-    (*   rewrite get_logical_block_of_add_logical_block. *)
-    (*   rewrite read_in_mem_block_write_to_mem_block; eauto. *)
-    (* Qed. *)
-      (* pose proof write_array_cell_get_array_cell. *)
-      (* specialize  *)
-      (* write_preserves_allocated *)
-      (* eapply get_array_cell_write_no_overlap; eauto. *)
-      (* constructor. *)
-      admit.
+        erewrite write_array_cell_untouched.
+        eapply MINV_partial. rewrite mem_lookup_mem_add_neq in MLU_k; eauto.
+        erewrite <- write_array_lemma. eauto. solve_allocated. eauto. constructor.
+        pose proof @to_nat_unsigned.
+
+        repeat rewrite repr_of_nat_to_nat.
+        pose proof EQk.
+        eapply to_nat_repr_nat in H3.
+
+        intros CONTRA.
+        rewrite <- H3 in H0.
+        eapply to_nat_unsigned in H0. apply H0.
+        rewrite repr_of_nat_to_nat. rewrite <- CONTRA.
+        rewrite H3. reflexivity.
+      }
     }
 
     solve_allocated.
