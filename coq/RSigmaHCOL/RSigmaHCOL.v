@@ -2,8 +2,13 @@
 
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
-Require Import Helix.DSigmaHCOL.DSigmaHCOLITree.
 Require Import Helix.RSigmaHCOL.RasCT.
 Require Import Helix.ASigmaHCOL.NatAsNT.
 
-Module Export RHCOL := MDSigmaHCOLITree(MRasCT)(MNatAsNT).
+Module Export RHCOL <: MDSigmaHCOL(MRasCT)(MNatAsNT).
+  Include MDSigmaHCOL MRasCT MNatAsNT.
+End RHCOL.
+
+Module Export RHCOLEval <: MDSigmaHCOLEval(MRasCT)(MNatAsNT)(RHCOL).
+  Include MDSigmaHCOLEval MRasCT MNatAsNT RHCOL.
+End RHCOLEval.

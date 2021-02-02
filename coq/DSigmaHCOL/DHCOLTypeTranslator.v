@@ -5,14 +5,17 @@ Require Import Coq.Strings.String.
 Require Import Helix.MSigmaHCOL.CType.
 Require Import Helix.DSigmaHCOL.NType.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
+Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
 
 Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Util.ErrorSetoid.
-Require Import Helix.Tactics.StructTactics.
+Require Import Helix.Tactics.HelixTactics.
 
 Require Import ExtLib.Structures.Monads.
 Require Import ExtLib.Data.Monads.OptionMonad.
+
+Require Import MathClasses.interfaces.canonical_names.
 
 Import MonadNotation.
 Open Scope monad_scope.
@@ -29,9 +32,11 @@ Module MDHCOLTypeTranslator
        (Import NT: NType)
        (Import NT': NType)
        (Import L: MDSigmaHCOL(CT)(NT))
-       (Import L': MDSigmaHCOL(CT')(NT')).
+       (Import L': MDSigmaHCOL(CT')(NT'))
+       (Import LE: MDSigmaHCOLEval(CT)(NT)(L))
+       (Import LE': MDSigmaHCOLEval(CT')(NT')(L')).
 
-  Definition translateNTypeValue (a:NT.t): err NT'.t
+  Definition translateNTypeConst (a:NT.t): err NT'.t
     := NT'.from_nat (NT.to_nat a).
 
   Definition translatePExpr (p:L.PExpr): L'.PExpr :=
@@ -43,14 +48,14 @@ Module MDHCOLTypeTranslator
     match n with
     | L.NVar x => inr (NVar x)
     | L.NConst x =>
-      x' <- translateNTypeValue x ;; ret (NConst x')
-    | L.NDiv x x0 => liftM2 NDiv (translateNExpr x) (translateNExpr x0)
-    | L.NMod x x0 => liftM2 NMod (translateNExpr x) (translateNExpr x0)
-    | L.NPlus x x0 => liftM2 NPlus (translateNExpr x) (translateNExpr x0)
+      x' <- translateNTypeConst x ;; ret (NConst x')
+    | L.NDiv   x x0 => liftM2 NDiv   (translateNExpr x) (translateNExpr x0)
+    | L.NMod   x x0 => liftM2 NMod   (translateNExpr x) (translateNExpr x0)
+    | L.NPlus  x x0 => liftM2 NPlus  (translateNExpr x) (translateNExpr x0)
     | L.NMinus x x0 => liftM2 NMinus (translateNExpr x) (translateNExpr x0)
-    | L.NMult x x0 => liftM2 NMult (translateNExpr x) (translateNExpr x0)
-    | L.NMin x x0 => liftM2 NMin (translateNExpr x) (translateNExpr x0)
-    | L.NMax x x0 => liftM2 NMax (translateNExpr x) (translateNExpr x0)
+    | L.NMult  x x0 => liftM2 NMult  (translateNExpr x) (translateNExpr x0)
+    | L.NMin   x x0 => liftM2 NMin   (translateNExpr x) (translateNExpr x0)
+    | L.NMax   x x0 => liftM2 NMax   (translateNExpr x) (translateNExpr x0)
     end.
 
   Definition translateMemRef: L.MemRef -> err L'.MemRef
@@ -58,9 +63,9 @@ Module MDHCOLTypeTranslator
          n' <- translateNExpr n ;;
          ret (translatePExpr p, n').
 
-  (* This one is tricky. There are only 2 known constants we know how to translate:
+  (* There are only 2 known constants we know how to translate:
    '1' and '0'. Everything else will trigger an error *)
-  Definition translateCTypeValue (a:CT.t): err CT'.t :=
+  Definition translateCTypeConst (a:CT.t): err CT'.t :=
     if CT.CTypeEquivDec a CT.CTypeZero then inr CT'.CTypeZero
     else if CT.CTypeEquivDec a CT.CTypeOne then inr CT'.CTypeOne
          else (inl "unknown CType constant").
@@ -98,21 +103,21 @@ Module MDHCOLTypeTranslator
 
   (* This should use [NM_sequence] directly making [NM_err_sequence] unecessary, but we run into universe inconsistency *)
   Definition translate_mem_block (m:L.mem_block) : err L'.mem_block
-    := NM_err_sequence (NM.map translateCTypeValue m).
+    := NM_err_sequence (NM.map translateCTypeConst m).
 
   Definition translateMExpr (m:L.MExpr) : err L'.MExpr :=
     match m with
     | L.MPtrDeref x => ret (MPtrDeref (translatePExpr x))
     | L.MConst x size =>
       x' <- translate_mem_block x ;;
-      size' <- translateNTypeValue size ;;
+      size' <- translateNTypeConst size ;;
       ret (MConst x' size')
     end.
 
   Fixpoint translateAExpr (a:L.AExpr): err L'.AExpr :=
     match a with
     | L.AVar x => ret (AVar x)
-    | L.AConst x => x' <- translateCTypeValue x ;; ret (AConst x')
+    | L.AConst x => x' <- translateCTypeConst x ;; ret (AConst x')
     | L.ANth m n =>
       m' <- translateMExpr m ;;
       n' <- translateNExpr n ;;
@@ -179,7 +184,7 @@ Module MDHCOLTypeTranslator
                f')
       | L.DSHPower n src dst f initial =>
         f' <- translateAExpr f ;;
-        initial' <- translateCTypeValue initial ;;
+        initial' <- translateCTypeConst initial ;;
         n' <- translateNExpr n ;;
         src' <- translateMemRef src ;;
         dst' <- translateMemRef dst ;;
@@ -195,12 +200,12 @@ Module MDHCOLTypeTranslator
                body')
       | L.DSHAlloc size body =>
         body' <- translate body ;;
-        size' <- translateNTypeValue size ;;
+        size' <- translateNTypeConst size ;;
         ret (DSHAlloc
                size'
                body')
       | L.DSHMemInit y_p value =>
-        value' <- translateCTypeValue value ;;
+        value' <- translateCTypeConst value ;;
         ret (DSHMemInit
                (translatePExpr y_p)
                value')
@@ -210,20 +215,128 @@ Module MDHCOLTypeTranslator
         ret (DSHSeq f' g')
       end.
 
+  Class CTranslationOp :=
+    {
+    (* Heterogeneous equality *)
+    heq_CType: CT.t -> CT'.t -> Prop ;
+
+    (* Partial mapping of [CT.t] values to [CT'.t] *)
+    translateCTypeValue: CT.t -> err CT'.t ;
+    }.
+
+    Class NTranslationOp :=
+    {
+
+    (* Heterogeneous equality *)
+    heq_NType: NT.t -> NT'.t -> Prop ;
+
+    (* Partial mapping of [NT.t] values to [NT'.t] *)
+    translateNTypeValue: NT.t -> err NT'.t ;
+    }.
+
+  Class NBinOpTranslation
+        `{NTranslationOp}
+        (f: NT.t -> NT.t -> NT.t)
+        (f': NT'.t -> NT'.t -> NT'.t)
+    :=
+      {
+    nbinop_translate_compat: forall x x' y y',
+          translateNTypeValue x = inr x' ->
+          translateNTypeValue y = inr y' ->
+          translateNTypeValue (f x y) = inr (f' x' y')
+      }.
+
+  Class NTranslationProps `{NTT: NTranslationOp} :=
+    {
+    (* Value mapping should result in "equal" values *)
+    heq_NType_translateNTypeValue_compat:
+      forall x x', translateNTypeValue x = inr x' -> heq_NType x x';
+
+    (* Ensure [translateNTypeConst] is compatible with [translateNTypeValue] *)
+    translateNTypeConst_translateNTypeValue_compat:
+      forall x x', translateNTypeConst x = inr x' ->
+              translateNTypeValue x = inr x';
+
+    (* So surjectivity property. This allows use for example map
+       natural numbers to signed integers *)
+
+    heq_NType_to_from_nat:
+      forall x x', heq_NType x x' -> NT.to_nat x = NT'.to_nat x';
+
+    NTypeDiv_translation   : NBinOpTranslation NT.NTypeDiv   NT'.NTypeDiv  ;
+    NTypeMod_translation   : NBinOpTranslation NT.NTypeMod   NT'.NTypeMod  ;
+    NTypePlus_translation  : NBinOpTranslation NT.NTypePlus  NT'.NTypePlus ;
+    NTypeMinus_translation : NBinOpTranslation NT.NTypeMinus NT'.NTypeMinus;
+    NTypeMult_translation  : NBinOpTranslation NT.NTypeMult  NT'.NTypeMult ;
+    NTypeMin_translation   : NBinOpTranslation NT.NTypeMin   NT'.NTypeMin  ;
+    NTypeMax_translation   : NBinOpTranslation NT.NTypeMax   NT'.NTypeMax  ;
+    }.
+
+  Class CBinOpTranslation
+        `{CTranslationOp}
+        (f: CT.t -> CT.t -> CT.t)
+        (f': CT'.t -> CT'.t -> CT'.t)
+    :=
+      {
+    binop_translate_compat: forall x x' y y',
+          translateCTypeValue x = inr x' ->
+          translateCTypeValue y = inr y' ->
+          translateCTypeValue (f x y) = inr (f' x' y')
+      }.
+
+  Class CUnOpTranslation
+        `{CTranslationOp}
+        (f: CT.t -> CT.t)
+        (f': CT'.t -> CT'.t)
+    :=
+      {
+    unop_translate_compat: forall x x',
+          translateCTypeValue x = inr x' ->
+          translateCTypeValue (f x) = inr (f' x')
+      }.
+
+  Class CTranslationProps `{C: CTranslationOp} :=
+    {
+    (* Value mapping should result in "equal" values *)
+    heq_CType_translateCTypeValue_compat:
+      forall x x', translateCTypeValue x = inr x' -> heq_CType x x';
+
+    (* Ensure [translateCTypeConst] is compatible with [translateCTypeValue] *)
+    translateCTypeConst_translateCTypeValue_compat:
+      forall x x', translateCTypeConst x = inr x' ->
+              translateCTypeValue x = inr x';
+
+    (* Surjectivity: all values in CT't should have correspoding CT.t values
+       Not sure if we need this
+       translate_surj: forall (x':CT'.t), exists x, translateCTypeValue x = inr x';
+     *)
+
+    CTypePlus_translation  : CBinOpTranslation CT.CTypePlus  CT'.CTypePlus ;
+    CTypeMult_translation  : CBinOpTranslation CT.CTypeMult  CT'.CTypeMult ;
+    CTypeZLess_translation : CBinOpTranslation CT.CTypeZLess CT'.CTypeZLess;
+    CTypeMin_translation   : CBinOpTranslation CT.CTypeMin   CT'.CTypeMin  ;
+    CTypeMax_translation   : CBinOpTranslation CT.CTypeMax   CT'.CTypeMax  ;
+    CTypeSub_translation   : CBinOpTranslation CT.CTypeSub   CT'.CTypeSub  ;
+
+    CTypeNeg_translation: CUnOpTranslation CT.CTypeNeg CT'.CTypeNeg ;
+    CTypeAbs_translation: CUnOpTranslation CT.CTypeAbs CT'.CTypeAbs ;
+    }.
+
+
   Section Relations.
 
-    Parameter heq_CType: CT.t -> CT'.t -> Prop.
-
-    (* Well-defined [heq_CType] must be compatible with [translateCTypeValue] *)
-    Parameter heq_CType_translateCTypeValue_compat:
-      forall x x', translateCTypeValue x = inr x' -> heq_CType x x'.
+    Context `{CTT: CTranslationOp}
+            `{CTP: @CTranslationProps CTT}
+            `{NTT: NTranslationOp}
+            `{NTP: @NTranslationProps NTT}.
 
     (* Well-defined [heq_CType] preserves constnats *)
     Fact heq_CType_zero_one_wd:
       heq_CType CT.CTypeZero CT'.CTypeZero /\
       heq_CType CT.CTypeOne CT'.CTypeOne.
     Proof.
-      split; apply heq_CType_translateCTypeValue_compat; cbv.
+      split;
+        apply heq_CType_translateCTypeValue_compat, translateCTypeConst_translateCTypeValue_compat; cbv.
       -
         break_if.
         + reflexivity.
@@ -241,11 +354,8 @@ Module MDHCOLTypeTranslator
           * clear -n0; contradict n0; reflexivity.
     Qed.
 
-    Definition heq_NType: NT.t -> NT'.t -> Prop :=
-      fun n n' => NT.to_nat n = NT'.to_nat n'.
-
     Definition heq_mem_block: L.mem_block -> L'.mem_block -> Prop :=
-      fun m m' => forall k : NM.key, hopt_r heq_CType (NM.find k m) (NM.find k m').
+      fun m m' => forall k : nat, hopt_r heq_CType (L.mem_lookup k m) (L'.mem_lookup k m').
 
     Inductive heq_NExpr: L.NExpr -> L'.NExpr -> Prop :=
     | heq_NVar: forall x x', x=x' -> heq_NExpr (L.NVar x) (L'.NVar x')
@@ -266,7 +376,7 @@ Module MDHCOLTypeTranslator
     | heq_MConst: forall m m' n n', heq_NType n n' -> heq_mem_block m m' -> heq_MExpr (L.MConst m n) (L'.MConst m' n').
 
     Inductive heq_AExpr: L.AExpr -> L'.AExpr -> Prop :=
-    | heq_AVar: forall x x', x=x' -> heq_AExpr (L.AVar x) (L'.AVar x)
+    | heq_AVar: forall x x', x=x' -> heq_AExpr (L.AVar x) (L'.AVar x')
     | heq_ANth: forall m m' n n', heq_MExpr m m' ->  heq_NExpr n n' -> heq_AExpr (L.ANth m n) (L'.ANth m' n')
     | heq_AAbs: forall x x', heq_AExpr x x' ->  heq_AExpr (L.AAbs x) (L'.AAbs x')
     | heq_AConst: forall x x', heq_CType x x' -> heq_AExpr (L.AConst x) (L'.AConst x')
@@ -342,6 +452,56 @@ Module MDHCOLTypeTranslator
           heq_DSHOperator f f' ->
           heq_DSHOperator g g' ->
           heq_DSHOperator (L.DSHSeq f g) (L'.DSHSeq f' g').
+
+    Lemma translation_syntax_correctenss:
+      forall x x', translate x ≡ inr x' ->
+              heq_DSHOperator x x'.
+    Proof.
+      intros x x' H.
+    (*
+      destruct x, x'; try constructor; try (cbn in H; inversion H); try inl_inr.
+
+      all: repeat  match goal with
+(*           | [|- context[L.DSHAssign ?s ?d]] => destruct s,d
+           | [|- context[L.DSHPower _ ?s ?d _ _]] => destruct s,d *)
+           | [H: context[translateMemRef ?s] |- _ ] =>
+             destruct s; unfold translateMemRef in H; cbn in H; repeat break_match_hyp
+               end.
+
+      all: try inl_inr.
+      all: try inl_inr_inv.
+      all: try constructor.
+      all:crush.
+     *)
+    Admitted.
+
+    Inductive heq_DSHVal: LE.DSHVal -> LE'.DSHVal -> Prop :=
+    | heq_DSHnatVal: forall x x', heq_NType x x' -> heq_DSHVal (LE.DSHnatVal x) (LE'.DSHnatVal x')
+    | heq_DSHCTypeVal: forall x x', heq_CType x x' -> heq_DSHVal (LE.DSHCTypeVal x) (LE'.DSHCTypeVal x')
+    | heq_DSHPtrVal: forall a a' s s', a=a' -> heq_NType s s' -> heq_DSHVal (LE.DSHPtrVal a s) (LE'.DSHPtrVal a s').
+
+    Definition heq_evalContext: LE.evalContext -> LE'.evalContext -> Prop :=
+      List.Forall2 (fun '(x,p) '(x',p') => p=p' /\ heq_DSHVal x x').
+
+    Definition heq_memory: L.memory -> L'.memory -> Prop :=
+      fun m m' => forall k : nat, hopt_r heq_mem_block (L.memory_lookup m k) (L'.memory_lookup m' k).
+
+    Lemma translation_semantics_correctness
+          (σ: LE.evalContext) (σ': LE'.evalContext)
+          (Eσ: heq_evalContext σ σ')
+
+          (op: L.DSHOperator) (op': L'.DSHOperator)
+          (Eop: heq_DSHOperator op op')
+
+          (imem omem: L.memory) (imem' omem': L'.memory)
+          (Emem: heq_memory imem imem')
+          (fuel: nat):
+
+      LE.evalDSHOperator σ op imem fuel = Some (inr omem) ->
+      LE'.evalDSHOperator σ' op' imem' fuel = Some (inr omem') ->
+      heq_memory omem omem'.
+    Proof.
+    Admitted.
 
   End Relations.
 

@@ -14,4 +14,6 @@ Module Export RHCOLtoFHCOL := MDHCOLTypeTranslator
                                  (MNatAsNT)
                                  (MInt64asNT)
                                  (RHCOL)
-                                 (FHCOL).
+                                 (FHCOL)
+                                 (RHCOLEval)
+                                 (FHCOLEval).
