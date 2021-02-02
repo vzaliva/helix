@@ -1017,6 +1017,7 @@ Module Type MBasic (Import CT : CType).
       }
       apply mem_block_exists_next_key_gt, E.
     Qed.
+      
 
     Lemma memory_lookup_memory_next_key_is_None (m:memory):
       MathClasses.misc.util.is_None (memory_lookup m (memory_next_key m)).
