@@ -271,8 +271,6 @@ Proof.
 
   pose proof generates_wf_ocfg_bids _ NEXT GEN as WFOCFG.
   pose proof inputs_bound_between _ _ _ GEN as INPUTS_BETWEEN.
-  pose proof genIR_Γ _ _ _ GEN as GENIR_Γ.
-  pose proof genIR_local_count _ _ _ GEN as GENIR_local.
   pose proof genWhileLoop_entry_in_scope _ _ _ GEN as ENTRY_IN.
 
   cbn in * |-; simp.
