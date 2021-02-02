@@ -269,6 +269,12 @@ Lemma DSHPower_correct:
 Proof.
   intros n src dst f initial s1 s2 σ memH nextblock bid_in bid_from bks g ρ memV GEN NEXT PRE GAM NOFAIL.
 
+  pose proof generates_wf_ocfg_bids _ NEXT GEN as WFOCFG.
+  pose proof inputs_bound_between _ _ _ GEN as INPUTS_BETWEEN.
+  pose proof genIR_Γ _ _ _ GEN as GENIR_Γ.
+  pose proof genIR_local_count _ _ _ GEN as GENIR_local.
+  pose proof genWhileLoop_entry_in_scope _ _ _ GEN as ENTRY_IN.
+
   cbn in * |-; simp.
   rewrite DSHPower_as_tfor; cbn.
   inv_resolve_PVar Heqs0.
@@ -303,12 +309,50 @@ Proof.
 
   rename l into loop_blocks.
 
-  assert (wf_ocfg_bid loop_blocks) as WF_loop_blocks by admit.
-  assert (free_in_cfg loop_blocks nextblock) as FREE_loop_blocks_nextblock by admit.
-  assert (~ (b ≡ bid_in \/ False)) as BBID_IN.
-  { intros [CONTRA | []].
-    admit.
+  assert (wf_ocfg_bid loop_blocks) as WF_loop_blocks.
+  { eapply wf_ocfg_bid_add_comment; eauto.
   }
+  assert (free_in_cfg loop_blocks nextblock) as FREE_loop_blocks_nextblock.
+  {
+    rewrite Forall_forall in INPUTS_BETWEEN. intros IN. subst.
+    rewrite inputs_convert_typ, add_comment_inputs in INPUTS_BETWEEN.
+    apply INPUTS_BETWEEN in IN; clear INPUTS_BETWEEN.
+    eapply not_bid_bound_between; eauto.
+  }
+
+  assert (~ (b ≡ bid_in \/ False)) as BBID_IN. (* easier than writing out all the body blocks *)
+  { (* entry_id (bid_in), is not in the outputs of body_blocks *)
+    intros [CONTRA | []].
+    subst.
+
+    Set Nested Proofs Allowed.
+    Lemma genWhileLoop_entry_block :
+      forall prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock loop_entry loop_blocks s1 s2,
+        genWhileLoop prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 ≡ inr (s2, (loop_entry, loop_blocks)) ->
+        loop_entry ≡ ((prefix @@ "_entry") @@ string_of_nat (block_count s1)).
+    Proof.
+      intros prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock loop_entry loop_blocks s1 s2 GEN.
+      Transparent genWhileLoop.
+      unfold genWhileLoop in GEN.
+      inv GEN.
+      repeat break_match; eauto.
+      all: inv Heqs.
+      Transparent incBlockNamed.
+      unfold incBlockNamed in Heqs0.
+      inv Heqs0.
+      reflexivity.
+      Opaque incBlockNamed.
+      Opaque genWhileLoop.
+    Qed.
+
+    eapply genWhileLoop_entry_block in Heqs2.
+    inv Heqs2.
+    Transparent incBlockNamed.
+    inv Heqs.
+    Opaque incBlockNamed.
+  }
+
+  (* body_etry (* b0 *) is in inputs body_blocks *)
   assert (b0 ≡ b0 ∨ False) as B0B0 by auto.
   epose proof @genWhileLoop_init _ _ _ _ _ _ _ _ _ _ _ _ _ bid_from Heqs2 WF_loop_blocks BBID_IN FREE_loop_blocks_nextblock B0B0 as INIT.
   cbn in INIT.
