@@ -353,7 +353,7 @@ Module MDHCOLTypeTranslator
     Qed.
 
     Definition heq_mem_block: L.mem_block -> L'.mem_block -> Prop :=
-      fun m m' => forall k : NM.key, hopt_r heq_CType (NM.find k m) (NM.find k m').
+      fun m m' => forall k : nat, hopt_r heq_CType (L.mem_lookup k m) (L'.mem_lookup k m').
 
     Inductive heq_NExpr: L.NExpr -> L'.NExpr -> Prop :=
     | heq_NVar: forall x x', x=x' -> heq_NExpr (L.NVar x) (L'.NVar x')
@@ -465,8 +465,8 @@ Module MDHCOLTypeTranslator
     Definition heq_evalContext: LE.evalContext -> LE'.evalContext -> Prop :=
       List.Forall2 (fun '(x,p) '(x',p') => p=p' /\ heq_DSHVal x x').
 
-    Definition heq_memory: L.memory -> L'.memory -> Prop.
-      Admitted.
+    Definition heq_memory: L.memory -> L'.memory -> Prop :=
+      fun m m' => forall k : nat, hopt_r heq_mem_block (L.memory_lookup m k) (L'.memory_lookup m' k).
 
     Lemma translation_semantics_correctness
           (σ: LE.evalContext) (σ': LE'.evalContext)
