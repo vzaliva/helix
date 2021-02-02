@@ -13,4 +13,6 @@ Module Export AHCOLtoRHCOL := MDHCOLTypeTranslator
                                  (MNatAsNT)
                                  (MNatAsNT)
                                  (AHCOL)
-                                 (RHCOL).
+                                 (RHCOL)
+                                 (AHCOLEval)
+                                 (RHCOLEval).

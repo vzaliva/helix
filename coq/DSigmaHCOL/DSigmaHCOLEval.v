@@ -58,11 +58,12 @@ Proof.
     split;auto.
 Qed.
 
-Module MDSigmaHCOLEval
+Module Type MDSigmaHCOLEval
        (Import CT : CType)
-       (Import NT : NType).
+       (Import NT : NType)
+       (Import L: MDSigmaHCOL(CT)(NT)).
 
-  Include MDSigmaHCOL CT NT.
+  Include L.
 
   (* Evaluation context is De-Bruijn-indexed list of typed variable values and "protection" flags *)
   Definition evalContext:Type := list (DSHVal*bool).

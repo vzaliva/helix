@@ -901,7 +901,7 @@ End SHCOL_to_MSHCOL.
 
 Section MSHCOL_to_AHCOL.
 
-  Import AHCOL.
+  Import AHCOLEval.
 
   Opaque CarrierAz zero CarrierA1 one.
   MetaCoq Run (reifyMSHCOL dynwin_MSHCOL1 [(BasicAst.MPfile ["DynWinProofs"; "DynWin"; "Helix"], "dynwin_MSHCOL1")] "dynwin_AHCOL" "dynwin_AHCOL_globals").
@@ -1510,6 +1510,11 @@ Hint Rewrite
 (* Print Rewrite HintDb CarrierAZ1equalities. *)
 
 Section AHCOL_to_RHCOL.
+    Context `{CTT: AHCOLtoRHCOL.CTranslationOp}
+            `{CTP: @AHCOLtoRHCOL.CTranslationProps CTT}
+            `{NTT: AHCOLtoRHCOL.NTranslationOp}
+            `{NTP: @AHCOLtoRHCOL.NTranslationProps NTT}.
+
   Definition dynwin_RHCOL := AHCOLtoRHCOL.translate dynwin_AHCOL.
 
   (*
@@ -1565,7 +1570,7 @@ Section RHCOL_to_FHCOL.
    *)
   Definition RHCOL_FHCOL_rel
              (InMemRel: RHCOL.memory → FHCOL.memory -> Prop)
-             (InSigmaRel: RHCOL.evalContext -> FHCOL.evalContext -> Prop)
+             (InSigmaRel: RHCOLEval.evalContext -> FHCOLEval.evalContext -> Prop)
              (OutMemRel: RHCOL.memory → FHCOL.memory -> Prop):
     RHCOL.DSHOperator -> FHCOL.DSHOperator -> Prop :=
     fun rhcol fhcol =>
@@ -1573,8 +1578,8 @@ Section RHCOL_to_FHCOL.
         InMemRel rmem fmem ->
         InSigmaRel rsigma fsigma ->
         hopt_r (herr_c OutMemRel)
-               (RHCOL.evalDSHOperator rsigma rhcol rmem fuel)
-               (FHCOL.evalDSHOperator fsigma fhcol fmem fuel).
+               (RHCOLEval.evalDSHOperator rsigma rhcol rmem fuel)
+               (FHCOLEval.evalDSHOperator fsigma fhcol fmem fuel).
 
 
   Inductive ferr_c {A B:Type} (f: A -> err B) (R: A -> B -> Prop) : (err A) -> Prop :=
@@ -1587,14 +1592,14 @@ Section RHCOL_to_FHCOL.
    *)
   Definition RHCOL_to_FHCOL_correctness
              (InMemRel: RHCOL.memory → FHCOL.memory -> Prop)
-             (InSigmaRel: RHCOL.evalContext -> FHCOL.evalContext -> Prop)
+             (InSigmaRel: RHCOLEval.evalContext -> FHCOLEval.evalContext -> Prop)
              (OutMemRel: RHCOL.memory → FHCOL.memory -> Prop)
     : err RHCOL.DSHOperator -> Prop :=
     ferr_c RHCOLtoFHCOL.translate (RHCOL_FHCOL_rel InMemRel InSigmaRel OutMemRel).
 
   Theorem dynwin_RHCOL_to_FHCOL_correctness
           (InMemRel: RHCOL.memory → FHCOL.memory -> Prop)
-          (InSigmaRel: RHCOL.evalContext -> FHCOL.evalContext -> Prop)
+          (InSigmaRel: RHCOLEval.evalContext -> FHCOLEval.evalContext -> Prop)
           (OutMemRel: RHCOL.memory → FHCOL.memory -> Prop)
     : RHCOL_to_FHCOL_correctness InMemRel InSigmaRel OutMemRel
         dynwin_RHCOL.
