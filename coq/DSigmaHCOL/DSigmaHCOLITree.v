@@ -279,9 +279,9 @@ Module MDSigmaHCOLITree
           '(x_i,x_size) <- denotePExpr σ x_p ;;
           '(y_i,y_size) <- denotePExpr σ y_p ;;
           lift_Serr (assert_nat_neq "DSHIMap 'x' must not be equal 'y'" x_i y_i) ;;
+          lift_Derr (assert_nat_le "DSHIMap 'n' index out of bounds" n (to_nat y_size)) ;;
           x <- trigger (MemLU "Error looking up 'x' in DSHIMap" x_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHIMap" y_i) ;;
-          v <- lift_Derr (assert_nat_lt "DSHIMap 'n' index out of bounds" n (to_nat y_size)) ;;
           y' <- denoteDSHIMap n f (protect_p σ y_p) x y ;;
           trigger (MemSet y_i y')
 

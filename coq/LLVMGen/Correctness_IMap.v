@@ -144,9 +144,9 @@ Section DSHIMap_is_tfor.
       '(x_i, _) <- denotePExpr σ x;;
       '(y_i, y_size) <- denotePExpr σ y;;
         _ <- lift_Serr (assert_nat_neq "DSHIMap 'x' must not be equal 'y'" x_i y_i);;
+       v <- lift_Derr (assert_nat_le "DSHIMap 'n' index out of bounds" n (MInt64asNT.to_nat y_size));;
        x2 <- trigger (MemLU "Error looking up 'x' in DSHIMap" x_i);;
        y0 <- trigger (MemLU "Error looking up 'y' in DSHIMap" y_i);;
-       v <- lift_Derr (assert_nat_lt "DSHIMap 'n' index out of bounds" n (MInt64asNT.to_nat y_size));;
        y' <- DSHIMap_tfor_up (protect_p σ y) f 0 n x2 y0 ;;
         trigger (MemSet y_i y').
   Proof.
@@ -236,6 +236,9 @@ Proof.
   destruct (assert_nat_neq "DSHIMap 'x' must not be equal 'y'" n3 n2) eqn : XNEQY; try_abs.
 
   repeat apply no_failure_Ret in NOFAIL.
+  destruct (assert_nat_le "DSHIMap 'n' index out of bounds" n (MInt64asNT.to_nat i0)) eqn : BOUNDS; try_abs.
+  repeat apply no_failure_Ret in NOFAIL.
+
   edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
   edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
 
@@ -243,11 +246,12 @@ Proof.
   clean_goal.
 
   hred.
-  destruct (assert_nat_lt "DSHIMap 'n' index out of bounds" n (MInt64asNT.to_nat i0)) eqn : BOUNDS; try_abs.
 
   repeat apply no_failure_Ret in NOFAIL.
   rewrite XNEQY.
 
+  hred.
+  rewrite BOUNDS.
   hred.
   hstep; [eauto |].
   hred; hstep; [eauto |].
@@ -403,11 +407,11 @@ Proof.
   destruct u. unfold assert_nat_neq in XNEQY.
   unfold assert_false_to_err in XNEQY. break_match_hyp; try inv XNEQY.
   apply beq_nat_false in Heqb1.
-  unfold assert_nat_lt, assert_true_to_err in BOUNDS.
+  unfold assert_nat_le, assert_true_to_err in BOUNDS.
   break_match_hyp; inv BOUNDS.
   rename Heqb1 into XNEQY.
   rename Heqb0 into BOUNDS.
-  apply Nat.ltb_lt in BOUNDS.
+  apply Nat.leb_le in BOUNDS.
 
   Definition memory_invariant_partial_write' (configV : config_cfg) (index loopsize : nat) (ptr_llvm : addr)
              (bk_helix : mem_block) (x : ident) sz : Prop :=
@@ -1054,11 +1058,10 @@ Proof.
 
       rewrite Znat.Z2N.id; [|apply Int64_intval_pos].
 
-      pose proof Znat.inj_lt _ _ BOUNDS as LT.
-      unfold MInt64asNT.to_nat in LT.
+      pose proof Znat.inj_le _ _ BOUNDS as LE.
+      unfold MInt64asNT.to_nat in LE.
 
-      rewrite Znat.Z2Nat.id in LT; [|apply Int64_intval_pos].
-      etransitivity. 2 : eauto.
+      rewrite Znat.Z2Nat.id in LE; [|apply Int64_intval_pos].
 
       rewrite !Int64.unsigned_repr_eq.
       f_equal.

@@ -198,8 +198,8 @@ Module Type MDSigmaHCOLEval
   Definition assert_NT_le (msg:string) (a b:NT.t) : err unit :=
     assert_true_to_err msg (Nat.leb (to_nat a) (to_nat b)) tt.
 
-  Definition assert_nat_lt (msg:string) (a b:nat) : err unit :=
-    assert_true_to_err msg (Nat.ltb a b) tt.
+  Definition assert_nat_le (msg:string) (a b:nat) : err unit :=
+    assert_true_to_err msg (Nat.leb a b) tt.
 
   Definition assert_nat_neq (msg:string) (a b:nat) : err unit :=
     assert_false_to_err msg (Nat.eqb a b) tt.
@@ -380,7 +380,7 @@ Module Type MDSigmaHCOLEval
               (* assert_NT_le "DSHIMap 'n' larger than 'x_size'" n' x_size ;; *)
               '(y_i,y_size) <- evalPExpr σ y_p ;;
               assert_nat_neq "DSHIMap 'x' must not be equal 'y'" x_i y_i ;;
-              assert_NT_le "DSHIMap 'n' larger than 'x_size'" n' x_size ;;
+              assert_NT_le "DSHIMap 'n' larger than 'y_size'" n' y_size ;;
               x <- memory_lookup_err "Error looking up 'x' in DSHIMap" mem x_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHIMap" mem y_i ;;
               y' <- evalDSHIMap mem n f (protect_p σ y_p) x y ;;
