@@ -499,7 +499,7 @@ Module MDHCOLTypeTranslator
 
       LE.evalDSHOperator σ op imem fuel = Some (inr omem) ->
       LE'.evalDSHOperator σ' op' imem' fuel = Some (inr omem') ->
-      heq_memory imem imem'.
+      heq_memory omem omem'.
     Proof.
     Admitted.
 
