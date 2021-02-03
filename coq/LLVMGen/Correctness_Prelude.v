@@ -1334,14 +1334,15 @@ Proof.
   pose proof Int64.intrange i; lia.
 Qed.
 
-(* TODO: prove this *)
 Lemma from_Z_intval :
   forall sz i,
     MInt64asNT.from_Z sz ≡ inr i ->
     sz ≡ Int64.intval i.
 Proof.
   intros sz i H.
-Admitted.
+  unfold MInt64asNT.from_Z in H.
+  now repeat break_match; invc H.
+Qed.
 
 Lemma from_N_intval :
   forall sz i,
@@ -1349,7 +1350,11 @@ Lemma from_N_intval :
     sz ≡ Z.to_N (Int64.intval i).
 Proof.
   intros sz i H.
-Admitted.
+  unfold MInt64asNT.from_N, MInt64asNT.from_Z in H.
+  repeat break_match; invc H.
+  cbn.
+  now rewrite Znat.N2Z.id.
+Qed.
 
 Arguments alist_add : simpl never.
 Arguments String.append : simpl never.
