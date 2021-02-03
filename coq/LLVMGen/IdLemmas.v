@@ -132,8 +132,11 @@ Proof.
   intros; apply string_forall_append; auto.
 Qed.
 
+
+Hint Resolve is_correct_prefix_append : PREFIX.
+
 Ltac solve_prefix :=
   try solve
-      [ eauto
+      [ eauto with PREFIX
       | now (unfold append; cbn; reflexivity)
       ].

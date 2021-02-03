@@ -493,9 +493,13 @@ Ltac get_block_count_hyps :=
       apply genIR_block_count in H; cbn in H
     end.
 
-Ltac solve_local_count := try solve [cbn; get_local_count_hyps; lia].
+Ltac solve_local_count := try solve [ cbn; get_local_count_hyps; lia
+                                    | reflexivity
+                                    ].
 
-Ltac solve_block_count := try solve [cbn; get_block_count_hyps; lia].
+Ltac solve_block_count := try solve [ cbn; get_block_count_hyps; lia
+                                    | reflexivity
+                                    ].
 
 Notation "s1 << s2" := (local_count s1 < local_count s2) (at level 50).
 Notation "s1 <<= s2" := (local_count s1 <= local_count s2) (at level 50).

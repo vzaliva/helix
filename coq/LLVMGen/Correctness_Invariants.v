@@ -3371,11 +3371,11 @@ Proof.
     eauto.
 Qed.
 
-
 Ltac solve_id_neq :=
   first [ solve [eapply incLocal_id_neq; eauto; solve_local_count]
         | solve [eapply incBlockNamed_id_neq; eauto; solve_block_count]
         | solve [eapply in_gamma_not_in_neq; [solve_in_gamma | solve_not_in_gamma]]
+        | solve [eapply lid_bound_earlier; [ solve_lid_bound | solve_lid_bound_between  | solve_local_count ]]
         | solve [eapply state_bound_between_separate; [eapply incLocalNamed_count_gen_injective
                                                       | solve_lid_bound_between
                                                       | solve_lid_bound_between
@@ -3384,11 +3384,13 @@ Ltac solve_id_neq :=
         ].
 
 Ltac solve_alist_in :=
-  first [ apply In_add_eq
-        | solve [eauto]
-        | solve [rewrite alist_find_neq; [solve_alist_in | solve_id_neq]]
-        | solve [erewrite local_scope_preserve_modif; [| |solve_local_scope_modif|solve_lid_bound_between]; [solve_alist_in|solve [solve_local_count]]]
-        | solve [erewrite local_scope_preserve_modif_up; [| |solve_local_scope_modif|solve_lid_bound_between]; [solve_alist_in|solve [solve_local_count]]]
+  solve [cbn;
+         first [ apply In_add_eq
+               | solve [eauto]
+               | solve [rewrite alist_find_neq; [solve_alist_in | solve_id_neq]]
+               | solve [erewrite local_scope_preserve_modif; [| |solve_local_scope_modif|solve_lid_bound_between]; [solve_alist_in|solve [solve_local_count]]]
+               | solve [erewrite local_scope_preserve_modif_up; [| |solve_local_scope_modif|solve_lid_bound_between]; [solve_alist_in|solve [solve_local_count]]]
+               ]
         ].
 
 Ltac solve_lu :=
