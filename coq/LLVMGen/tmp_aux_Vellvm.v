@@ -227,55 +227,6 @@ Section TLE_To_Modul.
     rewrite m_definitions_app, map_app; reflexivity.
   Qed.
 
-  (* YZ TODO :  A bit annoying but should not be an issue.
-     Actually: requires some assumptions to be able to split the environment in two.
-     Some well-formedness/closedness of the respective mcfg under the respective environments.
-   *)
-  Lemma convert_typ_mcfg_app:
-    forall mcfg1 mcfg2 : modul (cfg typ),
-      convert_typ (m_type_defs mcfg1 ++ m_type_defs mcfg2) (mcfg1 @ mcfg2) =
-      convert_typ (m_type_defs mcfg1) mcfg1 @ convert_typ (m_type_defs mcfg2) mcfg2.
-  Proof.
-    intros mcfg1 mcfg2.
-    remember (m_type_defs mcfg1) as l1; remember (m_type_defs mcfg2) as l2.
-    revert l1 Heql1.
-    induction l1 as [| τ1 l1 IH]; cbn; intros EQ.
-    - rewrite <- !EQ; cbn.
-      destruct mcfg1, mcfg2; cbn; subst; cbn in *.
-      rewrite <- !EQ; cbn.
-      unfold convert_typ, ConvertTyp_mcfg, Traversal.fmap, Traversal.Fmap_mcfg.
-      cbn.
-      f_equal; try (unfold endo, Endo_option; cbn; repeat flatten_goal; now intuition).
-      + unfold Fmap_list'.
-  Admitted.
-
-  Lemma convert_types_app_mcfg : forall mcfg1 mcfg2,
-      convert_types (modul_app mcfg1 mcfg2) =
-                    modul_app (convert_types mcfg1) (convert_types mcfg2).
-  Proof.
-    unfold convert_types.
-    intros.
-    rewrite m_type_defs_app,convert_typ_mcfg_app.
-    reflexivity.
-  Qed.
-
-  Lemma mcfg_of_tle_app : forall x y, convert_types (mcfg_of_tle (x ++ y)) =
-                                 modul_app (convert_types (mcfg_of_tle x)) (convert_types (mcfg_of_tle y)).
-  Proof.
-    intros ? ?.
-    unfold mcfg_of_tle.
-    rewrite modul_of_toplevel_entities_app.
-    rewrite mcfg_of_app_modul.
-    rewrite convert_types_app_mcfg.
-    reflexivity.
-  Qed.
-
-  Lemma mcfg_of_tle_cons : forall x y, convert_types (mcfg_of_tle (x :: y)) =
-                                  modul_app (convert_types  (mcfg_of_tle [x])) (convert_types  (mcfg_of_tle y)).
-  Proof.
-    intros; rewrite list_cons_app; apply mcfg_of_tle_app.
-  Qed.
-
 End TLE_To_Modul.
 
 (* Infix "@" := (modul_app) (at level 60). *)
