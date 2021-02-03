@@ -1597,36 +1597,6 @@ Section RHCOL_to_FHCOL.
     : err RHCOL.DSHOperator -> Prop :=
     ferr_c RHCOLtoFHCOL.translate (RHCOL_FHCOL_rel InMemRel InSigmaRel OutMemRel).
 
-  Theorem dynwin_RHCOL_to_FHCOL_correctness
-          (InMemRel: RHCOL.memory → FHCOL.memory -> Prop)
-          (InSigmaRel: RHCOLEval.evalContext -> FHCOLEval.evalContext -> Prop)
-          (OutMemRel: RHCOL.memory → FHCOL.memory -> Prop)
-    : RHCOL_to_FHCOL_correctness InMemRel InSigmaRel OutMemRel
-        dynwin_RHCOL.
-  Proof.
-    unfold RHCOL_to_FHCOL_correctness.
-    destruct dynwin_RHCOL as [errs|rhcol] eqn:R;constructor.
-
-    Opaque CarrierAequivdec CarrierAz CarrierA1 CarrierAe CarrierAle CarrierAlt CarrierAneg CarrierAasCT.CTypeZero.
-    cbv in R.
-    autorewrite with CarrierAZ1equalities in R.
-    inl_inr_inv.
-    subst rhcol.
-    Opaque Float64asCT.Float64Zero Float64asCT.Float64One.
-    remember (translate _) as fhcol eqn:F.
-    cbv in F.
-    autorewrite with RZ1equalities in F.
-    subst fhcol.
-    constructor.
-    match goal with
-    | [|- RHCOL_FHCOL_rel _ _ _ ?r ?f] => remember r as rhcol; remember f as fhcol
-    end.
-    Transparent CarrierAequivdec CarrierAz CarrierA1 CarrierAe CarrierAle CarrierAlt CarrierAneg CarrierAasCT.CTypeZero.
-    Transparent Float64asCT.Float64Zero Float64asCT.Float64One.
-    (* ... proof specific to given relations here *)
-    admit.
-  Admitted.
-
   (*
      For debug printing
 

@@ -455,28 +455,6 @@ Module MDHCOLTypeTranslator
           heq_DSHOperator g g' ->
           heq_DSHOperator (L.DSHSeq f g) (L'.DSHSeq f' g').
 
-    Lemma translation_syntax_correctness:
-      forall x x', translate x ≡ inr x' ->
-              heq_DSHOperator x x'.
-    Proof.
-      intros x x' H.
-    (*
-      destruct x, x'; try constructor; try (cbn in H; inversion H); try inl_inr.
-
-      all: repeat  match goal with
-(*           | [|- context[L.DSHAssign ?s ?d]] => destruct s,d
-           | [|- context[L.DSHPower _ ?s ?d _ _]] => destruct s,d *)
-           | [H: context[translateMemRef ?s] |- _ ] =>
-             destruct s; unfold translateMemRef in H; cbn in H; repeat break_match_hyp
-               end.
-
-      all: try inl_inr.
-      all: try inl_inr_inv.
-      all: try constructor.
-      all:crush.
-     *)
-    Admitted.
-
     Inductive heq_DSHVal: LE.DSHVal -> LE'.DSHVal -> Prop :=
     | heq_DSHnatVal: forall x x', heq_NType x x' -> heq_DSHVal (LE.DSHnatVal x) (LE'.DSHnatVal x')
     | heq_DSHCTypeVal: forall x x', heq_CType x x' -> heq_DSHVal (LE.DSHCTypeVal x) (LE'.DSHCTypeVal x')
@@ -585,40 +563,6 @@ Module MDHCOLTypeTranslator
           rewrite <-H0,<-H1.
           apply H2.
     Qed.
-
-    Lemma translation_semantics_correctness
-          (σ: LE.evalContext) (σ': LE'.evalContext)
-          (Eσ: heq_evalContext σ σ')
-
-          (op: L.DSHOperator) (op': L'.DSHOperator)
-          (Eop: heq_DSHOperator op op')
-
-          (imem omem: L.memory) (imem' omem': L'.memory)
-          (Emem: heq_memory imem imem')
-          (fuel: nat):
-
-      LE.evalDSHOperator σ op imem fuel = Some (inr omem) ->
-      LE'.evalDSHOperator σ' op' imem' fuel = Some (inr omem') ->
-      heq_memory omem omem'.
-    Proof.
-      intros H H'.
-      destruct fuel as [| fuel]; [inversion H |].
-      induction Eop; cbn in H, H'.
-      -
-        repeat some_inv.
-        repeat inl_inr_inv.
-        rewrite <-H, <-H'.
-        assumption.
-      -
-        repeat some_inv.
-        repeat break_match; try inl_inr.
-        repeat inl_inr_inv.
-        destruct p, p0.
-        repeat tuple_inversion.
-        subst.
-        rewrite <-H, <-H'.
-
-    Admitted.
 
   End Relations.
 
