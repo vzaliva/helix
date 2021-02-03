@@ -58,11 +58,11 @@ Proof.
 Qed.
 
 Lemma string_forall_append (f : ascii → bool) (s1 s2 : string) :
-  CeresString.string_forall f s1 /\
+  CeresString.string_forall f s1 ->
   CeresString.string_forall f s2 ->
   CeresString.string_forall f (s1 @@ s2).
 Proof.
-  intros [S1 S2].
+  intros S1 S2.
   rewrite string_forall_forallb in *.
   rewrite list_ascii_of_string_append.
   rewrite forallb_app.
@@ -93,6 +93,7 @@ Proof.
       apply string_forall_append.
       unfold get_last_digit.
       now repeat break_match.
+      assumption.
     +
       eapply H.
       *
@@ -102,6 +103,7 @@ Proof.
         apply string_forall_append.
         unfold get_last_digit.
         now repeat break_match.
+        assumption.
 Qed.
 
 Lemma is_correct_prefix_String : forall c s,
@@ -179,20 +181,6 @@ Proof.
   apply contra in abs as [NK_EQ _].
   contradiction.
 Qed.
-
-Lemma string_forall_append:
-  forall s s' f,
-    CeresString.string_forall f s ->
-    CeresString.string_forall f s' ->
-    CeresString.string_forall f (s @@ s').
-Proof.
-  intros s s'. revert s.
-  induction s'.
-  - cbn. intros. cbn. rewrite append_EmptyString. auto.
-  - intros. cbn in H0.
-    destruct (f a) eqn: FA.
-    2 : { inversion H0. }
-Admitted.
 
 Lemma is_correct_prefix_append: forall s1 s2,
     is_correct_prefix s1 ->
