@@ -121,26 +121,12 @@ Section DSHIMap_is_tfor.
       destruct H.
   Qed.
 
-  Lemma swap_body_interp:
-    forall (n : nat) (σ : evalContext) (f : AExpr) (x : mem_block) (n0 : nat) (u2 : mem_block) memH,
-      no_failure (interp_helix (E := void1) (ITree.bind' (fun x0 : mem_block => DSHIMap_body σ f n0 x x0) (DSHIMap_body σ f n x u2)) memH) ->
-      (interp_helix (E := void1) (ITree.bind' (fun x0 : mem_block => DSHIMap_body σ f n0 x x0) (DSHIMap_body σ f n x u2)) memH) ≈
-            (interp_helix (ITree.bind' (fun x0 : mem_block => DSHIMap_body σ f n x x0) (DSHIMap_body σ f n0 x u2)) memH).
-  Proof.
-    intros n σ f x n0 u2 * NOFAIL.
-  Admitted.
-
-  Lemma swap_body:
-    forall (n : nat) (σ : evalContext) (f : AExpr) (x : mem_block) (n0 : nat) (u2 : mem_block),
-      eutt eq (ITree.bind' (fun x0 : mem_block => DSHIMap_body σ f n0 x x0) (DSHIMap_body σ f n x u2))
-            (ITree.bind' (fun x0 : mem_block => DSHIMap_body σ f n x x0) (DSHIMap_body σ f n0 x u2)).
-  Proof.
-    intros n σ f x n0 u2.
-  Admitted.
-
-  (* TODO : need to write the interp_helix version of this. *)
   Lemma eq_rev :
-    forall σ f n x y,
+    forall σ f n x y
+      (swap_body :
+        forall (n : nat) (σ : evalContext) (f : AExpr) (x : mem_block) (n0 : nat) (u2 : mem_block),
+          eutt eq (ITree.bind' (fun x0 : mem_block => DSHIMap_body σ f n0 x x0) (DSHIMap_body σ f n x u2))
+                (ITree.bind' (fun x0 : mem_block => DSHIMap_body σ f n x x0) (DSHIMap_body σ f n0 x u2))),
       DSHIMap_tfor_up σ f 0 n x y ≈ DSHIMap_tfor_down σ f 0 n n x y.
   Proof.
     unfold DSHIMap_tfor_up, DSHIMap_tfor_down.
@@ -193,6 +179,182 @@ Section DSHIMap_is_tfor.
         apply swap_body.
   Qed.
 
+  Lemma swap_body_interp:
+    forall E (n : nat) (σ : evalContext) (f : AExpr) (x : mem_block) (n0 : nat) m1 m2 ,
+    eutt (E := E) eq (interp_helix (ITree.bind' (DSHIMap_body σ f n0 x) (DSHIMap_body σ f n x m2)) m1)
+         (interp_helix (ITree.bind' (DSHIMap_body σ f n x) (DSHIMap_body σ f n0 x m2)) m1).
+  Proof.
+  Admitted.
+
+  Lemma eq_rev_interp :
+    forall σ f n x y memH E,
+      interp_helix (E := E) (DSHIMap_tfor_up σ f 0 n x y) memH ≈
+      interp_helix (E := E) (DSHIMap_tfor_down σ f 0 n n x y) memH.
+  Proof.
+    unfold DSHIMap_tfor_up, DSHIMap_tfor_down.
+    intros. revert σ f x y memH.
+    Opaque DSHIMap_body.
+    induction n. intros. cbn.
+    - rewrite! tfor_0. reflexivity.
+    - intros. setoid_rewrite tfor_unroll at 2.
+      cbn. 2 : lia.
+      assert (EQ : n - 0 - 0 ≡ n) by lia; rewrite EQ; clear EQ.
+      assert (EQ : n - 0 ≡ n) by lia; rewrite EQ; clear EQ.
+      etransitivity; cycle 1.
+      rewrite interp_helix_bind.
+      eapply eutt_clo_bind. reflexivity.
+      intros [[]|] [[]|] EQ; inv EQ.
+      {
+        setoid_rewrite tfor_ss_dep at 2. 3 : lia.
+        2 : {
+          intros. Unshelve.
+          3 : { exact (fun i x0 => DSHIMap_body σ f (n - 1 - i) x x0). }
+          cbn.
+          assert (EQ : n - S i ≡ n - 1 - i) by lia; rewrite EQ; clear EQ.
+          reflexivity.
+          shelve.
+        }
+        rewrite <- IHn.
+        Unshelve.
+        2 : exact (fun a =>
+            match a with
+            | Some (m1, m2) =>
+              interp_helix (tfor (λ (i : nat) (acc : mem_block), DSHIMap_body σ f i x acc) 0 n m2) m1
+            | None => Ret None
+            end).
+        cbn. reflexivity.
+      }
+      { cbn. reflexivity. }
+      cbn.
+
+      setoid_rewrite tfor_split with (j := n) at 1. 2, 3 : lia.
+      clear IHn.
+      etransitivity.
+      {
+        rewrite interp_helix_bind. eapply eutt_clo_bind. reflexivity.
+        intros [[]|] [[]|] EQ; inv EQ.
+        setoid_rewrite tfor_unroll at 1. setoid_rewrite tfor_0 at 1. setoid_rewrite bind_ret_r at 1.
+        2 : lia. Unshelve.
+        3 : exact (fun a =>
+            match a with
+            | Some (m1, m2) => interp_helix (DSHIMap_body σ f n x m2) m1
+            | None => Ret None
+            end).
+        cbn. reflexivity.
+        cbn. reflexivity.
+      }
+      cbn.
+
+      remember n.
+      remember (λ x0 : mem_block, DSHIMap_body σ f n0 x x0).
+      rewrite Heqn0. clear Heqn0. subst.
+      revert x y n0.
+      induction n.
+      + intros.
+        setoid_rewrite tfor_0.
+        rewrite interp_helix_ret. cbn. rewrite bind_ret_l.
+        etransitivity; cycle 1.
+        eapply eutt_clo_bind.
+        reflexivity.
+        {
+          intros [[]|] [[]|] EQ; inv EQ.
+          Unshelve.
+          setoid_rewrite tfor_0 at 2. rewrite interp_helix_ret. cbn.
+          3 : exact (fun a => Ret a).
+          cbn. reflexivity. cbn. reflexivity.
+        }
+        cbn. rewrite bind_ret_r. reflexivity.
+      + intros.
+        (* 1 *)
+        setoid_rewrite tfor_split with (j := n) at 1. 2, 3 : lia.
+        etransitivity.
+        {
+          rewrite interp_helix_bind.
+          eapply eutt_clo_bind. eapply eutt_clo_bind.
+          reflexivity.
+          intros [[]|] [[]|] EQ; inv EQ.
+          setoid_rewrite tfor_unroll at 1. setoid_rewrite tfor_0 at 1.
+          setoid_rewrite bind_ret_r at 1.
+          2 : lia.
+          Unshelve.
+          7 : exact (fun a =>
+              match a with
+              | Some (m1, m2) => interp_helix (DSHIMap_body σ f n x m2) m1
+              | None => Ret None
+              end).
+          cbn. reflexivity. cbn. reflexivity.
+          intros [[]|] [[]|] EQ; inv EQ.
+          3 : exact (fun a =>
+              match a with
+              | Some (m1, m2) => interp_helix (DSHIMap_body σ f n0 x m2) m1
+              | None => Ret None
+              end).
+          1, 2 : cbn ; reflexivity.
+        }
+
+        etransitivity; cycle 1.
+        {
+          eapply eutt_clo_bind.
+          reflexivity.
+          intros [[]|] [[]|] EQ; inv EQ.
+          setoid_rewrite tfor_split with (j := n) at 2.
+          rewrite interp_helix_bind. 2, 3 : lia.
+          Unshelve.
+          3 : exact (fun a =>
+              match a with
+              | Some (m1, m2) =>
+                  '(m3, m4) <- interp_helix (tfor (λ (i : nat) (acc : mem_block), DSHIMap_body σ f i x acc) 0 n m2 ) m1 ;;
+                    interp_helix (DSHIMap_body σ f n x m4) m3
+              | None => Ret None
+              end).
+          cbn.
+          eapply eutt_clo_bind. reflexivity.
+
+          intros [[]|] [[]|] EQ; inv EQ.
+          setoid_rewrite tfor_unroll. setoid_rewrite tfor_0. setoid_rewrite bind_ret_r.
+          reflexivity. lia. reflexivity.
+          cbn. reflexivity.
+        }
+        cbn.
+        etransitivity; cycle 1.
+        eapply eutt_clo_bind. reflexivity.
+        {
+          intros [[]|] [[]|] EQ; inv EQ.
+          rewrite <- interp_helix_bind.
+
+          Unshelve.
+          3 : {
+            exact
+              (fun a =>
+                match a with
+                | Some (m1, m2) =>
+                  (interp_helix (ITree.bind' (DSHIMap_body σ f n x)
+                          (tfor (fun (i : nat) (acc : mem_block) => DSHIMap_body σ f i x acc) O n m2)) m1)
+                | None => Ret None
+                end).
+          }
+          reflexivity.
+          cbn. reflexivity.
+        }
+
+        rewrite <- interp_helix_bind.
+        rewrite <- interp_helix_bind.
+        rewrite <- interp_helix_bind.
+        setoid_rewrite <- bind_bind.
+        setoid_rewrite interp_helix_bind at 2.
+        setoid_rewrite interp_helix_bind at 2.
+        rewrite <- IHn.
+        rewrite !bind_bind.
+        clear IHn.
+        setoid_rewrite interp_helix_bind.
+        eapply eutt_clo_bind. reflexivity.
+
+        intros [[]|] [[]|] EQ; inv EQ.
+        rewrite <- interp_helix_bind.
+        2 : { rewrite bind_ret_l. reflexivity. }
+        eapply swap_body_interp.
+  Qed.
+
   Transparent DSHIMap_body.
 
   Lemma DSHIMap_interpreted_as_tfor:
@@ -208,7 +370,7 @@ Section DSHIMap_is_tfor.
   Proof.
     intros.
     rewrite denoteDSHIMap_as_tfor.
-    rewrite <- eq_rev.
+    rewrite <- eq_rev_interp.
     unfold DSHIMap_tfor_up.
     rewrite interp_helix_tfor; [|lia].
     cbn.
@@ -222,29 +384,6 @@ Section DSHIMap_is_tfor.
     apply eutt_eq_bind.
     intros [|]; reflexivity.
   Qed.
-
-
-  Lemma DSHIMap_as_tfor : forall σ n x y f,
-      denoteDSHOperator σ (DSHIMap n x y f) ≈
-      '(x_i, _) <- denotePExpr σ x;;
-      '(y_i, y_size) <- denotePExpr σ y;;
-        _ <- lift_Serr (assert_nat_neq "DSHIMap 'x' must not be equal 'y'" x_i y_i);;
-       v <- lift_Derr (assert_nat_le "DSHIMap 'n' index out of bounds" n (MInt64asNT.to_nat y_size));;
-       x2 <- trigger (MemLU "Error looking up 'x' in DSHIMap" x_i);;
-       y0 <- trigger (MemLU "Error looking up 'y' in DSHIMap" y_i);;
-       y' <- DSHIMap_tfor_up (protect_p σ y) f 0 n x2 y0 ;;
-        trigger (MemSet y_i y').
-  Proof.
-    intros.
-    unfold denoteDSHOperator.
-    cbn.
-    repeat (eapply eutt_clo_bind; [reflexivity|intros; try break_match_goal; subst]).
-    setoid_rewrite denoteDSHIMap_as_tfor.
-
-    rewrite eq_rev.
-    reflexivity.
-  Qed.
-
 
 End DSHIMap_is_tfor.
 
