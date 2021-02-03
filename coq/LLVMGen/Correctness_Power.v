@@ -610,6 +610,7 @@ Proof.
 
       { unfold local_scope_preserved.
         intros id1 H.
+
         solve_alist_in.
       }
 
@@ -697,6 +698,7 @@ Proof.
       rewrite Znat.Z2Nat.id; [|apply Int64_intval_pos].
 
       (* ** WARNING ** *)
+      Unset Printing Notations.
       (* TODO: this isn't actually true because loop_end_exp is different than
          t_loopend, but this should be eutt *)
       admit.

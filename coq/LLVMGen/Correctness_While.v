@@ -855,17 +855,6 @@ Proof.
       split; auto.
 Qed.
 
-(* TODO: move this *)
-Lemma genNExpr_ident_or_int :
-  forall nexp s1 s2 e c,
-    genNExpr nexp s1 ≡ inr (s2, (e, c)) ->
-    ((exists x, e ≡ EXP_Integer x) \/ (exists id, e ≡ EXP_Ident id)).
-Proof.
-  induction nexp;
-    intros s1 s2 e c GEN;
-    cbn in GEN; simp; eauto.
-Qed.
-
 Lemma genWhileLoop_tfor_ind_lid :
   forall (prefix : string)
     (loopvar : raw_id)            (* lvar storing the loop index *)
@@ -1212,22 +1201,6 @@ Proof.
       - repeat (split; auto).
         lia.
 
-        (* TODO: move and generalize *)
-        Lemma lid_bound_before_bound_between :
-          forall s1 s2 id,
-            lid_bound s1 id ->
-            s1 <<= s2 ->
-            exists s0,
-              lid_bound_between s0 s2 id.
-        Proof.
-          intros s1 s2 id BOUND LT.
-          destruct BOUND as (prefix & s1' & s2' & PRE & COUNT & GEN).
-          exists s1'.
-          do 3 eexists.
-          repeat split; eauto.
-          solve_local_count.
-        Qed.
-
         edestruct lid_bound_before_bound_between with (s2 := sb1).
         solve_lid_bound.
         solve_local_count.
@@ -1532,6 +1505,138 @@ Proof.
       cbn.
       repeat (rewrite alist_find_neq; eauto). solve_id_neq.
       eauto.
+Qed.
+
+
+Lemma genWhileLoop_tfor_correct_nexpr :
+  forall (prefix : string)
+    (loopvar : raw_id)            (* lvar storing the loop index *)
+    (loopcontblock : block_id)    (* reentry point from the body back to the loop *)
+    (body_entry : block_id)       (* entry point of the body *)
+    (body_blocks : list (LLVMAst.block typ)) (* (llvm) body to be iterated *)
+    (nextblock : block_id)        (* exit point of the overall loop *)
+    (entry_id : block_id)         (* entry point of the overall loop *)
+    (σ : evalContext)
+    (s1 s2 sb1 sb2 : IRState)
+    (bks : list (LLVMAst.block typ)) ,
+
+    In body_entry (inputs body_blocks) ->
+    is_correct_prefix prefix ->
+
+    (* All labels generated are distinct *)
+    wf_ocfg_bid bks ->
+    lid_bound_between sb1 sb2 loopvar ->
+    free_in_cfg bks nextblock ->
+    
+    forall (to : NExpr) (s_to_pre s_to : IRState)  (* Number of iterations in id *)
+      (mi_to mf_to : memoryH)
+      (e_to : exp typ)
+      (c_to : code typ)
+      (WF_TO : WF_IRState σ s_to_pre)
+      (BOUND_TO : gamma_bound s_to_pre)
+      (GEN_TO : genNExpr to s_to_pre ≡ inr (s_to, (e_to, c_to)))
+
+      (STO_LTS1 : s_to << s1)
+      (STO_LTSB1 : s_to << sb1)
+
+      (n : MInt64asNT.t)
+      (RET_TO : @Returns Event _ (Some (mf_to, n)) (interp_helix (denoteNExpr σ to) mi_to))
+
+      (* Generation of the LLVM code wrapping the loop around bodyV *)
+      (HGEN: genWhileLoop prefix (EXP_Integer 0%Z) e_to
+                          loopvar loopcontblock body_entry body_blocks [] nextblock s1
+                          ≡ inr (s2,(entry_id, bks)))
+
+      (* Computation on the Helix side performed at each cell of the vector, *)
+      (*    the counterpart to bodyV (body_blocks) *)
+      A
+      (bodyF: nat -> A -> itree _ A)
+
+      (* Main relations preserved by iteration *)
+      (I : nat -> _) P Q
+      (* Initial value of the accumulator *)
+      a0,
+
+      (* We assume that we know how to relate the iterations of the bodies *)
+      (forall g li mV a k _label,
+          (conj_rel (I k)
+                    (fun _ '(_, (l, _)) => l @ loopvar ≡ Some (uvalue_of_nat k)
+                                        /\ (forall x, e_to ≡ EXP_Ident (ID_Local x) -> li @ x ≡ Some (UVALUE_I64 n))
+                                        /\ k < (MInt64asNT.to_nat n)
+                                        /\ Returns a (tfor bodyF 0 k a0))
+                    a (mV,(li,g))) ->
+          eutt
+            (fun a' '(memV, (l, (g, x))) =>
+               l @ loopvar ≡ Some (uvalue_of_nat k) /\
+               (exists _label', x ≡ inl (_label', loopcontblock)) /\
+               I (S k) a' (memV, (l, g)) /\
+               local_scope_modif sb1 sb2 li l)
+            (bodyF k a)
+            (interp_cfg (denote_ocfg (convert_typ [] body_blocks) (_label, body_entry)) g li mV)
+      )
+      ->
+
+      (* Invariant is stable under the administrative bookkeeping that the loop performs *)
+      (forall k a l mV g id v,
+          (lid_bound_between s1 s2 id \/ lid_bound_between sb1 sb2 id) ->
+          I k a (mV, (l, g)) ->
+          I k a (mV, ((alist_add id v l), g))) ->
+
+      sb1 << sb2 ->
+      local_count sb2 ≡ local_count s1 ->
+
+    (* We bake in the weakening on the extremities to ease the use of the lemma *)
+    imp_rel P (I 0) ->
+    imp_rel (I (MInt64asNT.to_nat n)) Q ->
+
+    (* Main result. Need to know initially that P holds *)
+    forall g li mV _label,
+      (forall x, e_to ≡ EXP_Ident (ID_Local x) -> li @ x ≡ Some (UVALUE_I64 n)) ->
+      P a0 (mV,(li,g)) ->
+      eutt (fun a '(memV, (l, (g,x))) =>
+              (x ≡ inl (loopcontblock, nextblock) \/ x ≡ inl (entry_id, nextblock)) /\
+              Q a (memV,(l,g)) /\
+              local_scope_modif sb1 s2 li l)
+           (tfor bodyF 0 (MInt64asNT.to_nat n) a0)
+           (interp_cfg (denote_ocfg (convert_typ [] bks) (_label ,entry_id)) g li mV).
+Proof.
+  intros * IN PREF UNIQUE LOOPVAR EXIT * WF_TO BOUND_TO GEN_TO STO_LTS1 STO_LTSB1 n RET_TO GEN A *.
+  intros IND STABLE LT * COUNT pre post * IFID PRE.
+
+  pose proof (genNExpr_ident_or_int to mi_to WF_TO RET_TO GEN_TO) as [NEXP_INT | NEXP_ID].
+  - (* Nexp is a constant integer... *)
+    eapply genWhileLoop_tfor_correct; eauto.
+    + subst.
+
+      unfold MInt64asNT.to_nat.
+      rewrite intval_to_from_nat_id.
+      eauto.
+    + unfold MInt64asNT.to_nat.
+      rewrite intval_to_from_nat_id.
+      pose proof Int64.intrange n.
+      lia.
+    + intros g0 li0 mV0 a k _label0 (HI & LI_LOOP & BOUND & RET).
+      eapply IND.
+      repeat split; eauto.
+      intros x H. inv H.
+      inv H0.
+  - (* Nexp is an id... *)
+    destruct NEXP_ID as (id_to & ETO).
+    subst.
+    eapply genWhileLoop_tfor_correct_lid.
+    9: {
+      eauto.
+    }
+    12: eassumption.
+    all: eauto.
+
+    eapply genNExpr_ident_bound; eauto.
+
+    intros g0 li0 mV0 a k _label0 (HI & LI_LOOP & LI_TO & BOUND & RET).
+    eapply IND.
+    repeat split; eauto.
+    intros x H. inv H.
+    auto.
 Qed.
 
 Arguments Fmap_code _ _ _ _/.

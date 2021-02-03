@@ -688,4 +688,66 @@ Section NExpr.
     eapply genNExpr_post_memoryV; eauto.
   Qed.
 
+  Lemma genNExpr_ident_or_int :
+    forall nexp σ s1 s2 e c x m m',
+      WF_IRState σ s1 ->
+      @Returns Event _ (Some (m', x)) (interp_helix (denoteNExpr σ nexp) m) ->
+      genNExpr nexp s1 ≡ inr (s2, (e, c)) ->
+      (e ≡ EXP_Integer (Int64.intval x) \/ exists id, e ≡ EXP_Ident (ID_Local id)).
+  Proof.
+    induction nexp;
+      intros σ s1 s2 e c x m m' WF RET GEN;
+      cbn in GEN; simp; eauto.
+    - cbn in RET.
+      break_match.
+      + unfold context_lookup in *.
+        unfold ErrorWithState.option2errS in Heqs.
+        unfold trywith in Heqs0.
+        break_match; inv Heqs.
+        break_match; inv Heqs0.
+        cbn in RET.
+        apply Returns_helix_throw in RET.
+        contradiction.
+      + unfold context_lookup in *.
+        unfold ErrorWithState.option2errS in Heqs.
+        unfold trywith in Heqs0.
+        break_match; inv Heqs.
+        break_match.
+        destruct (nth_error σ v) eqn:FIND; inv Heqs0.
+        destruct d; cbn in RET.
+        * rewrite interp_helix_ret in RET.
+          apply Returns_ret_inv in RET.
+          inv RET.
+
+          pose proof (WF _ _ _ FIND) as (id & NTH).
+          destruct id; cbn in NTH; rewrite Heqo in NTH; inv NTH.
+          right. exists id.
+          reflexivity.
+        * apply Returns_helix_throw in RET.
+          contradiction.
+        * apply Returns_helix_throw in RET.
+          contradiction.
+    - cbn in RET.
+      rewrite interp_helix_ret in RET.
+      apply Returns_ret_inv in RET.
+      inv RET.
+      left. auto.
+  Qed.
+
+  Lemma genNExpr_ident_bound :
+    forall nexp s1 s2 id c,
+      genNExpr nexp s1 ≡ inr (s2, (EXP_Ident (ID_Local id), c)) ->
+      gamma_bound s1 ->
+      lid_bound s2 id.
+  Proof.
+    intros nexp s1 s2 id c GEN.
+    pose proof genNExpr_local_count _ _ GEN as LC.
+    revert s1 s2 id c GEN LC.
+    induction nexp;
+      intros s1 s2 id c GEN LC GAMBOUND;
+      cbn in GEN; simp; eauto; try solve_lid_bound.
+    destruct (nth_error (Γ s1) v) eqn:LUP; inv Heqs.
+    eauto.
+  Qed.
+
 End NExpr.
