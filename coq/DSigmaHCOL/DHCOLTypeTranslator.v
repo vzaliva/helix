@@ -220,6 +220,8 @@ Module MDHCOLTypeTranslator
     (* Heterogeneous equality *)
     heq_CType: CT.t -> CT'.t -> Prop ;
 
+    (* Proper wrt [equiv] *)
+    heq_CType_proper: Proper ((=) ==> (=) ==> iff) heq_CType;
     (* Partial mapping of [CT.t] values to [CT'.t] *)
     translateCTypeValue: CT.t -> err CT'.t ;
     }.
@@ -453,7 +455,7 @@ Module MDHCOLTypeTranslator
           heq_DSHOperator g g' ->
           heq_DSHOperator (L.DSHSeq f g) (L'.DSHSeq f' g').
 
-    Lemma translation_syntax_correctenss:
+    Lemma translation_syntax_correctness:
       forall x x', translate x ≡ inr x' ->
               heq_DSHOperator x x'.
     Proof.
@@ -486,6 +488,104 @@ Module MDHCOLTypeTranslator
     Definition heq_memory: L.memory -> L'.memory -> Prop :=
       fun m m' => forall k : nat, hopt_r heq_mem_block (L.memory_lookup m k) (L'.memory_lookup m' k).
 
+    Instance heq_mem_block_proper:
+      Proper ((=) ==> (=) ==> iff) heq_mem_block.
+    Proof.
+      intros a a' Ea b b' Eb; split; intros H.
+      -
+        intros k.
+        specialize (H k).
+        invc H.
+        +
+          eq_to_equiv_hyp.
+          rewrite Ea in H1.
+          rewrite Eb in H2.
+          symmetry in H1, H2.
+          apply None_equiv_eq in H1.
+          apply None_equiv_eq in H2.
+          rewrite H1, H2.
+          constructor.
+        +
+          eq_to_equiv_hyp.
+          rewrite Ea in H0.
+          rewrite Eb in H1.
+          destruct (L.mem_lookup k a') eqn:H0';
+            destruct (L'.mem_lookup k b') eqn:H1'; try constructor;
+              repeat some_inv; try some_none.
+          eapply heq_CType_proper;try symmetry; eauto.
+      -
+        intros k.
+        specialize (H k).
+        invc H.
+        +
+          eq_to_equiv_hyp.
+          rewrite <- Ea in H1.
+          rewrite <- Eb in H2.
+          symmetry in H1, H2.
+          apply None_equiv_eq in H1.
+          apply None_equiv_eq in H2.
+          rewrite H1, H2.
+          constructor.
+        +
+          eq_to_equiv_hyp.
+          rewrite <- Ea in H0.
+          rewrite <- Eb in H1.
+          destruct (L.mem_lookup k a) eqn:H0';
+            destruct (L'.mem_lookup k b) eqn:H1'; try constructor;
+              repeat some_inv; try some_none.
+          eapply heq_CType_proper;try symmetry; eauto.
+    Qed.
+
+    Instance heq_memory_proper:
+      Proper ((=) ==> (=) ==> iff) heq_memory.
+    Proof.
+      intros a a' Ea b b' Eb; split; intros H.
+      -
+        intros k.
+        specialize (H k).
+        invc H.
+        +
+          eq_to_equiv_hyp.
+          rewrite Ea in H1.
+          rewrite Eb in H2.
+          symmetry in H1, H2.
+          apply None_equiv_eq in H1.
+          apply None_equiv_eq in H2.
+          rewrite H1, H2.
+          constructor.
+        +
+          eq_to_equiv_hyp.
+          rewrite Ea in H0.
+          rewrite Eb in H1.
+          destruct (L.memory_lookup a' k) eqn:H0';
+            destruct (L'.memory_lookup b' k) eqn:H1'; try constructor;
+              repeat some_inv; try some_none.
+          rewrite <-H0,<-H1.
+          apply H2.
+      -
+        intros k.
+        specialize (H k).
+        invc H.
+        +
+          eq_to_equiv_hyp.
+          rewrite <- Ea in H1.
+          rewrite <- Eb in H2.
+          symmetry in H1, H2.
+          apply None_equiv_eq in H1.
+          apply None_equiv_eq in H2.
+          rewrite H1, H2.
+          constructor.
+        +
+          eq_to_equiv_hyp.
+          rewrite <- Ea in H0.
+          rewrite <- Eb in H1.
+          destruct (L.memory_lookup a k) eqn:H0';
+            destruct (L'.memory_lookup b k) eqn:H1'; try constructor;
+              repeat some_inv; try some_none.
+          rewrite <-H0,<-H1.
+          apply H2.
+    Qed.
+
     Lemma translation_semantics_correctness
           (σ: LE.evalContext) (σ': LE'.evalContext)
           (Eσ: heq_evalContext σ σ')
@@ -501,6 +601,23 @@ Module MDHCOLTypeTranslator
       LE'.evalDSHOperator σ' op' imem' fuel = Some (inr omem') ->
       heq_memory omem omem'.
     Proof.
+      intros H H'.
+      destruct fuel as [| fuel]; [inversion H |].
+      induction Eop; cbn in H, H'.
+      -
+        repeat some_inv.
+        repeat inl_inr_inv.
+        rewrite <-H, <-H'.
+        assumption.
+      -
+        repeat some_inv.
+        repeat break_match; try inl_inr.
+        repeat inl_inr_inv.
+        destruct p, p0.
+        repeat tuple_inversion.
+        subst.
+        rewrite <-H, <-H'.
+
     Admitted.
 
   End Relations.
