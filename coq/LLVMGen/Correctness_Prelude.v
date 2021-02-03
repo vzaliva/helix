@@ -456,29 +456,48 @@ Section Add_Comment.
     induction bks as [| bk bks IH]; cbn; auto.
   Qed.
 
+  Lemma denote_ocfg_eutt_bk :
+    forall b b' bk x,
+      blk_id b ≡ blk_id b' ->
+      (forall bid_from, denote_block b bid_from ≈ denote_block b' bid_from) ->
+      denote_ocfg (b::bk) x ≈ denote_ocfg (b'::bk) x.
+  Proof.
+    intros * EQid EQbk.
+    Transparent denote_ocfg.
+    unfold denote_ocfg.
+    unfold iter,CategoryKleisli.Iter_Kleisli, Basics.iter,MonadIter_itree.
+    apply KTreeFacts.eutt_iter.
+    intros [].
+    destruct (Eqv.eqv_dec_p(blk_id b) b1) as [EQ | INEQ].
+    + unfold Eqv.eqv, AstLib.eqv_raw_id in *; subst.
+      rewrite find_block_eq, EQid, find_block_eq; auto.
+      rewrite EQbk.
+      reflexivity.
+    + unfold Eqv.eqv, AstLib.eqv_raw_id in *.
+      rewrite 2 find_block_ineq.
+      reflexivity.
+      rewrite <- EQid; auto.
+      auto.
+  Qed.
+  Global Opaque denote_ocfg.
+
   Lemma add_comment_eutt :
     forall comments bks ids,
       denote_ocfg (convert_typ [] (add_comment bks comments)) ids ≈ denote_ocfg (convert_typ [] bks) ids.
   Proof.
     intros comments bks ids.
-    induction bks.
-    - cbn. reflexivity.
-    - cbn.
-      destruct ids as (bid_from, bid_src); cbn.
-      match goal with
-      | |- context[denote_ocfg ?bks (_, ?bid_src)] =>
-        destruct (find_block bks bid_src) eqn:FIND
-      end.
-  Admitted.
-
-  (* Could probably have something more general... *)
-  Lemma add_comments_eutt :
-    forall bk comments bids,
-      denote_ocfg
-        [fmap (typ_to_dtyp [ ]) (add_comments bk comments)] bids ≈ denote_ocfg [fmap (typ_to_dtyp [ ]) bk] bids.
-  Proof.
-    intros bk comments bids.
-  Admitted.
+    destruct bks as [| b bks].
+    - cbn; reflexivity.
+    - simpl add_comment.
+      cbn.
+      apply denote_ocfg_eutt_bk; [reflexivity |].
+      intros.
+      destruct b.
+      unfold fmap, Fmap_block.
+      cbn.
+      rewrite 2 denote_block_unfold.
+      reflexivity.
+  Qed.
 
 End Add_Comment.
 
