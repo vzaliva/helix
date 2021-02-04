@@ -342,7 +342,7 @@ Proof.
   (* TODO: use matches to get sb1 / sb2 *)
   match goal with
   | H: genWhileLoop ?prefix ?x ?y ?loopvar ?loopcontblock ?body_entry ?body_blocks [] ?nextblock ?s1 ≡ inr (?s2, (?bid_in, ?bks)) |- _
-    => epose proof @genWhileLoop_tfor_correct prefix loopvar loopcontblock body_entry body_blocks nextblock bid_in {|
+    => epose proof @genWhileLoop_tfor_correct_nexpr prefix loopvar loopcontblock body_entry body_blocks nextblock bid_in σ {|
            block_count := block_count i21;
            local_count := S (local_count i21);
            void_count := void_count i21;
@@ -691,18 +691,23 @@ Proof.
     solve_local_scope_preserved.
     solve_gamma_preserved.
 
-    specialize (LOOPTFOR (MInt64asNT.to_nat t_loopend)).
-    forward LOOPTFOR.
-    { cbn.
-      unfold MInt64asNT.to_nat.
-      rewrite Znat.Z2Nat.id; [|apply Int64_intval_pos].
+    assert (WF_IRState σ i5) as WFi5.
+    { eapply WF_IRState_Γ; eauto.
+      solve_gamma.
+    }
 
-      (* ** WARNING ** *)
-      Unset Printing Notations.
-      (* TODO: this isn't actually true because loop_end_exp is different than
-         t_loopend, but this should be eutt *)
+    assert (gamma_bound i5) as GBi5.
+    { eapply gamma_bound_mono.
+      get_gamma_bounds; solve_gamma_bound.
+      2: solve_gamma.
       admit.
     }
+
+    specialize (LOOPTFOR loop_end_nexpr i5 i6 m_yoff m_yoff loop_end_exp loop_end_code WFi5 GBi5 Heqs3).
+    repeat (forward LOOPTFOR; [solve_local_count|]).
+    specialize (LOOPTFOR t_loopend RetLoopNExp).
+
+    forward LOOPTFOR. eauto.
 
     (* TODO: may be able to separate this out into the DSHPower_body_eutt lemma *)
     unfold DSHPower_tfor.
@@ -711,14 +716,6 @@ Proof.
     match goal with
       |- eutt _ (ITree.bind' _ (tfor ?bod _ _ _)) _ => specialize (LOOPTFOR _ bod)
     end.
-
-    forward LOOPTFOR.
-    { (* TODO: automate this kind of thing / separate into lemma? *)
-      unfold MInt64asNT.to_nat.
-      rewrite intval_to_from_nat_id.
-      pose proof (Integers.Int64.intrange t_loopend).
-      lia.
-    }
 
     (* Will need to set up loop invariants and such, just like loop case *)
 
@@ -779,7 +776,7 @@ Proof.
 
       (* Relating iterations of the bodies *)
       forward LOOPTFOR.
-      { intros g_loop l_loop mV_loop [[mH_loop mb_loop] |] k _label [HI [POWERI [POWERI_VAL RETURNS]]]; [|inv HI].
+      { intros g_loop l_loop mV_loop [[mH_loop mb_loop] |] k _label [HI [POWERI [LOOPEND_EXPID [BOUND RETURNS]]]]; [|inv HI].
         cbn in HI.
         destruct HI as [LINV_SINV [LINV_DST_PTR_ID [LINV_SRC_PTR_ID [LINV_GLOBALS [LINV_ALLOC [LINV_RET [LINV_HELIX_MB_OLD [v [LINV_HELIX_MB_NEW LINV_MEXT]]]]]]]]].
         pose proof LINV_MEXT as [LINV_MEXT_NEW LINV_MEXT_OLD].
@@ -916,7 +913,7 @@ Proof.
           eauto.
           { eapply state_invariant_enter_scope_DSHCType' with (s1:={| block_count := block_count i19; local_count := local_count i19; void_count := void_count i19; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}); cbn; eauto.
 
-            solve_lid_bound.
+            eapply lid_bound_before; [solve_lid_bound | solve_local_count].
             2: solve_alist_in.
 
             { pose proof GAM.
@@ -943,36 +940,8 @@ Proof.
             eauto.
             eauto.
             3: solve_local_count.
-
-            Set Nested Proofs Allowed.
-            Lemma lid_bound_count_incLocalNamed :
-              forall (s1 s2 s3 : IRState) (pref : string) (id : raw_id),
-                is_correct_prefix pref ->
-                (local_count s2 < local_count s1)%nat ->
-                incLocalNamed pref s2 ≡ inr (s3, id) ->
-                lid_bound s1 id.
-            Proof.
-              intros s1 s2 s3 pref id PREF COUNT GEN.
-              unfold lid_bound, state_bound in *.
-              do 3 eexists.
-              repeat split; eauto.
-            Qed.
-
-            Lemma lid_bound_count_incLocal :
-              forall (s1 s2 s3 : IRState) (id : raw_id),
-                (local_count s2 < local_count s1)%nat ->
-                incLocal s2 ≡ inr (s3, id) ->
-                lid_bound s1 id.
-            Proof.
-              intros s1 s2 s3 id COUNT GEN.
-              Transparent incLocal.
-              unfold incLocal in GEN.
-              Opaque incLocal.
-              eapply lid_bound_count_incLocalNamed; eauto.
-              solve_prefix.
-            Qed.
             
-            solve_lid_bound.
+            eapply lid_bound_before; [solve_lid_bound | solve_local_count].
             eapply not_in_Gamma_Gamma_eq with (s1 := s1); [solve_gamma|solve_not_in_gamma].
 
             { solve_alist_in.
@@ -1014,16 +983,18 @@ Proof.
               reflexivity.
             }
 
-            eapply Gamma_safe_protect.
-            eapply Gamma_safe_shrink; eauto.
-            solve_gamma.
-            all: try (solve [cbn; solve_local_count]).
+            { eapply Gamma_safe_protect.
+              eapply Gamma_safe_shrink; eauto.
+              solve_gamma.
+              solve_local_count.
+            }
+            3: {
+              instantiate (1 := {| block_count := block_count i20; local_count := local_count i20; void_count := void_count i20; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}).
+              cbn.
+              solve_gamma.
+            }
 
-            instantiate (1:= {| block_count := block_count i19; local_count := local_count i21; void_count := void_count i19; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}).
             all: try (solve [cbn; solve_local_count]).
-
-            cbn.
-            solve_gamma.
 
             { intros ? ?.
               solve_id_neq.
@@ -1450,7 +1421,9 @@ Proof.
       eapply eutt_clo_bind.
       eapply LOOPTFOR.
 
-      7: {
+      all: solve_local_count.
+
+      6: {
         intros [[mH_post mb_post]|] [mV_post [l_post [g_post x_pos]]] [POST [Q_POST LSM_POST]]; [|inv Q_POST].
         rewrite interp_helix_MemSet.
         cbn.
@@ -1573,10 +1546,6 @@ Proof.
         auto.
       }
 
-      { cbn; solve_local_count. }
-
-      { cbn; solve_local_count. }
-
       (* TODO: May need to modify P / Q here *)
       { (* P -> I 0 *)
         unfold imp_rel. intros a b2 PR.
@@ -1651,6 +1620,22 @@ Proof.
         eauto.
       }
 
+      { (* IDENT *)
+        intros x H; inv H.
+        pose proof (genNExpr_ident_bound _ Heqs3 GBi5).
+        repeat (rewrite alist_find_neq); try solve_id_neq.
+        pose proof PostLoopEndNExpr.
+        destruct H0.
+        cbn in *.
+        (* This is where I need exp_in_scope... *)
+        pose proof (exp_in_scope x eq_refl).
+        destruct H0.
+        - unfold alist_In in H0.
+          solve_alist_in.
+        destruct Mono_IRState.
+        admit.
+      }
+      
       { (* P holds initially *)
         red.
         split.
@@ -2277,28 +2262,6 @@ Proof.
               rewrite <- Gamma_cst in NTH_Γ.
 
               specialize (MINV _ _ _ _ _ NTH_σ NTH_Γ).
-
-
-                Set Nested Proofs Allowed.
-                Lemma local_scope_modif_trans'' :
-                  forall s1 s2 s3 s4 l1 l2 l3,
-                    local_scope_modif s1 s2 l1 l2 →
-                    local_scope_modif s3 s4 l2 l3 →
-                    s1 <<= s2 ->
-                    s1 <<= s3 ->
-                    s2 <<= s4 ->
-                    s3 <<= s4 ->
-                    local_scope_modif s1 s4 l1 l3.
-                Proof.
-                  unfold local_scope_modif; intros * MOD1 MOD2 LE1 LE2 LE3 LE4 * INEQ.
-                  destruct (alist_find_eq_dec_local_env id l1 l2) as [EQ | NEQ].
-                  - destruct (alist_find_eq_dec_local_env id l2 l3) as [EQ' | NEQ'].
-                    + contradiction INEQ; rewrite <- EQ; auto.
-                    + apply MOD2 in NEQ'.
-                      eauto using lid_bound_between_shrink_down.
-                  - apply MOD1 in NEQ.
-                    eauto using lid_bound_between_shrink_up.
-                Qed.
 
               (* TODO: automate this? *)
               assert (local_scope_modif s1 s2 ρ l_Aexpr) as LSM_FULL.

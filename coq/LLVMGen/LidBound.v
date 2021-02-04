@@ -279,6 +279,34 @@ Section LidBound.
     repeat split; eauto.
     solve_local_count.
   Qed.
+
+  Lemma lid_bound_count_incLocalNamed :
+    forall (s1 s2 s3 : IRState) (pref : string) (id : raw_id),
+      is_correct_prefix pref ->
+      (local_count s2 < local_count s1)%nat ->
+      incLocalNamed pref s2 ≡ inr (s3, id) ->
+      lid_bound s1 id.
+  Proof.
+    intros s1 s2 s3 pref id PREF COUNT GEN.
+    unfold lid_bound, state_bound in *.
+    do 3 eexists.
+    repeat split; eauto.
+  Qed.
+
+  Lemma lid_bound_count_incLocal :
+    forall (s1 s2 s3 : IRState) (id : raw_id),
+      (local_count s2 < local_count s1)%nat ->
+      incLocal s2 ≡ inr (s3, id) ->
+      lid_bound s1 id.
+  Proof.
+    intros s1 s2 s3 id COUNT GEN.
+    Transparent incLocal.
+    unfold incLocal in GEN.
+    Opaque incLocal.
+    eapply lid_bound_count_incLocalNamed; eauto.
+    solve_prefix.
+  Qed.
+
 End LidBound.
 
 Ltac solve_lid_bound :=

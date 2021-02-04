@@ -1405,6 +1405,26 @@ Section SimulationRelations.
     - reflexivity.
   Qed.
 
+  Lemma local_scope_modif_trans'' :
+    forall s1 s2 s3 s4 l1 l2 l3,
+      local_scope_modif s1 s2 l1 l2 →
+      local_scope_modif s3 s4 l2 l3 →
+      s1 <<= s2 ->
+      s1 <<= s3 ->
+      s2 <<= s4 ->
+      s3 <<= s4 ->
+      local_scope_modif s1 s4 l1 l3.
+  Proof.
+    unfold local_scope_modif; intros * MOD1 MOD2 LE1 LE2 LE3 LE4 * INEQ.
+    destruct (alist_find_eq_dec_local_env id l1 l2) as [EQ | NEQ].
+    - destruct (alist_find_eq_dec_local_env id l2 l3) as [EQ' | NEQ'].
+      + contradiction INEQ; rewrite <- EQ; auto.
+      + apply MOD2 in NEQ'.
+        eauto using lid_bound_between_shrink_down.
+    - apply MOD1 in NEQ.
+      eauto using lid_bound_between_shrink_up.
+  Qed.
+
 
   Lemma memory_invariant_Ptr : forall vid σ s memH memV l g a size x sz b,
       state_invariant σ s memH (memV, (l, g)) ->

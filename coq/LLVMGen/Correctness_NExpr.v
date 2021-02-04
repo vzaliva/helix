@@ -90,7 +90,7 @@ Section NExpr.
     exp_correct : genNExpr_exp_correct σ s1 s2 e mf stf;
     is_almost_pure : almost_pure mi sti mf stf; 
     extends : local_scope_modif s1 s2 (fst (snd sti)) (fst (snd stf));
-    exp_in_scope : forall id, e ≡ EXP_Ident (ID_Local id) -> ((exists v, alist_In id (fst (snd sti)) v) \/ (lid_bound_between s1 s2 id /\ s1 << s2));
+    exp_in_scope : forall id, e ≡ EXP_Ident (ID_Local id) -> (alist_In id (fst (snd sti)) (UVALUE_I64 (snd mf)) \/ (lid_bound_between s1 s2 id /\ s1 << s2));
     Gamma_cst : Γ s2 ≡ Γ s1;
     Mono_IRState : s1 << s2 \/ fst (snd sti) ≡ fst (snd stf)
     }.
@@ -136,7 +136,6 @@ Section NExpr.
           reflexivity.
         * intros * EQ; inv EQ.
           left.
-          eexists.
           eapply memory_invariant_LLU; eauto.
 
       + (* The variable maps to a pointer *)
@@ -691,7 +690,7 @@ Section NExpr.
   Lemma genNExpr_ident_or_int :
     forall nexp σ s1 s2 e c x m m',
       WF_IRState σ s1 ->
-      @Returns Event _ (Some (m', x)) (interp_helix (denoteNExpr σ nexp) m) ->
+      @Returns (CallE +' PickE +' UBE +' DebugE +' FailureE) _ (Some (m', x)) (interp_helix (denoteNExpr σ nexp) m) ->
       genNExpr nexp s1 ≡ inr (s2, (e, c)) ->
       (e ≡ EXP_Integer (Int64.intval x) \/ exists id, e ≡ EXP_Ident (ID_Local id)).
   Proof.

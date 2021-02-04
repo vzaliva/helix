@@ -1540,7 +1540,7 @@ Lemma genWhileLoop_tfor_correct_nexpr :
       (STO_LTSB1 : s_to << sb1)
 
       (n : MInt64asNT.t)
-      (RET_TO : @Returns Event _ (Some (mf_to, n)) (interp_helix (denoteNExpr σ to) mi_to))
+      (RET_TO : @Returns (CallE +' PickE +' UBE +' DebugE +' FailureE) _ (Some (mf_to, n)) (interp_helix (denoteNExpr σ to) mi_to))
 
       (* Generation of the LLVM code wrapping the loop around bodyV *)
       (HGEN: genWhileLoop prefix (EXP_Integer 0%Z) e_to
