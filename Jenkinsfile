@@ -1,5 +1,5 @@
 /* Change this variable to your baranch name if you want build it. */
-BUILD_IF_BRANCH = 'master'
+BUILD_IF_BRANCH = 'itp21'
 
 pipeline {
     agent { 
@@ -33,7 +33,7 @@ pipeline {
                       eval $(opam config env)
                       opam config var root
                       if [ -d lib/vellvm ]; then rm -rf lib/vellvm; fi
-                      git clone --recurse-submodules https://github.com/vellvm/vellvm.git lib/vellvm
+                      git clone -b itp21 --recurse-submodules https://github.com/vellvm/vellvm.git lib/vellvm
                       git --no-pager --git-dir=lib/vellvm/.git log -1 --pretty=oneline
                       make -j ${NJOBS} -C lib/vellvm/src
                       ln -s `pwd`/lib/vellvm/src/ml/libvellvm/ ml/
