@@ -41,9 +41,6 @@ Import ITree.Basics.Basics.Monads.
 From Vellvm Require Import Util.
 Require Import State.
 
-(* TODOYZ: This is weird, I need to import again this file for the rewriting to work.
-   A bit unsure as to why this happen, but somehow some subsequent import breaks it.
- *)
 Require Import ITree.Eq.Eq.
 
 Section MemoryModel.
@@ -225,6 +222,59 @@ Section TLE_To_Modul.
     unfold mcfg_of_modul.
     rewrite  m_name_app, m_target_app, m_datalayout_app, m_type_defs_app, m_globals_app, m_declarations_app; f_equal; try reflexivity. 
     rewrite m_definitions_app, map_app; reflexivity.
+  Qed.
+
+  (* YZ TODO :  A bit annoying but should not be an issue.
+     Actually: requires some assumptions to be able to split the environment in two.
+     Some well-formedness/closedness of the respective mcfg under the respective environments.
+   *)
+  Lemma convert_typ_mcfg_app:
+    forall mcfg1 mcfg2 : modul (cfg typ),
+      convert_typ [] (mcfg1 @ mcfg2) =
+      convert_typ [] mcfg1 @ convert_typ [] mcfg2.
+  Proof.
+    intros [] []; cbn.
+    unfold convert_typ,ConvertTyp_mcfg,Traversal.fmap,Fmap_mcfg; cbn.
+    f_equal; try (unfold endo, Endo_option; cbn; repeat flatten_goal; now intuition).
+    unfold Traversal.fmap, Fmap_list; rewrite map_app; reflexivity.
+    unfold Traversal.fmap, Fmap_list'; rewrite map_app; reflexivity.
+    unfold Traversal.fmap, Fmap_list'; rewrite map_app; reflexivity.
+    unfold Traversal.fmap, Fmap_list'; rewrite map_app; reflexivity.
+  Qed.
+
+  Lemma convert_types_app_mcfg : forall mcfg1 mcfg2,
+      m_type_defs mcfg1 = [] ->
+      m_type_defs mcfg2 = [] ->
+      convert_types (modul_app mcfg1 mcfg2) =
+                    modul_app (convert_types mcfg1) (convert_types mcfg2).
+  Proof.
+    unfold convert_types.
+    intros * EQ1 EQ2.
+    rewrite m_type_defs_app, EQ1,EQ2.
+    cbn; rewrite convert_typ_mcfg_app.
+    reflexivity.
+  Qed.
+
+  Lemma mcfg_of_tle_app : forall x y,
+      m_type_defs (mcfg_of_modul (modul_of_toplevel_entities x)) = nil ->
+      m_type_defs (mcfg_of_modul (modul_of_toplevel_entities y)) = nil ->
+      convert_types (mcfg_of_tle (x ++ y)) =
+      modul_app (convert_types (mcfg_of_tle x)) (convert_types (mcfg_of_tle y)).
+  Proof.
+    intros. 
+    unfold mcfg_of_tle.
+    rewrite modul_of_toplevel_entities_app.
+    rewrite mcfg_of_app_modul.
+    rewrite convert_types_app_mcfg; auto.
+  Qed.
+  
+  Lemma mcfg_of_tle_cons : forall x y,
+      m_type_defs (mcfg_of_modul (modul_of_toplevel_entities [x])) = nil ->
+      m_type_defs (mcfg_of_modul (modul_of_toplevel_entities y)) = nil ->
+      convert_types (mcfg_of_tle (x :: y)) =
+      modul_app (convert_types  (mcfg_of_tle [x])) (convert_types  (mcfg_of_tle y)).
+  Proof.
+    intros; rewrite list_cons_app; apply mcfg_of_tle_app; auto.
   Qed.
 
 End TLE_To_Modul.
