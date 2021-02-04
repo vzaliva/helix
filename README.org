@@ -9,9 +9,8 @@
 
 ** Helix side
   
-   The repository https://github.com/vzaliva/helix/tree/itp21/ as a whole
-   contains the HELIX development over-viewed in Section 2.
-   More precisely, can be found:
+   The repository https://github.com/vzaliva/helix/tree/itp21/ contains the HELIX development over-viewed in Section 2. Here the following may be found:
+   
    - the abstract syntax of DHCOL, of which FHCOL is a specialization, described in Section 3: [[./coq/DSigmaHCOL/DSigmaHCOL.v][DSigmaHCOL]]
    - the big-step interpreter, also described in Section 3: [[./coq/DSigmaHCOL/DSigmaHCOLEval.v][DSigmaHCOLEval]]
    - the itree-based denotation, described in Section 5: [[./coq/DSigmaHCOL/DSigmaHCOLITree.v][DSigmaHCOLITree]] 
@@ -26,22 +25,22 @@
      
      *Note on admits*: This file contains three admits. These correspond to three operators that we have not yet proved.
      We emphasize that these operators have a similar structure to the cases of IMap and Power that we have proved:
-     then use "genWhileLoop" to iterate some operation over a vector.
-     As such, we are confident to state that while requiring some non-trivial effort, these proofs will not require
-     any new meta-theory nor significant invariant, and hence will not be an obstacle. We intent to tackle them
+     they use "genWhileLoop" to iterate some operation over a vector.
+     As such, we are confident that while these proofs will require some non-trivial effort, they will not require
+     any new meta-theory nor significant invariant, and hence will not be an obstacle. We intend to tackle them
      in the upcoming weeks.
 
    
 ** Vellvm side
 
    The repository https://github.com/vellvm/vellvm/tree/itp21 as a whole
-   contains the Vellvm development. 
-   More precisely, can be found:
+   contains the Vellvm development. In here can be found:
+
    - the abstract syntax of the language, omitted from the paper: [[./src/coq/Syntax/LLVMAst.v][LLVMAst.v]]
-   - the semantics, of which another paper under submission and cited as such
-     in the present submission has been the focus, can be found essentially through
+   - the semantics, the focus of another paper under submission and cited as such
+     in the present submission, can be found primarily within
      the folders [[./src/coq/Semantics][Semantics]] and [[./src/coq/Handlers][Handlers]] 
-   - the new extended meta-theory, described in Section 6, can be found across the folder [[./src/coq/Theory][Theory]]
+   - the new extended meta-theory, described in Section 6, can be found in the folder [[./src/coq/Theory][Theory]]
    - the symbolic interpreter, described in Section 6, is defined in [[./src/coq/Theory/SymbolicInterpreter.v][SymbolicInterpreter]].
      We fine-tune it on the Helix side in the Prelude to enforce it to run on the right hand-side of
      refinement proofs, and to pair it with the shallow symbolic interpreter for the FHCOL denotation.
@@ -56,10 +55,10 @@
 
 [[https://travis-ci.com/vzaliva/helix][https://travis-ci.com/vzaliva/helix.svg?token=x87izvm44MdTPLHzuxzF&branch=master]]
 
-HELIX project allows for the synthesis of high-performance
+The HELIX project allows for the synthesis of high-performance
 implementations of numerical algorithms by providing a certified
-compiler for formally-specified DSL.  Based on the existing [[http://spiral.net/][SPIRAL]]
-system, HELIX adds the rigor of formal verification of its correctness
+compiler for a formally-specified DSL. HELIX is based upon the existing 
+[[http://spiral.net/][SPIRAL]] system, but the correctness of HELIX is formally verified
 using the Coq proof assistant. It formally defines a series of
 domain-specific languages starting with HCOL, which represents a
 computation data flow. HELIX works by transforming the original
