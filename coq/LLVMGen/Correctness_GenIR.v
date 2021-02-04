@@ -6,6 +6,8 @@ Require Import Helix.LLVMGen.Correctness_Assign.
 Require Import Helix.LLVMGen.Correctness_Alloc.
 Require Import Helix.LLVMGen.Correctness_While.
 Require Import Helix.LLVMGen.Correctness_Loop.
+Require Import Helix.LLVMGen.Correctness_IMap.
+Require Import Helix.LLVMGen.Correctness_Power.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.StateCounters.
 Require Import Helix.LLVMGen.VariableBinding.
@@ -69,16 +71,23 @@ Section GenIR.
                  (fun sthf stvf => local_scope_modif s1 s2 li (fst (snd stvf))).
 
   Opaque alist_add.
+
+  (* Correctness result for the compilation of operators.
+     All core features of the language are tackled: assignment and allocation,
+     sequence and looping, iterations over vectors with IMap and Power.
+     Three operators remain to be handled: DSHBinop, DSHMemMap2, MemInit.
+     They have all similar structures to IMap and Power, iterating over vectors:
+     we do not anticipate the need for any extra meta-theory nor invariant.
+   *)
   Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
       (** Helix bits    *) (op: DSHOperator) (σ : evalContext) (memH : memoryH)
-      (** Vellvm bits   *) (nextblock bid_in bid_from : block_id) (bks : list (LLVMAst.block typ))
-      (* (env : list (ident * typ)) *)  (g : global_env) ((* ρi  *)ρ : local_env) (memV : memoryV),
-      genIR op nextblock s1 ≡ inr (s2,(bid_in,bks)) ->
+      (** Vellvm bits   *) (nextblock bid_in bid_from : block_id) (bks : list (LLVMAst.block typ)) (g : global_env) (ρ : local_env) (memV : memoryV),
+      genIR op nextblock s1 ≡ inr (s2,(bid_in,bks)) ->                        (* Compilation succeeds *)
+      no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ op) memH) -> (* Evaluation succeeds *)
       bid_bound s1 nextblock ->
       state_invariant σ s1 memH (memV, (ρ, g)) ->
       Gamma_safe σ s1 s2 ->
-      no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ op) memH) -> (* Evaluation succeeds *)
       eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ))
            (interp_helix (denoteDSHOperator σ op) memH)
            (interp_cfg (D.denote_ocfg (convert_typ [] bks) (bid_from,bid_in))
@@ -126,10 +135,17 @@ Section GenIR.
     - (* DSHAssign *)
       apply DSHAssign_correct; auto.
 
-    - admit.
-    - admit.
-    - admit.
-    - admit.
+    - (* DSHIMap *)
+      apply DSHIMap_correct; auto.
+
+    - (* DSHBinop *)
+      admit.
+
+    - (* DSHMemMap2 *)
+      admit.
+
+    - (* DSHPower *)
+      apply DSHPower_correct; auto. 
 
     - (* DSHLoop *)
       apply DSHLoop_correct; auto. 
