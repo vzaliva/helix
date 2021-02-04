@@ -205,14 +205,14 @@ Section GenIR.
       eapply eqit_mon; auto.
       2: {
         eapply IHop2. try exact GEN_OP2; eauto.
-        - admit.
+        - auto.
         - eapply state_invariant_Γ'; eauto.
           apply genIR_Γ in GEN_OP1; apply genIR_Γ in GEN_OP2; rewrite GEN_OP2; auto.
           destruct SINV; auto.
         - eapply Gamma_safe_shrink; eauto.
           eauto using genIR_Γ.
           solve_local_count.
-        - admit.
+        - auto.
       }
       clear IHop2.
 
