@@ -32,7 +32,7 @@ Require Export Helix.DSigmaHCOL.DSigmaHCOLITree.
 Require Export Helix.LLVMGen.Compiler.
 Require Export Helix.LLVMGen.Data.
 Require Export Helix.LLVMGen.Utils.
-Require Export Helix.LLVMGen.tmp_aux_Vellvm.
+Require Export Helix.LLVMGen.Vellvm_Utils.
 Require Export Helix.Util.OptionSetoid.
 Require Export Helix.Util.ErrorSetoid.
 Require Export Helix.Util.ListUtil.
