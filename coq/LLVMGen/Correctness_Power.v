@@ -715,9 +715,9 @@ Proof.
 
     assert (gamma_bound i5) as GBi5.
     { eapply gamma_bound_mono.
-      get_gamma_bounds; solve_gamma_bound.
-      2: solve_gamma.
-      admit.
+      { eapply st_gamma_bound in PRE. apply PRE. }
+      solve_local_count.
+      solve_gamma.
     }
 
     specialize (LOOPTFOR loop_end_nexpr i5 i6 m_yoff m_yoff loop_end_exp loop_end_code WFi5 GBi5 Heqs3).
@@ -1704,14 +1704,6 @@ Proof.
       reflexivity.
       cbn.
       nexpr_modifs.
-
-      Ltac lsm_chain upper :=
-        match goal with
-        | H : local_scope_modif ?s1 ?s2 ?lower upper |- _
-          => lsm_chain lower
-        | H : _ |- _
-          => idtac upper
-        end.
 
       Ltac solve_alist_in_yoff upper :=
         erewrite <- local_scope_modif_bound_before with (s2:=upper); eauto;
