@@ -5131,4 +5131,8 @@ Proof.
       }
     }
   }
+
+  Unshelve.
+  all: eauto.
+  all: eapply from_N_intval in EQsz0; subst; auto.
 Qed.
