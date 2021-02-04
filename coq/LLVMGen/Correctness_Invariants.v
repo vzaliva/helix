@@ -1175,11 +1175,10 @@ Section SimulationRelations.
   (* If I have modified an interval, other intervals are preserved *)
   Lemma local_scope_preserve_modif:
     forall s1 s2 s3 l1 l2,
-      s2 << s3 ->
       local_scope_modif s2 s3 l1 l2 ->
       local_scope_preserved s1 s2 l1 l2. 
   Proof.
-    intros * LE MOD.
+    intros * MOD.
     red. intros * BOUND.
     red in MOD.
     edestruct @alist_find_eq_dec_local_env as [EQ | NEQ]; [eassumption |].
@@ -1192,7 +1191,6 @@ Section SimulationRelations.
     destruct s' as [a s' b]; cbn in *; clear a b.
     destruct s1 as [a s1 b]; cbn in *; clear a b.
     destruct s2 as [a s2 b], s3 as [a' s3 b']; cbn in *.
-    red in LE; cbn in *.
     clear a b a' b'.
     exfalso; eapply IdLemmas.valid_prefix_neq_differ; [| | | eassumption]; auto.
     lia.
@@ -1200,11 +1198,10 @@ Section SimulationRelations.
 
   Lemma local_scope_preserve_modif_up :
     forall s1 s2 s3 l1 l2,
-      s1 << s2 ->
       local_scope_modif s1 s2 l1 l2 ->
       local_scope_preserved s2 s3 l1 l2. 
   Proof.
-    intros * LE MOD.
+    intros * MOD.
     red. intros * BOUND.
     red in MOD.
     edestruct @alist_find_eq_dec_local_env as [EQ | NEQ]; [eassumption |].
@@ -1217,7 +1214,6 @@ Section SimulationRelations.
     destruct s' as [a s' b]; cbn in *; clear a b.
     destruct s1 as [a s1 b]; cbn in *; clear a b.
     destruct s2 as [a s2 b], s3 as [a' s3 b']; cbn in *.
-    red in LE; cbn in *.
     clear a b a' b'.
     exfalso; eapply IdLemmas.valid_prefix_neq_differ; [| | | eassumption]; auto.
     lia.
@@ -1421,6 +1417,26 @@ Section SimulationRelations.
       pose proof (MODIF id H) as BETWEEN.
       contradiction.
     - reflexivity.
+  Qed.
+
+  Lemma local_scope_modif_trans'' :
+    forall s1 s2 s3 s4 l1 l2 l3,
+      local_scope_modif s1 s2 l1 l2 →
+      local_scope_modif s3 s4 l2 l3 →
+      s1 <<= s2 ->
+      s1 <<= s3 ->
+      s2 <<= s4 ->
+      s3 <<= s4 ->
+      local_scope_modif s1 s4 l1 l3.
+  Proof.
+    unfold local_scope_modif; intros * MOD1 MOD2 LE1 LE2 LE3 LE4 * INEQ.
+    destruct (alist_find_eq_dec_local_env id l1 l2) as [EQ | NEQ].
+    - destruct (alist_find_eq_dec_local_env id l2 l3) as [EQ' | NEQ'].
+      + contradiction INEQ; rewrite <- EQ; auto.
+      + apply MOD2 in NEQ'.
+        eauto using lid_bound_between_shrink_down.
+    - apply MOD1 in NEQ.
+      eauto using lid_bound_between_shrink_up.
   Qed.
 
 
@@ -3389,11 +3405,11 @@ Proof.
     eauto.
 Qed.
 
-
 Ltac solve_id_neq :=
   first [ solve [eapply incLocal_id_neq; eauto; solve_local_count]
         | solve [eapply incBlockNamed_id_neq; eauto; solve_block_count]
         | solve [eapply in_gamma_not_in_neq; [solve_in_gamma | solve_not_in_gamma]]
+        | solve [eapply lid_bound_earlier; [ solve_lid_bound | solve_lid_bound_between  | solve_local_count ]]
         | solve [eapply state_bound_between_separate; [eapply incLocalNamed_count_gen_injective
                                                       | solve_lid_bound_between
                                                       | solve_lid_bound_between
@@ -3402,11 +3418,13 @@ Ltac solve_id_neq :=
         ].
 
 Ltac solve_alist_in :=
-  first [ apply In_add_eq
-        | solve [eauto]
-        | solve [rewrite alist_find_neq; [solve_alist_in | solve_id_neq]]
-        | solve [erewrite local_scope_preserve_modif; [| |solve_local_scope_modif|solve_lid_bound_between]; [solve_alist_in|solve [solve_local_count]]]
-        | solve [erewrite local_scope_preserve_modif_up; [| |solve_local_scope_modif|solve_lid_bound_between]; [solve_alist_in|solve [solve_local_count]]]
+  solve [cbn;
+         first [ apply In_add_eq
+               | solve [eauto]
+               | solve [rewrite alist_find_neq; [solve_alist_in | solve_id_neq]]
+               | solve [erewrite local_scope_preserve_modif; [|solve_local_scope_modif|solve_lid_bound_between]; solve_alist_in]
+               | solve [erewrite local_scope_preserve_modif_up; [|solve_local_scope_modif|solve_lid_bound_between]; solve_alist_in]
+               ]
         ].
 
 Ltac solve_lu :=
