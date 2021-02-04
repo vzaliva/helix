@@ -180,122 +180,148 @@ Section DSHIMap_is_tfor.
   Qed.
 
 
-Lemma Returns_fail_throw :
-  forall T m x s, not (Returns (Some x) (interp_fail handle_failure (interp_Mem (T := T) (throw s) m))).
-Proof.
-  intros. intro abs.
-  setoid_rewrite interp_Mem_vis_eqit in abs.
-  unfold pure_state in *; cbn in *.
-  rewrite interp_fail_bind in abs.
-  rewrite interp_fail_vis in abs.
-  cbn in *.
-  rewrite Eq.bind_bind, !bind_ret_l in abs.
-  apply Returns_Ret in abs.
-  inversion abs.
-Qed.
+  Lemma Returns_fail_throw :
+    forall T m x s, not (Returns (Some x) (interp_fail handle_failure (interp_Mem (T := T) (throw s) m))).
+  Proof.
+    intros. intro abs.
+    setoid_rewrite interp_Mem_vis_eqit in abs.
+    unfold pure_state in *; cbn in *.
+    rewrite interp_fail_bind in abs.
+    rewrite interp_fail_vis in abs.
+    cbn in *.
+    rewrite Eq.bind_bind, !bind_ret_l in abs.
+    apply Returns_Ret in abs.
+    inversion abs.
+  Qed.
 
-  (* no_failure (E := E_cfg) (interp_helix (DSHIMap_body σ f n' x m2) m1) -> *)
-  (* no_failure (E := E_cfg) (interp_helix (DSHIMap_body σ f n x m2) m1) -> *)
-Lemma commut_gen' :
-  forall {A : Type}
-    (Q1 Q2 : A -> Prop) (QQ : A -> Prop)
-    (t1 t2 : itree void1 A)
-    (t1' t2' : A -> itree void1 A) i,
-    t1 ≈ t1' i ->
-    t2 ≈ t2' i ->
-    t1 ⤳ Q1 ->
-    t2 ⤳ Q2 ->
-    (forall a, Q2 a -> eutt (fun x y => QQ x /\ Q1 y) (t1' a) t1) ->
-    (forall a, Q1 a -> eutt (fun x y => QQ x /\ Q2 y) (t2' a) t2) ->
-    (forall a, Q1 a -> (t2' a) ⤳ QQ) ->
-    (forall a, Q2 a -> (t1' a) ⤳ QQ) ->
-    (forall t1 t2, t1 ⤳ QQ -> t2 ⤳ QQ -> eutt (E := void1) (fun x y => QQ x /\ QQ y) t1 t2) ->
-    eutt (fun x y => QQ x /\ QQ y) (a <- t1 ;; t2' a) (a <- t2 ;; t1' a).
-Proof.
-  cbn.
+  Lemma commut_gen_ :
+    forall {A : Type}
+      (Q1 Q2 : A -> Prop) (QQ : A -> Prop)
+      (t1 t2 : itree void1 A)
+      (t1' t2' : A -> itree void1 A) i,
+      t1 ≈ t1' i ->
+      t2 ≈ t2' i ->
+      t1 ⤳ Q1 ->
+      t2 ⤳ Q2 ->
+      (forall a, Q2 a -> eutt (fun x y => QQ x /\ Q1 y) (t1' a) t1) ->
+      (forall a, Q1 a -> eutt (fun x y => QQ x /\ Q2 y) (t2' a) t2) ->
+      (forall a, Q1 a -> (t2' a) ⤳ QQ) ->
+      (forall a, Q2 a -> (t1' a) ⤳ QQ) ->
+      (forall t1 t2, t1 ⤳ QQ -> t2 ⤳ QQ -> eutt (E := void1) (fun x y => QQ x /\ QQ y) t1 t2) ->
+      eutt (fun x y => QQ x /\ QQ y) (a <- t1 ;; t2' a) (a <- t2 ;; t1' a).
+  Proof.
+    cbn.
 
-  einit. ecofix CIH.
-  intros * EQ1 EQ2 HQ1 HQ2 PC1 PC2 PC3 PC4 PC5.
-  setoid_rewrite (itree_eta t1) at 1.
-  destruct (observe t1) eqn: EQ; [ | | inv e].
+    einit. ecofix CIH.
+    intros * EQ1 EQ2 HQ1 HQ2 PC1 PC2 PC3 PC4 PC5.
+    setoid_rewrite (itree_eta t1) at 1.
+    destruct (observe t1) eqn: EQ; [ | | inv e].
 
-  clear CIH0.
-  - (* Ret *)
-    (* Need this rewriting to reason about co-termination on t2 and t3. *)
+    clear CIH0.
+    - (* Ret *)
+      (* Need this rewriting to reason about co-termination on t2 and t3. *)
 
-    rewrite bind_ret_l.
+      rewrite bind_ret_l.
 
-    setoid_rewrite (itree_eta t1) in EQ1. rewrite EQ in EQ1.
-
-    rewrite <- bind_ret_r.
-    ebind. econstructor.
-    Unshelve. 3 : exact (fun x y => QQ x /\ Q2 y).
-
-    {
-        pose proof HQ1 as HQ1'.
-        rewrite (itree_eta t1) in HQ1. rewrite EQ in HQ1.
-        apply eqit_inv_ret in HQ1.
-        eapply eqit_Proper_mono; cycle 1.
-        eapply PC2.  eauto.
-        red. intros * []; eauto.
-    }
-
-    intros * [].
-    efinal.
-
-    specialize (PC4 _ H0).
-    specialize (PC1 _ H0).
-    rewrite (itree_eta t1) in PC1.
-    rewrite EQ in PC1.
-    eapply PC5. apply eqit_Ret. eauto.
-    eapply PC4.
-  - clear CIH0.
-
-    (* specialize (EQ1 i). *)
-    setoid_rewrite (itree_eta t2).
-    destruct (observe t2) eqn: EQ'; [ | | inv e]; cycle 1.
-
-    + rewrite !bind_tau.
-      intros.
-      assert (t1 ≈ t0). rewrite itree_eta. rewrite EQ.
-      apply eqit_tauL. reflexivity.
-
-      assert (t2 ≈ t3). rewrite itree_eta. rewrite EQ'.
-      apply eqit_tauL. reflexivity.
-
-      estep.
-
-      ebase; right.
-      eapply CIH; eauto.
-      intros; rewrite <- H; eauto.
-      intros; rewrite <- H0; eauto.
-      rewrite H in HQ1; eauto.
-      rewrite H0 in HQ2; eauto.
-      intros. rewrite <- H. eapply PC1. eauto.
-      intros. rewrite <- H0. eapply PC2. eauto.
-
-    + rewrite bind_ret_l.
       setoid_rewrite (itree_eta t1) in EQ1. rewrite EQ in EQ1.
 
-      setoid_rewrite <- bind_ret_r at 5.
+      rewrite <- bind_ret_r.
       ebind. econstructor.
-      Unshelve. 3 : exact (fun x y => Q1 x /\ QQ y).
+      Unshelve. 3 : exact (fun x y => QQ x /\ Q2 y).
 
       {
-        rewrite (itree_eta t1) in HQ1. rewrite EQ in HQ1.
-        eapply eqit_Proper_mono; cycle 1.
-        eapply eqit_flip. setoid_rewrite (itree_eta t1) in PC1.
-        rewrite EQ in PC1. eapply PC1.
-        setoid_rewrite (itree_eta t2) in HQ2.
-        rewrite EQ' in HQ2. apply eqit_inv_ret in HQ2.
-        auto.
-        red. intros * []; eauto.
+          pose proof HQ1 as HQ1'.
+          rewrite (itree_eta t1) in HQ1. rewrite EQ in HQ1.
+          apply eqit_inv_ret in HQ1.
+          eapply eqit_Proper_mono; cycle 1.
+          eapply PC2.  eauto.
+          red. intros * []; eauto.
       }
 
       intros * [].
-      efinal. eapply PC5. eapply PC3. eauto.
-      apply eqit_Ret. auto.
-Qed.
+      efinal.
+
+      specialize (PC4 _ H0).
+      specialize (PC1 _ H0).
+      rewrite (itree_eta t1) in PC1.
+      rewrite EQ in PC1.
+      eapply PC5. apply eqit_Ret. eauto.
+      eapply PC4.
+    - clear CIH0.
+
+      (* specialize (EQ1 i). *)
+      setoid_rewrite (itree_eta t2).
+      destruct (observe t2) eqn: EQ'; [ | | inv e]; cycle 1.
+
+      + rewrite !bind_tau.
+        intros.
+        assert (t1 ≈ t0). rewrite itree_eta. rewrite EQ.
+        apply eqit_tauL. reflexivity.
+
+        assert (t2 ≈ t3). rewrite itree_eta. rewrite EQ'.
+        apply eqit_tauL. reflexivity.
+
+        estep.
+
+        ebase; right.
+        eapply CIH; eauto.
+        intros; rewrite <- H; eauto.
+        intros; rewrite <- H0; eauto.
+        rewrite H in HQ1; eauto.
+        rewrite H0 in HQ2; eauto.
+        intros. rewrite <- H. eapply PC1. eauto.
+        intros. rewrite <- H0. eapply PC2. eauto.
+
+      + rewrite bind_ret_l.
+        setoid_rewrite (itree_eta t1) in EQ1. rewrite EQ in EQ1.
+
+        setoid_rewrite <- bind_ret_r at 5.
+        ebind. econstructor.
+        Unshelve. 3 : exact (fun x y => Q1 x /\ QQ y).
+
+        {
+          rewrite (itree_eta t1) in HQ1. rewrite EQ in HQ1.
+          eapply eqit_Proper_mono; cycle 1.
+          eapply eqit_flip. setoid_rewrite (itree_eta t1) in PC1.
+          rewrite EQ in PC1. eapply PC1.
+          setoid_rewrite (itree_eta t2) in HQ2.
+          rewrite EQ' in HQ2. apply eqit_inv_ret in HQ2.
+          auto.
+          red. intros * []; eauto.
+        }
+
+        intros * [].
+        efinal. eapply PC5. eapply PC3. eauto.
+        apply eqit_Ret. auto.
+  Qed.
+
+  Lemma commut_gen' :
+    forall {A : Type}
+      (Q1 Q2 : A -> Prop) (QQ : A -> Prop)
+      (t1 t2 : itree void1 A)
+      (t1' t2' : A -> itree void1 A) i,
+      t1 ≅ t1' i ->
+      t2 ≅ t2' i ->
+      (forall i, t1' i ⤳ Q1) ->
+      (forall i, t2' i ⤳ Q2) ->
+      (forall a, Q1 a -> (t2' a) ⤳ QQ) ->
+      (forall a, Q2 a -> (t1' a) ⤳ QQ) ->
+      (forall i, eutt (fun x y => QQ x /\ x ≡ y) (a <- t1' i;; t2' a) (a <- t1' i;; t2' a)) ->
+      eutt (fun x y => QQ x /\ x ≡ y) (a <- t1 ;; t2' a) (a <- t2 ;; t1' a).
+  Proof.
+    cbn.
+
+    einit. ecofix CIH.
+    intros * EQ1 EQ2 HQ1 HQ2 PC1 PC2 PC3.
+    setoid_rewrite (itree_eta t1) at 1.
+    setoid_rewrite (itree_eta t2).
+    specialize (PC3 i). rewrite <- EQ1 in PC3.
+    punfold PC3. red in PC3.
+    genobs t1 ot1.
+    genobs t2 ot2.
+    hinduction PC3 before CIH0; subst; pclearbot; simpl; clear CIH0.
+    - intros.
+  Admitted.
 
   Lemma swap_body_interp:
     forall (n n' : nat) (σ : evalContext) (f : AExpr) (x : mem_block) mH init,
@@ -305,6 +331,7 @@ Qed.
   Proof.
     intros.
     eapply eutt_translate_gen.
+    Transparent DSHIMap_body.
     cbn.
     rewrite interp_Mem_bind.
     rewrite interp_Mem_bind.
@@ -313,10 +340,10 @@ Qed.
     eapply eqit_Proper_mono; cycle 1.
     eapply commut_gen' with (i := Some (mH, init)); unfold Monad.eq1, ITreeMonad.Eq1_ITree.
     1, 2:  reflexivity.
-    Transparent DSHIMap_body.
 
     {
-      cbn.
+      intros [[]|].
+      cbn. red.
 
       rewrite! interp_Mem_bind.
       rewrite! interp_fail_bind.
@@ -341,17 +368,18 @@ Qed.
       cbn.
       apply eqit_Ret.
       Unshelve.
-      6 : exact
+      7 : exact
             (fun a => a ≡ None \/ (exists m m' b, a ≡ Some (m, m') /\ find n m' ≡ b)).
       cbn. right; intros; eauto.
 
-      1, 2, 3 :  intros; apply eqit_Ret; left; auto.
+      1, 2, 3, 4 :  intros; apply eqit_Ret; left; auto.
       shelve. shelve.
-
     }
 
     {
-      cbn.
+      intros [[]|].
+      cbn. red.
+
       rewrite interp_Mem_bind.
       rewrite interp_fail_bind.
       eapply eutt_clo_bind_returns. reflexivity.
@@ -375,56 +403,47 @@ Qed.
       cbn.
       apply eqit_Ret.
       Unshelve.
-      6 : exact
+      7 : exact
             (fun a => a ≡ None \/ (exists m m' b, a ≡ Some (m, m') /\ find n m' ≡ b)).
       cbn. right; intros; eauto.
 
-      1, 2, 3 :  intros; apply eqit_Ret; left; auto.
+      1, 2, 3, 4 :  intros; apply eqit_Ret; left; auto.
       shelve.
     }
-
-    shelve. shelve.
-
     {
-      intros [[]|] EQ; destruct EQ as [EQ | EQ]; inv EQ.
-      3 : { destruct H as (? & ? & ?). inv H. inv H0. }
-      destruct H as (? & ? & ? & ?).
-      (* inv H. *)
+      intros [[]|] *.
+      intros. destruct H; try inv H.
+      cbn.
 
-      cbn. cbn.
-      rewrite interp_Mem_bind.
-      rewrite! interp_fail_bind.
-      eapply eutt_clo_bind_returns. reflexivity.
-      rename H0 into FIND.
-      cbn in FIND.
-      intros [[]|] [[]|] EQ R1 R2; inversion EQ.
 
-      rewrite interp_Mem_bind.
-      rewrite interp_fail_bind.
+      rewrite ! interp_Mem_bind.
+      rewrite ! interp_fail_bind.
       eapply eutt_clo_bind_returns. reflexivity.
-      intros [[]|] [[]|] EQ'; inversion EQ'.
+      intros [[]|] [[]|] EQ; inv EQ.
       intros.
 
       rewrite interp_Mem_bind.
       rewrite interp_fail_bind.
       eapply eutt_clo_bind_returns. reflexivity.
-      intros [[]|] [[]|] EQ''; inversion EQ''.
+      intros [[]|] [[]|] EQ; inv EQ.
+      intros.
+
+      rewrite interp_Mem_bind.
+      rewrite interp_fail_bind.
+      eapply eutt_clo_bind_returns. reflexivity.
+      intros [[]|] [[]|] EQ; inv EQ.
       intros.
 
       rewrite interp_Mem_ret.
       rewrite interp_fail_ret.
       cbn.
-      apply eqit_Ret. (* Q1 postcondition on (Some (m4, mem_add n b1, m2)). *)
-
+      apply eqit_Ret.
       Unshelve.
-
       6 : { exact (fun x => (x ≡ None \/ (exists m m' b b', x ≡ Some (m, m') /\ find n m' ≡ b /\ find n' m' ≡ b'))). }
 
       cbn. right. eexists. eexists. eexists. eexists. split; eauto.
 
-      1, 2, 3 :  intros; apply eqit_Ret; auto.
-      apply eqit_Ret; auto.
-      shelve. shelve.
+      1, 2, 3, 4 :  intros; apply eqit_Ret; auto.
     }
     {
       intros [[]|] EQ; destruct EQ as [EQ | EQ]; inv EQ.
@@ -460,11 +479,51 @@ Qed.
       1, 2, 3 :  intros; apply eqit_Ret; auto.
       apply eqit_Ret; auto.
     }
-    shelve.
-    red.
+
+    {
+      intros [[]|].
+
+      cbn. red.
+
+      rewrite interp_Mem_bind.
+      rewrite interp_fail_bind.
+      eapply eutt_clo_bind_returns. reflexivity.
+      intros [[]|] [[]|] EQ; inv EQ.
+      intros.
+
+      rewrite interp_Mem_bind.
+      rewrite interp_fail_bind.
+      eapply eutt_clo_bind_returns. reflexivity.
+      intros [[]|] [[]|] EQ; inv EQ.
+      intros.
+
+      rewrite interp_Mem_bind.
+      rewrite interp_fail_bind.
+      eapply eutt_clo_bind_returns. reflexivity.
+      intros [[]|] [[]|] EQ; inv EQ.
+      intros.
+
+      rewrite interp_Mem_bind.
+      rewrite interp_fail_bind.
+      eapply eutt_clo_bind_returns. reflexivity.
+      intros [[]|] [[]|] EQ; inv EQ.
+      intros.
+
+      rewrite interp_Mem_ret.
+      rewrite interp_fail_ret.
+      cbn.
+      apply eqit_Ret.
+
+      cbn. split. right. eexists. eexists. eexists. eexists. split; eauto.
+      reflexivity.
+
+      1, 2, 3, 4 :  intros; apply eqit_Ret; auto.
+
+      cbn. rewrite bind_ret_l. apply eqit_Ret; auto.
+    }
 
     intros [[]|] [[]|] EQ; inv EQ; eauto.
-  Admitted.
+  Qed.
 
   Lemma eq_rev_interp :
     forall σ f n x y memH,
@@ -633,6 +692,7 @@ Qed.
         intros [[]|] [[]|] EQ; inv EQ.
         rewrite <- interp_helix_bind.
         2 : { rewrite bind_ret_l. reflexivity. }
+
         eapply swap_body_interp.
   Qed.
 
@@ -666,6 +726,7 @@ Qed.
     apply eutt_eq_bind.
     intros [|]; reflexivity.
   Qed.
+
 
   Lemma DSHIMap_interpreted_as_tfor_rev:
     forall σ (n : nat) (m : memoryH) f
