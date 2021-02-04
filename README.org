@@ -59,17 +59,12 @@
    - we have not found the space to detail it in the paper, but the [tfor] itree combinator we
      introduce to help reason generically about [genWhileLoop] is defined in [[./src/coq/Utils/TFor.v][TFor]]
 
-     **Note on admits**: The Vellvm development contains three admits at the present.
-     
+     *Note on admits*: The Vellvm development contains three admits at the present.
      They are all three minor technicalities of the memory model, in [MemoryTheory](./src/coq/Handlers/MemoryTheory.v).
-     
      One expresses the behavior of the successive deserialization of the serialization of a dynamic value: we have proved most cases,
      but it requires some tedious arithmetic at each numerical types, and lacked a few cycles to complete it.
-     
      One relates to a fringe case w.r.t. what happens when one tries to read a data of size 0 from memory.
-     
      The last one is about the size of values read in memory, and rises a slight issue in the fringe case mentioned above.
-     
      None of them is related in any fashion to the heart of the proof that we present in this paper. We naturally intend to fix
      them as soon as possible nonetheless.
 
