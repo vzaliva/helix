@@ -4489,6 +4489,7 @@ Qed.
 (*   auto. *)
 (* Qed. *)
 
+(*
 Set Nested Proofs Allowed.
 
 Lemma initXYplaceholders_no_definitions :
@@ -4508,6 +4509,27 @@ Proof.
   unfold initOneIRGlobal; cbn; intros; simp; cbn in *; auto.
 Qed.
 
+Lemma initOneIRGlobal_no_type_defs :
+  forall l a σ σ' l' t,
+    initOneIRGlobal l a σ ≡ inr (σ', (l', t)) ->
+    type_defs_of typ t ≡ [].
+Proof.
+  unfold initOneIRGlobal; cbn; intros; simp; cbn in *; auto.
+Qed.
+
+Lemma init_with_data_initOneIRGlobal_no_type_defs:
+  forall g l x σ σ' b t,
+    init_with_data initOneIRGlobal x l g σ ≡ inr (σ', (b, t)) ->
+    m_type_defs (mcfg_of_modul (modul_of_toplevel_entities t)) ≡ [].
+Proof.
+  induction g as [| ? g IH]; intros; cbn in *; [simp; cbn; auto |].
+  simp.
+  copy_apply IH Heqs2.
+  rewrite list_cons_app.
+  cbn.
+  erewrite IH, initOneIRGlobal_no_type_defs; eauto.
+Qed.
+
 Opaque mcfg_of_tle.
 Opaque convert_types.
 Lemma init_with_data_initOneIRGlobal_no_definitions :
@@ -4517,8 +4539,14 @@ Lemma init_with_data_initOneIRGlobal_no_definitions :
 Proof.
   induction g as [| ? g IH]; intros; cbn in *; [simp; cbn; auto |].
   simp.
-  apply IH in Heqs2.
-  erewrite list_cons_app, mcfg_of_tle_app, m_definitions_app, Heqs2, <- app_nil_end, initOneIRGlobal_no_definitions; eauto.
+  copy_apply IH Heqs2.
+  rewrite list_cons_app.
+  rewrite mcfg_of_tle_app.
+  rewrite m_definitions_app.
+  erewrite initOneIRGlobal_no_definitions; eauto.
+  cbn.
+  erewrite initOneIRGlobal_no_type_defs; eauto.
+  erewrite init_with_data_initOneIRGlobal_no_type_defs; eauto.
 Qed.
 
 Lemma initIRGlobals_no_definitions :
@@ -4790,3 +4818,5 @@ Hint Rewrite interp_to_L3_ret : local.
 
     (*         unfold global_YX,constArray in EQ1. *)
 Abort.
+
+*)
