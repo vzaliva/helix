@@ -309,18 +309,6 @@ Section DSHIMap_is_tfor.
       (forall i, eutt (fun x y => QQ x /\ x ≡ y) (a <- t1' i;; t2' a) (a <- t1' i;; t2' a)) ->
       eutt (fun x y => QQ x /\ x ≡ y) (a <- t1 ;; t2' a) (a <- t2 ;; t1' a).
   Proof.
-    cbn.
-
-    einit. ecofix CIH.
-    intros * EQ1 EQ2 HQ1 HQ2 PC1 PC2 PC3.
-    setoid_rewrite (itree_eta t1) at 1.
-    setoid_rewrite (itree_eta t2).
-    specialize (PC3 i). rewrite <- EQ1 in PC3.
-    punfold PC3. red in PC3.
-    genobs t1 ot1.
-    genobs t2 ot2.
-    hinduction PC3 before CIH0; subst; pclearbot; simpl; clear CIH0.
-    - intros.
   Admitted.
 
   Lemma swap_body_interp:

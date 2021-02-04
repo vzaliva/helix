@@ -23,13 +23,21 @@
      
      The result itself is stated in [[./coq/LLVMGen/Correctness_GenIR.v][Correctness_GenIR]].
      
-     *Note on admits*: This file contains three admits. These correspond to three operators that we have not yet proved.
+     *Note on admits*:
+     
+     This file contains three admits. These correspond to three operators that we have not yet proved (and have not presented in the paper).
+     
      We emphasize that these operators have a similar structure to the cases of IMap and Power that we have proved:
      they use "genWhileLoop" to iterate some operation over a vector.
      As such, we are confident that while these proofs will require some non-trivial effort, they will not require
      any new meta-theory nor significant invariant, and hence will not be an obstacle. We intend to tackle them
      in the upcoming weeks.
 
+     The [[./coq/LLVMGen/Correctness_IMap.v][Correctness_IMap]] file contains one admit: [commut_gen']. This technical lemma is a variant of
+     a series of others that we have proved to commute pure computations represented as itrees under the right hypotheses.
+     We use it to prove that it is benign for the compiler to inverse the order of iteration when compiling down the IMap operator.
+     We unfortunately realized late that the meta-theoretical lemma [commut_gen] that we had proved ahead of time was slightly too weak
+     for our purpose, and hence admitted temporarily this stronger version. 
    
 ** Vellvm side
 
@@ -50,6 +58,21 @@
      express the well-definedness of the source semantics in an itree-world is developed in [[./src/coq/Utils/NoFailure.v][NoFailure]] 
    - we have not found the space to detail it in the paper, but the [tfor] itree combinator we
      introduce to help reason generically about [genWhileLoop] is defined in [[./src/coq/Utils/TFor.v][TFor]]
+
+     **Note on admits**: The Vellvm development contains three admits at the present.
+     
+     They are all three minor technicalities of the memory model, in [MemoryTheory](./src/coq/Handlers/MemoryTheory.v).
+     
+     One expresses the behavior of the successive deserialization of the serialization of a dynamic value: we have proved most cases,
+     but it requires some tedious arithmetic at each numerical types, and lacked a few cycles to complete it.
+     
+     One relates to a fringe case w.r.t. what happens when one tries to read a data of size 0 from memory.
+     
+     The last one is about the size of values read in memory, and rises a slight issue in the fringe case mentioned above.
+     
+     None of them is related in any fashion to the heart of the proof that we present in this paper. We naturally intend to fix
+     them as soon as possible nonetheless.
+
 
 * HELIX
 
