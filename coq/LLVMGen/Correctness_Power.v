@@ -3003,17 +3003,11 @@ Proof.
     solve_local_scope_preserved.
     solve_gamma_preserved.
 
-    specialize (LOOPTFOR (MInt64asNT.to_nat t_loopend)).
-    forward LOOPTFOR.
-    { cbn.
-      unfold MInt64asNT.to_nat.
-      rewrite Znat.Z2Nat.id; [|apply Int64_intval_pos].
+    specialize (LOOPTFOR loop_end_nexpr i5 i6 m_yoff m_yoff loop_end_exp loop_end_code WFi5 GBi5 Heqs3).
+    repeat (forward LOOPTFOR; [solve_local_count|]).
+    specialize (LOOPTFOR t_loopend RetLoopNExp).
 
-      (* ** WARNING ** *)
-      (* TODO: this isn't actually true because loop_end_exp is different than
-         t_loopend, but this should be eutt *)
-      admit.
-    }
+    forward LOOPTFOR. eauto.
 
     (* TODO: may be able to separate this out into the DSHPower_body_eutt lemma *)
     unfold DSHPower_tfor.
@@ -3022,14 +3016,6 @@ Proof.
     match goal with
       |- eutt _ (ITree.bind' _ (tfor ?bod _ _ _)) _ => specialize (LOOPTFOR _ bod)
     end.
-
-    forward LOOPTFOR.
-    { (* TODO: automate this kind of thing / separate into lemma? *)
-      unfold MInt64asNT.to_nat.
-      rewrite intval_to_from_nat_id.
-      pose proof (Integers.Int64.intrange t_loopend).
-      lia.
-    }
 
     (* Will need to set up loop invariants and such, just like loop case *)
 
@@ -3090,7 +3076,7 @@ Proof.
 
       (* Relating iterations of the bodies *)
       forward LOOPTFOR.
-      { intros g_loop l_loop mV_loop [[mH_loop mb_loop] |] k _label [HI [POWERI [POWERI_VAL RETURNS]]]; [|inv HI].
+      { intros g_loop l_loop mV_loop [[mH_loop mb_loop] |] k _label [HI [POWERI [LOOPEND_EXPID [BOUND RETURNS]]]]; [|inv HI].
         cbn in HI.
         destruct HI as [LINV_SINV [LINV_DST_PTR_ID [LINV_SRC_PTR_ID [LINV_GLOBALS [LINV_ALLOC [LINV_RET [LINV_HELIX_MB_OLD [v [LINV_HELIX_MB_NEW LINV_MEXT]]]]]]]]].
         pose proof LINV_MEXT as [LINV_MEXT_NEW LINV_MEXT_OLD].
@@ -3220,7 +3206,7 @@ Proof.
           eauto.
           { eapply state_invariant_enter_scope_DSHCType' with (s1:={| block_count := block_count i19; local_count := local_count i19; void_count := void_count i19; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}); cbn; eauto.
 
-            solve_lid_bound.
+            eapply lid_bound_before; [solve_lid_bound | solve_local_count].
             2: solve_alist_in.
 
             { pose proof GAM.
@@ -3247,8 +3233,8 @@ Proof.
             eauto.
             eauto.
             3: solve_local_count.
-            
-            solve_lid_bound.
+
+            eapply lid_bound_before; [solve_lid_bound | solve_local_count].
             eapply not_in_Gamma_Gamma_eq with (s1 := s1); [solve_gamma|solve_not_in_gamma].
 
             { solve_alist_in.
@@ -3290,16 +3276,19 @@ Proof.
               reflexivity.
             }
 
-            eapply Gamma_safe_protect.
-            eapply Gamma_safe_shrink; eauto.
-            solve_gamma.
-            all: try (solve [cbn; solve_local_count]).
+            { eapply Gamma_safe_protect.
+              eapply Gamma_safe_shrink; eauto.
+              solve_gamma.
+              solve_local_count.
+            }
 
-            instantiate (1:= {| block_count := block_count i19; local_count := local_count i21; void_count := void_count i19; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}).
-            all: try (solve [cbn; solve_local_count]).
+            3: {
+              instantiate (1 := {| block_count := block_count i20; local_count := local_count i20; void_count := void_count i20; Γ := (ID_Local dst_val_id, TYPE_Double) :: Γ i19 |}).
+              cbn.
+              solve_gamma.
+            }
 
-            cbn.
-            solve_gamma.
+            all: try (solve [cbn; solve_local_count]).
 
             { intros ? ?.
               solve_id_neq.
@@ -3383,7 +3372,6 @@ Proof.
           cbn in *.
           destruct Mono_IRState.
           + eapply local_scope_preserve_modif_up in extends.
-            2: solve_local_count.
             unfold local_scope_preserved in extends.
             rewrite extends.
             rewrite alist_find_neq.
@@ -3408,7 +3396,10 @@ Proof.
             }
             solve_alist_in.
           + subst.
+            repeat (rewrite alist_find_neq).
             solve_alist_in.
+            intros CONTRA; symmetry in CONTRA; revert CONTRA; solve_id_neq.
+            intros CONTRA; symmetry in CONTRA; revert CONTRA; solve_id_neq.
         - exists b0. reflexivity.
         - (* I *)
           Opaque mem_lookup. (* TODO: HMMM *)
@@ -3726,7 +3717,9 @@ Proof.
       eapply eutt_clo_bind.
       eapply LOOPTFOR.
 
-      7: {
+      all: solve_local_count.
+
+      6: {
         intros [[mH_post mb_post]|] [mV_post [l_post [g_post x_pos]]] [POST [Q_POST LSM_POST]]; [|inv Q_POST].
         rewrite interp_helix_MemSet.
         cbn.
@@ -3849,10 +3842,6 @@ Proof.
         auto.
       }
 
-      { cbn; solve_local_count. }
-
-      { cbn; solve_local_count. }
-
       (* TODO: May need to modify P / Q here *)
       { (* P -> I 0 *)
         unfold imp_rel. intros a b2 PR.
@@ -3925,6 +3914,40 @@ Proof.
         }
         rewrite <- Γ_S1S2; eauto.
         eauto.
+      }
+
+      { (* IDENT *)
+        intros x H; inv H.
+        pose proof (genNExpr_ident_bound _ Heqs3 GBi5).
+        repeat (rewrite alist_find_neq); try solve_id_neq.
+        pose proof PostLoopEndNExpr.
+        destruct H0.
+        cbn in *.
+        (* This is where I need exp_in_scope... *)
+        pose proof (exp_in_scope x eq_refl).
+        destruct H0 as [[INL BOUNDX] | [INL [BOUNDX LT]]]; unfold alist_In in INL.
+        -
+
+          edestruct lid_bound_before_bound_between with (s2 := i5) (id:=x).
+          solve_lid_bound.
+          solve_local_count.
+
+          destruct Mono_IRState.
+          + erewrite local_scope_preserve_modif.
+            eauto.
+            2: solve_local_scope_modif.
+            solve_local_count.
+            eauto.
+          + subst.
+            erewrite local_scope_preserve_modif; eauto.
+        - nexpr_modifs.
+          epose proof local_scope_modif_trans'' PostXoffNExpr PostYoffNExpr as LSM_yoff'.
+          repeat (forward LSM_yoff'; solve_local_count).
+          
+          erewrite local_scope_preserve_modif.
+          eauto.
+          2: eauto.
+          solve_local_scope_modif.
       }
 
       { (* P holds initially *)
