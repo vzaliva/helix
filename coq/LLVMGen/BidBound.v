@@ -772,9 +772,7 @@ Ltac get_block_count_hyps :=
       apply genIR_block_count in H
     end.
 
-(* This establishes that the generated code does not contain any two blocks with the same id.
-   The proof is extremely messy, and still has some admits, but conceptually is shouldn't be hard.
- *)
+(* This establishes that the generated code does not contain any two blocks with the same id. *)
 Transparent incBlockNamed.
 Lemma generates_wf_ocfg_bids :
   ∀ (op : DSHOperator) (s1 s2 : IRState) (nextblock b : block_id) (bk_op : list (LLVMAst.block typ)),

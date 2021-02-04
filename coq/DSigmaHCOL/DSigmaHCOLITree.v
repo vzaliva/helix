@@ -71,9 +71,11 @@ Ltac iter_unfold_pointed :=
 
 Module MDSigmaHCOLITree
        (Import CT : CType)
-       (Import NT : NType).
+       (Import NT : NType)
+       (Import L: MDSigmaHCOL(CT)(NT))
+       (Import LE: MDSigmaHCOLEval(CT)(NT)(L)).
 
-  Include MDSigmaHCOLEval CT NT.
+  Include LE.
 
   Local Open Scope string_scope.
 
@@ -275,8 +277,9 @@ Module MDSigmaHCOLITree
 
         | @DSHIMap n x_p y_p f =>
           '(x_i,x_size) <- denotePExpr σ x_p ;;
-          '(y_i,y_sixe) <- denotePExpr σ y_p ;;
+          '(y_i,y_size) <- denotePExpr σ y_p ;;
           lift_Serr (assert_nat_neq "DSHIMap 'x' must not be equal 'y'" x_i y_i) ;;
+          lift_Derr (assert_nat_le "DSHIMap 'n' index out of bounds" n (to_nat y_size)) ;;
           x <- trigger (MemLU "Error looking up 'x' in DSHIMap" x_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHIMap" y_i) ;;
           y' <- denoteDSHIMap n f (protect_p σ y_p) x y ;;
@@ -294,7 +297,7 @@ Module MDSigmaHCOLITree
 
         | @DSHBinOp n x_p y_p f =>
           '(x_i,x_size) <- denotePExpr σ x_p ;;
-          '(y_i,y_sixe) <- denotePExpr σ y_p ;;
+          '(y_i,y_size) <- denotePExpr σ y_p ;;
           lift_Serr (assert_nat_neq "DSHBinOp 'x' must not be equal 'y'" x_i y_i) ;;
           x <- trigger (MemLU "Error looking up 'x' in DSHBinOp" x_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHBinOp" y_i) ;;
@@ -307,7 +310,7 @@ Module MDSigmaHCOLITree
           lift_Serr (assert_nat_neq "DSHPower 'x' must not be equal 'y'" x_i y_i) ;;
           x <- trigger (MemLU "Error looking up 'x' in DSHPower" x_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHPower" y_i) ;;
-          n <- denoteNExpr σ ne ;; (* [n] denoteuated once at the beginning *)
+          n <- denoteNExpr σ ne ;; (* [n] denoted once at the beginning *)
           xoff <- denoteNExpr σ xoffset ;;
           yoff <- denoteNExpr σ yoffset ;;
           lift_Derr (assert_NT_lt "DSHPower 'y' offset out of bounds" yoff y_size) ;;

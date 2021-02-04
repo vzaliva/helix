@@ -32,10 +32,13 @@ Proof.
   intros.
   assert (~OrderedTypeEx.Nat_as_OT.eq x y -> find (elt := e) y (remove x m) ≡ find y m).
   intros. rewrite Proofs.find_mapsto_equiv; auto.
-  (*  split; eauto using Proofs.add_2, Proofs.add_3. *)
-  (* destruct X.compare; try (apply H0; order). *)
-  (* (* auto using find_1, add_1 with ordered_type. *) *)
-Admitted.
+  split; eauto using Proofs.remove_2, Proofs.remove_3.
+  now apply Proofs.remove_bst.
+  break_match; try reflexivity.
+  all: apply H0.
+  all: intros C; cbv in C; subst y.
+  all: inversion l; lia.
+Qed.
 
 Lemma no_dshptr_aliasing_cons :
   forall (memH : memoryH) (σ : evalContext) (size : Int64.int) b,

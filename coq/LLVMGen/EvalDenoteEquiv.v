@@ -528,10 +528,24 @@ Section Eval_Denote_Equiv.
       - cbn* in *; simp; go.
         cbn*; repeat match_rewrite; go.
         rewrite Heqs2. repeat match_rewrite; go.
+        unfold assert_NT_le, assert_true_to_err in Heqs3.
+        unfold assert_nat_le. unfold assert_true_to_err.
+        break_if.
+        go.
         3: cbn*; match_rewrite; eauto.
         2: cbn*; match_rewrite; eauto.
         rewrite  Denote_Eval_Equiv_IMap; eauto; go.
         rewrite interp_Mem_MemSet; reflexivity.
+        exfalso.
+        apply leb_complete_conv in Heqb.
+        unfold to_nat in Heqb. break_if. 2 : inv Heqs3.
+        eapply leb_complete in Heqb0.
+        unfold to_nat in Heqb0. revert Heqb.
+        apply le_not_lt. clear -Heqs Heqb0.
+        unfold from_nat in Heqs.
+        apply from_Z_intval in Heqs.
+        rewrite <- Heqs in Heqb0.
+        lia.
       - cbn* in *; simp; go.
         cbn*; repeat match_rewrite; go.
         rewrite Heqs2.

@@ -80,14 +80,6 @@ From Vellvm Require Import Numeric.Integers.
 Definition imp_rel {A B : Type} (R S: A -> B -> Prop): Prop :=
   forall a b, R a b -> S a b.
 
-(* Another Useful Vellvm utility. Obviously true, but the proof might need some tricks.. *)
-(* Lemma string_of_nat_length_lt : *)
-(*   (forall n m, n < m -> length (string_of_nat n) <= length (string_of_nat m))%nat. *)
-(* Proof. *)
-(*   induction n using (well_founded_induction lt_wf). *)
-(*   intros. unfold string_of_nat. *)
-(* Admitted. *)
-
 Lemma incLocal_fresh:
     forall i i' i'' r r' , incLocal i ≡ inr (i', r) ->
                       incLocal i' ≡ inr (i'', r') ->
@@ -102,6 +94,16 @@ Proof.
 Qed.
 
 Require Import String. Open Scope string_scope.
+
+(* ZX TODO: move to reasonable place *)
+Lemma skipn_split {A : Type} (l l2 : list A) (k : nat) :
+  skipn k l ≡ l2 ->
+  exists l1, l ≡ List.app l1 l2.
+Proof.
+  exists (firstn k l).
+  subst.
+  now rewrite firstn_skipn.
+Qed.
 
 Lemma __fresh:
     forall prefix i i' i'' r r' , incLocal i ≡ inr (i', r) ->
@@ -125,10 +127,52 @@ Proof.
   pose proof (string_dec "l" prefix). destruct H1. subst.
   destruct H0. 2 : { contradiction. }
   rewrite <- append_assoc in e. apply append_simplify_l in e.
-  (* Yeeah not gonna bother with this. It's true though.
-     We probably just prove the lemma for the exact string "s" we need.
-   *)
-Admitted.
+  -
+    generalize dependent (local_count i); intros n _ _ C.
+    pose proof (string_of_nat_not_alpha n).
+    rewrite C in H; clear C.
+    rewrite string_forall_forallb in H.
+    rewrite list_ascii_of_string_append in H.
+    inversion H.
+  -
+    subst.
+    clear H H0 n; rename abs into C.
+    generalize dependent (local_count i); intros n C.
+    apply f_equal with (f:=list_ascii_of_string) in C.
+    rewrite !list_ascii_of_string_append in C.
+    rewrite <-!app_assoc in C.
+    generalize dependent (list_ascii_of_string prefix); intros p C.
+    apply f_equal with (f:=skipn (List.length p)) in C.
+    rewrite skipn_length_app in C.
+
+    generalize dependent (Datatypes.length p); intros k C.
+    rewrite skipn_app in C.
+    destruct k; [cbn in *; invc C |].
+    rewrite skipn_all2 in C by (cbn; lia).
+    rewrite app_nil_l in C.
+    replace (S k - Datatypes.length (list_ascii_of_string "l"))
+      with k in * by (cbn; lia).
+
+    assert (head
+              (skipn k (list_ascii_of_string (string_of_nat n)))
+            ≡ head
+                (list_ascii_of_string "_next_i" ++
+                                      list_ascii_of_string (string_of_nat (S n))))
+      by congruence.
+    clear C.
+    cbn in H.
+    unfold hd_error in H.
+    break_match; invc H.
+    apply skipn_split in Heql.
+    destruct Heql as [l' C].
+
+    pose proof (string_of_nat_not_alpha n).
+    apply string_forall_forallb in H.
+    rewrite C in H.
+    rewrite forallb_app in H.
+    cbn in H.
+    now rewrite Bool.andb_false_r in H.
+Qed.
 
 Opaque incLocalNamed.
 Opaque incLocal.

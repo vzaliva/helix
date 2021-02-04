@@ -233,47 +233,51 @@ Section TLE_To_Modul.
    *)
   Lemma convert_typ_mcfg_app:
     forall mcfg1 mcfg2 : modul (cfg typ),
-      convert_typ (m_type_defs mcfg1 ++ m_type_defs mcfg2) (mcfg1 @ mcfg2) =
-      convert_typ (m_type_defs mcfg1) mcfg1 @ convert_typ (m_type_defs mcfg2) mcfg2.
+      convert_typ [] (mcfg1 @ mcfg2) =
+      convert_typ [] mcfg1 @ convert_typ [] mcfg2.
   Proof.
-    intros mcfg1 mcfg2.
-    remember (m_type_defs mcfg1) as l1; remember (m_type_defs mcfg2) as l2.
-    revert l1 Heql1.
-    induction l1 as [| τ1 l1 IH]; cbn; intros EQ.
-    - rewrite <- !EQ; cbn.
-      destruct mcfg1, mcfg2; cbn; subst; cbn in *.
-      rewrite <- !EQ; cbn.
-      unfold convert_typ, ConvertTyp_mcfg, Traversal.fmap, Traversal.Fmap_mcfg.
-      cbn.
-      f_equal; try (unfold endo, Endo_option; cbn; repeat flatten_goal; now intuition).
-      + unfold Fmap_list'.
-  Admitted.
+    intros [] []; cbn.
+    unfold convert_typ,ConvertTyp_mcfg,Traversal.fmap,Fmap_mcfg; cbn.
+    f_equal; try (unfold endo, Endo_option; cbn; repeat flatten_goal; now intuition).
+    unfold Traversal.fmap, Fmap_list; rewrite map_app; reflexivity.
+    unfold Traversal.fmap, Fmap_list'; rewrite map_app; reflexivity.
+    unfold Traversal.fmap, Fmap_list'; rewrite map_app; reflexivity.
+    unfold Traversal.fmap, Fmap_list'; rewrite map_app; reflexivity.
+  Qed.
 
   Lemma convert_types_app_mcfg : forall mcfg1 mcfg2,
+      m_type_defs mcfg1 = [] ->
+      m_type_defs mcfg2 = [] ->
       convert_types (modul_app mcfg1 mcfg2) =
                     modul_app (convert_types mcfg1) (convert_types mcfg2).
   Proof.
     unfold convert_types.
-    intros.
-    rewrite m_type_defs_app,convert_typ_mcfg_app.
+    intros * EQ1 EQ2.
+    rewrite m_type_defs_app, EQ1,EQ2.
+    cbn; rewrite convert_typ_mcfg_app.
     reflexivity.
   Qed.
 
-  Lemma mcfg_of_tle_app : forall x y, convert_types (mcfg_of_tle (x ++ y)) =
-                                 modul_app (convert_types (mcfg_of_tle x)) (convert_types (mcfg_of_tle y)).
+  Lemma mcfg_of_tle_app : forall x y,
+      m_type_defs (mcfg_of_modul (modul_of_toplevel_entities x)) = nil ->
+      m_type_defs (mcfg_of_modul (modul_of_toplevel_entities y)) = nil ->
+      convert_types (mcfg_of_tle (x ++ y)) =
+      modul_app (convert_types (mcfg_of_tle x)) (convert_types (mcfg_of_tle y)).
   Proof.
-    intros ? ?.
+    intros. 
     unfold mcfg_of_tle.
     rewrite modul_of_toplevel_entities_app.
     rewrite mcfg_of_app_modul.
-    rewrite convert_types_app_mcfg.
-    reflexivity.
+    rewrite convert_types_app_mcfg; auto.
   Qed.
-
-  Lemma mcfg_of_tle_cons : forall x y, convert_types (mcfg_of_tle (x :: y)) =
-                                  modul_app (convert_types  (mcfg_of_tle [x])) (convert_types  (mcfg_of_tle y)).
+  
+  Lemma mcfg_of_tle_cons : forall x y,
+      m_type_defs (mcfg_of_modul (modul_of_toplevel_entities [x])) = nil ->
+      m_type_defs (mcfg_of_modul (modul_of_toplevel_entities y)) = nil ->
+      convert_types (mcfg_of_tle (x :: y)) =
+      modul_app (convert_types  (mcfg_of_tle [x])) (convert_types  (mcfg_of_tle y)).
   Proof.
-    intros; rewrite list_cons_app; apply mcfg_of_tle_app.
+    intros; rewrite list_cons_app; apply mcfg_of_tle_app; auto.
   Qed.
 
 End TLE_To_Modul.
