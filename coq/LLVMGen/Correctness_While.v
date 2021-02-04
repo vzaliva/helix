@@ -1206,8 +1206,7 @@ Proof.
         solve_local_count.
 
         erewrite local_scope_preserve_modif.
-        3: eauto.
-        2: solve_local_count.
+        2: eauto.
         repeat (rewrite alist_find_neq; eauto); solve_id_neq.
         eauto.
     }
@@ -1500,8 +1499,7 @@ Proof.
       solve_local_count.
 
       erewrite local_scope_preserve_modif.
-      3: eauto.
-      2: solve_local_count.
+      2: eauto.
       cbn.
       repeat (rewrite alist_find_neq; eauto). solve_id_neq.
       eauto.

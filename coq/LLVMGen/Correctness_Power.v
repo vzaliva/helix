@@ -500,6 +500,23 @@ Proof.
   destruct PostYoff as [PostYoffSINV PostYoffNExpr]. cbn in PostYoffSINV.
   pose proof (Correctness_NExpr.is_almost_pure PostYoffNExpr) as [MHPURE [MVPURE GPURE]]; subst.
 
+  Ltac nexpr_modifs :=
+    repeat
+      match goal with
+      | POST : genNExpr_post _ _ _ _ _ _ _ _ |- _
+        => eapply Correctness_NExpr.extends in POST; cbn in POST
+      end.
+
+  assert (local_scope_modif i5 i7 ρ l_xoff /\ local_scope_modif i5 i8 ρ l_yoff) as [LSM_xoff LSM_yoff].
+  {
+    nexpr_modifs.
+    epose proof local_scope_modif_trans'' PostLoopEndNExpr PostXoffNExpr as LSM_xoff.
+    repeat (forward LSM_xoff; solve_local_count).
+    epose proof local_scope_modif_trans'' LSM_xoff PostYoffNExpr as LSM_yoff.
+    repeat (forward LSM_yoff; solve_local_count).
+    auto.
+  }
+
   hred.
 
   eapply no_failure_helix_bind_continuation in NOFAIL; [eauto|eassumption].
@@ -1078,7 +1095,6 @@ Proof.
           cbn in *.
           destruct Mono_IRState.
           + eapply local_scope_preserve_modif_up in extends.
-            2: solve_local_count.
             unfold local_scope_preserved in extends.
             rewrite extends.
             rewrite alist_find_neq.
@@ -1629,11 +1645,29 @@ Proof.
         cbn in *.
         (* This is where I need exp_in_scope... *)
         pose proof (exp_in_scope x eq_refl).
-        destruct H0.
-        - unfold alist_In in H0.
-          solve_alist_in.
-        destruct Mono_IRState.
-        admit.
+        destruct H0 as [[INL BOUNDX] | [INL [BOUNDX LT]]]; unfold alist_In in INL.
+        -
+
+          edestruct lid_bound_before_bound_between with (s2 := i5) (id:=x).
+          solve_lid_bound.
+          solve_local_count.
+
+          destruct Mono_IRState.
+          + erewrite local_scope_preserve_modif.
+            eauto.
+            2: solve_local_scope_modif.
+            solve_local_count.
+            eauto.
+          + subst.
+            erewrite local_scope_preserve_modif; eauto.
+        - nexpr_modifs.
+          epose proof local_scope_modif_trans'' PostXoffNExpr PostYoffNExpr as LSM_yoff'.
+          repeat (forward LSM_yoff'; solve_local_count).
+          
+          erewrite local_scope_preserve_modif.
+          eauto.
+          2: eauto.
+          solve_local_scope_modif.
       }
       
       { (* P holds initially *)
@@ -1669,14 +1703,6 @@ Proof.
       change (UVALUE_Addr ptrll_yoff) with (dvalue_to_uvalue (DVALUE_Addr ptrll_yoff)).
       reflexivity.
       cbn.
-
-      Ltac nexpr_modifs :=
-        repeat
-          match goal with
-          | POST : genNExpr_post _ _ _ _ _ _ _ _ |- _
-            => eapply Correctness_NExpr.extends in POST; cbn in POST
-          end.
-
       nexpr_modifs.
 
       Ltac lsm_chain upper :=

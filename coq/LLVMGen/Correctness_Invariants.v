@@ -1175,11 +1175,10 @@ Section SimulationRelations.
   (* If I have modified an interval, other intervals are preserved *)
   Lemma local_scope_preserve_modif:
     forall s1 s2 s3 l1 l2,
-      s2 << s3 ->
       local_scope_modif s2 s3 l1 l2 ->
       local_scope_preserved s1 s2 l1 l2. 
   Proof.
-    intros * LE MOD.
+    intros * MOD.
     red. intros * BOUND.
     red in MOD.
     edestruct @alist_find_eq_dec_local_env as [EQ | NEQ]; [eassumption |].
@@ -1192,7 +1191,6 @@ Section SimulationRelations.
     destruct s' as [a s' b]; cbn in *; clear a b.
     destruct s1 as [a s1 b]; cbn in *; clear a b.
     destruct s2 as [a s2 b], s3 as [a' s3 b']; cbn in *.
-    red in LE; cbn in *.
     clear a b a' b'.
     exfalso; eapply IdLemmas.valid_prefix_neq_differ; [| | | eassumption]; auto.
     lia.
@@ -1200,11 +1198,10 @@ Section SimulationRelations.
 
   Lemma local_scope_preserve_modif_up :
     forall s1 s2 s3 l1 l2,
-      s1 << s2 ->
       local_scope_modif s1 s2 l1 l2 ->
       local_scope_preserved s2 s3 l1 l2. 
   Proof.
-    intros * LE MOD.
+    intros * MOD.
     red. intros * BOUND.
     red in MOD.
     edestruct @alist_find_eq_dec_local_env as [EQ | NEQ]; [eassumption |].
@@ -1217,7 +1214,6 @@ Section SimulationRelations.
     destruct s' as [a s' b]; cbn in *; clear a b.
     destruct s1 as [a s1 b]; cbn in *; clear a b.
     destruct s2 as [a s2 b], s3 as [a' s3 b']; cbn in *.
-    red in LE; cbn in *.
     clear a b a' b'.
     exfalso; eapply IdLemmas.valid_prefix_neq_differ; [| | | eassumption]; auto.
     lia.
@@ -3408,8 +3404,8 @@ Ltac solve_alist_in :=
          first [ apply In_add_eq
                | solve [eauto]
                | solve [rewrite alist_find_neq; [solve_alist_in | solve_id_neq]]
-               | solve [erewrite local_scope_preserve_modif; [| |solve_local_scope_modif|solve_lid_bound_between]; [solve_alist_in|solve [solve_local_count]]]
-               | solve [erewrite local_scope_preserve_modif_up; [| |solve_local_scope_modif|solve_lid_bound_between]; [solve_alist_in|solve [solve_local_count]]]
+               | solve [erewrite local_scope_preserve_modif; [|solve_local_scope_modif|solve_lid_bound_between]; solve_alist_in]
+               | solve [erewrite local_scope_preserve_modif_up; [|solve_local_scope_modif|solve_lid_bound_between]; solve_alist_in]
                ]
         ].
 

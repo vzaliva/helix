@@ -90,7 +90,7 @@ Section NExpr.
     exp_correct : genNExpr_exp_correct σ s1 s2 e mf stf;
     is_almost_pure : almost_pure mi sti mf stf; 
     extends : local_scope_modif s1 s2 (fst (snd sti)) (fst (snd stf));
-    exp_in_scope : forall id, e ≡ EXP_Ident (ID_Local id) -> (alist_In id (fst (snd sti)) (UVALUE_I64 (snd mf)) \/ (lid_bound_between s1 s2 id /\ s1 << s2));
+    exp_in_scope : forall id, e ≡ EXP_Ident (ID_Local id) -> ((alist_In id (fst (snd sti)) (UVALUE_I64 (snd mf)) /\ lid_bound s1 id) \/ (alist_In id (fst (snd stf)) (UVALUE_I64 (snd mf)) /\ lid_bound_between s1 s2 id /\ s1 << s2));
     Gamma_cst : Γ s2 ≡ Γ s1;
     Mono_IRState : s1 << s2 \/ fst (snd sti) ≡ fst (snd stf)
     }.
@@ -136,7 +136,9 @@ Section NExpr.
           reflexivity.
         * intros * EQ; inv EQ.
           left.
+          split.
           eapply memory_invariant_LLU; eauto.
+          destruct PRE; eauto.
 
       + (* The variable maps to a pointer *)
         unfold denoteNExpr in *; cbn* in *; simp; try_abs.
@@ -166,7 +168,9 @@ Section NExpr.
         * apply local_scope_modif_add.
           auto using lid_bound_between_incLocal.
         * intros * EQ; inv EQ; right.
-          split; [auto using lid_bound_between_incLocal | solve_local_count].
+          split.
+          solve_alist_in.
+          split; [auto using lid_bound_between_incLocal | solve_local_count].          
         * eauto using incLocal_Γ.
         * left; solve_local_count.
 
@@ -275,7 +279,10 @@ Section NExpr.
         eapply local_scope_modif_trans; [| | eauto|]; [solve_local_count | solve_local_count |].
         eauto using local_scope_modif_add, lid_bound_between_incLocal.
       + intros ? EQ; inv EQ.
-        right; split; [| solve_local_count].
+        right.
+        split.
+        solve_alist_in.
+        split; [| solve_local_count].
         apply lid_bound_between_shrink_down with s3; [solve_local_count |].
         eauto using lid_bound_between_incLocal.
       + rewrite <- GAM1, <- GAM2.
@@ -381,7 +388,10 @@ Section NExpr.
         eapply local_scope_modif_trans; [| | eauto|]; [solve_local_count | solve_local_count |].
         eauto using local_scope_modif_add, lid_bound_between_incLocal.
       + intros ? EQ; inv EQ.
-        right; split; [| solve_local_count].
+        right.
+        split.
+        solve_alist_in.
+        split; [| solve_local_count].
         apply lid_bound_between_shrink_down with s3; [solve_local_count |].
         eauto using lid_bound_between_incLocal.
       + rewrite <- GAM1, <- GAM2.
@@ -471,7 +481,10 @@ Section NExpr.
        eapply local_scope_modif_trans; [| | eauto|]; [solve_local_count | solve_local_count |].
        eauto using local_scope_modif_add, lid_bound_between_incLocal.
      + intros ? EQ; inv EQ.
-       right; split; [| solve_local_count].
+       right.
+       split.
+       solve_alist_in.
+       split; [| solve_local_count].
        apply lid_bound_between_shrink_down with s3; [solve_local_count |].
        eauto using lid_bound_between_incLocal.
      + rewrite <- GAM1, <- GAM2.
@@ -560,7 +573,7 @@ Section NExpr.
        eapply local_scope_modif_trans; [| | eauto|]; [solve_local_count | solve_local_count |].
        eauto using local_scope_modif_add, lid_bound_between_incLocal.
      + intros ? EQ; inv EQ.
-       right; split; [| solve_local_count].
+       right; split; [solve_alist_in|]; split; [| solve_local_count].
        apply lid_bound_between_shrink_down with s3; [solve_local_count |].
        eauto using lid_bound_between_incLocal.
      + rewrite <- GAM1, <- GAM2.
@@ -651,7 +664,7 @@ Section NExpr.
        eapply local_scope_modif_trans; [| | eauto|]; [solve_local_count | solve_local_count |].
        eauto using local_scope_modif_add, lid_bound_between_incLocal.
      + intros ? EQ; inv EQ.
-       right; split; [| solve_local_count].
+       right; split; [solve_alist_in|]; split; [| solve_local_count].
        apply lid_bound_between_shrink_down with s3; [solve_local_count |].
        eauto using lid_bound_between_incLocal.
      + rewrite <- GAM1, <- GAM2.
