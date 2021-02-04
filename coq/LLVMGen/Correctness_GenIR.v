@@ -141,379 +141,33 @@ Section GenIR.
 
       admit.
 
-  (*   - (* DSHSeq *) *)
-  (*     Opaque add_comment. *)
-  (*     cbn. *)
-
-  (*     pose proof GEN as GEN_DESTRUCT. *)
-  (*     cbn* in GEN_DESTRUCT; simp. *)
-
-  (*     rename i into s_op1, l0 into bk_op1, l into bk_op2. *)
-  (*     rename b into op2_entry, bid_in into op1_entry. *)
-  (*     rename Heqs0 into GEN_OP2, Heqs2 into GEN_OP1. *)
-  (*     rewrite add_comment_eutt. *)
-  (*     cbn. *)
-  (*     clean_goal. *)
-
-  (*     rewrite convert_typ_ocfg_app. *)
-  (*     rewrite denote_ocfg_app; eauto. *)
-  (*     2: { *)
-  (*       unfold no_reentrance. *)
-  (*       pose proof GEN_OP1 as GEN_OP1'. *)
-
-  (*       apply (inputs_not_earlier_bound _ _ _ NEXT) in GEN_OP1'. *)
-  (*       apply inputs_bound_between in GEN_OP1. *)
-  (*       apply outputs_bound_between in GEN_OP2. *)
-
-  (*       pose proof (Forall_and GEN_OP1 GEN_OP1') as INPUTS. *)
-  (*       cbn in INPUTS. *)
-
-  (*       eapply (Forall_disjoint GEN_OP2 INPUTS). *)
-  (*       intros x OUT_PRED [IN_BOUND IN_NEXT]. *)
-  (*       destruct OUT_PRED as [OUT_PRED | OUT_PRED]; auto. *)
-  (*       eapply (state_bound_between_separate incBlockNamed_count_gen_injective OUT_PRED IN_BOUND). *)
-  (*       lia. auto. *)
-  (*       block_count_replace. *)
-  (*       lia. *)
-  (*     } *)
-  (*     hvred. *)
-
-  (*     (* Helix generates code for op2 *first*, so op2 gets earlier *)
-  (*       variables from the irstate. Helix needs to do this because it *)
-  (*       passes the block id for the next block that an operator should *)
-  (*       jump to when it's done executing... So it generates code for *)
-  (*       op2, which goes to the next block of the entire sequence, and *)
-  (*       then passes the entry point for op2 as the "nextblock" for *)
-  (*       op1. *)
-  (*     *) *)
-  (*     cbn in *. *)
-  (*     pose proof PRE as SINV. *)
-  (*     simp. *)
-
-  (*     rename Heqs0 into GEN_OP2, Heqs1 into GEN_OP1. *)
-
-  (*     eapply eutt_clo_bind_returns. *)
-  (*     { *)
-  (*       eapply IHop1 with (s1:=s_op1) (s2:=s2); eauto. *)
-  (*       - eapply bid_bound_genIR_entry; eauto. *)
-  (*       - apply genIR_Γ in GEN_OP2. *)
-  (*         eapply state_invariant_Γ; eauto. *)
-  (*       - eapply Gamma_safe_shrink; eauto. *)
-  (*         eauto using genIR_Γ. *)
-  (*         solve_local_count. *)
-  (*         solve_local_count. *)
-  (*     } *)
-
-  (*     clear IHop1. *)
-  (*     introR; destruct_unit. *)
-  (*     intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET. *)
-  (*     cbn in PRE0; destruct PRE0 as [INV2 [from2 BRANCH2]]; cbn in *; inv_eqs. *)
-  (*     subst. *)
-
-  (*     eapply eqit_mon; auto. *)
-  (*     2: { *)
-  (*       eapply ISugoku kawaiikute muccha kininarimasu Hop2; try exact GEN_OP2; eauto. *)
-  (*       - eapply state_invariant_Γ; eauto. *)
-  (*         apply genIR_Γ in GEN_OP1; apply genIR_Context in GEN_OP2; rewrite GEN_OP2; auto. *)
-  (*       - eapply Gamma_safe_shrink; eauto. *)
-  (*         eauto using genIR_Γ. *)
-  (*         solve_local_count. *)
-  (*         solve_local_count. *)
-  (*     }           *)
-  (*     clear IHop2. *)
-
-  (*     intros [[memH1 ?]|] (memV1 & l1 & g1 & res1) PR; [| inv PR]. *)
-  (*     destruct PR as [? [? BR]]. *)
-  (*     cbn in *. *)
-
-  (*     destruct res1 as [[from1 next] | v]; simp. *)
-
-  (*     split; cbn; eauto. *)
-  (*     eapply state_invariant_Γ; eauto. *)
-  (*     apply genIR_Γ in GEN_OP1; auto. *)
-
-(*
-    -
-      Opaque genWhileLoop.
-      cbn* in *.
-      simp.
-      unfold denotePExpr in *; cbn* in *.
-      simp; try now (exfalso; clear -NOFAIL; try apply no_failure_Ret in NOFAIL; try_abs).
-      apply no_failure_Ret in NOFAIL; simp; cbn in *; try_abs.
-      hide_strings'.
-      inv_resolve_PVar Heqs0.
-      inv_resolve_PVar Heqs1.
-      cbn* in *.
-      simp.
-      eutt_hide_right.
-      repeat apply no_failure_Ret in NOFAIL.
-      repeat (edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; []; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto).
-      rauto:L.
-      all:eauto.
-      Ltac rewrite_nth_error :=
-        match goal with
-        | h: nth_error _ _ ≡ _ |- _ => rewrite h
-        end.
-      Ltac rewrite_memory_lookup :=
-        match goal with
-        | h: memory_lookup _ _ ≡ _ |- _ => rewrite h
-        end.
-      subst; eutt_hide_left.
-      Transparent genWhileLoop.
-      cbn in *.
-      simp.
-      cbn in *.
-      unfold add_comments; cbn.
-      repeat rewrite fmap_list_app.
-      cbn.
-      match goal with
-        |- context[denote_ocfg ?x] =>
-        remember x as bks
-      end.
-(*
-      erewrite denote_ocfg_unfold.
-      2:{
-        subst; cbn.
-        clear.
-        destruct (Eqv.eqv_dec_p bid_in bid_in) as [foo | foo].
-        reflexivity.
-        exfalso; apply foo; reflexivity.
-      }
-      Opaque find_block.
-      cbn.
-      norm_v.
-      unfold IntType; rewrite typ_to_dtyp_I.
-      cbn.
-      focus_single_step_v; norm_v.
-      cbn; norm_v.
-      subst.
-      norm_v.
-      focus_single_step_v; norm_v.
-      rewrite interp_cfg_to_L3_LW.
-      cbn; norm_v.
-      unfold endo.
-      subst.
-      repeat (norm_v; []).
-      focus_single_step_v.
-      (* onAllHyps move_up_types. *)
-      unfold endo.
-      focus_single_step_v.
-      norm_v.
-      2: apply lookup_alist_add_eq.
-      cbn; norm_v.
-      subst; cbn; norm_v.
-      focus_single_step_v.
-      (* Case analysis on whether we ever enter the loop or not *)
-      unfold eval_int_icmp.
-      cbn.
-      break_match_goal.
-      -- (* We enter the loop *)
-        cbn; norm_v.
-        subst; cbn; norm_v.
-        rewrite find_block_ineq, find_block_eq.
-        2: reflexivity.
-        2:cbn; admit.
-        norm_v.
-        (* loopblock  *)
-        rewrite denote_ocfg_unfold.
-        2:{
-          cbn.
-          match goal with
-            |- context[if ?p then true else false] =>
-            destruct p as [EQ | INEQ]
-          end.
-          admit.
-          match goal with
-            |- context[if ?p then true else false] =>
-            destruct p as [?EQ | ?INEQ]
-          end.
-          reflexivity.
-          admit.
-        }
-*)
-      (* Need to denote phis, I cannot denote the block directly :( *)
-        admit.
-      (* -- *)
-      (*   (* from == to, we go from the entry block to the next one directly *) *)
-      (*   cbn. *)
-      (*   norm_v. *)
-      (*   subst; cbn; norm_v. *)
-      (*   repeat rewrite find_block_ineq. *)
-      (*   2,3,4,5: cbn; admit. *)
-      (*   cbn. *)
-      (*   rewrite find_block_nil. *)
-      (*   cbn; norm_v. *)
-      (*   assert (n ≡ 0) by admit. *)
-      (*   subst. *)
-      (*   cbn; norm_h. *)
-      (*   rewrite interp_Mem_MemSet. *)
-      (*   norm_h. *)
-      (*   apply eutt_Ret. *)
-      (*   split; eauto. *)
-      (*   { *)
-      (*     admit. *)
-      (*   } *)
-      (*   { *)
-      (*     admit. *)
-      (*   } *)
-    - (* DSHBinOp *)
-      cbn* in *.
-      simp.
-      inv_resolve_PVar Heqs1.
-      inv_resolve_PVar Heqs2.
-      (* On the Helix side, the computation consists in:
-         1. xi <- denotePExpr x
-         2. yi <- denotePExpr y
-         3. lookup xi in memory
-         4. lookup yi in memory
-         5. denoteDSHBinop on the values read
-         6. write the result in memory at yi
-       *)
-      eutt_hide_right.
-      rauto:L.
-      subst; eutt_hide_left.
-      unfold add_comments.
-      cbn.
-      match goal with
-        |- context[denote_ocfg ?x] =>
-        remember x as bks
-      end.
-      (* Lemma about while loop instead *)
-      (* erewrite denote_ocfg_unfold. *)
-      (* 2:{ *)
-      (*   subst; cbn. *)
-      (*   destruct (Eqv.eqv_dec_p bid_in bid_in).  *)
-      (*   reflexivity. *)
-      (*   exfalso. *)
-      (*   apply n0. *)
-      (*   reflexivity. *)
-      (* } *)
-      (* cbn. *)
-      (* norm_v. *)
-      (* unfold IntType; rewrite typ_to_dtyp_I. *)
-      (* cbn. *)
-      (* setoid_rewrite bind_ret_l. *)
-      (* setoid_rewrite bind_ret_l. *)
-      (* cbn. *)
-      (* norm_v. *)
-      (* rewrite interp_cfg_to_L3_LW. *)
-      (* cbn*; norm_v. *)
-      (* cbn*; norm_v. *)
-      (* 2:{ *)
-      (*   cbn. *)
-      (*   unfold endo. *)
-      (*   rewrite rel_dec_eq_true; eauto; typeclasses eauto. *)
-      (* } *)
-      (* cbn. *)
-      (* unfold endo. *)
-      (* unfold eval_int_icmp. *)
-      (* cbn. *)
-      (* focus_single_step_v. *)
-      (* unfold Int64_eq_or_cerr, Z_eq_or_cerr, ErrorWithState.err2errS, Z_eq_or_err, memory_lookup_err in *. *)
-      (* cbn* in *. *)
-      (* simp. *)
-      (* inv_resolve_PVar Heqs0. *)
-      (* inv_resolve_PVar Heqs1. *)
-      (* onAllHyps move_up_types.  *)
-  (*     repeat match goal with *)
-  (*            | h : Int64.intval _ ≡ Int64.intval _ |- _ => apply int_eq_inv in h; subst *)
-  (*            end. *)
-  (*     eutt_hide_left. *)
-  (*     focus_single_step_v. *)
-  (*     unfold MInt64asNT.from_nat in *. *)
-  (*     rename n into index1. *)
-  (*     break_if. *)
-  (*     { *)
-  (*       cbn. *)
-  (*       norm_v. *)
-  (*       subst. *)
-  (*       cbn. *)
-  (*       norm_v. *)
-      admit.
-    - (* DSHMemMap2 *) admit.
-    - (* DSHPower *) admit.
-    - (* DSHLoop *)
-      Opaque genWhileLoop.
-      Require Import Correctness_While.
-      rewrite DSHLoop_interpreted_as_tfor.
-      cbn* in *; simp.
-      rewrite add_comment_eutt.
-      (*
-        sub_alist
-       parameterized by some l_i
-       start from l_i \subseteqeq_[s1;s2] l1
-       end in l2 such that l2 | dom(l_i) ~~ l_i
-        I l --> l ⊑ l' --> I l'
-        forall l ⊑_[s1;s2] l',
-        eutt op c
-        gencode op s1 = (s2,c)
-        pre: dom(l_i) ∩ [s1;s2] = nil
-        {c}
-        post: dom(l_f) \ dom(l_i) ⊆ [s1;s2]
-       *)
-      assert (IN: In b0 (block_ids l)).
-      {
-        (* Prpoerty of genIR *)
-        admit.
-      }
-      assert (NOREPET: blk_id_norepet l0).
-      {
-        (* Prpoerty of genWhileLoop *)
-        admit.
-      }
-      assert (FRESH: fresh_in_cfg l0 nextblock).
-      {
-        (* Property of? *)
-        admit.
-      }
-      assert (NOTOVER: Z.of_nat n < Integers.Int64.modulus).
-      {
-        (* Property of no_failure of the source semantics, annoying to work with *)
-        admit.
-      }
-      (* let (I := fun _ mH => *)
- (* nat → config_helix_OT () → memoryV * (alist raw_id uvalue * global_env) → Prop *)
-      eapply eutt_mon; cycle 1.
-      eapply (genWhileLoop_tfor_correct IN NOREPET FRESH _ Heqs4 _ NOTOVER).
-      Unshelve.
-      15:{
-        refine (fun _ mh '(mv,(l,g)) =>
-                  match mh with
-                  | None => False
-                  | Some mh => state_invariant σ s1 b mh _
-                  end
-               ).
-        (*
-          DSHLoop 2 ()
-         *)
-      admit.
-      4: eassumption.
-    
-    - (* DSHMemInit *) admit.
     - (* DSHSeq *)
+      Opaque add_comment.
       cbn.
+
       pose proof GEN as GEN_DESTRUCT.
-      cbn in GEN_DESTRUCT; simp.
-      rename i into s_op1.
-      rename l0 into bk_op1.
-      rename l into bk_op2.
-      rename b into op2_entry.
-      rename bid_in into op1_entry.
-      rename Heqs0 into GEN_OP2.
-      rename Heqs2 into GEN_OP1.
+      cbn* in GEN_DESTRUCT; simp.
+
+      rename i into s_op1, l0 into bk_op1, l into bk_op2.
+      rename b into op2_entry, bid_in into op1_entry.
+      rename Heqs0 into GEN_OP2, Heqs2 into GEN_OP1.
       rewrite add_comment_eutt.
       cbn.
+      clean_goal.
+
       rewrite convert_typ_ocfg_app.
       rewrite denote_ocfg_app; eauto.
       2: {
         unfold no_reentrance.
         pose proof GEN_OP1 as GEN_OP1'.
+        
         apply (inputs_not_earlier_bound _ _ _ NEXT) in GEN_OP1'.
         apply inputs_bound_between in GEN_OP1.
         apply outputs_bound_between in GEN_OP2.
+
         pose proof (Forall_and GEN_OP1 GEN_OP1') as INPUTS.
         cbn in INPUTS.
-        eapply (Forall_disjoint GEN_OP2 INPUTS).
+        eapply Forall_disjoint; eauto.
         intros x OUT_PRED [IN_BOUND IN_NEXT].
         destruct OUT_PRED as [OUT_PRED | OUT_PRED]; auto.
         eapply (state_bound_between_separate incBlockNamed_count_gen_injective OUT_PRED IN_BOUND).
@@ -521,146 +175,58 @@ Section GenIR.
         block_count_replace.
         lia.
       }
-      rauto.
-      (* Helix generates code for op2 *first*, so op2 gets earlier
-        variables from the irstate. Helix needs to do this because it
-        passes the block id for the next block that an operator should
-        jump to when it's done executing... So it generates code for
-        op2, which goes to the next block of the entire sequence, and
-        then passes the entry point for op2 as the "nextblock" for
-        op1.
-      *)
-      cbn in NOFAIL.
-      pose proof BISIM as BISIM2.
-      destruct BISIM as [[SINV (?from & EQ)] FRESH]; cbn in *; inv EQ.
+      hvred.
+
+      cbn in *.
+      pose proof PRE as SINV.
       simp.
-      rename Heqs0 into GEN_OP2.
-      rename Heqs1 into GEN_OP1.
+
+      rename Heqs0 into GEN_OP2, Heqs1 into GEN_OP1.
+
       eapply eutt_clo_bind_returns.
       {
-        eapply IHop1 with (s1:=s_op1) (s2:=s2).
+        eapply IHop1 with (s1:=s_op1) (s2:=s2); eauto.
         - eapply bid_bound_genIR_entry; eauto.
-        - split.
-          + cbn.
-            split.
-            * cbn.
-              apply genIR_Γ in GEN_OP2.
-              split.
-              -- unfold memory_invariant.
-                 rewrite <- GEN_OP2.
-                 apply SINV.
-              -- unfold WF_IRState.
-                 rewrite <- GEN_OP2.
-                 apply SINV.
-              -- eapply no_id_aliasing_gamma; eauto.
-                 eapply st_no_id_aliasing; eauto.
-              -- eapply st_no_dshptr_aliasing; eauto.
-              -- cbn in *.
-                 eapply no_llvm_ptr_aliasing_gamma; eauto.
-                 eapply st_no_llvm_ptr_aliasing in SINV. cbn in SINV.
-                 eauto.
-            * cbn. exists from.
-              reflexivity.
-          + cbn.
-            solve_fresh.
-        - eapply no_failure_helix_bind_prefix; eauto.
-        - auto.
+        - pose proof GEN_OP2 as GEN_OP2'.
+          apply genIR_Γ in GEN_OP2'.
+          apply genIR_local_count in GEN_OP2.
+          eapply state_invariant_Γ; eauto.
+        - eapply Gamma_safe_shrink; eauto.
+          eauto using genIR_Γ.
+          solve_local_count.
       }
+
+      clear IHop1.
       introR; destruct_unit.
       intros RET _; eapply no_failure_helix_bind_continuation in NOFAIL; [| eassumption]; clear RET.
-      cbn in PRE; destruct PRE as [[INV2 [from2 BRANCH2]] FRESH2]; cbn in *; inv_eqs.
-      subst...
+      cbn in PRE0; destruct PRE0 as [INV2 [[from2 BRANCH2] POST]]; cbn in *; inv_eqs.
+      subst.
+
       eapply eqit_mon; auto.
       2: {
-        eapply IHop2; eauto.
-        destruct BISIM2 as [[SINV2 BRANCHES2] FRESHNESS2].
-        cbn in SINV2, BRANCHES2, FRESHNESS2.
-        split.
-        - cbn.
-          destruct SINV2.
-          destruct INV2.
-          split; cbn; auto.
-          + split.
-            * apply genIR_Γ in GEN_OP2.
-              apply genIR_Γ in GEN_OP1.
-              unfold memory_invariant.
-              subst_contexts.
-              cbn.
-              apply mem_is_inv0.
-            * apply SINV.
-            * eapply st_no_id_aliasing; eauto.
-            * eapply st_no_dshptr_aliasing; eauto.
-            * (* TODO: turn this into a lemma *)
-              cbn in st_no_llvm_ptr_aliasing0. cbn.
-              unfold no_llvm_ptr_aliasing.
-              assert (Γ s1 ≡ Γ s_op1) by (eapply genIR_Γ; eauto).
-              assert (Γ s_op1 ≡ Γ s2) by (eapply genIR_Γ; eauto).
-              assert (Γ s1 ≡ Γ s2) by congruence.
-              rewrite H1.
-              apply st_no_llvm_ptr_aliasing0.
-          + exists from2. reflexivity.
-        - cbn.
-          (* TODO: make solve_fresh do this *)
-          (* Nothing in ρ is bound between s1 and s2 *)
-          unfold freshness_pre in FRESHNESS2.
-          (* Everything new in l is bound between s_op1 and s2... *)
-          unfold freshness_post in FRESH2.
-          (* This is consistent so far... *)
-          unfold freshness_pre.
-          intros id v H.
-          destruct (alist_In_dec id ρ v) as [AIN | ANIN].
-          + pose proof (FRESHNESS2 _ _ AIN) as NBOUND.
-            intros CONTRA.
-            apply NBOUND.
-            eapply state_bound_between_shrink; eauto.
-            solve_local_count.
-          + pose proof (FRESH2 _ _ H ANIN) as BOUND2.
-            intros BOUND1.
-            eapply (state_bound_between_id_separate incLocalNamed_count_gen_injective BOUND1 BOUND2).
-            auto.
+        eapply IHop2. try exact GEN_OP2; eauto.
+        - admit.
+        - eapply state_invariant_Γ'; eauto.
+          apply genIR_Γ in GEN_OP1; apply genIR_Γ in GEN_OP2; rewrite GEN_OP2; auto.
+          destruct SINV; auto.
+        - eapply Gamma_safe_shrink; eauto.
+          eauto using genIR_Γ.
+          solve_local_count.
+        - admit.
       }
-      intros [[memH1 ?]|] (memV1 & l1 & g1 & res1) PR.
-      2: {
-        inversion PR.
-      }
-      destruct res1 as [[from1 next] | v].
-      2: {
-        destruct PR as [[? [? BR]] ?].
-        inversion BR.
-      }
-      cbn in PR. destruct PR as [[SINV1 BRANCHES1] FRESH1].
-      cbn.
-      split; auto.
-      cbn. cbn in SINV1.
-      destruct SINV1 as [MINV1 WF1].
-      destruct INV2 as [MINV2 WF2].
-      split.
-      split.
-      + cbn.
-        apply genIR_Γ in GEN_OP1.
-        rewrite <- GEN_OP1.
-        apply MINV1.
-      + auto.
-      + eapply no_id_aliasing_gamma; eauto.
-        eapply genIR_Γ; eauto.
-      + eauto.
-      + eapply no_llvm_ptr_aliasing_gamma; eauto.
-        eapply genIR_Γ; eauto.
-      + cbn. cbn in BRANCHES1.
-        destruct BRANCHES1 as [from1' BRANCHES1].
-        exists from1. inversion BRANCHES1.
-        reflexivity.
-      + cbn in *.
-        unfold freshness_post in *.
-        intros id v AIN ANIN.
-        destruct (alist_In_dec id l v) as [AINL | ANINL].
-        * pose proof (FRESH2 _ _ AINL ANIN).
-          eapply state_bound_between_shrink; eauto.
-          apply genIR_local_count in GEN_OP2; lia.
-        * pose proof (FRESH1 _ _ AIN ANINL).
-          eapply state_bound_between_shrink; eauto.
-          apply genIR_local_count in GEN_OP1; lia. *)
+      clear IHop2.
 
+      intros [[memH1 ?]|] (memV1 & l1 & g1 & res1) PR; [| inv PR].
+      destruct PR as [? [? BR]].
+      cbn in *.
+
+      destruct res1 as [[from1 next] | v]; [| destruct H0; simp]. 
+      split; cbn; eauto.
+      eapply state_invariant_Γ; eauto.
+      apply genIR_Γ in GEN_OP1; auto.
+      apply genIR_local_count in GEN_OP1; auto.
+      split; cbn; eauto.
+      admit.
   Admitted.
 
 
