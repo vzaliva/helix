@@ -1,4 +1,4 @@
-* Artifact for the ITP'21 submission titled: "Compositional Compiler Correctness for HELIX" 
+* Artifact for the ITP'21 submission: "Compositional Compiler Correctness for HELIX" 
 
   The supplementary material submitted with our paper is constituted of two frozen branches:
   - The branch `itp21` of the HELIX project:  https://github.com/vzaliva/helix/tree/itp21/
@@ -12,17 +12,18 @@
    The repository https://github.com/vzaliva/helix/tree/itp21/ as a whole
    contains the HELIX development over-viewed in Section 2.
    More precisely, can be found:
-   - the abstract syntax of DHCOL, of which FHCOL is a specialization, described in Section 3: [[./coq/DSigmaHCOL/DSigmaHCOL.v][DSigmaHCOL]] 
-   - the big-step interpreter, also described in Section 3: [[./coq/DSigmaHCOL/DSigmaHCOLEval.v
-Le check on y_size bounds
-][DSigmaHCOLEval]] 
+   - the abstract syntax of DHCOL, of which FHCOL is a specialization, described in Section 3: [[./coq/DSigmaHCOL/DSigmaHCOL.v][DSigmaHCOL]]
+   - the big-step interpreter, also described in Section 3: [[./coq/DSigmaHCOL/DSigmaHCOLEval.v][DSigmaHCOLEval]]
    - the itree-based denotation, described in Section 5: [[./coq/DSigmaHCOL/DSigmaHCOLITree.v][DSigmaHCOLITree]] 
    - the proof of correctness of this new semantics, stated in Section 5: [[./coq/LLVMGen/EvalDenoteEquiv.v][EvalDenoteEquiv]]
    - the compilation pass from FHCOL down to LLVM IR, described through Section 4: [[./coq/LLVMGen/Compiler.v][Compiler]]
    - all the other files contained in [[./coq/LLVMGen/][LLVMGen]] are part of the proof of correctness for the compilation of operators,
      stated in Section 5.
+     
      The state invariant sketched in Section 7 can be found in [[./coq/LLVMGen/Correctness_Invariants.v][Correctness_Invariants]].
+     
      The result itself is stated in [[./coq/LLVMGen/Correctness_GenIR.v][Correctness_GenIR]].
+     
      *Note on admits*: This file contains three admits. These correspond to three operators that we have not yet proved.
      We emphasize that these operators have a similar structure to the cases of IMap and Power that we have proved:
      then use "genWhileLoop" to iterate some operation over a vector.
