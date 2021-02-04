@@ -90,7 +90,7 @@ Section NExpr.
     exp_correct : genNExpr_exp_correct σ s1 s2 e mf stf;
     is_almost_pure : almost_pure mi sti mf stf; 
     extends : local_scope_modif s1 s2 (fst (snd sti)) (fst (snd stf));
-    exp_in_scope : forall id, e ≡ EXP_Ident (ID_Local id) -> ((exists v, alist_In id (fst (snd sti)) v) \/ (lid_bound_between s1 s2 id /\ s1 << s2));
+    exp_in_scope : forall id, e ≡ EXP_Ident (ID_Local id) -> ((alist_In id (fst (snd sti)) (UVALUE_I64 (snd mf)) /\ lid_bound s1 id) \/ (alist_In id (fst (snd stf)) (UVALUE_I64 (snd mf)) /\ lid_bound_between s1 s2 id /\ s1 << s2));
     Gamma_cst : Γ s2 ≡ Γ s1;
     Mono_IRState : s1 << s2 \/ fst (snd sti) ≡ fst (snd stf)
     }.
@@ -136,8 +136,9 @@ Section NExpr.
           reflexivity.
         * intros * EQ; inv EQ.
           left.
-          eexists.
+          split.
           eapply memory_invariant_LLU; eauto.
+          destruct PRE; eauto.
 
       + (* The variable maps to a pointer *)
         unfold denoteNExpr in *; cbn* in *; simp; try_abs.
@@ -167,7 +168,9 @@ Section NExpr.
         * apply local_scope_modif_add.
           auto using lid_bound_between_incLocal.
         * intros * EQ; inv EQ; right.
-          split; [auto using lid_bound_between_incLocal | solve_local_count].
+          split.
+          solve_alist_in.
+          split; [auto using lid_bound_between_incLocal | solve_local_count].          
         * eauto using incLocal_Γ.
         * left; solve_local_count.
 
@@ -276,7 +279,10 @@ Section NExpr.
         eapply local_scope_modif_trans; [| | eauto|]; [solve_local_count | solve_local_count |].
         eauto using local_scope_modif_add, lid_bound_between_incLocal.
       + intros ? EQ; inv EQ.
-        right; split; [| solve_local_count].
+        right.
+        split.
+        solve_alist_in.
+        split; [| solve_local_count].
         apply lid_bound_between_shrink_down with s3; [solve_local_count |].
         eauto using lid_bound_between_incLocal.
       + rewrite <- GAM1, <- GAM2.
@@ -382,7 +388,10 @@ Section NExpr.
         eapply local_scope_modif_trans; [| | eauto|]; [solve_local_count | solve_local_count |].
         eauto using local_scope_modif_add, lid_bound_between_incLocal.
       + intros ? EQ; inv EQ.
-        right; split; [| solve_local_count].
+        right.
+        split.
+        solve_alist_in.
+        split; [| solve_local_count].
         apply lid_bound_between_shrink_down with s3; [solve_local_count |].
         eauto using lid_bound_between_incLocal.
       + rewrite <- GAM1, <- GAM2.
@@ -472,7 +481,10 @@ Section NExpr.
        eapply local_scope_modif_trans; [| | eauto|]; [solve_local_count | solve_local_count |].
        eauto using local_scope_modif_add, lid_bound_between_incLocal.
      + intros ? EQ; inv EQ.
-       right; split; [| solve_local_count].
+       right.
+       split.
+       solve_alist_in.
+       split; [| solve_local_count].
        apply lid_bound_between_shrink_down with s3; [solve_local_count |].
        eauto using lid_bound_between_incLocal.
      + rewrite <- GAM1, <- GAM2.
@@ -561,7 +573,7 @@ Section NExpr.
        eapply local_scope_modif_trans; [| | eauto|]; [solve_local_count | solve_local_count |].
        eauto using local_scope_modif_add, lid_bound_between_incLocal.
      + intros ? EQ; inv EQ.
-       right; split; [| solve_local_count].
+       right; split; [solve_alist_in|]; split; [| solve_local_count].
        apply lid_bound_between_shrink_down with s3; [solve_local_count |].
        eauto using lid_bound_between_incLocal.
      + rewrite <- GAM1, <- GAM2.
@@ -652,7 +664,7 @@ Section NExpr.
        eapply local_scope_modif_trans; [| | eauto|]; [solve_local_count | solve_local_count |].
        eauto using local_scope_modif_add, lid_bound_between_incLocal.
      + intros ? EQ; inv EQ.
-       right; split; [| solve_local_count].
+       right; split; [solve_alist_in|]; split; [| solve_local_count].
        apply lid_bound_between_shrink_down with s3; [solve_local_count |].
        eauto using lid_bound_between_incLocal.
      + rewrite <- GAM1, <- GAM2.
@@ -686,6 +698,68 @@ Section NExpr.
     intros e σ s1 s2 s3 mh mv ρ g mh' t mv' ρ' g' H.
     destruct H.
     eapply genNExpr_post_memoryV; eauto.
+  Qed.
+
+  Lemma genNExpr_ident_or_int :
+    forall nexp σ s1 s2 e c x m m',
+      WF_IRState σ s1 ->
+      @Returns (CallE +' PickE +' UBE +' DebugE +' FailureE) _ (Some (m', x)) (interp_helix (denoteNExpr σ nexp) m) ->
+      genNExpr nexp s1 ≡ inr (s2, (e, c)) ->
+      (e ≡ EXP_Integer (Int64.intval x) \/ exists id, e ≡ EXP_Ident (ID_Local id)).
+  Proof.
+    induction nexp;
+      intros σ s1 s2 e c x m m' WF RET GEN;
+      cbn in GEN; simp; eauto.
+    - cbn in RET.
+      break_match.
+      + unfold context_lookup in *.
+        unfold ErrorWithState.option2errS in Heqs.
+        unfold trywith in Heqs0.
+        break_match; inv Heqs.
+        break_match; inv Heqs0.
+        cbn in RET.
+        apply Returns_helix_throw in RET.
+        contradiction.
+      + unfold context_lookup in *.
+        unfold ErrorWithState.option2errS in Heqs.
+        unfold trywith in Heqs0.
+        break_match; inv Heqs.
+        break_match.
+        destruct (nth_error σ v) eqn:FIND; inv Heqs0.
+        destruct d; cbn in RET.
+        * rewrite interp_helix_ret in RET.
+          apply Returns_ret_inv in RET.
+          inv RET.
+
+          pose proof (WF _ _ _ FIND) as (id & NTH).
+          destruct id; cbn in NTH; rewrite Heqo in NTH; inv NTH.
+          right. exists id.
+          reflexivity.
+        * apply Returns_helix_throw in RET.
+          contradiction.
+        * apply Returns_helix_throw in RET.
+          contradiction.
+    - cbn in RET.
+      rewrite interp_helix_ret in RET.
+      apply Returns_ret_inv in RET.
+      inv RET.
+      left. auto.
+  Qed.
+
+  Lemma genNExpr_ident_bound :
+    forall nexp s1 s2 id c,
+      genNExpr nexp s1 ≡ inr (s2, (EXP_Ident (ID_Local id), c)) ->
+      gamma_bound s1 ->
+      lid_bound s2 id.
+  Proof.
+    intros nexp s1 s2 id c GEN.
+    pose proof genNExpr_local_count _ _ GEN as LC.
+    revert s1 s2 id c GEN LC.
+    induction nexp;
+      intros s1 s2 id c GEN LC GAMBOUND;
+      cbn in GEN; simp; eauto; try solve_lid_bound.
+    destruct (nth_error (Γ s1) v) eqn:LUP; inv Heqs.
+    eauto.
   Qed.
 
 End NExpr.

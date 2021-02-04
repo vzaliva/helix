@@ -352,4 +352,19 @@ Section StateBound.
     eapply state_bound_between_list_disjoint; eauto.
   Qed.
 
+  Lemma state_bound_before_bound_between :
+    forall s1 s2 id,
+      state_bound s1 id ->
+      count s1 <= count s2 ->
+      exists s0,
+        state_bound_between s0 s2 id.
+  Proof.
+    intros s1 s2 id BOUND LT.
+    destruct BOUND as (prefix & s1' & s2' & PRE & COUNT & GEN).
+    exists s1'.
+    do 3 eexists.
+    repeat split; eauto.
+    lia.
+  Qed.
+
 End StateBound.
