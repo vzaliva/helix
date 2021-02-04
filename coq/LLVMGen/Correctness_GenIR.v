@@ -7,7 +7,7 @@ Require Import Helix.LLVMGen.Correctness_Alloc.
 Require Import Helix.LLVMGen.Correctness_While.
 Require Import Helix.LLVMGen.Correctness_Loop.
 Require Import Helix.LLVMGen.Correctness_IMap.
-Require Import Helix.LLVMGen.Correctness_Power.
+(* Require Import Helix.LLVMGen.Correctness_Power. *)
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.StateCounters.
 Require Import Helix.LLVMGen.VariableBinding.
@@ -93,7 +93,7 @@ Section GenIR.
            (interp_cfg (D.denote_ocfg (convert_typ [] bks) (bid_from,bid_in))
                        g ρ memV).
   Proof.
-    intros s1 s2 op; revert s1 s2; induction op; intros * GEN NEXT PRE GAM NOFAIL.
+    intros s1 s2 op; revert s1 s2; induction op; intros * GEN NOFAIL NEXT PRE GAM.
 
     - (* DSHNOp *)
       cbn* in *.
@@ -145,7 +145,8 @@ Section GenIR.
       admit.
 
     - (* DSHPower *)
-      apply DSHPower_correct; auto. 
+      (* apply DSHPower_correct; auto.  *)
+      admit.
 
     - (* DSHLoop *)
       apply DSHLoop_correct; auto. 
@@ -154,7 +155,6 @@ Section GenIR.
       apply DSHAlloc_correct; auto. 
 
     - (* DSHMemInit *)
-
       admit.
 
     - (* DSHSeq *)
@@ -222,13 +222,13 @@ Section GenIR.
       2: {
         eapply IHop2. try exact GEN_OP2; eauto.
         - auto.
+        - auto.
         - eapply state_invariant_Γ'; eauto.
           apply genIR_Γ in GEN_OP1; apply genIR_Γ in GEN_OP2; rewrite GEN_OP2; auto.
           destruct SINV; auto.
         - eapply Gamma_safe_shrink; eauto.
           eauto using genIR_Γ.
           solve_local_count.
-        - auto.
       }
       clear IHop2.
 
