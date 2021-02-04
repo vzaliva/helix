@@ -226,7 +226,13 @@ Section GenIR.
       apply genIR_Γ in GEN_OP1; auto.
       apply genIR_local_count in GEN_OP1; auto.
       split; cbn; eauto.
-      admit.
+      rename s_op1 into s2, s2 into s3.
+      rename ρ into l1, l into l2, l1 into l3.
+
+      apply genIR_local_count in GEN_OP1. 
+      apply genIR_local_count in GEN_OP2.
+      eapply local_scope_modif_trans'''; eauto.
+
   Admitted.
 
 
