@@ -95,6 +95,19 @@ Section NExpr.
     Mono_IRState : s1 << s2 \/ fst (snd sti) ≡ fst (snd stf)
     }.
 
+  Lemma genNExpr_post_lsm :
+    ∀ (e : exp typ) (σ : evalContext) (s1 s2 : IRState) (mi : memoryH) (mvi mvf : memoryV)
+      (li lf : local_env)
+      (gi gf : global_env)
+      (mvf : memoryV)
+      (mf : memoryH * DynamicValues.int64),
+      genNExpr_post e σ s1 s2 mi (mvi, (li, gi)) mf (mvf, (lf, (gf, ()))) →
+      local_scope_modif s1 s2 li lf.
+  Proof.
+    intros e σ s1 s2 mi mvi mvf li lf gi gf mvf0 mf H.
+    destruct H; auto.
+  Qed.
+
   Lemma genNExpr_correct :
     forall (* Compiler bits *) (s1 s2: IRState)
       (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH) 
@@ -763,3 +776,6 @@ Section NExpr.
   Qed.
 
 End NExpr.
+
+Hint Resolve genNExpr_post_lsm : LSM.
+Hint Resolve genNExpr_post_lsm : LocalScopePreserved.

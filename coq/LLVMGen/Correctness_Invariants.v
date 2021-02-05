@@ -3303,13 +3303,13 @@ Ltac solve_local_scope_modif :=
   eauto with LSM.
 
 Hint Immediate local_scope_modif_refl : LSM.
-Hint Extern 2 (local_scope_modif _ _ _ _) => solve [eapply local_scope_modif_shrink; [eassumption | solve_local_count | solve_local_count]] : LSM.
+Hint Resolve local_scope_modif_shrink : LSM.
 Hint Extern 1 (lid_bound_between _ _ _) => solve_lid_bound_between : LSM.
 Hint Extern 1 (lid_bound _ _) => solve_lid_bound : LSM.
 Hint Resolve local_scope_modif_add' : LSM.
 Hint Extern 2 (local_scope_modif _ _ _ (Maps.add ?x ?v ?l)) => eapply local_scope_modif_add'; [solve_lid_bound_between | eauto with LSM] : LSM. (* Why do I need this? *)
 Hint Extern 2 (local_scope_modif _ _ _ _) => eapply local_scope_modif_trans; cycle 2; eauto; solve_local_count : LSM.
-Hint Extern 2 (_ <<= _) => solve_local_count : LSM.  
+Hint Extern 1 (_ <<= _) => solve_local_count : LSM.  
 
 (* Slightly more aggressive with transitivity... May get stuck *)
 Ltac solve_local_scope_modif_trans :=
@@ -3321,12 +3321,15 @@ Ltac solve_local_scope_modif_trans :=
     | eapply local_scope_modif_trans; cycle 3; [solve_local_scope_modif_trans | solve_local_count | solve_local_count | solve_local_scope_modif_trans]
     ].
 
+Hint Immediate Gamma_preserved_refl : SolveGammaPreserved.
+Hint Extern 1 (~ (in_Gamma _ _ _)) => solve_not_in_gamma : SolveGammaPreserved.
+Hint Resolve Gamma_preserved_add_not_in_Gamma : SolveGammaPreserved.
+Hint Resolve Gamma_preserved_if_safe : SolveGammaPreserved.
+Hint Extern 1 (local_scope_modif _ _ _ _) => solve_local_scope_modif : SolveGammaPreserved.
+Hint Extern 1 (Gamma_safe _ _ _) => solve_gamma_safe : SolveGammaPreserved.
+
 Ltac solve_gamma_preserved :=
-  first
-    [ solve [eapply Gamma_preserved_refl]
-    | solve [eapply Gamma_preserved_add_not_in_Gamma; [solve_gamma_preserved | solve_not_in_gamma]]
-    | solve [eapply Gamma_preserved_if_safe; [solve_gamma_safe | solve_local_scope_modif]]
-    ].
+  solve [eauto with SolveGammaPreserved].
 
 Opaque alist_add.
 
@@ -3471,11 +3474,48 @@ Proof.
   setoid_rewrite maps_add_neq; eauto.
 Qed.
 
+Lemma local_scope_preserved_add_bound_earlier :
+  forall s1 s2 s3 s4 l1 l2 id v,
+    local_scope_preserved s1 s2 l1 l2 ->
+    lid_bound_between s3 s4 id ->
+    s4 <<= s1 ->
+    local_scope_preserved s1 s2 l1 (alist_add id v l2).
+Proof.
+  intros s1 s2 s3 s4 l1 l2 id v LSP BOUND LT.
+  unfold local_scope_preserved in *.
+  intros id0 H.
+
+  rewrite alist_find_neq.
+  eauto.
+  intros CONTRA; symmetry in CONTRA; revert CONTRA.
+  solve_id_neq.
+Qed.
+
+Lemma local_scope_preserved_add_bound_later :
+  forall s1 s2 s3 s4 l1 l2 id v,
+    local_scope_preserved s1 s2 l1 l2 ->
+    lid_bound_between s3 s4 id ->
+    s2 <<= s3 ->
+    local_scope_preserved s1 s2 l1 (alist_add id v l2).
+Proof.
+  intros s1 s2 s3 s4 l1 l2 id v LSP BOUND LT.
+  unfold local_scope_preserved in *.
+  intros id0 H.
+
+  rewrite alist_find_neq.
+  eauto.
+  solve_id_neq.
+Qed.
+
+Hint Resolve local_scope_preserved_add_bound_earlier local_scope_preserved_add_bound_later : LocalScopePreserved.
+Hint Extern 1 (local_scope_modif _ _ _ _) => solve_local_scope_modif : LocalScopePreserved.
+Hint Extern 1 (Gamma_safe _ _ _) => solve_gamma_safe : LocalScopePreserved.
+Hint Extern 1 (lid_bound _ _) => solve_lid_bound : LocalScopePreserved.
+Hint Extern 1 (lid_bound_between _ _ _) => solve_lid_bound : LocalScopePreserved.
+Hint Resolve local_scope_preserved_refl local_scope_preserved_bound_earlier local_scope_preserve_modif : LocalScopePreserved.
+
 Ltac solve_local_scope_preserved :=
-  first [ apply local_scope_preserved_refl
-        | eapply local_scope_preserved_bound_earlier;
-          [solve_lid_bound | solve_local_count | solve_local_scope_preserved]
-        ].
+  solve [eauto with LocalScopePreserved].
 
 Ltac solve_state_invariant := eauto with SolveStateInv.
 Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incBlockNamed; [eassumption | solve_state_invariant] : SolveStateInv.
