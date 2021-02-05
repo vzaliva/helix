@@ -3300,16 +3300,15 @@ Ltac solve_gamma_safe :=
 
 (* TODO: expand this *)
 Ltac solve_local_scope_modif :=
-  eauto with LSM.
+  cbn; eauto with LSM.
 
 Hint Immediate local_scope_modif_refl : LSM.
-Hint Resolve local_scope_modif_shrink : LSM.
 Hint Extern 1 (lid_bound_between _ _ _) => solve_lid_bound_between : LSM.
 Hint Extern 1 (lid_bound _ _) => solve_lid_bound : LSM.
 Hint Resolve local_scope_modif_add' : LSM.
-Hint Extern 2 (local_scope_modif _ _ _ (Maps.add ?x ?v ?l)) => eapply local_scope_modif_add'; [solve_lid_bound_between | eauto with LSM] : LSM. (* Why do I need this? *)
+Hint Resolve local_scope_modif_shrink : LSM.
+Hint Extern 1 (_ <<= _) => solve_local_count : LSM.
 Hint Extern 2 (local_scope_modif _ _ _ _) => eapply local_scope_modif_trans; cycle 2; eauto; solve_local_count : LSM.
-Hint Extern 1 (_ <<= _) => solve_local_count : LSM.  
 
 (* Slightly more aggressive with transitivity... May get stuck *)
 Ltac solve_local_scope_modif_trans :=
@@ -3507,12 +3506,15 @@ Proof.
   solve_id_neq.
 Qed.
 
-Hint Resolve local_scope_preserved_add_bound_earlier local_scope_preserved_add_bound_later : LocalScopePreserved.
 Hint Extern 1 (local_scope_modif _ _ _ _) => solve_local_scope_modif : LocalScopePreserved.
 Hint Extern 1 (Gamma_safe _ _ _) => solve_gamma_safe : LocalScopePreserved.
+Hint Extern 1 (_ <<= _) => solve_local_count : LocalScopePreserved.
 Hint Extern 1 (lid_bound _ _) => solve_lid_bound : LocalScopePreserved.
 Hint Extern 1 (lid_bound_between _ _ _) => solve_lid_bound : LocalScopePreserved.
-Hint Resolve local_scope_preserved_refl local_scope_preserved_bound_earlier local_scope_preserve_modif : LocalScopePreserved.
+Hint Immediate local_scope_preserve_modif : LocalScopePreserved.
+Hint Resolve local_scope_preserved_refl local_scope_preserved_bound_earlier : LocalScopePreserved.
+Hint Resolve local_scope_preserved_add_bound_later local_scope_preserved_add_bound_earlier : LocalScopePreserved.
+Hint Extern 1 (lid_bound_between _ _ _) => solve_lid_bound_between : LocalScopePreserved.
 
 Ltac solve_local_scope_preserved :=
   solve [eauto with LocalScopePreserved].
