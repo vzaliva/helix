@@ -2606,7 +2606,6 @@ Proof.
   (* only globals defined by [initIRGlobals] *)
   replace (flat_map (type_defs_of typ) gdecls) with (@nil (ident * typ)) in *.
   2:{
-    admit. (* TMPC
     clear - LX LG.
     symmetry.
 
@@ -2663,11 +2662,9 @@ Proof.
         unfold addVar in *; cbn in *.
         rewrite Heqs3.
         reflexivity.
-        TMPC *)
   }
   replace (flat_map (declarations_of typ) gdecls) with (@nil (declaration typ)) in *.
   2:{
-    admit. (* TMPC
     clear - LX LG.
     symmetry.
 
@@ -2724,13 +2721,11 @@ Proof.
         unfold addVar in *; cbn in *.
         rewrite Heqs3.
         reflexivity.
-TMPC *)
   }
   replace (flat_map (definitions_of typ) gdecls)
     with (@nil (definition typ (LLVMAst.block typ * list (LLVMAst.block typ))))
     in *.
   2:{
-    admit. (* TMPC
     clear - LX LG.
     symmetry.
 
@@ -2787,7 +2782,6 @@ TMPC *)
         unfold addVar in *; cbn in *.
         rewrite Heqs3.
         reflexivity.
-TMPC *)
   }
 
   repeat rewrite app_nil_r.
@@ -2814,8 +2808,6 @@ TMPC *)
      is satisfied after [allocate_declarations] step *)
 
   1:{
-
-    admit. (* TMPC
 
     subst LHS.
     clear - VFN.
@@ -2916,8 +2908,6 @@ TMPC *)
       reflexivity.
       reflexivity.
       crush.
-
-TMPC *)
 
   }
 
@@ -4348,17 +4338,6 @@ TMPC *)
                     by (rewrite typ_to_dtyp_D; constructor).
                   cbn.
                   do 3 f_equal.
-                  (*
-                  Search i2.       (* l1' -[rotate]-> i2 *)
-                  Search l1'.      (* l1 -[initIRGlobals]-> l1' *)
-                  Search l1.       (* data -[initXYplaceholders]-> l1 *)
-
-                  Search ne.        (* b0 -[from_Z . bits_of_b46]-> ne *)
-                  Search b0.        (* hdata_pre -[rotate]-> b0 *)
-                  Search hdata_pre. (* l0 -[initFSHglobals]-> hdata_pre *)
-                  Search l0.        (* l -[constMemBlock]-> l0 *)
-                  Search l.         (* data -[constMemBlock]-> l *)
-                   *)
                   admit.
                 +++
                   admit.
