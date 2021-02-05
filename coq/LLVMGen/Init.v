@@ -2379,6 +2379,105 @@ Proof.
   rewrite memory_lookup_memory_set_eq.
   eauto.
 Qed.
+
+(* [map_monad] unfolds into its [loop] otherwise *)
+Lemma map_monad_cons
+      {A B : Type}
+      `{Monad m}
+      (f : A -> m B)
+      (x : A)
+      (xs : list A)
+  :
+    map_monad f (x::xs) ≡ (b <- f x ;;
+                         bs <- map_monad f xs ;;
+                         ret (b::bs))%monad.
+Proof.
+  reflexivity.
+Qed.
+
+Lemma map_monad_map
+      {A B C : Type}
+      `{Monad m}
+      (f : B -> m C)
+      (g : A -> B)
+      (l : list A)
+  :
+    map_monad f (map g l) ≡ map_monad (fun x => f (g x)) l.
+Proof.
+  induction l.
+  reflexivity.
+  now rewrite map_cons, !map_monad_cons, IHl.
+Qed.
+
+(* 1) This could be more general than itrees
+   2) A stronger version: [forall "a in l"] *)
+Lemma map_monad_ret_map
+      {A B : Type}
+      {E : Type -> Type}
+      (f : A -> itree E B)
+      (g : A -> B)
+      (l : list A)
+  :
+    (forall a, f a ≈ Ret (g a)) ->
+    map_monad f l ≈ Ret (map g l).
+Proof.
+  intros FG.
+  induction l.
+  - reflexivity.
+  - rewrite map_monad_cons, map_cons.
+    cbn.
+    rewrite FG.
+    cbn in IHl.
+    setoid_rewrite IHl.
+    now rewrite !Eq.bind_ret_l.
+Qed.
+
+(* ZX TODO: this really needs to be generalized with MonadLaws. see above. *)
+Lemma map_monad_inr_map
+      {A B : Type}
+      (f : A -> err B)
+      (g : A -> B)
+      (l : list A)
+  :
+    (forall a, f a ≡ inr (g a)) ->
+    map_monad f l ≡ inr (map g l).
+Proof.
+  intros FG.
+  induction l.
+  - reflexivity.
+  - now rewrite map_monad_cons, map_cons, FG, IHl.
+Qed.
+
+(* ZX TODO: might want to move to vellvm *)
+(* similar to [interp_cfg_to_L3_concretize_or_pick_concrete] *)
+Lemma interp_mcfg_concretize_or_pick_concrete :
+  forall (uv : uvalue) (dv : dvalue) P g ρ m,
+    is_concrete uv ->
+    uvalue_to_dvalue uv ≡ inr dv ->
+    interp_mcfg (concretize_or_pick uv P) g ρ m ≈ Ret (m, (ρ, (g, dv))).
+Proof.
+  intros uv dv P g ρ m CONC CONV.
+  unfold concretize_or_pick.
+  rewrite CONC.
+  cbn.
+  unfold lift_err.
+  now rewrite CONV, interp_to_L3_ret.
+Qed.
+
+(* ZX TODO: might want to move to vellvm *)
+(* similar to [interp_cfg_to_L3_concretize_or_pick_concrete_exists] *)
+Lemma interp_mcfg_concretize_or_pick_concrete_exists :
+  forall (uv : uvalue) P g ρ m,
+    is_concrete uv ->
+    exists dv, uvalue_to_dvalue uv ≡ inr dv /\
+          interp_mcfg (concretize_or_pick uv P) g ρ m ≈ Ret (m, (ρ, (g, dv))).
+Proof.
+  intros uv P g ρ m CONC.
+  pose proof is_concrete_uvalue_to_dvalue uv CONC as (dv & CONV).
+  exists dv.
+  split; auto.
+  now apply interp_mcfg_concretize_or_pick_concrete.
+Qed.
   
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
@@ -2901,24 +3000,6 @@ TMPC *)
       by (cbn; now rewrite Eq.bind_ret_l).
     rewrite T; clear T.
 
-    (*
-    assert (TMP_EQ: eutt
-             (fun '(m,_) '(m',_) => m = m')
-             (ret (memory_set (memory_set mg (S lg) mo) lg mi, ()))
-             (ITree.bind' (E:=E_mcfg)
-                          (fun mg' => ret (memory_set
-                                          (memory_set (fst mg') (S lg) mo)
-                                          lg mi, ()))
-                          (ret (mg, ()))))
-      by (setoid_rewrite Eq.bind_ret_l; apply eutt_Ret; reflexivity).
-
-    eapply eutt_weaken_left; [| exact TMP_EQ |]; clear TMP_EQ.
-    {
-      intros (?, ?) (?, ?) (? & [? ?] & ? & []).
-      now cbn.
-    }
-     *)
-
     rewrite interp_to_L3_bind.
     cbn.
 
@@ -3072,11 +3153,7 @@ TMPC *)
           as alloc_glob_decl_inv_mcfg.
 
         apply eutt_clo_bind with (UU:=alloc_glob_decl_inv_mcfg (pre ++ [a])).
-        --
-          (*
-          rename tg2 into ag.
-          rename i0 into s_pre, i1 into s_pre_a, l' into data_pre, l3 into data_pre_a.
-           *)
+        -- (* allocate "new global" *)
           repeat rewrite interp_to_L3_bind.
           (* Alloca ng *)
           pose_interp_to_L3_alloca m'' a'' A' AE'.
@@ -3477,7 +3554,7 @@ TMPC *)
               rewrite alist_find_cons_eq; eauto.
               rewrite alist_find_cons_neq, remove_neq_alist; eauto.
               all: typeclasses eauto.
-        --
+        -- (* allocate post *)
           intros.
           cbn in *.
           move IHpost at bottom.
@@ -3490,7 +3567,6 @@ TMPC *)
           copy_apply global_uniq_chk_preserves_st Heqs.
           subst i0.
 
-          (* rewrite GLOBALS in LG. *)
           move LG at bottom.
           rewrite <-ListUtil.list_app_first_last in LG.
           apply initIRGlobals_inr in LG.
@@ -3507,7 +3583,6 @@ TMPC *)
           ++
             rewrite ListUtil.list_app_first_last. reflexivity.
           ++
-            (* [clear - PRE Heqs Heqs0.] doesn't work for some reason? *)
             clear IHpost; move PRE at bottom; move Heqs0 at bottom.
 
             eapply initIRGlobals_rev_app.
@@ -4395,6 +4470,7 @@ TMPC *)
               all: intuition.
           ++
             rewrite typ_to_dtyp_D_array.
+
             unfold constArray in Heqp.
             break_let.
             invc Heqp.
@@ -4413,6 +4489,39 @@ TMPC *)
                 DynamicValues.Int64.intval := Z.of_nat n;
                 DynamicValues.Int64.intrange := n_ran |}
               as int_n.
+
+            rename l6 into pdata.
+            unfold denote_exp; fold denote_exp.
+            rewrite map_monad_map.
+            cbn.
+            autorewrite with itree.
+            rewrite interp_to_L3_bind.
+
+            rewrite map_monad_ret_map with (g0:=UVALUE_Double) by reflexivity.
+            rewrite translate_ret, interp_to_L3_ret.
+            autorewrite with itree.
+            rewrite interp_to_L3_bind.
+            unfold concretize_or_pick.
+            replace (is_concrete (UVALUE_Array (map UVALUE_Double pdata)))
+              with true.
+            2: {
+              clear; cbn.
+              symmetry; apply forallb_forall.
+              intros.
+              apply ListUtil.in_map_elim in H.
+              destruct H as [d [_ D]].
+              now subst.
+            }
+            cbn.
+            rewrite map_monad_map.
+            rewrite map_monad_inr_map with (g0:=DVALUE_Double)
+              by reflexivity.
+            cbn.
+            rewrite translate_ret, interp_to_L3_ret.
+            autorewrite with itree.
+
+            rewrite _exp_E_to_L0_Memory, subevent_subevent.
+
             admit.
         -- (* initialize [post] *)
           admit.
