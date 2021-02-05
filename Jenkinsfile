@@ -28,6 +28,11 @@ pipeline {
 		    env.GIT_COMMIT_MSG = sh (script: 'git log -1 --pretty=%B ${GIT_COMMIT}', returnStdout: true).trim()
 		    env.GIT_AUTHOR = sh (script: 'git log -1 --pretty=%cn ${GIT_COMMIT}', returnStdout: true).trim()
 		}
+
+		skip_ci_result = sh (script: "git log -1 | grep '.*\\[skip ci\\].*'", returnStatus: true)
+		if (skip_ci_result == 0) {
+		    env.SKIP_CI = "true"
+		}
 	            
                 sh '''
                       eval $(opam config env)
@@ -72,8 +77,9 @@ def notifySlack(String buildStatus = 'STARTED') {
     }
 
     def msg = "Build <${env.BUILD_URL}|#${env.BUILD_NUMBER}> (${getSlackRepoURL()}) of ${env.JOB_NAME} (${env.GIT_BRANCH}) by ${env.GIT_AUTHOR} ${buildStatus} in ${currentBuild.durationString.minus(' and counting')}"
-	if (env.BRANCH_NAME == "${BUILD_IF_BRANCH}" ) {
-	    slackSend(color: color, message: msg, channel: '#bitbucket-activity')
+
+	if (env.BRANCH_NAME == "${BUILD_IF_BRANCH}" && !(env.SKIP_CI == "true")) {
+	  slackSend(color: color, message: msg, channel: '#bitbucket-activity')
     }
 }
 
