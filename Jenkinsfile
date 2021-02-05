@@ -22,18 +22,18 @@ pipeline {
 	    }
             steps {
 
-	        scmSkip(deleteBuild: true, skipPattern:'.*\\[skip ci\\].*')
 
 		script {
 		    env.GIT_COMMIT_MSG = sh (script: 'git log -1 --pretty=%B ${GIT_COMMIT}', returnStdout: true).trim()
 		    env.GIT_AUTHOR = sh (script: 'git log -1 --pretty=%cn ${GIT_COMMIT}', returnStdout: true).trim()
+		    skip_ci_result = sh (script: "git log -1 | grep '.*\\[skip ci\\].*'", returnStatus: true)
+		    if (skip_ci_result == 0) {
+		        env.SKIP_CI = "true"
+		    }
 		}
 
-		skip_ci_result = sh (script: "git log -1 | grep '.*\\[skip ci\\].*'", returnStatus: true)
-		if (skip_ci_result == 0) {
-		    env.SKIP_CI = "true"
-		}
-	            
+		scmSkip(deleteBuild: true, skipPattern:'.*\\[skip ci\\].*')
+
                 sh '''
                       eval $(opam config env)
                       opam config var root
