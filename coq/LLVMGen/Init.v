@@ -4501,6 +4501,26 @@ Proof.
 
             rewrite _exp_E_to_L0_Memory, subevent_subevent.
 
+            unfold allocated_globals in AG.
+            destruct AG as [AG _].
+            specialize (AG (length pre)).
+            autospecialize AG;
+              [subst; rewrite ListUtil.length_app; cbn; lia |].
+            destruct AG as [a_ptr [AA AIG]].
+            erewrite ListUtil.ith_eq with (j:=length pre + 0)
+              in AIG; [| lia].
+            erewrite ith_eq_app_r in AIG.
+            cbn in AIG.
+            unfold in_global_addr in AIG.
+            replace av with (DVALUE_Addr a_ptr) in * by congruence; clear AV.
+            destruct a_ptr as (a_ptr, a_off).
+
+            copy_apply allocated_get_logical_block AA;
+              rename H0 into AM'B.
+            destruct AM'B as [[a_sz a_bytes a_id] AM'B].
+            rewrite interp_mcfg_store
+              by (unfold write; rewrite AM'B; reflexivity).
+
             admit.
         -- (* initialize [post] *)
           admit.
