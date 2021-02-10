@@ -1296,7 +1296,6 @@ Proof.
     repeat break_match; invc I.
     unfold initOneFSHGlobal in Heqs.
     repeat break_match; invc Heqs.
-    1: break_match; invc H0.
     all: eapply IHglobals; try eassumption.
     destruct (Nat.eq_dec k (memory_next_key m0)).
     *
@@ -2077,7 +2076,6 @@ Proof.
       invc H0.
       unfold initOneFSHGlobal in Heqs.
       repeat break_match; inv Heqs.
-      break_match; inv H0.
       apply initFSHGlobals_no_overwrite in Heqs0.
       clear - Heqs0.
       admit. (* [Proper mem_block_exists] *)
@@ -4083,9 +4081,7 @@ Proof.
                   unfold initOneFSHGlobal in Heqs2.
                   cbn in Heqs2.
                   repeat break_match_hyp; try inl_inr.
-                  inversion Heqs2; clear Heqs2.
-                  rename t0 into ne.
-                  subst mg0 l4.
+                  invc Heqs2.
                   unfold in_local_or_global_scalar.
 
                   apply nth_map_inv in H1.
@@ -4108,6 +4104,7 @@ Proof.
                   cbn.
                   do 3 f_equal.
 
+                  (*
                   Search i0.       (* l1' -[int64FromData]-> i0 *)
                   Search l1'.      (* l1 -[initIRGlobals pre]-> l1' *)
                   Search l1.       (* data -[initXYplaceholders]-> l1 *)
@@ -4117,6 +4114,7 @@ Proof.
                   Search hdata_pre. (* l0 -[initFSHglobals pre]-> hdata_pre *)
                   Search l0.        (* l -[constMemBlock]-> l0 *)
                   Search l.         (* data -[constMemBlock]-> l *)
+                   *)
                   admit.
                 +++
                   admit.
@@ -4308,7 +4306,6 @@ Proof.
                   cbn in Heqs2.
                   repeat break_match_hyp; try inl_inr.
                   inversion Heqs2; clear Heqs2.
-                  (* rename t0 into ne. *)
                   subst mg0 l4 v b1.
                   unfold in_local_or_global_scalar.
 
@@ -4566,7 +4563,6 @@ Proof.
                   cbn in Heqs2.
                   repeat break_match_hyp; try inl_inr.
                   inversion Heqs2; clear Heqs2.
-                  (* rename t0 into ne. *)
                   (*
                   subst mg0 l4 v b1.
                   unfold in_local_or_global_scalar.
