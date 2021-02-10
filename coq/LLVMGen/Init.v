@@ -2292,25 +2292,6 @@ Proof.
       eapply IHglobals; eassumption.
 Admitted.
 
-(*
-Lemma initFSHGlobals_no_llvm_ptr_aliasing
-      (globals : list (string * DSHType))
-      (m0 m : memoryH)
-      (hdata0 hdata : list binary64) 
-      (σ : evalContext)
-  :
-    initFSHGlobals hdata0 m0 globals ≡ inr (m, hdata, σ) →
-    ∀ (id1 : ident) (ptrv1 : addr) (id2 : ident) (ptrv2 : addr) (n1 n2 : nat) 
-      (τ τ' : typ) (v1 v2 : DSHVal),
-      nth_error σ n1 ≡ Some v1 ->
-      nth_error σ n2 ≡ Some v2 ->
-      nth_error (map IR_of_global globals) n1 ≡ Some (id1, τ) ->
-      nth_error (map IR_of_global globals) n2 ≡ Some (id2, τ') ->
-      id1 ≢ id2 ->
-      in_local_or_global_addr l' g' id1 ptrv1 ->
-      in_local_or_global_addr l' g' id2 ptrv2 → fst ptrv1 ≢ fst ptrv2.
-*)
-
 Lemma nth_error_ith
       {A : Type}
       (a : A)
@@ -4128,12 +4109,12 @@ Proof.
                   do 3 f_equal.
 
                   Search i0.       (* l1' -[int64FromData]-> i0 *)
-                  Search l1'.      (* l1 -[initIRGlobals]-> l1' *)
+                  Search l1'.      (* l1 -[initIRGlobals pre]-> l1' *)
                   Search l1.       (* data -[initXYplaceholders]-> l1 *)
 
-                  Search ne.        (* b0 -[from_Z . bits_of_b46]-> ne *)
-                  Search b0.        (* hdata_pre -[rotate]-> b0 *)
-                  Search hdata_pre. (* l0 -[initFSHglobals]-> hdata_pre *)
+                  Search ne.        (* b1 -[from_Z . bits_of_b46]-> ne *)
+                  Search b1.        (* hdata_pre -[rotate]-> b0 *)
+                  Search hdata_pre. (* l0 -[initFSHglobals pre]-> hdata_pre *)
                   Search l0.        (* l -[constMemBlock]-> l0 *)
                   Search l.         (* data -[constMemBlock]-> l *)
                   admit.

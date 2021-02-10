@@ -28,11 +28,66 @@ Definition genFloatV (fv:binary64) : (exp typ) :=  EXP_Double fv.
 
 Section RandomDataPool.
 
+  Definition rotateN {A : Type} (n : nat) (l : list A) : list A :=
+    Nat.iter n
+             (fun l => match l with
+                    | [] => []
+                    | (x::xs) => xs ++ [x]
+                    end)
+             l.
+
+  Lemma nat_iter_S 
+        {A : Type}
+        (n : nat)
+        (f : A -> A)
+        (a : A)
+    :
+      Nat.iter (S n) f a = f (Nat.iter n f a).
+  Proof.
+    reflexivity.
+  Qed.
+
+  Lemma nat_iter_add
+        {A : Type}
+        (n1 n2 : nat)
+        (f : A -> A)
+        (a : A)
+    :
+      Nat.iter n1 f (Nat.iter n2 f a) = Nat.iter (n1 + n2) f a.
+  Proof.
+    induction n1.
+    - reflexivity.
+    - cbn [Nat.add].
+      rewrite !nat_iter_S.
+      congruence.
+  Qed.
+
+  Lemma rotateN_add
+        {A : Type}
+        (n1 n2 : nat)
+        (l : list A)
+    :
+      rotateN n1 (rotateN n2 l) = rotateN (n1 + n2) l.
+  Proof.
+    apply nat_iter_add.
+  Qed.
+
   Definition rotate {A:Type} (default:A) (lst:list (A)): (A*(list A))
     := match lst with
        | [] => (default,[])
        | (x::xs) => (x,app xs [x])
        end.
+
+  Lemma rotate_data
+        {A : Type}
+        (d x : A)
+        (l l' : list A)
+    :
+      rotate d l = (x, l') ->
+      l' = rotateN 1 l.
+  Proof.
+    destruct l; cbn; congruence.
+  Qed.
 
   Fixpoint constList
            (len: nat)
@@ -46,6 +101,25 @@ Section RandomDataPool.
                  (data'', x :: res)
       end.
 
+  Lemma constList_data
+        (n : nat)
+        (data data' l : list binary64)
+    :
+      constList n data = (data', l) ->
+      data' = rotateN n data.
+  Proof.
+    revert data data' l.
+    induction n.
+    - cbn; congruence.
+    - intros data data' l CL.
+      cbn [constList] in CL.
+      repeat break_let.
+      apply rotate_data in Heqp; subst.
+      apply IHn in Heqp0; subst.
+      rewrite rotateN_add, PeanoNat.Nat.add_1_r in CL.
+      congruence.
+  Qed.
+
   Definition constArray
              (len: nat)
              (data:list binary64)
@@ -53,12 +127,99 @@ Section RandomDataPool.
     :=  let (data, l) := constList len data in
         (data,List.map (fun x => (TYPE_Double, genFloatV x)) l).
 
+  Lemma constArray_data
+        (n : nat)
+        (data data' : list binary64)
+        (l : list (texp typ))
+    :
+      constArray n data = (data', l) ->
+      data' = rotateN n data.
+  Proof.
+    intros CA.
+    unfold constArray in *.
+    break_let.
+    apply constList_data in Heqp.
+    congruence.
+  Qed.
+
   Definition constMemBlock
              (len: nat)
              (data:list binary64)
     : ((list binary64)*mem_block)
     := let (data, l) := constList len data in
        (data, mem_block_of_list l).
+
+  Lemma constMemBlock_data
+        (n : nat)
+        (data data' : list binary64)
+        (mb : mem_block)
+    :
+      constMemBlock n data = (data', mb) ->
+      data' = rotateN n data.
+  Proof.
+    intros CMB.
+    unfold constMemBlock in *.
+    break_let.
+    apply constList_data in Heqp.
+    congruence.
+  Qed.
+
+  Local Fixpoint intNFromData
+        (n : nat)
+        (data : list binary64)
+        (i : Int64.int)
+        {struct n}
+    : Int64.int * (list binary64) :=
+    match n with
+    | O => (Int64.zero, data)
+    | S m =>
+      let '(f,data) := rotate Float64Zero data in
+      let si := Int64.add i Int64.one in
+      match f with
+      | B754_zero _ => intNFromData m data si
+      | _ =>
+        let '(x,data) := intNFromData m data si in
+        (Int64.add (Int64.repr (ZArith.Zpower.two_power_nat m)) x, data)
+      end
+    end.
+
+  Local Lemma intNFromData_data
+        (n : nat)
+        (data data' : list binary64)
+        (i i' : Int64.int)
+    : 
+      intNFromData n data i = (i', data') ->
+      data' = rotateN n data.
+  Proof.
+    revert data data' i i'.
+    induction n.
+    - cbn in *; congruence.
+    -
+      intros * I.
+      cbn [intNFromData] in *.
+      destruct rotate eqn:RD in I;
+        apply rotate_data in RD; subst.
+      destruct b.
+      apply IHn in I.
+      2-4: repeat break_let.
+      2-4: apply IHn in Heqp; subst.
+      all: rewrite rotateN_add, PeanoNat.Nat.add_1_r in I; congruence.
+  Qed.
+  
+  (* Creates 64 bit integer from floating pointer data list by interpreting
+     first 64 floating point values as bit values. *)
+  Definition int64FromData (data : list binary64) : Int64.int * (list binary64) :=
+    intNFromData 64 data Int64.zero.
+
+  Lemma int64FromData_data
+        (data data' : list binary64)
+        (i : Int64.int)
+    :
+      int64FromData data = (i, data') ->
+      data' = rotateN 64 data.
+  Proof.
+    apply intNFromData_data.
+  Qed.
 
 End RandomDataPool.
 
