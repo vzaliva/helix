@@ -4159,13 +4159,7 @@ Proof.
                 move AG' at bottom.
                 unfold allocated_globals in AG'.
                 destruct AG' as [_ NAL].
-                rewrite firstn_app in NAL.
-                replace 
-                  (Datatypes.length (pre ++ (a_nm, DSHnat) :: post) -
-                   Datatypes.length (e_pre ++ ne' :: e_post'))
-                  with 0 in * by lia.
                 rewrite firstn_all2 in NAL by lia.
-                rewrite firstn_O, app_nil_r in NAL.
                 rewrite list_cons_app in NAL.
                 rewrite app_assoc in NAL.
                 unfold no_llvm_ptr_aliasing_cfg, no_llvm_ptr_aliasing.
@@ -4176,14 +4170,14 @@ Proof.
                 +++
                   rewrite list_cons_app.
                   rewrite !map_app.
-                  rewrite <-!app_assoc, app_assoc.
+                  rewrite app_assoc.
                   eapply ListNth.nth_error_weaken.
                   rewrite <-map_app.
                   eassumption.
                 +++
                   rewrite list_cons_app.
                   rewrite !map_app.
-                  rewrite <-!app_assoc, app_assoc.
+                  rewrite app_assoc.
                   eapply ListNth.nth_error_weaken.
                   rewrite <-map_app.
                   eassumption.
@@ -4379,13 +4373,7 @@ Proof.
                 move AG' at bottom.
                 unfold allocated_globals in AG'.
                 destruct AG' as [_ NAL].
-                rewrite firstn_app in NAL.
-                replace 
-                  (Datatypes.length (pre ++ (a_nm, DSHCType) :: post) -
-                   Datatypes.length (e_pre ++ ne' :: e_post'))
-                  with 0 in * by lia.
                 rewrite firstn_all2 in NAL by lia.
-                rewrite firstn_O, app_nil_r in NAL.
                 rewrite list_cons_app in NAL.
                 rewrite app_assoc in NAL.
                 unfold no_llvm_ptr_aliasing_cfg, no_llvm_ptr_aliasing.
@@ -4396,14 +4384,14 @@ Proof.
                 +++
                   rewrite list_cons_app.
                   rewrite !map_app.
-                  rewrite <-!app_assoc, app_assoc.
+                  rewrite app_assoc.
                   eapply ListNth.nth_error_weaken.
                   rewrite <-map_app.
                   eassumption.
                 +++
                   rewrite list_cons_app.
                   rewrite !map_app.
-                  rewrite <-!app_assoc, app_assoc.
+                  rewrite app_assoc.
                   eapply ListNth.nth_error_weaken.
                   rewrite <-map_app.
                   eassumption.
@@ -4645,13 +4633,7 @@ Proof.
                 move AG' at bottom.
                 unfold allocated_globals in AG'.
                 destruct AG' as [_ NAL].
-                rewrite firstn_app in NAL.
-                replace 
-                  (Datatypes.length (pre ++ (a_nm, FHCOL.DSHPtr int_n) :: post) -
-                   Datatypes.length (e_pre ++ ne' :: e_post'))
-                  with 0 in * by lia.
                 rewrite firstn_all2 in NAL by lia.
-                rewrite firstn_O, app_nil_r in NAL.
                 rewrite list_cons_app in NAL.
                 rewrite app_assoc in NAL.
                 unfold no_llvm_ptr_aliasing_cfg, no_llvm_ptr_aliasing.
@@ -4663,14 +4645,14 @@ Proof.
                 +++
                   rewrite list_cons_app.
                   rewrite !map_app.
-                  rewrite <-!app_assoc, app_assoc.
+                  rewrite app_assoc.
                   eapply ListNth.nth_error_weaken.
                   rewrite <-map_app.
                   eassumption.
                 +++
                   rewrite list_cons_app.
                   rewrite !map_app.
-                  rewrite <-!app_assoc, app_assoc.
+                  rewrite app_assoc.
                   eapply ListNth.nth_error_weaken.
                   rewrite <-map_app.
                   eassumption.
