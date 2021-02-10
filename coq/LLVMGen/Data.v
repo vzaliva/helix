@@ -303,9 +303,7 @@ Definition initOneFSHGlobal
     let '(mem,data) := st in
     match gt with
     | DSHnat =>
-      let '(x, data) := rotate Float64Zero data in
-      let xz := bits_of_b64 x in (* a potential size overflow here ? *)
-      xi <- MInt64asNT.from_Z xz ;;
+      let '(xi, data) := int64FromData data in
       ret (mem, data, (DSHnatVal xi,false))
     | DSHCType =>
       let '(x, data) := rotate Float64Zero data in
