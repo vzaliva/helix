@@ -2610,6 +2610,17 @@ Ltac simpl_data :=
            copy_apply initXYplaceholders_data H; subst data'
          end.
 
+Lemma get_logical_block_allocated :
+  ∀ (a : addr) (m : memoryV) (b : logical_block),
+    get_logical_block m (fst a) ≡ Some b ->
+    allocated a m.
+Proof.
+  intros * LB.
+  unfold allocated, get_logical_block, get_logical_block_mem in *.
+  repeat break_let; subst; cbn in *.
+  eapply lookup_member; eauto.
+Qed.
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -4987,8 +4998,21 @@ Proof.
                     rewrite N2Z.inj_mul.
                     rewrite Z2N.id
                       by (unfold Z.of_nat; break_match; lia).
-                    cbn.
-                    cbn in AM'B.
+                    cbn; cbn in AM'B.
+                    remember
+                      {| DynamicValues.Int64.intval := Z.of_nat n';
+                         DynamicValues.Int64.intrange := n_ran |}
+                      as in'.
+                    replace (MInt64asNT.to_nat in') with n' in *.
+                    2:{
+                      subst.
+                      unfold MInt64asNT.to_nat.
+                      cbn.
+                      now rewrite Nat2Z.id.
+                    }
+
+                    clear Heqp Heqs3. (* pointless *)
+                    clear AA. (* strictly weaker than AM'B *)
                     admit.
                   }
                   {
@@ -5000,14 +5024,15 @@ Proof.
                       clear - Heqs3.
                       apply initFSHGlobals_no_overwrite in Heqs3.
                       unfold memory_lookup.
-                      admit.
+                      admit. (* easy *)
                     -
-                      intros.
-                      unfold get_array_cell_mem_block.
-                      cbn.
-                      f_equal.
+                      intros i0 id_v.
+                      generalize dependent (MInt64asNT.to_nat i0);
+                        intros id IDM0.
+                      unfold get_array_cell_mem_block; cbn; f_equal.
                       unfold read_in_mem_block.
-                      admit.
+                      cbn [sizeof_dtyp].
+                      admit. (* doable *)
                   }
                 +++
                   assert (n < length e_pre).
