@@ -20,27 +20,6 @@ Opaque incBlockNamed.
 Opaque incVoid.
 Opaque incLocal.
 
-  Lemma read_in_mem_block_type :
-    forall bytes a τ v,
-      read_in_mem_block bytes a τ ≡ v ->
-      uvalue_has_dtyp v τ.
-  Proof.
-  Admitted.
-
-  Lemma read_type :
-    forall m p τ v,
-      read m p τ ≡ inr v ->
-      uvalue_has_dtyp v τ.
-  Proof.
-    intros m p τ v READ.
-    unfold read in *.
-    break_match; inversion READ.
-    clear H0.
-    break_match; subst.
-    inversion READ.
-    eapply read_in_mem_block_type; eauto.
-  Qed.
-
 (* The result is a branch *)
 Definition branches (to : block_id) (mh : memoryH * ()) (c : config_cfg_T (block_id * block_id + uvalue)) : Prop :=
   match c with

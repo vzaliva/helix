@@ -14,23 +14,6 @@ Set Strict Implicit.
 Import ListNotations.
 Import AlistNotations.
 
-    Lemma write_different_blocks :
-      forall m m2 p p' v v2 dv2 τ τ',
-        write m p v ≡ inr m2 ->
-        read m p' τ ≡ inr v2 ->
-        fst p <> fst p' ->
-        uvalue_to_dvalue v2 ≡ inr dv2 ->
-        dvalue_has_dtyp dv2 τ ->
-        dvalue_has_dtyp v τ' ->
-        read m2 p' τ ≡ inr v2.
-    Proof.
-      intros m m2 p p' v v2 dv2 τ τ' WRITE READ NEQ UVDV TYP1 TYP2.
-      erewrite write_untouched; eauto.
-      unfold no_overlap_dtyp.
-      unfold no_overlap.
-      left. auto.
-    Qed.
-
 Definition gamma_bound (s : IRState) : Prop :=
   forall n id τ,
     nth_error (Γ s) n ≡ Some (ID_Local id, τ) ->
