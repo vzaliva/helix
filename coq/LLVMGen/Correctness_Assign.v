@@ -20,7 +20,6 @@ Opaque incBlockNamed.
 Opaque incVoid.
 Opaque incLocal.
 
-
 (* The result is a branch *)
 Definition branches (to : block_id) (mh : memoryH * ()) (c : config_cfg_T (block_id * block_id + uvalue)) : Prop :=
   match c with

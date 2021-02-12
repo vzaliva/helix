@@ -694,9 +694,8 @@ Arguments allocate : simpl never.
 
 Local Ltac pose_interp_to_L3_alloca m' a' A AE:=
   match goal with
-  | [|-context[interp_to_L3 ?defs (trigger (Alloca ?t)) ?g ?l ?m]] =>
+  | [|-context[interp_to_L3 (trigger (Alloca ?t)) ?g ?l ?m]] =>
     pose proof (interp_to_L3_alloca
-                  defs
                   m t g l)
       as [m' [a' [A AE]]]
   end.
@@ -1424,9 +1423,9 @@ Qed.
 
 (* ZX TODO: might want to move to vellvm *)
 (* similar to [interp_cfg_to_L3_GR] *)
-Lemma interp_to_L3_GR : forall defs id g l m v,
+Lemma interp_to_L3_GR : forall id g l m v,
   Maps.lookup id g ≡ Some v ->
-  interp_to_L3 defs (trigger (GlobalRead id)) g l m ≈ Ret (m,(l,(g,v))).
+  interp_to_L3 (trigger (GlobalRead id)) g l m ≈ Ret (m,(l,(g,v))).
 Proof.
   intros * LU.
   unfold interp_to_L3.
@@ -2631,8 +2630,7 @@ Lemma memory_invariant_after_init
     eutt
       (post_init_invariant_mcfg p.(name) σ s)
       (Ret (hmem, ()))
-      (interp_to_L3 defined_intrinsics
-                    (build_global_environment (convert_types (mcfg_of_tle pll)))
+      (interp_to_L3 (build_global_environment (convert_types (mcfg_of_tle pll)))
                     [] ([],[]) empty_memory_stack).
 Proof.
   intros hmem σ s hdata pll [HI LI].

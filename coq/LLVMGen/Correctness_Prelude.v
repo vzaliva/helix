@@ -32,7 +32,7 @@ Require Export Helix.DSigmaHCOL.DSigmaHCOLITree.
 Require Export Helix.LLVMGen.Compiler.
 Require Export Helix.LLVMGen.Data.
 Require Export Helix.LLVMGen.Utils.
-Require Export Helix.LLVMGen.tmp_aux_Vellvm.
+Require Export Helix.LLVMGen.Vellvm_Utils.
 Require Export Helix.Util.OptionSetoid.
 Require Export Helix.Util.ErrorSetoid.
 Require Export Helix.Util.ListUtil.
@@ -148,7 +148,7 @@ Section EventTranslation.
 
   (* We therefore have the following resulting denotation functions. *)
   (* On the Vellvm side, for [mcfg]: *)
-  Definition semantics_llvm_mcfg p : itree E_mcfg _ := model_to_L3 DTYPE_Void "main" main_args defined_intrinsics p.
+  Definition semantics_llvm_mcfg p : itree E_mcfg _ := model_to_L3 DTYPE_Void "main" main_args p.
   (* Which get lifted to [toplevel_entity] as usual: *)
   Definition semantics_llvm (prog: list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ)))) :=
     semantics_llvm_mcfg (convert_types (mcfg_of_tle prog)).
@@ -214,8 +214,8 @@ Section EventTranslation.
 
 End EventTranslation.
 
-Notation "'interp_cfg'"  := (interp_cfg_to_L3 defined_intrinsics).
-Notation "'interp_mcfg'" := (interp_to_L3 defined_intrinsics).
+Notation "'interp_cfg'"  := interp_cfg_to_L3. 
+Notation "'interp_mcfg'" := interp_to_L3. 
 
 (** Smart constructors for states, predicates, relations  *)
 
@@ -855,7 +855,7 @@ Hint Rewrite @interp_ret : itree.
 Hint Rewrite @translate_trigger : itree.
 Hint Rewrite @interp_trigger : itree.
 
-Hint Rewrite interp_cfg_to_L3_bind : vellvm.
+Hint Rewrite @interp_cfg_to_L3_bind : vellvm.
 Hint Rewrite interp_cfg_to_L3_ret : vellvm.
 Hint Rewrite interp_cfg_to_L3_GR : vellvm.
 Hint Rewrite interp_cfg_to_L3_LR : vellvm.

@@ -719,7 +719,7 @@ Proof.
   pose proof Correctness_NExpr.exp_correct PostLoopEndNExpr as PostLoopEndNExprCorrect.
   cbn in PostLoopEndNExprCorrect.
 
-  epose proof (denote_exp_i64 _ t_loopend) as T_LOOPEND_EUTT.
+  epose proof (denote_exp_i64 t_loopend) as T_LOOPEND_EUTT.
   assert (eutt Logic.eq (interp_cfg (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I (Npos 64))) (EXP_Integer (Integers.Int64.intval t_loopend)))) g_yoff l_loopend mV_yoff)
                (interp_cfg
                   (translate exp_E_to_instr_E

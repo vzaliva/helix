@@ -41,9 +41,6 @@ Import ITree.Basics.Basics.Monads.
 From Vellvm Require Import Util.
 Require Import State.
 
-(* TODOYZ: This is weird, I need to import again this file for the rewriting to work.
-   A bit unsure as to why this happen, but somehow some subsequent import breaks it.
- *)
 Require Import ITree.Eq.Eq.
 
 Section MemoryModel.
@@ -227,10 +224,6 @@ Section TLE_To_Modul.
     rewrite m_definitions_app, map_app; reflexivity.
   Qed.
 
-  (* YZ TODO :  A bit annoying but should not be an issue.
-     Actually: requires some assumptions to be able to split the environment in two.
-     Some well-formedness/closedness of the respective mcfg under the respective environments.
-   *)
   Lemma convert_typ_mcfg_app:
     forall mcfg1 mcfg2 : modul (cfg typ),
       convert_typ [] (mcfg1 @ mcfg2) =
@@ -456,44 +449,6 @@ Lemma Name_inj : forall s1 s2,
     s1 = s2.
 Proof.
   intros * EQ; inv EQ; auto.
-Qed.
-
-Lemma write_different_blocks :
-  forall m m2 p p' v v2 dv2 τ τ',
-    write m p v = inr m2 ->
-    read m p' τ = inr v2 ->
-    fst p <> fst p' ->
-    uvalue_to_dvalue v2 = inr dv2 ->
-    dvalue_has_dtyp dv2 τ ->
-    dvalue_has_dtyp v τ' ->
-    read m2 p' τ = inr v2.
-Proof.
-  intros m m2 p p' v v2 dv2 τ τ' WRITE READ NEQ UVDV TYP1 TYP2.
-  erewrite write_untouched; eauto.
-  unfold no_overlap_dtyp.
-  unfold no_overlap.
-  left. auto.
-Qed.
-
-Lemma read_in_mem_block_type :
-  forall bytes a τ v,
-    read_in_mem_block bytes a τ = v ->
-    uvalue_has_dtyp v τ.
-Proof.
-Admitted.
-
-Lemma read_type :
-  forall m p τ v,
-    read m p τ = inr v ->
-    uvalue_has_dtyp v τ.
-Proof.
-  intros m p τ v READ.
-  unfold read in *.
-  break_match; inversion READ.
-  clear H0.
-  break_match; subst.
-  inversion READ.
-  eapply read_in_mem_block_type; eauto.
 Qed.
 
 Infix "⊍" := Coqlib.list_disjoint (at level 60).

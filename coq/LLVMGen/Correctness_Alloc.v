@@ -121,11 +121,6 @@ Proof.
     eapply bid_bound_bound_between; eauto.
 
     unfold incBlock in *.
-    match goal with
-    | H: incBlockNamed ?msg ?s1 ≡ inr (_, ?bid) |-
-      bid_bound ?s2 bid_in =>
-      idtac H
-    end.
     eapply bid_bound_incBlockNamed; eauto; reflexivity.
     solve_not_bid_bound.
     block_count_replace.
