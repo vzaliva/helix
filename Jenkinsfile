@@ -91,7 +91,7 @@ def notifySlack(String buildStatus = 'STARTED') {
     def msg = "Build <${env.BUILD_URL}|#${env.BUILD_NUMBER}> (${getSlackRepoURL()}) of ${env.JOB_NAME} (${env.GIT_BRANCH}) by ${env.GIT_AUTHOR} ${buildStatus} in ${currentBuild.durationString.minus(' and counting')}"
 
 	if (env.SKIP_BRANCH == "false" && !(env.SKIP_CI == "true")) {
-		slackSend(color: color, message: msg, channel: '#bitbucket-activity')
+		slackSend(color: color, message: msg, teamDomain: 'plclub', tokenCredentialId: 'plclub', channel: '#helix')
     }
 }
 
