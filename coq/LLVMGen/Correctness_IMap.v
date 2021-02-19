@@ -922,7 +922,7 @@ Proof.
   (* TODO: Move*)
   Lemma denote_exp_ID :forall g l m id τ ptr,
       in_local_or_global_addr l g id ptr ->
-      interp_cfg_to_L3 (translate exp_E_to_instr_E (denote_exp (Some τ) (EXP_Ident id))) g l m
+      interp_cfg3 (translate exp_to_instr (denote_exp (Some τ) (EXP_Ident id))) g l m
       ≈
       Ret (m,(l,(g,UVALUE_Addr ptr))).
   Proof.
@@ -1293,7 +1293,7 @@ Proof.
     match goal with
     | [|- context[OP_GetElementPtr (DTYPE_Array ?size' ?τ') (_, ?ptr') _]] =>
     edestruct denote_instr_gep_array' with
-        (ρ := li) (g := g0) (m := mV) (i := px)
+        (l := li) (g := g0) (m := mV) (i := px)
         (size := size') (a := ptrll_xoff_l) (ptr := ptr') as (? & ? & ? & ?)
     end.
 
@@ -1379,7 +1379,7 @@ Proof.
     match goal with
     | [|- context[OP_GetElementPtr (DTYPE_Array y_size _) (_, ?ptr')]] =>
         edestruct denote_instr_gep_array_no_read with
-          (ρ := li) (g := g0) (m := mV) (i := py) (τ := DTYPE_Double)
+          (l := li) (g := g0) (m := mV) (i := py) (τ := DTYPE_Double)
             (size := y_size) (a := ptrll_yoff) (ptr := ptr') as (y_GEP_addr & y_HGEP & EQ_y_HG)
     end.
 
@@ -1542,7 +1542,7 @@ Proof.
     match goal with
     | [|- context[OP_GetElementPtr (DTYPE_Array y_size _) (_, ?ptr')]] =>
       pose proof (denote_instr_gep_array_no_read_addr py y_size DTYPE_Double 
-                                                      (EXP_Ident (ID_Local loopvarid)) k ptr' ptrll_yoff g0 li' mV dst_addr)
+                                                      (EXP_Ident (ID_Local loopvarid)) k ptr' ptrll_yoff g0 li' li' li' mV dst_addr)
            as EQ_y_HG'
     end.
 

@@ -18,6 +18,7 @@ From Vellvm Require Import
      Semantics.LLVMEvents
      Semantics.DynamicValues
      Semantics.TopLevel
+     Semantics.InterpretationStack
      Handlers.Handlers
      Theory.Refinement
      Theory.DenotationTheory
@@ -43,277 +44,17 @@ Require Import State.
 
 Require Import ITree.Eq.Eq.
 
-Section MemoryModel.
-
-  Lemma get_logical_block_of_add_to_frame :
-    forall (m : memory_stack) k x, get_logical_block (add_to_frame m k) x = get_logical_block m x.
-  Proof.
-    intros. destruct m. cbn. destruct m.
-    destruct f; unfold get_logical_block; cbn; reflexivity.
-  Qed.
-
-  Lemma get_logical_block_of_add_logical_frame_ineq :
-    forall x m k mv, m <> x ->
-                get_logical_block (add_logical_block m k mv) x = get_logical_block mv x.
-  Proof.
-    intros.
-    cbn in *.
-    unfold get_logical_block, get_logical_block_mem in *.
-    unfold add_logical_block. destruct mv. cbn.
-    unfold add_logical_block_mem. destruct m0.
-    Opaque lookup. Opaque add.
-    cbn in *.
-    rewrite lookup_add_ineq; auto.
-  Qed.
-
-End MemoryModel.
-
-Section ValuePred.
-
-  (* TODOYZ: Double check how useful those are *)
-  Definition int64_dvalue_rel (n : Int64.int) (dv : dvalue) : Prop :=
-    match dv with
-    | DVALUE_I64 i => BinInt.Z.eq (Int64.intval n) (unsigned i)
-    | _ => False
-    end.
-
-  Definition nat_dvalue_rel (n : nat) (dv : dvalue) : Prop :=
-    match dv with
-    | DVALUE_I64 i => Z.eq (Z.of_nat n) (unsigned i)
-    | _ => False
-    end.
-
-  Definition int64_concrete_uvalue_rel (n : Int64.int) (uv : uvalue) : Prop :=
-    match uvalue_to_dvalue uv with
-    | inr dv => int64_dvalue_rel n dv
-    | _ => False
-    end.
-
-  Definition nat_concrete_uvalue_rel (n : nat) (uv : uvalue) : Prop :=
-    match uvalue_to_dvalue uv with
-    | inr dv => nat_dvalue_rel n dv
-    | _ => False
-    end.
-
-End ValuePred.
-
-Section TLE_To_Modul.
-
-  Definition opt_first {T: Type} (o1 o2: option T): option T :=
-    match o1 with | Some x => Some x | None => o2 end.
-
-  Definition modul_app {T X} (m1 m2: @modul T X): @modul T X :=
-    let (name1, target1, layout1, tdefs1, globs1, decls1, defs1) := m1 in
-    let (name2, target2, layout2, tdefs2, globs2, decls2, defs2) := m2 in
-    {|
-      m_name := opt_first name1 name2;
-      m_target := opt_first target1 target2;
-      m_datalayout := opt_first layout1 layout2;
-      m_type_defs := tdefs1 ++ tdefs2;
-      m_globals := globs1 ++ globs2;
-      m_declarations := decls1 ++ decls2;
-      m_definitions := defs1 ++ defs2
-    |}.
-
-  Lemma modul_of_toplevel_entities_cons:
-    forall {T X} tle tles, 
-      @modul_of_toplevel_entities T X (tle :: tles) = modul_app (modul_of_toplevel_entities [tle]) (modul_of_toplevel_entities tles).
-  Proof.
-    intros.
-    unfold modul_of_toplevel_entities; cbn; f_equal;
-      try ((break_match_goal; reflexivity) || (rewrite <- !app_nil_end; reflexivity)).
-  Qed.
-
-  Lemma modul_of_toplevel_entities_app:
-    forall {T X} tle1 tle2, 
-    @modul_of_toplevel_entities T X (tle1 ++ tle2) = modul_app (modul_of_toplevel_entities tle1) (modul_of_toplevel_entities tle2).
-  Proof.
-    induction tle1 as [| tle tle1 IH]; intros; cbn; [reflexivity |].
-    rewrite modul_of_toplevel_entities_cons, IH; cbn.
-    f_equal;
-      try ((break_match_goal; reflexivity) || (rewrite <- !app_nil_end, app_assoc; reflexivity)).
-  Qed.
-
-  Infix "@" := (modul_app) (at level 60).
-
-  Open Scope list.
-  Lemma m_definitions_app: forall {T X} (p1 p2 : @modul T X),
-      m_definitions (p1 @ p2) = m_definitions p1 ++ m_definitions p2.
-  Proof.
-    intros ? ? [] []; reflexivity.
-  Qed.
-
-  Lemma m_name_app: forall {T X} (p1 p2 : @modul T X),
-      m_name (p1 @ p2) = opt_first (m_name p1) (m_name p2).
-  Proof.
-    intros ? ? [] []; reflexivity.
-  Qed.
-
-  Lemma m_target_app: forall {T X} (p1 p2 : @modul T X),
-      m_target (p1 @ p2) = opt_first (m_target p1) (m_target p2).
-  Proof.
-    intros ? ? [] []; reflexivity.
-  Qed.
-
-  Lemma m_datalayout_app: forall {T X} (p1 p2 : @modul T X),
-      m_datalayout (p1 @ p2) = opt_first (m_datalayout p1) (m_datalayout p2).
-  Proof.
-    intros ? ? [] []; reflexivity.
-  Qed.
-
-  Lemma m_type_defs_app: forall {T X} (p1 p2 : @modul T X),
-      m_type_defs (p1 @ p2) = m_type_defs p1 ++ m_type_defs p2.
-  Proof.
-    intros ? ? [] []; reflexivity.
-  Qed.
-
-  Lemma m_globals_app: forall {T X} (p1 p2 : @modul T X),
-      m_globals (p1 @ p2) = m_globals p1 ++ m_globals p2.
-  Proof.
-    intros ? ? [] []; reflexivity.
-  Qed.
-
-  Lemma m_declarations_app: forall {T X} (p1 p2 : @modul T X),
-      m_declarations (p1 @ p2) = m_declarations p1 ++ m_declarations p2.
-  Proof.
-    intros ? ? [] []; reflexivity.
-  Qed.
-
-  Lemma map_option_cons_inv: forall {A B} (f : A -> option B) (a : A) (l : list A) (r : list B),
-      map_option f (a :: l) = Some r ->
-       exists b r',
-        f a = Some b /\
-        map_option f l = Some r' /\
-        r = b :: r'.
-  Proof.      
-    intros.
-    (* YZ TODO : Test on 8.11 if cbn also behaves annoyingly here *)
-    simpl in H; do 2 (break_match_hyp; try inv_option). 
-    do 2 eexists; repeat split; auto.
-  Qed.
-
-  Lemma map_option_cons: forall {A B} (f : A -> option B) (a : A) (b : B) (l : list A) (r : list B),
-        f a = Some b ->
-        map_option f l = Some r ->
-        map_option f (a :: l) = Some (b :: r).
-  Proof.      
-    intros * EQ1 EQ2; simpl; rewrite EQ1, EQ2; reflexivity.
-  Qed.
-
-  Lemma map_option_app_inv: forall {A B} (f : A -> option B) (l1 l2 : list A) (r : list B),
-      map_option f (l1 ++ l2) = Some r ->
-      exists r1 r2,
-        map_option f l1 = Some r1 /\
-        map_option f l2 = Some r2 /\
-        r = r1 ++ r2.
-  Proof.
-    induction l1 as [| x l1 IH]; intros * EQ.
-    - do 2 eexists; repeat split; try reflexivity; auto. 
-    - generalize EQ; intros EQ'; apply map_option_cons_inv in EQ'; destruct EQ' as (b & ? & EQ1 & EQ2 & ->). 
-      apply IH in EQ2; destruct EQ2 as (r1 & r2 & EQ2 & EQ3 & ->).
-      exists (b::r1), r2; repeat split; auto. 
-      apply map_option_cons; auto.
-  Qed.
-
-  Lemma mcfg_of_app_modul: forall {T} (p1 p2 : @modul T _), 
-      mcfg_of_modul (p1 @ p2) = mcfg_of_modul p1 @ mcfg_of_modul p2.
-  Proof.
-    intros; cbn.
-    unfold mcfg_of_modul.
-    rewrite  m_name_app, m_target_app, m_datalayout_app, m_type_defs_app, m_globals_app, m_declarations_app; f_equal; try reflexivity. 
-    rewrite m_definitions_app, map_app; reflexivity.
-  Qed.
-
-  Lemma convert_typ_mcfg_app:
-    forall mcfg1 mcfg2 : modul (cfg typ),
-      convert_typ [] (mcfg1 @ mcfg2) =
-      convert_typ [] mcfg1 @ convert_typ [] mcfg2.
-  Proof.
-    intros [] []; cbn.
-    unfold convert_typ,ConvertTyp_mcfg,Traversal.fmap,Fmap_mcfg; cbn.
-    f_equal; try (unfold endo, Endo_option; cbn; repeat flatten_goal; now intuition).
-    unfold Traversal.fmap, Fmap_list; rewrite map_app; reflexivity.
-    unfold Traversal.fmap, Fmap_list'; rewrite map_app; reflexivity.
-    unfold Traversal.fmap, Fmap_list'; rewrite map_app; reflexivity.
-    unfold Traversal.fmap, Fmap_list'; rewrite map_app; reflexivity.
-  Qed.
-
-  Lemma convert_types_app_mcfg : forall mcfg1 mcfg2,
-      m_type_defs mcfg1 = [] ->
-      m_type_defs mcfg2 = [] ->
-      convert_types (modul_app mcfg1 mcfg2) =
-                    modul_app (convert_types mcfg1) (convert_types mcfg2).
-  Proof.
-    unfold convert_types.
-    intros * EQ1 EQ2.
-    rewrite m_type_defs_app, EQ1,EQ2.
-    cbn; rewrite convert_typ_mcfg_app.
-    reflexivity.
-  Qed.
-
-  Lemma mcfg_of_tle_app : forall x y,
-      m_type_defs (mcfg_of_modul (modul_of_toplevel_entities x)) = nil ->
-      m_type_defs (mcfg_of_modul (modul_of_toplevel_entities y)) = nil ->
-      convert_types (mcfg_of_tle (x ++ y)) =
-      modul_app (convert_types (mcfg_of_tle x)) (convert_types (mcfg_of_tle y)).
-  Proof.
-    intros. 
-    unfold mcfg_of_tle.
-    rewrite modul_of_toplevel_entities_app.
-    rewrite mcfg_of_app_modul.
-    rewrite convert_types_app_mcfg; auto.
-  Qed.
-  
-  Lemma mcfg_of_tle_cons : forall x y,
-      m_type_defs (mcfg_of_modul (modul_of_toplevel_entities [x])) = nil ->
-      m_type_defs (mcfg_of_modul (modul_of_toplevel_entities y)) = nil ->
-      convert_types (mcfg_of_tle (x :: y)) =
-      modul_app (convert_types  (mcfg_of_tle [x])) (convert_types  (mcfg_of_tle y)).
-  Proof.
-    intros; rewrite list_cons_app; apply mcfg_of_tle_app; auto.
-  Qed.
-
-End TLE_To_Modul.
-
-(* Infix "@" := (modul_app) (at level 60). *)
-
 From Vellvm Require Import Utils.AListFacts.
 
 Import Traversal.
 
 (* YZ: Should they be Opaque or simpl never? *)
-Global Opaque D.denote_ocfg.
+Global Opaque denote_ocfg.
 Global Opaque assoc.
-Global Opaque D.denote_instr.
-Global Opaque D.denote_terminator.
-Global Opaque D.denote_phi.
-Global Opaque D.denote_code.
-
-Lemma typ_to_dtyp_I : forall s i, typ_to_dtyp s (TYPE_I i) = DTYPE_I i.
-Proof.
-  intros; rewrite typ_to_dtyp_equation; reflexivity.
-Qed.
-
-Lemma typ_to_dtyp_D : forall s, typ_to_dtyp s TYPE_Double = DTYPE_Double.
-Proof.
-  intros; rewrite typ_to_dtyp_equation; reflexivity.
-Qed.
-
-Lemma typ_to_dtyp_P :
-  forall t s,
-    typ_to_dtyp s (TYPE_Pointer t) = DTYPE_Pointer.
-Proof.
-  intros t s.
-  apply typ_to_dtyp_equation.
-Qed.
-
-Lemma typ_to_dtyp_D_array : forall n s, typ_to_dtyp s (TYPE_Array n TYPE_Double) = DTYPE_Array n DTYPE_Double.
-Proof.
-  intros.
-  rewrite typ_to_dtyp_equation.
-  rewrite typ_to_dtyp_D.
-  reflexivity.
-Qed.
+Global Opaque denote_instr.
+Global Opaque denote_terminator.
+Global Opaque denote_phi.
+Global Opaque denote_code.
 
 Ltac typ_to_dtyp_simplify :=
   repeat
@@ -332,51 +73,10 @@ Qed.
 
 From Vellvm Require Import Syntax.Scope.
 
-Lemma blk_id_map_convert_typ : forall env bs,
-    map blk_id (convert_typ env bs) = map blk_id bs.
-Proof.
-  induction bs as [| b bs IH]; cbn; auto.
-  f_equal; auto.
-Qed.
-
-Lemma wf_ocfg_bid_convert_typ :
-  forall env (bs : ocfg typ),
-    wf_ocfg_bid bs ->
-    wf_ocfg_bid (convert_typ env bs).
-Proof.
-  induction bs as [| b bs IH]; intros NOREP.
-  - cbn; auto.
-  - cbn.
-    apply Coqlib.list_norepet_cons. 
-    + cbn.
-      apply wf_ocfg_bid_cons_not_in in NOREP.
-     rewrite blk_id_map_convert_typ; auto.
-    + eapply IH, wf_ocfg_bid_cons; eauto. 
-Qed.
-
 (* Enforcing these definitions to be unfolded systematically by [cbn] *)
 Arguments endo /.
 Arguments Endo_id /.
 Arguments Endo_ident /.
-
-Lemma free_in_convert_typ :
-  forall env (bs : list (LLVMAst.block typ)) id,
-  free_in_cfg bs id ->
-  free_in_cfg (convert_typ env bs) id.
-Proof.
-  induction bs as [| b bs IH]; intros * FR.
-  - red; cbn; auto.
-  - cbn.
-    intros abs.
-    eapply FR.
-    destruct (Eqv.eqv_dec_p (blk_id b) id).
-    left; rewrite e; auto.
-    destruct abs.
-    + cbn in H.
-      exfalso; apply n; rewrite H; reflexivity.
-    + apply IH in H; intuition.
-      eapply free_in_cfg_cons; eauto.
-Qed.
 
 Arguments find_block : simpl never.
 
@@ -394,7 +94,7 @@ Import D.
 Module VIR_denotation_Notations.
   (* Notation "'ℐ' '(' t ')' g l m" := (interp_cfg_to_L3 _ t g l m) (only printing, at level 10). *)
   Notation "'global.' g 'local.' l 'memory.' m 'ℐ' t" :=
-    (interp_cfg_to_L3 _ t g l m)
+    (interp_cfg3 t g l m)
       (only printing, at level 10,
        format "'global.'  g '//' 'local.'  l '//' 'memory.'  m '//' 'ℐ'  t").
   
@@ -403,7 +103,7 @@ Module VIR_denotation_Notations.
   Notation "⟦ t ⟧" := (denote_terminator t) (only printing, at level 10).
   Notation "⟦ e ⟧" := (denote_exp None e) (only printing, at level 10).
   Notation "⟦ τ e ⟧" := (denote_exp (Some τ) e) (only printing, at level 10).
-  Notation "x" := (translate exp_E_to_instr_E x) (only printing, at level 10).
+  Notation "x" := (translate exp_to_instr x) (only printing, at level 10).
 
   Notation "'λ' a b c d ',' k" := (fun '(a,(b,(c,d))) => k) (only printing, at level 0, format "'λ'  a  b  c  d ',' '[' '//' k ']'").
 
@@ -444,40 +144,6 @@ Arguments denote_code : simpl never.
 Arguments denote_terminator : simpl never.
 Arguments denote_block : simpl never.
 
-Lemma Name_inj : forall s1 s2,
-    Name s1 = Name s2 ->
-    s1 = s2.
-Proof.
-  intros * EQ; inv EQ; auto.
-Qed.
-
-Infix "⊍" := Coqlib.list_disjoint (at level 60).
-
-Lemma Forall_disjoint :
-  forall {A} (l1 l2 : list A) (P1 P2 : A -> Prop),
-    Forall P1 l1 ->
-    Forall P2 l2 ->
-    (forall x, P1 x -> ~(P2 x)) ->
-    l1 ⊍ l2.
-Proof.
-  induction l1;
-    intros l2 P1 P2 L1 L2 P1NP2.
-  - intros ? ? CONTRA. inversion CONTRA.
-  - apply Coqlib.list_disjoint_cons_l.
-    + eapply IHl1; eauto using Forall_inv_tail.
-    + apply Forall_inv in L1.
-      apply P1NP2 in L1.
-      intros IN.
-      eapply Forall_forall in L2; eauto.
-Qed.
-
-Lemma inputs_convert_typ : forall σ bks,
-    inputs (convert_typ σ bks) = inputs bks.
-Proof.
-  induction bks as [| bk bks IH]; cbn; auto.
-  f_equal; auto.
-Qed.
-
 From Vellvm Require Import
      Utils.TFor
      Utils.NoFailure
@@ -486,118 +152,6 @@ From Vellvm Require Import
 Require Export ITree.Events.FailFacts.
 
 From Coq Require Import Lia.
-
-(* The following lemmas reason about [tfor] in the specific case where the body goes into the failure monad.
-   They are quite a bit ugly as intrinsically [tfor] unfolds using the itree [bind] while [no_failure] relies
-   on the failT [bind].
- *)
-Lemma tfor_fail_None : forall {E A} i j (body : nat -> A -> itree E (option A)),
-    (i <= j)%nat ->
-    tfor (fun k x => match x with
-                  | Some a0 => body k a0
-                  | None => Ret None
-                  end) i j None ≈ Ret None.
-Proof.
-  intros E A i j body; remember (j - i)%nat as k; revert i Heqk; induction k as [| k IH].
-  - intros i EQ INEQ; replace j with i by lia; rewrite tfor_0; reflexivity. 
-  - intros i EQ INEQ.
-    rewrite tfor_unroll; [|lia].
-    rewrite bind_ret_l, IH; [reflexivity | lia | lia].
-Qed.
-
-(* One step unrolling of the combinator *)
-Lemma tfor_unroll_fail: forall {E A} i j (body : nat -> A -> itree E (option A)) a0,
-    (i < j)%nat ->
-    tfor (fun k x => match x with
-                  | Some a0 => body k a0
-                  | None => Ret None
-                  end) i j a0 ≈
-         bind (m := failT (itree E))
-         (match a0 with
-          | Some a0 => body i a0
-          | None => Ret None
-          end) (fun a =>
-                  tfor (fun k x =>
-                          match x with
-                          | Some a0 => body k a0
-                          | None => Ret None
-                          end) (S i) j (Some a)).
-Proof.
-  intros *.
-  remember (j - i)%nat as k.
-  revert i Heqk a0.
-  induction k as [| k IH].
-  - lia.
-  - intros i EQ a0 INEQ.
-    rewrite tfor_unroll; auto.
-    cbn.
-    destruct a0 as [a0 |]; cycle 1.
-    + rewrite !bind_ret_l.
-      rewrite tfor_fail_None; [reflexivity | lia].
-    + apply eutt_eq_bind.
-      intros [a1|]; cycle 1.
-      * rewrite tfor_fail_None; [reflexivity | lia].
-      * destruct (PeanoNat.Nat.eq_dec (S i) j).
-        {
-          subst.
-          rewrite tfor_0; reflexivity.
-        }
-        destruct k; [lia |].
-        rewrite (IH (S i)); [| lia | lia].
-        reflexivity.
-Qed.
-
-Lemma no_failure_tfor : forall {E A} (body : nat -> A -> itree E (option A)) n m a0,
-    no_failure (tfor (fun k x => match x with
-                              | Some a => body k a
-                              | None => Ret None
-                              end) n m a0) ->
-    forall k a,
-      (n <= k < m)%nat ->
-      Returns (Some a) (tfor (fun k x => match x with
-                                      | Some a => body k a
-                                      | None => Ret None
-                                      end) n k a0) ->
-      no_failure (body k a).
-Proof.
-  intros E A body n m.
-  remember (m - n)%nat as j.
-  revert n Heqj.
-  induction j as [| j IH].
-  - intros n EQ a0 NOFAIL k a [INEQ1 INEQ2] RET.
-    assert (n = m) by lia; subst.
-    lia.
-  - intros n EQ a0 NOFAIL k a [INEQ1 INEQ2] RET.
-    destruct (PeanoNat.Nat.eq_dec k n). 
-    + subst.
-      clear INEQ1.
-      rewrite tfor_unroll_fail in NOFAIL; [| auto].
-      rewrite tfor_0 in RET.
-      apply Returns_Ret in RET.
-      subst.
-      apply no_failure_bind_prefix in NOFAIL; auto.
-    + specialize (IH (S n)).
-      forward IH; [lia |].
-      rewrite tfor_unroll_fail in NOFAIL; [| lia].
-      rewrite tfor_unroll_fail in RET; [| lia].
-      cbn in RET.
-      apply Returns_bind_inversion in RET.
-      destruct RET as (a1 & RET1 & RET2).
-      destruct a0 as [a0|]; cycle 1.
-      { cbn in *.
-        rewrite bind_ret_l in NOFAIL.
-        apply eutt_Ret in NOFAIL; contradiction NOFAIL; auto.
-      }
-      cbn in *.
-      destruct a1 as [a1|]; cycle 1.
-      {
-        apply Returns_Ret in RET2.
-        inv RET2.
-      }
-      apply no_failure_bind_cont with (u := a1) in NOFAIL; auto.
-      eapply IH; eauto.
-      lia.
-Qed.
 
 (* TODO: tactics? *)
 Ltac solve_allocated :=

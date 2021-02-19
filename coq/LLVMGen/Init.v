@@ -692,10 +692,10 @@ Definition declarations_invariant_mcfg (fnname:string) : Pred_mcfg_T unit :=
 (* YZ TODO : Move *)
 Arguments allocate : simpl never.
 
-Local Ltac pose_interp_to_L3_alloca m' a' A AE:=
+Local Ltac pose_interp3_alloca m' a' A AE:=
   match goal with
-  | [|-context[interp_to_L3 (trigger (Alloca ?t)) ?g ?l ?m]] =>
-    pose proof (interp_to_L3_alloca
+  | [|-context[interp_mcfg (trigger (Alloca ?t)) ?g ?l ?m]] =>
+    pose proof (interp3_alloca
                   m t g l)
       as [m' [a' [A AE]]]
   end.
@@ -1422,13 +1422,13 @@ Proof.
 Qed.
 
 (* ZX TODO: might want to move to vellvm *)
-(* similar to [interp_cfg_to_L3_GR] *)
-Lemma interp_to_L3_GR : forall id g l m v,
+(* similar to [interp_cfg3_GR] *)
+Lemma interp3_GR : forall id g l m v,
   Maps.lookup id g ≡ Some v ->
-  interp_to_L3 (trigger (GlobalRead id)) g l m ≈ Ret (m,(l,(g,v))).
+  interp_mcfg3 (trigger (GlobalRead id)) g l m ≈ Ret (m,(l,(g,v))).
 Proof.
   intros * LU.
-  unfold interp_to_L3.
+  unfold interp_mcfg3.
   rewrite interp_intrinsics_trigger.
   cbn.
   unfold Intrinsics.F_trigger.
@@ -1442,7 +1442,7 @@ Qed.
 (* similar to [denote_exp_double] *)
 Lemma denote_exp_double_mcfg : forall t g l m,
     interp_mcfg
-      (translate _exp_E_to_L0
+      (translate exp_to_L0
                  (denote_exp (Some (DTYPE_Double))
                              (EXP_Double t)))
       g l m
@@ -1450,7 +1450,7 @@ Lemma denote_exp_double_mcfg : forall t g l m,
     Ret (m, (l, (g, UVALUE_Double t))).
 Proof.
   intros; unfold denote_exp; cbn.
-  rewrite translate_ret, interp_to_L3_ret.
+  rewrite translate_ret, interp3_ret.
   reflexivity.
 Qed.
 
@@ -1459,7 +1459,7 @@ Qed.
 (* similar to [denote_exp_i64] *)
 Lemma denote_exp_i64_mcfg : forall t g l m,
     interp_mcfg
-      (translate _exp_E_to_L0
+      (translate exp_to_L0
                  (denote_exp (Some (DTYPE_I 64))
                              (EXP_Integer (unsigned t))))
        g l m
@@ -1467,7 +1467,7 @@ Lemma denote_exp_i64_mcfg : forall t g l m,
     Ret (m, (l, (g, UVALUE_I64 (DynamicValues.Int64.repr (unsigned t))))).
 Proof.
   intros; unfold denote_exp; cbn.
-  rewrite translate_ret, interp_to_L3_ret.
+  rewrite translate_ret, interp3_ret.
   reflexivity.
 Qed.
 
@@ -1479,7 +1479,7 @@ Lemma interp_mcfg_store:
     interp_mcfg (trigger (Store (DVALUE_Addr a) val)) g l m ≈ Ret (m', (l, (g, ()))).
 Proof.
   intros m m' val a g l WRITE.
-  unfold interp_to_L3.
+  unfold interp_mcfg3.
   rewrite interp_intrinsics_trigger.
   cbn.
   unfold Intrinsics.F_trigger.
@@ -1496,14 +1496,14 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma _exp_E_to_L0_Global : forall {X} (e : LLVMGEnvE X),
-    _exp_E_to_L0 (subevent X e) ≡ subevent X e.
+Lemma exp_to_L0_Global : forall {X} (e : LLVMGEnvE X),
+    exp_to_L0 (subevent X e) ≡ subevent X e.
 Proof.
   reflexivity.
 Qed.
 
-Lemma _exp_E_to_L0_Memory : forall {X} (e : MemoryE X),
-    _exp_E_to_L0 (subevent X e) ≡ subevent X e.
+Lemma exp_to_L0_Memory : forall {X} (e : MemoryE X),
+    exp_to_L0 (subevent X e) ≡ subevent X e.
 Proof.
   reflexivity.
 Qed.
@@ -2439,7 +2439,7 @@ Proof.
   rewrite CONC.
   cbn.
   unfold lift_err.
-  now rewrite CONV, interp_to_L3_ret.
+  now rewrite CONV, interp3_ret.
 Qed.
 
 (* ZX TODO: might want to move to vellvm *)
@@ -2630,7 +2630,7 @@ Lemma memory_invariant_after_init
     eutt
       (post_init_invariant_mcfg p.(name) σ s)
       (Ret (hmem, ()))
-      (interp_to_L3 (build_global_environment (convert_types (mcfg_of_tle pll)))
+      (interp_mcfg3 (build_global_environment (convert_types (mcfg_of_tle pll)))
                     [] ([],[]) empty_memory_stack).
 Proof.
   intros hmem σ s hdata pll [HI LI].
@@ -2696,7 +2696,7 @@ Proof.
 
   repeat rewrite app_assoc.
   unfold build_global_environment.
-  setoid_rewrite interp_to_L3_bind.
+  setoid_rewrite interp3_bind.
 
   repeat rewrite app_assoc.
   unfold allocate_globals, map_monad_.
@@ -2976,34 +2976,34 @@ Proof.
 
     autorewrite with itree.
 
-    rewrite interp_to_L3_bind.
+    rewrite interp3_bind.
 
-    pose_interp_to_L3_alloca m' a' A AE.
+    pose_interp3_alloca m' a' A AE.
     1:{
       unfold non_void.
       intros C. inversion C.
     }
     rewrite AE.
     cbn. repeat setoid_rewrite Eq.bind_ret_l.
-    rewrite interp_to_L3_bind.
-    rewrite interp_to_L3_GW.
+    rewrite interp3_bind.
+    rewrite interp3_GW.
     cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
     autorewrite with itree.
     cbn.
     unfold alist_add.
     cbn.
 
-    rewrite interp_to_L3_bind.
+    rewrite interp3_bind.
 
-    pose_interp_to_L3_alloca m'' a'' A' AE'.
+    pose_interp3_alloca m'' a'' A' AE'.
     1:{
       unfold non_void.
       intros C. inversion C.
     }
     rewrite AE'.
     cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
-    rewrite interp_to_L3_bind.
-    rewrite interp_to_L3_GW.
+    rewrite interp3_bind.
+    rewrite interp3_GW.
     cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
     cbn.
     replace (alist_add (Name "main") (DVALUE_Addr a'') [(Name name, DVALUE_Addr a')])
@@ -3032,7 +3032,7 @@ Proof.
       crush.
     }
 
-    rewrite interp_to_L3_ret.
+    rewrite interp3_ret.
     apply eutt_Ret.
     subst R.
     unfold declarations_invariant_mcfg, declarations_invariant.
@@ -3088,7 +3088,7 @@ Proof.
     rewrite Eq.bind_ret_l.
     reflexivity.
   }
-  rewrite interp_to_L3_bind.
+  rewrite interp3_bind.
 
   subst LHS REL.
   destruct p0 as [le0 stack0].
@@ -3130,7 +3130,7 @@ Proof.
       by (cbn; now rewrite Eq.bind_ret_l).
     rewrite T; clear T.
 
-    rewrite interp_to_L3_bind.
+    rewrite interp3_bind.
     cbn.
 
     pose (fun globals => (fun _ '(memV, (l, _, (g, _))) =>
@@ -3215,10 +3215,10 @@ Proof.
       *
         inv POST.
         cbn.
-        rewrite interp_to_L3_bind.
-        rewrite interp_to_L3_ret.
+        rewrite interp3_bind.
+        rewrite interp3_ret.
         rewrite Eq.bind_ret_l.
-        rewrite interp_to_L3_ret.
+        rewrite interp3_ret.
         apply eutt_Ret.
         now rewrite app_nil_r.
       *
@@ -3258,7 +3258,7 @@ Proof.
         destruct p0 as [mg0 hdata0].
 
         cbn.
-        rewrite interp_to_L3_bind.
+        rewrite interp3_bind.
 
         eutt_hide_left LHS.
         assert (FB : (LHS ≈ LHS ;; LHS)%monad); [| rewrite FB; clear FB; subst LHS].
@@ -3272,9 +3272,9 @@ Proof.
 
         apply eutt_clo_bind with (UU:=alloc_glob_decl_inv_mcfg (pre ++ [a])).
         -- (* allocate "new global" *)
-          repeat rewrite interp_to_L3_bind.
+          repeat rewrite interp3_bind.
           (* Alloca ng *)
-          pose_interp_to_L3_alloca m'' a'' A' AE'.
+          pose_interp3_alloca m'' a'' A' AE'.
           {
             clear - Heqs0.
             unfold initOneIRGlobal in Heqs0.
@@ -3287,7 +3287,7 @@ Proof.
 
           (* GlobalWrite ng *)
           cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
-          rewrite interp_to_L3_GW.
+          rewrite interp3_GW.
 
           apply eutt_Ret.
           unfold alloc_glob_decl_inv_mcfg.
@@ -3715,33 +3715,33 @@ Proof.
       repeat break_let.
       invc LX.
       cbn.
-      repeat rewrite interp_to_L3_bind. 
+      repeat rewrite interp3_bind. 
       
       (* Alloca Y *)
-      pose_interp_to_L3_alloca m'' a'' A' AE';
+      pose_interp3_alloca m'' a'' A' AE';
         [rewrite typ_to_dtyp_equation; congruence |].
       rewrite AE'.
       
       (* GlobalWrite Y *)
       cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
-      rewrite interp_to_L3_GW.
+      rewrite interp3_GW.
       cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
       
-      repeat rewrite interp_to_L3_bind.
+      repeat rewrite interp3_bind.
       
       (* Alloca X *)
-      pose_interp_to_L3_alloca m''' a''' A'' AE'';
+      pose_interp3_alloca m''' a''' A'' AE'';
         [rewrite typ_to_dtyp_equation; congruence |].
       rewrite AE''.
       
       (* GlobalWrite X *)
       cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
-      rewrite interp_to_L3_GW.
+      rewrite interp3_GW.
       cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
       
-      repeat rewrite interp_to_L3_ret, !ITree.Eq.Eq.bind_ret_l.
+      repeat rewrite interp3_ret, !ITree.Eq.Eq.bind_ret_l.
       cbn.
-      rewrite interp_to_L3_ret.
+      rewrite interp3_ret.
 
       apply eutt_Ret.
       unfold post_alloc_invariant_mcfg', post_alloc_invariant_mcfg in *.
@@ -3861,7 +3861,7 @@ Proof.
     clear u1.
     rename H0 into POST_ALLOC.
     
-    rewrite translate_bind, interp_to_L3_bind.
+    rewrite translate_bind, interp3_bind.
     subst.
 
     pose (fun globals : list (string * DSHType) =>
@@ -3911,7 +3911,7 @@ Proof.
             eutt (post_init_invariant' (pre ++ post))
                  (Ret (mg, ()))
                     (interp_mcfg
-                       (translate _exp_E_to_L0
+                       (translate exp_to_L0
                           (map_monad_ initialize_global
                                       (map (Fmap_global typ dtyp (typ_to_dtyp []))
                                            (flat_map (globals_of typ) gdecls2))))
@@ -3981,7 +3981,7 @@ Proof.
         inv POST.
         cbn.
         autorewrite with itree.
-        rewrite interp_to_L3_ret.
+        rewrite interp3_ret.
         apply eutt_Ret.
         rewrite app_nil_r.
         apply PINV.
@@ -4024,7 +4024,7 @@ Proof.
         apply initIRGlobals_names_unique in GUNIQ.
 
         rewrite translate_bind.
-        rewrite interp_to_L3_bind.
+        rewrite interp3_bind.
 
         eutt_hide_left LHS.
         assert (FB : (LHS ≈ LHS ;; LHS)%monad); [| rewrite FB; clear FB; subst LHS].
@@ -4110,8 +4110,8 @@ Proof.
           cbn.
           autorewrite with itree.
 
-          rewrite _exp_E_to_L0_Global, subevent_subevent.
-          rewrite interp_to_L3_bind.
+          rewrite exp_to_L0_Global, subevent_subevent.
+          rewrite interp3_bind.
 
           inversion_clear GINV as ((AXY & AG) & DI).
           destruct a as (a_nm, a_t).
@@ -4145,7 +4145,7 @@ Proof.
               inv Heqs0;
               reflexivity.
           }
-          rewrite (interp_to_L3_GR) by apply AV.
+          rewrite (interp3_GR) by apply AV.
 
           autorewrite with itree.
 
@@ -4156,13 +4156,13 @@ Proof.
             inv IA; cbn.
           ++
             rewrite typ_to_dtyp_I.
-            rewrite interp_to_L3_bind.
+            rewrite interp3_bind.
             rewrite denote_exp_i64_mcfg.
             autorewrite with itree.
             cbn.
             autorewrite with itree.
 
-            rewrite _exp_E_to_L0_Memory.
+            rewrite exp_to_L0_Memory.
             rewrite subevent_subevent.
 
             cbn in AV.
@@ -4502,13 +4502,13 @@ Proof.
               all: intuition.
           ++ (* ZX TODO: see how these bullets can be done all in one *)
             rewrite typ_to_dtyp_D.
-            rewrite interp_to_L3_bind.
+            rewrite interp3_bind.
             rewrite denote_exp_double_mcfg.
             autorewrite with itree.
             cbn.
             autorewrite with itree.
 
-            rewrite _exp_E_to_L0_Memory.
+            rewrite exp_to_L0_Memory.
             rewrite subevent_subevent.
 
             cbn in AV.
@@ -4867,12 +4867,12 @@ Proof.
             rewrite map_monad_map.
             cbn.
             autorewrite with itree.
-            rewrite interp_to_L3_bind.
+            rewrite interp3_bind.
 
             rewrite map_monad_ret_map with (g0:=UVALUE_Double) by reflexivity.
-            rewrite translate_ret, interp_to_L3_ret.
+            rewrite translate_ret, interp3_ret.
             autorewrite with itree.
-            rewrite interp_to_L3_bind.
+            rewrite interp3_bind.
             unfold concretize_or_pick.
             replace (is_concrete (UVALUE_Array (map UVALUE_Double pdata)))
               with true.
@@ -4889,10 +4889,10 @@ Proof.
             rewrite map_monad_inr_map with (g0:=DVALUE_Double)
               by reflexivity.
             cbn.
-            rewrite translate_ret, interp_to_L3_ret.
+            rewrite translate_ret, interp3_ret.
             autorewrite with itree.
 
-            rewrite _exp_E_to_L0_Memory, subevent_subevent.
+            rewrite exp_to_L0_Memory, subevent_subevent.
 
             unfold allocated_globals in AG.
             destruct AG as [AG _].
@@ -5271,13 +5271,13 @@ Proof.
       invc LX.
       cbn.
 
-      repeat rewrite translate_bind, interp_to_L3_bind.
-      rewrite translate_trigger, _exp_E_to_L0_Global, subevent_subevent.
+      repeat rewrite translate_bind, interp3_bind.
+      rewrite translate_trigger, exp_to_L0_Global, subevent_subevent.
       (*
       inversion_clear H1 as [[[MI] DI] AXY].
       destruct AXY as (px & py & APX & APY & IX & IY).
 
-      rewrite interp_to_L3_GR.
+      rewrite interp_3_GR.
       2:{
         unfold in_global_addr in IY.
         unfold Maps.lookup.
@@ -5461,8 +5461,8 @@ Hint Rewrite @translate_trigger : local.
 Hint Rewrite @interp_trigger : local.
 Hint Rewrite @bind_bind : local.
 Hint Rewrite @bind_ret_l : local.
-Hint Rewrite interp_to_L3_bind : local.
-Hint Rewrite interp_to_L3_ret : local.
+Hint Rewrite interp3_bind : local.
+Hint Rewrite interp3_ret : local.
 
   (* Top-level compiler correctness lemma  *)
   Theorem compiler_correct:
@@ -5578,7 +5578,7 @@ Hint Rewrite interp_to_L3_ret : local.
 
 (*     subst. *)
 (*     cbn. *)
-(*     rewrite interp_to_L3_bind. *)
+(*     rewrite interp3_bind. *)
 (*     autorewrite with local. *)
 
 (*     apply eutt_clo_bind. *)
@@ -5588,7 +5588,7 @@ Hint Rewrite interp_to_L3_ret : local.
 (*     simpl m_definitions. *)
 (*     simpl. *)
 (*     Set Printing . *)
-(*     rewrite interp_to_L3_bind. *)
+(*     rewrite interp3_bind. *)
     
 (*     autorewrite with local. *)
 
@@ -5618,14 +5618,14 @@ Hint Rewrite interp_to_L3_ret : local.
     (*   { *)
     (*     unfold semantics_llvm_mcfg, model_to_L3, denote_vellvm_init, denote_vellvm, translate_E_vellvm_mcfg. *)
     (*     simpl bind. *)
-    (*     rewrite interp_to_L3_bind, translate_bind. *)
+    (*     rewrite interp3_bind, translate_bind. *)
     (*     match goal with *)
     (*     | ?t ≈ _ => assert (t ≈ ITree.bind (lift_sem_to_mcfg (fun p =>  *)
 
 
     (* setoid_rewrite bind_bind. *)
     (*   unfold translate_E_vellvm_mcfg. *)
-    (* setoid_rewrite (interp_to_L3_bind defined_intrinsics . *)
+    (* setoid_rewrite (interp3_bind defined_intrinsics . *)
 
     (* unfold lift_sem_to_mcfg. *)
     (* break_match_goal. *)
@@ -5633,7 +5633,7 @@ Hint Rewrite interp_to_L3_ret : local.
     (*   unfold semantics_llvm_mcfg, model_to_L3, denote_vellvm_init, denote_vellvm. *)
     (*   simpl bind. *)
     (*   unfold translate_E_vellvm_mcfg. *)
-    (*   rewrite interp_to_L3_bind, translate_bind. *)
+    (*   rewrite interp3_bind, translate_bind. *)
 
     (*   rewrite modul_of_toplevel_entities *)
     (*           cons, !modul_of_toplevel_entities_app in Heqo0. *)

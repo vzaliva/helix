@@ -235,7 +235,7 @@ Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li :
 Ltac get_mem_eqs :=
   cbn in *;
   repeat match goal with
-         | H: (lift_Rel_cfg (state_invariant ?σ1 ?s3) ⩕ genNExpr_post ?e ?σ2 ?s1 ?s2 ?mh (mk_config_cfg ?mv ?ρ ?g)) (?mh', ?t) (?mv', (?ρ', (?g', ()))) |- _
+         | H: (lift_Rel_cfg (state_invariant ?σ1 ?s3) ⩕ genNExpr_post ?e ?σ2 ?s1 ?s2 ?mh (mk_config_cfg ?mv ?l ?g)) (?mh', ?t) (?mv', (?l', (?g', ()))) |- _
            => apply genNExpr_memoryV in H
          end.
 
@@ -259,15 +259,15 @@ Ltac solve_dtyp_fits :=
 
 Lemma DSHPower_correct:
   ∀ (n : NExpr) (src dst : MemRef) (f : AExpr) (initial : binary64) (s1 s2 : IRState) (σ : evalContext) (memH : memoryH) (nextblock bid_in bid_from : block_id) (bks : list (LLVMAst.block typ)) (g : global_env) 
-    (ρ : local_env) (memV : memoryV),
+    (l : local_env) (memV : memoryV),
     genIR (DSHPower n src dst f initial) nextblock s1 ≡ inr (s2, (bid_in, bks))
     → bid_bound s1 nextblock
-    → state_invariant σ s1 memH (memV, (ρ, g))
+    → state_invariant σ s1 memH (memV, (l, g))
     → Gamma_safe σ s1 s2
     → no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ (DSHPower n src dst f initial)) memH)
-    → eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ)) (interp_helix (denoteDSHOperator σ (DSHPower n src dst f initial)) memH) (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from, bid_in)) g ρ memV).
+    → eutt (succ_cfg (genIR_post σ s1 s2 nextblock l)) (interp_helix (denoteDSHOperator σ (DSHPower n src dst f initial)) memH) (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from, bid_in)) g l memV).
 Proof.
-  intros n src dst f initial s1 s2 σ memH nextblock bid_in bid_from bks g ρ memV GEN NEXT PRE GAM NOFAIL.
+  intros n src dst f initial s1 s2 σ memH nextblock bid_in bid_from bks g l memV GEN NEXT PRE GAM NOFAIL.
 
   pose proof generates_wf_ocfg_bids _ NEXT GEN as WFOCFG.
   pose proof inputs_bound_between _ _ _ GEN as INPUTS_BETWEEN.
@@ -305,7 +305,7 @@ Proof.
   hred; hstep; [eassumption |].
   hred.
 
-  rename l into loop_blocks.
+  rename l0 into loop_blocks.
 
   assert (wf_ocfg_bid loop_blocks) as WF_loop_blocks.
   { eapply wf_ocfg_bid_add_comment; eauto.
@@ -507,7 +507,7 @@ Proof.
         => eapply Correctness_NExpr.extends in POST; cbn in POST
       end.
 
-  assert (local_scope_modif i5 i7 ρ l_xoff /\ local_scope_modif i5 i8 ρ l_yoff) as [LSM_xoff LSM_yoff].
+  assert (local_scope_modif i5 i7 l l_xoff /\ local_scope_modif i5 i8 l l_yoff) as [LSM_xoff LSM_yoff].
   {
     nexpr_modifs.
     epose proof local_scope_modif_trans'' PostLoopEndNExpr PostXoffNExpr as LSM_xoff.
@@ -578,7 +578,7 @@ Proof.
 
   inv TEQ_yoff. inv TEQ_xoff. cbn. vred.
 
-  edestruct denote_instr_gep_array_no_read with (m:=mV_yoff) (g:=g_yoff) (ρ:=l_yoff) (size:=(Z.to_N (Int64.intval i1))) (τ:=DTYPE_Double) (i:=src_ptr_id) (ptr := @EXP_Ident dtyp i0) (a:= ptrll_xoff) (e_ix:=convert_typ [] xoff_exp) (ix:=(MInt64asNT.to_nat xoff_res)).
+  edestruct denote_instr_gep_array_no_read with (m:=mV_yoff) (g:=g_yoff) (l:=l_yoff) (size:=(Z.to_N (Int64.intval i1))) (τ:=DTYPE_Double) (i:=src_ptr_id) (ptr := @EXP_Ident dtyp i0) (a:= ptrll_xoff) (e_ix:=convert_typ [] xoff_exp) (ix:=(MInt64asNT.to_nat xoff_res)).
 
   { destruct i0.
     { rewrite denote_exp_GR.
@@ -630,7 +630,7 @@ Proof.
 
   vred; hred; vred.
 
-  edestruct denote_instr_gep_array_no_read with (m:=mV_yoff) (g:=g_yoff) (ρ:=(alist_add src_ptr_id (UVALUE_Addr src_addr) l_yoff)) (size:=(Z.to_N (Int64.intval i4))) (τ:=DTYPE_Double) (i:=dst_ptr_id) (ptr := @EXP_Ident dtyp i3) (a:= ptrll_yoff) (e_ix:=fmap (typ_to_dtyp []) yoff_exp) (ix:=(MInt64asNT.to_nat yoff_res)).
+  edestruct denote_instr_gep_array_no_read with (m:=mV_yoff) (g:=g_yoff) (l:=(alist_add src_ptr_id (UVALUE_Addr src_addr) l_yoff)) (size:=(Z.to_N (Int64.intval i4))) (τ:=DTYPE_Double) (i:=dst_ptr_id) (ptr := @EXP_Ident dtyp i3) (a:= ptrll_yoff) (e_ix:=fmap (typ_to_dtyp []) yoff_exp) (ix:=(MInt64asNT.to_nat yoff_res)).
   { destruct i3 as [id | id].
     { rewrite denote_exp_GR.
       change (UVALUE_Addr ptrll_yoff) with (dvalue_to_uvalue (DVALUE_Addr ptrll_yoff)).
@@ -720,9 +720,9 @@ Proof.
   cbn in PostLoopEndNExprCorrect.
 
   epose proof (denote_exp_i64 t_loopend) as T_LOOPEND_EUTT.
-  assert (eutt Logic.eq (interp_cfg (translate exp_E_to_instr_E (denote_exp (Some (DTYPE_I (Npos 64))) (EXP_Integer (Integers.Int64.intval t_loopend)))) g_yoff l_loopend mV_yoff)
+  assert (eutt Logic.eq (interp_cfg (translate exp_to_instr (denote_exp (Some (DTYPE_I (Npos 64))) (EXP_Integer (Integers.Int64.intval t_loopend)))) g_yoff l_loopend mV_yoff)
                (interp_cfg
-                  (translate exp_E_to_instr_E
+                  (translate exp_to_instr
                              (denote_exp (Some (DTYPE_I (Npos 64)))
                                          (convert_typ [] loop_end_exp))) g_yoff l_loopend mV_yoff)) as EUTT_INT.
   rewrite T_LOOPEND_EUTT.
@@ -757,11 +757,11 @@ Proof.
                | None => False
                | Some (mH,mb) =>
                  match stV with
-                 | (mV, (ρ, g)) =>
+                 | (mV, (l, g)) =>
                    state_invariant (protect σ n3) s2 mH stV /\
-                   alist_find dst_ptr_id ρ ≡ Some (UVALUE_Addr dst_addr) /\
-                   alist_find src_ptr_id ρ ≡ Some (UVALUE_Addr src_addr) /\
-                   local_scope_modif i16 s2 (alist_add dst_ptr_id (UVALUE_Addr dst_addr) (alist_add src_ptr_id (UVALUE_Addr src_addr) l_yoff)) ρ /\
+                   alist_find dst_ptr_id l ≡ Some (UVALUE_Addr dst_addr) /\
+                   alist_find src_ptr_id l ≡ Some (UVALUE_Addr src_addr) /\
+                   local_scope_modif i16 s2 (alist_add dst_ptr_id (UVALUE_Addr dst_addr) (alist_add src_ptr_id (UVALUE_Addr src_addr) l_yoff)) l /\
                    g ≡ g_yoff /\
                    allocated ptrll_yoff mV /\
                    (* Not sure if this is the right block *)
@@ -784,11 +784,11 @@ Proof.
                | None => False
                | Some (mH,mb) =>
                  match stV with
-                 | (mV, (ρ, g)) =>
+                 | (mV, (l, g)) =>
                    state_invariant (protect σ n3) s2 mH stV /\
-                   alist_find dst_ptr_id ρ ≡ Some (UVALUE_Addr dst_addr) /\
-                   alist_find src_ptr_id ρ ≡ Some (UVALUE_Addr src_addr) /\
-                   local_scope_modif i16 s2 (alist_add dst_ptr_id (UVALUE_Addr dst_addr) (alist_add src_ptr_id (UVALUE_Addr src_addr) l_yoff)) ρ /\
+                   alist_find dst_ptr_id l ≡ Some (UVALUE_Addr dst_addr) /\
+                   alist_find src_ptr_id l ≡ Some (UVALUE_Addr src_addr) /\
+                   local_scope_modif i16 s2 (alist_add dst_ptr_id (UVALUE_Addr dst_addr) (alist_add src_ptr_id (UVALUE_Addr src_addr) l_yoff)) l /\
                    g ≡ g_yoff /\
                    mH ≡ m_yoff /\
                    mb ≡ mem_add (MInt64asNT.to_nat yoff_res) initial bkh_yoff /\
@@ -1134,6 +1134,7 @@ Proof.
         }
         solve_alist_in.
       + subst.
+        (* Brutally long *)
         solve_alist_in.
     - exists b0. reflexivity.
     - (* I *)
@@ -1195,7 +1196,7 @@ Proof.
           specialize (MINV _ _ _ _ _ NTH_σ NTH_Γ).
 
           (* TODO: automate this? *)
-          assert (local_scope_modif s1 s2 ρ l_Aexpr) as LSM_FULL.
+          assert (local_scope_modif s1 s2 l l_Aexpr) as LSM_FULL.
           { nexpr_modifs.
             epose proof local_scope_modif_trans'' PostLoopEndNExpr PostXoffNExpr.
             repeat (forward H; solve_local_count).
@@ -1511,7 +1512,7 @@ Proof.
     => rewrite <- (bind_ret_r y)
   end.
 
-  setoid_rewrite interp_cfg_to_L3_bind.
+  setoid_rewrite interp_cfg3_bind.
   eapply eutt_clo_bind.
   eapply LOOPTFOR.
 
@@ -1578,7 +1579,7 @@ Proof.
    *)
 
   { (* Invariant is stable under the administrative bookkeeping that the loop performs *)
-    intros k a l mV g id1 v BOUND HI.
+    intros k a l' mV g id1 v BOUND HI.
     unfold I in *.
     destruct a; try inv HI.
     destruct p.
@@ -1659,7 +1660,7 @@ Proof.
     red. red in PR.
     destruct a. 2: inv PR.
     destruct p as [mH mb].
-    destruct b2 as [mV [l g]].
+    destruct b2 as [mV [l' g]].
     destruct PR as [SINV [DST [SRC [LSM [G [MH [MB MV]]]]]]].
 
     split.

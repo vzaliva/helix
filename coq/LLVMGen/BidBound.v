@@ -948,9 +948,7 @@ Proof.
       rewrite map_app in H1.
       eapply in_app_or in H1.
       destruct H1.
-      - unfold inputs in H.
-
-        rewrite blk_id_map_convert_typ in H.
+      - rewrite inputs_convert_typ in H.
 
         eapply Forall_forall in H0; eauto.
         eapply bid_bound_between_bound_earlier in H0.
@@ -967,9 +965,7 @@ Proof.
       rewrite inputs_app in H0.
       eapply in_app_or in H0.
       destruct H0.
-      - unfold inputs in H.
-
-        rewrite blk_id_map_convert_typ in H.
+      - rewrite inputs_convert_typ in H.
 
         eapply Forall_forall in H0; eauto.
         eapply bid_bound_between_bound_earlier in H0.
@@ -992,8 +988,7 @@ Proof.
 
     cbn in H1. destruct H1; inv H1.
     
-    unfold inputs in H.
-    rewrite blk_id_map_convert_typ in H.
+    rewrite inputs_convert_typ in H.
 
     eapply Forall_forall in H0; eauto.
 
@@ -1051,8 +1046,7 @@ Proof.
     clean_goal.
 
     eapply inputs_bound_between in GEN.
-    unfold inputs in GEN.
-    rewrite blk_id_map_convert_typ in GEN.
+    rewrite inputs_convert_typ in GEN.
 
     assert (In (blk_id x0) (map blk_id bcode)).
     { apply in_map; eauto. }
@@ -1149,8 +1143,7 @@ Proof.
     rewrite <- Heql0.
 
     rewrite map_app.
-    unfold inputs in *.
-    rewrite blk_id_map_convert_typ in *.
+    rewrite inputs_convert_typ in *.
 
     {  apply Coqlib.list_norepet_append_commut.
        unfold wf_ocfg_bid in *.
