@@ -1056,25 +1056,6 @@ Definition LLVMGen
                         |}
       ]).
 
-
-(* Creates 64 bit integer from floating pointer data list by interpreting
-   first 64 floating point values as bit values. *)
-Definition int64FromData (data:list binary64) : (Int64.int*(list binary64)) :=
-  let fix int64FromData (n: nat) (data:list binary64) (i: Int64.int) {struct n}: (Int64.int*(list binary64)) :=
-      match n with
-      | O => (Int64.zero, data)
-      | S m =>
-        let '(f,data) := rotate Float64Zero data in
-        let si := Int64.add i Int64.one in
-        match f with
-        | B754_zero _ => int64FromData m data si
-        | _ =>
-          let '(x,data) := int64FromData m data si in
-          (Int64.add (Int64.repr (two_power_nat m)) x, data)
-        end
-      end
-  in int64FromData 64 data Int64.zero.
-
 Definition initOneIRGlobal
            (data: list binary64)
            (nmt:string * DSHType)

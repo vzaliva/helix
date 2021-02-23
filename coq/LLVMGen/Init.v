@@ -692,11 +692,10 @@ Definition declarations_invariant_mcfg (fnname:string) : Pred_mcfg_T unit :=
 (* YZ TODO : Move *)
 Arguments allocate : simpl never.
 
-Local Ltac pose_interp_to_L3_alloca m' a' A AE:=
+Local Ltac pose_interp3_alloca m' a' A AE:=
   match goal with
-  | [|-context[interp_to_L3 ?defs (trigger (Alloca ?t)) ?g ?l ?m]] =>
-    pose proof (interp_to_L3_alloca
-                  defs
+  | [|-context[interp_mcfg (trigger (Alloca ?t)) ?g ?l ?m]] =>
+    pose proof (interp3_alloca
                   m t g l)
       as [m' [a' [A AE]]]
   end.
@@ -1296,7 +1295,6 @@ Proof.
     repeat break_match; invc I.
     unfold initOneFSHGlobal in Heqs.
     repeat break_match; invc Heqs.
-    1: break_match; invc H0.
     all: eapply IHglobals; try eassumption.
     destruct (Nat.eq_dec k (memory_next_key m0)).
     *
@@ -1424,13 +1422,13 @@ Proof.
 Qed.
 
 (* ZX TODO: might want to move to vellvm *)
-(* similar to [interp_cfg_to_L3_GR] *)
-Lemma interp_to_L3_GR : forall defs id g l m v,
+(* similar to [interp_cfg3_GR] *)
+Lemma interp3_GR : forall id g l m v,
   Maps.lookup id g ≡ Some v ->
-  interp_to_L3 defs (trigger (GlobalRead id)) g l m ≈ Ret (m,(l,(g,v))).
+  interp_mcfg3 (trigger (GlobalRead id)) g l m ≈ Ret (m,(l,(g,v))).
 Proof.
   intros * LU.
-  unfold interp_to_L3.
+  unfold interp_mcfg3.
   rewrite interp_intrinsics_trigger.
   cbn.
   unfold Intrinsics.F_trigger.
@@ -1444,7 +1442,7 @@ Qed.
 (* similar to [denote_exp_double] *)
 Lemma denote_exp_double_mcfg : forall t g l m,
     interp_mcfg
-      (translate _exp_E_to_L0
+      (translate exp_to_L0
                  (denote_exp (Some (DTYPE_Double))
                              (EXP_Double t)))
       g l m
@@ -1452,7 +1450,7 @@ Lemma denote_exp_double_mcfg : forall t g l m,
     Ret (m, (l, (g, UVALUE_Double t))).
 Proof.
   intros; unfold denote_exp; cbn.
-  rewrite translate_ret, interp_to_L3_ret.
+  rewrite translate_ret, interp3_ret.
   reflexivity.
 Qed.
 
@@ -1461,7 +1459,7 @@ Qed.
 (* similar to [denote_exp_i64] *)
 Lemma denote_exp_i64_mcfg : forall t g l m,
     interp_mcfg
-      (translate _exp_E_to_L0
+      (translate exp_to_L0
                  (denote_exp (Some (DTYPE_I 64))
                              (EXP_Integer (unsigned t))))
        g l m
@@ -1469,7 +1467,7 @@ Lemma denote_exp_i64_mcfg : forall t g l m,
     Ret (m, (l, (g, UVALUE_I64 (DynamicValues.Int64.repr (unsigned t))))).
 Proof.
   intros; unfold denote_exp; cbn.
-  rewrite translate_ret, interp_to_L3_ret.
+  rewrite translate_ret, interp3_ret.
   reflexivity.
 Qed.
 
@@ -1481,7 +1479,7 @@ Lemma interp_mcfg_store:
     interp_mcfg (trigger (Store (DVALUE_Addr a) val)) g l m ≈ Ret (m', (l, (g, ()))).
 Proof.
   intros m m' val a g l WRITE.
-  unfold interp_to_L3.
+  unfold interp_mcfg3.
   rewrite interp_intrinsics_trigger.
   cbn.
   unfold Intrinsics.F_trigger.
@@ -1498,14 +1496,14 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma _exp_E_to_L0_Global : forall {X} (e : LLVMGEnvE X),
-    _exp_E_to_L0 (subevent X e) ≡ subevent X e.
+Lemma exp_to_L0_Global : forall {X} (e : LLVMGEnvE X),
+    exp_to_L0 (subevent X e) ≡ subevent X e.
 Proof.
   reflexivity.
 Qed.
 
-Lemma _exp_E_to_L0_Memory : forall {X} (e : MemoryE X),
-    _exp_E_to_L0 (subevent X e) ≡ subevent X e.
+Lemma exp_to_L0_Memory : forall {X} (e : MemoryE X),
+    exp_to_L0 (subevent X e) ≡ subevent X e.
 Proof.
   reflexivity.
 Qed.
@@ -2077,7 +2075,6 @@ Proof.
       invc H0.
       unfold initOneFSHGlobal in Heqs.
       repeat break_match; inv Heqs.
-      break_match; inv H0.
       apply initFSHGlobals_no_overwrite in Heqs0.
       clear - Heqs0.
       admit. (* [Proper mem_block_exists] *)
@@ -2292,25 +2289,6 @@ Proof.
       eapply IHglobals; eassumption.
 Admitted.
 
-(*
-Lemma initFSHGlobals_no_llvm_ptr_aliasing
-      (globals : list (string * DSHType))
-      (m0 m : memoryH)
-      (hdata0 hdata : list binary64) 
-      (σ : evalContext)
-  :
-    initFSHGlobals hdata0 m0 globals ≡ inr (m, hdata, σ) →
-    ∀ (id1 : ident) (ptrv1 : addr) (id2 : ident) (ptrv2 : addr) (n1 n2 : nat) 
-      (τ τ' : typ) (v1 v2 : DSHVal),
-      nth_error σ n1 ≡ Some v1 ->
-      nth_error σ n2 ≡ Some v2 ->
-      nth_error (map IR_of_global globals) n1 ≡ Some (id1, τ) ->
-      nth_error (map IR_of_global globals) n2 ≡ Some (id2, τ') ->
-      id1 ≢ id2 ->
-      in_local_or_global_addr l' g' id1 ptrv1 ->
-      in_local_or_global_addr l' g' id2 ptrv2 → fst ptrv1 ≢ fst ptrv2.
-*)
-
 Lemma nth_error_ith
       {A : Type}
       (a : A)
@@ -2461,7 +2439,7 @@ Proof.
   rewrite CONC.
   cbn.
   unfold lift_err.
-  now rewrite CONV, interp_to_L3_ret.
+  now rewrite CONV, interp3_ret.
 Qed.
 
 (* ZX TODO: might want to move to vellvm *)
@@ -2478,7 +2456,170 @@ Proof.
   split; auto.
   now apply interp_mcfg_concretize_or_pick_concrete.
 Qed.
-  
+
+Lemma initIRGlobals_rev_data
+      (globals : list (string * DSHType))
+      (s s' : IRState)
+      (data data' : list binary64)
+      r
+  :
+    initIRGlobals_rev data globals s ≡ inr (s', (data', r)) →
+    exists n, data' ≡ rotateN n data.
+Proof.
+  revert s s' data data' r.
+  induction globals.
+  -
+    intros * I.
+    invc I.
+    exists 0.
+    reflexivity.
+  -
+    intros * I.
+    cbn in I.
+    repeat break_match; invc I.
+    eapply IHglobals in Heqs2.
+    destruct Heqs2 as [n1 N1]; subst data'.
+
+    clear - Heqs1.
+    destruct a as (a_nm, a_t).
+    destruct a_t; cbn in *;
+      repeat break_match; invc Heqs1.
+    +
+      apply int64FromData_data in Heqp; subst.
+      rewrite rotateN_add; eauto.
+    +
+      apply rotate_data in Heqp; subst.
+      rewrite rotateN_add; eauto.
+    +
+      apply constArray_data in Heqp; subst.
+      rewrite rotateN_add; eauto.
+Qed.
+
+Lemma initFSHGlobals_data
+      (globals : list (string * DSHType))
+      (m m' : memoryH)
+      (data data' : list binary64)
+      r
+  :
+    initFSHGlobals data m globals ≡ inr (m', data', r) →
+    exists n, data' ≡ rotateN n data.
+Proof.
+  revert m m' data data' r.
+  induction globals.
+  -
+    intros * I.
+    invc I.
+    exists 0.
+    reflexivity.
+  -
+    intros * I.
+    cbn in I.
+    repeat break_match; invc I.
+    destruct p0 as (m1, data1).
+    eapply IHglobals in Heqs0.
+    destruct Heqs0 as [n1 N1]; subst data'.
+
+    clear - Heqs.
+    destruct a as (a_nm, a_t).
+    destruct a_t; cbn in *;
+      repeat break_match; invc Heqs.
+    +
+      apply int64FromData_data in Heqp; subst.
+      rewrite rotateN_add; eauto.
+    +
+      apply rotate_data in Heqp; subst.
+      rewrite rotateN_add; eauto.
+    +
+      apply constMemBlock_data in Heqp; subst.
+      rewrite rotateN_add; eauto.
+Qed.
+
+Lemma initFSHGlobals_initIRGlobals_rev_data
+      (globals : list (string * DSHType))
+      (s s' : IRState)
+      (m m' : memoryH)
+      (data data_ir data_fsh : list binary64)
+      r_ir r_fsh
+  :
+    initIRGlobals_rev data globals s ≡ inr (s', (data_ir, r_ir)) →
+    initFSHGlobals data m globals ≡ inr (m', data_fsh, r_fsh) →
+    data_ir ≡ data_fsh.
+Proof.
+  revert s s' m m' data data_ir data_fsh r_ir r_fsh.
+  induction globals.
+  -
+    intros * IIR IFSH.
+    invc IIR; invc IFSH.
+    reflexivity.
+  -
+    intros * IIR IFSH.
+    cbn in IIR; cbn in IFSH.
+    repeat break_match; invc IIR; invc IFSH.
+
+    destruct p0 as (m1_fsh, data1_fsh).
+    rename l0 into data1_ir.
+    dedup_states.
+
+    eapply IHglobals.
+    eassumption.
+    unfold initIRGlobals_rev in *.
+    enough (T : data1_ir ≡ data1_fsh) by (rewrite T; eassumption).
+    clear - Heqs3 Heqs0.
+    rename Heqs0 into FSH, Heqs3 into IR.
+    destruct a as (a_nm, a_t).
+    destruct a_t; cbn in *;
+      repeat break_match;
+      invc IR; invc FSH; auto.
+    apply constMemBlock_data in Heqp; subst.
+    apply constArray_data in Heqp0; subst.
+    reflexivity.
+Qed.
+
+Lemma initXYplaceholders_data
+      (i o : Int64.int)
+      (data data' : list binary64)
+      (xid yid : raw_id) 
+      (x y : typ)
+      (s s' : IRState)
+      t
+  :
+    initXYplaceholders i o data xid x yid y s ≡ inr (s', (data', t)) ->
+    data' ≡ rotateN (MInt64asNT.to_nat i + MInt64asNT.to_nat o) data.
+Proof.
+  intros I.
+  unfold initXYplaceholders in *.
+  repeat break_match; invc I.
+  apply constArray_data in Heqp.
+  apply constArray_data in Heqp0.
+  subst.
+  apply rotateN_add.
+Qed.
+
+Ltac simpl_data :=
+  repeat match goal with
+         | [H : constArray _ _ ≡ (?data', _) |- _] =>
+           copy_apply constArray_data H; subst data'
+         | [H : constMemBlock _ _ ≡ (?data', _) |- _] =>
+           copy_apply constMemBlock_data H; subst data'
+         | [H : int64FromData _ ≡ (_, ?data') |- _] =>
+           copy_apply int64FromData_data H; subst data'
+         | [H : rotate _ _ ≡ (_, ?data') |- _] =>
+           copy_apply rotate_data H; subst data'
+         | [H : initXYplaceholders _ _ _ _ _ _ _ _ ≡ inr (_, (?data', _)) |- _] =>
+           copy_apply initXYplaceholders_data H; subst data'
+         end.
+
+Lemma get_logical_block_allocated :
+  ∀ (a : addr) (m : memoryV) (b : logical_block),
+    get_logical_block m (fst a) ≡ Some b ->
+    allocated a m.
+Proof.
+  intros * LB.
+  unfold allocated, get_logical_block, get_logical_block_mem in *.
+  repeat break_let; subst; cbn in *.
+  eapply lookup_member; eauto.
+Qed.
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -2489,8 +2630,7 @@ Lemma memory_invariant_after_init
     eutt
       (post_init_invariant_mcfg p.(name) σ s)
       (Ret (hmem, ()))
-      (interp_to_L3 defined_intrinsics
-                    (build_global_environment (convert_types (mcfg_of_tle pll)))
+      (interp_mcfg3 (build_global_environment (convert_types (mcfg_of_tle pll)))
                     [] ([],[]) empty_memory_stack).
 Proof.
   intros hmem σ s hdata pll [HI LI].
@@ -2556,7 +2696,7 @@ Proof.
 
   repeat rewrite app_assoc.
   unfold build_global_environment.
-  setoid_rewrite interp_to_L3_bind.
+  setoid_rewrite interp3_bind.
 
   repeat rewrite app_assoc.
   unfold allocate_globals, map_monad_.
@@ -2836,34 +2976,34 @@ Proof.
 
     autorewrite with itree.
 
-    rewrite interp_to_L3_bind.
+    rewrite interp3_bind.
 
-    pose_interp_to_L3_alloca m' a' A AE.
+    pose_interp3_alloca m' a' A AE.
     1:{
       unfold non_void.
       intros C. inversion C.
     }
     rewrite AE.
     cbn. repeat setoid_rewrite Eq.bind_ret_l.
-    rewrite interp_to_L3_bind.
-    rewrite interp_to_L3_GW.
+    rewrite interp3_bind.
+    rewrite interp3_GW.
     cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
     autorewrite with itree.
     cbn.
     unfold alist_add.
     cbn.
 
-    rewrite interp_to_L3_bind.
+    rewrite interp3_bind.
 
-    pose_interp_to_L3_alloca m'' a'' A' AE'.
+    pose_interp3_alloca m'' a'' A' AE'.
     1:{
       unfold non_void.
       intros C. inversion C.
     }
     rewrite AE'.
     cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
-    rewrite interp_to_L3_bind.
-    rewrite interp_to_L3_GW.
+    rewrite interp3_bind.
+    rewrite interp3_GW.
     cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
     cbn.
     replace (alist_add (Name "main") (DVALUE_Addr a'') [(Name name, DVALUE_Addr a')])
@@ -2892,7 +3032,7 @@ Proof.
       crush.
     }
 
-    rewrite interp_to_L3_ret.
+    rewrite interp3_ret.
     apply eutt_Ret.
     subst R.
     unfold declarations_invariant_mcfg, declarations_invariant.
@@ -2948,7 +3088,7 @@ Proof.
     rewrite Eq.bind_ret_l.
     reflexivity.
   }
-  rewrite interp_to_L3_bind.
+  rewrite interp3_bind.
 
   subst LHS REL.
   destruct p0 as [le0 stack0].
@@ -2961,9 +3101,9 @@ Proof.
       block_count := block_count;
       local_count := local_count;
       void_count := void_count;
-      Γ := Γ_globals ++ [fake_x; fake_y] |}
+      Γ := Γ_globals |}
     as zx_state.
-  remember (e ++ [(DSHPtrVal (S lg) o, false); (DSHPtrVal lg i, false)])
+  remember e
     as zx_σ.
 
   pose (fun '(memH, t0) '(memV, (l, t1, (g, t2))) =>
@@ -2990,19 +3130,25 @@ Proof.
       by (cbn; now rewrite Eq.bind_ret_l).
     rewrite T; clear T.
 
-    rewrite interp_to_L3_bind.
+    rewrite interp3_bind.
     cbn.
 
     pose (fun globals => (fun _ '(memV, (l, _, (g, _))) =>
                          allocated_globals memV g globals l zx_σ zx_state) : Rel_mcfg_T () ())
       as allocated_globals_mcfg.
+    
+    pose (fun globals =>
+                (fun _ '(memV, (l, _, (g, _))) =>
+                   allocated_globals memV g globals l zx_σ zx_state /\
+                   declarations_invariant name (memV, (l, g))) : Rel_mcfg_T () ())
+      as alloc_glob_decl_inv_mcfg.
 
     (* split the goal:
        1) allocate globals
        2) allocate yx
      *)
     apply eutt_clo_bind
-      with (UU:=allocated_globals_mcfg globals).
+      with (UU:=alloc_glob_decl_inv_mcfg globals).
     + (* allocate globals *)
       subst.
 
@@ -3024,9 +3170,9 @@ Proof.
             initIRGlobals_rev l1 pre s_yx ≡ inr (s', (l', gdecls1)) ->
             initIRGlobals_rev l' post s' ≡ inr (rev_firstn_Γ (length globals) s1,
                                                 (l2, gdecls2)) ->
-            allocated_globals_mcfg pre (mg, ())
+            alloc_glob_decl_inv_mcfg pre (mg, ())
                                       (m, (le0, stack0, (g, ()))) ->
-            eutt (allocated_globals_mcfg (pre ++ post))
+            eutt (alloc_glob_decl_inv_mcfg  (pre ++ post))
                  (Ret (mg, ()))
                     (interp_mcfg
                        (map_monad_ allocate_global
@@ -3043,6 +3189,7 @@ Proof.
         {
           cbn.
           unfold allocated_globals.
+          split; auto.
           split.
           -
             intros.
@@ -3068,10 +3215,10 @@ Proof.
       *
         inv POST.
         cbn.
-        rewrite interp_to_L3_bind.
-        rewrite interp_to_L3_ret.
+        rewrite interp3_bind.
+        rewrite interp3_ret.
         rewrite Eq.bind_ret_l.
-        rewrite interp_to_L3_ret.
+        rewrite interp3_ret.
         apply eutt_Ret.
         now rewrite app_nil_r.
       *
@@ -3111,7 +3258,7 @@ Proof.
         destruct p0 as [mg0 hdata0].
 
         cbn.
-        rewrite interp_to_L3_bind.
+        rewrite interp3_bind.
 
         eutt_hide_left LHS.
         assert (FB : (LHS ≈ LHS ;; LHS)%monad); [| rewrite FB; clear FB; subst LHS].
@@ -3123,30 +3270,11 @@ Proof.
           reflexivity.
         }
 
-        remember ((e_pre ++ p1 :: e_post') ++
-                                     [(DSHPtrVal (S (Datatypes.length (pre ++ a :: post))) o,
-                                      false);
-                                     (DSHPtrVal (Datatypes.length (pre ++ a :: post)) i,
-                                     false)])
-          as zx_σ.
-        remember {|
-          block_count := block_count;
-          local_count := local_count;
-          void_count := void_count;
-          Γ := Γ_globals ++ [fake_x; fake_y] |}
-        as zx_state.
-        
-        pose (fun globals =>
-                    (fun _ '(memV, (l, _, (g, _))) =>
-                       allocated_globals memV g globals l zx_σ zx_state /\
-                       declarations_invariant name (memV, (l, g))) : Rel_mcfg_T () ())
-          as alloc_glob_decl_inv_mcfg.
-
         apply eutt_clo_bind with (UU:=alloc_glob_decl_inv_mcfg (pre ++ [a])).
         -- (* allocate "new global" *)
-          repeat rewrite interp_to_L3_bind.
+          repeat rewrite interp3_bind.
           (* Alloca ng *)
-          pose_interp_to_L3_alloca m'' a'' A' AE'.
+          pose_interp3_alloca m'' a'' A' AE'.
           {
             clear - Heqs0.
             unfold initOneIRGlobal in Heqs0.
@@ -3159,7 +3287,7 @@ Proof.
 
           (* GlobalWrite ng *)
           cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
-          rewrite interp_to_L3_GW.
+          rewrite interp3_GW.
 
           apply eutt_Ret.
           unfold alloc_glob_decl_inv_mcfg.
@@ -3173,15 +3301,12 @@ Proof.
               rename p1 into ne'.
               subst.
 
-              replace (firstn (Datatypes.length (pre ++ [a]))
-                        ((e_pre ++ ne' :: e_post') ++
-                         [(DSHPtrVal (S (Datatypes.length (pre ++ a :: post))) o, false);
-                         (DSHPtrVal (Datatypes.length (pre ++ a :: post)) i, false)]))
+              replace (firstn (Datatypes.length (pre ++ [a])) (e_pre ++ ne' :: e_post'))
                 with (e_pre ++ [ne'])
                 in *.
               2:{
                 rewrite list_cons_app with (l4:=e_post').
-                rewrite <-!app_assoc, app_assoc.
+                rewrite app_assoc.
                 rewrite firstn_app.
                 replace (length (pre ++ [a]) - length (e_pre ++ [ne']))
                   with 0 in *
@@ -3220,7 +3345,7 @@ Proof.
               rewrite list_cons_app in H1, H2.
               rewrite app_assoc in H1, H2.
               rewrite map_app in H1, H2.
-              rewrite <-!app_assoc in H1, H2.
+              (* rewrite <-!app_assoc in H1, H2. *)
               rewrite app_nth_error1 in H1, H2
                 by (rewrite map_app, app_length, !map_length; cbn; lia).
 
@@ -3284,7 +3409,7 @@ Proof.
 
                 move INV at bottom.
                 unfold allocated_globals_mcfg, allocated_globals in INV.
-                destruct INV as [APRE _].
+                destruct INV as [[APRE _] _].
 
                 specialize (APRE n H1).
                 eapply nth_error_ith in E2.
@@ -3344,7 +3469,7 @@ Proof.
 
                 move INV at bottom.
                 unfold allocated_globals_mcfg, allocated_globals in INV.
-                destruct INV as [APRE _].
+                destruct INV as [[APRE _] _].
 
                 specialize (APRE n H1).
                 eapply nth_error_ith in E1.
@@ -3418,17 +3543,13 @@ Proof.
 
                 move INV at bottom.
                 unfold allocated_globals_mcfg, allocated_globals in INV.
-                destruct INV as [_ NA].
+                destruct INV as [[_ NA] _].
 
-                replace (firstn (Datatypes.length pre)
-                          ((e_pre ++ ne' :: e_post') ++
-                           [(DSHPtrVal (S (Datatypes.length (pre ++ a :: post))) o, false);
-                           (DSHPtrVal (Datatypes.length (pre ++ a :: post)) i, false)]))
+                replace (firstn (Datatypes.length pre) (e_pre ++ ne' :: e_post'))
                   with (e_pre)
                   in *.
                 2:{
                   rewrite list_cons_app with (l4:=e_post').
-                  rewrite <-!app_assoc.
                   rewrite firstn_app.
                   replace (length pre - length e_pre)
                     with 0 in *
@@ -3444,7 +3565,6 @@ Proof.
                 -
                   cbn.
                   rewrite map_app.
-                  rewrite <-!app_assoc.
                   rewrite app_nth_error1
                     by (rewrite map_length; lia).
                   apply map_nth_error with (f:=IR_of_global) in E1.
@@ -3452,7 +3572,6 @@ Proof.
                 -
                   cbn.
                   rewrite map_app.
-                  rewrite <-!app_assoc.
                   rewrite app_nth_error1
                     by (rewrite map_length; lia).
                   apply map_nth_error with (f:=IR_of_global) in E2.
@@ -3499,7 +3618,7 @@ Proof.
               unfold allocated_globals_mcfg in *.
               clear - INV A'.
               unfold allocated_globals in INV.
-              destruct INV as [INV _].
+              destruct INV as [[INV _] _].
               specialize (INV j jc').
               destruct INV as (ptr & AP & G).
               generalize dependent (Name (fst (ListUtil.ith (l:=pre) (i:=j) jc'))).
@@ -3596,38 +3715,45 @@ Proof.
       repeat break_let.
       invc LX.
       cbn.
-      repeat rewrite interp_to_L3_bind. 
+      repeat rewrite interp3_bind. 
       
       (* Alloca Y *)
-      pose_interp_to_L3_alloca m'' a'' A' AE';
+      pose_interp3_alloca m'' a'' A' AE';
         [rewrite typ_to_dtyp_equation; congruence |].
       rewrite AE'.
       
       (* GlobalWrite Y *)
       cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
-      rewrite interp_to_L3_GW.
+      rewrite interp3_GW.
       cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
       
-      repeat rewrite interp_to_L3_bind.
+      repeat rewrite interp3_bind.
       
       (* Alloca X *)
-      pose_interp_to_L3_alloca m''' a''' A'' AE'';
+      pose_interp3_alloca m''' a''' A'' AE'';
         [rewrite typ_to_dtyp_equation; congruence |].
       rewrite AE''.
       
       (* GlobalWrite X *)
       cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
-      rewrite interp_to_L3_GW.
+      rewrite interp3_GW.
       cbn; rewrite !ITree.Eq.Eq.bind_ret_l.
       
-      repeat rewrite interp_to_L3_ret, !ITree.Eq.Eq.bind_ret_l.
+      repeat rewrite interp3_ret, !ITree.Eq.Eq.bind_ret_l.
       cbn.
-      rewrite interp_to_L3_ret.
+      rewrite interp3_ret.
 
       apply eutt_Ret.
       unfold post_alloc_invariant_mcfg', post_alloc_invariant_mcfg in *.
       break_let.
-      split; [| admit].
+      split.
+      2: {
+        destruct H0 as [_ DI]; clear - DI.
+        inversion_clear DI as [M F].
+        constructor; cbn.
+        - now rewrite !alist_find_neq by discriminate.
+        - now rewrite !alist_find_neq by discriminate.
+      }
       split.
       *
         unfold allocated_xy.
@@ -3654,10 +3780,43 @@ Proof.
         unfold allocated_globals_mcfg, allocated_globals in *.
         split.
         2: {
-          admit.
+          destruct H0 as [[_ L] _].
+          unfold no_llvm_ptr_aliasing in *; cbn in *.
+          intros.
+          eapply L.
+          - eapply H0.
+          - eapply H1.
+          - eassumption.
+          - eassumption.
+          - assumption.
+          - 
+            move IR at bottom.
+            dedup_states.
+            apply genIR_Γ in IR.
+            cbn in IR.
+            apply list_app_eqlen_eq_r in IR; [| reflexivity].
+            destruct IR as [ΓG XY]; invc XY.
+            apply nth_map_inv in H2.
+            destruct H2 as [(_nm, _t) [_ ID1]].
+            invc ID1; cbn in *.
+            rewrite <-H5.
+            now rewrite !alist_find_neq by discriminate.
+          - 
+            move IR at bottom.
+            dedup_states.
+            apply genIR_Γ in IR.
+            cbn in IR.
+            apply list_app_eqlen_eq_r in IR; [| reflexivity].
+            destruct IR as [ΓG XY]; invc XY.
+            apply nth_map_inv in H3.
+            destruct H3 as [(_nm, _t) [_ ID2]].
+            invc ID2; cbn in *.
+            rewrite <-H6.
+            now rewrite !alist_find_neq by discriminate.
         }
+
         intros.
-        destruct H0 as [H0 _].
+        destruct H0 as [[H0 _] _].
         specialize (H0 j jc).
         destruct H0 as [ptr_llvm P].
         unfold in_global_addr in *.
@@ -3702,7 +3861,7 @@ Proof.
     clear u1.
     rename H0 into POST_ALLOC.
     
-    rewrite translate_bind, interp_to_L3_bind.
+    rewrite translate_bind, interp3_bind.
     subst.
 
     pose (fun globals : list (string * DSHType) =>
@@ -3752,7 +3911,7 @@ Proof.
             eutt (post_init_invariant' (pre ++ post))
                  (Ret (mg, ()))
                     (interp_mcfg
-                       (translate _exp_E_to_L0
+                       (translate exp_to_L0
                           (map_monad_ initialize_global
                                       (map (Fmap_global typ dtyp (typ_to_dtyp []))
                                            (flat_map (globals_of typ) gdecls2))))
@@ -3822,7 +3981,7 @@ Proof.
         inv POST.
         cbn.
         autorewrite with itree.
-        rewrite interp_to_L3_ret.
+        rewrite interp3_ret.
         apply eutt_Ret.
         rewrite app_nil_r.
         apply PINV.
@@ -3865,7 +4024,7 @@ Proof.
         apply initIRGlobals_names_unique in GUNIQ.
 
         rewrite translate_bind.
-        rewrite interp_to_L3_bind.
+        rewrite interp3_bind.
 
         eutt_hide_left LHS.
         assert (FB : (LHS ≈ LHS ;; LHS)%monad); [| rewrite FB; clear FB; subst LHS].
@@ -3951,8 +4110,8 @@ Proof.
           cbn.
           autorewrite with itree.
 
-          rewrite _exp_E_to_L0_Global, subevent_subevent.
-          rewrite interp_to_L3_bind.
+          rewrite exp_to_L0_Global, subevent_subevent.
+          rewrite interp3_bind.
 
           inversion_clear GINV as ((AXY & AG) & DI).
           destruct a as (a_nm, a_t).
@@ -3986,7 +4145,7 @@ Proof.
               inv Heqs0;
               reflexivity.
           }
-          rewrite (interp_to_L3_GR) by apply AV.
+          rewrite (interp3_GR) by apply AV.
 
           autorewrite with itree.
 
@@ -3997,13 +4156,13 @@ Proof.
             inv IA; cbn.
           ++
             rewrite typ_to_dtyp_I.
-            rewrite interp_to_L3_bind.
+            rewrite interp3_bind.
             rewrite denote_exp_i64_mcfg.
             autorewrite with itree.
             cbn.
             autorewrite with itree.
 
-            rewrite _exp_E_to_L0_Memory.
+            rewrite exp_to_L0_Memory.
             rewrite subevent_subevent.
 
             cbn in AV.
@@ -4083,9 +4242,7 @@ Proof.
                   unfold initOneFSHGlobal in Heqs2.
                   cbn in Heqs2.
                   repeat break_match_hyp; try inl_inr.
-                  inversion Heqs2; clear Heqs2.
-                  rename t0 into ne.
-                  subst mg0 l4.
+                  invc Heqs2.
                   unfold in_local_or_global_scalar.
 
                   apply nth_map_inv in H1.
@@ -4107,20 +4264,142 @@ Proof.
                     by (rewrite typ_to_dtyp_I; constructor).
                   cbn.
                   do 3 f_equal.
-                  (*
-                  Search i2.       (* l1' -[rotate]-> i2 *)
-                  Search l1'.      (* l1 -[initIRGlobals]-> l1' *)
-                  Search l1.       (* data -[initXYplaceholders]-> l1 *)
 
-                  Search ne.        (* b0 -[from_Z . bits_of_b46]-> ne *)
-                  Search b0.        (* hdata_pre -[rotate]-> b0 *)
-                  Search hdata_pre. (* l0 -[initFSHglobals]-> hdata_pre *)
-                  Search l0.        (* l -[constMemBlock]-> l0 *)
-                  Search l.         (* data -[constMemBlock]-> l *)
-                   *)
-                  admit.
+                  simpl_data.
+                  enough (l1' ≡ hdata_pre)
+                    by now replace i0 with i1 by congruence.
+                  rewrite rotateN_add in IPRE.
+                  eapply initFSHGlobals_initIRGlobals_rev_data.
+                  eapply PRE.
+                  eapply IPRE.
                 +++
-                  admit.
+                  assert (n < length e_pre).
+                  {
+                    apply nth_error_in in H0.
+                    rewrite app_length in H0.
+                    cbn in H0.
+                    lia.
+                  }
+                  clear n0.
+
+                  rewrite app_nth_error1 in H0 by assumption.
+                  rewrite map_app in H1.
+                  rewrite app_nth_error1 in H1 by (rewrite map_length; lia).
+                  destruct x as [id | id].
+                  2:{
+                    apply nth_map_inv in H1.
+                    destruct H1 as ((?, ?) & ? & ?).
+                    discriminate.
+                  }
+
+                  inversion PINV as [[I _ _ _ _ _ _] _].
+                  cbn in I.
+                  specialize (I _ _ _ _ _ H0 H1).
+                  generalize dependent
+                             (LBlock a_sz
+                               (add_all_index
+                                  (serialize_dvalue
+                                     (DVALUE_I64 (DynamicValues.Int64.repr
+                                                    (DynamicValues.Int64.unsigned i0))))
+                                  a_off a_bytes) a_id).
+                  intros lb.
+
+                  assert (forall vptr, g' @ id ≡ Some (DVALUE_Addr vptr) ->
+                                  a_ptr ≢ fst vptr).
+                  {
+                    intros.
+                    replace a_ptr with (fst (a_ptr, a_off)) by reflexivity.
+                    move AG' at bottom.
+                    destruct AG' as [_ NLPA].
+                    rewrite firstn_all2 in NLPA by lia.
+                    unfold no_llvm_ptr_aliasing in NLPA.
+                    destruct ne'.
+                    eapply NLPA with (n1:=length pre) (id1:=ID_Global (Name a_nm)).
+                    -
+                      rewrite nth_error_app2 by lia.
+                      rewrite E_PRE_LEN, Nat.sub_diag.
+                      reflexivity.
+                    -
+                      eapply ListNth.nth_error_weaken.
+                      eapply H0.
+                    -
+                      cbn.
+                      rewrite map_app.
+                      rewrite nth_error_app2
+                        by now rewrite map_length.
+                      rewrite map_length, Nat.sub_diag.
+                      rewrite map_cons.
+                      cbn.
+                      reflexivity.
+                    -
+                      cbn.
+                      rewrite map_app.
+                      eapply ListNth.nth_error_weaken.
+                      eapply H1.
+                    -
+                      clear - H1 H2 GUNIQ E_PRE_LEN.
+                      intros C; invc C.
+                      unfold list_uniq in GUNIQ.
+                      apply nth_map_inv in H1.
+                      destruct H1 as ((a_nm', τ') & A & A').
+                      invc A'.
+                      specialize (GUNIQ n (length pre) (a_nm, τ') (a_nm, DSHnat)).
+                      full_autospecialize GUNIQ; try reflexivity.
+                      now apply ListNth.nth_error_weaken.
+                      rewrite nth_error_app2 by reflexivity.
+                      rewrite Nat.sub_diag.
+                      reflexivity.
+                      lia.
+                    -
+                      unfold in_local_or_global_addr.
+                      assumption.
+                    -
+                      unfold in_local_or_global_addr.
+                      assumption.
+                  }
+
+                  break_match.
+                  {
+                    unfold in_local_or_global_scalar in *.
+                    destruct I as (vptr & τ' & I).
+                    exists vptr; exists τ'.
+                    destruct I as (TTT & G'ID & R').
+                    split; [assumption | split; [assumption |]].
+                    unfold read in *.
+
+                    rewrite get_logical_block_of_add_logical_block_neq by now apply H3.
+                    now repeat break_match_goal.
+                  }
+                  {
+                    unfold in_local_or_global_scalar in *.
+                    destruct I as (vptr & τ' & I).
+                    exists vptr; exists τ'.
+                    destruct I as (TTT & G'ID & R').
+                    split; [assumption | split; [assumption |]].
+                    unfold read in *.
+
+                    rewrite get_logical_block_of_add_logical_block_neq by now apply H3.
+                    now repeat break_match_goal.
+                  }
+                  {
+                    unfold in_local_or_global_scalar in *.
+                    destruct I as (vptr & τ' & I).
+                    exists vptr; exists τ'.
+                    destruct I as (TTT & DTF & ILG & IDK).
+                    split; [assumption | split; [| split; [assumption |]]].
+                    -
+                      unfold dtyp_fits in *.
+                      rewrite get_logical_block_of_add_logical_block_neq by now apply H3.
+                      apply DTF.
+                    -
+                      unfold get_array_cell in *.
+                      break_let.
+                      rewrite get_logical_block_of_add_logical_block_neq.
+                      apply IDK.
+                      replace z with (fst vptr) by now subst.
+                      apply H3.
+                      now subst.
+                  }
               ---
                 unfold WF_IRState.
                 cbn.
@@ -4160,13 +4439,7 @@ Proof.
                 move AG' at bottom.
                 unfold allocated_globals in AG'.
                 destruct AG' as [_ NAL].
-                rewrite firstn_app in NAL.
-                replace 
-                  (Datatypes.length (pre ++ (a_nm, DSHnat) :: post) -
-                   Datatypes.length (e_pre ++ ne' :: e_post'))
-                  with 0 in * by lia.
                 rewrite firstn_all2 in NAL by lia.
-                rewrite firstn_O, app_nil_r in NAL.
                 rewrite list_cons_app in NAL.
                 rewrite app_assoc in NAL.
                 unfold no_llvm_ptr_aliasing_cfg, no_llvm_ptr_aliasing.
@@ -4177,14 +4450,14 @@ Proof.
                 +++
                   rewrite list_cons_app.
                   rewrite !map_app.
-                  rewrite <-!app_assoc, app_assoc.
+                  rewrite app_assoc.
                   eapply ListNth.nth_error_weaken.
                   rewrite <-map_app.
                   eassumption.
                 +++
                   rewrite list_cons_app.
                   rewrite !map_app.
-                  rewrite <-!app_assoc, app_assoc.
+                  rewrite app_assoc.
                   eapply ListNth.nth_error_weaken.
                   rewrite <-map_app.
                   eassumption.
@@ -4229,13 +4502,13 @@ Proof.
               all: intuition.
           ++ (* ZX TODO: see how these bullets can be done all in one *)
             rewrite typ_to_dtyp_D.
-            rewrite interp_to_L3_bind.
+            rewrite interp3_bind.
             rewrite denote_exp_double_mcfg.
             autorewrite with itree.
             cbn.
             autorewrite with itree.
 
-            rewrite _exp_E_to_L0_Memory.
+            rewrite exp_to_L0_Memory.
             rewrite subevent_subevent.
 
             cbn in AV.
@@ -4314,9 +4587,7 @@ Proof.
                   unfold initOneFSHGlobal in Heqs2.
                   cbn in Heqs2.
                   repeat break_match_hyp; try inl_inr.
-                  inversion Heqs2; clear Heqs2.
-                  (* rename t0 into ne. *)
-                  subst mg0 l4 v b1.
+                  invc Heqs2.
                   unfold in_local_or_global_scalar.
 
                   apply nth_map_inv in H1.
@@ -4338,9 +4609,137 @@ Proof.
                     by (rewrite typ_to_dtyp_D; constructor).
                   cbn.
                   do 3 f_equal.
-                  admit.
+
+                  simpl_data.
+                  enough (l1' ≡ hdata_pre) by congruence.
+                  rewrite rotateN_add in IPRE.
+                  eapply initFSHGlobals_initIRGlobals_rev_data.
+                  eapply PRE.
+                  eapply IPRE.
                 +++
-                  admit.
+                  assert (n < length e_pre).
+                  {
+                    apply nth_error_in in H0.
+                    rewrite app_length in H0.
+                    cbn in H0.
+                    lia.
+                  }
+                  clear n0.
+
+                  rewrite app_nth_error1 in H0 by assumption.
+                  rewrite map_app in H1.
+                  rewrite app_nth_error1 in H1 by (rewrite map_length; lia).
+                  destruct x as [id | id].
+                  2:{
+                    apply nth_map_inv in H1.
+                    destruct H1 as ((?, ?) & ? & ?).
+                    discriminate.
+                  }
+
+                  inversion PINV as [[I _ _ _ _ _ _] _].
+                  cbn in I.
+                  specialize (I _ _ _ _ _ H0 H1).
+                  generalize dependent
+                             (LBlock a_sz
+                               (add_all_index (serialize_dvalue (DVALUE_Double b0)) a_off a_bytes) a_id).
+                  intros lb.
+
+                  assert (forall vptr, g' @ id ≡ Some (DVALUE_Addr vptr) ->
+                                  a_ptr ≢ fst vptr).
+                  {
+                    intros.
+                    replace a_ptr with (fst (a_ptr, a_off)) by reflexivity.
+                    move AG' at bottom.
+                    destruct AG' as [_ NLPA].
+                    rewrite firstn_all2 in NLPA by lia.
+                    unfold no_llvm_ptr_aliasing in NLPA.
+                    destruct ne'.
+                    eapply NLPA with (n1:=length pre) (id1:=ID_Global (Name a_nm)).
+                    -
+                      rewrite nth_error_app2 by lia.
+                      rewrite E_PRE_LEN, Nat.sub_diag.
+                      reflexivity.
+                    -
+                      eapply ListNth.nth_error_weaken.
+                      eapply H0.
+                    -
+                      cbn.
+                      rewrite map_app.
+                      rewrite nth_error_app2
+                        by now rewrite map_length.
+                      rewrite map_length, Nat.sub_diag.
+                      rewrite map_cons.
+                      cbn.
+                      reflexivity.
+                    -
+                      cbn.
+                      rewrite map_app.
+                      eapply ListNth.nth_error_weaken.
+                      eapply H1.
+                    -
+                      clear - H1 H2 GUNIQ E_PRE_LEN.
+                      intros C; invc C.
+                      unfold list_uniq in GUNIQ.
+                      apply nth_map_inv in H1.
+                      destruct H1 as ((a_nm', τ') & A & A').
+                      invc A'.
+                      specialize (GUNIQ n (length pre) (a_nm, τ') (a_nm, DSHCType)).
+                      full_autospecialize GUNIQ; try reflexivity.
+                      now apply ListNth.nth_error_weaken.
+                      rewrite nth_error_app2 by reflexivity.
+                      rewrite Nat.sub_diag.
+                      reflexivity.
+                      lia.
+                    -
+                      unfold in_local_or_global_addr.
+                      assumption.
+                    -
+                      unfold in_local_or_global_addr.
+                      assumption.
+                  }
+
+                  break_match.
+                  {
+                    unfold in_local_or_global_scalar in *.
+                    destruct I as (vptr & τ' & I).
+                    exists vptr; exists τ'.
+                    destruct I as (TTT & G'ID & R').
+                    split; [assumption | split; [assumption |]].
+                    unfold read in *.
+
+                    rewrite get_logical_block_of_add_logical_block_neq by now apply H3.
+                    now repeat break_match_goal.
+                  }
+                  {
+                    unfold in_local_or_global_scalar in *.
+                    destruct I as (vptr & τ' & I).
+                    exists vptr; exists τ'.
+                    destruct I as (TTT & G'ID & R').
+                    split; [assumption | split; [assumption |]].
+                    unfold read in *.
+
+                    rewrite get_logical_block_of_add_logical_block_neq by now apply H3.
+                    now repeat break_match_goal.
+                  }
+                  {
+                    unfold in_local_or_global_scalar in *.
+                    destruct I as (vptr & τ' & I).
+                    exists vptr; exists τ'.
+                    destruct I as (TTT & DTF & ILG & IDK).
+                    split; [assumption | split; [| split; [assumption |]]].
+                    -
+                      unfold dtyp_fits in *.
+                      rewrite get_logical_block_of_add_logical_block_neq by now apply H3.
+                      apply DTF.
+                    -
+                      unfold get_array_cell in *.
+                      break_let.
+                      rewrite get_logical_block_of_add_logical_block_neq.
+                      apply IDK.
+                      replace z with (fst vptr) by now subst.
+                      apply H3.
+                      now subst.
+                  }
               ---
                 unfold WF_IRState.
                 cbn.
@@ -4380,13 +4779,7 @@ Proof.
                 move AG' at bottom.
                 unfold allocated_globals in AG'.
                 destruct AG' as [_ NAL].
-                rewrite firstn_app in NAL.
-                replace 
-                  (Datatypes.length (pre ++ (a_nm, DSHCType) :: post) -
-                   Datatypes.length (e_pre ++ ne' :: e_post'))
-                  with 0 in * by lia.
                 rewrite firstn_all2 in NAL by lia.
-                rewrite firstn_O, app_nil_r in NAL.
                 rewrite list_cons_app in NAL.
                 rewrite app_assoc in NAL.
                 unfold no_llvm_ptr_aliasing_cfg, no_llvm_ptr_aliasing.
@@ -4397,14 +4790,14 @@ Proof.
                 +++
                   rewrite list_cons_app.
                   rewrite !map_app.
-                  rewrite <-!app_assoc, app_assoc.
+                  rewrite app_assoc.
                   eapply ListNth.nth_error_weaken.
                   rewrite <-map_app.
                   eassumption.
                 +++
                   rewrite list_cons_app.
                   rewrite !map_app.
-                  rewrite <-!app_assoc, app_assoc.
+                  rewrite app_assoc.
                   eapply ListNth.nth_error_weaken.
                   rewrite <-map_app.
                   eassumption.
@@ -4474,12 +4867,12 @@ Proof.
             rewrite map_monad_map.
             cbn.
             autorewrite with itree.
-            rewrite interp_to_L3_bind.
+            rewrite interp3_bind.
 
             rewrite map_monad_ret_map with (g0:=UVALUE_Double) by reflexivity.
-            rewrite translate_ret, interp_to_L3_ret.
+            rewrite translate_ret, interp3_ret.
             autorewrite with itree.
-            rewrite interp_to_L3_bind.
+            rewrite interp3_bind.
             unfold concretize_or_pick.
             replace (is_concrete (UVALUE_Array (map UVALUE_Double pdata)))
               with true.
@@ -4496,12 +4889,376 @@ Proof.
             rewrite map_monad_inr_map with (g0:=DVALUE_Double)
               by reflexivity.
             cbn.
-            rewrite translate_ret, interp_to_L3_ret.
+            rewrite translate_ret, interp3_ret.
             autorewrite with itree.
 
-            rewrite _exp_E_to_L0_Memory, subevent_subevent.
+            rewrite exp_to_L0_Memory, subevent_subevent.
 
-            admit.
+            unfold allocated_globals in AG.
+            destruct AG as [AG _].
+            specialize (AG (length pre)).
+            autospecialize AG;
+              [subst; rewrite ListUtil.length_app; cbn; lia |].
+            destruct AG as [a_ptr [AA AIG]].
+            erewrite ListUtil.ith_eq with (j:=length pre + 0)
+              in AIG; [| lia].
+            erewrite ith_eq_app_r in AIG.
+            cbn in AIG.
+            unfold in_global_addr in AIG.
+            replace av with (DVALUE_Addr a_ptr) in * by congruence; clear AV.
+            destruct a_ptr as (a_ptr, a_off).
+
+            copy_apply allocated_get_logical_block AA;
+              rename H0 into AM'B.
+            destruct AM'B as [[a_sz a_bytes a_id] AM'B].
+            rewrite interp_mcfg_store
+              by (unfold write; rewrite AM'B; reflexivity).
+
+            apply eutt_Ret.
+            constructor.
+            **
+              replace
+                (firstn (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHPtr int_n)]))
+                   ((e_pre ++ ne' :: e_post') ++
+                    [(DSHPtrVal (S (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHPtr int_n)]))) o, true);
+                    (DSHPtrVal (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHPtr int_n)])) i , true)]))
+                with
+                  (e_pre ++ [ne']).
+              2:{
+                rewrite !app_length; cbn.
+                rewrite list_cons_app with (l4:=e_post').
+                rewrite <-!app_assoc, ->app_assoc.
+                rewrite firstn_app.
+                replace (length pre + 1 - length (e_pre ++ [ne']))
+                  with 0
+                  by (rewrite app_length; cbn; lia).
+                rewrite firstn_O, firstn_all2, app_nil_r.
+                reflexivity.
+                rewrite app_length; cbn; lia.
+              }
+
+              replace (firstn (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHPtr int_n)]))
+                              (map IR_of_global (pre ++ (a_nm, FHCOL.DSHPtr int_n) :: post)))
+                with (map IR_of_global (pre ++ [(a_nm, FHCOL.DSHPtr int_n)]))
+              in *.
+              2:{
+                rewrite list_cons_app with (l4:=post).
+                rewrite app_assoc, !map_app, firstn_app.
+                replace
+                  (length (pre ++ [(a_nm, FHCOL.DSHPtr int_n)]) -
+                   length (map IR_of_global pre ++ map IR_of_global [(a_nm, FHCOL.DSHPtr int_n)]))
+                  with 0
+                  by (rewrite !app_length, !map_length; lia).
+                rewrite firstn_O, firstn_all2, app_nil_r.
+                reflexivity.
+                rewrite !app_length, !map_length; lia.
+              }
+
+              constructor.
+              ---
+                unfold memory_invariant.
+                intros.
+                rename n into n', n0 into n.
+                cbn in H1.
+                destruct (Nat.eq_dec n (length e_pre)).
+                +++
+                  subst n.
+                  rewrite nth_error_app2 in H0 by reflexivity.
+                  rewrite Nat.sub_diag in H0.
+                  cbn in H0.
+                  some_inv; subst.
+                  move Heqs2 at bottom.
+                  unfold initOneFSHGlobal in Heqs2.
+                  cbn in Heqs2.
+                  repeat break_match_hyp; try inl_inr.
+                  invc Heqs2.
+                  unfold in_local_or_global_scalar.
+
+                  apply nth_map_inv in H1.
+                  destruct H1 as [a' [A' AX']].
+                  rewrite nth_error_app2 in A' by lia.
+                  replace (length e_pre - length pre)
+                    with 0 in * by lia.
+                  cbn in A'.
+                  inversion A'; clear A'; subst a'.
+                  cbn in AX'.
+                  invc AX'.
+
+                  exists (a_ptr, a_off).
+                  eexists; split; [reflexivity | split; [| split; [assumption | intros _]]].
+                  {
+                    rewrite typ_to_dtyp_D_array.
+                    (* Search (_ -> dtyp_fits _ _ (DTYPE_Array _ _)). (* Nope. *) *)
+                    unfold dtyp_fits.
+                    rewrite get_logical_block_of_add_logical_block.
+                    do 3 eexists; split; [reflexivity |].
+                    cbn.
+                    rewrite N2Z.inj_mul.
+                    rewrite Z2N.id
+                      by (unfold Z.of_nat; break_match; lia).
+                    cbn; cbn in AM'B.
+                    remember
+                      {| DynamicValues.Int64.intval := Z.of_nat n';
+                         DynamicValues.Int64.intrange := n_ran |}
+                      as in'.
+                    replace (MInt64asNT.to_nat in') with n' in *.
+                    2:{
+                      subst.
+                      unfold MInt64asNT.to_nat.
+                      cbn.
+                      now rewrite Nat2Z.id.
+                    }
+
+                    clear Heqp Heqs3. (* pointless *)
+                    clear AA. (* strictly weaker than AM'B *)
+                    admit.
+                  }
+                  {
+                    unfold get_array_cell.
+                    rewrite get_logical_block_of_add_logical_block.
+                    exists m0.
+                    split.
+                    -
+                      clear - Heqs3.
+                      apply initFSHGlobals_no_overwrite in Heqs3.
+                      unfold memory_lookup.
+                      admit. (* easy *)
+                    -
+                      intros i0 id_v.
+                      generalize dependent (MInt64asNT.to_nat i0);
+                        intros id IDM0.
+                      unfold get_array_cell_mem_block; cbn; f_equal.
+                      unfold read_in_mem_block.
+                      cbn [sizeof_dtyp].
+                      admit. (* doable *)
+                  }
+                +++
+                  assert (n < length e_pre).
+                  {
+                    apply nth_error_in in H0.
+                    rewrite app_length in H0.
+                    cbn in H0.
+                    lia.
+                  }
+                  clear n0.
+
+                  rewrite app_nth_error1 in H0 by assumption.
+                  rewrite map_app in H1.
+                  rewrite app_nth_error1 in H1 by (rewrite map_length; lia).
+                  destruct x as [id | id].
+                  2:{
+                    apply nth_map_inv in H1.
+                    destruct H1 as ((?, ?) & ? & ?).
+                    discriminate.
+                  }
+
+                  inversion PINV as [[I _ _ _ _ _ _] _].
+                  cbn in I.
+                  specialize (I _ _ _ _ _ H0 H1).
+                  generalize dependent
+                             (LBlock a_sz
+              (add_all_index (serialize_dvalue (DVALUE_Array (map DVALUE_Double pdata)))
+                 a_off a_bytes) a_id).
+                  intros lb.
+
+                  assert (forall vptr, g' @ id ≡ Some (DVALUE_Addr vptr) ->
+                                  a_ptr ≢ fst vptr).
+                  {
+                    intros.
+                    replace a_ptr with (fst (a_ptr, a_off)) by reflexivity.
+                    move AG' at bottom.
+                    destruct AG' as [_ NLPA].
+                    rewrite firstn_all2 in NLPA by lia.
+                    unfold no_llvm_ptr_aliasing in NLPA.
+                    destruct ne'.
+                    eapply NLPA with (n1:=length pre) (id1:=ID_Global (Name a_nm)).
+                    -
+                      rewrite nth_error_app2 by lia.
+                      rewrite E_PRE_LEN, Nat.sub_diag.
+                      reflexivity.
+                    -
+                      eapply ListNth.nth_error_weaken.
+                      eapply H0.
+                    -
+                      cbn.
+                      rewrite map_app.
+                      rewrite nth_error_app2
+                        by now rewrite map_length.
+                      rewrite map_length, Nat.sub_diag.
+                      rewrite map_cons.
+                      cbn.
+                      reflexivity.
+                    -
+                      cbn.
+                      rewrite map_app.
+                      eapply ListNth.nth_error_weaken.
+                      eapply H1.
+                    -
+                      clear - H1 H2 GUNIQ E_PRE_LEN.
+                      intros C; invc C.
+                      unfold list_uniq in GUNIQ.
+                      apply nth_map_inv in H1.
+                      destruct H1 as ((a_nm', τ') & A & A').
+                      invc A'.
+                      specialize (GUNIQ n (length pre) (a_nm, τ') (a_nm, DSHPtr int_n)).
+                      full_autospecialize GUNIQ; try reflexivity.
+                      now apply ListNth.nth_error_weaken.
+                      rewrite nth_error_app2 by reflexivity.
+                      rewrite Nat.sub_diag.
+                      reflexivity.
+                      lia.
+                    -
+                      unfold in_local_or_global_addr.
+                      assumption.
+                    -
+                      unfold in_local_or_global_addr.
+                      assumption.
+                  }
+
+                  break_match.
+                  {
+                    unfold in_local_or_global_scalar in *.
+                    destruct I as (vptr & τ' & I).
+                    exists vptr; exists τ'.
+                    destruct I as (TTT & G'ID & R').
+                    split; [assumption | split; [assumption |]].
+                    unfold read in *.
+
+                    rewrite get_logical_block_of_add_logical_block_neq by now apply H3.
+                    now repeat break_match_goal.
+                  }
+                  {
+                    unfold in_local_or_global_scalar in *.
+                    destruct I as (vptr & τ' & I).
+                    exists vptr; exists τ'.
+                    destruct I as (TTT & G'ID & R').
+                    split; [assumption | split; [assumption |]].
+                    unfold read in *.
+
+                    rewrite get_logical_block_of_add_logical_block_neq by now apply H3.
+                    now repeat break_match_goal.
+                  }
+                  {
+                    unfold in_local_or_global_scalar in *.
+                    destruct I as (vptr & τ' & I).
+                    exists vptr; exists τ'.
+                    destruct I as (TTT & DTF & ILG & IDK).
+                    split; [assumption | split; [| split; [assumption |]]].
+                    -
+                      unfold dtyp_fits in *.
+                      rewrite get_logical_block_of_add_logical_block_neq by now apply H3.
+                      apply DTF.
+                    -
+                      unfold get_array_cell in *.
+                      break_let.
+                      rewrite get_logical_block_of_add_logical_block_neq.
+                      apply IDK.
+                      replace z with (fst vptr) by now subst.
+                      apply H3.
+                      now subst.
+                  }
+              ---
+                unfold WF_IRState.
+                cbn.
+                eapply initFSHGlobals_evalContext_typechecks.
+                eapply initFSHGlobals_app.
+                eassumption.
+                unfold initFSHGlobals.
+                unfold init_with_data.
+                rewrite Heqs2.
+                reflexivity.
+              ---
+                unfold no_id_aliasing.
+                cbn.
+                eapply initFSHGlobals_no_id_aliasing.
+                1:{
+                  clear - GUNIQ.
+                  rewrite list_cons_app in GUNIQ.
+                  rewrite app_assoc in GUNIQ.
+                  apply list_uniq_app in GUNIQ.
+                  intuition.
+                }
+                eapply initFSHGlobals_app.
+                eassumption.
+                unfold initFSHGlobals.
+                unfold init_with_data.
+                rewrite Heqs2.
+                reflexivity.
+              ---
+                eapply initFSHGlobals_no_dshptr_aliasing.
+                eapply initFSHGlobals_app with (post:=[(a_nm, FHCOL.DSHPtr int_n)]).
+                eassumption.
+                unfold initFSHGlobals.
+                unfold init_with_data.
+                rewrite Heqs2.
+                reflexivity.
+              ---
+                move AG' at bottom.
+                unfold allocated_globals in AG'.
+                destruct AG' as [_ NAL].
+                rewrite firstn_all2 in NAL by lia.
+                rewrite list_cons_app in NAL.
+                rewrite app_assoc in NAL.
+                unfold no_llvm_ptr_aliasing_cfg, no_llvm_ptr_aliasing.
+                cbn; intros.
+                eapply NAL; cbn.
+
+                +++ eapply ListNth.nth_error_weaken; eapply H0.
+                +++ eapply ListNth.nth_error_weaken; eapply H1.
+                +++
+                  rewrite list_cons_app.
+                  rewrite !map_app.
+                  rewrite app_assoc.
+                  eapply ListNth.nth_error_weaken.
+                  rewrite <-map_app.
+                  eassumption.
+                +++
+                  rewrite list_cons_app.
+                  rewrite !map_app.
+                  rewrite app_assoc.
+                  eapply ListNth.nth_error_weaken.
+                  rewrite <-map_app.
+                  eassumption.
+                +++ eassumption.
+                +++ eassumption.
+                +++ eassumption.
+              ---
+                unfold id_allocated.
+                intros.
+                rename n into n', n0 into n.
+                destruct (Nat.eq_dec (length e_pre) n).
+                +++
+                  subst n.
+                  replace (length e_pre) with (0 + length e_pre) in H0 by lia.
+                  rewrite ListNth.nth_error_length in H0.
+                  cbn in H0.
+                  invc H0.
+                  apply initFSHGlobals_no_overwrite in Heqs3.
+                  rewrite Heqs3.
+                  clear - Heqs2.
+                  apply mem_block_exists_union.
+                  apply initOneFSHGlobal_mem_block_exists in Heqs2.
+                  intuition.
+                +++
+                  rewrite app_nth_error1 in H0
+                    by (apply nth_error_in in H0;
+                        rewrite app_length in H0;
+                        cbn in H0; lia).
+                  destruct PINV as [[_ _ _ _ _ A] _].
+                  eapply A.
+                  eassumption.
+              ---
+                unfold gamma_bound.
+                cbn.
+                intros * NTH_L.
+                apply nth_map_inv in NTH_L.
+                destruct NTH_L as [(a_nm', a_t') [_ C]].
+                inv C.
+            **
+              constructor.
+              all: cbn; clear - DI.
+              all: unfold declarations_invariant in DI.
+              all: intuition.
         -- (* initialize [post] *)
           admit.
     +
@@ -4514,13 +5271,13 @@ Proof.
       invc LX.
       cbn.
 
-      repeat rewrite translate_bind, interp_to_L3_bind.
-      rewrite translate_trigger, _exp_E_to_L0_Global, subevent_subevent.
+      repeat rewrite translate_bind, interp3_bind.
+      rewrite translate_trigger, exp_to_L0_Global, subevent_subevent.
       (*
       inversion_clear H1 as [[[MI] DI] AXY].
       destruct AXY as (px & py & APX & APY & IX & IY).
 
-      rewrite interp_to_L3_GR.
+      rewrite interp_3_GR.
       2:{
         unfold in_global_addr in IY.
         unfold Maps.lookup.
@@ -4704,8 +5461,8 @@ Hint Rewrite @translate_trigger : local.
 Hint Rewrite @interp_trigger : local.
 Hint Rewrite @bind_bind : local.
 Hint Rewrite @bind_ret_l : local.
-Hint Rewrite interp_to_L3_bind : local.
-Hint Rewrite interp_to_L3_ret : local.
+Hint Rewrite interp3_bind : local.
+Hint Rewrite interp3_ret : local.
 
   (* Top-level compiler correctness lemma  *)
   Theorem compiler_correct:
@@ -4821,7 +5578,7 @@ Hint Rewrite interp_to_L3_ret : local.
 
 (*     subst. *)
 (*     cbn. *)
-(*     rewrite interp_to_L3_bind. *)
+(*     rewrite interp3_bind. *)
 (*     autorewrite with local. *)
 
 (*     apply eutt_clo_bind. *)
@@ -4831,7 +5588,7 @@ Hint Rewrite interp_to_L3_ret : local.
 (*     simpl m_definitions. *)
 (*     simpl. *)
 (*     Set Printing . *)
-(*     rewrite interp_to_L3_bind. *)
+(*     rewrite interp3_bind. *)
     
 (*     autorewrite with local. *)
 
@@ -4861,14 +5618,14 @@ Hint Rewrite interp_to_L3_ret : local.
     (*   { *)
     (*     unfold semantics_llvm_mcfg, model_to_L3, denote_vellvm_init, denote_vellvm, translate_E_vellvm_mcfg. *)
     (*     simpl bind. *)
-    (*     rewrite interp_to_L3_bind, translate_bind. *)
+    (*     rewrite interp3_bind, translate_bind. *)
     (*     match goal with *)
     (*     | ?t ≈ _ => assert (t ≈ ITree.bind (lift_sem_to_mcfg (fun p =>  *)
 
 
     (* setoid_rewrite bind_bind. *)
     (*   unfold translate_E_vellvm_mcfg. *)
-    (* setoid_rewrite (interp_to_L3_bind defined_intrinsics . *)
+    (* setoid_rewrite (interp3_bind defined_intrinsics . *)
 
     (* unfold lift_sem_to_mcfg. *)
     (* break_match_goal. *)
@@ -4876,7 +5633,7 @@ Hint Rewrite interp_to_L3_ret : local.
     (*   unfold semantics_llvm_mcfg, model_to_L3, denote_vellvm_init, denote_vellvm. *)
     (*   simpl bind. *)
     (*   unfold translate_E_vellvm_mcfg. *)
-    (*   rewrite interp_to_L3_bind, translate_bind. *)
+    (*   rewrite interp3_bind, translate_bind. *)
 
     (*   rewrite modul_of_toplevel_entities *)
     (*           cons, !modul_of_toplevel_entities_app in Heqo0. *)

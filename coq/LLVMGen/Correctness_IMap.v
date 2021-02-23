@@ -920,9 +920,9 @@ Proof.
   Qed.
 
   (* TODO: Move*)
-  Lemma denote_exp_ID :forall defs g l m id τ ptr,
+  Lemma denote_exp_ID :forall g l m id τ ptr,
       in_local_or_global_addr l g id ptr ->
-      interp_cfg_to_L3 defs (translate exp_E_to_instr_E (denote_exp (Some τ) (EXP_Ident id))) g l m
+      interp_cfg3 (translate exp_to_instr (denote_exp (Some τ) (EXP_Ident id))) g l m
       ≈
       Ret (m,(l,(g,UVALUE_Addr ptr))).
   Proof.
@@ -1293,7 +1293,7 @@ Proof.
     match goal with
     | [|- context[OP_GetElementPtr (DTYPE_Array ?size' ?τ') (_, ?ptr') _]] =>
     edestruct denote_instr_gep_array' with
-        (ρ := li) (g := g0) (m := mV) (i := px)
+        (l := li) (g := g0) (m := mV) (i := px)
         (size := size') (a := ptrll_xoff_l) (ptr := ptr') as (? & ? & ? & ?)
     end.
 
@@ -1328,8 +1328,6 @@ Proof.
         eapply GETARRAYCELL_xoff_l.
         rewrite to_nat_repr_nat. eauto. auto.
     }
-    Unshelve. 2 : eauto.
-
 
     rename x0 into src_addr.
     rename H0 into READ_x.
@@ -1381,7 +1379,7 @@ Proof.
     match goal with
     | [|- context[OP_GetElementPtr (DTYPE_Array y_size _) (_, ?ptr')]] =>
         edestruct denote_instr_gep_array_no_read with
-          (ρ := li) (g := g0) (m := mV) (i := py) (τ := DTYPE_Double)
+          (l := li) (g := g0) (m := mV) (i := py) (τ := DTYPE_Double)
             (size := y_size) (a := ptrll_yoff) (ptr := ptr') as (y_GEP_addr & y_HGEP & EQ_y_HG)
     end.
 
@@ -1512,10 +1510,9 @@ Proof.
         intros. eapply state_bound_between_separate.
         eapply incLocalNamed_count_gen_injective.
         2 : eauto.
-        2 : reflexivity. Unshelve. 3 : exact s1.
+        2 : reflexivity. Unshelve. 2 : exact s1.
         eapply lid_bound_between_newLocalVar. 2 : eauto. cbn. reflexivity.
         all : eauto.
-        eauto. exact [].
 
       - clear -NOFAIL'. unfold denoteIUnCType in NOFAIL'.
         apply no_failure_bind_prefix in NOFAIL'. eauto.
@@ -1544,8 +1541,8 @@ Proof.
     (* 1. GEP *)
     match goal with
     | [|- context[OP_GetElementPtr (DTYPE_Array y_size _) (_, ?ptr')]] =>
-      pose proof (denote_instr_gep_array_no_read_addr py y_size DTYPE_Double defined_intrinsics
-                                                      (EXP_Ident (ID_Local loopvarid)) k ptr' ptrll_yoff g0 li' mV dst_addr)
+      pose proof (denote_instr_gep_array_no_read_addr py y_size DTYPE_Double 
+                                                      (EXP_Ident (ID_Local loopvarid)) k ptr' ptrll_yoff g0 li' li' li' mV dst_addr)
            as EQ_y_HG'
     end.
 

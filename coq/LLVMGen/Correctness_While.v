@@ -514,7 +514,6 @@ Proof.
     (* RHS : Reducing RHS to apply Body Hypothesis *)
     (* Step 1 : First, process [loopcontblock] and check that k<n, and hence that we do not exit *)
     vjmp.
-    cbn.
     vred.
     vred.
     vred.
@@ -566,9 +565,9 @@ Proof.
     cbn.
     (* TOFIX: broken automation, a wild translate sneaked in where it shouldn't *)
     rewrite translate_bind.
-    rewrite ?interp_cfg_to_L3_ret, ?bind_ret_l;
-      rewrite ?interp_cfg_to_L3_bind, ?bind_bind.
-
+    rewrite ?interp_cfg3_ret, ?bind_ret_l;
+      rewrite ?interp_cfg3_bind, ?bind_bind.
+   
     vstep.
     {
       setoid_rewrite lookup_alist_add_ineq.
@@ -581,7 +580,7 @@ Proof.
     cbn.
     repeat vred.
     (* TOFIX: we leak a [LocalWrite] event *)
-    rewrite interp_cfg_to_L3_LW.
+    rewrite interp_cfg3_LW.
     repeat vred.
     subst.
     cbn.
@@ -600,23 +599,23 @@ Proof.
       end; f_equal.
     }
     hide_cfg.
-    (* rewrite <- EQidx. *)
 
     cbn; vred.
     destruct j as [| j]; [lia |].
     rewrite tfor_unroll; [| lia].
-
+    
     eapply eutt_clo_bind_returns.
     (* We can now use the body hypothesis *)
     eapply FBODY.
     {
       (* A bit of arithmetic is needed to prove that we have the right precondition *)
       split; [| split; [| split]].
+
       + repeat (eapply STABLE; eauto).
         left; solve_lid_bound_between.
         left; eapply lid_bound_between_shrink; [eapply lid_bound_between_incLocalNamed; [| eauto]; eapply is_correct_prefix_append; auto | | ]; solve_local_count.
 
-      + rewrite alist_find_add_eq; reflexivity.
+      + rewrite alist_find_add_eq. reflexivity.
 
       + lia.
 
@@ -837,12 +836,12 @@ Proof.
 
     (* TOFIX: broken automation, a wild translate sneaked in where it shouldn't *)
     rewrite translate_bind.
-    rewrite ?interp_cfg_to_L3_ret, ?bind_ret_l;
-      rewrite ?interp_cfg_to_L3_bind, ?bind_bind.
+    rewrite ?interp_cfg3_ret, ?bind_ret_l;
+      rewrite ?interp_cfg3_bind, ?bind_bind.
 
     vstep. tred. repeat vred.
     unfold map_monad. cbn. vred.
-    rewrite interp_cfg_to_L3_LW. vred. vred. vred. vred.
+    rewrite interp_cfg3_LW. vred. vred. vred. vred.
 
     subst.
     vred.
@@ -1169,8 +1168,8 @@ Proof.
     cbn.
     (* TOFIX: broken automation, a wild translate sneaked in where it shouldn't *)
     rewrite translate_bind.
-    rewrite ?interp_cfg_to_L3_ret, ?bind_ret_l;
-      rewrite ?interp_cfg_to_L3_bind, ?bind_bind.
+    rewrite ?interp_cfg3_ret, ?bind_ret_l;
+      rewrite ?interp_cfg3_bind, ?bind_bind.
 
     vstep.
     {
@@ -1184,7 +1183,7 @@ Proof.
     cbn.
     repeat vred.
     (* TOFIX: we leak a [LocalWrite] event *)
-    rewrite interp_cfg_to_L3_LW.
+    rewrite interp_cfg3_LW.
     repeat vred.
     subst.
     cbn.
@@ -1472,12 +1471,12 @@ Proof.
 
     (* TOFIX: broken automation, a wild translate sneaked in where it shouldn't *)
     rewrite translate_bind.
-    rewrite ?interp_cfg_to_L3_ret, ?bind_ret_l;
-      rewrite ?interp_cfg_to_L3_bind, ?bind_bind.
+    rewrite ?interp_cfg3_ret, ?bind_ret_l;
+      rewrite ?interp_cfg3_bind, ?bind_bind.
 
     vstep. tred. repeat vred.
     unfold map_monad. cbn. vred.
-    rewrite interp_cfg_to_L3_LW. vred. vred. vred. vred.
+    rewrite interp_cfg3_LW. vred. vred. vred. vred.
 
     subst.
     vred.
@@ -1953,7 +1952,19 @@ Proof.
     reflexivity.
   - split.
     + eauto.
-    + unfold free_in_cfg in *.
+    +
+
+      Set Nested Proofs Allowed.
+  Lemma blk_id_map_convert_typ : forall env bs,
+      map blk_id (convert_typ env bs) ≡ inputs bs.
+  Proof.
+    induction bs as [| b bs IH]; cbn; auto.
+    f_equal; auto.
+  Qed.
+
+
+
+      unfold free_in_cfg in *.
       cbn. cbn in FREE_NEXT.
       rewrite map_app. rewrite map_app in FREE_NEXT.
       rewrite blk_id_map_convert_typ in FREE_NEXT.      

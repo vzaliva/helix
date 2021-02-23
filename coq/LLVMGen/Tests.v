@@ -186,7 +186,7 @@ Import MonadNotation.
 
 Export DV.
 
-Definition test_interpreter := interpreter_user DynamicTypes.DTYPE_Void "main" main_args defined_intrinsics.
+Definition test_interpreter := interpreter_gen DynamicTypes.DTYPE_Void "main" main_args.
 
 (* Returns a tuple [(Option p, Option d, e)] containting:
    - p: generated LLVM program

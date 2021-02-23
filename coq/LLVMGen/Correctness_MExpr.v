@@ -17,7 +17,7 @@ Section MExpr.
              (e : exp typ) : Rel_cfg_T (mem_block * Int64.int) unit :=
     fun '(memH, (mb, mb_sz)) '(memV, (ρ, (g, _))) => 
       exists (ptr : Addr.addr), 
-        interp_cfg (translate exp_E_to_instr_E (D.denote_exp (Some DTYPE_Pointer) (convert_typ [] e))) g ρ memV ≈
+        interp_cfg (translate exp_to_instr (denote_exp (Some DTYPE_Pointer) (convert_typ [] e))) g ρ memV ≈
                    Ret (memV,(ρ,(g,UVALUE_Addr ptr))) /\ 
         (forall (i : Int64.int) v, mem_lookup (MInt64asNT.to_nat i) mb ≡ Some v -> get_array_cell memV ptr (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v)).
 

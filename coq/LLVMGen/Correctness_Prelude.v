@@ -32,7 +32,7 @@ Require Export Helix.DSigmaHCOL.DSigmaHCOLITree.
 Require Export Helix.LLVMGen.Compiler.
 Require Export Helix.LLVMGen.Data.
 Require Export Helix.LLVMGen.Utils.
-Require Export Helix.LLVMGen.tmp_aux_Vellvm.
+Require Export Helix.LLVMGen.Vellvm_Utils.
 Require Export Helix.Util.OptionSetoid.
 Require Export Helix.Util.ErrorSetoid.
 Require Export Helix.Util.ListUtil.
@@ -46,15 +46,16 @@ Require Export Vellvm.Utils.NoFailure.
 Require Export Vellvm.Utils.PropT.
 Require Export Vellvm.Utils.TFor.
 Require Export Vellvm.Syntax.LLVMAst.
-Require Export Vellvm.Syntax.CFG.
 Require Export Vellvm.Syntax.AstLib.
 Require Export Vellvm.Syntax.Scope.
 Require Export Vellvm.Syntax.DynamicTypes.
 Require Export Vellvm.Syntax.TypToDtyp.
+Require Export Vellvm.Syntax.CFG.
 Require Export Vellvm.Syntax.Traversal.
 Require Export Vellvm.Syntax.SurfaceSyntax.
 Require Export Vellvm.Semantics.Denotation.
 Require Export Vellvm.Semantics.LLVMEvents.
+Require Export Vellvm.Semantics.InterpretationStack.
 Require Export Vellvm.Semantics.TopLevel.
 Require Export Vellvm.Handlers.Handlers.
 Require Export Vellvm.Theory.InterpreterMCFG.
@@ -68,8 +69,6 @@ Require Export Vellvm.Theory.SymbolicInterpreter.
 Require Export ExtLib.Structures.Monads.
 Require Export ExtLib.Data.Map.FMapAList.
 Require Export ExtLib.Core.RelDec.
-
-Require Export Ceres.Ceres.
 
 Require Export ITree.Interp.TranslateFacts.
 Require Export ITree.Basics.CategoryFacts.
@@ -148,7 +147,7 @@ Section EventTranslation.
 
   (* We therefore have the following resulting denotation functions. *)
   (* On the Vellvm side, for [mcfg]: *)
-  Definition semantics_llvm_mcfg p : itree E_mcfg _ := model_to_L3 DTYPE_Void "main" main_args defined_intrinsics p.
+  Definition semantics_llvm_mcfg p : itree E_mcfg _ := model_to_L3 DTYPE_Void "main" main_args p.
   (* Which get lifted to [toplevel_entity] as usual: *)
   Definition semantics_llvm (prog: list (toplevel_entity typ (LLVMAst.block typ * list (LLVMAst.block typ)))) :=
     semantics_llvm_mcfg (convert_types (mcfg_of_tle prog)).
@@ -214,8 +213,8 @@ Section EventTranslation.
 
 End EventTranslation.
 
-Notation "'interp_cfg'"  := (interp_cfg_to_L3 defined_intrinsics).
-Notation "'interp_mcfg'" := (interp_to_L3 defined_intrinsics).
+Notation "'interp_cfg'"  := interp_cfg3. 
+Notation "'interp_mcfg'" := interp_mcfg3. 
 
 (** Smart constructors for states, predicates, relations  *)
 
@@ -501,7 +500,7 @@ Section Add_Comment.
 
 End Add_Comment.
 
-Global Opaque interp_cfg_to_L3.
+Global Opaque interp_cfg3.
 
 Section InterpMem.
 
@@ -855,16 +854,16 @@ Hint Rewrite @interp_ret : itree.
 Hint Rewrite @translate_trigger : itree.
 Hint Rewrite @interp_trigger : itree.
 
-Hint Rewrite interp_cfg_to_L3_bind : vellvm.
-Hint Rewrite interp_cfg_to_L3_ret : vellvm.
-Hint Rewrite interp_cfg_to_L3_GR : vellvm.
-Hint Rewrite interp_cfg_to_L3_LR : vellvm.
+Hint Rewrite @interp_cfg3_bind : vellvm.
+Hint Rewrite interp_cfg3_ret : vellvm.
+Hint Rewrite interp_cfg3_GR : vellvm.
+Hint Rewrite interp_cfg3_LR : vellvm.
 
-Hint Rewrite @lookup_E_to_exp_E_Global : vellvm.
-Hint Rewrite @lookup_E_to_exp_E_Local : vellvm.
+Hint Rewrite @LU_to_exp_Global : vellvm.
+Hint Rewrite @LU_to_exp_Local : vellvm.
 Hint Rewrite @subevent_subevent : vellvm.
-Hint Rewrite @exp_E_to_instr_E_Global : vellvm.
-Hint Rewrite @exp_E_to_instr_E_Local : vellvm.
+Hint Rewrite @exp_to_instr_Global : vellvm.
+Hint Rewrite @exp_to_instr_Local : vellvm.
 Hint Rewrite @typ_to_dtyp_equation : vellvm.
 Hint Rewrite denote_code_nil : vellvm.
 Hint Rewrite denote_code_singleton : vellvm.
