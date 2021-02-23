@@ -338,7 +338,6 @@ Proof.
   destruct INIT as (body_bks' & GEN' & INIT & WF_BODY_BKS' & FREE_BODY_BKS'_NEXTBLOCK).
   clear Heqs2.
 
-  (* TODO: i5 and i6 are just a guess *)
   (* TODO: use matches to get sb1 / sb2 *)
   match goal with
   | H: genWhileLoop ?prefix ?x ?y ?loopvar ?loopcontblock ?body_entry ?body_blocks [] ?nextblock ?s1 ≡ inr (?s2, (?bid_in, ?bks)) |- _
@@ -378,7 +377,6 @@ Proof.
 
   assert (is_correct_prefix "Power") as PREF_POWER by solve_prefix.
 
-  (* TODO: make solve_lid_bound_between do this *)
   assert (lid_bound_between i16 {|
            block_count := block_count i21;
            local_count := S (local_count i21);
@@ -747,9 +745,6 @@ Proof.
   end.
 
   (* Will need to set up loop invariants and such, just like loop case *)
-
-  (* TODO: these are just stolen and probably lies *)
-  (* TODO: this happens way too soon. I need to finish GEPs *)
   (* Invariant at each iteration *)
 
   set (I := (fun (k : nat) (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
@@ -1069,8 +1064,6 @@ Proof.
       cbn. reflexivity.
     }
     3: {
-      (* TODO: this is the result of the AExpr being written to memory *)
-      (* I can either use write_succeeds, read_write_succeeds, or write_array_lemma *)
       destruct POSTAEXPR; cbn in is_almost_pure.
       assert (mV_Aexpr ≡ mV_loop) by intuition; subst.
       apply WRITE.
@@ -1197,21 +1190,26 @@ Proof.
           (* TODO: automate this? *)
           assert (local_scope_modif s1 s2 ρ l_Aexpr) as LSM_FULL.
           { nexpr_modifs.
-            epose proof local_scope_modif_trans'' PostLoopEndNExpr PostXoffNExpr.
+            Ltac solve_single_trans_local_scope_modif :=
+              match goal with
+              | L1 : local_scope_modif ?s1 ?s2 ?l1 ?l2,
+                     L2 : local_scope_modif ?s2 ?s3 ?l2 ?l3
+                |- local_scope_modif ?s1 ?s3 ?l1 ?l3
+                => eapply (local_scope_modif_trans'' L1 L2); solve_local_count
+              end.
+            Hint Extern 1 (local_scope_modif _ _ _ _) => solve_single_trans_local_scope_modif : LSM.
+
+            pose proof LINV_LSM as LSM'.
+            eapply local_scope_modif_shrink with (s1 := i8) (s4:= s2) in LSM'; solve_local_count.
+            eapply local_scope_modif_sub'_l in LSM'; [|solve_lid_bound_between].
+            eapply local_scope_modif_sub'_l in LSM'; [|solve_lid_bound_between].
+            epose proof local_scope_modif_trans'' LSM_yoff LSM'.
             repeat (forward H; solve_local_count).
-            epose proof local_scope_modif_trans'' H PostYoffNExpr.
-            repeat (forward H0; solve_local_count).
-            pose proof LINV_LSM.
-            eapply local_scope_modif_shrink with (s1 := i8) (s4:= s2) in H1; solve_local_count.
-            eapply local_scope_modif_sub'_l in H1; [|solve_lid_bound_between].
-            eapply local_scope_modif_sub'_l in H1; [|solve_lid_bound_between].
-            epose proof local_scope_modif_trans'' H0 H1.
-            repeat (forward H2; solve_local_count).
             pose proof extends.
-            eapply local_scope_modif_shrink with (s1 := i8) (s4:= s2) in H3; solve_local_count.
-            eapply local_scope_modif_sub'_l in H3; [|solve_lid_bound_between].
-            eapply local_scope_modif_sub'_l in H3; [|solve_lid_bound_between].
-            epose proof local_scope_modif_trans'' H2 H3.
+            eapply local_scope_modif_shrink with (s1 := i8) (s4:= s2) in H0; solve_local_count.
+            eapply local_scope_modif_sub'_l in H0; [|solve_lid_bound_between].
+            eapply local_scope_modif_sub'_l in H0; [|solve_lid_bound_between].
+            epose proof local_scope_modif_trans'' H H0.
             repeat (forward H4; solve_local_count).
             solve_local_scope_modif.
           }
@@ -1562,6 +1560,28 @@ Proof.
         | POST: genNExpr_post _ _ _ _ _ _ _ _ |- _
           =>  apply Correctness_NExpr.extends in POST; cbn in POST
         end.
+
+      eapply local_scope_modif_trans.
+      3: solve_local_scope_modif.
+      solve_local_count.
+      solve_local_count.
+      solve_local_scope_modif.
+
+      eapply local_scope_modif_trans''
+      eapply local_scope_modif_trans.
+      3: solve_local_scope_modif.
+      3: solve_local_scope_modif.
+
+      solve_local_scope_modif_trans.
+      
+      cycle 3; [solve_local_scope_modif_trans | solve_local_count | solve_local_count | solve_local_scope_modif_trans].
+
+local_scope_modif_trans
+     : ∀ (s1 s2 s3 : IRState) (l1 l2 l3 : local_env),
+         s1 <<= s2
+         → s2 <<= s3
+           → local_scope_modif s1 s2 l1 l2
+             → local_scope_modif s2 s3 l2 l3 → local_scope_modif s1 s3 l1 l3
 
       eapply local_scope_modif_shrink with (s3:=s2) (s4:=s2) (s1:=i8) in LSM_POST; [|solve_local_count|solve_local_count].
       apply local_scope_modif_sub'_l in LSM_POST; [|solve_lid_bound_between].
