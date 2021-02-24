@@ -1048,6 +1048,7 @@ Proof.
     hred.
     vred.
 
+    forward LINV_MEXT_NEW; [cbn; lia|].
     edestruct (@read_write_succeeds mV_loop dst_addr _ _ (DVALUE_Double t_Aexpr) LINV_MEXT_NEW) as [mV' WRITE]; [constructor|].
 
     erewrite denote_instr_store; eauto.
@@ -1561,28 +1562,6 @@ Proof.
         | POST: genNExpr_post _ _ _ _ _ _ _ _ |- _
           =>  apply Correctness_NExpr.extends in POST; cbn in POST
         end.
-
-      eapply local_scope_modif_trans.
-      3: solve_local_scope_modif.
-      solve_local_count.
-      solve_local_count.
-      solve_local_scope_modif.
-
-      eapply local_scope_modif_trans''
-      eapply local_scope_modif_trans.
-      3: solve_local_scope_modif.
-      3: solve_local_scope_modif.
-
-      solve_local_scope_modif_trans.
-      
-      cycle 3; [solve_local_scope_modif_trans | solve_local_count | solve_local_count | solve_local_scope_modif_trans].
-
-local_scope_modif_trans
-     : ∀ (s1 s2 s3 : IRState) (l1 l2 l3 : local_env),
-         s1 <<= s2
-         → s2 <<= s3
-           → local_scope_modif s1 s2 l1 l2
-             → local_scope_modif s2 s3 l2 l3 → local_scope_modif s1 s3 l1 l3
 
       eapply local_scope_modif_shrink with (s3:=s2) (s4:=s2) (s1:=i8) in LSM_POST; [|solve_local_count|solve_local_count].
       apply local_scope_modif_sub'_l in LSM_POST; [|solve_lid_bound_between].

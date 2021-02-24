@@ -163,6 +163,10 @@ Ltac solve_allocated :=
 
 Ltac solve_read :=
   solve [ eauto
+        (* This is largely for cases where sizeof_dtyp t <> 0 -> read ... *)
+        | match goal with
+          | H: _ |- _ => apply H
+          end; cbn; lia
         | (* read from an array *)
         erewrite read_array; cycle 2; [solve [eauto] | | solve_allocated]; eauto
         ].
