@@ -1081,6 +1081,10 @@ Proof.
       eauto.
 Qed.
 
+Definition IR_of_global (g : string * DSHType) :=
+  let '(nm, t) := g in
+  (ID_Global (Name nm), TYPE_Pointer (getIRType t)).
+
 Definition in_global_addr (g : global_env) (x : raw_id) (a : Addr.addr) := 
   g @ x ≡ Some (DVALUE_Addr a).
 
@@ -1101,7 +1105,7 @@ Definition allocated_globals
   :=
     (forall j (jc : j < length globals),
     exists ptr_llvm,
-      allocated ptr_llvm memV
+      dtyp_fits memV ptr_llvm (typ_to_dtyp [] (getIRType (snd (ListUtil.ith jc))))
       /\ in_global_addr g (Name (fst (ListUtil.ith jc))) ptr_llvm)
       /\ no_llvm_ptr_aliasing (firstn (length globals) σ) s l g.
  
@@ -1560,10 +1564,6 @@ Proof.
       rewrite !skipn_cons.
       apply IHl.
 Qed.
-
-Definition IR_of_global (g : string * DSHType) :=
-  let '(nm, t) := g in
-  (ID_Global (Name nm), TYPE_Pointer (getIRType t)).
 
 Lemma initIRGlobals_rev_Γ_preserved
       (globals : list (string * DSHType))
@@ -2597,6 +2597,8 @@ Qed.
 
 Ltac simpl_data :=
   repeat match goal with
+         | [H : constList _ _ ≡ (?data', _) |- _] =>
+           copy_apply constList_data H; subst data'
          | [H : constArray _ _ ≡ (?data', _) |- _] =>
            copy_apply constArray_data H; subst data'
          | [H : constMemBlock _ _ ≡ (?data', _) |- _] =>
@@ -3408,13 +3410,15 @@ Proof.
                 rewrite alist_find_neq in H6 by congruence.
 
                 move INV at bottom.
-                unfold allocated_globals_mcfg, allocated_globals in INV.
+                unfold alloc_glob_decl_inv_mcfg, allocated_globals_mcfg,
+                  allocated_globals in INV.
                 destruct INV as [[APRE _] _].
 
                 specialize (APRE n H1).
                 eapply nth_error_ith in E2.
                 rewrite E2 in APRE.
                 destruct APRE as [(ax', y2') [AA IGA]].
+                apply dtyp_fits_allocated in AA.
 
                 unfold in_global_addr in IGA.
                 cbn [fst] in *.
@@ -3468,13 +3472,15 @@ Proof.
                 rewrite alist_find_neq in H5 by congruence.
 
                 move INV at bottom.
-                unfold allocated_globals_mcfg, allocated_globals in INV.
+                unfold alloc_glob_decl_inv_mcfg, allocated_globals_mcfg,
+                  allocated_globals in INV.
                 destruct INV as [[APRE _] _].
 
                 specialize (APRE n H1).
                 eapply nth_error_ith in E1.
                 rewrite E1 in APRE.
                 destruct APRE as [(ax', y1') [AA IGA]].
+                apply dtyp_fits_allocated in AA.
 
                 unfold in_global_addr in IGA.
                 cbn [fst] in *.
@@ -3597,8 +3603,23 @@ Proof.
               exists a''.
               split.
               -
-                eapply allocate_allocated.
-                eassumption.
+                destruct a as (a_nm, a_t).
+                cbn in *.
+                repeat break_match_hyp; invc Heqs0.
+                all: cbn in *.
+                all: unfold dtyp_fits.
+                all: copy_apply allocate_allocated A'.
+                all: apply allocated_get_logical_block in H.
+                all: destruct H as [(sz, bytes, cid) B].
+                all: do 3 eexists; split; [eassumption |].
+                all: typ_to_dtyp_simplify.
+                all: unfold allocate in A'; invc A'.
+                all: cbn.
+                all: rewrite get_logical_block_add_to_frame in B.
+                all: rewrite get_logical_block_of_add_logical_block in B.
+                all: unfold make_empty_logical_block in *.
+                all: invc B.
+                all: reflexivity.
               -
                 cbn.
                 unfold alist_add, in_global_addr.
@@ -3615,35 +3636,53 @@ Proof.
               rewrite ListUtil.length_app in T; cbn in T.
               assert (jc' : j < length pre) by lia.
               rewrite ListUtil.ith_eq_app with (j:=j) (hj:=jc') by reflexivity.
-              unfold allocated_globals_mcfg in *.
-              clear - INV A'.
-              unfold allocated_globals in INV.
+
+              assert (UGH : Name (fst (ListUtil.ith (l:=pre) (i:=j) jc')) ≢ g_ident tg2).
+              {
+                clear - LG Heqs0.
+                destruct a as (a_nm, a_t).
+                apply initIRGlobals_names_unique in LG.
+                apply initOneIRGlobal_ident in Heqs0.
+                rewrite Heqs0 in *; clear Heqs0 tg2.
+                intros C.
+                unfold list_uniq in LG.
+                remember (ListUtil.ith (l:=pre) (i:=j) jc') as pj.
+                symmetry in Heqpj; apply nth_error_ith in Heqpj.
+                invc C.
+                specialize (LG (length pre) j (fst pj, a_t) pj).
+                full_autospecialize LG.
+                {
+                  replace (length pre) with (0 + length pre) by reflexivity.
+                  rewrite ListNth.nth_error_length.
+                  reflexivity.
+                }
+                {
+                  now erewrite ListNth.nth_error_weaken.
+                }
+                {
+                  reflexivity.
+                }
+                lia.
+              }
+
+              unfold alloc_glob_decl_inv_mcfg, allocated_globals_mcfg,
+                allocated_globals in *.
+              clear - INV A' UGH.
               destruct INV as [[INV _] _].
               specialize (INV j jc').
-              destruct INV as (ptr & AP & G).
-              generalize dependent (Name (fst (ListUtil.ith (l:=pre) (i:=j) jc'))).
-              intros id ?.
-              destruct (RawIDOrd.eq_dec (g_ident tg2) id).
+              generalize dependent
+                         (typ_to_dtyp [] (getIRType
+                                            (snd (ListUtil.ith (l:=pre) (i:=j) jc')))).
+              intros dt ?.
+              destruct INV as [ptr [F IG]].
+              exists ptr.
+              split.
               -
-                exists a''.
-                split.
-                +
-                  eapply allocate_allocated; eassumption.
-                +
-                  cbn.
-                  unfold in_global_addr, alist_add in *.
-                  rewrite alist_find_cons_eq; congruence.
+                eapply dtyp_fits_after_allocated; eassumption.
               -
-                exists ptr.
-                split.
-                +
-                  eapply allocated_allocate_allocated; eassumption.
-                +
-                  cbn.
-                  unfold in_global_addr, alist_add in *.
-                  rewrite alist_find_cons_neq by congruence.
-                  rewrite remove_neq_alist; eauto.
-                  all: typeclasses eauto.
+                cbn.
+                unfold in_global_addr in *.
+                now rewrite alist_find_neq.
             }
           ++
             cbn in *.
@@ -3833,12 +3872,11 @@ Proof.
           try typeclasses eauto;
           try (intros C; inversion C; lia).
         split.
-        eapply allocated_allocate_allocated.
-        eapply allocated_allocate_allocated.
-        eassumption.
-        eassumption.
-        eassumption.
-        erewrite ListUtil.ith_eq; [eassumption | reflexivity].
+        2: assumption.
+
+        eapply dtyp_fits_after_allocated.
+        2: eapply dtyp_fits_after_allocated.
+        all: eassumption.
   - (* initialize (globals ++ yx) *)
     intros.
 
@@ -4172,6 +4210,7 @@ Proof.
             autospecialize AG;
               [rewrite ListUtil.length_app; cbn; lia |].
             destruct AG as [a_ptr [AL IG]].
+            apply dtyp_fits_allocated in AL.
             erewrite ListUtil.ith_eq with (j:=length pre + 0)
               in IG; [| lia].
             erewrite ith_eq_app_r in IG.
@@ -4518,6 +4557,7 @@ Proof.
             autospecialize AG;
               [rewrite ListUtil.length_app; cbn; lia |].
             destruct AG as [a_ptr [AL IG]].
+            apply dtyp_fits_allocated in AL.
             erewrite ListUtil.ith_eq with (j:=length pre + 0)
               in IG; [| lia].
             erewrite ith_eq_app_r in IG.
@@ -4900,6 +4940,7 @@ Proof.
             autospecialize AG;
               [subst; rewrite ListUtil.length_app; cbn; lia |].
             destruct AG as [a_ptr [AA AIG]].
+            apply dtyp_fits_allocated in AA.
             erewrite ListUtil.ith_eq with (j:=length pre + 0)
               in AIG; [| lia].
             erewrite ith_eq_app_r in AIG.
@@ -4987,31 +5028,41 @@ Proof.
                   exists (a_ptr, a_off).
                   eexists; split; [reflexivity | split; [| split; [assumption | intros _]]].
                   {
-                    rewrite typ_to_dtyp_D_array.
-                    (* Search (_ -> dtyp_fits _ _ (DTYPE_Array _ _)). (* Nope. *) *)
-                    unfold dtyp_fits.
+                    (* clear - AG'. *)
+                    destruct AG' as [AG _].
+                    remember
+                      (FHCOL.DSHPtr
+                         {| DynamicValues.Int64.intval := Z.of_nat n';
+                            DynamicValues.Int64.intrange := n_ran |}) as a_t.
+                    specialize (AG (length pre)).
+                    autospecialize AG; [rewrite app_length; cbn; lia |].
+                    destruct AG as [a' [A_FITS A'IG]].
+                    replace (ListUtil.ith (l:=pre ++ (a_nm, a_t) :: post)
+                                          (i:=Datatypes.length pre) T0)
+                      with (a_nm, a_t)
+                      in *.
+                    2: {
+                      clear.
+                      erewrite ListUtil.ith_eq with (j:=length pre + 0) by lia.
+                      now erewrite ith_eq_app_r.
+                    }
+                    cbn in A_FITS, A'IG.
+                    unfold in_global_addr in *.
+                    replace a' with (a_ptr, a_off) in * by congruence; clear A'IG.
+                    
+                    (* rewrite typ_to_dtyp_D_array. *)
+                    unfold dtyp_fits in *.
                     rewrite get_logical_block_of_add_logical_block.
                     do 3 eexists; split; [reflexivity |].
                     cbn.
-                    rewrite N2Z.inj_mul.
-                    rewrite Z2N.id
-                      by (unfold Z.of_nat; break_match; lia).
-                    cbn; cbn in AM'B.
-                    remember
-                      {| DynamicValues.Int64.intval := Z.of_nat n';
-                         DynamicValues.Int64.intrange := n_ran |}
-                      as in'.
-                    replace (MInt64asNT.to_nat in') with n' in *.
-                    2:{
-                      subst.
-                      unfold MInt64asNT.to_nat.
-                      cbn.
-                      now rewrite Nat2Z.id.
-                    }
 
-                    clear Heqp Heqs3. (* pointless *)
-                    clear AA. (* strictly weaker than AM'B *)
-                    admit.
+                    clear - AM'B A_FITS Heqa_t.
+                    destruct A_FITS as (sz' & bytes' & cid' & B' & F).
+                    rewrite B' in AM'B.
+                    invc AM'B.
+                    cbn in *.
+                    typ_to_dtyp_simplify.
+                    assumption.
                   }
                   {
                     unfold get_array_cell.
