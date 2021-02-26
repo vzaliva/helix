@@ -2612,7 +2612,7 @@ Ltac simpl_data :=
          end.
 
 Lemma get_logical_block_allocated :
-  ∀ (a : addr) (m : memoryV) (b : logical_block),
+  forall (a : addr) (m : memoryV) (b : logical_block),
     get_logical_block m (fst a) ≡ Some b ->
     allocated a m.
 Proof.
@@ -2620,6 +2620,402 @@ Proof.
   unfold allocated, get_logical_block, get_logical_block_mem in *.
   repeat break_let; subst; cbn in *.
   eapply lookup_member; eauto.
+Qed.
+
+Lemma dtyp_fits_allocated :
+  forall (m : memoryV) (a : addr) (τ : dtyp),
+    dtyp_fits m a τ ->
+    allocated a m.
+Proof.
+  intros * AF.
+  unfold dtyp_fits in *.
+  destruct AF as (? & ? & ? & [LB _]).
+  now apply get_logical_block_allocated in LB.
+Qed.
+
+Lemma initOneIRGlobal_g_typ
+      (a : string * FHCOL.DSHType)
+      (t : global typ)
+      (data data' : list binary64) 
+      (s s' : IRState)
+  :
+    initOneIRGlobal data a s ≡ inr (s', (data', TLE_Global t)) →
+    snd (IR_of_global a) ≡ TYPE_Pointer (g_typ t).
+Proof.
+  intros.
+  destruct a as (a_nm, a_t).
+  cbn in H.
+  repeat break_match;
+    now invc H.
+Qed.
+
+Lemma mem_block_of_list_lookup (id : Memory.NM.key) (ml : list binary64) :
+  mem_lookup id (mem_block_of_list ml) ≡ nth_error ml id.
+Proof.
+  pose (fix f l n m := match l with
+                       | [] => m
+                       | x :: xs => f xs (S n) (mem_add n x m)
+                       end)
+    as mbl_fix.
+  replace (mem_block_of_list ml)
+    with (mbl_fix ml 0 mem_empty)
+    by reflexivity.
+
+  assert (mbl_fix_preserve :
+            forall l n mb,
+              (forall i, n <= i -> mem_lookup i mb ≡ None) ->
+              forall j, j < n -> mem_lookup j (mbl_fix l n mb) ≡ mem_lookup j mb).
+  {
+    clear.
+    induction l;
+      intros * BOUND j JN.
+    -
+      reflexivity.
+    -
+      cbn.
+      rewrite IHl.
+      +
+        now rewrite mem_lookup_mem_add_neq by lia.
+      +
+        intros i IN.
+        erewrite <-BOUND, mem_lookup_mem_add_neq.
+        reflexivity.
+        lia.
+        lia.
+      +
+        lia.
+  }
+
+  assert (mbl_fix_inv_update :
+            forall l n mb,
+              (forall i, n <= i -> mem_lookup i mb ≡ None) ->
+              forall j, n <= j -> mem_lookup j (mbl_fix l n mb) ≡ nth_error l (j - n)).
+  {
+    clear - mbl_fix_preserve.
+    induction l;
+      intros * BOUND j JN.
+    -
+      now rewrite BOUND, nth_error_nil.
+    -
+      cbn.
+      destruct (Nat.eq_dec j n) as [|JN'].
+      +
+        subst; clear JN.
+        rewrite mbl_fix_preserve, mem_lookup_mem_add_eq, Nat.sub_diag.
+        reflexivity.
+        intros i IN.
+        rewrite mem_lookup_mem_add_neq by lia.
+        apply BOUND.
+        lia.
+        lia.
+      +
+        rewrite IHl.
+        destruct j; [lia |].
+        now rewrite Nat.sub_succ, <-minus_Sn_m by lia.
+        intros i IN.
+        rewrite mem_lookup_mem_add_neq by lia.
+        apply BOUND.
+        lia.
+        lia.
+  }
+
+  rewrite mbl_fix_inv_update.
+  now rewrite Nat.sub_0_r.
+  reflexivity.
+  lia.
+Qed.
+
+Lemma constList_length (n : nat) (data data' cl : list binary64) :
+  constList n data ≡ (data', cl) ->
+  length cl ≡ n.
+Proof.
+  intros CL.
+  dependent induction n.
+  - now invc CL.
+  -
+    cbn in CL.
+    repeat break_let; invc CL.
+    cbn; f_equal.
+    eauto.
+Qed.
+
+Lemma constMemBlock_bound
+      (n : nat)
+      (data data' : list binary64)
+      (mb : mem_block)
+      (id : nat)
+      (v : binary64)
+  :
+    constMemBlock n data ≡ (data', mb) →
+    mem_lookup id mb ≡ Some v →
+    id < n.
+Proof.
+  intros MB V.
+  unfold constMemBlock, mem_lookup in *.
+  break_let.
+  inversion MB; subst l mb; clear MB.
+  rename l0 into cl, Heqp into CL.
+  rewrite mem_block_of_list_lookup in V.
+  apply constList_length in CL; subst.
+  eauto using nth_error_in.
+Qed.
+
+Lemma int64_unsigned_repr_eq (n : Z) :
+  (0 <= n)%Z /\ (n < Int64.modulus)%Z ->
+  Int64.unsigned (Int64.repr n) ≡ n.
+Proof.
+  intros B.
+  symmetry.
+  apply Int64.eqm_small_eq.
+  apply Int64.eqm_unsigned_repr.
+  assumption.
+  generalize dependent (Int64.repr n); clear; intros n.
+  destruct n.
+  cbn.
+  lia.
+Qed.
+
+Lemma flat_map_fold_right {A B : Type} (f : B -> list A) (l : list B) :
+  fold_right (fun b acc => f b ++ acc) [] l ≡ flat_map f l.
+Proof.
+  now induction l.
+Qed.
+
+Lemma flat_map_length_mul
+      {A B : Type}
+      (f : A -> list B)
+      (l : list A)
+      (n : nat)
+  :
+    (forall x, length (f x) ≡ n) ->
+    length (flat_map f l) ≡ n * (length l).
+Proof.
+  intros.
+  induction l.
+  - cbn; lia.
+  - cbn.
+    rewrite app_length, H, IHl, Nat.mul_succ_r; lia.
+Qed.
+
+Lemma flat_map_nth
+      {A B : Type}
+      (f : A -> list B)
+      (l : list A)
+      `(BL : forall x, length (f x) ≡ bl)
+  :
+    forall i k,
+      i < bl ->
+      nth_error (flat_map f l) (bl * k + i) ≡
+      (b <- nth_error l k ;; nth_error (f b) i)%monad.
+Proof.
+  cbn.
+  induction l; intros.
+  - now rewrite !nth_error_nil.
+  - cbn.
+    destruct k.
+    + rewrite Nat.mul_0_r.
+      now rewrite nth_error_app1 by now rewrite BL.
+    +
+      cbn.
+      rewrite <-IHl by assumption.
+      rewrite nth_error_app2 by (rewrite BL; lia).
+      rewrite BL.
+      f_equal.
+      lia.
+Qed.
+
+Lemma list_nth_z_nth_error {A : Type} (l : list A) (n : Z) :
+  (0 <= n)%Z ->
+  Coqlib.list_nth_z l n ≡ nth_error l (Z.to_nat n).
+Proof.
+  intros.
+  generalize dependent n.
+  induction l.
+  - intros; now rewrite nth_error_nil.
+  -
+    intros; cbn.
+    break_if.
+    now subst.
+    replace (Z.to_nat n) with (S (Z.to_nat (n - 1))) by lia.
+    apply IHl; lia.
+Qed.
+
+(* ZX TODO: see [serialize_deserialize]. duplication. *)
+Lemma deserialize_serialize_double (v : binary64) :
+  deserialize_sbytes (serialize_dvalue (DVALUE_Double v)) DTYPE_Double ≡
+  UVALUE_Double v.
+Proof.
+  rewrite <-deserialize_sbytes_defined_dvalue.
+  cbn.
+  f_equal.
+  remember (Floats.Float.to_bits v) as bv.
+  pose proof (unsigned_I64_in_range bv) as B.
+  rewrite !Integers.Byte.unsigned_repr_eq.
+  unfold Integers.Byte.modulus,
+         Integers.Byte.wordsize,
+         Integers.Wordsize_8.wordsize.
+  replace (two_power_nat 8) with 256%Z by reflexivity.
+  remember (Int64.unsigned bv) as ibv.
+  match goal with
+  | [|- context[Int64.repr ?zv]] => replace zv with ibv
+  end.
+  -
+    subst.
+    rewrite Int64.repr_unsigned.
+    apply Floats.Float.of_to_bits.
+  -
+    clear - B.
+    rewrite Z.add_0_r.
+    unfold Z.modulo.
+    repeat break_let.
+    repeat match goal with
+           | [H : Z.div_eucl _ _ ≡ _ |- _] => apply Z_div_mod' in H; [destruct H | lia]
+           end.
+    repeat (subst;
+            rewrite Z.add_comm, Z.mul_comm, Z_div_plus in * by lia;
+            match goal with
+            | [H : (?z / 256 + _)%Z ≡ _ |- _] =>
+              rewrite Zdiv_small with (a:=z) in * by lia
+            end;
+            rewrite Z.add_0_l in *).
+    lia.
+Qed.
+
+Lemma nth_error_list_eq {A : Type} (l1 l2 : list A) :
+  (forall n, nth_error l1 n ≡ nth_error l2 n) ->
+  l1 ≡ l2.
+Proof.
+  generalize dependent l2.
+  induction l1; intros l2 E;
+    destruct l2.
+  - reflexivity.
+  - now specialize (E 0).
+  - now specialize (E 0).
+  - f_equal.
+    + specialize (E 0).
+      cbn in E.
+      congruence.
+    + apply IHl1.
+      intros n; specialize (E (S n)).
+      cbn in E.
+      assumption.
+Qed.
+
+Lemma Zseq_nth (k len : nat) (b : Z) :
+  k < len ->
+  nth_error (Zseq b len) k ≡ Some (b + Z.of_nat k)%Z.
+Proof.
+  revert k b.
+  induction len; intros * K.
+  - inv K.
+  - destruct k.
+    now rewrite Z.add_0_r.
+    cbn [Zseq nth_error].
+    rewrite IHlen by lia.
+    f_equal.
+    lia.
+Qed.
+
+Lemma lookup_all_index_elem
+      {A B : Type}
+      (l : list A)
+      (off : Z)
+      (mb : IntMap B) 
+      (d : B)
+      (b : A → list B)
+      `(BS : ∀ x : A, Datatypes.length (b x) ≡ bs)
+  :
+    forall n v, nth_error l n ≡ Some v ->
+    lookup_all_index (off + Z.of_nat (n * bs)) (N.of_nat bs)
+                     (add_all_index (flat_map b l) off mb) d ≡ b v.
+Proof.
+  intros * V.
+
+  unfold lookup_all_index.
+  rewrite Nnat.Nat2N.id.
+
+  apply nth_error_list_eq; intros k.
+  destruct (le_lt_dec bs k) as [K | K].
+  1:{
+    rewrite !ListUtil.nth_beyond.
+    reflexivity.
+    now rewrite BS.
+    now rewrite map_length, <-Zseq_length.
+  }
+
+  match goal with
+  | [_ : _ |- nth_error ?m ?k ≡ _] =>
+    pose proof nth_error_succeeds m (n:=k) as KM
+  end.
+  autospecialize KM; [now rewrite map_length, <-Zseq_length |].
+  destruct KM as [kb KB].
+  pose proof nth_error_succeeds (b v) (n:=k) as KV.
+  autospecialize KV; [now rewrite BS |].
+  destruct KV as [kv KV].
+
+  erewrite map_nth_error by now rewrite Zseq_nth by assumption.
+
+  rewrite KV.
+  f_equal.
+
+  erewrite lookup_add_all_index_in.
+  -
+    reflexivity.
+  -
+    split; [lia |].
+    apply nth_error_in in V.
+    rewrite Zlength_correct.
+    rewrite flat_map_length_mul with (n0:=bs) by assumption.
+    nia.
+  -
+    rewrite list_nth_z_nth_error by lia.
+    replace (Z.to_nat (off + Z.of_nat (n * bs) + Z.of_nat k - off))
+      with (bs * n + k) by lia.
+    rewrite flat_map_nth; try assumption; try lia.
+    cbn.
+    now rewrite V.
+Qed.
+
+Lemma deserialize_vector
+      (ml : list binary64)
+      (off : Z)
+      (bytes : Mem.mem_block)
+  :
+    forall id v,
+      nth_error ml id ≡ Some v ->
+      deserialize_sbytes
+        (lookup_all_index (off + Z.of_nat id * 8) 8
+           (add_all_index
+              (serialize_dvalue (DVALUE_Vector (map DVALUE_Double ml))) off bytes) SUndef)
+        DTYPE_Double ≡ UVALUE_Double v.
+Proof.
+  intros id v V.
+  cbn [serialize_dvalue].
+  rewrite flat_map_fold_right.
+
+  replace (off + Z.of_nat id * 8)%Z with (off + Z.of_nat (id * 8))%Z by lia.
+  rewrite flat_map_map.
+  erewrite lookup_all_index_elem.
+
+  apply deserialize_serialize_double.
+  reflexivity.
+  assumption.
+Qed.
+
+Lemma constList_constMemBlock
+      (n : nat)
+      (l d d' d'' : list binary64)
+      (mb : mem_block)
+  :
+    constList n d ≡ (d', l) →
+    constMemBlock n d ≡ (d'', mb) ->
+    ∀ i, nth_error l i ≡ mem_lookup i mb.
+Proof.
+  intros CL CMB i.
+  unfold constMemBlock in *.
+  rewrite CL in *.
+  invc CMB.
+  now rewrite mem_block_of_list_lookup.
 Qed.
 
 (** [memory_invariant] relation must holds after initialization of global variables *)
@@ -5081,7 +5477,43 @@ Proof.
                       unfold get_array_cell_mem_block; cbn; f_equal.
                       unfold read_in_mem_block.
                       cbn [sizeof_dtyp].
-                      admit. (* doable *)
+                      replace
+                        (fold_right (λ (dv : dvalue) (acc : list SByte),
+                                     serialize_dvalue dv ++ acc)
+                                    [] (map DVALUE_Double pdata))
+                        with (serialize_dvalue (DVALUE_Vector (map DVALUE_Double pdata)))
+                        by reflexivity.
+                      (* deserialize_sbytes *)
+                      (* lookup_all_index *)
+                      (* add_all_index *)
+                      (* serialize_dvalue *)
+                      simpl_data.
+                      replace hdata_pre with l1' in *.
+                      2: {
+                        rewrite rotateN_add in IPRE.
+                        eapply initFSHGlobals_initIRGlobals_rev_data.
+                        eapply PRE.
+                        eapply IPRE.
+                      }
+                      clear - IDM0 Heqp Heqp0.
+                      replace
+                        (MInt64asNT.to_nat
+                           {|
+                             DynamicValues.Int64.intval := Z.of_nat n';
+                             DynamicValues.Int64.intrange := n_ran |})
+                        with n'
+                        in *
+                        by (unfold MInt64asNT.to_nat; cbn; auto using Nat2Z.id).
+
+                      rewrite int64_unsigned_repr_eq.
+                      2: {
+                        enough (id < n') by lia.
+                        eauto using constMemBlock_bound.
+                      }
+                      erewrite deserialize_vector.
+                      reflexivity.
+                      rewrite <-IDM0.
+                      eapply constList_constMemBlock; eassumption.
                   }
                 +++
                   assert (n < length e_pre).
