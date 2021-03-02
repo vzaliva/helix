@@ -49,7 +49,7 @@ pipeline {
 						    if [ -d lib/vellvm ]; then rm -rf lib/vellvm; fi
 						    git clone --recurse-submodules --shallow-submodules --depth 1 https://github.com/vellvm/vellvm.git lib/vellvm
 						    git --no-pager --git-dir=lib/vellvm/.git log -1 --pretty=oneline
-						    make -j ${NJOBS} -C lib/vellvm/src
+						    make -j 1 -C lib/vellvm/src
 						    ln -s `pwd`/lib/vellvm/src/ml/libvellvm/ ml/
 						    make -j ${NJOBS}
 						    make test

@@ -40,7 +40,7 @@ Import ListNotations.
 Import ITree.Basics.Basics.Monads.
 
 From Vellvm Require Import Util.
-Require Import State.
+Require Import ITree.Events.State.
 
 Require Import ITree.Eq.Eq.
 

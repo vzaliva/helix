@@ -53,6 +53,7 @@ Require Export Vellvm.Syntax.TypToDtyp.
 Require Export Vellvm.Syntax.CFG.
 Require Export Vellvm.Syntax.Traversal.
 Require Export Vellvm.Syntax.SurfaceSyntax.
+Require Export Vellvm.Syntax.ScopeTheory.
 Require Export Vellvm.Semantics.Denotation.
 Require Export Vellvm.Semantics.LLVMEvents.
 Require Export Vellvm.Semantics.InterpretationStack.

@@ -168,7 +168,7 @@ Proof.
       subst; auto.
 Qed.
       
- Lemma valid_prefix_neq_differ :
+Lemma valid_prefix_neq_differ :
   forall s1 s2 n k,
     is_correct_prefix s1 ->
     is_correct_prefix s2 ->
