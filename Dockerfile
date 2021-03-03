@@ -12,6 +12,8 @@ RUN opam config var root
 RUN opam repo add coq-released http://coq.inria.fr/opam/released || true
 RUN opam install -y --verbose -j 1 coq.$TEST_TARGET && opam pin add coq $TEST_TARGET -y
 RUN opam install -y --verbose -j 1 ocamlfind ocamlbuild camlp5 ${EXTRA_OPAM}
+RUN opam install -y --verbose -j 1 coq-mathcomp-ssreflect
+RUN opam install -y --verbose -j 1 coq-simple-io
 RUN opam install -y --verbose -j 1 coq-color
 RUN opam install -y --verbose -j 1 coq-ext-lib
 RUN opam install -y --verbose -j 1 coq-math-classes
