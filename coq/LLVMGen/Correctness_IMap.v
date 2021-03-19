@@ -209,6 +209,7 @@ Section DSHIMap_is_tfor.
       (forall a, Q2 a -> (t1' a) ⤳ QQ) ->
       (forall t1 t2, t1 ⤳ QQ -> t2 ⤳ QQ -> eutt (E := void1) (fun x y => QQ x /\ QQ y) t1 t2) ->
       eutt (fun x y => QQ x /\ QQ y) (a <- t1 ;; t2' a) (a <- t2 ;; t1' a).
+  Admitted. (*
   Proof.
     cbn.
 
@@ -294,6 +295,7 @@ Section DSHIMap_is_tfor.
         efinal. eapply PC5. eapply PC3. eauto.
         apply eqit_Ret. auto.
   Qed.
+*)
 
   Lemma commut_gen' :
     forall {A : Type}
@@ -308,6 +310,7 @@ Section DSHIMap_is_tfor.
       (forall a, Q2 a -> (t1' a) ⤳ QQ) ->
       (forall i, eutt (fun x y => QQ x /\ x ≡ y) (a <- t1' i;; t2' a) (a <- t1' i;; t2' a)) ->
       eutt (fun x y => QQ x /\ x ≡ y) (a <- t1 ;; t2' a) (a <- t2 ;; t1' a).
+  (*
   Proof.
     cbn.
 
@@ -321,6 +324,7 @@ Section DSHIMap_is_tfor.
     genobs t2 ot2.
     hinduction PC3 before CIH0; subst; pclearbot; simpl; clear CIH0.
     - intros.
+*)
   Admitted.
 
   Lemma swap_body_interp:

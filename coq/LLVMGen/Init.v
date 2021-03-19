@@ -1088,12 +1088,15 @@ Definition IR_of_global (g : string * DSHType) :=
 Definition in_global_addr (g : global_env) (x : raw_id) (a : Addr.addr) := 
   g @ x ≡ Some (DVALUE_Addr a).
 
-Definition allocated_xy (memV : memoryV) (g : global_env) :=
+Definition allocated_xy (i o : Int64.int) (memV : memoryV) (g : global_env) :=
   exists ptr0 ptr1,
-      allocated ptr0 memV
-    /\ allocated ptr1 memV
+    dtyp_fits memV ptr0
+              (typ_to_dtyp [] (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))
+    /\ dtyp_fits memV ptr1
+              (typ_to_dtyp [] (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double))
     /\ in_global_addr g (Anon 0%Z) ptr0
-    /\ in_global_addr g (Anon 1%Z) ptr1.
+    /\ in_global_addr g (Anon 1%Z) ptr1
+    /\ fst ptr0 ≢ fst ptr1.
 
 Definition allocated_globals
            (memV : memoryV)
@@ -1110,12 +1113,13 @@ Definition allocated_globals
       /\ no_llvm_ptr_aliasing (firstn (length globals) σ) s l g.
  
 Definition post_alloc_invariant_mcfg
+           (i o : Int64.int)
            (globals : list (string * DSHType))
            (σ : evalContext)
            (s : IRState)
   : Rel_mcfg_T unit unit :=
   fun _ '(memV, (l, _, (g, _))) =>
-    allocated_xy memV g /\
+    allocated_xy i o memV g /\
     allocated_globals memV g globals l σ s.
 
 Lemma allocate_allocated (m1 m2 : memoryV) (d : dtyp) (a : Addr.addr) :
@@ -1312,6 +1316,43 @@ Proof.
       now rewrite Memory.NP.F.add_neq_o by congruence.
 Qed.
 
+Lemma initFSHGlobals_no_overwrite_eq
+      (m0 m : memoryH)
+      (hdata0 hdata : list binary64)
+      (globals : list (string * DSHType)) 
+      (σ : list (DSHVal * bool))
+  :
+    initFSHGlobals hdata0 m0 globals ≡ inr (m, hdata, σ) →
+    forall k b, memory_lookup m0 k ≡ Some b ->
+           memory_lookup m k ≡ Some b.
+Proof.
+  intros I k b M0K.
+
+  move globals at top.
+  dependent induction globals; intros.
+  -
+    invc I.
+    assumption.
+  -
+    cbn in I.
+    repeat break_match; invc I.
+    unfold initOneFSHGlobal in Heqs.
+    repeat break_match; invc Heqs.
+    all: eapply IHglobals; try eassumption.
+    destruct (Nat.eq_dec k (memory_next_key m0)).
+    *
+      subst.
+      exfalso; clear - M0K.
+      pose proof memory_lookup_memory_next_key_is_None m0 as C.
+      rewrite M0K in C.
+      inv C.
+    *
+      unfold memory_set.
+      unfold memory_lookup.
+      rewrite Memory.NP.F.add_neq_o by congruence.
+      assumption.
+Qed.
+
 Lemma initOneFSHGlobal_no_overwrite
       (m0 m : memoryH)
       (hdata0 hdata : list binary64)
@@ -1326,6 +1367,24 @@ Proof.
     with (globals:=[g]).
   cbn.
   now rewrite H.
+Qed.
+
+Lemma initOneFSHGlobal_no_overwrite_eq
+      (m0 m : memoryH)
+      (hdata0 hdata : list binary64)
+      (g : string * DSHType)
+      (e : DSHVal * bool)
+  :
+    initOneFSHGlobal (m0, hdata0) g ≡ inr (m, hdata, e) →
+    forall k b, memory_lookup m0 k ≡ Some b ->
+           memory_lookup m k ≡ Some b.
+Proof.
+  intros.
+  eapply initFSHGlobals_no_overwrite_eq
+    with (globals:=[g]).
+  cbn.
+  now rewrite H.
+  assumption.
 Qed.
 
 Lemma list_uniq_global_uniq_chk (h : string * DSHType) (tl : list (string * DSHType)) :
@@ -2075,14 +2134,19 @@ Proof.
       invc H0.
       unfold initOneFSHGlobal in Heqs.
       repeat break_match; inv Heqs.
-      apply initFSHGlobals_no_overwrite in Heqs0.
-      clear - Heqs0.
-      admit. (* [Proper mem_block_exists] *)
+      eapply initFSHGlobals_no_overwrite_eq in Heqs0.
+      2: {
+        rewrite memory_lookup_memory_set_eq.
+        reflexivity.
+      }
+      apply memory_is_set_is_Some.
+      rewrite Heqs0.
+      reflexivity.
     +
       rewrite nth_error_Sn in H0.
       destruct p0.
       eapply IHglobals; eassumption.
-Admitted.
+Qed.
 
 Lemma initFSHGlobals_id_allocated_preserve
       (globals : list (string * DSHType))
@@ -2094,9 +2158,9 @@ Lemma initFSHGlobals_id_allocated_preserve
     initFSHGlobals hdata0 m0 globals ≡ inr (m, hdata, σ') →
     id_allocated σ m.
 Proof.
-  unfold id_allocated.
-  intros IA0 I; intros.
-  induction globals.
+  dependent induction globals.
+  all: unfold id_allocated.
+  all: intros IA0 I * NTH.
   -
     cbn in I.
     invc I.
@@ -2107,11 +2171,30 @@ Proof.
     cbn in I.
     repeat break_match; invc I.
     destruct p0 as (m1, hdata1).
-    apply initOneFSHGlobal_no_overwrite in Heqs.
-    apply initFSHGlobals_no_overwrite in Heqs0.
-    apply IA0 in H.
-    clear - H Heqs Heqs0.
-Admitted.
+    assert (IA1 : id_allocated σ m1).
+    {
+      unfold id_allocated.
+      intros * NTH0.
+      apply IA0 in NTH0.
+      apply memory_is_set_is_Some in NTH0.
+      apply is_Some_def in NTH0.
+      destruct NTH0 as [m0a1 M0A1].
+      copy_eapply initOneFSHGlobal_no_overwrite_eq Heqs.
+      apply memory_is_set_is_Some.
+      now rewrite H.
+      eassumption.
+    }
+    clear Heqs IA0.
+
+    eapply IA1 in NTH.
+    eapply memory_is_set_is_Some in NTH.
+    apply is_Some_def in NTH.
+    destruct NTH as [m1a0 M1A0].
+    copy_eapply initFSHGlobals_no_overwrite_eq Heqs0.
+    apply memory_is_set_is_Some.
+    now rewrite H.
+    eassumption.
+Qed.
 
 Lemma initFSHGlobals_no_id_aliasing
       (globals : list (string * DSHType))
@@ -2219,6 +2302,286 @@ Proof.
     lia.
 Qed.
 
+Lemma allocated_add_logical_block
+      (m : memoryV)
+      (a : addr)
+      (id : Z)
+      (lb : logical_block)
+  :
+    allocated a m → 
+    allocated a (add_logical_block id lb m).
+Proof.
+  intros.
+  unfold add_logical_block, add_logical_block_mem.
+  unfold allocated in *.
+  repeat break_let.
+  invc Heqm0.
+  now apply member_add_preserved.
+Qed.
+
+Lemma memory_next_key_le_S (m : memoryH) (mb : mem_block) :
+  memory_next_key (memory_set m (memory_next_key m) mb) <=
+  S (memory_next_key m).
+Proof.
+  remember (memory_next_key m) as n.
+  remember (memory_next_key (memory_set m n mb)) as nn.
+  enough (not (nn > S n)) by lia.
+  intros C.
+  assert (exists k, k > n /\ nn ≡ S k).
+  {
+    exists (nn - (S n) + n).
+    lia.
+  }
+  destruct H as [k [K MS]].
+  subst.
+  apply memory_next_key_S in MS.
+  apply memory_is_set_is_Some in MS.
+  rewrite memory_lookup_memory_set_neq
+    in MS
+    by lia.
+  apply memory_is_set_is_Some in MS.
+  apply mem_block_exists_next_key_gt in MS.
+  lia.
+Qed.
+
+Lemma initOneFSHGlobal_memory_next_key
+      (m m' : memoryH)
+      (data data' : list binary64)
+      (g : string * FHCOL.DSHType) 
+      (r : FHCOL.DSHVal * bool)
+  :
+    initOneFSHGlobal (m, data) g ≡ inr (m', data', r) ->
+    memory_next_key m <= memory_next_key m' <= S (memory_next_key m).
+Proof.
+  intros.
+  unfold initOneFSHGlobal in H.
+  repeat break_match; invc H;
+    try lia.
+  split.
+  -
+    enough (memory_next_key
+              (memory_set m (memory_next_key m) m0)
+            > memory_next_key m)
+      by lia.
+    now eapply memory_set_memory_next_key_gt.
+  -
+    apply memory_next_key_le_S.
+Qed.
+
+Lemma initFSHGlobals_memory_keys
+      (globals : list (string * FHCOL.DSHType)) 
+      (data data' : list binary64)
+      (m m' : memoryH)
+      (σ : FHCOLEval.evalContext)
+  :
+    initFSHGlobals data m globals ≡ inr (m', data', σ) ->
+    memory_next_key m <= memory_next_key m' <= memory_next_key m + length globals.
+Proof.
+  intros.
+  split.
+  -
+    revert_until globals.
+    induction globals;
+      intros * I.
+    + now invc I.
+    +
+      cbn in I.
+      repeat break_match; invc I.
+      destruct p0.
+      apply initOneFSHGlobal_memory_next_key in Heqs.
+      apply IHglobals in Heqs0.
+      lia.
+  -
+    revert_until globals.
+    induction globals;
+      intros * I.
+    + invc I; cbn; lia.
+    +
+      cbn in I.
+      repeat break_match; invc I.
+      destruct p0.
+      apply initOneFSHGlobal_memory_next_key in Heqs.
+      apply IHglobals in Heqs0.
+      cbn; lia.
+Qed.
+
+
+Lemma initFSHGlobals_addr_lower_bound
+      (globals : list (string * FHCOL.DSHType)) 
+      (data data' : list binary64)
+      (m m' : memoryH)
+      (σ : FHCOLEval.evalContext)
+  :
+    initFSHGlobals data m globals ≡ inr (m', data', σ) ->
+    forall n a sz f,
+      nth_error σ n ≡ Some (DSHPtrVal a sz, f) ->
+      memory_next_key m <= a.
+Proof.
+  revert_until globals.
+  induction globals as [| ng globals].
+  -
+    intros.
+    cbn in H; invc H.
+    now rewrite nth_error_nil in H0.
+  -
+    intros * INIT * AN.
+    cbn in INIT.
+    repeat break_match; invc INIT.
+    destruct n.
+    +
+      cbn in AN; invc AN.
+      clear - Heqs.
+      unfold initOneFSHGlobal in Heqs.
+      repeat break_match; invc Heqs.
+      reflexivity.
+    +
+      cbn in AN.
+      destruct p0 as (m1, data1).
+      eapply IHglobals in Heqs0.
+      2: eassumption.
+      clear - Heqs Heqs0.
+      unfold initOneFSHGlobal in Heqs.
+      repeat break_match; invc Heqs;
+        try lia.
+      enough (memory_next_key
+                (memory_set m (memory_next_key m) m0)
+              > (memory_next_key m))
+        by lia.
+      now eapply memory_set_memory_next_key_gt.
+Qed.
+
+Lemma initFSHGlobals_addr_upper_bound
+      (globals : list (string * FHCOL.DSHType)) 
+      (data data' : list binary64)
+      (m m' : memoryH)
+      (σ : FHCOLEval.evalContext)
+  :
+    initFSHGlobals data m globals ≡ inr (m', data', σ) ->
+    forall n a sz f,
+      nth_error σ n ≡ Some (DSHPtrVal a sz, f) ->
+      a < memory_next_key m'.
+Proof.
+  revert_until globals.
+  induction globals as [| ng globals] using list_rev_ind.
+  -
+    intros.
+    cbn in H; invc H.
+    now rewrite nth_error_nil in H0.
+  -
+    intros * INIT * AN.
+    apply initFSHGlobals_app_inv in INIT.
+    destruct INIT as (m1 & data1 & σ1 & σ' & I & IN & Σ).
+    subst σ.
+    cbn in IN.
+    repeat break_match; invc IN; rename Heqs into IN.
+    destruct (Nat.eq_dec n (length σ1)).
+    +
+      subst.
+      rewrite ListNth.nth_error_app_R, Nat.sub_diag in AN;
+        [| reflexivity].
+      invc AN.
+      unfold initOneFSHGlobal in IN.
+      repeat break_match; invc IN.
+      enough (memory_next_key
+                (memory_set m1 (memory_next_key m1) m0)
+              > memory_next_key m1)
+        by lia.
+      now eapply memory_set_memory_next_key_gt.
+    +
+      rewrite ListNth.nth_error_app_L in AN.
+      2: {
+        apply nth_error_in in AN.
+        rewrite app_length in AN; cbn in AN.
+        lia.
+      }
+      clear n0.
+      eapply IHglobals with (a:=a) in I; [| eassumption].
+      apply initOneFSHGlobal_memory_next_key in IN.
+      lia.
+Qed.
+
+Lemma initFSHGlobals_addr_bound
+      (globals : list (string * FHCOL.DSHType)) 
+      (data data' : list binary64)
+      (m m' : memoryH)
+      (σ : FHCOLEval.evalContext)
+  :
+    initFSHGlobals data m globals ≡ inr (m', data', σ) ->
+    forall n a sz f,
+      nth_error σ n ≡ Some (DSHPtrVal a sz, f) ->
+      memory_next_key m <= a < memory_next_key m + length globals.
+Proof.
+  intros.
+  split.
+  - eapply initFSHGlobals_addr_lower_bound in H;
+      eassumption.
+  - copy_eapply initFSHGlobals_addr_upper_bound H;
+      [| eassumption].
+    apply initFSHGlobals_memory_keys in H.
+    lia.
+Qed.
+
+Lemma nth_error_in_app
+      {A : Type}
+      (l1 l2 : list A)
+      (a : A)
+      (n : nat)
+  :
+    nth_error (l1 ++ l2) n ≡ Some a ->
+    (n < length l1 /\ nth_error l1 n ≡ Some a) \/
+    (length l1 <= n /\ nth_error l2 (n - length l1) ≡ Some a).
+Proof.
+  intros N.
+  destruct (le_lt_dec (length l1) n).
+  -
+    right.
+    intuition.
+    erewrite <-nth_error_app2;
+      eassumption.
+  -
+    left.
+    intuition.
+    erewrite <-nth_error_app1;
+      eassumption.
+Qed.
+
+Lemma nth_error_in_list_of_two
+      {A : Type}
+      (e a1 a2 : A)
+      (n : nat)
+  :
+    nth_error [a1; a2] n ≡ Some e ->
+    (n ≡ 0 /\ a1 ≡ e) \/ (n ≡ 1 /\ a2 ≡ e).
+Proof.
+  intro E.
+  destruct n; [| destruct n];
+    invc E; auto.
+  now rewrite nth_error_nil in H0.
+Qed.
+
+Lemma alist_add_find_some
+      {K V : Type}
+      {RD : RelDec eq}
+      {RC : RelDec_Correct RD}
+      (k k' : K)
+      (v v' : V)
+      (al : alist K V)
+  :
+    alist_add k v al @ k' ≡ Some v' ->
+    (k' ≡ k /\ v' ≡ v) \/ (k' ≢ k /\ al @ k' ≡ Some v').
+Proof.
+  intros A.
+  destruct (rel_dec k k') eqn:KR.
+  - left.
+    rewrite rel_dec_correct in KR; subst k'.
+    rewrite alist_find_add_eq in A.
+    now invc A.
+  - right.
+    rewrite <-neg_rel_dec_correct in KR.
+    rewrite alist_find_neq in A by auto.
+    auto.
+Qed.
+
 Lemma initFSHGlobals_no_dshptr_aliasing
       (globals : list (string * DSHType))
       (m0 m : memoryH)
@@ -2258,13 +2621,13 @@ Proof.
       repeat break_match; invc Heqs.
       generalize dependent (memory_next_key m0).
       intros k I N.
-      clear - I N.
-      admit.
-      (* [init_with_data] in [I] only adds [memory_next_key]s. 
-         [l] is the list of only what's added 
-         (doesn't include what "was there"),
-         and key [k] is "already there" -
-         it will not be added again *)
+      copy_eapply initFSHGlobals_addr_bound I.
+      2: eassumption.
+      destruct H as [C _].
+      clear - C.
+      enough (memory_next_key (FHCOL.memory_set m0 k m2) > k)
+        by lia.
+      now eapply memory_set_memory_next_key_gt.
     + (* S, 0 *)
       exfalso; clear IHglobals; subst n2.
       apply Nat.neq_0_r in N1.
@@ -2278,7 +2641,13 @@ Proof.
       generalize dependent (memory_next_key m0).
       intros k I N.
       clear - I N.
-      admit. (* see above *)
+      copy_eapply initFSHGlobals_addr_bound I.
+      2: eassumption.
+      destruct H as [C _].
+      clear - C.
+      enough (memory_next_key (FHCOL.memory_set m0 k m2) > k)
+        by lia.
+      now eapply memory_set_memory_next_key_gt.
     + (* S, S *)
       apply Nat.neq_0_r in N1.
       apply Nat.neq_0_r in N2.
@@ -2287,7 +2656,7 @@ Proof.
       f_equal.
       cbn in *.
       eapply IHglobals; eassumption.
-Admitted.
+Qed.
 
 Lemma nth_error_ith
       {A : Type}
@@ -3018,6 +3387,463 @@ Proof.
   now rewrite mem_block_of_list_lookup.
 Qed.
 
+Lemma alist_cons_find_some
+      {K V : Type}
+      {RD : RelDec eq}
+      {RC : RelDec_Correct RD}
+      (k k' : K)
+      (v v' : V)
+      (al : alist K V)
+  :
+    ((k, v) :: al) @ k' ≡ Some v' ->
+    (k' ≡ k /\ v' ≡ v) \/ (k' ≢ k /\ al @ k' ≡ Some v').
+Proof.
+  intros A.
+  destruct (rel_dec k k') eqn:KR.
+  - left.
+    rewrite rel_dec_correct in KR; subst k'.
+    rewrite alist_find_cons_eq in A by reflexivity.
+    now invc A.
+  - right.
+    rewrite <-neg_rel_dec_correct in KR.
+    rewrite alist_find_cons_neq in A by congruence.
+    auto.
+Qed.
+
+Lemma alist_find_in_length_1
+      {K V : Type}
+      {RD : RelDec eq}
+      {RC : RelDec_Correct RD}
+      (k k' : K)
+      (v v' : V)
+  :
+    [(k, v)] @ k' ≡ Some v' ->
+    k' ≡ k /\ v' ≡ v.
+Proof.
+  intros A.
+  destruct (rel_dec k k') eqn:KR.
+  - rewrite rel_dec_correct in KR; subst k'.
+    rewrite alist_find_cons_eq in A by reflexivity.
+    now invc A.
+  - rewrite <-neg_rel_dec_correct in KR.
+    rewrite alist_find_cons_neq in A by congruence.
+    now invc A.
+Qed.
+
+Lemma fold_left_map
+      {A B C : Type}
+      (l : list C)
+      (d : A)
+      (g : C -> B)
+      (f : A -> B -> A)
+  :
+    fold_left f (map g l) d ≡ fold_left (fun a c => f a (g c)) l d.
+Proof.
+  dependent induction l.
+  -
+    reflexivity.
+  -
+    cbn.
+    rewrite IHl.
+    reflexivity.
+Qed.
+
+Lemma maximumBy_upper_bound (l : list Z) (def : Z) (M : Z) :
+  (def <= M)%Z ->
+  (forall n, In n l -> n <= M)%Z ->
+  (maximumBy Z.leb def l <= M)%Z.
+Proof.
+  intros DM MAX.
+  generalize dependent def.
+  induction l.
+  -
+    intros.
+    cbn.
+    assumption.
+  -
+    intros def DM.
+    autospecialize IHl.
+    {
+      intros n IN.
+      eapply MAX.
+      now apply in_cons.
+    }
+    cbn.
+    specialize (IHl (if def <=? a then a else def)%Z).
+    autospecialize IHl.
+    {
+      break_if.
+      -
+        apply MAX.
+        constructor 1.
+        reflexivity.
+      -
+        apply Z.leb_gt in Heqb.
+        assumption.
+    }
+    rewrite IHl.
+    reflexivity.
+Qed.
+
+Lemma NM_NS_In_inv {elt:Type} (k:IM.key) (m:IM.t elt):
+  IS.In k (ISP.of_list (map fst (IM.elements  m))) ->
+  IM.In k m.
+Proof.
+  pose proof (IM.elements_3w m) as U.
+  intros H.
+  rewrite <- IP.of_list_3 with (s:=m).
+  unfold IP.of_list, IP.to_list.
+  generalize dependent (IM.elements m). intros l U H.
+  induction l.
+  -
+    simpl in H.
+    apply ISP.FM.empty_iff in H.
+    tauto.
+  -
+    destruct a as [k' v].
+    simpl in *.
+    destruct (Z.eq_decidable k k') as [K|NK].
+    +
+      unfold IP.uncurry.
+      cbn.
+      apply IP.F.add_in_iff.
+      auto.
+    +
+      apply ISP.FM.add_neq_iff in H; auto.
+      unfold IP.uncurry.
+      cbn.
+      apply IP.F.add_in_iff.
+      right.
+      apply IHl.
+      *
+        inversion U.
+        auto.
+      *
+        assumption.
+Qed.
+
+Lemma IM_key_in_elements_inv :
+  forall k elt m,
+    In k (map fst (IM.elements (elt:=elt) m)) ->
+    IM.In (elt:=elt) k m.
+Proof.
+  intros k elt m H.
+  apply NM_NS_In_inv.
+  pose proof (IM.elements_3w m) as U.
+  generalize dependent (IM.elements m). intros l U H.
+  induction l.
+  -
+    cbn in U.
+    tauto.
+  -
+    destruct a as [k' v].
+    simpl in *.
+    destruct (Z.eq_decidable k k') as [K|NK].
+    +
+      apply IS.add_1.
+      auto.
+    +
+      (* k!=k' *)
+      destruct U as [C | U];
+        try congruence.
+      apply IS.add_2.
+      apply IHl.
+      *
+        assumption.
+      *
+        rewrite <-app_nil_l in H.
+        apply SetoidList.NoDupA_split in H.
+        rewrite app_nil_l in H.
+        assumption.
+Qed.
+
+Lemma next_logical_key_add_logical_block
+      (m : memoryV)
+      (id : Z)
+      (b : logical_block)
+  :
+    (next_logical_key m <=
+     next_logical_key (add_logical_block id b m))%Z.
+Proof.
+  unfold add_logical_block in *.
+  break_let; subst.
+  unfold next_logical_key, next_logical_key_mem.
+  cbn [fst snd].
+  rename m0 into m; clear.
+
+  unfold add_logical_block_mem.
+  break_match; subst.
+  cbn [fst snd]; clear.
+  unfold logical_next_key, add.
+  enough 
+  (maximumBy Z.leb (-1) (map fst (IM.elements (elt:=logical_block) l)) <=
+     maximumBy Z.leb (-1)
+               (map fst (IM.elements (elt:=logical_block) (IM.add id b l))))%Z
+    by lia.
+  apply maximumBy_upper_bound.
+  apply Zle_bool_imp_le; apply maximumBy_Z_def.
+  intros.
+  enough (T : In n (map fst (IM.elements (elt:=logical_block) (IM.add id b l)))).
+  apply maximumBy_Z_correct with (def:=(-1)%Z) in T.
+  apply Zle_bool_imp_le in T.
+  assumption.
+  eapply IM_key_in_elements.
+  apply IP.F.add_in_iff.
+  right.
+  eapply IM_key_in_elements_inv.
+  assumption.
+Qed.
+
+
+Lemma next_logical_key_add_to_frame_inc (m : memoryV) (b : logical_block) :
+    (next_logical_key m <
+     next_logical_key
+       (add_to_frame (add_logical_block (next_logical_key m) b m)
+                     (next_logical_key m)))%Z.
+Proof.
+  unfold add_to_frame.
+  repeat break_match; subst.
+  -
+    unfold add_logical_block in *.
+    break_let; invc Heqm0.
+    unfold next_logical_key, next_logical_key_mem.
+    cbn [fst snd].
+    rename m1 into m; clear.
+    unfold add_logical_block_mem.
+    break_match; subst.
+    cbn [fst snd]; clear.
+    unfold logical_next_key, add.
+    generalize (map fst (IM.elements (elt:=logical_block) l));
+      intros lk; clear.
+    enough 
+      (maximumBy Z.leb (-1) lk <
+       maximumBy Z.leb (-1)
+                 (map fst
+                      (IM.elements (elt:=logical_block)
+                                   (IM.add (1 + maximumBy Z.leb (-1) lk) b l))))%Z
+      by lia.
+    assert (IM.In
+              (1 + maximumBy Z.leb (-1) lk)%Z
+              (IM.add (1 + maximumBy Z.leb (-1) lk)%Z b l))
+      by (apply IP.F.add_in_iff; tauto).
+    apply IM_key_in_elements in H.
+    eapply maximumBy_Z_correct with (def:=(-1)%Z)in H.
+    apply Zle_bool_imp_le in H.
+    lia.
+  - 
+    unfold add_logical_block in *.
+    break_let; invc Heqm0.
+    unfold next_logical_key, next_logical_key_mem.
+    cbn [fst snd].
+    rename m1 into m; clear.
+    unfold add_logical_block_mem.
+    break_match; subst.
+    cbn [fst snd]; clear.
+    unfold logical_next_key, add.
+    generalize (map fst (IM.elements (elt:=logical_block) l));
+      intros lk; clear.
+    enough 
+      (maximumBy Z.leb (-1) lk <
+       maximumBy Z.leb (-1)
+                 (map fst
+                      (IM.elements (elt:=logical_block)
+                                   (IM.add (1 + maximumBy Z.leb (-1) lk) b l))))%Z
+      by lia.
+    assert (IM.In
+              (1 + maximumBy Z.leb (-1) lk)%Z
+              (IM.add (1 + maximumBy Z.leb (-1) lk)%Z b l))
+      by (apply IP.F.add_in_iff; tauto).
+    apply IM_key_in_elements in H.
+    eapply maximumBy_Z_correct with (def:=(-1)%Z)in H.
+    apply Zle_bool_imp_le in H.
+    lia.
+Qed.
+
+Lemma allocate_next_logical_key_inc (m m' : memoryV) (t : dtyp) (a : addr) :
+  allocate m t ≡ inr (m', a) ->
+  (next_logical_key m < next_logical_key m')%Z.
+Proof.
+  intros A.
+  apply allocate_inv in A.
+  destruct A as [NV [A K]].
+  subst.
+  apply next_logical_key_add_to_frame_inc.
+Qed.
+
+
+Lemma allocate_next_logical_key (m m' : memoryV) (t : dtyp) (a : addr) :
+    allocate m t ≡ inr (m', a) ->
+    fst a ≡ next_logical_key m.
+Proof.
+  intros.
+  apply allocate_inv in H.
+  destruct H as [_ [_ K]].
+  now rewrite K.
+Qed.
+
+Lemma initOneIRGlobal_non_void
+      (data data' : list binary64)
+      (s s' : IRState)
+      (g : string * FHCOL.DSHType) 
+      (tg : global typ)
+  :
+    initOneIRGlobal data g s ≡ inr (s', (data', TLE_Global tg)) ->
+    g_typ tg ≢ TYPE_Void.
+Proof.
+  intros.
+  unfold initOneIRGlobal in H.
+  repeat break_match; invc H.
+  all: discriminate.
+Qed.
+
+Definition genv_ptr_uniq (g : global_env) :=
+  ∀ (id id' : raw_id) (ptr ptr' : addr),
+    in_global_addr g id ptr →
+    in_global_addr g id' ptr' →
+    fst ptr ≡ fst ptr' ->
+    id ≡ id'.
+
+Definition genv_mem_bounded (g : global_env) (m : memoryV) :=
+  forall id a,
+    g @ id ≡ Some (DVALUE_Addr a) ->
+    (fst a < next_logical_key m)%Z.
+
+Definition genv_mem_wf (g : global_env) (m : memoryV) :=
+  genv_ptr_uniq g /\ genv_mem_bounded g m.
+
+Lemma genv_mem_bounded_allocate
+      (g : global_env)
+      (m m' : memoryV)
+      (t : dtyp)
+      (a : addr)
+      (id : raw_id)
+  :
+    genv_mem_bounded g m ->
+    allocate m t ≡ inr (m', a) ->
+    genv_mem_bounded (alist_add id (DVALUE_Addr a) g) m'.
+Proof.
+  intros * GMB A.
+  unfold genv_mem_bounded in *.
+  copy_apply allocate_next_logical_key_inc A.
+  apply allocate_next_logical_key in A.
+  intros id' a' AA.
+  apply alist_add_find_some in AA.
+  destruct AA as [[ID AA] | [ID AA]].
+  -
+    invc AA.
+    lia.
+  -
+    enough (fst a' < next_logical_key m)%Z by lia.
+    eapply GMB.
+    eassumption.
+Qed.
+
+Lemma genv_mem_wf_allocate
+      (g : global_env)
+      (m m' : memoryV)
+      (t : dtyp)
+      (a : addr)
+      (id : raw_id)
+  :
+    genv_mem_wf g m ->
+    allocate m t ≡ inr (m', a) ->
+    genv_mem_wf (alist_add id (DVALUE_Addr a) g) m'.
+Proof.
+  intros [GUNIQ GMB] A.
+  split.
+  -
+    unfold genv_ptr_uniq.
+    unfold in_global_addr.
+    intros id1 id2 ptr1 ptr2 A1 A2 PTREQ.
+    apply alist_cons_find_some in A1;
+      apply alist_cons_find_some in A2.
+    destruct A1 as [[ID1 PTR1] | [A1 PTR1]],
+             A2 as [[ID2 PTR2] | [A2 PTR2]].
+    *
+      congruence.
+    *
+      exfalso.
+      subst.
+      rewrite remove_neq_alist in PTR2;
+        try typeclasses eauto;
+        try congruence.
+      invc PTR1.
+      eapply GMB in PTR2.
+      copy_apply allocate_next_logical_key_inc A.
+      apply allocate_next_logical_key in A.
+      lia.
+    *
+      exfalso.
+      subst.
+      rewrite remove_neq_alist in PTR1;
+        try typeclasses eauto;
+        try congruence.
+      invc PTR2.
+      eapply GMB in PTR1.
+      copy_apply allocate_next_logical_key_inc A.
+      apply allocate_next_logical_key in A.
+      lia.
+    *
+      rewrite remove_neq_alist in PTR1, PTR2;
+        try typeclasses eauto;
+        try congruence.
+      eapply GUNIQ; eassumption.
+  -
+    eapply genv_mem_bounded_allocate.
+    eassumption.
+    eassumption.
+Qed.
+
+Lemma genv_mem_wf_add_logical_block
+      (m : memoryV)
+      (g : global_env)
+      (id : Z)
+      (b : logical_block)
+  :
+    genv_mem_wf g m →
+    genv_mem_wf g (add_logical_block id b m).
+Proof.
+  intros.
+  unfold genv_mem_wf in *.
+  intuition.
+  clear - H1; rename H1 into GMB.
+  unfold genv_mem_bounded in *.
+  intros id' a A.
+  apply GMB in A.
+  enough (next_logical_key m <=
+          next_logical_key (add_logical_block id b m))%Z
+    by lia.
+  apply next_logical_key_add_logical_block.
+Qed.
+
+Lemma dtyp_fits_add_logical_block_key_neq
+      (m : memoryV)
+      (a : Z * Z)
+      (τ : dtyp)
+      (b : logical_block)
+  :
+    dtyp_fits m a τ ->
+    forall ptr, ptr ≢ fst a ->
+    dtyp_fits (add_logical_block ptr b m) a τ.
+Proof.
+  intros F ptr NEQ.
+  unfold dtyp_fits in *.
+  rewrite get_logical_block_of_add_logical_block_neq
+    by assumption.
+  eassumption.
+Qed.
+
+Lemma Int64_to_nat_modulus (i : Int64.int) (n : nat) :
+  n < MInt64asNT.to_nat i →
+  (Z.of_nat n < Int64.modulus)%Z.
+Proof.
+  intros N.
+  destruct i.
+  destruct intval.
+  all: cbn in N.
+  all: lia.
+Qed.
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -3183,7 +4009,6 @@ Proof.
         clear - Heqs2.
         rename Heqs2 into H.
         unfold initOneIRGlobal in H.
-        cbn in *.
         repeat break_match.
         all: inv H.
         all: reflexivity.
@@ -3197,7 +4022,7 @@ Proof.
         ; clear IHglobals; try reflexivity.
 
         fold_initIRGlobals_rev.
-        unfold addVar in *; cbn in *.
+        unfold addVar in *; cbn in Heqs3.
         rewrite Heqs3.
         reflexivity.
   }
@@ -3242,7 +4067,6 @@ Proof.
         clear - Heqs2.
         rename Heqs2 into H.
         unfold initOneIRGlobal in H.
-        cbn in *.
         repeat break_match.
         all: inv H.
         all: reflexivity.
@@ -3256,7 +4080,7 @@ Proof.
         ; clear IHglobals; try reflexivity.
 
         fold_initIRGlobals_rev.
-        unfold addVar in *; cbn in *.
+        unfold addVar in *; cbn in Heqs3.
         rewrite Heqs3.
         reflexivity.
   }
@@ -3303,7 +4127,6 @@ Proof.
         clear - Heqs2.
         rename Heqs2 into H.
         unfold initOneIRGlobal in H.
-        cbn in *.
         repeat break_match.
         all: inv H.
         all: reflexivity.
@@ -3317,7 +4140,7 @@ Proof.
         ; clear IHglobals; try reflexivity.
 
         fold_initIRGlobals_rev.
-        unfold addVar in *; cbn in *.
+        unfold addVar in *; cbn in Heqs3.
         rewrite Heqs3.
         reflexivity.
   }
@@ -3341,10 +4164,13 @@ Proof.
     reflexivity.
   }
 
-  apply eutt_clo_bind with (UU:=fun _ => declarations_invariant_mcfg name).
+  apply eutt_clo_bind
+    with (UU := fun _ '(memV,((l,sl),(g,_))) =>
+                  declarations_invariant name (memV,(l,g)) /\
+                  genv_mem_wf g memV
+                  ).
   (* proving this goal will guarantee that [declarations_invariant_mcfg]
      is satisfied after [allocate_declarations] step *)
-
   1:{
 
     subst LHS.
@@ -3437,19 +4263,65 @@ Proof.
     unfold global_named_ptr_exists.
     split.
     -
-      exists a''.
-      reflexivity.
+      split.
+      +
+        exists a''.
+        reflexivity.
+      +
+        exists a'.
+        rewrite alist_find_cons_neq.
+        rewrite alist_find_cons_eq.
+        reflexivity.
+        reflexivity.
+        crush.
     -
-      exists a'.
-      rewrite alist_find_cons_neq.
-      rewrite alist_find_cons_eq.
-      reflexivity.
-      reflexivity.
-      crush.
-
+      split.
+      +
+        clear - A A'.
+        copy_apply allocate_next_logical_key_inc A; rename H into AK'.
+        copy_apply allocate_next_logical_key_inc A'; rename H into AK''.
+        apply allocate_next_logical_key in A.
+        apply allocate_next_logical_key in A'.
+        unfold genv_ptr_uniq.
+        unfold in_global_addr.
+        intros.
+        apply alist_cons_find_some in H;
+          apply alist_cons_find_some in H0.
+        destruct H as [[MAIN PTR] | [NMAIN L]],
+                 H0 as [[MAIN' PTR'] | [NMAIN' L']].
+        *
+          congruence.
+        *
+          exfalso.
+          apply alist_find_in_length_1 in L'.
+          destruct L' as [NAME' PTR'].
+          invc PTR; invc PTR'.
+          lia.
+        *
+          exfalso.
+          apply alist_find_in_length_1 in L.
+          destruct L as [NAME PTR].
+          invc PTR; invc PTR'.
+          lia.
+        *
+          apply alist_find_in_length_1 in L.
+          apply alist_find_in_length_1 in L'.
+          destruct L as [NAME PTR].
+          destruct L' as [NAME' PTR'].
+          congruence.
+      +
+        clear - A A'.
+        unfold genv_mem_bounded.
+        intros.
+        unfold allocate in *.
+        invc A.
+        invc A'.
+        cbn in *.
+        repeat break_if; try inv H; cbn; lia.
   }
 
   intros.
+  clear u1.
 
   eutt_hide_rel REL.
   
@@ -3505,9 +4377,11 @@ Proof.
     as zx_σ.
 
   pose (fun '(memH, t0) '(memV, (l, t1, (g, t2))) =>
-          post_alloc_invariant_mcfg globals zx_σ zx_state (memH, t0) (memV, (l, t1, (g, t2)))
-          /\
-          declarations_invariant_mcfg name (memV, (l, t1, (g, t2))))
+          post_alloc_invariant_mcfg i o
+            globals zx_σ zx_state (memH, t0) (memV, (l, t1, (g, t2))) /\
+          declarations_invariant_mcfg name (memV, (l, t1, (g, t2))) /\
+          genv_mem_wf g memV
+       )
     as post_alloc_invariant_mcfg'.
 
   (* split the goal:
@@ -3516,8 +4390,6 @@ Proof.
    *)
   apply eutt_clo_bind with (UU:=post_alloc_invariant_mcfg').
   - (* allocate (globals ++ yx) *)
-
-
     assert (T : Ret (memory_set (memory_set mg (S lg) mo) lg mi, ())
                 ≈
                 ITree.bind' (E:=E_mcfg)
@@ -3532,13 +4404,16 @@ Proof.
     cbn.
 
     pose (fun globals => (fun _ '(memV, (l, _, (g, _))) =>
-                         allocated_globals memV g globals l zx_σ zx_state) : Rel_mcfg_T () ())
+                         allocated_globals memV g globals l zx_σ zx_state)
+                      : Rel_mcfg_T () ())
       as allocated_globals_mcfg.
     
     pose (fun globals =>
                 (fun _ '(memV, (l, _, (g, _))) =>
                    allocated_globals memV g globals l zx_σ zx_state /\
-                   declarations_invariant name (memV, (l, g))) : Rel_mcfg_T () ())
+                   declarations_invariant name (memV, (l, g)) /\
+                   genv_mem_wf g memV
+                ) : Rel_mcfg_T () ())
       as alloc_glob_decl_inv_mcfg.
 
     (* split the goal:
@@ -3587,7 +4462,7 @@ Proof.
         {
           cbn.
           unfold allocated_globals.
-          split; auto.
+          split; [| tauto].
           split.
           -
             intros.
@@ -4000,9 +4875,9 @@ Proof.
               split.
               -
                 destruct a as (a_nm, a_t).
-                cbn in *.
+                simpl in *.
                 repeat break_match_hyp; invc Heqs0.
-                all: cbn in *.
+                all: simpl in *.
                 all: unfold dtyp_fits.
                 all: copy_apply allocate_allocated A'.
                 all: apply allocated_get_logical_block in H.
@@ -4083,7 +4958,60 @@ Proof.
           ++
             cbn in *.
             unfold declarations_invariant, global_named_ptr_exists in *.
-            destruct DI as [[mf__m MFM] [mf__n MFN]].
+            split.
+            2: {
+              unfold genv_mem_wf.
+              split.
+              -
+                clear - A' DI.
+                destruct DI as [_ [GUNIQ GMB]].
+                unfold genv_ptr_uniq, in_global_addr.
+                intros * L L' PTREQ.
+                apply alist_add_find_some in L;
+                  apply alist_add_find_some in L'.
+                destruct L as [[ID PTR] | [ID PTR]],
+                         L' as [[ID' PTR'] | [ID' PTR']].
+                +
+                  congruence.
+                +
+                  exfalso; subst.
+                  invc PTR.
+                  apply GMB in PTR'.
+                  copy_apply allocate_next_logical_key_inc A'.
+                  apply allocate_next_logical_key in A'.
+                  lia.
+                +
+                  exfalso; subst.
+                  invc PTR'.
+                  apply GMB in PTR.
+                  copy_apply allocate_next_logical_key_inc A'.
+                  apply allocate_next_logical_key in A'.
+                  lia.
+                +
+                  eapply GUNIQ;
+                    eassumption.
+              -
+                destruct a.
+                erewrite initOneIRGlobal_ident by eassumption.
+                clear - A' DI Heqs0.
+                destruct DI as [_ [_ GMB]].
+                copy_apply allocate_next_logical_key A';
+                  rename H into AK.
+                apply allocate_next_logical_key_inc in A'.
+                unfold genv_mem_bounded in *.
+                intros.
+                apply alist_add_find_some in H.
+                destruct H as [[ID K] | [ID K]].
+                +
+                  invc K.
+                  invc AK.
+                  cbn [fst] in *.
+                  lia.
+                +
+                  apply GMB in K.
+                  lia.
+            }
+            destruct DI as [[[mf__m MFM] [mf__n MFN]] _].
             clear - MFM MFN A'.
             split.
             **
@@ -4104,7 +5032,7 @@ Proof.
           move IHpost at bottom.
 
           rewrite <-ListUtil.list_app_first_last.
-          destruct u3 as (m' & le' & g'' & ?).
+          destruct u2 as (m' & le' & g'' & ?).
           repeat break_let.
           destruct le' as [le' stack'].
 
@@ -4121,7 +5049,7 @@ Proof.
           ++
             clear - H.
             unfold alloc_glob_decl_inv_mcfg in H.
-            intuition.
+            tauto.
           ++
             rewrite ListUtil.list_app_first_last. reflexivity.
           ++
@@ -4142,7 +5070,7 @@ Proof.
           ++
             clear - H INV.
             unfold alloc_glob_decl_inv_mcfg in H.
-            intuition.
+            tauto.
     + (* allocate yx *)
       intros.
       unfold initXYplaceholders, addVars in LX.
@@ -4150,6 +5078,7 @@ Proof.
       repeat break_let.
       invc LX.
       cbn.
+    
       repeat rewrite interp3_bind. 
       
       (* Alloca Y *)
@@ -4183,24 +5112,64 @@ Proof.
       break_let.
       split.
       2: {
-        destruct H0 as [_ DI]; clear - DI.
-        inversion_clear DI as [M F].
+        destruct H0 as [_ DI].
+        inversion_clear DI as [[M F] G0M0WF].
+        split.
         constructor; cbn.
         - now rewrite !alist_find_neq by discriminate.
         - now rewrite !alist_find_neq by discriminate.
+        -
+          eapply genv_mem_wf_allocate.
+          eapply genv_mem_wf_allocate.
+          all: eassumption.
       }
       split.
       *
         unfold allocated_xy.
-        do 2 eexists.
+        exists a''', a''.
         repeat split.
         --
-          eapply allocate_allocated.
-          eassumption.
+          unfold dtyp_fits.
+          clear - A''.
+          apply allocate_inv in A''.
+          destruct A'' as [NV [MA A]].
+          subst.
+          do 3 eexists.
+          rewrite get_logical_block_add_to_frame.
+          cbn [fst].
+          rewrite get_logical_block_of_add_logical_block.
+          unfold make_empty_logical_block.
+          split; reflexivity.
         --
-          eapply allocated_allocate_allocated; [| eassumption].
-          eapply allocate_allocated.
-          eassumption.
+          unfold dtyp_fits.
+          clear - A' A''.
+          apply allocate_inv in A'.
+          apply allocate_inv in A''.
+          destruct A' as [NV' [MA' A']].
+          destruct A'' as [NV'' [MA'' A'']].
+          subst.
+          rewrite get_logical_block_add_to_frame.
+          cbn [fst].
+          rewrite get_logical_block_of_add_logical_block_neq.
+          2: {
+            generalize
+              (make_empty_logical_block
+                 (typ_to_dtyp [] (TYPE_Array (Z.to_N (Int64.intval o))
+                                             TYPE_Double)));
+              intros l.
+            clear.
+            enough (next_logical_key m0 <
+                next_logical_key
+                  (add_to_frame (add_logical_block (next_logical_key m0) l m0)
+                                (next_logical_key m0)))%Z
+              by lia.
+            apply next_logical_key_add_to_frame_inc.
+          }
+          rewrite get_logical_block_add_to_frame.
+          rewrite get_logical_block_of_add_logical_block.
+          unfold make_empty_logical_block.
+          do 3 eexists.
+          split; reflexivity.
         --
           unfold in_global_addr.
           unfold alist_add.
@@ -4211,6 +5180,12 @@ Proof.
           rewrite alist_find_cons_neq by discriminate.
           rewrite remove_neq_alist; try typeclasses eauto; [| discriminate].
           rewrite alist_find_cons_eq; reflexivity.
+        --
+          clear - A' A''.
+          eapply freshly_allocated_different_blocks.
+          eassumption.
+          eapply allocate_allocated.
+          eassumption.
       *
         unfold allocated_globals_mcfg, allocated_globals in *.
         split.
@@ -4287,19 +5262,20 @@ Proof.
     rewrite T; clear T.
 
     destruct_unit.
+    pose proof H0 as X.
     unfold post_alloc_invariant_mcfg' in H0.
-    destruct u3 as (m', ((l', st'), (g', TU))); destruct_unit.
+    destruct u0 as (m', ((l', st'), (g', TU))); destruct_unit.
     cbn in H0.
-    destruct u0 as (_ & _).
+    destruct u1 as (? & ()).
     subst p p1 u2.
-    clear u1.
+    (* clear u1. *)
     rename H0 into POST_ALLOC.
     
     rewrite translate_bind, interp3_bind.
     subst.
 
     pose (fun globals : list (string * DSHType) =>
-            (fun '(memH, _) '(memV, (l, t1, (g, t2))) =>
+            (fun h '(memV, (l, t1, (g, t2))) =>
                post_init_invariant
                  name
                  (firstn (length globals) (e ++ [(DSHPtrVal (S (Datatypes.length globals)) o, true);
@@ -4308,7 +5284,10 @@ Proof.
                    block_count := block_count;
                    local_count := local_count;
                    void_count := void_count;
-                   Γ := firstn (length globals) Γ_globals |} memH (memV, (l, g)))
+                   Γ := firstn (length globals) Γ_globals |} mg (memV, (l, g))
+               /\ post_alloc_invariant_mcfg' (mg, ()) (memV, (l, t1, (g, t2)))
+               /\ h ≡ (mg, ())
+            )
             : Rel_mcfg_T () ())
       as post_init_invariant'.
 
@@ -4360,6 +5339,7 @@ Proof.
         full_autospecialize H0; try congruence.
         {
           cbn.
+          split; [| now split].
           split.
           -
             constructor.
@@ -4403,6 +5383,7 @@ Proof.
         apply H0.
       }
 
+      clear POST_ALLOC.
       intros pre post; revert pre.
       generalize dependent g'.
       generalize dependent l'.
@@ -4420,6 +5401,8 @@ Proof.
         rewrite app_nil_r.
         apply PINV.
       *
+        unfold post_init_invariant' in PINV.
+        destruct PINV as [PINV [NPALLOC _]].
         cbn in POST.
         repeat break_match_hyp; try inl_inr.
         inversion POST; clear POST.
@@ -4557,7 +5540,7 @@ Proof.
           {
             unfold allocated_globals in AG.
             destruct AG as [AG _].
-            cbn in *.
+            simpl in *.
             unfold in_global_addr in AG.
 
             specialize (AG (length pre)).
@@ -4585,7 +5568,7 @@ Proof.
 
           rename Heqs0 into IA.
           move IA at bottom.
-          cbn in IA.
+          simpl in IA.
           repeat break_match_hyp;
             inv IA; cbn.
           ++
@@ -4622,8 +5605,79 @@ Proof.
               by (unfold write; rewrite AMB; reflexivity).
             apply eutt_Ret.
             constructor.
-            **
+            2: {
+              destruct NPALLOC as [[XY GLOB] DECL].
+              split; [| reflexivity].
+              split; [split |].
+              -
+                unfold allocated_xy in *.
+                destruct XY as (p1 & p2 & A1 & A2 & G1 & G2).
+                exists p1; exists p2.
+                intuition.
+                +
+                  eapply dtyp_fits_add_logical_block_key_neq;
+                    [eassumption |].
+                  clear - AV G1 H4.
+                  destruct H4 as [GUNIQ _].
+                  replace a_ptr with (fst (a_ptr, a_off)) by reflexivity.
+                  intros C.
+                  eapply GUNIQ in C.
+                  2,3: eassumption.
+                  inv C.
+                +
+                  eapply dtyp_fits_add_logical_block_key_neq;
+                    [eassumption |].
+                  clear - AV H H4.
+                  destruct H4 as [GUNIQ _].
+                  replace a_ptr with (fst (a_ptr, a_off)) by reflexivity.
+                  intros C.
+                  eapply GUNIQ in C.
+                  2,3: eassumption.
+                  inv C.
+              -
+                clear - GLOB GUNIQ AL AV AMB.
+                match goal with
+                | [_ : _ |- context [add_all_index ?a ?b ?c]] =>
+                  generalize dependent (add_all_index a b c)
+                end.
+                intros a_bytes'.
 
+                intros.
+                unfold allocated_globals in *.
+                split; [| intuition].
+                intros.
+                destruct GLOB as [GLOB _].
+                specialize (GLOB j jc).
+                destruct GLOB as [ptr [DF IG]].
+                exists ptr.
+                unfold in_global_addr in *.
+                intuition.
+                unfold dtyp_fits.
+                destruct (Z.eq_dec a_ptr (fst ptr)).
+                +
+                  rewrite e, get_logical_block_of_add_logical_block.
+                  do 3 eexists.
+                  split; [reflexivity |].
+                  unfold dtyp_fits in DF.
+                  destruct DF as (sz' & bytes' & cid' & AMB' & F').
+                  cbn in AMB.
+                  rewrite e in AMB.
+                  rewrite AMB' in AMB; invc AMB.
+                  assumption.
+                +
+                  rewrite get_logical_block_of_add_logical_block_neq
+                    by assumption.
+                  unfold dtyp_fits in DF.
+                  assumption.
+              -
+                split; [tauto |].
+                destruct DI as [_ WF].
+                clear - WF.
+                apply genv_mem_wf_add_logical_block.
+                assumption.
+            }
+            constructor.
+            **
               replace
                 (firstn (Datatypes.length (pre ++ [(a_nm, DSHnat)]))
                    ((e_pre ++ ne' :: e_post') ++
@@ -4675,7 +5729,7 @@ Proof.
                   some_inv; subst.
                   move Heqs2 at bottom.
                   unfold initOneFSHGlobal in Heqs2.
-                  cbn in Heqs2.
+                  simpl in Heqs2.
                   repeat break_match_hyp; try inl_inr.
                   invc Heqs2.
                   unfold in_local_or_global_scalar.
@@ -4968,6 +6022,78 @@ Proof.
             rewrite interp_mcfg_store
               by (unfold write; rewrite AMB; reflexivity).
             apply eutt_Ret.
+            constructor.
+            2: {
+              destruct NPALLOC as [[XY GLOB] DECL].
+              split; [| reflexivity].
+              split; [split |].
+              -
+                unfold allocated_xy in *.
+                destruct XY as (p1 & p2 & A1 & A2 & G1 & G2).
+                exists p1; exists p2.
+                intuition.
+                +
+                  eapply dtyp_fits_add_logical_block_key_neq;
+                    [eassumption |].
+                  clear - AV G1 H4.
+                  destruct H4 as [GUNIQ _].
+                  replace a_ptr with (fst (a_ptr, a_off)) by reflexivity.
+                  intros C.
+                  eapply GUNIQ in C.
+                  2,3: eassumption.
+                  inv C.
+                +
+                  eapply dtyp_fits_add_logical_block_key_neq;
+                    [eassumption |].
+                  clear - AV H H4.
+                  destruct H4 as [GUNIQ _].
+                  replace a_ptr with (fst (a_ptr, a_off)) by reflexivity.
+                  intros C.
+                  eapply GUNIQ in C.
+                  2,3: eassumption.
+                  inv C.
+              -
+                clear - GLOB GUNIQ AL AV AMB.
+                match goal with
+                | [_ : _ |- context [add_all_index ?a ?b ?c]] =>
+                  generalize dependent (add_all_index a b c)
+                end.
+                intros a_bytes'.
+
+                intros.
+                unfold allocated_globals in *.
+                split; [| intuition].
+                intros.
+                destruct GLOB as [GLOB _].
+                specialize (GLOB j jc).
+                destruct GLOB as [ptr [DF IG]].
+                exists ptr.
+                unfold in_global_addr in *.
+                intuition.
+                unfold dtyp_fits.
+                destruct (Z.eq_dec a_ptr (fst ptr)).
+                +
+                  rewrite e, get_logical_block_of_add_logical_block.
+                  do 3 eexists.
+                  split; [reflexivity |].
+                  unfold dtyp_fits in DF.
+                  destruct DF as (sz' & bytes' & cid' & AMB' & F').
+                  cbn in AMB.
+                  rewrite e in AMB.
+                  rewrite AMB' in AMB; invc AMB.
+                  assumption.
+                +
+                  rewrite get_logical_block_of_add_logical_block_neq
+                    by assumption.
+                  unfold dtyp_fits in DF.
+                  assumption.
+              -
+                split; [tauto |].
+                destruct DI as [_ WF].
+                clear - WF.
+                apply genv_mem_wf_add_logical_block.
+                assumption.
+            }
             constructor.
             **
               replace
@@ -5353,6 +6479,77 @@ Proof.
 
             apply eutt_Ret.
             constructor.
+            2: {
+              destruct NPALLOC as [[XY GLOB] DECL].
+              split; [| reflexivity].
+              split; [split |].
+              -
+                unfold allocated_xy in *.
+                destruct XY as (p1 & p2 & A1 & A2 & G1 & G2).
+                exists p1; exists p2.
+                intuition.
+                +
+                  eapply dtyp_fits_add_logical_block_key_neq;
+                    [eassumption |].
+                  clear - AIG G1 H4.
+                  destruct H4 as [GUNIQ _].
+                  replace a_ptr with (fst (a_ptr, a_off)) by reflexivity.
+                  intros C.
+                  eapply GUNIQ in C.
+                  2,3: eassumption.
+                  inv C.
+                +
+                  eapply dtyp_fits_add_logical_block_key_neq;
+                    [eassumption |].
+                  clear - AIG H H4.
+                  destruct H4 as [GUNIQ _].
+                  replace a_ptr with (fst (a_ptr, a_off)) by reflexivity.
+                  intros C.
+                  eapply GUNIQ in C.
+                  2,3: eassumption.
+                  inv C.
+              -
+                match goal with
+                | [_ : _ |- context [add_all_index ?a ?b ?c]] =>
+                  generalize dependent (add_all_index a b c)
+                end.
+                intros a_bytes'.
+
+                intros.
+                unfold allocated_globals in *.
+                split; [| intuition].
+                intros.
+                destruct GLOB as [GLOB _].
+                specialize (GLOB j jc).
+                destruct GLOB as [ptr [DF IG]].
+                exists ptr.
+                unfold in_global_addr in *.
+                intuition.
+                unfold dtyp_fits.
+                destruct (Z.eq_dec a_ptr (fst ptr)).
+                +
+                  rewrite e, get_logical_block_of_add_logical_block.
+                  do 3 eexists.
+                  split; [reflexivity |].
+                  unfold dtyp_fits in DF.
+                  destruct DF as (sz' & bytes' & cid' & AMB' & F').
+                  cbn in AM'B.
+                  rewrite e in AM'B.
+                  rewrite AMB' in AM'B; invc AM'B.
+                  assumption.
+                +
+                  rewrite get_logical_block_of_add_logical_block_neq
+                    by assumption.
+                  unfold dtyp_fits in DF.
+                  assumption.
+              -
+                split; [tauto |].
+                destruct DI as [_ WF].
+                clear - WF.
+                apply genv_mem_wf_add_logical_block.
+                assumption.
+            }
+            constructor.
             **
               replace
                 (firstn (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHPtr int_n)]))
@@ -5422,7 +6619,8 @@ Proof.
                   invc AX'.
 
                   exists (a_ptr, a_off).
-                  eexists; split; [reflexivity | split; [| split; [assumption | intros _]]].
+                  eexists; split;
+                    [reflexivity | split; [| split; [assumption | intros _]]].
                   {
                     (* clear - AG'. *)
                     destruct AG' as [AG _].
@@ -5463,13 +6661,15 @@ Proof.
                   {
                     unfold get_array_cell.
                     rewrite get_logical_block_of_add_logical_block.
-                    exists m0.
+                    exists m1.
                     split.
                     -
                       clear - Heqs3.
-                      apply initFSHGlobals_no_overwrite in Heqs3.
-                      unfold memory_lookup.
-                      admit. (* easy *)
+                      eapply initFSHGlobals_no_overwrite_eq
+                        with (k:=memory_next_key m_pre)
+                        in Heqs3.
+                      eassumption.
+                      now rewrite memory_lookup_memory_set_eq.
                     -
                       intros i0 id_v.
                       generalize dependent (MInt64asNT.to_nat i0);
@@ -5483,10 +6683,6 @@ Proof.
                                     [] (map DVALUE_Double pdata))
                         with (serialize_dvalue (DVALUE_Vector (map DVALUE_Double pdata)))
                         by reflexivity.
-                      (* deserialize_sbytes *)
-                      (* lookup_all_index *)
-                      (* add_all_index *)
-                      (* serialize_dvalue *)
                       simpl_data.
                       replace hdata_pre with l1' in *.
                       2: {
@@ -5743,10 +6939,107 @@ Proof.
               all: unfold declarations_invariant in DI.
               all: intuition.
         -- (* initialize [post] *)
-          admit.
-    +
-      intros.
+          intros.
+          cbn in *.
+          move IHpost at bottom.
 
+          rewrite <-ListUtil.list_app_first_last.
+          destruct u2 as (m'' & (le'', stack'') & g''' & ?).
+          repeat break_let.
+
+          dedup_states.
+
+          move LG at bottom.
+          rewrite <-ListUtil.list_app_first_last in LG.
+          apply initIRGlobals_inr in LG.
+          apply initIRGlobals_rev_app_inv in LG.
+          destruct LG as (l'' & s'' & g1'' & g2'' & PRE'' & POST'' & G'').
+
+          eapply IHpost; clear IHpost.
+          ++
+            clear - H0 PINV.
+            unfold post_init_invariant' in H0.
+            intuition.
+          ++
+            now rewrite <-app_assoc.
+          ++
+            instantiate (1:=gdecls1 ++ [TLE_Global tg2]).
+            now rewrite <-app_assoc.
+          ++
+            move PRE at bottom; move Heqs0 at bottom.
+
+            move LX at bottom.
+            eapply initIRGlobals_rev_app.
+            eapply initIRGlobals_names_unique.
+            eapply initIRGlobals_rev_inr.
+            eapply PRE''.
+            eassumption.
+            cbn.
+            rewrite Heqs0.
+            reflexivity.
+          ++
+            eassumption.
+          ++
+            clear - H0 PINV.
+            unfold post_init_invariant' in H0.
+            replace u1 with (mg, ()) in *.
+            assumption.
+            now repeat destruct H0.
+    + (* initialize yx *)
+      unfold post_init_invariant'.
+
+      replace
+        (firstn (Datatypes.length globals)
+                (e ++
+                   [(DSHPtrVal (S (Datatypes.length globals)) o, true);
+                    (DSHPtrVal (Datatypes.length globals) i, true)]))
+        with e
+        in *.
+      2: {
+        clear - LGE.
+        rewrite firstn_app.
+        rewrite !LGE, Nat.sub_diag.
+        now rewrite firstn_all, app_nil_r.
+      }
+
+      replace (firstn (Datatypes.length globals) Γ_globals)
+        with Γ_globals
+        in *.
+      2: {
+        dedup_states.
+        clear - IR LX.
+        pose proof genIR_Γ _ _ _ IR; clear IR.
+        cbn in H.
+
+        unfold initXYplaceholders, addVars in LX.
+        cbn in LX.
+        repeat break_let.
+        invc LX.
+        cbn.
+
+        apply list_app_eqlen_eq_r in H; [| reflexivity].
+        destruct H as [GG _].
+        erewrite <-map_length.
+        rewrite GG.
+        now rewrite firstn_all.
+      }
+
+      remember {|
+        block_count := block_count;
+        local_count := local_count;
+        void_count := void_count;
+        Γ := Γ_globals |}
+        as si.
+      remember {|
+             block_count := block_count;
+             local_count := local_count;
+             void_count := void_count;
+             Γ := Γ_globals ++ [fake_x; fake_y] |}
+        as siyx.
+
+
+      
+      intros.
       move LX at bottom.
       unfold initXYplaceholders, addVars in LX.
       cbn in LX.
@@ -5754,25 +7047,735 @@ Proof.
       invc LX.
       cbn.
 
-      repeat rewrite translate_bind, interp3_bind.
-      rewrite translate_trigger, exp_to_L0_Global, subevent_subevent.
-      (*
-      inversion_clear H1 as [[[MI] DI] AXY].
-      destruct AXY as (px & py & APX & APY & IX & IY).
+      destruct H0 as [PI [[[AXY AG] DI] U1]].
+      subst u1.
+      unfold allocated_xy in AXY.
+      destruct AXY as (x_ptr & y_ptr & AX & AY & GX & GY & XneqY).
 
-      rewrite interp_3_GR.
-      2:{
-        unfold in_global_addr in IY.
-        unfold Maps.lookup.
-        break_let.
-        inversion Heqm2.
-        eassumption.
+      autorewrite with itree.
+      repeat rewrite interp3_bind. 
+      rewrite exp_to_L0_Global.
+      rewrite subevent_subevent.
+      (* the important step 1.1 *)
+      rewrite interp3_GR by apply GY.
+
+      autorewrite with itree.
+      repeat rewrite interp3_bind. 
+
+
+
+      unfold denote_exp; fold denote_exp.
+      unfold fmap, Fmap_list.
+      rewrite !map_monad_map.
+      cbn.
+      autorewrite with itree.
+      rewrite interp3_bind.
+
+      unfold constArray in *.
+      repeat break_match_hyp.
+      invc Heqp; invc Heqp0.
+      rewrite !map_monad_map.
+      cbn [fst snd] in *.
+
+      setoid_rewrite map_monad_ret_map with (g1 := UVALUE_Double).
+      2: {
+        typ_to_dtyp_simplify.
+        reflexivity.
       }
-      memory_invariant
-      rewrite Eq.bind_ret_l.
-       *)
-      admit.
-Abort.
+      repeat rewrite translate_ret, interp3_ret, !ITree.Eq.Eq.bind_ret_l.
+
+      unfold concretize_or_pick.
+      replace (is_concrete (UVALUE_Array (map UVALUE_Double l11)))
+        with true.
+      2: {
+        clear; cbn.
+        symmetry; apply forallb_forall.
+        intros.
+        apply ListUtil.in_map_elim in H.
+        destruct H as [d [_ D]].
+        now subst.
+      }
+      cbn.
+      rewrite map_monad_map.
+      rewrite map_monad_inr_map with (g1:=DVALUE_Double)
+        by reflexivity.
+      cbn.
+      autorewrite with itree.
+
+      
+      repeat rewrite interp3_bind. 
+      rewrite exp_to_L0_Memory.
+      rewrite subevent_subevent.
+
+      copy_apply dtyp_fits_allocated AY;
+        rename H0 into AY'.
+      copy_apply allocated_get_logical_block AY'.
+      destruct H0 as [[y_sz y_bytes y_id] YM0B].
+      destruct y_ptr as [y_ptr y_off].
+      (* the important step 1.2 *)
+      rewrite interp_mcfg_store.
+      2: {
+        unfold write.
+        rewrite YM0B.
+        reflexivity.
+      }
+
+      autorewrite with itree.
+      repeat rewrite interp3_bind. 
+      rewrite exp_to_L0_Global.
+      rewrite subevent_subevent.
+      (* the important step 2.1 *)
+      rewrite interp3_GR by apply GX.
+
+      autorewrite with itree.
+      repeat rewrite interp3_bind. 
+
+      unfold denote_exp; fold denote_exp.
+
+      setoid_rewrite map_monad_ret_map with (g1 := UVALUE_Double).
+      2: {
+        typ_to_dtyp_simplify.
+        reflexivity.
+      }
+      repeat rewrite translate_ret, interp3_ret, !ITree.Eq.Eq.bind_ret_l.
+
+      (* TODO: this is a simple lemma, see multiple uses above *)
+      replace (is_concrete (UVALUE_Array (map UVALUE_Double l8)))
+        with true.
+      2: {
+        clear; cbn.
+        symmetry; apply forallb_forall.
+        intros.
+        apply ListUtil.in_map_elim in H.
+        destruct H as [d [_ D]].
+        now subst.
+      }
+      cbn.
+      rewrite map_monad_map.
+      rewrite map_monad_inr_map with (g1:=DVALUE_Double)
+        by reflexivity.
+      cbn.
+      autorewrite with itree.
+
+      repeat rewrite interp3_bind. 
+      rewrite exp_to_L0_Memory.
+      rewrite subevent_subevent.
+
+      copy_apply dtyp_fits_allocated AX;
+        rename H0 into AX'.
+      copy_apply allocated_get_logical_block AX'.
+      rename x_id into x_id'.
+      destruct H0 as [[x_sz x_bytes x_id] XM0B].
+      destruct x_ptr as [x_ptr x_off].
+      (* the important step 2.2 *)
+      rewrite interp_mcfg_store.
+      2: {
+        unfold write.
+        rewrite get_logical_block_of_add_logical_block_neq
+          by (cbn [fst snd] in *; congruence).
+        rewrite XM0B.
+        reflexivity.
+      }
+      
+      autorewrite with itree.
+      rewrite interp3_ret.
+      apply eutt_Ret.
+
+      destruct PI as [[MEM_INV
+                       WF
+                       NO_ID_ALIAS
+                       NO_DS_ALIAS
+                       NO_LL_ALIAS
+                       ID_ALLOC
+                       GAMMA_BOUND] DECL_INV].
+      dedup_states.
+      simpl_data.
+      cbn in *.
+
+      (* prepare some general hyps *)
+      pose proof genIR_Γ _ _ _ IR.
+      cbn in H0.
+      apply list_app_eqlen_eq_r in H0; [| reflexivity].
+      destruct H0 as [GG XYXY].
+      invc XYXY.
+      cbn in *.
+      (* pointers in e are below x, y *)
+      pose proof initFSHGlobals_addr_bound _ _ _ G as EB.
+      cbn in EB.
+
+      assert (IEL : length (map IR_of_global globals) ≡ length e)
+        by (now rewrite map_length).
+
+
+      assert (XUNIQ :
+                ∀ n id τ' ptr,
+                  nth_error (map IR_of_global globals) n
+                  ≡ Some (ID_Global id, τ') →
+                  g0 @ id ≡ Some (DVALUE_Addr ptr) ->
+                  x_ptr ≢ fst ptr).
+      {
+        clear - DI GX.
+        destruct DI as [_ [GUNIQ _]].
+        intros * N PTR; intros C.
+        replace x_ptr with (fst (x_ptr, x_off)) in C by reflexivity.
+        eapply GUNIQ in C.
+        2,3: eassumption.
+        subst id.
+        clear - N.
+        apply nth_map_inv in N.
+        destruct N as [(a_nm, a_t) [_ C]].
+        inv C.
+      }
+      assert (YUNIQ :
+                ∀ n id τ' ptr,
+                  nth_error (map IR_of_global globals) n
+                  ≡ Some (ID_Global id, τ') →
+                  g0 @ id ≡ Some (DVALUE_Addr ptr) ->
+                  y_ptr ≢ fst ptr).
+      {
+        clear - DI GY.
+        destruct DI as [_ [GUNIQ _]].
+        intros * N PTR; intros C.
+        replace y_ptr with (fst (y_ptr, y_off)) in C by reflexivity.
+        eapply GUNIQ in C.
+        2,3: eassumption.
+        subst id.
+        clear - N.
+        apply nth_map_inv in N.
+        destruct N as [(a_nm, a_t) [_ C]].
+        inv C.
+      }
+      
+
+      constructor.
+      *
+        constructor.
+        --
+          unfold memory_invariant.
+          cbn.
+          intros n * NE NG.
+          apply nth_error_in_app in NE.
+          destruct NE as [[L EL] | [R ER]].
+          ++
+            rewrite nth_error_app1
+              in NG
+              by (rewrite map_length; lia).
+            move MEM_INV at bottom.
+            specialize (MEM_INV n v b0 τ x EL NG).
+            break_match.
+            **
+              unfold in_local_or_global_scalar in *.
+              break_match; [| assumption].
+              destruct MEM_INV as (ptr & τ' & T' & G0ID & READ).
+              exists ptr, τ'.
+              split; [assumption |].
+              split; [assumption |].
+              unfold read in *.
+              rewrite get_logical_block_of_add_logical_block_neq.
+              rewrite get_logical_block_of_add_logical_block_neq.
+              assumption.
+              eapply YUNIQ; eassumption.
+              eapply XUNIQ; eassumption.
+            **
+              unfold in_local_or_global_scalar in *.
+              break_match; [| assumption].
+              destruct MEM_INV as (ptr & τ' & T' & G0ID & READ).
+              exists ptr, τ'.
+              split; [assumption |].
+              split; [assumption |].
+              unfold read in *.
+              rewrite get_logical_block_of_add_logical_block_neq.
+              rewrite get_logical_block_of_add_logical_block_neq.
+              assumption.
+              eapply YUNIQ; eassumption.
+              eapply XUNIQ; eassumption.
+            **
+              destruct MEM_INV as (ptr & τ' & T' & TF & IPTR & I).
+              exists ptr, τ'.
+              split; [assumption |].
+              split.
+              ---
+                eapply dtyp_fits_add_logical_block_key_neq.
+                2: {
+                  clear - XUNIQ NG IPTR.
+                  copy_apply nth_map_inv NG.
+                  destruct H as [(a_nm, a_t) [_ A]].
+                  invc A; cbn in *.
+                  eapply XUNIQ.
+                  eassumption.
+                  eassumption.
+                }
+                eapply dtyp_fits_add_logical_block_key_neq.
+                2: {
+                  clear - YUNIQ NG IPTR.
+                  copy_apply nth_map_inv NG.
+                  destruct H as [(a_nm, a_t) [_ A]].
+                  invc A; cbn in *.
+                  eapply YUNIQ.
+                  eassumption.
+                  eassumption.
+                }
+                assumption.
+              ---
+                split; [assumption |].
+                intros B.
+                specialize (I B).
+                destruct I as (a_mg & A_MG & I).
+                exists a_mg.
+                split.
+                +++
+                  clear - EB EL A_MG.
+                  apply EB in EL.
+                  enough
+                    (memory_lookup
+                       (memory_set
+                          (memory_set mg (S (length globals)) mo)
+                          (length globals) mi) a ≡ Some a_mg)
+                    by assumption.
+                  rewrite !memory_lookup_memory_set_neq by lia.
+                  assumption.
+                +++
+                  intros i' v' V'.
+                  specialize (I i' v' V').
+                  unfold get_array_cell in *.
+                  break_let.
+                  replace z with (fst (z, z0)) by reflexivity.
+                  erewrite get_logical_block_of_add_logical_block_neq.
+                  2: {
+                    clear - XUNIQ NG IPTR.
+                    copy_apply nth_map_inv NG.
+                    destruct H as [(a_nm, a_t) [_ A]].
+                    invc A.
+                    eapply XUNIQ.
+                    eassumption.
+                    eassumption.
+                  }
+                  erewrite get_logical_block_of_add_logical_block_neq.
+                  2: {
+                    clear - YUNIQ NG IPTR.
+                    copy_apply nth_map_inv NG.
+                    destruct H as [(a_nm, a_t) [_ A]].
+                    invc A.
+                    eapply YUNIQ.
+                    eassumption.
+                    eassumption.
+                  }
+                  assumption.
+          ++
+            rewrite nth_error_app2
+              in NG
+              by (rewrite map_length; lia).
+            apply nth_error_in_list_of_two in ER.
+            rewrite IEL in NG.
+            destruct ER as [[N V] | [N V]];
+              rewrite N in NG; cbn in NG.
+            **
+              invc V; invc NG.
+              exists (y_ptr, y_off).
+              exists (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double).
+              split; [admit |]. (* array vs array pointer *)
+              split.
+              ---
+                unfold dtyp_fits.
+                rewrite get_logical_block_of_add_logical_block_neq
+                  by (cbn; assumption).
+                rewrite get_logical_block_of_add_logical_block.
+                do 3 eexists.
+                split.
+                reflexivity.
+
+                destruct AY as (ysz & ybt & ybid & YB & YSZ).
+                cbn [fst] in *.
+                rewrite YM0B in YB.
+                invc YB.
+                assumption.
+              ---
+                split; [cbn; assumption |].
+                intros _.
+                exists mo.
+                split.
+                +++
+                  enough
+                    (memory_lookup
+                       (memory_set
+                          (memory_set mg (S (length globals)) mo)
+                          (length globals) mi) (S (length globals)) ≡ Some mo)
+                    by assumption.
+                  rewrite memory_lookup_memory_set_neq by lia.
+                  rewrite memory_lookup_memory_set_eq.
+                  reflexivity.
+                +++
+                  intros i' v' V'.
+                  rename l11 into pdata.
+                  unfold get_array_cell.
+                  erewrite get_logical_block_of_add_logical_block_neq by assumption.
+                  erewrite get_logical_block_of_add_logical_block.
+
+                  generalize dependent (MInt64asNT.to_nat i').
+                  intros n' V'.
+                  unfold get_array_cell_mem_block; cbn; f_equal.
+                  unfold read_in_mem_block.
+                  cbn [sizeof_dtyp].
+                  replace
+                    (fold_right (λ (dv : dvalue) (acc : list SByte),
+                                 serialize_dvalue dv ++ acc)
+                                [] (map DVALUE_Double pdata))
+                    with (serialize_dvalue (DVALUE_Vector (map DVALUE_Double pdata)))
+                    by reflexivity.
+                  clear - Co V' Heqp2.
+                  rewrite int64_unsigned_repr_eq.
+                  2: {
+                    assert (n' < (MInt64asNT.to_nat o))
+                      by eauto using constMemBlock_bound.
+                    split; [lia |].
+                    eauto using Int64_to_nat_modulus.
+                  }
+                  erewrite deserialize_vector.
+                  reflexivity.
+                  rewrite <-V'.
+                  eapply constList_constMemBlock; eassumption.
+            **
+              invc V; invc NG.
+              exists (x_ptr, x_off).
+              exists (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double).
+              split; [admit |]. (* array vs array pointer *)
+              split.
+              ---
+                unfold dtyp_fits.
+                rewrite get_logical_block_of_add_logical_block.
+                do 3 eexists.
+                split.
+                reflexivity.
+
+                destruct AX as (xsz & xbt & xbid & XB & XSZ).
+                cbn [fst] in *.
+                rewrite XM0B in XB.
+                invc XB.
+                assumption.
+              ---
+                split; [cbn; assumption |].
+                intros _.
+                exists mi.
+                split.
+                +++
+                  enough
+                    (memory_lookup
+                       (memory_set
+                          (memory_set mg (S (length globals)) mo)
+                          (length globals) mi) (length globals) ≡ Some mi)
+                    by assumption.
+                  rewrite memory_lookup_memory_set_eq.
+                  reflexivity.
+                +++
+                  intros i' v' V'.
+                  rename l8 into pdata.
+                  unfold get_array_cell.
+                  erewrite get_logical_block_of_add_logical_block.
+
+                  generalize dependent (MInt64asNT.to_nat i').
+                  intros n' V'.
+                  unfold get_array_cell_mem_block; cbn; f_equal.
+                  unfold read_in_mem_block.
+                  cbn [sizeof_dtyp].
+                  replace
+                    (fold_right (λ (dv : dvalue) (acc : list SByte),
+                                 serialize_dvalue dv ++ acc)
+                                [] (map DVALUE_Double pdata))
+                    with (serialize_dvalue (DVALUE_Vector (map DVALUE_Double pdata)))
+                    by reflexivity.
+                  clear - Ci V' Heqp1.
+                  rewrite int64_unsigned_repr_eq.
+                  2: {
+                    assert (n' < (MInt64asNT.to_nat i))
+                      by eauto using constMemBlock_bound.
+                    split; [lia |].
+                    eauto using Int64_to_nat_modulus.
+                  }
+                  erewrite deserialize_vector.
+                  reflexivity.
+                  rewrite <-V'.
+                  eapply constList_constMemBlock; eassumption.
+        -- (* WF IRSTATE *)
+          clear - IEL LGE EB WF.
+          unfold WF_IRState, evalContext_typechecks.
+          cbn.
+          intros ? n * N.
+          apply nth_error_in_app in N.
+          destruct N as [[L EL] | [R ER]].
+          ++
+            rewrite nth_error_app1
+              by (rewrite map_length; lia).
+            eapply WF.
+            eassumption.
+          ++
+            rewrite nth_error_app2
+              by (rewrite map_length; lia).
+            apply nth_error_in_list_of_two in ER.
+            destruct ER as [[N ER] | [N ER]]; invc ER.
+            **
+              replace (n - length (map IR_of_global globals))
+                with 0
+                by (rewrite map_length; lia).
+              cbn.
+              eexists.
+              repeat f_equal.
+              cbn.
+              admit. (* array vs array pointer *)
+            **
+              replace (n - length (map IR_of_global globals))
+                with 1
+                by (rewrite map_length; lia).
+              cbn.
+              eexists.
+              repeat f_equal.
+              cbn.
+              admit. (* array vs array pointer *)
+        -- (* NO ID ALIASING *)
+          clear - LGE IEL EB NO_ID_ALIAS.
+          unfold no_id_aliasing in *.
+          cbn in *.
+          intros n1 n2 * N1 N2.
+          apply nth_error_in_app in N1.
+          apply nth_error_in_app in N2.
+          destruct N1 as [[L1 EL1] | [R1 ER1]],
+                   N2 as [[L2 EL2] | [R2 ER2]].
+          ++
+            rewrite !nth_error_app1
+              by (rewrite map_length; lia).
+            eapply NO_ID_ALIAS;
+              eassumption.
+          ++
+            rewrite nth_error_app1
+              by (rewrite map_length; lia).
+            rewrite nth_error_app2
+              by (rewrite map_length; lia).
+            intros C1 C2; exfalso; clear - C1 C2.
+            apply nth_error_in_list_of_two in C2.
+            apply nth_map_inv in C1.
+            destruct C1 as [(n, t) [N1 A1]].
+            invc A1.
+            destruct C2 as [[_ C] | [_ C]];
+              invc C.
+          ++
+            rewrite nth_error_app2
+              by (rewrite map_length; lia).
+            rewrite nth_error_app1
+              by (rewrite map_length; lia).
+            intros C1 C2; exfalso; clear - C1 C2.
+            apply nth_error_in_list_of_two in C1.
+            apply nth_map_inv in C2.
+            destruct C2 as [(n, t) [N2 A2]].
+            invc A2.
+            destruct C1 as [[_ C] | [_ C]];
+              invc C.
+          ++
+            rewrite !nth_error_app2
+              by (rewrite map_length; lia).
+            intros N1 N2.
+            apply nth_error_in_list_of_two in N1.
+            apply nth_error_in_list_of_two in N2.
+            destruct N1 as [[N1 I1] | [N1 I1]]; invc I1;
+            destruct N2 as [[N2 I2] | [N2 I2]]; invc I2.
+            all: lia.
+        -- (* NO DSH PTR ALIASING *)
+          clear - EB NO_DS_ALIAS.
+          unfold no_dshptr_aliasing in *.
+          intros n1 n2 * N1 N2.
+          apply nth_error_in_app in N1.
+          apply nth_error_in_app in N2.
+          destruct N1 as [[L1 EL1] | [R1 ER1]],
+                   N2 as [[L2 EL2] | [R2 ER2]].
+          ++
+            eapply NO_DS_ALIAS; eassumption.
+          ++
+            apply EB in EL1.
+            apply nth_error_in_list_of_two in ER2.
+            destruct ER2 as [[N2 ER2] | [N2 ER2]]; invc ER2.
+            all: lia.
+          ++
+            apply EB in EL2.
+            apply nth_error_in_list_of_two in ER1.
+            destruct ER1 as [[N1 ER1] | [N1 ER1]]; invc ER1.
+            all: lia.
+          ++
+            apply nth_error_in_list_of_two in ER1.
+            apply nth_error_in_list_of_two in ER2.
+            destruct ER1 as [[N1 ER1] | [N1 ER1]]; invc ER1;
+              destruct ER2 as [[N2 ER2] | [N2 ER2]]; invc ER2.
+            all: lia.
+        -- (* NO LLVM PTR ALIASING *)
+          unfold no_llvm_ptr_aliasing_cfg, no_llvm_ptr_aliasing.
+          cbn.
+          intros ? ? ? ? n1 n2 * N1 N2.
+          apply nth_error_in_app in N1.
+          apply nth_error_in_app in N2.
+          destruct N1 as [[L1 EL1] | [R1 ER1]],
+                   N2 as [[L2 EL2] | [R2 ER2]].
+          ++
+            rewrite !nth_error_app1
+              by (rewrite map_length; lia).
+            eapply NO_LL_ALIAS;
+              eassumption.
+          ++ (* copy 1 *)
+            rewrite nth_error_app1
+              by (rewrite map_length; lia).
+            rewrite nth_error_app2
+              by (rewrite map_length; lia).
+            apply nth_error_in_list_of_two in ER2.
+            destruct ER2 as [[N2 ER2] | [N2 ER2]]; invc ER2.
+            ** (* copy 1.1 *)
+              replace (n2 - length (map IR_of_global globals))
+                with 0
+                in * 
+                by lia.
+              cbn.
+              intros I1 I2 _ G1 G0.
+              invc I2.
+              move GY after G0; move GX after G0.
+              unfold in_local_or_global_addr, in_global_addr in *.
+              replace ptrv2 with (y_ptr, y_off) in * by congruence.
+              apply nth_map_inv in I1.
+              destruct I1 as [(n, t) [N1 ON1]].
+              invc ON1.
+              clear - G0 G1 DI.
+              intros C; symmetry in C.
+              destruct DI as [_ [GUNIQ _]].
+              eapply GUNIQ in C.
+              2,3: eassumption.
+              invc C.
+            ** (* copy 1.2 *)
+              replace (n2 - length (map IR_of_global globals))
+                with 1
+                in * 
+                by lia.
+              cbn.
+              intros I1 I2 _ G1 G0.
+              invc I2.
+              move GY after G0; move GX after G0.
+              unfold in_local_or_global_addr, in_global_addr in *.
+              replace ptrv2 with (x_ptr, x_off) in * by congruence.
+              apply nth_map_inv in I1.
+              destruct I1 as [(n, t) [N1 ON1]].
+              invc ON1.
+              clear - G0 G1 DI.
+              intros C; symmetry in C.
+              destruct DI as [_ [GUNIQ _]].
+              eapply GUNIQ in C.
+              2,3: eassumption.
+              invc C.
+          ++ (* copy 2 *)
+            rewrite nth_error_app2
+              by (rewrite map_length; lia).
+            rewrite nth_error_app1
+              by (rewrite map_length; lia).
+            apply nth_error_in_list_of_two in ER1.
+            destruct ER1 as [[N1 ER1] | [N1 ER1]]; invc ER1.
+            ** (* copy 2.1 *)
+              replace (n1 - length (map IR_of_global globals))
+                with 0
+                in * 
+                by lia.
+              cbn.
+              intros I1 I2 _ G1 G0.
+              invc I1.
+              move GY after G0; move GX after G0.
+              unfold in_local_or_global_addr, in_global_addr in *.
+              replace ptrv1 with (y_ptr, y_off) in * by congruence.
+              apply nth_map_inv in I2.
+              destruct I2 as [(n, t) [N2 ON2]].
+              invc ON2.
+              clear - G0 G1 DI.
+              intros C; symmetry in C.
+              destruct DI as [_ [GUNIQ _]].
+              eapply GUNIQ in C.
+              2,3: eassumption.
+              invc C.
+            ** (* copy 2.2 *)
+              replace (n1 - length (map IR_of_global globals))
+                with 1
+                in * 
+                by lia.
+              cbn.
+              intros I1 I2 _ G1 G0.
+              invc I1.
+              move GY after G0; move GX after G0.
+              unfold in_local_or_global_addr, in_global_addr in *.
+              replace ptrv1 with (x_ptr, x_off) in * by congruence.
+              apply nth_map_inv in I2.
+              destruct I2 as [(n, t) [N2 ON2]].
+              invc ON2.
+              clear - G0 G1 DI.
+              intros C; symmetry in C.
+              destruct DI as [_ [GUNIQ _]].
+              eapply GUNIQ in C.
+              2,3: eassumption.
+              invc C.
+          ++
+            rewrite !nth_error_app2
+              by (rewrite map_length; lia).
+            intros N1 N2.
+            apply nth_error_in_list_of_two in N1.
+            apply nth_error_in_list_of_two in N2.
+            destruct N1 as [[N1 I1] | [N1 I1]]; invc I1;
+            destruct N2 as [[N2 I2] | [N2 I2]]; invc I2.
+            all: try congruence.
+            all: intros _.
+            **
+              intros G1 G0.
+              move GY after G0; move GX after G0.
+              unfold in_local_or_global_addr, in_global_addr in *.
+              replace ptrv2 with (x_ptr, x_off) in * by congruence.
+              replace ptrv1 with (y_ptr, y_off) in * by congruence.
+              cbn.
+              intros C.
+              congruence.
+            **
+              intros G1 G0.
+              move GY after G0; move GX after G0.
+              unfold in_local_or_global_addr, in_global_addr in *.
+              replace ptrv1 with (x_ptr, x_off) in * by congruence.
+              replace ptrv2 with (y_ptr, y_off) in * by congruence.
+              cbn.
+              intros C.
+              congruence.
+        -- (* ID ALLOCATED *)
+          unfold id_allocated.
+          intros n * N.
+          apply nth_error_in_app in N.
+          destruct N as [[L EL] | [R ER]].
+          ++
+            do 2 apply mem_block_exists_memory_set.
+            eapply ID_ALLOC.
+            eassumption.
+          ++
+            apply nth_error_in_list_of_two in ER.
+            destruct ER as [[N ER] | [N ER]]; invc ER.
+            **
+              apply mem_block_exists_memory_set.
+              apply mem_block_exists_memory_set_eq.
+              reflexivity.
+            **
+              apply mem_block_exists_memory_set_eq.
+              reflexivity.
+        --
+          clear - GAMMA_BOUND.
+          unfold gamma_bound in *.
+          unfold LidBound.lid_bound, VariableBinding.state_bound in *.
+          cbn in *.
+          intros * N.
+          apply nth_error_in_app in N.
+          destruct N as [[N NTH] | [N NTH]].
+          ++
+            eapply GAMMA_BOUND.
+            eassumption.
+          ++
+            exfalso.
+            apply nth_error_in_list_of_two in NTH.
+            destruct NTH as [[_ C] | [_ C]];
+              inv C.
+      *
+        apply DECL_INV.
+Admitted.
 
 (* with init step  *)
 Lemma compiler_correct_aux:
@@ -6139,7 +8142,6 @@ Hint Rewrite interp3_ret : local.
     (* { *)
     (*   (* The conversion from top level entities to modul failed *) *)
     (*   (* There is a toplevel entity with an empty list of instruction *) *)
-    (*   admit. *)
     (* } *)
 
 
