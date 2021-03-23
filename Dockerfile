@@ -21,7 +21,7 @@ RUN opam install -y --verbose -j 1 coq-metacoq-template
 RUN opam install -y --verbose -j 1 coq-switch
 RUN opam install -y --verbose -j 1 ANSITerminal
 RUN opam install -y --verbose -j 1 coq-flocq
-RUN opam install -y --verbose -j 1 coq-paco
+RUN opam install -y --verbose -j 1 coq-paco=4.0.4 && opam pin add coq-paco 4.0.4
 RUN opam install -y --verbose -j 1 coq-ceres
 RUN opam install -y --verbose -j 1 coq-libhyps
 RUN opam install -y --verbose -j 1 menhir
