@@ -1430,7 +1430,7 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
         let gytyp := getIRType (DSHPtr o) in
         let gyptyp := TYPE_Pointer gytyp in
 
-        '(data,yxinit) <- initXYplaceholders i o data gx gxtyp gy gytyp ;;
+        '(data,yxinit) <- initXYplaceholders i o data gx gxptyp gy gyptyp ;;
         (* Γ := [fake_y; fake_x] *)
 
         (* While generate operator's function body, add parameters as
