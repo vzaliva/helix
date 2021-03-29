@@ -1269,7 +1269,7 @@ Definition initXYplaceholders (i o:Int64.int) (data:list binary64) x xtyp y ytyp
   :=
     let '(data,ydata) := constArray (MInt64asNT.to_nat o) data in
     let '(data,xdata) := constArray (MInt64asNT.to_nat i) data in
-    addVars [(ID_Global y, ytyp); (ID_Global x, xtyp)] ;;
+    addVars [(ID_Global y, TYPE_Pointer ytyp); (ID_Global x, TYPE_Pointer xtyp)] ;;
     ret (data,[ TLE_Global
         {|
           g_ident        := y;
@@ -1430,7 +1430,7 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
         let gytyp := getIRType (DSHPtr o) in
         let gyptyp := TYPE_Pointer gytyp in
 
-        '(data,yxinit) <- initXYplaceholders i o data gx gxptyp gy gyptyp ;;
+        '(data,yxinit) <- initXYplaceholders i o data gx gxtyp gy gytyp ;;
         (* Γ := [fake_y; fake_x] *)
 
         (* While generate operator's function body, add parameters as
