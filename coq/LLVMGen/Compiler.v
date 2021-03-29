@@ -1269,7 +1269,7 @@ Definition initXYplaceholders (i o:Int64.int) (data:list binary64) x xtyp y ytyp
   :=
     let '(data,ydata) := constArray (MInt64asNT.to_nat o) data in
     let '(data,xdata) := constArray (MInt64asNT.to_nat i) data in
-    addVars [(ID_Global y, ytyp); (ID_Global x, xtyp)] ;;
+    addVars [(ID_Global y, TYPE_Pointer ytyp); (ID_Global x, TYPE_Pointer xtyp)] ;;
     ret (data,[ TLE_Global
         {|
           g_ident        := y;
