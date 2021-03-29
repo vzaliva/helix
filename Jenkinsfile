@@ -40,7 +40,7 @@ pipeline {
             }
         }
 
-        stage('Build vellvm') {
+        stage('Build Vellvm') {
             steps {
                 script {
                     if (env.SKIP_CI != "true" && env.SKIP_BRANCH == "false") {
@@ -50,7 +50,7 @@ pipeline {
             }
         }
 
-        stage('Build helix') {
+        stage('Build HELIX') {
             steps {
                 script {
                     if (env.SKIP_CI != "true" && env.SKIP_BRANCH == "false") {
@@ -60,7 +60,7 @@ pipeline {
             }
         }
 
-        stage('Test helix') {
+        stage('Test HELIX') {
             steps {
                 script {
                     if (env.SKIP_CI != "true" && env.SKIP_BRANCH == "false") {
