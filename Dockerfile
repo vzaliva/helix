@@ -7,7 +7,6 @@ RUN apt install -y opam aspcud libipc-system-simple-perl libstring-shellquote-pe
 
 RUN opam init -n -y --compiler=4.11.1+flambda --disable-sandboxing
 RUN eval $(opam config env)
-RUN opam config var root
 
 RUN opam repo add coq-released http://coq.inria.fr/opam/released || true
 RUN opam update -y

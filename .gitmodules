@@ -1,0 +1,4 @@
+[submodule "lib/vellvm"]
+	path = lib/vellvm
+	url = https://github.com/vellvm/vellvm
+	shallow = true
