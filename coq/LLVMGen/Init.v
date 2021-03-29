@@ -3989,8 +3989,11 @@ Proof.
                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
                 (ID_Local (Name "X"),
                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double));
-                (ID_Global (Anon 1%Z), TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double);
-                (ID_Global (Anon 0%Z), TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double)] as v.
+                (ID_Global (Anon 1%Z),
+                 TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
+                (ID_Global (Anon 0%Z),
+                 TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))]
+      as v.
     generalize dependent s1.
     induction globals; intros s v gdecls data data' H.
     -
@@ -4047,8 +4050,11 @@ Proof.
                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
                 (ID_Local (Name "X"),
                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double));
-                (ID_Global (Anon 1%Z), TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double);
-                (ID_Global (Anon 0%Z), TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double)] as v.
+                (ID_Global (Anon 1%Z),
+                 TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
+                (ID_Global (Anon 0%Z),
+                 TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))]
+      as v.
     generalize dependent s1.
     induction globals; intros s v gdecls data data' H.
     -
@@ -4107,8 +4113,11 @@ Proof.
                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
                 (ID_Local (Name "X"),
                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double));
-                (ID_Global (Anon 1%Z), TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double);
-                (ID_Global (Anon 0%Z), TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double)] as v.
+                (ID_Global (Anon 1%Z),
+                 TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
+                (ID_Global (Anon 0%Z),
+                 TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))]
+      as v.
     generalize dependent s1.
     induction globals; intros s v gdecls data data' H.
     -
@@ -4869,6 +4878,9 @@ Proof.
                 erewrite ListUtil.ith_eq with (j:=length pre + 0); [| lia].
                 erewrite ith_eq_app_r.
                 reflexivity.
+                Unshelve.
+                rewrite app_length; cbn; lia.
+                cbn; lia.
               }
               
               exists a''.
@@ -5369,12 +5381,15 @@ Proof.
               rewrite nth_error_nil in H0.
               inversion H0.
             +
-              econstructor.
+              unshelve econstructor.
+              exact mem_empty.
               rewrite nth_error_nil in H0.
               inversion H0.
             + solve_gamma_bound.
           -
             intuition.
+            Unshelve.
+            exact (ID_Local (Name "shelf_go_away")).
         }
         inv PRE.
         replace ([] ++ gdecls2)
@@ -5547,9 +5562,9 @@ Proof.
             autospecialize AG;
               [subst; rewrite ListUtil.length_app; cbn; lia |].
             destruct AG as [a_ptr [AA AIG]].
-            erewrite ListUtil.ith_eq with (j:=length pre + 0)
-              in AIG; [| lia].
-            erewrite ith_eq_app_r in AIG.
+            unshelve erewrite ListUtil.ith_eq with (j:=length pre + 0)
+              in AIG; [rewrite !app_length; cbn; lia | | lia].
+            unshelve erewrite ith_eq_app_r in AIG; [cbn; lia |].
             cbn in AIG.
             enough (TNM : g_ident tg2 ≡ Name a_nm).
             rewrite TNM.
@@ -5590,9 +5605,9 @@ Proof.
               [rewrite ListUtil.length_app; cbn; lia |].
             destruct AG as [a_ptr [AL IG]].
             apply dtyp_fits_allocated in AL.
-            erewrite ListUtil.ith_eq with (j:=length pre + 0)
-              in IG; [| lia].
-            erewrite ith_eq_app_r in IG.
+            unshelve erewrite ListUtil.ith_eq with (j:=length pre + 0)
+              in IG; [rewrite !app_length; cbn; lia | | lia].
+            unshelve erewrite ith_eq_app_r in IG; [cbn; lia |].
             cbn in IG.
             unfold write.
             unfold in_global_addr in IG.
@@ -6008,9 +6023,9 @@ Proof.
               [rewrite ListUtil.length_app; cbn; lia |].
             destruct AG as [a_ptr [AL IG]].
             apply dtyp_fits_allocated in AL.
-            erewrite ListUtil.ith_eq with (j:=length pre + 0)
-              in IG; [| lia].
-            erewrite ith_eq_app_r in IG.
+            unshelve erewrite ListUtil.ith_eq with (j:=length pre + 0)
+              in IG; [rewrite !app_length; cbn; lia | | lia].
+            unshelve erewrite ith_eq_app_r in IG; [cbn; lia |].
             cbn in IG.
             unfold write.
             unfold in_global_addr in IG.
@@ -6463,9 +6478,9 @@ Proof.
               [subst; rewrite ListUtil.length_app; cbn; lia |].
             destruct AG as [a_ptr [AA AIG]].
             apply dtyp_fits_allocated in AA.
-            erewrite ListUtil.ith_eq with (j:=length pre + 0)
-              in AIG; [| lia].
-            erewrite ith_eq_app_r in AIG.
+            unshelve erewrite ListUtil.ith_eq with (j:=length pre + 0)
+              in AIG; [rewrite !app_length; cbn; lia | | lia].
+            unshelve erewrite ith_eq_app_r in AIG; [cbn; lia |].
             cbn in AIG.
             unfold in_global_addr in AIG.
             replace av with (DVALUE_Addr a_ptr) in * by congruence; clear AV.
@@ -6637,8 +6652,12 @@ Proof.
                       in *.
                     2: {
                       clear.
-                      erewrite ListUtil.ith_eq with (j:=length pre + 0) by lia.
-                      now erewrite ith_eq_app_r.
+                      unshelve erewrite ListUtil.ith_eq
+                        with (j:=length pre + 0) by lia.
+                      rewrite !app_length; cbn; lia.
+                      unshelve erewrite ith_eq_app_r.
+                      cbn; lia.
+                      reflexivity.
                     }
                     cbn in A_FITS, A'IG.
                     unfold in_global_addr in *.
@@ -7373,7 +7392,7 @@ Proof.
               invc V; invc NG.
               exists (y_ptr, y_off).
               exists (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double).
-              split; [admit |]. (* array vs array pointer *)
+              split; [reflexivity |].
               split.
               ---
                 unfold dtyp_fits.
@@ -7438,7 +7457,7 @@ Proof.
               invc V; invc NG.
               exists (x_ptr, x_off).
               exists (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double).
-              split; [admit |]. (* array vs array pointer *)
+              split; [reflexivity |]. (* array vs array pointer *)
               split.
               ---
                 unfold dtyp_fits.
@@ -7520,7 +7539,7 @@ Proof.
               eexists.
               repeat f_equal.
               cbn.
-              admit. (* array vs array pointer *)
+              reflexivity.
             **
               replace (n - length (map IR_of_global globals))
                 with 1
@@ -7529,7 +7548,7 @@ Proof.
               eexists.
               repeat f_equal.
               cbn.
-              admit. (* array vs array pointer *)
+              reflexivity.
         -- (* NO ID ALIASING *)
           clear - LGE IEL EB NO_ID_ALIAS.
           unfold no_id_aliasing in *.
@@ -7775,7 +7794,7 @@ Proof.
               inv C.
       *
         apply DECL_INV.
-Admitted.
+Qed.
 
 (* with init step  *)
 Lemma compiler_correct_aux:
