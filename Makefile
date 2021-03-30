@@ -25,7 +25,9 @@ MYVFILES := $(filter-out $(LIBVFILES), $(VFILES))
 COQINCLUDES=`grep '\-R' _CoqProject` -R $(EXTRACTDIR) Extract
 COQEXEC=coqtop -q -w none $(COQINCLUDES) -batch -load-vernac-source
 
-OPAMPKGS=coq coq-color coq-ext-lib coq-math-classes coq-metacoq-template coq-switch ANSITerminal coq-flocq coq-paco coq-ceres menhir core core_kernel dune ocamlbuild coq-libhyps
+COQ_VERSION=8.12.2
+
+OPAMPKGS=ocamlfind ocamlbuild camlp5 coq-mathcomp-ssreflect coq-simple-io coq-color coq-ext-lib coq-math-classes coq-metacoq-template coq-switch ANSITerminal coq-flocq coq-paco coq-ceres coq-libhyps menhir core core_kernel dune qcheck coq.$(COQ_VERSION)
 
 default: all
 
@@ -62,7 +64,9 @@ test: $(EXE)
 	ml/_build/default/testeval.exe
 
 install-deps:
-	opam install --jobs=$(JOBS) $(OPAMPKGS)
+	opam install --jobs=$(JOBS) $(OPAMPKGS); \
+	opam pin add coq $(COQ_VERSION) -y
+
 
 dep-versions:
 	opam list -i ocaml $(OPAMPKGS) | grep -v \#
