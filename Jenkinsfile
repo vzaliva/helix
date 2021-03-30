@@ -45,7 +45,7 @@ pipeline {
                 script {
                     if (env.SKIP_CI != "true" && env.SKIP_BRANCH == "false") {
 			sh '''eval $(opam config env)
-                              make -j 1 -C lib/vellvm/src
+                              make vellvm
                            '''
                     }
                 }
