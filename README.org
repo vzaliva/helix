@@ -50,7 +50,6 @@ To install all required dependenceis:
 
 #+BEGIN_SRC sh
      opam repo add coq-released https://coq.inria.fr/opam/released
-     opam pin add coq 8.12.2
      make -j 4 install-deps
 #+END_SRC
 
