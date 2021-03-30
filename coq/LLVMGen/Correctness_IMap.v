@@ -1801,7 +1801,8 @@ Proof.
     do 3 red in H9. specialize (H9 _ _ REL1).
     specialize (H9 a a eq_refl).
     pose proof Extensionality_t.
-    unfold Same_t in H10. red in REL1. red in REL1. specialize (H10 _ _ _ _ REL1). rewrite H10.eauto.
+    unfold Same_t in H10. red in REL1. red in REL1. specialize (H10 _ _ _ _ REL1). rewrite H10.
+    eauto.
 
     intros. auto.
     red. intros. eapply mem_block_exists_proper. reflexivity. eauto.
