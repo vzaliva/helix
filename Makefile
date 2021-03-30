@@ -2,7 +2,7 @@ LIBNAME := Helix
 
 .SUFFIXES:
 
-.PHONY: default config clean clean-dep clean-ml distclean clean-doc tags doc install-doc install-dist install-deps targz graph wc print-unused extracted all run test update-vellvm vellvm-update benchmark timing wc dep-versions
+.PHONY: default config clean clean-dep clean-ml distclean clean-doc tags doc install-doc install-dist install-deps targz graph wc print-unused extracted all run test update-vellvm benchmark timing wc dep-versions
 
 # parse the -j flag if present, set jobs to 1 oterwise
 JFLAG=$(patsubst -j%,%,$(filter -j%,$(MFLAGS)))
@@ -25,11 +25,13 @@ MYVFILES := $(filter-out $(LIBVFILES), $(VFILES))
 COQINCLUDES=`grep '\-R' _CoqProject` -R $(EXTRACTDIR) Extract
 COQEXEC=coqtop -q -w none $(COQINCLUDES) -batch -load-vernac-source
 
-OPAMPKGS=coq coq-color coq-ext-lib coq-math-classes coq-metacoq-template coq-switch ANSITerminal coq-flocq coq-paco coq-ceres menhir core core_kernel dune ocamlbuild coq-libhyps
+COQ_VERSION=8.12.2
+
+OPAMPKGS=ocamlfind ocamlbuild camlp5 coq-mathcomp-ssreflect coq-simple-io coq-color coq-ext-lib coq-math-classes coq-metacoq-template coq-switch ANSITerminal coq-flocq coq-paco coq-ceres coq-libhyps menhir core core_kernel dune qcheck coq.$(COQ_VERSION)
 
 default: all
 
-all: .depend Makefile.coq
+all: .depend Makefile.coq vellvm
 	$(MAKECOQ)
 	$(MAKE) extracted
 	$(MAKE) $(EXE)
@@ -62,7 +64,9 @@ test: $(EXE)
 	ml/_build/default/testeval.exe
 
 install-deps:
-	opam install --jobs=$(JOBS) $(OPAMPKGS)
+	opam install --jobs=$(JOBS) $(OPAMPKGS); \
+	opam pin add coq $(COQ_VERSION) -y
+
 
 dep-versions:
 	opam list -i ocaml $(OPAMPKGS) | grep -v \#
@@ -87,7 +91,7 @@ clean-dep:
 	rm -f .depend
 	rm -f `find . -name \*.v.d`
 
-distclean: clean clean-dep clean-doc
+distclean: clean clean-dep clean-doc clean-vellvm
 	rm -f Makefile.coq Makefile.coq.conf
 
 clean-doc:
@@ -137,10 +141,12 @@ moddep.svg: moddep.dot Makefile
 timing: .depend Makefile.coq
 	$(MAKECOQ) TIMING=1
 
-update-vellvm vellvm-update:
-	(cd lib/vellvm; git pull --recurse-submodules)
+vellvm:
+	make -j 1 -C lib/vellvm/src
+
+clean-vellvm:
+	rm -f `find lib/vellvm/ -name \*.vo`
 	make -C lib/vellvm/src clean
-	make -C lib/vellvm/src
 
 benchmark: timing
 	find .  -name "*.v.timing" -exec awk -F " " \

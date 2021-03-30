@@ -59,8 +59,6 @@ experiments/dywin.s
 /.*.tmp
 /test.ll
 /test.o
-/ml/libvellvm
-/lib/vellvm
 /lib/coq-switch
 /lib/metacoq
 .nra.cache

@@ -41,16 +41,15 @@ LLVM IR.
    - [[https://github.com/math-classes/math-classes][math-classes]]
    - [[https://github.com/MetaCoq/metacoq][Template Coq]]
    - [[http://flocq.gforge.inria.fr/][Flocq]]
-   - [[https://github.com/vellvm/vellvm][Vellvm]] (requires ~coq-ceres~, ~coq-ext-lib~, ~coq-paco~, and ~coq-flocq~) /(manual installation instructions below)/
+   - [[https://github.com/vellvm/vellvm][Vellvm]] (requires ~coq-ceres~, ~coq-ext-lib~, ~coq-paco~, and ~coq-flocq~) /(checked out and built as a submodule)/
    - [[https://opensource.janestreet.com/core/][Jane Street Core]]
-   - coq-libhyps
+   - [[https://github.com/Matafou/LibHyps][coq-libhyps]]
    - [[https://github.com/Karmaki/coq-dpdgraph][coq-dpdgraph]] /(optional)/
 
- To install all required dependenceis:
+To install all required dependenceis:
 
 #+BEGIN_SRC sh
      opam repo add coq-released https://coq.inria.fr/opam/released
-     opam pin add coq 8.12.2
      make -j 4 install-deps
 #+END_SRC
 
@@ -61,14 +60,10 @@ To install *optional* dependencies:
 #+END_SRC
 
 ** Bulding and Running 
-*** Install VELLVM dependency:
-
-    You need to manually check out /master/ branch of VELLVM, compile,
-    and symlink it as follows:
+*** Clone the repository with submodules:
 
 #+BEGIN_SRC sh
-     ln -s path_to_vellvm_checkout/vellvm helix/lib
-     ln -s path_to_vellvm_checkout/vellvm/src/ml/libvellvm helix/ml
+     git clone --recurse-submodules https://github.com/vzaliva/helix
 #+END_SRC
 
 *** Build:
@@ -89,6 +84,7 @@ To install *optional* dependencies:
     - [[http://www.crocodile.org/lord/vzaliva-CoqPL19.pdf][Reification of shallow-embedded DSLs in Coq with automated verification (CoqPL 2019)]]
     - [[http://www.crocodile.org/lord/vzaliva-fhpc2018.pdf][HELIX: A Case Study of a Formal Verification of High Performance Program Generation (FHPC 2018)]]
     - [[http://www.crocodile.org/lord/Formal_Verification_of_HCOL_Rewriting_FMCAD15.pdf][Formal Verification of HCOL Rewriting (FMCAD 2015)]]
+
 ** How to cite
    Recommended citation:
 
