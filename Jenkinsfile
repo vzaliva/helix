@@ -44,8 +44,9 @@ pipeline {
             steps {
                 script {
                     if (env.SKIP_CI != "true" && env.SKIP_BRANCH == "false") {
-			sh "eval $(opam config env)"
-                        sh "make -j 1 -C lib/vellvm/src"
+			sh '''eval $(opam config env)
+                              make -j 1 -C lib/vellvm/src
+                           '''
                     }
                 }
             }
@@ -55,8 +56,9 @@ pipeline {
             steps {
                 script {
                     if (env.SKIP_CI != "true" && env.SKIP_BRANCH == "false") {
-			sh "eval $(opam config env)"
-                        sh "make -j ${NJOBS}"
+			sh '''eval $(opam config env)
+                              make -j ${NJOBS}
+                           '''
                     }
                 }
             }
@@ -66,8 +68,9 @@ pipeline {
             steps {
                 script {
                     if (env.SKIP_CI != "true" && env.SKIP_BRANCH == "false") {
-			sh "eval $(opam config env)"
-                        sh "make test"
+			sh '''eval $(opam config env)
+                              make test
+                           '''
                     }
                 }
             }
