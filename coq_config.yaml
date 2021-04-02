@@ -1,0 +1,39 @@
+# This is a config file for `coq-config`.
+# https://github.com/vzaliva/coq-config
+
+opam:
+  switch: helix
+  compiler: 4.11.1+flambda
+
+repositories:
+  - name: coq-released
+    address: https://coq.inria.fr/opam/released
+
+dependencies:
+  - ocamlfind
+  - ocamlbuild
+  - camlp5
+  - coq-mathcomp-ssreflect
+  - coq-simple-io
+  - coq-color
+  - coq-ext-lib
+  - coq-math-classes
+  - coq-metacoq-template
+  - coq-switch
+  - ANSITerminal
+  - coq-flocq
+  - coq-paco
+  - coq-ceres
+  - coq-libhyps
+  - menhir
+  - core
+  - core_kernel
+  - dune
+  - qcheck
+  - coq.8.12.2
+
+#extra-deps:
+#  - git: https://github.com/vellvm/vellvm.git
+#    recurse-submodules: yes
+#    commit: 5a25d5b6a92aad2f572a336096c5bf98af9f2314
+#    path: lib/vellvm1
