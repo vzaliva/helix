@@ -1677,3 +1677,39 @@ Section RHCOL_to_FHCOL.
    *)
 
 End RHCOL_to_FHCOL.
+
+(*
+Section TopLevel.
+
+  Context `{CAPROPS: CarrierProperties}.
+
+
+  Variable dynwin_FHCOL: FSHOperator.
+  Hypothesis compile_to_FHCOL := RHCOLtoFHCOL.translate dynwin_RHCOL = inr dynwin_fhcol.
+
+  Definition dynwin_f:FSHCOLProgram := mkFSHCOLProgram
+                                         dynwin_i dynwin_o "dynwin" dynwin_FHCOL_globals
+                                         dynwin_FHCOL.
+
+  (* TODO: CarrierA instance for Reals *)
+
+  (* dynwin_orig ... dynwin_f *)
+  Theorem TopLevel:  forall (a: avector 3) {x},
+
+      dynwin_orig a x = y ->
+
+      evalDSHOperator
+        dynwin_σ (* TODO: with x *)
+        dynwin_memory (* TODO: with x, a *)
+        (op dynwin_f)
+        (estimateFuel (op dynwin_f)) = Some (inr mem) ->
+
+      memory_element dynwin_y_addr mem = vec_to_mem_block y.
+  Proof.
+    ...
+    ...
+    ...
+  Qed.
+
+End TopLevel.
+*)
