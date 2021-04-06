@@ -335,6 +335,8 @@ End HCOL_to_SigmaHCOL.
 (* --- SigmaHCOL -> final SigmaHCOL --- *)
 Section SigmaHCOL_rewriting.
 
+  Context `{CAPROPS: CarrierProperties}.
+
   (*
            This assumptions is required for reasoning about non-negativity and [abs].
            It is specific to [abs] and this we do not make it a global assumption
