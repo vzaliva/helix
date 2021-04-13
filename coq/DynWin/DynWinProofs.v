@@ -1678,38 +1678,106 @@ Section RHCOL_to_FHCOL.
 
 End RHCOL_to_FHCOL.
 
-(*
-Section TopLevel.
+Local Set Warnings "-ssr-search-moved".
 
+Section TopLevel.
+  (* Assumptions about abstract [CarrierType] *)
   Context `{CAPROPS: CarrierProperties}.
 
+  (* Assumptions for AHCOL to RHCOL mapping *)
+  Context `{CTT: AHCOLtoRHCOL.CTranslationOp}
+          `{CTP: @AHCOLtoRHCOL.CTranslationProps CTT}
+          `{NTT: AHCOLtoRHCOL.NTranslationOp}
+          `{NTP: @AHCOLtoRHCOL.NTranslationProps NTT}.
 
-  Variable dynwin_FHCOL: FSHOperator.
-  Hypothesis compile_to_FHCOL := RHCOLtoFHCOL.translate dynwin_RHCOL = inr dynwin_fhcol.
+  Parameter dynwin_f_σ: FHCOLEval.evalContext.
+  Parameter dynwin_f_memory: FHCOLEval.memory.
 
-  Definition dynwin_f:FSHCOLProgram := mkFSHCOLProgram
-                                         dynwin_i dynwin_o "dynwin" dynwin_FHCOL_globals
-                                         dynwin_FHCOL.
+  (* User-specified RHCOL/FHCOL relations *)
+  Parameter InMemRel: RHCOL.memory → FHCOL.memory -> Prop.
+  Parameter InSigmaRel: RHCOLEval.evalContext -> FHCOLEval.evalContext -> Prop.
+  Parameter OutMemRel: RHCOL.memory → FHCOL.memory -> Prop.
 
-  (* TODO: CarrierA instance for Reals *)
+  Theorem HCOL_to_FHCOL_Correctness (a: avector 3):
+    (* --- HCOL breakdown --- *)
+    dynwin_orig a = dynwin_HCOL a ->
 
-  (* dynwin_orig ... dynwin_f *)
-  Theorem TopLevel:  forall (a: avector 3) {x},
+    (* --- HCOL -> SigmaHCOL --- *)
 
-      dynwin_orig a x = y ->
+    (* Value correctness. *)
+    liftM_HOperator Monoid_RthetaFlags (dynwin_HCOL a) = dynwin_SHCOL a ->
 
-      evalDSHOperator
-        dynwin_σ (* TODO: with x *)
-        dynwin_memory (* TODO: with x, a *)
-        (op dynwin_f)
-        (estimateFuel (op dynwin_f)) = Some (inr mem) ->
+    (* Dense input *)
+    Same_set _ (in_index_set _ (dynwin_SHCOL a)) (Full_set (FinNat _)) ->
 
-      memory_element dynwin_y_addr mem = vec_to_mem_block y.
+    (* Dense output *)
+    Same_set _ (out_index_set _ (dynwin_SHCOL a)) (Full_set (FinNat _)) ->
+
+    (* Structural correctenss *)
+    SHOperator_Facts _ (dynwin_SHCOL a) ->
+
+    (* --- SHCOL Rewriting --- *)
+
+    (* Value correctness *)
+    dynwin_SHCOL a = dynwin_SHCOL1 a ->
+
+    (* Dense input *)
+    Same_set _ (in_index_set _ (dynwin_SHCOL1 a)) (Full_set (FinNat _)) ->
+
+    (* Dense output *)
+    Same_set _ (out_index_set _ (dynwin_SHCOL1 a)) (Full_set (FinNat _)) ->
+
+    (* Structural correctenss *)
+    SHOperator_Facts _ (dynwin_SHCOL1 a) ->
+
+    (* --- SHCOL to MSHCOL --- *)
+
+    SH_MSH_Operator_compat (dynwin_SHCOL1 a) (dynwin_MSHCOL1 a) ->
+
+    (* --- MHCOL to AHCOL --- *)
+
+    DSH_pure (dynwin_AHCOL) DSH_y_p ->
+
+    forall (x:avector dynwin_i),
+    (* AHCOL evaluation succeeds *)
+    exists amemory,
+      AHCOLEval.evalDSHOperator
+        [
+          (AHCOLEval.DSHPtrVal dynwin_a_addr 3,false)
+          ; (AHCOLEval.DSHPtrVal dynwin_y_addr dynwin_o,false)
+          ; (AHCOLEval.DSHPtrVal dynwin_x_addr dynwin_i,false)
+        ]
+        dynwin_AHCOL
+        (AHCOLEval.memory_set
+           (AHCOLEval.memory_set (AHCOLEval.memory_set AHCOLEval.memory_empty dynwin_a_addr (avector_to_mem_block a)) dynwin_x_addr (avector_to_mem_block x))
+           dynwin_y_addr AHCOLEval.mem_empty)
+
+        (AHCOLEval.estimateFuel dynwin_AHCOL) = Some (inr amemory) ->
+
+      (* AHCOL evaluation output value correct *)
+      AHCOLEval.memory_lookup amemory dynwin_y_addr = Some (avector_to_mem_block (dynwin_orig a x)) ->
+
+      (* --- ACHOL -> RHCOL ---  *)
+
+      (* Translation succeeds *)
+      exists dynwin_rhcol,
+        AHCOLtoRHCOL.translate dynwin_AHCOL ≡ inr dynwin_rhcol ->
+
+        (* Translation preserves syntax *)
+        AHCOLtoRHCOL.heq_DSHOperator dynwin_AHCOL dynwin_rhcol ->
+
+        (* TODO: translation value correctness *)
+
+        (* --- RCHOL -> FHCOL ---  *)
+        (* Translation succeeds *)
+        exists dynwin_fhcol,
+          RHCOLtoFHCOL.translate dynwin_rhcol ≡ inr dynwin_fhcol ->
+
+          (* Translation correctness *)
+          RHCOL_FHCOL_rel InMemRel InSigmaRel OutMemRel dynwin_rhcol dynwin_fhcol.
   Proof.
-    ...
-    ...
-    ...
-  Qed.
+  Admitted.
+
+
 
 End TopLevel.
-*)
