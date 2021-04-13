@@ -455,7 +455,7 @@ Module MDHCOLTypeTranslator
           heq_DSHOperator g g' ->
           heq_DSHOperator (L.DSHSeq f g) (L'.DSHSeq f' g').
 
-    Lemma translation_syntax_correctness:
+    Lemma translation_syntax_always_correct:
       forall x x', translate x ≡ inr x' ->
               heq_DSHOperator x x'.
     Proof.
@@ -586,37 +586,23 @@ Module MDHCOLTypeTranslator
           apply H2.
     Qed.
 
-    Lemma translation_semantics_correctness
-          (σ: LE.evalContext) (σ': LE'.evalContext)
-          (Eσ: heq_evalContext σ σ')
+    Definition translation_semantics_correctness
+               (op: L.DSHOperator)
+               (op': L'.DSHOperator)
+      := forall σ imem,
+        exists σ', heq_evalContext σ σ' ->
+              exists imem',
+                heq_memory imem imem' ->
+                forall omem omem',
+                  LE.evalDSHOperator σ op imem (LE.estimateFuel op) = Some (inr omem) ->
+                  LE'.evalDSHOperator σ' op' imem' (LE'.estimateFuel op') = Some (inr omem') ->
+                  heq_memory omem omem'.
 
-          (op: L.DSHOperator) (op': L'.DSHOperator)
-          (Eop: heq_DSHOperator op op')
-
-          (imem omem: L.memory) (imem' omem': L'.memory)
-          (Emem: heq_memory imem imem')
-          (fuel: nat):
-
-      LE.evalDSHOperator σ op imem fuel = Some (inr omem) ->
-      LE'.evalDSHOperator σ' op' imem' fuel = Some (inr omem') ->
-      heq_memory omem omem'.
+    Lemma translation_semantics_always_correct:
+      forall op op', translate op ≡ inr op' -> translation_semantics_correctness op op'.
     Proof.
-      intros H H'.
-      destruct fuel as [| fuel]; [inversion H |].
-      induction Eop; cbn in H, H'.
-      -
-        repeat some_inv.
-        repeat inl_inr_inv.
-        rewrite <-H, <-H'.
-        assumption.
-      -
-        repeat some_inv.
-        repeat break_match; try inl_inr.
-        repeat inl_inr_inv.
-        destruct p, p0.
-        repeat tuple_inversion.
-        subst.
-        rewrite <-H, <-H'.
+      unfold translation_semantics_correctness.
+      intros op op' T σ imem.
 
     Admitted.
 
