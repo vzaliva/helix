@@ -1741,17 +1741,18 @@ Section TopLevel.
     forall (x:avector dynwin_i),
     (* AHCOL evaluation succeeds *)
     exists amemory,
+      let a_σ := [
+            (AHCOLEval.DSHPtrVal dynwin_a_addr 3,false)
+            ; (AHCOLEval.DSHPtrVal dynwin_y_addr dynwin_o,false)
+            ; (AHCOLEval.DSHPtrVal dynwin_x_addr dynwin_i,false)
+          ] in
+      let a_imemory := (AHCOLEval.memory_set
+                          (AHCOLEval.memory_set (AHCOLEval.memory_set AHCOLEval.memory_empty dynwin_a_addr (avector_to_mem_block a)) dynwin_x_addr (avector_to_mem_block x))
+                          dynwin_y_addr AHCOLEval.mem_empty) in
       AHCOLEval.evalDSHOperator
-        [
-          (AHCOLEval.DSHPtrVal dynwin_a_addr 3,false)
-          ; (AHCOLEval.DSHPtrVal dynwin_y_addr dynwin_o,false)
-          ; (AHCOLEval.DSHPtrVal dynwin_x_addr dynwin_i,false)
-        ]
+        a_σ
         dynwin_AHCOL
-        (AHCOLEval.memory_set
-           (AHCOLEval.memory_set (AHCOLEval.memory_set AHCOLEval.memory_empty dynwin_a_addr (avector_to_mem_block a)) dynwin_x_addr (avector_to_mem_block x))
-           dynwin_y_addr AHCOLEval.mem_empty)
-
+        a_imemory
         (AHCOLEval.estimateFuel dynwin_AHCOL) = Some (inr amemory) ->
 
       (* AHCOL evaluation output value correct *)
@@ -1766,7 +1767,8 @@ Section TopLevel.
         (* Translation preserves syntax *)
         AHCOLtoRHCOL.heq_DSHOperator dynwin_AHCOL dynwin_rhcol ->
 
-        (* TODO: translation value correctness *)
+        (* Translation value correctness *)
+        AHCOLtoRHCOL.translation_semantics_correctness dynwin_AHCOL dynwin_rhcol ->
 
         (* --- RCHOL -> FHCOL ---  *)
         (* Translation succeeds *)
