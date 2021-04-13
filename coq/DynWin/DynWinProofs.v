@@ -1690,15 +1690,12 @@ Section TopLevel.
           `{NTT: AHCOLtoRHCOL.NTranslationOp}
           `{NTP: @AHCOLtoRHCOL.NTranslationProps NTT}.
 
-  Parameter dynwin_f_σ: FHCOLEval.evalContext.
-  Parameter dynwin_f_memory: FHCOLEval.memory.
-
   (* User-specified RHCOL/FHCOL relations *)
   Parameter InMemRel: RHCOL.memory → FHCOL.memory -> Prop.
   Parameter InSigmaRel: RHCOLEval.evalContext -> FHCOLEval.evalContext -> Prop.
   Parameter OutMemRel: RHCOL.memory → FHCOL.memory -> Prop.
 
-  Theorem HCOL_to_FHCOL_Correctness (a: avector 3):
+  Lemma HCOL_to_FHCOL_Chain (a: avector 3):
     (* --- HCOL breakdown --- *)
     dynwin_orig a = dynwin_HCOL a ->
 
@@ -1756,30 +1753,63 @@ Section TopLevel.
         (AHCOLEval.estimateFuel dynwin_AHCOL) = Some (inr amemory) ->
 
       (* AHCOL evaluation output value correct *)
-      AHCOLEval.memory_lookup amemory dynwin_y_addr = Some (avector_to_mem_block (dynwin_orig a x)) ->
+      exists my, mem_op (dynwin_MSHCOL1 a) (avector_to_mem_block x) = Some my ->
+            AHCOLEval.memory_lookup amemory dynwin_y_addr = Some my ->
 
-      (* --- ACHOL -> RHCOL ---  *)
+            (* --- ACHOL -> RHCOL ---  *)
 
-      (* Translation succeeds *)
-      exists dynwin_rhcol,
-        AHCOLtoRHCOL.translate dynwin_AHCOL ≡ inr dynwin_rhcol ->
+            (* Translation succeeds *)
+            exists dynwin_rhcol,
+              AHCOLtoRHCOL.translate dynwin_AHCOL ≡ inr dynwin_rhcol ->
 
-        (* Translation preserves syntax *)
-        AHCOLtoRHCOL.heq_DSHOperator dynwin_AHCOL dynwin_rhcol ->
+              (* Translation preserves syntax *)
+              AHCOLtoRHCOL.heq_DSHOperator dynwin_AHCOL dynwin_rhcol ->
 
-        (* Translation value correctness *)
-        AHCOLtoRHCOL.translation_semantics_correctness dynwin_AHCOL dynwin_rhcol ->
+              (* Translation value correctness *)
+              AHCOLtoRHCOL.translation_semantics_correctness dynwin_AHCOL dynwin_rhcol ->
 
-        (* --- RCHOL -> FHCOL ---  *)
-        (* Translation succeeds *)
-        exists dynwin_fhcol,
-          RHCOLtoFHCOL.translate dynwin_rhcol ≡ inr dynwin_fhcol ->
+              (* --- RCHOL -> FHCOL ---  *)
+              (* Translation succeeds *)
+              exists dynwin_fhcol,
+                RHCOLtoFHCOL.translate dynwin_rhcol ≡ inr dynwin_fhcol ->
 
-          (* Translation correctness *)
-          RHCOL_FHCOL_rel InMemRel InSigmaRel OutMemRel dynwin_rhcol dynwin_fhcol.
+                (* Translation correctness *)
+                RHCOL_FHCOL_rel InMemRel InSigmaRel OutMemRel dynwin_rhcol dynwin_fhcol.
   Proof.
   Admitted.
 
+  (*
+  Definition dynwin_FHCOL :=
+    match AHCOLtoRHCOL.translate dynwin_AHCOL with
+    | inr dynwin_rhcol => RHCOLtoFHCOL.translate dynwin_rhcol
+    | inl errs => inl errs
+    end.
+
+
+  (* TODO: use translateCTypeValue to translate DummyEnv replacing Parameter with Variable *)
+
+  Definition f_imemory (a: avector 3) (x: avector dynwin_i) : err memory. Admitted.
+
+  Definition f_σ: FHCOLEval.evalContext. Admitted.
+
+
+  Definition AHCOL_FHCOL_rel :=
+          AHCOL_RHCOL_rel InMemRel InSigmaRel OutMemRel dynwin_rhcol dynwin_fhcol /\
+          RHCOL_FHCOL_rel InMemRel InSigmaRel OutMemRel dynwin_rhcol dynwin_fhcol.
+
+  Theorem HCOL_to_FHCOL_Correctness (a: avector 3):
+    forall x y fhcol dynwin_imem omem,
+      dynwin_orig a x = y ->
+      dynwin_FHCOL ≡ inr fhcol ->
+      f_imemory a x ≡ inr dynwin_imem ->
+      FHCOLEval.evalDSHOperator f_σ fhcol dynwin_imem (FHCOLEval.estimateFuel fhcol) = Some (inr omem).
+    lookup omem
+          AHCOL_FHCOL_rel a x y y_block
+
+
+          TODO: CarrierA typeclass
+          Nat -> Nat translation instantiation
+  *)
 
 
 End TopLevel.
