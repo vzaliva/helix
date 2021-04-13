@@ -3997,9 +3997,9 @@ Section WithCarrierA.
                                           (@Vfold_left_rev
                                              (svector Monoid_RthetaFlags o)
                                              (svector Monoid_RthetaFlags o)
-                                             (@Vec2Union Monoid_RthetaFlags o dot) n
+                                             (@Vec2Union _ Monoid_RthetaFlags o dot) n
                                              (Vconst
-                                                (@mkStruct Monoid_RthetaFlags svalue) o)
+                                                (@mkStruct _ Monoid_RthetaFlags svalue) o)
                                              v))
                    (@out_index_set _ _ i o svalue f0).
       Proof.

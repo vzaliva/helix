@@ -894,6 +894,8 @@ Section SHCOL_to_MSHCOL.
     -
       apply Set_Obligation_1.
     -
+      typeclasses eauto.
+    -
       apply Set_Obligation_1.
     -
       apply Set_Obligation_1.
@@ -906,6 +908,7 @@ Section MSHCOL_to_AHCOL.
   Import AHCOLEval.
 
   Opaque CarrierAz zero CarrierA1 one.
+
   MetaCoq Run (reifyMSHCOL dynwin_MSHCOL1 [(BasicAst.MPfile ["DynWinProofs"; "DynWin"; "Helix"], "dynwin_MSHCOL1")] "dynwin_AHCOL" "dynwin_AHCOL_globals").
   Transparent CarrierAz zero CarrierA1 one.
 
@@ -1681,8 +1684,6 @@ End RHCOL_to_FHCOL.
 Local Set Warnings "-ssr-search-moved".
 
 Section TopLevel.
-  (* Assumptions about abstract [CarrierType] *)
-  Context `{CAPROPS: CarrierProperties}.
 
   (* Assumptions for AHCOL to RHCOL mapping *)
   Context `{CTT: AHCOLtoRHCOL.CTranslationOp}

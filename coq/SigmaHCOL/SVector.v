@@ -30,13 +30,13 @@ Notation rvector n := (vector Rtheta n) (only parsing).
 (* Vector using RStheta (safe) *)
 Notation rsvector n := (vector RStheta n) (only parsing).
 
-Definition rvector2rsvector := Vmap Rtheta2RStheta.
-Definition rsvector2rvector := Vmap RStheta2Rtheta.
-
 Section WithCarrierA.
 
   Context `{CAPROPS: CarrierProperties}.
   Add Ring RingA: (stdlib_ring_theory CarrierA).
+
+  Definition rvector2rsvector := Vmap Rtheta2RStheta.
+  Definition rsvector2rvector := Vmap RStheta2Rtheta.
 
   Section SvectorBasics.
     Variable fm:Monoid RthetaFlags.
@@ -75,7 +75,7 @@ Section WithCarrierA.
 
     (* "dense" vector means that it does not contain "structural" values *)
     Definition svector_is_dense {n} (v:svector n) : Prop :=
-      Vforall (@Is_Val fm)  v.
+      Vforall (@Is_Val _ fm)  v.
 
     Lemma Vnth_sparsify:
       ∀ (n i : nat) (ip : i < n) (v : avector n),

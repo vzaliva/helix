@@ -1242,7 +1242,7 @@ Section WithCarrierA.
               {i o: nat}
               (f: index_map i o)
               {f_inj: index_map_injective f}
-        := mkSHOperator i o svalue (@Scatter_impl _ _ _ f f_inj svalue) _
+        := mkSHOperator i o svalue (@Scatter_impl _ _ _ _ f f_inj svalue) _
                         (Full_set _) (* Scatter always reads evertying *)
                         (index_map_range_set f) (* Write pattern is governed by index function *) _.
       Next Obligation.
@@ -1463,7 +1463,7 @@ Section WithCarrierA.
             (x: svector fm i)
             (k:nat)
             (kc:k<o):
-        ¬ in_range f k -> (Is_ValX idv) (Vnth (@Scatter_impl _ _ _ f f_inj idv x) kc).
+        ¬ in_range f k -> (Is_ValX idv) (Vnth (@Scatter_impl _ _ _ _ f f_inj idv x) kc).
       Proof.
         intros R.
 
@@ -1485,7 +1485,7 @@ Section WithCarrierA.
             (x: svector fm i)
             (k:nat)
             (kc:k<o):
-        idv ≠ evalWriter (Vnth (@Scatter_impl _  _ _ f f_inj idv x) kc) -> in_range f k.
+        idv ≠ evalWriter (Vnth (@Scatter_impl _  _ _ _ f f_inj idv x) kc) -> in_range f k.
       Proof.
         intros H.
 
@@ -1530,9 +1530,9 @@ Section WithCarrierA.
         unfold compose.
         generalize
           (@op ki ko _ (kernel (mkFinNat jc0))
-               (@Gather_impl fm i ki (g (mkFinNat jc0)) x)),
+               (@Gather_impl _ fm i ki (g (mkFinNat jc0)) x)),
         (@op ki ko _ (kernel (mkFinNat jc1))
-             (@Gather_impl fm i ki (g (mkFinNat jc1)) x)).
+             (@Gather_impl _ fm i ki (g (mkFinNat jc1)) x)).
         intros x0 x1.
 
         clear kernel g i x ki. rename ko into i.
@@ -1941,7 +1941,7 @@ Section WithCarrierA.
           (idv: CarrierA)
           (x: svector fm i)
           (n: nat) (ip : n < i):
-      Vnth x ip ≡ VnthIndexMapped (@Scatter_impl _ _ _ f f_inj idv x) f n ip.
+      Vnth x ip ≡ VnthIndexMapped (@Scatter_impl _ _ _ _ f f_inj idv x) f n ip.
     Proof.
       unfold VnthIndexMapped.
       unfold Scatter_impl.
@@ -1964,7 +1964,7 @@ Section WithCarrierA.
           {f_inj : index_map_injective f}
           (idv: CarrierA):
       Vforall (fun p => (Vin p x) \/ (p ≡ mkStruct idv))
-              (@Scatter_impl fm  _ _ f f_inj idv x).
+              (@Scatter_impl _ fm  _ _ f f_inj idv x).
     Proof.
       apply Vforall_nth_intro.
       intros j jp.
@@ -1983,7 +1983,7 @@ Section WithCarrierA.
           (f_inj : index_map_injective f)
           (idv : CarrierA)
           (h : Rtheta' fm):
-      @Scatter_impl fm _ _ f f_inj idv [h] ≡ [h].
+      @Scatter_impl _ fm _ _ f f_inj idv [h] ≡ [h].
     Proof.
       unfold Scatter_impl.
       rewrite Vbuild_1.
@@ -2016,7 +2016,7 @@ Section WithCarrierA.
           {f_inj: index_map_injective f}
           (idv: CarrierA)
           (x: svector fm 1):
-      @Scatter_impl fm _ _ f f_inj idv x
+      @Scatter_impl _ fm _ _ f f_inj idv x
       ≡
       match Nat.eq_dec (⟦ f ⟧ 0) 0 with
       | in_left =>
@@ -2027,7 +2027,7 @@ Section WithCarrierA.
         let f' := (shrink_index_map_1_range f fc) in
         Vcons
           (mkStruct idv)
-          (@Scatter_impl fm _ _ f' (shrink_index_map_1_range_inj f fc f_inj) idv x)
+          (@Scatter_impl _ fm _ _ f' (shrink_index_map_1_range_inj f fc f_inj) idv x)
       end.
     Proof.
       break_match.
@@ -2170,7 +2170,7 @@ Section WithCarrierA.
           (f: { i | i<n} -> CarrierA -> CarrierA)
           `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
       SHPointwise fm f (svalue:=svalue) =
-      liftM_HOperator fm (@HPointwise n f).
+      liftM_HOperator fm (@HPointwise _ n f).
     Proof.
       apply ext_equiv_applied_equiv.
       - apply SM_op_SHOperator.
@@ -2197,7 +2197,7 @@ Section WithCarrierA.
           {jc1:j<o+o}
           {jc2: (j+o)<o+o}
       :
-        Vnth (@SHBinOp_impl fm o f v) jc ≡ liftM2 (f (mkFinNat jc)) (Vnth v jc1) (Vnth v jc2).
+        Vnth (@SHBinOp_impl _ fm o f v) jc ≡ liftM2 (f (mkFinNat jc)) (Vnth v jc1) (Vnth v jc2).
     Proof.
       unfold SHBinOp_impl, vector2pair.
       break_let.
@@ -2896,6 +2896,7 @@ Section WithCarrierA.
         compute.
         tauto.
       +
+        unfold Rtheta.
         rewrite UnionFold_cons.
         apply UnionCollisionFree.
         * apply IHv.
@@ -2927,6 +2928,7 @@ Section WithCarrierA.
         compute.
         tauto.
       +
+        unfold Rtheta.
         rewrite UnionFold_cons.
         unfold not.
         intros H.
@@ -2951,6 +2953,7 @@ Section WithCarrierA.
       dependent induction v.
       - inversion ic.
       -
+        unfold Rtheta.
         rewrite UnionFold_cons.
         apply UnionCollisionFree.
         +
@@ -3032,6 +3035,7 @@ Section WithCarrierA.
         simpl.
         apply Not_Collision_mkStruct.
       -
+        unfold RStheta.
         rewrite UnionFold_cons.
         apply UnionCollisionFree_Safe.
         +

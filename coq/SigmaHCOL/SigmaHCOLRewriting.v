@@ -184,7 +184,7 @@ Section WithCarrierA.
 
       assert(jc1: j < o + o) by lia.
       assert(jc2: j + o < o + o) by lia.
-      setoid_rewrite SHBinOp_impl_nth with (jc1:=jc1) (jc2:=jc2).
+      setoid_rewrite SHBinOp_impl_nth with (jc3:=jc1) (jc4:=jc2).
 
       rewrite 2!Vnth_map.
       f_equiv.
@@ -354,8 +354,8 @@ Section WithCarrierA.
             {f_inj: index_map_injective f}
             {g_inj: index_map_injective g}
             (idv: CarrierA):
-        @Scatter_impl fm _ _ g g_inj idv ∘ @Scatter_impl fm _ _ f f_inj idv
-        = @Scatter_impl fm _ _ (index_map_compose g f) (index_map_compose_injective g f g_inj f_inj) idv.
+        @Scatter_impl _ fm _ _ g g_inj idv ∘ @Scatter_impl _ fm _ _ f f_inj idv
+        = @Scatter_impl _ fm _ _ (index_map_compose g f) (index_map_compose_injective g f g_inj f_inj) idv.
       Proof.
         apply ext_equiv_applied_equiv.
         -
@@ -753,7 +753,7 @@ Section WithCarrierA.
 
         assert(jc1: j < o + o) by lia.
         assert(jc2: j + o < o + o) by lia.
-        setoid_rewrite SHBinOp_impl_nth with (jc1:=jc1) (jc2:=jc2).
+        setoid_rewrite SHBinOp_impl_nth with (jc3:=jc1) (jc4:=jc2).
 
         rewrite 2!Vnth_map.
         f_equiv.
@@ -822,7 +822,7 @@ Section WithCarrierA.
             (f: FinNat o -> CarrierA -> CarrierA -> CarrierA)
             `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
         :
-          SafeCast (@SHBinOp CADEFS CAPROPS _ svalue o f pF) = @liftM_HOperator _ _ Monoid_RthetaFlags (o+o) o svalue (@HBinOp o f) _ .
+          SafeCast (@SHBinOp CADEFS CAPROPS _ svalue o f pF) = @liftM_HOperator _ _ Monoid_RthetaFlags (o+o) o svalue (@HBinOp _ o f) _ .
       Proof.
         apply ext_equiv_applied_equiv.
         -
@@ -851,15 +851,15 @@ Section WithCarrierA.
 
           assert(jc1: j<o+o) by lia.
           assert(jc2: j+o<o+o) by lia.
+          unfold RStheta.
           rewrite SHBinOp_impl_nth with (fm:=Monoid_RthetaSafeFlags)
-                                        (jc1:=jc1) (jc2:=jc2).
-
+                                        (jc3:=jc1) (jc4:=jc2).
 
           unfold liftM_HOperator_impl.
           unfold compose.
           unfold sparsify.
           repeat rewrite Vnth_map.
-          rewrite (@HBinOp_nth o f _ j jc jc1 jc2).
+          rewrite (@HBinOp_nth _ o f _ j jc jc1 jc2).
           unfold densify; rewrite 2!Vnth_map.
 
           rewrite <- evalWriter_Rtheta_liftM2 by apply fml.
@@ -887,15 +887,15 @@ Section WithCarrierA.
             (SumUnion Monoid_RthetaFlags
                       (Vbuild
                          (λ (j : nat) (jc : j < n),
-                          @Scatter_impl Monoid_RthetaFlags 1 _
+                          @Scatter_impl _ Monoid_RthetaFlags 1 _
                                         (h_index_map j 1 (range_bound:=ScatH_1_to_n_range_bound j n 1 jc))
                                         (@index_map_family_member_injective 1 n n
                                                                             (fun j0 => @h_index_map 1 n (proj1_sig j0) 1
                                                                                                  (ScatH_1_to_n_range_bound (proj1_sig j0) n 1 (proj2_sig j0))) (@h_j_1_family_injective n) (mkFinNat jc)) zero
-                                        (SafeCast' (@SHBinOp_impl Monoid_RthetaSafeFlags 1 (Fin1SwapIndex2 (mkFinNat jc) f))
+                                        (SafeCast' (@SHBinOp_impl _ Monoid_RthetaSafeFlags 1 (Fin1SwapIndex2 (mkFinNat jc) f))
                                                    (Gather_impl (@h_index_map (1+1) (n+n) j n (GathH_jn_domain_bound j n jc)) x)))
             )) kp
-          = Vnth ((@SHBinOp_impl _ n f) x) kp.
+          = Vnth ((@SHBinOp_impl _ _ n f) x) kp.
       Proof.
         intros n x f f_mor k kp.
 
@@ -955,6 +955,7 @@ Section WithCarrierA.
              unfold SafeCast', rsvector2rvector, rvector2rsvector, compose.
              rewrite Vnth_map.
 
+             unfold RStheta.
              unshelve erewrite SHBinOp_impl_nth with (fm:=Monoid_RthetaSafeFlags).
              crush.
              destruct (Nat.eq_dec (k + 0) k).
@@ -972,6 +973,7 @@ Section WithCarrierA.
              crush.
 
 
+             unfold Rtheta.
              rewrite 2!Gather_impl_spec with (fm:=Monoid_RthetaFlags).
              unfold VnthIndexMapped.
 
@@ -1152,17 +1154,17 @@ Section WithCarrierA.
           tuple_inversion.
           symmetry.
 
-          assert(LS: (@Scatter_impl fm o1 (Init.Nat.add o1 o2)
+          assert(LS: (@Scatter_impl _ fm o1 (Init.Nat.add o1 o2)
                                     (@h_index_map o1 (Init.Nat.add o1 o2) O (S O) (h_bound_first_half o1 o2))
                                     (@h_index_map_is_injective o1 (Init.Nat.add o1 o2) O
                                                                (S O) (h_bound_first_half o1 o2) (@ScatH_stride1_constr o1 (S (S O))))
                                     zero
-                                    (@liftM_HOperator_impl fm i1 o1 f
-                                                           (@Gather_impl fm (Init.Nat.add i1 i2) i1
+                                    (@liftM_HOperator_impl _ fm i1 o1 f
+                                                           (@Gather_impl _ fm (Init.Nat.add i1 i2) i1
                                                                          (@h_index_map i1 (Init.Nat.add i1 i2) O (S O) (h_bound_first_half i1 i2))
                                                                          x))) = Vapp (sparsify fm (f x0)) (szero_svector fm o2)).
           {
-            setoid_replace (@Gather_impl fm (Init.Nat.add i1 i2) i1
+            setoid_replace (@Gather_impl _ fm (Init.Nat.add i1 i2) i1
                                          (@h_index_map i1 (Init.Nat.add i1 i2) O (S O) (h_bound_first_half i1 i2))
                                          x) with (sparsify fm x0).
             -
@@ -1258,17 +1260,17 @@ Section WithCarrierA.
               apply le_unique.
           }
 
-          assert(RS: (@Scatter_impl fm o2 (Init.Nat.add o1 o2)
+          assert(RS: (@Scatter_impl _ fm o2 (Init.Nat.add o1 o2)
                                     (@h_index_map o2 (Init.Nat.add o1 o2) o1 (S O) (h_bound_second_half o1 o2))
                                     (@h_index_map_is_injective o2 (Init.Nat.add o1 o2) o1
                                                                (S O) (h_bound_second_half o1 o2) (@ScatH_stride1_constr o2 (S (S O))))
                                     zero
-                                    (@liftM_HOperator_impl fm i2 o2 g
-                                                           (@Gather_impl fm (Init.Nat.add i1 i2) i2
+                                    (@liftM_HOperator_impl _ fm i2 o2 g
+                                                           (@Gather_impl _ fm (Init.Nat.add i1 i2) i2
                                                                          (@h_index_map i2 (Init.Nat.add i1 i2) i1 (S O)
                                                                                        (h_bound_second_half i1 i2)) x))) = Vapp (szero_svector fm o1) (sparsify fm (g x1))).
           {
-            setoid_replace (@Gather_impl fm (Init.Nat.add i1 i2) i2
+            setoid_replace (@Gather_impl _ fm (Init.Nat.add i1 i2) i2
                                          (@h_index_map i2 (Init.Nat.add i1 i2) i1 (S O)
                                                        (h_bound_second_half i1 i2)) x) with (sparsify fm x1).
             -
@@ -1493,7 +1495,7 @@ Section WithCarrierA.
 
             assert(H: UnionFold _ plus zero vr = mkSZero).
             {
-              assert(H: Vbuild (λ (i0 : nat) (ic : i0 < n), Vnth (@SHPointwise_impl Monoid_RthetaFlags _ pf (op Monoid_RthetaFlags (op_family (mkFinNat ic)) x)) jc) =
+              assert(H: Vbuild (λ (i0 : nat) (ic : i0 < n), Vnth (@SHPointwise_impl _ Monoid_RthetaFlags _ pf (op Monoid_RthetaFlags (op_family (mkFinNat ic)) x)) jc) =
                         Vbuild (λ (i0 : nat) (ic : i0 < n), mkValue (pf (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth (op Monoid_RthetaFlags (op_family (mkFinNat ic)) x) jc))))).
               {
                 vec_index_equiv k kc.
@@ -1548,7 +1550,7 @@ Section WithCarrierA.
                   crush.
               }
               rewrite_clear H.
-              fold (@UnionFold Monoid_RthetaFlags n plus zero (szero_svector _ n)).
+              fold (@UnionFold _ Monoid_RthetaFlags n plus zero (szero_svector _ n)).
               apply UnionFold_zero_structs; try apply MonoidLaws_RthetaFlags.
               apply szero_svector_all_zeros.
             }
@@ -3135,12 +3137,12 @@ Section WithCarrierA.
               {f_mor: Proper ((=) ==> (=) ==> (=)) f}
         :
 
-          (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f uf_zero))
+          (liftM_HOperator Monoid_RthetaFlags (@HReduction _ _ f uf_zero))
             ⊚ (@IUnion CADEFS CAPROPS uf_zero i o n u _ u_scompat op_family)
           =
           SafeCast (@IReduction _ _ _ _ _ _ f f_mor _
                                 (UnSafeFamilyCast
-                                   (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f uf_zero)) op_family))).
+                                   (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ _ f uf_zero)) op_family))).
       Proof.
         unfold SHOperatorFamilyCompose, SHCompose.
         unfold equiv, SHOperator_equiv, SHCompose; simpl.
@@ -3968,12 +3970,12 @@ Section WithCarrierA.
               (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family)
               (Upoz: Apply_Family_Vforall_P _ Is_NonNegative op_family)
         :
-          (liftM_HOperator Monoid_RthetaFlags (@HReduction _ max zero))
+          (liftM_HOperator Monoid_RthetaFlags (@HReduction _ _ max zero))
             ⊚ (ISumUnion op_family)
           =
           SafeCast (IReduction max
                                (UnSafeFamilyCast
-                                  (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ max zero)) op_family))).
+                                  (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ _ max zero)) op_family))).
       Proof.
         unfold ISumUnion.
         eapply rewrite_Reduction_IReduction; auto;
@@ -4020,8 +4022,8 @@ and `ISumReduction_PointWise` *)
             (v : svector fm i)
             (f : index_map i o)
             (f_inj : index_map_injective f):
-        SHPointwise_impl (IgnoreIndex pf) (@Scatter_impl fm _ _ f f_inj zero v) =
-        @Scatter_impl fm _ _ f f_inj zero (SHPointwise_impl (IgnoreIndex pf) v).
+        SHPointwise_impl (IgnoreIndex pf) (@Scatter_impl _ fm _ _ f f_inj zero v) =
+        @Scatter_impl _ fm _ _ f f_inj zero (SHPointwise_impl (IgnoreIndex pf) v).
       Proof.
         vec_index_equiv j jc.
         rewrite SHPointwise_impl_nth.
@@ -4042,7 +4044,7 @@ and `ISumReduction_PointWise` *)
           reflexivity.
         -
           (* `j` in sparse position *)
-          remember (@Scatter_impl fm _ _ f f_inj zero v) as s0.
+          remember (@Scatter_impl _ fm _ _ f f_inj zero v) as s0.
           assert(VZ0: Is_ValZero (Vnth s0 jc)).
           {
             subst s0.
@@ -4057,7 +4059,7 @@ and `ISumReduction_PointWise` *)
           }
 
           rewrite pfzn.
-          remember (@Scatter_impl fm _ _ f _ zero (SHPointwise_impl (IgnoreIndex pf) v)) as s1.
+          remember (@Scatter_impl _ fm _ _ f _ zero (SHPointwise_impl (IgnoreIndex pf) v)) as s1.
           assert(VZ1: Is_ValZero (Vnth s1 jc)).
           {
             subst s1.
@@ -4245,7 +4247,7 @@ and `ISumReduction_PointWise` *)
               intros i ip.
 
               assert(H: Vforall (fun p => (Vin p y) \/ (p ≡ mkStruct mzero))
-                                (@Scatter_impl fm _ _ (shrink_index_map_1_range f n0)
+                                (@Scatter_impl _ fm _ _ (shrink_index_map_1_range f n0)
                                                (shrink_index_map_1_range_inj f n0 f_inj)
                                                mzero y)) by apply Scatter_impl_is_almost_endomorphism.
               apply Vforall_nth with (ip:=ip) in H.
@@ -4278,7 +4280,7 @@ and `ISumReduction_PointWise` *)
           =
           F.
       Proof.
-        replace (@Is_NonNegative _ fm) with (@liftRthetaP fm NN) in FP by auto.
+        replace (@Is_NonNegative _ fm) with (@liftRthetaP _ fm NN) in FP by auto.
         apply (rewrite_Reduction_ScatHUnion CommutativeRMonoid_max_NN F f f_inj FP).
       Qed.
 
@@ -4355,7 +4357,7 @@ and `ISumReduction_PointWise` *)
 
         assert(jc1: j<n+n) by lia.
         assert(jc2: (j+n) < (n+n)) by lia.
-        setoid_rewrite SHBinOp_impl_nth with (jc1:=jc1) (jc2:=jc2).
+        setoid_rewrite SHBinOp_impl_nth with (jc3:=jc1) (jc4:=jc2).
         unfold Rtheta'_equiv.
         rewrite evalWriter_Rtheta_liftM.
         rewrite 2!evalWriter_Rtheta_liftM2.
@@ -4634,7 +4636,7 @@ and `ISumReduction_PointWise` *)
                                                   (@WriterMonad.Monad_writerT RthetaFlags Monoid_RthetaFlags
                                                                               IdentityMonad.ident IdentityMonad.Monad_ident) CarrierA CarrierA
                                                   CarrierA f)
-                                   (@mkStruct Monoid_RthetaFlags z).
+                                   (@mkStruct _ Monoid_RthetaFlags z).
       Proof.
         repeat split; try typeclasses eauto.
         -

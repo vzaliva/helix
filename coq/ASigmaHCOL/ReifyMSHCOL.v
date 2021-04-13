@@ -50,10 +50,16 @@ Definition toDSHType (t: term): TemplateMonad DSHType :=
          [tInd
             {| inductive_mind := (MPfile ["Datatypes"; "Init"; "Coq"], "nat"); inductive_ind := 0 |} _ ; _])
     => tmReturn DSHnat (* `FinNat` is treated as `nat` *)
-  | tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierA") _ => tmReturn DSHCType
+  | (Ast.tApp
+             (Ast.tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierA") [])
+             [Ast.tConst (MPdot (MPfile ["CarrierAasCT"; "MSigmaHCOL"; "Helix"])
+                                "CarrierAasCT", "CADEFS") []]) => tmReturn DSHCType
   | tApp
       (tInd {| inductive_mind := (MPfile ["VectorDef"; "Vectors"; "Coq"], "t"); inductive_ind := 0 |} _)
-      [tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierA") _ ; nat_term] =>
+      [(Ast.tApp
+      (Ast.tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierA") [])
+      [Ast.tConst (MPdot (MPfile ["CarrierAasCT"; "MSigmaHCOL"; "Helix"])
+                         "CarrierAasCT", "CADEFS") []]) ; nat_term] =>
     size <- tmUnquoteTyped nat nat_term ;;
     tmReturn (DSHPtr size) (* mapping vectors to memory blocks pointers *)
   | _ =>
@@ -110,12 +116,18 @@ Definition compileMExpr (res:var_resolver) (a_e:term): TemplateMonad (MExpr):=
 Fixpoint compileAExpr (res:var_resolver) (a_e:term): TemplateMonad AExpr :=
   match a_e with
   | tApp (tConst (MPfile ["canonical_names"; "interfaces"; "MathClasses"], "abs") [])
-         [tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierA") [];
+         [(Ast.tApp
+             (Ast.tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierA") [])
+             [Ast.tConst (MPdot (MPfile ["CarrierAasCT"; "MSigmaHCOL"; "Helix"])
+                                "CarrierAasCT", "CADEFS") []]);
          _; _; _; a_a] =>
     d_a <- compileAExpr res a_a ;;
         tmReturn (AAbs d_a)
   | tApp (tConst (MPfile ["canonical_names"; "interfaces"; "MathClasses"], "abs") [])
-         [tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierA") [];
+         [(Ast.tApp
+             (Ast.tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierA") [])
+             [Ast.tConst (MPdot (MPfile ["CarrierAasCT"; "MSigmaHCOL"; "Helix"])
+                                "CarrierAasCT", "CADEFS") []]);
          _; _; _; _; _; a_a] =>
     d_a <- compileAExpr res a_a ;;
         tmReturn (AAbs d_a)
@@ -132,7 +144,10 @@ Fixpoint compileAExpr (res:var_resolver) (a_e:term): TemplateMonad AExpr :=
         d_b <- compileAExpr res a_b ;;
         tmReturn (AMult d_a d_b)
   | tApp (tConst (MPfile ["VecUtil"; "Vector"; "Util"; "CoLoR"], "Vnth") [])
-         [tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierA") [] ; _ ; a_v ; a_i ; _] =>
+         [(Ast.tApp
+             (Ast.tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierA") [])
+             [Ast.tConst (MPdot (MPfile ["CarrierAasCT"; "MSigmaHCOL"; "Helix"])
+                                "CarrierAasCT", "CADEFS") []]) ; _ ; a_v ; a_i ; _] =>
       d_v <- compileMExpr res a_v ;;
       d_i <- compileNExpr res a_i ;;
       tmReturn (ANth d_v d_i)
@@ -140,6 +155,7 @@ Fixpoint compileAExpr (res:var_resolver) (a_e:term): TemplateMonad AExpr :=
     tmReturn (AVar (res i))
   | _ => tmFail ("Unsupported AExpr " ++ (string_of_term a_e))
   end.
+
 
 Definition compileDSHUnCarrierA (res:var_resolver) (a_f:term): TemplateMonad AExpr :=
   match a_f with
@@ -159,7 +175,10 @@ Definition compileDSHIUnCarrierA (res:var_resolver) (a_f:term): TemplateMonad AE
 Definition compileDSHBinCarrierA (res:var_resolver) (a_f:term): TemplateMonad AExpr :=
   match a_f with
   | tApp (tConst (MPfile ["minmax"; "orders"; "MathClasses"], "max") [])
-         [tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierA") []; _; _ ] =>
+         [(Ast.tApp
+             (Ast.tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierA") [])
+             [Ast.tConst (MPdot (MPfile ["CarrierAasCT"; "MSigmaHCOL"; "Helix"])
+                                "CarrierAasCT", "CADEFS") []]); _; _ ] =>
     tmReturn (AMax (AVar 1) (AVar 0))
   | tApp (tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "Zless") []) [_] =>
     tmReturn (AZless (AVar 1) (AVar 0))

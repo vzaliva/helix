@@ -66,7 +66,7 @@ SUMUnion(
                            (range_bound := h_bound_first_half 1 1)
                            (snzord0 := @ScatH_stride1_constr 1 2)
                            ⊚
-                           (liftM_HOperator _ (@HReduction _ plus 0)  ⊚
+                           (liftM_HOperator _ (@HReduction _ _ plus 0)  ⊚
                                             SafeCast (SHBinOp _ (IgnoreIndex2 mult))
                                             ⊚
                                             liftM_HOperator _ (HPrepend a )
@@ -82,7 +82,7 @@ SUMUnion(
                             (range_bound := h_bound_second_half 1 1)
                             (snzord0 := @ScatH_stride1_constr 1 2))
                        ⊚
-                       (liftM_HOperator _ (@HReduction _ minmax.max 0))
+                       (liftM_HOperator _ (@HReduction _ _ minmax.max 0))
                        ⊚
                        (SHPointwise _ (IgnoreIndex abs))
                        ⊚

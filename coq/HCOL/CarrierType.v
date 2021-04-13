@@ -12,15 +12,14 @@ Require Import MathClasses.orders.minmax.
 
 Require Import Helix.Util.Misc.
 
-Parameter CarrierA : Type.
 
-Notation avector n := (vector CarrierA n) (only parsing).
 
 Set Implicit Arguments.
 Class CarrierDefs : Type :=
   {
+  CarrierA : Type
   (* Relations *)
-  CarrierAe    :> Equiv CarrierA
+  ; CarrierAe    :> Equiv CarrierA
   ; CarrierAle :> Le CarrierA
   ; CarrierAlt :> Lt CarrierA
   (* Decidability *)
@@ -47,6 +46,8 @@ Class CarrierProperties `{CADEFS: CarrierDefs}: Prop :=
   ; CarrierASSO :> @StrictSetoidOrder CarrierA CarrierAe CarrierAlt
   ; CarrierFPSO :> @FullPseudoOrder CarrierA CarrierAe (@strong_setoids.default_apart CarrierA CarrierAe) CarrierAle CarrierAlt
   }.
+
+Notation avector n := (vector CarrierA n) (only parsing).
 
 Section CarrierAExtraProperties.
   Context `{CAPROPS: @CarrierProperties CADEFS}.
