@@ -55,8 +55,6 @@ Require Import MathClasses.misc.decision.
 
 Section HCOL_Breakdown.
 
-  Context `{CAPROPS: CarrierProperties}.
-
   (* Initial HCOL breakdown proof *)
   Theorem DynWinHCOL:  forall (a: avector 3),
       dynwin_orig a = dynwin_HCOL a.
@@ -138,8 +136,6 @@ Ltac solve_facts :=
   end.
 
 Section HCOL_to_SigmaHCOL.
-
-  Context `{CAPROPS: CarrierProperties}.
 
   (* --- HCOL -> Sigma->HCOL --- *)
 
@@ -334,8 +330,6 @@ End HCOL_to_SigmaHCOL.
 
 (* --- SigmaHCOL -> final SigmaHCOL --- *)
 Section SigmaHCOL_rewriting.
-
-  Context `{CAPROPS: CarrierProperties}.
 
   (*
            This assumptions is required for reasoning about non-negativity and [abs].
