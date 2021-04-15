@@ -1514,7 +1514,7 @@ Section AHCOL_to_RHCOL.
             `{NTT: AHCOLtoRHCOL.NTranslationOp}
             `{NTP: @AHCOLtoRHCOL.NTranslationProps NTT}.
 
-  Definition dynwin_RHCOL := AHCOLtoRHCOL.translate dynwin_AHCOL.
+    Definition dynwin_RHCOL := AHCOLtoRHCOL.translate dynwin_AHCOL.
 
   (*
      For debug printing
