@@ -73,34 +73,10 @@ Module MDHCOLTypeTranslator
 
   Set Universe Polymorphism.
 
-  (* This should be defined as:
-
-   Definition NM_err_sequence
-           {A: Type}
-           (mv: NM.t (err A)): err (NM.t A)
-           := @NM_sequence A err Monad_err mv.
-
-   But it gives us a problem:
-
-   The term "Monad_err" has type "Monad err" while it is expected to have type
-   "Monad (fun B : Type => err B)".
-
-   *)
   Definition NM_err_sequence
              {A: Type}
              (mv: NM.t (err A)): err (NM.t A)
-    := NM.fold
-         (fun k v acc =>
-            match v with
-            | inr v' =>
-              match acc with
-              | inr acc' => inr (NM.add k v' acc')
-              | inl msg => inl msg
-              end
-            | inl msg => inl msg
-            end)
-         mv
-         (inr (@NM.empty A)).
+    := @NM_sequence A err Monad_err mv.
 
   (* This should use [NM_sequence] directly making [NM_err_sequence] unecessary, but we run into universe inconsistency *)
   Definition translate_mem_block (m:L.mem_block) : err L'.mem_block
@@ -346,6 +322,9 @@ Module MDHCOLTypeTranslator
                         t <- translateEvalContext xs ;;
                         ret ((d,f) :: t)
          end.
+
+    Definition translateMemory (m:L.memory): err L'.memory :=
+      NM_err_sequence (NM.map translate_mem_block m).
 
   End EvalTranslations.
 
