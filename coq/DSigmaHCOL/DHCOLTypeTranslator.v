@@ -1,6 +1,7 @@
 (* Translates DHCOL on CarrierA to FHCOL *)
 
 Require Import Coq.Strings.String.
+Require Import Coq.Lists.List.
 
 Require Import Helix.MSigmaHCOL.CType.
 Require Import Helix.DSigmaHCOL.NType.
@@ -325,12 +326,33 @@ Module MDHCOLTypeTranslator
     }.
 
 
+  Section EvalTranslations.
+    Context `{CTT: CTranslationOp} (* `{CTP: @CTranslationProps CTT} *)
+            `{NTT: NTranslationOp}. (* `{NTP: @NTranslationProps NTT}. *)
+
+    Import ListNotations.
+
+    Definition translateDSHVal (d:LE.DSHVal): err LE'.DSHVal
+      := match d with
+         | LE.DSHnatVal n => n' <- translateNTypeValue n ;; ret (LE'.DSHnatVal n')
+         | LE.DSHCTypeVal a => a' <- translateCTypeValue a ;; ret (LE'.DSHCTypeVal a')
+         | LE.DSHPtrVal a size => size' <- translateNTypeValue size ;; ret (LE'.DSHPtrVal a size')
+         end.
+
+    Fixpoint translateEvalContext (σ: LE.evalContext): err LE'.evalContext
+      := match σ with
+         | [] => inr []
+         | ((x,f)::xs) => d <- translateDSHVal x ;;
+                        t <- translateEvalContext xs ;;
+                        ret ((d,f) :: t)
+         end.
+
+  End EvalTranslations.
+
   Section Relations.
 
-    Context `{CTT: CTranslationOp}
-            `{CTP: @CTranslationProps CTT}
-            `{NTT: NTranslationOp}
-            `{NTP: @NTranslationProps NTT}.
+    Context `{CTT: CTranslationOp} `{CTP: @CTranslationProps CTT}
+            `{NTT: NTranslationOp} `{NTP: @NTranslationProps NTT}.
 
     (* Well-defined [heq_CType] preserves constnats *)
     Fact heq_CType_zero_one_wd:
