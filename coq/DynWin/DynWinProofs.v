@@ -52,6 +52,8 @@ Require Import Helix.FSigmaHCOL.Int64asNT.
 Require Import Coq.Bool.Sumbool.
 Require Import MathClasses.misc.decision.
 
+Require Import ExtLib.Structures.Monad.
+Import MonadNotation.
 
 Section HCOL_Breakdown.
 
@@ -977,8 +979,8 @@ Section MSHCOL_to_AHCOL.
     Local Open Scope list_scope. (* for ++ *)
 
     (* Could be automatically universally quantified on these *)
-    Parameter a:vector CarrierA 3.
-    Parameter x:mem_block.
+    Variable a:vector CarrierA 3.
+    Variable x:mem_block.
 
     Definition dynwin_a_addr:nat := 0.
     Definition dynwin_y_addr:nat := (nglobals+0).
@@ -1129,9 +1131,9 @@ Section MSHCOL_to_AHCOL.
         apply memory_subset_except_next_keys in H1.
         subst_max.
 
-        remember (memory_next_key (memory_set m0 (memory_next_key m0) mem_empty)) as x.
-        clear Heqx.
-        pose proof memory_set_memory_next_key_gt m1_plus (memory_set m1_plus x mb) mb x.
+        remember (memory_next_key (memory_set m0 (memory_next_key m0) mem_empty)) as xx.
+        clear Heqxx.
+        pose proof memory_set_memory_next_key_gt m1_plus (memory_set m1_plus xx mb) mb xx.
         autospecialize H; [reflexivity |].
         rewrite <-H4 in H.
         lia.
@@ -1175,9 +1177,9 @@ Section MSHCOL_to_AHCOL.
         apply memory_subset_except_next_keys in H1.
         subst_max.
 
-        remember (memory_next_key (memory_set m0 (memory_next_key m0) mem_empty)) as x.
-        clear Heqx.
-        pose proof memory_set_memory_next_key_gt m1_plus (memory_set m1_plus x mb) mb x.
+        remember (memory_next_key (memory_set m0 (memory_next_key m0) mem_empty)) as xx.
+        clear Heqxx.
+        pose proof memory_set_memory_next_key_gt m1_plus (memory_set m1_plus xx mb) mb xx.
         autospecialize H; [reflexivity |].
         rewrite H5 in H.
         lia.
@@ -1278,7 +1280,7 @@ Section MSHCOL_to_AHCOL.
           unfold assert_NT_lt, NatAsNT.MNatAsNT.to_nat in Heqs1.
           destruct t.
           cbn in Heqs1.
-          enough (E : x0 <=? 2 ≡ true) by (rewrite E in Heqs1; inversion Heqs1).
+          enough (E : x <=? 2 ≡ true) by (rewrite E in Heqs1; inversion Heqs1).
           clear - l.
           apply Nat.leb_le.
           lia.
@@ -1361,10 +1363,10 @@ Section MSHCOL_to_AHCOL.
           +
             cbn in *.
             clear H j jc.
-            intros x IN.
-            destruct x as [x X2].
+            intros xx IN.
+            destruct xx as [xx X2].
             cbn in *.
-            destruct x as [| x].
+            destruct xx as [| xx].
             *
               right.
               left.
@@ -1389,7 +1391,7 @@ Section MSHCOL_to_AHCOL.
             intros.
             cbn.
             constructor.
-            intros x C.
+            intros xx C.
             inversion C; subst.
             inversion H1; subst.
             inversion H2; subst.
@@ -1407,10 +1409,10 @@ Section MSHCOL_to_AHCOL.
         apply SHCompose_MFacts.
         -
           cbn.
-          intros x IN.
-          destruct x as [x X2].
+          intros xx IN.
+          destruct xx as [xx X2].
           cbn in *.
-          destruct x as [| x].
+          destruct xx as [| xx].
           *
             right.
             left.
@@ -1773,24 +1775,33 @@ Section TopLevel.
   Proof.
   Admitted.
 
-  (*
   Definition dynwin_FHCOL :=
-    match AHCOLtoRHCOL.translate dynwin_AHCOL with
-    | inr dynwin_rhcol => RHCOLtoFHCOL.translate dynwin_rhcol
-    | inl errs => inl errs
-    end.
+    dynwin_rhcol <- AHCOLtoRHCOL.translate dynwin_AHCOL ;;
+    RHCOLtoFHCOL.translate dynwin_rhcol.
 
+  (* Turning [AHCOLtoRHCOL.translateMemory] into relation *)
+  Definition AHCOL_RHCOL_mem_equiv: AHCOL.memory -> RHCOL.memory -> Prop :=
+    fun am rm =>
+      exists rm', AHCOLtoRHCOL.translateMemory am ≡ inr rm' /\ rm' = rm.
 
-  (* TODO: use translateCTypeValue to translate DummyEnv replacing Parameter with Variable *)
+  (* Relation between AHCOL and RHCOL parametrized for dynwin *)
+  Definition AHCOL_RHCOL_rel (a: avector 3) {x} (aop:AHCOL.DSHOperator) (rop:RHCOL.DSHOperator): Prop :=
+    forall dynwin_R_σ dynwin_R_memory,
+      AHCOLtoRHCOL.translateEvalContext dynwin_σ ≡ inr dynwin_R_σ ->
+      AHCOLtoRHCOL.translateMemory (dynwin_memory a x) ≡ inr dynwin_R_memory ->
+      hopt_r (herr_c AHCOL_RHCOL_mem_equiv)
+             (AHCOLEval.evalDSHOperator dynwin_σ aop (dynwin_memory a x) (AHCOLEval.estimateFuel aop))
+             (RHCOLEval.evalDSHOperator dynwin_R_σ rop dynwin_R_memory (RHCOLEval.estimateFuel rop)).
 
+  (*
+  Definition AHCOL_FHCOL_rel :=
+    AHCOL_RHCOL_rel dynwin_AHCOL dynwin_rhcol /\
+    RHCOL_FHCOL_rel InMemRel InSigmaRel OutMemRel dynwin_rhcol dynwin_fhcol.
+    *)
   Definition f_imemory (a: avector 3) (x: avector dynwin_i) : err memory. Admitted.
-
   Definition f_σ: FHCOLEval.evalContext. Admitted.
 
 
-  Definition AHCOL_FHCOL_rel :=
-          AHCOL_RHCOL_rel InMemRel InSigmaRel OutMemRel dynwin_rhcol dynwin_fhcol /\
-          RHCOL_FHCOL_rel InMemRel InSigmaRel OutMemRel dynwin_rhcol dynwin_fhcol.
 
   Theorem HCOL_to_FHCOL_Correctness (a: avector 3):
     forall x y fhcol dynwin_imem omem,
