@@ -99,5 +99,5 @@ To install *optional* dependencies:
 
 ** Contact
 
-   [[mailto:vzaliva@cmu.edu][Vadim Zaliva]]
+   [[mailto:lord@crocodile.org][Vadim Zaliva]]
 
