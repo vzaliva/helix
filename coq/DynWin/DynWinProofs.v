@@ -1802,7 +1802,7 @@ Section TopLevel.
   Definition f_σ: FHCOLEval.evalContext. Admitted.
 
 
-
+  (*
   Theorem HCOL_to_FHCOL_Correctness (a: avector 3):
     forall x y fhcol dynwin_imem omem,
       dynwin_orig a x = y ->
