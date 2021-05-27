@@ -3,7 +3,7 @@
     def BUILD_IF_BRANCH = ['master','develop']
  */
 
-def BUILD_IF_BRANCH = ['master','vellvm_submodule','carriera_typeclas']
+def BUILD_IF_BRANCH = ['master']
 
 pipeline {
     agent { 

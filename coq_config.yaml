@@ -3,7 +3,7 @@
 
 opam:
   switch: helix
-  compiler: 4.11.1+flambda
+  compiler: 4.12.0
 
 repositories:
   - name: coq-released
@@ -13,6 +13,7 @@ dependencies:
   - ocamlfind
   - ocamlbuild
   - camlp5
+  - coq-itree
   - coq-mathcomp-ssreflect
   - coq-simple-io
   - coq-color
@@ -30,7 +31,7 @@ dependencies:
   - core_kernel
   - dune
   - qcheck
-  - coq.8.12.2
+  - coq.8.13.2
 
 #extra-deps:
 #  - git: https://github.com/vellvm/vellvm.git

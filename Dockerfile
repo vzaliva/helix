@@ -1,11 +1,11 @@
 FROM ubuntu:focal
 
-ARG TEST_TARGET="8.12.2"
+ARG TEST_TARGET="8.13.2"
 
 RUN apt update
 RUN apt install -y opam aspcud libipc-system-simple-perl libstring-shellquote-perl
 
-RUN opam init -n -y --compiler=4.11.1+flambda --disable-sandboxing
+RUN opam init -n -y --compiler=4.12.0 --disable-sandboxing
 RUN eval $(opam config env)
 
 RUN opam repo add coq-released http://coq.inria.fr/opam/released || true
@@ -13,6 +13,7 @@ RUN opam update -y
 
 RUN opam install -y --verbose -j 1 coq.$TEST_TARGET && opam pin add coq $TEST_TARGET -y
 RUN opam install -y --verbose -j 1 ocamlfind ocamlbuild camlp5 ${EXTRA_OPAM}
+RUN opam install -y --verbose -j 1 coq-itree
 RUN opam install -y --verbose -j 1 coq-mathcomp-ssreflect
 RUN opam install -y --verbose -j 1 coq-simple-io
 RUN opam install -y --verbose -j 1 coq-color
