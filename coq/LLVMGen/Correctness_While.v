@@ -301,8 +301,8 @@ Qed.
 Import AlistNotations.
 
 (* TODO: Figure out how to avoid this *)
-Arguments fmap _ _ /.
-Arguments Fmap_block _ _ _ _/.
+Arguments tfmap _ _ /.
+Arguments TFunctor_block _ _ _ _/.
 
 (** Inductive lemma to reason about while loops.
     The code generated is of the shape:
@@ -1680,8 +1680,8 @@ Proof.
     auto.
 Qed.
 
-Arguments Fmap_code _ _ _ _/.
-Arguments Fmap_list _ _ _ _/.
+Arguments TFunctor_code _ _ _ _/.
+Arguments TFunctor_list _ _ _ _/.
 
 Lemma genWhileLoop_init : 
   forall prefix from to loopvar loopcontblock body_entry body_blocks init_code nextblock s1 s2 entry_id bks _label,
@@ -1711,7 +1711,7 @@ Proof.
   eutt_hide_left.
   vjmp.
   cbn.
-  unfold Fmap_block; cbn.
+  unfold TFunctor_block; cbn.
   vred_r.
   vred_r.
   subst.
@@ -1857,7 +1857,7 @@ Proof.
   eutt_hide_left.
   vjmp.
   cbn.
-  unfold Fmap_block; cbn.
+  unfold TFunctor_block; cbn.
   vred_r.
   vred_r.
   subst.
