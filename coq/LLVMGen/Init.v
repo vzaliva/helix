@@ -3309,14 +3309,14 @@ Proof.
     rewrite !ListUtil.nth_beyond.
     reflexivity.
     now rewrite BS.
-    now rewrite map_length, <-Zseq_length.
+    now rewrite map_length, Zseq_length.
   }
 
   match goal with
   | [_ : _ |- nth_error ?m ?k ≡ _] =>
     pose proof nth_error_succeeds m (n:=k) as KM
   end.
-  autospecialize KM; [now rewrite map_length, <-Zseq_length |].
+  autospecialize KM; [now rewrite map_length, Zseq_length |].
   destruct KM as [kb KB].
   pose proof nth_error_succeeds (b v) (n:=k) as KV.
   autospecialize KV; [now rewrite BS |].
@@ -4335,14 +4335,14 @@ Proof.
   eutt_hide_rel REL.
   
   fold_map_monad_.
-  repeat unfold fmap, Fmap_list'.
+  repeat unfold tfmap, TFunctor_list'.
 
   (* splitting the lists in (1) and (3) *)
   (* just [rewrite map_app] doesn't work for some reason *)
-  replace (map (Fmap_global typ dtyp (typ_to_dtyp [ ]))
+  replace (map (TFunctor_global typ dtyp (typ_to_dtyp [ ]))
                (flat_map (globals_of typ) gdecls ++ flat_map (globals_of typ) t))
-    with (map (Fmap_global typ dtyp (typ_to_dtyp [ ])) (flat_map (globals_of typ) gdecls) ++
-              map (Fmap_global typ dtyp (typ_to_dtyp [ ])) (flat_map (globals_of typ) t))
+    with (map (TFunctor_global typ dtyp (typ_to_dtyp [ ])) (flat_map (globals_of typ) gdecls) ++
+              map (TFunctor_global typ dtyp (typ_to_dtyp [ ])) (flat_map (globals_of typ) t))
     by (rewrite map_app; reflexivity).
 
   (* splitting (1) and (3) into binds *)
@@ -4352,10 +4352,10 @@ Proof.
   fold_initialization.
   simpl.
 
-  remember (map (Fmap_global typ dtyp (typ_to_dtyp [ ]))
+  remember (map (TFunctor_global typ dtyp (typ_to_dtyp [ ]))
                 (flat_map (globals_of typ) t))
     as XY.
-  remember (map (Fmap_global typ dtyp (typ_to_dtyp [ ]))
+  remember (map (TFunctor_global typ dtyp (typ_to_dtyp [ ]))
                 (flat_map (globals_of typ) gdecls))
     as GLOB.
 
@@ -4401,11 +4401,11 @@ Proof.
   - (* allocate (globals ++ yx) *)
     assert (T : Ret (memory_set (memory_set mg (S lg) mo) lg mi, ())
                 ≈
-                ITree.bind' (E:=E_mcfg)
+                ITree.bind (E:=E_mcfg)
+                            (ret (mg, ()))
                             (fun mg' => ret (memory_set
                                             (memory_set (fst mg') (S lg) mo)
-                                            lg mi, ()))
-                            (ret (mg, ())))
+                                            lg mi, ())))
       by (cbn; now rewrite Eq.bind_ret_l).
     rewrite T; clear T.
 
@@ -4458,7 +4458,7 @@ Proof.
                  (Ret (mg, ()))
                     (interp_mcfg
                        (map_monad_ allocate_global
-                                   (map (Fmap_global typ dtyp (typ_to_dtyp []))
+                                   (map (TFunctor_global typ dtyp (typ_to_dtyp []))
                                         (flat_map (globals_of typ) gdecls2)))
                        g (le0, stack0) m)).
       {
@@ -5265,11 +5265,11 @@ Proof.
 
     assert (T : Ret (memory_set (memory_set mg (S lg) mo) lg mi, ())
                 ≈
-                ITree.bind' (E:=E_mcfg)
+                ITree.bind (E:=E_mcfg)
+                            (ret (mg, ()))
                             (fun mg' => ret (memory_set
                                             (memory_set (fst mg') (S lg) mo)
-                                            lg mi, ()))
-                            (ret (mg, ())))
+                                            lg mi, ())))
       by (cbn; now rewrite Eq.bind_ret_l).
     rewrite T; clear T.
 
@@ -5338,7 +5338,7 @@ Proof.
                     (interp_mcfg
                        (translate exp_to_L0
                           (map_monad_ initialize_global
-                                      (map (Fmap_global typ dtyp (typ_to_dtyp []))
+                                      (map (TFunctor_global typ dtyp (typ_to_dtyp []))
                                            (flat_map (globals_of typ) gdecls2))))
                        g' (l', st') m')).
       {
@@ -6424,7 +6424,7 @@ Proof.
             break_let.
             invc Heqp.
             unfold genFloatV.
-            unfold fmap, Fmap_list.
+            unfold tfmap, TFunctor_list.
             rewrite map_map.
             cbn.
             rewrite typ_to_dtyp_D.
@@ -7084,7 +7084,7 @@ Proof.
 
 
       unfold denote_exp; fold denote_exp.
-      unfold fmap, Fmap_list.
+      unfold tfmap, TFunctor_list.
       rewrite !map_monad_map.
       cbn.
       autorewrite with itree.
