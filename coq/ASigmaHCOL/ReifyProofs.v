@@ -5109,6 +5109,7 @@ Global Instance Apply2Union_MSH_DSH_compat
          {σ: evalContext}
          {dop1 dop2: DSHOperator}
          {x_p y_p : PExpr}
+         {dot}
          (P: DSH_pure (DSHSeq dop1 dop2) y_p)
          (D : forall x_id y_id x_sz y_sz,
              evalPExpr σ x_p = inr (x_id, x_sz) ->

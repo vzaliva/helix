@@ -71,7 +71,7 @@ Section WithCarrierA.
                (* default values at sparse positions *)
                svalue_at_sparse: forall v,
                    (forall j (jc:j<o), ¬ out_index_set (mkFinNat jc) ->
-                                  evalWriter (Vnth (op v) jc) = svalue);
+                                       evalWriter (Vnth (op v) jc) = svalue);
              }.
 
       (* Two vectors (=) at indices at given set *)
@@ -2332,9 +2332,9 @@ Section WithCarrierA.
   Section StructuralProperies.
 
     Section FlagsMonoidGenericStructuralProperties.
-      Variable fm:Monoid RthetaFlags.
-      Variable fml:@MonoidLaws RthetaFlags fm.
-      Variable svalue : CarrierA.
+      Variable fm: Monoid RthetaFlags.
+      Variable fml: @MonoidLaws RthetaFlags fm.
+      Variable svalue: CarrierA.
 
       Global Instance liftM_HOperator_Facts
              {i o}
@@ -2753,132 +2753,134 @@ Section WithCarrierA.
       Qed.
 
 
+      Global Instance Scatter_Rtheta_Facts
+             {i o: nat}
+             (f: index_map i o)
+             {f_inj: index_map_injective f}
+        :
+          SHOperator_Facts Monoid_RthetaFlags (Scatter Monoid_RthetaFlags f (f_inj:=f_inj)) (svalue:=svalue).
+      Proof.
+        split.
+        -
+          simpl.
+          apply Full_FinNatSet_dec.
+        -
+          unfold out_index_set.
+          unfold index_map_range_set.
+          unfold FinNatSet_dec.
+          intros x.
+          apply Decidable_decision.
+          apply in_range_dec.
+        - intros x y H.
+          simpl in *.
+          assert (E: x=y).
+          {
+            vec_index_equiv j jc.
+            apply H.
+            constructor.
+          }
+          rewrite E.
+          reflexivity.
+        -
+          intros v H j jc S.
+          simpl.
+          unfold Scatter_impl in *.
+          rewrite Vbuild_nth.
+          break_match.
+          + simpl in *.
+            generalize dependent (gen_inverse_index_f_spec f j i0); intros f_spec.
+            apply H.
+            constructor.
+          +
+            simpl in *.
+            unfold index_map_range_set in S.
+            simpl in *.
+            congruence.
+        -
+          intros v j jc S.
+          simpl in *.
+
+          unfold index_map_range_set in S.
+          unfold Scatter_impl.
+          rewrite Vbuild_nth.
+          break_match.
+          *
+            simpl in S.
+            congruence.
+          *
+            apply (@Is_Struct_mkSZero CADEFS Monoid_RthetaSafeFlags MonoidLaws_SafeRthetaFlags).
+        - intros v D j jc S.
+          simpl.
+          unfold Scatter_impl in *.
+          rewrite Vbuild_nth.
+          break_match.
+          + simpl in *.
+            generalize dependent (gen_inverse_index_f_spec f j i0); intros f_spec.
+            apply D.
+            constructor.
+          +
+            simpl in *.
+            unfold index_map_range_set in S.
+            simpl in *.
+            congruence.
+        -
+          intros v D j jc S.
+          simpl in *.
+          unfold Scatter_impl in *.
+          rewrite Vbuild_nth in S.
+          break_match; crush.
+      Qed.
+
+
+      Global Instance SHBinOp_RthetaSafe_Facts
+             {o}
+             (f: FinNat o -> CarrierA -> CarrierA -> CarrierA)
+             `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
+        SHOperator_Facts Monoid_RthetaSafeFlags (SHBinOp _ f (o:=o)) (svalue:=svalue).
+      Proof.
+        split.
+        -
+          apply Full_FinNatSet_dec.
+        -
+          apply Full_FinNatSet_dec.
+        -
+          intros x y H.
+          simpl in *.
+          assert (E: x=y).
+          {
+            vec_index_equiv j jc.
+            apply H.
+            constructor.
+          }
+          rewrite E.
+          reflexivity.
+        -
+          intros v H j jc S.
+          simpl in *.
+          assert(jc2: (j+o)<o+o) by lia.
+          assert(jc1:j<o+o) by lia.
+          rewrite (@SHBinOp_impl_nth Monoid_RthetaSafeFlags o f v j jc jc1 jc2).
+          apply Is_Val_Safe_liftM2; (apply H; constructor).
+        -
+          intros v j jc S.
+          contradict S.
+          simpl.
+          split.
+        - intros v D j jc S.
+          simpl in *.
+          assert(jc2: (j+o)<o+o) by lia.
+          assert(jc1:j<o+o) by lia.
+          rewrite (@SHBinOp_impl_nth _  o f v j jc jc1 jc2).
+          apply Not_Collision_Safe_liftM2; apply D; constructor.
+        -
+          intros v D j jc S.
+          simpl in *.
+          destruct jc.
+          split.
+      Qed.
+
     End FlagsMonoidGenericStructuralProperties.
 
-    Global Instance Scatter_Rtheta_Facts
-           {i o: nat}
-           (f: index_map i o)
-           {f_inj: index_map_injective f}
-      :
-        SHOperator_Facts Monoid_RthetaFlags (Scatter Monoid_RthetaFlags f (f_inj:=f_inj)) (svalue:=svalue).
-    Proof.
-      split.
-      -
-        simpl.
-        apply Full_FinNatSet_dec.
-      -
-        unfold out_index_set.
-        unfold index_map_range_set.
-        unfold FinNatSet_dec.
-        intros x.
-        apply Decidable_decision.
-        apply in_range_dec.
-      - intros x y H.
-        simpl in *.
-        assert (E: x=y).
-        {
-          vec_index_equiv j jc.
-          apply H.
-          constructor.
-        }
-        rewrite E.
-        reflexivity.
-      -
-        intros v H j jc S.
-        simpl.
-        unfold Scatter_impl in *.
-        rewrite Vbuild_nth.
-        break_match.
-        + simpl in *.
-          generalize dependent (gen_inverse_index_f_spec f j i0); intros f_spec.
-          apply H.
-          constructor.
-        +
-          simpl in *.
-          unfold index_map_range_set in S.
-          simpl in *.
-          congruence.
-      -
-        intros v j jc S.
-        simpl in *.
-
-        unfold index_map_range_set in S.
-        unfold Scatter_impl.
-        rewrite Vbuild_nth.
-        break_match.
-        *
-          simpl in S.
-          congruence.
-        *
-          apply (@Is_Struct_mkSZero CADEFS Monoid_RthetaSafeFlags MonoidLaws_SafeRthetaFlags).
-      - intros v D j jc S.
-        simpl.
-        unfold Scatter_impl in *.
-        rewrite Vbuild_nth.
-        break_match.
-        + simpl in *.
-          generalize dependent (gen_inverse_index_f_spec f j i0); intros f_spec.
-          apply D.
-          constructor.
-        +
-          simpl in *.
-          unfold index_map_range_set in S.
-          simpl in *.
-          congruence.
-      -
-        intros v D j jc S.
-        simpl in *.
-        unfold Scatter_impl in *.
-        rewrite Vbuild_nth in S.
-        break_match; crush.
-    Qed.
-
-    Global Instance SHBinOp_RthetaSafe_Facts
-           {o}
-           (f: FinNat o -> CarrierA -> CarrierA -> CarrierA)
-           `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
-      SHOperator_Facts Monoid_RthetaSafeFlags (SHBinOp _ f (o:=o)) (svalue:=svalue).
-    Proof.
-      split.
-      -
-        apply Full_FinNatSet_dec.
-      -
-        apply Full_FinNatSet_dec.
-      -
-        intros x y H.
-        simpl in *.
-        assert (E: x=y).
-        {
-          vec_index_equiv j jc.
-          apply H.
-          constructor.
-        }
-        rewrite E.
-        reflexivity.
-      -
-        intros v H j jc S.
-        simpl in *.
-        assert(jc2: (j+o)<o+o) by lia.
-        assert(jc1:j<o+o) by lia.
-        rewrite (@SHBinOp_impl_nth Monoid_RthetaSafeFlags o f v j jc jc1 jc2).
-        apply Is_Val_Safe_liftM2; (apply H; constructor).
-      -
-        intros v j jc S.
-        contradict S.
-        simpl.
-        split.
-      - intros v D j jc S.
-        simpl in *.
-        assert(jc2: (j+o)<o+o) by lia.
-        assert(jc1:j<o+o) by lia.
-        rewrite (@SHBinOp_impl_nth _  o f v j jc jc1 jc2).
-        apply Not_Collision_Safe_liftM2; apply D; constructor.
-      -
-        intros v D j jc S.
-        simpl in *.
-        destruct jc.
-        split.
-    Qed.
 
     Lemma UnionFold_empty_Non_Collision
           (k : nat)
@@ -3427,7 +3429,7 @@ Section WithCarrierA.
           (* no collisions on j-th row accross all families *)
           assert(forall  (t : nat) (tc : t < k),
                     not (out_index_set Monoid_RthetaSafeFlags (op_family (mkFinNat tc))
-                                     (mkFinNat jc))).
+                                       (mkFinNat jc))).
           {
             intros t tc.
             contradict S.
