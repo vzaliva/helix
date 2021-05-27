@@ -3,7 +3,7 @@ FROM ubuntu:focal
 ARG TEST_TARGET="8.13.2"
 
 RUN apt update
-RUN apt install -y opam aspcud libipc-system-simple-perl libstring-shellquote-perl
+RUN apt install -y opam aspcud libipc-system-simple-perl libstring-shellquote-perl libgmp-dev
 
 RUN opam init -n -y --compiler=4.12.0 --disable-sandboxing
 RUN eval $(opam config env)
