@@ -521,8 +521,7 @@ Section Inputs.
       rewrite convert_typ_ocfg_app.
 
       (* TODO: clean this up *)
-      unfold fmap.
-      unfold Fmap_list.
+      unfold tfmap.
       rewrite map_app.
 
       apply Forall_app.
