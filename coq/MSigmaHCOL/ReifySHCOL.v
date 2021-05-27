@@ -71,10 +71,10 @@ Fixpoint compileSHCOL2MSHCOL (t:term) (fuel: nat) {struct fuel}: TemplateMonad (
                               compileSHCOL2MSHCOL t' fuel'
                     end
                end)
-    | tLambda (nNamed n) vt b =>
+    | tLambda (mkBindAnn (nNamed n) rv) vt b =>
       tmPrint ("lambda " ++ n)  ;;
               c <- compileSHCOL2MSHCOL b fuel' ;;
-              tmReturn(tLambda (nNamed n) vt c)
+              tmReturn(tLambda (mkBindAnn (nNamed n) rv) vt c)
     | tApp (tConst (_,opname) u) args =>
       match parse_SHCOL_Op_Name opname, args with
       | Some n_Embed, [_; _; fm ; svalue; o ; b ; bc] =>
