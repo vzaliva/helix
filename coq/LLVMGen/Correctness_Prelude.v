@@ -493,7 +493,7 @@ Section Add_Comment.
       apply denote_ocfg_eutt_bk; [reflexivity |].
       intros.
       destruct b.
-      unfold fmap, Fmap_block.
+      unfold tfmap, TFunctor_block.
       cbn.
       rewrite 2 denote_block_unfold.
       reflexivity.
