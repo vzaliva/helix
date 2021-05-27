@@ -137,7 +137,7 @@ Section Eval_Denote_Equiv.
       end.
 
     (* TODO : MOVE THIS TO ITREE *)
-    Instance eutt_interp_state_eq {E F: Type -> Type} {S : Type}
+    Instance eutt_interp_state_eq {E F: Type -> Type} {S : Type} {R}
              (h : E ~> Monads.stateT S (itree F)) :
       Proper (eutt Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_state E (itree F) S _ _ _ h R).
     Proof.
