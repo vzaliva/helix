@@ -1,5 +1,6 @@
 -R coq Helix
 -R ./lib/vellvm/src/coq Vellvm
--R ./lib/vellvm/lib/InteractionTrees/theories ITree
+-I ./lib/vellvm/lib/QuickChick/src
 -R ./lib/vellvm/lib/QuickChick/src QuickChick
+-R ./lib/vellvm/lib/flocq-quickchick FlocqQuickChick
 -arg "-w '-notation-overridden'"
