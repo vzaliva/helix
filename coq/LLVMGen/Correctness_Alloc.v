@@ -141,7 +141,7 @@ Proof.
   rewrite interp_helix_MemSet.
   hred.
   unfold add_comments; cbn.
-  unfold fmap, Fmap_block; cbn.
+  unfold tfmap, TFunctor_block; cbn.
   hvred.
 
   rename Heqs1 into genIR_op.
