@@ -96,7 +96,7 @@ Proof.
 
   subst; eutt_hide_left.
   vjmp.
-  unfold fmap, Fmap_block; cbn.
+  unfold tfmap, TFunctor_block; cbn.
   vred.
   vred.
   vred.
@@ -148,7 +148,7 @@ Proof.
 
   clear FITS.
 
-  rewrite LU in H; symmetry in H; inv H.
+  rewrite LU in H0; symmetry in H0; inv H0.
   specialize (GETCELL _ _ Heqo1).
   clean_goal.
   (* I find some pointer either in the local or global environment *)
