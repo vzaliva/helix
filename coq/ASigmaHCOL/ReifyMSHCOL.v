@@ -1,3 +1,5 @@
+Set Universe Polymorphism.
+
 Require Import Coq.Arith.Compare_dec.
 
 Require Import Coq.Strings.String.
@@ -106,7 +108,7 @@ Definition compileMExpr (res:var_resolver) (a_e:term): TemplateMonad (MExpr):=
   end.
 
 (* TODO: this one takes a long time to compile. Speed up! *)
-Fixpoint compileAExpr (res:var_resolver) (a_e:term): TemplateMonad AExpr :=
+Fixpoint compileAExpr (res:var_resolver) (a_e:term): TemplateMonad AExpr  :=
   match a_e with
   | tApp (tConst (MPfile ["canonical_names"; "interfaces"; "MathClasses"], "abs") [])
          [(Ast.tApp
@@ -141,9 +143,9 @@ Fixpoint compileAExpr (res:var_resolver) (a_e:term): TemplateMonad AExpr :=
              (Ast.tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierA") [])
              [Ast.tConst (MPdot (MPfile ["CarrierAasCT"; "MSigmaHCOL"; "Helix"])
                                 "CarrierAasCT", "CADEFS") []]) ; _ ; a_v ; a_i ; _] =>
-      d_v <- compileMExpr res a_v ;;
-      d_i <- compileNExpr res a_i ;;
-      tmReturn (ANth d_v d_i)
+    d_v <- compileMExpr res a_v ;;
+    d_i <- compileNExpr res a_i ;;
+    tmReturn (ANth d_v d_i)
   | tRel i =>
     tmReturn (AVar (res i))
   | _ => tmFail ("Unsupported AExpr " ++ (string_of_term a_e))
@@ -220,7 +222,7 @@ Fixpoint compileMSHCOL2DSHCOL
          (x_p y_p: PExpr)
   : TemplateMonad (varbindings*(DSHOperator)) :=
   match t with
-  | tLambda (nNamed n) vt b =>
+  | tLambda (mkBindAnn (nNamed n) _) vt b =>
     tmPrint ("lambda " ++ n)  ;;
     dt <- toDSHType vt ;; (* to enforce valid type *)
     compileMSHCOL2DSHCOL (Lambda_var_resolver res 1) ((n,dt)::vars) b (incrPVar 0 x_p) (incrPVar 0 y_p)
