@@ -9,7 +9,7 @@ Require ExtrOcamlBasic.
 Require ExtrOcamlString.
 Require ExtrOcamlIntConv.
 
-Extraction Language Ocaml.
+Extraction Language OCaml.
 Extraction Blacklist String List Char Core Monad Bool Z Format.
 
 (* strings ------------------------------------------------------------------ *)
