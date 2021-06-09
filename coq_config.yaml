@@ -3,7 +3,7 @@
 
 opam:
   switch: helix
-  compiler: 4.12.0
+  compiler: ocaml-base-compiler.4.12.0
 
 repositories:
   - name: coq-released
