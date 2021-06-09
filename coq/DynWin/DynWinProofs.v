@@ -861,8 +861,6 @@ Section SHCOL_to_MSHCOL.
     -
       apply Set_Obligation_1.
     -
-      typeclasses eauto.
-    -
       (* TODO: refactor to lemma
          [Apply_Family_Vforall_SHCompose_move_P].
        *)
@@ -889,8 +887,6 @@ Section SHCOL_to_MSHCOL.
       apply Set_Obligation_1.
     -
       apply Set_Obligation_1.
-    -
-      typeclasses eauto.
     -
       apply Set_Obligation_1.
     -
