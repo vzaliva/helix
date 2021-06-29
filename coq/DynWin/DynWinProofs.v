@@ -1677,17 +1677,46 @@ Local Set Warnings "-ssr-search-moved".
 
 Section TopLevel.
 
-  (* Assumptions for AHCOL to RHCOL mapping *)
-  Context `{CTT: AHCOLtoRHCOL.CTranslationOp}
-          `{CTP: @AHCOLtoRHCOL.CTranslationProps CTT}
-          `{NTT: AHCOLtoRHCOL.NTranslationOp}
-          `{NTP: @AHCOLtoRHCOL.NTranslationProps NTT}.
+  Context
+    (* Assumptions for AHCOL to RHCOL mapping *)
+    `{CTT: AHCOLtoRHCOL.CTranslationOp}
+    `{CTP: @AHCOLtoRHCOL.CTranslationProps CTT}
+    `{NTT: AHCOLtoRHCOL.NTranslationOp}
+    `{NTP: @AHCOLtoRHCOL.NTranslationProps NTT}
+    (* Assumptions for RHCOL to FHCOL mapping *)
+    `{CTTF: RHCOLtoFHCOL.CTranslationOp}
+    `{CTPF: @RHCOLtoFHCOL.CTranslationProps CTTF}
+    `{NTTF: RHCOLtoFHCOL.NTranslationOp}
+    `{NTPF: @RHCOLtoFHCOL.NTranslationProps NTTF}.
 
-  (* User-specified RHCOL/FHCOL relations *)
-  Parameter InMemRel: RHCOL.memory → FHCOL.memory -> Prop.
+  (* User-specified RHCOL/FHCOL relations in input memory and environment
+     as well as on output memory *)
   Parameter InSigmaRel: RHCOLEval.evalContext -> FHCOLEval.evalContext -> Prop.
+  (* [InSigmaRel] must be compatible with [RHCOLtoFHCOL.CTranslationOp] *)
+  Parameter InSigmaRelCompat: forall a_σ r_σ,
+      RHCOLtoFHCOL.translateEvalContext a_σ ≡ inr r_σ ->
+      InSigmaRel a_σ r_σ.
+
+  Parameter InMemRel: RHCOL.memory → FHCOL.memory -> Prop.
+  (* [InMemRel] must be compatible with [RHCOLtoFHCOL.CTranslationOp] *)
+  Parameter InMemRel_compat: ∀ a_memory r_memory,
+      RHCOLtoFHCOL.translateMemory a_memory ≡ inr r_memory ->
+      InMemRel a_memory r_memory.
+
   Parameter OutMemRel: RHCOL.memory → FHCOL.memory -> Prop.
 
+  (*
+    Using following definitons from DynWin.v:
+     1. dynwin_i
+     2. dynwin_o
+     3. dynwin_orig
+     4. dynwin_HCOL
+     5. dynwin_SHCOL
+     6. dynwin_SHCOL1
+
+     The following definitions are produced with TemplateCoq:
+     1. dynwin_MSHCOL1
+   *)
   Lemma HCOL_to_FHCOL_Chain (a: avector 3):
     (* --- HCOL breakdown --- *)
     dynwin_orig a = dynwin_HCOL a ->
@@ -1729,76 +1758,68 @@ Section TopLevel.
     DSH_pure (dynwin_AHCOL) DSH_y_p ->
 
     forall (x:avector dynwin_i),
-    (* AHCOL evaluation succeeds *)
-    exists amemory,
+      (* AHCOL memory and σ *)
+      let a_imemory := (AHCOLEval.memory_set
+                          (AHCOLEval.memory_set (AHCOLEval.memory_set AHCOLEval.memory_empty dynwin_a_addr (avector_to_mem_block a)) dynwin_x_addr (avector_to_mem_block x))
+                          dynwin_y_addr AHCOLEval.mem_empty) in
       let a_σ := [
             (AHCOLEval.DSHPtrVal dynwin_a_addr 3,false)
             ; (AHCOLEval.DSHPtrVal dynwin_y_addr dynwin_o,false)
             ; (AHCOLEval.DSHPtrVal dynwin_x_addr dynwin_i,false)
           ] in
-      let a_imemory := (AHCOLEval.memory_set
-                          (AHCOLEval.memory_set (AHCOLEval.memory_set AHCOLEval.memory_empty dynwin_a_addr (avector_to_mem_block a)) dynwin_x_addr (avector_to_mem_block x))
-                          dynwin_y_addr AHCOLEval.mem_empty) in
-      AHCOLEval.evalDSHOperator
-        a_σ
-        dynwin_AHCOL
-        a_imemory
-        (AHCOLEval.estimateFuel dynwin_AHCOL) = Some (inr amemory) ->
+      exists a_omemory,
+        AHCOLEval.evalDSHOperator
+          a_σ
+          dynwin_AHCOL
+          a_imemory
+          (AHCOLEval.estimateFuel dynwin_AHCOL) = Some (inr a_omemory) ->
 
-      (* AHCOL evaluation output value correct *)
-      exists my, mem_op (dynwin_MSHCOL1 a) (avector_to_mem_block x) = Some my ->
-            AHCOLEval.memory_lookup amemory dynwin_y_addr = Some my ->
+        (* AHCOL evaluation output value correct *)
+        exists my, mem_op (dynwin_MSHCOL1 a) (avector_to_mem_block x) = Some my ->
+              AHCOLEval.memory_lookup a_omemory dynwin_y_addr = Some my ->
 
-            (* --- ACHOL -> RHCOL ---  *)
+              (* --- ACHOL -> RHCOL ---  *)
 
-            (* Translation succeeds *)
-            exists dynwin_rhcol,
-              AHCOLtoRHCOL.translate dynwin_AHCOL ≡ inr dynwin_rhcol ->
+              forall dynwin_R_σ dynwin_R_memory,
+                AHCOLtoRHCOL.translateEvalContext a_σ ≡ inr dynwin_R_σ ->
+                AHCOLtoRHCOL.translateMemory a_imemory ≡ inr dynwin_R_memory ->
 
-              (* Translation preserves syntax *)
-              AHCOLtoRHCOL.heq_DSHOperator dynwin_AHCOL dynwin_rhcol ->
+                (* Translation succeeds *)
+                exists dynwin_rhcol,
+                  AHCOLtoRHCOL.translate dynwin_AHCOL ≡ inr dynwin_rhcol ->
+                  exists r_omemory,
+                    RHCOLEval.evalDSHOperator
+                      dynwin_R_σ dynwin_rhcol
+                      dynwin_R_memory
+                      (RHCOLEval.estimateFuel dynwin_rhcol) = (Some (inr r_omemory)) ->
 
-              (* Translation value correctness *)
-              AHCOLtoRHCOL.translation_semantics_correctness dynwin_AHCOL dynwin_rhcol ->
+                    AHCOLtoRHCOL.heq_memory a_omemory r_omemory ->
 
-              (* --- RCHOL -> FHCOL ---  *)
-              (* Translation succeeds *)
-              exists dynwin_fhcol,
-                RHCOLtoFHCOL.translate dynwin_rhcol ≡ inr dynwin_fhcol ->
+                    (* --- RCHOL -> FHCOL ---  *)
+                    exists dynwin_fhcol,
+                      (* Translation succeeds *)
+                      RHCOLtoFHCOL.translate dynwin_rhcol ≡ inr dynwin_fhcol ->
 
-                (* Translation correctness *)
-                RHCOL_FHCOL_rel InMemRel InSigmaRel OutMemRel dynwin_rhcol dynwin_fhcol.
+                      (* Translation correctness.
+                         This is more general that [translation_semantics_correctness]
+                       *)
+
+                      forall dynwin_F_σ dynwin_F_memory,
+                        InMemRel dynwin_R_memory dynwin_F_memory ->
+                        InSigmaRel dynwin_R_σ dynwin_F_σ ->
+
+                        exists f_omemory,
+                          FHCOLEval.evalDSHOperator
+                            dynwin_F_σ dynwin_fhcol
+                            dynwin_F_memory
+                            (FHCOLEval.estimateFuel dynwin_fhcol) = (Some (inr f_omemory)) ->
+                          OutMemRel r_omemory f_omemory.
+
   Proof.
   Admitted.
 
-  Definition dynwin_FHCOL :=
-    dynwin_rhcol <- AHCOLtoRHCOL.translate dynwin_AHCOL ;;
-    RHCOLtoFHCOL.translate dynwin_rhcol.
 
-  (* Turning [AHCOLtoRHCOL.translateMemory] into relation *)
-  Definition AHCOL_RHCOL_mem_equiv: AHCOL.memory -> RHCOL.memory -> Prop :=
-    fun am rm =>
-      exists rm', AHCOLtoRHCOL.translateMemory am ≡ inr rm' /\ rm' = rm.
-
-  (* Relation between AHCOL and RHCOL parametrized for dynwin *)
-  Definition AHCOL_RHCOL_rel (a: avector 3) {x} (aop:AHCOL.DSHOperator) (rop:RHCOL.DSHOperator): Prop :=
-    forall dynwin_R_σ dynwin_R_memory,
-      AHCOLtoRHCOL.translateEvalContext dynwin_σ ≡ inr dynwin_R_σ ->
-      AHCOLtoRHCOL.translateMemory (dynwin_memory a x) ≡ inr dynwin_R_memory ->
-      hopt_r (herr_c AHCOL_RHCOL_mem_equiv)
-             (AHCOLEval.evalDSHOperator dynwin_σ aop (dynwin_memory a x) (AHCOLEval.estimateFuel aop))
-             (RHCOLEval.evalDSHOperator dynwin_R_σ rop dynwin_R_memory (RHCOLEval.estimateFuel rop)).
-
-  (*
-  Definition AHCOL_FHCOL_rel :=
-    AHCOL_RHCOL_rel dynwin_AHCOL dynwin_rhcol /\
-    RHCOL_FHCOL_rel InMemRel InSigmaRel OutMemRel dynwin_rhcol dynwin_fhcol.
-    *)
-  Definition f_imemory (a: avector 3) (x: avector dynwin_i) : err memory. Admitted.
-  Definition f_σ: FHCOLEval.evalContext. Admitted.
-
-
-  (*
+(*
   Theorem HCOL_to_FHCOL_Correctness (a: avector 3):
     forall x y fhcol dynwin_imem omem,
       dynwin_orig a x = y ->
@@ -1811,7 +1832,7 @@ Section TopLevel.
 
           TODO: CarrierA typeclass
           Nat -> Nat translation instantiation
-  *)
+ *)
 
 
 End TopLevel.
