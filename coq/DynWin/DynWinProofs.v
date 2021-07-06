@@ -1716,6 +1716,7 @@ Section TopLevel.
 
      The following definitions are produced with TemplateCoq:
      1. dynwin_MSHCOL1
+     2. dynwin_AHCOL
    *)
   Lemma HCOL_to_FHCOL_Chain (a: avector 3):
     (* --- HCOL breakdown --- *)
@@ -1818,21 +1819,81 @@ Section TopLevel.
   Proof.
   Admitted.
 
+  (*
+    Translation validation proof of semantic preservation
+    of successful translation of [dynwin_orig] into FHCOL program.
 
-(*
+    Using following definitons from DynWin.v:
+     1. dynwin_i
+     2. dynwin_o
+     3. dynwin_orig
+
+     And the following definition are produced with TemplateCoq:
+     1. dynwin_AHCOL
+   *)
   Theorem HCOL_to_FHCOL_Correctness (a: avector 3):
-    forall x y fhcol dynwin_imem omem,
+    forall x y,
+      (* evaluatoion of original operator *)
       dynwin_orig a x = y ->
-      dynwin_FHCOL ≡ inr fhcol ->
-      f_imemory a x ≡ inr dynwin_imem ->
-      FHCOLEval.evalDSHOperator f_σ fhcol dynwin_imem (FHCOLEval.estimateFuel fhcol) = Some (inr omem).
-    lookup omem
-          AHCOL_FHCOL_rel a x y y_block
+      (* memory layout for arguments and parameters *)
+      let a_imemory := (AHCOLEval.memory_set
+                          (AHCOLEval.memory_set (AHCOLEval.memory_set AHCOLEval.memory_empty dynwin_a_addr (avector_to_mem_block a)) dynwin_x_addr (avector_to_mem_block x))
+                          dynwin_y_addr AHCOLEval.mem_empty) in
+      (* initial environment state *)
+      let a_σ := [
+            (AHCOLEval.DSHPtrVal dynwin_a_addr 3,false)
+            ; (AHCOLEval.DSHPtrVal dynwin_y_addr dynwin_o,false)
+            ; (AHCOLEval.DSHPtrVal dynwin_x_addr dynwin_i,false)
+          ] in
 
+      (* memory/σ translation up to FHCOL *)
+      forall dynwin_R_σ dynwin_R_memory dynwin_F_σ dynwin_F_memory,
+        AHCOLtoRHCOL.translateEvalContext a_σ ≡ inr dynwin_R_σ ->
+        AHCOLtoRHCOL.translateMemory a_imemory ≡ inr dynwin_R_memory ->
+        InMemRel dynwin_R_memory dynwin_F_memory ->
+        InSigmaRel dynwin_R_σ dynwin_F_σ ->
 
-          TODO: CarrierA typeclass
-          Nat -> Nat translation instantiation
- *)
+        (* compute [a_omemory] *)
+        exists a_omemory,
+          AHCOLEval.evalDSHOperator
+            a_σ
+            dynwin_AHCOL
+            a_imemory
+            (AHCOLEval.estimateFuel dynwin_AHCOL) = Some (inr a_omemory) ->
+
+          (* fix [y] *)
+          (∃ y_mem,
+              AHCOLEval.memory_lookup a_omemory dynwin_y_addr = Some y_mem ->
+              mem_block_to_avector y_mem = Some y) ->
+
+          (* AHCOL to RHCOL translation *)
+          exists dynwin_rhcol,
+            AHCOLtoRHCOL.translate dynwin_AHCOL ≡ inr dynwin_rhcol ->
+
+            (* compute [a_omemory] as a result of RHCOL evaluation *)
+            exists r_omemory,
+              RHCOLEval.evalDSHOperator
+                dynwin_R_σ dynwin_rhcol
+                dynwin_R_memory
+                (RHCOLEval.estimateFuel dynwin_rhcol) = (Some (inr r_omemory)) ->
+
+              AHCOLtoRHCOL.heq_memory a_omemory r_omemory ->
+              exists dynwin_fhcol,
+
+                (* RHCOL to FHCOL translation *)
+                RHCOLtoFHCOL.translate dynwin_rhcol ≡ inr dynwin_fhcol ->
+                (* compute [f_omemory] as a result of FHCOL evaluation *)
+                exists f_omemory,
+                  FHCOLEval.evalDSHOperator
+                    dynwin_F_σ dynwin_fhcol
+                    dynwin_F_memory
+                    (FHCOLEval.estimateFuel dynwin_fhcol) = (Some (inr f_omemory)) ->
+
+                  (* make sure memory matches *)
+                  OutMemRel r_omemory f_omemory.
+  Proof.
+  Admitted.
+
 
 
 End TopLevel.
