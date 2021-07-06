@@ -1,0 +1,86 @@
+ We have several components that need to be tied together:
+
+  - [EvalDenoteEquiv] links the DSH evaluator to its itree semantics in the following sense:
+      evalDSHOperator σ op mem fuel ≡ Some (inr mem') ->
+      interp_Mem (denoteDSHOperator σ op) mem ≈ Ret (mem', tt).
+
+  - [Correctness_GenIR] relates the itree semantics of DSH and VIR via the code-generation for operators
+    in roughly the following sense:
+
+      eutt genIR_post
+ 	(interp_helix (denoteDSHOperator σ op) memH)
+        (interp_cfg (D.denote_ocfg (convert_typ [] bks) (bid_from,bid_in)) g ρ memV).
+     
+      where interp_helix t memH := translate inject_sig (interp_fail handle_failure (interp_Mem t memH))
+
+  - [Init] lifts the previous result one level higher-up by including the main and the initialization:
+
+      compile_w_main p data newState ≡ inr (s,pll) ->
+      eutt (bisim_final []) (semantics_FSHCOL p data) (semantics_llvm pll).
+
+      where semantics_FSHCOL p data = interp_helix (denote_FSHCOL p data) memory_empty.
+
+	    denote_FSHCOL p data =                       -- deeply embedded initialization so to speak 
+		    '(data, σ) <- denote_initFSHGlobals data p.(Data.globals) ;;
+                     xindex <- trigger (MemAlloc p.(i));;
+                     yindex <- trigger (MemAlloc p.(o));;
+    		     let '(data, x) := constMemBlock (MInt64asNT.to_nat p.(i)) data in
+                     trigger (MemSet xindex x);;
+                     let σ := List.app σ [(DSHPtrVal yindex p.(o),false); (DSHPtrVal xindex p.(i),false)] in
+                     denoteDSHOperator σ (p.(Data.op) : DSHOperator);;    -- Here's the bit [Correctness_GenIR] talks about
+                     bk <- trigger (MemLU "denote_FSHCOL" yindex);;
+                     lift_Derr (mem_to_list "Invalid output memory block" (MInt64asNT.to_nat p.(o)) bk).
+            
+            compile_with_main -- essentially gets a function through [denoteDSHOperator] and then creates a tiny main that calls it
+
+  - [Test] uses a shallow initialization based on [helix_initial_memory], although [Init] also uses it in its invariants.
+
+* Question number 1 : interfacing with the front
+
+  The prefix of the compilation chain should maybe give us something like:
+  	[evalDSHOperator σ op mem fuel ≡ Some (inr mem') /\ F op mem mem'] 
+  for a suitable F based on the purely functional input program.
+  What does it says about the initial memory? How is it defined? 
+  I'm a bit confused that no result anywhere refers to [helix_initial_memory]
+
+  Morally I would rather expect something w.r.t. [denote_FSHCOL], but I defined it 
+  in the back so it's unlikely.
+  To sort out.
+
+
+* Question number 2 : no_failure, interp_helix, interp_mem
+
+   In order to reason about the fact that the computation does not fail, I introduced the whole no_failure ordeal 
+   and sent the Helix side into the failure monad.
+   The result linking the evaluator and the itree-denotation does not.
+
+   We however have basically:
+   evalDSHOperator σ op mem fuel = Some (inr mem')
+   hence 
+   interp_Mem (denoteDSHOperator σ op) mem ≈ Ret (mem', tt).
+   hence 
+   interp_helix (denoteDSHOperator σ op) mem ≈ Ret (inr (mem', tt)).  -- This also introduces the additional events on the vir side
+
+   So I believe we are fine without any particular machinery.
+
+
+* Question number 3 : connecting to the initialization
+
+  I would like to take a moment to pay my respect to Ilia's dedication, the Init file is 8k loc long...
+
+  So we have the following main result currently:
+
+  Lemma memory_invariant_after_init
+      (p: FSHCOLProgram)
+      (data: list binary64) :
+  forall hmem σ s hdata pll,
+    helix_initial_memory p data ≡ inr (hmem,hdata,σ) /\
+    compile_w_main p data newState ≡ inr (s,pll) ->
+    eutt
+      (post_init_invariant_mcfg p.(name) σ s)
+      (Ret (hmem, ()))
+      (interp_mcfg3 (build_global_environment (convert_types (mcfg_of_tle pll)))
+                    [] ([],[]) empty_memory_stack).
+
+
+
