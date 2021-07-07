@@ -332,7 +332,7 @@ Arguments TFunctor_block _ _ _ _/.
 
 Ltac vbranch_r := vred_BR3.
 Ltac vbranch_l := vred_BL3.
-
+Import SemNotations.
 (* Requiring [wf_ocfg_bid bks] is a bit strong, we should be able to only require something on [body_blocks] *)
 Lemma genWhileLoop_tfor_ind:
   forall (prefix : string)
@@ -426,7 +426,6 @@ Proof.
 
   - (* Base case: we enter through [loopcontblock] and jump out immediately to [nextblock] *)
     intros BOUND FBODY * (INV & LOOPVAR).
-    Import ProofMode.
     (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
     apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_ocfg_app in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS.
     apply free_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_ocfg_app in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID.
@@ -446,6 +445,7 @@ Proof.
     (* replace (j - S j) with 0 by lia. *)
 
     vred.
+    Import ProofMode.
     vred.
     vred.
     vstep.
@@ -504,7 +504,7 @@ Proof.
 
   - (* Inductive case *)
     cbn in *. intros [LT LE] FBODY * (INV & LOOPVAR).
-    (* This ugly preliminary is due to the conversion of types, as most ugly things on Earth are. *)
+    (* This ugly preliminary is due to the conversion of types *)
     apply wf_ocfg_bid_convert_typ with (env := []) in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS; rewrite ?convert_typ_ocfg_app in UNIQUE_IDENTS; cbn in UNIQUE_IDENTS.
     apply free_in_convert_typ with (env := []) in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID; rewrite ?convert_typ_ocfg_app in NEXTBLOCK_ID; cbn in NEXTBLOCK_ID.
     cbn; rewrite ?convert_typ_ocfg_app; cbn.
@@ -518,7 +518,8 @@ Proof.
     vred.
     vred.
     vstep.
-    {
+    { 
+
       vstep.
       vstep; solve_lu.
       vstep; solve_lu.
@@ -567,7 +568,10 @@ Proof.
     rewrite translate_bind.
     rewrite ?interp_cfg3_ret, ?bind_ret_l;
       rewrite ?interp_cfg3_bind, ?bind_bind.
-   
+
+  Notation i64 := UVALUE_I64. 
+  Notation "j" := (repr (Z.of_nat j)).
+
     vstep.
     {
       setoid_rewrite lookup_alist_add_ineq.
@@ -586,9 +590,9 @@ Proof.
     cbn.
     (* END TODO: infrastructure to deal with non-empty phis *)
 
-    vred.
+    (* vred. *)
     (* Step 3 : we jump into the body *)
-    vred.
+    (* vred. *)
 
     (* In order to use our body hypothesis, we need to restrict the ambient cfg to only the body *)
     inv VG.
@@ -625,7 +629,7 @@ Proof.
     (* Step 4 : Back to starting from loopcontblock and have reestablished everything at the next index:
         conclude by IH *)
     intros a1 (m1 & l1 & g1 & ?) (LOOPVAR' & [? ->] & (IH' & LOC)) RET1 _.
-
+    typ_to_dtyp_simplify.
     eapply eqit_mon; auto.
     2 :{
       eapply IH.
@@ -871,6 +875,7 @@ Proof.
       lia.
       rewrite tfor_0; apply ReturnsRet; reflexivity.
     + intros ? (? & ? & ? & ?) (LU & [? ->] & []) RET1 _.
+      typ_to_dtyp_simplify.
       eapply eutt_Proper_mono.
       2: apply GEN_IND; eauto.
       { intros ? (? & ? & ? & ?) [-> []]; split; [|split]; eauto.
@@ -1228,6 +1233,7 @@ Proof.
     (* Step 4 : Back to starting from loopcontblock and have reestablished everything at the next index:
         conclude by IH *)
     intros a1 (m1 & l1 & g1 & ?) (LOOPVAR' & [? ->] & (IH' & LOC)) RET1 _.
+    typ_to_dtyp_simplify.
 
     eapply eqit_mon; auto.
     2 :{
@@ -1508,6 +1514,7 @@ Proof.
       lia.
       rewrite tfor_0; apply ReturnsRet; reflexivity.
     + intros ? (? & ? & ? & ?) (LU & [? ->] & []) RET1 _.
+      typ_to_dtyp_simplify.
       eapply eutt_Proper_mono.
       2: apply GEN_IND; eauto.
       { intros ? (? & ? & ? & ?) [-> []]; split; [|split]; eauto.

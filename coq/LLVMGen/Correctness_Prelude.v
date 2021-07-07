@@ -6,16 +6,16 @@ semantics of both languages are denoted in terms of trees further interpreted
 into a monad built atop of the itree one.
 
 The semantic equivalence is expressed in terms of a weak bisimulation over the
-resulting monad.
+resulting monads.
 
  **)
 
 (** * Prelude
     This file essentially:
-    - setup export the module shared over the whole proof
+    - export the modules shared over the whole proof
     - define the semantic domains over which we work
-    - define conveniences to work with relations involved in the proof
-    - define notations and automations easing the proof effort
+    - define conveniences to work with the relations involved in the proof
+    - define notations and some automation easing the proof effort
  *)
 
 Require Export Coq.Arith.Arith.
@@ -1214,9 +1214,8 @@ Ltac clean_goal :=
         |- _ => move h1 at top; move h2 at top; move h3 at top
       | h1 : incBlockNamed _ _ ≡ _, h2 : incBlockNamed _ _ ≡ _ |- _ => move h1 at top; move h2 at top
       | h : incBlockNamed _ _ ≡ _ |- _ => move h at top
-      end;
-
-  onAllHyps move_up_types.
+      end
+  /g.
 
 Section Helix_Mem_Extra_Lemmas.
 
@@ -1225,7 +1224,7 @@ Section Helix_Mem_Extra_Lemmas.
       x ≢ y ->
       mem_lookup x (mem_add y v bk) ≡ mem_lookup x bk.
   Proof.
-    intros x y v bk H.
+    intros x y v bk H. 
     Transparent mem_lookup mem_add.
     cbn.
     Opaque mem_lookup mem_add.
