@@ -1747,15 +1747,13 @@ Section TopLevel.
         compile_mem a x dynwin_F_memory ->
         compile_σ a x dynwin_F_σ ->
 
-        exists f_omemory,
+        exists f_omemory y_mem,
           FHCOLEval.evalDSHOperator
             dynwin_F_σ dynwin_fhcol
             dynwin_F_memory
-            (FHCOLEval.estimateFuel dynwin_fhcol) = (Some (inr f_omemory)) ->
-
-          (∃ y_mem,
-              FHCOLEval.memory_lookup f_omemory dynwin_y_addr = Some y_mem ->
-              OutRel a x y y_mem).
+            (FHCOLEval.estimateFuel dynwin_fhcol) = (Some (inr f_omemory)) /\
+          FHCOLEval.memory_lookup f_omemory dynwin_y_addr = Some y_mem /\
+          OutRel a x y y_mem.
 
   Proof.
   Admitted.
