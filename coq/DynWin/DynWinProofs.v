@@ -1708,18 +1708,19 @@ Section TopLevel.
   Definition compile_mem (a:avector 3) (x:avector dynwin_i) (dynwin_F_memory: FHCOL.memory): Prop
     := InRel a x ->
        exists dynwin_R_memory,
-         AHCOLtoRHCOL.translateMemory (build_dynwin_memory a x) ≡ inr dynwin_R_memory ->
+         AHCOLtoRHCOL.translateMemory (build_dynwin_memory a x) ≡ inr dynwin_R_memory /\
          RHCOLtoFHCOL.translateMemory dynwin_R_memory ≡ inr dynwin_F_memory.
 
-  Definition compile_σ (a:avector 3) (x:avector dynwin_i) (dynwin_F_σ: FHCOLEval.evalContext): Prop :=
-    let a_σ := [
+  Definition build_dynwin_σ := [
           (AHCOLEval.DSHPtrVal dynwin_a_addr 3,false)
           ; (AHCOLEval.DSHPtrVal dynwin_y_addr dynwin_o,false)
           ; (AHCOLEval.DSHPtrVal dynwin_x_addr dynwin_i,false)
-        ] in
+        ].
+
+  Definition compile_σ (a:avector 3) (x:avector dynwin_i) (dynwin_F_σ: FHCOLEval.evalContext): Prop :=
     InRel a x ->
     exists dynwin_R_σ,
-      AHCOLtoRHCOL.translateEvalContext a_σ ≡ inr dynwin_R_σ ->
+      AHCOLtoRHCOL.translateEvalContext build_dynwin_σ ≡ inr dynwin_R_σ /\
       RHCOLtoFHCOL.translateEvalContext dynwin_R_σ ≡ inr dynwin_F_σ.
 
   (* Parametric relation between AHCOL and FHCOL coumputation results  *)
@@ -1739,6 +1740,8 @@ Section TopLevel.
    *)
   Theorem HCOL_to_FHCOL_Correctness (a: avector 3):
     forall x y,
+      InRel a x ->
+
       (* evaluatoion of original operator *)
       dynwin_orig a x = y ->
 
@@ -1756,6 +1759,37 @@ Section TopLevel.
           OutRel a x y y_mem.
 
   Proof.
+    intros x y Rax HC dynwin_F_memory dynwin_F_σ dynwin_fhcol CA CM CE.
+
+    (* simplify CA *)
+    unfold compileAHCOL in CA.
+    Opaque AHCOLtoRHCOL.translate.
+    Opaque translate.
+    cbn in CA.
+    break_match_hyp; [inversion CA|].
+    rename d into dynwin_rhcol.
+
+    (* simplify CM *)
+    specialize (CM Rax).
+    inversion_clear CM as [dynwin_R_memory [CRM CFM]].
+
+    (* simplify CE *)
+    specialize (CE Rax).
+    inversion_clear CE as [dynwin_R_σ [CRE CFE]].
+
+    assert(exists a_omemory,
+        AHCOLEval.evalDSHOperator
+          dynwin_σ
+          dynwin_AHCOL
+          (build_dynwin_memory a x)
+          (AHCOLEval.estimateFuel dynwin_AHCOL) = Some (inr a_omemory)) as AE.
+    admit.
+    inversion_clear AE as [dynwin_A_memory AEV].
+
+
+
+
+
   Admitted.
 
 
