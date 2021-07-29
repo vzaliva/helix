@@ -838,7 +838,7 @@ Section SHCOL_to_MSHCOL.
   Qed.
 
 
-  Theorem dynwin_SHCOL_MSHCOL_compat {a}:
+  Theorem dynwin_SHCOL_MSHCOL_compat (a: avector 3):
     SH_MSH_Operator_compat (dynwin_SHCOL1 a) (dynwin_MSHCOL1 a).
   Proof.
     unfold dynwin_SHCOL1, dynwin_MSHCOL1.
@@ -1687,7 +1687,8 @@ Section TopLevel.
     `{CTTF: RHCOLtoFHCOL.CTranslationOp}
     `{CTPF: @RHCOLtoFHCOL.CTranslationProps CTTF}
     `{NTTF: RHCOLtoFHCOL.NTranslationOp}
-    `{NTPF: @RHCOLtoFHCOL.NTranslationProps NTTF}.
+    `{NTPF: @RHCOLtoFHCOL.NTranslationProps NTTF}
+    `{CarrierASRO: @orders.SemiRingOrder CarrierA CarrierAe CarrierAplus CarrierAmult CarrierAz CarrierA1 CarrierAle}.
 
   Definition compileAHCOL : AHCOL.DSHOperator -> err FHCOL.DSHOperator
     := fun dynwin_AHCOL =>
@@ -1777,14 +1778,26 @@ Section TopLevel.
     specialize (CE Rax).
     inversion_clear CE as [dynwin_R_σ [CRE CFE]].
 
-    assert(exists a_omemory,
-        AHCOLEval.evalDSHOperator
-          dynwin_σ
-          dynwin_AHCOL
-          (build_dynwin_memory a x)
-          (AHCOLEval.estimateFuel dynwin_AHCOL) = Some (inr a_omemory)) as AE.
-    admit.
-    inversion_clear AE as [dynwin_A_memory AEV].
+    remember (AHCOLEval.memory_set
+                (build_dynwin_memory a x)
+                dynwin_x_addr
+                (avector_to_mem_block y)) as a_omemory eqn:AOM.
+
+    assert(AHCOLEval.evalDSHOperator
+             dynwin_σ
+             dynwin_AHCOL
+             (build_dynwin_memory a x)
+             (AHCOLEval.estimateFuel dynwin_AHCOL) = Some (inr a_omemory)) as AE.
+    {
+      pose proof (dynwin_SHCOL_MSHCOL_compat a) as MCOMP.
+      pose proof (SHCOL_to_SHCOL1_Rewriting a) as SH1.
+      pose proof (DynWinSigmaHCOL_Value_Correctness a) as HSH.
+      pose proof (DynWinHCOL a) as HH.
+
+      Fail setoid_rewrite <- HH in HSH. (* Error: build_signature: no constraint can apply on a dependent argument *)
+      admit.
+    }
+
 
 
 
