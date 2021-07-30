@@ -1780,7 +1780,7 @@ Section TopLevel.
 
     remember (AHCOLEval.memory_set
                 (build_dynwin_memory a x)
-                dynwin_x_addr
+                dynwin_y_addr
                 (avector_to_mem_block y)) as a_omemory eqn:AOM.
 
     assert(AHCOLEval.evalDSHOperator
@@ -1789,12 +1789,31 @@ Section TopLevel.
              (build_dynwin_memory a x)
              (AHCOLEval.estimateFuel dynwin_AHCOL) = Some (inr a_omemory)) as AE.
     {
+      pose proof (DynWin_MSH_DSH_compat a) as MAHCOL.
       pose proof (dynwin_SHCOL_MSHCOL_compat a) as MCOMP.
       pose proof (SHCOL_to_SHCOL1_Rewriting a) as SH1.
       pose proof (DynWinSigmaHCOL_Value_Correctness a) as HSH.
       pose proof (DynWinHCOL a) as HH.
 
       Fail setoid_rewrite <- HH in HSH. (* Error: build_signature: no constraint can apply on a dependent argument *)
+      clear HH.
+      Fail rewrite <- HSH in SH1. (* Error: build_signature: no constraint can apply on a dependent argument *)
+      clear HSH.
+
+      destruct MCOMP.
+      (* Use  mem_vec_preservation ? *)
+
+      specialize (MAHCOL (avector_to_mem_block x)).
+      replace (dynwin_memory a (avector_to_mem_block x)) with (build_dynwin_memory a x) in MAHCOL by reflexivity.
+      destruct MAHCOL as [MAHCOL].
+      specialize (MAHCOL (avector_to_mem_block x) AHCOLEval.mem_empty).
+      autospecialize MAHCOL.
+      reflexivity.
+      autospecialize MAHCOL.
+      reflexivity.
+
+      Fail apply MAHCOL.
+
       admit.
     }
 
