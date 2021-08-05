@@ -842,13 +842,13 @@ Section AExpr.
         reflexivity.
       }
       rewrite uvalue_to_dvalue_of_dvalue_to_uvalue; reflexivity.
-      cbn; match_rewrite; reflexivity.
-      reflexivity.
+      2 : reflexivity.
+      rewrite H. reflexivity.
 
       clear EXP1 EXP2 NOFAIL IHaexp1 IHaexp2.
       clean_goal.
       rename i1 into s4, i2 into s5, s4 into s6.
-      
+
       apply eutt_Ret; split; [| split]; cbn; eauto.
       + eapply state_invariant_incVoid; [eauto | ..].
         eapply state_invariant_add_fresh; [eauto |..].
