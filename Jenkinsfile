@@ -40,11 +40,24 @@ pipeline {
             }
         }
 
+        stage('Set up OPAM') {
+            steps {
+                script {
+                    if (env.SKIP_CI != "true" && env.SKIP_BRANCH == "false") {
+			sh '''eval $(opam env)
+                              coq-config
+                              opam switch helix
+                           '''
+                    }
+                }
+            }
+        }
+
         stage('Build Vellvm') {
             steps {
                 script {
                     if (env.SKIP_CI != "true" && env.SKIP_BRANCH == "false") {
-			sh '''eval $(opam config env)
+			sh '''eval $(opam env)
                               make vellvm
                            '''
                     }
@@ -56,7 +69,7 @@ pipeline {
             steps {
                 script {
                     if (env.SKIP_CI != "true" && env.SKIP_BRANCH == "false") {
-			sh '''eval $(opam config env)
+			sh '''eval $(opam env)
                               make -j ${NJOBS}
                            '''
                     }
@@ -68,7 +81,7 @@ pipeline {
             steps {
                 script {
                     if (env.SKIP_CI != "true" && env.SKIP_BRANCH == "false") {
-			sh '''eval $(opam config env)
+			sh '''eval $(opam env)
                               make test
                            '''
                     }
