@@ -753,11 +753,14 @@ Definition memory_invariant_partial_write' (configV : config_cfg) (index loopsiz
 
     Remaining proof obligations (simplified):
 
-      1. Setting up pre/postconditions
-        {{ PRECONDITION }} -> {{ loop_invariant 0 }}
-        {{ loop_invariant n }} -> {{ POSTCONDITION }}
+      1. Setting up pre-/post-conditions
+
+            {{ PRECONDITION }} -> {{ loop_invariant 0 }}
+
+            {{ loop_invariant n }} -> {{ POSTCONDITION }}
 
       2. Relate the iterations of the bodies.
+
             {{ ∀ k, l @ loop_index = k ∧ loop_invariant k }}
                 imap_body ≈ blocks[label, body_entry]
             {{ loop_invariant (S k) }}
