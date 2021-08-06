@@ -1,9 +1,13 @@
 Require Import Coq.Strings.String.
 Require Import Coq.Lists.List.
 
+Require Import Helix.MSigmaHCOL.MemSetoid.
+Require Import Helix.FSigmaHCOL.Int64asNT.
 Require Import Helix.Util.Misc.
 
-Require Import Vellvm.Syntax.LLVMAst.
+Require Import Vellvm.Syntax.
+
+From ITree Require Import ITree Eq.Eq.
 
 Require Import Flocq.IEEE754.Binary.
 Require Import Coq.Numbers.BinNums. (* for Z scope *)
@@ -14,6 +18,7 @@ Require Import ExtLib.Structures.Monads.
 
 Require Import Ceres.CeresString.
 
+Import Memory.NM.
 Import ListNotations.
 Import MonadNotation.
 Open Scope monad_scope.
@@ -58,3 +63,22 @@ Definition string_of_Γ (Γ:list (ident * typ)) : string
                                             (":" ++(string_of_IRType t))
                                   )
                            Γ) ++ "]".
+
+Definition Same_t e `{canonical_names.Equiv e} (B C : t e) := forall k : key, find (elt:=e) k B = find (elt:=e) k C.
+    (* Same Extensionality property as [Extensionality_Ensembles] in [Coq.Sets.Ensembles]. *)
+Axiom Extensionality_t : forall e `{canonical_names.Equiv e} (A B: t e), Same_t A B -> A = B.
+
+Lemma typ_to_dtyp_P :
+    forall t s,
+      typ_to_dtyp s (TYPE_Pointer t) = DTYPE_Pointer.
+Proof.
+  intros t s.
+  apply typ_to_dtyp_equation.
+Qed.
+
+Ltac typ_to_dtyp_simplify :=
+  repeat
+    (try rewrite typ_to_dtyp_I in *;
+      try rewrite typ_to_dtyp_D in *;
+      try rewrite typ_to_dtyp_D_array in *;
+      try rewrite typ_to_dtyp_P in *).

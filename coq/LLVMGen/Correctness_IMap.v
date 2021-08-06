@@ -12,8 +12,7 @@ Require Import Helix.LLVMGen.StateCounters.
 Require Import Helix.LLVMGen.Context.
 Require Import Helix.LLVMGen.Correctness_While.
 Require Import Helix.LLVMGen.Correctness_AExpr.
-
-From Vellvm Require Import Utils.Commutation.
+Require Import Helix.LLVMGen.Pure.
 
 Require Import Paco.paco.
 From ITree Require Import ITree Eq.Eq HeterogeneousRelations.
@@ -35,22 +34,52 @@ Import MonadNotation.
 Local Open Scope monad_scope.
 Local Open Scope nat_scope.
 
-Set Implicit Arguments.
-Set Strict Implicit.
+Definition mem_eq :=
+      (fun (x y : option (memoryH * mem_block)) => match x, y with
+                  | Some (mH, m), Some (mH', m') => mH ≡ mH' /\ m = m'
+                  | None, None => True
+                  | _, _ => False end).
 
-Opaque dropVars.
-Opaque newLocalVar.
-Opaque resolve_PVar.
-Opaque incBlockNamed.
-Opaque incVoid.
-Opaque incLocal.
-Opaque genWhileLoop.
+Instance mem_eq_Equivalence : Equivalence mem_eq.
+Proof.
+  split.
+  - red. intros [ []| ]. red.
+    split; eauto. apply mem_block_Equiv_Reflexive.
+    red. auto.
+  - red. intros [ []| ] [ []| ]; red; cbn; intros []; auto.
+    split; auto. apply mem_block_Equiv_Symmetric. auto.
+  - red. intros [ []| ] [ []| ] [ []| ]; red; cbn; intros []; auto.
+    intros []. split. rewrite H. auto.
+    eapply mem_block_Equiv_Transitive; eauto.
+Qed.
 
-Import Memory.NM.
-Import ListNotations.
-Import MonadNotation.
-Local Open Scope monad_scope.
-Local Open Scope nat_scope.
+Lemma Returns_fail_throw :
+  forall T m x s, not (Returns (Some x) (interp_fail handle_failure (interp_Mem (T := T) (throw s) m))).
+Proof.
+  intros. intro abs.
+  setoid_rewrite interp_Mem_vis_eqit in abs.
+  unfold pure_state in *; cbn in *.
+  rewrite interp_fail_bind in abs.
+  rewrite interp_fail_vis in abs.
+  cbn in *.
+  rewrite Eq.bind_bind, !bind_ret_l in abs.
+  apply Returns_Ret in abs.
+  inversion abs.
+Qed.
+
+Lemma commut_gen :
+  forall {A : Type}
+    (QQ : A -> A -> Prop) `{Equivalence A QQ}
+    (t1 t2 : A -> itree void1 A) (m : A)
+    (ti1 ti2 : itree void1 A),
+    ti1 ≈ t1 m ->
+    ti2 ≈ t2 m ->
+    (eutt (fun m1' m2' => eutt QQ (t1 m1') (t2 m2')) (t2 m) (t1 m)) ->
+    (eutt (fun m1' m2' => eutt QQ (t2 m1') (t1 m2')) (t1 m) (t2 m)) ->
+    eutt QQ (a <- ti1 ;; t2 a) (a <- ti2  ;; t1 a).
+Proof.
+  intros. rewrite H0, H1. eapply eutt_clo_bind; eauto.
+Qed.
 
 Section DSHIMap_is_tfor.
 
@@ -60,8 +89,7 @@ Section DSHIMap_is_tfor.
              (f : AExpr)
              (offset : nat)
              (init acc : mem_block) : itree Event mem_block :=
-    v <-
-       lift_Derr (mem_lookup_err "Error reading memory denoteDSHIMap" offset init);;
+    v <- lift_Derr (mem_lookup_err "Error reading memory denoteDSHIMap" offset init);;
     vn <- lift_Serr (MInt64asNT.from_nat offset);;
     v'<- denoteIUnCType σ f vn v;;
     ret (mem_add offset v' acc).
@@ -116,7 +144,7 @@ Section DSHIMap_is_tfor.
       cbn. assert (n - 0 - S i ≡ n - 1 - i) by lia. rewrite H0. reflexivity.
   Qed.
 
-  Lemma eqit_Proper_mono {E}:
+  Instance eqit_Proper_mono {E}:
     forall A B : Type, Proper (@subrelationH A B ==> subrelationH (B:=itree E B)) eutt.
   Proof.
   - intros A B. do 3 red.
@@ -136,810 +164,33 @@ Section DSHIMap_is_tfor.
       destruct H.
   Qed.
 
-  Lemma eq_rev :
-    forall σ f n x y
-      (swap_body :
-        forall (n : nat) (σ : evalContext) (f : AExpr) (x : mem_block) (n0 : nat) (u2 : mem_block),
-          eutt eq (ITree.subst (fun x0 : mem_block => DSHIMap_body σ f n0 x x0) (DSHIMap_body σ f n x u2))
-                (ITree.subst (fun x0 : mem_block => DSHIMap_body σ f n x x0) (DSHIMap_body σ f n0 x u2))),
-      DSHIMap_tfor_up σ f 0 n x y ≈ DSHIMap_tfor_down σ f 0 n n x y.
-  Proof.
-    unfold DSHIMap_tfor_up, DSHIMap_tfor_down.
-    intros. revert σ f x y.
-    Opaque DSHIMap_body.
-    induction n. intros. cbn.
-    - rewrite! tfor_0. reflexivity.
-    - intros. setoid_rewrite tfor_unroll at 2.
-      cbn. 2 : lia.
-      assert (EQ : n - 0 - 0 ≡ n) by lia; rewrite EQ; clear EQ.
-      assert (EQ : n - 0 ≡ n) by lia; rewrite EQ; clear EQ.
-      etransitivity; cycle 1.
-      eapply eutt_clo_bind. reflexivity.
-      intros * ->.
-      setoid_rewrite tfor_ss_dep at 2. reflexivity. intros. 2 : lia.
-      Unshelve. 3 : exact (fun i x0 => DSHIMap_body σ f (n - 1 - i) x x0). cbn.
-      assert (EQ : n - S i ≡ n - 1 - i) by lia; rewrite EQ; clear EQ.
-      reflexivity.
-      etransitivity; cycle 1.
-
-      eapply eutt_clo_bind. reflexivity. intros * ->. setoid_rewrite <- IHn at 2; reflexivity.
-
-      setoid_rewrite tfor_split with (j := n) at 1. 2, 3 : lia.
-      clear IHn.
-      etransitivity. eapply eutt_clo_bind. reflexivity. intros * ->.
-      setoid_rewrite tfor_unroll at 1. setoid_rewrite tfor_0 at 1. setoid_rewrite bind_ret_r at 1.
-      reflexivity. lia.
-      remember n.
-      remember (λ x0 : mem_block, DSHIMap_body σ f n0 x x0).
-      rewrite Heqn0. clear Heqn0. subst.
-      revert x y n0.
-      induction n.
-      + intros. setoid_rewrite tfor_0.
-        rewrite bind_ret_l. etransitivity; cycle 1.
-        eapply eutt_clo_bind. reflexivity. intros * ->.
-        setoid_rewrite tfor_0 at 2. Unshelve. 3 : exact ret. reflexivity.
-        rewrite bind_ret_r. reflexivity.
-      + intros. setoid_rewrite tfor_split with (j := n) at 1. 2, 3 : lia.
-        etransitivity. eapply eutt_clo_bind. eapply eutt_clo_bind.
-        reflexivity. intros * ->.
-        setoid_rewrite tfor_unroll at 1. setoid_rewrite tfor_0 at 1. setoid_rewrite bind_ret_r at 1.
-        reflexivity. lia. intros * ->. reflexivity.
-        etransitivity; cycle 1.
-        eapply eutt_clo_bind.
-        reflexivity. intros * ->. cbn.
-        setoid_rewrite tfor_split with (j := n) at 2.
-        eapply eutt_clo_bind. reflexivity. intros * ->.
-        setoid_rewrite tfor_unroll at 2. setoid_rewrite tfor_0 at 2. setoid_rewrite bind_ret_r at 2.
-        reflexivity. lia. lia. lia. cbn.
-        rewrite <- bind_bind.
-        rewrite <- IHn.
-        rewrite !bind_bind.
-        eapply eutt_clo_bind. reflexivity.
-        intros * ->.
-        clear IHn.
-        apply swap_body.
-  Qed.
-
-
-  Lemma Returns_fail_throw :
-    forall T m x s, not (Returns (Some x) (interp_fail handle_failure (interp_Mem (T := T) (throw s) m))).
-  Proof.
-    intros. intro abs.
-    setoid_rewrite interp_Mem_vis_eqit in abs.
-    unfold pure_state in *; cbn in *.
-    rewrite interp_fail_bind in abs.
-    rewrite interp_fail_vis in abs.
-    cbn in *.
-    rewrite Eq.bind_bind, !bind_ret_l in abs.
-    apply Returns_Ret in abs.
-    inversion abs.
-  Qed.
-
-  Lemma commut_gen''' :
-    forall {A : Type}
-      (QQ : A -> A -> Prop) `{Equivalence A QQ}
-      (t1 t2 : A -> itree void1 A) (m : A)
-      (ti1 ti2 : itree void1 A),
-      ti1 ≈ t1 m ->
-      ti2 ≈ t2 m ->
-      (eutt (fun m1' m2' => eutt QQ (t1 m1') (t2 m2')) (t2 m) (t1 m)) ->
-      (eutt (fun m1' m2' => eutt QQ (t2 m1') (t1 m2')) (t1 m) (t2 m)) ->
-      eutt QQ (a <- ti1 ;; t2 a) (a <- ti2  ;; t1 a).
-  Proof.
-    intros. rewrite H0, H1. eapply eutt_clo_bind; eauto.
-  Qed.
-
-
   Ltac interp_MF_ret := setoid_rewrite interp_Mem_ret; setoid_rewrite interp_fail_ret; cbn.
   Ltac interp_MF_bind := setoid_rewrite interp_Mem_bind; setoid_rewrite interp_fail_bind; cbn.
 
-  Lemma genMExpr_correct_pure :
-    forall (* Helix  bits *)   (mexp: MExpr) (σ: evalContext) (memH: memoryH),
-      no_failure (interp_helix (E := E_cfg) (denoteMExpr σ mexp) memH) -> (* Source semantics defined *)
-      exists t, eutt eq (interp_fail handle_failure (interp_Mem (denoteMExpr σ mexp) memH)) (Ret (Some (memH, t))).
-  Proof.
-    intros * NOFAIL.
-    destruct mexp as [[vid] | mblock]; cbn* in *; simp.
-    unfold denoteMExpr, denotePExpr in *; cbn* in *.
-
-    simp; try_abs. subst.
-    setoid_rewrite bind_ret_l.
-    setoid_rewrite bind_ret_l in NOFAIL.
-    2 : { interp_MF_ret. eexists. reflexivity. }
-    interp_MF_bind.
-    unfold interp_Mem.
-    setoid_rewrite interp_state_trigger.
-    cbn* in *.
-
-    assert (NOFAIL' := NOFAIL).
-
-    setoid_rewrite interp_helix_bind in NOFAIL.
-    unfold interp_helix, interp_Mem in NOFAIL.
-
-    apply no_failure_bind_prefix in NOFAIL.
-
-    unfold Exception.throw in *.
-    unfold interp_helix in *.
-
-    unfold interp_fail in NOFAIL.
-    setoid_rewrite interp_state_vis in NOFAIL.
-    unfold pure_state in *; cbn in *.
-    setoid_rewrite interp_fail_bind in NOFAIL.
-
-    cbn* in *. simp; try_abs. exfalso.
-
-    setoid_rewrite interp_fail_vis in NOFAIL.
-    cbn in *.
-    rewrite Eq.bind_bind, !bind_ret_l in NOFAIL.
-    rewrite translate_ret in NOFAIL. red in NOFAIL. red in NOFAIL.
-    apply eutt_Ret in NOFAIL.
-    apply NOFAIL; auto.
-    clear NOFAIL.
-
-    setoid_rewrite interp_fail_ret. setoid_rewrite bind_ret_l.
-    eexists.
-    setoid_rewrite interp_state_ret.
-    setoid_rewrite interp_fail_ret.
-    cbn. reflexivity.
-  Qed.
-
-
-  Lemma genNExpr_correct_pure :
-    forall (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH),
-      no_failure (interp_helix (E := E_cfg) (denoteNExpr σ nexp) memH) -> (* Source semantics defined *)
-      exists t, eutt eq (interp_fail handle_failure (interp_Mem (denoteNExpr σ nexp) memH)) (Ret (Some (memH, t))).
-  Proof.
-    intros nexp; induction nexp; intros * NOFAIL.
-    - (* Variable case *)
-      (* Reducing the successful compilation *)
-      simp.
-      (* The variable maps to an integer in the IRState *)
-      unfold denoteNExpr in *; cbn* in *; simp; try_abs.
-      interp_MF_ret. eexists. reflexivity.
-
-    - (* Const *)
-      unfold denoteNExpr in *; cbn in *; simp; try_abs.
-      interp_MF_ret. eexists. reflexivity.
-
-    - (* NDiv *)
-      cbn* in *; simp; try_abs.
-      interp_MF_bind.
-      clean_goal.
-
-
-      edestruct IHnexp1.
-      assert (NOFAIL' := NOFAIL).
-      apply no_failure_helix_bind_prefix in NOFAIL'; eauto.
-      setoid_rewrite H.
-      setoid_rewrite bind_ret_l.
-
-      edestruct IHnexp2.
-      rewrite interp_helix_bind in NOFAIL.
-      unfold interp_helix at 1 in NOFAIL.
-      setoid_rewrite H in NOFAIL.
-      rewrite translate_ret in NOFAIL. rewrite bind_ret_l in NOFAIL.
-      rewrite interp_helix_bind in NOFAIL.
-      eapply no_failure_bind_prefix in NOFAIL; eauto.
-
-      interp_MF_bind.
-      setoid_rewrite H0.
-      setoid_rewrite bind_ret_l.
-      rewrite interp_helix_bind in NOFAIL.
-      unfold interp_helix at 1 in NOFAIL.
-      setoid_rewrite H in NOFAIL.
-      rewrite translate_ret in NOFAIL. rewrite bind_ret_l in NOFAIL.
-      rewrite interp_helix_bind in NOFAIL.
-
-      unfold interp_helix at 1 in NOFAIL.
-      setoid_rewrite H0 in NOFAIL.
-      rewrite translate_ret in NOFAIL. rewrite bind_ret_l in NOFAIL.
-
-      destruct (MInt64asNT.NTypeEqDec x0 MInt64asNT.NTypeZero ).
-      try_abs.
-
-      interp_MF_ret. eexists. reflexivity.
-
-    - (* NMod *)
-      cbn* in *; simp; try_abs.
-      interp_MF_bind.
-      clean_goal.
-
-      edestruct IHnexp1.
-      assert (NOFAIL' := NOFAIL).
-      apply no_failure_helix_bind_prefix in NOFAIL'; eauto.
-      setoid_rewrite H.
-      setoid_rewrite bind_ret_l.
-
-      edestruct IHnexp2.
-      rewrite interp_helix_bind in NOFAIL.
-      unfold interp_helix at 1 in NOFAIL.
-      setoid_rewrite H in NOFAIL.
-      rewrite translate_ret in NOFAIL. rewrite bind_ret_l in NOFAIL.
-      rewrite interp_helix_bind in NOFAIL.
-      eapply no_failure_bind_prefix in NOFAIL; eauto.
-
-      interp_MF_bind.
-      setoid_rewrite H0.
-      setoid_rewrite bind_ret_l.
-      rewrite interp_helix_bind in NOFAIL.
-      unfold interp_helix at 1 in NOFAIL.
-      setoid_rewrite H in NOFAIL.
-      rewrite translate_ret in NOFAIL. rewrite bind_ret_l in NOFAIL.
-      rewrite interp_helix_bind in NOFAIL.
-
-      unfold interp_helix at 1 in NOFAIL.
-      setoid_rewrite H0 in NOFAIL.
-      rewrite translate_ret in NOFAIL. rewrite bind_ret_l in NOFAIL.
-
-      destruct (MInt64asNT.NTypeEqDec x0 MInt64asNT.NTypeZero ).
-      try_abs.
-
-      interp_MF_ret. eexists. reflexivity.
-
-   - (* NAdd *)
-
-      cbn* in *; simp; try_abs.
-      interp_MF_bind.
-      clean_goal.
-
-      edestruct IHnexp1.
-      assert (NOFAIL' := NOFAIL).
-      apply no_failure_helix_bind_prefix in NOFAIL'; eauto.
-      setoid_rewrite H.
-      setoid_rewrite bind_ret_l.
-
-      edestruct IHnexp2.
-      rewrite interp_helix_bind in NOFAIL.
-      unfold interp_helix at 1 in NOFAIL.
-      setoid_rewrite H in NOFAIL.
-      rewrite translate_ret in NOFAIL. rewrite bind_ret_l in NOFAIL.
-      rewrite interp_helix_bind in NOFAIL.
-      eapply no_failure_bind_prefix in NOFAIL; eauto.
-
-      interp_MF_bind.
-      setoid_rewrite H0.
-      setoid_rewrite bind_ret_l.
-      rewrite interp_helix_bind in NOFAIL.
-      unfold interp_helix at 1 in NOFAIL.
-      setoid_rewrite H in NOFAIL.
-      rewrite translate_ret in NOFAIL. rewrite bind_ret_l in NOFAIL.
-      rewrite interp_helix_bind in NOFAIL.
-
-      unfold interp_helix at 1 in NOFAIL.
-      setoid_rewrite H0 in NOFAIL.
-      rewrite translate_ret in NOFAIL. rewrite bind_ret_l in NOFAIL.
-
-      destruct (MInt64asNT.NTypeEqDec x0 MInt64asNT.NTypeZero ).
-      try_abs.
-
-      interp_MF_ret. eexists. reflexivity.
-      interp_MF_ret. eexists. reflexivity.
-       
-   - (* NMinus *)
-
-
-      cbn* in *; simp; try_abs.
-      interp_MF_bind.
-      clean_goal.
-
-      edestruct IHnexp1.
-      assert (NOFAIL' := NOFAIL).
-      apply no_failure_helix_bind_prefix in NOFAIL'; eauto.
-      setoid_rewrite H.
-      setoid_rewrite bind_ret_l.
-
-      edestruct IHnexp2.
-      rewrite interp_helix_bind in NOFAIL.
-      unfold interp_helix at 1 in NOFAIL.
-      setoid_rewrite H in NOFAIL.
-      rewrite translate_ret in NOFAIL. rewrite bind_ret_l in NOFAIL.
-      rewrite interp_helix_bind in NOFAIL.
-      eapply no_failure_bind_prefix in NOFAIL; eauto.
-
-      interp_MF_bind.
-      setoid_rewrite H0.
-      setoid_rewrite bind_ret_l.
-      rewrite interp_helix_bind in NOFAIL.
-      unfold interp_helix at 1 in NOFAIL.
-      setoid_rewrite H in NOFAIL.
-      rewrite translate_ret in NOFAIL. rewrite bind_ret_l in NOFAIL.
-      rewrite interp_helix_bind in NOFAIL.
-
-      unfold interp_helix at 1 in NOFAIL.
-      setoid_rewrite H0 in NOFAIL.
-      rewrite translate_ret in NOFAIL. rewrite bind_ret_l in NOFAIL.
-
-      destruct (MInt64asNT.NTypeEqDec x0 MInt64asNT.NTypeZero ).
-      try_abs.
-
-      interp_MF_ret. eexists. reflexivity.
-      interp_MF_ret. eexists. reflexivity.
-
-    - (* NMult *)
-      cbn* in *; simp; try_abs.
-      interp_MF_bind.
-      clean_goal.
-
-      edestruct IHnexp1.
-      assert (NOFAIL' := NOFAIL).
-      apply no_failure_helix_bind_prefix in NOFAIL'; eauto.
-      setoid_rewrite H.
-      setoid_rewrite bind_ret_l.
-
-      edestruct IHnexp2.
-      rewrite interp_helix_bind in NOFAIL.
-      unfold interp_helix at 1 in NOFAIL.
-      setoid_rewrite H in NOFAIL.
-      rewrite translate_ret in NOFAIL. rewrite bind_ret_l in NOFAIL.
-      rewrite interp_helix_bind in NOFAIL.
-      eapply no_failure_bind_prefix in NOFAIL; eauto.
-
-      interp_MF_bind.
-      setoid_rewrite H0.
-      setoid_rewrite bind_ret_l.
-      rewrite interp_helix_bind in NOFAIL.
-      unfold interp_helix at 1 in NOFAIL.
-      setoid_rewrite H in NOFAIL.
-      rewrite translate_ret in NOFAIL. rewrite bind_ret_l in NOFAIL.
-      rewrite interp_helix_bind in NOFAIL.
-
-      unfold interp_helix at 1 in NOFAIL.
-      setoid_rewrite H0 in NOFAIL.
-      rewrite translate_ret in NOFAIL. rewrite bind_ret_l in NOFAIL.
-
-      destruct (MInt64asNT.NTypeEqDec x0 MInt64asNT.NTypeZero ).
-      try_abs.
-
-      interp_MF_ret. eexists. reflexivity.
-      interp_MF_ret. eexists. reflexivity.
-
-    - (* NMin *)
-      cbn* in *; simp; try_abs.
-      interp_MF_bind.
-      clean_goal.
-
-      edestruct IHnexp1.
-      assert (NOFAIL' := NOFAIL).
-      apply no_failure_helix_bind_prefix in NOFAIL'; eauto.
-      setoid_rewrite H.
-      setoid_rewrite bind_ret_l.
-
-      edestruct IHnexp2.
-      rewrite interp_helix_bind in NOFAIL.
-      unfold interp_helix at 1 in NOFAIL.
-      setoid_rewrite H in NOFAIL.
-      rewrite translate_ret in NOFAIL. rewrite bind_ret_l in NOFAIL.
-      rewrite interp_helix_bind in NOFAIL.
-      eapply no_failure_bind_prefix in NOFAIL; eauto.
-
-      interp_MF_bind.
-      setoid_rewrite H0.
-      setoid_rewrite bind_ret_l.
-      rewrite interp_helix_bind in NOFAIL.
-      unfold interp_helix at 1 in NOFAIL.
-      setoid_rewrite H in NOFAIL.
-      rewrite translate_ret in NOFAIL. rewrite bind_ret_l in NOFAIL.
-      rewrite interp_helix_bind in NOFAIL.
-
-      unfold interp_helix at 1 in NOFAIL.
-      setoid_rewrite H0 in NOFAIL.
-      rewrite translate_ret in NOFAIL. rewrite bind_ret_l in NOFAIL.
-
-      destruct (MInt64asNT.NTypeEqDec x0 MInt64asNT.NTypeZero ).
-      try_abs.
-
-      interp_MF_ret. eexists. reflexivity.
-      interp_MF_ret. eexists. reflexivity.
-
-    - (* NMax *)
-
-      cbn* in *; simp; try_abs.
-      interp_MF_bind.
-      clean_goal.
-
-      edestruct IHnexp1.
-      assert (NOFAIL' := NOFAIL).
-      apply no_failure_helix_bind_prefix in NOFAIL'; eauto.
-      setoid_rewrite H.
-      setoid_rewrite bind_ret_l.
-
-      edestruct IHnexp2.
-      rewrite interp_helix_bind in NOFAIL.
-      unfold interp_helix at 1 in NOFAIL.
-      setoid_rewrite H in NOFAIL.
-      rewrite translate_ret in NOFAIL. rewrite bind_ret_l in NOFAIL.
-      rewrite interp_helix_bind in NOFAIL.
-      eapply no_failure_bind_prefix in NOFAIL; eauto.
-
-      interp_MF_bind.
-      setoid_rewrite H0.
-      setoid_rewrite bind_ret_l.
-      rewrite interp_helix_bind in NOFAIL.
-      unfold interp_helix at 1 in NOFAIL.
-      setoid_rewrite H in NOFAIL.
-      rewrite translate_ret in NOFAIL. rewrite bind_ret_l in NOFAIL.
-      rewrite interp_helix_bind in NOFAIL.
-
-      unfold interp_helix at 1 in NOFAIL.
-      setoid_rewrite H0 in NOFAIL.
-      rewrite translate_ret in NOFAIL. rewrite bind_ret_l in NOFAIL.
-
-      destruct (MInt64asNT.NTypeEqDec x0 MInt64asNT.NTypeZero ).
-      try_abs.
-
-      interp_MF_ret. eexists. reflexivity.
-      interp_MF_ret. eexists. reflexivity.
-  Qed.
-
-
-  Lemma genAExpr_correct_helix_pure :
-    forall (aexp: AExpr) (σ: evalContext) (memH: memoryH),
-      no_failure (interp_helix (E := E_cfg) (denoteAExpr σ aexp) memH) -> (* Source semantics defined *)
-      exists t, eutt eq (interp_fail handle_failure (interp_Mem (denoteAExpr σ aexp) memH)) (Ret (Some (memH, t))).
-  Proof.
-    intros aexp; induction aexp; intros * NOFAIL.
-    - (* Variable case *)
-      (* Reducing the compilation *)
-      (* The variable maps to an integer in the IRState *)
-      unfold denoteAExpr in *; cbn* in *.
-      simp; try_abs.
-      setoid_rewrite bind_ret_l.
-      break_inner_match_goal; try_abs.
-
-      interp_MF_ret. eexists. reflexivity.
-    - (* Constant *)
-      cbn* in *; simp.
-
-      interp_MF_ret.
-      eexists. reflexivity.
-
-    - (* ANth m n: lookup to m[n] *)
-      cbn* in *; simp.
-
-
-
-      edestruct genNExpr_correct_pure. apply no_failure_helix_bind_prefix in NOFAIL; eauto.
-
-      interp_MF_bind. setoid_rewrite H.
-      setoid_rewrite bind_ret_l.
-
-      edestruct genMExpr_correct_pure.
-
-      setoid_rewrite interp_helix_bind in NOFAIL.
-      unfold interp_helix at 1 in NOFAIL.
-      setoid_rewrite H in NOFAIL.
-      rewrite translate_ret in NOFAIL. rewrite bind_ret_l in NOFAIL.
-
-      apply no_failure_helix_bind_prefix in NOFAIL.
-      eauto.
-
-      interp_MF_bind. setoid_rewrite H0.
-      setoid_rewrite bind_ret_l. destruct x0.
-
-      setoid_rewrite interp_helix_bind in NOFAIL.
-      unfold interp_helix at 1 in NOFAIL.
-      setoid_rewrite H in NOFAIL.
-      rewrite translate_ret in NOFAIL. rewrite bind_ret_l in NOFAIL.
-
-      setoid_rewrite interp_helix_bind in NOFAIL.
-      unfold interp_helix at 1 in NOFAIL.
-      setoid_rewrite H0 in NOFAIL.
-      rewrite translate_ret in NOFAIL. rewrite bind_ret_l in NOFAIL.
-
-      simp; try_abs. setoid_rewrite bind_ret_l.
-      interp_MF_ret. eexists. reflexivity.
-
-    - (* AAbs *) 
-      cbn* in *; simp.
-      edestruct IHaexp; eauto.
-
-
-      interp_MF_bind.
-      setoid_rewrite H.
-      setoid_rewrite bind_ret_l.
-      interp_MF_ret.
-      eexists. reflexivity.
-
-    - (* APlus *)
-      cbn* in *; simp...
-      interp_MF_bind.
-      edestruct IHaexp1; eauto.
-
-      setoid_rewrite H.
-      setoid_rewrite bind_ret_l.
-
-      eapply no_failure_helix_bind_continuation in NOFAIL; [| ]. eapply eutt_translate_gen in H.
-      2 : { unfold interp_helix. rewrite H; eauto; econstructor. rewrite translate_ret. reflexivity. }
-      edestruct IHaexp2. eauto.
-      apply no_failure_helix_bind_prefix in NOFAIL. eauto.
-      interp_MF_bind ; setoid_rewrite H0;
-        setoid_rewrite bind_ret_l.
-      eexists; interp_MF_ret; cbn; reflexivity.
-
-    - (* AMinus *)
-
-      cbn* in *; simp...
-      interp_MF_bind.
-      edestruct IHaexp1; eauto.
-
-      setoid_rewrite H.
-      setoid_rewrite bind_ret_l.
-
-      eapply no_failure_helix_bind_continuation in NOFAIL; [| ]. eapply eutt_translate_gen in H.
-      2 : { unfold interp_helix. rewrite H; eauto; econstructor. rewrite translate_ret. reflexivity. }
-      edestruct IHaexp2. eauto.
-      apply no_failure_helix_bind_prefix in NOFAIL. eauto.
-      interp_MF_bind ; setoid_rewrite H0;
-        setoid_rewrite bind_ret_l.
-      eexists; interp_MF_ret; cbn; reflexivity .
-
-    - (* AMult *)
-
-      cbn* in *; simp...
-      interp_MF_bind.
-      edestruct IHaexp1; eauto.
-
-      setoid_rewrite H.
-      setoid_rewrite bind_ret_l.
-
-      eapply no_failure_helix_bind_continuation in NOFAIL; [| ]. eapply eutt_translate_gen in H.
-      2 : { unfold interp_helix. rewrite H; eauto; econstructor. rewrite translate_ret. reflexivity. }
-      edestruct IHaexp2. eauto.
-      apply no_failure_helix_bind_prefix in NOFAIL. eauto.
-      interp_MF_bind ; setoid_rewrite H0;
-        setoid_rewrite bind_ret_l.
-      eexists; interp_MF_ret; cbn; reflexivity .
-
-    - (* AMin *)
-
-      cbn* in *; simp...
-      interp_MF_bind.
-      edestruct IHaexp1; eauto.
-
-      setoid_rewrite H.
-      setoid_rewrite bind_ret_l.
-
-      eapply no_failure_helix_bind_continuation in NOFAIL; [| ]. eapply eutt_translate_gen in H.
-      2 : { unfold interp_helix. rewrite H; eauto; econstructor. rewrite translate_ret. reflexivity. }
-      edestruct IHaexp2. eauto.
-      apply no_failure_helix_bind_prefix in NOFAIL. eauto.
-      interp_MF_bind ; setoid_rewrite H0;
-        setoid_rewrite bind_ret_l.
-      eexists; interp_MF_ret; cbn; reflexivity .
-
-
-    - (* AMax *)
-
-      cbn* in *; simp...
-      interp_MF_bind.
-      edestruct IHaexp1; eauto.
-
-      setoid_rewrite H.
-      setoid_rewrite bind_ret_l.
-
-      eapply no_failure_helix_bind_continuation in NOFAIL; [| ]. eapply eutt_translate_gen in H.
-      2 : { unfold interp_helix. rewrite H; eauto; econstructor. rewrite translate_ret. reflexivity. }
-      edestruct IHaexp2. eauto.
-      apply no_failure_helix_bind_prefix in NOFAIL. eauto.
-      interp_MF_bind ; setoid_rewrite H0;
-        setoid_rewrite bind_ret_l.
-      eexists; interp_MF_ret; cbn; reflexivity .
-
-    - (* AZless *)
-
-      cbn* in *; simp...
-      interp_MF_bind.
-      edestruct IHaexp1; eauto.
-
-      setoid_rewrite H.
-      setoid_rewrite bind_ret_l.
-
-      eapply no_failure_helix_bind_continuation in NOFAIL; [| ]. eapply eutt_translate_gen in H.
-      2 : { unfold interp_helix. rewrite H; eauto; econstructor. rewrite translate_ret. reflexivity. }
-      edestruct IHaexp2. eauto.
-      apply no_failure_helix_bind_prefix in NOFAIL. eauto.
-      interp_MF_bind ; setoid_rewrite H0;
-        setoid_rewrite bind_ret_l.
-      eexists; interp_MF_ret; cbn; reflexivity .
-      Unshelve.
-      all : try eauto.
-      all : intros * [].
-  Qed.
-
-
-  Lemma interp_fail_throw :
-    forall T s mH, interp_fail handle_failure (interp_Mem (T := T) (throw s) mH) ≈ Ret None.
-  Proof.
-    intros. setoid_rewrite interp_Mem_vis_eqit.
-    unfold pure_state in *; cbn in *.
-    rewrite !interp_fail_bind.
-    rewrite !interp_fail_vis.
-    cbn in *.
-    rewrite Eq.bind_bind, !bind_ret_l. reflexivity.
-  Qed.
-
-  Ltac fail_f := left;
-                 solve [ rewrite bind_ret_l; reflexivity | unfold Dfail, Sfail; rewrite interp_fail_throw; reflexivity ].
-  Ltac ret_f := right; setoid_rewrite interp_Mem_ret; setoid_rewrite interp_fail_ret; cbn; eexists; reflexivity.
-
-  Ltac break_classic name :=
-    match goal with
-    | [ H : forall (σ : evalContext) (memH : memoryH),
-          interp_fail handle_failure (interp_Mem (denoteNExpr σ ?nexp1) memH) ≈ Ret None \/ _ |-
-          ITree.bind (interp_fail _ (interp_Mem (denoteNExpr _ ?nexp1) _)) _ ≈ _ \/ _] =>
-      edestruct H as [name | (? & name)]
-    end.
-
-  Ltac fail_or_ret := solve [fail_f | ret_f].
-
-  Ltac fr_crush He1 He2 :=
-    cbn* in *; interp_MF_bind;
-    break_classic He1; setoid_rewrite He1;
-      [ fail_f | setoid_rewrite bind_ret_l; interp_MF_bind;
-                break_classic He2;
-                setoid_rewrite He2; [fail_f | setoid_rewrite bind_ret_l; try break_match; fail_or_ret ]].
-
-  Lemma genNExpr_correct_pure_classic :
-    forall (* Helix  bits *)   (nexp: NExpr) (σ: evalContext) (memH: memoryH),
-      eutt eq (interp_fail handle_failure (interp_Mem (denoteNExpr σ nexp) memH)) (Ret None) \/
-      exists t, eutt eq (interp_fail handle_failure (interp_Mem (denoteNExpr σ nexp) memH)) (Ret (Some (memH, t))).
-  Proof.
-    intros nexp; induction nexp; intros *.
-    all : try solve [unfold denoteNExpr; fail_or_ret |
-                  unfold denoteNExpr in *; cbn* in *; break_match; simp; fail_or_ret |
-                  fr_crush He1 He2].
-  Qed.
-
-  Lemma genMExpr_correct_pure_classic :
-    forall (* Helix  bits *)   (mexp: MExpr) (σ: evalContext) (memH: memoryH),
-    eutt eq (interp_fail handle_failure (interp_Mem (denoteMExpr σ mexp) memH)) (Ret None) \/
-      exists t, eutt eq (interp_fail handle_failure (interp_Mem (denoteMExpr σ mexp) memH)) (Ret (Some (memH, t))).
-  Proof.
-    intros mexp; induction mexp; intros *; unfold denoteMExpr, denotePExpr in *; cbn* in *.
-
-    - break_match; simp; try_abs.
-      interp_MF_bind. rewrite interp_fail_throw.
-      setoid_rewrite bind_ret_l. left. reflexivity.
-      setoid_rewrite bind_ret_l.
-      interp_MF_bind.
-      unfold interp_Mem.
-      setoid_rewrite interp_state_trigger.
-      cbn. break_match.
-      cbn. setoid_rewrite interp_fail_vis. cbn.
-      setoid_rewrite bind_ret_l. left. setoid_rewrite bind_ret_l. reflexivity.
-      cbn. setoid_rewrite interp_fail_ret. cbn.
-      setoid_rewrite bind_ret_l.
-      setoid_rewrite interp_state_ret. setoid_rewrite interp_fail_ret. right.
-      eexists. cbn. reflexivity.
-    - interp_MF_ret. right. eexists. reflexivity.
-  Qed.
-
-  Lemma genAExpr_correct_helix_pure_classic :
-    forall (aexp: AExpr) (σ: evalContext) (memH: memoryH),
-    eutt eq (interp_fail handle_failure (interp_Mem (denoteAExpr σ aexp) memH)) (Ret None) \/
-      exists t, eutt eq (interp_fail handle_failure (interp_Mem (denoteAExpr σ aexp) memH)) (Ret (Some (memH, t))).
-  Proof.
-    intros aexp; induction aexp; intros *.
-    - (* Variable case *)
-      (* Reducing the compilation *)
-      (* The variable maps to an integer in the IRState *)
-      unfold denoteAExpr in *; cbn* in *; break_match; simp; interp_MF_bind.
-      left. rewrite interp_fail_throw, bind_ret_l. reflexivity.
-      interp_MF_ret.
-      setoid_rewrite bind_ret_l.
-      break_match; simp; fail_or_ret.
-    - (* Constant *)
-      cbn* in *; ret_f.
-    - (* ANth m n: lookup to m[n] *)
-      cbn* in *.
-      edestruct genNExpr_correct_pure_classic with (nexp := n) as [? | (? & ?)];
-        interp_MF_bind; setoid_rewrite H.
-      setoid_rewrite bind_ret_l.
-      left; reflexivity.
-      setoid_rewrite bind_ret_l.
-      edestruct genMExpr_correct_pure_classic with (mexp := m) as [? | (? & ?)];
-        interp_MF_bind; setoid_rewrite H0.
-      setoid_rewrite bind_ret_l. left; reflexivity.
-      setoid_rewrite bind_ret_l. destruct x0.
-      break_match; simp; break_match; simp.
-      left. interp_MF_bind. rewrite interp_fail_throw. rewrite bind_ret_l. reflexivity.
-      left. interp_MF_bind. rewrite interp_fail_throw. rewrite bind_ret_l. reflexivity.
-      left. cbn. rewrite bind_ret_l. rewrite interp_fail_throw. reflexivity.
-      right. setoid_rewrite bind_ret_l. interp_MF_ret. eexists; reflexivity.
-    - (* AAbs *) 
-      cbn* in *; simp.
-      edestruct IHaexp; eauto.
-
-      interp_MF_bind.
-      setoid_rewrite H.
-      setoid_rewrite bind_ret_l. left; reflexivity.
-      destruct H. interp_MF_bind. setoid_rewrite H.
-      setoid_rewrite bind_ret_l. interp_MF_ret.
-      right. eexists. reflexivity.
-
-    (* - (* APlus *) *)
-    - cbn* in *; simp;
-      edestruct IHaexp1 as [He1 | (? & He1)]; interp_MF_bind; setoid_rewrite He1;
-      setoid_rewrite bind_ret_l; [left; reflexivity |
-      edestruct IHaexp2 as [He2 | (? & He2)]; interp_MF_bind; setoid_rewrite He2; setoid_rewrite bind_ret_l;
-      [left; reflexivity |
-      right; interp_MF_ret; eexists; reflexivity]].
-
-
-    - cbn* in *; simp;
-      edestruct IHaexp1 as [He1 | (? & He1)]; interp_MF_bind; setoid_rewrite He1;
-      setoid_rewrite bind_ret_l; [left; reflexivity |
-      edestruct IHaexp2 as [He2 | (? & He2)]; interp_MF_bind; setoid_rewrite He2; setoid_rewrite bind_ret_l;
-      [left; reflexivity |
-      right; interp_MF_ret; eexists; reflexivity]].
-
-    - cbn* in *; simp;
-      edestruct IHaexp1 as [He1 | (? & He1)]; interp_MF_bind; setoid_rewrite He1;
-      setoid_rewrite bind_ret_l; [left; reflexivity |
-      edestruct IHaexp2 as [He2 | (? & He2)]; interp_MF_bind; setoid_rewrite He2; setoid_rewrite bind_ret_l;
-      [left; reflexivity |
-      right; interp_MF_ret; eexists; reflexivity]].
-
-    - cbn* in *; simp;
-      edestruct IHaexp1 as [He1 | (? & He1)]; interp_MF_bind; setoid_rewrite He1;
-      setoid_rewrite bind_ret_l; [left; reflexivity |
-      edestruct IHaexp2 as [He2 | (? & He2)]; interp_MF_bind; setoid_rewrite He2; setoid_rewrite bind_ret_l;
-      [left; reflexivity |
-      right; interp_MF_ret; eexists; reflexivity]].
-
-    - cbn* in *; simp;
-      edestruct IHaexp1 as [He1 | (? & He1)]; interp_MF_bind; setoid_rewrite He1;
-      setoid_rewrite bind_ret_l; [left; reflexivity |
-      edestruct IHaexp2 as [He2 | (? & He2)]; interp_MF_bind; setoid_rewrite He2; setoid_rewrite bind_ret_l;
-      [left; reflexivity |
-      right; interp_MF_ret; eexists; reflexivity]].
-
-    - cbn* in *; simp;
-      edestruct IHaexp1 as [He1 | (? & He1)]; interp_MF_bind; setoid_rewrite He1;
-      setoid_rewrite bind_ret_l; [left; reflexivity |
-      edestruct IHaexp2 as [He2 | (? & He2)]; interp_MF_bind; setoid_rewrite He2; setoid_rewrite bind_ret_l;
-      [left; reflexivity |
-      right; interp_MF_ret; eexists; reflexivity]].
-Qed. (* TODO: crush-ey Ltac.. *)
-
-
-  Definition mem_eq :=
-        (fun (x y : option (memoryH * mem_block)) => match x, y with
-                    | Some (mH, m), Some (mH', m') => mH ≡ mH' /\ m = m'
-                    | None, None => True
-                    | _, _ => False end).
-
-  Instance mem_eq_Equivalence : Equivalence mem_eq.
-  Proof.
-    split.
-    - red. intros [ []| ]. red.
-      split; eauto. apply mem_block_Equiv_Reflexive.
-      red. auto.
-    - red. intros [ []| ] [ []| ]; red; cbn; intros []; auto.
-      split; auto. apply mem_block_Equiv_Symmetric. auto.
-    - red. intros [ []| ] [ []| ] [ []| ]; red; cbn; intros []; auto.
-      intros []. split. rewrite H. auto.
-      eapply mem_block_Equiv_Transitive; eauto.
-  Qed.
+  Ltac final := apply eqit_Ret; eauto.
+  Ltac step :=
+    first [progress vred_E3 | vred_I3];
+    rewrite 1?interp_Mem_ret, 1?interp_fail_ret, 1?bind_ret_l;
+    rewrite 1?interp_Mem_bind, 1?interp_fail_bind, 1?bind_bind;
+    rewrite 1?interp_fail_throw, 1?bind_ret_l; cbn.
 
   Lemma swap_body_interp:
     forall (n n' : nat) (σ : evalContext) (f : AExpr) (x : mem_block) mH init,
-      eutt (E := E_cfg) mem_eq
-        (interp_helix (a <- DSHIMap_body σ f n x init ;; DSHIMap_body σ f n' x a) mH)
-        (interp_helix (a <- DSHIMap_body σ f n' x init ;; DSHIMap_body σ f n x a) mH).
+    eutt (E := E_cfg) mem_eq
+            (interp_helix (a <- DSHIMap_body σ f n x init ;; DSHIMap_body σ f n' x a) mH)
+            (interp_helix (a <- DSHIMap_body σ f n' x init ;; DSHIMap_body σ f n x a) mH).
   Proof.
     intros *.
+
 
     eapply eutt_translate_gen.
     Transparent DSHIMap_body.
     cbn.
-    rewrite interp_Mem_bind.
-    rewrite interp_Mem_bind.
-    rewrite interp_fail_bind.
-    rewrite interp_fail_bind.
+    do 2 rewrite interp_Mem_bind.
+    do 2 rewrite interp_fail_bind.
 
     eapply eqit_Proper_mono; cycle 1.
-    eapply commut_gen''' with (m := Some (mH, init))
+    eapply commut_gen with (m := Some (mH, init))
                               (QQ := fun x y => match x, y with
                                              | Some (mH, x), Some (mH', y) => mH ≡ mH' /\ mem_block_Equiv x y
                                              | None, None => True
@@ -967,9 +218,7 @@ Qed. (* TODO: crush-ey Ltac.. *)
     {
       Import ProofMode. cbn.
       hred. vred. vred.
-
-      rewrite! interp_Mem_bind.
-      rewrite! interp_fail_bind.
+      do 2 step.
       eapply eutt_clo_bind_returns.
 
       unfold lift_Derr.
@@ -985,128 +234,74 @@ Qed. (* TODO: crush-ey Ltac.. *)
         unfold pure_state in *; cbn in *.
         rewrite !interp_fail_bind.
         rewrite !interp_fail_vis.
-        cbn in *.
-        rewrite Eq.bind_bind, !bind_ret_l.
-        apply eqit_Ret.
-        split. eauto. eauto.
+        cbn in *. step. final.
+        split; eauto.
       - setoid_rewrite interp_Mem_vis_eqit.
         unfold pure_state in *; cbn in *.
         rewrite !interp_fail_bind.
         rewrite !interp_fail_vis.
-        cbn in *.
-        rewrite Eq.bind_bind, !bind_ret_l.
-        setoid_rewrite interp_Mem_ret.
-        setoid_rewrite interp_fail_ret. cbn.
-        apply eqit_Ret.
-        split. eauto. eauto.
-      - setoid_rewrite interp_Mem_ret. setoid_rewrite interp_fail_ret. cbn.
-        break_match.
-
-
-        + rewrite interp_fail_throw.
-          apply eqit_Ret.
-          split; eauto.
-        + setoid_rewrite interp_Mem_ret. setoid_rewrite interp_fail_ret. cbn.
-          apply eqit_Ret. split; eauto.
+        cbn in *. step. final.
+        split; eauto.
+      - step. step.
+        break_match; step; final; split; eauto.
       (* EUTT_CLO_BIND continuation *)
       - intros. cbn in H.
         destruct H; destruct H, H2; destruct H as (? & ? & ?); destruct H2 as (? & ? & ?).
-        + subst. cbn. apply eqit_Ret. apply eqit_Ret. auto.
+        + subst. final. final.
         + subst. cbn.
           unfold lift_Serr.
           destruct (MInt64asNT.from_nat n) eqn: Heqn.
-          cbn. rewrite interp_Mem_bind, interp_fail_bind.
-          setoid_rewrite interp_fail_throw.
-          vred. cbn. apply eqit_Ret. apply eqit_Ret. auto.
-          setoid_rewrite bind_ret_l.
-          unfold denoteIUnCType. rewrite interp_Mem_bind, interp_fail_bind.
+          cbn. step. final. final. do 3 step.
+          unfold denoteIUnCType. step.
           edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
             setoid_rewrite HA.
-          rewrite bind_ret_l. apply eqit_Ret. apply eqit_Ret. auto.
-          rewrite bind_ret_l. interp_MF_ret. apply eqit_Ret.
-          rewrite H. cbn. interp_MF_bind.
-          rewrite interp_fail_throw. rewrite bind_ret_l.
-          apply eqit_Ret. auto.
+          step. final. final.
+          do 2 step. final. step. rewrite H. repeat step. final.
 
         + subst. cbn.
           unfold lift_Serr.
           destruct (MInt64asNT.from_nat n') eqn: Heqn.
-          cbn. rewrite interp_Mem_bind, interp_fail_bind.
-          setoid_rewrite interp_fail_throw.
-          vred. cbn.
-          setoid_rewrite bind_ret_l.
-          apply eqit_Ret. apply eqit_Ret. auto.
-          unfold denoteIUnCType. rewrite interp_Mem_bind, interp_fail_bind.
-          cbn. interp_MF_ret. setoid_rewrite bind_ret_l.
-          interp_MF_bind.
+          cbn. step. final. final.
+          unfold denoteIUnCType. repeat step.
           edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
             setoid_rewrite HA.
-          rewrite bind_ret_l. apply eqit_Ret. apply eqit_Ret. auto.
-          rewrite bind_ret_l. interp_MF_ret. apply eqit_Ret.
-          rewrite H2. cbn. interp_MF_bind.
-          rewrite interp_fail_throw. rewrite bind_ret_l.
-          apply eqit_Ret. auto.
-
+          step. final. final. do 2 step. final.
+          rewrite H2. repeat step. final.
 
         + subst. cbn.
           unfold lift_Serr.
           destruct (MInt64asNT.from_nat n') eqn: Heqn';
-          destruct (MInt64asNT.from_nat n) eqn: Heqn.
-          cbn. rewrite interp_Mem_bind, interp_fail_bind.
-          setoid_rewrite interp_fail_throw.
-          vred. cbn.
-          setoid_rewrite bind_ret_l.
-          interp_MF_bind. rewrite interp_fail_throw.
-          rewrite bind_ret_l.
-          apply eqit_Ret. apply eqit_Ret. auto.
-          interp_MF_bind. rewrite interp_fail_throw.
-          rewrite bind_ret_l.
-          interp_MF_ret. rewrite bind_ret_l.
-          interp_MF_bind.
+            destruct (MInt64asNT.from_nat n) eqn: Heqn.
+          do 2 step. final. final.
+          do 4 step.
           unfold denoteIUnCType.
           edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
             setoid_rewrite HA.
-          rewrite bind_ret_l. apply eqit_Ret. apply eqit_Ret. auto.
-          rewrite bind_ret_l. interp_MF_ret. apply eqit_Ret.
-          rewrite H. cbn. interp_MF_bind.
-          interp_MF_ret.
-          rewrite bind_ret_l. interp_MF_bind.
-          setoid_rewrite interp_fail_throw.
-          rewrite bind_ret_l.
-          apply eqit_Ret. auto.
-          interp_MF_bind. interp_MF_ret.
-          Ltac thr := setoid_rewrite interp_fail_throw.
-          Ltac brl := setoid_rewrite bind_ret_l.
-          Ltac brr := setoid_rewrite bind_ret_r.
-          thr. brl.
-          Ltac ib := interp_MF_bind.
-          Ltac ir := interp_MF_ret.
-          ib.
+          do 2 step. final. final.
+          do 3 step. final.
+
+          step. rewrite H. do 3 step. final.
+          do 3 step.
 
           edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
             setoid_rewrite HA.
-          brl.
-          Ltac er := repeat apply eqit_Ret; auto.
-          er.
-          brl. ir. er.
-          rewrite H2. cbn. ib. ir. brl. ib. thr. brl. er.
-          ib. ir. brl. ib.
-
+          step. final. final. do 2 step. final.
+          step. rewrite H2.
+          repeat step. final.
+          repeat step.
           edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
             setoid_rewrite HA;
           edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA' | (? & HA')];
           setoid_rewrite HA'.
-          brl; er. brl; ir; er.
-          rewrite H. cbn. ib. ir. brl. ib. ir. brl.
-          ib. rewrite HA.
-          brl; er.
-          brl; ir; er. rewrite H2. cbn.
-          ib; ir; brl; ib; ir; brl.
-          ib; setoid_rewrite HA'.
-          brl; er.
-          brl; ir; er.
-          rewrite H, H2. cbn. ib; ir; brl; ib; ir; brl.
-          ib. rewrite HA, HA'. brl; ir; er.
+          step. final. final.
+          repeat step. final.
+          rewrite H. repeat step.
+          rewrite HA. step. final.
+          rewrite H2. repeat step. final.
+          repeat step. setoid_rewrite HA'. repeat step. final.
+          repeat step. final. repeat step.
+          rewrite H, H2. repeat step.
+          rewrite HA, HA'. repeat step. final.
           split; auto.
         destruct (Nat.eq_dec n n'). subst.
         * rewrite Heqn' in Heqn. inv Heqn.
@@ -1150,122 +345,74 @@ Qed. (* TODO: crush-ey Ltac.. *)
         unfold pure_state in *; cbn in *.
         rewrite !interp_fail_bind.
         rewrite !interp_fail_vis.
-        cbn in *.
-        rewrite Eq.bind_bind, !bind_ret_l.
-        apply eqit_Ret.
-        split. eauto. eauto.
+        cbn in *. step. final.
+        split; eauto.
       - setoid_rewrite interp_Mem_vis_eqit.
         unfold pure_state in *; cbn in *.
         rewrite !interp_fail_bind.
         rewrite !interp_fail_vis.
-        cbn in *.
-        rewrite Eq.bind_bind, !bind_ret_l.
-        setoid_rewrite interp_Mem_ret.
-        setoid_rewrite interp_fail_ret. cbn.
-        apply eqit_Ret.
-        split. eauto. eauto.
-      - setoid_rewrite interp_Mem_ret. setoid_rewrite interp_fail_ret. cbn.
-        break_match.
-
-
-        + rewrite interp_fail_throw.
-          apply eqit_Ret.
-          split; eauto.
-        + setoid_rewrite interp_Mem_ret. setoid_rewrite interp_fail_ret. cbn.
-          apply eqit_Ret. split; eauto.
+        cbn in *. step. final.
+        split; eauto.
+      - step. step.
+        break_match; step; final; split; eauto.
       (* EUTT_CLO_BIND continuation *)
       - intros. cbn in H.
         destruct H; destruct H, H2; destruct H as (? & ? & ?); destruct H2 as (? & ? & ?).
-        + subst. cbn. apply eqit_Ret. apply eqit_Ret. auto.
+        + subst. final. final.
         + subst. cbn.
           unfold lift_Serr.
           destruct (MInt64asNT.from_nat n') eqn: Heqn.
-          cbn. rewrite interp_Mem_bind, interp_fail_bind.
-          setoid_rewrite interp_fail_throw.
-          vred. cbn. apply eqit_Ret. apply eqit_Ret. auto.
-          setoid_rewrite bind_ret_l.
-          unfold denoteIUnCType. rewrite interp_Mem_bind, interp_fail_bind.
+          cbn. step. final. final. do 3 step.
+          unfold denoteIUnCType. step.
           edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
             setoid_rewrite HA.
-          rewrite bind_ret_l. apply eqit_Ret. apply eqit_Ret. auto.
-          rewrite bind_ret_l. interp_MF_ret. apply eqit_Ret.
-          rewrite H. cbn. interp_MF_bind.
-          rewrite interp_fail_throw. rewrite bind_ret_l.
-          apply eqit_Ret. auto.
+          step. final. final.
+          do 2 step. final. step. rewrite H. repeat step. final.
 
         + subst. cbn.
           unfold lift_Serr.
           destruct (MInt64asNT.from_nat n) eqn: Heqn.
-          cbn. rewrite interp_Mem_bind, interp_fail_bind.
-          setoid_rewrite interp_fail_throw.
-          vred. cbn.
-          setoid_rewrite bind_ret_l.
-          apply eqit_Ret. apply eqit_Ret. auto.
-          unfold denoteIUnCType. rewrite interp_Mem_bind, interp_fail_bind.
-          cbn. interp_MF_ret. setoid_rewrite bind_ret_l.
-          interp_MF_bind.
+          cbn. step. final. final.
+          unfold denoteIUnCType. repeat step.
           edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
             setoid_rewrite HA.
-          rewrite bind_ret_l. apply eqit_Ret. apply eqit_Ret. auto.
-          rewrite bind_ret_l. interp_MF_ret. apply eqit_Ret.
-          rewrite H2. cbn. interp_MF_bind.
-          rewrite interp_fail_throw. rewrite bind_ret_l.
-          apply eqit_Ret. auto.
-
+          step. final. final. do 2 step. final.
+          rewrite H2. repeat step. final.
 
         + subst. cbn.
           unfold lift_Serr.
-          destruct (MInt64asNT.from_nat n') eqn: Heqn';
-          destruct (MInt64asNT.from_nat n) eqn: Heqn.
-          cbn. rewrite interp_Mem_bind, interp_fail_bind.
-          setoid_rewrite interp_fail_throw.
-          vred. cbn.
-          setoid_rewrite bind_ret_l.
-          interp_MF_bind. rewrite interp_fail_throw.
-          rewrite bind_ret_l.
-          apply eqit_Ret. apply eqit_Ret. auto.
-          interp_MF_bind. rewrite interp_fail_throw.
-          rewrite bind_ret_l.
-          interp_MF_ret. rewrite bind_ret_l.
-          interp_MF_bind.
+          destruct (MInt64asNT.from_nat n) eqn: Heqn';
+            destruct (MInt64asNT.from_nat n') eqn: Heqn.
+          do 2 step. final. final.
+          do 4 step.
           unfold denoteIUnCType.
           edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
             setoid_rewrite HA.
-          rewrite bind_ret_l. apply eqit_Ret. apply eqit_Ret. auto.
-          rewrite bind_ret_l. interp_MF_ret. apply eqit_Ret.
-          rewrite H2. cbn. interp_MF_bind.
-          interp_MF_ret.
-          rewrite bind_ret_l. interp_MF_bind.
-          setoid_rewrite interp_fail_throw.
-          rewrite bind_ret_l.
-          apply eqit_Ret. auto.
-          interp_MF_bind. interp_MF_ret.
-          thr. brl.
-          ib.
+          do 2 step. final. final.
+          do 3 step. final.
+
+          step. rewrite H. do 3 step. final.
+          do 3 step.
 
           edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
             setoid_rewrite HA.
-          brl.
-          er.
-          brl. ir. er.
-          rewrite H. cbn. ib. ir. brl. ib. thr. brl. er.
-          ib. ir. brl. ib.
-
+          step. final. final. do 2 step. final.
+          step. rewrite H2.
+          repeat step. final.
+          repeat step.
           edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
             setoid_rewrite HA;
           edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA' | (? & HA')];
           setoid_rewrite HA'.
-          brl; er. brl; ir; er.
-          rewrite H. cbn. ib. ir. brl. ib. ir. brl.
-          ib. rewrite HA.
-          brl; er.
-          brl; ir; er. rewrite H2. cbn.
-          ib; ir; brl; ib; ir; brl.
-          ib; setoid_rewrite HA'.
-          brl; er.
-          brl; ir; er.
-          rewrite H, H2. cbn. ib; ir; brl; ib; ir; brl.
-          ib. rewrite HA, HA'. brl; ir; er.
+          step. final. final.
+          repeat step. final.
+          rewrite H. repeat step.
+          rewrite HA. step. final.
+          rewrite H2. repeat step. final.
+          repeat step. setoid_rewrite HA'. repeat step. final.
+          repeat step. final. repeat step.
+          rewrite H, H2. repeat step.
+          rewrite HA, HA'. repeat step. final.
           split; auto.
         destruct (Nat.eq_dec n n'). subst.
         * rewrite Heqn' in Heqn. inv Heqn.
@@ -1298,6 +445,207 @@ Qed. (* TODO: crush-ey Ltac.. *)
     }
   Qed.
 
+  Lemma eq_rev_interp :
+      forall σ f n x y memH,
+        eutt mem_eq
+          (interp_helix (E := E_cfg) (DSHIMap_tfor_up σ f 0 n x y) memH)
+        (interp_helix (E := E_cfg) (DSHIMap_tfor_down σ f 0 n n x y) memH).
+    Proof.
+      unfold DSHIMap_tfor_up, DSHIMap_tfor_down.
+      intros.
+      revert σ f x y memH.
+      Opaque DSHIMap_body.
+      induction n. intros. cbn.
+      - rewrite! tfor_0. reflexivity.
+      - intros. setoid_rewrite tfor_unroll at 2.
+        cbn. 2 : lia.
+        assert (EQ : n - 0 - 0 ≡ n) by lia; rewrite EQ; clear EQ.
+        assert (EQ : n - 0 ≡ n) by lia; rewrite EQ; clear EQ.
+        etransitivity; cycle 1.
+        rewrite interp_helix_bind.
+        eapply eutt_clo_bind. reflexivity.
+        intros [[]|] [[]|] EQ; inv EQ.
+        {
+          setoid_rewrite tfor_ss_dep at 2. 3 : lia.
+          2 : {
+            intros. Unshelve.
+            3 : { exact (fun i x0 => DSHIMap_body σ f (n - 1 - i) x x0). }
+            cbn.
+            assert (EQ : n - S i ≡ n - 1 - i) by lia; rewrite EQ; clear EQ.
+            reflexivity.
+            shelve.
+          }
+          rewrite <- IHn.
+          Unshelve.
+          2 : exact (fun a =>
+              match a with
+              | Some (m1, m2) =>
+                interp_helix (tfor (λ (i : nat) (acc : mem_block), DSHIMap_body σ f i x acc) 0 n m2) m1
+              | None => Ret None
+              end).
+          cbn. reflexivity.
+        }
+        { cbn. reflexivity. }
+        cbn.
+
+        setoid_rewrite tfor_split with (j := n) at 1. 2, 3 : lia.
+        clear IHn.
+        etransitivity.
+        {
+          rewrite interp_helix_bind. eapply eutt_clo_bind. reflexivity.
+          intros [[]|] [[]|] EQ; inv EQ.
+          setoid_rewrite tfor_unroll at 1. setoid_rewrite tfor_0 at 1. setoid_rewrite bind_ret_r at 1.
+          2 : lia. Unshelve.
+          3 : exact (fun a =>
+              match a with
+              | Some (m1, m2) => interp_helix (DSHIMap_body σ f n x m2) m1
+              | None => Ret None
+              end).
+          cbn. reflexivity.
+          cbn. reflexivity.
+        }
+        cbn.
+
+        remember n.
+        remember (λ x0 : mem_block, DSHIMap_body σ f n0 x x0).
+        rewrite Heqn0. clear Heqn0. subst.
+        revert x y n0.
+        induction n.
+        + intros.
+          setoid_rewrite tfor_0.
+          rewrite interp_helix_ret. cbn. rewrite bind_ret_l.
+          etransitivity; cycle 1.
+          eapply eutt_clo_bind.
+          reflexivity.
+          {
+            intros [[]|] [[]|] EQ; inv EQ.
+            Unshelve.
+            setoid_rewrite tfor_0 at 2. rewrite interp_helix_ret. cbn.
+            3 : exact (fun a => Ret a).
+            cbn. reflexivity. cbn. reflexivity.
+          }
+          cbn. rewrite bind_ret_r. reflexivity.
+        + intros.
+          (* 1 *)
+          setoid_rewrite tfor_split with (j := n) at 1. 2, 3 : lia.
+          etransitivity.
+          {
+            rewrite interp_helix_bind.
+            eapply eutt_clo_bind. eapply eutt_clo_bind.
+            reflexivity.
+            intros [[]|] [[]|] EQ; inv EQ.
+            setoid_rewrite tfor_unroll at 1. setoid_rewrite tfor_0 at 1.
+            setoid_rewrite bind_ret_r at 1.
+            2 : lia.
+            Unshelve.
+            7 : exact (fun a =>
+                match a with
+                | Some (m1, m2) => interp_helix (DSHIMap_body σ f n x m2) m1
+                | None => Ret None
+                end).
+            cbn. reflexivity. cbn. reflexivity.
+            intros [[]|] [[]|] EQ; inv EQ.
+            3 : exact (fun a =>
+                match a with
+                | Some (m1, m2) => interp_helix (DSHIMap_body σ f n0 x m2) m1
+                | None => Ret None
+                end).
+            1, 2 : cbn ; reflexivity.
+          }
+
+          etransitivity; cycle 1.
+          {
+            eapply eutt_clo_bind.
+            reflexivity.
+            intros [[]|] [[]|] EQ; inv EQ.
+            setoid_rewrite tfor_split with (j := n) at 2.
+            rewrite interp_helix_bind. 2, 3 : lia.
+            Unshelve.
+            3 : exact (fun a =>
+                match a with
+                | Some (m1, m2) =>
+                    '(m3, m4) <- interp_helix (tfor (λ (i : nat) (acc : mem_block), DSHIMap_body σ f i x acc) 0 n m2 ) m1 ;;
+                      interp_helix (DSHIMap_body σ f n x m4) m3
+                | None => Ret None
+                end).
+            cbn.
+            eapply eutt_clo_bind. reflexivity.
+
+            intros [[]|] [[]|] EQ; inv EQ.
+            setoid_rewrite tfor_unroll. setoid_rewrite tfor_0. setoid_rewrite bind_ret_r.
+            reflexivity. lia. reflexivity.
+            cbn. reflexivity.
+          }
+          cbn.
+          etransitivity; cycle 1.
+          eapply eutt_clo_bind. reflexivity.
+          {
+            intros [[]|] [[]|] EQ; inv EQ.
+            rewrite <- interp_helix_bind.
+
+            Unshelve.
+            3 : {
+              exact
+                (fun a =>
+                  match a with
+                  | Some (m1, m2) =>
+                    (interp_helix (ITree.subst (DSHIMap_body σ f n x)
+                            (tfor (fun (i : nat) (acc : mem_block) => DSHIMap_body σ f i x acc) O n m2)) m1)
+                  | None => Ret None
+                  end).
+            }
+            reflexivity.
+            cbn. reflexivity.
+          }
+
+          rewrite <- interp_helix_bind.
+          rewrite <- interp_helix_bind.
+          rewrite <- interp_helix_bind.
+          setoid_rewrite <- bind_bind.
+          setoid_rewrite interp_helix_bind at 2.
+          setoid_rewrite interp_helix_bind at 2.
+          etransitivity; cycle 1.
+          {
+            eapply eutt_clo_bind. apply IHn.
+            intros [[]|] [[]|] EQ; inv EQ.
+            Unshelve.
+            3 :  exact (fun r => match r with
+                              | Some (m1, m0) => interp_helix (DSHIMap_body σ f n x m0) m1
+                              | None => Ret None
+                              end).
+            cbn.
+            Transparent DSHIMap_body.
+            unfold DSHIMap_body. cbn.
+            rewrite! interp_helix_bind.
+            eapply eutt_clo_bind.  reflexivity.
+            intros [[]|] [[]|] EQ'; inv EQ'; try reflexivity. cbn in *.
+            rewrite! interp_helix_bind.
+            eapply eutt_clo_bind.  reflexivity.
+
+            intros [[]|] [[]|] EQ'; inv EQ'; try reflexivity. cbn in *.
+            rewrite! interp_helix_bind.
+            eapply eutt_clo_bind.  reflexivity.
+
+            intros [[]|] [[]|] EQ'; inv EQ'; try reflexivity. cbn in *.
+            rewrite! interp_helix_ret.
+            cbn. apply eqit_Ret. cbn. split; auto.
+            apply mem_add_proper. auto. auto. auto.
+
+            cbn. reflexivity.
+          }
+
+          rewrite !bind_bind.
+          clear IHn.
+          setoid_rewrite interp_helix_bind.
+          eapply eutt_clo_bind. reflexivity.
+
+          intros [[]|] [[]|] EQ; inv EQ.
+          rewrite <- interp_helix_bind.
+          2 : { rewrite bind_ret_l. reflexivity. }
+
+          eapply swap_body_interp.
+    Qed.
+
   Lemma DSHIMap_eq_ret :
     forall σ f n x y memH,
       no_failure (E := E_cfg) (interp_helix (DSHIMap_body σ f n x y) memH) ->
@@ -1319,209 +667,6 @@ Qed. (* TODO: crush-ey Ltac.. *)
     setoid_rewrite N_DENOTE.
     hred. reflexivity.
   Qed.
-
-
- Lemma eq_rev_interp :
-    forall σ f n x y memH,
-      eutt mem_eq
-        (interp_helix (E := E_cfg) (DSHIMap_tfor_up σ f 0 n x y) memH)
-      (interp_helix (E := E_cfg) (DSHIMap_tfor_down σ f 0 n n x y) memH).
-  Proof.
-    unfold DSHIMap_tfor_up, DSHIMap_tfor_down.
-    intros.
-    revert σ f x y memH.
-    Opaque DSHIMap_body.
-    induction n. intros. cbn.
-    - rewrite! tfor_0. reflexivity.
-    - intros. setoid_rewrite tfor_unroll at 2.
-      cbn. 2 : lia.
-      assert (EQ : n - 0 - 0 ≡ n) by lia; rewrite EQ; clear EQ.
-      assert (EQ : n - 0 ≡ n) by lia; rewrite EQ; clear EQ.
-      etransitivity; cycle 1.
-      rewrite interp_helix_bind.
-      eapply eutt_clo_bind. reflexivity.
-      intros [[]|] [[]|] EQ; inv EQ.
-      {
-        setoid_rewrite tfor_ss_dep at 2. 3 : lia.
-        2 : {
-          intros. Unshelve.
-          3 : { exact (fun i x0 => DSHIMap_body σ f (n - 1 - i) x x0). }
-          cbn.
-          assert (EQ : n - S i ≡ n - 1 - i) by lia; rewrite EQ; clear EQ.
-          reflexivity.
-          shelve.
-        }
-        rewrite <- IHn.
-        Unshelve.
-        2 : exact (fun a =>
-            match a with
-            | Some (m1, m2) =>
-              interp_helix (tfor (λ (i : nat) (acc : mem_block), DSHIMap_body σ f i x acc) 0 n m2) m1
-            | None => Ret None
-            end).
-        cbn. reflexivity.
-      }
-      { cbn. reflexivity. }
-      cbn.
-
-      setoid_rewrite tfor_split with (j := n) at 1. 2, 3 : lia.
-      clear IHn.
-      etransitivity.
-      {
-        rewrite interp_helix_bind. eapply eutt_clo_bind. reflexivity.
-        intros [[]|] [[]|] EQ; inv EQ.
-        setoid_rewrite tfor_unroll at 1. setoid_rewrite tfor_0 at 1. setoid_rewrite bind_ret_r at 1.
-        2 : lia. Unshelve.
-        3 : exact (fun a =>
-            match a with
-            | Some (m1, m2) => interp_helix (DSHIMap_body σ f n x m2) m1
-            | None => Ret None
-            end).
-        cbn. reflexivity.
-        cbn. reflexivity.
-      }
-      cbn.
-
-      remember n.
-      remember (λ x0 : mem_block, DSHIMap_body σ f n0 x x0).
-      rewrite Heqn0. clear Heqn0. subst.
-      revert x y n0.
-      induction n.
-      + intros.
-        setoid_rewrite tfor_0.
-        rewrite interp_helix_ret. cbn. rewrite bind_ret_l.
-        etransitivity; cycle 1.
-        eapply eutt_clo_bind.
-        reflexivity.
-        {
-          intros [[]|] [[]|] EQ; inv EQ.
-          Unshelve.
-          setoid_rewrite tfor_0 at 2. rewrite interp_helix_ret. cbn.
-          3 : exact (fun a => Ret a).
-          cbn. reflexivity. cbn. reflexivity.
-        }
-        cbn. rewrite bind_ret_r. reflexivity.
-      + intros.
-        (* 1 *)
-        setoid_rewrite tfor_split with (j := n) at 1. 2, 3 : lia.
-        etransitivity.
-        {
-          rewrite interp_helix_bind.
-          eapply eutt_clo_bind. eapply eutt_clo_bind.
-          reflexivity.
-          intros [[]|] [[]|] EQ; inv EQ.
-          setoid_rewrite tfor_unroll at 1. setoid_rewrite tfor_0 at 1.
-          setoid_rewrite bind_ret_r at 1.
-          2 : lia.
-          Unshelve.
-          7 : exact (fun a =>
-              match a with
-              | Some (m1, m2) => interp_helix (DSHIMap_body σ f n x m2) m1
-              | None => Ret None
-              end).
-          cbn. reflexivity. cbn. reflexivity.
-          intros [[]|] [[]|] EQ; inv EQ.
-          3 : exact (fun a =>
-              match a with
-              | Some (m1, m2) => interp_helix (DSHIMap_body σ f n0 x m2) m1
-              | None => Ret None
-              end).
-          1, 2 : cbn ; reflexivity.
-        }
-
-        etransitivity; cycle 1.
-        {
-          eapply eutt_clo_bind.
-          reflexivity.
-          intros [[]|] [[]|] EQ; inv EQ.
-          setoid_rewrite tfor_split with (j := n) at 2.
-          rewrite interp_helix_bind. 2, 3 : lia.
-          Unshelve.
-          3 : exact (fun a =>
-              match a with
-              | Some (m1, m2) =>
-                  '(m3, m4) <- interp_helix (tfor (λ (i : nat) (acc : mem_block), DSHIMap_body σ f i x acc) 0 n m2 ) m1 ;;
-                    interp_helix (DSHIMap_body σ f n x m4) m3
-              | None => Ret None
-              end).
-          cbn.
-          eapply eutt_clo_bind. reflexivity.
-
-          intros [[]|] [[]|] EQ; inv EQ.
-          setoid_rewrite tfor_unroll. setoid_rewrite tfor_0. setoid_rewrite bind_ret_r.
-          reflexivity. lia. reflexivity.
-          cbn. reflexivity.
-        }
-        cbn.
-        etransitivity; cycle 1.
-        eapply eutt_clo_bind. reflexivity.
-        {
-          intros [[]|] [[]|] EQ; inv EQ.
-          rewrite <- interp_helix_bind.
-
-          Unshelve.
-          3 : {
-            exact
-              (fun a =>
-                match a with
-                | Some (m1, m2) =>
-                  (interp_helix (ITree.subst (DSHIMap_body σ f n x)
-                          (tfor (fun (i : nat) (acc : mem_block) => DSHIMap_body σ f i x acc) O n m2)) m1)
-                | None => Ret None
-                end).
-          }
-          reflexivity.
-          cbn. reflexivity.
-        }
-
-        rewrite <- interp_helix_bind.
-        rewrite <- interp_helix_bind.
-        rewrite <- interp_helix_bind.
-        setoid_rewrite <- bind_bind.
-        setoid_rewrite interp_helix_bind at 2.
-        setoid_rewrite interp_helix_bind at 2.
-        etransitivity; cycle 1.
-        {
-          eapply eutt_clo_bind. apply IHn.
-          intros [[]|] [[]|] EQ; inv EQ.
-          Unshelve.
-          3 :  exact (fun r => match r with
-                             | Some (m1, m0) => interp_helix (DSHIMap_body σ f n x m0) m1
-                             | None => Ret None
-                            end).
-          cbn.
-          Transparent DSHIMap_body.
-          unfold DSHIMap_body. cbn.
-          rewrite! interp_helix_bind.
-          eapply eutt_clo_bind.  reflexivity.
-          intros [[]|] [[]|] EQ'; inv EQ'; try reflexivity. cbn in *.
-          rewrite! interp_helix_bind.
-          eapply eutt_clo_bind.  reflexivity.
-
-          intros [[]|] [[]|] EQ'; inv EQ'; try reflexivity. cbn in *.
-          rewrite! interp_helix_bind.
-          eapply eutt_clo_bind.  reflexivity.
-
-          intros [[]|] [[]|] EQ'; inv EQ'; try reflexivity. cbn in *.
-          rewrite! interp_helix_ret.
-          cbn. apply eqit_Ret. cbn. split; auto.
-          apply mem_add_proper. auto. auto. auto.
-
-          cbn. reflexivity.
-        }
-
-        rewrite !bind_bind.
-        clear IHn.
-        setoid_rewrite interp_helix_bind.
-        eapply eutt_clo_bind. reflexivity.
-
-        intros [[]|] [[]|] EQ; inv EQ.
-        rewrite <- interp_helix_bind.
-        2 : { rewrite bind_ret_l. reflexivity. }
-
-        eapply swap_body_interp.
-  Qed.
-
 
   Transparent DSHIMap_body.
 
@@ -1572,9 +717,15 @@ Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li :
 
 Import AlistNotations.
 
-Definition Same_t e `{canonical_names.Equiv e} (B C : t e) := forall k : key, find (elt:=e) k B = find (elt:=e) k C.
-    (* Same Extensionality property as [Extensionality_Ensembles] in [Coq.Sets.Ensembles]. *)
-Axiom Extensionality_t : forall e `{canonical_names.Equiv e} (A B: t e), Same_t A B -> A ≡ B.
+Definition memory_invariant_partial_write' (configV : config_cfg) (index loopsize : nat) (ptr_llvm : addr)
+            (bk_helix : mem_block) (x : ident) sz : Prop :=
+    let '(mem_llvm, (ρ, g)) := configV in
+    dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp [] (TYPE_Array sz TYPE_Double)) /\
+    in_local_or_global_addr ρ g x ptr_llvm /\
+            (∀ (i : Int64.int) (v0 : binary64),
+                (MInt64asNT.to_nat i) < index \/ (MInt64asNT.to_nat i) >= loopsize ->
+                  (mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v0
+                    → get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0))).
 
 Lemma DSHIMap_correct:
   ∀ (n : nat) (x_p y_p : PExpr) (f : AExpr) (s1 s2 : IRState) (σ : evalContext) (memH : memoryH) 
@@ -1764,21 +915,6 @@ Proof.
     split; auto. inv REL1.
   }
 
-
-  Set Nested Proofs Allowed.
-  Instance mem_eq_Equivalence' : Equivalence mem_eq.
-  Proof.
-    split.
-    - red. intros [ []| ]. red.
-      split; eauto. apply mem_block_Equiv_Reflexive.
-      red. auto.
-    - red. intros [ []| ] [ []| ]; red; cbn; intros []; auto.
-      split; auto. apply mem_block_Equiv_Symmetric. auto.
-    - red. intros [ []| ] [ []| ] [ []| ]; red; cbn; intros []; auto.
-      intros []. split. rewrite H. auto.
-      eapply mem_block_Equiv_Transitive; eauto.
-  Qed.
-
   assert (PROPER: forall E, Proper (eutt (E := E) mem_eq ==> impl) no_failure). {
     repeat intro. eapply eutt_Proper_mono in H.
     eapply no_failure_eutt; eauto. symmetry. apply H.
@@ -1796,32 +932,6 @@ Proof.
 
   cbn* in *; simp; cbn in *.
   clean_goal.
-
-
-  Lemma typ_to_dtyp_P :
-      forall t s,
-        typ_to_dtyp s (TYPE_Pointer t) ≡ DTYPE_Pointer.
-  Proof.
-    intros t s.
-    apply typ_to_dtyp_equation.
-  Qed.
-
-  (* TODO: Move*)
-  Lemma denote_exp_ID :forall g l m id τ ptr,
-      in_local_or_global_addr l g id ptr ->
-      interp_cfg3 (translate exp_to_instr (denote_exp (Some τ) (EXP_Ident id))) g l m
-      ≈
-      Ret (m,(l,(g,UVALUE_Addr ptr))).
-  Proof.
-    intros. destruct id eqn: Hh; [ rewrite denote_exp_GR | rewrite denote_exp_LR ] ; eauto; try reflexivity.
-  Qed.
-
-  Ltac typ_to_dtyp_simplify :=
-    repeat
-      (try rewrite typ_to_dtyp_I in *;
-       try rewrite typ_to_dtyp_D in *;
-       try rewrite typ_to_dtyp_D_array in *;
-       try rewrite typ_to_dtyp_P in *).
 
   match goal with
   | [H : genWhileLoop ?prefix _ _ ?loopvar ?loopcontblock ?body_entry ?body_blocks _ ?nextblock ?s1' ≡ inr (?s2', (?entry_id, ?bks)) |- _]
@@ -1893,15 +1003,6 @@ Proof.
   rename Heqb0 into BOUNDS.
   apply Nat.leb_le in BOUNDS.
 
-  Definition memory_invariant_partial_write' (configV : config_cfg) (index loopsize : nat) (ptr_llvm : addr)
-             (bk_helix : mem_block) (x : ident) sz : Prop :=
-      let '(mem_llvm, (ρ, g)) := configV in
-      dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp [] (TYPE_Array sz TYPE_Double)) /\
-      in_local_or_global_addr ρ g x ptr_llvm /\
-              (∀ (i : Int64.int) (v0 : binary64),
-                  (MInt64asNT.to_nat i) < index \/ (MInt64asNT.to_nat i) >= loopsize ->
-                    (mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v0
-                     → get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0))).
   (* Invariant at each iteration *)
   set (I := (fun (k : nat) (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
                match mH with
@@ -1943,23 +1044,6 @@ Proof.
     congruence.
   }
 
-  Lemma st_no_dshptr_aliasing_neq :
-    forall σ,
-      no_dshptr_aliasing σ ->
-        ∀ (n n' ptr1 ptr2 : nat) (sz sz' : Int64.int) (b b' : bool),
-          nth_error σ n ≡ Some (DSHPtrVal ptr1 sz, b)
-          → nth_error σ n' ≡ Some (DSHPtrVal ptr2 sz', b') →
-          ptr1 ≢ ptr2 ->
-          n' ≢ n.
-  Proof.
-    intros σ H n n' ptr1 ptr2 sz sz' b b' H0 H1 H2.
-    unfold no_dshptr_aliasing in *.
-    intros N.
-    subst.
-    rewrite H0 in H1.
-    inv H1.
-    contradiction.
-  Qed.
   assert (INEQ : n0 ≢ n1). {
     destruct PRE.
     eapply st_no_dshptr_aliasing_neq; eauto.
@@ -2181,17 +1265,6 @@ Proof.
     { rewrite denote_exp_LR. reflexivity. eauto. }
     {
       assert (GET := GETARRAYCELL_xoff).
-        Lemma to_nat_repr_nat :
-          forall k, MInt64asNT.from_nat k ≡ inr (Int64.repr (Z.of_nat k)) ->
-              MInt64asNT.to_nat (Int64.repr (Z.of_nat k)) ≡ k.
-        Proof.
-          intros.
-          unfold MInt64asNT.to_nat.
-          unfold MInt64asNT.from_nat in H.
-          apply from_Z_intval in H.
-          rewrite <- H.
-          apply Znat.Nat2Z.id.
-        Qed.
 
         specialize (GET (Int64.repr (Z.of_nat k))).
         pose proof EQk.
@@ -2733,8 +1806,6 @@ Proof.
           clear EQ_y_HG'.
           revert MINV_YOFF; intros.
 
-          (* pose proof HDST_GEP. *)
-          (* pose proof (from_N_intval _ EQsz0) as EQ. *)
           edestruct mem_is_inv as (? & ? & ? & ? & ? & ?); clear mem_is_inv.
 
           eexists. eexists. split; eauto.
@@ -2989,7 +2060,6 @@ eapply GENC.
 
 intros [[]|]; intros (? & ? & ? & []) (? & ? & ?) RET1 RET2; subst P I; try_abs;
 cbn in H0; try destruct H0 as (? & <- & <- & ?); try contradiction.
-  (* rewrite interp_helix_MemSet. *)
 2 : { destruct H; inv H. } (* absurd *)
 
 vred.

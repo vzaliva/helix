@@ -1355,5 +1355,17 @@ Proof.
   now rewrite Znat.N2Z.id.
 Qed.
 
+Lemma to_nat_repr_nat :
+  forall k, MInt64asNT.from_nat k ≡ inr (Int64.repr (Z.of_nat k)) ->
+      MInt64asNT.to_nat (Int64.repr (Z.of_nat k)) ≡ k.
+Proof.
+  intros.
+  unfold MInt64asNT.to_nat.
+  unfold MInt64asNT.from_nat in H.
+  apply from_Z_intval in H.
+  rewrite <- H.
+  apply Znat.Nat2Z.id.
+Qed.
+
 Arguments alist_add : simpl never.
 Arguments String.append : simpl never.

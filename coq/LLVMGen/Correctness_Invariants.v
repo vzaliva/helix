@@ -2868,6 +2868,24 @@ Proof.
   all : try eauto.
 Qed.
 
+Lemma st_no_dshptr_aliasing_neq :
+  forall σ,
+    no_dshptr_aliasing σ ->
+      ∀ (n n' ptr1 ptr2 : nat) (sz sz' : Int64.int) (b b' : bool),
+        nth_error σ n ≡ Some (DSHPtrVal ptr1 sz, b)
+        → nth_error σ n' ≡ Some (DSHPtrVal ptr2 sz', b') →
+        ptr1 ≢ ptr2 ->
+        n' ≢ n.
+Proof.
+  intros σ H n n' ptr1 ptr2 sz sz' b b' H0 H1 H2.
+  unfold no_dshptr_aliasing in *.
+  intros N.
+  subst.
+  rewrite H0 in H1.
+  inv H1.
+  contradiction.
+Qed.
+
 Lemma write_state_invariant :
   forall σ s mH mV1 mV2 l g dst_addr (id_addr : ident) sz v ptrll n b addr_h sz_h,
     state_invariant σ s mH (mV1, (l, g)) ->

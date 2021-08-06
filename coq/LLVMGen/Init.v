@@ -1534,6 +1534,15 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma denote_exp_ID :forall g l m id τ ptr,
+    in_local_or_global_addr l g id ptr ->
+    interp_cfg3 (translate exp_to_instr (denote_exp (Some τ) (EXP_Ident id))) g l m
+    ≈
+    Ret (m,(l,(g,UVALUE_Addr ptr))).
+Proof.
+  intros. destruct id eqn: Hh; [ rewrite denote_exp_GR | rewrite denote_exp_LR ] ; eauto; try reflexivity.
+Qed.
+
 (* ZX TODO: might want to move to vellvm *)
 (* similar to [interp_cfg_to_L3_store] *)
 Lemma interp_mcfg_store:
