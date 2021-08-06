@@ -65,24 +65,24 @@ pipeline {
             }
         }
 
-        stage('Build HELIX') {
-            steps {
-                script {
-                    if (env.SKIP_CI != "true" && env.SKIP_BRANCH == "false") {
-			sh '''eval $(opam env)
-                              make -j ${NJOBS}
-                           '''
-                    }
-                }
-            }
-        }
-
         stage('Test HELIX') {
             steps {
                 script {
                     if (env.SKIP_CI != "true" && env.SKIP_BRANCH == "false") {
 			sh '''eval $(opam env)
                               make test
+                           '''
+                    }
+                }
+            }
+        }
+
+        stage('Build HELIX') {
+            steps {
+                script {
+                    if (env.SKIP_CI != "true" && env.SKIP_BRANCH == "false") {
+			sh '''eval $(opam env)
+                              make -j ${NJOBS}
                            '''
                     }
                 }
