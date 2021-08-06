@@ -709,34 +709,46 @@ Definition memory_invariant_partial_write' (configV : config_cfg) (index loopsiz
 
 (** ** Simplified High-level Proof Overview
 
+    Source language has an "fmap" operator (called IMap)
+    Target language is a cfg-based language (i.e. each node is a basic block
+        with jump targets)
+
                     |-------------------------------------------------|
           Given     | compile (IMap (n, x_p, y_p, f))   ≡   blocks    |
                     |-------------------------------------------------|
 
-   ### Correctness Proof
+  *****************************************************************************
+  ### Correctness Proof (each row is a proof step)
+  *****************************************************************************
 
-   NOFAIL : no_failure (⟦ IMap (n, x_p, y_p, f) ⟧ mH)      (* Assume no failure at the source code *)
-   PRECONDITION : {{ state_invariant mH mV  }}             (* Precondition is a Coq Prop           *)
-   =============================================================================
+  (* Assume no failure at the source code *)
+  NOFAIL : no_failure (⟦ IMap (n, x_p, y_p, f) ⟧ mH)
 
-             HELIX (src)                                 |           VIR (trg)           |          Postcondition
-  -------------------------------------------------------|-------------------------------|--------------------------------------------------------------
-                                                         |                               |
-      ⟦ IMap (n, x_p, y_p, f) ⟧  mH                      ≈           ⟦ blocks ⟧ mV       | {{ ∀ mH' mV' id, state_invariant mH' mV' ∧ branches_to id }}
-                                                         |                               |
-  ------⦃ REWRITE denoteDSHIMap_as_tfor ⦄----------------|-------------------------------|--------------------------------------------------------------
-                                                         |                               |
-      tfor [n-1 .. 0] ⟦ imap_body (x_p, y_p, f) ⟧ mH     ≈           ⟦ blocks ⟧ mV       | {{ ∀ mH' mV' id, state_invariant mH' mV' ∧ branches_to id }}
-                                                         |                               |
-  ------⦃    REWRITE reverse_tfor_eq    ⦄----------------|-------------------------------|--------------------------------------------------------------
-                                                         |                               |
-      tfor [0 .. n] ⟦ imap_body (x_p, y_p, f) ⟧ mH       ≈           ⟦ blocks ⟧ mV       | {{ ∀ mH' mV' id, state_invariant mH' mV' ∧ branches_to id }}
-                                                         |                               |
-  -------------------------------------------------------|-------------------------------|-------⦃ APPLY postcondition_monotonicity ⦄-------------------
-                                                         |                               |
-      tfor [0 .. n] ⟦ imap_body (x_p, y_p, f) ⟧ mH       ≈           ⟦ blocks ⟧ mV       |               {{           ?P          }}
-                                                         |                               |
-  ------------------⦃   APPLY genWhileLoop_tfor with (I := loop_invariant)  ⦄------(* N.B. this lemma is specific to VIR, and can work on any source *)-
+  (* Pre-condition is a Coq Prop           *)
+  PRECONDITION : {{ state_invariant mH mV  }}
+
+  (* Post-condition is a relation on returned states *)
+  Q := {{ ∀ mH' mV' id, state_invariant mH' mV' ∧ branches_to id }}
+  =============================================================================
+            HELIX (src)                               |     VIR (trg)    | Post
+  ----------------------------------------------------|------------------|-----
+                                                      |                  |
+     ⟦ IMap (n, x_p, y_p, f) ⟧  mH                    ≈   ⟦ blocks ⟧ mV  |  Q
+                                                      |                  |
+  -----# REWRITE denoteDSHIMap_as_tfor #--------------|--------- --------|-----
+                                                      |                  |
+     tfor [n-1 .. 0] ⟦ imap_body (x_p, y_p, f) ⟧ mH   ≈   ⟦ blocks ⟧ mV  |  Q
+                                                      |                  |
+  -----#    REWRITE reverse_tfor_eq    #--------------|------------------|-----
+                                                      |                  |
+     tfor [0 .. n] ⟦ imap_body (x_p, y_p, f) ⟧ mH     ≈   ⟦ blocks ⟧ mV  |  Q
+                                                      |                  |
+  ----------------------------------------------------|------------------|MONO-
+                                                      |                  |
+     tfor [0 .. n] ⟦ imap_body (x_p, y_p, f) ⟧ mH     ≈   ⟦ blocks ⟧ mV  | ?Q'
+                                                      |                  |
+  -------# APPLY genWhileLoop_tfor with (I := loop_invariant)  #---------------
+  (* N.B. [genWhileLoop_tfor] is specific to VIR, and can work on any source *)
 
 
     Remaining proof obligations (simplified):
@@ -750,18 +762,20 @@ Definition memory_invariant_partial_write' (configV : config_cfg) (index loopsiz
                 imap_body ≈ blocks[label, body_entry]
             {{ loop_invariant (S k) }}
 
-        Proved through symbolic execution of "atomic" operations -- [denote_exp_*] of the form
+        Proved through symbolic execution of "atomic" operations (OP) --
+            rewrite with equations [denote_exp_*] of the form
 
                  ⟦ OP ⟧ g l m ≈ Ret v
 
          e.g.) Lemma denote_exp_GR :forall g l m id v τ,
                    Maps.lookup id g = Some v ->
-                      ⟦ EXP_Ident (ID_Global id) at τ ⟧e3 g l m ≈ Ret (m,(l,(g,dvalue_to_uvalue v))).
+                      ⟦ EXP_Ident (ID_Global id) at τ ⟧ g l m ≈
+                      Ret (m,(l,(g,dvalue_to_uvalue v))).
 
  *)
 Lemma DSHIMap_correct:
-  ∀ (n : nat) (x_p y_p : PExpr) (f : AExpr) (s1 s2 : IRState) (σ : evalContext) (memH : memoryH) 
-    (nextblock bid_in bid_from : block_id) (bks : list (LLVMAst.block typ)) (g : global_env) 
+  ∀ (n : nat) (x_p y_p : PExpr) (f : AExpr) (s1 s2 : IRState) (σ : evalContext) (memH : memoryH)
+    (nextblock bid_in bid_from : block_id) (bks : list (LLVMAst.block typ)) (g : global_env)
     (ρ : local_env) (memV : memoryV),
     genIR (DSHIMap n x_p y_p f) nextblock s1 ≡ inr (s2, (bid_in, bks))
     → bid_bound s1 nextblock
