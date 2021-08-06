@@ -34,6 +34,16 @@ Import MonadNotation.
 Local Open Scope monad_scope.
 Local Open Scope nat_scope.
 
+Ltac interp_MF_ret := setoid_rewrite interp_Mem_ret; setoid_rewrite interp_fail_ret; cbn.
+Ltac interp_MF_bind := setoid_rewrite interp_Mem_bind; setoid_rewrite interp_fail_bind; cbn.
+
+Ltac final := apply eqit_Ret; eauto.
+Ltac step :=
+  first [progress vred_E3 | vred_I3];
+  rewrite 1?interp_Mem_ret, 1?interp_fail_ret, 1?bind_ret_l;
+  rewrite 1?interp_Mem_bind, 1?interp_fail_bind, 1?bind_bind;
+  rewrite 1?interp_fail_throw, 1?bind_ret_l; cbn.
+
 Definition mem_eq :=
       (fun (x y : option (memoryH * mem_block)) => match x, y with
                   | Some (mH, m), Some (mH', m') => mH ≡ mH' /\ m = m'
@@ -144,36 +154,6 @@ Section DSHIMap_is_tfor.
       cbn. assert (n - 0 - S i ≡ n - 1 - i) by lia. rewrite H0. reflexivity.
   Qed.
 
-  Instance eqit_Proper_mono {E}:
-    forall A B : Type, Proper (@subrelationH A B ==> subrelationH (B:=itree E B)) eutt.
-  Proof.
-  - intros A B. do 3 red.
-    intros x y. pcofix CIH. pstep. red.
-    intros sub a b H.
-    do 2 red in H. punfold H. red in H.
-    remember (observe a) as a'.
-    remember (observe b) as b'.
-    generalize dependent a. generalize dependent b.
-    induction H; intros; eauto.
-    + constructor. red in REL. destruct REL.
-      right. apply CIH. assumption. assumption.
-      destruct H.
-    + constructor. red in REL. intros.
-      specialize (REL v). unfold id.
-      destruct REL. right. apply CIH. assumption. assumption.
-      destruct H.
-  Qed.
-
-  Ltac interp_MF_ret := setoid_rewrite interp_Mem_ret; setoid_rewrite interp_fail_ret; cbn.
-  Ltac interp_MF_bind := setoid_rewrite interp_Mem_bind; setoid_rewrite interp_fail_bind; cbn.
-
-  Ltac final := apply eqit_Ret; eauto.
-  Ltac step :=
-    first [progress vred_E3 | vred_I3];
-    rewrite 1?interp_Mem_ret, 1?interp_fail_ret, 1?bind_ret_l;
-    rewrite 1?interp_Mem_bind, 1?interp_fail_bind, 1?bind_bind;
-    rewrite 1?interp_fail_throw, 1?bind_ret_l; cbn.
-
   Lemma swap_body_interp:
     forall (n n' : nat) (σ : evalContext) (f : AExpr) (x : mem_block) mH init,
     eutt (E := E_cfg) mem_eq
@@ -189,7 +169,7 @@ Section DSHIMap_is_tfor.
     do 2 rewrite interp_Mem_bind.
     do 2 rewrite interp_fail_bind.
 
-    eapply eqit_Proper_mono; cycle 1.
+    eapply eutt_Proper_mono; cycle 1.
     eapply commut_gen with (m := Some (mH, init))
                               (QQ := fun x y => match x, y with
                                              | Some (mH, x), Some (mH', y) => mH ≡ mH' /\ mem_block_Equiv x y
@@ -689,7 +669,7 @@ Section DSHIMap_is_tfor.
     unfold DSHIMap_tfor_up.
     rewrite interp_helix_tfor; [|lia].
     cbn.
-    eapply eqit_Proper_mono; cycle 1.
+    eapply eutt_Proper_mono; cycle 1.
     apply eutt_tfor.
     intros [[m' acc']|] i; [| reflexivity].
     cbn.
@@ -727,6 +707,58 @@ Definition memory_invariant_partial_write' (configV : config_cfg) (index loopsiz
                   (mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v0
                     → get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0))).
 
+(** ** Simplified High-level Proof Overview
+
+                    |-------------------------------------------------|
+          Given     | compile (IMap (n, x_p, y_p, f))   ≡   blocks    |
+                    |-------------------------------------------------|
+
+   ### Correctness Proof
+
+   NOFAIL : no_failure (⟦ IMap (n, x_p, y_p, f) ⟧ mH)      (* Assume no failure at the source code *)
+   PRECONDITION : {{ state_invariant mH mV  }}             (* Precondition is a Coq Prop           *)
+   =============================================================================
+
+             HELIX (src)                                 |           VIR (trg)           |          Postcondition
+  -------------------------------------------------------|-------------------------------|--------------------------------------------------------------
+                                                         |                               |
+      ⟦ IMap (n, x_p, y_p, f) ⟧  mH                      ≈           ⟦ blocks ⟧ mV       | {{ ∀ mH' mV' id, state_invariant mH' mV' ∧ branches_to id }}
+                                                         |                               |
+  ------⦃ REWRITE denoteDSHIMap_as_tfor ⦄----------------|-------------------------------|--------------------------------------------------------------
+                                                         |                               |
+      tfor [n-1 .. 0] ⟦ imap_body (x_p, y_p, f) ⟧ mH     ≈           ⟦ blocks ⟧ mV       | {{ ∀ mH' mV' id, state_invariant mH' mV' ∧ branches_to id }}
+                                                         |                               |
+  ------⦃    REWRITE reverse_tfor_eq    ⦄----------------|-------------------------------|--------------------------------------------------------------
+                                                         |                               |
+      tfor [0 .. n] ⟦ imap_body (x_p, y_p, f) ⟧ mH       ≈           ⟦ blocks ⟧ mV       | {{ ∀ mH' mV' id, state_invariant mH' mV' ∧ branches_to id }}
+                                                         |                               |
+  -------------------------------------------------------|-------------------------------|-------⦃ APPLY postcondition_monotonicity ⦄-------------------
+                                                         |                               |
+      tfor [0 .. n] ⟦ imap_body (x_p, y_p, f) ⟧ mH       ≈           ⟦ blocks ⟧ mV       |               {{           ?P          }}
+                                                         |                               |
+  ------------------⦃   APPLY genWhileLoop_tfor with (I := loop_invariant)  ⦄------(* N.B. this lemma is specific to VIR, and can work on any source *)-
+
+
+    Remaining proof obligations (simplified):
+
+      1. Setting up pre/postconditions
+        {{ PRECONDITION }} -> {{ loop_invariant 0 }}
+        {{ loop_invariant n }} -> {{ POSTCONDITION }}
+
+      2. Relate the iterations of the bodies.
+            {{ ∀ k, l @ loop_index = k ∧ loop_invariant k }}
+                imap_body ≈ blocks[label, body_entry]
+            {{ loop_invariant (S k) }}
+
+        Proved through symbolic execution of "atomic" operations -- [denote_exp_*] of the form
+
+                 ⟦ OP ⟧ g l m ≈ Ret v
+
+         e.g.) Lemma denote_exp_GR :forall g l m id v τ,
+                   Maps.lookup id g = Some v ->
+                      ⟦ EXP_Ident (ID_Global id) at τ ⟧e3 g l m ≈ Ret (m,(l,(g,dvalue_to_uvalue v))).
+
+ *)
 Lemma DSHIMap_correct:
   ∀ (n : nat) (x_p y_p : PExpr) (f : AExpr) (s1 s2 : IRState) (σ : evalContext) (memH : memoryH) 
     (nextblock bid_in bid_from : block_id) (bks : list (LLVMAst.block typ)) (g : global_env) 
@@ -735,6 +767,7 @@ Lemma DSHIMap_correct:
     → bid_bound s1 nextblock
     → state_invariant σ s1 memH (memV, (ρ, g))
     → Gamma_safe σ s1 s2
+    (* We need an explicit predicate stating that the source program will not fail. *)
     → no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ (DSHIMap n x_p y_p f)) memH)
     → eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ))
            (interp_helix (denoteDSHOperator σ (DSHIMap n x_p y_p f)) memH)
@@ -837,6 +870,14 @@ Proof.
   (* Duplicate work as genMExpr_correct, needed for GEP later. *)
 
   (* Memory invariant *)
+  (* TODO: [IW] -- state invariant keeps track of a bunch of information, is
+      there a way to reason about this cleanly?
+
+      There might also be a more principled way of guaranteeing aliasing.
+      The current non_aliasing requirement is slightly strong: typically, C and
+      C++ compilers guarantee _strict aliasing_, but we're disallowing any kind
+      of aliasing between pointers.
+   *)
   pose proof state_invariant_memory_invariant PRE as MINV_XOFF.
   pose proof state_invariant_memory_invariant PRE as MINV_YOFF.
   unfold memory_invariant in MINV_XOFF.
@@ -867,13 +908,12 @@ Proof.
   (* get no-failure in "reverse" direction before getting it in the right direction. *)
   assert (NOFAIL_rev := NOFAIL).
 
-  eapply eqit_Proper_mono; cycle 1.
+  eapply eutt_Proper_mono; cycle 1.
   eapply eqit_trans.
   {
     eapply eutt_clo_bind_returns.
     apply DSHIMap_interpreted_as_tfor.
     intros [ [] |] [ []| ] EQ R1 R2; inv EQ.
-    (* eapply no_failure_helix_bind_continuation in NOFAIL_cont. 2 : eauto. *)
     rewrite interp_helix_MemSet.
     Unshelve.
     6 : exact (fun x => match x with
@@ -906,7 +946,7 @@ Proof.
     do 3 red in H9. specialize (H9 _ _ REL1).
     specialize (H9 a a eq_refl).
     pose proof Extensionality_t.
-    unfold Same_t in H10. red in REL1. red in REL1. specialize (H10 _ _ _ _ REL1). rewrite H10.
+    unfold Same_t in H10. red in REL1. red in REL1. specialize (H10 mem_block _ m0 m REL1). rewrite H10.
     eauto.
 
     intros. auto.

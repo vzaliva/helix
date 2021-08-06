@@ -1369,3 +1369,8 @@ Qed.
 
 Arguments alist_add : simpl never.
 Arguments String.append : simpl never.
+
+Import Memory.NM.
+Definition Same_t e `{canonical_names.Equiv e} (B C : t e) := forall k : key, find (elt:=e) k B = find (elt:=e) k C.
+    (* Same Extensionality property as [Extensionality_Ensembles] in [Coq.Sets.Ensembles]. *)
+Axiom Extensionality_t : forall e `{canonical_names.Equiv e} (A B: t e), Same_t A B -> A ≡ B.
