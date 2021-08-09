@@ -60,7 +60,7 @@ $(EXE): extracted ml/dune ml/extracted/dune ml/testeval.ml
 	@echo "Compiling $(EXE)"
 	(cd ml; dune build --profile=dev testeval.exe)
 
-test: $(EXE)
+test: Makefile.coq $(EXE)
 	ml/_build/default/testeval.exe
 
 install-deps:
