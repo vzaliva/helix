@@ -1685,9 +1685,15 @@ Section TopLevel.
     `{NTP: @AHCOLtoRHCOL.NTranslationProps NTT}
     (* Assumptions for RHCOL to FHCOL mapping *)
     `{CTTF: RHCOLtoFHCOL.CTranslationOp}
-    `{CTPF: @RHCOLtoFHCOL.CTranslationProps CTTF}
     `{NTTF: RHCOLtoFHCOL.NTranslationOp}
+(*
+     Note: the following are not assumed, as they
+     could not be true for Real -> Float and Nat -> Int64
+     translations.
+
+     `{CTPF: @RHCOLtoFHCOL.CTranslationProps CTTF}
     `{NTPF: @RHCOLtoFHCOL.NTranslationProps NTTF}
+*)
     `{CarrierASRO: @orders.SemiRingOrder CarrierA CarrierAe CarrierAplus CarrierAmult CarrierAz CarrierA1 CarrierAle}.
 
   (* Initialize memory with X and placeholder for Y. *)
@@ -1805,16 +1811,38 @@ Section TopLevel.
       admit.
     }
 
+    (* TODO: use [translation_semantics_always_correct] *)
+    assert(RM: exists r_omemory, AHCOLtoRHCOL.translateMemory a_omemory ≡ inr r_omemory).
+    {
+      admit.
+    }
 
-    (* AHCOLtoRHCOL.heq_memory a_omemory r_omemory *)
+    destruct RM as [r_omemory RM].
+    exists r_omemory.
 
+    assert(RY: exists y_rmem, AHCOLtoRHCOL.translate_mem_block (avector_to_mem_block y) ≡ inr y_rmem).
+    {
+      (* this succeeds because RM is successful *)
+      admit.
+    }
+    destruct RY as [y_rmem RY].
+    exists y_rmem.
 
+    intros [RE RL].
 
+    eexists.
+    eexists.
 
-
-
-
-
+    repeat split.
+    -
+    (* eval *)
+      admit.
+    -
+      (* y_mem lookup *)
+      admit.
+    -
+      (* OutRel *)
+      admit. (* this is provided by user *)
 
   Admitted.
 
