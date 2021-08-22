@@ -611,6 +611,69 @@ Module MDHCOLTypeTranslator
           apply H2.
     Qed.
 
+    Lemma translateEvalContext_heq_heq_evalContext
+          (σ: LE.evalContext) (σ': LE'.evalContext)
+      :
+        translateEvalContext σ ≡ inr σ' ->
+        heq_evalContext σ σ'.
+    Proof.
+      revert σ σ'.
+      unfold heq_evalContext.
+      induction σ, σ'; intros.
+      -
+        auto.
+      -
+        inv H.
+      -
+        cbn in H.
+        break_let.
+        repeat break_match; inv H.
+      -
+        constructor.
+        +
+          cbn in *.
+          break_let.
+          break_let.
+          subst.
+          repeat break_match; inv H.
+          split.
+          * auto.
+          * inl_inr_inv.
+            clear IHσ.
+            induction d; cbn in Heqs.
+            --
+              break_match.
+              inl_inr.
+              inl_inr_inv.
+              constructor.
+              apply heq_NType_translateNTypeValue_compat.
+              rewrite Heqs1.
+              reflexivity.
+            --
+              break_match.
+              inl_inr.
+              inl_inr_inv.
+              constructor.
+              apply heq_CType_translateCTypeValue_compat.
+              rewrite Heqs1.
+              reflexivity.
+            --
+              break_match.
+              inl_inr.
+              inl_inr_inv.
+              constructor.
+              reflexivity.
+              apply heq_NType_translateNTypeValue_compat.
+              rewrite Heqs1.
+              reflexivity.
+        +
+          apply IHσ.
+          clear IHσ.
+          cbn in H.
+          break_let.
+          repeat break_match_hyp; inv H.
+          reflexivity.
+    Qed.
     Definition translation_semantics_correctness
                (op: L.DSHOperator)
                (op': L'.DSHOperator)
