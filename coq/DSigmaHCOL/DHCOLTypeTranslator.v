@@ -674,6 +674,21 @@ Module MDHCOLTypeTranslator
           repeat break_match_hyp; inv H.
           reflexivity.
     Qed.
+
+    Lemma translate_mem_block_heq_mem_block
+          (m:L.mem_block) (m':L'.mem_block):
+      translate_mem_block m ≡ inr m' ->
+      heq_mem_block m m'.
+    Proof.
+    Admitted.
+
+    Lemma translateMemory_heq_memory
+          (m:L.memory) (m':L'.memory):
+      translateMemory m ≡ inr m' ->
+      heq_memory m m'.
+    Proof.
+    Admitted.
+
     Definition translation_semantics_correctness
                (op: L.DSHOperator)
                (op': L'.DSHOperator)
