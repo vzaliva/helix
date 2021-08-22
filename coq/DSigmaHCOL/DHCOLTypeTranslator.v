@@ -677,14 +677,13 @@ Module MDHCOLTypeTranslator
     Definition translation_semantics_correctness
                (op: L.DSHOperator)
                (op': L'.DSHOperator)
-      := forall σ imem,
-        exists σ', heq_evalContext σ σ' ->
-              exists imem',
-                heq_memory imem imem' ->
-                forall omem omem',
-                  LE.evalDSHOperator σ op imem (LE.estimateFuel op) = Some (inr omem) ->
-                  LE'.evalDSHOperator σ' op' imem' (LE'.estimateFuel op') = Some (inr omem') ->
-                  heq_memory omem omem'.
+      := forall σ σ' imem imem',
+        heq_evalContext σ σ' ->
+        heq_memory imem imem' ->
+        forall omem omem',
+          LE.evalDSHOperator σ op imem (LE.estimateFuel op) = Some (inr omem) ->
+          LE'.evalDSHOperator σ' op' imem' (LE'.estimateFuel op') = Some (inr omem') ->
+          heq_memory omem omem'.
 
     Lemma translation_semantics_always_correct:
       forall op op', translate op ≡ inr op' -> translation_semantics_correctness op op'.
