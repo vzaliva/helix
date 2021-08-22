@@ -1696,6 +1696,14 @@ Section TopLevel.
 *)
     `{CarrierASRO: @orders.SemiRingOrder CarrierA CarrierAe CarrierAplus CarrierAmult CarrierAz CarrierA1 CarrierAle}.
 
+  (* We assuming that there is an injection of CType to Reals *)
+  Hypothesis AHCOLtoRHCOL_total:
+    (* always succeeds *)
+    (forall c r, AHCOLtoRHCOL.translateCTypeValue c ≡ inr r).
+    (* Q: Do we need injectivity as well?
+    (∀ x y, AHCOLtoRHCOL.translateCTypeValue x ≡ AHCOLtoRHCOL.translateCTypeValue y → x ≡ y). *)
+
+
   (* Initialize memory with X and placeholder for Y. *)
   Definition build_dynwin_memory (a:avector 3) (x:avector dynwin_i) :=
     AHCOLEval.memory_set
@@ -1747,26 +1755,32 @@ Section TopLevel.
          RHCOLtoFHCOL.translateEvalContext dynwin_R_σ ≡ inr dynwin_F_σ) ->
 
         (forall a_rmem x_rmem,
-          RHCOLEval.memory_lookup dynwin_R_memory dynwin_a_addr = Some a_rmem /\
-          RHCOLEval.memory_lookup dynwin_R_memory dynwin_x_addr = Some x_rmem /\
-          InConstr a_rmem x_rmem ->
+            RHCOLEval.memory_lookup dynwin_R_memory dynwin_a_addr = Some a_rmem /\
+            RHCOLEval.memory_lookup dynwin_R_memory dynwin_x_addr = Some x_rmem /\
+            InConstr a_rmem x_rmem ->
 
-          exists r_omemory y_rmem,
-          RHCOLEval.evalDSHOperator
-            dynwin_R_σ
-            dynwin_rhcol
-            dynwin_R_memory
-            (RHCOLEval.estimateFuel dynwin_rhcol) = Some (inr r_omemory) /\
-            RHCOLEval.memory_lookup r_omemory dynwin_y_addr = Some y_rmem  ->
+            exists r_omemory,
+              RHCOLEval.evalDSHOperator
+                dynwin_R_σ
+                dynwin_rhcol
+                dynwin_R_memory
+                (RHCOLEval.estimateFuel dynwin_rhcol) = Some (inr r_omemory) ->
 
-          exists f_omemory y_mem,
-            FHCOLEval.evalDSHOperator
-              dynwin_F_σ dynwin_fhcol
-              dynwin_F_memory
-              (FHCOLEval.estimateFuel dynwin_fhcol) = (Some (inr f_omemory)) /\
-            FHCOLEval.memory_lookup f_omemory dynwin_y_addr = Some y_mem /\
+              forall y_rmem,
+                RHCOLEval.memory_lookup r_omemory dynwin_y_addr = Some y_rmem ->
 
-            OutRel a_rmem x_rmem y_rmem y_mem).
+                (* Everything correct on Reals *)
+                AHCOLtoRHCOL.translate_mem_block (avector_to_mem_block y) ≡ inr y_rmem /\
+
+                (* And floats *)
+                exists f_omemory y_fmem,
+                  FHCOLEval.evalDSHOperator
+                    dynwin_F_σ dynwin_fhcol
+                    dynwin_F_memory
+                    (FHCOLEval.estimateFuel dynwin_fhcol) = (Some (inr f_omemory)) /\
+                  FHCOLEval.memory_lookup f_omemory dynwin_y_addr = Some y_fmem /\
+
+                  OutRel a_rmem x_rmem y_rmem y_fmem).
 
   Proof.
     intros x y HC dynwin_R_memory dynwin_F_memory dynwin_R_σ dynwin_F_σ dynwin_rhcol
@@ -1811,38 +1825,50 @@ Section TopLevel.
       admit.
     }
 
-    (* TODO: use [translation_semantics_always_correct] *)
     assert(RM: exists r_omemory, AHCOLtoRHCOL.translateMemory a_omemory ≡ inr r_omemory).
     {
+      (* To prove it for arbirary memory value (not only constants
+         defined in CType) we need [AHCOLtoRHCOL_total] assumption
+         to know that [translateCTypeValue] always succeeds.
+       *)
+
+      (*
+    pose proof (AHCOLtoRHCOL.translation_semantics_always_correct dynwin_AHCOL dynwin_rhcol CA) as ARC.
+
+    specialize (ARC build_dynwin_σ dynwin_R_σ
+                    (build_dynwin_memory a x) dynwin_R_memory).
+    autospecialize ARC.
+    apply AHCOLtoRHCOL.translateEvalContext_heq_heq_evalContext, CAE.
+    autospecialize ARC.
+    apply AHCOLtoRHCOL.translateMemory_heq_memory, CAM.
+    specialize (ARC a_omemory r_omemory).
+       *)
+
       admit.
     }
-
     destruct RM as [r_omemory RM].
-    exists r_omemory.
+    exists (r_omemory).
 
-    assert(RY: exists y_rmem, AHCOLtoRHCOL.translate_mem_block (avector_to_mem_block y) ≡ inr y_rmem).
-    {
-      (* this succeeds because RM is successful *)
-      admit.
-    }
-    destruct RY as [y_rmem RY].
-    exists y_rmem.
+    intros ER y_rmem RY.
 
-    intros [RE RL].
-
-    eexists.
-    eexists.
-
-    repeat split.
+    split.
     -
-    (* eval *)
+      (* Proof of correctness up to R *)
       admit.
     -
-      (* y_mem lookup *)
-      admit.
-    -
-      (* OutRel *)
-      admit. (* this is provided by user *)
+      eexists.
+      eexists.
+
+      repeat split.
+      +
+        (* eval of floats must succeed *)
+        admit.
+      +
+        (* y_mem lookup in floats must succeed *)
+        admit.
+      +
+        (* OutRel must hold (a,x,y_R,y_F) *)
+        admit. (* this is provided by user *)
 
   Admitted.
 
