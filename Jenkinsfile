@@ -82,7 +82,7 @@ pipeline {
                 script {
                     if (env.SKIP_CI != "true" && env.SKIP_BRANCH == "false") {
 			sh '''eval $(opam env)
-                              make -j ${NJOBS}
+                              make -j ${NJOBS} test
                            '''
                     }
                 }
