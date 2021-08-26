@@ -336,6 +336,75 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
       + constructor; [apply IHx1 with (y:=y1); auto | apply IHx2 with (y:=y2); auto].
   Qed.
 
+  Inductive DSHOperator_equiv: relation DSHOperator :=
+  | heq_DSHNop: DSHOperator_equiv DSHNop DSHNop
+  | heq_DSHAssign:
+      forall src_p src_n dst_p dst_n src_p' src_n' dst_p' dst_n',
+        src_n = src_n' ->
+        dst_n = dst_n' ->
+        src_p = src_p' ->
+        dst_p = dst_p' ->
+        DSHOperator_equiv (DSHAssign (src_p,src_n) (dst_p, dst_n))
+                          (DSHAssign (src_p',src_n') (dst_p', dst_n'))
+  | heq_DSHIMap:
+      forall n x_p y_p f n' x_p' y_p' f',
+        n=n' ->
+        x_p = x_p' ->
+        y_p = y_p' ->
+        f = f' ->
+        DSHOperator_equiv (DSHIMap n x_p y_p f) (DSHIMap n' x_p' y_p' f')
+
+  | heq_DSHBinOp:
+      forall n x_p y_p f n' x_p' y_p' f',
+        n=n' ->
+        x_p = x_p' ->
+        y_p = y_p' ->
+        f = f' ->
+        DSHOperator_equiv (DSHBinOp n x_p y_p f) (DSHBinOp n' x_p' y_p' f')
+  | heq_DSHMemMap2:
+      forall n x0_p x1_p y_p f n' x0_p' x1_p' y_p' f',
+        n=n' ->
+        x0_p = x0_p' ->
+        x1_p = x1_p' ->
+        y_p = y_p' ->
+        f = f' ->
+        DSHOperator_equiv (DSHMemMap2 n x0_p x1_p y_p f) (DSHMemMap2 n' x0_p' x1_p' y_p' f')
+  | heq_DSHPower:
+      forall n src_p src_n dst_p dst_n f ini n' src_p' src_n' dst_p' dst_n' f' ini',
+        n = n' ->
+        src_n = src_n' ->
+        dst_n = dst_n' ->
+        src_p = src_p' ->
+        dst_p = dst_p' ->
+        f = f' ->
+        ini = ini' ->
+        DSHOperator_equiv
+          (DSHPower n (src_p,src_n) (dst_p, dst_n) f ini)
+          (DSHPower n' (src_p',src_n') (dst_p', dst_n') f' ini')
+  | heq_DSHLoop:
+      forall n n' body body',
+        n=n' ->
+        DSHOperator_equiv body body' ->
+        DSHOperator_equiv (DSHLoop n body) (DSHLoop n' body')
+  | heq_DSHAlloc:
+      forall n n' body body',
+        n = n' ->
+        DSHOperator_equiv body body' ->
+        DSHOperator_equiv (DSHAlloc n body) (DSHAlloc n' body')
+  | heq_DSHMemInit:
+      forall p p' v v',
+        p = p' ->
+        v = v' ->
+        DSHOperator_equiv (DSHMemInit p v) (DSHMemInit p' v')
+  | heq_DSHSeq:
+      forall f f' g g',
+        DSHOperator_equiv f f' ->
+        DSHOperator_equiv g g' ->
+        DSHOperator_equiv (DSHSeq f g) (DSHSeq f' g').
+
+
+  Instance DSHOperator_Equiv: Equiv DSHOperator  := DSHOperator_equiv.
+
   Definition incrPVar (skip:nat) (p: PExpr): PExpr :=
     match p with
     | PVar var_id =>
