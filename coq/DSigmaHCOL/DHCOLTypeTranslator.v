@@ -675,16 +675,108 @@ Module MDHCOLTypeTranslator
           reflexivity.
     Qed.
 
-    Lemma translate_mem_block_heq_mem_block
-          (m:L.mem_block) (m':L'.mem_block):
-      translate_mem_block m ≡ inr m' ->
-      heq_mem_block m m'.
+    (* TODO: This could replace Equiv for mem_block and memory_block *)
+    Local Instance NM_Equiv `{Equiv A}
+      :
+        Equiv (NM.t A)
+      :=
+        fun m m' => forall k : NM.key, NM.find k m = NM.find k m'.
+
+    (* Functional specification of [NM_err_sequence] *)
+    Lemma NM_err_sequence_inr_fun_spec
+          (em: NM.t (err CT'.t))
+          (vm: NM.t CT'.t)
+      :
+        NM_err_sequence em = inr vm <->
+        NM.map inr vm = em.
     Proof.
     Admitted.
 
+    Lemma translate_mem_block_heq_mem_block
+          (m:L.mem_block) (m':L'.mem_block):
+      translate_mem_block m = inr m' ->
+      heq_mem_block m m'.
+    Proof.
+      intros H.
+      unfold translate_mem_block in H.
+      unfold heq_mem_block.
+      intros k.
+
+      remember (L.mem_lookup k m) as e eqn:E; symmetry in E.
+      remember (L'.mem_lookup k m') as e' eqn:E'; symmetry in E'.
+
+      apply NM_err_sequence_inr_fun_spec in H.
+      specialize (H k).
+      unfold L.mem_lookup, L'.mem_lookup in *.
+      remember (NM.find (elt:=err CT'.t) k (NM.map inr m')) as re eqn:RE; symmetry in RE.
+      remember (NM.find (elt:=err CT'.t) k (NM.map translateCTypeConst m)) as te eqn:TE; symmetry in TE.
+
+      destruct e' as [e'|], e as [e|].
+      4: constructor.
+      -
+        destruct re as [re|],te as [te|]; try some_none; try reflexivity.
+        +
+          some_inv.
+          constructor.
+
+          rewrite NP.F.map_o in RE.
+          unfold option_map in RE.
+          break_match; try some_none.
+          repeat some_inv.
+          subst.
+
+          rewrite NP.F.map_o in TE.
+          unfold option_map in TE.
+          break_match; try some_none.
+          repeat some_inv.
+          subst.
+
+          apply CTP.
+          symmetry in H.
+          apply CTP in H.
+          apply H.
+        +
+          exfalso.
+          rewrite NP.F.map_o in RE.
+          unfold option_map in RE.
+          break_match; try some_none.
+      -
+        exfalso.
+        destruct re as [re|],te as [te|]; try some_none; try reflexivity.
+        +
+          some_inv.
+
+          rewrite NP.F.map_o in RE.
+          unfold option_map in RE.
+          break_match; try some_none.
+          repeat some_inv.
+          subst.
+
+          rewrite NP.F.map_o in TE.
+          unfold option_map in TE.
+          break_match; try some_none.
+        +
+          rewrite NP.F.map_o in RE.
+          unfold option_map in RE.
+          break_match; try some_none.
+      -
+        exfalso.
+        destruct re as [re|],te as [te|]; try some_none; try reflexivity.
+        +
+          some_inv.
+
+          rewrite NP.F.map_o in RE.
+          unfold option_map in RE.
+          break_match; try some_none.
+        +
+          rewrite NP.F.map_o in TE.
+          unfold option_map in TE.
+          break_match; try some_none.
+    Qed.
+
     Lemma translateMemory_heq_memory
           (m:L.memory) (m':L'.memory):
-      translateMemory m ≡ inr m' ->
+      translateMemory m = inr m' ->
       heq_memory m m'.
     Proof.
     Admitted.
@@ -701,7 +793,7 @@ Module MDHCOLTypeTranslator
           heq_memory omem omem'.
 
     Lemma translation_semantics_always_correct:
-      forall op op', translate op ≡ inr op' -> translation_semantics_correctness op op'.
+      forall op op', translate op = inr op' -> translation_semantics_correctness op op'.
     Proof.
       unfold translation_semantics_correctness.
       intros op op' T σ imem.
