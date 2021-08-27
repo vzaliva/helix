@@ -483,17 +483,17 @@ Module MDHCOLTypeTranslator
           heq_DSHOperator g g' ->
           heq_DSHOperator (L.DSHSeq f g) (L'.DSHSeq f' g').
 
-    Lemma translation_syntax_always_correct:
-      forall x x', translate x ≡ inr x' ->
-              heq_DSHOperator x x'.
+
+    Lemma translation_syntax_always_correct {x x'}:
+      translate x = inr x' -> heq_DSHOperator x x'.
     Proof.
+      (*
       intros x x' H.
-    (*
       destruct x, x'; try constructor; try (cbn in H; inversion H); try inl_inr.
 
       all: repeat  match goal with
-(*           | [|- context[L.DSHAssign ?s ?d]] => destruct s,d
-           | [|- context[L.DSHPower _ ?s ?d _ _]] => destruct s,d *)
+          | [|- context[L.DSHAssign ?s ?d]] => destruct s,d
+           | [|- context[L.DSHPower _ ?s ?d _ _]] => destruct s,d 
            | [H: context[translateMemRef ?s] |- _ ] =>
              destruct s; unfold translateMemRef in H; cbn in H; repeat break_match_hyp
                end.
@@ -502,8 +502,9 @@ Module MDHCOLTypeTranslator
       all: try inl_inr_inv.
       all: try constructor.
       all:crush.
-     *)
+       *)
     Admitted.
+
 
     Inductive heq_DSHVal: LE.DSHVal -> LE'.DSHVal -> Prop :=
     | heq_DSHnatVal: forall x x', heq_NType x x' -> heq_DSHVal (LE.DSHnatVal x) (LE'.DSHnatVal x')
@@ -1009,6 +1010,25 @@ Module MDHCOLTypeTranslator
     Proof.
       unfold translation_semantics_correctness.
       intros op op' T σ imem.
+      apply translation_syntax_always_correct in T.
+      induction T; intros; cbn in *;
+        repeat break_match_hyp; try some_none; repeat some_inv; try inl_inr; repeat inl_inr_inv;
+        LE.memory_lookup_err_to_option;
+        LE'.memory_lookup_err_to_option;
+        LE.mem_lookup_err_to_option;
+        LE'.mem_lookup_err_to_option;
+        LE.simpl_assertions_hyp;
+        LE'.simpl_assertions_hyp.
+      -
+        symmetry in H1,H2.
+        eapply heq_memory_proper; eauto.
+      -
+        rewrite <- H5; clear H5.
+        rewrite <- H6; clear H6.
+        admit.
+      -
+        admit.
+
 
     Admitted.
 
