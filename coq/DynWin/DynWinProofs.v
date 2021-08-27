@@ -1747,8 +1747,8 @@ Section TopLevel.
         translate dynwin_rhcol ≡ inr dynwin_fhcol ->
 
         (* Compile memory *)
-        (AHCOLtoRHCOL.translateMemory (build_dynwin_memory a x) ≡ inr dynwin_R_memory /\
-         RHCOLtoFHCOL.translateMemory dynwin_R_memory ≡ inr dynwin_F_memory) ->
+        (AHCOLtoRHCOL.translate_memory (build_dynwin_memory a x) ≡ inr dynwin_R_memory /\
+         RHCOLtoFHCOL.translate_memory dynwin_R_memory ≡ inr dynwin_F_memory) ->
 
         (* compile σ *)
         (AHCOLtoRHCOL.translateEvalContext build_dynwin_σ ≡ inr dynwin_R_σ /\
@@ -1825,7 +1825,7 @@ Section TopLevel.
       admit.
     }
 
-    assert(RM: exists r_omemory, AHCOLtoRHCOL.translateMemory a_omemory ≡ inr r_omemory).
+    assert(RM: exists r_omemory, AHCOLtoRHCOL.translate_memory a_omemory ≡ inr r_omemory).
     {
       (* To prove it for arbirary memory value (not only constants
          defined in CType) we need [AHCOLtoRHCOL_total] assumption
@@ -1840,7 +1840,7 @@ Section TopLevel.
     autospecialize ARC.
     apply AHCOLtoRHCOL.translateEvalContext_heq_heq_evalContext, CAE.
     autospecialize ARC.
-    apply AHCOLtoRHCOL.translateMemory_heq_memory, CAM.
+    apply AHCOLtoRHCOL.translate_memory_heq_memory, CAM.
     specialize (ARC a_omemory r_omemory).
        *)
 

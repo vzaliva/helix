@@ -347,7 +347,7 @@ Module MDHCOLTypeTranslator
                         ret ((d,f) :: t)
          end.
 
-    Definition translateMemory (m:L.memory): err L'.memory :=
+    Definition translate_memory (m:L.memory): err L'.memory :=
       NM_err_sequence (NM.map translate_mem_block m).
 
   End EvalTranslations.
@@ -677,8 +677,9 @@ Module MDHCOLTypeTranslator
 
     (* Functional specification of [NM_err_sequence] *)
     Lemma NM_err_sequence_inr_fun_spec
-          (em: NM.t (err CT'.t))
-          (vm: NM.t CT'.t)
+          `{Equiv A}
+          (em: NM.t (err A))
+          (vm: NM.t A)
       :
         NM_err_sequence em = inr vm <->
         NM.map inr vm = em.
@@ -701,9 +702,8 @@ Module MDHCOLTypeTranslator
       apply NM_err_sequence_inr_fun_spec in H.
       specialize (H k).
       unfold L.mem_lookup, L'.mem_lookup in *.
-      remember (NM.find (elt:=err CT'.t) k (NM.map inr m')) as re eqn:RE; symmetry in RE.
-      remember (NM.find (elt:=err CT'.t) k (NM.map translateCTypeConst m)) as te eqn:TE; symmetry in TE.
-
+      remember (NM.find k (NM.map inr m')) as re eqn:RE; symmetry in RE.
+      remember (NM.find k (NM.map translateCTypeConst m)) as te eqn:TE; symmetry in TE.
       destruct e' as [e'|], e as [e|].
       4: constructor.
       -
@@ -767,12 +767,85 @@ Module MDHCOLTypeTranslator
           break_match; try some_none.
     Qed.
 
-    Lemma translateMemory_heq_memory
+    Lemma translate_memory_heq_memory
           (m:L.memory) (m':L'.memory):
-      translateMemory m = inr m' ->
+      translate_memory m = inr m' ->
       heq_memory m m'.
     Proof.
-    Admitted.
+      intros H.
+      unfold translate_memory in H.
+      unfold heq_memory.
+      intros k.
+
+      remember (L.memory_lookup m k) as e eqn:E; symmetry in E.
+      remember (L'.memory_lookup m' k) as e' eqn:E'; symmetry in E'.
+
+      apply NM_err_sequence_inr_fun_spec in H.
+      specialize (H k).
+      unfold L.memory_lookup, L'.memory_lookup in *.
+      remember (NM.find k (NM.map inr m')) as re eqn:RE; symmetry in RE.
+      remember (NM.find k (NM.map translate_mem_block m)) as te eqn:TE; symmetry in TE.
+
+      destruct e' as [e'|], e as [e|].
+      4: constructor.
+      -
+        destruct re as [re|],te as [te|]; try some_none; try reflexivity.
+        +
+          some_inv.
+          constructor.
+
+          rewrite NP.F.map_o in RE.
+          unfold option_map in RE.
+          break_match; try some_none.
+          repeat some_inv.
+          subst.
+
+          rewrite NP.F.map_o in TE.
+          unfold option_map in TE.
+          break_match; try some_none.
+          repeat some_inv.
+          subst.
+
+          apply translate_mem_block_heq_mem_block.
+          auto.
+        +
+          exfalso.
+          rewrite NP.F.map_o in RE.
+          unfold option_map in RE.
+          break_match; try some_none.
+      -
+        exfalso.
+        destruct re as [re|],te as [te|]; try some_none; try reflexivity.
+        +
+          some_inv.
+
+          rewrite NP.F.map_o in RE.
+          unfold option_map in RE.
+          break_match; try some_none.
+          repeat some_inv.
+          subst.
+
+          rewrite NP.F.map_o in TE.
+          unfold option_map in TE.
+          break_match; try some_none.
+        +
+          rewrite NP.F.map_o in RE.
+          unfold option_map in RE.
+          break_match; try some_none.
+      -
+        exfalso.
+        destruct re as [re|],te as [te|]; try some_none; try reflexivity.
+        +
+          some_inv.
+
+          rewrite NP.F.map_o in RE.
+          unfold option_map in RE.
+          break_match; try some_none.
+        +
+          rewrite NP.F.map_o in TE.
+          unfold option_map in TE.
+          break_match; try some_none.
+    Qed.
 
     Definition translation_semantics_correctness
                (op: L.DSHOperator)
