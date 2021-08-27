@@ -204,6 +204,30 @@ Module Type MDSigmaHCOLEval
   Definition assert_nat_neq (msg:string) (a b:nat) : err unit :=
     assert_false_to_err msg (Nat.eqb a b) tt.
 
+  Ltac simpl_assertions_hyp :=
+    unfold assert_NT_lt, assert_NT_le, assert_nat_le, assert_nat_neq in *;
+    repeat match goal with
+    | [ H: assert_true_to_err _ ?c _ ≡ inr ?u |- _] =>
+      (let H' := fresh "H'" in
+       destruct c eqn:H' ; cbn in H; [ | inv H];
+       clear H u;
+       rename H' into H)
+
+    | [ H: assert_false_to_err _ ?c _ ≡ inr ?u |- _] =>
+      let H' := fresh "H'" in
+      destruct c eqn:H' ; cbn in H; [inv H | ];
+      clear H u;
+      rename H' into H
+    end;
+    repeat match goal with
+    | [H: Nat.ltb _ _ ≡ true |- _] => apply PeanoNat.Nat.ltb_lt in H
+    | [H: Nat.ltb _ _ ≡ false |- _] => apply PeanoNat.Nat.ltb_ge in H
+    | [H: Nat.leb _ _ ≡ true |- _] => apply PeanoNat.Nat.leb_le in H
+    | [H: Nat.leb _ _ ≡ false |- _] => apply PeanoNat.Nat.leb_gt in H
+    | [H: Nat.eqb _ _ ≡ true |- _] => apply EqNat.beq_nat_true in H
+    | [H: Nat.eqb _ _ ≡ false |- _] => apply PeanoNat.Nat.eqb_neq in H
+    end.
+
   (** The following maybe should be moved somwehere. Baiscally it is
       needed for setoid rewriting to work in cases where we deal with units.
       For example, in case or [assert_NT_lt] *)
