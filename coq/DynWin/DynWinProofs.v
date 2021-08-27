@@ -1743,16 +1743,16 @@ Section TopLevel.
 
       forall dynwin_R_memory dynwin_F_memory dynwin_R_σ dynwin_F_σ dynwin_rhcol dynwin_fhcol,
         (* Compile AHCOL -> RHCOL -> FHCOL *)
-        AHCOLtoRHCOL.translate dynwin_AHCOL ≡ inr dynwin_rhcol ->
-        translate dynwin_rhcol ≡ inr dynwin_fhcol ->
+        AHCOLtoRHCOL.translate dynwin_AHCOL = inr dynwin_rhcol ->
+        translate dynwin_rhcol = inr dynwin_fhcol ->
 
         (* Compile memory *)
-        (AHCOLtoRHCOL.translate_memory (build_dynwin_memory a x) ≡ inr dynwin_R_memory /\
-         RHCOLtoFHCOL.translate_memory dynwin_R_memory ≡ inr dynwin_F_memory) ->
+        (AHCOLtoRHCOL.translate_memory (build_dynwin_memory a x) = inr dynwin_R_memory /\
+         RHCOLtoFHCOL.translate_memory dynwin_R_memory = inr dynwin_F_memory) ->
 
         (* compile σ *)
-        (AHCOLtoRHCOL.translateEvalContext build_dynwin_σ ≡ inr dynwin_R_σ /\
-         RHCOLtoFHCOL.translateEvalContext dynwin_R_σ ≡ inr dynwin_F_σ) ->
+        (AHCOLtoRHCOL.translateEvalContext build_dynwin_σ = inr dynwin_R_σ /\
+         RHCOLtoFHCOL.translateEvalContext dynwin_R_σ = inr dynwin_F_σ) ->
 
         (forall a_rmem x_rmem,
             RHCOLEval.memory_lookup dynwin_R_memory dynwin_a_addr = Some a_rmem /\
@@ -1825,25 +1825,24 @@ Section TopLevel.
       admit.
     }
 
-    assert(RM: exists r_omemory, AHCOLtoRHCOL.translate_memory a_omemory ≡ inr r_omemory).
+
+    assert(RM: exists r_omemory, AHCOLtoRHCOL.translate_memory a_omemory = inr r_omemory).
     {
       (* To prove it for arbirary memory value (not only constants
          defined in CType) we need [AHCOLtoRHCOL_total] assumption
          to know that [translateCTypeValue] always succeeds.
        *)
 
+      pose proof (AHCOLtoRHCOL.translation_semantics_always_correct dynwin_AHCOL dynwin_rhcol CA) as ARC.
+      specialize (ARC build_dynwin_σ dynwin_R_σ
+                      (build_dynwin_memory a x) dynwin_R_memory).
       (*
-    pose proof (AHCOLtoRHCOL.translation_semantics_always_correct dynwin_AHCOL dynwin_rhcol CA) as ARC.
-
-    specialize (ARC build_dynwin_σ dynwin_R_σ
-                    (build_dynwin_memory a x) dynwin_R_memory).
-    autospecialize ARC.
-    apply AHCOLtoRHCOL.translateEvalContext_heq_heq_evalContext, CAE.
-    autospecialize ARC.
-    apply AHCOLtoRHCOL.translate_memory_heq_memory, CAM.
-    specialize (ARC a_omemory r_omemory).
+      autospecialize ARC.
+      apply AHCOLtoRHCOL.translateEvalContext_heq_heq_evalContext.
+      autospecialize ARC.
+      apply AHCOLtoRHCOL.translate_memory_heq_memory, CAM.
+      specialize (ARC a_omemory r_omemory).
        *)
-
       admit.
     }
     destruct RM as [r_omemory RM].

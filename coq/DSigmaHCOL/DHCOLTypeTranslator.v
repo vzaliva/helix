@@ -227,11 +227,14 @@ Module MDHCOLTypeTranslator
     translateCTypeValue: CT.t -> err CT'.t ;
     }.
 
-    Class NTranslationOp :=
+  Class NTranslationOp :=
     {
 
     (* Heterogeneous equality *)
     heq_NType: NT.t -> NT'.t -> Prop ;
+
+    (* Proper wrt [equiv] *)
+    heq_NType_proper: Proper ((=) ==> (=) ==> iff) heq_NType ;
 
     (* Partial mapping of [NT.t] values to [NT'.t] *)
     translateNTypeValue: NT.t -> err NT'.t ;
@@ -507,6 +510,24 @@ Module MDHCOLTypeTranslator
     | heq_DSHCTypeVal: forall x x', heq_CType x x' -> heq_DSHVal (LE.DSHCTypeVal x) (LE'.DSHCTypeVal x')
     | heq_DSHPtrVal: forall a a' s s', a=a' -> heq_NType s s' -> heq_DSHVal (LE.DSHPtrVal a s) (LE'.DSHPtrVal a' s').
 
+    Instance heq_DSHVal_proper:
+      Proper ((=) ==> (=) ==> iff) heq_DSHVal.
+    Proof.
+      intros a a' Ea b b' Eb; split; intros H.
+      -
+        destruct a,b,a',b'; invc H; inv Eb; inv Ea; constructor.
+        + eapply heq_NType_proper; eauto; crush.
+        + eapply heq_CType_proper; eauto; crush.
+        + crush.
+        + eapply heq_NType_proper; eauto; crush.
+      -
+        destruct a,b,a',b'; invc H; inv Eb; inv Ea; constructor.
+        + eapply heq_NType_proper; eauto; crush.
+        + eapply heq_CType_proper; eauto; crush.
+        + crush.
+        + eapply heq_NType_proper; eauto; crush.
+    Qed.
+
     Definition heq_evalContext: LE.evalContext -> LE'.evalContext -> Prop :=
       List.Forall2 (fun '(x,p) '(x',p') => p=p' /\ heq_DSHVal x x').
 
@@ -611,7 +632,7 @@ Module MDHCOLTypeTranslator
           apply H2.
     Qed.
 
-    Lemma translateEvalContext_heq_heq_evalContext
+    Lemma translateEvalContext_heq_evalContext_eq
           (σ: LE.evalContext) (σ': LE'.evalContext)
       :
         translateEvalContext σ ≡ inr σ' ->
@@ -673,6 +694,131 @@ Module MDHCOLTypeTranslator
           break_let.
           repeat break_match_hyp; inv H.
           reflexivity.
+    Qed.
+
+    (* TODO: Move to list setoid *)
+    Lemma cons_equiv_inv `{Ae:Equiv A}:
+      forall x xs y ys, x::xs = y::ys -> x=y /\ xs=ys.
+    Proof.
+      intros x xs y ys E.
+      unfold equiv, ListSetoid.List_equiv in E.
+      inv E.
+      auto.
+    Qed.
+
+    (* TODO: Move to list setoid *)
+    Lemma cons_nequiv_nil `{Ae:Equiv A}:
+      forall x xs, @nil A ≠ cons x xs.
+    Proof.
+      intros x xs H.
+      unfold equiv, ListSetoid.List_equiv in H.
+      inv H.
+    Qed.
+
+    (* Todo: move somewhere *)
+    Lemma tuple_equiv_inv `{Ae:Equiv A} `{Be:Equiv B}:
+      forall (x x':A) (y y':B), (x,y) = (x',y') -> x=x' /\ y=y'.
+    Proof.
+      intros x x' y y' E.
+      unfold equiv, products.prod_equiv in E.
+      crush.
+    Qed.
+
+    Lemma translateEvalContext_heq_evalContext
+          (σ: LE.evalContext) (σ': LE'.evalContext)
+      :
+        translateEvalContext σ = inr σ' ->
+        heq_evalContext σ σ'.
+    Proof.
+      revert σ σ'.
+      unfold heq_evalContext.
+      induction σ, σ'; intros.
+      -
+        auto.
+      -
+        cbn in H.
+        inl_inr_inv.
+        contradict H.
+        apply cons_nequiv_nil.
+      -
+        cbn in H.
+        break_let.
+        repeat break_match; inv H.
+        inl_inr_inv.
+        symmetry in H.
+        contradict H.
+        apply cons_nequiv_nil.
+      -
+        constructor.
+        +
+          cbn in *.
+          break_let.
+          break_let.
+          subst.
+          repeat break_match; inv H.
+          split.
+          *
+            inv H2.
+            apply H4.
+          * inl_inr_inv.
+            clear IHσ.
+            induction d; cbn in Heqs.
+            --
+              break_match.
+              inl_inr.
+              inl_inr_inv.
+              inv H.
+              unfold products.prod_equiv in H5.
+              cbn in H5.
+              destruct H5 as [TD BB0].
+              rewrite <- TD.
+
+
+              constructor.
+              apply heq_NType_translateNTypeValue_compat.
+              rewrite Heqs1.
+              reflexivity.
+            --
+              break_match.
+              inl_inr.
+              inl_inr_inv.
+              subst.
+              clear H2.
+              apply cons_equiv_inv in H.
+              destruct H as [H1 H2].
+              apply tuple_equiv_inv in H1.
+              destruct H1 as [H1 H3].
+              setoid_rewrite <- H1.
+              constructor.
+              apply heq_CType_translateCTypeValue_compat.
+              rewrite Heqs1.
+              reflexivity.
+            --
+              break_match.
+              inl_inr.
+              inl_inr_inv.
+
+
+              clear H2.
+              apply cons_equiv_inv in H.
+              destruct H as [H2 H3].
+              apply tuple_equiv_inv in H2.
+              destruct H2 as [H2 H4].
+              setoid_rewrite <-H2.
+              setoid_rewrite <-H1.
+              constructor.
+              reflexivity.
+              apply heq_NType_translateNTypeValue_compat.
+              rewrite Heqs1.
+              reflexivity.
+        +
+          apply IHσ.
+          clear IHσ.
+          cbn in H.
+          break_let.
+          repeat break_match_hyp; inv H.
+          apply cons_equiv_inv in H2.
+          crush.
     Qed.
 
     (* Functional specification of [NM_err_sequence] *)
