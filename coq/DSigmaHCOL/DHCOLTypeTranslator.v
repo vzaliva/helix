@@ -675,13 +675,6 @@ Module MDHCOLTypeTranslator
           reflexivity.
     Qed.
 
-    (* TODO: This could replace Equiv for mem_block and memory_block *)
-    Local Instance NM_Equiv `{Equiv A}
-      :
-        Equiv (NM.t A)
-      :=
-        fun m m' => forall k : NM.key, NM.find k m = NM.find k m'.
-
     (* Functional specification of [NM_err_sequence] *)
     Lemma NM_err_sequence_inr_fun_spec
           (em: NM.t (err CT'.t))

@@ -633,8 +633,8 @@ Module MMSHCOL'
     unfold mem_union.
     mem_index_equiv k.
     rewrite 2!NP.F.map2_1bis by auto.
-    unfold equiv, mem_block_Equiv in Em0.
-    unfold equiv, mem_block_Equiv in Em1.
+    unfold equiv, NM_Equiv in Em0.
+    unfold equiv, NM_Equiv in Em1.
     specialize (Em0 k).
     specialize (Em1 k).
     repeat break_match; try some_none; auto.
@@ -667,7 +667,7 @@ Module MMSHCOL'
   Proof.
     intros f g Efg m0 m0' Em0 m1 m1' Em1.
     unfold mem_merge_with.
-    unfold equiv, mem_block_Equiv in *.
+    unfold equiv, NM_Equiv in *.
     intros k.
     specialize (Em0 k).
     specialize (Em1 k).
@@ -684,7 +684,7 @@ Module MMSHCOL'
   Proof.
     intros f g Efg d d' Ed m0 m0' Em0 m1 m1' Em1.
     unfold mem_merge_with_def.
-    unfold equiv, mem_block_Equiv in *.
+    unfold equiv, NM_Equiv in *.
     intros k.
     specialize (Em0 k).
     specialize (Em1 k).
@@ -740,7 +740,7 @@ Module MMSHCOL'
     destruct_opt_r_equiv; repeat break_match; try some_none.
     -
       repeat some_inv.
-      unfold mem_block_Equiv.
+      unfold NM_Equiv.
       intros k.
       unfold mem_lookup in *.
       destruct (eq_nat_dec k b).
@@ -782,7 +782,7 @@ Module MMSHCOL'
     destruct_opt_r_equiv; repeat break_match; try some_none.
     -
       repeat some_inv.
-      unfold mem_block_Equiv.
+      unfold NM_Equiv.
       intros k.
       unfold mem_lookup in *.
       destruct (eq_nat_dec k 0).

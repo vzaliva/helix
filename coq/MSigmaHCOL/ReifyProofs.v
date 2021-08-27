@@ -309,7 +309,7 @@ Section WithCarrierA.
       Proper ((=) ==> (=)) (@mem_block_to_svector n).
     Proof.
       intros a b H.
-      unfold equiv, mem_block_Equiv in H.
+      unfold equiv, NM_Equiv in H.
       unfold mem_block_to_svector.
       vec_index_equiv j jc.
       rewrite 2!Vbuild_nth.
@@ -1448,7 +1448,7 @@ Section WithCarrierA.
                       apply Meq2 in G1.
                       rewrite Heqo2 in G1.
                       some_inv.
-                      unfold equiv, mem_block_Equiv, NM.Equal in G1.
+                      unfold equiv, NM_Equiv, NM.Equal in G1.
                       rewrite <- Heqo0.
                       rewrite <- G1.
 
@@ -1515,7 +1515,7 @@ Section WithCarrierA.
                       apply Meq1 in G2.
                       rewrite Heqo3 in G2.
                       some_inv.
-                      unfold equiv, mem_block_Equiv in G2.
+                      unfold equiv, NM_Equiv in G2.
                       rewrite <- G2.
 
                       rewrite find_svector_to_mem_block_some with (kc:=kc).
@@ -2633,8 +2633,8 @@ Section WithCarrierA.
           contradict F1; eapply dense_block_find_not_None; eauto
         end.
 
-      Lemma mem_block_Equiv_decidable (m1 m2 : mem_block) :
-        {mem_block_Equiv m1 m2} + {not (mem_block_Equiv m1 m2)}.
+      Lemma NM_Equiv_decidable (m1 m2 : mem_block) :
+        {NM_Equiv m1 m2} + {not (NM_Equiv m1 m2)}.
       Proof.
         intros.
         destruct (NM.equal CarrierA_beq m1 m2) eqn:EQ.
@@ -2994,7 +2994,7 @@ Section WithCarrierA.
             (SGP : SgPred CarrierA)
             `{SPGP: !Proper ((=) ==> impl) SGP}
             (CM: @CommutativeRMonoid CarrierA CarrierAe dot svalue SGP):
-        @CommutativeRMonoid mem_block mem_block_Equiv
+        @CommutativeRMonoid mem_block NM_Equiv
                             (mem_merge_with_def dot svalue) mem_empty
                             (empty_or_dense_block_SGP SGP n).
       Proof.
@@ -3093,7 +3093,7 @@ Section WithCarrierA.
               rewrite find_mem_empty_eq_None by assumption.
               reflexivity.
             }
-            unfold equiv, mem_block_Equiv.
+            unfold equiv, NM_Equiv.
             intros k.
             unfold sg_op.
             unfold mem_merge_with_def.

@@ -138,7 +138,7 @@ Section mem_aux.
     mem_add k v2 (mem_add k v1 m) = mem_add k v2 m.
   Proof.
     intros.
-    unfold mem_add, equiv, mem_block_Equiv.
+    unfold mem_add, equiv, NM_Equiv.
     intros.
     destruct (Nat.eq_dec k k0).
     -
@@ -185,7 +185,7 @@ Section mem_aux.
     Associative MMemoryOfCarrierA.mem_union.
   Proof.
     intros b1 b2 b3.
-    unfold equiv, mem_block_Equiv, MMemoryOfCarrierA.mem_union.
+    unfold equiv, NM_Equiv, MMemoryOfCarrierA.mem_union.
     intro k.
     repeat rewrite NP.F.map2_1bis by reflexivity.
     repeat break_match; try some_none.
@@ -472,7 +472,7 @@ Section memory_aux.
     memory_set (memory_set m k mb) k' mb' = memory_set m k' mb'.
   Proof.
     intros E; cbv in E; subst k'.
-    unfold memory_set, equiv, memory_Equiv.
+    unfold memory_set, equiv, NM_Equiv.
     intros j.
     destruct (Nat.eq_dec k j).
     -
@@ -488,7 +488,7 @@ Section memory_aux.
     memory_remove (memory_set m k mb) k' = memory_remove m k.
   Proof.
     intros; cbv in H; subst k'.
-    unfold memory_remove, memory_set, equiv, memory_Equiv.
+    unfold memory_remove, memory_set, equiv, NM_Equiv.
     intros j.
     destruct (Nat.eq_dec k j).
     -
@@ -1983,7 +1983,7 @@ Proof.
     repeat break_match;
       try some_none; repeat some_inv;
       try inl_inr; repeat inl_inr_inv.
-    unfold equiv, memory_Equiv, memory_set, mem_add in H.
+    unfold equiv, NM_Equiv, memory_set, mem_add in H.
     specialize (H k).
     rewrite <-H.
     destruct (Nat.eq_dec n1 k), (Nat.eq_dec n4 k);
@@ -2201,7 +2201,7 @@ Proof.
     repeat break_match;
       try some_none; repeat some_inv;
       try inl_inr; repeat inl_inr_inv.
-    unfold equiv, memory_Equiv, memory_set, mem_add in H.
+    unfold equiv, NM_Equiv, memory_set, mem_add in H.
     specialize (H k).
     rewrite <-H.
     cbv in H0; destruct H0; subst.
@@ -2720,7 +2720,7 @@ Proof.
       try some_none; repeat some_inv;
       try inl_inr; repeat inl_inr_inv.
     subst.
-    unfold equiv, memory_Equiv, memory_set, mem_add in H.
+    unfold equiv, NM_Equiv, memory_set, mem_add in H.
     specialize (H k).
     rewrite <-H.
     destruct (Nat.eq_dec n2 k), (Nat.eq_dec n0 k);
@@ -3748,7 +3748,7 @@ Proof.
       pose proof (mem_block_exists_memory_remove t_i m3) as H4.
       unfold mem_block_exists in H4.
       apply NP.F.not_find_in_iff in H4.
-      unfold equiv, memory_Equiv in H.
+      unfold equiv, NM_Equiv in H.
       rewrite <- H.
       rewrite H4.
       reflexivity.
@@ -3809,7 +3809,7 @@ Proof.
 
     cut(NM.find (elt:=mem_block) k m3 = Some v).
     intros F3.
-    unfold equiv, memory_Equiv in H.
+    unfold equiv, NM_Equiv in H.
     rewrite <- H.
     unfold memory_remove.
     rewrite NP.F.remove_neq_o; auto.

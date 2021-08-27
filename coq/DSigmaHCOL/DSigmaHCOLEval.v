@@ -1702,7 +1702,7 @@ Module Type MDSigmaHCOLEval
     Proper ((=) ==> (=) ==> (=)) memory_remove.
   Proof.
     intros m1 m2 ME k1 k2 KE.
-    unfold memory_remove, equiv, memory_Equiv.
+    unfold memory_remove, equiv, NM_Equiv.
     intros k.
     destruct (dec_eq_nat k1 k).
     -

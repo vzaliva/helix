@@ -10,36 +10,35 @@ Require Import MathClasses.misc.util.
 
 Require Import Helix.Tactics.HelixTactics.
 
-Module Type MMemSetoid (CT : CType).
+Section NM_Equiv_instances.
+  Context `{Aequiv: Equiv A}
+          `{Aequivalence: Equivalence A Aequiv}.
 
-  Include Memory.MBasic CT.
+  Global Instance NM_Equiv : Equiv (NM.t A)
+    := fun m m' => forall k : NM.key, NM.find k m = NM.find k m'.
 
-  (* Custom equality of memory blocks using (@equiv t) on members *)
-  Instance mem_block_Equiv: Equiv (mem_block) :=
-    fun m m' => forall k : NM.key, NM.find k m = NM.find k m'.
-
-  Instance mem_block_Equiv_Reflexive:
-    Reflexive (mem_block_Equiv).
+  Global Instance NM_Equiv_Reflexive:
+    Reflexive (NM_Equiv).
   Proof.
-    unfold mem_block_Equiv.
+    unfold NM_Equiv.
     unfold Reflexive.
     reflexivity.
   Qed.
 
-  Instance mem_block_Equiv_Symmetric:
-    Symmetric (mem_block_Equiv).
+  Global Instance NM_Equiv_Symmetric:
+    Symmetric (NM_Equiv).
   Proof.
-    unfold mem_block_Equiv.
+    unfold NM_Equiv.
     unfold Symmetric.
     intros x y H k.
     specialize (H k).
     auto.
   Qed.
 
-  Instance mem_block_Equiv_Transitive:
-    Transitive (mem_block_Equiv).
+  Global Instance NM_Equiv_Transitive:
+    Transitive (NM_Equiv).
   Proof.
-    unfold mem_block_Equiv.
+    unfold NM_Equiv.
     unfold Transitive.
     intros x y z H0 H1 k.
     specialize (H0 k).
@@ -47,14 +46,20 @@ Module Type MMemSetoid (CT : CType).
     auto.
   Qed.
 
-  Instance mem_block_Equiv_Equivalence:
-    Equivalence (mem_block_Equiv).
+  Global Instance NM_Equiv_Equivalence:
+    Equivalence (NM_Equiv).
   Proof.
     split; typeclasses eauto.
   Qed.
 
+End NM_Equiv_instances.
+
+
+Module Type MMemSetoid (CT : CType).
+
+  Include Memory.MBasic CT.
   Ltac mem_index_equiv k :=
-    unfold equiv, mem_block_Equiv;
+    unfold equiv, NM_Equiv;
     intros k.
 
   Instance mem_lookup_proper:
@@ -132,7 +137,7 @@ Module Type MMemSetoid (CT : CType).
     simpl_relation.
     rename y into k'.
     unfold mem_add.
-    unfold equiv, mem_block_Equiv in H1.
+    unfold equiv, NM_Equiv in H1.
     specialize (H1 k).
     destruct_opt_r_equiv.
     -
@@ -170,45 +175,6 @@ Module Type MMemSetoid (CT : CType).
         some_none.
   Qed.
 
-  (* Equality of memory states *)
-  Instance memory_Equiv: Equiv (memory) :=
-    fun m m' => forall k : NM.key, NM.find k m = NM.find k m'.
-
-  Instance memorey_Equiv_Reflexive:
-    Reflexive (memory_Equiv).
-  Proof.
-    unfold memory_Equiv.
-    unfold Reflexive.
-    reflexivity.
-  Qed.
-
-  Instance memory_Equiv_Symmetric:
-    Symmetric (memory_Equiv).
-  Proof.
-    unfold memory_Equiv.
-    unfold Symmetric.
-    intros x y H k.
-    specialize (H k).
-    auto.
-  Qed.
-
-  Instance memory_Equiv_Transitive:
-    Transitive (memory_Equiv).
-  Proof.
-    unfold memory_Equiv.
-    unfold Transitive.
-    intros x y z H0 H1 k.
-    specialize (H0 k).
-    specialize (H1 k).
-    auto.
-  Qed.
-
-  Instance memory_Equiv_Equivalence:
-    Equivalence (memory_Equiv).
-  Proof.
-    split; typeclasses eauto.
-  Qed.
-
   Instance memory_lookup_proper:
     Proper ((=) ==> (eq) ==> (=)) (memory_lookup).
   Proof.
@@ -228,7 +194,7 @@ Module Type MMemSetoid (CT : CType).
       apply NP.F.in_find_iff.
       apply None_nequiv_neq.
       apply None_nequiv_neq in H.
-      unfold equiv, memory_Equiv in H0.
+      unfold equiv, NM_Equiv in H0.
       rewrite <- H0.
       apply H.
     -
@@ -236,7 +202,7 @@ Module Type MMemSetoid (CT : CType).
       apply NP.F.in_find_iff in H.
       apply NP.F.in_find_iff.
       apply None_nequiv_neq.
-      unfold equiv, memory_Equiv in H0.
+      unfold equiv, NM_Equiv in H0.
       rewrite H0.
       apply None_nequiv_neq in H.
       auto.
@@ -257,7 +223,7 @@ Module Type MMemSetoid (CT : CType).
   Lemma mem_union_mem_empty : forall x, mem_union mem_empty x = x.
   Proof.
     intros x.
-    unfold equiv, mem_block_Equiv.
+    unfold equiv, NM_Equiv.
     intros k.
     unfold mem_empty, mem_union.
     rewrite NP.F.map2_1bis; [|reflexivity].
@@ -271,7 +237,7 @@ Module Type MMemSetoid (CT : CType).
       mem_add i value (mem_union (mem_const_block i value) x).
   Proof.
     intros i value x.
-    unfold equiv, mem_block_Equiv.
+    unfold equiv, NM_Equiv.
     intros k.
     unfold mem_add, mem_union.
     destruct (PeanoNat.Nat.eq_dec i k).
