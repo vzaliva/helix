@@ -1428,7 +1428,7 @@ Section MSHCOL_to_AHCOL.
         -
           solve_facts.
       }
-    Admitted.
+    Qed.
 
   End DummyEnv.
 
