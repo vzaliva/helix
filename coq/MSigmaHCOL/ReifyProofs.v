@@ -547,6 +547,32 @@ Section WithCarrierA.
       rewrite 2!svector_to_mem_block_key_oob; auto;lia.
   Qed.
 
+  Lemma svector_to_mem_block_avector_to_mem_block
+        {n}
+        (x : avector n)
+        {fm: Monoid.Monoid RthetaFlags}
+        `{fml: Monoid.MonoidLaws _ fm}
+    :
+    svector_to_mem_block fm ((sparsify fm x)) = avector_to_mem_block x.
+  Proof.
+    pose proof (sparsify_is_dense fm _ n x) as D.
+    intros k.
+    destruct (Nat.lt_decidable k n) as [klt|kge].
+    -
+      rewrite find_svector_to_mem_block_some with (kc:=klt).
+      +
+        rewrite mem_lookup_avector_to_mem_block with (kc:=klt).
+        f_equiv.
+        rewrite Vnth_sparsify.
+        rewrite evalWriter_mkValue.
+        reflexivity.
+      +
+        apply svector_is_dense_svector_to_mem_block_In; auto.
+    -
+      rewrite svector_to_mem_block_key_oob; [|lia].
+      rewrite avector_to_mem_block_key_oob; [reflexivity|lia].
+  Qed.
+
   Class SH_MSH_Operator_compat
         {i o: nat}
         {fm: Monoid RthetaFlags}
