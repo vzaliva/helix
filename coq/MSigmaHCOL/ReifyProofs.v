@@ -509,6 +509,43 @@ Section WithCarrierA.
       reflexivity.
   Qed.
 
+  Lemma svector_is_dense_svector_to_mem_block_In:
+    ∀ (fm : Monoid RthetaFlags) (n : nat) (x: svector fm n),
+      svector_is_dense fm x
+      → ∀ k : NM.key,
+        k < n → NM.In (elt:=CarrierA) k (svector_to_mem_block fm x).
+  Proof.
+    intros fm n x D k klt.
+    apply svector_to_mem_block_In with (jc:=klt).
+    unfold svector_is_dense in D.
+    eapply Vforall_nth in D.
+    eauto.
+  Qed.
+
+  Lemma svector_to_mem_block_dense_kind_of_proper {fm} {n:nat} {x y:svector fm n}:
+    svector_is_dense fm x ->
+    svector_is_dense fm y ->
+    x=y ->
+    svector_to_mem_block fm x = svector_to_mem_block fm y.
+  Proof.
+    intros DX DY E.
+
+    unfold equiv, NM_Equiv.
+    intros k.
+    unfold equiv, vec_Equiv in E.
+
+    destruct (Nat.lt_decidable k n) as [klt|kge].
+    -
+      apply Vforall2_elim_nth with (ip:=klt) in E.
+      rewrite 2!find_svector_to_mem_block_some with (kc:=klt).
+      f_equiv.
+      f_equiv.
+      assumption.
+      apply svector_is_dense_svector_to_mem_block_In; auto.
+      apply svector_is_dense_svector_to_mem_block_In; auto.
+    -
+      rewrite 2!svector_to_mem_block_key_oob; auto;lia.
+  Qed.
 
   Class SH_MSH_Operator_compat
         {i o: nat}

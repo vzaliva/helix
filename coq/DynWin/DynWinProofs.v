@@ -1801,15 +1801,110 @@ Section TopLevel.
       pose proof (dynwin_SHCOL_MSHCOL_compat a) as MCOMP.
       pose proof (SHCOL_to_SHCOL1_Rewriting a) as SH1.
       pose proof (DynWinSigmaHCOL_Value_Correctness a) as HSH.
-      pose proof (DynWinHCOL a) as HH.
+      pose proof (DynWinHCOL a x x) as HH.
+      autospecialize HH; [reflexivity|].
+      rewrite HC in HH. clear HC.
 
-      Fail setoid_rewrite <- HH in HSH. (* Error: build_signature: no constraint can apply on a dependent argument *)
-      clear HH.
-      Fail rewrite <- HSH in SH1. (* Error: build_signature: no constraint can apply on a dependent argument *)
-      clear HSH.
+      (* moved from [dynwin_orig] to [dynwin_HCOL] *)
 
-      destruct MCOMP.
-      (* Use  mem_vec_preservation ? *)
+      remember (sparsify Monoid_RthetaFlags x) as sx eqn:SX.
+      remember (sparsify Monoid_RthetaFlags y) as sy eqn:SY.
+      assert(SHY: op _ (dynwin_SHCOL a) sx = sy).
+      {
+        subst sy.
+        rewrite_clear HH.
+
+        specialize (HSH sx sx).
+        autospecialize HSH; [reflexivity|].
+        rewrite <- HSH. clear HSH.
+        unfold liftM_HOperator.
+        Opaque dynwin_HCOL equiv.
+        cbn.
+        unfold SigmaHCOLImpl.liftM_HOperator_impl.
+        unfold compose.
+        f_equiv.
+        subst sx.
+        rewrite densify_sparsify.
+        reflexivity.
+      }
+      Transparent dynwin_HCOL equiv.
+      clear HH HSH.
+
+      (* moved from [dynwin_HCOL] to [dynwin_SHCOL] *)
+
+      assert(SH1Y: op _ (dynwin_SHCOL1 a) sx = sy).
+      {
+        rewrite <- SHY. clear SHY.
+        destruct SH1.
+        rewrite H.
+        reflexivity.
+      }
+      clear SHY SH1.
+
+      (* moved from [dynwin_SHCOL] to [dynwin_SHCOL1] *)
+
+      assert(M1: mem_op (dynwin_MSHCOL1 a) (svector_to_mem_block Monoid_RthetaFlags sx) = Some (svector_to_mem_block Monoid_RthetaFlags sy)).
+      {
+        cut(Some (svector_to_mem_block Monoid_RthetaFlags (op Monoid_RthetaFlags (dynwin_SHCOL1 a) sx)) = mem_op (dynwin_MSHCOL1 a) (svector_to_mem_block Monoid_RthetaFlags sx)).
+        {
+          intros M0.
+          rewrite <- M0. clear M0.
+          apply Some_proper.
+
+          cut(svector_is_dense _ (op Monoid_RthetaFlags (dynwin_SHCOL1 a) sx)).
+          intros YD.
+
+          apply svector_to_mem_block_dense_kind_of_proper.
+          apply YD.
+
+          subst sy.
+          apply sparsify_is_dense.
+          typeclasses eauto.
+
+          apply SH1Y.
+
+          {
+            clear - SX SY.
+
+            pose proof (@out_as_range _ _ _ _ _ _ (DynWinSigmaHCOL1_Facts a)) as D.
+            specialize (D sx).
+
+            autospecialize D.
+            {
+              intros j jc H.
+              destruct (dynwin_SHCOL1 a).
+              cbn in H.
+              subst sx.
+              rewrite Vnth_sparsify.
+              apply Is_Val_mkValue.
+            }
+
+            unfold svector_is_dense.
+            apply Vforall_nth_intro.
+            intros i ip.
+            apply D.
+            cbn.
+            constructor.
+          }
+        }
+        {
+          destruct MCOMP.
+          apply mem_vec_preservation.
+          cut(svector_is_dense Monoid_RthetaFlags (sparsify _ x)).
+          intros SD.
+          unfold svector_is_dense in SD.
+
+          intros j jc H.
+          apply (Vforall_nth jc) in SD.
+          subst sx.
+          apply SD.
+          apply sparsify_is_dense.
+          typeclasses eauto.
+        }
+      }
+      clear SH1Y MCOMP.
+
+      (* moved from [dynwin_SHCOL1] to [dynwin_MSHCOL1] *)
 
       specialize (MAHCOL (avector_to_mem_block x)).
       replace (dynwin_memory a (avector_to_mem_block x)) with (build_dynwin_memory a x) in MAHCOL by reflexivity.
