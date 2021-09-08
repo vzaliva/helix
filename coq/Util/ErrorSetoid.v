@@ -383,6 +383,13 @@ Arguments h_opt_err_c {A B} R.
 Arguments h_opt_opterr_c {A B} R.
 Arguments h_opt_err_i {A B} R.
 
+Ltac destruct_h_opt_opterr_c H1 H2 :=
+  match goal with
+  | [H: h_opt_opterr_c _ ?a ?b |- _] =>
+    destruct a eqn:H1, b eqn:H2
+  end.
+
+
 Require Import Helix.Util.ListSetoid.
 
 Lemma monadic_fold_left_err_app

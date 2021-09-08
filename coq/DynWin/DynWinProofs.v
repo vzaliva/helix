@@ -1798,6 +1798,7 @@ Section TopLevel.
              (AHCOLEval.estimateFuel dynwin_AHCOL) = Some (inr a_omemory)) as AE.
     {
       pose proof (DynWin_MSH_DSH_compat a) as MAHCOL.
+      pose proof (DynWin_pure) as MAPURE.
       pose proof (dynwin_SHCOL_MSHCOL_compat a) as MCOMP.
       pose proof (SHCOL_to_SHCOL1_Rewriting a) as SH1.
       pose proof (DynWinSigmaHCOL_Value_Correctness a) as HSH.
@@ -1906,6 +1907,9 @@ Section TopLevel.
 
       (* moved from [dynwin_SHCOL1] to [dynwin_MSHCOL1] *)
 
+      remember (svector_to_mem_block Monoid_RthetaFlags sx) as mx eqn:MX.
+      remember (svector_to_mem_block Monoid_RthetaFlags sy) as my eqn:MY.
+
       specialize (MAHCOL (avector_to_mem_block x)).
       replace (dynwin_memory a (avector_to_mem_block x)) with (build_dynwin_memory a x) in MAHCOL by reflexivity.
       destruct MAHCOL as [MAHCOL].
@@ -1915,11 +1919,65 @@ Section TopLevel.
       autospecialize MAHCOL.
       reflexivity.
 
-      Fail apply MAHCOL.
+      destruct_h_opt_opterr_c MM AE.
+      -
+        destruct s; inversion_clear MAHCOL.
+        f_equiv; f_equiv.
+        rename m0 into m'.
+        destruct (lookup_PExpr dynwin_σ m' DSH_y_p) eqn:RY.
+        +
+          exfalso.
+          (* contradiction in RY. Use [mem_stable] from [MAPURE] *)
+          admit.
+        +
+          inversion_clear H.
+          rename m into ym.
+          rename m0 into ym'.
+          subst.
+          destruct (dynwin_MSHCOL1 a).
+          rewrite 2!svector_to_mem_block_avector_to_mem_block in M1; try typeclasses eauto.
+          Opaque avector_to_mem_block.
+          cbn in M1.
+          cbn in MM.
+          rewrite MM in M1.
+          clear MM.
+          some_inv.
+          symmetry.
 
-      admit.
+          (* Use [mem_write_safe]? *)
+
+          Transparent avector_to_mem_block.
+          admit.
+      -
+        exfalso.
+        pose proof (@AHCOLEval.evalDSHOperator_estimateFuel dynwin_σ dynwin_AHCOL (build_dynwin_memory a x)) as CC.
+        clear - CC AE.
+        apply util.is_None_def in AE.
+        generalize dependent (AHCOLEval.evalDSHOperator dynwin_σ dynwin_AHCOL
+                                                        (build_dynwin_memory a x) (AHCOLEval.estimateFuel dynwin_AHCOL)).
+        intros o AE CC.
+        some_none.
+      -
+        exfalso.
+        remember (dynwin_MSHCOL1 a) as m.
+        destruct m.
+        subst sx mx.
+        rewrite svector_to_mem_block_avector_to_mem_block in M1.
+        eq_to_equiv.
+        some_none.
+        typeclasses eauto.
+      -
+        exfalso.
+        remember (dynwin_MSHCOL1 a) as m.
+        destruct m.
+        subst sx mx.
+        rewrite svector_to_mem_block_avector_to_mem_block in M1.
+        eq_to_equiv.
+        some_none.
+        typeclasses eauto.
     }
 
+    (* moved from [dynwin_MSHCOL1] to [dynwin_rhcol] *)
 
     assert(RM: exists r_omemory, AHCOLtoRHCOL.translate_memory a_omemory = inr r_omemory).
     {
