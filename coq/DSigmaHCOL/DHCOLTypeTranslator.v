@@ -102,120 +102,6 @@ Module MDHCOLTypeTranslator
          mv
          (inr (@NM.empty A)).
 
-  (* This should use [NM_sequence] directly making [NM_err_sequence] unecessary, but we run into universe inconsistency *)
-  Definition translate_mem_block (m:L.mem_block) : err L'.mem_block
-    := NM_err_sequence (NM.map translateCTypeConst m).
-
-  Definition translateMExpr (m:L.MExpr) : err L'.MExpr :=
-    match m with
-    | L.MPtrDeref x => ret (MPtrDeref (translatePExpr x))
-    | L.MConst x size =>
-      x' <- translate_mem_block x ;;
-      size' <- translateNTypeConst size ;;
-      ret (MConst x' size')
-    end.
-
-  Fixpoint translateAExpr (a:L.AExpr): err L'.AExpr :=
-    match a with
-    | L.AVar x => ret (AVar x)
-    | L.AConst x => x' <- translateCTypeConst x ;; ret (AConst x')
-    | L.ANth m n =>
-      m' <- translateMExpr m ;;
-      n' <- translateNExpr n ;;
-      ret (ANth m' n')
-    | L.AAbs x =>
-      x' <- translateAExpr x ;;
-      ret (AAbs x')
-    | L.APlus x x0 =>
-      x' <- translateAExpr x ;;
-      x0' <- translateAExpr x0 ;;
-      ret (APlus x' x0')
-    | L.AMinus x x0 =>
-      x' <- translateAExpr x ;;
-      x0' <- translateAExpr x0 ;;
-      ret (AMinus x' x0')
-    | L.AMult x x0 =>
-      x' <- translateAExpr x ;;
-      x0' <- translateAExpr x0 ;;
-      ret (AMult x' x0')
-    | L.AMin x x0 =>
-      x' <- translateAExpr x ;;
-      x0' <- translateAExpr x0 ;;
-      ret (AMin x' x0')
-    | L.AMax x x0 =>
-      x' <- translateAExpr x ;;
-      x0' <- translateAExpr x0 ;;
-      ret (AMax x' x0')
-    | L.AZless x x0 =>
-      x' <- translateAExpr x ;;
-      x0' <- translateAExpr x0 ;;
-      ret (AZless x' x0')
-    end.
-
-  Fixpoint translate (d: L.DSHOperator): err L'.DSHOperator
-    :=
-      match d with
-      | L.DSHNop =>
-        ret DSHNop
-      | L.DSHAssign src dst =>
-        src' <- translateMemRef src ;;
-        dst' <- translateMemRef dst ;;
-        ret (DSHAssign src' dst')
-      | L.DSHIMap n x_p y_p f =>
-        f' <- translateAExpr f ;;
-        ret (DSHIMap
-               n
-               (translatePExpr x_p)
-               (translatePExpr y_p)
-               f')
-      | L.DSHBinOp n x_p y_p f =>
-        f' <- translateAExpr f ;;
-        ret (DSHBinOp
-               n
-               (translatePExpr x_p)
-               (translatePExpr y_p)
-               f')
-      | L.DSHMemMap2 n x0_p x1_p y_p f =>
-        f' <- translateAExpr f ;;
-        ret (DSHMemMap2
-               n
-               (translatePExpr x0_p)
-               (translatePExpr x1_p)
-               (translatePExpr y_p)
-               f')
-      | L.DSHPower n src dst f initial =>
-        f' <- translateAExpr f ;;
-        initial' <- translateCTypeConst initial ;;
-        n' <- translateNExpr n ;;
-        src' <- translateMemRef src ;;
-        dst' <- translateMemRef dst ;;
-        ret (DSHPower
-               n'
-               src' dst'
-               f'
-               initial')
-      | L.DSHLoop n body =>
-        body' <- translate body ;;
-        ret (DSHLoop
-               n
-               body')
-      | L.DSHAlloc size body =>
-        body' <- translate body ;;
-        size' <- translateNTypeConst size ;;
-        ret (DSHAlloc
-               size'
-               body')
-      | L.DSHMemInit y_p value =>
-        value' <- translateCTypeConst value ;;
-        ret (DSHMemInit
-               (translatePExpr y_p)
-               value')
-      | L.DSHSeq f g =>
-        f' <- translate f ;;
-        g' <- translate g ;;
-        ret (DSHSeq f' g')
-      end.
-
   Class CTranslationOp :=
     {
     (* Heterogeneous equality *)
@@ -350,8 +236,124 @@ Module MDHCOLTypeTranslator
                         ret ((d,f) :: t)
          end.
 
+    (* This should use [NM_sequence] directly,
+       making [NM_err_sequence] unecessary,
+       but we run into universe inconsistency *)
+    Definition translate_mem_block (m:L.mem_block) : err L'.mem_block
+      := NM_err_sequence (NM.map translateCTypeValue m).
+
     Definition translate_memory (m:L.memory): err L'.memory :=
       NM_err_sequence (NM.map translate_mem_block m).
+
+    Definition translateMExpr (m:L.MExpr) : err L'.MExpr :=
+      match m with
+      | L.MPtrDeref x => ret (MPtrDeref (translatePExpr x))
+      | L.MConst x size =>
+        x' <- translate_mem_block x ;;
+        size' <- translateNTypeConst size ;;
+        ret (MConst x' size')
+      end.
+
+    Fixpoint translateAExpr (a:L.AExpr): err L'.AExpr :=
+      match a with
+      | L.AVar x => ret (AVar x)
+      | L.AConst x => x' <- translateCTypeConst x ;; ret (AConst x')
+      | L.ANth m n =>
+        m' <- translateMExpr m ;;
+        n' <- translateNExpr n ;;
+        ret (ANth m' n')
+      | L.AAbs x =>
+        x' <- translateAExpr x ;;
+        ret (AAbs x')
+      | L.APlus x x0 =>
+        x' <- translateAExpr x ;;
+        x0' <- translateAExpr x0 ;;
+        ret (APlus x' x0')
+      | L.AMinus x x0 =>
+        x' <- translateAExpr x ;;
+        x0' <- translateAExpr x0 ;;
+        ret (AMinus x' x0')
+      | L.AMult x x0 =>
+        x' <- translateAExpr x ;;
+        x0' <- translateAExpr x0 ;;
+        ret (AMult x' x0')
+      | L.AMin x x0 =>
+        x' <- translateAExpr x ;;
+        x0' <- translateAExpr x0 ;;
+        ret (AMin x' x0')
+      | L.AMax x x0 =>
+        x' <- translateAExpr x ;;
+        x0' <- translateAExpr x0 ;;
+        ret (AMax x' x0')
+      | L.AZless x x0 =>
+        x' <- translateAExpr x ;;
+        x0' <- translateAExpr x0 ;;
+        ret (AZless x' x0')
+      end.
+
+    Fixpoint translate (d: L.DSHOperator): err L'.DSHOperator
+      :=
+        match d with
+        | L.DSHNop =>
+          ret DSHNop
+        | L.DSHAssign src dst =>
+          src' <- translateMemRef src ;;
+          dst' <- translateMemRef dst ;;
+          ret (DSHAssign src' dst')
+        | L.DSHIMap n x_p y_p f =>
+          f' <- translateAExpr f ;;
+          ret (DSHIMap
+                 n
+                 (translatePExpr x_p)
+                 (translatePExpr y_p)
+                 f')
+        | L.DSHBinOp n x_p y_p f =>
+          f' <- translateAExpr f ;;
+          ret (DSHBinOp
+                 n
+                 (translatePExpr x_p)
+                 (translatePExpr y_p)
+                 f')
+        | L.DSHMemMap2 n x0_p x1_p y_p f =>
+          f' <- translateAExpr f ;;
+          ret (DSHMemMap2
+                 n
+                 (translatePExpr x0_p)
+                 (translatePExpr x1_p)
+                 (translatePExpr y_p)
+                 f')
+        | L.DSHPower n src dst f initial =>
+          f' <- translateAExpr f ;;
+          initial' <- translateCTypeConst initial ;;
+          n' <- translateNExpr n ;;
+          src' <- translateMemRef src ;;
+          dst' <- translateMemRef dst ;;
+          ret (DSHPower
+                 n'
+                 src' dst'
+                 f'
+                 initial')
+        | L.DSHLoop n body =>
+          body' <- translate body ;;
+          ret (DSHLoop
+                 n
+                 body')
+        | L.DSHAlloc size body =>
+          body' <- translate body ;;
+          size' <- translateNTypeConst size ;;
+          ret (DSHAlloc
+                 size'
+                 body')
+        | L.DSHMemInit y_p value =>
+          value' <- translateCTypeConst value ;;
+          ret (DSHMemInit
+                 (translatePExpr y_p)
+                 value')
+        | L.DSHSeq f g =>
+          f' <- translate f ;;
+          g' <- translate g ;;
+          ret (DSHSeq f' g')
+        end.
 
   End EvalTranslations.
 
@@ -850,7 +852,7 @@ Module MDHCOLTypeTranslator
       specialize (H k).
       unfold L.mem_lookup, L'.mem_lookup in *.
       remember (NM.find k (NM.map inr m')) as re eqn:RE; symmetry in RE.
-      remember (NM.find k (NM.map translateCTypeConst m)) as te eqn:TE; symmetry in TE.
+      remember (NM.find k (NM.map translateCTypeValue m)) as te eqn:TE; symmetry in TE.
       destruct e' as [e'|], e as [e|].
       4: constructor.
       -
@@ -873,8 +875,7 @@ Module MDHCOLTypeTranslator
 
           apply CTP.
           symmetry in H.
-          apply CTP in H.
-          apply H.
+          assumption.
         +
           exfalso.
           rewrite NP.F.map_o in RE.

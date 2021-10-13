@@ -1552,6 +1552,8 @@ Require Import AltBinNotations.
 
 
 Section RHCOL_to_FHCOL.
+  Context `{AR_CTT: AHCOLtoRHCOL.CTranslationOp}
+          `{RF_CTT: RHCOLtoFHCOL.CTranslationOp}.
 
   (* Notation for shorter printing of `int64` constants *)
   Local Declare Scope int64.

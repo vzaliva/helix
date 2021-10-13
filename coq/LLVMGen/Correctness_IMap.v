@@ -54,7 +54,7 @@ Instance mem_eq_Equivalence : Equivalence mem_eq.
 Proof.
   split.
   - red. intros [ []| ]. red.
-    split; eauto. apply mem_block_Equiv_Reflexive.
+    split; eauto. apply NM_Equiv_Reflexive.
     red. auto.
   - red. intros [ []| ] [ []| ]; red; cbn; intros []; auto.
     split; auto. apply NM_Equiv_Symmetric. auto.
