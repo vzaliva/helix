@@ -72,7 +72,7 @@ Section HCOL_Breakdown.
     rewrite breakdown_OTInfinityNorm.
     HOperator_reflexivity.
   Qed.
-  
+
 
 End HCOL_Breakdown.
 
@@ -1724,7 +1724,10 @@ Section TopLevel.
         ].
 
   (* Parametric relation between RHCOL and FHCOL coumputation results  *)
-  Parameter OutRel: (* a *) RHCOLEval.mem_block -> (*x*) RHCOLEval.mem_block -> (*y*) RHCOLEval.mem_block -> (* y_mem *) FHCOLEval.mem_block -> Prop.
+  Parameter OutRel : (* a *) RHCOLEval.mem_block ->
+                     (* x *) RHCOLEval.mem_block ->
+                     (* y *) RHCOLEval.mem_block ->
+                 (* y_mem *) FHCOLEval.mem_block -> Prop.
 
   (*
     Translation validation proof of semantic preservation
@@ -1783,10 +1786,8 @@ Section TopLevel.
                   FHCOLEval.memory_lookup f_omemory dynwin_y_addr = Some y_fmem /\
 
                   OutRel a_rmem x_rmem y_rmem y_fmem).
-
   Proof.
-    intros x y HC dynwin_R_memory dynwin_F_memory dynwin_R_σ dynwin_F_σ dynwin_rhcol
-           dynwin_fhcol CA CR [CAM CRM] [CAE CRE] a_rmem x_rmem [RA [RX C]].
+    intros * HC * CA CR [CAM CRM] [CAE CRE] * [RA [RX C]].
 
     remember (AHCOLEval.memory_set
                 (build_dynwin_memory a x)
@@ -1981,7 +1982,7 @@ Section TopLevel.
 
     (* moved from [dynwin_MSHCOL1] to [dynwin_rhcol] *)
 
-    assert(RM: exists r_omemory, AHCOLtoRHCOL.translate_memory a_omemory = inr r_omemory).
+    assert(RM : exists r_omemory, AHCOLtoRHCOL.translate_memory a_omemory = inr r_omemory).
     {
       (* To prove it for arbirary memory value (not only constants
          defined in CType) we need [AHCOLtoRHCOL_total] assumption
