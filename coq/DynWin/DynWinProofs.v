@@ -1984,21 +1984,11 @@ Section TopLevel.
 
     assert(RM : exists r_omemory, AHCOLtoRHCOL.translate_memory a_omemory = inr r_omemory).
     {
-      (* To prove it for arbirary memory value (not only constants
-         defined in CType) we need [AHCOLtoRHCOL_total] assumption
-         to know that [translateCTypeValue] always succeeds.
-       *)
-
-      pose proof (AHCOLtoRHCOL.translation_semantics_always_correct dynwin_AHCOL dynwin_rhcol CA) as ARC.
-      specialize (ARC build_dynwin_σ dynwin_R_σ
-                      (build_dynwin_memory a x) dynwin_R_memory).
-      (*
-      autospecialize ARC.
-      apply AHCOLtoRHCOL.translateEvalContext_heq_heq_evalContext.
-      autospecialize ARC.
-      apply AHCOLtoRHCOL.translate_memory_heq_memory, CAM.
-      specialize (ARC a_omemory r_omemory).
-       *)
+      eexists.
+      unfold AHCOLtoRHCOL.translate_memory.
+      unfold AHCOLtoRHCOL.translate_mem_block.
+      (* eapply AHCOLtoRHCOL.NM_err_sequence_inr_fun_spec. *)
+      (* use [AHCOLtoRHCOL_total] *)
       admit.
     }
     destruct RM as [r_omemory RM].
@@ -2007,24 +1997,42 @@ Section TopLevel.
     intros ER y_rmem RY.
 
     split.
-    -
+    1: {
       (* Proof of correctness up to R *)
+      clear -  RM AOM RY.
+      subst.
+      eapply AHCOLtoRHCOL.translate_memory_heq_memory in RM.
+      unfold AHCOLtoRHCOL.heq_memory in RM.
+      specialize (RM dynwin_y_addr).
+      inv RM; try congruence.
+      rewrite <-H0 in RY.
+      invc RY.
+      clear - H1 H3.
+      admit. (* correct up to equivalence (some changes might be required) *)
+    }
+
+    assert(FM: exists f_omemory, RHCOLtoFHCOL.translate_memory r_omemory = inr f_omemory).
+    {
+      eexists.
+      unfold RHCOLtoFHCOL.translate_memory.
+      unfold RHCOLtoFHCOL.translate_mem_block.
+      (* eapply RHCOLtoFHCOL.NM_err_sequence_inr_fun_spec. *)
       admit.
-    -
-      eexists.
-      eexists.
+    }
 
-      repeat split.
-      +
-        (* eval of floats must succeed *)
-        admit.
-      +
-        (* y_mem lookup in floats must succeed *)
-        admit.
-      +
-        (* OutRel must hold (a,x,y_R,y_F) *)
-        admit. (* this is provided by user *)
+    eexists.
+    eexists.
 
+    repeat split.
+    +
+      (* eval of floats must succeed *)
+      admit.
+    +
+      (* y_mem lookup in floats must succeed *)
+      admit.
+    +
+      (* OutRel must hold (a,x,y_R,y_F) *)
+      admit. (* this is provided by user *)
   Admitted.
 
 
