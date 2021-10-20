@@ -301,6 +301,8 @@ Module MDHCOLTypeTranslator
           dst' <- translateMemRef dst ;;
           ret (DSHAssign src' dst')
         | L.DSHIMap n x_p y_p f =>
+          _ <- NT.from_nat n ;; (* ensure loop bounds fit target [NType] *)
+          _ <- NT'.from_nat n ;;
           f' <- translateAExpr f ;;
           ret (DSHIMap
                  n
@@ -308,6 +310,8 @@ Module MDHCOLTypeTranslator
                  (translatePExpr y_p)
                  f')
         | L.DSHBinOp n x_p y_p f =>
+          _ <- NT.from_nat n ;;
+          _ <- NT'.from_nat n ;;
           f' <- translateAExpr f ;;
           ret (DSHBinOp
                  n
@@ -315,6 +319,8 @@ Module MDHCOLTypeTranslator
                  (translatePExpr y_p)
                  f')
         | L.DSHMemMap2 n x0_p x1_p y_p f =>
+          _ <- NT.from_nat n ;;
+          _ <- NT'.from_nat n ;;
           f' <- translateAExpr f ;;
           ret (DSHMemMap2
                  n
@@ -334,6 +340,8 @@ Module MDHCOLTypeTranslator
                  f'
                  initial')
         | L.DSHLoop n body =>
+          _ <- NT.from_nat n ;;
+          _ <- NT'.from_nat n ;;
           body' <- translate body ;;
           ret (DSHLoop
                  n
@@ -389,6 +397,14 @@ Module MDHCOLTypeTranslator
     Definition heq_mem_block: L.mem_block -> L'.mem_block -> Prop :=
       fun m m' => forall k : nat, hopt_r heq_CType (L.mem_lookup k m) (L'.mem_lookup k m').
 
+    (* Check if two [nat]s translate successfully and to equivalent [NType] values *)
+    Definition heq_NT_nat: nat -> nat -> Prop :=
+      fun n n' =>
+        match NT.from_nat n, NT'.from_nat n' with
+        | inr nt, inr nt' => heq_NType nt nt'
+        | _, _ => False
+        end.
+
     Inductive heq_NExpr: L.NExpr -> L'.NExpr -> Prop :=
     | heq_NVar: forall x x', x=x' -> heq_NExpr (L.NVar x) (L'.NVar x')
     | heq_NConst: forall x x', heq_NType x x' -> heq_NExpr (L.NConst x) (L'.NConst x')
@@ -431,7 +447,7 @@ Module MDHCOLTypeTranslator
                           (L'.DSHAssign (src_p',src_n') (dst_p', dst_n'))
     | heq_DSHIMap:
         forall n x_p y_p f n' x_p' y_p' f',
-          n=n' ->
+          heq_NT_nat n n' ->
           heq_PExpr x_p x_p' ->
           heq_PExpr y_p y_p' ->
           heq_AExpr f f' ->
@@ -439,14 +455,14 @@ Module MDHCOLTypeTranslator
 
     | heq_DSHBinOp:
         forall n x_p y_p f n' x_p' y_p' f',
-          n=n' ->
+          heq_NT_nat n n' ->
           heq_PExpr x_p x_p' ->
           heq_PExpr y_p y_p' ->
           heq_AExpr f f' ->
           heq_DSHOperator (L.DSHBinOp n x_p y_p f) (L'.DSHBinOp n' x_p' y_p' f')
     | heq_DSHMemMap2:
         forall n x0_p x1_p y_p f n' x0_p' x1_p' y_p' f',
-          n=n' ->
+          heq_NT_nat n n' ->
           heq_PExpr x0_p x0_p' ->
           heq_PExpr x1_p x1_p' ->
           heq_PExpr y_p y_p' ->
@@ -466,7 +482,7 @@ Module MDHCOLTypeTranslator
             (L'.DSHPower n' (src_p',src_n') (dst_p', dst_n') f' ini')
     | heq_DSHLoop:
         forall n n' body body',
-          n=n' ->
+          heq_NT_nat n n' ->
           heq_DSHOperator body body' ->
           heq_DSHOperator (L.DSHLoop n body) (L'.DSHLoop n' body')
     | heq_DSHAlloc:
