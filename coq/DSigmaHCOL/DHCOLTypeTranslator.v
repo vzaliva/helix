@@ -398,12 +398,12 @@ Module MDHCOLTypeTranslator
       fun m m' => forall k : nat, hopt_r heq_CType (L.mem_lookup k m) (L'.mem_lookup k m').
 
     (* Check if two [nat]s translate successfully and to equivalent [NType] values *)
-    Definition heq_NT_nat: nat -> nat -> Prop :=
-      fun n n' =>
-        match NT.from_nat n, NT'.from_nat n' with
-        | inr nt, inr nt' => heq_NType nt nt'
-        | _, _ => False
-        end.
+    Inductive heq_NT_nat: nat -> nat -> Prop :=
+      heq_from_nat : forall n n' nt nt',
+        NT.from_nat n ≡ inr nt ->
+        NT'.from_nat n' ≡ inr nt' ->
+        heq_NType nt nt' ->
+        heq_NT_nat n n'.
 
     Inductive heq_NExpr: L.NExpr -> L'.NExpr -> Prop :=
     | heq_NVar: forall x x', x=x' -> heq_NExpr (L.NVar x) (L'.NVar x')
