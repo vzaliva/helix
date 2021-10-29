@@ -301,8 +301,8 @@ Module MDHCOLTypeTranslator
           dst' <- translateMemRef dst ;;
           ret (DSHAssign src' dst')
         | L.DSHIMap n x_p y_p f =>
-          _ <- NT.from_nat n ;; (* ensure loop bounds fit target [NType] *)
-          _ <- NT'.from_nat n ;;
+          _ <- NT.from_nat n ;;  (* ensure loop bounds fit source [NType] *)
+          _ <- NT'.from_nat n ;; (* ensure loop bounds fit target [NType] *)
           f' <- translateAExpr f ;;
           ret (DSHIMap
                  n
