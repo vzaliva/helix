@@ -1930,8 +1930,18 @@ Section TopLevel.
         destruct (lookup_PExpr dynwin_σ m' DSH_y_p) eqn:RY.
         +
           exfalso.
-          (* contradiction in RY. Use [mem_stable] from [MAPURE] *)
-          admit.
+          clear - MAPURE AE RY.
+          cbn in RY.
+          assert (AHCOL.mem_block_exists 1 m').
+          {
+            erewrite <-mem_stable.
+            2: now rewrite AE.
+            now apply AHCOLEval.memory_is_set_is_Some.
+          }
+          apply AHCOLEval.memory_is_set_is_Some in H.
+          unfold util.is_Some, AHCOLEval.memory_lookup_err in *.
+          break_match; try contradiction.
+          inv RY.
         +
           inversion_clear H.
           rename m into ym.
