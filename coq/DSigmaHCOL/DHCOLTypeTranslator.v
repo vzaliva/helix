@@ -851,6 +851,47 @@ Module MDHCOLTypeTranslator
     Proof.
     Admitted.
 
+    Lemma NM_err_sequence_OK
+          `{Equiv A}
+          (em: NM.t (err A))
+      :
+        NP.for_all_range is_OK_bool em = true ->
+        exists vm,
+          NM_err_sequence em ≡ inr vm.
+    Proof.
+      intro OK.
+      unfold NP.for_all_range, NP.for_all in OK.
+      unfold NM_err_sequence.
+
+      rewrite NM.fold_1 in *.
+      match goal with
+      | [ |- context [fold_left ?f _ _]] => remember f as acc
+      end.
+
+      generalize dependent (NM.empty A).
+      generalize dependent (NM.elements (elt:=err A) em).
+      clear - Heqacc.
+      induction l as [|e];
+        intros OK s.
+      -
+        now exists s.
+      -
+        destruct e as (k, [v | v]).
+        +
+          cbn in *.
+          exfalso; clear - OK.
+          contradict OK.
+          apply Bool.not_true_iff_false.
+          induction l.
+          * reflexivity.
+          * cbn in *; now break_if.
+        +
+          cbn in *.
+          autospecialize IHl; [assumption |].
+          subst acc.
+          eapply IHl.
+    Qed.
+
     Lemma translate_mem_block_heq_mem_block
           (m:L.mem_block) (m':L'.mem_block):
       translate_mem_block m = inr m' ->

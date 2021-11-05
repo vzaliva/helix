@@ -21,6 +21,12 @@ Inductive is_OK {A : Type} : err A -> Prop :=
 Inductive is_Err {A : Type} : err A -> Prop :=
 | is_Err_intro : forall a, is_Err (inl a).
 
+Definition is_OK_bool {A : Type} (x : err A) : bool :=
+  match x with
+  | inr _ => true
+  | _ => false
+  end.
+
 Fact eq_inr_is_OK {A:Type} (x:A) (y: err A):
   (y ≡ inr x) -> is_OK y.
 Proof.
