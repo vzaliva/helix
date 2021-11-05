@@ -401,6 +401,27 @@ Section memory_aux.
     reflexivity.
     auto.
   Qed.
+
+  Lemma memory_equiv_except_memory_set_inv {m m' b k}:
+    memory_equiv_except m m' k ->
+    memory_lookup m' k = Some b ->
+    m' = memory_set m k b.
+  Proof.
+    intros EQ L.
+    intro k'.
+    unfold memory_set.
+    destruct (Nat.eq_dec k k').
+    -
+      rewrite NP.F.add_eq_o by assumption.
+      subst.
+      apply L.
+    -
+      rewrite NP.F.add_neq_o by assumption.
+      specialize (EQ k').
+      autospecialize EQ; [congruence |].
+      unfold memory_equiv_except, memory_lookup in EQ.
+      now rewrite EQ.
+  Qed.
   
   Lemma memory_equiv_except_trans {m m' m'' k}:
     memory_equiv_except m m' k ->
