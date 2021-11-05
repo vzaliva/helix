@@ -1701,7 +1701,7 @@ Section TopLevel.
   (* We assuming that there is an injection of CType to Reals *)
   Hypothesis AHCOLtoRHCOL_total:
     (* always succeeds *)
-    (forall c r, AHCOLtoRHCOL.translateCTypeValue c ≡ inr r).
+    (forall c, exists r, AHCOLtoRHCOL.translateCTypeValue c ≡ inr r).
     (* Q: Do we need injectivity as well?
     (∀ x y, AHCOLtoRHCOL.translateCTypeValue x ≡ AHCOLtoRHCOL.translateCTypeValue y → x ≡ y). *)
 
