@@ -1948,19 +1948,42 @@ Section TopLevel.
           rename m0 into ym'.
           subst.
           destruct (dynwin_MSHCOL1 a).
-          rewrite 2!svector_to_mem_block_avector_to_mem_block in M1; try typeclasses eauto.
+          rewrite 2!svector_to_mem_block_avector_to_mem_block
+            in M1
+            by typeclasses eauto.
           Opaque avector_to_mem_block.
-          cbn in M1.
-          cbn in MM.
+          cbn in M1, MM.
           rewrite MM in M1.
           clear MM.
           some_inv.
-          symmetry.
-
-          (* Use [mem_write_safe]? *)
-
           Transparent avector_to_mem_block.
-          admit.
+
+          rewrite <-M1.
+          assert (YM : ym = ym').
+          {
+            clear - H0.
+            intros k.
+            specialize (H0 k).
+            cbn in H0.
+            unfold AHCOL.mem_lookup in *.
+            inv H0.
+            -
+              unfold util.is_None in *.
+              now break_match.
+            -
+              symmetry; assumption.
+          }
+          rewrite YM.
+
+          clear - AE RY MAPURE.
+          destruct MAPURE as [_ MWS].
+          cbn; cbn in RY.
+          eapply memory_equiv_except_memory_set_inv.
+          eapply MWS.
+          now erewrite AE.
+          now cbv.
+          eapply AHCOLEval.memory_lookup_err_inr_Some.
+          now rewrite RY.
       -
         exfalso.
         pose proof (@AHCOLEval.evalDSHOperator_estimateFuel dynwin_σ dynwin_AHCOL (build_dynwin_memory a x)) as CC.
