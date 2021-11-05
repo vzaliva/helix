@@ -2017,12 +2017,40 @@ Section TopLevel.
 
     assert(RM : exists r_omemory, AHCOLtoRHCOL.translate_memory a_omemory = inr r_omemory).
     {
-      eexists.
       unfold AHCOLtoRHCOL.translate_memory.
       unfold AHCOLtoRHCOL.translate_mem_block.
-      (* eapply AHCOLtoRHCOL.NM_err_sequence_inr_fun_spec. *)
-      (* use [AHCOLtoRHCOL_total] *)
-      admit.
+
+      match goal with
+      | [ |- context [AHCOLtoRHCOL.NM_err_sequence ?m]] =>
+          pose proof AHCOLtoRHCOL.NM_err_sequence_OK m as OK
+      end.
+      destruct OK as [r_omemory OK];
+        [| exists r_omemory; now rewrite OK].
+      clear - AHCOLtoRHCOL_total.
+      unfold Memory.NP.for_all_range.
+      apply Memory.NP.for_all_iff;
+        [now repeat break_match |].
+      intros * M.
+      apply Memory.NP.F.map_mapsto_iff in M.
+      destruct M as (v & [M KV]).
+      subst; clear - AHCOLtoRHCOL_total.
+
+      match goal with
+      | [ |- context [AHCOLtoRHCOL.NM_err_sequence ?m]] =>
+          pose proof AHCOLtoRHCOL.NM_err_sequence_OK m as OK
+      end.
+      destruct OK;
+        [| now rewrite H].
+      unfold Memory.NP.for_all_range.
+      apply Memory.NP.for_all_iff;
+        [now repeat break_match |].
+      intros * M.
+      apply Memory.NP.F.map_mapsto_iff in M.
+      destruct M as (v' & [M KV]).
+      subst; clear - AHCOLtoRHCOL_total.
+      specialize (AHCOLtoRHCOL_total v').
+      destruct AHCOLtoRHCOL_total as [r T].
+      now rewrite T.
     }
     destruct RM as [r_omemory RM].
     exists (r_omemory).
