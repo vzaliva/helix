@@ -2060,7 +2060,7 @@ Section TopLevel.
     split.
     1: {
       (* Proof of correctness up to R *)
-      clear -  RM AOM RY.
+      clear -  RM AOM RY CTT CTP NTT NTP.
       subst.
       eapply AHCOLtoRHCOL.translate_memory_heq_memory in RM.
       unfold AHCOLtoRHCOL.heq_memory in RM.
@@ -2069,31 +2069,36 @@ Section TopLevel.
       rewrite <-H0 in RY.
       invc RY.
       clear - H1 H3.
-      admit. (* correct up to equivalence (some changes might be required) *)
+      admit. (* correct up to equivalence *)
     }
 
-    assert(FM: exists f_omemory, RHCOLtoFHCOL.translate_memory r_omemory = inr f_omemory).
+    assert (T : exists (f_omemory : memory),
+              evalDSHOperator dynwin_F_σ dynwin_fhcol dynwin_F_memory
+                              (estimateFuel dynwin_fhcol) = Some (inr f_omemory)).
     {
-      eexists.
-      unfold RHCOLtoFHCOL.translate_memory.
-      unfold RHCOLtoFHCOL.translate_mem_block.
-      (* eapply RHCOLtoFHCOL.NM_err_sequence_inr_fun_spec. *)
+      (* this requires some NType-related numerical analysis
+         to ensure no runtime error occurs after translation *)
+      admit.
+    }
+    destruct T as (f_omemory & EF).
+
+    assert (FY : mem_block_exists dynwin_y_addr f_omemory).
+    {
+      (* assumed, as proving [OutRel] later will most likely
+         require a form of this proven separately *)
       admit.
     }
 
-    eexists.
-    eexists.
-
+    apply mem_block_exists_exists in FY.
+    destruct FY as (y_fmem & FY).
+    exists f_omemory; exists y_fmem.
     repeat split.
-    +
-      (* eval of floats must succeed *)
-      admit.
-    +
-      (* y_mem lookup in floats must succeed *)
-      admit.
-    +
-      (* OutRel must hold (a,x,y_R,y_F) *)
-      admit. (* this is provided by user *)
+    assumption.
+    now rewrite FY.
+
+    (* OutRel must hold (a,x,y_R,y_F) *)
+    admit. (* this is provided by user *)
+
   Admitted.
 
 
