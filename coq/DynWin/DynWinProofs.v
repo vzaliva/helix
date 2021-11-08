@@ -2062,14 +2062,16 @@ Section TopLevel.
       (* Proof of correctness up to R *)
       clear -  RM AOM RY CTT CTP NTT NTP.
       subst.
-      eapply AHCOLtoRHCOL.translate_memory_heq_memory in RM.
-      unfold AHCOLtoRHCOL.heq_memory in RM.
+      unfold AHCOLtoRHCOL.translate_memory in RM.
+      apply AHCOLtoRHCOL.NM_err_sequence_inr_fun_spec in RM.
       specialize (RM dynwin_y_addr).
-      inv RM; try congruence.
-      rewrite <-H0 in RY.
-      invc RY.
-      clear - H1 H3.
-      admit. (* correct up to equivalence *)
+      rewrite !Memory.NP.F.map_o in RM.
+      unfold AHCOLEval.memory_set in RM.
+      rewrite Memory.NP.F.add_eq_o in RM by reflexivity.
+      rewrite RY in RM.
+      cbv [option_map] in *.
+      some_inv.
+      now symmetry.
     }
 
     assert (T : exists (f_omemory : memory),
