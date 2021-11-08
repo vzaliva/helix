@@ -1775,7 +1775,7 @@ Section TopLevel.
                 RHCOLEval.memory_lookup r_omemory dynwin_y_addr = Some y_rmem ->
 
                 (* Everything correct on Reals *)
-                AHCOLtoRHCOL.translate_mem_block (avector_to_mem_block y) ≡ inr y_rmem /\
+                AHCOLtoRHCOL.translate_mem_block (avector_to_mem_block y) = inr y_rmem /\
 
                 (* And floats *)
                 exists f_omemory y_fmem,
