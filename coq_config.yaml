@@ -22,7 +22,7 @@ dependencies:
   - coq-metacoq-template
   - coq-switch
   - ANSITerminal
-  - coq-flocq
+  - coq-flocq.3.4.2
   - coq-paco
   - coq-ceres
   - coq-libhyps
