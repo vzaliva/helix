@@ -847,16 +847,90 @@ Module MDHCOLTypeTranslator
           crush.
     Qed.
 
-    (* Functional specification of [NM_err_sequence] *)
-    Lemma NM_err_sequence_inr_fun_spec
-          `{Equiv A}
-          (em: NM.t (err A))
-          (vm: NM.t A)
+    (* NOTE: the other direction does not hold *)
+    Lemma NP_Add_NM_add
+          `{EQ : Equiv A}
+          `{EQv : Equivalence A EQ}
+          (k : NM.key)
+          (v : A)
+          (m1 m2 : NM.t A)
       :
-        NM_err_sequence em = inr vm <->
-        NM.map inr vm = em.
+        NP.Add k v m1 m2 -> NM.add k v m1 = m2.
     Proof.
-    Admitted.
+      intros ADD k';
+        specialize (ADD k').
+      destruct (NM.E.eq_dec k k').
+      1: rewrite NP.F.add_eq_o in * by assumption.
+      2: rewrite NP.F.add_neq_o in * by assumption.
+      all: now rewrite ADD.
+    Qed.
+
+    Lemma NM_Empty_find
+          `{EQ : Equiv A}
+          (m : NM.t A)
+      :
+        NM.Empty m <-> forall k, NM.find k m ≡ None.
+    Proof.
+      split; intros E k.
+      -
+        specialize (E k).
+        enough (T : forall v, NM.find k m ≢ Some v).
+        {
+          destruct (NM.find k m).
+          now specialize (T a).
+          constructor.
+        }
+        intros v C.
+        apply NM.find_2 in C.
+        now apply E in C.
+      -
+        intros v C.
+        specialize (E k).
+        apply NM.find_1 in C.
+        now rewrite C in E.
+    Qed.
+
+    Definition map_app {A B : Type} (f : A → B) :=
+      fun k v m_acc => NM.add k (f v) m_acc.
+
+    Lemma NM_map_fold
+       `{EQa : Equiv A}
+       `{EQb : Equiv B}
+       `{EQva : Equivalence A EQa}
+       `{EQvb : Equivalence B EQb}
+       (f : A → B)
+       (m : NM.t A)
+      :
+        NM.map f m = NM.fold (map_app f) m (NM.empty B).
+    Proof.
+      apply NP.fold_rec.
+      -
+        intros e E k.
+        rewrite NP.F.map_o.
+        eapply NM_Empty_find in E.
+        now rewrite E.
+      -
+        intros k v m_acc m' m''.
+        intros _; clear m.
+        intros NI ADD MP.
+
+        intro k'.
+        specialize (ADD k').
+        rewrite NP.F.map_o.
+        cbv [map_app].
+        destruct (NM.E.eq_dec k k').
+        +
+          rewrite NP.F.add_eq_o in * by assumption.
+          rewrite ADD.
+          reflexivity.
+        +
+          rewrite NP.F.add_neq_o in * by assumption.
+          rewrite ADD.
+          specialize (MP k').
+          rewrite NP.F.map_o in MP.
+          rewrite MP.
+          reflexivity.
+    Qed.
 
     Lemma NM_err_sequence_OK
           `{EQ : Equiv A}
@@ -937,29 +1011,276 @@ Module MDHCOLTypeTranslator
             assumption.
     Qed.
 
-      generalize dependent (NM.empty A).
-      generalize dependent (NM.elements (elt:=err A) em).
-      clear - Heqacc.
-      induction l as [|e];
-        intros OK s.
+    Lemma NM_err_seq_step_add
+          `{EQ : Equiv A}
+          `{EQv : Equivalence A EQ}
+          (em em' : NM.t (err A))
+          (k : NM.key)
+          (ev : err A)
+          (m0 : err (NM.t A))
+      :
+        ¬ (NM.In k em) ->
+        NP.Add k ev em em' ->
+        NM.fold NM_err_seq_step em' m0 =
+        NM_err_seq_step k ev (NM.fold NM_err_seq_step em m0).
+    Proof.
+      intros * NI ADD.
+      eapply NP.fold_Add.
       -
-        now exists s.
+        (* typeclasses eauto. *)
+        apply err_Equivalence.
       -
-        destruct e as (k, [v | v]).
+        clear - EQv.
+        intros k' k EK ev' ev EV em1 em2 EM.
+        subst.
+        destruct ev.
         +
-          cbn in *.
-          exfalso; clear - OK.
-          contradict OK.
-          apply Bool.not_true_iff_false.
-          induction l.
-          * reflexivity.
-          * cbn in *; now break_if.
+          cbv.
+          constructor.
         +
-          cbn in *.
-          autospecialize IHl; [assumption |].
-          subst acc.
-          eapply IHl.
+          cbn.
+          repeat break_match;
+            try inl_inr; try inl_inr_inv;
+              subst.
+          constructor.
+          f_equiv.
+          intros k'.
+          destruct (NM.E.eq_dec k k').
+          all: try rewrite !NP.F.add_eq_o by assumption.
+          all: try rewrite !NP.F.add_neq_o by assumption.
+          reflexivity.
+          apply EM.
+      -
+        clear - EQv.
+        intros k1 k2 v1 v2 em NK.
+        unfold NM_err_seq_step.
+        repeat break_match;
+          try constructor;
+            try inl_inr; try inl_inr_inv;
+              subst.
+        inv Heqs0.
+        intros k.
+        destruct (NM.E.eq_dec k1 k), (NM.E.eq_dec k2 k).
+        congruence.
+        all: try rewrite !NP.F.add_eq_o by assumption.
+        all: try rewrite !NP.F.add_neq_o by assumption.
+        all: try rewrite !NP.F.add_eq_o by assumption.
+        all: reflexivity.
+      -
+        assumption.
+      -
+        assumption.
     Qed.
+
+    Lemma map_add
+          `{EQa : Equiv A}
+          `{EQb : Equiv B}
+          `{EQva : Equivalence A EQa}
+          `{EQvb : Equivalence B EQb}
+          (f : A -> B)
+          (PF : Proper ((=) ==> (=)) f)
+          (k : NM.key)
+          (v : A)
+          (m m' : NM.t A)
+          (mm mm' : NM.t B)
+      :
+        NM.map f m = mm ->
+        ¬ NM.In (elt:=B) k mm ->
+        NM.add k (f v) mm = mm' ->
+        NM.add k v m = m' ->
+        NM.map f m' = mm'.
+    Proof.
+      intros M NI AM AM' k'.
+      specialize (M k');
+        specialize (AM k');
+        specialize (AM' k').
+      rewrite NP.F.map_o in *.
+      destruct (NM.E.eq_dec k k').
+      1: rewrite NP.F.add_eq_o in * by assumption.
+      2: rewrite NP.F.add_neq_o in * by assumption.
+      -
+        rewrite <-AM.
+        unfold option_map.
+        break_match; try some_none; some_inv.
+        now rewrite AM'.
+      -
+        now rewrite AM, AM' in M.
+    Qed.
+
+
+    Lemma map_add_inv
+          `{EQa : Equiv A}
+          `{EQb : Equiv B}
+          `{EQva : Equivalence A EQa}
+          `{EQvb : Equivalence B EQb}
+          (f : A -> B)
+          (INJ : forall x y, f x = f y -> x = y)
+          (k : NM.key)
+          (v : A)
+          (m m' : NM.t A)
+          (mm mm' : NM.t B)
+      :
+        NM.map f m = mm ->
+        ¬ NM.In k mm →
+        NM.add k (f v) mm = mm' →
+        NM.map f m' = mm' ->
+        NM.add k v m = m'.
+    Proof.
+      intros M NI AM M' k'.
+      specialize (M k');
+        specialize (M' k');
+        specialize (AM k').
+      rewrite NP.F.map_o in *.
+      destruct (NM.E.eq_dec k k').
+      1: rewrite NP.F.add_eq_o in * by assumption.
+      2: rewrite NP.F.add_neq_o in * by assumption.
+      -
+        rewrite <- AM in M'.
+        unfold option_map in M'.
+        break_match; try some_none; try some_inv.
+        apply INJ in M'.
+        now f_equiv.
+      -
+        rewrite AM, <-M' in M.
+        unfold option_map in M.
+        repeat break_match; try some_none; try some_inv.
+        apply INJ in M.
+        now f_equiv.
+    Qed.
+
+    Lemma map_inr_all_OK
+          `{EQ : Equiv A} :
+      forall (m : NM.t A) em,
+      NM.map inr m = em ->
+      NP.for_all_range is_OK_bool em = true.
+    Proof.
+      intros.
+      unfold NP.for_all_range.
+      apply NP.for_all_iff.
+      {
+        intros _ _ _ v1 v2 VE.
+        unfold is_OK_bool.
+        repeat break_match;
+          now try inl_inr.
+      }
+
+      intros.
+      specialize (H k).
+      apply NM.find_1 in H0.
+      rewrite H0 in H; clear H0.
+      rewrite NP.F.map_o in H.
+      unfold option_map, is_OK_bool in *.
+      repeat break_match;
+        inv H.
+      inv H2.
+      reflexivity.
+    Qed.
+
+    Lemma NM_err_sequence_inr_fun_spec
+          `{EQ : Equiv A}
+          `{EQv : Equivalence A EQ}
+          (em: NM.t (err A))
+          (vm: NM.t A)
+      :
+        NM_err_sequence em = inr vm <->
+        NM.map inr vm = em.
+    Proof.
+      unfold NM_err_sequence.
+      revert vm.
+      induction em
+        as [em E | em em' IH k v NI ADD]
+             using NP.map_induction;
+        intro vm.
+      -
+        split; intros H.
+        +
+          intro k.
+          pose proof E as E'.
+          apply NM_Empty_find with (k0:=k) in E'.
+          rewrite E'; clear E'.
+          eapply NP.fold_Empty in E.
+          rewrite E in H.
+          inl_inr_inv.
+          rewrite NP.F.map_o.
+          specialize (H k).
+          rewrite <-H.
+          reflexivity.
+          apply flip_Equivalence.
+          typeclasses eauto.
+        +
+          rewrite NP.fold_Empty.
+          3: assumption.
+          2: typeclasses eauto.
+          f_equiv.
+          intros k.
+          specialize (H k).
+          apply NM_Empty_find with (k0:=k) in E.
+          rewrite NP.F.map_o in H.
+          rewrite E in H.
+          unfold option_map in H.
+          break_match; try some_none.
+          reflexivity.
+      -
+        rename vm into vm'.
+        rewrite NM_err_seq_step_add; try eassumption.
+        destruct (NM.fold NM_err_seq_step em (inr (NM.empty A)))
+          as [msg|vm] eqn:P.
+        +
+          split.
+          *
+            intros C.
+            cbv in C.
+            break_match; inv C.
+          *
+            intros OK.
+            exfalso.
+            eapply map_inr_all_OK in OK.
+            apply NM_err_sequence_OK in OK.
+            destruct OK as [vm OK].
+            unfold NM_err_sequence in OK.
+            rewrite NM_err_seq_step_add in OK; try eassumption.
+            rewrite P in OK.
+            cbv in OK.
+            break_match; inv OK.
+        +
+          specialize (IH vm).
+          assert (M : NM.map inr vm = em)
+            by now apply IH.
+          clear IH.
+          split.
+          *
+            intro ST.
+            destruct v as [?|v]; [inv ST |].
+            cbn in ST.
+            inl_inr_inv.
+            eapply map_add.
+            1: typeclasses eauto.
+            3: apply NP_Add_NM_add.
+            all: eassumption.
+          *
+            intros M'.
+            destruct v as [msg|v].
+            --
+              exfalso.
+              apply NP_Add_NM_add in ADD.
+              rewrite <-ADD in M'.
+              clear - M'.
+              specialize (M' k).
+              rewrite NP.F.map_o in M'.
+              rewrite NP.F.add_eq_o in M' by reflexivity.
+              unfold option_map in M'.
+              break_match.
+              some_inv; inl_inr.
+              some_none.
+            --
+              cbn.
+              f_equiv.
+              eapply map_add_inv in NI.
+              4: apply NP_Add_NM_add.
+              all: try eassumption.
+              intros; now inl_inr_inv.
+    Qed.
+
 
     Lemma translate_mem_block_heq_mem_block
           (m:L.mem_block) (m':L'.mem_block):
