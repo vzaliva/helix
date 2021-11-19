@@ -859,21 +859,83 @@ Module MDHCOLTypeTranslator
     Admitted.
 
     Lemma NM_err_sequence_OK
-          `{Equiv A}
+          `{EQ : Equiv A}
+          `{EQv : Equivalence A EQ}
           (em: NM.t (err A))
       :
-        NP.for_all_range is_OK_bool em = true ->
+        NP.for_all_range is_OK_bool em = true <->
         exists vm,
-          NM_err_sequence em ≡ inr vm.
+          NM_err_sequence em = inr vm.
     Proof.
-      intro OK.
-      unfold NP.for_all_range, NP.for_all in OK.
-      unfold NM_err_sequence.
+      split.
+      -
+        intro OK.
+        unfold NP.for_all_range, NP.for_all in OK.
+        unfold NM_err_sequence.
 
-      rewrite NM.fold_1 in *.
-      match goal with
-      | [ |- context [fold_left ?f _ _]] => remember f as acc
-      end.
+        rewrite NM.fold_1 in *.
+        match goal with
+        | [ |- context [fold_left ?f _ _]] => remember f as acc
+        end.
+
+        generalize dependent (NM.empty A).
+        generalize dependent (NM.elements (elt:=err A) em).
+        clear - Heqacc EQv.
+        induction l as [|e];
+          intros OK s.
+        + now exists s.
+        +
+          destruct e as (k, [v | v]).
+          *
+            cbn in *.
+            exfalso; clear - OK.
+            contradict OK.
+            apply Bool.not_true_iff_false.
+            induction l.
+            reflexivity.
+            cbn in *; now break_if.
+          *
+            cbn in *.
+            autospecialize IHl; [assumption |].
+            subst acc.
+            eapply IHl.
+      -
+        intros [vm OK].
+        unfold NP.for_all_range, NP.for_all.
+        unfold NM_err_sequence in OK.
+
+        rewrite NM.fold_1 in *.
+        match goal with
+        | [ _ : context [fold_left ?f _ _] |- _] => remember f as acc
+        end.
+        generalize dependent (NM.empty A).
+        generalize dependent (NM.elements (elt:=err A) em).
+        clear - Heqacc.
+
+        induction l as [|e];
+          intros s OK.
+        + reflexivity.
+        +
+          destruct e as (k, [v | v]).
+          all: cbn in *.
+          all: (* poor man's [cbv [acc] in OK.] *)
+            rewrite Heqacc in OK;
+            cbn in OK;
+            rewrite <-Heqacc in OK.
+          *
+            exfalso; clear - OK Heqacc.
+            contradict OK.
+            generalize dependent v.
+            induction l.
+            subst; now cbv.
+            rewrite Heqacc; cbn; rewrite <-Heqacc.
+            cbv [NM_err_seq_step].
+            now break_match.
+          *
+            cbn in *.
+            apply IHl in OK.
+            assumption.
+    Qed.
 
       generalize dependent (NM.empty A).
       generalize dependent (NM.elements (elt:=err A) em).
