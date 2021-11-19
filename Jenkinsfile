@@ -1,6 +1,6 @@
 /*  Change this list with your baranch names if you want build it.
     For example:
-    def BUILD_IF_BRANCH = ['master','develop']
+    def BUILD_IF_BRANCH = ['master','develop','ntype-ranges']
  */
 
 def BUILD_IF_BRANCH = ['master']
