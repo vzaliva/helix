@@ -2020,12 +2020,7 @@ Section TopLevel.
       unfold AHCOLtoRHCOL.translate_memory.
       unfold AHCOLtoRHCOL.translate_mem_block.
 
-      match goal with
-      | [ |- context [AHCOLtoRHCOL.NM_err_sequence ?m]] =>
-          pose proof AHCOLtoRHCOL.NM_err_sequence_OK m as OK
-      end.
-      destruct OK as [r_omemory OK];
-        [| exists r_omemory; now rewrite OK].
+      apply NM_err_sequence_OK.
       clear - AHCOLtoRHCOL_total.
       unfold Memory.NP.for_all_range.
       apply Memory.NP.for_all_iff;
@@ -2035,12 +2030,16 @@ Section TopLevel.
       destruct M as (v & [M KV]).
       subst; clear - AHCOLtoRHCOL_total.
 
-      match goal with
-      | [ |- context [AHCOLtoRHCOL.NM_err_sequence ?m]] =>
-          pose proof AHCOLtoRHCOL.NM_err_sequence_OK m as OK
-      end.
-      destruct OK;
-        [| now rewrite H].
+      enough (OK : exists vm,
+                 (AHCOLtoRHCOL.NM_err_sequence
+                    (Memory.NM.map AHCOLtoRHCOL.translateCTypeValue v)) = inr vm).
+      {
+        destruct OK as [vm OK].
+        unfold is_OK_bool.
+        break_match; inv OK; reflexivity.
+      }
+
+      apply NM_err_sequence_OK.
       unfold Memory.NP.for_all_range.
       apply Memory.NP.for_all_iff;
         [now repeat break_match |].
