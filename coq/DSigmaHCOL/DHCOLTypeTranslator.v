@@ -86,19 +86,26 @@ Module MDHCOLTypeTranslator
    "Monad (fun B : Type => err B)".
 
    *)
+
+  Definition NM_err_seq_step
+             {A : Type}
+             (k : NM.key)
+             (v : err A)
+             (acc : err (NM.t A))
+    :=
+      match v with
+      | inr v' =>
+        match acc with
+        | inr acc' => inr (NM.add k v' acc')
+        | inl msg => inl msg
+        end
+      | inl msg => inl msg
+      end.
+
   Definition NM_err_sequence
              {A: Type}
              (mv: NM.t (err A)): err (NM.t A)
-    := NM.fold
-         (fun k v acc =>
-            match v with
-            | inr v' =>
-              match acc with
-              | inr acc' => inr (NM.add k v' acc')
-              | inl msg => inl msg
-              end
-            | inl msg => inl msg
-            end)
+    := NM.fold NM_err_seq_step
          mv
          (inr (@NM.empty A)).
 
