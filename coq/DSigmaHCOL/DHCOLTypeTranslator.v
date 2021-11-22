@@ -1419,17 +1419,6 @@ Module MDHCOLTypeTranslator
           break_match; try some_none.
     Qed.
 
-    Definition translation_semantics_correctness
-               (op: L.DSHOperator)
-               (op': L'.DSHOperator)
-      := forall σ σ' imem imem',
-        heq_evalContext σ σ' ->
-        heq_memory imem imem' ->
-        forall omem omem',
-          LE.evalDSHOperator σ op imem (LE.estimateFuel op) = Some (inr omem) ->
-          LE'.evalDSHOperator σ' op' imem' (LE'.estimateFuel op') = Some (inr omem') ->
-          heq_memory omem omem'.
-
   End Relations.
 
 End MDHCOLTypeTranslator.
