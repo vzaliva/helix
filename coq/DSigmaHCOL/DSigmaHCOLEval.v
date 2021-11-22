@@ -392,7 +392,7 @@ Module Type MDSigmaHCOLEval
     match e with
     | AVar i => []
     | AConst x => []
-    | AAbs x =>  evalAExpr_NatClosures σ x
+    | AAbs x => evalAExpr_NatClosures σ x
     | APlus a b => evalAExpr_NatClosures σ a ++ evalAExpr_NatClosures σ b
     | AMult a b => evalAExpr_NatClosures σ a ++ evalAExpr_NatClosures σ b
     | AMin a b => evalAExpr_NatClosures σ a ++ evalAExpr_NatClosures σ b
