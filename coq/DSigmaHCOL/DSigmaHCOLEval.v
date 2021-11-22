@@ -29,6 +29,7 @@ Global Open Scope nat_scope.
 Require Import ExtLib.Structures.Monads.
 Require Import ExtLib.Data.Monads.OptionMonad.
 
+Import ListNotations.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
@@ -375,39 +376,36 @@ Module Type MDSigmaHCOLEval
     end.
 
   Inductive DSHIndexRange : Type :=
-  (** Each NT.t variable has rane from 0 to this constructor's
-  parameter *)
+  (** Each NT.t variable has range from 0 to this constructor's parameter *)
   | DSHIndex : NT.t → DSHIndexRange
-  (** placeholder for variables of other types that NT.t. We do not
-   care about them but want to keep same variabl indices as in [evalDSHOperator] *)
+  (** Placeholder for variables of other types that NT.t.
+      We do not care about them, but want to keep the same
+      variable indices as in [evalDSHOperator] *)
   | DSHOtherVar: DSHIndexRange.
 
-  (* Each variable is represented by list of natural numbers *)
-  Definition evalNatContext:Type := list DSHIndexRange.
+  Definition evalNatContext : Type := list DSHIndexRange.
 
-  Definition evalNatClosure:Type := evalNatContext*(list NExpr).
+  Definition evalNatClosure : Type := evalNatContext * (list NExpr).
 
-
-  Import ListNotations.
-  Fixpoint intervalEvalAExpr (σ: evalNatContext) (e:AExpr): err (list NExpr) :=
+  Fixpoint intervalEvalAExpr (σ: evalNatContext) (e:AExpr): list NExpr :=
     match e with
-    | AVar i => ret []
-    | AConst x => ret []
+    | AVar i => []
+    | AConst x => []
     | AAbs x =>  intervalEvalAExpr σ x
-    | APlus a b => liftM2 (@app _)  (intervalEvalAExpr σ a) (intervalEvalAExpr σ b)
-    | AMult a b => liftM2 (@app _) (intervalEvalAExpr σ a) (intervalEvalAExpr σ b)
-    | AMin a b => liftM2 (@app _) (intervalEvalAExpr σ a) (intervalEvalAExpr σ b)
-    | AMax a b => liftM2 (@app _) (intervalEvalAExpr σ a) (intervalEvalAExpr σ b)
-    | AMinus a b => liftM2 (@app _) (intervalEvalAExpr σ a) (intervalEvalAExpr σ b)
-    | ANth _ i => ret [i]
-    | AZless a b => liftM2 (@app _) (intervalEvalAExpr σ a) (intervalEvalAExpr σ b)
+    | APlus a b => intervalEvalAExpr σ a ++ intervalEvalAExpr σ b
+    | AMult a b => intervalEvalAExpr σ a ++ intervalEvalAExpr σ b
+    | AMin a b => intervalEvalAExpr σ a ++ intervalEvalAExpr σ b
+    | AMax a b => intervalEvalAExpr σ a ++ intervalEvalAExpr σ b
+    | AMinus a b => intervalEvalAExpr σ a ++ intervalEvalAExpr σ b
+    | ANth _ i => [i]
+    | AZless a b => intervalEvalAExpr σ a ++ intervalEvalAExpr σ b
     end.
 
   (** Eval DSHOperator into list of NExpr expressions along with
       ranges of all variables in scope.  To be used later for numeric
       analysis.
 
-      If succeds, it also guarantees that all natural numbers constants
+      If succeeds, it also guarantees that all natural numbers constants
       could be converted to NT.t.
    *)
   Fixpoint intervalEvalDSHOperator
@@ -416,70 +414,66 @@ Module Type MDSigmaHCOLEval
            (cl: list evalNatClosure)
            (fuel: nat): option (err (list evalNatClosure))
     :=
-    match fuel with
-    | O => None
-    | S fuel =>
+      match fuel with
+      | O => None
+      | S fuel =>
         match op with
         | DSHNop =>
-            Some (ret cl)
+          Some (ret cl)
         | DSHAssign (_, src_e) (_, dst_e) =>
-            Some( ret ((σ,[src_e ; dst_e])::cl))
+          Some (ret ((σ, [src_e; dst_e]) :: cl))
         | @DSHIMap n x_p y_p f =>
-            Some (
-                n' <- from_nat n ;;
-                (* TODO: see protected stuff *)
-                acl <- intervalEvalAExpr σ f ;;
-                ret ((DSHOtherVar::(DSHIndex n')::σ,acl)::cl)
-              )
+          Some (
+              n' <- from_nat n ;;
+              (* TODO: see protected stuff *)
+              let acl := intervalEvalAExpr σ f in
+              ret ((DSHOtherVar :: DSHIndex n' :: σ, acl) :: cl)
+            )
         | @DSHMemMap2 n x0_p x1_p y_p f =>
-            Some (
-                _ <- from_nat n ;;
-                (* TODO: see protected stuff *)
-                acl <- intervalEvalAExpr σ f ;;
-                ret ((DSHOtherVar::DSHOtherVar::σ,acl)::cl)
-              )
+          Some (
+              _ <- from_nat n ;;
+              (* TODO: see protected stuff *)
+              let acl := intervalEvalAExpr σ f in
+              ret ((DSHOtherVar :: DSHOtherVar :: σ, acl) :: cl)
+            )
         | @DSHBinOp n x_p y_p f =>
-            Some (
-                n' <- from_nat n ;;
-                (* TODO: see protected stuff *)
-                acl <- intervalEvalAExpr σ f ;;
-                ret ((DSHOtherVar::DSHOtherVar::(DSHIndex n')::σ,acl)::cl)
-              )
+          Some (
+              n' <- from_nat n ;;
+              (* TODO: see protected stuff *)
+              let acl := intervalEvalAExpr σ f in
+              ret ((DSHOtherVar :: DSHOtherVar :: DSHIndex n' :: σ, acl) :: cl)
+            )
         | DSHPower ne (_,xoffset) (_,yoffset) f _ =>
-            Some (
-                (* TODO: see protected stuff *)
-                acl <- intervalEvalAExpr σ f ;;
-                ret (app
-                       [(σ,[ne ; xoffset ; yoffset]) ;
-                        (DSHOtherVar::DSHOtherVar::σ,acl)]
-                       cl)
-              )
-        | DSHLoop O body => Some (ret cl)
+          Some (
+              (* TODO: see protected stuff *)
+              let acl := intervalEvalAExpr σ f in
+              ret ([(σ, [ne; xoffset; yoffset]);
+                   (DSHOtherVar :: DSHOtherVar :: σ, acl)] ++ cl)%list
+            )
+        | DSHLoop O body => Some (inr cl)
         | DSHLoop (S n) body =>
-            match from_nat n with
-            | inl msg => Some (inl msg)
-            | inr nv =>
-                match intervalEvalDSHOperator σ (DSHLoop n body) cl fuel with
-                | Some (inr cl') =>
-                    intervalEvalDSHOperator ((DSHIndex nv) :: σ) body cl' fuel
-                | Some (inl msg) => Some (inl msg)
-                | None => None
-                end
-            end
-        | DSHAlloc size body =>
-            intervalEvalDSHOperator (DSHOtherVar::σ) body
-                                    cl
-                                    fuel
-        | DSHMemInit y_p value =>
-            Some (ret cl)
-        | DSHSeq f g =>
-            match intervalEvalDSHOperator σ f cl fuel with
-            | Some (inr cl') => intervalEvalDSHOperator σ g cl' fuel
-            | Some (inl msg)  => Some (inl msg)
+          match from_nat n with
+          | inl msg => Some (inl msg)
+          | inr nv =>
+            match intervalEvalDSHOperator σ (DSHLoop n body) cl fuel with
+            | Some (inr cl') =>
+              intervalEvalDSHOperator ((DSHIndex nv) :: σ) body cl' fuel
+            | Some (inl msg) => Some (inl msg)
             | None => None
             end
+          end
+        | DSHAlloc size body =>
+          intervalEvalDSHOperator (DSHOtherVar :: σ) body cl fuel
+        | DSHMemInit y_p value =>
+          Some (ret cl)
+        | DSHSeq f g =>
+          match intervalEvalDSHOperator σ f cl fuel with
+          | Some (inr cl') => intervalEvalDSHOperator σ g cl' fuel
+          | Some (inl msg)  => Some (inl msg)
+          | None => None
+          end
         end
-    end.
+      end.
 
   Fixpoint evalDSHOperator
            (σ: evalContext)
