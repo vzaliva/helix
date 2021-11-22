@@ -1442,6 +1442,32 @@ Module MDHCOLTypeTranslator
           break_match; try some_none.
     Qed.
 
+    Lemma Forall2_nth_error
+          `{EQa : Equiv A}
+          `{EQb : Equiv B}
+          `{EQva : Equivalence A EQa}
+          `{EQvb : Equivalence B EQb}
+          (n : nat)
+          (P : A -> B -> Prop)
+          (l1 : list A) (e1 : A)
+          (l2 : list B) (e2 : B)
+      :
+        Forall2 P l1 l2 ->
+        nth_error l1 n = Some e1 ->
+        nth_error l2 n = Some e2 ->
+        P e1 e2.
+    Proof.
+      revert l2.
+      induction l1;
+        intros l2 F N1 N2.
+      -
+        admit.
+      -
+        inversion F; subst.
+        rename a into e1', y into e2', l' into l2.
+        admit.
+    Admitted.
+
     (* NOTE: could also add equivalence of the results here *)
     Lemma heq_PExpr_evalPExpr_no_err :
       forall σ σ' p p' n t,
