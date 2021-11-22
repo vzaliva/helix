@@ -508,6 +508,29 @@ Module MDHCOLTypeTranslator
           heq_DSHOperator g g' ->
           heq_DSHOperator (L.DSHSeq f g) (L'.DSHSeq f' g').
 
+
+    Lemma translation_syntax_always_correct {x x'}:
+      translate x = inr x' -> heq_DSHOperator x x'.
+    Proof.
+      (*
+      intros x x' H.
+      destruct x, x'; try constructor; try (cbn in H; inversion H); try inl_inr.
+
+      all: repeat  match goal with
+          | [|- context[L.DSHAssign ?s ?d]] => destruct s,d
+           | [|- context[L.DSHPower _ ?s ?d _ _]] => destruct s,d 
+           | [H: context[translateMemRef ?s] |- _ ] =>
+             destruct s; unfold translateMemRef in H; cbn in H; repeat break_match_hyp
+               end.
+
+      all: try inl_inr.
+      all: try inl_inr_inv.
+      all: try constructor.
+      all:crush.
+       *)
+    Admitted.
+
+
     Inductive heq_DSHVal: LE.DSHVal -> LE'.DSHVal -> Prop :=
     | heq_DSHnatVal: forall x x', heq_NType x x' -> heq_DSHVal (LE.DSHnatVal x) (LE'.DSHnatVal x')
     | heq_DSHCTypeVal: forall x x', heq_CType x x' -> heq_DSHVal (LE.DSHCTypeVal x) (LE'.DSHCTypeVal x')
@@ -1418,6 +1441,116 @@ Module MDHCOLTypeTranslator
           unfold option_map in TE.
           break_match; try some_none.
     Qed.
+
+    (* NOTE: could also add equivalence of the results here *)
+    Lemma heq_PExpr_evalPExpr_no_err :
+      forall σ σ' p p' n t,
+        heq_evalContext σ σ' ->
+        heq_PExpr p p' ->
+        LE.evalPExpr σ p ≡ inr (n, t) ->
+        exists n' t',
+          LE'.evalPExpr σ' p' ≡ inr (n', t').
+    Proof.
+      intros * Σ P E.
+      inversion P; subst.
+      invc H; clear P.
+      rename x' into x.
+    Admitted.
+
+    Lemma heq_AExpr_evalAExpr_no_err :
+      forall σ σ' m m' a a' t,
+        heq_memory m m' ->
+        heq_evalContext σ σ' ->
+        heq_AExpr a a' ->
+        LE.evalAExpr m σ a ≡ inr t ->
+        exists t',
+          LE'.evalAExpr m' σ' a' ≡ inr t'.
+    Proof.
+      intros * M Σ P E.
+      inversion P; clear P; subst.
+      invc H.
+      rename x' into x.
+      - (* AVar *)
+        admit.
+      - (* ANth *)
+        admit.
+      - (* AAbs *)
+        admit.
+      - (* AConst *)
+        admit.
+      - (* APlus *)
+        admit.
+      - (* AMinus *)
+        admit.
+      - (* AMult *)
+        admit.
+      - (* AMin *)
+        admit.
+      - (* AMax *)
+        admit.
+      - (* AZless *)
+        admit.
+    Admitted.
+
+    Lemma translation_no_err :
+      forall op op' σ σ' imem imem' omem,
+        translate op = inr op' ->
+        heq_evalContext σ σ' ->
+        heq_memory imem imem' ->
+        LE.evalDSHOperator σ op imem (LE.estimateFuel op) = Some (inr omem) ->
+        exists omem',
+          LE'.evalDSHOperator σ' op' imem' (LE'.estimateFuel op') = Some (inr omem').
+    Proof.
+      intros * T E M L.
+      apply translation_syntax_always_correct in T.
+      induction T; intros; cbn in *.
+      1-6: repeat break_match_hyp;
+          try some_none; repeat some_inv;
+          try inl_inr; repeat inl_inr_inv;
+        LE.memory_lookup_err_to_option;
+        LE'.memory_lookup_err_to_option;
+        LE.mem_lookup_err_to_option;
+        LE'.mem_lookup_err_to_option;
+        LE.simpl_assertions_hyp;
+        LE'.simpl_assertions_hyp.
+      - (* NOP *)
+        now eexists.
+      - (* Assign *)
+        subst.
+        apply heq_PExpr_evalPExpr_no_err
+          with (σ':=σ') (p':=src_p')
+          in Heqs;
+          try assumption.
+        apply heq_PExpr_evalPExpr_no_err
+          with (σ':=σ') (p':=dst_p')
+          in Heqs0;
+          try assumption.
+        destruct Heqs as (x_i' & x_size' & X').
+        destruct Heqs0 as (y_i' & y_size' & Y').
+        erewrite X'.
+        erewrite Y'.
+        admit.
+      - (* IMap *)
+        inversion H.
+        subst n'0 n2.
+        eexists.
+        erewrite H4.
+        admit.
+      - (* BinOp *)
+        admit.
+      - (* MemMap2 *)
+        admit.
+      - (* Power *)
+        admit.
+      - (* Loop *)
+        admit.
+      - (* Alloc *)
+        admit.
+      - (* MemInit *)
+        admit.
+      - (* Seq *)
+        admit.
+    Admitted.
 
   End Relations.
 
