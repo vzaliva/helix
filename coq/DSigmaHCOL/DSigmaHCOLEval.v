@@ -385,21 +385,24 @@ Module Type MDSigmaHCOLEval
 
   Definition evalNatContext : Type := list DSHIndexRange.
 
-  Definition evalNatClosure : Type := evalNatContext * (list NExpr).
+  Definition evalNatClosure : Type := evalNatContext * NExpr.
 
-  Fixpoint intervalEvalAExpr (σ: evalNatContext) (e:AExpr): list NExpr :=
+  Fixpoint evalAExpr_NatClosures (σ : evalNatContext) (e : AExpr)
+    : list evalNatClosure :=
     match e with
     | AVar i => []
     | AConst x => []
-    | AAbs x =>  intervalEvalAExpr σ x
-    | APlus a b => intervalEvalAExpr σ a ++ intervalEvalAExpr σ b
-    | AMult a b => intervalEvalAExpr σ a ++ intervalEvalAExpr σ b
-    | AMin a b => intervalEvalAExpr σ a ++ intervalEvalAExpr σ b
-    | AMax a b => intervalEvalAExpr σ a ++ intervalEvalAExpr σ b
-    | AMinus a b => intervalEvalAExpr σ a ++ intervalEvalAExpr σ b
-    | ANth _ i => [i]
-    | AZless a b => intervalEvalAExpr σ a ++ intervalEvalAExpr σ b
+    | AAbs x =>  evalAExpr_NatClosures σ x
+    | APlus a b => evalAExpr_NatClosures σ a ++ evalAExpr_NatClosures σ b
+    | AMult a b => evalAExpr_NatClosures σ a ++ evalAExpr_NatClosures σ b
+    | AMin a b => evalAExpr_NatClosures σ a ++ evalAExpr_NatClosures σ b
+    | AMax a b => evalAExpr_NatClosures σ a ++ evalAExpr_NatClosures σ b
+    | AMinus a b => evalAExpr_NatClosures σ a ++ evalAExpr_NatClosures σ b
+    | ANth _ i => [(σ, i)]
+    | AZless a b => evalAExpr_NatClosures σ a ++ evalAExpr_NatClosures σ b
     end.
+
+  Open Scope list_scope.
 
   (** Eval DSHOperator into list of NExpr expressions along with
       ranges of all variables in scope.  To be used later for numeric
@@ -421,34 +424,37 @@ Module Type MDSigmaHCOLEval
         | DSHNop =>
           Some (ret cl)
         | DSHAssign (_, src_e) (_, dst_e) =>
-          Some (ret ((σ, [src_e; dst_e]) :: cl))
+          Some (ret ((σ, src_e) :: (σ, dst_e) :: cl))
         | @DSHIMap n x_p y_p f =>
           Some (
               n' <- from_nat n ;;
               (* TODO: see protected stuff *)
-              let acl := intervalEvalAExpr σ f in
-              ret ((DSHOtherVar :: DSHIndex n' :: σ, acl) :: cl)
+              let acl := evalAExpr_NatClosures
+                           (DSHOtherVar :: DSHIndex n' :: σ) f in
+              ret (acl ++ cl)
             )
         | @DSHMemMap2 n x0_p x1_p y_p f =>
           Some (
               _ <- from_nat n ;;
               (* TODO: see protected stuff *)
-              let acl := intervalEvalAExpr σ f in
-              ret ((DSHOtherVar :: DSHOtherVar :: σ, acl) :: cl)
+              let acl := evalAExpr_NatClosures
+                           (DSHOtherVar :: DSHOtherVar :: σ) f in
+              ret (acl ++ cl)
             )
         | @DSHBinOp n x_p y_p f =>
           Some (
               n' <- from_nat n ;;
               (* TODO: see protected stuff *)
-              let acl := intervalEvalAExpr σ f in
-              ret ((DSHOtherVar :: DSHOtherVar :: DSHIndex n' :: σ, acl) :: cl)
+              let acl := evalAExpr_NatClosures
+                           (DSHOtherVar :: DSHOtherVar :: DSHIndex n' :: σ) f in
+              ret (acl ++ cl)
             )
         | DSHPower ne (_,xoffset) (_,yoffset) f _ =>
           Some (
               (* TODO: see protected stuff *)
-              let acl := intervalEvalAExpr σ f in
-              ret ([(σ, [ne; xoffset; yoffset]);
-                   (DSHOtherVar :: DSHOtherVar :: σ, acl)] ++ cl)%list
+              let acl := evalAExpr_NatClosures
+                           (DSHOtherVar :: DSHOtherVar :: σ) f in
+              ret ((σ, ne) :: (σ, xoffset) :: (σ, yoffset) :: acl ++ cl)
             )
         | DSHLoop O body => Some (inr cl)
         | DSHLoop (S n) body =>
