@@ -1447,7 +1447,7 @@ Module MDHCOLTypeTranslator
       forall σ σ' p p' n t,
         heq_evalContext σ σ' ->
         heq_PExpr p p' ->
-        LE.evalPExpr σ p ≡ inr (n, t) ->
+        LE.evalPExpr σ p = inr (n, t) ->
         exists n' t',
           LE'.evalPExpr σ' p' ≡ inr (n', t').
     Proof.
@@ -1455,8 +1455,11 @@ Module MDHCOLTypeTranslator
       inversion P; subst.
       invc H; clear P.
       rename x' into x.
+      cbn in *.
+      (* this appears correct as is *)
     Admitted.
 
+    (* NOTE: these will be moved into DSigmaHCOLEval *)
     Lemma heq_AExpr_evalAExpr_no_err :
       forall σ σ' m m' a a' t,
         heq_memory m m' ->
