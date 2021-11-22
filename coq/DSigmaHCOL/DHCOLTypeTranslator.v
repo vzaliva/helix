@@ -1460,6 +1460,37 @@ Module MDHCOLTypeTranslator
     Admitted.
 
     (* NOTE: these will be moved into DSigmaHCOLEval *)
+    Definition evalContext_OK
+               (σ : LE.evalContext)
+               (σn : LE.evalNatContext)
+      : Prop.
+    Admitted.
+    Definition evalContext_OK'
+               (σ : LE'.evalContext)
+               (σn : LE'.evalNatContext)
+      : Prop.
+    Admitted.
+    (**)
+
+    Definition heq_err_NType : err NT.t -> err NT'.t -> Prop. Admitted.
+
+    Definition evalNExpr_closure_equiv
+               '((σn, n) : LE.evalNatClosure)
+               '((σn', n') : LE'.evalNatClosure)
+      : Prop :=
+      forall σ σ',
+        evalContext_OK σ σn ->
+        evalContext_OK' σ' σn' ->
+        heq_evalContext σ σ' ->
+        heq_NExpr n n' ->
+        heq_err_NType (LE.evalNExpr σ n) (LE'.evalNExpr σ' n').
+
+    Definition evalNExpr_closure_trace_equiv
+               (ncs : list LE.evalNatClosure)
+               (ncs' : list LE'.evalNatClosure)
+      : Prop :=
+      Forall2 evalNExpr_closure_equiv ncs ncs'.
+
     Lemma heq_AExpr_evalAExpr_no_err :
       forall σ σ' m m' a a' t,
         heq_memory m m' ->
@@ -1476,6 +1507,8 @@ Module MDHCOLTypeTranslator
       - (* AVar *)
         admit.
       - (* ANth *)
+        cbn in *.
+
         admit.
       - (* AAbs *)
         admit.
@@ -1500,6 +1533,11 @@ Module MDHCOLTypeTranslator
         translate op = inr op' ->
         heq_evalContext σ σ' ->
         heq_memory imem imem' ->
+        (*
+        intervalEvalDSHOperator σn op = Some (inr σn1) ->
+        intervalEvalDSHOperator σn' op' = Some (inr σn2) ->
+        evalNExpr_closure_trace_equiv σn1 σn2 ->
+         *)
         LE.evalDSHOperator σ op imem (LE.estimateFuel op) = Some (inr omem) ->
         exists omem',
           LE'.evalDSHOperator σ' op' imem' (LE'.estimateFuel op') = Some (inr omem').
@@ -1519,6 +1557,7 @@ Module MDHCOLTypeTranslator
       - (* NOP *)
         now eexists.
       - (* Assign *)
+        (*
         subst.
         apply heq_PExpr_evalPExpr_no_err
           with (σ':=σ') (p':=src_p')
@@ -1532,6 +1571,7 @@ Module MDHCOLTypeTranslator
         destruct Heqs0 as (y_i' & y_size' & Y').
         erewrite X'.
         erewrite Y'.
+         *)
         admit.
       - (* IMap *)
         inversion H.
