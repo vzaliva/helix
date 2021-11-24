@@ -1715,19 +1715,32 @@ Module MDHCOLTypeTranslator
         admit.
     Admitted.
 
-    Lemma translation_no_err :
-      forall op op' σ σ' imem imem' omem,
-        translate op = inr op' ->
+    Lemma heq_DSHOperator_heq_evalDSHOperator
+          (op : LE.DSHOperator)
+          (op' : DSHOperator)
+          (fuel fuel' : nat) 
+          (σ : LE.evalContext)
+          (σ' : evalContext)
+          (σn : LE.evalNatContext) 
+          (σn' : evalNatContext)
+          (tσn : list LE.evalNatClosure) 
+          (tσn' : list evalNatClosure)
+          (imem : L.memory) 
+          (imem' : L'.memory)
+          (FUEL : LE.estimateFuel op = fuel)
+          (FUEL' : LE'.estimateFuel op' = fuel')
+          (ΣN : LE.evalNatContext_of_evalContext σ ≡ σn)
+          (ΣN' : LE'.evalNatContext_of_evalContext σ' ≡ σn')
+      :
+        heq_DSHOperator op op' ->
         heq_evalContext σ σ' ->
         heq_memory imem imem' ->
-        (*
-        intervalEvalDSHOperator σn op = Some (inr σn1) ->
-        intervalEvalDSHOperator σn' op' = Some (inr σn2) ->
-        evalNExpr_closure_trace_equiv σn1 σn2 ->
-         *)
-        LE.evalDSHOperator σ op imem (LE.estimateFuel op) = Some (inr omem) ->
-        exists omem',
-          LE'.evalDSHOperator σ' op' imem' (LE'.estimateFuel op') = Some (inr omem').
+        LE.intervalEvalDSHOperator σn op nil fuel ≡ Some (inr tσn) ->
+        LE'.intervalEvalDSHOperator σn' op' nil fuel' ≡ Some (inr tσn') ->
+        evalNExpr_closure_trace_equiv tσn tσn' ->
+        hopt_r (herr_c heq_memory)
+               (LE.evalDSHOperator σ op imem fuel)
+               (LE'.evalDSHOperator σ' op' imem' fuel').
     Proof.
       intros * T E M L.
       apply translation_syntax_always_correct in T.
