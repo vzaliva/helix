@@ -554,8 +554,11 @@ Module MDHCOLTypeTranslator
         + eapply heq_NType_proper; eauto; crush.
     Qed.
 
+    Definition heq_evalContextElem : (LE.DSHVal * bool) -> (LE'.DSHVal * bool) -> Prop :=
+      fun '(x,p) '(x',p') => p=p' /\ heq_DSHVal x x'.
+
     Definition heq_evalContext: LE.evalContext -> LE'.evalContext -> Prop :=
-      List.Forall2 (fun '(x,p) '(x',p') => p=p' /\ heq_DSHVal x x').
+      List.Forall2 heq_evalContextElem.
 
     Definition heq_memory: L.memory -> L'.memory -> Prop :=
       fun m m' => forall k : nat, hopt_r heq_mem_block
@@ -667,7 +670,7 @@ Module MDHCOLTypeTranslator
         heq_evalContext σ σ'.
     Proof.
       revert σ σ'.
-      unfold heq_evalContext.
+      unfold heq_evalContext, heq_evalContextElem.
       induction σ, σ'; intros.
       -
         auto.
@@ -759,7 +762,7 @@ Module MDHCOLTypeTranslator
         heq_evalContext σ σ'.
     Proof.
       revert σ σ'.
-      unfold heq_evalContext.
+      unfold heq_evalContext, heq_evalContextElem.
       induction σ, σ'; intros.
       -
         auto.
