@@ -402,7 +402,7 @@ Module MDHCOLTypeTranslator
     Qed.
 
     Definition heq_mem_block: L.mem_block -> L'.mem_block -> Prop :=
-      fun m m' => forall k : nat, hopt_r heq_CType (L.mem_lookup k m) (L'.mem_lookup k m').
+      fun m m' => forall k : nat, hopt_r heq_CType (LE.mem_lookup k m) (LE'.mem_lookup k m').
 
     (* Check if two [nat]s translate successfully and to equivalent [NType] values *)
     Inductive heq_NT_nat: nat -> nat -> Prop :=
@@ -558,7 +558,9 @@ Module MDHCOLTypeTranslator
       List.Forall2 (fun '(x,p) '(x',p') => p=p' /\ heq_DSHVal x x').
 
     Definition heq_memory: L.memory -> L'.memory -> Prop :=
-      fun m m' => forall k : nat, hopt_r heq_mem_block (L.memory_lookup m k) (L'.memory_lookup m' k).
+      fun m m' => forall k : nat, hopt_r heq_mem_block
+                               (LE.memory_lookup m k)
+                               (LE'.memory_lookup m' k).
 
     Instance heq_mem_block_proper:
       Proper ((=) ==> (=) ==> iff) heq_mem_block.
