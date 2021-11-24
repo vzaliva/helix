@@ -383,7 +383,41 @@ Module Type MDSigmaHCOLEval
       variable indices as in [evalDSHOperator] *)
   | DSHOtherVar: DSHIndexRange.
 
+  Inductive DSHVal_in_range : DSHVal -> DSHIndexRange -> Prop :=
+  | DSHnatVal_in_range :
+      forall (n ran : NT.t),
+        to_nat n <= to_nat ran ->
+        DSHVal_in_range (DSHnatVal n) (DSHIndex ran)
+  | DSHCTypeVal_in_range : forall a, DSHVal_in_range (DSHCTypeVal a) DSHOtherVar
+  | DSHPtrVal_in_range : forall a size, DSHVal_in_range (DSHPtrVal a size) DSHOtherVar.
+
   Definition evalNatContext : Type := list DSHIndexRange.
+
+  Definition evalContext_in_range
+             (σ : evalContext)
+             (σn : evalNatContext) : Prop :=
+    Forall2 (fun '(val, _) ran => DSHVal_in_range val ran) σ σn.
+
+  Definition DSHIndexRange_of_DSHVal (val : DSHVal) : DSHIndexRange :=
+    match val with
+    | DSHnatVal a => DSHIndex a
+    | _ => DSHOtherVar
+    end.
+
+  Definition evalNatContext_of_evalContext : evalContext -> evalNatContext :=
+    map (fun '(val, _) => DSHIndexRange_of_DSHVal val).
+
+  Lemma evalContext_in_own_range (σ : evalContext) :
+    evalContext_in_range σ (evalNatContext_of_evalContext σ).
+  Proof.
+    induction σ as [|(val,p) σ].
+    -
+      constructor.
+    -
+      constructor.
+      destruct val; now constructor.
+      assumption.
+  Qed.
 
   Definition evalNatClosure : Type := evalNatContext * NExpr.
 
