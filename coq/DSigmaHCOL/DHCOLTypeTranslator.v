@@ -1471,14 +1471,20 @@ Module MDHCOLTypeTranslator
         admit.
     Admitted.
 
-    (* NOTE: could also add equivalence of the results here *)
-    Lemma heq_PExpr_evalPExpr_no_err :
-      forall σ σ' p p' n t,
+    Definition heq_evalPExpr : nat * NT.t -> nat * NT'.t -> Prop :=
+      fun '(v, size) '(v', size') => v = v' /\ heq_NType size size'.
+
+    Definition heq_evalMExpr
+      : LE.mem_block * NT.t -> LE'.mem_block * NT'.t -> Prop :=
+      fun '(mb, size) '(mb', size') => heq_mem_block mb mb' /\ heq_NType size size'.
+
+    Lemma heq_PExpr_heq_evalPExpr :
+      forall σ σ' p p',
         heq_evalContext σ σ' ->
         heq_PExpr p p' ->
-        LE.evalPExpr σ p = inr (n, t) ->
-        exists n' t',
-          LE'.evalPExpr σ' p' ≡ inr (n', t').
+        herr_c heq_evalPExpr
+               (LE.evalPExpr σ p)
+               (LE'.evalPExpr σ' p').
     Proof.
       intros * Σ P E.
       inversion P; subst.
