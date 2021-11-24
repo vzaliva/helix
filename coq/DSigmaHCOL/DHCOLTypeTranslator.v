@@ -1742,42 +1742,67 @@ Module MDHCOLTypeTranslator
                (LE.evalDSHOperator σ op imem fuel)
                (LE'.evalDSHOperator σ' op' imem' fuel').
     Proof.
-      intros * T E M L.
-      apply translation_syntax_always_correct in T.
-      induction T; intros; cbn in *.
-      1-6: repeat break_match_hyp;
-          try some_none; repeat some_inv;
-          try inl_inr; repeat inl_inr_inv;
-        LE.memory_lookup_err_to_option;
-        LE'.memory_lookup_err_to_option;
-        LE.mem_lookup_err_to_option;
-        LE'.mem_lookup_err_to_option;
-        LE.simpl_assertions_hyp;
-        LE'.simpl_assertions_hyp.
+      intros HEQ_OP HEQ_Σ HEQ_MEMORY TΣN TΣN' NTR_EQIV.
+      induction HEQ_OP.
+      1-6: cbv in FUEL, FUEL'; subst.
+      1-6: cbn in TΣN, TΣN';
+        repeat some_inv; repeat inl_inr_inv;
+          subst.
       - (* NOP *)
-        now eexists.
+        now repeat constructor.
       - (* Assign *)
-        (*
-        subst.
-        apply heq_PExpr_evalPExpr_no_err
-          with (σ':=σ') (p':=src_p')
-          in Heqs;
-          try assumption.
-        apply heq_PExpr_evalPExpr_no_err
-          with (σ':=σ') (p':=dst_p')
-          in Heqs0;
-          try assumption.
-        destruct Heqs as (x_i' & x_size' & X').
-        destruct Heqs0 as (y_i' & y_size' & Y').
-        erewrite X'.
-        erewrite Y'.
-         *)
+        cbn.
+        rename H into HEQ_SRCN, H0 into HEQ_DSTN.
+        rename H1 into HEQ_SRCP, H2 into HEQ_DSTP.
+        eapply heq_PExpr_heq_evalPExpr in HEQ_SRCP, HEQ_DSTP;
+          try eassumption.
+        invc HEQ_SRCP; invc HEQ_DSTP.
+        all: repeat break_let; subst.
+        all: repeat constructor.
+        invc H1; invc H4.
+        invc H5; invc H1.
+        pose proof HEQ_MEMORY as HEQ_MEMORY'.
+        apply heq_memory_heq_memory_lookup_err
+          with (msg:="Error looking up 'x' in DSHAssign")
+               (msg':="Error looking up 'x' in DSHAssign")
+               (n:=n1)
+               (n':=n1)
+          in HEQ_MEMORY';
+          [| reflexivity].
+        inv HEQ_MEMORY'; [constructor |].
+        apply heq_memory_heq_memory_lookup_err
+          with (msg:="Error looking up 'y' in DSHAssign")
+               (msg':="Error looking up 'y' in DSHAssign")
+               (n:=n2)
+               (n':=n2)
+          in HEQ_MEMORY;
+          [| reflexivity].
+        inv HEQ_MEMORY; [constructor |].
+
+        invc NTR_EQIV; invc H16; clear H18.
+        cbn in H14, H15.
+        autospecialize_closure_equiv H14 σ σ'.
+        autospecialize_closure_equiv H15 σ σ'.
+        inv H14; [constructor |].
+        inv H15; [constructor |].
+
+        assert_assert_NT_heq H7 H18.
+        inv H7; [rewrite <-H20, <-H21; constructor |].
+        rewrite <-H19, <-H20.
+        apply heq_mem_block_heq_mem_lookup_err
+          with (msg:="Error looking up 'v' in DSHAssign")
+               (msg':="Error looking up 'v' in DSHAssign")
+               (n:=NT.to_nat a1)
+               (n':=NT'.to_nat b1)
+          in H5;
+          [| now apply heq_NType_to_from_nat; assumption].
+        inversion H5.
+        constructor.
+        constructor.
+        remember (to_nat b2) as bk.
+        replace (NT.to_nat a2) with bk by admit.
         admit.
       - (* IMap *)
-        inversion H.
-        subst n'0 n2.
-        eexists.
-        erewrite H4.
         admit.
       - (* BinOp *)
         admit.
