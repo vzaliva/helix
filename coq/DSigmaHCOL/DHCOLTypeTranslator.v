@@ -1488,31 +1488,20 @@ Module MDHCOLTypeTranslator
       (* this appears correct as is *)
     Admitted.
 
-    (* NOTE: these will be moved into DSigmaHCOLEval *)
-    Definition evalContext_OK
-               (σ : LE.evalContext)
-               (σn : LE.evalNatContext)
-      : Prop.
-    Admitted.
-    Definition evalContext_OK'
-               (σ : LE'.evalContext)
-               (σn : LE'.evalNatContext)
-      : Prop.
-    Admitted.
-    (**)
 
-    Definition heq_err_NType : err NT.t -> err NT'.t -> Prop. Admitted.
 
     Definition evalNExpr_closure_equiv
                '((σn, n) : LE.evalNatClosure)
                '((σn', n') : LE'.evalNatClosure)
       : Prop :=
       forall σ σ',
-        evalContext_OK σ σn ->
-        evalContext_OK' σ' σn' ->
+        LE.evalContext_in_range σ σn ->
+        LE'.evalContext_in_range σ' σn' ->
         heq_evalContext σ σ' ->
         heq_NExpr n n' ->
-        heq_err_NType (LE.evalNExpr σ n) (LE'.evalNExpr σ' n').
+        herr_c heq_NType
+          (LE.evalNExpr σ n)
+          (LE'.evalNExpr σ' n').
 
     Definition evalNExpr_closure_trace_equiv
                (ncs : list LE.evalNatClosure)
