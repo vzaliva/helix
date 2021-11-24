@@ -1471,6 +1471,15 @@ Module MDHCOLTypeTranslator
         admit.
     Admitted.
 
+    Ltac autospecialize_closure_equiv H σ σ' :=
+      specialize (H σ σ');
+      full_autospecialize H;
+      [apply LE.evalContext_in_own_range
+      |apply LE'.evalContext_in_own_range
+      |assumption
+      |assumption
+      | ].
+
     Definition heq_evalPExpr : nat * NT.t -> nat * NT'.t -> Prop :=
       fun '(v, size) '(v', size') => v = v' /\ heq_NType size size'.
 
@@ -1486,15 +1495,121 @@ Module MDHCOLTypeTranslator
                (LE.evalPExpr σ p)
                (LE'.evalPExpr σ' p').
     Proof.
-      intros * Σ P E.
-      inversion P; subst.
+      intros * Σ P.
+      inv P.
       invc H; clear P.
       rename x' into x.
-      cbn in *.
-      (* this appears correct as is *)
-    Admitted.
+      cbn.
+      apply Forall2_nth_error with (n:=x) in Σ.
+      repeat break_match.
+      all: inv Σ.
+      all: try constructor.
+      all: try now inv H1.
+      inv H1; inv H0.
+      now constructor.
+    Qed.
 
+    Lemma heq_memory_heq_memory_lookup_err
+          (msg msg' : string)
+          (n n' : nat)
+          (m : L.memory)
+          (m' : L'.memory)
+      :
+        n = n' ->
+        heq_memory m m' ->
+        herr_c heq_mem_block
+               (LE.memory_lookup_err msg m n)
+               (LE'.memory_lookup_err msg' m' n').
+    Proof.
+      intros N ME.
+      inv N; rename n' into n.
+      specialize (ME n).
+      inversion ME as [M M' | mb mb' MB M M'].
+      +
+        symmetry in M, M'.
+        apply Option_equiv_eq in M, M'.
+        rewrite <-LE.memory_lookup_err_inl_None in M.
+        rewrite <-LE'.memory_lookup_err_inl_None in M'.
+        destruct (LE.memory_lookup_err msg m n) eqn:M0;
+          destruct (LE'.memory_lookup_err msg' m' n) eqn:M1.
+        all: rewrite M0, M1 in *; try inl_inr.
+        Unshelve. 2,3: exact "". (* to avoid dangling evars *)
+        constructor.
+      +
+        symmetry in M, M'.
+        rewrite <-LE.memory_lookup_err_inr_Some_eq in M.
+        rewrite <-LE'.memory_lookup_err_inr_Some_eq in M'.
+        rewrite M, M'.
+        now repeat constructor.
+    Qed.
 
+    Lemma heq_mem_block_heq_mem_lookup_err
+          (msg msg' : string)
+          (n n' : nat)
+          (mb : L.mem_block)
+          (mb' : L'.mem_block)
+      :
+        n = n' ->
+        heq_mem_block mb mb' ->
+        herr_c heq_CType
+               (LE.mem_lookup_err msg n mb)
+               (LE'.mem_lookup_err msg' n' mb').
+    Proof.
+      intros N ME.
+      inv N; rename n' into n.
+      specialize (ME n).
+      inversion ME as [M M' | t t' T M M'].
+      +
+        symmetry in M, M'.
+        apply Option_equiv_eq in M, M'.
+        rewrite <-LE.mem_lookup_err_inl_None in M.
+        rewrite <-LE'.mem_lookup_err_inl_None in M'.
+        destruct (LE.mem_lookup_err msg n mb) eqn:M0;
+          destruct (LE'.mem_lookup_err msg' n mb') eqn:M1.
+        all: rewrite M0, M1 in *; try inl_inr.
+        Unshelve. 2,3: exact "". (* to avoid dangling evars *)
+        constructor.
+      +
+        symmetry in M, M'.
+        rewrite <-LE.mem_lookup_err_inr_Some_eq in M.
+        rewrite <-LE'.mem_lookup_err_inr_Some_eq in M'.
+        rewrite M, M'.
+        now repeat constructor.
+    Qed.
+
+    Lemma heq_MExpr_heq_evalMExpr :
+      forall m m' σ σ' e e',
+        heq_memory m m' ->
+        heq_evalContext σ σ' ->
+        heq_MExpr e e' ->
+        herr_c heq_evalMExpr
+               (LE.evalMExpr m σ e)
+               (LE'.evalMExpr m' σ' e').
+    Proof.
+      intros * M Σ E.
+      inv E.
+      -
+        rename H into P.
+        cbn.
+        eapply heq_PExpr_heq_evalPExpr in P;
+          [| eassumption].
+        inv P.
+        constructor.
+        repeat break_let; subst.
+        inv H1; invc H2.
+        apply heq_memory_heq_memory_lookup_err with
+               (msg:="MPtrDeref lookup failed")
+               (msg':="MPtrDeref lookup failed")
+               (n:=n0)
+               (n':=n0)
+          in M;
+          [| reflexivity].
+        inversion M.
+        constructor.
+        now repeat constructor.
+      -
+        now repeat constructor.
+    Qed.
 
     Definition evalNExpr_closure_equiv
                '((σn, n) : LE.evalNatClosure)
@@ -1515,25 +1630,73 @@ Module MDHCOLTypeTranslator
       : Prop :=
       Forall2 evalNExpr_closure_equiv ncs ncs'.
 
-    Lemma heq_AExpr_evalAExpr_no_err :
-      forall σ σ' m m' a a' t,
+    Lemma heq_NType_heq_assert_NT_lt
+          (a : NT.t)
+          (a' : t)
+          (b : NT.t)
+          (b' : t)
+          (msg msg' : string)
+      :
+        heq_NType a a' ->
+        heq_NType b b' ->
+        herr_c equiv
+               (LE.assert_NT_lt msg a b)
+               (LE'.assert_NT_lt msg' a' b').
+    Proof.
+      intros A B.
+      unfold LE.assert_NT_lt, LE'.assert_NT_lt, assert_true_to_err.
+      apply heq_NType_to_from_nat in A, B.
+      cbv in A, B.
+      rewrite A, B.
+      break_if;
+        now constructor.
+    Qed.
+
+    Ltac assert_assert_NT_heq H1 H2 :=
+      eapply heq_NType_heq_assert_NT_lt in H1;
+      [| eapply H2].
+
+    Lemma heq_AExpr_heq_evalAExpr :
+      forall σ σ' σn σn' m m' a a',
         heq_memory m m' ->
         heq_evalContext σ σ' ->
         heq_AExpr a a' ->
-        LE.evalAExpr m σ a ≡ inr t ->
-        exists t',
-          LE'.evalAExpr m' σ' a' ≡ inr t'.
+        LE.evalNatContext_of_evalContext σ ≡ σn ->
+        LE'.evalNatContext_of_evalContext σ' ≡ σn' ->
+        evalNExpr_closure_trace_equiv
+          (LE.evalAExpr_NatClosures σn a)
+          (LE'.evalAExpr_NatClosures σn' a') ->
+        herr_c heq_CType
+               (LE.evalAExpr m σ a)
+               (LE'.evalAExpr m' σ' a').
     Proof.
-      intros * M Σ P E.
-      inversion P; clear P; subst.
-      invc H.
-      rename x' into x.
+      intros * M Σ AE ΣN ΣN' TE.
+      inversion AE; clear AE; subst.
+      all: cbn in *.
       - (* AVar *)
+        invc H.
+        rename x' into x.
         admit.
       - (* ANth *)
-        cbn in *.
-
-        admit.
+        inv TE; clear TE.
+        clear H6.
+        rename m0 into me, m'0 into me'.
+        rename H into ME, H0 into N, H4 into CNE.
+        cbn in CNE.
+        autospecialize_closure_equiv CNE σ σ'.
+        inv CNE; [constructor |].
+        eapply heq_MExpr_heq_evalMExpr in ME;
+          [| eassumption | eassumption].
+        inv ME; [constructor |].
+        repeat break_let; subst.
+        inv H4.
+        assert_assert_NT_heq H6 H1.
+        inv H6.
+        erewrite <-H8, <-H9; constructor.
+        erewrite <-H7, <-H8.
+        apply heq_mem_block_heq_mem_lookup_err.
+        now apply heq_NType_to_from_nat.
+        assumption.
       - (* AAbs *)
         admit.
       - (* AConst *)
