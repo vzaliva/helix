@@ -1454,17 +1454,15 @@ Module MDHCOLTypeTranslator
           `{EQvb : Equivalence B EQb}
           (n : nat)
           (P : A -> B -> Prop)
-          (l1 : list A) (e1 : A)
-          (l2 : list B) (e2 : B)
+          (l1 : list A)
+          (l2 : list B)
       :
         Forall2 P l1 l2 ->
-        nth_error l1 n = Some e1 ->
-        nth_error l2 n = Some e2 ->
-        P e1 e2.
+        hopt_r P (nth_error l1 n) (nth_error l2 n).
     Proof.
       revert l2.
       induction l1;
-        intros l2 F N1 N2.
+        intros l2 F.
       -
         admit.
       -
