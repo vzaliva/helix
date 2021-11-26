@@ -515,6 +515,17 @@ Module Type MDSigmaHCOLEval
         end
       end.
 
+  Lemma intervalEvalDSHOperator_fuel_monotone
+        (op : DSHOperator)
+        (σ : evalNatContext)
+        (σn0 : list evalNatClosure)
+        (fuel : nat)
+        (tσn : err (list evalNatClosure))
+    :
+      intervalEvalDSHOperator σ op σn0 fuel ≡ Some tσn →
+      intervalEvalDSHOperator σ op σn0 (S fuel) ≡ Some tσn.
+  Admitted.
+
   Fixpoint evalDSHOperator
            (σ: evalContext)
            (op: DSHOperator)

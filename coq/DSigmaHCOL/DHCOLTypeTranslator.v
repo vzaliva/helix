@@ -1713,6 +1713,60 @@ Module MDHCOLTypeTranslator
         admit.
     Admitted.
 
+    Lemma heq_DSHOperator_same_fuel
+          (op : L.DSHOperator)
+          (op' : L'.DSHOperator)
+      :
+        heq_DSHOperator op op' ->
+        LE.estimateFuel op = LE'.estimateFuel op'.
+    Admitted.
+
+    (*
+    Lemma from_nat_of_to_nat (nt : NT.t) :
+      NT.from_nat (NT.to_nat nt) = inr nt.
+    Admitted.
+     *)
+
+    (* TODO: this is currently unprovable.
+       Either [heq_NT_nat] must be changed,
+       or some assumption about [from_nat] must be made *)
+    Lemma heq_NT_nat_eq :
+      forall n n',
+        heq_NT_nat n n' -> n = n'.
+    Admitted.
+
+    Lemma to_nat_of_from_nat (n : nat) (nt : NT.t) :
+      NT.from_nat n = inr nt ->
+      NT.to_nat nt = n.
+    Admitted.
+
+    Lemma to_nat_of_from_nat' (n : nat) (nt : NT'.t) :
+      NT'.from_nat n = inr nt ->
+      NT'.to_nat nt = n.
+    Admitted.
+
+    Lemma heq_NT_nat_S (n n' : nat) :
+      heq_NT_nat (S n) (S n') ->
+      heq_NT_nat n n'.
+    Proof.
+      intros SE.
+      invc SE; constructor.
+      invc H.
+      rename H2 into SNTEQ,
+             a into nt, b into nt',
+             H0 into FN, H1 into FN'.
+
+      symmetry in FN, FN'.
+      apply err_equiv_eq in FN, FN'.
+
+      copy_apply to_nat_of_from_nat FN; rename H into FNT.
+      copy_apply to_nat_of_from_nat' FN'; rename H into FNT'.
+      copy_apply heq_NType_to_from_nat SNTEQ; rename H into TN.
+      rewrite FNT, FNT' in TN.
+      invc TN.
+      (* doable *)
+    Admitted.
+
     Lemma heq_DSHOperator_heq_evalDSHOperator
           (op : LE.DSHOperator)
           (op' : DSHOperator)
@@ -1738,9 +1792,24 @@ Module MDHCOLTypeTranslator
                (LE.evalDSHOperator σ op imem fuel)
                (LE'.evalDSHOperator σ' op' imem' fuel').
     Proof.
-      intros HEQ_OP HEQ_Σ HEQ_MEMORY TΣN TΣN' NTR_EQIV.
-      induction HEQ_OP.
-      1-6: cbv in FUEL, FUEL'; subst.
+      intros HEQ_OP.
+      move HEQ_OP before op'.
+
+      (* generalize trace accumulator for induction *)
+      assert (T0E : evalNExpr_closure_trace_equiv nil nil)
+        by constructor.
+      generalize dependent (@nil LE.evalNatClosure).
+      generalize dependent (@nil LE'.evalNatClosure).
+
+      intros σn0' σn0;
+        move σn0' before σ';
+        move σn0 before σ'.
+      revert_until HEQ_OP.
+      induction HEQ_OP;
+        intros * ΣN ΣN'; (* intros reverted *)
+        intros T0E; (* intros asserted accumulator equivalence *)
+        intros HEQ_Σ HEQ_MEMORY TΣN TΣN' NTR_EQIV.
+      all: destruct fuel, fuel'; try (cbv in TΣN; cbv in TΣN'; some_none).
       1-6: cbn in TΣN, TΣN';
         repeat some_inv; repeat inl_inr_inv;
           subst.
@@ -1807,7 +1876,73 @@ Module MDHCOLTypeTranslator
       - (* Power *)
         admit.
       - (* Loop *)
-        admit.
+        copy_apply heq_NT_nat_eq H;
+          invc H0; rename n' into n.
+        revert_until IHHEQ_OP.
+        induction n;
+          intros * T0E HEQ_Σ HEQ_MEMORY TΣN TΣN' NTR_EQIV.
+        +
+          now repeat constructor.
+        +
+          cbn; cbn in TΣN, TΣN'.
+          destruct (NT.from_nat) eqn:SN, (NT'.from_nat) eqn:SN';
+            try (inv TΣN; fail); try (inv TΣN'; fail).
+          repeat break_match_hyp;
+            invc TΣN; invc TΣN'.
+          rename l0 into bσn0, l into bσn0',
+                 H1 into BΣN, H2 into BΣN',
+                 Heqo0 into BΣN0, Heqo into BΣN0',
+                 t0 into sn, t1 into sn'.
+          destruct fuel, fuel';
+              try (inv BΣN; fail);
+              try (inv BΣN'; fail).
+
+          autospecialize IHn;
+            [now apply heq_NT_nat_S |].
+
+          specialize (IHn fuel fuel' σ σ' σn0 σn0').
+          specialize (IHn bσn0 bσn0'). (* <- inductive *)
+          specialize (IHn imem imem').
+
+          full_autospecialize IHn;
+            try assumption.
+          {
+            clear - T0E BΣN0 BΣN0'.
+            rename bσn0 into σn, BΣN0 into ΣN.
+            rename bσn0' into σn', BΣN0' into ΣN'.
+            (* provable from writer-like properties of
+               [intervalEvalDSHOperator] *)
+            (* TODO: make this a lemma; holds of all heq operator pairs *)
+
+            cbn in *.
+            repeat break_match;
+              try (inv ΣN; fail);
+              try (inv ΣN'; fail);
+              subst.
+            congruence.
+            admit.
+          }
+
+          move IHn at bottom.
+          Opaque LE.evalDSHOperator LE'.evalDSHOperator.
+          inv IHn; [constructor |].
+          Transparent LE.evalDSHOperator LE'.evalDSHOperator.
+
+          invc H2;
+            [now repeat constructor |].
+          rename a0 into loop_mem, b0 into loop_mem',
+                 H0 into LMEM, H1 into LMEM',
+                 H3 into HEQ_LOOP_MEM.
+          symmetry in LMEM, LMEM'.
+          eapply IHHEQ_OP.
+          5-8: eassumption.
+          1,2: reflexivity.
+          *
+            admit.
+          *
+            constructor.
+            cbn; intuition; admit.
+            assumption.
       - (* Alloc *)
         admit.
       - (* MemInit *)
