@@ -406,10 +406,8 @@ Module MDHCOLTypeTranslator
 
     (* Check if two [nat]s translate successfully and to equivalent [NType] values *)
     Inductive heq_NT_nat: nat -> nat -> Prop :=
-      heq_from_nat : forall n n' nt nt',
-        NT.from_nat n ≡ inr nt ->
-        NT'.from_nat n' ≡ inr nt' ->
-        heq_NType nt nt' ->
+    | heq_NT_from_nat : forall n n',
+        herr heq_NType (NT.from_nat n) (NT'.from_nat n') ->
         heq_NT_nat n n'.
 
     Inductive heq_NExpr: L.NExpr -> L'.NExpr -> Prop :=
