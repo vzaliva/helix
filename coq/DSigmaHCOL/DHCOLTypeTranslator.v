@@ -1725,8 +1725,6 @@ Module MDHCOLTypeTranslator
           (tσn' : list evalNatClosure)
           (imem : L.memory) 
           (imem' : L'.memory)
-          (FUEL : LE.estimateFuel op = fuel)
-          (FUEL' : LE'.estimateFuel op' = fuel')
           (ΣN : LE.evalNatContext_of_evalContext σ ≡ σn)
           (ΣN' : LE'.evalNatContext_of_evalContext σ' ≡ σn')
       :
