@@ -1745,8 +1745,12 @@ Module MDHCOLTypeTranslator
       NT'.to_nat nt = n.
     Admitted.
 
-    Lemma from_nat_of_same_nat (n : nat) :
+    Lemma heq_NType_from_nat (n : nat) :
       herr_c heq_NType (NT.from_nat n) (NT'.from_nat n).
+    Proof.
+      destruct (NT.from_nat n) as [msg|nt] eqn:FN,
+               (NT'.from_nat n) as [msg'|nt'] eqn:FN'.
+      constructor.
     Admitted.
 
     Lemma heq_NT_nat_S (n n' : nat) :
@@ -1976,7 +1980,7 @@ Module MDHCOLTypeTranslator
             -
               repeat constructor.
               +
-                pose proof from_nat_of_same_nat n as FN.
+                pose proof heq_NType_from_nat n as FN.
                 invc FN; congruence.
               +
                 now apply heq_evalContext_heq_evalNatContext.
@@ -2003,7 +2007,7 @@ Module MDHCOLTypeTranslator
           cbn.
           intuition.
           constructor.
-          pose proof from_nat_of_same_nat n as FN.
+          pose proof heq_NType_from_nat n as FN.
           invc FN; congruence.
       - (* Alloc *)
         admit.
