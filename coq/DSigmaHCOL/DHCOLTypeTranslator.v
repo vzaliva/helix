@@ -2009,11 +2009,79 @@ Module MDHCOLTypeTranslator
           pose proof heq_NType_from_nat n as FN.
           invc FN; congruence.
       - (* Alloc *)
-        admit.
+        cbn.
+        match goal with
+        | [ |- context [LE.evalDSHOperator ?σ ?op ?mem ?fuel] ] =>
+          remember (LE.evalDSHOperator σ op mem fuel) as eop
+        end.
+        match goal with
+        | [ |- context [LE'.evalDSHOperator ?σ ?op ?mem ?fuel] ] =>
+          remember (LE'.evalDSHOperator σ op mem fuel) as eop'
+        end.
+        enough (hopt_r (herr_c heq_memory) eop eop').
+        {
+          invc H0; [constructor |].
+          invc H1; [repeat constructor |].
+          repeat constructor.
+          admit.
+        }
+        subst.
+        assert (HEQ_ΣN0 : evalNExpr_closure_trace_equiv σn0 σn0').
+        {
+          eapply heq_DSHOperator_evalNExpr_closure_trace_equiv_inv.
+          3: rewrite TΣN, TΣN'.
+          now constructor.
+          now apply heq_evalContext_heq_evalNatContext.
+          now repeat constructor.
+        }
+        eapply IHHEQ_OP;
+          try reflexivity;
+          try eassumption.
+        constructor; [| assumption].
+        +
+          cbn.
+          intuition.
+          constructor; [| assumption].
+          admit.
+        +
+          admit.
       - (* MemInit *)
         admit.
       - (* Seq *)
-        admit.
+        cbn.
+
+        cbn in TΣN, TΣN'.
+        repeat break_match_hyp;
+          inv TΣN; inv TΣN'.
+        clear H1 H0.
+        rename l0 into fσn, l into fσn'.
+        rename Heqo0 into FΣN, Heqo into FΣN'.
+        assert (HEQ_FΣN : evalNExpr_closure_trace_equiv fσn fσn').
+        {
+          eapply heq_DSHOperator_evalNExpr_closure_trace_equiv_inv.
+          3: rewrite TΣN, TΣN'.
+          assumption.
+          now apply heq_evalContext_heq_evalNatContext.
+          now repeat constructor.
+        }
+        assert (HEQF : hopt_r (herr_c heq_memory)
+                              (LE.evalDSHOperator σ f imem fuel)
+                              (evalDSHOperator σ' f' imem' fuel')).
+        {
+          eapply IHHEQ_OP1.
+          7: eapply FΣN'.
+          6: eapply FΣN.
+          all: try reflexivity.
+          all: try eassumption.
+        }
+
+        invc HEQF; [constructor |].
+        invc H1; [repeat constructor |].
+        eapply IHHEQ_OP2.
+        7: eapply TΣN'.
+        6: eapply TΣN.
+        all: try reflexivity.
+        all: try eassumption.
     Admitted.
 
   End Relations.
