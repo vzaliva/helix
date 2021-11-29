@@ -159,7 +159,7 @@ Module MDHCOLTypeTranslator
     (* So surjectivity property. This allows use for example map
        natural numbers to signed integers *)
 
-    heq_NType_to_from_nat:
+    heq_NType_to_nat:
       forall x x', heq_NType x x' -> NT.to_nat x = NT'.to_nat x';
 
     NTypeDiv_translation   : NBinOpTranslation NT.NTypeDiv   NT'.NTypeDiv  ;
@@ -1643,7 +1643,7 @@ Module MDHCOLTypeTranslator
     Proof.
       intros A B.
       unfold LE.assert_NT_lt, LE'.assert_NT_lt, assert_true_to_err.
-      apply heq_NType_to_from_nat in A, B.
+      apply heq_NType_to_nat in A, B.
       cbv in A, B.
       rewrite A, B.
       break_if;
@@ -1693,7 +1693,7 @@ Module MDHCOLTypeTranslator
         erewrite <-H8, <-H9; constructor.
         erewrite <-H7, <-H8.
         apply heq_mem_block_heq_mem_lookup_err.
-        now apply heq_NType_to_from_nat.
+        now apply heq_NType_to_nat.
         assumption.
       - (* AAbs *)
         admit.
@@ -1765,7 +1765,7 @@ Module MDHCOLTypeTranslator
 
       copy_apply to_nat_of_from_nat FN; rename H into FNT.
       copy_apply to_nat_of_from_nat' FN'; rename H into FNT'.
-      copy_apply heq_NType_to_from_nat SNTEQ; rename H into TN.
+      copy_apply heq_NType_to_nat SNTEQ; rename H into TN.
       rewrite FNT, FNT' in TN.
       invc TN.
       (* doable *)
@@ -1919,7 +1919,7 @@ Module MDHCOLTypeTranslator
                (n:=NT.to_nat a1)
                (n':=NT'.to_nat b1)
           in H5;
-          [| now apply heq_NType_to_from_nat; assumption].
+          [| now apply heq_NType_to_nat; assumption].
         inversion H5.
         constructor.
         constructor.
