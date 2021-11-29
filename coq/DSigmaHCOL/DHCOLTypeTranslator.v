@@ -1727,14 +1727,8 @@ Module MDHCOLTypeTranslator
     Admitted.
      *)
 
-    (* TODO: this is currently unprovable.
-       Either [heq_NT_nat] must be changed,
-       or some assumption about [from_nat] must be made *)
-    Lemma heq_NT_nat_eq :
-      forall n n',
-        heq_NT_nat n n' -> n = n'.
-    Admitted.
 
+    (* axioms1 *)
     Lemma to_nat_of_from_nat (n : nat) (nt : NT.t) :
       NT.from_nat n = inr nt ->
       NT.to_nat nt = n.
@@ -1744,6 +1738,27 @@ Module MDHCOLTypeTranslator
       NT'.from_nat n = inr nt ->
       NT'.to_nat nt = n.
     Admitted.
+    (* /axioms1 *)
+
+
+    Lemma heq_NT_nat_eq :
+      forall n n',
+        heq_NT_nat n n' -> n = n'.
+    Proof.
+      intros.
+      invc H.
+      invc H0.
+      rename a into nt, b into nt',
+             H into NT, H1 into NT',
+             H2 into ENT.
+      symmetry in NT, NT'.
+      apply err_equiv_eq in NT, NT'.
+
+      apply to_nat_of_from_nat in NT.
+      apply to_nat_of_from_nat' in NT'.
+      rewrite <-NT, <-NT'.
+      now apply heq_NType_to_nat.
+    Qed.
 
     Lemma heq_NType_from_nat (n : nat) :
       herr_c heq_NType (NT.from_nat n) (NT'.from_nat n).
