@@ -516,7 +516,7 @@ Module MDHCOLTypeTranslator
 
       all: repeat  match goal with
           | [|- context[L.DSHAssign ?s ?d]] => destruct s,d
-           | [|- context[L.DSHPower _ ?s ?d _ _]] => destruct s,d 
+           | [|- context[L.DSHPower _ ?s ?d _ _]] => destruct s,d
            | [H: context[translateMemRef ?s] |- _ ] =>
              destruct s; unfold translateMemRef in H; cbn in H; repeat break_match_hyp
                end.
@@ -1770,14 +1770,14 @@ Module MDHCOLTypeTranslator
     Lemma heq_DSHOperator_heq_evalDSHOperator
           (op : LE.DSHOperator)
           (op' : DSHOperator)
-          (fuel fuel' : nat) 
+          (fuel fuel' : nat)
           (σ : LE.evalContext)
           (σ' : evalContext)
-          (σn : LE.evalNatContext) 
+          (σn : LE.evalNatContext)
           (σn' : evalNatContext)
-          (tσn : list LE.evalNatClosure) 
+          (tσn : list LE.evalNatClosure)
           (tσn' : list evalNatClosure)
-          (imem : L.memory) 
+          (imem : L.memory)
           (imem' : L'.memory)
           (ΣN : LE.evalNatContext_of_evalContext σ ≡ σn)
           (ΣN' : LE'.evalNatContext_of_evalContext σ' ≡ σn')
