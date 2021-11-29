@@ -1745,6 +1745,10 @@ Module MDHCOLTypeTranslator
       NT'.to_nat nt = n.
     Admitted.
 
+    Lemma from_nat_of_same_nat (n : nat) :
+      herr_c heq_NType (NT.from_nat n) (NT'.from_nat n).
+    Admitted.
+
     Lemma heq_NT_nat_S (n n' : nat) :
       heq_NT_nat (S n) (S n') ->
       heq_NT_nat n n'.
@@ -1765,6 +1769,61 @@ Module MDHCOLTypeTranslator
       rewrite FNT, FNT' in TN.
       invc TN.
       (* doable *)
+    Admitted.
+
+    Inductive heq_DSHIndexRange : LE.DSHIndexRange -> LE'.DSHIndexRange -> Prop :=
+    | heq_DSHIndex : forall t t', heq_NType t t' ->
+                             heq_DSHIndexRange (LE.DSHIndex t) (LE'.DSHIndex t')
+    | heq_DSHOtherVar : heq_DSHIndexRange LE.DSHOtherVar LE'.DSHOtherVar.
+
+    Definition heq_evalNatContext: LE.evalNatContext -> LE'.evalNatContext -> Prop :=
+      List.Forall2 heq_DSHIndexRange.
+
+    (*
+    (*  Unprovable ? *)
+    Lemma heq_DSHOperator_evalNExpr_closure_trace_equiv
+          (op : L.DSHOperator)
+          (op' : L'.DSHOperator)
+          (σ : LE.evalNatContext)
+          (σ' : evalNatContext)
+          (σn0 : list LE.evalNatClosure)
+          (σn0' : list evalNatClosure)
+          (fuel fuel' : nat)
+      :
+        heq_DSHOperator op op' ->
+        heq_evalNatContext σ σ' ->
+        evalNExpr_closure_trace_equiv σn0 σn0' ->
+        hopt_r (herr_c evalNExpr_closure_trace_equiv)
+               (LE.intervalEvalDSHOperator σ op σn0 fuel)
+               (LE'.intervalEvalDSHOperator σ' op' σn0' fuel').
+    Abort.
+    *)
+
+    Lemma heq_DSHOperator_evalNExpr_closure_trace_equiv_inv
+          (op : L.DSHOperator)
+          (op' : L'.DSHOperator)
+          (σ : LE.evalNatContext)
+          (σ' : evalNatContext)
+          (σn0 : list LE.evalNatClosure)
+          (σn0' : list evalNatClosure)
+          (fuel fuel' : nat)
+      :
+        heq_DSHOperator op op' -> (* NOTE: this might not be necessary *)
+        heq_evalNatContext σ σ' -> (* NOTE: this might not be necessary *)
+        hopt (herr evalNExpr_closure_trace_equiv)
+               (LE.intervalEvalDSHOperator σ op σn0 fuel)
+               (LE'.intervalEvalDSHOperator σ' op' σn0' fuel') ->
+        evalNExpr_closure_trace_equiv σn0 σn0'.
+    Admitted.
+
+    Lemma heq_evalContext_heq_evalNatContext
+          (σ : LE.evalContext)
+          (σ' : evalContext)
+      :
+        heq_evalContext σ σ' ->
+        heq_evalNatContext
+          (LE.evalNatContext_of_evalContext σ)
+          (LE'.evalNatContext_of_evalContext σ').
     Admitted.
 
     Lemma heq_DSHOperator_heq_evalDSHOperator
@@ -1904,24 +1963,27 @@ Module MDHCOLTypeTranslator
           specialize (IHn bσn0 bσn0'). (* <- inductive *)
           specialize (IHn imem imem').
 
+          (* for use in multiple places later *)
+          assert (HEQ_BΣN0 : evalNExpr_closure_trace_equiv bσn0 bσn0').
+          {
+            eapply heq_DSHOperator_evalNExpr_closure_trace_equiv_inv.
+            3: {
+              rewrite BΣN, BΣN'.
+              now repeat constructor.
+            }
+            -
+              assumption.
+            -
+              repeat constructor.
+              +
+                pose proof from_nat_of_same_nat n as FN.
+                invc FN; congruence.
+              +
+                now apply heq_evalContext_heq_evalNatContext.
+          }
+
           full_autospecialize IHn;
             try assumption.
-          {
-            clear - T0E BΣN0 BΣN0'.
-            rename bσn0 into σn, BΣN0 into ΣN.
-            rename bσn0' into σn', BΣN0' into ΣN'.
-            (* provable from writer-like properties of
-               [intervalEvalDSHOperator] *)
-            (* TODO: make this a lemma; holds of all heq operator pairs *)
-
-            cbn in *.
-            repeat break_match;
-              try (inv ΣN; fail);
-              try (inv ΣN'; fail);
-              subst.
-            congruence.
-            admit.
-          }
 
           move IHn at bottom.
           Opaque LE.evalDSHOperator LE'.evalDSHOperator.
@@ -1934,15 +1996,15 @@ Module MDHCOLTypeTranslator
                  H0 into LMEM, H1 into LMEM',
                  H3 into HEQ_LOOP_MEM.
           symmetry in LMEM, LMEM'.
-          eapply IHHEQ_OP.
-          5-8: eassumption.
-          1,2: reflexivity.
-          *
-            admit.
-          *
-            constructor.
-            cbn; intuition; admit.
-            assumption.
+          eapply IHHEQ_OP;
+            try reflexivity;
+            try eassumption.
+          constructor; [| assumption].
+          cbn.
+          intuition.
+          constructor.
+          pose proof from_nat_of_same_nat n as FN.
+          invc FN; congruence.
       - (* Alloc *)
         admit.
       - (* MemInit *)
