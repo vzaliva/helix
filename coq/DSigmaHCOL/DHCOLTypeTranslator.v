@@ -1721,13 +1721,6 @@ Module MDHCOLTypeTranslator
         LE.estimateFuel op = LE'.estimateFuel op'.
     Admitted.
 
-    (*
-    Lemma from_nat_of_to_nat (nt : NT.t) :
-      NT.from_nat (NT.to_nat nt) = inr nt.
-    Admitted.
-     *)
-
-
     (* axioms1 *)
     Lemma to_nat_of_from_nat (n : nat) (nt : NT.t) :
       NT.from_nat n = inr nt ->
