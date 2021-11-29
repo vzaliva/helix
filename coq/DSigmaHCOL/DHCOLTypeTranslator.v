@@ -1971,10 +1971,7 @@ Module MDHCOLTypeTranslator
           assert (HEQ_BΣN0 : evalNExpr_closure_trace_equiv bσn0 bσn0').
           {
             eapply heq_DSHOperator_evalNExpr_closure_trace_equiv_inv.
-            3: {
-              rewrite BΣN, BΣN'.
-              now repeat constructor.
-            }
+            3: rewrite BΣN, BΣN'.
             -
               assumption.
             -
@@ -1984,6 +1981,8 @@ Module MDHCOLTypeTranslator
                 invc FN; congruence.
               +
                 now apply heq_evalContext_heq_evalNatContext.
+            -
+              now repeat constructor.
           }
 
           full_autospecialize IHn;
