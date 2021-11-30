@@ -1654,6 +1654,24 @@ Module MDHCOLTypeTranslator
       eapply heq_NType_heq_assert_NT_lt in H1;
       [| eapply H2].
 
+    Lemma heq_evalContext_heq_context_lookup
+          (σ : LE.evalContext)
+          (σ' : evalContext)
+          (msg msg' : string)
+          (n : LE.var_id)
+      :
+        heq_evalContext σ σ' ->
+        herr_c heq_evalContextElem
+               (LE.context_lookup msg σ n)
+               (LE'.context_lookup msg' σ' n).
+    Proof.
+      intros Σ.
+      eapply Forall2_nth_error with (n0:=n) in Σ.
+      unfold LE.context_lookup, LE'.context_lookup.
+      inv Σ;
+        now repeat constructor.
+    Qed.
+
     Lemma heq_AExpr_heq_evalAExpr :
       forall σ σ' σn σn' m m' a a',
         heq_memory m m' ->
@@ -1711,14 +1729,6 @@ Module MDHCOLTypeTranslator
         admit.
       - (* AZless *)
         admit.
-    Admitted.
-
-    Lemma heq_DSHOperator_same_fuel
-          (op : L.DSHOperator)
-          (op' : L'.DSHOperator)
-      :
-        heq_DSHOperator op op' ->
-        LE.estimateFuel op = LE'.estimateFuel op'.
     Admitted.
 
     (* axioms1 *)
@@ -1811,6 +1821,144 @@ Module MDHCOLTypeTranslator
     Abort.
     *)
 
+    Lemma hopt_herr_inv
+          {A B : Type}
+          (R : A → B → Prop)
+          (a : A)
+          (b : B)
+      :
+        hopt (herr R) (Some (inr a)) (Some (inr b)) ->
+        R a b.
+    Proof.
+      intro.
+      now (invc H; invc H2).
+    Qed.
+
+    Lemma evalNExpr_closure_trace_equiv_cons_inv
+          (x : LE.evalNatClosure)
+          (x' : evalNatClosure)
+          (l : list LE.evalNatClosure)
+          (l' : list evalNatClosure)
+      :
+        evalNExpr_closure_trace_equiv (x :: l) (x' :: l') ->
+        evalNExpr_closure_equiv x x'
+        /\ evalNExpr_closure_trace_equiv l l'.
+    Proof.
+      intro.
+      now invc H.
+    Qed.
+
+    Lemma Forall2_firstn
+          {A B : Type}
+          (R : A -> B -> Prop)
+          (l1 : list A)
+          (l2 : list B)
+          (n : nat)
+      :
+        Forall2 R l1 l2 ->
+        Forall2 R (firstn n l1) (firstn n l2).
+    Proof.
+      intros I.
+      generalize dependent n.
+      induction I;
+        intro n.
+      -
+        now rewrite !firstn_nil.
+      -
+        destruct n.
+        +
+          constructor.
+        +
+          cbn; constructor.
+          assumption.
+          apply IHI.
+    Qed.
+
+    Lemma Forall2_skipn
+          {A B : Type}
+          (R : A -> B -> Prop)
+          (l1 : list A)
+          (l2 : list B)
+          (n : nat)
+      :
+        Forall2 R l1 l2 ->
+        Forall2 R (skipn n l1) (skipn n l2).
+    Proof.
+      intros I.
+      generalize dependent n.
+      induction I;
+        intro n.
+      -
+        now rewrite !skipn_nil.
+      -
+        destruct n.
+        now constructor.
+        apply IHI.
+    Qed.
+
+    (* TODO: move to ListUtil *)
+    Lemma firstn_app_exact {A : Type} (l1 l2 : list A) (n : nat) :
+      n = length l1 ->
+      firstn n (l1 ++ l2) ≡ l1.
+    Proof.
+      intros L.
+      unfold equiv, peano_naturals.nat_equiv in L; subst.
+      rewrite <-PeanoNat.Nat.add_0_r with (n:=length l1).
+      rewrite firstn_app_2, firstn_O, app_nil_r.
+      reflexivity.
+    Qed.
+
+    Lemma skipn_app_exact {A : Type} (l1 l2 : list A) (n : nat) :
+      n = length l1 ->
+      skipn n (l1 ++ l2) ≡ l2.
+    Proof.
+      intros L.
+      unfold equiv, peano_naturals.nat_equiv in L; subst.
+      rewrite skipn_app.
+      rewrite PeanoNat.Nat.sub_diag.
+      rewrite skipn_all, skipn_O, app_nil_l.
+      reflexivity.
+    Qed.
+
+    Lemma evalNExpr_closure_trace_equiv_app_inv
+          (l1 l2 : list LE.evalNatClosure)
+          (l1' l2' : list LE'.evalNatClosure)
+      :
+        length l1 = length l1' ->
+        evalNExpr_closure_trace_equiv (l1 ++ l2) (l1' ++ l2') ->
+        evalNExpr_closure_trace_equiv l1 l1'
+        /\ evalNExpr_closure_trace_equiv l2 l2'.
+    Proof.
+      intros L E.
+      unfold evalNExpr_closure_trace_equiv in *.
+
+      pose proof E as E1.
+      pose proof E as E2.
+      apply Forall2_firstn with (n:=length l1) in E1.
+      apply Forall2_skipn with (n:=length l1) in E2.
+
+      rewrite !firstn_app_exact in E1 by congruence.
+      rewrite !skipn_app_exact in E2 by congruence.
+
+      tauto.
+    Qed.
+
+    Lemma evalAExpr_NatClosures_length
+          (f : LE.AExpr)
+          (f' : LE'.AExpr)
+          (σ : LE.evalNatContext)
+          (σ' : evalNatContext)
+      :
+        heq_AExpr f f' ->
+        length (LE.evalAExpr_NatClosures σ f) =
+        length (LE'.evalAExpr_NatClosures σ' f').
+    Proof.
+      intros AE.
+      induction AE; cbn.
+      all: try rewrite !app_length.
+      all: congruence.
+    Qed.
+
     Lemma heq_DSHOperator_evalNExpr_closure_trace_equiv_inv
           (op : L.DSHOperator)
           (op' : L'.DSHOperator)
@@ -1826,7 +1974,116 @@ Module MDHCOLTypeTranslator
                (LE.intervalEvalDSHOperator σ op σn0 fuel)
                (LE'.intervalEvalDSHOperator σ' op' σn0' fuel') ->
         evalNExpr_closure_trace_equiv σn0 σn0'.
-    Admitted.
+    Proof.
+      intros O.
+      move O before op'.
+      revert_until O.
+      induction O;
+        intros * Σ EO.
+      all: destruct fuel, fuel'; try (cbn in EO; inv EO; fail).
+      all: try apply hopt_herr_inv in EO.
+      -
+        assumption.
+      -
+        do 2 eapply evalNExpr_closure_trace_equiv_cons_inv.
+        eassumption.
+      -
+        invc H.
+        invc H3.
+        cbn in EO.
+        rewrite <-H, <-H4 in *.
+        apply hopt_herr_inv in EO.
+        apply evalNExpr_closure_trace_equiv_app_inv in EO;
+          [| apply evalAExpr_NatClosures_length; assumption].
+        tauto.
+      -
+        invc H.
+        invc H3.
+        cbn in EO.
+        rewrite <-H, <-H4 in *.
+        apply hopt_herr_inv in EO.
+        apply evalNExpr_closure_trace_equiv_app_inv in EO;
+          [| apply evalAExpr_NatClosures_length; assumption].
+        tauto.
+      -
+        invc H.
+        invc H4.
+        cbn in EO.
+        rewrite <-H, <-H5 in *.
+        apply hopt_herr_inv in EO.
+        apply evalNExpr_closure_trace_equiv_app_inv in EO;
+          [| apply evalAExpr_NatClosures_length; assumption].
+        tauto.
+      -
+        eapply evalNExpr_closure_trace_equiv_app_inv.
+        2: {
+          do 3 eapply evalNExpr_closure_trace_equiv_cons_inv.
+          eassumption.
+        }
+        apply evalAExpr_NatClosures_length; assumption.
+      -
+        copy_apply heq_NT_nat_eq H.
+        cbv in H0; subst n'.
+
+        (* quick and dirty fuel tricks:
+           to avoid proving -fuel_monotone *)
+        generalize dependent (S fuel').
+        generalize dependent (S fuel).
+        clear fuel fuel'.
+
+        intros fuel' fuel EO.
+
+        generalize dependent fuel'.
+        generalize dependent fuel.
+
+        induction n;
+          intros fuel fuel' EO.
+        +
+          destruct fuel, fuel';
+            cbn in EO; inv EO.
+          apply hopt_herr_inv in EO.
+          assumption.
+        +
+          cbn in EO.
+          apply heq_NT_nat_S in H.
+          inv H; inv H0.
+
+          destruct fuel, fuel';
+            cbn in EO; inv EO.
+
+          rewrite <-H1, <-H2 in *.
+          inv EO.
+          inv H6.
+          repeat break_match;
+            inv H4; inv H5.
+          eapply IHn.
+          eassumption.
+          rewrite Heqo, Heqo0.
+          do 2 constructor.
+          eapply IHO.
+          2: eassumption.
+          constructor; [| assumption].
+          now constructor.
+      -
+        cbn in EO.
+        eapply IHO.
+        2: eassumption.
+        now repeat constructor.
+      -
+        assumption.
+      -
+        cbn in EO.
+        repeat break_match;
+          inv EO; inv H1.
+        eapply IHO1.
+        eassumption.
+        erewrite Heqo, Heqo0.
+        repeat constructor.
+        eapply IHO2.
+        eassumption.
+        rewrite <-H, <-H0.
+        now repeat constructor.
+    Qed.
 
     Lemma heq_evalContext_heq_evalNatContext
           (σ : LE.evalContext)
@@ -1836,7 +2093,19 @@ Module MDHCOLTypeTranslator
         heq_evalNatContext
           (LE.evalNatContext_of_evalContext σ)
           (LE'.evalNatContext_of_evalContext σ').
-    Admitted.
+    Proof.
+      intros I.
+      induction I.
+      -
+        constructor.
+      -
+        cbn.
+        repeat break_let; subst_max.
+        constructor; [| assumption].
+        destruct d, d0;
+          inv H; inv H1.
+        all: now constructor.
+    Qed.
 
     Lemma heq_DSHOperator_heq_evalDSHOperator
           (op : LE.DSHOperator)
