@@ -1687,12 +1687,18 @@ Module MDHCOLTypeTranslator
                (LE'.evalAExpr m' σ' a').
     Proof.
       intros * M Σ AE ΣN ΣN' TE.
-      inversion AE; clear AE; subst.
+      induction AE.
       all: cbn in *.
       - (* AVar *)
         invc H.
-        rename x' into x.
-        admit.
+        eapply heq_evalContext_heq_context_lookup
+          with (n:=x') in Σ.
+        invc Σ;
+          rewrite <-H0, <-H.
+        now constructor.
+        repeat break_match;
+          invc H1; invc H3;
+            now constructor.
       - (* ANth *)
         inv TE; clear TE.
         clear H6.
@@ -1714,6 +1720,9 @@ Module MDHCOLTypeTranslator
         now apply heq_NType_to_nat.
         assumption.
       - (* AAbs *)
+        apply IHAE in TE.
+        invc TE;
+          repeat constructor.
         admit.
       - (* AConst *)
         admit.
