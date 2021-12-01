@@ -1603,10 +1603,10 @@ Module MDHCOLTypeTranslator
         repeat break_let; subst.
         inv H1; invc H2.
         apply heq_memory_heq_memory_lookup_err with
-               (msg:="MPtrDeref lookup failed")
-               (msg':="MPtrDeref lookup failed")
-               (n:=n0)
-               (n':=n0)
+            (msg:="MPtrDeref lookup failed")
+            (msg':="MPtrDeref lookup failed")
+            (n:=n0)
+            (n':=n0)
           in M;
           [| reflexivity].
         inversion M.
@@ -1626,8 +1626,8 @@ Module MDHCOLTypeTranslator
         heq_evalContext σ σ' ->
         heq_NExpr n n' ->
         herr_c heq_NType
-          (LE.evalNExpr σ n)
-          (LE'.evalNExpr σ' n').
+               (LE.evalNExpr σ n)
+               (LE'.evalNExpr σ' n').
 
     Definition evalNExpr_closure_trace_equiv
                (ncs : list LE.evalNatClosure)
@@ -1768,8 +1768,8 @@ Module MDHCOLTypeTranslator
       invc H.
       invc H0.
       rename a into nt, b into nt',
-             H into NT, H1 into NT',
-             H2 into ENT.
+      H into NT, H1 into NT',
+      H2 into ENT.
       symmetry in NT, NT'.
       apply err_equiv_eq in NT, NT'.
 
@@ -1783,7 +1783,7 @@ Module MDHCOLTypeTranslator
       herr_c heq_NType (NT.from_nat n) (NT'.from_nat n).
     Proof.
       destruct (NT.from_nat n) as [msg|nt] eqn:FN,
-               (NT'.from_nat n) as [msg'|nt'] eqn:FN'.
+                                               (NT'.from_nat n) as [msg'|nt'] eqn:FN'.
       constructor.
     Admitted.
 
@@ -1795,8 +1795,8 @@ Module MDHCOLTypeTranslator
       invc SE; constructor.
       invc H.
       rename H2 into SNTEQ,
-             a into nt, b into nt',
-             H0 into FN, H1 into FN'.
+      a into nt, b into nt',
+      H0 into FN, H1 into FN'.
 
       symmetry in FN, FN'.
       apply err_equiv_eq in FN, FN'.
@@ -1812,26 +1812,6 @@ Module MDHCOLTypeTranslator
 
     Definition heq_evalNatContext: LE.evalNatContext -> LE'.evalNatContext -> Prop :=
       List.Forall2 heq_DSHIndexRange.
-
-    (*
-    (*  Unprovable ? *)
-    Lemma heq_DSHOperator_evalNExpr_closure_trace_equiv
-          (op : L.DSHOperator)
-          (op' : L'.DSHOperator)
-          (σ : LE.evalNatContext)
-          (σ' : evalNatContext)
-          (σn0 : list LE.evalNatClosure)
-          (σn0' : list evalNatClosure)
-          (fuel fuel' : nat)
-      :
-        heq_DSHOperator op op' ->
-        heq_evalNatContext σ σ' ->
-        evalNExpr_closure_trace_equiv σn0 σn0' ->
-        hopt_r (herr_c evalNExpr_closure_trace_equiv)
-               (LE.intervalEvalDSHOperator σ op σn0 fuel)
-               (LE'.intervalEvalDSHOperator σ' op' σn0' fuel').
-    Abort.
-    *)
 
     Lemma hopt_herr_inv
           {A B : Type}
@@ -1983,8 +1963,8 @@ Module MDHCOLTypeTranslator
         heq_DSHOperator op op' -> (* NOTE: this might not be necessary *)
         heq_evalNatContext σ σ' -> (* NOTE: this might not be necessary *)
         hopt (herr evalNExpr_closure_trace_equiv)
-               (LE.intervalEvalDSHOperator σ op σn0 fuel)
-               (LE'.intervalEvalDSHOperator σ' op' σn0' fuel') ->
+             (LE.intervalEvalDSHOperator σ op σn0 fuel)
+             (LE'.intervalEvalDSHOperator σ' op' σn0' fuel') ->
         evalNExpr_closure_trace_equiv σn0 σn0'.
     Proof.
       intros O.
@@ -2242,12 +2222,12 @@ Module MDHCOLTypeTranslator
           repeat break_match_hyp;
             invc TΣN; invc TΣN'.
           rename l0 into bσn0, l into bσn0',
-                 H1 into BΣN, H2 into BΣN',
-                 Heqo0 into BΣN0, Heqo into BΣN0',
-                 t0 into sn, t1 into sn'.
+          H1 into BΣN, H2 into BΣN',
+          Heqo0 into BΣN0, Heqo into BΣN0',
+          t0 into sn, t1 into sn'.
           destruct fuel, fuel';
-              try (inv BΣN; fail);
-              try (inv BΣN'; fail).
+            try (inv BΣN; fail);
+            try (inv BΣN'; fail).
 
           autospecialize IHn;
             [now apply heq_NT_nat_S |].
@@ -2285,8 +2265,8 @@ Module MDHCOLTypeTranslator
           invc H2;
             [now repeat constructor |].
           rename a0 into loop_mem, b0 into loop_mem',
-                 H0 into LMEM, H1 into LMEM',
-                 H3 into HEQ_LOOP_MEM.
+          H0 into LMEM, H1 into LMEM',
+          H3 into HEQ_LOOP_MEM.
           symmetry in LMEM, LMEM'.
           eapply IHHEQ_OP;
             try reflexivity;
