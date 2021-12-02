@@ -148,6 +148,7 @@ Fixpoint compileAExpr (res:var_resolver) (a_e:term): TemplateMonad AExpr  :=
     tmReturn (ANth d_v d_i)
   | tRel i =>
     tmReturn (AVar (res i))
+  (* TODO: support for constant values as AConst *)
   | _ => tmFail ("Unsupported AExpr " ++ (string_of_term a_e))
   end.
 
