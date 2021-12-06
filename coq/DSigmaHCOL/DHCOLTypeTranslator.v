@@ -550,6 +550,53 @@ Module MDHCOLTypeTranslator
     | heq_DSHCTypeVal: forall x x', heq_CConst x x' -> heq_DSHVal (LE.DSHCTypeVal x) (LE'.DSHCTypeVal x')
     | heq_DSHPtrVal: forall a a' s s', a=a' -> heq_NType s s' -> heq_DSHVal (LE.DSHPtrVal a s) (LE'.DSHPtrVal a' s').
 
+    Definition heq_evalContextElem : (LE.DSHVal * bool) -> (LE'.DSHVal * bool) -> Prop :=
+      fun '(x,p) '(x',p') => p=p' /\ heq_DSHVal x x'.
+
+    Definition heq_evalContext : LE.evalContext -> LE'.evalContext -> Prop :=
+      List.Forall2 heq_evalContextElem.
+
+    Definition heq_memory : L.memory -> L'.memory -> Prop :=
+      fun m m' => forall k : nat, hopt_r heq_mem_block
+                               (LE.memory_lookup m k)
+                               (LE'.memory_lookup m' k).
+
+    Definition heq_evalPExpr : nat * NT.t -> nat * NT'.t -> Prop :=
+      fun '(v, size) '(v', size') => v = v' /\ heq_NType size size'.
+
+    Definition heq_evalMExpr
+      : LE.mem_block * NT.t -> LE'.mem_block * NT'.t -> Prop :=
+      fun '(mb, size) '(mb', size') => heq_mem_block mb mb' /\ heq_NType size size'.
+
+    Inductive heq_DSHIndexRange : LE.DSHIndexRange -> LE'.DSHIndexRange -> Prop :=
+    | heq_DSHIndex : forall t t', heq_NType t t' ->
+                             heq_DSHIndexRange (LE.DSHIndex t) (LE'.DSHIndex t')
+    | heq_DSHOtherVar : heq_DSHIndexRange LE.DSHOtherVar LE'.DSHOtherVar.
+
+    Definition heq_evalNatContext: LE.evalNatContext -> LE'.evalNatContext -> Prop :=
+      List.Forall2 heq_DSHIndexRange.
+
+    (* Check if two NExprs always produce the same results,
+       given compatible contexts *)
+    Definition evalNExpr_closure_equiv
+               '((σn, n) : LE.evalNatClosure)
+               '((σn', n') : LE'.evalNatClosure)
+      : Prop :=
+      forall σ σ',
+        LE.evalContext_in_range σ σn ->
+        LE'.evalContext_in_range σ' σn' ->
+        heq_evalContext σ σ' ->
+        heq_NExpr n n' ->
+        herr_c heq_NType
+               (LE.evalNExpr σ n)
+               (LE'.evalNExpr σ' n').
+
+    Definition evalNExpr_closure_trace_equiv
+               (ncs : list LE.evalNatClosure)
+               (ncs' : list LE'.evalNatClosure)
+      : Prop :=
+      Forall2 evalNExpr_closure_equiv ncs ncs'.
+
     Instance heq_DSHVal_proper:
       Proper ((=) ==> (=) ==> iff) heq_DSHVal.
     Proof.
@@ -567,17 +614,6 @@ Module MDHCOLTypeTranslator
         + crush.
         + eapply heq_NType_proper; eauto; crush.
     Qed.
-
-    Definition heq_evalContextElem : (LE.DSHVal * bool) -> (LE'.DSHVal * bool) -> Prop :=
-      fun '(x,p) '(x',p') => p=p' /\ heq_DSHVal x x'.
-
-    Definition heq_evalContext: LE.evalContext -> LE'.evalContext -> Prop :=
-      List.Forall2 heq_evalContextElem.
-
-    Definition heq_memory: L.memory -> L'.memory -> Prop :=
-      fun m m' => forall k : nat, hopt_r heq_mem_block
-                               (LE.memory_lookup m k)
-                               (LE'.memory_lookup m' k).
 
     Instance heq_mem_block_proper:
       Proper ((=) ==> (=) ==> iff) heq_mem_block.
@@ -1501,12 +1537,7 @@ Module MDHCOLTypeTranslator
       |assumption
       | ].
 
-    Definition heq_evalPExpr : nat * NT.t -> nat * NT'.t -> Prop :=
-      fun '(v, size) '(v', size') => v = v' /\ heq_NType size size'.
 
-    Definition heq_evalMExpr
-      : LE.mem_block * NT.t -> LE'.mem_block * NT'.t -> Prop :=
-      fun '(mb, size) '(mb', size') => heq_mem_block mb mb' /\ heq_NType size size'.
 
     Lemma heq_PExpr_heq_evalPExpr :
       forall σ σ' p p',
@@ -1631,25 +1662,6 @@ Module MDHCOLTypeTranslator
       -
         now repeat constructor.
     Qed.
-
-    Definition evalNExpr_closure_equiv
-               '((σn, n) : LE.evalNatClosure)
-               '((σn', n') : LE'.evalNatClosure)
-      : Prop :=
-      forall σ σ',
-        LE.evalContext_in_range σ σn ->
-        LE'.evalContext_in_range σ' σn' ->
-        heq_evalContext σ σ' ->
-        heq_NExpr n n' ->
-        herr_c heq_NType
-               (LE.evalNExpr σ n)
-               (LE'.evalNExpr σ' n').
-
-    Definition evalNExpr_closure_trace_equiv
-               (ncs : list LE.evalNatClosure)
-               (ncs' : list LE'.evalNatClosure)
-      : Prop :=
-      Forall2 evalNExpr_closure_equiv ncs ncs'.
 
     Lemma heq_NType_heq_assert_NT_lt
           (a : NT.t)
@@ -1820,14 +1832,6 @@ Module MDHCOLTypeTranslator
       copy_apply to_nat_of_from_nat FN; rename H into FNT.
       copy_apply to_nat_of_from_nat' FN'; rename H into FNT'.
     Admitted.
-
-    Inductive heq_DSHIndexRange : LE.DSHIndexRange -> LE'.DSHIndexRange -> Prop :=
-    | heq_DSHIndex : forall t t', heq_NType t t' ->
-                             heq_DSHIndexRange (LE.DSHIndex t) (LE'.DSHIndex t')
-    | heq_DSHOtherVar : heq_DSHIndexRange LE.DSHOtherVar LE'.DSHOtherVar.
-
-    Definition heq_evalNatContext: LE.evalNatContext -> LE'.evalNatContext -> Prop :=
-      List.Forall2 heq_DSHIndexRange.
 
     Lemma hopt_herr_inv
           {A B : Type}
