@@ -1981,6 +1981,13 @@ Module MDHCOLTypeTranslator
       intros M Σ AE ΣN ΣN' TE.
       induction AE.
       all: cbn in *.
+      (* All inductive cases *)
+      5-10: apply evalNExpr_closure_trace_equiv_app_inv in TE;
+          [| eapply evalAExpr_NatClosures_length; eassumption].
+      5-10: autospecialize IHAE1; [tauto |].
+      5-10: autospecialize IHAE2; [tauto |].
+      5-10: inv IHAE1; inv IHAE2; repeat constructor.
+      (* base cases *)
       - (* AVar *)
         invc H.
         eapply heq_evalContext_heq_context_lookup
@@ -2009,26 +2016,14 @@ Module MDHCOLTypeTranslator
         erewrite <-H8, <-H9; constructor.
         erewrite <-H7, <-H8.
         apply heq_mem_block_heq_mem_lookup_err.
-        admit. (* now apply heq_NType_to_nat. *)
+        admit. (* eapply heq_NType_to_nat; eassumption. *)
         eassumption.
       - (* AAbs *)
         apply IHAE in TE.
         invc TE;
           repeat constructor.
       - (* AConst *)
-        admit.
-      - (* APlus *)
-        admit.
-      - (* AMinus *)
-        admit.
-      - (* AMult *)
-        admit.
-      - (* AMin *)
-        admit.
-      - (* AMax *)
-        admit.
-      - (* AZless *)
-        admit.
+        repeat constructor.
     Admitted.
 
     Lemma heq_DSHOperator_heq_evalDSHOperator
