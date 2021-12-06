@@ -386,8 +386,7 @@ Module MDHCOLTypeTranslator
 
   Section Relations.
 
-    Context `{CTT: CTranslationOp} `{CTP: @CTranslationProps CTT}
-            `{NTT: NTranslationOp} `{NTP: @NTranslationProps NTT}.
+    Context `{CTT: CTranslationOp} `{NTT: NTranslationOp}.
 
     (* Well-defined [heq_CType] preserves constnats *)
     Fact heq_CType_zero_one_wd:
@@ -412,9 +411,14 @@ Module MDHCOLTypeTranslator
           * reflexivity.
           * clear -n0; contradict n0; reflexivity.
     Qed.
+    (* [heq_CType] generalized *)
+    Variable heq_CConst : CT.t -> CT'.t -> Prop.
+
+    Hypothesis heq_CConst_proper :
+      Proper ((=) ==> (=) ==> (iff)) heq_CConst.
 
     Definition heq_mem_block: L.mem_block -> L'.mem_block -> Prop :=
-      fun m m' => forall k : nat, hopt_r heq_CType (LE.mem_lookup k m) (LE'.mem_lookup k m').
+      fun m m' => forall k : nat, hopt_r heq_CConst (LE.mem_lookup k m) (LE'.mem_lookup k m').
 
     (* Check if two [nat]s translate successfully and to equivalent [NType] values *)
     Inductive heq_NT_nat: nat -> nat -> Prop :=
@@ -444,7 +448,7 @@ Module MDHCOLTypeTranslator
     | heq_AVar: forall x x', x=x' -> heq_AExpr (L.AVar x) (L'.AVar x')
     | heq_ANth: forall m m' n n', heq_MExpr m m' ->  heq_NExpr n n' -> heq_AExpr (L.ANth m n) (L'.ANth m' n')
     | heq_AAbs: forall x x', heq_AExpr x x' ->  heq_AExpr (L.AAbs x) (L'.AAbs x')
-    | heq_AConst: forall x x', heq_CType x x' -> heq_AExpr (L.AConst x) (L'.AConst x')
+    | heq_AConst: forall x x', heq_CConst x x' -> heq_AExpr (L.AConst x) (L'.AConst x')
     | heq_APlus : forall x y x' y', heq_AExpr x x' -> heq_AExpr y y' -> heq_AExpr (L.APlus x y) (L'.APlus x' y')
     | heq_AMinus : forall x y x' y', heq_AExpr x x' -> heq_AExpr y y' -> heq_AExpr (L.AMinus x y) (L'.AMinus x' y')
     | heq_AMult : forall x y x' y', heq_AExpr x x' -> heq_AExpr y y' -> heq_AExpr (L.AMult x y) (L'.AMult x' y')
@@ -493,7 +497,7 @@ Module MDHCOLTypeTranslator
           heq_PExpr src_p src_p' ->
           heq_PExpr dst_p dst_p' ->
           heq_AExpr f f' ->
-          heq_CType ini ini' ->
+          heq_CConst ini ini' ->
           heq_DSHOperator
             (L.DSHPower n (src_p,src_n) (dst_p, dst_n) f ini)
             (L'.DSHPower n' (src_p',src_n') (dst_p', dst_n') f' ini')
@@ -510,7 +514,7 @@ Module MDHCOLTypeTranslator
     | heq_DSHMemInit:
         forall p p' v v',
           heq_PExpr p p' ->
-          heq_CType v v' ->
+          heq_CConst v v' ->
           heq_DSHOperator (L.DSHMemInit p v) (L'.DSHMemInit p' v')
     | heq_DSHSeq:
         forall f f' g g',
@@ -543,7 +547,7 @@ Module MDHCOLTypeTranslator
 
     Inductive heq_DSHVal: LE.DSHVal -> LE'.DSHVal -> Prop :=
     | heq_DSHnatVal: forall x x', heq_NType x x' -> heq_DSHVal (LE.DSHnatVal x) (LE'.DSHnatVal x')
-    | heq_DSHCTypeVal: forall x x', heq_CType x x' -> heq_DSHVal (LE.DSHCTypeVal x) (LE'.DSHCTypeVal x')
+    | heq_DSHCTypeVal: forall x x', heq_CConst x x' -> heq_DSHVal (LE.DSHCTypeVal x) (LE'.DSHCTypeVal x')
     | heq_DSHPtrVal: forall a a' s s', a=a' -> heq_NType s s' -> heq_DSHVal (LE.DSHPtrVal a s) (LE'.DSHPtrVal a' s').
 
     Instance heq_DSHVal_proper:
