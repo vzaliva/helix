@@ -1752,8 +1752,8 @@ Section TopLevel.
         translate dynwin_rhcol = inr dynwin_fhcol ->
 
         (* Compile memory *)
-        (AHCOLtoRHCOL.translate_memory (build_dynwin_memory a x) = inr dynwin_R_memory /\
-         RHCOLtoFHCOL.translate_memory dynwin_R_memory = inr dynwin_F_memory) ->
+        (AHCOLtoRHCOL.translate_runtime_memory (build_dynwin_memory a x) = inr dynwin_R_memory /\
+         RHCOLtoFHCOL.translate_runtime_memory dynwin_R_memory = inr dynwin_F_memory) ->
 
         (* compile σ *)
         (AHCOLtoRHCOL.translateEvalContext build_dynwin_σ = inr dynwin_R_σ /\
@@ -1775,7 +1775,7 @@ Section TopLevel.
                 RHCOLEval.memory_lookup r_omemory dynwin_y_addr = Some y_rmem ->
 
                 (* Everything correct on Reals *)
-                AHCOLtoRHCOL.translate_mem_block (avector_to_mem_block y) = inr y_rmem /\
+                AHCOLtoRHCOL.translate_runtime_mem_block (avector_to_mem_block y) = inr y_rmem /\
 
                 (* And floats *)
                 exists f_omemory y_fmem,
@@ -2015,10 +2015,10 @@ Section TopLevel.
 
     (* moved from [dynwin_MSHCOL1] to [dynwin_rhcol] *)
 
-    assert(RM : exists r_omemory, AHCOLtoRHCOL.translate_memory a_omemory = inr r_omemory).
+    assert(RM : exists r_omemory, AHCOLtoRHCOL.translate_runtime_memory a_omemory = inr r_omemory).
     {
-      unfold AHCOLtoRHCOL.translate_memory.
-      unfold AHCOLtoRHCOL.translate_mem_block.
+      unfold AHCOLtoRHCOL.translate_runtime_memory.
+      unfold AHCOLtoRHCOL.translate_runtime_mem_block.
 
       apply NM_err_sequence_OK.
       clear - AHCOLtoRHCOL_total.

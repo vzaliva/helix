@@ -243,14 +243,26 @@ Module MDHCOLTypeTranslator
                         ret ((d,f) :: t)
          end.
 
-    (* This should use [NM_sequence] directly,
+    (* These should use [NM_sequence] directly,
        making [NM_err_sequence] unecessary,
        but we run into universe inconsistency *)
+
+    (* Note: the following use [translateCTypeConst], meaning
+       any value other than 0 or 1 produces an error. This is used for
+       translation of constants embedded into the operator itself. *)
     Definition translate_mem_block (m:L.mem_block) : err L'.mem_block
-      := NM_err_sequence (NM.map translateCTypeValue m).
+      := NM_err_sequence (NM.map translateCTypeConst m).
 
     Definition translate_memory (m:L.memory): err L'.memory :=
       NM_err_sequence (NM.map translate_mem_block m).
+
+    (* Note: the following is based on [translateCTypeValue], only to be used
+       when translating *input values* - not constants. *)
+    Definition translate_runtime_mem_block (m:L.mem_block) : err L'.mem_block
+      := NM_err_sequence (NM.map translateCTypeValue m).
+
+    Definition translate_runtime_memory (m:L.memory): err L'.memory :=
+      NM_err_sequence (NM.map translate_runtime_mem_block m).
 
     Definition translateMExpr (m:L.MExpr) : err L'.MExpr :=
       match m with
