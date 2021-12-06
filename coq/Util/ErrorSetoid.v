@@ -428,3 +428,16 @@ Definition assert_true_to_err {A:Type} (msg:string) (b:bool) (v:A) : err A
 (* raise [err] if boolean flag is true *)
 Definition assert_false_to_err {A:Type} (msg:string) (b:bool) (v:A) : err A
   := if b then inl msg else inr v.
+
+Lemma hopt_herr_inv
+      {A B : Type}
+      (R : A → B → Prop)
+      (a : A)
+      (b : B)
+  :
+    hopt (herr R) (Some (inr a)) (Some (inr b)) ->
+    R a b.
+Proof.
+  intro.
+  now (invc H; invc H2).
+Qed.

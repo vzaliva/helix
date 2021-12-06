@@ -355,7 +355,6 @@ Section StringUtils.
 
 End StringUtils.
 
-
 Definition is_Some_bool {A:Type} (x:option A) : bool :=
   match x with
   | Some x => true
@@ -367,3 +366,15 @@ Definition is_None_bool {A:Type} (x:option A) : bool :=
   | Some x => false
   | None => true
   end.
+
+(* A binary relation which holds on any pair *)
+Inductive trivial2 {A B : Type} : A -> B -> Prop :=
+| trivial2_intro : forall a b, trivial2 a b.
+
+Lemma tuple_equiv_inv `{Ae:Equiv A} `{Be:Equiv B}:
+  forall (x x':A) (y y':B), (x,y) = (x',y') -> x=x' /\ y=y'.
+Proof.
+  intros x x' y y' E.
+  unfold equiv, products.prod_equiv in E.
+  crush.
+Qed.

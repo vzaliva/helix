@@ -266,6 +266,23 @@ Proof.
     crush.
 Qed.
 
+Lemma cons_equiv_inv `{Ae:Equiv A}:
+  forall x xs y ys, x::xs = y::ys -> x=y /\ xs=ys.
+Proof.
+  intros x xs y ys E.
+  unfold equiv, ListSetoid.List_equiv in E.
+  inv E.
+  auto.
+Qed.
+
+Lemma cons_nequiv_nil `{Ae:Equiv A}:
+  forall x xs, @nil A ≠ cons x xs.
+Proof.
+  intros x xs H.
+  unfold equiv, ListSetoid.List_equiv in H.
+  inv H.
+Qed.
+
 Require Import ExtLib.Structures.Monads.
 Require Import ExtLib.Data.Monads.OptionMonad.
 

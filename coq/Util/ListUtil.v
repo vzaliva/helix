@@ -3,7 +3,9 @@ Require Import Coq.Lists.List.
 
 Require Import ExtLib.Data.ListNth.
 
+Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Tactics.HelixTactics.
+
 
 Import ListNotations.
 
@@ -280,4 +282,96 @@ Proof.
     apply fold_left_preservation with (f0:=f).
     apply PI.
     assumption.
+Qed.
+
+Lemma Forall2_firstn
+      {A B : Type}
+      (R : A -> B -> Prop)
+      (l1 : list A)
+      (l2 : list B)
+      (n : nat)
+  :
+    Forall2 R l1 l2 ->
+    Forall2 R (firstn n l1) (firstn n l2).
+Proof.
+  intros I.
+  generalize dependent n.
+  induction I;
+    intro n.
+  -
+    now rewrite !firstn_nil.
+  -
+    destruct n.
+    +
+      constructor.
+    +
+      cbn; constructor.
+      assumption.
+      apply IHI.
+Qed.
+
+Lemma Forall2_skipn
+      {A B : Type}
+      (R : A -> B -> Prop)
+      (l1 : list A)
+      (l2 : list B)
+      (n : nat)
+  :
+    Forall2 R l1 l2 ->
+    Forall2 R (skipn n l1) (skipn n l2).
+Proof.
+  intros I.
+  generalize dependent n.
+  induction I;
+    intro n.
+  -
+    now rewrite !skipn_nil.
+  -
+    destruct n.
+    now constructor.
+    apply IHI.
+Qed.
+
+Lemma Forall2_nth_error
+      {A B : Type}
+      (n : nat)
+      (P : A -> B -> Prop)
+      (l1 : list A)
+      (l2 : list B)
+  :
+    Forall2 P l1 l2 ->
+    hopt_r P (nth_error l1 n) (nth_error l2 n).
+Proof.
+  revert l2.
+  induction l1;
+    intros l2 F.
+  -
+    admit.
+  -
+    inversion F; subst.
+    rename a into e1', y into e2', l' into l2.
+    admit.
+Admitted.
+
+Lemma firstn_app_exact {A : Type} (l1 l2 : list A) (n : nat) :
+  n = length l1 ->
+  firstn n (l1 ++ l2) = l1.
+Proof.
+  intros L.
+  subst.
+  rewrite <-PeanoNat.Nat.add_0_r with (n:=length l1).
+  rewrite firstn_app_2, firstn_O, app_nil_r.
+  reflexivity.
+Qed.
+
+Lemma skipn_app_exact {A : Type} (l1 l2 : list A) (n : nat) :
+  n = length l1 ->
+  skipn n (l1 ++ l2) = l2.
+Proof.
+  intros L.
+  subst.
+  rewrite skipn_app.
+  rewrite PeanoNat.Nat.sub_diag.
+  rewrite skipn_all, skipn_O, app_nil_l.
+  reflexivity.
 Qed.

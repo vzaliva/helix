@@ -11,6 +11,9 @@ Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
 Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Util.ErrorSetoid.
+Require Import Helix.Util.ListSetoid.
+Require Import Helix.Util.ListUtil.
+Require Import Helix.Util.Misc.
 Require Import Helix.Tactics.HelixTactics.
 
 Require Import ExtLib.Structures.Monads.
@@ -200,6 +203,7 @@ Module MDHCOLTypeTranslator
     heq_CType_translateCTypeValue_compat:
       forall x x', translateCTypeValue x = inr x' -> heq_CType x x';
 
+
     (* Ensure [translateCTypeConst] is compatible with [translateCTypeValue] *)
     translateCTypeConst_translateCTypeValue_compat:
       forall x x', translateCTypeConst x = inr x' ->
@@ -388,29 +392,6 @@ Module MDHCOLTypeTranslator
 
     Context `{CTT: CTranslationOp} `{NTT: NTranslationOp}.
 
-    (* Well-defined [heq_CType] preserves constnats *)
-    Fact heq_CType_zero_one_wd:
-      heq_CType CT.CTypeZero CT'.CTypeZero /\
-      heq_CType CT.CTypeOne CT'.CTypeOne.
-    Proof.
-      split;
-        apply heq_CType_translateCTypeValue_compat, translateCTypeConst_translateCTypeValue_compat; cbv.
-      -
-        break_if.
-        + reflexivity.
-        + break_if; clear -n; contradict n; reflexivity.
-      -
-        break_if.
-        +
-          clear -e.
-          symmetry in e.
-          contradict e.
-          apply CT.CTypeZeroOneApart.
-        +
-          break_if.
-          * reflexivity.
-          * clear -n0; contradict n0; reflexivity.
-    Qed.
     (* [heq_CType] generalized *)
     Variable heq_CConst : CT.t -> CT'.t -> Prop.
 
@@ -522,29 +503,6 @@ Module MDHCOLTypeTranslator
           heq_DSHOperator g g' ->
           heq_DSHOperator (L.DSHSeq f g) (L'.DSHSeq f' g').
 
-
-    Lemma translation_syntax_always_correct {x x'}:
-      translate x = inr x' -> heq_DSHOperator x x'.
-    Proof.
-      (*
-      intros x x' H.
-      destruct x, x'; try constructor; try (cbn in H; inversion H); try inl_inr.
-
-      all: repeat  match goal with
-          | [|- context[L.DSHAssign ?s ?d]] => destruct s,d
-           | [|- context[L.DSHPower _ ?s ?d _ _]] => destruct s,d
-           | [H: context[translateMemRef ?s] |- _ ] =>
-             destruct s; unfold translateMemRef in H; cbn in H; repeat break_match_hyp
-               end.
-
-      all: try inl_inr.
-      all: try inl_inr_inv.
-      all: try constructor.
-      all:crush.
-       *)
-    Admitted.
-
-
     Inductive heq_DSHVal: LE.DSHVal -> LE'.DSHVal -> Prop :=
     | heq_DSHnatVal: forall x x', heq_NType x x' -> heq_DSHVal (LE.DSHnatVal x) (LE'.DSHnatVal x')
     | heq_DSHCTypeVal: forall x x', heq_CConst x x' -> heq_DSHVal (LE.DSHCTypeVal x) (LE'.DSHCTypeVal x')
@@ -604,13 +562,13 @@ Module MDHCOLTypeTranslator
       -
         destruct a,b,a',b'; invc H; inv Eb; inv Ea; constructor.
         + eapply heq_NType_proper; eauto; crush.
-        + eapply heq_CType_proper; eauto; crush.
+        + eapply heq_CConst_proper; eauto; crush.
         + crush.
         + eapply heq_NType_proper; eauto; crush.
       -
         destruct a,b,a',b'; invc H; inv Eb; inv Ea; constructor.
         + eapply heq_NType_proper; eauto; crush.
-        + eapply heq_CType_proper; eauto; crush.
+        + eapply heq_CConst_proper; eauto; crush.
         + crush.
         + eapply heq_NType_proper; eauto; crush.
     Qed.
@@ -639,7 +597,7 @@ Module MDHCOLTypeTranslator
           destruct (L.mem_lookup k a') eqn:H0';
             destruct (L'.mem_lookup k b') eqn:H1'; try constructor;
               repeat some_inv; try some_none.
-          eapply heq_CType_proper;try symmetry; eauto.
+          eapply heq_CConst_proper;try symmetry; eauto.
       -
         intros k.
         specialize (H k).
@@ -660,7 +618,7 @@ Module MDHCOLTypeTranslator
           destruct (L.mem_lookup k a) eqn:H0';
             destruct (L'.mem_lookup k b) eqn:H1'; try constructor;
               repeat some_inv; try some_none.
-          eapply heq_CType_proper;try symmetry; eauto.
+          eapply heq_CConst_proper;try symmetry; eauto.
     Qed.
 
     Instance heq_memory_proper:
@@ -713,11 +671,458 @@ Module MDHCOLTypeTranslator
           apply H2.
     Qed.
 
+  End Relations.
+
+  (* TODO: move *)
+  (* NOTE: the other direction does not hold: [eq] vs [equiv] *)
+  Lemma NP_Add_NM_add
+        `{EQ : Equiv A}
+        `{EQv : Equivalence A EQ}
+        (k : NM.key)
+        (v : A)
+        (m1 m2 : NM.t A)
+    :
+      NP.Add k v m1 m2 -> NM.add k v m1 = m2.
+  Proof.
+    intros ADD k';
+      specialize (ADD k').
+    destruct (NM.E.eq_dec k k').
+    1: rewrite NP.F.add_eq_o in * by assumption.
+    2: rewrite NP.F.add_neq_o in * by assumption.
+    all: now rewrite ADD.
+  Qed.
+
+  (* TODO: move *)
+  Lemma NM_Empty_find
+        `{EQ : Equiv A}
+        (m : NM.t A)
+    :
+      NM.Empty m <-> forall k, NM.find k m ≡ None.
+  Proof.
+    split; intros E k.
+    -
+      specialize (E k).
+      enough (T : forall v, NM.find k m ≢ Some v).
+      {
+        destruct (NM.find k m).
+        now specialize (T a).
+        constructor.
+      }
+      intros v C.
+      apply NM.find_2 in C.
+      now apply E in C.
+    -
+      intros v C.
+      specialize (E k).
+      apply NM.find_1 in C.
+      now rewrite C in E.
+  Qed.
+
+  (* TODO: move *)
+  Lemma NM_map_add
+        `{EQa : Equiv A}
+        `{EQb : Equiv B}
+        `{EQva : Equivalence A EQa}
+        `{EQvb : Equivalence B EQb}
+        (f : A -> B)
+        (PF : Proper ((=) ==> (=)) f)
+        (k : NM.key)
+        (v : A)
+        (m m' : NM.t A)
+        (mm mm' : NM.t B)
+    :
+      NM.map f m = mm ->
+      ¬ NM.In (elt:=B) k mm ->
+      NM.add k (f v) mm = mm' ->
+      NM.add k v m = m' ->
+      NM.map f m' = mm'.
+  Proof.
+    intros M NI AM AM' k'.
+    specialize (M k');
+      specialize (AM k');
+      specialize (AM' k').
+    rewrite NP.F.map_o in *.
+    destruct (NM.E.eq_dec k k').
+    1: rewrite NP.F.add_eq_o in * by assumption.
+    2: rewrite NP.F.add_neq_o in * by assumption.
+    -
+      rewrite <-AM.
+      unfold option_map.
+      break_match; try some_none; some_inv.
+      now rewrite AM'.
+    -
+      now rewrite AM, AM' in M.
+  Qed.
+
+  (* TODO: move *)
+  Lemma NM_map_add_inv
+        `{EQa : Equiv A}
+        `{EQb : Equiv B}
+        `{EQva : Equivalence A EQa}
+        `{EQvb : Equivalence B EQb}
+        (f : A -> B)
+        (INJ : forall x y, f x = f y -> x = y)
+        (k : NM.key)
+        (v : A)
+        (m m' : NM.t A)
+        (mm mm' : NM.t B)
+    :
+      NM.map f m = mm ->
+      ¬ NM.In k mm →
+      NM.add k (f v) mm = mm' →
+      NM.map f m' = mm' ->
+      NM.add k v m = m'.
+  Proof.
+    intros M NI AM M' k'.
+    specialize (M k');
+      specialize (M' k');
+      specialize (AM k').
+    rewrite NP.F.map_o in *.
+    destruct (NM.E.eq_dec k k').
+    1: rewrite NP.F.add_eq_o in * by assumption.
+    2: rewrite NP.F.add_neq_o in * by assumption.
+    -
+      rewrite <- AM in M'.
+      unfold option_map in M'.
+      break_match; try some_none; try some_inv.
+      apply INJ in M'.
+      now f_equiv.
+    -
+      rewrite AM, <-M' in M.
+      unfold option_map in M.
+      repeat break_match; try some_none; try some_inv.
+      apply INJ in M.
+      now f_equiv.
+  Qed.
+
+  (* TODO: move *)
+  Lemma NM_map_inr_all_OK
+        `{EQ : Equiv A} :
+    forall (m : NM.t A) em,
+      NM.map inr m = em ->
+      NP.for_all_range is_OK_bool em = true.
+  Proof.
+    intros.
+    unfold NP.for_all_range.
+    apply NP.for_all_iff.
+    {
+      intros _ _ _ v1 v2 VE.
+      unfold is_OK_bool.
+      repeat break_match;
+        now try inl_inr.
+    }
+
+    intros.
+    specialize (H k).
+    apply NM.find_1 in H0.
+    rewrite H0 in H; clear H0.
+    rewrite NP.F.map_o in H.
+    unfold option_map, is_OK_bool in *.
+    repeat break_match;
+      inv H.
+    inv H2.
+    reflexivity.
+  Qed.
+
+  Lemma NM_err_sequence_OK
+        `{EQ : Equiv A}
+        `{EQv : Equivalence A EQ}
+        (em: NM.t (err A))
+    :
+      NP.for_all_range is_OK_bool em = true <->
+      exists vm,
+        NM_err_sequence em = inr vm.
+  Proof.
+    split.
+    -
+      intro OK.
+      unfold NP.for_all_range, NP.for_all in OK.
+      unfold NM_err_sequence.
+
+      rewrite NM.fold_1 in *.
+      match goal with
+      | [ |- context [fold_left ?f _ _]] => remember f as acc
+      end.
+
+      generalize dependent (NM.empty A).
+      generalize dependent (NM.elements (elt:=err A) em).
+      clear - Heqacc EQv.
+      induction l as [|e];
+        intros OK s.
+      + now exists s.
+              +
+                destruct e as (k, [v | v]).
+                *
+                  cbn in *.
+                  exfalso; clear - OK.
+                  contradict OK.
+                  apply Bool.not_true_iff_false.
+                  induction l.
+                  reflexivity.
+                  cbn in *; now break_if.
+                *
+                  cbn in *.
+                  autospecialize IHl; [assumption |].
+                  subst acc.
+                  eapply IHl.
+              -
+                intros [vm OK].
+                unfold NP.for_all_range, NP.for_all.
+                unfold NM_err_sequence in OK.
+
+                rewrite NM.fold_1 in *.
+                match goal with
+                | [ _ : context [fold_left ?f _ _] |- _] => remember f as acc
+                end.
+                generalize dependent (NM.empty A).
+                generalize dependent (NM.elements (elt:=err A) em).
+                clear - Heqacc.
+
+                induction l as [|e];
+                  intros s OK.
+                + reflexivity.
+                +
+                  destruct e as (k, [v | v]).
+                  all: cbn in *.
+                  all: (* poor man's [cbv [acc] in OK.] *)
+                    rewrite Heqacc in OK;
+                    cbn in OK;
+                    rewrite <-Heqacc in OK.
+                  *
+                    exfalso; clear - OK Heqacc.
+                    contradict OK.
+                    generalize dependent v.
+                    induction l.
+                    subst; now cbv.
+                    rewrite Heqacc; cbn; rewrite <-Heqacc.
+                    cbv [NM_err_seq_step].
+                    now break_match.
+                  *
+                    cbn in *.
+                    apply IHl in OK.
+                    assumption.
+  Qed.
+
+  Lemma NM_err_seq_step_add
+        `{EQ : Equiv A}
+        `{EQv : Equivalence A EQ}
+        (em em' : NM.t (err A))
+        (k : NM.key)
+        (ev : err A)
+        (m0 : err (NM.t A))
+    :
+      ¬ (NM.In k em) ->
+      NP.Add k ev em em' ->
+      NM.fold NM_err_seq_step em' m0 =
+      NM_err_seq_step k ev (NM.fold NM_err_seq_step em m0).
+  Proof.
+    intros * NI ADD.
+    eapply NP.fold_Add.
+    -
+      (* typeclasses eauto. *)
+      apply err_Equivalence.
+    -
+      clear - EQv.
+      intros k' k EK ev' ev EV em1 em2 EM.
+      subst.
+      destruct ev.
+      +
+        cbv.
+        constructor.
+      +
+        cbn.
+        repeat break_match;
+          try inl_inr; try inl_inr_inv;
+            subst.
+        constructor.
+        f_equiv.
+        intros k'.
+        destruct (NM.E.eq_dec k k').
+        all: try rewrite !NP.F.add_eq_o by assumption.
+        all: try rewrite !NP.F.add_neq_o by assumption.
+        reflexivity.
+        apply EM.
+    -
+      clear - EQv.
+      intros k1 k2 v1 v2 em NK.
+      unfold NM_err_seq_step.
+      repeat break_match;
+        try constructor;
+        try inl_inr; try inl_inr_inv;
+          subst.
+      inv Heqs0.
+      intros k.
+      destruct (NM.E.eq_dec k1 k), (NM.E.eq_dec k2 k).
+      congruence.
+      all: try rewrite !NP.F.add_eq_o by assumption.
+      all: try rewrite !NP.F.add_neq_o by assumption.
+      all: try rewrite !NP.F.add_eq_o by assumption.
+      all: reflexivity.
+    -
+      assumption.
+    -
+      assumption.
+  Qed.
+
+  Lemma NM_err_sequence_inr_fun_spec
+        `{EQ : Equiv A}
+        `{EQv : Equivalence A EQ}
+        (em: NM.t (err A))
+        (vm: NM.t A)
+    :
+      NM_err_sequence em = inr vm <->
+      NM.map inr vm = em.
+  Proof.
+    unfold NM_err_sequence.
+    revert vm.
+    induction em
+      as [em E | em em' IH k v NI ADD]
+           using NP.map_induction;
+      intro vm.
+    -
+      split; intros H.
+      +
+        intro k.
+        pose proof E as E'.
+        apply NM_Empty_find with (k0:=k) in E'.
+        rewrite E'; clear E'.
+        eapply NP.fold_Empty in E.
+        rewrite E in H.
+        inl_inr_inv.
+        rewrite NP.F.map_o.
+        specialize (H k).
+        rewrite <-H.
+        reflexivity.
+        apply flip_Equivalence.
+        typeclasses eauto.
+      +
+        rewrite NP.fold_Empty.
+        3: assumption.
+        2: typeclasses eauto.
+        f_equiv.
+        intros k.
+        specialize (H k).
+        apply NM_Empty_find with (k0:=k) in E.
+        rewrite NP.F.map_o in H.
+        rewrite E in H.
+        unfold option_map in H.
+        break_match; try some_none.
+        reflexivity.
+    -
+      rename vm into vm'.
+      rewrite NM_err_seq_step_add; try eassumption.
+      destruct (NM.fold NM_err_seq_step em (inr (NM.empty A)))
+        as [msg|vm] eqn:P.
+      +
+        split.
+        *
+          intros C.
+          cbv in C.
+          break_match; inv C.
+        *
+          intros OK.
+          exfalso.
+          eapply NM_map_inr_all_OK in OK.
+          apply NM_err_sequence_OK in OK.
+          destruct OK as [vm OK].
+          unfold NM_err_sequence in OK.
+          rewrite NM_err_seq_step_add in OK; try eassumption.
+          rewrite P in OK.
+          cbv in OK.
+          break_match; inv OK.
+      +
+        specialize (IH vm).
+        assert (M : NM.map inr vm = em)
+          by now apply IH.
+        clear IH.
+        split.
+        *
+          intro ST.
+          destruct v as [?|v]; [inv ST |].
+          cbn in ST.
+          inl_inr_inv.
+          eapply NM_map_add.
+          1: typeclasses eauto.
+          3: apply NP_Add_NM_add.
+          all: eassumption.
+        *
+          intros M'.
+          destruct v as [msg|v].
+          --
+            exfalso.
+            apply NP_Add_NM_add in ADD.
+            rewrite <-ADD in M'.
+            clear - M'.
+            specialize (M' k).
+            rewrite NP.F.map_o in M'.
+            rewrite NP.F.add_eq_o in M' by reflexivity.
+            unfold option_map in M'.
+            break_match.
+            some_inv; inl_inr.
+            some_none.
+          --
+            cbn.
+            f_equiv.
+            eapply NM_map_add_inv in NI.
+            4: apply NP_Add_NM_add.
+            all: try eassumption.
+            intros; now inl_inr_inv.
+  Qed.
+
+  Section Value_Translation_Correctness.
+
+    Context `{CTT: CTranslationOp} `{CTP: @CTranslationProps CTT}
+            `{NTT: NTranslationOp} `{NTP: @NTranslationProps NTT}.
+
+    Instance sheq_DSHVal_proper :
+      Proper ((=) ==> (=) ==> iff) (heq_DSHVal heq_CType).
+    Proof.
+      apply heq_DSHVal_proper.
+      apply heq_CType_proper.
+    Qed.
+
+    Instance sheq_mem_block_proper:
+      Proper ((=) ==> (=) ==> iff) (heq_mem_block heq_CType).
+    Proof.
+      apply heq_mem_block_proper.
+      apply heq_CType_proper.
+    Qed.
+
+    Instance sheq_memory_proper:
+      Proper ((=) ==> (=) ==> iff) (heq_memory heq_CType).
+    Proof.
+      apply heq_memory_proper.
+      apply heq_CType_proper.
+    Qed.
+
+    Fact heq_CType_zero_one_wd:
+      heq_CType CT.CTypeZero CT'.CTypeZero /\
+      heq_CType CT.CTypeOne CT'.CTypeOne.
+    Proof.
+      split;
+        apply heq_CType_translateCTypeValue_compat, translateCTypeConst_translateCTypeValue_compat; cbv.
+      -
+        break_if.
+        + reflexivity.
+        + break_if; clear -n; contradict n; reflexivity.
+      -
+        break_if.
+        +
+          clear -e.
+          symmetry in e.
+          contradict e.
+          apply CT.CTypeZeroOneApart.
+        +
+          break_if.
+          * reflexivity.
+          * clear -n0; contradict n0; reflexivity.
+    Qed.
+
     Lemma translateEvalContext_heq_evalContext_eq
           (σ: LE.evalContext) (σ': LE'.evalContext)
       :
         translateEvalContext σ ≡ inr σ' ->
-        heq_evalContext σ σ'.
+        heq_evalContext heq_CType σ σ'.
     Proof.
       revert σ σ'.
       unfold heq_evalContext, heq_evalContextElem.
@@ -777,39 +1182,11 @@ Module MDHCOLTypeTranslator
           reflexivity.
     Qed.
 
-    (* TODO: Move to list setoid *)
-    Lemma cons_equiv_inv `{Ae:Equiv A}:
-      forall x xs y ys, x::xs = y::ys -> x=y /\ xs=ys.
-    Proof.
-      intros x xs y ys E.
-      unfold equiv, ListSetoid.List_equiv in E.
-      inv E.
-      auto.
-    Qed.
-
-    (* TODO: Move to list setoid *)
-    Lemma cons_nequiv_nil `{Ae:Equiv A}:
-      forall x xs, @nil A ≠ cons x xs.
-    Proof.
-      intros x xs H.
-      unfold equiv, ListSetoid.List_equiv in H.
-      inv H.
-    Qed.
-
-    (* Todo: move somewhere *)
-    Lemma tuple_equiv_inv `{Ae:Equiv A} `{Be:Equiv B}:
-      forall (x x':A) (y y':B), (x,y) = (x',y') -> x=x' /\ y=y'.
-    Proof.
-      intros x x' y y' E.
-      unfold equiv, products.prod_equiv in E.
-      crush.
-    Qed.
-
     Lemma translateEvalContext_heq_evalContext
           (σ: LE.evalContext) (σ': LE'.evalContext)
       :
         translateEvalContext σ = inr σ' ->
-        heq_evalContext σ σ'.
+        heq_evalContext heq_CType σ σ'.
     Proof.
       revert σ σ'.
       unfold heq_evalContext, heq_evalContextElem.
@@ -902,445 +1279,10 @@ Module MDHCOLTypeTranslator
           crush.
     Qed.
 
-    (* NOTE: the other direction does not hold *)
-    Lemma NP_Add_NM_add
-          `{EQ : Equiv A}
-          `{EQv : Equivalence A EQ}
-          (k : NM.key)
-          (v : A)
-          (m1 m2 : NM.t A)
-      :
-        NP.Add k v m1 m2 -> NM.add k v m1 = m2.
-    Proof.
-      intros ADD k';
-        specialize (ADD k').
-      destruct (NM.E.eq_dec k k').
-      1: rewrite NP.F.add_eq_o in * by assumption.
-      2: rewrite NP.F.add_neq_o in * by assumption.
-      all: now rewrite ADD.
-    Qed.
-
-    Lemma NM_Empty_find
-          `{EQ : Equiv A}
-          (m : NM.t A)
-      :
-        NM.Empty m <-> forall k, NM.find k m ≡ None.
-    Proof.
-      split; intros E k.
-      -
-        specialize (E k).
-        enough (T : forall v, NM.find k m ≢ Some v).
-        {
-          destruct (NM.find k m).
-          now specialize (T a).
-          constructor.
-        }
-        intros v C.
-        apply NM.find_2 in C.
-        now apply E in C.
-      -
-        intros v C.
-        specialize (E k).
-        apply NM.find_1 in C.
-        now rewrite C in E.
-    Qed.
-
-    Definition map_app {A B : Type} (f : A → B) :=
-      fun k v m_acc => NM.add k (f v) m_acc.
-
-    Lemma NM_map_fold
-       `{EQa : Equiv A}
-       `{EQb : Equiv B}
-       `{EQva : Equivalence A EQa}
-       `{EQvb : Equivalence B EQb}
-       (f : A → B)
-       (m : NM.t A)
-      :
-        NM.map f m = NM.fold (map_app f) m (NM.empty B).
-    Proof.
-      apply NP.fold_rec.
-      -
-        intros e E k.
-        rewrite NP.F.map_o.
-        eapply NM_Empty_find in E.
-        now rewrite E.
-      -
-        intros k v m_acc m' m''.
-        intros _; clear m.
-        intros NI ADD MP.
-
-        intro k'.
-        specialize (ADD k').
-        rewrite NP.F.map_o.
-        cbv [map_app].
-        destruct (NM.E.eq_dec k k').
-        +
-          rewrite NP.F.add_eq_o in * by assumption.
-          rewrite ADD.
-          reflexivity.
-        +
-          rewrite NP.F.add_neq_o in * by assumption.
-          rewrite ADD.
-          specialize (MP k').
-          rewrite NP.F.map_o in MP.
-          rewrite MP.
-          reflexivity.
-    Qed.
-
-    Lemma NM_err_sequence_OK
-          `{EQ : Equiv A}
-          `{EQv : Equivalence A EQ}
-          (em: NM.t (err A))
-      :
-        NP.for_all_range is_OK_bool em = true <->
-        exists vm,
-          NM_err_sequence em = inr vm.
-    Proof.
-      split.
-      -
-        intro OK.
-        unfold NP.for_all_range, NP.for_all in OK.
-        unfold NM_err_sequence.
-
-        rewrite NM.fold_1 in *.
-        match goal with
-        | [ |- context [fold_left ?f _ _]] => remember f as acc
-        end.
-
-        generalize dependent (NM.empty A).
-        generalize dependent (NM.elements (elt:=err A) em).
-        clear - Heqacc EQv.
-        induction l as [|e];
-          intros OK s.
-        + now exists s.
-        +
-          destruct e as (k, [v | v]).
-          *
-            cbn in *.
-            exfalso; clear - OK.
-            contradict OK.
-            apply Bool.not_true_iff_false.
-            induction l.
-            reflexivity.
-            cbn in *; now break_if.
-          *
-            cbn in *.
-            autospecialize IHl; [assumption |].
-            subst acc.
-            eapply IHl.
-      -
-        intros [vm OK].
-        unfold NP.for_all_range, NP.for_all.
-        unfold NM_err_sequence in OK.
-
-        rewrite NM.fold_1 in *.
-        match goal with
-        | [ _ : context [fold_left ?f _ _] |- _] => remember f as acc
-        end.
-        generalize dependent (NM.empty A).
-        generalize dependent (NM.elements (elt:=err A) em).
-        clear - Heqacc.
-
-        induction l as [|e];
-          intros s OK.
-        + reflexivity.
-        +
-          destruct e as (k, [v | v]).
-          all: cbn in *.
-          all: (* poor man's [cbv [acc] in OK.] *)
-            rewrite Heqacc in OK;
-            cbn in OK;
-            rewrite <-Heqacc in OK.
-          *
-            exfalso; clear - OK Heqacc.
-            contradict OK.
-            generalize dependent v.
-            induction l.
-            subst; now cbv.
-            rewrite Heqacc; cbn; rewrite <-Heqacc.
-            cbv [NM_err_seq_step].
-            now break_match.
-          *
-            cbn in *.
-            apply IHl in OK.
-            assumption.
-    Qed.
-
-    Lemma NM_err_seq_step_add
-          `{EQ : Equiv A}
-          `{EQv : Equivalence A EQ}
-          (em em' : NM.t (err A))
-          (k : NM.key)
-          (ev : err A)
-          (m0 : err (NM.t A))
-      :
-        ¬ (NM.In k em) ->
-        NP.Add k ev em em' ->
-        NM.fold NM_err_seq_step em' m0 =
-        NM_err_seq_step k ev (NM.fold NM_err_seq_step em m0).
-    Proof.
-      intros * NI ADD.
-      eapply NP.fold_Add.
-      -
-        (* typeclasses eauto. *)
-        apply err_Equivalence.
-      -
-        clear - EQv.
-        intros k' k EK ev' ev EV em1 em2 EM.
-        subst.
-        destruct ev.
-        +
-          cbv.
-          constructor.
-        +
-          cbn.
-          repeat break_match;
-            try inl_inr; try inl_inr_inv;
-              subst.
-          constructor.
-          f_equiv.
-          intros k'.
-          destruct (NM.E.eq_dec k k').
-          all: try rewrite !NP.F.add_eq_o by assumption.
-          all: try rewrite !NP.F.add_neq_o by assumption.
-          reflexivity.
-          apply EM.
-      -
-        clear - EQv.
-        intros k1 k2 v1 v2 em NK.
-        unfold NM_err_seq_step.
-        repeat break_match;
-          try constructor;
-            try inl_inr; try inl_inr_inv;
-              subst.
-        inv Heqs0.
-        intros k.
-        destruct (NM.E.eq_dec k1 k), (NM.E.eq_dec k2 k).
-        congruence.
-        all: try rewrite !NP.F.add_eq_o by assumption.
-        all: try rewrite !NP.F.add_neq_o by assumption.
-        all: try rewrite !NP.F.add_eq_o by assumption.
-        all: reflexivity.
-      -
-        assumption.
-      -
-        assumption.
-    Qed.
-
-    Lemma map_add
-          `{EQa : Equiv A}
-          `{EQb : Equiv B}
-          `{EQva : Equivalence A EQa}
-          `{EQvb : Equivalence B EQb}
-          (f : A -> B)
-          (PF : Proper ((=) ==> (=)) f)
-          (k : NM.key)
-          (v : A)
-          (m m' : NM.t A)
-          (mm mm' : NM.t B)
-      :
-        NM.map f m = mm ->
-        ¬ NM.In (elt:=B) k mm ->
-        NM.add k (f v) mm = mm' ->
-        NM.add k v m = m' ->
-        NM.map f m' = mm'.
-    Proof.
-      intros M NI AM AM' k'.
-      specialize (M k');
-        specialize (AM k');
-        specialize (AM' k').
-      rewrite NP.F.map_o in *.
-      destruct (NM.E.eq_dec k k').
-      1: rewrite NP.F.add_eq_o in * by assumption.
-      2: rewrite NP.F.add_neq_o in * by assumption.
-      -
-        rewrite <-AM.
-        unfold option_map.
-        break_match; try some_none; some_inv.
-        now rewrite AM'.
-      -
-        now rewrite AM, AM' in M.
-    Qed.
-
-
-    Lemma map_add_inv
-          `{EQa : Equiv A}
-          `{EQb : Equiv B}
-          `{EQva : Equivalence A EQa}
-          `{EQvb : Equivalence B EQb}
-          (f : A -> B)
-          (INJ : forall x y, f x = f y -> x = y)
-          (k : NM.key)
-          (v : A)
-          (m m' : NM.t A)
-          (mm mm' : NM.t B)
-      :
-        NM.map f m = mm ->
-        ¬ NM.In k mm →
-        NM.add k (f v) mm = mm' →
-        NM.map f m' = mm' ->
-        NM.add k v m = m'.
-    Proof.
-      intros M NI AM M' k'.
-      specialize (M k');
-        specialize (M' k');
-        specialize (AM k').
-      rewrite NP.F.map_o in *.
-      destruct (NM.E.eq_dec k k').
-      1: rewrite NP.F.add_eq_o in * by assumption.
-      2: rewrite NP.F.add_neq_o in * by assumption.
-      -
-        rewrite <- AM in M'.
-        unfold option_map in M'.
-        break_match; try some_none; try some_inv.
-        apply INJ in M'.
-        now f_equiv.
-      -
-        rewrite AM, <-M' in M.
-        unfold option_map in M.
-        repeat break_match; try some_none; try some_inv.
-        apply INJ in M.
-        now f_equiv.
-    Qed.
-
-    Lemma map_inr_all_OK
-          `{EQ : Equiv A} :
-      forall (m : NM.t A) em,
-      NM.map inr m = em ->
-      NP.for_all_range is_OK_bool em = true.
-    Proof.
-      intros.
-      unfold NP.for_all_range.
-      apply NP.for_all_iff.
-      {
-        intros _ _ _ v1 v2 VE.
-        unfold is_OK_bool.
-        repeat break_match;
-          now try inl_inr.
-      }
-
-      intros.
-      specialize (H k).
-      apply NM.find_1 in H0.
-      rewrite H0 in H; clear H0.
-      rewrite NP.F.map_o in H.
-      unfold option_map, is_OK_bool in *.
-      repeat break_match;
-        inv H.
-      inv H2.
-      reflexivity.
-    Qed.
-
-    Lemma NM_err_sequence_inr_fun_spec
-          `{EQ : Equiv A}
-          `{EQv : Equivalence A EQ}
-          (em: NM.t (err A))
-          (vm: NM.t A)
-      :
-        NM_err_sequence em = inr vm <->
-        NM.map inr vm = em.
-    Proof.
-      unfold NM_err_sequence.
-      revert vm.
-      induction em
-        as [em E | em em' IH k v NI ADD]
-             using NP.map_induction;
-        intro vm.
-      -
-        split; intros H.
-        +
-          intro k.
-          pose proof E as E'.
-          apply NM_Empty_find with (k0:=k) in E'.
-          rewrite E'; clear E'.
-          eapply NP.fold_Empty in E.
-          rewrite E in H.
-          inl_inr_inv.
-          rewrite NP.F.map_o.
-          specialize (H k).
-          rewrite <-H.
-          reflexivity.
-          apply flip_Equivalence.
-          typeclasses eauto.
-        +
-          rewrite NP.fold_Empty.
-          3: assumption.
-          2: typeclasses eauto.
-          f_equiv.
-          intros k.
-          specialize (H k).
-          apply NM_Empty_find with (k0:=k) in E.
-          rewrite NP.F.map_o in H.
-          rewrite E in H.
-          unfold option_map in H.
-          break_match; try some_none.
-          reflexivity.
-      -
-        rename vm into vm'.
-        rewrite NM_err_seq_step_add; try eassumption.
-        destruct (NM.fold NM_err_seq_step em (inr (NM.empty A)))
-          as [msg|vm] eqn:P.
-        +
-          split.
-          *
-            intros C.
-            cbv in C.
-            break_match; inv C.
-          *
-            intros OK.
-            exfalso.
-            eapply map_inr_all_OK in OK.
-            apply NM_err_sequence_OK in OK.
-            destruct OK as [vm OK].
-            unfold NM_err_sequence in OK.
-            rewrite NM_err_seq_step_add in OK; try eassumption.
-            rewrite P in OK.
-            cbv in OK.
-            break_match; inv OK.
-        +
-          specialize (IH vm).
-          assert (M : NM.map inr vm = em)
-            by now apply IH.
-          clear IH.
-          split.
-          *
-            intro ST.
-            destruct v as [?|v]; [inv ST |].
-            cbn in ST.
-            inl_inr_inv.
-            eapply map_add.
-            1: typeclasses eauto.
-            3: apply NP_Add_NM_add.
-            all: eassumption.
-          *
-            intros M'.
-            destruct v as [msg|v].
-            --
-              exfalso.
-              apply NP_Add_NM_add in ADD.
-              rewrite <-ADD in M'.
-              clear - M'.
-              specialize (M' k).
-              rewrite NP.F.map_o in M'.
-              rewrite NP.F.add_eq_o in M' by reflexivity.
-              unfold option_map in M'.
-              break_match.
-              some_inv; inl_inr.
-              some_none.
-            --
-              cbn.
-              f_equiv.
-              eapply map_add_inv in NI.
-              4: apply NP_Add_NM_add.
-              all: try eassumption.
-              intros; now inl_inr_inv.
-    Qed.
-
-
     Lemma translate_mem_block_heq_mem_block
           (m:L.mem_block) (m':L'.mem_block):
       translate_mem_block m = inr m' ->
-      heq_mem_block m m'.
+      heq_mem_block heq_CType m m'.
     Proof.
       intros H.
       unfold translate_mem_block in H.
@@ -1354,7 +1296,7 @@ Module MDHCOLTypeTranslator
       specialize (H k).
       unfold L.mem_lookup, L'.mem_lookup in *.
       remember (NM.find k (NM.map inr m')) as re eqn:RE; symmetry in RE.
-      remember (NM.find k (NM.map translateCTypeValue m)) as te eqn:TE; symmetry in TE.
+      remember (NM.find k (NM.map translateCTypeConst m)) as te eqn:TE; symmetry in TE.
       destruct e' as [e'|], e as [e|].
       4: constructor.
       -
@@ -1375,6 +1317,7 @@ Module MDHCOLTypeTranslator
           repeat some_inv.
           subst.
 
+          apply CTP.
           apply CTP.
           symmetry in H.
           assumption.
@@ -1420,7 +1363,7 @@ Module MDHCOLTypeTranslator
     Lemma translate_memory_heq_memory
           (m:L.memory) (m':L'.memory):
       translate_memory m = inr m' ->
-      heq_memory m m'.
+      heq_memory heq_CType m m'.
     Proof.
       intros H.
       unfold translate_memory in H.
@@ -1497,285 +1440,13 @@ Module MDHCOLTypeTranslator
           break_match; try some_none.
     Qed.
 
-  End Relations.
+  End Value_Translation_Correctness.
 
-  Section Translation_Correctness.
+  (** * TODO: refine *)
+  Section Necessary_NT_Props.
 
-    Context `{CTT: CTranslationOp}
-            `{NTT: NTranslationOp}.
+    Context `{NTT: NTranslationOp}.
 
-    Lemma Forall2_nth_error
-          `{EQa : Equiv A}
-          `{EQb : Equiv B}
-          `{EQva : Equivalence A EQa}
-          `{EQvb : Equivalence B EQb}
-          (n : nat)
-          (P : A -> B -> Prop)
-          (l1 : list A)
-          (l2 : list B)
-      :
-        Forall2 P l1 l2 ->
-        hopt_r P (nth_error l1 n) (nth_error l2 n).
-    Proof.
-      revert l2.
-      induction l1;
-        intros l2 F.
-      -
-        admit.
-      -
-        inversion F; subst.
-        rename a into e1', y into e2', l' into l2.
-        admit.
-    Admitted.
-
-    Ltac autospecialize_closure_equiv H σ σ' :=
-      specialize (H σ σ');
-      full_autospecialize H;
-      [apply LE.evalContext_in_own_range
-      |apply LE'.evalContext_in_own_range
-      |assumption
-      |assumption
-      | ].
-
-
-
-    Lemma heq_PExpr_heq_evalPExpr :
-      forall σ σ' p p',
-        heq_evalContext σ σ' ->
-        heq_PExpr p p' ->
-        herr_c heq_evalPExpr
-               (LE.evalPExpr σ p)
-               (LE'.evalPExpr σ' p').
-    Proof.
-      intros * Σ P.
-      inv P.
-      invc H; clear P.
-      rename x' into x.
-      cbn.
-      apply Forall2_nth_error with (n:=x) in Σ.
-      repeat break_match.
-      all: inv Σ.
-      all: try constructor.
-      all: try now inv H1.
-      inv H1; inv H0.
-      now constructor.
-    Qed.
-
-    Lemma heq_memory_heq_memory_lookup_err
-          (msg msg' : string)
-          (n n' : nat)
-          (m : L.memory)
-          (m' : L'.memory)
-      :
-        n = n' ->
-        heq_memory m m' ->
-        herr_c heq_mem_block
-               (LE.memory_lookup_err msg m n)
-               (LE'.memory_lookup_err msg' m' n').
-    Proof.
-      intros N ME.
-      inv N; rename n' into n.
-      specialize (ME n).
-      inversion ME as [M M' | mb mb' MB M M'].
-      +
-        symmetry in M, M'.
-        apply Option_equiv_eq in M, M'.
-        rewrite <-LE.memory_lookup_err_inl_None in M.
-        rewrite <-LE'.memory_lookup_err_inl_None in M'.
-        destruct (LE.memory_lookup_err msg m n) eqn:M0;
-          destruct (LE'.memory_lookup_err msg' m' n) eqn:M1.
-        all: rewrite M0, M1 in *; try inl_inr.
-        Unshelve. 2,3: exact "". (* to avoid dangling evars *)
-        constructor.
-      +
-        symmetry in M, M'.
-        rewrite <-LE.memory_lookup_err_inr_Some_eq in M.
-        rewrite <-LE'.memory_lookup_err_inr_Some_eq in M'.
-        rewrite M, M'.
-        now repeat constructor.
-    Qed.
-
-    Lemma heq_mem_block_heq_mem_lookup_err
-          (msg msg' : string)
-          (n n' : nat)
-          (mb : L.mem_block)
-          (mb' : L'.mem_block)
-      :
-        n = n' ->
-        heq_mem_block mb mb' ->
-        herr_c heq_CType
-               (LE.mem_lookup_err msg n mb)
-               (LE'.mem_lookup_err msg' n' mb').
-    Proof.
-      intros N ME.
-      inv N; rename n' into n.
-      specialize (ME n).
-      inversion ME as [M M' | t t' T M M'].
-      +
-        symmetry in M, M'.
-        apply Option_equiv_eq in M, M'.
-        rewrite <-LE.mem_lookup_err_inl_None in M.
-        rewrite <-LE'.mem_lookup_err_inl_None in M'.
-        destruct (LE.mem_lookup_err msg n mb) eqn:M0;
-          destruct (LE'.mem_lookup_err msg' n mb') eqn:M1.
-        all: rewrite M0, M1 in *; try inl_inr.
-        Unshelve. 2,3: exact "". (* to avoid dangling evars *)
-        constructor.
-      +
-        symmetry in M, M'.
-        rewrite <-LE.mem_lookup_err_inr_Some_eq in M.
-        rewrite <-LE'.mem_lookup_err_inr_Some_eq in M'.
-        rewrite M, M'.
-        now repeat constructor.
-    Qed.
-
-    Lemma heq_MExpr_heq_evalMExpr :
-      forall m m' σ σ' e e',
-        heq_memory m m' ->
-        heq_evalContext σ σ' ->
-        heq_MExpr e e' ->
-        herr_c heq_evalMExpr
-               (LE.evalMExpr m σ e)
-               (LE'.evalMExpr m' σ' e').
-    Proof.
-      intros * M Σ E.
-      inv E.
-      -
-        rename H into P.
-        cbn.
-        eapply heq_PExpr_heq_evalPExpr in P;
-          [| eassumption].
-        inv P.
-        constructor.
-        repeat break_let; subst.
-        inv H1; invc H2.
-        apply heq_memory_heq_memory_lookup_err with
-            (msg:="MPtrDeref lookup failed")
-            (msg':="MPtrDeref lookup failed")
-            (n:=n0)
-            (n':=n0)
-          in M;
-          [| reflexivity].
-        inversion M.
-        constructor.
-        now repeat constructor.
-      -
-        now repeat constructor.
-    Qed.
-
-    Lemma heq_NType_heq_assert_NT_lt
-          (a : NT.t)
-          (a' : t)
-          (b : NT.t)
-          (b' : t)
-          (msg msg' : string)
-      :
-        heq_NType a a' ->
-        heq_NType b b' ->
-        herr_c equiv
-               (LE.assert_NT_lt msg a b)
-               (LE'.assert_NT_lt msg' a' b').
-    Admitted. (* Proof.
-      intros A B.
-      unfold LE.assert_NT_lt, LE'.assert_NT_lt, assert_true_to_err.
-      apply heq_NType_to_nat in A, B.
-      cbv in A, B.
-      rewrite A, B.
-      break_if;
-        now constructor.
-    Qed. *)
-
-    Ltac assert_assert_NT_heq H1 H2 :=
-      eapply heq_NType_heq_assert_NT_lt in H1;
-      [| eapply H2].
-
-    Lemma heq_evalContext_heq_context_lookup
-          (σ : LE.evalContext)
-          (σ' : evalContext)
-          (msg msg' : string)
-          (n : LE.var_id)
-      :
-        heq_evalContext σ σ' ->
-        herr_c heq_evalContextElem
-               (LE.context_lookup msg σ n)
-               (LE'.context_lookup msg' σ' n).
-    Proof.
-      intros Σ.
-      eapply Forall2_nth_error with (n0:=n) in Σ.
-      unfold LE.context_lookup, LE'.context_lookup.
-      inv Σ;
-        now repeat constructor.
-    Qed.
-
-    Lemma heq_AExpr_heq_evalAExpr :
-      forall σ σ' σn σn' m m' a a',
-        heq_memory m m' ->
-        heq_evalContext σ σ' ->
-        heq_AExpr a a' ->
-        LE.evalNatContext_of_evalContext σ ≡ σn ->
-        LE'.evalNatContext_of_evalContext σ' ≡ σn' ->
-        evalNExpr_closure_trace_equiv
-          (LE.evalAExpr_NatClosures σn a)
-          (LE'.evalAExpr_NatClosures σn' a') ->
-        herr_c heq_CType
-               (LE.evalAExpr m σ a)
-               (LE'.evalAExpr m' σ' a').
-    Proof.
-      intros * M Σ AE ΣN ΣN' TE.
-      induction AE.
-      all: cbn in *.
-      - (* AVar *)
-        invc H.
-        eapply heq_evalContext_heq_context_lookup
-          with (n:=x') in Σ.
-        invc Σ;
-          rewrite <-H0, <-H.
-        now constructor.
-        repeat break_match;
-          invc H1; invc H3;
-            now constructor.
-      - (* ANth *)
-        inv TE; clear TE.
-        clear H6.
-        rename m0 into me, m'0 into me'.
-        rename H into ME, H0 into N, H4 into CNE.
-        cbn in CNE.
-        autospecialize_closure_equiv CNE σ σ'.
-        inv CNE; [constructor |].
-        eapply heq_MExpr_heq_evalMExpr in ME;
-          [| eassumption | eassumption].
-        inv ME; [constructor |].
-        repeat break_let; subst.
-        inv H4.
-        assert_assert_NT_heq H6 H1.
-        inv H6.
-        erewrite <-H8, <-H9; constructor.
-        erewrite <-H7, <-H8.
-        apply heq_mem_block_heq_mem_lookup_err.
-        admit. (* now apply heq_NType_to_nat. *)
-        assumption.
-      - (* AAbs *)
-        apply IHAE in TE.
-        invc TE;
-          repeat constructor.
-        admit.
-      - (* AConst *)
-        admit.
-      - (* APlus *)
-        admit.
-      - (* AMinus *)
-        admit.
-      - (* AMult *)
-        admit.
-      - (* AMin *)
-        admit.
-      - (* AMax *)
-        admit.
-      - (* AZless *)
-        admit.
-    Admitted.
-
-    (* axioms1 *)
     Lemma to_nat_of_from_nat (n : nat) (nt : NT.t) :
       NT.from_nat n = inr nt ->
       NT.to_nat nt = n.
@@ -1785,8 +1456,6 @@ Module MDHCOLTypeTranslator
       NT'.from_nat n = inr nt ->
       NT'.to_nat nt = n.
     Admitted.
-    (* /axioms1 *)
-
 
     Lemma heq_NT_nat_eq :
       forall n n',
@@ -1833,135 +1502,200 @@ Module MDHCOLTypeTranslator
       copy_apply to_nat_of_from_nat' FN'; rename H into FNT'.
     Admitted.
 
-    Lemma hopt_herr_inv
-          {A B : Type}
-          (R : A → B → Prop)
-          (a : A)
-          (b : B)
+    Lemma heq_NType_heq_assert_NT_lt
+          (a : NT.t)
+          (a' : t)
+          (b : NT.t)
+          (b' : t)
+          (msg msg' : string)
       :
-        hopt (herr R) (Some (inr a)) (Some (inr b)) ->
-        R a b.
-    Proof.
-      intro.
-      now (invc H; invc H2).
-    Qed.
-
-    Lemma evalNExpr_closure_trace_equiv_cons_inv
-          (x : LE.evalNatClosure)
-          (x' : evalNatClosure)
-          (l : list LE.evalNatClosure)
-          (l' : list evalNatClosure)
-      :
-        evalNExpr_closure_trace_equiv (x :: l) (x' :: l') ->
-        evalNExpr_closure_equiv x x'
-        /\ evalNExpr_closure_trace_equiv l l'.
-    Proof.
-      intro.
-      now invc H.
-    Qed.
-
-    Lemma Forall2_firstn
-          {A B : Type}
-          (R : A -> B -> Prop)
-          (l1 : list A)
-          (l2 : list B)
-          (n : nat)
-      :
-        Forall2 R l1 l2 ->
-        Forall2 R (firstn n l1) (firstn n l2).
-    Proof.
-      intros I.
-      generalize dependent n.
-      induction I;
-        intro n.
-      -
-        now rewrite !firstn_nil.
-      -
-        destruct n.
-        +
-          constructor.
-        +
-          cbn; constructor.
-          assumption.
-          apply IHI.
-    Qed.
-
-    Lemma Forall2_skipn
-          {A B : Type}
-          (R : A -> B -> Prop)
-          (l1 : list A)
-          (l2 : list B)
-          (n : nat)
-      :
-        Forall2 R l1 l2 ->
-        Forall2 R (skipn n l1) (skipn n l2).
-    Proof.
-      intros I.
-      generalize dependent n.
-      induction I;
-        intro n.
-      -
-        now rewrite !skipn_nil.
-      -
-        destruct n.
+        heq_NType a a' ->
+        heq_NType b b' ->
+        herr_c equiv
+               (LE.assert_NT_lt msg a b)
+               (LE'.assert_NT_lt msg' a' b').
+    Admitted. (* Proof.
+      intros A B.
+      unfold LE.assert_NT_lt, LE'.assert_NT_lt, assert_true_to_err.
+      apply heq_NType_to_nat in A, B.
+      cbv in A, B.
+      rewrite A, B.
+      break_if;
         now constructor.
-        apply IHI.
-    Qed.
+    Qed. *)
 
-    (* TODO: move to ListUtil *)
-    Lemma firstn_app_exact {A : Type} (l1 l2 : list A) (n : nat) :
-      n = length l1 ->
-      firstn n (l1 ++ l2) ≡ l1.
-    Proof.
-      intros L.
-      unfold equiv, peano_naturals.nat_equiv in L; subst.
-      rewrite <-PeanoNat.Nat.add_0_r with (n:=length l1).
-      rewrite firstn_app_2, firstn_O, app_nil_r.
-      reflexivity.
-    Qed.
+  End Necessary_NT_Props.
 
-    Lemma skipn_app_exact {A : Type} (l1 l2 : list A) (n : nat) :
-      n = length l1 ->
-      skipn n (l1 ++ l2) ≡ l2.
-    Proof.
-      intros L.
-      unfold equiv, peano_naturals.nat_equiv in L; subst.
-      rewrite skipn_app.
-      rewrite PeanoNat.Nat.sub_diag.
-      rewrite skipn_all, skipn_O, app_nil_l.
-      reflexivity.
-    Qed.
+  Section Semantic_Translation_Correctness.
 
-    Lemma evalNExpr_closure_trace_equiv_app_inv
-          (l1 l2 : list LE.evalNatClosure)
-          (l1' l2' : list LE'.evalNatClosure)
+    Context `{CTT: CTranslationOp} `{NTT: NTranslationOp}.
+
+    Lemma heq_PExpr_heq_evalPExpr
+          (heq : CT.t → CT'.t → Prop)
+          (σ : LE.evalContext)
+          (σ' : evalContext)
+          (p : L.PExpr)
+          (p' : L'.PExpr)
       :
-        length l1 = length l1' ->
-        evalNExpr_closure_trace_equiv (l1 ++ l2) (l1' ++ l2') ->
-        evalNExpr_closure_trace_equiv l1 l1'
-        /\ evalNExpr_closure_trace_equiv l2 l2'.
+        heq_evalContext heq σ σ' ->
+        heq_PExpr p p' ->
+        herr_c heq_evalPExpr
+               (LE.evalPExpr σ p)
+               (LE'.evalPExpr σ' p').
     Proof.
-      intros L E.
-      unfold evalNExpr_closure_trace_equiv in *.
-
-      pose proof E as E1.
-      pose proof E as E2.
-      apply Forall2_firstn with (n:=length l1) in E1.
-      apply Forall2_skipn with (n:=length l1) in E2.
-
-      rewrite !firstn_app_exact in E1 by congruence.
-      rewrite !skipn_app_exact in E2 by congruence.
-
-      tauto.
+      intros * Σ P.
+      inv P.
+      invc H; clear P.
+      rename x' into x.
+      cbn.
+      apply Forall2_nth_error with (n:=x) in Σ.
+      repeat break_match.
+      all: inv Σ.
+      all: try constructor.
+      all: try now inv H1.
+      inv H1; inv H0.
+      now constructor.
     Qed.
 
+    Lemma heq_memory_heq_memory_lookup_err
+          (heq : CT.t → CT'.t → Prop)
+          (msg msg' : string)
+          (n n' : nat)
+          (m : L.memory)
+          (m' : L'.memory)
+      :
+        n = n' ->
+        heq_memory heq m m' ->
+        herr_c (heq_mem_block heq)
+               (LE.memory_lookup_err msg m n)
+               (LE'.memory_lookup_err msg' m' n').
+    Proof.
+      intros N ME.
+      inv N; rename n' into n.
+      specialize (ME n).
+      inversion ME as [M M' | mb mb' MB M M'].
+      +
+        symmetry in M, M'.
+        apply Option_equiv_eq in M, M'.
+        rewrite <-LE.memory_lookup_err_inl_None in M.
+        rewrite <-LE'.memory_lookup_err_inl_None in M'.
+        destruct (LE.memory_lookup_err msg m n) eqn:M0;
+          destruct (LE'.memory_lookup_err msg' m' n) eqn:M1.
+        all: rewrite M0, M1 in *; try inl_inr.
+        Unshelve. 2,3: exact "". (* to avoid dangling evars *)
+        constructor.
+      +
+        symmetry in M, M'.
+        rewrite <-LE.memory_lookup_err_inr_Some_eq in M.
+        rewrite <-LE'.memory_lookup_err_inr_Some_eq in M'.
+        rewrite M, M'.
+        now repeat constructor.
+    Qed.
+
+    Lemma heq_mem_block_heq_mem_lookup_err
+          (heq : CT.t → CT'.t → Prop)
+          (msg msg' : string)
+          (n n' : nat)
+          (mb : L.mem_block)
+          (mb' : L'.mem_block)
+      :
+        n = n' ->
+        heq_mem_block heq mb mb' ->
+        herr_c heq
+               (LE.mem_lookup_err msg n mb)
+               (LE'.mem_lookup_err msg' n' mb').
+    Proof.
+      intros N ME.
+      inv N; rename n' into n.
+      specialize (ME n).
+      inversion ME as [M M' | t t' T M M'].
+      +
+        symmetry in M, M'.
+        apply Option_equiv_eq in M, M'.
+        rewrite <-LE.mem_lookup_err_inl_None in M.
+        rewrite <-LE'.mem_lookup_err_inl_None in M'.
+        destruct (LE.mem_lookup_err msg n mb) eqn:M0;
+          destruct (LE'.mem_lookup_err msg' n mb') eqn:M1.
+        all: rewrite M0, M1 in *; try inl_inr.
+        Unshelve. 2,3: exact "". (* to avoid dangling evars *)
+        constructor.
+      +
+        symmetry in M, M'.
+        rewrite <-LE.mem_lookup_err_inr_Some_eq in M.
+        rewrite <-LE'.mem_lookup_err_inr_Some_eq in M'.
+        rewrite M, M'.
+        now repeat constructor.
+    Qed.
+
+    Lemma heq_MExpr_heq_evalMExpr
+          (heq : CT.t → CT'.t → Prop)
+          (m : L.memory)
+          (m' : L'.memory)
+          (σ : LE.evalContext)
+          (σ' : evalContext)
+          (e : L.MExpr)
+          (e' : L'.MExpr)
+      :
+        heq_memory heq m m' ->
+        heq_evalContext heq σ σ' ->
+        heq_MExpr heq e e' ->
+        herr_c (heq_evalMExpr heq)
+               (LE.evalMExpr m σ e)
+               (LE'.evalMExpr m' σ' e').
+    Proof.
+      intros * M Σ E.
+      inv E.
+      -
+        rename H into P.
+        cbn.
+        eapply heq_PExpr_heq_evalPExpr in P;
+          [| eassumption].
+        inv P.
+        constructor.
+        repeat break_let; subst.
+        inv H1; invc H2.
+        apply heq_memory_heq_memory_lookup_err with
+            (msg:="MPtrDeref lookup failed")
+            (msg':="MPtrDeref lookup failed")
+            (n:=n0)
+            (n':=n0)
+          in M;
+          [| reflexivity].
+        inversion M.
+        constructor.
+        now repeat constructor.
+      -
+        now repeat constructor.
+    Qed.
+
+    Lemma heq_evalContext_heq_context_lookup
+          (heq : CT.t → CT'.t → Prop)
+          (σ : LE.evalContext)
+          (σ' : evalContext)
+          (msg msg' : string)
+          (n : LE.var_id)
+      :
+        heq_evalContext heq σ σ' ->
+        herr_c (heq_evalContextElem heq)
+               (LE.context_lookup msg σ n)
+               (LE'.context_lookup msg' σ' n).
+    Proof.
+      intros Σ.
+      eapply Forall2_nth_error with (n0:=n) in Σ.
+      unfold LE.context_lookup, LE'.context_lookup.
+      inv Σ;
+        now repeat constructor.
+    Qed.
+
+    (* TODO: move *)
     Lemma evalAExpr_NatClosures_length
+          (heq : CT.t → CT'.t → Prop)
           (f : LE.AExpr)
           (f' : LE'.AExpr)
           (σ : LE.evalNatContext)
           (σ' : evalNatContext)
       :
-        heq_AExpr f f' ->
+        heq_AExpr heq f f' ->
         length (LE.evalAExpr_NatClosures σ f) =
         length (LE'.evalAExpr_NatClosures σ' f').
     Proof.
@@ -1971,7 +1705,44 @@ Module MDHCOLTypeTranslator
       all: congruence.
     Qed.
 
+    Lemma evalNExpr_closure_trace_equiv_cons_inv
+          (heq : CT.t → CT'.t → Prop)
+          (x : LE.evalNatClosure)
+          (x' : evalNatClosure)
+          (l : list LE.evalNatClosure)
+          (l' : list evalNatClosure)
+      :
+        evalNExpr_closure_trace_equiv heq (x :: l) (x' :: l') ->
+        evalNExpr_closure_equiv heq x x'
+        /\ evalNExpr_closure_trace_equiv heq l l'.
+    Proof.
+      intro.
+      now invc H.
+    Qed.
+
+    Lemma evalNExpr_closure_trace_equiv_app_inv
+          (heq : CT.t → CT'.t → Prop)
+          (l1 l2 : list LE.evalNatClosure)
+          (l1' l2' : list LE'.evalNatClosure)
+      :
+        length l1 = length l1' ->
+        evalNExpr_closure_trace_equiv heq (l1 ++ l2) (l1' ++ l2') ->
+        evalNExpr_closure_trace_equiv heq l1 l1'
+        /\ evalNExpr_closure_trace_equiv heq l2 l2'.
+    Proof.
+      intros L E.
+      unfold evalNExpr_closure_trace_equiv in *.
+      pose proof E as E1.
+      pose proof E as E2.
+      apply Forall2_firstn with (n:=length l1) in E1.
+      apply Forall2_skipn with (n:=length l1) in E2.
+      rewrite !firstn_app_exact in E1 by congruence.
+      rewrite !skipn_app_exact in E2 by congruence.
+      tauto.
+    Qed.
+
     Lemma heq_DSHOperator_evalNExpr_closure_trace_equiv_inv
+          (heq : CT.t → CT'.t → Prop)
           (op : L.DSHOperator)
           (op' : L'.DSHOperator)
           (σ : LE.evalNatContext)
@@ -1980,12 +1751,12 @@ Module MDHCOLTypeTranslator
           (σn0' : list evalNatClosure)
           (fuel fuel' : nat)
       :
-        heq_DSHOperator op op' -> (* NOTE: this might not be necessary *)
+        heq_DSHOperator heq op op' -> (* NOTE: this might not be necessary *)
         heq_evalNatContext σ σ' -> (* NOTE: this might not be necessary *)
-        hopt (herr evalNExpr_closure_trace_equiv)
+        hopt (herr (evalNExpr_closure_trace_equiv heq))
              (LE.intervalEvalDSHOperator σ op σn0 fuel)
              (LE'.intervalEvalDSHOperator σ' op' σn0' fuel') ->
-        evalNExpr_closure_trace_equiv σn0 σn0'.
+        evalNExpr_closure_trace_equiv heq σn0 σn0'.
     Proof.
       intros O.
       move O before op'.
@@ -2005,34 +1776,34 @@ Module MDHCOLTypeTranslator
         cbn in EO.
         rewrite <-H, <-H4 in *.
         apply hopt_herr_inv in EO.
-        apply evalNExpr_closure_trace_equiv_app_inv in EO;
-          [| apply evalAExpr_NatClosures_length; assumption].
+        apply evalNExpr_closure_trace_equiv_app_inv in EO.
         tauto.
+        eapply evalAExpr_NatClosures_length; eassumption.
       -
         invc H.
         invc H3.
         cbn in EO.
         rewrite <-H, <-H4 in *.
         apply hopt_herr_inv in EO.
-        apply evalNExpr_closure_trace_equiv_app_inv in EO;
-          [| apply evalAExpr_NatClosures_length; assumption].
+        apply evalNExpr_closure_trace_equiv_app_inv in EO.
         tauto.
+        eapply evalAExpr_NatClosures_length; eassumption.
       -
         invc H.
         invc H4.
         cbn in EO.
         rewrite <-H, <-H5 in *.
         apply hopt_herr_inv in EO.
-        apply evalNExpr_closure_trace_equiv_app_inv in EO;
-          [| apply evalAExpr_NatClosures_length; assumption].
+        apply evalNExpr_closure_trace_equiv_app_inv in EO.
         tauto.
+        eapply evalAExpr_NatClosures_length; eassumption.
       -
         eapply evalNExpr_closure_trace_equiv_app_inv.
         2: {
           do 3 eapply evalNExpr_closure_trace_equiv_cons_inv.
           eassumption.
         }
-        apply evalAExpr_NatClosures_length; assumption.
+        eapply evalAExpr_NatClosures_length; eassumption.
       -
         copy_apply heq_NT_nat_eq H.
         cbv in H0; subst n'.
@@ -2098,10 +1869,11 @@ Module MDHCOLTypeTranslator
     Qed.
 
     Lemma heq_evalContext_heq_evalNatContext
+          (heq : CT.t → CT'.t → Prop)
           (σ : LE.evalContext)
           (σ' : evalContext)
       :
-        heq_evalContext σ σ' ->
+        heq_evalContext heq σ σ' ->
         heq_evalNatContext
           (LE.evalNatContext_of_evalContext σ)
           (LE'.evalNatContext_of_evalContext σ').
@@ -2119,6 +1891,146 @@ Module MDHCOLTypeTranslator
         all: now constructor.
     Qed.
 
+  End Semantic_Translation_Correctness.
+
+  Section ControlFlow_Translation_Correctness.
+
+    Context `{NTT: NTranslationOp}.
+
+    Lemma translation_syntax_always_correct {op op'} :
+      translate op = inr op' -> heq_DSHOperator trivial2 op op'.
+    Proof.
+      generalize dependent op'.
+      induction op.
+      all: intros op' TE.
+      all: cbn in *.
+      all: repeat break_match;
+        try inl_inr; repeat inl_inr_inv.
+      all: destruct op'; invc TE.
+      -
+        constructor.
+      -
+        admit.
+      -
+        constructor.
+        all: admit.
+      -
+        constructor.
+        all: admit.
+      -
+        constructor.
+        all: admit.
+      -
+        admit.
+      -
+        constructor.
+        admit.
+        eapply IHop; now f_equiv.
+      -
+        constructor.
+        admit.
+        eapply IHop; now f_equiv.
+      -
+        constructor.
+        admit.
+        admit.
+      -
+        constructor.
+        eapply IHop1; now f_equiv.
+        eapply IHop2; now f_equiv.
+    Admitted.
+
+    Ltac autospecialize_closure_equiv H σ σ' :=
+      specialize (H σ σ');
+      full_autospecialize H;
+      [apply LE.evalContext_in_own_range
+      |apply LE'.evalContext_in_own_range
+      |assumption
+      |assumption
+      | ].
+
+    Ltac assert_assert_NT_heq H1 H2 :=
+      eapply heq_NType_heq_assert_NT_lt in H1;
+      [| eapply H2].
+
+    (* NOTE: Here, replacing [trivial2] with [heq_CType]
+       will result in an (unprvoable without CTranslationProps)
+       statement of semantic preservation *)
+    Lemma heq_AExpr_heq_evalAExpr
+          (σ : LE.evalContext)
+          (σ' : evalContext)
+          (σn : LE.evalNatContext)
+          (σn' : evalNatContext)
+          (m : L.memory)
+          (m' : L'.memory)
+          (a : L.AExpr)
+          (a' : L'.AExpr)
+      :
+        heq_memory trivial2 m m' ->
+        heq_evalContext trivial2 σ σ' ->
+        heq_AExpr trivial2 a a' ->
+        LE.evalNatContext_of_evalContext σ ≡ σn ->
+        LE'.evalNatContext_of_evalContext σ' ≡ σn' ->
+        evalNExpr_closure_trace_equiv trivial2
+          (LE.evalAExpr_NatClosures σn a)
+          (LE'.evalAExpr_NatClosures σn' a') ->
+        herr_c trivial2
+               (LE.evalAExpr m σ a)
+               (LE'.evalAExpr m' σ' a').
+    Proof.
+      intros M Σ AE ΣN ΣN' TE.
+      induction AE.
+      all: cbn in *.
+      - (* AVar *)
+        invc H.
+        eapply heq_evalContext_heq_context_lookup
+          with (n:=x') in Σ.
+        invc Σ;
+          rewrite <-H0, <-H.
+        now constructor.
+        repeat break_match;
+          invc H1; invc H3;
+            now constructor.
+      - (* ANth *)
+        inv TE; clear TE.
+        clear H6.
+        rename m0 into me, m'0 into me'.
+        rename H into ME, H0 into N, H4 into CNE.
+        cbn in CNE.
+        autospecialize_closure_equiv CNE σ σ'.
+        inv CNE; [constructor |].
+        eapply heq_MExpr_heq_evalMExpr in ME;
+          [| eassumption | eassumption].
+        inv ME; [constructor |].
+        repeat break_let; subst.
+        inv H4.
+        assert_assert_NT_heq H6 H1.
+        inv H6.
+        erewrite <-H8, <-H9; constructor.
+        erewrite <-H7, <-H8.
+        apply heq_mem_block_heq_mem_lookup_err.
+        admit. (* now apply heq_NType_to_nat. *)
+        eassumption.
+      - (* AAbs *)
+        apply IHAE in TE.
+        invc TE;
+          repeat constructor.
+      - (* AConst *)
+        admit.
+      - (* APlus *)
+        admit.
+      - (* AMinus *)
+        admit.
+      - (* AMult *)
+        admit.
+      - (* AMin *)
+        admit.
+      - (* AMax *)
+        admit.
+      - (* AZless *)
+        admit.
+    Admitted.
+
     Lemma heq_DSHOperator_heq_evalDSHOperator
           (op : LE.DSHOperator)
           (op' : DSHOperator)
@@ -2134,13 +2046,15 @@ Module MDHCOLTypeTranslator
           (ΣN : LE.evalNatContext_of_evalContext σ ≡ σn)
           (ΣN' : LE'.evalNatContext_of_evalContext σ' ≡ σn')
       :
-        heq_DSHOperator op op' ->
-        heq_evalContext σ σ' ->
-        heq_memory imem imem' ->
+        heq_DSHOperator trivial2 op op' ->
+        heq_evalContext trivial2 σ σ' ->
+        heq_memory trivial2 imem imem' ->
         LE.intervalEvalDSHOperator σn op nil fuel ≡ Some (inr tσn) ->
         LE'.intervalEvalDSHOperator σn' op' nil fuel' ≡ Some (inr tσn') ->
-        evalNExpr_closure_trace_equiv tσn tσn' ->
-        hopt_r (herr_c heq_memory)
+        evalNExpr_closure_trace_equiv trivial2 tσn tσn' ->
+
+        (* replace [trivial2] with [heq_CType] for semantic preservation *)
+        hopt_r (herr_c (heq_memory trivial2))
                (LE.evalDSHOperator σ op imem fuel)
                (LE'.evalDSHOperator σ' op' imem' fuel').
     Proof.
@@ -2148,7 +2062,7 @@ Module MDHCOLTypeTranslator
       move HEQ_OP before op'.
 
       (* generalize trace accumulator for induction *)
-      assert (T0E : evalNExpr_closure_trace_equiv nil nil)
+      assert (T0E : evalNExpr_closure_trace_equiv trivial2 nil nil)
         by constructor.
       generalize dependent (@nil LE.evalNatClosure).
       generalize dependent (@nil LE'.evalNatClosure).
@@ -2215,9 +2129,7 @@ Module MDHCOLTypeTranslator
           [| admit (* now apply heq_NType_to_nat; assumption *)].
         inversion H5.
         constructor.
-        constructor.
-        remember (to_nat b2) as bk.
-        replace (NT.to_nat a2) with bk by admit.
+        repeat constructor.
         admit.
       - (* IMap *)
         admit.
@@ -2257,19 +2169,20 @@ Module MDHCOLTypeTranslator
           specialize (IHn imem imem').
 
           (* for use in multiple places later *)
-          assert (HEQ_BΣN0 : evalNExpr_closure_trace_equiv bσn0 bσn0').
+          assert (HEQ_BΣN0 : evalNExpr_closure_trace_equiv trivial2 bσn0 bσn0').
           {
             eapply heq_DSHOperator_evalNExpr_closure_trace_equiv_inv.
             3: rewrite BΣN, BΣN'.
             -
-              assumption.
+              eassumption.
             -
               repeat constructor.
               +
                 pose proof heq_NType_from_nat n as FN.
                 invc FN; congruence.
               +
-                now apply heq_evalContext_heq_evalNatContext.
+                eapply heq_evalContext_heq_evalNatContext.
+                eassumption.
             -
               now repeat constructor.
           }
@@ -2307,7 +2220,7 @@ Module MDHCOLTypeTranslator
         | [ |- context [LE'.evalDSHOperator ?σ ?op ?mem ?fuel] ] =>
           remember (LE'.evalDSHOperator σ op mem fuel) as eop'
         end.
-        enough (hopt_r (herr_c heq_memory) eop eop').
+        enough (hopt_r (herr_c (heq_memory trivial2)) eop eop').
         {
           invc H0; [constructor |].
           invc H1; [repeat constructor |].
@@ -2315,12 +2228,12 @@ Module MDHCOLTypeTranslator
           admit.
         }
         subst.
-        assert (HEQ_ΣN0 : evalNExpr_closure_trace_equiv σn0 σn0').
+        assert (HEQ_ΣN0 : evalNExpr_closure_trace_equiv trivial2 σn0 σn0').
         {
           eapply heq_DSHOperator_evalNExpr_closure_trace_equiv_inv.
           3: rewrite TΣN, TΣN'.
-          now constructor.
-          now apply heq_evalContext_heq_evalNatContext.
+          econstructor; eassumption.
+          eapply heq_evalContext_heq_evalNatContext; eassumption.
           now repeat constructor.
         }
         eapply IHHEQ_OP;
@@ -2345,15 +2258,15 @@ Module MDHCOLTypeTranslator
         clear H1 H0.
         rename l0 into fσn, l into fσn'.
         rename Heqo0 into FΣN, Heqo into FΣN'.
-        assert (HEQ_FΣN : evalNExpr_closure_trace_equiv fσn fσn').
+        assert (HEQ_FΣN : evalNExpr_closure_trace_equiv trivial2 fσn fσn').
         {
           eapply heq_DSHOperator_evalNExpr_closure_trace_equiv_inv.
           3: rewrite TΣN, TΣN'.
-          assumption.
-          now apply heq_evalContext_heq_evalNatContext.
+          eassumption.
+          eapply heq_evalContext_heq_evalNatContext; eassumption.
           now repeat constructor.
         }
-        assert (HEQF : hopt_r (herr_c heq_memory)
+        assert (HEQF : hopt_r (herr_c (heq_memory trivial2))
                               (LE.evalDSHOperator σ f imem fuel)
                               (evalDSHOperator σ' f' imem' fuel')).
         {
@@ -2373,6 +2286,6 @@ Module MDHCOLTypeTranslator
         all: try eassumption.
     Admitted.
 
-  End Translation_Correctness.
+  End ControlFlow_Translation_Correctness.
 
 End MDHCOLTypeTranslator.
