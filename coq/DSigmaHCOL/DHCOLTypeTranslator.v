@@ -679,14 +679,15 @@ Module MDHCOLTypeTranslator
     Context `{NTT: NTranslationOp}.
 
     (* NOTE: this has nothing to do with translation
-       and would be moves into the [NType] module if accepted *)
+       and would be moved into the [NType] module if accepted *)
     Lemma to_nat_of_from_nat (n : nat) (nt : NT.t) :
       NT.from_nat n = inr nt ->
       NT.to_nat nt = n.
     Admitted.
 
     (* NOTE: this has nothing to do with translation
-       and would be moves into the [NType] module if accepted *)
+       and would be moved into the [NType] module if accepted *)
+    (* hence two "duplicate" lemmas for two modules *)
     Lemma to_nat_of_from_nat' (n : nat) (nt : NT'.t) :
       NT'.from_nat n = inr nt ->
       NT'.to_nat nt = n.
