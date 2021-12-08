@@ -2101,6 +2101,118 @@ Module MDHCOLTypeTranslator
 
     Context `{NTT: NTranslationOp}.
 
+    Lemma translateNExpr_syntax
+          (n : L.NExpr)
+          (n' : L'.NExpr)
+      :
+        translateNExpr n = inr n' ->
+        heq_NExpr n n'.
+    Proof.
+      generalize dependent n'.
+      induction n;
+        intros n' TN.
+      all: destruct n'.
+      all: cbn in *.
+      all: repeat break_match.
+      all: try inl_inr; repeat inl_inr_inv.
+      all: inv TN.
+      (* inductive cases *)
+      3-9: constructor;
+        [apply IHn1 | apply IHn2]; now f_equiv.
+      (* base cases *)
+      -
+        now constructor.
+      -
+        constructor.
+        symmetry in H1.
+        pose proof heq_NType_proper t0 t0.
+        autospecialize H; [reflexivity |].
+        specialize (H t1 t2 H1).
+        apply H.
+        clear - Heqs.
+        apply heq_NType_translateNTypeConst_compat.
+        rewrite Heqs; reflexivity.
+    Qed.
+
+    Lemma translatePExpr_syntax
+          (p : L.PExpr)
+          (p' : L'.PExpr)
+      :
+        translatePExpr p = p' ->
+        heq_PExpr p p'.
+    Proof.
+      intros TP.
+      destruct p, p'.
+      invc TP.
+      now constructor.
+    Qed.
+
+    Lemma translateMExpr_syntax
+          (m : L.MExpr)
+          (m' : L'.MExpr)
+      :
+        translateMExpr m = inr m' ->
+        heq_MExpr trivial2 m m'.
+    Proof.
+      intros M.
+      destruct m.
+      -
+        cbn in M.
+        inl_inr_inv.
+        destruct m'; invc M.
+        constructor.
+        now apply translatePExpr_syntax.
+      -
+        simpl in M.
+        repeat break_match; try inl_inr; inl_inr_inv.
+        destruct m'; invc M.
+        constructor.
+        +
+          apply heq_NType_translateNTypeConst_compat.
+          rewrite Heqs0.
+          now f_equiv.
+        +
+          apply translate_mem_block_same_indices.
+          rewrite Heqs.
+          now f_equiv.
+    Qed.
+
+    Lemma translateAExpr_syntax
+          (a : L.AExpr)
+          (a' : L'.AExpr)
+      :
+        translateAExpr a = inr a' ->
+        heq_AExpr trivial2 a a'.
+    Proof.
+      generalize dependent a'.
+      induction a;
+        intros a' TA.
+      all: destruct a'.
+      all: cbn in *.
+      all: repeat break_match.
+      all: try inl_inr; repeat inl_inr_inv.
+      all: inv TA.
+      (* inductive cases *)
+      5-10: constructor;
+        [apply IHa1 | apply IHa2]; now f_equiv.
+      4: constructor; apply IHa; now f_equiv.
+      (* base cases *)
+      -
+        now constructor.
+      -
+        now repeat constructor.
+      -
+        constructor.
+        +
+          apply translateMExpr_syntax.
+          rewrite Heqs.
+          now f_equiv.
+        +
+          apply translateNExpr_syntax.
+          rewrite Heqs0.
+          now f_equiv.
+    Qed.
+
     Lemma translation_syntax_always_correct {op op'} :
       translate op = inr op' -> heq_DSHOperator trivial2 op op'.
     Proof.
@@ -2114,35 +2226,115 @@ Module MDHCOLTypeTranslator
       -
         constructor.
       -
-        admit.
+        unfold translateMemRef in *.
+        cbn in *.
+        repeat break_match; invc Heqs; invc Heqs0.
+        constructor.
+        +
+          apply translateNExpr_syntax.
+          rewrite Heqs2; now f_equiv.
+        +
+          apply translateNExpr_syntax.
+          rewrite Heqs1; now f_equiv.
+        +
+          now apply translatePExpr_syntax.
+        +
+          now apply translatePExpr_syntax.
+      -
+        cbv in H4; subst n0.
+        constructor;
+          try now apply translatePExpr_syntax.
+        +
+          constructor.
+          destruct (heq_NType_from_nat n);
+            try inl_inr.
+          invc Heqs; invc Heqs0.
+          now constructor.
+        +
+          apply translateAExpr_syntax.
+          rewrite Heqs1.
+          now f_equiv.
+      -
+        cbv in H4; subst n0.
+        constructor;
+          try now apply translatePExpr_syntax.
+        +
+          constructor.
+          destruct (heq_NType_from_nat n);
+            try inl_inr.
+          invc Heqs; invc Heqs0.
+          now constructor.
+        +
+          apply translateAExpr_syntax.
+          rewrite Heqs1.
+          now f_equiv.
+      -
+        cbv in H5; subst n0.
+        constructor;
+          try now apply translatePExpr_syntax.
+        +
+          constructor.
+          destruct (heq_NType_from_nat n);
+            try inl_inr.
+          invc Heqs; invc Heqs0.
+          now constructor.
+        +
+          apply translateAExpr_syntax.
+          rewrite Heqs1.
+          now f_equiv.
+      -
+        destruct src as (osrc_p, osrc_n), dst as (odst_p, odst_n).
+        cbn in Heqs2, Heqs3.
+        repeat break_match; try inl_inr; repeat inl_inr_inv.
+        subst_max.
+        constructor;
+          try now apply translatePExpr_syntax.
+        +
+          apply translateNExpr_syntax.
+          rewrite Heqs1.
+          now f_equiv.
+        +
+          apply translateNExpr_syntax.
+          rewrite Heqs5.
+          now f_equiv.
+        +
+          apply translateNExpr_syntax.
+          rewrite Heqs4.
+          now f_equiv.
+        +
+          apply translateAExpr_syntax.
+          rewrite Heqs.
+          now f_equiv.
+        +
+          constructor.
+      -
+        cbv in H2; subst n0.
+        constructor.
+        +
+          constructor.
+          destruct (heq_NType_from_nat n);
+            try inl_inr.
+          invc Heqs; invc Heqs0.
+          now constructor.
+        +
+          eapply IHop; now f_equiv.
       -
         constructor.
-        all: admit.
+        +
+          apply heq_NType_translateNTypeConst_compat.
+          rewrite Heqs0.
+          now f_equiv.
+        +
+          eapply IHop; now f_equiv.
       -
         constructor.
-        all: admit.
-      -
+        now apply translatePExpr_syntax.
         constructor.
-        all: admit.
-      -
-        admit.
-      -
-        constructor.
-        admit.
-        eapply IHop; now f_equiv.
-      -
-        constructor.
-        admit.
-        eapply IHop; now f_equiv.
-      -
-        constructor.
-        admit.
-        admit.
       -
         constructor.
         eapply IHop1; now f_equiv.
         eapply IHop2; now f_equiv.
-    Admitted.
+    Qed.
 
     Ltac autospecialize_closure_equiv H σ σ' :=
       specialize (H σ σ');
