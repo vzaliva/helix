@@ -2220,7 +2220,7 @@ Module MDHCOLTypeTranslator
         erewrite <-H8, <-H9; constructor.
         erewrite <-H7, <-H8.
         apply heq_mem_block_heq_mem_lookup_err.
-        admit. (* eapply heq_NType_to_nat; eassumption. *)
+        now apply heq_NType_to_nat'.
         eassumption.
       - (* AAbs *)
         apply IHAE in TE.
@@ -2228,7 +2228,7 @@ Module MDHCOLTypeTranslator
           repeat constructor.
       - (* AConst *)
         repeat constructor.
-    Admitted.
+    Qed.
 
     Lemma heq_DSHOperator_heq_evalDSHOperator
           (op : LE.DSHOperator)
@@ -2337,7 +2337,7 @@ Module MDHCOLTypeTranslator
                (n:=NT.to_nat a1)
                (n':=NT'.to_nat b1)
           in H5;
-          [| admit (* now apply heq_NType_to_nat; assumption *)].
+          [| apply heq_NType_to_nat'; assumption].
         inversion H5.
         constructor.
         repeat constructor.
