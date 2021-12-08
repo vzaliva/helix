@@ -225,8 +225,8 @@ Module MDHCOLTypeTranslator
     CTypeAbs_translation: CUnOpTranslation CT.CTypeAbs CT'.CTypeAbs ;
     }.
 
-
   Section EvalTranslations.
+
     Context `{CTT: CTranslationOp} (* `{CTP: @CTranslationProps CTT} *)
             `{NTT: NTranslationOp}. (* `{NTP: @NTranslationProps NTT}. *)
 
@@ -1440,7 +1440,8 @@ Module MDHCOLTypeTranslator
       specialize (H k).
       unfold L.mem_lookup, L'.mem_lookup in *.
       remember (NM.find k (NM.map inr m')) as re eqn:RE; symmetry in RE.
-      remember (NM.find k (NM.map translateCTypeConst m)) as te eqn:TE; symmetry in TE.
+      remember (NM.find k (NM.map translateCTypeConst m)) as te eqn:TE;
+        symmetry in TE.
       destruct e' as [e'|], e as [e|].
       4: constructor.
       -
@@ -1521,7 +1522,8 @@ Module MDHCOLTypeTranslator
       specialize (H k).
       unfold L.memory_lookup, L'.memory_lookup in *.
       remember (NM.find k (NM.map inr m')) as re eqn:RE; symmetry in RE.
-      remember (NM.find k (NM.map translate_mem_block m)) as te eqn:TE; symmetry in TE.
+      remember (NM.find k (NM.map translate_mem_block m)) as te eqn:TE;
+        symmetry in TE.
 
       destruct e' as [e'|], e as [e|].
       4: constructor.
@@ -1584,20 +1586,149 @@ Module MDHCOLTypeTranslator
           break_match; try some_none.
     Qed.
 
-  End Value_Translation_Correctness.
-
-
-    Proof.
-
-
-    Proof.
-      constructor.
-
-    Proof.
-
-
+    Lemma translateDSHVal_heq
+          (d : L.DSHVal)
+          (d' : L'.DSHVal)
       :
+        translateDSHVal d = inr d' ->
+        heq_DSHVal trivial2 d d'.
+    Proof.
+      (* NOTE: this lemma must not rely on TranslationProps *)
+      clear.
+      intros D.
+      destruct d;
+        cbn in D.
+      all: break_match; invc D.
+      all: destruct d'; invc H1.
+      -
+        constructor.
+        unfold equiv in H2.
+        pose proof heq_NType_proper.
+        specialize (H n n).
+        autospecialize H; [reflexivity |].
+        specialize (H t0 n0 H2).
+        apply H.
+        clear - Heqs.
+        apply heq_NType_translateNTypeValue_compat'.
+        now rewrite Heqs.
+      -
+        repeat constructor.
+      -
+        destruct H0.
+        constructor.
+        assumption.
+        apply heq_NType_translateNTypeValue_compat'.
+        rewrite Heqs; now f_equiv.
+    Qed.
 
+    Lemma translateEvalContext_same_indices
+          (σ : LE.evalContext)
+          (σ' : evalContext)
+      :
+        translateEvalContext σ = inr σ' ->
+        heq_evalContext trivial2 σ σ'.
+    Proof.
+      (* NOTE: this lemma must not rely on TranslationProps *)
+      clear.
+      revert σ'.
+      induction σ;
+        intros σ' Σ'.
+      -
+        invc Σ'.
+        destruct σ'; [| inv H1].
+        constructor.
+      -
+        cbn in *.
+        repeat break_match;
+          try inl_inr; repeat inl_inr_inv;
+            subst_max.
+        destruct σ'; [inv Σ' |].
+        apply cons_equiv_inv in Σ'.
+        destruct Σ' as [P E].
+        constructor.
+        +
+          destruct p; invc P.
+          constructor.
+          apply H0.
+          clear - H Heqs.
+          cbn in H.
+
+          apply translateDSHVal_heq.
+          rewrite Heqs.
+          f_equiv.
+          assumption.
+        +
+          apply IHσ.
+          f_equiv.
+          assumption.
+    Qed.
+
+    Lemma translate_runtime_mem_block_same_indices
+          (mb : L.mem_block)
+          (mb' : L'.mem_block)
+      :
+        translate_runtime_mem_block mb = inr mb' ->
+        heq_mem_block trivial2 mb mb'.
+    Proof.
+      intros M.
+      unfold translate_runtime_memory in M.
+      apply NM_err_sequence_inr_fun_spec in M.
+
+      intros k.
+      specialize (M k).
+      unfold LE.mem_lookup, LE'.mem_lookup.
+      rewrite !NP.F.map_o in M.
+      unfold option_map in M.
+      repeat break_match; invc M;
+        constructor.
+      constructor.
+    Qed.
+
+    Lemma translate_mem_block_same_indices
+          (mb : L.mem_block)
+          (mb' : L'.mem_block)
+      :
+        translate_mem_block mb = inr mb' ->
+        heq_mem_block trivial2 mb mb'.
+    Proof.
+      intros M.
+      unfold translate_runtime_memory in M.
+      apply NM_err_sequence_inr_fun_spec in M.
+
+      intros k.
+      specialize (M k).
+      unfold LE.mem_lookup, LE'.mem_lookup.
+      rewrite !NP.F.map_o in M.
+      unfold option_map in M.
+      repeat break_match; invc M;
+        constructor.
+      constructor.
+    Qed.
+
+    Lemma translate_runtime_memory_same_indices
+          (m : L.memory)
+          (m' : L'.memory)
+      :
+        translate_runtime_memory m = inr m' ->
+        heq_memory trivial2 m m'.
+    Proof.
+      intros M.
+      unfold translate_runtime_memory in M.
+      apply NM_err_sequence_inr_fun_spec in M.
+
+      intros k.
+      specialize (M k).
+      unfold LE.memory_lookup, LE'.memory_lookup.
+      rewrite !NP.F.map_o in M.
+      unfold option_map in M.
+      repeat break_match; invc M;
+        constructor.
+      apply translate_runtime_mem_block_same_indices.
+      symmetry in H1.
+      assumption.
+    Qed.
+
+  End Value_Translation_Correctness.
 
   Section Semantic_Translation_Correctness.
 
