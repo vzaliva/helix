@@ -2079,7 +2079,38 @@ Section TopLevel.
     {
       (* this requires some NType-related numerical analysis
          to ensure no runtime error occurs after translation *)
-      admit.
+      pose proof
+           heq_DSHOperator_heq_evalDSHOperator
+           dynwin_rhcol
+           dynwin_fhcol
+           (RHCOLEval.estimateFuel dynwin_rhcol)
+           (FHCOLEval.estimateFuel dynwin_fhcol)
+           dynwin_R_σ
+           dynwin_F_σ
+           dynwin_R_memory
+           dynwin_F_memory
+        as HEQRF.
+      destruct HEQRF;
+        try some_none.
+      -
+        apply translation_syntax_always_correct.
+        assumption.
+      -
+        clear - CRE.
+        (* TODO: lemma in tranlsator *)
+        admit.
+      -
+        clear - CRM.
+        (* TODO: lemma in tranlsator *)
+        admit.
+      -
+        admit. (* numerical analysis *)
+      -
+        inv H.
+        +
+          some_inv; inl_inr.
+        +
+          eexists; reflexivity.
     }
     destruct T as (f_omemory & EF).
 
