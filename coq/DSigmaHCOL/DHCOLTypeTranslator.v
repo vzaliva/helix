@@ -693,6 +693,15 @@ Module MDHCOLTypeTranslator
       NT'.to_nat nt = n.
     Admitted.
 
+    (* [heq_NType_to_nat] from Props *)
+    Lemma heq_NType_to_nat'
+          (n : NT.t)
+          (n' : NT'.t)
+      :
+        heq_NType n n' ->
+        NT.to_nat n = NT'.to_nat n'.
+    Admitted.
+
     (* [heq_NType_translateNTypeValue_compat] from Props *)
     (* Required to prove the preservation of NType values in [σ] after
        translation *)
@@ -702,15 +711,6 @@ Module MDHCOLTypeTranslator
       :
         translateNTypeValue n = inr n' →
         heq_NType n n'.
-    Admitted.
-
-    (* [heq_NType_to_nat] from Props *)
-    Lemma heq_NType_to_nat'
-          (n : NT.t)
-          (n' : NT'.t)
-      :
-        heq_NType n n' ->
-        NT.to_nat n = NT'.to_nat n'.
     Admitted.
 
     (* NOTE: this is defined in terms of [from_nat ∘ to_nat],
