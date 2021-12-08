@@ -292,6 +292,7 @@ End herr.
 Arguments herr {A B} R.
 Arguments herr_c {A B} R.
 Arguments herr_i {A B} R.
+Arguments herr_f {A B} R.
 
 Section h_opt_err.
 
@@ -440,4 +441,19 @@ Lemma hopt_herr_inv
 Proof.
   intro.
   now (invc H; invc H2).
+Qed.
+
+Lemma herr_herr_f
+      {A B : Type}
+      (R : A -> B -> Prop)
+      (a : err A)
+      (b : err B)
+  :
+    herr R a b ->
+    herr_f R a b.
+Proof.
+  intros HR.
+  destruct a, b;
+    constructor.
+  now invc HR.
 Qed.
