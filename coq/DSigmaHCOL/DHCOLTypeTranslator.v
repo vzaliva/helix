@@ -673,6 +673,150 @@ Module MDHCOLTypeTranslator
 
   End Relations.
 
+  (** * TODO: refine *)
+  Section Necessary_NT_Props.
+
+    Context `{NTT: NTranslationOp}.
+
+    (* NOTE: this has nothing to do with translation
+       and would be moves into the [NType] module if accepted *)
+    Lemma to_nat_of_from_nat (n : nat) (nt : NT.t) :
+      NT.from_nat n = inr nt ->
+      NT.to_nat nt = n.
+    Admitted.
+
+    (* NOTE: this has nothing to do with translation
+       and would be moves into the [NType] module if accepted *)
+    Lemma to_nat_of_from_nat' (n : nat) (nt : NT'.t) :
+      NT'.from_nat n = inr nt ->
+      NT'.to_nat nt = n.
+    Admitted.
+
+    (* [heq_NType_translateNTypeValue_compat] from Props *)
+    (* Required to prove the preservation of NType values in [σ] after
+       translation *)
+    Lemma heq_NType_translateNTypeValue_compat'
+          (n : NT.t)
+          (n' : NT'.t)
+      :
+        translateNTypeValue n = inr n' →
+        heq_NType n n'.
+    Admitted.
+
+    (* [heq_NType_to_nat] from Props *)
+    Lemma heq_NType_to_nat'
+          (n : NT.t)
+          (n' : NT'.t)
+      :
+        heq_NType n n' ->
+        NT.to_nat n = NT'.to_nat n'.
+    Admitted.
+
+    (* NOTE: this is defined in terms of [from_nat ∘ to_nat],
+       might follow from some of their properites. The current assumptions do
+       not seem sufficient *)
+    Lemma heq_NType_translateNTypeConst_compat
+          (n : NT.t)
+          (n' : t)
+      :
+        translateNTypeConst n = inr n' ->
+        heq_NType n n'.
+    Proof.
+      intros TN.
+      unfold translateNTypeConst in TN.
+      apply to_nat_of_from_nat' in TN.
+    Admitted.
+
+    (* NOTE: [herr_f] vacuously holds if ANY argument is [inl].
+       In ohter words, this is stating
+       "If the same nat is *successfully* converted to NType before and after
+       translation, both NType values are equivalent" *)
+    Lemma heq_NType_from_nat (n : nat) :
+      herr_f heq_NType (NT.from_nat n) (NT'.from_nat n).
+    Proof.
+      destruct (NT.from_nat n) as [msg|nt] eqn:FN;
+        destruct (NT'.from_nat n) as [msg'|nt'] eqn:FN'.
+      all: constructor.
+    Admitted.
+
+    Lemma heq_NT_nat_eq (n n' : nat) :
+      heq_NT_nat n n' -> n = n'.
+    Proof.
+      intros EN.
+      invc EN.
+      invc H.
+      rename a into nt, b into nt',
+      H0 into NT, H1 into NT',
+      H2 into ENT.
+      symmetry in NT, NT'.
+      apply err_equiv_eq in NT, NT'.
+
+      apply to_nat_of_from_nat in NT.
+      apply to_nat_of_from_nat' in NT'.
+      rewrite <-NT, <-NT'.
+      apply heq_NType_to_nat'.
+      assumption.
+    Qed.
+    
+    Lemma heq_NT_nat_S (n n' : nat) :
+      heq_NT_nat (S n) (S n') ->
+      heq_NT_nat n n'.
+    Proof.
+      intros SE.
+      invc SE; constructor.
+      invc H.
+      rename H2 into SE,
+      a into snt, b into snt',
+      H0 into FSN, H1 into FSN'.
+
+      symmetry in FSN, FSN'.
+
+      replace n' with n in *.
+      2: {
+        apply heq_NType_to_nat' in SE.
+        apply err_equiv_eq in FSN, FSN'.
+        apply to_nat_of_from_nat in FSN.
+        apply to_nat_of_from_nat' in FSN'.
+        congruence.
+      }
+
+      copy_apply (NT.from_nat_lt (S n) snt n) FSN;
+        [rename H into FN | constructor].
+      copy_apply (NT'.from_nat_lt (S n) snt' n) FSN';
+        [rename H into FN' | constructor].
+      destruct FN as [nt FN], FN' as [nt' FN'].
+      
+      clear - FN FN'.
+      pose proof heq_NType_from_nat n as E.
+      inv E; try congruence.
+      now constructor.
+    Qed.
+
+    Lemma heq_NType_heq_assert_NT_lt
+          (a : NT.t)
+          (a' : t)
+          (b : NT.t)
+          (b' : t)
+          (msg msg' : string)
+      :
+        heq_NType a a' ->
+        heq_NType b b' ->
+        herr_c equiv
+               (LE.assert_NT_lt msg a b)
+               (LE'.assert_NT_lt msg' a' b').
+    Proof.
+      intros A B.
+      unfold LE.assert_NT_lt, LE'.assert_NT_lt.
+      apply heq_NType_to_nat' in A, B.
+      cbv in A, B.
+      rewrite !A, !B.
+      destruct (Nat.ltb (to_nat a') (to_nat b')).
+      now constructor.
+      now constructor.
+    Qed.
+
+  End Necessary_NT_Props.
+
   (* TODO: move *)
   (* NOTE: the other direction does not hold: [eq] vs [equiv] *)
   Lemma NP_Add_NM_add
@@ -1442,89 +1586,18 @@ Module MDHCOLTypeTranslator
 
   End Value_Translation_Correctness.
 
-  (** * TODO: refine *)
-  Section Necessary_NT_Props.
 
-    Context `{NTT: NTranslationOp}.
-
-    Lemma to_nat_of_from_nat (n : nat) (nt : NT.t) :
-      NT.from_nat n = inr nt ->
-      NT.to_nat nt = n.
-    Admitted.
-
-    Lemma to_nat_of_from_nat' (n : nat) (nt : NT'.t) :
-      NT'.from_nat n = inr nt ->
-      NT'.to_nat nt = n.
-    Admitted.
-
-    Lemma heq_NT_nat_eq :
-      forall n n',
-        heq_NT_nat n n' -> n = n'.
     Proof.
-      intros.
-      invc H.
-      invc H0.
-      rename a into nt, b into nt',
-      H into NT, H1 into NT',
-      H2 into ENT.
-      symmetry in NT, NT'.
-      apply err_equiv_eq in NT, NT'.
 
-      apply to_nat_of_from_nat in NT.
-      apply to_nat_of_from_nat' in NT'.
-      rewrite <-NT, <-NT'.
-      admit. (* now apply heq_NType_to_nat.
-    Qed. *) Admitted.
 
-    Lemma heq_NType_from_nat (n : nat) :
-      herr_c heq_NType (NT.from_nat n) (NT'.from_nat n).
     Proof.
-      destruct (NT.from_nat n) as [msg|nt] eqn:FN,
-                                               (NT'.from_nat n) as [msg'|nt'] eqn:FN'.
       constructor.
-    Admitted.
 
-    Lemma heq_NT_nat_S (n n' : nat) :
-      heq_NT_nat (S n) (S n') ->
-      heq_NT_nat n n'.
     Proof.
-      intros SE.
-      invc SE; constructor.
-      invc H.
-      rename H2 into SNTEQ,
-      a into nt, b into nt',
-      H0 into FN, H1 into FN'.
 
-      symmetry in FN, FN'.
-      apply err_equiv_eq in FN, FN'.
 
-      copy_apply to_nat_of_from_nat FN; rename H into FNT.
-      copy_apply to_nat_of_from_nat' FN'; rename H into FNT'.
-    Admitted.
-
-    Lemma heq_NType_heq_assert_NT_lt
-          (a : NT.t)
-          (a' : t)
-          (b : NT.t)
-          (b' : t)
-          (msg msg' : string)
       :
-        heq_NType a a' ->
-        heq_NType b b' ->
-        herr_c equiv
-               (LE.assert_NT_lt msg a b)
-               (LE'.assert_NT_lt msg' a' b').
-    Admitted. (* Proof.
-      intros A B.
-      unfold LE.assert_NT_lt, LE'.assert_NT_lt, assert_true_to_err.
-      apply heq_NType_to_nat in A, B.
-      cbv in A, B.
-      rewrite A, B.
-      break_if;
-        now constructor.
-    Qed. *)
 
-  End Necessary_NT_Props.
 
   Section Semantic_Translation_Correctness.
 
