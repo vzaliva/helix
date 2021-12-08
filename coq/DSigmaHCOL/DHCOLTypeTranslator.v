@@ -2028,31 +2028,33 @@ Module MDHCOLTypeTranslator
 
     Lemma heq_DSHOperator_heq_evalDSHOperator
           (op : LE.DSHOperator)
-          (op' : DSHOperator)
+          (op' : LE'.DSHOperator)
           (fuel fuel' : nat)
           (σ : LE.evalContext)
-          (σ' : evalContext)
-          (σn : LE.evalNatContext)
-          (σn' : evalNatContext)
-          (tσn : list LE.evalNatClosure)
-          (tσn' : list evalNatClosure)
+          (σ' : LE'.evalContext)
           (imem : L.memory)
           (imem' : L'.memory)
-          (ΣN : LE.evalNatContext_of_evalContext σ ≡ σn)
-          (ΣN' : LE'.evalNatContext_of_evalContext σ' ≡ σn')
       :
+        let σn := LE.evalNatContext_of_evalContext σ in
+        let σn' := LE'.evalNatContext_of_evalContext σ' in
         heq_DSHOperator trivial2 op op' ->
         heq_evalContext trivial2 σ σ' ->
         heq_memory trivial2 imem imem' ->
-        LE.intervalEvalDSHOperator σn op nil fuel ≡ Some (inr tσn) ->
-        LE'.intervalEvalDSHOperator σn' op' nil fuel' ≡ Some (inr tσn') ->
-        evalNExpr_closure_trace_equiv trivial2 tσn tσn' ->
+        hopt (herr (evalNExpr_closure_trace_equiv trivial2))
+                   (LE.intervalEvalDSHOperator σn op nil fuel)
+                   (LE'.intervalEvalDSHOperator σn' op' nil fuel') ->
 
-        (* replace [trivial2] with [heq_CType] for semantic preservation *)
+        (* replace [trivial2] -> [heq_CType] for total semantic preservation *)
         hopt_r (herr_c (heq_memory trivial2))
                (LE.evalDSHOperator σ op imem fuel)
                (LE'.evalDSHOperator σ' op' imem' fuel').
     Proof.
+      intros σn σn'.
+      unfold σn, σn'; clear σn σn'.
+      remember (LE.evalNatContext_of_evalContext σ) as σn eqn:ΣN.
+      remember (LE'.evalNatContext_of_evalContext σ') as σn' eqn:ΣN'.
+      move σn' before σn.
+
       intros HEQ_OP.
       move HEQ_OP before op'.
 
@@ -2069,11 +2071,21 @@ Module MDHCOLTypeTranslator
       induction HEQ_OP;
         intros * ΣN ΣN'; (* intros reverted *)
         intros T0E; (* intros asserted accumulator equivalence *)
-        intros HEQ_Σ HEQ_MEMORY TΣN TΣN' NTR_EQIV.
-      all: destruct fuel, fuel'; try (cbv in TΣN; cbv in TΣN'; some_none).
-      1-6: cbn in TΣN, TΣN';
-        repeat some_inv; repeat inl_inr_inv;
-          subst.
+        intros HEQ_Σ HEQ_MEMORY NTR_EQUIV'.
+
+      (* assert sufficient fuel, simplify NExpr trace equivalence hyp *)
+      (* base cases: *)
+      1-6,9: destruct fuel, fuel';
+        inversion NTR_EQUIV' as [_ _ [tσn tσn' NTR_EQUIV]];
+        clear NTR_EQUIV'; subst_max.
+
+      (* more careful in inductive cases: *)
+      Opaque LE.intervalEvalDSHOperator LE'.intervalEvalDSHOperator.
+      8-10: destruct fuel, fuel';
+        inversion NTR_EQUIV' as [_ _ [tσn tσn' NTR_EQUIV]];
+        clear NTR_EQUIV'; subst_max.
+      Transparent LE.intervalEvalDSHOperator LE'.intervalEvalDSHOperator.
+
       - (* NOP *)
         now repeat constructor.
       - (* Assign *)
@@ -2105,7 +2117,7 @@ Module MDHCOLTypeTranslator
           [| reflexivity].
         inv HEQ_MEMORY; [constructor |].
 
-        invc NTR_EQIV; invc H16; clear H18.
+        invc NTR_EQUIV; invc H16; clear H18.
         cbn in H14, H15.
         autospecialize_closure_equiv H14 σ σ'.
         autospecialize_closure_equiv H15 σ σ'.
@@ -2134,12 +2146,17 @@ Module MDHCOLTypeTranslator
         admit.
       - (* Power *)
         admit.
+      - (* MemInit *)
+        admit.
       - (* Loop *)
+        rename H0 into TΣN, H1 into TΣN';
+          symmetry in TΣN, TΣN'.
         copy_apply heq_NT_nat_eq H;
           invc H0; rename n' into n.
         revert_until IHHEQ_OP.
         induction n;
-          intros * T0E HEQ_Σ HEQ_MEMORY TΣN TΣN' NTR_EQIV.
+          intros * T0E HEQ_Σ HEQ_MEMORY;
+          intros * NTR_EQUIV TΣN TΣN'.
         +
           now repeat constructor.
         +
@@ -2159,9 +2176,9 @@ Module MDHCOLTypeTranslator
           autospecialize IHn;
             [now apply heq_NT_nat_S |].
 
-          specialize (IHn fuel fuel' σ σ' σn0 σn0').
+          specialize (IHn fuel fuel' σ σ' σn0 σn0' imem imem').
+          specialize (IHn T0E HEQ_Σ HEQ_MEMORY).
           specialize (IHn bσn0 bσn0'). (* <- inductive *)
-          specialize (IHn imem imem').
 
           (* for use in multiple places later *)
           assert (HEQ_BΣN0 : evalNExpr_closure_trace_equiv trivial2 bσn0 bσn0').
@@ -2182,10 +2199,11 @@ Module MDHCOLTypeTranslator
               now repeat constructor.
           }
 
-          full_autospecialize IHn;
-            try assumption.
-
           move IHn at bottom.
+          full_autospecialize IHn;
+            try assumption;
+            try congruence.
+
           Opaque LE.evalDSHOperator LE'.evalDSHOperator.
           inv IHn; [constructor |].
           Transparent LE.evalDSHOperator LE'.evalDSHOperator.
@@ -2199,13 +2217,25 @@ Module MDHCOLTypeTranslator
           eapply IHHEQ_OP;
             try reflexivity;
             try eassumption.
-          constructor; [| assumption].
-          cbn.
-          intuition.
-          constructor.
-          pose proof heq_NType_from_nat n as FN.
-          invc FN; congruence.
+          *
+            constructor; [| assumption].
+            cbn.
+            intuition.
+            constructor.
+            pose proof heq_NType_from_nat n as FN.
+            invc FN; congruence.
+          *
+            unfold LE.evalNatContext_of_evalContext.
+            unfold LE'.evalNatContext_of_evalContext.
+            rewrite !map_cons.
+            fold LE.evalNatContext_of_evalContext.
+            fold LE'.evalNatContext_of_evalContext.
+            cbn [LE.DSHIndexRange_of_DSHVal LE'.DSHIndexRange_of_DSHVal].
+            rewrite BΣN, BΣN'.
+            now repeat constructor.
       - (* Alloc *)
+        rename H0 into TΣN, H1 into TΣN';
+          symmetry in TΣN, TΣN'.
         cbn.
         match goal with
         | [ |- context [LE.evalDSHOperator ?σ ?op ?mem ?fuel] ] =>
@@ -2234,20 +2264,28 @@ Module MDHCOLTypeTranslator
         eapply IHHEQ_OP;
           try reflexivity;
           try eassumption.
-        constructor; [| assumption].
         +
+          constructor; [| assumption].
           cbn.
           intuition.
           constructor; [| assumption].
           admit.
         +
           admit.
-      - (* MemInit *)
-        admit.
+        +
+          unfold LE.evalNatContext_of_evalContext.
+          unfold LE'.evalNatContext_of_evalContext.
+          rewrite !map_cons.
+          fold LE.evalNatContext_of_evalContext.
+          fold LE'.evalNatContext_of_evalContext.
+          cbn [LE.DSHIndexRange_of_DSHVal LE'.DSHIndexRange_of_DSHVal].
+          cbn in TΣN, TΣN'.
+          rewrite TΣN, TΣN'.
+          now repeat constructor.
       - (* Seq *)
-        cbn.
-
-        cbn in TΣN, TΣN'.
+        rename H into TΣN, H0 into TΣN';
+          symmetry in TΣN, TΣN'.
+        cbn; cbn in TΣN, TΣN'.
         repeat break_match_hyp;
           inv TΣN; inv TΣN'.
         clear H1 H0.
@@ -2266,19 +2304,19 @@ Module MDHCOLTypeTranslator
                               (evalDSHOperator σ' f' imem' fuel')).
         {
           eapply IHHEQ_OP1.
-          7: eapply FΣN'.
-          6: eapply FΣN.
+          6: rewrite FΣN, FΣN'.
           all: try reflexivity.
-          all: try eassumption.
+          all: try assumption.
+          now repeat constructor.
         }
 
         invc HEQF; [constructor |].
         invc H1; [repeat constructor |].
         eapply IHHEQ_OP2.
-        7: eapply TΣN'.
-        6: eapply TΣN.
+        6: rewrite TΣN, TΣN'.
         all: try reflexivity.
-        all: try eassumption.
+        all: try assumption.
+        now repeat constructor.
     Admitted.
 
   End ControlFlow_Translation_Correctness.
