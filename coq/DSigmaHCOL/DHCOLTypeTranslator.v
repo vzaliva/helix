@@ -2616,6 +2616,107 @@ Module MDHCOLTypeTranslator
         repeat constructor.
     Qed.
 
+    Lemma heq_AExpr_heq_evalIUnCType
+          (m : L.memory)
+          (m' : L'.memory)
+          (σ : LE.evalContext) 
+          (σ' : evalContext)
+          (f : L.AExpr)
+          (f' : L'.AExpr)
+          (nt : NT.t)
+          (nt' : NT'.t)
+          (ct : CT.t)
+          (ct' : CT'.t)
+      :
+        heq_memory trivial2 m m' ->
+        heq_evalContext trivial2 σ σ' ->
+        heq_AExpr trivial2 f f' ->
+        evalNExpr_closure_trace_equiv trivial2
+          (LE.evalAExpr_NatClosures_σ σ f)
+          (LE'.evalAExpr_NatClosures_σ σ' f') ->
+        heq_NType nt nt' ->
+        herr_c trivial2
+               (LE.evalIUnCType m σ f nt ct)
+               (LE'.evalIUnCType m' σ' f' nt' ct').
+    Proof.
+      intros M Σ F FT NT.
+      unfold LE.evalIUnCType, LE'.evalIUnCType.
+      pose proof heq_AExpr_heq_evalAExpr
+           ((LE.DSHCTypeVal ct, false) :: (LE.DSHnatVal nt, false) :: σ)
+           ((DSHCTypeVal ct', false) :: (DSHnatVal nt', false) :: σ')
+           m m'
+           f f'
+        as EA.
+      full_autospecialize EA;
+        try assumption.
+      -
+        now repeat constructor.
+      -
+        clear - FT NT.
+        unfold LE.evalAExpr_NatClosures_σ, LE'.evalAExpr_NatClosures_σ.
+        (* this is unprovable. need stronger assumptions.
+           can be directly inferred in the main lemma *)
+    Admitted.
+
+    Lemma heq_evalDSHIMap
+          (m : L.memory)
+          (m' : L'.memory)
+          (n n' : nat)
+          (f : L.AExpr)
+          (f' : L'.AExpr)
+          (σ : LE.evalContext) 
+          (σ' : evalContext)
+          (x : L.mem_block)
+          (x' : L'.mem_block) 
+          (y : L.mem_block)
+          (y' : L'.mem_block)
+      :
+        heq_memory trivial2 m m' ->
+        heq_NT_nat n n' ->
+        heq_AExpr trivial2 f f' ->
+        evalNExpr_closure_trace_equiv
+          trivial2
+          (LE.evalAExpr_NatClosures_σ σ f)
+          (evalAExpr_NatClosures_σ σ' f') ->
+        heq_evalContext trivial2 σ σ' ->
+        heq_mem_block trivial2 x x' ->
+        heq_mem_block trivial2 y y' ->
+        herr_c (heq_mem_block trivial2)
+               (LE.evalDSHIMap m n f σ x y)
+               (LE'.evalDSHIMap m' n' f' σ' x' y').
+    Proof.
+      intros M N F FT Σ X Y.
+      copy_apply heq_NT_nat_eq N;
+        cbv in H; subst n'.
+      generalize dependent y'.
+      generalize dependent y.
+      induction n;
+        cbn; intros.
+      -
+        constructor.
+        assumption.
+      -
+        remember_string.
+        pose proof
+             heq_mem_block_heq_mem_lookup_err trivial2 str str n n x x'
+          as ME.
+        full_autospecialize ME;
+          [reflexivity | assumption |].
+        invc ME; [constructor |].
+        apply heq_NT_nat_S in N.
+        inv N.
+        invc H2.
+        pose proof
+             heq_AExpr_heq_evalIUnCType m m' σ σ' f f' a0 b0 a b
+          as EU.
+        full_autospecialize EU;
+          try assumption.
+        invc EU; [constructor |].
+        apply IHn.
+        assumption.
+        now apply heq_mem_block_mem_add.
+    Qed.
+
     Lemma heq_DSHOperator_heq_evalDSHOperator
           (op : LE.DSHOperator)
           (op' : LE'.DSHOperator)
@@ -2652,6 +2753,7 @@ Module MDHCOLTypeTranslator
         move σn0 before σ'.
       revert_until HEQ_OP.
       unfold LE.intervalEvalDSHOperator_σ, LE'.intervalEvalDSHOperator_σ.
+
       induction HEQ_OP;
         intros *; (* intros reverted *)
         intros T0E; (* intros asserted accumulator equivalence *)
@@ -2684,7 +2786,6 @@ Module MDHCOLTypeTranslator
         invc H1; invc H4.
         invc H5; invc H1.
         pose proof HEQ_MEMORY as HEQ_MEMORY'.
-        pose proof HEQ_MEMORY as HEQ_MEMORY''.
         remember_string.
         apply heq_memory_heq_memory_lookup_err
           with (msg:=str)
@@ -2693,16 +2794,18 @@ Module MDHCOLTypeTranslator
                (n':=n1)
           in HEQ_MEMORY';
           [| reflexivity].
-        inv HEQ_MEMORY'; [constructor |].
+        invc HEQ_MEMORY'; [constructor |].
+
+        pose proof HEQ_MEMORY as HEQ_MEMORY'.
         remember_string.
         apply heq_memory_heq_memory_lookup_err
           with (msg:=str)
                (msg':=str)
                (n:=n2)
                (n':=n2)
-          in HEQ_MEMORY'';
+          in HEQ_MEMORY';
           [| reflexivity].
-        inv HEQ_MEMORY''; [constructor |].
+        invc HEQ_MEMORY'; [constructor |].
 
         invc NTR_EQUIV; invc H16; clear H18.
         cbn in H14, H15.
@@ -2732,6 +2835,58 @@ Module MDHCOLTypeTranslator
         now apply heq_NType_to_nat'.
         constructor.
       - (* IMap *)
+        repeat break_match; invc H3; invc H4.
+        rename t1 into nt, t0 into nt'.
+        rename Heqs0 into NT, Heqs into NT'.
+        rename H into HEQN.
+        rename H0 into HEQXP, H1 into HEQYP.
+        rename H2 into HEQA.
+
+        copy_apply heq_NT_nat_eq HEQN;
+          cbv in H; subst n'.
+        constructor; cbn.
+
+        rewrite NT, NT'.
+
+        eapply heq_PExpr_heq_evalPExpr in HEQXP, HEQYP;
+          try eassumption.
+        invc HEQXP; invc HEQYP.
+        all: repeat break_let; subst.
+        all: repeat constructor.
+
+        remember_string.
+        pose proof heq_assert_nat_neq str str n0 n2 n1 n3 as T.
+        full_autospecialize T;
+          try (invc H1; invc H4; congruence).
+        invc T; [constructor |].
+
+        remember_string.
+        pose proof heq_NType_heq_assert_NT_le str str nt nt' t1 t3 as T.
+        full_autospecialize T;
+          [pose proof heq_NType_from_nat n; inv H8; congruence
+          |now inv H4
+          |].
+        invc T; [constructor |].
+
+        remember_string.
+        pose proof HEQ_MEMORY as HEQ_MEMORY'.
+        apply heq_memory_heq_memory_lookup_err
+          with (msg:=str)
+               (msg':=str)
+               (n:=n0)
+               (n':=n2)
+          in HEQ_MEMORY'; [| now invc H1].
+        invc HEQ_MEMORY'; [constructor | ].
+
+        remember_string.
+        pose proof HEQ_MEMORY as HEQ_MEMORY'.
+        apply heq_memory_heq_memory_lookup_err
+          with (msg:=str)
+               (msg':=str)
+               (n:=n1)
+               (n':=n3)
+          in HEQ_MEMORY'; [| now invc H4].
+        invc HEQ_MEMORY'; [constructor |].
         admit.
       - (* BinOp *)
         admit.
