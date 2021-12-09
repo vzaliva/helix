@@ -2658,6 +2658,7 @@ Module MDHCOLTypeTranslator
         invc H1; invc H4.
         invc H5; invc H1.
         pose proof HEQ_MEMORY as HEQ_MEMORY'.
+        pose proof HEQ_MEMORY as HEQ_MEMORY''.
         remember_string.
         apply heq_memory_heq_memory_lookup_err
           with (msg:=str)
@@ -2673,9 +2674,9 @@ Module MDHCOLTypeTranslator
                (msg':=str)
                (n:=n2)
                (n':=n2)
-          in HEQ_MEMORY;
+          in HEQ_MEMORY'';
           [| reflexivity].
-        inv HEQ_MEMORY; [constructor |].
+        inv HEQ_MEMORY''; [constructor |].
 
         invc NTR_EQUIV; invc H16; clear H18.
         cbn in H14, H15.
@@ -2698,7 +2699,12 @@ Module MDHCOLTypeTranslator
         inversion H5.
         constructor.
         repeat constructor.
-        admit.
+        eapply heq_memory_memory_set;
+          [assumption | reflexivity |].
+        eapply heq_mem_block_mem_add.
+        assumption.
+        now apply heq_NType_to_nat'.
+        constructor.
       - (* IMap *)
         admit.
       - (* BinOp *)
@@ -2811,7 +2817,10 @@ Module MDHCOLTypeTranslator
           invc H0; [constructor |].
           invc H1; [repeat constructor |].
           repeat constructor.
-          admit.
+          eapply heq_memory_memory_remove.
+          assumption.
+          eapply heq_memory_memory_next_key.
+          eassumption.
         }
         subst.
         assert (HEQ_ΣN0 : evalNExpr_closure_trace_equiv trivial2 σn0 σn0').
@@ -2830,9 +2839,14 @@ Module MDHCOLTypeTranslator
           cbn.
           intuition.
           constructor; [| assumption].
-          admit.
+          eapply heq_memory_memory_next_key.
+          eassumption.
         +
-          admit.
+          eapply heq_memory_memory_set.
+          assumption.
+          eapply heq_memory_memory_next_key.
+          eassumption.
+          constructor.
         +
           unfold LE.evalNatContext_of_evalContext.
           unfold LE'.evalNatContext_of_evalContext.
