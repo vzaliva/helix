@@ -2511,8 +2511,6 @@ Module MDHCOLTypeTranslator
     Lemma heq_AExpr_heq_evalAExpr
           (σ : LE.evalContext)
           (σ' : evalContext)
-          (σn : LE.evalNatContext)
-          (σn' : evalNatContext)
           (m : L.memory)
           (m' : L'.memory)
           (a : L.AExpr)
@@ -2521,16 +2519,14 @@ Module MDHCOLTypeTranslator
         heq_memory trivial2 m m' ->
         heq_evalContext trivial2 σ σ' ->
         heq_AExpr trivial2 a a' ->
-        LE.evalNatContext_of_evalContext σ ≡ σn ->
-        LE'.evalNatContext_of_evalContext σ' ≡ σn' ->
         evalNExpr_closure_trace_equiv trivial2
-          (LE.evalAExpr_NatClosures σn a)
-          (LE'.evalAExpr_NatClosures σn' a') ->
+          (LE.evalAExpr_NatClosures_σ σ a)
+          (LE'.evalAExpr_NatClosures_σ σ' a') ->
         herr_c trivial2
                (LE.evalAExpr m σ a)
                (LE'.evalAExpr m' σ' a').
     Proof.
-      intros M Σ AE ΣN ΣN' TE.
+      intros M Σ AE TE.
       induction AE.
       all: cbn in *.
       (* All inductive cases *)
@@ -2587,25 +2583,18 @@ Module MDHCOLTypeTranslator
           (imem : L.memory)
           (imem' : L'.memory)
       :
-        let σn := LE.evalNatContext_of_evalContext σ in
-        let σn' := LE'.evalNatContext_of_evalContext σ' in
         heq_DSHOperator trivial2 op op' ->
         heq_evalContext trivial2 σ σ' ->
         heq_memory trivial2 imem imem' ->
         hopt (herr (evalNExpr_closure_trace_equiv trivial2))
-                   (LE.intervalEvalDSHOperator σn op nil fuel)
-                   (LE'.intervalEvalDSHOperator σn' op' nil fuel') ->
+                   (LE.intervalEvalDSHOperator_σ σ op nil fuel)
+                   (LE'.intervalEvalDSHOperator_σ σ' op' nil fuel') ->
 
         (* replace [trivial2] -> [heq_CType] for total semantic preservation *)
         hopt_r (herr_c (heq_memory trivial2))
                (LE.evalDSHOperator σ op imem fuel)
                (LE'.evalDSHOperator σ' op' imem' fuel').
     Proof.
-      intros σn σn'.
-      unfold σn, σn'; clear σn σn'.
-      remember (LE.evalNatContext_of_evalContext σ) as σn eqn:ΣN.
-      remember (LE'.evalNatContext_of_evalContext σ') as σn' eqn:ΣN'.
-      move σn' before σn.
 
       intros HEQ_OP.
       move HEQ_OP before op'.
@@ -2620,8 +2609,9 @@ Module MDHCOLTypeTranslator
         move σn0' before σ';
         move σn0 before σ'.
       revert_until HEQ_OP.
+      unfold LE.intervalEvalDSHOperator_σ, LE'.intervalEvalDSHOperator_σ.
       induction HEQ_OP;
-        intros * ΣN ΣN'; (* intros reverted *)
+        intros *; (* intros reverted *)
         intros T0E; (* intros asserted accumulator equivalence *)
         intros HEQ_Σ HEQ_MEMORY NTR_EQUIV'.
 
@@ -2873,8 +2863,7 @@ Module MDHCOLTypeTranslator
                               (evalDSHOperator σ' f' imem' fuel')).
         {
           eapply IHHEQ_OP1.
-          6: rewrite FΣN, FΣN'.
-          all: try reflexivity.
+          4: rewrite FΣN, FΣN'.
           all: try assumption.
           now repeat constructor.
         }
@@ -2882,8 +2871,7 @@ Module MDHCOLTypeTranslator
         invc HEQF; [constructor |].
         invc H1; [repeat constructor |].
         eapply IHHEQ_OP2.
-        6: rewrite TΣN, TΣN'.
-        all: try reflexivity.
+        4: rewrite TΣN, TΣN'.
         all: try assumption.
         now repeat constructor.
     Admitted.
