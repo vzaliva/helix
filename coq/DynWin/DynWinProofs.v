@@ -2196,12 +2196,10 @@ Section TopLevel.
         assumption.
       -
         clear - CRE.
-        (* TODO: lemma in tranlsator *)
-        admit.
+        now apply translateEvalContext_same_indices.
       -
         clear - CRM.
-        (* TODO: lemma in tranlsator *)
-        admit.
+        now apply translate_runtime_memory_same_indices.
       -
         admit. (* numerical analysis *)
       -
