@@ -5,6 +5,7 @@ Require Export Helix.Tactics.StructTactics.
 
 Require Import Coq.Arith.Lt.
 Require Import Coq.Arith.Peano_dec.
+Require Import Coq.Strings.String.
 
 Require Import MathClasses.interfaces.canonical_names.
 
@@ -109,3 +110,9 @@ Ltac autospecialize H :=
 
 Ltac full_autospecialize H :=
   autospecialize H; [| try full_autospecialize H].
+
+Ltac remember_string :=
+  let AS := fresh "str" in
+  match goal with
+  | [ |- context [String ?a ?s] ] => remember (String a s) as AS
+  end.

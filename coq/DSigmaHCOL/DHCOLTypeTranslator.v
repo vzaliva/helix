@@ -2578,12 +2578,6 @@ Module MDHCOLTypeTranslator
         repeat constructor.
     Qed.
 
-    Ltac remember_string :=
-      let AS := fresh "str" in
-      match goal with
-      | [ |- context [String ?a ?s] ] => remember (String a s) as AS
-      end.
-
     Lemma heq_DSHOperator_heq_evalDSHOperator
           (op : LE.DSHOperator)
           (op' : LE'.DSHOperator)
