@@ -436,6 +436,11 @@ Module Type MDSigmaHCOLEval
     | AZless a b => evalAExpr_NatClosures σ a ++ evalAExpr_NatClosures σ b
     end.
 
+  (* a wrapper to simpilfy appication when initial [σ] is known *)
+  Definition evalAExpr_NatClosures_σ (σ : evalContext) (e : AExpr)
+    : list evalNatClosure :=
+    evalAExpr_NatClosures (evalNatContext_of_evalContext σ) e.
+
   Open Scope list_scope.
 
   (** Eval DSHOperator into list of NExpr expressions along with
@@ -525,6 +530,14 @@ Module Type MDSigmaHCOLEval
       intervalEvalDSHOperator σ op σn0 fuel ≡ Some tσn →
       intervalEvalDSHOperator σ op σn0 (S fuel) ≡ Some tσn.
   Admitted.
+  (* a wrapper to simpilfy appication when initial [σ] is known *)
+  Definition intervalEvalDSHOperator_σ
+           (σ: evalContext)
+           (op: DSHOperator)
+           (cl: list evalNatClosure)
+           (fuel: nat)
+    : option (err (list evalNatClosure)) :=
+    intervalEvalDSHOperator (evalNatContext_of_evalContext σ) op cl fuel.
 
   Fixpoint evalDSHOperator
            (σ: evalContext)
