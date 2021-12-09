@@ -147,6 +147,9 @@ vellvm:
 clean-vellvm:
 	rm -f `find lib/vellvm/ -name \*.vo`
 	make -C lib/vellvm/src clean
+	make -C lib/vellvm/lib/QuickChick clean
+	make -C lib/vellvm/lib/flocq-quickchick clean
+
 
 benchmark: timing
 	find .  -name "*.v.timing" -exec awk -F " " \
