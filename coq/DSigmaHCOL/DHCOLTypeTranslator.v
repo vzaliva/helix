@@ -2578,6 +2578,12 @@ Module MDHCOLTypeTranslator
         repeat constructor.
     Qed.
 
+    Ltac remember_string :=
+      let AS := fresh "str" in
+      match goal with
+      | [ |- context [String ?a ?s] ] => remember (String a s) as AS
+      end.
+
     Lemma heq_DSHOperator_heq_evalDSHOperator
           (op : LE.DSHOperator)
           (op' : LE'.DSHOperator)
@@ -2652,17 +2658,19 @@ Module MDHCOLTypeTranslator
         invc H1; invc H4.
         invc H5; invc H1.
         pose proof HEQ_MEMORY as HEQ_MEMORY'.
+        remember_string.
         apply heq_memory_heq_memory_lookup_err
-          with (msg:="Error looking up 'x' in DSHAssign")
-               (msg':="Error looking up 'x' in DSHAssign")
+          with (msg:=str)
+               (msg':=str)
                (n:=n1)
                (n':=n1)
           in HEQ_MEMORY';
           [| reflexivity].
         inv HEQ_MEMORY'; [constructor |].
+        remember_string.
         apply heq_memory_heq_memory_lookup_err
-          with (msg:="Error looking up 'y' in DSHAssign")
-               (msg':="Error looking up 'y' in DSHAssign")
+          with (msg:=str)
+               (msg':=str)
                (n:=n2)
                (n':=n2)
           in HEQ_MEMORY;
@@ -2679,9 +2687,10 @@ Module MDHCOLTypeTranslator
         assert_assert_NT_heq H7 H18.
         inv H7; [rewrite <-H20, <-H21; constructor |].
         rewrite <-H19, <-H20.
+        remember_string.
         apply heq_mem_block_heq_mem_lookup_err
-          with (msg:="Error looking up 'v' in DSHAssign")
-               (msg':="Error looking up 'v' in DSHAssign")
+          with (msg:=str)
+               (msg':=str)
                (n:=NT.to_nat a1)
                (n':=NT'.to_nat b1)
           in H5;
