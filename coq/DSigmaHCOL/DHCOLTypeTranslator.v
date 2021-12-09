@@ -795,11 +795,11 @@ Module MDHCOLTypeTranslator
     Qed.
 
     Lemma heq_NType_heq_assert_NT_lt
+          (msg msg' : string)
           (a : NT.t)
           (a' : t)
           (b : NT.t)
           (b' : t)
-          (msg msg' : string)
       :
         heq_NType a a' ->
         heq_NType b b' ->
@@ -817,7 +817,49 @@ Module MDHCOLTypeTranslator
       now constructor.
     Qed.
 
+    Lemma heq_NType_heq_assert_NT_le
+          (msg msg' : string)
+          (a : NT.t)
+          (a' : t)
+          (b : NT.t)
+          (b' : t)
+      :
+        heq_NType a a' ->
+        heq_NType b b' ->
+        herr_c equiv
+               (LE.assert_NT_le msg a b)
+               (LE'.assert_NT_le msg' a' b').
+    Proof.
+      intros A B.
+      unfold LE.assert_NT_le, LE'.assert_NT_le.
+      apply heq_NType_to_nat' in A, B.
+      cbv in A, B.
+      rewrite !A, !B.
+      destruct (Nat.leb (to_nat a') (to_nat b')).
+      now constructor.
+      now constructor.
+    Qed.
+
+    Lemma heq_assert_nat_neq
+          (msg msg' : string)
+          (n1 n1' n2 n2' : nat)
+      :
+        n1 = n1' ->
+        n2 = n2' ->
+        herr_c equiv
+               (LE.assert_nat_neq msg n1 n2)
+               (LE'.assert_nat_neq msg' n1' n2').
+    Proof.
+      intros N1 N2.
+      invc N1; invc N2.
+      unfold LE.assert_nat_neq, LE'.assert_nat_neq, assert_false_to_err.
+      break_if;
+        repeat constructor.
+    Qed.
+
   End Necessary_NT_Props.
+
+
 
   (* TODO: move *)
   (* NOTE: the other direction does not hold: [eq] vs [equiv] *)
