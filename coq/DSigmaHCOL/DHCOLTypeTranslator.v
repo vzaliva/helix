@@ -2,6 +2,7 @@
 
 Require Import Coq.Strings.String.
 Require Import Coq.Lists.List.
+Require Import Psatz.
 
 Require Import Helix.MSigmaHCOL.CType.
 Require Import Helix.DSigmaHCOL.NType.
@@ -2094,6 +2095,160 @@ Module MDHCOLTypeTranslator
         destruct d, d0;
           inv H; inv H1.
         all: now constructor.
+    Qed.
+
+    Lemma heq_mem_block_mem_add
+          (heq : CT.t → CT'.t → Prop)
+          (n n' : nat)
+          (mb : L.mem_block)
+          (mb' : L'.mem_block)
+          (t : CT.t)
+          (t' : CT'.t)
+      :
+        heq_mem_block heq mb mb' ->
+        n = n' ->
+        heq t t' ->
+        heq_mem_block heq
+                   (LE.mem_add n t mb)
+                   (LE'.mem_add n' t' mb').
+    Proof.
+      intros M N MB.
+      invc N; rename n' into k'.
+      intros k.
+      unfold LE.mem_lookup, LE.mem_add.
+      unfold LE'.mem_lookup, LE'.mem_add.
+      destruct (NM.E.eq_dec k' k).
+      -
+        rewrite !NP.F.add_eq_o by assumption.
+        now constructor.
+      -
+        rewrite !NP.F.add_neq_o by assumption.
+        apply M.
+    Qed.
+
+    Lemma heq_memory_memory_set
+          (heq : CT.t → CT'.t → Prop)
+          (n n' : nat)
+          (mb : L.mem_block)
+          (mb' : L'.mem_block)
+          (m : LE.memory) 
+          (m' : memory)
+      :
+        heq_memory heq m m' ->
+        n = n' ->
+        heq_mem_block heq mb mb' ->
+        heq_memory heq
+                   (LE.memory_set m n mb)
+                   (LE'.memory_set m' n' mb').
+    Proof.
+      intros M N MB.
+      invc N; rename n' into k'.
+      intros k.
+      unfold LE.memory_lookup, LE.memory_set.
+      unfold LE'.memory_lookup, LE'.memory_set.
+      destruct (NM.E.eq_dec k' k).
+      -
+        rewrite !NP.F.add_eq_o by assumption.
+        now constructor.
+      -
+        rewrite !NP.F.add_neq_o by assumption.
+        apply M.
+    Qed.
+
+    Lemma heq_memory_mem_block_exists
+          (heq : CT.t → CT'.t → Prop)
+          (m : L.memory)
+          (m' : L'.memory)
+      :
+        heq_memory heq m m' ->
+        (forall k, LE.mem_block_exists k m <-> LE'.mem_block_exists k m').
+    Proof.
+      intros.
+      rewrite LE.mem_block_exists_exists, LE'.mem_block_exists_exists.
+      specialize (H k).
+      invc H.
+      - split; intros [? C]; discriminate C.
+      - split; intros; now eexists.
+    Qed.
+
+    (* analogous to [memory_next_key_struct] *)
+    Lemma heq_memory_memory_next_key
+          (heq : CT.t → CT'.t → Prop)
+          (m : L.memory)
+          (m' : L'.memory)
+      :
+        heq_memory heq m m' ->
+        LE.memory_next_key m = LE'.memory_next_key m'.
+    Proof.
+      intros T.
+      assert (H : forall k, LE.mem_block_exists k m <-> LE'.mem_block_exists k m')
+        by now eapply heq_memory_mem_block_exists.
+      clear T.
+
+      unfold LE.memory_next_key, LE'.memory_next_key.
+      destruct (NS.max_elt (LE.memory_keys_set m)) as [k1|] eqn:H1;
+        destruct (NS.max_elt (LE'.memory_keys_set m')) as [k2|] eqn:H2.
+      -
+        f_equiv.
+        enough (¬ k1 < k2 /\ ¬ k2 < k1)
+          by (clear - H0; cbv in *; lia).
+        split.
+        +
+          apply (NS.max_elt_2 H1), LE.memory_keys_set_In, H.
+          apply NS.max_elt_1, memory_keys_set_In in H2.
+          apply H2.
+        +
+          apply (NS.max_elt_2 H2), memory_keys_set_In, H.
+          apply NS.max_elt_1, LE.memory_keys_set_In in H1.
+          apply H1.
+      - exfalso.
+        apply NS.max_elt_1 in H1.
+        apply NS.max_elt_3 in H2.
+        apply LE.memory_keys_set_In in H1.
+        apply H in H1.
+        apply memory_keys_set_In in H1.
+        apply  NSP.empty_is_empty_1 in H2.
+        rewrite H2 in H1.
+        apply NSP.FM.empty_iff in H1.
+        tauto.
+      - exfalso.
+        apply NS.max_elt_1 in H2.
+        apply NS.max_elt_3 in H1.
+        apply memory_keys_set_In in H2.
+        apply H in H2.
+        apply LE.memory_keys_set_In in H2.
+        apply  NSP.empty_is_empty_1 in H1.
+        rewrite H1 in H2.
+        apply NSP.FM.empty_iff in H2.
+        tauto.
+      -
+        reflexivity.
+    Qed.
+
+    Lemma heq_memory_memory_remove
+          (heq : CT.t → CT'.t → Prop)
+          (m : L.memory)
+          (m' : L'.memory)
+          (k k' : nat)
+      :
+        heq_memory heq m m' ->
+        k = k' ->
+        heq_memory heq
+                   (LE.memory_remove m k)
+                   (LE'.memory_remove m' k').
+    Proof.
+      intros M K.
+      invc K.
+      intros k.
+      unfold LE.memory_lookup, LE.memory_remove.
+      unfold LE'.memory_lookup, LE'.memory_remove.
+      destruct (NM.E.eq_dec k' k).
+      -
+        rewrite !NP.F.remove_eq_o by assumption.
+        now constructor.
+      -
+        rewrite !NP.F.remove_neq_o by assumption.
+        apply M.
     Qed.
 
   End Semantic_Translation_Correctness.
