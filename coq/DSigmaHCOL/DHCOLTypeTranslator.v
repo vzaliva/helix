@@ -2631,9 +2631,14 @@ Module MDHCOLTypeTranslator
         heq_memory trivial2 m m' ->
         heq_evalContext trivial2 σ σ' ->
         heq_AExpr trivial2 f f' ->
-        evalNExpr_closure_trace_equiv trivial2
-          (LE.evalAExpr_NatClosures_σ σ f)
-          (LE'.evalAExpr_NatClosures_σ σ' f') ->
+        evalNExpr_closure_trace_equiv
+          trivial2
+          (LE.evalAExpr_NatClosures_σ
+             ((LE.DSHCTypeVal ct, false) :: (LE.DSHnatVal nt, false) :: σ)
+             f)
+          (evalAExpr_NatClosures_σ
+             ((DSHCTypeVal ct', false) :: (DSHnatVal nt', false) :: σ')
+             f') ->
         heq_NType nt nt' ->
         herr_c trivial2
                (LE.evalIUnCType m σ f nt ct)
@@ -2649,15 +2654,115 @@ Module MDHCOLTypeTranslator
         as EA.
       full_autospecialize EA;
         try assumption.
-      -
-        now repeat constructor.
-      -
-        clear - FT NT.
-        unfold LE.evalAExpr_NatClosures_σ, LE'.evalAExpr_NatClosures_σ.
-        (* this is unprovable. need stronger assumptions.
-           can be directly inferred in the main lemma *)
-    Admitted.
+      now repeat constructor.
+    Qed.
 
+    Lemma evalNExpr_closure_equiv_monotone
+          (heq : CT.t → CT'.t → Prop)
+          (σn : LE.evalNatContext)
+          (σn' : LE'.evalNatContext)
+          (σsn : LE.evalNatContext)
+          (σsn' : LE'.evalNatContext)
+          (n : LE.NExpr)
+          (n' : LE'.NExpr)
+      :
+        LE.evalNatContext_in_range σn σsn ->
+        LE'.evalNatContext_in_range σn' σsn' ->
+        evalNExpr_closure_equiv heq (σsn, n) (σsn', n') ->
+        evalNExpr_closure_equiv heq (σn, n) (σn', n').
+    Proof.
+      intros ΣN ΣN' E.
+      unfold evalNExpr_closure_equiv in *.
+      intros * ΣR ΣR' Σ N.
+      specialize (E σ σ').
+      full_autospecialize E;
+        try assumption.
+      eapply LE.evalNatContext_in_range_trans; eassumption.
+      eapply LE'.evalNatContext_in_range_trans; eassumption.
+    Qed.
+
+    Lemma AExpr_NatClosures_equiv_monotone
+          (heq : CT.t → CT'.t → Prop)
+          (σn : LE.evalNatContext)
+          (σn' : LE'.evalNatContext)
+          (σsn : LE.evalNatContext)
+          (σsn' : LE'.evalNatContext)
+          (f : LE.AExpr)
+          (f' : LE'.AExpr)
+      :
+        heq_AExpr heq f f' ->
+        LE.evalNatContext_in_range σn σsn ->
+        LE'.evalNatContext_in_range σn' σsn' ->
+        evalNExpr_closure_trace_equiv
+          heq
+          (LE.evalAExpr_NatClosures σsn f)
+          (LE'.evalAExpr_NatClosures σsn' f') ->
+        evalNExpr_closure_trace_equiv
+          heq
+          (LE.evalAExpr_NatClosures σn f)
+          (LE'.evalAExpr_NatClosures σn' f').
+    Proof.
+      intros F Σ Σ' ES.
+      induction F;
+        cbn in *.
+      (* inductive cases *)
+      5-10: apply evalNExpr_closure_trace_equiv_app_inv in ES;
+        [| eapply evalAExpr_NatClosures_length; eassumption].
+      5-10: apply Forall2_app; tauto.
+      (* base cases *)
+      -
+        assumption.
+      -
+        inv ES.
+        constructor.
+        eapply evalNExpr_closure_equiv_monotone; eassumption.
+        eassumption.
+      -
+        apply IHF.
+        assumption.
+      -
+        assumption.
+    Qed.
+
+    Lemma heq_protect_evalContext
+          (heq : CT.t → CT'.t → Prop)
+          (σ : LE.evalContext)
+          (σ' : evalContext)
+          (p : L.PExpr)
+          (p' : L'.PExpr)
+      :
+        heq_PExpr p p' ->
+        heq_evalContext heq σ σ' ->
+        heq_evalContext heq (LE.protect_p σ p) (protect_p σ' p').
+    Proof.
+      intros P Σ.
+      destruct p, p'.
+      invc P; invc H1.
+      rename v0 into n.
+      cbn.
+      generalize dependent n.
+      induction Σ;
+        intros.
+      -
+        destruct n; constructor.
+      -
+        destruct n.
+        +
+          cbn.
+          repeat break_let; subst.
+          invc H; invc H0.
+          constructor.
+          constructor.
+          reflexivity.
+          assumption.
+          assumption.
+        +
+          unfold LE.protect, LE'.protect in *.
+          cbn.
+          specialize (IHΣ n).
+          repeat break_match.
+          all: constructor; tauto.
+    Qed.
     Lemma heq_evalDSHIMap
           (m : L.memory)
           (m' : L'.memory)
