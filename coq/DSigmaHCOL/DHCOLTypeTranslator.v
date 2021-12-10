@@ -2763,26 +2763,40 @@ Module MDHCOLTypeTranslator
           repeat break_match.
           all: constructor; tauto.
     Qed.
+
     Lemma heq_evalDSHIMap
           (m : L.memory)
           (m' : L'.memory)
           (n n' : nat)
+          (nt : NT.t)
+          (nt' : NT'.t)
           (f : L.AExpr)
           (f' : L'.AExpr)
-          (σ : LE.evalContext) 
+          (σ : LE.evalContext)
           (σ' : evalContext)
           (x : L.mem_block)
-          (x' : L'.mem_block) 
+          (x' : L'.mem_block)
           (y : L.mem_block)
           (y' : L'.mem_block)
       :
         heq_memory trivial2 m m' ->
-        heq_NT_nat n n' ->
+
+        (* NOTE: this is equivalent to [heq_NT_nat n n'],
+           but we need to bind nt, nt' later *)
+        NT.from_nat n = inr nt ->
+        NT'.from_nat n' = inr nt' ->
+        heq_NType nt nt' ->
+
         heq_AExpr trivial2 f f' ->
+
         evalNExpr_closure_trace_equiv
           trivial2
-          (LE.evalAExpr_NatClosures_σ σ f)
-          (evalAExpr_NatClosures_σ σ' f') ->
+          (LE.evalAExpr_NatClosures
+             (LE.DSHOtherVar :: LE.DSHIndex nt :: LE.evalNatContext_of_evalContext σ)
+             f)
+          (evalAExpr_NatClosures
+             (DSHOtherVar :: DSHIndex nt' :: evalNatContext_of_evalContext σ')
+             f') ->
         heq_evalContext trivial2 σ σ' ->
         heq_mem_block trivial2 x x' ->
         heq_mem_block trivial2 y y' ->
@@ -2790,11 +2804,20 @@ Module MDHCOLTypeTranslator
                (LE.evalDSHIMap m n f σ x y)
                (LE'.evalDSHIMap m' n' f' σ' x' y').
     Proof.
-      intros M N F FT Σ X Y.
+      intros M NT NT' NTE F FT Σ X Y.
+      assert (N : heq_NT_nat n n').
+      {
+        constructor.
+        destruct (NT.from_nat n), (NT'.from_nat n');
+          invc NT; invc NT'.
+        constructor.
+        eapply heq_NType_proper;
+          eassumption.
+      }
       copy_apply heq_NT_nat_eq N;
         cbv in H; subst n'.
-      generalize dependent y'.
-      generalize dependent y.
+      revert NT NT' NTE FT Y.
+      revert nt nt' y y'.
       induction n;
         cbn; intros.
       -
@@ -2814,11 +2837,49 @@ Module MDHCOLTypeTranslator
         pose proof
              heq_AExpr_heq_evalIUnCType m m' σ σ' f f' a0 b0 a b
           as EU.
+
+        (* for use in multiple places later *)
+        assert (AB : evalNExpr_closure_trace_equiv
+                  trivial2
+                  (LE.evalAExpr_NatClosures
+                     (LE.DSHOtherVar :: LE.DSHIndex a0 ::
+                                     LE.evalNatContext_of_evalContext σ)
+                     f)
+                  (evalAExpr_NatClosures
+                     (DSHOtherVar :: DSHIndex b0 ::
+                                  evalNatContext_of_evalContext σ')
+                     f')).
+        {
+          eapply AExpr_NatClosures_equiv_monotone.
+          4: eassumption.
+          -
+            assumption.
+          -
+            cbn.
+            repeat constructor.
+            erewrite !to_nat_of_from_nat.
+            3: rewrite H3; reflexivity.
+            2: eassumption.
+            lia.
+            apply LE.evalNatContext_in_range_refl.
+          -
+            cbn.
+            repeat constructor.
+            erewrite !to_nat_of_from_nat'.
+            3: rewrite H4; reflexivity.
+            2: eassumption.
+            lia.
+            apply LE'.evalNatContext_in_range_refl.
+        }
         full_autospecialize EU;
           try assumption.
         invc EU; [constructor |].
-        apply IHn.
-        assumption.
+        autospecialize IHn; [assumption |].
+        specialize (IHn a0 b0).
+        eapply IHn;
+          try assumption.
+        rewrite H3; reflexivity.
+        rewrite H4; reflexivity.
         now apply heq_mem_block_mem_add.
     Qed.
 
@@ -2953,9 +3014,11 @@ Module MDHCOLTypeTranslator
 
         rewrite NT, NT'.
 
-        eapply heq_PExpr_heq_evalPExpr in HEQXP, HEQYP;
+        pose proof HEQXP as HEQXP'.
+        pose proof HEQYP as HEQYP'.
+        eapply heq_PExpr_heq_evalPExpr in HEQXP', HEQYP';
           try eassumption.
-        invc HEQXP; invc HEQYP.
+        invc HEQXP'; invc HEQYP'.
         all: repeat break_let; subst.
         all: repeat constructor.
 
@@ -2992,7 +3055,28 @@ Module MDHCOLTypeTranslator
                (n':=n3)
           in HEQ_MEMORY'; [| now invc H4].
         invc HEQ_MEMORY'; [constructor |].
-        admit.
+
+        pose proof HEQ_MEMORY as HEQ_MEMORY'.
+        eapply heq_evalDSHIMap in HEQ_MEMORY'.
+        inversion HEQ_MEMORY' as [? ? I I' | ? ? ? I I'];
+          erewrite <-I, <-I'; [constructor |].
+        all: try eassumption.
+        +
+          constructor.
+          eapply heq_memory_memory_set;
+            [assumption | now invc H4 | assumption].
+        + rewrite NT; reflexivity.
+        + rewrite NT'; reflexivity.
+        + pose proof (heq_NType_from_nat n) as T.
+          inv T; try congruence; assumption.
+        +
+          rewrite LE.evalNatContext_of_protect_evalContext;
+            rewrite LE'.evalNatContext_of_protect_evalContext.
+          apply evalNExpr_closure_trace_equiv_app_inv in NTR_EQUIV;
+            [| eapply evalAExpr_NatClosures_length; eassumption ].
+          tauto.
+        +
+          apply heq_protect_evalContext; assumption.
       - (* BinOp *)
         admit.
       - (* MemMap2 *)
