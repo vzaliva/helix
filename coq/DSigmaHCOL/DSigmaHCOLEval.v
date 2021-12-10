@@ -383,20 +383,17 @@ Module Type MDSigmaHCOLEval
       variable indices as in [evalDSHOperator] *)
   | DSHOtherVar: DSHIndexRange.
 
-  Inductive DSHVal_in_range : DSHVal -> DSHIndexRange -> Prop :=
-  | DSHnatVal_in_range :
-      forall (n ran : NT.t),
-        to_nat n <= to_nat ran ->
-        DSHVal_in_range (DSHnatVal n) (DSHIndex ran)
-  | DSHCTypeVal_in_range : forall a, DSHVal_in_range (DSHCTypeVal a) DSHOtherVar
-  | DSHPtrVal_in_range : forall a size, DSHVal_in_range (DSHPtrVal a size) DSHOtherVar.
+  Inductive DSHIndexRange_le : DSHIndexRange -> DSHIndexRange -> Prop :=
+  | DSHIndex_in_range :
+      forall (n n' : NT.t),
+        to_nat n <= to_nat n' ->
+        DSHIndexRange_le (DSHIndex n) (DSHIndex n')
+  | DSHOtherVar_in_range : DSHIndexRange_le DSHOtherVar DSHOtherVar.
 
   Definition evalNatContext : Type := list DSHIndexRange.
 
-  Definition evalContext_in_range
-             (σ : evalContext)
-             (σn : evalNatContext) : Prop :=
-    Forall2 (fun '(val, _) ran => DSHVal_in_range val ran) σ σn.
+  Definition evalNatContext_in_range (σn σsn : evalNatContext) : Prop :=
+    Forall2 DSHIndexRange_le σn σsn.
 
   Definition DSHIndexRange_of_DSHVal (val : DSHVal) : DSHIndexRange :=
     match val with
@@ -406,6 +403,11 @@ Module Type MDSigmaHCOLEval
 
   Definition evalNatContext_of_evalContext : evalContext -> evalNatContext :=
     map (fun '(val, _) => DSHIndexRange_of_DSHVal val).
+
+  Definition evalContext_in_range
+             (σ : evalContext)
+             (σn : evalNatContext) : Prop :=
+    evalNatContext_in_range (evalNatContext_of_evalContext σ) σn.
 
   Lemma evalContext_in_own_range (σ : evalContext) :
     evalContext_in_range σ (evalNatContext_of_evalContext σ).
@@ -417,6 +419,86 @@ Module Type MDSigmaHCOLEval
       constructor.
       destruct val; now constructor.
       assumption.
+  Qed.
+
+  Lemma DSHIndexRange_le_trans (x y z : DSHIndexRange) :
+    DSHIndexRange_le x y ->
+    DSHIndexRange_le y z ->
+    DSHIndexRange_le x z.
+  Proof.
+    intros XY YZ.
+    destruct x, y, z.
+    all: invc XY; invc YZ.
+    all: constructor.
+    lia.
+  Qed.
+
+  Lemma evalNatContext_in_range_refl (σn : evalNatContext) :
+    evalNatContext_in_range σn σn.
+  Proof.
+    induction σn.
+    -
+      constructor.
+    -
+      constructor.
+      destruct a; constructor; reflexivity.
+      assumption.
+  Qed.
+
+  Lemma evalNatContext_in_range_trans
+        (σn σn' σsn : evalNatContext)
+    :
+      evalNatContext_in_range σn σn' ->
+      evalNatContext_in_range σn' σsn ->
+      evalNatContext_in_range σn σsn.
+  Proof.
+    intros Σ ΣS.
+    unfold evalNatContext_in_range in *.
+    generalize dependent σsn.
+    induction Σ;
+      intros.
+    -
+      inv ΣS.
+      assumption.
+    -
+      invc ΣS.
+      constructor.
+      eapply DSHIndexRange_le_trans;
+        eassumption.
+      eapply IHΣ.
+      assumption.
+  Qed.
+
+  Lemma evalNatContext_of_protect_evalContext
+        (σ : evalContext)
+        (p : PExpr)
+    :
+      evalNatContext_of_evalContext (protect_p σ p) ≡
+      evalNatContext_of_evalContext σ.
+  Proof.
+    destruct p; cbn.
+    unfold evalNatContext_of_evalContext, protect.
+    repeat break_match; subst.
+    2: reflexivity.
+    generalize dependent v.
+    revert d b.
+    induction σ.
+    -
+      reflexivity.
+    -
+      intros.
+      cbn.
+      break_match; subst.
+      +
+        inv Heqo.
+        reflexivity.
+      +
+        cbn.
+        break_let; subst.
+        f_equal.
+        eapply IHσ.
+        cbn in Heqo.
+        eassumption.
   Qed.
 
   Definition evalNatClosure : Type := evalNatContext * NExpr.
