@@ -679,19 +679,6 @@ Module MDHCOLTypeTranslator
 
     Context `{NTT: NTranslationOp}.
 
-    (* NOTE: these have nothing to do with translation
-       and would be moved into the [NType] module if accepted *)
-    Lemma to_nat_from_nat (n : nat) (nt : NT.t) :
-      NT.from_nat n = inr nt <->
-      NT.to_nat nt = n.
-    Admitted.
-
-    Lemma to_nat_from_nat' (n : nat) (nt : NT'.t) :
-      NT'.from_nat n = inr nt <->
-      NT'.to_nat nt = n.
-    Admitted.
-    (* (/end NOTE) *)
-
     (* [heq_NType_to_nat] from Props *)
     Lemma heq_NType_to_nat'
           (n : NT.t)
@@ -725,31 +712,30 @@ Module MDHCOLTypeTranslator
         heq_NType n n'.
     Admitted.
 
-
     Lemma from_nat_of_to_nat (nt : NT.t) :
       NT.from_nat (NT.to_nat nt) = inr nt.
     Proof.
-      now apply to_nat_from_nat.
+      now apply NT.to_nat_from_nat.
     Qed.
 
     Lemma from_nat_of_to_nat' (nt' : NT'.t) :
       NT'.from_nat (NT'.to_nat nt') = inr nt'.
     Proof.
-      now apply to_nat_from_nat'.
+      now apply NT'.to_nat_from_nat.
     Qed.
 
     Lemma to_nat_of_from_nat (n : nat) (nt : NT.t) :
       NT.from_nat n = inr nt ->
       NT.to_nat nt = n.
     Proof.
-      apply to_nat_from_nat.
+      apply NT.to_nat_from_nat.
     Qed.
 
     Lemma to_nat_of_from_nat' (n : nat) (nt : NT'.t) :
       NT'.from_nat n = inr nt ->
       NT'.to_nat nt = n.
     Proof.
-      apply to_nat_from_nat'.
+      apply NT'.to_nat_from_nat.
     Qed.
 
     (* NOTE: this is defined in terms of [from_nat ∘ to_nat],
@@ -764,7 +750,7 @@ Module MDHCOLTypeTranslator
     Proof.
       intros TN.
       unfold translateNTypeConst in TN.
-      apply to_nat_from_nat' in TN.
+      apply to_nat_from_nat in TN.
       cbv in TN.
       assert (NN' : herr_f heq_NType
                      (NT.from_nat (NT.to_nat n))

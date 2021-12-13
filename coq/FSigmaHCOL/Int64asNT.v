@@ -282,6 +282,37 @@ Module MInt64asNT <: NType.
 
   Definition to_string (n : t) : String.string := string_of_nat (to_nat n).
 
+  Lemma to_nat_from_nat :
+    forall n nt,
+      from_nat n = inr nt <-> to_nat nt = n.
+  Proof.
+    intros.
+    unfold from_nat, to_nat, from_Z.
+    split; intro E.
+    -
+      repeat break_match; invc E.
+      pose proof Integers.Int64.eq_spec
+           {| Int64.intval := Z.of_nat n; Int64.intrange := conj l l0 |}
+           nt
+        as EQI.
+      rewrite H1 in EQI.
+      apply f_equal with (f:=Int64.intval) in EQI.
+      rewrite <-EQI.
+      cbn.
+      now rewrite Nat2Z.id.
+    -
+      destruct nt as [nv nr]; cbn in *.
+      repeat break_match.
+      2,3: apply f_equal with (f:=Z.of_nat) in E; lia.
+      f_equiv.
+      unfold equiv, NTypeEquiv, Int64.eq.
+      cbn.
+      rewrite <-E, Z2Nat.id by lia.
+      break_if.
+      reflexivity.
+      contradiction.
+  Qed.
+
   Lemma from_nat_lt:
     forall x xi y,
       from_nat x ≡ inr xi ->

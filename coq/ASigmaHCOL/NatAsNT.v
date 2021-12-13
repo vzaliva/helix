@@ -78,4 +78,14 @@ Module MNatAsNT <: NType.
     auto.
   Qed.
 
+  Lemma to_nat_from_nat :
+    forall n nt,
+      from_nat n = inr nt <-> to_nat nt = n.
+  Proof.
+    unfold from_nat, to_nat.
+    split; intros E.
+    now inl_inr_inv.
+    now f_equiv.
+  Qed.
+
 End MNatAsNT.

@@ -45,6 +45,12 @@ Module Type NType.
 
   Parameter to_string: t -> String.string.
 
+  (* [to_nat] and [from_nat] are inverses of each other on the 
+     subset of [nat] that is convertible to [t] *)
+  Parameter to_nat_from_nat :
+    forall n nt,
+      from_nat n = inr nt <-> to_nat nt = n.
+
   (* If [from_nat] succeeds for a number, it also succeeds for all
      numbers less than it.
    *)
@@ -56,6 +62,5 @@ Module Type NType.
 
   (* 0 is always convertible *)
   Parameter from_nat_zero: exists z, from_nat O ≡ inr z.
-
 
 End NType.
