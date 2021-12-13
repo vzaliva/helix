@@ -175,6 +175,43 @@ Module MDHCOLTypeTranslator
     NTypeMax_translation   : NBinOpTranslation NT.NTypeMax   NT'.NTypeMax  ;
     }.
 
+  (** * TODO: refine *)
+  (* This class imposes (almost) a subset of the restrictions of
+     [NTranslationProps] above. This is the minimal subset necessary to prove
+     the preservation of control flow (and therefore error handling) of an
+     operator over translation.
+
+     Full [NTranslationProps] could not be proven for the RHCOL->FHCOL
+     translation step (NType is translated as nat -> int64), but these
+     restrictions could. They are necessary and sufficient for RHCOL->FHCOL
+     control flow proofs.
+   *)
+  Class NTranslationProps' `{NTT : NTranslationOp} :=
+    {
+    (* exactly [heq_NType_to_nat] *)
+    heq_NType_to_nat' :
+      forall n n',
+        heq_NType n n' ->
+        NT.to_nat n = NT'.to_nat n';
+
+    (* The "inverse" of [heq_NType_to_nat] *)
+    (* TODO: this should be added to [NTranslationProps] at least *)
+    (* NOTE: [herr_f] vacuously holds if any argument is [inl]. In ohter words,
+             this is stating "If the same nat is *successfully* converted to
+             NType before and after translation, both NType values are
+             equivalent" *)
+    heq_NType_from_nat :
+      forall n,
+        herr_f heq_NType (NT.from_nat n) (NT'.from_nat n);
+
+    (* exactly [heq_NType_translateNTypeValue_compat] *)
+    (* Necessary for the the preservation of NType values in input [σ] *)
+    heq_NType_translateNTypeValue_compat' :
+      forall n n',
+        translateNTypeValue n = inr n' →
+        heq_NType n n';
+    }.
+
   Class CBinOpTranslation
         `{CTranslationOp}
         (f: CT.t -> CT.t -> CT.t)
@@ -674,43 +711,10 @@ Module MDHCOLTypeTranslator
 
   End Relations.
 
-  (** * TODO: refine *)
   Section Necessary_NT_Props.
 
     Context `{NTT: NTranslationOp}.
-
-    (* [heq_NType_to_nat] from Props *)
-    Lemma heq_NType_to_nat'
-          (n : NT.t)
-          (n' : NT'.t)
-      :
-        heq_NType n n' ->
-        NT.to_nat n = NT'.to_nat n'.
-    Admitted.
-
-    (* NOTE: [herr_f] vacuously holds if ANY argument is [inl].
-       In ohter words, this is stating
-       "If the same nat is *successfully* converted to NType before and after
-       translation, both NType values are equivalent" *)
-    (* Similar to [heq_NType_to_nat'] *)
-    Lemma heq_NType_from_nat (n : nat) :
-      herr_f heq_NType (NT.from_nat n) (NT'.from_nat n).
-    Proof.
-      destruct (NT.from_nat n) as [msg|nt] eqn:FN;
-        destruct (NT'.from_nat n) as [msg'|nt'] eqn:FN'.
-      all: constructor.
-    Admitted.
-
-    (* [heq_NType_translateNTypeValue_compat] from Props *)
-    (* Required to prove the preservation of NType values in [σ] after
-       translation *)
-    Lemma heq_NType_translateNTypeValue_compat'
-          (n : NT.t)
-          (n' : NT'.t)
-      :
-        translateNTypeValue n = inr n' →
-        heq_NType n n'.
-    Admitted.
+    Context `{NTP': @NTranslationProps' NTT}.
 
     Lemma from_nat_of_to_nat (nt : NT.t) :
       NT.from_nat (NT.to_nat nt) = inr nt.
@@ -818,7 +822,7 @@ Module MDHCOLTypeTranslator
         [rename H into FN' | constructor].
       destruct FN as [nt FN], FN' as [nt' FN'].
       
-      clear - FN FN'.
+      clear - FN FN' NTP'.
       pose proof heq_NType_from_nat n as E.
       inv E; try congruence.
       now constructor.
@@ -1658,83 +1662,6 @@ Module MDHCOLTypeTranslator
           break_match; try some_none.
     Qed.
 
-    Lemma translateDSHVal_heq
-          (d : L.DSHVal)
-          (d' : L'.DSHVal)
-      :
-        translateDSHVal d = inr d' ->
-        heq_DSHVal trivial2 d d'.
-    Proof.
-      (* NOTE: this lemma must not rely on TranslationProps *)
-      clear.
-      intros D.
-      destruct d;
-        cbn in D.
-      all: break_match; invc D.
-      all: destruct d'; invc H1.
-      -
-        constructor.
-        unfold equiv in H2.
-        pose proof heq_NType_proper.
-        specialize (H n n).
-        autospecialize H; [reflexivity |].
-        specialize (H t0 n0 H2).
-        apply H.
-        clear - Heqs.
-        apply heq_NType_translateNTypeValue_compat'.
-        now rewrite Heqs.
-      -
-        repeat constructor.
-      -
-        destruct H0.
-        constructor.
-        assumption.
-        apply heq_NType_translateNTypeValue_compat'.
-        rewrite Heqs; now f_equiv.
-    Qed.
-
-    Lemma translateEvalContext_same_indices
-          (σ : LE.evalContext)
-          (σ' : evalContext)
-      :
-        translateEvalContext σ = inr σ' ->
-        heq_evalContext trivial2 σ σ'.
-    Proof.
-      (* NOTE: this lemma must not rely on TranslationProps *)
-      clear.
-      revert σ'.
-      induction σ;
-        intros σ' Σ'.
-      -
-        invc Σ'.
-        destruct σ'; [| inv H1].
-        constructor.
-      -
-        cbn in *.
-        repeat break_match;
-          try inl_inr; repeat inl_inr_inv;
-            subst_max.
-        destruct σ'; [inv Σ' |].
-        apply cons_equiv_inv in Σ'.
-        destruct Σ' as [P E].
-        constructor.
-        +
-          destruct p; invc P.
-          constructor.
-          apply H0.
-          clear - H Heqs.
-          cbn in H.
-
-          apply translateDSHVal_heq.
-          rewrite Heqs.
-          f_equiv.
-          assumption.
-        +
-          apply IHσ.
-          f_equiv.
-          assumption.
-    Qed.
-
     Lemma translate_runtime_mem_block_same_indices
           (mb : L.mem_block)
           (mb' : L'.mem_block)
@@ -1802,9 +1729,93 @@ Module MDHCOLTypeTranslator
 
   End Value_Translation_Correctness.
 
+  (* TODO: merge this with the section above.
+     See TODO comment over [NTranslationProps'] *)
+  Section Value_Translation_Correctness'.
+
+    Context `{CTT: CTranslationOp} `{NTT: NTranslationOp}
+            `{NTP': @NTranslationProps' NTT}.
+
+    Lemma translateDSHVal_heq
+          (d : L.DSHVal)
+          (d' : L'.DSHVal)
+      :
+        translateDSHVal d = inr d' ->
+        heq_DSHVal trivial2 d d'.
+    Proof.
+      (* NOTE: this lemma must not rely on TranslationProps *)
+      intros D.
+      destruct d;
+        cbn in D.
+      all: break_match; invc D.
+      all: destruct d'; invc H1.
+      -
+        constructor.
+        unfold equiv in H2.
+        pose proof heq_NType_proper.
+        specialize (H n n).
+        autospecialize H; [reflexivity |].
+        specialize (H t0 n0 H2).
+        apply H.
+        clear - Heqs NTP'.
+        apply heq_NType_translateNTypeValue_compat'.
+        now rewrite Heqs.
+      -
+        repeat constructor.
+      -
+        destruct H0.
+        constructor.
+        assumption.
+        apply heq_NType_translateNTypeValue_compat'.
+        rewrite Heqs; now f_equiv.
+    Qed.
+
+    Lemma translateEvalContext_same_indices
+          (σ : LE.evalContext)
+          (σ' : evalContext)
+      :
+        translateEvalContext σ = inr σ' ->
+        heq_evalContext trivial2 σ σ'.
+    Proof.
+      revert σ'.
+      induction σ;
+        intros σ' Σ'.
+      -
+        invc Σ'.
+        destruct σ'; [| inv H1].
+        constructor.
+      -
+        cbn in *.
+        repeat break_match;
+          try inl_inr; repeat inl_inr_inv;
+            subst_max.
+        destruct σ'; [inv Σ' |].
+        apply cons_equiv_inv in Σ'.
+        destruct Σ' as [P E].
+        constructor.
+        +
+          destruct p; invc P.
+          constructor.
+          apply H0.
+          clear - H Heqs NTP'.
+          cbn in H.
+
+          apply translateDSHVal_heq.
+          rewrite Heqs.
+          f_equiv.
+          assumption.
+        +
+          apply IHσ.
+          f_equiv.
+          assumption.
+    Qed.
+
+  End Value_Translation_Correctness'.
+
   Section Semantic_Translation_Correctness.
 
     Context `{CTT: CTranslationOp} `{NTT: NTranslationOp}.
+    Context `{NTP': NTranslationProps'}.
 
     Lemma heq_PExpr_heq_evalPExpr
           (heq : CT.t → CT'.t → Prop)
@@ -2373,6 +2384,7 @@ Module MDHCOLTypeTranslator
   Section ControlFlow_Translation_Correctness.
 
     Context `{NTT: NTranslationOp}.
+    Context `{NTP': NTranslationProps'}.
 
     Lemma translateNExpr_syntax
           (n : L.NExpr)
@@ -2402,7 +2414,7 @@ Module MDHCOLTypeTranslator
         autospecialize H; [reflexivity |].
         specialize (H t1 t2 H1).
         apply H.
-        clear - Heqs.
+        clear - Heqs NTP'.
         apply heq_NType_translateNTypeConst_compat.
         rewrite Heqs; reflexivity.
     Qed.
