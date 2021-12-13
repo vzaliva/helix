@@ -679,20 +679,26 @@ Module MDHCOLTypeTranslator
 
     Context `{NTT: NTranslationOp}.
 
-    (* NOTE: this has nothing to do with translation
+    (* NOTE: these have nothing to do with translation
        and would be moved into the [NType] module if accepted *)
     Lemma to_nat_of_from_nat (n : nat) (nt : NT.t) :
       NT.from_nat n = inr nt ->
       NT.to_nat nt = n.
     Admitted.
 
-    (* NOTE: this has nothing to do with translation
-       and would be moved into the [NType] module if accepted *)
-    (* hence two "duplicate" lemmas for two modules *)
     Lemma to_nat_of_from_nat' (n : nat) (nt : NT'.t) :
       NT'.from_nat n = inr nt ->
       NT'.to_nat nt = n.
     Admitted.
+
+    Lemma from_nat_of_to_nat (nt : NT.t) :
+      NT.from_nat (NT.to_nat nt) = inr nt.
+    Admitted.
+
+    Lemma from_nat_of_to_nat' (nt : NT'.t) :
+      NT'.from_nat (NT'.to_nat nt) = inr nt.
+    Admitted.
+    (* (/end NOTE) *)
 
     (* [heq_NType_to_nat] from Props *)
     Lemma heq_NType_to_nat'
