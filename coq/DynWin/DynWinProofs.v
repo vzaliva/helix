@@ -1787,6 +1787,7 @@ Section TopLevel.
     (* Assumptions for RHCOL to FHCOL mapping *)
     `{CTTF: RHCOLtoFHCOL.CTranslationOp}
     `{NTTF: RHCOLtoFHCOL.NTranslationOp}
+    `{NTPF': @RHCOLtoFHCOL.NTranslationProps' NTTF}
 (*
      Note: the following are not assumed, as they
      could not be true for Real -> Float and Nat -> Int64
@@ -2195,10 +2196,8 @@ Section TopLevel.
         apply translation_syntax_always_correct.
         assumption.
       -
-        clear - CRE.
         now apply translateEvalContext_same_indices.
       -
-        clear - CRM.
         now apply translate_runtime_memory_same_indices.
       -
         admit. (* numerical analysis *)
