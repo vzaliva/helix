@@ -681,22 +681,14 @@ Module MDHCOLTypeTranslator
 
     (* NOTE: these have nothing to do with translation
        and would be moved into the [NType] module if accepted *)
-    Lemma to_nat_of_from_nat (n : nat) (nt : NT.t) :
-      NT.from_nat n = inr nt ->
+    Lemma to_nat_from_nat (n : nat) (nt : NT.t) :
+      NT.from_nat n = inr nt <->
       NT.to_nat nt = n.
     Admitted.
 
-    Lemma to_nat_of_from_nat' (n : nat) (nt : NT'.t) :
-      NT'.from_nat n = inr nt ->
+    Lemma to_nat_from_nat' (n : nat) (nt : NT'.t) :
+      NT'.from_nat n = inr nt <->
       NT'.to_nat nt = n.
-    Admitted.
-
-    Lemma from_nat_of_to_nat (nt : NT.t) :
-      NT.from_nat (NT.to_nat nt) = inr nt.
-    Admitted.
-
-    Lemma from_nat_of_to_nat' (nt : NT'.t) :
-      NT'.from_nat (NT'.to_nat nt) = inr nt.
     Admitted.
     (* (/end NOTE) *)
 
@@ -707,6 +699,19 @@ Module MDHCOLTypeTranslator
       :
         heq_NType n n' ->
         NT.to_nat n = NT'.to_nat n'.
+    Admitted.
+
+    (* NOTE: [herr_f] vacuously holds if ANY argument is [inl].
+       In ohter words, this is stating
+       "If the same nat is *successfully* converted to NType before and after
+       translation, both NType values are equivalent" *)
+    (* Similar to [heq_NType_to_nat'] *)
+    Lemma heq_NType_from_nat (n : nat) :
+      herr_f heq_NType (NT.from_nat n) (NT'.from_nat n).
+    Proof.
+      destruct (NT.from_nat n) as [msg|nt] eqn:FN;
+        destruct (NT'.from_nat n) as [msg'|nt'] eqn:FN'.
+      all: constructor.
     Admitted.
 
     (* [heq_NType_translateNTypeValue_compat] from Props *)
@@ -720,6 +725,33 @@ Module MDHCOLTypeTranslator
         heq_NType n n'.
     Admitted.
 
+
+    Lemma from_nat_of_to_nat (nt : NT.t) :
+      NT.from_nat (NT.to_nat nt) = inr nt.
+    Proof.
+      now apply to_nat_from_nat.
+    Qed.
+
+    Lemma from_nat_of_to_nat' (nt' : NT'.t) :
+      NT'.from_nat (NT'.to_nat nt') = inr nt'.
+    Proof.
+      now apply to_nat_from_nat'.
+    Qed.
+
+    Lemma to_nat_of_from_nat (n : nat) (nt : NT.t) :
+      NT.from_nat n = inr nt ->
+      NT.to_nat nt = n.
+    Proof.
+      apply to_nat_from_nat.
+    Qed.
+
+    Lemma to_nat_of_from_nat' (n : nat) (nt : NT'.t) :
+      NT'.from_nat n = inr nt ->
+      NT'.to_nat nt = n.
+    Proof.
+      apply to_nat_from_nat'.
+    Qed.
+
     (* NOTE: this is defined in terms of [from_nat ∘ to_nat],
        might follow from some of their properites. The current assumptions do
        not seem sufficient *)
@@ -732,20 +764,26 @@ Module MDHCOLTypeTranslator
     Proof.
       intros TN.
       unfold translateNTypeConst in TN.
-      apply to_nat_of_from_nat' in TN.
-    Admitted.
-
-    (* NOTE: [herr_f] vacuously holds if ANY argument is [inl].
-       In ohter words, this is stating
-       "If the same nat is *successfully* converted to NType before and after
-       translation, both NType values are equivalent" *)
-    Lemma heq_NType_from_nat (n : nat) :
-      herr_f heq_NType (NT.from_nat n) (NT'.from_nat n).
-    Proof.
-      destruct (NT.from_nat n) as [msg|nt] eqn:FN;
-        destruct (NT'.from_nat n) as [msg'|nt'] eqn:FN'.
-      all: constructor.
-    Admitted.
+      apply to_nat_from_nat' in TN.
+      cbv in TN.
+      assert (NN' : herr_f heq_NType
+                     (NT.from_nat (NT.to_nat n))
+                     (from_nat (to_nat n')))
+        by (rewrite TN; apply heq_NType_from_nat).
+      pose proof from_nat_of_to_nat' n' as N'.
+      pose proof from_nat_of_to_nat n as N.
+      invc NN'.
+      -
+        now rewrite <-H0 in N.
+      -
+        now rewrite <-H1 in N'.
+      -
+        rewrite <-H in N; rewrite <-H0 in N'.
+        repeat inl_inr_inv.
+        symmetry in N, N'.
+        eapply heq_NType_proper;
+          eassumption.
+    Qed.
 
     Lemma heq_NT_nat_eq (n n' : nat) :
       heq_NT_nat n n' -> n = n'.
