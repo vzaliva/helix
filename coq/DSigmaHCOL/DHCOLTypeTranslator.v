@@ -2293,6 +2293,53 @@ Module MDHCOLTypeTranslator
         apply M.
     Qed.
 
+    Lemma heq_mem_block_heq_mem_union
+          (heq : CT.t → CT'.t → Prop)
+          (mb1 mb2 : L.mem_block) 
+          (mb1' mb2' : L'.mem_block)
+      :
+        heq_mem_block heq mb1 mb1' ->
+        heq_mem_block heq mb2 mb2' ->
+        heq_mem_block heq
+                      (LE.mem_union mb1 mb2)
+                      (LE'.mem_union mb1' mb2').
+    Proof.
+      intros MB1 MB2.
+      intros k;
+        specialize (MB1 k); specialize (MB2 k).
+      unfold LE.mem_lookup, LE.mem_union in *.
+      unfold LE'.mem_lookup, LE'.mem_union in *.
+      rewrite !NP.F.map2_1bis by reflexivity.
+      invc MB1; invc MB2;
+        now constructor.
+    Qed.
+
+    Lemma heq_mem_const_block
+          (heq : CT.t → CT'.t → Prop)
+          (n n' : nat)
+          (v : CT.t)
+          (v' : CT'.t)
+      :
+        n = n' ->
+        heq v v' ->
+        heq_mem_block heq
+                      (LE.mem_const_block n v)
+                      (LE'.mem_const_block n' v').
+    Proof.
+      intros N V.
+      cbv in N; subst n'.
+      intros k.
+      destruct (NatUtil.lt_ge_dec k n).
+      -
+        rewrite LE.mem_const_block_find, LE'.mem_const_block_find
+          by assumption.
+        now constructor.
+      -
+        rewrite LE.mem_const_block_find_oob, LE'.mem_const_block_find_oob
+          by assumption.
+        constructor.
+    Qed.
+
   End Semantic_Translation_Correctness.
 
   Section ControlFlow_Translation_Correctness.
