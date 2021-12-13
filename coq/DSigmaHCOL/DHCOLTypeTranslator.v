@@ -2680,11 +2680,11 @@ Module MDHCOLTypeTranslator
         heq_AExpr trivial2 f f' ->
         evalNExpr_closure_trace_equiv
           trivial2
-          (LE.evalAExpr_NatClosures_σ
-             ((LE.DSHCTypeVal ct, false) :: (LE.DSHnatVal nt, false) :: σ)
+          (LE.evalAExpr_NatClosures
+             (LE.DSHOtherVar :: LE.DSHIndex nt :: LE.evalNatContext_of_evalContext σ)
              f)
-          (evalAExpr_NatClosures_σ
-             ((DSHCTypeVal ct', false) :: (DSHnatVal nt', false) :: σ')
+          (evalAExpr_NatClosures
+             (DSHOtherVar :: DSHIndex nt' :: evalNatContext_of_evalContext σ')
              f') ->
         heq_NType nt nt' ->
         herr_c trivial2
@@ -2693,15 +2693,89 @@ Module MDHCOLTypeTranslator
     Proof.
       intros M Σ F FT NT.
       unfold LE.evalIUnCType, LE'.evalIUnCType.
-      pose proof heq_AExpr_heq_evalAExpr
-           ((LE.DSHCTypeVal ct, false) :: (LE.DSHnatVal nt, false) :: σ)
-           ((DSHCTypeVal ct', false) :: (DSHnatVal nt', false) :: σ')
-           m m'
-           f f'
-        as EA.
-      full_autospecialize EA;
-        try assumption.
+      eapply heq_AExpr_heq_evalAExpr in M.
+      inversion M as [? ? B1 B2 | ? ? ? B1 B2];
+        rewrite <-B1, <-B2; [constructor |].
+      now constructor.
       now repeat constructor.
+      all: assumption.
+    Qed.
+
+    Lemma heq_AExpr_heq_evalIBinCType
+          (m : L.memory)
+          (m' : L'.memory)
+          (σ : LE.evalContext) 
+          (σ' : evalContext)
+          (f : L.AExpr)
+          (f' : L'.AExpr)
+          (nt : NT.t)
+          (nt' : NT'.t)
+          (ct1 ct2 : CT.t)
+          (ct1' ct2' : CT'.t)
+      :
+        heq_memory trivial2 m m' ->
+        heq_evalContext trivial2 σ σ' ->
+        heq_AExpr trivial2 f f' ->
+        evalNExpr_closure_trace_equiv
+          trivial2
+          (LE.evalAExpr_NatClosures
+             (LE.DSHOtherVar :: LE.DSHOtherVar :: LE.DSHIndex nt
+                             :: LE.evalNatContext_of_evalContext σ)
+             f)
+          (evalAExpr_NatClosures
+             (DSHOtherVar :: DSHOtherVar :: DSHIndex nt'
+                          :: evalNatContext_of_evalContext σ')
+             f') ->
+        heq_NType nt nt' ->
+        herr_c trivial2
+               (LE.evalIBinCType m σ f nt ct1 ct2)
+               (LE'.evalIBinCType m' σ' f' nt' ct1' ct2').
+    Proof.
+      intros M Σ F FT NT.
+      unfold LE.evalIBinCType, LE'.evalIBinCType.
+      eapply heq_AExpr_heq_evalAExpr in M.
+      inversion M as [? ? B1 B2 | ? ? ? B1 B2];
+        rewrite <-B1, <-B2; [constructor |].
+      now constructor.
+      now repeat constructor.
+      all: assumption.
+    Qed.
+
+    Lemma heq_AExpr_heq_evalBinCType
+          (m : L.memory)
+          (m' : L'.memory)
+          (σ : LE.evalContext) 
+          (σ' : evalContext)
+          (f : L.AExpr)
+          (f' : L'.AExpr)
+          (ct1 ct2 : CT.t)
+          (ct1' ct2' : CT'.t)
+      :
+        heq_memory trivial2 m m' ->
+        heq_evalContext trivial2 σ σ' ->
+        heq_AExpr trivial2 f f' ->
+        evalNExpr_closure_trace_equiv
+          trivial2
+          (LE.evalAExpr_NatClosures
+             (LE.DSHOtherVar :: LE.DSHOtherVar
+                             :: LE.evalNatContext_of_evalContext σ)
+             f)
+          (evalAExpr_NatClosures
+             (DSHOtherVar :: DSHOtherVar
+                          :: evalNatContext_of_evalContext σ')
+             f') ->
+        herr_c trivial2
+               (LE.evalBinCType m σ f ct1 ct2)
+               (LE'.evalBinCType m' σ' f' ct1' ct2').
+    Proof.
+      intros M Σ F FT.
+      unfold LE.evalBinCType, LE'.evalBinCType.
+      eapply heq_AExpr_heq_evalAExpr in M.
+      inversion M as [? ? B1 B2 | ? ? ? B1 B2];
+        rewrite <-B1, <-B2; [constructor |].
+      now constructor.
+      now repeat constructor.
+      all: assumption.
     Qed.
 
     Lemma evalNExpr_closure_equiv_monotone
