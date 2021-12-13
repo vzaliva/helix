@@ -3004,6 +3004,296 @@ Module MDHCOLTypeTranslator
         now apply heq_mem_block_mem_add.
     Qed.
 
+    Lemma heq_evalDSHBinOp
+          (m : L.memory)
+          (m' : L'.memory)
+          (n n' off off' : nat)
+          (nt : NT.t)
+          (nt' : NT'.t)
+          (f : L.AExpr)
+          (f' : L'.AExpr)
+          (σ : LE.evalContext)
+          (σ' : evalContext)
+          (x : L.mem_block)
+          (x' : L'.mem_block)
+          (y : L.mem_block)
+          (y' : L'.mem_block)
+      :
+        heq_memory trivial2 m m' ->
+
+        (* NOTE: this is equivalent to [heq_NT_nat n n'],
+           but we need to bind nt, nt' later *)
+        NT.from_nat n = inr nt ->
+        NT'.from_nat n' = inr nt' ->
+        heq_NType nt nt' ->
+
+        off = off' ->
+        heq_AExpr trivial2 f f' ->
+        evalNExpr_closure_trace_equiv
+          trivial2
+          (LE.evalAExpr_NatClosures
+             (LE.DSHOtherVar :: LE.DSHOtherVar :: LE.DSHIndex nt
+                             :: LE.evalNatContext_of_evalContext σ)
+             f)
+          (evalAExpr_NatClosures
+             (DSHOtherVar :: DSHOtherVar :: DSHIndex nt'
+                          :: evalNatContext_of_evalContext σ')
+             f') ->
+        heq_evalContext trivial2 σ σ' ->
+        heq_mem_block trivial2 x x' ->
+        heq_mem_block trivial2 y y' ->
+        herr_c (heq_mem_block trivial2)
+               (LE.evalDSHBinOp m n off f σ x y)
+               (LE'.evalDSHBinOp m' n' off' f' σ' x' y').
+    Proof.
+      intros M NT NT' NTE OFF F FT Σ X Y.
+      assert (N : heq_NT_nat n n').
+      {
+        constructor.
+        destruct (NT.from_nat n), (NT'.from_nat n');
+          invc NT; invc NT'.
+        constructor.
+        eapply heq_NType_proper;
+          eassumption.
+      }
+      copy_apply heq_NT_nat_eq N;
+        cbv in H; subst n'.
+      cbv in OFF; subst off'.
+
+      revert NT NT' NTE FT Y.
+      revert nt nt' y y'.
+      induction n;
+        cbn; intros.
+      -
+        constructor.
+        assumption.
+      -
+        remember_string.
+        pose proof
+             heq_mem_block_heq_mem_lookup_err trivial2 str str n n x x'
+          as ME.
+        full_autospecialize ME;
+          [reflexivity | assumption |].
+        invc ME; [constructor |].
+
+        remember_string.
+        pose proof
+             heq_mem_block_heq_mem_lookup_err
+             trivial2 str str (n + off) (n + off) x x'
+          as ME.
+        full_autospecialize ME;
+          [reflexivity | assumption |].
+        invc ME; [constructor |].
+
+        apply heq_NT_nat_S in N.
+        inv N; invc H5.
+
+        pose proof
+             heq_AExpr_heq_evalIBinCType m m' σ σ' f f' a1 b1 a a0 b b0
+          as EU.
+
+        (* for use in multiple places later *)
+        assert (AB : evalNExpr_closure_trace_equiv
+                       trivial2
+                       (LE.evalAExpr_NatClosures
+                          (LE.DSHOtherVar :: LE.DSHOtherVar :: LE.DSHIndex a1 ::
+                                          LE.evalNatContext_of_evalContext σ)
+                          f)
+                       (evalAExpr_NatClosures
+                          (DSHOtherVar :: DSHOtherVar :: DSHIndex b1 ::
+                                       evalNatContext_of_evalContext σ')
+                          f')).
+        {
+          eapply AExpr_NatClosures_equiv_monotone.
+          4: eassumption.
+          -
+            assumption.
+          -
+            cbn.
+            repeat constructor.
+            erewrite !to_nat_of_from_nat.
+            3: rewrite H6; reflexivity.
+            2: eassumption.
+            lia.
+            apply LE.evalNatContext_in_range_refl.
+          -
+            cbn.
+            repeat constructor.
+            erewrite !to_nat_of_from_nat'.
+            3: rewrite H7; reflexivity.
+            2: eassumption.
+            lia.
+            apply LE'.evalNatContext_in_range_refl.
+        }
+        full_autospecialize EU;
+          try assumption.
+        invc EU; [constructor |].
+        autospecialize IHn; [assumption |].
+        specialize (IHn a1 b1).
+        eapply IHn;
+          try assumption.
+        rewrite H6; reflexivity.
+        rewrite H7; reflexivity.
+        now apply heq_mem_block_mem_add.
+    Qed.
+
+    Lemma heq_evalDSHMap2
+          (m : L.memory)
+          (m' : L'.memory)
+          (n n' : nat)
+          (f : L.AExpr)
+          (f' : L'.AExpr)
+          (σ : LE.evalContext)
+          (σ' : evalContext)
+          (x0 x1 : L.mem_block)
+          (x0' x1' : L'.mem_block)
+          (y : L.mem_block)
+          (y' : L'.mem_block)
+      :
+        heq_memory trivial2 m m' ->
+        heq_NT_nat n n' ->
+        heq_AExpr trivial2 f f' ->
+        evalNExpr_closure_trace_equiv
+          trivial2
+          (LE.evalAExpr_NatClosures
+             (LE.DSHOtherVar :: LE.DSHOtherVar
+                             :: LE.evalNatContext_of_evalContext σ)
+             f)
+          (evalAExpr_NatClosures
+             (DSHOtherVar :: DSHOtherVar
+                          :: evalNatContext_of_evalContext σ')
+             f') ->
+        heq_evalContext trivial2 σ σ' ->
+        heq_mem_block trivial2 x0 x0' ->
+        heq_mem_block trivial2 x1 x1' ->
+        heq_mem_block trivial2 y y' ->
+        herr_c (heq_mem_block trivial2)
+               (LE.evalDSHMap2 m n f σ x0 x1 y)
+               (LE'.evalDSHMap2 m' n' f' σ' x0' x1' y').
+    Proof.
+      intros M N F FT Σ X0 X1 Y.
+      copy_apply heq_NT_nat_eq N;
+        cbv in H; subst n'.
+
+      generalize dependent y'.
+      generalize dependent y.
+      induction n;
+        intros.
+      -
+        constructor.
+        assumption.
+      -
+        cbn.
+        repeat remember_string.
+        pose proof
+             heq_mem_block_heq_mem_lookup_err trivial2 str str1 n n x0 x0'
+          as ME.
+        full_autospecialize ME;
+          [reflexivity | assumption |].
+        invc ME; [constructor |].
+
+        repeat remember_string.
+        pose proof
+             heq_mem_block_heq_mem_lookup_err trivial2 str str0 n n x1 x1'
+          as ME.
+        full_autospecialize ME;
+          [reflexivity | assumption |].
+        invc ME; [constructor |].
+
+        pose proof
+             heq_AExpr_heq_evalBinCType m m' σ σ' f f' a a0 b b0
+          as EU.
+
+        full_autospecialize EU;
+          try assumption.
+        invc EU; [constructor |].
+        autospecialize IHn; [now apply heq_NT_nat_S |].
+        eapply IHn;
+          try assumption.
+        now apply heq_mem_block_mem_add.
+    Qed.
+
+    Lemma heq_evalDSHPower
+          (m : L.memory)
+          (m' : L'.memory)
+          (n n' xoff xoff' yoff yoff' : nat)
+          (f : L.AExpr)
+          (f' : L'.AExpr)
+          (σ : LE.evalContext)
+          (σ' : evalContext)
+          (x : L.mem_block)
+          (x' : L'.mem_block)
+          (y : L.mem_block)
+          (y' : L'.mem_block)
+      :
+        heq_memory trivial2 m m' ->
+        heq_NT_nat n n' ->
+        heq_NT_nat xoff xoff' ->
+        heq_NT_nat yoff yoff' ->
+        heq_AExpr trivial2 f f' ->
+        evalNExpr_closure_trace_equiv
+          trivial2
+          ((LE.evalAExpr_NatClosures
+              (LE.DSHOtherVar :: LE.DSHOtherVar
+                              :: LE.evalNatContext_of_evalContext σ)
+              f))
+          (evalAExpr_NatClosures
+             (DSHOtherVar :: DSHOtherVar
+                          :: evalNatContext_of_evalContext σ')
+             f') ->
+        heq_evalContext trivial2 σ σ' ->
+        heq_mem_block trivial2 x x' ->
+        heq_mem_block trivial2 y y' ->
+        herr_c (heq_mem_block trivial2)
+               (LE.evalDSHPower m σ n f x y xoff yoff)
+               (LE'.evalDSHPower m' σ' n' f' x' y' xoff' yoff').
+    Proof.
+      intros M NTE XTE YTE F FT Σ X Y.
+
+      copy_apply heq_NT_nat_eq NTE;
+        cbv in H; subst n'.
+      copy_apply heq_NT_nat_eq XTE;
+        cbv in H; subst xoff'.
+      copy_apply heq_NT_nat_eq YTE;
+        cbv in H; subst yoff'.
+
+      generalize dependent y'.
+      generalize dependent y.
+
+      induction n;
+        cbn; intros.
+      -
+        constructor.
+        assumption.
+      -
+        remember_string.
+        pose proof
+             heq_mem_block_heq_mem_lookup_err trivial2 str str xoff xoff x x'
+          as ME.
+        full_autospecialize ME;
+          [reflexivity | assumption |].
+        invc ME; [constructor |].
+
+        remember_string.
+        pose proof
+             heq_mem_block_heq_mem_lookup_err trivial2 str str yoff yoff y y'
+          as ME.
+        full_autospecialize ME;
+          [reflexivity | assumption |].
+        invc ME; [constructor |].
+
+        pose proof
+             heq_AExpr_heq_evalBinCType m m' σ σ' f f' a0 a b0 b
+          as EU.
+
+        full_autospecialize EU;
+          try assumption.
+        invc EU; [constructor |].
+        eapply IHn.
+        now apply heq_NT_nat_S.
+        now apply heq_mem_block_mem_add.
+    Qed.
+
     Lemma heq_DSHOperator_heq_evalDSHOperator
           (op : LE.DSHOperator)
           (op' : LE'.DSHOperator)
