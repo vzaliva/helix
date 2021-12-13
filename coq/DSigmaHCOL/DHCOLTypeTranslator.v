@@ -865,8 +865,6 @@ Module MDHCOLTypeTranslator
 
   End Necessary_NT_Props.
 
-
-
   (* TODO: move *)
   (* NOTE: the other direction does not hold: [eq] vs [equiv] *)
   Lemma NP_Add_NM_add
@@ -3321,7 +3319,6 @@ Module MDHCOLTypeTranslator
                (LE.evalDSHOperator σ op imem fuel)
                (LE'.evalDSHOperator σ' op' imem' fuel').
     Proof.
-
       intros HEQ_OP.
       move HEQ_OP before op'.
 
@@ -3495,13 +3492,303 @@ Module MDHCOLTypeTranslator
         +
           apply heq_protect_evalContext; assumption.
       - (* BinOp *)
-        admit.
+        repeat break_match; invc H3; invc H4.
+        rename t1 into nt, t0 into nt'.
+        rename Heqs0 into NT, Heqs into NT'.
+        rename H into HEQN.
+        rename H0 into HEQXP, H1 into HEQYP.
+        rename H2 into HEQA.
+
+        copy_apply heq_NT_nat_eq HEQN;
+          cbv in H; subst n'.
+        constructor; cbn.
+
+        rewrite NT, NT'.
+
+        pose proof HEQXP as HEQXP'.
+        pose proof HEQYP as HEQYP'.
+        eapply heq_PExpr_heq_evalPExpr in HEQXP', HEQYP';
+          try eassumption.
+        invc HEQXP'; invc HEQYP'.
+        all: repeat break_let; subst.
+        all: repeat constructor.
+
+        remember_string.
+        pose proof heq_assert_nat_neq str str n0 n2 n1 n3 as T.
+        full_autospecialize T;
+          try (invc H1; invc H4; congruence).
+        invc T; [constructor |].
+
+        remember_string.
+        pose proof heq_NType_heq_assert_NT_le str str nt nt' t1 t3 as T.
+        full_autospecialize T;
+          [pose proof heq_NType_from_nat n; inv H8; congruence
+          |now inv H4
+          |].
+        invc T; [constructor |].
+
+        remember_string.
+        pose proof HEQ_MEMORY as HEQ_MEMORY'.
+        apply heq_memory_heq_memory_lookup_err
+          with (msg:=str)
+               (msg':=str)
+               (n:=n0)
+               (n':=n2)
+          in HEQ_MEMORY'; [| now invc H1].
+        invc HEQ_MEMORY'; [constructor | ].
+
+        remember_string.
+        pose proof HEQ_MEMORY as HEQ_MEMORY'.
+        apply heq_memory_heq_memory_lookup_err
+          with (msg:=str)
+               (msg':=str)
+               (n:=n1)
+               (n':=n3)
+          in HEQ_MEMORY'; [| now invc H4].
+        invc HEQ_MEMORY'; [constructor |].
+
+        pose proof HEQ_MEMORY as HEQ_MEMORY'.
+        eapply heq_evalDSHBinOp in HEQ_MEMORY'.
+        inversion HEQ_MEMORY' as [? ? I I' | ? ? ? I I'];
+          erewrite <-I, <-I'; [constructor |].
+        all: try eassumption.
+        +
+          constructor.
+          eapply heq_memory_memory_set;
+            [assumption | now invc H4 | assumption].
+        + rewrite NT; reflexivity.
+        + rewrite NT'; reflexivity.
+        + pose proof (heq_NType_from_nat n) as T.
+          inv T; try congruence; assumption.
+        + reflexivity.
+        +
+          rewrite LE.evalNatContext_of_protect_evalContext;
+            rewrite LE'.evalNatContext_of_protect_evalContext.
+          apply evalNExpr_closure_trace_equiv_app_inv in NTR_EQUIV;
+            [| eapply evalAExpr_NatClosures_length; eassumption ].
+          tauto.
+        +
+          apply heq_protect_evalContext; assumption.
       - (* MemMap2 *)
-        admit.
+        repeat break_match; invc H4; invc H5.
+        rename t1 into nt, t0 into nt'.
+        rename Heqs0 into NT, Heqs into NT'.
+        rename H into HEQN.
+        rename H0 into HEQXP0, H1 into HEQXP1.
+        rename H2 into HEQYP.
+        rename H3 into HEQA.
+
+        copy_apply heq_NT_nat_eq HEQN;
+          cbv in H; subst n'.
+        constructor; cbn.
+
+        rewrite NT, NT'.
+
+        pose proof HEQXP0 as HEQXP0'.
+        pose proof HEQXP1 as HEQXP1'.
+        pose proof HEQYP as HEQYP'.
+        eapply heq_PExpr_heq_evalPExpr in HEQXP0', HEQXP1', HEQYP';
+          try eassumption.
+        invc HEQXP0'; invc HEQXP1'; invc HEQYP'.
+        all: repeat break_let; subst.
+        all: repeat constructor.
+
+        remember_string.
+        pose proof heq_NType_heq_assert_NT_le str str nt nt' t2 t5 as T.
+        full_autospecialize T;
+          [pose proof heq_NType_from_nat n; inv H8; congruence
+          |now inv H7
+          |].
+        invc T; [constructor |].
+
+        remember_string.
+        pose proof HEQ_MEMORY as HEQ_MEMORY'.
+        apply heq_memory_heq_memory_lookup_err
+          with (msg:=str)
+               (msg':=str)
+               (n:=n0)
+               (n':=n3)
+          in HEQ_MEMORY'; [| now invc H1].
+        invc HEQ_MEMORY'; [constructor | ].
+
+        remember_string.
+        pose proof HEQ_MEMORY as HEQ_MEMORY'.
+        apply heq_memory_heq_memory_lookup_err
+          with (msg:=str)
+               (msg':=str)
+               (n:=n1)
+               (n':=n4)
+          in HEQ_MEMORY'; [| now invc H4].
+        invc HEQ_MEMORY'; [constructor | ].
+
+        remember_string.
+        pose proof HEQ_MEMORY as HEQ_MEMORY'.
+        apply heq_memory_heq_memory_lookup_err
+          with (msg:=str)
+               (msg':=str)
+               (n:=n2)
+               (n':=n5)
+          in HEQ_MEMORY'; [| now invc H7].
+        invc HEQ_MEMORY'; [constructor |].
+
+        pose proof HEQ_MEMORY as HEQ_MEMORY'.
+        eapply heq_evalDSHMap2 in HEQ_MEMORY'.
+        inversion HEQ_MEMORY' as [? ? I I' | ? ? ? I I'];
+          erewrite <-I, <-I'; [constructor |].
+        all: try eassumption.
+        +
+          constructor.
+          eapply heq_memory_memory_set;
+            [assumption | now invc H7 | assumption].
+        +
+          rewrite LE.evalNatContext_of_protect_evalContext;
+            rewrite LE'.evalNatContext_of_protect_evalContext.
+          apply evalNExpr_closure_trace_equiv_app_inv in NTR_EQUIV;
+            [| eapply evalAExpr_NatClosures_length; eassumption ].
+          tauto.
+        +
+          apply heq_protect_evalContext; assumption.
       - (* Power *)
-        admit.
+        clear H5.
+        rename H into HEQN.
+        rename H0 into HEQ_SRCN, H1 into HEQ_DSTN.
+        rename H2 into HEQ_SRCP, H3 into HEQ_DSTP.
+        rename H4 into HEQA.
+        cbn; constructor.
+
+        pose proof HEQ_SRCP as HEQ_SRCP'.
+        pose proof HEQ_DSTP as HEQ_DSTP'.
+        eapply heq_PExpr_heq_evalPExpr in HEQ_SRCP', HEQ_DSTP';
+          try eassumption.
+        invc HEQ_SRCP'; invc HEQ_DSTP'.
+        all: repeat break_let; subst.
+        all: repeat constructor.
+
+        remember_string.
+        pose proof heq_assert_nat_neq str str n0 n2 n1 n3 as T.
+        full_autospecialize T;
+          try (invc H1; invc H4; congruence).
+        invc T; [constructor |].
+
+        remember_string.
+        pose proof HEQ_MEMORY as HEQ_MEMORY'.
+        apply heq_memory_heq_memory_lookup_err
+          with (msg:=str)
+               (msg':=str)
+               (n:=n0)
+               (n':=n2)
+          in HEQ_MEMORY'; [| now invc H1].
+        invc HEQ_MEMORY'; [constructor | ].
+
+        remember_string.
+        pose proof HEQ_MEMORY as HEQ_MEMORY'.
+        apply heq_memory_heq_memory_lookup_err
+          with (msg:=str)
+               (msg':=str)
+               (n:=n1)
+               (n':=n3)
+          in HEQ_MEMORY'; [| now invc H4].
+        invc HEQ_MEMORY'; [constructor |].
+
+        inv NTR_EQUIV; invc H19; invc H21; clear H22.
+        cbn in H17, H18, H19.
+        autospecialize_closure_equiv H17 σ σ'.
+        autospecialize_closure_equiv H18 σ σ'.
+        autospecialize_closure_equiv H19 σ σ'.
+        inv H17; [constructor |].
+        inv H18; [constructor |].
+        inv H19; [constructor |].
+
+        remember_string.
+        pose proof heq_NType_heq_assert_NT_lt str str a4 b4 t1 t3 as T.
+        full_autospecialize T;
+          [rewrite <-H23, <-H24 in *; now invc H19
+          |now inv H4
+          |].
+        invc T; [constructor |].
+
+        pose proof HEQ_MEMORY as HEQ_MEMORY'.
+        eapply heq_evalDSHPower in HEQ_MEMORY'.
+        inversion HEQ_MEMORY' as [? ? I I' | ? ? ? I I'];
+          erewrite <-I, <-I'; [constructor |].
+        all: try eassumption.
+        +
+          constructor.
+          eapply heq_memory_memory_set;
+            [assumption | now invc H4 | assumption].
+        +
+          (* poor man's proper *)
+          clear - H16.
+          constructor.
+          pose proof (from_nat_of_to_nat a2).
+          pose proof (from_nat_of_to_nat' b2).
+          destruct NT.from_nat, NT'.from_nat;
+            invc H; invc H0; constructor.
+          eapply heq_NType_proper; eassumption.
+        +
+          (* poor man's proper *)
+          clear - H22.
+          constructor.
+          pose proof (from_nat_of_to_nat a3).
+          pose proof (from_nat_of_to_nat' b3).
+          destruct NT.from_nat, NT'.from_nat;
+            invc H; invc H0; constructor.
+          eapply heq_NType_proper; eassumption.
+        +
+          (* poor man's proper *)
+          clear - H25.
+          constructor.
+          pose proof (from_nat_of_to_nat a4).
+          pose proof (from_nat_of_to_nat' b4).
+          destruct NT.from_nat, NT'.from_nat;
+            invc H; invc H0; constructor.
+          eapply heq_NType_proper; eassumption.
+        +
+          rewrite LE.evalNatContext_of_protect_evalContext;
+            rewrite LE'.evalNatContext_of_protect_evalContext.
+          do 3 (apply evalNExpr_closure_trace_equiv_cons_inv in NTR_EQUIV;
+                destruct NTR_EQUIV as [_ NTR_EQUIV]).
+          apply evalNExpr_closure_trace_equiv_app_inv in NTR_EQUIV;
+            [| eapply evalAExpr_NatClosures_length; eassumption ].
+          tauto.
+        +
+          apply heq_protect_evalContext; assumption.
+        +
+          apply heq_mem_block_mem_add.
+          assumption.
+          apply heq_NType_to_nat'; assumption.
+          constructor.
       - (* MemInit *)
-        admit.
+        clear H0.
+        rename p into y_p, p' into y_p', H into HEQYP.
+        cbn.
+        constructor.
+
+        pose proof HEQYP as HEQYP'.
+        eapply heq_PExpr_heq_evalPExpr in HEQYP';
+          try eassumption.
+        invc HEQYP'.
+        all: repeat break_let; subst.
+        all: repeat constructor.
+
+        remember_string.
+        pose proof HEQ_MEMORY as HEQ_MEMORY'.
+        apply heq_memory_heq_memory_lookup_err
+          with (msg:=str)
+               (msg':=str)
+               (n:=n)
+               (n':=n0)
+          in HEQ_MEMORY'; [| now invc H1].
+        invc HEQ_MEMORY'; [constructor | ].
+        constructor.
+        eapply heq_memory_memory_set.
+        assumption.
+        now inv H1.
+        apply heq_mem_block_heq_mem_union;
+          [| assumption].
+        apply heq_mem_const_block.
+        apply heq_NType_to_nat'; now invc H1.
+        constructor.
       - (* Loop *)
         rename H0 into TΣN, H1 into TΣN';
           symmetry in TΣN, TΣN'.
@@ -3677,7 +3964,7 @@ Module MDHCOLTypeTranslator
         4: rewrite TΣN, TΣN'.
         all: try assumption.
         now repeat constructor.
-    Admitted.
+    Qed.
 
   End ControlFlow_Translation_Correctness.
 
