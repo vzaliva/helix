@@ -1747,12 +1747,9 @@ Section TopLevel.
     (* Assumptions for AHCOL to RHCOL mapping *)
     `{CTT: AHCOLtoRHCOL.CTranslationOp}
     `{CTP: @AHCOLtoRHCOL.CTranslationProps CTT}
-    `{NTT: AHCOLtoRHCOL.NTranslationOp}
     `{NTP: @AHCOLtoRHCOL.NTranslationProps NTT}
     (* Assumptions for RHCOL to FHCOL mapping *)
     `{CTTF: RHCOLtoFHCOL.CTranslationOp}
-    `{NTTF: RHCOLtoFHCOL.NTranslationOp}
-    `{NTPF': @RHCOLtoFHCOL.NTranslationProps' NTTF}
 (*
      Note: the following are not assumed, as they
      could not be true for Real -> Float and Nat -> Int64
