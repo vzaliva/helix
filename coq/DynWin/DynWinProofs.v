@@ -1506,13 +1506,26 @@ Hint Rewrite
 
 (* Print Rewrite HintDb CarrierAZ1equalities. *)
 
-Section AHCOL_to_RHCOL.
-    Context `{CTT: AHCOLtoRHCOL.CTranslationOp}
-            `{CTP: @AHCOLtoRHCOL.CTranslationProps CTT}
-            `{NTT: AHCOLtoRHCOL.NTranslationOp}
-            `{NTP: @AHCOLtoRHCOL.NTranslationProps NTT}.
+Instance nat_equiv_proper :
+  Proper (equiv ==> equiv ==> iff) peano_naturals.nat_equiv.
+Proof.
+  now cbv.
+Qed.
 
-    Definition dynwin_RHCOL := AHCOLtoRHCOL.translate dynwin_AHCOL.
+Instance NTT : AHCOLtoRHCOL.NTranslationOp :=
+  { heq_NType := peano_naturals.nat_equiv;
+    heq_NType_proper := nat_equiv_proper;
+    translateNTypeValue := inr; (* lifted [id] *)
+  }.
+
+Section AHCOL_to_RHCOL.
+
+  Context `{CTT: AHCOLtoRHCOL.CTranslationOp}
+          `{CTP: @AHCOLtoRHCOL.CTranslationProps CTT}
+          (* TODO: given the now instantiated NTT, this can be proven too *)
+          {NTP: @AHCOLtoRHCOL.NTranslationProps NTT}.
+
+  Definition dynwin_RHCOL := AHCOLtoRHCOL.translate dynwin_AHCOL.
 
   (*
      For debug printing
