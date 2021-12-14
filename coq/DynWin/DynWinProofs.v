@@ -1563,6 +1563,7 @@ Hint Rewrite
 
 Require Import AltBinNotations.
 
+
 Definition heq_nat_int : nat -> MInt64asNT.t -> Prop :=
   fun n i => Z.of_nat n ≡ Int64.intval i.
 
@@ -1790,6 +1791,92 @@ Section TopLevel.
                      (* x *) RHCOLEval.mem_block ->
                      (* y *) RHCOLEval.mem_block ->
                  (* y_mem *) FHCOLEval.mem_block -> Prop.
+
+  (*
+  (** * AHCOL *)
+  Definition ahcol_nexpr_closure_trace :=
+    match AHCOLEval.intervalEvalDSHOperator
+            (AHCOLEval.evalNatContext_of_evalContext build_dynwin_σ)
+            dynwin_AHCOL
+            []
+            (AHCOLEval.estimateFuel dynwin_AHCOL) with
+    | Some (inr t) => t
+    | _ => []
+    end.
+  Compute ahcol_nexpr_closure_trace.
+
+  (** * RHCOL *)
+  Definition DynWin_RHCOL :=
+    match AHCOLtoRHCOL.translate dynwin_AHCOL with
+    | inr dynwin => dynwin
+    | _ => RHCOL.DSHNop
+    end.
+  Compute DynWin_RHCOL.
+
+  Goal DynWin_RHCOL = RHCOL.DSHNop.
+    unfold DynWin_RHCOL.
+    cbn.
+    Set Printing Depth 100.
+
+    assert (AHCOLtoRHCOL.translateCTypeConst CarrierAz
+            ≡ @inr string _ MRasCT.CTypeZero) by admit.
+    setoid_rewrite H.
+
+    assert (AHCOLtoRHCOL.translateCTypeConst CarrierA1
+            ≡ @inr string _ MRasCT.CTypeOne) by admit.
+    setoid_rewrite H0.
+    setoid_rewrite H.
+  Admitted.
+
+  Definition dynwin_R_σ :=
+    match AHCOLtoRHCOL.translateEvalContext build_dynwin_σ with
+    | inr σ => σ
+    | _ => []
+    end.
+
+  Compute dynwin_R_σ.
+
+  Definition rhcol_nexpr_closure_trace :=
+    match RHCOLEval.intervalEvalDSHOperator
+            (RHCOLEval.evalNatContext_of_evalContext dynwin_R_σ)
+            DynWin_RHCOL
+            []
+            (RHCOLEval.estimateFuel DynWin_RHCOL) with
+    | Some (inr t) => t
+    | _ => []
+    end.
+  Compute rhcol_nexpr_closure_trace.
+
+  (** * FHCOL *)
+  Definition DynWin_FHCOL :=
+    match RHCOLtoFHCOL.translate DynWin_RHCOL with
+    | inr dynwin => dynwin
+    | _ => FHCOL.DSHNop
+    end.
+  (* Compute DynWin_FHCOL. *)
+
+  Definition dynwin_F_σ :=
+    match RHCOLtoFHCOL.translateEvalContext dynwin_R_σ with
+    | inr σ => σ
+    | _ => []
+    end.
+  Compute dynwin_F_σ.
+
+  Definition fhcol_nexpr_closure_trace :=
+    match FHCOLEval.intervalEvalDSHOperator
+            (FHCOLEval.evalNatContext_of_evalContext dynwin_F_σ)
+            DynWin_FHCOL
+            []
+            (FHCOLEval.estimateFuel DynWin_FHCOL) with
+    | Some (inr t) => t
+    | _ => []
+    end.
+  (* Compute fhcol_nexpr_closure_trace. *)
+
+  Compute ahcol_nexpr_closure_trace.
+  (* Compute rhcol_nexpr_closure_trace. *)
+  (* Compute fhcol_nexpr_closure_trace. *)
+   *)
 
   (*
     Translation validation proof of semantic preservation
