@@ -1563,11 +1563,10 @@ Hint Rewrite
 
 Require Import AltBinNotations.
 
-(* TODO: clean all this up, (up to next Section) *)
 Definition heq_nat_int : nat -> MInt64asNT.t -> Prop :=
   fun n i => Z.of_nat n ≡ Int64.intval i.
 
-Lemma heq_nat_int_proper :
+Instance heq_nat_int_proper :
   Proper (equiv ==> equiv ==> iff) heq_nat_int.
 Proof.
   intros n1 n2 EN i1 i2 EI.
@@ -1579,91 +1578,44 @@ Proof.
   lia.
 Qed.
 
-Instance NTT : RHCOLtoFHCOL.NTranslationOp :=
+Instance RF_NTT : RHCOLtoFHCOL.NTranslationOp :=
   { heq_NType := heq_nat_int;
     heq_NType_proper := heq_nat_int_proper;
     translateNTypeValue := MInt64asNT.from_nat;
   }.
 
-Lemma RHCOLtoFHCOL_to_nat_of_from_nat :
-  ∀ (n : nat) (nt : NatAsNT.MNatAsNT.t),
-    NatAsNT.MNatAsNT.from_nat n = inr nt →
-    NatAsNT.MNatAsNT.to_nat nt = n.
+Instance RF_NTP' : RHCOLtoFHCOL.NTranslationProps'.
 Proof.
-  unfold NatAsNT.MNatAsNT.from_nat, NatAsNT.MNatAsNT.to_nat.
-  intros n nt E.
-  now invc E.
-Qed.
-
-Lemma RHCOLtoFHCOL_to_nat_of_from_nat' :
-  ∀ (n : nat) (nt : MInt64asNT.t),
-    Int64asNT.MInt64asNT.from_nat n = inr nt →
-    Int64asNT.MInt64asNT.to_nat nt = n.
-Proof.
-  unfold MInt64asNT.from_nat, MInt64asNT.to_nat, MInt64asNT.from_Z.
-  intros n nt E.
-  repeat break_match; invc E.
-  pose proof Integers.Int64.eq_spec
-       {| Int64.intval := Z.of_nat n; Int64.intrange := conj l l0 |}
-       nt
-    as EQI.
-  rewrite H1 in EQI.
-  apply f_equal with (f:=Int64.intval) in EQI.
-  rewrite <-EQI.
-  cbn.
-  now rewrite Nat2Z.id.
-Qed.
-
-Lemma RHCOLtoFHCOL_heq_NType_to_nat'
-      (n : NatAsNT.MNatAsNT.t)
-      (n' : MInt64asNT.t)
-  :
-    @heq_NType NTT n n' ->
-    NatAsNT.MNatAsNT.to_nat n = Int64asNT.MInt64asNT.to_nat n'.
-Proof.
-  unfold heq_NType, NatAsNT.MNatAsNT.to_nat, MInt64asNT.to_nat.
-  unfold NTT.
-  unfold heq_nat_int.
-  intros  NI.
-  rewrite <-NI.
-  rewrite Nat2Z.id.
-  reflexivity.
-Qed.
-
-Lemma RHCOLtoFHCOL_heq_NType_translateNTypeConst_compat
-      (n : NatAsNT.MNatAsNT.t)
-      (n' : MInt64asNT.t)
-  :
-    RHCOLtoFHCOL.translateNTypeConst n = inr n' ->
-    @heq_NType NTT n n'.
-Proof.
-  intros TN.
-  unfold translateNTypeConst, MInt64asNT.from_nat,
-  NatAsNT.MNatAsNT.to_nat, MInt64asNT.from_Z, heq_NType, NTT, heq_nat_int in *.
-  repeat break_match; invc TN.
-  pose proof Integers.Int64.eq_spec
-       {| Int64.intval := Z.of_nat n; Int64.intrange := conj l l0 |}
-       n'
-    as EQI.
-  rewrite H1 in EQI.
-  apply f_equal with (f:=Int64.intval) in EQI.
-  rewrite <-EQI.
-  reflexivity.
-Qed.
-
-Lemma RHCOLtoFHCOL_heq_NType_from_nat (n : nat) :
-  herr_f (@heq_NType NTT)
-         (NatAsNT.MNatAsNT.from_nat n)
-         (Int64asNT.MInt64asNT.from_nat n).
-Proof.
-  unfold heq_NType, NTT, NatAsNT.MNatAsNT.from_nat, Int64asNT.MInt64asNT.from_nat.
-  unfold heq_nat_int, MInt64asNT.from_Z.
-  repeat break_match;
-    constructor.
-  reflexivity.
+  constructor; intros *.
+  all: unfold RF_NTT, heq_NType, heq_nat_int.
+  all: unfold NatAsNT.MNatAsNT.to_nat, MInt64asNT.to_nat.
+  all: unfold NatAsNT.MNatAsNT.from_nat, MInt64asNT.from_nat.
+  -
+    intros NI.
+    rewrite <-NI.
+    rewrite Nat2Z.id.
+    reflexivity.
+  -
+    unfold MInt64asNT.from_Z.
+    repeat break_match;
+      constructor.
+    reflexivity.
+  -
+    intros TN.
+    unfold translateNTypeValue, MInt64asNT.from_Z in *.
+    repeat break_match; invc TN.
+    pose proof Integers.Int64.eq_spec
+         {| Int64.intval := Z.of_nat n; Int64.intrange := conj l l0 |}
+         n'
+      as EQI.
+    rewrite H1 in EQI.
+    apply f_equal with (f:=Int64.intval) in EQI.
+    rewrite <-EQI.
+    reflexivity.
 Qed.
 
 Section RHCOL_to_FHCOL.
+
   Context `{AR_CTT: AHCOLtoRHCOL.CTranslationOp}
           `{RF_CTT: RHCOLtoFHCOL.CTranslationOp}.
 
