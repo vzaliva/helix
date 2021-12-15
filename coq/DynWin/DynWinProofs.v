@@ -2194,6 +2194,65 @@ Section TopLevel.
     | _ => []
     end.
 
+  Ltac crush_int :=
+    repeat rewrite !Int64.unsigned_repr;
+    replace Int64.max_unsigned
+      with 18446744073709551615%Z
+      in *
+      by reflexivity;
+    try lia.
+
+  Ltac unfold_RF_NType_ops :=
+    unfold NatAsNT.MNatAsNT.to_nat,
+           NatAsNT.MNatAsNT.from_nat
+      in * ;
+    unfold MInt64asNT.to_nat,
+           MInt64asNT.from_nat
+      in *;
+    unfold NatAsNT.MNatAsNT.NTypePlus,
+           NatAsNT.MNatAsNT.NTypeDiv,
+           NatAsNT.MNatAsNT.NTypeMod,
+           NatAsNT.MNatAsNT.NTypePlus,
+           NatAsNT.MNatAsNT.NTypeMinus,
+           NatAsNT.MNatAsNT.NTypeMult,
+           NatAsNT.MNatAsNT.NTypeMin,
+           NatAsNT.MNatAsNT.NTypeMax
+      in *;
+    unfold MInt64asNT.NTypePlus,
+           MInt64asNT.NTypeDiv,
+           MInt64asNT.NTypeMod,
+           MInt64asNT.NTypePlus,
+           MInt64asNT.NTypeMinus,
+           MInt64asNT.NTypeMult,
+           MInt64asNT.NTypeMin,
+           MInt64asNT.NTypeMax
+      in *;
+    unfold Int64.divu,
+           Int64.modu,
+           Int64.add,
+           Int64.sub,
+           Int64.mul,
+           Int64.lt
+      in *.
+
+
+  (* note: the two [try] blocks are for RHCOL/FHCOL lemma *)
+  Ltac destruct_context_range_lookup ΣR x :=
+    let TΣR := fresh "TΣR" in
+    let nv := fresh "nv" in
+    let p := fresh "p" in
+    let NV := fresh "NV" in
+    let Σ := fresh "Σ" in
+    pose proof ΣR as TΣR;
+    try (eapply RHCOLEval.evalContext_in_range_lookup_Index
+           with (k:=x) in TΣR;
+         [| reflexivity]);
+    try (eapply FHCOLEval.evalContext_in_range_lookup_Index
+           with (k:=x) in TΣR;
+         [| reflexivity]);
+    destruct TΣR as (nv & p & NV & Σ);
+    rewrite Σ.
+
   Lemma rhcol_fhcol_nexpr_closure_trace_equiv :
     evalNExpr_closure_trace_equiv
       trivial2
@@ -2202,21 +2261,161 @@ Section TopLevel.
   Proof.
     cbn.
     repeat constructor.
-    all: try match goal with
-             | [ |- evalNExpr_closure_equiv
-                     trivial2 (_, RHCOLEval.NVar _) (_, NVar _) ]
-               => admit
-             end.
+
+    1,3,5,7,9-14: cbn.
+    1-10: intros * ΣR ΣR' ΣE NE.
+    1-10: pose proof ΣE as Σ3E.
+    1-10: match goal with
+          | [ |- context [ RHCOLEval.context_lookup _ _ ?k ]] =>
+            eapply heq_evalContext_heq_context_lookup with (n:=k) in Σ3E
+          end.
+    1-10: match goal with
+          | [ |- context [ RHCOLEval.context_lookup _ _ ?n ]] =>
+            destruct_context_range_lookup ΣR n;
+              destruct_context_range_lookup ΣR' n
+          end.
+    1-10: constructor.
+    1-10: rewrite Σ, Σ0 in Σ3E.
+    1-10: cbn in Σ3E; invc Σ3E; invc H1; invc H0; assumption.
+
+    (* TODO: all 4 subogals are exact copies *)
     -
       cbn.
       intros * ΣR ΣR' ΣE NE.
-      remember_string.
-      pose proof
-           heq_evalContext_heq_context_lookup
-           trivial2 σ σ' str str 3 ΣE
-        as T.
-      invc T; [constructor |].
-  Admitted.
+
+      destruct_context_range_lookup ΣR 3.
+      destruct_context_range_lookup ΣR' 3.
+
+      pose proof ΣE as Σ3E.
+      eapply heq_evalContext_heq_context_lookup with (n:=3) in Σ3E.
+      rewrite Σ, Σ0 in Σ3E.
+      cbn in Σ3E.
+      invc Σ3E; invc H1; invc H0; invc H.
+
+      destruct_context_range_lookup ΣR 1.
+      destruct_context_range_lookup ΣR' 1.
+
+      pose proof ΣE as Σ1E.
+      eapply heq_evalContext_heq_context_lookup with (n:=1) in Σ1E.
+      rewrite Σ1, Σ2 in Σ1E.
+      cbn in Σ1E.
+      invc Σ1E; invc H1; invc H0; invc H.
+
+      constructor.
+      unfold_RF_NType_ops.
+      cbn.
+
+      unfold heq_NType, RF_NTT, heq_nat_int in *.
+      replace (Int64.unsigned nv0)
+        with (Z.of_nat nv)
+        by (now unfold Int64.unsigned).
+      replace (Int64.unsigned nv2)
+        with (Z.of_nat nv1)
+        by (now unfold Int64.unsigned).
+      crush_int.
+    -
+      cbn.
+      intros * ΣR ΣR' ΣE NE.
+
+      destruct_context_range_lookup ΣR 3.
+      destruct_context_range_lookup ΣR' 3.
+
+      pose proof ΣE as Σ3E.
+      eapply heq_evalContext_heq_context_lookup with (n:=3) in Σ3E.
+      rewrite Σ, Σ0 in Σ3E.
+      cbn in Σ3E.
+      invc Σ3E; invc H1; invc H0; invc H.
+
+      destruct_context_range_lookup ΣR 1.
+      destruct_context_range_lookup ΣR' 1.
+
+      pose proof ΣE as Σ1E.
+      eapply heq_evalContext_heq_context_lookup with (n:=1) in Σ1E.
+      rewrite Σ1, Σ2 in Σ1E.
+      cbn in Σ1E.
+      invc Σ1E; invc H1; invc H0; invc H.
+
+      constructor.
+      unfold_RF_NType_ops.
+      cbn.
+
+      unfold heq_NType, RF_NTT, heq_nat_int in *.
+      replace (Int64.unsigned nv0)
+        with (Z.of_nat nv)
+        by (now unfold Int64.unsigned).
+      replace (Int64.unsigned nv2)
+        with (Z.of_nat nv1)
+        by (now unfold Int64.unsigned).
+      crush_int.
+    -
+      cbn.
+      intros * ΣR ΣR' ΣE NE.
+
+      destruct_context_range_lookup ΣR 3.
+      destruct_context_range_lookup ΣR' 3.
+
+      pose proof ΣE as Σ3E.
+      eapply heq_evalContext_heq_context_lookup with (n:=3) in Σ3E.
+      rewrite Σ, Σ0 in Σ3E.
+      cbn in Σ3E.
+      invc Σ3E; invc H1; invc H0; invc H.
+
+      destruct_context_range_lookup ΣR 1.
+      destruct_context_range_lookup ΣR' 1.
+
+      pose proof ΣE as Σ1E.
+      eapply heq_evalContext_heq_context_lookup with (n:=1) in Σ1E.
+      rewrite Σ1, Σ2 in Σ1E.
+      cbn in Σ1E.
+      invc Σ1E; invc H1; invc H0; invc H.
+
+      constructor.
+      unfold_RF_NType_ops.
+      cbn.
+
+      unfold heq_NType, RF_NTT, heq_nat_int in *.
+      replace (Int64.unsigned nv0)
+        with (Z.of_nat nv)
+        by (now unfold Int64.unsigned).
+      replace (Int64.unsigned nv2)
+        with (Z.of_nat nv1)
+        by (now unfold Int64.unsigned).
+      crush_int.
+    -
+      cbn.
+      intros * ΣR ΣR' ΣE NE.
+
+      destruct_context_range_lookup ΣR 3.
+      destruct_context_range_lookup ΣR' 3.
+
+      pose proof ΣE as Σ3E.
+      eapply heq_evalContext_heq_context_lookup with (n:=3) in Σ3E.
+      rewrite Σ, Σ0 in Σ3E.
+      cbn in Σ3E.
+      invc Σ3E; invc H1; invc H0; invc H.
+
+      destruct_context_range_lookup ΣR 1.
+      destruct_context_range_lookup ΣR' 1.
+
+      pose proof ΣE as Σ1E.
+      eapply heq_evalContext_heq_context_lookup with (n:=1) in Σ1E.
+      rewrite Σ1, Σ2 in Σ1E.
+      cbn in Σ1E.
+      invc Σ1E; invc H1; invc H0; invc H.
+
+      constructor.
+      unfold_RF_NType_ops.
+      cbn.
+
+      unfold heq_NType, RF_NTT, heq_nat_int in *.
+      replace (Int64.unsigned nv0)
+        with (Z.of_nat nv)
+        by (now unfold Int64.unsigned).
+      replace (Int64.unsigned nv2)
+        with (Z.of_nat nv1)
+        by (now unfold Int64.unsigned).
+      crush_int.
+  Qed.
 
   (*
     Translation validation proof of semantic preservation
@@ -2589,6 +2788,11 @@ Section TopLevel.
       -
         now apply translate_runtime_memory_same_indices.
       -
+  Lemma rhcol_fhcol_nexpr_closure_trace_equiv :
+    evalNExpr_closure_trace_equiv
+      trivial2
+      rhcol_nexpr_closure_trace
+      fhcol_nexpr_closure_trace.
         admit. (* numerical analysis *)
       -
         inv H.
