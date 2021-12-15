@@ -1792,49 +1792,381 @@ Section TopLevel.
                      (* y *) RHCOLEval.mem_block ->
                  (* y_mem *) FHCOLEval.mem_block -> Prop.
 
-  (*
-  (** * AHCOL *)
-  Definition ahcol_nexpr_closure_trace :=
-    match AHCOLEval.intervalEvalDSHOperator
-            (AHCOLEval.evalNatContext_of_evalContext build_dynwin_σ)
-            dynwin_AHCOL
-            []
-            (AHCOLEval.estimateFuel dynwin_AHCOL) with
-    | Some (inr t) => t
-    | _ => []
-    end.
-  Compute ahcol_nexpr_closure_trace.
-
   (** * RHCOL *)
   Definition DynWin_RHCOL :=
-    match AHCOLtoRHCOL.translate dynwin_AHCOL with
-    | inr dynwin => dynwin
-    | _ => RHCOL.DSHNop
-    end.
-  Compute DynWin_RHCOL.
+    RHCOLEval.DSHAlloc (NatAsNT.MNatAsNT.to_nat 2)
+      (RHCOLEval.DSHSeq
+         (RHCOLEval.DSHSeq
+            (RHCOLEval.DSHAlloc (NatAsNT.MNatAsNT.to_nat 1)
+               (RHCOLEval.DSHSeq
+                  (RHCOLEval.DSHSeq
+                     (RHCOLEval.DSHMemInit (RHCOL.PVar 0) MRasCT.CTypeZero)
+                     (RHCOLEval.DSHAlloc (NatAsNT.MNatAsNT.to_nat 1)
+                        (RHCOLEval.DSHLoop 3
+                           (RHCOLEval.DSHSeq
+                              (RHCOLEval.DSHAlloc (NatAsNT.MNatAsNT.to_nat 1)
+                                 (RHCOLEval.DSHSeq
+                                    (RHCOLEval.DSHAssign
+                                       (RHCOL.PVar (S (S (S (S (S (S 1)))))),
+                                       RHCOLEval.NConst
+                                         (NatAsNT.MNatAsNT.to_nat 0))
+                                       (RHCOL.PVar 0,
+                                       RHCOLEval.NConst
+                                         (NatAsNT.MNatAsNT.to_nat 0)))
+                                    (RHCOLEval.DSHAlloc
+                                       (NatAsNT.MNatAsNT.to_nat 1)
+                                       (RHCOLEval.DSHSeq
+                                          (RHCOLEval.DSHPower
+                                             (RHCOLEval.NVar 2)
+                                             (RHCOL.PVar (S 0),
+                                             RHCOLEval.NConst
+                                               (NatAsNT.MNatAsNT.to_nat 0))
+                                             (RHCOL.PVar 0,
+                                             RHCOLEval.NConst
+                                               (NatAsNT.MNatAsNT.to_nat 0))
+                                             (RHCOLEval.AMult
+                                                (RHCOLEval.AVar 1)
+                                                (RHCOLEval.AVar 0))
+                                             MRasCT.CTypeOne)
+                                          (RHCOLEval.DSHIMap 1
+                                             (RHCOL.PVar 0)
+                                             (RHCOL.PVar (S (S (S 0))))
+                                             (RHCOLEval.AMult
+                                                (RHCOLEval.AVar 0)
+                                                (RHCOLEval.ANth
+                                                   (RHCOLEval.MPtrDeref
+                                                   (RHCOL.PVar 8))
+                                                   (RHCOLEval.NVar 4))))))))
+                              (RHCOLEval.DSHMemMap2 1
+                                 (RHCOL.PVar (S (S 0)))
+                                 (RHCOL.PVar 1) (RHCOL.PVar (S (S 0)))
+                                 (RHCOLEval.APlus (RHCOLEval.AVar 1)
+                                    (RHCOLEval.AVar 0)))))))
+                  (RHCOLEval.DSHAssign
+                     (RHCOL.PVar 0,
+                     RHCOLEval.NConst (NatAsNT.MNatAsNT.to_nat 0))
+                     (RHCOL.PVar (S 0),
+                     RHCOLEval.NConst (NatAsNT.MNatAsNT.to_nat 0)))))
+            (RHCOLEval.DSHAlloc (NatAsNT.MNatAsNT.to_nat 1)
+               (RHCOLEval.DSHSeq
+                  (RHCOLEval.DSHSeq
+                     (RHCOLEval.DSHMemInit (RHCOL.PVar 0) MRasCT.CTypeZero)
+                     (RHCOLEval.DSHAlloc (NatAsNT.MNatAsNT.to_nat 1)
+                        (RHCOLEval.DSHLoop 2
+                           (RHCOLEval.DSHSeq
+                              (RHCOLEval.DSHAlloc (NatAsNT.MNatAsNT.to_nat 2)
+                                 (RHCOLEval.DSHSeq
+                                    (RHCOLEval.DSHLoop 2
+                                       (RHCOLEval.DSHAlloc
+                                          (NatAsNT.MNatAsNT.to_nat 1)
+                                          (RHCOLEval.DSHSeq
+                                             (RHCOLEval.DSHAssign
+                                                (RHCOL.PVar
+                                                   (S
+                                                   (S (S (S (S (S (S (S 1)))))))),
+                                                RHCOLEval.NPlus
+                                                  (RHCOLEval.NPlus
+                                                   (RHCOLEval.NConst
+                                                   (NatAsNT.MNatAsNT.to_nat 1))
+                                                   (RHCOLEval.NMult
+                                                   (RHCOLEval.NVar 3)
+                                                   (RHCOLEval.NConst
+                                                   (NatAsNT.MNatAsNT.to_nat 1))))
+                                                  (RHCOLEval.NMult
+                                                   (RHCOLEval.NVar 1)
+                                                   (RHCOLEval.NMult
+                                                   (RHCOLEval.NConst
+                                                   (NatAsNT.MNatAsNT.to_nat 2))
+                                                   (RHCOLEval.NConst
+                                                   (NatAsNT.MNatAsNT.to_nat 1)))))
+                                                (RHCOL.PVar 0,
+                                                RHCOLEval.NConst
+                                                  (NatAsNT.MNatAsNT.to_nat 0)))
+                                             (RHCOLEval.DSHAssign
+                                                (RHCOL.PVar 0,
+                                                RHCOLEval.NConst
+                                                  (NatAsNT.MNatAsNT.to_nat 0))
+                                                (RHCOL.PVar (S (S 0)),
+                                                RHCOLEval.NVar 1)))))
+                                    (RHCOLEval.DSHBinOp 1
+                                       (RHCOL.PVar 0)
+                                       (RHCOL.PVar (S (S 0)))
+                                       (RHCOLEval.AAbs
+                                          (RHCOLEval.AMinus
+                                             (RHCOLEval.AVar 1)
+                                             (RHCOLEval.AVar 0))))))
+                              (RHCOLEval.DSHMemMap2 1
+                                 (RHCOL.PVar (S (S 0)))
+                                 (RHCOL.PVar 1) (RHCOL.PVar (S (S 0)))
+                                 (RHCOLEval.AMax (RHCOLEval.AVar 1)
+                                    (RHCOLEval.AVar 0)))))))
+                  (RHCOLEval.DSHAssign
+                     (RHCOL.PVar 0,
+                     RHCOLEval.NConst (NatAsNT.MNatAsNT.to_nat 0))
+                     (RHCOL.PVar (S 0),
+                     RHCOLEval.NConst (NatAsNT.MNatAsNT.to_nat 1))))))
+         (RHCOLEval.DSHBinOp 1 (RHCOL.PVar 0) (RHCOL.PVar (S (S 0)))
+            (RHCOLEval.AZless (RHCOLEval.AVar 1) (RHCOLEval.AVar 0)))).
 
-  Goal DynWin_RHCOL = RHCOL.DSHNop.
+  Lemma DynWin_AHCOL_to_RHCOL_compute :
+    AHCOLtoRHCOL.translate dynwin_AHCOL = inr DynWin_RHCOL.
+  Proof.
     unfold DynWin_RHCOL.
     cbn.
-    Set Printing Depth 100.
 
-    assert (AHCOLtoRHCOL.translateCTypeConst CarrierAz
-            ≡ @inr string _ MRasCT.CTypeZero) by admit.
-    setoid_rewrite H.
+    assert (Z : AHCOLtoRHCOL.translateCTypeConst CarrierAz
+            ≡ @inr string _ MRasCT.CTypeZero).
+    {
+      unfold AHCOLtoRHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      all: clear - n; contradict n; reflexivity.
+    }
 
-    assert (AHCOLtoRHCOL.translateCTypeConst CarrierA1
-            ≡ @inr string _ MRasCT.CTypeOne) by admit.
-    setoid_rewrite H0.
-    setoid_rewrite H.
-  Admitted.
+    assert (O : AHCOLtoRHCOL.translateCTypeConst CarrierA1
+            ≡ @inr string _ MRasCT.CTypeOne).
+    {
+      unfold AHCOLtoRHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      -
+        clear - e.
+        unfold CarrierAasCT.CTypeZero in e.
+        pose proof CarrierAasCT.CTypeZeroOneApart as C.
+        contradict C.
+        symmetry.
+        assumption.
+      -
+        clear - n0.
+        contradict n0.
+        reflexivity.
+    }
+
+    setoid_rewrite Z.
+    setoid_rewrite O.
+    setoid_rewrite Z.
+    repeat constructor. (* not a reflexive relation :) *)
+  Qed.
+
+  (** * FHCOL *)
+  Definition DynWin_FHCOL :=
+    DSHAlloc {| Int64.intval := 2; Int64.intrange := conj eq_refl eq_refl |}
+      (DSHSeq
+         (DSHSeq
+            (DSHAlloc
+               {| Int64.intval := 1; Int64.intrange := conj eq_refl eq_refl |}
+               (DSHSeq
+                  (DSHSeq (DSHMemInit (FHCOL.PVar 0) Float64asCT.Float64Zero)
+                     (DSHAlloc
+                        {|
+                          Int64.intval := 1;
+                          Int64.intrange := conj eq_refl eq_refl
+                        |}
+                        (DSHLoop 3
+                           (DSHSeq
+                              (DSHAlloc
+                                 {|
+                                   Int64.intval := 1;
+                                   Int64.intrange := conj eq_refl eq_refl
+                                 |}
+                                 (DSHSeq
+                                    (DSHAssign
+                                       (FHCOL.PVar 7,
+                                       NConst
+                                         {|
+                                           Int64.intval := 0;
+                                           Int64.intrange :=
+                                             conj eq_refl eq_refl
+                                         |})
+                                       (FHCOL.PVar 0,
+                                       NConst
+                                         {|
+                                           Int64.intval := 0;
+                                           Int64.intrange :=
+                                             conj eq_refl eq_refl
+                                         |}))
+                                    (DSHAlloc
+                                       {|
+                                         Int64.intval := 1;
+                                         Int64.intrange := conj eq_refl eq_refl
+                                       |}
+                                       (DSHSeq
+                                          (DSHPower
+                                             (NVar 2)
+                                             (FHCOL.PVar 1,
+                                             NConst
+                                               {|
+                                                 Int64.intval := 0;
+                                                 Int64.intrange :=
+                                                   conj eq_refl eq_refl
+                                               |})
+                                             (FHCOL.PVar 0,
+                                             NConst
+                                               {|
+                                                 Int64.intval := 0;
+                                                 Int64.intrange :=
+                                                   conj eq_refl eq_refl
+                                               |}) (AMult (AVar 1) (AVar 0))
+                                             Float64asCT.Float64One)
+                                          (DSHIMap 1
+                                             (FHCOL.PVar 0)
+                                             (FHCOL.PVar 3)
+                                             (AMult
+                                                (AVar 0)
+                                                (ANth
+                                                   (MPtrDeref (FHCOL.PVar 8))
+                                                   (NVar 4))))))))
+                              (DSHMemMap2 1 (FHCOL.PVar 2)
+                                 (FHCOL.PVar 1) (FHCOL.PVar 2)
+                                 (APlus (AVar 1) (AVar 0)))))))
+                  (DSHAssign
+                     (FHCOL.PVar 0,
+                     NConst
+                       {|
+                         Int64.intval := 0;
+                         Int64.intrange := conj eq_refl eq_refl
+                       |})
+                     (FHCOL.PVar 1,
+                     NConst
+                       {|
+                         Int64.intval := 0;
+                         Int64.intrange := conj eq_refl eq_refl
+                       |}))))
+            (DSHAlloc
+               {| Int64.intval := 1; Int64.intrange := conj eq_refl eq_refl |}
+               (DSHSeq
+                  (DSHSeq (DSHMemInit (FHCOL.PVar 0) Float64asCT.Float64Zero)
+                     (DSHAlloc
+                        {|
+                          Int64.intval := 1;
+                          Int64.intrange := conj eq_refl eq_refl
+                        |}
+                        (DSHLoop 2
+                           (DSHSeq
+                              (DSHAlloc
+                                 {|
+                                   Int64.intval := 2;
+                                   Int64.intrange := conj eq_refl eq_refl
+                                 |}
+                                 (DSHSeq
+                                    (DSHLoop 2
+                                       (DSHAlloc
+                                          {|
+                                            Int64.intval := 1;
+                                            Int64.intrange :=
+                                              conj eq_refl eq_refl
+                                          |}
+                                          (DSHSeq
+                                             (DSHAssign
+                                                (FHCOL.PVar 9,
+                                                NPlus
+                                                  (NPlus
+                                                   (NConst
+                                                   {|
+                                                   Int64.intval := 1;
+                                                   Int64.intrange :=
+                                                   conj eq_refl eq_refl
+                                                   |})
+                                                   (NMult
+                                                   (NVar 3)
+                                                   (NConst
+                                                   {|
+                                                   Int64.intval := 1;
+                                                   Int64.intrange :=
+                                                   conj eq_refl eq_refl
+                                                   |})))
+                                                  (NMult
+                                                   (NVar 1)
+                                                   (NMult
+                                                   (NConst
+                                                   {|
+                                                   Int64.intval := 2;
+                                                   Int64.intrange :=
+                                                   conj eq_refl eq_refl
+                                                   |})
+                                                   (NConst
+                                                   {|
+                                                   Int64.intval := 1;
+                                                   Int64.intrange :=
+                                                   conj eq_refl eq_refl
+                                                   |}))))
+                                                (FHCOL.PVar 0,
+                                                NConst
+                                                  {|
+                                                   Int64.intval := 0;
+                                                   Int64.intrange :=
+                                                   conj eq_refl eq_refl
+                                                  |}))
+                                             (DSHAssign
+                                                (FHCOL.PVar 0,
+                                                NConst
+                                                  {|
+                                                   Int64.intval := 0;
+                                                   Int64.intrange :=
+                                                   conj eq_refl eq_refl
+                                                  |})
+                                                (FHCOL.PVar 2, NVar 1)))))
+                                    (DSHBinOp 1 (FHCOL.PVar 0)
+                                       (FHCOL.PVar 2)
+                                       (AAbs (AMinus (AVar 1) (AVar 0))))))
+                              (DSHMemMap2 1 (FHCOL.PVar 2)
+                                 (FHCOL.PVar 1) (FHCOL.PVar 2)
+                                 (AMax (AVar 1) (AVar 0)))))))
+                  (DSHAssign
+                     (FHCOL.PVar 0,
+                     NConst
+                       {|
+                         Int64.intval := 0;
+                         Int64.intrange := conj eq_refl eq_refl
+                       |})
+                     (FHCOL.PVar 1,
+                     NConst
+                       {|
+                         Int64.intval := 1;
+                         Int64.intrange := conj eq_refl eq_refl
+                       |})))))
+         (DSHBinOp 1 (FHCOL.PVar 0) (FHCOL.PVar 2) (AZless (AVar 1) (AVar 0)))).
+
+  Lemma DynWin_RHCOL_to_FHCOL_compute :
+    RHCOLtoFHCOL.translate DynWin_RHCOL = inr DynWin_FHCOL.
+  Proof.
+    unfold DynWin_RHCOL.
+    cbn.
+
+    assert (Z : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeZero
+            ≡ @inr string _ Float64asCT.Float64Zero).
+    {
+      unfold RHCOLtoFHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      all: clear - n; contradict n; reflexivity.
+    }
+
+    assert (O : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeOne
+            ≡ @inr string _ Float64asCT.Float64One).
+    {
+      unfold RHCOLtoFHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      -
+        clear - e.
+        cbv in e.
+        pose proof MRasCT.CTypeZeroOneApart.
+        congruence.
+      -
+        clear - n0.
+        contradict n0.
+        reflexivity.
+    }
+
+    setoid_rewrite Z.
+    setoid_rewrite O.
+    setoid_rewrite Z.
+    f_equiv.
+    repeat constructor. (* not a reflexive relation :) *)
+  Qed.
 
   Definition dynwin_R_σ :=
     match AHCOLtoRHCOL.translateEvalContext build_dynwin_σ with
     | inr σ => σ
     | _ => []
     end.
-
-  Compute dynwin_R_σ.
 
   Definition rhcol_nexpr_closure_trace :=
     match RHCOLEval.intervalEvalDSHOperator
@@ -1845,22 +2177,12 @@ Section TopLevel.
     | Some (inr t) => t
     | _ => []
     end.
-  Compute rhcol_nexpr_closure_trace.
-
-  (** * FHCOL *)
-  Definition DynWin_FHCOL :=
-    match RHCOLtoFHCOL.translate DynWin_RHCOL with
-    | inr dynwin => dynwin
-    | _ => FHCOL.DSHNop
-    end.
-  (* Compute DynWin_FHCOL. *)
 
   Definition dynwin_F_σ :=
     match RHCOLtoFHCOL.translateEvalContext dynwin_R_σ with
     | inr σ => σ
     | _ => []
     end.
-  Compute dynwin_F_σ.
 
   Definition fhcol_nexpr_closure_trace :=
     match FHCOLEval.intervalEvalDSHOperator
@@ -1871,12 +2193,30 @@ Section TopLevel.
     | Some (inr t) => t
     | _ => []
     end.
-  (* Compute fhcol_nexpr_closure_trace. *)
 
-  Compute ahcol_nexpr_closure_trace.
-  (* Compute rhcol_nexpr_closure_trace. *)
-  (* Compute fhcol_nexpr_closure_trace. *)
-   *)
+  Lemma rhcol_fhcol_nexpr_closure_trace_equiv :
+    evalNExpr_closure_trace_equiv
+      trivial2
+      rhcol_nexpr_closure_trace
+      fhcol_nexpr_closure_trace.
+  Proof.
+    cbn.
+    repeat constructor.
+    all: try match goal with
+             | [ |- evalNExpr_closure_equiv
+                     trivial2 (_, RHCOLEval.NVar _) (_, NVar _) ]
+               => admit
+             end.
+    -
+      cbn.
+      intros * ΣR ΣR' ΣE NE.
+      remember_string.
+      pose proof
+           heq_evalContext_heq_context_lookup
+           trivial2 σ σ' str str 3 ΣE
+        as T.
+      invc T; [constructor |].
+  Admitted.
 
   (*
     Translation validation proof of semantic preservation
@@ -2208,7 +2548,7 @@ Section TopLevel.
     split.
     1: {
       (* Proof of correctness up to R *)
-      clear -  RM AOM RY CTT CTP NTT NTP.
+      clear - RM AOM RY CTT CTP NTP.
       subst.
       unfold AHCOLtoRHCOL.translate_memory in RM.
       apply AHCOLtoRHCOL.NM_err_sequence_inr_fun_spec in RM.
