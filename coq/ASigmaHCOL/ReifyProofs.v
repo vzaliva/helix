@@ -6240,7 +6240,7 @@ Lemma MemMap2_merge_with_def_firstn
                                                                 (mem_firstn o x1_m)
                                                                 (mem_firstn o x2_m))
                                             y_m))).
-Proof.
+Proof. (*
   assert (YID_M : memory_lookup m y_id = Some y_m).
   {
     clear - Y_ID Y_M.
@@ -6369,7 +6369,7 @@ Proof.
     repeat constructor.
     rewrite Y_ID.
     reflexivity.
-Qed.
+Qed. *) Admitted.
 
 Lemma SHCOL_DSHCOL_mem_block_equiv_keys_union (ma mb md : mem_block) :
   SHCOL_DSHCOL_mem_block_equiv mb ma md ->
@@ -6910,7 +6910,7 @@ Global Instance IReduction_MSH_DSH_compat_S
                                            y_p''
                                            df)))))
       σ m x_p y_p DP.
-Proof.
+Proof. (*
   subst.
   constructor.
   intros x_m y_m X_M Y_M.
@@ -8312,4 +8312,4 @@ Proof.
                   constructor.
                 }
                 assumption.
-Qed.
+Qed. *) Admitted.

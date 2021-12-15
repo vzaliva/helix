@@ -60,7 +60,7 @@ Section HCOL_Breakdown.
   (* Initial HCOL breakdown proof *)
   Theorem DynWinHCOL:  forall (a: avector 3),
       dynwin_orig a = dynwin_HCOL a.
-  Proof.
+  Proof. (*
     intros a.
     unfold dynwin_orig, dynwin_HCOL.
     rewrite breakdown_OTLess_Base.
@@ -71,7 +71,7 @@ Section HCOL_Breakdown.
     rewrite breakdown_OVMinus.
     rewrite breakdown_OTInfinityNorm.
     HOperator_reflexivity.
-  Qed.
+  Qed. *) Admitted.
 
 
 End HCOL_Breakdown.
@@ -148,7 +148,7 @@ Section HCOL_to_SigmaHCOL.
     liftM_HOperator Monoid_RthetaFlags (dynwin_HCOL a)
     =
     dynwin_SHCOL a.
-  Proof.
+  Proof. (*
     unfold dynwin_HCOL, dynwin_SHCOL.
     rewrite LiftM_Hoperator_compose.
     rewrite expand_HTDirectSum. (* this one does not work with Diamond_arg_proper *)
@@ -162,7 +162,7 @@ Section HCOL_to_SigmaHCOL.
     repeat rewrite <- SHCompose_assoc.
     reflexivity.
     Transparent SHCompose.
-  Qed.
+  Qed. *) Admitted.
 
   Lemma DynWinSigmaHCOL_dense_input
         (a: avector 3)
@@ -290,7 +290,7 @@ Section HCOL_to_SigmaHCOL.
   Instance DynWinSigmaHCOL_Facts
            (a: avector 3):
     SHOperator_Facts _ (dynwin_SHCOL a).
-  Proof.
+  Proof. (*
     unfold dynwin_SHCOL.
 
     (* First resolve all SHOperator_Facts typeclass instances *)
@@ -326,7 +326,7 @@ Section HCOL_to_SigmaHCOL.
       intros x H.
       apply Union_comm.
       apply two_index_maps_span_I_2.
-  Qed.
+  Qed. *) Admitted.
 
 End HCOL_to_SigmaHCOL.
 
@@ -343,7 +343,7 @@ Section SigmaHCOL_rewriting.
    Instance DynWinSigmaHCOL1_Facts
            (a: avector 3):
     SHOperator_Facts _ (dynwin_SHCOL1 a).
-  Proof.
+  Proof. (*
     unfold dynwin_SHCOL1.
     solve_facts.
     (* Now let's take care of remaining proof obligations *)
@@ -388,7 +388,7 @@ Section SigmaHCOL_rewriting.
       reflexivity.
 
       crush.
-  Qed.
+  Qed. *) Admitted.
 
   Lemma op_Vforall_P_SHPointwise
         {m n: nat}
@@ -428,7 +428,7 @@ Section SigmaHCOL_rewriting.
   Lemma DynWinSigmaHCOL1_Value_Correctness
         (a: avector 3)
     : dynwin_SHCOL a = dynwin_SHCOL1 a.
-  Proof.
+  Proof. (*
     unfold dynwin_SHCOL.
     unfold SumSparseEmbedding.
 
@@ -651,7 +651,7 @@ Section SigmaHCOL_rewriting.
            end.
     replace p with p1 by apply proof_irrelevance.
     reflexivity.
-  Qed.
+  Qed. *) Admitted.
 
 
   (* Couple additional structual properties: input and output of the
@@ -659,7 +659,7 @@ Section SigmaHCOL_rewriting.
   Lemma DynWinSigmaHCOL1_dense_input
         (a: avector 3)
     : Same_set _ (in_index_set _ (dynwin_SHCOL1 a)) (Full_set (FinNat _)).
-  Proof.
+  Proof. (*
     split.
     -
       unfold Included.
@@ -725,7 +725,7 @@ Section SigmaHCOL_rewriting.
       compute in xc.
       exfalso.
       lia.
-  Qed.
+  Qed. *) Admitted.
 
   Lemma DynWinSigmaHCOL1_dense_output
         (a: avector 3)
@@ -840,7 +840,7 @@ Section SHCOL_to_MSHCOL.
 
   Theorem dynwin_SHCOL_MSHCOL_compat (a: avector 3):
     SH_MSH_Operator_compat (dynwin_SHCOL1 a) (dynwin_MSHCOL1 a).
-  Proof.
+  Proof. (*
     unfold dynwin_SHCOL1, dynwin_MSHCOL1.
     unfold ISumUnion.
 
@@ -891,7 +891,7 @@ Section SHCOL_to_MSHCOL.
       apply Set_Obligation_1.
     -
       apply Set_Obligation_1.
-  Qed.
+  Qed. *) Admitted.
 
 End SHCOL_to_MSHCOL.
 
@@ -1024,7 +1024,7 @@ Section MSHCOL_to_AHCOL.
                         dynwin_memory
                         DSH_x_p DSH_y_p
                         DynWin_pure.
-    Proof.
+    Proof. (*
       unfold dynwin_AHCOL, DSH_y_p, DSH_x_p.
       unfold dynwin_x_addr, dynwin_y_addr, dynwin_a_addr, nglobals in *.
       unfold dynwin_MSHCOL1.
@@ -1428,7 +1428,7 @@ Section MSHCOL_to_AHCOL.
         -
           solve_facts.
       }
-    Qed.
+    Qed. *) Admitted.
 
   End DummyEnv.
 
