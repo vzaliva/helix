@@ -501,6 +501,77 @@ Module Type MDSigmaHCOLEval
         eassumption.
   Qed.
 
+  Lemma evalContext_in_range_lookup_Index
+        (σ : evalContext)
+        (σn : evalNatContext)
+        (k : nat)
+        (r : t)
+    :
+      evalContext_in_range σ σn ->
+      nth_error σn k ≡ Some (DSHIndex r) ->
+      exists n p,
+        to_nat n <= to_nat r /\ nth_error σ k = Some (DSHnatVal n, p).
+  Proof.
+    revert_until σ.
+    induction σ as [| (v, p) σ];
+      intros * R K.
+    -
+      inv R.
+      contradict K.
+      rewrite ListNth.nth_error_nil.
+      discriminate.
+    -
+      destruct σn as [| vn σn]; [inv R |].
+      invc R.
+      destruct k;
+        cbn in K; cbn.
+      +
+        invc K.
+        invc H2.
+        destruct v; invc H.
+        now exists n0, p.
+      +
+        eapply IHσ.
+        eapply H4.
+        assumption.
+  Qed.
+
+  Lemma evalContext_in_range_lookup_Other
+        (σ : evalContext)
+        (σn : evalNatContext)
+        (k : nat)
+    :
+      evalContext_in_range σ σn ->
+      nth_error σn k ≡ Some (DSHOtherVar) ->
+      (exists t p, nth_error σ k = Some (DSHCTypeVal t, p))
+      \/
+      (exists n t p, nth_error σ k = Some (DSHPtrVal n t, p)).
+  Proof.
+    revert_until σ.
+    induction σ as [| (v, p) σ];
+      intros * R K.
+    -
+      inv R.
+      contradict K.
+      rewrite ListNth.nth_error_nil.
+      discriminate.
+    -
+      destruct σn as [| vn σn]; [inv R |].
+      invc R.
+      destruct k;
+        cbn in K; cbn.
+      +
+        invc K.
+        invc H2.
+        destruct v; invc H0.
+        left; now repeat eexists.
+        right; now repeat eexists.
+      +
+        eapply IHσ.
+        eapply H4.
+        assumption.
+  Qed.
+
   Definition evalNatClosure : Type := evalNatContext * NExpr.
 
   Fixpoint evalAExpr_NatClosures (σ : evalNatContext) (e : AExpr)
