@@ -510,7 +510,7 @@ Module Type MDSigmaHCOLEval
       evalContext_in_range σ σn ->
       nth_error σn k ≡ Some (DSHIndex r) ->
       exists n p,
-        to_nat n <= to_nat r /\ nth_error σ k = Some (DSHnatVal n, p).
+        to_nat n <= to_nat r /\ nth_error σ k ≡ Some (DSHnatVal n, p).
   Proof.
     revert_until σ.
     induction σ as [| (v, p) σ];
@@ -543,9 +543,9 @@ Module Type MDSigmaHCOLEval
     :
       evalContext_in_range σ σn ->
       nth_error σn k ≡ Some (DSHOtherVar) ->
-      (exists t p, nth_error σ k = Some (DSHCTypeVal t, p))
+      (exists t p, nth_error σ k ≡ Some (DSHCTypeVal t, p))
       \/
-      (exists n t p, nth_error σ k = Some (DSHPtrVal n t, p)).
+      (exists n t p, nth_error σ k ≡ Some (DSHPtrVal n t, p)).
   Proof.
     revert_until σ.
     induction σ as [| (v, p) σ];
