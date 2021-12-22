@@ -237,8 +237,7 @@ Module MDHCOLTypeTranslator
 
   Section EvalTranslations.
 
-    Context `{CTT: CTranslationOp} (* `{CTP: @CTranslationProps CTT} *)
-            `{NTT: NTranslationOp}. (* `{NTP: @NTranslationProps NTT}. *)
+    Context `{CTT: CTranslationOp} `{NTT: NTranslationOp}.
 
     Import ListNotations.
 
@@ -686,7 +685,7 @@ Module MDHCOLTypeTranslator
   Section Necessary_NT_Props.
 
     Context `{NTT: NTranslationOp}.
-    Context `{NTP': @NTranslationProps' NTT}.
+    Context `{NTP: @NTranslationProps NTT}.
 
     Lemma from_nat_of_to_nat (nt : NT.t) :
       NT.from_nat (NT.to_nat nt) = inr nt.
@@ -762,7 +761,7 @@ Module MDHCOLTypeTranslator
       apply to_nat_of_from_nat in NT.
       apply to_nat_of_from_nat' in NT'.
       rewrite <-NT, <-NT'.
-      apply heq_NType_to_nat'.
+      apply heq_NType_to_nat.
       assumption.
     Qed.
 
@@ -781,7 +780,7 @@ Module MDHCOLTypeTranslator
 
       replace n' with n in *.
       2: {
-        apply heq_NType_to_nat' in SE.
+        apply heq_NType_to_nat in SE.
         apply err_equiv_eq in FSN, FSN'.
         apply to_nat_of_from_nat in FSN.
         apply to_nat_of_from_nat' in FSN'.
@@ -794,7 +793,7 @@ Module MDHCOLTypeTranslator
         [rename H into FN' | constructor].
       destruct FN as [nt FN], FN' as [nt' FN'].
 
-      clear - FN FN' NTP'.
+      clear - FN FN' NTP.
       pose proof heq_NType_from_nat n as E.
       inv E; try congruence.
       now constructor.
@@ -815,7 +814,7 @@ Module MDHCOLTypeTranslator
     Proof.
       intros A B.
       unfold LE.assert_NT_lt, LE'.assert_NT_lt.
-      apply heq_NType_to_nat' in A, B.
+      apply heq_NType_to_nat in A, B.
       cbv in A, B.
       rewrite !A, !B.
       destruct (Nat.ltb (to_nat a') (to_nat b')).
@@ -838,7 +837,7 @@ Module MDHCOLTypeTranslator
     Proof.
       intros A B.
       unfold LE.assert_NT_le, LE'.assert_NT_le.
-      apply heq_NType_to_nat' in A, B.
+      apply heq_NType_to_nat in A, B.
       cbv in A, B.
       rewrite !A, !B.
       destruct (Nat.leb (to_nat a') (to_nat b')).
@@ -1706,7 +1705,7 @@ Module MDHCOLTypeTranslator
   Section Value_Translation_Correctness'.
 
     Context `{CTT: CTranslationOp} `{NTT: NTranslationOp}
-            `{NTP': @NTranslationProps' NTT}.
+            `{NTP: @NTranslationProps NTT}.
 
     Lemma translateDSHVal_heq
           (d : L.DSHVal)
@@ -1729,8 +1728,8 @@ Module MDHCOLTypeTranslator
         autospecialize H; [reflexivity |].
         specialize (H t0 n0 H2).
         apply H.
-        clear - Heqs NTP'.
-        apply heq_NType_translateNTypeValue_compat'.
+        clear - Heqs NTP.
+        apply heq_NType_translateNTypeValue_compat.
         now rewrite Heqs.
       -
         repeat constructor.
@@ -1738,7 +1737,7 @@ Module MDHCOLTypeTranslator
         destruct H0.
         constructor.
         assumption.
-        apply heq_NType_translateNTypeValue_compat'.
+        apply heq_NType_translateNTypeValue_compat.
         rewrite Heqs; now f_equiv.
     Qed.
 
@@ -1769,7 +1768,7 @@ Module MDHCOLTypeTranslator
           destruct p; invc P.
           constructor.
           apply H0.
-          clear - H Heqs NTP'.
+          clear - H Heqs NTP.
           cbn in H.
 
           apply translateDSHVal_heq.
@@ -1787,7 +1786,7 @@ Module MDHCOLTypeTranslator
   Section Semantic_Translation_Correctness.
 
     Context `{CTT: CTranslationOp} `{NTT: NTranslationOp}.
-    Context `{NTP': NTranslationProps'}.
+    Context `{NTP: @NTranslationProps NTT}.
 
     Lemma heq_PExpr_heq_evalPExpr
           (heq : CT.t → CT'.t → Prop)
@@ -2356,7 +2355,7 @@ Module MDHCOLTypeTranslator
   Section ControlFlow_Translation_Correctness.
 
     Context `{NTT: NTranslationOp}.
-    Context `{NTP': NTranslationProps'}.
+    Context `{NTP: NTranslationProps}.
 
     Lemma translateNExpr_syntax
           (n : L.NExpr)
@@ -2386,7 +2385,7 @@ Module MDHCOLTypeTranslator
         autospecialize H; [reflexivity |].
         specialize (H t1 t2 H1).
         apply H.
-        clear - Heqs NTP'.
+        clear - Heqs NTP.
         apply heq_NType_translateNTypeConst_compat.
         rewrite Heqs; reflexivity.
     Qed.
@@ -2665,7 +2664,7 @@ Module MDHCOLTypeTranslator
         erewrite <-H8, <-H9; constructor.
         erewrite <-H7, <-H8.
         apply heq_mem_block_heq_mem_lookup_err.
-        now apply heq_NType_to_nat'.
+        now apply heq_NType_to_nat.
         eassumption.
       - (* AAbs *)
         apply IHAE in TE.
@@ -3412,7 +3411,7 @@ Module MDHCOLTypeTranslator
                (n:=NT.to_nat a1)
                (n':=NT'.to_nat b1)
           in H5;
-          [| apply heq_NType_to_nat'; assumption].
+          [| apply heq_NType_to_nat; assumption].
         inversion H5.
         constructor.
         repeat constructor.
@@ -3420,7 +3419,7 @@ Module MDHCOLTypeTranslator
           [assumption | reflexivity |].
         eapply heq_mem_block_mem_add.
         assumption.
-        now apply heq_NType_to_nat'.
+        now apply heq_NType_to_nat.
         constructor.
       - (* IMap *)
         repeat break_match; invc H3; invc H4.
@@ -3764,7 +3763,7 @@ Module MDHCOLTypeTranslator
         +
           apply heq_mem_block_mem_add.
           assumption.
-          apply heq_NType_to_nat'; assumption.
+          apply heq_NType_to_nat; assumption.
           constructor.
       - (* MemInit *)
         clear H0.
@@ -3795,7 +3794,7 @@ Module MDHCOLTypeTranslator
         apply heq_mem_block_heq_mem_union;
           [| assumption].
         apply heq_mem_const_block.
-        apply heq_NType_to_nat'; now invc H1.
+        apply heq_NType_to_nat; now invc H1.
         constructor.
       - (* Loop *)
         rename H0 into TΣN, H1 into TΣN';

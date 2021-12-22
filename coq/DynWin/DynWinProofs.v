@@ -1585,12 +1585,26 @@ Instance RF_NTT : RHCOLtoFHCOL.NTranslationOp :=
     translateNTypeValue := MInt64asNT.from_nat;
   }.
 
-Instance RF_NTP' : RHCOLtoFHCOL.NTranslationProps'.
+Instance RF_NTP : RHCOLtoFHCOL.NTranslationProps.
 Proof.
   constructor; intros *.
   all: unfold RF_NTT, heq_NType, heq_nat_int.
+  all: unfold translateNTypeValue, translateNTypeConst.
   all: unfold NatAsNT.MNatAsNT.to_nat, MInt64asNT.to_nat.
-  all: unfold NatAsNT.MNatAsNT.from_nat, MInt64asNT.from_nat.
+  all: unfold NatAsNT.MNatAsNT.from_nat, MInt64asNT.from_nat, MInt64asNT.from_Z.
+  -
+    intros TR.
+    repeat break_match; invc TR.
+    pose proof Integers.Int64.eq_spec
+         {| Int64.intval := Z.of_nat x; Int64.intrange := conj l l0 |}
+         x'
+      as EQI.
+    rewrite H1 in EQI.
+    apply f_equal with (f:=Int64.intval) in EQI.
+    rewrite <-EQI.
+    reflexivity.
+  -
+    tauto.
   -
     intros NI.
     rewrite <-NI.
@@ -1600,18 +1614,6 @@ Proof.
     unfold MInt64asNT.from_Z.
     repeat break_match;
       constructor.
-    reflexivity.
-  -
-    intros TN.
-    unfold translateNTypeValue, MInt64asNT.from_Z in *.
-    repeat break_match; invc TN.
-    pose proof Integers.Int64.eq_spec
-         {| Int64.intval := Z.of_nat n; Int64.intrange := conj l l0 |}
-         n'
-      as EQI.
-    rewrite H1 in EQI.
-    apply f_equal with (f:=Int64.intval) in EQI.
-    rewrite <-EQI.
     reflexivity.
 Qed.
 
@@ -2162,7 +2164,7 @@ Section TopLevel.
     repeat constructor. (* not a reflexive relation :) *)
   Qed.
 
-  Definition dynwin_R_σ :=
+  Definition dynwin_R_σ' :=
     match AHCOLtoRHCOL.translateEvalContext build_dynwin_σ with
     | inr σ => σ
     | _ => []
@@ -2170,7 +2172,7 @@ Section TopLevel.
 
   Definition rhcol_nexpr_closure_trace :=
     match RHCOLEval.intervalEvalDSHOperator
-            (RHCOLEval.evalNatContext_of_evalContext dynwin_R_σ)
+            (RHCOLEval.evalNatContext_of_evalContext dynwin_R_σ')
             DynWin_RHCOL
             []
             (RHCOLEval.estimateFuel DynWin_RHCOL) with
@@ -2178,15 +2180,15 @@ Section TopLevel.
     | _ => []
     end.
 
-  Definition dynwin_F_σ :=
-    match RHCOLtoFHCOL.translateEvalContext dynwin_R_σ with
+  Definition dynwin_F_σ' :=
+    match RHCOLtoFHCOL.translateEvalContext dynwin_R_σ' with
     | inr σ => σ
     | _ => []
     end.
 
   Definition fhcol_nexpr_closure_trace :=
     match FHCOLEval.intervalEvalDSHOperator
-            (FHCOLEval.evalNatContext_of_evalContext dynwin_F_σ)
+            (FHCOLEval.evalNatContext_of_evalContext dynwin_F_σ')
             DynWin_FHCOL
             []
             (FHCOLEval.estimateFuel DynWin_FHCOL) with
@@ -2788,18 +2790,10 @@ Section TopLevel.
       -
         now apply translate_runtime_memory_same_indices.
       -
-  Lemma rhcol_fhcol_nexpr_closure_trace_equiv :
-    evalNExpr_closure_trace_equiv
-      trivial2
-      rhcol_nexpr_closure_trace
-      fhcol_nexpr_closure_trace.
-        admit. (* numerical analysis *)
+        admit.
       -
-        inv H.
-        +
-          some_inv; inl_inr.
-        +
-          eexists; reflexivity.
+        invc H; [invc ER; invc H1 |].
+        eexists; reflexivity.
     }
     destruct T as (f_omemory & EF).
 
