@@ -793,7 +793,7 @@ Module MDHCOLTypeTranslator
       apply heq_NType_to_nat'.
       assumption.
     Qed.
-    
+
     Lemma heq_NT_nat_S (n n' : nat) :
       heq_NT_nat (S n) (S n') ->
       heq_NT_nat n n'.
@@ -821,7 +821,7 @@ Module MDHCOLTypeTranslator
       copy_apply (NT'.from_nat_lt (S n) snt' n) FSN';
         [rename H into FN' | constructor].
       destruct FN as [nt FN], FN' as [nt' FN'].
-      
+
       clear - FN FN' NTP'.
       pose proof heq_NType_from_nat n as E.
       inv E; try congruence.
@@ -2212,7 +2212,7 @@ Module MDHCOLTypeTranslator
           (n n' : nat)
           (mb : L.mem_block)
           (mb' : L'.mem_block)
-          (m : LE.memory) 
+          (m : LE.memory)
           (m' : memory)
       :
         heq_memory heq m m' ->
@@ -2334,7 +2334,7 @@ Module MDHCOLTypeTranslator
 
     Lemma heq_mem_block_heq_mem_union
           (heq : CT.t → CT'.t → Prop)
-          (mb1 mb2 : L.mem_block) 
+          (mb1 mb2 : L.mem_block)
           (mb1' mb2' : L'.mem_block)
       :
         heq_mem_block heq mb1 mb1' ->
@@ -2706,7 +2706,7 @@ Module MDHCOLTypeTranslator
     Lemma heq_AExpr_heq_evalIUnCType
           (m : L.memory)
           (m' : L'.memory)
-          (σ : LE.evalContext) 
+          (σ : LE.evalContext)
           (σ' : evalContext)
           (f : L.AExpr)
           (f' : L'.AExpr)
@@ -2744,7 +2744,7 @@ Module MDHCOLTypeTranslator
     Lemma heq_AExpr_heq_evalIBinCType
           (m : L.memory)
           (m' : L'.memory)
-          (σ : LE.evalContext) 
+          (σ : LE.evalContext)
           (σ' : evalContext)
           (f : L.AExpr)
           (f' : L'.AExpr)
@@ -2784,7 +2784,7 @@ Module MDHCOLTypeTranslator
     Lemma heq_AExpr_heq_evalBinCType
           (m : L.memory)
           (m' : L'.memory)
-          (σ : LE.evalContext) 
+          (σ : LE.evalContext)
           (σ' : evalContext)
           (f : L.AExpr)
           (f' : L'.AExpr)
