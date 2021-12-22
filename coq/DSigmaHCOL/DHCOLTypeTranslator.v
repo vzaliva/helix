@@ -165,7 +165,10 @@ Module MDHCOLTypeTranslator
 
     heq_NType_to_nat:
       forall x x', heq_NType x x' -> NT.to_nat x = NT'.to_nat x';
+    }.
 
+  Class NOpTranslationProps `{NTT: NTranslationOp} :=
+    {
     NTypeDiv_translation   : NBinOpTranslation NT.NTypeDiv   NT'.NTypeDiv  ;
     NTypeMod_translation   : NBinOpTranslation NT.NTypeMod   NT'.NTypeMod  ;
     NTypePlus_translation  : NBinOpTranslation NT.NTypePlus  NT'.NTypePlus ;
@@ -251,7 +254,10 @@ Module MDHCOLTypeTranslator
        Not sure if we need this
        translate_surj: forall (x':CT'.t), exists x, translateCTypeValue x = inr x';
      *)
+    }.
 
+  Class COpTranslationProps `{C: CTranslationOp} :=
+    {
     CTypePlus_translation  : CBinOpTranslation CT.CTypePlus  CT'.CTypePlus ;
     CTypeMult_translation  : CBinOpTranslation CT.CTypeMult  CT'.CTypeMult ;
     CTypeZLess_translation : CBinOpTranslation CT.CTypeZLess CT'.CTypeZLess;
