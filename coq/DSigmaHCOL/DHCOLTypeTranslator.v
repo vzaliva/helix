@@ -170,6 +170,7 @@ Module MDHCOLTypeTranslator
         herr_f heq_NType (NT.from_nat n) (NT'.from_nat n);
     }.
 
+  (*
   Class NOpTranslationProps `{NTT: NTranslationOp} :=
     {
     NTypeDiv_translation   : NBinOpTranslation NT.NTypeDiv   NT'.NTypeDiv  ;
@@ -180,6 +181,7 @@ Module MDHCOLTypeTranslator
     NTypeMin_translation   : NBinOpTranslation NT.NTypeMin   NT'.NTypeMin  ;
     NTypeMax_translation   : NBinOpTranslation NT.NTypeMax   NT'.NTypeMax  ;
     }.
+   *)
 
   Class CBinOpTranslation
         `{CTranslationOp}
@@ -222,6 +224,7 @@ Module MDHCOLTypeTranslator
      *)
     }.
 
+  (*
   Class COpTranslationProps `{C: CTranslationOp} :=
     {
     CTypePlus_translation  : CBinOpTranslation CT.CTypePlus  CT'.CTypePlus ;
@@ -234,6 +237,7 @@ Module MDHCOLTypeTranslator
     CTypeNeg_translation: CUnOpTranslation CT.CTypeNeg CT'.CTypeNeg ;
     CTypeAbs_translation: CUnOpTranslation CT.CTypeAbs CT'.CTypeAbs ;
     }.
+   *)
 
   Section EvalTranslations.
 
