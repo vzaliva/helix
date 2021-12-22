@@ -149,6 +149,8 @@ Module MDHCOLTypeTranslator
           translateNTypeValue (f x y) = inr (f' x' y')
       }.
 
+  (* TODO: [translateNTypeValue] vs [translateNTypeConst].
+     Why have the first one? *)
   Class NTranslationProps `{NTT: NTranslationOp} :=
     {
     (* Value mapping should result in "equal" values *)
@@ -160,11 +162,12 @@ Module MDHCOLTypeTranslator
       forall x x', translateNTypeConst x = inr x' ->
               translateNTypeValue x = inr x';
 
-    (* So surjectivity property. This allows use for example map
-       natural numbers to signed integers *)
-
     heq_NType_to_nat:
       forall x x', heq_NType x x' -> NT.to_nat x = NT'.to_nat x';
+
+    heq_NType_from_nat :
+      forall n,
+        herr_f heq_NType (NT.from_nat n) (NT'.from_nat n);
     }.
 
   Class NOpTranslationProps `{NTT: NTranslationOp} :=
@@ -176,43 +179,6 @@ Module MDHCOLTypeTranslator
     NTypeMult_translation  : NBinOpTranslation NT.NTypeMult  NT'.NTypeMult ;
     NTypeMin_translation   : NBinOpTranslation NT.NTypeMin   NT'.NTypeMin  ;
     NTypeMax_translation   : NBinOpTranslation NT.NTypeMax   NT'.NTypeMax  ;
-    }.
-
-  (** * TODO: refine *)
-  (* This class imposes (almost) a subset of the restrictions of
-     [NTranslationProps] above. This is the minimal subset necessary to prove
-     the preservation of control flow (and therefore error handling) of an
-     operator over translation.
-
-     Full [NTranslationProps] could not be proven for the RHCOL->FHCOL
-     translation step (NType is translated as nat -> int64), but these
-     restrictions could. They are necessary and sufficient for RHCOL->FHCOL
-     control flow proofs.
-   *)
-  Class NTranslationProps' `{NTT : NTranslationOp} :=
-    {
-    (* exactly [heq_NType_to_nat] *)
-    heq_NType_to_nat' :
-      forall n n',
-        heq_NType n n' ->
-        NT.to_nat n = NT'.to_nat n';
-
-    (* The "inverse" of [heq_NType_to_nat] *)
-    (* TODO: this should be added to [NTranslationProps] at least *)
-    (* NOTE: [herr_f] vacuously holds if any argument is [inl]. In ohter words,
-             this is stating "If the same nat is *successfully* converted to
-             NType before and after translation, both NType values are
-             equivalent" *)
-    heq_NType_from_nat :
-      forall n,
-        herr_f heq_NType (NT.from_nat n) (NT'.from_nat n);
-
-    (* exactly [heq_NType_translateNTypeValue_compat] *)
-    (* Necessary for the the preservation of NType values in input [σ] *)
-    heq_NType_translateNTypeValue_compat' :
-      forall n n',
-        translateNTypeValue n = inr n' →
-        heq_NType n n';
     }.
 
   Class CBinOpTranslation
