@@ -2403,6 +2403,59 @@ Section TopLevel.
       crush_int.
   Qed.
 
+  (* TODO: move *)
+  Lemma trivial2_Proper `{AE : Equiv A} `{BE : Equiv B} :
+    Proper (equiv ==> equiv ==> iff) (@trivial2 A B).
+  Proof.
+    repeat constructor.
+  Qed.
+
+  
+
+  (* Instances for trivial comparison of CType values
+     in RHCOL->FHCOL translation.
+
+     These allow to infer structural properties of translation,
+     while disregarding CType values (and CType values only).
+
+     The statement [RF_Structural_Semantic_Preservation]
+     is the full semantic preservation on RHCOL->FHCOL, up to CType values.
+   *)
+  Local Definition trivial_RF_CHE : RHCOLtoFHCOL.CTranslation_heq :=
+    {|
+      heq_CType := trivial2;
+      heq_CType_proper := trivial2_Proper;
+    |}.
+
+  Local Fact trivial_RF_COP
+    : @RHCOLtoFHCOL.COpTranslationProps trivial_RF_CHE.
+  Proof.
+    repeat constructor.
+  Qed.
+
+  Local Fact trivial_RF_translateCTypeValue_heq_CType :
+    ∀ (x : R) (x' : Bits.binary64),
+      translateCTypeValue x = inr x' →
+      @heq_CType trivial_RF_CHE x x'.
+  Proof.
+    repeat constructor.
+  Qed.
+
+  Local Definition trivial_RF_CTO : @RHCOLtoFHCOL.CTranslationOp trivial_RF_CHE :=
+    {|
+      translateCTypeValue := @translateCTypeValue _ RF_CTO;
+      translateCTypeValue_heq_CType := trivial_RF_translateCTypeValue_heq_CType;
+      translateCTypeConst_translateCTypeValue_compat :=
+        @translateCTypeConst_translateCTypeValue_compat _ RF_CTO;
+    |}.
+
+  Definition RF_Structural_Semantic_Preservation :=
+    @RHCOLtoFHCOL.translation_semantics_correct
+      RF_NHE
+      trivial_RF_CHE
+      RF_NTP
+      trivial_RF_COP.
+
   (*
     Translation validation proof of semantic preservation
     of successful translation of [dynwin_orig] into FHCOL program.
@@ -2753,7 +2806,7 @@ Section TopLevel.
       (* this requires some NType-related numerical analysis
          to ensure no runtime error occurs after translation *)
       pose proof
-           heq_DSHOperator_heq_evalDSHOperator
+           RF_Structural_Semantic_Preservation
            dynwin_rhcol
            dynwin_fhcol
            (RHCOLEval.estimateFuel dynwin_rhcol)
@@ -2766,12 +2819,18 @@ Section TopLevel.
       destruct HEQRF;
         try some_none.
       -
-        apply translation_syntax_always_correct.
+        eapply translation_syntax_always_correct.
+        assumption.
+        Unshelve.
+        apply trivial_RF_CTO.
+      -
+        eapply translateEvalContext_same_indices.
+        instantiate (1:=trivial_RF_CTO).
         assumption.
       -
-        now apply translateEvalContext_same_indices.
-      -
-        now apply translate_runtime_memory_same_indices.
+        eapply translate_runtime_memory_same_indices.
+        instantiate (1:=trivial_RF_CTO).
+        assumption.
       -
         admit.
       -
