@@ -1506,44 +1506,9 @@ Hint Rewrite
 
 (* Print Rewrite HintDb CarrierAZ1equalities. *)
 
-Instance nat_equiv_proper :
-  Proper (equiv ==> equiv ==> iff) peano_naturals.nat_equiv.
-Proof.
-  now cbv.
-Qed.
-
-Instance NTT : AHCOLtoRHCOL.NTranslationOp :=
-  { heq_NType := peano_naturals.nat_equiv;
-    heq_NType_proper := nat_equiv_proper;
-    translateNTypeValue := inr; (* lifted [id] *)
-  }.
-
 Section AHCOL_to_RHCOL.
 
-  Context `{CTT: AHCOLtoRHCOL.CTranslationOp}
-          `{CTP: @AHCOLtoRHCOL.CTranslationProps CTT}
-          (* TODO: given the now instantiated NTT, this can be proven too *)
-          {NTP: @AHCOLtoRHCOL.NTranslationProps NTT}.
-
   Definition dynwin_RHCOL := AHCOLtoRHCOL.translate dynwin_AHCOL.
-
-  (*
-     For debug printing
-  Definition dynwin_RHCOL1 : RHCOL.DSHOperator.
-  Proof.
-    remember dynwin_RHCOL as a eqn:H.
-    cbv in H.
-    autorewrite with CarrierAZ1equalities in H.
-    destruct a.
-    -
-      inv H.
-    -
-      inl_inr_inv.
-      (* Set Printing All.
-      Redirect "dynwin_RHCOL" Show 1. *)
-      exact d.
-  Defined.
-   *)
 
 End AHCOL_to_RHCOL.
 
@@ -1579,32 +1544,18 @@ Proof.
   lia.
 Qed.
 
-Instance RF_NTT : RHCOLtoFHCOL.NTranslationOp :=
-  { heq_NType := heq_nat_int;
+Instance RF_NHE : RHCOLtoFHCOL.NTranslation_heq :=
+  {
+    heq_NType := heq_nat_int;
     heq_NType_proper := heq_nat_int_proper;
-    translateNTypeValue := MInt64asNT.from_nat;
   }.
 
 Instance RF_NTP : RHCOLtoFHCOL.NTranslationProps.
 Proof.
   constructor; intros *.
-  all: unfold RF_NTT, heq_NType, heq_nat_int.
-  all: unfold translateNTypeValue, translateNTypeConst.
+  all: unfold RF_NHE, heq_NType, heq_nat_int.
   all: unfold NatAsNT.MNatAsNT.to_nat, MInt64asNT.to_nat.
   all: unfold NatAsNT.MNatAsNT.from_nat, MInt64asNT.from_nat, MInt64asNT.from_Z.
-  -
-    intros TR.
-    repeat break_match; invc TR.
-    pose proof Integers.Int64.eq_spec
-         {| Int64.intval := Z.of_nat x; Int64.intrange := conj l l0 |}
-         x'
-      as EQI.
-    rewrite H1 in EQI.
-    apply f_equal with (f:=Int64.intval) in EQI.
-    rewrite <-EQI.
-    reflexivity.
-  -
-    tauto.
   -
     intros NI.
     rewrite <-NI.
@@ -1617,7 +1568,42 @@ Proof.
     reflexivity.
 Qed.
 
-Section RHCOL_to_FHCOL.
+Lemma RF_translateNTypeValue_heq_NType :
+  ∀ (x : nat) (x' : Int64.int),
+    MInt64asNT.from_nat x = inr x' →
+    heq_NType x x'.
+Proof.
+  unfold RF_NHE, heq_NType, heq_nat_int.
+  unfold MInt64asNT.from_nat, MInt64asNT.from_Z.
+  intros * TR.
+  repeat break_match; invc TR.
+  pose proof Integers.Int64.eq_spec
+       {| Int64.intval := Z.of_nat x; Int64.intrange := conj l l0 |}
+       x'
+    as EQI.
+  rewrite H1 in EQI.
+  apply f_equal with (f:=Int64.intval) in EQI.
+  rewrite <-EQI.
+  reflexivity.
+Qed.
+
+Lemma RF_translateNTypeConst_translateNTypeValue_compat :
+  ∀ (x : nat) (x' : Int64.int),
+    RHCOLtoFHCOL.translateNTypeConst x = inr x' → 
+    MInt64asNT.from_nat x = inr x'.
+Proof.
+  tauto.
+Qed.
+
+Instance RF_NTO : @RHCOLtoFHCOL.NTranslationOp RF_NHE :=
+  {
+    translateNTypeValue := MInt64asNT.from_nat;
+    translateNTypeValue_heq_NType := RF_translateNTypeValue_heq_NType;
+    translateNTypeConst_translateNTypeValue_compat :=
+      RF_translateNTypeConst_translateNTypeValue_compat;
+  }.
+  
+(* Section RHCOL_to_FHCOL.
 
   Context `{AR_CTT: AHCOLtoRHCOL.CTranslationOp}
           `{RF_CTT: RHCOLtoFHCOL.CTranslationOp}.
@@ -1740,35 +1726,34 @@ Section RHCOL_to_FHCOL.
   Defined.
    *)
 
-End RHCOL_to_FHCOL.
+End RHCOL_to_FHCOL. *)
 
 Local Set Warnings "-ssr-search-moved".
 
 Section TopLevel.
 
-  Context
-    (* Assumptions for AHCOL to RHCOL mapping *)
-    `{CTT: AHCOLtoRHCOL.CTranslationOp}
-    `{CTP: @AHCOLtoRHCOL.CTranslationProps CTT}
-    `{NTP: @AHCOLtoRHCOL.NTranslationProps NTT}
-    (* Assumptions for RHCOL to FHCOL mapping *)
-    `{CTTF: RHCOLtoFHCOL.CTranslationOp}
-(*
-     Note: the following are not assumed, as they
-     could not be true for Real -> Float and Nat -> Int64
-     translations.
+  (* SHCOL -> MHCOL *)
+  Context `{CarrierASRO : @orders.SemiRingOrder
+                            CarrierA CarrierAe
+                            CarrierAplus CarrierAmult
+                            CarrierAz CarrierA1
+                            CarrierAle}.
 
-     `{CTPF: @RHCOLtoFHCOL.CTranslationProps CTTF}
-    `{NTPF: @RHCOLtoFHCOL.NTranslationProps NTTF}
-*)
-    `{CarrierASRO: @orders.SemiRingOrder CarrierA CarrierAe CarrierAplus CarrierAmult CarrierAz CarrierA1 CarrierAle}.
+  (* AHCOL -> RHCOL *)
+  Context
+    `{AR_CHE : AHCOLtoRHCOL.CTranslation_heq}
+    `{AR_CTO : @AHCOLtoRHCOL.CTranslationOp AR_CHE}
+    `{AR_NHE : AHCOLtoRHCOL.NTranslation_heq}
+    `{AR_NTO : @AHCOLtoRHCOL.NTranslationOp AR_NHE}.
+
+  (* RHCOL -> FHCOL *)
+  Context
+    `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}
+    `{RF_CTO : @RHCOLtoFHCOL.CTranslationOp RF_CHE}.
 
   (* We assuming that there is an injection of CType to Reals *)
-  Hypothesis AHCOLtoRHCOL_total:
-    (* always succeeds *)
-    (forall c, exists r, AHCOLtoRHCOL.translateCTypeValue c ≡ inr r).
-    (* Q: Do we need injectivity as well?
-    (∀ x y, AHCOLtoRHCOL.translateCTypeValue x ≡ AHCOLtoRHCOL.translateCTypeValue y → x ≡ y). *)
+  Hypothesis AHCOLtoRHCOL_total :
+    forall c, exists r, AHCOLtoRHCOL.translateCTypeValue c ≡ inr r.
 
 
   (* Initialize memory with X and placeholder for Y. *)
@@ -2257,7 +2242,6 @@ Section TopLevel.
 
   Lemma rhcol_fhcol_nexpr_closure_trace_equiv :
     evalNExpr_closure_trace_equiv
-      trivial2
       rhcol_nexpr_closure_trace
       fhcol_nexpr_closure_trace.
   Proof.
@@ -2307,7 +2291,7 @@ Section TopLevel.
       unfold_RF_NType_ops.
       cbn.
 
-      unfold heq_NType, RF_NTT, heq_nat_int in *.
+      unfold heq_NType, RF_NHE, heq_nat_int in *.
       replace (Int64.unsigned nv0)
         with (Z.of_nat nv)
         by (now unfold Int64.unsigned).
@@ -2341,7 +2325,7 @@ Section TopLevel.
       unfold_RF_NType_ops.
       cbn.
 
-      unfold heq_NType, RF_NTT, heq_nat_int in *.
+      unfold heq_NType, RF_NHE, heq_nat_int in *.
       replace (Int64.unsigned nv0)
         with (Z.of_nat nv)
         by (now unfold Int64.unsigned).
@@ -2375,7 +2359,7 @@ Section TopLevel.
       unfold_RF_NType_ops.
       cbn.
 
-      unfold heq_NType, RF_NTT, heq_nat_int in *.
+      unfold heq_NType, RF_NHE, heq_nat_int in *.
       replace (Int64.unsigned nv0)
         with (Z.of_nat nv)
         by (now unfold Int64.unsigned).
@@ -2409,7 +2393,7 @@ Section TopLevel.
       unfold_RF_NType_ops.
       cbn.
 
-      unfold heq_NType, RF_NTT, heq_nat_int in *.
+      unfold heq_NType, RF_NHE, heq_nat_int in *.
       replace (Int64.unsigned nv0)
         with (Z.of_nat nv)
         by (now unfold Int64.unsigned).
@@ -2749,7 +2733,6 @@ Section TopLevel.
     split.
     1: {
       (* Proof of correctness up to R *)
-      clear - RM AOM RY CTT CTP NTP.
       subst.
       unfold AHCOLtoRHCOL.translate_memory in RM.
       apply AHCOLtoRHCOL.NM_err_sequence_inr_fun_spec in RM.
