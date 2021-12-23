@@ -679,11 +679,13 @@ Module MDHCOLTypeTranslator
 
   End Relations.
 
+  (* TODO: this section needs cleanup *)
   Section Necessary_NT_Props.
 
-    Context `{NTT: NTranslationOp}.
-    Context `{NTP: @NTranslationProps NTT}.
+    Context `{NHE: NTranslation_heq}.
+    Context `{NTP: @NTranslationProps NHE}.
 
+    (* TODO: move to module? *)
     Lemma from_nat_of_to_nat (nt : NT.t) :
       NT.from_nat (NT.to_nat nt) = inr nt.
     Proof.
@@ -1257,38 +1259,18 @@ Module MDHCOLTypeTranslator
             intros; now inl_inr_inv.
   Qed.
 
-  Section Value_Translation_Correctness.
+  Section TranslationOp_Correctness.
 
-    Context `{CTT: CTranslationOp} `{CTP: @CTranslationProps CTT}
-            `{NTT: NTranslationOp} `{NTP: @NTranslationProps NTT}.
-
-    Instance sheq_DSHVal_proper :
-      Proper ((=) ==> (=) ==> iff) (heq_DSHVal heq_CType).
-    Proof.
-      apply heq_DSHVal_proper.
-      apply heq_CType_proper.
-    Qed.
-
-    Instance sheq_mem_block_proper:
-      Proper ((=) ==> (=) ==> iff) (heq_mem_block heq_CType).
-    Proof.
-      apply heq_mem_block_proper.
-      apply heq_CType_proper.
-    Qed.
-
-    Instance sheq_memory_proper:
-      Proper ((=) ==> (=) ==> iff) (heq_memory heq_CType).
-    Proof.
-      apply heq_memory_proper.
-      apply heq_CType_proper.
-    Qed.
+    Context `{NTO : NTranslationOp} `{CTO : CTranslationOp}.
 
     Fact heq_CType_zero_one_wd:
       heq_CType CT.CTypeZero CT'.CTypeZero /\
       heq_CType CT.CTypeOne CT'.CTypeOne.
     Proof.
       split;
-        apply heq_CType_translateCTypeValue_compat, translateCTypeConst_translateCTypeValue_compat; cbv.
+        apply translateCTypeValue_heq_CType;
+        apply translateCTypeConst_translateCTypeValue_compat;
+        cbv.
       -
         break_if.
         + reflexivity.
@@ -1310,7 +1292,7 @@ Module MDHCOLTypeTranslator
           (σ: LE.evalContext) (σ': LE'.evalContext)
       :
         translateEvalContext σ ≡ inr σ' ->
-        heq_evalContext heq_CType σ σ'.
+        heq_evalContext σ σ'.
     Proof.
       revert σ σ'.
       unfold heq_evalContext, heq_evalContextElem.
@@ -1341,7 +1323,7 @@ Module MDHCOLTypeTranslator
               inl_inr.
               inl_inr_inv.
               constructor.
-              apply heq_NType_translateNTypeValue_compat.
+              apply translateNTypeValue_heq_NType.
               rewrite Heqs1.
               reflexivity.
             --
@@ -1349,7 +1331,7 @@ Module MDHCOLTypeTranslator
               inl_inr.
               inl_inr_inv.
               constructor.
-              apply heq_CType_translateCTypeValue_compat.
+              apply translateCTypeValue_heq_CType.
               rewrite Heqs1.
               reflexivity.
             --
@@ -1358,7 +1340,7 @@ Module MDHCOLTypeTranslator
               inl_inr_inv.
               constructor.
               reflexivity.
-              apply heq_NType_translateNTypeValue_compat.
+              apply translateNTypeValue_heq_NType.
               rewrite Heqs1.
               reflexivity.
         +
@@ -1374,7 +1356,7 @@ Module MDHCOLTypeTranslator
           (σ: LE.evalContext) (σ': LE'.evalContext)
       :
         translateEvalContext σ = inr σ' ->
-        heq_evalContext heq_CType σ σ'.
+        heq_evalContext σ σ'.
     Proof.
       revert σ σ'.
       unfold heq_evalContext, heq_evalContextElem.
@@ -1417,13 +1399,11 @@ Module MDHCOLTypeTranslator
               unfold products.prod_equiv in H5.
               cbn in H5.
               destruct H5 as [TD BB0].
-              rewrite <- TD.
-
-
+              destruct d0; invc TD.
               constructor.
-              apply heq_NType_translateNTypeValue_compat.
+              apply translateNTypeValue_heq_NType.
               rewrite Heqs1.
-              reflexivity.
+              now constructor.
             --
               break_match.
               inl_inr.
@@ -1434,11 +1414,11 @@ Module MDHCOLTypeTranslator
               destruct H as [H1 H2].
               apply tuple_equiv_inv in H1.
               destruct H1 as [H1 H3].
-              setoid_rewrite <- H1.
+              destruct d0; invc H1.
               constructor.
-              apply heq_CType_translateCTypeValue_compat.
+              apply translateCTypeValue_heq_CType.
               rewrite Heqs1.
-              reflexivity.
+              now constructor.
             --
               break_match.
               inl_inr.
@@ -1450,13 +1430,12 @@ Module MDHCOLTypeTranslator
               destruct H as [H2 H3].
               apply tuple_equiv_inv in H2.
               destruct H2 as [H2 H4].
-              setoid_rewrite <-H2.
-              setoid_rewrite <-H1.
+              destruct d0; invc H1; invc H2.
               constructor.
-              reflexivity.
-              apply heq_NType_translateNTypeValue_compat.
+              tauto.
+              apply translateNTypeValue_heq_NType.
               rewrite Heqs1.
-              reflexivity.
+              now constructor.
         +
           apply IHσ.
           clear IHσ.
@@ -1470,7 +1449,7 @@ Module MDHCOLTypeTranslator
     Lemma translate_mem_block_heq_mem_block
           (m:L.mem_block) (m':L'.mem_block):
       translate_mem_block m = inr m' ->
-      heq_mem_block heq_CType m m'.
+      heq_mem_block m m'.
     Proof.
       intros H.
       unfold translate_mem_block in H.
@@ -1506,8 +1485,8 @@ Module MDHCOLTypeTranslator
           repeat some_inv.
           subst.
 
-          apply CTP.
-          apply CTP.
+          apply CTO.
+          apply CTO.
           symmetry in H.
           assumption.
         +
@@ -1552,7 +1531,7 @@ Module MDHCOLTypeTranslator
     Lemma translate_memory_heq_memory
           (m:L.memory) (m':L'.memory):
       translate_memory m = inr m' ->
-      heq_memory heq_CType m m'.
+      heq_memory m m'.
     Proof.
       intros H.
       unfold translate_memory in H.
@@ -1630,12 +1609,13 @@ Module MDHCOLTypeTranslator
           break_match; try some_none.
     Qed.
 
+    (* TODO: rename *)
     Lemma translate_runtime_mem_block_same_indices
           (mb : L.mem_block)
           (mb' : L'.mem_block)
       :
         translate_runtime_mem_block mb = inr mb' ->
-        heq_mem_block trivial2 mb mb'.
+        heq_mem_block mb mb'.
     Proof.
       intros M.
       unfold translate_runtime_memory in M.
@@ -1648,36 +1628,17 @@ Module MDHCOLTypeTranslator
       unfold option_map in M.
       repeat break_match; invc M;
         constructor.
-      constructor.
+      apply CTO.
+      now symmetry.
     Qed.
 
-    Lemma translate_mem_block_same_indices
-          (mb : L.mem_block)
-          (mb' : L'.mem_block)
-      :
-        translate_mem_block mb = inr mb' ->
-        heq_mem_block trivial2 mb mb'.
-    Proof.
-      intros M.
-      unfold translate_runtime_memory in M.
-      apply NM_err_sequence_inr_fun_spec in M.
-
-      intros k.
-      specialize (M k).
-      unfold LE.mem_lookup, LE'.mem_lookup.
-      rewrite !NP.F.map_o in M.
-      unfold option_map in M.
-      repeat break_match; invc M;
-        constructor.
-      constructor.
-    Qed.
-
+    (* TODO: rename *)
     Lemma translate_runtime_memory_same_indices
           (m : L.memory)
           (m' : L'.memory)
       :
         translate_runtime_memory m = inr m' ->
-        heq_memory trivial2 m m'.
+        heq_memory m m'.
     Proof.
       intros M.
       unfold translate_runtime_memory in M.
@@ -1691,25 +1652,15 @@ Module MDHCOLTypeTranslator
       repeat break_match; invc M;
         constructor.
       apply translate_runtime_mem_block_same_indices.
-      symmetry in H1.
-      assumption.
+      now symmetry.
     Qed.
-
-  End Value_Translation_Correctness.
-
-  (* TODO: merge this with the section above.
-     See TODO comment over [NTranslationProps'] *)
-  Section Value_Translation_Correctness'.
-
-    Context `{CTT: CTranslationOp} `{NTT: NTranslationOp}
-            `{NTP: @NTranslationProps NTT}.
 
     Lemma translateDSHVal_heq
           (d : L.DSHVal)
           (d' : L'.DSHVal)
       :
         translateDSHVal d = inr d' ->
-        heq_DSHVal trivial2 d d'.
+        heq_DSHVal d d'.
     Proof.
       (* NOTE: this lemma must not rely on TranslationProps *)
       intros D.
@@ -1725,25 +1676,29 @@ Module MDHCOLTypeTranslator
         autospecialize H; [reflexivity |].
         specialize (H t0 n0 H2).
         apply H.
-        clear - Heqs NTP.
-        apply heq_NType_translateNTypeValue_compat.
+        clear - Heqs NTO.
+        apply translateNTypeValue_heq_NType.
         now rewrite Heqs.
       -
-        repeat constructor.
+        constructor.
+        apply CTO.
+        rewrite Heqs.
+        now f_equiv.
       -
         destruct H0.
         constructor.
         assumption.
-        apply heq_NType_translateNTypeValue_compat.
+        apply translateNTypeValue_heq_NType.
         rewrite Heqs; now f_equiv.
     Qed.
 
+    (* TODO: rename *)
     Lemma translateEvalContext_same_indices
           (σ : LE.evalContext)
           (σ' : evalContext)
       :
         translateEvalContext σ = inr σ' ->
-        heq_evalContext trivial2 σ σ'.
+        heq_evalContext σ σ'.
     Proof.
       revert σ'.
       induction σ;
@@ -1765,7 +1720,7 @@ Module MDHCOLTypeTranslator
           destruct p; invc P.
           constructor.
           apply H0.
-          clear - H Heqs NTP.
+          clear - H Heqs NTO.
           cbn in H.
 
           apply translateDSHVal_heq.
@@ -1778,21 +1733,273 @@ Module MDHCOLTypeTranslator
           assumption.
     Qed.
 
-  End Value_Translation_Correctness'.
+  End TranslationOp_Correctness.
+
+  Section Syntactic_Translation_Correctness.
+
+    Context `{NTO : NTranslationOp} `{CTO : CTranslationOp}.
+
+    Lemma translateNExpr_syntax
+          (n : L.NExpr)
+          (n' : L'.NExpr)
+      :
+        translateNExpr n = inr n' ->
+        heq_NExpr n n'.
+    Proof.
+      generalize dependent n'.
+      induction n;
+        intros n' TN.
+      all: destruct n'.
+      all: cbn in *.
+      all: repeat break_match.
+      all: try inl_inr; repeat inl_inr_inv.
+      all: inv TN.
+      (* inductive cases *)
+      3-9: constructor;
+        [apply IHn1 | apply IHn2]; now f_equiv.
+      (* base cases *)
+      -
+        now constructor.
+      -
+        constructor.
+        symmetry in H1.
+        pose proof heq_NType_proper t0 t0.
+        autospecialize H; [reflexivity |].
+        specialize (H t1 t2 H1).
+        apply H.
+        clear - Heqs NTO.
+        apply NTO.
+        apply NTO.
+        now rewrite Heqs.
+    Qed.
+
+    Lemma translatePExpr_syntax
+          (p : L.PExpr)
+          (p' : L'.PExpr)
+      :
+        translatePExpr p = p' ->
+        heq_PExpr p p'.
+    Proof.
+      intros TP.
+      destruct p, p'.
+      invc TP.
+      now constructor.
+    Qed.
+
+    Lemma translateMExpr_syntax
+          (m : L.MExpr)
+          (m' : L'.MExpr)
+      :
+        translateMExpr m = inr m' ->
+        heq_MExpr m m'.
+    Proof.
+      intros M.
+      destruct m.
+      -
+        cbn in M.
+        inl_inr_inv.
+        destruct m'; invc M.
+        constructor.
+        now apply translatePExpr_syntax.
+      -
+        simpl in M.
+        repeat break_match; try inl_inr; inl_inr_inv.
+        destruct m'; invc M.
+        constructor.
+        +
+          apply NTO, NTO.
+          rewrite Heqs0.
+          now f_equiv.
+        +
+          apply translate_mem_block_heq_mem_block.
+          rewrite Heqs.
+          now f_equiv.
+    Qed.
+
+    Lemma translateAExpr_syntax
+          (a : L.AExpr)
+          (a' : L'.AExpr)
+      :
+        translateAExpr a = inr a' ->
+        heq_AExpr a a'.
+    Proof.
+      generalize dependent a'.
+      induction a;
+        intros a' TA.
+      all: destruct a'.
+      all: cbn in *.
+      all: repeat break_match.
+      all: try inl_inr; repeat inl_inr_inv.
+      all: inv TA.
+      (* inductive cases *)
+      5-10: constructor;
+        [apply IHa1 | apply IHa2]; now f_equiv.
+      4: constructor; apply IHa; now f_equiv.
+      (* base cases *)
+      -
+        now constructor.
+      -
+        constructor.
+        apply CTO, CTO.
+        rewrite Heqs.
+        now f_equiv.
+      -
+        constructor.
+        +
+          apply translateMExpr_syntax.
+          rewrite Heqs.
+          now f_equiv.
+        +
+          apply translateNExpr_syntax.
+          rewrite Heqs0.
+          now f_equiv.
+    Qed.
+
+    Theorem translation_syntax_always_correct
+            `{NTP : @NTranslationProps NHE}
+            {op op'}
+      :
+        translate op = inr op' ->
+        heq_DSHOperator op op'.
+    Proof.
+      generalize dependent op'.
+      induction op.
+      all: intros op' TE.
+      all: cbn in *.
+      all: repeat break_match;
+        try inl_inr; repeat inl_inr_inv.
+      all: destruct op'; invc TE.
+      -
+        constructor.
+      -
+        unfold translateMemRef in *.
+        cbn in *.
+        repeat break_match; invc Heqs; invc Heqs0.
+        constructor.
+        +
+          apply translateNExpr_syntax.
+          rewrite Heqs2; now f_equiv.
+        +
+          apply translateNExpr_syntax.
+          rewrite Heqs1; now f_equiv.
+        +
+          now apply translatePExpr_syntax.
+        +
+          now apply translatePExpr_syntax.
+      -
+        cbv in H4; subst n0.
+        constructor;
+          try now apply translatePExpr_syntax.
+        +
+          constructor.
+          destruct (heq_NType_from_nat n);
+            try inl_inr.
+          invc Heqs; invc Heqs0.
+          now constructor.
+        +
+          apply translateAExpr_syntax.
+          rewrite Heqs1.
+          now f_equiv.
+      -
+        cbv in H4; subst n0.
+        constructor;
+          try now apply translatePExpr_syntax.
+        +
+          constructor.
+          destruct (heq_NType_from_nat n);
+            try inl_inr.
+          invc Heqs; invc Heqs0.
+          now constructor.
+        +
+          apply translateAExpr_syntax.
+          rewrite Heqs1.
+          now f_equiv.
+      -
+        cbv in H5; subst n0.
+        constructor;
+          try now apply translatePExpr_syntax.
+        +
+          constructor.
+          destruct (heq_NType_from_nat n);
+            try inl_inr.
+          invc Heqs; invc Heqs0.
+          now constructor.
+        +
+          apply translateAExpr_syntax.
+          rewrite Heqs1.
+          now f_equiv.
+      -
+        destruct src as (osrc_p, osrc_n), dst as (odst_p, odst_n).
+        cbn in Heqs2, Heqs3.
+        repeat break_match; try inl_inr; repeat inl_inr_inv.
+        subst_max.
+        constructor;
+          try now apply translatePExpr_syntax.
+        +
+          apply translateNExpr_syntax.
+          rewrite Heqs1.
+          now f_equiv.
+        +
+          apply translateNExpr_syntax.
+          rewrite Heqs5.
+          now f_equiv.
+        +
+          apply translateNExpr_syntax.
+          rewrite Heqs4.
+          now f_equiv.
+        +
+          apply translateAExpr_syntax.
+          rewrite Heqs.
+          now f_equiv.
+        +
+          apply CTO, CTO.
+          rewrite Heqs0.
+          now f_equiv.
+      -
+        cbv in H2; subst n0.
+        constructor.
+        +
+          constructor.
+          destruct (heq_NType_from_nat n);
+            try inl_inr.
+          invc Heqs; invc Heqs0.
+          now constructor.
+        +
+          eapply IHop; now f_equiv.
+      -
+        constructor.
+        +
+          apply heq_NType_translateNTypeConst_compat.
+          rewrite Heqs0.
+          now f_equiv.
+        +
+          eapply IHop; now f_equiv.
+      -
+        constructor.
+        now apply translatePExpr_syntax.
+        apply CTO, CTO.
+        rewrite Heqs.
+        now f_equiv.
+      -
+        constructor.
+        eapply IHop1; now f_equiv.
+        eapply IHop2; now f_equiv.
+    Qed.
+
+  End Syntactic_Translation_Correctness.
 
   Section Semantic_Translation_Correctness.
 
-    Context `{CTT: CTranslationOp} `{NTT: NTranslationOp}.
-    Context `{NTP: @NTranslationProps NTT}.
+    Context `{NHE : NTranslation_heq} `{CHE : CTranslation_heq}.
+    Context `{NTP : @NTranslationProps NHE}.
 
     Lemma heq_PExpr_heq_evalPExpr
-          (heq : CT.t → CT'.t → Prop)
           (σ : LE.evalContext)
           (σ' : evalContext)
           (p : L.PExpr)
           (p' : L'.PExpr)
       :
-        heq_evalContext heq σ σ' ->
+        heq_evalContext σ σ' ->
         heq_PExpr p p' ->
         herr_c heq_evalPExpr
                (LE.evalPExpr σ p)
@@ -1813,15 +2020,14 @@ Module MDHCOLTypeTranslator
     Qed.
 
     Lemma heq_memory_heq_memory_lookup_err
-          (heq : CT.t → CT'.t → Prop)
           (msg msg' : string)
           (n n' : nat)
           (m : L.memory)
           (m' : L'.memory)
       :
         n = n' ->
-        heq_memory heq m m' ->
-        herr_c (heq_mem_block heq)
+        heq_memory m m' ->
+        herr_c heq_mem_block
                (LE.memory_lookup_err msg m n)
                (LE'.memory_lookup_err msg' m' n').
     Proof.
@@ -1848,15 +2054,14 @@ Module MDHCOLTypeTranslator
     Qed.
 
     Lemma heq_mem_block_heq_mem_lookup_err
-          (heq : CT.t → CT'.t → Prop)
           (msg msg' : string)
           (n n' : nat)
           (mb : L.mem_block)
           (mb' : L'.mem_block)
       :
         n = n' ->
-        heq_mem_block heq mb mb' ->
-        herr_c heq
+        heq_mem_block mb mb' ->
+        herr_c heq_CType
                (LE.mem_lookup_err msg n mb)
                (LE'.mem_lookup_err msg' n' mb').
     Proof.
@@ -1883,7 +2088,6 @@ Module MDHCOLTypeTranslator
     Qed.
 
     Lemma heq_MExpr_heq_evalMExpr
-          (heq : CT.t → CT'.t → Prop)
           (m : L.memory)
           (m' : L'.memory)
           (σ : LE.evalContext)
@@ -1891,10 +2095,10 @@ Module MDHCOLTypeTranslator
           (e : L.MExpr)
           (e' : L'.MExpr)
       :
-        heq_memory heq m m' ->
-        heq_evalContext heq σ σ' ->
-        heq_MExpr heq e e' ->
-        herr_c (heq_evalMExpr heq)
+        heq_memory m m' ->
+        heq_evalContext σ σ' ->
+        heq_MExpr e e' ->
+        herr_c heq_evalMExpr
                (LE.evalMExpr m σ e)
                (LE'.evalMExpr m' σ' e').
     Proof.
@@ -1924,14 +2128,13 @@ Module MDHCOLTypeTranslator
     Qed.
 
     Lemma heq_evalContext_heq_context_lookup
-          (heq : CT.t → CT'.t → Prop)
           (σ : LE.evalContext)
           (σ' : evalContext)
           (msg msg' : string)
           (n : LE.var_id)
       :
-        heq_evalContext heq σ σ' ->
-        herr_c (heq_evalContextElem heq)
+        heq_evalContext σ σ' ->
+        herr_c heq_evalContextElem
                (LE.context_lookup msg σ n)
                (LE'.context_lookup msg' σ' n).
     Proof.
@@ -1944,13 +2147,12 @@ Module MDHCOLTypeTranslator
 
     (* TODO: move *)
     Lemma evalAExpr_NatClosures_length
-          (heq : CT.t → CT'.t → Prop)
           (f : LE.AExpr)
           (f' : LE'.AExpr)
           (σ : LE.evalNatContext)
           (σ' : evalNatContext)
       :
-        heq_AExpr heq f f' ->
+        heq_AExpr f f' ->
         length (LE.evalAExpr_NatClosures σ f) =
         length (LE'.evalAExpr_NatClosures σ' f').
     Proof.
@@ -1961,29 +2163,27 @@ Module MDHCOLTypeTranslator
     Qed.
 
     Lemma evalNExpr_closure_trace_equiv_cons_inv
-          (heq : CT.t → CT'.t → Prop)
           (x : LE.evalNatClosure)
           (x' : evalNatClosure)
           (l : list LE.evalNatClosure)
           (l' : list evalNatClosure)
       :
-        evalNExpr_closure_trace_equiv heq (x :: l) (x' :: l') ->
-        evalNExpr_closure_equiv heq x x'
-        /\ evalNExpr_closure_trace_equiv heq l l'.
+        evalNExpr_closure_trace_equiv (x :: l) (x' :: l') ->
+        evalNExpr_closure_equiv x x'
+        /\ evalNExpr_closure_trace_equiv l l'.
     Proof.
       intro.
       now invc H.
     Qed.
 
     Lemma evalNExpr_closure_trace_equiv_app_inv
-          (heq : CT.t → CT'.t → Prop)
           (l1 l2 : list LE.evalNatClosure)
           (l1' l2' : list LE'.evalNatClosure)
       :
         length l1 = length l1' ->
-        evalNExpr_closure_trace_equiv heq (l1 ++ l2) (l1' ++ l2') ->
-        evalNExpr_closure_trace_equiv heq l1 l1'
-        /\ evalNExpr_closure_trace_equiv heq l2 l2'.
+        evalNExpr_closure_trace_equiv (l1 ++ l2) (l1' ++ l2') ->
+        evalNExpr_closure_trace_equiv l1 l1'
+        /\ evalNExpr_closure_trace_equiv l2 l2'.
     Proof.
       intros L E.
       unfold evalNExpr_closure_trace_equiv in *.
@@ -1997,7 +2197,6 @@ Module MDHCOLTypeTranslator
     Qed.
 
     Lemma heq_DSHOperator_evalNExpr_closure_trace_equiv_inv
-          (heq : CT.t → CT'.t → Prop)
           (op : L.DSHOperator)
           (op' : L'.DSHOperator)
           (σ : LE.evalNatContext)
@@ -2006,12 +2205,12 @@ Module MDHCOLTypeTranslator
           (σn0' : list evalNatClosure)
           (fuel fuel' : nat)
       :
-        heq_DSHOperator heq op op' -> (* NOTE: this might not be necessary *)
+        heq_DSHOperator op op' -> (* NOTE: this might not be necessary *)
         heq_evalNatContext σ σ' -> (* NOTE: this might not be necessary *)
-        hopt (herr (evalNExpr_closure_trace_equiv heq))
+        hopt (herr evalNExpr_closure_trace_equiv)
              (LE.intervalEvalDSHOperator σ op σn0 fuel)
              (LE'.intervalEvalDSHOperator σ' op' σn0' fuel') ->
-        evalNExpr_closure_trace_equiv heq σn0 σn0'.
+        evalNExpr_closure_trace_equiv σn0 σn0'.
     Proof.
       intros O.
       move O before op'.
@@ -2124,11 +2323,10 @@ Module MDHCOLTypeTranslator
     Qed.
 
     Lemma heq_evalContext_heq_evalNatContext
-          (heq : CT.t → CT'.t → Prop)
           (σ : LE.evalContext)
           (σ' : evalContext)
       :
-        heq_evalContext heq σ σ' ->
+        heq_evalContext σ σ' ->
         heq_evalNatContext
           (LE.evalNatContext_of_evalContext σ)
           (LE'.evalNatContext_of_evalContext σ').
@@ -2147,19 +2345,18 @@ Module MDHCOLTypeTranslator
     Qed.
 
     Lemma heq_mem_block_mem_add
-          (heq : CT.t → CT'.t → Prop)
           (n n' : nat)
           (mb : L.mem_block)
           (mb' : L'.mem_block)
           (t : CT.t)
           (t' : CT'.t)
       :
-        heq_mem_block heq mb mb' ->
+        heq_mem_block mb mb' ->
         n = n' ->
-        heq t t' ->
-        heq_mem_block heq
-                   (LE.mem_add n t mb)
-                   (LE'.mem_add n' t' mb').
+        heq_CType t t' ->
+        heq_mem_block
+          (LE.mem_add n t mb)
+          (LE'.mem_add n' t' mb').
     Proof.
       intros M N MB.
       invc N; rename n' into k'.
@@ -2176,19 +2373,18 @@ Module MDHCOLTypeTranslator
     Qed.
 
     Lemma heq_memory_memory_set
-          (heq : CT.t → CT'.t → Prop)
           (n n' : nat)
           (mb : L.mem_block)
           (mb' : L'.mem_block)
           (m : LE.memory)
           (m' : memory)
       :
-        heq_memory heq m m' ->
+        heq_memory m m' ->
         n = n' ->
-        heq_mem_block heq mb mb' ->
-        heq_memory heq
-                   (LE.memory_set m n mb)
-                   (LE'.memory_set m' n' mb').
+        heq_mem_block mb mb' ->
+        heq_memory
+          (LE.memory_set m n mb)
+          (LE'.memory_set m' n' mb').
     Proof.
       intros M N MB.
       invc N; rename n' into k'.
@@ -2205,11 +2401,10 @@ Module MDHCOLTypeTranslator
     Qed.
 
     Lemma heq_memory_mem_block_exists
-          (heq : CT.t → CT'.t → Prop)
           (m : L.memory)
           (m' : L'.memory)
       :
-        heq_memory heq m m' ->
+        heq_memory m m' ->
         (forall k, LE.mem_block_exists k m <-> LE'.mem_block_exists k m').
     Proof.
       intros.
@@ -2222,11 +2417,10 @@ Module MDHCOLTypeTranslator
 
     (* analogous to [memory_next_key_struct] *)
     Lemma heq_memory_memory_next_key
-          (heq : CT.t → CT'.t → Prop)
           (m : L.memory)
           (m' : L'.memory)
       :
-        heq_memory heq m m' ->
+        heq_memory m m' ->
         LE.memory_next_key m = LE'.memory_next_key m'.
     Proof.
       intros T.
@@ -2275,16 +2469,15 @@ Module MDHCOLTypeTranslator
     Qed.
 
     Lemma heq_memory_memory_remove
-          (heq : CT.t → CT'.t → Prop)
           (m : L.memory)
           (m' : L'.memory)
           (k k' : nat)
       :
-        heq_memory heq m m' ->
+        heq_memory m m' ->
         k = k' ->
-        heq_memory heq
-                   (LE.memory_remove m k)
-                   (LE'.memory_remove m' k').
+        heq_memory
+          (LE.memory_remove m k)
+          (LE'.memory_remove m' k').
     Proof.
       intros M K.
       invc K.
@@ -2301,15 +2494,14 @@ Module MDHCOLTypeTranslator
     Qed.
 
     Lemma heq_mem_block_heq_mem_union
-          (heq : CT.t → CT'.t → Prop)
           (mb1 mb2 : L.mem_block)
           (mb1' mb2' : L'.mem_block)
       :
-        heq_mem_block heq mb1 mb1' ->
-        heq_mem_block heq mb2 mb2' ->
-        heq_mem_block heq
-                      (LE.mem_union mb1 mb2)
-                      (LE'.mem_union mb1' mb2').
+        heq_mem_block mb1 mb1' ->
+        heq_mem_block mb2 mb2' ->
+        heq_mem_block
+          (LE.mem_union mb1 mb2)
+          (LE'.mem_union mb1' mb2').
     Proof.
       intros MB1 MB2.
       intros k;
@@ -2322,16 +2514,15 @@ Module MDHCOLTypeTranslator
     Qed.
 
     Lemma heq_mem_const_block
-          (heq : CT.t → CT'.t → Prop)
           (n n' : nat)
           (v : CT.t)
           (v' : CT'.t)
       :
         n = n' ->
-        heq v v' ->
-        heq_mem_block heq
-                      (LE.mem_const_block n v)
-                      (LE'.mem_const_block n' v').
+        heq_CType v v' ->
+        heq_mem_block
+          (LE.mem_const_block n v)
+          (LE'.mem_const_block n' v').
     Proof.
       intros N V.
       cbv in N; subst n'.
@@ -2347,247 +2538,15 @@ Module MDHCOLTypeTranslator
         constructor.
     Qed.
 
-  End Semantic_Translation_Correctness.
 
-  Section ControlFlow_Translation_Correctness.
+    (** * ******** *)
 
+    (*
     Context `{NTT: NTranslationOp}.
     Context `{NTP: NTranslationProps}.
+     *)
 
-    Lemma translateNExpr_syntax
-          (n : L.NExpr)
-          (n' : L'.NExpr)
-      :
-        translateNExpr n = inr n' ->
-        heq_NExpr n n'.
-    Proof.
-      generalize dependent n'.
-      induction n;
-        intros n' TN.
-      all: destruct n'.
-      all: cbn in *.
-      all: repeat break_match.
-      all: try inl_inr; repeat inl_inr_inv.
-      all: inv TN.
-      (* inductive cases *)
-      3-9: constructor;
-        [apply IHn1 | apply IHn2]; now f_equiv.
-      (* base cases *)
-      -
-        now constructor.
-      -
-        constructor.
-        symmetry in H1.
-        pose proof heq_NType_proper t0 t0.
-        autospecialize H; [reflexivity |].
-        specialize (H t1 t2 H1).
-        apply H.
-        clear - Heqs NTP.
-        apply heq_NType_translateNTypeConst_compat.
-        rewrite Heqs; reflexivity.
-    Qed.
-
-    Lemma translatePExpr_syntax
-          (p : L.PExpr)
-          (p' : L'.PExpr)
-      :
-        translatePExpr p = p' ->
-        heq_PExpr p p'.
-    Proof.
-      intros TP.
-      destruct p, p'.
-      invc TP.
-      now constructor.
-    Qed.
-
-    Lemma translateMExpr_syntax
-          (m : L.MExpr)
-          (m' : L'.MExpr)
-      :
-        translateMExpr m = inr m' ->
-        heq_MExpr trivial2 m m'.
-    Proof.
-      intros M.
-      destruct m.
-      -
-        cbn in M.
-        inl_inr_inv.
-        destruct m'; invc M.
-        constructor.
-        now apply translatePExpr_syntax.
-      -
-        simpl in M.
-        repeat break_match; try inl_inr; inl_inr_inv.
-        destruct m'; invc M.
-        constructor.
-        +
-          apply heq_NType_translateNTypeConst_compat.
-          rewrite Heqs0.
-          now f_equiv.
-        +
-          apply translate_mem_block_same_indices.
-          rewrite Heqs.
-          now f_equiv.
-    Qed.
-
-    Lemma translateAExpr_syntax
-          (a : L.AExpr)
-          (a' : L'.AExpr)
-      :
-        translateAExpr a = inr a' ->
-        heq_AExpr trivial2 a a'.
-    Proof.
-      generalize dependent a'.
-      induction a;
-        intros a' TA.
-      all: destruct a'.
-      all: cbn in *.
-      all: repeat break_match.
-      all: try inl_inr; repeat inl_inr_inv.
-      all: inv TA.
-      (* inductive cases *)
-      5-10: constructor;
-        [apply IHa1 | apply IHa2]; now f_equiv.
-      4: constructor; apply IHa; now f_equiv.
-      (* base cases *)
-      -
-        now constructor.
-      -
-        now repeat constructor.
-      -
-        constructor.
-        +
-          apply translateMExpr_syntax.
-          rewrite Heqs.
-          now f_equiv.
-        +
-          apply translateNExpr_syntax.
-          rewrite Heqs0.
-          now f_equiv.
-    Qed.
-
-    Lemma translation_syntax_always_correct {op op'} :
-      translate op = inr op' -> heq_DSHOperator trivial2 op op'.
-    Proof.
-      generalize dependent op'.
-      induction op.
-      all: intros op' TE.
-      all: cbn in *.
-      all: repeat break_match;
-        try inl_inr; repeat inl_inr_inv.
-      all: destruct op'; invc TE.
-      -
-        constructor.
-      -
-        unfold translateMemRef in *.
-        cbn in *.
-        repeat break_match; invc Heqs; invc Heqs0.
-        constructor.
-        +
-          apply translateNExpr_syntax.
-          rewrite Heqs2; now f_equiv.
-        +
-          apply translateNExpr_syntax.
-          rewrite Heqs1; now f_equiv.
-        +
-          now apply translatePExpr_syntax.
-        +
-          now apply translatePExpr_syntax.
-      -
-        cbv in H4; subst n0.
-        constructor;
-          try now apply translatePExpr_syntax.
-        +
-          constructor.
-          destruct (heq_NType_from_nat n);
-            try inl_inr.
-          invc Heqs; invc Heqs0.
-          now constructor.
-        +
-          apply translateAExpr_syntax.
-          rewrite Heqs1.
-          now f_equiv.
-      -
-        cbv in H4; subst n0.
-        constructor;
-          try now apply translatePExpr_syntax.
-        +
-          constructor.
-          destruct (heq_NType_from_nat n);
-            try inl_inr.
-          invc Heqs; invc Heqs0.
-          now constructor.
-        +
-          apply translateAExpr_syntax.
-          rewrite Heqs1.
-          now f_equiv.
-      -
-        cbv in H5; subst n0.
-        constructor;
-          try now apply translatePExpr_syntax.
-        +
-          constructor.
-          destruct (heq_NType_from_nat n);
-            try inl_inr.
-          invc Heqs; invc Heqs0.
-          now constructor.
-        +
-          apply translateAExpr_syntax.
-          rewrite Heqs1.
-          now f_equiv.
-      -
-        destruct src as (osrc_p, osrc_n), dst as (odst_p, odst_n).
-        cbn in Heqs2, Heqs3.
-        repeat break_match; try inl_inr; repeat inl_inr_inv.
-        subst_max.
-        constructor;
-          try now apply translatePExpr_syntax.
-        +
-          apply translateNExpr_syntax.
-          rewrite Heqs1.
-          now f_equiv.
-        +
-          apply translateNExpr_syntax.
-          rewrite Heqs5.
-          now f_equiv.
-        +
-          apply translateNExpr_syntax.
-          rewrite Heqs4.
-          now f_equiv.
-        +
-          apply translateAExpr_syntax.
-          rewrite Heqs.
-          now f_equiv.
-        +
-          constructor.
-      -
-        cbv in H2; subst n0.
-        constructor.
-        +
-          constructor.
-          destruct (heq_NType_from_nat n);
-            try inl_inr.
-          invc Heqs; invc Heqs0.
-          now constructor.
-        +
-          eapply IHop; now f_equiv.
-      -
-        constructor.
-        +
-          apply heq_NType_translateNTypeConst_compat.
-          rewrite Heqs0.
-          now f_equiv.
-        +
-          eapply IHop; now f_equiv.
-      -
-        constructor.
-        now apply translatePExpr_syntax.
-        constructor.
-      -
-        constructor.
-        eapply IHop1; now f_equiv.
-        eapply IHop2; now f_equiv.
-    Qed.
+    Context `{COP : @COpTranslationProps CHE}.
 
     Ltac autospecialize_closure_equiv H σ σ' :=
       specialize (H σ σ');
@@ -2602,9 +2561,6 @@ Module MDHCOLTypeTranslator
       eapply heq_NType_heq_assert_NT_lt in H1;
       [| eapply H2].
 
-    (* NOTE: Here, replacing [trivial2] with [heq_CType]
-       will result in an (unprvoable without CTranslationProps)
-       statement of semantic preservation *)
     Lemma heq_AExpr_heq_evalAExpr
           (σ : LE.evalContext)
           (σ' : evalContext)
@@ -2613,13 +2569,13 @@ Module MDHCOLTypeTranslator
           (a : L.AExpr)
           (a' : L'.AExpr)
       :
-        heq_memory trivial2 m m' ->
-        heq_evalContext trivial2 σ σ' ->
-        heq_AExpr trivial2 a a' ->
-        evalNExpr_closure_trace_equiv trivial2
+        heq_memory m m' ->
+        heq_evalContext σ σ' ->
+        heq_AExpr a a' ->
+        evalNExpr_closure_trace_equiv
           (LE.evalAExpr_NatClosures_σ σ a)
           (LE'.evalAExpr_NatClosures_σ σ' a') ->
-        herr_c trivial2
+        herr_c heq_CType
                (LE.evalAExpr m σ a)
                (LE'.evalAExpr m' σ' a').
     Proof.
@@ -2631,7 +2587,7 @@ Module MDHCOLTypeTranslator
           [| eapply evalAExpr_NatClosures_length; eassumption].
       5-10: autospecialize IHAE1; [tauto |].
       5-10: autospecialize IHAE2; [tauto |].
-      5-10: inv IHAE1; inv IHAE2; repeat constructor.
+      5-10: inv IHAE1; inv IHAE2; repeat constructor; now apply COP.
       (* base cases *)
       - (* AVar *)
         invc H.
@@ -2666,9 +2622,10 @@ Module MDHCOLTypeTranslator
       - (* AAbs *)
         apply IHAE in TE.
         invc TE;
-          repeat constructor.
+          constructor.
+        now apply COP.
       - (* AConst *)
-        repeat constructor.
+        now constructor.
     Qed.
 
     Lemma heq_AExpr_heq_evalIUnCType
@@ -2683,11 +2640,10 @@ Module MDHCOLTypeTranslator
           (ct : CT.t)
           (ct' : CT'.t)
       :
-        heq_memory trivial2 m m' ->
-        heq_evalContext trivial2 σ σ' ->
-        heq_AExpr trivial2 f f' ->
+        heq_memory m m' ->
+        heq_evalContext σ σ' ->
+        heq_AExpr f f' ->
         evalNExpr_closure_trace_equiv
-          trivial2
           (LE.evalAExpr_NatClosures
              (LE.DSHOtherVar :: LE.DSHIndex nt :: LE.evalNatContext_of_evalContext σ)
              f)
@@ -2695,17 +2651,17 @@ Module MDHCOLTypeTranslator
              (DSHOtherVar :: DSHIndex nt' :: evalNatContext_of_evalContext σ')
              f') ->
         heq_NType nt nt' ->
-        herr_c trivial2
+        heq_CType ct ct' ->
+        herr_c heq_CType
                (LE.evalIUnCType m σ f nt ct)
                (LE'.evalIUnCType m' σ' f' nt' ct').
     Proof.
-      intros M Σ F FT NT.
+      intros M Σ F FT NT CT.
       unfold LE.evalIUnCType, LE'.evalIUnCType.
       eapply heq_AExpr_heq_evalAExpr in M.
       inversion M as [? ? B1 B2 | ? ? ? B1 B2];
         rewrite <-B1, <-B2; [constructor |].
-      now constructor.
-      now repeat constructor.
+      all: repeat constructor.
       all: assumption.
     Qed.
 
@@ -2721,11 +2677,10 @@ Module MDHCOLTypeTranslator
           (ct1 ct2 : CT.t)
           (ct1' ct2' : CT'.t)
       :
-        heq_memory trivial2 m m' ->
-        heq_evalContext trivial2 σ σ' ->
-        heq_AExpr trivial2 f f' ->
+        heq_memory m m' ->
+        heq_evalContext σ σ' ->
+        heq_AExpr f f' ->
         evalNExpr_closure_trace_equiv
-          trivial2
           (LE.evalAExpr_NatClosures
              (LE.DSHOtherVar :: LE.DSHOtherVar :: LE.DSHIndex nt
                              :: LE.evalNatContext_of_evalContext σ)
@@ -2735,18 +2690,19 @@ Module MDHCOLTypeTranslator
                           :: evalNatContext_of_evalContext σ')
              f') ->
         heq_NType nt nt' ->
-        herr_c trivial2
+        heq_CType ct1 ct1' ->
+        heq_CType ct2 ct2' ->
+        herr_c heq_CType
                (LE.evalIBinCType m σ f nt ct1 ct2)
                (LE'.evalIBinCType m' σ' f' nt' ct1' ct2').
     Proof.
-      intros M Σ F FT NT.
+      intros M Σ F FT NT CT1 CT2.
       unfold LE.evalIBinCType, LE'.evalIBinCType.
       eapply heq_AExpr_heq_evalAExpr in M.
       inversion M as [? ? B1 B2 | ? ? ? B1 B2];
         rewrite <-B1, <-B2; [constructor |].
-      now constructor.
-      now repeat constructor.
-      all: assumption.
+      all: repeat constructor.
+      all: try assumption.
     Qed.
 
     Lemma heq_AExpr_heq_evalBinCType
@@ -2759,11 +2715,10 @@ Module MDHCOLTypeTranslator
           (ct1 ct2 : CT.t)
           (ct1' ct2' : CT'.t)
       :
-        heq_memory trivial2 m m' ->
-        heq_evalContext trivial2 σ σ' ->
-        heq_AExpr trivial2 f f' ->
+        heq_memory m m' ->
+        heq_evalContext σ σ' ->
+        heq_AExpr f f' ->
         evalNExpr_closure_trace_equiv
-          trivial2
           (LE.evalAExpr_NatClosures
              (LE.DSHOtherVar :: LE.DSHOtherVar
                              :: LE.evalNatContext_of_evalContext σ)
@@ -2772,22 +2727,22 @@ Module MDHCOLTypeTranslator
              (DSHOtherVar :: DSHOtherVar
                           :: evalNatContext_of_evalContext σ')
              f') ->
-        herr_c trivial2
+        heq_CType ct1 ct1' ->
+        heq_CType ct2 ct2' ->
+        herr_c heq_CType
                (LE.evalBinCType m σ f ct1 ct2)
                (LE'.evalBinCType m' σ' f' ct1' ct2').
     Proof.
-      intros M Σ F FT.
+      intros M Σ F FT CT1 CT2.
       unfold LE.evalBinCType, LE'.evalBinCType.
       eapply heq_AExpr_heq_evalAExpr in M.
       inversion M as [? ? B1 B2 | ? ? ? B1 B2];
         rewrite <-B1, <-B2; [constructor |].
-      now constructor.
-      now repeat constructor.
+      all: repeat constructor.
       all: assumption.
     Qed.
 
     Lemma evalNExpr_closure_equiv_monotone
-          (heq : CT.t → CT'.t → Prop)
           (σn : LE.evalNatContext)
           (σn' : LE'.evalNatContext)
           (σsn : LE.evalNatContext)
@@ -2797,8 +2752,8 @@ Module MDHCOLTypeTranslator
       :
         LE.evalNatContext_in_range σn σsn ->
         LE'.evalNatContext_in_range σn' σsn' ->
-        evalNExpr_closure_equiv heq (σsn, n) (σsn', n') ->
-        evalNExpr_closure_equiv heq (σn, n) (σn', n').
+        evalNExpr_closure_equiv (σsn, n) (σsn', n') ->
+        evalNExpr_closure_equiv (σn, n) (σn', n').
     Proof.
       intros ΣN ΣN' E.
       unfold evalNExpr_closure_equiv in *.
@@ -2811,7 +2766,6 @@ Module MDHCOLTypeTranslator
     Qed.
 
     Lemma AExpr_NatClosures_equiv_monotone
-          (heq : CT.t → CT'.t → Prop)
           (σn : LE.evalNatContext)
           (σn' : LE'.evalNatContext)
           (σsn : LE.evalNatContext)
@@ -2819,15 +2773,13 @@ Module MDHCOLTypeTranslator
           (f : LE.AExpr)
           (f' : LE'.AExpr)
       :
-        heq_AExpr heq f f' ->
+        heq_AExpr f f' ->
         LE.evalNatContext_in_range σn σsn ->
         LE'.evalNatContext_in_range σn' σsn' ->
         evalNExpr_closure_trace_equiv
-          heq
           (LE.evalAExpr_NatClosures σsn f)
           (LE'.evalAExpr_NatClosures σsn' f') ->
         evalNExpr_closure_trace_equiv
-          heq
           (LE.evalAExpr_NatClosures σn f)
           (LE'.evalAExpr_NatClosures σn' f').
     Proof.
@@ -2854,15 +2806,14 @@ Module MDHCOLTypeTranslator
     Qed.
 
     Lemma heq_protect_evalContext
-          (heq : CT.t → CT'.t → Prop)
           (σ : LE.evalContext)
           (σ' : evalContext)
           (p : L.PExpr)
           (p' : L'.PExpr)
       :
         heq_PExpr p p' ->
-        heq_evalContext heq σ σ' ->
-        heq_evalContext heq (LE.protect_p σ p) (protect_p σ' p').
+        heq_evalContext σ σ' ->
+        heq_evalContext (LE.protect_p σ p) (protect_p σ' p').
     Proof.
       intros P Σ.
       destruct p, p'.
@@ -2908,7 +2859,7 @@ Module MDHCOLTypeTranslator
           (y : L.mem_block)
           (y' : L'.mem_block)
       :
-        heq_memory trivial2 m m' ->
+        heq_memory m m' ->
 
         (* NOTE: this is equivalent to [heq_NT_nat n n'],
            but we need to bind nt, nt' later *)
@@ -2916,20 +2867,19 @@ Module MDHCOLTypeTranslator
         NT'.from_nat n' = inr nt' ->
         heq_NType nt nt' ->
 
-        heq_AExpr trivial2 f f' ->
+        heq_AExpr f f' ->
 
         evalNExpr_closure_trace_equiv
-          trivial2
           (LE.evalAExpr_NatClosures
              (LE.DSHOtherVar :: LE.DSHIndex nt :: LE.evalNatContext_of_evalContext σ)
              f)
           (evalAExpr_NatClosures
              (DSHOtherVar :: DSHIndex nt' :: evalNatContext_of_evalContext σ')
              f') ->
-        heq_evalContext trivial2 σ σ' ->
-        heq_mem_block trivial2 x x' ->
-        heq_mem_block trivial2 y y' ->
-        herr_c (heq_mem_block trivial2)
+        heq_evalContext σ σ' ->
+        heq_mem_block x x' ->
+        heq_mem_block y y' ->
+        herr_c heq_mem_block
                (LE.evalDSHIMap m n f σ x y)
                (LE'.evalDSHIMap m' n' f' σ' x' y').
     Proof.
@@ -2955,7 +2905,7 @@ Module MDHCOLTypeTranslator
       -
         remember_string.
         pose proof
-             heq_mem_block_heq_mem_lookup_err trivial2 str str n n x x'
+             heq_mem_block_heq_mem_lookup_err str str n n x x'
           as ME.
         full_autospecialize ME;
           [reflexivity | assumption |].
@@ -2969,7 +2919,6 @@ Module MDHCOLTypeTranslator
 
         (* for use in multiple places later *)
         assert (AB : evalNExpr_closure_trace_equiv
-                  trivial2
                   (LE.evalAExpr_NatClosures
                      (LE.DSHOtherVar :: LE.DSHIndex a0 ::
                                      LE.evalNatContext_of_evalContext σ)
@@ -3027,7 +2976,7 @@ Module MDHCOLTypeTranslator
           (y : L.mem_block)
           (y' : L'.mem_block)
       :
-        heq_memory trivial2 m m' ->
+        heq_memory m m' ->
 
         (* NOTE: this is equivalent to [heq_NT_nat n n'],
            but we need to bind nt, nt' later *)
@@ -3036,9 +2985,8 @@ Module MDHCOLTypeTranslator
         heq_NType nt nt' ->
 
         off = off' ->
-        heq_AExpr trivial2 f f' ->
+        heq_AExpr f f' ->
         evalNExpr_closure_trace_equiv
-          trivial2
           (LE.evalAExpr_NatClosures
              (LE.DSHOtherVar :: LE.DSHOtherVar :: LE.DSHIndex nt
                              :: LE.evalNatContext_of_evalContext σ)
@@ -3047,10 +2995,10 @@ Module MDHCOLTypeTranslator
              (DSHOtherVar :: DSHOtherVar :: DSHIndex nt'
                           :: evalNatContext_of_evalContext σ')
              f') ->
-        heq_evalContext trivial2 σ σ' ->
-        heq_mem_block trivial2 x x' ->
-        heq_mem_block trivial2 y y' ->
-        herr_c (heq_mem_block trivial2)
+        heq_evalContext σ σ' ->
+        heq_mem_block x x' ->
+        heq_mem_block y y' ->
+        herr_c heq_mem_block
                (LE.evalDSHBinOp m n off f σ x y)
                (LE'.evalDSHBinOp m' n' off' f' σ' x' y').
     Proof.
@@ -3078,7 +3026,7 @@ Module MDHCOLTypeTranslator
       -
         remember_string.
         pose proof
-             heq_mem_block_heq_mem_lookup_err trivial2 str str n n x x'
+             heq_mem_block_heq_mem_lookup_err str str n n x x'
           as ME.
         full_autospecialize ME;
           [reflexivity | assumption |].
@@ -3087,7 +3035,7 @@ Module MDHCOLTypeTranslator
         remember_string.
         pose proof
              heq_mem_block_heq_mem_lookup_err
-             trivial2 str str (n + off) (n + off) x x'
+             str str (n + off) (n + off) x x'
           as ME.
         full_autospecialize ME;
           [reflexivity | assumption |].
@@ -3102,7 +3050,6 @@ Module MDHCOLTypeTranslator
 
         (* for use in multiple places later *)
         assert (AB : evalNExpr_closure_trace_equiv
-                       trivial2
                        (LE.evalAExpr_NatClosures
                           (LE.DSHOtherVar :: LE.DSHOtherVar :: LE.DSHIndex a1 ::
                                           LE.evalNatContext_of_evalContext σ)
@@ -3158,11 +3105,10 @@ Module MDHCOLTypeTranslator
           (y : L.mem_block)
           (y' : L'.mem_block)
       :
-        heq_memory trivial2 m m' ->
+        heq_memory m m' ->
         heq_NT_nat n n' ->
-        heq_AExpr trivial2 f f' ->
+        heq_AExpr f f' ->
         evalNExpr_closure_trace_equiv
-          trivial2
           (LE.evalAExpr_NatClosures
              (LE.DSHOtherVar :: LE.DSHOtherVar
                              :: LE.evalNatContext_of_evalContext σ)
@@ -3171,11 +3117,11 @@ Module MDHCOLTypeTranslator
              (DSHOtherVar :: DSHOtherVar
                           :: evalNatContext_of_evalContext σ')
              f') ->
-        heq_evalContext trivial2 σ σ' ->
-        heq_mem_block trivial2 x0 x0' ->
-        heq_mem_block trivial2 x1 x1' ->
-        heq_mem_block trivial2 y y' ->
-        herr_c (heq_mem_block trivial2)
+        heq_evalContext σ σ' ->
+        heq_mem_block x0 x0' ->
+        heq_mem_block x1 x1' ->
+        heq_mem_block y y' ->
+        herr_c heq_mem_block
                (LE.evalDSHMap2 m n f σ x0 x1 y)
                (LE'.evalDSHMap2 m' n' f' σ' x0' x1' y').
     Proof.
@@ -3194,7 +3140,7 @@ Module MDHCOLTypeTranslator
         cbn.
         repeat remember_string.
         pose proof
-             heq_mem_block_heq_mem_lookup_err trivial2 str str1 n n x0 x0'
+             heq_mem_block_heq_mem_lookup_err str str1 n n x0 x0'
           as ME.
         full_autospecialize ME;
           [reflexivity | assumption |].
@@ -3202,7 +3148,7 @@ Module MDHCOLTypeTranslator
 
         repeat remember_string.
         pose proof
-             heq_mem_block_heq_mem_lookup_err trivial2 str str0 n n x1 x1'
+             heq_mem_block_heq_mem_lookup_err str str0 n n x1 x1'
           as ME.
         full_autospecialize ME;
           [reflexivity | assumption |].
@@ -3234,13 +3180,12 @@ Module MDHCOLTypeTranslator
           (y : L.mem_block)
           (y' : L'.mem_block)
       :
-        heq_memory trivial2 m m' ->
+        heq_memory m m' ->
         heq_NT_nat n n' ->
         heq_NT_nat xoff xoff' ->
         heq_NT_nat yoff yoff' ->
-        heq_AExpr trivial2 f f' ->
+        heq_AExpr f f' ->
         evalNExpr_closure_trace_equiv
-          trivial2
           ((LE.evalAExpr_NatClosures
               (LE.DSHOtherVar :: LE.DSHOtherVar
                               :: LE.evalNatContext_of_evalContext σ)
@@ -3249,10 +3194,10 @@ Module MDHCOLTypeTranslator
              (DSHOtherVar :: DSHOtherVar
                           :: evalNatContext_of_evalContext σ')
              f') ->
-        heq_evalContext trivial2 σ σ' ->
-        heq_mem_block trivial2 x x' ->
-        heq_mem_block trivial2 y y' ->
-        herr_c (heq_mem_block trivial2)
+        heq_evalContext σ σ' ->
+        heq_mem_block x x' ->
+        heq_mem_block y y' ->
+        herr_c heq_mem_block
                (LE.evalDSHPower m σ n f x y xoff yoff)
                (LE'.evalDSHPower m' σ' n' f' x' y' xoff' yoff').
     Proof.
@@ -3276,7 +3221,7 @@ Module MDHCOLTypeTranslator
       -
         remember_string.
         pose proof
-             heq_mem_block_heq_mem_lookup_err trivial2 str str xoff xoff x x'
+             heq_mem_block_heq_mem_lookup_err str str xoff xoff x x'
           as ME.
         full_autospecialize ME;
           [reflexivity | assumption |].
@@ -3284,7 +3229,7 @@ Module MDHCOLTypeTranslator
 
         remember_string.
         pose proof
-             heq_mem_block_heq_mem_lookup_err trivial2 str str yoff yoff y y'
+             heq_mem_block_heq_mem_lookup_err str str yoff yoff y y'
           as ME.
         full_autospecialize ME;
           [reflexivity | assumption |].
@@ -3302,7 +3247,7 @@ Module MDHCOLTypeTranslator
         now apply heq_mem_block_mem_add.
     Qed.
 
-    Lemma heq_DSHOperator_heq_evalDSHOperator
+    Theorem translation_semantics_correct
           (op : LE.DSHOperator)
           (op' : LE'.DSHOperator)
           (fuel fuel' : nat)
@@ -3311,15 +3256,13 @@ Module MDHCOLTypeTranslator
           (imem : L.memory)
           (imem' : L'.memory)
       :
-        heq_DSHOperator trivial2 op op' ->
-        heq_evalContext trivial2 σ σ' ->
-        heq_memory trivial2 imem imem' ->
-        hopt (herr (evalNExpr_closure_trace_equiv trivial2))
-                   (LE.intervalEvalDSHOperator_σ σ op nil fuel)
-                   (LE'.intervalEvalDSHOperator_σ σ' op' nil fuel') ->
-
-        (* replace [trivial2] -> [heq_CType] for total semantic preservation *)
-        hopt_r (herr_c (heq_memory trivial2))
+        heq_DSHOperator op op' ->
+        heq_evalContext σ σ' ->
+        heq_memory imem imem' ->
+        hopt (herr evalNExpr_closure_trace_equiv)
+             (LE.intervalEvalDSHOperator_σ σ op nil fuel)
+             (LE'.intervalEvalDSHOperator_σ σ' op' nil fuel') ->
+        hopt_r (herr_c heq_memory)
                (LE.evalDSHOperator σ op imem fuel)
                (LE'.evalDSHOperator σ' op' imem' fuel').
     Proof.
@@ -3327,7 +3270,7 @@ Module MDHCOLTypeTranslator
       move HEQ_OP before op'.
 
       (* generalize trace accumulator for induction *)
-      assert (T0E : evalNExpr_closure_trace_equiv trivial2 nil nil)
+      assert (T0E : evalNExpr_closure_trace_equiv nil nil)
         by constructor.
       generalize dependent (@nil LE.evalNatClosure).
       generalize dependent (@nil LE'.evalNatClosure).
@@ -3417,7 +3360,7 @@ Module MDHCOLTypeTranslator
         eapply heq_mem_block_mem_add.
         assumption.
         now apply heq_NType_to_nat.
-        constructor.
+        assumption.
       - (* IMap *)
         repeat break_match; invc H3; invc H4.
         rename t1 into nt, t0 into nt'.
@@ -3653,7 +3596,7 @@ Module MDHCOLTypeTranslator
         +
           apply heq_protect_evalContext; assumption.
       - (* Power *)
-        clear H5.
+        rename H5 into INI.
         rename H into HEQN.
         rename H0 into HEQ_SRCN, H1 into HEQ_DSTN.
         rename H2 into HEQ_SRCP, H3 into HEQ_DSTP.
@@ -3761,9 +3704,9 @@ Module MDHCOLTypeTranslator
           apply heq_mem_block_mem_add.
           assumption.
           apply heq_NType_to_nat; assumption.
-          constructor.
+          assumption.
       - (* MemInit *)
-        clear H0.
+        rename H0 into V.
         rename p into y_p, p' into y_p', H into HEQYP.
         cbn.
         constructor.
@@ -3792,7 +3735,7 @@ Module MDHCOLTypeTranslator
           [| assumption].
         apply heq_mem_const_block.
         apply heq_NType_to_nat; now invc H1.
-        constructor.
+        assumption.
       - (* Loop *)
         rename H0 into TΣN, H1 into TΣN';
           symmetry in TΣN, TΣN'.
@@ -3826,7 +3769,7 @@ Module MDHCOLTypeTranslator
           specialize (IHn bσn0 bσn0'). (* <- inductive *)
 
           (* for use in multiple places later *)
-          assert (HEQ_BΣN0 : evalNExpr_closure_trace_equiv trivial2 bσn0 bσn0').
+          assert (HEQ_BΣN0 : evalNExpr_closure_trace_equiv bσn0 bσn0').
           {
             eapply heq_DSHOperator_evalNExpr_closure_trace_equiv_inv.
             3: rewrite BΣN, BΣN'.
@@ -3890,7 +3833,7 @@ Module MDHCOLTypeTranslator
         | [ |- context [LE'.evalDSHOperator ?σ ?op ?mem ?fuel] ] =>
           remember (LE'.evalDSHOperator σ op mem fuel) as eop'
         end.
-        enough (hopt_r (herr_c (heq_memory trivial2)) eop eop').
+        enough (hopt_r (herr_c heq_memory) eop eop').
         {
           invc H0; [constructor |].
           invc H1; [repeat constructor |].
@@ -3901,7 +3844,7 @@ Module MDHCOLTypeTranslator
           eassumption.
         }
         subst.
-        assert (HEQ_ΣN0 : evalNExpr_closure_trace_equiv trivial2 σn0 σn0').
+        assert (HEQ_ΣN0 : evalNExpr_closure_trace_equiv σn0 σn0').
         {
           eapply heq_DSHOperator_evalNExpr_closure_trace_equiv_inv.
           3: rewrite TΣN, TΣN'.
@@ -3944,7 +3887,7 @@ Module MDHCOLTypeTranslator
         clear H1 H0.
         rename l0 into fσn, l into fσn'.
         rename Heqo0 into FΣN, Heqo into FΣN'.
-        assert (HEQ_FΣN : evalNExpr_closure_trace_equiv trivial2 fσn fσn').
+        assert (HEQ_FΣN : evalNExpr_closure_trace_equiv fσn fσn').
         {
           eapply heq_DSHOperator_evalNExpr_closure_trace_equiv_inv.
           3: rewrite TΣN, TΣN'.
@@ -3952,7 +3895,7 @@ Module MDHCOLTypeTranslator
           eapply heq_evalContext_heq_evalNatContext; eassumption.
           now repeat constructor.
         }
-        assert (HEQF : hopt_r (herr_c (heq_memory trivial2))
+        assert (HEQF : hopt_r (herr_c heq_memory)
                               (LE.evalDSHOperator σ f imem fuel)
                               (evalDSHOperator σ' f' imem' fuel')).
         {
@@ -3970,6 +3913,6 @@ Module MDHCOLTypeTranslator
         now repeat constructor.
     Qed.
 
-  End ControlFlow_Translation_Correctness.
+  End Semantic_Translation_Correctness.
 
 End MDHCOLTypeTranslator.
