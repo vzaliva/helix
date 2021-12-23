@@ -113,28 +113,57 @@ Module MDHCOLTypeTranslator
          mv
          (inr (@NM.empty A)).
 
-  Class CTranslationOp :=
+  (* Heterogeneous equivalence on values before and after translation *)
+  Class CTranslation_heq :=
     {
-    (* Heterogeneous equality *)
-    heq_CType: CT.t -> CT'.t -> Prop ;
-
-    (* Proper wrt [equiv] *)
-    heq_CType_proper: Proper ((=) ==> (=) ==> iff) heq_CType;
-    (* Partial mapping of [CT.t] values to [CT'.t] *)
-    translateCTypeValue: CT.t -> err CT'.t ;
+      heq_CType : CT.t -> CT'.t -> Prop ;
+      heq_CType_proper : Proper ((=) ==> (=) ==> iff) heq_CType;
     }.
 
-  Class NTranslationOp :=
+  Class NTranslation_heq :=
     {
+      heq_NType : NT.t -> NT'.t -> Prop ;
+      heq_NType_proper : Proper ((=) ==> (=) ==> iff) heq_NType;
+    }.
 
-    (* Heterogeneous equality *)
-    heq_NType: NT.t -> NT'.t -> Prop ;
+  Class CTranslationOp `{CHE : CTranslation_heq} :=
+    {
+      (* Partial mapping of [CT.t] values to [CT'.t] *)
+      translateCTypeValue : CT.t -> err CT'.t ;
 
-    (* Proper wrt [equiv] *)
-    heq_NType_proper: Proper ((=) ==> (=) ==> iff) heq_NType ;
+      (* Value mapping should result in "equal" values *)
+      translateCTypeValue_heq_CType :
+      forall x x', translateCTypeValue x = inr x' -> heq_CType x x';
 
-    (* Partial mapping of [NT.t] values to [NT'.t] *)
-    translateNTypeValue: NT.t -> err NT'.t ;
+
+      (* Ensure [translateCTypeConst] is compatible with [translateCTypeValue] *)
+      translateCTypeConst_translateCTypeValue_compat :
+      forall x x', translateCTypeConst x = inr x' ->
+              translateCTypeValue x = inr x';
+
+      (* Surjectivity: all values in CT't should have correspoding CT.t values
+         Not sure if we need this
+         translate_surj :
+         forall (x' : CT'.t), exists x,
+         translateCTypeValue x = inr x';
+       *)
+    }.
+
+  (* TODO: [translateNTypeValue] vs [translateNTypeConst].
+     Why even have the first one? *)
+  Class NTranslationOp `{NHE : NTranslation_heq} :=
+    {
+      (* Partial mapping of [NT.t] values to [NT'.t] *)
+      translateNTypeValue : NT.t -> err NT'.t ;
+
+      (* Value mapping should result in "equal" values *)
+      translateNTypeValue_heq_NType :
+      forall x x', translateNTypeValue x = inr x' -> heq_NType x x';
+
+      (* Ensure [translateNTypeConst] is compatible with [translateNTypeValue] *)
+      translateNTypeConst_translateNTypeValue_compat :
+      forall x x', translateNTypeConst x = inr x' ->
+              translateNTypeValue x = inr x';
     }.
 
   Class NBinOpTranslation
@@ -149,23 +178,12 @@ Module MDHCOLTypeTranslator
           translateNTypeValue (f x y) = inr (f' x' y')
       }.
 
-  (* TODO: [translateNTypeValue] vs [translateNTypeConst].
-     Why have the first one? *)
-  Class NTranslationProps `{NTT: NTranslationOp} :=
+  Class NTranslationProps `{NHE : NTranslation_heq} :=
     {
-    (* Value mapping should result in "equal" values *)
-    heq_NType_translateNTypeValue_compat:
-      forall x x', translateNTypeValue x = inr x' -> heq_NType x x';
-
-    (* Ensure [translateNTypeConst] is compatible with [translateNTypeValue] *)
-    translateNTypeConst_translateNTypeValue_compat:
-      forall x x', translateNTypeConst x = inr x' ->
-              translateNTypeValue x = inr x';
-
-    heq_NType_to_nat:
+      heq_NType_to_nat :
       forall x x', heq_NType x x' -> NT.to_nat x = NT'.to_nat x';
 
-    heq_NType_from_nat :
+      heq_NType_from_nat :
       forall n,
         herr_f heq_NType (NT.from_nat n) (NT'.from_nat n);
     }.
@@ -184,60 +202,40 @@ Module MDHCOLTypeTranslator
    *)
 
   Class CBinOpTranslation
-        `{CTranslationOp}
+        `{CHE : CTranslation_heq}
         (f: CT.t -> CT.t -> CT.t)
         (f': CT'.t -> CT'.t -> CT'.t)
     :=
       {
-    binop_translate_compat: forall x x' y y',
-          translateCTypeValue x = inr x' ->
-          translateCTypeValue y = inr y' ->
-          translateCTypeValue (f x y) = inr (f' x' y')
+        binop_translate_compat: forall x x' y y',
+          heq_CType x x' ->
+          heq_CType y y' ->
+          heq_CType (f x y) (f' x' y')
       }.
 
   Class CUnOpTranslation
-        `{CTranslationOp}
+        `{CHE : CTranslation_heq}
         (f: CT.t -> CT.t)
         (f': CT'.t -> CT'.t)
     :=
       {
-    unop_translate_compat: forall x x',
-          translateCTypeValue x = inr x' ->
-          translateCTypeValue (f x) = inr (f' x')
+        unop_translate_compat: forall x x',
+          heq_CType x x' ->
+          heq_CType (f x) (f' x')
       }.
 
-  Class CTranslationProps `{C: CTranslationOp} :=
+  Class COpTranslationProps `{CHE : CTranslation_heq} :=
     {
-    (* Value mapping should result in "equal" values *)
-    heq_CType_translateCTypeValue_compat:
-      forall x x', translateCTypeValue x = inr x' -> heq_CType x x';
+      CTypePlus_translation  : CBinOpTranslation CT.CTypePlus  CT'.CTypePlus ;
+      CTypeMult_translation  : CBinOpTranslation CT.CTypeMult  CT'.CTypeMult ;
+      CTypeZLess_translation : CBinOpTranslation CT.CTypeZLess CT'.CTypeZLess;
+      CTypeMin_translation   : CBinOpTranslation CT.CTypeMin   CT'.CTypeMin  ;
+      CTypeMax_translation   : CBinOpTranslation CT.CTypeMax   CT'.CTypeMax  ;
+      CTypeSub_translation   : CBinOpTranslation CT.CTypeSub   CT'.CTypeSub  ;
 
-
-    (* Ensure [translateCTypeConst] is compatible with [translateCTypeValue] *)
-    translateCTypeConst_translateCTypeValue_compat:
-      forall x x', translateCTypeConst x = inr x' ->
-              translateCTypeValue x = inr x';
-
-    (* Surjectivity: all values in CT't should have correspoding CT.t values
-       Not sure if we need this
-       translate_surj: forall (x':CT'.t), exists x, translateCTypeValue x = inr x';
-     *)
+      CTypeNeg_translation: CUnOpTranslation CT.CTypeNeg CT'.CTypeNeg ;
+      CTypeAbs_translation: CUnOpTranslation CT.CTypeAbs CT'.CTypeAbs ;
     }.
-
-  (*
-  Class COpTranslationProps `{C: CTranslationOp} :=
-    {
-    CTypePlus_translation  : CBinOpTranslation CT.CTypePlus  CT'.CTypePlus ;
-    CTypeMult_translation  : CBinOpTranslation CT.CTypeMult  CT'.CTypeMult ;
-    CTypeZLess_translation : CBinOpTranslation CT.CTypeZLess CT'.CTypeZLess;
-    CTypeMin_translation   : CBinOpTranslation CT.CTypeMin   CT'.CTypeMin  ;
-    CTypeMax_translation   : CBinOpTranslation CT.CTypeMax   CT'.CTypeMax  ;
-    CTypeSub_translation   : CBinOpTranslation CT.CTypeSub   CT'.CTypeSub  ;
-
-    CTypeNeg_translation: CUnOpTranslation CT.CTypeNeg CT'.CTypeNeg ;
-    CTypeAbs_translation: CUnOpTranslation CT.CTypeAbs CT'.CTypeAbs ;
-    }.
-   *)
 
   Section EvalTranslations.
 
