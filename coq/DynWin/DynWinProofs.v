@@ -2477,42 +2477,38 @@ Section TopLevel.
         (* Compile AHCOL -> RHCOL -> FHCOL *)
         AHCOLtoRHCOL.translate dynwin_AHCOL = inr dynwin_rhcol ->
         translate dynwin_rhcol = inr dynwin_fhcol ->
-
+        
         (* Compile memory *)
-        (AHCOLtoRHCOL.translate_runtime_memory (build_dynwin_memory a x) = inr dynwin_R_memory /\
-         RHCOLtoFHCOL.translate_runtime_memory dynwin_R_memory = inr dynwin_F_memory) ->
-
+        AHCOLtoRHCOL.translate_runtime_memory (build_dynwin_memory a x) = inr dynwin_R_memory ->
+        RHCOLtoFHCOL.translate_runtime_memory dynwin_R_memory = inr dynwin_F_memory ->
+        
         (* compile σ *)
-        (AHCOLtoRHCOL.translateEvalContext build_dynwin_σ = inr dynwin_R_σ /\
-         RHCOLtoFHCOL.translateEvalContext dynwin_R_σ = inr dynwin_F_σ) ->
+        AHCOLtoRHCOL.translateEvalContext build_dynwin_σ = inr dynwin_R_σ ->
+        RHCOLtoFHCOL.translateEvalContext dynwin_R_σ = inr dynwin_F_σ ->
+        
+        forall a_rmem x_rmem,
+          RHCOLEval.memory_lookup dynwin_R_memory dynwin_a_addr = Some a_rmem ->
+          RHCOLEval.memory_lookup dynwin_R_memory dynwin_x_addr = Some x_rmem ->
+          InConstr a_rmem x_rmem ->
 
-        (forall a_rmem x_rmem,
-            RHCOLEval.memory_lookup dynwin_R_memory dynwin_a_addr = Some a_rmem /\
-            RHCOLEval.memory_lookup dynwin_R_memory dynwin_x_addr = Some x_rmem /\
-            InConstr a_rmem x_rmem ->
+          (* Everything correct on Reals *)
+          exists r_omemory y_rmem,
+            RHCOLEval.evalDSHOperator
+              dynwin_R_σ
+              dynwin_rhcol
+              dynwin_R_memory
+              (RHCOLEval.estimateFuel dynwin_rhcol) = Some (inr r_omemory)
+            /\ RHCOLEval.memory_lookup r_omemory dynwin_y_addr = Some y_rmem
+            /\ AHCOLtoRHCOL.translate_runtime_mem_block (avector_to_mem_block y) = inr y_rmem
 
-            exists r_omemory,
-              RHCOLEval.evalDSHOperator
-                dynwin_R_σ
-                dynwin_rhcol
-                dynwin_R_memory
-                (RHCOLEval.estimateFuel dynwin_rhcol) = Some (inr r_omemory) ->
-
-              forall y_rmem,
-                RHCOLEval.memory_lookup r_omemory dynwin_y_addr = Some y_rmem ->
-
-                (* Everything correct on Reals *)
-                AHCOLtoRHCOL.translate_runtime_mem_block (avector_to_mem_block y) = inr y_rmem /\
-
-                (* And floats *)
-                exists f_omemory y_fmem,
-                  FHCOLEval.evalDSHOperator
-                    dynwin_F_σ dynwin_fhcol
-                    dynwin_F_memory
-                    (FHCOLEval.estimateFuel dynwin_fhcol) = (Some (inr f_omemory)) /\
-                  FHCOLEval.memory_lookup f_omemory dynwin_y_addr = Some y_fmem /\
-
-                  OutRel a_rmem x_rmem y_rmem y_fmem).
+            (* And floats *)
+            /\ exists f_omemory y_fmem,
+              FHCOLEval.evalDSHOperator
+                dynwin_F_σ dynwin_fhcol
+                dynwin_F_memory
+                (FHCOLEval.estimateFuel dynwin_fhcol) = (Some (inr f_omemory))
+              /\ FHCOLEval.memory_lookup f_omemory dynwin_y_addr = Some y_fmem
+              /\ OutRel a_rmem x_rmem y_rmem y_fmem.
   Proof.
     intros * HC * CA CR [CAM CRM] [CAE CRE] * [RA [RX C]].
 
