@@ -1484,7 +1484,7 @@ Module MDHCOLTypeTranslator
           subst.
 
           apply CTO.
-          apply CTO.
+          apply translateCTypeConst_translateCTypeValue_compat.
           symmetry in H.
           assumption.
         +
@@ -1616,7 +1616,6 @@ Module MDHCOLTypeTranslator
         heq_mem_block mb mb'.
     Proof.
       intros M.
-      unfold translate_runtime_memory in M.
       apply NM_err_sequence_inr_fun_spec in M.
 
       intros k.
@@ -1838,7 +1837,8 @@ Module MDHCOLTypeTranslator
         now constructor.
       -
         constructor.
-        apply CTO, CTO.
+        apply translateCTypeValue_heq_CType,
+          translateCTypeConst_translateCTypeValue_compat.
         rewrite Heqs.
         now f_equiv.
       -
@@ -1950,7 +1950,8 @@ Module MDHCOLTypeTranslator
           rewrite Heqs.
           now f_equiv.
         +
-          apply CTO, CTO.
+                  apply translateCTypeValue_heq_CType,
+          translateCTypeConst_translateCTypeValue_compat.
           rewrite Heqs0.
           now f_equiv.
       -
@@ -1975,7 +1976,8 @@ Module MDHCOLTypeTranslator
       -
         constructor.
         now apply translatePExpr_syntax.
-        apply CTO, CTO.
+        apply translateCTypeValue_heq_CType,
+          translateCTypeConst_translateCTypeValue_compat.
         rewrite Heqs.
         now f_equiv.
       -
