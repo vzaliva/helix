@@ -472,6 +472,23 @@ Section hopt.
   | hopt_i_None_Some : forall a, hopt_i None (Some a)
   | hopt_i_Some : forall a b, R a b -> hopt_i (Some a) (Some b).
 
+  Instance hopt_proper
+           `{EQa : Equiv A}
+           `{EQb : Equiv B}
+           {PR : Proper ((=) ==> (=) ==> (iff)) R} :
+    Proper ((=) ==> (=) ==> (iff)) hopt.
+  Proof.
+    intros a1 a2 AE b1 b2 BE.
+    destruct a1, a2, b1, b2;
+      invc AE; invc BE.
+    2-4: split; intro C; invc C.
+    split.
+    all: intro E; invc E; constructor.
+    specialize (PR a a0 H1 b b0 H2).
+    tauto.
+    eapply PR; eassumption.
+  Qed.
+
 End hopt.
 Arguments hopt {A B} R.
 Arguments hopt_r {A B} R.

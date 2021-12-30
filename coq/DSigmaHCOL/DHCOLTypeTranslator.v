@@ -401,6 +401,21 @@ Module MDHCOLTypeTranslator
           ret (DSHSeq f' g')
         end.
 
+  Instance translate_runtime_memory_proper :
+    Proper ((=) ==> (=)) translate_runtime_memory.
+  Proof.
+  Admitted.
+
+  Instance translate_proper :
+    Proper ((=) ==> (=)) translate.
+  Proof.
+  Admitted.
+  
+  Instance translateEvalContext_proper :
+    Proper ((=) ==> (=)) translateEvalContext.
+  Proof.
+  Admitted.
+
   End EvalTranslations.
 
   Section Relations.
@@ -680,6 +695,10 @@ Module MDHCOLTypeTranslator
           rewrite <-H0,<-H1.
           apply H2.
     Qed.
+
+    Instance evalNExpr_closure_trace_equiv_proper :
+      Proper ((=) ==> (=) ==> (iff)) evalNExpr_closure_trace_equiv.
+    Admitted.
 
   End Relations.
 

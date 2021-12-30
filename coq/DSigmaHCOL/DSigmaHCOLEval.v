@@ -684,6 +684,22 @@ Module Type MDSigmaHCOLEval
     : option (err (list evalNatClosure)) :=
     intervalEvalDSHOperator (evalNatContext_of_evalContext σ) op cl fuel.
 
+  Instance evalNatClosure_Equiv :
+    Equiv evalNatClosure.
+  Admitted.
+
+  Instance evalNatClosure_Equivalence :
+    Equivalence evalNatClosure_Equiv.
+  Admitted.
+  
+  Instance intervalEvalDSHOperator_σ_proper :
+    Proper ((=) ==> (=) ==> (=) ==> (=) ==> (=)) intervalEvalDSHOperator_σ.
+  Admitted.
+
+  Instance estimateFuel_proper :
+    Proper ((=) ==> (=)) estimateFuel.
+  Admitted.
+
   Lemma intervalEvalDSHOperator_fuel_monotone
         (σn : evalNatContext)
         (op : DSHOperator)

@@ -405,6 +405,10 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
 
   Instance DSHOperator_Equiv: Equiv DSHOperator  := DSHOperator_equiv.
 
+  Instance DSHOperator_equiv_Equivalence :
+    Equivalence DSHOperator_Equiv.
+  Admitted.
+
   Definition incrPVar (skip:nat) (p: PExpr): PExpr :=
     match p with
     | PVar var_id =>
