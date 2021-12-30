@@ -166,18 +166,6 @@ Module MDHCOLTypeTranslator
               translateNTypeValue x = inr x';
     }.
 
-  Class NBinOpTranslation
-        `{NTranslationOp}
-        (f: NT.t -> NT.t -> NT.t)
-        (f': NT'.t -> NT'.t -> NT'.t)
-    :=
-      {
-    nbinop_translate_compat: forall x x' y y',
-          translateNTypeValue x = inr x' ->
-          translateNTypeValue y = inr y' ->
-          translateNTypeValue (f x y) = inr (f' x' y')
-      }.
-
   Class NTranslationProps `{NHE : NTranslation_heq} :=
     {
       heq_NType_to_nat :
@@ -188,18 +176,28 @@ Module MDHCOLTypeTranslator
         herr_f heq_NType (NT.from_nat n) (NT'.from_nat n);
     }.
 
-  (*
-  Class NOpTranslationProps `{NTT: NTranslationOp} :=
+  Class NBinOpTranslation
+        `{NHE : NTranslation_heq}
+        (f: NT.t -> NT.t -> NT.t)
+        (f': NT'.t -> NT'.t -> NT'.t)
+    :=
+      {
+        nbinop_translate_compat: forall x x' y y',
+          heq_NType x x' ->
+          heq_NType y y' ->
+          heq_NType (f x y) (f' x' y')
+      }.
+
+  Class NOpTranslationProps `{NTT: NTranslation_heq} :=
     {
-    NTypeDiv_translation   : NBinOpTranslation NT.NTypeDiv   NT'.NTypeDiv  ;
-    NTypeMod_translation   : NBinOpTranslation NT.NTypeMod   NT'.NTypeMod  ;
-    NTypePlus_translation  : NBinOpTranslation NT.NTypePlus  NT'.NTypePlus ;
-    NTypeMinus_translation : NBinOpTranslation NT.NTypeMinus NT'.NTypeMinus;
-    NTypeMult_translation  : NBinOpTranslation NT.NTypeMult  NT'.NTypeMult ;
-    NTypeMin_translation   : NBinOpTranslation NT.NTypeMin   NT'.NTypeMin  ;
-    NTypeMax_translation   : NBinOpTranslation NT.NTypeMax   NT'.NTypeMax  ;
+      NTypeDiv_translation   : NBinOpTranslation NT.NTypeDiv   NT'.NTypeDiv  ;
+      NTypeMod_translation   : NBinOpTranslation NT.NTypeMod   NT'.NTypeMod  ;
+      NTypePlus_translation  : NBinOpTranslation NT.NTypePlus  NT'.NTypePlus ;
+      NTypeMinus_translation : NBinOpTranslation NT.NTypeMinus NT'.NTypeMinus;
+      NTypeMult_translation  : NBinOpTranslation NT.NTypeMult  NT'.NTypeMult ;
+      NTypeMin_translation   : NBinOpTranslation NT.NTypeMin   NT'.NTypeMin  ;
+      NTypeMax_translation   : NBinOpTranslation NT.NTypeMax   NT'.NTypeMax  ;
     }.
-   *)
 
   Class CBinOpTranslation
         `{CHE : CTranslation_heq}
@@ -207,7 +205,7 @@ Module MDHCOLTypeTranslator
         (f': CT'.t -> CT'.t -> CT'.t)
     :=
       {
-        binop_translate_compat: forall x x' y y',
+        cbinop_translate_compat: forall x x' y y',
           heq_CType x x' ->
           heq_CType y y' ->
           heq_CType (f x y) (f' x' y')
@@ -219,7 +217,7 @@ Module MDHCOLTypeTranslator
         (f': CT'.t -> CT'.t)
     :=
       {
-        unop_translate_compat: forall x x',
+        cunop_translate_compat: forall x x',
           heq_CType x x' ->
           heq_CType (f x) (f' x')
       }.
