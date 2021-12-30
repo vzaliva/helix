@@ -1738,22 +1738,29 @@ Section TopLevel.
                             CarrierAplus CarrierAmult
                             CarrierAz CarrierA1
                             CarrierAle}.
-
+  (* TODO: instantiate? *)
   (* AHCOL -> RHCOL *)
   Context
     `{AR_CHE : AHCOLtoRHCOL.CTranslation_heq}
     `{AR_CTO : @AHCOLtoRHCOL.CTranslationOp AR_CHE}
     `{AR_NHE : AHCOLtoRHCOL.NTranslation_heq}
-    `{AR_NTO : @AHCOLtoRHCOL.NTranslationOp AR_NHE}.
+    `{AR_NTO : @AHCOLtoRHCOL.NTranslationOp AR_NHE}
+
+    `{AR_NTP : @AHCOLtoRHCOL.NTranslationProps AR_NHE}
+    `{AR_NOP : @AHCOLtoRHCOL.NOpTranslationProps AR_NHE}
+
+    `{AR_COP : @AHCOLtoRHCOL.COpTranslationProps AR_CHE}
+    `{AR_CTS : @AHCOLtoRHCOL.CTranslationOp_strict AR_CHE AR_CTO}.
 
   (* RHCOL -> FHCOL *)
   Context
     `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}
     `{RF_CTO : @RHCOLtoFHCOL.CTranslationOp RF_CHE}.
 
+  (* TODO: removing this was kind of a big deal *)
   (* We assuming that there is an injection of CType to Reals *)
-  Hypothesis AHCOLtoRHCOL_total :
-    forall c, exists r, AHCOLtoRHCOL.translateCTypeValue c ≡ inr r.
+  (* Hypothesis AHCOLtoRHCOL_total :
+    forall c, exists r, AHCOLtoRHCOL.translateCTypeValue c ≡ inr r. *)
 
 
   (* Initialize memory with X and placeholder for Y. *)
@@ -1778,408 +1785,6 @@ Section TopLevel.
                      (* x *) RHCOLEval.mem_block ->
                      (* y *) RHCOLEval.mem_block ->
                  (* y_mem *) FHCOLEval.mem_block -> Prop.
-
-  (** * RHCOL *)
-  Definition DynWin_RHCOL :=
-    RHCOLEval.DSHAlloc (NatAsNT.MNatAsNT.to_nat 2)
-      (RHCOLEval.DSHSeq
-         (RHCOLEval.DSHSeq
-            (RHCOLEval.DSHAlloc (NatAsNT.MNatAsNT.to_nat 1)
-               (RHCOLEval.DSHSeq
-                  (RHCOLEval.DSHSeq
-                     (RHCOLEval.DSHMemInit (RHCOL.PVar 0) MRasCT.CTypeZero)
-                     (RHCOLEval.DSHAlloc (NatAsNT.MNatAsNT.to_nat 1)
-                        (RHCOLEval.DSHLoop 3
-                           (RHCOLEval.DSHSeq
-                              (RHCOLEval.DSHAlloc (NatAsNT.MNatAsNT.to_nat 1)
-                                 (RHCOLEval.DSHSeq
-                                    (RHCOLEval.DSHAssign
-                                       (RHCOL.PVar (S (S (S (S (S (S 1)))))),
-                                       RHCOLEval.NConst
-                                         (NatAsNT.MNatAsNT.to_nat 0))
-                                       (RHCOL.PVar 0,
-                                       RHCOLEval.NConst
-                                         (NatAsNT.MNatAsNT.to_nat 0)))
-                                    (RHCOLEval.DSHAlloc
-                                       (NatAsNT.MNatAsNT.to_nat 1)
-                                       (RHCOLEval.DSHSeq
-                                          (RHCOLEval.DSHPower
-                                             (RHCOLEval.NVar 2)
-                                             (RHCOL.PVar (S 0),
-                                             RHCOLEval.NConst
-                                               (NatAsNT.MNatAsNT.to_nat 0))
-                                             (RHCOL.PVar 0,
-                                             RHCOLEval.NConst
-                                               (NatAsNT.MNatAsNT.to_nat 0))
-                                             (RHCOLEval.AMult
-                                                (RHCOLEval.AVar 1)
-                                                (RHCOLEval.AVar 0))
-                                             MRasCT.CTypeOne)
-                                          (RHCOLEval.DSHIMap 1
-                                             (RHCOL.PVar 0)
-                                             (RHCOL.PVar (S (S (S 0))))
-                                             (RHCOLEval.AMult
-                                                (RHCOLEval.AVar 0)
-                                                (RHCOLEval.ANth
-                                                   (RHCOLEval.MPtrDeref
-                                                   (RHCOL.PVar 8))
-                                                   (RHCOLEval.NVar 4))))))))
-                              (RHCOLEval.DSHMemMap2 1
-                                 (RHCOL.PVar (S (S 0)))
-                                 (RHCOL.PVar 1) (RHCOL.PVar (S (S 0)))
-                                 (RHCOLEval.APlus (RHCOLEval.AVar 1)
-                                    (RHCOLEval.AVar 0)))))))
-                  (RHCOLEval.DSHAssign
-                     (RHCOL.PVar 0,
-                     RHCOLEval.NConst (NatAsNT.MNatAsNT.to_nat 0))
-                     (RHCOL.PVar (S 0),
-                     RHCOLEval.NConst (NatAsNT.MNatAsNT.to_nat 0)))))
-            (RHCOLEval.DSHAlloc (NatAsNT.MNatAsNT.to_nat 1)
-               (RHCOLEval.DSHSeq
-                  (RHCOLEval.DSHSeq
-                     (RHCOLEval.DSHMemInit (RHCOL.PVar 0) MRasCT.CTypeZero)
-                     (RHCOLEval.DSHAlloc (NatAsNT.MNatAsNT.to_nat 1)
-                        (RHCOLEval.DSHLoop 2
-                           (RHCOLEval.DSHSeq
-                              (RHCOLEval.DSHAlloc (NatAsNT.MNatAsNT.to_nat 2)
-                                 (RHCOLEval.DSHSeq
-                                    (RHCOLEval.DSHLoop 2
-                                       (RHCOLEval.DSHAlloc
-                                          (NatAsNT.MNatAsNT.to_nat 1)
-                                          (RHCOLEval.DSHSeq
-                                             (RHCOLEval.DSHAssign
-                                                (RHCOL.PVar
-                                                   (S
-                                                   (S (S (S (S (S (S (S 1)))))))),
-                                                RHCOLEval.NPlus
-                                                  (RHCOLEval.NPlus
-                                                   (RHCOLEval.NConst
-                                                   (NatAsNT.MNatAsNT.to_nat 1))
-                                                   (RHCOLEval.NMult
-                                                   (RHCOLEval.NVar 3)
-                                                   (RHCOLEval.NConst
-                                                   (NatAsNT.MNatAsNT.to_nat 1))))
-                                                  (RHCOLEval.NMult
-                                                   (RHCOLEval.NVar 1)
-                                                   (RHCOLEval.NMult
-                                                   (RHCOLEval.NConst
-                                                   (NatAsNT.MNatAsNT.to_nat 2))
-                                                   (RHCOLEval.NConst
-                                                   (NatAsNT.MNatAsNT.to_nat 1)))))
-                                                (RHCOL.PVar 0,
-                                                RHCOLEval.NConst
-                                                  (NatAsNT.MNatAsNT.to_nat 0)))
-                                             (RHCOLEval.DSHAssign
-                                                (RHCOL.PVar 0,
-                                                RHCOLEval.NConst
-                                                  (NatAsNT.MNatAsNT.to_nat 0))
-                                                (RHCOL.PVar (S (S 0)),
-                                                RHCOLEval.NVar 1)))))
-                                    (RHCOLEval.DSHBinOp 1
-                                       (RHCOL.PVar 0)
-                                       (RHCOL.PVar (S (S 0)))
-                                       (RHCOLEval.AAbs
-                                          (RHCOLEval.AMinus
-                                             (RHCOLEval.AVar 1)
-                                             (RHCOLEval.AVar 0))))))
-                              (RHCOLEval.DSHMemMap2 1
-                                 (RHCOL.PVar (S (S 0)))
-                                 (RHCOL.PVar 1) (RHCOL.PVar (S (S 0)))
-                                 (RHCOLEval.AMax (RHCOLEval.AVar 1)
-                                    (RHCOLEval.AVar 0)))))))
-                  (RHCOLEval.DSHAssign
-                     (RHCOL.PVar 0,
-                     RHCOLEval.NConst (NatAsNT.MNatAsNT.to_nat 0))
-                     (RHCOL.PVar (S 0),
-                     RHCOLEval.NConst (NatAsNT.MNatAsNT.to_nat 1))))))
-         (RHCOLEval.DSHBinOp 1 (RHCOL.PVar 0) (RHCOL.PVar (S (S 0)))
-            (RHCOLEval.AZless (RHCOLEval.AVar 1) (RHCOLEval.AVar 0)))).
-
-  Lemma DynWin_AHCOL_to_RHCOL_compute :
-    AHCOLtoRHCOL.translate dynwin_AHCOL = inr DynWin_RHCOL.
-  Proof.
-    unfold DynWin_RHCOL.
-    cbn.
-
-    assert (Z : AHCOLtoRHCOL.translateCTypeConst CarrierAz
-            ≡ @inr string _ MRasCT.CTypeZero).
-    {
-      unfold AHCOLtoRHCOL.translateCTypeConst.
-      repeat break_if; try reflexivity; exfalso.
-      all: clear - n; contradict n; reflexivity.
-    }
-
-    assert (O : AHCOLtoRHCOL.translateCTypeConst CarrierA1
-            ≡ @inr string _ MRasCT.CTypeOne).
-    {
-      unfold AHCOLtoRHCOL.translateCTypeConst.
-      repeat break_if; try reflexivity; exfalso.
-      -
-        clear - e.
-        unfold CarrierAasCT.CTypeZero in e.
-        pose proof CarrierAasCT.CTypeZeroOneApart as C.
-        contradict C.
-        symmetry.
-        assumption.
-      -
-        clear - n0.
-        contradict n0.
-        reflexivity.
-    }
-
-    setoid_rewrite Z.
-    setoid_rewrite O.
-    setoid_rewrite Z.
-    repeat constructor. (* not a reflexive relation :) *)
-  Qed.
-
-  (** * FHCOL *)
-  Definition DynWin_FHCOL :=
-    DSHAlloc {| Int64.intval := 2; Int64.intrange := conj eq_refl eq_refl |}
-      (DSHSeq
-         (DSHSeq
-            (DSHAlloc
-               {| Int64.intval := 1; Int64.intrange := conj eq_refl eq_refl |}
-               (DSHSeq
-                  (DSHSeq (DSHMemInit (FHCOL.PVar 0) Float64asCT.Float64Zero)
-                     (DSHAlloc
-                        {|
-                          Int64.intval := 1;
-                          Int64.intrange := conj eq_refl eq_refl
-                        |}
-                        (DSHLoop 3
-                           (DSHSeq
-                              (DSHAlloc
-                                 {|
-                                   Int64.intval := 1;
-                                   Int64.intrange := conj eq_refl eq_refl
-                                 |}
-                                 (DSHSeq
-                                    (DSHAssign
-                                       (FHCOL.PVar 7,
-                                       NConst
-                                         {|
-                                           Int64.intval := 0;
-                                           Int64.intrange :=
-                                             conj eq_refl eq_refl
-                                         |})
-                                       (FHCOL.PVar 0,
-                                       NConst
-                                         {|
-                                           Int64.intval := 0;
-                                           Int64.intrange :=
-                                             conj eq_refl eq_refl
-                                         |}))
-                                    (DSHAlloc
-                                       {|
-                                         Int64.intval := 1;
-                                         Int64.intrange := conj eq_refl eq_refl
-                                       |}
-                                       (DSHSeq
-                                          (DSHPower
-                                             (NVar 2)
-                                             (FHCOL.PVar 1,
-                                             NConst
-                                               {|
-                                                 Int64.intval := 0;
-                                                 Int64.intrange :=
-                                                   conj eq_refl eq_refl
-                                               |})
-                                             (FHCOL.PVar 0,
-                                             NConst
-                                               {|
-                                                 Int64.intval := 0;
-                                                 Int64.intrange :=
-                                                   conj eq_refl eq_refl
-                                               |}) (AMult (AVar 1) (AVar 0))
-                                             Float64asCT.Float64One)
-                                          (DSHIMap 1
-                                             (FHCOL.PVar 0)
-                                             (FHCOL.PVar 3)
-                                             (AMult
-                                                (AVar 0)
-                                                (ANth
-                                                   (MPtrDeref (FHCOL.PVar 8))
-                                                   (NVar 4))))))))
-                              (DSHMemMap2 1 (FHCOL.PVar 2)
-                                 (FHCOL.PVar 1) (FHCOL.PVar 2)
-                                 (APlus (AVar 1) (AVar 0)))))))
-                  (DSHAssign
-                     (FHCOL.PVar 0,
-                     NConst
-                       {|
-                         Int64.intval := 0;
-                         Int64.intrange := conj eq_refl eq_refl
-                       |})
-                     (FHCOL.PVar 1,
-                     NConst
-                       {|
-                         Int64.intval := 0;
-                         Int64.intrange := conj eq_refl eq_refl
-                       |}))))
-            (DSHAlloc
-               {| Int64.intval := 1; Int64.intrange := conj eq_refl eq_refl |}
-               (DSHSeq
-                  (DSHSeq (DSHMemInit (FHCOL.PVar 0) Float64asCT.Float64Zero)
-                     (DSHAlloc
-                        {|
-                          Int64.intval := 1;
-                          Int64.intrange := conj eq_refl eq_refl
-                        |}
-                        (DSHLoop 2
-                           (DSHSeq
-                              (DSHAlloc
-                                 {|
-                                   Int64.intval := 2;
-                                   Int64.intrange := conj eq_refl eq_refl
-                                 |}
-                                 (DSHSeq
-                                    (DSHLoop 2
-                                       (DSHAlloc
-                                          {|
-                                            Int64.intval := 1;
-                                            Int64.intrange :=
-                                              conj eq_refl eq_refl
-                                          |}
-                                          (DSHSeq
-                                             (DSHAssign
-                                                (FHCOL.PVar 9,
-                                                NPlus
-                                                  (NPlus
-                                                   (NConst
-                                                   {|
-                                                   Int64.intval := 1;
-                                                   Int64.intrange :=
-                                                   conj eq_refl eq_refl
-                                                   |})
-                                                   (NMult
-                                                   (NVar 3)
-                                                   (NConst
-                                                   {|
-                                                   Int64.intval := 1;
-                                                   Int64.intrange :=
-                                                   conj eq_refl eq_refl
-                                                   |})))
-                                                  (NMult
-                                                   (NVar 1)
-                                                   (NMult
-                                                   (NConst
-                                                   {|
-                                                   Int64.intval := 2;
-                                                   Int64.intrange :=
-                                                   conj eq_refl eq_refl
-                                                   |})
-                                                   (NConst
-                                                   {|
-                                                   Int64.intval := 1;
-                                                   Int64.intrange :=
-                                                   conj eq_refl eq_refl
-                                                   |}))))
-                                                (FHCOL.PVar 0,
-                                                NConst
-                                                  {|
-                                                   Int64.intval := 0;
-                                                   Int64.intrange :=
-                                                   conj eq_refl eq_refl
-                                                  |}))
-                                             (DSHAssign
-                                                (FHCOL.PVar 0,
-                                                NConst
-                                                  {|
-                                                   Int64.intval := 0;
-                                                   Int64.intrange :=
-                                                   conj eq_refl eq_refl
-                                                  |})
-                                                (FHCOL.PVar 2, NVar 1)))))
-                                    (DSHBinOp 1 (FHCOL.PVar 0)
-                                       (FHCOL.PVar 2)
-                                       (AAbs (AMinus (AVar 1) (AVar 0))))))
-                              (DSHMemMap2 1 (FHCOL.PVar 2)
-                                 (FHCOL.PVar 1) (FHCOL.PVar 2)
-                                 (AMax (AVar 1) (AVar 0)))))))
-                  (DSHAssign
-                     (FHCOL.PVar 0,
-                     NConst
-                       {|
-                         Int64.intval := 0;
-                         Int64.intrange := conj eq_refl eq_refl
-                       |})
-                     (FHCOL.PVar 1,
-                     NConst
-                       {|
-                         Int64.intval := 1;
-                         Int64.intrange := conj eq_refl eq_refl
-                       |})))))
-         (DSHBinOp 1 (FHCOL.PVar 0) (FHCOL.PVar 2) (AZless (AVar 1) (AVar 0)))).
-
-  Lemma DynWin_RHCOL_to_FHCOL_compute :
-    RHCOLtoFHCOL.translate DynWin_RHCOL = inr DynWin_FHCOL.
-  Proof.
-    unfold DynWin_RHCOL.
-    cbn.
-
-    assert (Z : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeZero
-            ≡ @inr string _ Float64asCT.Float64Zero).
-    {
-      unfold RHCOLtoFHCOL.translateCTypeConst.
-      repeat break_if; try reflexivity; exfalso.
-      all: clear - n; contradict n; reflexivity.
-    }
-
-    assert (O : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeOne
-            ≡ @inr string _ Float64asCT.Float64One).
-    {
-      unfold RHCOLtoFHCOL.translateCTypeConst.
-      repeat break_if; try reflexivity; exfalso.
-      -
-        clear - e.
-        cbv in e.
-        pose proof MRasCT.CTypeZeroOneApart.
-        congruence.
-      -
-        clear - n0.
-        contradict n0.
-        reflexivity.
-    }
-
-    setoid_rewrite Z.
-    setoid_rewrite O.
-    setoid_rewrite Z.
-    f_equiv.
-    repeat constructor. (* not a reflexive relation :) *)
-  Qed.
-
-  Definition dynwin_R_σ' :=
-    match AHCOLtoRHCOL.translateEvalContext build_dynwin_σ with
-    | inr σ => σ
-    | _ => []
-    end.
-
-  Definition rhcol_nexpr_closure_trace :=
-    match RHCOLEval.intervalEvalDSHOperator
-            (RHCOLEval.evalNatContext_of_evalContext dynwin_R_σ')
-            DynWin_RHCOL
-            []
-            (RHCOLEval.estimateFuel DynWin_RHCOL) with
-    | Some (inr t) => t
-    | _ => []
-    end.
-
-  Definition dynwin_F_σ' :=
-    match RHCOLtoFHCOL.translateEvalContext dynwin_R_σ' with
-    | inr σ => σ
-    | _ => []
-    end.
-
-  Definition fhcol_nexpr_closure_trace :=
-    match FHCOLEval.intervalEvalDSHOperator
-            (FHCOLEval.evalNatContext_of_evalContext dynwin_F_σ')
-            DynWin_FHCOL
-            []
-            (FHCOLEval.estimateFuel DynWin_FHCOL) with
-    | Some (inr t) => t
-    | _ => []
-    end.
 
   Ltac crush_int :=
     repeat rewrite !Int64.unsigned_repr;
@@ -2222,7 +1827,6 @@ Section TopLevel.
            Int64.lt
       in *.
 
-
   (* note: the two [try] blocks are for RHCOL/FHCOL lemma *)
   Ltac destruct_context_range_lookup ΣR x :=
     let TΣR := fresh "TΣR" in
@@ -2240,12 +1844,176 @@ Section TopLevel.
     destruct TΣR as (nv & p & NV & Σ);
     rewrite Σ.
 
-  Lemma rhcol_fhcol_nexpr_closure_trace_equiv :
-    evalNExpr_closure_trace_equiv
-      rhcol_nexpr_closure_trace
-      fhcol_nexpr_closure_trace.
+  (* TODO: move *)
+  Lemma trivial2_Proper `{AE : Equiv A} `{BE : Equiv B} :
+    Proper (equiv ==> equiv ==> iff) (@trivial2 A B).
   Proof.
-    cbn.
+    repeat constructor.
+  Qed.
+
+  
+
+  (* Instances for trivial comparison of CType values
+     in RHCOL->FHCOL translation.
+
+     These allow to infer structural properties of translation,
+     while disregarding CType values (and CType values only).
+
+     The statement [RF_Structural_Semantic_Preservation]
+     is the full semantic preservation on RHCOL->FHCOL, up to CType values.
+   *)
+  Local Definition trivial_RF_CHE : RHCOLtoFHCOL.CTranslation_heq :=
+    {|
+      heq_CType := trivial2;
+      heq_CType_proper := trivial2_Proper;
+    |}.
+
+  Local Fact trivial_RF_COP
+    : @RHCOLtoFHCOL.COpTranslationProps trivial_RF_CHE.
+  Proof.
+    repeat constructor.
+  Qed.
+
+  Local Fact trivial_RF_translateCTypeValue_heq_CType :
+    ∀ (x : R) (x' : Bits.binary64),
+      translateCTypeValue x = inr x' →
+      @heq_CType trivial_RF_CHE x x'.
+  Proof.
+    repeat constructor.
+  Qed.
+
+  Local Definition trivial_RF_CTO : @RHCOLtoFHCOL.CTranslationOp trivial_RF_CHE :=
+    {|
+      translateCTypeValue := @translateCTypeValue _ RF_CTO;
+      translateCTypeValue_heq_CType := trivial_RF_translateCTypeValue_heq_CType;
+      translateCTypeConst_translateCTypeValue_compat :=
+        @translateCTypeConst_translateCTypeValue_compat _ RF_CTO;
+    |}.
+
+  Definition RF_Structural_Semantic_Preservation :=
+    @RHCOLtoFHCOL.translation_semantics_correct
+      RF_NHE
+      trivial_RF_CHE
+      RF_NTP
+      trivial_RF_COP.
+  
+  Lemma RHCOLtoFHCOL_NExpr_closure_trace_equiv
+        (dynwin_R_σ : RHCOLEval.evalContext)
+        (dynwin_F_σ : evalContext)
+        (dynwin_rhcol : RHCOL.DSHOperator)
+        (dynwin_fhcol : FHCOL.DSHOperator)
+    :
+    AHCOLtoRHCOL.translate dynwin_AHCOL = inr dynwin_rhcol ->
+    RHCOLtoFHCOL.translate dynwin_rhcol = inr dynwin_fhcol ->
+
+    AHCOLtoRHCOL.translateEvalContext build_dynwin_σ = inr dynwin_R_σ ->
+    RHCOLtoFHCOL.translateEvalContext dynwin_R_σ = inr dynwin_F_σ ->
+
+    hopt (herr (@evalNExpr_closure_trace_equiv RF_NHE trivial_RF_CHE))
+         (RHCOLEval.intervalEvalDSHOperator_σ
+            dynwin_R_σ dynwin_rhcol []
+            (RHCOLEval.estimateFuel dynwin_rhcol))
+         (intervalEvalDSHOperator_σ
+            dynwin_F_σ dynwin_fhcol []
+            (estimateFuel dynwin_fhcol)).
+  Proof.
+    intros AR RF ARΣ RFΣ.
+
+    assert (AR0 : AHCOLtoRHCOL.translateCTypeConst CarrierAz
+            ≡ @inr string _ MRasCT.CTypeZero).
+    {
+      unfold AHCOLtoRHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      all: clear - n; contradict n; reflexivity.
+    }
+
+    assert (AR1 : AHCOLtoRHCOL.translateCTypeConst CarrierA1
+            ≡ @inr string _ MRasCT.CTypeOne).
+    {
+      unfold AHCOLtoRHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      -
+        clear - e.
+        unfold CarrierAasCT.CTypeZero in e.
+        pose proof CarrierAasCT.CTypeZeroOneApart as C.
+        contradict C.
+        symmetry.
+        assumption.
+      -
+        clear - n0.
+        contradict n0.
+        reflexivity.
+    }
+
+    cbn in AR.
+    repeat progress (try setoid_rewrite AR0 in AR;
+                     try setoid_rewrite AR1 in AR).
+    invc AR; rename H1 into AR.
+    cbn in ARΣ.
+            
+
+    assert (RF0 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeZero
+            ≡ @inr string _ Float64asCT.Float64Zero).
+    {
+      unfold RHCOLtoFHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      all: clear - n; contradict n; reflexivity.
+    }
+
+    assert (RF1 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeOne
+            ≡ @inr string _ Float64asCT.Float64One).
+    {
+      unfold RHCOLtoFHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      -
+        clear - e.
+        cbv in e.
+        pose proof MRasCT.CTypeZeroOneApart.
+        congruence.
+      -
+        clear - n0.
+        contradict n0.
+        reflexivity.
+    }
+
+    pose proof AR as AR'.
+    apply RHCOLtoFHCOL.translate_proper in AR'.
+    rewrite <-AR' in RF.
+    clear AR'.
+    
+    cbn in RF.
+    repeat progress (try setoid_rewrite RF0 in RF;
+                     try setoid_rewrite RF1 in RF).
+    inl_inr_inv.
+
+    
+    remember (RHCOLEval.DSHAlloc _ _) as dynwin_rhcol_comp eqn:RC.
+    remember (FHCOLEval.DSHAlloc _ _) as dynwin_fhcol_comp eqn:FC.
+    (* poor man's [rewrite <-RC, <-FC] *)
+    assert (T1 : RHCOLEval.intervalEvalDSHOperator_σ
+              dynwin_R_σ dynwin_rhcol []
+              (RHCOLEval.estimateFuel dynwin_rhcol)
+            =
+              RHCOLEval.intervalEvalDSHOperator_σ
+                dynwin_R_σ dynwin_rhcol_comp []
+                (RHCOLEval.estimateFuel dynwin_rhcol_comp))
+      by now rewrite AR.
+    assert (T2 : FHCOLEval.intervalEvalDSHOperator_σ
+                   dynwin_F_σ dynwin_fhcol []
+                   (FHCOLEval.estimateFuel dynwin_fhcol)
+                 =
+                   FHCOLEval.intervalEvalDSHOperator_σ
+                     dynwin_F_σ dynwin_fhcol_comp []
+                     (FHCOLEval.estimateFuel dynwin_fhcol_comp))
+      by now rewrite RF.
+    eapply hopt_proper;
+      [ apply herr_proper, evalNExpr_closure_trace_equiv_proper
+      | apply T1
+      | apply T2
+      | ].
+
+    (** Following is the semi-manual "numerical analysis" part **)
+    subst; cbn.
     repeat constructor.
 
     1,3,5,7,9-14: cbn.
@@ -2263,7 +2031,7 @@ Section TopLevel.
     1-10: constructor.
     1-10: rewrite Σ, Σ0 in Σ3E.
     1-10: cbn in Σ3E; invc Σ3E; invc H1; invc H0; assumption.
-
+    
     (* TODO: all 4 subogals are exact copies *)
     -
       cbn.
@@ -2403,59 +2171,6 @@ Section TopLevel.
       crush_int.
   Qed.
 
-  (* TODO: move *)
-  Lemma trivial2_Proper `{AE : Equiv A} `{BE : Equiv B} :
-    Proper (equiv ==> equiv ==> iff) (@trivial2 A B).
-  Proof.
-    repeat constructor.
-  Qed.
-
-  
-
-  (* Instances for trivial comparison of CType values
-     in RHCOL->FHCOL translation.
-
-     These allow to infer structural properties of translation,
-     while disregarding CType values (and CType values only).
-
-     The statement [RF_Structural_Semantic_Preservation]
-     is the full semantic preservation on RHCOL->FHCOL, up to CType values.
-   *)
-  Local Definition trivial_RF_CHE : RHCOLtoFHCOL.CTranslation_heq :=
-    {|
-      heq_CType := trivial2;
-      heq_CType_proper := trivial2_Proper;
-    |}.
-
-  Local Fact trivial_RF_COP
-    : @RHCOLtoFHCOL.COpTranslationProps trivial_RF_CHE.
-  Proof.
-    repeat constructor.
-  Qed.
-
-  Local Fact trivial_RF_translateCTypeValue_heq_CType :
-    ∀ (x : R) (x' : Bits.binary64),
-      translateCTypeValue x = inr x' →
-      @heq_CType trivial_RF_CHE x x'.
-  Proof.
-    repeat constructor.
-  Qed.
-
-  Local Definition trivial_RF_CTO : @RHCOLtoFHCOL.CTranslationOp trivial_RF_CHE :=
-    {|
-      translateCTypeValue := @translateCTypeValue _ RF_CTO;
-      translateCTypeValue_heq_CType := trivial_RF_translateCTypeValue_heq_CType;
-      translateCTypeConst_translateCTypeValue_compat :=
-        @translateCTypeConst_translateCTypeValue_compat _ RF_CTO;
-    |}.
-
-  Definition RF_Structural_Semantic_Preservation :=
-    @RHCOLtoFHCOL.translation_semantics_correct
-      RF_NHE
-      trivial_RF_CHE
-      RF_NTP
-      trivial_RF_COP.
-
   (*
     Translation validation proof of semantic preservation
     of successful translation of [dynwin_orig] into FHCOL program.
@@ -2472,7 +2187,7 @@ Section TopLevel.
     forall x y,
       (* evaluatoion of original operator *)
       dynwin_orig a x = y ->
-
+      
       forall dynwin_R_memory dynwin_F_memory dynwin_R_σ dynwin_F_σ dynwin_rhcol dynwin_fhcol,
         (* Compile AHCOL -> RHCOL -> FHCOL *)
         AHCOLtoRHCOL.translate dynwin_AHCOL = inr dynwin_rhcol ->
@@ -2510,7 +2225,7 @@ Section TopLevel.
               /\ FHCOLEval.memory_lookup f_omemory dynwin_y_addr = Some y_fmem
               /\ OutRel a_rmem x_rmem y_rmem y_fmem.
   Proof.
-    intros * HC * CA CR [CAM CRM] [CAE CRE] * [RA [RX C]].
+    intros * HC * CA CR CAM CRM CAE CRE * RA RX C.
 
     remember (AHCOLEval.memory_set
                 (build_dynwin_memory a x)
@@ -2591,8 +2306,6 @@ Section TopLevel.
           apply SH1Y.
 
           {
-            clear - SX SY.
-
             pose proof (@out_as_range _ _ _ _ _ _ (DynWinSigmaHCOL1_Facts a)) as D.
             specialize (D sx).
 
@@ -2738,116 +2451,98 @@ Section TopLevel.
 
     (* moved from [dynwin_MSHCOL1] to [dynwin_rhcol] *)
 
-    assert(RM : exists r_omemory, AHCOLtoRHCOL.translate_runtime_memory a_omemory = inr r_omemory).
+    pose proof AHCOLtoRHCOL.translation_semantics_correct_strict
+         dynwin_AHCOL
+         dynwin_rhcol
+         (AHCOLEval.estimateFuel dynwin_AHCOL)
+         (RHCOLEval.estimateFuel dynwin_rhcol)
+         dynwin_σ
+         dynwin_R_σ
+         (build_dynwin_memory a x)
+         dynwin_R_memory
+      as HEQAR.
+    full_autospecialize HEQAR;
+      [ now apply AHCOLtoRHCOL.translation_syntax_always_correct
+      | now apply AHCOLtoRHCOL.translateEvalContext_same_indices
+      | now apply AHCOLtoRHCOL.translate_runtime_memory_same_indices
+      | ].
+    destruct (AHCOLEval.evalDSHOperator dynwin_σ dynwin_AHCOL
+                                        (build_dynwin_memory a x)
+                                        (AHCOLEval.estimateFuel dynwin_AHCOL))
+             eqn:EA;
+      destruct (RHCOLEval.evalDSHOperator dynwin_R_σ dynwin_rhcol
+                                          dynwin_R_memory
+                                          (RHCOLEval.estimateFuel dynwin_rhcol))
+               eqn:ER;
+      invc HEQAR;
+      try some_none.
+
+    invc H1; invc AE; [invc H1 | invc H2].
+    rename a0 into a_omemory, b into r_omemory, H into RM, H3 into AM.
+
+    exists r_omemory.
+
+    apply AHCOLtoRHCOL.heq_memory_translate_runtime_memory in RM.
+    (* poor man's [rewrite AM in RM] *)
+    erewrite AHCOLtoRHCOL.translate_runtime_memory_proper
+      in RM by eapply AM.
+    apply AHCOLtoRHCOL.NM_err_sequence_inr_fun_spec in RM.
+    specialize (RM dynwin_y_addr).
+    rewrite !Memory.NP.F.map_o in RM.
+    unfold option_map in RM.
+    unfold AHCOLEval.memory_set in RM.
+    rewrite Memory.NP.F.add_eq_o in RM by reflexivity.
+    break_match; invc RM.
+    rename m into y_rmem, Heqo into YRM, H1 into YRME.
+
+    exists y_rmem.
+    split; [reflexivity |].
+    split; [rewrite <-YRM; reflexivity |].
+    split; [now symmetry |].
+
+    pose proof
+         RF_Structural_Semantic_Preservation
+         dynwin_rhcol
+         dynwin_fhcol
+         (RHCOLEval.estimateFuel dynwin_rhcol)
+         (FHCOLEval.estimateFuel dynwin_fhcol)
+         dynwin_R_σ
+         dynwin_F_σ
+         dynwin_R_memory
+         dynwin_F_memory
+      as HEQRF.
+    full_autospecialize HEQRF.
     {
-      unfold AHCOLtoRHCOL.translate_runtime_memory.
-      unfold AHCOLtoRHCOL.translate_runtime_mem_block.
-
-      apply NM_err_sequence_OK.
-      clear - AHCOLtoRHCOL_total.
-      unfold Memory.NP.for_all_range.
-      apply Memory.NP.for_all_iff;
-        [now repeat break_match |].
-      intros * M.
-      apply Memory.NP.F.map_mapsto_iff in M.
-      destruct M as (v & [M KV]).
-      subst; clear - AHCOLtoRHCOL_total.
-
-      enough (OK : exists vm,
-                 (AHCOLtoRHCOL.NM_err_sequence
-                    (Memory.NM.map AHCOLtoRHCOL.translateCTypeValue v)) = inr vm).
-      {
-        destruct OK as [vm OK].
-        unfold is_OK_bool.
-        break_match; inv OK; reflexivity.
-      }
-
-      apply NM_err_sequence_OK.
-      unfold Memory.NP.for_all_range.
-      apply Memory.NP.for_all_iff;
-        [now repeat break_match |].
-      intros * M.
-      apply Memory.NP.F.map_mapsto_iff in M.
-      destruct M as (v' & [M KV]).
-      subst; clear - AHCOLtoRHCOL_total.
-      specialize (AHCOLtoRHCOL_total v').
-      destruct AHCOLtoRHCOL_total as [r T].
-      now rewrite T.
+      now eapply translation_syntax_always_correct.
+      Unshelve. apply trivial_RF_CTO.
     }
-    destruct RM as [r_omemory RM].
-    exists (r_omemory).
-
-    intros ER y_rmem RY.
-
-    split.
-    1: {
-      (* Proof of correctness up to R *)
-      subst.
-      unfold AHCOLtoRHCOL.translate_memory in RM.
-      apply AHCOLtoRHCOL.NM_err_sequence_inr_fun_spec in RM.
-      specialize (RM dynwin_y_addr).
-      rewrite !Memory.NP.F.map_o in RM.
-      unfold AHCOLEval.memory_set in RM.
-      rewrite Memory.NP.F.add_eq_o in RM by reflexivity.
-      rewrite RY in RM.
-      cbv [option_map] in *.
-      some_inv.
-      now symmetry.
-    }
-
-    assert (T : exists (f_omemory : memory),
-              evalDSHOperator dynwin_F_σ dynwin_fhcol dynwin_F_memory
-                              (estimateFuel dynwin_fhcol) = Some (inr f_omemory)).
     {
-      (* this requires some NType-related numerical analysis
-         to ensure no runtime error occurs after translation *)
-      pose proof
-           RF_Structural_Semantic_Preservation
-           dynwin_rhcol
-           dynwin_fhcol
-           (RHCOLEval.estimateFuel dynwin_rhcol)
-           (FHCOLEval.estimateFuel dynwin_fhcol)
-           dynwin_R_σ
-           dynwin_F_σ
-           dynwin_R_memory
-           dynwin_F_memory
-        as HEQRF.
-      destruct HEQRF;
-        try some_none.
-      -
-        eapply translation_syntax_always_correct.
-        assumption.
-        Unshelve.
-        apply trivial_RF_CTO.
-      -
-        eapply translateEvalContext_same_indices.
-        instantiate (1:=trivial_RF_CTO).
-        assumption.
-      -
-        eapply translate_runtime_memory_same_indices.
-        instantiate (1:=trivial_RF_CTO).
-        assumption.
-      -
-        admit.
-      -
-        invc H; [invc ER; invc H1 |].
-        eexists; reflexivity.
+      eapply @translateEvalContext_same_indices with (CTO:=trivial_RF_CTO).
+      assumption. 
     }
-    destruct T as (f_omemory & EF).
-
-    assert (FY : mem_block_exists dynwin_y_addr f_omemory).
     {
-      (* assumed, as proving [OutRel] later will most likely
-         require a form of this proven separately *)
-      admit.
+      eapply @translate_runtime_memory_same_indices with (CTO:=trivial_RF_CTO).
+      assumption.
+    }
+    {
+      now apply @RHCOLtoFHCOL_NExpr_closure_trace_equiv.
     }
 
-    apply mem_block_exists_exists in FY.
-    destruct FY as (y_fmem & FY).
-    exists f_omemory; exists y_fmem.
-    repeat split.
-    assumption.
-    now rewrite FY.
+    destruct HEQRF; try some_none.
+    invc H; invc ER.
+    rename b0 into f_omemory, H0 into FM.
+
+    exists f_omemory.
+
+    pose proof FM as YFM.
+    specialize (YFM dynwin_y_addr).
+    unfold RHCOLEval.memory_lookup in YFM.
+    rewrite YRM in YFM.
+    invc YFM.
+    rename b into y_fmem, H1 into YFM, H0 into YFMM.
+
+    exists y_fmem.
+    do 2 (split; [reflexivity |]).
 
     (* OutRel must hold (a,x,y_R,y_F) *)
     admit. (* this is provided by user *)
