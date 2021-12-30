@@ -684,6 +684,72 @@ Module Type MDSigmaHCOLEval
     : option (err (list evalNatClosure)) :=
     intervalEvalDSHOperator (evalNatContext_of_evalContext σ) op cl fuel.
 
+  Lemma intervalEvalDSHOperator_fuel_monotone
+        (σn : evalNatContext)
+        (op : DSHOperator)
+        (σnc : list evalNatClosure) 
+        (fuel fuel' : nat)
+        r
+    :
+      fuel <= fuel' ->
+      intervalEvalDSHOperator σn op σnc fuel ≡ Some r ->
+      intervalEvalDSHOperator σn op σnc fuel' ≡ Some r.
+  Proof.
+    revert σn σnc fuel fuel' r.
+    induction op;
+      intros * F OK.
+    1-6,8-10: destruct fuel, fuel';
+      try assumption;
+      try lia;
+      try now inv OK.
+    -
+      cbn in *.
+      eapply IHop.
+      2: eassumption.
+      lia.
+    -
+      cbn in *.
+      repeat break_match_hyp; invc OK.
+      +
+        eapply IHop1 in Heqo.
+        erewrite Heqo.
+        reflexivity.
+        lia.
+      +
+        eapply IHop1 in Heqo.
+        rewrite Heqo.
+        erewrite IHop2.
+        symmetry; eassumption.
+        2: eassumption.
+        all: lia.
+    -
+      generalize dependent fuel.
+      generalize dependent fuel'.
+      revert r.
+      induction n;
+        intros * F OK.
+      all: destruct fuel, fuel';
+        try assumption;
+        try lia;
+        try now inv OK.
+      cbn; cbn in OK.
+      repeat break_match_hyp; invc OK; try reflexivity.
+      +
+        eapply IHn in Heqo.
+        erewrite Heqo.
+        reflexivity.
+        lia.
+      +
+        eapply IHn in Heqo.
+        erewrite Heqo.
+        rewrite H0.
+        eapply IHop in H0.
+        erewrite H0.
+        congruence.
+        lia.
+        lia.
+  Qed.
+
   Fixpoint evalDSHOperator
            (σ: evalContext)
            (op: DSHOperator)

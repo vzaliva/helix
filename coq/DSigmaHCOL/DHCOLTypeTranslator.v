@@ -3968,4 +3968,275 @@ Module MDHCOLTypeTranslator
 
   End Semantic_Translation_Correctness.
 
+  Section Semantic_Translation_Correctness_strict.
+
+    Context `{NHE : NTranslation_heq} `{CHE : CTranslation_heq}.
+    Context `{NTP : @NTranslationProps NHE}
+            `{NOP : @NOpTranslationProps NHE}
+            `{COP : @COpTranslationProps CHE}.
+
+    Lemma heq_NExpr_heq_evalNExpr
+          (n : L.NExpr)
+          (n' : L'.NExpr)
+          (σ : LE.evalContext)
+          (σ' : evalContext)
+      :
+        heq_NExpr n n' ->
+        heq_evalContext σ σ' ->
+        herr_c heq_NType
+               (LE.evalNExpr σ n)
+               (LE'.evalNExpr σ' n').
+    Proof.
+      intros N Σ.
+      induction N.
+      {
+        cbn.
+        invc H.
+        eapply heq_evalContext_heq_context_lookup with (n:=x') in Σ.
+        inv Σ; rewrite <-H, <-H0.
+        constructor.
+        repeat break_match; invc H1; invc H3.
+        all: now constructor.
+      }
+      {
+        now constructor.
+      }
+      all: cbn.
+      all: invc IHN1; invc IHN2.
+      all: repeat break_if; repeat constructor.
+      all: try now apply NOP.
+      all: exfalso.
+      all: admit.
+    Admitted.
+
+    Lemma evalNExpr_closure_equiv_tauto
+          (c : LE.evalNatClosure)
+          (c' : LE'.evalNatClosure)
+      :
+        evalNExpr_closure_equiv c c'.
+    Proof.
+      unfold evalNExpr_closure_equiv.
+      repeat break_let.
+      intros.
+      now apply heq_NExpr_heq_evalNExpr.
+    Qed.
+      
+    Lemma evalNatClosure_traces_equiv
+          (σnc : list LE.evalNatClosure)
+          (σnc' : list LE'.evalNatClosure)
+      :
+        length σnc = length σnc' ->
+        evalNExpr_closure_trace_equiv σnc σnc'.
+    Proof.
+      unfold evalNExpr_closure_trace_equiv.
+      revert σnc'.
+      induction σnc;
+        intros * L.
+      -
+        destruct σnc';
+          invc L.
+        constructor.
+      -
+        destruct σnc';
+          invc L.
+        constructor.
+        apply evalNExpr_closure_equiv_tauto.
+        now apply IHσnc.
+    Qed.
+
+    (* TODO: move *)
+    Fact intervalEvalDSHOperator_fuel_monotone2 :
+      forall fuel0 fuel fuel0' fuel' R σn op σnc σn' op' σnc',
+        fuel0 <= fuel ->
+        fuel0' <= fuel' ->
+        hopt (herr R)
+             (LE.intervalEvalDSHOperator σn op σnc fuel0)
+             (LE'.intervalEvalDSHOperator σn' op' σnc' fuel0') ->
+        hopt (herr R)
+             (LE.intervalEvalDSHOperator σn op σnc fuel)
+             (LE'.intervalEvalDSHOperator σn' op' σnc' fuel').
+    Proof.
+      intros * F F' OK.
+      invc OK; invc H1.
+      symmetry in H, H0.
+      eapply LE.intervalEvalDSHOperator_fuel_monotone in H;
+        [| eassumption].
+      eapply LE'.intervalEvalDSHOperator_fuel_monotone in H0;
+        [| eassumption].
+      rewrite H, H0.
+      now repeat constructor.
+    Qed.
+
+    Lemma intervalEvalDSHOperator_σ_length
+          (op : LE.DSHOperator)
+          (op' : LE'.DSHOperator)
+          (σ : LE.evalContext)
+          (σ' : LE'.evalContext)
+        :
+          heq_DSHOperator op op' ->
+          hopt (herr (fun σnc σnc' => length σnc = length σnc'))
+               (LE.intervalEvalDSHOperator_σ σ op nil (LE.estimateFuel op))
+               (LE'.intervalEvalDSHOperator_σ σ' op' nil (LE'.estimateFuel op')).
+    Proof.
+      intros O.
+      assert (length (@nil LE.evalNatClosure) = length (@nil LE'.evalNatClosure))
+        by reflexivity.
+      generalize dependent (@nil LE.evalNatClosure).
+      generalize dependent (@nil LE'.evalNatClosure).
+      revert σ σ'.
+      induction O;
+        intros σ σ' σnc' σnc LΣNC.
+      -
+        repeat constructor.
+        assumption.
+      -
+        repeat constructor.
+        cbn.
+        now rewrite LΣNC.
+      -
+        cbn.
+        invc H; invc H3.
+        repeat constructor.
+        rewrite !app_length.
+        rewrite LΣNC.
+        f_equiv.
+        apply evalAExpr_NatClosures_length.
+        assumption.
+      -
+        cbn.
+        invc H; invc H3.
+        repeat constructor.
+        rewrite !app_length.
+        rewrite LΣNC.
+        f_equiv.
+        apply evalAExpr_NatClosures_length.
+        assumption.
+      -
+        cbn.
+        invc H; invc H4.
+        repeat constructor.
+        rewrite !app_length.
+        rewrite LΣNC.
+        f_equiv.
+        apply evalAExpr_NatClosures_length.
+        assumption.
+      -
+        repeat constructor.
+        cbn.
+        do 3 f_equiv.
+        rewrite !app_length.
+        rewrite LΣNC.
+        f_equiv.
+        apply evalAExpr_NatClosures_length.
+        assumption.
+      -
+        copy_apply heq_NT_nat_eq H.
+        cbv in H0; subst n'.
+        dependent induction n.
+        +
+          repeat constructor.
+          assumption.
+        +
+          cbn.
+          apply heq_NT_nat_S in H.
+          inv H; inv H0.
+          specialize (IHn body body' H O IHO σ σ').
+          eapply intervalEvalDSHOperator_fuel_monotone2 in IHn.
+          invc IHn; invc H6.
+          rewrite <-H4, <-H5.
+          2: {
+            cbn.
+            enough (1 <= LE.estimateFuel body) by lia.
+            induction body; cbv; lia.
+          }
+          2: {
+            cbn.
+            enough (1 <= LE'.estimateFuel body') by lia.
+            induction body'; cbv; lia.
+          }
+          specialize (IHO ((LE.DSHnatVal a, false) :: σ)
+                          ((LE'.DSHnatVal b, false) :: σ')).
+          unfold LE.intervalEvalDSHOperator_σ,
+            LE'.intervalEvalDSHOperator_σ in IHO.
+          cbn in IHO.
+          eapply intervalEvalDSHOperator_fuel_monotone2 in IHO.
+          eapply IHO.
+          lia.
+          lia.
+          assumption.
+          assumption.
+      -
+        cbn.
+        specialize (IHO ((LE.DSHCTypeVal CT.CTypeZero, false) :: σ)
+                        ((LE'.DSHCTypeVal CT'.CTypeZero, false) :: σ')).
+        unfold LE.intervalEvalDSHOperator_σ,
+          LE'.intervalEvalDSHOperator_σ in IHO.
+        cbn in IHO.
+        eapply IHO.
+        assumption.
+      -
+        repeat constructor.
+        assumption.
+      -
+        unfold LE.intervalEvalDSHOperator_σ,
+          LE'.intervalEvalDSHOperator_σ in *.
+        cbn in *.
+
+        specialize (IHO1 σ σ' σnc' σnc LΣNC).
+        eapply intervalEvalDSHOperator_fuel_monotone2 in IHO1.
+        invc IHO1; invc H1.
+        rewrite <-H, <-H0.
+        2,3: lia.
+
+        specialize (IHO2 σ σ' b0 a0 H2).
+        eapply intervalEvalDSHOperator_fuel_monotone2 in IHO2.
+        eapply IHO2.
+        lia.
+        lia.
+    Qed.
+
+    Lemma heq_DSHOperator_closure_trace_equiv
+          (op : LE.DSHOperator)
+          (op' : LE'.DSHOperator)
+          (σ : LE.evalContext)
+          (σ' : LE'.evalContext)
+      :
+        heq_DSHOperator op op' ->
+        hopt (herr evalNExpr_closure_trace_equiv)
+             (LE.intervalEvalDSHOperator_σ σ op nil (LE.estimateFuel op))
+             (LE'.intervalEvalDSHOperator_σ σ' op' nil (LE'.estimateFuel op')).
+    Proof.
+      intros OP.
+      apply intervalEvalDSHOperator_σ_length with (σ:=σ) (σ':=σ') in OP.
+      invc OP; invc H1.
+      repeat constructor.
+      apply evalNatClosure_traces_equiv.
+      assumption.
+    Qed.
+
+    (* A direct consequence of [translation_semantics_correct]
+       and [heq_DSHOperator_closure_trace_equiv] *)
+    Corollary translation_semantics_correct_strict
+          (op : LE.DSHOperator)
+          (op' : LE'.DSHOperator)
+          (fuel fuel' : nat)
+          (σ : LE.evalContext)
+          (σ' : LE'.evalContext)
+          (imem : L.memory)
+          (imem' : L'.memory)
+      :
+        heq_DSHOperator op op' ->
+        heq_evalContext σ σ' ->
+        heq_memory imem imem' ->
+        hopt_r (herr_c heq_memory)
+               (LE.evalDSHOperator σ op imem (LE.estimateFuel op))
+               (LE'.evalDSHOperator σ' op' imem' (LE'.estimateFuel op')).
+    Proof.
+      intros O Σ M.
+      now apply translation_semantics_correct,
+        heq_DSHOperator_closure_trace_equiv.
+    Qed.
+    
+  End Semantic_Translation_Correctness_strict.
+
 End MDHCOLTypeTranslator.
