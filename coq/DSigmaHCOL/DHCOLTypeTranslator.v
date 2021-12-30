@@ -149,6 +149,12 @@ Module MDHCOLTypeTranslator
        *)
     }.
 
+  Class CTranslationOp_strict `{CTO : CTranslationOp} :=
+    {
+      heq_CType_translateCTypeValue :
+      forall x x', heq_CType x x' -> translateCTypeValue x = inr x';
+    }.
+
   (* TODO: [translateNTypeValue] vs [translateNTypeConst].
      Why even have the first one? *)
   Class NTranslationOp `{NHE : NTranslation_heq} :=
@@ -1629,6 +1635,29 @@ Module MDHCOLTypeTranslator
       now symmetry.
     Qed.
 
+    Lemma heq_mem_block_translate_runtime_mem_block
+          `{CTOS : CTranslationOp_strict}
+          (mb : L.mem_block)
+          (mb' : L'.mem_block)
+      :
+        heq_mem_block mb mb' ->
+        translate_runtime_mem_block mb = inr mb'.
+    Proof.
+      intros E.
+      apply NM_err_sequence_inr_fun_spec.
+
+      intros k.
+      specialize (E k).
+      unfold LE.mem_lookup, LE'.mem_lookup in E.
+      rewrite !NP.F.map_o.
+      unfold option_map.
+      repeat break_match; invc E;
+        constructor.
+      apply heq_CType_translateCTypeValue in H1.
+      rewrite H1.
+      reflexivity.
+    Qed.
+
     (* TODO: rename *)
     Lemma translate_runtime_memory_same_indices
           (m : L.memory)
@@ -1650,6 +1679,30 @@ Module MDHCOLTypeTranslator
         constructor.
       apply translate_runtime_mem_block_same_indices.
       now symmetry.
+    Qed.
+
+    Lemma heq_memory_translate_runtime_memory
+          `{CTOS : CTranslationOp_strict}
+          (m : L.memory)
+          (m' : L'.memory)
+      :
+        heq_memory m m' ->
+        translate_runtime_memory m = inr m'.
+    Proof.
+      intros E.
+      unfold translate_runtime_memory.
+      apply NM_err_sequence_inr_fun_spec.
+
+      intros k.
+      specialize (E k).
+      unfold LE.memory_lookup, LE'.memory_lookup in E.
+      rewrite !NP.F.map_o.
+      unfold option_map.
+      repeat break_match; invc E;
+        constructor.
+      apply heq_mem_block_translate_runtime_mem_block in H1.
+      rewrite H1.
+      reflexivity.
     Qed.
 
     Lemma translateDSHVal_heq
