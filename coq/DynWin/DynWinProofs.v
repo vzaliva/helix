@@ -2767,6 +2767,8 @@ Section TopLevel.
     {
       (* this requires some NType-related numerical analysis
          to ensure no runtime error occurs after translation *)
+      admit.
+      (*
       pose proof
            heq_DSHOperator_heq_evalDSHOperator
            dynwin_rhcol
@@ -2787,19 +2789,7 @@ Section TopLevel.
         now apply translateEvalContext_same_indices.
       -
         now apply translate_runtime_memory_same_indices.
-      -
-  Lemma rhcol_fhcol_nexpr_closure_trace_equiv :
-    evalNExpr_closure_trace_equiv
-      trivial2
-      rhcol_nexpr_closure_trace
-      fhcol_nexpr_closure_trace.
-        admit. (* numerical analysis *)
-      -
-        inv H.
-        +
-          some_inv; inl_inr.
-        +
-          eexists; reflexivity.
+       *)
     }
     destruct T as (f_omemory & EF).
 
