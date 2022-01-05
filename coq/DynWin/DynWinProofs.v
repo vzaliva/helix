@@ -343,7 +343,7 @@ Section SigmaHCOL_rewriting.
    Instance DynWinSigmaHCOL1_Facts
            (a: avector 3):
     SHOperator_Facts _ (dynwin_SHCOL1 a).
-  Proof.
+  Proof. (*
     unfold dynwin_SHCOL1.
     solve_facts.
     (* Now let's take care of remaining proof obligations *)
@@ -388,7 +388,7 @@ Section SigmaHCOL_rewriting.
       reflexivity.
 
       crush.
-  Qed.
+  Qed. *) Admitted.
 
   Lemma op_Vforall_P_SHPointwise
         {m n: nat}
@@ -428,7 +428,7 @@ Section SigmaHCOL_rewriting.
   Lemma DynWinSigmaHCOL1_Value_Correctness
         (a: avector 3)
     : dynwin_SHCOL a = dynwin_SHCOL1 a.
-  Proof.
+  Proof. (*
     unfold dynwin_SHCOL.
     unfold SumSparseEmbedding.
 
@@ -651,7 +651,7 @@ Section SigmaHCOL_rewriting.
            end.
     replace p with p1 by apply proof_irrelevance.
     reflexivity.
-  Qed.
+  Qed. *) Admitted.
 
 
   (* Couple additional structual properties: input and output of the
@@ -840,7 +840,7 @@ Section SHCOL_to_MSHCOL.
 
   Theorem dynwin_SHCOL_MSHCOL_compat (a: avector 3):
     SH_MSH_Operator_compat (dynwin_SHCOL1 a) (dynwin_MSHCOL1 a).
-  Proof.
+  Proof. (*
     unfold dynwin_SHCOL1, dynwin_MSHCOL1.
     unfold ISumUnion.
 
@@ -891,7 +891,7 @@ Section SHCOL_to_MSHCOL.
       apply Set_Obligation_1.
     -
       apply Set_Obligation_1.
-  Qed.
+  Qed. *) Admitted.
 
 End SHCOL_to_MSHCOL.
 
@@ -1024,7 +1024,7 @@ Section MSHCOL_to_AHCOL.
                         dynwin_memory
                         DSH_x_p DSH_y_p
                         DynWin_pure.
-    Proof.
+    Proof. (*
       unfold dynwin_AHCOL, DSH_y_p, DSH_x_p.
       unfold dynwin_x_addr, dynwin_y_addr, dynwin_a_addr, nglobals in *.
       unfold dynwin_MSHCOL1.
@@ -1428,7 +1428,7 @@ Section MSHCOL_to_AHCOL.
         -
           solve_facts.
       }
-    Qed.
+    Qed. *) Admitted.
 
   End DummyEnv.
 
@@ -2546,7 +2546,7 @@ Section TopLevel.
 
     (* OutRel must hold (a,x,y_R,y_F) *)
     admit. (* this is provided by user *)
-
+     *)
   Admitted.
 
 
