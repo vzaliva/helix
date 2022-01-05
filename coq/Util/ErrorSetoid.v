@@ -288,6 +288,23 @@ Section herr.
   | herr_f_inl_r : forall e x, herr_f x (inl e)
   | herr_f_inr : forall a b, R a b -> herr_f (inr a) (inr b).
 
+  Instance herr_proper
+           `{EQa : Equiv A}
+           `{EQb : Equiv B}
+           {PR : Proper ((=) ==> (=) ==> (iff)) R} :
+    Proper ((=) ==> (=) ==> (iff)) herr.
+  Proof.
+    intros a1 a2 AE b1 b2 BE.
+    destruct a1, a2, b1, b2;
+      invc AE; invc BE.
+    1-3: split; intro C; invc C.
+    split.
+    all: intro E; invc E; constructor.
+    specialize (PR a a0 H1 b b0 H2).
+    tauto.
+    eapply PR; eassumption.
+  Qed.
+
 End herr.
 Arguments herr {A B} R.
 Arguments herr_c {A B} R.
