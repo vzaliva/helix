@@ -77,12 +77,13 @@ pipeline {
             }
         }
 
-        stage('Build HELIX') {
+        stage('Build HELIX (end-to-end up to LLVM)') {
             steps {
                 script {
                     if (env.SKIP_CI != "true" && env.SKIP_BRANCH == "false") {
 			sh '''eval $(opam env)
-                              make -j ${NJOBS} test
+                              make Makefile.coq
+                              make -f Makefile.coq -j ${NJOBS} coq/DynWin/DynWinProofs.vo
                            '''
                     }
                 }
