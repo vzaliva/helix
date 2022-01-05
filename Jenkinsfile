@@ -3,7 +3,7 @@
     def BUILD_IF_BRANCH = ['master','develop']
  */
 
-def BUILD_IF_BRANCH = ['master','ntype-ranges']
+def BUILD_IF_BRANCH = ['master','dshtranslator_class_rework']
 
 pipeline {
     agent { 
