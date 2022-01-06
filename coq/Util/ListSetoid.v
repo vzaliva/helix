@@ -1,6 +1,7 @@
 Require Import Coq.Arith.Lt.
 Require Import CoLoR.Util.Nat.NatUtil.
 Require Import Coq.Lists.List.
+Require Import Coq.Lists.SetoidList.
 
 Require Import Helix.Util.ListUtil.
 Require Import Helix.Tactics.HelixTactics.
@@ -281,6 +282,20 @@ Proof.
   intros x xs H.
   unfold equiv, ListSetoid.List_equiv in H.
   inv H.
+Qed.
+
+Lemma InA_eqA_equiv
+      (A : Type)
+      (eqA eqA' : A -> A -> Prop)
+      (a : A)
+      (l : list A)
+  :
+    (forall x y, eqA x y -> eqA' x y) ->
+    InA eqA a l ->
+    InA eqA' a l.
+Proof.
+  intros EE I.
+  induction l; inv I; auto.
 Qed.
 
 Require Import ExtLib.Structures.Monads.

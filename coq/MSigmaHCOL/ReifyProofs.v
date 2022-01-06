@@ -2594,6 +2594,7 @@ Section WithCarrierA.
         induction l; [reflexivity |].
         intros.
         cbn.
+        inversion CM; inversion comrmonoid_rmon.
         setoid_rewrite <- rmonoid_ass; unfold sg_P; try typeclasses eauto; auto; solve_Lpos Lpos.
         unfold sg_op.
         setoid_rewrite <- IHl; try solve_Lpos Lpos.

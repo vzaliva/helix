@@ -2486,7 +2486,7 @@ Section TopLevel.
     (* poor man's [rewrite AM in RM] *)
     erewrite AHCOLtoRHCOL.translate_runtime_memory_proper
       in RM by eapply AM.
-    apply AHCOLtoRHCOL.NM_err_sequence_inr_fun_spec in RM.
+    apply MSigmaHCOL.MemSetoid.NM_err_sequence_inr_fun_spec in RM.
     specialize (RM dynwin_y_addr).
     rewrite !Memory.NP.F.map_o in RM.
     unfold option_map in RM.

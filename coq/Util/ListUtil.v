@@ -226,24 +226,24 @@ Proof.
     auto.
 Qed.
 
-Lemma fold_left_emergence
-
-      {A : Type}
-      (f : A -> A -> A)
+Lemma fold_left_emergence2
+      {A B : Type}
+      (f : A -> B -> A)
       (init : A)
-      (l : list A)
+      (l : list B)
       (P : A -> Prop)
-      (PE : forall a b, P (f a b) -> P a \/ P b)
+      (Q : B -> Prop)
+      (PE : forall a b, P (f a b) -> P a \/ Q b)
   :
     P (fold_left f l init) ->
-    (P init \/ exists a, P a /\ In a l).
+    (P init \/ exists a, Q a /\ In a l).
 Proof.
   intros.
   generalize dependent init.
   induction l.
   -
     intros.
-    intuition.
+    tauto.
   -
     intros.
     cbn in H.
@@ -261,6 +261,20 @@ Proof.
       exists a'.
       cbn.
       auto.
+Qed.
+
+Lemma fold_left_emergence
+      {A : Type}
+      (f : A -> A -> A)
+      (init : A)
+      (l : list A)
+      (P : A -> Prop)
+      (PE : forall a b, P (f a b) -> P a \/ P b)
+  :
+    P (fold_left f l init) ->
+    (P init \/ exists a, P a /\ In a l).
+Proof.
+  now apply fold_left_emergence2.
 Qed.
 
 Lemma fold_left_invariant
@@ -342,16 +356,23 @@ Lemma Forall2_nth_error
     Forall2 P l1 l2 ->
     hopt_r P (nth_error l1 n) (nth_error l2 n).
 Proof.
-  revert l2.
+  revert n l2.
   induction l1;
-    intros l2 F.
+    intros * F.
   -
-    admit.
+    inv F.
+    rewrite !nth_error_nil.
+    constructor.
   -
-    inversion F; subst.
-    rename a into e1', y into e2', l' into l2.
-    admit.
-Admitted.
+    inv F.
+    rename a into e1', y into e2', l' into l2, H1 into E, H3 into L.
+    destruct n.
+    +
+      now constructor.
+    +
+      cbn.
+      now apply IHl1.
+Qed.
 
 Lemma firstn_app_exact {A : Type} (l1 l2 : list A) (n : nat) :
   n = length l1 ->
