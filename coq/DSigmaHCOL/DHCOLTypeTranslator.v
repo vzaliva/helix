@@ -364,20 +364,359 @@ Module MDHCOLTypeTranslator
           ret (DSHSeq f' g')
         end.
 
-  Instance translate_runtime_memory_proper :
-    Proper ((=) ==> (=)) translate_runtime_memory.
-  Proof.
-  Admitted.
+    Instance translateCTypeConst_proper :
+      Proper ((=) ==> (=)) translateCTypeConst.
+    Proof.
+      intros c1 c2 C.
+      unfold translateCTypeConst.
+    Admitted.
 
-  Instance translate_proper :
-    Proper ((=) ==> (=)) translate.
-  Proof.
-  Admitted.
-  
-  Instance translateEvalContext_proper :
-    Proper ((=) ==> (=)) translateEvalContext.
-  Proof.
-  Admitted.
+    Instance translateCTypeValue_proper :
+      Proper ((=) ==> (=)) translateCTypeValue.
+    Proof.
+    Admitted.
+
+    Instance translateNTypeValue_proper :
+      Proper ((=) ==> (=)) translateNTypeValue.
+    Proof.
+    Admitted.
+
+    (* TODO: ideally this would be moved to MemSetoid *)
+    Instance NM_err_sequence_proper
+             `{EA : Equiv A} `{EQA : Equivalence A EA}
+             (OP : Proper ((@err_equiv _ EA) ==> (=)) is_OK_bool) :
+      Proper ((=) ==> (=)) (@NM_err_sequence A).
+    Proof.
+      intros nm1 nm2 NM.
+      destruct NM_err_sequence eqn:S1 at 1;
+        destruct NM_err_sequence eqn:S2 at 1;
+        try constructor.
+      -
+        exfalso.
+
+        eassert (NOK : is_OK_bool (inl s) = false) by reflexivity.
+        rewrite <-S1 in NOK.
+        apply NM_err_sequence_not_OK in NOK.
+
+        eassert (OK : is_OK_bool (inr t0) = true) by reflexivity.
+        rewrite <-S2 in OK.
+        apply NM_err_sequence_OK in OK.
+
+        clear - OP NM OK NOK.
+
+        unfold NP.for_all_range in *.
+        apply NP_for_all_false_iff in NOK;
+          [| intros _ _ _ x x' X; now subst].
+        cbv [equiv bool.bool_eq] in OK.
+        rewrite NP.for_all_iff in OK;
+          [| intros _ _ _ x x' X; now subst].
+
+        destruct NOK as (k & e & M1 & F).
+        specialize (NM k).
+        apply NP.F.find_mapsto_iff in M1.
+        rewrite M1 in NM.
+        destruct NM.find eqn:M2 in NM; [some_inv | some_none].
+        specialize (OK k s).
+        autospecialize OK;
+          [now apply NP.F.find_mapsto_iff |].
+        apply OP in NM.
+        congruence.
+      -
+        exfalso.
+
+        eassert (NOK : is_OK_bool (inl s) = false) by reflexivity.
+        rewrite <-S2 in NOK.
+        apply NM_err_sequence_not_OK in NOK.
+
+        eassert (OK : is_OK_bool (inr t0) = true) by reflexivity.
+        rewrite <-S1 in OK.
+        apply NM_err_sequence_OK in OK.
+
+        clear - OP NM OK NOK.
+
+        unfold NP.for_all_range in *.
+        apply NP_for_all_false_iff in NOK;
+          [| intros _ _ _ x x' X; now subst].
+        cbv [equiv bool.bool_eq] in OK.
+        rewrite NP.for_all_iff in OK;
+          [| intros _ _ _ x x' X; now subst].
+
+        destruct NOK as (k & e & M1 & F).
+        specialize (NM k).
+        apply NP.F.find_mapsto_iff in M1.
+        rewrite M1 in NM.
+        destruct NM.find eqn:M2 in NM; [some_inv | some_none].
+        specialize (OK k s).
+        autospecialize OK;
+          [now apply NP.F.find_mapsto_iff |].
+        apply OP in NM.
+        congruence.
+      -
+        apply err_equiv_eq in S1, S2.
+        apply NM_err_sequence_inr_fun_spec in S1, S2.
+        rewrite <-S1, <-S2 in NM.
+        clear - NM.
+        rename t0 into m1, t1 into m2.
+        intros k.
+        specialize (NM k).
+        rewrite !NP.F.map_o in NM.
+        unfold option_map in *.
+        repeat break_match;
+          try some_none; constructor.
+        invc NM.
+        invc H1.
+        assumption.
+    Qed.
+
+    Instance translate_runtime_mem_block_proper :
+      Proper ((=) ==> (=)) translate_runtime_mem_block.
+    Proof.
+      intros mb1 mb2 MB.
+      unfold translate_runtime_mem_block.
+      eapply NM_err_sequence_proper;
+        [intros x1 x2 X; destruct x1, x2; now invc X |].
+      intros k.
+      specialize (MB k).
+      rewrite !NP.F.map_o.
+      unfold option_map.
+      repeat break_match; try some_none.
+      f_equiv.
+      apply translateCTypeValue_proper.
+      now some_inv.
+    Qed.
+
+    Instance translate_mem_block_proper :
+      Proper ((=) ==> (=)) translate_mem_block.
+    Proof.
+      intros mb1 mb2 MB.
+      eapply NM_err_sequence_proper;
+        [intros x1 x2 X; destruct x1, x2; now invc X |].
+      intros k.
+      specialize (MB k).
+      rewrite !NP.F.map_o.
+      unfold option_map.
+      repeat break_match; try some_none.
+      f_equiv.
+      f_equiv.
+      now some_inv.
+    Qed.
+
+    Instance translate_runtime_memory_proper :
+      Proper ((=) ==> (=)) translate_runtime_memory.
+    Proof.
+      intros m1 m2 M.
+      unfold translate_runtime_memory.
+      eapply NM_err_sequence_proper;
+        [intros x1 x2 X; destruct x1, x2; now invc X |].
+      intros k.
+      specialize (M k).
+      rewrite !NP.F.map_o.
+      unfold option_map.
+      repeat break_match; try some_none.
+      do 2 f_equiv.
+      now some_inv.
+    Qed.
+
+    Instance translateNTypeConst_proper :
+      Proper ((=) ==> (=)) translateNTypeConst.
+    Proof.
+      intros c1 c2 C.
+      unfold translateNTypeConst.
+      f_equiv.
+      now apply NT.to_nat_proper.
+    Qed.
+
+    Instance translateNExpr_proper :
+      Proper ((=) ==> (=)) translateNExpr.
+    Proof.
+      intros n1 n2 N.
+      induction N; cbn.
+
+      (* inductive cases *)
+      3-9: repeat break_match;
+           invc IHN1; invc IHN2;
+           now repeat constructor.
+
+      (* base cases *)
+      -
+        cbn.
+        now repeat constructor.
+      -
+        cbn.
+        apply translateNTypeConst_proper in H.
+        repeat break_match; invc H;
+          now repeat constructor.
+    Qed.
+
+    Instance translatePExpr_proper :
+      Proper ((=) ==> (=)) translatePExpr.
+    Proof.
+      intros p1 p2 P.
+      destruct P.
+      cbv in H.
+      subst.
+      reflexivity.
+    Qed.
+
+    Instance translateMExpr_proper :
+      Proper ((=) ==> (=)) translateMExpr.
+    Proof.
+      intros m1 m2 M.
+      destruct M.
+      -
+        cbn.
+        repeat constructor.
+        now rewrite H.
+      -
+        simpl.
+        destruct H as [AB SZ].
+        eapply translate_mem_block_proper in AB.
+        eapply translateNTypeConst_proper in SZ.
+        repeat break_match;
+          try inl_inr; repeat inl_inr_inv;
+          now repeat constructor.
+    Qed.
+
+    Instance translateAExpr_proper :
+      Proper ((=) ==> (=)) translateAExpr.
+    Proof.
+      intros a1 a2 A.
+      induction A; cbn.
+
+      (* inductive cases *)
+      4-10: repeat break_match;
+            try inl_inr; repeat inl_inr_inv;
+            now repeat constructor.
+
+      (* base cases *)
+      -
+        cbv in H.
+        subst.
+        reflexivity.
+      -
+        apply translateCTypeConst_proper in H.
+        repeat break_match; invc H;
+          now repeat constructor.
+      -
+        apply translateNExpr_proper in H.
+        apply translateMExpr_proper in H0.
+        repeat break_match;
+          try inl_inr; repeat inl_inr_inv;
+          now repeat constructor.
+    Qed.
+
+    Instance translate_proper :
+      Proper ((=) ==> (=)) translate.
+    Proof.
+      intros op1 op2 OP.
+      induction OP;
+        try reflexivity.
+      -
+        apply translateNExpr_proper in H, H0.
+        apply translatePExpr_proper in H1, H2.
+        cbn.
+        repeat break_match;
+          try inl_inr; repeat inl_inr_inv;
+          now repeat constructor.
+      -
+        cbv in H; subst n'.
+        apply translatePExpr_proper in H0, H1.
+        apply translateAExpr_proper in H2.
+        cbn.
+        repeat break_match;
+          try inl_inr; repeat inl_inr_inv;
+          now repeat constructor.
+      -
+        cbv in H; subst n'.
+        apply translatePExpr_proper in H0, H1.
+        apply translateAExpr_proper in H2.
+        cbn.
+        repeat break_match;
+          try inl_inr; repeat inl_inr_inv;
+          now repeat constructor.
+      -
+        cbv in H; subst n'.
+        apply translatePExpr_proper in H0, H1, H2.
+        apply translateAExpr_proper in H3.
+        cbn.
+        repeat break_match;
+          try inl_inr; repeat inl_inr_inv;
+          now repeat constructor.
+      -
+        apply translateNExpr_proper in H, H0, H1.
+        apply translatePExpr_proper in H2, H3.
+        apply translateAExpr_proper in H4.
+        apply translateCTypeConst_proper in H5.
+        cbn.
+        repeat break_match;
+          try inl_inr; repeat inl_inr_inv;
+          now repeat constructor.
+      -
+        cbv in H; subst n'.
+        cbn.
+        repeat break_match;
+          try inl_inr; repeat inl_inr_inv;
+          now repeat constructor.
+      -
+        apply translateNTypeConst_proper in H.
+        cbn.
+        repeat break_match;
+          try inl_inr; repeat inl_inr_inv;
+          now repeat constructor.
+      -
+        apply translatePExpr_proper in H.
+        apply translateCTypeConst_proper in H0.
+        cbn.
+        repeat break_match;
+          try inl_inr; repeat inl_inr_inv;
+          now repeat constructor.
+      -
+        cbn.
+        repeat break_match;
+          try inl_inr; repeat inl_inr_inv;
+          now repeat constructor.
+    Qed.
+
+    Instance translateDSHVal_proper :
+      Proper ((=) ==> (=)) translateDSHVal.
+    Proof.
+      intros v1 v2 V.
+      destruct V; cbn.
+      -
+        apply translateNTypeValue_proper in H.
+        repeat break_match;
+          try inl_inr; repeat inl_inr_inv;
+          now repeat constructor.
+      -
+        apply translateCTypeValue_proper in H.
+        repeat break_match;
+          try inl_inr; repeat inl_inr_inv;
+          now repeat constructor.
+      -
+        destruct H.
+        invc H0.
+        apply translateNTypeValue_proper in H.
+        repeat break_match;
+          try inl_inr; repeat inl_inr_inv;
+          now repeat constructor.
+    Qed.
+
+    Instance translateEvalContext_proper :
+      Proper ((=) ==> (=)) translateEvalContext.
+    Proof.
+      intros σ1 σ2 Σ.
+      induction Σ.
+      -
+        reflexivity.
+      -
+        cbn.
+        repeat break_let; subst_max.
+        invc H; cbn in *.
+        apply translateDSHVal_proper in H0.
+        repeat break_match;
+          try inl_inr; repeat inl_inr_inv;
+          now repeat constructor.
+    Qed.
 
   End EvalTranslations.
 
