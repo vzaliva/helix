@@ -684,21 +684,171 @@ Module Type MDSigmaHCOLEval
     : option (err (list evalNatClosure)) :=
     intervalEvalDSHOperator (evalNatContext_of_evalContext σ) op cl fuel.
 
-  Instance evalNatClosure_Equiv :
-    Equiv evalNatClosure.
+  Inductive DSHIndexRange_Equiv : Equiv DSHIndexRange :=
+  | DSHIndex_equiv (i1 i2 : NT.t) :
+    i1 = i2 ->
+    DSHIndexRange_Equiv (DSHIndex i1) (DSHIndex i2)
+  | DSHOtherVar_equiv : DSHIndexRange_Equiv DSHOtherVar DSHOtherVar.
+
+  Existing Instance DSHIndexRange_Equiv.
+
+  Instance DSHIndexRange_Equivalence : Equivalence DSHIndexRange_Equiv.
+  Proof.
+    repeat constructor.
+    -
+      intros [r |];
+        now constructor.
+    -
+      intros [r1 |] [r2 |] E;
+        invc E; constructor.
+      auto.
+    -
+      intros [r1 |] [r2 |] [r3 |] E1 E2;
+        invc E1; invc E2; constructor.
+      auto.
+  Qed.
+
+  Instance evalNatContext_Equiv : Equiv evalNatContext :=
+    @List_equiv _ DSHIndexRange_Equiv.
+
+  Instance evalNatContext_Equivalence : Equivalence evalNatContext_Equiv :=
+    @List_Equivalence _ _ DSHIndexRange_Equivalence.
+
+  Instance evalNatClosure_Equiv : Equiv evalNatClosure :=
+    @prod_equiv _ evalNatContext_Equiv _ NExpr_equiv.
+
+  Instance evalNatClosure_Equivalence : Equivalence evalNatClosure_Equiv :=
+    @oprod_equiv_Equivalence _ _ _ _ evalNatContext_Equivalence NExpr_Equivalence.
+
+  Instance DSHIndexRange_of_DSHVal_proper :
+    Proper ((=) ==> (=)) DSHIndexRange_of_DSHVal.
+  Proof.
+    intros v1 v2 V.
+    destruct V;
+      now constructor.
+  Qed.
+
+  Instance evalNatContext_of_evalContext_proper :
+    Proper ((=) ==> (=)) evalNatContext_of_evalContext.
+  Proof.
+    intros σ1 σ2 Σ.
+    induction Σ as [| x1 x2 σ1 σ2].
+    -
+      reflexivity.
+    -
+      destruct x1 as (v1, p1), x2 as (v2, p2).
+      invc H.
+      cbn in *.
+      f_equiv.
+      now f_equiv.
+      assumption.
+  Qed.
+
+  Instance evalAExpr_NatClosures_proper :
+    Proper ((=) ==> (=) ==> (=)) evalAExpr_NatClosures.
+  Proof.
+    intros σn1 σn2 ΣN a1 a2 A.
+    induction A.
+    (* base cases *)
+    1-4: now repeat constructor.
+    (* inductive cases *)
+    all: cbn; now f_equiv.
+  Qed.
+
+  Instance intervalEvalDSHOperator_proper :
+    Proper ((=) ==> (=) ==> (=) ==> (=) ==> (=)) intervalEvalDSHOperator.
+  Proof.
+    intros σn1 σn2 Σ op1 op2 OP cl1 cl2 CL fuel1 fuel2 FUEL.
+    cbv in FUEL; subst fuel2; rename fuel1 into fuel.
+    revert fuel σn1 σn2 cl1 cl2 CL Σ.
+    induction OP;
+      intros * CL Σ.
+    1-6: destruct fuel; [reflexivity |].
+    -
+      now repeat constructor.
+    -
+      now repeat constructor.
+    -
+      cbn.
+      cbv in H; subst n'.
+      break_match; repeat constructor.
+      f_equiv; [| assumption].
+      f_equiv;
+        now repeat constructor.
+    -
+      cbn.
+      cbv in H; subst n'.
+      break_match; repeat constructor.
+      f_equiv; [| assumption].
+      f_equiv;
+        now repeat constructor.
+    -
+      cbn.
+      cbv in H; subst n'.
+      break_match; repeat constructor.
+      f_equiv; [| assumption].
+      f_equiv;
+        now repeat constructor.
+    -
+      cbn.
+      repeat constructor;
+        auto.
+      apply Forall2_app;
+        [| assumption].
+      f_equiv; [| assumption].
+      f_equiv;
+        now repeat constructor.
+    -
+      cbv in H; subst n'.
+      induction n.
+      +
+        destruct fuel; [reflexivity |].
+        cbn.
+        now repeat constructor.
+      +
+        destruct fuel; [reflexivity |].
+        cbn.
+        break_match; [reflexivity |].
+        admit. (* fuel! *)
+    -
+      destruct fuel; [reflexivity |].
+      cbn.
+      eapply IHOP.
+      assumption.
+      now constructor.
+    -
+      destruct fuel; [reflexivity |].
+      now repeat constructor.
+    -
+      destruct fuel; [reflexivity |].
+      cbn.
+      specialize (IHOP1 fuel σn1 σn2 cl1 cl2 CL Σ).
+      repeat break_match;
+        try some_none; repeat some_inv;
+        try inl_inr; repeat inl_inr_inv.
+      now repeat constructor.
+      now eapply IHOP2.
   Admitted.
 
-  Instance evalNatClosure_Equivalence :
-    Equivalence evalNatClosure_Equiv.
-  Admitted.
-  
   Instance intervalEvalDSHOperator_σ_proper :
     Proper ((=) ==> (=) ==> (=) ==> (=) ==> (=)) intervalEvalDSHOperator_σ.
-  Admitted.
+  Proof.
+    intros σ1 σ2 Σ op1 op2 OP cl1 cl2 CL fuel1 fuel2 FUEL.
+    (* cbv in FUEL; subst fuel2; rename fuel1 into fuel. *)
+    unfold intervalEvalDSHOperator_σ.
+    rewrite Σ, OP, CL, FUEL.
+    reflexivity.
+  Qed.
 
   Instance estimateFuel_proper :
     Proper ((=) ==> (=)) estimateFuel.
-  Admitted.
+  Proof.
+    intros op1 op2 OP.
+    induction OP.
+    all: try reflexivity.
+    all: cbn; cbv [equiv peano_naturals.nat_equiv] in *.
+    all: congruence.
+  Qed.
 
   Lemma intervalEvalDSHOperator_fuel_monotone
         (σn : evalNatContext)

@@ -84,6 +84,16 @@ Proof.
   simpl_relation.
 Qed.
 
+Global Instance List_app_proper
+       {A:Type}
+       `{Equiv A}
+  :
+  Proper ((=) ==> (=) ==> (=)) (@List.app A).
+Proof.
+  simpl_relation.
+  now apply Forall2_app.
+Qed.
+
 Lemma fold_left_rev_append
       `{EqA : Equiv A}
       `{Equivalence A EqA}
