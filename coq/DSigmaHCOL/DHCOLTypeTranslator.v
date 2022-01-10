@@ -94,6 +94,8 @@ Module MDHCOLTypeTranslator
       (* Partial mapping of [CT.t] values to [CT'.t] *)
       translateCTypeValue : CT.t -> err CT'.t ;
 
+      translateCTypeValue_proper : Proper ((=) ==> (=)) translateCTypeValue;
+
       (* Value mapping should result in "equal" values *)
       translateCTypeValue_heq_CType :
       forall x x', translateCTypeValue x = inr x' -> heq_CType x x';
@@ -124,6 +126,8 @@ Module MDHCOLTypeTranslator
     {
       (* Partial mapping of [NT.t] values to [NT'.t] *)
       translateNTypeValue : NT.t -> err NT'.t ;
+
+      translateNTypeValue_proper : Proper ((=) ==> (=)) translateNTypeValue;
 
       (* Value mapping should result in "equal" values *)
       translateNTypeValue_heq_NType :
@@ -399,16 +403,6 @@ Module MDHCOLTypeTranslator
         contradict n0.
         now rewrite C.
     Qed.
-
-    Instance translateCTypeValue_proper :
-      Proper ((=) ==> (=)) translateCTypeValue.
-    Proof.
-    Admitted.
-
-    Instance translateNTypeValue_proper :
-      Proper ((=) ==> (=)) translateNTypeValue.
-    Proof.
-    Admitted.
 
     (* TODO: ideally this would be moved to MemSetoid *)
     Instance NM_err_sequence_proper
