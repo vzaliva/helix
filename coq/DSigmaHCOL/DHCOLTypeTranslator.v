@@ -1174,6 +1174,41 @@ Module MDHCOLTypeTranslator
       apply NT'.to_nat_from_nat.
     Qed.
 
+    Lemma heq_NType_NTypeEquiv_compat
+          (n1 n2 : NT.t)
+          (n1' n2' : NT'.t)
+      :
+        heq_NType n1 n1' ->
+        heq_NType n2 n2' ->
+        (n1 = n2 <-> n1' = n2').
+    Proof.
+      intros N1 N2.
+      eapply heq_NType_to_nat in N1, N2.
+      split; intros.
+      -
+        eapply NT.to_nat_proper in H.
+        assert (A : to_nat n1' ≡ to_nat n2')
+          by (cbv [equiv peano_naturals.nat_equiv] in *; congruence).
+        clear - A.
+        eapply f_equal with (f:=NT'.from_nat) in A.
+        pose proof from_nat_of_to_nat' n1' as F1.
+        pose proof from_nat_of_to_nat' n2' as F2.
+        enough (T : inr n1' = inr n2') by now inv T.
+        rewrite <-F1, <-F2.
+        rewrite A; reflexivity.
+      -
+        eapply NT'.to_nat_proper in H.
+        assert (A : NT.to_nat n1 ≡ NT.to_nat n2)
+          by (cbv [equiv peano_naturals.nat_equiv] in *; congruence).
+        clear - A.
+        eapply f_equal with (f:=NT.from_nat) in A.
+        pose proof from_nat_of_to_nat n1 as F1.
+        pose proof from_nat_of_to_nat n2 as F2.
+        enough (T : inr n1 = inr n2) by now inv T.
+        rewrite <-F1, <-F2.
+        rewrite A; reflexivity.
+    Qed.
+
     (* NOTE: this is defined in terms of [from_nat ∘ to_nat],
        might follow from some of their properites. The current assumptions do
        not seem sufficient *)
@@ -4036,15 +4071,6 @@ Module MDHCOLTypeTranslator
     Context `{NTP : @NTranslationProps NHE}
             `{NOP : @NOpTranslationProps NHE}
             `{COP : @COpTranslationProps CHE}.
-
-    Lemma heq_NType_NTypeEquiv_compat
-          (n1 n2 : NT.t)
-          (n1' n2' : NT'.t)
-      :
-        heq_NType n1 n1' ->
-        heq_NType n2 n2' ->
-        (n1 = n2 <-> n1' = n2').
-    Admitted.
 
     Lemma heq_NExpr_heq_evalNExpr
           (n : L.NExpr)
