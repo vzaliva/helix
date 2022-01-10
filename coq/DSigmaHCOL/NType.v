@@ -14,6 +14,7 @@ Module Type NType.
 
   (* Values *)
   Parameter NTypeZero: t.
+  Parameter NTypeOne: t.
 
   (* Decidable equiality *)
   Declare Instance NTypeEqDec: forall x y: t, Decision (x = y).
