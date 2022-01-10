@@ -61,7 +61,8 @@ Module Type NType.
       (y<x)%nat ->
       exists yi, from_nat y ≡ inr yi.
 
-  (* 0 is always convertible *)
-  Parameter from_nat_zero: exists z, from_nat O ≡ inr z.
+  (* 0 and 1 are always converted accordingly *)
+  Parameter to_nat_zero: to_nat NTypeZero ≡ 0.
+  Parameter to_nat_one: to_nat NTypeOne ≡ 1.
 
 End NType.
