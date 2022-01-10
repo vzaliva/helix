@@ -4072,6 +4072,17 @@ Module MDHCOLTypeTranslator
             `{NOP : @NOpTranslationProps NHE}
             `{COP : @COpTranslationProps CHE}.
 
+    Fact heq_NTypeZero :
+      heq_NType NT.NTypeZero NT'.NTypeZero.
+    Proof.
+      apply heq_NType_translateNTypeConst_compat.
+      unfold translateNTypeConst.
+      rewrite NT.to_nat_zero.
+      apply NT'.to_nat_from_nat.
+      rewrite NT'.to_nat_zero.
+      reflexivity.
+    Qed.
+
     Lemma heq_NExpr_heq_evalNExpr
           (n : L.NExpr)
           (n' : L'.NExpr)
@@ -4108,7 +4119,8 @@ Module MDHCOLTypeTranslator
       all: exfalso.
       all: clear Heqd Heqd0; contradict n.
       all: eapply heq_NType_NTypeEquiv_compat; try eassumption.
-    Admitted.
+      all: apply heq_NTypeZero.
+    Qed.
 
     Lemma evalNExpr_closure_equiv_tauto
           (c : LE.evalNatClosure)

@@ -17,6 +17,7 @@ Module MNatAsNT <: NType.
   Instance NTypeEqDec: forall x y: t, Decision (x = y) := nat_dec.
 
   Definition NTypeZero := O.
+  Definition NTypeOne := 1.
 
   (* could always be converted to `nat` *)
   Definition to_nat (n:t) : nat := n.
@@ -72,12 +73,6 @@ Module MNatAsNT <: NType.
     reflexivity.
   Qed.
 
-  Lemma from_nat_zero: exists z, from_nat O ≡ inr z.
-  Proof.
-    eexists.
-    auto.
-  Qed.
-
   Lemma to_nat_from_nat :
     forall n nt,
       from_nat n = inr nt <-> to_nat nt = n.
@@ -86,6 +81,16 @@ Module MNatAsNT <: NType.
     split; intros E.
     now inl_inr_inv.
     now f_equiv.
+  Qed.
+
+  Lemma to_nat_zero : to_nat NTypeZero ≡ 0.
+  Proof.
+    reflexivity.
+  Qed.
+
+  Lemma to_nat_one : to_nat NTypeOne ≡ 1.
+  Proof.
+    reflexivity.
   Qed.
 
 End MNatAsNT.
