@@ -58,6 +58,36 @@ Proof.
     eauto.
 Qed.
 
+Global Instance Forall2_proper
+         `{EA : Equiv A}
+         `{EB : Equiv B}
+         {R : A -> B -> Prop}
+         {RP : Proper ((=) ==> (=) ==> (iff)) R}
+  :
+    Proper ((=) ==> (=) ==> (iff)) (Forall2 R).
+Proof.
+  intros l1 l1' L1 l2 l2' L2.
+  split; intros F.
+  -
+    generalize dependent l1'.
+    generalize dependent l2'.
+    induction F;
+      intros;
+      invc L1; invc L2;
+      constructor.
+    specialize (RP _ _ H2 _ _ H3); tauto.
+    eapply IHF; assumption.
+  -
+    generalize dependent l1.
+    generalize dependent l2.
+    induction F;
+      intros;
+      invc L1; invc L2;
+      constructor.
+    specialize (RP _ _ H3 _ _ H5); tauto.
+    eapply IHF; assumption.
+Qed.
+
 Global Instance List_Equivalence
        `{Ae: Equiv A}
        `{Aeq: !Equivalence (@equiv A Ae)}
@@ -92,6 +122,24 @@ Global Instance List_app_proper
 Proof.
   simpl_relation.
   now apply Forall2_app.
+Qed.
+
+Global Instance map_proper
+       `{AE : Equiv A}
+       `{BE : Equiv B}
+       {f : A -> B}
+       {PF : Proper ((=) ==> (=)) f}
+  : Proper ((=) ==> (=)) (map f).
+Proof.
+  intros l1 l2 L.
+  induction L.
+  -
+    constructor.
+  -
+    cbn.
+    f_equiv.
+    now apply PF.
+    assumption.
 Qed.
 
 Lemma fold_left_rev_append

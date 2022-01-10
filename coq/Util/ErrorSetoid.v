@@ -305,6 +305,20 @@ Section herr.
     eapply PR; eassumption.
   Qed.
 
+  Instance herr_c_proper
+           `{EQa : Equiv A}
+           `{EQb : Equiv B}
+           {PR : Proper ((=) ==> (=) ==> (iff)) R} :
+    Proper ((=) ==> (=) ==> (iff)) herr_c.
+  Proof.
+    intros a1 a2 AE b1 b2 BE.
+    destruct a1, a2, b1, b2;
+      invc AE; invc BE.
+    all: split; intro ER; invc ER; repeat constructor.
+    all: apply PR in H1; apply H1 in H2.
+    all: tauto.
+  Qed.
+
 End herr.
 Arguments herr {A B} R.
 Arguments herr_c {A B} R.
