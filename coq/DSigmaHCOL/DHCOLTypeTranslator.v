@@ -369,7 +369,36 @@ Module MDHCOLTypeTranslator
     Proof.
       intros c1 c2 C.
       unfold translateCTypeConst.
-    Admitted.
+      repeat break_if;
+        repeat constructor;
+        try reflexivity.
+      all: exfalso.
+      (* poor man's congruence x6 *)
+      -
+        clear - C e n.
+        contradict n.
+        now rewrite <-C.
+      -
+        clear - C e n.
+        contradict n.
+        now rewrite <-C.
+      -
+        clear - C n e0.
+        contradict n.
+        now rewrite C.
+      -
+        clear - C e n1.
+        contradict n1.
+        now rewrite <-C.
+      -
+        clear - C n e.
+        contradict n.
+        now rewrite C.
+      -
+        clear - C n0 e.
+        contradict n0.
+        now rewrite C.
+    Qed.
 
     Instance translateCTypeValue_proper :
       Proper ((=) ==> (=)) translateCTypeValue.
@@ -998,9 +1027,123 @@ Module MDHCOLTypeTranslator
           apply H2.
     Qed.
 
+    Instance heq_NExpr_proper :
+      Proper ((=) ==> (=) ==> (iff)) heq_NExpr.
+    Proof.
+      intros n1 n2 N n1' n2' N'.
+      split; intros E.
+      -
+        generalize dependent n2.
+        generalize dependent n2'.
+        induction E;
+          intros.
+        all: invc N; invc N'.
+        (* inductive cases *)
+        3-9: constructor;
+               [eapply IHE1 | eapply IHE2];
+               eassumption.
+
+        (* base cases *)
+        +
+          constructor.
+          cbv [equiv peano_naturals.nat_equiv] in *.
+          congruence.
+        +
+          constructor.
+          eapply heq_NType_proper in H2;
+            [| eassumption].
+          tauto.
+      -
+        generalize dependent n1.
+        generalize dependent n1'.
+        induction E;
+          intros.
+        all: invc N; invc N'.
+        (* inductive cases *)
+        3-9: constructor;
+               [eapply IHE1 | eapply IHE2];
+               eassumption.
+
+        (* base cases *)
+        +
+          constructor.
+          cbv [equiv peano_naturals.nat_equiv] in *.
+          congruence.
+        +
+          constructor.
+          eapply heq_NType_proper in H3;
+            [| eassumption].
+          tauto.
+    Qed.
+
+    Instance evalNExpr_closure_equiv_proper :
+      Proper ((=) ==> (=) ==> (iff)) evalNExpr_closure_equiv.
+    Proof.
+      intros (σn1, n1) (σn2, n2) NC (σn1', n1') (σn2', n2') NC'.
+      unfold evalNExpr_closure_equiv.
+      destruct NC as [ΣN N],
+          NC' as [ΣN' N'];
+        cbn in *.
+      split; intros E * ΣR ΣR' Σ NN'.
+      -
+        specialize (E σ σ').
+        full_autospecialize E;
+          [now rewrite ΣN
+          |now rewrite ΣN'
+          |assumption
+          |now rewrite N, N'
+          |
+          ].
+
+        invc E.
+        +
+          symmetry in H0, H.
+          eapply herr_c_proper.
+          eapply heq_NType_proper.
+          rewrite <-N, H0; reflexivity.
+          rewrite <-N', H; reflexivity.
+          now constructor.
+        +
+          symmetry in H0, H.
+          eapply herr_c_proper.
+          eapply heq_NType_proper.
+          rewrite <-N, H; reflexivity.
+          rewrite <-N', H0; reflexivity.
+          now constructor.
+      -
+        specialize (E σ σ').
+        full_autospecialize E;
+          [now rewrite <-ΣN
+          |now rewrite <-ΣN'
+          |assumption
+          |now rewrite <-N, <-N'
+          |
+          ].
+
+        invc E.
+        +
+          symmetry in H0, H.
+          eapply herr_c_proper.
+          eapply heq_NType_proper.
+          rewrite N, H0; reflexivity.
+          rewrite N', H; reflexivity.
+          now constructor.
+        +
+          symmetry in H0, H.
+          eapply herr_c_proper.
+          eapply heq_NType_proper.
+          rewrite N, H; reflexivity.
+          rewrite N', H0; reflexivity.
+          now constructor.
+    Qed.
+
     Instance evalNExpr_closure_trace_equiv_proper :
       Proper ((=) ==> (=) ==> (iff)) evalNExpr_closure_trace_equiv.
-    Admitted.
+    Proof.
+      intros σnc1 σnc2 ΣNC σn1 σn2 ΣN.
+      unfold evalNExpr_closure_trace_equiv.
+      now apply Forall2_proper.
+    Qed.
 
   End Relations.
 
@@ -3900,6 +4043,15 @@ Module MDHCOLTypeTranslator
             `{NOP : @NOpTranslationProps NHE}
             `{COP : @COpTranslationProps CHE}.
 
+    Lemma heq_NType_NTypeEquiv_compat
+          (n1 n2 : NT.t)
+          (n1' n2' : NT'.t)
+      :
+        heq_NType n1 n1' ->
+        heq_NType n2 n2' ->
+        (n1 = n2 <-> n1' = n2').
+    Admitted.
+
     Lemma heq_NExpr_heq_evalNExpr
           (n : L.NExpr)
           (n' : L'.NExpr)
@@ -3914,6 +4066,7 @@ Module MDHCOLTypeTranslator
     Proof.
       intros N Σ.
       induction N.
+      (* base cases *)
       {
         cbn.
         invc H.
@@ -3926,12 +4079,15 @@ Module MDHCOLTypeTranslator
       {
         now constructor.
       }
+      (* inductive cases *)
       all: cbn.
       all: invc IHN1; invc IHN2.
       all: repeat break_if; repeat constructor.
       all: try now apply NOP.
+      (* division by zero *)
       all: exfalso.
-      all: admit.
+      all: clear Heqd Heqd0; contradict n.
+      all: eapply heq_NType_NTypeEquiv_compat; try eassumption.
     Admitted.
 
     Lemma evalNExpr_closure_equiv_tauto

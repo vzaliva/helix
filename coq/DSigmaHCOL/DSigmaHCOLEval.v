@@ -724,24 +724,49 @@ Module Type MDSigmaHCOLEval
     Proper ((=) ==> (=)) DSHIndexRange_of_DSHVal.
   Proof.
     intros v1 v2 V.
-    destruct V;
-      now constructor.
+    destruct V; now constructor.
   Qed.
 
   Instance evalNatContext_of_evalContext_proper :
     Proper ((=) ==> (=)) evalNatContext_of_evalContext.
   Proof.
     intros σ1 σ2 Σ.
-    induction Σ as [| x1 x2 σ1 σ2].
-    -
-      reflexivity.
-    -
-      destruct x1 as (v1, p1), x2 as (v2, p2).
-      invc H.
-      cbn in *.
-      f_equiv.
-      now f_equiv.
-      assumption.
+    unfold evalNatContext_of_evalContext.
+    eapply map_proper.
+    eassumption.
+    Unshelve.
+    intros (v1, p1) (v2, p2) VP.
+    f_equiv.
+    now inv VP.
+  Qed.
+
+  Instance  DSHIndexRange_le_proper :
+    Proper ((=) ==> (=) ==> (iff)) DSHIndexRange_le.
+  Proof.
+    intros r1 r2 R r1' r2' R'.
+    split; intros H; invc H.
+    1,2: destruct r2, r2'; invc R; invc R'.
+    3,4: destruct r1, r1'; invc R; invc R'.
+    all: constructor.
+    all: apply to_nat_proper in H2, H3.
+    all: cbv [equiv peano_naturals.nat_equiv] in *.
+    all: lia.
+  Qed.
+
+  Instance evalNatContext_in_range_proper :
+    Proper ((=) ==> (=) ==> (iff)) evalNatContext_in_range.
+  Proof.
+    apply Forall2_proper.
+  Qed.
+    
+  Instance evalContext_in_range_proper :
+    Proper ((=) ==> (=) ==> (iff)) evalContext_in_range.
+  Proof.
+    intros σ1 σ2 Σ σn1 σn2 ΣN.
+    unfold evalContext_in_range.
+    do 2 f_equiv.
+    assumption.
+    assumption.
   Qed.
 
   Instance evalAExpr_NatClosures_proper :
@@ -800,6 +825,7 @@ Module Type MDSigmaHCOLEval
         now repeat constructor.
     -
       cbv in H; subst n'.
+      revert fuel.
       induction n.
       +
         destruct fuel; [reflexivity |].
@@ -809,7 +835,13 @@ Module Type MDSigmaHCOLEval
         destruct fuel; [reflexivity |].
         cbn.
         break_match; [reflexivity |].
-        admit. (* fuel! *)
+        specialize (IHn fuel).
+        repeat break_match;
+          try some_none; repeat some_inv;
+          try inl_inr; repeat inl_inr_inv.
+        now repeat constructor.
+        apply IHOP;
+          now repeat constructor.
     -
       destruct fuel; [reflexivity |].
       cbn.
@@ -828,7 +860,7 @@ Module Type MDSigmaHCOLEval
         try inl_inr; repeat inl_inr_inv.
       now repeat constructor.
       now eapply IHOP2.
-  Admitted.
+  Qed.
 
   Instance intervalEvalDSHOperator_σ_proper :
     Proper ((=) ==> (=) ==> (=) ==> (=) ==> (=)) intervalEvalDSHOperator_σ.
