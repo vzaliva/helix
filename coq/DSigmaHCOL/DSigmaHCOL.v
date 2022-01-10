@@ -403,11 +403,30 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
         DSHOperator_equiv (DSHSeq f g) (DSHSeq f' g').
 
 
-  Instance DSHOperator_Equiv: Equiv DSHOperator  := DSHOperator_equiv.
+  Instance DSHOperator_Equiv : Equiv DSHOperator := DSHOperator_equiv.
 
   Instance DSHOperator_equiv_Equivalence :
     Equivalence DSHOperator_Equiv.
-  Admitted.
+  Proof.
+    unfold DSHOperator_Equiv.
+    constructor.
+    -
+      intros op.
+      induction op;
+        try destruct src, dst;
+        now constructor.
+    -
+      intros op1 op2 E.
+      induction E; now constructor.
+    -
+      intros op1 op2 op3 E1 E2.
+      generalize dependent op3.
+      induction E1;
+        intros.
+      all: inv E2.
+      all: repeat constructor.
+      all: auto.
+  Qed.
 
   Definition incrPVar (skip:nat) (p: PExpr): PExpr :=
     match p with
