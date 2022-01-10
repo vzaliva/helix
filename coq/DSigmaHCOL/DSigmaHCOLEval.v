@@ -2570,7 +2570,16 @@ Module Type MDSigmaHCOLEval
     revert σ mem mem' fuel op H.
     induction N; intros.
     -
-      apply from_nat_zero.
+      (* [eq] vs [equiv] *)
+      enough (T : ∃ nn, from_nat 0 = inr nn).
+      {
+        destruct T as [z T].
+        destruct (from_nat 0); invc T.
+        eexists; reflexivity.
+      }
+      exists NTypeZero.
+      apply to_nat_from_nat.
+      apply to_nat_zero.
     -
       cbn in *. 
       repeat break_match; try some_none; try some_inv; subst.

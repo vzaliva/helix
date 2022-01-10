@@ -98,6 +98,7 @@ Module MInt64asNT <: NType.
   Qed.
 
   Definition NTypeZero := Int64.zero.
+  Definition NTypeOne := Int64.one.
 
   Definition from_Z (z:BinInt.Z): err t :=
     match ZArith_dec.Z_lt_dec (BinNums.Zneg BinNums.xH) z with
@@ -327,18 +328,14 @@ Module MInt64asNT <: NType.
     eauto.
   Qed.
 
-  Lemma from_nat_zero: exists z, from_nat O ≡ inr z.
+  Lemma to_nat_zero: to_nat NTypeZero ≡ 0.
   Proof.
-    exists (Int64.mkint (Int64.Z_mod_modulus BinNums.Z0) (Int64.Z_mod_modulus_range' BinNums.Z0)).
-    cbn.
-    pose proof (Int64.unsigned_range Int64.zero) as [H0 H1].
-    break_match.
-    - f_equiv.
-      f_equiv.
-      apply proof_irrelevance.
-    - contradict n.
-      lia.
+    reflexivity.
   Qed.
 
+  Lemma to_nat_one: to_nat NTypeOne ≡ 1.
+  Proof.
+    reflexivity.
+  Qed.
 
 End MInt64asNT.
