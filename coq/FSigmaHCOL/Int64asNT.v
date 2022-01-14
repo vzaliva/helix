@@ -127,10 +127,10 @@ Module MInt64asNT <: NType.
   Definition NTypeMult  := Int64.mul  .
 
   Definition NTypeMin (a b:t) : t :=
-    if Int64.lt a b then a else b.
+    if Int64.ltu a b then a else b.
 
   Definition NTypeMax  (a b:t) : t :=
-    if Int64.lt a b then b else a.
+    if Int64.ltu a b then b else a.
 
   Instance NTypeDiv_proper: Proper ((=) ==> (=) ==> (=)) NTypeDiv.
   Proof.
@@ -247,10 +247,10 @@ Module MInt64asNT <: NType.
         congruence.
   Qed.
 
-  Instance Int64_lt_proper: Proper ((=) ==> (=) ==> (eq)) Int64.lt.
+  Instance Int64_ltu_proper: Proper ((=) ==> (=) ==> (eq)) Int64.ltu.
   Proof.
     simpl_relation.
-    unfold Int64.lt.
+    unfold Int64.ltu.
     destruct x as [x [xc1 xc2]].
     destruct y as [y [yc1 yc2]].
     destruct x0 as [x0 [x0c1 x0c2]].
