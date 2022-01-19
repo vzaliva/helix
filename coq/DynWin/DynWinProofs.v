@@ -1434,191 +1434,191 @@ Section MSHCOL_to_AHCOL.
 
 End MSHCOL_to_AHCOL.
 
+(* TODO: move *)
+Require Import Helix.MSigmaHCOL.CarrierAasCT.
+Require Import Helix.RSigmaHCOL.RasCT.
 
+Section AHCOL_to_RHCOL.
 
-
-    -
-    -
-
-  Proof.
-  Qed.
-
-  Proof.
-  Qed.
-
-
-
-Definition heq_nat_int : nat -> MInt64asNT.t -> Prop :=
-  fun n i => Z.of_nat n ≡ Int64.intval i.
-
-Instance heq_nat_int_proper :
-  Proper (equiv ==> equiv ==> iff) heq_nat_int.
-Proof.
-  intros n1 n2 EN i1 i2 EI.
-  unfold heq_nat_int.
-  cbv in EN; subst n2; rename n1 into n.
-  pose proof Integers.Int64.eq_spec i1 i2 as EQI.
-  rewrite EI in EQI.
-  apply f_equal with (f:=Int64.intval) in EQI.
-  lia.
-Qed.
-
-Instance RF_NHE : RHCOLtoFHCOL.NTranslation_heq :=
-  {
-    heq_NType := heq_nat_int;
-    heq_NType_proper := heq_nat_int_proper;
-  }.
-
-Instance RF_NTP : RHCOLtoFHCOL.NTranslationProps.
-Proof.
-  constructor; intros *.
-  all: unfold RF_NHE, heq_NType, heq_nat_int.
-  all: unfold NatAsNT.MNatAsNT.to_nat, MInt64asNT.to_nat.
-  all: unfold NatAsNT.MNatAsNT.from_nat, MInt64asNT.from_nat, MInt64asNT.from_Z.
-  -
-    intros NI.
-    rewrite <-NI.
-    rewrite Nat2Z.id.
-    reflexivity.
-  -
-    unfold MInt64asNT.from_Z.
-    repeat break_match;
-      constructor.
-    reflexivity.
-Qed.
-
-Lemma RF_translateNTypeValue_heq_NType :
-  ∀ (x : nat) (x' : Int64.int),
-    MInt64asNT.from_nat x = inr x' →
-    heq_NType x x'.
-Proof.
-  unfold RF_NHE, heq_NType, heq_nat_int.
-  unfold MInt64asNT.from_nat, MInt64asNT.from_Z.
-  intros * TR.
-  repeat break_match; invc TR.
-  pose proof Integers.Int64.eq_spec
-       {| Int64.intval := Z.of_nat x; Int64.intrange := conj l l0 |}
-       x'
-    as EQI.
-  rewrite H1 in EQI.
-  apply f_equal with (f:=Int64.intval) in EQI.
-  rewrite <-EQI.
-  reflexivity.
-Qed.
-
-Lemma RF_translateNTypeConst_translateNTypeValue_compat :
-  ∀ (x : nat) (x' : Int64.int),
-    RHCOLtoFHCOL.translateNTypeConst x = inr x' → 
-    MInt64asNT.from_nat x = inr x'.
-Proof.
-  tauto.
-Qed.
-
-Instance RF_NTO : @RHCOLtoFHCOL.NTranslationOp RF_NHE :=
-  {
-    translateNTypeValue := MInt64asNT.from_nat;
-    translateNTypeValue_heq_NType := RF_translateNTypeValue_heq_NType;
-    translateNTypeConst_translateNTypeValue_compat :=
-      RF_translateNTypeConst_translateNTypeValue_compat;
-  }.
-
-Local Set Warnings "-ssr-search-moved".
-
-Section TopLevel.
-
-  (* SHCOL -> MHCOL *)
-  Context `{CarrierASRO : @orders.SemiRingOrder
-                            CarrierA CarrierAe
-                            CarrierAplus CarrierAmult
-                            CarrierAz CarrierA1
-                            CarrierAle}.
-  (* TODO: instantiate? *)
-  (* AHCOL -> RHCOL *)
-  Context
-    `{AR_CHE : AHCOLtoRHCOL.CTranslation_heq}
-    `{AR_CTO : @AHCOLtoRHCOL.CTranslationOp AR_CHE}
-    `{AR_NHE : AHCOLtoRHCOL.NTranslation_heq}
-    `{AR_NTO : @AHCOLtoRHCOL.NTranslationOp AR_NHE}
-
-    `{AR_NTP : @AHCOLtoRHCOL.NTranslationProps AR_NHE}
-    `{AR_NOP : @AHCOLtoRHCOL.NOpTranslationProps AR_NHE}
-
-    `{AR_COP : @AHCOLtoRHCOL.COpTranslationProps AR_CHE}
-    `{AR_CTS : @AHCOLtoRHCOL.CTranslationOp_strict AR_CHE AR_CTO}.
-
-  (* RHCOL -> FHCOL *)
-  Context
-    `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}
-    `{RF_CTO : @RHCOLtoFHCOL.CTranslationOp RF_CHE}.
-
-  (* TODO: removing this was kind of a big deal *)
-  (* We assuming that there is an injection of CType to Reals *)
-  (* Hypothesis AHCOLtoRHCOL_total :
-    forall c, exists r, AHCOLtoRHCOL.translateCTypeValue c ≡ inr r. *)
-
+  Definition dynwin_RHCOL := AHCOLtoRHCOL.translate dynwin_AHCOL.
 
   (* Initialize memory with X and placeholder for Y. *)
   Definition build_dynwin_memory (a:avector 3) (x:avector dynwin_i) :=
     AHCOLEval.memory_set
-      (AHCOLEval.memory_set (AHCOLEval.memory_set AHCOLEval.memory_empty dynwin_a_addr (avector_to_mem_block a)) dynwin_x_addr (avector_to_mem_block x))
-      dynwin_y_addr AHCOLEval.mem_empty.
-
-  (* User can specify optional constraints on input values and
-     arguments. For example, for cyber-physical system it could
-     include ranges and relatoin between parameters. *)
-  Parameter InConstr: (* a *) RHCOLEval.mem_block -> (*x*) RHCOLEval.mem_block -> Prop.
+      (AHCOLEval.memory_set (AHCOLEval.memory_set AHCOLEval.memory_empty dynwin_a_addr (avector_to_mem_block a))
+                            dynwin_x_addr
+                            (avector_to_mem_block x))
+      dynwin_y_addr
+      AHCOLEval.mem_empty.
 
   Definition build_dynwin_σ := [
-          (AHCOLEval.DSHPtrVal dynwin_a_addr 3,false)
-          ; (AHCOLEval.DSHPtrVal dynwin_y_addr dynwin_o,false)
-          ; (AHCOLEval.DSHPtrVal dynwin_x_addr dynwin_i,false)
-        ].
+      (AHCOLEval.DSHPtrVal dynwin_a_addr 3,false)
+      ; (AHCOLEval.DSHPtrVal dynwin_y_addr dynwin_o,false)
+      ; (AHCOLEval.DSHPtrVal dynwin_x_addr dynwin_i,false)
+    ].
 
-  (* Parametric relation between RHCOL and FHCOL coumputation results  *)
-  Parameter OutRel : (* a *) RHCOLEval.mem_block ->
-                     (* x *) RHCOLEval.mem_block ->
-                     (* y *) RHCOLEval.mem_block ->
-                 (* y_mem *) FHCOLEval.mem_block -> Prop.
+  Global Instance AR_NHE : AHCOLtoRHCOL.NTranslation_heq.
+    econstructor.
+    instantiate (1:=equiv).
+    typeclasses eauto.
+  Defined.
+
+  Global Instance AR_NTO : @AHCOLtoRHCOL.NTranslationOp AR_NHE.
+    econstructor.
+    instantiate (1:=inr).
+    -
+      typeclasses eauto.
+    -
+      intros.
+      invc H.
+      now cbv in *.
+    -
+      tauto.
+  Defined.
+
+  Global Instance AR_NTP : @AHCOLtoRHCOL.NTranslationProps AR_NHE.
+  Proof.
+    now repeat constructor.
+  Qed.
+
+  Global Instance AR_NOP : @AHCOLtoRHCOL.NOpTranslationProps AR_NHE.
+  Proof.
+    now repeat constructor.
+  Qed.
+
+End AHCOL_to_RHCOL.
+
+(* TODO: move *)
+Require Import ZArith.
+
+Section RCHOL_to_FHCOL.
+
+  Context
+    `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}
+    `{RF_CTO : @RHCOLtoFHCOL.CTranslationOp RF_CHE}.
+
+  Definition heq_nat_int : nat -> MInt64asNT.t -> Prop :=
+    fun n i => Z.of_nat n ≡ Int64.intval i.
+
+  Global Instance RF_NHE : RHCOLtoFHCOL.NTranslation_heq.
+  Proof.
+    econstructor.
+    instantiate (1:= heq_nat_int).
+    intros n1 n2 EN i1 i2 EI.
+    unfold heq_nat_int.
+    cbv in EN; subst n2; rename n1 into n.
+    pose proof Integers.Int64.eq_spec i1 i2 as EQI.
+    rewrite EI in EQI.
+    apply f_equal with (f:=Int64.intval) in EQI.
+    lia.
+  Defined.
+
+  Global Instance RF_NTP : RHCOLtoFHCOL.NTranslationProps.
+  Proof.
+    constructor; intros *.
+    all: unfold RF_NHE, heq_NType, heq_nat_int.
+    all: unfold NatAsNT.MNatAsNT.to_nat, MInt64asNT.to_nat.
+    all: unfold NatAsNT.MNatAsNT.from_nat, MInt64asNT.from_nat, MInt64asNT.from_Z.
+    -
+      intros NI.
+      rewrite <-NI.
+      rewrite Nat2Z.id.
+      reflexivity.
+    -
+      unfold MInt64asNT.from_Z.
+      repeat break_match;
+        constructor.
+      reflexivity.
+  Qed.
+
+  Global Instance RF_NTO : @RHCOLtoFHCOL.NTranslationOp RF_NHE.
+  Proof.
+    econstructor.
+    instantiate (1:=MInt64asNT.from_nat).
+    -
+      typeclasses eauto.
+    -
+      unfold RF_NHE, heq_NType, heq_nat_int.
+      unfold MInt64asNT.from_nat, MInt64asNT.from_Z.
+      intros * TR.
+      repeat break_match; invc TR.
+      pose proof Integers.Int64.eq_spec
+           {| Int64.intval := Z.of_nat x; Int64.intrange := conj l l0 |}
+           x'
+        as EQI.
+      rewrite H1 in EQI.
+      apply f_equal with (f:=Int64.intval) in EQI.
+      rewrite <-EQI.
+      reflexivity.
+    -
+      tauto.
+  Defined.
+
+End RCHOL_to_FHCOL.
+
+(* TODO: move *)
+Require Import Rdefinitions.
+
+Section AHCOL_to_FHCOL_numerical.
+
+  Context
+    `{AR_CHE : AHCOLtoRHCOL.CTranslation_heq}
+    `{AR_CTO : @AHCOLtoRHCOL.CTranslationOp AR_CHE}
+
+    `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}
+    `{RF_CTO : @RHCOLtoFHCOL.CTranslationOp RF_CHE}.
+
+  (* TODO: move *)
+  Lemma trivial2_Proper `{AE : Equiv A} `{BE : Equiv B} :
+    Proper (equiv ==> equiv ==> iff) (@trivial2 A B).
+  Proof.
+    repeat constructor.
+  Qed.
 
   Ltac crush_int :=
     repeat rewrite !Int64.unsigned_repr;
     replace Int64.max_unsigned
       with 18446744073709551615%Z
       in *
-      by reflexivity;
+        by reflexivity;
     try lia.
 
   Ltac unfold_RF_NType_ops :=
-    unfold NatAsNT.MNatAsNT.to_nat,
-           NatAsNT.MNatAsNT.from_nat
+    unfold
+      NatAsNT.MNatAsNT.to_nat,
+      NatAsNT.MNatAsNT.from_nat
       in * ;
-    unfold MInt64asNT.to_nat,
-           MInt64asNT.from_nat
+    unfold
+      MInt64asNT.to_nat,
+      MInt64asNT.from_nat
       in *;
-    unfold NatAsNT.MNatAsNT.NTypePlus,
-           NatAsNT.MNatAsNT.NTypeDiv,
-           NatAsNT.MNatAsNT.NTypeMod,
-           NatAsNT.MNatAsNT.NTypePlus,
-           NatAsNT.MNatAsNT.NTypeMinus,
-           NatAsNT.MNatAsNT.NTypeMult,
-           NatAsNT.MNatAsNT.NTypeMin,
-           NatAsNT.MNatAsNT.NTypeMax
+    unfold
+      NatAsNT.MNatAsNT.NTypePlus,
+      NatAsNT.MNatAsNT.NTypeDiv,
+      NatAsNT.MNatAsNT.NTypeMod,
+      NatAsNT.MNatAsNT.NTypePlus,
+      NatAsNT.MNatAsNT.NTypeMinus,
+      NatAsNT.MNatAsNT.NTypeMult,
+      NatAsNT.MNatAsNT.NTypeMin,
+      NatAsNT.MNatAsNT.NTypeMax
       in *;
-    unfold MInt64asNT.NTypePlus,
-           MInt64asNT.NTypeDiv,
-           MInt64asNT.NTypeMod,
-           MInt64asNT.NTypePlus,
-           MInt64asNT.NTypeMinus,
-           MInt64asNT.NTypeMult,
-           MInt64asNT.NTypeMin,
-           MInt64asNT.NTypeMax
+    unfold
+      MInt64asNT.NTypePlus,
+      MInt64asNT.NTypeDiv,
+      MInt64asNT.NTypeMod,
+      MInt64asNT.NTypePlus,
+      MInt64asNT.NTypeMinus,
+      MInt64asNT.NTypeMult,
+      MInt64asNT.NTypeMin,
+      MInt64asNT.NTypeMax
       in *;
-    unfold Int64.divu,
-           Int64.modu,
-           Int64.add,
-           Int64.sub,
-           Int64.mul,
-           Int64.lt
+    unfold
+      Int64.divu,
+      Int64.modu,
+      Int64.add,
+      Int64.sub,
+      Int64.mul,
+      Int64.lt
       in *.
 
   (* note: the two [try] blocks are for RHCOL/FHCOL lemma *)
@@ -1630,22 +1630,13 @@ Section TopLevel.
     let Σ := fresh "Σ" in
     pose proof ΣR as TΣR;
     try (eapply RHCOLEval.evalContext_in_range_lookup_Index
-           with (k:=x) in TΣR;
+          with (k:=x) in TΣR;
          [| reflexivity]);
     try (eapply FHCOLEval.evalContext_in_range_lookup_Index
-           with (k:=x) in TΣR;
+          with (k:=x) in TΣR;
          [| reflexivity]);
     destruct TΣR as (nv & p & NV & Σ);
     rewrite Σ.
-
-  (* TODO: move *)
-  Lemma trivial2_Proper `{AE : Equiv A} `{BE : Equiv B} :
-    Proper (equiv ==> equiv ==> iff) (@trivial2 A B).
-  Proof.
-    repeat constructor.
-  Qed.
-
-  
 
   (* Instances for trivial comparison of CType values
      in RHCOL->FHCOL translation.
@@ -1681,7 +1672,7 @@ Section TopLevel.
       translateCTypeValue := @translateCTypeValue _ RF_CTO;
       translateCTypeValue_heq_CType := trivial_RF_translateCTypeValue_heq_CType;
       translateCTypeConst_translateCTypeValue_compat :=
-        @translateCTypeConst_translateCTypeValue_compat _ RF_CTO;
+      @translateCTypeConst_translateCTypeValue_compat _ RF_CTO;
     |}.
 
   Definition RF_Structural_Semantic_Preservation :=
@@ -1690,7 +1681,7 @@ Section TopLevel.
       trivial_RF_CHE
       RF_NTP
       trivial_RF_COP.
-  
+
   Lemma RHCOLtoFHCOL_NExpr_closure_trace_equiv
         (dynwin_R_σ : RHCOLEval.evalContext)
         (dynwin_F_σ : evalContext)
@@ -1714,7 +1705,7 @@ Section TopLevel.
     intros AR RF ARΣ RFΣ.
 
     assert (AR0 : AHCOLtoRHCOL.translateCTypeConst CarrierAz
-            ≡ @inr string _ MRasCT.CTypeZero).
+                  ≡ @inr string _ MRasCT.CTypeZero).
     {
       unfold AHCOLtoRHCOL.translateCTypeConst.
       repeat break_if; try reflexivity; exfalso.
@@ -1722,7 +1713,7 @@ Section TopLevel.
     }
 
     assert (AR1 : AHCOLtoRHCOL.translateCTypeConst CarrierA1
-            ≡ @inr string _ MRasCT.CTypeOne).
+                  ≡ @inr string _ MRasCT.CTypeOne).
     {
       unfold AHCOLtoRHCOL.translateCTypeConst.
       repeat break_if; try reflexivity; exfalso.
@@ -1744,10 +1735,10 @@ Section TopLevel.
                      try setoid_rewrite AR1 in AR).
     invc AR; rename H1 into AR.
     cbn in ARΣ.
-            
+
 
     assert (RF0 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeZero
-            ≡ @inr string _ Float64asCT.Float64Zero).
+                  ≡ @inr string _ Float64asCT.Float64Zero).
     {
       unfold RHCOLtoFHCOL.translateCTypeConst.
       repeat break_if; try reflexivity; exfalso.
@@ -1755,7 +1746,7 @@ Section TopLevel.
     }
 
     assert (RF1 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeOne
-            ≡ @inr string _ Float64asCT.Float64One).
+                  ≡ @inr string _ Float64asCT.Float64One).
     {
       unfold RHCOLtoFHCOL.translateCTypeConst.
       repeat break_if; try reflexivity; exfalso.
@@ -1774,23 +1765,22 @@ Section TopLevel.
     apply RHCOLtoFHCOL.translate_proper in AR'.
     rewrite <-AR' in RF.
     clear AR'.
-    
+
     cbn in RF.
     repeat progress (try setoid_rewrite RF0 in RF;
                      try setoid_rewrite RF1 in RF).
-    inl_inr_inv.
+    repeat inl_inr_inv.
 
-    
     remember (RHCOLEval.DSHAlloc _ _) as dynwin_rhcol_comp eqn:RC.
     remember (FHCOLEval.DSHAlloc _ _) as dynwin_fhcol_comp eqn:FC.
     (* poor man's [rewrite <-RC, <-FC] *)
     assert (T1 : RHCOLEval.intervalEvalDSHOperator_σ
-              dynwin_R_σ dynwin_rhcol []
-              (RHCOLEval.estimateFuel dynwin_rhcol)
-            =
-              RHCOLEval.intervalEvalDSHOperator_σ
-                dynwin_R_σ dynwin_rhcol_comp []
-                (RHCOLEval.estimateFuel dynwin_rhcol_comp))
+                   dynwin_R_σ dynwin_rhcol []
+                   (RHCOLEval.estimateFuel dynwin_rhcol)
+                 =
+                   RHCOLEval.intervalEvalDSHOperator_σ
+                     dynwin_R_σ dynwin_rhcol_comp []
+                     (RHCOLEval.estimateFuel dynwin_rhcol_comp))
       by now rewrite AR.
     assert (T2 : FHCOLEval.intervalEvalDSHOperator_σ
                    dynwin_F_σ dynwin_fhcol []
@@ -1815,17 +1805,17 @@ Section TopLevel.
     1-10: pose proof ΣE as Σ3E.
     1-10: match goal with
           | [ |- context [ RHCOLEval.context_lookup _ _ ?k ]] =>
-            eapply heq_evalContext_heq_context_lookup with (n:=k) in Σ3E
+              eapply heq_evalContext_heq_context_lookup with (n:=k) in Σ3E
           end.
     1-10: match goal with
           | [ |- context [ RHCOLEval.context_lookup _ _ ?n ]] =>
-            destruct_context_range_lookup ΣR n;
+              destruct_context_range_lookup ΣR n;
               destruct_context_range_lookup ΣR' n
           end.
     1-10: constructor.
     1-10: rewrite Σ, Σ0 in Σ3E.
     1-10: cbn in Σ3E; invc Σ3E; invc H1; invc H0; assumption.
-    
+
     (* TODO: all 4 subogals are exact copies *)
     -
       cbn.
@@ -1965,6 +1955,84 @@ Section TopLevel.
       crush_int.
   Qed.
 
+End AHCOL_to_FHCOL_numerical.
+
+Section TopLevel.
+
+  (* SHCOL -> MHCOL *)
+  Context `{CarrierASRO : @orders.SemiRingOrder
+                            CarrierA CarrierAe
+                            CarrierAplus CarrierAmult
+                            CarrierAz CarrierA1
+                            CarrierAle}.
+
+  (* AHCOL -> RHCOL *)
+  Context
+    `{AR_CHE : AHCOLtoRHCOL.CTranslation_heq}
+    `{AR_CTO : @AHCOLtoRHCOL.CTranslationOp AR_CHE}
+    `{AR_CTS : @AHCOLtoRHCOL.CTranslationOp_strict AR_CHE AR_CTO}
+
+    `{AR_COP : @AHCOLtoRHCOL.COpTranslationProps AR_CHE}.
+
+  (* RHCOL -> FHCOL *)
+  Context
+    `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}
+    `{RF_CTO : @RHCOLtoFHCOL.CTranslationOp RF_CHE}.
+
+  (* TODO: removing this was kind of a big deal *)
+  (* We assuming that there is an injection of CType to Reals *)
+  (* Hypothesis AHCOLtoRHCOL_total :
+     forall c, exists r, AHCOLtoRHCOL.translateCTypeValue c ≡ inr r. *)
+
+  (* User can specify optional constraints on input values and
+     arguments. For example, for cyber-physical system it could
+     include ranges and relatoin between parameters. *)
+  Parameter InConstr: (* a *) RHCOLEval.mem_block -> (*x*) RHCOLEval.mem_block -> Prop.
+
+  (* Parametric relation between RHCOL and FHCOL coumputation results  *)
+  Parameter OutRel : (* a *) RHCOLEval.mem_block ->
+                     (* x *) RHCOLEval.mem_block ->
+                     (* y *) RHCOLEval.mem_block ->
+                     (* y_mem *) FHCOLEval.mem_block -> Prop.
+
+  Lemma DynWin_AHCOL_to_RHCOL_op_OK :
+    exists r, AHCOLtoRHCOL.translate dynwin_AHCOL = inr r.
+  Proof.
+    cbn.
+
+    assert (Z : AHCOLtoRHCOL.translateCTypeConst CarrierAz
+            ≡ @inr string _ MRasCT.CTypeZero).
+    {
+      unfold AHCOLtoRHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      all: clear - n; contradict n; reflexivity.
+    }
+
+    assert (O : AHCOLtoRHCOL.translateCTypeConst CarrierA1
+            ≡ @inr string _ MRasCT.CTypeOne).
+    {
+      unfold AHCOLtoRHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      -
+        clear - e.
+        unfold CarrierAasCT.CTypeZero in e.
+        pose proof CarrierAasCT.CTypeZeroOneApart as C.
+        contradict C.
+        symmetry.
+        assumption.
+      -
+        clear - n0.
+        contradict n0.
+        reflexivity.
+    }
+
+    setoid_rewrite Z.
+    setoid_rewrite O.
+    setoid_rewrite Z.
+    eexists.
+    reflexivity.
+  Qed.
+
   (*
     Translation validation proof of semantic preservation
     of successful translation of [dynwin_orig] into FHCOL program.
@@ -1981,20 +2049,20 @@ Section TopLevel.
     forall x y,
       (* evaluatoion of original operator *)
       dynwin_orig a x = y ->
-      
+
       forall dynwin_R_memory dynwin_F_memory dynwin_R_σ dynwin_F_σ dynwin_rhcol dynwin_fhcol,
         (* Compile AHCOL -> RHCOL -> FHCOL *)
         AHCOLtoRHCOL.translate dynwin_AHCOL = inr dynwin_rhcol ->
         translate dynwin_rhcol = inr dynwin_fhcol ->
-        
+
         (* Compile memory *)
         AHCOLtoRHCOL.translate_runtime_memory (build_dynwin_memory a x) = inr dynwin_R_memory ->
         RHCOLtoFHCOL.translate_runtime_memory dynwin_R_memory = inr dynwin_F_memory ->
-        
+
         (* compile σ *)
         AHCOLtoRHCOL.translateEvalContext build_dynwin_σ = inr dynwin_R_σ ->
         RHCOLtoFHCOL.translateEvalContext dynwin_R_σ = inr dynwin_F_σ ->
-        
+
         forall a_rmem x_rmem,
           RHCOLEval.memory_lookup dynwin_R_memory dynwin_a_addr = Some a_rmem ->
           RHCOLEval.memory_lookup dynwin_R_memory dynwin_x_addr = Some x_rmem ->
@@ -2113,7 +2181,7 @@ Section TopLevel.
               apply Is_Val_mkValue.
             }
 
-            unfold svector_is_dense.
+                unfold svector_is_dense.
             apply Vforall_nth_intro.
             intros i ip.
             apply D.
@@ -2127,7 +2195,6 @@ Section TopLevel.
           cut(svector_is_dense Monoid_RthetaFlags (sparsify _ x)).
           intros SD.
           unfold svector_is_dense in SD.
-
           intros j jc H.
           apply (Vforall_nth jc) in SD.
           subst sx.
@@ -2180,7 +2247,7 @@ Section TopLevel.
           destruct (dynwin_MSHCOL1 a).
           rewrite 2!svector_to_mem_block_avector_to_mem_block
             in M1
-            by typeclasses eauto.
+              by typeclasses eauto.
           Opaque avector_to_mem_block.
           cbn in M1, MM.
           rewrite MM in M1.
@@ -2308,18 +2375,19 @@ Section TopLevel.
     full_autospecialize HEQRF.
     {
       now eapply translation_syntax_always_correct.
-      Unshelve. apply trivial_RF_CTO.
+      Unshelve.
+      apply trivial_RF_CTO.
     }
     {
       eapply @translateEvalContext_same_indices with (CTO:=trivial_RF_CTO).
-      assumption. 
+      assumption.
     }
     {
       eapply @translate_runtime_memory_same_indices with (CTO:=trivial_RF_CTO).
       assumption.
     }
     {
-      now apply @RHCOLtoFHCOL_NExpr_closure_trace_equiv.
+      now eapply @RHCOLtoFHCOL_NExpr_closure_trace_equiv.
     }
 
     destruct HEQRF; try some_none.
@@ -2342,6 +2410,5 @@ Section TopLevel.
     admit. (* this is provided by user *)
 
   Admitted.
-
 
 End TopLevel.
