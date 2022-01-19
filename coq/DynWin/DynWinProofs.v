@@ -1434,99 +1434,18 @@ Section MSHCOL_to_AHCOL.
 
 End MSHCOL_to_AHCOL.
 
-Require Import Helix.MSigmaHCOL.CType.
 
-Module CTypeSimpl(CTM:CType).
-  Import CTM.
 
-  Lemma simplCTypeRefl:
-    forall a,
-      (CTypeEquivDec a a) ≡ left (reflexivity _).
+
+    -
+    -
+
   Proof.
-    intros a.
-    destruct (CTypeEquivDec a a) as [H|NH].
-    -
-      f_equiv.
-      apply proof_irrelevance.
-    -
-      contradict NH.
-      reflexivity.
   Qed.
 
-  Lemma simplCType_Z_neq_One:
-    CTypeEquivDec CTypeZero CTypeOne ≡ right CTypeZeroOneApart.
   Proof.
-    destruct (CTypeEquivDec _ _) as [H|NH].
-    -
-      contradict H.
-      apply CTypeZeroOneApart.
-    -
-      f_equiv.
-      apply proof_irrelevance.
   Qed.
 
-  Fact CType_One_neq_Z: CTypeOne ≠ CTypeZero.
-  Proof.
-    intros H.
-    pose proof CTypeZeroOneApart as P.
-    auto.
-  Qed.
-
-  Lemma simplCType_One_neq_Z:
-    CTypeEquivDec CTypeOne CTypeZero ≡ right CType_One_neq_Z.
-  Proof.
-    destruct (CTypeEquivDec _ _) as [H|NH].
-    -
-      contradict H.
-      apply CType_One_neq_Z.
-    -
-      f_equiv.
-      apply proof_irrelevance.
-  Qed.
-
-End CTypeSimpl.
-
-
-Require Import Helix.MSigmaHCOL.CarrierAasCT.
-Require Import Helix.RSigmaHCOL.RasCT.
-Module CarrierASimpl := CTypeSimpl(CarrierAasCT).
-
-Lemma AzCtZ: CarrierAz ≡ CarrierAasCT.CTypeZero. Proof. reflexivity. Qed.
-Lemma A1Cr1: CarrierA1 ≡ CarrierAasCT.CTypeOne. Proof. reflexivity. Qed.
-Lemma AeCtE: CarrierAequivdec ≡ CarrierAasCT.CTypeEquivDec. Proof. reflexivity. Qed.
-
-Hint Rewrite
-     AeCtE
-     AzCtZ
-     A1Cr1
-     CarrierASimpl.simplCTypeRefl
-     CarrierASimpl.simplCType_Z_neq_One
-     CarrierASimpl.simplCType_One_neq_Z
-  : CarrierAZ1equalities.
-
-(* Print Rewrite HintDb CarrierAZ1equalities. *)
-
-Section AHCOL_to_RHCOL.
-
-  Definition dynwin_RHCOL := AHCOLtoRHCOL.translate dynwin_AHCOL.
-
-End AHCOL_to_RHCOL.
-
-Require Import Rdefinitions.
-Module RSimpl := CTypeSimpl(MRasCT).
-
-Lemma RzCtZ: R0 ≡ MRasCT.CTypeZero. Proof. reflexivity. Qed.
-Lemma R1Cr1: R1 ≡ MRasCT.CTypeOne. Proof. reflexivity. Qed.
-
-Hint Rewrite
-     RzCtZ
-     R1Cr1
-     RSimpl.simplCTypeRefl
-     RSimpl.simplCType_Z_neq_One
-     RSimpl.simplCType_One_neq_Z
-  : RZ1equalities.
-
-Require Import AltBinNotations.
 
 
 Definition heq_nat_int : nat -> MInt64asNT.t -> Prop :=
