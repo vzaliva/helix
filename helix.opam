@@ -1,0 +1,45 @@
+opam-version: "2.0"
+synopsis: "HELIX"
+description: "Verified SPIRAL compiler"
+maintainer: ["Vadim Zaliva <lord@crocodile.org>"]
+authors: [
+  "Vadim Zaliva"
+  "Ilia Zaichuk"
+  "Yannick Zakowski" 
+  "Calvin Beck"
+  "Irene Yoon"
+  "Steve Zdancewic"
+]
+license: "BSD-2-Clause"
+homepage: "https://github.com/vzaliva/helix"
+bug-reports: "https://github.com/vzaliva/helix/issues"
+depends: [
+  "ocaml" {>= "4.12.0"}
+  "ocamlfind"
+  "ocamlbuild"
+  "camlp5"
+  "coq-itree"
+  "coq-mathcomp-ssreflect"
+  "coq-simple-io"
+  "coq-color"
+  "coq-math-classes"
+  "coq-metacoq-template"
+  "coq-switch"
+  "ANSITerminal"
+  "coq-paco"
+  "coq-ceres"
+  "coq-libhyps"
+  "core"
+  "core_kernel"
+  "dune"
+  "qcheck"
+
+  "coq" {= "8.13.2"}
+  "coq-ext-lib" {= "0.11.5"}
+  "coq-flocq" {= "3.4.2"}
+  "menhir" {= "20211128"}
+]
+build: [
+  [make "-j"  jobs]
+]
+dev-repo: "git+https://github.com/vzaliva/helix.git"
