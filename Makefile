@@ -27,8 +27,6 @@ COQEXEC=coqtop -q -w none $(COQINCLUDES) -batch -load-vernac-source
 
 COQ_VERSION=8.13.2
 
-OPAMPKGS=ocamlfind ocamlbuild camlp5 coq-mathcomp-ssreflect coq-simple-io coq-color coq-ext-lib coq-math-classes coq-metacoq-template coq-switch ANSITerminal coq-flocq.3.4.2 coq-paco coq-ceres coq-libhyps menhir core core_kernel dune qcheck coq.$(COQ_VERSION)
-
 default: all
 
 all: .depend Makefile.coq vellvm
@@ -64,12 +62,7 @@ test: .depend Makefile.coq $(EXE)
 	ml/_build/default/testeval.exe
 
 install-deps:
-	opam install --jobs=$(JOBS) $(OPAMPKGS); \
-	opam pin add coq $(COQ_VERSION) -y
-
-
-dep-versions:
-	opam list -i ocaml $(OPAMPKGS) | grep -v \#
+	opam install --jobs=$(JOBS) --deps-only .
 
 config Makefile.coq: _CoqProject Makefile
 	coq_makefile -f _CoqProject $(VFILES) -o Makefile.coq

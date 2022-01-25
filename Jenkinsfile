@@ -3,7 +3,7 @@
     def BUILD_IF_BRANCH = ['master','develop']
  */
 
-def BUILD_IF_BRANCH = ['master','NType_constants']
+def BUILD_IF_BRANCH = ['master']
 
 pipeline {
     agent { 
@@ -45,8 +45,8 @@ pipeline {
                 script {
                     if (env.SKIP_CI != "true" && env.SKIP_BRANCH == "false") {
 			sh '''eval $(opam env)
-                              coq-config
                               opam switch helix
+                              opam install --deps-only .
                            '''
                     }
                 }
