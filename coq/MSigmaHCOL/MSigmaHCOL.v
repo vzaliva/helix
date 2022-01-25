@@ -24,9 +24,9 @@ Require Import Helix.HCOL.CarrierType.
 Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.MSigmaHCOL.MemSetoid.
 Require Import Helix.MSigmaHCOL.CType.
-Require Import Helix.MSigmaHCOL.CarrierAasCT.
-Require Import Helix.MSigmaHCOL.MemoryOfCarrierA.
-Import MMemoryOfCarrierA.
+Require Import Helix.MSigmaHCOL.RasCT.
+Require Import Helix.MSigmaHCOL.MemoryOfR.
+Import MMemoryOfR.
 
 Require Import Helix.Tactics.HelixTactics.
 
@@ -42,12 +42,8 @@ Require Import MathClasses.implementations.peano_naturals.
 Import Monoid.
 
 Module MMSHCOL'
-       (CT:CType with Definition t:=CarrierA
-         with Definition CTypeEquiv := CarrierAe
-         with Definition CTypeSetoid := CarrierAsetoid
-       )
+       (CT:CType)
        (Import CM:MMemSetoid CT).
-
 
   Open Scope nat_scope.
 
@@ -228,6 +224,7 @@ Module MMSHCOL'
         reflexivity.
   Qed.
 
+  (* TODO
   Lemma find_fold_right_indexed'_off:
     forall (n i : nat) (off:nat) (x : vector CarrierA n),
       NM.find (elt:=CarrierA) (i+off) (Vfold_right_indexed' (0+off) mem_add x mem_empty) ≡
@@ -462,7 +459,6 @@ Module MMSHCOL'
       destruct (avector_to_mem_block_spec v) as [m H0]
     end.
 
-
   (* HOperator (on dense vector) mapping to memory operator *)
   Definition mem_op_of_hop {i o: nat} (op: vector CarrierA i -> vector CarrierA o)
     : mem_block -> option mem_block
@@ -566,6 +562,8 @@ Module MMSHCOL'
     -
       reflexivity.
   Qed.
+  TODO *)
+
 
 
   (* y[j] := x[i] *)
@@ -600,8 +598,8 @@ Module MMSHCOL'
 
   Definition IReduction_mem
              {n: nat}
-             (dot: CarrierA -> CarrierA -> CarrierA)
-             (initial: CarrierA)
+             (dot: CT.t -> CT.t -> CT.t)
+             (initial: CT.t)
              (op_family_f: forall k (kc:k<n), mem_block -> option mem_block)
              (x: mem_block): option mem_block
     :=
@@ -694,8 +692,8 @@ Module MMSHCOL'
   Qed.
 
   Global Instance mem_merge_with_def_Comm
-         (dot : CarrierA → CarrierA → CarrierA)
-         (initial : CarrierA)
+         (dot : CT.t → CT.t → CT.t)
+         (initial : CT.t)
          (dot_commut: Commutative dot)
     : Commutative (mem_merge_with_def dot initial).
   Proof.
@@ -706,8 +704,8 @@ Module MMSHCOL'
   Qed.
 
   Global Instance mem_merge_with_def_Assoc
-         (dot : CarrierA → CarrierA → CarrierA)
-         (initial : CarrierA)
+         (dot : CT.t → CT.t → CT.t)
+         (initial : CT.t)
 
         `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
          (dot_assoc : Associative dot)
@@ -966,7 +964,7 @@ Module MMSHCOL'
   Lemma Apply_mem_Family_eq_Some
         {i o k : nat}
         {op_family: @MSHOperatorFamily i o k}
-        {m : NatMap CarrierA}
+        {m : NatMap CT.t}
         {l: list mem_block}
     :
       (Apply_mem_Family (get_family_mem_op op_family) m ≡ Some l)
@@ -1652,15 +1650,17 @@ Module MMSHCOL'
     apply option_compose_proper; [ apply mop1 | apply mop2].
   Qed.
 
+  (* TODO
   Definition MSHPointwise
              {n: nat}
-             (f: FinNat n -> CarrierA -> CarrierA)
+             (f: FinNat n -> CT.t -> CT.t)
              `{pF: !Proper ((=) ==> (=) ==> (=)) f}
     := @mkMSHOperator n n
                       (mem_op_of_hop (HPointwise f))
                       _
                       (Full_set _)
                       (Full_set _).
+  TODO *)
 
   Definition MSHEmbed
              {o b: nat}
@@ -1679,9 +1679,10 @@ Module MMSHCOL'
                       (FinNatSet.singleton b)
                       (Full_set _).
 
+  (* TODO
   Definition MSHBinOp
              {o: nat}
-             (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
+             (f: {n:nat|n<o} -> CT.t -> CT.t -> CT.t)
              `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
     := @mkMSHOperator (o+o) o
                       (mem_op_of_hop (HBinOp f))
@@ -1691,8 +1692,8 @@ Module MMSHCOL'
 
   Definition Inductor_mem
              (n:nat)
-             (f: CarrierA -> CarrierA -> CarrierA)
-             (initial: CarrierA):
+             (f: CT.t -> CT.t -> CT.t)
+             (initial: CT.t):
              mem_block -> option mem_block
     :=
       match n with
@@ -1705,9 +1706,9 @@ Module MMSHCOL'
 
   Global Instance Inductor_mem_proper
          (n:nat)
-         (f: CarrierA -> CarrierA -> CarrierA)
+         (f: CT.t -> CT.t -> CT.t)
          `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-         (initial: CarrierA)
+         (initial: CT.t)
     :
       Proper (equiv ==> equiv) (Inductor_mem n f initial).
   Proof.
@@ -1722,9 +1723,9 @@ Module MMSHCOL'
 
   Definition MSHInductor
              (n:nat)
-             (f: CarrierA -> CarrierA -> CarrierA)
+             (f: CT.t -> CT.t -> CT.t)
              `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-             (initial: CarrierA)
+             (initial: CT.t)
     := @mkMSHOperator 1 1
                       (Inductor_mem n f initial)
                       _
@@ -1732,7 +1733,7 @@ Module MMSHCOL'
                       (Full_set _).
 
   Program Definition MApply2Union {i o}
-          (dot: CarrierA -> CarrierA -> CarrierA)
+          (dot: CT.t -> CT.t -> CT.t)
           (* Surprisingly, the following is not required:
                 `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot} *)
           (mop1 mop2: @MSHOperator i o)
@@ -1745,6 +1746,7 @@ Module MMSHCOL'
   Next Obligation.
     apply Apply2Union_mem_proper; [apply mop1 | apply mop2].
   Qed.
+  TODO *)
 
   (* Probably could be proven more generally for any monad with with some properties *)
   Instance monadic_Lbuild_opt_proper
@@ -1837,8 +1839,8 @@ Module MMSHCOL'
 
   Instance IReduction_mem_proper
            {i o n: nat}
-           (initial: CarrierA)
-           (dot: CarrierA -> CarrierA -> CarrierA)
+           (initial: CT.t)
+           (dot: CT.t -> CT.t -> CT.t)
            `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
            (op_family: @MSHOperatorFamily i o n)
     :
@@ -1875,8 +1877,8 @@ Module MMSHCOL'
 
   Definition MSHIReduction
              {i o n: nat}
-             (initial: CarrierA)
-             (dot: CarrierA -> CarrierA -> CarrierA)
+             (initial: CT.t)
+             (dot: CT.t -> CT.t -> CT.t)
              `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
              (op_family: @MSHOperatorFamily i o n)
     :=
@@ -2120,9 +2122,10 @@ Module MMSHCOL'
         auto.
   Qed.
 
+  (* TODO
   Instance SHPointwise_MFacts
            {n: nat}
-           (f: FinNat n -> CarrierA -> CarrierA)
+           (f: FinNat n -> CT.t -> CT.t)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}
     : MSHOperator_Facts (MSHPointwise f).
   Proof.
@@ -2141,9 +2144,9 @@ Module MMSHCOL'
 
   Instance SHInductor_MFacts
            (n:nat)
-           (f: CarrierA -> CarrierA -> CarrierA)
+           (f: CT.t -> CT.t -> CT.t)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-           (initial: CarrierA):
+           (initial: CT.t):
     MSHOperator_Facts (MSHInductor n f initial).
   Proof.
     destruct n.
@@ -2191,7 +2194,7 @@ Module MMSHCOL'
 
   Instance SHBinOp_MFacts
            {o: nat}
-           (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
+           (f: {n:nat|n<o} -> CT.t -> CT.t -> CT.t)
            `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
     : MSHOperator_Facts (MSHBinOp f).
   Proof.
@@ -2209,7 +2212,7 @@ Module MMSHCOL'
 
   Fact Apply2Union_mem_out_fill_pattern
        {i o : nat}
-       {dot : SgOp CarrierA}
+       {dot : SgOp CT.t}
        (op1 op2: @MSHOperator i o)
        `{facts1: MSHOperator_Facts _ _ op1}
        `{facts2: MSHOperator_Facts _ _ op2}:
@@ -2256,7 +2259,7 @@ Module MMSHCOL'
 
   Instance Apply2Union_MFacts
            {i o: nat}
-           `{dot: SgOp CarrierA}
+           `{dot: SgOp CT.t}
            (op1 op2: @MSHOperator i o)
            (compat: Disjoint _
                              (m_out_index_set op1)
@@ -2312,12 +2315,13 @@ Module MMSHCOL'
       --
         eapply (out_mem_oob _ _ Heqo1); eauto.
   Qed.
+  TODO *)
 
   Lemma mem_in_fold_left_merge
         (k : NM.key)
         (l : list mem_block)
-        (dot : CarrierA -> CarrierA -> CarrierA)
-        (initial : CarrierA)
+        (dot : CT.t -> CT.t -> CT.t)
+        (initial : CT.t)
         (m : mem_block)
     :
       mem_in k (List.fold_left (mem_merge_with_def dot initial) l m) <->
@@ -2331,8 +2335,8 @@ Module MMSHCOL'
 
   Instance IReduction_MFacts
            {i o k: nat}
-           (initial: CarrierA)
-           (dot: CarrierA -> CarrierA -> CarrierA)
+           (initial: CT.t)
+           (dot: CT.t -> CT.t -> CT.t)
            `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
            (op_family: @MSHOperatorFamily i o k)
            (op_family_facts: forall j (jc:j<k), MSHOperator_Facts (op_family (mkFinNat jc)))
@@ -3002,10 +3006,8 @@ Module MMSHCOL'
           apply out_mem_oob with (j0:=j) in A0; auto.
   Qed.
 
-
 End MMSHCOL'.
-
 
 (* There will be only one instance of MMSCHOL', as it is always
    defined on [CarrierA]. *)
-Module Export MMSCHOL := MMSHCOL'(CarrierAasCT)(MMemoryOfCarrierA).
+Module Export MMSCHOL := MMSHCOL'(MRasCT)(MMemoryOfR).

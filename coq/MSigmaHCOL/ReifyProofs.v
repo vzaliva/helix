@@ -16,9 +16,10 @@ Require Import Helix.SigmaHCOL.SigmaHCOL.
 Require Import Helix.SigmaHCOL.TSigmaHCOL.
 Require Import Helix.MSigmaHCOL.MSigmaHCOL.
 Require Import Helix.MSigmaHCOL.MemSetoid.
-Require Import Helix.MSigmaHCOL.MemoryOfCarrierA.
+Require Import Helix.MSigmaHCOL.MemoryOfR.
 
 Require Import Helix.HCOL.HCOL.
+Require Import Helix.HCOL.CarrierType.
 Require Import Helix.Util.FinNatSet.
 Require Import Helix.Util.WriterMonadNoT.
 Require Import Helix.Util.MonoidalRestriction.
@@ -63,9 +64,11 @@ Open Scope nat_scope.
 
 Section WithCarrierA.
 
+  Context {CAPROPS : CarrierProps}.
+
   Add Ring RingA: (stdlib_ring_theory CarrierA).
 
-  Import MMemoryOfCarrierA.
+  Import MMemoryOfR.
 
   Section SVector.
 
