@@ -39,9 +39,9 @@ Require Import Helix.MSigmaHCOL.MSigmaHCOL.
 Require Import Helix.MSigmaHCOL.ReifyProofs.
 Require Import Helix.Util.MonoidalRestriction.
 
-Require Import Helix.ASigmaHCOL.ASigmaHCOL.
-Require Import Helix.ASigmaHCOL.ReifyMSHCOL.
-Require Import Helix.ASigmaHCOL.ReifyProofs.
+(* Require Import Helix.ASigmaHCOL.ASigmaHCOL. *)
+Require Import Helix.RSigmaHCOL.ReifyMSHCOL.
+Require Import Helix.RSigmaHCOL.ReifyProofs.
 
 Require Import Helix.RSigmaHCOL.RSigmaHCOL.
 Require Import Helix.RSigmaHCOL.ReifyAHCOL.

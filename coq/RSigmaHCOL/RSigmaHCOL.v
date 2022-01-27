@@ -1,9 +1,9 @@
 (* Deep-embedded SigmaHCOL with real arithmetics *)
 
+Require Import Helix.MSigmaHCOL.RasCT.
+Require Import Helix.RSigmaHCOL.NatAsNT.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
-Require Import Helix.RSigmaHCOL.RasCT.
-Require Import Helix.ASigmaHCOL.NatAsNT.
 
 Module Export RHCOL <: MDSigmaHCOL(MRasCT)(MNatAsNT).
   Include MDSigmaHCOL MRasCT MNatAsNT.

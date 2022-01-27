@@ -15,7 +15,7 @@ Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.MSigmaHCOL.MSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
-Require Import Helix.ASigmaHCOL.ASigmaHCOL.
+Require Import Helix.RSigmaHCOL.RSigmaHCOL.
 
 Require Import Helix.Tactics.HelixTactics.
 
@@ -30,7 +30,7 @@ Require Import MathClasses.misc.util.
    ".") *)
 Require Import Coq.Program.Basics.
 
-Import AHCOL.
+Import RHCOL.
 
 Import MonadNotation.
 

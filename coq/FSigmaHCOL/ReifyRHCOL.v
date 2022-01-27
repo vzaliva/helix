@@ -1,7 +1,7 @@
 (* Translates RHCOL to FHCOL *)
 
-Require Import Helix.RSigmaHCOL.RasCT.
-Require Import Helix.ASigmaHCOL.NatAsNT.
+Require Import Helix.MSigmaHCOL.RasCT.
+Require Import Helix.RSigmaHCOL.NatAsNT.
 Require Import Helix.FSigmaHCOL.Float64asCT.
 Require Import Helix.FSigmaHCOL.Int64asNT.
 Require Import Helix.RSigmaHCOL.RSigmaHCOL.
