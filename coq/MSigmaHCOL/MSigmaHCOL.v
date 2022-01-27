@@ -41,8 +41,117 @@ Require Import MathClasses.implementations.peano_naturals.
 
 Import Monoid.
 
+Require Import Coq.Reals.Rdefinitions.
+Require Import Coq.Reals.Reals.
+Require Import Coq.Reals.Rminmax.
+Require Import micromega.RMicromega.
+
+
+Section RasCarrierA.
+
+  Instance Abs_R : @Abs R R_Equiv Rle R0 Ropp.
+  Proof.
+    econstructor.
+    instantiate (1:=Rabs x).
+    split; intros Z.
+    -
+      apply Rabs_right.
+      now apply Rle_ge.
+    -
+      now apply Rabs_left1.
+  Defined.
+
+  Global Instance CarrierDefs_R : CarrierDefs :=
+    { CarrierA := R
+    ; CarrierAe := R_Equiv
+    ; CarrierAle := Rle
+    ; CarrierAlt := Rlt
+    ; CarrierAltdec := Rlt_dec
+    ; CarrierAequivdec := R.OT.eq_dec
+    ; CarrierAz := R0
+    ; CarrierA1 := R1
+    ; CarrierAplus := Rplus
+    ; CarrierAmult := Rmult
+    ; CarrierAneg := Ropp
+    ; CarrierAabs := Abs_R
+    }.
+
+  Global Instance CarrierProperties_R : @CarrierProperties CarrierDefs_R.
+  Proof.
+    constructor.
+    all: unfold CarrierA, CarrierAle, CarrierAlt, CarrierDefs_R.
+    -
+      typeclasses eauto.
+    -
+      repeat constructor.
+      all: try typeclasses eauto.
+      all: cbn.
+      all: repeat try intros ?.
+      all: try eapply Rsrt.
+      + rewrite Radd_comm; apply Rsrt.
+      + apply Rplus_opp_l.
+      + rewrite Rmul_comm; apply Rsrt.
+      + apply Rmult_plus_distr_l.
+    -
+      constructor; try typeclasses eauto; repeat intros ?.
+      constructor; try typeclasses eauto; repeat intros ?.
+      constructor; try typeclasses eauto; repeat intros ?.
+      + now right.
+      + eapply Rle_trans; eassumption.
+      + now apply Rle_antisym.
+      + pose proof Rle_or_lt x y as [T | T];
+          [tauto | right; now apply Rlt_le].
+    -
+      constructor.
+      all: typeclasses eauto.
+    -
+      constructor; try typeclasses eauto; repeat intros ?.
+      constructor; try typeclasses eauto; repeat intros ?.
+      constructor; try typeclasses eauto; repeat intros ?.
+      all: try (cbv in *; congruence).
+      +
+        destruct (R.OT.eq_dec x z);
+          [right | left]; congruence.
+      +
+        destruct (R.OT.eq_dec x y);
+          now cbv in *.
+      +
+        destruct H.
+        pose proof Rlt_trans _ _ _ H H0.
+        now pose proof Rlt_irrefl x.
+      +
+        pose proof Rlt_dec x z as [T | T];
+          [tauto |].
+        right.
+        apply Rnot_lt_le in T.
+        eapply Rle_lt_trans; eassumption.
+      +
+        pose proof Req_appart_dec x y as [EQ | DEC].
+        *
+          subst.
+          split; repeat intros ?.
+          now cbv in *.
+          pose proof Rlt_irrefl y.
+          tauto.
+        *
+          destruct DEC;
+            split; intros;
+            try tauto.
+          now apply Rlt_not_eq.
+          intros C.
+          eapply Rlt_not_eq; [eassumption | congruence].
+      +
+        split;
+          [apply Rle_not_lt | apply Rnot_lt_le].
+  Qed.
+
+End RasCarrierA.
+
 Module MMSHCOL'
-       (CT:CType)
+       (CT:CType with Definition t := R
+         with Definition CTypeEquiv := R_Equiv
+         with Definition CTypeSetoid := R_Setoid
+       )
        (Import CM:MMemSetoid CT).
 
   Open Scope nat_scope.
@@ -224,7 +333,6 @@ Module MMSHCOL'
         reflexivity.
   Qed.
 
-  (* TODO
   Lemma find_fold_right_indexed'_off:
     forall (n i : nat) (off:nat) (x : vector CarrierA n),
       NM.find (elt:=CarrierA) (i+off) (Vfold_right_indexed' (0+off) mem_add x mem_empty) ≡
@@ -235,7 +343,7 @@ Module MMSHCOL'
     remember (@Basics.const Prop CarrierA True) as P.
     assert(Pdec: forall x, sumbool (P x) (not (P x)))
       by (intros x; left; subst P; unfold Basics.const;  tauto).
-    remember (@id CarrierA) as f.
+    remember id as f.
     unfold mem_empty.
     replace mem_add with
         (fun (k : nat) (r : CarrierA) (m : NM.t CarrierA) =>
@@ -419,15 +527,15 @@ Module MMSHCOL'
     simpl.
     destruct_opt_r_equiv.
     -
-      rename c into a, c0 into b.
+      rename r into a, r0 into b.
       apply Some_inj_equiv.
       unfold CT.t.
       rewrite <- Ha, <- Hb.
       rewrite H.
       reflexivity.
     -
-      assert(C: NM.find (elt:=CarrierA) k (Vfold_right_indexed' 0 mem_add x mem_empty)
-                = NM.find (elt:=CarrierA) k (Vfold_right_indexed' 0 mem_add y mem_empty)).
+      assert(C: NM.find k (Vfold_right_indexed' 0 mem_add x mem_empty)
+                = NM.find k (Vfold_right_indexed' 0 mem_add y mem_empty)).
       {
         rewrite H.
         reflexivity.
@@ -435,8 +543,8 @@ Module MMSHCOL'
       rewrite Ha, Hb in C.
       some_none.
     -
-      assert(C: NM.find (elt:=CarrierA) k (Vfold_right_indexed' 0 mem_add x mem_empty)
-                = NM.find (elt:=CarrierA) k (Vfold_right_indexed' 0 mem_add y mem_empty)).
+      assert(C: NM.find k (Vfold_right_indexed' 0 mem_add x mem_empty)
+                = NM.find k (Vfold_right_indexed' 0 mem_add y mem_empty)).
       {
         rewrite H.
         reflexivity.
@@ -444,7 +552,6 @@ Module MMSHCOL'
       rewrite Ha, Hb in C.
       some_none.
   Qed.
-
 
   Ltac avector_to_mem_block_to_spec m H0 H1 :=
     match goal with
@@ -489,7 +596,8 @@ Module MMSHCOL'
       apply H in P.
       unfold mem_lookup, mem_in in *.
       apply NP.F.not_find_in_iff in M.
-      congruence.
+      contradict M.
+      apply P.
   Qed.
 
   (* The fomulation of this lemma is little odd, with `Full_set (FinNat o) (mkFinNat jc)`
@@ -562,9 +670,6 @@ Module MMSHCOL'
     -
       reflexivity.
   Qed.
-  TODO *)
-
-
 
   (* y[j] := x[i] *)
   Definition map_mem_block_elt (x:mem_block) (i:nat) (y:mem_block) (j:nat)
@@ -1537,7 +1642,6 @@ Module MMSHCOL'
     apply option_compose_proper; [ apply mop1 | apply mop2].
   Qed.
 
-  (* TODO
   Definition MSHPointwise
              {n: nat}
              (f: FinNat n -> CT.t -> CT.t)
@@ -1547,7 +1651,6 @@ Module MMSHCOL'
                       _
                       (Full_set _)
                       (Full_set _).
-  TODO *)
 
   Definition MSHEmbed
              {o b: nat}
@@ -1566,7 +1669,6 @@ Module MMSHCOL'
                       (FinNatSet.singleton b)
                       (Full_set _).
 
-  (* TODO
   Definition MSHBinOp
              {o: nat}
              (f: {n:nat|n<o} -> CT.t -> CT.t -> CT.t)
@@ -1633,7 +1735,6 @@ Module MMSHCOL'
   Next Obligation.
     apply Apply2Union_mem_proper; [apply mop1 | apply mop2].
   Qed.
-  TODO *)
 
   (* Probably could be proven more generally for any monad with with some properties *)
   Instance monadic_Lbuild_opt_proper
@@ -2009,7 +2110,6 @@ Module MMSHCOL'
         auto.
   Qed.
 
-  (* TODO
   Instance SHPointwise_MFacts
            {n: nat}
            (f: FinNat n -> CT.t -> CT.t)
@@ -2202,7 +2302,6 @@ Module MMSHCOL'
       --
         eapply (out_mem_oob _ _ Heqo1); eauto.
   Qed.
-  TODO *)
 
   Lemma mem_in_fold_left_merge
         (k : NM.key)
