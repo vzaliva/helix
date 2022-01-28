@@ -46,7 +46,7 @@ pipeline {
                     if (env.SKIP_CI != "true" && env.SKIP_BRANCH == "false") {
 			sh '''eval $(opam env)
                               opam switch helix
-                              opam install --deps-only .
+                              opam install -y --deps-only .
                            '''
                     }
                 }
