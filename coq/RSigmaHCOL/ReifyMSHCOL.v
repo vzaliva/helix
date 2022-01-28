@@ -4,13 +4,13 @@ Require Import Coq.Arith.Compare_dec.
 
 Require Import Coq.Strings.String.
 Require Import Coq.Arith.Peano_dec.
+Require Import Coq.Reals.Rdefinitions.
 Require Import MetaCoq.Template.All.
 
 Require Import Helix.Util.Misc.
 Require Import Helix.Util.ListSetoid.
 Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Util.FinNat.
-Require Import Helix.HCOL.CarrierType.
 Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.MSigmaHCOL.MSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
@@ -251,7 +251,7 @@ Fixpoint compileMSHCOL2DSHCOL
       tmReturn (vars, DSHBinOp no (x_p) (y_p) df )
     | Some n_SHInductor, [n ; f ; _ ; z] =>
       tmPrint "MSHInductor" ;;
-      zconst <- tmUnquoteTyped CarrierA z ;;
+      zconst <- tmUnquoteTyped R z ;;
       nc <- compileNExpr res n ;;
       df <- compileDSHBinCarrierA res f ;;
       tmReturn (vars, DSHPower nc (x_p, NConst 0) (y_p, NConst 0) df zconst)
@@ -270,7 +270,7 @@ Fixpoint compileMSHCOL2DSHCOL
       | S _ =>
         ni <- tmUnquoteTyped nat i ;;
         no <- tmUnquoteTyped nat o ;;
-        zconst <- tmUnquoteTyped CarrierA z ;;
+        zconst <- tmUnquoteTyped R z ;;
         (* freshly allocated, inside alloc before loop *)
         let t_i := PVar 0 in
         (* single inc. inside loop *)
