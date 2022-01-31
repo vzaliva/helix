@@ -7,12 +7,8 @@ Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.interfaces.orders.
 
+Require Import Helix.Util.Misc.
 Require Import Helix.MSigmaHCOL.CType.
-
-Instance R_Equiv: Equiv R := eq.
-
-Instance R_Setoid: Setoid R.
-Proof. split; auto. Qed.
 
 Module MRasCT <: CType.
 

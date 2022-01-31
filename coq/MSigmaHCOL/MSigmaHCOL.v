@@ -7,6 +7,7 @@ Require Import Coq.Logic.FunctionalExtensionality.
 Require Export Coq.Sets.Ensembles.
 Require Import Psatz.
 Require Import Coq.micromega.Lia.
+Require Import Coq.Reals.Rdefinitions.
 
 Require Import Helix.Util.VecUtil.
 Require Import Helix.Util.Misc.
@@ -25,6 +26,7 @@ Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.MSigmaHCOL.MemSetoid.
 Require Import Helix.MSigmaHCOL.CType.
 Require Import Helix.MSigmaHCOL.RasCT.
+Require Import Helix.MSigmaHCOL.RasCarrierA.
 Require Import Helix.MSigmaHCOL.MemoryOfR.
 Import MMemoryOfR.
 
@@ -40,112 +42,6 @@ Require Import MathClasses.misc.util.
 Require Import MathClasses.implementations.peano_naturals.
 
 Import Monoid.
-
-Require Import Coq.Reals.Rdefinitions.
-Require Import Coq.Reals.Reals.
-Require Import Coq.Reals.Rminmax.
-Require Import micromega.RMicromega.
-
-
-Section RasCarrierA.
-
-  Instance Abs_R : @Abs R R_Equiv Rle R0 Ropp.
-  Proof.
-    econstructor.
-    instantiate (1:=Rabs x).
-    split; intros Z.
-    -
-      apply Rabs_right.
-      now apply Rle_ge.
-    -
-      now apply Rabs_left1.
-  Defined.
-
-  Global Instance CarrierDefs_R : CarrierDefs :=
-    { CarrierA := R
-    ; CarrierAe := R_Equiv
-    ; CarrierAle := Rle
-    ; CarrierAlt := Rlt
-    ; CarrierAltdec := Rlt_dec
-    ; CarrierAequivdec := R.OT.eq_dec
-    ; CarrierAz := R0
-    ; CarrierA1 := R1
-    ; CarrierAplus := Rplus
-    ; CarrierAmult := Rmult
-    ; CarrierAneg := Ropp
-    ; CarrierAabs := Abs_R
-    }.
-
-  Global Instance CarrierProperties_R : @CarrierProperties CarrierDefs_R.
-  Proof.
-    constructor.
-    all: unfold CarrierA, CarrierAle, CarrierAlt, CarrierDefs_R.
-    -
-      typeclasses eauto.
-    -
-      repeat constructor.
-      all: try typeclasses eauto.
-      all: cbn.
-      all: repeat try intros ?.
-      all: try eapply Rsrt.
-      + rewrite Radd_comm; apply Rsrt.
-      + apply Rplus_opp_l.
-      + rewrite Rmul_comm; apply Rsrt.
-      + apply Rmult_plus_distr_l.
-    -
-      constructor; try typeclasses eauto; repeat intros ?.
-      constructor; try typeclasses eauto; repeat intros ?.
-      constructor; try typeclasses eauto; repeat intros ?.
-      + now right.
-      + eapply Rle_trans; eassumption.
-      + now apply Rle_antisym.
-      + pose proof Rle_or_lt x y as [T | T];
-          [tauto | right; now apply Rlt_le].
-    -
-      constructor.
-      all: typeclasses eauto.
-    -
-      constructor; try typeclasses eauto; repeat intros ?.
-      constructor; try typeclasses eauto; repeat intros ?.
-      constructor; try typeclasses eauto; repeat intros ?.
-      all: try (cbv in *; congruence).
-      +
-        destruct (R.OT.eq_dec x z);
-          [right | left]; congruence.
-      +
-        destruct (R.OT.eq_dec x y);
-          now cbv in *.
-      +
-        destruct H.
-        pose proof Rlt_trans _ _ _ H H0.
-        now pose proof Rlt_irrefl x.
-      +
-        pose proof Rlt_dec x z as [T | T];
-          [tauto |].
-        right.
-        apply Rnot_lt_le in T.
-        eapply Rle_lt_trans; eassumption.
-      +
-        pose proof Req_appart_dec x y as [EQ | DEC].
-        *
-          subst.
-          split; repeat intros ?.
-          now cbv in *.
-          pose proof Rlt_irrefl y.
-          tauto.
-        *
-          destruct DEC;
-            split; intros;
-            try tauto.
-          now apply Rlt_not_eq.
-          intros C.
-          eapply Rlt_not_eq; [eassumption | congruence].
-      +
-        split;
-          [apply Rle_not_lt | apply Rnot_lt_le].
-  Qed.
-
-End RasCarrierA.
 
 Module MMSHCOL'
        (CT:CType with Definition t := R
@@ -343,7 +239,7 @@ Module MMSHCOL'
     remember (@Basics.const Prop CarrierA True) as P.
     assert(Pdec: forall x, sumbool (P x) (not (P x)))
       by (intros x; left; subst P; unfold Basics.const;  tauto).
-    remember id as f.
+    remember (@id CarrierA) as f.
     unfold mem_empty.
     replace mem_add with
         (fun (k : nat) (r : CarrierA) (m : NM.t CarrierA) =>

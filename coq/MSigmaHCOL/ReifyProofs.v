@@ -17,6 +17,7 @@ Require Import Helix.SigmaHCOL.TSigmaHCOL.
 Require Import Helix.MSigmaHCOL.MSigmaHCOL.
 Require Import Helix.MSigmaHCOL.MemSetoid.
 Require Import Helix.MSigmaHCOL.MemoryOfR.
+Require Import Helix.MSigmaHCOL.RasCarrierA.
 
 Require Import Helix.HCOL.HCOL.
 Require Import Helix.HCOL.CarrierType.
