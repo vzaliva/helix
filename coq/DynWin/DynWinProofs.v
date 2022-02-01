@@ -37,14 +37,13 @@ Require Import Helix.Util.FinNatSet.
 Require Import Helix.MSigmaHCOL.ReifySHCOL.
 Require Import Helix.MSigmaHCOL.MSigmaHCOL.
 Require Import Helix.MSigmaHCOL.ReifyProofs.
+Require Import Helix.MSigmaHCOL.RasCarrierA.
 Require Import Helix.Util.MonoidalRestriction.
 
-(* Require Import Helix.ASigmaHCOL.ASigmaHCOL. *)
 Require Import Helix.RSigmaHCOL.ReifyMSHCOL.
 Require Import Helix.RSigmaHCOL.ReifyProofs.
 
 Require Import Helix.RSigmaHCOL.RSigmaHCOL.
-Require Import Helix.RSigmaHCOL.ReifyAHCOL.
 
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Helix.FSigmaHCOL.ReifyRHCOL.
@@ -141,6 +140,9 @@ Section HCOL_to_SigmaHCOL.
 
   (* --- HCOL -> Sigma->HCOL --- *)
 
+  Remove Hints CarrierDefs_R CarrierProperties_R : typeclass_instances.
+  Context `{CAPROPS: @CarrierProperties CADEFS}.
+  
   (* HCOL -> SigmaHCOL Value correctness. *)
   Theorem DynWinSigmaHCOL_Value_Correctness
         (a: avector 3)
@@ -322,6 +324,7 @@ Section HCOL_to_SigmaHCOL.
       peano_naturals.nat_1, one, plus, lt.
       crush.
     -
+
       unfold Included, In.
       intros x H.
       apply Union_comm.
@@ -333,14 +336,17 @@ End HCOL_to_SigmaHCOL.
 (* --- SigmaHCOL -> final SigmaHCOL --- *)
 Section SigmaHCOL_rewriting.
 
+  Remove Hints CarrierDefs_R CarrierProperties_R : typeclass_instances.
+  Context `{CAPROPS: @CarrierProperties CADEFS}.
+
   (*
-           This assumptions is required for reasoning about non-negativity and [abs].
-           It is specific to [abs] and this we do not make it a global assumption
-           on [CarrierA] but rather assume for this particular SHCOL expression.
+    This assumptions is required for reasoning about non-negativity and [abs].
+    It is specific to [abs] and this we do not make it a global assumption
+    on [CarrierA] but rather assume for this particular SHCOL expression.
    *)
   Context `{CarrierASRO: @orders.SemiRingOrder CarrierA CarrierAe CarrierAplus CarrierAmult CarrierAz CarrierA1 CarrierAle}.
 
-   Instance DynWinSigmaHCOL1_Facts
+  Instance DynWinSigmaHCOL1_Facts
            (a: avector 3):
     SHOperator_Facts _ (dynwin_SHCOL1 a).
   Proof.
@@ -882,7 +888,8 @@ Section SHCOL_to_MSHCOL.
       unfold NN, liftRthetaP.
       rewrite evalWriter_Rtheta_liftM2.
       unfold IgnoreIndex, const.
-      apply abs_always_nonneg.
+      epose proof abs_always_nonneg as abs_always_nonneg'.
+      apply abs_always_nonneg'.
     -
       apply Set_Obligation_1.
     -
@@ -896,8 +903,6 @@ Section SHCOL_to_MSHCOL.
 End SHCOL_to_MSHCOL.
 
 Section MSHCOL_to_AHCOL.
-
-  Import AHCOLEval.
 
   Opaque CarrierAz zero CarrierA1 one.
 
