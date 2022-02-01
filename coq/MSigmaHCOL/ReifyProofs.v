@@ -65,8 +65,6 @@ Open Scope nat_scope.
 
 Section WithCarrierA.
 
-  Context {CAPROPS : CarrierProperties}.
-
   Add Ring RingA: (stdlib_ring_theory CarrierA).
 
   Import MMemoryOfR.
@@ -541,14 +539,13 @@ Section WithCarrierA.
       apply Vforall2_elim_nth with (ip:=klt) in E.
       rewrite 2!find_svector_to_mem_block_some with (kc:=klt).
       f_equiv.
-      admit. (*
-      f_equiv.
-      assumption. *)
+      rewrite E.
+      reflexivity.
       apply svector_is_dense_svector_to_mem_block_In; auto.
       apply svector_is_dense_svector_to_mem_block_In; auto.
     -
       rewrite 2!svector_to_mem_block_key_oob; auto;lia.
-  Admitted.
+  Qed.
 
   Lemma svector_to_mem_block_avector_to_mem_block
         {n}
@@ -965,9 +962,11 @@ Section WithCarrierA.
             unfold SHPointwise_impl.
             rewrite Vbuild_nth.
             rewrite H2 with (ip:=kc).
-            (*
-            rewrite HPointwise_nth.
-            rewrite evalWriter_Rtheta_liftM.
+
+            epose proof HPointwise_nth as HPointwise_nth'.
+            rewrite HPointwise_nth'.
+            epose proof evalWriter_Rtheta_liftM as evalWriter_Rtheta_liftM'.
+            rewrite evalWriter_Rtheta_liftM'.
             f_equiv.
             f_equiv.
 
@@ -982,8 +981,9 @@ Section WithCarrierA.
             apply NM.find_1 in V0.
             rewrite Heqo in V0.
             some_inv.
+            unfold CarrierA, CarrierDefs_R in *.
+            rewrite H3.
             reflexivity.
-             *) admit.
           +
             rewrite O0 by apply kc.
             rewrite O2 by apply kc.
@@ -992,7 +992,7 @@ Section WithCarrierA.
             intros j jc HH.
             apply svector_to_mem_block_In with (jc0:=jc).
             apply G,HH.
-      Admitted.
+      Qed.
 
       Global Instance SHInductor_SH_MSH_Operator_compat
              {svalue: CarrierA}
@@ -1076,8 +1076,8 @@ Section WithCarrierA.
                 destruct H0 as [H0 _].
                 unfold Is_Val, compose in H0.
                 simpl in H0.
-                admit. (*
-                rewrite execWriter_liftM in H0.
+                epose proof execWriter_liftM as execWriter_liftM'.
+                rewrite execWriter_liftM' in H0.
                 dep_destruct x.
                 dep_destruct x0. clear x.
                 simpl in H0.
@@ -1089,7 +1089,8 @@ Section WithCarrierA.
                   apply NM.find_1 in H0.
                   rewrite H0.
                   f_equiv.
-                  rewrite evalWriter_Rtheta_liftM.
+                  epose proof evalWriter_Rtheta_liftM as evalWriter_Rtheta_liftM'.
+                  rewrite evalWriter_Rtheta_liftM'.
                   replace h0 with (evalWriter h).
                   reflexivity.
 
@@ -1113,7 +1114,6 @@ Section WithCarrierA.
                   specialize (H 0 kc).
                   apply H.
                   apply Full_intro.
-                 *)
               --
                 rewrite O0, O2; auto.
             *
@@ -1140,7 +1140,7 @@ Section WithCarrierA.
                 simpl in H.
                 eapply H.
                 apply Full_intro.
-      Admitted.
+      Qed.
 
     End WithMonoid.
 
@@ -1305,10 +1305,12 @@ Section WithCarrierA.
             rewrite H2 with (ip:=kc).
             f_equiv.
             rewrite SHBinOp_impl_nth with (jc:=kc) (jc1:=kc1) (jc2:=kc2).
-            admit. (*
-            rewrite HBinOp_nth with (jc:=kc) (jc1:=kc1) (jc2:=kc2).
 
-            rewrite evalWriter_Rtheta_liftM2.
+            epose proof HBinOp_nth as HBinOp_nth'.
+            rewrite HBinOp_nth' with (jc:=kc) (jc1:=kc1) (jc2:=kc2).
+
+            epose proof evalWriter_Rtheta_liftM2 as evalWriter_Rtheta_liftM2'.
+            rewrite evalWriter_Rtheta_liftM2'.
             f_equiv.
             *
               specialize (H1 k kc1).
@@ -1323,6 +1325,8 @@ Section WithCarrierA.
               apply NM.find_1 in V1.
               rewrite Heqo0 in V1.
               some_inv.
+              unfold CarrierA, CarrierDefs_R in *.
+              rewrite H3.
               reflexivity.
             *
               specialize (H1 (k+o)%nat kc2).
@@ -1337,8 +1341,9 @@ Section WithCarrierA.
               apply NM.find_1 in V2.
               rewrite Heqo0 in V2.
               some_inv.
+              unfold CarrierA, CarrierDefs_R in *.
+              rewrite <-H3.
               reflexivity.
-                    *)
           +
             rewrite O0 by apply kc.
             rewrite O2 by apply kc.
@@ -1347,7 +1352,7 @@ Section WithCarrierA.
             intros j jc HH.
             apply svector_to_mem_block_In with (jc0:=jc).
             apply G,HH.
-      Admitted.
+      Qed.
 
       Global Instance Apply2Union_SH_MSH_Operator_compat
              {a_zero: MonUnit CarrierA}
@@ -1369,7 +1374,7 @@ Section WithCarrierA.
         : SH_MSH_Operator_compat
             (@Apply2Union _ _ Monoid_RthetaFlags _ _ _ dot _ scompat op1 op2)
             (MApply2Union dot mop1 mop2).
-      Proof. (*
+      Proof.
         split.
         -
           apply Apply2Union_Facts.
@@ -1538,7 +1543,9 @@ Section WithCarrierA.
 
                       f_equiv.
                       unfold SVector.Union.
-                      rewrite evalWriter_Rtheta_liftM2.
+                      epose proof evalWriter_Rtheta_liftM2
+                            as evalWriter_Rtheta_liftM2'.
+                      rewrite evalWriter_Rtheta_liftM2'.
 
                       unshelve epose proof (out_mem_fill_pattern _ _ Heqo3) as P2.
                       apply Meq1.
@@ -1575,7 +1582,13 @@ Section WithCarrierA.
                         eauto.
                         eauto.
                       }
-                      break_match; try (apply NP.F.not_find_in_iff in NM2; congruence).
+                      break_match.
+                      1: {
+                        apply NP.F.not_find_in_iff in NM2.
+                        unfold CarrierA, CarrierDefs_R in *.
+                        congruence.
+                      }
+                      
                       clear Heqo0.
 
                       (* derive m2[k] *)
@@ -1604,7 +1617,9 @@ Section WithCarrierA.
 
                       f_equiv.
                       unfold SVector.Union.
-                      rewrite evalWriter_Rtheta_liftM2.
+                      epose proof evalWriter_Rtheta_liftM2
+                        as evalWriter_Rtheta_liftM2'.
+                      rewrite evalWriter_Rtheta_liftM2'.
 
                       unshelve epose proof (out_mem_fill_pattern _ _ Heqo2) as P1.
                       apply Meq2.
@@ -1619,7 +1634,7 @@ Section WithCarrierA.
                   **
                     (* k not in m *)
                     rewrite MM.
-                    replace (NM.find (elt:=CarrierA) k m) with (@None CarrierA)
+                    replace (NM.find k m) with (@None Rdefinitions.RbaseSymbolsImpl.R)
                       by (symmetry; apply NP.F.not_find_in_iff, NK).
                     apply not_iff_compat in P.
                     apply P in NK; clear P.
@@ -1730,7 +1745,7 @@ Section WithCarrierA.
             right.
             apply in_pattern_compat.
             apply H.
-      Qed. *) Admitted.
+      Qed.
 
       Definition shrink_SH_MSH_Operator_compat_family
                  {svalue: CarrierA}
@@ -1877,15 +1892,17 @@ Section WithCarrierA.
             unfold Is_Val, compose, IsVal, Is_true, not in *.
             repeat break_if.
             1,3,4: intuition.
-            rewrite H0 in *.
-            (* congruence *) admit.
+            unfold CarrierA, CarrierDefs_R in *.
+            rewrite V in *.
+            congruence.
           +
             inversion S.
             unfold Is_Val, compose, IsVal, Is_true, not in *.
             repeat break_if.
             1,2,4: intuition.
-            rewrite H0 in *.
-            (* congruence *) admit.
+            unfold CarrierA, CarrierDefs_R in *.
+            rewrite V in *.
+            congruence.
           +
             apply not_iff_compat in Ia.
             apply not_iff_compat in Ib.
@@ -1899,7 +1916,7 @@ Section WithCarrierA.
           rewrite Ob by auto.
           rewrite Oa by auto.
           reflexivity.
-      Admitted.
+      Qed.
 
       Lemma svector_to_mem_block_Vec2Union_mem_merge_with_def
             {n: nat}
@@ -1927,7 +1944,6 @@ Section WithCarrierA.
         simpl in *.
         destruct (NatUtil.lt_ge_dec k n) as [kc | kc].
         -
-          admit. (*
           clear O0 O1 O2.
           specialize (I0 k kc).
           specialize (I1 k kc).
@@ -1937,12 +1953,12 @@ Section WithCarrierA.
           specialize (H2 k kc).
 
           rewrite Vnth_map2 in H0, I0.
-          rewrite evalWriterUnion in H0.
+          epose proof evalWriterUnion as evalWriterUnion'.
+          rewrite evalWriterUnion' in H0.
           rewrite <- ValUnionIsVal_Safe in I0, H0.
 
           apply Vforall_nth with (ip:=kc) in compata.
           apply Vforall_nth with (ip:=kc) in compatb.
-
 
           generalize dependent (Vnth a kc).
           clear a. intros a compata H0 I0 H1 I1.
@@ -1961,7 +1977,11 @@ Section WithCarrierA.
           pose proof (not_iff_compat I2) as NI2.
           destruct H1, H2, H0, NH1, NH2, NH0, NI1, NI2, NI0.
           destruct
-            (Is_Val_dec a) as [VA | NVA], (Is_Val_dec b) as [VB | NVB], (NM.find (elt:=CarrierA) k m0) as [vd|] eqn:FD, (NM.find (elt:=CarrierA) k m1) as [va|] eqn:FA, (NM.find (elt:=CarrierA) k m2) as [vb|] eqn:FB;
+            (Is_Val_dec a) as [VA | NVA],
+              (Is_Val_dec b) as [VB | NVB],
+                (NM.find k m0) as [vd|] eqn:FD,
+                    (NM.find  k m1) as [va|] eqn:FA,
+                      (NM.find k m2) as [vb|] eqn:FB;
 
             repeat match goal with
                    | [H: NM.MapsTo _ _ _ |- _ ]  => apply NM.find_1 in H
@@ -1979,7 +1999,6 @@ Section WithCarrierA.
                    | [H: NM.find ?k ?m ≡ Some _, H': not (NM.In ?k ?m)  |- _ ] =>
                      apply Some_ne_None in H;  apply NP.F.in_find_iff in H; congruence
                    end; simpl; try reflexivity; try congruence.
-                  *)
         -
           clear H0 H1 H2.
           specialize (O0 k kc).
@@ -1992,7 +2011,7 @@ Section WithCarrierA.
           rewrite NP.F.map2_1bis by reflexivity.
           rewrite O1, O2.
           reflexivity.
-      Admitted.
+      Qed.
 
       (* Set of indices of non-structural elements of a vector *)
       Definition vector_val_index_set
@@ -2209,7 +2228,7 @@ Section WithCarrierA.
             apply NP.F.find_mapsto_iff in V.
             rewrite_clear V.
 
-            f_equiv. f_equiv.
+            f_equiv.
 
             apply NP.F.not_find_in_iff in F2.
 
@@ -2219,13 +2238,12 @@ Section WithCarrierA.
             apply Vforall_nth with (ip:=kc) in Zb.
             apply Zb in F2.
 
-            admit. (*
             unfold SVector.Union.
             unfold_Rtheta_equiv.
-            rewrite evalWriter_Rtheta_liftM2.
+            epose proof evalWriter_Rtheta_liftM2 as evalWriter_Rtheta_liftM2'.
+            rewrite evalWriter_Rtheta_liftM2'.
             rewrite F2.
             apply monoid_right_id, af_mon.
-             *)
           +
             unfold mem_lookup in *.
             rewrite O1, O0 by auto.
@@ -2267,7 +2285,7 @@ Section WithCarrierA.
             apply NP.F.find_mapsto_iff in V.
             rewrite_clear V.
 
-            f_equiv. f_equiv.
+            f_equiv.
 
             apply NP.F.not_find_in_iff in F1.
 
@@ -2279,11 +2297,10 @@ Section WithCarrierA.
 
             unfold SVector.Union.
             unfold_Rtheta_equiv.
-            admit. (*
-            rewrite evalWriter_Rtheta_liftM2.
+            epose proof evalWriter_Rtheta_liftM2 as evalWriter_Rtheta_liftM2'.
+            rewrite evalWriter_Rtheta_liftM2'.
             rewrite F1.
             apply monoid_left_id, af_mon.
-                    *)
           +
             unfold mem_lookup in *.
             rewrite O2, O0 by auto.
@@ -2292,6 +2309,7 @@ Section WithCarrierA.
           (* neither in m1 or m2 *)
           destruct (lt_ge_dec k n) as [kc | nkc].
           +
+
             clear O0 O1 O2 S0 S1 S2 H0 H1 H2.
             specialize (I0 k kc).
             specialize (I1 k kc).
@@ -2317,7 +2335,7 @@ Section WithCarrierA.
             apply O0; auto.
         -
           reflexivity.
-      Admitted.
+      Qed.
 
       Fact Vec2Union_fold_zeros_dense
            {svalue: CarrierA}
@@ -2348,7 +2366,7 @@ Section WithCarrierA.
                (Vec2Union Monoid_RthetaSafeFlags dot)
                (Vconst (mkStruct initial) o)
                v).
-      Proof. (*
+      Proof.
         apply Vforall_nth_intro.
         intros j jc VV.
 
@@ -2359,7 +2377,8 @@ Section WithCarrierA.
           dep_destruct v.
           simpl.
           rewrite Vnth_const.
-          apply evalWriter_mkStruct.
+          epose proof evalWriter_mkStruct as evalWriter_mkStruct'.
+          eapply evalWriter_mkStruct'.
         -
           contradict VV.
           dep_destruct v; clear v; rename h into v0, x0 into v.
@@ -2376,7 +2395,7 @@ Section WithCarrierA.
           apply H0.
           apply compat.
           apply Full_intro.
-      Qed. *) Admitted.
+      Qed.
 
       Fact Vec2Union_fold_zeros
            `{svalue: MonUnit CarrierA}
@@ -2402,7 +2421,7 @@ Section WithCarrierA.
                (Vec2Union Monoid_RthetaFlags dot)
                (Vconst (mkStruct svalue) o)
                v).
-      Proof. (*
+      Proof.
         apply Vforall_nth_intro.
 
         dependent induction n.
@@ -2411,7 +2430,8 @@ Section WithCarrierA.
           dep_destruct v.
           simpl.
           rewrite Vnth_const.
-          rewrite evalWriter_mkStruct.
+          epose proof evalWriter_mkStruct as evalWriter_mkStruct'.
+          rewrite evalWriter_mkStruct'.
           reflexivity.
         -
           intros j jc.
@@ -2475,7 +2495,7 @@ Section WithCarrierA.
             apply af_mon.
           +
             apply H0.
-      Qed. *) Admitted.
+      Qed.
 
       (* Extending [SH_MSH_Operator_compat]'s [in_pattern_compat] to families *)
       Lemma SH_MSH_family_in_pattern_compat
@@ -2717,9 +2737,9 @@ Section WithCarrierA.
 
       Lemma NM_Equiv_decidable (m1 m2 : mem_block) :
         {NM_Equiv m1 m2} + {not (NM_Equiv m1 m2)}.
-      Proof. (*
+      Proof.
         intros.
-        destruct (NM.equal CarrierA_beq m1 m2) eqn:EQ.
+        destruct (NM.equal (@CarrierA_beq CarrierDefs_R) m1 m2) eqn:EQ.
         -
           left.
           apply NP.F.equal_iff in EQ.
@@ -2734,19 +2754,21 @@ Section WithCarrierA.
           destruct NM.find eqn:KM1 at 1, NM.find eqn:KM2 at 1.
           +
             rewrite <-NP.F.find_mapsto_iff in *.
-            specialize (E c c0 KM1 KM2).
+            specialize (E r r0 KM1 KM2).
             rewrite E; reflexivity.
           +
             apply NP.F.not_find_in_iff in KM2.
             contradict KM2.
             apply K.
             apply NP.F.in_find_iff.
+            unfold CarrierA, CarrierDefs_R.
             congruence.
           +
             apply NP.F.not_find_in_iff in KM1.
             contradict KM1.
             apply K.
             apply NP.F.in_find_iff.
+            unfold CarrierA, CarrierDefs_R.
             congruence.
           +
             reflexivity.
@@ -2764,14 +2786,16 @@ Section WithCarrierA.
             intros k; specialize (C k).
             destruct NM.find eqn:KM1, NM.find eqn:KM2 in C; try some_none.
             all: repeat rewrite NP.F.in_find_iff.
+            all: unfold CarrierA, CarrierDefs_R.
             all: rewrite KM1, KM2.
             all: split; intros; congruence.
           +
             intros k e1 e2 KM1 KM2; specialize (C k).
             rewrite NP.F.find_mapsto_iff in *.
+            unfold CarrierA, CarrierDefs_R in *.
             rewrite KM1, KM2 in C.
             some_inv; assumption.
-      Qed. *) Admitted.
+      Qed.
 
       Definition empty_or_dense_block_SGP (SGP : SgPred CarrierA) (k : nat) (m : mem_block) :=
         m = mem_empty \/ dense_block_SGP SGP k m.
@@ -2974,9 +2998,9 @@ Section WithCarrierA.
             (a : mem_block)
             (x : CarrierA)
             (k : NM.key):
-        NM.find (elt:=CarrierA) k a ≡ Some x →
-        In (k, x) (NM.elements (elt:=CarrierA) a).
-      Proof. (*
+        NM.find k a ≡ Some x →
+        In (k, x) (NM.elements a).
+      Proof.
         intros F.
         rewrite NP.F.elements_o in F.
         apply In_InA_eq.
@@ -3004,15 +3028,15 @@ Section WithCarrierA.
           typeclasses eauto.
         -
           apply NM.elements_3w.
-      Qed. *) Admitted.
+      Qed.
 
       (* TODO: move  *)
       Lemma NM_find_not_In_elments
             (a : mem_block)
             (k : NM.key):
-        NM.find (elt:=CarrierA) k a ≡ None →
-        forall x, not (In (k, x) (NM.elements (elt:=CarrierA) a)).
-      Proof. (*
+        NM.find k a ≡ None →
+        forall x, not (In (k, x) (NM.elements a)).
+      Proof.
         intros F x H.
         rewrite NP.F.elements_o in F.
         apply In_InA_eq in H.
@@ -3041,7 +3065,7 @@ Section WithCarrierA.
               reflexivity.
             --
               apply H.
-      Qed. *) Admitted.
+      Qed.
 
       Fact find_mem_empty_eq_None (mb : mem_block) :
         mb = mem_empty ->
@@ -3508,9 +3532,8 @@ Section WithCarrierA.
               simpl.
               rewrite (svector_to_mem_block_Vec2Union_mem_merge_with_def svalue).
               --
-                admit. (*
                 rewrite IHn; clear IHn.
-                f_equiv. apply pdot.
+                f_equiv.
                 apply Some_inj_equiv.
                 rewrite <- A0. clear A0.
                 unfold get_family_op, get_family_mem_op.
@@ -3520,7 +3543,6 @@ Section WithCarrierA.
                 eapply family_in_set_includes_members.
                 apply H0.
                 exact o. (* TODO: not sure where this is coming from *)
-                       *)
               --
                 apply Vec2Union_fold_zeros_dense with (op_family0:=op_family) (x0:=x); auto.
                 apply Meq.
@@ -3554,7 +3576,7 @@ Section WithCarrierA.
             eapply family_in_set_includes_members.
             apply Meq.
             apply H0.
-      Admitted.
+      Qed.
 
       Lemma cast_op_family_facts
             {svalue: CarrierA}
@@ -4368,7 +4390,7 @@ Section WithCarrierA.
                     (x0:=x); auto.
                 unshelve eapply (shrink_op_family_facts_up _ _ _).
                 apply Meq.
-              -- admit. (*
+              --
                 apply Vforall_nth_intro.
                 clear P.
                 intros t tc P.
@@ -4379,7 +4401,7 @@ Section WithCarrierA.
                 specialize (H j jc).
                 apply H.
                 apply family_in_set_includes_members in H0.
-                apply H0. *)
+                apply H0.
           +
             (* [A] could not happen *)
             exfalso.
@@ -4395,7 +4417,7 @@ Section WithCarrierA.
             eapply family_in_set_includes_members.
             apply Meq.
             apply H0.
-      Admitted.
+      Qed.
 
     End MonoidSpecific.
 
