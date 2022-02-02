@@ -43,12 +43,76 @@ Require Import MathClasses.implementations.peano_naturals.
 
 Import Monoid.
 
+Module Type MTMSHCOL (CT:CType).
+
+  Record MSHOperator {i o: nat} : Type
+    := mkMSHOperator {
+        (* -- implementation on memory blocks -- *)
+        mem_op: mem_block -> option mem_block;
+        mem_op_proper: Proper ((=) ==> (=)) mem_op;
+
+        m_in_index_set: FinNatSet i;
+        m_out_index_set: FinNatSet o;
+      }.
+
+  Definition MSHOperatorFamily {i o n: nat} := FinNat n -> @MSHOperator i o.
+
+  Parameter MSHIReduction :
+    forall {i o n: nat}
+      (initial: CT.t)
+      (dot: CT.t -> CT.t -> CT.t)
+      `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+      (op_family: @MSHOperatorFamily i o n),
+    @MSHOperator i o.
+
+  Parameter MSHIUnion :
+    forall {i o n: nat}
+      (op_family: @MSHOperatorFamily i o n),
+      @MSHOperator i o.
+
+  Parameter MApply2Union :
+    forall {i o}
+      (dot: CT.t -> CT.t -> CT.t)
+      (mop1 mop2: @MSHOperator i o),
+      @MSHOperator i o.
+
+  Parameter MSHInductor :
+    forall (n:nat)
+      (f: CT.t -> CT.t -> CT.t)
+      `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+      (initial: CT.t),
+      @MSHOperator 1 1.
+
+  Parameter MSHPointwise :
+    forall {n: nat}
+      (f: FinNat n -> CT.t -> CT.t)
+      `{pF: !Proper ((=) ==> (=) ==> (=)) f},
+      @MSHOperator n n.
+
+  Parameter MSHEmbed :
+    forall {o b: nat}
+      (bc: b < o),
+      @MSHOperator 1 o.
+
+  Parameter MSHPick :
+    forall {i b: nat}
+      (bc: b < i),
+      @MSHOperator i 1.
+
+  Parameter MSHBinOp :
+    forall {o: nat}
+      (f: {n:nat|n<o} -> CT.t -> CT.t -> CT.t)
+      `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
+      @MSHOperator (o+o) o.
+
+End MTMSHCOL.
+
 Module MMSHCOL'
        (CT:CType with Definition t := @CarrierA CarrierDefs_R
          with Definition CTypeEquiv := CarrierAe
-         with Definition CTypeSetoid := CarrierAsetoid
-       )
-       (Import CM:MMemSetoid CT).
+         with Definition CTypeSetoid := CarrierAsetoid)
+       (Import CM:MMemSetoid CT)
+<: MTMSHCOL(CT).
 
   Open Scope nat_scope.
 
