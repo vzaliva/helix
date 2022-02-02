@@ -28,7 +28,6 @@ Require Import Helix.MSigmaHCOL.CType.
 Require Import Helix.MSigmaHCOL.RasCT.
 Require Import Helix.MSigmaHCOL.RasCarrierA.
 Require Import Helix.MSigmaHCOL.MemoryOfR.
-Import MMemoryOfR.
 
 Require Import Helix.Tactics.HelixTactics.
 
@@ -43,7 +42,7 @@ Require Import MathClasses.implementations.peano_naturals.
 
 Import Monoid.
 
-Module Type MTMSHCOL (CT:CType).
+Module Type MTMSHCOL (CT:CType) (Import CM:MMemSetoid(CT)).
 
   Record MSHOperator {i o: nat} : Type
     := mkMSHOperator {
@@ -112,7 +111,7 @@ Module MMSHCOL'
          with Definition CTypeEquiv := CarrierAe
          with Definition CTypeSetoid := CarrierAsetoid)
        (Import CM:MMemSetoid CT)
-<: MTMSHCOL(CT).
+<: MTMSHCOL(CT)(CM).
 
   Open Scope nat_scope.
 
