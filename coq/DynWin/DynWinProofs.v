@@ -38,6 +38,7 @@ Require Import Helix.MSigmaHCOL.ReifySHCOL.
 Require Import Helix.MSigmaHCOL.MSigmaHCOL.
 Require Import Helix.MSigmaHCOL.ReifyProofs.
 Require Import Helix.MSigmaHCOL.RasCarrierA.
+Require Import Helix.MSigmaHCOL.RasCT.
 Require Import Helix.Util.MonoidalRestriction.
 
 Require Import Helix.RSigmaHCOL.ReifyMSHCOL.
@@ -997,17 +998,38 @@ Section MSHCOL_to_RHCOL.
       memory_set
         (memory_set dynwin_globals_mem dynwin_x_addr x)
         dynwin_y_addr mem_empty.
-
+    
+    (* TODO: this clashes with [dynwin_R_σ], which is more common, but less clean *)
+    (*
     Definition dynwin_σ_globals:evalContext :=
       [
         (DSHPtrVal dynwin_a_addr 3,false)
       ].
-
+    
     Definition dynwin_σ:evalContext :=
       dynwin_σ_globals ++
-      [
-        (DSHPtrVal dynwin_y_addr dynwin_o,false)
-        ; (DSHPtrVal dynwin_x_addr dynwin_i,false)
+                       [
+                         (DSHPtrVal dynwin_y_addr dynwin_o,false)
+                         ; (DSHPtrVal dynwin_x_addr dynwin_i,false)
+                       ].
+     *)
+    
+    (* Initialize memory with X and placeholder for Y. *)
+    Definition dynwin_R_memory (a:avector 3) (x:avector dynwin_i) :=
+      RHCOLEval.memory_set
+        (RHCOLEval.memory_set (RHCOLEval.memory_set
+                                 RHCOLEval.memory_empty
+                                 dynwin_a_addr
+                                 (avector_to_mem_block a))
+                              dynwin_x_addr
+                              (avector_to_mem_block x))
+        dynwin_y_addr
+        RHCOLEval.mem_empty.
+    
+    Definition dynwin_R_σ := [
+        (RHCOLEval.DSHPtrVal dynwin_a_addr 3,false)
+        ; (RHCOLEval.DSHPtrVal dynwin_y_addr dynwin_o,false)
+        ; (RHCOLEval.DSHPtrVal dynwin_x_addr dynwin_i,false)
       ].
 
     (* TODO: move, but not sure where. We do not have MemorySetoid.v *)
@@ -1027,7 +1049,7 @@ Section MSHCOL_to_RHCOL.
     Theorem DynWin_MSH_DSH_compat
       :
         @MSH_DSH_compat dynwin_i dynwin_o (dynwin_MSHCOL1 a) (dynwin_RHCOL)
-                        dynwin_σ
+                        dynwin_R_σ
                         dynwin_memory
                         DSH_x_p DSH_y_p
                         DynWin_pure.
@@ -1381,9 +1403,10 @@ Section MSHCOL_to_RHCOL.
               reflexivity.
           +
             apply SHBinOp_MFacts
-              with (f:= (λ (i : FinNat 1) (a0 b : CarrierA),
-                         IgnoreIndex abs i (Fin1SwapIndex2
-                                              (mkFinNat jc) (IgnoreIndex2 sub) i a0 b))).
+              with (f:= (λ (_ : FinNat 1) (a0 b : Rdefinitions.RbaseSymbolsImpl.R),
+                          Rbasic_fun.Rabs
+                            (Rdefinitions.RbaseSymbolsImpl.Rplus
+                               (Rdefinitions.RbaseSymbolsImpl.Ropp a0) b))).
           +
             apply IUnion_MFacts.
             intros.
@@ -1427,15 +1450,17 @@ Section MSHCOL_to_RHCOL.
             reflexivity.
         -
           clear.
-          apply SHBinOp_MFacts with (f := λ (i : FinNat 1) (a0 b : CarrierA),
-                                          IgnoreIndex abs i
-                                                      (Fin1SwapIndex2 (mkFinNat jc)
-                                                                      (IgnoreIndex2 sub)
-                                                                      i a0 b)).
+          apply SHBinOp_MFacts
+            with (f := (λ (_ : FinNat 1) (a b : Rdefinitions.RbaseSymbolsImpl.R),
+                         Rbasic_fun.Rabs
+                           (Rdefinitions.RbaseSymbolsImpl.Rplus
+                              (Rdefinitions.RbaseSymbolsImpl.Ropp a) b))).
         -
           solve_facts.
       }
     Qed.
+
+    
 
   End DummyEnv.
 
@@ -1512,12 +1537,9 @@ End RCHOL_to_FHCOL.
 (* TODO: move *)
 Require Import Rdefinitions.
 
-Section AHCOL_to_FHCOL_numerical.
+Section RHCOL_to_FHCOL_numerical.
 
   Context
-    `{AR_CHE : AHCOLtoRHCOL.CTranslation_heq}
-    `{AR_CTO : @AHCOLtoRHCOL.CTranslationOp AR_CHE}
-
     `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}
     `{RF_CTO : @RHCOLtoFHCOL.CTranslationOp RF_CHE}.
 
@@ -1636,59 +1658,22 @@ Section AHCOL_to_FHCOL_numerical.
       trivial_RF_COP.
 
   Lemma RHCOLtoFHCOL_NExpr_closure_trace_equiv
-        (dynwin_R_σ : RHCOLEval.evalContext)
         (dynwin_F_σ : evalContext)
-        (dynwin_rhcol : RHCOL.DSHOperator)
-        (dynwin_fhcol : FHCOL.DSHOperator)
+        (dynwin_FHCOL : FHCOL.DSHOperator)
     :
-    AHCOLtoRHCOL.translate dynwin_AHCOL = inr dynwin_rhcol ->
-    RHCOLtoFHCOL.translate dynwin_rhcol = inr dynwin_fhcol ->
+    RHCOLtoFHCOL.translate dynwin_RHCOL = inr dynwin_FHCOL ->
 
-    AHCOLtoRHCOL.translateEvalContext build_dynwin_σ = inr dynwin_R_σ ->
     RHCOLtoFHCOL.translateEvalContext dynwin_R_σ = inr dynwin_F_σ ->
 
     hopt (herr (@evalNExpr_closure_trace_equiv RF_NHE trivial_RF_CHE))
          (RHCOLEval.intervalEvalDSHOperator_σ
-            dynwin_R_σ dynwin_rhcol []
-            (RHCOLEval.estimateFuel dynwin_rhcol))
+            dynwin_R_σ dynwin_RHCOL []
+            (RHCOLEval.estimateFuel dynwin_RHCOL))
          (intervalEvalDSHOperator_σ
-            dynwin_F_σ dynwin_fhcol []
-            (estimateFuel dynwin_fhcol)).
+            dynwin_F_σ dynwin_FHCOL []
+            (estimateFuel dynwin_FHCOL)).
   Proof.
-    intros AR RF ARΣ RFΣ.
-
-    assert (AR0 : AHCOLtoRHCOL.translateCTypeConst CarrierAz
-                  ≡ @inr string _ MRasCT.CTypeZero).
-    {
-      unfold AHCOLtoRHCOL.translateCTypeConst.
-      repeat break_if; try reflexivity; exfalso.
-      all: clear - n; contradict n; reflexivity.
-    }
-
-    assert (AR1 : AHCOLtoRHCOL.translateCTypeConst CarrierA1
-                  ≡ @inr string _ MRasCT.CTypeOne).
-    {
-      unfold AHCOLtoRHCOL.translateCTypeConst.
-      repeat break_if; try reflexivity; exfalso.
-      -
-        clear - e.
-        unfold CarrierAasCT.CTypeZero in e.
-        pose proof CarrierAasCT.CTypeZeroOneApart as C.
-        contradict C.
-        symmetry.
-        assumption.
-      -
-        clear - n0.
-        contradict n0.
-        reflexivity.
-    }
-
-    cbn in AR.
-    repeat progress (try setoid_rewrite AR0 in AR;
-                     try setoid_rewrite AR1 in AR).
-    invc AR; rename H1 into AR.
-    cbn in ARΣ.
-
+    intros RF RFΣ.
 
     assert (RF0 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeZero
                   ≡ @inr string _ Float64asCT.Float64Zero).
@@ -1707,6 +1692,7 @@ Section AHCOL_to_FHCOL_numerical.
         clear - e.
         cbv in e.
         pose proof MRasCT.CTypeZeroOneApart.
+        cbv in H.
         congruence.
       -
         clear - n0.
@@ -1714,30 +1700,16 @@ Section AHCOL_to_FHCOL_numerical.
         reflexivity.
     }
 
-    pose proof AR as AR'.
-    apply RHCOLtoFHCOL.translate_proper in AR'.
-    rewrite <-AR' in RF.
-    clear AR'.
-
     cbn in RF.
     repeat progress (try setoid_rewrite RF0 in RF;
                      try setoid_rewrite RF1 in RF).
     repeat inl_inr_inv.
 
-    remember (RHCOLEval.DSHAlloc _ _) as dynwin_rhcol_comp eqn:RC.
     remember (FHCOLEval.DSHAlloc _ _) as dynwin_fhcol_comp eqn:FC.
     (* poor man's [rewrite <-RC, <-FC] *)
-    assert (T1 : RHCOLEval.intervalEvalDSHOperator_σ
-                   dynwin_R_σ dynwin_rhcol []
-                   (RHCOLEval.estimateFuel dynwin_rhcol)
-                 =
-                   RHCOLEval.intervalEvalDSHOperator_σ
-                     dynwin_R_σ dynwin_rhcol_comp []
-                     (RHCOLEval.estimateFuel dynwin_rhcol_comp))
-      by now rewrite AR.
     assert (T2 : FHCOLEval.intervalEvalDSHOperator_σ
-                   dynwin_F_σ dynwin_fhcol []
-                   (FHCOLEval.estimateFuel dynwin_fhcol)
+                   dynwin_F_σ dynwin_FHCOL []
+                   (FHCOLEval.estimateFuel dynwin_FHCOL)
                  =
                    FHCOLEval.intervalEvalDSHOperator_σ
                      dynwin_F_σ dynwin_fhcol_comp []
@@ -1745,7 +1717,7 @@ Section AHCOL_to_FHCOL_numerical.
       by now rewrite RF.
     eapply hopt_proper;
       [ apply herr_proper, evalNExpr_closure_trace_equiv_proper
-      | apply T1
+      | reflexivity
       | apply T2
       | ].
 
@@ -1908,7 +1880,7 @@ Section AHCOL_to_FHCOL_numerical.
       crush_int.
   Qed.
 
-End AHCOL_to_FHCOL_numerical.
+End RHCOL_to_FHCOL_numerical.
 
 Section TopLevel.
 
@@ -1919,14 +1891,6 @@ Section TopLevel.
                             CarrierAz CarrierA1
                             CarrierAle}.
 
-  (* AHCOL -> RHCOL *)
-  Context
-    `{AR_CHE : AHCOLtoRHCOL.CTranslation_heq}
-    `{AR_CTO : @AHCOLtoRHCOL.CTranslationOp AR_CHE}
-    `{AR_CTS : @AHCOLtoRHCOL.CTranslationOp_strict AR_CHE AR_CTO}
-
-    `{AR_COP : @AHCOLtoRHCOL.COpTranslationProps AR_CHE}.
-
   (* RHCOL -> FHCOL *)
   Context
     `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}
@@ -1934,8 +1898,8 @@ Section TopLevel.
 
   (* TODO: removing this was kind of a big deal *)
   (* We assuming that there is an injection of CType to Reals *)
-  (* Hypothesis AHCOLtoRHCOL_total :
-     forall c, exists r, AHCOLtoRHCOL.translateCTypeValue c ≡ inr r. *)
+  (* Hypothesis RHCOLtoRHCOL_total :
+     forall c, exists r, RHCOLtoRHCOL.translateCTypeValue c ≡ inr r. *)
 
   (* User can specify optional constraints on input values and
      arguments. For example, for cyber-physical system it could
@@ -1948,42 +1912,39 @@ Section TopLevel.
                      (* y *) RHCOLEval.mem_block ->
                      (* y_mem *) FHCOLEval.mem_block -> Prop.
 
-  Lemma DynWin_AHCOL_to_RHCOL_op_OK :
-    exists r, AHCOLtoRHCOL.translate dynwin_AHCOL = inr r.
+  Lemma DynWin_RHCOL_to_FHCOL_op_OK :
+    exists r, RHCOLtoFHCOL.translate dynwin_RHCOL = inr r.
   Proof.
     cbn.
 
-    assert (Z : AHCOLtoRHCOL.translateCTypeConst CarrierAz
-            ≡ @inr string _ MRasCT.CTypeZero).
+    assert (RF0 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeZero
+                  ≡ @inr string _ Float64asCT.Float64Zero).
     {
-      unfold AHCOLtoRHCOL.translateCTypeConst.
+      unfold RHCOLtoFHCOL.translateCTypeConst.
       repeat break_if; try reflexivity; exfalso.
       all: clear - n; contradict n; reflexivity.
     }
 
-    assert (O : AHCOLtoRHCOL.translateCTypeConst CarrierA1
-            ≡ @inr string _ MRasCT.CTypeOne).
+    assert (RF1 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeOne
+                  ≡ @inr string _ Float64asCT.Float64One).
     {
-      unfold AHCOLtoRHCOL.translateCTypeConst.
+      unfold RHCOLtoFHCOL.translateCTypeConst.
       repeat break_if; try reflexivity; exfalso.
       -
         clear - e.
-        unfold CarrierAasCT.CTypeZero in e.
-        pose proof CarrierAasCT.CTypeZeroOneApart as C.
-        contradict C.
-        symmetry.
-        assumption.
+        cbv in e.
+        pose proof MRasCT.CTypeZeroOneApart.
+        cbv in H.
+        congruence.
       -
         clear - n0.
         contradict n0.
         reflexivity.
     }
 
-    setoid_rewrite Z.
-    setoid_rewrite O.
-    setoid_rewrite Z.
-    eexists.
-    reflexivity.
+    repeat progress (try setoid_rewrite RF0;
+                     try setoid_rewrite RF1).
+    now eexists.
   Qed.
 
   (*
@@ -1996,64 +1957,61 @@ Section TopLevel.
      3. dynwin_orig
 
      And the following definition are produced with TemplateCoq:
-     1. dynwin_AHCOL
+     1. dynwin_RHCOL
    *)
   Theorem HCOL_to_FHCOL_Correctness (a: avector 3):
     forall x y,
       (* evaluatoion of original operator *)
       dynwin_orig a x = y ->
 
-      forall dynwin_R_memory dynwin_F_memory dynwin_R_σ dynwin_F_σ dynwin_rhcol dynwin_fhcol,
-        (* Compile AHCOL -> RHCOL -> FHCOL *)
-        AHCOLtoRHCOL.translate dynwin_AHCOL = inr dynwin_rhcol ->
-        translate dynwin_rhcol = inr dynwin_fhcol ->
+      forall dynwin_F_memory dynwin_F_σ dynwin_FHCOL,
+        (* Compile -> RHCOL -> FHCOL *)
+        translate dynwin_RHCOL = inr dynwin_FHCOL ->
 
         (* Compile memory *)
-        AHCOLtoRHCOL.translate_runtime_memory (build_dynwin_memory a x) = inr dynwin_R_memory ->
-        RHCOLtoFHCOL.translate_runtime_memory dynwin_R_memory = inr dynwin_F_memory ->
+        RHCOLtoFHCOL.translate_runtime_memory (dynwin_R_memory a x) = inr dynwin_F_memory ->
 
         (* compile σ *)
-        AHCOLtoRHCOL.translateEvalContext build_dynwin_σ = inr dynwin_R_σ ->
         RHCOLtoFHCOL.translateEvalContext dynwin_R_σ = inr dynwin_F_σ ->
 
         forall a_rmem x_rmem,
-          RHCOLEval.memory_lookup dynwin_R_memory dynwin_a_addr = Some a_rmem ->
-          RHCOLEval.memory_lookup dynwin_R_memory dynwin_x_addr = Some x_rmem ->
+          RHCOLEval.memory_lookup (dynwin_R_memory a x) dynwin_a_addr = Some a_rmem ->
+          RHCOLEval.memory_lookup (dynwin_R_memory a x) dynwin_x_addr = Some x_rmem ->
           InConstr a_rmem x_rmem ->
 
           (* Everything correct on Reals *)
           exists r_omemory y_rmem,
             RHCOLEval.evalDSHOperator
               dynwin_R_σ
-              dynwin_rhcol
-              dynwin_R_memory
-              (RHCOLEval.estimateFuel dynwin_rhcol) = Some (inr r_omemory)
+              dynwin_RHCOL
+              (dynwin_R_memory a x)
+              (RHCOLEval.estimateFuel dynwin_RHCOL) = Some (inr r_omemory)
             /\ RHCOLEval.memory_lookup r_omemory dynwin_y_addr = Some y_rmem
-            /\ AHCOLtoRHCOL.translate_runtime_mem_block (avector_to_mem_block y) = inr y_rmem
+            /\ avector_to_mem_block y = y_rmem
 
             (* And floats *)
             /\ exists f_omemory y_fmem,
               FHCOLEval.evalDSHOperator
-                dynwin_F_σ dynwin_fhcol
+                dynwin_F_σ dynwin_FHCOL
                 dynwin_F_memory
-                (FHCOLEval.estimateFuel dynwin_fhcol) = (Some (inr f_omemory))
+                (FHCOLEval.estimateFuel dynwin_FHCOL) = (Some (inr f_omemory))
               /\ FHCOLEval.memory_lookup f_omemory dynwin_y_addr = Some y_fmem
               /\ OutRel a_rmem x_rmem y_rmem y_fmem.
   Proof.
-    intros * HC * CA CR CAM CRM CAE CRE * RA RX C.
+    intros * HC * CR CRM CRE * RA RX C.
 
-    remember (AHCOLEval.memory_set
-                (build_dynwin_memory a x)
+    remember (RHCOLEval.memory_set
+                (dynwin_R_memory a x)
                 dynwin_y_addr
-                (avector_to_mem_block y)) as a_omemory eqn:AOM.
+                (avector_to_mem_block y)) as r_omemory eqn:ROM.
 
-    assert(AHCOLEval.evalDSHOperator
-             dynwin_σ
-             dynwin_AHCOL
-             (build_dynwin_memory a x)
-             (AHCOLEval.estimateFuel dynwin_AHCOL) = Some (inr a_omemory)) as AE.
+    assert(RHCOLEval.evalDSHOperator
+             dynwin_R_σ
+             dynwin_RHCOL
+             (dynwin_R_memory a x)
+             (RHCOLEval.estimateFuel dynwin_RHCOL) = Some (inr r_omemory)) as RE.
     {
-      pose proof (DynWin_MSH_DSH_compat a) as MAHCOL.
+      pose proof (DynWin_MSH_DSH_compat a) as MRHCOL.
       pose proof (DynWin_pure) as MAPURE.
       pose proof (dynwin_SHCOL_MSHCOL_compat a) as MCOMP.
       pose proof (SHCOL_to_SHCOL1_Rewriting a) as SH1.
@@ -2163,33 +2121,34 @@ Section TopLevel.
       remember (svector_to_mem_block Monoid_RthetaFlags sx) as mx eqn:MX.
       remember (svector_to_mem_block Monoid_RthetaFlags sy) as my eqn:MY.
 
-      specialize (MAHCOL (avector_to_mem_block x)).
-      replace (dynwin_memory a (avector_to_mem_block x)) with (build_dynwin_memory a x) in MAHCOL by reflexivity.
-      destruct MAHCOL as [MAHCOL].
-      specialize (MAHCOL (avector_to_mem_block x) AHCOLEval.mem_empty).
-      autospecialize MAHCOL.
+      specialize (MRHCOL (avector_to_mem_block x)).
+      replace (dynwin_memory a (avector_to_mem_block x))
+        with (dynwin_R_memory a x) in MRHCOL by reflexivity.
+      destruct MRHCOL as [MRHCOL].
+      specialize (MRHCOL (avector_to_mem_block x) RHCOLEval.mem_empty).
+      autospecialize MRHCOL.
       reflexivity.
-      autospecialize MAHCOL.
+      autospecialize MRHCOL.
       reflexivity.
 
       destruct_h_opt_opterr_c MM AE.
       -
-        destruct s; inversion_clear MAHCOL.
+        destruct s; inversion_clear MRHCOL.
         f_equiv; f_equiv.
         rename m0 into m'.
-        destruct (lookup_PExpr dynwin_σ m' DSH_y_p) eqn:RY.
+        destruct (lookup_PExpr dynwin_R_σ m' DSH_y_p) eqn:RY.
         +
           exfalso.
           clear - MAPURE AE RY.
           cbn in RY.
-          assert (AHCOL.mem_block_exists 1 m').
+          assert (RHCOL.mem_block_exists 1 m').
           {
             erewrite <-mem_stable.
             2: now rewrite AE.
-            now apply AHCOLEval.memory_is_set_is_Some.
+            now apply RHCOLEval.memory_is_set_is_Some.
           }
-          apply AHCOLEval.memory_is_set_is_Some in H.
-          unfold util.is_Some, AHCOLEval.memory_lookup_err in *.
+          apply RHCOLEval.memory_is_set_is_Some in H.
+          unfold util.is_Some, RHCOLEval.memory_lookup_err in *.
           break_match; try contradiction.
           inv RY.
         +
@@ -2215,7 +2174,7 @@ Section TopLevel.
             intros k.
             specialize (H0 k).
             cbn in H0.
-            unfold AHCOL.mem_lookup in *.
+            unfold RHCOL.mem_lookup in *.
             inv H0.
             -
               unfold util.is_None in *.
@@ -2232,15 +2191,15 @@ Section TopLevel.
           eapply MWS.
           now erewrite AE.
           now cbv.
-          eapply AHCOLEval.memory_lookup_err_inr_Some.
+          eapply RHCOLEval.memory_lookup_err_inr_Some.
           now rewrite RY.
       -
         exfalso.
-        pose proof (@AHCOLEval.evalDSHOperator_estimateFuel dynwin_σ dynwin_AHCOL (build_dynwin_memory a x)) as CC.
+        pose proof (@RHCOLEval.evalDSHOperator_estimateFuel dynwin_R_σ dynwin_RHCOL (dynwin_R_memory a x)) as CC.
         clear - CC AE.
         apply util.is_None_def in AE.
-        generalize dependent (AHCOLEval.evalDSHOperator dynwin_σ dynwin_AHCOL
-                                                        (build_dynwin_memory a x) (AHCOLEval.estimateFuel dynwin_AHCOL)).
+        generalize dependent (RHCOLEval.evalDSHOperator dynwin_R_σ dynwin_RHCOL
+                                                        (dynwin_R_memory a x) (RHCOLEval.estimateFuel dynwin_RHCOL)).
         intros o AE CC.
         some_none.
       -
@@ -2265,64 +2224,26 @@ Section TopLevel.
 
     (* moved from [dynwin_MSHCOL1] to [dynwin_rhcol] *)
 
-    pose proof AHCOLtoRHCOL.translation_semantics_correct_strict
-         dynwin_AHCOL
-         dynwin_rhcol
-         (AHCOLEval.estimateFuel dynwin_AHCOL)
-         (RHCOLEval.estimateFuel dynwin_rhcol)
-         dynwin_σ
-         dynwin_R_σ
-         (build_dynwin_memory a x)
-         dynwin_R_memory
-      as HEQAR.
-    full_autospecialize HEQAR;
-      [ now apply AHCOLtoRHCOL.translation_syntax_always_correct
-      | now apply AHCOLtoRHCOL.translateEvalContext_same_indices
-      | now apply AHCOLtoRHCOL.translate_runtime_memory_same_indices
-      | ].
-    destruct (AHCOLEval.evalDSHOperator dynwin_σ dynwin_AHCOL
-                                        (build_dynwin_memory a x)
-                                        (AHCOLEval.estimateFuel dynwin_AHCOL))
-             eqn:EA;
-      destruct (RHCOLEval.evalDSHOperator dynwin_R_σ dynwin_rhcol
-                                          dynwin_R_memory
-                                          (RHCOLEval.estimateFuel dynwin_rhcol))
-               eqn:ER;
-      invc HEQAR;
-      try some_none.
-
-    invc H1; invc AE; [invc H1 | invc H2].
-    rename a0 into a_omemory, b into r_omemory, H into RM, H3 into AM.
-
     exists r_omemory.
+    exists (avector_to_mem_block y).
 
-    apply AHCOLtoRHCOL.heq_memory_translate_runtime_memory in RM.
-    (* poor man's [rewrite AM in RM] *)
-    erewrite AHCOLtoRHCOL.translate_runtime_memory_proper
-      in RM by eapply AM.
-    apply MSigmaHCOL.MemSetoid.NM_err_sequence_inr_fun_spec in RM.
-    specialize (RM dynwin_y_addr).
-    rewrite !Memory.NP.F.map_o in RM.
-    unfold option_map in RM.
-    unfold AHCOLEval.memory_set in RM.
-    rewrite Memory.NP.F.add_eq_o in RM by reflexivity.
-    break_match; invc RM.
-    rename m into y_rmem, Heqo into YRM, H1 into YRME.
-
-    exists y_rmem.
+    split; [assumption |].
+    split.
+    1: {
+      rewrite ROM.
+      now rewrite memory_lookup_memory_set_eq by reflexivity.
+    }
     split; [reflexivity |].
-    split; [rewrite <-YRM; reflexivity |].
-    split; [now symmetry |].
 
     pose proof
          RF_Structural_Semantic_Preservation
-         dynwin_rhcol
-         dynwin_fhcol
-         (RHCOLEval.estimateFuel dynwin_rhcol)
-         (FHCOLEval.estimateFuel dynwin_fhcol)
+         dynwin_RHCOL
+         dynwin_FHCOL
+         (RHCOLEval.estimateFuel dynwin_RHCOL)
+         (FHCOLEval.estimateFuel dynwin_FHCOL)
          dynwin_R_σ
          dynwin_F_σ
-         dynwin_R_memory
+         (dynwin_R_memory a x)
          dynwin_F_memory
       as HEQRF.
     full_autospecialize HEQRF.
@@ -2343,18 +2264,23 @@ Section TopLevel.
       now eapply @RHCOLtoFHCOL_NExpr_closure_trace_equiv.
     }
 
+    (* TODO: this can be cleaned up *)
     destruct HEQRF; try some_none.
-    invc H; invc ER.
+    invc H; invc RE;
+      [invc H1 | invc H2].
     rename b0 into f_omemory, H0 into FM.
 
     exists f_omemory.
 
+    unfold RHCOLEval.memory_set in H3.
     pose proof FM as YFM.
     specialize (YFM dynwin_y_addr).
     unfold RHCOLEval.memory_lookup in YFM.
-    rewrite YRM in YFM.
-    invc YFM.
-    rename b into y_fmem, H1 into YFM, H0 into YFMM.
+    specialize (H3 dynwin_y_addr).
+    rewrite Memory.NP.F.add_eq_o in H3 by reflexivity.
+    inv YFM;
+      [rewrite <-H0 in H3; some_none |].
+    rename b into y_fmem.
 
     exists y_fmem.
     do 2 (split; [reflexivity |]).
