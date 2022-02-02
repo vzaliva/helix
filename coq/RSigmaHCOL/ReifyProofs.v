@@ -218,17 +218,17 @@ Section mem_aux.
       apply Nat.ltb_lt in H1.
       intuition.
       apply NM.find_1 in H0.
-      rewrite <-H0; reflexivity.
+      rewrite H0; reflexivity.
     -
       unfold mem_firstn, mem_lookup, NP.filter_dom in *.
       destruct H as [H1 H2].
-      destruct NM.find eqn:F at 1.
+      destruct (NM.find (elt:=CarrierA) k
+                        (NP.filter (λ (k0 : NM.key) (_ : CarrierA), k0 <? n) mb)) eqn:F.
       +
         apply NP.F.find_mapsto_iff, NP.filter_iff in F.
         2: intros k1 k2 EK a1 a2 EA; subst; reflexivity.
         destruct F.
         apply NM.find_1 in H.
-        unfold CarrierA, CarrierDefs_R in *.
         rewrite H in H2.
         assumption.
       +
@@ -240,7 +240,7 @@ Section mem_aux.
         1: intros k1 k2 EK a1 a2 EA; subst; reflexivity.
         split.
         2: apply Nat.ltb_lt; assumption.
-        instantiate (1:=r).
+        instantiate (1:=c).
         apply NP.F.find_mapsto_iff.
         assumption.
   Qed.
@@ -263,13 +263,13 @@ Section mem_aux.
     -
       unfold mem_firstn, mem_lookup, NP.filter_dom in *.
       destruct H as [H1 H2].
-      destruct NM.find eqn:F at 1.
+      destruct (NM.find (elt:=CarrierA) k
+                        (NP.filter (λ (k0 : NM.key) (_ : CarrierA), k0 <? n) mb)) eqn:F.
       +
         apply NP.F.find_mapsto_iff, NP.filter_iff in F.
         2: intros k1 k2 EK a1 a2 EA; subst; reflexivity.
         destruct F.
         apply NM.find_1 in H.
-        unfold CarrierA, CarrierDefs_R in *.
         rewrite H in H2.
         assumption.
       +
@@ -330,7 +330,6 @@ Section mem_aux.
       rewrite mem_firstn_lookup_oob, mem_const_block_find_oob by assumption.
       reflexivity.
     -
-      unfold CarrierA, CarrierDefs_R in *.
       rewrite mem_firstn_lookup by assumption.
       unfold mem_union, mem_lookup.
       rewrite NP.F.map2_1bis by reflexivity.
@@ -924,7 +923,7 @@ Section BinCarrierA.
         repeat break_match_hyp; try inl_inr.
         apply eq_inr_is_OK in Heqs. rename Heqs into H1.
         apply eq_inr_is_OK in Heqs0. rename Heqs0 into H2.
-        apply IHn with (mb:=mem_add n r0 mb); clear IHn.
+        apply IHn with (mb:=mem_add n c0 mb); clear IHn.
         *
           apply E.
         *
@@ -960,8 +959,8 @@ Section BinCarrierA.
         repeat break_match_hyp; try inl_inr.
         apply eq_inr_is_OK in Heqs. rename Heqs into H1.
         apply eq_inr_is_OK in Heqs0. rename Heqs0 into H2.
-        clear Heqs1 r r0.
-        apply IHn with (mb:=mem_add n r1 mb); clear IHn.
+        clear Heqs1 c c0.
+        apply IHn with (mb:=mem_add n c1 mb); clear IHn.
         *
           apply E.
         *
@@ -992,7 +991,7 @@ Section BinCarrierA.
     -
       simpl in E.
       repeat break_match_hyp; try inl_inr.
-      apply IHn with (mb:=mem_add n r0 mb).
+      apply IHn with (mb:=mem_add n c1 mb).
       lia.
       rewrite mem_add_comm by lia.
       apply E.
@@ -1022,7 +1021,7 @@ Section BinCarrierA.
     -
       simpl in E.
       repeat break_match_hyp; try inl_inr.
-      apply IHn with (mb:=mem_add n r1 mb).
+      apply IHn with (mb:=mem_add n c2 mb).
       lia.
       rewrite mem_add_comm by lia.
       apply E.
@@ -1058,9 +1057,9 @@ Section BinCarrierA.
         repeat some_inv; repeat inl_inr_inv; subst.
         eq_to_equiv_hyp.
         err_eq_to_equiv_hyp.
-        rewrite A in *; clear A r.
+        rewrite A in *; clear A c.
 
-        assert (mem_lookup n ma = Some r0).
+        assert (mem_lookup n ma = Some c0).
         {
           eapply evalDSHIMap_preservation.
           eassumption.
@@ -1071,7 +1070,7 @@ Section BinCarrierA.
         constructor.
         reflexivity.
       +
-        apply IHn with (mb:=mem_add n r0 mb); auto.
+        apply IHn with (mb:=mem_add n c0 mb); auto.
         lia.
   Qed.
 
@@ -1106,10 +1105,10 @@ Section BinCarrierA.
         repeat some_inv; repeat inl_inr_inv; subst.
         eq_to_equiv_hyp.
         err_eq_to_equiv_hyp.
-        rewrite A in *; clear A r.
-        rewrite B in *; clear B r0.
+        rewrite A in *; clear A c.
+        rewrite B in *; clear B c0.
 
-        assert (mem_lookup n ma = Some r1).
+        assert (mem_lookup n ma = Some c1).
         {
           eapply evalDSHBinOp_preservation.
           eassumption.
@@ -1122,7 +1121,7 @@ Section BinCarrierA.
         constructor.
         reflexivity.
       +
-        apply IHn with (mb:=mem_add n r1 mb); auto.
+        apply IHn with (mb:=mem_add n c1 mb); auto.
         lia.
   Qed.
 
@@ -1148,7 +1147,7 @@ Section BinCarrierA.
         apply IHn; lia.
       +
         replace (mem_lookup k mb) with
-            (mem_lookup k (mem_add n r0 mb)).
+            (mem_lookup k (mem_add n c0 mb)).
         apply IHn. clear IHn.
         lia.
         apply ME.
@@ -1178,7 +1177,7 @@ Section BinCarrierA.
         apply IHn; lia.
       +
         replace (mem_lookup k mb) with
-            (mem_lookup k (mem_add n r1 mb)).
+            (mem_lookup k (mem_add n c1 mb)).
         apply IHn. clear IHn.
         lia.
         apply ME.
@@ -1234,11 +1233,11 @@ Section BinCarrierA.
         repeat some_inv; repeat inl_inr_inv; subst.
         eq_to_equiv_hyp.
         err_eq_to_equiv_hyp.
-        rewrite A in *; clear A r.
-        rewrite B in *; clear B r0.
-        exists r1.
+        rewrite A in *; clear A c.
+        rewrite B in *; clear B c0.
+        exists c1.
 
-        assert (mem_lookup n ma = Some r1).
+        assert (mem_lookup n ma = Some c1).
         {
           eapply evalDSHBinOp_preservation.
           eassumption.
@@ -1247,9 +1246,9 @@ Section BinCarrierA.
         }
 
         rewrite Heqs1, H.
-        auto.
+        split; reflexivity.
       +
-        apply IHn with (mb:=mem_add n r1 mb); auto.
+        apply IHn with (mb:=mem_add n c1 mb); auto.
         lia.
   Qed.
 
@@ -1318,7 +1317,7 @@ Section BinCarrierA.
       apply mem_add_overwrite.
     -
       rewrite is_OK_evalDSHIMap_mem_equiv
-        with (ma := mem_add n r0 (mem_add k v mb)).
+        with (ma := mem_add n c0 (mem_add k v mb)).
       apply IHn.
       apply mem_add_comm.
       assumption.
@@ -1345,8 +1344,8 @@ Section BinCarrierA.
       apply mem_add_overwrite.
     -
       rewrite is_OK_evalDSHBinOp_mem_equiv
-        with (ma := mem_add n r1 (mem_add k v mb))
-             (mb := mem_add k v (mem_add n r1 mb)).
+        with (ma := mem_add n c1 (mem_add k v mb))
+             (mb := mem_add k v (mem_add n c1 mb)).
       apply IHn.
       apply mem_add_comm.
       assumption.
@@ -2071,7 +2070,8 @@ Proof.
     exfalso.
     unfold mem_lookup_err, trywith in *.
     break_match; try inl_inr.
-    enough (None = Some r) by some_none.
+    enough (None = Some c) by some_none.
+    unfold CarrierA, CarrierDefs_R in *.
     rewrite <-Heqo2, <-Heqo.
     unfold mem_lookup.
     rewrite H.
@@ -2105,7 +2105,8 @@ Proof.
   -
     exfalso.
     mem_lookup_err_to_option.
-    enough (Some r = None) by some_none.
+    enough (Some c = None) by some_none.
+    unfold CarrierA, CarrierDefs_R in *.
     rewrite <-Heqo2, <-Heqs3.
     rewrite H.
     reflexivity.
@@ -2153,14 +2154,14 @@ Proof.
     inl_inr.
   -
     mem_lookup_err_to_option.
-    enough (None = Some r) by some_none.
+    enough (None = Some c) by some_none.
     rewrite <-Heqo1, <-Heqs3.
     inversion MX.
     rewrite H.
     reflexivity.
   -
     mem_lookup_err_to_option.
-    enough (None = Some r) by some_none.
+    enough (None = Some c) by some_none.
     rewrite <-Heqo1, <-Heqs3.
     inversion MX.
     rewrite H.
@@ -2177,6 +2178,7 @@ Proof.
     +
       constructor 2; [reflexivity |].
       mem_lookup_err_to_option.
+      unfold CarrierA, CarrierDefs_R in *.
       rewrite <-Heqs3, <-Heqo1.
       inversion MX.
       rewrite H.
@@ -2927,7 +2929,7 @@ Proof.
           some_none.
         --
           destruct FA.
-          specialize (bin_equiv0 r0 r).
+          specialize (bin_equiv0 c0 c).
           rewrite Heqs1 in bin_equiv0.
           inl_inr.
       *
@@ -2947,7 +2949,7 @@ Proof.
           some_none.
         --
           destruct FA.
-          specialize (bin_equiv0 r0 r).
+          specialize (bin_equiv0 c0 c).
           rewrite Heqs1 in bin_equiv0.
           inl_inr.
         --
@@ -5880,7 +5882,7 @@ Proof.
       clear Heqt2.
     cbn in *.
     repeat break_match; try inl_inr.
-    rewrite IHn with (y := mem_add n r1 y); [| assumption | lia].
+    rewrite IHn with (y := mem_add n c1 y); [| assumption | lia].
     unfold mem_lookup, mem_add.
     rewrite NP.F.add_neq_o by lia.
     reflexivity.
@@ -5922,7 +5924,7 @@ Proof.
     destruct (Nat.eq_dec k n).
     +
       subst; clear H0.
-      exists r, r0.
+      exists c, c0.
       split; [| split].
       1,2: unfold mem_lookup_err, trywith in *.
       1,2: repeat break_match; try inl_inr; repeat inl_inr_inv.
@@ -6299,7 +6301,7 @@ Proof.
     +
       unfold mem_union.
       rewrite NP.F.map2_1bis by reflexivity.
-      assert (NM.find k
+      assert (NM.find (elt:=CarrierA) k
                       (mem_merge_with_def dot init (mem_firstn o x1_m)
                                           (mem_firstn o x2_m)) = None).
       {
@@ -7402,7 +7404,7 @@ Proof.
             break_match.
             all: eq_to_equiv; rewrite K_MM in Heqo0.
             all: try some_none; some_inv.
-            rewrite <-Heqo0 in *; clear r Heqo0.
+            rewrite <-Heqo0 in *; clear c Heqo0.
             
             specialize (H0 k).
             rewrite K_MM, K_TDM in H0.
@@ -8077,8 +8079,8 @@ Proof.
               unfold mem_lookup, mem_union.
               rewrite NP.F.map2_1bis by reflexivity.
               break_match; try reflexivity.
-              enough (is_None (Some r)) by some_none.
-              rewrite <-Heqo0; clear Heqo0 r.
+              enough (is_None (Some c)) by some_none.
+              rewrite <-Heqo0; clear Heqo0 c.
               apply mem_not_in_mem_lookup.
               rewrite <-mem_merge_with_def_as_Union.
               intros C; destruct C as [C | C].
@@ -8209,7 +8211,7 @@ Proof.
               unfold mem_lookup, mem_union.
               rewrite NP.F.map2_1bis by reflexivity.
               break_match; try reflexivity.
-              enough (is_Some (@None Rdefinitions.RbaseSymbolsImpl.R)) by some_none.
+              enough (is_Some (@None CarrierA)) by some_none.
               rewrite <-Heqo0; clear Heqo0.
               apply mem_in_mem_lookup.
               rewrite <-mem_merge_with_def_as_Union.

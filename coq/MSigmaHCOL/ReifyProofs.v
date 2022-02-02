@@ -847,8 +847,9 @@ Section WithCarrierA.
               apply H1 in V. clear H1.
               apply NM.find_1 in V.
               unfold mem_lookup in Heqo0.
+              unfold CarrierA, CarrierDefs_R in *.
               rewrite Heqo0 in V. clear Heqo0 m1.
-              some_inv. clear r H1.
+              some_inv. clear c H1.
 
               assert(Is_Val (Vnth (Pick_impl bc x) (lt_0_Sn O))) as V0.
               {
@@ -882,6 +883,7 @@ Section WithCarrierA.
             apply H1 in V.
             apply NM.find_1 in V.
             unfold mem_lookup in Heqo0.
+            unfold CarrierA, CarrierDefs_R in *.
             congruence.
       Qed.
 
@@ -979,6 +981,7 @@ Section WithCarrierA.
 
             apply H1 in V0.
             apply NM.find_1 in V0.
+            unfold CarrierA, CarrierDefs_R in *.
             rewrite Heqo in V0.
             some_inv.
             unfold CarrierA, CarrierDefs_R in *.
@@ -1068,6 +1071,7 @@ Section WithCarrierA.
                 unfold mem_lookup, mem_empty in *.
                 dep_destruct k; try lia.
                 specialize (H2 0 kc).
+                unfold CarrierA, CarrierDefs_R in *.
                 rewrite H2; clear H2.
                 rewrite Vnth_0.
                 simpl.
@@ -1323,6 +1327,7 @@ Section WithCarrierA.
 
               apply H1 in V1.
               apply NM.find_1 in V1.
+              unfold CarrierA, CarrierDefs_R in *.
               rewrite Heqo0 in V1.
               some_inv.
               unfold CarrierA, CarrierDefs_R in *.
@@ -1339,10 +1344,9 @@ Section WithCarrierA.
 
               apply H1 in V2.
               apply NM.find_1 in V2.
+              unfold CarrierA, CarrierDefs_R in *.
               rewrite Heqo0 in V2.
               some_inv.
-              unfold CarrierA, CarrierDefs_R in *.
-              rewrite <-H3.
               reflexivity.
           +
             rewrite O0 by apply kc.
@@ -1634,7 +1638,8 @@ Section WithCarrierA.
                   **
                     (* k not in m *)
                     rewrite MM.
-                    replace (NM.find k m) with (@None Rdefinitions.RbaseSymbolsImpl.R)
+                    replace (NM.find (elt:=Rdefinitions.RbaseSymbolsImpl.R) k m)
+                      with (@None Rdefinitions.RbaseSymbolsImpl.R)
                       by (symmetry; apply NP.F.not_find_in_iff, NK).
                     apply not_iff_compat in P.
                     apply P in NK; clear P.
@@ -1657,6 +1662,7 @@ Section WithCarrierA.
                   clear H0 H1.
                   specialize (I2 k kc).
                   unfold mem_lookup in I2.
+                  unfold CarrierA, CarrierDefs_R in *.
                   rewrite_clear I2.
                   symmetry.
                   apply None_equiv_eq.
@@ -1976,12 +1982,13 @@ Section WithCarrierA.
           pose proof (not_iff_compat I1) as NI1.
           pose proof (not_iff_compat I2) as NI2.
           destruct H1, H2, H0, NH1, NH2, NH0, NI1, NI2, NI0.
+          unfold CarrierA, CarrierDefs_R in *.
           destruct
             (Is_Val_dec a) as [VA | NVA],
               (Is_Val_dec b) as [VB | NVB],
-                (NM.find k m0) as [vd|] eqn:FD,
-                    (NM.find  k m1) as [va|] eqn:FA,
-                      (NM.find k m2) as [vb|] eqn:FB;
+                (NM.find (elt:=Rdefinitions.RbaseSymbolsImpl.R) k m0) as [vd|] eqn:FD,
+                    (NM.find (elt:=Rdefinitions.RbaseSymbolsImpl.R) k m1) as [va|] eqn:FA,
+                      (NM.find (elt:=Rdefinitions.RbaseSymbolsImpl.R) k m2) as [vb|] eqn:FB;
 
             repeat match goal with
                    | [H: NM.MapsTo _ _ _ |- _ ]  => apply NM.find_1 in H
@@ -2005,10 +2012,12 @@ Section WithCarrierA.
           specialize (O1 k kc).
           specialize (O2 k kc).
           unfold mem_lookup in *.
+          unfold CarrierA, CarrierDefs_R in *.
           rewrite O0.
           symmetry.
           unfold mem_merge_with_def.
           rewrite NP.F.map2_1bis by reflexivity.
+          unfold CarrierA, CarrierDefs_R in *.
           rewrite O1, O2.
           reflexivity.
       Qed.
@@ -2220,6 +2229,7 @@ Section WithCarrierA.
 
             apply H1 in H.
             apply NP.F.find_mapsto_iff in H.
+            unfold CarrierA, CarrierDefs_R in *.
             rewrite H.
 
             apply Some_ne_None, NP.F.in_find_iff in H.
@@ -2277,6 +2287,7 @@ Section WithCarrierA.
 
             apply H2 in H.
             apply NP.F.find_mapsto_iff in H.
+            unfold CarrierA, CarrierDefs_R in *.
             rewrite H.
 
             apply Some_ne_None, NP.F.in_find_iff in H.
@@ -2754,21 +2765,19 @@ Section WithCarrierA.
           destruct NM.find eqn:KM1 at 1, NM.find eqn:KM2 at 1.
           +
             rewrite <-NP.F.find_mapsto_iff in *.
-            specialize (E r r0 KM1 KM2).
+            specialize (E c c0 KM1 KM2).
             rewrite E; reflexivity.
           +
             apply NP.F.not_find_in_iff in KM2.
             contradict KM2.
             apply K.
             apply NP.F.in_find_iff.
-            unfold CarrierA, CarrierDefs_R.
             congruence.
           +
             apply NP.F.not_find_in_iff in KM1.
             contradict KM1.
             apply K.
             apply NP.F.in_find_iff.
-            unfold CarrierA, CarrierDefs_R.
             congruence.
           +
             reflexivity.
@@ -2786,7 +2795,6 @@ Section WithCarrierA.
             intros k; specialize (C k).
             destruct NM.find eqn:KM1, NM.find eqn:KM2 in C; try some_none.
             all: repeat rewrite NP.F.in_find_iff.
-            all: unfold CarrierA, CarrierDefs_R.
             all: rewrite KM1, KM2.
             all: split; intros; congruence.
           +
@@ -2885,21 +2893,21 @@ Section WithCarrierA.
         rewrite NP.F.map2_1bis in H by reflexivity.
         repeat break_match; try some_none; some_inv.
         -
-          specialize (SM1 r); autospecialize SM1; [reflexivity |].
-          specialize (SM2 r0); autospecialize SM2; [reflexivity |].
-          apply (SPGP (dot r r0) x H).
+          specialize (SM1 c); autospecialize SM1; [reflexivity |].
+          specialize (SM2 c0); autospecialize SM2; [reflexivity |].
+          apply (SPGP (dot c c0) x H).
           eapply rmonoid_plus_closed with (Aunit:=svalue); try eassumption.
           typeclasses eauto.
         -
-          specialize (SM1 r); autospecialize SM1; [reflexivity |].
-          apply (SPGP (dot r svalue) x H).
+          specialize (SM1 c); autospecialize SM1; [reflexivity |].
+          apply (SPGP (dot c svalue) x H).
           eapply rmonoid_plus_closed with (Aunit:=svalue); try eassumption.
           typeclasses eauto.
           eapply rmonoid_unit_P with (Aunit:=svalue) (Aop:=dot).
           typeclasses eauto.
         -
-          specialize (SM2 r); autospecialize SM2; [reflexivity |].
-          apply (SPGP (dot svalue r) x H).
+          specialize (SM2 c); autospecialize SM2; [reflexivity |].
+          apply (SPGP (dot svalue c) x H).
           clear H x Heqo0 Heqo k m1 m2.
           eapply rmonoid_plus_closed with (Aunit:=svalue); try eassumption.
           typeclasses eauto.
@@ -2971,6 +2979,7 @@ Section WithCarrierA.
           specialize (MD k l).
           unfold mem_in in MD.
           apply NP.F.in_find_iff in MD.
+          unfold CarrierA, CarrierDefs_R in *.
           congruence.
       Qed.
 
@@ -3062,7 +3071,7 @@ Section WithCarrierA.
               inv F.
               break_if.
               some_none.
-              reflexivity.
+              assumption.
             --
               apply H.
       Qed.

@@ -388,6 +388,7 @@ Module MMSHCOL'
       rewrite 2!Vbuild_nth in Ha.
       rewrite 2!Vbuild_nth in Hb.
       apply Some_inj_equiv.
+      unfold CarrierA, CarrierDefs_R in *.
       rewrite <- Ha, <- Hb.
       rewrite H.
       reflexivity.
@@ -436,6 +437,7 @@ Module MMSHCOL'
         rewrite H.
         reflexivity.
       }
+      unfold CarrierA, CarrierDefs_R in *.
       rewrite Ha, Hb in C.
       some_none.
     -
@@ -445,6 +447,7 @@ Module MMSHCOL'
         rewrite H.
         reflexivity.
       }
+      unfold CarrierA, CarrierDefs_R in *.
       rewrite Ha, Hb in C.
       some_none.
   Qed.
@@ -539,6 +542,7 @@ Module MMSHCOL'
       specialize (O2 j jc).
       unfold mem_in, mem_lookup in *.
       apply NP.F.not_find_in_iff in O2.
+      unfold CarrierA, CarrierDefs_R in *.
       congruence.
   Qed.
 
@@ -632,6 +636,7 @@ Module MMSHCOL'
       destruct (eq_nat_dec k b).
       +
         rewrite 2!NP.F.add_eq_o by auto.
+        unfold CarrierA, CarrierDefs_R in *.
         rewrite <- Heqo0, <- Heqo.
         rewrite H.
         reflexivity.
@@ -674,6 +679,7 @@ Module MMSHCOL'
       destruct (eq_nat_dec k 0).
       +
         rewrite 2!NP.F.add_eq_o by auto.
+        unfold CarrierA, CarrierDefs_R in *.
         rewrite <- Heqo0, <- Heqo.
         rewrite H.
         reflexivity.
@@ -1896,6 +1902,7 @@ Module MMSHCOL'
       apply H in P.
       unfold mem_lookup, mem_in in *.
       apply NP.F.not_find_in_iff in M.
+      unfold CarrierA, CarrierDefs_R in *.
       congruence.
     -
       (* out_mem_fill_pattern *)
@@ -1963,6 +1970,7 @@ Module MMSHCOL'
       apply H in P.
       unfold mem_lookup, mem_in in *.
       apply NP.F.not_find_in_iff in M.
+      unfold CarrierA, CarrierDefs_R in *.
       congruence.
     -
       (* out_mem_fill_pattern *)
