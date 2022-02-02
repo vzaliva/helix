@@ -902,16 +902,18 @@ Section SHCOL_to_MSHCOL.
 
 End SHCOL_to_MSHCOL.
 
-Section MSHCOL_to_AHCOL.
+Section MSHCOL_to_RHCOL.
+
+  Import RHCOLEval.
 
   Opaque CarrierAz zero CarrierA1 one.
 
-  MetaCoq Run (reifyMSHCOL dynwin_MSHCOL1 [(BasicAst.MPfile ["DynWinProofs"; "DynWin"; "Helix"], "dynwin_MSHCOL1")] "dynwin_AHCOL" "dynwin_AHCOL_globals").
+  MetaCoq Run (reifyMSHCOL dynwin_MSHCOL1 [(BasicAst.MPfile ["DynWinProofs"; "DynWin"; "Helix"], "dynwin_MSHCOL1")] "dynwin_RHCOL" "dynwin_RHCOL_globals").
   Transparent CarrierAz zero CarrierA1 one.
 
   (* Import DSHNotation. *)
 
-  Definition nglobals := List.length (dynwin_AHCOL_globals). (* 1 *)
+  Definition nglobals := List.length (dynwin_RHCOL_globals). (* 1 *)
   Definition DSH_x_p := PVar (nglobals+1). (* PVar 2 *)
   Definition DSH_y_p := PVar (nglobals+0). (* PVar 1 *)
 
@@ -969,9 +971,9 @@ Section MSHCOL_to_AHCOL.
   (* TODO: This is a manual proof. To be automated in future. See [[../../doc/TODO.org]] for details *)
   Instance DynWin_pure
     :
-      DSH_pure (dynwin_AHCOL) DSH_y_p.
+      DSH_pure (dynwin_RHCOL) DSH_y_p.
   Proof.
-    unfold dynwin_AHCOL, DSH_y_p, DSH_x_p.
+    unfold dynwin_RHCOL, DSH_y_p, DSH_x_p.
     solve_MSH_DSH_compat.
   Qed.
 
@@ -1024,13 +1026,13 @@ Section MSHCOL_to_AHCOL.
     (* This lemma could be auto-generated from TemplateCoq *)
     Theorem DynWin_MSH_DSH_compat
       :
-        @MSH_DSH_compat dynwin_i dynwin_o (dynwin_MSHCOL1 a) (dynwin_AHCOL)
+        @MSH_DSH_compat dynwin_i dynwin_o (dynwin_MSHCOL1 a) (dynwin_RHCOL)
                         dynwin_σ
                         dynwin_memory
                         DSH_x_p DSH_y_p
                         DynWin_pure.
     Proof.
-      unfold dynwin_AHCOL, DSH_y_p, DSH_x_p.
+      unfold dynwin_RHCOL, DSH_y_p, DSH_x_p.
       unfold dynwin_x_addr, dynwin_y_addr, dynwin_a_addr, nglobals in *.
       unfold dynwin_MSHCOL1.
       cbn in *.
@@ -1437,61 +1439,7 @@ Section MSHCOL_to_AHCOL.
 
   End DummyEnv.
 
-End MSHCOL_to_AHCOL.
-
-(* TODO: move *)
-Require Import Helix.MSigmaHCOL.CarrierAasCT.
-Require Import Helix.RSigmaHCOL.RasCT.
-
-Section AHCOL_to_RHCOL.
-
-  Definition dynwin_RHCOL := AHCOLtoRHCOL.translate dynwin_AHCOL.
-
-  (* Initialize memory with X and placeholder for Y. *)
-  Definition build_dynwin_memory (a:avector 3) (x:avector dynwin_i) :=
-    AHCOLEval.memory_set
-      (AHCOLEval.memory_set (AHCOLEval.memory_set AHCOLEval.memory_empty dynwin_a_addr (avector_to_mem_block a))
-                            dynwin_x_addr
-                            (avector_to_mem_block x))
-      dynwin_y_addr
-      AHCOLEval.mem_empty.
-
-  Definition build_dynwin_σ := [
-      (AHCOLEval.DSHPtrVal dynwin_a_addr 3,false)
-      ; (AHCOLEval.DSHPtrVal dynwin_y_addr dynwin_o,false)
-      ; (AHCOLEval.DSHPtrVal dynwin_x_addr dynwin_i,false)
-    ].
-
-  Global Instance AR_NHE : AHCOLtoRHCOL.NTranslation_heq.
-    econstructor.
-    instantiate (1:=equiv).
-    typeclasses eauto.
-  Defined.
-
-  Global Instance AR_NTO : @AHCOLtoRHCOL.NTranslationOp AR_NHE.
-    econstructor.
-    instantiate (1:=inr).
-    -
-      typeclasses eauto.
-    -
-      intros.
-      invc H.
-      now cbv in *.
-    -
-      tauto.
-  Defined.
-
-  Global Instance AR_NTP : @AHCOLtoRHCOL.NTranslationProps AR_NHE.
-  Proof.
-    now repeat constructor.
-  Qed.
-
-  Global Instance AR_NOP : @AHCOLtoRHCOL.NOpTranslationProps AR_NHE.
-  Proof.
-    now repeat constructor.
-  Qed.
-
-End AHCOL_to_RHCOL.
+End MSHCOL_to_RHCOL.
 
 (* TODO: move *)
 Require Import ZArith.
