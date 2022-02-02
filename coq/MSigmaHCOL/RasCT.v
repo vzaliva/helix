@@ -7,67 +7,38 @@ Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.interfaces.orders.
 
-Require Import Helix.Util.Misc.
+Require Import Helix.HCOL.CarrierType.
 Require Import Helix.MSigmaHCOL.CType.
+Require Import Helix.MSigmaHCOL.RasCarrierA.
 
 Module MRasCT <: CType.
 
-  Definition t := R.
+  Definition t := @CarrierA CarrierDefs_R.
 
-  Definition CTypeEquiv := R_Equiv.
-  Definition CTypeSetoid := R_Setoid.
+  Definition CTypeEquiv := CarrierAe.
+  Definition CTypeSetoid := CarrierAsetoid.
+  Definition CTypeEquivDec := CarrierAequivdec.
 
-  Instance CTypeEquivDec: forall x y: t, Decision (x = y).
-  Proof.
-    intros.
-    unfold Decision.
-    apply R.OT.eq_dec.
-  Qed.
+  Definition CTypeZero  := CarrierAz.
+  Definition CTypeOne   := CarrierA1.
+  Definition CTypeZeroOneApart := CarrierA_Z_neq_One.
+  Definition CTypePlus := CarrierAplus.
 
-  Definition CTypeZero := R0.
-  Definition CTypeOne  := R1.
+  Definition CTypeNeg   := CarrierAneg.
+  Definition CTypeMult  := CarrierAmult.
 
-  Lemma CTypeZeroOneApart: R0 ≠ R1.
-  Proof.
-    unfold equiv.
-    eapply OrderedRing.SORneq_0_1.
-    apply Rsor.
-  Qed.
+  Definition CTypeAbs   := abs.
+  Definition CTypeZLess := Zless.
+  Definition CTypeMin   := @minmax.min CarrierA CarrierAle CarrierAledec.
+  Definition CTypeMax   := @minmax.max CarrierA CarrierAle CarrierAledec.
+  Definition CTypeSub   := sub.
 
-  Definition CTypePlus     := Rplus.
-  Definition CTypeNeg      := Ropp.
-  Definition CTypeMult     := Rmult.
-  Definition CTypeAbs      := Rabs.
-
-  Definition CTypeZLess (a b: R) : R :=
-    match (Rlt_dec a b) with
-    | left _ => CTypeOne
-    | right _ => CTypeZero
-    end.
-
-  Definition CTypeMin      := Rmin.
-  Definition CTypeMax      := Rmax.
-  Definition CTypeSub      := Rminus.
-
-  Instance Zless_proper: Proper ((=) ==> (=) ==> (=)) CTypeZLess.
-  Proof. solve_proper. Qed.
-
-  Instance abs_proper: Proper ((=) ==> (=)) Rabs.
-  Proof. solve_proper. Qed.
-
-  Instance plus_proper: Proper ((=) ==> (=) ==> (=)) (Rplus).
-  Proof. solve_proper. Qed.
-
-  Instance sub_proper: Proper ((=) ==> (=) ==> (=)) (Rminus).
-  Proof. solve_proper. Qed.
-
-  Instance mult_proper: Proper ((=) ==> (=) ==> (=)) (Rmult).
-  Proof. solve_proper. Qed.
-
-  Instance min_proper: Proper ((=) ==> (=) ==> (=)) (Rmin).
-  Proof. solve_proper. Qed.
-
-  Instance max_proper: Proper ((=) ==> (=) ==> (=)) (Rmax).
-  Proof. solve_proper. Qed.
+  Definition Zless_proper := CarrierType.Zless_proper.
+  Definition abs_proper := CarrierAabs_proper.
+  Definition plus_proper := CarrierAPlus_proper.
+  Definition sub_proper := CarrierA_sub_proper.
+  Definition mult_proper := CarrierAmult_proper.
+  Definition min_proper := CarrierA_min_proper.
+  Definition max_proper := CarrierA_max_proper.
 
 End MRasCT.

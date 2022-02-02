@@ -44,9 +44,9 @@ Require Import MathClasses.implementations.peano_naturals.
 Import Monoid.
 
 Module MMSHCOL'
-       (CT:CType with Definition t := R
-         with Definition CTypeEquiv := R_Equiv
-         with Definition CTypeSetoid := R_Setoid
+       (CT:CType with Definition t := @CarrierA CarrierDefs_R
+         with Definition CTypeEquiv := CarrierAe
+         with Definition CTypeSetoid := CarrierAsetoid
        )
        (Import CM:MMemSetoid CT).
 
