@@ -1884,13 +1884,6 @@ End RHCOL_to_FHCOL_numerical.
 
 Section TopLevel.
 
-  (* SHCOL -> MHCOL *)
-  Context `{CarrierASRO : @orders.SemiRingOrder
-                            CarrierA CarrierAe
-                            CarrierAplus CarrierAmult
-                            CarrierAz CarrierA1
-                            CarrierAle}.
-
   (* RHCOL -> FHCOL *)
   Context
     `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}

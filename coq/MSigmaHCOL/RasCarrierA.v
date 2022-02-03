@@ -2,6 +2,7 @@ Require Import Coq.Reals.Rdefinitions.
 Require Import Coq.Reals.Reals.
 Require Import Coq.Reals.Rminmax.
 Require Import Coq.micromega.RMicromega.
+Require Import Coq.micromega.Lra.
 
 Require Import MathClasses.interfaces.abstract_algebra.
 
@@ -102,4 +103,25 @@ Proof.
     +
       split;
         [apply Rle_not_lt | apply Rnot_lt_le].
+Qed.
+
+Global Instance R_SRO :
+  @orders.SemiRingOrder
+    CarrierA CarrierAe CarrierAplus CarrierAmult CarrierAz CarrierA1 CarrierAle.
+Proof.
+  constructor;
+    try typeclasses eauto;
+    intros.
+  -
+    exists (y - x).
+    cbv in *.
+    lra.
+  -
+    constructor; constructor.
+    1,3: constructor.
+    all: try typeclasses eauto.
+    all: intros; cbv in *; lra.
+  -
+    unfold PropHolds in *.
+    now apply Rmult_le_pos.
 Qed.
