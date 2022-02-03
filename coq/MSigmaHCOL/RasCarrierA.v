@@ -103,6 +103,9 @@ Proof.
     +
       split;
         [apply Rle_not_lt | apply Rnot_lt_le].
+  -
+    cbv.
+    lra.
 Qed.
 
 Global Instance R_SRO :

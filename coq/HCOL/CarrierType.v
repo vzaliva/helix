@@ -45,6 +45,7 @@ Class CarrierProperties `{CADEFS: CarrierDefs}: Prop :=
   ; CarrierAto  :> @TotalOrder CarrierA CarrierAe CarrierAle
   ; CarrierASSO :> @StrictSetoidOrder CarrierA CarrierAe CarrierAlt
   ; CarrierFPSO :> @FullPseudoOrder CarrierA CarrierAe (@strong_setoids.default_apart CarrierA CarrierAe) CarrierAle CarrierAlt
+  ; CarrierA_Z_neq_One : CarrierAz ≠ CarrierA1
   }.
 
 Notation avector n := (vector CarrierA n) (only parsing).
@@ -70,9 +71,6 @@ Section CarrierAExtraProperties.
 
   Global Instance CarrierA_max_proper: Proper((=) ==> (=) ==> (=)) (@max CarrierA CarrierAle CarrierAledec).
   Proof. typeclasses eauto. Qed.
-
-  (* Zero and One are two distrinct values *)
-  Axiom CarrierA_Z_neq_One: CarrierAz ≠ CarrierA1.
 
   Add Ring RingA: (stdlib_ring_theory CarrierA).
 
