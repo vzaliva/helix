@@ -4,18 +4,18 @@ Require Import Coq.Arith.Compare_dec.
 
 Require Import Coq.Strings.String.
 Require Import Coq.Arith.Peano_dec.
+Require Import Coq.Reals.Rdefinitions.
 Require Import MetaCoq.Template.All.
 
 Require Import Helix.Util.Misc.
 Require Import Helix.Util.ListSetoid.
 Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Util.FinNat.
-Require Import Helix.HCOL.CarrierType.
 Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.MSigmaHCOL.MSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
-Require Import Helix.ASigmaHCOL.ASigmaHCOL.
+Require Import Helix.RSigmaHCOL.RSigmaHCOL.
 
 Require Import Helix.Tactics.HelixTactics.
 
@@ -30,7 +30,7 @@ Require Import MathClasses.misc.util.
    ".") *)
 Require Import Coq.Program.Basics.
 
-Import AHCOL.
+Import RHCOL.
 
 Import MonadNotation.
 
@@ -47,14 +47,12 @@ Definition toDSHType (t: term): TemplateMonad DSHType :=
     => tmReturn DSHnat (* `FinNat` is treated as `nat` *)
   | (Ast.tApp
              (Ast.tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierA") [])
-             [Ast.tConst (MPdot (MPfile ["CarrierAasCT"; "MSigmaHCOL"; "Helix"])
-                                "CarrierAasCT", "CADEFS") []]) => tmReturn DSHCType
+             [Ast.tConst (BasicAst.MPfile ["RasCarrierA"; "MSigmaHCOL"; "Helix"], "CarrierDefs_R") []]) => tmReturn DSHCType
   | tApp
       (tInd {| inductive_mind := (MPfile ["VectorDef"; "Vectors"; "Coq"], "t"); inductive_ind := 0 |} _)
       [(Ast.tApp
       (Ast.tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierA") [])
-      [Ast.tConst (MPdot (MPfile ["CarrierAasCT"; "MSigmaHCOL"; "Helix"])
-                         "CarrierAasCT", "CADEFS") []]) ; nat_term] =>
+      [Ast.tConst (BasicAst.MPfile ["RasCarrierA"; "MSigmaHCOL"; "Helix"], "CarrierDefs_R") []]) ; nat_term] =>
     size <- tmUnquoteTyped nat nat_term ;;
     tmReturn (DSHPtr size) (* mapping vectors to memory blocks pointers *)
   | _ =>
@@ -113,16 +111,14 @@ Fixpoint compileAExpr (res:var_resolver) (a_e:term): TemplateMonad AExpr  :=
   | tApp (tConst (MPfile ["canonical_names"; "interfaces"; "MathClasses"], "abs") [])
          [(Ast.tApp
              (Ast.tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierA") [])
-             [Ast.tConst (MPdot (MPfile ["CarrierAasCT"; "MSigmaHCOL"; "Helix"])
-                                "CarrierAasCT", "CADEFS") []]);
+             [Ast.tConst (BasicAst.MPfile ["RasCarrierA"; "MSigmaHCOL"; "Helix"], "CarrierDefs_R") []]);
          _; _; _; a_a] =>
     d_a <- compileAExpr res a_a ;;
         tmReturn (AAbs d_a)
   | tApp (tConst (MPfile ["canonical_names"; "interfaces"; "MathClasses"], "abs") [])
          [(Ast.tApp
              (Ast.tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierA") [])
-             [Ast.tConst (MPdot (MPfile ["CarrierAasCT"; "MSigmaHCOL"; "Helix"])
-                                "CarrierAasCT", "CADEFS") []]);
+             [Ast.tConst (BasicAst.MPfile ["RasCarrierA"; "MSigmaHCOL"; "Helix"], "CarrierDefs_R") []]);
          _; _; _; _; _; a_a] =>
     d_a <- compileAExpr res a_a ;;
         tmReturn (AAbs d_a)
@@ -141,8 +137,7 @@ Fixpoint compileAExpr (res:var_resolver) (a_e:term): TemplateMonad AExpr  :=
   | tApp (tConst (MPfile ["VecUtil"; "Vector"; "Util"; "CoLoR"], "Vnth") [])
          [(Ast.tApp
              (Ast.tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierA") [])
-             [Ast.tConst (MPdot (MPfile ["CarrierAasCT"; "MSigmaHCOL"; "Helix"])
-                                "CarrierAasCT", "CADEFS") []]) ; _ ; a_v ; a_i ; _] =>
+             [Ast.tConst (BasicAst.MPfile ["RasCarrierA"; "MSigmaHCOL"; "Helix"], "CarrierDefs_R") []]) ; _ ; a_v ; a_i ; _] =>
     d_v <- compileMExpr res a_v ;;
     d_i <- compileNExpr res a_i ;;
     tmReturn (ANth d_v d_i)
@@ -173,8 +168,7 @@ Definition compileDSHBinCarrierA (res:var_resolver) (a_f:term): TemplateMonad AE
   | tApp (tConst (MPfile ["minmax"; "orders"; "MathClasses"], "max") [])
          [(Ast.tApp
              (Ast.tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "CarrierA") [])
-             [Ast.tConst (MPdot (MPfile ["CarrierAasCT"; "MSigmaHCOL"; "Helix"])
-                                "CarrierAasCT", "CADEFS") []]); _; _ ] =>
+             [Ast.tConst (BasicAst.MPfile ["RasCarrierA"; "MSigmaHCOL"; "Helix"], "CarrierDefs_R") []]); _; _ ] =>
     tmReturn (AMax (AVar 1) (AVar 0))
   | tApp (tConst (MPfile ["CarrierType"; "HCOL"; "Helix"], "Zless") []) [_] =>
     tmReturn (AZless (AVar 1) (AVar 0))
@@ -251,7 +245,7 @@ Fixpoint compileMSHCOL2DSHCOL
       tmReturn (vars, DSHBinOp no (x_p) (y_p) df )
     | Some n_SHInductor, [n ; f ; _ ; z] =>
       tmPrint "MSHInductor" ;;
-      zconst <- tmUnquoteTyped CarrierA z ;;
+      zconst <- tmUnquoteTyped R z ;;
       nc <- compileNExpr res n ;;
       df <- compileDSHBinCarrierA res f ;;
       tmReturn (vars, DSHPower nc (x_p, NConst 0) (y_p, NConst 0) df zconst)
@@ -270,7 +264,7 @@ Fixpoint compileMSHCOL2DSHCOL
       | S _ =>
         ni <- tmUnquoteTyped nat i ;;
         no <- tmUnquoteTyped nat o ;;
-        zconst <- tmUnquoteTyped CarrierA z ;;
+        zconst <- tmUnquoteTyped R z ;;
         (* freshly allocated, inside alloc before loop *)
         let t_i := PVar 0 in
         (* single inc. inside loop *)

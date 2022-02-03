@@ -1,15 +1,19 @@
-Require Import Helix.MSigmaHCOL.CType.
+Require Import ZArith.
+Require Import Coq.Reals.Reals.
+Require Import Coq.Reals.Rminmax.
+Require Import micromega.RMicromega.
 
-Require Import MathClasses.orders.minmax.
 Require Import MathClasses.interfaces.canonical_names.
+Require Import MathClasses.interfaces.abstract_algebra.
+Require Import MathClasses.interfaces.orders.
 
 Require Import Helix.HCOL.CarrierType.
+Require Import Helix.MSigmaHCOL.CType.
+Require Import Helix.MSigmaHCOL.RasCarrierA.
 
-(* =CarrierA= as =CarrierType= *)
-Module CarrierAasCT <: CType.
-  Context `{CAPROPS: CarrierProperties}.
+Module MRasCT <: CType.
 
-  Definition t := CarrierA.
+  Definition t := @CarrierA CarrierDefs_R.
 
   Definition CTypeEquiv := CarrierAe.
   Definition CTypeSetoid := CarrierAsetoid.
@@ -25,8 +29,8 @@ Module CarrierAasCT <: CType.
 
   Definition CTypeAbs   := abs.
   Definition CTypeZLess := Zless.
-  Definition CTypeMin   := @min CarrierA CarrierAle CarrierAledec.
-  Definition CTypeMax   := @max CarrierA CarrierAle CarrierAledec.
+  Definition CTypeMin   := @minmax.min CarrierA CarrierAle CarrierAledec.
+  Definition CTypeMax   := @minmax.max CarrierA CarrierAle CarrierAledec.
   Definition CTypeSub   := sub.
 
   Definition Zless_proper := CarrierType.Zless_proper.
@@ -37,4 +41,4 @@ Module CarrierAasCT <: CType.
   Definition min_proper := CarrierA_min_proper.
   Definition max_proper := CarrierA_max_proper.
 
-End CarrierAasCT.
+End MRasCT.

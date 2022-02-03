@@ -12,11 +12,12 @@ Require Import Helix.HCOL.CarrierType.
 Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.MSigmaHCOL.MemSetoid.
 Require Import Helix.MSigmaHCOL.MSigmaHCOL.
-Require Import Helix.MSigmaHCOL.MemoryOfCarrierA.
+Require Import Helix.MSigmaHCOL.MemoryOfR.
+Require Import Helix.MSigmaHCOL.RasCarrierA.
 
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
-Require Import Helix.ASigmaHCOL.ASigmaHCOL.
+Require Import Helix.RSigmaHCOL.RSigmaHCOL.
 
 (* When proving concrete functions we need to use
    some implementation defs from this packages *)
@@ -47,7 +48,7 @@ Open Scope list_scope.
 Local Open Scope monad_scope.
 Local Open Scope nat_scope.
 
-Import AHCOL.
+Import RHCOL.
 
 (* TODO: move *)
 Section list_aux.
@@ -182,10 +183,10 @@ Section mem_aux.
   Qed.
 
   Global Instance mem_union_associative :
-    Associative MMemoryOfCarrierA.mem_union.
+    Associative MMemoryOfR.mem_union.
   Proof.
     intros b1 b2 b3.
-    unfold equiv, NM_Equiv, MMemoryOfCarrierA.mem_union.
+    unfold equiv, NM_Equiv, MMemoryOfR.mem_union.
     intro k.
     repeat rewrite NP.F.map2_1bis by reflexivity.
     repeat break_match; try some_none.
@@ -1245,7 +1246,7 @@ Section BinCarrierA.
         }
 
         rewrite Heqs1, H.
-        auto.
+        split; reflexivity.
       +
         apply IHn with (mb:=mem_add n c1 mb); auto.
         lia.
@@ -1770,13 +1771,13 @@ End BinCarrierA.
 Lemma SHCOL_DSHCOL_mem_block_equiv_comp (m0 m1 m2 d01 d12 : mem_block) :
   SHCOL_DSHCOL_mem_block_equiv m0 m1 d01 →
   SHCOL_DSHCOL_mem_block_equiv m1 m2 d12 →
-  SHCOL_DSHCOL_mem_block_equiv m0 m2 (MMemoryOfCarrierA.mem_union d12 d01).
+  SHCOL_DSHCOL_mem_block_equiv m0 m2 (MMemoryOfR.mem_union d12 d01).
 Proof.
   intros D01' D12'.
   unfold SHCOL_DSHCOL_mem_block_equiv in *.
   intro k.
   specialize (D01' k); specialize (D12' k).
-  unfold mem_lookup, MMemoryOfCarrierA.mem_union in *.
+  unfold mem_lookup, MMemoryOfR.mem_union in *.
   rewrite NP.F.map2_1bis by reflexivity.
   inversion_clear D01' as [D01 E01| D01 E01];
   inversion_clear D12' as [D12 E12| D12 E12].
@@ -2047,9 +2048,9 @@ Proof.
   all: destruct evalPExpr eqn:YP in MB; try some_none; try inl_inr; rewrite YP in *.
   all: unfold Embed_mem,
               map_mem_block_elt,
-              MMemoryOfCarrierA.mem_lookup,
-              MMemoryOfCarrierA.mem_add,
-              MMemoryOfCarrierA.mem_empty
+              MMemoryOfR.mem_lookup,
+              MMemoryOfR.mem_add,
+              MMemoryOfR.mem_empty
          in MD.
   all: unfold memory_lookup_err, trywith in *.
   all: repeat break_match;
@@ -2070,6 +2071,7 @@ Proof.
     unfold mem_lookup_err, trywith in *.
     break_match; try inl_inr.
     enough (None = Some c) by some_none.
+    unfold CarrierA, CarrierDefs_R in *.
     rewrite <-Heqo2, <-Heqo.
     unfold mem_lookup.
     rewrite H.
@@ -2104,6 +2106,7 @@ Proof.
     exfalso.
     mem_lookup_err_to_option.
     enough (Some c = None) by some_none.
+    unfold CarrierA, CarrierDefs_R in *.
     rewrite <-Heqo2, <-Heqs3.
     rewrite H.
     reflexivity.
@@ -2130,9 +2133,9 @@ Proof.
   all: destruct evalPExpr eqn:YP in MB; try some_none; try inl_inr; rewrite YP in *.
   all: unfold Pick_mem,
               map_mem_block_elt,
-              MMemoryOfCarrierA.mem_lookup,
-              MMemoryOfCarrierA.mem_add,
-              MMemoryOfCarrierA.mem_empty
+              MMemoryOfR.mem_lookup,
+              MMemoryOfR.mem_add,
+              MMemoryOfR.mem_empty
          in MD.
   all: unfold memory_lookup_err, trywith in *.
   all: repeat break_match;
@@ -2175,6 +2178,7 @@ Proof.
     +
       constructor 2; [reflexivity |].
       mem_lookup_err_to_option.
+      unfold CarrierA, CarrierDefs_R in *.
       rewrite <-Heqs3, <-Heqo1.
       inversion MX.
       rewrite H.
@@ -2229,6 +2233,8 @@ Proof.
     rewrite NP.F.add_neq_o by congruence.
     reflexivity.
 Qed.
+
+Opaque CarrierA.
 
 Global Instance Pointwise_MSH_DSH_compat
        {n: nat}
@@ -2341,7 +2347,7 @@ Proof.
         (* k<n, which is normal *)
         clear OD.
         simpl in *.
-        unfold MMemoryOfCarrierA.mem_lookup in HD.
+        unfold MMemoryOfR.mem_lookup in HD.
         unfold mem_lookup.
         rewrite HD with (ip:=kc).
         clear HD md.
@@ -2595,7 +2601,7 @@ Proof.
         (* k<o, which is normal *)
         clear OD.
         simpl in *.
-        unfold MMemoryOfCarrierA.mem_lookup in HD.
+        unfold MMemoryOfR.mem_lookup in HD.
         unfold mem_lookup.
         rewrite HD with (ip:=kc).
         clear HD md.
@@ -3081,11 +3087,11 @@ Proof.
         destruct (Nat.eq_dec 0 k).
         -
           subst.
-          unfold mem_lookup, mem_add, MMemoryOfCarrierA.mem_add.
+          unfold mem_lookup, mem_add, MMemoryOfR.mem_add.
           repeat rewrite NP.F.add_eq_o by reflexivity.
           constructor 2; reflexivity.
         -
-          unfold mem_lookup, mem_add, MMemoryOfCarrierA.mem_add.
+          unfold mem_lookup, mem_add, MMemoryOfR.mem_add.
           repeat rewrite NP.F.add_neq_o by assumption.
           constructor 1; [reflexivity |].
           rewrite YME.
@@ -3303,7 +3309,7 @@ Theorem IUnion_MSH_step {i o n : nat} (mb : mem_block) (S_opf : @MSHOperatorFami
   let fn := mkFinNat (Nat.lt_succ_diag_r n) in
   mem_op (MSHIUnion S_opf) mb = mb' <- mem_op (MSHIUnion opf) mb ;;
                                 mbn <- mem_op (S_opf fn) mb ;;
-                                Some (MMemoryOfCarrierA.mem_union mbn mb').
+                                Some (MMemoryOfR.mem_union mbn mb').
 Proof.
   simpl.
   unfold IUnion_mem.
@@ -3379,7 +3385,7 @@ Proof.
     2: {
       clear.
       intros m1 m2 m3 k.
-      unfold MMemoryOfCarrierA.mem_union.
+      unfold MMemoryOfR.mem_union.
       repeat rewrite NP.F.map2_1bis by reflexivity.
       repeat break_match; reflexivity.
     }
@@ -3387,7 +3393,7 @@ Proof.
       clear.
       intros.
       split.
-      all: unfold MMemoryOfCarrierA.mem_union, MMemoryOfCarrierA.mem_empty.
+      all: unfold MMemoryOfR.mem_union, MMemoryOfR.mem_empty.
       all: intros k.
       all: rewrite NP.F.map2_1bis by reflexivity.
       all: break_match; try reflexivity.
@@ -7340,7 +7346,7 @@ Proof.
           ++
             apply mem_not_in_mem_lookup.
             rewrite <-mem_merge_with_def_as_Union.
-            unfold MMemoryOfCarrierA.mem_empty, mem_in.
+            unfold MMemoryOfR.mem_empty, mem_in.
             rewrite NP.F.empty_in_iff.
             enough (not (mem_in k mm)) by intuition.
             eapply out_mem_oob; eassumption.
@@ -7364,7 +7370,7 @@ Proof.
           ++
             rewrite firstn_mem_const_block_union.
             unfold mem_lookup, mem_union, mem_merge_with_def.
-            unfold MMemoryOfCarrierA.mem_merge_with_def.
+            unfold MMemoryOfR.mem_merge_with_def.
             repeat rewrite NP.F.map2_1bis by reflexivity.
             rewrite mem_const_block_find by assumption.
             rewrite mem_firstn_lookup by assumption.
@@ -8227,7 +8233,6 @@ Proof.
             inversion R; subst.
             f_equiv.
             f_equiv.
-            assumption.
             **
               intros j.
               specialize (H1 j).

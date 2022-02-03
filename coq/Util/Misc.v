@@ -11,6 +11,7 @@ Require Import Coq.Classes.Morphisms.
 Require Import Coq.Strings.String.
 Require Import Coq.Logic.Decidable.
 Require Export Coq.Init.Specif.
+Require Import Coq.Reals.Rdefinitions.
 
 Require Import Helix.Tactics.HelixTactics.
 
@@ -378,3 +379,8 @@ Proof.
   unfold equiv, products.prod_equiv in E.
   crush.
 Qed.
+
+Instance R_Equiv: Equiv R := eq.
+
+Instance R_Setoid: Setoid R.
+Proof. split; auto. Qed.

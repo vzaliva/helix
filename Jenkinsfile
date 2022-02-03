@@ -3,7 +3,7 @@
     def BUILD_IF_BRANCH = ['master','develop']
  */
 
-def BUILD_IF_BRANCH = ['master']
+def BUILD_IF_BRANCH = ['master','mhcol_on_r']
 
 pipeline {
     agent { 

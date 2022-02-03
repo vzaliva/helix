@@ -259,6 +259,119 @@ Module Type MMemSetoid (CT : CType).
       reflexivity.
   Qed.
 
+  Instance mem_keys_set_proper:
+    Proper ((=) ==> NS.Equal) (mem_keys_set).
+  Proof.
+    simpl_relation.
+    rename H into E.
+    rewrite <- 2!mem_keys_set_In.
+    apply mem_in_proper; auto.
+  Qed.
+
+  Instance mem_union_proper:
+    Proper (equiv ==> equiv ==> equiv) (mem_union).
+  Proof.
+    intros m0 m0' Em0 m1 m1' Em1.
+    unfold mem_union.
+    mem_index_equiv k.
+    rewrite 2!NP.F.map2_1bis by auto.
+    unfold equiv, NM_Equiv in Em0.
+    unfold equiv, NM_Equiv in Em1.
+    specialize (Em0 k).
+    specialize (Em1 k).
+    repeat break_match; try some_none; auto.
+  Qed.
+
+  Instance mem_merge_proper:
+    Proper (equiv ==> equiv ==> equiv) (mem_merge).
+  Proof.
+    intros m0 m0' Em0 m1 m1' Em1.
+    unfold mem_merge.
+    repeat break_if; try some_none.
+    -
+      f_equiv.
+      rewrite Em0, Em1.
+      reflexivity.
+    -
+      unfold is_disjoint in *.
+      rewrite Em0, Em1 in Heqb.
+      congruence.
+    -
+      unfold is_disjoint in *.
+      rewrite Em0, Em1 in Heqb.
+      congruence.
+  Qed.
+
+  Instance mem_merge_with_proper
+    : Proper ((equiv ==> equiv ==> equiv)
+                ==> equiv ==> equiv ==> equiv) (mem_merge_with).
+  Proof.
+    intros f g Efg m0 m0' Em0 m1 m1' Em1.
+    unfold mem_merge_with.
+    unfold equiv, NM_Equiv in *.
+    intros k.
+    specialize (Em0 k).
+    specialize (Em1 k).
+    rewrite 2!NP.F.map2_1bis by auto.
+
+    repeat break_match; try some_none; auto.
+    repeat some_inv.
+    f_equiv.
+    apply Efg; auto.
+  Qed.
+
+  Instance mem_merge_with_def_proper
+    : Proper ((equiv ==> equiv ==> equiv) ==> equiv ==> equiv ==> equiv ==> equiv) (mem_merge_with_def).
+  Proof.
+    intros f g Efg d d' Ed m0 m0' Em0 m1 m1' Em1.
+    unfold mem_merge_with_def.
+    unfold equiv, NM_Equiv in *.
+    intros k.
+    specialize (Em0 k).
+    specialize (Em1 k).
+    rewrite 2!NP.F.map2_1bis by auto.
+    repeat break_match; try some_none; auto;
+      repeat some_inv; f_equiv; try apply Efg; auto.
+  Qed.
+
+  Global Instance mem_merge_with_def_Comm
+         (dot : CT.t → CT.t → CT.t)
+         (initial : CT.t)
+         (dot_commut: Commutative dot)
+    : Commutative (mem_merge_with_def dot initial).
+  Proof.
+    intros x y k.
+    unfold mem_merge_with_def.
+    rewrite 2!NP.F.map2_1bis by reflexivity.
+    repeat break_match; f_equiv; apply dot_commut.
+  Qed.
+
+  Global Instance mem_merge_with_def_Assoc
+         (dot : CT.t → CT.t → CT.t)
+         (initial : CT.t)
+
+        `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
+         (dot_assoc : Associative dot)
+         (dot_left_id: LeftIdentity dot initial)
+         (dot_right_id: RightIdentity dot initial)
+    :
+    Associative (mem_merge_with_def dot initial).
+  Proof.
+    intros x y z k.
+    unfold Associative,HeteroAssociative in dot_assoc.
+    unfold LeftIdentity in dot_left_id.
+    unfold RightIdentity in dot_right_id.
+
+    unfold mem_merge_with_def.
+    rewrite 4!NP.F.map2_1bis by reflexivity.
+    repeat break_match; try some_none;
+      f_equiv; repeat some_inv; try apply dot_assoc.
+
+    rewrite 2!dot_right_id; reflexivity.
+    rewrite 2!dot_left_id; reflexivity.
+  Qed.
+
+
 End MMemSetoid.
 
 Definition NM_err_seq_step
