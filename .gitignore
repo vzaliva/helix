@@ -74,3 +74,4 @@ experiments/dywin.s
 auto-save-list
 tramp
 .\#*
+/experiments/.ipynb_checkpoints/
