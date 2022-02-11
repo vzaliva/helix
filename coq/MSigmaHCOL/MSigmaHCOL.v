@@ -25,9 +25,6 @@ Require Import Helix.HCOL.CarrierType.
 Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.MSigmaHCOL.MemSetoid.
 Require Import Helix.MSigmaHCOL.CType.
-Require Import Helix.MSigmaHCOL.RasCT.
-Require Import Helix.MSigmaHCOL.RasCarrierA.
-Require Import Helix.MSigmaHCOL.MemoryOfR.
 
 Require Import Helix.Tactics.HelixTactics.
 
@@ -107,11 +104,9 @@ Module Type MTMSHCOL (CT:CType) (Import CM:MMemSetoid(CT)).
 End MTMSHCOL.
 
 Module MMSHCOL'
-       (CT:CType with Definition t := @CarrierA CarrierDefs_R
-         with Definition CTypeEquiv := CarrierAe
-         with Definition CTypeSetoid := CarrierAsetoid)
+       (CT:CType)
        (Import CM:MMemSetoid CT)
-<: MTMSHCOL(CT)(CM).
+<: MTMSHCOL(CT)(CM) .
 
   Open Scope nat_scope.
 
@@ -293,19 +288,19 @@ Module MMSHCOL'
   Qed.
 
   Lemma find_fold_right_indexed'_off:
-    forall (n i : nat) (off:nat) (x : vector CarrierA n),
-      NM.find (elt:=CarrierA) (i+off) (Vfold_right_indexed' (0+off) mem_add x mem_empty) ≡
-              NM.find (elt:=CarrierA) i (Vfold_right_indexed' 0 mem_add x mem_empty).
+    forall (n i : nat) (off:nat) (x : vector CT.t n),
+      NM.find (elt:=CT.t) (i+off) (Vfold_right_indexed' (0+off) mem_add x mem_empty) ≡
+              NM.find (elt:=CT.t) i (Vfold_right_indexed' 0 mem_add x mem_empty).
   Proof.
     intros n i off v.
 
-    remember (@Basics.const Prop CarrierA True) as P.
+    remember (@Basics.const Prop CT.t True) as P.
     assert(Pdec: forall x, sumbool (P x) (not (P x)))
       by (intros x; left; subst P; unfold Basics.const;  tauto).
-    remember (@id CarrierA) as f.
+    remember (@id CT.t) as f.
     unfold mem_empty.
     replace mem_add with
-        (fun (k : nat) (r : CarrierA) (m : NM.t CarrierA) =>
+        (fun (k : nat) (r : CT.t) (m : NM.t CT.t) =>
            if Pdec r
            then
              NM.add k (f r) m
@@ -321,9 +316,9 @@ Module MMSHCOL'
   Qed.
 
   Lemma find_fold_right_indexed'_S:
-    forall (n i : nat) (v : vector CarrierA n),
-      NM.find (elt:=CarrierA) (S i) (Vfold_right_indexed' 1 mem_add v mem_empty) ≡
-              NM.find (elt:=CarrierA) i (Vfold_right_indexed' 0 mem_add v mem_empty).
+    forall (n i : nat) (v : vector CT.t n),
+      NM.find (elt:=CT.t) (S i) (Vfold_right_indexed' 1 mem_add v mem_empty) ≡
+              NM.find (elt:=CT.t) i (Vfold_right_indexed' 0 mem_add v mem_empty).
   Proof.
     intros n i v.
 
@@ -332,12 +327,15 @@ Module MMSHCOL'
     apply find_fold_right_indexed'_off.
   Qed.
 
-  Definition mem_block_to_avector {n} (m: mem_block): option (vector CarrierA n)
+  Definition mem_block_to_ctvector {n} (m: mem_block): option (vector CT.t n)
     := vsequence (Vbuild (fun i (ic:i<n) => mem_lookup i m)).
 
-  Program Definition avector_to_mem_block_spec
+  (* equivalent to [ctvector], [CT.t] instead of [CarrierA] *)
+  Notation ctvector n := (vector CT.t n) (only parsing).
+
+  Program Definition ctvector_to_mem_block_spec
           {n : nat}
-          (v : avector n):
+          (v : ctvector n):
     { m : mem_block | forall i (ip : i < n), mem_lookup i m ≡ Some (Vnth v ip)}
     := Vfold_right_indexed' 0 mem_add v mem_empty.
   Next Obligation.
@@ -362,13 +360,13 @@ Module MMSHCOL'
         apply find_fold_right_indexed'_S.
   Qed.
 
-  Definition avector_to_mem_block {n:nat} (v:avector n) : mem_block := proj1_sig (avector_to_mem_block_spec v).
+  Definition ctvector_to_mem_block {n:nat} (v:ctvector n) : mem_block := proj1_sig (ctvector_to_mem_block_spec v).
 
-  Lemma avector_to_mem_block_key_oob {n:nat} {v: avector n}:
-    forall (k:nat) (kc:ge k n), mem_lookup k (avector_to_mem_block v) ≡ None.
+  Lemma ctvector_to_mem_block_key_oob {n:nat} {v: ctvector n}:
+    forall (k:nat) (kc:ge k n), mem_lookup k (ctvector_to_mem_block v) ≡ None.
   Proof.
     intros k kc.
-    unfold avector_to_mem_block.
+    unfold ctvector_to_mem_block.
     simpl.
     revert k kc; induction v; intros.
     -
@@ -387,8 +385,8 @@ Module MMSHCOL'
         lia.
   Qed.
 
-  Lemma mem_block_to_avector_eq_None {n m}:
-    @mem_block_to_avector n m ≡ None ->
+  Lemma mem_block_to_ctvector_eq_None {n m}:
+    @mem_block_to_ctvector n m ≡ None ->
     exists j (jc:j<n), mem_lookup j m ≡ None.
   Proof.
     intros H.
@@ -396,49 +394,49 @@ Module MMSHCOL'
     apply H.
   Qed.
 
-  Lemma mem_lookup_avector_to_mem_block
+  Lemma mem_lookup_ctvector_to_mem_block
         {n:nat}
-        {v: avector n}:
-    forall (k:nat) (kc:lt k n), mem_lookup k (avector_to_mem_block v) ≡ Some (Vnth v kc).
+        {v: ctvector n}:
+    forall (k:nat) (kc:lt k n), mem_lookup k (ctvector_to_mem_block v) ≡ Some (Vnth v kc).
   Proof.
     intros k kc.
-    unfold avector_to_mem_block.
-    destruct (avector_to_mem_block_spec v) as [m H0].
+    unfold ctvector_to_mem_block.
+    destruct (ctvector_to_mem_block_spec v) as [m H0].
     apply H0.
   Qed.
 
-  Lemma mem_lookup_avector_to_mem_block_equiv
+  Lemma mem_lookup_ctvector_to_mem_block_equiv
         {n:nat}
-        {v: avector n}:
-    forall (k:nat) (kc:lt k n), mem_lookup k (avector_to_mem_block v) = Some (Vnth v kc).
+        {v: ctvector n}:
+    forall (k:nat) (kc:lt k n), mem_lookup k (ctvector_to_mem_block v) = Some (Vnth v kc).
   Proof.
     intros k kc.
-    unfold avector_to_mem_block.
-    destruct (avector_to_mem_block_spec v) as [m H0].
+    unfold ctvector_to_mem_block.
+    destruct (ctvector_to_mem_block_spec v) as [m H0].
     apply Option_equiv_eq.
     apply H0.
   Qed.
 
 
-  Lemma mem_block_avector_id {n} {v:avector n}:
-    (mem_block_to_avector (avector_to_mem_block v)) ≡ Some v.
+  Lemma mem_block_ctvector_id {n} {v:ctvector n}:
+    (mem_block_to_ctvector (ctvector_to_mem_block v)) ≡ Some v.
   Proof.
-    unfold mem_block_to_avector.
+    unfold mem_block_to_ctvector.
     apply vsequence_Vbuild_eq_Some.
     vec_index_equiv i ip.
     rewrite Vbuild_nth.
     rewrite Vnth_map.
-    unfold avector_to_mem_block.
-    destruct (avector_to_mem_block_spec v) as [m H].
+    unfold ctvector_to_mem_block.
+    destruct (ctvector_to_mem_block_spec v) as [m H].
     apply H.
   Qed.
 
 
-  Instance mem_block_to_avector_proper {n:nat}:
-    Proper ((equiv) ==> (equiv)) (@mem_block_to_avector n).
+  Instance mem_block_to_ctvector_proper {n:nat}:
+    Proper ((equiv) ==> (equiv)) (@mem_block_to_ctvector n).
   Proof.
     simpl_relation.
-    unfold mem_block_to_avector.
+    unfold mem_block_to_ctvector.
     destruct_opt_r_equiv.
     -
       apply vsequence_Vbuild_eq_Some in Ha.
@@ -451,7 +449,6 @@ Module MMSHCOL'
       rewrite 2!Vbuild_nth in Ha.
       rewrite 2!Vbuild_nth in Hb.
       apply Some_inj_equiv.
-      unfold CarrierA, CarrierDefs_R in *.
       rewrite <- Ha, <- Hb.
       rewrite H.
       reflexivity.
@@ -479,17 +476,16 @@ Module MMSHCOL'
       some_none.
   Qed.
 
-  Instance avector_to_mem_block_proper {n:nat}:
-    Proper ((equiv) ==> (equiv)) (@avector_to_mem_block n).
+  Instance ctvector_to_mem_block_proper {n:nat}:
+    Proper ((equiv) ==> (equiv)) (@ctvector_to_mem_block n).
   Proof.
     simpl_relation.
-    unfold avector_to_mem_block.
+    unfold ctvector_to_mem_block.
     simpl.
     destruct_opt_r_equiv.
     -
-      rename r into a, r0 into b.
+      rename t into a, t0 into b.
       apply Some_inj_equiv.
-      unfold CT.t.
       rewrite <- Ha, <- Hb.
       rewrite H.
       reflexivity.
@@ -500,7 +496,6 @@ Module MMSHCOL'
         rewrite H.
         reflexivity.
       }
-      unfold CarrierA, CarrierDefs_R in *.
       rewrite Ha, Hb in C.
       some_none.
     -
@@ -510,36 +505,35 @@ Module MMSHCOL'
         rewrite H.
         reflexivity.
       }
-      unfold CarrierA, CarrierDefs_R in *.
       rewrite Ha, Hb in C.
       some_none.
   Qed.
 
-  Ltac avector_to_mem_block_to_spec m H0 H1 :=
+  Ltac ctvector_to_mem_block_to_spec m H0 H1 :=
     match goal with
-    | [ |- context[avector_to_mem_block_spec ?v]] =>
-      pose proof (avector_to_mem_block_key_oob (v:=v)) as H1;
-      unfold avector_to_mem_block in H1 ;
-      destruct (avector_to_mem_block_spec v) as [m H0]
+    | [ |- context[ctvector_to_mem_block_spec ?v]] =>
+      pose proof (ctvector_to_mem_block_key_oob (v:=v)) as H1;
+      unfold ctvector_to_mem_block in H1 ;
+      destruct (ctvector_to_mem_block_spec v) as [m H0]
 
-    | [ H: context[avector_to_mem_block_spec ?v] |- _] =>
-      pose proof (avector_to_mem_block_key_oob (v:=v)) as H1;
-      unfold avector_to_mem_block in H1 ;
-      destruct (avector_to_mem_block_spec v) as [m H0]
+    | [ H: context[ctvector_to_mem_block_spec ?v] |- _] =>
+      pose proof (ctvector_to_mem_block_key_oob (v:=v)) as H1;
+      unfold ctvector_to_mem_block in H1 ;
+      destruct (ctvector_to_mem_block_spec v) as [m H0]
     end.
 
   (* HOperator (on dense vector) mapping to memory operator *)
-  Definition mem_op_of_hop {i o: nat} (op: vector CarrierA i -> vector CarrierA o)
+  Definition mem_op_of_hop {i o: nat} (op: vector CT.t i -> vector CT.t o)
     : mem_block -> option mem_block
-    := fun x => match mem_block_to_avector x with
+    := fun x => match mem_block_to_ctvector x with
              | None => None
-             | Some x' => Some (avector_to_mem_block (op x'))
+             | Some x' => Some (ctvector_to_mem_block (op x'))
              end.
 
   Lemma mem_out_some_mem_op_of_hop
         (i o : nat)
         {m: mem_block}
-        (g : vector CarrierA i → vector CarrierA o)
+        (g : vector CT.t i → vector CT.t o)
         (H: forall (j : nat) (jc : j < i), Full_set (FinNat i) (mkFinNat jc) → mem_in j m):
     is_Some (mem_op_of_hop g m).
   Proof.
@@ -549,7 +543,7 @@ Module MMSHCOL'
     *
       exfalso.
       rename Heqo0 into M.
-      unfold mem_block_to_avector in M.
+      unfold mem_block_to_ctvector in M.
       apply vsequence_eq_None in M.
       destruct M as [j [jc M]].
       rewrite Vbuild_nth in M.
@@ -568,7 +562,7 @@ Module MMSHCOL'
    *)
   Fact out_mem_fill_pattern_mem_op_of_hop
        {i o : nat}
-       {g : vector CarrierA i → vector CarrierA o}
+       {g : vector CT.t i → vector CT.t o}
        {m0 m: mem_block}
     :
       (mem_op_of_hop g m0 ≡ Some m)
@@ -587,8 +581,8 @@ Module MMSHCOL'
       split.
       +
         intros F.
-        unfold avector_to_mem_block.
-        avector_to_mem_block_to_spec m2 H2 O2.
+        unfold ctvector_to_mem_block.
+        ctvector_to_mem_block_to_spec m2 H2 O2.
         clear O2. simpl in *.
         specialize (H2 j jc).
         unfold mem_in, mem_lookup in *.
@@ -599,13 +593,12 @@ Module MMSHCOL'
         apply Full_intro.
     -
       intros C.
-      unfold avector_to_mem_block in C.
-      avector_to_mem_block_to_spec m2 H2 O2.
+      unfold ctvector_to_mem_block in C.
+      ctvector_to_mem_block_to_spec m2 H2 O2.
       simpl in *.
       specialize (O2 j jc).
       unfold mem_in, mem_lookup in *.
       apply NP.F.not_find_in_iff in O2.
-      unfold CarrierA, CarrierDefs_R in *.
       congruence.
   Qed.
 
@@ -699,7 +692,6 @@ Module MMSHCOL'
       destruct (eq_nat_dec k b).
       +
         rewrite 2!NP.F.add_eq_o by auto.
-        unfold CarrierA, CarrierDefs_R in *.
         rewrite <- Heqo0, <- Heqo.
         rewrite H.
         reflexivity.
@@ -742,7 +734,6 @@ Module MMSHCOL'
       destruct (eq_nat_dec k 0).
       +
         rewrite 2!NP.F.add_eq_o by auto.
-        unfold CarrierA, CarrierDefs_R in *.
         rewrite <- Heqo0, <- Heqo.
         rewrite H.
         reflexivity.
@@ -1607,12 +1598,33 @@ Module MMSHCOL'
     apply option_compose_proper; [ apply mop1 | apply mop2].
   Qed.
 
+  Definition CTHPointwise
+             {n: nat}
+             (f: FinNat n -> CT.t -> CT.t)
+             (x: ctvector n): ctvector n
+    := Vbuild (fun j jd => f (mkFinNat jd) (Vnth x jd)).
+
+  Instance CTHPointwise_Proper
+         {n: nat}
+         {f: FinNat n -> CT.t -> CT.t}
+         `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
+    Proper ((=) ==> (=)) (@CTHPointwise n f).
+  Proof.
+    intros x y E.
+    apply Vforall2_intro_nth.
+    intros j jc.
+    setoid_rewrite Vbuild_nth.
+    apply pF.
+    - reflexivity.
+    - apply Vnth_proper, E.
+  Qed.
+
   Definition MSHPointwise
              {n: nat}
              (f: FinNat n -> CT.t -> CT.t)
              `{pF: !Proper ((=) ==> (=) ==> (=)) f}
     := @mkMSHOperator n n
-                      (mem_op_of_hop (HPointwise f))
+                      (mem_op_of_hop (CTHPointwise f))
                       _
                       (Full_set _)
                       (Full_set _).
@@ -1634,15 +1646,86 @@ Module MMSHCOL'
                       (FinNatSet.singleton b)
                       (Full_set _).
 
+  Definition CTBinOp {n}
+             (f: FinNat n -> CT.t -> CT.t -> CT.t)
+             (ab: (ctvector n)*(ctvector n))
+    : ctvector n :=
+    match ab with
+    | (a,b) =>  Vmap2SigIndexed f a b
+    end.
+
+  Definition CTHBinOp {o}
+             (f: FinNat o -> CT.t -> CT.t -> CT.t)
+    : ctvector (o+o) -> ctvector o
+    :=  CTBinOp f ∘ (vector2pair o).
+
+  Instance HBinOp_HOperator {o}
+           (f: FinNat o -> CT.t -> CT.t -> CT.t)
+           `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
+    Proper ((=) ==> (=)) (@CTHBinOp o f).
+  Proof.
+    intros x y E.
+    unfold CTHBinOp, CTBinOp.
+    unfold compose, Lst, vector2pair.
+    assert (Vbreak x = Vbreak y) by now rewrite E.
+    repeat break_let.
+    invc H.
+    rewrite H0, H1.
+    reflexivity.
+  Qed.
+
   Definition MSHBinOp
              {o: nat}
              (f: {n:nat|n<o} -> CT.t -> CT.t -> CT.t)
              `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
     := @mkMSHOperator (o+o) o
-                      (mem_op_of_hop (HBinOp f))
+                      (mem_op_of_hop (CTHBinOp f))
                       _
                       (Full_set _)
                       (Full_set _).
+
+  Definition CTInductor (n:nat) (f:CT.t -> CT.t -> CT.t)
+             (initial: CT.t) (v:CT.t)
+    : CT.t :=  nat_rect _ initial (fun _ x => f x v) n.
+
+  Instance Inductor_proper {n:nat}:
+    Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) (@CTInductor n).
+  Proof.
+    intros f f' fEq ini ini' iniEq v v' vEq.
+    induction n.
+    -
+      unfold CTInductor.
+      apply iniEq.
+    -
+      simpl.
+      apply fEq.
+      apply IHn.
+      apply vEq.
+  Qed.
+
+  Definition CTScalarize (x: ctvector 1) : CT.t := Vhead x.
+
+  Definition CTHInductor
+             (n:nat)
+             (f:CT.t -> CT.t -> CT.t)
+             (initial: CT.t)
+    : ctvector 1 -> ctvector 1
+    := Lst ∘ CTInductor n f initial ∘ CTScalarize.
+
+  Instance CTHInductor_Proper
+           (n:nat)
+           (f:CT.t -> CT.t -> CT.t)
+           `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+           (initial: CT.t):
+    Proper ((=) ==> (=)) (CTHInductor n f initial).
+  Proof.
+    intros x y E.
+    unfold HInductor.
+    unfold compose, Lst.
+    apply Vcons_single_elim.
+    rewrite E.
+    reflexivity.
+  Qed.
 
   Definition Inductor_mem
              (n:nat)
@@ -1654,8 +1737,8 @@ Module MMSHCOL'
       | O => fun _ =>
               (* For [n=0] it always succeeds and do not event attempt
                  to read input vector *)
-              Some (avector_to_mem_block (Lst initial))
-      | _ => mem_op_of_hop (HInductor n f initial)
+              Some (ctvector_to_mem_block (Lst initial))
+      | _ => mem_op_of_hop (CTHInductor n f initial)
       end.
 
   Global Instance Inductor_mem_proper
@@ -1965,7 +2048,6 @@ Module MMSHCOL'
       apply H in P.
       unfold mem_lookup, mem_in in *.
       apply NP.F.not_find_in_iff in M.
-      unfold CarrierA, CarrierDefs_R in *.
       congruence.
     -
       (* out_mem_fill_pattern *)
@@ -2033,7 +2115,6 @@ Module MMSHCOL'
       apply H in P.
       unfold mem_lookup, mem_in in *.
       apply NP.F.not_find_in_iff in M.
-      unfold CarrierA, CarrierDefs_R in *.
       congruence.
     -
       (* out_mem_fill_pattern *)
@@ -2961,6 +3042,10 @@ Module MMSHCOL'
 
 End MMSHCOL'.
 
+Require Import Helix.MSigmaHCOL.RasCT.
+Require Import Helix.MSigmaHCOL.MemoryOfR.
+(* Require Import Helix.MSigmaHCOL.RasCarrierA. *)
+
 (* There will be only one instance of MMSCHOL', as it is always
-   defined on [CarrierA]. *)
+   defined on [CT.t]. *)
 Module Export MMSCHOL := MMSHCOL'(MRasCT)(MMemoryOfR).
