@@ -150,16 +150,16 @@ Section mem_aux.
       reflexivity.
   Qed.
 
-  Lemma mem_block_to_avector_nth
+  Lemma mem_block_to_ctvector_nth
         {n : nat}
         {mx : mem_block}
         {vx : vector CarrierA n}
-        (E: mem_block_to_avector mx ≡ Some vx)
+        (E: mem_block_to_ctvector mx ≡ Some vx)
         {k: nat}
         {kc: (k < n)%nat}:
     mem_lookup k mx ≡ Some (Vnth vx kc).
   Proof.
-    unfold mem_block_to_avector in E.
+    unfold mem_block_to_ctvector in E.
     apply vsequence_Vbuild_eq_Some in E.
     apply Vnth_arg_eq with (ip:=kc) in E.
     rewrite Vbuild_nth in E.
@@ -177,7 +177,7 @@ Section mem_aux.
     intros H k kc.
     unfold mem_op_of_hop in H.
     break_match_hyp; try some_none.
-    apply mem_block_to_avector_nth with (kc0:=kc) in Heqo0.
+    apply mem_block_to_ctvector_nth with (kc0:=kc) in Heqo0.
     apply eq_Some_is_Some in Heqo0.
     apply Heqo0.
   Qed.
@@ -2236,6 +2236,18 @@ Qed.
 
 Opaque CarrierA.
 
+Lemma CTHPointwise_nth
+      {n: nat}
+      (f: FinNat n -> CarrierA -> CarrierA)
+      {j:nat} {jc:j<n}
+      (x: avector n):
+  Vnth (CTHPointwise f x) jc ≡ f (j ↾ jc) (Vnth x jc).
+Proof.
+  unfold CTHPointwise.
+  rewrite Vbuild_nth.
+  reflexivity.
+Qed.
+
 Global Instance Pointwise_MSH_DSH_compat
        {n: nat}
        {f: FinNat n -> CarrierA -> CarrierA}
@@ -2253,7 +2265,7 @@ Proof.
   split.
   intros mx mb MX MB.
   simpl.
-  destruct (mem_op_of_hop (HPointwise f) mx) as [md|] eqn:MD.
+  destruct (mem_op_of_hop (CTHPointwise f) mx) as [md|] eqn:MD.
   -
     unfold lookup_PExpr_wsize, lookup_PExpr in *.
     simpl in *.
@@ -2340,8 +2352,8 @@ Proof.
       clear MD md.
       rename t into vx.
 
-      unfold avector_to_mem_block.
-      avector_to_mem_block_to_spec md HD OD.
+      unfold ctvector_to_mem_block.
+      ctvector_to_mem_block_to_spec md HD OD.
       destruct (NatUtil.lt_ge_dec k n) as [kc | kc].
       *
         (* k<n, which is normal *)
@@ -2358,7 +2370,7 @@ Proof.
         --
           inversion_clear FDF as [FV].
 
-          rewrite HPointwise_nth with (jc:=kc).
+          rewrite CTHPointwise_nth with (jc:=kc).
 
           pose proof (evalDSHIMap_mem_lookup_mx ME k kc) as A.
 
@@ -2375,7 +2387,7 @@ Proof.
           inversion FV.
           subst.
 
-          pose proof (mem_block_to_avector_nth Heqo (kc:=kc)) as MVA.
+          pose proof (mem_block_to_ctvector_nth Heqo (kc:=kc)) as MVA.
           eq_to_equiv.
           rewrite <-H1, A in MVA; some_inv.
           rewrite H3, H6, MVA.
@@ -2410,7 +2422,7 @@ Proof.
     break_match_hyp; try some_none.
     clear MD.
     rename Heqo into MX.
-    unfold mem_block_to_avector in MX.
+    unfold mem_block_to_ctvector in MX.
     apply vsequence_Vbuild_eq_None in MX.
     destruct n.
     *
@@ -2486,6 +2498,32 @@ Proof.
     reflexivity.    
 Qed.
 
+Lemma HBinOp_nth
+      {o}
+      {f: FinNat o -> CarrierA -> CarrierA -> CarrierA}
+      {v: avector (o+o)}
+      {j:nat}
+      (jc: j<o)
+      (jc1:j<o+o)
+      (jc2: (j+o)<o+o)
+  :
+    Vnth (@CTHBinOp o f v) jc ≡ f (mkFinNat jc) (Vnth v jc1) (Vnth v jc2).
+Proof.
+  unfold CTHBinOp, compose, vector2pair, CTBinOp.
+
+  break_let.
+
+  replace t with (fst (Vbreak v)) by crush.
+  replace t0 with (snd (Vbreak v)) by crush.
+  clear Heqp.
+
+  rewrite Vnth_Vmap2SigIndexed.
+  f_equiv.
+
+  rewrite Vnth_fst_Vbreak with (jc3:=jc1); reflexivity.
+  rewrite Vnth_snd_Vbreak with (jc3:=jc2); reflexivity.
+Qed.
+
 Global Instance BinOp_MSH_DSH_compat
        {o: nat}
        {f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA}
@@ -2503,7 +2541,7 @@ Proof.
   split.
   intros mx mb MX MB.
   simpl.
-  destruct (mem_op_of_hop (HCOL.HBinOp f) mx) as [md|] eqn:MD.
+  destruct (mem_op_of_hop (CTHBinOp f) mx) as [md|] eqn:MD.
   -
     unfold lookup_PExpr, lookup_PExpr_wsize in *.
     simpl in *.
@@ -2593,9 +2631,9 @@ Proof.
       rewrite <- MD.
       clear MD md.
       rename t into vx.
-      unfold avector_to_mem_block.
+      unfold ctvector_to_mem_block.
 
-      avector_to_mem_block_to_spec md HD OD.
+      ctvector_to_mem_block_to_spec md HD OD.
       destruct (NatUtil.lt_ge_dec k o) as [kc | kc].
       *
         (* k<o, which is normal *)
@@ -2633,8 +2671,8 @@ Proof.
           inversion FV.
           subst.
           
-          pose proof (mem_block_to_avector_nth Heqo0 (kc:=kc1)) as MVA.
-          pose proof (mem_block_to_avector_nth Heqo0 (kc:=kc2)) as MVB.
+          pose proof (mem_block_to_ctvector_nth Heqo0 (kc:=kc1)) as MVA.
+          pose proof (mem_block_to_ctvector_nth Heqo0 (kc:=kc2)) as MVB.
           rewrite H, H1 in *.
           rewrite MVA, MVB in *.
           repeat some_inv.
@@ -2671,7 +2709,7 @@ Proof.
     break_match_hyp; try some_none.
     clear MD.
     rename Heqo0 into MX.
-    unfold mem_block_to_avector in MX.
+    unfold mem_block_to_ctvector in MX.
     apply vsequence_Vbuild_eq_None in MX.
     destruct o.
     *
@@ -2863,7 +2901,7 @@ Proof.
       (* [x_m] is dense *)
       rename Heqo into XD.
       assert(0<1) as jc by lia.
-      apply mem_block_to_avector_nth with (kc:=jc) in XD.
+      apply mem_block_to_ctvector_nth with (kc:=jc) in XD.
 
       cbn in DOP.
       unfold NatAsNT.MNatAsNT.to_nat in *.
@@ -3001,7 +3039,7 @@ Proof.
 
     (* [x_m] is not dense *)
     rename Heqo into XD.
-    apply mem_block_to_avector_eq_None in XD.
+    apply mem_block_to_ctvector_eq_None in XD.
 
     unfold memory_lookup_err, trywith in *.
     rewrite X_M' in Heqs2.
@@ -3146,7 +3184,7 @@ Proof.
             (* abstract: this gets Y_DMA to "the previous step" for induction *)
             rewrite mem_add_overwrite in Y_DMA.
 
-            apply mem_block_to_avector_nth with (kc:=le_n 1) (k := 0) in X_V.
+            apply mem_block_to_ctvector_nth with (kc:=le_n 1) (k := 0) in X_V.
             rewrite Vnth_1_Vhead in X_V.
             assert (T : xm'0 = Vhead x_v).
             {
@@ -3160,7 +3198,7 @@ Proof.
 
             rewrite Y_DMA, FA.
 
-            unfold HCOLImpl.Inductor.
+            unfold CTInductor.
             rewrite nat_rect_succ_r.
             reflexivity.
         --

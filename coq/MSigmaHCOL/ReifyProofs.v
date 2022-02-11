@@ -547,13 +547,13 @@ Section WithCarrierA.
       rewrite 2!svector_to_mem_block_key_oob; auto;lia.
   Qed.
 
-  Lemma svector_to_mem_block_avector_to_mem_block
+  Lemma svector_to_mem_block_ctvector_to_mem_block
         {n}
         (x : avector n)
         {fm: Monoid.Monoid RthetaFlags}
         `{fml: Monoid.MonoidLaws _ fm}
     :
-    svector_to_mem_block fm ((sparsify fm x)) = avector_to_mem_block x.
+    svector_to_mem_block fm ((sparsify fm x)) = ctvector_to_mem_block x.
   Proof.
     pose proof (sparsify_is_dense fm _ n x) as D.
     intros k.
@@ -561,7 +561,7 @@ Section WithCarrierA.
     -
       rewrite find_svector_to_mem_block_some with (kc:=klt).
       +
-        rewrite mem_lookup_avector_to_mem_block with (kc:=klt).
+        rewrite mem_lookup_ctvector_to_mem_block with (kc:=klt).
         f_equiv.
         rewrite Vnth_sparsify.
         rewrite evalWriter_mkValue.
@@ -570,7 +570,7 @@ Section WithCarrierA.
         apply svector_is_dense_svector_to_mem_block_In; auto.
     -
       rewrite svector_to_mem_block_key_oob; [|lia].
-      rewrite avector_to_mem_block_key_oob; [reflexivity|lia].
+      rewrite ctvector_to_mem_block_key_oob; [reflexivity|lia].
   Qed.
 
   Class SH_MSH_Operator_compat
@@ -933,8 +933,8 @@ Section WithCarrierA.
           some_inv.
           rewrite <- M. clear M.
 
-          unfold avector_to_mem_block.
-          avector_to_mem_block_to_spec m2 H2 O2.
+          unfold ctvector_to_mem_block.
+          ctvector_to_mem_block_to_spec m2 H2 O2.
           unfold mem_lookup in *. simpl in *.
 
           destruct (NatUtil.lt_ge_dec k n) as [kc | kc].
@@ -972,7 +972,7 @@ Section WithCarrierA.
             f_equiv.
             f_equiv.
 
-            unfold mem_block_to_avector in Heqo.
+            unfold mem_block_to_ctvector in Heqo.
             apply vsequence_Vbuild_eq_Some in Heqo.
             apply Vnth_arg_eq with (ip:=kc) in Heqo.
             rewrite Vbuild_nth in Heqo.
@@ -1060,9 +1060,9 @@ Section WithCarrierA.
               f_equiv.
               dep_destruct t.
               dep_destruct x0. clear x0 t.
-              unfold svector_to_mem_block, avector_to_mem_block.
+              unfold svector_to_mem_block, ctvector_to_mem_block.
               svector_to_mem_block_to_spec m0 H0 I0 O0.
-              avector_to_mem_block_to_spec m2 H2 O2.
+              ctvector_to_mem_block_to_spec m2 H2 O2.
               simpl in *.
               mem_index_equiv k.
               destruct (lt_ge_dec k 1) as [kc | nkc].
@@ -1099,7 +1099,7 @@ Section WithCarrierA.
                   reflexivity.
 
                   rename Heqo into C.
-                  unfold svector_to_mem_block, mem_block_to_avector in C.
+                  unfold svector_to_mem_block, mem_block_to_ctvector in C.
                   rewrite Vbuild_Sn in C; cbn in C.
                   break_match_hyp; try some_none.
                   unfold mem_lookup, mem_add, mem_empty in *.
@@ -1125,7 +1125,7 @@ Section WithCarrierA.
               rename Heqo into C.
               dep_destruct x.
               dep_destruct x0.
-              unfold svector_to_mem_block, mem_block_to_avector in C.
+              unfold svector_to_mem_block, mem_block_to_ctvector in C.
               rewrite Vbuild_Sn in C; cbn in C.
               break_match_hyp; try some_none.
               clear C; rename Heqo into C.
@@ -1271,8 +1271,8 @@ Section WithCarrierA.
           some_inv.
           rewrite <- M. clear M.
 
-          unfold avector_to_mem_block.
-          avector_to_mem_block_to_spec m2 H2 O2.
+          unfold ctvector_to_mem_block.
+          ctvector_to_mem_block_to_spec m2 H2 O2.
           unfold mem_lookup in *. simpl in *.
 
           destruct (NatUtil.lt_ge_dec k o) as [kc | kc].
@@ -1318,7 +1318,7 @@ Section WithCarrierA.
             f_equiv.
             *
               specialize (H1 k kc1).
-              unfold mem_block_to_avector in Heqo0.
+              unfold mem_block_to_ctvector in Heqo0.
               apply vsequence_Vbuild_eq_Some in Heqo0.
               apply Vnth_arg_eq with (ip:=kc1) in Heqo0.
               rewrite Vbuild_nth in Heqo0.
@@ -1335,7 +1335,7 @@ Section WithCarrierA.
               reflexivity.
             *
               specialize (H1 (k+o)%nat kc2).
-              unfold mem_block_to_avector in Heqo0.
+              unfold mem_block_to_ctvector in Heqo0.
               apply vsequence_Vbuild_eq_Some in Heqo0.
               apply Vnth_arg_eq with (ip:=kc2) in Heqo0.
               rewrite Vbuild_nth in Heqo0.

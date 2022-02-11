@@ -991,7 +991,7 @@ Section MSHCOL_to_RHCOL.
     Definition dynwin_x_addr:nat := (nglobals+1).
 
     Definition dynwin_globals_mem :=
-      (memory_set memory_empty dynwin_a_addr (avector_to_mem_block a)).
+      (memory_set memory_empty dynwin_a_addr (ctvector_to_mem_block a)).
 
     (* Initialize memory with X and placeholder for Y. *)
     Definition dynwin_memory :=
@@ -1015,14 +1015,14 @@ Section MSHCOL_to_RHCOL.
      *)
     
     (* Initialize memory with X and placeholder for Y. *)
-    Definition dynwin_R_memory (a:avector 3) (x:avector dynwin_i) :=
+    Definition dynwin_R_memory (a:ctvector 3) (x:ctvector dynwin_i) :=
       RHCOLEval.memory_set
         (RHCOLEval.memory_set (RHCOLEval.memory_set
                                  RHCOLEval.memory_empty
                                  dynwin_a_addr
-                                 (avector_to_mem_block a))
+                                 (ctvector_to_mem_block a))
                               dynwin_x_addr
-                              (avector_to_mem_block x))
+                              (ctvector_to_mem_block x))
         dynwin_y_addr
         RHCOLEval.mem_empty.
     
@@ -1233,7 +1233,7 @@ Section MSHCOL_to_RHCOL.
 
         inversion H. subst y_id; clear H.
 
-        remember (avector_to_mem_block a) as v.
+        remember (ctvector_to_mem_block a) as v.
         assert(LM: memory_lookup m1 dynwin_a_addr = Some v).
         {
           subst m1.
@@ -1313,7 +1313,7 @@ Section MSHCOL_to_RHCOL.
           memory_lookup_err_to_option.
           destruct t as [t tc].
           cbn in *.
-          assert(m = avector_to_mem_block a) as C.
+          assert(m = ctvector_to_mem_block a) as C.
           {
             eq_to_equiv_hyp.
             rewrite LM''0 in Heqs2.
@@ -1326,7 +1326,7 @@ Section MSHCOL_to_RHCOL.
           err_eq_to_equiv_hyp.
           rewrite C in Heqs.
           unfold mem_lookup_err in Heqs.
-          rewrite mem_lookup_avector_to_mem_block_equiv with (kc:=tc) in Heqs.
+          rewrite mem_lookup_ctvector_to_mem_block_equiv with (kc:=tc) in Heqs.
           inversion Heqs.
         -
           memory_lookup_err_to_option.
@@ -1334,7 +1334,7 @@ Section MSHCOL_to_RHCOL.
           subst.
           destruct t as [t tc].
           cbn in *.
-          assert(m = avector_to_mem_block a) as C.
+          assert(m = ctvector_to_mem_block a) as C.
           {
             eq_to_equiv_hyp.
             rewrite LM''0 in Heqs2.
@@ -1345,7 +1345,7 @@ Section MSHCOL_to_RHCOL.
           err_eq_to_equiv_hyp.
           rewrite C in Heqs.
           unfold mem_lookup_err in Heqs.
-          rewrite mem_lookup_avector_to_mem_block_equiv with (kc:=tc) in Heqs.
+          rewrite mem_lookup_ctvector_to_mem_block_equiv with (kc:=tc) in Heqs.
           inversion Heqs; subst.
           rewrite H4.
           reflexivity.
@@ -1952,7 +1952,7 @@ Section TopLevel.
      And the following definition are produced with TemplateCoq:
      1. dynwin_RHCOL
    *)
-  Theorem HCOL_to_FHCOL_Correctness (a: avector 3):
+  Theorem HCOL_to_FHCOL_Correctness (a: ctvector 3):
     forall x y,
       (* evaluatoion of original operator *)
       dynwin_orig a x = y ->
@@ -1980,7 +1980,7 @@ Section TopLevel.
               (dynwin_R_memory a x)
               (RHCOLEval.estimateFuel dynwin_RHCOL) = Some (inr r_omemory)
             /\ RHCOLEval.memory_lookup r_omemory dynwin_y_addr = Some y_rmem
-            /\ avector_to_mem_block y = y_rmem
+            /\ ctvector_to_mem_block y = y_rmem
 
             (* And floats *)
             /\ exists f_omemory y_fmem,
@@ -1996,7 +1996,7 @@ Section TopLevel.
     remember (RHCOLEval.memory_set
                 (dynwin_R_memory a x)
                 dynwin_y_addr
-                (avector_to_mem_block y)) as r_omemory eqn:ROM.
+                (ctvector_to_mem_block y)) as r_omemory eqn:ROM.
 
     assert(RHCOLEval.evalDSHOperator
              dynwin_R_σ
@@ -2114,11 +2114,11 @@ Section TopLevel.
       remember (svector_to_mem_block Monoid_RthetaFlags sx) as mx eqn:MX.
       remember (svector_to_mem_block Monoid_RthetaFlags sy) as my eqn:MY.
 
-      specialize (MRHCOL (avector_to_mem_block x)).
-      replace (dynwin_memory a (avector_to_mem_block x))
+      specialize (MRHCOL (ctvector_to_mem_block x)).
+      replace (dynwin_memory a (ctvector_to_mem_block x))
         with (dynwin_R_memory a x) in MRHCOL by reflexivity.
       destruct MRHCOL as [MRHCOL].
-      specialize (MRHCOL (avector_to_mem_block x) RHCOLEval.mem_empty).
+      specialize (MRHCOL (ctvector_to_mem_block x) RHCOLEval.mem_empty).
       autospecialize MRHCOL.
       reflexivity.
       autospecialize MRHCOL.
@@ -2150,15 +2150,15 @@ Section TopLevel.
           rename m0 into ym'.
           subst.
           destruct (dynwin_MSHCOL1 a).
-          rewrite 2!svector_to_mem_block_avector_to_mem_block
+          rewrite 2!svector_to_mem_block_ctvector_to_mem_block
             in M1
               by typeclasses eauto.
-          Opaque avector_to_mem_block.
+          Opaque ctvector_to_mem_block.
           cbn in M1, MM.
           rewrite MM in M1.
           clear MM.
           some_inv.
-          Transparent avector_to_mem_block.
+          Transparent ctvector_to_mem_block.
 
           rewrite <-M1.
           assert (YM : ym = ym').
@@ -2200,7 +2200,7 @@ Section TopLevel.
         remember (dynwin_MSHCOL1 a) as m.
         destruct m.
         subst sx mx.
-        rewrite svector_to_mem_block_avector_to_mem_block in M1.
+        rewrite svector_to_mem_block_ctvector_to_mem_block in M1.
         eq_to_equiv.
         some_none.
         typeclasses eauto.
@@ -2209,7 +2209,7 @@ Section TopLevel.
         remember (dynwin_MSHCOL1 a) as m.
         destruct m.
         subst sx mx.
-        rewrite svector_to_mem_block_avector_to_mem_block in M1.
+        rewrite svector_to_mem_block_ctvector_to_mem_block in M1.
         eq_to_equiv.
         some_none.
         typeclasses eauto.
@@ -2218,7 +2218,7 @@ Section TopLevel.
     (* moved from [dynwin_MSHCOL1] to [dynwin_rhcol] *)
 
     exists r_omemory.
-    exists (avector_to_mem_block y).
+    exists (ctvector_to_mem_block y).
 
     split; [assumption |].
     split.
