@@ -25,6 +25,8 @@ Require Import Helix.HCOL.CarrierType.
 Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.MSigmaHCOL.MemSetoid.
 Require Import Helix.MSigmaHCOL.CType.
+Require Import Helix.MSigmaHCOL.RasCT.
+Require Import Helix.MSigmaHCOL.MemoryOfR.
 
 Require Import Helix.Tactics.HelixTactics.
 
@@ -103,9 +105,164 @@ Module Type MTMSHCOL (CT:CType) (Import CM:MMemSetoid(CT)).
 
 End MTMSHCOL.
 
+(*
+  Parts of (S)HCOL used in the definition of MHCOL, lifted to [CType].
+  This is a workaround to allow defining MHCOL in the abstract, but without
+  "parametrizing" is with [CarrierDefs] (found impossible).
+*)
+Module Type HCOL_on_CT (CT : CType).
+
+  (* equivalent to [atvector], [CT.t] instead of [CarrierA] *)
+  Notation ctvector n := (vector CT.t n) (only parsing).
+
+  (* equivalent: [HPointwise] *)
+  Definition CTHPointwise
+             {n: nat}
+             (f: FinNat n -> CT.t -> CT.t)
+             (x: ctvector n): ctvector n
+    := Vbuild (fun j jd => f (mkFinNat jd) (Vnth x jd)).
+
+  (* equivalent: [HPointwise_HOperator] *)
+  Instance CTHPointwise_Proper
+         {n: nat}
+         {f: FinNat n -> CT.t -> CT.t}
+         `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
+    Proper ((=) ==> (=)) (@CTHPointwise n f).
+  Proof.
+    intros x y E.
+    apply Vforall2_intro_nth.
+    intros j jc.
+    setoid_rewrite Vbuild_nth.
+    apply pF.
+    - reflexivity.
+    - apply Vnth_proper, E.
+  Qed.
+
+  (* equivalent: [HPointwise_nth] *)
+  Lemma CTHPointwise_nth
+        {n: nat}
+        (f: FinNat n -> CT.t -> CT.t)
+        {j:nat} {jc:j<n}
+        (x: ctvector n):
+    Vnth (CTHPointwise f x) jc ≡ f (j ↾ jc) (Vnth x jc).
+  Proof.
+    unfold CTHPointwise.
+    rewrite Vbuild_nth.
+    reflexivity.
+  Qed.
+
+  (* equivalent: [BinOp] *)
+  Definition CTBinOp {n}
+             (f: FinNat n -> CT.t -> CT.t -> CT.t)
+             (ab: (ctvector n)*(ctvector n))
+    : ctvector n :=
+    match ab with
+    | (a,b) =>  Vmap2SigIndexed f a b
+    end.
+
+  (* equivalent: [HBinOp] *)
+  Definition CTHBinOp {o}
+             (f: FinNat o -> CT.t -> CT.t -> CT.t)
+    : ctvector (o+o) -> ctvector o
+    :=  CTBinOp f ∘ (vector2pair o).
+
+  (* equivalent: [HBinOp_HOperator] *)
+  Instance CTHBinOp_Proper {o}
+           (f: FinNat o -> CT.t -> CT.t -> CT.t)
+           `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
+    Proper ((=) ==> (=)) (@CTHBinOp o f).
+  Proof.
+    intros x y E.
+    unfold CTHBinOp, CTBinOp.
+    unfold compose, Lst, vector2pair.
+    assert (Vbreak x = Vbreak y) by now rewrite E.
+    repeat break_let.
+    invc H.
+    rewrite H0, H1.
+    reflexivity.
+  Qed.
+
+  (* equivalent: [HBinOp_nth] *)
+  Lemma CTHBinOp_nth
+        {o}
+        {f: FinNat o -> CT.t -> CT.t -> CT.t}
+        {v: ctvector (o+o)}
+        {j:nat}
+        (jc: j<o)
+        (jc1:j<o+o)
+        (jc2: (j+o)<o+o)
+    :
+      Vnth (@CTHBinOp o f v) jc ≡ f (mkFinNat jc) (Vnth v jc1) (Vnth v jc2).
+  Proof.
+    unfold CTHBinOp, compose, vector2pair, CTBinOp.
+
+    break_let.
+
+    replace t with (fst (Vbreak v)) by crush.
+    replace t0 with (snd (Vbreak v)) by crush.
+    clear Heqp.
+
+    rewrite Vnth_Vmap2SigIndexed.
+    f_equiv.
+
+    rewrite Vnth_fst_Vbreak with (jc3:=jc1); reflexivity.
+    rewrite Vnth_snd_Vbreak with (jc3:=jc2); reflexivity.
+  Qed.
+
+  (* equivalent: [Inductor] *)
+  Definition CTInductor (n:nat) (f:CT.t -> CT.t -> CT.t)
+             (initial: CT.t) (v:CT.t)
+    : CT.t :=  nat_rect _ initial (fun _ x => f x v) n.
+
+  (* equivalent: [Inductor_proper] *)
+  Instance CTInductor_Proper {n:nat}:
+    Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) (@CTInductor n).
+  Proof.
+    intros f f' fEq ini ini' iniEq v v' vEq.
+    induction n.
+    -
+      unfold CTInductor.
+      apply iniEq.
+    -
+      simpl.
+      apply fEq.
+      apply IHn.
+      apply vEq.
+  Qed.
+
+  (* equivalent: [Scalarize] *)
+  Definition CTScalarize (x: ctvector 1) : CT.t := Vhead x.
+
+  (* equivalent: [HInductor] *)
+  Definition CTHInductor
+             (n:nat)
+             (f:CT.t -> CT.t -> CT.t)
+             (initial: CT.t)
+    : ctvector 1 -> ctvector 1
+    := Lst ∘ CTInductor n f initial ∘ CTScalarize.
+
+  (* equivalent: [HInductor_HOperator] *)
+  Instance CTHInductor_Proper
+           (n:nat)
+           (f:CT.t -> CT.t -> CT.t)
+           `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+           (initial: CT.t):
+    Proper ((=) ==> (=)) (CTHInductor n f initial).
+  Proof.
+    intros x y E.
+    unfold HInductor.
+    unfold compose, Lst.
+    apply Vcons_single_elim.
+    rewrite E.
+    reflexivity.
+  Qed.
+
+End HCOL_on_CT.
+
 Module MMSHCOL'
        (CT:CType)
        (Import CM:MMemSetoid CT)
+       (Import HC:HCOL_on_CT CT)
 <: MTMSHCOL(CT)(CM) .
 
   Open Scope nat_scope.
@@ -115,7 +272,6 @@ Module MMSHCOL'
 
   Import MonadNotation.
   Open Scope monad_scope.
-
 
   (* Conversion between memory block and dense vectors *)
 
@@ -327,11 +483,8 @@ Module MMSHCOL'
     apply find_fold_right_indexed'_off.
   Qed.
 
-  Definition mem_block_to_ctvector {n} (m: mem_block): option (vector CT.t n)
+  Definition mem_block_to_ctvector {n} (m: mem_block): option (ctvector n)
     := vsequence (Vbuild (fun i (ic:i<n) => mem_lookup i m)).
-
-  (* equivalent to [ctvector], [CT.t] instead of [CarrierA] *)
-  Notation ctvector n := (vector CT.t n) (only parsing).
 
   Program Definition ctvector_to_mem_block_spec
           {n : nat}
@@ -1598,27 +1751,6 @@ Module MMSHCOL'
     apply option_compose_proper; [ apply mop1 | apply mop2].
   Qed.
 
-  Definition CTHPointwise
-             {n: nat}
-             (f: FinNat n -> CT.t -> CT.t)
-             (x: ctvector n): ctvector n
-    := Vbuild (fun j jd => f (mkFinNat jd) (Vnth x jd)).
-
-  Instance CTHPointwise_Proper
-         {n: nat}
-         {f: FinNat n -> CT.t -> CT.t}
-         `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-    Proper ((=) ==> (=)) (@CTHPointwise n f).
-  Proof.
-    intros x y E.
-    apply Vforall2_intro_nth.
-    intros j jc.
-    setoid_rewrite Vbuild_nth.
-    apply pF.
-    - reflexivity.
-    - apply Vnth_proper, E.
-  Qed.
-
   Definition MSHPointwise
              {n: nat}
              (f: FinNat n -> CT.t -> CT.t)
@@ -1646,34 +1778,6 @@ Module MMSHCOL'
                       (FinNatSet.singleton b)
                       (Full_set _).
 
-  Definition CTBinOp {n}
-             (f: FinNat n -> CT.t -> CT.t -> CT.t)
-             (ab: (ctvector n)*(ctvector n))
-    : ctvector n :=
-    match ab with
-    | (a,b) =>  Vmap2SigIndexed f a b
-    end.
-
-  Definition CTHBinOp {o}
-             (f: FinNat o -> CT.t -> CT.t -> CT.t)
-    : ctvector (o+o) -> ctvector o
-    :=  CTBinOp f ∘ (vector2pair o).
-
-  Instance HBinOp_HOperator {o}
-           (f: FinNat o -> CT.t -> CT.t -> CT.t)
-           `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
-    Proper ((=) ==> (=)) (@CTHBinOp o f).
-  Proof.
-    intros x y E.
-    unfold CTHBinOp, CTBinOp.
-    unfold compose, Lst, vector2pair.
-    assert (Vbreak x = Vbreak y) by now rewrite E.
-    repeat break_let.
-    invc H.
-    rewrite H0, H1.
-    reflexivity.
-  Qed.
-
   Definition MSHBinOp
              {o: nat}
              (f: {n:nat|n<o} -> CT.t -> CT.t -> CT.t)
@@ -1683,49 +1787,6 @@ Module MMSHCOL'
                       _
                       (Full_set _)
                       (Full_set _).
-
-  Definition CTInductor (n:nat) (f:CT.t -> CT.t -> CT.t)
-             (initial: CT.t) (v:CT.t)
-    : CT.t :=  nat_rect _ initial (fun _ x => f x v) n.
-
-  Instance Inductor_proper {n:nat}:
-    Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) (@CTInductor n).
-  Proof.
-    intros f f' fEq ini ini' iniEq v v' vEq.
-    induction n.
-    -
-      unfold CTInductor.
-      apply iniEq.
-    -
-      simpl.
-      apply fEq.
-      apply IHn.
-      apply vEq.
-  Qed.
-
-  Definition CTScalarize (x: ctvector 1) : CT.t := Vhead x.
-
-  Definition CTHInductor
-             (n:nat)
-             (f:CT.t -> CT.t -> CT.t)
-             (initial: CT.t)
-    : ctvector 1 -> ctvector 1
-    := Lst ∘ CTInductor n f initial ∘ CTScalarize.
-
-  Instance CTHInductor_Proper
-           (n:nat)
-           (f:CT.t -> CT.t -> CT.t)
-           `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-           (initial: CT.t):
-    Proper ((=) ==> (=)) (CTHInductor n f initial).
-  Proof.
-    intros x y E.
-    unfold HInductor.
-    unfold compose, Lst.
-    apply Vcons_single_elim.
-    rewrite E.
-    reflexivity.
-  Qed.
 
   Definition Inductor_mem
              (n:nat)
@@ -3042,10 +3103,10 @@ Module MMSHCOL'
 
 End MMSHCOL'.
 
-Require Import Helix.MSigmaHCOL.RasCT.
-Require Import Helix.MSigmaHCOL.MemoryOfR.
-(* Require Import Helix.MSigmaHCOL.RasCarrierA. *)
+Module HCOL_on_RasCT <: HCOL_on_CT(MRasCT).
+  Include HCOL_on_CT MRasCT.
+End HCOL_on_RasCT.
 
 (* There will be only one instance of MMSCHOL', as it is always
    defined on [CT.t]. *)
-Module Export MMSCHOL := MMSHCOL'(MRasCT)(MMemoryOfR).
+Module Export MMSCHOL := MMSHCOL'(MRasCT)(MMemoryOfR)(HCOL_on_RasCT).

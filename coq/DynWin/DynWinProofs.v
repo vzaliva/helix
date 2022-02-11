@@ -55,6 +55,8 @@ Require Import MathClasses.misc.decision.
 Require Import ExtLib.Structures.Monad.
 Import MonadNotation.
 
+Import HCOL_on_RasCT.
+
 Section HCOL_Breakdown.
 
   (* Initial HCOL breakdown proof *)

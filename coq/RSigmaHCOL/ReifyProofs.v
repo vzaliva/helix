@@ -49,6 +49,7 @@ Local Open Scope monad_scope.
 Local Open Scope nat_scope.
 
 Import RHCOL.
+Import HCOL_on_RasCT.
 
 (* TODO: move *)
 Section list_aux.
@@ -2236,18 +2237,6 @@ Qed.
 
 Opaque CarrierA.
 
-Lemma CTHPointwise_nth
-      {n: nat}
-      (f: FinNat n -> CarrierA -> CarrierA)
-      {j:nat} {jc:j<n}
-      (x: avector n):
-  Vnth (CTHPointwise f x) jc ≡ f (j ↾ jc) (Vnth x jc).
-Proof.
-  unfold CTHPointwise.
-  rewrite Vbuild_nth.
-  reflexivity.
-Qed.
-
 Global Instance Pointwise_MSH_DSH_compat
        {n: nat}
        {f: FinNat n -> CarrierA -> CarrierA}
@@ -2498,32 +2487,6 @@ Proof.
     reflexivity.    
 Qed.
 
-Lemma HBinOp_nth
-      {o}
-      {f: FinNat o -> CarrierA -> CarrierA -> CarrierA}
-      {v: avector (o+o)}
-      {j:nat}
-      (jc: j<o)
-      (jc1:j<o+o)
-      (jc2: (j+o)<o+o)
-  :
-    Vnth (@CTHBinOp o f v) jc ≡ f (mkFinNat jc) (Vnth v jc1) (Vnth v jc2).
-Proof.
-  unfold CTHBinOp, compose, vector2pair, CTBinOp.
-
-  break_let.
-
-  replace t with (fst (Vbreak v)) by crush.
-  replace t0 with (snd (Vbreak v)) by crush.
-  clear Heqp.
-
-  rewrite Vnth_Vmap2SigIndexed.
-  f_equiv.
-
-  rewrite Vnth_fst_Vbreak with (jc3:=jc1); reflexivity.
-  rewrite Vnth_snd_Vbreak with (jc3:=jc2); reflexivity.
-Qed.
-
 Global Instance BinOp_MSH_DSH_compat
        {o: nat}
        {f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA}
@@ -2652,7 +2615,7 @@ Proof.
 
           assert (k < o + o)%nat as kc1 by lia.
           assert (k + o < o + o)%nat as kc2 by lia.
-          rewrite HBinOp_nth with (jc1:=kc1) (jc2:=kc2).
+          rewrite CTHBinOp_nth with (jc1:=kc1) (jc2:=kc2).
 
           pose proof (evalDSHBinOp_mem_lookup_mx ME k kc) as [A B].
 
