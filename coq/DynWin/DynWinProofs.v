@@ -1884,6 +1884,109 @@ Section RHCOL_to_FHCOL_numerical.
 
 End RHCOL_to_FHCOL_numerical.
 
+From Interval Require Import Tactic.
+
+Section RHCOL_to_FHCOL_bounds.
+  Context
+    `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}
+    `{RF_CTO : @RHCOLtoFHCOL.CTranslationOp RF_CHE}.
+
+  (* parameters of the physical system *)
+  Parameter V:R. (* max obstacle speed *)
+  Parameter b:R. (* max braking *)
+  Parameter A:R. (* max accel *)
+  Parameter e:R. (* sampling period *)
+
+  Local Open Scope R_scope.
+
+  (* Constraints on physical parameters *)
+  Parameter V_constr: 0 <= V <= 20. (* up to 20 m/s (72 Kmh) *)
+  Parameter b_constr: 1 < b <= 6. (* m/s^2. https://copradar.com/chapts/references/acceleration.html *)
+  Parameter A_constr: 0 <= A <= 5. (* m/s^2. https://hypertextbook.com/facts/2001/MeredithBarricella.shtml *)
+  Parameter e_constr: 1/100 <= e <= 1/10 . (* 10-100 Hz *)
+
+  (*
+    "a" layout:
+     a0 = (A/b+1.0)*((A/2.0)*e*e+e*V)
+     a1 = V/b+e*(A/b+1.0)
+     a2 = 1.0/(2.0*b)
+
+    "x" layout:
+    0. robot velocity
+    1. robot position (X)
+    2. robot position (Y)
+    3. obstacle position (X)
+    4. obstacle position (Y)
+   *)
+
+  (* Constraints for obstact and robot coordinates.  Our robots
+     operates on cartesian grid ~10x10 Km *)
+  Definition position_constr x y :=
+    (-5000 <= x <= 5000) /\ (-5000 <= y <= 5000).
+
+  (* Robot velocity constraint *)
+  Definition r_v_constr (v:R) := 0 <= v <= 20. (* up to 20 m/s (72 Kmh) *)
+
+  (* Derived bounds of a[0] parameter *)
+  Definition a0_range:  (R*R).
+    pose proof V_constr as VC.
+    pose proof b_constr as BC.
+    pose proof A_constr as AC.
+    pose proof e_constr as EC.
+    interval_intro ((Rdiv A (b+1))*((Rdiv A 2)*e*e+e*V)) as H.
+    match goal with
+      [H: ?l <= _ <= ?u |- _] => exact (l,u)
+    end.
+  Defined.
+
+  (* Derived bounds of a[1] parameter *)
+  Definition a1_range:  (R*R).
+    pose proof V_constr as VC.
+    pose proof b_constr as BC.
+    pose proof A_constr as AC.
+    pose proof e_constr as EC.
+    interval_intro ((Rdiv V b)+e*(Rdiv A b)+ 1) as H.
+    match goal with
+      [H: ?l <= _ <= ?u |- _] => exact (l,u)
+    end.
+  Defined.
+
+  (* Derived bounds of a[1] parameter *)
+  Definition a2_range:  (R*R).
+    pose proof b_constr as BC.
+    interval_intro (Rdiv 1 (2*b)) as H.
+    match goal with
+      [H: ?l <= _ <= ?u |- _] => exact (l,u)
+    end.
+  Defined.
+
+  (* inclusive *)
+  Definition in_range (x:R) (bounds:(R*R)) : Prop :=
+    let '(l,u) := bounds in l <= x <= u.
+
+  (* Constraints on input memory blocks which we assume to prove
+     numerical stabiluty of FHCOL DynWin code. *)
+  Definition DynWinInConstr (a:RHCOLEval.mem_block) (x:RHCOLEval.mem_block)
+    :=
+    (forall a0 a1 a2 ,
+      RHCOLEval.mem_lookup 0%nat a = Some a0
+      /\ RHCOLEval.mem_lookup 1%nat a = Some a1
+      /\ RHCOLEval.mem_lookup 2%nat a = Some a2
+      /\ in_range a0 a0_range
+      /\ in_range a1 a1_range
+      /\ in_range a2 a2_range)
+    /\ (forall r_v r_x r_y o_x o_y,
+        RHCOLEval.mem_lookup 0%nat x = Some r_v
+        /\ RHCOLEval.mem_lookup 1%nat x = Some r_x
+        /\ RHCOLEval.mem_lookup 2%nat x = Some r_y
+        /\ RHCOLEval.mem_lookup 3%nat x = Some o_x
+        /\ RHCOLEval.mem_lookup 4%nat x = Some o_y
+        /\ r_v_constr r_v
+        /\ position_constr r_x r_y
+        /\ position_constr o_x o_y).
+
+End RHCOL_to_FHCOL_bounds.
+
 Section TopLevel.
 
   (* RHCOL -> FHCOL *)
