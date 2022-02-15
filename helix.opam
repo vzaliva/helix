@@ -33,6 +33,7 @@ depends: [
   "core_kernel"
   "dune"
   "qcheck"
+  "coq-interval"
 
   "coq" {= "8.13.2"}
   "coq-ext-lib" {= "0.11.5"}
