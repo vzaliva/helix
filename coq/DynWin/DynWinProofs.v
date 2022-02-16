@@ -1966,7 +1966,7 @@ Section RHCOL_to_FHCOL_bounds.
 
   (* Constraints on input memory blocks which we assume to prove
      numerical stabiluty of FHCOL DynWin code. *)
-  Definition DynWinInConstr (a:RHCOLEval.mem_block) (x:RHCOLEval.mem_block)
+  Definition DynWinInConstr (a:RHCOLEval.mem_block) (x:RHCOLEval.mem_block): Prop
     :=
     (forall a0 a1 a2 ,
       RHCOLEval.mem_lookup 0%nat a = Some a0
@@ -1984,6 +1984,41 @@ Section RHCOL_to_FHCOL_bounds.
         /\ r_v_constr r_v
         /\ position_constr r_x r_y
         /\ position_constr o_x o_y).
+
+
+  (* Parametric relation between RHCOL and FHCOL coumputation results  *)
+  Definition DynWinOutRel
+             (a_rmem:RHCOLEval.mem_block)
+             (x_rmem:RHCOLEval.mem_block)
+             (y_rmem:RHCOLEval.mem_block)
+             (y_fmem: FHCOLEval.mem_block): Prop
+    :=
+    exists r_imemory,
+      RHCOLEval.memory_lookup r_imemory dynwin_a_addr = Some a_rmem /\
+        RHCOLEval.memory_lookup r_imemory dynwin_x_addr = Some x_rmem /\
+        (* Everything correct on Reals *)
+        exists r_omemory y_rmem,
+          RHCOLEval.evalDSHOperator
+            dynwin_R_σ
+            dynwin_RHCOL
+            r_imemory
+            (RHCOLEval.estimateFuel dynwin_RHCOL) = Some (inr r_omemory)
+          /\ RHCOLEval.memory_lookup r_omemory dynwin_y_addr = Some y_rmem
+
+          (* And floats *)
+          /\ exists dynwin_FHCOL dynwin_F_σ dynwin_F_memory,
+            translate dynwin_RHCOL = inr dynwin_FHCOL
+            /\ RHCOLtoFHCOL.translate_runtime_memory r_imemory = inr dynwin_F_memory
+            /\ RHCOLtoFHCOL.translateEvalContext dynwin_R_σ = inr dynwin_F_σ
+            /\ exists f_omemory y_fmem,
+              FHCOLEval.evalDSHOperator
+                dynwin_F_σ dynwin_FHCOL
+                dynwin_F_memory
+                (FHCOLEval.estimateFuel dynwin_FHCOL) = (Some (inr f_omemory))
+              /\ FHCOLEval.memory_lookup f_omemory dynwin_y_addr = Some y_fmem.
+
+
+
 
 End RHCOL_to_FHCOL_bounds.
 
