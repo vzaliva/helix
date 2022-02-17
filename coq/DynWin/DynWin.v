@@ -13,6 +13,7 @@ Require Import MathClasses.interfaces.canonical_names.
 Definition dynwin_i:nat := (1 + (2 + 2)).
 Definition dynwin_o:nat := 1.
 
+
 Section WithCarrierA.
 
   Context `{CAPROPS: CarrierProperties}.
@@ -23,6 +24,30 @@ Section WithCarrierA.
       (HTLess
          (HEvalPolynomial a)
          (HChebyshevDistance 2)).
+
+  (*
+  Require Import Helix.FSigmaHCOL.Float64asCarrierA.
+  Require Import List.
+  Import ListNotations.
+  
+  Definition a0 := b0_21.
+  Definition a1 := b1_2.
+  Definition a2 := b0_5.
+  
+  Definition v :=   b1_0.
+  
+  Definition rpx := b0_0.
+  Definition rpy := b0_0.
+  
+  Definition opx := b1_0.
+  Definition opy := b1_0.
+  
+  
+  Definition a_inp := Vector.of_list [a0;a1;a2].
+  Definition x_inp := Vector.of_list [v;rpx;rpy;opx;opy].
+  
+  Time Compute dynwin_orig a_inp x_inp.
+   *)
 
   (* dynamic window HCOL expression after breakdown *)
   Definition dynwin_HCOL (a: avector 3) :=
