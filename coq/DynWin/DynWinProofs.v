@@ -1527,7 +1527,6 @@ Section RCHOL_to_FHCOL.
            x'
         as EQI.
       rewrite H1 in EQI.
-      apply f_equal with (f:=Int64.intval) in EQI.
       rewrite <-EQI.
       reflexivity.
     -
@@ -1626,8 +1625,8 @@ Section RHCOL_to_FHCOL_numerical.
    *)
   Local Definition trivial_RF_CHE : RHCOLtoFHCOL.CTranslation_heq :=
     {|
-      heq_CType := trivial2;
-      heq_CType_proper := trivial2_Proper;
+      RHCOLtoFHCOL.heq_CType := trivial2;
+      RHCOLtoFHCOL.heq_CType_proper := trivial2_Proper;
     |}.
 
   Local Fact trivial_RF_COP
@@ -1638,7 +1637,7 @@ Section RHCOL_to_FHCOL_numerical.
 
   Local Fact trivial_RF_translateCTypeValue_heq_CType :
     ∀ (x : R) (x' : Bits.binary64),
-      translateCTypeValue x = inr x' →
+      RHCOLtoFHCOL.translateCTypeValue x = inr x' →
       @heq_CType trivial_RF_CHE x x'.
   Proof.
     repeat constructor.
@@ -1890,6 +1889,15 @@ Section RHCOL_to_FHCOL_bounds.
   Context
     `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}
     `{RF_CTO : @RHCOLtoFHCOL.CTranslationOp RF_CHE}.
+
+  Definition binary32toR: binary32 -> R := F2R.
+
+  Definition translate32toR_runtime_mem_block (m:FHCOL32.mem_block) : RHCOL.mem_block
+    := NM.map F2R.
+
+ Definition translate32toR__runtime_memory (m:FHCOL32.memory): RHCOL.memory :=
+      NM.map translate32toR__runtime_mem_block m.
+
 
   (* parameters of the physical system *)
   Parameter V:R. (* max obstacle speed *)
