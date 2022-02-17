@@ -49,19 +49,24 @@ let string_of_float_full f =
 let pp_binary64 ppf v =
     fprintf ppf "%s" (string_of_float_full (camlfloat_of_coqfloat v))
 
+let inp_size t =
+  int_of_Int64 t.i + (List.fold t.globals ~init:0 ~f:(fun v (_,g) -> v + gsize g ))
+
 let gen_randoms t =
   Random.self_init () ;
-  let rs = int_of_Int64 t.i + (List.fold t.globals ~init:0 ~f:(fun v (_,g) -> v + gsize g )) in
+  let rs = inp_size t in
   let randoms = List.init rs ~f:(fun _ -> coqfloat_of_camlfloat (randomFloat 3.14E8)) in
-  if !Interpreter.debug_flag then
-    begin
-      Printf.printf "Generating %d floats:\n" rs ;
-      List.iteri randoms ~f:(fun i v -> Printf.printf "\t%d\t-\t%s\n" i (string_of_FloatV v))
-    end ;
   randoms
 
 let process_test t inp =
   let oname = camlstring_of_coqstring t.name in
+  if !Interpreter.debug_flag then
+    begin
+      Printf.printf "Testing with %d floats:\n" (List.length inp) ;
+      List.iteri inp ~f:(fun i v -> Printf.printf "\t%d\t-\t%s\n" i (string_of_FloatV v))
+    end ;
+  if List.length inp <> inp_size t
+  then raise (Failure "Incorrecct input vector size") ;
   begin
     if !justcompile then
       match Tests.runFSHCOLTest t !justcompile inp with
@@ -161,6 +166,11 @@ let process_test t inp =
                    begin
                      AT.printf [AT.black; AT.on_green] "OK" ;
                      AT.printf [] " Results match\n" ;
+                     if !Interpreter.debug_flag then
+                       begin
+                         print_dv (UVALUE_Array arr) ;
+                         print_eres v ;
+                       end ;
                      true
                    end
                  else
