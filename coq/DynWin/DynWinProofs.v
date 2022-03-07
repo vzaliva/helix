@@ -1638,17 +1638,17 @@ Section RHCOL_to_FHCOL_numerical.
   Local Fact trivial_RF_translateCTypeValue_heq_CType :
     ∀ (x : R) (x' : Bits.binary64),
       RHCOLtoFHCOL.translateCTypeValue x = inr x' →
-      @heq_CType trivial_RF_CHE x x'.
+      @RHCOLtoFHCOL.heq_CType trivial_RF_CHE x x'.
   Proof.
     repeat constructor.
   Qed.
 
   Local Definition trivial_RF_CTO : @RHCOLtoFHCOL.CTranslationOp trivial_RF_CHE :=
     {|
-      translateCTypeValue := @translateCTypeValue _ RF_CTO;
-      translateCTypeValue_heq_CType := trivial_RF_translateCTypeValue_heq_CType;
-      translateCTypeConst_translateCTypeValue_compat :=
-      @translateCTypeConst_translateCTypeValue_compat _ RF_CTO;
+      RHCOLtoFHCOL.translateCTypeValue := @RHCOLtoFHCOL.translateCTypeValue _ RF_CTO;
+      RHCOLtoFHCOL.translateCTypeValue_heq_CType := trivial_RF_translateCTypeValue_heq_CType;
+      RHCOLtoFHCOL.translateCTypeConst_translateCTypeValue_compat :=
+      @RHCOLtoFHCOL.translateCTypeConst_translateCTypeValue_compat _ RF_CTO;
     |}.
 
   Definition RF_Structural_Semantic_Preservation :=
@@ -1666,7 +1666,7 @@ Section RHCOL_to_FHCOL_numerical.
 
     RHCOLtoFHCOL.translateEvalContext dynwin_R_σ = inr dynwin_F_σ ->
 
-    hopt (herr (@evalNExpr_closure_trace_equiv RF_NHE trivial_RF_CHE))
+    hopt (herr (@RHCOLtoFHCOL.evalNExpr_closure_trace_equiv RF_NHE trivial_RF_CHE))
          (RHCOLEval.intervalEvalDSHOperator_σ
             dynwin_R_σ dynwin_RHCOL []
             (RHCOLEval.estimateFuel dynwin_RHCOL))
@@ -1717,7 +1717,7 @@ Section RHCOL_to_FHCOL_numerical.
                      (FHCOLEval.estimateFuel dynwin_fhcol_comp))
       by now rewrite RF.
     eapply hopt_proper;
-      [ apply herr_proper, evalNExpr_closure_trace_equiv_proper
+      [ apply herr_proper, RHCOLtoFHCOL.evalNExpr_closure_trace_equiv_proper
       | reflexivity
       | apply T2
       | ].
@@ -1731,7 +1731,7 @@ Section RHCOL_to_FHCOL_numerical.
     1-10: pose proof ΣE as Σ3E.
     1-10: match goal with
           | [ |- context [ RHCOLEval.context_lookup _ _ ?k ]] =>
-              eapply heq_evalContext_heq_context_lookup with (n:=k) in Σ3E
+              eapply RHCOLtoFHCOL.heq_evalContext_heq_context_lookup with (n:=k) in Σ3E
           end.
     1-10: match goal with
           | [ |- context [ RHCOLEval.context_lookup _ _ ?n ]] =>
@@ -1751,7 +1751,7 @@ Section RHCOL_to_FHCOL_numerical.
       destruct_context_range_lookup ΣR' 3.
 
       pose proof ΣE as Σ3E.
-      eapply heq_evalContext_heq_context_lookup with (n:=3) in Σ3E.
+      eapply RHCOLtoFHCOL.heq_evalContext_heq_context_lookup with (n:=3) in Σ3E.
       rewrite Σ, Σ0 in Σ3E.
       cbn in Σ3E.
       invc Σ3E; invc H1; invc H0; invc H.
@@ -1760,7 +1760,7 @@ Section RHCOL_to_FHCOL_numerical.
       destruct_context_range_lookup ΣR' 1.
 
       pose proof ΣE as Σ1E.
-      eapply heq_evalContext_heq_context_lookup with (n:=1) in Σ1E.
+      eapply RHCOLtoFHCOL.heq_evalContext_heq_context_lookup with (n:=1) in Σ1E.
       rewrite Σ1, Σ2 in Σ1E.
       cbn in Σ1E.
       invc Σ1E; invc H1; invc H0; invc H.
@@ -1785,7 +1785,7 @@ Section RHCOL_to_FHCOL_numerical.
       destruct_context_range_lookup ΣR' 3.
 
       pose proof ΣE as Σ3E.
-      eapply heq_evalContext_heq_context_lookup with (n:=3) in Σ3E.
+      eapply RHCOLtoFHCOL.heq_evalContext_heq_context_lookup with (n:=3) in Σ3E.
       rewrite Σ, Σ0 in Σ3E.
       cbn in Σ3E.
       invc Σ3E; invc H1; invc H0; invc H.
@@ -1794,7 +1794,7 @@ Section RHCOL_to_FHCOL_numerical.
       destruct_context_range_lookup ΣR' 1.
 
       pose proof ΣE as Σ1E.
-      eapply heq_evalContext_heq_context_lookup with (n:=1) in Σ1E.
+      eapply RHCOLtoFHCOL.heq_evalContext_heq_context_lookup with (n:=1) in Σ1E.
       rewrite Σ1, Σ2 in Σ1E.
       cbn in Σ1E.
       invc Σ1E; invc H1; invc H0; invc H.
@@ -1819,7 +1819,7 @@ Section RHCOL_to_FHCOL_numerical.
       destruct_context_range_lookup ΣR' 3.
 
       pose proof ΣE as Σ3E.
-      eapply heq_evalContext_heq_context_lookup with (n:=3) in Σ3E.
+      eapply RHCOLtoFHCOL.heq_evalContext_heq_context_lookup with (n:=3) in Σ3E.
       rewrite Σ, Σ0 in Σ3E.
       cbn in Σ3E.
       invc Σ3E; invc H1; invc H0; invc H.
@@ -1828,7 +1828,7 @@ Section RHCOL_to_FHCOL_numerical.
       destruct_context_range_lookup ΣR' 1.
 
       pose proof ΣE as Σ1E.
-      eapply heq_evalContext_heq_context_lookup with (n:=1) in Σ1E.
+      eapply RHCOLtoFHCOL.heq_evalContext_heq_context_lookup with (n:=1) in Σ1E.
       rewrite Σ1, Σ2 in Σ1E.
       cbn in Σ1E.
       invc Σ1E; invc H1; invc H0; invc H.
@@ -1853,7 +1853,7 @@ Section RHCOL_to_FHCOL_numerical.
       destruct_context_range_lookup ΣR' 3.
 
       pose proof ΣE as Σ3E.
-      eapply heq_evalContext_heq_context_lookup with (n:=3) in Σ3E.
+      eapply RHCOLtoFHCOL.heq_evalContext_heq_context_lookup with (n:=3) in Σ3E.
       rewrite Σ, Σ0 in Σ3E.
       cbn in Σ3E.
       invc Σ3E; invc H1; invc H0; invc H.
@@ -1862,7 +1862,7 @@ Section RHCOL_to_FHCOL_numerical.
       destruct_context_range_lookup ΣR' 1.
 
       pose proof ΣE as Σ1E.
-      eapply heq_evalContext_heq_context_lookup with (n:=1) in Σ1E.
+      eapply RHCOLtoFHCOL.heq_evalContext_heq_context_lookup with (n:=1) in Σ1E.
       rewrite Σ1, Σ2 in Σ1E.
       cbn in Σ1E.
       invc Σ1E; invc H1; invc H0; invc H.
@@ -1885,35 +1885,74 @@ End RHCOL_to_FHCOL_numerical.
 
 From Interval Require Import Tactic.
 
+From Flocq Require Import Binary Bits Core.Defs.
+
+Require Import Float32asCT.
 Section RHCOL_to_FHCOL_bounds.
   Context
-    `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}
-    `{RF_CTO : @RHCOLtoFHCOL.CTranslationOp RF_CHE}.
+    `{RF_CHE_32 : RHCOLtoFHCOL32.CTranslation_heq}
+    `{RF_CTO_32 : @RHCOLtoFHCOL32.CTranslationOp RF_CHE_32}.
 
-  Definition binary32toR: binary32 -> R := F2R.
+  (*
+    Q: can we instantiate RF_CHE_32? e.g.:
+    Definition binary32toR: binary32 -> R := @B2R _ _.
+   *)
 
-  Definition translate32toR_runtime_mem_block (m:FHCOL32.mem_block) : RHCOL.mem_block
-    := NM.map F2R.
+ (* parameters of the physical system. Specified as 32 bit floating values *)
 
- Definition translate32toR__runtime_memory (m:FHCOL32.memory): RHCOL.memory :=
-      NM.map translate32toR__runtime_mem_block m.
+ (*
+  Parameter V32:binary32. (* max obstacle speed *)
+  Parameter b32:binary32. (* max braking *)
+  Parameter A32:binary32. (* max accel *)
+  Parameter e32:binary32. (* sampling period *)
+  *)
 
+  Definition is_NaN_32 (a:binary32) :=
+    match a with
+    | @B754_nan _ _ _ _ _  => True
+    | _ => False
+    end.
 
-  (* parameters of the physical system *)
-  Parameter V:R. (* max obstacle speed *)
-  Parameter b:R. (* max braking *)
-  Parameter A:R. (* max accel *)
-  Parameter e:R. (* sampling period *)
+  (* inclusive range check *)
+  Definition in_range_32: (binary32*binary32) -> binary32 -> Prop
+    := fun '(a,b) x =>
+         not (is_NaN_32 x)
+         /\
+           (b32_compare a x ≡ Some Datatypes.Eq
+            \/ b32_compare a x ≡ Some Datatypes.Lt)
+         /\
+           (b32_compare x b ≡ Some Datatypes.Eq
+            \/ b32_compare x b ≡ Some Datatypes.Lt).
+
+  (* left excluded, right included range check *)
+  Definition in_range_32_l: (binary32*binary32) -> binary32 -> Prop
+    := fun '(a,b) x =>
+         not (is_NaN_32 x)
+         /\
+           b32_compare a x ≡ Some Datatypes.Lt
+         /\
+           (b32_compare x b ≡ Some Datatypes.Eq
+            \/ b32_compare x b ≡ Some Datatypes.Lt).
+
+  (* Constraints on physical parameters *)
 
   Local Open Scope R_scope.
 
-  (* Constraints on physical parameters *)
-  Parameter V_constr: 0 <= V <= 20. (* up to 20 m/s (72 Kmh) *)
-  Parameter b_constr: 1 < b <= 6. (* m/s^2. https://copradar.com/chapts/references/acceleration.html *)
-  Parameter A_constr: 0 <= A <= 5. (* m/s^2. https://hypertextbook.com/facts/2001/MeredithBarricella.shtml *)
-  Parameter e_constr: 1/100 <= e <= 1/10 . (* 10-100 Hz *)
+  (* TODO: constants *)
+  Parameter V_constr: (binary32*binary32). (* 0 <= V <= 20. up to 20 m/s (72 Kmh) *)
+  Parameter b_constr: (binary32*binary32). (* 1 < b <= 6. m/s^2. https://copradar.com/chapts/references/acceleration.html *)
+  Parameter A_constr: (binary32*binary32). (* 0 <= A <= 5. m/s^2. https://hypertextbook.com/facts/2001/MeredithBarricella.shtml *)
+  Parameter e_constr: (binary32*binary32). (* 1/100 <= e <= 1/10. 10-100 Hz *)
 
-  (*
+  (* Constraints for obstact and robot coordinates.  Our robots
+     operates on cartesian grid ~10x10 Km *)
+  Parameter x_constr: (binary32*binary32). (* -5000, 5000 *)
+  Parameter y_constr: (binary32*binary32). (* -5000, 5000 *)
+
+  (* Robot velocity constraint *)
+  Parameter v_constr: (binary32*binary32). (* 0, 20 *)
+
+    (*
     "a" layout:
      a0 = (A/b+1.0)*((A/2.0)*e*e+e*V)
      a1 = V/b+e*(A/b+1.0)
@@ -1926,74 +1965,44 @@ Section RHCOL_to_FHCOL_bounds.
     3. obstacle position (X)
     4. obstacle position (Y)
    *)
+  Definition make_a32 (V32 b32 A32 e32:binary32): FHCOL32.mem_block :=
+    (* TODO: implement a0,a1,a2 compulation. We do not have division
+    in ctype! Priobably OK to use one from flocq.*)
+    let a0 := V32 in
+    let a1 := V32 in
+    let a2 := MFloat32asCT.CTypePlus Float32asCT.Float32One Float32asCT.Float32One in
+    FHCOLEval32.mem_add 0%nat a0 (FHCOLEval32.mem_add 1%nat a1 (FHCOLEval32.mem_add 2%nat a2 (FHCOLEval32.mem_empty))).
 
-  (* Constraints for obstact and robot coordinates.  Our robots
-     operates on cartesian grid ~10x10 Km *)
-  Definition position_constr x y :=
-    (-5000 <= x <= 5000) /\ (-5000 <= y <= 5000).
-
-  (* Robot velocity constraint *)
-  Definition r_v_constr (v:R) := 0 <= v <= 20. (* up to 20 m/s (72 Kmh) *)
-
-  (* Derived bounds of a[0] parameter *)
-  Definition a0_range:  (R*R).
-    pose proof V_constr as VC.
-    pose proof b_constr as BC.
-    pose proof A_constr as AC.
-    pose proof e_constr as EC.
-    interval_intro ((Rdiv A (b+1))*((Rdiv A 2)*e*e+e*V)) as H.
-    match goal with
-      [H: ?l <= _ <= ?u |- _] => exact (l,u)
-    end.
-  Defined.
-
-  (* Derived bounds of a[1] parameter *)
-  Definition a1_range:  (R*R).
-    pose proof V_constr as VC.
-    pose proof b_constr as BC.
-    pose proof A_constr as AC.
-    pose proof e_constr as EC.
-    interval_intro ((Rdiv V b)+e*(Rdiv A b)+ 1) as H.
-    match goal with
-      [H: ?l <= _ <= ?u |- _] => exact (l,u)
-    end.
-  Defined.
-
-  (* Derived bounds of a[1] parameter *)
-  Definition a2_range:  (R*R).
-    pose proof b_constr as BC.
-    interval_intro (Rdiv 1 (2*b)) as H.
-    match goal with
-      [H: ?l <= _ <= ?u |- _] => exact (l,u)
-    end.
-  Defined.
-
-  (* inclusive *)
-  Definition in_range (x:R) (bounds:(R*R)) : Prop :=
-    let '(l,u) := bounds in l <= x <= u.
+  Definition make_x32 (r_v_32 r_x_32 r_y_32 o_x_32 o_y_32: binary32): FHCOL32.mem_block :=
+    FHCOLEval32.mem_add 0%nat r_v_32 (FHCOLEval32.mem_add 1%nat r_x_32 (FHCOLEval32.mem_add 2%nat r_y_32 (FHCOLEval32.mem_add 3%nat o_x_32 (FHCOLEval32.mem_add 4%nat o_y_32 (FHCOLEval32.mem_empty))))).
 
   (* Constraints on input memory blocks which we assume to prove
      numerical stabiluty of FHCOL DynWin code. *)
   Definition DynWinInConstr (a:RHCOLEval.mem_block) (x:RHCOLEval.mem_block): Prop
     :=
-    (forall a0 a1 a2 ,
-      RHCOLEval.mem_lookup 0%nat a = Some a0
-      /\ RHCOLEval.mem_lookup 1%nat a = Some a1
-      /\ RHCOLEval.mem_lookup 2%nat a = Some a2
-      /\ in_range a0 a0_range
-      /\ in_range a1 a1_range
-      /\ in_range a2 a2_range)
-    /\ (forall r_v r_x r_y o_x o_y,
-        RHCOLEval.mem_lookup 0%nat x = Some r_v
-        /\ RHCOLEval.mem_lookup 1%nat x = Some r_x
-        /\ RHCOLEval.mem_lookup 2%nat x = Some r_y
-        /\ RHCOLEval.mem_lookup 3%nat x = Some o_x
-        /\ RHCOLEval.mem_lookup 4%nat x = Some o_y
-        /\ r_v_constr r_v
-        /\ position_constr r_x r_y
-        /\ position_constr o_x o_y).
+    ∃ V32 (* max obstacle speed *)
+      b32 (* max braking *)
+      A32 (* max accel *)
+      e32 (* sampling period *)
+      r_v_32
+      r_x_32
+      r_y_32
+      o_x_32
+      o_y_32,
 
+      in_range_32 V_constr V32
+      /\ in_range_32_l b_constr b32
+      /\ in_range_32 A_constr A32
+      /\ in_range_32 e_constr e32
+      /\ heq_mem_block a (make_a32 V32 b32 A32 e32)
+      /\ in_range_32 v_constr r_v_32
+      /\ in_range_32 x_constr r_x_32
+      /\ in_range_32 y_constr r_y_32
+      /\ in_range_32 x_constr o_x_32
+      /\ in_range_32 y_constr o_y_32
+      /\ heq_mem_block x (make_x32 r_v_32 r_x_32 r_y_32 o_x_32 o_y_32).
 
+(*
   (* Parametric relation between RHCOL and FHCOL coumputation results  *)
   Definition DynWinOutRel
              (a_rmem:RHCOLEval.mem_block)
@@ -2026,7 +2035,7 @@ Section RHCOL_to_FHCOL_bounds.
               /\ FHCOLEval.memory_lookup f_omemory dynwin_y_addr = Some y_fmem.
 
 
-
+ *)
 
 End RHCOL_to_FHCOL_bounds.
 
@@ -2105,9 +2114,9 @@ Section TopLevel.
       (* evaluatoion of original operator *)
       dynwin_orig a x = y ->
 
-      forall dynwin_F_memory dynwin_F_σ dynwin_FHCOL,
+      forall dynwin_F_memory dynwin_F_σ (dynwin_FHCOL:FHCOL.DSHOperator),
         (* Compile -> RHCOL -> FHCOL *)
-        translate dynwin_RHCOL = inr dynwin_FHCOL ->
+        RHCOLtoFHCOL.translate dynwin_RHCOL = inr dynwin_FHCOL ->
 
         (* Compile memory *)
         RHCOLtoFHCOL.translate_runtime_memory (dynwin_R_memory a x) = inr dynwin_F_memory ->
@@ -2389,16 +2398,16 @@ Section TopLevel.
       as HEQRF.
     full_autospecialize HEQRF.
     {
-      now eapply translation_syntax_always_correct.
+      now eapply RHCOLtoFHCOL.translation_syntax_always_correct.
       Unshelve.
       apply trivial_RF_CTO.
     }
     {
-      eapply @translateEvalContext_same_indices with (CTO:=trivial_RF_CTO).
+      eapply @RHCOLtoFHCOL.translateEvalContext_same_indices with (CTO:=trivial_RF_CTO).
       assumption.
     }
     {
-      eapply @translate_runtime_memory_same_indices with (CTO:=trivial_RF_CTO).
+      eapply @RHCOLtoFHCOL.translate_runtime_memory_same_indices with (CTO:=trivial_RF_CTO).
       assumption.
     }
     {
