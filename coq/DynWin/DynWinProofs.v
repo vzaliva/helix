@@ -1891,21 +1891,23 @@ Require Import Float32asCT.
 Section RHCOL_to_FHCOL_bounds.
   Context
     `{RF_CHE_32 : RHCOLtoFHCOL32.CTranslation_heq}
-    `{RF_CTO_32 : @RHCOLtoFHCOL32.CTranslationOp RF_CHE_32}.
+    `{RF_CTO_32 : @RHCOLtoFHCOL32.CTranslationOp RF_CHE_32}
+    `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}
+    `{RF_CTO : @RHCOLtoFHCOL.CTranslationOp RF_CHE}.
 
   (*
     Q: can we instantiate RF_CHE_32? e.g.:
     Definition binary32toR: binary32 -> R := @B2R _ _.
    *)
 
- (* parameters of the physical system. Specified as 32 bit floating values *)
+  (* parameters of the physical system. Specified as 32 bit floating values *)
 
- (*
+  (*
   Parameter V32:binary32. (* max obstacle speed *)
   Parameter b32:binary32. (* max braking *)
   Parameter A32:binary32. (* max accel *)
   Parameter e32:binary32. (* sampling period *)
-  *)
+   *)
 
   Definition is_NaN_32 (a:binary32) :=
     match a with
@@ -1952,7 +1954,7 @@ Section RHCOL_to_FHCOL_bounds.
   (* Robot velocity constraint *)
   Parameter v_constr: (binary32*binary32). (* 0, 20 *)
 
-    (*
+  (*
     "a" layout:
      a0 = (A/b+1.0)*((A/2.0)*e*e+e*V)
      a1 = V/b+e*(A/b+1.0)
@@ -1975,6 +1977,17 @@ Section RHCOL_to_FHCOL_bounds.
 
   Definition make_x32 (r_v_32 r_x_32 r_y_32 o_x_32 o_y_32: binary32): FHCOL32.mem_block :=
     FHCOLEval32.mem_add 0%nat r_v_32 (FHCOLEval32.mem_add 1%nat r_x_32 (FHCOLEval32.mem_add 2%nat r_y_32 (FHCOLEval32.mem_add 3%nat o_x_32 (FHCOLEval32.mem_add 4%nat o_y_32 (FHCOLEval32.mem_empty))))).
+
+
+  (** Cast 32-bit binary floats to 64-binary floats.
+      This is loseless conversion and it always succeeds *)
+  Definition cast32_to_64_mem_block : FHCOL32.mem_block → FHCOL.mem_block.
+  Admitted.
+
+  (** Two 64-bit mem_blocks are equivalent up to 32-bit precision.
+      In other words, indistinguishable when cast to 32-bit floats.*)
+  Definition eq_up_to_32_mem_block : relation FHCOL.mem_block.
+  Admitted.
 
   (* Constraints on input memory blocks which we assume to prove
      numerical stabiluty of FHCOL DynWin code. *)
@@ -2002,41 +2015,56 @@ Section RHCOL_to_FHCOL_bounds.
       /\ in_range_32 y_constr o_y_32
       /\ heq_mem_block x (make_x32 r_v_32 r_x_32 r_y_32 o_x_32 o_y_32).
 
-(*
+
   (* Parametric relation between RHCOL and FHCOL coumputation results  *)
   Definition DynWinOutRel
              (a_rmem:RHCOLEval.mem_block)
              (x_rmem:RHCOLEval.mem_block)
              (y_rmem:RHCOLEval.mem_block)
-             (y_fmem: FHCOLEval.mem_block): Prop
+             (y_fmem:FHCOLEval.mem_block): Prop
     :=
-    exists r_imemory,
-      RHCOLEval.memory_lookup r_imemory dynwin_a_addr = Some a_rmem /\
-        RHCOLEval.memory_lookup r_imemory dynwin_x_addr = Some x_rmem /\
-        (* Everything correct on Reals *)
-        exists r_omemory y_rmem,
-          RHCOLEval.evalDSHOperator
-            dynwin_R_σ
-            dynwin_RHCOL
-            r_imemory
-            (RHCOLEval.estimateFuel dynwin_RHCOL) = Some (inr r_omemory)
-          /\ RHCOLEval.memory_lookup r_omemory dynwin_y_addr = Some y_rmem
 
-          (* And floats *)
-          /\ exists dynwin_FHCOL dynwin_F_σ dynwin_F_memory,
-            translate dynwin_RHCOL = inr dynwin_FHCOL
-            /\ RHCOLtoFHCOL.translate_runtime_memory r_imemory = inr dynwin_F_memory
-            /\ RHCOLtoFHCOL.translateEvalContext dynwin_R_σ = inr dynwin_F_σ
-            /\ exists f_omemory y_fmem,
-              FHCOLEval.evalDSHOperator
-                dynwin_F_σ dynwin_FHCOL
-                dynwin_F_memory
-                (FHCOLEval.estimateFuel dynwin_FHCOL) = (Some (inr f_omemory))
-              /\ FHCOLEval.memory_lookup f_omemory dynwin_y_addr = Some y_fmem.
+    (* Inputs my satisfy constraints *)
+    DynWinInConstr a_rmem x_rmem ->
 
+    (* And it is representable as 32-bit floats *)
+    ∃ a32 x32,
+      (heq_mem_block a_rmem a32 /\ heq_mem_block x_rmem x32) ->
 
- *)
+      exists r_imemory,
+        RHCOLEval.memory_lookup r_imemory dynwin_a_addr = Some a_rmem /\
+          RHCOLEval.memory_lookup r_imemory dynwin_x_addr = Some x_rmem /\
+          (* Evaluation succeeds on Reals *)
+          exists r_omemory y_rmem,
+            RHCOLEval.evalDSHOperator
+              dynwin_R_σ
+              dynwin_RHCOL
+              r_imemory
+              (RHCOLEval.estimateFuel dynwin_RHCOL) = Some (inr r_omemory)
+            /\ RHCOLEval.memory_lookup r_omemory dynwin_y_addr = Some y_rmem
 
+            (* And 64-bit floats *)
+            /\ exists dynwin_FHCOL dynwin_F_σ dynwin_F_memory,
+              RHCOLtoFHCOL.translate dynwin_RHCOL = inr dynwin_FHCOL
+              (* Cast 32-bit inputs to 64-bit values *)
+              /\ FHCOLEval.memory_lookup dynwin_F_memory dynwin_a_addr = Some (cast32_to_64_mem_block a32)
+              /\ FHCOLEval.memory_lookup dynwin_F_memory dynwin_x_addr = Some (cast32_to_64_mem_block x32)
+
+              /\ RHCOLtoFHCOL.translateEvalContext dynwin_R_σ = inr dynwin_F_σ
+              (* Outputs of 64-bit evaluation *)
+              /\ exists f_omemory y_fmem,
+                FHCOLEval.evalDSHOperator
+                  dynwin_F_σ dynwin_FHCOL
+                  dynwin_F_memory
+                  (FHCOLEval.estimateFuel dynwin_FHCOL) = (Some (inr f_omemory))
+                /\ FHCOLEval.memory_lookup f_omemory dynwin_y_addr = Some y_fmem
+                (* Outputs of conversion of real evaluation to 64-bit floats *)
+                /\ (∃ (f_omemory':FHCOL.memory) y_fmem',
+                      RHCOLtoFHCOL.translate_runtime_memory r_omemory = inr f_omemory'
+                      /\ FHCOLEval.memory_lookup f_omemory' dynwin_y_addr = Some y_fmem'
+                      (* eq when cast back to 32 *)
+                      /\ eq_up_to_32_mem_block y_fmem' y_fmem
+                  ).
 End RHCOL_to_FHCOL_bounds.
 
 Section TopLevel.
