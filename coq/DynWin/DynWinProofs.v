@@ -1941,18 +1941,18 @@ Section RHCOL_to_FHCOL_bounds.
   Local Open Scope R_scope.
 
   (* TODO: constants *)
-  Parameter V_constr: (binary32*binary32). (* 0 <= V <= 20. up to 20 m/s (72 Kmh) *)
-  Parameter b_constr: (binary32*binary32). (* 1 < b <= 6. m/s^2. https://copradar.com/chapts/references/acceleration.html *)
-  Parameter A_constr: (binary32*binary32). (* 0 <= A <= 5. m/s^2. https://hypertextbook.com/facts/2001/MeredithBarricella.shtml *)
-  Parameter e_constr: (binary32*binary32). (* 1/100 <= e <= 1/10. 10-100 Hz *)
+  Definition V_constr := (b32_of_bits 0%Z, b32_of_bits 1101004800%Z). (* 0 <= V <= 20. up to 20 m/s (72 Kmh) *)
+  Definition b_constr := (b32_of_bits 1065353216%Z, b32_of_bits 1086324736%Z). (* 1 < b <= 6. m/s^2. https://copradar.com/chapts/references/acceleration.html *)
+  Definition A_constr := (b32_of_bits 0%Z, b32_of_bits 1084227584%Z). (* 0 <= A <= 5. m/s^2. https://hypertextbook.com/facts/2001/MeredithBarricella.shtml *)
+  Definition e_constr := (b32_of_bits 1008981770%Z, b32_of_bits 1036831949%Z). (* 1/100 <= e <= 1/10. 10-100 Hz *)
 
   (* Constraints for obstact and robot coordinates.  Our robots
      operates on cartesian grid ~10x10 Km *)
-  Parameter x_constr: (binary32*binary32). (* -5000, 5000 *)
-  Parameter y_constr: (binary32*binary32). (* -5000, 5000 *)
+  Definition x_constr := (b32_of_bits 3315351552%Z, b32_of_bits 1167867904%Z). (* -5000, 5000 *)
+  Definition y_constr := (b32_of_bits 3315351552%Z, b32_of_bits 1167867904%Z). (* -5000, 5000 *)
 
   (* Robot velocity constraint *)
-  Parameter v_constr: (binary32*binary32). (* 0, 20 *)
+  Definition v_constr := (b32_of_bits 0%Z, b32_of_bits 1101004800%Z). (* 0, 20 *)
 
   (*
     "a" layout:
