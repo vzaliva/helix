@@ -75,3 +75,4 @@ auto-save-list
 tramp
 .\#*
 /experiments/.ipynb_checkpoints/
+/experiments/a.out
