@@ -9,6 +9,7 @@ let verbose = ref false
 let printtests = ref false
 let single = ref ""
 let justcompile = ref false
+let standalone = ref false
 let output_file_prefix = "test_"
 
 module AT = ANSITerminal
@@ -66,10 +67,14 @@ let process_test t inp =
       List.iteri inp ~f:(fun i v -> Printf.printf "\t%d\t-\t%s\n" i (string_of_FloatV v))
     end ;
   if List.length inp <> inp_size t
-  then raise (Failure "Incorrecct input vector size") ;
+  then raise (Failure "Incorrect input vector size") ;
   begin
     if !justcompile then
-      match Tests.runFSHCOLTest t !justcompile inp with
+      let rres = if !standalone
+                 then Tests.compileFSHCOL_standalone t inp
+                 else Tests.runFSHCOLTest t !justcompile inp
+      in
+      match rres with
       | ((None, _) , msg) ->
          AT.printf [AT.white; AT.on_red] "Error" ;
          AT.printf [AT.yellow] ": %s" oname ;
@@ -205,6 +210,7 @@ let args =
     ("-v", Set verbose, "enables more verbose compilation output");
     ("-d", Set Interpreter.debug_flag, "enables debuging output");
     ("-p", Set printtests, "print names of all tests (for automation)");
+    ("-s", Set standalone, "save standalone IR code (with main) (assuming [-c])");
   ]
 
 (*
