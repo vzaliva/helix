@@ -1886,6 +1886,8 @@ End RHCOL_to_FHCOL_numerical.
 From Interval Require Import Tactic.
 
 From Flocq Require Import Binary Bits Core.Defs.
+Require Import Vellvm.Numeric.Floats.
+Require Import Vellvm.Numeric.IEEE754_extra.
 
 Require Import Float32asCT.
 Section RHCOL_to_FHCOL_bounds.
@@ -1978,11 +1980,36 @@ Section RHCOL_to_FHCOL_bounds.
   Definition make_x32 (r_v_32 r_x_32 r_y_32 o_x_32 o_y_32: binary32): FHCOL32.mem_block :=
     FHCOLEval32.mem_add 0%nat r_v_32 (FHCOLEval32.mem_add 1%nat r_x_32 (FHCOLEval32.mem_add 2%nat r_y_32 (FHCOLEval32.mem_add 3%nat o_x_32 (FHCOLEval32.mem_add 4%nat o_y_32 (FHCOLEval32.mem_empty))))).
 
-  Definition cast32_to_64: binary32 -> binary64.
-  Admitted.
+  (* Extend binary32 to binary64.
+     This is a loseless conversion and it always succeeds.
+   *)
+  Definition cast32_to_64 (x32:binary32): binary64
+    := Float32.to_double x32.
+
+  (* Proof that converting 32 to 64 float does not cause any data loss
+     for finite (non-NaN) numbers.  It is not true another way around!
+   *)
+  Fact cast32_to_64_loseless:
+    forall x32,
+      is_finite _ _ x32 ≡ true ->
+      B2R _ _ (cast32_to_64 x32) ≡ B2R _ _ x32.
+  Proof.
+    intros H x32.
+    unfold cast32_to_64, Float32.to_double.
+    Transparent Float.of_single Float.to_single.
+    unfold Float.of_single, Float.to_single.
+    apply IEEE754_extra.Bconv_widen_exact.
+    - cbv; reflexivity.
+    - lia.
+    - lia.
+    - assumption.
+  Qed.
+
+  Definition cast64_to_32 (x64:binary64): binary32
+    := Float.to_single x64.
 
   (** Cast 32-bit binary floats to 64-binary floats.
-      This is loseless conversion and it always succeeds *)
+      This is a loseless conversion and it always succeeds *)
   Definition cast32_to_64_mem_block : FHCOL32.mem_block → FHCOL.mem_block
     := Memory.NM.map cast32_to_64.
 
