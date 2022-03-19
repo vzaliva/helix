@@ -204,6 +204,14 @@ Definition runFSHCOLTest (t:FSHCOLProgram) (just_compile:bool) (data:list binary
         (Some prog, Some (test_interpreter prog), "")
     end.
 
+(* similar to [runFSHcoltest t true], except with main *)
+Definition compileFSHCOL_standalone (t:FSHCOLProgram) (data:list binary64)
+  :=
+    match (compile_w_main t data) newState with
+    | inl msg => (None, None, msg)
+    | inr (st,prog) => (Some prog, @None (ITreeDefinition.itree L5 res_L4), "")
+    end.
+
 Require Import Helix.Util.ListSetoid.
 Require Import Helix.Util.ErrorSetoid.
 
@@ -231,4 +239,3 @@ Definition evalFSHCOLTest (t:FSHCOLProgram) (data:list binary64)
   : err (list binary64)
   :=
     @evalFSHCOLOperator t.(i) t.(o) t.(name) t.(globals) t.(op) data.
-

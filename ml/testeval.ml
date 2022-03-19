@@ -9,6 +9,7 @@ let verbose = ref false
 let printtests = ref false
 let single = ref ""
 let justcompile = ref false
+let standalone = ref false
 let output_file_prefix = "test_"
 
 module AT = ANSITerminal
@@ -49,20 +50,31 @@ let string_of_float_full f =
 let pp_binary64 ppf v =
     fprintf ppf "%s" (string_of_float_full (camlfloat_of_coqfloat v))
 
-let process_test t =
-  let oname = camlstring_of_coqstring t.name in
+let inp_size t =
+  int_of_Int64 t.i + (List.fold t.globals ~init:0 ~f:(fun v (_,g) -> v + gsize g ))
+
+let gen_randoms t =
   Random.self_init () ;
-  let rs = int_of_Int64 t.i + (List.fold t.globals ~init:0 ~f:(fun v (_,g) -> v + gsize g )) in
+  let rs = inp_size t in
   let randoms = List.init rs ~f:(fun _ -> coqfloat_of_camlfloat (randomFloat 3.14E8)) in
+  randoms
+
+let process_test t inp =
+  let oname = camlstring_of_coqstring t.name in
   if !Interpreter.debug_flag then
     begin
-      Printf.printf "Generating %d floats:\n" rs ;
-      List.iteri randoms ~f:(fun i v -> Printf.printf "\t%d\t-\t%s\n" i (string_of_FloatV v))
+      Printf.printf "Testing with %d floats:\n" (List.length inp) ;
+      List.iteri inp ~f:(fun i v -> Printf.printf "\t%d\t-\t%s\n" i (string_of_FloatV v))
     end ;
-
+  if List.length inp <> inp_size t
+  then raise (Failure "Incorrect input vector size") ;
   begin
     if !justcompile then
-      match Tests.runFSHCOLTest t !justcompile randoms with
+      let rres = if !standalone
+                 then Tests.compileFSHCOL_standalone t inp
+                 else Tests.runFSHCOLTest t !justcompile inp
+      in
+      match rres with
       | ((None, _) , msg) ->
          AT.printf [AT.white; AT.on_red] "Error" ;
          AT.printf [AT.yellow] ": %s" oname ;
@@ -73,8 +85,8 @@ let process_test t =
          output_ll_file (output_file_prefix ^ oname ^ ".ll") ast ;
          true
     else
-      let eres = Tests.evalFSHCOLTest t randoms in
-      let rres = Tests.runFSHCOLTest t !justcompile randoms in
+      let eres = Tests.evalFSHCOLTest t inp in
+      let rres = Tests.runFSHCOLTest t !justcompile inp in
 
       let print_eres v =
         AT.printf [AT.green] "Evaluation Result:\n" ;
@@ -159,6 +171,11 @@ let process_test t =
                    begin
                      AT.printf [AT.black; AT.on_green] "OK" ;
                      AT.printf [] " Results match\n" ;
+                     if !Interpreter.debug_flag then
+                       begin
+                         print_dv (UVALUE_Array arr) ;
+                         print_eres v ;
+                       end ;
                      true
                    end
                  else
@@ -183,6 +200,9 @@ let process_test t =
       (cflag && iflag && eflag && dflag)
   end
 
+let random_test t =
+  process_test t (gen_randoms t)
+
 let args =
   [
     ("-t", Set_string single, "run single test") ;
@@ -190,7 +210,21 @@ let args =
     ("-v", Set verbose, "enables more verbose compilation output");
     ("-d", Set Interpreter.debug_flag, "enables debuging output");
     ("-p", Set printtests, "print names of all tests (for automation)");
+    ("-s", Set standalone, "save standalone IR code (with main) (assuming [-c])");
   ]
+
+(*
+let a = [0.2; 1.2; 0.5]
+let v_r = [1.0]
+let p_r = [0.0; 0.0]
+let p_o = [1.0; 1.0]
+
+let dynwin_err_inp =
+  a @ v_r @ p_r @ p_o
+
+let dynwin_test t =
+  process_test t (List.map (List.rev dynwin_err_inp) ~f:coqfloat_of_camlfloat)
+ *)
 
 let _ =
   Arg.parse args (fun _ -> ())  "USAGE: ./testcomp [-v] [-p] [t <name>]\n";
@@ -205,5 +239,5 @@ let _ =
     let open Core.String in
     let t = if !single = "" then all_tests
             else List.filter all_tests ~f:(fun x -> camlstring_of_coqstring (name x) = !single) in
-    exit (if List.fold (List.map t ~f:process_test) ~init:true ~f:(&&)
+    exit (if List.fold (List.map t ~f:random_test (* @ List.map t ~f:dynwin_test *)) ~init:true ~f:(&&)
           then 0 else 1)
