@@ -1978,16 +1978,26 @@ Section RHCOL_to_FHCOL_bounds.
   Definition make_x32 (r_v_32 r_x_32 r_y_32 o_x_32 o_y_32: binary32): FHCOL32.mem_block :=
     FHCOLEval32.mem_add 0%nat r_v_32 (FHCOLEval32.mem_add 1%nat r_x_32 (FHCOLEval32.mem_add 2%nat r_y_32 (FHCOLEval32.mem_add 3%nat o_x_32 (FHCOLEval32.mem_add 4%nat o_y_32 (FHCOLEval32.mem_empty))))).
 
+  Definition cast32_to_64: binary32 -> binary64.
+  Admitted.
 
   (** Cast 32-bit binary floats to 64-binary floats.
       This is loseless conversion and it always succeeds *)
-  Definition cast32_to_64_mem_block : FHCOL32.mem_block → FHCOL.mem_block.
+  Definition cast32_to_64_mem_block : FHCOL32.mem_block → FHCOL.mem_block
+    := Memory.NM.map cast32_to_64.
+
+  (* Compare two 64-bit floats up to 32-bit precission.
+     In other words, indistinguishable when cast to 32-bit floats.
+   *)
+  Definition eq_64_up_to_32: binary64 -> binary64 -> Prop.
   Admitted.
 
   (** Two 64-bit mem_blocks are equivalent up to 32-bit precision.
       In other words, indistinguishable when cast to 32-bit floats.*)
-  Definition eq_up_to_32_mem_block : relation FHCOL.mem_block.
-  Admitted.
+  Definition eq_up_to_32_mem_block (m1 m2:FHCOL.mem_block) : Prop :=
+    forall k v1 v2,
+      (Memory.NM.MapsTo k v1 m1 -> (Memory.NM.MapsTo k v2 m2 /\ eq_64_up_to_32 v1 v2)) \/
+        (Memory.NM.MapsTo k v2 m2 -> (Memory.NM.MapsTo k v1 m1 /\ eq_64_up_to_32 v1 v2)).
 
   (* Constraints on input memory blocks which we assume to prove
      numerical stabiluty of FHCOL DynWin code. *)
