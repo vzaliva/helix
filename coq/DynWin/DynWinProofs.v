@@ -1980,22 +1980,21 @@ Section RHCOL_to_FHCOL_bounds.
   Definition make_x32 (r_v_32 r_x_32 r_y_32 o_x_32 o_y_32: binary32): FHCOL32.mem_block :=
     FHCOLEval32.mem_add 0%nat r_v_32 (FHCOLEval32.mem_add 1%nat r_x_32 (FHCOLEval32.mem_add 2%nat r_y_32 (FHCOLEval32.mem_add 3%nat o_x_32 (FHCOLEval32.mem_add 4%nat o_y_32 (FHCOLEval32.mem_empty))))).
 
-  (* Extend binary32 to binary64.
-     This is a loseless conversion and it always succeeds.
-   *)
-  Definition cast32_to_64 (x32:binary32): binary64
+  (* Widen binary32 to binary64.  This is a loseless conversion and it
+     always succeeds.  *)
+  Definition widen32_to_64 (x32:binary32): binary64
     := Float32.to_double x32.
 
   (* Proof that converting 32 to 64 float does not cause any data loss
      for finite (non-NaN) numbers.  It is not true another way around!
    *)
-  Fact cast32_to_64_loseless:
+  Fact widen32_to_64_loseless:
     forall x32,
       is_finite _ _ x32 ≡ true ->
-      B2R _ _ (cast32_to_64 x32) ≡ B2R _ _ x32.
+      B2R _ _ (widen32_to_64 x32) ≡ B2R _ _ x32.
   Proof.
     intros H x32.
-    unfold cast32_to_64, Float32.to_double.
+    unfold widen32_to_64, Float32.to_double.
     Transparent Float.of_single Float.to_single.
     unfold Float.of_single, Float.to_single.
     apply IEEE754_extra.Bconv_widen_exact.
@@ -2005,29 +2004,30 @@ Section RHCOL_to_FHCOL_bounds.
     - assumption.
   Qed.
 
+  (** Widen a memory block with 32-bit binary floats to memory block
+      with 64-binary floats. This is a loseless conversion and it
+      always succeeds *)
+  Definition widen32_to_64_mem_block : FHCOL32.mem_block → FHCOL.mem_block
+    := Memory.NM.map widen32_to_64.
+
+  (** Cast a 64-bit binary float to 32-binary float.  This is a lossy
+      conversion and must model C doulbe to single precision cast.
+      For example:
+      LLVM: %1 = fptrunc double %2 to float
+      X86: cvtsd2ss xmm0, xmm0
+      ARM64: fcvt s0, d0
+   *)
   Definition cast64_to_32 (x64:binary64): binary32
     := Float.to_single x64.
 
-  (** Cast 32-bit binary floats to 64-binary floats.
-      This is a loseless conversion and it always succeeds *)
-  Definition cast32_to_64_mem_block : FHCOL32.mem_block → FHCOL.mem_block
-    := Memory.NM.map cast32_to_64.
-
-  (* Compare two 64-bit floats up to 32-bit precission.
-     In other words, indistinguishable when cast to 32-bit floats.
-   *)
-  Definition eq_64_up_to_32: binary64 -> binary64 -> Prop.
-  Admitted.
-
-  (** Two 64-bit mem_blocks are equivalent up to 32-bit precision.
-      In other words, indistinguishable when cast to 32-bit floats.*)
-  Definition eq_up_to_32_mem_block (m1 m2:FHCOL.mem_block) : Prop :=
-    forall k v1 v2,
-      (Memory.NM.MapsTo k v1 m1 -> (Memory.NM.MapsTo k v2 m2 /\ eq_64_up_to_32 v1 v2)) \/
-        (Memory.NM.MapsTo k v2 m2 -> (Memory.NM.MapsTo k v1 m1 /\ eq_64_up_to_32 v1 v2)).
+  (** Cast a 64-bit binary float to 32-binary float. This is a lossy
+      conversion. See [cast64_to_32] *)
+  Definition cast64_to_32_mem_block : FHCOL.mem_block → FHCOL32.mem_block
+    := Memory.NM.map cast64_to_32.
 
   (* Constraints on input memory blocks which we assume to prove
-     numerical stabiluty of FHCOL DynWin code. *)
+     numerical stability of FHCOL DynWin code.  Here, we enforce some
+     reasonable numerical bounds on dynwin physical parameters.  *)
   Definition DynWinInConstr (a:RHCOLEval.mem_block) (x:RHCOLEval.mem_block): Prop
     :=
     ∃ V32 (* max obstacle speed *)
@@ -2055,53 +2055,25 @@ Section RHCOL_to_FHCOL_bounds.
 
   (* Parametric relation between RHCOL and FHCOL coumputation results  *)
   Definition DynWinOutRel
-             (a_rmem:RHCOLEval.mem_block)
-             (x_rmem:RHCOLEval.mem_block)
-             (y_rmem:RHCOLEval.mem_block)
-             (y_fmem:FHCOLEval.mem_block): Prop
+             (a_r:RHCOLEval.mem_block)
+             (x_r:RHCOLEval.mem_block)
+             (y_r:RHCOLEval.mem_block)
+             (y_64:FHCOLEval.mem_block): Prop
     :=
+    (* Inputs must satisfy input constraints *)
+    DynWinInConstr a_r x_r ->
 
-    (* Inputs my satisfy constraints *)
-    DynWinInConstr a_rmem x_rmem ->
+    (* And they are representable as 32-bit floats *)
+    ∃ a_32 x_32,
+      (heq_mem_block a_r a_32 /\ heq_mem_block x_r x_32)
+      /\ forall y_32,
+        (* cast 64 bit output to 32 bit, simlating
+           C/LLVM cast as in [cast64_to_32]*)
+        cast64_to_32_mem_block y_64 ≡ y_32 ->
+        (* result of the cast should be the same as
+         32 bit approximation of result on Reals*)
+        heq_mem_block y_r y_32.
 
-    (* And it is representable as 32-bit floats *)
-    ∃ a32 x32,
-      (heq_mem_block a_rmem a32 /\ heq_mem_block x_rmem x32) ->
-
-      exists r_imemory,
-        RHCOLEval.memory_lookup r_imemory dynwin_a_addr = Some a_rmem /\
-          RHCOLEval.memory_lookup r_imemory dynwin_x_addr = Some x_rmem /\
-          (* Evaluation succeeds on Reals *)
-          exists r_omemory y_rmem,
-            RHCOLEval.evalDSHOperator
-              dynwin_R_σ
-              dynwin_RHCOL
-              r_imemory
-              (RHCOLEval.estimateFuel dynwin_RHCOL) = Some (inr r_omemory)
-            /\ RHCOLEval.memory_lookup r_omemory dynwin_y_addr = Some y_rmem
-
-            (* And 64-bit floats *)
-            /\ exists dynwin_FHCOL dynwin_F_σ dynwin_F_memory,
-              RHCOLtoFHCOL.translate dynwin_RHCOL = inr dynwin_FHCOL
-              (* Cast 32-bit inputs to 64-bit values *)
-              /\ FHCOLEval.memory_lookup dynwin_F_memory dynwin_a_addr = Some (cast32_to_64_mem_block a32)
-              /\ FHCOLEval.memory_lookup dynwin_F_memory dynwin_x_addr = Some (cast32_to_64_mem_block x32)
-
-              /\ RHCOLtoFHCOL.translateEvalContext dynwin_R_σ = inr dynwin_F_σ
-              (* Outputs of 64-bit evaluation *)
-              /\ exists f_omemory y_fmem,
-                FHCOLEval.evalDSHOperator
-                  dynwin_F_σ dynwin_FHCOL
-                  dynwin_F_memory
-                  (FHCOLEval.estimateFuel dynwin_FHCOL) = (Some (inr f_omemory))
-                /\ FHCOLEval.memory_lookup f_omemory dynwin_y_addr = Some y_fmem
-                (* Outputs of conversion of real evaluation to 64-bit floats *)
-                /\ (∃ (f_omemory':FHCOL.memory) y_fmem',
-                      RHCOLtoFHCOL.translate_runtime_memory r_omemory = inr f_omemory'
-                      /\ FHCOLEval.memory_lookup f_omemory' dynwin_y_addr = Some y_fmem'
-                      (* eq when cast back to 32 *)
-                      /\ eq_up_to_32_mem_block y_fmem' y_fmem
-                  ).
 End RHCOL_to_FHCOL_bounds.
 
 Section TopLevel.
