@@ -51,7 +51,7 @@ let pp_binary64 ppf v =
     fprintf ppf "%s" (string_of_float_full (camlfloat_of_coqfloat v))
 
 let inp_size t =
-  int_of_Int64 t.i + (List.fold t.globals ~init:0 ~f:(fun v (_,g) -> v + gsize g ))
+  int_of_Int64 t.o + int_of_Int64 t.i + (List.fold t.globals ~init:0 ~f:(fun v (_,g) -> v + gsize g ))
 
 let gen_randoms t =
   Random.self_init () ;
@@ -214,16 +214,20 @@ let args =
   ]
 
 (*
-let a = [0.2; 1.2; 0.5]
+let a = [0.21; 1.2; 0.5]
 let v_r = [1.0]
 let p_r = [0.0; 0.0]
 let p_o = [1.0; 1.0]
 
-let dynwin_err_inp =
-  a @ v_r @ p_r @ p_o
+let random = [314.0]
 
+let dynwin_test_inp = 
+  random
+  @ v_r @ p_r @ p_o
+  @ List.rev a
+  
 let dynwin_test t =
-  process_test t (List.map (List.rev dynwin_err_inp) ~f:coqfloat_of_camlfloat)
+  process_test t (List.map dynwin_test_inp ~f:coqfloat_of_camlfloat)
  *)
 
 let _ =
