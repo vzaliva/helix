@@ -219,5 +219,87 @@ SUMUnion(
                                                          (h_bound_second_half 1 4) (proj1_sig jf0)
                                                          (proj2_sig jf0)) ))) ))).
 
+(*
+Definition DynWin_RHCOL :=
+  DSHAlloc 2
+    (DSHSeq
+       (DSHSeq
+          (DSHAlloc 1
+             (DSHSeq
+                (DSHSeq
+                   (DSHMemInit (PVar 0) MRasCT.CTypeZero)
+                   (DSHAlloc 1
+                      (DSHLoop 3
+                         (DSHSeq
+                            (DSHAlloc 1
+                               (DSHSeq
+                                  (DSHAssign
+                                     (PVar 7, NConst 0)
+                                     (PVar 0, NConst 0))
+                                  (DSHAlloc 1
+                                     (DSHSeq
+                                        (DSHPower
+                                           (NVar 2)
+                                           (PVar 1, NConst 0)
+                                           (PVar 0, NConst 0)
+                                           (AMult (AVar 1) (AVar 0))
+                                           MRasCT.CTypeOne)
+                                        (DSHIMap 1
+                                           (PVar 0)
+                                           (PVar 3)
+                                           (AMult
+                                              (AVar 0)
+                                              (ANth
+                                                 (MPtrDeref
+                                                 (PVar 8))
+                                                 (NVar 4))))))))
+                            (DSHMemMap2 1
+                               (PVar 2)
+                               (PVar 1) (PVar 2)
+                               (APlus (AVar 1) (AVar 0)))))))
+                (DSHAssign
+                   (PVar 0, NConst 0)
+                   (PVar 1, NConst 0))))
+          (DSHAlloc 1
+             (DSHSeq
+                (DSHSeq
+                   (DSHMemInit (PVar 0) MRasCT.CTypeZero)
+                   (DSHAlloc 1
+                      (DSHLoop 2
+                         (DSHSeq
+                            (DSHAlloc 2
+                               (DSHSeq
+                                  (DSHLoop 2
+                                     (DSHAlloc 1
+                                        (DSHSeq
+                                           (DSHAssign
+                                              (PVar 9,
+                                              NPlus
+                                                (NPlus
+                                                 (NConst 1)
+                                                 (NMult (NVar 3) (NConst 1)))
+                                                (NMult
+                                                 (NVar 1)
+                                                 (NMult (NConst 2) (NConst 1))))
+                                              (PVar 0, NConst 0))
+                                           (DSHAssign
+                                              (PVar 0, NConst 0)
+                                              (PVar 2, NVar 1)))))
+                                  (DSHBinOp 1
+                                     (PVar 0)
+                                     (PVar 2)
+                                     (AAbs (AMinus (AVar 1) (AVar 0))))))
+                            (DSHMemMap2 1
+                               (PVar 2)
+                               (PVar 1) (PVar 2)
+                               (AMax (AVar 1)
+                                  (AVar 0)))))))
+                (DSHAssign
+                   (PVar 0, NConst 0)
+                   (PVar (S 0), NConst 1)))))
+      (DSHBinOp 1 (PVar 0) (PVar 2)
+          (AZless (AVar 1) (AVar 0)))).
+*)
+
 
 End WithCarrierA.
