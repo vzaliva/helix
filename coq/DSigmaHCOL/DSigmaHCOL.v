@@ -574,7 +574,8 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
       let '(p,n) := m in
       "(" ++ string_of_PExpr p ++ "," ++ string_of_NExpr n ++ ")".
 
-    Definition string_of_DSHOperator (d:DSHOperator) : string :=
+    Fixpoint string_of_DSHOperator (d : DSHOperator) : string :=
+      "(" ++
       match d with
       | DSHNop => "DSHNop"
       | DSHAssign src dst =>
@@ -585,34 +586,44 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
         "DSHIMap " ++
                    string_of_nat n ++ " " ++
                    string_of_PExpr x_p ++ " " ++
-                   string_of_PExpr y_p ++ " ..."
+                   string_of_PExpr y_p ++ " " ++
+                   string_of_AExpr f
       | DSHBinOp n x_p y_p f =>
         "DSHBinOp " ++
                     string_of_nat n ++ " " ++
                     string_of_PExpr x_p ++ " " ++
-                    string_of_PExpr y_p ++ " ..."
+                    string_of_PExpr y_p ++ " " ++
+                    string_of_AExpr f
       | DSHMemMap2 n x0_p x1_p y_p f =>
         "DSHMemMap2 " ++
                       string_of_nat n ++ " " ++
                       string_of_PExpr x0_p ++ " " ++
                       string_of_PExpr x1_p ++ " " ++
-                      string_of_PExpr y_p ++ " ..."
+                      string_of_PExpr y_p ++ " " ++
+                      string_of_AExpr f
       | DSHPower n src dst f initial =>
         "DSHPower " ++
                     string_of_NExpr n ++ " " ++
                     string_of_MemRef src ++ " " ++
-                    string_of_MemRef dst ++ "..."
+                    string_of_MemRef dst ++ " " ++
+                    string_of_AExpr f ++ " " ++
+                    string_of_ct initial
       | DSHLoop n body =>
         "DSHLoop " ++
-                   string_of_nat n ++ " "
+                   string_of_nat n ++ " " ++
+                   string_of_DSHOperator body
       | DSHAlloc size body =>
         "DSHAlloc " ++
-                    NT.to_string size
+                    NT.to_string size ++ " " ++
+                    string_of_DSHOperator body
       | DSHMemInit y_p value =>
         "DSHMemInit " ++
-                      string_of_PExpr y_p ++ " ..."
-      | DSHSeq f g => "DSHSeq"
-      end.
+                      string_of_PExpr y_p ++ " " ++
+                      string_of_ct value
+      | DSHSeq f g => "DSHSeq " ++
+                               string_of_DSHOperator f ++ " " ++
+                               string_of_DSHOperator g
+      end ++ ")".
 
   End Printing.
 
