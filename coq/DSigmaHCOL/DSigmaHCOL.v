@@ -488,6 +488,10 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
 
   Section Printing.
 
+    Local Open Scope string_scope.
+
+    Variable string_of_ct : CT.t -> string.
+
     (* List of keys of elements in memblock as string.
        E.g. "{1,2,5}"
      *)
@@ -500,12 +504,70 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
       | PVar x => "(PVar " ++ string_of_nat x ++ ")"
       end.
 
-    (* TODO: Implement *)
-    Definition string_of_NExpr (n:NExpr) : string :=
+    (* Coq [string] is extracted as [char list] in OCaml,
+       and ["\n"] seems to become ['\\' :: 'n' :: nil] *)
+    Definition newline := String (Ascii.ascii_of_nat 10) EmptyString.
+
+    (* Notation "++" not recognized in [let] for some reason *)
+    Definition string_of_mem_block (mb : mem_block) : string :=
+      let append_pair (k : nat) (v : CT.t) (acc : string) : string :=
+        acc ++
+            "  " ++
+            string_of_nat k ++ " -> " ++
+            string_of_ct v ++ newline in
+      NM.fold append_pair mb "".
+
+    Definition string_of_memory (mb : memory) : string :=
+      let append_pair (k : nat) (v : mem_block) (acc : string) :=
+        acc ++
+            string_of_nat k ++ " ==>" ++ newline ++
+            string_of_mem_block v ++ newline in
+      NM.fold append_pair mb "".
+    
+    Definition string_of_DSHVal (v : DSHVal) : string :=
+      match v with
+      | DSHnatVal n => string_of_nat (to_nat n)
+      | DSHCTypeVal c => string_of_ct c
+      | DSHPtrVal i _ => "ptr " ++ string_of_nat i
+      end.
+
+    Definition string_of_MExpr (m:MExpr) : string :=
+      match m with
+      | MPtrDeref p => "(MPtrDeref" ++ string_of_PExpr p ++ ")"
+      | MConst _ _ => "MConst (printing not implemented)" (* TODO *)
+      end.
+
+    Fixpoint string_of_NExpr (n:NExpr) : string :=
+      let binary op x y :=
+        "(" ++ string_of_NExpr x ++ op ++ string_of_NExpr y ++ ")"
+      in
       match n with
-      | NVar x => "(NVar " ++ string_of_nat x ++ ")"
-      | NConst x => NT.to_string x
-      | _ => "?"
+      | NVar v => "(NVar " ++ string_of_nat v ++ ")"
+      | NConst c => NT.to_string c
+      | NDiv   x y => binary " / " x y
+      | NMod   x y => binary " % " x y
+      | NPlus  x y => binary " + " x y
+      | NMinus x y => binary " - " x y
+      | NMult  x y => binary " * " x y
+      | NMin   x y => binary " `min` " x y
+      | NMax   x y => binary " `max` " x y
+      end.
+
+    Fixpoint string_of_AExpr (a:AExpr) : string :=
+      let binary op x y :=
+        "(" ++ string_of_AExpr x ++ op ++ string_of_AExpr y ++ ")"
+      in
+      match a with
+      | AVar v => "(AVar " ++ string_of_nat v ++ ")"
+      | AConst c => "(AConst " ++ string_of_ct c ++ ")"
+      | ANth m n => "(ANth " ++ string_of_MExpr m ++ " " ++ string_of_NExpr n ++ ")"
+      | AAbs x => "abs (" ++ string_of_AExpr x ++ ")"
+      | APlus  x y => binary " + " x y
+      | AMinus x y => binary " - " x y
+      | AMult  x y => binary " * " x y
+      | AMin   x y => binary " `min` " x y
+      | AMax   x y => binary " `max` " x y
+      | AZless x y => binary " <? " x y
       end.
 
     Definition string_of_MemRef (m:MemRef) : string :=
