@@ -104,6 +104,7 @@ Admitted. (* does not necessary hold, but required for some test computations *)
 
 Definition b0_0 := b64_of_bits 0%Z. (* 0.0 *)
 Definition b0_1 := b64_of_bits 4591870180066957722%Z. (* 0.1 *)
+Definition b0_2 := b64_of_bits 4596373779694328218%Z. (* 0.2 *)
 Definition b0_21 := b64_of_bits 4596734067664517857%Z. (* 0.21 *)
 Definition b0_5 := b64_of_bits 4602678819172646912%Z. (* 0.5 *)
 Definition b1_0 := b64_of_bits 4607182418800017408. (* 1.0 *)
