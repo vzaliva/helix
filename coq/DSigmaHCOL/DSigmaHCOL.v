@@ -531,6 +531,11 @@ Module Type MDSigmaHCOL (Import CT: CType) (Import NT: NType).
       | DSHPtrVal i _ => "ptr " ++ string_of_nat i
       end.
 
+    Definition string_of_evalContext (σ : list (DSHVal * bool)) : string :=
+      "[" ++
+          concat ", " (List.map (fun '(v, _) => string_of_DSHVal v) σ) ++
+          "]".
+
     Definition string_of_MExpr (m:MExpr) : string :=
       match m with
       | MPtrDeref p => "(MPtrDeref" ++ string_of_PExpr p ++ ")"
