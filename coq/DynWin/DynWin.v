@@ -6,8 +6,13 @@ Require Import Helix.SigmaHCOL.SigmaHCOL.
 Require Import Helix.SigmaHCOL.TSigmaHCOL.
 Require Import Helix.SigmaHCOL.IndexFunctions.
 
+Require Import Helix.RSigmaHCOL.RSigmaHCOL.
+Require Import Helix.FSigmaHCOL.Int64asNT.
+Require Import Helix.FSigmaHCOL.FSigmaHCOL.
+
 Require Import Helix.SigmaHCOL.SigmaHCOLRewriting.
 
+Require Import Coq.ZArith.ZArith.
 Require Import MathClasses.interfaces.canonical_names.
 
 Definition dynwin_i:nat := (1 + (2 + 2)).
@@ -221,15 +226,15 @@ SUMUnion(
 
 End WithCarrierA.
 
-
 (* BROKEN
+   Error: Anomaly "File "clib/int.ml", line 46, characters 14-20: Assertion failed."
+   See [https://github.com/coq/coq/issues/13834]
 
 Require Import Coq.Strings.String.
 Require Import Coq.Lists.List.
 Require Import MetaCoq.Template.All.
 
 Require Import Helix.MSigmaHCOL.ReifySHCOL.
-Require Import Helix.RSigmaHCOL.ReifyMSHCOL.
 
 Section WithR.
 
@@ -239,8 +244,6 @@ Section WithR.
               "dynwin_MSHCOL1").
 
   (** * DSHCOL *)
-  (* Error: Anomaly "File "clib/int.ml", line 46, characters 14-20: Assertion failed."
-     See [https://github.com/coq/coq/issues/13834] *)
   (*
     MetaCoq Run (reifyMSHCOL dynwin_MSHCOL1
     [(BasicAst.MPfile ["DynWinProofs"; "DynWin"; "Helix"], "dynwin_MSHCOL1")]
@@ -250,84 +253,119 @@ Section WithR.
 End WithR.
 *)
 
-(*
-Definition DynWin_RHCOL :=
-  DSHAlloc 2
-    (DSHSeq
-       (DSHSeq
-          (DSHAlloc 1
-             (DSHSeq
-                (DSHSeq
-                   (DSHMemInit (PVar 0) MRasCT.CTypeZero)
-                   (DSHAlloc 1
-                      (DSHLoop 3
-                         (DSHSeq
-                            (DSHAlloc 1
-                               (DSHSeq
-                                  (DSHAssign
-                                     (PVar 7, NConst 0)
-                                     (PVar 0, NConst 0))
-                                  (DSHAlloc 1
-                                     (DSHSeq
-                                        (DSHPower
-                                           (NVar 2)
-                                           (PVar 1, NConst 0)
-                                           (PVar 0, NConst 0)
-                                           (AMult (AVar 1) (AVar 0))
-                                           MRasCT.CTypeOne)
-                                        (DSHIMap 1
-                                           (PVar 0)
-                                           (PVar 3)
-                                           (AMult
-                                              (AVar 0)
-                                              (ANth
-                                                 (MPtrDeref
-                                                 (PVar 8))
-                                                 (NVar 4))))))))
-                            (DSHMemMap2 1
-                               (PVar 2)
-                               (PVar 1) (PVar 2)
-                               (APlus (AVar 1) (AVar 0)))))))
-                (DSHAssign
-                   (PVar 0, NConst 0)
-                   (PVar 1, NConst 0))))
-          (DSHAlloc 1
-             (DSHSeq
-                (DSHSeq
-                   (DSHMemInit (PVar 0) MRasCT.CTypeZero)
-                   (DSHAlloc 1
-                      (DSHLoop 2
-                         (DSHSeq
-                            (DSHAlloc 2
-                               (DSHSeq
-                                  (DSHLoop 2
-                                     (DSHAlloc 1
-                                        (DSHSeq
-                                           (DSHAssign
-                                              (PVar 9,
-                                              NPlus
-                                                (NPlus
-                                                 (NConst 1)
-                                                 (NMult (NVar 3) (NConst 1)))
-                                                (NMult
-                                                 (NVar 1)
-                                                 (NMult (NConst 2) (NConst 1))))
-                                              (PVar 0, NConst 0))
-                                           (DSHAssign
-                                              (PVar 0, NConst 0)
-                                              (PVar 2, NVar 1)))))
-                                  (DSHBinOp 1
-                                     (PVar 0)
-                                     (PVar 2)
-                                     (AAbs (AMinus (AVar 1) (AVar 0))))))
-                            (DSHMemMap2 1
-                               (PVar 2)
-                               (PVar 1) (PVar 2)
-                               (AMax (AVar 1)
-                                  (AVar 0)))))))
-                (DSHAssign
-                   (PVar 0, NConst 0)
-                   (PVar (S 0), NConst 1)))))
-      (DSHBinOp 1 (PVar 0) (PVar 2)
-          (AZless (AVar 1) (AVar 0)))).
-*)
+Import RHCOL.
+Definition DynWin_RHCOL : RHCOL.DSHOperator :=
+  (DSHAlloc 2
+         (DSHSeq
+            (DSHSeq
+               (DSHAlloc 1
+                  (DSHSeq
+                     (DSHSeq (DSHMemInit (PVar 0) CarrierAz)
+                        (DSHAlloc 1
+                           (DSHLoop 3
+                              (DSHSeq
+                                 (DSHAlloc 1
+                                    (DSHSeq
+                                       (DSHAssign
+                                          (PVar 7, NConst 0)
+                                          (PVar 0, NConst 0))
+                                       (DSHAlloc 1
+                                          (DSHSeq
+                                             (DSHPower (NVar 2)
+                                                (PVar 1, NConst 0)
+                                                (PVar 0, NConst 0)
+                                                (AMult (AVar 1) (AVar 0))
+                                                CarrierA1)
+                                             (DSHIMap 1 (PVar 0) (PVar 3)
+                                                (AMult (AVar 0) (ANth (MPtrDeref (PVar 8)) (NVar 4))))))))
+                                 (DSHMemMap2 1 (PVar 2) (PVar 1) (PVar 2) (APlus (AVar 1) (AVar 0)))))))
+                     (DSHAssign
+                        (PVar 0, NConst 0)
+                        (PVar 1, NConst 0))))
+               (DSHAlloc 1
+                  (DSHSeq
+                     (DSHSeq (DSHMemInit (PVar 0) CarrierAz)
+                        (DSHAlloc 1
+                           (DSHLoop 2
+                              (DSHSeq
+                                 (DSHAlloc 2
+                                    (DSHSeq
+                                       (DSHLoop 2
+                                          (DSHAlloc 1
+                                             (DSHSeq
+                                                (DSHAssign
+                                                   (PVar 9, NPlus
+                                                              (NPlus (NConst 1) (NMult (NVar 3) (NConst 1)))
+                                                              (NMult (NVar 1) (NMult (NConst 2) (NConst 1))))
+                                                   (PVar 0, NConst 0))
+                                                (DSHAssign
+                                                   (PVar 0, NConst 0)
+                                                   (PVar 2, NVar 1)))))
+                                       (DSHBinOp 1 (PVar 0)
+                                          (PVar 2)
+                                          (AAbs (AMinus (AVar 1) (AVar 0))))))
+                                 (DSHMemMap2 1 (PVar 2) (PVar 1) (PVar 2) (AMax (AVar 1) (AVar 0)))))))
+                     (DSHAssign
+                        (PVar 0, NConst 0)
+                        (PVar 1, NConst 1)))))
+            (DSHBinOp 1 (PVar 0) (PVar 2)
+               (AZless (AVar 1) (AVar 0))))).
+
+
+Import FHCOL.
+Definition DynWin_FHCOL : FHCOL.DSHOperator :=
+  (DSHAlloc Int64_2
+         (DSHSeq
+            (DSHSeq
+               (DSHAlloc Int64_1
+                  (DSHSeq
+                     (DSHSeq (DSHMemInit (PVar 0) Float64asCT.Float64Zero)
+                        (DSHAlloc Int64_1
+                           (DSHLoop 3
+                              (DSHSeq
+                                 (DSHAlloc Int64_1
+                                    (DSHSeq
+                                       (DSHAssign
+                                          (PVar 7, NConst Int64_0)
+                                          (PVar 0, NConst Int64_0))
+                                       (DSHAlloc Int64_1
+                                          (DSHSeq
+                                             (DSHPower (NVar 2)
+                                                (PVar 1, NConst Int64_0)
+                                                (PVar 0, NConst Int64_0)
+                                                (AMult (AVar 1) (AVar 0))
+                                                Float64asCT.Float64One)
+                                             (DSHIMap 1 (PVar 0) (PVar 3)
+                                                (AMult (AVar 0) (ANth (MPtrDeref (PVar 8)) (NVar 4))))))))
+                                 (DSHMemMap2 1 (PVar 2) (PVar 1) (PVar 2) (APlus (AVar 1) (AVar 0)))))))
+                     (DSHAssign
+                        (PVar 0, NConst Int64_0)
+                        (PVar 1, NConst Int64_0))))
+               (DSHAlloc Int64_1
+                  (DSHSeq
+                     (DSHSeq (DSHMemInit (PVar 0) Float64asCT.Float64Zero)
+                        (DSHAlloc Int64_1
+                           (DSHLoop 2
+                              (DSHSeq
+                                 (DSHAlloc Int64_2
+                                    (DSHSeq
+                                       (DSHLoop 2
+                                          (DSHAlloc Int64_1
+                                             (DSHSeq
+                                                (DSHAssign
+                                                   (PVar 9, NPlus
+                                                              (NPlus (NConst Int64_1) (NMult (NVar 3) (NConst Int64_1)))
+                                                              (NMult (NVar 1) (NMult (NConst Int64_2) (NConst Int64_1))))
+                                                   (PVar 0, NConst Int64_0))
+                                                (DSHAssign
+                                                   (PVar 0, NConst Int64_0)
+                                                   (PVar 2, NVar 1)))))
+                                       (DSHBinOp 1 (PVar 0)
+                                          (PVar 2)
+                                          (AAbs (AMinus (AVar 1) (AVar 0))))))
+                                 (DSHMemMap2 1 (PVar 2) (PVar 1) (PVar 2) (AMax (AVar 1) (AVar 0)))))))
+                     (DSHAssign
+                        (PVar 0, NConst Int64_0)
+                        (PVar 1, NConst Int64_1)))))
+            (DSHBinOp 1 (PVar 0) (PVar 2)
+               (AZless (AVar 1) (AVar 0))))).
