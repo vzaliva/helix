@@ -219,6 +219,37 @@ SUMUnion(
                                                          (h_bound_second_half 1 4) (proj1_sig jf0)
                                                          (proj2_sig jf0)) ))) ))).
 
+End WithCarrierA.
+
+
+(* BROKEN
+
+Require Import Coq.Strings.String.
+Require Import Coq.Lists.List.
+Require Import MetaCoq.Template.All.
+
+Require Import Helix.MSigmaHCOL.ReifySHCOL.
+Require Import Helix.RSigmaHCOL.ReifyMSHCOL.
+
+Section WithR.
+
+  (** * MSHCOL *)
+  MetaCoq Run (reifySHCOL dynwin_SHCOL1 100
+              [(BasicAst.MPfile ["DynWin"; "DynWin"; "Helix"], "dynwin_SHCOL1")]
+              "dynwin_MSHCOL1").
+
+  (** * DSHCOL *)
+  (* Error: Anomaly "File "clib/int.ml", line 46, characters 14-20: Assertion failed."
+     See [https://github.com/coq/coq/issues/13834] *)
+  (*
+    MetaCoq Run (reifyMSHCOL dynwin_MSHCOL1
+    [(BasicAst.MPfile ["DynWinProofs"; "DynWin"; "Helix"], "dynwin_MSHCOL1")]
+    "dynwin_RHCOL" "dynwin_RHCOL_globals").
+   *)
+
+End WithR.
+*)
+
 (*
 Definition DynWin_RHCOL :=
   DSHAlloc 2
@@ -300,6 +331,3 @@ Definition DynWin_RHCOL :=
       (DSHBinOp 1 (PVar 0) (PVar 2)
           (AZless (AVar 1) (AVar 0)))).
 *)
-
-
-End WithCarrierA.
