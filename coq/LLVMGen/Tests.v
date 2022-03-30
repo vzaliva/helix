@@ -84,10 +84,73 @@ Local Close Scope nat_scope.
 
 
 Local Open Scope string_scope.
+Local Open Scope nat_scope.
+
+(* TODO: this should be replaced with [DynWin_FHCOL_hard] (_at least_).
+   Doing so however results in (Failure "AXIOM TO BE REALIZED") in OCaml tests *)
+Definition DynWin_FHCOL_test : FHCOL.DSHOperator :=
+  (DSHAlloc Int64_2
+         (DSHSeq
+            (DSHSeq
+               (DSHAlloc Int64_1
+                  (DSHSeq
+                     (DSHSeq (DSHMemInit (PVar 0) Float64asCT.Float64Zero)
+                        (DSHAlloc Int64_1
+                           (DSHLoop 3
+                              (DSHSeq
+                                 (DSHAlloc Int64_1
+                                    (DSHSeq
+                                       (DSHAssign
+                                          (PVar 7, NConst Int64_0)
+                                          (PVar 0, NConst Int64_0))
+                                       (DSHAlloc Int64_1
+                                          (DSHSeq
+                                             (DSHPower (NVar 2)
+                                                (PVar 1, NConst Int64_0)
+                                                (PVar 0, NConst Int64_0)
+                                                (AMult (AVar 1) (AVar 0))
+                                                Float64asCT.Float64One)
+                                             (DSHIMap 1 (PVar 0) (PVar 3)
+                                                (AMult (AVar 0) (ANth (MPtrDeref (PVar 8)) (NVar 4))))))))
+                                 (DSHMemMap2 1 (PVar 2) (PVar 1) (PVar 2) (APlus (AVar 1) (AVar 0)))))))
+                     (DSHAssign
+                        (PVar 0, NConst Int64_0)
+                        (PVar 1, NConst Int64_0))))
+               (DSHAlloc Int64_1
+                  (DSHSeq
+                     (DSHSeq (DSHMemInit (PVar 0) Float64asCT.Float64Zero)
+                        (DSHAlloc Int64_1
+                           (DSHLoop 2
+                              (DSHSeq
+                                 (DSHAlloc Int64_2
+                                    (DSHSeq
+                                       (DSHLoop 2
+                                          (DSHAlloc Int64_1
+                                             (DSHSeq
+                                                (DSHAssign
+                                                   (PVar 9, NPlus
+                                                              (NPlus (NConst Int64_1) (NMult (NVar 3) (NConst Int64_1)))
+                                                              (NMult (NVar 1) (NMult (NConst Int64_2) (NConst Int64_1))))
+                                                   (PVar 0, NConst Int64_0))
+                                                (DSHAssign
+                                                   (PVar 0, NConst Int64_0)
+                                                   (PVar 2, NVar 1)))))
+                                       (DSHBinOp 1 (PVar 0)
+                                          (PVar 2)
+                                          (AAbs (AMinus (AVar 1) (AVar 0))))))
+                                 (DSHMemMap2 1 (PVar 2) (PVar 1) (PVar 2) (AMax (AVar 1) (AVar 0)))))))
+                     (DSHAssign
+                        (PVar 0, NConst Int64_0)
+                        (PVar 1, NConst Int64_1)))))
+            (DSHBinOp 1 (PVar 0) (PVar 2)
+               (AZless (AVar 1) (AVar 0))))).
+
+Fact dynwin_fhcol_sanity_check : DynWin_FHCOL_test = DynWin_FHCOL_hard.
+Proof. reflexivity. Qed.
 
 Definition all_tests :=
   [
-    {| i:=Int64_5; o:=Int64_1; name:="dynwin64"; op:=DynWin_FHCOL_hard; globals:=[("D", DSHPtr Int64_3)] |} ;
+    {| i:=Int64_5; o:=Int64_1; name:="dynwin64"; op:=DynWin_FHCOL_test; globals:=[("D", DSHPtr Int64_3)] |} ;
   {| i:=Int64_4; o:=Int64_2; name:="binop_less"; op:=BinOp_less_test; globals:=[] |} ;
   {| i:=Int64_4; o:=Int64_2; name:="binop_plus"; op:=BinOp_plus_test; globals:=[] |} ;
   {| i:=Int64_2; o:=Int64_1; name:="ireduction"; op:=IReduction_test; globals:=[] |} ;
