@@ -76,7 +76,7 @@ Section Eval_Denote_Equiv.
              (interp_Mem (denoteDSHBinOp n off f σ x y) mem)
              (Ret (mem, blk)).
     Proof.
-      induction n as [| n IH]; intros; cbn* in *; simp; go; try reflexivity. 
+      induction n as [| n IH]; intros; cbn* in *; simp; go; try reflexivity.
       - rewrite Denote_Eval_Equiv_BinCType; eauto; go.
         rewrite IH; eauto; go; reflexivity.
     Qed.
@@ -445,7 +445,7 @@ Section Eval_Denote_Equiv.
             apply IHop in Eval_body.
             go.
             rewrite Eval_body; cbn; go.
-            cbn; go. 
+            cbn; go.
             apply IH in Eval_tail;try lia;auto.
     Qed.
 
@@ -487,7 +487,7 @@ Section Eval_Denote_Equiv.
       - cbn* in *; simp; go.
         unfold denoteBinCType; cbn.
         rewrite Denote_Eval_Equiv_AExpr; eauto; go.
-        rewrite IH; eauto; go. 
+        rewrite IH; eauto; go.
         reflexivity.
     Qed.
 
@@ -596,5 +596,5 @@ Section Eval_Denote_Equiv.
         go; rewrite IHop2; eauto using evalDSHOperator_fuel_monotone.
         reflexivity.
     Qed.
-    
+
   End Eval_Denote_Equiv.

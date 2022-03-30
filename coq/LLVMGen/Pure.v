@@ -157,7 +157,7 @@ Section pure.
       left. interp_MF_bind. rewrite interp_fail_throw. rewrite bind_ret_l. reflexivity.
       left. cbn. rewrite bind_ret_l. rewrite interp_fail_throw. reflexivity.
       right. setoid_rewrite bind_ret_l. interp_MF_ret. eexists; reflexivity.
-    - (* AAbs *) 
+    - (* AAbs *)
       cbn* in *; simp.
       edestruct IHaexp; eauto.
 
@@ -395,7 +395,7 @@ Section pure.
 
       interp_MF_ret. eexists. reflexivity.
       interp_MF_ret. eexists. reflexivity.
-       
+
    - (* NMinus *)
 
 
@@ -610,7 +610,7 @@ Section pure.
       simp; try_abs. setoid_rewrite bind_ret_l.
       interp_MF_ret. eexists. reflexivity.
 
-    - (* AAbs *) 
+    - (* AAbs *)
       cbn* in *; simp.
       edestruct IHaexp; eauto.
 

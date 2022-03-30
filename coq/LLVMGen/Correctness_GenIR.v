@@ -102,7 +102,8 @@ Section GenIR.
       hvred.
       vjmp.
       (* TODO :( *)
-      unfold fmap, Fmap_block; cbn.
+      cbn.
+      (* unfold tfmap. TFmap_block; cbn. *)
       vred.
       vred.
       vred.

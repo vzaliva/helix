@@ -66,7 +66,8 @@ Lemma DSHAssign_correct :
          (interp_helix (denoteDSHOperator σ (DSHAssign src dst)) memH)
          (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from,bid_in))
                      g ρ memV).
-Proof. 
+Proof.
+  (*
   intros * GEN NEXT PRE GAM NOFAIL.
 
   cbn* in *; simp.
@@ -1900,3 +1901,6 @@ Proof.
     }
   }
 Qed.
+   *)
+Admitted.
+

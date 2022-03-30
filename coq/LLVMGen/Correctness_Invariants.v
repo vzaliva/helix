@@ -3298,19 +3298,19 @@ Ltac solve_not_in_gamma :=
     | solve [eapply not_in_gamma_cons; [cbn; eauto; try solve_gamma | solve_not_in_gamma |]]
     ].
 
-Hint Resolve state_invariant_memory_invariant : core.
-Hint Resolve memory_invariant_GLU memory_invariant_LLU memory_invariant_LLU_AExpr memory_invariant_GLU_AExpr : core.
+#[export] Hint Resolve state_invariant_memory_invariant : core.
+#[export] Hint Resolve memory_invariant_GLU memory_invariant_LLU memory_invariant_LLU_AExpr memory_invariant_GLU_AExpr : core.
 
-Hint Resolve is_pure_refl: core.
-Hint Resolve local_scope_modif_refl: core.
+#[export] Hint Resolve is_pure_refl: core.
+#[export] Hint Resolve local_scope_modif_refl: core.
 
-Hint Resolve genNExpr_Γ : helix_context.
-Hint Resolve genMExpr_Γ : helix_context.
-Hint Resolve incVoid_Γ        : helix_context.
-Hint Resolve incLocal_Γ       : helix_context.
-Hint Resolve incBlockNamed_Γ  : helix_context.
-Hint Resolve genAExpr_Γ : helix_context.
-Hint Resolve genIR_Γ  : helix_context.
+#[export] Hint Resolve genNExpr_Γ : helix_context.
+#[export] Hint Resolve genMExpr_Γ : helix_context.
+#[export] Hint Resolve incVoid_Γ        : helix_context.
+#[export] Hint Resolve incLocal_Γ       : helix_context.
+#[export] Hint Resolve incBlockNamed_Γ  : helix_context.
+#[export] Hint Resolve genAExpr_Γ : helix_context.
+#[export] Hint Resolve genIR_Γ  : helix_context.
 
 (* TODO: expand this *)
 Ltac solve_gamma_safe :=
@@ -3320,13 +3320,13 @@ Ltac solve_gamma_safe :=
 Ltac solve_local_scope_modif :=
   cbn; eauto with LSM.
 
-Hint Immediate local_scope_modif_refl : LSM.
-Hint Extern 1 (lid_bound_between _ _ _) => solve_lid_bound_between : LSM.
-Hint Extern 1 (lid_bound _ _) => solve_lid_bound : LSM.
-Hint Resolve local_scope_modif_add' : LSM.
-Hint Resolve local_scope_modif_shrink : LSM.
-Hint Extern 1 (_ <<= _) => solve_local_count : LSM.
-Hint Extern 2 (local_scope_modif _ _ _ _) => eapply local_scope_modif_trans; cycle 2; eauto; solve_local_count : LSM.
+#[export] Hint Immediate local_scope_modif_refl : LSM.
+#[export] Hint Extern 1 (lid_bound_between _ _ _) => solve_lid_bound_between : LSM.
+#[export] Hint Extern 1 (lid_bound _ _) => solve_lid_bound : LSM.
+#[export] Hint Resolve local_scope_modif_add' : LSM.
+#[export] Hint Resolve local_scope_modif_shrink : LSM.
+#[export] Hint Extern 1 (_ <<= _) => solve_local_count : LSM.
+#[export] Hint Extern 2 (local_scope_modif _ _ _ _) => eapply local_scope_modif_trans; cycle 2; eauto; solve_local_count : LSM.
 
 (* Slightly more aggressive with transitivity... May get stuck *)
 Ltac solve_local_scope_modif_trans :=
@@ -3338,12 +3338,12 @@ Ltac solve_local_scope_modif_trans :=
     | eapply local_scope_modif_trans; cycle 3; [solve_local_scope_modif_trans | solve_local_count | solve_local_count | solve_local_scope_modif_trans]
     ].
 
-Hint Immediate Gamma_preserved_refl : SolveGammaPreserved.
-Hint Extern 1 (~ (in_Gamma _ _ _)) => solve_not_in_gamma : SolveGammaPreserved.
-Hint Resolve Gamma_preserved_add_not_in_Gamma : SolveGammaPreserved.
-Hint Resolve Gamma_preserved_if_safe : SolveGammaPreserved.
-Hint Extern 1 (local_scope_modif _ _ _ _) => solve_local_scope_modif : SolveGammaPreserved.
-Hint Extern 1 (Gamma_safe _ _ _) => solve_gamma_safe : SolveGammaPreserved.
+#[export] Hint Immediate Gamma_preserved_refl : SolveGammaPreserved.
+#[export] Hint Extern 1 (~ (in_Gamma _ _ _)) => solve_not_in_gamma : SolveGammaPreserved.
+#[export] Hint Resolve Gamma_preserved_add_not_in_Gamma : SolveGammaPreserved.
+#[export] Hint Resolve Gamma_preserved_if_safe : SolveGammaPreserved.
+#[export] Hint Extern 1 (local_scope_modif _ _ _ _) => solve_local_scope_modif : SolveGammaPreserved.
+#[export] Hint Extern 1 (Gamma_safe _ _ _) => solve_gamma_safe : SolveGammaPreserved.
 
 Ltac solve_gamma_preserved :=
   solve [eauto with SolveGammaPreserved].
@@ -3473,7 +3473,7 @@ Ltac solve_in_local_or_global_scalar :=
     | solve [eapply in_local_or_global_scalar_not_in_gamma; [solve_in_gamma | solve_not_in_gamma | solve_in_local_or_global_scalar]]
     ].
 
-Hint Resolve state_invariant_memory_invariant state_invariant_WF_IRState : core.
+#[export] Hint Resolve state_invariant_memory_invariant state_invariant_WF_IRState : core.
 
 Lemma local_scope_preserved_bound_earlier :
   forall s1 s2 s3 x v l l',
@@ -3524,25 +3524,25 @@ Proof.
   solve_id_neq.
 Qed.
 
-Hint Extern 1 (local_scope_modif _ _ _ _) => solve_local_scope_modif : LocalScopePreserved.
-Hint Extern 1 (Gamma_safe _ _ _) => solve_gamma_safe : LocalScopePreserved.
-Hint Extern 1 (_ <<= _) => solve_local_count : LocalScopePreserved.
-Hint Extern 1 (lid_bound _ _) => solve_lid_bound : LocalScopePreserved.
-Hint Extern 1 (lid_bound_between _ _ _) => solve_lid_bound : LocalScopePreserved.
-Hint Immediate local_scope_preserve_modif : LocalScopePreserved.
-Hint Resolve local_scope_preserved_refl local_scope_preserved_bound_earlier : LocalScopePreserved.
-Hint Resolve local_scope_preserved_add_bound_later local_scope_preserved_add_bound_earlier : LocalScopePreserved.
-Hint Extern 1 (lid_bound_between _ _ _) => solve_lid_bound_between : LocalScopePreserved.
+#[export] Hint Extern 1 (local_scope_modif _ _ _ _) => solve_local_scope_modif : LocalScopePreserved.
+#[export] Hint Extern 1 (Gamma_safe _ _ _) => solve_gamma_safe : LocalScopePreserved.
+#[export] Hint Extern 1 (_ <<= _) => solve_local_count : LocalScopePreserved.
+#[export] Hint Extern 1 (lid_bound _ _) => solve_lid_bound : LocalScopePreserved.
+#[export] Hint Extern 1 (lid_bound_between _ _ _) => solve_lid_bound : LocalScopePreserved.
+#[export] Hint Immediate local_scope_preserve_modif : LocalScopePreserved.
+#[export] Hint Resolve local_scope_preserved_refl local_scope_preserved_bound_earlier : LocalScopePreserved.
+#[export] Hint Resolve local_scope_preserved_add_bound_later local_scope_preserved_add_bound_earlier : LocalScopePreserved.
+#[export] Hint Extern 1 (lid_bound_between _ _ _) => solve_lid_bound_between : LocalScopePreserved.
 
 Ltac solve_local_scope_preserved :=
   solve [eauto with LocalScopePreserved].
 
 Ltac solve_state_invariant := eauto with SolveStateInv.
-Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incBlockNamed; [eassumption | solve_state_invariant] : SolveStateInv.
-Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incLocal; [eassumption | solve_state_invariant] : SolveStateInv.
-Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incLocalNamed; [eassumption | solve_state_invariant] : SolveStateInv.
-Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eassumption | solve_state_invariant] : SolveStateInv.
-Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incLocalNamed; [eassumption | solve_state_invariant] : SolveStateInv.
+#[export] Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incBlockNamed; [eassumption | solve_state_invariant] : SolveStateInv.
+#[export] Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incLocal; [eassumption | solve_state_invariant] : SolveStateInv.
+#[export] Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incLocalNamed; [eassumption | solve_state_invariant] : SolveStateInv.
+#[export] Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incVoid; [eassumption | solve_state_invariant] : SolveStateInv.
+#[export] Hint Extern 2 (state_invariant _ _ _ _) => eapply state_invariant_incLocalNamed; [eassumption | solve_state_invariant] : SolveStateInv.
 
 Ltac get_gamma_bounds :=
   repeat match goal with

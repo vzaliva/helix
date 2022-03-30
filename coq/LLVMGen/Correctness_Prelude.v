@@ -144,7 +144,7 @@ Section EventTranslation.
   (* Joined set of residual events for full programs *)
   Definition E_mcfg : Type -> Type := (ExternalCallE +' PickE +' UBE +' DebugE +' FailureE).
   (* Joined set of residual events for cfgs *)
-  Definition E_cfg : Type -> Type := (CallE +' PickE +' UBE +' DebugE +' FailureE). 
+  Definition E_cfg : Type -> Type := (CallE +' PickE +' UBE +' DebugE +' FailureE).
 
   (* We therefore have the following resulting denotation functions. *)
   (* On the Vellvm side, for [mcfg]: *)
@@ -200,7 +200,7 @@ Section EventTranslation.
 
   Definition handle_failure: (StaticFailE +' DynamicFailE) ~> failT (itree void1) :=
     fun _ _ => ret None.
- 
+
   Definition inject_signature {E} : void1 ~> E := fun _ (x:void1 _) => match x with end.
   Hint Unfold inject_signature : core.
 
@@ -214,8 +214,8 @@ Section EventTranslation.
 
 End EventTranslation.
 
-Notation "'interp_cfg'"  := interp_cfg3. 
-Notation "'interp_mcfg'" := interp_mcfg3. 
+Notation "'interp_cfg'"  := interp_cfg3.
+Notation "'interp_mcfg'" := interp_mcfg3.
 
 (** Smart constructors for states, predicates, relations  *)
 
@@ -603,7 +603,7 @@ Section InterpHelix.
     forall T E mem x,
       @interp_helix T E (Ret x) mem ≅ Ret (Some (mem, x)).
   Proof.
-    intros. 
+    intros.
     unfold interp_helix.
     rewrite interp_Mem_ret, interp_fail_Ret, translate_ret.
     reflexivity.
@@ -614,7 +614,7 @@ Section InterpHelix.
     forall T E mem x,
       @interp_helix T E (Ret x) mem ≅ ret (m := failT _) (mem, x).
   Proof.
-    intros. 
+    intros.
     unfold interp_helix.
     rewrite interp_Mem_ret, interp_fail_ret.
     cbn; rewrite translate_ret.
@@ -729,7 +729,7 @@ Section InterpHelix.
                     (m0,a0).
   Proof.
     unfold interp_helix, interp_Mem.
-    intros. 
+    intros.
     rewrite NoFailure.interp_state_iter.
     unfold Basics.iter, MonadIter_stateT0, Basics.iter, MonadIter_itree.
     rewrite interp_fail_iter.
@@ -943,7 +943,7 @@ Section Interp_Helix_No_Failure.
 
     Lemma no_failure_helix_bind_continuation : forall {E X Y} (t : itree _ X) (k : X -> itree _ Y) m,
         no_failure (interp_helix (E := E) (ITree.bind t k) m) ->
-        forall u m', Returns (E := E) (Some (m',u)) (interp_helix t m) -> 
+        forall u m', Returns (E := E) (Some (m',u)) (interp_helix t m) ->
                 no_failure (interp_helix (E := E) (k u) m').
     Proof.
       intros * NOFAIL * ISRET.
@@ -1015,15 +1015,15 @@ End Interp_Helix_No_Failure.
 Opaque interp_Mem.
 Opaque interp_helix.
 
-Hint Resolve no_failure_helix_Ret : core.
-Hint Resolve no_failure_helix_bind_prefix : core.
-Hint Extern 4 (no_failure _) =>
+#[export] Hint Resolve no_failure_helix_Ret : core.
+#[export] Hint Resolve no_failure_helix_bind_prefix : core.
+#[export] Hint Extern 4 (no_failure _) =>
 (match goal with
  | h : no_failure (interp_helix (ITree.bind _ _) _) |- _ =>
    eapply no_failure_helix_bind_continuation in h
  end) : core.
 
-Remove Hints
+#[export] Remove Hints
        abstract_algebra.AbGroup
        abstract_algebra.Bijective
        abstract_algebra.BoundedJoinSemiLattice
@@ -1158,7 +1158,7 @@ Module ProofMode.
   Include VIR_denotation_Notations.
   Include eutt_Notations.
   Include Helix_Notations.
-  Notation "g '[' r ':' x ']'" := (alist_add r x g) (only printing, at level 10). 
+  Notation "g '[' r ':' x ']'" := (alist_add r x g) (only printing, at level 10).
 
   (* Notation "⟦ b , p , c , t ⟧" := (fmap _ (mk_block b p c t _)) (only printing).  *)
   (* Notation "'denote_blocks' '...' id " := (denote_bks _ id) (at level 10,only printing).  *)
@@ -1170,7 +1170,7 @@ Module ProofMode.
   (* (* Notation "'INSTR' i" := (denote_instr i) (only printing, at level 10, format "'INSTR' '//' i"). *) *)
   (* Notation "i" := (denote_instr i) (only printing, at level 10). *)
   (* Notation "x" := (translate exp_E_to_instr_E (denote_exp _ x)) (only printing, at level 10).  *)
-  
+
 End ProofMode.
 
 Ltac hred :=
@@ -1224,7 +1224,7 @@ Section Helix_Mem_Extra_Lemmas.
       x ≢ y ->
       mem_lookup x (mem_add y v bk) ≡ mem_lookup x bk.
   Proof.
-    intros x y v bk H. 
+    intros x y v bk H.
     Transparent mem_lookup mem_add.
     cbn.
     Opaque mem_lookup mem_add.
