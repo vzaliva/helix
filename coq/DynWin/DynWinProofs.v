@@ -917,7 +917,7 @@ Section MSHCOL_to_RHCOL.
   (* A sanity check as a side effect of [DynWin_RHCOL_hard] being hardcoded in
      [DynWin.v]. See also [DynWin_FHCOL_hard_check] *)
   Fact dynwin_RHCOL_hard_check :
-    dynwin_RHCOL ≡ DynWin_RHCOL.
+    dynwin_RHCOL ≡ DynWin_RHCOL_hard.
   Proof.
     reflexivity.
   Qed.
@@ -1484,7 +1484,7 @@ Section RCHOL_to_FHCOL.
   (* A sanity check as a side effect of [DynWin_RHCOL_hard] being hardcoded in
      [DynWin.v]. See also [DynWin_FHCOL_hard_check] *)
   Fact DynWin_FHCOL_hard_check :
-    translate DynWin_RHCOL ≡ inr DynWin_FHCOL_hard.
+    translate dynwin_RHCOL ≡ inr DynWin_FHCOL_hard.
   Proof.
     cbn.
 
