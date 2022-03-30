@@ -223,14 +223,11 @@
     let charlist_of_coqfloat f =
       cos (Printf.sprintf "%.2f" (CamlcoqA.camlfloat_of_coqfloat f))
 
-    let display_evalContext (s : (coq_DSHVal * coq_Decision) list) : string =
-      Printf.sprintf "[%s]" (String.concat ", " (map (fun (v, _) -> soc (string_of_DSHVal charlist_of_coqfloat v)) s))
-
     let debug op mem fuel s =
       Printf.printf "ENTERING %s\n\nFUEL %s\n\nCONTEXT\n%s\n\nMEMORY\n%s\n\n\n\n"
         (soc (string_of_DSHOperator charlist_of_coqfloat op))
         (soc (string_of_nat fuel))
-        (display_evalContext s)
+        (soc (string_of_evalContext charlist_of_coqfloat s))
         (soc (string_of_memory charlist_of_coqfloat mem))
 
     let rec evalDSHOperator _UU03c3_ op mem0 = function
