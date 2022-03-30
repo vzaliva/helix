@@ -230,7 +230,7 @@ End WithR.
 *)
 
 Import RHCOL.
-Definition DynWin_RHCOL : RHCOL.DSHOperator :=
+Definition DynWin_RHCOL_hard : RHCOL.DSHOperator :=
   (DSHAlloc 2
          (DSHSeq
             (DSHSeq
@@ -289,7 +289,7 @@ Definition DynWin_RHCOL : RHCOL.DSHOperator :=
 
 
 Import FHCOL.
-Definition DynWin_FHCOL : FHCOL.DSHOperator :=
+Definition DynWin_FHCOL_hard : FHCOL.DSHOperator :=
   (DSHAlloc Int64_2
          (DSHSeq
             (DSHSeq

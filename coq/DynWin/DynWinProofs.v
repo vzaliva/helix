@@ -914,6 +914,14 @@ Section MSHCOL_to_RHCOL.
   MetaCoq Run (reifyMSHCOL dynwin_MSHCOL1 [(BasicAst.MPfile ["DynWinProofs"; "DynWin"; "Helix"], "dynwin_MSHCOL1")] "dynwin_RHCOL" "dynwin_RHCOL_globals").
   Transparent CarrierAz zero CarrierA1 one.
 
+  (* A sanity check as a side effect of [DynWin_RHCOL_hard] being hardcoded in
+     [DynWin.v]. See also [DynWin_FHCOL_hard_check] *)
+  Fact dynwin_RHCOL_hard_check :
+    dynwin_RHCOL ≡ DynWin_RHCOL.
+  Proof.
+    reflexivity.
+  Qed.
+
   (* Import DSHNotation. *)
 
   Definition nglobals := List.length (dynwin_RHCOL_globals). (* 1 *)
@@ -1472,6 +1480,44 @@ End MSHCOL_to_RHCOL.
 Require Import ZArith.
 
 Section RCHOL_to_FHCOL.
+
+  (* A sanity check as a side effect of [DynWin_RHCOL_hard] being hardcoded in
+     [DynWin.v]. See also [DynWin_FHCOL_hard_check] *)
+  Fact DynWin_FHCOL_hard_check :
+    translate DynWin_RHCOL ≡ inr DynWin_FHCOL_hard.
+  Proof.
+    cbn.
+
+    assert (RF0 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeZero
+                  ≡ @inr string _ Float64asCT.Float64Zero).
+    {
+      unfold RHCOLtoFHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      all: clear - n; contradict n; reflexivity.
+    }
+
+    assert (RF1 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeOne
+                  ≡ @inr string _ Float64asCT.Float64One).
+    {
+      unfold RHCOLtoFHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      -
+        clear - e.
+        cbv in e.
+        pose proof MRasCT.CTypeZeroOneApart.
+        cbv in H.
+        congruence.
+      -
+        clear - n0.
+        contradict n0.
+        reflexivity.
+    }
+
+    repeat progress (try setoid_rewrite RF0;
+                     try setoid_rewrite RF1).
+
+    reflexivity.
+  Qed.
 
   Context
     `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}
