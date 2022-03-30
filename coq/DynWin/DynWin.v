@@ -6,13 +6,8 @@ Require Import Helix.SigmaHCOL.SigmaHCOL.
 Require Import Helix.SigmaHCOL.TSigmaHCOL.
 Require Import Helix.SigmaHCOL.IndexFunctions.
 
-Require Import Helix.RSigmaHCOL.RSigmaHCOL.
-Require Import Helix.FSigmaHCOL.Int64asNT.
-Require Import Helix.FSigmaHCOL.FSigmaHCOL.
-
 Require Import Helix.SigmaHCOL.SigmaHCOLRewriting.
 
-Require Import Coq.ZArith.ZArith.
 Require Import MathClasses.interfaces.canonical_names.
 
 Definition dynwin_i:nat := (1 + (2 + 2)).
@@ -228,6 +223,12 @@ Section WithR.
 
 End WithR.
 *)
+
+Require Import Coq.ZArith.ZArith.
+
+Require Import Helix.RSigmaHCOL.RSigmaHCOL.
+Require Import Helix.FSigmaHCOL.Int64asNT.
+Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 
 Import RHCOL.
 Definition DynWin_RHCOL_hard : RHCOL.DSHOperator :=
