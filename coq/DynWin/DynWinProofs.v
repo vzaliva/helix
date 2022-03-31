@@ -1484,7 +1484,7 @@ Section RCHOL_to_FHCOL.
   (* A sanity check as a side effect of [DynWin_RHCOL_hard] being hardcoded in
      [DynWin.v]. See also [DynWin_FHCOL_hard_check] *)
   Fact DynWin_FHCOL_hard_check :
-    translate dynwin_RHCOL ≡ inr DynWin_FHCOL_hard.
+    RHCOLtoFHCOL.translate dynwin_RHCOL ≡ inr DynWin_FHCOL_hard.
   Proof.
     cbn.
 
