@@ -1943,19 +1943,7 @@ Section RHCOL_to_FHCOL_bounds.
     `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}
     `{RF_CTO : @RHCOLtoFHCOL.CTranslationOp RF_CHE}.
 
-  (*
-    Q: can we instantiate RF_CHE_32? e.g.:
-    Definition binary32toR: binary32 -> R := @B2R _ _.
-   *)
 
-  (* parameters of the physical system. Specified as 32 bit floating values *)
-
-  (*
-  Parameter V32:binary32. (* max obstacle speed *)
-  Parameter b32:binary32. (* max braking *)
-  Parameter A32:binary32. (* max accel *)
-  Parameter e32:binary32. (* sampling period *)
-   *)
 
   Definition is_NaN_32 (a:binary32) :=
     match a with
@@ -1984,28 +1972,42 @@ Section RHCOL_to_FHCOL_bounds.
            (b32_compare x b ≡ Some Datatypes.Eq
             \/ b32_compare x b ≡ Some Datatypes.Lt).
 
-  (* Constraints on physical parameters *)
 
   Local Open Scope R_scope.
 
-  (* TODO: constants *)
-  Definition V_constr := (b32_of_bits 0%Z, b32_of_bits 1101004800%Z). (* 0 <= V <= 20. up to 20 m/s (72 Kmh) *)
-  Definition b_constr := (b32_of_bits 1065353216%Z, b32_of_bits 1086324736%Z). (* 1 < b <= 6. m/s^2. https://copradar.com/chapts/references/acceleration.html *)
-  Definition A_constr := (b32_of_bits 0%Z, b32_of_bits 1084227584%Z). (* 0 <= A <= 5. m/s^2. https://hypertextbook.com/facts/2001/MeredithBarricella.shtml *)
-  Definition e_constr := (b32_of_bits 1008981770%Z, b32_of_bits 1036831949%Z). (* 1/100 <= e <= 1/10. 10-100 Hz *)
+  Definition b32_0_1 := b32_of_bits 1036831949%Z. (* 0.1 *)
+  Definition b32_0_01 := b32_of_bits 1008981770%Z. (* 0.01 *)
 
-  (* Constraints for obstact and robot coordinates.  Our robots
-     operates on cartesian grid ~10x10 Km *)
-  Definition x_constr := (b32_of_bits 3315351552%Z, b32_of_bits 1167867904%Z). (* -5000, 5000 *)
-  Definition y_constr := (b32_of_bits 3315351552%Z, b32_of_bits 1167867904%Z). (* -5000, 5000 *)
+  Definition b32_0     := b32_of_bits 0%Z.
+  Definition b32_1     := b32_of_bits 1065353216%Z.
+  Definition b32_2     := b32_of_bits 1073741824%Z.
+  Definition b32_5     := b32_of_bits 1084227584%Z.
+  Definition b32_6     := b32_of_bits 1086324736%Z.
+  Definition b32_10    := b32_of_bits 1092616192%Z.
+  Definition b32_20    := b32_of_bits 1101004800%Z.
+  Definition b32_100   := b32_of_bits 1120403456%Z.
+  Definition b32_5000  := b32_of_bits 1167867904%Z.
 
+  (** Constraints on physical parameters **)
+  (* Obstacle velocity constraint *)
+  (* 0 <= V <= 20. up to 20 m/s (72 Kmh) *)
+  Definition V_constr := (b32_0, b32_20).
+  (* 1 < b <= 6. m/s^2. https://copradar.com/chapts/references/acceleration.html *)
+  Definition b_constr := (b32_1, b32_6).
+  (* 0 <= A <= 5. m/s^2. https://hypertextbook.com/facts/2001/MeredithBarricella.shtml *)
+  Definition A_constr := (b32_0, b32_5).
+  Definition e_constr := (b32_0_01, b32_0_1). (* 1/100 <= e <= 1/10. 10-100 Hz *)
+  (* Constraints for obstacle and robot coordinates.
+     Our robot operates on cartesian grid ~10x10 Km *)
+  Definition x_constr := (b32_opp b32_5000, b32_5000). (* -5000, 5000 *)
+  Definition y_constr := (b32_opp b32_5000, b32_5000). (* -5000, 5000 *)
   (* Robot velocity constraint *)
-  Definition v_constr := (b32_of_bits 0%Z, b32_of_bits 1101004800%Z). (* 0, 20 *)
+  Definition v_constr := (b32_0, b32_20). (* 0, 20 *)
 
   (*
     "a" layout:
-     a0 = (A/b+1.0)*((A/2.0)*e*e+e*V)
-     a1 = V/b+e*(A/b+1.0)
+     a0 = (A/b + 1.0) * ((A/2.0)*e*e + e*V)
+     a1 = V/b + e*(A/b+1.0)
      a2 = 1.0/(2.0*b)
 
     "x" layout:
@@ -2027,14 +2029,13 @@ Section RHCOL_to_FHCOL_bounds.
     FHCOLEval32.mem_add 0%nat r_v_32 (FHCOLEval32.mem_add 1%nat r_x_32 (FHCOLEval32.mem_add 2%nat r_y_32 (FHCOLEval32.mem_add 3%nat o_x_32 (FHCOLEval32.mem_add 4%nat o_y_32 (FHCOLEval32.mem_empty))))).
 
   (* Widen binary32 to binary64.  This is a loseless conversion and it
-     always succeeds.  *)
+     always succeeds. *)
   Definition widen32_to_64 (x32:binary32): binary64
     := Float32.to_double x32.
 
   (* Proof that converting 32 to 64 float does not cause any data loss
-     for finite (non-NaN) numbers.  It is not true another way around!
-   *)
-  Fact widen32_to_64_loseless:
+     for finite (non-NaN) numbers.  It is not true another way around! *)
+  Fact widen32_to_64_loseless :
     forall x32,
       is_finite _ _ x32 ≡ true ->
       B2R _ _ (widen32_to_64 x32) ≡ B2R _ _ x32.
@@ -2050,9 +2051,8 @@ Section RHCOL_to_FHCOL_bounds.
     - assumption.
   Qed.
 
-  (** Widen a memory block with 32-bit binary floats to memory block
-      with 64-binary floats. This is a loseless conversion and it
-      always succeeds *)
+  (** Widen a memory block with 32-bit binary floats to memory block with
+      64-binary floats. This is a loseless conversion and it always succeeds *)
   Definition widen32_to_64_mem_block : FHCOL32.mem_block → FHCOL.mem_block
     := Memory.NM.map widen32_to_64.
 
