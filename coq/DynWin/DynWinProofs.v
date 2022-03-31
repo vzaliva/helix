@@ -2125,15 +2125,11 @@ Section RHCOL_to_FHCOL_bounds.
              (y_r:RHCOLEval.mem_block)
              (y_64:FHCOLEval.mem_block): Prop
     :=
-    (* And they are representable as 32-bit floats *)
-    ∃ a_32 x_32,
-      (heq_mem_block a_r a_32 /\ heq_mem_block x_r x_32)
-      /\
-        (* cast 64 bit output to 32 bit, simlating
-           C/LLVM cast as in [cast64_to_32]
-           result of the cast should be the same as
-           32 bit approximation of result on Reals *)
-        heq_mem_block y_r (cast64_to_32_mem_block y_64).
+    (* cast 64 bit output to 32 bit, simlating
+       C/LLVM cast as in [cast64_to_32]
+       result of the cast should be the same as
+       32 bit approximation of result on Reals *)
+    heq_mem_block y_r (cast64_to_32_mem_block y_64).
 
 End RHCOL_to_FHCOL_bounds.
 
