@@ -2013,16 +2013,39 @@ Section RHCOL_to_FHCOL_bounds.
     3. obstacle position (X)
     4. obstacle position (Y)
    *)
-  Definition make_a32 (V32 b32 A32 e32:binary32): FHCOL32.mem_block :=
-    (* TODO: implement a0,a1,a2 compulation. We do not have division
-    in ctype! Priobably OK to use one from flocq.*)
-    let a0 := V32 in
-    let a1 := V32 in
-    let a2 := MFloat32asCT.CTypePlus Float32asCT.Float32One Float32asCT.Float32One in
-    FHCOLEval32.mem_add 0%nat a0 (FHCOLEval32.mem_add 1%nat a1 (FHCOLEval32.mem_add 2%nat a2 (FHCOLEval32.mem_empty))).
+  Definition make_a32 (V32 b32 A32 e32 : binary32) : FHCOL32.mem_block :=
+    let FT_div := b32_div FT_Rounding in (* DHCOL (and therefore CType) has no division *)
+    let a0 :=
+      MFloat32asCT.CTypeMult
+        (MFloat32asCT.CTypePlus (FT_div A32 b32) b32_1)
+        (MFloat32asCT.CTypePlus
+           (MFloat32asCT.CTypeMult (MFloat32asCT.CTypeMult (FT_div A32 b32_2) e32) e32)
+           (MFloat32asCT.CTypeMult e32 V32))
+    in
+    let a1 :=
+      (MFloat32asCT.CTypePlus
+         (FT_div V32 b32)
+         (MFloat32asCT.CTypeMult
+            e32
+            (MFloat32asCT.CTypePlus (FT_div A32 b32) b32_1)))
+    in
+    let a2 :=
+      FT_div 
+        b32_1
+        (MFloat32asCT.CTypeMult b32_2 b32)
+    in
+    FHCOLEval32.mem_add 0%nat a0
+      (FHCOLEval32.mem_add 1%nat a1
+         (FHCOLEval32.mem_add 2%nat a2
+            (FHCOLEval32.mem_empty))).
 
-  Definition make_x32 (r_v_32 r_x_32 r_y_32 o_x_32 o_y_32: binary32): FHCOL32.mem_block :=
-    FHCOLEval32.mem_add 0%nat r_v_32 (FHCOLEval32.mem_add 1%nat r_x_32 (FHCOLEval32.mem_add 2%nat r_y_32 (FHCOLEval32.mem_add 3%nat o_x_32 (FHCOLEval32.mem_add 4%nat o_y_32 (FHCOLEval32.mem_empty))))).
+  Definition make_x32 (r_v_32 r_x_32 r_y_32 o_x_32 o_y_32 : binary32) : FHCOL32.mem_block :=
+    FHCOLEval32.mem_add 0%nat r_v_32
+      (FHCOLEval32.mem_add 1%nat r_x_32
+        (FHCOLEval32.mem_add 2%nat r_y_32
+          (FHCOLEval32.mem_add 3%nat o_x_32
+            (FHCOLEval32.mem_add 4%nat o_y_32
+              (FHCOLEval32.mem_empty))))).
 
   (* Widen binary32 to binary64.  This is a loseless conversion and it
      always succeeds. *)
