@@ -213,23 +213,7 @@ let args =
     ("-s", Set standalone, "save standalone IR code (with main) (assuming [-c])");
   ]
 
-(*
-let a = [0.21; 1.2; 0.5]
-let v_r = [1.0]
-let p_r = [0.0; 0.0]
-let p_o = [1.0; 1.0]
-
-let random = [314.0]
-
-let dynwin_test_inp = 
-  random
-  @ v_r @ p_r @ p_o
-  @ List.rev a
-  
-let dynwin_test t =
-  process_test t (List.map dynwin_test_inp ~f:coqfloat_of_camlfloat)
- *)
-
+(* for a hack to run non-random tests, see [experiments/dynwin_testeval.ml] *)
 let _ =
   Arg.parse args (fun _ -> ())  "USAGE: ./testcomp [-v] [-p] [t <name>]\n";
   if !printtests
@@ -243,5 +227,5 @@ let _ =
     let open Core.String in
     let t = if !single = "" then all_tests
             else List.filter all_tests ~f:(fun x -> camlstring_of_coqstring (name x) = !single) in
-    exit (if List.fold (List.map t ~f:random_test (* @ List.map t ~f:dynwin_test *)) ~init:true ~f:(&&)
+    exit (if List.fold (List.map t ~f:random_test) ~init:true ~f:(&&)
           then 0 else 1)
