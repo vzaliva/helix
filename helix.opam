@@ -31,7 +31,7 @@ depends: [
   "coq-libhyps"
   "core"
   "core_kernel"
-  "dune"
+  "dune" {< "3.0" }
   "qcheck"
 
   "coq" {= "8.13.2"}
