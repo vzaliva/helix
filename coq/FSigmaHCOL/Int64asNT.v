@@ -339,3 +339,21 @@ Module MInt64asNT <: NType.
   Qed.
 
 End MInt64asNT.
+
+Section Int64Constants.
+
+  Local Obligation Tactic := cbv;auto.
+
+  Program Definition Int64_0:Int64.int := Int64.mkint 0%Z  _.
+  Program Definition Int64_1:Int64.int := Int64.mkint 1%Z  _.
+  Program Definition Int64_2:Int64.int := Int64.mkint 2%Z  _.
+  Program Definition Int64_3:Int64.int := Int64.mkint 3%Z  _.
+  Program Definition Int64_4:Int64.int := Int64.mkint 4%Z  _.
+  Program Definition Int64_5:Int64.int := Int64.mkint 5%Z  _.
+  Program Definition Int64_6:Int64.int := Int64.mkint 6%Z  _.
+  Program Definition Int64_7:Int64.int := Int64.mkint 7%Z  _.
+  Program Definition Int64_8:Int64.int := Int64.mkint 8%Z  _.
+  Program Definition Int64_9:Int64.int := Int64.mkint 9%Z  _.
+  Program Definition Int64_10:Int64.int := Int64.mkint 10%Z  _.
+
+End Int64Constants.
