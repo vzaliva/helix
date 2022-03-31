@@ -1943,34 +1943,30 @@ Section RHCOL_to_FHCOL_bounds.
     `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}
     `{RF_CTO : @RHCOLtoFHCOL.CTranslationOp RF_CHE}.
 
+  Inductive is_NaN_32 : binary32 -> Prop :=
+  | B754_nan_is_NaN_32 : forall s pl NPL,
+      is_NaN_32 (@B754_nan _ _ s pl NPL).
 
+  Definition le32 (a b : binary32) : Prop :=
+    b32_compare a b ≡ Some Datatypes.Eq
+    \/ b32_compare a b ≡ Some Datatypes.Lt.
 
-  Definition is_NaN_32 (a:binary32) :=
-    match a with
-    | @B754_nan _ _ _ _ _  => True
-    | _ => False
-    end.
+  Definition lt32 (a b : binary32) : Prop :=
+    b32_compare a b ≡ Some Datatypes.Lt.
 
   (* inclusive range check *)
-  Definition in_range_32: (binary32*binary32) -> binary32 -> Prop
+  Definition in_range_32 : (binary32 * binary32) -> binary32 -> Prop
     := fun '(a,b) x =>
          not (is_NaN_32 x)
-         /\
-           (b32_compare a x ≡ Some Datatypes.Eq
-            \/ b32_compare a x ≡ Some Datatypes.Lt)
-         /\
-           (b32_compare x b ≡ Some Datatypes.Eq
-            \/ b32_compare x b ≡ Some Datatypes.Lt).
+         /\ le32 a x
+         /\ le32 x b.
 
   (* left excluded, right included range check *)
-  Definition in_range_32_l: (binary32*binary32) -> binary32 -> Prop
+  Definition in_range_32_l : (binary32 * binary32) -> binary32 -> Prop
     := fun '(a,b) x =>
          not (is_NaN_32 x)
-         /\
-           b32_compare a x ≡ Some Datatypes.Lt
-         /\
-           (b32_compare x b ≡ Some Datatypes.Eq
-            \/ b32_compare x b ≡ Some Datatypes.Lt).
+         /\ lt32 a x
+         /\ le32 x b.
 
 
   Local Open Scope R_scope.
