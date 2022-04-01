@@ -213,4 +213,29 @@
     For current language we implemented LTAC pattern matching approach
     which seems to be working. With addition of more operators or
     extensions of DSHCOL this may break.
+* Unsaved debug code
+#+BEGIN_SRC ocaml
+  (* FILE: ml/extracted/FSigmaHCOL.ml *)
+
+    let soc = Base.String.of_char_list
+    let cos s = List.init (String.length s) (String.get s)
+
+    let charlist_of_coqfloat f =
+      cos (Printf.sprintf "%.2f" (CamlcoqA.camlfloat_of_coqfloat f))
+
+    let debug op mem fuel s =
+      Printf.printf "ENTERING %s\n\nFUEL %s\n\nCONTEXT\n%s\n\nMEMORY\n%s\n\n\n\n"
+        (soc (string_of_DSHOperator charlist_of_coqfloat op))
+        (soc (string_of_nat fuel))
+        (soc (string_of_evalContext charlist_of_coqfloat s))
+        (soc (string_of_memory charlist_of_coqfloat mem))
+
+    let rec evalDSHOperator _UU03c3_ op mem0 = function
+    | O -> None
+    | S fuel0 ->
+       debug op mem0 (S fuel0) _UU03c3_ ;
+
+       (* ... *)
+
+#+END_SRC
 

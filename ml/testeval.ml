@@ -9,6 +9,7 @@ let verbose = ref false
 let printtests = ref false
 let single = ref ""
 let justcompile = ref false
+let standalone = ref false
 let output_file_prefix = "test_"
 
 module AT = ANSITerminal
@@ -50,7 +51,7 @@ let pp_binary64 ppf v =
     fprintf ppf "%s" (string_of_float_full (camlfloat_of_coqfloat v))
 
 let inp_size t =
-  int_of_Int64 t.i + (List.fold t.globals ~init:0 ~f:(fun v (_,g) -> v + gsize g ))
+  int_of_Int64 t.o + int_of_Int64 t.i + (List.fold t.globals ~init:0 ~f:(fun v (_,g) -> v + gsize g ))
 
 let gen_randoms t =
   Random.self_init () ;
@@ -66,10 +67,14 @@ let process_test t inp =
       List.iteri inp ~f:(fun i v -> Printf.printf "\t%d\t-\t%s\n" i (string_of_FloatV v))
     end ;
   if List.length inp <> inp_size t
-  then raise (Failure "Incorrecct input vector size") ;
+  then raise (Failure "Incorrect input vector size") ;
   begin
     if !justcompile then
-      match Tests.runFSHCOLTest t !justcompile inp with
+      let rres = if !standalone
+                 then Tests.compileFSHCOL_standalone t inp
+                 else Tests.runFSHCOLTest t !justcompile inp
+      in
+      match rres with
       | ((None, _) , msg) ->
          AT.printf [AT.white; AT.on_red] "Error" ;
          AT.printf [AT.yellow] ": %s" oname ;
@@ -205,19 +210,24 @@ let args =
     ("-v", Set verbose, "enables more verbose compilation output");
     ("-d", Set Interpreter.debug_flag, "enables debuging output");
     ("-p", Set printtests, "print names of all tests (for automation)");
+    ("-s", Set standalone, "save standalone IR code (with main) (assuming [-c])");
   ]
 
 (*
-let a = [0.2; 1.2; 0.5]
+let a = [0.21; 1.2; 0.5]
 let v_r = [1.0]
 let p_r = [0.0; 0.0]
 let p_o = [1.0; 1.0]
 
-let dynwin_err_inp =
-  a @ v_r @ p_r @ p_o
+let random = [314.0]
 
+let dynwin_test_inp = 
+  random
+  @ v_r @ p_r @ p_o
+  @ List.rev a
+  
 let dynwin_test t =
-  process_test t (List.map (List.rev dynwin_err_inp) ~f:coqfloat_of_camlfloat)
+  process_test t (List.map dynwin_test_inp ~f:coqfloat_of_camlfloat)
  *)
 
 let _ =

@@ -918,7 +918,7 @@ Fixpoint genIR
          (nextblock: block_id):
   cerr segment
   :=
-    let fshcol_s := string_of_DSHOperator fshcol in
+    let fshcol_s := string_of_DSHOperator (fun _ => ".") fshcol in (* TODO: display floats *)
     let op_s := ("--- Operator: " @@ fshcol_s @@ "---") in
     let add_comment r : cerr (segment) := '((e, b)) <- r ;; ret (e,add_comment b [op_s]) in
     catch (

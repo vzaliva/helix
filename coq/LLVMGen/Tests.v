@@ -3,6 +3,7 @@ Require Import Coq.Lists.List.
 Require Import Coq.Numbers.BinNums. (* for Z scope *)
 Require Import Coq.ZArith.BinInt.
 
+Require Import Helix.DynWin.DynWin.
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Helix.FSigmaHCOL.Int64asNT.
 Require Import Helix.FSigmaHCOL.Float64asCT.
@@ -26,7 +27,6 @@ Import ListNotations.
 
 Import FHCOL.
 
-(* sample definition to be moved to DynWin.v *)
 Local Open Scope nat_scope.
 
 
@@ -52,24 +52,6 @@ Definition Compose_pointwise_test :=
 
 Program Definition Int64_42:Int64.int := Int64.mkint 42%Z  _.
 Next Obligation. cbv; auto. Qed.
-
-Section Int64Constants.
-
-  Local Obligation Tactic := cbv;auto.
-
-  Program Definition Int64_0:Int64.int := Int64.mkint 0%Z  _.
-  Program Definition Int64_1:Int64.int := Int64.mkint 1%Z  _.
-  Program Definition Int64_2:Int64.int := Int64.mkint 2%Z  _.
-  Program Definition Int64_3:Int64.int := Int64.mkint 3%Z  _.
-  Program Definition Int64_4:Int64.int := Int64.mkint 4%Z  _.
-  Program Definition Int64_5:Int64.int := Int64.mkint 5%Z  _.
-  Program Definition Int64_6:Int64.int := Int64.mkint 6%Z  _.
-  Program Definition Int64_7:Int64.int := Int64.mkint 7%Z  _.
-  Program Definition Int64_8:Int64.int := Int64.mkint 8%Z  _.
-  Program Definition Int64_9:Int64.int := Int64.mkint 9%Z  _.
-  Program Definition Int64_10:Int64.int := Int64.mkint 10%Z  _.
-
-End Int64Constants.
 
 Definition Inductor_test :=
   DSHPower (NConst Int64_42)
@@ -97,77 +79,78 @@ Definition SUMUnion_test :=
 DSHSeq (DSHIMap 4 (PVar 2) (PVar 1) (AAbs (AVar 0)))
        (DSHIMap 4 (PVar 2) (PVar 1) (AMult (AVar 0) (ANth (MPtrDeref (PVar 2)) (NVar 1)))).
 
-Definition DynWin_test: DSHOperator :=
-DSHAlloc Int64_2
-  (DSHSeq
-     (DSHSeq
-        (DSHAlloc Int64_1
-           (DSHSeq
-              (DSHAlloc Int64_1
-                 (DSHSeq
-                    (DSHMemInit (PVar 0) Float64Zero)
-                    (DSHLoop 3
-                       (DSHSeq
-                          (DSHAlloc Int64_1
-                             (DSHSeq
-                                (DSHAssign (PVar 7, NConst Int64_0)
-                                   (PVar 0, NConst Int64_0))
-                                (DSHAlloc Int64_1
-                                   (DSHSeq
-                                      (DSHPower (NVar 2)
-                                         (PVar 1, NConst Int64_0)
-                                         (PVar 0, NConst Int64_0)
-                                         (AMult (AVar 1) (AVar 0))
-                                         Float64One)
-                                      (DSHIMap 1 (PVar 0) (PVar 4)
-                                         (AMult (AVar 0)
-                                            (ANth
-                                               (MPtrDeref (PVar 8))
-                                               (NVar 4))))))))
-                          (DSHMemMap2 1 (PVar 1) (PVar 2) (PVar 2)
-                             (APlus (AVar 1) (AVar 0)))))))
-              (DSHAssign (PVar 0, NConst Int64_0) (PVar 1, NConst Int64_0))))
-        (DSHAlloc Int64_1
-           (DSHSeq
-              (DSHAlloc Int64_1
-                 (DSHSeq
-                    (DSHMemInit (PVar 0) Float64Zero)
-                    (DSHLoop 2
-                       (DSHSeq
-                          (DSHAlloc Int64_2
-                             (DSHSeq
-                                (DSHLoop 2
-                                   (DSHAlloc Int64_1
-                                      (DSHSeq
-                                         (DSHAssign
-                                            (PVar 9,
-                                            NPlus
-                                              (NPlus (NConst Int64_1)
-                                                 (NMult (NVar 3)
-                                                    (NConst Int64_1)))
-                                              (NMult (NVar 1)
-                                                 (NMult (NConst Int64_2)
-                                                    (NConst Int64_1))))
-                                            (PVar 0, NConst Int64_0))
-                                         (DSHAssign
-                                            (PVar 0, NConst Int64_0)
-                                            (PVar 2, NVar 1)))))
-                                (DSHBinOp 1 (PVar 0) (PVar 3)
-                                   (AAbs (AMinus (AVar 1) (AVar 0))))))
-                          (DSHMemMap2 1 (PVar 1) (PVar 2) (PVar 2)
-                             (AMax (AVar 1) (AVar 0)))))))
-              (DSHAssign (PVar 0, NConst Int64_0) (PVar 1, NConst Int64_1)))))
-     (DSHBinOp 1 (PVar 0) (PVar 2) (AZless (AVar 1) (AVar 0)))).
-
 
 Local Close Scope nat_scope.
 
 
 Local Open Scope string_scope.
+Local Open Scope nat_scope.
+
+(* TODO: this should be replaced with [DynWin_FHCOL_hard] (_at least_).
+   Doing so however results in (Failure "AXIOM TO BE REALIZED") in OCaml tests *)
+Definition DynWin_FHCOL_test : FHCOL.DSHOperator :=
+  (DSHAlloc Int64_2
+         (DSHSeq
+            (DSHSeq
+               (DSHAlloc Int64_1
+                  (DSHSeq
+                     (DSHSeq (DSHMemInit (PVar 0) Float64asCT.Float64Zero)
+                        (DSHAlloc Int64_1
+                           (DSHLoop 3
+                              (DSHSeq
+                                 (DSHAlloc Int64_1
+                                    (DSHSeq
+                                       (DSHAssign
+                                          (PVar 7, NConst Int64_0)
+                                          (PVar 0, NConst Int64_0))
+                                       (DSHAlloc Int64_1
+                                          (DSHSeq
+                                             (DSHPower (NVar 2)
+                                                (PVar 1, NConst Int64_0)
+                                                (PVar 0, NConst Int64_0)
+                                                (AMult (AVar 1) (AVar 0))
+                                                Float64asCT.Float64One)
+                                             (DSHIMap 1 (PVar 0) (PVar 3)
+                                                (AMult (AVar 0) (ANth (MPtrDeref (PVar 8)) (NVar 4))))))))
+                                 (DSHMemMap2 1 (PVar 2) (PVar 1) (PVar 2) (APlus (AVar 1) (AVar 0)))))))
+                     (DSHAssign
+                        (PVar 0, NConst Int64_0)
+                        (PVar 1, NConst Int64_0))))
+               (DSHAlloc Int64_1
+                  (DSHSeq
+                     (DSHSeq (DSHMemInit (PVar 0) Float64asCT.Float64Zero)
+                        (DSHAlloc Int64_1
+                           (DSHLoop 2
+                              (DSHSeq
+                                 (DSHAlloc Int64_2
+                                    (DSHSeq
+                                       (DSHLoop 2
+                                          (DSHAlloc Int64_1
+                                             (DSHSeq
+                                                (DSHAssign
+                                                   (PVar 9, NPlus
+                                                              (NPlus (NConst Int64_1) (NMult (NVar 3) (NConst Int64_1)))
+                                                              (NMult (NVar 1) (NMult (NConst Int64_2) (NConst Int64_1))))
+                                                   (PVar 0, NConst Int64_0))
+                                                (DSHAssign
+                                                   (PVar 0, NConst Int64_0)
+                                                   (PVar 2, NVar 1)))))
+                                       (DSHBinOp 1 (PVar 0)
+                                          (PVar 2)
+                                          (AAbs (AMinus (AVar 1) (AVar 0))))))
+                                 (DSHMemMap2 1 (PVar 2) (PVar 1) (PVar 2) (AMax (AVar 1) (AVar 0)))))))
+                     (DSHAssign
+                        (PVar 0, NConst Int64_0)
+                        (PVar 1, NConst Int64_1)))))
+            (DSHBinOp 1 (PVar 0) (PVar 2)
+               (AZless (AVar 1) (AVar 0))))).
+
+Fact dynwin_fhcol_sanity_check : DynWin_FHCOL_test = DynWin_FHCOL_hard.
+Proof. reflexivity. Qed.
 
 Definition all_tests :=
   [
-    {| i:=Int64_5; o:=Int64_1; name:="dynwin64"; op:=DynWin_test ; globals:=[("D", DSHPtr Int64_3)] |} ;
+    {| i:=Int64_5; o:=Int64_1; name:="dynwin64"; op:=DynWin_FHCOL_test; globals:=[("D", DSHPtr Int64_3)] |} ;
   {| i:=Int64_4; o:=Int64_2; name:="binop_less"; op:=BinOp_less_test; globals:=[] |} ;
   {| i:=Int64_4; o:=Int64_2; name:="binop_plus"; op:=BinOp_plus_test; globals:=[] |} ;
   {| i:=Int64_2; o:=Int64_1; name:="ireduction"; op:=IReduction_test; globals:=[] |} ;
@@ -204,6 +187,14 @@ Definition runFSHCOLTest (t:FSHCOLProgram) (just_compile:bool) (data:list binary
         (Some prog, Some (test_interpreter prog), "")
     end.
 
+(* similar to [runFSHcoltest t true], except with main *)
+Definition compileFSHCOL_standalone (t:FSHCOLProgram) (data:list binary64)
+  :=
+    match (compile_w_main t data) newState with
+    | inl msg => (None, None, msg)
+    | inr (st,prog) => (Some prog, @None (ITreeDefinition.itree L5 res_L4), "")
+    end.
+
 Require Import Helix.Util.ListSetoid.
 Require Import Helix.Util.ErrorSetoid.
 
@@ -231,4 +222,3 @@ Definition evalFSHCOLTest (t:FSHCOLProgram) (data:list binary64)
   : err (list binary64)
   :=
     @evalFSHCOLOperator t.(i) t.(o) t.(name) t.(globals) t.(op) data.
-
