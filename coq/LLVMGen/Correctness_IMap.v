@@ -162,7 +162,6 @@ Section DSHIMap_is_tfor.
   Proof.
     intros *.
 
-(*
     eapply eutt_translate_gen.
     Transparent DSHIMap_body.
     cbn.
@@ -301,7 +300,7 @@ Section DSHIMap_is_tfor.
               subst.
               rewrite H3. rewrite H3. f_equiv.
               rewrite H4. rewrite H4. rewrite H4.
-              f_equiv. f_equiv. reflexivity. auto. auto . auto.
+              f_equiv. f_equiv. repeat red. reflexivity. auto. auto . auto.
     }
     {
 
@@ -412,7 +411,7 @@ Section DSHIMap_is_tfor.
               subst.
               rewrite H3. rewrite H3. f_equiv.
               rewrite H4. rewrite H4. rewrite H4.
-              f_equiv. f_equiv. auto. auto . auto.
+              f_equiv. f_equiv. repeat red. reflexivity. auto. auto . auto.
     }
 
     {
@@ -625,8 +624,6 @@ Section DSHIMap_is_tfor.
 
           eapply swap_body_interp.
     Qed.
-*)
-  Admitted.
 
   Lemma DSHIMap_eq_ret :
     forall σ f n x y memH,
@@ -665,7 +662,6 @@ Section DSHIMap_is_tfor.
                     end)
               0 n (Some (m, acc))).
   Proof.
-    (*
     intros.
     rewrite denoteDSHIMap_as_tfor.
     rewrite <- eq_rev_interp.
@@ -683,8 +679,6 @@ Section DSHIMap_is_tfor.
     apply eutt_eq_bind.
     intros [|]; reflexivity. repeat intro. subst. reflexivity.
   Qed.
-     *)
-  Admitted.
 
 
 End DSHIMap_is_tfor.
