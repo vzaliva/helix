@@ -915,7 +915,6 @@ Proof.
     vred.
     rewrite bind_bind.
 
-    (* COMMENTED OUT *)
     change (map (λ '(id1, i), (Endo_instr_id id1, _)) c2) with (convert_typ [] c2).
 
     eapply eutt_clo_bind_returns.
@@ -1222,28 +1221,24 @@ Proof.
 
             intros EQ; symmetry in EQ; revert EQ.
             eapply st_no_llvm_ptr_aliasing.
-            eapply NTH_σ.
-            { do 2 rewrite nth_error_Sn. admit.
+            * eapply NTH_σ.
+            * do 2 rewrite nth_error_Sn. admit.
+
               (* apply (nth_error_protect_eq' n3 _ Heqo0). *)
-            }
-            eapply NTH_Γ.
-            rewrite Gamma_cst.
-            do 2 rewrite nth_error_Sn.
-            rewrite <- Γ_s2i19. rewrite <- Γ_S1S2.
-            eauto.
-            { intros CONTRA; inv CONTRA.
-              admit.
-
+            * eapply NTH_Γ.
+            * rewrite Gamma_cst.
+              do 2 rewrite nth_error_Sn.
+              rewrite <- Γ_s2i19. rewrite <- Γ_S1S2.
+              eauto.
+            * intros CONTRA; inv CONTRA.
+               admit.
               (* epose proof (st_no_id_aliasing _ _ _ _ _ _ _ NTH_σ NTH_σ_dst NTH_Γ NTH_Γ_dst) as EQ; inv EQ. *)
-
               (* rewrite NTH_Γ in NTH_Γ_dst; inv NTH_Γ_dst. *)
-            }
-            eauto.
-            { destruct i3.
-              - eauto.
-              - assert (lid_bound s1 id0) as LID_BOUND0 by (eapply Correctness_Invariants.st_gamma_bound; solve_lid_bound).
+            * eauto.
+            * destruct i3.
+              -- eauto.
+              -- assert (lid_bound s1 id0) as LID_BOUND0 by (eapply Correctness_Invariants.st_gamma_bound; solve_lid_bound).
                 cbn; erewrite <- local_scope_modif_bound_before with (s2:=s2); eauto.
-            }
           + cbn in MINV. cbn.
             destruct MINV as (ptr & τ' & TEQ & FIND & READ).
             exists ptr. exists τ'.
