@@ -91,6 +91,11 @@ Module MDHCOLTypeTranslator
 
   Class CTranslationOp `{CHE : CTranslation_heq} :=
     {
+
+      translateCTypeConst_heq_CType :
+      forall x x', translateCTypeConst x = inr x' ->
+              heq_CType x x';
+      (*
       (* Partial mapping of [CT.t] values to [CT'.t] *)
       translateCTypeValue : CT.t -> err CT'.t ;
 
@@ -100,25 +105,20 @@ Module MDHCOLTypeTranslator
       translateCTypeValue_heq_CType :
       forall x x', translateCTypeValue x = inr x' -> heq_CType x x';
 
-
       (* Ensure [translateCTypeConst] is compatible with [translateCTypeValue] *)
       translateCTypeConst_translateCTypeValue_compat :
       forall x x', translateCTypeConst x = inr x' ->
               translateCTypeValue x = inr x';
-
-      (* Surjectivity: all values in CT't should have correspoding CT.t values
-         Not sure if we need this
-         translate_surj :
-         forall (x' : CT'.t), exists x,
-         translateCTypeValue x = inr x';
        *)
     }.
 
+  (*
   Class CTranslationOp_strict `{CTO : CTranslationOp} :=
     {
       heq_CType_translateCTypeValue :
       forall x x', heq_CType x x' -> translateCTypeValue x = inr x';
     }.
+   *)
 
   (* TODO: [translateNTypeValue] vs [translateNTypeConst].
      Why even have the first one? *)
@@ -214,21 +214,6 @@ Module MDHCOLTypeTranslator
 
     Import ListNotations.
 
-    Definition translateDSHVal (d:LE.DSHVal): err LE'.DSHVal
-      := match d with
-         | LE.DSHnatVal n => n' <- translateNTypeValue n ;; ret (LE'.DSHnatVal n')
-         | LE.DSHCTypeVal a => a' <- translateCTypeValue a ;; ret (LE'.DSHCTypeVal a')
-         | LE.DSHPtrVal a size => size' <- translateNTypeValue size ;; ret (LE'.DSHPtrVal a size')
-         end.
-
-    Fixpoint translateEvalContext (σ: LE.evalContext): err LE'.evalContext
-      := match σ with
-         | [] => inr []
-         | ((x,f)::xs) => d <- translateDSHVal x ;;
-                        t <- translateEvalContext xs ;;
-                        ret ((d,f) :: t)
-         end.
-
     (* These should use [NM_sequence] directly,
        making [NM_err_sequence] unecessary,
        but we run into universe inconsistency *)
@@ -241,14 +226,6 @@ Module MDHCOLTypeTranslator
 
     Definition translate_memory (m:L.memory): err L'.memory :=
       NM_err_sequence (NM.map translate_mem_block m).
-
-    (* Note: the following is based on [translateCTypeValue], only to be used
-       when translating *input values* - not constants. *)
-    Definition translate_runtime_mem_block (m:L.mem_block) : err L'.mem_block
-      := NM_err_sequence (NM.map translateCTypeValue m).
-
-    Definition translate_runtime_memory (m:L.memory): err L'.memory :=
-      NM_err_sequence (NM.map translate_runtime_mem_block m).
 
     Definition translateMExpr (m:L.MExpr) : err L'.MExpr :=
       match m with
@@ -491,23 +468,6 @@ Module MDHCOLTypeTranslator
         assumption.
     Qed.
 
-    Instance translate_runtime_mem_block_proper :
-      Proper ((=) ==> (=)) translate_runtime_mem_block.
-    Proof.
-      intros mb1 mb2 MB.
-      unfold translate_runtime_mem_block.
-      eapply NM_err_sequence_proper;
-        [intros x1 x2 X; destruct x1, x2; now invc X |].
-      intros k.
-      specialize (MB k).
-      rewrite !NP.F.map_o.
-      unfold option_map.
-      repeat break_match; try some_none.
-      f_equiv.
-      apply translateCTypeValue_proper.
-      now some_inv.
-    Qed.
-
     Instance translate_mem_block_proper :
       Proper ((=) ==> (=)) translate_mem_block.
     Proof.
@@ -521,22 +481,6 @@ Module MDHCOLTypeTranslator
       repeat break_match; try some_none.
       f_equiv.
       f_equiv.
-      now some_inv.
-    Qed.
-
-    Instance translate_runtime_memory_proper :
-      Proper ((=) ==> (=)) translate_runtime_memory.
-    Proof.
-      intros m1 m2 M.
-      unfold translate_runtime_memory.
-      eapply NM_err_sequence_proper;
-        [intros x1 x2 X; destruct x1, x2; now invc X |].
-      intros k.
-      specialize (M k).
-      rewrite !NP.F.map_o.
-      unfold option_map.
-      repeat break_match; try some_none.
-      do 2 f_equiv.
       now some_inv.
     Qed.
 
@@ -695,47 +639,6 @@ Module MDHCOLTypeTranslator
           now repeat constructor.
       -
         cbn.
-        repeat break_match;
-          try inl_inr; repeat inl_inr_inv;
-          now repeat constructor.
-    Qed.
-
-    Instance translateDSHVal_proper :
-      Proper ((=) ==> (=)) translateDSHVal.
-    Proof.
-      intros v1 v2 V.
-      destruct V; cbn.
-      -
-        apply translateNTypeValue_proper in H.
-        repeat break_match;
-          try inl_inr; repeat inl_inr_inv;
-          now repeat constructor.
-      -
-        apply translateCTypeValue_proper in H.
-        repeat break_match;
-          try inl_inr; repeat inl_inr_inv;
-          now repeat constructor.
-      -
-        destruct H.
-        invc H0.
-        apply translateNTypeValue_proper in H.
-        repeat break_match;
-          try inl_inr; repeat inl_inr_inv;
-          now repeat constructor.
-    Qed.
-
-    Instance translateEvalContext_proper :
-      Proper ((=) ==> (=)) translateEvalContext.
-    Proof.
-      intros σ1 σ2 Σ.
-      induction Σ.
-      -
-        reflexivity.
-      -
-        cbn.
-        repeat break_let; subst_max.
-        invc H; cbn in *.
-        apply translateDSHVal_proper in H0.
         repeat break_match;
           try inl_inr; repeat inl_inr_inv;
           now repeat constructor.
@@ -1364,6 +1267,7 @@ Module MDHCOLTypeTranslator
 
     Context `{NTO : NTranslationOp} `{CTO : CTranslationOp}.
 
+    (*
     Fact heq_CType_zero_one_wd:
       heq_CType CT.CTypeZero CT'.CTypeZero /\
       heq_CType CT.CTypeOne CT'.CTypeOne.
@@ -1388,164 +1292,7 @@ Module MDHCOLTypeTranslator
           * reflexivity.
           * clear -n0; contradict n0; reflexivity.
     Qed.
-
-    Lemma translateEvalContext_heq_evalContext_eq
-          (σ: LE.evalContext) (σ': LE'.evalContext)
-      :
-        translateEvalContext σ ≡ inr σ' ->
-        heq_evalContext σ σ'.
-    Proof.
-      revert σ σ'.
-      unfold heq_evalContext, heq_evalContextElem.
-      induction σ, σ'; intros.
-      -
-        auto.
-      -
-        inv H.
-      -
-        cbn in H.
-        break_let.
-        repeat break_match; inv H.
-      -
-        constructor.
-        +
-          cbn in *.
-          break_let.
-          break_let.
-          subst.
-          repeat break_match; inv H.
-          split.
-          * auto.
-          * inl_inr_inv.
-            clear IHσ.
-            induction d; cbn in Heqs.
-            --
-              break_match.
-              inl_inr.
-              inl_inr_inv.
-              constructor.
-              apply translateNTypeValue_heq_NType.
-              rewrite Heqs1.
-              reflexivity.
-            --
-              break_match.
-              inl_inr.
-              inl_inr_inv.
-              constructor.
-              apply translateCTypeValue_heq_CType.
-              rewrite Heqs1.
-              reflexivity.
-            --
-              break_match.
-              inl_inr.
-              inl_inr_inv.
-              constructor.
-              reflexivity.
-              apply translateNTypeValue_heq_NType.
-              rewrite Heqs1.
-              reflexivity.
-        +
-          apply IHσ.
-          clear IHσ.
-          cbn in H.
-          break_let.
-          repeat break_match_hyp; inv H.
-          reflexivity.
-    Qed.
-
-    Lemma translateEvalContext_heq_evalContext
-          (σ: LE.evalContext) (σ': LE'.evalContext)
-      :
-        translateEvalContext σ = inr σ' ->
-        heq_evalContext σ σ'.
-    Proof.
-      revert σ σ'.
-      unfold heq_evalContext, heq_evalContextElem.
-      induction σ, σ'; intros.
-      -
-        auto.
-      -
-        cbn in H.
-        inl_inr_inv.
-        contradict H.
-        apply cons_nequiv_nil.
-      -
-        cbn in H.
-        break_let.
-        repeat break_match; inv H.
-        inl_inr_inv.
-        symmetry in H.
-        contradict H.
-        apply cons_nequiv_nil.
-      -
-        constructor.
-        +
-          cbn in *.
-          break_let.
-          break_let.
-          subst.
-          repeat break_match; inv H.
-          split.
-          *
-            inv H2.
-            apply H4.
-          * inl_inr_inv.
-            clear IHσ.
-            induction d; cbn in Heqs.
-            --
-              break_match.
-              inl_inr.
-              inl_inr_inv.
-              inv H.
-              unfold products.prod_equiv in H5.
-              cbn in H5.
-              destruct H5 as [TD BB0].
-              destruct d0; invc TD.
-              constructor.
-              apply translateNTypeValue_heq_NType.
-              rewrite Heqs1.
-              now constructor.
-            --
-              break_match.
-              inl_inr.
-              inl_inr_inv.
-              subst.
-              clear H2.
-              apply cons_equiv_inv in H.
-              destruct H as [H1 H2].
-              apply tuple_equiv_inv in H1.
-              destruct H1 as [H1 H3].
-              destruct d0; invc H1.
-              constructor.
-              apply translateCTypeValue_heq_CType.
-              rewrite Heqs1.
-              now constructor.
-            --
-              break_match.
-              inl_inr.
-              inl_inr_inv.
-
-
-              clear H2.
-              apply cons_equiv_inv in H.
-              destruct H as [H2 H3].
-              apply tuple_equiv_inv in H2.
-              destruct H2 as [H2 H4].
-              destruct d0; invc H1; invc H2.
-              constructor.
-              tauto.
-              apply translateNTypeValue_heq_NType.
-              rewrite Heqs1.
-              now constructor.
-        +
-          apply IHσ.
-          clear IHσ.
-          cbn in H.
-          break_let.
-          repeat break_match_hyp; inv H.
-          apply cons_equiv_inv in H2.
-          crush.
-    Qed.
+     *)
 
     Lemma translate_mem_block_heq_mem_block
           (m:L.mem_block) (m':L'.mem_block):
@@ -1587,9 +1334,7 @@ Module MDHCOLTypeTranslator
           subst.
 
           apply CTO.
-          apply translateCTypeConst_translateCTypeValue_compat.
-          symmetry in H.
-          assumption.
+          now rewrite H.
         +
           exfalso.
           rewrite NP.F.map_o in RE.
@@ -1710,176 +1455,6 @@ Module MDHCOLTypeTranslator
           break_match; try some_none.
     Qed.
 
-    (* TODO: rename *)
-    Lemma translate_runtime_mem_block_same_indices
-          (mb : L.mem_block)
-          (mb' : L'.mem_block)
-      :
-        translate_runtime_mem_block mb = inr mb' ->
-        heq_mem_block mb mb'.
-    Proof.
-      intros M.
-      apply NM_err_sequence_inr_fun_spec in M.
-
-      intros k.
-      specialize (M k).
-      unfold LE.mem_lookup, LE'.mem_lookup.
-      rewrite !NP.F.map_o in M.
-      unfold option_map in M.
-      repeat break_match; invc M;
-        constructor.
-      apply CTO.
-      now symmetry.
-    Qed.
-
-    Lemma heq_mem_block_translate_runtime_mem_block
-          `{CTOS : CTranslationOp_strict}
-          (mb : L.mem_block)
-          (mb' : L'.mem_block)
-      :
-        heq_mem_block mb mb' ->
-        translate_runtime_mem_block mb = inr mb'.
-    Proof.
-      intros E.
-      apply NM_err_sequence_inr_fun_spec.
-
-      intros k.
-      specialize (E k).
-      unfold LE.mem_lookup, LE'.mem_lookup in E.
-      rewrite !NP.F.map_o.
-      unfold option_map.
-      repeat break_match; invc E;
-        constructor.
-      apply heq_CType_translateCTypeValue in H1.
-      rewrite H1.
-      reflexivity.
-    Qed.
-
-    (* TODO: rename *)
-    Lemma translate_runtime_memory_same_indices
-          (m : L.memory)
-          (m' : L'.memory)
-      :
-        translate_runtime_memory m = inr m' ->
-        heq_memory m m'.
-    Proof.
-      intros M.
-      unfold translate_runtime_memory in M.
-      apply NM_err_sequence_inr_fun_spec in M.
-
-      intros k.
-      specialize (M k).
-      unfold LE.memory_lookup, LE'.memory_lookup.
-      rewrite !NP.F.map_o in M.
-      unfold option_map in M.
-      repeat break_match; invc M;
-        constructor.
-      apply translate_runtime_mem_block_same_indices.
-      now symmetry.
-    Qed.
-
-    Lemma heq_memory_translate_runtime_memory
-          `{CTOS : CTranslationOp_strict}
-          (m : L.memory)
-          (m' : L'.memory)
-      :
-        heq_memory m m' ->
-        translate_runtime_memory m = inr m'.
-    Proof.
-      intros E.
-      unfold translate_runtime_memory.
-      apply NM_err_sequence_inr_fun_spec.
-
-      intros k.
-      specialize (E k).
-      unfold LE.memory_lookup, LE'.memory_lookup in E.
-      rewrite !NP.F.map_o.
-      unfold option_map.
-      repeat break_match; invc E;
-        constructor.
-      apply heq_mem_block_translate_runtime_mem_block in H1.
-      rewrite H1.
-      reflexivity.
-    Qed.
-
-    Lemma translateDSHVal_heq
-          (d : L.DSHVal)
-          (d' : L'.DSHVal)
-      :
-        translateDSHVal d = inr d' ->
-        heq_DSHVal d d'.
-    Proof.
-      (* NOTE: this lemma must not rely on TranslationProps *)
-      intros D.
-      destruct d;
-        cbn in D.
-      all: break_match; invc D.
-      all: destruct d'; invc H1.
-      -
-        constructor.
-        unfold equiv in H2.
-        pose proof heq_NType_proper.
-        specialize (H n n).
-        autospecialize H; [reflexivity |].
-        specialize (H t0 n0 H2).
-        apply H.
-        clear - Heqs NTO.
-        apply translateNTypeValue_heq_NType.
-        now rewrite Heqs.
-      -
-        constructor.
-        apply CTO.
-        rewrite Heqs.
-        now f_equiv.
-      -
-        destruct H0.
-        constructor.
-        assumption.
-        apply translateNTypeValue_heq_NType.
-        rewrite Heqs; now f_equiv.
-    Qed.
-
-    (* TODO: rename *)
-    Lemma translateEvalContext_same_indices
-          (σ : LE.evalContext)
-          (σ' : evalContext)
-      :
-        translateEvalContext σ = inr σ' ->
-        heq_evalContext σ σ'.
-    Proof.
-      revert σ'.
-      induction σ;
-        intros σ' Σ'.
-      -
-        invc Σ'.
-        destruct σ'; [| inv H1].
-        constructor.
-      -
-        cbn in *.
-        repeat break_match;
-          try inl_inr; repeat inl_inr_inv;
-            subst_max.
-        destruct σ'; [inv Σ' |].
-        apply cons_equiv_inv in Σ'.
-        destruct Σ' as [P E].
-        constructor.
-        +
-          destruct p; invc P.
-          constructor.
-          apply H0.
-          clear - H Heqs NTO.
-          cbn in H.
-
-          apply translateDSHVal_heq.
-          rewrite Heqs.
-          f_equiv.
-          assumption.
-        +
-          apply IHσ.
-          f_equiv.
-          assumption.
-    Qed.
-
   End TranslationOp_Correctness.
 
   Section Syntactic_Translation_Correctness.
@@ -1987,8 +1562,7 @@ Module MDHCOLTypeTranslator
         now constructor.
       -
         constructor.
-        apply translateCTypeValue_heq_CType,
-          translateCTypeConst_translateCTypeValue_compat.
+        apply translateCTypeConst_heq_CType.
         rewrite Heqs.
         now f_equiv.
       -
@@ -2100,8 +1674,7 @@ Module MDHCOLTypeTranslator
           rewrite Heqs.
           now f_equiv.
         +
-                  apply translateCTypeValue_heq_CType,
-          translateCTypeConst_translateCTypeValue_compat.
+          apply translateCTypeConst_heq_CType.
           rewrite Heqs0.
           now f_equiv.
       -
@@ -2126,8 +1699,7 @@ Module MDHCOLTypeTranslator
       -
         constructor.
         now apply translatePExpr_syntax.
-        apply translateCTypeValue_heq_CType,
-          translateCTypeConst_translateCTypeValue_compat.
+        apply translateCTypeConst_heq_CType.
         rewrite Heqs.
         now f_equiv.
       -
