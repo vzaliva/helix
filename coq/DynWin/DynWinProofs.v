@@ -2217,11 +2217,9 @@ Section TopLevel.
         (* Compile -> RHCOL -> FHCOL *)
         RHCOLtoFHCOL.translate dynwin_RHCOL = inr dynwin_FHCOL ->
 
-        (* Compile memory *)
-        RHCOLtoFHCOL.translate_runtime_memory (dynwin_R_memory a x) = inr dynwin_F_memory ->
-
-        (* compile σ *)
-        RHCOLtoFHCOL.translateEvalContext dynwin_R_σ = inr dynwin_F_σ ->
+        (* Equivalent inputs *)
+        RHCOLtoFHCOL.heq_memory (dynwin_R_memory a x) dynwin_F_memory ->
+        RHCOLtoFHCOL.heq_evalContext dynwin_R_σ dynwin_F_σ ->
 
         forall a_rmem x_rmem,
           RHCOLEval.memory_lookup (dynwin_R_memory a x) dynwin_a_addr = Some a_rmem ->
