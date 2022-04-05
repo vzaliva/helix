@@ -95,30 +95,7 @@ Module MDHCOLTypeTranslator
       translateCTypeConst_heq_CType :
       forall x x', translateCTypeConst x = inr x' ->
               heq_CType x x';
-      (*
-      (* Partial mapping of [CT.t] values to [CT'.t] *)
-      translateCTypeValue : CT.t -> err CT'.t ;
-
-      translateCTypeValue_proper : Proper ((=) ==> (=)) translateCTypeValue;
-
-      (* Value mapping should result in "equal" values *)
-      translateCTypeValue_heq_CType :
-      forall x x', translateCTypeValue x = inr x' -> heq_CType x x';
-
-      (* Ensure [translateCTypeConst] is compatible with [translateCTypeValue] *)
-      translateCTypeConst_translateCTypeValue_compat :
-      forall x x', translateCTypeConst x = inr x' ->
-              translateCTypeValue x = inr x';
-       *)
     }.
-
-  (*
-  Class CTranslationOp_strict `{CTO : CTranslationOp} :=
-    {
-      heq_CType_translateCTypeValue :
-      forall x x', heq_CType x x' -> translateCTypeValue x = inr x';
-    }.
-   *)
 
   (* TODO: [translateNTypeValue] vs [translateNTypeConst].
      Why even have the first one? *)
@@ -1266,33 +1243,6 @@ Module MDHCOLTypeTranslator
   Section TranslationOp_Correctness.
 
     Context `{NTO : NTranslationOp} `{CTO : CTranslationOp}.
-
-    (*
-    Fact heq_CType_zero_one_wd:
-      heq_CType CT.CTypeZero CT'.CTypeZero /\
-      heq_CType CT.CTypeOne CT'.CTypeOne.
-    Proof.
-      split;
-        apply translateCTypeValue_heq_CType;
-        apply translateCTypeConst_translateCTypeValue_compat;
-        cbv.
-      -
-        break_if.
-        + reflexivity.
-        + break_if; clear -n; contradict n; reflexivity.
-      -
-        break_if.
-        +
-          clear -e.
-          symmetry in e.
-          contradict e.
-          apply CT.CTypeZeroOneApart.
-        +
-          break_if.
-          * reflexivity.
-          * clear -n0; contradict n0; reflexivity.
-    Qed.
-     *)
 
     Lemma translate_mem_block_heq_mem_block
           (m:L.mem_block) (m':L'.mem_block):

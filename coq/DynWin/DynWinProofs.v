@@ -2143,11 +2143,6 @@ Section TopLevel.
     `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}
     `{RF_CTO : @RHCOLtoFHCOL.CTranslationOp RF_CHE}.
 
-  (* TODO: removing this was kind of a big deal *)
-  (* We assuming that there is an injection of CType to Reals *)
-  (* Hypothesis RHCOLtoRHCOL_total :
-     forall c, exists r, RHCOLtoRHCOL.translateCTypeValue c ≡ inr r. *)
-
   (*
   (* User can specify optional constraints on input values and
      arguments. For example, for cyber-physical system it could
