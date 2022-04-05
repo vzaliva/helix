@@ -1681,9 +1681,9 @@ Section RHCOL_to_FHCOL_numerical.
     repeat constructor.
   Qed.
 
-  Local Fact trivial_RF_translateCTypeValue_heq_CType :
+  Local Fact trivial_RF_translateCTypeConst_heq_CType :
     ∀ (x : R) (x' : Bits.binary64),
-      RHCOLtoFHCOL.translateCTypeValue x = inr x' →
+      RHCOLtoFHCOL.translateCTypeConst x = inr x' →
       @RHCOLtoFHCOL.heq_CType trivial_RF_CHE x x'.
   Proof.
     repeat constructor.
@@ -1691,10 +1691,7 @@ Section RHCOL_to_FHCOL_numerical.
 
   Local Definition trivial_RF_CTO : @RHCOLtoFHCOL.CTranslationOp trivial_RF_CHE :=
     {|
-      RHCOLtoFHCOL.translateCTypeValue := @RHCOLtoFHCOL.translateCTypeValue _ RF_CTO;
-      RHCOLtoFHCOL.translateCTypeValue_heq_CType := trivial_RF_translateCTypeValue_heq_CType;
-      RHCOLtoFHCOL.translateCTypeConst_translateCTypeValue_compat :=
-      @RHCOLtoFHCOL.translateCTypeConst_translateCTypeValue_compat _ RF_CTO;
+      RHCOLtoFHCOL.translateCTypeConst_heq_CType := trivial_RF_translateCTypeConst_heq_CType;
     |}.
 
   Definition RF_Structural_Semantic_Preservation :=
@@ -1710,7 +1707,7 @@ Section RHCOL_to_FHCOL_numerical.
     :
     RHCOLtoFHCOL.translate dynwin_RHCOL = inr dynwin_FHCOL ->
 
-    RHCOLtoFHCOL.translateEvalContext dynwin_R_σ = inr dynwin_F_σ ->
+    RHCOLtoFHCOL.heq_evalContext dynwin_R_σ dynwin_F_σ ->
 
     hopt (herr (@RHCOLtoFHCOL.evalNExpr_closure_trace_equiv RF_NHE trivial_RF_CHE))
          (RHCOLEval.intervalEvalDSHOperator_σ
