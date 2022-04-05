@@ -2503,12 +2503,34 @@ Section TopLevel.
       apply trivial_RF_CTO.
     }
     {
-      eapply @RHCOLtoFHCOL.translateEvalContext_same_indices with (CTO:=trivial_RF_CTO).
-      assumption.
+      clear - CRE.
+      induction CRE.
+      -
+        constructor.
+      -
+        constructor;
+          [| apply IHCRE].
+        unfold RHCOLtoFHCOL.heq_evalContextElem in *.
+        repeat break_let; subst.
+        repeat constructor.
+        intuition.
+        destruct H as [_ D].
+        invc D; repeat constructor; assumption.
     }
     {
-      eapply @RHCOLtoFHCOL.translate_runtime_memory_same_indices with (CTO:=trivial_RF_CTO).
-      assumption.
+      clear - CRM.
+      generalize dependent (dynwin_R_memory a x).
+      clear.
+      intros dynwin_R_memory M.
+
+      intros k.
+      specialize (M k).
+      invc M; constructor.
+
+      intros k'.
+      specialize (H1 k').
+      invc H1; constructor.
+      constructor.
     }
     {
       now eapply @RHCOLtoFHCOL_NExpr_closure_trace_equiv.
