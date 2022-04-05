@@ -1681,9 +1681,9 @@ Section RHCOL_to_FHCOL_numerical.
     repeat constructor.
   Qed.
 
-  Local Fact trivial_RF_translateCTypeValue_heq_CType :
+  Local Fact trivial_RF_translateCTypeConst_heq_CType :
     ∀ (x : R) (x' : Bits.binary64),
-      RHCOLtoFHCOL.translateCTypeValue x = inr x' →
+      RHCOLtoFHCOL.translateCTypeConst x = inr x' →
       @RHCOLtoFHCOL.heq_CType trivial_RF_CHE x x'.
   Proof.
     repeat constructor.
@@ -1691,10 +1691,7 @@ Section RHCOL_to_FHCOL_numerical.
 
   Local Definition trivial_RF_CTO : @RHCOLtoFHCOL.CTranslationOp trivial_RF_CHE :=
     {|
-      RHCOLtoFHCOL.translateCTypeValue := @RHCOLtoFHCOL.translateCTypeValue _ RF_CTO;
-      RHCOLtoFHCOL.translateCTypeValue_heq_CType := trivial_RF_translateCTypeValue_heq_CType;
-      RHCOLtoFHCOL.translateCTypeConst_translateCTypeValue_compat :=
-      @RHCOLtoFHCOL.translateCTypeConst_translateCTypeValue_compat _ RF_CTO;
+      RHCOLtoFHCOL.translateCTypeConst_heq_CType := trivial_RF_translateCTypeConst_heq_CType;
     |}.
 
   Definition RF_Structural_Semantic_Preservation :=
@@ -1710,7 +1707,7 @@ Section RHCOL_to_FHCOL_numerical.
     :
     RHCOLtoFHCOL.translate dynwin_RHCOL = inr dynwin_FHCOL ->
 
-    RHCOLtoFHCOL.translateEvalContext dynwin_R_σ = inr dynwin_F_σ ->
+    RHCOLtoFHCOL.heq_evalContext dynwin_R_σ dynwin_F_σ ->
 
     hopt (herr (@RHCOLtoFHCOL.evalNExpr_closure_trace_equiv RF_NHE trivial_RF_CHE))
          (RHCOLEval.intervalEvalDSHOperator_σ
@@ -2146,11 +2143,6 @@ Section TopLevel.
     `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}
     `{RF_CTO : @RHCOLtoFHCOL.CTranslationOp RF_CHE}.
 
-  (* TODO: removing this was kind of a big deal *)
-  (* We assuming that there is an injection of CType to Reals *)
-  (* Hypothesis RHCOLtoRHCOL_total :
-     forall c, exists r, RHCOLtoRHCOL.translateCTypeValue c ≡ inr r. *)
-
   (*
   (* User can specify optional constraints on input values and
      arguments. For example, for cyber-physical system it could
@@ -2220,11 +2212,9 @@ Section TopLevel.
         (* Compile -> RHCOL -> FHCOL *)
         RHCOLtoFHCOL.translate dynwin_RHCOL = inr dynwin_FHCOL ->
 
-        (* Compile memory *)
-        RHCOLtoFHCOL.translate_runtime_memory (dynwin_R_memory a x) = inr dynwin_F_memory ->
-
-        (* compile σ *)
-        RHCOLtoFHCOL.translateEvalContext dynwin_R_σ = inr dynwin_F_σ ->
+        (* Equivalent inputs *)
+        RHCOLtoFHCOL.heq_memory (dynwin_R_memory a x) dynwin_F_memory ->
+        RHCOLtoFHCOL.heq_evalContext dynwin_R_σ dynwin_F_σ ->
 
         forall a_rmem x_rmem,
           RHCOLEval.memory_lookup (dynwin_R_memory a x) dynwin_a_addr = Some a_rmem ->
@@ -2508,12 +2498,34 @@ Section TopLevel.
       apply trivial_RF_CTO.
     }
     {
-      eapply @RHCOLtoFHCOL.translateEvalContext_same_indices with (CTO:=trivial_RF_CTO).
-      assumption.
+      clear - CRE.
+      induction CRE.
+      -
+        constructor.
+      -
+        constructor;
+          [| apply IHCRE].
+        unfold RHCOLtoFHCOL.heq_evalContextElem in *.
+        repeat break_let; subst.
+        repeat constructor.
+        intuition.
+        destruct H as [_ D].
+        invc D; repeat constructor; assumption.
     }
     {
-      eapply @RHCOLtoFHCOL.translate_runtime_memory_same_indices with (CTO:=trivial_RF_CTO).
-      assumption.
+      clear - CRM.
+      generalize dependent (dynwin_R_memory a x).
+      clear.
+      intros dynwin_R_memory M.
+
+      intros k.
+      specialize (M k).
+      invc M; constructor.
+
+      intros k'.
+      specialize (H1 k').
+      invc H1; constructor.
+      constructor.
     }
     {
       now eapply @RHCOLtoFHCOL_NExpr_closure_trace_equiv.
