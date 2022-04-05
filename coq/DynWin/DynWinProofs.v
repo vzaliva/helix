@@ -2131,12 +2131,18 @@ Section RHCOL_to_FHCOL_bounds.
        32 bit approximation of result on Reals *)
     heq_mem_block y_r (cast64_to_32_mem_block y_64).
 
+  Global Instance DynWinOutRel_Proper :
+    Proper ((=) ==> (=) ==> (=) ==> (=) ==> (iff)) DynWinOutRel.
+  Admitted.
+
 End RHCOL_to_FHCOL_bounds.
 
 Section TopLevel.
 
   (* RHCOL -> FHCOL *)
   Context
+    `{RF_CHE_32 : RHCOLtoFHCOL32.CTranslation_heq}
+    `{RF_CTO_32 : @RHCOLtoFHCOL32.CTranslationOp RF_CHE_32}
     `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}
     `{RF_CTO : @RHCOLtoFHCOL.CTranslationOp RF_CHE}.
 
@@ -2145,6 +2151,7 @@ Section TopLevel.
   (* Hypothesis RHCOLtoRHCOL_total :
      forall c, exists r, RHCOLtoRHCOL.translateCTypeValue c ≡ inr r. *)
 
+  (*
   (* User can specify optional constraints on input values and
      arguments. For example, for cyber-physical system it could
      include ranges and relatoin between parameters. *)
@@ -2155,6 +2162,7 @@ Section TopLevel.
                      (* x *) RHCOLEval.mem_block ->
                      (* y *) RHCOLEval.mem_block ->
                      (* y_mem *) FHCOLEval.mem_block -> Prop.
+   *)
 
   Lemma DynWin_RHCOL_to_FHCOL_op_OK :
     exists r, RHCOLtoFHCOL.translate dynwin_RHCOL = inr r.
@@ -2221,7 +2229,7 @@ Section TopLevel.
         forall a_rmem x_rmem,
           RHCOLEval.memory_lookup (dynwin_R_memory a x) dynwin_a_addr = Some a_rmem ->
           RHCOLEval.memory_lookup (dynwin_R_memory a x) dynwin_x_addr = Some x_rmem ->
-          InConstr a_rmem x_rmem ->
+          DynWinInConstr a_rmem x_rmem ->
 
           (* Everything correct on Reals *)
           exists r_omemory y_rmem,
@@ -2240,7 +2248,7 @@ Section TopLevel.
                 dynwin_F_memory
                 (FHCOLEval.estimateFuel dynwin_FHCOL) = (Some (inr f_omemory))
               /\ FHCOLEval.memory_lookup f_omemory dynwin_y_addr = Some y_fmem
-              /\ OutRel a_rmem x_rmem y_rmem y_fmem.
+              /\ DynWinOutRel a_rmem x_rmem y_rmem y_fmem.
   Proof.
     intros * HC * CR CRM CRE * RA RX C.
 
@@ -2253,7 +2261,7 @@ Section TopLevel.
              dynwin_R_σ
              dynwin_RHCOL
              (dynwin_R_memory a x)
-             (RHCOLEval.estimateFuel dynwin_RHCOL) = Some (inr r_omemory)) as RE.
+             (RHCOLEval.estimateFuel dynwin_RHCOL) = Some (inr r_omemory)) as RO.
     {
       pose proof (DynWin_MSH_DSH_compat a) as MRHCOL.
       pose proof (DynWin_pure) as MAPURE.
@@ -2468,13 +2476,16 @@ Section TopLevel.
 
     (* moved from [dynwin_MSHCOL1] to [dynwin_rhcol] *)
 
+    generalize dependent (ctvector_to_mem_block y).
+    intros y_rmem R_OMEM.
+
     exists r_omemory.
-    exists (ctvector_to_mem_block y).
+    exists y_rmem.
 
     split; [assumption |].
     split.
     1: {
-      rewrite ROM.
+      rewrite R_OMEM.
       now rewrite memory_lookup_memory_set_eq by reflexivity.
     }
     split; [reflexivity |].
@@ -2508,26 +2519,47 @@ Section TopLevel.
       now eapply @RHCOLtoFHCOL_NExpr_closure_trace_equiv.
     }
 
-    (* TODO: this can be cleaned up *)
-    destruct HEQRF; try some_none.
-    invc H; invc RE;
-      [invc H1 | invc H2].
-    rename b0 into f_omemory, H0 into FM.
+    subst r_omemory.
+    destruct RHCOLEval.evalDSHOperator as [[e | r_omemory] |] eqn:RE in *;
+      try some_none; repeat some_inv;
+      try inl_inr; repeat inl_inr_inv.
+
+    invc HEQRF; invc H1.
+    rename b0 into f_omemory, H0 into F_EVAL, H2 into RF_OM.
+    symmetry in RO, F_EVAL.
 
     exists f_omemory.
 
-    unfold RHCOLEval.memory_set in H3.
-    pose proof FM as YFM.
-    specialize (YFM dynwin_y_addr).
-    unfold RHCOLEval.memory_lookup in YFM.
-    specialize (H3 dynwin_y_addr).
-    rewrite Memory.NP.F.add_eq_o in H3 by reflexivity.
-    inv YFM;
-      [rewrite <-H0 in H3; some_none |].
-    rename b into y_fmem.
+    unfold RHCOLEval.memory_set in RE.
+    pose proof RF_OM as RF_YO.
+    pose proof RO as R_YO.
+    specialize (RF_YO dynwin_y_addr).
+    specialize (R_YO dynwin_y_addr).
+    unfold RHCOLEval.memory_set, RHCOLEval.memory_lookup in *.
+    rewrite Memory.NP.F.add_eq_o in R_YO by reflexivity.
+
+    invc RF_YO;
+      [rewrite <-H0 in *; some_none |].
+    rename b into y_fmem, H0 into Y_FMEM.
+    rename a0 into y_rmem', H into Y_RMEM'.
+    rename H1 into Y_RFE.
+    symmetry in Y_RMEM', Y_FMEM.
 
     exists y_fmem.
     do 2 (split; [reflexivity |]).
+
+    (* get rid of duplicate [y_rmem] *)
+    rewrite Y_RMEM' in *.
+    some_inv.
+    rewrite R_YO.
+    clear RO R_YO y_rmem.
+    rename y_rmem' into y_rmem, Y_RMEM' into Y_RMEM.
+
+    generalize dependent (dynwin_R_memory a x);
+      intros r_imemory TRM A_RMEM X_RMEM R_EVAL.
+    clear a x y HC.
+    rename dynwin_F_memory into f_imemory, dynwin_F_σ into f_iσ.
+    remember dynwin_R_σ as r_iσ.
 
     (* OutRel must hold (a,x,y_R,y_F) *)
     admit. (* this is provided by user *)
