@@ -3,7 +3,7 @@
     def BUILD_IF_BRANCH = ['master','develop']
  */
 
-def BUILD_IF_BRANCH = ['master','bounds']
+def BUILD_IF_BRANCH = ['master','bounds', 'no_floatOfR']
 
 pipeline {
     agent { 
