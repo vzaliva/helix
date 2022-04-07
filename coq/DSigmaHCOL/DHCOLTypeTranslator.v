@@ -101,19 +101,9 @@ Module MDHCOLTypeTranslator
      Why even have the first one? *)
   Class NTranslationOp `{NHE : NTranslation_heq} :=
     {
-      (* Partial mapping of [NT.t] values to [NT'.t] *)
-      translateNTypeValue : NT.t -> err NT'.t ;
-
-      translateNTypeValue_proper : Proper ((=) ==> (=)) translateNTypeValue;
-
       (* Value mapping should result in "equal" values *)
-      translateNTypeValue_heq_NType :
-      forall x x', translateNTypeValue x = inr x' -> heq_NType x x';
-
-      (* Ensure [translateNTypeConst] is compatible with [translateNTypeValue] *)
-      translateNTypeConst_translateNTypeValue_compat :
-      forall x x', translateNTypeConst x = inr x' ->
-              translateNTypeValue x = inr x';
+      translateNTypeConst_heq_NType :
+      forall x x', translateNTypeConst x = inr x' -> heq_NType x x';
     }.
 
   Class NTranslationProps `{NHE : NTranslation_heq} :=
@@ -1441,7 +1431,6 @@ Module MDHCOLTypeTranslator
         apply H.
         clear - Heqs NTO.
         apply NTO.
-        apply NTO.
         now rewrite Heqs.
     Qed.
 
@@ -1479,7 +1468,7 @@ Module MDHCOLTypeTranslator
         destruct m'; invc M.
         constructor.
         +
-          apply NTO, NTO.
+          apply NTO.
           rewrite Heqs0.
           now f_equiv.
         +

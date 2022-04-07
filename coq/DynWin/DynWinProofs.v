@@ -1559,25 +1559,19 @@ Section RCHOL_to_FHCOL.
 
   Global Instance RF_NTO : @RHCOLtoFHCOL.NTranslationOp RF_NHE.
   Proof.
-    econstructor.
-    instantiate (1:=MInt64asNT.from_nat).
-    -
-      typeclasses eauto.
-    -
-      unfold RF_NHE, heq_NType, heq_nat_int.
-      unfold MInt64asNT.from_nat, MInt64asNT.from_Z.
-      intros * TR.
-      repeat break_match; invc TR.
-      pose proof Integers.Int64.eq_spec
-           {| Int64.intval := Z.of_nat x; Int64.intrange := conj l l0 |}
-           x'
-        as EQI.
-      rewrite H1 in EQI.
-      rewrite <-EQI.
-      reflexivity.
-    -
-      tauto.
-  Defined.
+    constructor.
+    unfold RHCOLtoFHCOL.translateNTypeConst.
+    unfold MInt64asNT.from_nat, NatAsNT.MNatAsNT.to_nat, MInt64asNT.from_Z.
+    intros * TR.
+    repeat break_match; invc TR.
+    pose proof Integers.Int64.eq_spec
+         {| Int64.intval := Z.of_nat x; Int64.intrange := conj l l0 |}
+         x'
+      as EQI.
+    rewrite H1 in EQI.
+    rewrite <-EQI.
+    reflexivity.
+  Qed.
 
 End RCHOL_to_FHCOL.
 
