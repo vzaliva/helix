@@ -81,29 +81,22 @@ Module MDHCOLTypeTranslator
     {
       heq_CType : CT.t -> CT'.t -> Prop ;
       heq_CType_proper : Proper ((=) ==> (=) ==> iff) heq_CType;
+
+      (* Value mapping should result in "equal" values *)
+      translateCTypeConst_heq_CType :
+      forall x x', translateCTypeConst x = inr x' ->
+              heq_CType x x';
     }.
 
   Class NTranslation_heq :=
     {
       heq_NType : NT.t -> NT'.t -> Prop ;
       heq_NType_proper : Proper ((=) ==> (=) ==> iff) heq_NType;
-    }.
 
-  Class CTranslationOp `{CHE : CTranslation_heq} :=
-    {
-
-      translateCTypeConst_heq_CType :
-      forall x x', translateCTypeConst x = inr x' ->
-              heq_CType x x';
-    }.
-
-  (* TODO: [translateNTypeValue] vs [translateNTypeConst].
-     Why even have the first one? *)
-  Class NTranslationOp `{NHE : NTranslation_heq} :=
-    {
       (* Value mapping should result in "equal" values *)
       translateNTypeConst_heq_NType :
       forall x x', translateNTypeConst x = inr x' -> heq_NType x x';
+
     }.
 
   Class NTranslationProps `{NHE : NTranslation_heq} :=
@@ -1232,7 +1225,7 @@ Module MDHCOLTypeTranslator
 
   Section TranslationOp_Correctness.
 
-    Context `{NTO : NTranslationOp} `{CTO : CTranslationOp}.
+    Context `{NHE : NTranslation_heq} `{CHE : CTranslation_heq}.
 
     Lemma translate_mem_block_heq_mem_block
           (m:L.mem_block) (m':L'.mem_block):
@@ -1273,7 +1266,7 @@ Module MDHCOLTypeTranslator
           repeat some_inv.
           subst.
 
-          apply CTO.
+          apply CHE.
           now rewrite H.
         +
           exfalso.
@@ -1399,7 +1392,7 @@ Module MDHCOLTypeTranslator
 
   Section Syntactic_Translation_Correctness.
 
-    Context `{NTO : NTranslationOp} `{CTO : CTranslationOp}.
+    Context `{NHE : NTranslation_heq} `{CHE : CTranslation_heq}.
 
     Lemma translateNExpr_syntax
           (n : L.NExpr)
@@ -1429,8 +1422,8 @@ Module MDHCOLTypeTranslator
         autospecialize H; [reflexivity |].
         specialize (H t1 t2 H1).
         apply H.
-        clear - Heqs NTO.
-        apply NTO.
+        clear - Heqs NHE.
+        apply NHE.
         now rewrite Heqs.
     Qed.
 
@@ -1468,7 +1461,7 @@ Module MDHCOLTypeTranslator
         destruct m'; invc M.
         constructor.
         +
-          apply NTO.
+          apply NHE.
           rewrite Heqs0.
           now f_equiv.
         +

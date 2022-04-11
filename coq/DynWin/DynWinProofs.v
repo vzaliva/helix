@@ -1520,8 +1520,7 @@ Section RCHOL_to_FHCOL.
   Qed.
 
   Context
-    `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}
-    `{RF_CTO : @RHCOLtoFHCOL.CTranslationOp RF_CHE}.
+    `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}.
 
   Definition heq_nat_int : nat -> MInt64asNT.t -> Prop :=
     fun n i => Z.of_nat n ≡ Int64.intval i.
@@ -1530,13 +1529,26 @@ Section RCHOL_to_FHCOL.
   Proof.
     econstructor.
     instantiate (1:= heq_nat_int).
-    intros n1 n2 EN i1 i2 EI.
-    unfold heq_nat_int.
-    cbv in EN; subst n2; rename n1 into n.
-    pose proof Integers.Int64.eq_spec i1 i2 as EQI.
-    rewrite EI in EQI.
-    apply f_equal with (f:=Int64.intval) in EQI.
-    lia.
+    -
+      intros n1 n2 EN i1 i2 EI.
+      unfold heq_nat_int.
+      cbv in EN; subst n2; rename n1 into n.
+      pose proof Integers.Int64.eq_spec i1 i2 as EQI.
+      rewrite EI in EQI.
+      apply f_equal with (f:=Int64.intval) in EQI.
+      lia.
+    -
+      unfold RHCOLtoFHCOL.translateNTypeConst.
+      unfold MInt64asNT.from_nat, NatAsNT.MNatAsNT.to_nat, MInt64asNT.from_Z.
+      intros * TR.
+      repeat break_match; invc TR.
+      pose proof Integers.Int64.eq_spec
+           {| Int64.intval := Z.of_nat x; Int64.intrange := conj l l0 |}
+           x'
+        as EQI.
+      rewrite H1 in EQI.
+      rewrite <-EQI.
+      reflexivity.
   Defined.
 
   Global Instance RF_NTP : RHCOLtoFHCOL.NTranslationProps.
@@ -1557,22 +1569,6 @@ Section RCHOL_to_FHCOL.
       reflexivity.
   Qed.
 
-  Global Instance RF_NTO : @RHCOLtoFHCOL.NTranslationOp RF_NHE.
-  Proof.
-    constructor.
-    unfold RHCOLtoFHCOL.translateNTypeConst.
-    unfold MInt64asNT.from_nat, NatAsNT.MNatAsNT.to_nat, MInt64asNT.from_Z.
-    intros * TR.
-    repeat break_match; invc TR.
-    pose proof Integers.Int64.eq_spec
-         {| Int64.intval := Z.of_nat x; Int64.intrange := conj l l0 |}
-         x'
-      as EQI.
-    rewrite H1 in EQI.
-    rewrite <-EQI.
-    reflexivity.
-  Qed.
-
 End RCHOL_to_FHCOL.
 
 (* TODO: move *)
@@ -1580,9 +1576,7 @@ Require Import Rdefinitions.
 
 Section RHCOL_to_FHCOL_numerical.
 
-  Context
-    `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}
-    `{RF_CTO : @RHCOLtoFHCOL.CTranslationOp RF_CHE}.
+  Context `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}.
 
   (* TODO: move *)
   Lemma trivial2_Proper `{AE : Equiv A} `{BE : Equiv B} :
@@ -1656,6 +1650,7 @@ Section RHCOL_to_FHCOL_numerical.
 
   (* Instances for trivial comparison of CType values
      in RHCOL->FHCOL translation.
+     Any two numbers are considered "equal" ([trivial2]).
 
      These allow to infer structural properties of translation,
      while disregarding CType values (and CType values only).
@@ -1663,30 +1658,18 @@ Section RHCOL_to_FHCOL_numerical.
      The statement [RF_Structural_Semantic_Preservation]
      is the full semantic preservation on RHCOL->FHCOL, up to CType values.
    *)
-  Local Definition trivial_RF_CHE : RHCOLtoFHCOL.CTranslation_heq :=
-    {|
-      RHCOLtoFHCOL.heq_CType := trivial2;
-      RHCOLtoFHCOL.heq_CType_proper := trivial2_Proper;
-    |}.
+  Local Definition trivial_RF_CHE : RHCOLtoFHCOL.CTranslation_heq.
+    econstructor.
+    instantiate (1 := trivial2).
+    typeclasses eauto.
+    repeat constructor.
+  Defined.
 
   Local Fact trivial_RF_COP
     : @RHCOLtoFHCOL.COpTranslationProps trivial_RF_CHE.
   Proof.
     repeat constructor.
   Qed.
-
-  Local Fact trivial_RF_translateCTypeConst_heq_CType :
-    ∀ (x : R) (x' : Bits.binary64),
-      RHCOLtoFHCOL.translateCTypeConst x = inr x' →
-      @RHCOLtoFHCOL.heq_CType trivial_RF_CHE x x'.
-  Proof.
-    repeat constructor.
-  Qed.
-
-  Local Definition trivial_RF_CTO : @RHCOLtoFHCOL.CTranslationOp trivial_RF_CHE :=
-    {|
-      RHCOLtoFHCOL.translateCTypeConst_heq_CType := trivial_RF_translateCTypeConst_heq_CType;
-    |}.
 
   Definition RF_Structural_Semantic_Preservation :=
     @RHCOLtoFHCOL.translation_semantics_correct
@@ -1928,11 +1911,10 @@ Require Import Vellvm.Numeric.IEEE754_extra.
 
 Require Import Float32asCT.
 Section RHCOL_to_FHCOL_bounds.
+
   Context
     `{RF_CHE_32 : RHCOLtoFHCOL32.CTranslation_heq}
-    `{RF_CTO_32 : @RHCOLtoFHCOL32.CTranslationOp RF_CHE_32}
-    `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}
-    `{RF_CTO : @RHCOLtoFHCOL.CTranslationOp RF_CHE}.
+    `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}.
 
   Inductive is_NaN_32 : binary32 -> Prop :=
   | B754_nan_is_NaN_32 : forall s pl NPL,
@@ -2133,9 +2115,7 @@ Section TopLevel.
   (* RHCOL -> FHCOL *)
   Context
     `{RF_CHE_32 : RHCOLtoFHCOL32.CTranslation_heq}
-    `{RF_CTO_32 : @RHCOLtoFHCOL32.CTranslationOp RF_CHE_32}
-    `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}
-    `{RF_CTO : @RHCOLtoFHCOL.CTranslationOp RF_CHE}.
+    `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}.
 
   (*
   (* User can specify optional constraints on input values and
@@ -2488,8 +2468,6 @@ Section TopLevel.
     full_autospecialize HEQRF.
     {
       now eapply RHCOLtoFHCOL.translation_syntax_always_correct.
-      Unshelve.
-      apply trivial_RF_CTO.
     }
     {
       clear - CRE.
