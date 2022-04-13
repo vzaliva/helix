@@ -122,7 +122,15 @@ Opaque genWhileLoop.
 From Paco Require Import paco.
 From ITree Require Import Basics.HeterogeneousRelations.
 
-
+Definition memory_invariant_partial_write' (configV : config_cfg) (index loopsize : nat) (ptr_llvm : addr)
+            (bk_helix : mem_block) (x : ident) sz : Prop :=
+    let '(mem_llvm, (ρ, g)) := configV in
+    dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp [] (TYPE_Array sz TYPE_Double)) /\
+    in_local_or_global_addr ρ g x ptr_llvm /\
+            (∀ (i : Int64.int) (v0 : binary64),
+                (MInt64asNT.to_nat i) < index \/ (MInt64asNT.to_nat i) >= loopsize ->
+                  (mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v0
+                    → get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0))).
 
 Lemma MemInit_Correct:
   ∀ (y_p : PExpr) (value : binary64) (s1 s2 : IRState) (σ : evalContext) 
@@ -258,6 +266,7 @@ Proof.
       { rewrite Znat.Z2Nat.id.  edestruct DynamicValues.Int64.intrange; eauto.
         eapply Int64_intval_pos. }
 
+      rename i0 into y.
     (* FIXME : loop invariant with partial write information *)
     set (I := (fun (k : nat) (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
                 match mH with
@@ -267,7 +276,7 @@ Proof.
                  (* 1. Relaxed state invariant *)
                  state_invariant (protect σ n0) s0 mH stV /\
                  (* (* 2. Preserved state invariant *) *)
-                 (* memory_invariant_partial_write' stV k n ptrll_yoff b y x_sz /\ *)
+                 memory_invariant_partial_write' stV k n ptrll_xoff bkh_xoff y sz /\
                  mH ≡ memH /\ g ≡ g' /\
                  allocated ptrll_xoff mV
                 end)).
@@ -276,7 +285,7 @@ Proof.
                 match o with
                 | None => False
                 | Some (mH,bkH) =>
-                  bkH ≡ mem_union (mem_const_block 0 value) mem_bkH /\
+                  bkH ≡ mem_union (mem_const_block 0 value) bkh_xoff /\
                   state_invariant σ s0 mH stV
                 end).
 
@@ -284,11 +293,11 @@ Proof.
                 match o with
                 | None => False
                 | Some (mH,bkH) =>
-                  bkH ≡ mem_union (mem_const_block (MInt64asNT.to_nat i) value) mem_bkH /\
+                  bkH ≡ mem_union (mem_const_block (MInt64asNT.to_nat i) value) bkh_xoff /\
                   state_invariant σ s0 mH stV
                 end).
 
-    specialize (LOOP I P Q (Some (memH,mem_bkH))).
+    specialize (LOOP I P Q (Some (memH,bkh_xoff))).
 
     forward LOOP.
     {
@@ -307,19 +316,104 @@ Proof.
       vred; cbn.
 
       rewrite denote_code_cons.
-      unfold I in *. destruct INV as (mem_union & SI).
+      (* Get mem information from PRE condition here (global and local state has changed). *)
+      (* Needed for the following GEP and Load instructions *)
+      destruct INV as (INV_r & INV_p & -> & -> & ?).
+
       assert (Heqo' := Heqo).
 
+      erewrite <- nth_error_protect_neq with (n2 := n0) in Heqo; auto.
 
-      pose proof state_invariant_memory_invariant as MINV_XOFF.
+      (* Memory invariant for x *)
+      pose proof state_invariant_memory_invariant INV_r as MINV_XOFF.
       unfold memory_invariant in MINV_XOFF.
-      (* specialize (MINV_XOFF _ _ _ _ _ _ Heqo LUn). *)
-      (* cbn in MINV_XOFF. *)
+      specialize (MINV_XOFF _ _ _ _ _ Heqo LUn).
+      cbn in MINV_XOFF.
 
-      (* Get mem information from PRE condition here (global and local state has changed). *)
-      (* Needed for the following GEP and Store instructions *)
+      destruct MINV_XOFF as (ptrll_xoff_l & τ_xoff & TEQ_xoff & FITS_xoff_l & INLG_xoff_l & bkh_xoff_l & MLUP_xoff_l & GETARRAYCELL_xoff_l); eauto.
 
-      admit.
+      rewrite MLUP_xoff_l in H'; symmetry in H'; inv H'.
+      inv TEQ_xoff.
+      2 : admit.
+
+      unfold memory_invariant_partial_write' in INV_p.
+      destruct INV_p as (FITS_yoff_l & INLG_YOFF & MINV_YOFF).
+
+
+      (* [Vellvm] GEP Instruction for [x] *)
+      match goal with
+      | [|- context[OP_GetElementPtr (DTYPE_Array ?size' ?τ') (_, ?ptr') _]] =>
+        edestruct denote_instr_gep_array' with
+            (l := li) (g := g0) (m := mV) (i := pt)
+            (size := size') (a := ptrll_xoff_l) (ptr := ptr') as (GEP_addr & Hread & HGEP & EQ_HG)
+      end.
+
+      destruct y;
+      rename id into YID.
+      rewrite denote_exp_GR. 2 : eauto.
+      cbn. subst. reflexivity.
+      2 : {
+        rewrite denote_exp_LR. 2 : eauto.
+        cbn.
+        unfold uvalue_of_nat. reflexivity.
+      }
+
+      { rewrite denote_exp_LR. reflexivity. eauto. }
+      {
+        assert (GET := GETARRAYCELL_xoff).
+
+          specialize (GET (Int64.repr (Z.of_nat k))).
+          (* pose proof EQk. *)
+          (* apply to_nat_repr_nat in EQk. rewrite <- EQk. *)
+          (* eapply GETARRAYCELL_xoff_l. *)
+          (* rewrite to_nat_repr_nat. eauto. auto. *)
+          admit.
+      }
+
+      (* reduce GEP *)
+      vred.
+      setoid_rewrite EQ_HG; clear EQ_HG.
+      vred. vred.
+
+      (* STORE *)
+      edestruct write_succeeds with (m1 := mV) (a := GEP_addr); [eapply DVALUE_Double_typ |..].
+      { typ_to_dtyp_simplify.
+
+        eapply dtyp_fits_array_elem.
+        2 : eauto. admit.
+
+
+        rewrite Znat.Z2N.id; [|apply Int64_intval_pos].
+        rewrite !Int64.unsigned_repr_eq.
+        rewrite Zdiv.Zmod_small; try lia. admit. }
+
+
+        vred.
+        rewrite denote_instr_store; eauto; [ | admit | admit | admit].
+
+        vred.
+        rewrite denote_term_br_1.
+        vred.
+
+        cbn.
+        (* Not in body any more *)
+        rewrite denote_ocfg_unfold_not_in.
+        vred.
+        2: { rewrite find_block_ineq; eauto. cbn. solve_id_neq. }
+
+        (* Re-establish INV in post condition *)
+        apply eqit_Ret.
+        split; [|split; [|split]]; eauto.
+        unfold I.
+        split; [|split; [|split; [|split]]]; eauto.
+
+        (* Establish the relaxed state invariant with changed states and extended local environment *)
+        { admit. }
+
+        (* Partial memory up to (S k) *)
+        { admit. }
+
+        solve_allocated.
     }
 
     forward LOOP.
