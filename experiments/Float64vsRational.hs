@@ -6,6 +6,7 @@
   --package floating-bits
 -}
 
+{-# LANGUAGE DeriveFunctor   #-}
 {-# LANGUAGE Rank2Types      #-}
 {-# LANGUAGE TemplateHaskell #-}
 
@@ -145,8 +146,75 @@ genDynWin = do
   v <- choose (0, 20)
   pure [a2, a1, a0, v]
 
-prop_compute2ways_same_dynwin :: Property
-prop_compute2ways_same_dynwin = forAll genDynWin computeDynWin2ways_same
+prop_dynwin2ways_same :: Property
+prop_dynwin2ways_same = forAll genDynWin computeDynWin2ways_same
+
+
+
+-- | = GENERALIZED (random expressions)
+
+data Expr a =
+  Const a
+  | Abs (Expr a)
+  | Add (Expr a) (Expr a)
+  | Sub (Expr a) (Expr a)
+  | Mul (Expr a) (Expr a)
+  | Div (Expr a) (Expr a)
+  | Min (Expr a) (Expr a)
+  | Max (Expr a) (Expr a)
+  deriving (Show, Functor)
+
+evalExpr :: RealFrac a => Expr a -> a
+evalExpr (Const x) = x
+evalExpr (Abs x)   = abs $ evalExpr x
+evalExpr (Add x y) = evalExpr x  + evalExpr y
+evalExpr (Sub x y) = evalExpr x  - evalExpr y
+evalExpr (Mul x y) = evalExpr x  * evalExpr y
+evalExpr (Div x y) = evalExpr x  / evalExpr y
+evalExpr (Min x y) = evalExpr x  `min` evalExpr y
+evalExpr (Max x y) = evalExpr x  `max` evalExpr y
+
+prettyPrintExpr :: Show a => Expr a -> String
+prettyPrintExpr = go
+  where go (Const x) = show x
+        go (Abs x)   = "|" <> go x <> "|"
+        go (Add x y) = bin " + " x y
+        go (Sub x y) = bin " - " x y
+        go (Mul x y) = bin " * " x y
+        go (Div x y) = bin " / " x y
+        go (Min x y) = bin " `min` " x y
+        go (Max x y) = bin " `max` " x y
+        bin s x y = "(" <> go x <> s <> go y <> ")"
+
+-- instance Show a => Show (Expr a) where
+--   show = prettyPrintExpr
+
+instance Arbitrary a => Arbitrary (Expr a) where
+  arbitrary = resize 6 $ sized expr'
+    where expr' 0 = Const <$> resize maxBound arbitrary
+          expr' n = oneof [Abs <$> expr' (n - 1)
+                          , Add <$> subexpr' <*> subexpr'
+                          , Sub <$> subexpr' <*> subexpr'
+                          , Mul <$> subexpr' <*> subexpr'
+                          -- , Div <$> subexpr' <*> subexpr'
+                          -- , Min <$> subexpr' <*> subexpr'
+                          -- , Max <$> subexpr' <*> subexpr'
+                          ]
+            where subexpr' = expr' (n `div` 2)
+
+prop_eval2ways_same :: Expr Binary32 -> Bool
+prop_eval2ways_same e32 =
+  let
+    -- the "real world" route
+    e64 = float2Double <$> e32
+    v64 = evalExpr e64
+    v32_of_v64 = double2Float v64
+    -- the "perfect world" route
+    er = toRational <$> e32
+    vr = evalExpr er
+    v32_of_vr = IEEE.fromRationalTiesToEven vr
+  in
+    v32_of_v64 == v32_of_vr
 
 
 
