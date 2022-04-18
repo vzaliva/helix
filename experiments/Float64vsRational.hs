@@ -31,10 +31,9 @@ import           Data.Bits.Floating.Ulp
 -- fp-ieee
 import qualified Numeric.Floating.IEEE   as IEEE
 
-
-
-
--- | = AUX
+--------------------------------------------------------------------------------
+-- | = aux
+--------------------------------------------------------------------------------
 
 type Binary32 = Float
 type Binary64 = Double
@@ -48,14 +47,14 @@ showB32bits = binPrintf . float2WordBitwise
 showB64bits :: Binary64 -> String
 showB64bits = binPrintf . double2WordBitwise
 
-
-
--- | (paranoid) SANITY CHECKS
+--------------------------------------------------------------------------------
+-- | = (paranoid) Sanity checks
+--------------------------------------------------------------------------------
 
 floatToRational_correct :: RealFloat a => a -> Bool
-floatToRational_correct b64 =
-  toRational b64 == check
-  where (mantissa, exponent) = decodeFloat b64
+floatToRational_correct f =
+  toRational f == check
+  where (mantissa, exponent) = decodeFloat f
         check = if exponent < 0
                 then mantissa % (2 ^ (- toInteger exponent))
                 else (mantissa * 2 ^ toInteger exponent) % 1
@@ -93,21 +92,20 @@ prop_double2Float_correct :: Binary64 -> Bool
 prop_double2Float_correct b64 =
   double2Float b64 == (IEEE.fromRationalTiesToAway $ toRational b64 :: Binary32)
 
-prop_addIEEE_correct32 :: Binary32 -> Binary32 -> Bool
-prop_addIEEE_correct32 x y = x + y == IEEE.genericAdd x y
+-- | Generic operators on Binary64 are as defined in IEEE-754
+prop_Binary64OpIEEE :: Property
+prop_Binary64OpIEEE =
+       forallPb64   (\(x, y) -> x + y == IEEE.genericAdd x y)
+  .&&. forallPb64   (\(x, y) -> x - y == IEEE.genericSub x y)
+  .&&. forallPb64   (\(x, y) -> x * y == IEEE.genericMul x y)
+  .&&. forallPb64nz (\(x, y) -> x / y == IEEE.genericDiv x y)
+  where b64 = arbitrary :: Gen Binary64
+        forallPb64 = forAll $ liftM2 (,) b64 b64
+        forallPb64nz = forAll $ liftM2 (,) b64 (b64 `suchThat` (/= 0))
 
-prop_addIEEE_correct64 :: Binary64 -> Binary64 -> Bool
-prop_addIEEE_correct64 x y = x + y == IEEE.genericAdd x y
-
-prop_mulIEEE_correct32 :: Binary32 -> Binary32 -> Bool
-prop_mulIEEE_correct32 x y = x * y == IEEE.genericMul x y
-
-prop_mulIEEE_correct64 :: Binary64 -> Binary64 -> Bool
-prop_mulIEEE_correct64 x y = x * y == IEEE.genericMul x y
-
-
-
--- | = PROBLEM STATEMENT
+--------------------------------------------------------------------------------
+-- | = Problem statement
+--------------------------------------------------------------------------------
 
 compute2ways :: (forall a. RealFrac a => [a] -> a) -> [Binary32] -> (Binary32, Binary32)
 compute2ways f x32 =
@@ -127,9 +125,9 @@ compute2ways_same :: (forall a. RealFrac a => [a] -> a) -> [Binary32] -> Bool
 compute2ways_same f x = l == r
   where (l, r) = compute2ways f x
 
-
-
--- | = PROBLEM PARAMETERS
+--------------------------------------------------------------------------------
+-- | = DynWin
+--------------------------------------------------------------------------------
 
 dynWin :: RealFrac a => [a] -> a
 dynWin [a2, a1, a0, v] = (a2 * v * v) + (a1 * v) + a0
@@ -149,9 +147,9 @@ genDynWin = do
 prop_dynwin2ways_same :: Property
 prop_dynwin2ways_same = forAll genDynWin computeDynWin2ways_same
 
-
-
+--------------------------------------------------------------------------------
 -- | = GENERALIZED (random expressions)
+--------------------------------------------------------------------------------
 
 data Expr a =
   Const a
@@ -167,12 +165,12 @@ data Expr a =
 evalExpr :: RealFrac a => Expr a -> a
 evalExpr (Const x) = x
 evalExpr (Abs x)   = abs $ evalExpr x
-evalExpr (Add x y) = evalExpr x  + evalExpr y
-evalExpr (Sub x y) = evalExpr x  - evalExpr y
-evalExpr (Mul x y) = evalExpr x  * evalExpr y
-evalExpr (Div x y) = evalExpr x  / evalExpr y
-evalExpr (Min x y) = evalExpr x  `min` evalExpr y
-evalExpr (Max x y) = evalExpr x  `max` evalExpr y
+evalExpr (Add x y) = evalExpr x + evalExpr y
+evalExpr (Sub x y) = evalExpr x - evalExpr y
+evalExpr (Mul x y) = evalExpr x * evalExpr y
+evalExpr (Div x y) = evalExpr x / evalExpr y
+evalExpr (Min x y) = evalExpr x `min` evalExpr y
+evalExpr (Max x y) = evalExpr x `max` evalExpr y
 
 prettyPrintExpr :: Show a => Expr a -> String
 prettyPrintExpr = go
@@ -196,7 +194,7 @@ instance Arbitrary a => Arbitrary (Expr a) where
                           , Add <$> subexpr' <*> subexpr'
                           , Sub <$> subexpr' <*> subexpr'
                           , Mul <$> subexpr' <*> subexpr'
-                          -- , Div <$> subexpr' <*> subexpr'
+                          , Div <$> subexpr' <*> subexpr'
                           -- , Min <$> subexpr' <*> subexpr'
                           -- , Max <$> subexpr' <*> subexpr'
                           ]
@@ -216,9 +214,9 @@ prop_eval2ways_same e32 =
   in
     v32_of_v64 == v32_of_vr
 
-
-
--- | = TEST
+--------------------------------------------------------------------------------
+-- | = Run
+--------------------------------------------------------------------------------
 
 return []
 runTests = $quickCheckAll
