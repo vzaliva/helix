@@ -136,12 +136,21 @@ dynWin _               = error "Runtime error. This is no Coq."
 computeDynWin2ways_same :: [Binary32] -> Bool
 computeDynWin2ways_same = compute2ways_same dynWin
 
+-- *Counterexample*:
+-- [a2, a1, a0, v] = [8.538427e-2,2.789586,9.182908,15.403517]
 genDynWin :: Gen [Binary32]
 genDynWin = do
-  a0 <- choose (0, 12.15)
-  a1 <- choose (0.01, 20.6)
-  a2 <- choose (0.0833333, 0.5)
-  v <- choose (0, 20)
+  vv <- choose (0, 20) :: Gen Binary32
+  b <- choose (1, 6) :: Gen Binary32
+  aa <- choose (0, 5) :: Gen Binary32
+  e <- choose (0.01, 0.1) :: Gen Binary32
+  let a0 = (aa/b + 1) * ((aa/2)*e*e + e*vv)
+      a1 = vv/b + e*(aa/b + 1)
+      a2 = 1/(2*b)
+  -- a0 <- choose (0, 12.15)
+  -- a1 <- choose (0.01, 20.6)
+  -- a2 <- choose (0.0833333, 0.5)
+  v <- choose (0, 20) :: Gen Binary32
   pure [a2, a1, a0, v]
 
 prop_dynwin2ways_same :: Property
@@ -188,10 +197,10 @@ prettyPrintExpr = go
 --   show = prettyPrintExpr
 
 instance Arbitrary a => Arbitrary (Expr a) where
-  arbitrary = resize 6 $ sized expr'
-    where expr' 0 = Const <$> resize maxBound arbitrary
           expr' n = oneof [Abs <$> expr' (n - 1)
                           , Add <$> subexpr' <*> subexpr'
+  arbitrary = sized expr'
+    where expr' 0 = Const <$> arbitrary
                           , Sub <$> subexpr' <*> subexpr'
                           , Mul <$> subexpr' <*> subexpr'
                           , Div <$> subexpr' <*> subexpr'
