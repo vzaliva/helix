@@ -264,7 +264,7 @@ Proof.
                 | Some (mH,bkH) => 
                 let '(mV, (ρ, g')) := stV in
                 (* 1. Relaxed state invariant *)
-                state_invariant σ s0 mH stV /\
+                state_invariant (protect σ n) s0 mH stV /\
                 (* 2. Preserved state invariant *)
                 memory_invariant_partial_write' stV k n ptrll_xoff bkh_xoff y sz /\
                 mH ≡ memH /\ g ≡ g' /\
@@ -274,7 +274,9 @@ Proof.
     set (P := fun o stV =>
                 match o with
                 | None => False
-                | Some (mH,bkH) => bkH ≡ bkh_xoff /\ state_invariant σ s0 mH stV
+                | Some (mH,bkH) => bkH ≡ bkh_xoff /\ state_invariant (protect σ n) s0 mH stV /\
+                      let '(mV, (p, g')) := stV in
+                          mH ≡ memH /\ g ≡ g' /\ mV ≡ memV /\ ρ ≡ p
                 end).
 
     set (Q := fun o stV =>
@@ -282,10 +284,21 @@ Proof.
                 | None => False
                 | Some (mH,bkH) =>
                   bkH ≡ mem_union (mem_const_block (MInt64asNT.to_nat i) value) bkh_xoff /\
-                  state_invariant σ s0 mH stV
+                    state_invariant σ s0 mH stV /\
+                      let '(mV, (p, g')) := stV in
+                      mH ≡ memH /\ g ≡ g'
                 end).
 
     specialize (LOOP I P Q (Some (memH,bkh_xoff))).
+
+    assert (INV_STABLE :
+             ∀ (k : nat) (a : option (memoryH * mem_block)) (l : alist raw_id uvalue) (mV : memoryV) (g0 : global_env)
+                 (id : local_id) (v0 : uvalue),
+                 lid_bound_between s0 i2 id
+                 → I k a (mV, (l, g0)) → I k a (mV, (alist_add id v0 l, g0))).
+    {
+      admit.
+    }
 
     forward LOOP.
     {
@@ -294,9 +307,7 @@ Proof.
       hred.
 
       rewrite denote_ocfg_unfold_in.
-      2: {
-        apply find_block_eq; auto.
-      }
+      2: apply find_block_eq; auto.
 
       cbn; vred. Transparent IntType. cbn.
 
@@ -307,17 +318,7 @@ Proof.
       (* Get mem information from PRE condition here (global and local state has changed). *)
       (* Needed for the following GEP and Load instructions *)
       destruct INV as (INV_r & INV_p & -> & -> & ?).
-
-      (* Memory invariant for x *)
-      pose proof state_invariant_memory_invariant INV_r as MINV_XOFF.
-      unfold memory_invariant in MINV_XOFF.
-      specialize (MINV_XOFF _ _ _ _ _ Heqo LUn).
-      cbn in MINV_XOFF.
-
-      destruct MINV_XOFF as (ptrll_xoff_l & τ_xoff & TEQ_xoff & FITS_xoff_l & INLG_xoff_l & bkh_xoff_l & MLUP_xoff_l & GETARRAYCELL_xoff_l); eauto.
-
-      rewrite MLUP_xoff_l in H'; symmetry in H'; inv H'.
-      inv TEQ_xoff.
+      apply nth_error_protect_eq' in Heqo; auto.
 
       unfold memory_invariant_partial_write' in INV_p.
       destruct INV_p as (FITS_yoff_l & INLG_YOFF & MINV_YOFF).
@@ -327,7 +328,7 @@ Proof.
       | [|- context[OP_GetElementPtr (DTYPE_Array ?size' ?τ') (_, ?ptr') _]] =>
         edestruct denote_instr_gep_array_no_read with
             (l := li) (g := g0) (m := mV) (i := pt)
-            (size := size') (a := ptrll_xoff_l) (ptr := ptr') as (GEP_addr & Hread & EQ_HG)
+            (size := size') (a := ptrll_xoff) (ptr := ptr') as (GEP_addr & Hread & EQ_HG)
       end.
       { destruct y; rename id into YID.
         - (* y is ID_Global *)
@@ -351,7 +352,7 @@ Proof.
 
         eapply dtyp_fits_array_elem; [ | eauto | ].
         { erewrite <- from_N_intval; eauto. }
-        admit. (* Int bounds *) } 
+        admit. (* Int bounds *) }
 
       vred.
       rewrite denote_instr_store; eauto; cycle 1.
@@ -374,16 +375,33 @@ Proof.
       apply eqit_Ret.
       split; [|split; [|split]]; eauto.
       solve_alist_in.
+
+      (* TODO *)
+      eapply INV_STABLE.
+      solve_lid_bound_between.
       unfold I.
       split; [|split; [|split; [|split]]]; eauto.
 
-      (* Establish the relaxed state invariant with changed states and extended local environment *)
-      { admit. }
+      (* Establish the relaxed state invariant with changed states and extended
+        local environment *)
+      { revert INV_r; intros INV_r.
+        rename H0 into H_write.
+
+        (* The state invariant is preserved by a single write on [H_write] and
+         adding the [GEP_addr] into the local list. *)
+        admit. }
+
 
       (* Partial memory up to (S k) *)
-      { admit. }
+      { unfold memory_invariant_partial_write'.
+        split; [ | split  ].
+        { eapply dtyp_fits_after_write; eauto. }
+        { admit. }
+        { admit. } }
 
       { solve_allocated. }
+
+      { admit. }
     }
 
     forward LOOP.
