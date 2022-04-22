@@ -396,8 +396,33 @@ Proof.
           eapply dtyp_fits_after_write; eauto.
           intros ABS; inv ABS. }
         { (* No *)
+
+          assert (x0 ≢ y). {
+            intro. subst. apply n2.
+            eapply st_no_id_aliasing; eauto.
+          }
+
           destruct v.
-          { (* natVal *) admit. } (* Doesn't overlap *)
+          { (* natVal *)
+            destruct x0.
+            { cbn.
+              destruct mem_is_inv as (?&?&?&?&?).
+              eexists x0, x1; split; [ exact H3 | split; [exact H4 | ]].
+              assert (no_overlap_dtyp GEP_addr DTYPE_Double x0 (typ_to_dtyp [] x1)) as NOALIAS. {
+                (* The dtyp does not overlap! *)
+                unfold no_overlap_dtyp, no_overlap.
+                left.
+
+                rewrite <- (handle_gep_addr_array_same_block _ _ _ _ Hread).
+
+                intros BLOCKS; symmetry in BLOCKS; revert BLOCKS.
+
+                do 2 red in st_no_llvm_ptr_aliasing.
+                eapply st_no_llvm_ptr_aliasing. 5 : exact H2.
+                admit.
+            }
+
+            admit. } (* Doesn't overlap *)
           { (* CTypeVal *) admit. } (* Ditto *)
           { (* PtrVal *)
             clean_goal.
