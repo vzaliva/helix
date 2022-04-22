@@ -291,15 +291,6 @@ Proof.
 
     specialize (LOOP I P Q (Some (memH,bkh_xoff))).
 
-    assert (INV_STABLE :
-             ∀ (k : nat) (a : option (memoryH * mem_block)) (l : alist raw_id uvalue) (mV : memoryV) (g0 : global_env)
-                 (id : local_id) (v0 : uvalue),
-                 lid_bound_between s0 i2 id
-                 → I k a (mV, (l, g0)) → I k a (mV, (alist_add id v0 l, g0))).
-    {
-      admit.
-    }
-
     forward LOOP.
     {
       (* Relating bodies *) clear LOOP.
@@ -376,9 +367,6 @@ Proof.
       split; [|split; [|split]]; eauto.
       solve_alist_in.
 
-      (* TODO *)
-      eapply INV_STABLE.
-      solve_lid_bound_between.
       unfold I.
       split; [|split; [|split; [|split]]]; eauto.
 
@@ -386,11 +374,46 @@ Proof.
         local environment *)
       { revert INV_r; intros INV_r.
         rename H0 into H_write.
+        eapply state_invariant_same_Γ with (s1 := s0);
+          [ eauto | solve_local_count | solve_not_in_gamma | ].
 
         (* The state invariant is preserved by a single write on [H_write] and
          adding the [GEP_addr] into the local list. *)
-        admit. }
+        destruct INV_r.
+        constructor; eauto.
+        repeat intro.
 
+        specialize (mem_is_inv _ _ _ _ _ H0 H1).
+
+        (* Is it written to? *)
+        destruct (Nat.eq_dec n1 n) eqn : IS_IT_THE_WRITTEN_ADDRESS ; subst.
+        { (* Yes *)
+          rewrite Heqo in H0; inv H0.
+          rewrite LUn in H1; inv H1.
+          edestruct mem_is_inv as (? & ? & ? & ? & ? & ?); clear mem_is_inv.
+
+          eexists _,_. repeat (split; eauto).
+          eapply dtyp_fits_after_write; eauto.
+          intros ABS; inv ABS. }
+        { (* No *)
+          destruct v.
+          { (* natVal *) admit. } (* Doesn't overlap *)
+          { (* CTypeVal *) admit. } (* Ditto *)
+          { (* PtrVal *)
+            clean_goal.
+            edestruct mem_is_inv as (? & ? & ? & ? & ? & ?); clear mem_is_inv.
+            eexists _,_; repeat (split; eauto).
+            eapply dtyp_fits_after_write; eauto.
+
+            (* no write on pointer *)
+            intros Hb; specialize (H5 Hb); destruct H5 as (?&?&?).
+            exists x3; split; eauto.
+            intros i0 v Hmem; specialize (H6 i0 v Hmem).
+            setoid_rewrite write_untouched_ptr_block_get_array_cell; eauto.
+
+            admit.
+          }
+        }
 
       (* Partial memory up to (S k) *)
       { unfold memory_invariant_partial_write'.
