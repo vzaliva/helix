@@ -128,6 +128,42 @@ Definition memory_invariant_partial_write' (configV : config_cfg) (index loopsiz
                   (mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v0
                     → get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0))).
 
+(* TODO: Move to [Correctness_Invariants] *)
+Lemma state_invariant_cons :
+  forall a x s' s σ mH mV l g,
+    s <<= s' ->
+    x :: Γ s' ≡ Γ s ->
+    state_invariant (a :: σ) s mH (mV, (l, g)) ->
+    state_invariant σ s' mH (mV, (l, g)).
+Proof.
+  intros * LT GAM INV.
+  destruct INV.
+  unfold memory_invariant, WF_IRState, no_id_aliasing, no_dshptr_aliasing, no_llvm_ptr_aliasing, id_allocated in *.
+  rewrite <- GAM in *.
+  cbn in *.
+  split; eauto; red; repeat intro.
+  - intros. specialize (mem_is_inv (S n)).
+    cbn in *.
+    specialize (mem_is_inv _ _ _ _ H H0). destruct v; eauto.
+  - red in IRState_is_WF. specialize (IRState_is_WF v (S n)).
+    cbn in *. eauto.
+  - assert ((S n2) ≡ (S n1) -> n2 ≡ n1) by lia. apply H3.
+    eapply st_no_id_aliasing; eauto.
+  - assert ((S n') ≡ (S n) -> n' ≡ n) by lia. apply H1.
+    eapply st_no_dshptr_aliasing; eauto.
+  - red in st_no_llvm_ptr_aliasing.
+    specialize (st_no_llvm_ptr_aliasing id1 ptrv1 id2 ptrv2 (S n1) (S n2)).
+    cbn in *. rewrite <- GAM in *. revert H6. eapply st_no_llvm_ptr_aliasing;eauto.
+  - specialize (st_id_allocated (S n)). cbn in *. eauto.
+  - unfold gamma_bound in st_gamma_bound.
+    eapply state_bound_mono.
+    eapply st_gamma_bound.
+    2: solve_local_count.
+    rewrite <- GAM.
+    rewrite nth_error_Sn.
+    eauto.
+Qed.
+
 Lemma MemInit_Correct:
   ∀ (y_p : PExpr) (value : binary64) (s1 s2 : IRState) (σ : evalContext) 
     (memH : memoryH) (nextblock bid_in bid_from : block_id) (bks : list (LLVMAst.block typ)) 
@@ -396,7 +432,10 @@ Proof.
           eapply dtyp_fits_after_write; eauto.
           intros ABS; inv ABS. }
         { (* No *)
-
+          revert LUn Heqo. intros.
+          rename
+            H0 into Heqo',
+            H1 into LUn'.
           assert (x0 ≢ y). {
             intro. subst. apply n2.
             eapply st_no_id_aliasing; eauto.
@@ -404,26 +443,35 @@ Proof.
 
           destruct v.
           { (* natVal *)
-            destruct x0.
-            { cbn.
-              destruct mem_is_inv as (?&?&?&?&?).
-              eexists x0, x1; split; [ exact H3 | split; [exact H4 | ]].
-              assert (no_overlap_dtyp GEP_addr DTYPE_Double x0 (typ_to_dtyp [] x1)) as NOALIAS. {
-                (* The dtyp does not overlap! *)
-                unfold no_overlap_dtyp, no_overlap.
-                left.
+            destruct x0; eauto.
+            cbn; destruct mem_is_inv as (?&?&?&?&?).
+            eexists x0, x1; split; [ eauto | split; [ eauto | ]].
+            assert (no_overlap_dtyp GEP_addr DTYPE_Double x0 (typ_to_dtyp [] x1)) as NOALIAS. {
+              (* The dtyp does not overlap! *)
+              unfold no_overlap_dtyp, no_overlap.
+              left. rewrite <- (handle_gep_addr_array_same_block _ _ _ _ Hread).
 
-                rewrite <- (handle_gep_addr_array_same_block _ _ _ _ Hread).
+              intros BLOCKS; symmetry in BLOCKS; revert BLOCKS.
 
-                intros BLOCKS; symmetry in BLOCKS; revert BLOCKS.
+              do 2 red in st_no_llvm_ptr_aliasing.
+              eapply st_no_llvm_ptr_aliasing. 5 : exact H0. 5,6: eauto. 3: eauto.
+              all : eauto. }
+            erewrite write_untouched; eauto. constructor. }
+          { (* CTypeVal *)
+            destruct x0; eauto.
+            cbn; destruct mem_is_inv as (?&?&?&?&?).
+            eexists x0, x1; split; [ eauto | split; [ eauto | ]].
+            assert (no_overlap_dtyp GEP_addr DTYPE_Double x0 (typ_to_dtyp [] x1)) as NOALIAS. {
+              (* The dtyp does not overlap! *)
+              unfold no_overlap_dtyp, no_overlap.
+              left. rewrite <- (handle_gep_addr_array_same_block _ _ _ _ Hread).
 
-                do 2 red in st_no_llvm_ptr_aliasing.
-                eapply st_no_llvm_ptr_aliasing. 5 : exact H2.
-                admit.
-            }
+              intros BLOCKS; symmetry in BLOCKS; revert BLOCKS.
 
-            admit. } (* Doesn't overlap *)
-          { (* CTypeVal *) admit. } (* Ditto *)
+              do 2 red in st_no_llvm_ptr_aliasing.
+              eapply st_no_llvm_ptr_aliasing. 5 : exact H0. 5,6: eauto. 3: eauto.
+              all : eauto. }
+            erewrite write_untouched; eauto. constructor. }
           { (* PtrVal *)
             clean_goal.
             edestruct mem_is_inv as (? & ? & ? & ? & ? & ?); clear mem_is_inv.
@@ -431,11 +479,12 @@ Proof.
             eapply dtyp_fits_after_write; eauto.
 
             (* no write on pointer *)
-            intros Hb; specialize (H5 Hb); destruct H5 as (?&?&?).
-            exists x3; split; eauto.
-            intros i0 v Hmem; specialize (H6 i0 v Hmem).
-            setoid_rewrite write_untouched_ptr_block_get_array_cell; eauto.
+            eexists.
 
+            (* intros Hb; specialize (H5 Hb); destruct H5 as (?&?&?). *)
+            (* exists x3; split; eauto. *)
+            (* intros i0 v Hmem; specialize (H6 i0 v Hmem). *)
+            (* setoid_rewrite write_untouched_ptr_block_get_array_cell; eauto. *)
             admit.
           }
         }
