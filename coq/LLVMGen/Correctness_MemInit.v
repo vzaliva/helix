@@ -79,7 +79,6 @@ Proof.
     apply mem_union_mem_add_commut.
 Qed.
 
-
 Lemma mem_union_tfor_interp i value x memH:
   eutt equiv
        (interp_helix (E := E_cfg) (Ret (mem_union (mem_const_block i value) x)) memH)
@@ -119,9 +118,6 @@ Opaque incVoid.
 Opaque incLocal.
 Opaque genWhileLoop.
 
-From Paco Require Import paco.
-From ITree Require Import Basics.HeterogeneousRelations.
-
 Definition memory_invariant_partial_write' (configV : config_cfg) (index loopsize : nat) (ptr_llvm : addr)
             (bk_helix : mem_block) (x : ident) sz : Prop :=
     let '(mem_llvm, (ρ, g)) := configV in
@@ -154,19 +150,12 @@ Proof.
 
   (* Clean up PVars *)
   cbn* in *; simp; cbn* in *.
-  (* hide_cfg. *)
   inv_resolve_PVar Heqs0.
   unfold denotePExpr in *; cbn* in *.
 
   (* Renaming *)
-  rename i1 into tptyp.
-
-  rename r into pt.
-  rename b into init_block_id.
-  rename b0 into loopcontblock.
-  rename r0 into loopvar.
-  rename i7 into storeid.
-
+  rename i1 into tptyp, r into pt, b into init_block_id, b0 into loopcontblock,
+    r0 into loopvar, i7 into storeid.
 
   simp; try_abs.
 
@@ -245,13 +234,15 @@ Proof.
       intros IN; rewrite inputs_convert_typ, add_comment_inputs in INPUTS_BETWEEN.
       rewrite Forall_forall in INPUTS_BETWEEN; apply INPUTS_BETWEEN in IN; clear INPUTS_BETWEEN.
       eapply not_bid_bound_between; eauto. }
-    specialize (LOOP (Z.to_nat (DynamicValues.Int64.intval tptyp))).
+    specialize (LOOP n).
 
-    forward LOOP; [clear LOOP |].
+    rename Heqs1 into WHILE.
+    assert (EQ: Int64.intval tptyp ≡ Z.of_nat n). { admit. (* int bounds *) }
+    rewrite EQ in WHILE.
+
+   forward LOOP; [clear LOOP |].
     { subst body_blocks prefix.
-      clear - Heqs1.
-      rewrite intval_to_from_nat_id.
-      apply Heqs1. }
+      rewrite EQ. exact WHILE. }
 
     eapply eutt_Proper_mono; cycle 1.
     eapply eqit_trans.
@@ -262,31 +253,28 @@ Proof.
         specialize (LOOP _ bod)
       end.
 
-      forward LOOP; [clear LOOP |].
-      { rewrite Znat.Z2Nat.id.  edestruct DynamicValues.Int64.intrange; eauto.
-        eapply Int64_intval_pos. }
+    forward LOOP; [clear LOOP |].
+    { admit. (* int bounds *) }
 
-      rename i0 into y.
-    (* FIXME : loop invariant with partial write information *)
+    rename i0 into y.
+
     set (I := (fun (k : nat) (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
                 match mH with
                 | None => False
                 | Some (mH,bkH) => 
                 let '(mV, (ρ, g')) := stV in
-                 (* 1. Relaxed state invariant *)
-                 state_invariant (protect σ n0) s0 mH stV /\
-                 (* (* 2. Preserved state invariant *) *)
-                 memory_invariant_partial_write' stV k n ptrll_xoff bkh_xoff y sz /\
-                 mH ≡ memH /\ g ≡ g' /\
-                 allocated ptrll_xoff mV
+                (* 1. Relaxed state invariant *)
+                state_invariant σ s0 mH stV /\
+                (* 2. Preserved state invariant *)
+                memory_invariant_partial_write' stV k n ptrll_xoff bkh_xoff y sz /\
+                mH ≡ memH /\ g ≡ g' /\
+                allocated ptrll_xoff mV
                 end)).
 
     set (P := fun o stV =>
                 match o with
                 | None => False
-                | Some (mH,bkH) =>
-                  bkH ≡ mem_union (mem_const_block 0 value) bkh_xoff /\
-                  state_invariant σ s0 mH stV
+                | Some (mH,bkH) => bkH ≡ bkh_xoff /\ state_invariant σ s0 mH stV
                 end).
 
     set (Q := fun o stV =>
@@ -320,10 +308,6 @@ Proof.
       (* Needed for the following GEP and Load instructions *)
       destruct INV as (INV_r & INV_p & -> & -> & ?).
 
-      assert (Heqo' := Heqo).
-
-      erewrite <- nth_error_protect_neq with (n2 := n0) in Heqo; auto.
-
       (* Memory invariant for x *)
       pose proof state_invariant_memory_invariant INV_r as MINV_XOFF.
       unfold memory_invariant in MINV_XOFF.
@@ -334,98 +318,80 @@ Proof.
 
       rewrite MLUP_xoff_l in H'; symmetry in H'; inv H'.
       inv TEQ_xoff.
-      2 : admit.
 
       unfold memory_invariant_partial_write' in INV_p.
       destruct INV_p as (FITS_yoff_l & INLG_YOFF & MINV_YOFF).
 
-
       (* [Vellvm] GEP Instruction for [x] *)
       match goal with
       | [|- context[OP_GetElementPtr (DTYPE_Array ?size' ?τ') (_, ?ptr') _]] =>
-        edestruct denote_instr_gep_array' with
+        edestruct denote_instr_gep_array_no_read with
             (l := li) (g := g0) (m := mV) (i := pt)
-            (size := size') (a := ptrll_xoff_l) (ptr := ptr') as (GEP_addr & Hread & HGEP & EQ_HG)
+            (size := size') (a := ptrll_xoff_l) (ptr := ptr') as (GEP_addr & Hread & EQ_HG)
       end.
-
-      destruct y;
-      rename id into YID.
-      rewrite denote_exp_GR. 2 : eauto.
-      cbn. subst. reflexivity.
-      2 : {
-        rewrite denote_exp_LR. 2 : eauto.
-        cbn.
-        unfold uvalue_of_nat. reflexivity.
-      }
-
+      { destruct y; rename id into YID.
+        - (* y is ID_Global *)
+          rewrite denote_exp_GR; [ | eauto ].
+          cbn. subst. reflexivity.
+        - (* y is ID_Local *)
+          rewrite denote_exp_LR; [ | eauto ].
+          cbn. subst. reflexivity. }
       { rewrite denote_exp_LR. reflexivity. eauto. }
-      {
-        assert (GET := GETARRAYCELL_xoff).
+      { typ_to_dtyp_simplify.
+        erewrite <- from_N_intval; eauto. }
 
-          specialize (GET (Int64.repr (Z.of_nat k))).
-          (* pose proof EQk. *)
-          (* apply to_nat_repr_nat in EQk. rewrite <- EQk. *)
-          (* eapply GETARRAYCELL_xoff_l. *)
-          (* rewrite to_nat_repr_nat. eauto. auto. *)
-          admit.
-      }
-
-      (* reduce GEP *)
+      (* [Vellvm] Reduce GEP *)
       vred.
       setoid_rewrite EQ_HG; clear EQ_HG.
       vred. vred.
 
-      (* STORE *)
+      (* [Vellvm] STORE instruction : initialize with default value for [GEP_Addr] *)
       edestruct write_succeeds with (m1 := mV) (a := GEP_addr); [eapply DVALUE_Double_typ |..].
       { typ_to_dtyp_simplify.
 
-        eapply dtyp_fits_array_elem.
-        2 : eauto. admit.
+        eapply dtyp_fits_array_elem; [ | eauto | ].
+        { erewrite <- from_N_intval; eauto. }
+        admit. (* Int bounds *) } 
 
+      vred.
+      rewrite denote_instr_store; eauto; cycle 1.
+      { rewrite denote_exp_double; reflexivity. }
+      { eapply denote_exp_LR.
+        solve_alist_in. }
+      { constructor. }
 
-        rewrite Znat.Z2N.id; [|apply Int64_intval_pos].
-        rewrite !Int64.unsigned_repr_eq.
-        rewrite Zdiv.Zmod_small; try lia. admit. }
+      vred.
+      rewrite denote_term_br_1.
+      vred.
 
+      cbn.
+      (* Not in body any more *)
+      rewrite denote_ocfg_unfold_not_in.
+      vred.
+      2: { rewrite find_block_ineq; eauto. cbn. solve_id_neq. }
 
-        vred.
-        rewrite denote_instr_store; eauto; [ | admit | admit | admit].
+      (* Re-establish INV in post condition *)
+      apply eqit_Ret.
+      split; [|split; [|split]]; eauto.
+      solve_alist_in.
+      unfold I.
+      split; [|split; [|split; [|split]]]; eauto.
 
-        vred.
-        rewrite denote_term_br_1.
-        vred.
+      (* Establish the relaxed state invariant with changed states and extended local environment *)
+      { admit. }
 
-        cbn.
-        (* Not in body any more *)
-        rewrite denote_ocfg_unfold_not_in.
-        vred.
-        2: { rewrite find_block_ineq; eauto. cbn. solve_id_neq. }
+      (* Partial memory up to (S k) *)
+      { admit. }
 
-        (* Re-establish INV in post condition *)
-        apply eqit_Ret.
-        split; [|split; [|split]]; eauto.
-        unfold I.
-        split; [|split; [|split; [|split]]]; eauto.
-
-        (* Establish the relaxed state invariant with changed states and extended local environment *)
-        { admit. }
-
-        (* Partial memory up to (S k) *)
-        { admit. }
-
-        solve_allocated.
+      { solve_allocated. }
     }
 
     forward LOOP.
     {
       (* Local stability of I *) clear LOOP.
       intros. unfold I in *; destruct a; eauto.
-      destruct p; eauto. destruct H1. split; eauto.
-      destruct H0.
-      - eapply state_invariant_add_fresh'; eauto.
-        admit.
-      - eapply state_invariant_add_fresh'; eauto.
-        admit.
+      destruct p; eauto. destruct H0. split; eauto.
+      admit. admit.
     }
 
     forward LOOP; [solve_local_count|].
@@ -434,23 +400,18 @@ Proof.
     forward LOOP; [clear LOOP |].
     {
       subst P I.
-      clear; red; intros; auto.
+      clear; red; intros; auto. admit.
     }
 
     forward LOOP; [clear LOOP |].
     {
       subst Q I.
       clear; red; intros.
-      break_match_goal; auto. destruct p, H.
-      split; eauto. admit.
+      break_match_goal; auto.
+      admit.
     }
 
-    eapply eutt_mon; cycle 1.
-    { admit.
-      (* apply LOOP. *)
-      (* subst P; cbn; split; auto using mem_union_mem_empty. *)
-      (* solve_state_invariant. *)
-    }
+    eapply eutt_mon; cycle 1; [ admit | ].
 
     { subst Q. intros [[? ?] | ] (? & ? & ? & ?) ?; cbn; eauto. } }
     { admit. } }
@@ -479,5 +440,4 @@ Proof.
       * rewrite memory_lookup_memory_set_neq; [| apply NPeano.Nat.eqb_neq in EQ; auto].
         do 2 eexists ; eauto.
     + eapply id_allocated_memory_set; eauto.
-
 Admitted.
