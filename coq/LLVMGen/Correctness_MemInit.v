@@ -543,7 +543,22 @@ Proof.
 
     forward LOOP; [clear LOOP|]; eauto.
     {
-      (* Local stability of I *) admit.
+      subst I.
+      intros * Hl INV; eauto. cbn in *.
+      destruct a; eauto.
+      destruct p.
+      destruct INV as (?&?&?&?&?).
+      destruct H0 as (?&?&?).
+
+      split; eauto.
+      2 : repeat (split; eauto).
+      - eapply state_invariant_same_Γ; eauto.
+        admit.
+      - destruct y.
+        + eapply in_local_or_global_addr_same_global; eauto.
+        + cbn; intros. repeat red in H4.
+          setoid_rewrite alist_find_neq; eauto.
+          admit. (* not in alist *)
     }
 
     forward LOOP; [solve_local_count|].
@@ -566,10 +581,15 @@ Proof.
 
     forward LOOP; [clear LOOP |].
     {
+      (* (I i -> Q) *)
       subst Q I.
       clear; red; intros.
       break_match_goal; auto.
-      admit.
+      destruct p. inv Heqo. destruct b, p.
+      destruct H as (?&?&?&?&?). split; eauto.
+      2 : split; [ | repeat (split; eauto)].
+      destruct H0 as (?&?&?).
+      admit. admit.
     }
 
     eapply LOOP.
@@ -578,9 +598,9 @@ Proof.
       cbn. split; [|split]; eauto.
       apply state_invariant_protect.
       eapply state_invariant_Γ. eauto.
-      solve_gamma. solve_local_count.
+      solve_gamma. solve_local_count. }
     }
-    }
+
 
     red. intros [[? ?] | ] (? & ? & ? & ?); [| cbn in *; intuition].
     2 : { destruct H. inv REL1. inv REL2. inv H0. auto. }
@@ -589,7 +609,8 @@ Proof.
     repeat red.
     split; [| split]; cbn; eauto.
     - destruct b; eauto. destruct H1 as (? & ? & ? & ?); subst.
-      admit. 
+      cbn in *. inv H0. cbn in *. (*Properness lemma*)
+      admit.
     - destruct H; eauto.
     - solve_local_scope_modif.
   }
@@ -619,7 +640,7 @@ Proof.
       split; [reflexivity |].
       do 2 (split; eauto).  intros.
       specialize (H4 H). destruct H4 as (?&?&?). exists x2; eauto.
-      rewrite memory_lookup_memory_set_eq; eexists. admit.
+      rewrite memory_lookup_memory_set_eq; eexists. f_equiv. admit.
       intros; eapply H5; eauto.
     * rewrite memory_lookup_memory_set_neq; [| apply NPeano.Nat.eqb_neq in EQ; auto].
       do 2 eexists ; eauto.
