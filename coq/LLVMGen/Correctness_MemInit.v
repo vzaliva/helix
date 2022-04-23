@@ -479,15 +479,25 @@ Proof.
             eapply dtyp_fits_after_write; eauto.
 
             (* no write on pointer *)
-            eexists.
+            intros. specialize (H4 H5).
 
-            (* intros Hb; specialize (H5 Hb); destruct H5 as (?&?&?). *)
-            (* exists x3; split; eauto. *)
-            (* intros i0 v Hmem; specialize (H6 i0 v Hmem). *)
-            (* setoid_rewrite write_untouched_ptr_block_get_array_cell; eauto. *)
-            admit.
+            destruct H4 as (?&?&?). eexists. split; eauto.
+            intros. specialize (H6 _ _ H7).
+            erewrite write_untouched_ptr_block_get_array_cell.
+            2: eauto. 2 : eauto.
+
+            eauto.
+
+            assert (fst ptrll_xoff ≡ fst GEP_addr). {
+              revert Hread; intros.
+              unfold handle_gep_addr in Hread.
+              destruct ptrll_xoff. cbn in Hread. inv Hread. cbn. auto.
+            }
+
+            rewrite <- H8; eauto.
           }
         }
+      }
 
       (* Partial memory up to (S k) *)
       { unfold memory_invariant_partial_write'.
