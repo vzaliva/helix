@@ -270,15 +270,15 @@ Proof.
       intros IN; rewrite inputs_convert_typ, add_comment_inputs in INPUTS_BETWEEN.
       rewrite Forall_forall in INPUTS_BETWEEN; apply INPUTS_BETWEEN in IN; clear INPUTS_BETWEEN.
       eapply not_bid_bound_between; eauto. }
-    specialize (LOOP n).
+    specialize (LOOP (MInt64asNT.to_nat i)).
 
     rename Heqs1 into WHILE.
-    assert (EQ: Int64.intval tptyp ≡ Z.of_nat n). { admit. (* int bounds *) }
-    rewrite EQ in WHILE.
+    assert (EQ: Int64.intval tptyp ≡ Z.of_nat (MInt64asNT.to_nat i)). { admit. (* int bounds *) }
 
    forward LOOP; [clear LOOP |].
     { subst body_blocks prefix.
-      rewrite EQ. exact WHILE. }
+      rewrite <- EQ.
+      exact WHILE. }
 
     eapply eutt_Proper_mono; cycle 1.
     eapply eqit_trans.
@@ -302,7 +302,7 @@ Proof.
                 (* 1. Relaxed state invariant *)
                 state_invariant (protect σ n) s0 mH stV /\
                 (* 2. Preserved state invariant *)
-                memory_invariant_partial_write' stV k n ptrll_xoff bkh_xoff y sz /\
+                memory_invariant_partial_write' stV k n ptrll_xoff bkH y sz /\
                 mH ≡ memH /\ g ≡ g' /\
                 allocated ptrll_xoff mV
                 end)).
@@ -503,20 +503,47 @@ Proof.
       { unfold memory_invariant_partial_write'.
         split; [ | split  ].
         { eapply dtyp_fits_after_write; eauto. }
-        { admit. }
-        { admit. } }
+        { destruct y.
+          - eapply in_local_or_global_addr_same_global; eauto.
+          - cbn; intros; eauto. solve_alist_in. }
+        { intros * Bounds_sz MLU_i0.
+          revert MINV_YOFF; intros.
+
+          (* Written index? *)
+          destruct (Nat.eq_dec (MInt64asNT.to_nat i0) k) eqn: IS_IT_THE_WRITTEN_ADDRESS.
+          { (*Yes*)
+            subst.
+            rewrite mem_lookup_mem_add_eq in MLU_i0. inv MLU_i0.
+            erewrite <- read_array.
+            pose proof @write_read as WR.
+            assert (is_supported DTYPE_Double). constructor.
+            specialize (WR _ _ DTYPE_Double  _ _ H1 H0).
+            cbn in WR. eapply WR. constructor. solve_allocated.
+            eauto. }
+          { (*No*)
+            (* This wasn't written to, and is covered by the partial memory
+              invariant up to this point. *)
+              specialize (MINV_YOFF i0 v0).
+              erewrite write_array_cell_untouched.
+              + eapply MINV_YOFF; [eauto|].
+                destruct Bounds_sz.
+                rewrite mem_lookup_mem_add_neq in MLU_i0; try lia; eauto.
+                eauto.
+                rewrite mem_lookup_mem_add_neq in MLU_i0; try lia; eauto.
+              + erewrite <- write_array_lemma. eauto. solve_allocated. eauto.
+              + constructor.
+              + admit. (*Int bounds*)
+          }
+          } }
 
       { solve_allocated. }
 
-      { admit. }
+      { (* local_scope_modif *) admit. }
     }
 
-    forward LOOP.
+    forward LOOP; [clear LOOP|]; eauto.
     {
-      (* Local stability of I *) clear LOOP.
-      intros. unfold I in *; destruct a; eauto.
-      destruct p; eauto. destruct H0. split; eauto.
-      admit. admit.
+      (* Local stability of I *) admit.
     }
 
     forward LOOP; [solve_local_count|].
@@ -524,8 +551,17 @@ Proof.
 
     forward LOOP; [clear LOOP |].
     {
-      subst P I.
-      clear; red; intros; auto. admit.
+      subst I P; red; intros; auto. destruct a; eauto.
+      destruct p; eauto. destruct b; eauto. destruct p; eauto.
+      intuition. subst.
+      destruct H.
+      cbn.
+      unfold memory_invariant in mem_is_inv.
+      apply nth_error_protect_eq' in Heqo.
+      specialize (mem_is_inv _ _ _ _ _ Heqo LUn).
+      cbn in mem_is_inv.
+      edestruct mem_is_inv as (?  & ? & ? & ? & ? & ?). inv H.
+      split; eauto. eauto. subst. solve_allocated.
     }
 
     forward LOOP; [clear LOOP |].
@@ -536,33 +572,56 @@ Proof.
       admit.
     }
 
-    eapply eutt_mon; cycle 1; [ admit | ].
+    eapply LOOP.
+    {
+      subst P I. clear LOOP.
+      cbn. split; [|split]; eauto.
+      apply state_invariant_protect.
+      eapply state_invariant_Γ. eauto.
+      solve_gamma. solve_local_count.
+    }
+    }
 
-    { subst Q. intros [[? ?] | ] (? & ? & ? & ?) ?; cbn; eauto. } }
-    { admit. } }
+    red. intros [[? ?] | ] (? & ? & ? & ?); [| cbn in *; intuition].
+    2 : { destruct H. inv REL1. inv REL2. inv H0. auto. }
+    intros [? ? ?]; eauto. inv REL1.
+    destruct REL2 as (?&?&?).
+    repeat red.
+    split; [| split]; cbn; eauto.
+    - destruct b; eauto. destruct H1 as (? & ? & ? & ?); subst.
+      admit. 
+    - destruct H; eauto.
+    - solve_local_scope_modif.
+  }
 
-  - intros [[? ?] | ] (? & ? & ? & ?); [| cbn in *; intuition].
-    intros (H1 & H2 & H3); cbn in *; eauto.
-    rewrite interp_helix_MemSet.
-    apply eutt_Ret.
-    split; [| split]; cbn; auto.
-    (* Need to transport information about what has been written on the Vellvm side during the loop *)
-    clear - H1.
-    destruct H1; split; auto.
-    + Opaque memory_set.
-      cbn; intros * LU1 LU2.
-      eapply mem_is_inv in LU2; eauto.
-      destruct v; auto.
-      destruct LU2 as (? & ? & ? & ? & ? & ?).
-      destruct (n0 =? a) eqn:EQ.
-      * apply beq_nat_true in EQ; subst.
-        do 2 eexists.
-        split; [reflexivity |].
-        do 2 (split; eauto).  intros.
-        specialize (H2 H). destruct H2 as (?&?&?). exists x2; eauto.
-        rewrite memory_lookup_memory_set_eq; eexists. admit.
-        intros; eapply H3; eauto.
-      * rewrite memory_lookup_memory_set_neq; [| apply NPeano.Nat.eqb_neq in EQ; auto].
-        do 2 eexists ; eauto.
-    + eapply id_allocated_memory_set; eauto.
+  intros. destruct u1; cycle 1.
+  { apply eutt_Ret; eauto. }
+  destruct p.
+  setoid_rewrite interp_helix_MemSet.
+  destruct H as (H1 & H2 & H3).
+
+  apply eutt_Ret.
+  split; [| split]; cbn; auto.
+
+  destruct u2, p, p. destruct H1.
+
+  split; eauto.
+
+  (* Need to transport information about what has been written on the Vellvm side during the loop *)
+  - Opaque memory_set.
+    cbn; intros * LU1 LU2.
+    eapply mem_is_inv in LU2; eauto.
+    destruct v; auto.
+    destruct LU2 as (? & ? & ? & ? & ? & ?).
+    destruct (n0 =? a) eqn:EQ.
+    * apply beq_nat_true in EQ; subst.
+      do 2 eexists.
+      split; [reflexivity |].
+      do 2 (split; eauto).  intros.
+      specialize (H4 H). destruct H4 as (?&?&?). exists x2; eauto.
+      rewrite memory_lookup_memory_set_eq; eexists. admit.
+      intros; eapply H5; eauto.
+    * rewrite memory_lookup_memory_set_neq; [| apply NPeano.Nat.eqb_neq in EQ; auto].
+      do 2 eexists ; eauto.
+  - eapply id_allocated_memory_set; eauto.
 Admitted.
