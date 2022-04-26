@@ -47,6 +47,16 @@ showB32bits = binPrintf . float2WordBitwise
 showB64bits :: Binary64 -> String
 showB64bits = binPrintf . double2WordBitwise
 
+-- | @likelyReprAsSub32 c == (a, b)@ -> a - b ~= c
+likelyReprAsSub32 :: Binary64 -> (Binary32, Binary32)
+likelyReprAsSub32 b64 = (big, small)
+    where big = double2Float b64
+          small = fromRational $ toRational big - toRational b64 :: Binary32
+
+-- | @fits64in32 b64@ <-> "shrinking" b64 to Binary32 does not round it
+fits64in32 :: Binary64 -> Bool
+fits64in32 b64 = toRational b64 == toRational (double2Float b64)
+
 --------------------------------------------------------------------------------
 -- | = (paranoid) Sanity checks
 --------------------------------------------------------------------------------
@@ -107,7 +117,7 @@ prop_Binary64OpIEEE =
 -- | = Problem statement
 --------------------------------------------------------------------------------
 
-compute2ways :: (forall a. RealFrac a => [a] -> a) -> [Binary32] -> (Binary32, Binary32)
+compute2ways :: Functor f => (forall a. RealFrac a => f a -> a) -> f Binary32 -> (Binary32, Binary32)
 compute2ways f x32 =
   let
     -- the "real world" route
@@ -121,7 +131,7 @@ compute2ways f x32 =
   in
     (y32_of_y64, y32_of_yr)
 
-compute2ways_same :: (forall a. RealFrac a => [a] -> a) -> [Binary32] -> Bool
+compute2ways_same :: Functor f => (forall a. RealFrac a => f a -> a) -> f Binary32 -> Bool
 compute2ways_same f x = l == r
   where (l, r) = compute2ways f x
 
@@ -129,17 +139,30 @@ compute2ways_same f x = l == r
 -- | = DynWin
 --------------------------------------------------------------------------------
 
-dynWin :: RealFrac a => [a] -> a
-dynWin [a2, a1, a0, v] = (a2 * v * v) + (a1 * v) + a0
-dynWin _               = error "Runtime error. This is no Coq."
-
-computeDynWin2ways_same :: [Binary32] -> Bool
-computeDynWin2ways_same = compute2ways_same dynWin
-
--- *Counterexample*:
+-- Counterexample for polynomial correctness:
 -- [a2, a1, a0, v] = [8.538427e-2,2.789586,9.182908,15.403517]
-genDynWin :: Gen [Binary32]
-genDynWin = do
+dynWinPoly :: RealFrac a => [a] -> a
+dynWinPoly [a2, a1, a0, v] = (a2 * v * v) + (a1 * v) + a0
+dynWinPoly _               = error "Runtime error. This is no Coq."
+
+dynWinCheb :: RealFrac a => [a] -> a
+dynWinCheb [rx, ry, ox, oy] = max (abs $ rx - ox) (abs $ ry - oy)
+dynWinCheb _               = error "Runtime error. This is no Coq."
+
+fullDynWin :: RealFrac a => [a] -> a
+fullDynWin [a2, a1, a0, v, rx, ry, ox, oy] =
+  if p < cheb
+  then fromInteger 0
+  else fromInteger 1
+  where p = dynWinPoly [a2, a1, a0, v]
+        cheb = dynWinCheb [rx, ry, ox, oy]
+fullDynWin _               = error "Runtime error. This is no Coq."
+
+genDynWinPoly :: Gen [Binary32]
+genDynWinPoly = do
+  -- a0 <- choose (0, 12.15) :: Gen Binary32
+  -- a1 <- choose (0.01, 20.6) :: Gen Binary32
+  -- a2 <- choose (0.0833333, 0.5) :: Gen Binary32
   vv <- choose (0, 20) :: Gen Binary32
   b <- choose (1, 6) :: Gen Binary32
   aa <- choose (0, 5) :: Gen Binary32
@@ -147,14 +170,23 @@ genDynWin = do
   let a0 = (aa/b + 1) * ((aa/2)*e*e + e*vv)
       a1 = vv/b + e*(aa/b + 1)
       a2 = 1/(2*b)
-  -- a0 <- choose (0, 12.15)
-  -- a1 <- choose (0.01, 20.6)
-  -- a2 <- choose (0.0833333, 0.5)
   v <- choose (0, 20) :: Gen Binary32
   pure [a2, a1, a0, v]
 
+fullGenDynWin :: Gen [Binary32]
+fullGenDynWin = do
+  poly <- genDynWinPoly
+  let coord_gen = choose (-5000, 5000)
+  (rx, ry) <- liftM2 (,) coord_gen coord_gen
+  (ox, oy) <- liftM2 (,) coord_gen coord_gen
+  --- Try this instead for some counterexamples
+  -- let (rx, ox) = likelyReprAsSub32 (dynWinPoly $ float2Double <$> poly)
+  --     ry = fromIntegral 42
+  --     oy = ry
+  pure $ poly ++ [rx, ry, ox, oy]
+
 prop_dynwin2ways_same :: Property
-prop_dynwin2ways_same = forAll genDynWin computeDynWin2ways_same
+prop_dynwin2ways_same = forAll fullGenDynWin (compute2ways_same fullDynWin)
 
 --------------------------------------------------------------------------------
 -- | = GENERALIZED (random expressions)
@@ -193,14 +225,15 @@ prettyPrintExpr = go
         go (Max x y) = bin " `max` " x y
         bin s x y = "(" <> go x <> s <> go y <> ")"
 
+--- NOTE: this doesn't @read@
 -- instance Show a => Show (Expr a) where
 --   show = prettyPrintExpr
 
 instance Arbitrary a => Arbitrary (Expr a) where
-          expr' n = oneof [Abs <$> expr' (n - 1)
-                          , Add <$> subexpr' <*> subexpr'
   arbitrary = sized expr'
     where expr' 0 = Const <$> arbitrary
+          expr' n = oneof [Abs <$> expr' (n - 1)
+                          , Add <$> subexpr' <*> subexpr'
                           , Sub <$> subexpr' <*> subexpr'
                           , Mul <$> subexpr' <*> subexpr'
                           , Div <$> subexpr' <*> subexpr'
@@ -210,18 +243,7 @@ instance Arbitrary a => Arbitrary (Expr a) where
             where subexpr' = expr' (n `div` 2)
 
 prop_eval2ways_same :: Expr Binary32 -> Bool
-prop_eval2ways_same e32 =
-  let
-    -- the "real world" route
-    e64 = float2Double <$> e32
-    v64 = evalExpr e64
-    v32_of_v64 = double2Float v64
-    -- the "perfect world" route
-    er = toRational <$> e32
-    vr = evalExpr er
-    v32_of_vr = IEEE.fromRationalTiesToEven vr
-  in
-    v32_of_v64 == v32_of_vr
+prop_eval2ways_same = compute2ways_same evalExpr
 
 --------------------------------------------------------------------------------
 -- | = Run
