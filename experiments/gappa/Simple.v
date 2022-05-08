@@ -13,8 +13,6 @@ Section AUX.
   Definition CTypePlus     := b64_plus FT_Rounding.
   Definition CTypeSub      := b64_minus FT_Rounding.
   Definition CTypeMult     := b64_mult FT_Rounding.
-  Definition CTypeNeg      := b64_opp.
-  Definition CTypeAbs      := b64_abs.
 
   Definition le64 (a b : binary64) : Prop :=
     b64_compare a b = Some Datatypes.Eq
@@ -25,6 +23,14 @@ Section AUX.
 
   Definition in_range_64 : (binary64 * binary64) -> binary64 -> Prop
     := fun '(a,b) x => is_finite _ _ x = true /\ le64 a x /\ le64 x b.
+
+  Lemma in_range_finite (lo hi x : binary64) :
+    in_range_64 (lo, hi) x ->
+    is_finite _ _ x = true.
+  Proof.
+    unfold in_range_64.
+    tauto.
+  Qed.
 
   Lemma le64_correct (a b : binary64) :
     is_finite _ _ a = true ->
@@ -72,7 +78,7 @@ Section AUX.
   Qed.
 
   (* Corollary of Bminus_correct *)
-  Lemma b64_minus_correct (m : mode) (x y : binary64) :
+  Lemma b64_minus_to_R (m : mode) (x y : binary64) :
     let prec := 53%Z in
     let emax := 1024%Z in
     let fexp := (FLT_exp (3 - emax - prec)%Z prec) in
@@ -95,8 +101,29 @@ Section AUX.
     tauto.
   Qed.
 
+  Lemma b64_minus_finite (m : mode) (x y : binary64) :
+    let prec := 53%Z in
+    let emax := 1024%Z in
+    let fexp := (FLT_exp (3 - emax - prec)%Z prec) in
+    is_finite _ _ x = true ->
+    is_finite _ _ y = true ->
+    Rabs (Generic_fmt.round radix2 fexp (round_mode m) (B2R _ _ x - B2R _ _ y))
+    < bpow radix2 emax
+    -> is_finite _ _ (b64_minus m x y) = true.
+  Proof.
+    intros *.
+    intros FX FY B.
+    pose proof
+      Bminus_correct prec emax eq_refl eq_refl binop_nan_pl64 m x y FX FY
+      as COR.
+    subst prec emax fexp.
+    apply Rlt_bool_true in B.
+    rewrite B in COR.
+    tauto.
+  Qed.
+
   (* Corollary of Bmult_correct *)
-  Corollary b64_mult_correct (m : mode) (x y : binary64) :
+  Lemma b64_mult_to_R (m : mode) (x y : binary64) :
     let prec := 53%Z in
     let emax := 1024%Z in
     let fexp := (FLT_exp (3 - emax - prec)%Z prec) in
@@ -114,6 +141,45 @@ Section AUX.
     apply Rlt_bool_true in B.
     rewrite B in COR.
     tauto.
+  Qed.
+
+  Lemma b64_mult_finite (m : mode) (x y : binary64) :
+    let prec := 53%Z in
+    let emax := 1024%Z in
+    let fexp := (FLT_exp (3 - emax - prec)%Z prec) in
+    Rabs (Generic_fmt.round radix2 fexp (round_mode m) (B2R _ _ x * B2R _ _ y))
+    < bpow radix2 emax
+    -> is_finite _ _ x = true
+    -> is_finite _ _ y = true
+    -> is_finite _ _ (b64_mult m x y) = true.
+  Proof.
+    intros * B FX FY.
+    pose proof
+      Bmult_correct prec emax eq_refl eq_refl binop_nan_pl64 m x y
+      as COR.
+    subst prec emax fexp.
+    apply Rlt_bool_true in B.
+    rewrite B in COR.
+    destruct COR as (_ & F & _).
+    unfold b64_mult.
+    rewrite F, FX, FY.
+    reflexivity.
+  Qed.
+
+  (*
+     A common goal is to prove that a real fits in a float range
+     (i.e. [r < 2^emax]). Gappa can't handle goals with [lt].
+     Shrink the range and move to [le].
+   *)
+  Lemma bpow_lt_to_le (r : R) (p : Z) :
+    r <= bpow radix2 (p - 1) ->
+    r < bpow radix2 p.
+  Proof.
+    enough (bpow radix2 (p - 1) < bpow radix2 p)
+      by lra.
+    clear r.
+    apply bpow_lt.
+    lia.
   Qed.
 
   Definition b0_0 := B754_zero 53 1024 false. (* 0.0 *)
@@ -182,45 +248,51 @@ Section Problem.
                        (binary_float_of_bits_aux_correct 52 11
                           eq_refl eq_refl eq_refl 4472074429978902528).
 
+
+  Hint Unfold b0_0 b200 b3000 eps1 eps2 tiny : const_unfold.
+  Hint Rewrite
+    b64_minus_to_R b64_mult_to_R
+    b64_minus_finite b64_mult_finite
+    lt64_correct
+    : rewrite_to_R.
+
+  Ltac compute_B2R :=
+    repeat (cbv [Defs.F2R IZR IPR IPR_2 Z.pow_pos Pos.iter] in *;
+            simpl in *).
+
+  Ltac gappa_form :=
+    try apply bpow_lt_to_le.
+
   Lemma safe :
     lt64 b0_0 (CTypeSub (CTypeSub (CTypeSub r64 l64) eps1) eps2) ->
-    r - l >= B2R _ _ tiny.
+    B2R _ _ tiny <= r - l.
   Proof.
     intros LE.
 
+    unfold l64, r64, CTypeSub, CTypeMult in *.
+
     (* lift comparison to R *)
+    copy_apply in_range_finite XR; rename H into XF.
+    copy_apply in_range_finite YR; rename H into YF.
     apply in_range_64_to_R in XR, YR.
     2-5: reflexivity.
     apply lt64_correct in LE.
-    2-3: admit.
+    2: reflexivity.
+    2: {
+      repeat (autorewrite with rewrite_to_R;
+              try reflexivity; try assumption).
+      all: autounfold with const_unfold in *.
+      all: gappa_form.
+      all: compute_B2R; gappa.
+    }
 
-
-    (* lift subtraction to R *)
-    unfold CTypeSub, b64_minus in LE.
-    rewrite !b64_minus_correct in LE.
-    2-10: admit.
-
-    (* lift multiplication to R *)
-    unfold l64, r64, CTypeMult in *.
-    rewrite !b64_mult_correct in LE.
-    2-3: admit.
-
-    (* forget about binary floats *)
-    unfold r, l in *.
-    generalize dependent (B2R _ _ y).
-    generalize dependent (B2R _ _ x).
-    clear x y XR YR.
-    intros xr XRR yr YRR A.
-
-    (* reduce constants *)
-    unfold b0_0, b200, b3000, eps1, eps2, tiny in *.
-    cbn [B2R SpecFloat.cond_Zopp] in *.
-    repeat (cbv [Defs.F2R IZR IPR IPR_2 Z.pow_pos Pos.iter] in *; simpl in *).
-
-    (* gappa can't handle [ge] for some reason *)
-    apply Rle_ge.
-
-    gappa.
-  Admitted.
+    unfold l, r in *.
+    autorewrite with rewrite_to_R in *.
+    all: repeat autorewrite with rewrite_to_R.
+    all: autounfold with const_unfold in *.
+    all: try assumption; try reflexivity.
+    all: gappa_form.
+    all: compute_B2R; gappa.
+  Qed.
 
 End Problem.
