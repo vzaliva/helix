@@ -1903,75 +1903,72 @@ Section RHCOL_to_FHCOL_numerical.
 
 End RHCOL_to_FHCOL_numerical.
 
-From Interval Require Import Tactic.
-
 From Flocq Require Import Binary Bits Core.Defs.
 Require Import Vellvm.Numeric.Floats.
 Require Import Vellvm.Numeric.IEEE754_extra.
 
-Require Import Float32asCT.
+Require Import Float64asCT.
+
 Section RHCOL_to_FHCOL_bounds.
 
   Context
-    `{RF_CHE_32 : RHCOLtoFHCOL32.CTranslation_heq}
     `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}.
 
-  Inductive is_NaN_32 : binary32 -> Prop :=
-  | B754_nan_is_NaN_32 : forall s pl NPL,
-      is_NaN_32 (@B754_nan _ _ s pl NPL).
+  Inductive is_NaN_64 : binary64 -> Prop :=
+  | B754_nan_is_NaN_64 : forall s pl NPL,
+      is_NaN_64 (@B754_nan _ _ s pl NPL).
 
-  Definition le32 (a b : binary32) : Prop :=
-    b32_compare a b ≡ Some Datatypes.Eq
-    \/ b32_compare a b ≡ Some Datatypes.Lt.
+  Definition le64 (a b : binary64) : Prop :=
+    b64_compare a b ≡ Some Datatypes.Eq
+    \/ b64_compare a b ≡ Some Datatypes.Lt.
 
-  Definition lt32 (a b : binary32) : Prop :=
-    b32_compare a b ≡ Some Datatypes.Lt.
+  Definition lt64 (a b : binary64) : Prop :=
+    b64_compare a b ≡ Some Datatypes.Lt.
 
   (* inclusive range check *)
-  Definition in_range_32 : (binary32 * binary32) -> binary32 -> Prop
+  Definition in_range_64 : (binary64 * binary64) -> binary64 -> Prop
     := fun '(a,b) x =>
-         not (is_NaN_32 x)
-         /\ le32 a x
-         /\ le32 x b.
+         not (is_NaN_64 x)
+         /\ le64 a x
+         /\ le64 x b.
 
   (* left excluded, right included range check *)
-  Definition in_range_32_l : (binary32 * binary32) -> binary32 -> Prop
+  Definition in_range_64_l : (binary64 * binary64) -> binary64 -> Prop
     := fun '(a,b) x =>
-         not (is_NaN_32 x)
-         /\ lt32 a x
-         /\ le32 x b.
-
+         not (is_NaN_64 x)
+         /\ lt64 a x
+         /\ le64 x b.
 
   Local Open Scope R_scope.
 
-  Definition b32_0_1 := b32_of_bits 1036831949%Z. (* 0.1 *)
-  Definition b32_0_01 := b32_of_bits 1008981770%Z. (* 0.01 *)
+  Definition b64_0_1 := b64_of_bits 1036831949%Z. (* 0.1 *)
+  Definition b64_0_01 := b64_of_bits 1008981770%Z. (* 0.01 *)
 
-  Definition b32_0     := b32_of_bits 0%Z.
-  Definition b32_1     := b32_of_bits 1065353216%Z.
-  Definition b32_2     := b32_of_bits 1073741824%Z.
-  Definition b32_5     := b32_of_bits 1084227584%Z.
-  Definition b32_6     := b32_of_bits 1086324736%Z.
-  Definition b32_10    := b32_of_bits 1092616192%Z.
-  Definition b32_20    := b32_of_bits 1101004800%Z.
-  Definition b32_100   := b32_of_bits 1120403456%Z.
-  Definition b32_5000  := b32_of_bits 1167867904%Z.
+  Definition b64_0     := b64_of_bits 0%Z.
+  Definition b64_1     := b64_of_bits 1065353216%Z.
+  Definition b64_2     := b64_of_bits 1073741824%Z.
+  Definition b64_5     := b64_of_bits 1084227584%Z.
+  Definition b64_6     := b64_of_bits 1086324736%Z.
+  Definition b64_10    := b64_of_bits 1092616192%Z.
+  Definition b64_20    := b64_of_bits 1101004800%Z.
+  Definition b64_100   := b64_of_bits 1120403456%Z.
+  Definition b64_5000  := b64_of_bits 1167867904%Z.
 
   (** Constraints on physical parameters **)
   (* Obstacle velocity constraint *)
   (* 0 <= V <= 20. up to 20 m/s (72 Kmh) *)
-  Definition V_constr := (b32_0, b32_20).
+  Definition V_constr := (b64_0, b64_20).
   (* 1 < b <= 6. m/s^2. https://copradar.com/chapts/references/acceleration.html *)
-  Definition b_constr := (b32_1, b32_6).
+  Definition b_constr := (b64_1, b64_6).
   (* 0 <= A <= 5. m/s^2. https://hypertextbook.com/facts/2001/MeredithBarricella.shtml *)
-  Definition A_constr := (b32_0, b32_5).
-  Definition e_constr := (b32_0_01, b32_0_1). (* 1/100 <= e <= 1/10. 10-100 Hz *)
+  Definition A_constr := (b64_0, b64_5).
+  Definition e_constr := (b64_0_01, b64_0_1). (* 1/100 <= e <= 1/10. 10-100 Hz *)
   (* Constraints for obstacle and robot coordinates.
      Our robot operates on cartesian grid ~10x10 Km *)
-  Definition x_constr := (b32_opp b32_5000, b32_5000). (* -5000, 5000 *)
-  Definition y_constr := (b32_opp b32_5000, b32_5000). (* -5000, 5000 *)
+  Definition x_constr := (b64_opp b64_5000, b64_5000). (* -5000, 5000 *)
+  Definition y_constr := (b64_opp b64_5000, b64_5000). (* -5000, 5000 *)
   (* Robot velocity constraint *)
-  Definition v_constr := (b32_0, b32_20). (* 0, 20 *)
+  Definition v_constr := (b64_0, b64_20). (* 0, 20 *)
 
   (*
     "a" layout:
@@ -1986,110 +1983,66 @@ Section RHCOL_to_FHCOL_bounds.
     3. obstacle position (X)
     4. obstacle position (Y)
    *)
-  Definition make_a32 (V32 b32 A32 e32 : binary32) : FHCOL32.mem_block :=
-    let FT_div := b32_div FT_Rounding in (* DHCOL (and therefore CType) has no division *)
+  Definition make_a64 (V64 b64 A64 e64 : binary64) : FHCOL.mem_block :=
+    let FT_div := b64_div FT_Rounding in (* DHCOL (and therefore CType) has no division *)
     let a0 :=
-      MFloat32asCT.CTypeMult
-        (MFloat32asCT.CTypePlus (FT_div A32 b32) b32_1)
-        (MFloat32asCT.CTypePlus
-           (MFloat32asCT.CTypeMult (MFloat32asCT.CTypeMult (FT_div A32 b32_2) e32) e32)
-           (MFloat32asCT.CTypeMult e32 V32))
+      MFloat64asCT.CTypeMult
+        (MFloat64asCT.CTypePlus (FT_div A64 b64) b64_1)
+        (MFloat64asCT.CTypePlus
+           (MFloat64asCT.CTypeMult (MFloat64asCT.CTypeMult (FT_div A64 b64_2) e64) e64)
+           (MFloat64asCT.CTypeMult e64 V64))
     in
     let a1 :=
-      (MFloat32asCT.CTypePlus
-         (FT_div V32 b32)
-         (MFloat32asCT.CTypeMult
-            e32
-            (MFloat32asCT.CTypePlus (FT_div A32 b32) b32_1)))
+      (MFloat64asCT.CTypePlus
+         (FT_div V64 b64)
+         (MFloat64asCT.CTypeMult
+            e64
+            (MFloat64asCT.CTypePlus (FT_div A64 b64) b64_1)))
     in
     let a2 :=
       FT_div 
-        b32_1
-        (MFloat32asCT.CTypeMult b32_2 b32)
+        b64_1
+        (MFloat64asCT.CTypeMult b64_2 b64)
     in
-    FHCOLEval32.mem_add 0%nat a0
-      (FHCOLEval32.mem_add 1%nat a1
-         (FHCOLEval32.mem_add 2%nat a2
-            (FHCOLEval32.mem_empty))).
+    FHCOLEval.mem_add 0%nat a0
+      (FHCOLEval.mem_add 1%nat a1
+         (FHCOLEval.mem_add 2%nat a2
+            (FHCOLEval.mem_empty))).
 
-  Definition make_x32 (r_v_32 r_x_32 r_y_32 o_x_32 o_y_32 : binary32) : FHCOL32.mem_block :=
-    FHCOLEval32.mem_add 0%nat r_v_32
-      (FHCOLEval32.mem_add 1%nat r_x_32
-        (FHCOLEval32.mem_add 2%nat r_y_32
-          (FHCOLEval32.mem_add 3%nat o_x_32
-            (FHCOLEval32.mem_add 4%nat o_y_32
-              (FHCOLEval32.mem_empty))))).
-
-  (* Widen binary32 to binary64.  This is a loseless conversion and it
-     always succeeds. *)
-  Definition widen32_to_64 (x32:binary32): binary64
-    := Float32.to_double x32.
-
-  (* Proof that converting 32 to 64 float does not cause any data loss
-     for finite (non-NaN) numbers.  It is not true another way around! *)
-  Fact widen32_to_64_loseless :
-    forall x32,
-      is_finite _ _ x32 ≡ true ->
-      B2R _ _ (widen32_to_64 x32) ≡ B2R _ _ x32.
-  Proof.
-    intros H x32.
-    unfold widen32_to_64, Float32.to_double.
-    Transparent Float.of_single Float.to_single.
-    unfold Float.of_single, Float.to_single.
-    apply IEEE754_extra.Bconv_widen_exact.
-    - cbv; reflexivity.
-    - lia.
-    - lia.
-    - assumption.
-  Qed.
-
-  (** Widen a memory block with 32-bit binary floats to memory block with
-      64-binary floats. This is a loseless conversion and it always succeeds *)
-  Definition widen32_to_64_mem_block : FHCOL32.mem_block → FHCOL.mem_block
-    := Memory.NM.map widen32_to_64.
-
-  (** Cast a 64-bit binary float to 32-binary float.  This is a lossy
-      conversion and must model C doulbe to single precision cast.
-      For example:
-      LLVM: %1 = fptrunc double %2 to float
-      X86: cvtsd2ss xmm0, xmm0
-      ARM64: fcvt s0, d0
-   *)
-  Definition cast64_to_32 (x64:binary64): binary32
-    := Float.to_single x64.
-
-  (** Cast a 64-bit binary float to 32-binary float. This is a lossy
-      conversion. See [cast64_to_32] *)
-  Definition cast64_to_32_mem_block : FHCOL.mem_block → FHCOL32.mem_block
-    := Memory.NM.map cast64_to_32.
+  Definition make_x64 (r_v_64 r_x_64 r_y_64 o_x_64 o_y_64 : binary64) : FHCOL.mem_block :=
+    FHCOLEval.mem_add 0%nat r_v_64
+      (FHCOLEval.mem_add 1%nat r_x_64
+        (FHCOLEval.mem_add 2%nat r_y_64
+          (FHCOLEval.mem_add 3%nat o_x_64
+            (FHCOLEval.mem_add 4%nat o_y_64
+              (FHCOLEval.mem_empty))))).
 
   (* Constraints on input memory blocks which we assume to prove
      numerical stability of FHCOL DynWin code.  Here, we enforce some
      reasonable numerical bounds on dynwin physical parameters.  *)
   Definition DynWinInConstr (a:RHCOLEval.mem_block) (x:RHCOLEval.mem_block): Prop
     :=
-    ∃ V32 (* max obstacle speed *)
-      b32 (* max braking *)
-      A32 (* max accel *)
-      e32 (* sampling period *)
-      r_v_32
-      r_x_32
-      r_y_32
-      o_x_32
-      o_y_32,
+    ∃ V64 (* max obstacle speed *)
+      b64 (* max braking *)
+      A64 (* max accel *)
+      e64 (* sampling period *)
+      r_v_64
+      r_x_64
+      r_y_64
+      o_x_64
+      o_y_64,
 
-      in_range_32 V_constr V32
-      /\ in_range_32_l b_constr b32
-      /\ in_range_32 A_constr A32
-      /\ in_range_32 e_constr e32
-      /\ heq_mem_block a (make_a32 V32 b32 A32 e32)
-      /\ in_range_32 v_constr r_v_32
-      /\ in_range_32 x_constr r_x_32
-      /\ in_range_32 y_constr r_y_32
-      /\ in_range_32 x_constr o_x_32
-      /\ in_range_32 y_constr o_y_32
-      /\ heq_mem_block x (make_x32 r_v_32 r_x_32 r_y_32 o_x_32 o_y_32).
-
+      in_range_64 V_constr V64
+      /\ in_range_64_l b_constr b64
+      /\ in_range_64 A_constr A64
+      /\ in_range_64 e_constr e64
+      /\ heq_mem_block a (make_a64 V64 b64 A64 e64)
+      /\ in_range_64 v_constr r_v_64
+      /\ in_range_64 x_constr r_x_64
+      /\ in_range_64 y_constr r_y_64
+      /\ in_range_64 x_constr o_x_64
+      /\ in_range_64 y_constr o_y_64
+      /\ heq_mem_block x (make_x64 r_v_64 r_x_64 r_y_64 o_x_64 o_y_64).
 
   (* Parametric relation between RHCOL and FHCOL coumputation results  *)
   Definition DynWinOutRel
@@ -2102,7 +2055,7 @@ Section RHCOL_to_FHCOL_bounds.
        C/LLVM cast as in [cast64_to_32]
        result of the cast should be the same as
        32 bit approximation of result on Reals *)
-    heq_mem_block y_r (cast64_to_32_mem_block y_64).
+    heq_mem_block y_r y_64.
 
   Global Instance DynWinOutRel_Proper :
     Proper ((=) ==> (=) ==> (=) ==> (=) ==> (iff)) DynWinOutRel.
@@ -2114,7 +2067,6 @@ Section TopLevel.
 
   (* RHCOL -> FHCOL *)
   Context
-    `{RF_CHE_32 : RHCOLtoFHCOL32.CTranslation_heq}
     `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}.
 
   (*

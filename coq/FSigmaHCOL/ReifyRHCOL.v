@@ -8,8 +8,6 @@ Require Import Helix.RSigmaHCOL.RSigmaHCOL.
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DHCOLTypeTranslator.
 
-(* Default, 64-bit version of FHCOL *)
-
 Module Export RHCOLtoFHCOL := MDHCOLTypeTranslator
                                  (MRasCT)
                                  (MFloat64asCT)
@@ -19,18 +17,3 @@ Module Export RHCOLtoFHCOL := MDHCOLTypeTranslator
                                  (FHCOL)
                                  (RHCOLEval)
                                  (FHCOLEval).
-
-(* 32-bit version, mostly used to data type conversion in numberic proofs *)
-
-Require Import Helix.FSigmaHCOL.Float32asCT.
-Require Import Helix.FSigmaHCOL.Int32asNT.
-
-Module Export RHCOLtoFHCOL32 := MDHCOLTypeTranslator
-                                 (MRasCT)
-                                 (MFloat32asCT)
-                                 (MNatAsNT)
-                                 (MInt32asNT)
-                                 (RHCOL)
-                                 (FHCOL32)
-                                 (RHCOLEval)
-                                 (FHCOLEval32).
