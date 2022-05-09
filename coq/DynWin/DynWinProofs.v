@@ -1519,8 +1519,28 @@ Section RCHOL_to_FHCOL.
     reflexivity.
   Qed.
 
-  Context
-    `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}.
+  Require Import Reals.Rdefinitions.
+  From Flocq.IEEE754 Require Import Binary Bits.
+
+  Global Instance RF_CHE : RHCOLtoFHCOL.CTranslation_heq.
+  Proof.
+    econstructor.
+    instantiate (1:=fun r f => B2R _ _ f ≡ r).
+    -
+      intros r1 r2 RE f1 f2 FE.
+      invc RE.
+      invc FE.
+      easy.
+    -
+      intros * T.
+      cbn.
+      unfold translateCTypeConst in *.
+      repeat break_if; invc T.
+      now rewrite <-H1, e.
+      rewrite <-H1, e.
+      unfold Float64asCT.MFloat64asCT.CTypeOne, Float64asCT.Float64One.
+      now rewrite Bone_correct.
+  Defined.
 
   Definition heq_nat_int : nat -> MInt64asNT.t -> Prop :=
     fun n i => Z.of_nat n ≡ Int64.intval i.
@@ -1575,8 +1595,6 @@ End RCHOL_to_FHCOL.
 Require Import Rdefinitions.
 
 Section RHCOL_to_FHCOL_numerical.
-
-  Context `{RF_CHE : RHCOLtoFHCOL.CTranslation_heq}.
 
   (* TODO: move *)
   Lemma trivial2_Proper `{AE : Equiv A} `{BE : Equiv B} :
