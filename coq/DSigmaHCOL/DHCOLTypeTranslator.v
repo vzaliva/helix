@@ -3836,7 +3836,6 @@ Module MDHCOLTypeTranslator
     Corollary translation_semantics_correct_strict
           (op : LE.DSHOperator)
           (op' : LE'.DSHOperator)
-          (fuel fuel' : nat)
           (σ : LE.evalContext)
           (σ' : LE'.evalContext)
           (imem : L.memory)
