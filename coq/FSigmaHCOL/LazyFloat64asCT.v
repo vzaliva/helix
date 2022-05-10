@@ -1,11 +1,9 @@
-Require Import ZArith.
-Require Import Coq.Bool.Bool.
+Require Import ZArith Bool String.
 
 From Flocq Require Import Binary Bits.
 
-Require Import MathClasses.interfaces.abstract_algebra.
-
 Require Import Helix.MSigmaHCOL.CType.
+Require Import Helix.Tactics.StructTactics.
 
 Require Import Float64asCT.
 
@@ -13,7 +11,18 @@ Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.interfaces.orders.
 
+Require Import ExtLib.Structures.Monad.
+Require Import ExtLib.Data.Monads.OptionMonad.
+
+Require Import List.
+Import ListNotations.
+Import MonadNotation.
+
+Open Scope monad_scope.
+Open Scope string_scope.
+
 Inductive FloatExpr :=
+| LFVar : nat -> FloatExpr
 | LFConst : MFloat64asCT.t -> FloatExpr
 | LFNeg   : FloatExpr -> FloatExpr
 | LFAbs   : FloatExpr -> FloatExpr
@@ -24,59 +33,94 @@ Inductive FloatExpr :=
 | LFMax   : FloatExpr -> FloatExpr -> FloatExpr
 | LFSub   : FloatExpr -> FloatExpr -> FloatExpr.
 
-Fixpoint evalFloatExpr (f : FloatExpr) : MFloat64asCT.t :=
+Definition FloatEnv := list MFloat64asCT.t.
+
+(* No use for fancier monads *)
+Fixpoint evalFloatExpr (e : FloatEnv) (f : FloatExpr) : option MFloat64asCT.t :=
   match f with
-  | LFConst b => b
-  | LFNeg   f     => MFloat64asCT.CTypeNeg   (evalFloatExpr f)
-  | LFAbs   f     => MFloat64asCT.CTypeAbs   (evalFloatExpr f)
-  | LFPlus  f1 f2 => MFloat64asCT.CTypePlus  (evalFloatExpr f1) (evalFloatExpr f2)
-  | LFMult  f1 f2 => MFloat64asCT.CTypeMult  (evalFloatExpr f1) (evalFloatExpr f2)
-  | LFZLess f1 f2 => MFloat64asCT.CTypeZLess (evalFloatExpr f1) (evalFloatExpr f2)
-  | LFMin   f1 f2 => MFloat64asCT.CTypeMin   (evalFloatExpr f1) (evalFloatExpr f2)
-  | LFMax   f1 f2 => MFloat64asCT.CTypeMax   (evalFloatExpr f1) (evalFloatExpr f2)
-  | LFSub   f1 f2 => MFloat64asCT.CTypeSub   (evalFloatExpr f1) (evalFloatExpr f2)
+  | LFVar i       => (nth_error e i)
+  | LFConst b     => Some b
+  | LFNeg   f     => liftM  MFloat64asCT.CTypeNeg   (evalFloatExpr e f)
+  | LFAbs   f     => liftM  MFloat64asCT.CTypeAbs   (evalFloatExpr e f)
+  | LFPlus  f1 f2 => liftM2 MFloat64asCT.CTypePlus  (evalFloatExpr e f1) (evalFloatExpr e f2)
+  | LFMult  f1 f2 => liftM2 MFloat64asCT.CTypeMult  (evalFloatExpr e f1) (evalFloatExpr e f2)
+  | LFZLess f1 f2 => liftM2 MFloat64asCT.CTypeZLess (evalFloatExpr e f1) (evalFloatExpr e f2)
+  | LFMin   f1 f2 => liftM2 MFloat64asCT.CTypeMin   (evalFloatExpr e f1) (evalFloatExpr e f2)
+  | LFMax   f1 f2 => liftM2 MFloat64asCT.CTypeMax   (evalFloatExpr e f1) (evalFloatExpr e f2)
+  | LFSub   f1 f2 => liftM2 MFloat64asCT.CTypeSub   (evalFloatExpr e f1) (evalFloatExpr e f2)
   end.
 
-(* TODO: evaluation might be more suitable here *)
-Instance FloatExpr_Equiv: Equiv FloatExpr := eq.
+Definition SymFloat : Type := option (FloatEnv * FloatExpr).
 
-Instance FloatExpr_Setoid: Setoid FloatExpr.
+Definition evalSymFloat (sf : SymFloat) : option MFloat64asCT.t :=
+  '(e, f) <- sf ;;
+  evalFloatExpr e f.
+
+(* TODO: evaluation might be more suitable here *)
+Instance SymFloat_Equiv: Equiv SymFloat := eq.
+
+Instance SymFloat_Setoid: Setoid SymFloat.
 Proof.
   constructor.
   - now intros x.
   - now intros x y E.
   - intros x y z Exy Eyz; auto.
-Qed.
+Qed. 
 
-Instance FloatExpr_equiv_dec: forall x y : FloatExpr, Decision (x = y).
+Instance SymFloat_equiv_dec: forall x y : SymFloat, Decision (x = y).
 Proof.
 Admitted.
 
+Lemma evalFloatExpr_env_indep (f : FloatExpr) (b : MFloat64asCT.t) :
+  evalFloatExpr nil f ≡ Some b ->
+  forall e, evalFloatExpr e f ≡ Some b.
+Admitted.
+
+Definition symLiftM (c : FloatExpr -> FloatExpr) (sf : SymFloat) : SymFloat :=
+  '(e, f) <- sf ;;
+  Some (e, c f).
+  
+Definition symLiftM2
+  (c : FloatExpr -> FloatExpr -> FloatExpr)
+  (sf1 sf2 : SymFloat)
+  : SymFloat
+  :=
+  sf1 <- sf1 ;;
+  sf2 <- sf2 ;;
+  match sf1, sf2 with
+  | ([], f1), (e, f2) => Some (e, c f1 f2)
+  | (e, f1), ([], f2) => Some (e, c f1 f2)
+  | (e1, f1), (e2, f2) =>
+      if list_eq_dec MFloat64asCT.CTypeEquivDec e1 e2
+      then Some (e1, c f1 f2)
+      else None
+  end.
+
 Module MLazyFloat64asCT <: CType.
 
-  Definition t := FloatExpr.
+  Definition t := SymFloat.
 
-  Definition CTypeEquiv := FloatExpr_Equiv.
-  Definition CTypeSetoid := FloatExpr_Setoid.
+  Definition CTypeEquiv := SymFloat_Equiv.
+  Definition CTypeSetoid := SymFloat_Setoid.
 
-  Definition CTypeZero := LFConst MFloat64asCT.CTypeZero.
-  Definition CTypeOne  := LFConst MFloat64asCT.CTypeOne.
+  Definition CTypeZero : SymFloat := Some ([], LFConst MFloat64asCT.CTypeZero).
+  Definition CTypeOne : SymFloat := Some ([], LFConst MFloat64asCT.CTypeOne).
 
   Lemma CTypeZeroOneApart: CTypeZero ≠ CTypeOne.
   Proof.
     discriminate.
   Qed.
 
-  Definition CTypeEquivDec := FloatExpr_equiv_dec.
+  Definition CTypeEquivDec := SymFloat_equiv_dec.
 
-  Definition CTypePlus     := LFPlus.
-  Definition CTypeNeg      := LFNeg.
-  Definition CTypeMult     := LFMult.
-  Definition CTypeAbs      := LFAbs.
-  Definition CTypeZLess    := LFZLess.
-  Definition CTypeMin      := LFMin.
-  Definition CTypeMax      := LFMax.
-  Definition CTypeSub      := LFSub.
+  Definition CTypeNeg      := symLiftM LFNeg.
+  Definition CTypeAbs      := symLiftM LFAbs.
+  Definition CTypePlus     := symLiftM2 LFPlus.
+  Definition CTypeMult     := symLiftM2 LFMult.
+  Definition CTypeZLess    := symLiftM2 LFZLess.
+  Definition CTypeMin      := symLiftM2 LFMin.
+  Definition CTypeMax      := symLiftM2 LFMax.
+  Definition CTypeSub      := symLiftM2 LFSub.
 
   Instance Zless_proper: Proper ((=) ==> (=) ==> (=)) CTypeZLess.
   Proof. solve_proper. Qed.
