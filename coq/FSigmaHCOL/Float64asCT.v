@@ -83,7 +83,7 @@ Proof.
     + right; contradict NB; inversion NB; auto.
     + right; contradict NB; inversion NB; auto.
     + right; contradict NB; inversion NB; auto.
-Qed.
+Defined.
 
 
 Instance binary64_Setoid: Setoid binary64.
