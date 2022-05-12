@@ -1521,6 +1521,7 @@ Section RCHOL_to_FHCOL.
 
   Require Import Reals.Rdefinitions.
   From Flocq.IEEE754 Require Import Binary Bits.
+  Require Import Psatz.
 
   Global Instance RF_CHE : RHCOLtoFHCOL.CTranslation_heq.
   Proof.
@@ -1539,7 +1540,8 @@ Section RCHOL_to_FHCOL.
       now rewrite <-H1, e.
       rewrite <-H1, e.
       unfold Float64asCT.MFloat64asCT.CTypeOne, Float64asCT.Float64One.
-      now rewrite Bone_correct.
+      cbv.
+      lra.
   Defined.
 
   Definition heq_nat_int : nat -> MInt64asNT.t -> Prop :=

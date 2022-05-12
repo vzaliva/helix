@@ -42,7 +42,7 @@ Definition FT_Rounding:mode := mode_NE.
 Require Import Coq.micromega.Lia.
 
 Definition Float64Zero : binary64 := B754_zero _ _ false.
-Program Definition Float64One : binary64 := Bone _ _ eq_refl eq_refl.
+Definition Float64One : binary64 := b64_of_bits 4607182418800017408.
 
 Instance binary64_Equiv: Equiv binary64 := eq.
 
