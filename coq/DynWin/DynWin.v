@@ -346,3 +346,151 @@ Definition DynWin_FHCOL_hard : FHCOL.DSHOperator :=
                         (PVar 1, NConst Int64_1)))))
             (DSHBinOp 1 (PVar 0) (PVar 2)
                (AZless (AVar 1) (AVar 0))))).
+
+Require Import FSigmaHCOL.LazyFloat64asCT.
+Definition DynWin_LFHCOL_hard :=
+  (LFHCOLEval.DSHAlloc Int64asNT.Int64_2
+       (LFHCOLEval.DSHSeq
+          (LFHCOLEval.DSHSeq
+             (LFHCOLEval.DSHAlloc Int64asNT.Int64_1
+                (LFHCOLEval.DSHSeq
+                   (LFHCOLEval.DSHSeq
+                      (LFHCOLEval.DSHMemInit (LFHCOL.PVar 0)
+                         MLazyFloat64asCT.CTypeZero)
+                      (LFHCOLEval.DSHAlloc Int64asNT.Int64_1
+                         (LFHCOLEval.DSHLoop 3
+                            (LFHCOLEval.DSHSeq
+                               (LFHCOLEval.DSHAlloc Int64asNT.Int64_1
+                                  (LFHCOLEval.DSHSeq
+                                     (LFHCOLEval.DSHAssign
+                                        (LFHCOL.PVar 7,
+                                        LFHCOLEval.NConst
+                                          {|
+                                            Int64asNT.Int64.intval := 0;
+                                            Int64asNT.Int64.intrange :=
+                                              conj eq_refl eq_refl
+                                          |})
+                                        (LFHCOL.PVar 0,
+                                        LFHCOLEval.NConst
+                                          {|
+                                            Int64asNT.Int64.intval := 0;
+                                            Int64asNT.Int64.intrange :=
+                                              conj eq_refl eq_refl
+                                          |}))
+                                     (LFHCOLEval.DSHAlloc Int64asNT.Int64_1
+                                        (LFHCOLEval.DSHSeq
+                                           (LFHCOLEval.DSHPower
+                                              (LFHCOLEval.NVar (S 1))
+                                              (LFHCOL.PVar 1,
+                                              LFHCOLEval.NConst
+                                                {|
+                                                  Int64asNT.Int64.intval := 0;
+                                                  Int64asNT.Int64.intrange :=
+                                                    conj eq_refl eq_refl
+                                                |})
+                                              (LFHCOL.PVar 0,
+                                              LFHCOLEval.NConst
+                                                {|
+                                                  Int64asNT.Int64.intval := 0;
+                                                  Int64asNT.Int64.intrange :=
+                                                    conj eq_refl eq_refl
+                                                |})
+                                              (LFHCOLEval.AMult 
+                                                 (LFHCOLEval.AVar 1)
+                                                 (LFHCOLEval.AVar 0))
+                                              MLazyFloat64asCT.CTypeOne)
+                                           (LFHCOLEval.DSHIMap 1 
+                                              (LFHCOL.PVar 0)
+                                              (LFHCOL.PVar (S (S 1)))
+                                              (LFHCOLEval.AMult 
+                                                 (LFHCOLEval.AVar 0)
+                                                 (LFHCOLEval.ANth
+                                                    (LFHCOLEval.MPtrDeref
+                                                      (LFHCOL.PVar 8))
+                                                    (LFHCOLEval.NVar (S (S (S 1)))))))))))
+                               (LFHCOLEval.DSHMemMap2 1 
+                                  (LFHCOL.PVar (S 1)) (LFHCOL.PVar 1)
+                                  (LFHCOL.PVar (S 1))
+                                  (LFHCOLEval.APlus (LFHCOLEval.AVar 1)
+                                     (LFHCOLEval.AVar 0)))))))
+                   (LFHCOLEval.DSHAssign
+                      (LFHCOL.PVar 0,
+                      LFHCOLEval.NConst
+                        {|
+                          Int64asNT.Int64.intval := 0;
+                          Int64asNT.Int64.intrange := conj eq_refl eq_refl
+                        |})
+                      (LFHCOL.PVar 1,
+                      LFHCOLEval.NConst
+                        {|
+                          Int64asNT.Int64.intval := 0;
+                          Int64asNT.Int64.intrange := conj eq_refl eq_refl
+                        |}))))
+             (LFHCOLEval.DSHAlloc Int64asNT.Int64_1
+                (LFHCOLEval.DSHSeq
+                   (LFHCOLEval.DSHSeq
+                      (LFHCOLEval.DSHMemInit (LFHCOL.PVar 0)
+                         MLazyFloat64asCT.CTypeZero)
+                      (LFHCOLEval.DSHAlloc Int64asNT.Int64_1
+                         (LFHCOLEval.DSHLoop 2
+                            (LFHCOLEval.DSHSeq
+                               (LFHCOLEval.DSHAlloc Int64asNT.Int64_2
+                                  (LFHCOLEval.DSHSeq
+                                     (LFHCOLEval.DSHLoop 2
+                                        (LFHCOLEval.DSHAlloc Int64asNT.Int64_1
+                                           (LFHCOLEval.DSHSeq
+                                              (LFHCOLEval.DSHAssign
+                                                 (LFHCOL.PVar 9,
+                                                 LFHCOLEval.NPlus
+                                                   (LFHCOLEval.NPlus
+                                                      (LFHCOLEval.NConst
+                                                      Int64asNT.Int64_1)
+                                                      (LFHCOLEval.NMult
+                                                      (LFHCOLEval.NVar (S (S 1)))
+                                                      (LFHCOLEval.NConst
+                                                      Int64asNT.Int64_1)))
+                                                   (LFHCOLEval.NMult
+                                                      (LFHCOLEval.NVar 1)
+                                                      (LFHCOLEval.NMult
+                                                      (LFHCOLEval.NConst
+                                                      Int64asNT.Int64_2)
+                                                      (LFHCOLEval.NConst
+                                                      Int64asNT.Int64_1))))
+                                                 (LFHCOL.PVar 0,
+                                                 LFHCOLEval.NConst
+                                                   {|
+                                                     Int64asNT.Int64.intval := 0;
+                                                     Int64asNT.Int64.intrange :=
+                                                      conj eq_refl eq_refl
+                                                   |}))
+                                              (LFHCOLEval.DSHAssign
+                                                 (LFHCOL.PVar 0,
+                                                 LFHCOLEval.NConst
+                                                   {|
+                                                     Int64asNT.Int64.intval := 0;
+                                                     Int64asNT.Int64.intrange :=
+                                                      conj eq_refl eq_refl
+                                                   |})
+                                                 (LFHCOL.PVar (S 1),
+                                                 LFHCOLEval.NVar 1)))))
+                                     (LFHCOLEval.DSHBinOp 1 
+                                        (LFHCOL.PVar 0) 
+                                        (LFHCOL.PVar (S 1))
+                                        (LFHCOLEval.AAbs
+                                           (LFHCOLEval.AMinus 
+                                              (LFHCOLEval.AVar 1)
+                                              (LFHCOLEval.AVar 0))))))
+                               (LFHCOLEval.DSHMemMap2 1 
+                                  (LFHCOL.PVar (S 1)) (LFHCOL.PVar 1)
+                                  (LFHCOL.PVar (S 1))
+                                  (LFHCOLEval.AMax (LFHCOLEval.AVar 1)
+                                     (LFHCOLEval.AVar 0)))))))
+                   (LFHCOLEval.DSHAssign
+                      (LFHCOL.PVar 0,
+                      LFHCOLEval.NConst
+                        {|
+                          Int64asNT.Int64.intval := 0;
+                          Int64asNT.Int64.intrange := conj eq_refl eq_refl
+                        |}) (LFHCOL.PVar 1, LFHCOLEval.NConst Int64asNT.Int64_1)))))
+          (LFHCOLEval.DSHBinOp 1 (LFHCOL.PVar 0) (LFHCOL.PVar (S 1))
+             (LFHCOLEval.AZless (LFHCOLEval.AVar 1) (LFHCOLEval.AVar 0))))).
