@@ -1523,17 +1523,17 @@ Section RCHOL_to_FHCOL.
   From Flocq.IEEE754 Require Import Binary Bits.
   Require Import Psatz.
 
-  Global Instance RF_CHE : RHCOLtoFHCOL.CTranslation_heq.
+  Global Instance RF_CHE : RHCOLtoFHCOL.CTranslation_heq ().
   Proof.
     econstructor.
-    instantiate (1:=fun r f => B2R _ _ f ≡ r).
+    instantiate (1:=fun _ r f => B2R _ _ f ≡ r).
     -
       intros r1 r2 RE f1 f2 FE.
       invc RE.
       invc FE.
       easy.
     -
-      intros * T.
+      intros * T *.
       cbn.
       unfold translateCTypeConst in *.
       repeat break_if; invc T.
@@ -1678,21 +1678,21 @@ Section RHCOL_to_FHCOL_numerical.
      The statement [RF_Structural_Semantic_Preservation]
      is the full semantic preservation on RHCOL->FHCOL, up to CType values.
    *)
-  Local Definition trivial_RF_CHE : RHCOLtoFHCOL.CTranslation_heq.
+  Local Definition trivial_RF_CHE : RHCOLtoFHCOL.CTranslation_heq ().
     econstructor.
-    instantiate (1 := trivial2).
+    instantiate (1 := trivial3).
     typeclasses eauto.
     repeat constructor.
   Defined.
 
   Local Fact trivial_RF_COP
-    : @RHCOLtoFHCOL.COpTranslationProps trivial_RF_CHE.
+    : @RHCOLtoFHCOL.COpTranslationProps () trivial_RF_CHE.
   Proof.
     repeat constructor.
   Qed.
 
   Definition RF_Structural_Semantic_Preservation :=
-    @RHCOLtoFHCOL.translation_semantics_correct
+    @RHCOLtoFHCOL.translation_semantics_correct () ()
       RF_NHE
       trivial_RF_CHE
       RF_NTP
@@ -1704,9 +1704,9 @@ Section RHCOL_to_FHCOL_numerical.
     :
     RHCOLtoFHCOL.translate dynwin_RHCOL = inr dynwin_FHCOL ->
 
-    RHCOLtoFHCOL.heq_evalContext dynwin_R_σ dynwin_F_σ ->
+    RHCOLtoFHCOL.heq_evalContext () () dynwin_R_σ dynwin_F_σ ->
 
-    hopt (herr (@RHCOLtoFHCOL.evalNExpr_closure_trace_equiv RF_NHE trivial_RF_CHE))
+    hopt (herr (@RHCOLtoFHCOL.evalNExpr_closure_trace_equiv () () RF_NHE trivial_RF_CHE))
          (RHCOLEval.intervalEvalDSHOperator_σ
             dynwin_R_σ dynwin_RHCOL []
             (RHCOLEval.estimateFuel dynwin_RHCOL))

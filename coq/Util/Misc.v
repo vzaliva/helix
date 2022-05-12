@@ -372,6 +372,9 @@ Definition is_None_bool {A:Type} (x:option A) : bool :=
 Inductive trivial2 {A B : Type} : A -> B -> Prop :=
 | trivial2_intro : forall a b, trivial2 a b.
 
+Inductive trivial3 {A B C : Type} : A -> B -> C -> Prop :=
+| trivial3_intro : forall a b c, trivial3 a b c.
+
 Lemma tuple_equiv_inv `{Ae:Equiv A} `{Be:Equiv B}:
   forall (x x':A) (y y':B), (x,y) = (x',y') -> x=x' /\ y=y'.
 Proof.

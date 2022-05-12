@@ -173,13 +173,13 @@ Section RHCOL_to_FHCOL_bounds.
       /\ in_range_64_l b_constr b64
       /\ in_range_64 A_constr A64
       /\ in_range_64 e_constr e64
-      /\ heq_mem_block a (make_a64 V64 b64 A64 e64)
+      /\ heq_mem_block () () a (make_a64 V64 b64 A64 e64)
       /\ in_range_64 v_constr r_v_64
       /\ in_range_64 x_constr r_x_64
       /\ in_range_64 y_constr r_y_64
       /\ in_range_64 x_constr o_x_64
       /\ in_range_64 y_constr o_y_64
-      /\ heq_mem_block x (make_x64 r_v_64 r_x_64 r_y_64 o_x_64 o_y_64).
+      /\ heq_mem_block () () x (make_x64 r_v_64 r_x_64 r_y_64 o_x_64 o_y_64).
 
   (* Parametric relation between RHCOL and FHCOL coumputation results  *)
   Definition DynWinOutRel
@@ -192,7 +192,7 @@ Section RHCOL_to_FHCOL_bounds.
        C/LLVM cast as in [cast64_to_32]
        result of the cast should be the same as
        32 bit approximation of result on Reals *)
-    heq_mem_block y_r y_64.
+    heq_mem_block () () y_r y_64.
 
   Global Instance DynWinOutRel_Proper :
     Proper ((=) ==> (=) ==> (=) ==> (=) ==> (iff)) DynWinOutRel.
@@ -271,8 +271,8 @@ Section TopLevel.
     (Y_FMEM : memory_lookup f_omemory dynwin_y_addr = Some y_fmem)
 
     (TRANSLATE_OP : translate dynwin_RHCOL = inr dynwin_FHCOL)
-    (RF_IM : heq_memory r_imemory f_imemory)
-    (RF_IΣ : heq_evalContext dynwin_R_σ f_iσ)
+    (RF_IM : heq_memory () () r_imemory f_imemory)
+    (RF_IΣ : heq_evalContext () () dynwin_R_σ f_iσ)
     :
     DynWinInConstr a_rmem x_rmem ->
     DynWinOutRel a_rmem x_rmem y_rmem y_fmem.
@@ -301,8 +301,8 @@ Section TopLevel.
         RHCOLtoFHCOL.translate dynwin_RHCOL = inr dynwin_FHCOL ->
 
         (* Equivalent inputs *)
-        RHCOLtoFHCOL.heq_memory (dynwin_R_memory a x) dynwin_F_memory ->
-        RHCOLtoFHCOL.heq_evalContext dynwin_R_σ dynwin_F_σ ->
+        RHCOLtoFHCOL.heq_memory () () (dynwin_R_memory a x) dynwin_F_memory ->
+        RHCOLtoFHCOL.heq_evalContext () () dynwin_R_σ dynwin_F_σ ->
 
         forall a_rmem x_rmem,
           RHCOLEval.memory_lookup (dynwin_R_memory a x) dynwin_a_addr = Some a_rmem ->
@@ -581,7 +581,9 @@ Section TopLevel.
       as HEQRF.
     full_autospecialize HEQRF.
     {
-      now eapply RHCOLtoFHCOL.translation_syntax_always_correct.
+      eapply RHCOLtoFHCOL.translation_syntax_always_correct.
+      eapply RF_NTP.
+      assumption.
     }
     {
       clear - CRE.
