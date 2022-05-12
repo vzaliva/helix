@@ -29,8 +29,10 @@ Require Import Helix.MSigmaHCOL.MemSetoid.
 Require Import Helix.RSigmaHCOL.ReifyProofs.
 Require Import Helix.RSigmaHCOL.RSigmaHCOL.
 
+Require Import Helix.FSigmaHCOL.FHCOLtoLFHCOL.
 Require Import Helix.FSigmaHCOL.ReifyRHCOL.
 Require Import Helix.FSigmaHCOL.Float64asCT.
+Require Import Helix.FSigmaHCOL.LazyFloat64asCT.
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 
 Require Import Helix.DynWin.DynWin.
@@ -249,6 +251,107 @@ Section TopLevel.
                      try setoid_rewrite RF1).
     now eexists.
   Qed.
+
+  Lemma DynWin_LFHCOL_hard_OK :
+    FHCOLtoLFHCOL.translate DynWin_FHCOL_hard ≡ inr DynWin_LFHCOL_hard.
+  Proof.
+    cbn.
+
+    assert (FLF0 : FHCOLtoLFHCOL.translateCTypeConst MFloat64asCT.CTypeZero
+                  ≡ @inr string _ MLazyFloat64asCT.CTypeZero).
+    {
+      unfold FHCOLtoLFHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      all: clear - n; contradict n; reflexivity.
+    }
+
+    assert (FLF1 : FHCOLtoLFHCOL.translateCTypeConst MFloat64asCT.CTypeOne
+                  ≡ @inr string _ MLazyFloat64asCT.CTypeOne).
+    {
+      unfold FHCOLtoLFHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      -
+        clear - e.
+        unfold MFloat64asCT.CTypeOne, MFloat64asCT.CTypeZero in e.
+        pose proof MFloat64asCT.CTypeZeroOneApart.
+        congruence.
+      -
+        clear - n0.
+        contradict n0.
+        reflexivity.
+    }
+
+    assert (I0 : FHCOLtoLFHCOL.translateNTypeConst Int64asNT.Int64_0
+            ≡ inr Int64asNT.Int64_0) by reflexivity.
+    assert (I1 : FHCOLtoLFHCOL.translateNTypeConst Int64asNT.Int64_1
+            ≡ inr Int64asNT.Int64_1) by reflexivity.
+    assert (I2 : FHCOLtoLFHCOL.translateNTypeConst Int64asNT.Int64_2
+                 ≡ inr Int64asNT.Int64_2) by reflexivity.
+
+    repeat progress (try setoid_rewrite FLF0;
+                     try setoid_rewrite FLF1;
+                     try setoid_rewrite I0;
+                     try setoid_rewrite I1;
+                     try setoid_rewrite I2).
+
+    reflexivity.
+  Qed.
+
+  Require Import List.
+  Import ListNotations.
+
+  Section Symbolic_Execultion_Example.
+
+    Definition i3 :=
+      {| Int64asNT.Int64.intval := 3;
+        Int64asNT.Int64.intrange := conj eq_refl eq_refl |}.
+    Definition i5 :=
+      {| Int64asNT.Int64.intval := 5;
+        Int64asNT.Int64.intrange := conj eq_refl eq_refl |}.
+    
+    Definition dynwin_LF_σ := 
+      [(LFHCOLEval.DSHPtrVal dynwin_a_addr i3, false);
+       (LFHCOLEval.DSHPtrVal dynwin_y_addr Int64asNT.Int64_1, false); (* dynwin_i *)
+       (LFHCOLEval.DSHPtrVal dynwin_x_addr i5, false)]. (* dynwin_o *)
+    
+    Definition a_mb :=
+      LFHCOLEval.mem_add 0 (LFVar 0)
+        (LFHCOLEval.mem_add 1 (LFVar 1)
+           (LFHCOLEval.mem_add 2 (LFVar 2)
+              LFHCOLEval.mem_empty)).
+    
+    Definition x_mb :=
+      LFHCOLEval.mem_add 0 (LFVar 3)
+        (LFHCOLEval.mem_add 1 (LFVar 4)
+           (LFHCOLEval.mem_add 2 (LFVar 5)
+              (LFHCOLEval.mem_add 3 (LFVar 6)
+                 (LFHCOLEval.mem_add 4 (LFVar 7)
+                    LFHCOLEval.mem_empty)))).
+    
+    Definition dynwin_LF_memory := 
+      fun (a x : LFHCOLEval.mem_block) =>
+        LFHCOLEval.memory_set
+          (LFHCOLEval.memory_set
+             (LFHCOLEval.memory_set LFHCOLEval.memory_empty
+                dynwin_a_addr a)
+             dynwin_x_addr x)
+          dynwin_y_addr LFHCOLEval.mem_empty.
+    
+    Notation "0.0" := (B754_zero 53 1024 false).
+    Notation "1.0" := (B754_finite 53 1024 false 4503599627370496 
+                         (-52)
+                         (binary_float_of_bits_aux_correct 52 11 eq_refl
+                            eq_refl eq_refl 4607182418800017408)).
+
+    (*
+    Compute LFHCOLEval.evalDSHOperator
+      dynwin_LF_σ
+      DynWin_LFHCOL_hard
+      (dynwin_LF_memory a_mb x_mb)
+      (LFHCOLEval.estimateFuel DynWin_LFHCOL_hard).
+     *)
+
+  End Symbolic_Execultion_Example.
 
   Lemma RHCOL_to_FHCOL_numerical_correct
     (r_imemory r_omemory : RHCOLEval.memory)
