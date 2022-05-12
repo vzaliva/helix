@@ -76,16 +76,26 @@ Module MDHCOLTypeTranslator
     else if CT.CTypeEquivDec a CT.CTypeOne then inr CT'.CTypeOne
          else (inl "unknown CType constant").
 
+  (* A comparison of two CType values can depend on some external environment.
+     This was primarily introduced to enable symbolic execution of DHCOL.
+     For example, a float [f1] and a symbolic float ["a" + "b"] can only be
+     directly compared given a symbolic store:
+     [f1 = {"a" + "b" | a = f1, b = 0.0 }]
+   *)
+  Section Environmental.
+
+  Variable Env : Type.
+
   (* Heterogeneous equivalence on values before and after translation *)
   Class CTranslation_heq :=
     {
-      heq_CType : CT.t -> CT'.t -> Prop ;
-      heq_CType_proper : Proper ((=) ==> (=) ==> iff) heq_CType;
+      heq_CType' {env : Env} : CT.t -> CT'.t -> Prop ;
+      heq_CType_proper : Proper ((≡) ==> (=) ==> (=) ==> iff) (@heq_CType');
 
       (* Value mapping should result in "equal" values *)
       translateCTypeConst_heq_CType :
       forall x x', translateCTypeConst x = inr x' ->
-              heq_CType x x';
+              forall env, @heq_CType' env x x';
     }.
 
   Class NTranslation_heq :=
@@ -138,10 +148,10 @@ Module MDHCOLTypeTranslator
         (f': CT'.t -> CT'.t -> CT'.t)
     :=
       {
-        cbinop_translate_compat: forall x x' y y',
-          heq_CType x x' ->
-          heq_CType y y' ->
-          heq_CType (f x y) (f' x' y')
+        cbinop_translate_compat: forall env x x' y y',
+          heq_CType' (env:=env) x x' ->
+          heq_CType' (env:=env) y y' ->
+          heq_CType' (env:=env) (f x y) (f' x' y')
       }.
 
   Class CUnOpTranslation
@@ -150,9 +160,9 @@ Module MDHCOLTypeTranslator
         (f': CT'.t -> CT'.t)
     :=
       {
-        cunop_translate_compat: forall x x',
-          heq_CType x x' ->
-          heq_CType (f x) (f' x')
+        cunop_translate_compat: forall env x x',
+          heq_CType' (env:=env) x x' ->
+          heq_CType' (env:=env) (f x) (f' x')
       }.
 
   Class COpTranslationProps `{CHE : CTranslation_heq} :=
@@ -167,6 +177,9 @@ Module MDHCOLTypeTranslator
       CTypeNeg_translation: CUnOpTranslation CT.CTypeNeg CT'.CTypeNeg ;
       CTypeAbs_translation: CUnOpTranslation CT.CTypeAbs CT'.CTypeAbs ;
     }.
+
+  Variable env : Env.
+  Notation heq_CType := (heq_CType' (env:=env)).
 
   Section EvalTranslations.
 
@@ -3854,5 +3867,7 @@ Module MDHCOLTypeTranslator
     Qed.
     
   End Semantic_Translation_Correctness_strict.
+
+  End Environmental.
 
 End MDHCOLTypeTranslator.
