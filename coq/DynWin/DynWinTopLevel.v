@@ -29,11 +29,13 @@ Require Import Helix.MSigmaHCOL.MemSetoid.
 Require Import Helix.RSigmaHCOL.ReifyProofs.
 Require Import Helix.RSigmaHCOL.RSigmaHCOL.
 
-Require Import Helix.FSigmaHCOL.FHCOLtoLFHCOL.
 Require Import Helix.FSigmaHCOL.ReifyRHCOL.
 Require Import Helix.FSigmaHCOL.Float64asCT.
-Require Import Helix.FSigmaHCOL.LazyFloat64asCT.
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
+
+Require Import Helix.SymbolicDHCOL.SymbolicCT.
+Require Import Helix.SymbolicDHCOL.RHCOLtoSRHCOL.
+Require Import Helix.SymbolicDHCOL.FHCOLtoSFHCOL.
 
 Require Import Helix.DynWin.DynWin.
 Require Import Helix.DynWin.DynWinProofs.
@@ -175,13 +177,15 @@ Section RHCOL_to_FHCOL_bounds.
       /\ in_range_64_l b_constr b64
       /\ in_range_64 A_constr A64
       /\ in_range_64 e_constr e64
-      /\ heq_mem_block () () a (make_a64 V64 b64 A64 e64)
+      /\ RHCOLtoFHCOL.heq_mem_block () RF_CHE
+          a (make_a64 V64 b64 A64 e64)
       /\ in_range_64 v_constr r_v_64
       /\ in_range_64 x_constr r_x_64
       /\ in_range_64 y_constr r_y_64
       /\ in_range_64 x_constr o_x_64
       /\ in_range_64 y_constr o_y_64
-      /\ heq_mem_block () () x (make_x64 r_v_64 r_x_64 r_y_64 o_x_64 o_y_64).
+      /\ RHCOLtoFHCOL.heq_mem_block () RF_CHE
+          x (make_x64 r_v_64 r_x_64 r_y_64 o_x_64 o_y_64).
 
   (* Parametric relation between RHCOL and FHCOL coumputation results  *)
   Definition DynWinOutRel
@@ -194,7 +198,7 @@ Section RHCOL_to_FHCOL_bounds.
        C/LLVM cast as in [cast64_to_32]
        result of the cast should be the same as
        32 bit approximation of result on Reals *)
-    heq_mem_block () () y_r y_64.
+    RHCOLtoFHCOL.heq_mem_block () RF_CHE y_r y_64.
 
   Global Instance DynWinOutRel_Proper :
     Proper ((=) ==> (=) ==> (=) ==> (=) ==> (iff)) DynWinOutRel.
@@ -252,23 +256,23 @@ Section TopLevel.
     now eexists.
   Qed.
 
-  Lemma DynWin_LFHCOL_hard_OK :
-    FHCOLtoLFHCOL.translate DynWin_FHCOL_hard ≡ inr DynWin_LFHCOL_hard.
+  Lemma DynWin_SFHCOL_hard_OK :
+    FHCOLtoSFHCOL.translate DynWin_FHCOL_hard ≡ inr DynWin_SFHCOL_hard.
   Proof.
     cbn.
 
-    assert (FLF0 : FHCOLtoLFHCOL.translateCTypeConst MFloat64asCT.CTypeZero
-                  ≡ @inr string _ MLazyFloat64asCT.CTypeZero).
+    assert (FLF0 : FHCOLtoSFHCOL.translateCTypeConst MFloat64asCT.CTypeZero
+                  ≡ @inr string _ MSymbolicCT.CTypeZero).
     {
-      unfold FHCOLtoLFHCOL.translateCTypeConst.
+      unfold FHCOLtoSFHCOL.translateCTypeConst.
       repeat break_if; try reflexivity; exfalso.
       all: clear - n; contradict n; reflexivity.
     }
 
-    assert (FLF1 : FHCOLtoLFHCOL.translateCTypeConst MFloat64asCT.CTypeOne
-                  ≡ @inr string _ MLazyFloat64asCT.CTypeOne).
+    assert (FLF1 : FHCOLtoSFHCOL.translateCTypeConst MFloat64asCT.CTypeOne
+                  ≡ @inr string _ MSymbolicCT.CTypeOne).
     {
-      unfold FHCOLtoLFHCOL.translateCTypeConst.
+      unfold FHCOLtoSFHCOL.translateCTypeConst.
       repeat break_if; try reflexivity; exfalso.
       -
         clear - e.
@@ -281,11 +285,11 @@ Section TopLevel.
         reflexivity.
     }
 
-    assert (I0 : FHCOLtoLFHCOL.translateNTypeConst Int64asNT.Int64_0
+    assert (I0 : FHCOLtoSFHCOL.translateNTypeConst Int64asNT.Int64_0
             ≡ inr Int64asNT.Int64_0) by reflexivity.
-    assert (I1 : FHCOLtoLFHCOL.translateNTypeConst Int64asNT.Int64_1
+    assert (I1 : FHCOLtoSFHCOL.translateNTypeConst Int64asNT.Int64_1
             ≡ inr Int64asNT.Int64_1) by reflexivity.
-    assert (I2 : FHCOLtoLFHCOL.translateNTypeConst Int64asNT.Int64_2
+    assert (I2 : FHCOLtoSFHCOL.translateNTypeConst Int64asNT.Int64_2
                  ≡ inr Int64asNT.Int64_2) by reflexivity.
 
     repeat progress (try setoid_rewrite FLF0;
@@ -309,33 +313,33 @@ Section TopLevel.
       {| Int64asNT.Int64.intval := 5;
         Int64asNT.Int64.intrange := conj eq_refl eq_refl |}.
     
-    Definition dynwin_LF_σ := 
-      [(LFHCOLEval.DSHPtrVal dynwin_a_addr i3, false);
-       (LFHCOLEval.DSHPtrVal dynwin_y_addr Int64asNT.Int64_1, false); (* dynwin_i *)
-       (LFHCOLEval.DSHPtrVal dynwin_x_addr i5, false)]. (* dynwin_o *)
+    Definition dynwin_SF_σ := 
+      [(SFHCOLEval.DSHPtrVal dynwin_a_addr i3, false);
+       (SFHCOLEval.DSHPtrVal dynwin_y_addr Int64asNT.Int64_1, false); (* dynwin_i *)
+       (SFHCOLEval.DSHPtrVal dynwin_x_addr i5, false)]. (* dynwin_o *)
     
     Definition a_mb :=
-      LFHCOLEval.mem_add 0 (LFVar 0)
-        (LFHCOLEval.mem_add 1 (LFVar 1)
-           (LFHCOLEval.mem_add 2 (LFVar 2)
-              LFHCOLEval.mem_empty)).
+      SFHCOLEval.mem_add 0 (SVar 0)
+        (SFHCOLEval.mem_add 1 (SVar 1)
+           (SFHCOLEval.mem_add 2 (SVar 2)
+              SFHCOLEval.mem_empty)).
     
     Definition x_mb :=
-      LFHCOLEval.mem_add 0 (LFVar 3)
-        (LFHCOLEval.mem_add 1 (LFVar 4)
-           (LFHCOLEval.mem_add 2 (LFVar 5)
-              (LFHCOLEval.mem_add 3 (LFVar 6)
-                 (LFHCOLEval.mem_add 4 (LFVar 7)
-                    LFHCOLEval.mem_empty)))).
+      SFHCOLEval.mem_add 0 (SVar 3)
+        (SFHCOLEval.mem_add 1 (SVar 4)
+           (SFHCOLEval.mem_add 2 (SVar 5)
+              (SFHCOLEval.mem_add 3 (SVar 6)
+                 (SFHCOLEval.mem_add 4 (SVar 7)
+                    SFHCOLEval.mem_empty)))).
     
-    Definition dynwin_LF_memory := 
-      fun (a x : LFHCOLEval.mem_block) =>
-        LFHCOLEval.memory_set
-          (LFHCOLEval.memory_set
-             (LFHCOLEval.memory_set LFHCOLEval.memory_empty
+    Definition dynwin_SF_memory := 
+      fun (a x : SFHCOLEval.mem_block) =>
+        SFHCOLEval.memory_set
+          (SFHCOLEval.memory_set
+             (SFHCOLEval.memory_set SFHCOLEval.memory_empty
                 dynwin_a_addr a)
              dynwin_x_addr x)
-          dynwin_y_addr LFHCOLEval.mem_empty.
+          dynwin_y_addr SFHCOLEval.mem_empty.
     
     Notation "0.0" := (B754_zero 53 1024 false).
     Notation "1.0" := (B754_finite 53 1024 false 4503599627370496 
@@ -343,12 +347,17 @@ Section TopLevel.
                          (binary_float_of_bits_aux_correct 52 11 eq_refl
                             eq_refl eq_refl 4607182418800017408)).
 
+    (** * Full symbolic execution of DynWin *)
     (*
-    Compute LFHCOLEval.evalDSHOperator
-      dynwin_LF_σ
-      DynWin_LFHCOL_hard
-      (dynwin_LF_memory a_mb x_mb)
-      (LFHCOLEval.estimateFuel DynWin_LFHCOL_hard).
+    Compute 
+      match SFHCOLEval.evalDSHOperator
+              dynwin_SF_σ
+              DynWin_SFHCOL_hard
+              (dynwin_SF_memory a_mb x_mb)
+              (SFHCOLEval.estimateFuel DynWin_SFHCOL_hard) with
+      | Some (inr omem) => SFHCOLEval.memory_lookup omem dynwin_y_addr
+      | _ => None
+      end.
      *)
 
   End Symbolic_Execultion_Example.
@@ -368,14 +377,14 @@ Section TopLevel.
     (X_RMEM : RHCOLEval.memory_lookup r_imemory dynwin_x_addr = Some x_rmem)
     (Y_RMEM : RHCOLEval.memory_lookup r_omemory dynwin_y_addr = Some y_rmem)
 
-    (F_EVAL : evalDSHOperator f_iσ dynwin_FHCOL f_imemory
+    (F_EVAL : FHCOLEval.evalDSHOperator f_iσ dynwin_FHCOL f_imemory
                 (FHCOLEval.estimateFuel dynwin_FHCOL)
               = Some (inr f_omemory))
-    (Y_FMEM : memory_lookup f_omemory dynwin_y_addr = Some y_fmem)
+    (Y_FMEM : FHCOLEval.memory_lookup f_omemory dynwin_y_addr = Some y_fmem)
 
-    (TRANSLATE_OP : translate dynwin_RHCOL = inr dynwin_FHCOL)
-    (RF_IM : heq_memory () () r_imemory f_imemory)
-    (RF_IΣ : heq_evalContext () () dynwin_R_σ f_iσ)
+    (TRANSLATE_OP : RHCOLtoFHCOL.translate dynwin_RHCOL = inr dynwin_FHCOL)
+    (RF_IM : RHCOLtoFHCOL.heq_memory () RF_CHE r_imemory f_imemory)
+    (RF_IΣ : RHCOLtoFHCOL.heq_evalContext () RF_NHE RF_CHE dynwin_R_σ f_iσ)
     :
     DynWinInConstr a_rmem x_rmem ->
     DynWinOutRel a_rmem x_rmem y_rmem y_fmem.
@@ -404,8 +413,8 @@ Section TopLevel.
         RHCOLtoFHCOL.translate dynwin_RHCOL = inr dynwin_FHCOL ->
 
         (* Equivalent inputs *)
-        RHCOLtoFHCOL.heq_memory () () (dynwin_R_memory a x) dynwin_F_memory ->
-        RHCOLtoFHCOL.heq_evalContext () () dynwin_R_σ dynwin_F_σ ->
+        RHCOLtoFHCOL.heq_memory () RF_CHE (dynwin_R_memory a x) dynwin_F_memory ->
+        RHCOLtoFHCOL.heq_evalContext () RF_NHE RF_CHE dynwin_R_σ dynwin_F_σ ->
 
         forall a_rmem x_rmem,
           RHCOLEval.memory_lookup (dynwin_R_memory a x) dynwin_a_addr = Some a_rmem ->
