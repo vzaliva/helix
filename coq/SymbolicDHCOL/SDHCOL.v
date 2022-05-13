@@ -6,10 +6,10 @@ Require Import Helix.DSigmaHCOL.DSigmaHCOLITree.
 Require Import Helix.SymbolicDHCOL.SymbolicCT.
 Require Import Helix.RSigmaHCOL.NatAsNT.
 
-Module Export SDHCOL <: MDSigmaHCOL(MFloat64asCT)(MInt64asNT).
-  Include MDSigmaHCOL MFloat64asCT MInt64asNT.
+Module Export SDHCOL <: MDSigmaHCOL(MSymbolicCT)(MNatAsNT).
+  Include MDSigmaHCOL MSymbolicCT MNatAsNT.
 End SDHCOL.
 
-Module Export SDHCOLEval <: MDSigmaHCOLEval(MFloat64asCT)(MInt64asNT)(FHCOL).
-  Include MDSigmaHCOLEval MFloat64asCT MInt64asNT FHCOL.
+Module Export SDHCOLEval <: MDSigmaHCOLEval(MSymbolicCT)(MNatAsNT)(SDHCOL).
+  Include MDSigmaHCOLEval MSymbolicCT MNatAsNT SDHCOL.
 End SDHCOLEval.
