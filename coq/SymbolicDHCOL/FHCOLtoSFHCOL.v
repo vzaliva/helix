@@ -1,33 +1,39 @@
+Require Import ZArith Psatz List.
+Require Import MathClasses.interfaces.canonical_names.
+Require Import ExtLib.Structures.Monad.
+
 Require Import Helix.Tactics.StructTactics.
 Require Import Helix.Util.OptionSetoid.
+
+Require Import Helix.DSigmaHCOL.DSigmaHCOL.
+Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
+Require Import Helix.DSigmaHCOL.DHCOLTypeTranslator.
 
 Require Import Helix.FSigmaHCOL.Float64asCT.
 Require Import Helix.FSigmaHCOL.Int64asNT.
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 
 Require Import Helix.SymbolicDHCOL.SymbolicCT.
-Require Import Helix.RSigmaHCOL.NatAsNT.
-Require Import Helix.SymbolicDHCOL.SDHCOL.
-
-Require Import Helix.DSigmaHCOL.DHCOLTypeTranslator.
-
-Require Import MathClasses.interfaces.canonical_names.
-Require Import ZArith String Psatz.
-
-Require Import List.
-Require Import ExtLib.Structures.Monad.
 
 Import ListNotations.
 
-Module Export FHCOLtoSDHCOL := MDHCOLTypeTranslator
+Module Export SFHCOL <: MDSigmaHCOL(MSymbolicCT)(MInt64asNT).
+  Include MDSigmaHCOL MSymbolicCT MInt64asNT.
+End SFHCOL.
+
+Module Export SFHCOLEval <: MDSigmaHCOLEval(MSymbolicCT)(MInt64asNT)(SFHCOL).
+  Include MDSigmaHCOLEval MSymbolicCT MInt64asNT SFHCOL.
+End SFHCOLEval.
+
+Module Export FHCOLtoSFHCOL := MDHCOLTypeTranslator
                                  (MFloat64asCT)
                                  (MSymbolicCT)
                                  (MInt64asNT)
-                                 (MNatAsNT)
+                                 (MInt64asNT)
                                  (FHCOL)
-                                 (SDHCOL)
+                                 (SFHCOL)
                                  (FHCOLEval)
-                                 (SDHCOLEval).
+                                 (SFHCOLEval).
 
 Definition FloatEnv := list MFloat64asCT.t.
 
@@ -62,7 +68,7 @@ Definition heq_Float_SExpr
   : Prop :=
   evalFloatSExpr env sf ≡ Some f.
 
-Global Instance FS_CHE : FHCOLtoSDHCOL.CTranslation_heq FloatEnv.
+Global Instance FSF_CHE : FHCOLtoSFHCOL.CTranslation_heq FloatEnv.
 Proof.
   econstructor.
   -
@@ -77,18 +83,17 @@ Proof.
     all: now rewrite e, <-H1.
 Defined.
 
-Global Instance FS_COP : @FHCOLtoSDHCOL.COpTranslationProps FloatEnv FS_CHE.
+Global Instance FSF_COP : @FHCOLtoSFHCOL.COpTranslationProps FloatEnv FSF_CHE.
 Proof.
   do 2 constructor.
   all: intros * XE; try intro YE.
-  all: unfold heq_CType', FS_CHE, heq_Float_SExpr in *.
+  all: unfold heq_CType', FSF_CHE, heq_Float_SExpr in *.
   all: cbn.
   all: now rewrite ?XE, ?YE.
 Qed.
 
 (* Trivial instances for "translating" Int64 -> Int64 *)
-(*
-Instance FS_NHE : FHCOLtoSDHCOL.NTranslation_heq.
+Instance FSF_NHE : FHCOLtoSFHCOL.NTranslation_heq.
 Proof.
   econstructor.
   -
@@ -124,24 +129,23 @@ Proof.
     apply proof_irrelevance.
 Defined.
 
-Instance FS_NTP : FHCOLtoSDHCOL.NTranslationProps.
+Instance FSF_NTP : FHCOLtoSFHCOL.NTranslationProps.
 Proof.
   constructor.
   -
     intros.
-    unfold heq_NType, FS_NHE in *.
+    unfold heq_NType, FSF_NHE in *.
     congruence.
   -
     intros.
-    unfold heq_NType, FS_NHE in *.
+    unfold heq_NType, FSF_NHE in *.
     destruct (MInt64asNT.from_nat n);
       repeat constructor.
 Qed.
 
-Instance FS_NOP : FHCOLtoSDHCOL.NOpTranslationProps.
+Instance FSF_NOP : FHCOLtoSFHCOL.NOpTranslationProps.
 Proof.
   do 2 constructor; intros.
-  all: unfold heq_NType, FS_NHE in *.
+  all: unfold heq_NType, FSF_NHE in *.
   all: congruence.
 Qed.
-*)
