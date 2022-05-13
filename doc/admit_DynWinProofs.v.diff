@@ -1,0 +1,420 @@
+diff --git a/coq/DynWin/DynWinProofs.v b/coq/DynWin/DynWinProofs.v
+index 72be7745..7d8c8e18 100644
+--- a/coq/DynWin/DynWinProofs.v
++++ b/coq/DynWin/DynWinProofs.v
+@@ -62,7 +62,7 @@ Section HCOL_Breakdown.
+   (* Initial HCOL breakdown proof *)
+   Theorem DynWinHCOL:  forall (a: avector 3),
+       dynwin_orig a = dynwin_HCOL a.
+-  Proof.
++  Admitted. (* Proof.
+     intros a.
+     unfold dynwin_orig, dynwin_HCOL.
+     rewrite breakdown_OTLess_Base.
+@@ -73,7 +73,7 @@ Section HCOL_Breakdown.
+     rewrite breakdown_OVMinus.
+     rewrite breakdown_OTInfinityNorm.
+     HOperator_reflexivity.
+-  Qed.
++  Qed. *)
+ 
+ 
+ End HCOL_Breakdown.
+@@ -153,7 +153,7 @@ Section HCOL_to_SigmaHCOL.
+     liftM_HOperator Monoid_RthetaFlags (dynwin_HCOL a)
+     =
+     dynwin_SHCOL a.
+-  Proof.
++  Admitted. (* Proof.
+     unfold dynwin_HCOL, dynwin_SHCOL.
+     rewrite LiftM_Hoperator_compose.
+     rewrite expand_HTDirectSum. (* this one does not work with Diamond_arg_proper *)
+@@ -167,12 +167,12 @@ Section HCOL_to_SigmaHCOL.
+     repeat rewrite <- SHCompose_assoc.
+     reflexivity.
+     Transparent SHCompose.
+-  Qed.
++  Qed. *)
+ 
+   Lemma DynWinSigmaHCOL_dense_input
+         (a: avector 3)
+     : Same_set _ (in_index_set _ (dynwin_SHCOL a)) (Full_set (FinNat _)).
+-  Proof.
++  Admitted. (* Proof.
+     split.
+     -
+       unfold Included.
+@@ -196,12 +196,12 @@ Section HCOL_to_SigmaHCOL.
+         unfold In.
+         unfold index_map_range_set.
+         repeat (destruct x; crush).
+-  Qed.
++  Qed. *)
+ 
+   Lemma DynWinSigmaHCOL_dense_output
+         (a: avector 3)
+     : Same_set _ (out_index_set _ (dynwin_SHCOL a)) (Full_set (FinNat _)).
+-  Proof.
++  Admitted. (* Proof.
+     split.
+     -
+       unfold Included.
+@@ -215,7 +215,7 @@ Section HCOL_to_SigmaHCOL.
+       unfold In in *.
+       simpl.
+       apply Full_intro.
+-  Qed.
++  Qed. *)
+ 
+   Fact two_index_maps_span_I_2
+        (x : FinNat 2)
+@@ -225,7 +225,7 @@ Section HCOL_to_SigmaHCOL.
+       Union (@sig nat (fun x0 : nat => x0 < 2))
+             (@index_map_range_set 1 2 (@h_index_map 1 2 1 1 b1))
+             (@index_map_range_set 1 2 (@h_index_map 1 2 O 1 b2)) x.
+-  Proof.
++  Admitted. (* Proof.
+     let lu := fresh "LU" in
+     let ru := fresh "RU" in
+     match goal with
+@@ -258,7 +258,7 @@ Section HCOL_to_SigmaHCOL.
+         apply H.
+       +
+         crush.
+-  Qed.
++  Qed. *)
+ 
+   Fact two_h_index_maps_disjoint
+        (m n: nat)
+@@ -269,7 +269,7 @@ Section HCOL_to_SigmaHCOL.
+       Disjoint (FinNat 2)
+                (@index_map_range_set 1 2 (@h_index_map 1 2 m 1 b1))
+                (@index_map_range_set 1 2 (@h_index_map 1 2 n 1 b2)).
+-  Proof.
++  Admitted. (* Proof.
+     apply Disjoint_intro.
+     intros x.
+     unfold not, In.
+@@ -289,13 +289,13 @@ Section HCOL_to_SigmaHCOL.
+     crush.
+     crush.
+     crush.
+-  Qed.
++  Qed. *)
+ 
+ 
+   Instance DynWinSigmaHCOL_Facts
+            (a: avector 3):
+     SHOperator_Facts _ (dynwin_SHCOL a).
+-  Proof.
++  Admitted. (* Proof.
+     unfold dynwin_SHCOL.
+ 
+     (* First resolve all SHOperator_Facts typeclass instances *)
+@@ -332,7 +332,7 @@ Section HCOL_to_SigmaHCOL.
+       intros x H.
+       apply Union_comm.
+       apply two_index_maps_span_I_2.
+-  Qed.
++  Qed. *)
+ 
+ End HCOL_to_SigmaHCOL.
+ 
+@@ -352,7 +352,7 @@ Section SigmaHCOL_rewriting.
+   Instance DynWinSigmaHCOL1_Facts
+            (a: avector 3):
+     SHOperator_Facts _ (dynwin_SHCOL1 a).
+-  Proof.
++  Admitted. (* Proof.
+     unfold dynwin_SHCOL1.
+     solve_facts.
+     (* Now let's take care of remaining proof obligations *)
+@@ -397,7 +397,7 @@ Section SigmaHCOL_rewriting.
+       reflexivity.
+ 
+       crush.
+-  Qed.
++  Qed. *)
+ 
+   Lemma op_Vforall_P_SHPointwise
+         {m n: nat}
+@@ -413,7 +413,7 @@ Section SigmaHCOL_rewriting.
+                    (SHCompose fm
+                               (SHPointwise (n:=n) fm (IgnoreIndex f))
+                               F).
+-  Proof.
++  Admitted. (* Proof.
+     intros H.
+     unfold op_Vforall_P.
+     intros x.
+@@ -431,13 +431,13 @@ Section SigmaHCOL_rewriting.
+     rewrite evalWriter_Rtheta_liftM.
+     unfold IgnoreIndex, const.
+     apply H.
+-  Qed.
++  Qed. *)
+ 
+   (* Sigma-HCOL rewriting correctenss *)
+   Lemma DynWinSigmaHCOL1_Value_Correctness
+         (a: avector 3)
+     : dynwin_SHCOL a = dynwin_SHCOL1 a.
+-  Proof.
++  Admitted. (* Proof.
+     unfold dynwin_SHCOL.
+     unfold SumSparseEmbedding.
+ 
+@@ -660,7 +660,7 @@ Section SigmaHCOL_rewriting.
+            end.
+     replace p with p1 by apply proof_irrelevance.
+     reflexivity.
+-  Qed.
++  Qed. *)
+ 
+ 
+   (* Couple additional structual properties: input and output of the
+@@ -668,7 +668,7 @@ Section SigmaHCOL_rewriting.
+   Lemma DynWinSigmaHCOL1_dense_input
+         (a: avector 3)
+     : Same_set _ (in_index_set _ (dynwin_SHCOL1 a)) (Full_set (FinNat _)).
+-  Proof.
++  Admitted. (* Proof.
+     split.
+     -
+       unfold Included.
+@@ -734,12 +734,12 @@ Section SigmaHCOL_rewriting.
+       compute in xc.
+       exfalso.
+       lia.
+-  Qed.
++  Qed. *)
+ 
+   Lemma DynWinSigmaHCOL1_dense_output
+         (a: avector 3)
+     : Same_set _ (out_index_set _ (dynwin_SHCOL1 a)) (Full_set (FinNat _)).
+-  Proof.
++  Admitted. (* Proof.
+     split.
+     -
+       unfold Included.
+@@ -753,7 +753,7 @@ Section SigmaHCOL_rewriting.
+       unfold In in *.
+       simpl.
+       apply Full_intro.
+-  Qed.
++  Qed. *)
+ 
+   (* Putting it all together: Final proof of SigmaHCOL rewriting which
+    includes both value and structual correctenss *)
+@@ -765,7 +765,7 @@ Section SigmaHCOL_rewriting.
+         (dynwin_SHCOL a)
+         (DynWinSigmaHCOL1_Facts _)
+         (DynWinSigmaHCOL_Facts _).
+-  Proof.
++  Admitted. (* Proof.
+     split.
+     -
+       symmetry.
+@@ -791,7 +791,7 @@ Section SigmaHCOL_rewriting.
+         rewrite E, E1.
+         unfold Same_set.
+         split; unfold Included; auto.
+-  Qed.
++  Qed. *)
+ 
+ End SigmaHCOL_rewriting.
+ 
+@@ -813,7 +813,7 @@ Section SHCOL_to_MSHCOL.
+     Included (FinNat 2) (Full_set (FinNat 2))
+              (Union (FinNat 2) (singleton 1)
+                     (Union (FinNat 2) (singleton 0) (Empty_set (FinNat 2)))).
+-  Proof.
++  Admitted. (* Proof.
+ 
+     unfold Included, In.
+     intros [x xc] _.
+@@ -830,7 +830,7 @@ Section SHCOL_to_MSHCOL.
+         reflexivity.
+       *
+         crush.
+-  Qed.
++  Qed. *)
+ 
+   Fact Apply_Family_Vforall_ATT
+         {fm}
+@@ -838,18 +838,18 @@ Section SHCOL_to_MSHCOL.
+         {svalue: CarrierA}
+         (op_family: @SHOperatorFamily _ fm i o n svalue):
+     Apply_Family_Vforall_P fm (liftRthetaP (ATT CarrierA)) op_family.
+-  Proof.
++  Admitted. (* Proof.
+     intros x j jc.
+     apply Vforall_intro.
+     intros y H.
+     unfold liftRthetaP.
+     cbv;tauto.
+-  Qed.
++  Qed. *)
+ 
+ 
+   Theorem dynwin_SHCOL_MSHCOL_compat (a: avector 3):
+     SH_MSH_Operator_compat (dynwin_SHCOL1 a) (dynwin_MSHCOL1 a).
+-  Proof.
++  Admitted. (* Proof.
+     unfold dynwin_SHCOL1, dynwin_MSHCOL1.
+     unfold ISumUnion.
+ 
+@@ -901,7 +901,7 @@ Section SHCOL_to_MSHCOL.
+       apply Set_Obligation_1.
+     -
+       apply Set_Obligation_1.
+-  Qed.
++  Qed. *)
+ 
+ End SHCOL_to_MSHCOL.
+ 
+@@ -918,9 +918,9 @@ Section MSHCOL_to_RHCOL.
+      [DynWin.v]. See also [DynWin_FHCOL_hard_check] *)
+   Fact dynwin_RHCOL_hard_check :
+     dynwin_RHCOL ≡ DynWin_RHCOL_hard.
+-  Proof.
++  Admitted. (* Proof.
+     reflexivity.
+-  Qed.
++  Qed. *)
+ 
+   (* Import DSHNotation. *)
+ 
+@@ -983,10 +983,10 @@ Section MSHCOL_to_RHCOL.
+   Instance DynWin_pure
+     :
+       DSH_pure (dynwin_RHCOL) DSH_y_p.
+-  Proof.
++  Admitted. (* Proof.
+     unfold dynwin_RHCOL, DSH_y_p, DSH_x_p.
+     solve_MSH_DSH_compat.
+-  Qed.
++  Qed. *)
+ 
+   Section DummyEnv.
+ 
+@@ -1046,14 +1046,14 @@ Section MSHCOL_to_RHCOL.
+     Lemma memory_lookup_not_next_equiv {m k v}:
+       memory_lookup m k = Some v ->
+       k ≢ memory_next_key m.
+-    Proof.
++    Admitted. (* Proof.
+       intros H.
+       destruct (eq_nat_dec k (memory_next_key m)) as [E|NE]; [exfalso|auto].
+       rewrite E in H. clear E.
+       pose proof (memory_lookup_memory_next_key_is_None m) as N.
+       unfold util.is_None in N.
+       break_match_hyp; [trivial|some_none].
+-    Qed.
++    Qed. *)
+ 
+     (* This lemma could be auto-generated from TemplateCoq *)
+     Theorem DynWin_MSH_DSH_compat
+@@ -1063,7 +1063,7 @@ Section MSHCOL_to_RHCOL.
+                         dynwin_memory
+                         DSH_x_p DSH_y_p
+                         DynWin_pure.
+-    Proof.
++    Admitted. (* Proof.
+       unfold dynwin_RHCOL, DSH_y_p, DSH_x_p.
+       unfold dynwin_x_addr, dynwin_y_addr, dynwin_a_addr, nglobals in *.
+       unfold dynwin_MSHCOL1.
+@@ -1468,7 +1468,7 @@ Section MSHCOL_to_RHCOL.
+         -
+           solve_facts.
+       }
+-    Qed.
++    Qed. *)
+ 
+     
+ 
+@@ -1485,7 +1485,7 @@ Section RCHOL_to_FHCOL.
+      [DynWin.v]. See also [DynWin_FHCOL_hard_check] *)
+   Fact DynWin_FHCOL_hard_check :
+     RHCOLtoFHCOL.translate dynwin_RHCOL ≡ inr DynWin_FHCOL_hard.
+-  Proof.
++  Admitted. (* Proof.
+     cbn.
+ 
+     assert (RF0 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeZero
+@@ -1517,7 +1517,7 @@ Section RCHOL_to_FHCOL.
+                      try setoid_rewrite RF1).
+ 
+     reflexivity.
+-  Qed.
++  Qed. *)
+ 
+   Require Import Reals.Rdefinitions.
+   From Flocq.IEEE754 Require Import Binary Bits.
+@@ -1574,7 +1574,7 @@ Section RCHOL_to_FHCOL.
+   Defined.
+ 
+   Global Instance RF_NTP : RHCOLtoFHCOL.NTranslationProps.
+-  Proof.
++  Admitted. (* Proof.
+     constructor; intros *.
+     all: unfold RF_NHE, heq_NType, heq_nat_int.
+     all: unfold NatAsNT.MNatAsNT.to_nat, MInt64asNT.to_nat.
+@@ -1589,7 +1589,7 @@ Section RCHOL_to_FHCOL.
+       repeat break_match;
+         constructor.
+       reflexivity.
+-  Qed.
++  Qed. *)
+ 
+ End RCHOL_to_FHCOL.
+ 
+@@ -1601,9 +1601,9 @@ Section RHCOL_to_FHCOL_numerical.
+   (* TODO: move *)
+   Lemma trivial2_Proper `{AE : Equiv A} `{BE : Equiv B} :
+     Proper (equiv ==> equiv ==> iff) (@trivial2 A B).
+-  Proof.
++  Admitted. (* Proof.
+     repeat constructor.
+-  Qed.
++  Qed. *)
+ 
+   Ltac crush_int :=
+     repeat rewrite !Int64.unsigned_repr;
+@@ -1687,9 +1687,9 @@ Section RHCOL_to_FHCOL_numerical.
+ 
+   Local Fact trivial_RF_COP
+     : @RHCOLtoFHCOL.COpTranslationProps () trivial_RF_CHE.
+-  Proof.
++  Admitted. (* Proof.
+     repeat constructor.
+-  Qed.
++  Qed. *)
+ 
+   Definition RF_Structural_Semantic_Preservation :=
+     @RHCOLtoFHCOL.translation_semantics_correct () ()
+@@ -1704,7 +1704,7 @@ Section RHCOL_to_FHCOL_numerical.
+     :
+     RHCOLtoFHCOL.translate dynwin_RHCOL = inr dynwin_FHCOL ->
+ 
+-    RHCOLtoFHCOL.heq_evalContext () () dynwin_R_σ dynwin_F_σ ->
++    RHCOLtoFHCOL.heq_evalContext () RF_NHE RF_CHE dynwin_R_σ dynwin_F_σ ->
+ 
+     hopt (herr (@RHCOLtoFHCOL.evalNExpr_closure_trace_equiv () () RF_NHE trivial_RF_CHE))
+          (RHCOLEval.intervalEvalDSHOperator_σ
+@@ -1713,7 +1713,7 @@ Section RHCOL_to_FHCOL_numerical.
+          (intervalEvalDSHOperator_σ
+             dynwin_F_σ dynwin_FHCOL []
+             (estimateFuel dynwin_FHCOL)).
+-  Proof.
++  Admitted. (* Proof.
+     intros RF RFΣ.
+ 
+     assert (RF0 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeZero
+@@ -1919,6 +1919,6 @@ Section RHCOL_to_FHCOL_numerical.
+         with (Z.of_nat nv1)
+         by (now unfold Int64.unsigned).
+       crush_int.
+-  Qed.
++  Qed. *)
+ 
+ End RHCOL_to_FHCOL_numerical.
