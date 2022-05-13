@@ -257,6 +257,40 @@ Section TopLevel.
     reflexivity.
   Qed.
 
+  Lemma DynWin_SRHCOL_hard_OK :
+    RHCOLtoSRHCOL.translate DynWin_RHCOL_hard ≡ inr DynWin_SRHCOL_hard.
+  Proof.
+    cbn.
+    assert (RLR0 : RHCOLtoSRHCOL.translateCTypeConst MRasCT.CTypeZero
+                  ≡ @inr string _ MSymbolicCT.CTypeZero).
+    {
+      unfold RHCOLtoSRHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      all: clear - n; contradict n; reflexivity.
+    }
+
+    assert (RLR1 : RHCOLtoSRHCOL.translateCTypeConst MRasCT.CTypeOne
+                  ≡ @inr string _ MSymbolicCT.CTypeOne).
+    {
+      unfold RHCOLtoSRHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      -
+        clear - e.
+        unfold MRasCT.CTypeOne, MRasCT.CTypeZero in e.
+        pose proof MRasCT.CTypeZeroOneApart.
+        congruence.
+      -
+        clear - n0.
+        contradict n0.
+        reflexivity.
+    }
+
+    repeat progress (try setoid_rewrite RLR0;
+                     try setoid_rewrite RLR1).
+
+    reflexivity.
+  Qed.
+
   Lemma DynWin_SFHCOL_hard_OK :
     FHCOLtoSFHCOL.translate DynWin_FHCOL_hard ≡ inr DynWin_SFHCOL_hard.
   Proof.
@@ -363,34 +397,149 @@ Section TopLevel.
 
   End Symbolic_Execultion_Example.
 
-  Lemma RHCOL_to_FHCOL_numerical_correct
-    (r_imemory r_omemory : RHCOLEval.memory)
-    (a_rmem x_rmem y_rmem : RHCOLEval.mem_block)
-    (f_imemory f_omemory : FHCOLEval.memory)
-    (f_iσ : FHCOLEval.evalContext)
-    (y_fmem : FHCOLEval.mem_block)
-    (dynwin_FHCOL : FHCOLEval.DSHOperator)
+  Section DynWin_Symbolic.
 
-    (R_EVAL : RHCOLEval.evalDSHOperator dynwin_R_σ DynWin_RHCOL r_imemory
-                (RHCOLEval.estimateFuel DynWin_RHCOL)
-              = Some (inr r_omemory))
-    (A_RMEM : RHCOLEval.memory_lookup r_imemory dynwin_a_addr = Some a_rmem)
-    (X_RMEM : RHCOLEval.memory_lookup r_imemory dynwin_x_addr = Some x_rmem)
-    (Y_RMEM : RHCOLEval.memory_lookup r_omemory dynwin_y_addr = Some y_rmem)
+    Variable ar : vector R 3.
+    Variable xr : vector R dynwin_i.
 
-    (F_EVAL : FHCOLEval.evalDSHOperator f_iσ dynwin_FHCOL f_imemory
-                (FHCOLEval.estimateFuel dynwin_FHCOL)
-              = Some (inr f_omemory))
-    (Y_FMEM : FHCOLEval.memory_lookup f_omemory dynwin_y_addr = Some y_fmem)
+    Fact lt0_3 : 0 < 3. repeat constructor. Qed.
+    Fact lt1_3 : 1 < 3. repeat constructor. Qed.
+    Fact lt2_3 : 2 < 3. repeat constructor. Qed.
 
-    (TRANSLATE_OP : RHCOLtoFHCOL.translate DynWin_RHCOL = inr dynwin_FHCOL)
-    (RF_IM : RHCOLtoFHCOL.heq_memory () RF_CHE r_imemory f_imemory)
-    (RF_IΣ : RHCOLtoFHCOL.heq_evalContext () RF_NHE RF_CHE dynwin_R_σ f_iσ)
-    :
-    DynWinInConstr a_rmem x_rmem ->
-    DynWinOutRel a_rmem x_rmem y_rmem y_fmem.
-  Proof.
-  Admitted.
+    Fact lt0_5 : 0 < 5. repeat constructor. Qed.
+    Fact lt1_5 : 1 < 5. repeat constructor. Qed.
+    Fact lt2_5 : 2 < 5. repeat constructor. Qed.
+    Fact lt3_5 : 3 < 5. repeat constructor. Qed.
+    Fact lt4_5 : 4 < 5. repeat constructor. Qed.
+
+    Let R_env :=
+      [Vnth ar lt0_3;
+       Vnth ar lt1_3;
+       Vnth ar lt2_3;
+
+       Vnth xr lt0_5;
+       Vnth xr lt1_5;
+       Vnth xr lt2_5;
+       Vnth xr lt3_5;
+       Vnth xr lt4_5].
+       
+    Let r_imemory := dynwin_R_memory ar xr.
+    
+    Definition dynwin_SR_σ := 
+      [(SRHCOLEval.DSHPtrVal dynwin_a_addr 3, false);
+       (SRHCOLEval.DSHPtrVal dynwin_y_addr 1, false);
+       (SRHCOLEval.DSHPtrVal dynwin_x_addr 5, false)].
+    
+    Definition R_a_mb :=
+      SRHCOLEval.mem_add 0 (SVar 0)
+        (SRHCOLEval.mem_add 1 (SVar 1)
+           (SRHCOLEval.mem_add 2 (SVar 2)
+              SRHCOLEval.mem_empty)).
+    
+    Definition R_x_mb :=
+      SRHCOLEval.mem_add 0 (SVar 3)
+        (SRHCOLEval.mem_add 1 (SVar 4)
+           (SRHCOLEval.mem_add 2 (SVar 5)
+              (SRHCOLEval.mem_add 3 (SVar 6)
+                 (SRHCOLEval.mem_add 4 (SVar 7)
+                    SRHCOLEval.mem_empty)))).
+
+    Definition dynwin_SR_memory := 
+      SRHCOLEval.memory_set
+        (SRHCOLEval.memory_set
+           (SRHCOLEval.memory_set SRHCOLEval.memory_empty
+              dynwin_a_addr R_a_mb)
+           dynwin_x_addr R_x_mb)
+        dynwin_y_addr SRHCOLEval.mem_empty.
+    
+    Lemma RHCOL_to_FHCOL_numerical_correct
+      (r_omemory : RHCOLEval.memory)
+      (a_rmem x_rmem y_rmem : RHCOLEval.mem_block)
+      (f_imemory f_omemory : FHCOLEval.memory)
+      (f_iσ : FHCOLEval.evalContext)
+      (y_fmem : FHCOLEval.mem_block)
+      (dynwin_FHCOL : FHCOLEval.DSHOperator)
+      
+      (R_EVAL : RHCOLEval.evalDSHOperator dynwin_R_σ DynWin_RHCOL r_imemory
+                  (RHCOLEval.estimateFuel DynWin_RHCOL)
+                = Some (inr r_omemory))
+      (A_RMEM : RHCOLEval.memory_lookup r_imemory dynwin_a_addr = Some a_rmem)
+      (X_RMEM : RHCOLEval.memory_lookup r_imemory dynwin_x_addr = Some x_rmem)
+      (Y_RMEM : RHCOLEval.memory_lookup r_omemory dynwin_y_addr = Some y_rmem)
+      
+      (F_EVAL : FHCOLEval.evalDSHOperator f_iσ dynwin_FHCOL f_imemory
+                  (FHCOLEval.estimateFuel dynwin_FHCOL)
+                = Some (inr f_omemory))
+      (Y_FMEM : FHCOLEval.memory_lookup f_omemory dynwin_y_addr = Some y_fmem)
+      
+      (TRANSLATE_OP : RHCOLtoFHCOL.translate DynWin_RHCOL = inr dynwin_FHCOL)
+      (RF_IM : RHCOLtoFHCOL.heq_memory () RF_CHE r_imemory f_imemory)
+      (RF_IΣ : RHCOLtoFHCOL.heq_evalContext () RF_NHE RF_CHE dynwin_R_σ f_iσ)
+      :
+      DynWinInConstr a_rmem x_rmem ->
+      DynWinOutRel a_rmem x_rmem y_rmem y_fmem.
+    Proof.
+      pose proof RHCOLtoSRHCOL_semantic_preservation
+        DynWin_RHCOL DynWin_SRHCOL_hard
+        dynwin_R_σ dynwin_SR_σ
+        r_imemory dynwin_SR_memory
+        R_env
+        as SR_EVAL.
+      full_autospecialize SR_EVAL.
+      {
+        apply RHCOLtoSRHCOL.translation_syntax_always_correct.
+        typeclasses eauto.
+        rewrite <-DynWin_SRHCOL_hard_OK, <-dynwin_RHCOL_hard_check.
+        reflexivity.
+      }
+      {
+        repeat constructor.
+      }
+      {
+        intros k.
+        do 3 try destruct k.
+        - (* a *)
+          unfold r_imemory.
+          cbn - [ctvector_to_mem_block].
+          constructor.
+          intros k.
+          do 3 try destruct k.
+          1-3: erewrite mem_lookup_ctvector_to_mem_block.
+          1-3: now constructor.
+
+          cbn - [ctvector_to_mem_block].
+          admit.
+        - (* y *)
+          unfold r_imemory.
+          cbn - [ctvector_to_mem_block].
+          repeat constructor.
+        - (* x *)
+          unfold r_imemory.
+          cbn - [ctvector_to_mem_block].
+          constructor.
+          intros k.
+          do 5 try destruct k.
+          1-5: erewrite mem_lookup_ctvector_to_mem_block.
+          1-5: now constructor.
+
+          cbn - [ctvector_to_mem_block].
+          admit.
+        -
+          constructor.
+      }
+
+      (* 
+      remember (SRHCOLEval.evalDSHOperator
+                  dynwin_SR_σ DynWin_SRHCOL_hard dynwin_SR_memory
+                  (SRHCOLEval.estimateFuel DynWin_SRHCOL_hard))
+        as SRMEM;
+      cbv in HeqSRMEM;
+      subst.
+       *)
+        
+    Admitted.
+
+  End DynWin_Symbolic.
 
   (*
     Translation validation proof of semantic preservation
@@ -730,7 +879,6 @@ Section TopLevel.
       eapply @RHCOLtoFHCOL_NExpr_closure_trace_equiv.
       assumption.
       clear - CRE.
-      Set Printing All.
       eapply CRE.
     }
 
@@ -770,17 +918,13 @@ Section TopLevel.
     clear RO R_YO y_rmem.
     rename y_rmem' into y_rmem, Y_RMEM' into Y_RMEM.
 
-    generalize dependent (dynwin_R_memory a x);
-      intros r_imemory TRM A_RMEM X_RMEM R_EVAL.
-    clear a x y HC.
-    rename dynwin_F_memory into f_imemory, dynwin_F_σ into f_iσ.
-    remember dynwin_R_σ as r_iσ.
+    clear y HC.
 
     subst.
 
     eapply RHCOL_to_FHCOL_numerical_correct;
       try eassumption.
-    now rewrite R_EVAL.
+    now rewrite RE.
     now rewrite <-Y_RMEM.
     now rewrite F_EVAL.
     now rewrite <-Y_FMEM.

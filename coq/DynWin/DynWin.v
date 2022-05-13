@@ -474,3 +474,116 @@ Definition DynWin_SFHCOL_hard :=
                         |}) (SFHCOL.PVar 1, NConst Int64asNT.Int64_1)))))
           (DSHBinOp 1 (SFHCOL.PVar 0) (SFHCOL.PVar (S 1))
              (AZless (AVar 1) (AVar 0))))).
+
+Definition DynWin_SRHCOL_hard :=
+  (SRHCOLEval.DSHAlloc (NatAsNT.MNatAsNT.to_nat 2)
+       (SRHCOLEval.DSHSeq
+          (SRHCOLEval.DSHSeq
+             (SRHCOLEval.DSHAlloc (NatAsNT.MNatAsNT.to_nat 1)
+                (SRHCOLEval.DSHSeq
+                   (SRHCOLEval.DSHSeq
+                      (SRHCOLEval.DSHMemInit (SRHCOL.PVar 0) MSymbolicCT.CTypeZero)
+                      (SRHCOLEval.DSHAlloc (NatAsNT.MNatAsNT.to_nat 1)
+                         (SRHCOLEval.DSHLoop 3
+                            (SRHCOLEval.DSHSeq
+                               (SRHCOLEval.DSHAlloc (NatAsNT.MNatAsNT.to_nat 1)
+                                  (SRHCOLEval.DSHSeq
+                                     (SRHCOLEval.DSHAssign
+                                        (SRHCOL.PVar 7,
+                                        SRHCOLEval.NConst
+                                          (NatAsNT.MNatAsNT.to_nat 0))
+                                        (SRHCOL.PVar 0,
+                                        SRHCOLEval.NConst
+                                          (NatAsNT.MNatAsNT.to_nat 0)))
+                                     (SRHCOLEval.DSHAlloc
+                                        (NatAsNT.MNatAsNT.to_nat 1)
+                                        (SRHCOLEval.DSHSeq
+                                           (SRHCOLEval.DSHPower
+                                              (SRHCOLEval.NVar (S 1))
+                                              (SRHCOL.PVar 1,
+                                              SRHCOLEval.NConst
+                                                (NatAsNT.MNatAsNT.to_nat 0))
+                                              (SRHCOL.PVar 0,
+                                              SRHCOLEval.NConst
+                                                (NatAsNT.MNatAsNT.to_nat 0))
+                                              (SRHCOLEval.AMult 
+                                                 (SRHCOLEval.AVar 1)
+                                                 (SRHCOLEval.AVar 0))
+                                              MSymbolicCT.CTypeOne)
+                                           (SRHCOLEval.DSHIMap 1 
+                                              (SRHCOL.PVar 0)
+                                              (SRHCOL.PVar (S (S 1)))
+                                              (SRHCOLEval.AMult 
+                                                 (SRHCOLEval.AVar 0)
+                                                 (SRHCOLEval.ANth
+                                                    (SRHCOLEval.MPtrDeref
+                                                      (SRHCOL.PVar 8))
+                                                    (SRHCOLEval.NVar (S (S (S 1)))))))))))
+                               (SRHCOLEval.DSHMemMap2 1 
+                                  (SRHCOL.PVar (S 1)) (SRHCOL.PVar 1)
+                                  (SRHCOL.PVar (S 1))
+                                  (SRHCOLEval.APlus (SRHCOLEval.AVar 1)
+                                     (SRHCOLEval.AVar 0)))))))
+                   (SRHCOLEval.DSHAssign
+                      (SRHCOL.PVar 0,
+                      SRHCOLEval.NConst (NatAsNT.MNatAsNT.to_nat 0))
+                      (SRHCOL.PVar 1,
+                      SRHCOLEval.NConst (NatAsNT.MNatAsNT.to_nat 0)))))
+             (SRHCOLEval.DSHAlloc (NatAsNT.MNatAsNT.to_nat 1)
+                (SRHCOLEval.DSHSeq
+                   (SRHCOLEval.DSHSeq
+                      (SRHCOLEval.DSHMemInit (SRHCOL.PVar 0) MSymbolicCT.CTypeZero)
+                      (SRHCOLEval.DSHAlloc (NatAsNT.MNatAsNT.to_nat 1)
+                         (SRHCOLEval.DSHLoop 2
+                            (SRHCOLEval.DSHSeq
+                               (SRHCOLEval.DSHAlloc (NatAsNT.MNatAsNT.to_nat 2)
+                                  (SRHCOLEval.DSHSeq
+                                     (SRHCOLEval.DSHLoop 2
+                                        (SRHCOLEval.DSHAlloc
+                                           (NatAsNT.MNatAsNT.to_nat 1)
+                                           (SRHCOLEval.DSHSeq
+                                              (SRHCOLEval.DSHAssign
+                                                 (SRHCOL.PVar 9,
+                                                 SRHCOLEval.NPlus
+                                                   (SRHCOLEval.NPlus
+                                                      (SRHCOLEval.NConst
+                                                      (NatAsNT.MNatAsNT.to_nat 1))
+                                                      (SRHCOLEval.NMult
+                                                      (SRHCOLEval.NVar (S (S 1)))
+                                                      (SRHCOLEval.NConst
+                                                      (NatAsNT.MNatAsNT.to_nat 1))))
+                                                   (SRHCOLEval.NMult
+                                                      (SRHCOLEval.NVar 1)
+                                                      (SRHCOLEval.NMult
+                                                      (SRHCOLEval.NConst
+                                                      (NatAsNT.MNatAsNT.to_nat 2))
+                                                      (SRHCOLEval.NConst
+                                                      (NatAsNT.MNatAsNT.to_nat 1)))))
+                                                 (SRHCOL.PVar 0,
+                                                 SRHCOLEval.NConst
+                                                   (NatAsNT.MNatAsNT.to_nat 0)))
+                                              (SRHCOLEval.DSHAssign
+                                                 (SRHCOL.PVar 0,
+                                                 SRHCOLEval.NConst
+                                                   (NatAsNT.MNatAsNT.to_nat 0))
+                                                 (SRHCOL.PVar (S 1),
+                                                 SRHCOLEval.NVar 1)))))
+                                     (SRHCOLEval.DSHBinOp 1 
+                                        (SRHCOL.PVar 0) 
+                                        (SRHCOL.PVar (S 1))
+                                        (SRHCOLEval.AAbs
+                                           (SRHCOLEval.AMinus 
+                                              (SRHCOLEval.AVar 1)
+                                              (SRHCOLEval.AVar 0))))))
+                               (SRHCOLEval.DSHMemMap2 1 
+                                  (SRHCOL.PVar (S 1)) (SRHCOL.PVar 1)
+                                  (SRHCOL.PVar (S 1))
+                                  (SRHCOLEval.AMax (SRHCOLEval.AVar 1)
+                                     (SRHCOLEval.AVar 0)))))))
+                   (SRHCOLEval.DSHAssign
+                      (SRHCOL.PVar 0,
+                      SRHCOLEval.NConst (NatAsNT.MNatAsNT.to_nat 0))
+                      (SRHCOL.PVar 1,
+                      SRHCOLEval.NConst (NatAsNT.MNatAsNT.to_nat 1))))))
+          (SRHCOLEval.DSHBinOp 1 (SRHCOL.PVar 0) (SRHCOL.PVar (S 1))
+             (SRHCOLEval.AZless (SRHCOLEval.AVar 1) (SRHCOLEval.AVar 0))))).
