@@ -21,47 +21,23 @@ Import MonadNotation.
 Open Scope monad_scope.
 Open Scope string_scope.
 
-Inductive FloatExpr :=
-| LFVar   : nat -> FloatExpr
-| LFConst : MFloat64asCT.t -> FloatExpr
-| LFNeg   : FloatExpr -> FloatExpr
-| LFAbs   : FloatExpr -> FloatExpr
-| LFPlus  : FloatExpr -> FloatExpr -> FloatExpr
-| LFMult  : FloatExpr -> FloatExpr -> FloatExpr
-| LFZLess : FloatExpr -> FloatExpr -> FloatExpr
-| LFMin   : FloatExpr -> FloatExpr -> FloatExpr
-| LFMax   : FloatExpr -> FloatExpr -> FloatExpr
-| LFSub   : FloatExpr -> FloatExpr -> FloatExpr.
-
-Definition FloatEnv := list MFloat64asCT.t.
-
-(* No use for fancier monads *)
-Fixpoint evalFloatExpr (e : FloatEnv) (f : FloatExpr) : option MFloat64asCT.t :=
-  match f with
-  | LFVar i       => (nth_error e i)
-  | LFConst b     => Some b
-  | LFNeg   f     =>
-      liftM  MFloat64asCT.CTypeNeg   (evalFloatExpr e f)
-  | LFAbs   f     =>
-      liftM  MFloat64asCT.CTypeAbs   (evalFloatExpr e f)
-  | LFPlus  f1 f2 =>
-      liftM2 MFloat64asCT.CTypePlus  (evalFloatExpr e f1) (evalFloatExpr e f2)
-  | LFMult  f1 f2 =>
-      liftM2 MFloat64asCT.CTypeMult  (evalFloatExpr e f1) (evalFloatExpr e f2)
-  | LFZLess f1 f2 =>
-      liftM2 MFloat64asCT.CTypeZLess (evalFloatExpr e f1) (evalFloatExpr e f2)
-  | LFMin   f1 f2 =>
-      liftM2 MFloat64asCT.CTypeMin   (evalFloatExpr e f1) (evalFloatExpr e f2)
-  | LFMax   f1 f2 =>
-      liftM2 MFloat64asCT.CTypeMax   (evalFloatExpr e f1) (evalFloatExpr e f2)
-  | LFSub   f1 f2 =>
-      liftM2 MFloat64asCT.CTypeSub   (evalFloatExpr e f1) (evalFloatExpr e f2)
-  end.
+Inductive SExpr :=
+| SConstZero : SExpr
+| SConstOne  : SExpr
+| SVar       : nat -> SExpr
+| SNeg       : SExpr -> SExpr
+| SAbs       : SExpr -> SExpr
+| SPlus      : SExpr -> SExpr -> SExpr
+| SMult      : SExpr -> SExpr -> SExpr
+| SZLess     : SExpr -> SExpr -> SExpr
+| SMin       : SExpr -> SExpr -> SExpr
+| SMax       : SExpr -> SExpr -> SExpr
+| SSub       : SExpr -> SExpr -> SExpr.
 
 (* TODO: evaluation might be more suitable here *)
-Instance FloatExpr_Equiv: Equiv FloatExpr := eq.
+Instance SExpr_Equiv: Equiv SExpr := eq.
 
-Instance FloatExpr_Setoid: Setoid FloatExpr.
+Instance SExpr_Setoid: Setoid SExpr.
 Proof.
   constructor.
   - now intros x.
@@ -69,35 +45,49 @@ Proof.
   - intros x y z Exy Eyz; auto.
 Qed. 
 
-Instance FloatExpr_equiv_dec: forall x y : FloatExpr, Decision (x = y).
+Instance SExpr_equiv_dec: forall x y : SExpr, Decision (x = y).
 Proof.
-Admitted.
+  intros.
+  unfold Decision.
+  generalize dependent y.
+  induction x; intros.
+  all: destruct y.
+  all: try (left; reflexivity); try (right; discriminate).
+
+  1: destruct (Nat.eq_dec n n0); [left | right]; congruence.
+
+  1,2: specialize (IHx y).
+  1,2: destruct IHx; [left | right]; congruence.
+
+  all: specialize (IHx1 y1); specialize (IHx2 y2).
+  all: destruct IHx1, IHx2; [left | right | right | right]; congruence.
+Qed.    
 
 Module MLazyFloat64asCT <: CType.
 
-  Definition t := FloatExpr.
+  Definition t := SExpr.
 
-  Definition CTypeEquiv := FloatExpr_Equiv.
-  Definition CTypeSetoid := FloatExpr_Setoid.
+  Definition CTypeEquiv := SExpr_Equiv.
+  Definition CTypeSetoid := SExpr_Setoid.
 
-  Definition CTypeZero : FloatExpr := LFConst MFloat64asCT.CTypeZero.
-  Definition CTypeOne : FloatExpr := LFConst MFloat64asCT.CTypeOne.
+  Definition CTypeZero : SExpr := SConstZero.
+  Definition CTypeOne : SExpr := SConstOne.
 
   Lemma CTypeZeroOneApart: CTypeZero ≠ CTypeOne.
   Proof.
     discriminate.
   Qed.
 
-  Definition CTypeEquivDec := FloatExpr_equiv_dec.
+  Definition CTypeEquivDec := SExpr_equiv_dec.
 
-  Definition CTypeNeg   := LFNeg.
-  Definition CTypeAbs   := LFAbs.
-  Definition CTypePlus  := LFPlus.
-  Definition CTypeMult  := LFMult.
-  Definition CTypeZLess := LFZLess.
-  Definition CTypeMin   := LFMin.
-  Definition CTypeMax   := LFMax.
-  Definition CTypeSub   := LFSub.
+  Definition CTypeNeg   := SNeg.
+  Definition CTypeAbs   := SAbs.
+  Definition CTypePlus  := SPlus.
+  Definition CTypeMult  := SMult.
+  Definition CTypeZLess := SZLess.
+  Definition CTypeMin   := SMin.
+  Definition CTypeMax   := SMax.
+  Definition CTypeSub   := SSub.
 
   Instance Zless_proper: Proper ((=) ==> (=) ==> (=)) CTypeZLess.
   Proof. solve_proper. Qed.
