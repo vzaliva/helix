@@ -372,8 +372,20 @@ Definition is_None_bool {A:Type} (x:option A) : bool :=
 Inductive trivial2 {A B : Type} : A -> B -> Prop :=
 | trivial2_intro : forall a b, trivial2 a b.
 
+Global Instance trivial2_Proper `{AE : Equiv A} `{BE : Equiv B} :
+  Proper (equiv ==> equiv ==> iff) (@trivial2 A B).
+Proof.
+  repeat constructor.
+Qed.
+
 Inductive trivial3 {A B C : Type} : A -> B -> C -> Prop :=
 | trivial3_intro : forall a b c, trivial3 a b c.
+
+Global Instance trivial3_Proper `{AE : Equiv A} `{BE : Equiv B} `{CE : Equiv C}:
+  Proper (equiv ==> equiv ==> equiv ==> iff) (@trivial3 A B C).
+Proof.
+  repeat constructor.
+Qed.
 
 Lemma tuple_equiv_inv `{Ae:Equiv A} `{Be:Equiv B}:
   forall (x x':A) (y y':B), (x,y) = (x',y') -> x=x' /\ y=y'.
