@@ -149,3 +149,21 @@ Proof.
   all: unfold heq_NType, FSF_NHE in *.
   all: congruence.
 Qed.
+
+Lemma FHCOLtoSFHCOL_semantic_preservation
+  (op : FHCOL.DSHOperator) (op' : SFHCOL.DSHOperator)
+  (σ : FHCOLEval.evalContext) (σ' : evalContext)
+  (imem : FHCOL.memory) (imem' : SFHCOL.memory)
+  :
+  forall env,
+    FHCOLtoSFHCOL.heq_DSHOperator env FSF_NHE FSF_CHE op op' →
+    FHCOLtoSFHCOL.heq_evalContext env FSF_NHE FSF_CHE σ σ' →
+    FHCOLtoSFHCOL.heq_memory env FSF_CHE imem imem' →
+    hopt_r (ErrorSetoid.herr_c (FHCOLtoSFHCOL.heq_memory env FSF_CHE))
+      (FHCOLEval.evalDSHOperator σ op imem (FHCOLEval.estimateFuel op))
+      (SFHCOLEval.evalDSHOperator σ' op' imem' (SFHCOLEval.estimateFuel op')).
+Proof.
+  intros * OPE ΣE ME.
+  eapply FHCOLtoSFHCOL.translation_semantics_correct_strict.
+  all: auto using FSF_NTP, FSF_NOP, FSF_COP.
+Qed.
