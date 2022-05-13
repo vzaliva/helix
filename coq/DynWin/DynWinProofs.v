@@ -1704,7 +1704,7 @@ Section RHCOL_to_FHCOL_numerical.
     :
     RHCOLtoFHCOL.translate dynwin_RHCOL = inr dynwin_FHCOL ->
 
-    RHCOLtoFHCOL.heq_evalContext () () dynwin_R_σ dynwin_F_σ ->
+    RHCOLtoFHCOL.heq_evalContext () RF_NHE RF_CHE dynwin_R_σ dynwin_F_σ ->
 
     hopt (herr (@RHCOLtoFHCOL.evalNExpr_closure_trace_equiv () () RF_NHE trivial_RF_CHE))
          (RHCOLEval.intervalEvalDSHOperator_σ
