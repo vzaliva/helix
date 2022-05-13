@@ -14,10 +14,6 @@ Require Import MathClasses.interfaces.orders.
 Require Import ExtLib.Structures.Monad.
 Require Import ExtLib.Data.Monads.OptionMonad.
 
-Require Import List.
-Import ListNotations.
-Import MonadNotation.
-
 Open Scope monad_scope.
 Open Scope string_scope.
 

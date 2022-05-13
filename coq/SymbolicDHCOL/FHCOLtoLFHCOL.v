@@ -2,65 +2,71 @@ Require Import Helix.Tactics.StructTactics.
 Require Import Helix.Util.OptionSetoid.
 
 Require Import Helix.FSigmaHCOL.Float64asCT.
-Require Import Helix.FSigmaHCOL.LazyFloat64asCT.
 Require Import Helix.FSigmaHCOL.Int64asNT.
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
+
+Require Import Helix.SymbolicDHCOL.SymbolicCT.
+Require Import Helix.RSigmaHCOL.NatAsNT.
+Require Import Helix.SymbolicDHCOL.SDHCOL.
+
 Require Import Helix.DSigmaHCOL.DHCOLTypeTranslator.
 
 Require Import MathClasses.interfaces.canonical_names.
 Require Import ZArith String Psatz.
 
+Require Import List.
 Require Import ExtLib.Structures.Monad.
 
-Module Export FHCOLtoLFHCOL := MDHCOLTypeTranslator
-                                 (MFloat64asCT)
-                                 (MLazyFloat64asCT)
-                                 (MInt64asNT)
-                                 (MInt64asNT)
-                                 (FHCOL)
-                                 (LFHCOL)
-                                 (FHCOLEval)
-                                 (LFHCOLEval).
+Import ListNotations.
 
-(*
+Module Export FHCOLtoSDHCOL := MDHCOLTypeTranslator
+                                 (MFloat64asCT)
+                                 (MSymbolicCT)
+                                 (MInt64asNT)
+                                 (MNatAsNT)
+                                 (FHCOL)
+                                 (SDHCOL)
+                                 (FHCOLEval)
+                                 (SDHCOLEval).
+
 Definition FloatEnv := list MFloat64asCT.t.
 
 (* No use for fancier monads *)
-Fixpoint evalFloatExpr (e : FloatEnv) (f : FloatExpr) : option MFloat64asCT.t :=
+Fixpoint evalFloatSExpr (e : FloatEnv) (f : SExpr) : option MFloat64asCT.t :=
   match f with
-  | LFVar i       => (nth_error e i)
-  | LFConst b     => Some b
-  | LFNeg   f     =>
-      liftM  MFloat64asCT.CTypeNeg   (evalFloatExpr e f)
-  | LFAbs   f     =>
-      liftM  MFloat64asCT.CTypeAbs   (evalFloatExpr e f)
-  | LFPlus  f1 f2 =>
-      liftM2 MFloat64asCT.CTypePlus  (evalFloatExpr e f1) (evalFloatExpr e f2)
-  | LFMult  f1 f2 =>
-      liftM2 MFloat64asCT.CTypeMult  (evalFloatExpr e f1) (evalFloatExpr e f2)
-  | LFZLess f1 f2 =>
-      liftM2 MFloat64asCT.CTypeZLess (evalFloatExpr e f1) (evalFloatExpr e f2)
-  | LFMin   f1 f2 =>
-      liftM2 MFloat64asCT.CTypeMin   (evalFloatExpr e f1) (evalFloatExpr e f2)
-  | LFMax   f1 f2 =>
-      liftM2 MFloat64asCT.CTypeMax   (evalFloatExpr e f1) (evalFloatExpr e f2)
-  | LFSub   f1 f2 =>
-      liftM2 MFloat64asCT.CTypeSub   (evalFloatExpr e f1) (evalFloatExpr e f2)
+  | SVar i       => (nth_error e i)
+  | SConstZero   => Some MFloat64asCT.CTypeZero
+  | SConstOne    => Some MFloat64asCT.CTypeOne
+  | SNeg   f     =>
+      liftM  MFloat64asCT.CTypeNeg   (evalFloatSExpr e f)
+  | SAbs   f     =>
+      liftM  MFloat64asCT.CTypeAbs   (evalFloatSExpr e f)
+  | SPlus  f1 f2 =>
+      liftM2 MFloat64asCT.CTypePlus  (evalFloatSExpr e f1) (evalFloatSExpr e f2)
+  | SMult  f1 f2 =>
+      liftM2 MFloat64asCT.CTypeMult  (evalFloatSExpr e f1) (evalFloatSExpr e f2)
+  | SZLess f1 f2 =>
+      liftM2 MFloat64asCT.CTypeZLess (evalFloatSExpr e f1) (evalFloatSExpr e f2)
+  | SMin   f1 f2 =>
+      liftM2 MFloat64asCT.CTypeMin   (evalFloatSExpr e f1) (evalFloatSExpr e f2)
+  | SMax   f1 f2 =>
+      liftM2 MFloat64asCT.CTypeMax   (evalFloatSExpr e f1) (evalFloatSExpr e f2)
+  | SSub   f1 f2 =>
+      liftM2 MFloat64asCT.CTypeSub   (evalFloatSExpr e f1) (evalFloatSExpr e f2)
   end.
-*)
 
-Definition heq_Float_SymFloat
+Definition heq_Float_SExpr
   (env : FloatEnv)
   (f : MFloat64asCT.t)
-  (sf : MLazyFloat64asCT.t)
+  (sf : MSymbolicCT.t)
   : Prop :=
-  evalFloatExpr env sf ≡ Some f.
+  evalFloatSExpr env sf ≡ Some f.
 
-Global Instance FLF_CHE : FHCOLtoLFHCOL.CTranslation_heq FloatEnv.
+Global Instance FS_CHE : FHCOLtoSDHCOL.CTranslation_heq FloatEnv.
 Proof.
   econstructor.
   -
-    instantiate (1:=heq_Float_SymFloat).
+    instantiate (1:=heq_Float_SExpr).
     intros f1 f2 F lf1 lf2 LF.
     invc F; invc LF.
     easy.
@@ -71,17 +77,18 @@ Proof.
     all: now rewrite e, <-H1.
 Defined.
 
-Global Instance FLF_COP : @FHCOLtoLFHCOL.COpTranslationProps FloatEnv FLF_CHE.
+Global Instance FS_COP : @FHCOLtoSDHCOL.COpTranslationProps FloatEnv FS_CHE.
 Proof.
   do 2 constructor.
   all: intros * XE; try intro YE.
-  all: unfold heq_CType', FLF_CHE, heq_Float_SymFloat in *.
+  all: unfold heq_CType', FS_CHE, heq_Float_SExpr in *.
   all: cbn.
   all: now rewrite ?XE, ?YE.
 Qed.
 
 (* Trivial instances for "translating" Int64 -> Int64 *)
-Instance FLF_NHE : FHCOLtoLFHCOL.NTranslation_heq.
+(*
+Instance FS_NHE : FHCOLtoSDHCOL.NTranslation_heq.
 Proof.
   econstructor.
   -
@@ -117,23 +124,24 @@ Proof.
     apply proof_irrelevance.
 Defined.
 
-Instance FLF_NTP : FHCOLtoLFHCOL.NTranslationProps.
+Instance FS_NTP : FHCOLtoSDHCOL.NTranslationProps.
 Proof.
   constructor.
   -
     intros.
-    unfold heq_NType, FLF_NHE in *.
+    unfold heq_NType, FS_NHE in *.
     congruence.
   -
     intros.
-    unfold heq_NType, FLF_NHE in *.
+    unfold heq_NType, FS_NHE in *.
     destruct (MInt64asNT.from_nat n);
       repeat constructor.
 Qed.
 
-Instance FLF_NOP : FHCOLtoLFHCOL.NOpTranslationProps.
+Instance FS_NOP : FHCOLtoSDHCOL.NOpTranslationProps.
 Proof.
   do 2 constructor; intros.
-  all: unfold heq_NType, FLF_NHE in *.
+  all: unfold heq_NType, FS_NHE in *.
   all: congruence.
 Qed.
+*)
