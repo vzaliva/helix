@@ -905,29 +905,41 @@ Section SHCOL_to_MSHCOL.
 
 End SHCOL_to_MSHCOL.
 
+(* TODO: move, but not sure where. We do not have MemorySetoid.v *)
+Lemma memory_lookup_not_next_equiv {m k v}:
+  RHCOLEval.memory_lookup m k = Some v ->
+  k ≢ RHCOLEval.memory_next_key m.
+Proof.
+  intros H.
+  destruct (eq_nat_dec k (RHCOLEval.memory_next_key m)) as [E|NE]; [exfalso|auto].
+  rewrite E in H. clear E.
+  pose proof (RHCOLEval.memory_lookup_memory_next_key_is_None m) as N.
+  unfold util.is_None in N.
+  break_match_hyp; [trivial|some_none].
+Qed.
+
 Section MSHCOL_to_RHCOL.
 
   Import RHCOLEval.
 
   Opaque CarrierAz zero CarrierA1 one.
-
-  MetaCoq Run (reifyMSHCOL dynwin_MSHCOL1 [(BasicAst.MPfile ["DynWinProofs"; "DynWin"; "Helix"], "dynwin_MSHCOL1")] "dynwin_RHCOL" "dynwin_RHCOL_globals").
+  MetaCoq Run
+    (reifyMSHCOL dynwin_MSHCOL1
+       [(BasicAst.MPfile ["DynWinProofs"; "DynWin"; "Helix"], "dynwin_MSHCOL1")]
+       "DynWin_RHCOL" "DynWin_RHCOL_globals").
   Transparent CarrierAz zero CarrierA1 one.
 
   (* A sanity check as a side effect of [DynWin_RHCOL_hard] being hardcoded in
      [DynWin.v]. See also [DynWin_FHCOL_hard_check] *)
   Fact dynwin_RHCOL_hard_check :
-    dynwin_RHCOL ≡ DynWin_RHCOL_hard.
+    DynWin_RHCOL ≡ DynWin_RHCOL_hard.
   Proof.
     reflexivity.
   Qed.
 
-  (* Import DSHNotation. *)
-
-  Definition nglobals := List.length (dynwin_RHCOL_globals). (* 1 *)
+  Definition nglobals := List.length (DynWin_RHCOL_globals). (* 1 *)
   Definition DSH_x_p := PVar (nglobals+1). (* PVar 2 *)
   Definition DSH_y_p := PVar (nglobals+0). (* PVar 1 *)
-
 
   (* This tactics solves both [MSH_DSH_compat] and [DSH_pure] goals along with typical
      obligations *)
@@ -982,89 +994,54 @@ Section MSHCOL_to_RHCOL.
   (* TODO: This is a manual proof. To be automated in future. See [[../../doc/TODO.org]] for details *)
   Instance DynWin_pure
     :
-      DSH_pure (dynwin_RHCOL) DSH_y_p.
+      DSH_pure (DynWin_RHCOL) DSH_y_p.
   Proof.
-    unfold dynwin_RHCOL, DSH_y_p, DSH_x_p.
+    unfold DynWin_RHCOL, DSH_y_p, DSH_x_p.
     solve_MSH_DSH_compat.
   Qed.
 
   Section DummyEnv.
 
-    Local Open Scope list_scope. (* for ++ *)
+    Local Open Scope list_scope.
 
     (* Could be automatically universally quantified on these *)
-    Variable a:vector CarrierA 3.
-    Variable x:mem_block.
+    Variable a : ctvector 3.
+    Variable x : ctvector dynwin_i.
 
-    Definition dynwin_a_addr:nat := 0.
-    Definition dynwin_y_addr:nat := (nglobals+0).
-    Definition dynwin_x_addr:nat := (nglobals+1).
+    Definition dynwin_a_addr : nat := 0.
+    Definition dynwin_y_addr : nat := (nglobals+0).
+    Definition dynwin_x_addr : nat := (nglobals+1).
 
     Definition dynwin_globals_mem :=
       (memory_set memory_empty dynwin_a_addr (ctvector_to_mem_block a)).
 
+    Definition dynwin_R_σ_globals : evalContext :=
+      [(DSHPtrVal dynwin_a_addr 3,false)].
+    
+    Definition dynwin_R_σ : evalContext :=
+      dynwin_R_σ_globals ++ [(DSHPtrVal dynwin_y_addr dynwin_o,false)
+                          ;(DSHPtrVal dynwin_x_addr dynwin_i,false)].
+    
     (* Initialize memory with X and placeholder for Y. *)
-    Definition dynwin_memory :=
+    Definition dynwin_R_memory :=
       memory_set
-        (memory_set dynwin_globals_mem dynwin_x_addr x)
+        (memory_set
+           (memory_set
+              memory_empty
+              dynwin_a_addr (ctvector_to_mem_block a))
+           dynwin_x_addr (ctvector_to_mem_block x))
         dynwin_y_addr mem_empty.
-    
-    (* TODO: this clashes with [dynwin_R_σ], which is more common, but less clean *)
-    (*
-    Definition dynwin_σ_globals:evalContext :=
-      [
-        (DSHPtrVal dynwin_a_addr 3,false)
-      ].
-    
-    Definition dynwin_σ:evalContext :=
-      dynwin_σ_globals ++
-                       [
-                         (DSHPtrVal dynwin_y_addr dynwin_o,false)
-                         ; (DSHPtrVal dynwin_x_addr dynwin_i,false)
-                       ].
-     *)
-    
-    (* Initialize memory with X and placeholder for Y. *)
-    Definition dynwin_R_memory (a:ctvector 3) (x:ctvector dynwin_i) :=
-      RHCOLEval.memory_set
-        (RHCOLEval.memory_set (RHCOLEval.memory_set
-                                 RHCOLEval.memory_empty
-                                 dynwin_a_addr
-                                 (ctvector_to_mem_block a))
-                              dynwin_x_addr
-                              (ctvector_to_mem_block x))
-        dynwin_y_addr
-        RHCOLEval.mem_empty.
-    
-    Definition dynwin_R_σ := [
-        (RHCOLEval.DSHPtrVal dynwin_a_addr 3,false)
-        ; (RHCOLEval.DSHPtrVal dynwin_y_addr dynwin_o,false)
-        ; (RHCOLEval.DSHPtrVal dynwin_x_addr dynwin_i,false)
-      ].
-
-    (* TODO: move, but not sure where. We do not have MemorySetoid.v *)
-    Lemma memory_lookup_not_next_equiv {m k v}:
-      memory_lookup m k = Some v ->
-      k ≢ memory_next_key m.
-    Proof.
-      intros H.
-      destruct (eq_nat_dec k (memory_next_key m)) as [E|NE]; [exfalso|auto].
-      rewrite E in H. clear E.
-      pose proof (memory_lookup_memory_next_key_is_None m) as N.
-      unfold util.is_None in N.
-      break_match_hyp; [trivial|some_none].
-    Qed.
 
     (* This lemma could be auto-generated from TemplateCoq *)
     Theorem DynWin_MSH_DSH_compat
       :
-        @MSH_DSH_compat dynwin_i dynwin_o (dynwin_MSHCOL1 a) (dynwin_RHCOL)
+        @MSH_DSH_compat dynwin_i dynwin_o (dynwin_MSHCOL1 a) (DynWin_RHCOL)
                         dynwin_R_σ
-                        dynwin_memory
+                        dynwin_R_memory
                         DSH_x_p DSH_y_p
                         DynWin_pure.
     Proof.
-      unfold dynwin_RHCOL, DSH_y_p, DSH_x_p.
+      unfold DynWin_RHCOL, DSH_y_p, DSH_x_p.
       unfold dynwin_x_addr, dynwin_y_addr, dynwin_a_addr, nglobals in *.
       unfold dynwin_MSHCOL1.
       cbn in *.
@@ -1247,7 +1224,7 @@ Section MSHCOL_to_RHCOL.
         assert(LM: memory_lookup m1 dynwin_a_addr = Some v).
         {
           subst m1.
-          unfold dynwin_memory, dynwin_globals_mem.
+          unfold dynwin_R_memory, dynwin_globals_mem.
 
           do 4 (rewrite memory_lookup_memory_set_neq
                  by (cbn;unfold dynwin_a_addr,dynwin_y_addr,dynwin_x_addr, nglobals; auto)).
@@ -1470,8 +1447,6 @@ Section MSHCOL_to_RHCOL.
       }
     Qed.
 
-    
-
   End DummyEnv.
 
 End MSHCOL_to_RHCOL.
@@ -1484,7 +1459,7 @@ Section RCHOL_to_FHCOL.
   (* A sanity check as a side effect of [DynWin_RHCOL_hard] being hardcoded in
      [DynWin.v]. See also [DynWin_FHCOL_hard_check] *)
   Fact DynWin_FHCOL_hard_check :
-    RHCOLtoFHCOL.translate dynwin_RHCOL ≡ inr DynWin_FHCOL_hard.
+    RHCOLtoFHCOL.translate DynWin_RHCOL ≡ inr DynWin_FHCOL_hard.
   Proof.
     cbn.
 
@@ -1519,7 +1494,6 @@ Section RCHOL_to_FHCOL.
     reflexivity.
   Qed.
 
-
   (* note: the two [try] blocks are for RHCOL/FHCOL lemma *)
   Ltac destruct_context_range_lookup ΣR x :=
     let TΣR := fresh "TΣR" in
@@ -1541,14 +1515,14 @@ Section RCHOL_to_FHCOL.
         (dynwin_F_σ : evalContext)
         (dynwin_FHCOL : FHCOL.DSHOperator)
     :
-    RHCOLtoFHCOL.translate dynwin_RHCOL = inr dynwin_FHCOL ->
+    RHCOLtoFHCOL.translate DynWin_RHCOL = inr dynwin_FHCOL ->
 
     RHCOLtoFHCOL.heq_evalContext () RF_NHE RF_CHE dynwin_R_σ dynwin_F_σ ->
 
     hopt (herr (@RHCOLtoFHCOL.evalNExpr_closure_trace_equiv () () RF_NHE trivial_RF_CHE))
          (RHCOLEval.intervalEvalDSHOperator_σ
-            dynwin_R_σ dynwin_RHCOL []
-            (RHCOLEval.estimateFuel dynwin_RHCOL))
+            dynwin_R_σ DynWin_RHCOL []
+            (RHCOLEval.estimateFuel DynWin_RHCOL))
          (intervalEvalDSHOperator_σ
             dynwin_F_σ dynwin_FHCOL []
             (estimateFuel dynwin_FHCOL)).

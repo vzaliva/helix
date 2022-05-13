@@ -221,8 +221,8 @@ Section TopLevel.
                      (* y_mem *) FHCOLEval.mem_block -> Prop.
    *)
 
-  Lemma DynWin_RHCOL_to_FHCOL_op_OK :
-    exists r, RHCOLtoFHCOL.translate dynwin_RHCOL = inr r.
+  Lemma DynWin_FHCOL_hard_OK :
+    RHCOLtoFHCOL.translate DynWin_RHCOL ≡ inr DynWin_FHCOL_hard.
   Proof.
     cbn.
 
@@ -253,7 +253,8 @@ Section TopLevel.
 
     repeat progress (try setoid_rewrite RF0;
                      try setoid_rewrite RF1).
-    now eexists.
+
+    reflexivity.
   Qed.
 
   Lemma DynWin_SFHCOL_hard_OK :
@@ -370,8 +371,8 @@ Section TopLevel.
     (y_fmem : FHCOLEval.mem_block)
     (dynwin_FHCOL : FHCOLEval.DSHOperator)
 
-    (R_EVAL : RHCOLEval.evalDSHOperator dynwin_R_σ dynwin_RHCOL r_imemory
-                (RHCOLEval.estimateFuel dynwin_RHCOL)
+    (R_EVAL : RHCOLEval.evalDSHOperator dynwin_R_σ DynWin_RHCOL r_imemory
+                (RHCOLEval.estimateFuel DynWin_RHCOL)
               = Some (inr r_omemory))
     (A_RMEM : RHCOLEval.memory_lookup r_imemory dynwin_a_addr = Some a_rmem)
     (X_RMEM : RHCOLEval.memory_lookup r_imemory dynwin_x_addr = Some x_rmem)
@@ -382,7 +383,7 @@ Section TopLevel.
               = Some (inr f_omemory))
     (Y_FMEM : FHCOLEval.memory_lookup f_omemory dynwin_y_addr = Some y_fmem)
 
-    (TRANSLATE_OP : RHCOLtoFHCOL.translate dynwin_RHCOL = inr dynwin_FHCOL)
+    (TRANSLATE_OP : RHCOLtoFHCOL.translate DynWin_RHCOL = inr dynwin_FHCOL)
     (RF_IM : RHCOLtoFHCOL.heq_memory () RF_CHE r_imemory f_imemory)
     (RF_IΣ : RHCOLtoFHCOL.heq_evalContext () RF_NHE RF_CHE dynwin_R_σ f_iσ)
     :
@@ -410,7 +411,7 @@ Section TopLevel.
 
       forall dynwin_F_memory dynwin_F_σ (dynwin_FHCOL:FHCOL.DSHOperator),
         (* Compile -> RHCOL -> FHCOL *)
-        RHCOLtoFHCOL.translate dynwin_RHCOL = inr dynwin_FHCOL ->
+        RHCOLtoFHCOL.translate DynWin_RHCOL = inr dynwin_FHCOL ->
 
         (* Equivalent inputs *)
         RHCOLtoFHCOL.heq_memory () RF_CHE (dynwin_R_memory a x) dynwin_F_memory ->
@@ -425,9 +426,9 @@ Section TopLevel.
           exists r_omemory y_rmem,
             RHCOLEval.evalDSHOperator
               dynwin_R_σ
-              dynwin_RHCOL
+              DynWin_RHCOL
               (dynwin_R_memory a x)
-              (RHCOLEval.estimateFuel dynwin_RHCOL) = Some (inr r_omemory)
+              (RHCOLEval.estimateFuel DynWin_RHCOL) = Some (inr r_omemory)
             /\ RHCOLEval.memory_lookup r_omemory dynwin_y_addr = Some y_rmem
             /\ ctvector_to_mem_block y = y_rmem
 
@@ -449,9 +450,9 @@ Section TopLevel.
 
     assert(RHCOLEval.evalDSHOperator
              dynwin_R_σ
-             dynwin_RHCOL
+             DynWin_RHCOL
              (dynwin_R_memory a x)
-             (RHCOLEval.estimateFuel dynwin_RHCOL) = Some (inr r_omemory)) as RO.
+             (RHCOLEval.estimateFuel DynWin_RHCOL) = Some (inr r_omemory)) as RO.
     {
       pose proof (DynWin_MSH_DSH_compat a) as MRHCOL.
       pose proof (DynWin_pure) as MAPURE.
@@ -563,9 +564,7 @@ Section TopLevel.
       remember (svector_to_mem_block Monoid_RthetaFlags sx) as mx eqn:MX.
       remember (svector_to_mem_block Monoid_RthetaFlags sy) as my eqn:MY.
 
-      specialize (MRHCOL (ctvector_to_mem_block x)).
-      replace (dynwin_memory a (ctvector_to_mem_block x))
-        with (dynwin_R_memory a x) in MRHCOL by reflexivity.
+      specialize (MRHCOL x).
       destruct MRHCOL as [MRHCOL].
       specialize (MRHCOL (ctvector_to_mem_block x) RHCOLEval.mem_empty).
       autospecialize MRHCOL.
@@ -637,11 +636,11 @@ Section TopLevel.
           now rewrite RY.
       -
         exfalso.
-        pose proof (@RHCOLEval.evalDSHOperator_estimateFuel dynwin_R_σ dynwin_RHCOL (dynwin_R_memory a x)) as CC.
+        pose proof (@RHCOLEval.evalDSHOperator_estimateFuel dynwin_R_σ DynWin_RHCOL (dynwin_R_memory a x)) as CC.
         clear - CC AE.
         apply util.is_None_def in AE.
-        generalize dependent (RHCOLEval.evalDSHOperator dynwin_R_σ dynwin_RHCOL
-                                                        (dynwin_R_memory a x) (RHCOLEval.estimateFuel dynwin_RHCOL)).
+        generalize dependent (RHCOLEval.evalDSHOperator dynwin_R_σ DynWin_RHCOL
+                                                        (dynwin_R_memory a x) (RHCOLEval.estimateFuel DynWin_RHCOL)).
         intros o AE CC.
         some_none.
       -
@@ -682,9 +681,9 @@ Section TopLevel.
 
     pose proof
          RF_Structural_Semantic_Preservation
-         dynwin_RHCOL
+         DynWin_RHCOL
          dynwin_FHCOL
-         (RHCOLEval.estimateFuel dynwin_RHCOL)
+         (RHCOLEval.estimateFuel DynWin_RHCOL)
          (FHCOLEval.estimateFuel dynwin_FHCOL)
          dynwin_R_σ
          dynwin_F_σ
