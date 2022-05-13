@@ -3870,4 +3870,10 @@ Module MDHCOLTypeTranslator
 
   End Environmental.
 
+  Arguments heq_CType' {Env}.
+  Arguments heq_evalContext {Env}.
+  Arguments heq_mem_block {Env}.
+  Arguments heq_memory {Env}.
+  Arguments heq_DSHOperator {Env}.
+
 End MDHCOLTypeTranslator.
