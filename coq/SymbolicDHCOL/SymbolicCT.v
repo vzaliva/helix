@@ -63,7 +63,7 @@ Proof.
   all: destruct IHx1, IHx2; [left | right | right | right]; congruence.
 Qed.    
 
-Module MLazyFloat64asCT <: CType.
+Module MSymbolicCT <: CType.
 
   Definition t := SExpr.
 
@@ -110,4 +110,4 @@ Module MLazyFloat64asCT <: CType.
   Instance max_proper: Proper ((=) ==> (=) ==> (=)) CTypeMax.
   Proof. solve_proper. Qed.
 
-End MLazyFloat64asCT.
+End MSymbolicCT.

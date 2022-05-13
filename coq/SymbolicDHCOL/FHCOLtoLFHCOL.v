@@ -22,6 +22,33 @@ Module Export FHCOLtoLFHCOL := MDHCOLTypeTranslator
                                  (FHCOLEval)
                                  (LFHCOLEval).
 
+(*
+Definition FloatEnv := list MFloat64asCT.t.
+
+(* No use for fancier monads *)
+Fixpoint evalFloatExpr (e : FloatEnv) (f : FloatExpr) : option MFloat64asCT.t :=
+  match f with
+  | LFVar i       => (nth_error e i)
+  | LFConst b     => Some b
+  | LFNeg   f     =>
+      liftM  MFloat64asCT.CTypeNeg   (evalFloatExpr e f)
+  | LFAbs   f     =>
+      liftM  MFloat64asCT.CTypeAbs   (evalFloatExpr e f)
+  | LFPlus  f1 f2 =>
+      liftM2 MFloat64asCT.CTypePlus  (evalFloatExpr e f1) (evalFloatExpr e f2)
+  | LFMult  f1 f2 =>
+      liftM2 MFloat64asCT.CTypeMult  (evalFloatExpr e f1) (evalFloatExpr e f2)
+  | LFZLess f1 f2 =>
+      liftM2 MFloat64asCT.CTypeZLess (evalFloatExpr e f1) (evalFloatExpr e f2)
+  | LFMin   f1 f2 =>
+      liftM2 MFloat64asCT.CTypeMin   (evalFloatExpr e f1) (evalFloatExpr e f2)
+  | LFMax   f1 f2 =>
+      liftM2 MFloat64asCT.CTypeMax   (evalFloatExpr e f1) (evalFloatExpr e f2)
+  | LFSub   f1 f2 =>
+      liftM2 MFloat64asCT.CTypeSub   (evalFloatExpr e f1) (evalFloatExpr e f2)
+  end.
+*)
+
 Definition heq_Float_SymFloat
   (env : FloatEnv)
   (f : MFloat64asCT.t)
