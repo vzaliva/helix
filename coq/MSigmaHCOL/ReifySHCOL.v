@@ -44,7 +44,7 @@ MetaCoq Run
     ).
 
 Fixpoint compileSHCOL2MSHCOL (t:term) (fuel: nat) {struct fuel}: TemplateMonad (term) :=
-  let kmshop name := (MPdot (MPfile ["MSigmaHCOL"; "MSigmaHCOL"; "Helix"]) "MMSCHOL", name) in
+  let kmshop name := (MPdot (MPfile ["MSigmaHCOL"; "MSigmaHCOL"; "Helix"]) "MHCOL", name) in
   match fuel with
   | O => tmFail "expression complexity limit reached"
   | S fuel' =>
