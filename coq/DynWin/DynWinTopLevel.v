@@ -1,5 +1,6 @@
-From Coq Require Import ZArith Rdefinitions String.
+From Coq Require Import ZArith Rdefinitions String Psatz.
 
+From ExtLib Require Import Monad.
 From MathClasses Require Import interfaces.canonical_names.
 From Flocq Require Import Binary Bits Core.Defs.
 
@@ -39,6 +40,8 @@ Require Import Helix.SymbolicDHCOL.FHCOLtoSFHCOL.
 
 Require Import Helix.DynWin.DynWin.
 Require Import Helix.DynWin.DynWinProofs.
+
+Import MonadNotation.
 
 (* TODO: move *)
 Section FloatAux.
@@ -187,18 +190,54 @@ Section RHCOL_to_FHCOL_bounds.
       /\ RHCOLtoFHCOL.heq_mem_block () RF_CHE
           x (make_x64 r_v_64 r_x_64 r_y_64 o_x_64 o_y_64).
 
+  (* TODO: move *)
+  (* [CTypeZero/CTypeOne] can be used
+     as representations of [false/true] respectively.
+     This is a C-style conversion to [Prop]
+   *)
+  Definition propF (x : MFloat64asCT.t) : Prop :=
+    x <> MFloat64asCT.CTypeZero.
+  Definition propR (x : MRasCT.t) : Prop :=
+    x <> MRasCT.CTypeZero.
+
+  (* Implication across [CType]s *)
+  Definition CType_impl p q :=
+    propF p -> propR q.
+
+  (* The memory cell in which the boolean result is written by DynWin *)
+  Definition dynwin_y_offset := 0%nat.
+
   (* Parametric relation between RHCOL and FHCOL coumputation results  *)
+  (*
+    Requisite relation:
+
+     Binary64 out | Real out ||  Status
+     -------------------------------------
+     Safe         | Safe     ||  OK        (agreeing)
+     Safe         | Unsafe   ||  FORBIDDEN (dangerous in reality, "safe" in 64)
+     Unsafe       | Safe     ||  OK        (overly cautious)
+     Unsafe       | Unsafe   ||  OK        (agreeing)
+
+     in boolean terms, given "Safe" = true, "Unsafe" = false,
+     this is
+
+     [Binary64 out] => [Real out]
+
+     (alternatively "Real = safe \/ Binary64 = unsafe")
+   *)
   Definition DynWinOutRel
              (a_r:RHCOLEval.mem_block)
              (x_r:RHCOLEval.mem_block)
              (y_r:RHCOLEval.mem_block)
              (y_64:FHCOLEval.mem_block): Prop
     :=
-    (* cast 64 bit output to 32 bit, simlating
-       C/LLVM cast as in [cast64_to_32]
-       result of the cast should be the same as
-       32 bit approximation of result on Reals *)
-    RHCOLtoFHCOL.heq_mem_block () RF_CHE y_r y_64.
+    hopt_r (flip CType_impl)
+      (RHCOLEval.mem_lookup dynwin_y_offset y_r)
+      (FHCOLEval.mem_lookup dynwin_y_offset y_64).
+
+  Global Instance CType_impl_proper :
+    Proper ((=) ==> (=) ==> (iff)) CType_impl.
+  Admitted.
 
   Global Instance DynWinOutRel_Proper :
     Proper ((=) ==> (=) ==> (=) ==> (=) ==> (iff)) DynWinOutRel.
@@ -339,64 +378,6 @@ Section TopLevel.
   Require Import List.
   Import ListNotations.
 
-  Section Symbolic_Execultion_Example.
-
-    Definition i3 :=
-      {| Int64asNT.Int64.intval := 3;
-        Int64asNT.Int64.intrange := conj eq_refl eq_refl |}.
-    Definition i5 :=
-      {| Int64asNT.Int64.intval := 5;
-        Int64asNT.Int64.intrange := conj eq_refl eq_refl |}.
-    
-    Definition dynwin_SF_σ := 
-      [(SFHCOLEval.DSHPtrVal dynwin_a_addr i3, false);
-       (SFHCOLEval.DSHPtrVal dynwin_y_addr Int64asNT.Int64_1, false); (* dynwin_i *)
-       (SFHCOLEval.DSHPtrVal dynwin_x_addr i5, false)]. (* dynwin_o *)
-    
-    Definition a_mb :=
-      SFHCOLEval.mem_add 0 (SVar 0)
-        (SFHCOLEval.mem_add 1 (SVar 1)
-           (SFHCOLEval.mem_add 2 (SVar 2)
-              SFHCOLEval.mem_empty)).
-    
-    Definition x_mb :=
-      SFHCOLEval.mem_add 0 (SVar 3)
-        (SFHCOLEval.mem_add 1 (SVar 4)
-           (SFHCOLEval.mem_add 2 (SVar 5)
-              (SFHCOLEval.mem_add 3 (SVar 6)
-                 (SFHCOLEval.mem_add 4 (SVar 7)
-                    SFHCOLEval.mem_empty)))).
-    
-    Definition dynwin_SF_memory := 
-      fun (a x : SFHCOLEval.mem_block) =>
-        SFHCOLEval.memory_set
-          (SFHCOLEval.memory_set
-             (SFHCOLEval.memory_set SFHCOLEval.memory_empty
-                dynwin_a_addr a)
-             dynwin_x_addr x)
-          dynwin_y_addr SFHCOLEval.mem_empty.
-    
-    Notation "0.0" := (B754_zero 53 1024 false).
-    Notation "1.0" := (B754_finite 53 1024 false 4503599627370496 
-                         (-52)
-                         (binary_float_of_bits_aux_correct 52 11 eq_refl
-                            eq_refl eq_refl 4607182418800017408)).
-
-    (** * Full symbolic execution of DynWin *)
-    (*
-    Compute 
-      match SFHCOLEval.evalDSHOperator
-              dynwin_SF_σ
-              DynWin_SFHCOL_hard
-              (dynwin_SF_memory a_mb x_mb)
-              (SFHCOLEval.estimateFuel DynWin_SFHCOL_hard) with
-      | Some (inr omem) => SFHCOLEval.memory_lookup omem dynwin_y_addr
-      | _ => None
-      end.
-     *)
-
-  End Symbolic_Execultion_Example.
-
   Section DynWin_Symbolic.
 
     Variable ar : vector R 3.
@@ -422,20 +403,20 @@ Section TopLevel.
        Vnth xr lt2_5;
        Vnth xr lt3_5;
        Vnth xr lt4_5].
-       
+
     Let r_imemory := dynwin_R_memory ar xr.
-    
-    Definition dynwin_SR_σ := 
+
+    Definition dynwin_SR_σ :=
       [(SRHCOLEval.DSHPtrVal dynwin_a_addr 3, false);
        (SRHCOLEval.DSHPtrVal dynwin_y_addr 1, false);
        (SRHCOLEval.DSHPtrVal dynwin_x_addr 5, false)].
-    
+
     Definition R_a_mb :=
       SRHCOLEval.mem_add 0 (SVar 0)
         (SRHCOLEval.mem_add 1 (SVar 1)
            (SRHCOLEval.mem_add 2 (SVar 2)
               SRHCOLEval.mem_empty)).
-    
+
     Definition R_x_mb :=
       SRHCOLEval.mem_add 0 (SVar 3)
         (SRHCOLEval.mem_add 1 (SVar 4)
@@ -444,21 +425,1226 @@ Section TopLevel.
                  (SRHCOLEval.mem_add 4 (SVar 7)
                     SRHCOLEval.mem_empty)))).
 
-    Definition dynwin_SR_memory := 
+    Definition dynwin_SR_memory :=
       SRHCOLEval.memory_set
         (SRHCOLEval.memory_set
            (SRHCOLEval.memory_set SRHCOLEval.memory_empty
               dynwin_a_addr R_a_mb)
            dynwin_x_addr R_x_mb)
         dynwin_y_addr SRHCOLEval.mem_empty.
-    
+
+
+
+    Definition i1 := {| Int64asNT.Int64.intval := 1;
+                       Int64asNT.Int64.intrange := conj eq_refl eq_refl |}.
+    Definition i3 := {| Int64asNT.Int64.intval := 3;
+                       Int64asNT.Int64.intrange := conj eq_refl eq_refl |}.
+    Definition i5 := {| Int64asNT.Int64.intval := 5;
+                       Int64asNT.Int64.intrange := conj eq_refl eq_refl |}.
+
+    Definition dynwin_SF_σ :=
+      [(SFHCOLEval.DSHPtrVal dynwin_a_addr i3, false);
+       (SFHCOLEval.DSHPtrVal dynwin_y_addr i1, false);
+       (SFHCOLEval.DSHPtrVal dynwin_x_addr i5, false)].
+
+    Definition Fmemory_lookup_deep_unsafe
+      (m : FHCOLEval.memory) '(i, off) : MFloat64asCT.t :=
+      match FHCOLEval.memory_lookup m i with
+      | Some mb => match FHCOLEval.mem_lookup off mb with
+                  | Some v => v
+                  | _ => MFloat64asCT.CTypeZero
+                  end
+      | _ => MFloat64asCT.CTypeZero
+      end.
+
+    Definition Float_env m :=
+      map (Fmemory_lookup_deep_unsafe m)
+        [(0,0); (0,1); (0,2);
+         (2,0); (2,1); (2,2); (2,3); (2,4)].
+
+    (* TODO: move *)
+    Fact hopt_r_OK_inv {A B : Type} (R : A -> B -> Prop) (a : A) (b : B) :
+      hopt_r R (Some a) (Some b) ->
+      R a b.
+    Proof.
+      intros O; now invc O.
+    Qed.
+
+    (* TODO: move *)
+    Fact herr_c_OK_inv {A B : Type} (R : A -> B -> Prop) (a : A) (b : B) :
+      herr_c R (inr a) (inr b) ->
+      R a b.
+    Proof.
+      intros O; now invc O.
+    Qed.
+
+    (* Convenience wrapper over [RHCOLtoSRHCOL_semantic_preservation] *)
+    Lemma RHCOL_to_symbolic_lookup
+      (r_σ : RHCOLEval.evalContext)
+      (r_op : RHCOLEval.DSHOperator)
+      (r_m r_m' : RHCOLEval.memory)
+      (r_mb : RHCOLEval.mem_block)
+
+      (sr_σ : SRHCOLEval.evalContext)
+      (sr_op : SRHCOLEval.DSHOperator)
+      (sr_m : SRHCOLEval.memory)
+
+      (i off : nat)
+      (env : RealEnv)
+      :
+      RHCOLtoSRHCOL.heq_evalContext env RSR_NHE RSR_CHE r_σ sr_σ ->
+      RHCOLtoSRHCOL.heq_memory env RSR_CHE r_m sr_m ->
+
+      RHCOLtoSRHCOL.translate r_op = inr sr_op ->
+
+      RHCOLEval.evalDSHOperator r_σ r_op r_m (RHCOLEval.estimateFuel r_op)
+      = Some (inr r_m') ->
+      RHCOLEval.memory_lookup r_m' i = Some r_mb ->
+
+      RHCOLEval.mem_lookup off r_mb =
+        match SRHCOLEval.evalDSHOperator sr_σ sr_op sr_m
+                (SRHCOLEval.estimateFuel sr_op) with
+        | Some (inr sr_m') =>
+            match SRHCOLEval.memory_lookup sr_m' i with
+            | Some sr_mb =>
+                match SRHCOLEval.mem_lookup off sr_mb with
+                | Some sexpr =>
+                    evalRealSExpr env sexpr
+                | _ => None
+                end
+            | _ => None
+            end
+        | _ => None
+        end.
+    Proof.
+      intros Σ M OP RE MB.
+      pose proof RHCOLtoSRHCOL_semantic_preservation
+        r_op sr_op
+        r_σ sr_σ
+        r_m sr_m
+        env
+        as SR_EQUIV.
+      full_autospecialize SR_EQUIV; try assumption.
+
+      apply RHCOLtoSRHCOL.translation_syntax_always_correct;
+        [apply RSR_NTP | assumption ].
+
+      (* poor man's setoid_rewrite *)
+      eapply hopt_r_proper in SR_EQUIV;
+        [
+        | eapply herr_c_proper, RHCOLtoSRHCOL.heq_memory_proper
+        | now rewrite RE
+        | reflexivity ].
+
+      invc SR_EQUIV.
+      invc H1.
+      specialize (H2 i).
+
+      eapply hopt_r_proper in H2;
+        [
+        | eapply RHCOLtoSRHCOL.heq_mem_block_proper
+        | now rewrite MB
+        | reflexivity ].
+
+      invc H2.
+      specialize (H3 off).
+
+      invc H3.
+      reflexivity.
+      rewrite H4.
+      reflexivity.
+    Qed.
+
+    (* TODO: this is exactly the same as the above *)
+    Lemma FHCOL_to_symbolic_lookup
+      (r_σ : FHCOLEval.evalContext)
+      (r_op : FHCOLEval.DSHOperator)
+      (r_m r_m' : FHCOLEval.memory)
+      (r_mb : FHCOLEval.mem_block)
+
+      (sr_σ : SFHCOLEval.evalContext)
+      (sr_op : SFHCOLEval.DSHOperator)
+      (sr_m : SFHCOLEval.memory)
+
+      (i off : nat)
+      (env : FloatEnv)
+      :
+      FHCOLtoSFHCOL.heq_evalContext env FSF_NHE FSF_CHE r_σ sr_σ ->
+      FHCOLtoSFHCOL.heq_memory env FSF_CHE r_m sr_m ->
+
+      FHCOLtoSFHCOL.translate r_op = inr sr_op ->
+
+      FHCOLEval.evalDSHOperator r_σ r_op r_m (FHCOLEval.estimateFuel r_op)
+      = Some (inr r_m') ->
+      FHCOLEval.memory_lookup r_m' i = Some r_mb ->
+
+      FHCOLEval.mem_lookup off r_mb =
+        match SFHCOLEval.evalDSHOperator sr_σ sr_op sr_m
+                (SFHCOLEval.estimateFuel sr_op) with
+        | Some (inr sr_m') =>
+            match SFHCOLEval.memory_lookup sr_m' i with
+            | Some sr_mb =>
+                match SFHCOLEval.mem_lookup off sr_mb with
+                | Some sexpr =>
+                    evalFloatSExpr env sexpr
+                | _ => None
+                end
+            | _ => None
+            end
+        | _ => None
+        end.
+    Proof.
+      intros Σ M OP RE MB.
+      pose proof FHCOLtoSFHCOL_semantic_preservation
+        r_op sr_op
+        r_σ sr_σ
+        r_m sr_m
+        env
+        as SF_EQUIV.
+      full_autospecialize SF_EQUIV; try assumption.
+
+      apply FHCOLtoSFHCOL.translation_syntax_always_correct;
+        [apply FSF_NTP | assumption ].
+
+      (* poor man's setoid_rewrite *)
+      eapply hopt_r_proper in SF_EQUIV;
+        [
+        | eapply herr_c_proper, FHCOLtoSFHCOL.heq_memory_proper
+        | now rewrite RE
+        | reflexivity ].
+
+      invc SF_EQUIV.
+      invc H1.
+      specialize (H2 i).
+
+      eapply hopt_r_proper in H2;
+        [
+        | eapply FHCOLtoSFHCOL.heq_mem_block_proper
+        | now rewrite MB
+        | reflexivity ].
+
+      invc H2.
+      specialize (H3 off).
+
+      invc H3.
+      reflexivity.
+      rewrite H4.
+      reflexivity.
+    Qed.
+
+    (* A result of [Compute] which doesn't [cbv] *)
+    Definition hackity_hack :=
+{|
+              Memory.NM.this :=
+                Memory.NM.Raw.Node
+                  (Memory.NM.Raw.Node (Memory.NM.Raw.Leaf mem_block) 0
+                     {|
+                       Memory.NM.this :=
+                         Memory.NM.Raw.Node
+                           (Memory.NM.Raw.Node
+                              (Memory.NM.Raw.Node (Memory.NM.Raw.Leaf SExpr) 0
+                                 (SVar 0) (Memory.NM.Raw.Leaf SExpr) 1%Z) 1
+                              (SVar 1) (Memory.NM.Raw.Leaf SExpr) 2%Z) 2 
+                           (SVar 2) (Memory.NM.Raw.Leaf SExpr) 3%Z;
+                       Memory.NM.is_bst :=
+                         Memory.NM.Raw.Proofs.add_bst 0 
+                           (SVar 0)
+                           (Memory.NM.Raw.Proofs.add_bst 1 
+                              (SVar 1)
+                              (Memory.NM.Raw.Proofs.add_bst 2 
+                                 (SVar 2) (Memory.NM.Raw.Proofs.empty_bst SExpr)))
+                     |}
+                     (Memory.NM.Raw.Node (Memory.NM.Raw.Leaf mem_block) 1
+                        {|
+                          Memory.NM.this :=
+                            Memory.NM.Raw.Node (Memory.NM.Raw.Leaf SExpr) 0
+                              (SZLess
+                                 (SPlus
+                                    (SPlus
+                                       (SPlus SConstZero (SMult SConstOne (SVar 0)))
+                                       (SMult (SMult SConstOne (SVar 3)) (SVar 1)))
+                                    (SMult
+                                       (SMult (SMult SConstOne (SVar 3)) (SVar 3))
+                                       (SVar 2)))
+                                 (SMax
+                                    (SMax SConstZero
+                                       (SAbs (SSub (SVar 4) (SVar 6))))
+                                    (SAbs (SSub (SVar 5) (SVar 7)))))
+                              (Memory.NM.Raw.Leaf SExpr) 1%Z;
+                          Memory.NM.is_bst :=
+                            Memory.NM.Raw.Proofs.add_bst 0
+                              (SZLess
+                                 (SPlus
+                                    (SPlus
+                                       (SPlus SConstZero (SMult SConstOne (SVar 0)))
+                                       (SMult (SMult SConstOne (SVar 3)) (SVar 1)))
+                                    (SMult
+                                       (SMult (SMult SConstOne (SVar 3)) (SVar 3))
+                                       (SVar 2)))
+                                 (SMax
+                                    (SMax SConstZero
+                                       (SAbs (SSub (SVar 4) (SVar 6))))
+                                    (SAbs (SSub (SVar 5) (SVar 7)))))
+                              (Memory.NM.Raw.Proofs.empty_bst SExpr)
+                        |} (Memory.NM.Raw.Leaf mem_block) 1%Z) 2%Z) 2
+                  {|
+                    Memory.NM.this :=
+                      Memory.NM.Raw.Node
+                        (Memory.NM.Raw.Node
+                           (Memory.NM.Raw.Node
+                              (Memory.NM.Raw.Node (Memory.NM.Raw.Leaf SExpr) 0
+                                 (SVar 3) (Memory.NM.Raw.Leaf SExpr) 1%Z) 1
+                              (SVar 4) (Memory.NM.Raw.Leaf SExpr) 2%Z) 2 
+                           (SVar 5) (Memory.NM.Raw.Leaf SExpr) 3%Z) 3 
+                        (SVar 6)
+                        (Memory.NM.Raw.Node (Memory.NM.Raw.Leaf SExpr) 4 
+                           (SVar 7) (Memory.NM.Raw.Leaf SExpr) 1%Z) 4%Z;
+                    Memory.NM.is_bst :=
+                      Memory.NM.Raw.Proofs.add_bst 0 (SVar 3)
+                        (Memory.NM.Raw.Proofs.add_bst 1 
+                           (SVar 4)
+                           (Memory.NM.Raw.Proofs.add_bst 2 
+                              (SVar 5)
+                              (Memory.NM.Raw.Proofs.add_bst 3 
+                                 (SVar 6)
+                                 (Memory.NM.Raw.Proofs.add_bst 4 
+                                    (SVar 7) (Memory.NM.Raw.Proofs.empty_bst SExpr)))))
+                  |} (Memory.NM.Raw.Leaf mem_block) 3%Z;
+              Memory.NM.is_bst :=
+                Memory.NM.Raw.Proofs.remove_bst 3
+                  (Memory.NM.Raw.Proofs.add_bst 1
+                     {|
+                       Memory.NM.this :=
+                         Memory.NM.Raw.Node (Memory.NM.Raw.Leaf SExpr) 0
+                           (SZLess
+                              (SPlus
+                                 (SPlus
+                                    (SPlus SConstZero (SMult SConstOne (SVar 0)))
+                                    (SMult (SMult SConstOne (SVar 3)) (SVar 1)))
+                                 (SMult (SMult (SMult SConstOne (SVar 3)) (SVar 3))
+                                    (SVar 2)))
+                              (SMax
+                                 (SMax SConstZero (SAbs (SSub (SVar 4) (SVar 6))))
+                                 (SAbs (SSub (SVar 5) (SVar 7)))))
+                           (Memory.NM.Raw.Leaf SExpr) 1%Z;
+                       Memory.NM.is_bst :=
+                         Memory.NM.Raw.Proofs.add_bst 0
+                           (SZLess
+                              (SPlus
+                                 (SPlus
+                                    (SPlus SConstZero (SMult SConstOne (SVar 0)))
+                                    (SMult (SMult SConstOne (SVar 3)) (SVar 1)))
+                                 (SMult (SMult (SMult SConstOne (SVar 3)) (SVar 3))
+                                    (SVar 2)))
+                              (SMax
+                                 (SMax SConstZero (SAbs (SSub (SVar 4) (SVar 6))))
+                                 (SAbs (SSub (SVar 5) (SVar 7)))))
+                           (Memory.NM.Raw.Proofs.empty_bst SExpr)
+                     |}
+                     (Memory.NM.Raw.Proofs.remove_bst 4
+                        (Memory.NM.Raw.Proofs.add_bst 3
+                           {|
+                             Memory.NM.this :=
+                               Memory.NM.Raw.Node (Memory.NM.Raw.Leaf SExpr) 0
+                                 (SPlus
+                                    (SPlus
+                                       (SPlus SConstZero (SMult SConstOne (SVar 0)))
+                                       (SMult (SMult SConstOne (SVar 3)) (SVar 1)))
+                                    (SMult
+                                       (SMult (SMult SConstOne (SVar 3)) (SVar 3))
+                                       (SVar 2)))
+                                 (Memory.NM.Raw.Node (Memory.NM.Raw.Leaf SExpr) 1
+                                    (SMax
+                                       (SMax SConstZero
+                                          (SAbs (SSub (SVar 4) (SVar 6))))
+                                       (SAbs (SSub (SVar 5) (SVar 7))))
+                                    (Memory.NM.Raw.Leaf SExpr) 1%Z) 2%Z;
+                             Memory.NM.is_bst :=
+                               Memory.NM.Raw.Proofs.add_bst 1
+                                 (SMax
+                                    (SMax SConstZero
+                                       (SAbs (SSub (SVar 4) (SVar 6))))
+                                    (SAbs (SSub (SVar 5) (SVar 7))))
+                                 (Memory.NM.Raw.Proofs.add_bst 0
+                                    (SPlus
+                                       (SPlus
+                                          (SPlus SConstZero
+                                             (SMult SConstOne (SVar 0)))
+                                          (SMult (SMult SConstOne (SVar 3))
+                                             (SVar 1)))
+                                       (SMult
+                                          (SMult (SMult SConstOne (SVar 3))
+                                             (SVar 3)) 
+                                          (SVar 2)))
+                                    (Memory.NM.Raw.Proofs.empty_bst SExpr))
+                           |}
+                           (Memory.NM.Raw.Proofs.remove_bst 5
+                              (Memory.NM.Raw.Proofs.add_bst 4
+                                 {|
+                                   Memory.NM.this :=
+                                     Memory.NM.Raw.Node 
+                                       (Memory.NM.Raw.Leaf SExpr) 0
+                                       (SMax
+                                          (SMax SConstZero
+                                             (SAbs (SSub (SVar 4) (SVar 6))))
+                                          (SAbs (SSub (SVar 5) (SVar 7))))
+                                       (Memory.NM.Raw.Leaf SExpr) 1%Z;
+                                   Memory.NM.is_bst :=
+                                     Memory.NM.Raw.Proofs.add_bst 0
+                                       (SMax
+                                          (SMax SConstZero
+                                             (SAbs (SSub (SVar 4) (SVar 6))))
+                                          (SAbs (SSub (SVar 5) (SVar 7))))
+                                       (Memory.NM.Raw.Proofs.add_bst 0
+                                          (SMax SConstZero
+                                             (SAbs (SSub (SVar 4) (SVar 6))))
+                                          (Memory.NM.Raw.Proofs.map2_bst
+                                             (λ x x0 : option SExpr,
+                                                match x with
+                                                | Some x1 => Some x1
+                                                | None => x0
+                                                end)
+                                             (Memory.NM.Raw.Proofs.add_bst 0
+                                                SConstZero
+                                                (Memory.NM.Raw.Proofs.empty_bst
+                                                   SExpr))
+                                             (Memory.NM.Raw.Proofs.empty_bst SExpr)))
+                                 |}
+                                 (Memory.NM.Raw.Proofs.remove_bst 6
+                                    (Memory.NM.Raw.Proofs.add_bst 5
+                                       {|
+                                         Memory.NM.this :=
+                                           Memory.NM.Raw.Node
+                                             (Memory.NM.Raw.Leaf SExpr) 0
+                                             (SAbs (SSub (SVar 5) (SVar 7)))
+                                             (Memory.NM.Raw.Leaf SExpr) 1%Z;
+                                         Memory.NM.is_bst :=
+                                           Memory.NM.Raw.Proofs.add_bst 0
+                                             (SAbs (SSub (SVar 5) (SVar 7)))
+                                             (Memory.NM.Raw.Proofs.add_bst 0
+                                                (SAbs (SSub (SVar 4) (SVar 6)))
+                                                (Memory.NM.Raw.Proofs.empty_bst
+                                                   SExpr))
+                                       |}
+                                       (Memory.NM.Raw.Proofs.remove_bst 7
+                                          (Memory.NM.Raw.Proofs.add_bst 6
+                                             {|
+                                               Memory.NM.this :=
+                                                 Memory.NM.Raw.Node
+                                                   (Memory.NM.Raw.Leaf SExpr) 0
+                                                   (SVar 5)
+                                                   (Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 1
+                                                      (SVar 7)
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z) 2%Z;
+                                               Memory.NM.is_bst :=
+                                                 Memory.NM.Raw.Proofs.add_bst 1
+                                                   (SVar 7)
+                                                   (Memory.NM.Raw.Proofs.add_bst 0
+                                                      (SVar 5)
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr))
+                                             |}
+                                             (Memory.NM.Raw.Proofs.add_bst 7
+                                                {|
+                                                  Memory.NM.this :=
+                                                    Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      (SVar 7)
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z;
+                                                  Memory.NM.is_bst :=
+                                                    Memory.NM.Raw.Proofs.add_bst 0
+                                                      (SVar 7)
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr)
+                                                |}
+                                                (Memory.NM.Raw.Proofs.add_bst 7
+                                                   {|
+                                                     Memory.NM.this :=
+                                                      Memory.NM.Raw.Leaf SExpr;
+                                                     Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr
+                                                   |}
+                                                   (Memory.NM.Raw.Proofs.remove_bst
+                                                      7
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      6
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      (SVar 5)
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.add_bst
+                                                      0 (SVar 5)
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr)
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      7
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      (SVar 5)
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.add_bst
+                                                      0 (SVar 5)
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr)
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      7
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Leaf SExpr;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      6
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Leaf SExpr;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      4
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      (SMax SConstZero
+                                                      (SAbs
+                                                      (SSub (SVar 4) (SVar 6))))
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.add_bst
+                                                      0
+                                                      (SMax SConstZero
+                                                      (SAbs
+                                                      (SSub (SVar 4) (SVar 6))))
+                                                      (Memory.NM.Raw.Proofs.map2_bst
+                                                      (λ x x0 : option SExpr,
+                                                      match x with
+                                                      | Some x1 => Some x1
+                                                      | None => x0
+                                                      end)
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      0 SConstZero
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr))
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr))
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.remove_bst
+                                                      6
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      5
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      (SAbs
+                                                      (SSub (SVar 4) (SVar 6)))
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.add_bst
+                                                      0
+                                                      (SAbs
+                                                      (SSub (SVar 4) (SVar 6)))
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr)
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.remove_bst
+                                                      7
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      6
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      (SVar 4)
+                                                      (Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 1
+                                                      (SVar 6)
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z) 2%Z;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.add_bst
+                                                      1 (SVar 6)
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      0 (SVar 4)
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr))
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      7
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      (SVar 6)
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.add_bst
+                                                      0 (SVar 6)
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr)
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      7
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Leaf SExpr;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.remove_bst
+                                                      7
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      6
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      (SVar 4)
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.add_bst
+                                                      0 (SVar 4)
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr)
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      7
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      (SVar 4)
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.add_bst
+                                                      0 (SVar 4)
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr)
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      7
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Leaf SExpr;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      6
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Leaf SExpr;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      5
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Leaf SExpr;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      4
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      SConstZero
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.map2_bst
+                                                      (λ x x0 : option SExpr,
+                                                      match x with
+                                                      | Some x1 => Some x1
+                                                      | None => x0
+                                                      end)
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      0 SConstZero
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr))
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr)
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      4
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Leaf SExpr;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.remove_bst
+                                                      4
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      3
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      (SPlus
+                                                      (SPlus
+                                                      (SPlus SConstZero
+                                                      (SMult SConstOne (SVar 0)))
+                                                      (SMult
+                                                      (SMult SConstOne (SVar 3))
+                                                      (SVar 1)))
+                                                      (SMult
+                                                      (SMult
+                                                      (SMult SConstOne (SVar 3))
+                                                      (SVar 3)) 
+                                                      (SVar 2)))
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.add_bst
+                                                      0
+                                                      (SPlus
+                                                      (SPlus
+                                                      (SPlus SConstZero
+                                                      (SMult SConstOne (SVar 0)))
+                                                      (SMult
+                                                      (SMult SConstOne (SVar 3))
+                                                      (SVar 1)))
+                                                      (SMult
+                                                      (SMult
+                                                      (SMult SConstOne (SVar 3))
+                                                      (SVar 3)) 
+                                                      (SVar 2)))
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr)
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.remove_bst
+                                                      5
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      4
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      (SPlus
+                                                      (SPlus
+                                                      (SPlus SConstZero
+                                                      (SMult SConstOne (SVar 0)))
+                                                      (SMult
+                                                      (SMult SConstOne (SVar 3))
+                                                      (SVar 1)))
+                                                      (SMult
+                                                      (SMult
+                                                      (SMult SConstOne (SVar 3))
+                                                      (SVar 3)) 
+                                                      (SVar 2)))
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.add_bst
+                                                      0
+                                                      (SPlus
+                                                      (SPlus
+                                                      (SPlus SConstZero
+                                                      (SMult SConstOne (SVar 0)))
+                                                      (SMult
+                                                      (SMult SConstOne (SVar 3))
+                                                      (SVar 1)))
+                                                      (SMult
+                                                      (SMult
+                                                      (SMult SConstOne (SVar 3))
+                                                      (SVar 3)) 
+                                                      (SVar 2)))
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      0
+                                                      (SPlus
+                                                      (SPlus SConstZero
+                                                      (SMult SConstOne (SVar 0)))
+                                                      (SMult
+                                                      (SMult SConstOne (SVar 3))
+                                                      (SVar 1)))
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      0
+                                                      (SPlus SConstZero
+                                                      (SMult SConstOne (SVar 0)))
+                                                      (Memory.NM.Raw.Proofs.map2_bst
+                                                      (λ x x0 : option SExpr,
+                                                      match x with
+                                                      | Some x1 => Some x1
+                                                      | None => x0
+                                                      end)
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      0 SConstZero
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr))
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr))))
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.remove_bst
+                                                      6
+                                                      (Memory.NM.Raw.Proofs.remove_bst
+                                                      7
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      5
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      (SMult
+                                                      (SMult
+                                                      (SMult SConstOne (SVar 3))
+                                                      (SVar 3)) 
+                                                      (SVar 2))
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.add_bst
+                                                      0
+                                                      (SMult
+                                                      (SMult
+                                                      (SMult SConstOne (SVar 3))
+                                                      (SVar 3)) 
+                                                      (SVar 2))
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      0
+                                                      (SMult
+                                                      (SMult SConstOne (SVar 3))
+                                                      (SVar 1))
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      0 (SMult SConstOne (SVar 0))
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr)))
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      7
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      (SMult
+                                                      (SMult SConstOne (SVar 3))
+                                                      (SVar 3))
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.add_bst
+                                                      0
+                                                      (SMult
+                                                      (SMult SConstOne (SVar 3))
+                                                      (SVar 3))
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      0 (SMult SConstOne (SVar 3))
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      0 SConstOne
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr)))
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      7
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Leaf SExpr;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      6
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      (SVar 3)
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.add_bst
+                                                      0 (SVar 3)
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr)
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      6
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Leaf SExpr;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      4
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      (SPlus
+                                                      (SPlus SConstZero
+                                                      (SMult SConstOne (SVar 0)))
+                                                      (SMult
+                                                      (SMult SConstOne (SVar 3))
+                                                      (SVar 1)))
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.add_bst
+                                                      0
+                                                      (SPlus
+                                                      (SPlus SConstZero
+                                                      (SMult SConstOne (SVar 0)))
+                                                      (SMult
+                                                      (SMult SConstOne (SVar 3))
+                                                      (SVar 1)))
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      0
+                                                      (SPlus SConstZero
+                                                      (SMult SConstOne (SVar 0)))
+                                                      (Memory.NM.Raw.Proofs.map2_bst
+                                                      (λ x x0 : option SExpr,
+                                                      match x with
+                                                      | Some x1 => Some x1
+                                                      | None => x0
+                                                      end)
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      0 SConstZero
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr))
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr)))
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.remove_bst
+                                                      6
+                                                      (Memory.NM.Raw.Proofs.remove_bst
+                                                      7
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      5
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      (SMult
+                                                      (SMult SConstOne (SVar 3))
+                                                      (SVar 1))
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.add_bst
+                                                      0
+                                                      (SMult
+                                                      (SMult SConstOne (SVar 3))
+                                                      (SVar 1))
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      0 (SMult SConstOne (SVar 0))
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr))
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      7
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      (SMult SConstOne (SVar 3))
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.add_bst
+                                                      0 (SMult SConstOne (SVar 3))
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      0 SConstOne
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr))
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      7
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Leaf SExpr;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      6
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      (SVar 3)
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.add_bst
+                                                      0 (SVar 3)
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr)
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      6
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Leaf SExpr;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      4
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      (SPlus SConstZero
+                                                      (SMult SConstOne (SVar 0)))
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.add_bst
+                                                      0
+                                                      (SPlus SConstZero
+                                                      (SMult SConstOne (SVar 0)))
+                                                      (Memory.NM.Raw.Proofs.map2_bst
+                                                      (λ x x0 : option SExpr,
+                                                      match x with
+                                                      | Some x1 => Some x1
+                                                      | None => x0
+                                                      end)
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      0 SConstZero
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr))
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr))
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.remove_bst
+                                                      6
+                                                      (Memory.NM.Raw.Proofs.remove_bst
+                                                      7
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      5
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      (SMult SConstOne (SVar 0))
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.add_bst
+                                                      0 (SMult SConstOne (SVar 0))
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr)
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      7
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      SConstOne
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.add_bst
+                                                      0 SConstOne
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr)
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      7
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Leaf SExpr;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      6
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      (SVar 3)
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.add_bst
+                                                      0 (SVar 3)
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr)
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      6
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Leaf SExpr;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      5
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Leaf SExpr;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      4
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      SConstZero
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.map2_bst
+                                                      (λ x x0 : option SExpr,
+                                                      match x with
+                                                      | Some x1 => Some x1
+                                                      | None => x0
+                                                      end)
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      0 SConstZero
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr))
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr)
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      4
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Leaf SExpr;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      3
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Leaf SExpr;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      1
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Leaf SExpr;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      2
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      (SVar 3)
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z) 1 
+                                                      (SVar 4)
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      2%Z) 2 
+                                                      (SVar 5)
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      3%Z) 3 
+                                                      (SVar 6)
+                                                      (Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 4
+                                                      (SVar 7)
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z) 4%Z;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.add_bst
+                                                      0 (SVar 3)
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      1 (SVar 4)
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      2 (SVar 5)
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      3 (SVar 6)
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      4 (SVar 7)
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr)))))
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      0
+                                                      {|
+                                                      Memory.NM.this :=
+                                                      Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Node
+                                                      (Memory.NM.Raw.Leaf SExpr) 0
+                                                      (SVar 0)
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      1%Z) 1 
+                                                      (SVar 1)
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      2%Z) 2 
+                                                      (SVar 2)
+                                                      (Memory.NM.Raw.Leaf SExpr)
+                                                      3%Z;
+                                                      Memory.NM.is_bst :=
+                                                      Memory.NM.Raw.Proofs.add_bst
+                                                      0 (SVar 0)
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      1 (SVar 1)
+                                                      (Memory.NM.Raw.Proofs.add_bst
+                                                      2 (SVar 2)
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      SExpr)))
+                                                      |}
+                                                      (Memory.NM.Raw.Proofs.empty_bst
+                                                      (Memory.NM.bst SExpr)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+            |}.
+
     Lemma RHCOL_to_FHCOL_numerical_correct
       (r_omemory : RHCOLEval.memory)
       (a_rmem x_rmem y_rmem : RHCOLEval.mem_block)
       (f_imemory f_omemory : FHCOLEval.memory)
       (f_iσ : FHCOLEval.evalContext)
       (y_fmem : FHCOLEval.mem_block)
-      (dynwin_FHCOL : FHCOLEval.DSHOperator)
+      (DynWin_FHCOL : FHCOLEval.DSHOperator)
       
       (R_EVAL : RHCOLEval.evalDSHOperator dynwin_R_σ DynWin_RHCOL r_imemory
                   (RHCOLEval.estimateFuel DynWin_RHCOL)
@@ -467,76 +1653,200 @@ Section TopLevel.
       (X_RMEM : RHCOLEval.memory_lookup r_imemory dynwin_x_addr = Some x_rmem)
       (Y_RMEM : RHCOLEval.memory_lookup r_omemory dynwin_y_addr = Some y_rmem)
       
-      (F_EVAL : FHCOLEval.evalDSHOperator f_iσ dynwin_FHCOL f_imemory
-                  (FHCOLEval.estimateFuel dynwin_FHCOL)
+      (F_EVAL : FHCOLEval.evalDSHOperator f_iσ DynWin_FHCOL f_imemory
+                  (FHCOLEval.estimateFuel DynWin_FHCOL)
                 = Some (inr f_omemory))
       (Y_FMEM : FHCOLEval.memory_lookup f_omemory dynwin_y_addr = Some y_fmem)
       
-      (TRANSLATE_OP : RHCOLtoFHCOL.translate DynWin_RHCOL = inr dynwin_FHCOL)
+      (TRANSLATE_OP : RHCOLtoFHCOL.translate DynWin_RHCOL = inr DynWin_FHCOL)
       (RF_IM : RHCOLtoFHCOL.heq_memory () RF_CHE r_imemory f_imemory)
       (RF_IΣ : RHCOLtoFHCOL.heq_evalContext () RF_NHE RF_CHE dynwin_R_σ f_iσ)
       :
       DynWinInConstr a_rmem x_rmem ->
       DynWinOutRel a_rmem x_rmem y_rmem y_fmem.
     Proof.
-      pose proof RHCOLtoSRHCOL_semantic_preservation
-        DynWin_RHCOL DynWin_SRHCOL_hard
-        dynwin_R_σ dynwin_SR_σ
-        r_imemory dynwin_SR_memory
-        R_env
-        as SR_EVAL.
-      full_autospecialize SR_EVAL.
+
+      intros INCONSTR.
+      unfold DynWinOutRel.
+
+      (* poor man's [setoid_rewrite RHCOL_to_symbolic_lookup] *)
+      eapply hopt_r_proper;
+        [typeclasses eauto | | reflexivity |].
       {
-        apply RHCOLtoSRHCOL.translation_syntax_always_correct.
-        typeclasses eauto.
-        rewrite <-DynWin_SRHCOL_hard_OK, <-dynwin_RHCOL_hard_check.
+        rewrite RHCOL_to_symbolic_lookup with
+          (sr_σ := dynwin_SR_σ)
+          (sr_m := dynwin_SR_memory)
+          (i := dynwin_y_addr)
+          (off := dynwin_y_offset)
+          (env := R_env).
+        5,6: eassumption.
+        4: {
+          rewrite dynwin_RHCOL_hard_check, DynWin_SRHCOL_hard_OK.
+          reflexivity.
+        }
+          
         reflexivity.
-      }
-      {
-        repeat constructor.
-      }
-      {
-        intros k.
-        do 3 try destruct k.
-        - (* a *)
-          unfold r_imemory.
-          cbn - [ctvector_to_mem_block].
-          constructor.
+
+        -
+          repeat constructor.
+        -
           intros k.
           do 3 try destruct k.
-          1-3: erewrite mem_lookup_ctvector_to_mem_block.
-          1-3: now constructor.
-
-          cbn - [ctvector_to_mem_block].
-          admit.
-        - (* y *)
-          unfold r_imemory.
-          cbn - [ctvector_to_mem_block].
-          repeat constructor.
-        - (* x *)
-          unfold r_imemory.
-          cbn - [ctvector_to_mem_block].
-          constructor.
-          intros k.
-          do 5 try destruct k.
-          1-5: erewrite mem_lookup_ctvector_to_mem_block.
-          1-5: now constructor.
-
-          cbn - [ctvector_to_mem_block].
-          admit.
-        -
-          constructor.
+          + (* a *)
+            unfold r_imemory.
+            cbn - [ctvector_to_mem_block].
+            constructor.
+            intros k.
+            do 3 try destruct k.
+            1-3: erewrite mem_lookup_ctvector_to_mem_block.
+            1-3: now constructor.
+            cbn - [ctvector_to_mem_block].
+            rewrite ctvector_to_mem_block_key_oob.
+            constructor.
+            lia.
+          + (* y *)
+            unfold r_imemory.
+            cbn - [ctvector_to_mem_block].
+            repeat constructor.
+          + (* x *)
+            unfold r_imemory.
+            cbn - [ctvector_to_mem_block].
+            constructor.
+            intros k.
+            do 5 try destruct k.
+            1-5: erewrite mem_lookup_ctvector_to_mem_block.
+            1-5: now constructor.
+            cbn - [ctvector_to_mem_block].
+            rewrite ctvector_to_mem_block_key_oob.
+            constructor.
+            lia.
+          +
+            constructor.
       }
 
-      (* 
-      remember (SRHCOLEval.evalDSHOperator
-                  dynwin_SR_σ DynWin_SRHCOL_hard dynwin_SR_memory
-                  (SRHCOLEval.estimateFuel DynWin_SRHCOL_hard))
-        as SRMEM;
-      cbv in HeqSRMEM;
-      subst.
-       *)
-        
+      cbv - [FHCOLEval.mem_lookup CType_impl evalRealSExpr R_env].
+      eapply hopt_r_proper;
+        [typeclasses eauto | reflexivity | |].
+      {
+        rewrite FHCOL_to_symbolic_lookup with
+          (sr_σ := dynwin_SF_σ)
+          (sr_m := dynwin_SR_memory)
+          (i := dynwin_y_addr)
+          (off := dynwin_y_offset)
+          (env := Float_env f_imemory).
+        5,6: eassumption.
+        4: {
+          rewrite DynWin_FHCOL_hard_OK in TRANSLATE_OP.
+          invc TRANSLATE_OP.
+          erewrite FHCOLtoSFHCOL.translate_proper.
+          now rewrite DynWin_SFHCOL_hard_OK.
+          now rewrite H1.
+        }
+
+        reflexivity.
+        -
+          clear - RF_IΣ RF_IM.
+          invc RF_IΣ; invc H3; invc H5; invc H6.
+          repeat constructor.
+          all: unfold RHCOLtoFHCOL.heq_evalContextElem in *.
+          all: repeat break_let; subst_max.
+          all: invc H1; invc H2; invc H3.
+          all: invc H; invc H1; invc H2.
+          all: invc H0; invc H4; invc H5.
+          all: repeat constructor; try congruence.
+          all: cbn in *; unfold heq_nat_int in *.
+          all: destruct s', s'0, s'1; cbv in H6, H7, H8; subst.
+          all: cbv; f_equal; apply proof_irrelevance.
+        -
+          clear - RF_IM.
+          intros k; specialize (RF_IM k).
+          do 3 try destruct k.
+          + (* a *)
+            unfold r_imemory in *.
+            cbn - [Float_env ctvector_to_mem_block] in *.
+            invc RF_IM.
+            constructor.
+            intros off; specialize (H1 off).
+            do 3 try destruct off.
+            4: {
+              rewrite ctvector_to_mem_block_key_oob in H1 by lia.
+              invc H1.
+              constructor.
+            }
+            
+            all: erewrite mem_lookup_ctvector_to_mem_block in H1.
+            all: invc H1.
+            all: cbn - [Float_env].
+            all: constructor.
+            all: unfold heq_Float_SExpr; cbn.
+            all: now rewrite <-H0, <-H2.
+            Unshelve.
+            all: cbv; lia.
+          + (* y *)
+            unfold r_imemory in *.
+            cbn - [Float_env ctvector_to_mem_block] in *.
+            invc RF_IM.
+            constructor.
+            intros off; specialize (H1 off); invc H1.
+            cbn.
+            constructor.
+          + (* x *)
+            unfold r_imemory in *.
+            cbn - [Float_env ctvector_to_mem_block] in *.
+            invc RF_IM.
+            constructor.
+            intros off; specialize (H1 off).
+            do 5 try destruct off.
+            6: {
+              rewrite ctvector_to_mem_block_key_oob in H1 by lia.
+              invc H1.
+              constructor.
+            }
+            
+            all: erewrite mem_lookup_ctvector_to_mem_block in H1.
+            all: invc H1.
+            all: cbn - [Float_env].
+            all: constructor.
+            all: unfold heq_Float_SExpr; cbn.
+            all: now rewrite <-H0, <-H2.
+            Unshelve.
+            all: cbv; lia.
+          +
+            invc RF_IM.
+            constructor.
+      }
+
+      replace 
+      (evalDSHOperator dynwin_SF_σ DynWin_SFHCOL_hard dynwin_SR_memory
+         (estimateFuel DynWin_SFHCOL_hard))
+        with (Some (@inr string _ hackity_hack))
+        by reflexivity.
+      unfold hackity_hack.
+      cbv - [CType_impl evalRealSExpr R_env evalFloatSExpr Float_env].
+
+      assert (forall k, nth_error R_env k ≡
+                     liftM (B2R _ _) (nth_error (Float_env f_imemory) k)).
+      {
+        clear - RF_IM.
+        intros.
+        do 8 try destruct k.
+        9: cbn; now rewrite !nth_error_nil_None.
+
+        all: cbn.
+        all: match goal with
+             | |- context[FHCOLEval.memory_lookup _ ?n] =>
+                 specialize (RF_IM n)
+             end.
+        all: cbn - [ctvector_to_mem_block] in RF_IM; invc RF_IM.
+        all: match goal with
+             | |- context[FHCOLEval.mem_lookup ?n _] =>
+                 specialize (H1 n)
+             end.
+        all: erewrite mem_lookup_ctvector_to_mem_block in H1.
+        all: invc H1; invc H3.
+        all: rewrite H1; reflexivity.
+      }
+      
     Admitted.
 
   End DynWin_Symbolic.

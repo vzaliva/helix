@@ -489,6 +489,19 @@ Section hopt.
     eapply PR; eassumption.
   Qed.
 
+  Instance hopt_r_proper
+           `{EQa : Equiv A}
+           `{EQb : Equiv B}
+           {PR : Proper ((=) ==> (=) ==> (iff)) R} :
+    Proper ((=) ==> (=) ==> (iff)) hopt_r.
+  Proof.
+    intros [a1|] [a2|] AE [b1|] [b2|] BE;
+      try some_none; repeat some_inv.
+    all: split; intro H; invc H; constructor.
+    apply PR in AE; apply AE in BE; tauto.
+    apply PR in AE; apply AE in BE; tauto.
+  Qed.
+
 End hopt.
 Arguments hopt {A B} R.
 Arguments hopt_r {A B} R.
