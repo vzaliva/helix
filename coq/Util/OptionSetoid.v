@@ -472,7 +472,7 @@ Section hopt.
   | hopt_i_None_Some : forall a, hopt_i None (Some a)
   | hopt_i_Some : forall a b, R a b -> hopt_i (Some a) (Some b).
 
-  Instance hopt_proper
+  Global Instance hopt_proper
            `{EQa : Equiv A}
            `{EQb : Equiv B}
            {PR : Proper ((=) ==> (=) ==> (iff)) R} :
@@ -489,7 +489,7 @@ Section hopt.
     eapply PR; eassumption.
   Qed.
 
-  Instance hopt_r_proper
+  Global Instance hopt_r_proper
            `{EQa : Equiv A}
            `{EQb : Equiv B}
            {PR : Proper ((=) ==> (=) ==> (iff)) R} :
