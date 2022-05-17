@@ -4,7 +4,6 @@ Require Import Coq.Strings.String.
 Require Import Coq.Arith.Compare_dec.
 
 Require Import Helix.Tactics.HelixTactics.
-Require Import Helix.HCOL.CarrierType.
 Require Import Helix.Util.Misc.
 
 Require Import Helix.MSigmaHCOL.Memory.
