@@ -179,6 +179,20 @@ Module MFloat64asCT <: CType.
       end
     end.
 
+  Definition CTypeZLess (a b: binary64) : binary64 :=
+    match Bcompare _ _ epsilon (CTypeSub b a)  with
+    | Some Datatypes.Lt => CTypeOne
+    | _ => CTypeZero
+    end.
+
+  Fact transition_safe :
+    forall a b, CTypeZLess a b ≡ CTypeZLess_old a b.
+  Proof.
+    intros.
+    unfold CTypeZLess, CTypeZLess_old.
+    destruct a, b; reflexivity.
+  Qed.
+
   Instance Zless_proper: Proper ((=) ==> (=) ==> (=)) CTypeZLess.
   Proof. solve_proper. Qed.
 
