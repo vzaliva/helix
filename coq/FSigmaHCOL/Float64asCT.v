@@ -168,30 +168,11 @@ Module MFloat64asCT <: CType.
     which this one is compiled to. Per IR spec it "yields true if both
     operands are not a QNAN and op1 is less than op2"
   *)
-  (* TODO: [Bcompare] already gracefully manages NaNs *)
-  Definition CTypeZLess_old (a b: binary64) : binary64 :=
-    match a, b with
-    | B754_nan _ _ _ _ _, _ | _, B754_nan _ _ _ _ _ => CTypeZero
-    | _, _ =>
-      match Bcompare _ _ epsilon (CTypeSub b a)  with
-      | Some Datatypes.Lt => CTypeOne
-      | _ => CTypeZero
-      end
-    end.
-
   Definition CTypeZLess (a b: binary64) : binary64 :=
     match Bcompare _ _ epsilon (CTypeSub b a)  with
     | Some Datatypes.Lt => CTypeOne
     | _ => CTypeZero
     end.
-
-  Fact transition_safe :
-    forall a b, CTypeZLess a b ≡ CTypeZLess_old a b.
-  Proof.
-    intros.
-    unfold CTypeZLess, CTypeZLess_old.
-    destruct a, b; reflexivity.
-  Qed.
 
   Instance Zless_proper: Proper ((=) ==> (=) ==> (=)) CTypeZLess.
   Proof. solve_proper. Qed.
