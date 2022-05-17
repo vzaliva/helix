@@ -46,6 +46,8 @@ Import MonadNotation.
 
 Section RHCOL_to_FHCOL_bounds.
 
+  Open Scope R_scope.
+
   (** Constraints on physical parameters **)
   (* Obstacle velocity constraint *)
   (* 0 <= V <= 20 (m/s) (<= 72 Kmh) *)
@@ -156,6 +158,23 @@ Section RHCOL_to_FHCOL_bounds.
 
   (* The memory cell in which the boolean result is written by DynWin *)
   Definition dynwin_y_offset := 0%nat.
+
+  Lemma propR_Zless (a b : R) :
+    propR (MRasCT.CTypeZLess a b) <-> a < b.
+  Proof.
+    unfold MRasCT.CTypeZLess, Zless, CarrierAltdec, CarrierDefs_R.
+    break_if; cbv; split; try tauto.
+    lra.
+  Qed.
+
+  Lemma propF_Zless (a b : binary64) :
+    propF (MFloat64asCT.CTypeZLess a b) <-> safe_lt64 a b.
+  Proof.
+    unfold MFloat64asCT.CTypeZLess, Zless, safe_lt64, lt64, b64_compare.
+    all: repeat break_match.
+    all: cbv - [MFloat64asCT.CTypeSub epsilon Bcompare].
+    all: now split.
+  Qed.
 
   (* Parametric relation between RHCOL and FHCOL coumputation results  *)
   (*
@@ -327,6 +346,133 @@ Section TopLevel.
 
   Require Import List.
   Import ListNotations.
+
+  Section Gappa.
+
+    Infix "⊞" := MFloat64asCT.CTypePlus (at level 50) : Float64asCT_scope.
+    Infix "⊠" := MFloat64asCT.CTypeMult (at level 40) : Float64asCT_scope.
+    Infix "⊟" := MFloat64asCT.CTypeSub  (at level 50) : Float64asCT_scope.
+    Infix "⧄" := (b64_div FT_Rounding)  (at level 30) : Float64asCT_scope.
+    Notation B64R := (B2R 53 1024).
+
+    Open Scope Float64asCT_scope.
+
+    Lemma F_MaxZeroAbs :
+      forall x, MFloat64asCT.CTypeMax MFloat64asCT.CTypeZero (MFloat64asCT.CTypeAbs x)
+        ≡ (MFloat64asCT.CTypeAbs x).
+    Admitted.
+
+    Lemma R_MaxZeroAbs :
+      forall x, MRasCT.CTypeMax MRasCT.CTypeZero (MRasCT.CTypeAbs x)
+           ≡ (MRasCT.CTypeAbs x).
+    Admitted.
+
+    Lemma F_PlusZeroLeft :
+      forall x, MFloat64asCT.CTypePlus MFloat64asCT.CTypeZero x ≡ x.
+    Admitted.
+
+    Lemma R_PlusZeroLeft :
+      forall x, MRasCT.CTypePlus MRasCT.CTypeZero x ≡ x.
+    Admitted.
+
+    Lemma F_MultOneLeft :
+      forall x, MFloat64asCT.CTypeMult MFloat64asCT.CTypeOne x ≡ x.
+    Admitted.
+
+    Lemma R_MultOneLeft :
+      forall x, MRasCT.CTypeMult MRasCT.CTypeOne x ≡ x.
+    Admitted.
+
+    Hint Rewrite 
+      F_MaxZeroAbs
+      F_PlusZeroLeft
+      F_MultOneLeft
+      R_MaxZeroAbs
+      R_PlusZeroLeft
+      R_MultOneLeft : simpl_CType_ops.
+
+    Hint Unfold
+      MRasCT.CTypePlus
+      MRasCT.CTypeMult
+      MRasCT.CTypeSub
+      MRasCT.CTypeAbs
+      MRasCT.CTypeZero
+      MRasCT.CTypeOne
+      CarrierDefs_R
+      CarrierAplus
+      CarrierAmult
+      CarrierType.sub
+      CarrierAz
+      CarrierA1 : unfold_RCT.
+
+    Hint Rewrite
+      b64_minus_to_R b64_mult_to_R
+      b64_minus_finite b64_mult_finite
+      : rewrite_to_R.
+
+
+    Lemma DynWin_numerical_stability
+      (V64 b64 A64 e64 v64 rx64 ry64 ox64 oy64 : binary64)
+      (fa0 fa1 fa2 fx0 fx1 fx2 fx3 fx4 : binary64)
+      (VC  : in_range_64   V_constr V64)
+      (bC  : in_range_64_l b_constr b64)
+      (AC  : in_range_64   A_constr A64)
+      (eC  : in_range_64   e_constr e64)
+      (vC  : in_range_64   v_constr v64)
+      (rxC : in_range_64   x_constr rx64)
+      (ryC : in_range_64   y_constr ry64)
+      (oxC : in_range_64   x_constr ox64)
+      (oyC : in_range_64   y_constr oy64)
+
+      (FX0 : B64R fx0 ≡ B64R v64)
+      (FX1 : B64R fx1 ≡ B64R rx64)
+      (FX2 : B64R fx2 ≡ B64R ry64)
+      (FX3 : B64R fx3 ≡ B64R ox64)
+      (FX4 : B64R fx4 ≡ B64R oy64)
+
+      (FA0 : B64R fa0
+             ≡ B64R ((A64 ⧄ b64 ⊞ b64_1) ⊠ ((A64 ⧄ b64_2 ⊠ e64) ⊠ e64 ⊞ e64 ⊠ V64)))
+      (FA1 : B64R fa1 ≡ B64R (V64 ⧄ b64 ⊞ e64 ⊠ (A64 ⧄ b64 ⊞ b64_1)))
+      (FA2 : B64R fa2 ≡ B64R (b64_1 ⧄ (b64_2 ⊠ b64)))
+
+      (F : safe_lt64
+        (((MFloat64asCT.CTypeZero ⊞ MFloat64asCT.CTypeOne ⊠ fa0)
+          ⊞ (MFloat64asCT.CTypeOne ⊠ fx0) ⊠ fa1)
+         ⊞ ((MFloat64asCT.CTypeOne ⊠ fx0) ⊠ fx0) ⊠ fa2)
+        (MFloat64asCT.CTypeMax
+           (MFloat64asCT.CTypeMax MFloat64asCT.CTypeZero
+              (MFloat64asCT.CTypeAbs (fx1 ⊟ fx3)))
+           (MFloat64asCT.CTypeAbs (fx2 ⊟ fx4))))
+        :
+        (MRasCT.CTypePlus
+           (MRasCT.CTypePlus
+              (MRasCT.CTypePlus MRasCT.CTypeZero
+                 (MRasCT.CTypeMult MRasCT.CTypeOne (B64R fa0)))
+              (MRasCT.CTypeMult (MRasCT.CTypeMult MRasCT.CTypeOne (B64R fx0)) (B64R fa1)))
+           (MRasCT.CTypeMult
+              (MRasCT.CTypeMult (MRasCT.CTypeMult MRasCT.CTypeOne (B64R fx0)) (B64R fx0))
+              (B64R fa2)) <
+           MRasCT.CTypeMax
+             (MRasCT.CTypeMax MRasCT.CTypeZero
+                (MRasCT.CTypeAbs (MRasCT.CTypeSub (B64R fx1) (B64R fx3))))
+             (MRasCT.CTypeAbs (MRasCT.CTypeSub (B64R fx2) (B64R fx4))))%R.
+    Proof.
+      autorewrite with simpl_CType_ops in *.
+
+      autounfold with unfold_RCT.
+      unfold plus, negate, CarrierAneg, Basics.compose.
+      replace (- B64R fx1 + B64R fx3)%R
+        with (B64R fx3 - B64R fx1)%R
+        by lra.
+      replace (- B64R fx2 + B64R fx4)%R
+        with (B64R fx4 - B64R fx2)%R
+        by lra.
+
+      unfold safe_lt64 in *.
+
+    Admitted.
+
+  End Gappa.
 
   Section DynWin_Symbolic.
 
@@ -1588,20 +1734,6 @@ Section TopLevel.
                                                       (Memory.NM.bst SExpr)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
             |}.
 
-    (*
-    Infix "⊕" := MFloat64asCT.CTypePlus (at level 50) : Float64asCT_scope.
-    Infix "⊗" := MFloat64asCT.CTypeMult (at level 40) : Float64asCT_scope.
-    Infix "⊖" := MFloat64asCT.CTypeSub  (at level 50) : Float64asCT_scope.
-    Infix "" := b64_div                (at level 30) : Float64asCT_scope.
-     *)
-
-    Infix "⊞" := MFloat64asCT.CTypePlus (at level 50) : Float64asCT_scope.
-    Infix "⊠" := MFloat64asCT.CTypeMult (at level 40) : Float64asCT_scope.
-    Infix "⊟" := MFloat64asCT.CTypeSub  (at level 50) : Float64asCT_scope.
-    Infix "⧄" := (b64_div FT_Rounding)    (at level 30) : Float64asCT_scope.
-
-    Open Scope Float64asCT_scope.
-
     Lemma RHCOL_to_FHCOL_numerical_correct
       (r_omemory : RHCOLEval.memory)
       (a_rmem x_rmem y_rmem : RHCOLEval.mem_block)
@@ -1922,17 +2054,18 @@ Section TopLevel.
       unfold RHCOLtoFHCOL.heq_CType', RF_CHE in *.
       subst.
 
-      unfold MRasCT.CTypePlus,
-             MRasCT.CTypeMult,
-             MRasCT.CTypeSub,
-             MRasCT.CTypeOne,
-             MRasCT.CTypeZero.
-      unfold CarrierDefs_R.
-      unfold CarrierAplus,
-        CarrierAmult,
-        CarrierA1.
-      
-    Admitted.
+      intros F.
+      apply propF_Zless in F; apply propR_Zless.
+
+      eapply DynWin_numerical_stability.
+      15-18: eassumption.
+      1-5: eassumption.
+      eapply rxC.
+      eapply ryC.
+      eapply oxC.
+      eapply oyC.
+      all: assumption.
+    Qed.
 
   End DynWin_Symbolic.
 
@@ -2023,7 +2156,7 @@ Section TopLevel.
         Opaque dynwin_HCOL equiv.
         cbn.
         unfold SigmaHCOLImpl.liftM_HOperator_impl.
-        unfold compose.
+        unfold Basics.compose.
         f_equiv.
         subst sx.
         rewrite densify_sparsify.
