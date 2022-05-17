@@ -7,6 +7,7 @@ From Flocq Require Import Binary Bits Core.Defs.
 Require Import Helix.Util.VecSetoid.
 Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Util.ErrorSetoid.
+Require Import Helix.Util.FloatUtil.
 Require Import Helix.Tactics.StructTactics.
 Require Import Helix.Tactics.HelixTactics.
 
@@ -42,57 +43,6 @@ Require Import Helix.DynWin.DynWin.
 Require Import Helix.DynWin.DynWinProofs.
 
 Import MonadNotation.
-
-(* TODO: move *)
-Section FloatAux.
-
-  Inductive is_NaN_64 : binary64 -> Prop :=
-  | B754_nan_is_NaN_64 : forall s pl NPL,
-      is_NaN_64 (@B754_nan _ _ s pl NPL).
-
-  Definition le64 (a b : binary64) : Prop :=
-    b64_compare a b ≡ Some Datatypes.Eq
-    \/ b64_compare a b ≡ Some Datatypes.Lt.
-
-  Definition lt64 (a b : binary64) : Prop :=
-    b64_compare a b ≡ Some Datatypes.Lt.
-
-  (* inclusive range check *)
-  Definition in_range_64 : (binary64 * binary64) -> binary64 -> Prop
-    := fun '(a,b) x => le64 a x /\ le64 x b.
-
-  Lemma in_range_64_finite (lo hi x : binary64) :
-    is_finite _ _ lo = true ->
-    is_finite _ _ hi = true ->
-    in_range_64 (lo, hi) x ->
-    is_finite _ _ x = true.
-  Proof.
-    intros FL FH [LO HI].
-    unfold le64 in *.
-    destruct LO as [LEQ | LLT], HI as [HEQ | HLT].
-    all: unfold b64_compare, Bcompare in *.
-    all: repeat break_match; subst.
-    all: try reflexivity.
-    all: try congruence.
-  Qed.
-
-  (* left excluded, right included range check *)
-  Definition in_range_64_l : (binary64 * binary64) -> binary64 -> Prop
-    := fun '(a,b) x => lt64 a x /\ le64 x b.
-
-  Definition b64_0_1   := b64_of_bits 1036831949%Z. (* 0.1 *)
-  Definition b64_0_01  := b64_of_bits 1008981770%Z. (* 0.01 *)
-  Definition b64_0     := b64_of_bits 0%Z.          (* 0.0 *)
-  Definition b64_1     := b64_of_bits 1065353216%Z. (* 1.0 *)
-  Definition b64_2     := b64_of_bits 1073741824%Z. (* 2.0 *)
-  Definition b64_5     := b64_of_bits 1084227584%Z. (* 5.0 *)
-  Definition b64_6     := b64_of_bits 1086324736%Z. (* 6.0 *)
-  Definition b64_10    := b64_of_bits 1092616192%Z. (* 10.0 *)
-  Definition b64_20    := b64_of_bits 1101004800%Z. (* 20.0 *)
-  Definition b64_100   := b64_of_bits 1120403456%Z. (* 100.0 *)
-  Definition b64_5000  := b64_of_bits 1167867904%Z. (* 5000.0 *)
-
-End FloatAux.
 
 Section RHCOL_to_FHCOL_bounds.
 
