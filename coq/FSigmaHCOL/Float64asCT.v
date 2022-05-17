@@ -46,6 +46,11 @@ Definition Float64One : binary64 := b64_of_bits 4607182418800017408.
 
 Instance binary64_Equiv: Equiv binary64 := eq.
 
+(* The amount by which two numbers need to differ
+   to be considered "clearly" unequal *)
+(* TODO: set to 1e-10 for now *)
+Definition epsilon : binary64 := b64_of_bits 4457293557087583675.
+
 (* Should be somewhere in stdlib but I could not find it *)
 Lemma positive_dec : forall p1 p2 : positive, {p1 ≡ p2} + {p1 ≢ p2}.
 Proof.
@@ -128,29 +133,6 @@ Module MFloat64asCT <: CType.
   Definition CTypeMult     := b64_mult FT_Rounding.
   Definition CTypeAbs      := b64_abs.
 
-  (* For "regular" floating point numbers the comparison is
-    straighforward. However we need to handle NaNs. From point of
-    view of DHCOL<->FHCOL semantics equivalence, NaNs does not matter,
-    as we are going to constant the proof to input data which does not
-    contain NaNs and furthermore prove that NaNs will not appear as
-    result of any internal computations. So any NaN behaviour will do.
-
-    To simplify FHCOL->IR compiler proofs we will chose to handle NaNs
-    as similiar as possible as it is done in [fcmp olt] instruction
-    which this one is compiled to. Per IR spec it "yields true if both
-    operands are not a QNAN and op1 is less than op2"
-
-  *)
-  Definition CTypeZLess (a b: binary64) : binary64 :=
-    match a, b with
-    | B754_nan _ _ _ _ _, _ | _, B754_nan _ _ _ _ _ => CTypeZero
-    | _, _ =>
-      match Bcompare _ _ a b with
-      | Some Datatypes.Lt => CTypeOne
-      | _ => CTypeZero
-      end
-    end.
-
   (* Quick test that definitoin we have is indeed different from
      directly using [Bcompare]:
 
@@ -173,6 +155,29 @@ Module MFloat64asCT <: CType.
   Definition CTypeMin      := Float64Min.
   Definition CTypeMax      := Float64Max.
   Definition CTypeSub      := b64_minus FT_Rounding.
+
+  (* For "regular" floating point numbers the comparison is
+    straighforward. However we need to handle NaNs. From point of
+    view of DHCOL<->FHCOL semantics equivalence, NaNs does not matter,
+    as we are going to constant the proof to input data which does not
+    contain NaNs and furthermore prove that NaNs will not appear as
+    result of any internal computations. So any NaN behaviour will do.
+
+    To simplify FHCOL->IR compiler proofs we will chose to handle NaNs
+    as similiar as possible as it is done in [fcmp olt] instruction
+    which this one is compiled to. Per IR spec it "yields true if both
+    operands are not a QNAN and op1 is less than op2"
+  *)
+  (* TODO: [Bcompare] already gracefully manages NaNs *)
+  Definition CTypeZLess_old (a b: binary64) : binary64 :=
+    match a, b with
+    | B754_nan _ _ _ _ _, _ | _, B754_nan _ _ _ _ _ => CTypeZero
+    | _, _ =>
+      match Bcompare _ _ epsilon (CTypeSub b a)  with
+      | Some Datatypes.Lt => CTypeOne
+      | _ => CTypeZero
+      end
+    end.
 
   Instance Zless_proper: Proper ((=) ==> (=) ==> (=)) CTypeZLess.
   Proof. solve_proper. Qed.
