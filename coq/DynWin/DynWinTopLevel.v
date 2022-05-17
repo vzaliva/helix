@@ -1638,6 +1638,20 @@ Section TopLevel.
                                                       (Memory.NM.bst SExpr)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
             |}.
 
+    (*
+    Infix "⊕" := MFloat64asCT.CTypePlus (at level 50) : Float64asCT_scope.
+    Infix "⊗" := MFloat64asCT.CTypeMult (at level 40) : Float64asCT_scope.
+    Infix "⊖" := MFloat64asCT.CTypeSub  (at level 50) : Float64asCT_scope.
+    Infix "" := b64_div                (at level 30) : Float64asCT_scope.
+     *)
+
+    Infix "⊞" := MFloat64asCT.CTypePlus (at level 50) : Float64asCT_scope.
+    Infix "⊠" := MFloat64asCT.CTypeMult (at level 40) : Float64asCT_scope.
+    Infix "⊟" := MFloat64asCT.CTypeSub  (at level 50) : Float64asCT_scope.
+    Infix "⧄" := (b64_div FT_Rounding)    (at level 30) : Float64asCT_scope.
+
+    Open Scope Float64asCT_scope.
+
     Lemma RHCOL_to_FHCOL_numerical_correct
       (r_omemory : RHCOLEval.memory)
       (a_rmem x_rmem y_rmem : RHCOLEval.mem_block)
@@ -1824,7 +1838,7 @@ Section TopLevel.
       unfold hackity_hack.
       cbv - [CType_impl evalRealSExpr R_env evalFloatSExpr Float_env].
 
-      assert (forall k, nth_error R_env k ≡
+      assert (RF_Env : forall k, nth_error R_env k ≡
                      liftM (B2R _ _) (nth_error (Float_env f_imemory) k)).
       {
         clear - RF_IM.
@@ -1846,6 +1860,127 @@ Section TopLevel.
         all: invc H1; invc H3.
         all: rewrite H1; reflexivity.
       }
+
+      clear - INCONSTR A_RMEM X_RMEM RF_IM RF_Env.
+      cbn [evalRealSExpr evalFloatSExpr].
+      rewrite !RF_Env; clear RF_Env.
+
+      unfold Float_env.
+      rewrite !Coqlib.list_map_nth.
+      cbn [nth_error Coqlib.option_map
+             liftM liftM2 OptionMonad.Monad_option bind ret].
+      constructor.
+
+      pose proof RF_IM 0 as RF_A_IM.
+      rewrite A_RMEM in RF_A_IM.
+      invc RF_A_IM.
+
+      pose proof RF_IM 2 as RF_X_IM.
+      rewrite X_RMEM in RF_X_IM.
+      invc RF_X_IM.
+
+      cbn [Fmemory_lookup_deep_unsafe].
+      rewrite <-!H0, <-!H2.
+      clear - INCONSTR H1 H3.
+      rename b into a_fmem, b0 into x_fmem, H1 into FA, H3 into FX.
+
+      unfold DynWinInConstr in INCONSTR.
+      destruct INCONSTR as
+        (V64 & b64 & A64 & e64 & v64 & rx64 & ry64 & ox64 & oy64 & INCONSTR).
+      destruct INCONSTR as
+        (VC & bC & AC & eC & A & vC & rxC & ryC & oxC & oyC & X).
+
+      unfold make_a64 in *.
+
+      Ltac mem_lookup_simpl :=
+        unfold FHCOLEval.mem_add, FHCOLEval.mem_lookup in *;
+        repeat (try rewrite Memory.NP.F.add_eq_o in * by lia;
+                try rewrite Memory.NP.F.add_neq_o in * by lia).
+
+      (** * Hardcoded lookups in a *)
+      pose proof (A 0) as A0.
+      pose proof (FA 0) as FA0.
+      mem_lookup_simpl.
+      inversion A0 as [| a0 ? A0E A0'];
+        subst; rewrite <-A0' in *; clear A0 A0'.
+      inversion FA0 as [| a0' ? FA0E TMP1 TMP2];
+        subst; rename b into fa0; clear TMP2 FA0.
+      
+      pose proof (A 1) as A1.
+      pose proof (FA 1) as FA1.
+      mem_lookup_simpl.
+      inversion A1 as [| a1 ? A1E A1'];
+        subst; rewrite <-A1' in *; clear A1 A1'.
+      inversion FA1 as [| a1' ? FA1E TMP1 TMP2];
+        subst; rename b into fa1; clear TMP2 FA1.
+
+      pose proof (A 2) as A2.
+      pose proof (FA 2) as FA2.
+      mem_lookup_simpl.
+      remember (b64_div FT_Rounding b64_1 (MFloat64asCT.CTypeMult b64_2 b64)) as T.
+      inversion A2 as [| a2 ? A2E A2'];
+        subst; rewrite <-A2' in *; clear A2 A2'.
+      inversion FA2 as [| a2' ? FA2E TMP1 TMP2];
+        subst; rename b into fa2; clear TMP2 FA2.
+
+      clear A FA.
+
+      (** * Hardcoded looups in x *)
+      pose proof (X 0) as X0.
+      pose proof (FX 0) as FX0.
+      mem_lookup_simpl.
+      inversion X0 as [| x0 ? X0E X0'];
+        subst; rewrite <-X0' in *; clear X0 X0'.
+      inversion FX0 as [| x0' ? FX0E TMP1 TMP2];
+        subst; rename b into fx0; clear TMP2 FX0.
+
+      pose proof (X 1) as X1.
+      pose proof (FX 1) as FX1.
+      mem_lookup_simpl.
+      inversion X1 as [| x1 ? X1E X1'];
+        subst; rewrite <-X1' in *; clear X1 X1'.
+      inversion FX1 as [| x1' ? FX1E TMP1 TMP2];
+        subst; rename b into fx1; clear TMP2 FX1.
+
+      pose proof (X 2) as X2.
+      pose proof (FX 2) as FX2.
+      mem_lookup_simpl.
+      inversion X2 as [| x2 ? X2E X2'];
+        subst; rewrite <-X2' in *; clear X2 X2'.
+      inversion FX2 as [| x2' ? FX2E TMP1 TMP2];
+        subst; rename b into fx2; clear TMP2 FX2.
+
+      pose proof (X 3) as X3.
+      pose proof (FX 3) as FX3.
+      mem_lookup_simpl.
+      inversion X3 as [| x3 ? X3E X3'];
+        subst; rewrite <-X3' in *; clear X3 X3'.
+      inversion FX3 as [| x3' ? FX3E TMP1 TMP2];
+        subst; rename b into fx3; clear TMP2 FX3.
+
+      pose proof (X 4) as X4.
+      pose proof (FX 4) as FX4.
+      mem_lookup_simpl.
+      inversion X4 as [| x4 ? X4E X4'];
+        subst; rewrite <-X4' in *; clear X4 X4'.
+      inversion FX4 as [| x4' ? FX4E TMP1 TMP2];
+        subst; rename b into fx4; clear TMP2 FX4.
+
+      clear X FX.
+      (** * ^ Done ^ *)
+
+      unfold RHCOLtoFHCOL.heq_CType', RF_CHE in *.
+      subst.
+
+      unfold MRasCT.CTypePlus,
+             MRasCT.CTypeMult,
+             MRasCT.CTypeSub,
+             MRasCT.CTypeOne,
+             MRasCT.CTypeZero.
+      unfold CarrierDefs_R.
+      unfold CarrierAplus,
+        CarrierAmult,
+        CarrierA1.
       
     Admitted.
 
