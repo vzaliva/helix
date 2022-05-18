@@ -347,6 +347,8 @@ Section TopLevel.
   Require Import List.
   Import ListNotations.
 
+  Require Import Gappa.Gappa_tactic.
+
   Section Gappa.
 
     Infix "⊞" := MFloat64asCT.CTypePlus (at level 50) : Float64asCT_scope.
@@ -382,6 +384,7 @@ Section TopLevel.
     Lemma R_MultOneLeft :
       forall x, MRasCT.CTypeMult MRasCT.CTypeOne x ≡ x.
     Admitted.
+      
 
     Hint Rewrite 
       F_MaxZeroAbs
@@ -405,24 +408,73 @@ Section TopLevel.
       CarrierAz
       CarrierA1 : unfold_RCT.
 
+    Hint Unfold
+      MFloat64asCT.CTypePlus
+      MFloat64asCT.CTypeMult
+      MFloat64asCT.CTypeSub
+      MFloat64asCT.CTypeAbs
+      MFloat64asCT.CTypeZero
+      MFloat64asCT.CTypeOne : unfold_FCT.
+
+    Lemma b64_max_to_R (f1 f2 : binary64) :
+      B64R (Float64Max f1 f2)
+      ≡ MRasCT.CTypeMax (B64R f1) (B64R f2).
+    Admitted.
+
+    Lemma b64_max_finite (f1 f2 : binary64) :
+      is_finite _ _ f1 ≡ true ->
+      is_finite _ _ f2 ≡ true ->
+      is_finite _ _ (Float64Max f1 f2) ≡ true.
+    Admitted.
+
+    Lemma b64_abs_to_R (f : binary64) :
+      B64R (b64_abs f) ≡ MRasCT.CTypeAbs (B64R f).
+    Admitted.
+
+    Lemma b64_abs_finite (f : binary64) :
+      is_finite _ _ f ≡ true ->
+      B64R (b64_abs f) ≡ MRasCT.CTypeAbs (B64R f).
+    Admitted.
+
+    Lemma finite_in_R (f f' : binary64) :
+      is_finite _ _ f' ≡ true ->
+      B64R f ≡ B64R f' ->
+      is_finite _ _ f ≡ true.
+    Admitted.
+
+    Hint Unfold no_overflow64 round64 : sugar64.
+
     Hint Rewrite
-      b64_minus_to_R b64_mult_to_R
-      b64_minus_finite b64_mult_finite
+      b64_plus_to_R b64_minus_to_R
+      b64_mult_to_R b64_div_to_R
+      b64_max_to_R b64_abs_to_R
+
+      b64_plus_finite b64_minus_finite
+      b64_mult_finite b64_div_finite
+      b64_max_finite b64_abs_finite
       : rewrite_to_R.
 
-
+    Ltac not_known A :=
+      match goal with
+      | H : A |- _ => fail 1 "Assertion" A "already known in" H
+      | _ => idtac
+      end.
+    
+    Ltac assert_if_new_as Name H :=
+      not_known H; assert (Name : H).
+    
     Lemma DynWin_numerical_stability
       (V64 b64 A64 e64 v64 rx64 ry64 ox64 oy64 : binary64)
       (fa0 fa1 fa2 fx0 fx1 fx2 fx3 fx4 : binary64)
-      (VC  : in_range_64   V_constr V64)
-      (bC  : in_range_64_l b_constr b64)
-      (AC  : in_range_64   A_constr A64)
-      (eC  : in_range_64   e_constr e64)
-      (vC  : in_range_64   v_constr v64)
-      (rxC : in_range_64   x_constr rx64)
-      (ryC : in_range_64   y_constr ry64)
-      (oxC : in_range_64   x_constr ox64)
-      (oyC : in_range_64   y_constr oy64)
+      (VC  : in_range_64 V_constr V64)
+      (bC  : in_range_64 b_constr b64)
+      (AC  : in_range_64 A_constr A64)
+      (eC  : in_range_64 e_constr e64)
+      (vC  : in_range_64 v_constr v64)
+      (rxC : in_range_64 x_constr rx64)
+      (ryC : in_range_64 y_constr ry64)
+      (oxC : in_range_64 x_constr ox64)
+      (oyC : in_range_64 y_constr oy64)
 
       (FX0 : B64R fx0 ≡ B64R v64)
       (FX1 : B64R fx1 ≡ B64R rx64)
@@ -469,6 +521,143 @@ Section TopLevel.
         by lra.
 
       unfold safe_lt64 in *.
+
+      repeat
+        (let RAN := fresh "RAN" in
+         match goal with
+         | [H : in_range_64 ?constr ?x |- _] =>
+             assert_if_new_as RAN
+               (B64R (fst constr) <= B64R x <= B64R (snd constr))%R
+         | [H : in_range_64_l ?constr ?x |- _] =>
+             assert_if_new_as RAN
+               (B64R (fst constr) < B64R x <= B64R (snd constr))%R
+         end;
+        [first [eapply in_range_64_to_R | eapply in_range_64_l_to_R];
+         try reflexivity; eassumption
+        |]).
+      repeat match goal with
+             | [H : context[fst ?x] |- _] => unfold x in *
+             | [H : context[snd ?x] |- _] => unfold x in *
+             end;
+        cbn [fst snd] in *.
+
+      assert (FIN : is_finite _ _ b64_1 ≡ true) by reflexivity.
+      assert (FIN0 : is_finite _ _ b64_2 ≡ true) by reflexivity.
+      
+      Ltac known_finite x :=
+        match goal with
+        | [H : is_finite _ _ x ≡ true |- _] => idtac
+        | _ => fail 1
+        end.
+
+      Ltac rewrite_to_R :=
+        autounfold with unfold_FCT;
+        autorewrite with rewrite_to_R;
+        try assumption.
+        
+      Ltac gappa_form :=
+        try apply bpow_lt_to_le;
+        repeat (cbv [Defs.F2R IZR IPR IPR_2 Z.pow_pos Pos.iter] in *;
+                simpl in *).
+
+      Ltac simple_R :=
+        match goal with
+        | |- B2R _ _ (B754_finite _ _ _ _ _ _) ≢ 0%R => cbv; lra
+        end.
+
+      Ltac gappa_crush :=
+        rewrite_to_R;
+        autounfold with sugar64 F64_const in *;
+        try simple_R;
+        gappa_form;
+        gappa.
+
+      (* Extra safe match to avoid unnecessarily calling the heavy [gappa_crush] *)
+      Ltac solve_with_gappa :=
+        match goal with
+        | |- no_overflow64 _ => gappa_crush
+        | |- _ ≢ 0%R => gappa_crush
+        end.
+
+      Ltac crush_floats :=
+        first
+          [ assumption
+          | reflexivity
+          | eapply in_range_finite; eassumption
+          | eapply in_range_l_finite; eassumption
+          (* | eapply finite_in_R; [| eassumption]; assumption *)
+          | rewrite_to_R; solve_with_gappa].
+
+      Ltac assert_finite :=
+        let FIN := fresh "FIN" in
+        match goal with
+        | [H : in_range_64 _ ?x |- _] =>
+            assert_if_new_as FIN (is_finite _ _ x ≡ true)
+        | [H : in_range_64_l _ ?x |- _] =>
+            assert_if_new_as FIN (is_finite _ _ x ≡ true)
+        | [H : context [?x ⊞ ?y] |- _] =>
+            known_finite x; known_finite y;
+            assert_if_new_as FIN (is_finite _ _ (x ⊞ y) ≡ true)
+        | [H : context [?x ⊟ ?y] |- _] =>
+            known_finite x; known_finite y;
+            assert_if_new_as FIN (is_finite _ _ (x ⊟ y) ≡ true)
+        | [H : context [?x ⊠ ?y] |- _] =>
+            known_finite x; known_finite y;
+            assert_if_new_as FIN (is_finite _ _ (x ⊠ y) ≡ true)
+        | [H : context [?x ⧄ ?y] |- _] =>
+            known_finite x; known_finite y;
+            assert_if_new_as FIN (is_finite _ _ (x ⧄ y) ≡ true)
+        end.
+
+      Ltac assert_no_overflow :=
+        let NOVF := fresh "NOVF" in
+        match goal with
+        | [H : context [?x ⊞ ?y] |- _] =>
+            known_finite x; known_finite y;
+            assert_if_new_as NOVF
+              (no_overflow64 (round64 FT_Rounding (B64R x + B64R y)))
+        | [H : context [?x ⊟ ?y] |- _] =>
+            known_finite x; known_finite y;
+            assert_if_new_as NOVF
+              (no_overflow64 (round64 FT_Rounding (B64R x - B64R y)))
+        | [H : context [?x ⊠ ?y] |- _] =>
+            known_finite x; known_finite y;
+            assert_if_new_as NOVF
+              (no_overflow64 (round64 FT_Rounding (B64R x * B64R y)))
+        | [H : context [?x ⧄ ?y] |- _] =>
+            known_finite x; known_finite y;
+            assert_if_new_as NOVF
+              (no_overflow64 (round64 FT_Rounding (B64R x / B64R y)))
+        end.
+
+      Ltac assert_divisor_nz :=
+        let NZ := fresh "NZ" in
+        match goal with
+        | [H : context [?x ⧄ ?y] |- _] =>
+            known_finite y;
+            assert_if_new_as NZ (B64R y ≢ 0%R)
+        end.
+
+      Ltac assert_next :=
+        first [assert_divisor_nz | assert_no_overflow | assert_finite];
+        [crush_floats |].
+
+      Time repeat assert_next.
+
+      (* *) (* *) (* *) (* *) (* *) (* *)
+      (* *) (* *) (* *) (* *) (* *) (* *)
+
+      
+      autounfold with unfold_FCT in FA0, FA1, FA2, F;
+        autorewrite with rewrite_to_R in FA0, FA1, FA2, F;
+        try assumption.
+      idtac.
+
+      
+
+
+      
+      
 
     Admitted.
 
