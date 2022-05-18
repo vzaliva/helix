@@ -129,7 +129,7 @@ Section RHCOL_to_FHCOL_bounds.
       o_y_64,
 
       in_range_64 V_constr V64
-      /\ in_range_64_l b_constr b64
+      /\ in_range_64 b_constr b64
       /\ in_range_64 A_constr A64
       /\ in_range_64 e_constr e64
       /\ RHCOLtoFHCOL.heq_mem_block () RF_CHE
