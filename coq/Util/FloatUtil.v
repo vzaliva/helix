@@ -12,6 +12,8 @@ Require Import Helix.FSigmaHCOL.Float64asCT.
 
 Open Scope R_scope.
 
+Notation B64R := (B2R 53 1024).
+
 Section Float64.
 
   Let prec := 53%Z.
@@ -19,6 +21,14 @@ Section Float64.
   Let fexp := (FLT_exp (3 - emax - prec)%Z prec).
 
   Variable m : mode.
+
+  Definition no_overflow64 (rf : R) :=
+    Rabs rf < bpow radix2 emax.
+
+  Definition round64 : R -> R :=
+    Generic_fmt.round radix2 fexp (round_mode m).
+
+  Hint Unfold no_overflow64 round64 : sugar64.
 
   Definition le64 (a b : binary64) : Prop :=
     b64_compare a b ≡ Some Datatypes.Eq
@@ -46,10 +56,34 @@ Section Float64.
     tauto.
   Qed.
 
+  Lemma in_range_l_finite (lo hi x : binary64) :
+    in_range_64_l (lo, hi) x ->
+    is_finite _ _ x ≡ true.
+  Proof.
+    unfold in_range_64_l.
+    tauto.
+  Qed.
+
+  (*
+     A common goal is to prove that a real fits in a float range
+     (i.e. [r < 2^emax]). Gappa can't handle goals with [lt].
+     Shrink the range (generously) and move to [le].
+   *)
+  Lemma bpow_lt_to_le (r : R) (p : Z) :
+    r <= bpow radix2 (p - 1) ->
+    r < bpow radix2 p.
+  Proof.
+    enough (bpow radix2 (p - 1) < bpow radix2 p)
+      by lra.
+    clear r.
+    apply bpow_lt.
+    lia.
+  Qed.
+
   Lemma le64_correct (a b : binary64) :
     is_finite _ _ a ≡ true ->
     is_finite _ _ b ≡ true ->
-    le64 a b -> B2R _ _ a <= B2R _ _ b.
+    le64 a b -> B64R a <= B64R b.
   Proof.
     intros FA FB LE64.
     unfold le64, b64_compare in *.
@@ -69,7 +103,7 @@ Section Float64.
   Lemma lt64_correct (a b : binary64) :
     is_finite _ _ a ≡ true ->
     is_finite _ _ b ≡ true ->
-    lt64 a b -> B2R _ _ a <= B2R _ _ b.
+    lt64 a b -> B64R a < B64R b.
   Proof.
     intros FA FB LT64.
     unfold lt64, b64_compare in *.
@@ -83,7 +117,7 @@ Section Float64.
     is_finite _ _ lo ≡ true ->
     is_finite _ _ hi ≡ true ->
     in_range_64 (lo, hi) x ->
-    B2R _ _ lo <= B2R _ _ x <= B2R _ _ hi.
+    B64R lo <= B64R x <= B64R hi.
   Proof.
     intros FLO FHI INRG.
     unfold in_range_64 in INRG.
@@ -91,21 +125,33 @@ Section Float64.
     split; now apply le64_correct.
   Qed.
 
+  Lemma in_range_64_l_to_R (lo hi x : binary64) :
+    is_finite _ _ lo ≡ true ->
+    is_finite _ _ hi ≡ true ->
+    in_range_64_l (lo, hi) x ->
+    B64R lo < B64R x <= B64R hi.
+  Proof.
+    intros FLO FHI INRG.
+    unfold in_range_64_l in INRG.
+    destruct INRG as (F & LO & HI).
+    split.
+    now apply lt64_correct.
+    now apply le64_correct.
+  Qed.
+
   (* Corollary of Bminus_correct *)
   Lemma b64_minus_to_R (x y : binary64) :
     is_finite _ _ x ≡ true ->
     is_finite _ _ y ≡ true ->
-    Rabs (Generic_fmt.round radix2 fexp (round_mode m) (B2R _ _ x - B2R _ _ y))
-    < bpow radix2 emax
-    ->
-      B2R _ _ (b64_minus m x y)
-      ≡ Generic_fmt.round radix2 fexp (round_mode m) (B2R _ _ x - B2R _ _ y).
+    no_overflow64 (round64 (B64R x - B64R y)) ->
+    B64R (b64_minus m x y) ≡ round64 (B64R x - B64R y).
   Proof.
     intros *.
     intros FX FY B.
     pose proof
       Bminus_correct prec emax eq_refl eq_refl binop_nan_pl64 m x y FX FY
       as COR.
+    autounfold with sugar64 in *.
     subst prec emax fexp.
     apply Rlt_bool_true in B.
     rewrite B in COR.
@@ -115,15 +161,15 @@ Section Float64.
   Lemma b64_minus_finite (x y : binary64) :
     is_finite _ _ x ≡ true ->
     is_finite _ _ y ≡ true ->
-    Rabs (Generic_fmt.round radix2 fexp (round_mode m) (B2R _ _ x - B2R _ _ y))
-    < bpow radix2 emax
-    -> is_finite _ _ (b64_minus m x y) ≡ true.
+    no_overflow64 (round64 (B64R x - B64R y)) ->
+    is_finite _ _ (b64_minus m x y) ≡ true.
   Proof.
     intros *.
     intros FX FY B.
     pose proof
       Bminus_correct prec emax eq_refl eq_refl binop_nan_pl64 m x y FX FY
       as COR.
+    autounfold with sugar64 in *.
     subst prec emax fexp.
     apply Rlt_bool_true in B.
     rewrite B in COR.
@@ -132,16 +178,14 @@ Section Float64.
 
   (* Corollary of Bmult_correct *)
   Lemma b64_mult_to_R (x y : binary64) :
-    Rabs (Generic_fmt.round radix2 fexp (round_mode m) (B2R _ _ x * B2R _ _ y))
-    < bpow radix2 emax
-    ->
-      B2R _ _ (b64_mult m x y)
-      ≡ Generic_fmt.round radix2 fexp (round_mode m) (B2R _ _ x * B2R _ _ y).
+    no_overflow64 (round64 (B64R x * B64R y)) ->
+    B64R (b64_mult m x y) ≡ round64 (B64R x * B64R y).
   Proof.
     intros * B.
     pose proof
       Bmult_correct prec emax eq_refl eq_refl binop_nan_pl64 m x y
       as COR.
+    autounfold with sugar64 in *.
     subst prec emax fexp.
     apply Rlt_bool_true in B.
     rewrite B in COR.
@@ -149,16 +193,16 @@ Section Float64.
   Qed.
 
   Lemma b64_mult_finite (x y : binary64) :
-    Rabs (Generic_fmt.round radix2 fexp (round_mode m) (B2R _ _ x * B2R _ _ y))
-    < bpow radix2 emax
-    -> is_finite _ _ x ≡ true
-    -> is_finite _ _ y ≡ true
-    -> is_finite _ _ (b64_mult m x y) ≡ true.
+    no_overflow64 (round64 (B64R x * B64R y)) ->
+    is_finite _ _ x ≡ true ->
+    is_finite _ _ y ≡ true ->
+    is_finite _ _ (b64_mult m x y) ≡ true.
   Proof.
     intros * B FX FY.
     pose proof
       Bmult_correct prec emax eq_refl eq_refl binop_nan_pl64 m x y
       as COR.
+    autounfold with sugar64 in *.
     subst prec emax fexp.
     apply Rlt_bool_true in B.
     rewrite B in COR.
@@ -172,16 +216,14 @@ Section Float64.
   Lemma b64_plus_to_R (x y : binary64) :
     is_finite _ _ x ≡ true ->
     is_finite _ _ y ≡ true ->
-    Rabs (Generic_fmt.round radix2 fexp (round_mode m) (B2R _ _ x + B2R _ _ y))
-    < bpow radix2 emax
-    ->
-      B2R _ _ (b64_plus m x y)
-      ≡ Generic_fmt.round radix2 fexp (round_mode m) (B2R _ _ x + B2R _ _ y).
+    no_overflow64 (round64 (B64R x + B64R y)) ->
+    B64R (b64_plus m x y) ≡ round64 (B64R x + B64R y).
   Proof.
     intros * XF YF B.
     pose proof
       Bplus_correct prec emax eq_refl eq_refl binop_nan_pl64 m x y
       as COR.
+    autounfold with sugar64 in *.
     subst prec emax fexp.
     apply Rlt_bool_true in B.
     rewrite B in COR.
@@ -191,15 +233,15 @@ Section Float64.
   Lemma b64_plus_finite (x y : binary64) :
     is_finite _ _ x ≡ true ->
     is_finite _ _ y ≡ true ->
-    Rabs (Generic_fmt.round radix2 fexp (round_mode m) (B2R _ _ x + B2R _ _ y))
-    < bpow radix2 emax
-    -> is_finite _ _ (b64_plus m x y) ≡ true.
+    no_overflow64 (round64 (B64R x + B64R y)) ->
+    is_finite _ _ (b64_plus m x y) ≡ true.
   Proof.
     intros *.
     intros FX FY B.
     pose proof
       Bplus_correct prec emax eq_refl eq_refl binop_nan_pl64 m x y FX FY
       as COR.
+    autounfold with sugar64 in *.
     subst prec emax fexp.
     apply Rlt_bool_true in B.
     rewrite B in COR.
@@ -210,17 +252,15 @@ Section Float64.
   Lemma b64_div_to_R (x y : binary64) :
     is_finite _ _ x ≡ true ->
     is_finite _ _ y ≡ true ->
-    B2R _ _ y <> 0 ->
-    Rabs (Generic_fmt.round radix2 fexp (round_mode m) (B2R _ _ x / B2R _ _ y))
-    < bpow radix2 emax
-    ->
-      B2R _ _ (b64_div m x y)
-      ≡ Generic_fmt.round radix2 fexp (round_mode m) (B2R _ _ x / B2R _ _ y).
+    B64R y <> 0 ->
+    no_overflow64 (round64 (B64R x / B64R y)) ->
+    B64R (b64_div m x y) ≡ round64 (B64R x / B64R y).
   Proof.
     intros * XF YF YO B.
     pose proof
       Bdiv_correct prec emax eq_refl eq_refl binop_nan_pl64 m x y
       as COR.
+    autounfold with sugar64 in *.
     subst prec emax fexp.
     apply Rlt_bool_true in B.
     rewrite B in COR.
@@ -230,16 +270,16 @@ Section Float64.
   Lemma b64_div_finite (x y : binary64) :
     is_finite _ _ x ≡ true ->
     is_finite _ _ y ≡ true ->
-    B2R _ _ y <> 0 ->
-    Rabs (Generic_fmt.round radix2 fexp (round_mode m) (B2R _ _ x / B2R _ _ y))
-    < bpow radix2 emax
-    -> is_finite _ _ (b64_div m x y) ≡ true.
+    B64R y <> 0 ->
+    no_overflow64 (round64 (B64R x / B64R y)) ->
+    is_finite _ _ (b64_div m x y) ≡ true.
   Proof.
     intros *.
     intros FX FY YO B.
     pose proof
       Bdiv_correct prec emax eq_refl eq_refl binop_nan_pl64 m x y YO
       as COR.
+    autounfold with sugar64 in *.
     subst prec emax fexp.
     apply Rlt_bool_true in B.
     rewrite B in COR.
