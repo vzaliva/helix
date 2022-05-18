@@ -252,21 +252,57 @@ End Float64.
 
 Section Float64CT.
 
-
 End Float64CT.
 
 Section Constants.
 
-  Definition b64_0_1   := b64_of_bits 1036831949%Z. (* 0.1 *)
-  Definition b64_0_01  := b64_of_bits 1008981770%Z. (* 0.01 *)
-  Definition b64_0     := b64_of_bits 0%Z.          (* 0.0 *)
-  Definition b64_1     := b64_of_bits 1065353216%Z. (* 1.0 *)
-  Definition b64_2     := b64_of_bits 1073741824%Z. (* 2.0 *)
-  Definition b64_5     := b64_of_bits 1084227584%Z. (* 5.0 *)
-  Definition b64_6     := b64_of_bits 1086324736%Z. (* 6.0 *)
-  Definition b64_10    := b64_of_bits 1092616192%Z. (* 10.0 *)
-  Definition b64_20    := b64_of_bits 1101004800%Z. (* 20.0 *)
-  Definition b64_100   := b64_of_bits 1120403456%Z. (* 100.0 *)
-  Definition b64_5000  := b64_of_bits 1167867904%Z. (* 5000.0 *)
+  (* 0.0 *)
+  Definition b64_0 := B754_zero 53 1024 false.
+  (* 0.1 *)
+  Definition b64_0_1 :=
+    B754_finite 53 1024 false 7205759403792794 (-56)
+      (binary_float_of_bits_aux_correct 52 11 eq_refl eq_refl eq_refl
+         4591870180066957722).
+  (* 0.01 *)
+  Definition b64_0_01 :=
+    B754_finite 53 1024 false 5764607523034235 (-59)
+      (binary_float_of_bits_aux_correct 52 11 eq_refl eq_refl eq_refl
+         4576918229304087675).
+  (* 1.0 *)
+  Definition b64_1 :=
+    B754_finite 53 1024 false 4503599627370496 (-52)
+      (binary_float_of_bits_aux_correct 52 11 eq_refl eq_refl eq_refl
+         4607182418800017408).
+  (* 2.0 *)
+  Definition b64_2 :=
+    B754_finite 53 1024 false 4503599627370496 (-51)
+      (binary_float_of_bits_aux_correct 52 11 eq_refl eq_refl eq_refl
+         4611686018427387904).
+  (* 5.0 *)
+  Definition b64_5 :=
+    B754_finite 53 1024 false 5629499534213120 (-50)
+      (binary_float_of_bits_aux_correct 52 11 eq_refl eq_refl eq_refl
+         4617315517961601024).
+  (* 6.0 *)
+  Definition b64_6 :=
+    B754_finite 53 1024 false 6755399441055744 (-50)
+      (binary_float_of_bits_aux_correct 52 11 eq_refl eq_refl eq_refl
+         4618441417868443648).
+  (* 20.0 *)
+  Definition b64_20 :=
+    B754_finite 53 1024 false 5629499534213120 (-48)
+      (binary_float_of_bits_aux_correct 52 11 eq_refl eq_refl eq_refl
+         4626322717216342016).
+  (* 5000.0 *)
+  Definition b64_5000 :=
+    B754_finite 53 1024 false 5497558138880000 (-40)
+      (binary_float_of_bits_aux_correct 52 11 eq_refl eq_refl eq_refl
+         4662219572839972864).
 
 End Constants.
+
+Global Hint Unfold
+  b64_0 b64_0_1 b64_0_01 b64_1 b64_2 b64_5 b64_6 b64_20 b64_5000
+  : F64_const.
+
+  
