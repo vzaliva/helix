@@ -1453,6 +1453,7 @@ End MSHCOL_to_RHCOL.
 
 (* TODO: move *)
 Require Import ZArith.
+Require Import Helix.Util.FloatUtil.
 
 Section RCHOL_to_FHCOL.
 
@@ -1464,7 +1465,7 @@ Section RCHOL_to_FHCOL.
     cbn.
 
     assert (RF0 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeZero
-                  ≡ @inr string _ Float64asCT.Float64Zero).
+                  ≡ @inr string _ b64_0).
     {
       unfold RHCOLtoFHCOL.translateCTypeConst.
       repeat break_if; try reflexivity; exfalso.
@@ -1472,7 +1473,7 @@ Section RCHOL_to_FHCOL.
     }
 
     assert (RF1 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeOne
-                  ≡ @inr string _ Float64asCT.Float64One).
+                  ≡ @inr string _ b64_1).
     {
       unfold RHCOLtoFHCOL.translateCTypeConst.
       repeat break_if; try reflexivity; exfalso.
@@ -1530,7 +1531,7 @@ Section RCHOL_to_FHCOL.
     intros RF RFΣ.
 
     assert (RF0 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeZero
-                  ≡ @inr string _ Float64asCT.Float64Zero).
+                  ≡ @inr string _ b64_0).
     {
       unfold RHCOLtoFHCOL.translateCTypeConst.
       repeat break_if; try reflexivity; exfalso.
@@ -1538,7 +1539,7 @@ Section RCHOL_to_FHCOL.
     }
 
     assert (RF1 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeOne
-                  ≡ @inr string _ Float64asCT.Float64One).
+                  ≡ @inr string _ b64_1).
     {
       unfold RHCOLtoFHCOL.translateCTypeConst.
       repeat break_if; try reflexivity; exfalso.
