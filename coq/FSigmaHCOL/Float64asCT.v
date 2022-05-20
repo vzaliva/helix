@@ -20,8 +20,11 @@ Instance binary64_Equiv: Equiv binary64 := eq.
 
 (* The amount by which two numbers need to differ
    to be considered "clearly" unequal *)
-(* TODO: set to 1e-10 for now *)
-Definition epsilon : binary64 := b64_of_bits 4457293557087583675.
+(* ~ 1.2e-12 *)
+Definition epsilon : binary64 :=
+  B754_finite 53 1024 false 5920039297100023 (-92)
+    (binary_float_of_bits_aux_correct 52 11 eq_refl eq_refl eq_refl
+       4428454873374927095).
 
 (* Should be somewhere in stdlib but I could not find it *)
 Lemma positive_dec : forall p1 p2 : positive, {p1 ≡ p2} + {p1 ≢ p2}.
