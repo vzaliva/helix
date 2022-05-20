@@ -235,7 +235,7 @@ Section TopLevel.
     cbn.
 
     assert (RF0 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeZero
-                  ≡ @inr string _ Float64asCT.Float64Zero).
+                  ≡ @inr string _ MFloat64asCT.CTypeZero).
     {
       unfold RHCOLtoFHCOL.translateCTypeConst.
       repeat break_if; try reflexivity; exfalso.
@@ -243,7 +243,7 @@ Section TopLevel.
     }
 
     assert (RF1 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeOne
-                  ≡ @inr string _ Float64asCT.Float64One).
+                  ≡ @inr string _ MFloat64asCT.CTypeOne).
     {
       unfold RHCOLtoFHCOL.translateCTypeConst.
       repeat break_if; try reflexivity; exfalso.
@@ -321,7 +321,7 @@ Section TopLevel.
         clear - e.
         unfold MFloat64asCT.CTypeOne, MFloat64asCT.CTypeZero in e.
         pose proof MFloat64asCT.CTypeZeroOneApart.
-        congruence.
+        invc e.
       -
         clear - n0.
         contradict n0.

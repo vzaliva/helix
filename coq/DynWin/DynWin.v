@@ -290,13 +290,14 @@ Definition DynWin_RHCOL_hard : RHCOL.DSHOperator :=
 
 
 Import FHCOL.
+Require Import FloatUtil.
 Definition DynWin_FHCOL_hard : FHCOL.DSHOperator :=
   (DSHAlloc Int64_2
          (DSHSeq
             (DSHSeq
                (DSHAlloc Int64_1
                   (DSHSeq
-                     (DSHSeq (DSHMemInit (PVar 0) Float64asCT.Float64Zero)
+                     (DSHSeq (DSHMemInit (PVar 0) b64_0)
                         (DSHAlloc Int64_1
                            (DSHLoop 3
                               (DSHSeq
@@ -311,7 +312,7 @@ Definition DynWin_FHCOL_hard : FHCOL.DSHOperator :=
                                                 (PVar 1, NConst Int64_0)
                                                 (PVar 0, NConst Int64_0)
                                                 (AMult (AVar 1) (AVar 0))
-                                                Float64asCT.Float64One)
+                                                b64_1)
                                              (DSHIMap 1 (PVar 0) (PVar 3)
                                                 (AMult (AVar 0) (ANth (MPtrDeref (PVar 8)) (NVar 4))))))))
                                  (DSHMemMap2 1 (PVar 2) (PVar 1) (PVar 2) (APlus (AVar 1) (AVar 0)))))))
@@ -320,7 +321,7 @@ Definition DynWin_FHCOL_hard : FHCOL.DSHOperator :=
                         (PVar 1, NConst Int64_0))))
                (DSHAlloc Int64_1
                   (DSHSeq
-                     (DSHSeq (DSHMemInit (PVar 0) Float64asCT.Float64Zero)
+                     (DSHSeq (DSHMemInit (PVar 0) b64_0)
                         (DSHAlloc Int64_1
                            (DSHLoop 2
                               (DSHSeq
