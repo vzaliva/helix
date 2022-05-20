@@ -168,11 +168,12 @@ Section RHCOL_to_FHCOL_bounds.
   Qed.
 
   Lemma propF_Zless (a b : binary64) :
-    propF (MFloat64asCT.CTypeZLess a b) <-> safe_lt64 a b.
+    propF (MFloat64asCT.CTypeZLess a b) <-> safe_lt64 FT_Rounding epsilon a b.
   Proof.
-    unfold MFloat64asCT.CTypeZLess, Zless, safe_lt64, lt64, b64_compare.
-    all: repeat break_match.
-    all: cbv - [MFloat64asCT.CTypeSub epsilon Bcompare].
+    unfold MFloat64asCT.CTypeZLess, MFloat64asCT.CTypeSub,
+      Zless, safe_lt64, lt64, b64_compare.
+    repeat break_match.
+    all: cbv - [b64_minus epsilon Bcompare].
     all: now split.
   Qed.
 
@@ -206,11 +207,23 @@ Section RHCOL_to_FHCOL_bounds.
 
   Global Instance CType_impl_proper :
     Proper ((=) ==> (=) ==> (iff)) CType_impl.
-  Admitted.
+  Proof.
+    intros x1 x2 X y1 y2 Y.
+    invc X; invc Y.
+    tauto.
+  Qed.
 
   Global Instance DynWinOutRel_Proper :
     Proper ((=) ==> (=) ==> (=) ==> (=) ==> (iff)) DynWinOutRel.
-  Admitted.
+  Proof.
+    intros a1 a2 A x1 x2 X y1 y2 Y y64_1 y64_2 Y64.
+    unfold DynWinOutRel.
+    clear - Y Y64.
+    specialize (Y dynwin_y_offset).
+    specialize (Y64 dynwin_y_offset).
+    rewrite Y, Y64.
+    tauto.
+  Qed.
 
 End RHCOL_to_FHCOL_bounds.
 
@@ -351,48 +364,63 @@ Section TopLevel.
 
   Section Gappa.
 
+    Notation "0.0" := MFloat64asCT.CTypeZero : Float64asCT_scope.
+    Notation "1.0" := MFloat64asCT.CTypeOne : Float64asCT_scope.
     Infix "⊞" := MFloat64asCT.CTypePlus (at level 50) : Float64asCT_scope.
     Infix "⊠" := MFloat64asCT.CTypeMult (at level 40) : Float64asCT_scope.
     Infix "⊟" := MFloat64asCT.CTypeSub  (at level 50) : Float64asCT_scope.
     Infix "⧄" := (b64_div FT_Rounding)  (at level 30) : Float64asCT_scope.
+    Notation fmax := (MFloat64asCT.CTypeMax).
+    Notation fabs := (MFloat64asCT.CTypeAbs).
     Notation B64R := (B2R 53 1024).
+    Notation "◻ x" := (round64 FT_Rounding x) (at level 0) : Float64asCT_scope.
 
     Open Scope Float64asCT_scope.
 
-    Lemma F_MaxZeroAbs :
-      forall x, MFloat64asCT.CTypeMax MFloat64asCT.CTypeZero (MFloat64asCT.CTypeAbs x)
-        ≡ (MFloat64asCT.CTypeAbs x).
-    Admitted.
+    Lemma fmaxZeroAbs :
+      forall x, fmax 0.0 (fabs x) ≡ fabs x.
+    Proof.
+      intros x.
+      unfold fmax, fabs, Float64Max, b64_abs, Babs.
+      destruct x.
+      all: reflexivity.
+    Qed.
 
-    Lemma R_MaxZeroAbs :
-      forall x, MRasCT.CTypeMax MRasCT.CTypeZero (MRasCT.CTypeAbs x)
-           ≡ (MRasCT.CTypeAbs x).
-    Admitted.
+    Lemma RCT_abs_Rabs (x : R) :
+      MRasCT.CTypeAbs x ≡ Rabs x.
+    Proof.
+      reflexivity.
+    Qed.
 
-    Lemma F_PlusZeroLeft :
-      forall x, MFloat64asCT.CTypePlus MFloat64asCT.CTypeZero x ≡ x.
-    Admitted.
+    Lemma RCT_max_Rmax (x y : R) :
+      MRasCT.CTypeMax x y ≡ Rmax x y.
+    Proof.
+      cbv.
+      repeat break_if; cbn.
+      all: solve [intuition].
+    Qed.
 
-    Lemma R_PlusZeroLeft :
-      forall x, MRasCT.CTypePlus MRasCT.CTypeZero x ≡ x.
-    Admitted.
+    Lemma R_MaxZeroAbs (x : R) :
+      MRasCT.CTypeMax MRasCT.CTypeZero (MRasCT.CTypeAbs x)
+      ≡ (MRasCT.CTypeAbs x).
+    Proof.
+      rewrite RCT_abs_Rabs, RCT_max_Rmax.
+      cbv.
+      repeat break_if.
+      all: solve [intuition].
+    Qed.
 
-    Lemma F_MultOneLeft :
-      forall x, MFloat64asCT.CTypeMult MFloat64asCT.CTypeOne x ≡ x.
-    Admitted.
+    Lemma R_PlusZeroLeft (x : R) :
+      MRasCT.CTypePlus MRasCT.CTypeZero x ≡ x.
+    Proof.
+      cbv; lra.
+    Qed.
 
-    Lemma R_MultOneLeft :
-      forall x, MRasCT.CTypeMult MRasCT.CTypeOne x ≡ x.
-    Admitted.
-      
-
-    Hint Rewrite 
-      F_MaxZeroAbs
-      F_PlusZeroLeft
-      F_MultOneLeft
-      R_MaxZeroAbs
-      R_PlusZeroLeft
-      R_MultOneLeft : simpl_CType_ops.
+    Lemma R_MultOneLeft (x : R) :
+      MRasCT.CTypeMult MRasCT.CTypeOne x ≡ x.
+    Proof.
+      cbv; lra.
+    Qed.
 
     Hint Unfold
       MRasCT.CTypePlus
@@ -416,32 +444,6 @@ Section TopLevel.
       MFloat64asCT.CTypeZero
       MFloat64asCT.CTypeOne : unfold_FCT.
 
-    Lemma b64_max_to_R (f1 f2 : binary64) :
-      B64R (Float64Max f1 f2)
-      ≡ MRasCT.CTypeMax (B64R f1) (B64R f2).
-    Admitted.
-
-    Lemma b64_max_finite (f1 f2 : binary64) :
-      is_finite _ _ f1 ≡ true ->
-      is_finite _ _ f2 ≡ true ->
-      is_finite _ _ (Float64Max f1 f2) ≡ true.
-    Admitted.
-
-    Lemma b64_abs_to_R (f : binary64) :
-      B64R (b64_abs f) ≡ MRasCT.CTypeAbs (B64R f).
-    Admitted.
-
-    Lemma b64_abs_finite (f : binary64) :
-      is_finite _ _ f ≡ true ->
-      B64R (b64_abs f) ≡ MRasCT.CTypeAbs (B64R f).
-    Admitted.
-
-    Lemma finite_in_R (f f' : binary64) :
-      is_finite _ _ f' ≡ true ->
-      B64R f ≡ B64R f' ->
-      is_finite _ _ f ≡ true.
-    Admitted.
-
     Hint Unfold no_overflow64 round64 : sugar64.
 
     Hint Rewrite
@@ -462,6 +464,230 @@ Section TopLevel.
     
     Ltac assert_if_new_as Name H :=
       not_known H; assert (Name : H).
+
+    Ltac known_finite x :=
+      match goal with
+      | [H : is_finite _ _ x ≡ true |- _] => idtac
+      | _ => fail 1
+      end.
+
+    Ltac rewrite_to_R :=
+      autounfold with unfold_FCT;
+      autorewrite with rewrite_to_R;
+      try assumption.
+      
+    Ltac gappa_form :=
+      try apply bpow_lt_to_le;
+      repeat (cbv [Defs.F2R IZR IPR IPR_2 Z.pow_pos Pos.iter] in *;
+              simpl in *).
+
+    Ltac simple_R :=
+      match goal with
+      | |- B2R _ _ (B754_finite _ _ _ _ _ _) ≢ 0%R => cbv; lra
+      end.
+
+    Ltac gappa_crush :=
+      rewrite_to_R;
+      autounfold with sugar64 F64_const in *;
+      try simple_R;
+      gappa_form;
+      gappa.
+
+    (* Extra safe match to avoid unnecessarily calling the heavy [gappa_crush] *)
+    Ltac solve_with_gappa :=
+      match goal with
+      | |- no_overflow64 _ => gappa_crush
+      | |- _ ≢ 0%R => gappa_crush
+      | |- context [Rmax] => unfold Rmax; break_match_goal; gappa_crush
+      end.
+
+    Ltac crush_floats :=
+      first
+        [ assumption
+        | reflexivity
+        | eapply in_range_finite; eassumption
+        | eapply in_range_l_finite; eassumption
+        | rewrite_to_R; solve_with_gappa].
+
+    Ltac assert_finite :=
+      let FIN := fresh "FIN" in
+      match goal with
+      | [H : in_range_64 _ ?x |- _] =>
+          assert_if_new_as FIN (is_finite _ _ x ≡ true)
+      | [H : in_range_64_l _ ?x |- _] =>
+          assert_if_new_as FIN (is_finite _ _ x ≡ true)
+      | [H : context [?x ⊞ ?y] |- _] =>
+          known_finite x; known_finite y;
+          assert_if_new_as FIN (is_finite _ _ (x ⊞ y) ≡ true)
+      | [H : context [?x ⊟ ?y] |- _] =>
+          known_finite x; known_finite y;
+          assert_if_new_as FIN (is_finite _ _ (x ⊟ y) ≡ true)
+      | [H : context [?x ⊠ ?y] |- _] =>
+          known_finite x; known_finite y;
+          assert_if_new_as FIN (is_finite _ _ (x ⊠ y) ≡ true)
+      | [H : context [?x ⧄ ?y] |- _] =>
+          known_finite x; known_finite y;
+          assert_if_new_as FIN (is_finite _ _ (x ⧄ y) ≡ true)
+      | [H : context [fabs ?x] |- _] =>
+          known_finite x;
+          assert_if_new_as FIN (is_finite _ _ (fabs x) ≡ true)
+      | [H : context [fmax ?x ?y] |- _] =>
+          known_finite x; known_finite y;
+          assert_if_new_as FIN (is_finite _ _ (fmax x y) ≡ true)
+      end.
+
+    Ltac assert_no_overflow :=
+      let NOVF := fresh "NOVF" in
+      match goal with
+      | [H : context [?x ⊞ ?y] |- _] =>
+          known_finite x; known_finite y;
+          assert_if_new_as NOVF
+            (no_overflow64 (◻ (B64R x + B64R y)))
+      | [H : context [?x ⊟ ?y] |- _] =>
+          known_finite x; known_finite y;
+          assert_if_new_as NOVF
+            (no_overflow64 (◻ (B64R x - B64R y)))
+      | [H : context [?x ⊠ ?y] |- _] =>
+          known_finite x; known_finite y;
+          assert_if_new_as NOVF
+            (no_overflow64 (◻ (B64R x * B64R y)))
+      | [H : context [?x ⧄ ?y] |- _] =>
+          known_finite x; known_finite y;
+          assert_if_new_as NOVF
+            (no_overflow64 (◻ (B64R x / B64R y)))
+      end.
+
+    Ltac assert_divisor_nz :=
+      let NZ := fresh "NZ" in
+      match goal with
+      | [H : context [?x ⧄ ?y] |- _] =>
+          known_finite y;
+          assert_if_new_as NZ (B64R y ≢ 0%R)
+      end.
+
+    Ltac assert_next :=
+      first [assert_divisor_nz | assert_no_overflow | assert_finite].
+
+    Open Scope R_scope.
+
+    Lemma Rabs_no_error (eps x y : R) :
+      - eps <= x - y <= eps ->
+      - eps <= Rabs x - Rabs y <= eps.
+    Proof.
+      intros D.
+      unfold Rabs.
+      repeat break_if; lra.
+    Qed.
+
+    Lemma Rmax_no_error (eps1 x1 y1 eps2 x2 y2 : R) :
+      - eps1 <= x1 - y1 <= eps1 ->
+      - eps2 <= x2 - y2 <= eps2 ->
+      - Rmax eps1 eps2 <= Rmax x1 x2 - Rmax y1 y2 <= Rmax eps1 eps2.
+    Proof.
+      intros D.
+      unfold Rmax.
+      repeat break_if; lra.
+    Qed.
+
+    Lemma DynWin_arith
+      (e a b vr vo a0 a1 a2 rx ry ox oy cheb64 poly64 cheb poly : R)
+      (E : B64R b64_0_01 <= e <= B64R b64_0_1)
+      (A : B64R b64_0 <= a <= B64R b64_5)
+      (B : B64R b64_1 <= b <= B64R b64_6)
+      (VR : B64R b64_0 <= vr <= B64R b64_20)
+      (VO : B64R b64_0 <= vo <= B64R b64_20)
+      (RX : B64R (b64_opp b64_5000) <= rx <= B64R b64_5000)
+      (RY : B64R (b64_opp b64_5000) <= ry <= B64R b64_5000)
+      (OX : B64R (b64_opp b64_5000) <= ox <= B64R b64_5000)
+      (OY : B64R (b64_opp b64_5000) <= oy <= B64R b64_5000)
+      (A0 : a0 ≡ ◻ (◻ (◻ (a / b) + B64R b64_1) *
+                      ◻ (◻ (◻ (◻ (a / B64R b64_2) * e) * e) + ◻ (e * vo))))
+      (A1 : a1 ≡ ◻ (◻ (vo / b) + ◻ (e * ◻ (◻ (a / b) + B64R b64_1))))
+      (A2 : a2 ≡ ◻ (B64R b64_1 / ◻ (B64R b64_2 * b)))
+      (CHEB64 : cheb64 ≡ Rmax (Rabs ◻ (rx - ox)) (Rabs ◻ (ry - oy)))
+      (POLY64 : poly64 ≡ ◻ (◻ (◻ (B64R b64_0 + ◻ (B64R b64_1 * a0)) +
+                                 ◻ (◻ (B64R b64_1 * vr) * a1)) +
+                              ◻ (◻ (◻ (B64R b64_1 * vr) * vr) * a2)))
+      (CHEB : cheb ≡ Rmax (Rabs (ox - rx)) (Rabs (oy - ry)))
+      (* TODO: this ([CU]) upper bound shouldn't be necessary here *)
+      (CU : no_overflow64 ◻ (cheb64 - poly64)) 
+      (POLY : poly ≡ a0 + vr * a1 + vr * vr * a2)
+      :
+      B64R epsilon < ◻ (cheb64 - poly64) -> (poly < cheb)%R.
+    Proof.
+      intros LT64.
+      (* 1b-40 *)
+      pose (cheb_delta := B64R (
+              B754_finite 53 1024 false 4503599627370496 (-92)
+                (binary_float_of_bits_aux_correct 52 11 eq_refl eq_refl eq_refl
+                   4427038433705197568))).
+
+      assert (CHEB_DELTA : - cheb_delta <= cheb64 - cheb <= cheb_delta).
+      {
+        clear - RX RY OX OY CHEB CHEB64.
+        subst.
+
+        replace cheb_delta with (Rmax cheb_delta cheb_delta)
+          by (unfold Rmax; break_if; reflexivity).
+
+        eapply Rmax_no_error.
+        -
+          replace (Rabs (ox - rx)) with (Rabs (rx - ox))
+            by (unfold Rabs; repeat break_if; lra).
+          eapply Rabs_no_error.
+          subst cheb_delta.
+          gappa_crush.
+        -
+          replace (Rabs (oy - ry)) with (Rabs (ry - oy))
+            by (unfold Rabs; repeat break_if; lra).
+          eapply Rabs_no_error.
+          subst cheb_delta.
+          gappa_crush.
+      }
+      clear CHEB CHEB64.
+
+      pose (poly_delta :=
+              B64R (B754_finite 53 1024 false 5665758678918104 (-94)
+                      (binary_float_of_bits_aux_correct 52 11 eq_refl eq_refl eq_refl
+                         4419193393502004184))).
+
+      assert (POLY_DELTA : - poly_delta <= poly64 - poly <= poly_delta).
+      {
+        clear LT64 CHEB_DELTA.
+        subst cheb_delta poly_delta.
+        replace (B64R b64_0) with 0 in * by reflexivity.
+        replace (B64R b64_1) with 1 in * by (cbv; lra).
+        repeat match goal with
+               | [H : context [0 + ?x] |- _] =>
+                   replace (0 + x) with x in * by lra
+               | [H : context [1 * ?x] |- _] =>
+                   replace (1 * x) with x in * by lra
+               end.
+        
+        gappa_crush.
+      }
+
+      clear - LT64 CU CHEB_DELTA POLY_DELTA.
+      subst cheb_delta poly_delta.
+      apply RIneq.Rlt_le in LT64.
+      enough (E : B64R float64_subnormal_eps <=
+                    cheb - poly
+                  <= 2 * Raux.bpow radix2 1024)
+        by (cbv in E; lra).
+
+      assert (BND64 : B64R epsilon <= ◻ (cheb64 - poly64) <= Raux.bpow radix2 1024).
+      {
+        clear - CU LT64.
+        split; [assumption |].
+        unfold no_overflow64, Rabs in *.
+        break_if; lra.
+      }
+      clear CU LT64.
+
+      gappa_crush.
+    Qed.
+
+    Close Scope R_scope.
     
     Lemma DynWin_numerical_stability
       (V64 b64 A64 e64 v64 rx64 ry64 ox64 oy64 : binary64)
@@ -476,6 +702,15 @@ Section TopLevel.
       (oxC : in_range_64 x_constr ox64)
       (oyC : in_range_64 y_constr oy64)
 
+      (FFA0 : is_finite _ _ fa0 ≡ true)
+      (FFA1 : is_finite _ _ fa1 ≡ true)
+      (FFA2 : is_finite _ _ fa2 ≡ true)
+      (FFX0 : is_finite _ _ fx0 ≡ true)
+      (FFX1 : is_finite _ _ fx1 ≡ true)
+      (FFX2 : is_finite _ _ fx2 ≡ true)
+      (FFX3 : is_finite _ _ fx3 ≡ true)
+      (FFX4 : is_finite _ _ fx4 ≡ true)
+
       (FX0 : B64R fx0 ≡ B64R v64)
       (FX1 : B64R fx1 ≡ B64R rx64)
       (FX2 : B64R fx2 ≡ B64R ry64)
@@ -487,14 +722,9 @@ Section TopLevel.
       (FA1 : B64R fa1 ≡ B64R (V64 ⧄ b64 ⊞ e64 ⊠ (A64 ⧄ b64 ⊞ b64_1)))
       (FA2 : B64R fa2 ≡ B64R (b64_1 ⧄ (b64_2 ⊠ b64)))
 
-      (F : safe_lt64
-        (((MFloat64asCT.CTypeZero ⊞ MFloat64asCT.CTypeOne ⊠ fa0)
-          ⊞ (MFloat64asCT.CTypeOne ⊠ fx0) ⊠ fa1)
-         ⊞ ((MFloat64asCT.CTypeOne ⊠ fx0) ⊠ fx0) ⊠ fa2)
-        (MFloat64asCT.CTypeMax
-           (MFloat64asCT.CTypeMax MFloat64asCT.CTypeZero
-              (MFloat64asCT.CTypeAbs (fx1 ⊟ fx3)))
-           (MFloat64asCT.CTypeAbs (fx2 ⊟ fx4))))
+      (F : safe_lt64 FT_Rounding epsilon
+             (((0.0 ⊞ 1.0 ⊠ fa0) ⊞ (1.0 ⊠ fx0) ⊠ fa1) ⊞ ((1.0 ⊠ fx0) ⊠ fx0) ⊠ fa2)
+             (fmax (fmax 0.0 (fabs (fx1 ⊟ fx3))) (fabs (fx2 ⊟ fx4))))
         :
         (MRasCT.CTypePlus
            (MRasCT.CTypePlus
@@ -509,7 +739,7 @@ Section TopLevel.
                 (MRasCT.CTypeAbs (MRasCT.CTypeSub (B64R fx1) (B64R fx3))))
              (MRasCT.CTypeAbs (MRasCT.CTypeSub (B64R fx2) (B64R fx4))))%R.
     Proof.
-      autorewrite with simpl_CType_ops in *.
+      rewrite !fmaxZeroAbs, !R_MaxZeroAbs, !R_PlusZeroLeft, !R_MultOneLeft in *.
 
       autounfold with unfold_RCT.
       unfold plus, negate, CarrierAneg, Basics.compose.
@@ -521,6 +751,7 @@ Section TopLevel.
         by lra.
 
       unfold safe_lt64 in *.
+      fold MFloat64asCT.CTypeSub in *.
 
       repeat
         (let RAN := fresh "RAN" in
@@ -543,123 +774,85 @@ Section TopLevel.
 
       assert (FIN : is_finite _ _ b64_1 ≡ true) by reflexivity.
       assert (FIN0 : is_finite _ _ b64_2 ≡ true) by reflexivity.
-      
-      Ltac known_finite x :=
-        match goal with
-        | [H : is_finite _ _ x ≡ true |- _] => idtac
-        | _ => fail 1
-        end.
+      assert (FIN1 : is_finite _ _ 0.0 ≡ true) by reflexivity.
+      assert (FIN2 : is_finite _ _ 1.0 ≡ true) by reflexivity.
+      assert (FIN3 : is_finite _ _ epsilon ≡ true) by reflexivity.
 
-      Ltac rewrite_to_R :=
-        autounfold with unfold_FCT;
-        autorewrite with rewrite_to_R;
+      (* a hack to avoid matching *)
+      pose (hidden_finite := is_finite).
+      replace is_finite with hidden_finite in FFA0, FFA1, FFA2 by reflexivity.
+
+      Time repeat (assert_next; [crush_floats |]).
+
+      subst hidden_finite.
+
+      autounfold with unfold_FCT in FA0, FA1, FA2;
+        autorewrite with rewrite_to_R in FA0, FA1, FA2;
         try assumption.
-        
-      Ltac gappa_form :=
-        try apply bpow_lt_to_le;
-        repeat (cbv [Defs.F2R IZR IPR IPR_2 Z.pow_pos Pos.iter] in *;
-                simpl in *).
 
-      Ltac simple_R :=
-        match goal with
-        | |- B2R _ _ (B754_finite _ _ _ _ _ _) ≢ 0%R => cbv; lra
-        end.
+      Time repeat (assert_next; [crush_floats |]).
 
-      Ltac gappa_crush :=
-        rewrite_to_R;
-        autounfold with sugar64 F64_const in *;
-        try simple_R;
-        gappa_form;
-        gappa.
+      apply lt64_correct in F; try assumption.
 
-      (* Extra safe match to avoid unnecessarily calling the heavy [gappa_crush] *)
-      Ltac solve_with_gappa :=
-        match goal with
-        | |- no_overflow64 _ => gappa_crush
-        | |- _ ≢ 0%R => gappa_crush
-        end.
-
-      Ltac crush_floats :=
-        first
-          [ assumption
-          | reflexivity
-          | eapply in_range_finite; eassumption
-          | eapply in_range_l_finite; eassumption
-          (* | eapply finite_in_R; [| eassumption]; assumption *)
-          | rewrite_to_R; solve_with_gappa].
-
-      Ltac assert_finite :=
-        let FIN := fresh "FIN" in
-        match goal with
-        | [H : in_range_64 _ ?x |- _] =>
-            assert_if_new_as FIN (is_finite _ _ x ≡ true)
-        | [H : in_range_64_l _ ?x |- _] =>
-            assert_if_new_as FIN (is_finite _ _ x ≡ true)
-        | [H : context [?x ⊞ ?y] |- _] =>
-            known_finite x; known_finite y;
-            assert_if_new_as FIN (is_finite _ _ (x ⊞ y) ≡ true)
-        | [H : context [?x ⊟ ?y] |- _] =>
-            known_finite x; known_finite y;
-            assert_if_new_as FIN (is_finite _ _ (x ⊟ y) ≡ true)
-        | [H : context [?x ⊠ ?y] |- _] =>
-            known_finite x; known_finite y;
-            assert_if_new_as FIN (is_finite _ _ (x ⊠ y) ≡ true)
-        | [H : context [?x ⧄ ?y] |- _] =>
-            known_finite x; known_finite y;
-            assert_if_new_as FIN (is_finite _ _ (x ⧄ y) ≡ true)
-        end.
-
-      Ltac assert_no_overflow :=
-        let NOVF := fresh "NOVF" in
-        match goal with
-        | [H : context [?x ⊞ ?y] |- _] =>
-            known_finite x; known_finite y;
-            assert_if_new_as NOVF
-              (no_overflow64 (round64 FT_Rounding (B64R x + B64R y)))
-        | [H : context [?x ⊟ ?y] |- _] =>
-            known_finite x; known_finite y;
-            assert_if_new_as NOVF
-              (no_overflow64 (round64 FT_Rounding (B64R x - B64R y)))
-        | [H : context [?x ⊠ ?y] |- _] =>
-            known_finite x; known_finite y;
-            assert_if_new_as NOVF
-              (no_overflow64 (round64 FT_Rounding (B64R x * B64R y)))
-        | [H : context [?x ⧄ ?y] |- _] =>
-            known_finite x; known_finite y;
-            assert_if_new_as NOVF
-              (no_overflow64 (round64 FT_Rounding (B64R x / B64R y)))
-        end.
-
-      Ltac assert_divisor_nz :=
-        let NZ := fresh "NZ" in
-        match goal with
-        | [H : context [?x ⧄ ?y] |- _] =>
-            known_finite y;
-            assert_if_new_as NZ (B64R y ≢ 0%R)
-        end.
-
-      Ltac assert_next :=
-        first [assert_divisor_nz | assert_no_overflow | assert_finite];
-        [crush_floats |].
-
-      Time repeat assert_next.
-
-      (* *) (* *) (* *) (* *) (* *) (* *)
-      (* *) (* *) (* *) (* *) (* *) (* *)
-
-      
-      autounfold with unfold_FCT in FA0, FA1, FA2, F;
-        autorewrite with rewrite_to_R in FA0, FA1, FA2, F;
+      pose proof NOVF22 as UF.
+      autounfold with unfold_FCT in F;
+        autorewrite with rewrite_to_R in F;
         try assumption.
-      idtac.
 
-      
+      autounfold with unfold_FCT in UF;
+        autorewrite with rewrite_to_R in UF;
+        try assumption.
 
+      rewrite !FX0, !FX1, !FX2, !FX3, !FX4 in *.
+      clear - FA0 FA1 FA2 UF F RAN RAN0 RAN1 RAN2 RAN3 RAN4 RAN5 RAN6 RAN7.
 
-      
-      
+      generalize dependent (B64R v64); intros vr ? VR.
+      generalize dependent (B64R e64); intros e ? ? E.
+      generalize dependent (B64R A64); intros a A ? ?.
+      generalize dependent (B64R b64); intros b ? B ?.
+      generalize dependent (B64R V64); intros vo VO ? ?.
 
-    Admitted.
+      generalize dependent (B64R fa0); intros a0 ? A0.
+      generalize dependent (B64R fa1); intros a1 A1 ?.
+      generalize dependent (B64R fa2); intros a2 A2 ?.
+
+      generalize dependent (B64R rx64); intros rx RX ?.
+      generalize dependent (B64R ry64); intros ry RY ?.
+      generalize dependent (B64R ox64); intros ox OX ?.
+      generalize dependent (B64R oy64); intros oy OY ?.
+      intros UF.
+
+      repeat match goal with
+             | [f : binary64 |- _] => clear f
+             end.
+
+      rewrite RCT_max_Rmax.
+      setoid_rewrite RCT_abs_Rabs.
+
+      remember (Rmax (Rabs (ox - rx)) (Rabs (oy - ry))) as cheb eqn:CHEB.
+      remember (Rmax (Rabs ◻ (rx - ox)) (Rabs ◻ (ry - oy))) as cheb64 eqn:CHEB64.
+      remember (a0 + vr * a1 + vr * vr * a2)%R as poly eqn:POLY.
+      remember (◻ (◻ (◻ (B64R b64_0 + ◻ (B64R b64_1 * a0)) +
+                        ◻ (◻ (B64R b64_1 * vr) * a1)) +
+                     ◻ (◻ (◻ (B64R b64_1 * vr) * vr) * a2)))
+                 as poly64 eqn:POLY64.
+
+      do 15 match goal with | [r : R |- _] => move r at top end.
+      move F at bottom.
+      move A2 after OY.
+      move A1 after OY.
+      move A0 after OY.
+
+      eapply DynWin_arith.
+      1-3: eassumption.
+      eapply VR.
+      eapply VO.
+      eapply RX.
+      eapply RY.
+      eapply OX.
+      eapply OY.
+      all: eassumption.
+    Qed.
 
   End Gappa.
 
@@ -2196,7 +2389,7 @@ Section TopLevel.
 
       clear A FA.
 
-      (** * Hardcoded looups in x *)
+      (** * Hardcoded lookups in x *)
       pose proof (X 0) as X0.
       pose proof (FX 0) as FX0.
       mem_lookup_simpl.
@@ -2241,14 +2434,33 @@ Section TopLevel.
       (** * ^ Done ^ *)
 
       unfold RHCOLtoFHCOL.heq_CType', RF_CHE in *.
+      destruct FA0E as [FA0F FA0].
+      destruct FA1E as [FA1F FA1].
+      destruct FA2E as [FA2F FA2].
+      destruct FX0E as [FX0F FX0].
+      destruct FX1E as [FX1F FX1].
+      destruct FX2E as [FX2F FX2].
+      destruct FX3E as [FX3F FX3].
+      destruct FX4E as [FX4F FX4].
+      destruct A0E as [A0F A0].
+      destruct A1E as [A1F A1].
+      destruct A2E as [A2F A2].
+      destruct X0E as [X0F X0].
+      destruct X1E as [X1F X1].
+      destruct X2E as [X2F X2].
+      destruct X3E as [X3F X3].
+      destruct X4E as [X4F X4].
       subst.
 
       intros F.
       apply propF_Zless in F; apply propR_Zless.
 
       eapply DynWin_numerical_stability.
-      15-18: eassumption.
-      1-5: eassumption.
+      eapply VC.
+      eapply bC.
+      eapply AC.
+      eapply eC.
+      eapply vC.
       eapply rxC.
       eapply ryC.
       eapply oxC.
