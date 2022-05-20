@@ -3,35 +3,10 @@ Require Import Coq.Bool.Bool.
 
 From Flocq Require Import Binary Bits.
 
+Require Import Helix.Util.FloatUtil.
 Require Import MathClasses.interfaces.abstract_algebra.
 
 Require Import Helix.MSigmaHCOL.CType.
-
-(* Defining these before importing math classes to avoid name collisions,
-   e.g. on [Lt] *)
-Section MinMax.
-
-  Definition Float64Min (a b: binary64) :=
-    match a, b with
-    | B754_nan _ _ _ _ _, _ | _, B754_nan _ _ _ _ _ => build_nan _ _ (binop_nan_pl64 a b)
-    | _, _ =>
-      match Bcompare _ _ a b with
-      | Some Datatypes.Lt => a
-      | _ => b
-      end
-    end.
-
-  Definition Float64Max (a b: binary64): binary64 :=
-    match a, b with
-    | B754_nan _ _ _ _ _, _ | _, B754_nan _ _ _ _ _ => build_nan _ _ (binop_nan_pl64 a b)
-    | _, _ =>
-      match Bcompare _ _ a b with
-      | Some Datatypes.Lt => b
-      | _ => a
-      end
-    end.
-
-End MinMax.
 
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.interfaces.abstract_algebra.
@@ -40,9 +15,6 @@ Require Import MathClasses.interfaces.orders.
 Definition FT_Rounding:mode := mode_NE.
 
 Require Import Coq.micromega.Lia.
-
-Definition Float64Zero : binary64 := B754_zero _ _ false.
-Definition Float64One : binary64 := b64_of_bits 4607182418800017408.
 
 Instance binary64_Equiv: Equiv binary64 := eq.
 
@@ -116,14 +88,12 @@ Module MFloat64asCT <: CType.
   Definition CTypeEquiv := binary64_Equiv.
   Definition CTypeSetoid := binary64_Setoid.
 
-  Definition CTypeZero := Float64Zero.
-  Definition CTypeOne  := Float64One.
+  Definition CTypeZero := b64_0.
+  Definition CTypeOne  := b64_1.
 
-  Lemma CTypeZeroOneApart: Float64Zero ≠ Float64One.
+  Lemma CTypeZeroOneApart: CTypeZero <> CTypeOne.
   Proof.
-    unfold Float64Zero, Float64One.
-    intros H.
-    inversion H.
+    discriminate.
   Qed.
 
   Definition CTypeEquivDec := binary64_equiv_dec.
