@@ -38,7 +38,7 @@ Definition heq_nat_int : nat -> MInt64asNT.t -> Prop :=
 Global Instance RF_CHE : RHCOLtoFHCOL.CTranslation_heq ().
 Proof.
   econstructor.
-  instantiate (1:=fun _ r f => B2R _ _ f ≡ r).
+  instantiate (1:=fun _ r f => is_finite _ _ f ≡ true /\ B2R _ _ f ≡ r).
   -
     intros r1 r2 RE f1 f2 FE.
     invc RE.
@@ -51,7 +51,7 @@ Proof.
     repeat break_if; invc T.
     now rewrite <-H1, e.
     rewrite <-H1, e.
-    unfold Float64asCT.MFloat64asCT.CTypeOne, Float64asCT.Float64One.
+    unfold Float64asCT.MFloat64asCT.CTypeOne, FloatUtil.b64_1.
     cbv.
     lra.
 Defined.
