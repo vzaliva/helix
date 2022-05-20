@@ -440,11 +440,6 @@ Section Float64.
     now rewrite Rcompare_Eq.
   Qed.
 
-  Lemma float_lt_to_le (x y : binary64) :
-    B64R x < B64R y ->
-    B64R float64_subnormal_eps <= B64R y - B64R x.
-  Admitted.
-
   Fact b64_0_correct : B64R b64_0 ≡ 0.
   Proof. reflexivity. Qed.
   
