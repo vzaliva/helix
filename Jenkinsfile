@@ -83,7 +83,7 @@ pipeline {
                     if (env.SKIP_CI != "true" && env.SKIP_BRANCH == "false") {
 			sh '''eval $(opam env)
                               make Makefile.coq
-                              make -f Makefile.coq -j ${NJOBS} coq/DynWin/DynWinProofs.vo
+                              make -f Makefile.coq -j ${NJOBS} coq/DynWin/DynWinTopLevel.vo
                            '''
                     }
                 }
