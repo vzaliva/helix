@@ -81,7 +81,7 @@ Section Float64.
   Definition round64 : R -> R :=
     Generic_fmt.round radix2 fexp (round_mode m).
 
-  Hint Unfold no_overflow64 round64 : sugar64.
+  Local Hint Unfold no_overflow64 round64 : sugar64.
 
   Definition Float64Min (a b: binary64) :=
     match a, b with
@@ -448,3 +448,4 @@ Section Float64.
 
 End Float64.
 
+Global Hint Unfold no_overflow64 round64 : sugar64.

@@ -502,6 +502,13 @@ Section hopt.
     apply PR in AE; apply AE in BE; tauto.
   Qed.
 
+  Lemma hopt_r_OK_inv (a : A) (b : B) :
+    hopt_r (Some a) (Some b) ->
+    R a b.
+  Proof.
+    intros O; now invc O.
+  Qed.
+
 End hopt.
 Arguments hopt {A B} R.
 Arguments hopt_r {A B} R.

@@ -169,3 +169,35 @@ Module MFloat64asCT <: CType.
   Proof. solve_proper. Qed.
 
 End MFloat64asCT.
+
+Declare Scope Float64asCT_scope.
+
+Notation "0.0" := MFloat64asCT.CTypeZero : Float64asCT_scope.
+Notation "1.0" := MFloat64asCT.CTypeOne : Float64asCT_scope.
+Infix "⊞" := MFloat64asCT.CTypePlus (at level 50) : Float64asCT_scope.
+Infix "⊠" := MFloat64asCT.CTypeMult (at level 40) : Float64asCT_scope.
+Infix "⊟" := MFloat64asCT.CTypeSub  (at level 50) : Float64asCT_scope.
+Infix "⧄" := (b64_div FT_Rounding)  (at level 30) : Float64asCT_scope.
+Notation fmax := (MFloat64asCT.CTypeMax).
+Notation fabs := (MFloat64asCT.CTypeAbs).
+Notation B64R := (B2R 53 1024).
+Notation "◻ x" := (round64 FT_Rounding x) (at level 0) : Float64asCT_scope.
+
+Global Hint Unfold
+  MFloat64asCT.CTypePlus
+  MFloat64asCT.CTypeMult
+  MFloat64asCT.CTypeSub
+  MFloat64asCT.CTypeAbs
+  MFloat64asCT.CTypeZero
+  MFloat64asCT.CTypeOne : unfold_FCT.
+
+Open Scope Float64asCT_scope.
+
+Lemma fmaxZeroAbs :
+  forall x, fmax 0.0 (fabs x) ≡ fabs x.
+Proof.
+  intros x.
+  unfold fmax, fabs, Float64Max, b64_abs, Babs.
+  destruct x.
+  all: reflexivity.
+Qed.

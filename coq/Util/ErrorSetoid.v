@@ -488,3 +488,16 @@ Proof.
     constructor.
   now invc HR.
 Qed.
+
+Lemma herr_c_OK_inv
+  {A B : Type}
+  (R : A -> B -> Prop)
+  (a : A)
+  (b : B)
+  :
+  herr_c R (inr a) (inr b) ->
+  R a b.
+Proof.
+  intros O; now invc O.
+Qed.
+

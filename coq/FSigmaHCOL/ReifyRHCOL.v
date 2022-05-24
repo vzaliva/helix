@@ -134,7 +134,7 @@ Section NT_numerical.
 
 End NT_numerical.
 
-Hint Unfold 
+Global Hint Unfold 
     NatAsNT.MNatAsNT.to_nat
     NatAsNT.MNatAsNT.from_nat
     MInt64asNT.to_nat
@@ -149,7 +149,7 @@ Hint Unfold
     NatAsNT.MNatAsNT.NTypeMax
   : NatAsNT_ops.
 
-Hint Unfold
+Global Hint Unfold
   MInt64asNT.NTypePlus
   MInt64asNT.NTypeDiv
   MInt64asNT.NTypeMod
