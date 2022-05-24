@@ -46,84 +46,6 @@ Require Import Helix.DynWin.DynWinProofs.
 Import ListNotations.
 Import MonadNotation.
 
-Section CType_impl.
-
-  Open Scope R_scope.
-
-  Inductive float_as_bool : MFloat64asCT.t -> bool -> Prop :=
-  | float_false : float_as_bool MFloat64asCT.CTypeZero false
-  | float_true : float_as_bool MFloat64asCT.CTypeOne true.
-
-  Inductive R_as_bool : MRasCT.t -> bool -> Prop :=
-  | R_false : R_as_bool MRasCT.CTypeZero false
-  | R_true : R_as_bool MRasCT.CTypeOne true.
-
-  (* Implication across [CType]s *)
-  Definition CType_impl p q :=
-    float_as_bool p true -> R_as_bool q true.
-
-  Global Instance CType_impl_proper :
-    Proper ((=) ==> (=) ==> (iff)) CType_impl.
-  Proof.
-    intros x1 x2 X y1 y2 Y.
-    invc X; invc Y.
-    tauto.
-  Qed.
-
-  Fact CType_impl_dec :
-    forall p q,
-      ({p ≡ MFloat64asCT.CTypeZero} + {p ≡ MFloat64asCT.CTypeOne}) ->
-      ({q ≡ MRasCT.CTypeZero} + {q ≡ MRasCT.CTypeOne}) ->
-      (float_as_bool p false -> R_as_bool q false) <->
-      (R_as_bool q true -> float_as_bool p true).
-  Proof.
-    intros * PD QD.
-    destruct PD, QD; subst.
-    all: split; intros.
-    all: try constructor; exfalso.
-    -
-      invc H0.
-      cbv in H2.
-      lra.
-    -
-      autospecialize H; [constructor |].
-      invc H.
-      cbv in H2.
-      lra.
-    -
-      autospecialize H; [constructor |].
-      invc H.
-    -
-      invc H0.
-  Qed.
-
-  Lemma R_as_bool_Zless (a b : R) :
-    R_as_bool (MRasCT.CTypeZLess a b) true <-> a < b.
-  Proof.
-    unfold MRasCT.CTypeZLess, Zless, CarrierAltdec, CarrierDefs_R.
-    break_if; cbv; split; try tauto.
-    constructor.
-    intros C.
-    invc C.
-    cbv in H0.
-    lra.
-  Qed.
-
-  Lemma float_as_bool_Zless (a b : binary64) :
-    float_as_bool (MFloat64asCT.CTypeZLess a b) true
-    <->
-    safe_lt64 FT_Rounding epsilon a b.
-  Proof.
-    unfold MFloat64asCT.CTypeZLess, MFloat64asCT.CTypeSub,
-      Zless, safe_lt64, lt64, b64_compare.
-    repeat break_match.
-    all: split; intros; subst.
-    all: invc H.
-    all: constructor.
-  Qed.
-
-End CType_impl.
-
 Section RHCOL_to_FHCOL_bounds.
 
   Open Scope R_scope.
@@ -1203,7 +1125,7 @@ Section DynWin_Symbolic.
       repeat (try rewrite Memory.NP.F.add_eq_o in * by lia;
               try rewrite Memory.NP.F.add_neq_o in * by lia).
 
-    (** * Hardcoded lookups in a *)
+    (* Hardcoded lookups in a *)
     pose proof (A 0) as A0.
     pose proof (FA 0) as FA0.
     mem_lookup_simpl.
@@ -1231,7 +1153,7 @@ Section DynWin_Symbolic.
 
     clear A FA.
 
-    (** * Hardcoded lookups in x *)
+    (* Hardcoded lookups in x *)
     pose proof (X 0) as X0.
     pose proof (FX 0) as FX0.
     mem_lookup_simpl.
@@ -1273,7 +1195,6 @@ Section DynWin_Symbolic.
       subst; rename b into fx4; clear TMP2 FX4.
 
     clear X FX.
-    (** * ^ Done ^ *)
 
     unfold RHCOLtoFHCOL.heq_CType', RF_CHE in *.
     destruct FA0E as [FA0F FA0].

@@ -49,8 +49,10 @@ Require Import Helix.RSigmaHCOL.RSigmaHCOL.
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Helix.FSigmaHCOL.ReifyRHCOL.
 Require Import Helix.FSigmaHCOL.Int64asNT.
+Require Import Helix.FSigmaHCOL.Float64asCT.
 Require Import Coq.Bool.Sumbool.
 Require Import MathClasses.misc.decision.
+
 Require Import Helix.SymbolicDHCOL.SymbolicCT.
 Require Import Helix.SymbolicDHCOL.RHCOLtoSRHCOL.
 Require Import Helix.SymbolicDHCOL.FHCOLtoSFHCOL.
@@ -1447,8 +1449,9 @@ Section MSHCOL_to_RHCOL.
 End MSHCOL_to_RHCOL.
 
 (* TODO: move *)
-Require Import ZArith.
+Require Import ZArith Rdefinitions Psatz.
 Require Import Helix.Util.FloatUtil.
+From Flocq Require Import Binary Bits Core.Defs.
 
 Section RCHOL_to_FHCOL.
 
@@ -1507,6 +1510,8 @@ Section RCHOL_to_FHCOL.
     destruct TΣR as (nv & p & NV & Σ);
     rewrite Σ.
 
+  Open Scope nat_scope.
+
   Lemma RHCOLtoFHCOL_NExpr_closure_trace_equiv
         (dynwin_F_σ : FHCOLEval.evalContext)
         (dynwin_FHCOL : FHCOLEval.DSHOperator)
@@ -1521,8 +1526,8 @@ Section RCHOL_to_FHCOL.
             (RHCOLEval.estimateFuel DynWin_RHCOL))
          (FHCOLEval.intervalEvalDSHOperator_σ
             dynwin_F_σ dynwin_FHCOL []
-  Proof.
             (FHCOLEval.estimateFuel dynwin_FHCOL)).
+  Proof.
     intros RF RFΣ.
 
     assert (RF0 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeZero
@@ -1856,3 +1861,83 @@ Section hardcoded.
   Qed.
 
 End hardcoded.
+
+(* Interpreting CType results (for outputs of [CTypeZLess]) as booleans,
+   reasoning about them *)
+Section CType_impl.
+
+  Open Scope R_scope.
+
+  Inductive float_as_bool : MFloat64asCT.t -> bool -> Prop :=
+  | float_false : float_as_bool MFloat64asCT.CTypeZero false
+  | float_true : float_as_bool MFloat64asCT.CTypeOne true.
+
+  Inductive R_as_bool : MRasCT.t -> bool -> Prop :=
+  | R_false : R_as_bool MRasCT.CTypeZero false
+  | R_true : R_as_bool MRasCT.CTypeOne true.
+
+  (* Implication across [CType]s *)
+  Definition CType_impl p q :=
+    float_as_bool p true -> R_as_bool q true.
+
+  Global Instance CType_impl_proper :
+    Proper ((=) ==> (=) ==> (iff)) CType_impl.
+  Proof.
+    intros x1 x2 X y1 y2 Y.
+    invc X; invc Y.
+    tauto.
+  Qed.
+
+  Fact CType_impl_dec :
+    forall p q,
+      ({p ≡ MFloat64asCT.CTypeZero} + {p ≡ MFloat64asCT.CTypeOne}) ->
+      ({q ≡ MRasCT.CTypeZero} + {q ≡ MRasCT.CTypeOne}) ->
+      (float_as_bool p false -> R_as_bool q false) <->
+      (R_as_bool q true -> float_as_bool p true).
+  Proof.
+    intros * PD QD.
+    destruct PD, QD; subst.
+    all: split; intros.
+    all: try constructor; exfalso.
+    -
+      invc H0.
+      cbv in H2.
+      lra.
+    -
+      autospecialize H; [constructor |].
+      invc H.
+      cbv in H2.
+      lra.
+    -
+      autospecialize H; [constructor |].
+      invc H.
+    -
+      invc H0.
+  Qed.
+
+  Lemma R_as_bool_Zless (a b : R) :
+    R_as_bool (MRasCT.CTypeZLess a b) true <-> a < b.
+  Proof.
+    unfold MRasCT.CTypeZLess, Zless, CarrierAltdec, CarrierDefs_R.
+    break_if; cbv; split; try tauto.
+    constructor.
+    intros C.
+    invc C.
+    cbv in H0.
+    lra.
+  Qed.
+
+  Lemma float_as_bool_Zless (a b : Bits.binary64) :
+    float_as_bool (MFloat64asCT.CTypeZLess a b) true
+    <->
+    safe_lt64 FT_Rounding epsilon a b.
+  Proof.
+    unfold MFloat64asCT.CTypeZLess, MFloat64asCT.CTypeSub,
+      Zless, safe_lt64, lt64, Bits.b64_compare.
+    repeat break_match.
+    all: split; intros; subst.
+    all: invc H.
+    all: constructor.
+  Qed.
+
+End CType_impl.
