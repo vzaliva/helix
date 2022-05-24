@@ -123,125 +123,6 @@ Section CType_impl.
 
 End CType_impl.
 
-Section hardcoded.
-
-  Lemma DynWin_FHCOL_hard_OK :
-    RHCOLtoFHCOL.translate DynWin_RHCOL ≡ inr DynWin_FHCOL_hard.
-  Proof.
-    cbn.
-
-    assert (RF0 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeZero
-                  ≡ @inr string _ MFloat64asCT.CTypeZero).
-    {
-      unfold RHCOLtoFHCOL.translateCTypeConst.
-      repeat break_if; try reflexivity; exfalso.
-      all: clear - n; contradict n; reflexivity.
-    }
-
-    assert (RF1 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeOne
-                  ≡ @inr string _ MFloat64asCT.CTypeOne).
-    {
-      unfold RHCOLtoFHCOL.translateCTypeConst.
-      repeat break_if; try reflexivity; exfalso.
-      -
-        clear - e.
-        cbv in e.
-        pose proof MRasCT.CTypeZeroOneApart.
-        cbv in H.
-        congruence.
-      -
-        clear - n0.
-        contradict n0.
-        reflexivity.
-    }
-
-    repeat progress (try setoid_rewrite RF0;
-                     try setoid_rewrite RF1).
-
-    reflexivity.
-  Qed.
-
-  Lemma DynWin_SRHCOL_hard_OK :
-    RHCOLtoSRHCOL.translate DynWin_RHCOL_hard ≡ inr DynWin_SRHCOL_hard.
-  Proof.
-    cbn.
-    assert (RLR0 : RHCOLtoSRHCOL.translateCTypeConst MRasCT.CTypeZero
-                  ≡ @inr string _ MSymbolicCT.CTypeZero).
-    {
-      unfold RHCOLtoSRHCOL.translateCTypeConst.
-      repeat break_if; try reflexivity; exfalso.
-      all: clear - n; contradict n; reflexivity.
-    }
-
-    assert (RLR1 : RHCOLtoSRHCOL.translateCTypeConst MRasCT.CTypeOne
-                  ≡ @inr string _ MSymbolicCT.CTypeOne).
-    {
-      unfold RHCOLtoSRHCOL.translateCTypeConst.
-      repeat break_if; try reflexivity; exfalso.
-      -
-        clear - e.
-        unfold MRasCT.CTypeOne, MRasCT.CTypeZero in e.
-        pose proof MRasCT.CTypeZeroOneApart.
-        congruence.
-      -
-        clear - n0.
-        contradict n0.
-        reflexivity.
-    }
-
-    repeat progress (try setoid_rewrite RLR0;
-                     try setoid_rewrite RLR1).
-
-    reflexivity.
-  Qed.
-
-  Lemma DynWin_SFHCOL_hard_OK :
-    FHCOLtoSFHCOL.translate DynWin_FHCOL_hard ≡ inr DynWin_SFHCOL_hard.
-  Proof.
-    cbn.
-
-    assert (FLF0 : FHCOLtoSFHCOL.translateCTypeConst MFloat64asCT.CTypeZero
-                  ≡ @inr string _ MSymbolicCT.CTypeZero).
-    {
-      unfold FHCOLtoSFHCOL.translateCTypeConst.
-      repeat break_if; try reflexivity; exfalso.
-      all: clear - n; contradict n; reflexivity.
-    }
-
-    assert (FLF1 : FHCOLtoSFHCOL.translateCTypeConst MFloat64asCT.CTypeOne
-                  ≡ @inr string _ MSymbolicCT.CTypeOne).
-    {
-      unfold FHCOLtoSFHCOL.translateCTypeConst.
-      repeat break_if; try reflexivity; exfalso.
-      -
-        clear - e.
-        unfold MFloat64asCT.CTypeOne, MFloat64asCT.CTypeZero in e.
-        pose proof MFloat64asCT.CTypeZeroOneApart.
-        invc e.
-      -
-        clear - n0.
-        contradict n0.
-        reflexivity.
-    }
-
-    assert (I0 : FHCOLtoSFHCOL.translateNTypeConst Int64asNT.Int64_0
-            ≡ inr Int64asNT.Int64_0) by reflexivity.
-    assert (I1 : FHCOLtoSFHCOL.translateNTypeConst Int64asNT.Int64_1
-            ≡ inr Int64asNT.Int64_1) by reflexivity.
-    assert (I2 : FHCOLtoSFHCOL.translateNTypeConst Int64asNT.Int64_2
-                 ≡ inr Int64asNT.Int64_2) by reflexivity.
-
-    repeat progress (try setoid_rewrite FLF0;
-                     try setoid_rewrite FLF1;
-                     try setoid_rewrite I0;
-                     try setoid_rewrite I1;
-                     try setoid_rewrite I2).
-
-    reflexivity.
-  Qed.
-
-End hardcoded.
-
 Section RHCOL_to_FHCOL_bounds.
 
   Open Scope R_scope.
@@ -1117,7 +998,7 @@ Section TopLevel.
           (env := R_env).
         5,6: eassumption.
         4: {
-          rewrite dynwin_RHCOL_hard_check, DynWin_SRHCOL_hard_OK.
+          rewrite DynWin_RHCOL_hard_OK, DynWin_SRHCOL_hard_OK.
           reflexivity.
         }
           

@@ -51,6 +51,9 @@ Require Import Helix.FSigmaHCOL.ReifyRHCOL.
 Require Import Helix.FSigmaHCOL.Int64asNT.
 Require Import Coq.Bool.Sumbool.
 Require Import MathClasses.misc.decision.
+Require Import Helix.SymbolicDHCOL.SymbolicCT.
+Require Import Helix.SymbolicDHCOL.RHCOLtoSRHCOL.
+Require Import Helix.SymbolicDHCOL.FHCOLtoSFHCOL.
 
 Require Import ExtLib.Structures.Monad.
 Import MonadNotation.
@@ -929,14 +932,6 @@ Section MSHCOL_to_RHCOL.
        "DynWin_RHCOL" "DynWin_RHCOL_globals").
   Transparent CarrierAz zero CarrierA1 one.
 
-  (* A sanity check as a side effect of [DynWin_RHCOL_hard] being hardcoded in
-     [DynWin.v]. See also [DynWin_FHCOL_hard_check] *)
-  Fact dynwin_RHCOL_hard_check :
-    DynWin_RHCOL ≡ DynWin_RHCOL_hard.
-  Proof.
-    reflexivity.
-  Qed.
-
   Definition nglobals := List.length (DynWin_RHCOL_globals). (* 1 *)
   Definition DSH_x_p := PVar (nglobals+1). (* PVar 2 *)
   Definition DSH_y_p := PVar (nglobals+0). (* PVar 1 *)
@@ -1513,8 +1508,8 @@ Section RCHOL_to_FHCOL.
     rewrite Σ.
 
   Lemma RHCOLtoFHCOL_NExpr_closure_trace_equiv
-        (dynwin_F_σ : evalContext)
-        (dynwin_FHCOL : FHCOL.DSHOperator)
+        (dynwin_F_σ : FHCOLEval.evalContext)
+        (dynwin_FHCOL : FHCOLEval.DSHOperator)
     :
     RHCOLtoFHCOL.translate DynWin_RHCOL = inr dynwin_FHCOL ->
 
@@ -1524,10 +1519,10 @@ Section RCHOL_to_FHCOL.
          (RHCOLEval.intervalEvalDSHOperator_σ
             dynwin_R_σ DynWin_RHCOL []
             (RHCOLEval.estimateFuel DynWin_RHCOL))
-         (intervalEvalDSHOperator_σ
+         (FHCOLEval.intervalEvalDSHOperator_σ
             dynwin_F_σ dynwin_FHCOL []
-            (estimateFuel dynwin_FHCOL)).
   Proof.
+            (FHCOLEval.estimateFuel dynwin_FHCOL)).
     intros RF RFΣ.
 
     assert (RF0 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeZero
@@ -1736,3 +1731,128 @@ Section RCHOL_to_FHCOL.
   Qed.
 
 End RCHOL_to_FHCOL.
+
+Section hardcoded.
+
+  Fact DynWin_RHCOL_hard_OK :
+    DynWin_RHCOL ≡ DynWin_RHCOL_hard.
+  Proof.
+    reflexivity.
+  Qed.
+
+  Fact DynWin_FHCOL_hard_OK :
+    RHCOLtoFHCOL.translate DynWin_RHCOL ≡ inr DynWin_FHCOL_hard.
+  Proof.
+    cbn.
+
+    assert (RF0 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeZero
+                  ≡ @inr string _ MFloat64asCT.CTypeZero).
+    {
+      unfold RHCOLtoFHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      all: clear - n; contradict n; reflexivity.
+    }
+
+    assert (RF1 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeOne
+                  ≡ @inr string _ MFloat64asCT.CTypeOne).
+    {
+      unfold RHCOLtoFHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      -
+        clear - e.
+        cbv in e.
+        pose proof MRasCT.CTypeZeroOneApart.
+        cbv in H.
+        congruence.
+      -
+        clear - n0.
+        contradict n0.
+        reflexivity.
+    }
+
+    repeat progress (try setoid_rewrite RF0;
+                     try setoid_rewrite RF1).
+
+    reflexivity.
+  Qed.
+
+  Fact DynWin_SRHCOL_hard_OK :
+    RHCOLtoSRHCOL.translate DynWin_RHCOL_hard ≡ inr DynWin_SRHCOL_hard.
+  Proof.
+    cbn.
+    assert (RLR0 : RHCOLtoSRHCOL.translateCTypeConst MRasCT.CTypeZero
+                  ≡ @inr string _ MSymbolicCT.CTypeZero).
+    {
+      unfold RHCOLtoSRHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      all: clear - n; contradict n; reflexivity.
+    }
+
+    assert (RLR1 : RHCOLtoSRHCOL.translateCTypeConst MRasCT.CTypeOne
+                  ≡ @inr string _ MSymbolicCT.CTypeOne).
+    {
+      unfold RHCOLtoSRHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      -
+        clear - e.
+        unfold MRasCT.CTypeOne, MRasCT.CTypeZero in e.
+        pose proof MRasCT.CTypeZeroOneApart.
+        congruence.
+      -
+        clear - n0.
+        contradict n0.
+        reflexivity.
+    }
+
+    repeat progress (try setoid_rewrite RLR0;
+                     try setoid_rewrite RLR1).
+
+    reflexivity.
+  Qed.
+
+  Fact DynWin_SFHCOL_hard_OK :
+    FHCOLtoSFHCOL.translate DynWin_FHCOL_hard ≡ inr DynWin_SFHCOL_hard.
+  Proof.
+    cbn.
+
+    assert (FLF0 : FHCOLtoSFHCOL.translateCTypeConst MFloat64asCT.CTypeZero
+                  ≡ @inr string _ MSymbolicCT.CTypeZero).
+    {
+      unfold FHCOLtoSFHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      all: clear - n; contradict n; reflexivity.
+    }
+
+    assert (FLF1 : FHCOLtoSFHCOL.translateCTypeConst MFloat64asCT.CTypeOne
+                  ≡ @inr string _ MSymbolicCT.CTypeOne).
+    {
+      unfold FHCOLtoSFHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      -
+        clear - e.
+        unfold MFloat64asCT.CTypeOne, MFloat64asCT.CTypeZero in e.
+        pose proof MFloat64asCT.CTypeZeroOneApart.
+        invc e.
+      -
+        clear - n0.
+        contradict n0.
+        reflexivity.
+    }
+
+    assert (I0 : FHCOLtoSFHCOL.translateNTypeConst Int64asNT.Int64_0
+            ≡ inr Int64asNT.Int64_0) by reflexivity.
+    assert (I1 : FHCOLtoSFHCOL.translateNTypeConst Int64asNT.Int64_1
+            ≡ inr Int64asNT.Int64_1) by reflexivity.
+    assert (I2 : FHCOLtoSFHCOL.translateNTypeConst Int64asNT.Int64_2
+                 ≡ inr Int64asNT.Int64_2) by reflexivity.
+
+    repeat progress (try setoid_rewrite FLF0;
+                     try setoid_rewrite FLF1;
+                     try setoid_rewrite I0;
+                     try setoid_rewrite I1;
+                     try setoid_rewrite I2).
+
+    reflexivity.
+  Qed.
+
+End hardcoded.
