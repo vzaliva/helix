@@ -782,7 +782,7 @@ Section TopLevel.
       pose (hidden_finite := is_finite).
       replace is_finite with hidden_finite in FFA0, FFA1, FFA2 by reflexivity.
 
-      Time repeat (assert_next; [crush_floats |]).
+      repeat (assert_next; [shelve |]).
 
       subst hidden_finite.
 
@@ -790,7 +790,7 @@ Section TopLevel.
         autorewrite with rewrite_to_R in FA0, FA1, FA2;
         try assumption.
 
-      Time repeat (assert_next; [crush_floats |]).
+      repeat (assert_next; [shelve |]).
 
       apply lt64_correct in F; try assumption.
 
@@ -852,6 +852,11 @@ Section TopLevel.
       eapply OX.
       eapply OY.
       all: eassumption.
+
+      (* This would be nicely suitable for [par:] instead of [all:],
+         but that encounters an anomaly *)
+      Unshelve.
+      all: crush_floats.
     Qed.
 
   End Gappa.
