@@ -195,6 +195,14 @@ Section AUX.
 
 End AUX.
 
+
+Ltac compute_B2R :=
+  repeat (cbv [Defs.F2R IZR IPR IPR_2 Z.pow_pos Pos.iter] in *;
+          simpl in *).
+
+Ltac gappa_form :=
+  try apply bpow_lt_to_le.
+
 (** * Minimal example *)
 Section Primitive.
   (* see primitive.g *)
@@ -248,20 +256,12 @@ Section Problem.
                        (binary_float_of_bits_aux_correct 52 11
                           eq_refl eq_refl eq_refl 4472074429978902528).
 
-
   Hint Unfold b0_0 b200 b3000 eps1 eps2 tiny : const_unfold.
   Hint Rewrite
     b64_minus_to_R b64_mult_to_R
     b64_minus_finite b64_mult_finite
     lt64_correct
     : rewrite_to_R.
-
-  Ltac compute_B2R :=
-    repeat (cbv [Defs.F2R IZR IPR IPR_2 Z.pow_pos Pos.iter] in *;
-            simpl in *).
-
-  Ltac gappa_form :=
-    try apply bpow_lt_to_le.
 
   Lemma safe :
     lt64 b0_0 (CTypeSub (CTypeSub (CTypeSub r64 l64) eps1) eps2) ->
@@ -296,3 +296,31 @@ Section Problem.
   Qed.
 
 End Problem.
+
+Definition much_lt64 (f1 f2 : binary64) :=
+  lt64 b0_0 (CTypeSub (CTypeSub (CTypeSub f2 f1) eps1) eps2).
+
+Infix "<<" := much_lt64 (at level 50).
+
+Theorem toplevel_safe
+  (x y : binary64)
+  (XR : in_range_64 (b0_0, b200) x)  (* [0 <= x <= 200]  *)
+  (YR : in_range_64 (b0_0, b3000) y) (* [0 <= y <= 3000] *)
+  :
+  (* binary64 computations *)
+  let l64 := CTypeMult x x in
+  let r64 := CTypeMult y y in
+  (* Real values *)
+  let l := (B2R _ _ x) * (B2R _ _ x) in
+  let r := (B2R _ _ y) * (B2R _ _ y) in
+
+  l64 << r64 ->
+  l < r.
+Proof.
+  intros * MLT.
+  apply safe in MLT; try assumption.
+  replace l0 with (l x) by reflexivity.
+  replace r0 with (r y) by reflexivity.
+  compute_B2R.
+  lra.
+Qed.

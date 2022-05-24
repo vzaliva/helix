@@ -49,8 +49,13 @@ Require Import Helix.RSigmaHCOL.RSigmaHCOL.
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Helix.FSigmaHCOL.ReifyRHCOL.
 Require Import Helix.FSigmaHCOL.Int64asNT.
+Require Import Helix.FSigmaHCOL.Float64asCT.
 Require Import Coq.Bool.Sumbool.
 Require Import MathClasses.misc.decision.
+
+Require Import Helix.SymbolicDHCOL.SymbolicCT.
+Require Import Helix.SymbolicDHCOL.RHCOLtoSRHCOL.
+Require Import Helix.SymbolicDHCOL.FHCOLtoSFHCOL.
 
 Require Import ExtLib.Structures.Monad.
 Import MonadNotation.
@@ -905,29 +910,33 @@ Section SHCOL_to_MSHCOL.
 
 End SHCOL_to_MSHCOL.
 
+(* TODO: move, but not sure where. We do not have MemorySetoid.v *)
+Lemma memory_lookup_not_next_equiv {m k v}:
+  RHCOLEval.memory_lookup m k = Some v ->
+  k ≢ RHCOLEval.memory_next_key m.
+Proof.
+  intros H.
+  destruct (eq_nat_dec k (RHCOLEval.memory_next_key m)) as [E|NE]; [exfalso|auto].
+  rewrite E in H. clear E.
+  pose proof (RHCOLEval.memory_lookup_memory_next_key_is_None m) as N.
+  unfold util.is_None in N.
+  break_match_hyp; [trivial|some_none].
+Qed.
+
 Section MSHCOL_to_RHCOL.
 
   Import RHCOLEval.
 
   Opaque CarrierAz zero CarrierA1 one.
-
-  MetaCoq Run (reifyMSHCOL dynwin_MSHCOL1 [(BasicAst.MPfile ["DynWinProofs"; "DynWin"; "Helix"], "dynwin_MSHCOL1")] "dynwin_RHCOL" "dynwin_RHCOL_globals").
+  MetaCoq Run
+    (reifyMSHCOL dynwin_MSHCOL1
+       [(BasicAst.MPfile ["DynWinProofs"; "DynWin"; "Helix"], "dynwin_MSHCOL1")]
+       "DynWin_RHCOL" "DynWin_RHCOL_globals").
   Transparent CarrierAz zero CarrierA1 one.
 
-  (* A sanity check as a side effect of [DynWin_RHCOL_hard] being hardcoded in
-     [DynWin.v]. See also [DynWin_FHCOL_hard_check] *)
-  Fact dynwin_RHCOL_hard_check :
-    dynwin_RHCOL ≡ DynWin_RHCOL_hard.
-  Proof.
-    reflexivity.
-  Qed.
-
-  (* Import DSHNotation. *)
-
-  Definition nglobals := List.length (dynwin_RHCOL_globals). (* 1 *)
+  Definition nglobals := List.length (DynWin_RHCOL_globals). (* 1 *)
   Definition DSH_x_p := PVar (nglobals+1). (* PVar 2 *)
   Definition DSH_y_p := PVar (nglobals+0). (* PVar 1 *)
-
 
   (* This tactics solves both [MSH_DSH_compat] and [DSH_pure] goals along with typical
      obligations *)
@@ -982,89 +991,54 @@ Section MSHCOL_to_RHCOL.
   (* TODO: This is a manual proof. To be automated in future. See [[../../doc/TODO.org]] for details *)
   Instance DynWin_pure
     :
-      DSH_pure (dynwin_RHCOL) DSH_y_p.
+      DSH_pure (DynWin_RHCOL) DSH_y_p.
   Proof.
-    unfold dynwin_RHCOL, DSH_y_p, DSH_x_p.
+    unfold DynWin_RHCOL, DSH_y_p, DSH_x_p.
     solve_MSH_DSH_compat.
   Qed.
 
   Section DummyEnv.
 
-    Local Open Scope list_scope. (* for ++ *)
+    Local Open Scope list_scope.
 
     (* Could be automatically universally quantified on these *)
-    Variable a:vector CarrierA 3.
-    Variable x:mem_block.
+    Variable a : ctvector 3.
+    Variable x : ctvector dynwin_i.
 
-    Definition dynwin_a_addr:nat := 0.
-    Definition dynwin_y_addr:nat := (nglobals+0).
-    Definition dynwin_x_addr:nat := (nglobals+1).
+    Definition dynwin_a_addr : nat := 0.
+    Definition dynwin_y_addr : nat := (nglobals+0).
+    Definition dynwin_x_addr : nat := (nglobals+1).
 
     Definition dynwin_globals_mem :=
       (memory_set memory_empty dynwin_a_addr (ctvector_to_mem_block a)).
 
+    Definition dynwin_R_σ_globals : evalContext :=
+      [(DSHPtrVal dynwin_a_addr 3,false)].
+    
+    Definition dynwin_R_σ : evalContext :=
+      dynwin_R_σ_globals ++ [(DSHPtrVal dynwin_y_addr dynwin_o,false)
+                          ;(DSHPtrVal dynwin_x_addr dynwin_i,false)].
+    
     (* Initialize memory with X and placeholder for Y. *)
-    Definition dynwin_memory :=
+    Definition dynwin_R_memory :=
       memory_set
-        (memory_set dynwin_globals_mem dynwin_x_addr x)
+        (memory_set
+           (memory_set
+              memory_empty
+              dynwin_a_addr (ctvector_to_mem_block a))
+           dynwin_x_addr (ctvector_to_mem_block x))
         dynwin_y_addr mem_empty.
-    
-    (* TODO: this clashes with [dynwin_R_σ], which is more common, but less clean *)
-    (*
-    Definition dynwin_σ_globals:evalContext :=
-      [
-        (DSHPtrVal dynwin_a_addr 3,false)
-      ].
-    
-    Definition dynwin_σ:evalContext :=
-      dynwin_σ_globals ++
-                       [
-                         (DSHPtrVal dynwin_y_addr dynwin_o,false)
-                         ; (DSHPtrVal dynwin_x_addr dynwin_i,false)
-                       ].
-     *)
-    
-    (* Initialize memory with X and placeholder for Y. *)
-    Definition dynwin_R_memory (a:ctvector 3) (x:ctvector dynwin_i) :=
-      RHCOLEval.memory_set
-        (RHCOLEval.memory_set (RHCOLEval.memory_set
-                                 RHCOLEval.memory_empty
-                                 dynwin_a_addr
-                                 (ctvector_to_mem_block a))
-                              dynwin_x_addr
-                              (ctvector_to_mem_block x))
-        dynwin_y_addr
-        RHCOLEval.mem_empty.
-    
-    Definition dynwin_R_σ := [
-        (RHCOLEval.DSHPtrVal dynwin_a_addr 3,false)
-        ; (RHCOLEval.DSHPtrVal dynwin_y_addr dynwin_o,false)
-        ; (RHCOLEval.DSHPtrVal dynwin_x_addr dynwin_i,false)
-      ].
-
-    (* TODO: move, but not sure where. We do not have MemorySetoid.v *)
-    Lemma memory_lookup_not_next_equiv {m k v}:
-      memory_lookup m k = Some v ->
-      k ≢ memory_next_key m.
-    Proof.
-      intros H.
-      destruct (eq_nat_dec k (memory_next_key m)) as [E|NE]; [exfalso|auto].
-      rewrite E in H. clear E.
-      pose proof (memory_lookup_memory_next_key_is_None m) as N.
-      unfold util.is_None in N.
-      break_match_hyp; [trivial|some_none].
-    Qed.
 
     (* This lemma could be auto-generated from TemplateCoq *)
     Theorem DynWin_MSH_DSH_compat
       :
-        @MSH_DSH_compat dynwin_i dynwin_o (dynwin_MSHCOL1 a) (dynwin_RHCOL)
+        @MSH_DSH_compat dynwin_i dynwin_o (dynwin_MSHCOL1 a) (DynWin_RHCOL)
                         dynwin_R_σ
-                        dynwin_memory
+                        dynwin_R_memory
                         DSH_x_p DSH_y_p
                         DynWin_pure.
     Proof.
-      unfold dynwin_RHCOL, DSH_y_p, DSH_x_p.
+      unfold DynWin_RHCOL, DSH_y_p, DSH_x_p.
       unfold dynwin_x_addr, dynwin_y_addr, dynwin_a_addr, nglobals in *.
       unfold dynwin_MSHCOL1.
       cbn in *.
@@ -1247,7 +1221,7 @@ Section MSHCOL_to_RHCOL.
         assert(LM: memory_lookup m1 dynwin_a_addr = Some v).
         {
           subst m1.
-          unfold dynwin_memory, dynwin_globals_mem.
+          unfold dynwin_R_memory, dynwin_globals_mem.
 
           do 4 (rewrite memory_lookup_memory_set_neq
                  by (cbn;unfold dynwin_a_addr,dynwin_y_addr,dynwin_x_addr, nglobals; auto)).
@@ -1470,26 +1444,26 @@ Section MSHCOL_to_RHCOL.
       }
     Qed.
 
-    
-
   End DummyEnv.
 
 End MSHCOL_to_RHCOL.
 
 (* TODO: move *)
-Require Import ZArith.
+Require Import ZArith Rdefinitions Psatz.
+Require Import Helix.Util.FloatUtil.
+From Flocq Require Import Binary Bits Core.Defs.
 
 Section RCHOL_to_FHCOL.
 
   (* A sanity check as a side effect of [DynWin_RHCOL_hard] being hardcoded in
      [DynWin.v]. See also [DynWin_FHCOL_hard_check] *)
   Fact DynWin_FHCOL_hard_check :
-    RHCOLtoFHCOL.translate dynwin_RHCOL ≡ inr DynWin_FHCOL_hard.
+    RHCOLtoFHCOL.translate DynWin_RHCOL ≡ inr DynWin_FHCOL_hard.
   Proof.
     cbn.
 
     assert (RF0 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeZero
-                  ≡ @inr string _ Float64asCT.Float64Zero).
+                  ≡ @inr string _ b64_0).
     {
       unfold RHCOLtoFHCOL.translateCTypeConst.
       repeat break_if; try reflexivity; exfalso.
@@ -1497,7 +1471,7 @@ Section RCHOL_to_FHCOL.
     }
 
     assert (RF1 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeOne
-                  ≡ @inr string _ Float64asCT.Float64One).
+                  ≡ @inr string _ b64_1).
     {
       unfold RHCOLtoFHCOL.translateCTypeConst.
       repeat break_if; try reflexivity; exfalso.
@@ -1519,136 +1493,6 @@ Section RCHOL_to_FHCOL.
     reflexivity.
   Qed.
 
-  Require Import Reals.Rdefinitions.
-  From Flocq.IEEE754 Require Import Binary Bits.
-
-  Global Instance RF_CHE : RHCOLtoFHCOL.CTranslation_heq.
-  Proof.
-    econstructor.
-    instantiate (1:=fun r f => B2R _ _ f ≡ r).
-    -
-      intros r1 r2 RE f1 f2 FE.
-      invc RE.
-      invc FE.
-      easy.
-    -
-      intros * T.
-      cbn.
-      unfold translateCTypeConst in *.
-      repeat break_if; invc T.
-      now rewrite <-H1, e.
-      rewrite <-H1, e.
-      unfold Float64asCT.MFloat64asCT.CTypeOne, Float64asCT.Float64One.
-      now rewrite Bone_correct.
-  Defined.
-
-  Definition heq_nat_int : nat -> MInt64asNT.t -> Prop :=
-    fun n i => Z.of_nat n ≡ Int64.intval i.
-
-  Global Instance RF_NHE : RHCOLtoFHCOL.NTranslation_heq.
-  Proof.
-    econstructor.
-    instantiate (1:= heq_nat_int).
-    -
-      intros n1 n2 EN i1 i2 EI.
-      unfold heq_nat_int.
-      cbv in EN; subst n2; rename n1 into n.
-      pose proof Integers.Int64.eq_spec i1 i2 as EQI.
-      rewrite EI in EQI.
-      apply f_equal with (f:=Int64.intval) in EQI.
-      lia.
-    -
-      unfold RHCOLtoFHCOL.translateNTypeConst.
-      unfold MInt64asNT.from_nat, NatAsNT.MNatAsNT.to_nat, MInt64asNT.from_Z.
-      intros * TR.
-      repeat break_match; invc TR.
-      pose proof Integers.Int64.eq_spec
-           {| Int64.intval := Z.of_nat x; Int64.intrange := conj l l0 |}
-           x'
-        as EQI.
-      rewrite H1 in EQI.
-      rewrite <-EQI.
-      reflexivity.
-  Defined.
-
-  Global Instance RF_NTP : RHCOLtoFHCOL.NTranslationProps.
-  Proof.
-    constructor; intros *.
-    all: unfold RF_NHE, heq_NType, heq_nat_int.
-    all: unfold NatAsNT.MNatAsNT.to_nat, MInt64asNT.to_nat.
-    all: unfold NatAsNT.MNatAsNT.from_nat, MInt64asNT.from_nat, MInt64asNT.from_Z.
-    -
-      intros NI.
-      rewrite <-NI.
-      rewrite Nat2Z.id.
-      reflexivity.
-    -
-      unfold MInt64asNT.from_Z.
-      repeat break_match;
-        constructor.
-      reflexivity.
-  Qed.
-
-End RCHOL_to_FHCOL.
-
-(* TODO: move *)
-Require Import Rdefinitions.
-
-Section RHCOL_to_FHCOL_numerical.
-
-  (* TODO: move *)
-  Lemma trivial2_Proper `{AE : Equiv A} `{BE : Equiv B} :
-    Proper (equiv ==> equiv ==> iff) (@trivial2 A B).
-  Proof.
-    repeat constructor.
-  Qed.
-
-  Ltac crush_int :=
-    repeat rewrite !Int64.unsigned_repr;
-    replace Int64.max_unsigned
-      with 18446744073709551615%Z
-      in *
-        by reflexivity;
-    try lia.
-
-  Ltac unfold_RF_NType_ops :=
-    unfold
-      NatAsNT.MNatAsNT.to_nat,
-      NatAsNT.MNatAsNT.from_nat
-      in * ;
-    unfold
-      MInt64asNT.to_nat,
-      MInt64asNT.from_nat
-      in *;
-    unfold
-      NatAsNT.MNatAsNT.NTypePlus,
-      NatAsNT.MNatAsNT.NTypeDiv,
-      NatAsNT.MNatAsNT.NTypeMod,
-      NatAsNT.MNatAsNT.NTypePlus,
-      NatAsNT.MNatAsNT.NTypeMinus,
-      NatAsNT.MNatAsNT.NTypeMult,
-      NatAsNT.MNatAsNT.NTypeMin,
-      NatAsNT.MNatAsNT.NTypeMax
-      in *;
-    unfold
-      MInt64asNT.NTypePlus,
-      MInt64asNT.NTypeDiv,
-      MInt64asNT.NTypeMod,
-      MInt64asNT.NTypePlus,
-      MInt64asNT.NTypeMinus,
-      MInt64asNT.NTypeMult,
-      MInt64asNT.NTypeMin,
-      MInt64asNT.NTypeMax
-      in *;
-    unfold
-      Int64.divu,
-      Int64.modu,
-      Int64.add,
-      Int64.sub,
-      Int64.mul,
-      Int64.lt
-      in *.
-
   (* note: the two [try] blocks are for RHCOL/FHCOL lemma *)
   Ltac destruct_context_range_lookup ΣR x :=
     let TΣR := fresh "TΣR" in
@@ -1666,56 +1510,28 @@ Section RHCOL_to_FHCOL_numerical.
     destruct TΣR as (nv & p & NV & Σ);
     rewrite Σ.
 
-  (* Instances for trivial comparison of CType values
-     in RHCOL->FHCOL translation.
-     Any two numbers are considered "equal" ([trivial2]).
-
-     These allow to infer structural properties of translation,
-     while disregarding CType values (and CType values only).
-
-     The statement [RF_Structural_Semantic_Preservation]
-     is the full semantic preservation on RHCOL->FHCOL, up to CType values.
-   *)
-  Local Definition trivial_RF_CHE : RHCOLtoFHCOL.CTranslation_heq.
-    econstructor.
-    instantiate (1 := trivial2).
-    typeclasses eauto.
-    repeat constructor.
-  Defined.
-
-  Local Fact trivial_RF_COP
-    : @RHCOLtoFHCOL.COpTranslationProps trivial_RF_CHE.
-  Proof.
-    repeat constructor.
-  Qed.
-
-  Definition RF_Structural_Semantic_Preservation :=
-    @RHCOLtoFHCOL.translation_semantics_correct
-      RF_NHE
-      trivial_RF_CHE
-      RF_NTP
-      trivial_RF_COP.
+  Open Scope nat_scope.
 
   Lemma RHCOLtoFHCOL_NExpr_closure_trace_equiv
-        (dynwin_F_σ : evalContext)
-        (dynwin_FHCOL : FHCOL.DSHOperator)
+        (dynwin_F_σ : FHCOLEval.evalContext)
+        (dynwin_FHCOL : FHCOLEval.DSHOperator)
     :
-    RHCOLtoFHCOL.translate dynwin_RHCOL = inr dynwin_FHCOL ->
+    RHCOLtoFHCOL.translate DynWin_RHCOL = inr dynwin_FHCOL ->
 
-    RHCOLtoFHCOL.heq_evalContext dynwin_R_σ dynwin_F_σ ->
+    RHCOLtoFHCOL.heq_evalContext () RF_NHE RF_CHE dynwin_R_σ dynwin_F_σ ->
 
-    hopt (herr (@RHCOLtoFHCOL.evalNExpr_closure_trace_equiv RF_NHE trivial_RF_CHE))
+    hopt (herr (@RHCOLtoFHCOL.evalNExpr_closure_trace_equiv () () RF_NHE trivial_RF_CHE))
          (RHCOLEval.intervalEvalDSHOperator_σ
-            dynwin_R_σ dynwin_RHCOL []
-            (RHCOLEval.estimateFuel dynwin_RHCOL))
-         (intervalEvalDSHOperator_σ
+            dynwin_R_σ DynWin_RHCOL []
+            (RHCOLEval.estimateFuel DynWin_RHCOL))
+         (FHCOLEval.intervalEvalDSHOperator_σ
             dynwin_F_σ dynwin_FHCOL []
-            (estimateFuel dynwin_FHCOL)).
+            (FHCOLEval.estimateFuel dynwin_FHCOL)).
   Proof.
     intros RF RFΣ.
 
     assert (RF0 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeZero
-                  ≡ @inr string _ Float64asCT.Float64Zero).
+                  ≡ @inr string _ b64_0).
     {
       unfold RHCOLtoFHCOL.translateCTypeConst.
       repeat break_if; try reflexivity; exfalso.
@@ -1723,7 +1539,7 @@ Section RHCOL_to_FHCOL_numerical.
     }
 
     assert (RF1 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeOne
-                  ≡ @inr string _ Float64asCT.Float64One).
+                  ≡ @inr string _ b64_1).
     {
       unfold RHCOLtoFHCOL.translateCTypeConst.
       repeat break_if; try reflexivity; exfalso.
@@ -1804,7 +1620,7 @@ Section RHCOL_to_FHCOL_numerical.
       invc Σ1E; invc H1; invc H0; invc H.
 
       constructor.
-      unfold_RF_NType_ops.
+      autounfold with NatAsNT_ops Int64asNT_ops in *.
       cbn.
 
       unfold heq_NType, RF_NHE, heq_nat_int in *.
@@ -1838,7 +1654,7 @@ Section RHCOL_to_FHCOL_numerical.
       invc Σ1E; invc H1; invc H0; invc H.
 
       constructor.
-      unfold_RF_NType_ops.
+      autounfold with NatAsNT_ops Int64asNT_ops in *.
       cbn.
 
       unfold heq_NType, RF_NHE, heq_nat_int in *.
@@ -1872,7 +1688,7 @@ Section RHCOL_to_FHCOL_numerical.
       invc Σ1E; invc H1; invc H0; invc H.
 
       constructor.
-      unfold_RF_NType_ops.
+      autounfold with NatAsNT_ops Int64asNT_ops in *.
       cbn.
 
       unfold heq_NType, RF_NHE, heq_nat_int in *.
@@ -1906,7 +1722,7 @@ Section RHCOL_to_FHCOL_numerical.
       invc Σ1E; invc H1; invc H0; invc H.
 
       constructor.
-      unfold_RF_NType_ops.
+      autounfold with NatAsNT_ops Int64asNT_ops in *.
       cbn.
 
       unfold heq_NType, RF_NHE, heq_nat_int in *.
@@ -1919,4 +1735,209 @@ Section RHCOL_to_FHCOL_numerical.
       crush_int.
   Qed.
 
-End RHCOL_to_FHCOL_numerical.
+End RCHOL_to_FHCOL.
+
+Section hardcoded.
+
+  Fact DynWin_RHCOL_hard_OK :
+    DynWin_RHCOL ≡ DynWin_RHCOL_hard.
+  Proof.
+    reflexivity.
+  Qed.
+
+  Fact DynWin_FHCOL_hard_OK :
+    RHCOLtoFHCOL.translate DynWin_RHCOL ≡ inr DynWin_FHCOL_hard.
+  Proof.
+    cbn.
+
+    assert (RF0 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeZero
+                  ≡ @inr string _ MFloat64asCT.CTypeZero).
+    {
+      unfold RHCOLtoFHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      all: clear - n; contradict n; reflexivity.
+    }
+
+    assert (RF1 : RHCOLtoFHCOL.translateCTypeConst MRasCT.CTypeOne
+                  ≡ @inr string _ MFloat64asCT.CTypeOne).
+    {
+      unfold RHCOLtoFHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      -
+        clear - e.
+        cbv in e.
+        pose proof MRasCT.CTypeZeroOneApart.
+        cbv in H.
+        congruence.
+      -
+        clear - n0.
+        contradict n0.
+        reflexivity.
+    }
+
+    repeat progress (try setoid_rewrite RF0;
+                     try setoid_rewrite RF1).
+
+    reflexivity.
+  Qed.
+
+  Fact DynWin_SRHCOL_hard_OK :
+    RHCOLtoSRHCOL.translate DynWin_RHCOL_hard ≡ inr DynWin_SRHCOL_hard.
+  Proof.
+    cbn.
+    assert (RLR0 : RHCOLtoSRHCOL.translateCTypeConst MRasCT.CTypeZero
+                  ≡ @inr string _ MSymbolicCT.CTypeZero).
+    {
+      unfold RHCOLtoSRHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      all: clear - n; contradict n; reflexivity.
+    }
+
+    assert (RLR1 : RHCOLtoSRHCOL.translateCTypeConst MRasCT.CTypeOne
+                  ≡ @inr string _ MSymbolicCT.CTypeOne).
+    {
+      unfold RHCOLtoSRHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      -
+        clear - e.
+        unfold MRasCT.CTypeOne, MRasCT.CTypeZero in e.
+        pose proof MRasCT.CTypeZeroOneApart.
+        congruence.
+      -
+        clear - n0.
+        contradict n0.
+        reflexivity.
+    }
+
+    repeat progress (try setoid_rewrite RLR0;
+                     try setoid_rewrite RLR1).
+
+    reflexivity.
+  Qed.
+
+  Fact DynWin_SFHCOL_hard_OK :
+    FHCOLtoSFHCOL.translate DynWin_FHCOL_hard ≡ inr DynWin_SFHCOL_hard.
+  Proof.
+    cbn.
+
+    assert (FLF0 : FHCOLtoSFHCOL.translateCTypeConst MFloat64asCT.CTypeZero
+                  ≡ @inr string _ MSymbolicCT.CTypeZero).
+    {
+      unfold FHCOLtoSFHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      all: clear - n; contradict n; reflexivity.
+    }
+
+    assert (FLF1 : FHCOLtoSFHCOL.translateCTypeConst MFloat64asCT.CTypeOne
+                  ≡ @inr string _ MSymbolicCT.CTypeOne).
+    {
+      unfold FHCOLtoSFHCOL.translateCTypeConst.
+      repeat break_if; try reflexivity; exfalso.
+      -
+        clear - e.
+        unfold MFloat64asCT.CTypeOne, MFloat64asCT.CTypeZero in e.
+        pose proof MFloat64asCT.CTypeZeroOneApart.
+        invc e.
+      -
+        clear - n0.
+        contradict n0.
+        reflexivity.
+    }
+
+    assert (I0 : FHCOLtoSFHCOL.translateNTypeConst Int64asNT.Int64_0
+            ≡ inr Int64asNT.Int64_0) by reflexivity.
+    assert (I1 : FHCOLtoSFHCOL.translateNTypeConst Int64asNT.Int64_1
+            ≡ inr Int64asNT.Int64_1) by reflexivity.
+    assert (I2 : FHCOLtoSFHCOL.translateNTypeConst Int64asNT.Int64_2
+                 ≡ inr Int64asNT.Int64_2) by reflexivity.
+
+    repeat progress (try setoid_rewrite FLF0;
+                     try setoid_rewrite FLF1;
+                     try setoid_rewrite I0;
+                     try setoid_rewrite I1;
+                     try setoid_rewrite I2).
+
+    reflexivity.
+  Qed.
+
+End hardcoded.
+
+(* Interpreting CType results (for outputs of [CTypeZLess]) as booleans,
+   reasoning about them *)
+Section CType_impl.
+
+  Open Scope R_scope.
+
+  Inductive float_as_bool : MFloat64asCT.t -> bool -> Prop :=
+  | float_false : float_as_bool MFloat64asCT.CTypeZero false
+  | float_true : float_as_bool MFloat64asCT.CTypeOne true.
+
+  Inductive R_as_bool : MRasCT.t -> bool -> Prop :=
+  | R_false : R_as_bool MRasCT.CTypeZero false
+  | R_true : R_as_bool MRasCT.CTypeOne true.
+
+  (* Implication across [CType]s *)
+  Definition CType_impl p q :=
+    float_as_bool p true -> R_as_bool q true.
+
+  Global Instance CType_impl_proper :
+    Proper ((=) ==> (=) ==> (iff)) CType_impl.
+  Proof.
+    intros x1 x2 X y1 y2 Y.
+    invc X; invc Y.
+    tauto.
+  Qed.
+
+  Fact CType_impl_dec :
+    forall p q,
+      ({p ≡ MFloat64asCT.CTypeZero} + {p ≡ MFloat64asCT.CTypeOne}) ->
+      ({q ≡ MRasCT.CTypeZero} + {q ≡ MRasCT.CTypeOne}) ->
+      (float_as_bool p false -> R_as_bool q false) <->
+      (R_as_bool q true -> float_as_bool p true).
+  Proof.
+    intros * PD QD.
+    destruct PD, QD; subst.
+    all: split; intros.
+    all: try constructor; exfalso.
+    -
+      invc H0.
+      cbv in H2.
+      lra.
+    -
+      autospecialize H; [constructor |].
+      invc H.
+      cbv in H2.
+      lra.
+    -
+      autospecialize H; [constructor |].
+      invc H.
+    -
+      invc H0.
+  Qed.
+
+  Lemma R_as_bool_Zless (a b : R) :
+    R_as_bool (MRasCT.CTypeZLess a b) true <-> a < b.
+  Proof.
+    unfold MRasCT.CTypeZLess, Zless, CarrierAltdec, CarrierDefs_R.
+    break_if; cbv; split; try tauto.
+    constructor.
+    intros C.
+    invc C.
+    cbv in H0.
+    lra.
+  Qed.
+
+  Lemma float_as_bool_Zless (a b : Bits.binary64) :
+    float_as_bool (MFloat64asCT.CTypeZLess a b) true
+    <->
+    safe_lt64 FT_Rounding epsilon a b.
+  Proof.
+    unfold MFloat64asCT.CTypeZLess, MFloat64asCT.CTypeSub,
+      Zless, safe_lt64, lt64, Bits.b64_compare.
+    repeat break_match.
+    all: split; intros; subst.
+    all: invc H.
+    all: constructor.
+  Qed.
+
+End CType_impl.

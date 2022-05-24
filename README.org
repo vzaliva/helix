@@ -44,6 +44,7 @@ LLVM IR.
    - [[https://github.com/vellvm/vellvm][Vellvm]] (requires ~coq-ceres~, ~coq-ext-lib~, ~coq-paco~, and ~coq-flocq~) /(checked out and built as a submodule)/
    - [[https://opensource.janestreet.com/core/][Jane Street Core]]
    - [[https://github.com/Matafou/LibHyps][coq-libhyps]]
+   - [[https://gitlab.inria.fr/gappa/gappa][gappa]] + [[https://gitlab.inria.fr/gappa/coq][coq-gappa]]
    - [[https://github.com/Karmaki/coq-dpdgraph][coq-dpdgraph]] /(optional)/
 
 To install all required dependenceis:

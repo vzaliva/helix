@@ -76,16 +76,26 @@ Module MDHCOLTypeTranslator
     else if CT.CTypeEquivDec a CT.CTypeOne then inr CT'.CTypeOne
          else (inl "unknown CType constant").
 
+  (* A comparison of two CType values can depend on some external environment.
+     This was primarily introduced to enable symbolic execution of DHCOL.
+     For example, a float [f1] and a symbolic float ["a" + "b"] can only be
+     directly compared given a symbolic store:
+     [f1 = {"a" + "b" | a = f1, b = 0.0 }]
+   *)
+  Section Environmental.
+
+  Variable Env : Type.
+
   (* Heterogeneous equivalence on values before and after translation *)
   Class CTranslation_heq :=
     {
-      heq_CType : CT.t -> CT'.t -> Prop ;
-      heq_CType_proper : Proper ((=) ==> (=) ==> iff) heq_CType;
+      heq_CType' {env : Env} : CT.t -> CT'.t -> Prop ;
+      heq_CType_proper : Proper ((≡) ==> (=) ==> (=) ==> iff) (@heq_CType');
 
       (* Value mapping should result in "equal" values *)
       translateCTypeConst_heq_CType :
       forall x x', translateCTypeConst x = inr x' ->
-              heq_CType x x';
+              forall env, @heq_CType' env x x';
     }.
 
   Class NTranslation_heq :=
@@ -138,10 +148,10 @@ Module MDHCOLTypeTranslator
         (f': CT'.t -> CT'.t -> CT'.t)
     :=
       {
-        cbinop_translate_compat: forall x x' y y',
-          heq_CType x x' ->
-          heq_CType y y' ->
-          heq_CType (f x y) (f' x' y')
+        cbinop_translate_compat: forall env x x' y y',
+          heq_CType' (env:=env) x x' ->
+          heq_CType' (env:=env) y y' ->
+          heq_CType' (env:=env) (f x y) (f' x' y')
       }.
 
   Class CUnOpTranslation
@@ -150,9 +160,9 @@ Module MDHCOLTypeTranslator
         (f': CT'.t -> CT'.t)
     :=
       {
-        cunop_translate_compat: forall x x',
-          heq_CType x x' ->
-          heq_CType (f x) (f' x')
+        cunop_translate_compat: forall env x x',
+          heq_CType' (env:=env) x x' ->
+          heq_CType' (env:=env) (f x) (f' x')
       }.
 
   Class COpTranslationProps `{CHE : CTranslation_heq} :=
@@ -167,6 +177,9 @@ Module MDHCOLTypeTranslator
       CTypeNeg_translation: CUnOpTranslation CT.CTypeNeg CT'.CTypeNeg ;
       CTypeAbs_translation: CUnOpTranslation CT.CTypeAbs CT'.CTypeAbs ;
     }.
+
+  Variable env : Env.
+  Notation heq_CType := (heq_CType' (env:=env)).
 
   Section EvalTranslations.
 
@@ -305,7 +318,7 @@ Module MDHCOLTypeTranslator
           ret (DSHSeq f' g')
         end.
 
-    Instance translateCTypeConst_proper :
+    Global Instance translateCTypeConst_proper :
       Proper ((=) ==> (=)) translateCTypeConst.
     Proof.
       intros c1 c2 C.
@@ -342,7 +355,7 @@ Module MDHCOLTypeTranslator
     Qed.
 
     (* TODO: ideally this would be moved to MemSetoid *)
-    Instance NM_err_sequence_proper
+    Global Instance NM_err_sequence_proper
              `{EA : Equiv A} `{EQA : Equivalence A EA}
              (OP : Proper ((@err_equiv _ EA) ==> (=)) is_OK_bool) :
       Proper ((=) ==> (=)) (@NM_err_sequence A).
@@ -428,7 +441,7 @@ Module MDHCOLTypeTranslator
         assumption.
     Qed.
 
-    Instance translate_mem_block_proper :
+    Global Instance translate_mem_block_proper :
       Proper ((=) ==> (=)) translate_mem_block.
     Proof.
       intros mb1 mb2 MB.
@@ -444,7 +457,7 @@ Module MDHCOLTypeTranslator
       now some_inv.
     Qed.
 
-    Instance translateNTypeConst_proper :
+    Global Instance translateNTypeConst_proper :
       Proper ((=) ==> (=)) translateNTypeConst.
     Proof.
       intros c1 c2 C.
@@ -453,7 +466,7 @@ Module MDHCOLTypeTranslator
       now apply NT.to_nat_proper.
     Qed.
 
-    Instance translateNExpr_proper :
+    Global Instance translateNExpr_proper :
       Proper ((=) ==> (=)) translateNExpr.
     Proof.
       intros n1 n2 N.
@@ -475,7 +488,7 @@ Module MDHCOLTypeTranslator
           now repeat constructor.
     Qed.
 
-    Instance translatePExpr_proper :
+    Global Instance translatePExpr_proper :
       Proper ((=) ==> (=)) translatePExpr.
     Proof.
       intros p1 p2 P.
@@ -485,7 +498,7 @@ Module MDHCOLTypeTranslator
       reflexivity.
     Qed.
 
-    Instance translateMExpr_proper :
+    Global Instance translateMExpr_proper :
       Proper ((=) ==> (=)) translateMExpr.
     Proof.
       intros m1 m2 M.
@@ -504,7 +517,7 @@ Module MDHCOLTypeTranslator
           now repeat constructor.
     Qed.
 
-    Instance translateAExpr_proper :
+    Global Instance translateAExpr_proper :
       Proper ((=) ==> (=)) translateAExpr.
     Proof.
       intros a1 a2 A.
@@ -532,7 +545,7 @@ Module MDHCOLTypeTranslator
           now repeat constructor.
     Qed.
 
-    Instance translate_proper :
+    Global Instance translate_proper :
       Proper ((=) ==> (=)) translate.
     Proof.
       intros op1 op2 OP.
@@ -768,7 +781,7 @@ Module MDHCOLTypeTranslator
       : Prop :=
       Forall2 evalNExpr_closure_equiv ncs ncs'.
 
-    Instance heq_DSHVal_proper:
+    Global Instance heq_DSHVal_proper:
       Proper ((=) ==> (=) ==> iff) heq_DSHVal.
     Proof.
       intros a a' Ea b b' Eb; split; intros H.
@@ -786,7 +799,7 @@ Module MDHCOLTypeTranslator
         + eapply heq_NType_proper; eauto; crush.
     Qed.
 
-    Instance heq_mem_block_proper:
+    Global Instance heq_mem_block_proper:
       Proper ((=) ==> (=) ==> iff) heq_mem_block.
     Proof.
       intros a a' Ea b b' Eb; split; intros H.
@@ -834,7 +847,7 @@ Module MDHCOLTypeTranslator
           eapply heq_CType_proper; try symmetry; eauto.
     Qed.
 
-    Instance heq_memory_proper:
+    Global Instance heq_memory_proper:
       Proper ((=) ==> (=) ==> iff) heq_memory.
     Proof.
       intros a a' Ea b b' Eb; split; intros H.
@@ -884,7 +897,7 @@ Module MDHCOLTypeTranslator
           apply H2.
     Qed.
 
-    Instance heq_NExpr_proper :
+    Global Instance heq_NExpr_proper :
       Proper ((=) ==> (=) ==> (iff)) heq_NExpr.
     Proof.
       intros n1 n2 N n1' n2' N'.
@@ -933,7 +946,7 @@ Module MDHCOLTypeTranslator
           tauto.
     Qed.
 
-    Instance evalNExpr_closure_equiv_proper :
+    Global Instance evalNExpr_closure_equiv_proper :
       Proper ((=) ==> (=) ==> (iff)) evalNExpr_closure_equiv.
     Proof.
       intros (σn1, n1) (σn2, n2) NC (σn1', n1') (σn2', n2') NC'.
@@ -994,7 +1007,7 @@ Module MDHCOLTypeTranslator
           now constructor.
     Qed.
 
-    Instance evalNExpr_closure_trace_equiv_proper :
+    Global Instance evalNExpr_closure_trace_equiv_proper :
       Proper ((=) ==> (=) ==> (iff)) evalNExpr_closure_trace_equiv.
     Proof.
       intros σnc1 σnc2 ΣNC σn1 σn2 ΣN.
@@ -3836,7 +3849,6 @@ Module MDHCOLTypeTranslator
     Corollary translation_semantics_correct_strict
           (op : LE.DSHOperator)
           (op' : LE'.DSHOperator)
-          (fuel fuel' : nat)
           (σ : LE.evalContext)
           (σ' : LE'.evalContext)
           (imem : L.memory)
@@ -3855,5 +3867,13 @@ Module MDHCOLTypeTranslator
     Qed.
     
   End Semantic_Translation_Correctness_strict.
+
+  End Environmental.
+
+  Arguments heq_CType' {Env}.
+  Arguments heq_evalContext {Env}.
+  Arguments heq_mem_block {Env}.
+  Arguments heq_memory {Env}.
+  Arguments heq_DSHOperator {Env}.
 
 End MDHCOLTypeTranslator.

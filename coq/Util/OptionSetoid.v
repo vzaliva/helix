@@ -472,7 +472,7 @@ Section hopt.
   | hopt_i_None_Some : forall a, hopt_i None (Some a)
   | hopt_i_Some : forall a b, R a b -> hopt_i (Some a) (Some b).
 
-  Instance hopt_proper
+  Global Instance hopt_proper
            `{EQa : Equiv A}
            `{EQb : Equiv B}
            {PR : Proper ((=) ==> (=) ==> (iff)) R} :
@@ -487,6 +487,26 @@ Section hopt.
     specialize (PR a a0 H1 b b0 H2).
     tauto.
     eapply PR; eassumption.
+  Qed.
+
+  Global Instance hopt_r_proper
+           `{EQa : Equiv A}
+           `{EQb : Equiv B}
+           {PR : Proper ((=) ==> (=) ==> (iff)) R} :
+    Proper ((=) ==> (=) ==> (iff)) hopt_r.
+  Proof.
+    intros [a1|] [a2|] AE [b1|] [b2|] BE;
+      try some_none; repeat some_inv.
+    all: split; intro H; invc H; constructor.
+    apply PR in AE; apply AE in BE; tauto.
+    apply PR in AE; apply AE in BE; tauto.
+  Qed.
+
+  Lemma hopt_r_OK_inv (a : A) (b : B) :
+    hopt_r (Some a) (Some b) ->
+    R a b.
+  Proof.
+    intros O; now invc O.
   Qed.
 
 End hopt.
