@@ -33,6 +33,8 @@ depends: [
   "core_kernel"
   "dune" {< "3.0" }
   "qcheck"
+  "gappa"
+  "coq-gappa"
 
   "coq" {= "8.13.2"}
   "coq-ext-lib" {= "0.11.5"}

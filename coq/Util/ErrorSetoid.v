@@ -288,7 +288,7 @@ Section herr.
   | herr_f_inl_r : forall e x, herr_f x (inl e)
   | herr_f_inr : forall a b, R a b -> herr_f (inr a) (inr b).
 
-  Instance herr_proper
+  Global Instance herr_proper
            `{EQa : Equiv A}
            `{EQb : Equiv B}
            {PR : Proper ((=) ==> (=) ==> (iff)) R} :
@@ -305,7 +305,7 @@ Section herr.
     eapply PR; eassumption.
   Qed.
 
-  Instance herr_c_proper
+  Global Instance herr_c_proper
            `{EQa : Equiv A}
            `{EQb : Equiv B}
            {PR : Proper ((=) ==> (=) ==> (iff)) R} :
@@ -488,3 +488,16 @@ Proof.
     constructor.
   now invc HR.
 Qed.
+
+Lemma herr_c_OK_inv
+  {A B : Type}
+  (R : A -> B -> Prop)
+  (a : A)
+  (b : B)
+  :
+  herr_c R (inr a) (inr b) ->
+  R a b.
+Proof.
+  intros O; now invc O.
+Qed.
+
