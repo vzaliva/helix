@@ -319,25 +319,6 @@ Section Gappa.
 
   Open Scope R_scope.
 
-  Lemma Rabs_no_error (eps x y : R) :
-    - eps <= x - y <= eps ->
-    - eps <= Rabs x - Rabs y <= eps.
-  Proof.
-    intros D.
-    unfold Rabs.
-    repeat break_if; lra.
-  Qed.
-
-  Lemma Rmax_no_error (eps1 x1 y1 eps2 x2 y2 : R) :
-    - eps1 <= x1 - y1 <= eps1 ->
-    - eps2 <= x2 - y2 <= eps2 ->
-    - Rmax eps1 eps2 <= Rmax x1 x2 - Rmax y1 y2 <= Rmax eps1 eps2.
-  Proof.
-    intros D.
-    unfold Rmax.
-    repeat break_if; lra.
-  Qed.
-
   Lemma DynWin_arith
     (e a b vr vo a0 a1 a2 rx ry ox oy cheb64 poly64 cheb poly : R)
     (E : B64R b64_0_01 <= e <= B64R b64_0_1)

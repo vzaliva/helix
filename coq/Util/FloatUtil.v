@@ -449,3 +449,26 @@ Section Float64.
 End Float64.
 
 Global Hint Unfold no_overflow64 round64 : sugar64.
+
+Section Raux.
+  
+  Lemma Rabs_no_error (eps x y : R) :
+    - eps <= x - y <= eps ->
+    - eps <= Rabs x - Rabs y <= eps.
+  Proof.
+    intros D.
+    unfold Rabs.
+    repeat break_if; lra.
+  Qed.
+
+  Lemma Rmax_no_error (eps1 x1 y1 eps2 x2 y2 : R) :
+    - eps1 <= x1 - y1 <= eps1 ->
+    - eps2 <= x2 - y2 <= eps2 ->
+    - Rmax eps1 eps2 <= Rmax x1 x2 - Rmax y1 y2 <= Rmax eps1 eps2.
+  Proof.
+    intros D.
+    unfold Rmax.
+    repeat break_if; lra.
+  Qed.
+
+End Raux.
