@@ -586,8 +586,8 @@ Section Gappa.
     (* This would be nicely suitable for [par:] instead of [all:],
        but that encounters an anomaly *)
     Unshelve.
-    (* all: crush_floats. *) all: admit.
-  (* Qed. *) Admitted.
+    all: crush_floats.
+  Qed.
 
 End Gappa.
 
