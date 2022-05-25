@@ -1,7 +1,7 @@
 FROM ubuntu:focal
 
 RUN apt update
-RUN apt install -y opam curl aspcud libipc-system-simple-perl libstring-shellquote-perl libgmp-dev bison flex
+RUN apt install -y opam curl aspcud libipc-system-simple-perl libstring-shellquote-perl libgmp-dev pkg-config bison flex
 
 RUN opam init -y --bare --disable-sandboxing
 RUN eval $(opam env)
