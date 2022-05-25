@@ -11,3 +11,7 @@ RUN opam switch helix
 
 RUN opam repo add coq-released https://coq.inria.fr/opam/released
 RUN opam update
+
+# A patch after [https://github.blog/2022-04-12-git-security-vulnerability-announced/]
+# See also [https://community.atlassian.com/t5/Bitbucket-questions/Unsafe-repository-REPO-is-owned-by-someone-else/qaq-p/2016432]
+RUN git config --global --add safe.directory '*'
