@@ -10,7 +10,7 @@ pipeline {
         dockerfile {
             filename 'Dockerfile'
             label 'DOCKER_HOST'
-            args '-u root:sudo --privileged'
+            args '-u root:sudo --privileged --no-cache'
         }
     }
 
