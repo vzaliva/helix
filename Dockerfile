@@ -2,7 +2,8 @@ FROM ubuntu:focal
 
 RUN apt update
 RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt install -y tzdata # to avoid getting stuck at an interactive prompt
-RUN apt install -y opam curl aspcud libipc-system-simple-perl libstring-shellquote-perl libgmp-dev pkg-config bison flex
+RUN apt install -y opam curl aspcud libipc-system-simple-perl libstring-shellquote-perl pkg-config
+RUN apt install -y libgmp-dev autoconf automake bison flex libmpfr-dev # gappa system dependencies
 
 RUN opam init -y --bare --disable-sandboxing
 RUN eval $(opam env)
