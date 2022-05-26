@@ -9,6 +9,11 @@ Require Import MathClasses.interfaces.abstract_algebra.
 Require Import Helix.HCOL.CarrierType.
 Require Import Helix.Util.Misc.
 
+Instance R_Equiv: Equiv R := eq.
+
+Instance R_Setoid: Setoid R.
+Proof. split; auto. Qed.
+
 Instance Abs_R : @Abs R R_Equiv Rle R0 Ropp.
 Proof.
   econstructor.
