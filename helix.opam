@@ -18,7 +18,7 @@ depends: [
   "ocamlfind"
   "ocamlbuild"
   "camlp5"
-  "coq-itree"
+  "coq-itree" {< "5.0.0"}
   "coq-mathcomp-ssreflect"
   "coq-simple-io"
   "coq-color"
