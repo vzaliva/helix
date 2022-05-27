@@ -11,6 +11,7 @@ Require Import Helix.LLVMGen.Compiler.
 Require Import Helix.LLVMGen.Data.
 Require Import Helix.Util.ErrorSetoid.
 Require Import Helix.Util.ErrorWithState.
+Require Import Helix.Util.FloatUtil.
 
 Require Import Vellvm.Semantics.LLVMEvents.
 Require Import Vellvm.Semantics.Denotation.
@@ -39,7 +40,7 @@ Definition BinOp_plus_test :=
 Definition Nop_test := DSHSeq BinOp_plus_test DSHNop.
 
 Definition IMap_plus1_test :=
-  DSHIMap 8 (PVar 1) (PVar 0) (APlus (AConst Float64One) (AVar 0)).
+  DSHIMap 8 (PVar 1) (PVar 0) (APlus (AConst b64_1) (AVar 0)).
 
 Definition IMap_plusD_test :=
   DSHIMap 8 (PVar 2) (PVar 1) (APlus (AVar 0) (AVar 2)).
@@ -58,14 +59,14 @@ Definition Inductor_test :=
            ((PVar 1), (NConst Int64_0))
            ((PVar 0), (NConst Int64_0))
            (AMinus (AVar 1) (AVar 0))
-           Float64One.
+           b64_1.
 
 Definition IUnion_test :=
   DSHLoop 5 (DSHBinOp 2 (PVar 2) (PVar 1) (APlus (AVar 1) (AVar 0))).
 
 Definition IReduction_test :=
   DSHAlloc Int64_1
-           (DSHSeq (DSHMemInit (PVar 0) Float64Zero)
+           (DSHSeq (DSHMemInit (PVar 0) b64_0)
                    (DSHLoop 2
                             (DSHSeq
                                (DSHAlloc Int64_2
@@ -94,7 +95,7 @@ Definition DynWin_FHCOL_test : FHCOL.DSHOperator :=
             (DSHSeq
                (DSHAlloc Int64_1
                   (DSHSeq
-                     (DSHSeq (DSHMemInit (PVar 0) Float64asCT.Float64Zero)
+                     (DSHSeq (DSHMemInit (PVar 0) b64_0)
                         (DSHAlloc Int64_1
                            (DSHLoop 3
                               (DSHSeq
@@ -109,7 +110,7 @@ Definition DynWin_FHCOL_test : FHCOL.DSHOperator :=
                                                 (PVar 1, NConst Int64_0)
                                                 (PVar 0, NConst Int64_0)
                                                 (AMult (AVar 1) (AVar 0))
-                                                Float64asCT.Float64One)
+                                                b64_1)
                                              (DSHIMap 1 (PVar 0) (PVar 3)
                                                 (AMult (AVar 0) (ANth (MPtrDeref (PVar 8)) (NVar 4))))))))
                                  (DSHMemMap2 1 (PVar 2) (PVar 1) (PVar 2) (APlus (AVar 1) (AVar 0)))))))
@@ -118,7 +119,7 @@ Definition DynWin_FHCOL_test : FHCOL.DSHOperator :=
                         (PVar 1, NConst Int64_0))))
                (DSHAlloc Int64_1
                   (DSHSeq
-                     (DSHSeq (DSHMemInit (PVar 0) Float64asCT.Float64Zero)
+                     (DSHSeq (DSHMemInit (PVar 0) b64_0)
                         (DSHAlloc Int64_1
                            (DSHLoop 2
                               (DSHSeq
