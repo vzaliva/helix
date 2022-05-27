@@ -2757,7 +2757,7 @@ Section WithCarrierA.
           rewrite <-NP.F.Equiv_Equivb
             with (eq_elt:=(=))
             in EQ
-            by (unfold NP.F.compat_cmp; apply (@CarrierA_eqb_equiv CarrierDefs_R)).
+            by (unfold NP.F.compat_cmp; apply CarrierA_eqb_equiv).
           inversion_clear EQ as [K E].
 
           intros k.
@@ -2789,7 +2789,7 @@ Section WithCarrierA.
           apply NP.F.equal_iff.
           rewrite <-NP.F.Equiv_Equivb
             with (eq_elt:=(=))
-            by (unfold NP.F.compat_cmp; apply (@CarrierA_eqb_equiv CarrierDefs_R)).
+            by (unfold NP.F.compat_cmp; apply CarrierA_eqb_equiv).
           constructor.
           +
             intros k; specialize (C k).
@@ -4403,7 +4403,7 @@ Section WithCarrierA.
                 apply Vforall_nth_intro.
                 clear P.
                 intros t tc P.
-                eapply @svalue_at_sparse with (CADEFS:=CarrierDefs_R).
+                eapply svalue_at_sparse.
                 eapply sparse_outputs_not_in_out_set; eauto.
                 apply Meq.
                 intros j jc H0.
