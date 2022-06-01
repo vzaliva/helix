@@ -128,6 +128,10 @@ Definition memory_invariant_partial_write' (configV : config_cfg) (index loopsiz
                   (mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v0
                     → get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0))).
 
+Instance state_invariant_memory_equiv_Proper σ s a :
+  Proper (equiv ==> flip impl) (fun m => state_invariant σ s m a).
+Admitted.
+
 (* TODO: Move to [Correctness_Invariants] *)
 Lemma state_invariant_cons :
   forall a x s' s σ mH mV l g,
@@ -190,7 +194,7 @@ Proof.
   unfold denotePExpr in *; cbn* in *.
 
   (* Renaming *)
-  rename i1 into tptyp, r into pt, b into init_block_id, b0 into loopcontblock,
+  rename i1 into size, r into pt, b into init_block_id, b0 into loopcontblock,
     r0 into loopvar, i7 into storeid.
 
   simp; try_abs.
@@ -265,19 +269,25 @@ Proof.
     forward LOOP; [clear LOOP |].
     { solve_lid_bound_between. }
 
+    assert (EQ: Z.of_nat (BinNat.N.to_nat sz) ≡ Int64.intval size). {
+      clear -EQsz.
+      rewrite Znat.N_nat_Z.
+      unfold MInt64asNT.from_N in EQsz.
+      apply from_Z_intval in EQsz; auto.
+    }
+
     forward LOOP; [clear LOOP |].
     { clear -INPUTS_BETWEEN NEXT.
       intros IN; rewrite inputs_convert_typ, add_comment_inputs in INPUTS_BETWEEN.
       rewrite Forall_forall in INPUTS_BETWEEN; apply INPUTS_BETWEEN in IN; clear INPUTS_BETWEEN.
       eapply not_bid_bound_between; eauto. }
-    specialize (LOOP (MInt64asNT.to_nat i)).
 
+    specialize (LOOP (BinNat.N.to_nat sz)).
     rename Heqs1 into WHILE.
-    assert (EQ: Int64.intval tptyp ≡ Z.of_nat (MInt64asNT.to_nat i)). { admit. (* int bounds *) }
 
    forward LOOP; [clear LOOP |].
-    { subst body_blocks prefix.
-      rewrite <- EQ.
+   { subst body_blocks prefix.
+     rewrite EQ.
       exact WHILE. }
 
     eapply eutt_Proper_mono; cycle 1.
@@ -290,7 +300,8 @@ Proof.
       end.
 
     forward LOOP; [clear LOOP |].
-    { admit. (* int bounds *) }
+    { rewrite EQ.
+      edestruct Int64.intrange; eauto. }
 
     rename i0 into y.
 
@@ -320,7 +331,7 @@ Proof.
                 | None => False
                 | Some (mH,bkH) =>
                   bkH ≡ mem_union (mem_const_block (MInt64asNT.to_nat i) value) bkh_xoff /\
-                    state_invariant σ s0 mH stV /\
+                    state_invariant σ s2 mH stV /\
                       let '(mV, (p, g')) := stV in
                       mH ≡ memH /\ g ≡ g'
                 end).
@@ -379,7 +390,8 @@ Proof.
 
         eapply dtyp_fits_array_elem; [ | eauto | ].
         { erewrite <- from_N_intval; eauto. }
-        admit. (* Int bounds *) }
+        { rewrite Int64.unsigned_repr; try lia.
+          split; try lia. admit. (* Int bounds *) } }
 
       vred.
       rewrite denote_instr_store; eauto; cycle 1.
@@ -532,13 +544,16 @@ Proof.
                 rewrite mem_lookup_mem_add_neq in MLU_i0; try lia; eauto.
               + erewrite <- write_array_lemma. eauto. solve_allocated. eauto.
               + constructor.
-              + admit. (*Int bounds*)
+              + repeat rewrite Int64.unsigned_repr; try lia;
+                admit. (*Int bounds*)
           }
           } }
 
       { solve_allocated. }
 
-      { (* local_scope_modif *) admit. }
+      { (* local_scope_modif *)
+        (* not true *)
+        admit. }
     }
 
     forward LOOP; [clear LOOP|]; eauto.
@@ -553,7 +568,14 @@ Proof.
       split; eauto.
       2 : repeat (split; eauto).
       - eapply state_invariant_same_Γ; eauto.
-        admit.
+
+        destruct Hl.
+        + eapply not_in_gamma_protect. eapply GAM.
+          eapply lid_bound_between_shrink; eauto.
+          solve_local_count.
+        + eapply not_in_gamma_protect. eapply GAM.
+          eapply lid_bound_between_shrink; eauto;
+          solve_local_count.
       - destruct y.
         + eapply in_local_or_global_addr_same_global; eauto.
         + cbn; intros. repeat red in H4.
@@ -583,14 +605,20 @@ Proof.
     {
       (* (I i -> Q) *)
       subst Q I.
-      clear; red; intros.
+      red; intros.
       break_match_goal; auto.
       destruct p. inv Heqo. destruct b, p.
       destruct H as (?&?&?&?&?). split; eauto.
-      2 : split; [ | repeat (split; eauto)].
       destruct H0 as (?&?&?).
+
+      clear -NOFAIL.
+
+      unfold no_failure in NOFAIL.
       admit. admit.
     }
+
+    assert (BinNat.N.to_nat sz ≡ MInt64asNT.to_nat i). admit.
+    rewrite H in LOOP.
 
     eapply LOOP.
     {
@@ -601,7 +629,6 @@ Proof.
       solve_gamma. solve_local_count. }
     }
 
-
     red. intros [[? ?] | ] (? & ? & ? & ?); [| cbn in *; intuition].
     2 : { destruct H. inv REL1. inv REL2. inv H0. auto. }
     intros [? ? ?]; eauto. inv REL1.
@@ -610,7 +637,7 @@ Proof.
     split; [| split]; cbn; eauto.
     - destruct b; eauto. destruct H1 as (? & ? & ? & ?); subst.
       cbn in *. inv H0. cbn in *. (*Properness lemma*)
-      admit.
+      eapply state_invariant_memory_equiv_Proper; eauto.
     - destruct H; eauto.
     - solve_local_scope_modif.
   }
@@ -640,7 +667,10 @@ Proof.
       split; [reflexivity |].
       do 2 (split; eauto).  intros.
       specialize (H4 H). destruct H4 as (?&?&?). exists x2; eauto.
-      rewrite memory_lookup_memory_set_eq; eexists. f_equiv. admit.
+      rewrite memory_lookup_memory_set_eq; eexists. f_equiv.
+
+      rename m0 into MEM_, x2 into MEM__. red in H2.
+      admit.
       intros; eapply H5; eauto.
     * rewrite memory_lookup_memory_set_neq; [| apply NPeano.Nat.eqb_neq in EQ; auto].
       do 2 eexists ; eauto.
