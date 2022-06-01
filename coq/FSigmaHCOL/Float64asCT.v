@@ -3,35 +3,10 @@ Require Import Coq.Bool.Bool.
 
 From Flocq Require Import Binary Bits.
 
+Require Import Helix.Util.FloatUtil.
 Require Import MathClasses.interfaces.abstract_algebra.
 
 Require Import Helix.MSigmaHCOL.CType.
-
-(* Defining these before importing math classes to avoid name collisions,
-   e.g. on [Lt] *)
-Section MinMax.
-
-  Definition Float64Min (a b: binary64) :=
-    match a, b with
-    | B754_nan _ _ _ _ _, _ | _, B754_nan _ _ _ _ _ => build_nan _ _ (binop_nan_pl64 a b)
-    | _, _ =>
-      match Bcompare _ _ a b with
-      | Some Datatypes.Lt => a
-      | _ => b
-      end
-    end.
-
-  Definition Float64Max (a b: binary64): binary64 :=
-    match a, b with
-    | B754_nan _ _ _ _ _, _ | _, B754_nan _ _ _ _ _ => build_nan _ _ (binop_nan_pl64 a b)
-    | _, _ =>
-      match Bcompare _ _ a b with
-      | Some Datatypes.Lt => b
-      | _ => a
-      end
-    end.
-
-End MinMax.
 
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.interfaces.abstract_algebra.
@@ -41,10 +16,15 @@ Definition FT_Rounding:mode := mode_NE.
 
 Require Import Coq.micromega.Lia.
 
-Definition Float64Zero : binary64 := B754_zero _ _ false.
-Program Definition Float64One : binary64 := Bone _ _ eq_refl eq_refl.
-
 Instance binary64_Equiv: Equiv binary64 := eq.
+
+(* The amount by which two numbers need to differ
+   to be considered "clearly" unequal *)
+(* ~ 1.2e-12 *)
+Definition epsilon : binary64 :=
+  B754_finite 53 1024 false 5920039297100023 (-92)
+    (binary_float_of_bits_aux_correct 52 11 eq_refl eq_refl eq_refl
+       4428454873374927095).
 
 (* Should be somewhere in stdlib but I could not find it *)
 Lemma positive_dec : forall p1 p2 : positive, {p1 ≡ p2} + {p1 ≢ p2}.
@@ -111,14 +91,12 @@ Module MFloat64asCT <: CType.
   Definition CTypeEquiv := binary64_Equiv.
   Definition CTypeSetoid := binary64_Setoid.
 
-  Definition CTypeZero := Float64Zero.
-  Definition CTypeOne  := Float64One.
+  Definition CTypeZero := b64_0.
+  Definition CTypeOne  := b64_1.
 
-  Lemma CTypeZeroOneApart: Float64Zero ≠ Float64One.
+  Lemma CTypeZeroOneApart: CTypeZero <> CTypeOne.
   Proof.
-    unfold Float64Zero, Float64One.
-    intros H.
-    inversion H.
+    discriminate.
   Qed.
 
   Definition CTypeEquivDec := binary64_equiv_dec.
@@ -127,29 +105,6 @@ Module MFloat64asCT <: CType.
   Definition CTypeNeg      := b64_opp.
   Definition CTypeMult     := b64_mult FT_Rounding.
   Definition CTypeAbs      := b64_abs.
-
-  (* For "regular" floating point numbers the comparison is
-    straighforward. However we need to handle NaNs. From point of
-    view of DHCOL<->FHCOL semantics equivalence, NaNs does not matter,
-    as we are going to constant the proof to input data which does not
-    contain NaNs and furthermore prove that NaNs will not appear as
-    result of any internal computations. So any NaN behaviour will do.
-
-    To simplify FHCOL->IR compiler proofs we will chose to handle NaNs
-    as similiar as possible as it is done in [fcmp olt] instruction
-    which this one is compiled to. Per IR spec it "yields true if both
-    operands are not a QNAN and op1 is less than op2"
-
-  *)
-  Definition CTypeZLess (a b: binary64) : binary64 :=
-    match a, b with
-    | B754_nan _ _ _ _ _, _ | _, B754_nan _ _ _ _ _ => CTypeZero
-    | _, _ =>
-      match Bcompare _ _ a b with
-      | Some Datatypes.Lt => CTypeOne
-      | _ => CTypeZero
-      end
-    end.
 
   (* Quick test that definitoin we have is indeed different from
      directly using [Bcompare]:
@@ -174,6 +129,24 @@ Module MFloat64asCT <: CType.
   Definition CTypeMax      := Float64Max.
   Definition CTypeSub      := b64_minus FT_Rounding.
 
+  (* For "regular" floating point numbers the comparison is
+    straighforward. However we need to handle NaNs. From point of
+    view of DHCOL<->FHCOL semantics equivalence, NaNs does not matter,
+    as we are going to constant the proof to input data which does not
+    contain NaNs and furthermore prove that NaNs will not appear as
+    result of any internal computations. So any NaN behaviour will do.
+
+    To simplify FHCOL->IR compiler proofs we will chose to handle NaNs
+    as similiar as possible as it is done in [fcmp olt] instruction
+    which this one is compiled to. Per IR spec it "yields true if both
+    operands are not a QNAN and op1 is less than op2"
+  *)
+  Definition CTypeZLess (a b: binary64) : binary64 :=
+    match Bcompare _ _ epsilon (CTypeSub b a)  with
+    | Some Datatypes.Lt => CTypeOne
+    | _ => CTypeZero
+    end.
+
   Instance Zless_proper: Proper ((=) ==> (=) ==> (=)) CTypeZLess.
   Proof. solve_proper. Qed.
 
@@ -196,3 +169,35 @@ Module MFloat64asCT <: CType.
   Proof. solve_proper. Qed.
 
 End MFloat64asCT.
+
+Declare Scope Float64asCT_scope.
+
+Notation "0.0" := MFloat64asCT.CTypeZero : Float64asCT_scope.
+Notation "1.0" := MFloat64asCT.CTypeOne : Float64asCT_scope.
+Infix "⊞" := MFloat64asCT.CTypePlus (at level 50) : Float64asCT_scope.
+Infix "⊠" := MFloat64asCT.CTypeMult (at level 40) : Float64asCT_scope.
+Infix "⊟" := MFloat64asCT.CTypeSub  (at level 50) : Float64asCT_scope.
+Infix "⧄" := (b64_div FT_Rounding)  (at level 30) : Float64asCT_scope.
+Notation fmax := (MFloat64asCT.CTypeMax).
+Notation fabs := (MFloat64asCT.CTypeAbs).
+Notation B64R := (B2R 53 1024).
+Notation "◻ x" := (round64 FT_Rounding x) (at level 0) : Float64asCT_scope.
+
+Global Hint Unfold
+  MFloat64asCT.CTypePlus
+  MFloat64asCT.CTypeMult
+  MFloat64asCT.CTypeSub
+  MFloat64asCT.CTypeAbs
+  MFloat64asCT.CTypeZero
+  MFloat64asCT.CTypeOne : unfold_FCT.
+
+Open Scope Float64asCT_scope.
+
+Lemma fmaxZeroAbs :
+  forall x, fmax 0.0 (fabs x) ≡ fabs x.
+Proof.
+  intros x.
+  unfold fmax, fabs, Float64Max, b64_abs, Babs.
+  destruct x.
+  all: reflexivity.
+Qed.

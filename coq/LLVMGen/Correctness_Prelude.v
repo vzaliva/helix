@@ -168,7 +168,7 @@ Section EventTranslation.
       | DSHnat => Sfail "Unsupported global type: nat"
       | DSHCType =>
         '(data,σ) <- denote_initFSHGlobals data gs ;;
-        let '(x, data) := rotate Float64Zero data in
+        let '(x, data) := rotate MFloat64asCT.CTypeZero data in
          ret (data, (DSHCTypeVal x, false)::σ)
       | DSHPtr n =>
         '(data,σ) <- denote_initFSHGlobals data gs ;;

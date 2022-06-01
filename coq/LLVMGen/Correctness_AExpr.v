@@ -57,12 +57,14 @@ Section AExpr.
   Proof.
     Transparent DynamicValues.Int64.repr.
     unfold DynamicValues.Int64.repr.
-    unfold MFloat64asCT.CTypeOne, Float64One.
+    unfold MFloat64asCT.CTypeOne, MFloat64asCT.CTypeOne.
     Transparent Floats.Float.of_longu.
     unfold Floats.Float.of_longu.
     unfold Binary.Bone, IEEE754_extra.BofZ, Binary.binary_normalize.
+    unfold FloatUtil.b64_1.
     cbn.
     f_equiv.
+    apply proof_irrelevance.
   Qed.
 
   Fact CTypeZero_of_longu:
@@ -70,7 +72,7 @@ Section AExpr.
   Proof.
     Transparent DynamicValues.Int64.repr.
     unfold DynamicValues.Int64.repr.
-    unfold MFloat64asCT.CTypeOne, Float64One.
+    unfold MFloat64asCT.CTypeOne, MFloat64asCT.CTypeOne.
     Transparent Floats.Float.of_longu.
     unfold Floats.Float.of_longu.
     unfold Binary.Bone, IEEE754_extra.BofZ, Binary.binary_normalize.

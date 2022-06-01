@@ -41,7 +41,13 @@ Require Import MathClasses.implementations.peano_naturals.
 
 Import Monoid.
 
-Module Type MTMSHCOL (CT:CType) (Import CM:MMemSetoid(CT)).
+
+(** MSHCOL language definition.
+
+   This module type includes just data type for [MSHOperator] and
+   prototypes for all defined operators, without actual
+   implementations.  *)
+Module Type MMSigmaHCOL (CT:CType) (Import CM:MMemSetoid(CT)).
 
   Record MSHOperator {i o: nat} : Type
     := mkMSHOperator {
@@ -103,12 +109,15 @@ Module Type MTMSHCOL (CT:CType) (Import CM:MMemSetoid(CT)).
       `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
       @MSHOperator (o+o) o.
 
-End MTMSHCOL.
+End MMSigmaHCOL.
 
 (*
   Parts of (S)HCOL used in the definition of MHCOL, lifted to [CType].
   This is a workaround to allow defining MHCOL in the abstract, but without
   "parametrizing" is with [CarrierDefs] (found impossible).
+
+  TODO: the name is misleading. it is not (S)HCOL language definition, just
+  parts of it. Need better name. E.g. `HCOLUtils`.
 *)
 Module Type HCOL_on_CT (CT : CType).
 
@@ -259,11 +268,13 @@ Module Type HCOL_on_CT (CT : CType).
 
 End HCOL_on_CT.
 
-Module MMSHCOL'
+(** This module provides actual implementation of MSHCOL language,
+    re-using parts of HCOL implementations whenever possible.  *)
+Module MMSigmaHCOLImpl
        (CT:CType)
        (Import CM:MMemSetoid CT)
        (Import HC:HCOL_on_CT CT)
-<: MTMSHCOL(CT)(CM) .
+<: MMSigmaHCOL(CT)(CM) .
 
   Open Scope nat_scope.
 
@@ -3101,12 +3112,15 @@ Module MMSHCOL'
           apply out_mem_oob with (j0:=j) in A0; auto.
   Qed.
 
-End MMSHCOL'.
+End MMSigmaHCOLImpl.
 
+
+(*
+  TODO: the name is misleading. It needs to be renamed along with [HCOL_on_CT].
+*)
 Module HCOL_on_RasCT <: HCOL_on_CT(MRasCT).
   Include HCOL_on_CT MRasCT.
 End HCOL_on_RasCT.
 
-(* There will be only one instance of MMSCHOL', as it is always
-   defined on [CT.t]. *)
-Module Export MMSCHOL := MMSHCOL'(MRasCT)(MMemoryOfR)(HCOL_on_RasCT).
+(* MMSigmaHCOLImpl on Reals *)
+Module Export MHCOL := MMSigmaHCOLImpl(MRasCT)(MMemoryOfR)(HCOL_on_RasCT).

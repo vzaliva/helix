@@ -7,6 +7,7 @@ Require Import Helix.FSigmaHCOL.Int64asNT.
 Require Import Helix.FSigmaHCOL.Float64asCT.
 Require Import Helix.LLVMGen.Utils.
 Require Import Helix.Util.Misc.
+Require Import Helix.Util.FloatUtil.
 Require Import Helix.Tactics.HelixTactics.
 
 Require Import Vellvm.Semantics.IntrinsicsDefinitions.
@@ -1087,7 +1088,7 @@ Definition initOneIRGlobal
       ret (data, g)
 
     | DSHCType =>
-      let '(x, data) := rotate Float64Zero data in
+      let '(x, data) := rotate b64_0 data in
       let v_id := Name nm in
       let v_typ := getIRType t in
       let g := TLE_Global {|

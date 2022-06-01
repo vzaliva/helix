@@ -3,7 +3,7 @@
     def BUILD_IF_BRANCH = ['master','develop']
  */
 
-def BUILD_IF_BRANCH = ['master','mhcol_on_r']
+def BUILD_IF_BRANCH = ['master','bounds', 'no_floatOfR']
 
 pipeline {
     agent { 
@@ -11,6 +11,7 @@ pipeline {
             filename 'Dockerfile'
             label 'DOCKER_HOST'
             args '-u root:sudo --privileged'
+            additionalBuildArgs '--no-cache'
         }
     }
 
@@ -83,7 +84,7 @@ pipeline {
                     if (env.SKIP_CI != "true" && env.SKIP_BRANCH == "false") {
 			sh '''eval $(opam env)
                               make Makefile.coq
-                              make -f Makefile.coq -j ${NJOBS} coq/DynWin/DynWinProofs.vo
+                              make -f Makefile.coq -j ${NJOBS} coq/DynWin/DynWinTopLevel.vo
                            '''
                     }
                 }

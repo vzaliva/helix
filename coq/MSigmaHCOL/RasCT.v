@@ -42,3 +42,56 @@ Module MRasCT <: CType.
   Definition max_proper := CarrierA_max_proper.
 
 End MRasCT.
+
+Global Hint Unfold
+  MRasCT.CTypePlus
+  MRasCT.CTypeMult
+  MRasCT.CTypeSub
+  MRasCT.CTypeAbs
+  MRasCT.CTypeZero
+  MRasCT.CTypeOne
+  CarrierDefs_R
+  CarrierAplus
+  CarrierAmult
+  CarrierType.sub
+  CarrierAz
+  CarrierA1 : unfold_RCT.
+
+Require Import Coq.micromega.Psatz.
+Require Import Helix.Tactics.StructTactics.
+
+Lemma RCT_abs_Rabs (x : R) :
+  MRasCT.CTypeAbs x ≡ Rabs x.
+Proof.
+  reflexivity.
+Qed.
+
+Lemma RCT_max_Rmax (x y : R) :
+  MRasCT.CTypeMax x y ≡ Rmax x y.
+Proof.
+  cbv.
+  repeat break_if; cbn.
+  all: solve [intuition].
+Qed.
+
+Lemma R_MaxZeroAbs (x : R) :
+  MRasCT.CTypeMax MRasCT.CTypeZero (MRasCT.CTypeAbs x)
+  ≡ (MRasCT.CTypeAbs x).
+Proof.
+  rewrite RCT_abs_Rabs, RCT_max_Rmax.
+  cbv.
+  repeat break_if.
+  all: solve [intuition].
+Qed.
+
+Lemma R_PlusZeroLeft (x : R) :
+  MRasCT.CTypePlus MRasCT.CTypeZero x ≡ x.
+Proof.
+  cbv; lra.
+Qed.
+
+Lemma R_MultOneLeft (x : R) :
+  MRasCT.CTypeMult MRasCT.CTypeOne x ≡ x.
+Proof.
+  cbv; lra.
+Qed.

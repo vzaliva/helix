@@ -96,7 +96,7 @@ Section RandomDataPool.
     :=
       match len with
       | O => (data,[])
-      | S len' => let '(x, data') := rotate Float64Zero data in
+      | S len' => let '(x, data') := rotate MFloat64asCT.CTypeZero data in
                  let '(data'',res) := constList len' data' in
                  (data'', x :: res)
       end.
@@ -173,7 +173,7 @@ Section RandomDataPool.
     match n with
     | O => (Int64.zero, data)
     | S m =>
-      let '(f,data) := rotate Float64Zero data in
+      let '(f,data) := rotate MFloat64asCT.CTypeZero data in
       let si := Int64.add i Int64.one in
       match f with
       | B754_zero _ => intNFromData m data si
@@ -306,7 +306,7 @@ Definition initOneFSHGlobal
       let '(xi, data) := int64FromData data in
       ret (mem, data, (DSHnatVal xi,false))
     | DSHCType =>
-      let '(x, data) := rotate Float64Zero data in
+      let '(x, data) := rotate MFloat64asCT.CTypeZero data in
       ret (mem, data, (DSHCTypeVal x,false))
     | DSHPtr n =>
       let (data,mb) := constMemBlock (MInt64asNT.to_nat n) data in

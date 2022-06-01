@@ -76,67 +76,37 @@ Module MDHCOLTypeTranslator
     else if CT.CTypeEquivDec a CT.CTypeOne then inr CT'.CTypeOne
          else (inl "unknown CType constant").
 
+  (* A comparison of two CType values can depend on some external environment.
+     This was primarily introduced to enable symbolic execution of DHCOL.
+     For example, a float [f1] and a symbolic float ["a" + "b"] can only be
+     directly compared given a symbolic store:
+     [f1 = {"a" + "b" | a = f1, b = 0.0 }]
+   *)
+  Section Environmental.
+
+  Variable Env : Type.
+
   (* Heterogeneous equivalence on values before and after translation *)
   Class CTranslation_heq :=
     {
-      heq_CType : CT.t -> CT'.t -> Prop ;
-      heq_CType_proper : Proper ((=) ==> (=) ==> iff) heq_CType;
+      heq_CType' {env : Env} : CT.t -> CT'.t -> Prop ;
+      heq_CType_proper : Proper ((≡) ==> (=) ==> (=) ==> iff) (@heq_CType');
+
+      (* Value mapping should result in "equal" values *)
+      translateCTypeConst_heq_CType :
+      forall x x', translateCTypeConst x = inr x' ->
+              forall env, @heq_CType' env x x';
     }.
 
   Class NTranslation_heq :=
     {
       heq_NType : NT.t -> NT'.t -> Prop ;
       heq_NType_proper : Proper ((=) ==> (=) ==> iff) heq_NType;
-    }.
-
-  Class CTranslationOp `{CHE : CTranslation_heq} :=
-    {
-      (* Partial mapping of [CT.t] values to [CT'.t] *)
-      translateCTypeValue : CT.t -> err CT'.t ;
-
-      translateCTypeValue_proper : Proper ((=) ==> (=)) translateCTypeValue;
 
       (* Value mapping should result in "equal" values *)
-      translateCTypeValue_heq_CType :
-      forall x x', translateCTypeValue x = inr x' -> heq_CType x x';
+      translateNTypeConst_heq_NType :
+      forall x x', translateNTypeConst x = inr x' -> heq_NType x x';
 
-
-      (* Ensure [translateCTypeConst] is compatible with [translateCTypeValue] *)
-      translateCTypeConst_translateCTypeValue_compat :
-      forall x x', translateCTypeConst x = inr x' ->
-              translateCTypeValue x = inr x';
-
-      (* Surjectivity: all values in CT't should have correspoding CT.t values
-         Not sure if we need this
-         translate_surj :
-         forall (x' : CT'.t), exists x,
-         translateCTypeValue x = inr x';
-       *)
-    }.
-
-  Class CTranslationOp_strict `{CTO : CTranslationOp} :=
-    {
-      heq_CType_translateCTypeValue :
-      forall x x', heq_CType x x' -> translateCTypeValue x = inr x';
-    }.
-
-  (* TODO: [translateNTypeValue] vs [translateNTypeConst].
-     Why even have the first one? *)
-  Class NTranslationOp `{NHE : NTranslation_heq} :=
-    {
-      (* Partial mapping of [NT.t] values to [NT'.t] *)
-      translateNTypeValue : NT.t -> err NT'.t ;
-
-      translateNTypeValue_proper : Proper ((=) ==> (=)) translateNTypeValue;
-
-      (* Value mapping should result in "equal" values *)
-      translateNTypeValue_heq_NType :
-      forall x x', translateNTypeValue x = inr x' -> heq_NType x x';
-
-      (* Ensure [translateNTypeConst] is compatible with [translateNTypeValue] *)
-      translateNTypeConst_translateNTypeValue_compat :
-      forall x x', translateNTypeConst x = inr x' ->
-              translateNTypeValue x = inr x';
     }.
 
   Class NTranslationProps `{NHE : NTranslation_heq} :=
@@ -178,10 +148,10 @@ Module MDHCOLTypeTranslator
         (f': CT'.t -> CT'.t -> CT'.t)
     :=
       {
-        cbinop_translate_compat: forall x x' y y',
-          heq_CType x x' ->
-          heq_CType y y' ->
-          heq_CType (f x y) (f' x' y')
+        cbinop_translate_compat: forall env x x' y y',
+          heq_CType' (env:=env) x x' ->
+          heq_CType' (env:=env) y y' ->
+          heq_CType' (env:=env) (f x y) (f' x' y')
       }.
 
   Class CUnOpTranslation
@@ -190,9 +160,9 @@ Module MDHCOLTypeTranslator
         (f': CT'.t -> CT'.t)
     :=
       {
-        cunop_translate_compat: forall x x',
-          heq_CType x x' ->
-          heq_CType (f x) (f' x')
+        cunop_translate_compat: forall env x x',
+          heq_CType' (env:=env) x x' ->
+          heq_CType' (env:=env) (f x) (f' x')
       }.
 
   Class COpTranslationProps `{CHE : CTranslation_heq} :=
@@ -208,26 +178,14 @@ Module MDHCOLTypeTranslator
       CTypeAbs_translation: CUnOpTranslation CT.CTypeAbs CT'.CTypeAbs ;
     }.
 
+  Variable env : Env.
+  Notation heq_CType := (heq_CType' (env:=env)).
+
   Section EvalTranslations.
 
     Context `{CTT: CTranslationOp} `{NTT: NTranslationOp}.
 
     Import ListNotations.
-
-    Definition translateDSHVal (d:LE.DSHVal): err LE'.DSHVal
-      := match d with
-         | LE.DSHnatVal n => n' <- translateNTypeValue n ;; ret (LE'.DSHnatVal n')
-         | LE.DSHCTypeVal a => a' <- translateCTypeValue a ;; ret (LE'.DSHCTypeVal a')
-         | LE.DSHPtrVal a size => size' <- translateNTypeValue size ;; ret (LE'.DSHPtrVal a size')
-         end.
-
-    Fixpoint translateEvalContext (σ: LE.evalContext): err LE'.evalContext
-      := match σ with
-         | [] => inr []
-         | ((x,f)::xs) => d <- translateDSHVal x ;;
-                        t <- translateEvalContext xs ;;
-                        ret ((d,f) :: t)
-         end.
 
     (* These should use [NM_sequence] directly,
        making [NM_err_sequence] unecessary,
@@ -241,14 +199,6 @@ Module MDHCOLTypeTranslator
 
     Definition translate_memory (m:L.memory): err L'.memory :=
       NM_err_sequence (NM.map translate_mem_block m).
-
-    (* Note: the following is based on [translateCTypeValue], only to be used
-       when translating *input values* - not constants. *)
-    Definition translate_runtime_mem_block (m:L.mem_block) : err L'.mem_block
-      := NM_err_sequence (NM.map translateCTypeValue m).
-
-    Definition translate_runtime_memory (m:L.memory): err L'.memory :=
-      NM_err_sequence (NM.map translate_runtime_mem_block m).
 
     Definition translateMExpr (m:L.MExpr) : err L'.MExpr :=
       match m with
@@ -368,7 +318,7 @@ Module MDHCOLTypeTranslator
           ret (DSHSeq f' g')
         end.
 
-    Instance translateCTypeConst_proper :
+    Global Instance translateCTypeConst_proper :
       Proper ((=) ==> (=)) translateCTypeConst.
     Proof.
       intros c1 c2 C.
@@ -405,7 +355,7 @@ Module MDHCOLTypeTranslator
     Qed.
 
     (* TODO: ideally this would be moved to MemSetoid *)
-    Instance NM_err_sequence_proper
+    Global Instance NM_err_sequence_proper
              `{EA : Equiv A} `{EQA : Equivalence A EA}
              (OP : Proper ((@err_equiv _ EA) ==> (=)) is_OK_bool) :
       Proper ((=) ==> (=)) (@NM_err_sequence A).
@@ -491,24 +441,7 @@ Module MDHCOLTypeTranslator
         assumption.
     Qed.
 
-    Instance translate_runtime_mem_block_proper :
-      Proper ((=) ==> (=)) translate_runtime_mem_block.
-    Proof.
-      intros mb1 mb2 MB.
-      unfold translate_runtime_mem_block.
-      eapply NM_err_sequence_proper;
-        [intros x1 x2 X; destruct x1, x2; now invc X |].
-      intros k.
-      specialize (MB k).
-      rewrite !NP.F.map_o.
-      unfold option_map.
-      repeat break_match; try some_none.
-      f_equiv.
-      apply translateCTypeValue_proper.
-      now some_inv.
-    Qed.
-
-    Instance translate_mem_block_proper :
+    Global Instance translate_mem_block_proper :
       Proper ((=) ==> (=)) translate_mem_block.
     Proof.
       intros mb1 mb2 MB.
@@ -524,23 +457,7 @@ Module MDHCOLTypeTranslator
       now some_inv.
     Qed.
 
-    Instance translate_runtime_memory_proper :
-      Proper ((=) ==> (=)) translate_runtime_memory.
-    Proof.
-      intros m1 m2 M.
-      unfold translate_runtime_memory.
-      eapply NM_err_sequence_proper;
-        [intros x1 x2 X; destruct x1, x2; now invc X |].
-      intros k.
-      specialize (M k).
-      rewrite !NP.F.map_o.
-      unfold option_map.
-      repeat break_match; try some_none.
-      do 2 f_equiv.
-      now some_inv.
-    Qed.
-
-    Instance translateNTypeConst_proper :
+    Global Instance translateNTypeConst_proper :
       Proper ((=) ==> (=)) translateNTypeConst.
     Proof.
       intros c1 c2 C.
@@ -549,7 +466,7 @@ Module MDHCOLTypeTranslator
       now apply NT.to_nat_proper.
     Qed.
 
-    Instance translateNExpr_proper :
+    Global Instance translateNExpr_proper :
       Proper ((=) ==> (=)) translateNExpr.
     Proof.
       intros n1 n2 N.
@@ -571,7 +488,7 @@ Module MDHCOLTypeTranslator
           now repeat constructor.
     Qed.
 
-    Instance translatePExpr_proper :
+    Global Instance translatePExpr_proper :
       Proper ((=) ==> (=)) translatePExpr.
     Proof.
       intros p1 p2 P.
@@ -581,7 +498,7 @@ Module MDHCOLTypeTranslator
       reflexivity.
     Qed.
 
-    Instance translateMExpr_proper :
+    Global Instance translateMExpr_proper :
       Proper ((=) ==> (=)) translateMExpr.
     Proof.
       intros m1 m2 M.
@@ -600,7 +517,7 @@ Module MDHCOLTypeTranslator
           now repeat constructor.
     Qed.
 
-    Instance translateAExpr_proper :
+    Global Instance translateAExpr_proper :
       Proper ((=) ==> (=)) translateAExpr.
     Proof.
       intros a1 a2 A.
@@ -628,7 +545,7 @@ Module MDHCOLTypeTranslator
           now repeat constructor.
     Qed.
 
-    Instance translate_proper :
+    Global Instance translate_proper :
       Proper ((=) ==> (=)) translate.
     Proof.
       intros op1 op2 OP.
@@ -695,47 +612,6 @@ Module MDHCOLTypeTranslator
           now repeat constructor.
       -
         cbn.
-        repeat break_match;
-          try inl_inr; repeat inl_inr_inv;
-          now repeat constructor.
-    Qed.
-
-    Instance translateDSHVal_proper :
-      Proper ((=) ==> (=)) translateDSHVal.
-    Proof.
-      intros v1 v2 V.
-      destruct V; cbn.
-      -
-        apply translateNTypeValue_proper in H.
-        repeat break_match;
-          try inl_inr; repeat inl_inr_inv;
-          now repeat constructor.
-      -
-        apply translateCTypeValue_proper in H.
-        repeat break_match;
-          try inl_inr; repeat inl_inr_inv;
-          now repeat constructor.
-      -
-        destruct H.
-        invc H0.
-        apply translateNTypeValue_proper in H.
-        repeat break_match;
-          try inl_inr; repeat inl_inr_inv;
-          now repeat constructor.
-    Qed.
-
-    Instance translateEvalContext_proper :
-      Proper ((=) ==> (=)) translateEvalContext.
-    Proof.
-      intros σ1 σ2 Σ.
-      induction Σ.
-      -
-        reflexivity.
-      -
-        cbn.
-        repeat break_let; subst_max.
-        invc H; cbn in *.
-        apply translateDSHVal_proper in H0.
         repeat break_match;
           try inl_inr; repeat inl_inr_inv;
           now repeat constructor.
@@ -905,7 +781,7 @@ Module MDHCOLTypeTranslator
       : Prop :=
       Forall2 evalNExpr_closure_equiv ncs ncs'.
 
-    Instance heq_DSHVal_proper:
+    Global Instance heq_DSHVal_proper:
       Proper ((=) ==> (=) ==> iff) heq_DSHVal.
     Proof.
       intros a a' Ea b b' Eb; split; intros H.
@@ -923,7 +799,7 @@ Module MDHCOLTypeTranslator
         + eapply heq_NType_proper; eauto; crush.
     Qed.
 
-    Instance heq_mem_block_proper:
+    Global Instance heq_mem_block_proper:
       Proper ((=) ==> (=) ==> iff) heq_mem_block.
     Proof.
       intros a a' Ea b b' Eb; split; intros H.
@@ -971,7 +847,7 @@ Module MDHCOLTypeTranslator
           eapply heq_CType_proper; try symmetry; eauto.
     Qed.
 
-    Instance heq_memory_proper:
+    Global Instance heq_memory_proper:
       Proper ((=) ==> (=) ==> iff) heq_memory.
     Proof.
       intros a a' Ea b b' Eb; split; intros H.
@@ -1021,7 +897,7 @@ Module MDHCOLTypeTranslator
           apply H2.
     Qed.
 
-    Instance heq_NExpr_proper :
+    Global Instance heq_NExpr_proper :
       Proper ((=) ==> (=) ==> (iff)) heq_NExpr.
     Proof.
       intros n1 n2 N n1' n2' N'.
@@ -1070,7 +946,7 @@ Module MDHCOLTypeTranslator
           tauto.
     Qed.
 
-    Instance evalNExpr_closure_equiv_proper :
+    Global Instance evalNExpr_closure_equiv_proper :
       Proper ((=) ==> (=) ==> (iff)) evalNExpr_closure_equiv.
     Proof.
       intros (σn1, n1) (σn2, n2) NC (σn1', n1') (σn2', n2') NC'.
@@ -1131,7 +1007,7 @@ Module MDHCOLTypeTranslator
           now constructor.
     Qed.
 
-    Instance evalNExpr_closure_trace_equiv_proper :
+    Global Instance evalNExpr_closure_trace_equiv_proper :
       Proper ((=) ==> (=) ==> (iff)) evalNExpr_closure_trace_equiv.
     Proof.
       intros σnc1 σnc2 ΣNC σn1 σn2 ΣN.
@@ -1362,190 +1238,7 @@ Module MDHCOLTypeTranslator
 
   Section TranslationOp_Correctness.
 
-    Context `{NTO : NTranslationOp} `{CTO : CTranslationOp}.
-
-    Fact heq_CType_zero_one_wd:
-      heq_CType CT.CTypeZero CT'.CTypeZero /\
-      heq_CType CT.CTypeOne CT'.CTypeOne.
-    Proof.
-      split;
-        apply translateCTypeValue_heq_CType;
-        apply translateCTypeConst_translateCTypeValue_compat;
-        cbv.
-      -
-        break_if.
-        + reflexivity.
-        + break_if; clear -n; contradict n; reflexivity.
-      -
-        break_if.
-        +
-          clear -e.
-          symmetry in e.
-          contradict e.
-          apply CT.CTypeZeroOneApart.
-        +
-          break_if.
-          * reflexivity.
-          * clear -n0; contradict n0; reflexivity.
-    Qed.
-
-    Lemma translateEvalContext_heq_evalContext_eq
-          (σ: LE.evalContext) (σ': LE'.evalContext)
-      :
-        translateEvalContext σ ≡ inr σ' ->
-        heq_evalContext σ σ'.
-    Proof.
-      revert σ σ'.
-      unfold heq_evalContext, heq_evalContextElem.
-      induction σ, σ'; intros.
-      -
-        auto.
-      -
-        inv H.
-      -
-        cbn in H.
-        break_let.
-        repeat break_match; inv H.
-      -
-        constructor.
-        +
-          cbn in *.
-          break_let.
-          break_let.
-          subst.
-          repeat break_match; inv H.
-          split.
-          * auto.
-          * inl_inr_inv.
-            clear IHσ.
-            induction d; cbn in Heqs.
-            --
-              break_match.
-              inl_inr.
-              inl_inr_inv.
-              constructor.
-              apply translateNTypeValue_heq_NType.
-              rewrite Heqs1.
-              reflexivity.
-            --
-              break_match.
-              inl_inr.
-              inl_inr_inv.
-              constructor.
-              apply translateCTypeValue_heq_CType.
-              rewrite Heqs1.
-              reflexivity.
-            --
-              break_match.
-              inl_inr.
-              inl_inr_inv.
-              constructor.
-              reflexivity.
-              apply translateNTypeValue_heq_NType.
-              rewrite Heqs1.
-              reflexivity.
-        +
-          apply IHσ.
-          clear IHσ.
-          cbn in H.
-          break_let.
-          repeat break_match_hyp; inv H.
-          reflexivity.
-    Qed.
-
-    Lemma translateEvalContext_heq_evalContext
-          (σ: LE.evalContext) (σ': LE'.evalContext)
-      :
-        translateEvalContext σ = inr σ' ->
-        heq_evalContext σ σ'.
-    Proof.
-      revert σ σ'.
-      unfold heq_evalContext, heq_evalContextElem.
-      induction σ, σ'; intros.
-      -
-        auto.
-      -
-        cbn in H.
-        inl_inr_inv.
-        contradict H.
-        apply cons_nequiv_nil.
-      -
-        cbn in H.
-        break_let.
-        repeat break_match; inv H.
-        inl_inr_inv.
-        symmetry in H.
-        contradict H.
-        apply cons_nequiv_nil.
-      -
-        constructor.
-        +
-          cbn in *.
-          break_let.
-          break_let.
-          subst.
-          repeat break_match; inv H.
-          split.
-          *
-            inv H2.
-            apply H4.
-          * inl_inr_inv.
-            clear IHσ.
-            induction d; cbn in Heqs.
-            --
-              break_match.
-              inl_inr.
-              inl_inr_inv.
-              inv H.
-              unfold products.prod_equiv in H5.
-              cbn in H5.
-              destruct H5 as [TD BB0].
-              destruct d0; invc TD.
-              constructor.
-              apply translateNTypeValue_heq_NType.
-              rewrite Heqs1.
-              now constructor.
-            --
-              break_match.
-              inl_inr.
-              inl_inr_inv.
-              subst.
-              clear H2.
-              apply cons_equiv_inv in H.
-              destruct H as [H1 H2].
-              apply tuple_equiv_inv in H1.
-              destruct H1 as [H1 H3].
-              destruct d0; invc H1.
-              constructor.
-              apply translateCTypeValue_heq_CType.
-              rewrite Heqs1.
-              now constructor.
-            --
-              break_match.
-              inl_inr.
-              inl_inr_inv.
-
-
-              clear H2.
-              apply cons_equiv_inv in H.
-              destruct H as [H2 H3].
-              apply tuple_equiv_inv in H2.
-              destruct H2 as [H2 H4].
-              destruct d0; invc H1; invc H2.
-              constructor.
-              tauto.
-              apply translateNTypeValue_heq_NType.
-              rewrite Heqs1.
-              now constructor.
-        +
-          apply IHσ.
-          clear IHσ.
-          cbn in H.
-          break_let.
-          repeat break_match_hyp; inv H.
-          apply cons_equiv_inv in H2.
-          crush.
-    Qed.
+    Context `{NHE : NTranslation_heq} `{CHE : CTranslation_heq}.
 
     Lemma translate_mem_block_heq_mem_block
           (m:L.mem_block) (m':L'.mem_block):
@@ -1586,10 +1279,8 @@ Module MDHCOLTypeTranslator
           repeat some_inv.
           subst.
 
-          apply CTO.
-          apply translateCTypeConst_translateCTypeValue_compat.
-          symmetry in H.
-          assumption.
+          apply CHE.
+          now rewrite H.
         +
           exfalso.
           rewrite NP.F.map_o in RE.
@@ -1710,181 +1401,11 @@ Module MDHCOLTypeTranslator
           break_match; try some_none.
     Qed.
 
-    (* TODO: rename *)
-    Lemma translate_runtime_mem_block_same_indices
-          (mb : L.mem_block)
-          (mb' : L'.mem_block)
-      :
-        translate_runtime_mem_block mb = inr mb' ->
-        heq_mem_block mb mb'.
-    Proof.
-      intros M.
-      apply NM_err_sequence_inr_fun_spec in M.
-
-      intros k.
-      specialize (M k).
-      unfold LE.mem_lookup, LE'.mem_lookup.
-      rewrite !NP.F.map_o in M.
-      unfold option_map in M.
-      repeat break_match; invc M;
-        constructor.
-      apply CTO.
-      now symmetry.
-    Qed.
-
-    Lemma heq_mem_block_translate_runtime_mem_block
-          `{CTOS : CTranslationOp_strict}
-          (mb : L.mem_block)
-          (mb' : L'.mem_block)
-      :
-        heq_mem_block mb mb' ->
-        translate_runtime_mem_block mb = inr mb'.
-    Proof.
-      intros E.
-      apply NM_err_sequence_inr_fun_spec.
-
-      intros k.
-      specialize (E k).
-      unfold LE.mem_lookup, LE'.mem_lookup in E.
-      rewrite !NP.F.map_o.
-      unfold option_map.
-      repeat break_match; invc E;
-        constructor.
-      apply heq_CType_translateCTypeValue in H1.
-      rewrite H1.
-      reflexivity.
-    Qed.
-
-    (* TODO: rename *)
-    Lemma translate_runtime_memory_same_indices
-          (m : L.memory)
-          (m' : L'.memory)
-      :
-        translate_runtime_memory m = inr m' ->
-        heq_memory m m'.
-    Proof.
-      intros M.
-      unfold translate_runtime_memory in M.
-      apply NM_err_sequence_inr_fun_spec in M.
-
-      intros k.
-      specialize (M k).
-      unfold LE.memory_lookup, LE'.memory_lookup.
-      rewrite !NP.F.map_o in M.
-      unfold option_map in M.
-      repeat break_match; invc M;
-        constructor.
-      apply translate_runtime_mem_block_same_indices.
-      now symmetry.
-    Qed.
-
-    Lemma heq_memory_translate_runtime_memory
-          `{CTOS : CTranslationOp_strict}
-          (m : L.memory)
-          (m' : L'.memory)
-      :
-        heq_memory m m' ->
-        translate_runtime_memory m = inr m'.
-    Proof.
-      intros E.
-      unfold translate_runtime_memory.
-      apply NM_err_sequence_inr_fun_spec.
-
-      intros k.
-      specialize (E k).
-      unfold LE.memory_lookup, LE'.memory_lookup in E.
-      rewrite !NP.F.map_o.
-      unfold option_map.
-      repeat break_match; invc E;
-        constructor.
-      apply heq_mem_block_translate_runtime_mem_block in H1.
-      rewrite H1.
-      reflexivity.
-    Qed.
-
-    Lemma translateDSHVal_heq
-          (d : L.DSHVal)
-          (d' : L'.DSHVal)
-      :
-        translateDSHVal d = inr d' ->
-        heq_DSHVal d d'.
-    Proof.
-      (* NOTE: this lemma must not rely on TranslationProps *)
-      intros D.
-      destruct d;
-        cbn in D.
-      all: break_match; invc D.
-      all: destruct d'; invc H1.
-      -
-        constructor.
-        unfold equiv in H2.
-        pose proof heq_NType_proper.
-        specialize (H n n).
-        autospecialize H; [reflexivity |].
-        specialize (H t0 n0 H2).
-        apply H.
-        clear - Heqs NTO.
-        apply translateNTypeValue_heq_NType.
-        now rewrite Heqs.
-      -
-        constructor.
-        apply CTO.
-        rewrite Heqs.
-        now f_equiv.
-      -
-        destruct H0.
-        constructor.
-        assumption.
-        apply translateNTypeValue_heq_NType.
-        rewrite Heqs; now f_equiv.
-    Qed.
-
-    (* TODO: rename *)
-    Lemma translateEvalContext_same_indices
-          (σ : LE.evalContext)
-          (σ' : evalContext)
-      :
-        translateEvalContext σ = inr σ' ->
-        heq_evalContext σ σ'.
-    Proof.
-      revert σ'.
-      induction σ;
-        intros σ' Σ'.
-      -
-        invc Σ'.
-        destruct σ'; [| inv H1].
-        constructor.
-      -
-        cbn in *.
-        repeat break_match;
-          try inl_inr; repeat inl_inr_inv;
-            subst_max.
-        destruct σ'; [inv Σ' |].
-        apply cons_equiv_inv in Σ'.
-        destruct Σ' as [P E].
-        constructor.
-        +
-          destruct p; invc P.
-          constructor.
-          apply H0.
-          clear - H Heqs NTO.
-          cbn in H.
-
-          apply translateDSHVal_heq.
-          rewrite Heqs.
-          f_equiv.
-          assumption.
-        +
-          apply IHσ.
-          f_equiv.
-          assumption.
-    Qed.
-
   End TranslationOp_Correctness.
 
   Section Syntactic_Translation_Correctness.
 
-    Context `{NTO : NTranslationOp} `{CTO : CTranslationOp}.
+    Context `{NHE : NTranslation_heq} `{CHE : CTranslation_heq}.
 
     Lemma translateNExpr_syntax
           (n : L.NExpr)
@@ -1914,9 +1435,8 @@ Module MDHCOLTypeTranslator
         autospecialize H; [reflexivity |].
         specialize (H t1 t2 H1).
         apply H.
-        clear - Heqs NTO.
-        apply NTO.
-        apply NTO.
+        clear - Heqs NHE.
+        apply NHE.
         now rewrite Heqs.
     Qed.
 
@@ -1954,7 +1474,7 @@ Module MDHCOLTypeTranslator
         destruct m'; invc M.
         constructor.
         +
-          apply NTO, NTO.
+          apply NHE.
           rewrite Heqs0.
           now f_equiv.
         +
@@ -1987,8 +1507,7 @@ Module MDHCOLTypeTranslator
         now constructor.
       -
         constructor.
-        apply translateCTypeValue_heq_CType,
-          translateCTypeConst_translateCTypeValue_compat.
+        apply translateCTypeConst_heq_CType.
         rewrite Heqs.
         now f_equiv.
       -
@@ -2100,8 +1619,7 @@ Module MDHCOLTypeTranslator
           rewrite Heqs.
           now f_equiv.
         +
-                  apply translateCTypeValue_heq_CType,
-          translateCTypeConst_translateCTypeValue_compat.
+          apply translateCTypeConst_heq_CType.
           rewrite Heqs0.
           now f_equiv.
       -
@@ -2126,8 +1644,7 @@ Module MDHCOLTypeTranslator
       -
         constructor.
         now apply translatePExpr_syntax.
-        apply translateCTypeValue_heq_CType,
-          translateCTypeConst_translateCTypeValue_compat.
+        apply translateCTypeConst_heq_CType.
         rewrite Heqs.
         now f_equiv.
       -
@@ -4332,7 +3849,6 @@ Module MDHCOLTypeTranslator
     Corollary translation_semantics_correct_strict
           (op : LE.DSHOperator)
           (op' : LE'.DSHOperator)
-          (fuel fuel' : nat)
           (σ : LE.evalContext)
           (σ' : LE'.evalContext)
           (imem : L.memory)
@@ -4351,5 +3867,13 @@ Module MDHCOLTypeTranslator
     Qed.
     
   End Semantic_Translation_Correctness_strict.
+
+  End Environmental.
+
+  Arguments heq_CType' {Env}.
+  Arguments heq_evalContext {Env}.
+  Arguments heq_mem_block {Env}.
+  Arguments heq_memory {Env}.
+  Arguments heq_DSHOperator {Env}.
 
 End MDHCOLTypeTranslator.

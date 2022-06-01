@@ -18,7 +18,7 @@ depends: [
   "ocamlfind"
   "ocamlbuild"
   "camlp5"
-  "coq-itree"
+  "coq-itree" {< "5.0.0"}
   "coq-mathcomp-ssreflect"
   "coq-simple-io"
   "coq-color"
@@ -31,8 +31,10 @@ depends: [
   "coq-libhyps"
   "core"
   "core_kernel"
-  "dune"
+  "dune" {< "3.0" }
   "qcheck"
+  "gappa"
+  "coq-gappa"
 
   "coq" {= "8.13.2"}
   "coq-ext-lib" {= "0.11.5"}
