@@ -241,8 +241,7 @@ Proof.
  (* We need to settle on the relation that holds at the end of the loops.
      It is not quite [state_invariant]: on the helix side, the memory has not been touched,
      we performed a pure computation.
-     On the Vellvm side, we are done, everything is written in memory.
-   *)
+     On the Vellvm side, we are done, everything is written in memory. *)
   eapply eutt_clo_bind with (UU := succ_cfg (genIR_post σ s1 s2 nextblock ρ)).
   {
     match type of Heqs1 with
@@ -308,7 +307,7 @@ Proof.
     set (I := (fun (k : nat) (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
                 match mH with
                 | None => False
-                | Some (mH,bkH) => 
+                | Some (mH,bkH) =>
                 let '(mV, (ρ, g')) := stV in
                 (* 1. Relaxed state invariant *)
                 state_invariant (protect σ n) s0 mH stV /\
@@ -330,8 +329,7 @@ Proof.
                 match o with
                 | None => False
                 | Some (mH,bkH) =>
-                  bkH ≡ mem_union (mem_const_block (MInt64asNT.to_nat i) value) bkh_xoff /\
-                    state_invariant σ s2 mH stV /\
+                    state_invariant σ s2 (memory_set mH n0 bkH) stV /\
                       let '(mV, (p, g')) := stV in
                       mH ≡ memH /\ g ≡ g'
                 end).
@@ -391,7 +389,7 @@ Proof.
         eapply dtyp_fits_array_elem; [ | eauto | ].
         { erewrite <- from_N_intval; eauto. }
         { rewrite Int64.unsigned_repr; try lia.
-          split; try lia. admit. (* Int bounds *) } }
+          split; try lia. admit. (* TODO[Ilia] : Int bounds *) } }
 
       vred.
       rewrite denote_instr_store; eauto; cycle 1.
@@ -544,8 +542,9 @@ Proof.
                 rewrite mem_lookup_mem_add_neq in MLU_i0; try lia; eauto.
               + erewrite <- write_array_lemma. eauto. solve_allocated. eauto.
               + constructor.
-              + repeat rewrite Int64.unsigned_repr; try lia;
-                admit. (*Int bounds*)
+              + repeat rewrite Int64.unsigned_repr; try lia.
+                split; try lia.
+                admit. (* TODO[Ilia]: Int bounds*)
           }
           } }
 
@@ -607,14 +606,81 @@ Proof.
       subst Q I.
       red; intros.
       break_match_goal; auto.
-      destruct p. inv Heqo. destruct b, p.
+      destruct p. destruct b, p.
       destruct H as (?&?&?&?&?). split; eauto.
       destruct H0 as (?&?&?).
+      destruct H.
 
-      clear -NOFAIL.
+      split; eauto; cycle 1.
+      eapply WF_IRState_protect, WF_IRState_Γ; eauto.
+      eapply no_id_aliasing_protect, no_id_aliasing_gamma; eauto.
+      eapply no_dshptr_aliasing_protect; eauto.
+      eapply no_llvm_ptr_aliasing_protect, no_llvm_ptr_aliasing_gamma; eauto.
 
-      unfold no_failure in NOFAIL.
-      admit. admit.
+      (* id's are still well-allocated. *)
+      {
+        red in st_id_allocated. red. intros.
+        destruct (@dec_eq_nat n1 n). subst.
+        rewrite Heqo in H. inv H.
+        apply mem_block_exists_memory_set_eq. reflexivity.
+        apply mem_block_exists_memory_set. eapply st_id_allocated.
+        eapply nth_error_protect_ineq in H. 2 : eauto.
+        eauto.
+      }
+
+      eapply gamma_bound_mono; eauto.
+
+      cbn in *. intros.
+      rename H0 into FITS, H4 into INLG, H5 into MLU.
+      (* Two possible cases : either the index isn't with the pointer location,
+        which is where we can use the normal memory invariant [mem_is_inv].
+        Ohterwise, we can show that the [partial memory write] is complete
+        and use [MLU] to restate the memory lookup. *)
+      destruct (Nat.eq_dec n1 n); cycle 1.
+      {
+        (* Case 1 : The address in question was not written to : use normal memory
+          invariant. *)
+        subst. eapply nth_error_protect_ineq in H7; eauto.
+        specialize (mem_is_inv _ _ _ _ _ Heqo LUn). destruct v0; eauto.
+        destruct mem_is_inv as (ptrll & τ' & TEQ & FITS' & INLG' & MLUP).
+        inv TEQ. eexists. eexists.
+        split; eauto. split; eauto. split; eauto.
+        intros.
+        specialize (MLUP H0).
+        destruct MLUP as (bkh & MLU_ & MLU__).
+        exists bkh.
+        assert (a0 ≢ y_h_ptr). {
+          intro. apply n3.
+          red in st_no_dshptr_aliasing.
+          pose proof Heqo0.
+          eapply nth_error_protect_eq' in H4.
+          eapply st_no_dshptr_aliasing; eauto. subst. eauto.
+        }
+        split.
+        pose proof memory_lookup_memory_set_neq.
+        cbn in H4. erewrite H4. eauto.
+        eauto.
+        intros.
+        eauto.
+      }
+      {
+        (* Case 2 : The address in question is definitely written to, and the
+        complete partial memory invariant ensures that we have the right cells. *)
+        subst.
+        rewrite <- GENIR_Γ in H1.
+        rewrite LUn0 in H1.
+        inv H1. rewrite Heqo0 in H. inv H.
+
+        clear mem_is_inv.
+        eexists. eexists. split; eauto. split; eauto.
+        split; eauto. intros. eexists.
+        split.
+        pose proof memory_lookup_memory_set_eq. cbn in H0.
+        eapply H0.
+        intros. eapply MLU. 2 : eauto.
+
+        revert BOUNDS; intro.
+        lia.
     }
 
     assert (BinNat.N.to_nat sz ≡ MInt64asNT.to_nat i). admit.
