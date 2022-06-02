@@ -1187,7 +1187,6 @@ Proof.
     assert (INV' := INV).
 
     subst P Q ;
-
     (* [HELIX] Clean-up (match breaks using no failure) *)
     assert (EQk: MInt64asNT.from_nat k ≡ inr (Int64.repr (Z.of_nat k))).
     {

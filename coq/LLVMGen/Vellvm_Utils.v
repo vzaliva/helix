@@ -159,7 +159,7 @@ Ltac solve_allocated :=
         | eapply dtyp_fits_allocated; eauto
         | eapply handle_gep_addr_allocated; cycle 1; [solve [eauto] | solve_allocated]
         | eapply write_preserves_allocated; cycle 1; [solve [eauto] | solve_allocated]
-        | eapply id_allocated_memory_set; eauto
+        (* | eapply id_allocated_memory_set; eauto *)
         ].
 
 Ltac solve_read :=
