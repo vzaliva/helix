@@ -389,8 +389,17 @@ Proof.
         eapply dtyp_fits_array_elem; [ | eauto | ].
         { erewrite <- from_N_intval; eauto. }
         { rewrite Int64.unsigned_repr; try lia.
-          split; try lia. admit. (* TODO[Ilia] : Int bounds *) } }
-
+          split; [lia |].
+          clear - BOUNDk EQ.
+          apply f_equal with (f:=Z.to_nat) in EQ.
+          rewrite Znat.Nat2Z.id in EQ.
+          rewrite EQ in BOUNDk; clear - BOUNDk.
+          pose proof Int64.intrange size as [LO HI].
+          apply Znat.Z2Nat.inj_lt in HI; try lia.
+          unfold Int64.max_unsigned.
+          lia.
+        } }
+        
       vred.
       rewrite denote_instr_store; eauto; cycle 1.
       { rewrite denote_exp_double; reflexivity. }
@@ -543,8 +552,21 @@ Proof.
               + erewrite <- write_array_lemma. eauto. solve_allocated. eauto.
               + constructor.
               + repeat rewrite Int64.unsigned_repr; try lia.
-                split; try lia.
-                admit. (* TODO[Ilia]: Int bounds*)
+                *
+                  clear.
+                  unfold MInt64asNT.to_nat, Int64.max_unsigned.
+                  pose proof Int64.intrange i0 as [LO HI].
+                  rewrite Znat.Z2Nat.id; lia.
+                *
+                  split; [lia |].
+                  clear - BOUNDk EQ.
+                  apply f_equal with (f:=Z.to_nat) in EQ.
+                  rewrite Znat.Nat2Z.id in EQ.
+                  rewrite EQ in BOUNDk; clear - BOUNDk.
+                  pose proof Int64.intrange size as [LO HI].
+                  apply Znat.Z2Nat.inj_lt in HI; try lia.
+                  unfold Int64.max_unsigned.
+                  lia.
           }
           } }
 
