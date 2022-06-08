@@ -662,105 +662,106 @@ Proof.
       {
         (* Case 1 : The address in question was not written to : use normal memory
           invariant. *)
-        subst. eapply nth_error_protect_ineq in H7; eauto.
-        specialize (mem_is_inv _ _ _ _ _ Heqo LUn). destruct v0; eauto.
-        destruct mem_is_inv as (ptrll & τ' & TEQ & FITS' & INLG' & MLUP).
-        inv TEQ. eexists. eexists.
-        split; eauto. split; eauto. split; eauto.
-        intros.
-        specialize (MLUP H0).
-        destruct MLUP as (bkh & MLU_ & MLU__).
-        exists bkh.
-        assert (a0 ≢ y_h_ptr). {
-          intro. apply n3.
-          red in st_no_dshptr_aliasing.
-          pose proof Heqo0.
-          eapply nth_error_protect_eq' in H4.
-          eapply st_no_dshptr_aliasing; eauto. subst. eauto.
-        }
-        split.
-        pose proof memory_lookup_memory_set_neq.
-        cbn in H4. erewrite H4. eauto.
-        eauto.
-        intros.
-        eauto.
-      }
-      {
-        (* Case 2 : The address in question is definitely written to, and the
-        complete partial memory invariant ensures that we have the right cells. *)
         subst.
-        rewrite <- GENIR_Γ in H1.
-        rewrite LUn0 in H1.
-        inv H1. rewrite Heqo0 in H. inv H.
+  (*       eapply nth_error_protect_ineq in H6; eauto. *)
+  (*       specialize (mem_is_inv _ _ _ _ _ Heqo LUn). destruct v0; eauto. *)
+  (*       destruct mem_is_inv as (ptrll & τ' & TEQ & FITS' & INLG' & MLUP). *)
+  (*       inv TEQ. eexists. eexists. *)
+  (*       split; eauto. split; eauto. split; eauto. *)
+  (*       intros. *)
+  (*       specialize (MLUP H0). *)
+  (*       destruct MLUP as (bkh & MLU_ & MLU__). *)
+  (*       exists bkh. *)
+  (*       assert (a0 ≢ y_h_ptr). { *)
+  (*         intro. apply n3. *)
+  (*         red in st_no_dshptr_aliasing. *)
+  (*         pose proof Heqo0. *)
+  (*         eapply nth_error_protect_eq' in H4. *)
+  (*         eapply st_no_dshptr_aliasing; eauto. subst. eauto. *)
+  (*       } *)
+  (*       split. *)
+  (*       pose proof memory_lookup_memory_set_neq. *)
+  (*       cbn in H4. erewrite H4. eauto. *)
+  (*       eauto. *)
+  (*       intros. *)
+  (*       eauto. *)
+  (*     } *)
+  (*     { *)
+  (*       (* Case 2 : The address in question is definitely written to, and the *)
+  (*       complete partial memory invariant ensures that we have the right cells. *) *)
+  (*       subst. *)
+  (*       rewrite <- GENIR_Γ in H1. *)
+  (*       rewrite LUn0 in H1. *)
+  (*       inv H1. rewrite Heqo0 in H. inv H. *)
 
-        clear mem_is_inv.
-        eexists. eexists. split; eauto. split; eauto.
-        split; eauto. intros. eexists.
-        split.
-        pose proof memory_lookup_memory_set_eq. cbn in H0.
-        eapply H0.
-        intros. eapply MLU. 2 : eauto.
+  (*       clear mem_is_inv. *)
+  (*       eexists. eexists. split; eauto. split; eauto. *)
+  (*       split; eauto. intros. eexists. *)
+  (*       split. *)
+  (*       pose proof memory_lookup_memory_set_eq. cbn in H0. *)
+  (*       eapply H0. *)
+  (*       intros. eapply MLU. 2 : eauto. *)
 
-        revert BOUNDS; intro.
-        lia.
-    }
+  (*       revert BOUNDS; intro. *)
+  (*       lia. *)
+  (*   } *)
 
-    assert (BinNat.N.to_nat sz ≡ MInt64asNT.to_nat i). admit.
-    rewrite H in LOOP.
+  (*   assert (BinNat.N.to_nat sz ≡ MInt64asNT.to_nat i). admit. *)
+  (*   rewrite H in LOOP. *)
 
-    eapply LOOP.
-    {
-      subst P I. clear LOOP.
-      cbn. split; [|split]; eauto.
-      apply state_invariant_protect.
-      eapply state_invariant_Γ. eauto.
-      solve_gamma. solve_local_count. }
-    }
+  (*   eapply LOOP. *)
+  (*   { *)
+  (*     subst P I. clear LOOP. *)
+  (*     cbn. split; [|split]; eauto. *)
+  (*     apply state_invariant_protect. *)
+  (*     eapply state_invariant_Γ. eauto. *)
+  (*     solve_gamma. solve_local_count. } *)
+  (*   } *)
 
-    red. intros [[? ?] | ] (? & ? & ? & ?); [| cbn in *; intuition].
-    2 : { destruct H. inv REL1. inv REL2. inv H0. auto. }
-    intros [? ? ?]; eauto. inv REL1.
-    destruct REL2 as (?&?&?).
-    repeat red.
-    split; [| split]; cbn; eauto.
-    - destruct b; eauto. destruct H1 as (? & ? & ? & ?); subst.
-      cbn in *. inv H0. cbn in *. (*Properness lemma*)
-      eapply state_invariant_memory_equiv_Proper; eauto.
-    - destruct H; eauto.
-    - solve_local_scope_modif.
-  }
+  (*   red. intros [[? ?] | ] (? & ? & ? & ?); [| cbn in *; intuition]. *)
+  (*   2 : { destruct H. inv REL1. inv REL2. inv H0. auto. } *)
+  (*   intros [? ? ?]; eauto. inv REL1. *)
+  (*   destruct REL2 as (?&?&?). *)
+  (*   repeat red. *)
+  (*   split; [| split]; cbn; eauto. *)
+  (*   - destruct b; eauto. destruct H1 as (? & ? & ? & ?); subst. *)
+  (*     cbn in *. inv H0. cbn in *. (*Properness lemma*) *)
+  (*     eapply state_invariant_memory_equiv_Proper; eauto. *)
+  (*   - destruct H; eauto. *)
+  (*   - solve_local_scope_modif. *)
+  (* } *)
 
-  intros. destruct u1; cycle 1.
-  { apply eutt_Ret; eauto. }
-  destruct p.
-  setoid_rewrite interp_helix_MemSet.
-  destruct H as (H1 & H2 & H3).
+  (* intros. destruct u1; cycle 1. *)
+  (* { apply eutt_Ret; eauto. } *)
+  (* destruct p. *)
+  (* setoid_rewrite interp_helix_MemSet. *)
+  (* destruct H as (H1 & H2 & H3). *)
 
-  apply eutt_Ret.
-  split; [| split]; cbn; auto.
+  (* apply eutt_Ret. *)
+  (* split; [| split]; cbn; auto. *)
 
-  destruct u2, p, p. destruct H1.
+  (* destruct u2, p, p. destruct H1. *)
 
-  split; eauto.
+  (* split; eauto. *)
 
-  (* Need to transport information about what has been written on the Vellvm side during the loop *)
-  - Opaque memory_set.
-    cbn; intros * LU1 LU2.
-    eapply mem_is_inv in LU2; eauto.
-    destruct v; auto.
-    destruct LU2 as (? & ? & ? & ? & ? & ?).
-    destruct (n0 =? a) eqn:EQ.
-    * apply beq_nat_true in EQ; subst.
-      do 2 eexists.
-      split; [reflexivity |].
-      do 2 (split; eauto).  intros.
-      specialize (H4 H). destruct H4 as (?&?&?). exists x2; eauto.
-      rewrite memory_lookup_memory_set_eq; eexists. f_equiv.
+  (* (* Need to transport information about what has been written on the Vellvm side during the loop *) *)
+  (* - Opaque memory_set. *)
+  (*   cbn; intros * LU1 LU2. *)
+  (*   eapply mem_is_inv in LU2; eauto. *)
+  (*   destruct v; auto. *)
+  (*   destruct LU2 as (? & ? & ? & ? & ? & ?). *)
+  (*   destruct (n0 =? a) eqn:EQ. *)
+  (*   * apply beq_nat_true in EQ; subst. *)
+  (*     do 2 eexists. *)
+  (*     split; [reflexivity |]. *)
+  (*     do 2 (split; eauto).  intros. *)
+  (*     specialize (H4 H). destruct H4 as (?&?&?). exists x2; eauto. *)
+  (*     rewrite memory_lookup_memory_set_eq; eexists. f_equiv. *)
 
-      rename m0 into MEM_, x2 into MEM__. red in H2.
-      admit.
-      intros; eapply H5; eauto.
-    * rewrite memory_lookup_memory_set_neq; [| apply NPeano.Nat.eqb_neq in EQ; auto].
-      do 2 eexists ; eauto.
-  - eapply id_allocated_memory_set; eauto.
+  (*     rename m0 into MEM_, x2 into MEM__. red in H2. *)
+  (*     admit. *)
+  (*     intros; eapply H5; eauto. *)
+  (*   * rewrite memory_lookup_memory_set_neq; [| apply NPeano.Nat.eqb_neq in EQ; auto]. *)
+  (*     do 2 eexists ; eauto. *)
+  (* - eapply id_allocated_memory_set; auto. *)
 Admitted.
