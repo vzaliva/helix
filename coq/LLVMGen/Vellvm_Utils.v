@@ -153,21 +153,3 @@ Require Export ITree.Events.FailFacts.
 
 From Coq Require Import Lia.
 
-(* TODO: tactics? *)
-Ltac solve_allocated :=
-  solve [ eauto
-        | eapply dtyp_fits_allocated; eauto
-        | eapply handle_gep_addr_allocated; cycle 1; [solve [eauto] | solve_allocated]
-        | eapply write_preserves_allocated; cycle 1; [solve [eauto] | solve_allocated]
-        (* | eapply id_allocated_memory_set; eauto *)
-        ].
-
-Ltac solve_read :=
-  solve [ eauto
-        (* This is largely for cases where sizeof_dtyp t <> 0 -> read ... *)
-        | match goal with
-          | H: _ |- _ => apply H
-          end; cbn; lia
-        | (* read from an array *)
-        erewrite read_array; cycle 2; [solve [eauto] | | solve_allocated]; eauto
-        ].
