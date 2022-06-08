@@ -200,6 +200,15 @@ Module MDHCOLTypeTranslator
     Definition translate_memory (m:L.memory): err L'.memory :=
       NM_err_sequence (NM.map translate_mem_block m).
 
+    Definition translate_DSHType (t : L.DSHType) : err L'.DSHType :=
+      match t with
+      | L.DSHnat => ret L'.DSHnat
+      | L.DSHCType => ret L'.DSHCType
+      | L.DSHPtr i =>
+          i' <- translateNTypeConst i ;;
+          ret (L'.DSHPtr i')
+      end.
+
     Definition translateMExpr (m:L.MExpr) : err L'.MExpr :=
       match m with
       | L.MPtrDeref x => ret (MPtrDeref (translatePExpr x))
