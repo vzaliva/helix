@@ -2948,11 +2948,11 @@ Proof.
     destruct a_t; cbn in *;
       repeat break_match;
       invc IR; invc FSH; auto.
-    admit. (* IZ It seems like FloatUtil.b64_0 and 0.0 don't unify anymore here? *)
+    autounfold with unfold_FCT in *; congruence.
     apply constMemBlock_data in Heqp; subst.
     apply constArray_data in Heqp0; subst.
     reflexivity.
-Admitted.
+Qed.
 
 Lemma initXYplaceholders_data
       (i o : Int64.int)
@@ -6198,8 +6198,8 @@ Proof.
                   do 3 f_equal.
 
                   simpl_data.
-                  (* IZ : Another rotate-related subgoal *)
-                  enough (l1' ≡ hdata_pre) by admit.
+                  autounfold with unfold_FCT in *.
+                  enough (l1' ≡ hdata_pre) by congruence.
                   rewrite rotateN_add in IPRE.
                   eapply initFSHGlobals_initIRGlobals_rev_data.
                   eapply PRE.

@@ -80,6 +80,7 @@ Section AExpr.
     f_equiv.
   Qed.
 
+  (* IZ: this is most likely wrong after ZLess change (introduction of epsilon) *)
   (* TODO move this, possibly give it a better name. *)
   Lemma float_cmp :
     forall (a b : binary64),
@@ -108,7 +109,6 @@ Section AExpr.
       unfold not_nan64 in OA, OB.
       apply Bool.negb_true_iff in OA.
       apply Bool.negb_true_iff in OB.
-      (* IZ : weird stuff w.r.t to floats happening here too :( *)
       (*
       destruct a; try inv OA; destruct b; try inv OB; reflexivity.
     - exists DynamicValues.Int1.zero.
@@ -144,26 +144,19 @@ Section AExpr.
   Proof.
     intros.
     Transparent Floats.Float.cmp.
-    (*
-    (* IZ *)
-    unfold Float_minimum, MFloat64asCT.CTypeMin, Float64Min, Floats.Float.cmp.
+    unfold Float_minimum, MFloat64asCT.CTypeMin, Floats.Float.cmp.
     unfold Floats.Float.compare, Floats.cmp_of_comparison.
     destruct a,b; try break_if; repeat break_match ;try reflexivity; crush.
   Qed.
-  *)
-  Admitted.
 
   Lemma max_float_correct: forall (a b: binary64), Float_maxnum a b ≡ MFloat64asCT.CTypeMax a b.
   Proof.
-    (*
     intros.
     Transparent Floats.Float.cmp.
-    unfold Float_maxnum, MFloat64asCT.CTypeMax, Float64Max, Floats.Float.cmp.
+    unfold Float_maxnum, MFloat64asCT.CTypeMax, Floats.Float.cmp.
     unfold Floats.Float.compare, Floats.cmp_of_comparison.
     destruct a,b; try break_if; repeat break_match ;try reflexivity; crush.
   Qed.
-  *)
-  Admitted.
 
   Definition genAExpr_exp_correct σ s1 s2 (e: exp typ)
     : Rel_cfg_T binary64 unit :=
