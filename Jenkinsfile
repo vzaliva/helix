@@ -3,7 +3,7 @@
     def BUILD_IF_BRANCH = ['master','develop']
  */
 
-def BUILD_IF_BRANCH = ['master','bounds', 'no_floatOfR']
+def BUILD_IF_BRANCH = ['master','llvmgen']
 
 pipeline {
     agent { 
@@ -66,25 +66,24 @@ pipeline {
             }
         }
 
-        stage('Test HELIX') {
+        stage('Build HELIX') {
             steps {
                 script {
                     if (env.SKIP_CI != "true" && env.SKIP_BRANCH == "false") {
 			sh '''eval $(opam env)
-                              make test
+                              make -j ${NJOBS}
                            '''
                     }
                 }
             }
         }
 
-        stage('Build HELIX (end-to-end up to LLVM)') {
+        stage('Test HELIX') {
             steps {
                 script {
                     if (env.SKIP_CI != "true" && env.SKIP_BRANCH == "false") {
 			sh '''eval $(opam env)
-                              make Makefile.coq
-                              make -f Makefile.coq -j ${NJOBS} coq/DynWin/DynWinTopLevel.vo
+                              make test
                            '''
                     }
                 }
