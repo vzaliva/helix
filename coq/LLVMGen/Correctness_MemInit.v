@@ -128,6 +128,10 @@ Definition memory_invariant_partial_write' (configV : config_cfg) (index loopsiz
                   (mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v0
                     → get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0))).
 
+Instance state_invariant_memory_equiv_Proper σ s a :
+  Proper (equiv ==> flip impl) (fun m => state_invariant σ s m a).
+Admitted.
+
 (* TODO: Move to [Correctness_Invariants] *)
 Lemma state_invariant_cons :
   forall a x s' s σ mH mV l g,
@@ -190,7 +194,7 @@ Proof.
   unfold denotePExpr in *; cbn* in *.
 
   (* Renaming *)
-  rename i1 into tptyp, r into pt, b into init_block_id, b0 into loopcontblock,
+  rename i1 into size, r into pt, b into init_block_id, b0 into loopcontblock,
     r0 into loopvar, i7 into storeid.
 
   simp; try_abs.
@@ -237,8 +241,7 @@ Proof.
  (* We need to settle on the relation that holds at the end of the loops.
      It is not quite [state_invariant]: on the helix side, the memory has not been touched,
      we performed a pure computation.
-     On the Vellvm side, we are done, everything is written in memory.
-   *)
+     On the Vellvm side, we are done, everything is written in memory. *)
   eapply eutt_clo_bind with (UU := succ_cfg (genIR_post σ s1 s2 nextblock ρ)).
   {
     match type of Heqs1 with
@@ -265,19 +268,25 @@ Proof.
     forward LOOP; [clear LOOP |].
     { solve_lid_bound_between. }
 
+    assert (EQ: Z.of_nat (BinNat.N.to_nat sz) ≡ Int64.intval size). {
+      clear -EQsz.
+      rewrite Znat.N_nat_Z.
+      unfold MInt64asNT.from_N in EQsz.
+      apply from_Z_intval in EQsz; auto.
+    }
+
     forward LOOP; [clear LOOP |].
     { clear -INPUTS_BETWEEN NEXT.
       intros IN; rewrite inputs_convert_typ, add_comment_inputs in INPUTS_BETWEEN.
       rewrite Forall_forall in INPUTS_BETWEEN; apply INPUTS_BETWEEN in IN; clear INPUTS_BETWEEN.
       eapply not_bid_bound_between; eauto. }
-    specialize (LOOP (MInt64asNT.to_nat i)).
 
+    specialize (LOOP (BinNat.N.to_nat sz)).
     rename Heqs1 into WHILE.
-    assert (EQ: Int64.intval tptyp ≡ Z.of_nat (MInt64asNT.to_nat i)). { admit. (* int bounds *) }
 
    forward LOOP; [clear LOOP |].
-    { subst body_blocks prefix.
-      rewrite <- EQ.
+   { subst body_blocks prefix.
+     rewrite EQ.
       exact WHILE. }
 
     eapply eutt_Proper_mono; cycle 1.
@@ -290,14 +299,15 @@ Proof.
       end.
 
     forward LOOP; [clear LOOP |].
-    { admit. (* int bounds *) }
+    { rewrite EQ.
+      edestruct Int64.intrange; eauto. }
 
     rename i0 into y.
 
     set (I := (fun (k : nat) (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
                 match mH with
                 | None => False
-                | Some (mH,bkH) => 
+                | Some (mH,bkH) =>
                 let '(mV, (ρ, g')) := stV in
                 (* 1. Relaxed state invariant *)
                 state_invariant (protect σ n) s0 mH stV /\
@@ -319,8 +329,7 @@ Proof.
                 match o with
                 | None => False
                 | Some (mH,bkH) =>
-                  bkH ≡ mem_union (mem_const_block (MInt64asNT.to_nat i) value) bkh_xoff /\
-                    state_invariant σ s0 mH stV /\
+                    state_invariant σ s2 (memory_set mH n0 bkH) stV /\
                       let '(mV, (p, g')) := stV in
                       mH ≡ memH /\ g ≡ g'
                 end).
@@ -379,8 +388,18 @@ Proof.
 
         eapply dtyp_fits_array_elem; [ | eauto | ].
         { erewrite <- from_N_intval; eauto. }
-        admit. (* Int bounds *) }
-
+        { rewrite Int64.unsigned_repr; try lia.
+          split; [lia |].
+          clear - BOUNDk EQ.
+          apply f_equal with (f:=Z.to_nat) in EQ.
+          rewrite Znat.Nat2Z.id in EQ.
+          rewrite EQ in BOUNDk; clear - BOUNDk.
+          pose proof Int64.intrange size as [LO HI].
+          apply Znat.Z2Nat.inj_lt in HI; try lia.
+          unfold Int64.max_unsigned.
+          lia.
+        } }
+        
       vred.
       rewrite denote_instr_store; eauto; cycle 1.
       { rewrite denote_exp_double; reflexivity. }
@@ -532,13 +551,30 @@ Proof.
                 rewrite mem_lookup_mem_add_neq in MLU_i0; try lia; eauto.
               + erewrite <- write_array_lemma. eauto. solve_allocated. eauto.
               + constructor.
-              + admit. (*Int bounds*)
+              + repeat rewrite Int64.unsigned_repr; try lia.
+                *
+                  clear.
+                  unfold MInt64asNT.to_nat, Int64.max_unsigned.
+                  pose proof Int64.intrange i0 as [LO HI].
+                  rewrite Znat.Z2Nat.id; lia.
+                *
+                  split; [lia |].
+                  clear - BOUNDk EQ.
+                  apply f_equal with (f:=Z.to_nat) in EQ.
+                  rewrite Znat.Nat2Z.id in EQ.
+                  rewrite EQ in BOUNDk; clear - BOUNDk.
+                  pose proof Int64.intrange size as [LO HI].
+                  apply Znat.Z2Nat.inj_lt in HI; try lia.
+                  unfold Int64.max_unsigned.
+                  lia.
           }
           } }
 
       { solve_allocated. }
 
-      { (* local_scope_modif *) admit. }
+      { (* local_scope_modif *)
+        (* not true *)
+        admit. }
     }
 
     forward LOOP; [clear LOOP|]; eauto.
@@ -553,7 +589,14 @@ Proof.
       split; eauto.
       2 : repeat (split; eauto).
       - eapply state_invariant_same_Γ; eauto.
-        admit.
+
+        destruct Hl.
+        + eapply not_in_gamma_protect. eapply GAM.
+          eapply lid_bound_between_shrink; eauto.
+          solve_local_count.
+        + eapply not_in_gamma_protect. eapply GAM.
+          eapply lid_bound_between_shrink; eauto;
+          solve_local_count.
       - destruct y.
         + eapply in_local_or_global_addr_same_global; eauto.
         + cbn; intros. repeat red in H4.
@@ -583,14 +626,87 @@ Proof.
     {
       (* (I i -> Q) *)
       subst Q I.
-      clear; red; intros.
+      red; intros.
       break_match_goal; auto.
-      destruct p. inv Heqo. destruct b, p.
+      destruct p. destruct b, p.
       destruct H as (?&?&?&?&?). split; eauto.
-      2 : split; [ | repeat (split; eauto)].
       destruct H0 as (?&?&?).
-      admit. admit.
+      destruct H.
+
+      split; eauto; cycle 1.
+      eapply WF_IRState_protect, WF_IRState_Γ; eauto.
+      eapply no_id_aliasing_protect, no_id_aliasing_gamma; eauto.
+      eapply no_dshptr_aliasing_protect; eauto.
+      eapply no_llvm_ptr_aliasing_protect, no_llvm_ptr_aliasing_gamma; eauto.
+
+      (* id's are still well-allocated. *)
+      {
+        red in st_id_allocated. red. intros.
+        destruct (@dec_eq_nat n1 n). subst.
+        rewrite Heqo in H. inv H.
+        apply mem_block_exists_memory_set_eq. reflexivity.
+        apply mem_block_exists_memory_set. eapply st_id_allocated.
+        eapply nth_error_protect_ineq in H. 2 : eauto.
+        eauto.
+      }
+
+      eapply gamma_bound_mono; eauto.
+
+      cbn in *. intros.
+      rename H0 into FITS, H4 into INLG, H5 into MLU.
+      (* Two possible cases : either the index isn't with the pointer location,
+        which is where we can use the normal memory invariant [mem_is_inv].
+        Ohterwise, we can show that the [partial memory write] is complete
+        and use [MLU] to restate the memory lookup. *)
+      destruct (Nat.eq_dec n1 n); cycle 1.
+      {
+        (* Case 1 : The address in question was not written to : use normal memory
+          invariant. *)
+        subst. eapply nth_error_protect_ineq in H7; eauto.
+        specialize (mem_is_inv _ _ _ _ _ Heqo LUn). destruct v0; eauto.
+        destruct mem_is_inv as (ptrll & τ' & TEQ & FITS' & INLG' & MLUP).
+        inv TEQ. eexists. eexists.
+        split; eauto. split; eauto. split; eauto.
+        intros.
+        specialize (MLUP H0).
+        destruct MLUP as (bkh & MLU_ & MLU__).
+        exists bkh.
+        assert (a0 ≢ y_h_ptr). {
+          intro. apply n3.
+          red in st_no_dshptr_aliasing.
+          pose proof Heqo0.
+          eapply nth_error_protect_eq' in H4.
+          eapply st_no_dshptr_aliasing; eauto. subst. eauto.
+        }
+        split.
+        pose proof memory_lookup_memory_set_neq.
+        cbn in H4. erewrite H4. eauto.
+        eauto.
+        intros.
+        eauto.
+      }
+      {
+        (* Case 2 : The address in question is definitely written to, and the
+        complete partial memory invariant ensures that we have the right cells. *)
+        subst.
+        rewrite <- GENIR_Γ in H1.
+        rewrite LUn0 in H1.
+        inv H1. rewrite Heqo0 in H. inv H.
+
+        clear mem_is_inv.
+        eexists. eexists. split; eauto. split; eauto.
+        split; eauto. intros. eexists.
+        split.
+        pose proof memory_lookup_memory_set_eq. cbn in H0.
+        eapply H0.
+        intros. eapply MLU. 2 : eauto.
+
+        revert BOUNDS; intro.
+        lia.
     }
+
+    assert (BinNat.N.to_nat sz ≡ MInt64asNT.to_nat i). admit.
+    rewrite H in LOOP.
 
     eapply LOOP.
     {
@@ -601,7 +717,6 @@ Proof.
       solve_gamma. solve_local_count. }
     }
 
-
     red. intros [[? ?] | ] (? & ? & ? & ?); [| cbn in *; intuition].
     2 : { destruct H. inv REL1. inv REL2. inv H0. auto. }
     intros [? ? ?]; eauto. inv REL1.
@@ -610,7 +725,7 @@ Proof.
     split; [| split]; cbn; eauto.
     - destruct b; eauto. destruct H1 as (? & ? & ? & ?); subst.
       cbn in *. inv H0. cbn in *. (*Properness lemma*)
-      admit.
+      eapply state_invariant_memory_equiv_Proper; eauto.
     - destruct H; eauto.
     - solve_local_scope_modif.
   }
@@ -640,7 +755,10 @@ Proof.
       split; [reflexivity |].
       do 2 (split; eauto).  intros.
       specialize (H4 H). destruct H4 as (?&?&?). exists x2; eauto.
-      rewrite memory_lookup_memory_set_eq; eexists. f_equiv. admit.
+      rewrite memory_lookup_memory_set_eq; eexists. f_equiv.
+
+      rename m0 into MEM_, x2 into MEM__. red in H2.
+      admit.
       intros; eapply H5; eauto.
     * rewrite memory_lookup_memory_set_neq; [| apply NPeano.Nat.eqb_neq in EQ; auto].
       do 2 eexists ; eauto.
