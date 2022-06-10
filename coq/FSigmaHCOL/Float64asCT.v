@@ -18,6 +18,7 @@ Require Import Coq.micromega.Lia.
 
 Instance binary64_Equiv: Equiv binary64 := eq.
 
+(* TODO: rename to something like [DynWin_safety_margin] *)
 (* The amount by which two numbers need to differ
    to be considered "clearly" unequal *)
 (* ~ 1.2e-12 *)
