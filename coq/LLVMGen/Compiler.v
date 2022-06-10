@@ -383,15 +383,21 @@ Fixpoint genAExpr
       (* this is special as requires bool -> double cast *)
       '(aexp, acode) <- genAExpr a ;;
       '(bexp, bcode) <- genAExpr b ;;
+      sres <- incLocal ;;
       ires <- incLocal ;;
       fres <- incLocal ;;
       void0 <- incVoid ;;
       ret (EXP_Ident (ID_Local fres),
            acode ++ bcode ++
-                 [(IId ires, INSTR_Op (OP_FCmp FOlt
-                                               TYPE_Double
-                                               aexp
-                                               bexp));
+                 [(IId sres, INSTR_Op (OP_FBinop FSub
+                                        [] (* TODO: list fast_math *)
+                                        TYPE_Double
+                                        bexp
+                                        aexp));
+                    (IId ires, INSTR_Op (OP_FCmp FOlt
+                                           TYPE_Double
+                                           (EXP_Double epsilon)
+                                           (EXP_Ident (ID_Local sres))));
                     (IVoid void0, INSTR_Comment "Casting bool to float") ;
                     (IId fres, INSTR_Op (OP_Conversion
                                            Uitofp
