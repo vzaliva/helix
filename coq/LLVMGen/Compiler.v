@@ -314,7 +314,8 @@ Fixpoint genAExpr
         ret (EXP_Ident (ID_Local res),
              acode ++ bcode ++
                    [(IId res, INSTR_Op (OP_FBinop fop
-                                                  [] (* TODO: list fast_math *)
+                                                  (* Note: no fast-math, proofs rely on IEEE-754 *)
+                                                  []
                                                   TYPE_Double
                                                   aexp
                                                   bexp))
@@ -390,7 +391,7 @@ Fixpoint genAExpr
       ret (EXP_Ident (ID_Local fres),
            acode ++ bcode ++
                  [(IId sres, INSTR_Op (OP_FBinop FSub
-                                        [] (* TODO: list fast_math *)
+                                        []
                                         TYPE_Double
                                         bexp
                                         aexp));
