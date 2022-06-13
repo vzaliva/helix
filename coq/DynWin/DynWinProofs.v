@@ -1930,7 +1930,7 @@ Section CType_impl.
   Lemma float_as_bool_Zless (a b : Bits.binary64) :
     float_as_bool (MFloat64asCT.CTypeZLess a b) true
     <->
-    safe_lt64 FT_Rounding epsilon a b.
+    safe_lt64 FT_Rounding DynWin_CompareEpsilon.compare_epsilon a b.
   Proof.
     unfold MFloat64asCT.CTypeZLess, MFloat64asCT.CTypeSub,
       Zless, safe_lt64, lt64, Bits.b64_compare.

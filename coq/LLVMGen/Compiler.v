@@ -396,7 +396,8 @@ Fixpoint genAExpr
                                         aexp));
                     (IId ires, INSTR_Op (OP_FCmp FOlt
                                            TYPE_Double
-                                           (EXP_Double epsilon)
+                                           (EXP_Double
+                                              DynWin_CompareEpsilon.compare_epsilon)
                                            (EXP_Ident (ID_Local sres))));
                     (IVoid void0, INSTR_Comment "Casting bool to float") ;
                     (IId fres, INSTR_Op (OP_Conversion
