@@ -151,5 +151,4 @@ From Vellvm Require Import
 .
 Require Export ITree.Events.FailFacts.
 
-From Coq Require Import Lia.
 

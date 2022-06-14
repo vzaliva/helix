@@ -80,13 +80,12 @@ Section Program.
   Local Obligation Tactic := cbv;auto.
   Program Definition dynwin_i' : Int64.int := Int64.mkint (Z.of_nat dynwin_i) _.
   Program Definition dynwin_o' : Int64.int := Int64.mkint (Z.of_nat dynwin_o) _.
-
+  Program Definition three : Int64.int := Int64.mkint 3 _.
   (* TODO pull and recompile?? *)
   (* TODO convert R global type signature to F global type signature? *)
   (* IZ : Construct the globals here *)
-  Definition dynwin_globals' : list (string * FHCOL.DSHType).
-    (* refine (_ dynwin_FHCOL_globals). *)
-  Admitted.
+  Definition dynwin_globals' : list (string * FHCOL.DSHType)
+    := cons ("a",DSHPtr three) nil.
 
   (* Here I should be able to compute the operator instead of quantifying over it in the statement *)
   Definition dynwin_fhcolp : FHCOL.DSHOperator -> FSHCOLProgram :=
@@ -173,16 +172,16 @@ Lemma compiler_correct_aux:
   forall (p:FSHCOLProgram)
     (data:list binary64)
     (pll: toplevel_entities typ (LLVMAst.block typ * list (LLVMAst.block typ))),
-  forall s hmem hdata σ,
-    helix_initial_memory p data ≡ inr (hmem, hdata, σ) ->
+  forall s (* hmem hdata σ *),
+    (* helix_initial_memory p data ≡ inr (hmem, hdata, σ) -> *)
     compile_w_main p data newState ≡ inr (s,pll) ->
     eutt final_rel (semantics_FSHCOL' p data) (semantics_llvm pll).
 Proof.
-  intros * INIT COMP.
-  pose proof memory_invariant_after_init _ _ (conj INIT COMP) as INIT_MEM.
-  unfold compile_w_main,compile in COMP.
-  cbn* in COMP.
-  simp.
+  (* intros * INIT COMP. *)
+  (* pose proof memory_invariant_after_init _ _ (conj INIT COMP) as INIT_MEM. *)
+  (* unfold compile_w_main,compile in COMP. *)
+  (* cbn* in COMP. *)
+  (* simp. *)
   (* unshelve epose proof @compile_FSHCOL_correct _ _ _ (* dynwin_F_σ dynwin_F_memory *) _ _ _ _ _ _ _ _ _ Heqs _ _ _ _. *)
 Admitted.
 
@@ -194,6 +193,42 @@ Admitted.
 (*     helix_initial_memory p data = inr (hmem,hdata,σ) -> (* shallow memory initialization *) *)
 (*     interp_helix (initial_memory_intra . ...) ? ? \eutt Ret (hmem,hdata,σ). *)
 
+
+(*
+  STATIC: what are the arguments to compile_w_main
+1. What is the data
+(to_float (to_list y) ++ to_float (to_list x) ++ to_float (to_list a))
+ and how do I build it? --> Would be some kind of propositional relation that IZ will write matching a quantifier against (to_list y ++ to_list x ++ to_list a) ?
+2. How to build the globals to build the program?
+
+3. Is helix_initial_memory p data === dynwin_F_memory ???
+4. Same for dynwin_F_σ??
+   dyn_F_σ
+
+
+1. I know that I compile safely operators: gen_IR is correct, i.e. some initial invariant between mems on FHCOL and LLVM entails the right bisimilarity
+2. What I'm intersted is compile_w_main: that creates two functions, a main and the operator. The main does some initialization.
+   Ilia proved: the main that is produced by compiled with main is a LLVM computation that produces an LLVM memory that satisfies the right invariant AGAINST WHAT FHCOL memory? The one produced by helix_initial_memory
+
+3. Use the fact that by top_to_FHCOL, the semantics of the operator is also the same as the source one, STARTING FROM dynwin_F_memory
+
+
+run op a memory satisfying some predicate = some result = source result
+
+run op helix_initial_memory = some result = if I run my llvm code
+
+TODO: assume the hypotheses to instantiate top_to_FHCOL with helix_initial_memory
+heq_memory () RF_CHE (dynwin_R_memory a x) mem →
+heq_evalContext () RF_NHE RF_CHE dynwin_R_σ σ ->
+
+
+helix_initial_memory _ data = (mem,_,σ) ->
+heq_memory () RF_CHE (dynwin_R_memory a x) mem →
+heq_evalContext () RF_NHE RF_CHE dynwin_R_σ σ ->
+
+INITIAL MEMORY: what is the link between dynwin_F_memory and dynwin_F_sigma that are inherited from the top, with the result of helix_initial_memory = (hmem,hdata,σ): hmem == dynwin_F_memory and σ == dynwin_F_sigma?
+
+ *)
 
 Lemma top_to_LLVM :
   forall (a : Vector.t CarrierA 3) (* parameter *)
@@ -207,14 +242,24 @@ Lemma top_to_LLVM :
 
       (* We cannot hide away the [R] level as we axiomatize the real to float
        approximation performed *)
-      ∀ (dynwin_F_memory : memoryH)
+      ∀
+        (dynwin_F_memory : memoryH)
         (dynwin_F_σ : evalContext)
-        (dynwin_fhcol : FHCOL.DSHOperator),
+        (dynwin_fhcol : FHCOL.DSHOperator)
+        data
+        (heq_list : list binary64 → list binary64 → Prop)
+        (to_list : forall n, Vector.t CarrierA n -> list binary64)
+        (PRE : heq_list (to_list _ y ++ to_list _ x ++ to_list _ a) data)
+        data',
 
         RHCOLtoFHCOL.translate DynWin_RHCOL = inr dynwin_fhcol →
 
-        heq_memory () RF_CHE (dynwin_R_memory a x) dynwin_F_memory →
-        heq_evalContext () RF_NHE RF_CHE dynwin_R_σ dynwin_F_σ ->
+        (* We must now that the initialization of memory succeeds on our parameters *)
+        forall (HINIT : helix_initial_memory (dynwin_fhcolp dynwin_fhcol) data ≡
+          inr ((dynwin_F_memory,data'),dynwin_F_σ)),
+
+        (* heq_memory () RF_CHE (dynwin_R_memory a x) dynwin_F_memory → *)
+        (* heq_evalContext () RF_NHE RF_CHE dynwin_R_σ dynwin_F_σ -> *)
 
         ∀ a_rmem x_rmem : RHCOLEval.mem_block,
           RHCOLEval.memory_lookup (dynwin_R_memory a x) dynwin_a_addr = Some a_rmem →
@@ -222,18 +267,24 @@ Lemma top_to_LLVM :
 
           DynWinInConstr a_rmem x_rmem →
 
-          (* START OF LLVM-level stuff *)
-          forall s pll hmem hdata σ JOKERa
-          (COMP : compile_w_main (dynwin_fhcolp dynwin_fhcol) JOKERa newState ≡ inr (s,pll))
-          (HINIT : helix_initial_memory (dynwin_fhcolp dynwin_fhcol) JOKERa (* (dynwin_data a) *) ≡ inr (hmem, hdata, σ))
-      ,
-      exists g l m r JOKER, semantics_llvm pll ≡ Ret (m,(l,(g, r))) /\
-                   final_rel_val (JOKER y) r.
+          (* START OF LLVM-level stuff
+             Vector.t CarrierA n -> list CarrierA
+             list CarrierA -> list binary64 -> Prop
+           *)
+          forall s pll
+            (COMP : compile_w_main (dynwin_fhcolp dynwin_fhcol) data newState ≡ inr (s,pll))
+            (* (HINIT : helix_initial_memory (dynwin_fhcolp dynwin_fhcol) JOKERa (* (dynwin_data a) *) ≡ inr (hmem, hdata, σ)) *)
+          ,
+          exists g l m r JOKER, semantics_llvm pll ≡ Ret (m,(l,(g, r))) /\
+                             final_rel_val (JOKER y) r.
 Proof.
   intros.
 
   (* The current statement gives us essentially FHCOL-level inputs and outputs, and relate them to the source *)
-  edestruct top_to_FHCOL as (r_omemory & y_rmem' & EVR & LUR & TRR & f_omemory & y_fmem & EVF & LUF & TRF); eauto.
+  edestruct top_to_FHCOL with (dynwin_F_σ := dynwin_F_σ) (dynwin_F_memory := dynwin_F_memory) as (r_omemory & y_rmem' & EVR & LUR & TRR & f_omemory & y_fmem & EVF & LUF & TRF); eauto.
+
+  admit. (* IZ + VZ *)
+  admit. (* IZ + VZ *)
 
   (* TODO : evaluation in terms of equiv and not eq, contrary to what' assumed in EvalDenoteEquiv.
      Is it an easy fix to Denote_Eval_Equiv?
@@ -244,14 +295,6 @@ Proof.
   (* We know that we can see the evaluation of the FHCOL operator under an itree-lense  *)
   pose proof (Denote_Eval_Equiv _ _ _ _ _ EVF) as EQ.
 
-  (* What are the llvm addresses that correspond to x y a?
-
-exists memf,
-
-
-   *)
-
-
   eapply compiler_correct_aux in COMP; try eassumption.
 
   clear - EQ EVF COMP HINIT.
@@ -261,5 +304,3 @@ exists memf,
   rewrite bind_ret_l in COMP.
   (* Now we know that the compilation of operators is correct *)
 Admitted.
-
-
