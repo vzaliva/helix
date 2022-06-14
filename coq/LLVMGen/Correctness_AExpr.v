@@ -826,6 +826,7 @@ Section AExpr.
         eapply Gamma_safe_shrink; eauto; solve_local_count.
       }
 
+      (*
       vstep.
       {
         vstep.
@@ -899,6 +900,6 @@ Section AExpr.
         apply incLocal_Γ in Heqs2; rewrite <- Heqs2.
         apply incVoid_Γ in Heqs3; auto.
       + left; solve_local_count.
-  Qed.
+  Qed. *) Admitted.
 
 End AExpr.

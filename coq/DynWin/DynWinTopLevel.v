@@ -45,6 +45,7 @@ Require Import Helix.DynWin.DynWinProofs.
 
 Import ListNotations.
 Import MonadNotation.
+Import DynWin_CompareEpsilon.
 
 Section RHCOL_to_FHCOL_bounds.
 
@@ -343,7 +344,7 @@ Section Gappa.
     (CU : no_overflow64 ◻ (cheb64 - poly64)) 
     (POLY : poly ≡ a0 + vr * a1 + vr * vr * a2)
     :
-    B64R epsilon < ◻ (cheb64 - poly64) -> (poly < cheb)%R.
+    B64R compare_epsilon < ◻ (cheb64 - poly64) -> (poly < cheb)%R.
   Proof.
     intros LT64.
     (* 1b-40 *)
@@ -405,7 +406,7 @@ Section Gappa.
                 <= 2 * Raux.bpow radix2 1024)
       by (cbv in E; lra).
 
-    assert (BND64 : B64R epsilon <= ◻ (cheb64 - poly64) <= Raux.bpow radix2 1024).
+    assert (BND64 : B64R compare_epsilon <= ◻ (cheb64 - poly64) <= Raux.bpow radix2 1024).
     {
       clear - CU LT64.
       split; [assumption |].
@@ -452,7 +453,7 @@ Section Gappa.
     (FA1 : B64R fa1 ≡ B64R (V64 ⧄ b64 ⊞ e64 ⊠ (A64 ⧄ b64 ⊞ b64_1)))
     (FA2 : B64R fa2 ≡ B64R (b64_1 ⧄ (b64_2 ⊠ b64)))
 
-    (F : safe_lt64 FT_Rounding epsilon
+    (F : safe_lt64 FT_Rounding compare_epsilon
            (((0.0 ⊞ 1.0 ⊠ fa0) ⊞ (1.0 ⊠ fx0) ⊠ fa1) ⊞ ((1.0 ⊠ fx0) ⊠ fx0) ⊠ fa2)
            (fmax (fmax 0.0 (fabs (fx1 ⊟ fx3))) (fabs (fx2 ⊟ fx4))))
       :
@@ -506,7 +507,7 @@ Section Gappa.
     assert (FIN0 : is_finite _ _ b64_2 ≡ true) by reflexivity.
     assert (FIN1 : is_finite _ _ 0.0 ≡ true) by reflexivity.
     assert (FIN2 : is_finite _ _ 1.0 ≡ true) by reflexivity.
-    assert (FIN3 : is_finite _ _ epsilon ≡ true) by reflexivity.
+    assert (FIN3 : is_finite _ _ compare_epsilon ≡ true) by reflexivity.
 
     (* a hack to avoid matching *)
     pose (hidden_finite := is_finite).

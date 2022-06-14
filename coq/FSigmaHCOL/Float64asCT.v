@@ -18,14 +18,6 @@ Require Import Coq.micromega.Lia.
 
 Instance binary64_Equiv: Equiv binary64 := eq.
 
-(* The amount by which two numbers need to differ
-   to be considered "clearly" unequal *)
-(* ~ 1.2e-12 *)
-Definition epsilon : binary64 :=
-  B754_finite 53 1024 false 5920039297100023 (-92)
-    (binary_float_of_bits_aux_correct 52 11 eq_refl eq_refl eq_refl
-       4428454873374927095).
-
 (* Should be somewhere in stdlib but I could not find it *)
 Lemma positive_dec : forall p1 p2 : positive, {p1 ≡ p2} + {p1 ≢ p2}.
 Proof.
@@ -84,7 +76,15 @@ Proof.
     reflexivity.
 Qed.
 
-Module MFloat64asCT <: CType.
+Module Type MCompareEpsilon.
+
+  (* The amount by which two numbers need to differ
+     to be considered "clearly" unequal *)
+  Parameter compare_epsilon : binary64.
+
+End MCompareEpsilon.
+
+Module MFloat64asCT' (Import E : MCompareEpsilon) <: CType.
 
   Definition t := binary64.
 
@@ -142,7 +142,7 @@ Module MFloat64asCT <: CType.
     operands are not a QNAN and op1 is less than op2"
   *)
   Definition CTypeZLess (a b: binary64) : binary64 :=
-    match Bcompare _ _ epsilon (CTypeSub b a)  with
+    match Bcompare _ _ compare_epsilon (CTypeSub b a)  with
     | Some Datatypes.Lt => CTypeOne
     | _ => CTypeZero
     end.
@@ -168,7 +168,19 @@ Module MFloat64asCT <: CType.
   Instance max_proper: Proper ((=) ==> (=) ==> (=)) (Float64Max).
   Proof. solve_proper. Qed.
 
-End MFloat64asCT.
+End MFloat64asCT'.
+
+Module DynWin_CompareEpsilon <: MCompareEpsilon.
+
+  (* ~ 1.2e-12 *)
+  Definition compare_epsilon :=
+    B754_finite 53 1024 false 5920039297100023 (-92)
+      (binary_float_of_bits_aux_correct 52 11 eq_refl eq_refl eq_refl
+         4428454873374927095).
+  
+End DynWin_CompareEpsilon.
+
+Module MFloat64asCT := MFloat64asCT'(DynWin_CompareEpsilon).
 
 Declare Scope Float64asCT_scope.
 
