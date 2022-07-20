@@ -7,6 +7,11 @@ environment:
 
 steps:
 
+  - name: submodules
+    image: alpine/git
+    commands:
+      - git submodule update --init --recursive
+
   - name: rebuild-opam-cache
     image: ocaml/opam
     user: root
@@ -51,6 +56,17 @@ steps:
     commands:
       - opam switch
       - ls _opam
+
+  - name: build-vellvm
+    image: ocaml/opam
+    commands:
+      - eval $(opam env)
+      - make -j 1 vellvm
+
+  - name: test-helix
+    image: ocaml/opam
+    commands:
+      - make test
 
 volumes:
   - name: cache
