@@ -16,6 +16,7 @@ steps:
     image: ocaml/opam
     user: root
     commands:
+      - opam init -y --bare --disable-sandboxing
       - >
         opam switch create ./
         --yes --deps-only
