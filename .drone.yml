@@ -1,0 +1,58 @@
+kind: pipeline
+type: docker
+name: default
+
+environment:
+  OPAMROOT: ./.opam
+
+steps:
+
+  - name: rebuild-opam-cache
+    image: ocaml/opam
+    user: root
+    commands:
+      - >
+        opam switch create ./
+        --yes --deps-only
+        --repositories=default,coq-released=https://coq.inria.fr/opam/released
+    when:
+      event:
+        - cron
+      cron:
+        - opam-rebuilds
+
+  - name: save-opam-cache
+    image: drillster/drone-volume-cache
+    volumes:
+      - name: cache
+        path: /cache
+    settings:
+      rebuild: true
+      mount:
+        - _opam
+    when:
+      event:
+        - cron
+      cron:
+        - opam-rebuilds
+
+  - name: restore-opam-cache
+    image: drillster/drone-volume-cache
+    volumes:
+      - name: cache
+        path: /cache
+    settings:
+      restore: true
+      mount:
+        - _opam
+
+  - name: test-cache
+    image: ocaml/opam
+    commands:
+      - opam switch
+      - ls _opam
+
+volumes:
+  - name: cache
+    host:
+      path: /tmp/cache
