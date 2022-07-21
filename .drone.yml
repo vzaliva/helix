@@ -21,11 +21,11 @@ steps:
         opam switch create ./
         --yes --deps-only
         --repositories=default,coq-released=https://coq.inria.fr/opam/released
-    when:
-      event:
-        - cron
-      cron:
-        - opam-rebuilds
+    # when:
+    #   event:
+    #     - cron
+    #   cron:
+    #     - opam-rebuilds
 
   - name: save-opam-cache
     image: drillster/drone-volume-cache
@@ -36,11 +36,11 @@ steps:
       rebuild: true
       mount:
         - _opam
-    when:
-      event:
-        - cron
-      cron:
-        - opam-rebuilds
+    # when:
+    #   event:
+    #     - cron
+    #   cron:
+    #     - opam-rebuilds
 
   - name: restore-opam-cache
     image: drillster/drone-volume-cache
