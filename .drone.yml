@@ -2,76 +2,38 @@ kind: pipeline
 type: docker
 name: default
 
-environment:
-  OPAMROOT: ./.opam
-
 steps:
-
   - name: submodules
     image: alpine/git
     commands:
       - git submodule update --init --recursive
 
-  - name: rebuild-opam-cache
-    image: ocaml/opam
-    user: root
-    commands:
-      - apt install --yes flex bison
-      - opam init -y --bare --disable-sandboxing
-      - >
-        opam switch create ./
-        --yes --deps-only
-        --repositories=default,coq-released=https://coq.inria.fr/opam/released
-        ocaml-base-compiler
-    # when:
-    #   event:
-    #     - cron
-    #   cron:
-    #     - opam-rebuilds
-
-  - name: save-opam-cache
-    image: drillster/drone-volume-cache
+  - name: build-cache
+    image: docker
     volumes:
-      - name: cache
-        path: /cache
-    settings:
-      rebuild: true
-      mount:
-        - _opam
-    # when:
-    #   event:
-    #     - cron
-    #   cron:
-    #     - opam-rebuilds
-
-  - name: restore-opam-cache
-    image: drillster/drone-volume-cache
-    volumes:
-      - name: cache
-        path: /cache
-    settings:
-      restore: true
-      mount:
-        - _opam
-
-  - name: test-cache
-    image: ocaml/opam
+      - name: dockersock
+        path: /var/run/docker.sock
     commands:
-      - opam switch
-      - ls _opam
+      - docker build --no-cache -t helix-cache .
+    when:
+      event:
+        - cron
+      cron:
+      - rebuild-cache
 
   - name: build-vellvm
-    image: ocaml/opam
+    image: helix-cache
+    pull: never
     commands:
-      - eval $(opam env)
-      - make -j 1 vellvm
+      - opam exec -- make -j 1 vellvm
 
   - name: test-helix
-    image: ocaml/opam
+    image: helix-cache
+    pull: never
     commands:
-      - make test
+      - opam exec -- make test
 
 volumes:
-  - name: cache
+  - name: dockersock
     host:
-      path: /tmp/cache
+      path: /var/run/docker.sock
