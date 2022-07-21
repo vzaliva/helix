@@ -16,12 +16,13 @@ steps:
     image: ocaml/opam
     user: root
     commands:
+      - apt install --yes flex bison
       - opam init -y --bare --disable-sandboxing
       - >
         opam switch create ./
         --yes --deps-only
         --repositories=default,coq-released=https://coq.inria.fr/opam/released
-        ocaml-base-compiler.$(opam info ocaml-base-compiler --field=version)
+        ocaml-base-compiler
     # when:
     #   event:
     #     - cron
