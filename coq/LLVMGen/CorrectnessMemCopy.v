@@ -120,7 +120,7 @@ Section MemCopy.
     → eutt (lift_Rel_memV (@Logic.eq dvalue)) (interp_cfg_to_L3 defs (trigger (Intrinsic τ fn args)) g l m) (handle_intrinsic ((Intrinsic τ fn args)) m).
   Proof.
     intros.
-  Admitted.
+  A.dmitted.
 
     Lemma interp_cfg_to_L3_memory_intrinsic' :
       ∀ (defs: intrinsic_definitions) (m : memoryV) (τ : typ) (dτ : dtyp)
@@ -141,7 +141,7 @@ Section MemCopy.
     Proof.
       intros defs m τ dτ g l val1 val2 ptr1 ptr2 sz t.
       intros Pointer_TYPE SIZE read_ptr1 read_ptr2.
-    Admitted.
+    A.dmitted.
 
     Lemma interp_memory_intrinsic_memcpy :
       ∀ (m : memoryV) (a1 a2 : Addr.addr) (i : nat)
@@ -170,8 +170,8 @@ Section MemCopy.
         unfold resum, ReSum_id, id_, Id_IFun.
         (* IY: Something goes wrong here, memory isn't interpreted correctly. *)
         setoid_rewrite bind_trigger.
-        admit.
-    Admitted.
+        a.dmit.
+    A.dmitted.
 
 End MemCopy.
 *)

@@ -8,6 +8,7 @@ Require Import Helix.LLVMGen.Correctness_While.
 Require Import Helix.LLVMGen.Correctness_Loop.
 Require Import Helix.LLVMGen.Correctness_IMap.
 Require Import Helix.LLVMGen.Correctness_Power.
+Require Import Helix.LLVMGen.Correctness_MemInit.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.StateCounters.
 Require Import Helix.LLVMGen.VariableBinding.
@@ -155,8 +156,7 @@ Section GenIR.
       apply DSHAlloc_correct; auto. 
 
     - (* DSHMemInit *)
-
-      admit.
+      apply MemInit_Correct; auto.
 
     - (* DSHSeq *)
       Opaque add_comment.

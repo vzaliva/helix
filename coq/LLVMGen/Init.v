@@ -7805,9 +7805,7 @@ Proof.
               inv C.
       *
         apply DECL_INV.
-Admitted.
-
-
+Qed.
 
 (* with init step  *)
 Lemma compiler_correct_aux:
