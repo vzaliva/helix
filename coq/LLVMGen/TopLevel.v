@@ -164,6 +164,10 @@ Definition final_rel_val : list binary64 -> uvalue -> Prop :=
 Definition final_rel : Rel_mcfg_OT (list binary64) uvalue :=
   succ_mcfg (fun '(_,vh) '(_,(_,(_,vv))) => final_rel_val vh vv).
 
+Require Import LibHyps.LibHyps.
+
+(* Lemma helix_initial_ *)
+
 (* TODO:
    Why does [helix_initial_memory p data] succeeds?
  *)
@@ -177,21 +181,24 @@ Lemma compiler_correct_aux:
     compile_w_main p data newState ≡ inr (s,pll) ->
     eutt final_rel (semantics_FSHCOL' p data) (semantics_llvm pll).
 Proof.
-  (* intros * INIT COMP. *)
+  intros * COMP.
+  unfold compile_w_main,compile in COMP.
+  cbn* in COMP.
+  simp/g.
+  unshelve epose proof @compile_FSHCOL_correct _ _ _ (* dynwin_F_σ dynwin_F_memory *) _ _ _ _ _ _ _ _ _ Heqs _ _ _ _.
   (* pose proof memory_invariant_after_init _ _ (conj INIT COMP) as INIT_MEM. *)
-  (* unfold compile_w_main,compile in COMP. *)
-  (* cbn* in COMP. *)
-  (* simp. *)
-  (* unshelve epose proof @compile_FSHCOL_correct _ _ _ (* dynwin_F_σ dynwin_F_memory *) _ _ _ _ _ _ _ _ _ Heqs _ _ _ _. *)
 Admitted.
 
-
-
-(* Lemma helix_inital_memory_denote_initFSHGlobals : *)
-(*   forall p data        (* FSHCOL static data  *) *)
-(*     hmem hdata σ  (* FSHCOL dynamic data *), *)
-(*     helix_initial_memory p data = inr (hmem,hdata,σ) -> (* shallow memory initialization *) *)
-(*     interp_helix (initial_memory_intra . ...) ? ? \eutt Ret (hmem,hdata,σ). *)
+Lemma compiler_correct_aux':
+  forall (p:FSHCOLProgram)
+    (data:list binary64)
+    (pll: toplevel_entities typ (LLVMAst.block typ * list (LLVMAst.block typ))),
+  forall s (* hmem hdata σ *),
+    (* helix_initial_memory p data ≡ inr (hmem, hdata, σ) -> *)
+    compile_w_main p data newState ≡ inr (s,pll) ->
+    eutt final_rel (semantics_FSHCOL p data) (semantics_llvm pll).
+Proof.
+Admitted.
 
 
 (*
@@ -230,6 +237,13 @@ INITIAL MEMORY: what is the link between dynwin_F_memory and dynwin_F_sigma that
 
  *)
 
+Lemma helix_inital_memory_denote_initFSHGlobals :
+  forall p data        (* FSHCOL static data  *)
+    hmem hdata σ  (* FSHCOL dynamic data *),
+    helix_initial_memory p data ≡ inr (hmem,hdata,σ) -> (* shallow memory initialization *)
+    interp_helix (denote_initFSHGlobals data (globals p)) FHCOLITree.memory_empty ≈ (Ret (Some (hmem,(hdata,σ))) : itree E_mcfg _).
+Admitted.
+
 Lemma top_to_LLVM :
   forall (a : Vector.t CarrierA 3) (* parameter *)
     (x : Vector.t CarrierA dynwin_i)  (* input *)
@@ -247,8 +261,8 @@ Lemma top_to_LLVM :
         (dynwin_F_σ : evalContext)
         (dynwin_fhcol : FHCOL.DSHOperator)
         data
-        (heq_list : list binary64 → list binary64 → Prop)
-        (to_list : forall n, Vector.t CarrierA n -> list binary64)
+        (heq_list : list CarrierA → list binary64 → Prop)
+        (to_list : forall n, Vector.t CarrierA n -> list CarrierA)
         (PRE : heq_list (to_list _ y ++ to_list _ x ++ to_list _ a) data)
         data',
 
@@ -275,16 +289,17 @@ Lemma top_to_LLVM :
             (COMP : compile_w_main (dynwin_fhcolp dynwin_fhcol) data newState ≡ inr (s,pll))
             (* (HINIT : helix_initial_memory (dynwin_fhcolp dynwin_fhcol) JOKERa (* (dynwin_data a) *) ≡ inr (hmem, hdata, σ)) *)
           ,
-          exists g l m r JOKER, semantics_llvm pll ≡ Ret (m,(l,(g, r))) /\
-                             final_rel_val (JOKER y) r.
+          exists g l m r WILD, semantics_llvm pll ≡ Ret (m,(l,(g, r))) /\
+                             final_rel_val (WILD y) r.
 Proof.
   intros.
 
-  (* The current statement gives us essentially FHCOL-level inputs and outputs, and relate them to the source *)
-  edestruct top_to_FHCOL with (dynwin_F_σ := dynwin_F_σ) (dynwin_F_memory := dynwin_F_memory) as (r_omemory & y_rmem' & EVR & LUR & TRR & f_omemory & y_fmem & EVF & LUF & TRF); eauto.
+  (* Ilia/Vadim said these should hold true *)
+  assert (EQMEM : heq_memory () RF_CHE (dynwin_R_memory a x) dynwin_F_memory) by admit.
+  assert (EQCTX : heq_evalContext () RF_NHE RF_CHE dynwin_R_σ dynwin_F_σ) by admit.
 
-  admit. (* IZ + VZ *)
-  admit. (* IZ + VZ *)
+  (* The current statement gives us essentially FHCOL-level inputs and outputs, and relate them to the source *)
+  edestruct top_to_FHCOL with (dynwin_F_σ := dynwin_F_σ) (dynwin_F_memory := dynwin_F_memory) as (r_omemory & y_rmem' & EVR & LUR & TRR & f_omemory & y_fmem & EVF & LUF & TRF); eauto/g.
 
   (* TODO : evaluation in terms of equiv and not eq, contrary to what' assumed in EvalDenoteEquiv.
      Is it an easy fix to Denote_Eval_Equiv?
@@ -295,12 +310,43 @@ Proof.
   (* We know that we can see the evaluation of the FHCOL operator under an itree-lense  *)
   pose proof (Denote_Eval_Equiv _ _ _ _ _ EVF) as EQ.
 
-  eapply compiler_correct_aux in COMP; try eassumption.
+  eapply compiler_correct_aux' in COMP; try eassumption.
+  clear -EQ COMP HINIT.
+  unfold semantics_FSHCOL, denote_FSHCOL in COMP.
+  Opaque denote_initFSHGlobals.
+  cbn in COMP. rewrite interp_helix_bind in COMP.
+  pose proof helix_inital_memory_denote_initFSHGlobals _ _ _ _ _ HINIT.
+  rewrite H, bind_ret_l in COMP.
+  clear H.
+  rewrite interp_helix_bind, interp_helix_MemAlloc, bind_ret_l in COMP.
+  rewrite interp_helix_bind, interp_helix_MemAlloc, bind_ret_l in COMP.
+  destruct (constMemBlock (Pos.to_nat 5) data') eqn:EQ'.
+  rewrite interp_helix_bind, interp_helix_MemSet, bind_ret_l in COMP.
+  rewrite interp_helix_bind in COMP.
+  unfold interp_helix at 1 in COMP.
 
-  clear - EQ EVF COMP HINIT.
-  unfold semantics_FSHCOL', denote_FSHCOL' in COMP.
-  rewrite HINIT in COMP.
-  cbn in COMP.
-  rewrite bind_ret_l in COMP.
+  (* No idea what this mismatch is *)
+  assert (dynwin_F_σ ++
+                           [(FHCOLITree.DSHPtrVal (FHCOLITree.memory_next_key dynwin_F_memory) dynwin_o',
+                            false);
+                           (FHCOLITree.DSHPtrVal (FHCOLITree.memory_next_key dynwin_F_memory) dynwin_i',
+                           false)] ≡ dynwin_F_σ) by admit.
+  rewrite H in COMP; clear H.
+
+  (* (FHCOLITree.memory_set dynwin_F_memory (FHCOLITree.memory_next_key dynwin_F_memory) m) *)
+
+
+
+
+  (* rewrite HINIT in COMP. *)
+  (* cbn in COMP. *)
+  (* rewrite bind_ret_l in COMP. *)
+  (* rewrite interp_helix_bind in COMP. *)
+  (* unfold interp_helix at 1 in COMP. *)
+
+  (* clear - EQ EVF COMP HINIT. *)
+  (* rewrite HINIT in COMP. *)
+  (* pose proof compile_FSHCOL_correct *)
+
   (* Now we know that the compilation of operators is correct *)
 Admitted.
