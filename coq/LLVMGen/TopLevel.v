@@ -290,12 +290,10 @@ Lemma initial_memory_from_data :
   forall (a : Vector.t CarrierA 3)
     (x : Vector.t CarrierA dynwin_i)
     (y : Vector.t CarrierA dynwin_o)
-    dynwin_fhcol
     data,
-    RHCOLtoFHCOL.translate DynWin_RHCOL = inr dynwin_fhcol →
     heq_list (Vector.to_list y ++ Vector.to_list x ++ Vector.to_list a) data ->
     exists dynwin_F_memory data_garbage dynwin_F_σ,
-      helix_initial_memory (dynwin_fhcolp dynwin_fhcol) data
+      helix_initial_memory (dynwin_fhcolp DynWin_FHCOL_hard) data
       ≡ inr (dynwin_F_memory, data_garbage, dynwin_F_σ)
       /\ RHCOLtoFHCOL.heq_memory () RF_CHE (dynwin_R_memory a x) dynwin_F_memory
       /\ RHCOLtoFHCOL.heq_evalContext () RF_NHE RF_CHE dynwin_R_σ dynwin_F_σ.
@@ -313,7 +311,7 @@ Lemma top_to_LLVM :
 
       (* We cannot hide away the [R] level as we axiomatize the real to float
          approximation performed *)
-      ∀ (dynwin_fhcol : FHCOL.DSHOperator)
+      ∀
         (data : list binary64)
         (PRE : heq_list
                  (Vector.to_list y ++ Vector.to_list x ++ Vector.to_list a)
@@ -322,10 +320,8 @@ Lemma top_to_LLVM :
         (* the input data must be within bounds for numerical stability *)
         input_inConstr a x ->
 
-        RHCOLtoFHCOL.translate DynWin_RHCOL = inr dynwin_fhcol →
-
         forall s pll
-          (COMP : compile_w_main (dynwin_fhcolp dynwin_fhcol) data newState ≡ inr (s,pll)),
+          (COMP : compile_w_main (dynwin_fhcolp DynWin_FHCOL_hard) data newState ≡ inr (s,pll)),
         exists g l m r, semantics_llvm pll ≡ Ret (m,(l,(g, r))) /\
                      final_rel_val y r.
 Proof.
@@ -341,6 +337,11 @@ Proof.
     with (dynwin_F_σ := dynwin_F_σ) (dynwin_F_memory := dynwin_F_memory)
     as (r_omemory & y_rmem' & EVR & LUR & TRR & f_omemory & y_fmem & EVF & LUF & TRF);
     eauto/g.
+
+  instantiate (1:=DynWin_FHCOL_hard).
+  rewrite DynWin_FHCOL_hard_OK.
+  repeat constructor.
+
   1,2: now repeat constructor.
 
   (* TODO : evaluation in terms of equiv and not eq, contrary to what' assumed in EvalDenoteEquiv.
@@ -358,6 +359,9 @@ Proof.
   Opaque denote_initFSHGlobals.
   cbn in COMP. rewrite interp_helix_bind in COMP.
   pose proof helix_inital_memory_denote_initFSHGlobals _ _ _ _ _ HINIT.
+  (* This broke after the removal of [translate RHCOL = inr FHCOL] assumption,
+     replacing with DynWin_FHCOL_hard *)
+  (*
   rewrite H, bind_ret_l in COMP.
   clear H.
   rewrite interp_helix_bind, interp_helix_MemAlloc, bind_ret_l in COMP.
@@ -366,6 +370,7 @@ Proof.
   rewrite interp_helix_bind, interp_helix_MemSet, bind_ret_l in COMP.
   rewrite interp_helix_bind in COMP.
   unfold interp_helix at 1 in COMP.
+   *)
 
   (* No idea what this mismatch is *)
   assert (dynwin_F_σ ++
