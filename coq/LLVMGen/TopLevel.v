@@ -159,11 +159,38 @@ Definition semantics_FSHCOL' (p: FSHCOLProgram) (data : list binary64) σ mem
    Is that the data or the address of the data in memory?
    The former makes little sense to me, but the latter even less as we are looking for a vector.
  *)
-Definition final_rel_val : list binary64 -> uvalue -> Prop :=
-  fun vh vv => vv ≡ UVALUE_Array (List.map UVALUE_Double vh).
+(* This is similar to [DynWinOutRel], see that for details.
 
-Definition final_rel : Rel_mcfg_OT (list binary64) uvalue :=
+   Looking at the definition of [DynWinOutRel],
+   <<
+    hopt_r (flip CType_impl)
+      (RHCOLEval.mem_lookup dynwin_y_offset y_r)
+      (FHCOLEval.mem_lookup dynwin_y_offset y_64).
+   >>
+
+   [FHCOLEval.mem_lookup dynwin_y_offset y_64]
+   is the FHCOL output and needs to be proven equivalent to [llvm_out] here.
+
+   [RHCOLEval.mem_lookup dynwin_y_offset y_r]
+   is the RHCOL output and is already known to be equivalent to HCOL ([hcol_out] here).
+ *)
+Definition final_rel_val : Vector.t CarrierA dynwin_o -> uvalue -> Prop :=
+  fun hcol_out llvm_out =>
+    exists b64,
+      llvm_out ≡ UVALUE_Array [UVALUE_Double b64]
+      /\ CType_impl
+          b64 (HCOLImpl.Scalarize hcol_out).
+
+Definition final_rel : Rel_mcfg_OT (Vector.t CarrierA dynwin_o) uvalue :=
   succ_mcfg (fun '(_,vh) '(_,(_,(_,vv))) => final_rel_val vh vv).
+
+Definition fhcol_to_llvm_rel_val : list binary64 -> uvalue -> Prop :=
+  fun fhcol_out llvm_out =>
+      llvm_out ≡ UVALUE_Array (List.map UVALUE_Double fhcol_out).
+
+Definition fhcol_to_llvm_rel : Rel_mcfg_OT (list binary64) uvalue :=
+  succ_mcfg (fun '(_,vh) '(_,(_,(_,vv))) => fhcol_to_llvm_rel_val vh vv).
+
 
 Require Import LibHyps.LibHyps.
 
@@ -180,7 +207,7 @@ Lemma compiler_correct_aux:
   forall s hmem hdata σ,
     compile_w_main p data newState ≡ inr (s,pll) ->
     helix_initial_memory p data ≡ inr (hmem, hdata, σ) ->
-    eutt final_rel (semantics_FSHCOL' p data σ hmem) (semantics_llvm pll).
+    eutt fhcol_to_llvm_rel (semantics_FSHCOL' p data σ hmem) (semantics_llvm pll).
 Proof.
   intros * COMP.
   unfold compile_w_main,compile in COMP.
@@ -197,7 +224,7 @@ Lemma compiler_correct_aux':
   forall s (* hmem hdata σ *),
     (* helix_initial_memory p data ≡ inr (hmem, hdata, σ) -> *)
     compile_w_main p data newState ≡ inr (s,pll) ->
-    eutt final_rel (semantics_FSHCOL p data) (semantics_llvm pll).
+    eutt fhcol_to_llvm_rel (semantics_FSHCOL p data) (semantics_llvm pll).
 Proof.
 Admitted.
 
@@ -245,9 +272,8 @@ Lemma helix_inital_memory_denote_initFSHGlobals :
     interp_helix (denote_initFSHGlobals data (globals p)) FHCOLITree.memory_empty ≈ (Ret (Some (hmem,(hdata,σ))) : itree E_mcfg _).
 Admitted.
 
-(* This would be essentially a better dynwin_outrel --- IZ could define it *)
-Definition dynwin_outrel_better : Vector.t CarrierA dynwin_o -> uvalue -> Prop.
-Admitted.
+Definition heq_list : list CarrierA → list binary64 → Prop
+  := Forall2 (RHCOLtoFHCOL.heq_CType' RF_CHE ()).
 
 (* Lemma magic_initial_memory dynwin_fhcol : *)
 (*   RHCOLtoFHCOL.translate DynWin_RHCOL = inr dynwin_fhcol → *)
@@ -257,7 +283,17 @@ Admitted.
 (*       heq_memory () RF_CHE (dynwin_R_memory a x) dynwin_F_memory /\ *)
 (*       heq_evalContext () RF_NHE RF_CHE dynwin_R_σ dynwin_F_σ. *)
 
+(* IZ TODO: This could be stated more cleanly, and proven equivalent *)
+(* DynWinInConstr, only expressed on HCOL input directly *)
+Definition input_inConstr
+  (a : Vector.t CarrierA 3)
+  (x : Vector.t CarrierA dynwin_i)
+  : Prop :=
+  DynWinInConstr
+    (MSigmaHCOL.MHCOL.ctvector_to_mem_block a)
+    (MSigmaHCOL.MHCOL.ctvector_to_mem_block x).
 
+(* IZ TODO: generalize beyond just DynWin? *)
 Lemma top_to_LLVM :
   forall (a : Vector.t CarrierA 3) (* parameter *)
     (x : Vector.t CarrierA dynwin_i)  (* input *)
