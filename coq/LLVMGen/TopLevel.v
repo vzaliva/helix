@@ -296,7 +296,7 @@ Lemma initial_memory_from_data :
     heq_list (Vector.to_list y ++ Vector.to_list x ++ Vector.to_list a) data ->
     exists dynwin_F_memory data_garbage dynwin_F_σ,
       helix_initial_memory (dynwin_fhcolp dynwin_fhcol) data
-      = inr (dynwin_F_memory, data_garbage, dynwin_F_σ)
+      ≡ inr (dynwin_F_memory, data_garbage, dynwin_F_σ)
       /\ RHCOLtoFHCOL.heq_memory () RF_CHE (dynwin_R_memory a x) dynwin_F_memory
       /\ RHCOLtoFHCOL.heq_evalContext () RF_NHE RF_CHE dynwin_R_σ dynwin_F_σ.
 Admitted.
@@ -332,7 +332,7 @@ Proof.
   intros.
 
   edestruct initial_memory_from_data
-    as (dynwin_F_memory & data_garbage & dynwin_F_σ & F_initial_memory_OK & RFM & RFΣ);
+    as (dynwin_F_memory & data_garbage & dynwin_F_σ & HINIT & RFM & RFΣ);
     try eassumption.
 
   (* The current statement gives us essentially FHCOL-level inputs and outputs,
