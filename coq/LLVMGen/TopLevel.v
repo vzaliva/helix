@@ -135,10 +135,11 @@ Definition helix_finalizer (p:FSHCOLProgram) (yindex : nat)
 
 (* Replacement for [denote_FSHCOL] where the memory is shallowy initialized using [helix_initial_memory].
    In this setup, the address at which [x] and [y] are allocated in memory is explicitly hard-coded rather than relying on the exact behavior of [Alloc].
+
+TOFIX: stupid nonsense, mixing up memory-level computation where I shouldn't
  *)
-Definition denote_FSHCOL' (p:FSHCOLProgram) (data:list binary64)
+Definition denote_FSHCOL' (p:FSHCOLProgram) (data:list binary64) σ
   : itree Event (list binary64) :=
-  '(hmem,hdata,σ) <- lift_Derr (helix_initial_memory p data);;
   let xindex := List.length p.(globals) in
   let yindex := S xindex in
   let σ := List.app σ
@@ -148,9 +149,9 @@ Definition denote_FSHCOL' (p:FSHCOLProgram) (data:list binary64)
   denoteDSHOperator σ (p.(Data.op) : DSHOperator);;
   helix_finalizer p yindex.
 
-Definition semantics_FSHCOL' (p: FSHCOLProgram) (data : list binary64)
+Definition semantics_FSHCOL' (p: FSHCOLProgram) (data : list binary64) σ mem
   : failT (itree E_mcfg) (memoryH * list binary64) :=
-  interp_helix (denote_FSHCOL' p data) memory_empty.
+  interp_helix (denote_FSHCOL' p data σ) mem.
 
 (* TODO
    We want to express that the computed value is the right one
@@ -176,10 +177,10 @@ Lemma compiler_correct_aux:
   forall (p:FSHCOLProgram)
     (data:list binary64)
     (pll: toplevel_entities typ (LLVMAst.block typ * list (LLVMAst.block typ))),
-  forall s (* hmem hdata σ *),
-    (* helix_initial_memory p data ≡ inr (hmem, hdata, σ) -> *)
+  forall s hmem hdata σ,
     compile_w_main p data newState ≡ inr (s,pll) ->
-    eutt final_rel (semantics_FSHCOL' p data) (semantics_llvm pll).
+    helix_initial_memory p data ≡ inr (hmem, hdata, σ) ->
+    eutt final_rel (semantics_FSHCOL' p data σ hmem) (semantics_llvm pll).
 Proof.
   intros * COMP.
   unfold compile_w_main,compile in COMP.
@@ -244,6 +245,19 @@ Lemma helix_inital_memory_denote_initFSHGlobals :
     interp_helix (denote_initFSHGlobals data (globals p)) FHCOLITree.memory_empty ≈ (Ret (Some (hmem,(hdata,σ))) : itree E_mcfg _).
 Admitted.
 
+(* This would be essentially a better dynwin_outrel --- IZ could define it *)
+Definition dynwin_outrel_better : Vector.t CarrierA dynwin_o -> uvalue -> Prop.
+Admitted.
+
+(* Lemma magic_initial_memory dynwin_fhcol : *)
+(*   RHCOLtoFHCOL.translate DynWin_RHCOL = inr dynwin_fhcol → *)
+(*   exists dynwin_F_memory data_garbage dynwin_F_σ, *)
+(*     helix_initial_memory (dynwin_fhcolp dynwin_fhcol) data ≡ *)
+(*       inr ((dynwin_F_memory,data_garbage),dynwin_F_σ) /\ *)
+(*       heq_memory () RF_CHE (dynwin_R_memory a x) dynwin_F_memory /\ *)
+(*       heq_evalContext () RF_NHE RF_CHE dynwin_R_σ dynwin_F_σ. *)
+
+
 Lemma top_to_LLVM :
   forall (a : Vector.t CarrierA 3) (* parameter *)
     (x : Vector.t CarrierA dynwin_i)  (* input *)
@@ -261,20 +275,25 @@ Lemma top_to_LLVM :
         (dynwin_F_σ : evalContext)
         (dynwin_fhcol : FHCOL.DSHOperator)
         data
+
+        (* TODO: extracting this *)
         (heq_list : list CarrierA → list binary64 → Prop)
         (to_list : forall n, Vector.t CarrierA n -> list CarrierA)
         (PRE : heq_list (to_list _ y ++ to_list _ x ++ to_list _ a) data)
-        data',
+        data_garbage,
 
         RHCOLtoFHCOL.translate DynWin_RHCOL = inr dynwin_fhcol →
 
-        (* We must now that the initialization of memory succeeds on our parameters *)
+        (* We must now that the initialization of memory succeeds on our parameters.
+           Can we prove it (i.e. for this specific data, exists dynwin_
+         *)
         forall (HINIT : helix_initial_memory (dynwin_fhcolp dynwin_fhcol) data ≡
-          inr ((dynwin_F_memory,data'),dynwin_F_σ)),
+                   inr ((dynwin_F_memory,data_garbage),dynwin_F_σ)),
 
         (* heq_memory () RF_CHE (dynwin_R_memory a x) dynwin_F_memory → *)
         (* heq_evalContext () RF_NHE RF_CHE dynwin_R_σ dynwin_F_σ -> *)
 
+        (* We might be able to eliminate this: take stock on this later *)
         ∀ a_rmem x_rmem : RHCOLEval.mem_block,
           RHCOLEval.memory_lookup (dynwin_R_memory a x) dynwin_a_addr = Some a_rmem →
           RHCOLEval.memory_lookup (dynwin_R_memory a x) dynwin_x_addr = Some x_rmem →
@@ -286,13 +305,19 @@ Lemma top_to_LLVM :
              list CarrierA -> list binary64 -> Prop
            *)
           forall s pll
-            (COMP : compile_w_main (dynwin_fhcolp dynwin_fhcol) data newState ≡ inr (s,pll))
-            (* (HINIT : helix_initial_memory (dynwin_fhcolp dynwin_fhcol) JOKERa (* (dynwin_data a) *) ≡ inr (hmem, hdata, σ)) *)
-          ,
-          exists g l m r WILD, semantics_llvm pll ≡ Ret (m,(l,(g, r))) /\
-                             final_rel_val (WILD y) r.
+            (COMP : compile_w_main (dynwin_fhcolp dynwin_fhcol) data newState ≡ inr (s,pll)),
+          exists g l m r, semantics_llvm pll ≡ Ret (m,(l,(g, r))) /\
+                       dynwin_outrel_better y r.
 Proof.
   intros.
+
+  (* We must be able to prove this once and forall to clean up things? *)
+  (* assert (exists dynwin_F_memory data_garbage dynwin_F_σ, *)
+  (*            helix_initial_memory (dynwin_fhcolp dynwin_fhcol) data ≡ *)
+  (*              inr ((dynwin_F_memory,data_garbage),dynwin_F_σ) /\ *)
+  (*              heq_memory () RF_CHE (dynwin_R_memory a x) dynwin_F_memory /\ *)
+  (*              heq_evalContext () RF_NHE RF_CHE dynwin_R_σ dynwin_F_σ). *)
+
 
   (* Ilia/Vadim said these should hold true *)
   assert (EQMEM : heq_memory () RF_CHE (dynwin_R_memory a x) dynwin_F_memory) by admit.
@@ -320,7 +345,7 @@ Proof.
   clear H.
   rewrite interp_helix_bind, interp_helix_MemAlloc, bind_ret_l in COMP.
   rewrite interp_helix_bind, interp_helix_MemAlloc, bind_ret_l in COMP.
-  destruct (constMemBlock (Pos.to_nat 5) data') eqn:EQ'.
+  destruct (constMemBlock (Pos.to_nat 5) data_garbage) eqn:EQ'.
   rewrite interp_helix_bind, interp_helix_MemSet, bind_ret_l in COMP.
   rewrite interp_helix_bind in COMP.
   unfold interp_helix at 1 in COMP.
