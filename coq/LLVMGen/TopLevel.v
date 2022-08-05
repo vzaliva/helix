@@ -275,14 +275,6 @@ Admitted.
 Definition heq_list : list CarrierA → list binary64 → Prop
   := Forall2 (RHCOLtoFHCOL.heq_CType' RF_CHE ()).
 
-(* Lemma magic_initial_memory dynwin_fhcol : *)
-(*   RHCOLtoFHCOL.translate DynWin_RHCOL = inr dynwin_fhcol → *)
-(*   exists dynwin_F_memory data_garbage dynwin_F_σ, *)
-(*     helix_initial_memory (dynwin_fhcolp dynwin_fhcol) data ≡ *)
-(*       inr ((dynwin_F_memory,data_garbage),dynwin_F_σ) /\ *)
-(*       heq_memory () RF_CHE (dynwin_R_memory a x) dynwin_F_memory /\ *)
-(*       heq_evalContext () RF_NHE RF_CHE dynwin_R_σ dynwin_F_σ. *)
-
 (* IZ TODO: This could be stated more cleanly, and proven equivalent *)
 (* DynWinInConstr, only expressed on HCOL input directly *)
 Definition input_inConstr
@@ -294,9 +286,24 @@ Definition input_inConstr
     (MSigmaHCOL.MHCOL.ctvector_to_mem_block x).
 
 (* IZ TODO: generalize beyond just DynWin? *)
+Lemma initial_memory_from_data :
+  forall (a : Vector.t CarrierA 3)
+    (x : Vector.t CarrierA dynwin_i)
+    (y : Vector.t CarrierA dynwin_o)
+    dynwin_fhcol
+    data,
+    RHCOLtoFHCOL.translate DynWin_RHCOL = inr dynwin_fhcol →
+    heq_list (Vector.to_list y ++ Vector.to_list x ++ Vector.to_list a) data ->
+    exists dynwin_F_memory data_garbage dynwin_F_σ,
+      helix_initial_memory (dynwin_fhcolp dynwin_fhcol) data
+      = inr (dynwin_F_memory, data_garbage, dynwin_F_σ)
+      /\ RHCOLtoFHCOL.heq_memory () RF_CHE (dynwin_R_memory a x) dynwin_F_memory
+      /\ RHCOLtoFHCOL.heq_evalContext () RF_NHE RF_CHE dynwin_R_σ dynwin_F_σ.
+Admitted.
+
 Lemma top_to_LLVM :
   forall (a : Vector.t CarrierA 3) (* parameter *)
-    (x : Vector.t CarrierA dynwin_i)  (* input *)
+    (x : Vector.t CarrierA dynwin_i) (* input *)
     (y : Vector.t CarrierA dynwin_o), (* output *)
 
       (* Evaluation of the source program.
@@ -305,62 +312,36 @@ Lemma top_to_LLVM :
       dynwin_orig a x = y →
 
       (* We cannot hide away the [R] level as we axiomatize the real to float
-       approximation performed *)
-      ∀
-        (dynwin_F_memory : memoryH)
-        (dynwin_F_σ : evalContext)
-        (dynwin_fhcol : FHCOL.DSHOperator)
-        data
+         approximation performed *)
+      ∀ (dynwin_fhcol : FHCOL.DSHOperator)
+        (data : list binary64)
+        (PRE : heq_list
+                 (Vector.to_list y ++ Vector.to_list x ++ Vector.to_list a)
+                 data),
 
-        (* TODO: extracting this *)
-        (heq_list : list CarrierA → list binary64 → Prop)
-        (to_list : forall n, Vector.t CarrierA n -> list CarrierA)
-        (PRE : heq_list (to_list _ y ++ to_list _ x ++ to_list _ a) data)
-        data_garbage,
+        (* the input data must be within bounds for numerical stability *)
+        input_inConstr a x ->
 
         RHCOLtoFHCOL.translate DynWin_RHCOL = inr dynwin_fhcol →
 
-        (* We must now that the initialization of memory succeeds on our parameters.
-           Can we prove it (i.e. for this specific data, exists dynwin_
-         *)
-        forall (HINIT : helix_initial_memory (dynwin_fhcolp dynwin_fhcol) data ≡
-                   inr ((dynwin_F_memory,data_garbage),dynwin_F_σ)),
-
-        (* heq_memory () RF_CHE (dynwin_R_memory a x) dynwin_F_memory → *)
-        (* heq_evalContext () RF_NHE RF_CHE dynwin_R_σ dynwin_F_σ -> *)
-
-        (* We might be able to eliminate this: take stock on this later *)
-        ∀ a_rmem x_rmem : RHCOLEval.mem_block,
-          RHCOLEval.memory_lookup (dynwin_R_memory a x) dynwin_a_addr = Some a_rmem →
-          RHCOLEval.memory_lookup (dynwin_R_memory a x) dynwin_x_addr = Some x_rmem →
-
-          DynWinInConstr a_rmem x_rmem →
-
-          (* START OF LLVM-level stuff
-             Vector.t CarrierA n -> list CarrierA
-             list CarrierA -> list binary64 -> Prop
-           *)
-          forall s pll
-            (COMP : compile_w_main (dynwin_fhcolp dynwin_fhcol) data newState ≡ inr (s,pll)),
-          exists g l m r, semantics_llvm pll ≡ Ret (m,(l,(g, r))) /\
-                       dynwin_outrel_better y r.
+        forall s pll
+          (COMP : compile_w_main (dynwin_fhcolp dynwin_fhcol) data newState ≡ inr (s,pll)),
+        exists g l m r, semantics_llvm pll ≡ Ret (m,(l,(g, r))) /\
+                     final_rel_val y r.
 Proof.
   intros.
 
-  (* We must be able to prove this once and forall to clean up things? *)
-  (* assert (exists dynwin_F_memory data_garbage dynwin_F_σ, *)
-  (*            helix_initial_memory (dynwin_fhcolp dynwin_fhcol) data ≡ *)
-  (*              inr ((dynwin_F_memory,data_garbage),dynwin_F_σ) /\ *)
-  (*              heq_memory () RF_CHE (dynwin_R_memory a x) dynwin_F_memory /\ *)
-  (*              heq_evalContext () RF_NHE RF_CHE dynwin_R_σ dynwin_F_σ). *)
+  edestruct initial_memory_from_data
+    as (dynwin_F_memory & data_garbage & dynwin_F_σ & F_initial_memory_OK & RFM & RFΣ);
+    try eassumption.
 
-
-  (* Ilia/Vadim said these should hold true *)
-  assert (EQMEM : heq_memory () RF_CHE (dynwin_R_memory a x) dynwin_F_memory) by admit.
-  assert (EQCTX : heq_evalContext () RF_NHE RF_CHE dynwin_R_σ dynwin_F_σ) by admit.
-
-  (* The current statement gives us essentially FHCOL-level inputs and outputs, and relate them to the source *)
-  edestruct top_to_FHCOL with (dynwin_F_σ := dynwin_F_σ) (dynwin_F_memory := dynwin_F_memory) as (r_omemory & y_rmem' & EVR & LUR & TRR & f_omemory & y_fmem & EVF & LUF & TRF); eauto/g.
+  (* The current statement gives us essentially FHCOL-level inputs and outputs,
+     and relate them to the source *)
+  edestruct top_to_FHCOL
+    with (dynwin_F_σ := dynwin_F_σ) (dynwin_F_memory := dynwin_F_memory)
+    as (r_omemory & y_rmem' & EVR & LUR & TRR & f_omemory & y_fmem & EVF & LUF & TRF);
+    eauto/g.
+  1,2: now repeat constructor.
 
   (* TODO : evaluation in terms of equiv and not eq, contrary to what' assumed in EvalDenoteEquiv.
      Is it an easy fix to Denote_Eval_Equiv?
