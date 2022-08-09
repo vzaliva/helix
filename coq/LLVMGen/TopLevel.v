@@ -136,11 +136,10 @@ Definition helix_finalizer (p:FSHCOLProgram) (yindex : nat)
 (* Replacement for [denote_FSHCOL] where the memory is shallowy initialized using [helix_initial_memory].
    In this setup, the address at which [x] and [y] are allocated in memory is explicitly hard-coded rather than relying on the exact behavior of [Alloc].
 
-TOFIX: stupid nonsense, mixing up memory-level computation where I shouldn't
  *)
 Definition denote_FSHCOL' (p:FSHCOLProgram) (data:list binary64) σ
   : itree Event (list binary64) :=
-  let xindex := List.length p.(globals) in
+  let xindex := List.length p.(globals) - 1 in
   let yindex := S xindex in
   let σ := List.app σ
                     [(DSHPtrVal yindex p.(o),false);
@@ -217,16 +216,16 @@ Proof.
   (* pose proof memory_invariant_after_init _ _ (conj INIT COMP) as INIT_MEM. *)
 Admitted.
 
-Lemma compiler_correct_aux':
-  forall (p:FSHCOLProgram)
-    (data:list binary64)
-    (pll: toplevel_entities typ (LLVMAst.block typ * list (LLVMAst.block typ))),
-  forall s (* hmem hdata σ *),
-    (* helix_initial_memory p data ≡ inr (hmem, hdata, σ) -> *)
-    compile_w_main p data newState ≡ inr (s,pll) ->
-    eutt fhcol_to_llvm_rel (semantics_FSHCOL p data) (semantics_llvm pll).
-Proof.
-Admitted.
+(* Lemma compiler_correct_aux': *)
+(*   forall (p:FSHCOLProgram) *)
+(*     (data:list binary64) *)
+(*     (pll: toplevel_entities typ (LLVMAst.block typ * list (LLVMAst.block typ))), *)
+(*   forall s (* hmem hdata σ *), *)
+(*     (* helix_initial_memory p data ≡ inr (hmem, hdata, σ) -> *) *)
+(*     compile_w_main p data newState ≡ inr (s,pll) -> *)
+(*     eutt fhcol_to_llvm_rel (semantics_FSHCOL p data) (semantics_llvm pll). *)
+(* Proof. *)
+(* Admitted. *)
 
 
 (*
@@ -353,47 +352,44 @@ Proof.
   (* We know that we can see the evaluation of the FHCOL operator under an itree-lense  *)
   pose proof (Denote_Eval_Equiv _ _ _ _ _ EVF) as EQ.
 
-  eapply compiler_correct_aux' in COMP; try eassumption.
-  clear -EQ COMP HINIT.
-  unfold semantics_FSHCOL, denote_FSHCOL in COMP.
-  Opaque denote_initFSHGlobals.
-  cbn in COMP. rewrite interp_helix_bind in COMP.
-  pose proof helix_inital_memory_denote_initFSHGlobals _ _ _ _ _ HINIT.
-  (* This broke after the removal of [translate RHCOL = inr FHCOL] assumption,
-     replacing with DynWin_FHCOL_hard *)
-  (*
-  rewrite H, bind_ret_l in COMP.
-  clear H.
-  rewrite interp_helix_bind, interp_helix_MemAlloc, bind_ret_l in COMP.
-  rewrite interp_helix_bind, interp_helix_MemAlloc, bind_ret_l in COMP.
-  destruct (constMemBlock (Pos.to_nat 5) data_garbage) eqn:EQ'.
-  rewrite interp_helix_bind, interp_helix_MemSet, bind_ret_l in COMP.
+  eapply compiler_correct_aux in COMP; try eassumption.
+  unfold semantics_FSHCOL', denote_FSHCOL' in COMP.
+  Opaque denoteDSHOperator.
+  cbn in COMP.
   rewrite interp_helix_bind in COMP.
-  unfold interp_helix at 1 in COMP.
-   *)
+  match type of COMP with
+  | eutt _ (ITree.bind _ ?k) _ => remember k
+  end.
+  unfold interp_helix in COMP.
 
   (* No idea what this mismatch is *)
-  assert (dynwin_F_σ ++
-                           [(FHCOLITree.DSHPtrVal (FHCOLITree.memory_next_key dynwin_F_memory) dynwin_o',
-                            false);
-                           (FHCOLITree.DSHPtrVal (FHCOLITree.memory_next_key dynwin_F_memory) dynwin_i',
-                           false)] ≡ dynwin_F_σ) by admit.
-  rewrite H in COMP; clear H.
+  match type of COMP with
+  | context[denoteDSHOperator ?x _] =>
+      assert (TMP : dynwin_F_σ ≡ x) by admit
+  end.
+  rewrite <- TMP in COMP; clear TMP.
+  rewrite EQ in COMP.
+  rewrite interp_fail_ret in COMP.
+  cbn in COMP.
+  rewrite translate_ret in COMP.
+  rewrite bind_ret_l in COMP.
+  subst i.
 
-  (* (FHCOLITree.memory_set dynwin_F_memory (FHCOLITree.memory_next_key dynwin_F_memory) m) *)
+  rewrite interp_helix_bind in COMP.
+  clear LUF.
+  assert (LUF: memory_lookup f_omemory dynwin_y_addr ≡ Some y_fmem) by admit.
+  eapply interp_helix_MemLU in LUF.
+  rewrite LUF in COMP.
+  rewrite bind_ret_l in COMP.
 
+  assert (exists foo, (ListSetoid.monadic_Lbuild (Pos.to_nat 1)
+                    (λ (j : nat) (_ : (j < Pos.to_nat 1)%mc),
+                      trywith "Invalid output memory block" (FHCOL.mem_lookup j y_fmem))) ≡ inr foo) as [foo EQ'] by admit.
+  rewrite EQ' in COMP; cbn in COMP.
 
+  rewrite interp_helix_ret in COMP.
+  cbn in COMP.
 
+  (* Ret x ~R~ t -> exists y, t ~~ Ret y /\ R x y ?? *)
 
-  (* rewrite HINIT in COMP. *)
-  (* cbn in COMP. *)
-  (* rewrite bind_ret_l in COMP. *)
-  (* rewrite interp_helix_bind in COMP. *)
-  (* unfold interp_helix at 1 in COMP. *)
-
-  (* clear - EQ EVF COMP HINIT. *)
-  (* rewrite HINIT in COMP. *)
-  (* pose proof compile_FSHCOL_correct *)
-
-  (* Now we know that the compilation of operators is correct *)
 Admitted.

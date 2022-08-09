@@ -1156,8 +1156,9 @@ Proof.
 
           pose proof Heqo0 as NTH_σ_dst.
           apply nth_error_protect_eq' in NTH_σ_dst.
-          do 2 erewrite <- nth_error_Sn in NTH_σ_dst.
-
+          rewrite <- (nth_error_Sn (DSHCTypeVal v, false)) in NTH_σ_dst.
+          rewrite <- (nth_error_Sn (DSHCTypeVal b1, false)) in NTH_σ_dst.
+          (* do 2 erewrite <- nth_error_Sn in NTH_σ_dst. *)
           cbn in Gamma_cst.
           assert (Γ s2 ≡ Γ i19) as Γ_s2i19 by solve_gamma.
 
@@ -1222,18 +1223,16 @@ Proof.
             intros EQ; symmetry in EQ; revert EQ.
             eapply st_no_llvm_ptr_aliasing.
             * eapply NTH_σ.
-            * do 2 rewrite nth_error_Sn. admit.
-
-              (* apply (nth_error_protect_eq' n3 _ Heqo0). *)
+            * do 2 rewrite nth_error_Sn.
+              eapply (nth_error_protect_eq' n3 _ Heqo0). eauto.
             * eapply NTH_Γ.
             * rewrite Gamma_cst.
               do 2 rewrite nth_error_Sn.
               rewrite <- Γ_s2i19. rewrite <- Γ_S1S2.
               eauto.
             * intros CONTRA; inv CONTRA.
-               admit.
-              (* epose proof (st_no_id_aliasing _ _ _ _ _ _ _ NTH_σ NTH_σ_dst NTH_Γ NTH_Γ_dst) as EQ; inv EQ. *)
-              (* rewrite NTH_Γ in NTH_Γ_dst; inv NTH_Γ_dst. *)
+              epose proof (st_no_id_aliasing _ _ _ _ _ _ _ NTH_σ _ NTH_Γ NTH_Γ_dst) as EQ; inv EQ.
+              rewrite NTH_Γ in NTH_Γ_dst; inv NTH_Γ_dst.
             * eauto.
             * destruct i3.
               -- eauto.
@@ -1261,19 +1260,17 @@ Proof.
             intros EQ; symmetry in EQ; revert EQ.
             eapply st_no_llvm_ptr_aliasing.
             eapply NTH_σ.
-            { do 2 rewrite nth_error_Sn. admit.
-              (* apply (nth_error_protect_eq' n3 _ Heqo0). *)
+            { do 2 rewrite nth_error_Sn.
+              eapply (nth_error_protect_eq' n3 _ ); eauto.
             }
             eapply NTH_Γ.
             rewrite Gamma_cst.
             do 2 rewrite nth_error_Sn.
             rewrite <- Γ_s2i19. rewrite <- Γ_S1S2.
             eauto.
-            { intros CONTRA; inv CONTRA. admit.
-
-              (* epose proof (st_no_id_aliasing _ _ _ _ _ _ _ NTH_σ NTH_σ_dst NTH_Γ NTH_Γ_dst) as EQ; inv EQ. *)
-
-              (* rewrite NTH_Γ in NTH_Γ_dst; inv NTH_Γ_dst. *)
+            { intros CONTRA; inv CONTRA.
+              epose proof (st_no_id_aliasing _ _ _ _ _ _ _ NTH_σ _ NTH_Γ NTH_Γ_dst) as EQ; inv EQ.
+              rewrite NTH_Γ in NTH_Γ_dst; inv NTH_Γ_dst.
             }
             eauto.
             { destruct i3.
@@ -1301,8 +1298,10 @@ Proof.
             rewrite <- (handle_gep_addr_array_same_block _ _ _ _ HDST_GEP); eauto.
 
             eapply st_no_llvm_ptr_aliasing.
-            eapply NTH_σ. admit.
+            eapply NTH_σ.
+            (* n3 instead of n2? *)
             (* eapply NTH_σ_dst. *)
+            admit.
             eapply NTH_Γ.
             eapply NTH_Γ_dst.
             2-3: eauto.
