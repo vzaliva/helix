@@ -1224,7 +1224,8 @@ Proof.
             eapply st_no_llvm_ptr_aliasing.
             * eapply NTH_σ.
             * do 2 rewrite nth_error_Sn.
-              eapply (nth_error_protect_eq' n3 _ Heqo0). eauto.
+              admit.
+              (* eapply (nth_error_protect_eq' n3 _ Heqo0). eauto. *)
             * eapply NTH_Γ.
             * rewrite Gamma_cst.
               do 2 rewrite nth_error_Sn.
