@@ -208,12 +208,29 @@ Lemma compiler_correct_aux:
     helix_initial_memory p data ≡ inr (hmem, hdata, σ) ->
     eutt fhcol_to_llvm_rel (semantics_FSHCOL' p data σ hmem) (semantics_llvm pll).
 Proof.
-  intros * COMP.
+  intros * COMP INIT.
+  generalize COMP; intros COMP'.
   unfold compile_w_main,compile in COMP.
   cbn* in COMP.
   simp/g.
-  unshelve epose proof @compile_FSHCOL_correct _ _ _ (* dynwin_F_σ dynwin_F_memory *) _ _ _ _ _ _ _ _ _ Heqs _ _ _ _.
-  (* pose proof memory_invariant_after_init _ _ (conj INIT COMP) as INIT_MEM. *)
+  epose proof @compile_FSHCOL_correct _ _ _ (* dynwin_F_σ dynwin_F_memory *) _ _ _ _ _ _ _ _ _ Heqs _ _ _ _.
+  pose proof memory_invariant_after_init _ _ (conj INIT COMP') as INIT_MEM.
+  match goal with
+    |- context [semantics_llvm ?foo] => remember foo
+  end.
+  unfold semantics_llvm, semantics_llvm_mcfg, model_to_L3, denote_vellvm_init, denote_vellvm.
+  simpl bind.
+  rewrite interp3_bind.
+  ret_bind_l_left ((hmem, tt)).
+  eapply eutt_clo_bind.
+  apply INIT_MEM.
+  intros [? []] (? & ? & ? & []) INV.
+
+  rewrite interp3_bind.
+  (* Need to get all the initialization stuff concrete I think? *)
+  unfold initIRGlobals,initIRGlobals_rev, init_with_data in Heqs1.
+  cbn in Heqs1.
+
 Admitted.
 
 (* Lemma compiler_correct_aux': *)
