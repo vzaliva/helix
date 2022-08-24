@@ -584,6 +584,10 @@ Proof.
   edestruct @eutt_ret_inv_strong as (RESLLVM & EQLLVMINIT & INVINIT); [apply INIT_MEM |].
   destruct RESLLVM as (memI & [ρI sI] & gI & []).
 
+  inv INVINIT.
+  destruct decl_inv as [(main_addr & EQmain) (dyn_addr & EQdyn)].
+  cbn in EQdyn.
+
   unshelve epose proof @compile_FSHCOL_correct _ _ _ dynwin_F_σ dynwin_F_memory _ _ (Name "main_block") _ gI ρI memI Heqs0 _ _ _ _ as RES; clear Heqs0; cycle -1.
 
   -
@@ -608,8 +612,6 @@ Proof.
       cbn.
       rewrite !interp3_bind.
       rewrite !bind_bind.
-      inv INVINIT.
-      destruct decl_inv as [(main_addr & EQmain) (dyn_addr & EQdyn)].
       rewrite interp3_GR; [| apply EQdyn].
       rewrite bind_ret_l.
       rewrite interp3_ret.
@@ -683,9 +685,17 @@ Proof.
 
       match goal with
         |- context[interp_mrec ?x ] =>
-          replace x with (mcfg_ctx G)
+          replace x with (mcfg_ctx G) by reflexivity
       end.
-      rewrite interp3_call_void.
+      rewrite interp3_call_void; cycle 1.
+      reflexivity.
+      eauto.
+      {
+        destruct VG; subst.
+        unfold lookup_defn.
+        apply assoc_hd.
+      }
+
       cbn.
       rewrite bind_bind.
       match goal with
@@ -731,8 +741,8 @@ Proof.
       idtac.
       Import Interp.
 
-      rewrite foo; cycle -1.
-
+      rewrite foo; cycle 1.
+      (* Need a stronger invariant than [declarations_invariant] given by [memory_invariant_after_init] in order to get the addresses of the other globals *)
 
 
 (*
