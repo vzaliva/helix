@@ -314,6 +314,183 @@ Lemma initial_memory_from_data :
       /\ RHCOLtoFHCOL.heq_evalContext () RF_NHE RF_CHE dynwin_R_σ dynwin_F_σ.
 Admitted.
 
+Lemma interp_mem_interp_helix_ret : forall E σ op hmem fmem v,
+    interp_Mem (denoteDSHOperator σ op) hmem ≈ Ret (fmem,v) ->
+    interp_helix (E := E) (denoteDSHOperator σ op) hmem ≈ Ret (Some (fmem,v)).
+Proof.
+  intros * HI.
+  unfold interp_helix.
+  rewrite HI.
+  rewrite interp_fail_ret.
+  cbn.
+  rewrite translate_ret.
+  reflexivity.
+Qed.
+
+
+Notation mcfg_ctx fundefs :=
+  (λ (T : Type) (call : CallE T),
+    match call in (CallE T0) return (itree (CallE +' ExternalCallE +' IntrinsicE +' LLVMGEnvE +' (LLVMEnvE +' LLVMStackE) +' MemoryE +' PickE +' UBE +' DebugE +' FailureE) T0) with
+    | LLVMEvents.Call dt0 fv args0 =>
+        dfv <- concretize_or_pick fv True;;
+        match lookup_defn dfv fundefs with
+        | Some f_den => f_den args0
+        | None => dargs <- map_monad (λ uv : uvalue, pickUnique uv) args0;; Functor.fmap dvalue_to_uvalue (trigger (ExternalCall dt0 fv dargs))
+        end
+    end).
+
+Import RecursionFacts.
+Lemma denote_mcfg_unfold_in : forall G τ addr args f,
+    lookup_defn (DVALUE_Addr addr) G ≡ Some f ->
+    denote_mcfg G τ (UVALUE_Addr addr) args ≈
+      interp_mrec (mcfg_ctx G) (f args).
+Proof.
+  intros * LU.
+  unfold denote_mcfg at 1.
+  rewrite RecursionFacts.mrec_as_interp.
+  simpl bind. rewrite interp_bind.
+  cbn.
+  rewrite interp_ret, bind_ret_l.
+  rewrite LU.
+  rewrite <- RecursionFacts.interp_mrec_as_interp.
+  reflexivity.
+Qed.
+
+
+Lemma interp3_MemPush: forall g l m,
+    ℑs3 (trigger MemPush) g l m ≈ Ret3 g l (push_fresh_frame m) ().
+Proof.
+  intros.
+  unfold ℑs3.
+  MCFGTactics.go.
+  rewrite interp_memory_trigger.
+  cbn.
+  MCFGTactics.go.
+  reflexivity.
+Qed.
+
+
+Lemma interp3_StackPush: forall g a sbot m s,
+    ℑs3 (trigger (StackPush s)) g (a,sbot) m ≈
+      Ret3 g (fold_right (λ '(x, dv), alist_add x dv) [] s, a :: sbot) m ().
+Proof.
+  intros.
+  unfold ℑs3.
+  MCFGTactics.go.
+  reflexivity.
+Qed.
+
+Import TranslateFacts.
+
+Global Instance Proper_interp_mrec_foo {D E}
+  (ctx : D ~> itree (D +' E)) T :
+  Proper (eutt eq ==> eutt eq) (interp_mrec ctx (T := T)).
+Proof.
+  repeat intro.
+  eapply Proper_interp_mrec; auto.
+  intros ??.
+  reflexivity.
+Qed.
+
+Lemma interp_mrec_ret :
+  ∀ (D E : Type → Type) (ctx : ∀ T : Type, D T → itree (D +' E) T) (U : Type) (u : U),
+    interp_mrec ctx (Ret u) ≅ (Ret u).
+Proof.
+  intros.
+  rewrite unfold_interp_mrec; reflexivity.
+Qed.
+
+Lemma interp3_call_void : forall G n τ f fdfn args g s m addr,
+    prefix "llvm." f = false ->
+    Maps.lookup (Name f) g ≡ Some (DVALUE_Addr addr) ->
+    lookup_defn (DVALUE_Addr addr) G ≡ Some fdfn ->
+
+    ℑs3 (interp_mrec (mcfg_ctx G)
+           (Interp.translate instr_to_L0'
+              ⟦(IVoid n, INSTR_Call (τ, EXP_Ident (ID_Global (Name f))) args) ⟧i)) g s m
+      ≈
+      '(m,(s,(g,vs))) <- ℑs3 (interp_mrec (mcfg_ctx G)
+                               (Interp.translate instr_to_L0'
+                                  (map_monad (λ '(t, op), Interp.translate exp_to_instr ⟦ op at t ⟧e) args))) g s m
+    ;;
+
+    '(m,(s,(g,v))) <- ℑs3 (interp_mrec (mcfg_ctx G) (fdfn vs)) g s m;;
+    Ret (m,(s,(g,tt))).
+Proof.
+  intros * PRE LU LUD.
+  Transparent denote_instr.
+  cbn.
+  rewrite translate_bind, interp_mrec_bind, interp3_bind.
+  (* Expressions are pure, lifted by induction over map_monad *)
+  apply eutt_clo_bind with
+    (UU := fun '(m1,(s1,(g1,v))) m2 =>
+             (m1,(s1,(g1,v))) ≡ m2 /\ m1 ≡ m /\ s1 ≡ s /\ g1 ≡ g).
+  admit.
+  intros (m1,(s1,(g1,v1))) (m2,(s2,(g2,v2))) (EQ & -> & -> & ->).
+  symmetry in EQ; inv EQ.
+  rewrite PRE.
+  (* repeat break_and. *)
+  rewrite bind_bind.
+  rewrite translate_bind, interp_mrec_bind, interp3_bind.
+  Transparent denote_exp.
+  unfold denote_exp.
+  cbn.
+  rewrite bind_trigger.
+  rewrite translate_vis.
+  rewrite translate_vis.
+  rewrite translate_vis.
+  cbn.
+  rewrite <- bind_trigger.
+  rewrite interp_mrec_bind.
+  rewrite interp_mrec_trigger.
+  cbn.
+  rewrite interp3_bind.
+  match goal with
+    |- context[ℑs3 ?e] =>
+      let eqn := fresh in
+      assert (eqn:e ≡ trigger (@GlobalRead raw_id dvalue (Name f))) by reflexivity;
+      rewrite eqn; clear eqn
+  end.
+  rewrite interp3_GR; [| apply LU].
+  rewrite bind_ret_l.
+  rewrite 3translate_ret.
+
+  rewrite interp_mrec_ret, interp3_ret, bind_ret_l.
+
+  rewrite !translate_bind, interp_mrec_bind, interp3_bind.
+  rewrite translate_trigger, interp_mrec_trigger.
+  cbn.
+  rewrite mrec_as_interp.
+  cbn.
+  rewrite bind_ret_l.
+  rewrite LUD.
+  cbn.
+  rewrite <- RecursionFacts.interp_mrec_as_interp.
+
+  apply eutt_eq_bind.
+  intros (? & ? & ? & ?).
+  rewrite translate_ret, interp_mrec_ret, interp3_ret.
+  reflexivity.
+  Opaque denote_instr.
+  Opaque denote_exp.
+
+Admitted.
+
+From Paco Require Import paco.
+Lemma eutt_ret_inv_strong {E X Y} (R : X -> Y -> Prop) (x : X) (t : itree E Y) :
+  eutt R (Ret x) t ->
+  exists y, t ≈ Ret y /\ R x y.
+Proof.
+  intros EQ; punfold EQ.
+  red in EQ.
+  dependent induction EQ.
+  - exists r2; split; auto.
+    rewrite itree_eta, <-x; reflexivity.
+  - edestruct IHEQ as (y & EQ1 & HR); auto.
+    exists y; split; auto.
+    now rewrite itree_eta, <- x, tau_eutt.
+Qed.
+
 Lemma top_to_LLVM :
   forall (a : Vector.t CarrierA 3) (* parameter *)
     (x : Vector.t CarrierA dynwin_i) (* input *)
@@ -404,49 +581,17 @@ Proof.
   end.
   destruct u.
 
-
-  From Paco Require Import paco.
-  Lemma eutt_ret_inv_strong {E X Y} (R : X -> Y -> Prop) (x : X) (t : itree E Y) :
-    eutt R (Ret x) t ->
-    exists y, t ≈ Ret y /\ R x y.
-  Proof.
-    intros EQ; punfold EQ.
-    red in EQ.
-    dependent induction EQ.
-    - exists r2; split; auto.
-      rewrite itree_eta, <-x; reflexivity.
-    - edestruct IHEQ as (y & EQ1 & HR); auto.
-      exists y; split; auto.
-      now rewrite itree_eta, <- x, tau_eutt.
-  Qed.
-
   edestruct @eutt_ret_inv_strong as (RESLLVM & EQLLVMINIT & INVINIT); [apply INIT_MEM |].
   destruct RESLLVM as (memI & [ρI sI] & gI & []).
 
   unshelve epose proof @compile_FSHCOL_correct _ _ _ dynwin_F_σ dynwin_F_memory _ _ (Name "main_block") _ gI ρI memI Heqs0 _ _ _ _ as RES; clear Heqs0; cycle -1.
 
   -
-
-
-    Lemma interp_mem_interp_helix_ret : forall E σ op hmem fmem v,
-        interp_Mem (denoteDSHOperator σ op) hmem ≈ Ret (fmem,v) ->
-        interp_helix (E := E) (denoteDSHOperator σ op) hmem ≈ Ret (Some (fmem,v)).
-    Proof.
-      intros * HI.
-      unfold interp_helix.
-      rewrite HI.
-      rewrite interp_fail_ret.
-      cbn.
-      rewrite translate_ret.
-      reflexivity.
-    Qed.
-
     eapply interp_mem_interp_helix_ret in EQ.
     rewrite EQ in RES.
     clear EQ.
     edestruct @eutt_ret_inv_strong as (RESLLVM2 & EQLLVM2 & INV2); [apply RES |].
     destruct RESLLVM2 as (mem2 & ρ2 & g2 & v2).
-
 
     assert (forall x, semantics_llvm G ≈ x).
     { intros ?.
@@ -482,35 +627,6 @@ Proof.
         |- context [denote_mcfg ?x] => remember x as G eqn:VG; apply boxh_cfg in VG
       end.
 
-
-      Notation mcfg_ctx fundefs :=
-        (λ (T : Type) (call : CallE T),
-          match call in (CallE T0) return (itree (CallE +' ExternalCallE +' IntrinsicE +' LLVMGEnvE +' (LLVMEnvE +' LLVMStackE) +' MemoryE +' PickE +' UBE +' DebugE +' FailureE) T0) with
-          | LLVMEvents.Call dt0 fv args0 =>
-              dfv <- concretize_or_pick fv True;;
-              match lookup_defn dfv fundefs with
-              | Some f_den => f_den args0
-              | None => dargs <- map_monad (λ uv : uvalue, pickUnique uv) args0;; Functor.fmap dvalue_to_uvalue (trigger (ExternalCall dt0 fv dargs))
-              end
-          end).
-
-      Import RecursionFacts.
-      Lemma denote_mcfg_unfold_in : forall G τ addr args f,
-          lookup_defn (DVALUE_Addr addr) G ≡ Some f ->
-          denote_mcfg G τ (UVALUE_Addr addr) args ≈
-            interp_mrec (mcfg_ctx G) (f args).
-      Proof.
-        intros * LU.
-        unfold denote_mcfg at 1.
-        rewrite RecursionFacts.mrec_as_interp.
-        simpl bind. rewrite interp_bind.
-        cbn.
-        rewrite interp_ret, bind_ret_l.
-        rewrite LU.
-        rewrite <- RecursionFacts.interp_mrec_as_interp.
-        reflexivity.
-      Qed.
-
       rewrite denote_mcfg_unfold_in; cycle -1.
 
       {
@@ -531,18 +647,6 @@ Proof.
       rewrite interp3_bind.
 
 
-      Lemma interp3_MemPush: forall g l m,
-          ℑs3 (trigger MemPush) g l m ≈ Ret3 g l (push_fresh_frame m) ().
-      Proof.
-        intros.
-        unfold ℑs3.
-        MCFGTactics.go.
-        rewrite interp_memory_trigger.
-        cbn.
-        MCFGTactics.go.
-        reflexivity.
-      Qed.
-
       rewrite interp3_MemPush.
 
       rewrite bind_ret_l.
@@ -551,16 +655,6 @@ Proof.
       cbn.
       rewrite interp3_bind.
 
-
-      Lemma interp3_StackPush: forall g a sbot m s,
-          ℑs3 (trigger (StackPush s)) g (a,sbot) m ≈
-            Ret3 g (fold_right (λ '(x, dv), alist_add x dv) [] s, a :: sbot) m ().
-      Proof.
-        intros.
-        unfold ℑs3.
-        MCFGTactics.go.
-        reflexivity.
-      Qed.
 
       rewrite interp3_StackPush.
 
@@ -571,18 +665,7 @@ Proof.
       rewrite interp_mrec_bind.
       rewrite interp3_bind.
       rewrite bind_bind.
-      Import TranslateFacts.
       cbn.
-
-      Global Instance Proper_interp_mrec_foo {D E}
-        (ctx : D ~> itree (D +' E)) T :
-        Proper (eutt eq ==> eutt eq) (interp_mrec ctx (T := T)).
-      Proof.
-        repeat intro.
-        eapply Proper_interp_mrec; auto.
-        intros ??.
-        reflexivity.
-      Qed.
 
       rewrite denote_ocfg_unfold_in; cycle -1.
       rewrite find_block_eq; reflexivity.
@@ -596,27 +679,61 @@ Proof.
       rewrite bind_bind.
       cbn.
       focus_single_step_l.
+      subst ctx.
 
-      Lemma foo : forall ctx n τ f args x g s m,
-          prefix "llvm." f = false ->
-          (* map_monad (λ '(t, op), Interp.translate exp_to_instr ⟦ op at t ⟧e) args *)
+      match goal with
+        |- context[interp_mrec ?x ] =>
+          replace x with (mcfg_ctx G)
+      end.
+      rewrite interp3_call_void.
+      cbn.
+      rewrite bind_bind.
+      match goal with
+        |- context [interp_mrec ?x] => remember x as ctx
+      end.
+      rewrite translate_bind, interp_mrec_bind,interp3_bind, bind_bind.
+
+      Lemma foo :
+
+        ∀ ctx (g : global_env) s (m : memoryV) id (τ : dtyp) (ptr : Addr.addr),
+          alist_find id g ≡ Some (DVALUE_Addr ptr) ->
+
           ℑs3 (interp_mrec ctx
                  (Interp.translate instr_to_L0'
-                    ⟦(IVoid n, INSTR_Call (τ, EXP_Ident (ID_Global (Name f))) args) ⟧i)) g s m
+                    (Interp.translate exp_to_instr (denote_exp (Some τ) (EXP_Ident (ID_Global id)))))) g s m
             ≈
-            '(g,(s,(m,vs))) <-  ℑs3 (interp_mrec ctx
-                   (Interp.translate instr_to_L0'
-                      (map_monad (λ '(t, op), Interp.translate exp_to_instr ⟦ op at t ⟧e) args))) g s m;;
-          x vs g s m.
+            Ret3 g s m (UVALUE_Addr ptr)
+      .
       Proof.
-        intros.
-        Transparent denote_instr.
+        intros * LU.
+        Transparent denote_exp.
+        unfold denote_exp.
         cbn.
-        rewrite translate_bind, interp_mrec_bind, interp3_bind.
-        apply eutt_eq_bind; intros.
-        rewrite H.
-        repeat break_and.
-        rewrite bind_bind.
+        rewrite 3translate_bind, interp_mrec_bind, interp3_bind.
+        rewrite !translate_trigger.
+        cbn.
+        rewrite interp_mrec_trigger.
+        cbn.
+
+        match goal with
+          |- context[ℑs3 ?e] =>
+            let eqn := fresh in
+            assert (eqn:e ≡ trigger (@GlobalRead raw_id dvalue id)) by reflexivity;
+            rewrite eqn; clear eqn
+        end.
+
+        rewrite interp3_GR; [| apply LU].
+        rewrite bind_ret_l.
+        rewrite !translate_ret,interp_mrec_ret,interp3_ret.
+        reflexivity.
+      Qed.
+
+      idtac.
+      Import Interp.
+
+      rewrite foo; cycle -1.
+
+
 
 (*
         rewrite denote_exp_ID.
