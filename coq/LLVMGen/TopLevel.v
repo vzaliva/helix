@@ -491,6 +491,164 @@ Proof.
     now rewrite itree_eta, <- x, tau_eutt.
 Qed.
 
+Lemma denote_mcfg_ID_Global :
+  ∀ ctx (g : global_env) s (m : memoryV) id (τ : dtyp) (ptr : Addr.addr),
+    alist_find id g ≡ Some (DVALUE_Addr ptr) ->
+
+    ℑs3 (interp_mrec ctx
+           (Interp.translate instr_to_L0'
+              (Interp.translate exp_to_instr (denote_exp (Some τ) (EXP_Ident (ID_Global id)))))) g s m
+      ≈
+      Ret3 g s m (UVALUE_Addr ptr)
+.
+Proof.
+  intros * LU.
+  Transparent denote_exp.
+  unfold denote_exp.
+  cbn.
+  rewrite 3translate_bind, interp_mrec_bind, interp3_bind.
+  rewrite !translate_trigger.
+  cbn.
+  rewrite interp_mrec_trigger.
+  cbn.
+
+  match goal with
+    |- context[ℑs3 ?e] =>
+      let eqn := fresh in
+      assert (eqn:e ≡ trigger (@GlobalRead raw_id dvalue id)) by reflexivity;
+      rewrite eqn; clear eqn
+  end.
+
+  rewrite interp3_GR; [| apply LU].
+  rewrite bind_ret_l.
+  rewrite !translate_ret,interp_mrec_ret,interp3_ret.
+  reflexivity.
+Qed.
+
+Import Interp.
+
+From Vellvm Require Import Utils.PostConditions.
+
+Import AlistNotations.
+Definition global_ptr_exists fnname : Pred_mcfg :=
+  fun '(mem_llvm, (ρ,g)) => exists mf, g @ fnname ≡ Some (DVALUE_Addr mf).
+
+Definition global_ptr_existsT {T} fnname : Pred_mcfg_T T :=
+  fun '(mem_llvm, (ρ,(g,_))) => exists mf, g @ fnname ≡ Some (DVALUE_Addr mf).
+
+Lemma allocate_global_spec : forall (glob : global dtyp) g s m,
+    non_void (g_typ glob) ->
+    ℑs3 (allocate_global glob) g s m ⤳
+      (global_ptr_existsT (g_ident glob)).
+Proof.
+  intros.
+  unfold allocate_global.
+  cbn.
+  rewrite interp3_bind.
+  edestruct interp3_alloca as (? & mf & ? & EQ); [eauto |].
+  rewrite EQ; clear EQ.
+  cbn; rewrite bind_ret_l.
+  rewrite interp3_GW.
+  apply eutt_Ret.
+  cbn.
+  exists mf.
+  now rewrite alist_find_add_eq.
+Qed.
+
+Lemma interp3_map_monad {A B} g l m (xs : list A) (ts : A -> itree _ B) :
+  ℑs3 (map_monad ts xs) g l m ≈
+    map_monad (m := Monads.stateT _ (Monads.stateT _ (Monads.stateT _ (itree _))))
+    (fun a => ℑs3 (ts a)) xs g l m.
+Proof.
+  intros; revert g l m; induction xs as [| a xs IH]; simpl; intros.
+  - rewrite interp3_ret; reflexivity.
+  - rewrite interp3_bind.
+    apply eutt_eq_bind; intros (? & ? & ? & ?); cbn.
+    rewrite interp3_bind, IH.
+    apply eutt_eq_bind; intros (? & ? & ? & ?); cbn.
+    rewrite interp3_ret; reflexivity.
+Qed.
+
+Lemma exp_eq_dec: ∀ e1 e2 : exp dtyp, {e1 ≡ e2} + {e1 ≢ e2}.
+Admitted.
+
+Lemma global_eq_dec: ∀ g1 g2 : global dtyp, {g1 ≡ g2} + {g1 ≢ g2}.
+Proof.
+  repeat decide equality.
+  apply exp_eq_dec.
+  apply dtyp_eq_dec.
+Qed.
+
+Lemma allocate_globals_spec : forall (gs:list (global dtyp)) glob (g : global_env) s m,
+    In glob gs ->
+    NoDup (List.map g_ident gs) ->
+    Forall (fun x => non_void (g_typ x)) gs ->
+    ℑs3 (allocate_globals gs) g s m ⤳ (global_ptr_existsT (g_ident glob)).
+Proof.
+  intros * IN NOD NV.
+  unfold allocate_globals.
+  unfold map_monad_; cbn; rewrite interp3_bind.
+  apply has_post_bind_strong with (S := global_ptr_existsT (g_ident glob)).
+  - cut (forall gs g s m
+           (NV : Forall (fun x => non_void (g_typ x)) gs)
+           (IN : (NoDup (List.map g_ident gs) /\ In glob gs) \/ (~ (In (g_ident glob) (List.map g_ident gs)) /\ global_ptr_exists (g_ident glob) (m,(s,g)))),
+            ℑs3 (map_monad allocate_global gs) g s m ⤳ global_ptr_existsT (g_ident glob)).
+    {
+      intros H.
+      apply H; auto.
+    }
+    clear.
+    induction gs as [| g' gs IH].
+    + intros.
+      destruct IN as [[? []] | [NIN INV]].
+      cbn; rewrite interp3_ret; apply eutt_Ret.
+      apply INV.
+    + intros.
+      cbn.
+      rewrite bind_bind.
+      rewrite interp3_bind.
+      edestruct interp3_alloca as (? & mf & ? & EQ); [| rewrite EQ].
+      now inv NV.
+      cbn.
+      rewrite bind_ret_l.
+      rewrite interp3_bind.
+      rewrite interp3_GW.
+      rewrite bind_ret_l.
+      rewrite interp3_bind.
+      eapply has_post_bind_strong.
+      apply IH.
+      * now inv NV.
+      * destruct IN as [IN | [NIN HI]].
+        {
+          destruct (global_eq_dec glob g').
+          { right.
+            destruct IN as [NOD IN].
+            subst g'.
+            split.
+            now inv NOD.
+            cbn.
+            setoid_rewrite alist_find_add_eq.
+            eauto.
+          }
+          left.
+          destruct IN as [NOD []]; [subst; exfalso; now apply n| split;auto].
+          now inv NOD.
+        }
+        right.
+        apply not_in_cons in NIN as [NEQ NIN]; split; [apply NIN |].
+        cbn.
+        destruct HI.
+        exists x0.
+        rewrite alist_find_neq; auto.
+
+      * intros (?,(?,(?,?))) HI.
+        rewrite interp3_ret. apply eutt_Ret.
+        apply HI.
+  - intros (?,(?,(?,?))) HI.
+    rewrite interp3_ret; apply eutt_Ret.
+    apply HI.
+Qed.
+
 Lemma top_to_LLVM :
   forall (a : Vector.t CarrierA 3) (* parameter *)
     (x : Vector.t CarrierA dynwin_i) (* input *)
@@ -703,168 +861,8 @@ Proof.
       end.
       rewrite translate_bind, interp_mrec_bind,interp3_bind, bind_bind.
 
-      Lemma foo :
-
-        ∀ ctx (g : global_env) s (m : memoryV) id (τ : dtyp) (ptr : Addr.addr),
-          alist_find id g ≡ Some (DVALUE_Addr ptr) ->
-
-          ℑs3 (interp_mrec ctx
-                 (Interp.translate instr_to_L0'
-                    (Interp.translate exp_to_instr (denote_exp (Some τ) (EXP_Ident (ID_Global id)))))) g s m
-            ≈
-            Ret3 g s m (UVALUE_Addr ptr)
-      .
-      Proof.
-        intros * LU.
-        Transparent denote_exp.
-        unfold denote_exp.
-        cbn.
-        rewrite 3translate_bind, interp_mrec_bind, interp3_bind.
-        rewrite !translate_trigger.
-        cbn.
-        rewrite interp_mrec_trigger.
-        cbn.
-
-        match goal with
-          |- context[ℑs3 ?e] =>
-            let eqn := fresh in
-            assert (eqn:e ≡ trigger (@GlobalRead raw_id dvalue id)) by reflexivity;
-            rewrite eqn; clear eqn
-        end.
-
-        rewrite interp3_GR; [| apply LU].
-        rewrite bind_ret_l.
-        rewrite !translate_ret,interp_mrec_ret,interp3_ret.
-        reflexivity.
-      Qed.
-
       focus_single_step_l.
-      idtac.
-      Import Interp.
-
-      From Vellvm Require Import Utils.PostConditions.
-
-      Import AlistNotations.
-      Definition global_ptr_exists fnname : Pred_mcfg :=
-        fun '(mem_llvm, (ρ,g)) => exists mf, g @ fnname ≡ Some (DVALUE_Addr mf).
-
-      Definition global_ptr_existsT {T} fnname : Pred_mcfg_T T :=
-        fun '(mem_llvm, (ρ,(g,_))) => exists mf, g @ fnname ≡ Some (DVALUE_Addr mf).
-
-      Lemma allocate_global_spec : forall (glob : global dtyp) g s m,
-          non_void (g_typ glob) ->
-          ℑs3 (allocate_global glob) g s m ⤳
-            (global_ptr_existsT (g_ident glob)).
-      Proof.
-        intros.
-        unfold allocate_global.
-        cbn.
-        rewrite interp3_bind.
-        edestruct interp3_alloca as (? & mf & ? & EQ); [eauto |].
-        rewrite EQ; clear EQ.
-        cbn; rewrite bind_ret_l.
-        rewrite interp3_GW.
-        apply eutt_Ret.
-        cbn.
-        exists mf.
-        now rewrite alist_find_add_eq.
-      Qed.
-
-      Lemma interp3_map_monad {A B} g l m (xs : list A) (ts : A -> itree _ B) :
-        ℑs3 (map_monad ts xs) g l m ≈
-          map_monad (m := Monads.stateT _ (Monads.stateT _ (Monads.stateT _ (itree _))))
-          (fun a => ℑs3 (ts a)) xs g l m.
-      Proof.
-        intros; revert g l m; induction xs as [| a xs IH]; simpl; intros.
-        - rewrite interp3_ret; reflexivity.
-        - rewrite interp3_bind.
-          apply eutt_eq_bind; intros (? & ? & ? & ?); cbn.
-          rewrite interp3_bind, IH.
-          apply eutt_eq_bind; intros (? & ? & ? & ?); cbn.
-          rewrite interp3_ret; reflexivity.
-      Qed.
-
-      Lemma exp_eq_dec: ∀ e1 e2 : exp dtyp, {e1 ≡ e2} + {e1 ≢ e2}.
-      Admitted.
-
-      Lemma global_eq_dec: ∀ g1 g2 : global dtyp, {g1 ≡ g2} + {g1 ≢ g2}.
-      Proof.
-        repeat decide equality.
-        apply exp_eq_dec.
-        apply dtyp_eq_dec.
-      Qed.
-
-      Lemma allocate_globals_spec : forall (gs:list (global dtyp)) glob (g : global_env) s m,
-          In glob gs ->
-          NoDup (List.map g_ident gs) ->
-          Forall (fun x => non_void (g_typ x)) gs ->
-          ℑs3 (allocate_globals gs) g s m ⤳ (global_ptr_existsT (g_ident glob)).
-      Proof.
-        intros * IN NOD NV.
-        unfold allocate_globals.
-        unfold map_monad_; cbn; rewrite interp3_bind.
-        apply has_post_bind_strong with (S := global_ptr_existsT (g_ident glob)).
-        - cut (forall gs g s m
-                 (NV : Forall (fun x => non_void (g_typ x)) gs)
-                 (IN : (NoDup (List.map g_ident gs) /\ In glob gs) \/ (~ (In (g_ident glob) (List.map g_ident gs)) /\ global_ptr_exists (g_ident glob) (m,(s,g)))),
-                  ℑs3 (map_monad allocate_global gs) g s m ⤳ global_ptr_existsT (g_ident glob)).
-          {
-            intros H.
-            apply H; auto.
-          }
-          clear.
-          induction gs as [| g' gs IH].
-          + intros.
-            destruct IN as [[? []] | [NIN INV]].
-            cbn; rewrite interp3_ret; apply eutt_Ret.
-            apply INV.
-          + intros.
-            cbn.
-            rewrite bind_bind.
-            rewrite interp3_bind.
-            edestruct interp3_alloca as (? & mf & ? & EQ); [| rewrite EQ].
-            now inv NV.
-            cbn.
-            rewrite bind_ret_l.
-            rewrite interp3_bind.
-            rewrite interp3_GW.
-            rewrite bind_ret_l.
-            rewrite interp3_bind.
-            eapply has_post_bind_strong.
-            apply IH.
-            * now inv NV.
-            * destruct IN as [IN | [NIN HI]].
-              {
-                destruct (global_eq_dec glob g').
-                { right.
-                  destruct IN as [NOD IN].
-                  subst g'.
-                  split.
-                  now inv NOD.
-                  cbn.
-                  setoid_rewrite alist_find_add_eq.
-                  eauto.
-                }
-                left.
-                destruct IN as [NOD []]; [subst; exfalso; now apply n| split;auto].
-                now inv NOD.
-              }
-              right.
-              apply not_in_cons in NIN as [NEQ NIN]; split; [apply NIN |].
-              cbn.
-              destruct HI.
-              exists x0.
-              rewrite alist_find_neq; auto.
-
-            * intros (?,(?,(?,?))) HI.
-              rewrite interp3_ret. apply eutt_Ret.
-              apply HI.
-        - intros (?,(?,(?,?))) HI.
-          rewrite interp3_ret; apply eutt_Ret.
-          apply HI.
-      Qed.
-
-      rewrite foo; cycle 1.
+      rewrite denote_mcfg_ID_Global; cycle 1.
       (* Need a stronger invariant than [declarations_invariant] given by [memory_invariant_after_init] in order to get the addresses of the other globals *)
 
 
