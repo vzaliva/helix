@@ -572,6 +572,20 @@ Qed.
 Lemma exp_eq_dec: ∀ e1 e2 : exp dtyp, {e1 ≡ e2} + {e1 ≢ e2}.
 Admitted.
 
+Lemma allocate_globals_cons :
+  forall g gs,
+    allocate_globals (g :: gs) ≈ allocate_global g;; allocate_globals gs.
+Proof.
+  intros; cbn.
+  rewrite !bind_bind.
+  apply eutt_eq_bind; intros ?.
+  apply eutt_eq_bind; intros ?.
+  rewrite !bind_bind.
+  apply eutt_eq_bind; intros ?.
+  rewrite bind_ret_l.
+  reflexivity.
+Qed.
+
 Lemma global_eq_dec: ∀ g1 g2 : global dtyp, {g1 ≡ g2} + {g1 ≢ g2}.
 Proof.
   repeat decide equality.
@@ -649,6 +663,30 @@ Proof.
     apply HI.
 Qed.
 
+(* We would want something stronger like the following.
+   But unfortunately it cannot be derived from the weaker
+   spec directly by induction as the weaker spec does not
+   specify that we preserve the other [global_ptr_existsT]
+   predicates.
+ *)
+Lemma allocate_globals_spec' :
+  forall (gs:list (global dtyp)) (g : global_env) s m,
+    NoDup (List.map g_ident gs) ->
+    Forall (fun x => non_void (g_typ x)) gs ->
+    ℑs3 (allocate_globals gs) g s m ⤳
+      (fun s => forall glob, In glob gs -> global_ptr_existsT (g_ident glob) s).
+Proof.
+  induction gs as [| glob gs IH]; intros * NOD NV.
+  - cbn; rewrite bind_ret_l, interp3_ret.
+    apply eutt_Ret.
+    intros ? [].
+  - rewrite allocate_globals_cons.
+    cbn. rewrite interp3_bind.
+    eapply has_post_bind_strong.
+    apply allocate_global_spec. now inv NV. 
+    intros ? IH'; repeat break_and.
+Abort.
+
 Lemma top_to_LLVM :
   forall (a : Vector.t CarrierA 3) (* parameter *)
     (x : Vector.t CarrierA dynwin_i) (* input *)
@@ -677,6 +715,7 @@ Lemma top_to_LLVM :
 Proof.
   intros/g.
 
+  (* Specification of the initial memory on the helix side *)
   edestruct initial_memory_from_data
     as (dynwin_F_memory & data_garbage & dynwin_F_σ & HINIT & RFM & RFΣ);
     try eassumption/g.
@@ -702,6 +741,7 @@ Proof.
   (* We know that we can see the evaluation of the FHCOL operator under an itree-lense  *)
   pose proof (Denote_Eval_Equiv _ _ _ _ _ EVF) as EQ.
 
+  (* Breaking down the compilation process *)
   Opaque genIR.
   generalize COMP; intros COMP'.
   unfold compile_w_main,compile in COMP.
@@ -728,8 +768,13 @@ Proof.
   break_and; cbn in Heqs2/g.
   inv_sum/g.
   cbn.
-  (* cbn* in COMP. *)
-  (* simp/g. *)
+
+
+  (* Processing the construction of the LLVM global environment:
+     We know that the two functions of interest have been allocated,
+     and that the memories on each side satisfy the major relational
+     invariant.
+   *)
   pose proof memory_invariant_after_init _ _ (conj HINIT COMP') as INIT_MEM; clear COMP' HINIT.
   match type of INIT_MEM with
   | context[mcfg_of_tle ?x] => remember x as tmp; cbn in Heqtmp; subst tmp
@@ -738,35 +783,54 @@ Proof.
     |- context [semantics_llvm ?x] => remember x as G eqn:VG; apply boxh_cfg in VG
   end.
   destruct u.
-
   edestruct @eutt_ret_inv_strong as (RESLLVM & EQLLVMINIT & INVINIT); [apply INIT_MEM |].
   destruct RESLLVM as (memI & [ρI sI] & gI & []).
-
   inv INVINIT.
   destruct decl_inv as [(main_addr & EQmain) (dyn_addr & EQdyn)].
   cbn in EQdyn.
 
+  (* We are getting closer to business: instantiating the lemma
+     stating the correctness of the compilation of operators *)
   unshelve epose proof @compile_FSHCOL_correct _ _ _ dynwin_F_σ dynwin_F_memory _ _ (Name "main_block") _ gI ρI memI Heqs0 _ _ _ _ as RES; clear Heqs0; cycle -1.
 
-  -
+  - (* Assuming we can discharge all the preconditions,
+       we prove here that it is sufficient for establishing
+       our toplevel correctness statement.
+     *)
     eapply interp_mem_interp_helix_ret in EQ.
     rewrite EQ in RES.
     clear EQ.
     edestruct @eutt_ret_inv_strong as (RESLLVM2 & EQLLVM2 & INV2); [apply RES |].
     destruct RESLLVM2 as (mem2 & ρ2 & g2 & v2).
 
+    (* We need to reason about [semantics_llvm].
+       Hopefully we now have all the pieces into our
+       context, we try to go through it via some kind of
+       symbolic execution to figure out what statement
+       we need precisely.
+     *)
     assert (forall x, semantics_llvm G ≈ x).
     { intros ?.
 
       unfold semantics_llvm, semantics_llvm_mcfg, model_to_L3, denote_vellvm_init, denote_vellvm.
       simpl bind.
       rewrite interp3_bind.
+      (* We know that building the global environment is pure,
+         and satisfy a certain spec.
+       *)
       rewrite EQLLVMINIT.
       rewrite bind_ret_l.
+
       rewrite interp3_bind.
-      match goal with
-        |- context[ITree.bind _ ?k] => remember k end.
+      focus_single_step_l.
+
+      (* We build the open denotations of the functions, i.e.
+         of "main" and "dyn_win".
+        [memory_invariant_after_init] has guaranteed us that
+        they are allocated in memory (via [EQdyn] and [EQmain])
+       *)
       destruct VG. subst.
+      focus_single_step_l.
       cbn.
       rewrite !interp3_bind.
       rewrite !bind_bind.
@@ -778,8 +842,11 @@ Proof.
       rewrite !bind_bind.
       rewrite interp3_GR; [| apply EQmain].
       repeat (rewrite bind_ret_l || rewrite interp3_ret).
+      subst.
       cbn.
       rewrite interp3_bind.
+
+      (* We now specifically get the pointer to the main as the entry point *)
       rewrite interp3_GR; [| apply EQmain].
       repeat (rewrite bind_ret_l || rewrite interp3_ret).
       cbn.
@@ -787,14 +854,23 @@ Proof.
         |- context [denote_mcfg ?x] => remember x as G eqn:VG; apply boxh_cfg in VG
       end.
 
+      (* We are done with the initialization of the runtime, we can
+         now begin the evaluation of the program per se. *)
+
+      (* We hence first do a one step unfolding of the mutually
+         recursive fixpoint in order to jump into the body of the main.
+       *)
       rewrite denote_mcfg_unfold_in; cycle -1.
 
       {
-      destruct VG; subst.
-      unfold lookup_defn.
-      rewrite assoc_tl.
-      apply assoc_hd.
-      admit. (* addresses are distincts *)
+        destruct VG; subst.
+        unfold lookup_defn.
+        rewrite assoc_tl.
+        apply assoc_hd.
+        (* Need to keep track of the fact that [main_addr] and [dyn_addr]
+           are distinct. Might be hidden somewhere in the context.
+         *)
+        admit. (* addresses are distincts *)
       }
       cbn.
       match goal with
@@ -806,16 +882,13 @@ Proof.
       cbn.
       rewrite interp3_bind.
 
-
+      (* Function call, we first create a new memory frame *)
       rewrite interp3_MemPush.
-
       rewrite bind_ret_l.
       rewrite interp_mrec_bind.
       rewrite interp_mrec_trigger.
       cbn.
       rewrite interp3_bind.
-
-
       rewrite interp3_StackPush.
 
       rewrite bind_ret_l.
@@ -827,12 +900,17 @@ Proof.
       rewrite bind_bind.
       cbn.
 
+      (* We are now evaluating the main.
+         We hence first need to need to jump into the right block
+       *)
       rewrite denote_ocfg_unfold_in; cycle -1.
       rewrite find_block_eq; reflexivity.
       rewrite denote_block_unfold.
+      (* No phi node in this block *)
       rewrite denote_no_phis.
       rewrite bind_ret_l.
       rewrite bind_bind.
+      (* We hence evaluate the code: it starts with a function call to "dyn_win"! *)
       rewrite denote_code_cons.
       rewrite bind_bind,translate_bind.
       rewrite interp_mrec_bind, interp3_bind.
@@ -840,7 +918,6 @@ Proof.
       cbn.
       focus_single_step_l.
       subst ctx.
-
       match goal with
         |- context[interp_mrec ?x ] =>
           replace x with (mcfg_ctx G) by reflexivity
@@ -860,9 +937,101 @@ Proof.
         |- context [interp_mrec ?x] => remember x as ctx
       end.
       rewrite translate_bind, interp_mrec_bind,interp3_bind, bind_bind.
-
       focus_single_step_l.
+
+      (* This function call has arguments: we need to evaluate those.
+         These arguments are globals that have been allocated during
+         the initialization phase, but I'm afraid we lost this fact
+         at this moment.
+         In particular right now, we need to lookup in the global
+         environment the address to an array stored at [Anon 0].
+
+         Do I need to reinforce [memory_invariant_after_init] or is
+         what I need a consequence of [genIR_post]?
+       *)
       rewrite denote_mcfg_ID_Global; cycle 1.
+
+      (*
+
+  assert (forall x g s m, ℑs3 (build_global_environment (convert_types (mcfg_of_tle [TLE_Global {|
+                 g_ident := Anon 0%Z;
+                 g_typ := TYPE_Array (Npos 5) TYPE_Double;
+                 g_constant := true;
+                 g_exp := Some (EXP_Array l5);
+                 g_linkage := None;
+                 g_visibility := None;
+                 g_dll_storage := None;
+                 g_thread_local := None;
+                 g_unnamed_addr := false;
+                 g_addrspace := None;
+                 g_externally_initialized := false;
+                 g_section := None;
+                 g_align := None
+               |}
+                 ]))) g s m ⤳ x).
+  {
+    clear.
+    intros.
+    unfold build_global_environment.
+    simpl bind. rewrite interp3_bind.
+    match goal with
+      |- has_post (ITree.bind _ ?x) _ => remember x
+    end.
+    cbn; rewrite bind_ret_l, interp3_ret, bind_ret_l.
+    subst.
+    rewrite interp3_bind.
+    eapply has_post_bind_strong.
+    apply allocate_globals_spec.
+    left; reflexivity.
+    cbn; constructor; [intros [] | constructor].
+    constructor; [cbn; rewrite typ_to_dtyp_D_array; intros abs; inv abs
+                 | apply Forall_nil].
+    intros ? IH; repeat break_and.
+    cbn in IH.
+    destruct IH as (? & EQ).
+    cbn.
+    rewrite ?bind_bind, ?bind_ret_l.
+    rewrite translate_bind, translate_trigger,interp3_bind.
+    rewrite exp_to_L0_Global.
+    rewrite subevent_subevent.
+    rewrite interp3_GR; [| apply EQ].
+    rewrite bind_ret_l.
+    rewrite ?bind_bind, ?bind_ret_l.
+    unfold denote_exp.
+    cbn.
+    rewrite translate_bind, translate_trigger,interp3_bind.
+ 
+    cbn.
+    rewrite interp3_GR.
+
+    eapply has_post_bind_strong.
+
+
+  Record post_init_invariant_enriched
+    (fnname:string) (σ : evalContext) (s : IRState) (memH : memoryH) (configV : config_cfg) : Prop :=
+    {
+      state_inv: state_invariant σ s memH configV;
+      decl_inv:  declarations_invariant fnname configV;
+      globs_inv : globals_invariant
+    }.
+
+
+(post_init_invariant_mcfg_enriched p.(name) σ s)
+
+Lemma memory_invariant_after_init_enriched
+      (p: FSHCOLProgram)
+      (data: list binary64) :
+  forall hmem σ s hdata pll,
+    helix_initial_memory p data ≡ inr (hmem,hdata,σ) /\
+    compile_w_main p data newState ≡ inr (s,pll) ->
+    eutt
+      (post_init_invariant_mcfg p.(name) σ s)
+      (Ret (hmem, ()))
+      (interp_mcfg3 (build_global_environment (convert_types (mcfg_of_tle pll)))
+                    [] ([],[]) empty_memory_stack).
+
+*)
+
       (* Need a stronger invariant than [declarations_invariant] given by [memory_invariant_after_init] in order to get the addresses of the other globals *)
 
 
