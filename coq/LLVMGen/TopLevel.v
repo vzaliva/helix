@@ -328,14 +328,31 @@ Proof.
 Qed.
 
 
-Notation mcfg_ctx fundefs :=
+(* Notation mcfg_ctx fundefs := *)
+(*   (λ (T : Type) (call : CallE T), *)
+(*     match call in (CallE T0) return (itree (CallE +' ExternalCallE +' IntrinsicE +' LLVMGEnvE +' (LLVMEnvE +' LLVMStackE) +' MemoryE +' PickE +' UBE +' DebugE +' FailureE) T0) with *)
+(*     | LLVMEvents.Call dt0 fv args0 => *)
+(*         dfv <- concretize_or_pick fv True;; *)
+(*         match lookup_defn dfv fundefs with *)
+(*         | Some f_den => f_den args0 *)
+(*         | None => dargs <- map_monad (λ uv : uvalue, pickUnique uv) args0;; Functor.fmap dvalue_to_uvalue (trigger (ExternalCall dt0 fv dargs)) *)
+(*         end *)
+(*     end). *)
+
+#[local] Definition mcfg_ctx fundefs :
+  ∀ T : Type,
+    CallE T
+    → itree (CallE +' ExternalCallE +' IntrinsicE +' LLVMGEnvE +' (LLVMEnvE +' LLVMStackE) +' MemoryE +' PickE +' UBE +' DebugE +' FailureE) T :=
+
   (λ (T : Type) (call : CallE T),
     match call in (CallE T0) return (itree (CallE +' ExternalCallE +' IntrinsicE +' LLVMGEnvE +' (LLVMEnvE +' LLVMStackE) +' MemoryE +' PickE +' UBE +' DebugE +' FailureE) T0) with
     | LLVMEvents.Call dt0 fv args0 =>
         dfv <- concretize_or_pick fv True;;
         match lookup_defn dfv fundefs with
         | Some f_den => f_den args0
-        | None => dargs <- map_monad (λ uv : uvalue, pickUnique uv) args0;; Functor.fmap dvalue_to_uvalue (trigger (ExternalCall dt0 fv dargs))
+        | None =>
+            dargs <- map_monad (λ uv : uvalue, pickUnique uv) args0;;
+            Functor.fmap dvalue_to_uvalue (trigger (ExternalCall dt0 fv dargs))
         end
     end).
 
@@ -683,9 +700,369 @@ Proof.
   - rewrite allocate_globals_cons.
     cbn. rewrite interp3_bind.
     eapply has_post_bind_strong.
-    apply allocate_global_spec. now inv NV. 
+    apply allocate_global_spec. now inv NV.
     intros ? IH'; repeat break_and.
 Abort.
+
+#[local] Definition GFUNC dyn_addr b0 l4 main_addr :=
+  [(DVALUE_Addr dyn_addr,
+        ⟦ TFunctor_definition typ dtyp (typ_to_dtyp [])
+            {|
+              df_prototype :=
+                {|
+                  dc_name := Name "dyn_win";
+                  dc_type :=
+                    TYPE_Function TYPE_Void
+                      [TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double);
+                      TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double)];
+                  dc_param_attrs := ([], [PARAMATTR_Readonly :: ArrayPtrParamAttrs; ArrayPtrParamAttrs]);
+                  dc_linkage := None;
+                  dc_visibility := None;
+                  dc_dll_storage := None;
+                  dc_cconv := None;
+                  dc_attrs := [];
+                  dc_section := None;
+                  dc_align := None;
+                  dc_gc := None
+                |};
+              df_args := [Name "X"; Name "Y"];
+              df_instrs :=
+                cfg_of_definition typ
+                  {|
+                    df_prototype :=
+                      {|
+                        dc_name := Name "dyn_win";
+                        dc_type :=
+                          TYPE_Function TYPE_Void
+                            [TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double);
+                            TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double)];
+                        dc_param_attrs :=
+                          ([], [PARAMATTR_Readonly :: ArrayPtrParamAttrs; ArrayPtrParamAttrs]);
+                        dc_linkage := None;
+                        dc_visibility := None;
+                        dc_dll_storage := None;
+                        dc_cconv := None;
+                        dc_attrs := [];
+                        dc_section := None;
+                        dc_align := None;
+                        dc_gc := None
+                      |};
+                    df_args := [Name "X"; Name "Y"];
+                    df_instrs := (b0, l4)
+                  |}
+            |} ⟧f);
+       (DVALUE_Addr main_addr,
+       ⟦ TFunctor_definition typ dtyp (typ_to_dtyp [])
+           {|
+             df_prototype :=
+               {|
+                 dc_name := Name "main";
+                 dc_type := TYPE_Function (TYPE_Array (Npos 1) TYPE_Double) [];
+                 dc_param_attrs := ([], []);
+                 dc_linkage := None;
+                 dc_visibility := None;
+                 dc_dll_storage := None;
+                 dc_cconv := None;
+                 dc_attrs := [];
+                 dc_section := None;
+                 dc_align := None;
+                 dc_gc := None
+               |};
+             df_args := [];
+             df_instrs :=
+               cfg_of_definition typ
+                 {|
+                   df_prototype :=
+                     {|
+                       dc_name := Name "main";
+                       dc_type := TYPE_Function (TYPE_Array (Npos 1) TYPE_Double) [];
+                       dc_param_attrs := ([], []);
+                       dc_linkage := None;
+                       dc_visibility := None;
+                       dc_dll_storage := None;
+                       dc_cconv := None;
+                       dc_attrs := [];
+                       dc_section := None;
+                       dc_align := None;
+                       dc_gc := None
+                     |};
+                   df_args := [];
+                   df_instrs :=
+                     ({|
+                        blk_id := Name "main_block";
+                        blk_phis := [];
+                        blk_code :=
+                          [(IVoid 0%Z,
+                           INSTR_Call (TYPE_Void, EXP_Ident (ID_Global (Name "dyn_win")))
+                             [(TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double),
+                              EXP_Ident (ID_Global (Anon 0%Z)));
+                             (TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double),
+                             EXP_Ident (ID_Global (Anon 1%Z)))]);
+                          (IId (Name "z"),
+                          INSTR_Load false (TYPE_Array (Npos 1) TYPE_Double)
+                            (TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double),
+                            EXP_Ident (ID_Global (Anon 1%Z))) None)];
+                        blk_term :=
+                          TERM_Ret (TYPE_Array (Npos 1) TYPE_Double, EXP_Ident (ID_Local (Name "z")));
+                        blk_comments := None
+                      |}, [])
+                 |}
+           |} ⟧f)].
+
+#[local] Definition Γi :=
+  {|
+    block_count := 1;
+    local_count := 0;
+    void_count := 0;
+    Γ :=
+      [(ID_Global (Name "a"), TYPE_Pointer (TYPE_Array (Npos 3) TYPE_Double));
+       (ID_Local (Name "Y"), TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double));
+       (ID_Local (Name "X"), TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double));
+       (ID_Global (Anon 1%Z), TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double));
+       (ID_Global (Anon 0%Z), TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double))]
+  |}.
+
+#[local] Definition MCFG l6 l3 l5 b0 l4 :=
+  (TLE_Global {|
+                               g_ident := Name "a";
+                               g_typ := TYPE_Array (Npos 3) TYPE_Double;
+                               g_constant := true;
+                               g_exp := Some (EXP_Array l6);
+                               g_linkage := Some LINKAGE_Internal;
+                               g_visibility := None;
+                               g_dll_storage := None;
+                               g_thread_local := None;
+                               g_unnamed_addr := true;
+                               g_addrspace := None;
+                               g_externally_initialized := false;
+                               g_section := None;
+                               g_align := Some 16%Z
+                             |}
+                           :: TLE_Global
+                                {|
+                                  g_ident := Anon 1%Z;
+                                  g_typ := TYPE_Array (Npos 1) TYPE_Double;
+                                  g_constant := true;
+                                  g_exp := Some (EXP_Array l3);
+                                  g_linkage := None;
+                                  g_visibility := None;
+                                  g_dll_storage := None;
+                                  g_thread_local := None;
+                                  g_unnamed_addr := false;
+                                  g_addrspace := None;
+                                  g_externally_initialized := false;
+                                  g_section := None;
+                                  g_align := None
+                                |}
+                              :: TLE_Global
+                                   {|
+                                     g_ident := Anon 0%Z;
+                                     g_typ := TYPE_Array (Npos 5) TYPE_Double;
+                                     g_constant := true;
+                                     g_exp := Some (EXP_Array l5);
+                                     g_linkage := None;
+                                     g_visibility := None;
+                                     g_dll_storage := None;
+                                     g_thread_local := None;
+                                     g_unnamed_addr := false;
+                                     g_addrspace := None;
+                                     g_externally_initialized := false;
+                                     g_section := None;
+                                     g_align := None
+                                   |}
+                                 :: TLE_Comment "Prototypes for intrinsics we use"
+                                    :: TLE_Declaration IntrinsicsDefinitions.fabs_32_decl
+                                       :: TLE_Declaration IntrinsicsDefinitions.fabs_64_decl
+                                          :: TLE_Declaration IntrinsicsDefinitions.maxnum_32_decl
+                                             :: TLE_Declaration IntrinsicsDefinitions.maxnum_64_decl
+                                                :: TLE_Declaration IntrinsicsDefinitions.minimum_32_decl
+                                                   :: TLE_Declaration IntrinsicsDefinitions.minimum_64_decl
+                                                      :: TLE_Declaration
+                                                           IntrinsicsDefinitions.memcpy_8_decl
+                                                         :: TLE_Comment "Top-level operator definition"
+                                                            :: TLE_Definition
+                                                                 {|
+                                                                   df_prototype :=
+                                                                     {|
+                                                                       dc_name := Name "dyn_win";
+                                                                       dc_type :=
+                                                                         TYPE_Function TYPE_Void
+                                                                           [TYPE_Pointer
+                                                                              (TYPE_Array
+                                                                              (Npos 5) TYPE_Double);
+                                                                           TYPE_Pointer
+                                                                             (TYPE_Array
+                                                                              (Npos 1) TYPE_Double)];
+                                                                       dc_param_attrs :=
+                                                                         ([],
+                                                                         [PARAMATTR_Readonly
+                                                                          :: ArrayPtrParamAttrs;
+                                                                         ArrayPtrParamAttrs]);
+                                                                       dc_linkage := None;
+                                                                       dc_visibility := None;
+                                                                       dc_dll_storage := None;
+                                                                       dc_cconv := None;
+                                                                       dc_attrs := [];
+                                                                       dc_section := None;
+                                                                       dc_align := None;
+                                                                       dc_gc := None
+                                                                     |};
+                                                                   df_args := [Name "X"; Name "Y"];
+                                                                   df_instrs := (b0, l4)
+                                                                 |}
+                                                               :: genMain "dyn_win"
+                                                                    (Anon 0%Z)
+                                                                    (TYPE_Pointer
+                                                                       (TYPE_Array (Npos 5) TYPE_Double))
+                                                                    (Anon 1%Z)
+                                                                    (TYPE_Array (Npos 1) TYPE_Double)
+                                                                    (TYPE_Pointer
+                                                                       (TYPE_Array (Npos 1) TYPE_Double))).
+
+Definition MAIN :=
+  {|
+    df_prototype :=
+      {|
+        dc_name := Name "main";
+        dc_type := TYPE_Function (TYPE_Array (Npos 1) TYPE_Double) [];
+        dc_param_attrs := ([], []);
+        dc_linkage := None;
+        dc_visibility := None;
+        dc_dll_storage := None;
+        dc_cconv := None;
+        dc_attrs := [];
+        dc_section := None;
+        dc_align := None;
+        dc_gc := None
+      |};
+    df_args := [];
+    df_instrs :=
+      cfg_of_definition typ
+                        {|
+                          df_prototype :=
+                            {|
+                              dc_name := Name "main";
+                              dc_type := TYPE_Function (TYPE_Array (Npos 1) TYPE_Double) [];
+                              dc_param_attrs := ([], []);
+                              dc_linkage := None;
+                              dc_visibility := None;
+                              dc_dll_storage := None;
+                              dc_cconv := None;
+                              dc_attrs := [];
+                              dc_section := None;
+                              dc_align := None;
+                              dc_gc := None
+                            |};
+                          df_args := [];
+                          df_instrs :=
+                            ({|
+                                blk_id := Name "main_block";
+                                blk_phis := [];
+                                blk_code :=
+                                  [(IVoid 0%Z,
+                                     INSTR_Call (TYPE_Void, EXP_Ident (ID_Global (Name "dyn_win")))
+                                       [(TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double),
+                                          EXP_Ident (ID_Global (Anon 0%Z)));
+                                        (TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double),
+                                          EXP_Ident (ID_Global (Anon 1%Z)))]);
+                                   (IId (Name "z"),
+                                     INSTR_Load false (TYPE_Array (Npos 1) TYPE_Double)
+                                       (TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double),
+                                         EXP_Ident (ID_Global (Anon 1%Z))) None)];
+                                blk_term :=
+                                  TERM_Ret (TYPE_Array (Npos 1) TYPE_Double, EXP_Ident (ID_Local (Name "z")));
+                                blk_comments := None
+                              |}, [])
+                        |}
+  |}.
+
+Definition DYNWIN b0 l4 :=
+{|
+                        df_prototype :=
+                          {|
+                            dc_name := Name "dyn_win";
+                            dc_type :=
+                              TYPE_Function TYPE_Void
+                                [TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double);
+                                TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double)];
+                            dc_param_attrs :=
+                              ([], [PARAMATTR_Readonly :: ArrayPtrParamAttrs; ArrayPtrParamAttrs]);
+                            dc_linkage := None;
+                            dc_visibility := None;
+                            dc_dll_storage := None;
+                            dc_cconv := None;
+                            dc_attrs := [];
+                            dc_section := None;
+                            dc_align := None;
+                            dc_gc := None
+                          |};
+                        df_args := [Name "X"; Name "Y"];
+                        df_instrs :=
+                          cfg_of_definition typ
+                            {|
+                              df_prototype :=
+                                {|
+                                  dc_name := Name "dyn_win";
+                                  dc_type :=
+                                    TYPE_Function TYPE_Void
+                                      [TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double);
+                                      TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double)];
+                                  dc_param_attrs :=
+                                    ([], [PARAMATTR_Readonly :: ArrayPtrParamAttrs; ArrayPtrParamAttrs]);
+                                  dc_linkage := None;
+                                  dc_visibility := None;
+                                  dc_dll_storage := None;
+                                  dc_cconv := None;
+                                  dc_attrs := [];
+                                  dc_section := None;
+                                  dc_align := None;
+                                  dc_gc := None
+                                |};
+                              df_args := [Name "X"; Name "Y"];
+                              df_instrs := (b0, l4)
+                            |}
+|}.
+
+Opaque MCFG MAIN DYNWIN GFUNC Γi mcfg_ctx.
+
+Ltac hide_MCFG l6 l3 l5 b0 l4 :=
+  match goal with
+  | h : context[mcfg_of_tle ?x] |- _ =>
+      progress change x with (MCFG l6 l3 l5 b0 l4) in h
+  | |- context[semantics_llvm ?x] => progress change x with (MCFG l6 l3 l5 b0 l4)
+  end.
+
+Ltac hide_Γi :=
+  match goal with
+  | h : context [genIR _ _ ?x] |- _ => progress change x with Γi in h
+  end.
+
+Ltac hide_GFUNC dyn_addr b0 l4 main_addr :=
+  match goal with
+    |- context [denote_mcfg ?x] =>
+      progress change x with (GFUNC dyn_addr b0 l4 main_addr)
+  end.
+
+Ltac hide_MAIN :=
+  match goal with
+    |- context [TFunctor_definition _ _ _ ?x] =>
+      progress change x with MAIN
+  end.
+
+Ltac hide_DYNWIN b0 l4 :=
+  match goal with
+    |- context [TFunctor_definition _ _ _ ?x] =>
+      progress change x with (DYNWIN b0 l4)
+  end.
+
+Ltac hide_mcfg_ctx dyn_addr b0 l4 main_addr :=
+  match goal with
+    |- context[interp_mrec ?x ] =>
+      replace x with (mcfg_ctx (GFUNC dyn_addr b0 l4 main_addr)) by reflexivity
+  end.
+
+Ltac HIDE l6 l3 l5 b0 l4 dyn_addr main_addr
+  := repeat (hide_MCFG l6 l3 l5 b0 l4 || hide_GFUNC dyn_addr b0 l4 main_addr || hide_Γi || hide_MAIN || hide_DYNWIN b0 l4 || hide_mcfg_ctx dyn_addr b0 l4 main_addr).
 
 Lemma top_to_LLVM :
   forall (a : Vector.t CarrierA 3) (* parameter *)
@@ -769,20 +1146,37 @@ Proof.
   inv_sum/g.
   cbn.
 
-
   (* Processing the construction of the LLVM global environment:
      We know that the two functions of interest have been allocated,
      and that the memories on each side satisfy the major relational
      invariant.
    *)
   pose proof memory_invariant_after_init _ _ (conj HINIT COMP') as INIT_MEM; clear COMP' HINIT.
-  match type of INIT_MEM with
-  | context[mcfg_of_tle ?x] => remember x as tmp; cbn in Heqtmp; subst tmp
-  end.
-  match goal with
-    |- context [semantics_llvm ?x] => remember x as G eqn:VG; apply boxh_cfg in VG
-  end.
   destruct u.
+
+  (* The context gets... quite big. We try to prevent it as much as possible early on *)
+
+  Tactic Notation "tmp" ident(l6)
+    ident(l3)
+    ident(l5)
+    ident(b0)
+    ident(l4)
+    ident(dyn_addr)
+    ident(main_addr)
+    := HIDE l6 l3 l5 b0 l4 dyn_addr main_addr.
+  Ltac hide := tmp l6 l3 l5 b0 l4 dyn_addr main_addr.
+  hide.
+
+  (* match type of INIT_MEM with *)
+  (* | context[mcfg_of_tle ?x] => remember x as tmp; cbn in Heqtmp; subst tmp *)
+  (* end. *)
+
+  (* match goal with *)
+  (*   |- context [semantics_llvm ?x] => remember x as G eqn:VG; apply boxh_cfg in VG *)
+  (* end. *)
+
+
+
   edestruct @eutt_ret_inv_strong as (RESLLVM & EQLLVMINIT & INVINIT); [apply INIT_MEM |].
   destruct RESLLVM as (memI & [ρI sI] & gI & []).
   inv INVINIT.
@@ -809,10 +1203,12 @@ Proof.
        symbolic execution to figure out what statement
        we need precisely.
      *)
-    assert (forall x, semantics_llvm G ≈ x).
+    assert (forall x, semantics_llvm (MCFG l6 l3 l5 b0 l4) ≈ x).
     { intros ?.
 
       unfold semantics_llvm, semantics_llvm_mcfg, model_to_L3, denote_vellvm_init, denote_vellvm.
+
+
       simpl bind.
       rewrite interp3_bind.
       (* We know that building the global environment is pure,
@@ -829,12 +1225,14 @@ Proof.
         [memory_invariant_after_init] has guaranteed us that
         they are allocated in memory (via [EQdyn] and [EQmain])
        *)
-      destruct VG. subst.
-      focus_single_step_l.
-      cbn.
+      (* Hmm, amusing hack, [unfold] respects Opaque but not [unfold at i] *)
+      unfold MCFG at 1 2; cbn.
+      hide.
+
       rewrite !interp3_bind.
       rewrite !bind_bind.
       rewrite interp3_GR; [| apply EQdyn].
+
       rewrite bind_ret_l.
       rewrite interp3_ret.
       rewrite bind_ret_l.
@@ -845,14 +1243,12 @@ Proof.
       subst.
       cbn.
       rewrite interp3_bind.
+      hide.
 
       (* We now specifically get the pointer to the main as the entry point *)
       rewrite interp3_GR; [| apply EQmain].
       repeat (rewrite bind_ret_l || rewrite interp3_ret).
       cbn.
-      match goal with
-        |- context [denote_mcfg ?x] => remember x as G eqn:VG; apply boxh_cfg in VG
-      end.
 
       (* We are done with the initialization of the runtime, we can
          now begin the evaluation of the program per se. *)
@@ -863,7 +1259,7 @@ Proof.
       rewrite denote_mcfg_unfold_in; cycle -1.
 
       {
-        destruct VG; subst.
+        unfold GFUNC at 1.
         unfold lookup_defn.
         rewrite assoc_tl.
         apply assoc_hd.
@@ -872,10 +1268,8 @@ Proof.
          *)
         admit. (* addresses are distincts *)
       }
+
       cbn.
-      match goal with
-        |- context [interp_mrec ?x] => remember x as ctx
-      end.
       rewrite bind_ret_l.
       rewrite interp_mrec_bind.
       rewrite interp_mrec_trigger.
@@ -917,25 +1311,20 @@ Proof.
       rewrite bind_bind.
       cbn.
       focus_single_step_l.
-      subst ctx.
-      match goal with
-        |- context[interp_mrec ?x ] =>
-          replace x with (mcfg_ctx G) by reflexivity
-      end.
+
+      hide.
       rewrite interp3_call_void; cycle 1.
       reflexivity.
       eauto.
       {
-        destruct VG; subst.
+        unfold GFUNC at 1.
         unfold lookup_defn.
         apply assoc_hd.
       }
-
+      hide.
       cbn.
       rewrite bind_bind.
-      match goal with
-        |- context [interp_mrec ?x] => remember x as ctx
-      end.
+      hide.
       rewrite translate_bind, interp_mrec_bind,interp3_bind, bind_bind.
       focus_single_step_l.
 
@@ -949,7 +1338,68 @@ Proof.
          Do I need to reinforce [memory_invariant_after_init] or is
          what I need a consequence of [genIR_post]?
        *)
+
+      assert (exists add0, gI @ Anon 0%Z ≡ Some (DVALUE_Addr add0)) as [add0 ?] by admit.
       rewrite denote_mcfg_ID_Global; cycle 1.
+      eassumption.
+
+      rewrite bind_ret_l.
+      subst.
+      cbn.
+      focus_single_step_l.
+
+      match goal with
+        |- context [interp_mrec ?x] => remember x as ctx
+      end.
+      rewrite !translate_bind, !interp_mrec_bind,!interp3_bind, !bind_bind.
+      assert (exists add1, gI @ Anon 1%Z ≡ Some (DVALUE_Addr add1)) as [add1 ?] by admit.
+      rewrite denote_mcfg_ID_Global; cycle 1.
+      eassumption.
+      rewrite bind_ret_l.
+      rewrite bind_ret_l.
+      rewrite translate_ret.
+      rewrite interp_mrec_ret, interp3_ret, bind_ret_l.
+      rewrite translate_ret, interp_mrec_ret, interp3_ret, bind_ret_l.
+
+      subst.
+      rewrite !bind_bind.
+      cbn.
+      focus_single_step_l.
+      unfold DYNWIN at 1; cbn.
+
+      rewrite bind_ret_l.
+
+      cbn.
+      rewrite interp_mrec_bind.
+      rewrite interp_mrec_trigger.
+      cbn.
+      rewrite interp3_bind.
+
+      (* Function call, we first create a new memory frame *)
+      rewrite interp3_MemPush.
+      rewrite bind_ret_l.
+      rewrite interp_mrec_bind.
+      rewrite interp_mrec_trigger.
+      cbn.
+      rewrite interp3_bind.
+      rewrite interp3_StackPush.
+
+      rewrite bind_ret_l.
+
+      rewrite !translate_bind,!interp_mrec_bind,!interp3_bind.
+      rewrite !bind_bind.
+      subst; focus_single_step_l.
+      match goal with
+        |- context [interp_mrec ?x] => remember x as ctx
+      end.
+
+      cbn.
+      rewrite denote_ocfg_unfold_in; cycle -1.
+      apply find_block_eq; reflexivity.
+      cbn.
+      rewrite denote_block_unfold.
+
+      (* Who's b0? *)
 
       (*
 
@@ -1000,7 +1450,7 @@ Proof.
     unfold denote_exp.
     cbn.
     rewrite translate_bind, translate_trigger,interp3_bind.
- 
+
     cbn.
     rewrite interp3_GR.
 
