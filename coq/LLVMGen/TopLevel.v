@@ -1195,15 +1195,20 @@ Proof.
 
   (* The context gets... quite big. We try to prevent it as much as possible early on *)
 
-  Tactic Notation "tmp" ident(l6)
-    ident(l3)
-    ident(l5)
-    ident(b0)
-    ident(l4)
+  rename l1 into bks1, l4 into bks2.
+  rename b0 into bk.
+  rename l3 into exps1, l5 into exps2, l6 into exps3.
+  rename s into s1, i into s2, i1 into s3.
+
+  Tactic Notation "tmp" ident(exps3)
+    ident(exps1)
+    ident(exps2)
+    ident(bk)
+    ident(bks2)
     ident(dyn_addr)
     ident(main_addr)
-    := HIDE l6 l3 l5 b0 l4 dyn_addr main_addr.
-  Ltac hide := tmp l6 l3 l5 b0 l4 dyn_addr main_addr.
+    := HIDE exps3 exps1 exps2 bk bks2 dyn_addr main_addr.
+  Ltac hide := tmp exps3 exps1 exps2 bk bks2 dyn_addr main_addr.
   hide.
 
   apply heq_list_app in PRE as (Y & tmp & -> & EQY & EQtmp).
@@ -1219,8 +1224,6 @@ Proof.
   (* end. *)
   onAllHyps move_up_types.
 
-
-
   edestruct @eutt_ret_inv_strong as (RESLLVM & EQLLVMINIT & INVINIT); [apply INIT_MEM |].
   destruct RESLLVM as (memI & [ρI sI] & gI & []).
   inv INVINIT.
@@ -1229,7 +1232,7 @@ Proof.
 
   (* We are getting closer to business: instantiating the lemma
      stating the correctness of the compilation of operators *)
-  unshelve epose proof @compile_FSHCOL_correct _ _ _ dynwin_F_σ dynwin_F_memory _ _ (Name "main_block") _ gI ρI memI Heqs0 _ _ _ _ as RES; clear Heqs0; cycle -1.
+  unshelve epose proof @compile_FSHCOL_correct _ _ _ dynwin_F_σ dynwin_F_memory _ _ (blk_id bk) _ gI ρI memI Heqs0 _ _ _ _ as RES; clear Heqs0; cycle -1.
 
   - (* Assuming we can discharge all the preconditions,
        we prove here that it is sufficient for establishing
@@ -1242,13 +1245,14 @@ Proof.
     destruct RESLLVM2 as (mem2 & ρ2 & g2 & v2).
     onAllHyps move_up_types.
 
+
     (* We need to reason about [semantics_llvm].
        Hopefully we now have all the pieces into our
        context, we try to go through it via some kind of
        symbolic execution to figure out what statement
        we need precisely.
      *)
-    assert (forall x, semantics_llvm (MCFG l6 l3 l5 b0 l4) ≈ x).
+    assert (forall x, semantics_llvm (MCFG exps3 exps1 exps2 bk bks2) ≈ x).
     { intros ?.
 
       unfold semantics_llvm, semantics_llvm_mcfg, model_to_L3, denote_vellvm_init, denote_vellvm.
@@ -1342,18 +1346,6 @@ Proof.
       hide.
       onAllHyps move_up_types.
 
-      (* We are now evaluating the main.
-         We hence first need to need to jump into the right block
-       *)
-      rewrite denote_ocfg_unfold_in; cycle -1.
-      unfold MAINCFG at 1; rewrite find_block_eq; reflexivity.
-
-      rewrite denote_block_unfold.
-      (* No phi node in this block *)
-      rewrite denote_no_phis.
-      rewrite bind_ret_l.
-      rewrite bind_bind.
-
       (* TODO FIX surface syntax *)
       (* TODO : should really wrap the either monad when jumping from blocks into a named abstraction to lighten goals
          TODO : can we somehow avoid the continuations being systematically
@@ -1366,9 +1358,20 @@ Proof.
         intros; rewrite typ_to_dtyp_equation; reflexivity.
       Qed.
 
-      rewrite typ_to_dtyp_void.
-
       Notation "'call' x args" := ((IVoid _, INSTR_Call x args)) (at level 30, only printing).
+
+      (* We are now evaluating the main.
+         We hence first need to need to jump into the right block
+       *)
+      rewrite denote_ocfg_unfold_in; cycle -1.
+      unfold MAINCFG at 1; rewrite find_block_eq; reflexivity.
+
+      rewrite typ_to_dtyp_void.
+      rewrite denote_block_unfold.
+      (* No phi node in this block *)
+      rewrite denote_no_phis.
+      rewrite bind_ret_l.
+      rewrite bind_bind.
 
       (* We hence evaluate the code: it starts with a function call to "dyn_win"! *)
 
@@ -1457,8 +1460,25 @@ Proof.
       rewrite !bind_bind.
       subst; focus_single_step_l.
 
-      unfold DYNWIN at 1 2 3.
+      Notation "'foo' t" := (ℑs3 (interp_mrec (mcfg_ctx (GFUNC _ _ _ _)) t)) (at level 0, only printing).
+
+
+      unfold DYNWIN at 2 3; cbn.
+
+      unfold init_of_definition.
       cbn.
+
+      unfold DYNWIN at 1.
+      cbn[df_instrs blks cfg_of_definition fst snd].
+
+      match type of Heqs1 with
+      | body_non_empty_cast ?x _ ≡ inr (_, (?bk, ?bks)) => assert (EQbks: bk :: bks2 ≡ x)
+      end.
+      {
+        clear - Heqs1.
+        destruct bks1; cbn in *; inv Heqs1; reflexivity.
+      }
+
 
       (* Shouldn't we be facing EQLLVM2 right now? *)
       (* rewrite denote_ocfg_unfold_in; cycle -1. *)
@@ -1467,6 +1487,8 @@ Proof.
       (* rewrite denote_block_unfold. *)
 
       (* Who's b0? *)
+      (* Ah ok: we have extended the operator's cfg with a return block to terminate, and our [genIR_post]
+         tells us we are about to jump to this ret block, so we need a lemma to piece this together *)
 
       (*
 
