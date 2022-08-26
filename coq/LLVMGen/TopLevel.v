@@ -1023,7 +1023,19 @@ Definition DYNWIN b0 l4 :=
                             |}
 |}.
 
-Opaque MCFG MAIN DYNWIN GFUNC Γi mcfg_ctx.
+Definition MAINCFG := [{|
+      blk_id := Name "main_block";
+      blk_phis := [];
+      blk_code :=
+        [(IVoid 0%Z,
+           INSTR_Call (typ_to_dtyp [] TYPE_Void, EXP_Ident (ID_Global (Name "dyn_win")))
+             [(typ_to_dtyp [] (TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double)), EXP_Ident (ID_Global (Anon 0%Z))); (typ_to_dtyp [] (TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double)), EXP_Ident (ID_Global (Anon 1%Z)))]);
+         (IId (Name "z"), INSTR_Load false (typ_to_dtyp [] (TYPE_Array (Npos 1) TYPE_Double)) (typ_to_dtyp [] (TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double)), EXP_Ident (ID_Global (Anon 1%Z))) None)];
+      blk_term := TERM_Ret (typ_to_dtyp [] (TYPE_Array (Npos 1) TYPE_Double), EXP_Ident (ID_Local (Name "z")));
+      blk_comments := None
+    |}].
+
+Opaque MCFG MAIN MAINCFG DYNWIN GFUNC Γi mcfg_ctx.
 
 Ltac hide_MCFG l6 l3 l5 b0 l4 :=
   match goal with
@@ -1061,8 +1073,35 @@ Ltac hide_mcfg_ctx dyn_addr b0 l4 main_addr :=
       replace x with (mcfg_ctx (GFUNC dyn_addr b0 l4 main_addr)) by reflexivity
   end.
 
+Ltac hide_MAINCFG :=
+  match goal with
+    |- context [[mk_block (Name "main_block") ?phi ?c ?t ?comm]] =>
+      change [mk_block (Name "main_block") ?phi ?c ?t ?comm] with MAINCFG
+  end.
+
 Ltac HIDE l6 l3 l5 b0 l4 dyn_addr main_addr
-  := repeat (hide_MCFG l6 l3 l5 b0 l4 || hide_GFUNC dyn_addr b0 l4 main_addr || hide_Γi || hide_MAIN || hide_DYNWIN b0 l4 || hide_mcfg_ctx dyn_addr b0 l4 main_addr).
+  := repeat (hide_MCFG l6 l3 l5 b0 l4 || hide_GFUNC dyn_addr b0 l4 main_addr || hide_Γi || hide_MAIN || hide_DYNWIN b0 l4 || hide_mcfg_ctx dyn_addr b0 l4 main_addr || hide_MAINCFG).
+
+Import ProofMode.
+
+Lemma heq_list_nil : heq_list [] [].
+Proof.
+  constructor.
+Qed.
+
+Lemma heq_list_app : forall l1 l2 l,
+    heq_list (l1 ++ l2) l ->
+    exists l1' l2', l ≡ l1' ++ l2' /\ heq_list l1 l1' /\ heq_list l2 l2'.
+Proof.
+  induction l1; intros.
+  - exists [], l; repeat split. apply heq_list_nil. apply H.
+  - destruct l as [| a' l]; inv H.
+    edestruct IHl1 as (l1' & l2' & ? & ? & ?); eauto.
+    exists (a' :: l1'), l2'; repeat split; subst; eauto.
+    constructor; auto.
+Qed.
+
+Set Printing Compact Contexts.
 
 Lemma top_to_LLVM :
   forall (a : Vector.t CarrierA 3) (* parameter *)
@@ -1167,6 +1206,10 @@ Proof.
   Ltac hide := tmp l6 l3 l5 b0 l4 dyn_addr main_addr.
   hide.
 
+  apply heq_list_app in PRE as (Y & tmp & -> & EQY & EQtmp).
+  apply heq_list_app in EQtmp as (X & A & -> & EQX & EQA).
+
+
   (* match type of INIT_MEM with *)
   (* | context[mcfg_of_tle ?x] => remember x as tmp; cbn in Heqtmp; subst tmp *)
   (* end. *)
@@ -1174,6 +1217,7 @@ Proof.
   (* match goal with *)
   (*   |- context [semantics_llvm ?x] => remember x as G eqn:VG; apply boxh_cfg in VG *)
   (* end. *)
+  onAllHyps move_up_types.
 
 
 
@@ -1196,6 +1240,7 @@ Proof.
     clear EQ.
     edestruct @eutt_ret_inv_strong as (RESLLVM2 & EQLLVM2 & INV2); [apply RES |].
     destruct RESLLVM2 as (mem2 & ρ2 & g2 & v2).
+    onAllHyps move_up_types.
 
     (* We need to reason about [semantics_llvm].
        Hopefully we now have all the pieces into our
@@ -1248,7 +1293,7 @@ Proof.
       (* We now specifically get the pointer to the main as the entry point *)
       rewrite interp3_GR; [| apply EQmain].
       repeat (rewrite bind_ret_l || rewrite interp3_ret).
-      cbn.
+      cbn/g.
 
       (* We are done with the initialization of the runtime, we can
          now begin the evaluation of the program per se. *)
@@ -1294,17 +1339,39 @@ Proof.
       rewrite bind_bind.
       cbn.
 
+      hide.
+      onAllHyps move_up_types.
+
       (* We are now evaluating the main.
          We hence first need to need to jump into the right block
        *)
       rewrite denote_ocfg_unfold_in; cycle -1.
-      rewrite find_block_eq; reflexivity.
+      unfold MAINCFG at 1; rewrite find_block_eq; reflexivity.
+
       rewrite denote_block_unfold.
       (* No phi node in this block *)
       rewrite denote_no_phis.
       rewrite bind_ret_l.
       rewrite bind_bind.
+
+      (* TODO FIX surface syntax *)
+      (* TODO : should really wrap the either monad when jumping from blocks into a named abstraction to lighten goals
+         TODO : can we somehow avoid the continuations being systematically
+         let (m',p) := r in
+         let (l',p0) := p in
+         let (g',_)  := p0 in ...
+       *)
+      Lemma typ_to_dtyp_void s : typ_to_dtyp s TYPE_Void ≡ DTYPE_Void.
+      Proof.
+        intros; rewrite typ_to_dtyp_equation; reflexivity.
+      Qed.
+
+      rewrite typ_to_dtyp_void.
+
+      Notation "'call' x args" := ((IVoid _, INSTR_Call x args)) (at level 30, only printing).
+
       (* We hence evaluate the code: it starts with a function call to "dyn_win"! *)
+
       rewrite denote_code_cons.
       rewrite bind_bind,translate_bind.
       rewrite interp_mrec_bind, interp3_bind.
@@ -1389,15 +1456,15 @@ Proof.
       rewrite !translate_bind,!interp_mrec_bind,!interp3_bind.
       rewrite !bind_bind.
       subst; focus_single_step_l.
-      match goal with
-        |- context [interp_mrec ?x] => remember x as ctx
-      end.
 
+      unfold DYNWIN at 1 2 3.
       cbn.
-      rewrite denote_ocfg_unfold_in; cycle -1.
-      apply find_block_eq; reflexivity.
-      cbn.
-      rewrite denote_block_unfold.
+
+      (* Shouldn't we be facing EQLLVM2 right now? *)
+      (* rewrite denote_ocfg_unfold_in; cycle -1. *)
+      (* apply find_block_eq; reflexivity. *)
+      (* cbn. *)
+      (* rewrite denote_block_unfold. *)
 
       (* Who's b0? *)
 
