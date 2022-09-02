@@ -8,7 +8,7 @@ steps:
     commands:
       - git submodule update --init --recursive
 
-  - name: build-cache
+  - name: rebuild-cache
     image: docker
     volumes:
       - name: dockersock
@@ -32,6 +32,13 @@ steps:
     pull: never
     commands:
       - opam exec -- make test
+
+  - name: notify-slack
+    image: plugins/slack
+    settings:
+      webhook:
+        from_secret: slack_webhook
+      channel: bitbucket-activity
 
 volumes:
   - name: dockersock
