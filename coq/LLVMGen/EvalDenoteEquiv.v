@@ -11,21 +11,81 @@ Section Eval_Denote_Equiv.
 
   Ltac go := unfold denotePExpr, evalIUnCType, denoteIUnCType; autorewrite with itree.
 
+  Ltac inv_sum :=
+    match goal with
+    | h: inl _ = inl _ |-  _ => inv h
+    | h: inr _ = inr _ |-  _ => inv h
+    | h: inl _ = inr _ |-  _ => inv h
+    | h: inr _ = inl _ |-  _ => inv h
+    | h: inl _ ≡ inl _ |-  _ => inv h
+    | h: inr _ ≡ inr _ |-  _ => inv h
+    | h: inl _ ≡ inr _ |-  _ => inv h
+    | h: inr _ ≡ inl _ |-  _ => inv h
+     end.
+
+  Ltac inv_option :=
+    match goal with
+    | h: Some _ = Some _ |-  _ => inv h
+    | h: None   = Some _ |-  _ => inv h
+    | h: Some _ = None   |-  _ => inv h
+    | h: None   = None   |-  _ => inv h
+    | h: Some _ ≡ Some _ |-  _ => inv h
+    | h: None   ≡ Some _ |-  _ => inv h
+    | h: Some _ ≡ None   |-  _ => inv h
+    | h: None   ≡ None   |-  _ => inv h
+     end.
+
+  Ltac simp' := repeat (inv_sum || inv_option || break_and || break_match_hyp).
+
+  Lemma interp_Mem_MemLU :
+    forall str mem m x,
+      memory_lookup_err str mem x = inr m ->
+      eutt equiv (interp_Mem (trigger (MemLU str x)) mem) (interp_Mem (Ret m) mem).
+  Proof.
+    intros str mem m x H.
+    unfold trigger.
+    setoid_rewrite interp_Mem_vis_eqit.
+    cbn.
+    break_match_goal; simp'.
+    cbn; go.
+    rewrite tau_eutt.
+    cbn.
+    apply eutt_Ret.
+    now split.
+  Qed.
+
   Lemma Denote_Eval_Equiv_MExpr: forall mem σ e bk size,
-      evalMExpr mem σ e ≡ inr (bk,size) ->
-      eutt Logic.eq
+      evalMExpr mem σ e = inr (bk,size) ->
+      eutt equiv
            (interp_Mem (denoteMExpr σ e) mem)
            (Ret (mem, (bk,size))).
   Proof.
-    intros mem σ [] * EVAL; cbn* in *; simp; go; try reflexivity.
-    rewrite Heqs; cbn*; go.
-    reflexivity.
-    cbn*; match_rewrite; reflexivity.
+    intros mem σ [] * EVAL.
+    - cbn* in *; simp'.
+      inv H1; cbn in *.
+      go.
+      rewrite Heqs.
+      cbn.
+      go.
+      2: eapply memory_lookup_err_inr_Some_eq; eauto.
+      apply eutt_Ret.
+      split; cbn. reflexivity.
+      now split; cbn.
+    - cbn in EVAL.
+      simp'.
+      cbn; go.
+      now apply eutt_Ret.
   Qed.
 
+  Ltac ret_bind_l_right v :=
+    match goal with
+      |- eutt _ _ ?t =>
+        rewrite <- (bind_ret_l v (fun _ => t))
+    end.
+
   Lemma Denote_Eval_Equiv_NExpr: forall mem σ e v,
-        evalNExpr σ e ≡ inr v ->
-        eutt Logic.eq
+        evalNExpr σ e = inr v ->
+        eutt equiv
              (interp_Mem (denoteNExpr σ e) mem)
              (Ret (mem, v)).
   Proof.
