@@ -83,6 +83,53 @@ Section Eval_Denote_Equiv.
         rewrite <- (bind_ret_l v (fun _ => t))
     end.
 
+  Definition eq_relation_het {A B} (R S : A -> B -> Prop) :=
+    R <2= S /\ S <2= R.
+
+  Lemma eqrel_simpl {A B} (R S : A -> B -> Prop) :
+    eq_relation_het R S <->
+      (forall a b, R a b <-> S a b).
+  Proof.
+    unfold eq_relation_het.
+    split; intros; intuition.
+    all: now apply H.
+  Qed.
+
+  Instance eutt_EQ_REL_Proper_het {E} {A B} :
+    Proper (eq_relation_het ==> @eutt E A A eq ==> @eutt E B B eq ==> iff) (@eutt E A B).
+  Proof.
+    repeat red.
+    intros; split; intros.
+    -  rewrite <- H0. rewrite <- H1.
+       clear H0 H1.
+       destruct H.
+       eapply eqit_mon; eauto.
+    - rewrite H0, H1.
+      destruct H.
+      eapply eqit_mon; eauto.
+  Qed.
+
+  Instance eutt_EQUIV_REL_Proper_het {E} {A B} `{@Equivalence A ea} `{@Equivalence B eb} :
+    Proper (eq_relation_het ==> @eutt E A A ea ==> @eutt E B B eb ==> iff) (@eutt E A B).
+  Proof.
+    repeat red.
+    intros; split; intros.
+    -
+      rewrite <-H1.
+      eapply eqit_mon.
+      4: give_up.
+      (*
+        
+      rewrite <- H0. rewrite <- H1.
+      clear H0 H1.
+      destruct H.
+      eapply eqit_mon; eauto.
+    -
+      rewrite H0, H1.
+      destruct H.
+      eapply eqit_mon; eauto.
+  Qed. *) Abort.
+
   Lemma Denote_Eval_Equiv_NExpr: forall mem σ e v,
         evalNExpr σ e = inr v ->
         eutt equiv
@@ -90,13 +137,42 @@ Section Eval_Denote_Equiv.
              (Ret (mem, v)).
   Proof.
     induction e; cbn; intros * HEval; cbn* in *; simp; go;
+      try inv_option; try inv_sum.
+    all: try rewrite <-eutt_Ret.
+    constructor; now cbn.
+    constructor; now cbn.
+    admit.
+    admit.
+    {
+      go.
+      specialize (IHe1 i).
+      autospecialize IHe1; [admit |].
+      remember (interp_Mem (denoteNExpr σ e1) mem) as x.
+      remember (SemNotations.Ret1 mem i) as y.
+      remember
+        (λ '(mem', v0), interp_Mem
+                          (ITree.bind (denoteNExpr σ e2)
+                             (λ x0 : Int64.int, Ret (NTypePlus v0 x0))) mem') as a.
+      remember (SemNotations.Ret1 mem v) as b.
+      clear - IHe1.
+      move IHe1 at bottom.
+      move b at top.
+      rename x into x1, y into x2, a into y, b into z, IHe1 into EQ.
+      
+      (*
+    erewrite <-IHe1.
+    match goal with
+    | |- ?E ?R _ _ => assert (Proper ((=) ==> (=) ==> iff) (E R))
+    end.
+    cbn.
+    congruence.
       try (reflexivity ||
            (rewrite IHe1; [| reflexivity]; go; rewrite IHe2; [| reflexivity]; go; try (match_rewrite; go); reflexivity)).
-  Qed.
+  Qed. *) Admitted.
 
     Lemma Denote_Eval_Equiv_AExpr: forall mem σ e v,
-        evalAExpr mem σ e ≡ inr v ->
-        eutt Logic.eq
+        evalAExpr mem σ e = inr v ->
+        eutt equiv
              (interp_Mem (denoteAExpr σ e) mem)
              (Ret (mem, v)).
     Proof.
