@@ -33,32 +33,6 @@ Import ListNotations.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
-
-(* Surpsingly I could not find this in Mathclasses.
-   Should move it somewhere *)
-Instance oprod_equiv_Equivalence
-         `{Ae:Equiv A}
-         `{Be: Equiv B}
-         `{Aeq: Equivalence A Ae}
-         `{Beq: Equivalence B Be}
-  :
-    Equivalence (@prod_equiv A Ae B Be).
-Proof.
-  split.
-  -
-    intros x.
-    unfold prod_equiv.
-    split;auto.
-  -
-    intros x y [H1 H2].
-    unfold prod_equiv.
-    split;auto.
-  -
-    intros x y z [H1 H2] [H3 H4].
-    unfold prod_equiv.
-    split;auto.
-Qed.
-
 Module Type MDSigmaHCOLEval
        (Import CT : CType)
        (Import NT : NType)
