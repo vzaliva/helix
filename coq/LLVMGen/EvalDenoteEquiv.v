@@ -130,6 +130,118 @@ Section Eval_Denote_Equiv.
       eapply eqit_mon; eauto.
   Qed. *) Abort.
 
+  Search eutt Proper.
+
+  Instance eutt_equiv_Proper {E} `{@Equivalence A ea} :
+    Proper ((@eutt E A A ea) ==> (@eutt E A A ea) ==> (iff)) (@eutt E A A ea).
+  Proof.
+    intros x1 x2 EX y1 y2 EY.
+    split; intros.
+    now rewrite <-EX, <-EY.
+    now rewrite EX, EY.
+  Qed.
+
+  (* TODO: rename or replace with existing *)
+  Definition pointwise_impl {A B : Type} (RA : relation A) (RB : relation B)
+    : relation (A -> B) :=
+    fun f1 f2 => (forall a1 a2, RA a1 a2 -> RB (f1 a1) (f2 a2)).
+
+  Search ITree.bind Proper.
+  Instance ITree_bind_equiv_Proper {E} `{@Equivalence A ea} :
+    Proper ((@eutt E A A ea) ==>
+              (pointwise_impl ea (@eutt E A A ea)) ==>
+              (@eutt E A A ea)) ITree.bind.
+  Proof.
+    intros x1 x2 X f1 f2 F.
+    eapply eutt_clo_bind; eassumption.
+  Qed.
+
+  Definition pointwise_impl' {A B : Type} (RA : relation A) (RB : relation B)
+    : relation (A -> B) :=
+    fun f1 f2 => f1 ≡ f2 /\ Proper (RA ==> RB) f1.
+
+  Lemma pointwise_impl_eq :
+    forall {A B : Type} (RA : relation A) (RB : relation B) f1 f2,
+      pointwise_impl' RA RB f1 f2 -> pointwise_impl RA RB f1 f2.
+  Proof.
+    unfold pointwise_impl', pointwise_impl.
+    intros.
+    destruct H; subst f2.
+    eapply H1.
+    assumption.
+  Qed.
+
+  Lemma pointwise_impl'_simp :
+    forall {A B : Type} (RA : relation A) (RB : relation B) f,
+      Proper (RA ==> RB) f ->
+      pointwise_impl' RA RB f f.
+  Proof.
+    red.
+    tauto.
+  Qed.
+
+  (*
+  Instance ITree_bind_equiv_Proper' {E} `{@Equivalence A ea} :
+    Proper ((@eutt E A A ea) ==> (eq) ==> (@eutt E A A ea)) ITree.bind.
+  Proof.
+    intros x1 x2 X f ? <-.
+    eapply eutt_clo_bind.
+    eassumption.
+  Abort.
+  *)
+
+  Instance NTypeEquiv_Equivalence : Equivalence NTypeEquiv.
+  Proof.
+    (* Fail typeclasses eauto. *)
+    apply NTypeSetoid.
+  Qed.
+
+  (*
+  Instance pointwise_impl_Equivalence {E} `{Equivalence A e} :
+    Equivalence (pointwise_impl e (@eutt E A A e)).
+  Proof.
+    unfold pointwise_impl.
+    constructor.
+    -
+      intros x * EA.
+  Abort.
+   *)
+
+  (*
+  interp_Mem_proper [helix]
+  interp_state_proper [vellvm]
+   *)
+
+  (*
+  Instance interp_state_proper {T E F S}
+    (h : forall T : Type, E T -> Monads.stateT S (itree F) T)
+    : Proper (eutt equiv ==> equiv ==> eutt equiv) (State.interp_state h (T := T)).
+  Proof.
+    einit. ecofix CIH. intros.
+    
+    rewrite !unfold_interp_state. punfold H0. red in H0.
+    induction H0; intros; subst; simpl; pclearbot.
+    - eret.
+    - etau.
+    - ebind. econstructor; [reflexivity|].
+    intros; subst.
+    etau. ebase.
+    - rewrite tau_euttge, unfold_interp_state; eauto.
+    - rewrite tau_euttge, unfold_interp_state; eauto.
+  Qed.
+*)
+
+  Check eutt_interp_state.
+
+  (* See [interp_Mem_proper] *)
+  Instance interp_Mem_equiv_proper {A} {e : Equiv A} {EQ : @Equivalence A e} :
+    Proper ((eutt e) ==> equiv ==> (eutt equiv)) (@interp_Mem A).
+  Proof.
+    intros x1 x2 X m1 m2 M.
+    unfold interp_Mem.
+    (* TODO: Proper ((Logic.eq) ==> equiv ==> eutt equiv) Mem_handler *)
+  Abort.
+
   Lemma Denote_Eval_Equiv_NExpr: forall mem σ e v,
         evalNExpr σ e = inr v ->
         eutt equiv
@@ -143,21 +255,60 @@ Section Eval_Denote_Equiv.
     constructor; now cbn.
     admit.
     admit.
-    {
-      go.
+    -
       specialize (IHe1 i).
-      autospecialize IHe1; [admit |].
-      remember (interp_Mem (denoteNExpr σ e1) mem) as x.
-      remember (SemNotations.Ret1 mem i) as y.
-      remember
-        (λ '(mem', v0), interp_Mem
-                          (ITree.bind (denoteNExpr σ e2)
-                             (λ x0 : Int64.int, Ret (NTypePlus v0 x0))) mem') as a.
-      remember (SemNotations.Ret1 mem v) as b.
-      clear - IHe1.
-      move IHe1 at bottom.
-      move b at top.
-      rename x into x1, y into x2, a into y, b into z, IHe1 into EQ.
+      specialize (IHe2 i0).
+      autospecialize IHe1; [reflexivity |].
+      autospecialize IHe2; [reflexivity |].
+
+      eapply eutt_equiv_Proper.
+      2: reflexivity.
+      eapply ITree_bind_equiv_Proper.
+      eassumption.
+      {
+        eapply pointwise_impl_eq.
+        eapply pointwise_impl'_simp.
+        clear.
+        intros (m1, v1) (m2, v2) [M V].
+        cbn in M, V.
+        go.
+        eapply ITree_bind_equiv_Proper.
+
+        Search interp_Mem Proper.
+        
+
+        eapply interp_Mem_proper.
+
+
+        
+      
+
+
+      enough (eutt equiv (ITree.bind x2 y) z).
+      {
+        eapply eutt_equiv_Proper.
+        2: reflexivity.
+        2: eassumption.
+        eapply ITree_bind_equiv_Proper.
+        assumption.
+        assumption.
+        
+
+      erewrite EQ.
+      
+      eapply eutt_equiv_Proper.
+      eapply ITree_bind_equiv_Proper.
+      eassumption.
+      3: instantiate (2:=y).
+      3: instantiate (1:=z).
+      2: admit.
+      red.
+      intros.
+      rewrite H.
+
+      erewrite H.
+      generalize dependent (StaticFailE +' DynamicFailE).
+      generalize dependent (prod memoryH Int64.int).
       
       (*
     erewrite <-IHe1.
