@@ -144,13 +144,27 @@ Section Eval_Denote_Equiv.
   (* TODO: rename or replace with existing *)
   Definition pointwise_impl {A B : Type} (RA : relation A) (RB : relation B)
     : relation (A -> B) :=
-    fun f1 f2 => (forall a1 a2, RA a1 a2 -> RB (f1 a1) (f2 a2)).
+    fun f1 f2 => forall a1 a2, RA a1 a2 -> RB (f1 a1) (f2 a2).
 
-  Search ITree.bind Proper.
-  Instance ITree_bind_equiv_Proper {E} `{@Equivalence A ea} :
-    Proper ((@eutt E A A ea) ==>
-              (pointwise_impl ea (@eutt E A A ea)) ==>
-              (@eutt E A A ea)) ITree.bind.
+  Instance pointwise_impl_Equivalence 
+    {A B : Type}
+    `{Equivalence A RA}
+    `{Equivalence A RB}
+    :
+    Equivalence (pointwise_impl RA RB).
+  Proof.
+    unfold pointwise_impl.
+    constructor.
+    all: red; intros *.
+    -
+      intros.
+  Abort.
+
+  Instance ITree_bind_equiv_Proper {E} `{ea : relation A} `{eb : relation B} :
+    Proper (@eutt E A A ea ==>
+              pointwise_impl ea (@eutt E B B eb) ==>
+              @eutt E B B eb)
+      ITree.bind.
   Proof.
     intros x1 x2 X f1 f2 F.
     eapply eutt_clo_bind; eassumption.
@@ -233,14 +247,18 @@ Section Eval_Denote_Equiv.
 
   Check eutt_interp_state.
 
+  (* TODO
+  Instance Mem_handler_Proper :
+    Proper (Logic.eq ==> equiv ==> eutt equiv) Mem_handler.
+   *)
+
   (* See [interp_Mem_proper] *)
   Instance interp_Mem_equiv_proper {A} {e : Equiv A} {EQ : @Equivalence A e} :
     Proper ((eutt e) ==> equiv ==> (eutt equiv)) (@interp_Mem A).
   Proof.
     intros x1 x2 X m1 m2 M.
     unfold interp_Mem.
-    (* TODO: Proper ((Logic.eq) ==> equiv ==> eutt equiv) Mem_handler *)
-  Abort.
+  Admitted.
 
   Lemma Denote_Eval_Equiv_NExpr: forall mem σ e v,
         evalNExpr σ e = inr v ->
@@ -261,6 +279,9 @@ Section Eval_Denote_Equiv.
       autospecialize IHe1; [reflexivity |].
       autospecialize IHe2; [reflexivity |].
 
+      assert (forall {A B : Type} {R1 : relation A} {R2 : relation B},
+                 Equivalence (pointwise_impl R1 R2)) by admit.
+      rewrite IHe1.
       eapply eutt_equiv_Proper.
       2: reflexivity.
       eapply ITree_bind_equiv_Proper.
@@ -273,53 +294,48 @@ Section Eval_Denote_Equiv.
         cbn in M, V.
         go.
         eapply ITree_bind_equiv_Proper.
+        rewrite M.
+        reflexivity.
+        unfold pointwise_impl.
+        intros (m1', v1') (m2', v2') [M' V'].
+        cbn in M', V'.
+        rewrite !interp_Mem_ret.
+        apply eutt_Ret.
+        constructor.
+        now rewrite M'.
+        now rewrite V, V'.
+      }
 
-        Search interp_Mem Proper.
-        
+      rewrite bind_ret_l.
+      rewrite interp_Mem_bind.
 
-        eapply interp_Mem_proper.
-
-
-        
-      
-
-
-      enough (eutt equiv (ITree.bind x2 y) z).
-      {
-        eapply eutt_equiv_Proper.
-        2: reflexivity.
-        2: eassumption.
-        eapply ITree_bind_equiv_Proper.
-        assumption.
-        assumption.
-        
-
-      erewrite EQ.
-      
       eapply eutt_equiv_Proper.
+      2: reflexivity.
       eapply ITree_bind_equiv_Proper.
       eassumption.
-      3: instantiate (2:=y).
-      3: instantiate (1:=z).
-      2: admit.
-      red.
-      intros.
-      rewrite H.
+      {
+        eapply pointwise_impl_eq.
+        eapply pointwise_impl'_simp.
+        clear.
+        intros (m1, v1) (m2, v2) [M V].
+        cbn in M, V.
+        go.
+        apply eutt_Ret.
+        constructor.
+        now rewrite M.
+        now rewrite V.
+      }
 
-      erewrite H.
-      generalize dependent (StaticFailE +' DynamicFailE).
-      generalize dependent (prod memoryH Int64.int).
+      rewrite bind_ret_l.
+      rewrite interp_Mem_ret.
+      apply eutt_Ret.
+      constructor.
+      reflexivity.
+      assumption.
       
-      (*
-    erewrite <-IHe1.
-    match goal with
-    | |- ?E ?R _ _ => assert (Proper ((=) ==> (=) ==> iff) (E R))
-    end.
-    cbn.
-    congruence.
-      try (reflexivity ||
-           (rewrite IHe1; [| reflexivity]; go; rewrite IHe2; [| reflexivity]; go; try (match_rewrite; go); reflexivity)).
-  Qed. *) Admitted.
+      
+
+      
 
     Lemma Denote_Eval_Equiv_AExpr: forall mem σ e v,
         evalAExpr mem σ e = inr v ->
