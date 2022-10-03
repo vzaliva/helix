@@ -119,7 +119,7 @@ Section Eval_Denote_Equiv.
       eapply eqit_mon.
       4: give_up.
       (*
-        
+
       rewrite <- H0. rewrite <- H1.
       clear H0 H1.
       destruct H.
@@ -129,8 +129,6 @@ Section Eval_Denote_Equiv.
       destruct H.
       eapply eqit_mon; eauto.
   Qed. *) Abort.
-
-  Search eutt Proper.
 
   Instance eutt_equiv_Proper {E} `{@Equivalence A ea} :
     Proper ((@eutt E A A ea) ==> (@eutt E A A ea) ==> (iff)) (@eutt E A A ea).
@@ -146,19 +144,32 @@ Section Eval_Denote_Equiv.
     : relation (A -> B) :=
     fun f1 f2 => forall a1 a2, RA a1 a2 -> RB (f1 a1) (f2 a2).
 
-  Instance pointwise_impl_Equivalence 
+  Instance pointwise_impl_Symmetric
     {A B : Type}
-    `{Equivalence A RA}
-    `{Equivalence A RB}
+    `{Symmetric A RA}
+    `{Symmetric A RB}
     :
-    Equivalence (pointwise_impl RA RB).
+    Symmetric (pointwise_impl RA RB).
   Proof.
-    unfold pointwise_impl.
-    constructor.
-    all: red; intros *.
-    -
-      intros.
-  Abort.
+    repeat red.
+    intros.
+    intuition.
+  Qed.
+
+  Instance pointwise_impl_Transitive
+    {A B : Type}
+    `{Reflexive A RA}
+    `{Transitive A RB}
+    :
+    Transitive (pointwise_impl RA RB).
+  Proof.
+    repeat red.
+    intros.
+    etransitivity.
+    eapply H1.
+    reflexivity.
+    now apply H2.
+  Qed.
 
   Instance ITree_bind_equiv_Proper {E} `{ea : relation A} `{eb : relation B} :
     Proper (@eutt E A A ea ==>
@@ -194,63 +205,86 @@ Section Eval_Denote_Equiv.
     tauto.
   Qed.
 
-  (*
-  Instance ITree_bind_equiv_Proper' {E} `{@Equivalence A ea} :
-    Proper ((@eutt E A A ea) ==> (eq) ==> (@eutt E A A ea)) ITree.bind.
+  (* TODO : MOVE THIS TO ITREE *)
+  Instance eutt_interp_state_eq {E F: Type -> Type} {S : Type} {R}
+    (h : E ~> Monads.stateT S (itree F)) :
+    Proper (eutt Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_state E (itree F) S _ _ _ h R).
   Proof.
-    intros x1 x2 X f ? <-.
-    eapply eutt_clo_bind.
-    eassumption.
-  Abort.
-  *)
-
-  Instance NTypeEquiv_Equivalence : Equivalence NTypeEquiv.
-  Proof.
-    (* Fail typeclasses eauto. *)
-    apply NTypeSetoid.
-  Qed.
-
-  (*
-  Instance pointwise_impl_Equivalence {E} `{Equivalence A e} :
-    Equivalence (pointwise_impl e (@eutt E A A e)).
-  Proof.
-    unfold pointwise_impl.
-    constructor.
-    -
-      intros x * EA.
-  Abort.
-   *)
-
-  (*
-  interp_Mem_proper [helix]
-  interp_state_proper [vellvm]
-   *)
-
-  (*
-  Instance interp_state_proper {T E F S}
-    (h : forall T : Type, E T -> Monads.stateT S (itree F) T)
-    : Proper (eutt equiv ==> equiv ==> eutt equiv) (State.interp_state h (T := T)).
-  Proof.
+    repeat intro. subst. revert_until R.
     einit. ecofix CIH. intros.
-    
+
     rewrite !unfold_interp_state. punfold H0. red in H0.
     induction H0; intros; subst; simpl; pclearbot.
     - eret.
     - etau.
     - ebind. econstructor; [reflexivity|].
-    intros; subst.
-    etau. ebase.
+      intros; subst.
+      etau. ebase.
     - rewrite tau_euttge, unfold_interp_state; eauto.
     - rewrite tau_euttge, unfold_interp_state; eauto.
   Qed.
-*)
 
-  Check eutt_interp_state.
+  Instance NTypeEquiv_Equivalence : Equivalence NTypeEquiv.
+  Proof.
+    (* REASON: [Fail typeclasses eauto.] *)
+    apply NTypeSetoid.
+  Qed.
 
-  (* TODO
-  Instance Mem_handler_Proper :
-    Proper (Logic.eq ==> equiv ==> eutt equiv) Mem_handler.
-   *)
+  Instance Mem_handler_Proper `{E : Equiv T} {ET : @Equivalence T E} :
+    Proper (Logic.eq ==> equiv ==> eutt equiv) (Mem_handler T).
+  Proof.
+    intros e ? <- m1 m2 M.
+    destruct e; cbn.
+    -
+      pose proof (M id) as MID.
+      unfold memory_lookup_err, memory_lookup, trywith.
+      repeat break_match;
+        try some_none; repeat some_inv;
+        try inl_inr; repeat inl_inr_inv.
+      +
+        subst s s0; clear.
+        cbn.
+        admit.
+      +
+        subst m3 m4; clear - M MID.
+        cbn.
+        erewrite <-eutt_Ret.
+        constructor.
+        assumption.
+        cbn.
+        admit.
+    -
+      erewrite <-eutt_Ret.
+      constructor.
+      now rewrite M.
+      cbn.
+      reflexivity.
+    -
+      erewrite <-eutt_Ret.
+      constructor.
+      assumption.
+      cbn.
+      match goal with
+      | |- ?x = ?y => enough (T : x ≡ y) by now rewrite T
+      end.
+      eapply memory_next_key_struct.
+      intros.
+      now rewrite M.
+  Abort.
+
+  Instance Mem_handler_Proper_mem_block :
+    Proper (Logic.eq ==> equiv ==> eutt equiv) (Mem_handler mem_block).
+  Proof.
+    intros e ? <- m1 m2 M.
+  Admitted.
+
+  Instance Mem_handler_Proper_tt :
+    Proper (Logic.eq ==> equiv ==> eutt equiv) (Mem_handler ()).
+  Admitted.
+
+  Instance Mem_handler_Proper_nat :
+    Proper (Logic.eq ==> equiv ==> eutt equiv) (Mem_handler nat).
+  Admitted.
 
   (* See [interp_Mem_proper] *)
   Instance interp_Mem_equiv_proper {A} {e : Equiv A} {EQ : @Equivalence A e} :
@@ -271,17 +305,17 @@ Section Eval_Denote_Equiv.
     all: try rewrite <-eutt_Ret.
     constructor; now cbn.
     constructor; now cbn.
-    admit.
-    admit.
+    -
+      admit.
+    -
+      admit.
     -
       specialize (IHe1 i).
       specialize (IHe2 i0).
       autospecialize IHe1; [reflexivity |].
       autospecialize IHe2; [reflexivity |].
 
-      assert (forall {A B : Type} {R1 : relation A} {R2 : relation B},
-                 Equivalence (pointwise_impl R1 R2)) by admit.
-      rewrite IHe1.
+      (* rewrite IHe1. *)
       eapply eutt_equiv_Proper.
       2: reflexivity.
       eapply ITree_bind_equiv_Proper.
@@ -332,10 +366,7 @@ Section Eval_Denote_Equiv.
       constructor.
       reflexivity.
       assumption.
-      
-      
-
-      
+  Admitted.
 
     Lemma Denote_Eval_Equiv_AExpr: forall mem σ e v,
         evalAExpr mem σ e = inr v ->
@@ -343,6 +374,7 @@ Section Eval_Denote_Equiv.
              (interp_Mem (denoteAExpr σ e) mem)
              (Ret (mem, v)).
     Proof.
+      (*
       induction e; cbn; intros * HEval; cbn* in *; simp; go;
         try (reflexivity ||
              (rewrite IHe1; [| reflexivity]; go; rewrite IHe2; [| reflexivity]; go; reflexivity) ||
@@ -350,22 +382,25 @@ Section Eval_Denote_Equiv.
       rewrite Denote_Eval_Equiv_NExpr; eauto; go;
              rewrite Denote_Eval_Equiv_MExpr; eauto; go;
              repeat match_rewrite; go; reflexivity.
-    Qed.
+    Qed. *) Admitted.
 
     Lemma Denote_Eval_Equiv_IMap: forall mem n f σ m1 m2 id,
-        evalDSHIMap mem n f σ m1 m2 ≡ inr id ->
-        eutt Logic.eq
+        evalDSHIMap mem n f σ m1 m2 = inr id ->
+        eutt equiv
              (interp_Mem (denoteDSHIMap n f σ m1 m2) mem)
              (Ret (mem, id)).
-    Proof.
+    Proof. (*
       induction n; intros; cbn* in *; simp; go; try reflexivity.
-      rewrite Denote_Eval_Equiv_AExpr; eauto; go.
+      all: try inv_sum.
+      apply eutt_Ret.
+      now constructor.
+      erewrite Denote_Eval_Equiv_AExpr. eauto; go.
       rewrite IHn; eauto; reflexivity.
-    Qed.
+    Qed. *) Admitted.
 
     Lemma Denote_Eval_Equiv_BinCType: forall mem σ f i a b v,
-        evalIBinCType mem σ f i a b ≡ inr v ->
-        eutt Logic.eq
+        evalIBinCType mem σ f i a b = inr v ->
+        eutt equiv
              (interp_Mem (denoteIBinCType σ f i a b) mem)
              (Ret (mem, v)).
     Proof.
@@ -374,15 +409,18 @@ Section Eval_Denote_Equiv.
     Qed.
 
     Lemma Denote_Eval_Equiv_BinOp: forall mem n off σ f x y blk,
-        evalDSHBinOp mem n off f σ x y ≡ inr blk ->
-        eutt Logic.eq
+        evalDSHBinOp mem n off f σ x y = inr blk ->
+        eutt equiv
              (interp_Mem (denoteDSHBinOp n off f σ x y) mem)
              (Ret (mem, blk)).
     Proof.
       induction n as [| n IH]; intros; cbn* in *; simp; go; try reflexivity.
-      - rewrite Denote_Eval_Equiv_BinCType; eauto; go.
+      all: try inl_inr; repeat inl_inr_inv.
+      apply eutt_Ret.
+      now constructor.
+      (* rewrite Denote_Eval_Equiv_BinCType.
         rewrite IH; eauto; go; reflexivity.
-    Qed.
+    Qed. *) Admitted.
 
     Import MonadNotation.
     Local Open Scope monad_scope.
@@ -398,7 +436,7 @@ Section Eval_Denote_Equiv.
            ) i.
 
     Lemma denote_Loop_for_0_to_N:
-      forall σ body N, denote_Loop_for_i_to_N σ body 0 N ≈ denoteDSHOperator σ (DSHLoop N body).
+      forall σ body N, eutt equiv (denote_Loop_for_i_to_N σ body 0 N) (denoteDSHOperator σ (DSHLoop N body)).
     Proof.
       unfold denote_Loop_for_i_to_N; reflexivity.
     Qed.
@@ -439,25 +477,6 @@ Section Eval_Denote_Equiv.
         end
       end.
 
-    (* TODO : MOVE THIS TO ITREE *)
-    Instance eutt_interp_state_eq {E F: Type -> Type} {S : Type} {R}
-             (h : E ~> Monads.stateT S (itree F)) :
-      Proper (eutt Logic.eq ==> Logic.eq ==> eutt Logic.eq) (@interp_state E (itree F) S _ _ _ h R).
-    Proof.
-      repeat intro. subst. revert_until R.
-      einit. ecofix CIH. intros.
-
-      rewrite !unfold_interp_state. punfold H0. red in H0.
-      induction H0; intros; subst; simpl; pclearbot.
-      - eret.
-      - etau.
-      - ebind. econstructor; [reflexivity|].
-        intros; subst.
-        etau. ebase.
-      - rewrite tau_euttge, unfold_interp_state; eauto.
-      - rewrite tau_euttge, unfold_interp_state; eauto.
-    Qed.
-
     Lemma eval_Loop_for_N_to_N: forall fuel σ op N mem,
         eval_Loop_for_i_to_N σ op N N mem (S fuel) ≡ Some (ret mem).
     Proof.
@@ -468,10 +487,10 @@ Section Eval_Denote_Equiv.
     Lemma eval_Loop_for_i_to_N_invert: forall σ i ii N op fuel mem_i mem_f,
         i < N ->
         from_nat i ≡ inr ii ->
-        eval_Loop_for_i_to_N σ op i N mem_i fuel ≡ Some (inr mem_f) ->
+        eval_Loop_for_i_to_N σ op i N mem_i fuel = Some (inr mem_f) ->
         exists mem_aux,
-          evalDSHOperator ((DSHnatVal ii , false) :: σ) op mem_i fuel ≡ Some (inr mem_aux) /\
-          eval_Loop_for_i_to_N σ op (S i) N mem_aux fuel ≡ Some (inr mem_f).
+          evalDSHOperator ((DSHnatVal ii , false) :: σ) op mem_i fuel = Some (inr mem_aux) /\
+          eval_Loop_for_i_to_N σ op (S i) N mem_aux fuel = Some (inr mem_f).
     Proof.
       (* This proof is surprisingly painful to go through *)
       intros.
@@ -500,6 +519,7 @@ Section Eval_Denote_Equiv.
        *)
 
       destruct (i =? N)%nat eqn: EQ''; [apply beq_nat_true in EQ''; subst; clear IH |].
+      1: solve [inv H1].
       - clear EQ' EQ ineq.
         rewrite Hn in H0.
         destruct fuel as [| fuel]; [inv HEval' |].
@@ -547,26 +567,28 @@ Section Eval_Denote_Equiv.
 
     Lemma eval_Loop_for_0_to_N:
       forall σ body N mem mem' fuel,
-        evalDSHOperator σ (DSHLoop N body) mem fuel ≡ Some (inr mem') ->
-        eval_Loop_for_i_to_N σ body 0 N mem fuel ≡ Some (inr mem').
+        evalDSHOperator σ (DSHLoop N body) mem fuel = Some (inr mem') ->
+        eval_Loop_for_i_to_N σ body 0 N mem fuel = Some (inr mem').
     Proof.
       induction N as [| N IH]; intros.
       - destruct fuel; auto.
       - destruct fuel as [| fuel ]; [auto |].
         cbn in *.
-        repeat break_match_hyp; try some_none; try some_inv.
+        repeat break_match_hyp;
+          try some_none; repeat some_inv;
+          try inl_inr; repeat inl_inr_inv.
+        apply Option_equiv_eq in Heqo.
         apply IH in Heqo.
-        repeat break_match.
-        + some_inv.
-        + some_inv.
-          auto.
-        + some_none.
+        repeat break_match;
+          try some_none; repeat some_inv;
+          try inl_inr; repeat inl_inr_inv.
+        now rewrite Heqo.
     Qed.
 
     Lemma eval_Loop_for_i_to_N_fuel_monotone:
       forall res σ op i N fuel mem,
-        eval_Loop_for_i_to_N σ op i N mem fuel ≡ Some res ->
-        eval_Loop_for_i_to_N σ op i N mem (S fuel) ≡ Some res.
+        eval_Loop_for_i_to_N σ op i N mem fuel = Some res ->
+        eval_Loop_for_i_to_N σ op i N mem (S fuel) = Some res.
     Proof.
       intros res σ op i N fuel mem H.
       revert H.
@@ -588,30 +610,35 @@ Section Eval_Denote_Equiv.
           repeat break_match_goal; subst; cbn in H; rewrite Heqb in H.
           *
             rewrite <- Heqo.
-            repeat break_match_hyp; subst.
+            repeat break_match_hyp; subst;
+              apply Option_equiv_eq in Heqo0.
             --
               rewrite <- H.
               apply IHN.
               apply Heqo0.
             --
               apply IHN in Heqo0.
-              rewrite Heqo0 in Heqo.
-              inv Heqo.
+              rewrite Heqo in Heqo0.
+              inv Heqo0.
+              inv H2.
             --
               apply IHN in Heqo0.
-              rewrite Heqo0 in Heqo.
-              inv Heqo.
+              rewrite Heqo in Heqo0.
+              inv Heqo0.
+              inv H2.
             --
               some_none.
           *
-            repeat break_match_hyp; subst.
+            repeat break_match_hyp; subst;
+              apply Option_equiv_eq in Heqo0.
             --
               apply IHN in Heqo0.
-              rewrite Heqo0 in Heqo.
-              inv Heqo.
+              rewrite Heqo in Heqo0.
+              inv Heqo0.
+              inv H2.
             --
               apply IHN in Heqo0.
-              rewrite Heqo0 in Heqo.
+              rewrite Heqo in Heqo0.
               inv Heqo.
               inv Heqs1.
               apply H.
@@ -620,27 +647,31 @@ Section Eval_Denote_Equiv.
             --
               some_none.
           *
-            repeat break_match_hyp; subst.
+            repeat break_match_hyp; subst;
+              apply Option_equiv_eq in Heqo0.
             --
               apply IHN in Heqo0.
-              rewrite Heqo0 in Heqo.
-              inv Heqo.
+              rewrite Heqo in Heqo0.
+              inv Heqo0.
+              inv H2.
             --
               inv Heqs1.
             --
               apply IHN in Heqo0.
-              rewrite Heqo0 in Heqo.
-              inv Heqo.
-              inv Heqs1.
-              apply evalDSHOperator_fuel_monotone.
-              apply H.
+              rewrite Heqo in Heqo0.
+              repeat some_inv; repeat inl_inr_inv; subst.
+              rewrite Heqo0.
+              destruct evalDSHOperator eqn:E in H; [| some_none].
+              erewrite evalDSHOperator_fuel_monotone; eassumption.
             --
               some_none.
           *
             exfalso.
             break_match_hyp.
             --
+              apply Option_equiv_eq in Heqo0.
               apply IHN in Heqo0.
+              rewrite Heqo in Heqo0.
               some_none.
             --
               some_none.
@@ -649,8 +680,8 @@ Section Eval_Denote_Equiv.
     Lemma eval_Loop_for_i_to_N_fuel_monotone_gt:
       forall res σ op i N fuel fuel' mem,
         fuel'>fuel ->
-        eval_Loop_for_i_to_N σ op i N mem fuel ≡ Some res ->
-        eval_Loop_for_i_to_N σ op i N mem fuel' ≡ Some res.
+        eval_Loop_for_i_to_N σ op i N mem fuel = Some res ->
+        eval_Loop_for_i_to_N σ op i N mem fuel' = Some res.
     Proof.
       intros H.
       intros σ op i N fuel fuel' mem H0 H1.
