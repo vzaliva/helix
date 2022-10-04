@@ -1158,6 +1158,16 @@ Module Type MDSigmaHCOLEval
           some_none.
   Qed.
 
+  Lemma evalDSHOperator_fuel_monotone_equiv :
+    forall op σ mem fuel res,
+      evalDSHOperator σ op mem fuel = Some res ->
+      evalDSHOperator σ op mem (S fuel) = Some res.
+  Proof.
+    intros * E.
+    destruct evalDSHOperator eqn:E' in E; [| some_none].
+    erewrite evalDSHOperator_fuel_monotone; eassumption.
+  Qed.
+
   Lemma evalDSHOperator_fuel_monotone_None:
     ∀ (op : DSHOperator)  (σ : evalContext) (fuel : nat) (m : memory),
       evalDSHOperator σ op m (S fuel) ≡ None
@@ -2559,6 +2569,19 @@ Module Type MDSigmaHCOLEval
       repeat break_match; try some_none; try some_inv; subst.
       + eexists; reflexivity.
       + eexists; reflexivity.
+  Qed.
+
+  Lemma evalDSHLoop_SN_in_range_equiv
+        {op : DSHOperator} {N : nat} {σ : evalContext} {mem : memory}
+        {fuel : nat} {mem' : memory}:
+    evalDSHOperator σ (DSHLoop (S N) op) mem fuel = Some (inr mem')
+    -> exists nn, from_nat N ≡ inr nn.
+  Proof.
+    intros * E.
+    destruct evalDSHOperator eqn:E' in E; [| invc E].
+    invc E; invc H1.
+    eapply evalDSHLoop_SN_in_range.
+    eassumption.
   Qed.
 
 End MDSigmaHCOLEval.
