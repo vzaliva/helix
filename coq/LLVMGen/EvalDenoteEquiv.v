@@ -37,6 +37,74 @@ Section Eval_Denote_Equiv.
 
   Ltac simp' := repeat (inv_sum || inv_option || break_and || break_match_hyp).
 
+  Lemma bind_ret_l_equiv
+    (E : Type -> Type)
+    (A B : Type)
+    (RA : Equiv A)
+    (RB : Equiv B)
+    (x : itree E A)
+    (a : A)
+    (k : A -> itree E B)
+    (r : itree E B)
+    :
+    (forall a', RA a' a -> eutt RB (k a') r) -> (* rewrite TO *)
+    eutt RA x (Ret a) ->                   (* rewrite WITH *)
+    eutt RB (ITree.bind x k) r.            (* current goal *)
+  Proof.
+    intros T W.
+
+    assert (eutt (fun a1 a2 => RA a1 a /\ a2 ≡ a) x (Ret a)).
+    {
+      clear - W.
+      revert x W.
+      pcofix CIH; intros x H.
+      punfold H.
+      red in H; cbn in H.
+      pfold.
+      red; cbn.
+      dependent induction H.
+      - rewrite <- x.
+        constructor.
+        split; auto.
+      - rewrite <- x.
+        apply EqTauL; auto.
+    }
+    
+    match goal with
+      |- eutt _ _ ?t =>
+        rewrite <- (bind_ret_l a (fun _ => t))
+    end.
+    eapply eutt_clo_bind.
+    apply H.
+    intros * [U <-].
+    intuition.
+  Qed.
+
+  (* TODO: rename *)
+  Lemma rewroote'
+    (E : Type -> Type)
+    (A B : Type)
+    (RA : Equiv A)
+    (RB : Equiv B)
+    (x1 x2 x1' : itree E A)
+    (k1 k2 : A -> itree E B)
+    :
+    Transitive RA ->
+    eutt RA x1 x1' ->
+    eutt RA x1' x2 ->
+    (forall a1 a2, RA a1 a2 -> eutt RB (k1 a1) (k2 a2)) ->
+    eutt RB (ITree.bind x1 k1) (ITree.bind x2 k2).
+  Proof.
+    intros * TR EQx1 EQx2 EQk.
+    eapply eutt_clo_bind.
+    eapply eqit_trans.
+    apply EQx1.
+    apply EQx2.
+    intros. apply EQk.
+    destruct H.
+    etransitivity; eauto.
+  Qed.
+
   Lemma interp_Mem_MemLU :
     forall str mem m x,
       memory_lookup_err str mem x = inr m ->
@@ -109,27 +177,6 @@ Section Eval_Denote_Equiv.
       eapply eqit_mon; eauto.
   Qed.
 
-  Instance eutt_EQUIV_REL_Proper_het {E} {A B} `{@Equivalence A ea} `{@Equivalence B eb} :
-    Proper (eq_relation_het ==> @eutt E A A ea ==> @eutt E B B eb ==> iff) (@eutt E A B).
-  Proof.
-    repeat red.
-    intros; split; intros.
-    -
-      rewrite <-H1.
-      eapply eqit_mon.
-      4: give_up.
-      (*
-
-      rewrite <- H0. rewrite <- H1.
-      clear H0 H1.
-      destruct H.
-      eapply eqit_mon; eauto.
-    -
-      rewrite H0, H1.
-      destruct H.
-      eapply eqit_mon; eauto.
-  Qed. *) Abort.
-
   Instance eutt_equiv_Proper {E} `{@Equivalence A ea} :
     Proper ((@eutt E A A ea) ==> (@eutt E A A ea) ==> (iff)) (@eutt E A A ea).
   Proof.
@@ -171,6 +218,7 @@ Section Eval_Denote_Equiv.
     now apply H2.
   Qed.
 
+  (*
   Add Parametric Relation
     (A B : Type)
     (EA : relation A)
@@ -184,6 +232,7 @@ Section Eval_Denote_Equiv.
       symmetry proved by (@pointwise_impl_Symmetric A B EA SA EB SB)
       transitivity proved by (@pointwise_impl_Transitive A B EA RA EB TB)
       as pointwise_impl_Param.
+   *)
 
   Instance ITree_bind_equiv_Proper {E} `{ea : relation A} `{eb : relation B} :
     Proper (@eutt E A A ea ==>
@@ -274,18 +323,15 @@ Section Eval_Denote_Equiv.
       repeat break_match;
         try some_none; repeat some_inv;
         try inl_inr; repeat inl_inr_inv.
+      cbn.
       +
-        subst s s0; clear.
-        cbn.
-        admit.
+        subst.
+        reflexivity.
       +
-        subst m3 m4; clear - M MID.
+        subst.
         cbn.
         erewrite <-eutt_Ret.
-        constructor.
-        assumption.
-        cbn.
-        admit.
+        now constructor.
     -
       erewrite <-eutt_Ret.
       constructor.
@@ -319,11 +365,11 @@ Section Eval_Denote_Equiv.
   Admitted.
 
   Lemma Denote_Eval_Equiv_NExpr: forall mem σ e v,
-        evalNExpr σ e = inr v ->
-        eutt equiv
+        evalNExpr σ e ≡ inr v ->
+        eutt Logic.eq
              (interp_Mem (denoteNExpr σ e) mem)
              (Ret (mem, v)).
-  Proof.
+  Proof. (*
     induction e; cbn; intros * HEval; cbn* in *; simp; go;
       try inv_option; try inv_sum.
     all: try rewrite <-eutt_Ret.
@@ -339,9 +385,10 @@ Section Eval_Denote_Equiv.
       autospecialize IHe1; [reflexivity |].
       autospecialize IHe2; [reflexivity |].
 
-      setoid_rewrite IHe1.
-      eapply eutt_equiv_Proper.
-      2: reflexivity.
+      (* setoid_rewrite IHe1. *)
+      etransitivity.
+      (* eapply eutt_equiv_Proper.
+      2: reflexivity. *)
       eapply ITree_bind_equiv_Proper.
       eassumption.
       {
@@ -389,23 +436,49 @@ Section Eval_Denote_Equiv.
       apply eutt_Ret.
       constructor.
       reflexivity.
-      assumption.
-  *) Admitted.
+      assumption.  *)
+  Admitted.
+
+    Ltac bind_ret_l_with H :=
+      let EH := fresh "EH" in
+      eapply bind_ret_l_equiv; [intros * EH | eapply H; eauto].
 
     Lemma Denote_Eval_Equiv_AExpr: forall mem σ e v,
         evalAExpr mem σ e = inr v ->
         eutt equiv
              (interp_Mem (denoteAExpr σ e) mem)
              (Ret (mem, v)).
-    Proof. (*
+    Proof.
       induction e; cbn; intros * HEval; cbn* in *; simp; go;
-        try (reflexivity ||
-             (rewrite IHe1; [| reflexivity]; go; rewrite IHe2; [| reflexivity]; go; reflexivity) ||
-             (rewrite IHe; [| reflexivity]; go; reflexivity)).
-      rewrite Denote_Eval_Equiv_NExpr; eauto; go;
-             rewrite Denote_Eval_Equiv_MExpr; eauto; go;
-             repeat match_rewrite; go; reflexivity.
-    Qed. *) Admitted.
+        try inv_option; try inv_sum.
+      all: try rewrite <-eutt_Ret.
+      constructor; now cbn.
+      constructor; now cbn.
+      -
+        admit.
+      -
+        admit.
+      -
+        specialize (IHe1 b).
+        autospecialize IHe1; [reflexivity|].
+
+        specialize (IHe2 b0).
+        autospecialize IHe2; [reflexivity|].
+
+        move IHe1 at bottom.
+        move IHe2 at bottom.
+        bind_ret_l_with IHe1.
+        destruct a'; invc EH; cbn in *.
+
+        rewrite interp_Mem_bind.
+        match goal with
+          |- eutt _ _ ?t =>
+            rewrite <- (bind_ret_l (mem, v) (fun _ => t))
+        end.
+
+        eapply rewroote'.
+        typeclasses eauto.
+    Admitted.
 
     Lemma Denote_Eval_Equiv_IMap: forall mem n f σ m1 m2 id,
         evalDSHIMap mem n f σ m1 m2 = inr id ->
@@ -417,6 +490,17 @@ Section Eval_Denote_Equiv.
       all: try inv_sum.
       apply eutt_Ret.
       now constructor.
+
+      bind_ret_l_with Denote_Eval_Equiv_AExpr.
+      2: {
+        unfold evalIUnCType in Heqs1.
+        rewrite Heqs1.
+        reflexivity.
+      }
+      destruct a'; invc EH; cbn in *.
+      eapply IHn.
+      
+        
 
       eapply eutt_equiv_Proper.
       eapply ITree_bind_equiv_Proper.
@@ -936,6 +1020,17 @@ Section Eval_Denote_Equiv.
             apply evalDSHOperator_fuel_monotone_equiv in Eval_body.
             apply IHop in Eval_body.
             go.
+
+            bind_ret_l_with Eval_body.
+            destruct a'.
+            invc EH; cbn in *.
+            clear H0.
+            go; cbn.
+            rewrite H; clear H.
+            Check IH.
+            Check Eval_tail.
+            apply IH in Eval_tail.
+
             (* rewrite Eval_body; cbn; go.
             cbn; go.
             apply IH in Eval_tail;try lia;auto.
