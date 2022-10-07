@@ -244,10 +244,29 @@ Section Eval_Denote_Equiv.
     apply NTypeSetoid.
   Qed.
 
-  Instance Mem_handler_Proper `{E : Equiv T} {ET : @Equivalence T E} :
-    Proper (Logic.eq ==> equiv ==> eutt equiv) (Mem_handler T).
+  Definition decide_MemEventT_equiv {T : Type} (e : MemEvent T) : Equiv T :=
+    match e with
+    | MemLU _ _ => NM_Equiv
+    | _ => equiv
+    end.
+
+  Instance decide_MemEventT_equiv_Equivalence `{e : MemEvent T} :
+    Equivalence (decide_MemEventT_equiv e).
   Proof.
-    intros e ? <- m1 m2 M.
+    destruct e; cbn.
+    all: typeclasses eauto.
+  Qed.
+
+  Instance Mem_handler_Proper {T : Type} :
+    forall e,
+    Proper (equiv ==>
+              eutt (@products.prod_equiv
+                      memoryH equiv
+                      T (decide_MemEventT_equiv e)))
+      (Mem_handler T e).
+  Proof.
+    intros e m1 m2 M.
+    unfold decide_MemEventT_equiv.
     destruct e; cbn.
     -
       pose proof (M id) as MID.
@@ -284,22 +303,13 @@ Section Eval_Denote_Equiv.
       eapply memory_next_key_struct.
       intros.
       now rewrite M.
-  Abort.
-
-  Instance Mem_handler_Proper_mem_block :
-    Proper (Logic.eq ==> equiv ==> eutt equiv) (Mem_handler mem_block).
-  Proof.
-    intros e ? <- m1 m2 M.
-  Admitted.
-
-  Instance Mem_handler_Proper_tt :
-    Proper (Logic.eq ==> equiv ==> eutt equiv) (Mem_handler ()).
-  Admitted.
-
-  Instance Mem_handler_Proper_nat :
-    Proper (Logic.eq ==> equiv ==> eutt equiv) (Mem_handler nat).
-  Admitted.
-
+    -
+      erewrite <-eutt_Ret.
+      constructor.
+      now rewrite M.
+      reflexivity.
+  Qed.
+  
   (* See [interp_Mem_proper] *)
   Instance interp_Mem_equiv_proper {A} {e : Equiv A} {EQ : @Equivalence A e} :
     Proper ((eutt e) ==> equiv ==> (eutt equiv)) (@interp_Mem A).
