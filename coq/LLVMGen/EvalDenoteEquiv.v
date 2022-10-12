@@ -21,7 +21,7 @@ Section Eval_Denote_Equiv.
     | h: inr _ ≡ inr _ |-  _ => inv h
     | h: inl _ ≡ inr _ |-  _ => inv h
     | h: inr _ ≡ inl _ |-  _ => inv h
-     end.
+    end.
 
   Ltac inv_option :=
     match goal with
@@ -33,7 +33,7 @@ Section Eval_Denote_Equiv.
     | h: None   ≡ Some _ |-  _ => inv h
     | h: Some _ ≡ None   |-  _ => inv h
     | h: None   ≡ None   |-  _ => inv h
-     end.
+    end.
 
   Ltac simp' := repeat (inv_sum || inv_option || break_and || break_match_hyp).
 
@@ -69,7 +69,7 @@ Section Eval_Denote_Equiv.
       - rewrite <- x.
         apply EqTauL; auto.
     }
-    
+
     match goal with
       |- eutt _ _ ?t =>
         rewrite <- (bind_ret_l a (fun _ => t))
@@ -78,31 +78,6 @@ Section Eval_Denote_Equiv.
     apply H.
     intros * [U <-].
     intuition.
-  Qed.
-
-  (* TODO: rename *)
-  Lemma rewroote'
-    (E : Type -> Type)
-    (A B : Type)
-    (RA : Equiv A)
-    (RB : Equiv B)
-    (x1 x2 x1' : itree E A)
-    (k1 k2 : A -> itree E B)
-    :
-    Transitive RA ->
-    eutt RA x1 x1' ->
-    eutt RA x1' x2 ->
-    (forall a1 a2, RA a1 a2 -> eutt RB (k1 a1) (k2 a2)) ->
-    eutt RB (ITree.bind x1 k1) (ITree.bind x2 k2).
-  Proof.
-    intros * TR EQx1 EQx2 EQk.
-    eapply eutt_clo_bind.
-    eapply eqit_trans.
-    apply EQx1.
-    apply EQx2.
-    intros. apply EQk.
-    destruct H.
-    etransitivity; eauto.
   Qed.
 
   Lemma interp_Mem_MemLU :
@@ -122,11 +97,23 @@ Section Eval_Denote_Equiv.
     now split.
   Qed.
 
+  Lemma Denote_Eval_Equiv_MExpr_eq : forall mem σ e bk size,
+      evalMExpr mem σ e ≡ inr (bk,size) ->
+      eutt Logic.eq
+        (interp_Mem (denoteMExpr σ e) mem)
+        (Ret (mem, (bk,size))).
+  Proof.
+    intros mem σ [] * EVAL; cbn* in *; simp; go; try reflexivity.
+    rewrite Heqs; cbn*; go.
+    reflexivity.
+    cbn*; match_rewrite; reflexivity.
+  Qed.
+
   Lemma Denote_Eval_Equiv_MExpr: forall mem σ e bk size,
       evalMExpr mem σ e = inr (bk,size) ->
       eutt equiv
-           (interp_Mem (denoteMExpr σ e) mem)
-           (Ret (mem, (bk,size))).
+        (interp_Mem (denoteMExpr σ e) mem)
+        (Ret (mem, (bk,size))).
   Proof.
     intros mem σ [] * EVAL.
     - cbn* in *; simp'.
@@ -219,7 +206,7 @@ Section Eval_Denote_Equiv.
   Qed.
 
   (*
-  Add Parametric Relation
+    Add Parametric Relation
     (A B : Type)
     (EA : relation A)
     (EB : relation B)
@@ -229,9 +216,9 @@ Section Eval_Denote_Equiv.
     (TB : @Transitive B EB)
     :
     (A -> B) (@pointwise_impl A B EA EB)
-      symmetry proved by (@pointwise_impl_Symmetric A B EA SA EB SB)
-      transitivity proved by (@pointwise_impl_Transitive A B EA RA EB TB)
-      as pointwise_impl_Param.
+    symmetry proved by (@pointwise_impl_Symmetric A B EA SA EB SB)
+    transitivity proved by (@pointwise_impl_Transitive A B EA RA EB TB)
+    as pointwise_impl_Param.
    *)
 
   Instance ITree_bind_equiv_Proper {E} `{ea : relation A} `{eb : relation B} :
@@ -308,11 +295,11 @@ Section Eval_Denote_Equiv.
 
   Instance Mem_handler_Proper {T : Type} :
     forall e,
-    Proper (equiv ==>
-              eutt (@products.prod_equiv
-                      memoryH equiv
-                      T (decide_MemEventT_equiv e)))
-      (Mem_handler T e).
+      Proper (equiv ==>
+                eutt (@products.prod_equiv
+                        memoryH equiv
+                        T (decide_MemEventT_equiv e)))
+        (Mem_handler T e).
   Proof.
     intros e m1 m2 M.
     unfold decide_MemEventT_equiv.
@@ -355,9 +342,9 @@ Section Eval_Denote_Equiv.
       now rewrite M.
       reflexivity.
   Qed.
-  
+
   (* See [interp_Mem_proper] *)
-  Instance interp_Mem_equiv_proper {A} {e : Equiv A} {EQ : @Equivalence A e} :
+  Global Instance interp_Mem_equiv_proper {A} {e : Equiv A} {EQ : @Equivalence A e} :
     Proper ((eutt e) ==> equiv ==> (eutt equiv)) (@interp_Mem A).
   Proof.
     intros x1 x2 X m1 m2 M.
@@ -365,605 +352,716 @@ Section Eval_Denote_Equiv.
   Admitted.
 
   Lemma Denote_Eval_Equiv_NExpr: forall mem σ e v,
-        evalNExpr σ e ≡ inr v ->
-        eutt Logic.eq
-             (interp_Mem (denoteNExpr σ e) mem)
-             (Ret (mem, v)).
-  Proof. (*
+      evalNExpr σ e ≡ inr v ->
+      eutt Logic.eq
+        (interp_Mem (denoteNExpr σ e) mem)
+        (Ret (mem, v)).
+  Proof.
+    induction e; cbn; intros * HEval; cbn* in *; simp; go;
+      try (reflexivity ||
+             (rewrite IHe1; [| reflexivity]; go; rewrite IHe2; [| reflexivity]; go; try (match_rewrite; go); reflexivity)).
+  Qed.
+
+  Ltac bind_ret_l_with H :=
+    let EH := fresh "EH" in
+    eapply bind_ret_l_equiv; [intros * EH | eapply H; eauto].
+
+  Lemma Denote_Eval_Equiv_AExpr: forall mem σ e v,
+      evalAExpr mem σ e = inr v ->
+      eutt equiv
+        (interp_Mem (denoteAExpr σ e) mem)
+        (Ret (mem, v)).
+  Proof.
     induction e; cbn; intros * HEval; cbn* in *; simp; go;
       try inv_option; try inv_sum.
     all: try rewrite <-eutt_Ret.
-    constructor; now cbn.
-    constructor; now cbn.
     -
-      admit.
+      constructor; now cbn.
     -
-      admit.
+      constructor; now cbn.
     -
-      specialize (IHe1 i).
-      specialize (IHe2 i0).
-      autospecialize IHe1; [reflexivity |].
-      autospecialize IHe2; [reflexivity |].
+      cbv in H1; subst b.
+      rewrite Denote_Eval_Equiv_NExpr; [| eassumption].
+      rewrite bind_ret_l, interp_Mem_bind.
+      rewrite Denote_Eval_Equiv_MExpr_eq; [| eassumption].
+      repeat (go; match_rewrite).
+      rewrite interp_Mem_ret.
+      reflexivity.
+    -
+      specialize (IHe b); autospecialize IHe; [reflexivity |].
+      bind_ret_l_with IHe.
+      destruct a'; invc EH.
+      cbv in H0; subst b0.
+      cbn in H.
+      rewrite interp_Mem_ret, <-eutt_Ret.
+      now constructor.
+    -
+      rename H1 into V.
 
-      (* setoid_rewrite IHe1. *)
-      etransitivity.
-      (* eapply eutt_equiv_Proper.
-      2: reflexivity. *)
-      eapply ITree_bind_equiv_Proper.
-      eassumption.
-      {
-        eapply pointwise_impl_eq.
-        eapply pointwise_impl'_simp.
-        clear.
-        intros (m1, v1) (m2, v2) [M V].
-        cbn in M, V.
-        go.
-        eapply ITree_bind_equiv_Proper.
-        rewrite M.
-        reflexivity.
-        unfold pointwise_impl.
-        intros (m1', v1') (m2', v2') [M' V'].
-        cbn in M', V'.
-        rewrite !interp_Mem_ret.
-        apply eutt_Ret.
-        constructor.
-        now rewrite M'.
-        now rewrite V, V'.
-      }
+      specialize (IHe1 b).
+      autospecialize IHe1; [reflexivity|].
+      specialize (IHe2 b0).
+      autospecialize IHe2; [reflexivity|].
 
-      rewrite bind_ret_l.
+      bind_ret_l_with IHe1.
+      destruct a' as (mem', b'); invc EH.
+      cbv in H0; subst.
+      rename H into MEM'; cbn in MEM'.
+
       rewrite interp_Mem_bind.
 
-      eapply eutt_equiv_Proper.
-      2: reflexivity.
-      eapply ITree_bind_equiv_Proper.
-      eassumption.
-      {
-        eapply pointwise_impl_eq.
-        eapply pointwise_impl'_simp.
-        clear.
-        intros (m1, v1) (m2, v2) [M V].
-        cbn in M, V.
-        go.
-        apply eutt_Ret.
-        constructor.
-        now rewrite M.
-        now rewrite V.
-      }
+      symmetry in MEM'.
+      assert (T : eutt equiv (denoteAExpr σ e2) (denoteAExpr σ e2))
+        by reflexivity.
+      rewrite (interp_Mem_equiv_proper
+                 (denoteAExpr σ e2) (denoteAExpr σ e2) T
+                 mem mem' MEM') in IHe2.
+      clear T.
 
-      rewrite bind_ret_l.
-      rewrite interp_Mem_ret.
-      apply eutt_Ret.
-      constructor.
-      reflexivity.
-      assumption.  *)
-  Admitted.
+      bind_ret_l_with IHe2.
+      destruct a' as (mem'', b0'); invc EH.
+      cbv in H0; subst.
+      rename H into MEM''; cbn in MEM''.
 
-    Ltac bind_ret_l_with H :=
-      let EH := fresh "EH" in
-      eapply bind_ret_l_equiv; [intros * EH | eapply H; eauto].
-
-    Lemma Denote_Eval_Equiv_AExpr: forall mem σ e v,
-        evalAExpr mem σ e = inr v ->
-        eutt equiv
-             (interp_Mem (denoteAExpr σ e) mem)
-             (Ret (mem, v)).
-    Proof.
-      induction e; cbn; intros * HEval; cbn* in *; simp; go;
-        try inv_option; try inv_sum.
-      all: try rewrite <-eutt_Ret.
-      constructor; now cbn.
-      constructor; now cbn.
-      -
-        admit.
-      -
-        admit.
-      -
-        specialize (IHe1 b).
-        autospecialize IHe1; [reflexivity|].
-
-        specialize (IHe2 b0).
-        autospecialize IHe2; [reflexivity|].
-
-        move IHe1 at bottom.
-        move IHe2 at bottom.
-        bind_ret_l_with IHe1.
-        destruct a'; invc EH; cbn in *.
-
-        rewrite interp_Mem_bind.
-        match goal with
-          |- eutt _ _ ?t =>
-            rewrite <- (bind_ret_l (mem, v) (fun _ => t))
-        end.
-
-        eapply rewroote'.
-        typeclasses eauto.
-    Admitted.
-
-    Lemma Denote_Eval_Equiv_IMap: forall mem n f σ m1 m2 id,
-        evalDSHIMap mem n f σ m1 m2 = inr id ->
-        eutt equiv
-             (interp_Mem (denoteDSHIMap n f σ m1 m2) mem)
-             (Ret (mem, id)).
-    Proof.
-      induction n; intros; cbn* in *; simp; go; try reflexivity.
-      all: try inv_sum.
-      apply eutt_Ret.
+      rewrite interp_Mem_ret, <-eutt_Ret.
       now constructor.
+    -
+      rename H1 into V.
 
-      bind_ret_l_with Denote_Eval_Equiv_AExpr.
-      2: {
-        unfold evalIUnCType in Heqs1.
-        rewrite Heqs1.
-        reflexivity.
-      }
-      destruct a'; invc EH; cbn in *.
-      eapply IHn.
-      
-        
+      specialize (IHe1 b).
+      autospecialize IHe1; [reflexivity|].
+      specialize (IHe2 b0).
+      autospecialize IHe2; [reflexivity|].
 
-      eapply eutt_equiv_Proper.
-      eapply ITree_bind_equiv_Proper.
-      2: {
-        match goal with
-        | |- pointwise_impl _ _ ?f _ => instantiate (1:=f)
-        end.
-        instantiate (1:=equiv).
-        apply pointwise_impl_eq.
-        eapply pointwise_impl'_simp.
-        clear.
-        intros (mem1, v1) (mem2, v2) [M V].
-        cbn in M, V.
-        eapply interp_Mem_equiv_proper.
-        2: assumption.
-        cbv in V; subst.
-        reflexivity.
-      }
-      rewrite Denote_Eval_Equiv_AExpr.
-      reflexivity.
+      bind_ret_l_with IHe1.
+      destruct a' as (mem', b'); invc EH.
+      cbv in H0; subst.
+      rename H into MEM'; cbn in MEM'.
+
+      rewrite interp_Mem_bind.
+
+      symmetry in MEM'.
+      assert (T : eutt equiv (denoteAExpr σ e2) (denoteAExpr σ e2))
+        by reflexivity.
+      rewrite (interp_Mem_equiv_proper
+                 (denoteAExpr σ e2) (denoteAExpr σ e2) T
+                 mem mem' MEM') in IHe2.
+      clear T.
+
+      bind_ret_l_with IHe2.
+      destruct a' as (mem'', b0'); invc EH.
+      cbv in H0; subst.
+      rename H into MEM''; cbn in MEM''.
+
+      rewrite interp_Mem_ret, <-eutt_Ret.
+      now constructor.
+    -
+      rename H1 into V.
+
+      specialize (IHe1 b).
+      autospecialize IHe1; [reflexivity|].
+      specialize (IHe2 b0).
+      autospecialize IHe2; [reflexivity|].
+
+      bind_ret_l_with IHe1.
+      destruct a' as (mem', b'); invc EH.
+      cbv in H0; subst.
+      rename H into MEM'; cbn in MEM'.
+
+      rewrite interp_Mem_bind.
+
+      symmetry in MEM'.
+      assert (T : eutt equiv (denoteAExpr σ e2) (denoteAExpr σ e2))
+        by reflexivity.
+      rewrite (interp_Mem_equiv_proper
+                 (denoteAExpr σ e2) (denoteAExpr σ e2) T
+                 mem mem' MEM') in IHe2.
+      clear T.
+
+      bind_ret_l_with IHe2.
+      destruct a' as (mem'', b0'); invc EH.
+      cbv in H0; subst.
+      rename H into MEM''; cbn in MEM''.
+
+      rewrite interp_Mem_ret, <-eutt_Ret.
+      now constructor.
+    -
+      rename H1 into V.
+
+      specialize (IHe1 b).
+      autospecialize IHe1; [reflexivity|].
+      specialize (IHe2 b0).
+      autospecialize IHe2; [reflexivity|].
+
+      bind_ret_l_with IHe1.
+      destruct a' as (mem', b'); invc EH.
+      cbv in H0; subst.
+      rename H into MEM'; cbn in MEM'.
+
+      rewrite interp_Mem_bind.
+
+      symmetry in MEM'.
+      assert (T : eutt equiv (denoteAExpr σ e2) (denoteAExpr σ e2))
+        by reflexivity.
+      rewrite (interp_Mem_equiv_proper
+                 (denoteAExpr σ e2) (denoteAExpr σ e2) T
+                 mem mem' MEM') in IHe2.
+      clear T.
+
+      bind_ret_l_with IHe2.
+      destruct a' as (mem'', b0'); invc EH.
+      cbv in H0; subst.
+      rename H into MEM''; cbn in MEM''.
+
+      rewrite interp_Mem_ret, <-eutt_Ret.
+      now constructor.
+    -
+      rename H1 into V.
+
+      specialize (IHe1 b).
+      autospecialize IHe1; [reflexivity|].
+      specialize (IHe2 b0).
+      autospecialize IHe2; [reflexivity|].
+
+      bind_ret_l_with IHe1.
+      destruct a' as (mem', b'); invc EH.
+      cbv in H0; subst.
+      rename H into MEM'; cbn in MEM'.
+
+      rewrite interp_Mem_bind.
+
+      symmetry in MEM'.
+      assert (T : eutt equiv (denoteAExpr σ e2) (denoteAExpr σ e2))
+        by reflexivity.
+      rewrite (interp_Mem_equiv_proper
+                 (denoteAExpr σ e2) (denoteAExpr σ e2) T
+                 mem mem' MEM') in IHe2.
+      clear T.
+
+      bind_ret_l_with IHe2.
+      destruct a' as (mem'', b0'); invc EH.
+      cbv in H0; subst.
+      rename H into MEM''; cbn in MEM''.
+
+      rewrite interp_Mem_ret, <-eutt_Ret.
+      now constructor.
+    -
+      rename H1 into V.
+
+      specialize (IHe1 b).
+      autospecialize IHe1; [reflexivity|].
+      specialize (IHe2 b0).
+      autospecialize IHe2; [reflexivity|].
+
+      bind_ret_l_with IHe1.
+      destruct a' as (mem', b'); invc EH.
+      cbv in H0; subst.
+      rename H into MEM'; cbn in MEM'.
+
+      rewrite interp_Mem_bind.
+
+      symmetry in MEM'.
+      assert (T : eutt equiv (denoteAExpr σ e2) (denoteAExpr σ e2))
+        by reflexivity.
+      rewrite (interp_Mem_equiv_proper
+                 (denoteAExpr σ e2) (denoteAExpr σ e2) T
+                 mem mem' MEM') in IHe2.
+      clear T.
+
+      bind_ret_l_with IHe2.
+      destruct a' as (mem'', b0'); invc EH.
+      cbv in H0; subst.
+      rename H into MEM''; cbn in MEM''.
+
+      rewrite interp_Mem_ret, <-eutt_Ret.
+      now constructor.
+  Qed.
+
+  Lemma Denote_Eval_Equiv_IMap: forall mem n f σ m1 m2 id,
+      evalDSHIMap mem n f σ m1 m2 = inr id ->
+      eutt equiv
+        (interp_Mem (denoteDSHIMap n f σ m1 m2) mem)
+        (Ret (mem, id)).
+  Proof.
+    induction n; intros; cbn* in *; simp; go; try reflexivity.
+    all: try inv_sum.
+    apply eutt_Ret.
+    now constructor.
+
+    bind_ret_l_with Denote_Eval_Equiv_AExpr.
+    2: {
       unfold evalIUnCType in Heqs1.
       rewrite Heqs1.
       reflexivity.
+    }
+    destruct a' as [mem' ?]; invc EH.
+    cbv in H1; subst.
+    rename H0 into MEM'; cbn in MEM'.
+
+    eapply IHn in H.
+
+    symmetry in MEM'.
+    remember (denoteDSHIMap n f σ m1 (mem_add n b0 m2)) as t.
+    assert (T : eutt equiv t t)
+      by reflexivity.
+    rewrite (interp_Mem_equiv_proper t t T mem mem' MEM') in H.
+    subst t; clear T.
+
+    rewrite H.
+    reflexivity.
+  Qed.
+
+  Lemma Denote_Eval_Equiv_BinCType: forall mem σ f i a b v,
+      evalIBinCType mem σ f i a b = inr v ->
+      eutt equiv
+        (interp_Mem (denoteIBinCType σ f i a b) mem)
+        (Ret (mem, v)).
+  Proof.
+    unfold evalIBinCType, denoteIBinCType; intros.
+    eapply Denote_Eval_Equiv_AExpr; eauto.
+  Qed.
+
+  Lemma Denote_Eval_Equiv_BinOp: forall mem n off σ f x y blk,
+      evalDSHBinOp mem n off f σ x y = inr blk ->
+      eutt equiv
+        (interp_Mem (denoteDSHBinOp n off f σ x y) mem)
+        (Ret (mem, blk)).
+  Proof.
+    induction n as [| n IH]; intros; cbn* in *; simp; go; try reflexivity.
+    all: try inl_inr; repeat inl_inr_inv.
+    apply eutt_Ret.
+    now constructor.
+
+    eapply eutt_equiv_Proper.
+    eapply ITree_bind_equiv_Proper.
+    2: {
+      match goal with
+      | |- pointwise_impl _ _ ?f _ => instantiate (1:=f)
+      end.
+      instantiate (1:=equiv).
+      apply pointwise_impl_eq.
+      eapply pointwise_impl'_simp.
+      clear.
+      intros (mem1, v1) (mem2, v2) [M V].
+      cbn in M, V.
+      eapply interp_Mem_equiv_proper.
+      2: assumption.
+      cbv in V; subst.
       reflexivity.
-      rewrite bind_ret_l.
-      eapply IHn.
-      assumption.
-    Qed.
+    }
+    rewrite Denote_Eval_Equiv_BinCType.
+    reflexivity.
+    rewrite Heqs2; reflexivity.
+    reflexivity.
+    rewrite bind_ret_l.
+    eapply IH.
+    assumption.
+  Qed.
 
-    Lemma Denote_Eval_Equiv_BinCType: forall mem σ f i a b v,
-        evalIBinCType mem σ f i a b = inr v ->
-        eutt equiv
-             (interp_Mem (denoteIBinCType σ f i a b) mem)
-             (Ret (mem, v)).
-    Proof.
-      unfold evalIBinCType, denoteIBinCType; intros.
-      eapply Denote_Eval_Equiv_AExpr; eauto.
-    Qed.
+  Import MonadNotation.
+  Local Open Scope monad_scope.
 
-    Lemma Denote_Eval_Equiv_BinOp: forall mem n off σ f x y blk,
-        evalDSHBinOp mem n off f σ x y = inr blk ->
-        eutt equiv
-             (interp_Mem (denoteDSHBinOp n off f σ x y) mem)
-             (Ret (mem, blk)).
-    Proof.
-      induction n as [| n IH]; intros; cbn* in *; simp; go; try reflexivity.
-      all: try inl_inr; repeat inl_inr_inv.
-      apply eutt_Ret.
-      now constructor.
+  Definition denote_Loop_for_i_to_N σ body (i N: nat) :=
+    iter (fun (p: nat) =>
+            if EqNat.beq_nat p N
+            then ret (inr tt)
+            else
+              vp <- lift_Serr (from_nat p) ;;
+              denoteDSHOperator ((DSHnatVal vp , false):: σ) body;;
+              Ret (inl (S p))
+      ) i.
 
-      eapply eutt_equiv_Proper.
-      eapply ITree_bind_equiv_Proper.
-      2: {
-        match goal with
-        | |- pointwise_impl _ _ ?f _ => instantiate (1:=f)
-        end.
-        instantiate (1:=equiv).
-        apply pointwise_impl_eq.
-        eapply pointwise_impl'_simp.
-        clear.
-        intros (mem1, v1) (mem2, v2) [M V].
-        cbn in M, V.
-        eapply interp_Mem_equiv_proper.
-        2: assumption.
-        cbv in V; subst.
-        reflexivity.
-      }
-      rewrite Denote_Eval_Equiv_BinCType.
-      reflexivity.
-      rewrite Heqs2; reflexivity.
-      reflexivity.
-      rewrite bind_ret_l.
-      eapply IH.
-      assumption.
-    Qed.
+  Lemma denote_Loop_for_0_to_N:
+    forall σ body N, eutt equiv (denote_Loop_for_i_to_N σ body 0 N) (denoteDSHOperator σ (DSHLoop N body)).
+  Proof.
+    unfold denote_Loop_for_i_to_N; reflexivity.
+  Qed.
 
-    Import MonadNotation.
-    Local Open Scope monad_scope.
+  (* loop over [i .. N)
+     Some boundary cases:
+     - i<N => either [Some _] or [None] if runs out of fuel
+     - i>N => same as [eval_Loop_for_0_to_N]
+     - N=0 =>
+     - fuel=0 => [None]
+     - fuel>0 => [Some (ret mem)] no-op
+     - i=N =>
+     - fuel=0 => [None]
+     - fuel>0 => [Some (ret mem)] no-op
 
-    Definition denote_Loop_for_i_to_N σ body (i N: nat) :=
-      iter (fun (p: nat) =>
-              if EqNat.beq_nat p N
-              then ret (inr tt)
-              else
-                vp <- lift_Serr (from_nat p) ;;
-                denoteDSHOperator ((DSHnatVal vp , false):: σ) body;;
-                Ret (inl (S p))
-           ) i.
-
-    Lemma denote_Loop_for_0_to_N:
-      forall σ body N, eutt equiv (denote_Loop_for_i_to_N σ body 0 N) (denoteDSHOperator σ (DSHLoop N body)).
-    Proof.
-      unfold denote_Loop_for_i_to_N; reflexivity.
-    Qed.
-
-    (* loop over [i .. N)
-       Some boundary cases:
-       - i<N => either [Some _] or [None] if runs out of fuel
-       - i>N => same as [eval_Loop_for_0_to_N]
-       - N=0 =>
-         - fuel=0 => [None]
-         - fuel>0 => [Some (ret mem)] no-op
-       - i=N =>
-         - fuel=0 => [None]
-         - fuel>0 => [Some (ret mem)] no-op
-
-      NOTE: Struct [{struct N}] works instead of [{struct fuel}] here as well.
-     *)
-    Fixpoint eval_Loop_for_i_to_N σ body (i N: nat) mem fuel {struct fuel} :=
-      match fuel with
-      | O => None
-      | S fuel =>
+     NOTE: Struct [{struct N}] works instead of [{struct fuel}] here as well.
+   *)
+  Fixpoint eval_Loop_for_i_to_N σ body (i N: nat) mem fuel {struct fuel} :=
+    match fuel with
+    | O => None
+    | S fuel =>
         match N with
         | O => Some (ret mem)
         | S N =>
-          if EqNat.beq_nat i (S N) then
-            Some (ret mem)
-          else
-            match eval_Loop_for_i_to_N σ body i N mem fuel with
-            | Some (inr mem) =>
-              match from_nat N with
-              | inl msg => Some (inl msg)
-              | inr vN =>
-                evalDSHOperator ((DSHnatVal vN , false) :: σ) body mem fuel
+            if EqNat.beq_nat i (S N) then
+              Some (ret mem)
+            else
+              match eval_Loop_for_i_to_N σ body i N mem fuel with
+              | Some (inr mem) =>
+                  match from_nat N with
+                  | inl msg => Some (inl msg)
+                  | inr vN =>
+                      evalDSHOperator ((DSHnatVal vN , false) :: σ) body mem fuel
+                  end
+              | Some (inl msg) => Some (inl msg)
+              | None => None
               end
-            | Some (inl msg) => Some (inl msg)
-            | None => None
-            end
         end
-      end.
+    end.
 
-    Lemma eval_Loop_for_N_to_N: forall fuel σ op N mem,
-        eval_Loop_for_i_to_N σ op N N mem (S fuel) ≡ Some (ret mem).
-    Proof.
-      intros fuel σ op [| N] mem; [reflexivity |].
-      simpl; rewrite Nat.eqb_refl; reflexivity.
-    Qed.
+  Lemma eval_Loop_for_N_to_N: forall fuel σ op N mem,
+      eval_Loop_for_i_to_N σ op N N mem (S fuel) ≡ Some (ret mem).
+  Proof.
+    intros fuel σ op [| N] mem; [reflexivity |].
+    simpl; rewrite Nat.eqb_refl; reflexivity.
+  Qed.
 
-    (*
+  (*
     Lemma eval_Loop_for_i_to_N_invert: forall σ i ii N op fuel mem_i mem_f,
-        i < N ->
-        from_nat i ≡ inr ii ->
-        eval_Loop_for_i_to_N σ op i N mem_i fuel ≡ Some (inr mem_f) ->
-        exists mem_aux,
-          evalDSHOperator ((DSHnatVal ii , false) :: σ) op mem_i fuel ≡ Some (inr mem_aux) /\
-          eval_Loop_for_i_to_N σ op (S i) N mem_aux fuel ≡ Some (inr mem_f).
+    i < N ->
+    from_nat i ≡ inr ii ->
+    eval_Loop_for_i_to_N σ op i N mem_i fuel ≡ Some (inr mem_f) ->
+    exists mem_aux,
+    evalDSHOperator ((DSHnatVal ii , false) :: σ) op mem_i fuel ≡ Some (inr mem_aux) /\
+    eval_Loop_for_i_to_N σ op (S i) N mem_aux fuel ≡ Some (inr mem_f).
     Proof.
-      (* This proof is surprisingly painful to go through *)
-      intros.
-      (* Induction on the number of steps remaining *)
-      remember (N - i) as k.
-      revert σ fuel i ii N Heqk mem_i mem_f H0 H1 H.
-      induction k as [| k IH];
-        intros σ fuel i ii N EQ mem_i mem_f Hn Heval ineq;[lia|].
+    (* This proof is surprisingly painful to go through *)
+    intros.
+    (* Induction on the number of steps remaining *)
+    remember (N - i) as k.
+    revert σ fuel i ii N Heqk mem_i mem_f H0 H1 H.
+    induction k as [| k IH];
+    intros σ fuel i ii N EQ mem_i mem_f Hn Heval ineq;[lia|].
 
-      (* N > 0 for us to be able to take a step *)
-      destruct N as [| N]; [lia |].
-      (* We got some fuel since the computation succeeded *)
-      destruct fuel as [| fuel]; [inv Heval |].
-      (* We can now reduce *)
-      simpl in Heval.
+    (* N > 0 for us to be able to take a step *)
+    destruct N as [| N]; [lia |].
+    (* We got some fuel since the computation succeeded *)
+    destruct fuel as [| fuel]; [inv Heval |].
+    (* We can now reduce *)
+    simpl in Heval.
 
-      (* We know there's still a step to be taken *)
-      destruct (i =? S N)%nat eqn:EQ'; [apply beq_nat_true in EQ'; lia | apply beq_nat_false in EQ'].
-      (* And that the recursive call succeeded since the computation did *)
-      destruct (eval_Loop_for_i_to_N σ op i N mem_i fuel) eqn: HEval'; [| inv Heval].
-      destruct s; inv Heval.
+    (* We know there's still a step to be taken *)
+    destruct (i =? S N)%nat eqn:EQ'; [apply beq_nat_true in EQ'; lia | apply beq_nat_false in EQ'].
+    (* And that the recursive call succeeded since the computation did *)
+    destruct (eval_Loop_for_i_to_N σ op i N mem_i fuel) eqn: HEval'; [| inv Heval].
+    destruct s; inv Heval.
 
-      (* Now there are two cases:
-         either a single step was remaining and we should be able to conclude directly;
-         or more were remaining, and we should be able to conclude by induction
-       *)
+    (* Now there are two cases:
+    either a single step was remaining and we should be able to conclude directly;
+    or more were remaining, and we should be able to conclude by induction
+   *)
 
-      destruct (i =? N)%nat eqn: EQ''; [apply beq_nat_true in EQ''; subst; clear IH |].
-      - clear EQ' EQ ineq.
-        rewrite Hn in H0.
-        destruct fuel as [| fuel]; [inv HEval' |].
-        rewrite eval_Loop_for_N_to_N in HEval'.
-        setoid_rewrite eval_Loop_for_N_to_N.
-        inv HEval'.
-        exists mem_f.
-        split; [apply evalDSHOperator_fuel_monotone; auto | auto ].
-        rewrite Hn.
-        auto.
-      - destruct (from_nat N) eqn:NN.
-        +
-          eapply IH in HEval';[|lia|eauto|apply beq_nat_false in EQ''; lia].
-          destruct HEval' as (mem_aux & STEP & TAIL).
-          exists mem_aux; split; [apply evalDSHOperator_fuel_monotone; auto |].
-          cbn; rewrite EQ'', TAIL.
-          rewrite NN.
-          reflexivity.
-        +
-          eapply IH in HEval';[|lia|eauto|apply beq_nat_false in EQ''; lia].
-          destruct HEval' as (mem_aux & STEP & TAIL).
-          exists mem_aux; split; [apply evalDSHOperator_fuel_monotone; auto |].
-          cbn; rewrite EQ'', TAIL.
-          rewrite NN.
-          reflexivity.
-    Qed.
+   destruct (i =? N)%nat eqn: EQ''; [apply beq_nat_true in EQ''; subst; clear IH |].
+   - clear EQ' EQ ineq.
+   rewrite Hn in H0.
+   destruct fuel as [| fuel]; [inv HEval' |].
+   rewrite eval_Loop_for_N_to_N in HEval'.
+   setoid_rewrite eval_Loop_for_N_to_N.
+   inv HEval'.
+   exists mem_f.
+   split; [apply evalDSHOperator_fuel_monotone; auto | auto ].
+   rewrite Hn.
+   auto.
+   - destruct (from_nat N) eqn:NN.
+   +
+   eapply IH in HEval';[|lia|eauto|apply beq_nat_false in EQ''; lia].
+   destruct HEval' as (mem_aux & STEP & TAIL).
+   exists mem_aux; split; [apply evalDSHOperator_fuel_monotone; auto |].
+   cbn; rewrite EQ'', TAIL.
+   rewrite NN.
+   reflexivity.
+   +
+   eapply IH in HEval';[|lia|eauto|apply beq_nat_false in EQ''; lia].
+   destruct HEval' as (mem_aux & STEP & TAIL).
+   exists mem_aux; split; [apply evalDSHOperator_fuel_monotone; auto |].
+   cbn; rewrite EQ'', TAIL.
+   rewrite NN.
+   reflexivity.
+   Qed.
+   *)
+
+  Lemma eval_Loop_for_i_to_N_invert: forall σ i ii N op fuel mem_i mem_f,
+      i < N ->
+      from_nat i ≡ inr ii ->
+      eval_Loop_for_i_to_N σ op i N mem_i fuel = Some (inr mem_f) ->
+      exists mem_aux,
+        evalDSHOperator ((DSHnatVal ii , false) :: σ) op mem_i fuel = Some (inr mem_aux) /\
+          eval_Loop_for_i_to_N σ op (S i) N mem_aux fuel = Some (inr mem_f).
+  Proof.
+    (* This proof is surprisingly painful to go through *)
+    intros.
+    (* Induction on the number of steps remaining *)
+    remember (N - i) as k.
+    revert σ fuel i ii N Heqk mem_i mem_f H0 H1 H.
+    induction k as [| k IH];
+      intros σ fuel i ii N EQ mem_i mem_f Hn Heval ineq;[lia|].
+
+    (* N > 0 for us to be able to take a step *)
+    destruct N as [| N]; [lia |].
+    (* We got some fuel since the computation succeeded *)
+    destruct fuel as [| fuel]; [inv Heval |].
+    (* We can now reduce *)
+    simpl in Heval.
+
+    (* We know there's still a step to be taken *)
+    destruct (i =? S N)%nat eqn:EQ'; [apply beq_nat_true in EQ'; lia | apply beq_nat_false in EQ'].
+    (* And that the recursive call succeeded since the computation did *)
+    destruct (eval_Loop_for_i_to_N σ op i N mem_i fuel) eqn: HEval'; [| inv Heval].
+    destruct s; inv Heval.
+    1: solve [inv H1].
+
+    (* Now there are two cases:
+       either a single step was remaining and we should be able to conclude directly;
+       or more were remaining, and we should be able to conclude by induction
      *)
 
-    Lemma eval_Loop_for_i_to_N_invert: forall σ i ii N op fuel mem_i mem_f,
-        i < N ->
-        from_nat i ≡ inr ii ->
-        eval_Loop_for_i_to_N σ op i N mem_i fuel = Some (inr mem_f) ->
-        exists mem_aux,
-          evalDSHOperator ((DSHnatVal ii , false) :: σ) op mem_i fuel = Some (inr mem_aux) /\
-          eval_Loop_for_i_to_N σ op (S i) N mem_aux fuel = Some (inr mem_f).
-    Proof.
-      (* This proof is surprisingly painful to go through *)
-      intros.
-      (* Induction on the number of steps remaining *)
-      remember (N - i) as k.
-      revert σ fuel i ii N Heqk mem_i mem_f H0 H1 H.
-      induction k as [| k IH];
-        intros σ fuel i ii N EQ mem_i mem_f Hn Heval ineq;[lia|].
-
-      (* N > 0 for us to be able to take a step *)
-      destruct N as [| N]; [lia |].
-      (* We got some fuel since the computation succeeded *)
-      destruct fuel as [| fuel]; [inv Heval |].
-      (* We can now reduce *)
-      simpl in Heval.
-
-      (* We know there's still a step to be taken *)
-      destruct (i =? S N)%nat eqn:EQ'; [apply beq_nat_true in EQ'; lia | apply beq_nat_false in EQ'].
-      (* And that the recursive call succeeded since the computation did *)
-      destruct (eval_Loop_for_i_to_N σ op i N mem_i fuel) eqn: HEval'; [| inv Heval].
-      destruct s; inv Heval.
-      1: solve [inv H1].
-
-      (* Now there are two cases:
-         either a single step was remaining and we should be able to conclude directly;
-         or more were remaining, and we should be able to conclude by induction
-       *)
-
-      destruct (i =? N)%nat eqn: EQ''; [apply beq_nat_true in EQ''; subst; clear IH |].
-      - clear EQ' EQ ineq.
-        rewrite Hn in H.
-        destruct fuel as [| fuel]; [inv HEval' |].
-        rewrite eval_Loop_for_N_to_N in HEval'.
-        setoid_rewrite eval_Loop_for_N_to_N.
-        inv HEval'.
-        exists mem_f.
-        split; [| reflexivity].
-        apply evalDSHOperator_fuel_monotone_equiv.
+    destruct (i =? N)%nat eqn: EQ''; [apply beq_nat_true in EQ''; subst; clear IH |].
+    - clear EQ' EQ ineq.
+      rewrite Hn in H.
+      destruct fuel as [| fuel]; [inv HEval' |].
+      rewrite eval_Loop_for_N_to_N in HEval'.
+      setoid_rewrite eval_Loop_for_N_to_N.
+      inv HEval'.
+      exists mem_f.
+      split; [| reflexivity].
+      apply evalDSHOperator_fuel_monotone_equiv.
+      rewrite <-H.
+      inv H1.
+      now rewrite H3.
+    - destruct (from_nat N) eqn:NN.
+      +
+        invc H.
+        invc H1.
+      +
+        apply Option_equiv_eq in HEval'.
+        eapply IH in HEval';[|lia|eauto|apply beq_nat_false in EQ''; lia].
+        destruct HEval' as (mem_aux & STEP & TAIL).
+        exists mem_aux; split; [apply evalDSHOperator_fuel_monotone_equiv; auto |].
+        cbn.
+        rewrite EQ'', NN.
+        repeat break_match_goal; invc TAIL; invc H3.
+        rewrite H4.
         rewrite <-H.
-        inv H1.
+        invc H1.
         now rewrite H3.
-      - destruct (from_nat N) eqn:NN.
-        +
-          invc H.
-          invc H1.
-        +
-          apply Option_equiv_eq in HEval'.
-          eapply IH in HEval';[|lia|eauto|apply beq_nat_false in EQ''; lia].
-          destruct HEval' as (mem_aux & STEP & TAIL).
-          exists mem_aux; split; [apply evalDSHOperator_fuel_monotone_equiv; auto |].
-          cbn.
-          rewrite EQ'', NN.
-          repeat break_match_goal; invc TAIL; invc H3.
-          rewrite H4.
-          rewrite <-H.
-          invc H1.
-          now rewrite H3.
-    Qed.
+  Qed.
 
-    Lemma eval_Loop_for_i_to_N_i_gt_N σ op i N fuel mem:
-      i > N ->
-      eval_Loop_for_i_to_N σ op i N mem fuel ≡ eval_Loop_for_i_to_N σ op 0 N mem fuel.
-    Proof.
-      revert fuel.
-      induction N; intros.
+  Lemma eval_Loop_for_i_to_N_i_gt_N σ op i N fuel mem:
+    i > N ->
+    eval_Loop_for_i_to_N σ op i N mem fuel ≡ eval_Loop_for_i_to_N σ op 0 N mem fuel.
+  Proof.
+    revert fuel.
+    induction N; intros.
+    +
+      destruct fuel;reflexivity.
+    +
+      destruct fuel; [ reflexivity|].
+      cbn.
+      break_if; [apply beq_nat_true in Heqb; lia| ].
+      apply beq_nat_false in Heqb.
+      rewrite IHN.
+      reflexivity.
+      lia.
+  Qed.
+
+  Lemma eval_Loop_for_0_to_N:
+    forall σ body N mem mem' fuel,
+      evalDSHOperator σ (DSHLoop N body) mem fuel = Some (inr mem') ->
+      eval_Loop_for_i_to_N σ body 0 N mem fuel = Some (inr mem').
+  Proof.
+    induction N as [| N IH]; intros.
+    - destruct fuel; auto.
+    - destruct fuel as [| fuel ]; [auto |].
+      cbn in *.
+      repeat break_match_hyp;
+        try some_none; repeat some_inv;
+        try inl_inr; repeat inl_inr_inv.
+      apply Option_equiv_eq in Heqo.
+      apply IH in Heqo.
+      repeat break_match;
+        try some_none; repeat some_inv;
+        try inl_inr; repeat inl_inr_inv.
+      now rewrite Heqo.
+  Qed.
+
+  Lemma eval_Loop_for_i_to_N_fuel_monotone:
+    forall res σ op i N fuel mem,
+      eval_Loop_for_i_to_N σ op i N mem fuel = Some res ->
+      eval_Loop_for_i_to_N σ op i N mem (S fuel) = Some res.
+  Proof.
+    intros res σ op i N fuel mem H.
+    revert H.
+    revert res σ i fuel.
+    induction N; intros.
+    -
+      destruct fuel; cbn in *; [some_none| apply H].
+    -
+      cbn.
+      destruct fuel; [cbn in H; some_none|].
+      break_if.
       +
-        destruct fuel;reflexivity.
-      +
-        destruct fuel; [ reflexivity|].
-        cbn.
-        break_if; [apply beq_nat_true in Heqb; lia| ].
-        apply beq_nat_false in Heqb.
-        rewrite IHN.
-        reflexivity.
-        lia.
-    Qed.
-
-    Lemma eval_Loop_for_0_to_N:
-      forall σ body N mem mem' fuel,
-        evalDSHOperator σ (DSHLoop N body) mem fuel = Some (inr mem') ->
-        eval_Loop_for_i_to_N σ body 0 N mem fuel = Some (inr mem').
-    Proof.
-      induction N as [| N IH]; intros.
-      - destruct fuel; auto.
-      - destruct fuel as [| fuel ]; [auto |].
-        cbn in *.
-        repeat break_match_hyp;
-          try some_none; repeat some_inv;
-          try inl_inr; repeat inl_inr_inv.
-        apply Option_equiv_eq in Heqo.
-        apply IH in Heqo.
-        repeat break_match;
-          try some_none; repeat some_inv;
-          try inl_inr; repeat inl_inr_inv.
-        now rewrite Heqo.
-    Qed.
-
-    Lemma eval_Loop_for_i_to_N_fuel_monotone:
-      forall res σ op i N fuel mem,
-        eval_Loop_for_i_to_N σ op i N mem fuel = Some res ->
-        eval_Loop_for_i_to_N σ op i N mem (S fuel) = Some res.
-    Proof.
-      intros res σ op i N fuel mem H.
-      revert H.
-      revert res σ i fuel.
-      induction N; intros.
-      -
-        destruct fuel; cbn in *; [some_none| apply H].
-      -
-        cbn.
-        destruct fuel; [cbn in H; some_none|].
-        break_if.
-        +
-          apply beq_nat_true in Heqb.
-          subst.
-          cbn in H.
-          rewrite Nat.eqb_refl in H.
-          apply H.
-        +
-          repeat break_match_goal; subst; cbn in H; rewrite Heqb in H.
-          *
-            rewrite <- Heqo.
-            repeat break_match_hyp; subst;
-              apply Option_equiv_eq in Heqo0.
-            --
-              rewrite <- H.
-              apply IHN.
-              apply Heqo0.
-            --
-              apply IHN in Heqo0.
-              rewrite Heqo in Heqo0.
-              inv Heqo0.
-              inv H2.
-            --
-              apply IHN in Heqo0.
-              rewrite Heqo in Heqo0.
-              inv Heqo0.
-              inv H2.
-            --
-              some_none.
-          *
-            repeat break_match_hyp; subst;
-              apply Option_equiv_eq in Heqo0.
-            --
-              apply IHN in Heqo0.
-              rewrite Heqo in Heqo0.
-              inv Heqo0.
-              inv H2.
-            --
-              apply IHN in Heqo0.
-              rewrite Heqo in Heqo0.
-              inv Heqo.
-              inv Heqs1.
-              apply H.
-            --
-              inv Heqs1.
-            --
-              some_none.
-          *
-            repeat break_match_hyp; subst;
-              apply Option_equiv_eq in Heqo0.
-            --
-              apply IHN in Heqo0.
-              rewrite Heqo in Heqo0.
-              inv Heqo0.
-              inv H2.
-            --
-              inv Heqs1.
-            --
-              apply IHN in Heqo0.
-              rewrite Heqo in Heqo0.
-              repeat some_inv; repeat inl_inr_inv; subst.
-              rewrite Heqo0.
-              destruct evalDSHOperator eqn:E in H; [| some_none].
-              erewrite evalDSHOperator_fuel_monotone; eassumption.
-            --
-              some_none.
-          *
-            exfalso.
-            break_match_hyp.
-            --
-              apply Option_equiv_eq in Heqo0.
-              apply IHN in Heqo0.
-              rewrite Heqo in Heqo0.
-              some_none.
-            --
-              some_none.
-    Qed.
-
-    Lemma eval_Loop_for_i_to_N_fuel_monotone_gt:
-      forall res σ op i N fuel fuel' mem,
-        fuel'>fuel ->
-        eval_Loop_for_i_to_N σ op i N mem fuel = Some res ->
-        eval_Loop_for_i_to_N σ op i N mem fuel' = Some res.
-    Proof.
-      intros H.
-      intros σ op i N fuel fuel' mem H0 H1.
-      remember (fuel'-fuel) as d.
-      assert(F: fuel' ≡ fuel + d) by lia.
-      subst fuel'.
-      clear H0 Heqd.
-      induction d.
-      -
-        replace (fuel + 0) with fuel by lia.
-        auto.
-      -
-        replace (fuel + S d) with (S (fuel + d)) by lia.
-        apply eval_Loop_for_i_to_N_fuel_monotone.
-        auto.
-    Qed.
-
-    (* Extend [from_nat_lt] to [le] *)
-    Lemma from_nat_le:
-      forall x xi y,
-        from_nat x ≡ inr xi ->
-        y<=x ->
-        exists yi, from_nat y ≡ inr yi.
-    Proof.
-      intros.
-      destruct (Nat.eq_dec x y).
-      -
+        apply beq_nat_true in Heqb.
         subst.
-        eexists.
-        eauto.
-      -
-        eapply from_nat_lt; eauto.
-        unfold lt, peano_naturals.nat_lt.
-        lia.
-    Qed.
+        cbn in H.
+        rewrite Nat.eqb_refl in H.
+        apply H.
+      +
+        repeat break_match_goal; subst; cbn in H; rewrite Heqb in H.
+        *
+          rewrite <- Heqo.
+          repeat break_match_hyp; subst;
+            apply Option_equiv_eq in Heqo0.
+          --
+            rewrite <- H.
+            apply IHN.
+            apply Heqo0.
+          --
+            apply IHN in Heqo0.
+            rewrite Heqo in Heqo0.
+            inv Heqo0.
+            inv H2.
+          --
+            apply IHN in Heqo0.
+            rewrite Heqo in Heqo0.
+            inv Heqo0.
+            inv H2.
+          --
+            some_none.
+        *
+          repeat break_match_hyp; subst;
+            apply Option_equiv_eq in Heqo0.
+          --
+            apply IHN in Heqo0.
+            rewrite Heqo in Heqo0.
+            inv Heqo0.
+            inv H2.
+          --
+            apply IHN in Heqo0.
+            rewrite Heqo in Heqo0.
+            inv Heqo.
+            inv Heqs1.
+            apply H.
+          --
+            inv Heqs1.
+          --
+            some_none.
+        *
+          repeat break_match_hyp; subst;
+            apply Option_equiv_eq in Heqo0.
+          --
+            apply IHN in Heqo0.
+            rewrite Heqo in Heqo0.
+            inv Heqo0.
+            inv H2.
+          --
+            inv Heqs1.
+          --
+            apply IHN in Heqo0.
+            rewrite Heqo in Heqo0.
+            repeat some_inv; repeat inl_inr_inv; subst.
+            rewrite Heqo0.
+            destruct evalDSHOperator eqn:E in H; [| some_none].
+            erewrite evalDSHOperator_fuel_monotone; eassumption.
+          --
+            some_none.
+        *
+          exfalso.
+          break_match_hyp.
+          --
+            apply Option_equiv_eq in Heqo0.
+            apply IHN in Heqo0.
+            rewrite Heqo in Heqo0.
+            some_none.
+          --
+            some_none.
+  Qed.
 
-    Lemma Loop_is_Iter_aux:
-      ∀ (op : DSHOperator)
-        (IHop: ∀ (σ : evalContext) (mem' : memory) (fuel : nat) (mem : memory),
-            evalDSHOperator σ op mem (S fuel) = Some (inr mem')
-            → eutt equiv (interp_Mem (denoteDSHOperator σ op) mem) (Ret (mem', ())))
+  Lemma eval_Loop_for_i_to_N_fuel_monotone_gt:
+    forall res σ op i N fuel fuel' mem,
+      fuel'>fuel ->
+      eval_Loop_for_i_to_N σ op i N mem fuel = Some res ->
+      eval_Loop_for_i_to_N σ op i N mem fuel' = Some res.
+  Proof.
+    intros H.
+    intros σ op i N fuel fuel' mem H0 H1.
+    remember (fuel'-fuel) as d.
+    assert(F: fuel' ≡ fuel + d) by lia.
+    subst fuel'.
+    clear H0 Heqd.
+    induction d.
+    -
+      replace (fuel + 0) with fuel by lia.
+      auto.
+    -
+      replace (fuel + S d) with (S (fuel + d)) by lia.
+      apply eval_Loop_for_i_to_N_fuel_monotone.
+      auto.
+  Qed.
 
-        (i N: nat)
-        (σ : evalContext) (mem : memory) (fuel : nat) (mem' : memory) {nn},
-        from_nat N ≡ inr nn ->
-        i <= (S N) ->
-        eval_Loop_for_i_to_N σ op i (S N) mem (S fuel) = Some (inr mem')
-        → eutt equiv
-            (interp_state (case_ Mem_handler pure_state) (denote_Loop_for_i_to_N σ op i (S N)) mem) (Ret (mem', ())).
-    Proof.
-      intros op IHop i N σ mem fuel mem' nn NN ineq HEval.
-      remember ((S N) - i) as k.
-      revert Heqk σ mem mem' HEval.
-      revert i ineq NN.
-      induction k as [| k IH].
-      - intros i ineq NN EQ.
-        assert ((S N) ≡ i) by lia; clear EQ ineq; subst.
-        intros.
-        cbn in HEval.
-        rewrite Nat.eqb_refl in HEval.
+  (* Extend [from_nat_lt] to [le] *)
+  Lemma from_nat_le:
+    forall x xi y,
+      from_nat x ≡ inr xi ->
+      y<=x ->
+      exists yi, from_nat y ≡ inr yi.
+  Proof.
+    intros.
+    destruct (Nat.eq_dec x y).
+    -
+      subst.
+      eexists.
+      eauto.
+    -
+      eapply from_nat_lt; eauto.
+      unfold lt, peano_naturals.nat_lt.
+      lia.
+  Qed.
+
+  Lemma Loop_is_Iter_aux:
+    ∀ (op : DSHOperator)
+      (IHop: ∀ (σ : evalContext) (mem' : memory) (fuel : nat) (mem : memory),
+          evalDSHOperator σ op mem (S fuel) = Some (inr mem')
+          → eutt equiv (interp_Mem (denoteDSHOperator σ op) mem) (Ret (mem', ())))
+
+      (i N: nat)
+      (σ : evalContext) (mem : memory) (fuel : nat) (mem' : memory) {nn},
+      from_nat N ≡ inr nn ->
+      i <= (S N) ->
+      eval_Loop_for_i_to_N σ op i (S N) mem (S fuel) = Some (inr mem')
+      → eutt equiv
+          (interp_state (case_ Mem_handler pure_state) (denote_Loop_for_i_to_N σ op i (S N)) mem) (Ret (mem', ())).
+  Proof.
+    intros op IHop i N σ mem fuel mem' nn NN ineq HEval.
+    remember ((S N) - i) as k.
+    revert Heqk σ mem mem' HEval.
+    revert i ineq NN.
+    induction k as [| k IH].
+    - intros i ineq NN EQ.
+      assert ((S N) ≡ i) by lia; clear EQ ineq; subst.
+      intros.
+      cbn in HEval.
+      rewrite Nat.eqb_refl in HEval.
+      inv HEval.
+      unfold denote_Loop_for_i_to_N.
+      (* poor man's [iter_unfold_pointed] *)
+      match goal with
+      | |- context[eutt equiv (interp_state ?h (iter ?k ?i) _) _] =>
+          generalize (ITree.Basics.CategoryTheory.iter_unfold k);
+          let EQ := fresh "EQ" in intros EQ; rewrite (EQ i); clear EQ
+      end.
+      cbn; go.
+      rewrite Nat.eqb_refl.
+      go. cbn; go.
+      apply eutt_Ret.
+      invc H1.
+      now constructor.
+    - intros i ineq NN EQ σ mem mem' HEval.
+      destruct (i =? S N)%nat eqn:EQ'.
+      * unfold eval_Loop_for_i_to_N in HEval; rewrite EQ' in HEval.
         inv HEval.
         unfold denote_Loop_for_i_to_N.
         (* poor man's [iter_unfold_pointed] *)
@@ -973,83 +1071,13 @@ Section Eval_Denote_Equiv.
             let EQ := fresh "EQ" in intros EQ; rewrite (EQ i); clear EQ
         end.
         cbn; go.
-        rewrite Nat.eqb_refl.
-        go. cbn; go.
+        rewrite EQ'.
+        cbn; go.
+        cbn; go.
         apply eutt_Ret.
         invc H1.
         now constructor.
-      - intros i ineq NN EQ σ mem mem' HEval.
-        destruct (i =? S N)%nat eqn:EQ'.
-          * unfold eval_Loop_for_i_to_N in HEval; rewrite EQ' in HEval.
-            inv HEval.
-            unfold denote_Loop_for_i_to_N.
-            (* poor man's [iter_unfold_pointed] *)
-            match goal with
-            | |- context[eutt equiv (interp_state ?h (iter ?k ?i) _) _] =>
-                generalize (ITree.Basics.CategoryTheory.iter_unfold k);
-                let EQ := fresh "EQ" in intros EQ; rewrite (EQ i); clear EQ
-            end.
-            cbn; go.
-            rewrite EQ'.
-            cbn; go.
-            cbn; go.
-            apply eutt_Ret.
-            invc H1.
-            now constructor.
-          * unfold denote_Loop_for_i_to_N.
-            (* poor man's [iter_unfold_pointed] *)
-            match goal with
-            | |- context[eutt equiv (interp_state ?h (iter ?k ?i) _) _] =>
-                generalize (ITree.Basics.CategoryTheory.iter_unfold k);
-                let EQ := fresh "EQ" in intros EQ; rewrite (EQ i); clear EQ
-            end.
-            cbn; go.
-            rewrite EQ'; cbn*; go.
-            apply beq_nat_false in EQ'.
-            assert(exists ii : t, from_nat i ≡ inr ii) as II.
-            {
-              assert(i<=N) by lia.
-              eapply from_nat_le;
-              eauto.
-            }
-            destruct II as [ii II].
-            rewrite II.
-            cbn.
-            apply eval_Loop_for_i_to_N_invert with (ii:=ii) in HEval; [|lia| apply II].
-            destruct HEval as (mem_aux & Eval_body & Eval_tail).
-            apply evalDSHOperator_fuel_monotone_equiv in Eval_body.
-            apply IHop in Eval_body.
-            go.
-
-            bind_ret_l_with Eval_body.
-            destruct a'.
-            invc EH; cbn in *.
-            clear H0.
-            go; cbn.
-            rewrite H; clear H.
-            Check IH.
-            Check Eval_tail.
-            apply IH in Eval_tail.
-
-            (* rewrite Eval_body; cbn; go.
-            cbn; go.
-            apply IH in Eval_tail;try lia;auto.
-    Qed. *) Admitted.
-
-    Lemma Loop_is_Iter:
-      ∀ (op : DSHOperator)
-        (IHop: ∀ (σ : evalContext) (mem' : memory) (fuel : nat) (mem : memory),
-            evalDSHOperator σ op mem (S fuel) = Some (inr mem')
-            → eutt equiv (interp_Mem (denoteDSHOperator σ op) mem) (Ret (mem', ())))
-        (N: nat) (σ : evalContext) (mem : memory) (fuel : nat) (mem' : memory),
-        evalDSHOperator σ (DSHLoop N op) mem (S fuel) = Some (inr mem') ->
-        eutt equiv (interp_state (case_ Mem_handler pure_state) (denoteDSHOperator σ (DSHLoop N op)) mem) (Ret (mem', ())).
-    Proof.
-      intros.
-      destruct N.
-      -
-        cbn in H; inv H.
-        cbn; go.
+      * unfold denote_Loop_for_i_to_N.
         (* poor man's [iter_unfold_pointed] *)
         match goal with
         | |- context[eutt equiv (interp_state ?h (iter ?k ?i) _) _] =>
@@ -1057,149 +1085,216 @@ Section Eval_Denote_Equiv.
             let EQ := fresh "EQ" in intros EQ; rewrite (EQ i); clear EQ
         end.
         cbn; go.
-        cbn; go.
-        apply eutt_Ret.
-        invc H2.
-        now constructor.
-      -
-        edestruct @evalDSHLoop_SN_in_range_equiv; eauto.
-        apply eval_Loop_for_0_to_N in H.
-        cbn; go.
-        eapply Loop_is_Iter_aux;eauto.
-        lia.
-    Qed.
-
-    Lemma Denote_Eval_Equiv_DSHMap2:
-      forall n (σ: evalContext) mem f m1 m2 m3 m4,
-        evalDSHMap2 mem n f σ m1 m2 m3  = inr m4 ->
-        eutt equiv
-             (interp_Mem (denoteDSHMap2 n f σ m1 m2 m3) mem)
-             (Ret (mem, m4)).
-    Proof.
-      induction n as [| n IH]; intros σ mem f m1 m2 m3 m4 HEval; cbn in HEval.
-      - inv_sum; cbn; go.
-        apply eutt_Ret.
-        now constructor.
-      - cbn* in *; simp; go.
-        unfold denoteBinCType; cbn.
-        (* rewrite Denote_Eval_Equiv_AExpr; eauto; go.
-        rewrite IH; eauto; go.
-        reflexivity.
-    Qed. *) Admitted.
-
-    Lemma Denote_Eval_Equiv_DSHPower:
-      forall n (σ: evalContext) mem f x y xoff yoff m,
-        evalDSHPower mem σ n f x y xoff yoff = inr m ->
-        eutt equiv
-             (interp_Mem (denoteDSHPower σ n f x y xoff yoff) mem)
-             (Ret (mem, m)).
-    Proof.
-      induction n as [| n IH]; intros σ mem f x y xoff yoff m HEval; cbn in HEval.
-      - inv_sum; cbn; go.
-        apply eutt_Ret.
-        now constructor.
-      - cbn* in *; simp; go.
-        unfold denoteBinCType.
-        (* rewrite Denote_Eval_Equiv_AExpr; eauto; go.
-        rewrite IH; eauto; reflexivity.
-    Qed. *) Admitted.
-
-    Theorem Denote_Eval_Equiv:
-      forall (σ: evalContext) (op: DSHOperator) (mem: memory) (fuel: nat) (mem': memory),
-        evalDSHOperator σ op mem fuel = Some (inr mem') ->
-        eutt equiv (interp_Mem (denoteDSHOperator σ op) mem) (Ret (mem', tt)).
-    Proof.
-      intros ? ? ? ? ? H; destruct fuel as [| fuel]; [inversion H |].
-      revert σ mem' fuel mem H.
-      induction op; intros σ mem fuel mem' HEval; cbn in HEval.
-      - simp; cbn; go.
-        apply eutt_Ret.
-        invc HEval; invc H1.
-        now constructor.
-      - cbn* in *; simp; go.
-        all: try some_none; repeat some_inv; try inl_inr; repeat inl_inr_inv.
-        rewrite Heqs0; cbn; go.
-        rewrite Heqs; cbn.
+        rewrite EQ'; cbn*; go.
+        apply beq_nat_false in EQ'.
+        assert(exists ii : t, from_nat i ≡ inr ii) as II.
+        {
+          assert(i<=N) by lia.
+          eapply from_nat_le;
+            eauto.
+        }
+        destruct II as [ii II].
+        rewrite II.
+        cbn.
+        apply eval_Loop_for_i_to_N_invert with (ii:=ii) in HEval; [|lia| apply II].
+        destruct HEval as (mem_aux & Eval_body & Eval_tail).
+        apply evalDSHOperator_fuel_monotone_equiv in Eval_body.
+        apply IHop in Eval_body.
         go.
-        3: cbn*; rewrite Heqo1; reflexivity.
-        2: cbn*; rewrite Heqo0; reflexivity.
-        rewrite Denote_Eval_Equiv_NExpr; eauto; go.
-        rewrite Denote_Eval_Equiv_NExpr; eauto; go.
-        repeat match_rewrite; go.
-        rewrite interp_Mem_MemSet.
-        apply eutt_Ret.
-        now constructor.
-      - cbn* in *; simp; go.
-        all: try some_none; repeat some_inv; try inl_inr; repeat inl_inr_inv.
-        cbn*; repeat match_rewrite; go.
-        rewrite Heqs2. repeat match_rewrite; go.
-        unfold assert_NT_le, assert_true_to_err in Heqs3.
-        unfold assert_nat_le. unfold assert_true_to_err.
-        break_if.
-        go.
-        3: cbn*; match_rewrite; eauto.
-        2: cbn*; match_rewrite; eauto.
-        rewrite  Denote_Eval_Equiv_IMap; eauto; go.
-        rewrite interp_Mem_MemSet; reflexivity.
-        exfalso.
-        apply leb_complete_conv in Heqb.
-        unfold to_nat in Heqb. break_if. 2 : inv Heqs3.
-        eapply leb_complete in Heqb0.
-        unfold to_nat in Heqb0. revert Heqb.
-        apply le_not_lt. clear -Heqs Heqb0.
-        unfold from_nat in Heqs.
-        apply from_Z_intval in Heqs.
-        rewrite <- Heqs in Heqb0.
-        lia.
-      - cbn* in *; simp; go.
-        cbn*; repeat match_rewrite; go.
-        rewrite Heqs2.
-        repeat match_rewrite; go.
-        2,3: cbn*; match_rewrite; eauto.
-        rewrite  Denote_Eval_Equiv_BinOp; eauto; go.
-        go.
-        rewrite interp_Mem_MemSet; reflexivity.
-      - cbn* in *; simp; go.
-        cbn*; repeat match_rewrite; go.
-        2,3,4: cbn*; match_rewrite; eauto.
-        rewrite Denote_Eval_Equiv_DSHMap2; eauto; go.
-        rewrite interp_Mem_MemSet; reflexivity.
-      - cbn* in *; simp; go.
-        cbn*; repeat match_rewrite; go.
-        rewrite Heqs1.
-        repeat match_rewrite; go.
-        rewrite Denote_Eval_Equiv_NExpr; eauto; go.
-        rewrite Denote_Eval_Equiv_NExpr; eauto; go.
-        rewrite Denote_Eval_Equiv_NExpr; eauto; go.
 
-        rewrite Heqs7. rewrite interp_Mem_ret. rewrite bind_ret_l.
-        rewrite interp_Mem_bind.
-        rewrite Denote_Eval_Equiv_DSHPower; eauto; go.
-        2,3: cbn*; match_rewrite; eauto.
-        rewrite interp_Mem_MemSet; reflexivity.
-      - eapply Loop_is_Iter; eauto.
-      - cbn; simp; go.
-        Transparent interp_Mem.
-        unfold interp_Mem.
-        rewrite interp_state_trigger; cbn.
-        Opaque interp_Mem.
-        go.
-        rewrite interp_Mem_MemSet; go.
-        destruct fuel as [| fuel]; [inv Heqo |].
-        rewrite IHop; eauto; go.
-        Transparent interp_Mem.
-        unfold interp_Mem.
-        rewrite interp_state_trigger; cbn.
-        reflexivity.
-        Opaque interp_Mem.
-      - cbn* in *; simp.
-        unfold denotePExpr; cbn*; match_rewrite; go.
-        2:cbn*; match_rewrite; eauto.
-        rewrite interp_Mem_MemSet; reflexivity.
-      - cbn; simp; go.
-        rewrite IHop1; eauto using evalDSHOperator_fuel_monotone.
-        go; rewrite IHop2; eauto using evalDSHOperator_fuel_monotone.
-        reflexivity.
-    Qed.
+        bind_ret_l_with Eval_body.
+        destruct a' as (mem_aux', ?); invc EH.
+        clear H0.
+        rename H into MEM_AUX'; cbn in MEM_AUX'.
 
-  End Eval_Denote_Equiv.
+        go.
+
+        apply IH in Eval_tail.
+
+  (* rewrite Eval_body; cbn; go.
+     cbn; go.
+     apply IH in Eval_tail;try lia;auto.
+     Qed. *) Admitted.
+
+  Lemma Loop_is_Iter:
+    ∀ (op : DSHOperator)
+      (IHop: ∀ (σ : evalContext) (mem' : memory) (fuel : nat) (mem : memory),
+          evalDSHOperator σ op mem (S fuel) = Some (inr mem')
+          → eutt equiv (interp_Mem (denoteDSHOperator σ op) mem) (Ret (mem', ())))
+      (N: nat) (σ : evalContext) (mem : memory) (fuel : nat) (mem' : memory),
+      evalDSHOperator σ (DSHLoop N op) mem (S fuel) = Some (inr mem') ->
+      eutt equiv (interp_state (case_ Mem_handler pure_state) (denoteDSHOperator σ (DSHLoop N op)) mem) (Ret (mem', ())).
+  Proof.
+    intros.
+    destruct N.
+    -
+      cbn in H; inv H.
+      cbn; go.
+      (* poor man's [iter_unfold_pointed] *)
+      match goal with
+      | |- context[eutt equiv (interp_state ?h (iter ?k ?i) _) _] =>
+          generalize (ITree.Basics.CategoryTheory.iter_unfold k);
+          let EQ := fresh "EQ" in intros EQ; rewrite (EQ i); clear EQ
+      end.
+      cbn; go.
+      cbn; go.
+      apply eutt_Ret.
+      invc H2.
+      now constructor.
+    -
+      edestruct @evalDSHLoop_SN_in_range_equiv; eauto.
+      apply eval_Loop_for_0_to_N in H.
+      cbn; go.
+      eapply Loop_is_Iter_aux;eauto.
+      lia.
+  Qed.
+
+  Lemma Denote_Eval_Equiv_DSHMap2:
+    forall n (σ: evalContext) mem f m1 m2 m3 m4,
+      evalDSHMap2 mem n f σ m1 m2 m3  = inr m4 ->
+      eutt equiv
+        (interp_Mem (denoteDSHMap2 n f σ m1 m2 m3) mem)
+        (Ret (mem, m4)).
+  Proof.
+    induction n as [| n IH]; intros σ mem f m1 m2 m3 m4 HEval; cbn in HEval.
+    - inv_sum; cbn; go.
+      apply eutt_Ret.
+      now constructor.
+    - cbn* in *; simp; go.
+      all: try some_none; repeat some_inv; try inl_inr; repeat inl_inr_inv.
+      unfold denoteBinCType, evalBinCType in *; cbn.
+
+      bind_ret_l_with Denote_Eval_Equiv_AExpr; [| now rewrite Heqs1].
+      destruct a' as (mem', b'); invc EH.
+      cbv in H0; subst.
+      rename H into MEM'; cbn in MEM'.
+
+      rewrite IH; [| rewrite MEM'; eassumption].
+      rewrite <-eutt_Ret.
+      now constructor.
+  Qed.
+
+  Lemma Denote_Eval_Equiv_DSHPower:
+    forall n (σ: evalContext) mem f x y xoff yoff m,
+      evalDSHPower mem σ n f x y xoff yoff = inr m ->
+      eutt equiv
+        (interp_Mem (denoteDSHPower σ n f x y xoff yoff) mem)
+        (Ret (mem, m)).
+  Proof.
+    induction n as [| n IH]; intros σ mem f x y xoff yoff m HEval; cbn in HEval.
+    - inv_sum; cbn; go.
+      apply eutt_Ret.
+      now constructor.
+    - cbn* in *; simp; go.
+      all: try some_none; repeat some_inv; try inl_inr; repeat inl_inr_inv.
+      unfold denoteBinCType, evalBinCType in *; cbn.
+
+      bind_ret_l_with Denote_Eval_Equiv_AExpr; [| now rewrite Heqs1].
+      destruct a' as (mem', b'); invc EH.
+      cbv in H0; subst.
+      rename H into MEM'; cbn in MEM'.
+
+      rewrite IH; [| rewrite MEM'; eassumption].
+      rewrite <-eutt_Ret.
+      now constructor.
+  Qed.
+
+  Theorem Denote_Eval_Equiv:
+    forall (σ: evalContext) (op: DSHOperator) (mem: memory) (fuel: nat) (mem': memory),
+      evalDSHOperator σ op mem fuel = Some (inr mem') ->
+      eutt equiv (interp_Mem (denoteDSHOperator σ op) mem) (Ret (mem', tt)).
+  Proof.
+    intros ? ? ? ? ? H; destruct fuel as [| fuel]; [inversion H |].
+    revert σ mem' fuel mem H.
+    induction op; intros σ mem fuel mem' HEval; cbn in HEval.
+    - simp; cbn; go.
+      apply eutt_Ret.
+      invc HEval; invc H1.
+      now constructor.
+    - cbn* in *; simp; go.
+      all: try some_none; repeat some_inv; try inl_inr; repeat inl_inr_inv.
+      rewrite Heqs0; cbn; go.
+      rewrite Heqs; cbn.
+      go.
+      3: cbn*; rewrite Heqo1; reflexivity.
+      2: cbn*; rewrite Heqo0; reflexivity.
+      rewrite Denote_Eval_Equiv_NExpr; eauto; go.
+      rewrite Denote_Eval_Equiv_NExpr; eauto; go.
+      repeat match_rewrite; go.
+      rewrite interp_Mem_MemSet.
+      apply eutt_Ret.
+      now constructor.
+    - cbn* in *; simp; go.
+      all: try some_none; repeat some_inv; try inl_inr; repeat inl_inr_inv.
+      cbn*; repeat match_rewrite; go.
+      rewrite Heqs2. repeat match_rewrite; go.
+      unfold assert_NT_le, assert_true_to_err in Heqs3.
+      unfold assert_nat_le. unfold assert_true_to_err.
+      break_if.
+      go.
+      3: cbn*; match_rewrite; eauto.
+      2: cbn*; match_rewrite; eauto.
+      rewrite  Denote_Eval_Equiv_IMap; eauto; go.
+      rewrite interp_Mem_MemSet; reflexivity.
+      exfalso.
+      apply leb_complete_conv in Heqb.
+      unfold to_nat in Heqb. break_if. 2 : inv Heqs3.
+      eapply leb_complete in Heqb0.
+      unfold to_nat in Heqb0. revert Heqb.
+      apply le_not_lt. clear -Heqs Heqb0.
+      unfold from_nat in Heqs.
+      apply from_Z_intval in Heqs.
+      rewrite <- Heqs in Heqb0.
+      lia.
+    - cbn* in *; simp; go.
+      cbn*; repeat match_rewrite; go.
+      rewrite Heqs2.
+      repeat match_rewrite; go.
+      2,3: cbn*; match_rewrite; eauto.
+      rewrite  Denote_Eval_Equiv_BinOp; eauto; go.
+      go.
+      rewrite interp_Mem_MemSet; reflexivity.
+    - cbn* in *; simp; go.
+      cbn*; repeat match_rewrite; go.
+      2,3,4: cbn*; match_rewrite; eauto.
+      rewrite Denote_Eval_Equiv_DSHMap2; eauto; go.
+      rewrite interp_Mem_MemSet; reflexivity.
+    - cbn* in *; simp; go.
+      cbn*; repeat match_rewrite; go.
+      rewrite Heqs1.
+      repeat match_rewrite; go.
+      rewrite Denote_Eval_Equiv_NExpr; eauto; go.
+      rewrite Denote_Eval_Equiv_NExpr; eauto; go.
+      rewrite Denote_Eval_Equiv_NExpr; eauto; go.
+
+      rewrite Heqs7. rewrite interp_Mem_ret. rewrite bind_ret_l.
+      rewrite interp_Mem_bind.
+      rewrite Denote_Eval_Equiv_DSHPower; eauto; go.
+      2,3: cbn*; match_rewrite; eauto.
+      rewrite interp_Mem_MemSet; reflexivity.
+    - eapply Loop_is_Iter; eauto.
+    - cbn; simp; go.
+      Transparent interp_Mem.
+      unfold interp_Mem.
+      rewrite interp_state_trigger; cbn.
+      Opaque interp_Mem.
+      go.
+      rewrite interp_Mem_MemSet; go.
+      destruct fuel as [| fuel]; [inv Heqo |].
+      rewrite IHop; eauto; go.
+      Transparent interp_Mem.
+      unfold interp_Mem.
+      rewrite interp_state_trigger; cbn.
+      reflexivity.
+      Opaque interp_Mem.
+    - cbn* in *; simp.
+      unfold denotePExpr; cbn*; match_rewrite; go.
+      2:cbn*; match_rewrite; eauto.
+      rewrite interp_Mem_MemSet; reflexivity.
+    - cbn; simp; go.
+      rewrite IHop1; eauto using evalDSHOperator_fuel_monotone.
+      go; rewrite IHop2; eauto using evalDSHOperator_fuel_monotone.
+      reflexivity.
+  Qed.
+
+End Eval_Denote_Equiv.
