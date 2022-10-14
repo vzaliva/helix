@@ -1106,15 +1106,20 @@ Section Eval_Denote_Equiv.
         destruct a' as (mem_aux', ?); invc EH.
         clear H0.
         rename H into MEM_AUX'; cbn in MEM_AUX'.
-
-        go.
-
-        apply IH in Eval_tail.
-
-  (* rewrite Eval_body; cbn; go.
-     cbn; go.
-     apply IH in Eval_tail;try lia;auto.
-     Qed. *) Admitted.
+        cbn; go.
+        cbn; go.
+        apply IH in Eval_tail; try lia; auto.
+        clear - MEM_AUX' Eval_tail.
+        
+        symmetry in MEM_AUX'.
+        remember (denote_Loop_for_i_to_N σ op (S i) (S N)) as t.
+        assert (T : eutt equiv t t)
+          by reflexivity.
+        rewrite (interp_Mem_equiv_proper t t T mem_aux mem_aux' MEM_AUX')
+          in Eval_tail.
+        subst t; clear T.
+        assumption.
+  Qed.
 
   Lemma Loop_is_Iter:
     ∀ (op : DSHOperator)
@@ -1234,32 +1239,48 @@ Section Eval_Denote_Equiv.
       go.
       3: cbn*; match_rewrite; eauto.
       2: cbn*; match_rewrite; eauto.
-      rewrite  Denote_Eval_Equiv_IMap; eauto; go.
-      rewrite interp_Mem_MemSet; reflexivity.
-      exfalso.
-      apply leb_complete_conv in Heqb.
-      unfold to_nat in Heqb. break_if. 2 : inv Heqs3.
-      eapply leb_complete in Heqb0.
-      unfold to_nat in Heqb0. revert Heqb.
-      apply le_not_lt. clear -Heqs Heqb0.
-      unfold from_nat in Heqs.
-      apply from_Z_intval in Heqs.
-      rewrite <- Heqs in Heqb0.
-      lia.
+      2: {
+        exfalso.
+        apply leb_complete_conv in Heqb.
+        unfold to_nat in Heqb. break_if. 2 : inv Heqs3.
+        eapply leb_complete in Heqb0.
+        unfold to_nat in Heqb0. revert Heqb.
+        apply le_not_lt. clear -Heqs Heqb0.
+        unfold from_nat in Heqs.
+        apply from_Z_intval in Heqs.
+        rewrite <- Heqs in Heqb0.
+        lia.
+      }
+      bind_ret_l_with Denote_Eval_Equiv_IMap; [| now rewrite Heqs6].
+      destruct a'; invc EH; cbn in *.
+      rewrite interp_Mem_MemSet.
+      rewrite <-eutt_Ret.
+      constructor; cbn; [| reflexivity].
+      now rewrite H, H0.
     - cbn* in *; simp; go.
+      all: try some_none; repeat some_inv; try inl_inr; repeat inl_inr_inv.
       cbn*; repeat match_rewrite; go.
       rewrite Heqs2.
       repeat match_rewrite; go.
       2,3: cbn*; match_rewrite; eauto.
-      rewrite  Denote_Eval_Equiv_BinOp; eauto; go.
-      go.
-      rewrite interp_Mem_MemSet; reflexivity.
+      bind_ret_l_with Denote_Eval_Equiv_BinOp; [| now rewrite Heqs6].
+      destruct a'; invc EH; cbn in *.
+      rewrite interp_Mem_MemSet.
+      rewrite <-eutt_Ret.
+      constructor; cbn; [| reflexivity].
+      now rewrite H, H0.
     - cbn* in *; simp; go.
+      all: try some_none; repeat some_inv; try inl_inr; repeat inl_inr_inv.
       cbn*; repeat match_rewrite; go.
       2,3,4: cbn*; match_rewrite; eauto.
-      rewrite Denote_Eval_Equiv_DSHMap2; eauto; go.
-      rewrite interp_Mem_MemSet; reflexivity.
+      bind_ret_l_with Denote_Eval_Equiv_DSHMap2; [| now rewrite Heqs7].
+      destruct a'; invc EH; cbn in *.
+      rewrite interp_Mem_MemSet.
+      rewrite <-eutt_Ret.
+      constructor; cbn; [| reflexivity].
+      now rewrite H, H0.
     - cbn* in *; simp; go.
+      all: try some_none; repeat some_inv; try inl_inr; repeat inl_inr_inv.
       cbn*; repeat match_rewrite; go.
       rewrite Heqs1.
       repeat match_rewrite; go.
@@ -1269,11 +1290,23 @@ Section Eval_Denote_Equiv.
 
       rewrite Heqs7. rewrite interp_Mem_ret. rewrite bind_ret_l.
       rewrite interp_Mem_bind.
-      rewrite Denote_Eval_Equiv_DSHPower; eauto; go.
-      2,3: cbn*; match_rewrite; eauto.
-      rewrite interp_Mem_MemSet; reflexivity.
+      bind_ret_l_with Denote_Eval_Equiv_DSHPower; [| now rewrite Heqs8].
+      destruct a'; invc EH; cbn in *.
+      rewrite interp_Mem_MemSet.
+      rewrite <-eutt_Ret.
+      constructor; cbn; [| reflexivity].
+      now rewrite H, H0.
+      {
+        unfold memory_lookup_err.
+        now rewrite Heqo.
+      }
+      {
+        unfold memory_lookup_err.
+        now rewrite Heqo0.
+      }
     - eapply Loop_is_Iter; eauto.
     - cbn; simp; go.
+      all: try some_none; repeat some_inv; try inl_inr; repeat inl_inr_inv.
       Transparent interp_Mem.
       unfold interp_Mem.
       rewrite interp_state_trigger; cbn.
@@ -1281,19 +1314,33 @@ Section Eval_Denote_Equiv.
       go.
       rewrite interp_Mem_MemSet; go.
       destruct fuel as [| fuel]; [inv Heqo |].
-      rewrite IHop; eauto; go.
+      bind_ret_l_with IHop; [| now rewrite Heqo].
+      destruct a'; invc EH; cbn in H; clear u H0.
       Transparent interp_Mem.
       unfold interp_Mem.
       rewrite interp_state_trigger; cbn.
+      rewrite <-eutt_Ret.
+      constructor.
+      now rewrite H.
       reflexivity.
       Opaque interp_Mem.
     - cbn* in *; simp.
+      all: try some_none; repeat some_inv; try inl_inr; repeat inl_inr_inv.
       unfold denotePExpr; cbn*; match_rewrite; go.
       2:cbn*; match_rewrite; eauto.
-      rewrite interp_Mem_MemSet; reflexivity.
+      rewrite interp_Mem_MemSet, <-eutt_Ret.
+      now constructor.
     - cbn; simp; go.
-      rewrite IHop1; eauto using evalDSHOperator_fuel_monotone.
-      go; rewrite IHop2; eauto using evalDSHOperator_fuel_monotone.
+      all: try some_none; repeat some_inv; try inl_inr; repeat inl_inr_inv.
+
+      bind_ret_l_with IHop1;
+        [| eapply evalDSHOperator_fuel_monotone_equiv;
+           now rewrite Heqo].
+      destruct a'; invc EH; cbn in H; clear u H0.
+      
+      erewrite IHop2;
+        [| eapply evalDSHOperator_fuel_monotone_equiv;
+           now rewrite H, HEval].
       reflexivity.
   Qed.
 
