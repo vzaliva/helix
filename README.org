@@ -5,7 +5,7 @@
 HELIX project allows for the synthesis of high-performance
 implementations of numerical algorithms by providing a certified
 compiler for formally-specified DSL.  Based on the existing [[http://spiral.net/][SPIRAL]]
-system, HELIX adds the rigor of formal verification of its correctness
+system, HELIX adds the rigour of formal verification of its correctness
 using the Coq proof assistant. It formally defines a series of
 domain-specific languages starting with HCOL, which represents a
 computation data flow. HELIX works by transforming the original
@@ -15,14 +15,14 @@ LLVM IR.
 - HELIX focuses on automatic translation a class of mathematical.
   expressions to code.
 - It works by revealing implicit iteration constructs and re-shaping
-  them to match target platform parallelizm and vectorization
+  them to match target platform parallelism and vectorization
   capabilities.
 - HELIX is rigorously defined and formally verified.
 - HELIX is implemented in Coq proof assistant.
 - It supports non-linear operators.
 - Presently, HELIX uses SPIRAL as an optimization oracle, but it
   certifies its findings.
-- LLVM is used machine code generation backend.
+- LLVM is used as machine code generation backend.
 - Main application: Cyber-physical systems.
 
 ** Example
@@ -47,12 +47,14 @@ LLVM IR.
    - [[https://gitlab.inria.fr/gappa/gappa][gappa]] + [[https://gitlab.inria.fr/gappa/coq][coq-gappa]]
    - [[https://github.com/Karmaki/coq-dpdgraph][coq-dpdgraph]] /(optional)/
 
-To install all required dependenceis:
+To install all required dependencies:
 
 #+BEGIN_SRC sh
      opam repo add coq-released https://coq.inria.fr/opam/released
      make -j 4 install-deps
 #+END_SRC
+
+(if some package fail to install due to missing OS dependencies, use `opam depext pkgname` to install required OS packages)
 
 To install *optional* dependencies:
 
