@@ -33,9 +33,11 @@ Require Export Helix.LLVMGen.Compiler.
 Require Export Helix.LLVMGen.Data.
 Require Export Helix.LLVMGen.Utils.
 Require Export Helix.LLVMGen.Vellvm_Utils.
+Require Export Helix.MSigmaHCOL.MemSetoid.
 Require Export Helix.Util.OptionSetoid.
 Require Export Helix.Util.ErrorSetoid.
 Require Export Helix.Util.ListUtil.
+Require Export Helix.Util.Misc.
 Require Export Helix.Tactics.HelixTactics.
 
 Require Export Vellvm.Utils.Tactics.

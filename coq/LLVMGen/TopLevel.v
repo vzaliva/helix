@@ -314,7 +314,7 @@ Lemma initial_memory_from_data :
       /\ RHCOLtoFHCOL.heq_evalContext () RF_NHE RF_CHE dynwin_R_σ dynwin_F_σ.
 Admitted.
 
-Lemma interp_mem_interp_helix_ret : forall E σ op hmem fmem v,
+Lemma interp_mem_interp_helix_ret_eq : forall E σ op hmem fmem v,
     interp_Mem (denoteDSHOperator σ op) hmem ≈ Ret (fmem,v) ->
     interp_helix (E := E) (denoteDSHOperator σ op) hmem ≈ Ret (Some (fmem,v)).
 Proof.
@@ -326,6 +326,19 @@ Proof.
   rewrite translate_ret.
   reflexivity.
 Qed.
+
+Lemma interp_mem_interp_helix_ret : forall E σ op hmem fmem v,
+    eutt equiv (interp_Mem (denoteDSHOperator σ op) hmem) (Ret (fmem,v)) ->
+    eutt equiv (interp_helix (E := E) (denoteDSHOperator σ op) hmem) (Ret (Some (fmem,v))).
+Proof. (*
+  intros * HI.
+  unfold interp_helix.
+  rewrite HI.
+  rewrite interp_fail_ret.
+  cbn.
+  rewrite translate_ret.
+  reflexivity.
+Qed. *) Admitted.
 
 
 (* Notation mcfg_ctx fundefs := *)
@@ -1148,12 +1161,6 @@ Proof.
 
   1,2,3: now repeat constructor.
 
-  (* TODO : evaluation in terms of equiv and not eq, contrary to what' assumed in EvalDenoteEquiv.
-     Is it an easy fix to Denote_Eval_Equiv?
-   *)
-  match type of EVF with
-  | ?x = ?y => clear EVF; assert (EVF:x ≡ y) by admit
-  end.
   (* We know that we can see the evaluation of the FHCOL operator under an itree-lense  *)
   pose proof (Denote_Eval_Equiv _ _ _ _ _ EVF) as EQ.
 

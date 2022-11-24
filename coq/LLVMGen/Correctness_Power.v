@@ -233,7 +233,7 @@ Lemma DSHPower_correct:
     → Gamma_safe σ s1 s2
     → no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ (DSHPower n src dst f initial)) memH)
     → eutt (succ_cfg (genIR_post σ s1 s2 nextblock l)) (interp_helix (denoteDSHOperator σ (DSHPower n src dst f initial)) memH) (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from, bid_in)) g l memV).
-Proof.
+Proof. (*
   intros n src dst f initial s1 s2 σ memH nextblock bid_in bid_from bks g l memV GEN NEXT PRE GAM NOFAIL.
 
   pose proof generates_wf_ocfg_bids _ NEXT GEN as WFOCFG.
@@ -1822,5 +1822,5 @@ Proof.
   Unshelve.
   all: eauto.
   all: eapply from_N_intval in EQsz0; subst; auto.
-
+*)
 Admitted.

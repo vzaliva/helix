@@ -399,3 +399,24 @@ Instance R_Equiv: Equiv R := eq.
 
 Instance R_Setoid: Setoid R.
 Proof. split; auto. Qed.
+
+Instance oprod_equiv_Equivalence
+         `{Ae:Equiv A}
+         `{Be: Equiv B}
+         `{Aeq: Equivalence A Ae}
+         `{Beq: Equivalence B Be}
+  :
+    Equivalence (@products.prod_equiv A Ae B Be).
+Proof.
+  unfold products.prod_equiv.
+  split.
+  -
+    intros x.
+    split;auto.
+  -
+    intros x y [H1 H2].
+    split;auto.
+  -
+    intros x y z [H1 H2] [H3 H4].
+    split;auto.
+Qed.
