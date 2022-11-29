@@ -93,8 +93,8 @@ Section Program.
 
   (* Where do I build my data to pass to compile_w_main? *)
   (* Lookup in fmem yaddr xaddr and aaddr and flatten *)
-  Definition dynwin_data (a_fmem x_fmem : FHCOLEval.mem_block): list binary64.
-  Admitted.
+  (* Definition dynwin_data (a_fmem x_fmem : FHCOLEval.mem_block): list binary64. *)
+  (* Admitted. *)
 
 End Program.
 
@@ -193,44 +193,44 @@ Definition fhcol_to_llvm_rel : Rel_mcfg_OT (list binary64) uvalue :=
 
 Require Import LibHyps.LibHyps.
 
-Lemma compiler_correct_aux:
-  forall (p:FSHCOLProgram)
-    (data:list binary64)
-    (pll: toplevel_entities typ (LLVMAst.block typ * list (LLVMAst.block typ))),
-  forall s hmem hdata σ,
-    compile_w_main p data newState ≡ inr (s,pll) ->
-    helix_initial_memory p data ≡ inr (hmem, hdata, σ) ->
-    eutt fhcol_to_llvm_rel (semantics_FSHCOL' p data σ hmem) (semantics_llvm pll).
-Proof.
-  intros * COMP INIT.
-  generalize COMP; intros COMP'.
-  unfold compile_w_main,compile in COMP.
-  cbn* in COMP.
-  simp/g.
-  epose proof @compile_FSHCOL_correct _ _ _ (* dynwin_F_σ dynwin_F_memory *) _ _ _ _ _ _ _ _ _ Heqs _ _ _ _.
-  pose proof memory_invariant_after_init _ _ (conj INIT COMP') as INIT_MEM.
-  match goal with
-    |- context [semantics_llvm ?foo] => remember foo
-  end.
-  unfold semantics_llvm, semantics_llvm_mcfg, model_to_L3, denote_vellvm_init, denote_vellvm.
-  simpl bind.
-  rewrite interp3_bind.
-  ret_bind_l_left ((hmem, tt)).
-  eapply eutt_clo_bind.
-  apply INIT_MEM.
-  intros [? []] (? & ? & ? & []) INV.
+(* Lemma compiler_correct_aux: *)
+(*   forall (p:FSHCOLProgram) *)
+(*     (data:list binary64) *)
+(*     (pll: toplevel_entities typ (LLVMAst.block typ * list (LLVMAst.block typ))), *)
+(*   forall s hmem hdata σ, *)
+(*     compile_w_main p data newState ≡ inr (s,pll) -> *)
+(*     helix_initial_memory p data ≡ inr (hmem, hdata, σ) -> *)
+(*     eutt fhcol_to_llvm_rel (semantics_FSHCOL' p data σ hmem) (semantics_llvm pll). *)
+(* Proof. *)
+(*   intros * COMP INIT. *)
+(*   generalize COMP; intros COMP'. *)
+(*   unfold compile_w_main,compile in COMP. *)
+(*   cbn* in COMP. *)
+(*   simp/g. *)
+(*   epose proof @compile_FSHCOL_correct _ _ _ (* dynwin_F_σ dynwin_F_memory *) _ _ _ _ _ _ _ _ _ Heqs _ _ _ _. *)
+(*   pose proof memory_invariant_after_init _ _ (conj INIT COMP') as INIT_MEM. *)
+(*   match goal with *)
+(*     |- context [semantics_llvm ?foo] => remember foo *)
+(*   end. *)
+(*   unfold semantics_llvm, semantics_llvm_mcfg, model_to_L3, denote_vellvm_init, denote_vellvm. *)
+(*   simpl bind. *)
+(*   rewrite interp3_bind. *)
+(*   ret_bind_l_left ((hmem, tt)). *)
+(*   eapply eutt_clo_bind. *)
+(*   apply INIT_MEM. *)
+(*   intros [? []] (? & ? & ? & []) INV. *)
 
-  clear - Heqs1.
+(*   clear - Heqs1. *)
 
-  unfold initIRGlobals,initIRGlobals_rev, init_with_data in Heqs1.
+(*   unfold initIRGlobals,initIRGlobals_rev, init_with_data in Heqs1. *)
 
-  rewrite interp3_bind.
+(*   rewrite interp3_bind. *)
 
-  (* Need to get all the initialization stuff concrete I think? *)
-  unfold initIRGlobals,initIRGlobals_rev, init_with_data in Heqs1.
-  cbn in Heqs1.
+(*   (* Need to get all the initialization stuff concrete I think? *) *)
+(*   unfold initIRGlobals,initIRGlobals_rev, init_with_data in Heqs1. *)
+(*   cbn in Heqs1. *)
 
-Admitted.
+(* Admitted. *)
 
 (* Lemma compiler_correct_aux': *)
 (*   forall (p:FSHCOLProgram) *)
@@ -300,7 +300,7 @@ Definition input_inConstr
     (MSigmaHCOL.MHCOL.ctvector_to_mem_block a)
     (MSigmaHCOL.MHCOL.ctvector_to_mem_block x).
 
-(* IZ TODO: generalize beyond just DynWin? *)
+(* MARK Vadim ? IZ TODO: generalize beyond just DynWin? *)
 Lemma initial_memory_from_data :
   forall (a : Vector.t CarrierA 3)
     (x : Vector.t CarrierA dynwin_i)
@@ -327,18 +327,51 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma interp_mem_interp_helix_ret : forall E σ op hmem fmem v,
-    eutt equiv (interp_Mem (denoteDSHOperator σ op) hmem) (Ret (fmem,v)) ->
-    eutt equiv (interp_helix (E := E) (denoteDSHOperator σ op) hmem) (Ret (Some (fmem,v))).
-Proof. (*
+Lemma eutt_trans : forall {E A} (R : A -> A -> Prop),
+    Transitive R ->
+    Transitive (eutt (E := E) R).
+Proof.
+  repeat intro.
+  eapply eqit_trans in H1; [| apply H0].
+  eapply eqit_mon with (RR := rcompose R R); eauto.
+  intros.
+  apply trans_rcompose; eauto.
+Qed.
+
+Lemma option_rel_trans : forall {A} (R : A -> A -> Prop),
+    Transitive R ->
+    Transitive (option_rel R).
+Proof.
+  repeat intro.
+  cbv in *.
+  repeat break_match; intuition.
+Qed.
+
+Lemma option_rel_opt_r : forall {A} (R : A -> A -> Prop),
+    HeterogeneousRelations.eq_rel (option_rel R) (RelUtil.opt_r R).
+Proof.
+  split; repeat intro.
+  - cbv in H.
+    repeat break_match; intuition.
+    now constructor.
+    now constructor.
+  - inv H; now cbn.
+Qed.
+
+(* MARK *)
+Lemma interp_mem_interp_helix_ret : forall E σ op hmem fmem,
+    eutt equiv (interp_Mem (denoteDSHOperator σ op) hmem) (Ret (fmem,tt)) ->
+    eutt equiv (interp_helix (E := E) (denoteDSHOperator σ op) hmem) (Ret (Some (fmem,tt))).
+Proof.
   intros * HI.
   unfold interp_helix.
-  rewrite HI.
-  rewrite interp_fail_ret.
-  cbn.
-  rewrite translate_ret.
-  reflexivity.
-Qed. *) Admitted.
+  assert (Transitive (eutt (E := E) (option_rel equiv))).
+  - apply eutt_trans, option_rel_trans.
+    admit. (* TODO VADIM *)
+  - unfold equiv, option_Equiv.
+    rewrite <- option_rel_opt_r.
+    unfold equiv, FHCOLtoSFHCOL.SFHCOLEval.evalNatClosure_Equiv in H.
+Admitted.
 
 
 (* Notation mcfg_ctx fundefs := *)
@@ -521,6 +554,20 @@ Proof.
     now rewrite itree_eta, <- x, tau_eutt.
 Qed.
 
+Lemma eutt_ret_inv_strong' {E X Y} (R : X -> Y -> Prop) (t : itree E X) (y : Y) :
+  eutt R t (Ret y) ->
+  exists x, t ≈ Ret x /\ R x y.
+Proof.
+  intros EQ; punfold EQ.
+  red in EQ.
+  dependent induction EQ.
+  - exists r1; split; auto.
+    rewrite itree_eta, <-x; reflexivity.
+  - edestruct IHEQ as (?x & EQ1 & HR); auto.
+    exists x0; split; auto.
+    now rewrite itree_eta, <- x, tau_eutt.
+Qed.
+
 Lemma denote_mcfg_ID_Global :
   ∀ ctx (g : global_env) s (m : memoryV) id (τ : dtyp) (ptr : Addr.addr),
     alist_find id g ≡ Some (DVALUE_Addr ptr) ->
@@ -623,6 +670,7 @@ Proof.
   apply dtyp_eq_dec.
 Qed.
 
+(* TODO: strengthen this result to push the forall in the post and establish nodup of addresses *)
 Lemma allocate_globals_spec : forall (gs:list (global dtyp)) glob (g : global_env) s m,
     In glob gs ->
     NoDup (List.map g_ident gs) ->
@@ -1240,18 +1288,23 @@ Proof.
   (* We are getting closer to business: instantiating the lemma
      stating the correctness of the compilation of operators *)
   unshelve epose proof @compile_FSHCOL_correct _ _ _ dynwin_F_σ dynwin_F_memory _ _ (blk_id bk) _ gI ρI memI Heqs0 _ _ _ _ as RES; clear Heqs0; cycle -1.
+  (* VADIM : side obligations might be (relatively) gentle here *)
+
 
   - (* Assuming we can discharge all the preconditions,
        we prove here that it is sufficient for establishing
        our toplevel correctness statement.
      *)
     eapply interp_mem_interp_helix_ret in EQ.
+    eapply eutt_ret_inv_strong' in EQ.
+    destruct EQ as ([? |] & EQ & TMP); inv TMP.
     rewrite EQ in RES.
     clear EQ.
+    destruct p as [? []].
+    inv H3; cbn in H1; clear H2.
     edestruct @eutt_ret_inv_strong as (RESLLVM2 & EQLLVM2 & INV2); [apply RES |].
     destruct RESLLVM2 as (mem2 & ρ2 & g2 & v2).
     onAllHyps move_up_types.
-
 
     (* We need to reason about [semantics_llvm].
        Hopefully we now have all the pieces into our
@@ -1322,6 +1375,7 @@ Proof.
         (* Need to keep track of the fact that [main_addr] and [dyn_addr]
            are distinct. Might be hidden somewhere in the context.
          *)
+        (* MARK VADIM TODO: declarations_invariant must specify the names are distinct (Vadim?) *)
         admit. (* addresses are distincts *)
       }
 
@@ -1356,6 +1410,7 @@ Proof.
       (* TODO FIX surface syntax *)
       (* TODO : should really wrap the either monad when jumping from blocks into a named abstraction to lighten goals
          TODO : can we somehow avoid the continuations being systematically
+         MARK
          let (m',p) := r in
          let (l',p0) := p in
          let (g',_)  := p0 in ...
@@ -1364,6 +1419,15 @@ Proof.
       Proof.
         intros; rewrite typ_to_dtyp_equation; reflexivity.
       Qed.
+
+      (* MARK *)
+      Notation "'lets' a b c d e f 'be' x y z 'in' x " :=
+        (let (a,b) := x in
+         let (c,d) := y in
+         let (e,f) := z in
+         x)
+          (only printing, at level 10,
+            format "'lets' a b c d e f 'be' x y z 'in' '//' x").
 
       Notation "'call' x args" := ((IVoid _, INSTR_Call x args)) (at level 30, only printing).
 
@@ -1414,6 +1478,8 @@ Proof.
 
          Do I need to reinforce [memory_invariant_after_init] or is
          what I need a consequence of [genIR_post]?
+
+         MARK
        *)
 
       assert (exists add0, gI @ Anon 0%Z ≡ Some (DVALUE_Addr add0)) as [add0 ?] by admit.
@@ -1485,6 +1551,7 @@ Proof.
         clear - Heqs1.
         destruct bks1; cbn in *; inv Heqs1; reflexivity.
       }
+
 
 
       (* Shouldn't we be facing EQLLVM2 right now? *)

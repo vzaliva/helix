@@ -1497,6 +1497,8 @@ C2(C1(p1)) == p1
   (* For compiled FHCOL programs we need to ensure we have 2 declarations:
      1. "main" function
      2. function, implementing compiled expression.
+
+TODO (VADIM) (?) : additionally ensure that both addresses are distinct
    *)
   Definition declarations_invariant (fnname:string) : Pred_cfg :=
     fun c =>
@@ -1504,6 +1506,10 @@ C2(C1(p1)) == p1
       global_named_ptr_exists fnname c.
 
   (** An invariant which must hold after initialization stage *)
+  (* TODO (VADIM) (?) :
+- enrich this invariant to add something like [globals_invariant] ensuring that globals (Anon 0) and (Anon 1) are in globals
+- maybe also that they are distinct?
+   *)
   Record post_init_invariant (fnname:string) (σ : evalContext) (s : IRState) (memH : memoryH) (configV : config_cfg) : Prop :=
     {
     state_inv: state_invariant σ s memH configV;

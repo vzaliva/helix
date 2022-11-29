@@ -343,12 +343,152 @@ Section Eval_Denote_Equiv.
       reflexivity.
   Qed.
 
-  (* See [interp_Mem_proper] *)
-  Global Instance interp_Mem_equiv_proper {A} {e : Equiv A} {EQ : @Equivalence A e} :
+  (* See [interp_Mem_proper]
+
+    A === nat
+    e === eq
+    eutt eq
+    mem_equiv memories
+    eutt (e × mem_equiv) after interpretation
+
+
+
+   *)
+  Global Instance interp_state_proper_gen {E F: Type -> Type} {S : Type}
+    (equiv : S -> S -> Prop)
+    (h : E ~> Monads.stateT S (itree F))
+    (magic : True)
+    R RR :
+    Proper (eutt RR ==> equiv ==> eutt (HeterogeneousRelations.prod_rel equiv RR)) (@interp_state E (itree F) S _ _ _ h R).
+  Proof.
+    unfold interp_Mem.
+    einit. ecofix CIH. intros * EUTT m1 m2 EQM.
+    rewrite !unfold_interp_state. punfold EUTT. red in EUTT.
+    induction EUTT; intros; subst; simpl; pclearbot.
+    - eret.
+    - etau.
+    -
+      Import HeterogeneousRelations.
+      assert (forall {X} (e : E X) m1 m2, equiv m1 m2 -> eutt (prod_rel equiv eq) (h X e m1) (h X e m2)) by admit.
+      ebind.
+      econstructor.
+      apply H; auto.
+      intros [] [] ?.
+      etau.
+      cbn.
+
+
+      destruct e0 as [? | [? | ?]].
+      + cbn.
+        destruct m.
+        * cbn.
+          repeat break_match_goal.
+          ** cbn.
+             unfold memory_lookup_err, trywith in *.
+             repeat break_match; try inl_inr.
+             rewrite Heqs0 in Heqs; inv Heqs.
+             unfold throw; rewrite !bind_vis; cbn.
+             evis; intros [].
+          ** unshelve epose proof memory_lookup_err_proper msg msg _ m1 m2 EQM id id _; try reflexivity.
+             rewrite Heqs, Heqs0 in H; try inl_inr.
+          ** unshelve epose proof memory_lookup_err_proper msg msg _ m1 m2 EQM id id _; try reflexivity.
+             rewrite Heqs, Heqs0 in H; try inl_inr.
+          ** unshelve epose proof memory_lookup_err_proper msg msg _ m1 m2 EQM id id _; try reflexivity.
+             rewrite Heqs, Heqs0 in H.
+             inv H.
+             cbn.
+             rewrite !bind_ret_l.
+             etau.
+             cbn.
+             ebase; right.
+             apply CIH.
+             2:eauto.
+             apply REl.
+               in Heqs. rewrite EQM in Heqs. unfold memory_lookup_err, trywith in *.
+             repeat break_match; try inl_inr.
+      + destruct s. cbn. unfold pure_state.
+        rewrite !bind_vis.
+        evis; intros [].
+      + destruct d. cbn. unfold pure_state.
+        rewrite !bind_vis.
+        evis; intros [].
+(* MARK *)
+         intors ?.
+        ebind.
+        econstructor.
+        cbn.
+      unshelve econstructor.
+      exact (prod_rel equiv eq). [reflexivity|].
+      intros; subst.
+      etau. ebase.
+    - rewrite tau_euttge, unfold_interp_state; eauto.
+    - rewrite tau_euttge, unfold_interp_state; eauto.
+  Qed.
+
+
+
+   Global Instance interp_Mem_equiv_proper {A} {e : Equiv A} {EQ : @Equivalence A e} :
     Proper ((eutt e) ==> equiv ==> (eutt equiv)) (@interp_Mem A).
   Proof.
-    intros x1 x2 X m1 m2 M.
     unfold interp_Mem.
+    einit. ecofix CIH. intros * EUTT m1 m2 EQM.
+    rewrite !unfold_interp_state. punfold EUTT. red in EUTT.
+    induction EUTT; intros; subst; simpl; pclearbot.
+    - eret. constructor; cbn; auto.
+    - etau.
+    - destruct e0 as [? | [? | ?]].
+      + cbn.
+        destruct m.
+        * cbn.
+          repeat break_match_goal.
+          ** cbn.
+             unfold memory_lookup_err, trywith in *.
+             repeat break_match; try inl_inr.
+             rewrite Heqs0 in Heqs; inv Heqs.
+             unfold throw; rewrite !bind_vis; cbn.
+             evis; intros [].
+          ** unshelve epose proof memory_lookup_err_proper msg msg _ m1 m2 EQM id id _; try reflexivity.
+             rewrite Heqs, Heqs0 in H; try inl_inr.
+          ** unshelve epose proof memory_lookup_err_proper msg msg _ m1 m2 EQM id id _; try reflexivity.
+             rewrite Heqs, Heqs0 in H; try inl_inr.
+          ** unshelve epose proof memory_lookup_err_proper msg msg _ m1 m2 EQM id id _; try reflexivity.
+             rewrite Heqs, Heqs0 in H.
+             inv H.
+             cbn.
+             rewrite !bind_ret_l.
+             etau.
+             cbn.
+             ebase; right.
+             apply CIH.
+             2:eauto.
+             apply REl.
+               in Heqs. rewrite EQM in Heqs. unfold memory_lookup_err, trywith in *.
+             repeat break_match; try inl_inr.
+      + destruct s. cbn. unfold pure_state.
+        rewrite !bind_vis.
+        evis; intros [].
+      + destruct d. cbn. unfold pure_state.
+        rewrite !bind_vis.
+        evis; intros [].
+(* MARK *)
+         intors ?.
+        ebind.
+        econstructor.
+        cbn.
+      unshelve econstructor.
+      exact (prod_rel equiv eq). [reflexivity|].
+      intros; subst.
+      etau. ebase.
+    - rewrite tau_euttge, unfold_interp_state; eauto.
+    - rewrite tau_euttge, unfold_interp_state; eauto.
+  Qed.
+
+
+    intros x1 x2 X m1 m2 M.
+    revert_until id
+    subst.
+    unfold interp_Mem.
+    eapply eutt_interp_state.
   Admitted.
 
   Lemma Denote_Eval_Equiv_NExpr: forall mem σ e v,
