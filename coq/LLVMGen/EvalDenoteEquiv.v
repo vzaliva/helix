@@ -354,6 +354,7 @@ Section Eval_Denote_Equiv.
 
 
    *)
+  (*
   Global Instance interp_state_proper_gen {E F: Type -> Type} {S : Type}
     (equiv : S -> S -> Prop)
     (h : E ~> Monads.stateT S (itree F))
@@ -424,12 +425,13 @@ Section Eval_Denote_Equiv.
     - rewrite tau_euttge, unfold_interp_state; eauto.
     - rewrite tau_euttge, unfold_interp_state; eauto.
   Qed.
-
+*)
 
 
    Global Instance interp_Mem_equiv_proper {A} {e : Equiv A} {EQ : @Equivalence A e} :
     Proper ((eutt e) ==> equiv ==> (eutt equiv)) (@interp_Mem A).
-  Proof.
+   Proof.
+     (*
     unfold interp_Mem.
     einit. ecofix CIH. intros * EUTT m1 m2 EQM.
     rewrite !unfold_interp_state. punfold EUTT. red in EUTT.
@@ -489,6 +491,7 @@ Section Eval_Denote_Equiv.
     subst.
     unfold interp_Mem.
     eapply eutt_interp_state.
+*)
   Admitted.
 
   Lemma Denote_Eval_Equiv_NExpr: forall mem σ e v,
