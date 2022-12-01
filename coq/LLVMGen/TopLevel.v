@@ -1295,11 +1295,22 @@ Proof.
       {| block_count := 0; local_count := 0; void_count := 0; Γ := Γ Γi |},
       {| block_count := 1; local_count := 0; void_count := 0; Γ := Γ Γi |}.
     cbn; auto.
-  - admit.
+  -
+    destruct state_inv.
+    eexists; eauto.
+    (* the following goals could be proven based on
+       some relation between Γi and s1 *)
+    admit.
+    admit.
+    admit.
+    admit.
+    admit.
   - unfold Gamma_safe.
     intros id B.
     clear - B.
-    (*
+    (* TODO: it looks like we do not have enough to prove this.
+       Perhaps well-formedness [WF_IRState] should state that
+       variable indices do not exceed counters *)
     intros NB.
     destruct NB.
     destruct B as [name [s' [s'' [P [C1 [C2 B]]]]]].
@@ -1311,11 +1322,8 @@ Proof.
     destruct H1 as [id H1].
     rewrite H0 in H1.
     inv H1.
-     *)
     admit.
   (* VADIM : side obligations might be (relatively) gentle here *)
-
-
   - (* Assuming we can discharge all the preconditions,
        we prove here that it is sufficient for establishing
        our toplevel correctness statement.
