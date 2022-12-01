@@ -1287,7 +1287,16 @@ Proof.
 
   (* We are getting closer to business: instantiating the lemma
      stating the correctness of the compilation of operators *)
-  unshelve epose proof @compile_FSHCOL_correct _ _ _ dynwin_F_σ dynwin_F_memory _ _ (blk_id bk) _ gI ρI memI Heqs0 _ _ _ _ as RES; clear Heqs0; cycle -1.
+  unshelve epose proof @compile_FSHCOL_correct _ _ _ dynwin_F_σ dynwin_F_memory _ _ (blk_id bk) _ gI ρI memI Heqs0 _ _ _ _ as RES; clear Heqs0.
+  - admit.
+  -
+    unfold bid_bound, VariableBinding.state_bound.
+    exists "b",
+      {| block_count := 0; local_count := 0; void_count := 0; Γ := Γ Γi |},
+      {| block_count := 1; local_count := 0; void_count := 0; Γ := Γ Γi |}.
+    cbn; auto.
+  - admit.
+  - admit.
   (* VADIM : side obligations might be (relatively) gentle here *)
 
 
