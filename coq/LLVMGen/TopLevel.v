@@ -1296,7 +1296,23 @@ Proof.
       {| block_count := 1; local_count := 0; void_count := 0; Γ := Γ Γi |}.
     cbn; auto.
   - admit.
-  - admit.
+  - unfold Gamma_safe.
+    intros id B.
+    clear - B.
+    (*
+    intros NB.
+    destruct NB.
+    destruct B as [name [s' [s'' [P [C1 [C2 B]]]]]].
+    cbn in *.
+    inv B.
+    unfold WF_IRState, evalContext_typechecks in H1.
+    destruct v as [v b].
+    specialize (H1 v n b H).
+    destruct H1 as [id H1].
+    rewrite H0 in H1.
+    inv H1.
+     *)
+    admit.
   (* VADIM : side obligations might be (relatively) gentle here *)
 
 
