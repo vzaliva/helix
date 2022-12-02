@@ -1,0 +1,46 @@
+kind: pipeline
+type: docker
+name: default
+
+steps:
+  - name: submodules
+    image: alpine/git
+    commands:
+      - git submodule update --init --recursive
+
+  - name: rebuild-cache
+    image: docker
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
+    commands:
+      - docker build --no-cache -t helix-cache .
+    when:
+      event:
+        - cron
+      cron:
+      - rebuild-cache
+
+  - name: build-vellvm
+    image: helix-cache
+    pull: never
+    commands:
+      - opam exec -- make -j 1 vellvm
+
+  - name: test-helix
+    image: helix-cache
+    pull: never
+    commands:
+      - opam exec -- make
+
+  - name: notify-slack
+    image: plugins/slack
+    settings:
+      webhook:
+        from_secret: slack_webhook
+      channel: bitbucket-activity
+
+volumes:
+  - name: dockersock
+    host:
+      path: /var/run/docker.sock
