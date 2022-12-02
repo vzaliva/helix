@@ -1282,7 +1282,7 @@ Proof.
   edestruct @eutt_ret_inv_strong as (RESLLVM & EQLLVMINIT & INVINIT); [apply INIT_MEM |].
   destruct RESLLVM as (memI & [ρI sI] & gI & []).
   inv INVINIT.
-  destruct decl_inv as [(main_addr & EQmain) (dyn_addr & EQdyn)].
+  destruct fun_decl_inv as [(main_addr & EQmain) (dyn_addr & EQdyn)].
   cbn in EQdyn.
 
   (* We are getting closer to business: instantiating the lemma

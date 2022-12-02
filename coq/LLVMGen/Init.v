@@ -685,9 +685,13 @@ Definition post_init_invariant_mcfg (fnname:string) (σ : evalContext) (s : IRSt
   fun '(memH,_) '(memV,((l,sl),(g,_))) =>
     post_init_invariant fnname σ s memH (memV,(l,g)).
 
-Definition declarations_invariant_mcfg (fnname:string) : Pred_mcfg_T unit :=
+Definition fun_declarations_invariant_mcfg (fnname:string) : Pred_mcfg_T unit :=
   fun '(memV,((l,sl),(g,_))) =>
-    declarations_invariant fnname (memV,(l,g)).
+    fun_declarations_invariant fnname (memV,(l,g)).
+
+Definition anon_declarations_invariant_mcfg : Pred_mcfg_T unit :=
+  fun '(memV,((l,sl),(g,_))) =>
+    anon_declarations_invariant (memV,(l,g)).
 
 (* YZ TODO : Move *)
 Arguments allocate : simpl never.
@@ -4185,7 +4189,7 @@ Proof.
 
   apply eutt_clo_bind
     with (UU := fun _ '(memV,((l,sl),(g,_))) =>
-                  declarations_invariant name (memV,(l,g)) /\
+                  fun_declarations_invariant name (memV,(l,g)) /\
                   genv_mem_wf g memV
                   ).
   (* proving this goal will guarantee that [declarations_invariant_mcfg]
@@ -4278,7 +4282,7 @@ Proof.
     rewrite interp3_ret.
     apply eutt_Ret.
     subst R.
-    unfold declarations_invariant_mcfg, declarations_invariant.
+    unfold fun_declarations_invariant_mcfg, fun_declarations_invariant.
     unfold global_named_ptr_exists.
     split.
     -
@@ -4398,7 +4402,7 @@ Proof.
   pose (fun '(memH, t0) '(memV, (l, t1, (g, t2))) =>
           post_alloc_invariant_mcfg i o
             globals zx_σ zx_state (memH, t0) (memV, (l, t1, (g, t2))) /\
-          declarations_invariant_mcfg name (memV, (l, t1, (g, t2))) /\
+          fun_declarations_invariant_mcfg name (memV, (l, t1, (g, t2))) /\
           genv_mem_wf g memV
        )
     as post_alloc_invariant_mcfg'.
@@ -4430,7 +4434,7 @@ Proof.
     pose (fun globals =>
                 (fun _ '(memV, (l, _, (g, _))) =>
                    allocated_globals memV g globals l zx_σ zx_state /\
-                   declarations_invariant name (memV, (l, g)) /\
+                   fun_declarations_invariant name (memV, (l, g)) /\
                    genv_mem_wf g memV
                 ) : Rel_mcfg_T () ())
       as alloc_glob_decl_inv_mcfg.
@@ -4979,7 +4983,7 @@ Proof.
             }
           ++
             cbn in *.
-            unfold declarations_invariant, global_named_ptr_exists in *.
+            unfold fun_declarations_invariant, global_named_ptr_exists in *.
             split.
             2: {
               unfold genv_mem_wf.
@@ -5400,6 +5404,9 @@ Proof.
             intuition.
             Unshelve.
             exact (ID_Local (Name "shelf_go_away")).
+          -
+            (* TODO: prove [anon_declarations_invariant] *)
+            admit.
         }
         inv PRE.
         replace ([] ++ gdecls2)
@@ -6012,8 +6019,11 @@ Proof.
             **
               constructor.
               all: cbn; clear - DI.
-              all: unfold declarations_invariant in DI.
+              all: unfold fun_declarations_invariant in DI.
               all: intuition.
+            **
+              (* TODO: prove [anon_declarations_invariant] *)
+              admit.
           ++ (* ZX TODO: see how these bullets can be done all in one *)
             rewrite typ_to_dtyp_D.
             rewrite interp3_bind.
@@ -6426,8 +6436,11 @@ Proof.
             **
               constructor.
               all: cbn; clear - DI.
-              all: unfold declarations_invariant in DI.
+              all: unfold fun_declarations_invariant in DI.
               all: intuition.
+            **
+              (* TODO: prove [anon_declarations_invariant] *)
+              admit.
           ++
             rewrite typ_to_dtyp_D_array.
 
@@ -6966,8 +6979,11 @@ Proof.
             **
               constructor.
               all: cbn; clear - DI.
-              all: unfold declarations_invariant in DI.
+              all: unfold fun_declarations_invariant in DI.
               all: intuition.
+            **
+              (* TODO: prove [anon_declarations_invariant] *)
+              admit.
         -- (* initialize [post] *)
           intros.
           cbn in *.
@@ -7805,7 +7821,7 @@ Proof.
               inv C.
       *
         apply DECL_INV.
-Qed.
+Admitted.
 
 (* with init step  *)
 Lemma compiler_correct_aux:

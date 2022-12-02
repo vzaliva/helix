@@ -1494,26 +1494,36 @@ C2(C1(p1)) == p1
   Definition global_named_ptr_exists (fnname:string) : Pred_cfg :=
     fun '(mem_llvm, (ρ,g)) => exists mf, g @ (Name fnname) ≡ Some (DVALUE_Addr mf).
 
-  (* For compiled FHCOL programs we need to ensure we have 2 declarations:
+  (* Anon pointer exists in global environemnts *)
+  Definition global_anon_ptr_exists (id:int) : Pred_cfg :=
+    fun '(mem_llvm, (ρ,g)) => exists mf, g @ (Anon id) ≡ Some (DVALUE_Addr mf).
+
+  (* For compiled FHCOL programs we need to ensure we have 2 global function declarations:
      1. "main" function
      2. function, implementing compiled expression.
 
-TODO (VADIM) (?) : additionally ensure that both addresses are distinct
+     We do not state here that their addresses are distinct
+     but we have this in [state_invariant].
    *)
-  Definition declarations_invariant (fnname:string) : Pred_cfg :=
-    fun c =>
-      global_named_ptr_exists "main" c /\
-      global_named_ptr_exists fnname c.
+  Definition fun_declarations_invariant (fnname:string) : Pred_cfg :=
+    fun c => global_named_ptr_exists "main" c /\ global_named_ptr_exists fnname c.
+
+  (* For compiled FHCOL programs we need to ensure we have 2 global anonymous variables exist:
+     1. Placeholder for X (Anon 0)
+     2. Placeholder for Y (Anon 1)
+
+     We do not state here that their addresses are distinct
+     but we have this in [state_invariant].
+   *)
+  Definition anon_declarations_invariant : Pred_cfg :=
+    fun c => global_anon_ptr_exists 0%Z c /\ global_anon_ptr_exists 1%Z c.
 
   (** An invariant which must hold after initialization stage *)
-  (* TODO (VADIM) (?) :
-- enrich this invariant to add something like [globals_invariant] ensuring that globals (Anon 0) and (Anon 1) are in globals
-- maybe also that they are distinct?
-   *)
   Record post_init_invariant (fnname:string) (σ : evalContext) (s : IRState) (memH : memoryH) (configV : config_cfg) : Prop :=
     {
-    state_inv: state_invariant σ s memH configV;
-    decl_inv:  declarations_invariant fnname configV
+      state_inv: state_invariant σ s memH configV;
+      fun_decl_inv:  fun_declarations_invariant fnname configV;
+      anon_decl_inv: anon_declarations_invariant configV
     }.
 
   (**
