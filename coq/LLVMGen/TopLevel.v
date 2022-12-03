@@ -1308,21 +1308,39 @@ Proof.
   - unfold Gamma_safe.
     intros id B.
     clear - B.
-    (* TODO: it looks like we do not have enough to prove this.
-       Perhaps well-formedness [WF_IRState] should state that
-       variable indices do not exceed counters *)
     intros NB.
-    destruct NB.
+    dep_destruct NB.
+    clear NB w e v.
+    rename e0 into H0.
     destruct B as [name [s' [s'' [P [C1 [C2 B]]]]]].
     cbn in *.
     inv B.
-    unfold WF_IRState, evalContext_typechecks in H1.
-    destruct v as [v b].
-    specialize (H1 v n b H).
-    destruct H1 as [id H1].
-    rewrite H0 in H1.
-    inv H1.
+    clear C1 s2.
+    Transparent Γi.
+    cbn in *.
+
+    destruct n.
+    cbn in H0. inversion H0.
+
+    destruct n.
+    cbn in H0.
+    inv H0.
+    (* TODO: prove [string_of_nat] is not empty and use [IdLemmas.string_of_nat_not_alpha] *)
     admit.
+
+    destruct n.
+    cbn in H0.
+    inv H0.
+    (* TODO: prove [string_of_nat] is not empty and use [IdLemmas.string_of_nat_not_alpha] *)
+    admit.
+
+    destruct n. cbn in H0. inversion H0.
+    destruct n. cbn in H0. inversion H0.
+
+    erewrite ListUtil.nth_beyond in H0.
+    inv H0.
+    cbv.
+    lia.
   (* VADIM : side obligations might be (relatively) gentle here *)
   - (* Assuming we can discharge all the preconditions,
        we prove here that it is sufficient for establishing
