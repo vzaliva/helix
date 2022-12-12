@@ -367,7 +367,9 @@ Proof.
   unfold interp_helix.
   assert (Transitive (eutt (E := E) (option_rel equiv))).
   - apply eutt_trans, option_rel_trans.
-    admit. (* TODO VADIM *)
+    intros x y z.
+    unfold equiv, FHCOLtoSFHCOL.SFHCOLEval.evalNatClosure_Equiv.
+    apply oprod_equiv_Equivalence.
   - unfold equiv, option_Equiv.
     rewrite <- option_rel_opt_r.
     unfold equiv, FHCOLtoSFHCOL.SFHCOLEval.evalNatClosure_Equiv in H.
