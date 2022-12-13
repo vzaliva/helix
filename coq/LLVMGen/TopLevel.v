@@ -1166,6 +1166,24 @@ Qed.
 
 Set Printing Compact Contexts.
 
+(* to be used in [numeric_suffix_must_exist]. Not required otherwise *)
+Local Lemma string_of_nat_len:
+  forall n, String.length (string_of_nat n) ≢ 0.
+Proof.
+  intros n.
+  unfold string_of_nat.
+  rewrite string_of_nat_aux_equation.
+  rewrite append_EmptyString.
+Admitted.
+
+Local Lemma numeric_suffix_must_exist:
+  forall ls rs n,
+    CeresString.string_forall IdLemmas.is_alpha ls ->
+    ls ≡ rs @@ string_of_nat n -> False.
+Proof.
+  intros ls rs n H C.
+Admitted.
+
 Lemma top_to_LLVM :
   forall (a : Vector.t CarrierA 3) (* parameter *)
     (x : Vector.t CarrierA dynwin_i) (* input *)
@@ -1327,14 +1345,12 @@ Proof.
     destruct n.
     cbn in H0.
     inv H0.
-    (* TODO: prove [string_of_nat] is not empty and use [IdLemmas.string_of_nat_not_alpha] *)
-    admit.
+    apply numeric_suffix_must_exist in H1; trivial.
 
     destruct n.
     cbn in H0.
     inv H0.
-    (* TODO: prove [string_of_nat] is not empty and use [IdLemmas.string_of_nat_not_alpha] *)
-    admit.
+    apply numeric_suffix_must_exist in H1; trivial.
 
     destruct n. cbn in H0. inversion H0.
     destruct n. cbn in H0. inversion H0.
