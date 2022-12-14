@@ -1166,23 +1166,19 @@ Qed.
 
 Set Printing Compact Contexts.
 
-(* to be used in [numeric_suffix_must_exist]. Not required otherwise *)
-Local Lemma string_of_nat_len:
-  forall n, String.length (string_of_nat n) ≢ 0.
-Proof.
-  intros n.
-  unfold string_of_nat.
-  rewrite string_of_nat_aux_equation.
-  rewrite append_EmptyString.
-Admitted.
-
 Local Lemma numeric_suffix_must_exist:
   forall ls rs n,
     CeresString.string_forall IdLemmas.is_alpha ls ->
     ls ≡ rs @@ string_of_nat n -> False.
 Proof.
   intros ls rs n H C.
-Admitted.
+  rewrite C in H.
+  apply IdLemmas.string_append_forall in H as [H1 H2].
+  eapply IdLemmas.string_of_nat_not_empty.
+  eapply IdLemmas.string_forall_contradiction.
+  - eapply H2.
+  - eapply IdLemmas.string_of_nat_not_alpha.
+Qed.
 
 Lemma top_to_LLVM :
   forall (a : Vector.t CarrierA 3) (* parameter *)
