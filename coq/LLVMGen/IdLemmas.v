@@ -69,6 +69,55 @@ Proof.
   now rewrite S1, S2.
 Qed.
 
+Lemma string_append_forall (f : ascii → bool) (s1 s2 : string) :
+    CeresString.string_forall f (s1 @@ s2) ->
+    CeresString.string_forall f s1 /\ CeresString.string_forall f s2.
+Proof.
+  intro H.
+  induction s1.
+  - split.
+    + reflexivity.
+    + apply H.
+  - simpl in H.
+    destruct (f a) eqn:E; [| discriminate].
+    fold append in H.
+    apply IHs1 in H as [H1 H2].
+    split.
+    + simpl.
+      rewrite E.
+      apply H1.
+    + apply H2.
+Qed.
+
+Lemma string_forall_contradiction (f : ascii → bool) (s : string) :
+  CeresString.string_forall f s ->
+  CeresString.string_forall (negb ∘ f) s ->
+  s ≡ ""%string.
+Proof.
+  intros H1 H2.
+  destruct s; [reflexivity |].
+  destruct (f a) eqn:E.
+  - unfold compose in H2.
+    simpl in H2.
+    rewrite E in H2.
+    simpl in H2.
+    discriminate.
+  - simpl in H1.
+    rewrite E in H1.
+    discriminate.
+Qed.
+
+Lemma string_of_nat_not_empty :
+  forall n, string_of_nat n ≢ ""%string.
+Proof.
+  intros n H.
+  unfold string_of_nat in H.
+  pose proof string_of_nat_aux_prepends n "" as (s & H1 & H2).
+  rewrite H2 in H.
+  rewrite append_EmptyString in H.
+  contradiction.
+Qed.
+
 Lemma string_of_nat_not_alpha : forall n,
   CeresString.string_forall (fun c => negb (is_alpha c)) (string_of_nat n).
 Proof.

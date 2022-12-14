@@ -1166,69 +1166,16 @@ Qed.
 
 Set Printing Compact Contexts.
 
-(* to be used in [numeric_suffix_must_exist]. Not required otherwise *)
-Local Lemma string_of_nat_not_empty:
-  forall n, string_of_nat n ≢ "".
-Proof.
-  intros n H.
-  unfold string_of_nat in H.
-  pose proof string_of_nat_aux_prepends n "" as (s & H1 & H2).
-  rewrite H2 in H.
-  rewrite append_EmptyString in H.
-  contradiction.
-Qed.
-
-(* move to IdLemmas? *)
-Local Lemma string_append_forall:
-  ∀ (f : Ascii.ascii → bool) (s1 s2 : string),
-    CeresString.string_forall f (s1 @@ s2) →
-    CeresString.string_forall f s1 /\ CeresString.string_forall f s2.
-Proof.
-  intros f s1 s2 H.
-  induction s1.
-  - split.
-    + reflexivity.
-    + apply H.
-  - simpl in H.
-    destruct (f a) eqn:E; [| discriminate].
-    fold append in H.
-    apply IHs1 in H as [H1 H2].
-    split.
-    + simpl.
-      rewrite E.
-      apply H1.
-    + apply H2.
-Qed.
-
-Local Lemma string_forall_contradiction:
-  ∀ (f : Ascii.ascii → bool) (s : string),
-    CeresString.string_forall f s →
-    CeresString.string_forall (negb ∘ f) s →
-    s ≡ "".
-Proof.
-  intros f s H1 H2.
-  destruct s; [reflexivity |].
-  destruct (f a) eqn:E.
-  - unfold "∘" in H2.
-    simpl in H2.
-    rewrite E in H2.
-    simpl in H2.
-    discriminate.
-  - simpl in H1.
-    rewrite E in H1.
-    discriminate.
-Qed.
-
 Local Lemma numeric_suffix_must_exist:
   forall ls rs n,
     CeresString.string_forall IdLemmas.is_alpha ls ->
-    ls ≡ rs @@ string_of_nat n -> False. 
+    ls ≡ rs @@ string_of_nat n -> False.
 Proof.
   intros ls rs n H C.
   rewrite C in H.
-  apply string_append_forall in H as [H1 H2].
-  eapply string_of_nat_not_empty.
-  eapply string_forall_contradiction.
+  apply IdLemmas.string_append_forall in H as [H1 H2].
+  eapply IdLemmas.string_of_nat_not_empty.
+  eapply IdLemmas.string_forall_contradiction.
   - eapply H2.
   - eapply IdLemmas.string_of_nat_not_alpha.
 Qed.
