@@ -885,6 +885,29 @@ Abort.
        (ID_Global (Anon 0%Z), TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double))]
   |}.
 
+Local Lemma Γi_bound : gamma_bound Γi.
+Proof.
+  unfold gamma_bound.
+  intros.
+  unfold LidBound.lid_bound.
+  unfold VariableBinding.state_bound.
+  apply nth_error_In in H.
+  repeat invc_prop In; find_inversion.
+  - admit.
+  - admit.
+Admitted.
+
+Local Lemma Γi_bound_false : ~ gamma_bound Γi.
+Proof.
+  intro.
+  unfold gamma_bound in H.
+  assert (LidBound.lid_bound Γi (Name "X"))
+    by (eapply H with (n := 2); reflexivity).
+  invc H0.
+  destruct H1 as (s1 & s2 & H1 & H2 & H3).
+  inversion H2.
+Qed.
+
 #[local] Definition MCFG l6 l3 l5 b0 l4 :=
   (TLE_Global {|
                                g_ident := Name "a";
@@ -1316,11 +1339,11 @@ Proof.
     eexists; eauto.
     (* the following goals could be proven based on
        some relation between Γi and s1 *)
-    admit.
-    admit.
-    admit.
-    admit.
-    admit.
+    + admit.
+    + admit.
+    + admit.
+    + admit.
+    + apply Γi_bound.
   - unfold Gamma_safe.
     intros id B.
     clear - B.
