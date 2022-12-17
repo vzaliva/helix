@@ -885,6 +885,17 @@ Abort.
        (ID_Global (Anon 0%Z), TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double))]
   |}.
 
+#[local] Definition Γi' :=
+  {|
+    block_count := 1;
+    local_count := 0;
+    void_count := 0;
+    Γ :=
+      [(ID_Global (Name "a"), TYPE_Pointer (TYPE_Array (Npos 3) TYPE_Double));
+       (ID_Global (Anon 1%Z), TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double));
+       (ID_Global (Anon 0%Z), TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double))]
+  |}.
+
 Local Lemma Γi_bound : gamma_bound Γi.
 Proof.
   unfold gamma_bound.
@@ -906,6 +917,16 @@ Proof.
   invc H0.
   destruct H1 as (s1 & s2 & H1 & H2 & H3).
   inversion H2.
+Qed.
+
+Local Lemma Γi'_bound : gamma_bound Γi'.
+Proof.
+  unfold gamma_bound.
+  intros.
+  unfold LidBound.lid_bound.
+  unfold VariableBinding.state_bound.
+  apply nth_error_In in H.
+  repeat invc_prop In; find_inversion.
 Qed.
 
 #[local] Definition MCFG l6 l3 l5 b0 l4 :=
@@ -1203,6 +1224,38 @@ Proof.
   - eapply IdLemmas.string_of_nat_not_alpha.
 Qed.
 
+Local Lemma dropFakeVars_Gamma_eq :
+  forall s1 s1' s2 s2',
+    dropFakeVars s1 ≡ inr (s1', ()) ->
+    dropFakeVars s2 ≡ inr (s2', ()) ->
+    Γ s1  ≡ Γ s2 ->
+    Γ s1' ≡ Γ s2'.
+Proof.
+  intros.
+  destruct s1; destruct s1'.
+  destruct s2; destruct s2'.
+  unfold dropFakeVars in *.
+  simpl in *.
+  unfold ErrorWithState.option2errS in *.
+  repeat (break_if; try discriminate).
+  repeat (break_match; try discriminate).
+  unfold ret in *; simpl in *.
+  repeat find_inversion.
+  rewrite Heqo0 in Heqo2; find_inversion.
+  rewrite Heqo in Heqo1; find_inversion.
+  reflexivity.
+Qed.
+
+Local Lemma dropFakeVars_genIR_eq :
+  forall s1 s1' s2 s2' fshcol b seg,
+    dropFakeVars s1 ≡ inr (s1', ()) ->
+    dropFakeVars s2 ≡ inr (s2', ()) ->
+    genIR fshcol b s1  ≡ inr (s2 , seg) ->
+    genIR fshcol b s1' ≡ inr (s2', seg).
+Proof.
+  intros * H1 H2 H.
+Admitted.
+
 Lemma top_to_LLVM :
   forall (a : Vector.t CarrierA 3) (* parameter *)
     (x : Vector.t CarrierA dynwin_i) (* input *)
@@ -1271,7 +1324,7 @@ Proof.
   unfold LLVMGen in Heqs2.
   Opaque genIR.
   cbn in Heqs2.
-  break_match; [inv_sum |]/g.
+  break_match; [inv_sum |]/g. (* Heqs0 : genIR DynWin_FHCOL_hard ("b" @@ "0" @@ "") Γi *)
   break_and; cbn in Heqs2/g.
   destruct s0/g.
   break_match; [inv_sum |]/g.
@@ -1293,6 +1346,12 @@ Proof.
   rename b0 into bk.
   rename l3 into exps1, l5 into exps2, l6 into exps3.
   rename s into s1, i into s2, i1 into s3.
+
+  replace s3 with s2 in *; revgoals.
+  { clear - Heqs1.
+    unfold body_non_empty_cast in Heqs1.
+    break_match; [destruct bks1; discriminate |].
+    invc Heqs1; auto. }
 
   Tactic Notation "tmp" ident(exps3)
     ident(exps1)
@@ -1324,26 +1383,45 @@ Proof.
   destruct fun_decl_inv as [(main_addr & EQmain) (dyn_addr & EQdyn)].
   cbn in EQdyn.
 
+  assert (D : dropFakeVars Γi ≡ inr (Γi', ())) by reflexivity.
+
+  assert (Γ Γi  ≡ Γ s2) by (eapply Context.genIR_Γ; eassumption).
+  assert (Γ Γi' ≡ Γ s1) by (eapply dropFakeVars_Gamma_eq; eassumption).
+
+  assert (Heqs0' : genIR DynWin_FHCOL_hard ("b" @@ "0" @@ "") Γi' ≡ inr (s1, (b, bks1)))
+    by (eapply dropFakeVars_genIR_eq; eassumption).
+ 
   (* We are getting closer to business: instantiating the lemma
      stating the correctness of the compilation of operators *)
-  unshelve epose proof @compile_FSHCOL_correct _ _ _ dynwin_F_σ dynwin_F_memory _ _ (blk_id bk) _ gI ρI memI Heqs0 _ _ _ _ as RES; clear Heqs0.
+  unshelve epose proof
+    @compile_FSHCOL_correct _ _ _ dynwin_F_σ dynwin_F_memory _ _
+                            (blk_id bk) _ gI ρI memI Heqs0' _ _ _ _
+    as RES; clear Heqs0 Heqs0'.
   - admit.
   -
     unfold bid_bound, VariableBinding.state_bound.
     exists "b",
-      {| block_count := 0; local_count := 0; void_count := 0; Γ := Γ Γi |},
-      {| block_count := 1; local_count := 0; void_count := 0; Γ := Γ Γi |}.
+      {| block_count := 0; local_count := 0; void_count := 0; Γ := Γ Γi' |},
+      {| block_count := 1; local_count := 0; void_count := 0; Γ := Γ Γi' |}.
     cbn; auto.
   -
     destruct state_inv.
     eexists; eauto.
     (* the following goals could be proven based on
        some relation between Γi and s1 *)
-    + admit.
-    + admit.
-    + admit.
-    + admit.
-    + apply Γi_bound.
+    + clear - H2 mem_is_inv.
+      unfold memory_invariant.
+      rewrite H2; assumption.
+    + clear - H2 IRState_is_WF.
+      unfold WF_IRState.
+      rewrite H2; assumption.
+    + clear - H2 st_no_id_aliasing.
+      unfold no_id_aliasing.
+      rewrite H2; assumption.
+    + clear - H2 st_no_llvm_ptr_aliasing.
+      unfold no_llvm_ptr_aliasing_cfg, no_llvm_ptr_aliasing.
+      rewrite H2; assumption.
+    + apply Γi'_bound.
   - unfold Gamma_safe.
     intros id B.
     clear - B.
