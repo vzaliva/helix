@@ -1385,8 +1385,8 @@ Proof.
 
   assert (D : dropFakeVars Γi ≡ inr (Γi', ())) by reflexivity.
 
-  assert (Γ Γi  ≡ Γ s2) by (eapply Context.genIR_Γ; eassumption).
-  assert (Γ Γi' ≡ Γ s1) by (eapply dropFakeVars_Gamma_eq; eassumption).
+  assert (HΓi  : Γ Γi  ≡ Γ s2) by (eapply Context.genIR_Γ; eassumption).
+  assert (HΓi' : Γ Γi' ≡ Γ s1) by (eapply dropFakeVars_Gamma_eq; eassumption).
 
   assert (Heqs0' : genIR DynWin_FHCOL_hard ("b" @@ "0" @@ "") Γi' ≡ inr (s1, (b, bks1)))
     by (eapply dropFakeVars_genIR_eq; eassumption).
@@ -1409,18 +1409,18 @@ Proof.
     eexists; eauto.
     (* the following goals could be proven based on
        some relation between Γi and s1 *)
-    + clear - H2 mem_is_inv.
+    + clear - HΓi' mem_is_inv.
       unfold memory_invariant.
-      rewrite H2; assumption.
-    + clear - H2 IRState_is_WF.
+      rewrite HΓi'; assumption.
+    + clear - HΓi' IRState_is_WF.
       unfold WF_IRState.
-      rewrite H2; assumption.
-    + clear - H2 st_no_id_aliasing.
+      rewrite HΓi'; assumption.
+    + clear - HΓi' st_no_id_aliasing.
       unfold no_id_aliasing.
-      rewrite H2; assumption.
-    + clear - H2 st_no_llvm_ptr_aliasing.
+      rewrite HΓi'; assumption.
+    + clear - HΓi' st_no_llvm_ptr_aliasing.
       unfold no_llvm_ptr_aliasing_cfg, no_llvm_ptr_aliasing.
-      rewrite H2; assumption.
+      rewrite HΓi'; assumption.
     + apply Γi'_bound.
   - unfold Gamma_safe.
     intros id B.
@@ -1432,30 +1432,10 @@ Proof.
     destruct B as [name [s' [s'' [P [C1 [C2 B]]]]]].
     cbn in *.
     inv B.
-    clear C1 s2.
+    clear C1.
     Transparent Γi.
     cbn in *.
-
-    destruct n.
-    cbn in H0. inversion H0.
-
-    destruct n.
-    cbn in H0.
-    inv H0.
-    apply numeric_suffix_must_exist in H1; trivial.
-
-    destruct n.
-    cbn in H0.
-    inv H0.
-    apply numeric_suffix_must_exist in H1; trivial.
-
-    destruct n. cbn in H0. inversion H0.
-    destruct n. cbn in H0. inversion H0.
-
-    erewrite ListUtil.nth_beyond in H0.
-    inv H0.
-    cbv.
-    lia.
+    repeat (destruct n; try discriminate).
   (* VADIM : side obligations might be (relatively) gentle here *)
   - (* Assuming we can discharge all the preconditions,
        we prove here that it is sufficient for establishing
