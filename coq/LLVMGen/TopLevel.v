@@ -1246,15 +1246,59 @@ Proof.
   reflexivity.
 Qed.
 
-Local Lemma dropFakeVars_genIR_eq :
-  forall s1 s1' s2 s2' fshcol b seg,
-    dropFakeVars s1 ≡ inr (s1', ()) ->
-    dropFakeVars s2 ≡ inr (s2', ()) ->
-    genIR fshcol b s1  ≡ inr (s2 , seg) ->
-    genIR fshcol b s1' ≡ inr (s2', seg).
+#[local] Definition Γi_ :=
+  {|
+    block_count := 56;
+    local_count := 115;
+    void_count := 16;
+    Γ :=
+      [(ID_Global (Name "a"), TYPE_Pointer (TYPE_Array (Npos 3) TYPE_Double));
+       (ID_Local (Name "Y"), TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double));
+       (ID_Local (Name "X"), TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double));
+       (ID_Global (Anon 1%Z), TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double));
+       (ID_Global (Anon 0%Z), TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double))]
+  |}.
+
+#[local] Definition Γi'_ :=
+  {|
+    block_count := 56;
+    local_count := 115;
+    void_count := 16;
+    Γ :=
+      [(ID_Global (Name "a"), TYPE_Pointer (TYPE_Array (Npos 3) TYPE_Double));
+       (ID_Global (Anon 1%Z), TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double));
+       (ID_Global (Anon 0%Z), TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double))]
+  |}.
+
+Local Lemma dropFakeVars_genIR_eq_False_case :
+  forall s s' seg,
+    dropFakeVars s ≡ inr (s', ()) ->
+    genIR DynWin_FHCOL_hard ("b" @@ "0" @@ "") Γi  ≡ inr (s , seg) ->
+    genIR DynWin_FHCOL_hard ("b" @@ "0" @@ "") Γi' ≡ inr (s', seg) ->
+    False.
 Proof.
-  intros * H1 H2 H.
-Admitted.
+  intros * H0 H1 H2.
+  vm_compute in H1; invc H1.
+  vm_compute in H0; invc H0.
+  vm_compute in H2; invc H2.
+Qed.
+
+Local Lemma dropFakeVars_genIR_eq_False :
+  ~ (forall s1 s1' s2 s2' fshcol b seg,
+       dropFakeVars s1 ≡ inr (s1', ()) ->
+       dropFakeVars s2 ≡ inr (s2', ()) ->
+       genIR fshcol b s1  ≡ inr (s2 , seg) ->
+       genIR fshcol b s1' ≡ inr (s2', seg)).
+Proof.
+  intro H.
+  eapply dropFakeVars_genIR_eq_False_case with (s := Γi_) (s' := Γi'_).
+  - reflexivity.
+  - vm_compute; reflexivity.
+  - eapply H with (s1 := Γi) (s2 := Γi_).
+    + reflexivity.
+    + reflexivity.
+    + vm_compute; reflexivity.
+Qed.
 
 Lemma top_to_LLVM :
   forall (a : Vector.t CarrierA 3) (* parameter *)
