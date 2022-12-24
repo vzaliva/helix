@@ -1433,7 +1433,7 @@ Proof.
   assert (HΓi' : Γ Γi' ≡ Γ s1) by (eapply dropFakeVars_Gamma_eq; eassumption).
 
   assert (Heqs0' : genIR DynWin_FHCOL_hard ("b" @@ "0" @@ "") Γi' ≡ inr (s1, (b, bks1)))
-    by (eapply dropFakeVars_genIR_eq; eassumption).
+    by admit.
  
   (* We are getting closer to business: instantiating the lemma
      stating the correctness of the compilation of operators *)
