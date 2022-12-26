@@ -215,7 +215,7 @@ let args =
 
 (* for a hack to run non-random tests, see [experiments/dynwin_testeval.ml] *)
 let _ =
-  Arg.parse args (fun _ -> ())  "USAGE: ./testcomp [-v] [-p] [t <name>]\n";
+  Arg.parse args (fun _ -> ())  "USAGE: ./testcomp [-vcds] [-p] [-t <name>]\n";
   if !printtests
   then
     begin
