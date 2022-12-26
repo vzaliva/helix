@@ -1033,9 +1033,9 @@ Definition LLVMGen
              ++ (List.map (TLE_Declaration) defined_intrinsics_decls)
     in
 
-    let x := Name "X" in
+    x <- incLocalNamed "X" ;;
     let xtyp := TYPE_Pointer (getIRType (DSHPtr i)) in
-    let y := Name "Y" in
+    y <- incLocalNamed "Y" ;;
     let ytyp := TYPE_Pointer (getIRType (DSHPtr o)) in
 
     ret
@@ -1418,12 +1418,12 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
          locals X=PVar 1, Y=PVar 0.
 
         We want them to be in `Γ` before globals *)
-        let x := Name "X" in
+        x <- incLocalNamed "X" ;;
         let xtyp := TYPE_Pointer (getIRType (DSHPtr i)) in
-        let y := Name "Y" in
+        y <- incLocalNamed "Y" ;;
         let ytyp := TYPE_Pointer (getIRType (DSHPtr o)) in
-
-        addVars [(ID_Local y, ytyp);(ID_Local x, xtyp)] ;;
+        addVars [(ID_Local y, ytyp);
+                 (ID_Local x, xtyp)] ;;
         ginit <- genIRGlobals (FnBody:= block typ * list (block typ)) globals ;;
 
         (* Γ := [y; x; fake_y; fake_x] *)
@@ -1446,9 +1446,9 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
          locals X=PVar 1, Y=PVar 0.
 
         We want them to be in `Γ` before globals *)
-        let x := Name "X" in
+        x <- incLocalNamed "X" ;;
         let xtyp := TYPE_Pointer (getIRType (DSHPtr i)) in
-        let y := Name "Y" in
+        y <- incLocalNamed "Y" ;;
         let ytyp := TYPE_Pointer (getIRType (DSHPtr o)) in
 
         addVars [(ID_Local y, ytyp);(ID_Local x, xtyp)] ;;
