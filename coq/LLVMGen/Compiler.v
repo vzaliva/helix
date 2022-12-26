@@ -1010,9 +1010,10 @@ Definition body_non_empty_cast (body : list (block typ)) : cerr (block typ * lis
   end.
 
 Definition LLVMGen
-           (i o: Int64.int)
-           (fshcol: DSHOperator)
-           (funname: string)
+  (i o: Int64.int)
+  x y
+  (fshcol: DSHOperator)
+  (funname: string)
   : cerr (toplevel_entities typ (block typ * list (block typ)))
   :=
     rid <- incBlock ;;
@@ -1033,9 +1034,7 @@ Definition LLVMGen
              ++ (List.map (TLE_Declaration) defined_intrinsics_decls)
     in
 
-    x <- incLocalNamed "X" ;;
     let xtyp := TYPE_Pointer (getIRType (DSHPtr i)) in
-    y <- incLocalNamed "Y" ;;
     let ytyp := TYPE_Pointer (getIRType (DSHPtr o)) in
 
     ret
@@ -1427,7 +1426,7 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
         ginit <- genIRGlobals (FnBody:= block typ * list (block typ)) globals ;;
 
         (* Γ := [y; x; fake_y; fake_x] *)
-        prog <- LLVMGen i o op name ;;
+        prog <- LLVMGen i o x y op name ;;
         ret (ginit ++ prog)
       else
         (* Global placeholders for X,Y *)
@@ -1459,7 +1458,7 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
         (* Γ := [globals; y; x; fake_y; fake_x] *)
 
         (* operator function *)
-        prog <- LLVMGen i o op name ;;
+        prog <- LLVMGen i o x y op name ;;
 
         (* After generation of operator function, we no longer need
          [x] and [y] in [Γ]. *)
