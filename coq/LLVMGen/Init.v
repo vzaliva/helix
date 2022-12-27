@@ -3903,7 +3903,7 @@ Proof.
   (*  [s2] - state after [genIR] *)
   rename i6 into s2.
   (*  [s3] - the final state. (after [body_non_empty_cast]) *)
-  rename i7 into s3.
+  rename i5 into s3.
 
   (* [s3] contains two local for X,Y parameter which we drop: *)
 
