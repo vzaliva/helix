@@ -879,24 +879,36 @@ Abort.
     void_count := 0;
     Γ :=
       [(ID_Global (Name "a"), TYPE_Pointer (TYPE_Array (Npos 3) TYPE_Double));
-       (ID_Local (Name "Y"), TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double));
-       (ID_Local (Name "X"), TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double));
        (ID_Global (Anon 1%Z), TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double));
        (ID_Global (Anon 0%Z), TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double))]
   |}.
 
-#[local] Definition Γi' :=
+#[local] Definition Γi_X :=
   {|
     block_count := 1;
-    local_count := 0;
+    local_count := 1;
     void_count := 0;
     Γ :=
       [(ID_Global (Name "a"), TYPE_Pointer (TYPE_Array (Npos 3) TYPE_Double));
+       (ID_Local (Name "X0"), TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double));
        (ID_Global (Anon 1%Z), TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double));
        (ID_Global (Anon 0%Z), TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double))]
   |}.
 
-Local Lemma Γi_bound : gamma_bound Γi.
+#[local] Definition Γi_XY :=
+  {|
+    block_count := 1;
+    local_count := 2;
+    void_count := 0;
+    Γ :=
+      [(ID_Global (Name "a"), TYPE_Pointer (TYPE_Array (Npos 3) TYPE_Double));
+       (ID_Local (Name "Y1"), TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double));
+       (ID_Local (Name "X0"), TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double));
+       (ID_Global (Anon 1%Z), TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double));
+       (ID_Global (Anon 0%Z), TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double))]
+  |}.
+
+Local Lemma Γi_XY_bound : gamma_bound Γi_XY.
 Proof.
   unfold gamma_bound.
   intros.
@@ -904,30 +916,15 @@ Proof.
   unfold VariableBinding.state_bound.
   apply nth_error_In in H.
   repeat invc_prop In; find_inversion.
-  - admit.
-  - admit.
-Admitted.
-
-Local Lemma Γi_bound_false : ~ gamma_bound Γi.
-Proof.
-  intro.
-  unfold gamma_bound in H.
-  assert (LidBound.lid_bound Γi (Name "X"))
-    by (eapply H with (n := 2); reflexivity).
-  invc H0.
-  destruct H1 as (s1 & s2 & H1 & H2 & H3).
-  inversion H2.
-Qed.
-
-Local Lemma Γi'_bound : gamma_bound Γi'.
-Proof.
-  unfold gamma_bound.
-  intros.
-  unfold LidBound.lid_bound.
-  unfold VariableBinding.state_bound.
-  apply nth_error_In in H.
-  repeat invc_prop In; find_inversion.
-Qed.
+  - exists "Y", Γi_X; eexists; break_and_goal.
+    + reflexivity.
+    + constructor.
+    + reflexivity.
+  - exists "X", Γi; eexists; break_and_goal.
+    + reflexivity.
+    + repeat constructor.
+    + reflexivity.
+Qed. 
 
 #[local] Definition MCFG l6 l3 l5 b0 l4 :=
   (TLE_Global {|
@@ -1246,59 +1243,6 @@ Proof.
   reflexivity.
 Qed.
 
-#[local] Definition Γi_ :=
-  {|
-    block_count := 56;
-    local_count := 115;
-    void_count := 16;
-    Γ :=
-      [(ID_Global (Name "a"), TYPE_Pointer (TYPE_Array (Npos 3) TYPE_Double));
-       (ID_Local (Name "Y"), TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double));
-       (ID_Local (Name "X"), TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double));
-       (ID_Global (Anon 1%Z), TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double));
-       (ID_Global (Anon 0%Z), TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double))]
-  |}.
-
-#[local] Definition Γi'_ :=
-  {|
-    block_count := 56;
-    local_count := 115;
-    void_count := 16;
-    Γ :=
-      [(ID_Global (Name "a"), TYPE_Pointer (TYPE_Array (Npos 3) TYPE_Double));
-       (ID_Global (Anon 1%Z), TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double));
-       (ID_Global (Anon 0%Z), TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double))]
-  |}.
-
-Local Lemma dropFakeVars_genIR_eq_False_case :
-  forall s s' seg,
-    dropFakeVars s ≡ inr (s', ()) ->
-    genIR DynWin_FHCOL_hard ("b" @@ "0" @@ "") Γi  ≡ inr (s , seg) ->
-    genIR DynWin_FHCOL_hard ("b" @@ "0" @@ "") Γi' ≡ inr (s', seg) ->
-    False.
-Proof.
-  intros * H0 H1 H2.
-  vm_compute in H1; invc H1.
-  vm_compute in H0; invc H0.
-  vm_compute in H2; invc H2.
-Qed.
-
-Local Lemma dropFakeVars_genIR_eq_False :
-  ~ (forall s1 s1' s2 s2' fshcol b seg,
-       dropFakeVars s1 ≡ inr (s1', ()) ->
-       dropFakeVars s2 ≡ inr (s2', ()) ->
-       genIR fshcol b s1  ≡ inr (s2 , seg) ->
-       genIR fshcol b s1' ≡ inr (s2', seg)).
-Proof.
-  intro H.
-  eapply dropFakeVars_genIR_eq_False_case with (s := Γi_) (s' := Γi'_).
-  - reflexivity.
-  - vm_compute; reflexivity.
-  - eapply H with (s1 := Γi) (s2 := Γi_).
-    + reflexivity.
-    + reflexivity.
-    + vm_compute; reflexivity.
-Qed.
 
 Lemma top_to_LLVM :
   forall (a : Vector.t CarrierA 3) (* parameter *)
@@ -1391,6 +1335,9 @@ Proof.
   rename l3 into exps1, l5 into exps2, l6 into exps3.
   rename s into s1, i into s2, i1 into s3.
 
+  rename Heqs0 into HgenIR.
+  fold Γi_XY in HgenIR.
+
   replace s3 with s2 in *; revgoals.
   { clear - Heqs1.
     unfold body_non_empty_cast in Heqs1.
@@ -1427,45 +1374,31 @@ Proof.
   destruct fun_decl_inv as [(main_addr & EQmain) (dyn_addr & EQdyn)].
   cbn in EQdyn.
 
-  assert (D : dropFakeVars Γi ≡ inr (Γi', ())) by reflexivity.
+  assert (HΓ : Γ Γi_XY  ≡ Γ s2) by (eapply Context.genIR_Γ; eassumption). 
 
-  assert (HΓi  : Γ Γi  ≡ Γ s2) by (eapply Context.genIR_Γ; eassumption).
-  assert (HΓi' : Γ Γi' ≡ Γ s1) by (eapply dropFakeVars_Gamma_eq; eassumption).
-
-  assert (Heqs0' : genIR DynWin_FHCOL_hard ("b" @@ "0" @@ "") Γi' ≡ inr (s1, (b, bks1)))
-    by admit.
- 
   (* We are getting closer to business: instantiating the lemma
      stating the correctness of the compilation of operators *)
   unshelve epose proof
     @compile_FSHCOL_correct _ _ _ dynwin_F_σ dynwin_F_memory _ _
-                            (blk_id bk) _ gI ρI memI Heqs0' _ _ _ _
-    as RES; clear Heqs0 Heqs0'.
+                            (blk_id bk) _ gI ρI memI HgenIR _ _ _ _
+    as RES; clear HgenIR.
   - admit.
   -
     unfold bid_bound, VariableBinding.state_bound.
     exists "b",
-      {| block_count := 0; local_count := 0; void_count := 0; Γ := Γ Γi' |},
-      {| block_count := 1; local_count := 0; void_count := 0; Γ := Γ Γi' |}.
+      {| block_count := 0; local_count := 0; void_count := 0; Γ := Γ Γi_XY |},
+      {| block_count := 1; local_count := 0; void_count := 0; Γ := Γ Γi_XY |}.
     cbn; auto.
   -
     destruct state_inv.
     eexists; eauto.
     (* the following goals could be proven based on
        some relation between Γi and s1 *)
-    + clear - HΓi' mem_is_inv.
-      unfold memory_invariant.
-      rewrite HΓi'; assumption.
-    + clear - HΓi' IRState_is_WF.
-      unfold WF_IRState.
-      rewrite HΓi'; assumption.
-    + clear - HΓi' st_no_id_aliasing.
-      unfold no_id_aliasing.
-      rewrite HΓi'; assumption.
-    + clear - HΓi' st_no_llvm_ptr_aliasing.
-      unfold no_llvm_ptr_aliasing_cfg, no_llvm_ptr_aliasing.
-      rewrite HΓi'; assumption.
-    + apply Γi'_bound.
+    + admit.
+    + admit.
+    + admit.
+    + admit.
+    + apply Γi_XY_bound.
   - unfold Gamma_safe.
     intros id B.
     clear - B.
@@ -1480,6 +1413,8 @@ Proof.
     Transparent Γi.
     cbn in *.
     repeat (destruct n; try discriminate).
+    + admit.
+    + admit.
   (* VADIM : side obligations might be (relatively) gentle here *)
   - (* Assuming we can discharge all the preconditions,
        we prove here that it is sufficient for establishing
