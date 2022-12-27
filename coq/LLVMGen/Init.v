@@ -4482,11 +4482,7 @@ Proof.
         destruct LG as (l' & s' & gdecls1 & gdecls2 & PRE & POST & GDECLS).
         specialize (H0 [] globals gdecls1 gdecls2 s' l').
         full_autospecialize H0; try congruence.
-        {
-          cbn.
-          do 2 f_equal.
-          admit.
-        }
+        { admit. }
         {
           cbn.
           unfold allocated_globals.
