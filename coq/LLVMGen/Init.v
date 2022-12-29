@@ -3999,9 +3999,9 @@ Proof.
 
     cbn.
 
-    generalize [(ID_Local (Name "Y"),
+    generalize [(ID_Local (Name ("Y" @@ "1" @@ "")),
                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
-                (ID_Local (Name "X"),
+                (ID_Local (Name ("X" @@ "0" @@ "")),
                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double));
                 (ID_Global (Anon 1%Z),
                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
@@ -4060,9 +4060,9 @@ Proof.
 
     cbn.
 
-    generalize [(ID_Local (Name "Y"),
+    generalize [(ID_Local (Name ("Y" @@ "1" @@ "")),
                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
-                (ID_Local (Name "X"),
+                (ID_Local (Name ("X" @@ "0" @@ "")),
                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double));
                 (ID_Global (Anon 1%Z),
                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
@@ -4123,9 +4123,9 @@ Proof.
 
     cbn.
 
-    generalize [(ID_Local (Name "Y"),
+    generalize [(ID_Local (Name ("Y" @@ "1" @@ "")),
                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
-                (ID_Local (Name "X"),
+                (ID_Local (Name ("X" @@ "0" @@ "")),
                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double));
                 (ID_Global (Anon 1%Z),
                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
@@ -4452,10 +4452,10 @@ Proof.
 
       remember {|
           block_count := Compiler.block_count s0;
-          local_count := Compiler.local_count s0;
+          local_count := S (S (Compiler.local_count s0));
           void_count := Compiler.void_count s0;
-          Γ := (ID_Local (Name "Y"), TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double))
-               :: (ID_Local (Name "X"),
+          Γ := (ID_Local (Name "Y1"), TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double))
+               :: (ID_Local (Name "X0"),
                   TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double)) :: 
                   Γ s0 |} as s_yx.
      
@@ -4482,6 +4482,14 @@ Proof.
         destruct LG as (l' & s' & gdecls1 & gdecls2 & PRE & POST & GDECLS).
         specialize (H0 [] globals gdecls1 gdecls2 s' l').
         full_autospecialize H0; try congruence.
+        { clear - PRE LX Heqs_yx.
+          unfold initXYplaceholders, newState in LX.
+          do 2 break_let.
+          simpl in LX.
+          invc LX.
+          invc PRE.
+          reflexivity.
+        }
         {
           cbn.
           unfold allocated_globals.
@@ -4684,11 +4692,11 @@ Proof.
                 remember 
                   {|
                     block_count := Compiler.block_count s0;
-                    local_count := Compiler.local_count s0;
+                    local_count := S (S (Compiler.local_count s0));
                     void_count := Compiler.void_count s0;
-                    Γ := (ID_Local (Name "Y"),
+                    Γ := (ID_Local (Name "Y1"),
                           TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double))
-                           :: (ID_Local (Name "X"),
+                           :: (ID_Local (Name "X0"),
                               TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))
                            :: Γ s0 |}
                   as s_yx.
@@ -4746,11 +4754,11 @@ Proof.
                 remember 
                   {|
                     block_count := Compiler.block_count s0;
-                    local_count := Compiler.local_count s0;
+                    local_count := S (S (Compiler.local_count s0));
                     void_count := Compiler.void_count s0;
-                    Γ := (ID_Local (Name "Y"),
+                    Γ := (ID_Local (Name "Y1"),
                           TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double))
-                           :: (ID_Local (Name "X"),
+                           :: (ID_Local (Name "X0"),
                               TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))
                            :: Γ s0 |}
                   as s_yx.
@@ -5324,11 +5332,11 @@ Proof.
 
       remember {|
           block_count := Compiler.block_count s0;
-          local_count := Compiler.local_count s0;
+          local_count := S (S (Compiler.local_count s0));
           void_count := Compiler.void_count s0;
-          Γ := (ID_Local (Name "Y"),
+          Γ := (ID_Local (Name "Y1"),
                 TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double))
-               :: (ID_Local (Name "X"),
+               :: (ID_Local (Name "X0"),
                   TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))
                :: Γ s0 |}
         as s_yx.
@@ -5363,6 +5371,13 @@ Proof.
         destruct LG as (l'' & s' & gdecls1 & gdecls2 & PRE & POST & GDECLS).
         specialize (H0 [] globals gdecls1 gdecls2 s' l'').
         full_autospecialize H0; try congruence.
+        { clear - PRE LX Heqs_yx.
+          unfold initXYplaceholders, newState in LX.
+          do 2 break_let.
+          simpl in LX.
+          invc LX.
+          invc PRE.
+          reflexivity. }
         {
           cbn.
           split; [| now split].
@@ -7812,8 +7827,10 @@ Proof.
           apply nth_error_in_app in N.
           destruct N as [[N NTH] | [N NTH]].
           ++
-            eapply GAMMA_BOUND.
-            eassumption.
+            specialize GAMMA_BOUND with n id τ.
+            destruct GAMMA_BOUND as (name & s' & s'' & ? & ? & ?).
+            2: exists name, s', s''; break_and_goal.
+            all: assumption || lia.
           ++
             exfalso.
             apply nth_error_in_list_of_two in NTH.
