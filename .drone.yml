@@ -27,11 +27,17 @@ steps:
     commands:
       - opam exec -- make -j 1 vellvm
 
-  - name: test-helix
+  - name: compile-helix
     image: helix-cache
     pull: never
     commands:
       - opam exec -- make
+
+  - name: test-helix
+    image: helix-cache
+    pull: never
+    commands:
+      - opam exec -- make test
 
   - name: notify-slack
     image: plugins/slack
