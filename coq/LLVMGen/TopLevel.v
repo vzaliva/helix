@@ -1367,7 +1367,6 @@ Proof.
   (*   |- context [semantics_llvm ?x] => remember x as G eqn:VG; apply boxh_cfg in VG *)
   (* end. *)
   onAllHyps move_up_types.
-  Check eutt_ret_inv_strong.
   edestruct @eutt_ret_inv_strong as (RESLLVM & EQLLVMINIT & INVINIT); [apply INIT_MEM |].
   destruct RESLLVM as (memI & [ρI sI] & gI & []).
   inv INVINIT.
@@ -1390,7 +1389,7 @@ Proof.
   -
     destruct state_inv.
     eexists; eauto.
-    (* the follo>wing goals could be proven based on
+    (* the following goals could be proven based on
        some relation between Γi and s1 *)
     + admit.
     + admit.
