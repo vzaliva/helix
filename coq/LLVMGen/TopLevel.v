@@ -1367,21 +1367,19 @@ Proof.
   (*   |- context [semantics_llvm ?x] => remember x as G eqn:VG; apply boxh_cfg in VG *)
   (* end. *)
   onAllHyps move_up_types.
-
+  Check eutt_ret_inv_strong.
   edestruct @eutt_ret_inv_strong as (RESLLVM & EQLLVMINIT & INVINIT); [apply INIT_MEM |].
   destruct RESLLVM as (memI & [ρI sI] & gI & []).
   inv INVINIT.
   destruct fun_decl_inv as [(main_addr & EQmain) (dyn_addr & EQdyn)].
   cbn in EQdyn.
 
-  assert (HΓ : Γ Γi_XY  ≡ Γ s2) by (eapply Context.genIR_Γ; eassumption). 
-
   (* We are getting closer to business: instantiating the lemma
      stating the correctness of the compilation of operators *)
   unshelve epose proof
     @compile_FSHCOL_correct _ _ _ dynwin_F_σ dynwin_F_memory _ _
                             (blk_id bk) _ gI ρI memI HgenIR _ _ _ _
-    as RES; clear HgenIR.
+    as RES.
   - admit.
   -
     unfold bid_bound, VariableBinding.state_bound.
@@ -1392,7 +1390,7 @@ Proof.
   -
     destruct state_inv.
     eexists; eauto.
-    (* the following goals could be proven based on
+    (* the follo>wing goals could be proven based on
        some relation between Γi and s1 *)
     + admit.
     + admit.
@@ -1410,11 +1408,59 @@ Proof.
     cbn in *.
     inv B.
     clear C1.
-    Transparent Γi.
     cbn in *.
     repeat (destruct n; try discriminate).
-    + admit.
-    + admit.
+    + cbn in H0.
+      invc H0.
+      assert ("Y1" ≡ "Y" @@ string_of_nat 1) by auto.
+      rewrite H in H1; clear H.
+      destruct name.
+      { unfold append in H1 at 2.
+        pose proof IdLemmas.string_of_nat_not_alpha (local_count s').
+        rewrite <- H1 in H.
+        apply IdLemmas.string_append_forall in H as [H _].
+        cbn in H.
+        discriminate. }
+      destruct name.
+      { invc H1.
+        eapply string_of_nat_inj; [| eassumption].
+        intro H.
+        rewrite <- H in C2.
+        invc C2.
+        invc H1. }
+      invc H1.
+      fold append in H3.
+      destruct name.
+      { unfold append in H3.
+        eapply IdLemmas.string_of_nat_not_empty.
+        symmetry.
+        eassumption. }
+      invc H3.
+    + cbn in H0.
+      invc H0.
+      assert ("X0" ≡ "X" @@ string_of_nat 0) by auto.
+      rewrite H in H1; clear H.
+      destruct name.
+      { unfold append in H1 at 2.
+        pose proof IdLemmas.string_of_nat_not_alpha (local_count s').
+        rewrite <- H1 in H.
+        apply IdLemmas.string_append_forall in H as [H _].
+        cbn in H.
+        discriminate. }
+      destruct name.
+      { invc H1.
+        eapply string_of_nat_inj; [| eassumption].
+        intro H.
+        rewrite <- H in C2.
+        invc C2. }
+      invc H1.
+      fold append in H3.
+      destruct name.
+      { unfold append in H3.
+        eapply IdLemmas.string_of_nat_not_empty.
+        symmetry.
+        eassumption. }
+      invc H3.
   (* VADIM : side obligations might be (relatively) gentle here *)
   - (* Assuming we can discharge all the preconditions,
        we prove here that it is sufficient for establishing
