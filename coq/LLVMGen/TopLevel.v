@@ -1247,7 +1247,7 @@ Qed.
 Lemma top_to_LLVM :
   forall (a : Vector.t CarrierA 3) (* parameter *)
     (x : Vector.t CarrierA dynwin_i) (* input *)
-    (y : Vector.t CarrierA dynwin_o), (* output *)
+    (y y' : Vector.t CarrierA dynwin_o), (* y - output; y' - any output-sized input *)
 
       (* Evaluation of the source program.
          The program is fixed and hard-coded: the result is not generic,
@@ -1259,7 +1259,7 @@ Lemma top_to_LLVM :
       ∀
         (data : list binary64)
         (PRE : heq_list
-                 (Vector.to_list y ++ Vector.to_list x ++ Vector.to_list a)
+                 (Vector.to_list y' ++ Vector.to_list x ++ Vector.to_list a)
                  data),
 
         (* the input data must be within bounds for numerical stability *)
