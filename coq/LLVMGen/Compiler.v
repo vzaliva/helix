@@ -1316,7 +1316,7 @@ Definition initXYplaceholders (i o:Int64.int) (data:list binary64) x xtyp y ytyp
    global "x" and "y" as arguments. Returns "y". Pseudo-code:
 
    global float[i] x;
-   global float[y] y;
+   global float[o] y;
 
    float[o] main() {
         tmp = op_name(x,y);
@@ -1425,11 +1425,13 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
                  (ID_Local x, xtyp)] ;;
         ginit <- genIRGlobals (FnBody:= block typ * list (block typ)) globals ;;
 
-        (* Γ := [y; x; fake_y; fake_x] *)
+        (* Γ = [globals; y; x] *)
         prog <- LLVMGen i o x y op name ;;
+        (* Γ = [globals; y; x] *)
         ret (ginit ++ prog)
       else
-        (* Global placeholders for X,Y *)
+        (* Global placeholders for X,Y.
+           These will be accessed by [main] and passed to the operator. *)
         let gx := Anon 0%Z in
         let gxtyp := getIRType (DSHPtr i) in
         let gxptyp := TYPE_Pointer gxtyp in
@@ -1439,7 +1441,7 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
         let gyptyp := TYPE_Pointer gytyp in
 
         '(data,yxinit) <- initXYplaceholders i o data gx gxtyp gy gytyp ;;
-        (* Γ := [fake_y; fake_x] *)
+        (* Γ = [fake_y; fake_x] *)
 
         (* While generate operator's function body, add parameters as
          locals X=PVar 1, Y=PVar 0.
@@ -1451,11 +1453,11 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
         let ytyp := TYPE_Pointer (getIRType (DSHPtr o)) in
 
         addVars [(ID_Local y, ytyp);(ID_Local x, xtyp)] ;;
-        (* Γ := [y; x; fake_y; fake_x] *)
+        (* Γ = [y; x; fake_y; fake_x] *)
 
         (* Global variables *)
         '(data,ginit) <- initIRGlobals data globals ;;
-        (* Γ := [globals; y; x; fake_y; fake_x] *)
+        (* Γ = [globals; y; x; fake_y; fake_x] *)
 
         (* operator function *)
         prog <- LLVMGen i o x y op name ;;
@@ -1464,6 +1466,7 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
          [x] and [y] in [Γ]. *)
 
         dropFakeVars ;;
+        (* Γ = [globals; fake_y; fake_x] *)
 
         (* Main function *)
         let main := genMain name gx gxptyp gy gytyp gyptyp in
