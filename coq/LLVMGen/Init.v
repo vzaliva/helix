@@ -3889,6 +3889,8 @@ Proof.
   destruct (valid_program _) eqn:VFN.
   2: inversion LI.
 
+  (*
+
   repeat break_match_hyp; try inl_inr;
     inv LI; repeat inv_sum; inv Heqs5; inv Heqs4.
   rename Heqs0 into LX, Heqs1 into LG, Heqs6 into IR, Heqs8 into BC, l3 into gdecls.
@@ -7837,7 +7839,7 @@ Proof.
             destruct NTH as [[_ C] | [_ C]];
               inv C.
       *
-        apply DECL_INV.
+        apply DECL_INV. *)
 Admitted.
 
 (* with init step  *)
