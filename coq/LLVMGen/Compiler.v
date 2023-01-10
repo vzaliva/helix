@@ -1436,9 +1436,6 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
         ret (ginit ++ prog)
       else
 
-        (* TODO: the order of initIRGlobals vs initXYplaceholders was changed,
-           this affects how [data] is consumed. Fix. *)
-
         (* While generate operator's function body, add parameters as
          locals X=PVar 1, Y=PVar 0.
 

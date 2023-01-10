@@ -331,9 +331,9 @@ Definition helix_initial_memory
   : err (FHCOL.memory * list binary64 * evalContext)
   := match p with
      | mkFSHCOLProgram i o name globals op =>
+       '(mem, data, globals_σ) <- initFSHGlobals data helix_empty_memory globals ;;
        let '(data, y) := constMemBlock (MInt64asNT.to_nat o) data in
        let '(data, x) := constMemBlock (MInt64asNT.to_nat i) data in
-       '(mem, data, globals_σ) <- initFSHGlobals data helix_empty_memory globals ;;
        (* over-estimating id, as some globals may not alocate memory (e.g. scalars) *)
        let X_nat : nat := length globals  in
        let Y_nat : nat := S (length globals) in
