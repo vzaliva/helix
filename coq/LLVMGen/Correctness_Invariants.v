@@ -1549,7 +1549,7 @@ C2(C1(p1)) == p1
   Definition bisim_full (σ : evalContext) (s : IRState) : Type_R_full  :=
     fun '(mem_helix, _) mem_llvm =>
       let '(m, ((ρ,_), (g, v))) := mem_llvm in
-      bisim_partial σ s (mem_helix, tt) (mk_config_cfg_T (inr v) (m, (ρ, g))).
+      bisim_partial σ s (mem_helix, tt) (mk_config_cfg_T _ (inr v) (m, (ρ, g))).
 
   (** Relation bewteen the final states of evaluation and execution
     of DHCOL program.
