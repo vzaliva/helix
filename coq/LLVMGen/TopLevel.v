@@ -1248,10 +1248,24 @@ Proof.
   reflexivity.
 Qed.
 
+(*
+  Γ only contains variables we care about [existing compile time].
+  Others might exist at runtime, but Γ defines a subset of them.
+*)
+(*
+  Γi' is the state after allocation, but before the operator is called.
+  It has globals, but no local variables.
+  Γi is the state during operator evalution: it does contain local variables.
+*)
 Local Lemma state_invariant_Γi :
   forall σ mem memI ρI gI,
   state_invariant σ Γi' mem (memI, (ρI, gI)) ->
-  state_invariant σ Γi  mem (memI, (ρI, gI)).
+  (* forall (j : nat),
+     Γ[j] = Γ'[j] \/ same_addr_and_type ρI gI Γ[j] Γ'[j]
+     (* [same_addr_and_type] should only work on pointers *)
+     ->
+   *)
+  state_invariant σ Γi mem (memI, (ρI, gI)).
 Proof.
   intros.
   destruct H.
