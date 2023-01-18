@@ -1248,6 +1248,14 @@ Proof.
   reflexivity.
 Qed.
 
+#[local]
+Definition coe_Γi_Γi' (id : ident) : ident :=
+  match id with
+  | ID_Local "X0" => ID_Global (Anon 0%Z)
+  | ID_Local "Y1" => ID_Global (Anon 1%Z)
+  | _ => id
+  end.
+
 (*
   Γ only contains variables we care about [existing compile time].
   Others might exist at runtime, but Γ defines a subset of them.
@@ -1279,13 +1287,11 @@ Proof.
   constructor; try assumption.
   - unfold memory_invariant in *.
     intros.
+    specialize mem_is_inv with n v b τ (coe_Γi_Γi' x).
     repeat (destruct n; try discriminate).
-    + specialize mem_is_inv with 0 v b τ x.
-      inv H0.
-      apply mem_is_inv; auto.
-    + specialize mem_is_inv with 1 v b τ (ID_Global (Anon 1%Z)).
-      inv H0.
-      conclude mem_is_inv assumption.
+    all: inv H0.
+    + apply mem_is_inv; auto.
+    + conclude mem_is_inv assumption.
       conclude mem_is_inv auto.
       destruct v.
       * admit.
@@ -1296,9 +1302,7 @@ Proof.
         find_rewrite; find_inversion.
         cbn.
         assumption.
-    + specialize mem_is_inv with 2 v b τ (ID_Global (Anon 0%Z)).
-      inv H0.
-      conclude mem_is_inv assumption.
+    + conclude mem_is_inv assumption.
       conclude mem_is_inv auto.
       destruct v.
       * admit.
@@ -1332,8 +1336,22 @@ Proof.
     all: try reflexivity.
     all: eapply st_no_id_aliasing; try eassumption.
     all: unshelve (inv H1; inv H2); assumption.
-  - unfold no_llvm_ptr_aliasing_cfg, no_llvm_ptr_aliasing.
-    admit.
+  - unfold no_llvm_ptr_aliasing_cfg, no_llvm_ptr_aliasing in *.
+    intros.
+    specialize st_no_llvm_ptr_aliasing with
+      (coe_Γi_Γi' id1) ptrv1
+      (coe_Γi_Γi' id2) ptrv2
+      n1 n2 τ τ' v1 v2 b b'.
+    all: repeat (destruct n1; try discriminate).
+    all: repeat (destruct n2; try discriminate).
+    all: inv H1; inv H2.
+    all: try contradiction.
+    all: apply st_no_llvm_ptr_aliasing; assumption || auto.
+    all: try (intro; discriminate).
+    all: cbn.
+    all: cbn in H4, H5.
+    all: repeat (find_rewrite; find_inversion).
+    all: assumption.
   - apply Γi_bound.
 Admitted.
 
