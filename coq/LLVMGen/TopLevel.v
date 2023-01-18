@@ -1290,29 +1290,17 @@ Proof.
     specialize mem_is_inv with n v b τ (coe_Γi_Γi' x).
     repeat (destruct n; try discriminate).
     all: inv H0.
-    + apply mem_is_inv; auto.
-    + conclude mem_is_inv assumption.
-      conclude mem_is_inv auto.
-      destruct v.
-      * admit.
-      * admit.
-      * destruct mem_is_inv as (ptr & τ & ? & ? & ? & ?).
-        exists ptr, τ; break_and_goal; try assumption.
-        cbn in H2.
-        find_rewrite; find_inversion.
-        cbn.
-        assumption.
-    + conclude mem_is_inv assumption.
-      conclude mem_is_inv auto.
-      destruct v.
-      * admit.
-      * admit.
-      * destruct mem_is_inv as (ptr & τ & ? & ? & ? & ?).
-        exists ptr, τ; break_and_goal; try assumption.
-        cbn in H2.
-        find_rewrite; find_inversion.
-        cbn.
-        assumption.
+    1: apply mem_is_inv; auto.
+    all: conclude mem_is_inv assumption.
+    all: conclude mem_is_inv auto.
+    all: apply IRState_is_WF in H as [id H].
+    all: destruct v; try (inv H; discriminate).
+    all: destruct mem_is_inv as (ptr & τ & ? & ? & ? & ?).
+    all: exists ptr, τ; break_and_goal; try assumption.
+    all: cbn in H2.
+    all: find_rewrite; find_inversion.
+    all: cbn.
+    all: assumption.
   - unfold WF_IRState, evalContext_typechecks in *.
     intros.
     specialize IRState_is_WF with v n b.
@@ -1353,7 +1341,7 @@ Proof.
     all: repeat (find_rewrite; find_inversion).
     all: assumption.
   - apply Γi_bound.
-Admitted.
+Qed.
 
 Lemma top_to_LLVM :
   forall (a : Vector.t CarrierA 3) (* parameter *)
