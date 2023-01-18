@@ -1251,33 +1251,34 @@ Qed.
 (*
   Γ only contains variables we care about [existing compile time].
   Others might exist at runtime, but Γ defines a subset of them.
-*)
-(*
+
   Γi' is the state after allocation, but before the operator is called.
   It has globals, but no local variables.
   Γi is the state during operator evalution: it does contain local variables.
 *)
 Local Lemma state_invariant_Γi :
-  forall σ mem memI ρI gI,
-  state_invariant σ Γi' mem (memI, (ρI, gI)) ->
-  (* forall (j : nat),
-     Γ[j] = Γ'[j] \/ same_addr_and_type ρI gI Γ[j] Γ'[j]
-     (* [same_addr_and_type] should only work on pointers *)
-     ->
-   *)
-  state_invariant σ Γi mem (memI, (ρI, gI)).
+  forall σ mem memI ρI ρI' gI a0 a1,
+    (* global environment must contain addresses for input and output *)
+    gI @ (Anon 0%Z) ≡ Some (DVALUE_Addr a0) ->
+    gI @ (Anon 1%Z) ≡ Some (DVALUE_Addr a1) ->
+
+    (* after we get inside the function,
+       local environment will contain the same vars as before *)
+    alist_le ρI ρI' ->
+
+    (* and two new local vars with addresses for input and output *)
+    ρI' @ (Name "X0") ≡ Some (UVALUE_Addr a0) ->
+    ρI' @ (Name "Y1") ≡ Some (UVALUE_Addr a1) ->
+
+    (* then the state invariant is preserved *)
+    state_invariant σ Γi' mem (memI, (ρI , gI)) ->
+    state_invariant σ Γi  mem (memI, (ρI', gI)).
 Proof.
-  intros.
-  destruct H.
+  intros * Hg0 Hg1 Hρ_le Hρ0 Hρ1 SINV.
+  destruct SINV.
   constructor; try assumption.
   - unfold memory_invariant in *.
-    intros.
-    repeat (destruct n; try discriminate).
-    all: eapply mem_is_inv; [eassumption |].
-    all: inv H0.
-    all: cbn.
-    all: do 2 f_equal.
-    all: admit.
+    admit.
   - unfold WF_IRState, evalContext_typechecks in *.
     intros.
     specialize IRState_is_WF with v n b.
@@ -1300,16 +1301,10 @@ Proof.
     all: repeat (destruct n2; try discriminate).
     all: try reflexivity.
     all: eapply st_no_id_aliasing; try eassumption.
-    all: inv H1; inv H2.
+    all: unshelve (inv H1; inv H2); assumption.
   - unfold no_llvm_ptr_aliasing_cfg, no_llvm_ptr_aliasing.
-    intros.
-    intro Hptr.
-    all: repeat (destruct n1; try discriminate).
-    all: repeat (destruct n2; try discriminate).
-    all: cbn in H1, H2.
-    all: inv H1; inv H2.
-    all: try contradiction.
-    all: admit.
+    admit.
+  - apply Γi_bound.
 Admitted.
 
 Lemma top_to_LLVM :
@@ -1422,7 +1417,7 @@ Proof.
     := HIDE exps3 exps1 exps2 bk bks2 dyn_addr main_addr.
   Ltac hide := tmp exps3 exps1 exps2 bk bks2 dyn_addr main_addr.
   hide.
-
+  
   apply heq_list_app in PRE as (Y & tmp & -> & EQY & EQtmp).
   apply heq_list_app in EQtmp as (X & A & -> & EQX & EQA).
 
@@ -1441,11 +1436,16 @@ Proof.
   destruct fun_decl_inv as [(main_addr & EQmain) (dyn_addr & EQdyn)].
   cbn in EQdyn.
 
+  destruct anon_decl_inv as [(a0_addr & EQa0) (a1_addr & EQa1)].
+
+  set (ρI' := (alist_add (Name "Y1") (UVALUE_Addr a1_addr)
+              (alist_add (Name "X0") (UVALUE_Addr a0_addr) ρI))).
+
   (* We are getting closer to business: instantiating the lemma
      stating the correctness of the compilation of operators *)
   unshelve epose proof
     @compile_FSHCOL_correct _ _ _ dynwin_F_σ dynwin_F_memory _ _
-                            (blk_id bk) _ gI ρI memI HgenIR _ _ _ _
+                            (blk_id bk) _ gI ρI' memI HgenIR _ _ _ _
     as RES.
   - admit.
   -
@@ -1455,8 +1455,13 @@ Proof.
       {| block_count := 1; local_count := 0; void_count := 0; Γ := Γ Γi |}.
     cbn; auto.
   - (* could be proven based on some relation between Γi and s1 *)
-    clear - state_inv HgenIR Hdrop.
-    apply state_invariant_Γi.
+    clear - state_inv HgenIR Hdrop EQa0 EQa1.
+    eapply state_invariant_Γi with (ρI := ρI); eassumption || auto.
+    { unfold alist_le; intros.
+      repeat apply alist_le_add.
+      - admit.
+      - admit.
+      - assumption. }
     eapply state_invariant_Γ'.
     + eassumption.
     + cbn.
