@@ -1270,11 +1270,8 @@ Local Lemma state_invariant_Γi :
     gI @ (Anon 0%Z) ≡ Some (DVALUE_Addr a0) ->
     gI @ (Anon 1%Z) ≡ Some (DVALUE_Addr a1) ->
 
-    (* after we get inside the function,
-       local environment will contain the same vars as before *)
-    alist_le ρI ρI' ->
-
-    (* and two new local vars with addresses for input and output *)
+    (* after we get inside the function, local environment will containan
+       two new local vars with addresses for input and output *)
     ρI' @ (Name "X0") ≡ Some (UVALUE_Addr a0) ->
     ρI' @ (Name "Y1") ≡ Some (UVALUE_Addr a1) ->
 
@@ -1282,7 +1279,7 @@ Local Lemma state_invariant_Γi :
     state_invariant σ Γi' mem (memI, (ρI , gI)) ->
     state_invariant σ Γi  mem (memI, (ρI', gI)).
 Proof.
-  intros * Hg0 Hg1 Hρ_le Hρ0 Hρ1 SINV.
+  intros * Hg0 Hg1 Hρ0 Hρ1 SINV.
   destruct SINV.
   constructor; try assumption.
   - unfold memory_invariant in *.
@@ -1493,11 +1490,6 @@ Proof.
   - (* could be proven based on some relation between Γi and s1 *)
     clear - state_inv HgenIR Hdrop EQa0 EQa1.
     eapply state_invariant_Γi with (ρI := ρI); eassumption || auto.
-    { unfold alist_le; intros.
-      repeat apply alist_le_add.
-      - admit.
-      - admit.
-      - assumption. }
     eapply state_invariant_Γ'.
     + eassumption.
     + cbn.
