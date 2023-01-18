@@ -1278,7 +1278,37 @@ Proof.
   destruct SINV.
   constructor; try assumption.
   - unfold memory_invariant in *.
-    admit.
+    intros.
+    repeat (destruct n; try discriminate).
+    + specialize mem_is_inv with 0 v b τ x.
+      inv H0.
+      apply mem_is_inv; auto.
+    + specialize mem_is_inv with 1 v b τ (ID_Global (Anon 1%Z)).
+      inv H0.
+      conclude mem_is_inv assumption.
+      conclude mem_is_inv auto.
+      destruct v.
+      * admit.
+      * admit.
+      * destruct mem_is_inv as (ptr & τ & ? & ? & ? & ?).
+        exists ptr, τ; break_and_goal; try assumption.
+        cbn in H2.
+        find_rewrite; find_inversion.
+        cbn.
+        assumption.
+    + specialize mem_is_inv with 2 v b τ (ID_Global (Anon 0%Z)).
+      inv H0.
+      conclude mem_is_inv assumption.
+      conclude mem_is_inv auto.
+      destruct v.
+      * admit.
+      * admit.
+      * destruct mem_is_inv as (ptr & τ & ? & ? & ? & ?).
+        exists ptr, τ; break_and_goal; try assumption.
+        cbn in H2.
+        find_rewrite; find_inversion.
+        cbn.
+        assumption.
   - unfold WF_IRState, evalContext_typechecks in *.
     intros.
     specialize IRState_is_WF with v n b.
