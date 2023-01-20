@@ -300,6 +300,78 @@ Definition input_inConstr
     (MSigmaHCOL.MHCOL.ctvector_to_mem_block a)
     (MSigmaHCOL.MHCOL.ctvector_to_mem_block x).
 
+Lemma heq_list_nil : heq_list [] [].
+Proof.
+  constructor.
+Qed.
+
+Lemma heq_list_app : forall l1 l2 l,
+    heq_list (l1 ++ l2) l ->
+    exists l1' l2', l ≡ l1' ++ l2' /\ heq_list l1 l1' /\ heq_list l2 l2'.
+Proof.
+  induction l1; intros.
+  - exists [], l; repeat split. apply heq_list_nil. apply H.
+  - destruct l as [| a' l]; inv H.
+    edestruct IHl1 as (l1' & l2' & ? & ? & ?); eauto.
+    exists (a' :: l1'), l2'; repeat split; subst; eauto.
+    constructor; auto.
+Qed.
+
+Lemma consList_app :
+  forall n l1 l2 l3 l4,
+  Datatypes.length l2 ≡ n ->
+  constList n (l1 ++ l2) ≡ (l3, l4) ->
+  l2 ≡ l4.
+Proof.
+  induction n; intros * Hl2 H.
+  - inv H.
+    destruct l2; [reflexivity | discriminate].
+  - assert (Hl4 : Datatypes.length l4 ≡ S n)
+      by (eapply constList_length; eassumption).
+    destruct l2; [discriminate |]; inv Hl2.
+    destruct l4; [discriminate |]; inv Hl4.
+    cbn in H; repeat break_let; find_inversion.
+    destruct l1 eqn:E.
+    + cbn in Heqp.
+      inv Heqp.
+      f_equal.
+      eapply IHn.
+      reflexivity.
+      admit.
+    + cbn in Heqp.
+      inv Heqp.
+      admit.
+Admitted.
+
+Lemma vector_to_list_length :
+  forall A n (xs : Vector.t A n),
+    Datatypes.length (Vector.to_list xs) ≡ n.
+Proof.
+  intros.
+  induction n.
+  - dep_destruct xs.
+    reflexivity.
+  - dep_destruct xs.
+    specialize IHn with x.
+    apply f_equal with (f := S) in IHn.
+    rewrite <- IHn.
+    reflexivity.
+Qed.
+
+Definition dynwin_F_σ :=
+  [ (FHCOL.DSHPtrVal 0 three    , false) ;
+    (FHCOL.DSHPtrVal 1 dynwin_o', false) ;
+    (FHCOL.DSHPtrVal 2 dynwin_i', false) ].
+
+Definition dynwin_F_memory a x :=
+  memory_set
+    (memory_set
+      (memory_set
+        memory_empty
+          dynwin_a_addr (mem_block_of_list a))
+      dynwin_y_addr mem_empty)
+    dynwin_x_addr (mem_block_of_list x).
+
 (* MARK Vadim ? IZ TODO: generalize beyond just DynWin? *)
 Lemma initial_memory_from_data :
   forall (a : Vector.t CarrierA 3)
@@ -312,6 +384,60 @@ Lemma initial_memory_from_data :
       ≡ inr (dynwin_F_memory, data_garbage, dynwin_F_σ)
       /\ RHCOLtoFHCOL.heq_memory () RF_CHE (dynwin_R_memory a x) dynwin_F_memory
       /\ RHCOLtoFHCOL.heq_evalContext () RF_NHE RF_CHE dynwin_R_σ dynwin_F_σ.
+Proof.
+  intros.
+  unfold helix_initial_memory; cbn.
+  repeat break_let; cbn.
+  apply heq_list_app in H as (ly & lxa & Hdata & Hly & H).
+  apply heq_list_app in H as (lx & la & Hlxa & Hlx & Hla).
+  subst.
+  eexists (dynwin_F_memory la lx), _, dynwin_F_σ; break_and_goal.
+  - repeat f_equal.
+    unfold dynwin_F_memory.
+    unfold dynwin_a_addr; cbn.
+    unfold constMemBlock in *.
+    repeat (break_let; find_inversion).
+    enough (l5 ≡ la /\ l4 ≡ [] /\ l3 ≡ lx)
+      as (? & ? & ?) by (repeat f_equal; subst; reflexivity).
+    apply Forall2_length in Hla, Hlx, Hly.
+    rewrite vector_to_list_length in Hla, Hlx, Hly.
+    repeat (destruct ly; try discriminate).
+    repeat (destruct lx; try discriminate).
+    repeat (destruct la; try discriminate).
+    cbn in *.
+    unfold constList, Pos.to_nat in *.
+    repeat (cbn in *; find_inversion).
+    admit.
+  - clear - Hla Hlx Hly.
+    unfold heq_memory; intro.
+    repeat (destruct k; [apply hopt_r_Some |]).
+    + apply Forall2_length in Hla as Hla'.
+      rewrite vector_to_list_length in Hla'.
+      repeat (destruct la; try discriminate).
+      clear - Hla.
+      repeat dependent destruction a.
+      unfold heq_list in Hla.
+      repeat inv_prop Forall2.
+      intro k.
+      repeat (destruct k; [apply hopt_r_Some; assumption |]).
+      apply hopt_r_None.
+    + intro k.
+      apply hopt_r_None.
+    + apply Forall2_length in Hlx as Hlx'.
+      rewrite vector_to_list_length in Hlx'.
+      repeat (destruct lx; try discriminate).
+      clear - Hlx.
+      repeat dependent destruction x.
+      unfold heq_list in Hlx.
+      repeat inv_prop Forall2.
+      intro k.
+      repeat (destruct k; [apply hopt_r_Some; assumption |]).
+      apply hopt_r_None.
+    + apply hopt_r_None.
+  - unfold heq_evalContext.
+    repeat (apply Forall2_cons; [split; auto |]).
+    4: apply Forall2_nil.
+    all: apply heq_DSHPtrVal; reflexivity.
 Admitted.
 
 Lemma interp_mem_interp_helix_ret_eq : forall E σ op hmem fmem v,
@@ -1195,23 +1321,6 @@ Ltac HIDE l6 l3 l5 b0 l4 dyn_addr main_addr
 
 Import ProofMode.
 
-Lemma heq_list_nil : heq_list [] [].
-Proof.
-  constructor.
-Qed.
-
-Lemma heq_list_app : forall l1 l2 l,
-    heq_list (l1 ++ l2) l ->
-    exists l1' l2', l ≡ l1' ++ l2' /\ heq_list l1 l1' /\ heq_list l2 l2'.
-Proof.
-  induction l1; intros.
-  - exists [], l; repeat split. apply heq_list_nil. apply H.
-  - destruct l as [| a' l]; inv H.
-    edestruct IHl1 as (l1' & l2' & ? & ? & ?); eauto.
-    exists (a' :: l1'), l2'; repeat split; subst; eauto.
-    constructor; auto.
-Qed.
-
 Set Printing Compact Contexts.
 
 Local Lemma numeric_suffix_must_exist:
@@ -1480,8 +1589,31 @@ Proof.
     @compile_FSHCOL_correct _ _ _ dynwin_F_σ dynwin_F_memory _ _
                             (blk_id bk) _ gI ρI' memI HgenIR _ _ _ _
     as RES.
-  - admit.
-  -
+  - clear.
+    unfold no_failure, has_post.
+    apply eutt_EQ_REL_Reflexive_.
+    repeat intro.
+    destruct PR as [H1 H2].
+    subst.
+    destruct H2.
+    + 
+      Search eutt.
+      Print itree.
+      Print E_cfg.
+    unfold interp_helix in H2.
+    Print Returns.
+    Search DynWin_FHCOL_hard.
+    cbn in H2.
+    Search Returns.
+    cbn in H2.
+    Print Returns.
+    Print EQ_REL.
+    Search EQ_REL.
+    cbn in PR.
+    intros.
+    intro.
+    rewrite H1 in *.
+    eapply eutt_EQ_REL_Reflexive.
     unfold bid_bound, VariableBinding.state_bound.
     exists "b",
       {| block_count := 0; local_count := 0; void_count := 0; Γ := Γ Γi |},
@@ -1599,6 +1731,7 @@ Proof.
       (* We know that building the global environment is pure,
          and satisfy a certain spec.
        *)
+      cbn.
       rewrite EQLLVMINIT.
       rewrite bind_ret_l.
 
