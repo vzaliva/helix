@@ -317,32 +317,6 @@ Proof.
     constructor; auto.
 Qed.
 
-Lemma consList_app :
-  forall n l1 l2 l3 l4,
-  Datatypes.length l2 ≡ n ->
-  constList n (l1 ++ l2) ≡ (l3, l4) ->
-  l2 ≡ l4.
-Proof.
-  induction n; intros * Hl2 H.
-  - inv H.
-    destruct l2; [reflexivity | discriminate].
-  - assert (Hl4 : Datatypes.length l4 ≡ S n)
-      by (eapply constList_length; eassumption).
-    destruct l2; [discriminate |]; inv Hl2.
-    destruct l4; [discriminate |]; inv Hl4.
-    cbn in H; repeat break_let; find_inversion.
-    destruct l1 eqn:E.
-    + cbn in Heqp.
-      inv Heqp.
-      f_equal.
-      eapply IHn.
-      reflexivity.
-      admit.
-    + cbn in Heqp.
-      inv Heqp.
-      admit.
-Admitted.
-
 Lemma vector_to_list_length :
   forall A n (xs : Vector.t A n),
     Datatypes.length (Vector.to_list xs) ≡ n.
@@ -1534,12 +1508,12 @@ Proof.
 
   (* The context gets... quite big. We try to prevent it as much as possible early on *)
 
-  rename l6 into bks1, l4 into bks2.
+  rename l4 into bks1, l6 into bks2.
   rename b0 into bk.
-  rename l3 into exps1, l5 into exps2, l2 into exps3.
+  rename l2 into exps1, l5 into exps2, l3 into exps3.
   rename i into s3, i0 into s2, i1 into s1.
 
-  assert (HgenIR : genIR DynWin_FHCOL_hard "b0" Γi ≡ inr (s3, (b, bks2)))
+  assert (HgenIR : genIR DynWin_FHCOL_hard "b0" Γi ≡ inr (s3, (b, bks1)))
     by apply Heqs; clear Heqs.
   rename Heqs2 into Hdrop.
 
@@ -1595,26 +1569,8 @@ Proof.
     repeat intro.
     destruct PR as [H1 H2].
     subst.
-    destruct H2.
-    + 
-      Search eutt.
-      Print itree.
-      Print E_cfg.
-    unfold interp_helix in H2.
-    Print Returns.
-    Search DynWin_FHCOL_hard.
-    cbn in H2.
-    Search Returns.
-    cbn in H2.
-    Print Returns.
-    Print EQ_REL.
-    Search EQ_REL.
-    cbn in PR.
-    intros.
-    intro.
-    rewrite H1 in *.
-    eapply eutt_EQ_REL_Reflexive.
-    unfold bid_bound, VariableBinding.state_bound.
+    admit.
+  - unfold bid_bound, VariableBinding.state_bound.
     exists "b",
       {| block_count := 0; local_count := 0; void_count := 0; Γ := Γ Γi |},
       {| block_count := 1; local_count := 0; void_count := 0; Γ := Γ Γi |}.
@@ -1731,7 +1687,6 @@ Proof.
       (* We know that building the global environment is pure,
          and satisfy a certain spec.
        *)
-      cbn.
       rewrite EQLLVMINIT.
       rewrite bind_ret_l.
 
@@ -1891,7 +1846,6 @@ Proof.
          MARK
        *)
 
-      assert (exists add0, gI @ Anon 0%Z ≡ Some (DVALUE_Addr add0)) as [add0 ?] by admit.
       rewrite denote_mcfg_ID_Global; cycle 1.
       eassumption.
 
@@ -1904,7 +1858,6 @@ Proof.
         |- context [interp_mrec ?x] => remember x as ctx
       end.
       rewrite !translate_bind, !interp_mrec_bind,!interp3_bind, !bind_bind.
-      assert (exists add1, gI @ Anon 1%Z ≡ Some (DVALUE_Addr add1)) as [add1 ?] by admit.
       rewrite denote_mcfg_ID_Global; cycle 1.
       eassumption.
       rewrite bind_ret_l.
@@ -1953,12 +1906,12 @@ Proof.
       unfold DYNWIN at 1.
       cbn[df_instrs blks cfg_of_definition fst snd].
 
-      match type of Heqs1 with
+      match type of Heqs0 with
       | body_non_empty_cast ?x _ ≡ inr (_, (?bk, ?bks)) => assert (EQbks: bk :: bks2 ≡ x)
       end.
       {
-        clear - Heqs1.
-        destruct bks1; cbn in *; inv Heqs1; reflexivity.
+        clear - Heqs0.
+        destruct bks1; cbn in *; inv Heqs0; reflexivity.
       }
 
 
