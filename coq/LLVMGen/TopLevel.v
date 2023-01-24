@@ -346,14 +346,118 @@ Definition dynwin_F_memory a x :=
       dynwin_y_addr mem_empty)
     dynwin_x_addr (mem_block_of_list x).
 
+
+Lemma constList_app :
+  forall n data rest data' data'' l1 l2,
+    n <= Datatypes.length data ->
+    constList n (data ++ rest) ≡ (data', l1) ->
+    constList n data ≡ (data'', l2) ->
+    l1 ≡ l2.
+Proof.
+  induction n; intros * Hn H1 H2.
+  - cbn in *.
+    inv H1; inv H2.
+    reflexivity.
+  - cbn in *.
+    repeat break_let.
+    repeat find_inversion.
+    destruct data; [inv Heqp; inv Hn |].
+    cbn in Hn.
+    cbn in Heqp; inv Heqp.
+    cbn in Heqp1; inv Heqp1.
+    f_equal.
+    apply le_S_n in Hn.
+    destruct (constList n data) eqn:E.
+    replace l0 with l3 in * by (eapply IHn; revgoals; eassumption).
+    eapply IHn.
+    + eassumption.
+    + rewrite <- app_assoc in Heqp2.
+      apply Heqp2.
+    + eassumption.
+Qed.
+
+Lemma constList_firstn :
+  forall n data data' l,
+    constList n data ≡ (data', l) ->
+    n <= Datatypes.length data ->
+    l ≡ firstn n data.
+Proof.
+  induction n; intros * H Hn.
+  - cbn in H.
+    inv H.
+    reflexivity.
+  - cbn in H.
+    do 2 break_let.
+    find_inversion.
+    destruct data; [inv Hn |].
+    cbn in Heqp.
+    inv Heqp.
+    cbn.
+    f_equal.
+    cbn in Hn; apply le_S_n in Hn.
+    destruct (constList n data) eqn:E.
+    replace l0 with l2 in *
+      by (eapply constList_app; revgoals; eassumption).
+    eapply IHn; eassumption.
+Qed.
+
+Lemma rotateN_nil A n : @rotateN A n [] ≡ [].
+Proof.
+  induction n; auto.
+  simpl; rewrite IHn; auto.
+Qed.
+
+Lemma rotateN_sing A n (x : A) : rotateN n [x] ≡ [x].
+Proof.
+  induction n; auto.
+  simpl; rewrite IHn; auto.
+Qed.
+
+Lemma rotateN_cons A n (x : A) xs :
+  rotateN (S n) (x :: xs) ≡ rotateN n (xs ++ [x]).
+Proof.
+  induction n; auto.
+  simpl in *; rewrite IHn; auto.
+Qed.
+
+Lemma rotateN_firstn_reverse :
+  forall A n (xs : list A),
+    n <= Datatypes.length xs ->
+    rotateN n xs ≡ skipn n xs ++ firstn n xs.
+Proof.
+  induction n; intros; [cbn; rewrite app_nil_r; auto |].
+  destruct xs; [inv H |].
+  cbn in H; apply le_S_n in H.
+  cbn - [rotateN].
+  unfold rotateN in *.
+  rewrite nat_iter_S.
+  rewrite IHn by (cbn; lia); clear IHn.
+  destruct n; cbn; [rewrite app_nil_r; auto |].
+  break_match; [destruct skipn; discriminate |].
+  destruct (skipn n xs) eqn:E.
+  + cbn in *. inv Heql. 
+    assert (Datatypes.length (skipn n xs) ≡ 0) by (rewrite E; auto).
+    pose proof skipn_length n xs.
+    find_rewrite; lia.
+  + cbn in Heql.
+    inv Heql.
+    replace (S n) with (1 + n) by auto.
+    rewrite <- skipn_skipn, E, <- app_assoc; cbn.
+    repeat f_equal.
+    replace (S n) with (n + 1) by lia.
+    rewrite MCList.firstn_add.
+    rewrite E.
+    reflexivity.
+Qed.
+
 (* MARK Vadim ? IZ TODO: generalize beyond just DynWin? *)
 Lemma initial_memory_from_data :
-  forall (a : Vector.t CarrierA 3)
+  forall
+    (a : Vector.t CarrierA 3)
     (x : Vector.t CarrierA dynwin_i)
-    (y : Vector.t CarrierA dynwin_o)
     data,
-    heq_list (Vector.to_list y ++ Vector.to_list x ++ Vector.to_list a) data ->
-    exists dynwin_F_memory data_garbage dynwin_F_σ,
+    heq_list (Vector.to_list a ++ Vector.to_list x) data ->
+    exists dynwin_F_memory data_garbage,
       helix_initial_memory (dynwin_fhcolp DynWin_FHCOL_hard) data
       ≡ inr (dynwin_F_memory, data_garbage, dynwin_F_σ)
       /\ RHCOLtoFHCOL.heq_memory () RF_CHE (dynwin_R_memory a x) dynwin_F_memory
@@ -362,27 +466,26 @@ Proof.
   intros.
   unfold helix_initial_memory; cbn.
   repeat break_let; cbn.
-  apply heq_list_app in H as (ly & lxa & Hdata & Hly & H).
-  apply heq_list_app in H as (lx & la & Hlxa & Hlx & Hla).
-  subst.
-  eexists (dynwin_F_memory la lx), _, dynwin_F_σ; break_and_goal.
+  apply heq_list_app in H as (la & lx & Hdata & Hla & Hlx); subst.
+  eexists (dynwin_F_memory la lx), _; break_and_goal.
   - repeat f_equal.
     unfold dynwin_F_memory.
     unfold dynwin_a_addr; cbn.
     unfold constMemBlock in *.
     repeat (break_let; find_inversion).
-    enough (l5 ≡ la /\ l4 ≡ [] /\ l3 ≡ lx)
-      as (? & ? & ?) by (repeat f_equal; subst; reflexivity).
-    apply Forall2_length in Hla, Hlx, Hly.
-    rewrite vector_to_list_length in Hla, Hlx, Hly.
-    repeat (destruct ly; try discriminate).
-    repeat (destruct lx; try discriminate).
-    repeat (destruct la; try discriminate).
-    cbn in *.
-    unfold constList, Pos.to_nat in *.
-    repeat (cbn in *; find_inversion).
-    admit.
-  - clear - Hla Hlx Hly.
+    enough (l3 ≡ la /\ l2 ≡ lx) as (? & ?) by (subst; reflexivity).
+    apply Forall2_length in Hla, Hlx.
+    rewrite vector_to_list_length in Hla, Hlx.
+    copy_apply constList_firstn Heqp0; [| rewrite app_length; lia].
+    rewrite firstn_app_exact in H by assumption; subst.
+    apply constList_data in Heqp0; subst.
+    rewrite rotateN_firstn_reverse in Heqp1 by (rewrite app_length; lia).
+    rewrite skipn_app_exact, firstn_app_exact in Heqp1 by assumption.
+    unfold dynwin_i in *.
+    apply constList_firstn in Heqp1; [| rewrite app_length; lia].
+    rewrite firstn_app_exact in Heqp1 by assumption.
+    subst; split; auto.
+  - clear - Hla Hlx.
     unfold heq_memory; intro.
     repeat (destruct k; [apply hopt_r_Some |]).
     + apply Forall2_length in Hla as Hla'.
@@ -412,7 +515,7 @@ Proof.
     repeat (apply Forall2_cons; [split; auto |]).
     4: apply Forall2_nil.
     all: apply heq_DSHPtrVal; reflexivity.
-Admitted.
+Qed.
 
 Lemma interp_mem_interp_helix_ret_eq : forall E σ op hmem fmem v,
     interp_Mem (denoteDSHOperator σ op) hmem ≈ Ret (fmem,v) ->
@@ -1426,7 +1529,7 @@ Qed.
 Lemma top_to_LLVM :
   forall (a : Vector.t CarrierA 3) (* parameter *)
     (x : Vector.t CarrierA dynwin_i) (* input *)
-    (y y' : Vector.t CarrierA dynwin_o), (* y - output; y' - any output-sized input *)
+    (y : Vector.t CarrierA dynwin_o), (* y - output *)
 
       (* Evaluation of the source program.
          The program is fixed and hard-coded: the result is not generic,
@@ -1438,7 +1541,7 @@ Lemma top_to_LLVM :
       ∀
         (data : list binary64)
         (PRE : heq_list
-                 (Vector.to_list y' ++ Vector.to_list x ++ Vector.to_list a)
+                 (Vector.to_list a ++ Vector.to_list x)
                  data),
 
         (* the input data must be within bounds for numerical stability *)
@@ -1453,7 +1556,7 @@ Proof.
 
   (* Specification of the initial memory on the helix side *)
   edestruct initial_memory_from_data
-    as (dynwin_F_memory & data_garbage & dynwin_F_σ & HINIT & RFM & RFΣ);
+    as (dynwin_F_memory & data_garbage & HINIT & RFM & RFΣ);
     try eassumption/g.
 
   (* The current statement gives us essentially FHCOL-level inputs and outputs,
@@ -1533,10 +1636,8 @@ Proof.
     := HIDE exps3 exps1 exps2 bk bks2 dyn_addr main_addr.
   Ltac hide := tmp exps3 exps1 exps2 bk bks2 dyn_addr main_addr.
   hide.
-  
-  apply heq_list_app in PRE as (Y & tmp & -> & EQY & EQtmp).
-  apply heq_list_app in EQtmp as (X & A & -> & EQX & EQA).
 
+  apply heq_list_app in PRE as (A & X & -> & EQA & EQX).
 
   (* match type of INIT_MEM with *)
   (* | context[mcfg_of_tle ?x] => remember x as tmp; cbn in Heqtmp; subst tmp *)
@@ -1575,8 +1676,7 @@ Proof.
       {| block_count := 0; local_count := 0; void_count := 0; Γ := Γ Γi |},
       {| block_count := 1; local_count := 0; void_count := 0; Γ := Γ Γi |}.
     cbn; auto.
-  - (* could be proven based on some relation between Γi and s1 *)
-    clear - state_inv HgenIR Hdrop EQa0 EQa1.
+  - clear - state_inv HgenIR Hdrop EQa0 EQa1.
     eapply state_invariant_Γi with (ρI := ρI); eassumption || auto.
     eapply state_invariant_Γ'.
     + eassumption.
