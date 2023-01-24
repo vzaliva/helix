@@ -1136,7 +1136,7 @@ Proof.
   repeat invc_prop In; find_inversion.
 Qed.
 
-#[local] Definition MCFG l6 l3 l5 b0 l4 :=
+#[local] Definition MCFG l6 l5 b0 l4 :=
   (TLE_Global {|
                                g_ident := Name "a";
                                g_typ := TYPE_Array (Npos 3) TYPE_Double;
@@ -1157,7 +1157,7 @@ Qed.
                                   g_ident := Anon 1%Z;
                                   g_typ := TYPE_Array (Npos 1) TYPE_Double;
                                   g_constant := true;
-                                  g_exp := Some (EXP_Array l3);
+                                  g_exp := Some (EXP_Array []);
                                   g_linkage := None;
                                   g_visibility := None;
                                   g_dll_storage := None;
@@ -1587,7 +1587,6 @@ Proof.
 
   unfold initXYplaceholders in Heqs3; cbn in Heqs3.
   break_let; cbn in Heqs3.
-  break_let; cbn in Heqs3.
   inv_sum/g.
 
   unfold LLVMGen in Heqs1.
@@ -1611,9 +1610,9 @@ Proof.
 
   (* The context gets... quite big. We try to prevent it as much as possible early on *)
 
-  rename l4 into bks1, l6 into bks2.
+  rename l0 into bks1, l4 into bks2.
   rename b0 into bk.
-  rename l2 into exps1, l5 into exps2, l3 into exps3.
+  rename l2 into exps1, l3 into exps3.
   rename i into s3, i0 into s2, i1 into s1.
 
   assert (HgenIR : genIR DynWin_FHCOL_hard "b0" Γi ≡ inr (s3, (b, bks1)))
@@ -1776,7 +1775,7 @@ Proof.
        symbolic execution to figure out what statement
        we need precisely.
      *)
-    assert (forall x, semantics_llvm (MCFG exps3 exps1 exps2 bk bks2) ≈ x).
+    assert (forall x, semantics_llvm (MCFG exps3 exps1 bk bks2) ≈ x).
     { intros ?.
 
       unfold semantics_llvm, semantics_llvm_mcfg, model_to_L3, denote_vellvm_init, denote_vellvm.
