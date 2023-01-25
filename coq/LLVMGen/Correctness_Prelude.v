@@ -233,45 +233,6 @@ Section StateTypes.
   Definition config_helix_T (T : Type) := memoryH * T.
   Definition config_helix_OT (T : Type) := option (memoryH * T).
 
-  (* Return state of a denoted and interpreted [cfg].
-     Note the lack of local stack *)
-  Definition config_cfg
-    := memoryV * (local_env * (global_env)).
-
-  (* Constructor to avoid having to worry about the nesting *)
-  Definition mk_config_cfg m l g: config_cfg := (m,(l,g)).
-
-  (* Return state of a denoted and interpreted [mcfg] *)
-  Definition config_mcfg
-    := memoryV *
-       (local_env * @Stack.stack (local_env) * (global_env)).
-
-  (* Return state and value of a denoted and interpreted (open) [cfg].
-     Note the lack of local stack.
-     Note that we may return a [block_id] alternatively to a [uvalue]
-   *)
-  Definition config_cfg_T (T:Type): Type
-    := memoryV * (local_env * (global_env * T)).
-  Definition config_res_cfg
-    := config_cfg_T (block_id + uvalue).
-
-  (* Return state and value of a denoted and interpreted [mcfg]. *)
-  Definition config_mcfg_T (T:Type): Type
-    := memoryV * (local_env * @Stack.stack (local_env) * (global_env * T)).
-  Definition config_res_mcfg :=
-    config_mcfg_T uvalue.
-
-  (* -- Injections -- *)
-  (* The nested state transformers associate the products the other way,
-     we therefore define injections of memory states and values into return
-     types of computations.
-   *)
-  Definition mk_config_cfg_T (T:Type) (v:T): config_cfg -> (config_cfg_T T)
-    := fun '(m, (ρ, g)) => (m, (ρ, (g, v))).
-
-  Definition mk_config_mcfg_T (T:Type) (v:T): config_mcfg -> (config_mcfg_T T)
-    := fun '(m, (ρ, g)) => (m, (ρ, (g, v))).
-
 End StateTypes.
 
 (* Facilities to refer to the type of relations used during the simulations
@@ -300,14 +261,6 @@ Section RelationTypes.
       parameterized by the types of the computed values. *)
   Definition Rel_mcfg_T (TH TV: Type): Type := config_helix_T TH -> config_mcfg_T TV -> Prop.
   Definition Rel_mcfg_OT (TH TV: Type): Type := config_helix_OT TH -> config_mcfg_T TV -> Prop.
-
-  (** * Predicates  *)
-  (** Predicate on mcfg-level states *)
-  Definition Pred_mcfg: Type := config_mcfg -> Prop.
-  Definition Pred_mcfg_T (TV: Type): Type := config_mcfg_T TV -> Prop.
-  (** Predicate on cfg-level states *)
-  Definition Pred_cfg: Type := config_cfg -> Prop.
-  Definition Pred_cfg_T (TV: Type): Type := config_cfg_T TV -> Prop.
 
   (** * Liftings of relations
       Can be lifted to a relation on states and values:
