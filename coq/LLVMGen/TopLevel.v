@@ -1157,7 +1157,7 @@ Qed.
                                   g_ident := Anon 1%Z;
                                   g_typ := TYPE_Array (Npos 1) TYPE_Double;
                                   g_constant := true;
-                                  g_exp := Some (EXP_Array []);
+                                  g_exp := Some (EXP_Array [(TYPE_Double, EXP_Double MFloat64asCT.CTypeZero)]);
                                   g_linkage := None;
                                   g_visibility := None;
                                   g_dll_storage := None;

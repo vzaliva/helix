@@ -2959,14 +2959,14 @@ Proof.
 Qed.
 
 Lemma initXYplaceholders_data
-      (i : Int64.int)
+      (i o : Int64.int)
       (data data' : list binary64)
       (xid yid : raw_id) 
       (x y : typ)
       (s s' : IRState)
       t
   :
-    initXYplaceholders i data xid x yid y s ≡ inr (s', (data', t)) ->
+    initXYplaceholders i o data xid x yid y s ≡ inr (s', (data', t)) ->
     data' ≡ rotateN (MInt64asNT.to_nat i) data.
 Proof.
   intros I.
@@ -2988,7 +2988,7 @@ Ltac simpl_data :=
            copy_apply int64FromData_data H; subst data'
          | [H : rotate _ _ ≡ (_, ?data') |- _] =>
            copy_apply rotate_data H; subst data'
-         | [H : initXYplaceholders _ _ _ _ _ _ _ ≡ inr (_, (?data', _)) |- _] =>
+         | [H : initXYplaceholders _ _ _ _ _ _ _ _ ≡ inr (_, (?data', _)) |- _] =>
            copy_apply initXYplaceholders_data H; subst data'
          end.
 

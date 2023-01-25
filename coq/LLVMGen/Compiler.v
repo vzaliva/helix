@@ -1282,9 +1282,10 @@ Definition initIRGlobals
    When code genration generates [main], the input
    will be stored in pre-initialized [X] global placeholder variable.
  *)
-Definition initXYplaceholders (i :Int64.int) (data:list binary64) x xtyp y ytyp:
+Definition initXYplaceholders (i o: Int64.int) (data:list binary64) x xtyp y ytyp:
   cerr (list binary64 * (LLVMAst.toplevel_entities _ (LLVMAst.block typ * list (LLVMAst.block typ))))
   :=
+    let ydata := repeat (TYPE_Double, EXP_Double 0.0) (MInt64asNT.to_nat o) in
     let '(data,xdata) := constArray (MInt64asNT.to_nat i) data in
     appendVars [(ID_Global y, TYPE_Pointer ytyp); (ID_Global x, TYPE_Pointer xtyp)] ;;
     ret (data,[ TLE_Global
@@ -1292,7 +1293,7 @@ Definition initXYplaceholders (i :Int64.int) (data:list binary64) x xtyp y ytyp:
           g_ident        := y;
           g_typ          := ytyp;
           g_constant     := true;
-          g_exp          := Some (EXP_Array []);
+          g_exp          := Some (EXP_Array ydata);
           g_linkage      := None;
           g_visibility   := None;
           g_dll_storage  := None;
@@ -1470,7 +1471,7 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
         let gytyp := getIRType (DSHPtr o) in
         let gyptyp := TYPE_Pointer gytyp in
 
-        '(data,yxinit) <- initXYplaceholders i data gx gxtyp gy gytyp ;;
+        '(data,yxinit) <- initXYplaceholders i o data gx gxtyp gy gytyp ;;
         (* Γ = [globals; fake_y; fake_x] *)
 
         (* Main function *)
