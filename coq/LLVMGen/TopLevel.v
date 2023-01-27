@@ -18,6 +18,7 @@ Import FHCOLEval.
 Import CarrierType.
 Import SemNotations.
 Import BidBound.
+Import AlistNotations.
 
 Lemma top_to_FHCOL :
   forall (a : Vector.t CarrierA 3) (* parameter *)
