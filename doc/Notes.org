@@ -116,6 +116,30 @@ pseudo-C:
     return(*_Y);
   } 
 #+END_SRC
+** Differences from DHCOL in Y (output block) initialization
+Originally DHCOL operators were assumed to have the output block empty
+(~mem_empty~) before execution.
+
+In order to allow for testing operators that must erase their output block (to
+distinguish them from operators that do not change their output at all), both
+the FHCOL side of the tests (~helix_initial_memory~), as well as LLVM side
+(~initXYplaceholders~) were written to initialize their output using some (for
+tests - random) ~data~.
+
+This later became an issue: since earlier DHCOL proofs assumed ~mem_empty~, they
+could not be used for proving properties of ~helix_initial_memory~.
+~helix_initial_memory~ had to be changed to initialize its memory with an empty
+block for output. However, a question remained: what should the LLVM side do?
+Options:
+- Initialize with an empty array (~EXP_Array []~)
+  This surfaced an issue related to [[https://github.com/vellvm/vellvm/issues/131][#131]] in vellvm. When trying to read the
+  array back, we'd get ~UVALUE_Undef~, and decided to steer clear of it.
+- Initialize with zeroes
+  This is what's currently implemented.
+- Keep the data-based initialization
+  This would theoretically work as well, but we stayed with the option above
+  simply as status quo. Might revert to this if necessary in the future.
+
 * Template Coq appoach
 ** Differences between SHCOL deep and shallow embeddings:
 
