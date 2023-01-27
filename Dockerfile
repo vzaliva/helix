@@ -4,9 +4,9 @@ FROM ubuntu:22.04
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90assumeyes
 ARG OPAMYES=true
 
-RUN apt update
-RUN apt upgrade
-RUN apt install opam
+RUN apt-get update
+RUN apt-get upgrade
+RUN apt-get install opam
 
 RUN opam init --bare --disable-sandboxing
 RUN opam switch create helix ocaml-base-compiler \

@@ -1,3 +1,4 @@
+---
 kind: pipeline
 type: docker
 name: default
@@ -19,7 +20,7 @@ steps:
       event:
         - cron
       cron:
-      - rebuild-cache
+        - rebuild-cache
 
   - name: build-vellvm
     image: helix-cache
@@ -47,8 +48,8 @@ steps:
       channel: bitbucket-activity
     when:
       status:
-      - failure
-      - success
+        - failure
+        - success
 
 volumes:
   - name: dockersock
