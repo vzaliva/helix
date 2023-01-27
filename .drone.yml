@@ -15,7 +15,7 @@ steps:
       - echo {{ .repo.name }}
       - echo {{ .build.branch }}
 
-  - name: rebuild-cache-{{ .repo.name }}-{{ .build.branch }}
+  - name: rebuild-cache
     image: docker
     volumes:
       - name: dockersock
@@ -26,7 +26,7 @@ steps:
       event:
         - cron
       cron:
-        - rebuild-cache-{{ .repo.name }}-{{ .build.branch }}
+        - rebuild-cache-{{ .build.branch }}
 
   - name: build-vellvm
     image: cache-{{ .repo.name }}-{{ .build.branch }}
