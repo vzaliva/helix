@@ -12,8 +12,7 @@ steps:
   - name: test-variables
     image: docker
     commands:
-      - echo {{ .repo.name }}
-      - echo {{ .build.branch }}
+      - echo {{ .repo.uid }}
 
   - name: rebuild-cache
     image: docker
