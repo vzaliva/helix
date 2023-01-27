@@ -1663,13 +1663,14 @@ Proof.
     @compile_FSHCOL_correct _ _ _ dynwin_F_σ dynwin_F_memory _ _
                             (blk_id bk) _ gI ρI' memI HgenIR _ _ _ _
     as RES.
-  - clear.
+  - clear - EQ.
     unfold no_failure, has_post.
     apply eutt_EQ_REL_Reflexive_.
-    repeat intro.
-    destruct PR as [H1 H2].
-    subst.
-    admit.
+    intros * [H1 H2] H; subst.
+    apply eutt_ret_inv_strong' in EQ as [[m ()] [EQ _]].
+    rewrite interp_mem_interp_helix_ret_eq in H2.
+    + apply Returns_Ret in H2; inv H2.
+    + rewrite EQ; apply eutt_Ret; auto.
   - unfold bid_bound, VariableBinding.state_bound.
     exists "b",
       {| block_count := 0; local_count := 0; void_count := 0; Γ := Γ Γi |},
