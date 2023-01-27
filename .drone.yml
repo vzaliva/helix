@@ -9,6 +9,12 @@ steps:
     commands:
       - git submodule update --init --recursive
 
+  - name: test-variables
+    image: docker
+    commands:
+      - echo {{ .repo.name }}
+      - echo {{ .build.branch }}
+
   - name: rebuild-cache-{{ .repo.name }}-{{ .build.branch }}
     image: docker
     volumes:
