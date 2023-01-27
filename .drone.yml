@@ -9,47 +9,47 @@ steps:
     commands:
       - git submodule update --init --recursive
 
-  - name: rebuild-cache
+  - name: rebuild-cache-{{ .repo.name }}-{{ .build.branch }}
     image: docker
     volumes:
       - name: dockersock
         path: /var/run/docker.sock
     commands:
-      - docker build --no-cache -t helix-cache .
+      - docker build --no-cache -t cache-{{ .repo.name }}-{{ .build.branch }} .
     when:
       event:
         - cron
       cron:
-        - rebuild-cache
+        - rebuild-cache-{{ .repo.name }}-{{ .build.branch }}
 
   - name: build-vellvm
-    image: helix-cache
+    image: cache-{{ .repo.name }}-{{ .build.branch }}
     pull: never
     commands:
       - opam exec -- make -j 1 vellvm
 
-  - name: compile-helix
-    image: helix-cache
-    pull: never
-    commands:
-      - opam exec -- make
+  # - name: compile-helix
+  #   image: cache-{{ .repo.name }}-{{ .build.branch }}
+  #   pull: never
+  #   commands:
+  #     - opam exec -- make
 
-  - name: test-helix
-    image: helix-cache
-    pull: never
-    commands:
-      - opam exec -- make test
+  # - name: test-helix
+  #   image: cache-{{ .repo.name }}-{{ .build.branch }}
+  #   pull: never
+  #   commands:
+  #     - opam exec -- make test
 
-  - name: notify-slack
-    image: plugins/slack
-    settings:
-      webhook:
-        from_secret: slack_webhook
-      channel: bitbucket-activity
-    when:
-      status:
-        - failure
-        - success
+  # - name: notify-slack
+  #   image: plugins/slack
+  #   settings:
+  #     webhook:
+  #       from_secret: slack_webhook
+  #     channel: bitbucket-activity
+  #     when:
+  #       status:
+  #         - failure
+  #         - success
 
 volumes:
   - name: dockersock
