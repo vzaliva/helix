@@ -960,7 +960,7 @@ Definition MAINCFG := [{|
 
 Require Import Helix.LLVMGen.Vellvm_Utils.
 Definition mcfg_ctx := Vellvm_Utils.mcfg_ctx.
-Opaque MCFG MAIN MAINCFG DYNWIN GFUNC Γi mcfg_ctx.
+Opaque MCFG MAIN MAINCFG DYNWIN GFUNC mcfg_ctx.
 
 Ltac hide_MCFG l6 l3 l5 b0 l4 :=
   match goal with
@@ -1553,7 +1553,6 @@ Proof.
        *)
 
       Import AlistNotations.
-      assert (exists add0, gI @ Anon 0%Z ≡ Some (DVALUE_Addr add0)) as [add0 ?] by admit.
       rewrite denote_mcfg_ID_Global; cycle 1.
       eassumption.
 
@@ -1593,14 +1592,14 @@ Proof.
       unfold DYNWIN at 1.
       cbn[df_instrs blks cfg_of_definition fst snd].
 
-      match type of Heqs1 with
+      match type of Heqs0 with
       | body_non_empty_cast ?x ?s1 ≡ inr (?s2, (?bk, ?bks)) => assert (EQbks: bk :: bks2 ≡ x /\ s1 ≡ s2)
       end.
       {
-        clear - Heqs1.
-        destruct bks1; cbn in *; inv Heqs1; intuition.
+        clear - Heqs0.
+        destruct bks1; cbn in *; inv Heqs0; intuition.
       }
-      clear Heqs1.
+      clear Heqs0.
       destruct EQbks as [EQbks _].
       rewrite EQbks.
       unfold TFunctor_list'; rewrite map_app.
