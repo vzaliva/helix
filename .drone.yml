@@ -14,7 +14,7 @@ steps:
     commands:
       - echo '${DRONE_BRANCH}'
 
-  - name: test-fancy-env: ${DRONE_BRANCH}
+  - name: test-fancy-env ${DRONE_BRANCH}
     image: docker
     commands:
       - echo cool
@@ -24,18 +24,18 @@ steps:
     commands:
       - echo cooler
 
-  # - name: rebuild-cache
-  #   image: docker
-  #   volumes:
-  #     - name: dockersock
-  #       path: /var/run/docker.sock
-  #   commands:
-  #     - docker build --no-cache -t cache-{{ .repo.name }}-{{ .build.branch }} .
-  #   when:
-  #     event:
-  #       - cron
-  #     cron:
-  #       - rebuild-cache-{{ .build.branch }}
+# - name: rebuild-cache
+#   image: docker
+#   volumes:
+#     - name: dockersock
+#       path: /var/run/docker.sock
+#   commands:
+#     - docker build --no-cache -t cache-{{ .repo.name }}-{{ .build.branch }} .
+#   when:
+#     event:
+#       - cron
+#     cron:
+#       - rebuild-cache-{{ .build.branch }}
 
   - name: build-vellvm
     image: cache-{{ .repo.name }}-{{ .build.branch }}
@@ -43,28 +43,28 @@ steps:
     commands:
       - opam exec -- make -j 1 vellvm
 
-  # - name: compile-helix
-  #   image: cache-{{ .repo.name }}-{{ .build.branch }}
-  #   pull: never
-  #   commands:
-  #     - opam exec -- make
+# - name: compile-helix
+#   image: cache-{{ .repo.name }}-{{ .build.branch }}
+#   pull: never
+#   commands:
+#     - opam exec -- make
 
-  # - name: test-helix
-  #   image: cache-{{ .repo.name }}-{{ .build.branch }}
-  #   pull: never
-  #   commands:
-  #     - opam exec -- make test
+# - name: test-helix
+#   image: cache-{{ .repo.name }}-{{ .build.branch }}
+#   pull: never
+#   commands:
+#     - opam exec -- make test
 
-  # - name: notify-slack
-  #   image: plugins/slack
-  #   settings:
-  #     webhook:
-  #       from_secret: slack_webhook
-  #     channel: bitbucket-activity
-  #     when:
-  #       status:
-  #         - failure
-  #         - success
+# - name: notify-slack
+#   image: plugins/slack
+#   settings:
+#     webhook:
+#       from_secret: slack_webhook
+#     channel: bitbucket-activity
+#     when:
+#       status:
+#         - failure
+#         - success
 
 volumes:
   - name: dockersock
