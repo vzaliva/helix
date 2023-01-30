@@ -18,6 +18,7 @@ Import FHCOLEval.
 Import CarrierType.
 Import SemNotations.
 Import BidBound.
+Import AlistNotations.
 
 Lemma top_to_FHCOL :
   forall (a : Vector.t CarrierA 3) (* parameter *)
@@ -301,19 +302,222 @@ Definition input_inConstr
     (MSigmaHCOL.MHCOL.ctvector_to_mem_block a)
     (MSigmaHCOL.MHCOL.ctvector_to_mem_block x).
 
+Lemma heq_list_nil : heq_list [] [].
+Proof.
+  constructor.
+Qed.
+
+Lemma heq_list_app : forall l1 l2 l,
+    heq_list (l1 ++ l2) l ->
+    exists l1' l2', l ≡ l1' ++ l2' /\ heq_list l1 l1' /\ heq_list l2 l2'.
+Proof.
+  induction l1; intros.
+  - exists [], l; repeat split. apply heq_list_nil. apply H.
+  - destruct l as [| a' l]; inv H.
+    edestruct IHl1 as (l1' & l2' & ? & ? & ?); eauto.
+    exists (a' :: l1'), l2'; repeat split; subst; eauto.
+    constructor; auto.
+Qed.
+
+Lemma vector_to_list_length :
+  forall A n (xs : Vector.t A n),
+    Datatypes.length (Vector.to_list xs) ≡ n.
+Proof.
+  intros.
+  induction n.
+  - dep_destruct xs.
+    reflexivity.
+  - dep_destruct xs.
+    specialize IHn with x.
+    apply f_equal with (f := S) in IHn.
+    rewrite <- IHn.
+    reflexivity.
+Qed.
+
+Definition dynwin_F_σ :=
+  [ (FHCOL.DSHPtrVal 0 three    , false) ;
+    (FHCOL.DSHPtrVal 1 dynwin_o', false) ;
+    (FHCOL.DSHPtrVal 2 dynwin_i', false) ].
+
+Definition dynwin_F_memory a x :=
+  memory_set
+    (memory_set
+      (memory_set
+        memory_empty
+          dynwin_a_addr (mem_block_of_list a))
+      dynwin_y_addr mem_empty)
+    dynwin_x_addr (mem_block_of_list x).
+
+
+Lemma constList_app :
+  forall n data rest data' data'' l1 l2,
+    n <= Datatypes.length data ->
+    constList n (data ++ rest) ≡ (data', l1) ->
+    constList n data ≡ (data'', l2) ->
+    l1 ≡ l2.
+Proof.
+  induction n; intros * Hn H1 H2.
+  - cbn in *.
+    inv H1; inv H2.
+    reflexivity.
+  - cbn in *.
+    repeat break_let.
+    repeat find_inversion.
+    destruct data; [inv Heqp; inv Hn |].
+    cbn in Hn.
+    cbn in Heqp; inv Heqp.
+    cbn in Heqp1; inv Heqp1.
+    f_equal.
+    apply le_S_n in Hn.
+    destruct (constList n data) eqn:E.
+    replace l0 with l3 in * by (eapply IHn; revgoals; eassumption).
+    eapply IHn.
+    + eassumption.
+    + rewrite <- app_assoc in Heqp2.
+      apply Heqp2.
+    + eassumption.
+Qed.
+
+Lemma constList_firstn :
+  forall n data data' l,
+    constList n data ≡ (data', l) ->
+    n <= Datatypes.length data ->
+    l ≡ firstn n data.
+Proof.
+  induction n; intros * H Hn.
+  - cbn in H.
+    inv H.
+    reflexivity.
+  - cbn in H.
+    do 2 break_let.
+    find_inversion.
+    destruct data; [inv Hn |].
+    cbn in Heqp.
+    inv Heqp.
+    cbn.
+    f_equal.
+    cbn in Hn; apply le_S_n in Hn.
+    destruct (constList n data) eqn:E.
+    replace l0 with l2 in *
+      by (eapply constList_app; revgoals; eassumption).
+    eapply IHn; eassumption.
+Qed.
+
+Lemma rotateN_nil A n : @rotateN A n [] ≡ [].
+Proof.
+  induction n; auto.
+  simpl; rewrite IHn; auto.
+Qed.
+
+Lemma rotateN_sing A n (x : A) : rotateN n [x] ≡ [x].
+Proof.
+  induction n; auto.
+  simpl; rewrite IHn; auto.
+Qed.
+
+Lemma rotateN_cons A n (x : A) xs :
+  rotateN (S n) (x :: xs) ≡ rotateN n (xs ++ [x]).
+Proof.
+  induction n; auto.
+  simpl in *; rewrite IHn; auto.
+Qed.
+
+Lemma rotateN_firstn_reverse :
+  forall A n (xs : list A),
+    n <= Datatypes.length xs ->
+    rotateN n xs ≡ skipn n xs ++ firstn n xs.
+Proof.
+  induction n; intros; [cbn; rewrite app_nil_r; auto |].
+  destruct xs; [inv H |].
+  cbn in H; apply le_S_n in H.
+  cbn - [rotateN].
+  unfold rotateN in *.
+  rewrite nat_iter_S.
+  rewrite IHn by (cbn; lia); clear IHn.
+  destruct n; cbn; [rewrite app_nil_r; auto |].
+  break_match; [destruct skipn; discriminate |].
+  destruct (skipn n xs) eqn:E.
+  + cbn in *. inv Heql. 
+    assert (Datatypes.length (skipn n xs) ≡ 0) by (rewrite E; auto).
+    pose proof skipn_length n xs.
+    find_rewrite; lia.
+  + cbn in Heql.
+    inv Heql.
+    replace (S n) with (1 + n) by auto.
+    rewrite <- skipn_skipn, E, <- app_assoc; cbn.
+    repeat f_equal.
+    replace (S n) with (n + 1) by lia.
+    rewrite MCList.firstn_add.
+    rewrite E.
+    reflexivity.
+Qed.
+
 (* MARK Vadim ? IZ TODO: generalize beyond just DynWin? *)
 Lemma initial_memory_from_data :
-  forall (a : Vector.t CarrierA 3)
+  forall
+    (a : Vector.t CarrierA 3)
     (x : Vector.t CarrierA dynwin_i)
-    (y : Vector.t CarrierA dynwin_o)
     data,
-    heq_list (Vector.to_list y ++ Vector.to_list x ++ Vector.to_list a) data ->
-    exists dynwin_F_memory data_garbage dynwin_F_σ,
+    heq_list (Vector.to_list a ++ Vector.to_list x) data ->
+    exists dynwin_F_memory data_garbage,
       helix_initial_memory (dynwin_fhcolp DynWin_FHCOL_hard) data
       ≡ inr (dynwin_F_memory, data_garbage, dynwin_F_σ)
       /\ RHCOLtoFHCOL.heq_memory () RF_CHE (dynwin_R_memory a x) dynwin_F_memory
       /\ RHCOLtoFHCOL.heq_evalContext () RF_NHE RF_CHE dynwin_R_σ dynwin_F_σ.
-Admitted.
+Proof.
+  intros.
+  unfold helix_initial_memory; cbn.
+  repeat break_let; cbn.
+  apply heq_list_app in H as (la & lx & Hdata & Hla & Hlx); subst.
+  eexists (dynwin_F_memory la lx), _; break_and_goal.
+  - repeat f_equal.
+    unfold dynwin_F_memory.
+    unfold dynwin_a_addr; cbn.
+    unfold constMemBlock in *.
+    repeat (break_let; find_inversion).
+    enough (l3 ≡ la /\ l2 ≡ lx) as (? & ?) by (subst; reflexivity).
+    apply Forall2_length in Hla, Hlx.
+    rewrite vector_to_list_length in Hla, Hlx.
+    copy_apply constList_firstn Heqp0; [| rewrite app_length; lia].
+    rewrite firstn_app_exact in H by assumption; subst.
+    apply constList_data in Heqp0; subst.
+    rewrite rotateN_firstn_reverse in Heqp1 by (rewrite app_length; lia).
+    rewrite skipn_app_exact, firstn_app_exact in Heqp1 by assumption.
+    unfold dynwin_i in *.
+    apply constList_firstn in Heqp1; [| rewrite app_length; lia].
+    rewrite firstn_app_exact in Heqp1 by assumption.
+    subst; split; auto.
+  - clear - Hla Hlx.
+    unfold heq_memory; intro.
+    repeat (destruct k; [apply hopt_r_Some |]).
+    + apply Forall2_length in Hla as Hla'.
+      rewrite vector_to_list_length in Hla'.
+      repeat (destruct la; try discriminate).
+      clear - Hla.
+      repeat dependent destruction a.
+      unfold heq_list in Hla.
+      repeat inv_prop Forall2.
+      intro k.
+      repeat (destruct k; [apply hopt_r_Some; assumption |]).
+      apply hopt_r_None.
+    + intro k.
+      apply hopt_r_None.
+    + apply Forall2_length in Hlx as Hlx'.
+      rewrite vector_to_list_length in Hlx'.
+      repeat (destruct lx; try discriminate).
+      clear - Hlx.
+      repeat dependent destruction x.
+      unfold heq_list in Hlx.
+      repeat inv_prop Forall2.
+      intro k.
+      repeat (destruct k; [apply hopt_r_Some; assumption |]).
+      apply hopt_r_None.
+    + apply hopt_r_None.
+  - unfold heq_evalContext.
+    repeat (apply Forall2_cons; [split; auto |]).
+    4: apply Forall2_nil.
+    all: apply heq_DSHPtrVal; reflexivity.
+Qed.
 
 Lemma interp_mem_interp_helix_ret_eq : forall E σ op hmem fmem v,
     interp_Mem (denoteDSHOperator σ op) hmem ≈ Ret (fmem,v) ->
@@ -483,40 +687,26 @@ Import Interp.
 #[local] Definition Γi :=
   {|
     block_count := 1;
-    local_count := 0;
+    local_count := 2;
     void_count := 0;
     Γ :=
       [(ID_Global (Name "a"), TYPE_Pointer (TYPE_Array (Npos 3) TYPE_Double));
-       (ID_Global (Anon 1%Z), TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double));
-       (ID_Global (Anon 0%Z), TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double))]
+       (ID_Local (Name "Y1"), TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double));
+       (ID_Local (Name "X0"), TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double))]
   |}.
 
-#[local] Definition Γi_X :=
-  {|
-    block_count := 1;
-    local_count := 1;
-    void_count := 0;
-    Γ :=
-      [(ID_Global (Name "a"), TYPE_Pointer (TYPE_Array (Npos 3) TYPE_Double));
-       (ID_Local (Name "X0"), TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double));
-       (ID_Global (Anon 1%Z), TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double));
-       (ID_Global (Anon 0%Z), TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double))]
-  |}.
-
-#[local] Definition Γi_XY :=
+#[local] Definition Γi' :=
   {|
     block_count := 1;
     local_count := 2;
     void_count := 0;
     Γ :=
       [(ID_Global (Name "a"), TYPE_Pointer (TYPE_Array (Npos 3) TYPE_Double));
-       (ID_Local (Name "Y1"), TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double));
-       (ID_Local (Name "X0"), TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double));
        (ID_Global (Anon 1%Z), TYPE_Pointer (TYPE_Array (Npos 1) TYPE_Double));
        (ID_Global (Anon 0%Z), TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double))]
   |}.
 
-Local Lemma Γi_XY_bound : gamma_bound Γi_XY.
+Local Lemma Γi_bound : gamma_bound Γi.
 Proof.
   unfold gamma_bound.
   intros.
@@ -524,17 +714,38 @@ Proof.
   unfold VariableBinding.state_bound.
   apply nth_error_In in H.
   repeat invc_prop In; find_inversion.
-  - exists "Y", Γi_X; eexists; break_and_goal.
+  - exists "Y", {|
+        block_count := 1;
+        local_count := 1;
+        void_count  := 0;
+        Γ := [(ID_Global (Name "a"), TYPE_Pointer (TYPE_Array (Npos 3) TYPE_Double));
+              (ID_Local (Name "X0"), TYPE_Pointer (TYPE_Array (Npos 5) TYPE_Double))]
+      |}; eexists; break_and_goal.
     + reflexivity.
     + constructor.
     + reflexivity.
-  - exists "X", Γi; eexists; break_and_goal.
+  - exists "X", {|
+        block_count := 1;
+        local_count := 0;
+        void_count  := 0;
+        Γ := [(ID_Global (Name "a"), TYPE_Pointer (TYPE_Array (Npos 3) TYPE_Double))]
+      |}; eexists; break_and_goal.
     + reflexivity.
     + repeat constructor.
     + reflexivity.
-Qed. 
+Qed.
 
-#[local] Definition MCFG l6 l3 l5 b0 l4 :=
+Local Lemma Γi'_bound : gamma_bound Γi'.
+Proof.
+  unfold gamma_bound.
+  intros.
+  unfold LidBound.lid_bound.
+  unfold VariableBinding.state_bound.
+  apply nth_error_In in H.
+  repeat invc_prop In; find_inversion.
+Qed.
+
+#[local] Definition MCFG l6 l5 b0 l4 :=
   (TLE_Global {|
                                g_ident := Name "a";
                                g_typ := TYPE_Array (Npos 3) TYPE_Double;
@@ -555,7 +766,7 @@ Qed.
                                   g_ident := Anon 1%Z;
                                   g_typ := TYPE_Array (Npos 1) TYPE_Double;
                                   g_constant := true;
-                                  g_exp := Some (EXP_Array l3);
+                                  g_exp := Some (EXP_Array [(TYPE_Double, EXP_Double MFloat64asCT.CTypeZero)]);
                                   g_linkage := None;
                                   g_visibility := None;
                                   g_dll_storage := None;
@@ -749,7 +960,7 @@ Definition MAINCFG := [{|
 
 Require Import Helix.LLVMGen.Vellvm_Utils.
 Definition mcfg_ctx := Vellvm_Utils.mcfg_ctx.
-Opaque MCFG MAIN MAINCFG DYNWIN GFUNC Γi mcfg_ctx.
+Opaque MCFG MAIN MAINCFG DYNWIN GFUNC mcfg_ctx.
 
 Ltac hide_MCFG l6 l3 l5 b0 l4 :=
   match goal with
@@ -798,23 +1009,6 @@ Ltac HIDE l6 l3 l5 b0 l4 dyn_addr main_addr
 
 Import ProofMode.
 
-Lemma heq_list_nil : heq_list [] [].
-Proof.
-  constructor.
-Qed.
-
-Lemma heq_list_app : forall l1 l2 l,
-    heq_list (l1 ++ l2) l ->
-    exists l1' l2', l ≡ l1' ++ l2' /\ heq_list l1 l1' /\ heq_list l2 l2'.
-Proof.
-  induction l1; intros.
-  - exists [], l; repeat split. apply heq_list_nil. apply H.
-  - destruct l as [| a' l]; inv H.
-    edestruct IHl1 as (l1' & l2' & ? & ? & ?); eauto.
-    exists (a' :: l1'), l2'; repeat split; subst; eauto.
-    constructor; auto.
-Qed.
-
 Set Printing Compact Contexts.
 
 Local Lemma numeric_suffix_must_exist:
@@ -831,34 +1025,123 @@ Proof.
   - eapply IdLemmas.string_of_nat_not_alpha.
 Qed.
 
-Local Lemma dropFakeVars_Gamma_eq :
+Local Lemma dropLocalVars_Gamma_eq :
   forall s1 s1' s2 s2',
-    dropFakeVars s1 ≡ inr (s1', ()) ->
-    dropFakeVars s2 ≡ inr (s2', ()) ->
+    dropLocalVars s1 ≡ inr (s1', ()) ->
+    dropLocalVars s2 ≡ inr (s2', ()) ->
     Γ s1  ≡ Γ s2 ->
     Γ s1' ≡ Γ s2'.
 Proof.
   intros.
   destruct s1; destruct s1'.
   destruct s2; destruct s2'.
-  unfold dropFakeVars in *.
+  unfold dropLocalVars in *.
   simpl in *.
   unfold ErrorWithState.option2errS in *.
   repeat (break_if; try discriminate).
   repeat (break_match; try discriminate).
   unfold ret in *; simpl in *.
   repeat find_inversion.
-  rewrite Heqo0 in Heqo2; find_inversion.
-  rewrite Heqo in Heqo1; find_inversion.
   reflexivity.
 Qed.
 
+#[local]
+Definition coe_Γi_Γi' (id : ident) : ident :=
+  match id with
+  | ID_Local "X0" => ID_Global (Anon 0%Z)
+  | ID_Local "Y1" => ID_Global (Anon 1%Z)
+  | _ => id
+  end.
+
+(*
+  Γ only contains variables we care about [existing compile time].
+  Others might exist at runtime, but Γ defines a subset of them.
+
+  Γi' is the state after allocation, but before the operator is called.
+  It has globals, but no local variables.
+  Γi is the state during operator evalution: it does contain local variables.
+*)
+Local Lemma state_invariant_Γi :
+  forall σ mem memI ρI ρI' gI a0 a1,
+    (* global environment must contain addresses for input and output *)
+    gI @ (Anon 0%Z) ≡ Some (DVALUE_Addr a0) ->
+    gI @ (Anon 1%Z) ≡ Some (DVALUE_Addr a1) ->
+
+    (* after we get inside the function, local environment will containan
+       two new local vars with addresses for input and output *)
+    ρI' @ (Name "X0") ≡ Some (UVALUE_Addr a0) ->
+    ρI' @ (Name "Y1") ≡ Some (UVALUE_Addr a1) ->
+
+    (* then the state invariant is preserved *)
+    state_invariant σ Γi' mem (memI, (ρI , gI)) ->
+    state_invariant σ Γi  mem (memI, (ρI', gI)).
+Proof.
+  intros * Hg0 Hg1 Hρ0 Hρ1 SINV.
+  destruct SINV.
+  constructor; try assumption.
+  - unfold memory_invariant in *.
+    intros.
+    specialize mem_is_inv with n v b τ (coe_Γi_Γi' x).
+    repeat (destruct n; try discriminate).
+    all: inv H0.
+    1: apply mem_is_inv; auto.
+    all: conclude mem_is_inv assumption.
+    all: conclude mem_is_inv auto.
+    all: apply IRState_is_WF in H as [id H].
+    all: destruct v; try (inv H; discriminate).
+    all: destruct mem_is_inv as (ptr & τ & ? & ? & ? & ?).
+    all: exists ptr, τ; break_and_goal; try assumption.
+    all: cbn in H2.
+    all: find_rewrite; find_inversion.
+    all: cbn.
+    all: assumption.
+  - unfold WF_IRState, evalContext_typechecks in *.
+    intros.
+    specialize IRState_is_WF with v n b.
+    apply IRState_is_WF in H.
+    destruct H.
+    repeat (destruct n; try discriminate).
+    all: cbn in H.
+    all: eexists.
+    all: cbn.
+    all: do 2 f_equal.
+    all: inv H.
+    all: destruct FHCOLITree.DSHType_of_DSHVal eqn:E in H2.
+    all: try discriminate.
+    all: try rewrite E.
+    all: rewrite H2.
+    all: reflexivity.
+  - unfold no_id_aliasing.
+    intros.
+    all: repeat (destruct n1; try discriminate).
+    all: repeat (destruct n2; try discriminate).
+    all: try reflexivity.
+    all: eapply st_no_id_aliasing; try eassumption.
+    all: unshelve (inv H1; inv H2); assumption.
+  - unfold no_llvm_ptr_aliasing_cfg, no_llvm_ptr_aliasing in *.
+    intros.
+    specialize st_no_llvm_ptr_aliasing with
+      (coe_Γi_Γi' id1) ptrv1
+      (coe_Γi_Γi' id2) ptrv2
+      n1 n2 τ τ' v1 v2 b b'.
+    all: repeat (destruct n1; try discriminate).
+    all: repeat (destruct n2; try discriminate).
+    all: inv H1; inv H2.
+    all: try contradiction.
+    all: apply st_no_llvm_ptr_aliasing; assumption || auto.
+    all: try (intro; discriminate).
+    all: cbn.
+    all: cbn in H4, H5.
+    all: repeat (find_rewrite; find_inversion).
+    all: assumption.
+  - apply Γi_bound.
+Qed.
 
 
 Lemma top_to_LLVM :
   forall (a : Vector.t CarrierA 3) (* parameter *)
     (x : Vector.t CarrierA dynwin_i) (* input *)
-    (y y' : Vector.t CarrierA dynwin_o), (* y - output; y' - any output-sized input *)
+    (y : Vector.t CarrierA dynwin_o), (* y - output *)
 
       (* Evaluation of the source program.
          The program is fixed and hard-coded: the result is not generic,
@@ -870,7 +1153,7 @@ Lemma top_to_LLVM :
       ∀
         (data : list binary64)
         (PRE : heq_list
-                 (Vector.to_list y' ++ Vector.to_list x ++ Vector.to_list a)
+                 (Vector.to_list a ++ Vector.to_list x)
                  data),
 
         (* the input data must be within bounds for numerical stability *)
@@ -885,7 +1168,7 @@ Proof.
 
   (* Specification of the initial memory on the helix side *)
   edestruct initial_memory_from_data
-    as (dynwin_F_memory & data_garbage & dynwin_F_σ & HINIT & RFM & RFΣ);
+    as (dynwin_F_memory & data_garbage & HINIT & RFM & RFΣ);
     try eassumption/g.
 
   (* The current statement gives us essentially FHCOL-level inputs and outputs,
@@ -910,24 +1193,22 @@ Proof.
   simpl in COMP.
   simp.
 
-  unfold initXYplaceholders in Heqs0; cbn in Heqs0.
+  unfold initIRGlobals in Heqs0; cbn in Heqs0.
   break_let; cbn in Heqs0.
-  break_let; cbn in Heqs0.
-  inv_sum/g.
-  cbn in Heqs1.
-  unfold initIRGlobals in Heqs1; cbn in Heqs1.
-  break_let; cbn in Heqs1.
-  cbv in Heqs1.
   inv_sum/g.
 
-  unfold LLVMGen in Heqs2.
+  unfold initXYplaceholders in Heqs3; cbn in Heqs3.
+  break_let; cbn in Heqs3.
+  inv_sum/g.
+
+  unfold LLVMGen in Heqs1.
   Opaque genIR.
-  cbn in Heqs2.
-  break_match; [inv_sum |]/g. (* Heqs0 : genIR DynWin_FHCOL_hard ("b" @@ "0" @@ "") Γi *)
-  break_and; cbn in Heqs2/g.
-  destruct s0/g.
+  cbn in Heqs1.
+  break_match; [inv_sum |]/g. (* genIR DynWin_FHCOL_hard ("b" @@ "0" @@ "") Γi *)
+  break_and; cbn in Heqs1/g.
+  destruct s/g.
   break_match; [inv_sum |]/g.
-  break_and; cbn in Heqs2/g.
+  break_and; cbn in Heqs0 /g.
   inv_sum/g.
   cbn.
 
@@ -941,19 +1222,20 @@ Proof.
 
   (* The context gets... quite big. We try to prevent it as much as possible early on *)
 
-  rename l1 into bks1, l4 into bks2.
+  rename l0 into bks1, l4 into bks2.
   rename b0 into bk.
-  rename l3 into exps1, l5 into exps2, l6 into exps3.
-  rename s into s1, i into s2, i1 into s3.
+  rename l2 into exps1, l3 into exps3.
+  rename i into s3, i0 into s2, i1 into s1.
 
-  rename Heqs0 into HgenIR.
-  fold Γi_XY in HgenIR.
+  assert (HgenIR : genIR DynWin_FHCOL_hard "b0" Γi ≡ inr (s3, (b, bks1)))
+    by apply Heqs; clear Heqs.
+  rename Heqs2 into Hdrop.
 
   replace s3 with s2 in *; revgoals.
-  { clear - Heqs1.
-    unfold body_non_empty_cast in Heqs1.
-    break_match; [destruct bks1; discriminate |].
-    invc Heqs1; auto. }
+  { clear - Heqs0.
+    unfold body_non_empty_cast in Heqs0.
+    break_match; [destruct bks2; discriminate |].
+    invc Heqs0; auto. }
 
   Tactic Notation "tmp" ident(exps3)
     ident(exps1)
@@ -966,9 +1248,7 @@ Proof.
   Ltac hide := tmp exps3 exps1 exps2 bk bks2 dyn_addr main_addr.
   hide.
 
-  apply heq_list_app in PRE as (Y & tmp & -> & EQY & EQtmp).
-  apply heq_list_app in EQtmp as (X & A & -> & EQX & EQA).
-
+  apply heq_list_app in PRE as (A & X & -> & EQA & EQX).
 
   (* match type of INIT_MEM with *)
   (* | context[mcfg_of_tle ?x] => remember x as tmp; cbn in Heqtmp; subst tmp *)
@@ -984,33 +1264,50 @@ Proof.
   destruct fun_decl_inv as [(main_addr & EQmain) (dyn_addr & EQdyn)].
   cbn in EQdyn.
 
+  destruct anon_decl_inv as [(a0_addr & EQa0) (a1_addr & EQa1)].
+
+  set (ρI' := (alist_add (Name "Y1") (UVALUE_Addr a1_addr)
+              (alist_add (Name "X0") (UVALUE_Addr a0_addr) ρI))).
+
   (* We are getting closer to business: instantiating the lemma
      stating the correctness of the compilation of operators *)
   unshelve epose proof
     @compile_FSHCOL_correct _ _ _ dynwin_F_σ dynwin_F_memory _ _
-                            (blk_id bk) _ gI ρI memI HgenIR _ _ _ _
+                            (blk_id bk) _ gI ρI' memI HgenIR _ _ _ _
     as RES.
-  - admit.
-  -
-    unfold bid_bound, VariableBinding.state_bound.
+  - clear - EQ.
+    unfold no_failure, has_post.
+    apply eutt_EQ_REL_Reflexive_.
+    intros * [H1 H2] H; subst.
+    apply eutt_ret_inv_strong' in EQ as [[m ()] [EQ _]].
+    rewrite interp_mem_interp_helix_ret_eq in H2.
+    + apply Returns_Ret in H2; inv H2.
+    + rewrite EQ; apply eutt_Ret; auto.
+  - unfold bid_bound, VariableBinding.state_bound.
     exists "b",
-      {| block_count := 0; local_count := 0; void_count := 0; Γ := Γ Γi_XY |},
-      {| block_count := 1; local_count := 0; void_count := 0; Γ := Γ Γi_XY |}.
+      {| block_count := 0; local_count := 0; void_count := 0; Γ := Γ Γi |},
+      {| block_count := 1; local_count := 0; void_count := 0; Γ := Γ Γi |}.
     cbn; auto.
-  -
-    destruct state_inv.
-    eexists; eauto.
-    (* the following goals could be proven based on
-       some relation between Γi and s1 *)
-    + admit.
-    + admit.
-    + admit.
-    + admit.
-    + apply Γi_XY_bound.
+  - clear - state_inv HgenIR Hdrop EQa0 EQa1.
+    eapply state_invariant_Γi with (ρI := ρI); eassumption || auto.
+    eapply state_invariant_Γ'.
+    + eassumption.
+    + cbn.
+      replace (Γ s1) with
+        [(ID_Global "a", TYPE_Pointer (TYPE_Array (Npos 3) TYPE_Double))];
+        [reflexivity |].
+      erewrite dropLocalVars_Gamma_eq with (s1 := s2) (s2 := Γi); revgoals.
+      * symmetry.
+        eapply Context.genIR_Γ.
+        eassumption.
+      * cbn.
+        reflexivity.
+      * assumption.
+      * reflexivity.
+    + apply Γi'_bound.
   - unfold Gamma_safe.
-    intros id B.
-    clear - B.
-    intros NB.
+    intros id B NB.
+    clear - B NB.
     dep_destruct NB.
     clear NB w e v.
     rename e0 into H0.
@@ -1022,8 +1319,7 @@ Proof.
     repeat (destruct n; try discriminate).
     + cbn in H0.
       invc H0.
-      assert ("Y1" ≡ "Y" @@ string_of_nat 1) by auto.
-      rewrite H in H1; clear H.
+      replace "Y1" with ("Y" @@ string_of_nat 1) in H1 by auto.
       destruct name.
       { unfold append in H1 at 2.
         pose proof IdLemmas.string_of_nat_not_alpha (local_count s').
@@ -1048,8 +1344,7 @@ Proof.
       invc H3.
     + cbn in H0.
       invc H0.
-      assert ("X0" ≡ "X" @@ string_of_nat 0) by auto.
-      rewrite H in H1; clear H.
+      replace "X0" with ("X" @@ string_of_nat 0) in H1 by auto.
       destruct name.
       { unfold append in H1 at 2.
         pose proof IdLemmas.string_of_nat_not_alpha (local_count s').
@@ -1093,7 +1388,7 @@ Proof.
        symbolic execution to figure out what statement
        we need precisely.
      *)
-    assert (forall x, semantics_llvm (MCFG exps3 exps1 exps2 bk bks2) ≈ x).
+    assert (forall x, semantics_llvm (MCFG exps3 exps1 bk bks2) ≈ x).
     { intros ?.
 
       unfold semantics_llvm, semantics_llvm_mcfg, model_to_L3, denote_vellvm_init, denote_vellvm.
@@ -1258,7 +1553,6 @@ Proof.
        *)
 
       Import AlistNotations.
-      assert (exists add0, gI @ Anon 0%Z ≡ Some (DVALUE_Addr add0)) as [add0 ?] by admit.
       rewrite denote_mcfg_ID_Global; cycle 1.
       eassumption.
 
@@ -1271,7 +1565,6 @@ Proof.
         |- context [interp_mrec ?x] => remember x as ctx
       end.
       rewrite !translate_bind, !interp_mrec_bind,!interp3_bind, !bind_bind.
-      assert (exists add1, gI @ Anon 1%Z ≡ Some (DVALUE_Addr add1)) as [add1 ?] by admit.
       rewrite denote_mcfg_ID_Global; cycle 1.
       eassumption.
       rewrite !bind_ret_l, translate_ret, interp_mrec_ret, interp3_ret, bind_ret_l.
@@ -1299,14 +1592,14 @@ Proof.
       unfold DYNWIN at 1.
       cbn[df_instrs blks cfg_of_definition fst snd].
 
-      match type of Heqs1 with
+      match type of Heqs0 with
       | body_non_empty_cast ?x ?s1 ≡ inr (?s2, (?bk, ?bks)) => assert (EQbks: bk :: bks2 ≡ x /\ s1 ≡ s2)
       end.
       {
-        clear - Heqs1.
-        destruct bks1; cbn in *; inv Heqs1; intuition.
+        clear - Heqs0.
+        destruct bks1; cbn in *; inv Heqs0; intuition.
       }
-      clear Heqs1.
+      clear Heqs0.
       destruct EQbks as [EQbks _].
       rewrite EQbks.
       unfold TFunctor_list'; rewrite map_app.

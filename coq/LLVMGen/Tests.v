@@ -155,7 +155,7 @@ Definition all_tests :=
   {| i:=Int64_4; o:=Int64_2; name:="binop_less"; op:=BinOp_less_test; globals:=[] |} ;
   {| i:=Int64_4; o:=Int64_2; name:="binop_plus"; op:=BinOp_plus_test; globals:=[] |} ;
   {| i:=Int64_2; o:=Int64_1; name:="ireduction"; op:=IReduction_test; globals:=[] |} ;
-  {| i:=Int64_5; o:=Int64_7; name:="nop"; op:=Nop_test; globals:=[] |} ;
+  {| i:=Int64_4; o:=Int64_2; name:="nop"; op:=Nop_test; globals:=[] |} ;
   {| i:=Int64_4; o:=Int64_2; name:="iunion"; op:=IUnion_test; globals:=[] |} ;
   {| i:=Int64_1; o:=Int64_1; name:="inductor"; op:=Inductor_test; globals:=[] |} ;
   {| i:=Int64_4; o:=Int64_4; name:="sumunion"; op:=SUMUnion_test; globals:=[("D", DSHPtr Int64_4)] |} ;
@@ -211,7 +211,7 @@ Definition evalFSHCOLOperator
     '(mem, data, σ) <- helix_initial_memory p data ;;
     match evalDSHOperator σ op mem (estimateFuel op) with
     | Some (inr mem) =>
-      let Y_nat : nat := S (length globals) in
+      let Y_nat : nat := length globals in
       yb <- trywith "No output memory block" (memory_lookup mem Y_nat) ;;
       mem_to_list "Invalid output memory block" (MInt64asNT.to_nat o) yb
     | Some (inl msg) => inl msg

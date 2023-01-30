@@ -45,6 +45,10 @@ steps:
       webhook:
         from_secret: slack_webhook
       channel: bitbucket-activity
+    when:
+      status:
+      - failure
+      - success
 
 volumes:
   - name: dockersock

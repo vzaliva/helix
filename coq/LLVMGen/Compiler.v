@@ -169,6 +169,16 @@ Definition addVars (newvars: list (ident * typ)): cerr unit :=
       Γ := newvars ++ Γ st
     |}.
 
+Definition appendVars (newvars: list (ident * typ)): cerr unit :=
+  st <- get ;;
+  put
+    {|
+      block_count := block_count st ;
+      local_count := local_count st ;
+      void_count  := void_count st ;
+      Γ := Γ st ++ newvars
+    |}.
+
 Definition newLocalVar (t:typ) (prefix:string): (cerr raw_id) :=
   st <- get ;;
   let v := Name (prefix @@ string_of_nat (local_count st)) in
@@ -1272,12 +1282,12 @@ Definition initIRGlobals
    When code genration generates [main], the input
    will be stored in pre-initialized [X] global placeholder variable.
  *)
-Definition initXYplaceholders (i o:Int64.int) (data:list binary64) x xtyp y ytyp:
+Definition initXYplaceholders (i o: Int64.int) (data:list binary64) x xtyp y ytyp:
   cerr (list binary64 * (LLVMAst.toplevel_entities _ (LLVMAst.block typ * list (LLVMAst.block typ))))
   :=
-    let '(data,ydata) := constArray (MInt64asNT.to_nat o) data in
+    let ydata := repeat (TYPE_Double, EXP_Double 0.0) (MInt64asNT.to_nat o) in
     let '(data,xdata) := constArray (MInt64asNT.to_nat i) data in
-    addVars [(ID_Global y, TYPE_Pointer ytyp); (ID_Global x, TYPE_Pointer xtyp)] ;;
+    appendVars [(ID_Global y, TYPE_Pointer ytyp); (ID_Global x, TYPE_Pointer xtyp)] ;;
     ret (data,[ TLE_Global
         {|
           g_ident        := y;
@@ -1369,22 +1379,17 @@ Definition genMain
                                |}, [])
           |}].
 
-
-(* Drop 2 vars before the last 2 in Γ *)
-Definition dropFakeVars: cerr unit :=
+(* Drop the last 2 vars in Γ - corresponds to the operator's local vars *)
+Definition dropLocalVars: cerr unit :=
   st <- get ;;
   let l := List.length (Γ st) in
-  if Nat.ltb l 4 then raise "Γ too short"
+  if Nat.ltb l 2 then raise "Γ too short"
   else
-    '(globals, Γ') <- option2errS "Γ too short"
-                                 (ListUtil.split (Γ st) (l-4)) ;;
-    '(_, Γ'') <- option2errS "Γ too short"
-                            (ListUtil.split Γ' 2) ;;
     put {|
         block_count := block_count st ;
         local_count := local_count st ;
         void_count  := void_count st ;
-        Γ := (globals ++ Γ'')
+        Γ := firstn (l - 2) (Γ st)
       |}.
 
 Definition not_in_globals (g: list (string * DSHType)) (n:string) : bool
@@ -1430,18 +1435,6 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
         (* Γ = [globals; y; x] *)
         ret (ginit ++ prog)
       else
-        (* Global placeholders for X,Y.
-           These will be accessed by [main] and passed to the operator. *)
-        let gx := Anon 0%Z in
-        let gxtyp := getIRType (DSHPtr i) in
-        let gxptyp := TYPE_Pointer gxtyp in
-
-        let gy := Anon 1%Z in
-        let gytyp := getIRType (DSHPtr o) in
-        let gyptyp := TYPE_Pointer gytyp in
-
-        '(data,yxinit) <- initXYplaceholders i o data gx gxtyp gy gytyp ;;
-        (* Γ = [fake_y; fake_x] *)
 
         (* While generate operator's function body, add parameters as
          locals X=PVar 1, Y=PVar 0.
@@ -1453,23 +1446,37 @@ Definition compile (p: FSHCOLProgram) (just_compile:bool) (data:list binary64): 
         let ytyp := TYPE_Pointer (getIRType (DSHPtr o)) in
 
         addVars [(ID_Local y, ytyp);(ID_Local x, xtyp)] ;;
-        (* Γ = [y; x; fake_y; fake_x] *)
+        (* Γ = [y; x] *)
 
         (* Global variables *)
         '(data,ginit) <- initIRGlobals data globals ;;
-        (* Γ = [globals; y; x; fake_y; fake_x] *)
+        (* Γ = [globals; y; x] *)
 
         (* operator function *)
         prog <- LLVMGen i o x y op name ;;
+        (* Γ = [globals; y; x] *)
 
         (* After generation of operator function, we no longer need
          [x] and [y] in [Γ]. *)
+        dropLocalVars ;;
+        (* Γ = [globals] *)
 
-        dropFakeVars ;;
+        (* Global placeholders for X,Y.
+           These will be accessed by [main] and passed to the operator. *)
+        let gx := Anon 0%Z in
+        let gxtyp := getIRType (DSHPtr i) in
+        let gxptyp := TYPE_Pointer gxtyp in
+
+        let gy := Anon 1%Z in
+        let gytyp := getIRType (DSHPtr o) in
+        let gyptyp := TYPE_Pointer gytyp in
+
+        '(data,yxinit) <- initXYplaceholders i o data gx gxtyp gy gytyp ;;
         (* Γ = [globals; fake_y; fake_x] *)
 
         (* Main function *)
         let main := genMain name gx gxptyp gy gytyp gyptyp in
+
         ret (ginit ++ yxinit ++ prog ++ main)
     else
       raise "invalid program name"

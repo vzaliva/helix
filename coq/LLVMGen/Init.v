@@ -2836,15 +2836,13 @@ Lemma initXYplaceholders_data
       t
   :
     initXYplaceholders i o data xid x yid y s ≡ inr (s', (data', t)) ->
-    data' ≡ rotateN (MInt64asNT.to_nat i + MInt64asNT.to_nat o) data.
+    data' ≡ rotateN (MInt64asNT.to_nat i) data.
 Proof.
   intros I.
   unfold initXYplaceholders in *.
   repeat break_match; invc I.
   apply constArray_data in Heqp.
-  apply constArray_data in Heqp0.
-  subst.
-  apply rotateN_add.
+  subst; auto.
 Qed.
 
 Ltac simpl_data :=
@@ -3748,7 +3746,7 @@ Proof.
   repeat break_match_hyp ; try inl_inr.
   rename Heqp0 into Co, Heqp1 into Ci.
   inv HI.
-  rename m1 into mg, Heqs0 into G.
+  rename m into mg, Heqs0 into G.
   cbn in LI.
   unfold ErrorWithState.option2errS in *.
   unfold initFSHGlobals in *.
@@ -3758,24 +3756,33 @@ Proof.
   destruct (valid_program _) eqn:VFN.
   2: inversion LI.
 
+  (*
   repeat break_match_hyp; try inl_inr;
-    inv LI; repeat inv_sum; inv Heqs5; inv Heqs4.
-  rename Heqs0 into LX, Heqs1 into LG, Heqs6 into IR, Heqs8 into BC, l3 into gdecls.
+    inv LI; repeat inv_sum.
+  rename Heqs3 into LX, Heqs0 into LG, Heqs4 into IR, Heqs6 into BC, l2 into gdecls.
+  cbn in LG.
+  (*
   rename Heqo1 into Sg. (* split globals *)
   rename Heqo0 into Sxy. (* split fake_x, fake_y *)
+   *)
 
-  (*  [s0] - state after [initXYplaceholders] *)
+  (* [s0] - state after [initIRGlobals],
+     Γ = [globals; y; x] ([y, x] added "inline" earlier *)
   rename i0 into s0.
-  (*  [s1] - state after [initIRGlobals], which
-      was generated starting with X,Y arguments added to [s0] *)
-  rename i1 into s1.
-  (*  [s2] - state after [genIR] *)
-  rename i6 into s2.
-  (*  [s3] - the final state. (after [body_non_empty_cast]) *)
-  rename i5 into s3.
+  (* [s1] - state after [genIR],
+     Γ = [globals; y; x] (unchanged) *)
+  rename i4 into s1.
+  (* [s2] - state after [body_non_empty_cast]) *)
+  rename i1 into s2.
+  (* [s3] - state after [initXYplaceholders] *)
+  rename s into s3.
 
-  (* [s3] contains two local for X,Y parameter which we drop: *)
+  copy_apply body_non_empty_cast_preserves_st BC.
+  subst s2.
 
+  (* [s3] contains two locals for X,Y parameter which we drop: *)
+
+  (*
   rename l5 into Γ_globals.
   (* these ones are dropped *)
   rename l8 into Γ_fake_xy,
@@ -3797,9 +3804,7 @@ Proof.
   invc Sxy.
   apply ListUtil.split_correct in Sg.
   rename Sg into Vs3.
-
-  copy_apply body_non_empty_cast_preserves_st BC.
-  subst s3.
+   *)
 
   repeat rewrite app_assoc.
   unfold build_global_environment.
@@ -3812,10 +3817,10 @@ Proof.
   simpl.
   (* no more [genMain] *)
 
-  destruct s2.
+  destruct s1.
 
-  rename m into mo, m0 into mi.
-  rename p13 into body_instr.
+  rename m0 into mo, m1 into mi.
+  rename p7 into body_instr.
 
   cbn in *.
 
@@ -3862,7 +3867,7 @@ Proof.
     inv LX.
 
     clear - LG.
-    rename l1 into data, l2 into data'.
+    rename l1 into data'.
     revert gdecls data data' LG.
     unfold initIRGlobals.
 
@@ -3871,13 +3876,9 @@ Proof.
     generalize [(ID_Local (Name ("Y" @@ "1" @@ "")),
                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
                 (ID_Local (Name ("X" @@ "0" @@ "")),
-                 TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double));
-                (ID_Global (Anon 1%Z),
-                 TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
-                (ID_Global (Anon 0%Z),
                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))]
       as v.
-    generalize dependent s1.
+    generalize dependent s0.
     induction globals; intros s v gdecls data data' H.
     -
       cbn in *.
@@ -3923,7 +3924,7 @@ Proof.
     inv LX.
 
     clear - LG.
-    rename l1 into data, l2 into data'.
+    rename l1 into data'.
     revert gdecls data data' LG.
     unfold initIRGlobals.
 
@@ -3932,13 +3933,9 @@ Proof.
     generalize [(ID_Local (Name ("Y" @@ "1" @@ "")),
                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
                 (ID_Local (Name ("X" @@ "0" @@ "")),
-                 TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double));
-                (ID_Global (Anon 1%Z),
-                 TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
-                (ID_Global (Anon 0%Z),
                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))]
       as v.
-    generalize dependent s1.
+    generalize dependent s0.
     induction globals; intros s v gdecls data data' H.
     -
       cbn in *.
@@ -3986,7 +3983,7 @@ Proof.
     inv LX.
 
     clear - LG.
-    rename l1 into data, l2 into data'.
+    rename l1 into data'.
     revert gdecls data data' LG.
     unfold initIRGlobals.
 
@@ -3995,13 +3992,9 @@ Proof.
     generalize [(ID_Local (Name ("Y" @@ "1" @@ "")),
                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
                 (ID_Local (Name ("X" @@ "0" @@ "")),
-                 TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double));
-                (ID_Global (Anon 1%Z),
-                 TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
-                (ID_Global (Anon 0%Z),
                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))]
       as v.
-    generalize dependent s1.
+    generalize dependent s0.
     induction globals; intros s v gdecls data data' H.
     -
       cbn in *.
@@ -4254,8 +4247,10 @@ Proof.
 
   subst LHS REL.
   destruct p0 as [le0 stack0].
-  destruct x as [x_id x_typ].
+  (* CARE: destruct x as [x_id x_typ]. *)
 
+  rename Γ into Γ1.
+  remember (firstn (Datatypes.length Γ1 - 2) Γ1) as Γ_globals.
   remember (Datatypes.length globals) as lg.
 
   remember
@@ -4333,8 +4328,8 @@ Proof.
             globals ≡ pre ++ post ->
             gdecls ≡ gdecls1 ++ gdecls2 ->
             initIRGlobals_rev l1 pre s_yx ≡ inr (s', (l', gdecls1)) ->
-            initIRGlobals_rev l' post s' ≡ inr (rev_firstn_Γ (length globals) s1,
-                                                (l2, gdecls2)) ->
+            initIRGlobals_rev l' post s' ≡ inr (rev_firstn_Γ (length globals) s0,
+                                                (l1, gdecls)) ->
             alloc_glob_decl_inv_mcfg pre (mg, ())
                                       (m, (le0, stack0, (g, ()))) ->
             eutt (alloc_glob_decl_inv_mcfg  (pre ++ post))
@@ -4357,6 +4352,11 @@ Proof.
           simpl in LX.
           invc LX.
           invc PRE.
+          cbn.
+          repeat f_equal.
+          f_equal.
+          f_equal.
+          constructor.
           reflexivity.
         }
         {
@@ -7706,7 +7706,7 @@ Proof.
             destruct NTH as [[_ C] | [_ C]];
               inv C.
       *
-        apply DECL_INV.
+        apply DECL_INV. *)
 Admitted.
 
 (* with init step  *)
