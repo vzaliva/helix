@@ -3,9 +3,6 @@ kind: pipeline
 type: docker
 name: default
 
-environment:
-  BUILD_IMAGE: cache--${DRONE_REPO_NAME}--${DRONE_BRANCH}
-
 steps:
   - name: submodules
     image: alpine/git
@@ -18,27 +15,27 @@ steps:
       - name: dockersock
         path: /var/run/docker.sock
     commands:
-      - docker build --no-cache -t . ${BUILD_IMAGE}
+      - docker build --no-cache -t cache-${DRONE_REPO_NAME}-${DRONE_BRANCH} .
     when:
       event:
         - cron
       cron:
-        - rebuild-cache-${DRONE_BRANCH}
+        - rebuild-cache-{{ .build.branch }}
 
   - name: build-vellvm
-    image: ${BUILD_IMAGE}
+    image: cache-${DRONE_REPO_NAME}-${DRONE_BRANCH}
     pull: never
     commands:
       - opam exec -- make -j 1 vellvm
 
   - name: compile-helix
-    image: ${BUILD_IMAGE}
+    image: cache-${DRONE_REPO_NAME}-${DRONE_BRANCH}
     pull: never
     commands:
       - opam exec -- make
 
   - name: test-helix
-    image: ${BUILD_IMAGE}
+    image: cache-${DRONE_REPO_NAME}-${DRONE_BRANCH}
     pull: never
     commands:
       - opam exec -- make test
