@@ -20,7 +20,7 @@ steps:
       event:
         - cron
       cron:
-        - rebuild-cache-{{ .build.branch }}
+        - rebuild-cache-${DRONE_BRANCH}
 
   - name: build-vellvm
     image: cache-${DRONE_REPO_NAME}-${DRONE_BRANCH}
