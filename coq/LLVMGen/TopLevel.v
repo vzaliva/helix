@@ -1269,6 +1269,24 @@ Proof.
   set (ρI' := (alist_add (Name "Y1") (UVALUE_Addr a1_addr)
               (alist_add (Name "X0") (UVALUE_Addr a0_addr) ρI))).
 
+  eassert (state_inv' : state_invariant _ Γi _ (memI, (ρI', gI))).
+  { eapply state_invariant_Γi with (ρI := ρI); eassumption || auto.
+    eapply state_invariant_Γ'.
+    - eassumption.
+    - cbn.
+      replace (Γ s1) with
+        [(ID_Global "a", TYPE_Pointer (TYPE_Array (Npos 3) TYPE_Double))];
+        [reflexivity |].
+      erewrite dropLocalVars_Gamma_eq with (s1 := s2) (s2 := Γi); revgoals.
+      + symmetry.
+        eapply Context.genIR_Γ.
+        eassumption.
+      + cbn.
+        reflexivity.
+      + assumption.
+      + reflexivity.
+    - apply Γi'_bound. }
+
   (* We are getting closer to business: instantiating the lemma
      stating the correctness of the compilation of operators *)
   unshelve epose proof
@@ -1288,23 +1306,7 @@ Proof.
       {| block_count := 0; local_count := 0; void_count := 0; Γ := Γ Γi |},
       {| block_count := 1; local_count := 0; void_count := 0; Γ := Γ Γi |}.
     cbn; auto.
-  - clear - state_inv HgenIR Hdrop EQa0 EQa1.
-    eapply state_invariant_Γi with (ρI := ρI); eassumption || auto.
-    eapply state_invariant_Γ'.
-    + eassumption.
-    + cbn.
-      replace (Γ s1) with
-        [(ID_Global "a", TYPE_Pointer (TYPE_Array (Npos 3) TYPE_Double))];
-        [reflexivity |].
-      erewrite dropLocalVars_Gamma_eq with (s1 := s2) (s2 := Γi); revgoals.
-      * symmetry.
-        eapply Context.genIR_Γ.
-        eassumption.
-      * cbn.
-        reflexivity.
-      * assumption.
-      * reflexivity.
-    + apply Γi'_bound.
+  - apply state_inv'.
   - unfold Gamma_safe.
     intros id B NB.
     clear - B NB.
@@ -1366,7 +1368,6 @@ Proof.
         symmetry.
         eassumption. }
       invc H3.
-  (* VADIM : side obligations might be (relatively) gentle here *)
   - (* Assuming we can discharge all the preconditions,
        we prove here that it is sufficient for establishing
        our toplevel correctness statement.
@@ -1442,7 +1443,6 @@ Proof.
          recursive fixpoint in order to jump into the body of the main.
        *)
       rewrite denote_mcfg_unfold_in; cycle -1.
-
       {
         unfold GFUNC at 1.
         unfold lookup_defn.
@@ -1452,7 +1452,21 @@ Proof.
            are distinct. Might be hidden somewhere in the context.
          *)
         (* MARK VADIM TODO: declarations_invariant must specify the names are distinct (Vadim?) *)
-        admit. (* addresses are distincts *)
+        clear - state_inv' EQmain EQdyn.
+        intro H; inv H.
+        apply st_no_llvm_ptr_aliasing in state_inv'.
+        eapply state_inv' with
+          (id1 := ID_Global "main")
+          (id2 := ID_Global "dyn_win")
+        ; revgoals.
+        - reflexivity.
+        - apply EQdyn.
+        - apply EQmain.
+        - discriminate.
+        - admit.
+        - admit.
+        - admit.
+        - admit.
       }
 
       cbn.
