@@ -9,20 +9,20 @@ steps:
     commands:
       - git submodule update --init --recursive
 
-  - name: test-basic-env
+  - name: test-env
     image: docker
     commands:
-      - echo $DRONE_BRANCH
+      - echo '${DRONE_BRANCH}'
 
   - name: test-fancy-env: ${DRONE_BRANCH}
     image: docker
     commands:
-      - echo $DONE_BRANCH
+      - echo cool
 
   - name: test-fancier-env
     image: ${DRONE_BRANCH}
     commands:
-      - echo $DONE_BRANCH
+      - echo cooler
 
   # - name: rebuild-cache
   #   image: docker
