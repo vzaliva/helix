@@ -9,23 +9,33 @@ steps:
     commands:
       - git submodule update --init --recursive
 
-  - name: test-variables
+  - name: test-basic-env
     image: docker
     commands:
-      - echo {{ .repo.uid }}
+      - echo $DRONE_BRANCH
 
-  - name: rebuild-cache
+  - name: test-fancy-env: ${DRONE_BRANCH}
     image: docker
-    volumes:
-      - name: dockersock
-        path: /var/run/docker.sock
     commands:
-      - docker build --no-cache -t cache-{{ .repo.name }}-{{ .build.branch }} .
-    when:
-      event:
-        - cron
-      cron:
-        - rebuild-cache-{{ .build.branch }}
+      - echo $DONE_BRANCH
+
+  - name: test-fancier-env
+    image: ${DRONE_BRANCH}
+    commands:
+      - echo $DONE_BRANCH
+
+  # - name: rebuild-cache
+  #   image: docker
+  #   volumes:
+  #     - name: dockersock
+  #       path: /var/run/docker.sock
+  #   commands:
+  #     - docker build --no-cache -t cache-{{ .repo.name }}-{{ .build.branch }} .
+  #   when:
+  #     event:
+  #       - cron
+  #     cron:
+  #       - rebuild-cache-{{ .build.branch }}
 
   - name: build-vellvm
     image: cache-{{ .repo.name }}-{{ .build.branch }}
