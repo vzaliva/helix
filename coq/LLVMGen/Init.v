@@ -3737,7 +3737,7 @@ Lemma memory_invariant_after_init
       (Ret (hmem, ()))
       (interp_mcfg3 (build_global_environment (convert_types (mcfg_of_tle pll)))
                     [] ([],[]) empty_memory_stack).
-Proof.
+Proof. (*
   intros hmem σ s hdata pll [HI LI].
 
   unfold post_init_invariant_mcfg.
@@ -3756,10 +3756,9 @@ Proof.
   destruct (valid_program _) eqn:VFN.
   2: inversion LI.
 
-  (*
   repeat break_match_hyp; try inl_inr;
     inv LI; repeat inv_sum.
-  rename Heqs3 into LX, Heqs0 into LG, Heqs4 into IR, Heqs6 into BC, l2 into gdecls.
+  rename Heqs3 into LX, Heqs0 into LG, Heqs4 into IR, Heqs6 into BC, l1 into gdecls.
   cbn in LG.
   (*
   rename Heqo1 into Sg. (* split globals *)
@@ -3819,7 +3818,7 @@ Proof.
 
   destruct s1.
 
-  rename m0 into mo, m1 into mi.
+  rename m0 into mi.
   rename p7 into body_instr.
 
   cbn in *.
@@ -3867,7 +3866,7 @@ Proof.
     inv LX.
 
     clear - LG.
-    rename l1 into data'.
+    rename l0 into data'.
     revert gdecls data data' LG.
     unfold initIRGlobals.
 
@@ -3924,7 +3923,7 @@ Proof.
     inv LX.
 
     clear - LG.
-    rename l1 into data'.
+    rename l0 into data'.
     revert gdecls data data' LG.
     unfold initIRGlobals.
 
@@ -3983,7 +3982,7 @@ Proof.
     inv LX.
 
     clear - LG.
-    rename l1 into data'.
+    rename l0 into data'.
     revert gdecls data data' LG.
     unfold initIRGlobals.
 
@@ -4039,12 +4038,12 @@ Proof.
   assert (FB : (LHS ≈ LHS ;; LHS)%monad); [| rewrite FB; clear FB].
   {
     subst LHS.
-    generalize (memory_set (memory_set mg (S (Datatypes.length globals)) mo)
-        (Datatypes.length globals) mi, ()).
+    generalize (FHCOL.memory_set (FHCOL.memory_set mg
+                                    (Datatypes.length globals) FHCOL.mem_empty)
+                  (S (Datatypes.length globals)) mi).
     clear.
-    generalize (memoryH * ())%type.
     cbn.
-    intros A a.
+    intros.
     rewrite Eq.bind_ret_l.
     reflexivity.
   }
@@ -4061,8 +4060,9 @@ Proof.
     subst LHS.
     clear - VFN.
     generalize dependent
-               (memory_set (memory_set mg (S (Datatypes.length globals)) mo)
-                           (Datatypes.length globals) mi, ());
+               (FHCOL.memory_set
+          (FHCOL.memory_set mg (Datatypes.length globals) FHCOL.mem_empty)
+          (S (Datatypes.length globals)) mi);
       intro p.
     eutt_hide_rel R.
 
@@ -4247,7 +4247,7 @@ Proof.
 
   subst LHS REL.
   destruct p0 as [le0 stack0].
-  (* CARE: destruct x as [x_id x_typ]. *)
+  destruct x as [x_id x_typ].
 
   rename Γ into Γ1.
   remember (firstn (Datatypes.length Γ1 - 2) Γ1) as Γ_globals.
@@ -4277,13 +4277,11 @@ Proof.
    *)
   apply eutt_clo_bind with (UU:=post_alloc_invariant_mcfg').
   - (* allocate (globals ++ yx) *)
-    assert (T : Ret (memory_set (memory_set mg (S lg) mo) lg mi, ())
+    assert (T : Ret ((FHCOL.memory_set (FHCOL.memory_set mg lg FHCOL.mem_empty) (S lg) mi), ())
                 ≈
                 ITree.bind (E:=E_mcfg)
                             (ret (mg, ()))
-                            (fun mg' => ret (memory_set
-                                            (memory_set (fst mg') (S lg) mo)
-                                            lg mi, ())))
+                            (fun mg' => ret (FHCOL.memory_set (FHCOL.memory_set (fst mg') lg FHCOL.mem_empty) (S lg) mi, ())))
       by (cbn; now rewrite Eq.bind_ret_l).
     rewrite T; clear T.
 
@@ -4312,24 +4310,38 @@ Proof.
     + (* allocate globals *)
       subst.
 
+      (*
       fold_map_monad_.
+      match goal with
+      | |- context [map_monad_ allocate_global ?g] =>
+          remember g as globs
+      end.
+      replace (map_monad_ allocate_global globs)
+        with (allocate_globals globs)
+        by reflexivity.
+      pose proof (allocate_globals_spec globs) as YNAGS.
+       *)
+
+      fold allocate_globals.
 
       remember {|
-          block_count := Compiler.block_count s0;
-          local_count := S (S (Compiler.local_count s0));
-          void_count := Compiler.void_count s0;
-          Γ := (ID_Local (Name "Y1"), TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double))
-               :: (ID_Local (Name "X0"),
-                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double)) ::
-                  Γ s0 |} as s_yx.
+           block_count := 0;
+           local_count := 2;
+           void_count := 0;
+           Γ :=
+             [(ID_Local (Name ("Y" @@ "1" @@ "")),
+              TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
+             (ID_Local (Name ("X" @@ "0" @@ "")),
+             TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))]
+         |} as s_yx.
 
       enough (
-          forall pre post gdecls1 gdecls2 s' l',
+          forall pre post gdecls1 gdecls2 s' data',
             globals ≡ pre ++ post ->
             gdecls ≡ gdecls1 ++ gdecls2 ->
-            initIRGlobals_rev l1 pre s_yx ≡ inr (s', (l', gdecls1)) ->
-            initIRGlobals_rev l' post s' ≡ inr (rev_firstn_Γ (length globals) s0,
-                                                (l1, gdecls)) ->
+            initIRGlobals_rev data pre s_yx ≡ inr (s', (data', gdecls1)) ->
+            initIRGlobals_rev data' post s' ≡ inr (rev_firstn_Γ (length globals) s0,
+                                                (l0, gdecls2)) ->
             alloc_glob_decl_inv_mcfg pre (mg, ())
                                       (m, (le0, stack0, (g, ()))) ->
             eutt (alloc_glob_decl_inv_mcfg  (pre ++ post))
@@ -4343,22 +4355,9 @@ Proof.
         apply initIRGlobals_inr in LG.
         replace (globals) with ([] ++ globals) in * by reflexivity.
         apply initIRGlobals_rev_app_inv in LG.
-        destruct LG as (l' & s' & gdecls1 & gdecls2 & PRE & POST & GDECLS).
-        specialize (H0 [] globals gdecls1 gdecls2 s' l').
+        destruct LG as (data' & s' & gdecls1 & gdecls2 & PRE & POST & GDECLS).
+        specialize (H0 [] globals gdecls1 gdecls2 s' data').
         full_autospecialize H0; try congruence.
-        { clear - PRE LX Heqs_yx.
-          unfold initXYplaceholders, newState in LX.
-          do 2 break_let.
-          simpl in LX.
-          invc LX.
-          invc PRE.
-          cbn.
-          repeat f_equal.
-          f_equal.
-          f_equal.
-          constructor.
-          reflexivity.
-        }
         {
           cbn.
           unfold allocated_globals.
@@ -4384,7 +4383,8 @@ Proof.
       generalize dependent stack0.
       generalize dependent m.
       induction post;
-        intros m stack0 le0 g DI pre gdecls1 gdecls2 s' l' GLOBALS GDECLS PRE POST INV.
+        intros m stack0 le0 g DI pre gdecls1 gdecls2 s' l'
+          GLOBALS GDECLS PRE POST INV.
       *
         inv POST.
         cbn.
@@ -4401,7 +4401,7 @@ Proof.
         rename l5 into gdecls2', t0 into g2';
           subst gdecls2.
         subst p p0 p1 p2 p3.
-        subst i2 l4.
+        subst i2 l2.
 
         replace (g2' :: gdecls2')
           with ([g2'] ++ gdecls2')
@@ -4426,7 +4426,7 @@ Proof.
         inversion IPOST; clear IPOST.
         subst.
         (* rename d into ne', *)
-        rename l4 into e_post'.
+        rename l2 into e_post'.
         (* subst p1 p2 e_post. *)
         destruct p0 as [mg0 hdata0].
 
@@ -4478,7 +4478,7 @@ Proof.
                 with (e_pre ++ [ne'])
                 in *.
               2:{
-                rewrite list_cons_app with (l4:=e_post').
+                rewrite list_cons_app with (l2:=e_post').
                 rewrite app_assoc.
                 rewrite firstn_app.
                 replace (length (pre ++ [a]) - length (e_pre ++ [ne']))
@@ -7708,377 +7708,3 @@ Proof.
       *
         apply DECL_INV. *)
 Admitted.
-
-(* with init step  *)
-Lemma compiler_correct_aux:
-  forall (p:FSHCOLProgram)
-    (data:list binary64)
-    (pll: toplevel_entities typ (LLVMAst.block typ * list (LLVMAst.block typ))),
-    forall s, compile_w_main p data newState ≡ inr (s,pll) ->
-    eutt (succ_mcfg (bisim_full [] s)) (semantics_FSHCOL p data) (semantics_llvm pll).
-Proof.
-Abort.
-
-(** Relation bewteen the final states of evaluation and execution
-    of DHCOL program.
-
-    At this stage we do not care about memory or environemnts, and
-    just compare return value of [main] function in LLVM with
-    evaulation results of DSHCOL.
- *)
-
-Lemma bisim_partial_memory_subrelation: forall σ helix_state llvm_state,
-    let '(mem_helix, _) := helix_state in
-    let '(mem_llvm, (ρ, (g, _))) := llvm_state in
-    bisim_partial σ newState helix_state llvm_state -> memory_invariant σ newState mem_helix (mem_llvm, (ρ, g)).
-Proof.
-  intros σ helix_state llvm_state.
-  repeat break_let.
-  subst.
-  intros H.
-  auto.
-Qed.
-
-(* Lemma bisim_full_partial_subrelation: forall σ helix_state llvm_state, *)
-(*     let '(mem_helix, v_helix) := helix_state in *)
-(*     let '(m, ((ρ,_), (g, v))) := llvm_state in *)
-(*     bisim_full σ helix_state llvm_state -> bisim_partial σ (mem_helix, tt) (mk_LLVM_sub_state_partial_from_mem (inr v) (m, (ρ, g))). *)
-(* Proof. *)
-(*   intros σ helix_state llvm_state. *)
-(*   repeat break_let. *)
-(*   subst. *)
-(*   intros H. *)
-(*   unfold mk_LLVM_sub_state_partial_from_mem. *)
-(*   auto. *)
-(* Qed. *)
-
-(*
-Set Nested Proofs Allowed.
-
-Lemma initXYplaceholders_no_definitions :
-  forall i o d x τ y τ' σ σ' b t,
-    initXYplaceholders i o d x τ y τ' σ ≡ inr (σ', (b,t)) ->
-    m_definitions (convert_types (mcfg_of_tle t)) ≡ [].
-Proof.
-  unfold initXYplaceholders; cbn; intros; simp; cbn in *; simp.
-  reflexivity.
-Qed.
-
-Lemma initOneIRGlobal_no_definitions :
-  forall l a σ σ' l' t,
-    initOneIRGlobal l a σ ≡ inr (σ', (l', t)) ->
-    m_definitions (convert_types (mcfg_of_tle [t])) ≡ [ ].
-Proof.
-  unfold initOneIRGlobal; cbn; intros; simp; cbn in *; auto.
-Qed.
-
-Lemma initOneIRGlobal_no_type_defs :
-  forall l a σ σ' l' t,
-    initOneIRGlobal l a σ ≡ inr (σ', (l', t)) ->
-    type_defs_of typ t ≡ [].
-Proof.
-  unfold initOneIRGlobal; cbn; intros; simp; cbn in *; auto.
-Qed.
-
-Lemma init_with_data_initOneIRGlobal_no_type_defs:
-  forall g l x σ σ' b t,
-    init_with_data initOneIRGlobal x l g σ ≡ inr (σ', (b, t)) ->
-    m_type_defs (mcfg_of_modul (modul_of_toplevel_entities t)) ≡ [].
-Proof.
-  induction g as [| ? g IH]; intros; cbn in *; [simp; cbn; auto |].
-  simp.
-  copy_apply IH Heqs2.
-  rewrite list_cons_app.
-  cbn.
-  erewrite IH, initOneIRGlobal_no_type_defs; eauto.
-Qed.
-
-Opaque mcfg_of_tle.
-Opaque convert_types.
-Lemma init_with_data_initOneIRGlobal_no_definitions :
-  forall g l x σ σ' b t,
-    init_with_data initOneIRGlobal x l g σ ≡ inr (σ', (b, t)) ->
-    m_definitions (convert_types (mcfg_of_tle t)) ≡ [].
-Proof.
-  induction g as [| ? g IH]; intros; cbn in *; [simp; cbn; auto |].
-  simp.
-  copy_apply IH Heqs2.
-  rewrite list_cons_app.
-  rewrite mcfg_of_tle_app.
-  rewrite m_definitions_app.
-  erewrite initOneIRGlobal_no_definitions; eauto.
-  cbn.
-  erewrite initOneIRGlobal_no_type_defs; eauto.
-  erewrite init_with_data_initOneIRGlobal_no_type_defs; eauto.
-Qed.
-
-Lemma initIRGlobals_no_definitions :
-  forall l g σ σ' b t,
-    initIRGlobals l g σ ≡ inr (σ', (b,t)) ->
-    m_definitions (convert_types (mcfg_of_tle t)) ≡ [].
-Proof.
-  unfold initIRGlobals; cbn; intros; simp.
-  eauto using init_with_data_initOneIRGlobal_no_definitions.
-Qed.
-
-Transparent mcfg_of_tle.
-Lemma genMain_no_type_defs :
-  forall s x τ τ' τ'' y t,
-    genMain s x τ y τ' τ'' ≡ t ->
-    m_type_defs (convert_types (mcfg_of_tle t)) ≡ [].
-Proof.
-  unfold genMain; cbn; intros; simp; subst; reflexivity.
-Qed.
-
-Lemma initXYplaceholders_no_type_defs :
-  forall i o d x τ y τ' σ σ' b t,
-    initXYplaceholders i o d x τ y τ' σ ≡ inr (σ', (b,t)) ->
-    m_type_defs (convert_types (mcfg_of_tle t)) ≡ [].
-Proof.
-  unfold initXYplaceholders; cbn; intros; simp; cbn in *; simp.
-  reflexivity.
-Qed.
-
-Lemma initOneIRGlobal_no_type_defs :
-  forall l a σ σ' l' t,
-    initOneIRGlobal l a σ ≡ inr (σ', (l', t)) ->
-    m_type_defs (convert_types (mcfg_of_tle [t])) ≡ [ ].
-Proof.
-  unfold initOneIRGlobal; cbn; intros; simp; cbn in *; auto.
-Qed.
-
-Opaque mcfg_of_tle.
-Lemma init_with_data_initOneIRGlobal_no_type_defs :
-  forall g l x σ σ' b t,
-    init_with_data initOneIRGlobal x l g σ ≡ inr (σ', (b, t)) ->
-    m_type_defs (convert_types (mcfg_of_tle t)) ≡ [].
-Proof.
-  induction g as [| ? g IH]; intros; cbn in *; [simp; cbn; auto |].
-  simp.
-  apply IH in Heqs2.
-  erewrite list_cons_app, mcfg_of_tle_app, m_type_defs_app, Heqs2, <- app_nil_end, initOneIRGlobal_no_type_defs; eauto.
-Qed.
-
-Lemma initIRGlobals_no_type_defs :
-  forall l g σ σ' b t,
-    initIRGlobals l g σ ≡ inr (σ', (b,t)) ->
-    m_type_defs (convert_types (mcfg_of_tle t)) ≡ [].
-Proof.
-  unfold initIRGlobals; cbn; intros; simp.
-  eauto using init_with_data_initOneIRGlobal_no_type_defs.
-Qed.
-
-Transparent mcfg_of_tle.
-
-
-Hint Rewrite @translate_bind : local.
-Hint Rewrite @interp_bind : local.
-Hint Rewrite @translate_ret : local.
-Hint Rewrite @interp_ret : local.
-Hint Rewrite @translate_trigger : local.
-Hint Rewrite @interp_trigger : local.
-Hint Rewrite @bind_bind : local.
-Hint Rewrite @bind_ret_l : local.
-Hint Rewrite interp3_bind : local.
-Hint Rewrite interp3_ret : local.
-
-  (* Top-level compiler correctness lemma  *)
-  Theorem compiler_correct:
-    forall (p:FSHCOLProgram)
-      (data:list binary64)
-      (pll: toplevel_entities typ (LLVMAst.block typ * list (LLVMAst.block typ))),
-    forall s, compile_w_main p data newState ≡ inr (s,pll) ->
-      eutt (succ_mcfg (bisim_final [])) (semantics_FSHCOL p data) (semantics_llvm pll).
-  Proof.
-    intros * COMPILE.
-    unfold compile_w_main, compile in COMPILE.
-    cbn* in *; simp.
-
-    unfold semantics_llvm, semantics_llvm_mcfg.
-    cbn.
-    unfold model_to_L3.
-    unfold denote_vellvm_init.
-    match goal with
-      |- context[convert_types (mcfg_of_tle ?x)] => remember x as M
-    end.
-
-    assert (m_type_defs (convert_types (mcfg_of_tle M)) ≡ []).
-    {
-      subst M.
-      rewrite ! mcfg_of_tle_app, !m_type_defs_app.
-      erewrite initIRGlobals_no_type_defs; eauto.
-      erewrite initXYplaceholders_no_type_defs; eauto.
-    }
-
-    match type of HeqM with
-      context [TLE_Comment "Top-level operator definition" :: ?name :: ?main] =>
-      let x := fresh "body" in
-      let y := fresh "main" in
-      remember name as x; remember main as y
-    end.
-
-    assert (EQ: m_definitions (convert_types (mcfg_of_tle M)) ≡
-                              m_definitions (convert_types (mcfg_of_tle (body::main)))).
-    { subst M.
-      rewrite ! mcfg_of_tle_app, !m_definitions_app.
-      erewrite initIRGlobals_no_definitions; eauto.
-      erewrite initXYplaceholders_no_definitions; eauto.
-    }
-
-    unfold denote_vellvm.
-    (* Require Import LibHyps.LibHyps. *)
-    (* onAllHyps move_up_types. *)
-    eutt_hide_left.
-
-    rewrite EQ.
-    unfold genMain in Heqmain.
-
-    (* TODO : Is is true that P is preserved?
-       TODO : Move this, that's completely orthogonal, was just thinking about it.
-     *)
-    Lemma post_condition_pure_to_state :
-      forall {E F X S} (t : itree E X) (P : S -> Prop) Q (h: E ~> Monads.stateT S (itree F)),
-      t ⤳ Q ->
-      forall s, P s ->
-           ((interp_state h t s) ⤳ (prod_pred P Q)).
-    Proof.
-      intros * POST s.
-      unfold has_post in *.
-      eapply eutt_interp_state in POST.
-    Abort.
-
-
-
-(* Arguments fmap /. *)
-(* Arguments Fmap_list' /. *)
-(* Arguments Fmap_definition /. *)
-(* Arguments Fmap_declaration /. *)
-(* Arguments Fmap_cfg /. *)
-(* Arguments Fmap_block /. *)
-(* (* Arguments Fmap_list /. *) *)
-(* (* Arguments Fmap_phi /. *) *)
-(* Arguments Fmap_code /. *)
-(* (* Arguments Fmap_exp /. *) *)
-(* (* Arguments Fmap_instr /. *) *)
-(* (* Arguments Fmap_terminator /. *) *)
-(* Arguments Fmap_option /. *)
-(* Arguments Fmap_texp /. *)
-(* Arguments Fmap_tident /. *)
-(* subst main body. *)
-(* simpl m_definitions. *)
-
-      (* simpl. *)
-
-      (* clear. *)
-      (* progress cbn. *)
-      (* unfold fmap, Fmap_definition. *)
-      (* cbn. *)
-      (* unfold fmap. *)
-      (* unfold Fmap_declaration, Fmap_cfg. *)
-      (* progress cbn. *)
-      (* unfold fmap, Fmap_block. *)
-      (* cbn. *)
-
-(*     unfold semantics_FSHCOL. *)
-(*     unfold denote_FSHCOL. *)
-
-(*     subst. *)
-(*     repeat rewrite mcfg_of_tle_app.  *)
-(*     repeat rewrite m_definitions_app. *)
-
-
-(* erewrite initXYplaceholders_no_definitions; eauto. *)
-(* erewrite initIRGlobals_no_definitions; eauto. *)
-(* simpl app. *)
-
-(* repeat rewrite m_definitions_app. *)
-(* simpl. *)
-
-(*     subst. *)
-(*     cbn. *)
-(*     rewrite interp3_bind. *)
-(*     autorewrite with local. *)
-
-(*     apply eutt_clo_bind. *)
-
-
-(*     simpl mcfg_of_tle. *)
-(*     simpl m_definitions. *)
-(*     simpl. *)
-(*     Set Printing . *)
-(*     rewrite interp3_bind. *)
-
-(*     autorewrite with local. *)
-
-    (*
-    break_let; cbn in *; inv_sum.
-    repeat (break_match_hyp || break_let); try inv_sum.
-
-    eutt_hide_left.
-    repeat rewrite app_assoc.
-    repeat rewrite <- app_assoc.
-    match goal with
-      |- context[_ :: ?x ++ ?y ++ ?z ++ ?t] => remember x as f1; remember y as f2; remember t as f3; remember z as f4
-    end.
-
-    unfold semantics_llvm.
-     *)
-
-    (* break_match_goal. *)
-    (* mcfg_of_modul *)
-    (* Lemma semantics_llvm_red : *)
-    (*   forall p, semantics_llvm p ≈ semantics_llvm p. *)
-    (* Proof. *)
-    (*   unfold semantics_llvm. *)
-    (*   intros p. *)
-    (*   unfold lift_sem_to_mcfg. *)
-    (*   break_match_goal. *)
-    (*   { *)
-    (*     unfold semantics_llvm_mcfg, model_to_L3, denote_vellvm_init, denote_vellvm, translate_E_vellvm_mcfg. *)
-    (*     simpl bind. *)
-    (*     rewrite interp3_bind, translate_bind. *)
-    (*     match goal with *)
-    (*     | ?t ≈ _ => assert (t ≈ ITree.bind (lift_sem_to_mcfg (fun p =>  *)
-
-
-    (* setoid_rewrite bind_bind. *)
-    (*   unfold translate_E_vellvm_mcfg. *)
-    (* setoid_rewrite (interp3_bind defined_intrinsics . *)
-
-    (* unfold lift_sem_to_mcfg. *)
-    (* break_match_goal. *)
-    (* { *)
-    (*   unfold semantics_llvm_mcfg, model_to_L3, denote_vellvm_init, denote_vellvm. *)
-    (*   simpl bind. *)
-    (*   unfold translate_E_vellvm_mcfg. *)
-    (*   rewrite interp3_bind, translate_bind. *)
-
-    (*   rewrite modul_of_toplevel_entities *)
-    (*           cons, !modul_of_toplevel_entities_app in Heqo0. *)
-
-
-    (*   repeat match goal with *)
-    (*          | h: mcfg_of_modul _ (_ @ _) ≡ _ |- _ => *)
-    (*            apply mcfg_of_app_modul in h; *)
-    (*              destruct h as (? & ? & ?EQ & ?EQ & <-) *)
-    (*          end. *)
-    (*   Transparent map_option. *)
-    (*   cbn in EQ. *)
-    (*   injection EQ; clear EQ; intro EQ. *)
-    (*   subst. l0. f1 . *)
-    (*   cbn in EQ0. *)
-
-
-    (* } *)
-
-    (* { *)
-    (*   (* The conversion from top level entities to modul failed *) *)
-    (*   (* There is a toplevel entity with an empty list of instruction *) *)
-    (* } *)
-
-
-
-    (*         unfold global_YX,constArray in EQ1. *)
-Abort.
-
-*)
