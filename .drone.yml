@@ -21,6 +21,9 @@ steps:
       - name: dockersock
         path: /var/run/docker.sock
     commands:
+      - docker image ls
+      - apt-get install git
+      - git diff ${DRONE_COMMIT_BEFORE}..${DRONE_COMMIT_AFTER} Dockerfile helix.opam
       - |
         if [ '${DRONE_BUILD_EVENT}' = cron ] || [ '${DRONE_BUILD_EVENT}' = promote ]                          || \
            [ -z "$(docker image ls --quiet 'cache--${DRONE_REPO_NAME}--${DRONE_BRANCH}')" ]                   || \
