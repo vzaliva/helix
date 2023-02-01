@@ -3,14 +3,14 @@ kind: pipeline
 type: docker
 name: default
 
+# Note: DRONE_ variables are subject to substitution by Drone before execution
+# (see [https://docs.drone.io/pipeline/environment/substitution])
 steps:
   - name: submodules
     image: alpine/git
     commands:
       - git submodule update --init --recursive
 
-  # Note: DRONE_ variables are subject to substitution by Drone before execution (not shell; hence the '')
-  #
   # Cache will be (re)built if:
   # 1) the build was triggered by a cron job, or was promoted (web interface: top right "..." -> "Promote")
   # 2) no image is found with the tag expected for this repo+branch
