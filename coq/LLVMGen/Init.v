@@ -1090,9 +1090,6 @@ Definition IR_of_global (g : string * DSHType) :=
   let '(nm, t) := g in
   (ID_Global (Name nm), TYPE_Pointer (getIRType t)).
 
-Definition in_global_addr (g : global_env) (x : raw_id) (a : Addr.addr) :=
-  g @ x ≡ Some (DVALUE_Addr a).
-
 Definition allocated_xy (i o : Int64.int) (memV : memoryV) (g : global_env) :=
   exists ptr0 ptr1,
     dtyp_fits memV ptr0
@@ -3576,21 +3573,6 @@ Proof.
   repeat break_match; invc H.
   all: discriminate.
 Qed.
-
-Definition genv_ptr_uniq (g : global_env) :=
-  ∀ (id id' : raw_id) (ptr ptr' : addr),
-    in_global_addr g id ptr →
-    in_global_addr g id' ptr' →
-    fst ptr ≡ fst ptr' ->
-    id ≡ id'.
-
-Definition genv_mem_bounded (g : global_env) (m : memoryV) :=
-  forall id a,
-    g @ id ≡ Some (DVALUE_Addr a) ->
-    (fst a < next_logical_key m)%Z.
-
-Definition genv_mem_wf (g : global_env) (m : memoryV) :=
-  genv_ptr_uniq g /\ genv_mem_bounded g m.
 
 Lemma genv_mem_bounded_allocate
       (g : global_env)

@@ -1518,12 +1518,34 @@ C2(C1(p1)) == p1
   Definition anon_declarations_invariant : Pred_cfg :=
     fun c => global_anon_ptr_exists 0%Z c /\ global_anon_ptr_exists 1%Z c.
 
+  Definition in_global_addr (g : global_env) (x : raw_id) (a : Addr.addr) :=
+    g @ x ≡ Some (DVALUE_Addr a).
+
+  Definition genv_ptr_uniq (g : global_env) :=
+    ∀ (id id' : raw_id) (ptr ptr' : addr),
+      in_global_addr g id ptr →
+      in_global_addr g id' ptr' →
+      fst ptr ≡ fst ptr' ->
+      id ≡ id'.
+
+  Definition genv_mem_bounded (g : global_env) (m : memoryV) :=
+    forall id a,
+      g @ id ≡ Some (DVALUE_Addr a) ->
+      (fst a < next_logical_key m)%Z.
+
+  Definition genv_mem_wf (g : global_env) (m : memoryV) :=
+    genv_ptr_uniq g /\ genv_mem_bounded g m.
+
+  Definition genv_mem_wf_cfg : config_cfg -> Prop :=
+    fun '(memV, (_, genv)) => genv_mem_wf genv memV.
+
   (** An invariant which must hold after initialization stage *)
   Record post_init_invariant (fnname:string) (σ : evalContext) (s : IRState) (memH : memoryH) (configV : config_cfg) : Prop :=
     {
       state_inv: state_invariant σ s memH configV;
       fun_decl_inv:  fun_declarations_invariant fnname configV;
-      anon_decl_inv: anon_declarations_invariant configV
+      anon_decl_inv: anon_declarations_invariant configV;
+      genv_mem_wf_inv: genv_mem_wf_cfg configV
     }.
 
   (**
