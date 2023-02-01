@@ -3781,29 +3781,41 @@ Proof. (*
 
   (* [s3] contains two locals for X,Y parameter which we drop: *)
 
-  (*
-  rename l5 into Γ_globals.
-  (* these ones are dropped *)
-  rename l8 into Γ_fake_xy,
-         l6 into Γ_xy_fake_xy,
-         l7 into Γ_xy.
+  replace (Γ s1)
+    with (Γ s0)
+    in *
+    by now eapply genIR_Γ in IR.
+    
 
-  assert (ΓXYFXY : exists x y fake_x fake_y, Γ_xy_fake_xy ≡ [x; y; fake_x; fake_y]).
+  remember (firstn (Datatypes.length (Γ s0) - 2) (Γ s0)) as Γ_globals.
+  assert (T : exists y x, Γ s0 ≡ Γ_globals ++ [y; x]).
   {
-    clear - Sg Heqb.
-    apply split_tl_len in Sg.
+    clear - Heqb HeqΓ_globals.
+    subst.
+    match goal with
+    | |- context [firstn ?x ?y] => remember (firstn x y) as K
+    end.
+    erewrite <-(@firstn_skipn _ (Datatypes.length (Γ s0) - 2) (Γ s0)).
+    subst.
+    generalize (firstn (Datatypes.length (Γ s0) - 2) (Γ s0)).
+    pose proof skipn_length (Datatypes.length (Γ s0) - 2) (Γ s0).
     apply Nat.leb_gt in Heqb.
-    assert (Datatypes.length Γ_xy_fake_xy ≡ 4)%nat by lia.
-    clear - H.
-    repeat (destruct Γ_xy_fake_xy; inversion H).
-    repeat eexists.
+    replace (Datatypes.length (Γ s0) - (Datatypes.length (Γ s0) - 2))
+      with 2
+      in *
+      by lia.
+    generalize dependent (skipn (Datatypes.length (Γ s0) - 2) (Γ s0)).
+    intros l2 H l1.
+    destruct l2; invc H.
+    destruct l2; invc H1.
+    exists p; exists p0.
+    repeat f_equal.
+    now apply ListUtil.length_0.
   }
-  destruct ΓXYFXY as [x [y [fake_x [fake_y ΓXYFXY]]]].
-  subst Γ_xy_fake_xy.
-  invc Sxy.
-  apply ListUtil.split_correct in Sg.
-  rename Sg into Vs3.
-   *)
+  subst Γ_globals.
+  destruct T as (y & x & T).
+  rewrite T in *.
+  clear T.
 
   repeat rewrite app_assoc.
   unfold build_global_environment.
@@ -4247,10 +4259,10 @@ Proof. (*
 
   subst LHS REL.
   destruct p0 as [le0 stack0].
-  destruct x as [x_id x_typ].
+  destruct y as [y_id y_typ].
 
-  rename Γ into Γ1.
-  remember (firstn (Datatypes.length Γ1 - 2) Γ1) as Γ_globals.
+  remember (firstn (Datatypes.length (Compiler.Γ s0) - 2) (Compiler.Γ s0))
+    as Γ_globals.
   remember (Datatypes.length globals) as lg.
 
   remember
@@ -4491,7 +4503,7 @@ Proof. (*
 
               copy_apply genIR_Γ IR.
               dedup_states.
-              cbn [Γ append_to_Γ] in *.
+              cbn [Compiler.Γ append_to_Γ] in *.
               apply list_app_eqlen_eq_r in H.
               2: {
                 cbn.
