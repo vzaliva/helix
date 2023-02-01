@@ -16,13 +16,12 @@ steps:
   # 2) no image is found with the tag expected for this repo+branch
   # 3) cache definition files have changed since the last build (filenames hardcoded below)
   - name: rebuild-cache
-    image: docker
+    image: docker:git
     volumes:
       - name: dockersock
         path: /var/run/docker.sock
     commands:
       - docker image ls
-      - apt-get install git
       - git diff ${DRONE_COMMIT_BEFORE}..${DRONE_COMMIT_AFTER} Dockerfile helix.opam
       - |
         if [ '${DRONE_BUILD_EVENT}' = cron ] || [ '${DRONE_BUILD_EVENT}' = promote ]                          || \
