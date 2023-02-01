@@ -49,16 +49,16 @@ steps:
     commands:
       - opam exec -- make test
 
-#  - name: notify-slack
-#    image: plugins/slack
-#    settings:
-#      webhook:
-#        from_secret: slack_webhook
-#      channel: bitbucket-activity
-#      when:
-#        status:
-#          - failure
-#          - success
+  - name: notify-slack
+    image: plugins/slack
+    settings:
+      webhook:
+        from_secret: slack_webhook
+      channel: bitbucket-activity
+      when:
+        status:
+          - failure
+          - success
 
 volumes:
   - name: dockersock
