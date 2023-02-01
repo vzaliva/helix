@@ -28,10 +28,6 @@ steps:
         then                                                                                                     \
                 docker build --no-cache -t 'cache--${DRONE_REPO_NAME}--${DRONE_BRANCH}' . ;                      \
         fi
-    when:
-      include:
-        event:
-          - cron
 
   - name: build-vellvm
     image: cache--${DRONE_REPO_NAME}--${DRONE_BRANCH}
