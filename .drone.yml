@@ -9,18 +9,29 @@ steps:
     commands:
       - git submodule update --init --recursive
 
+  # Note: DRONE_ variables are subject to substitution by Drone before execution (not shell; hence the '')
+  #
+  # Cache will be (re)built if:
+  # 1) the build was triggered by a cron job, or was promoted (web interface: top right "..." -> "Promote")
+  # 2) no image is found with the tag expected for this repo+branch
+  # 3) cache definition files have changed since the last build (filenames hardcoded below)
   - name: rebuild-cache
     image: docker
     volumes:
       - name: dockersock
         path: /var/run/docker.sock
     commands:
-      - docker build --no-cache -t cache-${DRONE_REPO_NAME}-${DRONE_BRANCH} .
+      - |
+        if [ '${DRONE_BUILD_EVENT}' = cron ] || [ '${DRONE_BUILD_EVENT}' = promote ]                          || \
+           [ -z "$(docker image ls --quiet 'cache--${DRONE_REPO_NAME}--${DRONE_BRANCH}')" ]                   || \
+           ! git diff --quiet --exit-code ${DRONE_COMMIT_BEFORE}..${DRONE_COMMIT_AFTER} Dockerfile helix.opam ;  \
+        then                                                                                                     \
+                docker build --no-cache -t 'cache--${DRONE_REPO_NAME}--${DRONE_BRANCH}' . ;                      \
+        fi
     when:
-      event:
-        - cron
-      cron:
-        - rebuild-cache-${DRONE_BRANCH}
+      include:
+        event:
+          - cron
 
   - name: build-vellvm
     image: cache-${DRONE_REPO_NAME}-${DRONE_BRANCH}
