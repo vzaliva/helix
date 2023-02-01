@@ -34,19 +34,19 @@ steps:
           - cron
 
   - name: build-vellvm
-    image: cache-${DRONE_REPO_NAME}-${DRONE_BRANCH}
+    image: cache--${DRONE_REPO_NAME}--${DRONE_BRANCH}
     pull: never
     commands:
       - opam exec -- make -j 1 vellvm
 
   - name: compile-helix
-    image: cache-${DRONE_REPO_NAME}-${DRONE_BRANCH}
+    image: cache--${DRONE_REPO_NAME}--${DRONE_BRANCH}
     pull: never
     commands:
       - opam exec -- make
 
   - name: test-helix
-    image: cache-${DRONE_REPO_NAME}-${DRONE_BRANCH}
+    image: cache--${DRONE_REPO_NAME}--${DRONE_BRANCH}
     pull: never
     commands:
       - opam exec -- make test
