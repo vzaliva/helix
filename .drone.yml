@@ -1,40 +1,48 @@
+---
 kind: pipeline
 type: docker
 name: default
 
+# Note: DRONE_ variables are subject to substitution by Drone before execution
+# (see [https://docs.drone.io/pipeline/environment/substitution])
 steps:
+  # Cache will be (re)built if:
+  # 1) the build was triggered by a cron job, or was promoted (web interface: top right "..." -> "Promote")
+  # 2) no image is found with the tag expected for this repo+branch
+  # 3) cache definition files have changed since the last build (filenames hardcoded below)
+  - name: rebuild-cache
+    image: docker:git
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
+    commands:
+      - |
+        if [ '${DRONE_BUILD_EVENT}' = cron ] || [ '${DRONE_BUILD_EVENT}' = promote ]                          || \
+           [ -z "$(docker image ls --quiet 'cache--${DRONE_REPO_NAME}--${DRONE_BRANCH}')" ]                   || \
+           ! git diff --quiet --exit-code ${DRONE_COMMIT_BEFORE}..${DRONE_COMMIT_AFTER} Dockerfile helix.opam ;  \
+        then                                                                                                     \
+                docker build --no-cache -t 'cache--${DRONE_REPO_NAME}--${DRONE_BRANCH}' . ;                      \
+        fi
+
   - name: submodules
     image: alpine/git
     commands:
       - git submodule update --init --recursive
 
-  - name: rebuild-cache
-    image: docker
-    volumes:
-      - name: dockersock
-        path: /var/run/docker.sock
-    commands:
-      - docker build --no-cache -t helix-cache .
-    when:
-      event:
-        - cron
-      cron:
-      - rebuild-cache
-
   - name: build-vellvm
-    image: helix-cache
+    image: cache--${DRONE_REPO_NAME}--${DRONE_BRANCH}
     pull: never
     commands:
       - opam exec -- make -j 1 vellvm
 
   - name: compile-helix
-    image: helix-cache
+    image: cache--${DRONE_REPO_NAME}--${DRONE_BRANCH}
     pull: never
     commands:
       - opam exec -- make
 
   - name: test-helix
-    image: helix-cache
+    image: cache--${DRONE_REPO_NAME}--${DRONE_BRANCH}
     pull: never
     commands:
       - opam exec -- make test
@@ -45,10 +53,10 @@ steps:
       webhook:
         from_secret: slack_webhook
       channel: bitbucket-activity
-    when:
-      status:
-      - failure
-      - success
+      when:
+        status:
+          - failure
+          - success
 
 volumes:
   - name: dockersock
