@@ -1265,6 +1265,7 @@ Proof.
   cbn in EQdyn.
 
   destruct anon_decl_inv as [(a0_addr & EQa0) (a1_addr & EQa1)].
+  destruct genv_mem_wf_inv as [genv_ptr_uniq_inv genv_mem_bounded_inv].
 
   set (ρI' := (alist_add (Name "Y1") (UVALUE_Addr a1_addr)
               (alist_add (Name "X0") (UVALUE_Addr a0_addr) ρI))).
@@ -1451,22 +1452,10 @@ Proof.
         (* Need to keep track of the fact that [main_addr] and [dyn_addr]
            are distinct. Might be hidden somewhere in the context.
          *)
-        (* MARK VADIM TODO: declarations_invariant must specify the names are distinct (Vadim?) *)
-        clear - state_inv' EQmain EQdyn.
+        clear - genv_ptr_uniq_inv EQmain EQdyn.
         intro H; inv H.
-        apply st_no_llvm_ptr_aliasing in state_inv'.
-        eapply state_inv' with
-          (id1 := ID_Global "main")
-          (id2 := ID_Global "dyn_win")
-        ; revgoals.
-        - reflexivity.
-        - apply EQdyn.
-        - apply EQmain.
-        - discriminate.
-        - admit.
-        - admit.
-        - admit.
-        - admit.
+        enough (Name "main" ≡ Name "dyn_win") by discriminate.
+        eapply genv_ptr_uniq_inv; eassumption || auto.
       }
 
       cbn.
