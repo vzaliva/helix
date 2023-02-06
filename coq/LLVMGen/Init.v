@@ -3811,6 +3811,7 @@ Proof. (*
   (* no more [genMain] *)
 
   destruct s1.
+  rename Γ into Γ1.
 
   rename m0 into mi.
   rename p7 into body_instr.
@@ -4485,29 +4486,20 @@ Proof. (*
 
               copy_apply genIR_Γ IR.
               dedup_states.
-              cbn [Compiler.Γ append_to_Γ] in *.
-              apply list_app_eqlen_eq_r in H.
-              2: {
-                cbn.
-                subst.
-                clear - LX.
-                unfold initXYplaceholders in LX.
-                cbn in LX.
-                repeat break_match; inv LX.
-                reflexivity.
-              }
-              destruct H as [ΓG XY].
-              subst Γ_globals.
-              invc XY.
+              unfold append_to_Γ in *.
+              cbn [Compiler.Γ] in *.
+              rewrite firstn_app_exact in *
+                  by (rewrite app_length; cbn; lia).
 
               unfold no_llvm_ptr_aliasing.
+              subst.
               cbn.
               intros.
 
               copy_apply ListUtil.nth_some H;
-                rename H7 into N1L; rewrite app_length in N1L; cbn in N1L.
+                rename H6 into N1L; rewrite app_length in N1L; cbn in N1L.
               copy_apply ListUtil.nth_some H0;
-                rename H7 into N2L; rewrite app_length in N2L; cbn in N2L.
+                rename H6 into N2L; rewrite app_length in N2L; cbn in N2L.
 
               rewrite list_cons_app in H1, H2.
               rewrite app_assoc in H1, H2.
@@ -4520,7 +4512,7 @@ Proof. (*
               destruct H1 as [(e1_nm, e1_t) [E1 E1']],
                        H2 as [(e2_nm, e2_t) [E2 E2']].
               cbn in E1', E2'; inv E1'; invc E2'.
-              cbn in H5, H6.
+              cbn in H4, H5.
               destruct (Nat.eq_dec n1 (length pre)) as [N1|N1],
                        (Nat.eq_dec n2 (length pre)) as [N2|N2].
               +++ (* A, A *)
@@ -4547,32 +4539,31 @@ Proof. (*
 
                 intros P.
                 do 2 f_equal.
-                destruct ptrv1 as (x, y1), ptrv2 as (x', y2);
-                  cbn in P; subst x'.
+                destruct ptrv1 as (x1, y1), ptrv2 as (x2, y2);
+                  cbn in P; subst x2.
 
                 move Heqs2 at bottom; rename Heqs2 into A.
                 move Heqs0 at bottom; rename Heqs0 into TG2.
-                remember
-                  {|
-                    block_count := Compiler.block_count s0;
-                    local_count := S (S (Compiler.local_count s0));
-                    void_count := Compiler.void_count s0;
-                    Γ := (ID_Local (Name "Y1"),
-                          TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double))
-                           :: (ID_Local (Name "X0"),
-                              TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))
-                           :: Γ s0 |}
-                  as s_yx.
+                remember {|
+                    block_count := 0;
+                    local_count := 2;
+                    void_count := 0;
+                    Γ :=
+                      [(ID_Local (Name ("Y" @@ "1" @@ "")),
+                         TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
+                       (ID_Local (Name ("X" @@ "0" @@ "")),
+                         TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))]
+                  |} as s_yx.
 
                 copy_apply initOneIRGlobal_ident TG2.
                 rewrite H in *.
 
-                rewrite alist_find_add_eq in H5.
+                rewrite alist_find_add_eq in H4.
                 destruct a'' as (ax, ay).
-                inversion H5; subst x y1; clear H5.
+                inversion H4; subst x1 y1; clear H4.
 
-                assert (NM_NEQ : a_nm ≢ e2_nm) by congruence; clear H4.
-                rewrite alist_find_neq in H6 by congruence.
+                assert (NM_NEQ : a_nm ≢ e2_nm) by congruence; clear H3.
+                rewrite alist_find_neq in H5 by congruence.
 
                 move INV at bottom.
                 unfold alloc_glob_decl_inv_mcfg, allocated_globals_mcfg,
@@ -4587,8 +4578,8 @@ Proof. (*
 
                 unfold in_global_addr in IGA.
                 cbn [fst] in *.
-                rewrite IGA in H6.
-                inversion H6; subst ax' y2'; clear H6.
+                rewrite IGA in H5.
+                inversion H5; subst ax' y2'; clear H5.
                 clear - A' AA.
                 eapply freshly_allocated_different_blocks in A'; [| eassumption].
                 contradiction.
@@ -4609,32 +4600,31 @@ Proof. (*
 
                 intros P.
                 do 2 f_equal.
-                destruct ptrv1 as (x, y1), ptrv2 as (x', y2);
-                  cbn in P; subst x'.
+                destruct ptrv1 as (x1, y1), ptrv2 as (x2, y2);
+                  cbn in P; subst x1.
 
                 move Heqs2 at bottom; rename Heqs2 into A.
                 move Heqs0 at bottom; rename Heqs0 into TG2.
-                remember
-                  {|
-                    block_count := Compiler.block_count s0;
-                    local_count := S (S (Compiler.local_count s0));
-                    void_count := Compiler.void_count s0;
-                    Γ := (ID_Local (Name "Y1"),
-                          TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double))
-                           :: (ID_Local (Name "X0"),
-                              TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))
-                           :: Γ s0 |}
-                  as s_yx.
+                remember {|
+                    block_count := 0;
+                    local_count := 2;
+                    void_count := 0;
+                    Γ :=
+                      [(ID_Local (Name ("Y" @@ "1" @@ "")),
+                         TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
+                       (ID_Local (Name ("X" @@ "0" @@ "")),
+                         TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))]
+                  |} as s_yx.
 
                 copy_apply initOneIRGlobal_ident TG2.
                 rewrite H0 in *.
 
-                rewrite alist_find_add_eq in H6.
+                rewrite alist_find_add_eq in H5.
                 destruct a'' as (ax, ay).
-                inversion H6; subst x y2; clear H6.
+                inversion H5; subst x2 y2; clear H5.
 
-                assert (NM_NEQ : a_nm ≢ e1_nm) by congruence; clear H4.
-                rewrite alist_find_neq in H5 by congruence.
+                assert (NM_NEQ : a_nm ≢ e1_nm) by congruence; clear H3.
+                rewrite alist_find_neq in H4 by congruence.
 
                 move INV at bottom.
                 unfold alloc_glob_decl_inv_mcfg, allocated_globals_mcfg,
@@ -4649,8 +4639,8 @@ Proof. (*
 
                 unfold in_global_addr in IGA.
                 cbn [fst] in *.
-                rewrite IGA in H5.
-                inversion H5; subst ax' y1'; clear H5.
+                rewrite IGA in H4.
+                inversion H4; subst ax' y1'; clear H4.
                 clear - A' AA.
                 eapply freshly_allocated_different_blocks in A'; [| eassumption].
                 contradiction.
@@ -4660,7 +4650,7 @@ Proof. (*
                 clear N1L N2L N1 N2.
                 rewrite app_nth_error1 in * by lia.
 
-                rewrite alist_find_neq in H5, H6.
+                rewrite alist_find_neq in H4, H5.
                 2: {
                   move LG at bottom.
                   apply initIRGlobals_names_unique in LG.
@@ -4720,7 +4710,7 @@ Proof. (*
                   with (e_pre)
                   in *.
                 2:{
-                  rewrite list_cons_app with (l4:=e_post').
+                  rewrite list_cons_app with (l2:=e_post').
                   rewrite firstn_app.
                   replace (length pre - length e_pre)
                     with 0 in *
@@ -4736,6 +4726,8 @@ Proof. (*
                 -
                   cbn.
                   rewrite map_app.
+                  rewrite firstn_app_exact in *
+                      by (rewrite app_length; cbn; lia).
                   rewrite app_nth_error1
                     by (rewrite map_length; lia).
                   apply map_nth_error with (f:=IR_of_global) in E1.
@@ -4743,6 +4735,8 @@ Proof. (*
                 -
                   cbn.
                   rewrite map_app.
+                  rewrite firstn_app_exact in *
+                      by (rewrite app_length; cbn; lia).
                   rewrite app_nth_error1
                     by (rewrite map_length; lia).
                   apply map_nth_error with (f:=IR_of_global) in E2.
@@ -5100,9 +5094,11 @@ Proof. (*
             move IR at bottom.
             dedup_states.
             apply genIR_Γ in IR.
-            cbn in IR.
-            apply list_app_eqlen_eq_r in IR; [| reflexivity].
-            destruct IR as [ΓG XY]; invc XY.
+            unfold append_to_Γ in *.
+            cbn in *.
+            rewrite firstn_app_exact in H2, H3, IR
+                by (rewrite app_length; cbn; lia).
+            subst.
             apply nth_map_inv in H2.
             destruct H2 as [(_nm, _t) [_ ID1]].
             invc ID1; cbn in *.
@@ -5112,9 +5108,11 @@ Proof. (*
             move IR at bottom.
             dedup_states.
             apply genIR_Γ in IR.
-            cbn in IR.
-            apply list_app_eqlen_eq_r in IR; [| reflexivity].
-            destruct IR as [ΓG XY]; invc XY.
+            unfold append_to_Γ in *.
+            cbn in *.
+            rewrite firstn_app_exact in H2, H3, IR
+                by (rewrite app_length; cbn; lia).
+            subst.
             apply nth_map_inv in H3.
             destruct H3 as [(_nm, _t) [_ ID2]].
             invc ID2; cbn in *.
