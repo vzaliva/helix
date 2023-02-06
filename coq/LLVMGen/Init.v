@@ -5146,13 +5146,11 @@ Proof. (*
   - (* initialize (globals ++ yx) *)
     intros.
 
-    assert (T : Ret (memory_set (memory_set mg (S lg) mo) lg mi, ())
+    assert (T : Ret ((FHCOL.memory_set (FHCOL.memory_set mg lg FHCOL.mem_empty) (S lg) mi), ())
                 ≈
                 ITree.bind (E:=E_mcfg)
                             (ret (mg, ()))
-                            (fun mg' => ret (memory_set
-                                            (memory_set (fst mg') (S lg) mo)
-                                            lg mi, ())))
+                            (fun mg' => ret (FHCOL.memory_set (FHCOL.memory_set (fst mg') lg FHCOL.mem_empty) (S lg) mi, ())))
       by (cbn; now rewrite Eq.bind_ret_l).
     rewrite T; clear T.
 
@@ -5169,12 +5167,17 @@ Proof. (*
     rewrite translate_bind, interp3_bind.
     subst.
 
+    remember (firstn (Datatypes.length (Compiler.Γ s0) - 2) (Compiler.Γ s0))
+      as Γ_globals.
+    (* ZX CARE clear HeqΓ_globals. *)
+
     pose (fun globals : list (string * DSHType) =>
             (fun h '(memV, (l, t1, (g, t2))) =>
                post_init_invariant
                  name
-                 (firstn (length globals) (e ++ [(DSHPtrVal (S (Datatypes.length globals)) o, true);
-                        (DSHPtrVal (Datatypes.length globals) i, true)]))
+                 (firstn (length globals) (e ++
+                       [(DSHPtrVal (Datatypes.length globals) o, false);
+                        (DSHPtrVal (S (Datatypes.length globals)) i, false)]))
                  {|
                    block_count := block_count;
                    local_count := local_count;
@@ -5188,30 +5191,33 @@ Proof. (*
 
     apply eutt_clo_bind with (UU:=post_init_invariant' globals).
     +
+      revert HeqΓ_globals. (* to avoid substitution *)
       subst.
+      intro HeqΓ_globals.
       unfold initialize_globals.
 
       remember {|
-          block_count := Compiler.block_count s0;
-          local_count := S (S (Compiler.local_count s0));
-          void_count := Compiler.void_count s0;
-          Γ := (ID_Local (Name "Y1"),
-                TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double))
-               :: (ID_Local (Name "X0"),
-                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))
-               :: Γ s0 |}
+           block_count := 0;
+           local_count := 2;
+           void_count := 0;
+           Γ :=
+             [(ID_Local (Name ("Y" @@ "1" @@ "")),
+              TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
+             (ID_Local (Name ("X" @@ "0" @@ "")),
+             TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))]
+         |}
         as s_yx.
 
       enough (
-          forall pre post gdecls1 gdecls2 s' l1',
+          forall pre post gdecls1 gdecls2 s' data',
             globals ≡ pre ++ post ->
 
             gdecls ≡ gdecls1 ++ gdecls2 ->
 
-            initIRGlobals_rev l1 pre s_yx ≡ inr (s', (l1', gdecls1)) ->
+            initIRGlobals_rev data pre s_yx ≡ inr (s', (data', gdecls1)) ->
 
-            initIRGlobals_rev l1' post s' ≡ inr (rev_firstn_Γ (length globals) s1,
-                                                 (l2, gdecls2)) ->
+            initIRGlobals_rev data' post s' ≡ inr (rev_firstn_Γ (length globals) s0,
+                                                 (l0, gdecls2)) ->
 
             post_init_invariant' pre (mg, ())
                                       (m', (l', st', (g', ()))) ->
@@ -5232,13 +5238,6 @@ Proof. (*
         destruct LG as (l'' & s' & gdecls1 & gdecls2 & PRE & POST & GDECLS).
         specialize (H0 [] globals gdecls1 gdecls2 s' l'').
         full_autospecialize H0; try congruence.
-        { clear - PRE LX Heqs_yx.
-          unfold initXYplaceholders, newState in LX.
-          do 2 break_let.
-          simpl in LX.
-          invc LX.
-          invc PRE.
-          reflexivity. }
         {
           cbn.
           split; [| now split].
@@ -5281,7 +5280,10 @@ Proof. (*
             Unshelve.
             exact (ID_Local (Name "shelf_go_away")).
           -
-            (* TODO: prove [anon_declarations_invariant] *)
+            (* ZX TODO: prove [anon_declarations_invariant] *)
+            admit.
+          -
+            (* ZX TODO: prove [genv_mem_wf] *)
             admit.
         }
         inv PRE.
@@ -5317,7 +5319,7 @@ Proof. (*
         rename l5 into gdecls2', t0 into g2';
           subst gdecls2.
         subst p p0 p1 p2 p3.
-        subst i2 l4.
+        subst i2 l2.
 
         replace (g2' :: gdecls2')
           with ([g2'] ++ gdecls2')
@@ -5341,7 +5343,7 @@ Proof. (*
         repeat break_match; try inl_inr.
         inversion IPOST; clear IPOST.
         (* rename d into ne', *)
-        rename l4 into e_post'. subst.
+        rename l2 into e_post'. subst.
         (* subst p p1 p2 e_post. *)
         destruct p0 as [mg0 hdata0].
 
@@ -5362,39 +5364,36 @@ Proof. (*
         }
 
         (* some state/Γ simplification *)
-        copy_apply genIR_Γ IR.
         dedup_states.
-        cbn [Γ append_to_Γ] in *.
-        apply list_app_eqlen_eq_r in H0.
-        2: {
-          cbn.
-          subst.
-          clear - LX.
-          unfold initXYplaceholders in LX.
-          cbn in LX.
-          repeat break_match; inv LX.
-          reflexivity.
-        }
-        destruct H0 as [ΓG XY].
+        unfold append_to_Γ in *.
+        cbn in IR.
+        rewrite firstn_app_exact in IR
+          by (rewrite app_length; cbn; lia).
+        copy_apply genIR_Γ IR.
+        cbn in *.
 
         subst.
 
+        (*
         cbn in XY.
         inversion XY; clear XY.
         rename H1 into YID, H2 into YT, x_id into y_id, x_typ into y_typ.
-        destruct y as (x_id, x_typ).
+         *)
+        destruct x as (x_id, x_typ).
+        (*
         inversion H3; clear H3.
         rename H1 into XID, H2 into XT.
         rename H4 into Γ0.
         rewrite !XID, !YID, !XT, !YT in *.
+         *)
 
         cbn in *.
         remember
           {|
-            block_count := Compiler.block_count s0;
-            local_count := Compiler.local_count s0;
-            void_count := Compiler.void_count s0;
-            Γ := (y_id, y_typ) :: (x_id, x_typ) :: Γ s0 |}
+            block_count := 0;
+            local_count := 0;
+            void_count := 0;
+            Γ := [(y_id, y_typ); (x_id, x_typ)] |}
           as s_yx.
 
         pose IPRE as E_PRE_LEN; apply init_with_data_len in E_PRE_LEN.
@@ -5586,16 +5585,18 @@ Proof. (*
             }
             constructor.
             **
-              replace
-                (firstn (Datatypes.length (pre ++ [(a_nm, DSHnat)]))
-                   ((e_pre ++ ne' :: e_post') ++
-                    [(DSHPtrVal (S (Datatypes.length (pre ++ [(a_nm, DSHnat)]))) o, true);
-                    (DSHPtrVal (Datatypes.length (pre ++ [(a_nm, DSHnat)])) i , true)]))
+              replace (firstn (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHnat)]))
+                         ((e_pre ++ ne' :: e_post') ++
+                            [(DSHPtrVal (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHnat)])) o,
+                               false);
+                             (DSHPtrVal (S (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHnat)]))) i,
+                               false)]))
                 with
-                  (e_pre ++ [ne']).
+                (e_pre ++ [ne'])
+                in *.
               2:{
                 rewrite !app_length; cbn.
-                rewrite list_cons_app with (l4:=e_post').
+                rewrite list_cons_app with (l2:=e_post').
                 rewrite <-!app_assoc, ->app_assoc.
                 rewrite firstn_app.
                 replace (length pre + 1 - length (e_pre ++ [ne']))
@@ -5606,12 +5607,27 @@ Proof. (*
                 rewrite app_length; cbn; lia.
               }
 
-              replace (firstn (Datatypes.length (pre ++ [(a_nm, DSHnat)]))
-                              (map IR_of_global (pre ++ (a_nm, DSHnat) :: post)))
-                with (map IR_of_global (pre ++ [(a_nm, DSHnat)]))
-              in *.
+              replace (firstn (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHnat)]))
+          (firstn
+             (Datatypes.length
+                (map IR_of_global (pre ++ (a_nm, FHCOL.DSHnat) :: post) ++
+                 [(ID_Local (Name ("Y" @@ "1" @@ "")),
+                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
+                 (ID_Local (Name ("X" @@ "0" @@ "")),
+                 TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))]) -
+              2)
+             (map IR_of_global (pre ++ (a_nm, FHCOL.DSHnat) :: post) ++
+              [(ID_Local (Name ("Y" @@ "1" @@ "")),
+               TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
+              (ID_Local (Name ("X" @@ "0" @@ "")),
+              TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))])))
+                with (map IR_of_global (pre ++ [(a_nm, FHCOL.DSHnat)]))
+                in *.
               2:{
-                rewrite list_cons_app with (l4:=post).
+                rewrite firstn_app_exact
+                  by (rewrite app_length; cbn; lia).
+
+                rewrite list_cons_app with (l2:=post).
                 rewrite app_assoc, !map_app, firstn_app.
                 replace
                   (length (pre ++ [(a_nm, DSHnat)]) -
@@ -5663,9 +5679,8 @@ Proof. (*
                   do 3 f_equal.
 
                   simpl_data.
-                  enough (l1' ≡ hdata_pre)
+                  enough (data' ≡ hdata_pre)
                     by now replace i0 with i1 by congruence.
-                  rewrite rotateN_add in IPRE.
                   eapply initFSHGlobals_initIRGlobals_rev_data.
                   eapply PRE.
                   eapply IPRE.
@@ -5688,6 +5703,32 @@ Proof. (*
                     destruct H1 as ((?, ?) & ? & ?).
                     discriminate.
                   }
+
+                  replace (firstn (Datatypes.length pre)
+            ((e_pre ++ ne' :: e_post') ++
+             [(DSHPtrVal (Datatypes.length pre) o, false);
+              (DSHPtrVal (S (Datatypes.length pre)) i, false)]))
+                    with e_pre
+                    in * by admit.
+                  
+                  replace (firstn (Datatypes.length pre)
+               (firstn
+                  (Datatypes.length
+                     (map IR_of_global (pre ++ (a_nm, FHCOL.DSHnat) :: post) ++
+                      [(ID_Local (Name ("Y" @@ "1" @@ "")),
+                       TYPE_Pointer
+                         (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
+                      (ID_Local (Name ("X" @@ "0" @@ "")),
+                      TYPE_Pointer
+                        (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))]) - 2)
+                  (map IR_of_global (pre ++ (a_nm, FHCOL.DSHnat) :: post) ++
+                   [(ID_Local (Name ("Y" @@ "1" @@ "")),
+                    TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
+                   (ID_Local (Name ("X" @@ "0" @@ "")),
+                   TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))])))
+                    with (map IR_of_global pre)
+                    in *
+                      by admit.
 
                   inversion PINV as [[I _ _ _ _ _ _] _].
                   cbn in I.
