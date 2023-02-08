@@ -3707,6 +3707,89 @@ Proof.
   all: lia.
 Qed.
 
+Lemma genv_mem_bounded_add_logical_block
+  (g : global_env)
+  (m : memoryV)
+  (p : Z)
+  (l : logical_block)
+  :
+  genv_mem_bounded g m ->
+  genv_mem_bounded g (add_logical_block p l m).
+Proof.
+ unfold genv_mem_bounded.
+ intros.
+ eapply Z.lt_le_trans.
+ eapply H; eassumption.
+ apply next_logical_key_add_logical_block.
+Qed.
+
+Lemma init_with_data_initIRGlobals_data
+  (globals : list (string * FHCOL.DSHType))
+  (data data' data'' : list binary64)
+  (s s' : IRState)
+  (σ : FHCOLEval.evalContext) (m m' : memoryH)
+  gdecls
+  :
+  init_with_data initOneFSHGlobal no_chk
+    (m, data) globals ≡ inr (m', data', σ) ->
+  initIRGlobals data globals s ≡ inr (s', (data'', gdecls)) ->
+  data' ≡ data''.
+Proof.
+  intros IWD IIRG.
+
+  unfold initIRGlobals, initIRGlobals_rev in *.
+  break_match; try inl_inr.
+  break_let.
+  inl_inr_inv.
+  subst.
+  rename i into s'; move s' before s.
+  rename Heqs0 into IIRG.
+
+  dependent induction globals; cbn in *; intros.
+  -
+    now repeat find_inversion.
+  -
+    rename a into ng.
+    destruct global_uniq_chk in IIRG; [discriminate |].
+    break_let; subst.
+    destruct u.
+
+    destruct initOneFSHGlobal as [? | [[ng_m ng_data'] ng_dshval]] eqn:NG_FSH;
+      [discriminate| ].
+    destruct initOneIRGlobal as [? | [ng_s [ng_data'' ng_tle]]] eqn:NG_IR;
+      [discriminate| ].
+
+    destruct init_with_data as [? | ([m'_' data'_'] & σ')] eqn:IWD' in IWD;
+      [discriminate| ].
+    inversion IWD; clear IWD.
+    subst data'_' m'_' σ; rename σ' into σ, IWD' into IWD.
+
+    destruct init_with_data as [? | (s'_' & data''_' & gdecls')] eqn:IIRG' in IIRG;
+      [discriminate| ].
+    inversion IIRG; clear IIRG.
+    subst s'_' data''_' gdecls; rename gdecls' into gdecls, IIRG' into IIRG.
+
+    replace ng_data'' with ng_data' in *.
+    2: {
+      clear - NG_FSH NG_IR.
+      destruct ng as [? t]; destruct t.
+      all: cbn in *.
+      all: repeat break_match.
+      all: invc NG_FSH; invc NG_IR.
+      -
+        reflexivity.
+      -
+        autounfold with unfold_FCT in *; congruence.
+      -
+        apply constMemBlock_data in Heqp0.
+        apply constArray_data in Heqp.
+        congruence.
+    }
+
+    eapply IHglobals; eassumption.
+Qed.
+
+
 (** [memory_invariant] relation must holds after initialization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -4262,6 +4345,7 @@ Proof.
           post_alloc_invariant_mcfg i o
             globals zx_σ zx_state (memH, t0) (memV, (l, t1, (g, t2))) /\
           fun_declarations_invariant_mcfg name (memV, (l, t1, (g, t2))) /\
+          anon_declarations_invariant (memV, (l, g)) /\
           genv_mem_wf g memV
        )
     as post_alloc_invariant_mcfg'.
@@ -5005,10 +5089,16 @@ Proof.
       2: {
         destruct H0 as [_ DI].
         inversion_clear DI as [[M F] G0M0WF].
-        split.
+        split; [| split].
         constructor; cbn.
         - now rewrite !alist_find_neq by discriminate.
         - now rewrite !alist_find_neq by discriminate.
+        -
+          unfold anon_declarations_invariant, global_anon_ptr_exists.
+          split; [exists a''' | exists a''].
+          now rewrite !alist_find_add_eq.
+          rewrite !alist_find_neq by discriminate.
+          now rewrite alist_find_add_eq.
         -
           eapply genv_mem_wf_allocate.
           eapply genv_mem_wf_allocate.
@@ -5184,6 +5274,7 @@ Proof.
                    void_count := void_count;
                    Γ := firstn (length globals) Γ_globals |} mg (memV, (l, g))
                /\ post_alloc_invariant_mcfg' (mg, ()) (memV, (l, t1, (g, t2)))
+               (* /\ anon_declarations_invariant (memV, (l, g)) *)
                /\ h ≡ (mg, ())
             )
             : Rel_mcfg_T () ())
@@ -5280,11 +5371,9 @@ Proof.
             Unshelve.
             exact (ID_Local (Name "shelf_go_away")).
           -
-            (* ZX TODO: prove [anon_declarations_invariant] *)
-            admit.
+            tauto.
           -
-            (* ZX TODO: prove [genv_mem_wf] *)
-            admit.
+            tauto.
         }
         inv PRE.
         replace ([] ++ gdecls2)
@@ -5594,8 +5683,8 @@ Proof.
                 +
                   eapply dtyp_fits_add_logical_block_key_neq;
                     [eassumption |].
-                  clear - AV G1 H4.
-                  destruct H4 as [GUNIQ _].
+                  clear - AV G1 H8.
+                  destruct H8 as [GUNIQ _].
                   replace a_ptr with (fst (a_ptr, a_off)) by reflexivity.
                   intros C.
                   eapply GUNIQ in C.
@@ -5604,8 +5693,8 @@ Proof.
                 +
                   eapply dtyp_fits_add_logical_block_key_neq;
                     [eassumption |].
-                  clear - AV H H4.
-                  destruct H4 as [GUNIQ _].
+                  clear - AV H H8.
+                  destruct H8 as [GUNIQ _].
                   replace a_ptr with (fst (a_ptr, a_off)) by reflexivity.
                   intros C.
                   eapply GUNIQ in C.
@@ -5648,7 +5737,8 @@ Proof.
                   assumption.
               -
                 split; [tauto |].
-                destruct DI as [_ WF].
+                split; [tauto |].
+                destruct DI as [_ [_ WF]].
                 clear - WF.
                 apply genv_mem_wf_add_logical_block.
                 assumption.
@@ -5698,7 +5788,18 @@ Proof.
                             [(DSHPtrVal (Datatypes.length pre) o, false);
                              (DSHPtrVal (S (Datatypes.length pre)) i, false)]))
                 with e_pre
-                in * by admit.
+                in *.
+              2: {
+                rewrite list_cons_app with (l2:=e_post').
+                rewrite <-!app_assoc, ->app_assoc.
+                rewrite firstn_app.
+                replace (length pre - length (e_pre ++ [ne']))
+                  with 0
+                  by (rewrite app_length; cbn; lia).
+                rewrite firstn_O, firstn_app_exact, app_nil_r.
+                reflexivity.
+                assumption.
+              }
 
               constructor.
               ---
@@ -5974,11 +6075,12 @@ Proof.
               all: unfold fun_declarations_invariant in DI.
               all: intuition.
             **
-              (* TODO: prove [anon_declarations_invariant] *)
-              admit.
+              tauto.
             **
-              (* TODO: prove [genv_mem_wf] *)
-              admit.
+              destruct DI as [FDI [_ [GENV_PTR_UNIQ GENV_MEM_BOUNDED]]].
+              unfold genv_mem_wf_cfg, genv_mem_wf.
+              split; [tauto |].
+              now apply genv_mem_bounded_add_logical_block.
           ++ (* ZX TODO: see how these bullets can be done all in one *)
             rewrite typ_to_dtyp_D.
             rewrite interp3_bind.
@@ -6025,8 +6127,8 @@ Proof.
                 +
                   eapply dtyp_fits_add_logical_block_key_neq;
                     [eassumption |].
-                  clear - AV G1 H4.
-                  destruct H4 as [GUNIQ _].
+                  clear - AV G1 H8.
+                  destruct H8 as [GUNIQ _].
                   replace a_ptr with (fst (a_ptr, a_off)) by reflexivity.
                   intros C.
                   eapply GUNIQ in C.
@@ -6035,8 +6137,8 @@ Proof.
                 +
                   eapply dtyp_fits_add_logical_block_key_neq;
                     [eassumption |].
-                  clear - AV H H4.
-                  destruct H4 as [GUNIQ _].
+                  clear - AV H H8.
+                  destruct H8 as [GUNIQ _].
                   replace a_ptr with (fst (a_ptr, a_off)) by reflexivity.
                   intros C.
                   eapply GUNIQ in C.
@@ -6079,7 +6181,8 @@ Proof.
                   assumption.
               -
                 split; [tauto |].
-                destruct DI as [_ WF].
+                split; [tauto |].
+                destruct DI as [_ [_ WF]].
                 clear - WF.
                 apply genv_mem_wf_add_logical_block.
                 assumption.
@@ -6128,7 +6231,18 @@ Proof.
                             [(DSHPtrVal (Datatypes.length pre) o, false);
                              (DSHPtrVal (S (Datatypes.length pre)) i, false)]))
                 with e_pre
-                in * by admit.
+                in *.
+              2: {
+                rewrite list_cons_app with (l2:=e_post').
+                rewrite <-!app_assoc, ->app_assoc.
+                rewrite firstn_app.
+                replace (length pre - length (e_pre ++ [ne']))
+                  with 0
+                  by (rewrite app_length; cbn; lia).
+                rewrite firstn_O, firstn_app_exact, app_nil_r.
+                reflexivity.
+                assumption.
+              }
 
               constructor.
               ---
@@ -6400,11 +6514,12 @@ Proof.
               all: unfold fun_declarations_invariant in DI.
               all: intuition.
             **
-              (* TODO: prove [anon_declarations_invariant] *)
-              admit.
+              tauto.
             **
-              (* TODO: prove [genv_mem_wf] *)
-              admit.
+              destruct DI as [FDI [_ [GENV_PTR_UNIQ GENV_MEM_BOUNDED]]].
+              unfold genv_mem_wf_cfg, genv_mem_wf.
+              split; [tauto |].
+              now apply genv_mem_bounded_add_logical_block.
           ++
             rewrite typ_to_dtyp_D_array.
 
@@ -6494,8 +6609,8 @@ Proof.
                 +
                   eapply dtyp_fits_add_logical_block_key_neq;
                     [eassumption |].
-                  clear - AIG G1 H4.
-                  destruct H4 as [GUNIQ _].
+                  clear - AIG G1 H8.
+                  destruct H8 as [GUNIQ _].
                   replace a_ptr with (fst (a_ptr, a_off)) by reflexivity.
                   intros C.
                   eapply GUNIQ in C.
@@ -6504,8 +6619,8 @@ Proof.
                 +
                   eapply dtyp_fits_add_logical_block_key_neq;
                     [eassumption |].
-                  clear - AIG H H4.
-                  destruct H4 as [GUNIQ _].
+                  clear - AIG H H8.
+                  destruct H8 as [GUNIQ _].
                   replace a_ptr with (fst (a_ptr, a_off)) by reflexivity.
                   intros C.
                   eapply GUNIQ in C.
@@ -6547,7 +6662,8 @@ Proof.
                   assumption.
               -
                 split; [tauto |].
-                destruct DI as [_ WF].
+                split; [tauto |].
+                destruct DI as [_ [_ WF]].
                 clear - WF.
                 apply genv_mem_wf_add_logical_block.
                 assumption.
@@ -6596,7 +6712,18 @@ Proof.
                             [(DSHPtrVal (Datatypes.length pre) o, false);
                              (DSHPtrVal (S (Datatypes.length pre)) i, false)]))
                 with e_pre
-                in * by admit.
+                in *.
+              2: {
+                rewrite list_cons_app with (l2:=e_post').
+                rewrite <-!app_assoc, ->app_assoc.
+                rewrite firstn_app.
+                replace (length pre - length (e_pre ++ [ne']))
+                  with 0
+                  by (rewrite app_length; cbn; lia).
+                rewrite firstn_O, firstn_app_exact, app_nil_r.
+                reflexivity.
+                assumption.
+              }
 
               constructor.
               ---
@@ -6952,11 +7079,12 @@ Proof.
               all: unfold fun_declarations_invariant in DI.
               all: intuition.
             **
-              (* TODO: prove [anon_declarations_invariant] *)
-              admit.
+              tauto.
             **
-              (* TODO: prove [genv_mem_wf] *)
-              admit.
+              destruct DI as [FDI [_ [GENV_PTR_UNIQ GENV_MEM_BOUNDED]]].
+              unfold genv_mem_wf_cfg, genv_mem_wf.
+              split; [tauto |].
+              now apply genv_mem_bounded_add_logical_block.
         -- (* initialize [post] *)
           intros.
           cbn in *.
@@ -7102,17 +7230,33 @@ Proof.
         except correct because safe.
         Using unsafe cast here for compatiblity with older proof.
        *)
-      replace 
-        (map_monad
+      assert
+        (T : map_monad
               (λ x0 : typ * exp typ,
                  denote_exp (Some (typ_to_dtyp [] (fst x0)))
-                   (TFunctor_exp typ dtyp (typ_to_dtyp []) (snd x0))) y_zeroes)
-        with
-        (@go exp_E (list uvalue)
+                   (TFunctor_exp typ dtyp (typ_to_dtyp []) (snd x0))) y_zeroes
+        ≈
+        @go exp_E (list uvalue)
            (@RetF exp_E (list uvalue) (itree exp_E (list uvalue))
-              (@map (prod typ (exp typ)) uvalue unsafe_to_UVALUE_Double y_zeroes)))
-        by admit.
-
+              (@map (prod typ (exp typ)) uvalue unsafe_to_UVALUE_Double y_zeroes))).
+      {
+        subst; clear.
+        generalize (MInt64asNT.to_nat o).
+        induction n.
+        reflexivity.
+        cbn.
+        typ_to_dtyp_simplify.
+        setoid_rewrite IHn.
+        unfold denote_exp; fold denote_exp.
+        generalize (map unsafe_to_UVALUE_Double
+                      (repeat (TYPE_Double, EXP_Double MFloat64asCT.CTypeZero) n)).
+        generalize (UVALUE_Double MFloat64asCT.CTypeZero).
+        intros.
+        cbn.
+        clear.
+        now autorewrite with itree.
+      }
+      setoid_rewrite T; clear T.
       repeat rewrite translate_ret, interp3_ret, !ITree.Eq.Eq.bind_ret_l.
 
       assert (Y_ZEROES : map unsafe_to_UVALUE_Double y_zeroes
@@ -7120,7 +7264,19 @@ Proof.
                            repeat (UVALUE_Double MFloat64asCT.CTypeZero)
                              (MInt64asNT.to_nat o)).
       {
-        admit.
+        subst.
+        (* TODO: separate into a lemma *)
+        assert (map_repeat :
+                 forall {A B : Type} (f : A -> B) e n,
+                   map f (repeat e n) ≡ repeat (f e) n).
+        {
+          clear; intros.
+          induction n.
+          reflexivity.
+          cbn.
+          congruence.
+        }
+        now rewrite map_repeat.
       }
 
       unfold concretize_or_pick.
@@ -7274,7 +7430,7 @@ Proof.
                   x_ptr ≢ fst ptr).
       {
         clear - DI GX.
-        destruct DI as [_ [GUNIQ _]].
+        destruct DI as [_ [_ [GUNIQ _]]].
         intros * N PTR; intros C.
         replace x_ptr with (fst (x_ptr, x_off)) in C by reflexivity.
         eapply GUNIQ in C.
@@ -7293,7 +7449,7 @@ Proof.
                   y_ptr ≢ fst ptr).
       {
         clear - DI GY.
-        destruct DI as [_ [GUNIQ _]].
+        destruct DI as [_ [_ [GUNIQ _]]].
         intros * N PTR; intros C.
         replace y_ptr with (fst (y_ptr, y_off)) in C by reflexivity.
         eapply GUNIQ in C.
@@ -7304,7 +7460,6 @@ Proof.
         destruct N as [(a_nm, a_t) [_ C]].
         inv C.
       }
-
 
       constructor.
       *
@@ -7517,12 +7672,8 @@ Proof.
                                 [] (map DVALUE_Double pdata))
                     with (serialize_dvalue (DVALUE_Vector (map DVALUE_Double pdata)))
                     by reflexivity.
-                  replace l0 with l in *.
-                  2: {
-                    clear - G LG.
-                    admit.
-                  }
-                      
+                  replace l0 with l in *
+                      by (eapply init_with_data_initIRGlobals_data; eassumption).
                   clear - Ci V' H1.
                   rewrite int64_unsigned_repr_eq.
                   2: {
@@ -7681,7 +7832,7 @@ Proof.
               invc ON1.
               clear - G0 G1 DI.
               intros C; symmetry in C.
-              destruct DI as [_ [GUNIQ _]].
+              destruct DI as [_ [_ [GUNIQ _]]].
               eapply GUNIQ in C.
               2,3: eassumption.
               invc C.
@@ -7701,7 +7852,7 @@ Proof.
               invc ON1.
               clear - G0 G1 DI.
               intros C; symmetry in C.
-              destruct DI as [_ [GUNIQ _]].
+              destruct DI as [_ [_ [GUNIQ _]]].
               eapply GUNIQ in C.
               2,3: eassumption.
               invc C.
@@ -7728,7 +7879,7 @@ Proof.
               invc ON2.
               clear - G0 G1 DI.
               intros C; symmetry in C.
-              destruct DI as [_ [GUNIQ _]].
+              destruct DI as [_ [_ [GUNIQ _]]].
               eapply GUNIQ in C.
               2,3: eassumption.
               invc C.
@@ -7748,7 +7899,7 @@ Proof.
               invc ON2.
               clear - G0 G1 DI.
               intros C; symmetry in C.
-              destruct DI as [_ [GUNIQ _]].
+              destruct DI as [_ [_ [GUNIQ _]]].
               eapply GUNIQ in C.
               2,3: eassumption.
               invc C.
@@ -7819,4 +7970,10 @@ Proof.
               inv C.
       *
         apply DECL_INV.
-Admitted.
+      *
+        apply anon_decl_inv.
+      *
+        cbn.
+        do 2 apply genv_mem_wf_add_logical_block.
+        apply genv_mem_wf_inv.
+Qed.
