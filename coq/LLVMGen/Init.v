@@ -3719,14 +3719,14 @@ Lemma memory_invariant_after_init
       (Ret (hmem, ()))
       (interp_mcfg3 (build_global_environment (convert_types (mcfg_of_tle pll)))
                     [] ([],[]) empty_memory_stack).
-Proof. (*
+Proof.
   intros hmem σ s hdata pll [HI LI].
 
   unfold post_init_invariant_mcfg.
   unfold helix_initial_memory in HI.
   cbn in HI.
   repeat break_match_hyp ; try inl_inr.
-  rename Heqp0 into Co, Heqp1 into Ci.
+  rename Heqp0 into Ci, Heqp1 into CoT.
   inv HI.
   rename m into mg, Heqs0 into G.
   cbn in LI.
@@ -5366,12 +5366,67 @@ Proof. (*
         (* some state/Γ simplification *)
         dedup_states.
         unfold append_to_Γ in *.
-        cbn in IR.
-        rewrite firstn_app_exact in IR
-          by (rewrite app_length; cbn; lia).
-        copy_apply genIR_Γ IR.
+        cbn in *.
+        remember (ID_Local (Name ("Y" @@ "1" @@ "")),
+                      TYPE_Pointer
+                        (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double))
+          as yit.
+        remember (ID_Local (Name ("X" @@ "0" @@ "")),
+                        TYPE_Pointer
+                          (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))
+          as xit.
+        remember (y_id, y_typ) as y.
         cbn in *.
 
+        clear post_alloc_invariant_mcfg'.
+
+        remember
+          (firstn
+             (Datatypes.length (map IR_of_global (pre ++ a :: post) ++ [yit; xit]) - 2)
+             (map IR_of_global (pre ++ a :: post) ++ [yit; xit]))
+          as TL1.
+        remember 
+          (firstn
+             (Datatypes.length (map IR_of_global (pre ++ a :: post) ++ [y; x]) - 2)
+             (map IR_of_global (pre ++ a :: post) ++ [y; x]))
+          as TL2.
+
+        (* all the work around [post_init_invariant']
+           is to cleanly replace [TL1] in it *)
+        cbv delta [post_init_invariant'] in *.
+        clear post_init_invariant'.
+        match goal with
+        | |- context [ eutt (?R ?l) ] => 
+            remember R as post_init_invariant_TEMP
+        end.
+        replace TL1
+          with (map IR_of_global (pre ++ a :: post))
+          in *.
+        2: {
+          subst TL1.
+          rewrite firstn_app_exact
+            by (rewrite app_length; cbn; lia).
+          reflexivity.
+        }
+        clear HeqTL1 TL1.
+        pose post_init_invariant_TEMP as post_init_invariant'.
+        replace post_init_invariant_TEMP with post_init_invariant' by auto.
+        replace post_init_invariant_TEMP with post_init_invariant' in IHpost by auto.
+        subst post_init_invariant_TEMP.
+
+        replace TL2
+          with (map IR_of_global (pre ++ a :: post))
+          in *.
+        2: {
+          subst TL2.
+          rewrite firstn_app_exact
+            by (rewrite app_length; cbn; lia).
+          reflexivity.
+        }
+        clear HeqTL2 TL2.
+
+        copy_apply genIR_Γ IR.
+        cbn in H0.
         subst.
 
         (*
@@ -5476,6 +5531,21 @@ Proof. (*
           rename Heqs0 into IA.
           move IA at bottom.
           simpl in IA.
+
+          replace
+            (firstn
+               (Datatypes.length
+                  (map IR_of_global (pre ++ (a_nm, FHCOL.DSHCType) :: post) ++
+                     [(y_id, y_typ); (x_id, x_typ)]) - 2)
+               (map IR_of_global (pre ++ (a_nm, FHCOL.DSHCType) :: post) ++
+                  [(y_id, y_typ); (x_id, x_typ)]))
+            with (map IR_of_global (pre ++ (a_nm, FHCOL.DSHCType) :: post))
+            in *.
+          2: {
+            now rewrite firstn_app_exact
+            by (rewrite app_length; cbn; lia).
+          }
+            
           repeat break_match_hyp;
             inv IA; cbn.
           ++
@@ -5585,12 +5655,11 @@ Proof. (*
             }
             constructor.
             **
-              replace (firstn (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHnat)]))
-                         ((e_pre ++ ne' :: e_post') ++
-                            [(DSHPtrVal (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHnat)])) o,
-                               false);
-                             (DSHPtrVal (S (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHnat)]))) i,
-                               false)]))
+              replace
+                (firstn (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHnat)]))
+                   ((e_pre ++ ne' :: e_post') ++
+                      [(DSHPtrVal (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHnat)])) o, false);
+                       (DSHPtrVal (S (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHnat)]))) i, false)]))
                 with
                 (e_pre ++ [ne'])
                 in *.
@@ -5607,26 +5676,11 @@ Proof. (*
                 rewrite app_length; cbn; lia.
               }
 
-              replace (firstn (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHnat)]))
-          (firstn
-             (Datatypes.length
-                (map IR_of_global (pre ++ (a_nm, FHCOL.DSHnat) :: post) ++
-                 [(ID_Local (Name ("Y" @@ "1" @@ "")),
-                  TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
-                 (ID_Local (Name ("X" @@ "0" @@ "")),
-                 TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))]) -
-              2)
-             (map IR_of_global (pre ++ (a_nm, FHCOL.DSHnat) :: post) ++
-              [(ID_Local (Name ("Y" @@ "1" @@ "")),
-               TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
-              (ID_Local (Name ("X" @@ "0" @@ "")),
-              TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))])))
-                with (map IR_of_global (pre ++ [(a_nm, FHCOL.DSHnat)]))
+              replace (firstn (Datatypes.length (pre ++ [(a_nm, DSHnat)]))
+                              (map IR_of_global (pre ++ (a_nm, DSHnat) :: post)))
+                with (map IR_of_global (pre ++ [(a_nm, DSHnat)]))
                 in *.
               2:{
-                rewrite firstn_app_exact
-                  by (rewrite app_length; cbn; lia).
-
                 rewrite list_cons_app with (l2:=post).
                 rewrite app_assoc, !map_app, firstn_app.
                 replace
@@ -5638,6 +5692,13 @@ Proof. (*
                 reflexivity.
                 rewrite !app_length, !map_length; lia.
               }
+
+              replace (firstn (Datatypes.length pre)
+                         ((e_pre ++ ne' :: e_post') ++
+                            [(DSHPtrVal (Datatypes.length pre) o, false);
+                             (DSHPtrVal (S (Datatypes.length pre)) i, false)]))
+                with e_pre
+                in * by admit.
 
               constructor.
               ---
@@ -5703,32 +5764,6 @@ Proof. (*
                     destruct H1 as ((?, ?) & ? & ?).
                     discriminate.
                   }
-
-                  replace (firstn (Datatypes.length pre)
-            ((e_pre ++ ne' :: e_post') ++
-             [(DSHPtrVal (Datatypes.length pre) o, false);
-              (DSHPtrVal (S (Datatypes.length pre)) i, false)]))
-                    with e_pre
-                    in * by admit.
-                  
-                  replace (firstn (Datatypes.length pre)
-               (firstn
-                  (Datatypes.length
-                     (map IR_of_global (pre ++ (a_nm, FHCOL.DSHnat) :: post) ++
-                      [(ID_Local (Name ("Y" @@ "1" @@ "")),
-                       TYPE_Pointer
-                         (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
-                      (ID_Local (Name ("X" @@ "0" @@ "")),
-                      TYPE_Pointer
-                        (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))]) - 2)
-                  (map IR_of_global (pre ++ (a_nm, FHCOL.DSHnat) :: post) ++
-                   [(ID_Local (Name ("Y" @@ "1" @@ "")),
-                    TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double));
-                   (ID_Local (Name ("X" @@ "0" @@ "")),
-                   TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))])))
-                    with (map IR_of_global pre)
-                    in *
-                      by admit.
 
                   inversion PINV as [[I _ _ _ _ _ _] _].
                   cbn in I.
@@ -5941,6 +5976,9 @@ Proof. (*
             **
               (* TODO: prove [anon_declarations_invariant] *)
               admit.
+            **
+              (* TODO: prove [genv_mem_wf] *)
+              admit.
           ++ (* ZX TODO: see how these bullets can be done all in one *)
             rewrite typ_to_dtyp_D.
             rewrite interp3_bind.
@@ -6049,15 +6087,15 @@ Proof. (*
             constructor.
             **
               replace
-                (firstn (Datatypes.length (pre ++ [(a_nm, DSHCType)]))
+                (firstn
+                   (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHCType)]))
                    ((e_pre ++ ne' :: e_post') ++
-                    [(DSHPtrVal (S (Datatypes.length (pre ++ [(a_nm, DSHCType)]))) o, true);
-                    (DSHPtrVal (Datatypes.length (pre ++ [(a_nm, DSHCType)])) i , true)]))
-                with
-                  (e_pre ++ [ne']).
+                      [(DSHPtrVal (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHCType)])) o, false);
+                       (DSHPtrVal (S (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHCType)]))) i, false)]))
+                with (e_pre ++ [ne']).
               2:{
                 rewrite !app_length; cbn.
-                rewrite list_cons_app with (l4:=e_post').
+                rewrite list_cons_app with (l2:=e_post').
                 rewrite <-!app_assoc, ->app_assoc.
                 rewrite firstn_app.
                 replace (length pre + 1 - length (e_pre ++ [ne']))
@@ -6073,7 +6111,7 @@ Proof. (*
                 with (map IR_of_global (pre ++ [(a_nm, DSHCType)]))
               in *.
               2:{
-                rewrite list_cons_app with (l4:=post).
+                rewrite list_cons_app with (l2:=post).
                 rewrite app_assoc, !map_app, firstn_app.
                 replace
                   (length (pre ++ [(a_nm, DSHCType)]) -
@@ -6084,6 +6122,13 @@ Proof. (*
                 reflexivity.
                 rewrite !app_length, !map_length; lia.
               }
+
+              replace (firstn (Datatypes.length pre)
+                         ((e_pre ++ ne' :: e_post') ++
+                            [(DSHPtrVal (Datatypes.length pre) o, false);
+                             (DSHPtrVal (S (Datatypes.length pre)) i, false)]))
+                with e_pre
+                in * by admit.
 
               constructor.
               ---
@@ -6126,8 +6171,7 @@ Proof. (*
 
                   simpl_data.
                   autounfold with unfold_FCT in *.
-                  enough (l1' ≡ hdata_pre) by congruence.
-                  rewrite rotateN_add in IPRE.
+                  enough (data' ≡ hdata_pre) by congruence.
                   eapply initFSHGlobals_initIRGlobals_rev_data.
                   eapply PRE.
                   eapply IPRE.
@@ -6358,6 +6402,9 @@ Proof. (*
             **
               (* TODO: prove [anon_declarations_invariant] *)
               admit.
+            **
+              (* TODO: prove [genv_mem_wf] *)
+              admit.
           ++
             rewrite typ_to_dtyp_D_array.
 
@@ -6508,15 +6555,15 @@ Proof. (*
             constructor.
             **
               replace
-                (firstn (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHPtr int_n)]))
+                (firstn
+                   (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHPtr int_n)]))
                    ((e_pre ++ ne' :: e_post') ++
-                    [(DSHPtrVal (S (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHPtr int_n)]))) o, true);
-                    (DSHPtrVal (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHPtr int_n)])) i , true)]))
-                with
-                  (e_pre ++ [ne']).
+                      [(DSHPtrVal (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHPtr int_n)])) o, false);
+                       (DSHPtrVal (S (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHPtr int_n)]))) i, false)]))
+                with (e_pre ++ [ne']).
               2:{
                 rewrite !app_length; cbn.
-                rewrite list_cons_app with (l4:=e_post').
+                rewrite list_cons_app with (l2:=e_post').
                 rewrite <-!app_assoc, ->app_assoc.
                 rewrite firstn_app.
                 replace (length pre + 1 - length (e_pre ++ [ne']))
@@ -6527,22 +6574,29 @@ Proof. (*
                 rewrite app_length; cbn; lia.
               }
 
-              replace (firstn (Datatypes.length (pre ++ [(a_nm, FHCOL.DSHPtr int_n)]))
-                              (map IR_of_global (pre ++ (a_nm, FHCOL.DSHPtr int_n) :: post)))
-                with (map IR_of_global (pre ++ [(a_nm, FHCOL.DSHPtr int_n)]))
+              replace (firstn (Datatypes.length (pre ++ [(a_nm, DSHPtr int_n)]))
+                              (map IR_of_global (pre ++ (a_nm, DSHPtr int_n) :: post)))
+                with (map IR_of_global (pre ++ [(a_nm, DSHPtr int_n)]))
               in *.
               2:{
-                rewrite list_cons_app with (l4:=post).
+                rewrite list_cons_app with (l2:=post).
                 rewrite app_assoc, !map_app, firstn_app.
                 replace
-                  (length (pre ++ [(a_nm, FHCOL.DSHPtr int_n)]) -
-                   length (map IR_of_global pre ++ map IR_of_global [(a_nm, FHCOL.DSHPtr int_n)]))
+                  (length (pre ++ [(a_nm, DSHPtr int_n)]) -
+                   length (map IR_of_global pre ++ map IR_of_global [(a_nm, DSHPtr int_n)]))
                   with 0
                   by (rewrite !app_length, !map_length; lia).
                 rewrite firstn_O, firstn_all2, app_nil_r.
                 reflexivity.
                 rewrite !app_length, !map_length; lia.
               }
+
+              replace (firstn (Datatypes.length pre)
+                         ((e_pre ++ ne' :: e_post') ++
+                            [(DSHPtrVal (Datatypes.length pre) o, false);
+                             (DSHPtrVal (S (Datatypes.length pre)) i, false)]))
+                with e_pre
+                in * by admit.
 
               constructor.
               ---
@@ -6644,9 +6698,8 @@ Proof. (*
                         with (serialize_dvalue (DVALUE_Vector (map DVALUE_Double pdata)))
                         by reflexivity.
                       simpl_data.
-                      replace hdata_pre with l1' in *.
+                      replace hdata_pre with data' in *.
                       2: {
-                        rewrite rotateN_add in IPRE.
                         eapply initFSHGlobals_initIRGlobals_rev_data.
                         eapply PRE.
                         eapply IPRE.
@@ -6901,6 +6954,9 @@ Proof. (*
             **
               (* TODO: prove [anon_declarations_invariant] *)
               admit.
+            **
+              (* TODO: prove [genv_mem_wf] *)
+              admit.
         -- (* initialize [post] *)
           intros.
           cbn in *.
@@ -6953,9 +7009,9 @@ Proof. (*
 
       replace
         (firstn (Datatypes.length globals)
-                (e ++
-                   [(DSHPtrVal (S (Datatypes.length globals)) o, true);
-                    (DSHPtrVal (Datatypes.length globals) i, true)]))
+           (e ++
+              [(DSHPtrVal (Datatypes.length globals) o, false);
+               (DSHPtrVal (S (Datatypes.length globals)) i, false)]))
         with e
         in *.
       2: {
@@ -6969,38 +7025,19 @@ Proof. (*
         with Γ_globals
         in *.
       2: {
-        dedup_states.
-        clear - IR LX.
-        pose proof genIR_Γ _ _ _ IR; clear IR.
-        cbn in H.
-
-        unfold initXYplaceholders, addVars in LX.
-        cbn in LX.
-        repeat break_let.
-        invc LX.
-        cbn.
-
-        apply list_app_eqlen_eq_r in H; [| reflexivity].
-        destruct H as [GG _].
-        erewrite <-map_length.
-        rewrite GG.
-        now rewrite firstn_all.
+        subst.
+        clear - LG.
+        apply initIRGlobals_Γ_len in LG.
+        cbn in *.
+        rewrite LG in *.
+        clear.
+        replace (Datatypes.length globals + 2 - 2)
+          with (Datatypes.length globals)
+          by lia.
+        rewrite firstn_firstn.
+        rewrite Nat.min_id.
+        reflexivity.
       }
-
-      remember {|
-        block_count := block_count;
-        local_count := local_count;
-        void_count := void_count;
-        Γ := Γ_globals |}
-        as si.
-      remember {|
-             block_count := block_count;
-             local_count := local_count;
-             void_count := void_count;
-             Γ := Γ_globals ++ [fake_x; fake_y] |}
-        as siyx.
-
-
 
       intros.
       move LX at bottom.
@@ -7025,8 +7062,6 @@ Proof. (*
       autorewrite with itree.
       repeat rewrite interp3_bind.
 
-
-
       unfold denote_exp; fold denote_exp.
       unfold tfmap, TFunctor_list.
       rewrite !map_monad_map.
@@ -7040,28 +7075,75 @@ Proof. (*
       rewrite !map_monad_map.
       cbn [fst snd] in *.
 
-      setoid_rewrite map_monad_ret_map with (g1 := UVALUE_Double).
-      2: {
-        typ_to_dtyp_simplify.
-        reflexivity.
-      }
+      rewrite firstn_app_exact
+        by (rewrite app_length; cbn; lia).
+
+      remember (repeat (TYPE_Double, EXP_Double MFloat64asCT.CTypeZero)
+                  (MInt64asNT.to_nat o))
+        as y_zeroes.
+
+      pose (fun (v : typ * exp typ) =>
+        match v with
+        | (TYPE_Double, EXP_Double d) => UVALUE_Double d
+        | _ => UVALUE_None
+        end)
+        as unsafe_to_UVALUE_Double.
+
+      pose (fun (v : typ * exp typ) =>
+        match v with
+        | (TYPE_Double, EXP_Double d) => DVALUE_Double d
+        | _ => DVALUE_None
+        end)
+        as unsafe_to_DVALUE_Double.
+
+      (*
+        Used to be along the lines of
+        [setoid_rewrite map_monad_ret_map with (g1 := unsafe_to_double).]
+        except correct because safe.
+        Using unsafe cast here for compatiblity with older proof.
+       *)
+      replace 
+        (map_monad
+              (λ x0 : typ * exp typ,
+                 denote_exp (Some (typ_to_dtyp [] (fst x0)))
+                   (TFunctor_exp typ dtyp (typ_to_dtyp []) (snd x0))) y_zeroes)
+        with
+        (@go exp_E (list uvalue)
+           (@RetF exp_E (list uvalue) (itree exp_E (list uvalue))
+              (@map (prod typ (exp typ)) uvalue unsafe_to_UVALUE_Double y_zeroes)))
+        by admit.
+
       repeat rewrite translate_ret, interp3_ret, !ITree.Eq.Eq.bind_ret_l.
 
+      assert (Y_ZEROES : map unsafe_to_UVALUE_Double y_zeroes
+                         ≡
+                           repeat (UVALUE_Double MFloat64asCT.CTypeZero)
+                             (MInt64asNT.to_nat o)).
+      {
+        admit.
+      }
+
       unfold concretize_or_pick.
-      replace (is_concrete (UVALUE_Array (map UVALUE_Double l11)))
+      replace (is_concrete (UVALUE_Array (map unsafe_to_UVALUE_Double y_zeroes)))
         with true.
       2: {
+        rewrite Y_ZEROES.
         clear; cbn.
         symmetry; apply forallb_forall.
         intros.
-        apply ListUtil.in_map_elim in H.
-        destruct H as [d [_ D]].
+        apply repeat_spec in H.
         now subst.
       }
       cbn.
       rewrite map_monad_map.
-      rewrite map_monad_inr_map with (g1:=DVALUE_Double)
-        by reflexivity.
+      rewrite map_monad_inr_map with (g1:=unsafe_to_DVALUE_Double).
+      2: {
+        clear.
+        intros.
+        destruct a.
+        destruct t, e.
+        all: now cbn.
+      }
       cbn.
       autorewrite with itree.
 
@@ -7073,6 +7155,7 @@ Proof. (*
       copy_apply dtyp_fits_allocated AY;
         rename H0 into AY'.
       copy_apply allocated_get_logical_block AY'.
+      rename y_id into y_local_id.
       destruct H0 as [[y_sz y_bytes y_id] YM0B].
       destruct y_ptr as [y_ptr y_off].
       (* the important step 1.2 *)
@@ -7103,7 +7186,7 @@ Proof. (*
       repeat rewrite translate_ret, interp3_ret, !ITree.Eq.Eq.bind_ret_l.
 
       (* TODO: this is a simple lemma, see multiple uses above *)
-      replace (is_concrete (UVALUE_Array (map UVALUE_Double l8)))
+      replace (is_concrete (UVALUE_Array (map UVALUE_Double l6)))
         with true.
       2: {
         clear; cbn.
@@ -7127,7 +7210,6 @@ Proof. (*
       copy_apply dtyp_fits_allocated AX;
         rename H0 into AX'.
       copy_apply allocated_get_logical_block AX'.
-      rename x_id into x_id'.
       destruct H0 as [[x_sz x_bytes x_id] XM0B].
       destruct x_ptr as [x_ptr x_off].
       (* the important step 2.2 *)
@@ -7155,12 +7237,26 @@ Proof. (*
       simpl_data.
       cbn in *.
 
+      remember (ID_Local (Name ("Y" @@ "1" @@ "")),
+                 TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval o)) TYPE_Double))
+        as yl.
+      remember (ID_Local (Name ("X" @@ "0" @@ "")),
+                 TYPE_Pointer (TYPE_Array (Z.to_N (Int64.intval i)) TYPE_Double))
+        as xl.
+
+      rewrite firstn_app_exact in *
+          by (rewrite app_length; cbn; lia).
+      
+      
       (* prepare some general hyps *)
       pose proof genIR_Γ _ _ _ IR.
       cbn in H0.
+      subst.
+      (*
       apply list_app_eqlen_eq_r in H0; [| reflexivity].
       destruct H0 as [GG XYXY].
       invc XYXY.
+       *)
       cbn in *.
       (* pointers in e are below x, y *)
       pose proof initFSHGlobals_addr_bound _ _ _ G as EB.
@@ -7224,7 +7320,7 @@ Proof. (*
               in NG
               by (rewrite map_length; lia).
             move MEM_INV at bottom.
-            specialize (MEM_INV n v b0 τ x EL NG).
+            specialize (MEM_INV n v b0 τ x0 EL NG).
             break_match.
             **
               unfold in_local_or_global_scalar in *.
@@ -7292,8 +7388,8 @@ Proof. (*
                   enough
                     (memory_lookup
                        (memory_set
-                          (memory_set mg (S (length globals)) mo)
-                          (length globals) mi) a ≡ Some a_mg)
+                          (memory_set mg (length globals) mem_empty)
+                          (S (length globals)) mi) a ≡ Some a_mg)
                     by assumption.
                   rewrite !memory_lookup_memory_set_neq by lia.
                   assumption.
@@ -7355,48 +7451,23 @@ Proof. (*
               ---
                 split; [cbn; assumption |].
                 intros _.
-                exists mo.
+                exists mem_empty.
                 split.
                 +++
                   enough
                     (memory_lookup
                        (memory_set
-                          (memory_set mg (S (length globals)) mo)
-                          (length globals) mi) (S (length globals)) ≡ Some mo)
+                          (memory_set mg (length globals) mem_empty)
+                          (S (length globals)) mi) (length globals) ≡ Some mem_empty)
                     by assumption.
                   rewrite memory_lookup_memory_set_neq by lia.
                   rewrite memory_lookup_memory_set_eq.
                   reflexivity.
                 +++
                   intros i' v' V'.
-                  rename l11 into pdata.
-                  unfold get_array_cell.
-                  erewrite get_logical_block_of_add_logical_block_neq by assumption.
-                  erewrite get_logical_block_of_add_logical_block.
-
-                  generalize dependent (MInt64asNT.to_nat i').
-                  intros n' V'.
-                  unfold get_array_cell_mem_block; cbn; f_equal.
-                  unfold read_in_mem_block.
-                  cbn [sizeof_dtyp].
-                  replace
-                    (fold_right (λ (dv : dvalue) (acc : list SByte),
-                                 serialize_dvalue dv ++ acc)
-                                [] (map DVALUE_Double pdata))
-                    with (serialize_dvalue (DVALUE_Vector (map DVALUE_Double pdata)))
-                    by reflexivity.
-                  clear - Co V' Heqp2.
-                  rewrite int64_unsigned_repr_eq.
-                  2: {
-                    assert (n' < (MInt64asNT.to_nat o))
-                      by eauto using constMemBlock_bound.
-                    split; [lia |].
-                    eauto using Int64_to_nat_modulus.
-                  }
-                  erewrite deserialize_vector.
-                  reflexivity.
-                  rewrite <-V'.
-                  eapply constList_constMemBlock; eassumption.
+                  exfalso; clear - V'.
+                  unfold mem_lookup, mem_empty in *.
+                  now rewrite Memory.NP.F.empty_o in V'.
             **
               invc V; invc NG.
               exists (x_ptr, x_off).
@@ -7424,14 +7495,14 @@ Proof. (*
                   enough
                     (memory_lookup
                        (memory_set
-                          (memory_set mg (S (length globals)) mo)
-                          (length globals) mi) (length globals) ≡ Some mi)
+                          (memory_set mg (length globals) mem_empty)
+                          (S (length globals)) mi) (S (length globals)) ≡ Some mi)
                     by assumption.
                   rewrite memory_lookup_memory_set_eq.
                   reflexivity.
                 +++
                   intros i' v' V'.
-                  rename l8 into pdata.
+                  rename l6 into pdata.
                   unfold get_array_cell.
                   erewrite get_logical_block_of_add_logical_block.
 
@@ -7446,7 +7517,13 @@ Proof. (*
                                 [] (map DVALUE_Double pdata))
                     with (serialize_dvalue (DVALUE_Vector (map DVALUE_Double pdata)))
                     by reflexivity.
-                  clear - Ci V' Heqp1.
+                  replace l0 with l in *.
+                  2: {
+                    clear - G LG.
+                    admit.
+                  }
+                      
+                  clear - Ci V' H1.
                   rewrite int64_unsigned_repr_eq.
                   2: {
                     assert (n' < (MInt64asNT.to_nat i))
@@ -7457,7 +7534,9 @@ Proof. (*
                   erewrite deserialize_vector.
                   reflexivity.
                   rewrite <-V'.
-                  eapply constList_constMemBlock; eassumption.
+                  eapply constList_constMemBlock.
+                  eassumption.
+                  eapply Ci.
         -- (* WF IRSTATE *)
           clear - IEL LGE EB WF.
           unfold WF_IRState, evalContext_typechecks.
@@ -7739,5 +7818,5 @@ Proof. (*
             destruct NTH as [[_ C] | [_ C]];
               inv C.
       *
-        apply DECL_INV. *)
+        apply DECL_INV.
 Admitted.
