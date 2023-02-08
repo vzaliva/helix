@@ -67,7 +67,6 @@ Lemma DSHAssign_correct :
          (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from,bid_in))
                      g ρ memV).
 Proof.
-  (*
   intros * GEN NEXT PRE GAM NOFAIL.
 
   cbn* in *; simp.
@@ -86,7 +85,7 @@ Proof.
   i8 into s3, i9 into s4,
   i10 into s5, i11 into s6.
   rename n1 into x_p, n2 into y_p.
-  rename n4 into x_i, n3 into y_i.
+  rename n3 into x_i, n4 into y_i.
   rename x0 into y.
   clean_goal.
 
@@ -145,11 +144,13 @@ Proof.
   (* Question 1: is [vx_p] global, local, or can be either? *)
   (* We access in memory vx_p[e] *)
 
-  edestruct memory_invariant_Ptr as (ptr & FITS & INLG & membk & LU & GETCELL); [| eauto | eauto | |]; eauto.
+  edestruct memory_invariant_Ptr as (ptr & FITS & INLG & membk & LU & GETCELL).
+  3: replace (Γ sf) with (Γ si) by solve_gamma.
+  2: eapply Heqo0.
+  all: eauto.
 
   clear FITS.
-
-  rewrite LU in H0; symmetry in H0; inv H0.
+  rewrite LU in H; inv H.
   specialize (GETCELL _ _ Heqo1).
   clean_goal.
   (* I find some pointer either in the local or global environment *)
@@ -191,7 +192,7 @@ Proof.
     { (* vy_p in global *)
       assert (Γ si ≡ Γ sf) as CONT by solve_gamma.
       rewrite CONT in LUn0, LUn.
-      edestruct memory_invariant_Ptr as (yptr & yFITS & yINLG & ymembk & yLU & yGETCELL); [| eapply Heqo0 | eapply LUn0 | |]; [solve_state_invariant | |]; eauto.
+      edestruct memory_invariant_Ptr as (yptr & yFITS & yINLG & ymembk & yLU & yGETCELL); eauto.
 
       clean_goal.
       rewrite yLU in H0; symmetry in H0; inv H0.
@@ -259,13 +260,14 @@ Proof.
         subst.
         eapply yGEP.
 
-        (* Need to relate sz0 with i *)
-        assert (sz0 ≡ Z.to_N (Int64.intval i)) as SZI. eapply vellvm_helix_ptr_size; eauto.
+        (* Need to relate sz0 with i2 *)
+        assert (sz0 ≡ Z.to_N (Int64.intval i2)) as SZI.
+        eapply vellvm_helix_ptr_size; eauto.
         subst.
 
         pose proof (DynamicValues.Int64.intrange dst).
         pose proof (Int64.intrange i4).
-        pose proof (Int64.intrange i).
+        pose proof (Int64.intrange i2).
 
         (* Maybe Heqb *)
         unfold MInt64asNT.from_N in EQsz0.
@@ -348,7 +350,7 @@ Proof.
                   assert (n1 ≡ y_p).
                   eapply st_no_id_aliasing; eauto.
                   subst.
-                  rewrite Heqo0 in H4.
+                  rewrite Heqo in H4.
                   discriminate H4.
                 + unfold Eqv.eqv, eqv_raw_id in NEQid.
                   assert (fst ptr_l ≢ fst yptr).
@@ -358,8 +360,8 @@ Proof.
                     eapply st_no_llvm_ptr_aliasing.
                     
                     eapply H4.
-                    eapply Heqo0.
-                    3: eapply  H.
+                    eapply Heqo.
+                    3: eapply H.
                     all: eauto.
                   }
                   contradiction.
@@ -391,7 +393,7 @@ Proof.
                   assert (n1 ≡ y_p).
                   eapply st_no_id_aliasing; eauto.
                   subst.
-                  rewrite Heqo0 in H4.
+                  rewrite Heqo in H4.
                   discriminate H4.
                 + unfold Eqv.eqv, eqv_raw_id in NEQid.
                   assert (fst ptr_l ≢ fst yptr).
@@ -400,7 +402,7 @@ Proof.
 
                     eapply st_no_llvm_ptr_aliasing.
                     eapply H4.
-                    eapply Heqo0.
+                    eapply Heqo.
                     3: eapply  H.
                     all: eauto.
                   }
@@ -418,7 +420,7 @@ Proof.
                 pose proof (handle_gep_addr_array_same_block _ _ _ _ yGEP) as YPTRBLOCK.
                 rewrite YPTRBLOCK in NEQ.
                 do 2 red. auto.
-            }
+          }
             (* destruct H as (bk_h & ptr_l & τ' & MINV). *)
             destruct H as (ptr_l & τ' & MINV).
 
@@ -428,7 +430,7 @@ Proof.
             - (* DSHPtrVals alias *)
               subst.
 
-              epose proof (st_no_dshptr_aliasing _ _ _ _ _ _ _ Heqo0 H4); subst.
+              epose proof (st_no_dshptr_aliasing _ _ _ _ _ _ _ Heqo H4). subst.
               pose proof H5 as IDS.
               rewrite LUn0 in IDS.
               inv IDS.
@@ -442,7 +444,7 @@ Proof.
               eapply dtyp_fits_after_write; eauto.
               split.
               { cbn.
-                rewrite Heqo0 in H4.
+                rewrite Heqo in H4.
                 rewrite LUn0 in H5.
                 inversion H5; subst; auto.
               }
@@ -478,8 +480,7 @@ Proof.
                   rewrite mem_lookup_mem_add_eq in H2; inv H2.
 
                   change (UVALUE_Double v0) with (dvalue_to_uvalue (DVALUE_Double v0)).
-                  eapply write_array_cell_get_array_cell; eauto.
-                  constructor.
+                  eapply write_array_cell_get_array_cell; eauto; constructor.
                 }
                 {
                   (* In the case where i <> dst *)
@@ -518,7 +519,7 @@ Proof.
                 { assert (n1 ≡ y_p).
                   eapply st_no_id_aliasing; eauto.
                   subst.
-                  rewrite Heqo0 in H4.
+                  rewrite Heqo in H4.
                   inv H4.
                   contradiction.
                 }
@@ -567,7 +568,7 @@ Proof.
             - (* PTR aliases, local case should be bogus... *)
               subst.
 
-              epose proof (st_no_dshptr_aliasing _ _ _ _ _ _ _ Heqo0 H4); subst.
+              epose proof (st_no_dshptr_aliasing _ _ _ _ _ _ _ Heqo H4); subst.
               rewrite LUn0 in H5.
               inversion H5.
             - (* This is the branch where a and y_i don't *)
@@ -625,7 +626,7 @@ Proof.
                 { eapply st_no_llvm_ptr_aliasing.
                   5: eapply IDNEQ.
                   eapply H4.
-                  eapply Heqo0.
+                  eapply Heqo.
                   all: eauto.
                 }
                 assert (fst yptr ≡ fst yptr') by (eapply handle_gep_addr_array_same_block; eauto).
@@ -658,7 +659,7 @@ Proof.
       assert (Γ si ≡ Γ sf) as CONT by solve_gamma.
       rewrite CONT in LUn0, LUn.
       (* edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant|]. *)
-      edestruct memory_invariant_Ptr as (yptr & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant|].
+      edestruct memory_invariant_Ptr as (yptr & yFITS & yINLG & yGETCELL); [| eapply Heqo | eapply LUn0 |]; [solve_state_invariant|].
 
       clean_goal.
       (* rewrite yLU in H0; symmetry in H0; inv H0. *)
@@ -723,13 +724,14 @@ Proof.
         subst.
         eapply yGEP.
 
-        (* Need to relate sz0 with i *)
-        assert (sz0 ≡ Z.to_N (Int64.intval i)) as SZI. eapply vellvm_helix_ptr_size; eauto.
+        (* Need to relate sz0 with i2 *)
+        assert (sz0 ≡ Z.to_N (Int64.intval i2)) as SZI.
+        eapply vellvm_helix_ptr_size; eauto.
         subst.
 
         pose proof (DynamicValues.Int64.intrange dst).
         pose proof (Int64.intrange i4).
-        pose proof (Int64.intrange i).
+        pose proof (Int64.intrange i2).
 
         (* Maybe Heqb *)
         unfold MInt64asNT.from_N in EQsz0.
@@ -785,8 +787,9 @@ Proof.
 
         (* Solve memory invariant... *)
         cbn. cbn in mem_is_inv.
-        intros n1 v0 b τ x H H0'.
-        destruct x.
+
+        intros n1 v0 b τ x0 H H0'.
+        destruct x0.
         { (* Global *)
           pose proof (dtyp_fits_allocated yFITS) as yALLOC.
           epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
@@ -807,7 +810,7 @@ Proof.
             { eapply st_no_llvm_ptr_aliasing.
               5: eapply IDNEQ.
               eapply H.
-              eapply Heqo0.
+              eapply Heqo.
               all: eauto.
             }
 
@@ -823,10 +826,7 @@ Proof.
             rewrite H0' in N. inv N.
             cbn in H5. inversion H5.
             subst.
-            eapply read_type in READ'.
-            rewrite typ_to_dtyp_I.
-            constructor.
-
+            eapply read_type in READ'; rewrite typ_to_dtyp_I; constructor.
           - epose proof (mem_is_inv _ _ _ _ _ H H0') as INV.
             cbn in INV.
             cbn.
@@ -838,7 +838,7 @@ Proof.
             { eapply st_no_llvm_ptr_aliasing.
               5: eapply IDNEQ.
               eapply H.
-              eapply Heqo0.
+              eapply Heqo.
               all: eauto.
             }
 
@@ -854,10 +854,7 @@ Proof.
             rewrite H0' in N. inv N.
             cbn in H5. inversion H5.
             subst.
-            eapply read_type in READ'.
-            rewrite typ_to_dtyp_D.
-            constructor.
-            
+            eapply read_type in READ'; rewrite typ_to_dtyp_D; constructor.
           - epose proof (mem_is_inv _ _ _ _ _ H H0') as INV.
             cbn in INV.
             (* destruct INV as (bk & ptr_l & τ' & MLUP & TYP & FITS & LOOKUP & GETCELL_ptr_l). *)
@@ -893,7 +890,7 @@ Proof.
               eapply dtyp_fits_after_write; eauto.
               intros.
               destruct (GETCELL_ptr_l H1) as (? & ? & ?).
-              exists x.
+              exists x0.
               split; eauto.
 
               erewrite memory_lookup_memory_set_neq; eauto.
@@ -903,7 +900,7 @@ Proof.
                 { eapply st_no_llvm_ptr_aliasing.
                   5: eapply IDNEQ.
                   eapply H.
-                  eapply Heqo0.
+                  eapply Heqo.
                   all: eauto.
                 }
 
@@ -966,8 +963,7 @@ Proof.
                   rewrite mem_lookup_mem_add_eq in H1'; inv H1'.
 
                   change (UVALUE_Double v0) with (dvalue_to_uvalue (DVALUE_Double v0)).
-                  eapply write_array_cell_get_array_cell; eauto.
-                  constructor.
+                  eapply write_array_cell_get_array_cell; eauto; constructor.
                 + rewrite mem_lookup_mem_add_neq in H1'; inv H1'; eauto.
                   erewrite write_array_cell_untouched; eauto.
                   constructor.
@@ -981,7 +977,7 @@ Proof.
               - eapply dtyp_fits_after_write; eauto.
               - intros.
                 destruct (GETCELL_ptr_l H1) as (? & ? & ?).
-                exists x.
+                exists x0.
                 split.
                 erewrite memory_lookup_memory_set_neq; eauto.
                 intros idx v0 H1'.
@@ -991,7 +987,7 @@ Proof.
 
                   assert (n1 ≡ y_p) by (eapply no_id_aliasing_n_eq; eauto).
                   subst.
-                  rewrite Heqo0 in H.
+                  rewrite Heqo in H.
                   inversion H; subst; contradiction.
                 + unfold Eqv.eqv, eqv_raw_id in NEQid.
                   assert (fst ptr_l ≢ fst yptr).
@@ -1002,7 +998,7 @@ Proof.
                     eapply st_no_llvm_ptr_aliasing.
                     5: eapply NEQl.
                     eapply H.
-                    eapply Heqo0.
+                    eapply Heqo.
                     all:eauto.
                   }
                   erewrite write_array_cell_untouched_ptr_block; eauto.
@@ -1039,9 +1035,6 @@ Proof.
 
       symmetry.
       eapply local_scope_modif_external; eauto.
-      intros BETWEEN.
-      eapply H2.
-      eapply lid_bound_between_shrink; eauto; solve_local_count.
     }
 
     {
@@ -1078,7 +1071,7 @@ Proof.
       assert (Γ si ≡ Γ sf) as CONT by solve_gamma.
       rewrite CONT in LUn0, LUn.
       (* edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |]. *)
-      edestruct memory_invariant_Ptr as (yptr & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant |].
+      edestruct memory_invariant_Ptr as (yptr & yFITS & yINLG & yGETCELL); [| eapply Heqo | eapply LUn0 |]; [solve_state_invariant |].
 
 
       clean_goal.
@@ -1147,17 +1140,17 @@ Proof.
         subst.
         eapply yGEP.
 
-        (* Need to relate sz0 with i *)
-        assert (sz0 ≡ Z.to_N (Int64.intval i)) as SZI. eapply vellvm_helix_ptr_size; eauto.
+        (* Need to relate sz0 with i2 *)
+        assert (sz0 ≡ Z.to_N (Int64.intval i2)) as SZI. eapply vellvm_helix_ptr_size; eauto.
         subst.
 
         pose proof (DynamicValues.Int64.intrange dst).
         pose proof (Int64.intrange i4).
-        pose proof (Int64.intrange i).
+        pose proof (Int64.intrange i2).
 
         (* Maybe Heqb *)
         unfold MInt64asNT.from_N in EQsz0.
-        rewrite Znat.Z2N.id in EQsz0; [|lia].
+        rewrite Znat.Z2N.id in EQsz0; [| lia].
 
         pose proof EQsz0 as EQsz0'.
         apply from_Z_intval in EQsz0'.
@@ -1231,7 +1224,7 @@ Proof.
                 assert (n1 ≡ y_p).
                 eapply st_no_id_aliasing; eauto.
                 subst.
-                rewrite Heqo0 in H4.
+                rewrite Heqo in H4.
                 discriminate H4.
               + unfold Eqv.eqv, eqv_raw_id in NEQid.
                 assert (fst ptr_l ≢ fst yptr).
@@ -1240,7 +1233,7 @@ Proof.
 
                   eapply st_no_llvm_ptr_aliasing.
                   eapply H4.
-                  eapply Heqo0.
+                  eapply Heqo.
                   3: eapply  H.
                   all: eauto.
                 }
@@ -1270,7 +1263,7 @@ Proof.
                 assert (n1 ≡ y_p).
                 eapply st_no_id_aliasing; eauto.
                 subst.
-                rewrite Heqo0 in H4.
+                rewrite Heqo in H4.
                 discriminate H4.
               + unfold Eqv.eqv, eqv_raw_id in NEQid.
                 assert (fst ptr_l ≢ fst yptr).
@@ -1279,7 +1272,7 @@ Proof.
 
                   eapply st_no_llvm_ptr_aliasing.
                   eapply H4.
-                  eapply Heqo0.
+                  eapply Heqo.
                   3: eapply  H.
                   all: eauto.
                 }
@@ -1307,7 +1300,7 @@ Proof.
             - (* DSHPtrVals alias *)
               subst.
 
-              epose proof (st_no_dshptr_aliasing _ _ _ _ _ _ _ Heqo0 H4); subst.
+              epose proof (st_no_dshptr_aliasing _ _ _ _ _ _ _ Heqo H4); subst.
               pose proof H5 as IDS.
               rewrite LUn0 in IDS.
               inv IDS.
@@ -1321,7 +1314,7 @@ Proof.
               eapply dtyp_fits_after_write; eauto.
               split.
               { cbn.
-                rewrite Heqo0 in H4.
+                rewrite Heqo in H4.
                 rewrite LUn0 in H5.
                 inversion H5; subst; auto.
               }
@@ -1357,8 +1350,7 @@ Proof.
                   rewrite mem_lookup_mem_add_eq in H2; inv H2.
 
                   change (UVALUE_Double v0) with (dvalue_to_uvalue (DVALUE_Double v0)).
-                  eapply write_array_cell_get_array_cell; eauto.
-                  constructor.
+                  eapply write_array_cell_get_array_cell; eauto; constructor.
                 }
                 {
                   (* In the case where i <> dst *)
@@ -1397,7 +1389,7 @@ Proof.
                 { assert (n1 ≡ y_p).
                   eapply st_no_id_aliasing; eauto.
                   subst.
-                  rewrite Heqo0 in H4.
+                  rewrite Heqo in H4.
                   inv H4.
                   contradiction.
                 }
@@ -1446,7 +1438,7 @@ Proof.
             - (* PTR aliases, local case should be bogus... *)
               subst.
 
-              epose proof (st_no_dshptr_aliasing _ _ _ _ _ _ _ Heqo0 H4); subst.
+              epose proof (st_no_dshptr_aliasing _ _ _ _ _ _ _ Heqo H4); subst.
               rewrite LUn0 in H5.
               inversion H5.
             - (* This is the branch where a and y_i don't *)
@@ -1504,7 +1496,7 @@ Proof.
                 { eapply st_no_llvm_ptr_aliasing.
                   5: eapply IDNEQ.
                   eapply H4.
-                  eapply Heqo0.
+                  eapply Heqo.
                   all: eauto.
                 }
                 assert (fst yptr ≡ fst yptr') by (eapply handle_gep_addr_array_same_block; eauto).
@@ -1537,7 +1529,7 @@ Proof.
       assert (Γ si ≡ Γ sf) as CONT by solve_gamma.
       rewrite CONT in LUn0, LUn.
       (* edestruct memory_invariant_Ptr as (ymembk & yptr & yLU & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant|]. *)
-      edestruct memory_invariant_Ptr as (yptr & yFITS & yINLG & yGETCELL); [| eapply Heqo0 | eapply LUn0 |]; [solve_state_invariant|].
+      edestruct memory_invariant_Ptr as (yptr & yFITS & yINLG & yGETCELL); [| eapply Heqo | eapply LUn0 |]; [solve_state_invariant|].
 
       clean_goal.
       (* rewrite yLU in H0; symmetry in H0; inv H0. *)
@@ -1602,13 +1594,13 @@ Proof.
         subst.
         eapply yGEP.
 
-        (* Need to relate sz0 with i *)
-        assert (sz0 ≡ Z.to_N (Int64.intval i)) as SZI. eapply vellvm_helix_ptr_size; eauto.
+        (* Need to relate sz0 with i2 *)
+        assert (sz0 ≡ Z.to_N (Int64.intval i2)) as SZI. eapply vellvm_helix_ptr_size; eauto.
         subst.
 
         pose proof (DynamicValues.Int64.intrange dst).
         pose proof (Int64.intrange i4).
-        pose proof (Int64.intrange i).
+        pose proof (Int64.intrange i2).
 
         (* Maybe Heqb *)
         unfold MInt64asNT.from_N in EQsz0.
@@ -1664,8 +1656,8 @@ Proof.
 
         (* Solve memory invariant... *)
         cbn. cbn in mem_is_inv.
-        intros n1 v0 b τ x H H0'.
-        destruct x.
+        intros n1 v0 b τ x0 H H0'.
+        destruct x0.
         { (* Global *)
           pose proof (dtyp_fits_allocated yFITS) as yALLOC.
           epose proof (write_array_lemma _ _ _ _ _ _ yALLOC yGEP) as WRITE_ARRAY.
@@ -1686,7 +1678,7 @@ Proof.
             { eapply st_no_llvm_ptr_aliasing.
               5: eapply IDNEQ.
               eapply H.
-              eapply Heqo0.
+              eapply Heqo.
               all: eauto.
             }
 
@@ -1702,10 +1694,7 @@ Proof.
             rewrite H0' in N. inv N.
             cbn in H5. inversion H5.
             subst.
-            eapply read_type in READ'.
-            rewrite typ_to_dtyp_I.
-            constructor.
-
+            eapply read_type in READ'; rewrite typ_to_dtyp_I; constructor.
           - epose proof (mem_is_inv _ _ _ _ _ H H0') as INV.
             cbn in INV.
             cbn.
@@ -1717,7 +1706,7 @@ Proof.
             { eapply st_no_llvm_ptr_aliasing.
               5: eapply IDNEQ.
               eapply H.
-              eapply Heqo0.
+              eapply Heqo.
               all: eauto.
             }
 
@@ -1733,10 +1722,7 @@ Proof.
             rewrite H0' in N. inv N.
             cbn in H5. inversion H5.
             subst.
-            eapply read_type in READ'.
-            rewrite typ_to_dtyp_D.
-            constructor.
-            
+            eapply read_type in READ'; rewrite typ_to_dtyp_D; constructor.
           - epose proof (mem_is_inv _ _ _ _ _ H H0') as INV.
             cbn in INV.
             (* destruct INV as (bk & ptr_l & τ' & MLUP & TYP & FITS & LOOKUP & GETCELL_ptr_l). *)
@@ -1772,7 +1758,7 @@ Proof.
               eapply dtyp_fits_after_write; eauto.
               intros.
               destruct (GETCELL_ptr_l H1) as (? & ? & ?).
-              exists x.
+              exists x0.
               split; eauto.
 
               erewrite memory_lookup_memory_set_neq; eauto.
@@ -1782,7 +1768,7 @@ Proof.
                 { eapply st_no_llvm_ptr_aliasing.
                   5: eapply IDNEQ.
                   eapply H.
-                  eapply Heqo0.
+                  eapply Heqo.
                   all: eauto.
                 }
 
@@ -1845,8 +1831,7 @@ Proof.
                   rewrite mem_lookup_mem_add_eq in H1'; inv H1'.
 
                   change (UVALUE_Double v0) with (dvalue_to_uvalue (DVALUE_Double v0)).
-                  eapply write_array_cell_get_array_cell; eauto.
-                  constructor.
+                  eapply write_array_cell_get_array_cell; eauto; constructor.
                 + rewrite mem_lookup_mem_add_neq in H1'; inv H1'; eauto.
                   erewrite write_array_cell_untouched; eauto.
                   constructor.
@@ -1860,7 +1845,7 @@ Proof.
               - eapply dtyp_fits_after_write; eauto.
               - intros.
                 destruct (GETCELL_ptr_l H1) as (? & ? & ?).
-                exists x.
+                exists x0.
                 split.
                 erewrite memory_lookup_memory_set_neq; eauto.
                 intros idx v0 H1'.
@@ -1870,7 +1855,7 @@ Proof.
 
                   assert (n1 ≡ y_p) by (eapply no_id_aliasing_n_eq; eauto).
                   subst.
-                  rewrite Heqo0 in H.
+                  rewrite Heqo in H.
                   inversion H; subst; contradiction.
                 + unfold Eqv.eqv, eqv_raw_id in NEQid.
                   assert (fst ptr_l ≢ fst yptr).
@@ -1881,7 +1866,7 @@ Proof.
                     eapply st_no_llvm_ptr_aliasing.
                     5: eapply NEQl.
                     eapply H.
-                    eapply Heqo0.
+                    eapply Heqo.
                     all:eauto.
                   }
                   erewrite write_array_cell_untouched_ptr_block; eauto.
@@ -1901,6 +1886,3 @@ Proof.
     }
   }
 Qed.
-   *)
-Admitted.
-
