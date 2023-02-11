@@ -233,7 +233,7 @@ Lemma DSHPower_correct:
     → Gamma_safe σ s1 s2
     → no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ (DSHPower n src dst f initial)) memH)
     → eutt (succ_cfg (genIR_post σ s1 s2 nextblock l)) (interp_helix (denoteDSHOperator σ (DSHPower n src dst f initial)) memH) (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from, bid_in)) g l memV).
-Proof. (*
+Proof.
   intros n src dst f initial s1 s2 σ memH nextblock bid_in bid_from bks g l memV GEN NEXT PRE GAM NOFAIL.
 
   pose proof generates_wf_ocfg_bids _ NEXT GEN as WFOCFG.
@@ -1154,7 +1154,7 @@ Proof. (*
           do 2 erewrite <- nth_error_Sn in NTH_σ.
           do 2 erewrite <- nth_error_Sn in NTH_Γ.
 
-          pose proof Heqo0 as NTH_σ_dst.
+          pose proof Heqo as NTH_σ_dst.
           apply nth_error_protect_eq' in NTH_σ_dst.
           rewrite <- (nth_error_Sn (DSHCTypeVal v, false)) in NTH_σ_dst.
           rewrite <- (nth_error_Sn (DSHCTypeVal b1, false)) in NTH_σ_dst.
@@ -1223,13 +1223,11 @@ Proof. (*
             intros EQ; symmetry in EQ; revert EQ.
             eapply st_no_llvm_ptr_aliasing.
             * eapply NTH_σ.
-            * do 2 rewrite nth_error_Sn.
-              admit.
-              (* eapply (nth_error_protect_eq' n3 _ Heqo0). eauto. *)
+            * eapply NTH_σ_dst.
             * eapply NTH_Γ.
             * rewrite Gamma_cst.
               do 2 rewrite nth_error_Sn.
-              rewrite <- Γ_s2i19. rewrite <- Γ_S1S2.
+              replace (Γ i19)  with (Γ s1) by solve_gamma.
               eauto.
             * intros CONTRA; inv CONTRA.
               epose proof (st_no_id_aliasing _ _ _ _ _ _ _ NTH_σ _ NTH_Γ NTH_Γ_dst) as EQ; inv EQ.
@@ -1300,15 +1298,13 @@ Proof. (*
 
             eapply st_no_llvm_ptr_aliasing.
             eapply NTH_σ.
-            (* n3 instead of n2? *)
-            (* eapply NTH_σ_dst. *)
-            admit.
+            eapply NTH_σ_dst.
             eapply NTH_Γ.
             eapply NTH_Γ_dst.
             2-3: eauto.
             intros CONTRA; inv CONTRA.
             assert (S (S n) ≡ S (S n3)).
-            { eapply st_no_id_aliasing; eauto. admit. }
+            { eapply st_no_id_aliasing; eauto. }
             inv H0.
             apply protect_eq_true in NTH_σ_orig.
             inv NTH_σ_orig.
@@ -1338,14 +1334,13 @@ Proof. (*
 
             eapply st_no_llvm_ptr_aliasing.
             eapply NTH_σ.
-            admit.
-            (* eapply NTH_σ_dst. *)
+            eapply NTH_σ_dst.
             eapply NTH_Γ.
             eapply NTH_Γ_dst.
 
             intros CONTRA; inv CONTRA.
             assert (S (S n3) ≡ S (S n)).
-            { eapply st_no_id_aliasing; eauto. admit. }
+            { eapply st_no_id_aliasing; eauto. }
             inv H0.
             apply protect_eq_true in NTH_σ_orig.
             inv NTH_σ_orig.
@@ -1469,7 +1464,7 @@ Proof. (*
         destruct WRITE as [ALLOCATED WRITTEN].
 
         eapply ext_memory_trans; eauto.
-        eapply WRITTEN. constructor. admit.
+        eapply WRITTEN; constructor.
       }
 
     - (* local_scope_modif sb1 sb2 li l *)
@@ -1500,7 +1495,10 @@ Proof. (*
   all: solve_local_count.
 
   6: {
-    intros [[mH_post mb_post]|] [mV_post [l_post [g_post x_pos]]] [POST [Q_POST LSM_POST]]; [|inv Q_POST].
+    intros [[mH_post mb_post]|]
+           [mV_post [l_post [g_post x_pos]]]
+           [POST [Q_POST LSM_POST]];
+           [|inv Q_POST].
     rewrite interp_helix_MemSet.
     cbn.
     vred.
@@ -1511,22 +1509,28 @@ Proof. (*
 
     cbn in Q_POST.
     { (* State invariant preserved *)
-      split; eauto. admit.
-      eapply st_no_id_aliasing; eauto.
-      eapply st_no_dshptr_aliasing; eauto.
-      eapply st_no_llvm_ptr_aliasing; eauto.
-
-      (* memory_invariant and id_allocated are the only things that care *)
-  (*            about the altered memory *)
-  (*      *)
-      { unfold id_allocated.
-        intros n addr0 val H.
-
-        eapply st_id_allocated in Q_POST.
-        eauto. admit.
-      }
-
-      get_gamma_bounds; solve_gamma_bound.
+      destruct Q_POST.
+      (* memory_invariant and id_allocated are the only things that care
+         about the altered memory *)
+      split; eauto.
+      - unfold memory_invariant; intros.
+        unfold memory_invariant in mem_is_inv.
+        specialize mem_is_inv with n v b1 τ x.
+        do 2 conclude mem_is_inv assumption.
+        destruct v; try assumption.
+        destruct mem_is_inv as (ptr & τ' & H1 & H2 & H3 & H4).
+        exists ptr, τ'; break_and_goal; try assumption.
+        destruct b1; try discriminate.
+        intro C; clear C; conclude H4 auto.
+        destruct H4 as (bk & H4 & H5).
+        exists bk; break_and_goal; try assumption.
+        admit.
+      - unfold id_allocated; intros.
+        apply mem_block_exists_memory_set.
+        eapply mem_block_exists_memory_set_inv
+          in st_id_allocated
+          as [? | ?]; eauto; subst.
+        admit.
     }
 
     split.
@@ -1671,7 +1675,8 @@ Proof. (*
       - (* extended LLVM memory *)
         specialize (WRITE_EXT DTYPE_Double).
         forward WRITE_EXT; [constructor|].
-        destruct WRITE_EXT as [WRITE_NEW WRITE_OLD]. admit.
+        destruct WRITE_EXT as [WRITE_NEW WRITE_OLD].
+        constructor.
         split; eauto.
     }
   }
@@ -1694,20 +1699,19 @@ Proof. (*
          pose proof (write_correct WRITE_INIT) as [ALLOC WRITE_EXT].
          specialize (WRITE_EXT DTYPE_Double).
          forward WRITE_EXT; [constructor|].
+         conclude WRITE_EXT constructor.
 
          (* GETARRAYCELL_yoff starts at mV_yoff. mV_init extends that, and m1 extends mV_init *)
-         (* epose proof get_array_cell_mlup_ext bkh_yoff ptrll_yoff _ _ _ _ WRITE_EXT. *)
-         (* forward H3. solve_allocated. *)
+         epose proof get_array_cell_mlup_ext bkh_yoff ptrll_yoff _ _ _ _ WRITE_EXT.
+         forward H3. solve_allocated.
 
-         (* epose proof @get_array_cell_mlup_ext' bkh_yoff ptrll_yoff _ _ _ mV_init m1. *)
-         (* epose proof @get_array_cell_mlup_ext' bkh_yoff ptrll_yoff _ _ _ mV_init m1 v H3. *)
+         epose proof @get_array_cell_mlup_ext' bkh_yoff ptrll_yoff _ _ _ mV_init m1 v H3.
 
-         (* eapply H5; eauto. *)
-         (* rewrite repr_of_nat_to_nat; eauto. *)
-         admit.
+         eapply H4; eauto.
+         rewrite repr_of_nat_to_nat; eauto.
     }
     rewrite <- Γ_S1S2; eauto.
-    eauto.
+    admit.
 
     { (* Should be able to use INLG_yoff *)
       cbn. cbn in INLG_yoff.
@@ -1725,15 +1729,12 @@ Proof. (*
       epose proof local_scope_modif_trans'' H0 H1.
       repeat (forward H2; solve_local_count).
 
-      admit.
-      (* { destruct i3. *)
-      (*   - eauto. *)
-      (*   - assert (lid_bound s1 id) as LID_BOUND0 by (eapply Correctness_Invariants.st_gamma_bound; solve_lid_bound). *)
-      (*     cbn; erewrite <- local_scope_modif_bound_before with (s2:=s2); eauto. *)
-      (*     solve_lid_bound. *)
-      (* } *)
+      destruct i3.
+      - eauto.
+      - assert (lid_bound s1 id) as LID_BOUND0 by (eapply Correctness_Invariants.st_gamma_bound; solve_lid_bound).
+        cbn; erewrite <- local_scope_modif_bound_before with (s2:=s2); eauto.
+        solve_lid_bound.
     }
-    admit.
   }
 
   { (* IDENT *)
@@ -1822,5 +1823,5 @@ Proof. (*
   Unshelve.
   all: eauto.
   all: eapply from_N_intval in EQsz0; subst; auto.
-*)
+  exact false.
 Admitted.
