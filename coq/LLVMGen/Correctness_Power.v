@@ -389,10 +389,10 @@ Proof.
   rename n1 into yoff_nexpr.
   rename n into loop_end_nexpr.
 
-  rename n4 into dst_addr_h.
-  rename i into dst_size_h.
-  rename n5 into src_addr_h.
-  rename i2 into src_size_h.
+  rename n5 into dst_addr_h.
+  rename i2 into dst_size_h.
+  rename n4 into src_addr_h.
+  rename i into src_size_h.
 
   assert (Γ s1 ≡ Γ s2) as Γ_S1S2.
   { get_gammas.
@@ -543,7 +543,17 @@ Proof.
 
   inv TEQ_yoff. inv TEQ_xoff. cbn. vred.
 
-  edestruct denote_instr_gep_array_no_read with (m:=mV_yoff) (g:=g_yoff) (l:=l_yoff) (size:=(Z.to_N (Int64.intval i1))) (τ:=DTYPE_Double) (i:=src_ptr_id) (ptr := @EXP_Ident dtyp i0) (a:= ptrll_xoff) (e_ix:=convert_typ [] xoff_exp) (ix:=(MInt64asNT.to_nat xoff_res)).
+  edestruct denote_instr_gep_array_no_read with
+    (m:=mV_yoff)
+    (g:=g_yoff)
+    (l:=l_yoff)
+    (size:=(Z.to_N (Int64.intval i1)))
+    (τ:=DTYPE_Double)
+    (i:=src_ptr_id)
+    (ptr := @EXP_Ident dtyp i0)
+    (a:= ptrll_xoff)
+    (e_ix:=convert_typ [] xoff_exp)
+    (ix:=(MInt64asNT.to_nat xoff_res)).
 
   { destruct i0.
     { rewrite denote_exp_GR.
@@ -843,7 +853,6 @@ Proof.
 
       destruct (src_addr_h =? dst_addr_h) eqn:EQ.
       - unfold assert_false_to_err in NO_ALIAS_XY.
-        rewrite Nat.eqb_sym in NO_ALIAS_XY. rewrite EQ in NO_ALIAS_XY.
         inv NO_ALIAS_XY.
       - apply beq_nat_false in EQ.
         destruct PRE.
@@ -1227,7 +1236,7 @@ Proof.
             * eapply NTH_Γ.
             * rewrite Gamma_cst.
               do 2 rewrite nth_error_Sn.
-              replace (Γ i19)  with (Γ s1) by solve_gamma.
+              rewrite <- Γ_s2i19. rewrite <- Γ_S1S2.
               eauto.
             * intros CONTRA; inv CONTRA.
               epose proof (st_no_id_aliasing _ _ _ _ _ _ _ NTH_σ _ NTH_Γ NTH_Γ_dst) as EQ; inv EQ.
@@ -1508,30 +1517,7 @@ Proof.
     split; cbn.
 
     cbn in Q_POST.
-    { (* State invariant preserved *)
-      destruct Q_POST.
-      (* memory_invariant and id_allocated are the only things that care
-         about the altered memory *)
-      split; eauto.
-      - unfold memory_invariant; intros.
-        unfold memory_invariant in mem_is_inv.
-        specialize mem_is_inv with n v b1 τ x.
-        do 2 conclude mem_is_inv assumption.
-        destruct v; try assumption.
-        destruct mem_is_inv as (ptr & τ' & H1 & H2 & H3 & H4).
-        exists ptr, τ'; break_and_goal; try assumption.
-        destruct b1; try discriminate.
-        intro C; clear C; conclude H4 auto.
-        destruct H4 as (bk & H4 & H5).
-        exists bk; break_and_goal; try assumption.
-        admit.
-      - unfold id_allocated; intros.
-        apply mem_block_exists_memory_set.
-        eapply mem_block_exists_memory_set_inv
-          in st_id_allocated
-          as [? | ?]; eauto; subst.
-        admit.
-    }
+    eauto.
 
     split.
     { (* branches *)
@@ -1692,29 +1678,9 @@ Proof.
     subst.
 
     eapply state_invariant_write_double_result with (sz:=sz0); eauto.
-    4: { intros i v0 H H0.
-         pose proof GETARRAYCELL_yoff.
-         pose proof get_array_cell_mlup_ext.
-
-         pose proof (write_correct WRITE_INIT) as [ALLOC WRITE_EXT].
-         specialize (WRITE_EXT DTYPE_Double).
-         forward WRITE_EXT; [constructor|].
-         conclude WRITE_EXT constructor.
-
-         (* GETARRAYCELL_yoff starts at mV_yoff. mV_init extends that, and m1 extends mV_init *)
-         epose proof get_array_cell_mlup_ext bkh_yoff ptrll_yoff _ _ _ _ WRITE_EXT.
-         forward H3. solve_allocated.
-
-         epose proof @get_array_cell_mlup_ext' bkh_yoff ptrll_yoff _ _ _ mV_init m1 v H3.
-
-         eapply H4; eauto.
-         rewrite repr_of_nat_to_nat; eauto.
-    }
     rewrite <- Γ_S1S2; eauto.
-    admit.
 
     { (* Should be able to use INLG_yoff *)
-      cbn. cbn in INLG_yoff.
 
       (* TODO: another automation candidate. *)
       nexpr_modifs.
@@ -1734,6 +1700,25 @@ Proof.
       - assert (lid_bound s1 id) as LID_BOUND0 by (eapply Correctness_Invariants.st_gamma_bound; solve_lid_bound).
         cbn; erewrite <- local_scope_modif_bound_before with (s2:=s2); eauto.
         solve_lid_bound.
+    }
+
+    { intros i v0 H H0.
+      pose proof GETARRAYCELL_yoff.
+      pose proof get_array_cell_mlup_ext.
+
+      pose proof (write_correct WRITE_INIT) as [ALLOC WRITE_EXT].
+      specialize (WRITE_EXT DTYPE_Double).
+      forward WRITE_EXT; [constructor|].
+      conclude WRITE_EXT constructor.
+
+      (* GETARRAYCELL_yoff starts at mV_yoff. mV_init extends that, and m1 extends mV_init *)
+      epose proof get_array_cell_mlup_ext bkh_yoff ptrll_yoff _ _ _ _ WRITE_EXT.
+      forward H3. solve_allocated.
+
+      epose proof @get_array_cell_mlup_ext' bkh_yoff ptrll_yoff _ _ _ mV_init m1 v H3.
+
+      eapply H4; eauto.
+      rewrite repr_of_nat_to_nat; eauto.
     }
   }
 
@@ -1822,6 +1807,5 @@ Proof.
 
   Unshelve.
   all: eauto.
-  all: eapply from_N_intval in EQsz0; subst; auto.
-  exact false.
-Admitted.
+  eapply from_N_intval in EQsz0; subst; auto.
+Qed.
