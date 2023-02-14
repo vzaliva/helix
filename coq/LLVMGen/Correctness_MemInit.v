@@ -130,7 +130,49 @@ Definition memory_invariant_partial_write' (configV : config_cfg) (index loopsiz
 
 Instance state_invariant_memory_equiv_Proper σ s a :
   Proper (equiv ==> flip impl) (fun m => state_invariant σ s m a).
-Admitted.
+Proof.
+  intros x y H SINV.
+  unfold equiv, NM_Equiv in H.
+  destruct a, p.
+  destruct SINV; split; try assumption.
+  - clear - mem_is_inv H.
+    unfold memory_invariant in *.
+    intros n v b τ id H1 H2.
+    specialize mem_is_inv with n v b τ id.
+    do 2 conclude mem_is_inv assumption.
+    destruct v; try assumption.
+    destruct mem_is_inv as (ptr & τ' & H3 & H4 & H5 & H6).
+    exists ptr, τ'; break_and_goal; try eassumption.
+    destruct b; try discriminate.
+    conclude H6 auto.
+    intro C; clear C.
+    destruct H6 as (? & ? & ?).
+    specialize H with a.
+    unfold memory_lookup in *.
+    destruct H; inv H0.
+    exists a0; split; auto.
+    intros i v H0.
+    apply H6.
+    unfold mem_lookup in *.
+    specialize H with (MInt64asNT.to_nat i).
+    destruct H; inv H0.
+    unfold binary64_Equiv in H; subst.
+    reflexivity.
+  - clear - st_id_allocated H.
+    unfold id_allocated in *.
+    intros n addr val b H0.
+    specialize st_id_allocated with n addr val b.
+    conclude st_id_allocated assumption.
+    apply mem_block_exists_exists_equiv.
+    apply mem_block_exists_exists_equiv in st_id_allocated.
+    destruct st_id_allocated.
+    unfold memory_lookup in *.
+    specialize H with addr.
+    destruct H; inv H1.
+    exists a; constructor; intro.
+    destruct (Memory.NM.find k a); constructor.
+    reflexivity.
+Qed.
 
 (* TODO: Move to [Correctness_Invariants] *)
 Lemma state_invariant_cons :
