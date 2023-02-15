@@ -47,7 +47,22 @@ steps:
     commands:
       - opam exec -- make test
 
-  - name: notify-slack
+  # notifications are split into success/failure
+  # to avoid spamming the channel with cron successes
+  - name: notify-slack-success
+    image: plugins/slack
+    settings:
+      webhook:
+        from_secret: slack_webhook
+      channel: bitbucket-activity
+      when:
+        status:
+          - success
+        event:
+          exclude:
+            - cron
+
+  - name: notify-slack-failure
     image: plugins/slack
     settings:
       webhook:
@@ -56,7 +71,6 @@ steps:
       when:
         status:
           - failure
-          - success
 
 volumes:
   - name: dockersock
