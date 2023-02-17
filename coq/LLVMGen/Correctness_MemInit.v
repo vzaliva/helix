@@ -617,10 +617,11 @@ Proof.
             all: solve_local_count.
         - destruct y; cbn.
           { eapply in_local_or_global_addr_same_global; eauto. }
-          cbn in H4.
           rewrite alist_find_neq; try eassumption.
-          intro; subst.
-          admit. (* not in alist *)
+          destruct Hl; eapply lid_bound_fresh; eauto.
+          1: eapply lid_bound_before with (s1 := s0).
+          2: solve_local_count.
+          all: eapply st_gamma_bound; eassumption.
       }
 
       forward LOOP; [solve_local_count|].
