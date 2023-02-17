@@ -649,6 +649,41 @@ C2(C1(p1)) == p1
           apply In_add_ineq_iff in H5; eauto.
   Qed.
 
+  Lemma state_invariant_cons :
+    forall a x s' s σ mH mV l g,
+      s <<= s' ->
+      x :: Γ s' ≡ Γ s ->
+      state_invariant (a :: σ) s mH (mV, (l, g)) ->
+      state_invariant σ s' mH (mV, (l, g)).
+  Proof.
+    intros * LT GAM INV.
+    destruct INV.
+    unfold memory_invariant, WF_IRState, no_id_aliasing, no_dshptr_aliasing, no_llvm_ptr_aliasing, id_allocated in *.
+    rewrite <- GAM in *.
+    cbn in *.
+    split; eauto; red; repeat intro.
+    - intros. specialize (mem_is_inv (S n)).
+      cbn in *.
+      specialize (mem_is_inv _ _ _ _ H H0). destruct v; eauto.
+    - red in IRState_is_WF. specialize (IRState_is_WF v (S n)).
+      cbn in *. eauto.
+    - assert ((S n2) ≡ (S n1) -> n2 ≡ n1) by lia. apply H3.
+      eapply st_no_id_aliasing; eauto.
+    - assert ((S n') ≡ (S n) -> n' ≡ n) by lia. apply H1.
+      eapply st_no_dshptr_aliasing; eauto.
+    - red in st_no_llvm_ptr_aliasing.
+      specialize (st_no_llvm_ptr_aliasing id1 ptrv1 id2 ptrv2 (S n1) (S n2)).
+      cbn in *. rewrite <- GAM in *. revert H6. eapply st_no_llvm_ptr_aliasing;eauto.
+    - specialize (st_id_allocated (S n)). cbn in *. eauto.
+    - unfold gamma_bound in st_gamma_bound.
+      eapply state_bound_mono.
+      eapply st_gamma_bound.
+      2: solve_local_count.
+      rewrite <- GAM.
+      rewrite nth_error_Sn.
+      eauto.
+  Qed.
+
   Lemma state_invariant_cons2 :
     forall a b x y s' s σ mH mV l g,
       s <<= s' ->
