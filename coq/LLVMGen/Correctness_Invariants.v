@@ -662,24 +662,6 @@ C2(C1(p1)) == p1
     rewrite <- GAM in *.
     cbn in *.
     split; eauto; red; repeat intro.
-<<<<<<< Updated upstream
-    - intros. specialize (mem_is_inv (S n)).
-      cbn in *.
-      specialize (mem_is_inv _ _ _ _ H H0). destruct v; eauto.
-    - red in IRState_is_WF. specialize (IRState_is_WF v (S n)).
-      cbn in *. eauto.
-    - assert ((S n2) ≡ (S n1) -> n2 ≡ n1) by lia. apply H3.
-      eapply st_no_id_aliasing; eauto.
-    - assert ((S n') ≡ (S n) -> n' ≡ n) by lia. apply H1.
-      eapply st_no_dshptr_aliasing; eauto.
-    - red in st_no_llvm_ptr_aliasing.
-      specialize (st_no_llvm_ptr_aliasing id1 ptrv1 id2 ptrv2 (S n1) (S n2)).
-      cbn in *. rewrite <- GAM in *. revert H6. eapply st_no_llvm_ptr_aliasing;eauto.
-    - specialize (st_id_allocated (S n)). cbn in *. eauto.
-    - unfold gamma_bound in st_gamma_bound.
-      eapply state_bound_mono.
-      eapply st_gamma_bound.
-=======
     - intros. specialize (mem_is_inv0 (S n)).
       cbn in *.
       specialize (mem_is_inv0 _ _ _ _ H H0). destruct v; eauto.
@@ -696,7 +678,6 @@ C2(C1(p1)) == p1
     - unfold gamma_bound in st_gamma_bound0.
       eapply state_bound_mono.
       eapply st_gamma_bound0.
->>>>>>> Stashed changes
       2: solve_local_count.
       rewrite <- GAM.
       rewrite nth_error_Sn.

@@ -722,55 +722,6 @@ Proof.
         }
       }
 
-<<<<<<< Updated upstream
-      assert (BinNat.N.to_nat sz ≡ MInt64asNT.to_nat i) by admit.
-      rewrite <- H.
-
-      eapply LOOP.
-      {
-        subst P I. clear LOOP.
-        cbn. break_and_goal; eauto.
-        apply state_invariant_protect.
-        eapply state_invariant_Γ. eauto.
-        solve_gamma. solve_local_count.
-      }
-    }
-
-    red.
-    intros [[? ?] |] (? & ? & ? & ?); [| cbn in *; intuition].
-    2: { destruct H. inv REL1. inv REL2. inv H0. auto. }
-    intros [? ? ?]; eauto. inv REL1.
-    destruct REL2 as (?&?&?).
-    split; eauto.
-    - destruct b; eauto. destruct H1 as (? & ? & ?); subst.
-      cbn in *. inv H0. cbn in *. (*Properness lemma*)
-      eapply state_invariant_memory_equiv_Proper; eauto.
-      eapply state_invariant_Γ with (s2 := s2) in PRE; auto.
-      red in H2.
-      destruct PRE; split; auto.
-      all: destruct H1; auto.
-      repeat intro.
-      specialize (mem_is_inv0 _ _ _ _ _ H0 H1).
-      destruct v; auto.
-      destruct mem_is_inv0 as (? & ? & ? & ? & ? & ?).
-      eexists _, _; break_and_goal; eauto.
-      admit.
-    - split.
-      + red; destruct H; eexists; eauto.
-      + cbn; solve_local_scope_modif.
-  }
-
-  intros.
-  destruct u1; [| apply eutt_Ret; auto].
-  destruct p, u2, p, p.
-  rewrite interp_helix_MemSet.
-  apply eutt_Ret.
-
-  destruct H; split; auto.
-  cbn; cbn in H.
-
-  destruct H; split; auto.
-=======
       assert (BinNat.N.to_nat sz ≡ MInt64asNT.to_nat i).
       { apply IRState_is_WF in PRE.
         apply PRE in Heqo as [id H].
@@ -828,7 +779,6 @@ Proof.
   cbn; cbn in H.
 
   destruct H; split; auto.
->>>>>>> Stashed changes
   - repeat intro.
     specialize (mem_is_inv _ _ _ _ _ H H1).
     destruct v; auto.
