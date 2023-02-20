@@ -91,47 +91,46 @@ Proof.
   intros. rewrite H0, H1. eapply eutt_clo_bind; eauto.
 Qed.
 
-Section DSHIMap_is_tfor.
-
-  (* Iterative body of [IMap] *)
-  Definition DSHIMap_body
+Section DSHBinOp_is_tfor.
+  (* Iterative body of [BinOp] *)
+  Definition DSHBinOp_body
              (σ : evalContext)
              (f : AExpr)
              (offset : nat)
              (init acc : mem_block) : itree Event mem_block :=
-    v <- lift_Derr (mem_lookup_err "Error reading memory denoteDSHIMap" offset init);;
+    v <- lift_Derr (mem_lookup_err "Error reading memory denoteDSHBinOp" offset init);;
     vn <- lift_Serr (MInt64asNT.from_nat offset);;
-    v'<- denoteIUnCType σ f vn v;;
+    v'<- denoteIBinCType σ f vn v;;
     ret (mem_add offset v' acc).
 
-  (* [tfor] formulation of [DSHIMap].
+  (* [tfor] formulation of [DSHBinOp].
      "Reverse/downward" indexing ([n - 1 .. 0]). *)
-  Definition DSHIMap_tfor_down
+  Definition DSHBinOp_tfor_down
              (σ : evalContext)
              (f : AExpr)
              (i n e: nat)
              (init acc : mem_block):
     itree Event mem_block :=
-    (* IMap has "reverse indexing" on its body *)
-    tfor (fun i acc => DSHIMap_body σ f (e - 1 - i) init acc) i n acc.
+    (* BinOp has "reverse indexing" on its body *)
+    tfor (fun i acc => DSHBinOp_body σ f (e - 1 - i) init acc) i n acc.
 
   (* "Right"-side-up indexing variant ([0 .. n - 1]). *)
-  Definition DSHIMap_tfor_up
+  Definition DSHBinOp_tfor_up
              (σ : evalContext)
              (f : AExpr)
              (i n : nat)
              (init acc : mem_block):
     itree Event mem_block :=
-    tfor (fun i acc => DSHIMap_body σ f i init acc) i n acc.
+    tfor (fun i acc => DSHBinOp_body σ f i init acc) i n acc.
 
-  (* [denoteDSHIMap] is equivalent to [tfor] with "reverse indexing" on an
-     [IMap] body. *)
-  Lemma denoteDSHIMap_as_tfor:
+  (* [denoteDSHBinOp] is equivalent to [tfor] with "reverse indexing" on an
+     [BinOp] body. *)
+  Lemma denoteDSHBinOp_as_tfor:
     forall (σ : evalContext) n f x y,
-      denoteDSHIMap n f σ x y ≈ DSHIMap_tfor_down σ f 0 n n x y.
+      denoteDSHBinOp n f σ x y ≈ DSHBinOp_tfor_down σ f 0 n n x y.
   Proof.
     intros.
-    unfold DSHIMap_tfor_down. revert y.
+    unfold DSHBinOp_tfor_down. revert y.
     induction n.
     - cbn. intros.
       setoid_rewrite tfor_0.
@@ -157,13 +156,13 @@ Section DSHIMap_is_tfor.
   Lemma swap_body_interp:
     forall (n n' : nat) (σ : evalContext) (f : AExpr) (x : mem_block) mH init,
     eutt (E := E_cfg) mem_eq
-            (interp_helix (a <- DSHIMap_body σ f n x init ;; DSHIMap_body σ f n' x a) mH)
-            (interp_helix (a <- DSHIMap_body σ f n' x init ;; DSHIMap_body σ f n x a) mH).
+            (interp_helix (a <- DSHBinOp_body σ f n x init ;; DSHBinOp_body σ f n' x a) mH)
+            (interp_helix (a <- DSHBinOp_body σ f n' x init ;; DSHBinOp_body σ f n x a) mH).
   Proof.
     intros *.
 
     eapply eutt_translate_gen.
-    Transparent DSHIMap_body.
+    Transparent DSHBinOp_body.
     cbn.
     do 2 rewrite interp_Mem_bind.
     do 2 rewrite interp_fail_bind.
@@ -204,10 +203,10 @@ Section DSHIMap_is_tfor.
       break_match. break_match.
       - Unshelve.
         2 : { exact (fun l r =>
-                       ((exists s, mem_lookup_err "Error reading memory denoteDSHIMap" n' x ≡ inl s /\ l ≡ None) \/
-                       (exists b, mem_lookup_err "Error reading memory denoteDSHIMap" n' x ≡ inr b /\ l ≡ Some (mH, b))) /\
-                       ((exists s, mem_lookup_err "Error reading memory denoteDSHIMap" n x ≡ inl s /\ r ≡ None) \/
-                        (exists b, mem_lookup_err "Error reading memory denoteDSHIMap" n x ≡ inr b /\ r ≡ Some (mH, b)))). }
+                       ((exists s, mem_lookup_err "Error reading memory denoteDSHBinOp" n' x ≡ inl s /\ l ≡ None) \/
+                       (exists b, mem_lookup_err "Error reading memory denoteDSHBinOp" n' x ≡ inr b /\ l ≡ Some (mH, b))) /\
+                       ((exists s, mem_lookup_err "Error reading memory denoteDSHBinOp" n x ≡ inl s /\ r ≡ None) \/
+                        (exists b, mem_lookup_err "Error reading memory denoteDSHBinOp" n x ≡ inr b /\ r ≡ Some (mH, b)))). }
 
         setoid_rewrite interp_Mem_vis_eqit.
         unfold pure_state in *; cbn in *.
@@ -231,7 +230,7 @@ Section DSHIMap_is_tfor.
           unfold lift_Serr.
           destruct (MInt64asNT.from_nat n) eqn: Heqn.
           cbn. step. final. final. do 3 step.
-          unfold denoteIUnCType. step.
+          unfold denoteIBinCType. step.
           edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
             setoid_rewrite HA.
           step. final. final.
@@ -241,7 +240,7 @@ Section DSHIMap_is_tfor.
           unfold lift_Serr.
           destruct (MInt64asNT.from_nat n') eqn: Heqn.
           cbn. step. final. final.
-          unfold denoteIUnCType. repeat step.
+          unfold denoteIBinCType. repeat step.
           edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
             setoid_rewrite HA.
           step. final. final. do 2 step. final.
@@ -253,7 +252,7 @@ Section DSHIMap_is_tfor.
             destruct (MInt64asNT.from_nat n) eqn: Heqn.
           do 2 step. final. final.
           do 4 step.
-          unfold denoteIUnCType.
+          unfold denoteIBinCType.
           edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
             setoid_rewrite HA.
           do 2 step. final. final.
@@ -315,10 +314,10 @@ Section DSHIMap_is_tfor.
       break_match. break_match.
       - Unshelve.
         2 : { exact (fun l r =>
-                       ((exists s, mem_lookup_err "Error reading memory denoteDSHIMap" n x ≡ inl s /\ l ≡ None) \/
-                       (exists b, mem_lookup_err "Error reading memory denoteDSHIMap" n x ≡ inr b /\ l ≡ Some (mH, b))) /\
-                       ((exists s, mem_lookup_err "Error reading memory denoteDSHIMap" n' x ≡ inl s /\ r ≡ None) \/
-                        (exists b, mem_lookup_err "Error reading memory denoteDSHIMap" n' x ≡ inr b /\ r ≡ Some (mH, b)))). }
+                       ((exists s, mem_lookup_err "Error reading memory denoteDSHBinOp" n x ≡ inl s /\ l ≡ None) \/
+                       (exists b, mem_lookup_err "Error reading memory denoteDSHBinOp" n x ≡ inr b /\ l ≡ Some (mH, b))) /\
+                       ((exists s, mem_lookup_err "Error reading memory denoteDSHBinOp" n' x ≡ inl s /\ r ≡ None) \/
+                        (exists b, mem_lookup_err "Error reading memory denoteDSHBinOp" n' x ≡ inr b /\ r ≡ Some (mH, b)))). }
 
         setoid_rewrite interp_Mem_vis_eqit.
         unfold pure_state in *; cbn in *.
@@ -342,7 +341,7 @@ Section DSHIMap_is_tfor.
           unfold lift_Serr.
           destruct (MInt64asNT.from_nat n') eqn: Heqn.
           cbn. step. final. final. do 3 step.
-          unfold denoteIUnCType. step.
+          unfold denoteIBinCType. step.
           edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
             setoid_rewrite HA.
           step. final. final.
@@ -352,7 +351,7 @@ Section DSHIMap_is_tfor.
           unfold lift_Serr.
           destruct (MInt64asNT.from_nat n) eqn: Heqn.
           cbn. step. final. final.
-          unfold denoteIUnCType. repeat step.
+          unfold denoteIBinCType. repeat step.
           edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
             setoid_rewrite HA.
           step. final. final. do 2 step. final.
@@ -364,7 +363,7 @@ Section DSHIMap_is_tfor.
             destruct (MInt64asNT.from_nat n') eqn: Heqn.
           do 2 step. final. final.
           do 4 step.
-          unfold denoteIUnCType.
+          unfold denoteIBinCType.
           edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
             setoid_rewrite HA.
           do 2 step. final. final.
@@ -427,13 +426,13 @@ Section DSHIMap_is_tfor.
   Lemma eq_rev_interp :
       forall σ f n x y memH,
         eutt mem_eq
-          (interp_helix (E := E_cfg) (DSHIMap_tfor_up σ f 0 n x y) memH)
-        (interp_helix (E := E_cfg) (DSHIMap_tfor_down σ f 0 n n x y) memH).
+          (interp_helix (E := E_cfg) (DSHBinOp_tfor_up σ f 0 n x y) memH)
+        (interp_helix (E := E_cfg) (DSHBinOp_tfor_down σ f 0 n n x y) memH).
     Proof.
-      unfold DSHIMap_tfor_up, DSHIMap_tfor_down.
+      unfold DSHBinOp_tfor_up, DSHBinOp_tfor_down.
       intros.
       revert σ f x y memH.
-      Opaque DSHIMap_body.
+      Opaque DSHBinOp_body.
       induction n. intros. cbn.
       - rewrite! tfor_0. reflexivity.
       - intros. setoid_rewrite tfor_unroll at 2.
@@ -448,7 +447,7 @@ Section DSHIMap_is_tfor.
           setoid_rewrite tfor_ss_dep at 2. 3 : lia.
           2 : {
             intros. Unshelve.
-            3 : { exact (fun i x0 => DSHIMap_body σ f (n - 1 - i) x x0). }
+            3 : { exact (fun i x0 => DSHBinOp_body σ f (n - 1 - i) x x0). }
             cbn.
             assert (EQ : n - S i ≡ n - 1 - i) by lia; rewrite EQ; clear EQ.
             reflexivity.
@@ -459,7 +458,7 @@ Section DSHIMap_is_tfor.
           2 : exact (fun a =>
               match a with
               | Some (m1, m2) =>
-                interp_helix (tfor (λ (i : nat) (acc : mem_block), DSHIMap_body σ f i x acc) 0 n m2) m1
+                interp_helix (tfor (λ (i : nat) (acc : mem_block), DSHBinOp_body σ f i x acc) 0 n m2) m1
               | None => Ret None
               end).
           cbn. reflexivity.
@@ -477,7 +476,7 @@ Section DSHIMap_is_tfor.
           2 : lia. Unshelve.
           3 : exact (fun a =>
               match a with
-              | Some (m1, m2) => interp_helix (DSHIMap_body σ f n x m2) m1
+              | Some (m1, m2) => interp_helix (DSHBinOp_body σ f n x m2) m1
               | None => Ret None
               end).
           cbn. reflexivity.
@@ -486,7 +485,7 @@ Section DSHIMap_is_tfor.
         cbn.
 
         remember n.
-        remember (λ x0 : mem_block, DSHIMap_body σ f n0 x x0).
+        remember (λ x0 : mem_block, DSHBinOp_body σ f n0 x x0).
         rewrite Heqn0. clear Heqn0. subst.
         revert x y n0.
         induction n.
@@ -519,14 +518,14 @@ Section DSHIMap_is_tfor.
             Unshelve.
             7 : exact (fun a =>
                 match a with
-                | Some (m1, m2) => interp_helix (DSHIMap_body σ f n x m2) m1
+                | Some (m1, m2) => interp_helix (DSHBinOp_body σ f n x m2) m1
                 | None => Ret None
                 end).
             cbn. reflexivity. cbn. reflexivity.
             intros [[]|] [[]|] EQ; inv EQ.
             3 : exact (fun a =>
                 match a with
-                | Some (m1, m2) => interp_helix (DSHIMap_body σ f n0 x m2) m1
+                | Some (m1, m2) => interp_helix (DSHBinOp_body σ f n0 x m2) m1
                 | None => Ret None
                 end).
             1, 2 : cbn ; reflexivity.
@@ -543,8 +542,8 @@ Section DSHIMap_is_tfor.
             3 : exact (fun a =>
                 match a with
                 | Some (m1, m2) =>
-                    '(m3, m4) <- interp_helix (tfor (λ (i : nat) (acc : mem_block), DSHIMap_body σ f i x acc) 0 n m2 ) m1 ;;
-                      interp_helix (DSHIMap_body σ f n x m4) m3
+                    '(m3, m4) <- interp_helix (tfor (λ (i : nat) (acc : mem_block), DSHBinOp_body σ f i x acc) 0 n m2 ) m1 ;;
+                      interp_helix (DSHBinOp_body σ f n x m4) m3
                 | None => Ret None
                 end).
             cbn.
@@ -568,8 +567,8 @@ Section DSHIMap_is_tfor.
                 (fun a =>
                   match a with
                   | Some (m1, m2) =>
-                    (interp_helix (ITree.subst (DSHIMap_body σ f n x)
-                            (tfor (fun (i : nat) (acc : mem_block) => DSHIMap_body σ f i x acc) O n m2)) m1)
+                    (interp_helix (ITree.subst (DSHBinOp_body σ f n x)
+                            (tfor (fun (i : nat) (acc : mem_block) => DSHBinOp_body σ f i x acc) O n m2)) m1)
                   | None => Ret None
                   end).
             }
@@ -589,12 +588,12 @@ Section DSHIMap_is_tfor.
             intros [[]|] [[]|] EQ; inv EQ.
             Unshelve.
             3 :  exact (fun r => match r with
-                              | Some (m1, m0) => interp_helix (DSHIMap_body σ f n x m0) m1
+                              | Some (m1, m0) => interp_helix (DSHBinOp_body σ f n x m0) m1
                               | None => Ret None
                               end).
             cbn.
-            Transparent DSHIMap_body.
-            unfold DSHIMap_body. cbn.
+            Transparent DSHBinOp_body.
+            unfold DSHBinOp_body. cbn.
             rewrite! interp_helix_bind.
             eapply eutt_clo_bind.  reflexivity.
             intros [[]|] [[]|] EQ'; inv EQ'; try reflexivity. cbn in *.
@@ -625,20 +624,20 @@ Section DSHIMap_is_tfor.
           eapply swap_body_interp.
     Qed.
 
-  Lemma DSHIMap_eq_ret :
+  Lemma DSHBinOp_eq_ret :
     forall σ f n x y memH,
-      no_failure (E := E_cfg) (interp_helix (DSHIMap_body σ f n x y) memH) ->
-      exists b, interp_helix (E := E_cfg) (DSHIMap_body σ f n x y) memH ≈ interp_helix (Ret b) memH.
+      no_failure (E := E_cfg) (interp_helix (DSHBinOp_body σ f n x y) memH) ->
+      exists b, interp_helix (E := E_cfg) (DSHBinOp_body σ f n x y) memH ≈ interp_helix (Ret b) memH.
   Proof.
     intros.
-    Transparent DSHIMap_body. cbn* in *; simp; try_abs.
+    Transparent DSHBinOp_body. cbn* in *; simp; try_abs.
 
     pose proof @genAExpr_correct_helix_pure.
     edestruct H0. rewrite! bind_ret_l in H.
     apply no_failure_helix_bind_prefix in H. eauto.
     eexists.
     eapply eutt_translate_gen.
-    unfold denoteIUnCType.
+    unfold denoteIBinCType.
     rename H1 into N_DENOTE.
     hred.
     rewrite interp_Mem_bind.
@@ -647,25 +646,25 @@ Section DSHIMap_is_tfor.
     hred. reflexivity.
   Qed.
 
-  Transparent DSHIMap_body.
+  Transparent DSHBinOp_body.
 
 
-  Lemma DSHIMap_interpreted_as_tfor:
+  Lemma DSHBinOp_interpreted_as_tfor:
     forall σ (n : nat) (m : memoryH) f
       (init acc : mem_block),
       eutt (mem_eq)
-           (interp_helix (E := E_cfg) (denoteDSHIMap n f σ init acc) m)
+           (interp_helix (E := E_cfg) (denoteDSHBinOp n f σ init acc) m)
             (tfor (fun k x' =>
                     match x' with
                     | None => Ret None
-                    | Some (m', acc) => interp_helix (DSHIMap_body σ f k init acc) m'
+                    | Some (m', acc) => interp_helix (DSHBinOp_body σ f k init acc) m'
                     end)
               0 n (Some (m, acc))).
   Proof.
     intros.
-    rewrite denoteDSHIMap_as_tfor.
+    rewrite denoteDSHBinOp_as_tfor.
     rewrite <- eq_rev_interp.
-    unfold DSHIMap_tfor_up.
+    unfold DSHBinOp_tfor_up.
     rewrite interp_helix_tfor; [|lia].
     cbn.
     eapply eutt_Proper_mono; cycle 1.
@@ -681,7 +680,7 @@ Section DSHIMap_is_tfor.
   Qed.
 
 
-End DSHIMap_is_tfor.
+End DSHBinOp_is_tfor.
 
 (* The result is a branch *)
 Definition branches (to : block_id) (mh : memoryH * ()) (c : config_cfg_T (block_id * block_id + uvalue)) : Prop :=
@@ -776,18 +775,18 @@ Definition memory_invariant_partial_write' (configV : config_cfg) (index loopsiz
                       Ret (m,(l,(g,dvalue_to_uvalue v))).
 
  *)
-Lemma DSHIMap_correct:
+Lemma DSHBinOp_correct:
   ∀ (n : nat) (x_p y_p : PExpr) (f : AExpr) (s1 s2 : IRState) (σ : evalContext) (memH : memoryH)
     (nextblock bid_in bid_from : block_id) (bks : list (LLVMAst.block typ)) (g : global_env)
     (ρ : local_env) (memV : memoryV),
-    genIR (DSHIMap n x_p y_p f) nextblock s1 ≡ inr (s2, (bid_in, bks))
+    genIR (DSHBinOp n x_p y_p f) nextblock s1 ≡ inr (s2, (bid_in, bks))
     → bid_bound s1 nextblock
     → state_invariant σ s1 memH (memV, (ρ, g))
     → Gamma_safe σ s1 s2
     (* We need an explicit predicate stating that the source program will not fail. *)
-    → no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ (DSHIMap n x_p y_p f)) memH)
+    → no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ (DSHBinOp n x_p y_p f)) memH)
     → eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ))
-           (interp_helix (denoteDSHOperator σ (DSHIMap n x_p y_p f)) memH)
+           (interp_helix (denoteDSHOperator σ (DSHBinOp n x_p y_p f)) memH)
             (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from, bid_in)) g ρ memV).
 Proof.
   intros n x_p y_p f s1 s2 σ memH nextblock bid_in bid_from bks g ρ memV GEN NEXT PRE GAM NOFAIL.
@@ -835,10 +834,10 @@ Proof.
   rename n3 into n3_temp.
   rename n2 into n3.
   rename n3_temp into n2.
-  destruct (assert_nat_neq "DSHIMap 'x' must not be equal 'y'" n3 n2) eqn : XNEQY; try_abs.
+  destruct (assert_nat_neq "DSHBinOp 'x' must not be equal 'y'" n3 n2) eqn : XNEQY; try_abs.
 
   repeat apply no_failure_Ret in NOFAIL.
-  destruct (assert_nat_le "DSHIMap 'n' index out of bounds" n (MInt64asNT.to_nat i1)) eqn : BOUNDS; try_abs.
+  destruct (assert_nat_le "DSHBinOp 'n' index out of bounds" n (MInt64asNT.to_nat i1)) eqn : BOUNDS; try_abs.
   repeat apply no_failure_Ret in NOFAIL.
 
   edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
@@ -929,7 +928,7 @@ Proof.
   eapply eqit_trans.
   {
     eapply eutt_clo_bind_returns.
-    apply DSHIMap_interpreted_as_tfor.
+    apply DSHBinOp_interpreted_as_tfor.
     intros [ [] |] [ []| ] EQ R1 R2; inv EQ.
     rewrite interp_helix_MemSet.
     Unshelve.
@@ -985,7 +984,7 @@ Proof.
     destruct p. inv H1. inv H1. reflexivity.
   }
 
-  rewrite DSHIMap_interpreted_as_tfor in NOFAIL.
+  rewrite DSHBinOp_interpreted_as_tfor in NOFAIL.
 
   cbn* in *; simp; cbn in *.
   clean_goal.
@@ -995,7 +994,7 @@ Proof.
     => epose proof @genWhileLoop_tfor_correct prefix loopvar loopcontblock body_entry body_blocks nextblock bid_in s1' s2' s1 s11 bks as GENC
   end.
 
-  Transparent genIMapBody.
+  Transparent genBinOpBody.
   forward GENC; [clear GENC |].
   cbn. left; reflexivity.
 
@@ -1216,10 +1215,10 @@ Proof.
     cbn in NOFAIL'. rewrite bind_ret_l in NOFAIL'. rewrite interp_helix_bind in NOFAIL'.
     clear RET. clear WFOCFG. clear INPUTS_BETWEEN.
 
-    (* [HELIX] "denoteIUnCType" exposed *)
-    unfold denoteIUnCType.
+    (* [HELIX] "denoteIBinCType" exposed *)
+    unfold denoteIBinCType.
 
-    Transparent genIMapBody. cbn in Heqs5. simp; try_abs.
+    Transparent genBinOpBody. cbn in Heqs5. simp; try_abs.
 
     (* [Vellvm] step until "fmap" is exposed, so we can match with AExpr denotation *)
     rewrite denote_ocfg_unfold_in.
@@ -1514,7 +1513,7 @@ Proof.
         eapply lid_bound_between_newLocalVar. 2 : eauto. cbn. reflexivity.
         all : eauto.
 
-      - clear -NOFAIL'. unfold denoteIUnCType in NOFAIL'.
+      - clear -NOFAIL'. unfold denoteIBinCType in NOFAIL'.
         apply no_failure_bind_prefix in NOFAIL'. eauto.
     }
 
