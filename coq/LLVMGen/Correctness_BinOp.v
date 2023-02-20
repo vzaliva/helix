@@ -34,62 +34,10 @@ Import MonadNotation.
 Local Open Scope monad_scope.
 Local Open Scope nat_scope.
 
-Ltac interp_MF_ret := setoid_rewrite interp_Mem_ret; setoid_rewrite interp_fail_ret; cbn.
-Ltac interp_MF_bind := setoid_rewrite interp_Mem_bind; setoid_rewrite interp_fail_bind; cbn.
-
-Ltac final := apply eqit_Ret; eauto.
-Ltac step :=
-  first [progress vred_E3 | vred_I3];
-  rewrite 1?interp_Mem_ret, 1?interp_fail_ret, 1?bind_ret_l;
-  rewrite 1?interp_Mem_bind, 1?interp_fail_bind, 1?bind_bind;
-  rewrite 1?interp_fail_throw, 1?bind_ret_l; cbn.
-
-Definition mem_eq :=
-      (fun (x y : option (memoryH * mem_block)) => match x, y with
-                  | Some (mH, m), Some (mH', m') => mH ≡ mH' /\ m = m'
-                  | None, None => True
-                  | _, _ => False end).
-
-Instance mem_eq_Equivalence : Equivalence mem_eq.
-Proof.
-  split.
-  - red. intros [ []| ]. red.
-    split; eauto. apply NM_Equiv_Reflexive.
-    red. auto.
-  - red. intros [ []| ] [ []| ]; red; cbn; intros []; auto.
-    split; auto. apply NM_Equiv_Symmetric. auto.
-  - red. intros [ []| ] [ []| ] [ []| ]; red; cbn; intros []; auto.
-    intros []. split. rewrite H. auto.
-    eapply NM_Equiv_Transitive; eauto.
-Qed.
-
-Lemma Returns_fail_throw :
-  forall T m x s, not (Returns (Some x) (interp_fail handle_failure (interp_Mem (T := T) (throw s) m))).
-Proof.
-  intros. intro abs.
-  setoid_rewrite interp_Mem_vis_eqit in abs.
-  unfold pure_state in *; cbn in *.
-  rewrite interp_fail_bind in abs.
-  rewrite interp_fail_vis in abs.
-  cbn in *.
-  rewrite Eq.bind_bind, !bind_ret_l in abs.
-  apply Returns_Ret in abs.
-  inversion abs.
-Qed.
-
-Lemma commut_gen :
-  forall {A : Type}
-    (QQ : A -> A -> Prop) `{Equivalence A QQ}
-    (t1 t2 : A -> itree void1 A) (m : A)
-    (ti1 ti2 : itree void1 A),
-    ti1 ≈ t1 m ->
-    ti2 ≈ t2 m ->
-    (eutt (fun m1' m2' => eutt QQ (t1 m1') (t2 m2')) (t2 m) (t1 m)) ->
-    (eutt (fun m1' m2' => eutt QQ (t2 m1') (t1 m2')) (t1 m) (t2 m)) ->
-    eutt QQ (a <- ti1 ;; t2 a) (a <- ti2  ;; t1 a).
-Proof.
-  intros. rewrite H0, H1. eapply eutt_clo_bind; eauto.
-Qed.
+(* TODO: straighten this dependency *)
+(* [DSHBinOp] and [DSHIMap] are similar, and a lot of the lemmas
+   (as well as general proof structure) should be shared. *)
+Require Import Helix.LLVMGen.Correctness_IMap.
 
 Section DSHBinOp_is_tfor.
   (* Iterative body of [BinOp] *)
@@ -707,73 +655,7 @@ Definition memory_invariant_partial_write' (configV : config_cfg) (index loopsiz
                     → get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0))).
 
 (** ** Simplified High-level Proof Overview
-
-    Source language has an "fmap" operator (called IMap)
-    Target language is a cfg-based language (i.e. each node is a basic block
-        with jump targets)
-
-                    |-------------------------------------------------|
-          Given     | compile (IMap (n, x_p, y_p, f))   ≡   blocks    |
-                    |-------------------------------------------------|
-
-  *****************************************************************************
-  ### Correctness Proof (each row is a proof step)
-  *****************************************************************************
-
-  (* Assume no failure at the source code *)
-  NOFAIL : no_failure (⟦ IMap (n, x_p, y_p, f) ⟧ mH)
-
-  (* Pre-condition is a Coq Prop           *)
-  PRECONDITION : {{ state_invariant mH mV  }}
-
-  (* Post-condition is a relation on returned states *)
-  Q := {{ ∀ mH' mV' id, state_invariant mH' mV' ∧ branches_to id }}
-  =============================================================================
-            HELIX (src)                               |     VIR (trg)    | Post
-  ----------------------------------------------------|------------------|-----
-                                                      |                  |
-     ⟦ IMap (n, x_p, y_p, f) ⟧  mH                    ≈   ⟦ blocks ⟧ mV  |  Q
-                                                      |                  |
-  -----# REWRITE denoteDSHIMap_as_tfor #--------------|--------- --------|-----
-                                                      |                  |
-     tfor [n-1 .. 0] ⟦ imap_body (x_p, y_p, f) ⟧ mH   ≈   ⟦ blocks ⟧ mV  |  Q
-                                                      |                  |
-  -----#    REWRITE reverse_tfor_eq    #--------------|------------------|-----
-                                                      |                  |
-     tfor [0 .. n] ⟦ imap_body (x_p, y_p, f) ⟧ mH     ≈   ⟦ blocks ⟧ mV  |  Q
-                                                      |                  |
-  ----------------------------------------------------|------------------|MONO-
-                                                      |                  |
-     tfor [0 .. n] ⟦ imap_body (x_p, y_p, f) ⟧ mH     ≈   ⟦ blocks ⟧ mV  | ?Q'
-                                                      |                  |
-  -------# APPLY genWhileLoop_tfor with (I := loop_invariant)  #---------------
-  (* N.B. [genWhileLoop_tfor] is specific to VIR, and can work on any source *)
-
-
-    Remaining proof obligations (simplified):
-
-      1. Setting up pre-/post-conditions
-
-            {{ PRECONDITION }} -> {{ loop_invariant 0 }}
-
-            {{ loop_invariant n }} -> {{ POSTCONDITION }}
-
-      2. Relate the iterations of the bodies.
-
-            {{ ∀ k, l @ loop_index = k ∧ loop_invariant k }}
-                imap_body ≈ blocks[label, body_entry]
-            {{ loop_invariant (S k) }}
-
-        Proved through symbolic execution of "atomic" operations (OP) --
-            rewrite with equations [denote_exp_*] of the form
-
-                 ⟦ OP ⟧ g l m ≈ Ret v
-
-         e.g.) Lemma denote_exp_GR :forall g l m id v τ,
-                   Maps.lookup id g = Some v ->
-                      ⟦ EXP_Ident (ID_Global id) at τ ⟧ g l m ≈
-                      Ret (m,(l,(g,dvalue_to_uvalue v))).
-
+    See comment above [DSHIMap_correct]
  *)
 Lemma DSHBinOp_correct:
   ∀ (n : nat) (x_p y_p : PExpr) (f : AExpr) (s1 s2 : IRState) (σ : evalContext) (memH : memoryH)
