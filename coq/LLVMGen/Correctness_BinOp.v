@@ -40,42 +40,44 @@ Local Open Scope nat_scope.
 Require Import Helix.LLVMGen.Correctness_IMap.
 
 Section DSHBinOp_is_tfor.
+
   (* Iterative body of [BinOp] *)
   Definition DSHBinOp_body
              (σ : evalContext)
              (f : AExpr)
-             (offset : nat)
+             (n off : nat)
              (init acc : mem_block) : itree Event mem_block :=
-    v <- lift_Derr (mem_lookup_err "Error reading memory denoteDSHBinOp" offset init);;
-    vn <- lift_Serr (MInt64asNT.from_nat offset);;
-    v'<- denoteIBinCType σ f vn v;;
-    ret (mem_add offset v' acc).
+    v0 <- lift_Derr (mem_lookup_err "Error reading 1st arg memory in denoteDSHBinOp" n init) ;;
+    v1 <- lift_Derr (mem_lookup_err "Error reading 2nd arg memory in denoteDSHBinOp" (n+off) init) ;;
+    vn <- lift_Serr (MInt64asNT.from_nat n) ;;
+    v' <- denoteIBinCType σ f vn v0 v1 ;;
+    ret (mem_add n v' acc).
 
   (* [tfor] formulation of [DSHBinOp].
      "Reverse/downward" indexing ([n - 1 .. 0]). *)
   Definition DSHBinOp_tfor_down
              (σ : evalContext)
              (f : AExpr)
-             (i n e: nat)
+             (i n off e: nat)
              (init acc : mem_block):
     itree Event mem_block :=
     (* BinOp has "reverse indexing" on its body *)
-    tfor (fun i acc => DSHBinOp_body σ f (e - 1 - i) init acc) i n acc.
+    tfor (fun i acc => DSHBinOp_body σ f (e - 1 - i) off init acc) i n acc.
 
   (* "Right"-side-up indexing variant ([0 .. n - 1]). *)
   Definition DSHBinOp_tfor_up
              (σ : evalContext)
              (f : AExpr)
-             (i n : nat)
+             (i n off : nat)
              (init acc : mem_block):
     itree Event mem_block :=
-    tfor (fun i acc => DSHBinOp_body σ f i init acc) i n acc.
+    tfor (fun i acc => DSHBinOp_body σ f i off init acc) i n acc.
 
   (* [denoteDSHBinOp] is equivalent to [tfor] with "reverse indexing" on an
      [BinOp] body. *)
   Lemma denoteDSHBinOp_as_tfor:
-    forall (σ : evalContext) n f x y,
-      denoteDSHBinOp n f σ x y ≈ DSHBinOp_tfor_down σ f 0 n n x y.
+    forall (σ : evalContext) n off f x y,
+      denoteDSHBinOp n off f σ x y ≈ DSHBinOp_tfor_down σ f 0 n off n x y.
   Proof.
     intros.
     unfold DSHBinOp_tfor_down. revert y.
@@ -88,12 +90,8 @@ Section DSHBinOp_is_tfor.
       assert (S n - 1 - 0 ≡ n) by lia. rewrite H. cbn.
       repeat setoid_rewrite bind_bind.
       cbn.
-      eapply eutt_clo_bind; [reflexivity|].
-      intros u1 u2 H'.
-      eapply eutt_clo_bind; [reflexivity|].
-      intros u0 u3 H''. subst.
-      eapply eutt_clo_bind; [reflexivity|].
-      intros; subst. rewrite bind_ret_l.
+      do 4 (eapply eutt_clo_bind; [reflexivity | intros; subst]).
+      rewrite bind_ret_l.
       rewrite IHn.
 
       setoid_rewrite tfor_ss_dep. 3 : lia.
@@ -102,10 +100,10 @@ Section DSHBinOp_is_tfor.
   Qed.
 
   Lemma swap_body_interp:
-    forall (n n' : nat) (σ : evalContext) (f : AExpr) (x : mem_block) mH init,
+    forall (n n' off : nat) (σ : evalContext) (f : AExpr) (x : mem_block) mH init,
     eutt (E := E_cfg) mem_eq
-            (interp_helix (a <- DSHBinOp_body σ f n x init ;; DSHBinOp_body σ f n' x a) mH)
-            (interp_helix (a <- DSHBinOp_body σ f n' x init ;; DSHBinOp_body σ f n x a) mH).
+            (interp_helix (a <- DSHBinOp_body σ f n off x init ;; DSHBinOp_body σ f n' off x a) mH)
+            (interp_helix (a <- DSHBinOp_body σ f n' off x init ;; DSHBinOp_body σ f n off x a) mH).
   Proof.
     intros *.
 
@@ -150,11 +148,14 @@ Section DSHBinOp_is_tfor.
       unfold lift_Derr.
       break_match. break_match.
       - Unshelve.
-        2 : { exact (fun l r =>
-                       ((exists s, mem_lookup_err "Error reading memory denoteDSHBinOp" n' x ≡ inl s /\ l ≡ None) \/
-                       (exists b, mem_lookup_err "Error reading memory denoteDSHBinOp" n' x ≡ inr b /\ l ≡ Some (mH, b))) /\
-                       ((exists s, mem_lookup_err "Error reading memory denoteDSHBinOp" n x ≡ inl s /\ r ≡ None) \/
-                        (exists b, mem_lookup_err "Error reading memory denoteDSHBinOp" n x ≡ inr b /\ r ≡ Some (mH, b)))). }
+        2 : {
+          exact
+            (fun l r =>
+               ((exists s, mem_lookup_err "Error reading 1st arg memory in denoteDSHBinOp" n' x ≡ inl s /\ l ≡ None)
+                \/ (exists b, mem_lookup_err "Error reading 1st arg memory in denoteDSHBinOp" n' x ≡ inr b /\ l ≡ Some (mH, b)))
+               /\
+                 ((exists s, mem_lookup_err "Error reading 1st arg memory in denoteDSHBinOp" n x ≡ inl s /\ r ≡ None)
+                  \/ (exists b, mem_lookup_err "Error reading 1st arg memory in denoteDSHBinOp" n x ≡ inr b /\ r ≡ Some (mH, b)))). }
 
         setoid_rewrite interp_Mem_vis_eqit.
         unfold pure_state in *; cbn in *.
@@ -172,100 +173,222 @@ Section DSHBinOp_is_tfor.
         break_match; step; final; split; eauto.
       (* EUTT_CLO_BIND continuation *)
       - intros. cbn in H.
-        destruct H; destruct H, H2; destruct H as (? & ? & ?); destruct H2 as (? & ? & ?).
-        + subst. final. final.
-        + subst. cbn.
+        destruct H; destruct H, H2;
+          destruct H as (? & ? & ?); destruct H2 as (? & ? & ?).
+        + (* 1st lookup: [None | None] *)
+          subst. final. final.
+        + (* 1st lookup: [None | Some] *)
+          subst. cbn.
           unfold lift_Serr.
-          destruct (MInt64asNT.from_nat n) eqn: Heqn.
-          cbn. step. final. final. do 3 step.
-          unfold denoteIBinCType. step.
-          edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
-            setoid_rewrite HA.
-          step. final. final.
-          do 2 step. final. step. rewrite H. repeat step. final.
-
-        + subst. cbn.
-          unfold lift_Serr.
-          destruct (MInt64asNT.from_nat n') eqn: Heqn.
-          cbn. step. final. final.
-          unfold denoteIBinCType. repeat step.
-          edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
-            setoid_rewrite HA.
-          step. final. final. do 2 step. final.
-          rewrite H2. repeat step. final.
-
-        + subst. cbn.
-          unfold lift_Serr.
-          destruct (MInt64asNT.from_nat n') eqn: Heqn';
+          match goal with
+          | |- context [mem_lookup_err ?e (_ + ?off) ?x] =>
+              destruct (mem_lookup_err e (n + off) x) eqn:ML2
+          end.
+          * (* 2nd lookup [None | ] *)
+            cbn. step. final. final.
+          * (* 2nd lookup [Some | ] *)
+            cbn.
+            step.
             destruct (MInt64asNT.from_nat n) eqn: Heqn.
-          do 2 step. final. final.
-          do 4 step.
-          unfold denoteIBinCType.
-          edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
-            setoid_rewrite HA.
-          do 2 step. final. final.
-          do 3 step. final.
+            ** (* offset1 bad *)
+              cbn. step. final. final.
+            ** (* offset1 ok *)
+              do 3 step.
+              unfold denoteIBinCType. step.
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA.
+              step. final. final.
+              do 2 step. final. step. rewrite H. repeat step. final.
+        + (* 1st lookup: [Some | None] *)
+          subst. cbn.
+          unfold lift_Serr.
+          match goal with
+          | |- context [mem_lookup_err ?e (_ + ?off) ?x] =>
+              destruct (mem_lookup_err e (n' + off) x) eqn:ML2
+          end.
+          * (* 2nd lookup [None | ] *)
+            cbn. step. final. final.
+          * (* 2nd lookup [Some | ] *)
+            cbn.
+            step.
+            destruct (MInt64asNT.from_nat n') eqn: Heqn.
+            ** (* offset1 bad *)
+              cbn. step. final. final.
+            ** (* offset1 ok *)
+              do 3 step.
+              unfold denoteIBinCType. step.
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA.
+              step. final. final.
+              do 2 step. final. step. rewrite H2. repeat step. final.
+        + (* 1st lookup: [Some | Some] *)
+          subst. cbn.
 
-          step. rewrite H. do 3 step. final.
-          do 3 step.
+          hred. vred. vred.
+          do 2 step.
+          (* *)
+          eapply eutt_clo_bind_returns.
+          
+          unfold lift_Derr.
+          break_match. break_match.
 
-          edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
-            setoid_rewrite HA.
-          step. final. final. do 2 step. final.
-          step. rewrite H2.
-          repeat step. final.
-          repeat step.
-          edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
-            setoid_rewrite HA;
-          edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA' | (? & HA')];
-          setoid_rewrite HA'.
-          step. final. final.
-          repeat step. final.
-          rewrite H. repeat step.
-          rewrite HA. step. final.
-          rewrite H2. repeat step. final.
-          repeat step. setoid_rewrite HA'. repeat step. final.
-          repeat step. final. repeat step.
-          rewrite H, H2. repeat step.
-          rewrite HA, HA'. repeat step. final.
-          split; auto.
-        destruct (Nat.eq_dec n n'). subst.
-        * rewrite Heqn' in Heqn. inv Heqn.
-          rewrite H in H2. inv H2.
-          setoid_rewrite HA in HA'. apply eqit_inv in HA'.
-          inv HA'. reflexivity.
-        * red. intros.
-          pose proof @mem_lookup_mem_add_eq.
-          pose proof @mem_lookup_mem_add_neq.
-          unfold mem_lookup in *.
-          destruct (Nat.eq_dec k n).
-         --- subst. rewrite H3.
-              rewrite H4. rewrite H3. cbn. f_equiv.
-              auto.
-         --- rewrite H4; auto.
-              destruct (Nat.eq_dec k n').
-              subst.
-              rewrite H3. rewrite H3. f_equiv.
-              rewrite H4. rewrite H4. rewrite H4.
-              f_equiv. f_equiv. repeat red. reflexivity. auto. auto . auto.
+          *
+            Unshelve.
+            2: {
+              exact
+                (fun l r =>
+                   ((exists s, mem_lookup_err "Error reading 2nd arg memory in denoteDSHBinOp" (n' + off) x ≡ inl s /\ l ≡ None)
+                    \/ (exists b, mem_lookup_err "Error reading 2nd arg memory in denoteDSHBinOp" (n' + off) x ≡ inr b /\ l ≡ Some (mH, b)))
+                   /\
+                     ((exists s, mem_lookup_err "Error reading 2nd arg memory in denoteDSHBinOp" (n + off) x ≡ inl s /\ r ≡ None)
+                      \/ (exists b, mem_lookup_err "Error reading 2nd arg memory in denoteDSHBinOp" (n + off) x ≡ inr b /\ r ≡ Some (mH, b)))). }
+
+            setoid_rewrite interp_Mem_vis_eqit.
+            unfold pure_state in *; cbn in *.
+            rewrite !interp_fail_bind.
+            rewrite !interp_fail_vis.
+            cbn in *. step. final.
+            split; eauto.
+          *
+            setoid_rewrite interp_Mem_vis_eqit.
+            unfold pure_state in *; cbn in *.
+            rewrite !interp_fail_bind.
+            rewrite !interp_fail_vis.
+            cbn in *. step. final.
+            split; eauto.
+          *
+            step. step.
+            break_match; step; final; split; eauto.
+          *
+            rename H into H', H2 into H2', H0 into H0', H1 into H1'.
+            intros. cbn in H.
+            destruct H; destruct H, H2;
+              destruct H as (? & ? & ?); destruct H2 as (? & ? & ?).
+            {
+              subst. final. final.
+            }
+            
+            {
+              subst. cbn.
+              unfold lift_Serr.
+              destruct (MInt64asNT.from_nat n) eqn: Heqn.
+              cbn. step. final. final.
+              do 3 step.
+              unfold denoteIUnCType. step.
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA.
+              step. final. final.
+              do 2 step. final. step. rewrite H, H'. repeat step.
+              final.
+            }
+
+            {
+              subst. cbn.
+              unfold lift_Serr.
+              destruct (MInt64asNT.from_nat n') eqn: Heqn.
+              cbn. step. final. final.
+              do 3 step.
+              unfold denoteIUnCType. step.
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA.
+              step. final. final.
+              do 2 step. final. step. rewrite H2, H2'. repeat step.
+              final.
+            }
+
+            {
+              subst. cbn.
+              unfold lift_Serr.
+              destruct (MInt64asNT.from_nat n') eqn: Heqn';
+                destruct (MInt64asNT.from_nat n) eqn: Heqn.
+              do 2 step. final. final.
+              do 4 step.
+              unfold denoteIBinCType.
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA.
+              do 2 step. final. final.
+              do 3 step. final.
+              
+              step. rewrite H, H'. repeat step. final.
+              do 3 step.
+              
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA.
+              step. final. final. do 2 step. final.
+              step. rewrite H2, H2'.
+              repeat step. final.
+              repeat step.
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA
+              ;
+                edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA' | (? & HA')];
+                setoid_rewrite HA'.
+              step. final. final.
+              repeat step. final.
+              rewrite H, H'. repeat step.
+              rewrite HA. step. final.
+              rewrite H2, H2'. repeat step. final.
+              repeat step. setoid_rewrite HA'. repeat step. final.
+              repeat step. final. repeat step.
+              rewrite H, H2, H', H2'. repeat step.
+              rewrite HA, HA'. repeat step. final.
+              split; auto.
+              destruct (Nat.eq_dec n n'). subst.
+              - rewrite Heqn' in Heqn. inv Heqn.
+                rewrite H in H2. inv H2.
+                rewrite H' in H2'. inv H2'.
+                setoid_rewrite HA in HA'. apply eqit_inv in HA'.
+                inv HA'. reflexivity.
+              - red. intros.
+                pose proof @mem_lookup_mem_add_eq.
+                pose proof @mem_lookup_mem_add_neq.
+                unfold mem_lookup in *.
+                destruct (Nat.eq_dec k n).
+                + subst. rewrite H3.
+                  rewrite H4. rewrite H3. cbn. f_equiv.
+                  auto.
+                + rewrite H4; auto.
+                  destruct (Nat.eq_dec k n').
+                  subst.
+                  rewrite H3. rewrite H3. f_equiv.
+                  rewrite H4. rewrite H4. rewrite H4.
+                  f_equiv. f_equiv. repeat red. reflexivity. auto. auto . auto.
+            }
     }
+    
     {
-
       Import ProofMode. cbn.
       hred. vred. vred.
-
-      rewrite! interp_Mem_bind.
-      rewrite! interp_fail_bind.
+      do 2 step.
       eapply eutt_clo_bind_returns.
 
       unfold lift_Derr.
       break_match. break_match.
       - Unshelve.
-        2 : { exact (fun l r =>
-                       ((exists s, mem_lookup_err "Error reading memory denoteDSHBinOp" n x ≡ inl s /\ l ≡ None) \/
-                       (exists b, mem_lookup_err "Error reading memory denoteDSHBinOp" n x ≡ inr b /\ l ≡ Some (mH, b))) /\
-                       ((exists s, mem_lookup_err "Error reading memory denoteDSHBinOp" n' x ≡ inl s /\ r ≡ None) \/
-                        (exists b, mem_lookup_err "Error reading memory denoteDSHBinOp" n' x ≡ inr b /\ r ≡ Some (mH, b)))). }
+        2 : {
+          exact
+            (fun l r =>
+               ((exists s, mem_lookup_err "Error reading 1st arg memory in denoteDSHBinOp" n x ≡ inl s /\ l ≡ None)
+                \/ (exists b, mem_lookup_err "Error reading 1st arg memory in denoteDSHBinOp" n x ≡ inr b /\ l ≡ Some (mH, b)))
+               /\
+                 ((exists s, mem_lookup_err "Error reading 1st arg memory in denoteDSHBinOp" n' x ≡ inl s /\ r ≡ None)
+                  \/ (exists b, mem_lookup_err "Error reading 1st arg memory in denoteDSHBinOp" n' x ≡ inr b /\ r ≡ Some (mH, b)))). }
 
         setoid_rewrite interp_Mem_vis_eqit.
         unfold pure_state in *; cbn in *.
@@ -283,82 +406,213 @@ Section DSHBinOp_is_tfor.
         break_match; step; final; split; eauto.
       (* EUTT_CLO_BIND continuation *)
       - intros. cbn in H.
-        destruct H; destruct H, H2; destruct H as (? & ? & ?); destruct H2 as (? & ? & ?).
-        + subst. final. final.
-        + subst. cbn.
+        destruct H; destruct H, H2;
+          destruct H as (? & ? & ?); destruct H2 as (? & ? & ?).
+        + (* 1st lookup: [None | None] *)
+          subst. final. final.
+        + (* 1st lookup: [None | Some] *)
+          subst. cbn.
           unfold lift_Serr.
-          destruct (MInt64asNT.from_nat n') eqn: Heqn.
-          cbn. step. final. final. do 3 step.
-          unfold denoteIBinCType. step.
-          edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
-            setoid_rewrite HA.
-          step. final. final.
-          do 2 step. final. step. rewrite H. repeat step. final.
-
-        + subst. cbn.
-          unfold lift_Serr.
-          destruct (MInt64asNT.from_nat n) eqn: Heqn.
-          cbn. step. final. final.
-          unfold denoteIBinCType. repeat step.
-          edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
-            setoid_rewrite HA.
-          step. final. final. do 2 step. final.
-          rewrite H2. repeat step. final.
-
-        + subst. cbn.
-          unfold lift_Serr.
-          destruct (MInt64asNT.from_nat n) eqn: Heqn';
+          match goal with
+          | |- context [mem_lookup_err ?e (_ + ?off) ?x] =>
+              destruct (mem_lookup_err e (n' + off) x) eqn:ML2
+          end.
+          * (* 2nd lookup [None | ] *)
+            cbn. step. final. final.
+          * (* 2nd lookup [Some | ] *)
+            cbn.
+            step.
             destruct (MInt64asNT.from_nat n') eqn: Heqn.
-          do 2 step. final. final.
-          do 4 step.
-          unfold denoteIBinCType.
-          edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
-            setoid_rewrite HA.
-          do 2 step. final. final.
-          do 3 step. final.
+            ** (* offset1 bad *)
+              cbn. step. final. final.
+            ** (* offset1 ok *)
+              do 3 step.
+              unfold denoteIBinCType. step.
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA.
+              step. final. final.
+              do 2 step. final. step. rewrite H. repeat step. final.
+        + (* 1st lookup: [Some | None] *)
+          subst. cbn.
+          unfold lift_Serr.
+          match goal with
+          | |- context [mem_lookup_err ?e (_ + ?off) ?x] =>
+              destruct (mem_lookup_err e (n + off) x) eqn:ML2
+          end.
+          * (* 2nd lookup [None | ] *)
+            cbn. step. final. final.
+          * (* 2nd lookup [Some | ] *)
+            cbn.
+            step.
+            destruct (MInt64asNT.from_nat n) eqn: Heqn.
+            ** (* offset1 bad *)
+              cbn. step. final. final.
+            ** (* offset1 ok *)
+              do 3 step.
+              unfold denoteIBinCType. step.
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA.
+              step. final. final.
+              do 2 step. final. step. rewrite H2. repeat step. final.
+        + (* 1st lookup: [Some | Some] *)
+          subst. cbn.
 
-          step. rewrite H. do 3 step. final.
-          do 3 step.
+          hred. vred. vred.
+          do 2 step.
+          (* *)
+          eapply eutt_clo_bind_returns.
+          
+          unfold lift_Derr.
+          break_match. break_match.
 
-          edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
-            setoid_rewrite HA.
-          step. final. final. do 2 step. final.
-          step. rewrite H2.
-          repeat step. final.
-          repeat step.
-          edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA | (? & HA)];
-            setoid_rewrite HA;
-          edestruct genAExpr_correct_helix_pure_classic with (aexp := f) as [HA' | (? & HA')];
-          setoid_rewrite HA'.
-          step. final. final.
-          repeat step. final.
-          rewrite H. repeat step.
-          rewrite HA. step. final.
-          rewrite H2. repeat step. final.
-          repeat step. setoid_rewrite HA'. repeat step. final.
-          repeat step. final. repeat step.
-          rewrite H, H2. repeat step.
-          rewrite HA, HA'. repeat step. final.
-          split; auto.
-        destruct (Nat.eq_dec n n'). subst.
-        * rewrite Heqn' in Heqn. inv Heqn.
-          rewrite H in H2. inv H2.
-          setoid_rewrite HA in HA'. apply eqit_inv in HA'.
-          inv HA'. reflexivity.
-        * red. intros.
-          pose proof @mem_lookup_mem_add_eq.
-          pose proof @mem_lookup_mem_add_neq.
-          unfold mem_lookup in *.
-          destruct (Nat.eq_dec k n').
-         --- subst. rewrite H3.
-              rewrite H4. rewrite H3. cbn. f_equiv.
-              auto.
-         --- rewrite H4; auto.
-              destruct (Nat.eq_dec k n).
-              subst.
-              rewrite H3. rewrite H3. f_equiv.
-              rewrite H4. rewrite H4. rewrite H4.
-              f_equiv. f_equiv. repeat red. reflexivity. auto. auto . auto.
+          *
+            Unshelve.
+            2: {
+              exact
+                (fun l r =>
+                   ((exists s, mem_lookup_err "Error reading 2nd arg memory in denoteDSHBinOp" (n + off) x ≡ inl s /\ l ≡ None)
+                    \/ (exists b, mem_lookup_err "Error reading 2nd arg memory in denoteDSHBinOp" (n + off) x ≡ inr b /\ l ≡ Some (mH, b)))
+                   /\
+                     ((exists s, mem_lookup_err "Error reading 2nd arg memory in denoteDSHBinOp" (n' + off) x ≡ inl s /\ r ≡ None)
+                      \/ (exists b, mem_lookup_err "Error reading 2nd arg memory in denoteDSHBinOp" (n' + off) x ≡ inr b /\ r ≡ Some (mH, b)))). }
+
+            setoid_rewrite interp_Mem_vis_eqit.
+            unfold pure_state in *; cbn in *.
+            rewrite !interp_fail_bind.
+            rewrite !interp_fail_vis.
+            cbn in *. step. final.
+            split; eauto.
+          *
+            setoid_rewrite interp_Mem_vis_eqit.
+            unfold pure_state in *; cbn in *.
+            rewrite !interp_fail_bind.
+            rewrite !interp_fail_vis.
+            cbn in *. step. final.
+            split; eauto.
+          *
+            step. step.
+            break_match; step; final; split; eauto.
+          *
+            rename H into H', H2 into H2', H0 into H0', H1 into H1'.
+            intros. cbn in H.
+            destruct H; destruct H, H2;
+              destruct H as (? & ? & ?); destruct H2 as (? & ? & ?).
+            {
+              subst. final. final.
+            }
+            
+            {
+              subst. cbn.
+              unfold lift_Serr.
+              destruct (MInt64asNT.from_nat n') eqn: Heqn.
+              cbn. step. final. final.
+              do 3 step.
+              unfold denoteIUnCType. step.
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA.
+              step. final. final.
+              do 2 step. final. step. rewrite H, H'. repeat step.
+              final.
+            }
+
+            {
+              subst. cbn.
+              unfold lift_Serr.
+              destruct (MInt64asNT.from_nat n) eqn: Heqn.
+              cbn. step. final. final.
+              do 3 step.
+              unfold denoteIUnCType. step.
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA.
+              step. final. final.
+              do 2 step. final. step. rewrite H2, H2'. repeat step.
+              final.
+            }
+
+            {
+              subst. cbn.
+              unfold lift_Serr.
+              destruct (MInt64asNT.from_nat n') eqn: Heqn';
+                destruct (MInt64asNT.from_nat n) eqn: Heqn.
+              do 2 step. final. final.
+              do 4 step.
+              unfold denoteIBinCType.
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA.
+              do 2 step. final. final.
+              do 3 step. final.
+              
+              step. rewrite H2, H2'. repeat step. final.
+              do 3 step.
+              
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA.
+              step. final. final. do 2 step. final.
+              step. rewrite H, H'.
+              repeat step. final.
+              repeat step.
+              edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA | (? & HA)];
+                setoid_rewrite HA
+              ;
+                edestruct genAExpr_correct_helix_pure_classic
+                with (aexp := f)
+                as [HA' | (? & HA')];
+                setoid_rewrite HA'.
+              step. final. final.
+              repeat step. final.
+              rewrite H, H'. repeat step.
+              rewrite HA. step. final.
+              rewrite H2, H2'. repeat step. final.
+              repeat step. setoid_rewrite HA'. repeat step. final.
+              repeat step. final. repeat step.
+              rewrite H, H2, H', H2'. repeat step.
+              rewrite HA, HA'. repeat step. final.
+              split; auto.
+              destruct (Nat.eq_dec n n'). subst.
+              - rewrite Heqn' in Heqn. inv Heqn.
+                rewrite H' in H2'. inv H2'.
+                rewrite H in H2. inv H2.
+                setoid_rewrite HA in HA'. apply eqit_inv in HA'.
+                inv HA'. reflexivity.
+              - red. intros.
+                pose proof @mem_lookup_mem_add_eq.
+                pose proof @mem_lookup_mem_add_neq.
+                unfold mem_lookup in *.
+                destruct (Nat.eq_dec k n).
+                + subst. rewrite H3.
+                  rewrite H4. rewrite H3. cbn. f_equiv.
+                  auto.
+                +
+                  match goal with
+                  | |- ?x = ?y =>
+                      enough (y = x);
+                      [generalize dependent y; generalize dependent x |]
+                  end.
+                  {
+                    clear; intros x y E.
+                    destruct x, y; invc E; now repeat constructor.
+                  }
+                  rewrite H4; auto.
+                  destruct (Nat.eq_dec k n').
+                  subst.
+                  rewrite H3. rewrite H3. f_equiv.
+                  rewrite H4. rewrite H4. rewrite H4.
+                  f_equiv. f_equiv. repeat red. reflexivity. auto. auto . auto.
+            }
     }
 
     {
