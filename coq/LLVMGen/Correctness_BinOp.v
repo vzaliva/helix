@@ -626,10 +626,10 @@ Section DSHBinOp_is_tfor.
   Qed.
 
   Lemma eq_rev_interp :
-      forall σ f n x y memH,
+      forall σ f n off x y memH,
         eutt mem_eq
-          (interp_helix (E := E_cfg) (DSHBinOp_tfor_up σ f 0 n x y) memH)
-        (interp_helix (E := E_cfg) (DSHBinOp_tfor_down σ f 0 n n x y) memH).
+          (interp_helix (E := E_cfg) (DSHBinOp_tfor_up σ f 0 n off x y) memH)
+        (interp_helix (E := E_cfg) (DSHBinOp_tfor_down σ f 0 n off n x y) memH).
     Proof.
       unfold DSHBinOp_tfor_up, DSHBinOp_tfor_down.
       intros.
@@ -649,7 +649,7 @@ Section DSHBinOp_is_tfor.
           setoid_rewrite tfor_ss_dep at 2. 3 : lia.
           2 : {
             intros. Unshelve.
-            3 : { exact (fun i x0 => DSHBinOp_body σ f (n - 1 - i) x x0). }
+            3 : { exact (fun i x0 => DSHBinOp_body σ f (n - 1 - i) off x x0). }
             cbn.
             assert (EQ : n - S i ≡ n - 1 - i) by lia; rewrite EQ; clear EQ.
             reflexivity.
@@ -660,7 +660,8 @@ Section DSHBinOp_is_tfor.
           2 : exact (fun a =>
               match a with
               | Some (m1, m2) =>
-                interp_helix (tfor (λ (i : nat) (acc : mem_block), DSHBinOp_body σ f i x acc) 0 n m2) m1
+                  interp_helix (tfor (λ (i : nat) (acc : mem_block),
+                                    DSHBinOp_body σ f i off x acc) 0 n m2) m1
               | None => Ret None
               end).
           cbn. reflexivity.
@@ -678,7 +679,7 @@ Section DSHBinOp_is_tfor.
           2 : lia. Unshelve.
           3 : exact (fun a =>
               match a with
-              | Some (m1, m2) => interp_helix (DSHBinOp_body σ f n x m2) m1
+              | Some (m1, m2) => interp_helix (DSHBinOp_body σ f n off x m2) m1
               | None => Ret None
               end).
           cbn. reflexivity.
@@ -687,7 +688,7 @@ Section DSHBinOp_is_tfor.
         cbn.
 
         remember n.
-        remember (λ x0 : mem_block, DSHBinOp_body σ f n0 x x0).
+        remember (λ x0 : mem_block, DSHBinOp_body σ f n0 off x x0).
         rewrite Heqn0. clear Heqn0. subst.
         revert x y n0.
         induction n.
@@ -720,14 +721,14 @@ Section DSHBinOp_is_tfor.
             Unshelve.
             7 : exact (fun a =>
                 match a with
-                | Some (m1, m2) => interp_helix (DSHBinOp_body σ f n x m2) m1
+                | Some (m1, m2) => interp_helix (DSHBinOp_body σ f n off x m2) m1
                 | None => Ret None
                 end).
             cbn. reflexivity. cbn. reflexivity.
             intros [[]|] [[]|] EQ; inv EQ.
             3 : exact (fun a =>
                 match a with
-                | Some (m1, m2) => interp_helix (DSHBinOp_body σ f n0 x m2) m1
+                | Some (m1, m2) => interp_helix (DSHBinOp_body σ f n0 off x m2) m1
                 | None => Ret None
                 end).
             1, 2 : cbn ; reflexivity.
@@ -744,8 +745,8 @@ Section DSHBinOp_is_tfor.
             3 : exact (fun a =>
                 match a with
                 | Some (m1, m2) =>
-                    '(m3, m4) <- interp_helix (tfor (λ (i : nat) (acc : mem_block), DSHBinOp_body σ f i x acc) 0 n m2 ) m1 ;;
-                      interp_helix (DSHBinOp_body σ f n x m4) m3
+                    '(m3, m4) <- interp_helix (tfor (λ (i : nat) (acc : mem_block), DSHBinOp_body σ f i off x acc) 0 n m2 ) m1 ;;
+                      interp_helix (DSHBinOp_body σ f n off x m4) m3
                 | None => Ret None
                 end).
             cbn.
@@ -769,8 +770,8 @@ Section DSHBinOp_is_tfor.
                 (fun a =>
                   match a with
                   | Some (m1, m2) =>
-                    (interp_helix (ITree.subst (DSHBinOp_body σ f n x)
-                            (tfor (fun (i : nat) (acc : mem_block) => DSHBinOp_body σ f i x acc) O n m2)) m1)
+                    (interp_helix (ITree.subst (DSHBinOp_body σ f n off x)
+                            (tfor (fun (i : nat) (acc : mem_block) => DSHBinOp_body σ f i off x acc) O n m2)) m1)
                   | None => Ret None
                   end).
             }
@@ -790,7 +791,7 @@ Section DSHBinOp_is_tfor.
             intros [[]|] [[]|] EQ; inv EQ.
             Unshelve.
             3 :  exact (fun r => match r with
-                              | Some (m1, m0) => interp_helix (DSHBinOp_body σ f n x m0) m1
+                              | Some (m1, m0) => interp_helix (DSHBinOp_body σ f n off x m0) m1
                               | None => Ret None
                               end).
             cbn.
@@ -798,6 +799,10 @@ Section DSHBinOp_is_tfor.
             unfold DSHBinOp_body. cbn.
             rewrite! interp_helix_bind.
             eapply eutt_clo_bind.  reflexivity.
+            intros [[]|] [[]|] EQ'; inv EQ'; try reflexivity. cbn in *.
+            rewrite! interp_helix_bind.
+            eapply eutt_clo_bind.  reflexivity.
+
             intros [[]|] [[]|] EQ'; inv EQ'; try reflexivity. cbn in *.
             rewrite! interp_helix_bind.
             eapply eutt_clo_bind.  reflexivity.
@@ -827,9 +832,9 @@ Section DSHBinOp_is_tfor.
     Qed.
 
   Lemma DSHBinOp_eq_ret :
-    forall σ f n x y memH,
-      no_failure (E := E_cfg) (interp_helix (DSHBinOp_body σ f n x y) memH) ->
-      exists b, interp_helix (E := E_cfg) (DSHBinOp_body σ f n x y) memH ≈ interp_helix (Ret b) memH.
+    forall σ f n off x y memH,
+      no_failure (E := E_cfg) (interp_helix (DSHBinOp_body σ f n off x y) memH) ->
+      exists b, interp_helix (E := E_cfg) (DSHBinOp_body σ f n off x y) memH ≈ interp_helix (Ret b) memH.
   Proof.
     intros.
     Transparent DSHBinOp_body. cbn* in *; simp; try_abs.
@@ -850,16 +855,15 @@ Section DSHBinOp_is_tfor.
 
   Transparent DSHBinOp_body.
 
-
   Lemma DSHBinOp_interpreted_as_tfor:
-    forall σ (n : nat) (m : memoryH) f
+    forall σ (n off : nat) (m : memoryH) f
       (init acc : mem_block),
       eutt (mem_eq)
-           (interp_helix (E := E_cfg) (denoteDSHBinOp n f σ init acc) m)
+           (interp_helix (E := E_cfg) (denoteDSHBinOp n off f σ init acc) m)
             (tfor (fun k x' =>
                     match x' with
                     | None => Ret None
-                    | Some (m', acc) => interp_helix (DSHBinOp_body σ f k init acc) m'
+                    | Some (m', acc) => interp_helix (DSHBinOp_body σ f k off init acc) m'
                     end)
               0 n (Some (m, acc))).
   Proof.
@@ -884,29 +888,8 @@ Section DSHBinOp_is_tfor.
 
 End DSHBinOp_is_tfor.
 
-(* The result is a branch *)
-Definition branches (to : block_id) (mh : memoryH * ()) (c : config_cfg_T (block_id * block_id + uvalue)) : Prop :=
-  match c with
-  | (m,(l,(g,res))) => exists from, res ≡ inl (from, to)
-  end.
-
-Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li : local_env)
-  : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
-  lift_Rel_cfg (state_invariant σ s2) ⩕
-               branches to ⩕
-               (fun sthf stvf => local_scope_modif s1 s2 li (fst (snd stvf))).
 
 Import AlistNotations.
-
-Definition memory_invariant_partial_write' (configV : config_cfg) (index loopsize : nat) (ptr_llvm : addr)
-            (bk_helix : mem_block) (x : ident) sz : Prop :=
-    let '(mem_llvm, (ρ, g)) := configV in
-    dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp [] (TYPE_Array sz TYPE_Double)) /\
-    in_local_or_global_addr ρ g x ptr_llvm /\
-            (∀ (i : Int64.int) (v0 : binary64),
-                (MInt64asNT.to_nat i) < index \/ (MInt64asNT.to_nat i) >= loopsize ->
-                  (mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v0
-                    → get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0))).
 
 (** ** Simplified High-level Proof Overview
     See comment above [DSHIMap_correct]
