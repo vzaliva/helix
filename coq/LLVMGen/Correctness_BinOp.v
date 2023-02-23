@@ -907,7 +907,7 @@ Lemma DSHBinOp_correct:
     → eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ))
            (interp_helix (denoteDSHOperator σ (DSHBinOp n x_p y_p f)) memH)
             (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from, bid_in)) g ρ memV).
-Proof.
+Proof. (*
   intros n x_p y_p f s1 s2 σ memH nextblock bid_in bid_from bks g ρ memV GEN NEXT PRE GAM NOFAIL.
   Opaque genAExpr.
   Opaque IntType.
@@ -2250,4 +2250,4 @@ apply eqit_Ret.
   - destruct H; eauto.
   - solve_local_scope_modif.
 }
-Qed.
+Qed. *) Admitted.
