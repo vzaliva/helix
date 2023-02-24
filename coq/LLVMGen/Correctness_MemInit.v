@@ -247,11 +247,19 @@ Proof.
 
   inv TEQ_xoff. cbn.
 
+  set (genIR_post' σ s1 s2 nextblock ρ := genIR_post σ s1 s2 nextblock ρ ⩕
+    (fun '(_, mB) '(mV, (l, (g, _))) => 
+      dtyp_fits mV ptrll_xoff (typ_to_dtyp [] (TYPE_Array sz TYPE_Double)) /\
+      in_local_or_global_addr l g i0 ptrll_xoff /\
+      (forall (i : Int64.int) (v : binary64), 
+        mem_lookup (MInt64asNT.to_nat i) mB ≡ Some v ->
+        get_array_cell mV ptrll_xoff (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v)))).
+  
   (* We need to settle on the relation that holds at the end of the loops.
      It is not quite [state_invariant]: on the helix side, the memory has not been touched,
      we performed a pure computation.
      On the Vellvm side, we are done, everything is written in memory. *)
-  eapply eutt_clo_bind with (UU := succ_cfg (genIR_post σ s1 s2 nextblock ρ)).
+  eapply eutt_clo_bind with (UU := succ_cfg (genIR_post' σ s1 s2 nextblock ρ)).
   {
     match type of Heqs1 with
       | genWhileLoop ?a _ _ ?b ?c ?d ?e _ ?f _ ≡ inr (_,(?g,?h)) =>
@@ -341,7 +349,12 @@ Proof.
                   | Some (mH,bkH) =>
                       state_invariant σ s2 (memory_set mH n0 bkH) stV /\
                         let '(mV, (p, g')) := stV in
-                        mH ≡ memH /\ g ≡ g'
+                        mH ≡ memH /\ g ≡ g' /\
+                        dtyp_fits mV ptrll_xoff (typ_to_dtyp [] (TYPE_Array sz TYPE_Double)) /\
+      in_local_or_global_addr p g' y ptrll_xoff /\
+      (forall (i : Int64.int) (v : binary64), 
+        mem_lookup (MInt64asNT.to_nat i) bkH ≡ Some v ->
+        get_array_cell mV ptrll_xoff (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v))
                   end).
 
       specialize (LOOP I P Q (Some (memH,bkh_xoff))).
@@ -649,9 +662,13 @@ Proof.
         red; intros.
         break_match_goal; auto.
         destruct p. destruct b, p.
-        destruct H as (?&?&?&?&?). split; eauto.
+        destruct H as (?&?&?&?&?).
         destruct H0 as (?&?&?).
         destruct H.
+
+        break_and_goal; eauto.
+
+        2: intros; eapply H5; [lia | eauto].
 
         split; eauto; cycle 1.
         eapply WF_IRState_protect, WF_IRState_Γ; eauto.
@@ -666,8 +683,7 @@ Proof.
           rewrite Heqo in H. inv H.
           apply mem_block_exists_memory_set_eq. reflexivity.
           apply mem_block_exists_memory_set. eapply st_id_allocated.
-          eapply nth_error_protect_ineq in H. 2 : eauto.
-          eauto.
+          eapply nth_error_protect_ineq in H; eauto.
         }
 
         eapply gamma_bound_mono; eauto.
@@ -684,7 +700,7 @@ Proof.
             invariant. *)
           subst.
           eapply nth_error_protect_ineq in H; eauto.
-          replace (Γ s2) with (Γ s0) in H6 by solve_gamma.
+          rewrite <- GENIR_Γ in H6.
           specialize (mem_is_inv _ _ _ _ _ H H6).
           destruct v; eauto.
           destruct mem_is_inv as (ptrll & τ' & TEQ & FITS' & INLG' & MLUP).
@@ -711,8 +727,8 @@ Proof.
           complete partial memory invariant ensures that we have the right cells. *)
           subst.
           rewrite <- GENIR_Γ in H6.
-          rewrite LUn in H6.
-          inv H6. rewrite Heqo in H. inv H.
+          rewrite LUn in H6; inv H6.
+          rewrite Heqo in H; inv H.
           clear mem_is_inv.
           eexists _, _; break_and_goal.
           4: intros _; eexists; split; [| intros].
@@ -741,8 +757,7 @@ Proof.
         subst P I. clear LOOP.
         cbn. break_and_goal; eauto.
         apply state_invariant_protect.
-        eapply state_invariant_Γ. eauto.
-        solve_gamma. solve_local_count.
+        eapply state_invariant_Γ; eauto.
       }
     }
 
@@ -751,9 +766,11 @@ Proof.
     2: { destruct H. inv REL1. inv REL2. inv H0. auto. }
     intros [? ? ?]; eauto. inv REL1.
     destruct REL2 as (?&?&?).
-    split; eauto.
-    - destruct b; eauto. destruct H1 as (? & ? & ?); subst.
-      cbn in *. inv H0. cbn in *. (*Properness lemma*)
+    destruct b; eauto.
+    destruct H1 as (?&?&?&?&?&?); subst.
+    cbn in *. inv H0. cbn in *.
+    split; [split |].
+    - (*Properness lemma*)
       eapply state_invariant_memory_equiv_Proper; eauto.
       eapply state_invariant_Γ with (s2 := s2) in PRE; auto.
       red in H2.
@@ -763,11 +780,55 @@ Proof.
       specialize (mem_is_inv0 _ _ _ _ _ H0 H1).
       destruct v; auto.
       destruct mem_is_inv0 as (? & ? & ? & ? & ? & ?).
-      eexists _, _; break_and_goal; eauto.
-      admit.
+      destruct (Nat.eq_dec a n0).
+      + subst.
+        rewrite GENIR_Γ in LUn.
+        replace n2 with n in * by (eapply st_no_dshptr_aliasing; eauto).
+        rewrite LUn in H1; inv H1.
+        eexists ptrll_xoff, _; break_and_goal; eauto.
+        intro; subst.
+        conclude H11 auto.
+        destruct H11 as (? & ? & ?).
+        rewrite memory_lookup_memory_set_eq in H1; inv H1.
+        eexists; split; eauto.
+        intros.
+        specialize (GETARRAYCELL_xoff _ _ H1).
+        unfold id_allocated in st_id_allocated0.
+        specialize (st_id_allocated _ _ _ _ H0).
+        apply memory_is_set_is_Some in st_id_allocated.
+        red in st_id_allocated.
+        destruct (memory_lookup memH n0) eqn:E; [| exfalso; auto].
+        apply H7.
+        rewrite <- H1.
+        enough (x1 = bkh_xoff).
+        { repeat red in H11.
+          unfold mem_lookup.
+          specialize H11 with (MInt64asNT.to_nat i0).
+          destruct H11; [| inv H11]; auto. }
+        admit.
+      + eexists _, _; break_and_goal; eauto.
+        intro; subst.
+        conclude H11 auto.
+        destruct H11 as (?&?&?).
+        eexists; split; eauto.
+        rewrite memory_lookup_memory_set_neq in H8; auto.
     - split.
       + red; destruct H; eexists; eauto.
       + cbn; solve_local_scope_modif.
+    - eapply state_invariant_memory_invariant in H1.
+      unfold memory_invariant in H1.
+      rewrite GENIR_Γ in LUn.
+      specialize (H1 _ _ _ _ _ Heqo LUn).
+      simpl in H1.
+      destruct H1 as (? & ? & ? & ? & ? & ?).
+      break_and_goal; eauto.
+      intros.
+      eapply H7.
+      rewrite <- H10.
+      repeat red in H4.
+      unfold mem_lookup.
+      specialize H4 with (MInt64asNT.to_nat i1).
+      destruct H4; [| inv H4]; auto.
   }
 
   intros.
@@ -776,23 +837,30 @@ Proof.
   rewrite interp_helix_MemSet.
   apply eutt_Ret.
 
-  destruct H; split; auto.
+  destruct H as [[? ?] ?]; split; auto.
   cbn; cbn in H.
 
   destruct H; split; auto.
   - repeat intro.
-    specialize (mem_is_inv _ _ _ _ _ H H1).
+    specialize (mem_is_inv _ _ _ _ _ H H2).
     destruct v; auto.
     destruct mem_is_inv as (? & ? & ? & ? & ? & ?).
-    eexists _, _; break_and_goal; eauto.
-    destruct b; try discriminate.
-    conclude H5 auto; intros _.
-    destruct H5 as (? & ? & ?).
     destruct (Nat.eq_dec n0 a).
-    + rewrite e, memory_lookup_memory_set_eq.
-      exists m0; split; auto.
-      admit.
-    + eexists; split; eauto.
+    + subst.
+      rewrite GENIR_Γ in LUn.
+      replace n2 with n in * by (eapply st_no_dshptr_aliasing; eauto).
+      rewrite LUn in H2; inv H2.
+      destruct H1 as (? & ? & ?).
+      eexists ptrll_xoff, _ ; break_and_goal; eauto.
+      destruct b; try discriminate.
+      conclude H6 auto; intros _.
+      eexists; split; eauto.
+      eapply memory_lookup_memory_set_eq.
+    + eexists _, _; break_and_goal; eauto.
+      destruct b; try discriminate.
+      conclude H6 auto; intros _.
+      destruct H6 as (? & ? & ?).
+      eexists; split; eauto.
       rewrite memory_lookup_memory_set_neq; eassumption.
   - repeat intro.
     apply mem_block_exists_memory_set.
