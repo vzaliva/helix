@@ -55,12 +55,12 @@ steps:
       webhook:
         from_secret: slack_webhook
       channel: bitbucket-activity
-      when:
-        status:
-          - success
-        event:
-          exclude:
-            - cron
+    when:
+      status:
+        - success
+      event:
+        exclude:
+          - cron
 
   - name: notify-slack-failure
     image: plugins/slack
@@ -68,9 +68,9 @@ steps:
       webhook:
         from_secret: slack_webhook
       channel: bitbucket-activity
-      when:
-        status:
-          - failure
+    when:
+      status:
+        - failure
 
 volumes:
   - name: dockersock
