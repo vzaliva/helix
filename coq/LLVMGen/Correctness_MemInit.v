@@ -247,14 +247,17 @@ Proof.
 
   inv TEQ_xoff. cbn.
 
-  set (genIR_post' σ s1 s2 nextblock ρ := genIR_post σ s1 s2 nextblock ρ ⩕
+  set (genIR_post' σ s1 s2 nextblock ρ :=
+    lift_Rel_cfg (state_invariant (protect σ n) s2) ⩕
+    branches nextblock ⩕
+    (fun sthf stvf => local_scope_modif s1 s2 ρ (fst (snd stvf))) ⩕
     (fun '(_, mB) '(mV, (l, (g, _))) => 
       dtyp_fits mV ptrll_xoff (typ_to_dtyp [] (TYPE_Array sz TYPE_Double)) /\
       in_local_or_global_addr l g i0 ptrll_xoff /\
       (forall (i : Int64.int) (v : binary64), 
         mem_lookup (MInt64asNT.to_nat i) mB ≡ Some v ->
         get_array_cell mV ptrll_xoff (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v)))).
-  
+
   (* We need to settle on the relation that holds at the end of the loops.
      It is not quite [state_invariant]: on the helix side, the memory has not been touched,
      we performed a pure computation.
@@ -627,9 +630,9 @@ Proof.
             solve_local_count.
           + eapply not_in_gamma_protect, GAM.
             eapply lid_bound_between_shrink; eauto.
-            all: solve_local_count.
+            solve_local_count.
         - destruct y; cbn.
-          { eapply in_local_or_global_addr_same_global; eauto. }
+          { unshelve eapply in_local_or_global_addr_same_global; auto. }
           rewrite alist_find_neq; try eassumption.
           destruct Hl; eapply lid_bound_fresh; eauto.
           1: eapply lid_bound_before with (s1 := s0).
@@ -769,52 +772,43 @@ Proof.
     destruct b; eauto.
     destruct H1 as (?&?&?&?&?&?); subst.
     cbn in *. inv H0. cbn in *.
-    split; [split |].
+    unfold genIR_post', conj_rel; break_and_goal; auto.
+    2: destruct H; red; eexists; eauto.
     - (*Properness lemma*)
       eapply state_invariant_memory_equiv_Proper; eauto.
-      eapply state_invariant_Γ with (s2 := s2) in PRE; auto.
-      red in H2.
-      destruct PRE; split; auto.
-      all: destruct H1; auto.
+      apply st_id_allocated in PRE.
+      destruct H1.
+      eapply WF_IRState_protect in IRState_is_WF.
+      eapply no_id_aliasing_protect in st_no_id_aliasing.
+      eapply no_dshptr_aliasing_protect in st_no_dshptr_aliasing.
+      eapply no_llvm_ptr_aliasing_protect in st_no_llvm_ptr_aliasing.
+      eapply id_allocated_protect in PRE.
+      split; eauto.
       repeat intro.
-      specialize (mem_is_inv0 _ _ _ _ _ H0 H1).
-      destruct v; auto.
-      destruct mem_is_inv0 as (? & ? & ? & ? & ? & ?).
-      destruct (Nat.eq_dec a n0).
-      + subst.
-        rewrite GENIR_Γ in LUn.
-        replace n2 with n in * by (eapply st_no_dshptr_aliasing; eauto).
+      destruct (Nat.eq_dec n2 n); [subst |].
+      + rewrite GENIR_Γ in LUn.
+        apply protect_eq_true in H0 as ?; subst.
+        apply nth_error_protect_eq in H0 as [b H0].
+        rewrite Heqo in H0; inv H0.
         rewrite LUn in H1; inv H1.
-        eexists ptrll_xoff, _; break_and_goal; eauto.
+        specialize (mem_is_inv _ _ _ _ _ Heqo LUn).
+        cbn in mem_is_inv.
+        destruct mem_is_inv as (? & ? & ? & ? & ? & ?).
+        eexists _, _; break_and_goal; eauto.
+        discriminate.
+      + rewrite nth_error_protect_neq in H0 by eauto.
+        specialize (mem_is_inv _ _ _ _ _ H0 H1).
+        destruct v; auto.
+        destruct mem_is_inv as (? & ? & ? & ? & ? & ?).
+        eexists _, _; break_and_goal; eauto.
         intro; subst.
         conclude H11 auto.
         destruct H11 as (? & ? & ?).
-        rewrite memory_lookup_memory_set_eq in H1; inv H1.
-        eexists; split; eauto.
-        intros.
-        specialize (GETARRAYCELL_xoff _ _ H1).
-        unfold id_allocated in st_id_allocated0.
-        specialize (st_id_allocated _ _ _ _ H0).
-        apply memory_is_set_is_Some in st_id_allocated.
-        red in st_id_allocated.
-        destruct (memory_lookup memH n0) eqn:E; [| exfalso; auto].
-        apply H7.
-        rewrite <- H1.
-        enough (x1 = bkh_xoff).
-        { repeat red in H11.
-          unfold mem_lookup.
-          specialize H11 with (MInt64asNT.to_nat i0).
-          destruct H11; [| inv H11]; auto. }
-        admit.
-      + eexists _, _; break_and_goal; eauto.
-        intro; subst.
-        conclude H11 auto.
-        destruct H11 as (?&?&?).
-        eexists; split; eauto.
+        eexists _; split; eauto.
         rewrite memory_lookup_memory_set_neq in H8; auto.
-    - split.
-      + red; destruct H; eexists; eauto.
-      + cbn; solve_local_scope_modif.
+        intro; subst; apply n3.
+        eapply no_dshptr_aliasing_protect in st_no_dshptr_aliasing.
+        eapply st_no_dshptr_aliasing; eauto.
     - eapply state_invariant_memory_invariant in H1.
       unfold memory_invariant in H1.
       rewrite GENIR_Γ in LUn.
@@ -837,32 +831,40 @@ Proof.
   rewrite interp_helix_MemSet.
   apply eutt_Ret.
 
-  destruct H as [[? ?] ?]; split; auto.
-  cbn; cbn in H.
-
-  destruct H; split; auto.
+  destruct H as ([] & ? & ? & ? & ? & ?).
+  apply WF_IRState_protect in IRState_is_WF.
+  apply no_id_aliasing_protect in st_no_id_aliasing.
+  apply no_dshptr_aliasing_protect in st_no_dshptr_aliasing.
+  apply no_llvm_ptr_aliasing_protect in st_no_llvm_ptr_aliasing.
+  apply id_allocated_protect in st_id_allocated.
+  repeat (red; split); auto.
   - repeat intro.
-    specialize (mem_is_inv _ _ _ _ _ H H2).
-    destruct v; auto.
-    destruct mem_is_inv as (? & ? & ? & ? & ? & ?).
-    destruct (Nat.eq_dec n0 a).
-    + subst.
+    destruct (Nat.eq_dec n2 n); [subst |].
+    + apply nth_error_protect_eq' in H4.
+      specialize (mem_is_inv _ _ _ _ _ H4 H5).
+      destruct v; auto.
       rewrite GENIR_Γ in LUn.
-      replace n2 with n in * by (eapply st_no_dshptr_aliasing; eauto).
-      rewrite LUn in H2; inv H2.
-      destruct H1 as (? & ? & ?).
+      rewrite LUn in H5; inv H5.
+      apply nth_error_protect_eq in H4 as [b' H4].
+      rewrite Heqo in H4; inv H4.
       eexists ptrll_xoff, _ ; break_and_goal; eauto.
-      destruct b; try discriminate.
-      conclude H6 auto; intros _.
+      intros _.
+      eexists _; split; eauto.
+      apply memory_lookup_memory_set_eq.
+    + erewrite <- nth_error_protect_neq in H4 by eauto.
+      specialize (mem_is_inv _ _ _ _ _ H4 H5).
+      destruct v; auto.
+      destruct mem_is_inv as (? & ? & ? & ? & ? & ?).
+      eexists _, _ ; break_and_goal; eauto.
+      intro; subst.
+      conclude H9 auto.
+      destruct H9 as (? & ? & ?).
       eexists; split; eauto.
-      eapply memory_lookup_memory_set_eq.
-    + eexists _, _; break_and_goal; eauto.
-      destruct b; try discriminate.
-      conclude H6 auto; intros _.
-      destruct H6 as (? & ? & ?).
-      eexists; split; eauto.
-      rewrite memory_lookup_memory_set_neq; eassumption.
+      rewrite memory_lookup_memory_set_neq; auto.
+      intro; subst.
+      erewrite -> nth_error_protect_neq in H4 by eauto.
+      eapply n3, st_no_dshptr_aliasing; eauto.
   - repeat intro.
     apply mem_block_exists_memory_set.
     eapply st_id_allocated; eassumption.
-Admitted.
+Qed.
