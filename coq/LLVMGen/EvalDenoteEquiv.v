@@ -1347,6 +1347,21 @@ Section Eval_Denote_Equiv.
       now constructor.
   Qed.
 
+  Lemma assert_nat_le_assert_NT_le
+    (s : string)
+    (n : nat)
+    (n' i : t)
+    :
+    from_nat n ≡ inr n' ->
+    assert_nat_le s n (to_nat i) ≡ assert_NT_le s n' i.
+  Proof.
+    intros.
+    unfold assert_nat_le, assert_NT_le, assert_true_to_err.
+    pose proof to_nat_from_nat n n' as [H' _].
+    rewrite H' by now rewrite H; clear H H'.
+    reflexivity.
+  Qed.
+
   Theorem Denote_Eval_Equiv:
     forall (σ: evalContext) (op: DSHOperator) (mem: memory) (fuel: nat) (mem': memory),
       evalDSHOperator σ op mem fuel = Some (inr mem') ->
@@ -1404,6 +1419,8 @@ Section Eval_Denote_Equiv.
       all: try some_none; repeat some_inv; try inl_inr; repeat inl_inr_inv.
       cbn*; repeat match_rewrite; go.
       rewrite Heqs2.
+      erewrite assert_nat_le_assert_NT_le by eassumption.
+      rewrite Heqs3.
       repeat match_rewrite; go.
       2,3: cbn*; match_rewrite; eauto.
       bind_ret_l_with Denote_Eval_Equiv_BinOp; [| now rewrite Heqs6].
@@ -1414,6 +1431,9 @@ Section Eval_Denote_Equiv.
       now rewrite H, H0.
     - cbn* in *; simp; go.
       all: try some_none; repeat some_inv; try inl_inr; repeat inl_inr_inv.
+      cbn*; repeat match_rewrite; go.
+      erewrite assert_nat_le_assert_NT_le by eassumption.
+      rewrite Heqs3.
       cbn*; repeat match_rewrite; go.
       2,3,4: cbn*; match_rewrite; eauto.
       bind_ret_l_with Denote_Eval_Equiv_DSHMap2; [| now rewrite Heqs7].

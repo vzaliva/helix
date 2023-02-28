@@ -289,6 +289,7 @@ Module MDSigmaHCOLITree
           '(x0_i,x0_size) <- denotePExpr σ x0_p ;;
           '(x1_i,x1_size) <- denotePExpr σ x1_p ;;
           '(y_i,y_size) <- denotePExpr σ y_p ;;
+          lift_Derr (assert_nat_le "DSHMemMap2 'n' larger than 'y_size'" n (to_nat y_size)) ;;
           x0 <- trigger (MemLU "Error looking up 'x0' in DSHMemMap2" x0_i) ;;
           x1 <- trigger (MemLU "Error looking up 'x1' in DSHMemMap2" x1_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHMemMap2" y_i) ;;
@@ -299,6 +300,7 @@ Module MDSigmaHCOLITree
           '(x_i,x_size) <- denotePExpr σ x_p ;;
           '(y_i,y_size) <- denotePExpr σ y_p ;;
           lift_Serr (assert_nat_neq "DSHBinOp 'x' must not be equal 'y'" x_i y_i) ;;
+          lift_Derr (assert_nat_le "DSHBinOp 'n' larger than 'y_size'" n (to_nat y_size)) ;;
           x <- trigger (MemLU "Error looking up 'x' in DSHBinOp" x_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHBinOp" y_i) ;;
           y' <- denoteDSHBinOp n n f (protect_p σ y_p) x y ;;
