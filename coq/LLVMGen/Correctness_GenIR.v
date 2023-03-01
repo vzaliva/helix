@@ -10,6 +10,7 @@ Require Import Helix.LLVMGen.Correctness_IMap.
 Require Import Helix.LLVMGen.Correctness_Power.
 Require Import Helix.LLVMGen.Correctness_MemInit.
 Require Import Helix.LLVMGen.Correctness_BinOp.
+Require Import Helix.LLVMGen.Correctness_MemMap2.
 Require Import Helix.LLVMGen.IdLemmas.
 Require Import Helix.LLVMGen.StateCounters.
 Require Import Helix.LLVMGen.VariableBinding.
@@ -77,7 +78,7 @@ Section GenIR.
   (* Correctness result for the compilation of operators.
      All core features of the language are tackled: assignment and allocation,
      sequence and looping, iterations over vectors with IMap and Power.
-     Three operators remain to be handled: DSHBinop, DSHMemMap2, MemInit.
+     Two operators remain to be handled: DSHBinop and DSHMemMap2.
      They have all similar structures to IMap and Power, iterating over vectors:
      we do not anticipate the need for any extra meta-theory nor invariant.
    *)
@@ -145,7 +146,7 @@ Section GenIR.
       apply DSHBinOp_correct; auto.
 
     - (* DSHMemMap2 *)
-      admit.
+      apply DSHMemMap2_correct; auto.
 
     - (* DSHPower *)
       apply DSHPower_correct; auto. 
@@ -251,7 +252,6 @@ Section GenIR.
       apply genIR_local_count in GEN_OP2.
       eapply local_scope_modif_trans'''; eauto.
 
-  Admitted.
-
+  Qed.
 
 End GenIR.
