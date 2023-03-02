@@ -636,13 +636,14 @@ Definition genBinOpBody
     py <- incLocal ;;
     v0 <- incLocal ;;
     v1 <- incLocal ;;
-    n' <- err2errS (MInt64asNT.from_nat n) ;;
     let xtyp := getIRType (DSHPtr i) in
-    let xptyp := TYPE_Pointer xtyp in
     let ytyp := getIRType (DSHPtr o) in
+    let xptyp := TYPE_Pointer xtyp in
     let yptyp := TYPE_Pointer ytyp in
     let loopvarid := ID_Local loopvar in
-    addVars [(ID_Local v1, TYPE_Double); (ID_Local v0, TYPE_Double); (loopvarid, IntType)] ;;
+    addVars [(ID_Local v1, TYPE_Double);
+             (ID_Local v0, TYPE_Double);
+             (loopvarid, IntType)] ;;
     '(fexpr, fexpcode) <- genAExpr f ;;
     dropVars 3 ;;
     ret (binopblock,
@@ -713,7 +714,7 @@ Definition genMemMap2Body
            (nextblock: block_id)
   : cerr segment
   :=
-    binopblock <- incBlockNamed "MemMapTwoLoopBody" ;;
+    memmap2block <- incBlockNamed "MemMapTwoLoopBody" ;;
     storeid <- incVoid ;;
     px0 <- incLocal ;;
     px1 <- incLocal ;;
@@ -730,10 +731,10 @@ Definition genMemMap2Body
     addVars [(ID_Local v1, TYPE_Double); (ID_Local v0, TYPE_Double)] ;;
     '(fexpr, fexpcode) <- genAExpr f ;;
     dropVars 2 ;;
-    ret (binopblock,
+    ret (memmap2block,
          [
            {|
-             blk_id    := binopblock ;
+             blk_id    := memmap2block ;
              blk_phis  := [];
              blk_code  := [
                            (IId px0,  INSTR_Op (OP_GetElementPtr
@@ -953,7 +954,7 @@ Fixpoint genIR
             (genFSHAssign i o x y src_n dst_n nextblock)
         | DSHIMap n x_p y_p f =>
           (* the following check ensures loop bound fits integer. *)
-          _ <- err2errS (MInt64asNT.from_nat n) ;;
+          err2errS (MInt64asNT.from_nat n) ;;
           '(x,i) <- resolve_PVar x_p ;;
           '(y,o) <- resolve_PVar y_p ;;
           loopcontblock <- incBlockNamed "IMap_lcont" ;;
@@ -963,19 +964,22 @@ Fixpoint genIR
           add_comment
             (genWhileLoop "IMap" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] nextblock)
         | DSHBinOp n x_p y_p f =>
-          loopcontblock <- incBlockNamed "BinOp_lcont" ;;
+          (* the following check ensures loop bound fits integer. *)
+          err2errS (MInt64asNT.from_nat n) ;;
           '(x,i) <- resolve_PVar x_p ;;
           '(y,o) <- resolve_PVar y_p ;;
+          loopcontblock <- incBlockNamed "BinOp_lcont" ;;
           loopvar <- incLocalNamed "BinOp_i" ;;
           '(body_entry, body_blocks) <- genBinOpBody i o n x y f loopvar loopcontblock ;;
           add_comment
             (genWhileLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] nextblock)
         | DSHMemMap2 n x0_p x1_p y_p f =>
-          loopcontblock <- incBlockNamed "MemMapTwo_lcont" ;;
+          (* the following check ensures loop bound fits integer. *)
+          err2errS (MInt64asNT.from_nat n) ;;
           '(x0,i0) <- resolve_PVar x0_p ;;
           '(x1,i1) <- resolve_PVar x1_p ;;
           '(y,o) <- resolve_PVar y_p ;;
-          n' <- err2errS (MInt64asNT.from_nat n) ;;
+          loopcontblock <- incBlockNamed "MemMapTwo_lcont" ;;
           loopvar <- incLocalNamed "MemMapTwo_i" ;;
           '(body_entry, body_blocks) <- genMemMap2Body i0 i1 o x0 x1 y f loopvar loopcontblock ;;
           add_comment
@@ -987,7 +991,7 @@ Fixpoint genIR
             (genPower i o x y src_n dst_n n f initial nextblock)
         | DSHLoop n body =>
           (* the following check ensures loop bound fits integer. *)
-          _ <- err2errS (MInt64asNT.from_nat n) ;;
+          err2errS (MInt64asNT.from_nat n) ;;
           loopcontblock <- incBlockNamed "Loop_lcont" ;;
 
           loopvar <- newLocalVar IntType "Loop_i" ;;
