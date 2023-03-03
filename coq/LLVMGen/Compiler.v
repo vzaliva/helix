@@ -642,10 +642,9 @@ Definition genBinOpBody
     let yptyp := TYPE_Pointer ytyp in
     let loopvarid := ID_Local loopvar in
     addVars [(ID_Local v1, TYPE_Double);
-             (ID_Local v0, TYPE_Double);
-             (loopvarid, IntType)] ;;
+             (ID_Local v0, TYPE_Double)] ;;
     '(fexpr, fexpcode) <- genAExpr f ;;
-    dropVars 3 ;;
+    dropVars 2 ;;
     ret (binopblock,
          [
            {|
@@ -969,8 +968,9 @@ Fixpoint genIR
           '(x,i) <- resolve_PVar x_p ;;
           '(y,o) <- resolve_PVar y_p ;;
           loopcontblock <- incBlockNamed "BinOp_lcont" ;;
-          loopvar <- incLocalNamed "BinOp_i" ;;
+          loopvar <- newLocalVar IntType "BinOp_i" ;;
           '(body_entry, body_blocks) <- genBinOpBody i o n x y f loopvar loopcontblock ;;
+          dropVars 1 ;;
           add_comment
             (genWhileLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] nextblock)
         | DSHMemMap2 n x0_p x1_p y_p f =>
