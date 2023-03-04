@@ -783,8 +783,8 @@ Proof.
   hred.
 
   (* Rename states in order *)
-  rename s1  into  s0.
-  rename i   into  s1.
+  rename i   into  s0.
+  rename i9  into  s1.
   rename s2  into s2t.
   rename i10 into  s2.
   rename i12 into  s3.
