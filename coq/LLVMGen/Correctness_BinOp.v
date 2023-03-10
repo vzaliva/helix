@@ -929,16 +929,23 @@ Proof. (*
   unfold denotePExpr in *; cbn* in *.
 
   (* Clean up w/ renaming *)
+  rename
+    b into loopcontblock,
+    r into loopvar,
+    b0 into binopblock.
   rename i12 into storeid.
-  rename r0 into px.
-  rename r1 into py.
-  rename r2 into v.
+  rename r0 into loopvar2.
+  rename r1 into px0.
+  rename r2 into px1.
+  rename r3 into py.
+  rename
+    r4 into v0,
+    r5 into v1.
   destruct_unit.
   rename e into fexpr.
   rename c into fexpcode.
 
   rename i1 into x.
-  rename r into loopvarid.
   rename i4 into y.
   rename i2 into xp_typ_.
   rename i5 into yp_typ_.
@@ -946,21 +953,26 @@ Proof. (*
   destruct_unit.
   simp; try_abs.
 
-  clean_goal. destruct_unit.
+  clean_goal.
 
   (* Clean up [no_failure] *)
   repeat apply no_failure_Ret in NOFAIL.
   rename n3 into n3_temp.
   rename n2 into n3.
   rename n3_temp into n2.
-  destruct (assert_nat_neq "DSHBinOp 'x' must not be equal 'y'" n3 n2) eqn : XNEQY; try_abs.
+  destruct (assert_nat_neq "DSHBinOp 'x' must not be equal 'y'" n3 n2) eqn : XNEQY;
+    try_abs.
 
   repeat apply no_failure_Ret in NOFAIL.
-  destruct (assert_nat_le "DSHBinOp 'n' index out of bounds" n (MInt64asNT.to_nat i1)) eqn : BOUNDS; try_abs.
+  destruct (assert_nat_le "DSHBinOp 'n' larger than 'y_size'"
+              n (MInt64asNT.to_nat i1)) eqn : BOUNDS;
+    try_abs.
   repeat apply no_failure_Ret in NOFAIL.
 
-  edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
-  edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto; clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
+  edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto;
+    clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
+  edestruct @no_failure_helix_LU as (? & NOFAIL' & ?); eauto;
+    clear NOFAIL; rename NOFAIL' into NOFAIL; cbn in NOFAIL; eauto.
 
   clean_goal.
 
@@ -981,19 +993,22 @@ Proof. (*
   hred.
 
   (* Rename states in order *)
-  rename i into s0.
-  rename i6 into s1.
-  rename s2 into s12.
-  rename i7 into s2.
-  rename i10 into s3.
-  rename i11 into s4.
-  rename i13 into s5.
-  rename i14 into s6.
-  rename i15 into s7.
-  rename i16 into s8.
-  rename i17 into s9.
-  rename i8 into s10.
-  rename i9 into s11.
+  rename i into s0. (* initial *)
+  (* see below *) rename s2 into s2'; rename i6 into s1. (* contblock *)
+  rename i7 into s2. (* loopvar *)
+  rename i10 into s3. (* binopblock *)
+  rename i11 into s4. (* storeid *)
+  rename i13 into s4_5. (* loopvar2 *) (* state 4.5 for more naming consistency *)
+  rename i14 into s5_0. (* px0 *)
+  rename i15 into s5_1. (* px1 *)
+  rename i16 into s6. (* py *)
+  rename i17 into s7_0. (* v0 *)
+  rename i18 into s7_1. (* v1 *)
+  rename i19 into s8. (* with vars before aexpr *)
+  rename i20 into s9. (* with vars after aexpr *)
+  rename i8 into s10. (* drop vars after aexpr *)
+  rename i9 into s11. (* drop loopvar after body before loopgen *)
+  (* see here (and above) *) rename s2' into s12. (* final *)
 
   rename l0 into bks.
 
@@ -1072,7 +1087,8 @@ Proof. (*
     unfold lift_Rel_cfg in *. destruct y0. destruct p. destruct p.
     destruct H. split; auto.
     red. intros. red in mem_is_inv.
-    destruct v0; specialize (mem_is_inv _ _ _ _ _ H H2); cbn in *; eauto.
+    destruct v; specialize (mem_is_inv _ _ _ _ _ H H2); cbn in *; eauto.
+    cbn in *.
     edestruct mem_is_inv as (? & ? & ? & ? & ? & ?).
     exists x1, x2. split; auto. split; auto. split; auto. intros.
     specialize (H6 H7).
@@ -1130,8 +1146,8 @@ Proof. (*
     eapply lid_bound_between_shrink; [eapply lid_bound_between_newLocalVar | | ]; eauto; try reflexivity; solve_local_count.
     get_local_count_hyps.
     Transparent addVars.
-    inv Heqs12.
-    cbn in Heqs13.
+    inv Heqs15.
+    cbn in Heqs16.
     solve_local_count.
     Opaque addVars.
   }
@@ -1171,10 +1187,10 @@ Proof. (*
 
   destruct u. unfold assert_nat_neq in XNEQY.
   unfold assert_false_to_err in XNEQY. break_match_hyp; try inv XNEQY.
-  apply beq_nat_false in Heqb1.
+  apply beq_nat_false in Heqb.
   unfold assert_nat_le, assert_true_to_err in BOUNDS.
   break_match_hyp; inv BOUNDS.
-  rename Heqb1 into XNEQY.
+  rename Heqb into XNEQY.
   rename Heqb0 into BOUNDS.
   apply Nat.leb_le in BOUNDS.
 
@@ -1211,11 +1227,14 @@ Proof. (*
 
   specialize (GENC I P Q (Some (memH, bkh_yoff))).
 
-  assert (EE : (ID_Local v, TYPE_Double) :: (ID_Local loopvarid, IntType) ::  Γ s12 ≡ Γ s9). {
+  assert (EE : (ID_Local v1, TYPE_Double) :: (ID_Local v0, TYPE_Double)
+                 :: (ID_Local loopvar, IntType) ::  Γ s12
+               ≡ Γ s9).
+  {
     get_gammas; eauto.
 
-    Transparent addVars. unfold addVars in Heqs12. inv Heqs12.
-    Opaque addVars. cbn in Heqs13.
+    Transparent addVars. unfold addVars in Heqs15. inv Heqs15.
+    Opaque addVars. cbn in Heqs16.
     congruence.
   }
 
@@ -1244,8 +1263,8 @@ Proof. (*
         destruct H; eapply lid_bound_between_shrink. eauto. 3 :  eauto.
         2 : solve_local_count. 3 : solve_local_count. 2 : reflexivity.
         Transparent addVars.
-        inv Heqs12.
-        cbn in Heqs13.
+        inv Heqs15.
+        cbn in Heqs16.
         solve_local_count.
       }
 
@@ -1258,12 +1277,12 @@ Proof. (*
       + unfold alist_add; cbn. cbn.
         destruct y; auto. cbn in *.
          break_match_goal.
-        * rewrite rel_dec_correct in Heqb1; subst.
+        * rewrite rel_dec_correct in Heqb; subst.
           assert (Gamma_safe σ s0 s12). solve_gamma_safe.
 
           Transparent addVars.
-          inv Heqs12.
-          cbn in Heqs13.
+          inv Heqs15.
+          cbn in Heqs16.
 
           assert (NIN: not (in_Gamma σ s0 id)). apply H.
           eapply lid_bound_between_shrink. eauto.
@@ -1274,26 +1293,25 @@ Proof. (*
           exfalso; eapply NIN.
           econstructor. apply Heqo0. eauto.
           eauto.
-        * apply neg_rel_dec_correct in Heqb1.
+        * apply neg_rel_dec_correct in Heqb.
           rewrite remove_neq_alist; eauto.
           all: typeclasses eauto.
-
       + unfold alist_add; cbn. cbn.
         destruct y; auto. cbn in *.
           break_match_goal.
-        * rewrite rel_dec_correct in Heqb1; subst.
+        * rewrite rel_dec_correct in Heqb; subst.
           assert (Gamma_safe σ s0 s12). solve_gamma_safe.
 
           Transparent addVars.
-          inv Heqs12.
-          cbn in Heqs13.
+          inv Heqs15.
+          cbn in Heqs16.
 
           assert (NIN: not (in_Gamma σ s0 id)). apply H.
           eapply lid_bound_between_shrink. eauto. solve_local_count. solve_local_count.
           exfalso; eapply NIN.
           econstructor. apply Heqo0. eauto.
           eauto.
-        * apply neg_rel_dec_correct in Heqb1.
+        * apply neg_rel_dec_correct in Heqb.
           rewrite remove_neq_alist; eauto.
           all: typeclasses eauto.
   }
@@ -1324,10 +1342,22 @@ Proof. (*
 
     eapply no_failure_tfor in NOFAIL. 3 : eauto. 2 : lia. cbn in NOFAIL.
     rewrite interp_helix_bind in NOFAIL. rewrite EQk in NOFAIL.
-    assert (NOFAIL' := NOFAIL).
-    apply no_failure_bind_prefix in NOFAIL.
+    rename NOFAIL into NOFAIL'.
+    assert (NOFAIL1 := NOFAIL').
+    assert (NOFAIL2 := NOFAIL').
+    apply no_failure_bind_prefix in NOFAIL1.
 
-    simp; try_abs. clear NOFAIL.
+    destruct mem_lookup eqn:k_bkh_xoff in NOFAIL1; [| solve [try_abs]].
+    eapply no_failure_bind_cont in NOFAIL2.
+    2: {
+      rewrite k_bkh_xoff, interp_helix_Ret.
+      constructor.
+      reflexivity.
+    }
+    rewrite interp_helix_bind in NOFAIL2.
+    apply no_failure_bind_prefix in NOFAIL2.
+
+    simp; try_abs. clear NOFAIL1 NOFAIL2.
     hvred.
     eapply no_failure_bind_cont in NOFAIL'; cycle 1.
     rewrite interp_helix_ret. constructor. cbn. reflexivity.
@@ -1361,7 +1391,6 @@ Proof. (*
 
     (* Read info as if we're reading from a protected σ *)
     erewrite <- nth_error_protect_neq with (n2 := n1) in Heqo; auto.
-
     apply nth_error_protect_eq' in Heqo0.
 
     rewrite GENIR_Γ in LUn0, LUn.
@@ -1377,31 +1406,29 @@ Proof. (*
     rewrite MLUP_xoff_l in H'; symmetry in H'; inv H'.
     inv TEQ_xoff.
 
-    assert (UNIQ0 : v ≢ loopvarid). {
+    assert (UNIQ0_0 : v0 ≢ loopvar). {
       intros CONTRA; subst.
       eapply lid_bound_between_newLocalVar in Heqs4.
-      eapply lid_bound_between_incLocal in Heqs11.
+      eapply lid_bound_between_incLocal in Heqs13.
       eapply state_bound_between_id_separate.
       2 : eapply Heqs4.
-      2 : eapply Heqs11.
+      2 : eapply Heqs13.
       eapply incLocalNamed_count_gen_injective.
       solve_local_count. reflexivity.
     }
 
-
-    assert (UNIQ1 : loopvarid ≢ px). {
+    assert (UNIQ0_1 : v1 ≢ loopvar). {
       intros CONTRA; subst.
-
       eapply lid_bound_between_newLocalVar in Heqs4.
-      eapply lid_bound_between_incLocal in Heqs9.
+      eapply lid_bound_between_incLocal in Heqs14.
       eapply state_bound_between_id_separate.
       2 : eapply Heqs4.
-      2 : eapply Heqs9.
+      2 : eapply Heqs14.
       eapply incLocalNamed_count_gen_injective.
       solve_local_count. reflexivity.
     }
 
-    assert (UNIQ2 : loopvarid ≢ py). {
+    assert (UNIQ1_0 : loopvar ≢ px0). {
       intros CONTRA; subst.
 
       eapply lid_bound_between_newLocalVar in Heqs4.
@@ -1413,16 +1440,44 @@ Proof. (*
       solve_local_count. reflexivity.
     }
 
+    assert (UNIQ1_1 : loopvar ≢ px1). {
+      intros CONTRA; subst.
+
+      eapply lid_bound_between_newLocalVar in Heqs4.
+      eapply lid_bound_between_incLocal in Heqs11.
+      eapply state_bound_between_id_separate.
+      2 : eapply Heqs4.
+      2 : eapply Heqs11.
+      eapply incLocalNamed_count_gen_injective.
+      solve_local_count. reflexivity.
+    }
+
+    assert (UNIQ2 : loopvar ≢ py). {
+      intros CONTRA; subst.
+
+      eapply lid_bound_between_newLocalVar in Heqs4.
+      eapply lid_bound_between_incLocal in Heqs12.
+      eapply state_bound_between_id_separate.
+      2 : eapply Heqs4.
+      2 : eapply Heqs12.
+      eapply incLocalNamed_count_gen_injective.
+      solve_local_count. reflexivity.
+    }
+
+    assert (UNIQ3 : loopvar ≢ loopvar2).
+    {
+      admit.
+    }
 
     pose proof INV_p as MINV_YOFF.
     unfold memory_invariant_partial_write' in MINV_YOFF.
     destruct MINV_YOFF as (FITS_yoff_l & INLG_YOFF & MINV_YOFF).
 
-    (* [Vellvm] GEP Instruction for [x] *)
+    (* [Vellvm] GEP Instruction for [x0] *)
     match goal with
     | [|- context[OP_GetElementPtr (DTYPE_Array ?size' ?τ') (_, ?ptr') _]] =>
     edestruct denote_instr_gep_array' with
-        (l := li) (g := g0) (m := mV) (i := px)
+        (l := li) (g := g0) (m := mV) (i := px0)
         (size := size') (a := ptrll_xoff_l) (ptr := ptr') as (? & ? & ? & ?)
     end.
 
@@ -1447,15 +1502,14 @@ Proof. (*
         rewrite to_nat_repr_nat. eauto. auto.
     }
 
-    rename x0 into src_addr.
-    rename H0 into READ_x.
-    rename H1 into HSRC_GEP.
-    rename H2 into x_HGEP.
+    rename x0 into src_addr0.
+    rename H0 into READ_x0.
+    rename H1 into HSRC0_GEP.
+    rename H2 into x0_HGEP.
 
     vred.
-    setoid_rewrite x_HGEP; clear x_HGEP.
+    setoid_rewrite x0_HGEP; clear x0_HGEP.
     vred.
-
 
     (* [Vellvm] : Load *)
     vred.
@@ -1466,6 +1520,93 @@ Proof. (*
     }
     2: eauto.
 
+    (* ZX loopvar2 *)
+
+    vred.
+    vred.
+    vstep.
+    {
+      do 2 vstep.
+      all: try reflexivity.
+      cbn; rewrite !alist_find_neq; eauto.
+      reflexivity.
+      reflexivity.
+    }
+
+    vred.
+
+    cbn.
+
+    match goal with
+    | |- context[alist_add ?p ?v ?l] =>
+        remember (alist_add p v l)
+        as li'
+    end.
+
+    match goal with
+    | [|- context[OP_GetElementPtr (DTYPE_Array ?size' ?τ') (_, ?ptr') _]] =>
+        edestruct denote_instr_gep_array' with
+        (l := li')
+        (g := g0) (m := mV) (i := px1)
+        (size := size') (a := ptrll_xoff_l) (ptr := ptr') as (? & ? & ? & ?)
+    end.
+
+    2: instantiate (4:=EXP_Ident (ID_Local loopvar2)).
+    3: instantiate (2:=DTYPE_Double).
+
+    destruct x;
+      rename id into XID.
+    rewrite denote_exp_GR. 2 : eauto.
+    cbn. subst. reflexivity.
+    2 : {
+      rewrite denote_exp_LR.
+      2: cbn; rewrite !alist_find_add_eq; eauto.
+      repeat f_equiv.
+      cbn.
+      Unshelve.
+      2: exact (k+n).
+      2: exact (UVALUE_Double b0).
+      admit.
+    }
+    
+    { subst. rewrite denote_exp_LR. cbn. reflexivity.
+      cbn; rewrite !alist_find_neq; eauto.
+      all: admit.
+    }
+    {
+      assert (GET := GETARRAYCELL_xoff_l).
+      
+      specialize (GET (Int64.repr (Z.of_nat (k+n)))).
+      pose proof EQk.
+      apply to_nat_repr_nat in EQk. rewrite <- EQk.
+      replace (Init.Nat.add (MInt64asNT.to_nat (Int64.repr (Z.of_nat k))) n)
+        with (MInt64asNT.to_nat (Int64.repr (Z.of_nat (Init.Nat.add k n))))
+        by admit.
+      erewrite GET.
+      reflexivity.
+      rewrite to_nat_repr_nat. eauto.
+      admit.
+    }
+    
+    rename x0 into src_addr1.
+    rename H0 into READ_x1.
+    rename H1 into HSRC1_GEP.
+    rename H2 into x1_HGEP.
+    
+    erewrite x1_HGEP; clear x1_HGEP.
+    vred.
+    
+    (* [Vellvm] : Load *)
+    vred.
+    rewrite denote_instr_load.
+    2 : {
+      apply denote_exp_LR.
+      cbn. apply alist_find_add_eq.
+    }
+    2: eauto.
+    
+    (* ZX /loopvar2 *)
+
     (* [Vellvm] : Clean up *)
     vred.
     rewrite map_app.
@@ -1475,13 +1616,13 @@ Proof. (*
     vred.
     Transparent addVars. unfold addVars in Heqs12. inv Heqs12.
 
-    assert (s2_ext : Γ s5 ≡ (ID_Local loopvarid, IntType) :: Γ s1). {
-      assert (H5 :Γ s2 ≡ Γ s5) by solve_gamma.
+    assert (s2_ext : Γ s5_0 ≡ (ID_Local loopvar, IntType) :: Γ s1). {
+      assert (H5 :Γ s2 ≡ Γ s5_0) by solve_gamma.
       rewrite <- H5.
       apply newLocalVar_Γ in Heqs4. eauto.
     }
 
-    assert (neg0 : ~ in_Gamma σ s0 v) by solve_not_in_gamma.
+    assert (neg0 : ~ in_Gamma σ s0 v1) by solve_not_in_gamma.
     eapply not_in_gamma_protect in neg0.
 
     assert (neg1 : ¬ in_Gamma ((DSHnatVal (Int64.repr (Z.of_nat k)), false) :: (protect σ n1)) s5 v). {
