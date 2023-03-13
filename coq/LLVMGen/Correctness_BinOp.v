@@ -1484,7 +1484,7 @@ Proof. (*
     destruct x;
     rename id into XID.
     rewrite denote_exp_GR. 2 : eauto.
-    cbn. subst. reflexivity.
+    cbn. reflexivity.
     2 : {
       rewrite denote_exp_LR. 2 : eauto.
       cbn.
@@ -1557,7 +1557,7 @@ Proof. (*
     destruct x;
       rename id into XID.
     rewrite denote_exp_GR. 2 : eauto.
-    cbn. subst. reflexivity.
+    cbn. subst li'. reflexivity.
     2 : {
       rewrite denote_exp_LR.
       2: cbn; rewrite !alist_find_add_eq; eauto.
@@ -1614,24 +1614,40 @@ Proof. (*
     typ_to_dtyp_simplify.
     rewrite denote_code_app.
     vred.
-    Transparent addVars. unfold addVars in Heqs12. inv Heqs12.
+    Transparent addVars. unfold addVars in Heqs15. inv Heqs15.
 
-    assert (s2_ext : Γ s5_0 ≡ (ID_Local loopvar, IntType) :: Γ s1). {
+    assert (s2_ext_0 : Γ s5_0 ≡ (ID_Local loopvar, IntType) :: Γ s1). {
       assert (H5 :Γ s2 ≡ Γ s5_0) by solve_gamma.
       rewrite <- H5.
       apply newLocalVar_Γ in Heqs4. eauto.
     }
 
-    assert (neg0 : ~ in_Gamma σ s0 v1) by solve_not_in_gamma.
-    eapply not_in_gamma_protect in neg0.
+    assert (s2_ext_1 : Γ s5_1 ≡ (ID_Local loopvar, IntType) :: Γ s1). {
+      assert (H5 :Γ s2 ≡ Γ s5_1) by solve_gamma.
+      rewrite <- H5.
+      apply newLocalVar_Γ in Heqs4. eauto.
+    }
 
-    assert (neg1 : ¬ in_Gamma ((DSHnatVal (Int64.repr (Z.of_nat k)), false) :: (protect σ n1)) s5 v). {
+    assert (neg0_0 : ~ in_Gamma σ s0 v0) by solve_not_in_gamma.
+    assert (neg0_1 : ~ in_Gamma σ s0 v1) by solve_not_in_gamma.
+    eapply not_in_gamma_protect in neg0_0.
+    eapply not_in_gamma_protect in neg0_1.
+
+    assert (neg1_00 : ¬ in_Gamma ((DSHnatVal (Int64.repr (Z.of_nat k)), false) :: (protect σ n1)) s5_0 v0). {
         eapply not_in_gamma_cons.
         assert (Heqs4' := Heqs4).
         eauto.
         eapply not_in_Gamma_Gamma_eq. 2 : eauto. solve_gamma.
         auto.
     }
+    assert (neg1_01 : ¬ in_Gamma ((DSHnatVal (Int64.repr (Z.of_nat k)), false) :: (protect σ n1)) s5_0 v1). {
+        eapply not_in_gamma_cons.
+        assert (Heqs4' := Heqs4).
+        eauto.
+        eapply not_in_Gamma_Gamma_eq. 2 : eauto. solve_gamma.
+        auto.
+    }
+    (* ZX TODO: neg1_[10,1] ? *)
 
     (* [Vellvm] GEP without read on y *)
     set (y_size := Z.to_N (Int64.intval yp_typ_)).
@@ -1652,7 +1668,7 @@ Proof. (*
     }
 
     {
-      erewrite denote_exp_LR with (id := loopvarid).
+      erewrite denote_exp_LR with (id := loopvar).
       reflexivity.
       cbn.
       eauto.
@@ -1670,14 +1686,14 @@ Proof. (*
     assert (allocated ptrll_xoff_l mV) as PTRLL_XOFF_ALLOCATED_mV_yoff by solve_allocated.
     assert (allocated ptrll_yoff mV) as SRC_ALLOCATED_mV by solve_allocated.
 
-    assert (no_overlap_dtyp dst_addr DTYPE_Double src_addr DTYPE_Double) as NOALIAS.
+    assert (no_overlap_dtyp dst_addr DTYPE_Double src_addr0 DTYPE_Double) as NOALIAS0.
     {
       unfold no_overlap_dtyp.
       unfold no_overlap.
       left.
 
       rewrite <- (handle_gep_addr_array_same_block _ _ _ _ HDST_GEP).
-      rewrite <- (handle_gep_addr_array_same_block _ _ _ _ HSRC_GEP).
+      rewrite <- (handle_gep_addr_array_same_block _ _ _ _ HSRC0_GEP).
       intros BLOCKS; symmetry in BLOCKS; revert BLOCKS.
       destruct INV_r.
 
@@ -1697,7 +1713,34 @@ Proof. (*
         inv Heqo.
     }
 
-    assert (E : Γ s5 ≡ Γ s7) by solve_gamma.
+    assert (no_overlap_dtyp dst_addr DTYPE_Double src_addr1 DTYPE_Double) as NOALIAS1.
+    {
+      unfold no_overlap_dtyp.
+      unfold no_overlap.
+      left.
+
+      rewrite <- (handle_gep_addr_array_same_block _ _ _ _ HDST_GEP).
+      rewrite <- (handle_gep_addr_array_same_block _ _ _ _ HSRC1_GEP).
+      intros BLOCKS; symmetry in BLOCKS; revert BLOCKS.
+      destruct INV_r.
+
+      do 2 red in st_no_llvm_ptr_aliasing.
+      pose proof st_no_llvm_ptr_aliasing.
+      specialize (H0 x ptrll_xoff_l y ptrll_yoff n0 n1). cbn in H.
+      eapply H0; eauto.
+
+      - intros CONTRA.
+        rewrite CONTRA in LUn.
+        pose proof st_no_id_aliasing as HST.
+        red in HST.
+        epose proof (HST _ _ _ _ _ _ _ Heqo Heqo0 LUn LUn0).
+        subst.
+
+        rewrite Heqo0 in Heqo.
+        inv Heqo.
+    }
+
+    assert (E : Γ s5_0 ≡ Γ s7_1) by solve_gamma.
     rewrite E in *.
 
 
@@ -1708,34 +1751,49 @@ Proof. (*
       eassumption.
       - (* From our . [state_invariant_relaxed] and [memory_invariant_partial_write],
           we should be able to retrieve the normal state invariant. *)
-        eapply state_invariant_enter_scope_DSHCType' with (s1 := s5); eauto.
-        + rewrite E. reflexivity.
+        eapply state_invariant_enter_scope_DSHCType'2 with (s1 := s5_0).
+        4: rewrite E; cbn; reflexivity.
+        all: eauto.
+        + admit.
         + eapply lid_bound_before.
-          solve_lid_bound. eauto.
+          solve_lid_bound.
+          eauto.
+        + eapply lid_bound_before.
+          solve_lid_bound.
+          solve_local_count.
         + solve_local_count.
+        + solve_alist_in.
         + solve_alist_in.
         + (* use LOOPVAR *)
           eapply state_invariant_Γ with (s1 := s2).
           2 : solve_gamma.
 
-          eapply state_invariant_enter_scope_DSHnat with (x := loopvarid); eauto.
+          eapply state_invariant_enter_scope_DSHnat with (x := loopvar); eauto.
           * apply not_in_Gamma_Gamma_eq with (s1 := s0). solve_gamma.
             eapply Gamma_safe_protect in GAM.
             eapply GAM. eapply lid_bound_between_shrink with (s2 := s1) (s3 := s2); try solve_local_count.
             clear -Heqs4. Transparent newLocalVar.
             eapply lid_bound_between_newLocalVar; eauto. reflexivity.
-          * rewrite alist_find_neq; auto. rewrite alist_find_neq; auto.
-          * eapply state_invariant_Γ with (s1 := s0). 2 : solve_gamma. 2 : solve_local_count.
+          * rewrite alist_find_neq; auto. rewrite !alist_find_neq; auto.
+          * eapply state_invariant_Γ with (s1 := s0).
+            2: solve_gamma.
+            2: solve_local_count.
+            eapply state_invariant_same_Γ; eauto using lid_bound_between_incLocal.
+            eapply state_invariant_same_Γ; eauto using lid_bound_between_incLocal.
+            solve_not_in_gamma.
+            eapply state_invariant_same_Γ; eauto using lid_bound_between_incLocal.
+            solve_not_in_gamma.
             eapply state_invariant_same_Γ; eauto using lid_bound_between_incLocal.
             eapply state_invariant_same_Γ; eauto using lid_bound_between_incLocal.
             solve_not_in_gamma.
             eapply state_invariant_Γ'.
-            eauto. solve_gamma.
+            eauto.
+            solve_gamma.
             destruct PRE.
             eauto.
           * solve_local_count.
       - eapply Gamma_safe_Context_extend with (s1 := s2) (s2 := s10).
-        4 : { cbn. assert (GAM_E: Γ s2 ≡ Γ s7) by solve_gamma. rewrite GAM_E. reflexivity. }
+        4 : { cbn. assert (GAM_E: Γ s2 ≡ Γ s7_1) by solve_gamma. rewrite GAM_E. reflexivity. }
         2 : solve_local_count.
         2 : solve_local_count.
         2 : {
