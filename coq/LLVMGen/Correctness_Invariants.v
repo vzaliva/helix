@@ -2103,6 +2103,86 @@ Proof.
   - solve_gamma_bound.
 Qed.
 
+Lemma state_invariant_enter_scope_DSHCType'2 :
+  forall σ vx vy b x y s1 s2 stH mV l g τx τy,
+    x ≢ y ->
+    τx ≡ getWFType (ID_Local x) DSHCType ->
+    τy ≡ getWFType (ID_Local y) DSHCType ->
+    Γ s2 ≡ (ID_Local x,τx) :: (ID_Local y,τy) :: Γ s1 ->
+    lid_bound s2 x ->
+    lid_bound s2 y ->
+
+    (* Freshness *)
+    ~ in_Gamma σ s1 x ->
+    ~ in_Gamma σ s1 y ->
+    s1 <<= s2 ->
+
+    l @ x ≡ Some (UVALUE_Double vx) ->
+    l @ y ≡ Some (UVALUE_Double vy) ->
+    state_invariant σ s1 stH (mV,(l,g)) ->
+    state_invariant ((DSHCTypeVal vx, b)::(DSHCTypeVal vy, b)::σ) s2 stH (mV,(l,g)).
+Proof.
+  intros * NEQ TYP_X TYP_Y EQ LID_BOUND_X LID_BOUND_Y
+             GAM_X GAM_Y LT LU_X LU_Y [MEM WF ALIAS1 ALIAS2 ALIAS3].
+    cbn in TYP_X, TYP_Y; subst.
+  split.
+  - red; intros * LU1 LU2.
+    rewrite EQ in *.
+    destruct n as [| [| n]].
+    + inv LU1; inv LU2; auto.
+    + inv LU1; inv LU2; auto.
+    + rewrite !nth_error_Sn in LU1.
+      cbn in *.
+      eapply MEM in LU2; eauto.
+  -  do 2 red.
+     rewrite EQ.
+     cbn.
+     intros ? [| [| n]] * LU'.
+     + cbn in LU'.
+       inv LU'.
+       cbn.
+       exists (ID_Local x); reflexivity.
+     + cbn in LU'.
+       inv LU'.
+       cbn.
+       exists (ID_Local y); reflexivity.
+     + rewrite !nth_error_Sn in LU'.
+       rewrite nth_error_Sn.
+       apply WF in LU'; auto.
+
+  - red; intros * LU1 LU2 LU3 LU4.
+    clear MEM.
+    rewrite EQ in *.
+    destruct n1 as [| [| n1]], n2 as [| [| n2]]; auto.
+    all: cbn in *; repeat find_inversion.
+    all: try now contradict NEQ.
+    all: try solve [exfalso; eapply GAM_X; eapply mk_in_Gamma; eauto].
+    all: try solve [exfalso; eapply GAM_Y; eapply mk_in_Gamma; eauto].
+    do 2 f_equal.
+    eauto.
+  - red; intros * LU1 LU2.
+    destruct n as [| [| n]], n' as [| [| n']]; auto.
+    all: cbn in *; repeat find_inversion.
+    do 2 f_equal.
+    eauto.
+  - do 2 red. intros * LU1 LU2 LU3 LU4 INEQ IN1 IN2.
+    rewrite EQ in *.
+    cbn in *.
+    destruct n1 as [| [| n1]], n2 as [| [| n2]]; auto.
+    all: cbn in *; repeat find_inversion; cbn in *.
+    all: try first [rewrite LU_X in IN1 | rewrite LU_Y in IN1].
+    all: try first [rewrite LU_X in IN2 | rewrite LU_Y in IN2].
+    all: repeat find_inversion.
+    eauto.
+  - intros [| [| n]] * LUn; inv LUn.
+    eapply st_id_allocated0; eauto.
+  -
+    unfold gamma_bound.
+    rewrite EQ.
+    intros [| [| n]] * LUn; inv LUn.
+    all: solve_lid_bound.
+Qed.
+
 Lemma state_invariant_enter_scope_DSHPtr :
   forall σ ptrh sizeh ptrv x τ s1 s2 stH mV mV_a l g b,
     τ ≡ getWFType (ID_Local x) (DSHPtr sizeh) ->
