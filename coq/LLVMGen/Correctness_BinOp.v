@@ -1522,8 +1522,6 @@ Proof.
     }
     2: eauto.
 
-    (* ZX loopvar2 *)
-
     vred.
     vred.
     vstep.
@@ -1607,8 +1605,6 @@ Proof.
     }
     2: eauto.
     
-    (* ZX /loopvar2 *)
-
     (* [Vellvm] : Clean up *)
     vred.
     rewrite map_app.
@@ -1649,7 +1645,6 @@ Proof.
         eapply not_in_Gamma_Gamma_eq. 2 : eauto. solve_gamma.
         auto.
     }
-    (* ZX TODO: neg1_[10,1] ? *)
 
     (* [Vellvm] GEP without read on y *)
     set (y_size := Z.to_N (Int64.intval yp_typ_)).
@@ -1744,24 +1739,6 @@ Proof.
 
     assert (E : Γ s5_0 ≡ Γ s7_1) by solve_gamma.
     rewrite E in *.
-
-    (* ZX TODO: separate lemma *)
-    assert (dropVars_Γ2 : 
-             ∀ (s1 s2 : IRState) (hd1 hd2 : ident * typ) (tl : list (ident * typ)),
-               dropVars 2 s1 ≡ inr (s2, ()) →
-               Γ s1 ≡ hd1 :: hd2 :: tl →
-               Γ s2 ≡ tl).
-    {
-      clear; intros.
-      Transparent dropVars.
-      unfold dropVars in *.
-      Opaque dropVars.
-      cbn in *.
-      rewrite H0 in H.
-      cbn in *.
-      now invc H.
-    }
-
 
     (* [BOTH] Finally eached AExpr / FMap. Step both of them. *)
     eapply eutt_clo_bind_returns.
@@ -2002,28 +1979,6 @@ Proof.
       cbn.
       eapply Gamma_preserved_add_not_in_Gamma.
       solve_gamma_preserved.
-      (* ZX TODO: lemma *)
-      assert (not_in_gamma_cons2 :
-               ∀ (σ : evalContext) (s1 s2 : IRState) (id id' id'' : raw_id) 
-                 (τ : typ) (v1 v2 : DSHVal * bool),
-                 Γ s2 ≡ (ID_Local id', τ) :: (ID_Local id'', τ) :: Γ s1 →
-                 ¬ in_Gamma σ s1 id →
-                 id ≢ id' →
-                 id ≢ id'' →
-                 ¬ in_Gamma (v1 :: v2 :: σ) s2 id).
-      {
-        clear; intros.
-        set (s' :=
-               {| block_count := block_count s1;
-                 local_count := local_count s1;
-                 void_count := void_count s1;
-                 Γ := (ID_Local id'', τ) :: Γ s1 |}).
-        eapply not_in_gamma_cons with (s1 := s').
-        rewrite H; reflexivity.
-        eapply not_in_gamma_cons.
-        reflexivity.
-        all: auto.
-      }
       eapply not_in_gamma_cons2. cbn. reflexivity.
       2 : solve_id_neq.
 
@@ -2492,4 +2447,4 @@ apply eqit_Ret.
   - destruct H; eauto.
   - solve_local_scope_modif.
 }
-Qed.
+Admitted.

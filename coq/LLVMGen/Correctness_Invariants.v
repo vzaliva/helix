@@ -1208,6 +1208,27 @@ C2(C1(p1)) == p1
       eapply evalContext_typechecks_extend; eauto.
   Qed.
 
+  Lemma not_in_gamma_cons2 :
+    ∀ σ s1 s2 id id' id'' τ v1 v2,
+      Γ s2 ≡ (ID_Local id', τ) :: (ID_Local id'', τ) :: Γ s1 →
+      ~ in_Gamma σ s1 id →
+      id ≢ id' →
+      id ≢ id'' →
+      ~ in_Gamma (v1 :: v2 :: σ) s2 id.
+  Proof.
+    intros.
+    set (s' :=
+           {| block_count := block_count s1;
+             local_count := local_count s1;
+             void_count := void_count s1;
+             Γ := (ID_Local id'', τ) :: Γ s1 |}).
+    eapply not_in_gamma_cons with (s1 := s').
+    rewrite H; reflexivity.
+    eapply not_in_gamma_cons.
+    reflexivity.
+    all: auto.
+  Qed.
+
   (* If I know that an interval leaves Gamma safe, I can shrink it on either side and it still lives Gamma safe *)
   Lemma Gamma_safe_shrink : forall σ s1 s2 s3 s4,
       Gamma_safe σ s1 s4 ->
