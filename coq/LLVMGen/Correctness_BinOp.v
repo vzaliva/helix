@@ -907,7 +907,7 @@ Lemma DSHBinOp_correct:
     → eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ))
            (interp_helix (denoteDSHOperator σ (DSHBinOp n x_p y_p f)) memH)
             (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from, bid_in)) g ρ memV).
-Proof. (*
+Proof.
   intros n x_p y_p f s1 s2 σ memH nextblock bid_in bid_from bks g ρ memV GEN NEXT PRE GAM NOFAIL.
   Opaque genAExpr.
   Opaque IntType.
@@ -1364,6 +1364,8 @@ Proof. (*
     cbn in NOFAIL'. rewrite bind_ret_l in NOFAIL'. rewrite interp_helix_bind in NOFAIL'.
     clear RET. clear WFOCFG. clear INPUTS_BETWEEN.
 
+    rewrite interp_helix_Ret, bind_ret_l in NOFAIL'.
+
     (* [HELIX] "denoteIBinCType" exposed *)
     unfold denoteIBinCType.
 
@@ -1743,6 +1745,23 @@ Proof. (*
     assert (E : Γ s5_0 ≡ Γ s7_1) by solve_gamma.
     rewrite E in *.
 
+    (* ZX TODO: separate lemma *)
+    assert (dropVars_Γ2 : 
+             ∀ (s1 s2 : IRState) (hd1 hd2 : ident * typ) (tl : list (ident * typ)),
+               dropVars 2 s1 ≡ inr (s2, ()) →
+               Γ s1 ≡ hd1 :: hd2 :: tl →
+               Γ s2 ≡ tl).
+    {
+      clear; intros.
+      Transparent dropVars.
+      unfold dropVars in *.
+      Opaque dropVars.
+      cbn in *.
+      rewrite H0 in H.
+      cbn in *.
+      now invc H.
+    }
+
 
     (* [BOTH] Finally eached AExpr / FMap. Step both of them. *)
     eapply eutt_clo_bind_returns.
@@ -1792,14 +1811,15 @@ Proof. (*
             destruct PRE.
             eauto.
           * solve_local_count.
-      - eapply Gamma_safe_Context_extend with (s1 := s2) (s2 := s10).
+      - eapply Gamma_safe_Context_extend2 with (s1 := s2) (s2 := s10).
         4 : { cbn. assert (GAM_E: Γ s2 ≡ Γ s7_1) by solve_gamma. rewrite GAM_E. reflexivity. }
         2 : solve_local_count.
         2 : solve_local_count.
         2 : {
-          apply genAExpr_Γ in Heqs13. cbn in Heqs13.
-          eapply dropVars_Γ in Heqs14. 2 : eauto. rewrite Heqs14. auto.
+          apply genAExpr_Γ in Heqs16. cbn in Heqs16.
+          eapply dropVars_Γ2 in Heqs17. 2 : eauto. rewrite Heqs17. auto.
         }
+        2 : { intros. cbn in *. solve_id_neq. }
         2 : { intros. cbn in *. solve_id_neq. }
 
         assert (Heqs4' := Heqs4).
@@ -1813,14 +1833,14 @@ Proof. (*
         eapply dropVars_Γ in Heqs6.
 
         2 : {
-          apply genAExpr_Γ in Heqs13. cbn in Heqs13. rewrite s2_ext in Heqs13.
-          eapply dropVars_Γ in Heqs14 ; eauto.
+          apply genAExpr_Γ in Heqs16. cbn in Heqs16. rewrite s2_ext_0 in Heqs16.
+          eapply dropVars_Γ2 in Heqs17 ; eauto.
         }
         assert (GAM_E : Γ s11 ≡ Γ s12) by solve_gamma. rewrite <- GAM_E.
 
-        apply genAExpr_Γ in Heqs13. cbn in Heqs13. rewrite s2_ext in Heqs13.
-        eapply dropVars_Γ in Heqs14 ; eauto.
-        rewrite <- Heqs13.
+        apply genAExpr_Γ in Heqs16. cbn in Heqs16. rewrite s2_ext_0 in Heqs16.
+        eapply dropVars_Γ2 in Heqs17 ; eauto.
+        rewrite <- Heqs16.
         assert (H1: Γ s1 ≡ Γ s11) by solve_gamma.
         rewrite H1. clear H1. reflexivity.
 
@@ -1832,6 +1852,7 @@ Proof. (*
         all : eauto.
 
       - clear -NOFAIL'. unfold denoteIBinCType in NOFAIL'.
+        rewrite interp_helix_bind in NOFAIL'.
         apply no_failure_bind_prefix in NOFAIL'. eauto.
     }
 
@@ -1859,7 +1880,7 @@ Proof. (*
     match goal with
     | [|- context[OP_GetElementPtr (DTYPE_Array y_size _) (_, ?ptr')]] =>
       pose proof (denote_instr_gep_array_no_read_addr py y_size DTYPE_Double 
-                                                      (EXP_Ident (ID_Local loopvarid)) k ptr' ptrll_yoff g0 li' li' li' mV dst_addr)
+                                                      (EXP_Ident (ID_Local loopvar)) k ptr' ptrll_yoff g0 li' li' li' mV dst_addr)
            as EQ_y_HG'
     end.
 
@@ -1872,7 +1893,7 @@ Proof. (*
       clear IRState_is_WF.
       clear st_id_allocated st_no_id_aliasing.
       cbn in mem_is_inv. rewrite <- EE in mem_is_inv.
-      specialize (mem_is_inv (S (S n1))). cbn in mem_is_inv.
+      specialize (mem_is_inv (S (S (S n1)))). cbn in mem_is_inv.
       specialize (mem_is_inv _ _ _ _ Heqo0 LUn0). cbn in mem_is_inv.
       edestruct mem_is_inv as (? & ? & ? & ? & ?); clear mem_is_inv.
       inv H0. destruct H2. clear H2.
@@ -1889,13 +1910,9 @@ Proof. (*
       specialize (st_gamma_bound0 _ LUn0).
       erewrite <- local_scope_modif_bound_before. 2 : eauto. 3 : eauto.
       2 : solve_local_count.
-      erewrite alist_find_neq.
-      erewrite alist_find_neq.
+      erewrite !alist_find_neq.
       eauto.
-      eapply in_gamma_not_in_neq.
-      solve_in_gamma. solve_not_in_gamma.
-      eapply in_gamma_not_in_neq.
-      solve_in_gamma. solve_not_in_gamma.
+      all: eapply in_gamma_not_in_neq; [solve_in_gamma | solve_not_in_gamma].
     }
 
     forward EQ_y_HG'; [clear EQ_y_HG' | ].
@@ -1909,17 +1926,18 @@ Proof. (*
 
     forward EQ_y_HG'; [clear EQ_y_HG' | ].
     {
-      erewrite denote_exp_LR with (id := loopvarid).
+      erewrite denote_exp_LR with (id := loopvar).
       reflexivity.
       cbn.
       Unshelve.
 
       erewrite local_scope_modif_out.
       4 : eauto.
-      rewrite alist_find_neq.
-      rewrite alist_find_neq. cbn. setoid_rewrite LOOPVAR.
+      rewrite !alist_find_neq.
+      cbn. setoid_rewrite LOOPVAR.
       Unshelve.
-      unfold uvalue_of_nat. reflexivity. eauto. eauto.
+      unfold uvalue_of_nat. reflexivity.
+      1-5: eauto.
       3 : exact s1. solve_local_count.
       eapply lid_bound_between_shrink with (s2 := s1) (s3 := s2).
       Transparent newLocalVar.
@@ -1944,7 +1962,7 @@ Proof. (*
 
     assert (Y_SIZE : y_sz ≡ Z.to_N (Int64.intval i1)). {
       epose proof (vellvm_helix_ptr_size _ LUn0 Heqo0).
-      eapply state_invariant_cons2 in PRE_INV'. 3 : eauto. 2 : solve_local_count.
+      eapply state_invariant_cons3 in PRE_INV'. 3 : eauto. 2 : solve_local_count.
       specialize (H1 PRE_INV'). eauto.
     }
 
@@ -1984,7 +2002,29 @@ Proof. (*
       cbn.
       eapply Gamma_preserved_add_not_in_Gamma.
       solve_gamma_preserved.
-      eapply not_in_gamma_cons. cbn. reflexivity.
+      (* ZX TODO: lemma *)
+      assert (not_in_gamma_cons2 :
+               ∀ (σ : evalContext) (s1 s2 : IRState) (id id' id'' : raw_id) 
+                 (τ : typ) (v1 v2 : DSHVal * bool),
+                 Γ s2 ≡ (ID_Local id', τ) :: (ID_Local id'', τ) :: Γ s1 →
+                 ¬ in_Gamma σ s1 id →
+                 id ≢ id' →
+                 id ≢ id'' →
+                 ¬ in_Gamma (v1 :: v2 :: σ) s2 id).
+      {
+        clear; intros.
+        set (s' :=
+               {| block_count := block_count s1;
+                 local_count := local_count s1;
+                 void_count := void_count s1;
+                 Γ := (ID_Local id'', τ) :: Γ s1 |}).
+        eapply not_in_gamma_cons with (s1 := s').
+        rewrite H; reflexivity.
+        eapply not_in_gamma_cons.
+        reflexivity.
+        all: auto.
+      }
+      eapply not_in_gamma_cons2. cbn. reflexivity.
       2 : solve_id_neq.
 
       eapply not_in_gamma_cons. eauto.
@@ -1992,7 +2032,7 @@ Proof. (*
       2 : {
         assert (neg2 : ~ in_Gamma σ s0 py) by solve_not_in_gamma.
         apply not_in_gamma_protect; eauto.
-      } solve_gamma. eauto.
+      } solve_gamma. eauto. solve_id_neq.
     }
     3 : { cbn. reflexivity. }
     2: {
@@ -2008,12 +2048,12 @@ Proof. (*
     vred.
 
     cbn.
-    rename b into loopcont.
+    rename loopcontblock into loopcont.
     rewrite denote_ocfg_unfold_not_in.
     vred.
     2: {
       cbn.
-      assert (b0 ≢ loopcont) as NEQ by solve_id_neq.
+      assert (binopblock ≢ loopcont) as NEQ by solve_id_neq.
       rewrite find_block_ineq; eauto.
     }
     rename x0 into mV_yoff.
@@ -2029,21 +2069,21 @@ Proof. (*
     eauto.
     3 : eauto.
     3 : {
-      eapply local_scope_modif_add'.
-      2 : {
-        eapply local_scope_modif_sub'_l.
-        2 : eapply local_scope_modif_sub'_l.
-        3 : {
-          eapply local_scope_modif_shrink.
-          eauto. Unshelve.
-          5 : exact s10. 4 : exact s4.
-          solve_local_count. solve_local_count.
-          exact s1.
-        }
-        solve_lid_bound_between. solve_lid_bound_between.
-      }
-      solve_lid_bound_between.
+      eapply local_scope_modif_add'; cycle 1.
+      eapply local_scope_modif_sub'_l; cycle 1.
+      eapply local_scope_modif_sub'_l; cycle 1.
+      eapply local_scope_modif_sub'_l; cycle 1.
+      eapply local_scope_modif_sub'_l; cycle 1.
+      eapply local_scope_modif_sub'_l; cycle 1.
+      eapply local_scope_modif_shrink.
+      eassumption.
+      instantiate (1:=s4).
+      2: instantiate (1:=s10).
+      solve_local_count.
+      solve_local_count.
+      all: solve_lid_bound_between.
     }
+    instantiate (1:=s1).
     solve_local_count.
     {
       eapply lid_bound_between_shrink with (s2 := s1) (s3 := s2).
@@ -2052,7 +2092,7 @@ Proof. (*
       solve_local_count.
       solve_local_count.
     }
-  - exists b0. reflexivity.
+  - exists binopblock. reflexivity.
 
   - (* Re-establish loop invariant *)
     eapply INV_STABLE. right. solve_lid_bound_between.
@@ -2064,7 +2104,7 @@ Proof. (*
       (* TODO: The write state invariant doesn't take account to when pointers are different.
       Need to specify a range that is not being written to and state that the dst_addr is contained in it*)
 
-      eapply state_invariant_cons2 with (s := s9). solve_local_count.
+      eapply state_invariant_cons3 with (s := s9). solve_local_count.
       eapply EE.
       destruct PRE_INV'.
       split; eauto.
@@ -2075,7 +2115,7 @@ Proof. (*
       destruct INV_p as (FITS_p & INLG_p & MLU_f).
       (* "Clean your room" *)
       clear RET1 RET2 Mono_IRState extends exp_in_scope exp_correct.
-      clear NOFAIL' FITS_xoff_l INLG_xoff_l MLUP_xoff_l GETARRAYCELL_xoff_l UNIQ0 UNIQ1 UNIQ2.
+      clear NOFAIL' FITS_xoff_l INLG_xoff_l MLUP_xoff_l GETARRAYCELL_xoff_l UNIQ0_0 UNIQ0_1 UNIQ1_0 UNIQ1_1 UNIQ2.
       clear EQ_y_HG.
       clean_goal.
       rename WRITE_MEM into ptrll_INLG.
@@ -2084,10 +2124,10 @@ Proof. (*
       pose proof LUn0. pose proof Heqo0.
       intros * CLU CEq.
       rewrite <- EE in CEq.
-      destruct (Nat.eq_dec n2 (S (S n1))) eqn : IS_IT_THE_WRITTEN_ADDRESS ; subst.
+      destruct (Nat.eq_dec n2 (S (S (S n1)))) eqn : IS_IT_THE_WRITTEN_ADDRESS ; subst.
       (* Yes, it is the address being written to (ptrll_yoff). *)
       {
-        intros. specialize (mem_is_inv (S (S n1))). cbn in mem_is_inv.
+        intros. specialize (mem_is_inv (S (S (S n1)))). cbn in mem_is_inv.
         rewrite <- EE in mem_is_inv. specialize (mem_is_inv _ _ _ _ H1 H0).
         cbn in CLU, CEq. rewrite H0 in CEq.
         rewrite H1 in CLU. inv CEq. inv CLU.
@@ -2109,9 +2149,9 @@ Proof. (*
 
         specialize (mem_is_inv n2). cbn in mem_is_inv.
         specialize (mem_is_inv _ _ _ _ CLU CEq).
-        destruct v0; eauto.
+        destruct v; eauto.
         {
-          (* [Case] v0 is a natVal *)
+          (* [Case] v is a natVal *)
           (* WTS: in_local_or_global_scalar li' g0 mV_yoff @id (dvalue_of_int n4) τ *)
           destruct x0; eauto.
           red in mem_is_inv.
@@ -2131,7 +2171,7 @@ Proof. (*
 
             do 2 red in st_no_llvm_ptr_aliasing.
             rewrite <- EE in CEq. 
-            specialize (st_no_llvm_ptr_aliasing (ID_Global id) x0 y ptrll_yoff n2 (S (S n1))).
+            specialize (st_no_llvm_ptr_aliasing (ID_Global id) x0 y ptrll_yoff n2 (S (S (S n1)))).
             cbn in st_no_llvm_ptr_aliasing.
             eapply st_no_llvm_ptr_aliasing. eauto. eauto. rewrite <- EE. eauto. rewrite <- EE. eauto. eauto. eauto.
             eauto.
@@ -2141,7 +2181,7 @@ Proof. (*
           erewrite write_untouched; eauto. constructor.
         }
         {
-          (* [Case] v0 is a CTypeVal *)
+          (* [Case] v is a CTypeVal *)
           red in mem_is_inv.
           destruct x0; eauto.
 
@@ -2162,7 +2202,7 @@ Proof. (*
 
             do 2 red in st_no_llvm_ptr_aliasing.
             rewrite <- EE in CEq. 
-            specialize (st_no_llvm_ptr_aliasing (ID_Global id) x0 y ptrll_yoff n2 (S (S n1))).
+            specialize (st_no_llvm_ptr_aliasing (ID_Global id) x0 y ptrll_yoff n2 (S (S (S n1)))).
             cbn in st_no_llvm_ptr_aliasing.
             eapply st_no_llvm_ptr_aliasing. eauto. eauto. rewrite <- EE. eauto. rewrite <- EE. eauto. eauto. eauto.
             eauto.
@@ -2199,7 +2239,7 @@ Proof. (*
           assert (fst x1 ≢ fst ptrll_yoff). {
             do 2 red in st_no_llvm_ptr_aliasing.
             rewrite <- EE in CEq. 
-            specialize (st_no_llvm_ptr_aliasing x0 x1 y ptrll_yoff n2 (S (S n1))).
+            specialize (st_no_llvm_ptr_aliasing x0 x1 y ptrll_yoff n2 (S (S (S n1)))).
             cbn in st_no_llvm_ptr_aliasing.
             eapply st_no_llvm_ptr_aliasing. eauto. eauto. rewrite <- EE. eauto. rewrite <- EE. eauto. eauto. eauto.
             eauto.
@@ -2223,7 +2263,7 @@ Proof. (*
     (* Partial memory up to (S k) *)
     {
       (* intros. *)
-      intros i v0 Bounds_sz MLU_k.
+      intros i v Bounds_sz MLU_k.
       rename MINV_YOFF into MINV_partial.
       revert MINV_partial; intros.
 
@@ -2246,7 +2286,7 @@ Proof. (*
         assert (Bounds_rest: MInt64asNT.to_nat i < k). {
           lia.
         }
-        specialize (MINV_partial i v0).
+        specialize (MINV_partial i v).
 
         - erewrite write_array_cell_untouched.
           eapply MINV_partial.
@@ -2293,10 +2333,12 @@ Proof. (*
      solve_lid_bound_between.
      eapply local_scope_modif_sub'_l; cycle 1.
      eapply local_scope_modif_sub'_l; cycle 1.
-     eapply local_scope_modif_shrink. eauto.
+     eapply local_scope_modif_sub'_l; cycle 1.
+     eapply local_scope_modif_sub'_l; cycle 1.
+     eapply local_scope_modif_sub'_l; cycle 1.
+     eapply local_scope_modif_shrink. eassumption.
      solve_local_count. solve_local_count.
-     solve_lid_bound_between.
-     solve_lid_bound_between.
+     all: solve_lid_bound_between.
 }
 
 
@@ -2306,8 +2348,9 @@ forward GENC; [clear GENC |]; eauto.
 forward GENC; [clear GENC |].
 {
   get_local_count_hyps.
-  unfold addVars in Heqs12. inv Heqs12.
-  cbn in Heqs13. lia.
+  unfold addVars in Heqs15. inv Heqs15.
+  cbn in Heqs16.
+  lia.
 }
 
 forward GENC; [clear GENC |].
@@ -2319,7 +2362,7 @@ forward GENC; [clear GENC |].
 forward GENC; [clear GENC |].
 {
   subst I P; red; intros; auto. destruct a; eauto.
-  destruct p; eauto. destruct b1; eauto. destruct p; eauto.
+  destruct p; eauto. destruct b; eauto. destruct p; eauto.
   intuition. subst.
   destruct H0.
   cbn.
@@ -2336,7 +2379,7 @@ forward GENC; [clear GENC |].
 forward GENC; [clear GENC |].
 {
   subst I P Q; red; intros; auto. destruct a; auto.
-  destruct p; eauto. destruct b1; eauto. destruct p; eauto.
+  destruct p; eauto. destruct b; eauto. destruct p; eauto.
   destruct H as (? & ? & ? & ?). subst. destruct H2.
   subst.
   split ;[|split]; eauto.
@@ -2372,7 +2415,7 @@ forward GENC; [clear GENC |].
     (* Case 1 : The address in question was not written to : use normal memory
       invariant. *)
     subst. eapply nth_error_protect_ineq in H; eauto.
-    specialize (mem_is_inv _ _ _ _ _ H H1). destruct v0; eauto.
+    specialize (mem_is_inv _ _ _ _ _ H H1). destruct v; eauto.
     destruct mem_is_inv as (ptrll & τ' & TEQ & FITS' & INLG' & MLUP).
     inv TEQ. eexists. eexists.
     split; eauto. split; eauto. split; eauto.
@@ -2449,4 +2492,4 @@ apply eqit_Ret.
   - destruct H; eauto.
   - solve_local_scope_modif.
 }
-Qed. *) Admitted.
+Qed.

@@ -719,6 +719,41 @@ C2(C1(p1)) == p1
       eauto.
   Qed.
 
+  Lemma state_invariant_cons3 :
+    forall a b c x y z s' s σ mH mV l g,
+      s <<= s' ->
+      x :: y :: z :: Γ s' ≡ Γ s ->
+      state_invariant (a :: b :: c :: σ) s mH (mV, (l, g)) ->
+      state_invariant σ s' mH (mV, (l, g)).
+  Proof.
+    intros * LT GAM INV.
+    destruct INV.
+    unfold memory_invariant, WF_IRState, no_id_aliasing, no_dshptr_aliasing, no_llvm_ptr_aliasing, id_allocated in *.
+    rewrite <- GAM in *.
+    cbn in *.
+    split; eauto; red; repeat intro.
+    - intros. specialize (mem_is_inv0 (S (S (S n)))).
+      cbn in *.
+      specialize (mem_is_inv0 _ _ _ _ H H0). destruct v; eauto.
+    - red in IRState_is_WF0. specialize (IRState_is_WF0 v (S (S (S n)))).
+      cbn in *. eauto.
+    - assert (S (S (S n2)) ≡ S (S (S n1)) -> n2 ≡ n1) by lia. apply H3.
+      eapply st_no_id_aliasing0; eauto.
+    - assert (S (S (S n')) ≡ S (S (S n)) -> n' ≡ n) by lia. apply H1.
+      eapply st_no_dshptr_aliasing0; eauto.
+    - red in st_no_llvm_ptr_aliasing0.
+      specialize (st_no_llvm_ptr_aliasing0 id1 ptrv1 id2 ptrv2 (S (S (S n1))) (S (S (S n2)))).
+      cbn in *. rewrite <- GAM in *. revert H6. eapply st_no_llvm_ptr_aliasing0;eauto.
+    - specialize (st_id_allocated0 (S (S (S n)))). cbn in *. eauto.
+    - unfold gamma_bound in st_gamma_bound0.
+      eapply state_bound_mono.
+      eapply st_gamma_bound0.
+      2: solve_local_count.
+      rewrite <- GAM.
+      do 3 rewrite nth_error_Sn.
+      eauto.
+  Qed.
+
   (* The memory invariant is stable by evolution of IRStates that preserve Γ *)
   Lemma state_invariant_same_Γ :
     ∀ (σ : evalContext) (s1 s2 : IRState) (id : raw_id) (memH : memoryH) (memV : memoryV)
@@ -1373,6 +1408,47 @@ C2(C1(p1)) == p1
     intros s1 s2 s3 s4 id H H0 H1.
     eapply lid_bound_between_shrink_down; [|eapply lid_bound_between_shrink_up];
       eauto.
+  Qed.
+
+  (* Convenience wrapper over [Gamma_safe_Context_extend]: two var case *)
+  Lemma Gamma_safe_Context_extend2 :
+    forall σ s1 s2,
+      Gamma_safe σ s1 s2 ->
+      forall s1' s2' x y v xτ yτ,
+        (local_count s1 <= local_count s1')%nat ->
+        (local_count s2 >= local_count s2')%nat ->
+        Γ s1' ≡ (ID_Local x, v) :: (ID_Local y, v) :: Γ s1 ->
+        Γ s2' ≡ (ID_Local x, v) :: (ID_Local y, v) :: Γ s2 ->
+        (∀ id : local_id, lid_bound_between s1' s2' id → x ≢ id) ->
+        (∀ id : local_id, lid_bound_between s1' s2' id → y ≢ id) ->
+        Gamma_safe (xτ :: yτ :: σ) s1' s2'.
+  Proof.
+    intros * SAFE * LC1 LC2 G1 G2 UNIQ_X UNIQ_Y.
+    set (s1'' :=
+           {| block_count := block_count s1';
+             local_count := local_count s1';
+             void_count := void_count s1';
+             Γ := (ID_Local y, v) :: Γ s1 |}).
+    set (s2'' :=
+           {| block_count := block_count s2';
+             local_count := local_count s2';
+             void_count := void_count s2';
+             Γ := (ID_Local y, v) :: Γ s2 |}).
+
+    eapply Gamma_safe_Context_extend with (s1:=s1'') (s2:=s2''); cycle 1.
+    solve_local_count.
+    solve_local_count.
+    now rewrite G1.
+    now rewrite G2.
+    auto.
+
+    eapply Gamma_safe_Context_extend.
+    eapply SAFE.
+    solve_local_count.
+    solve_local_count.
+    reflexivity.
+    reflexivity.
+    auto.
   Qed.
 
   (* Transitivity of the changes belonging to intervals *)
