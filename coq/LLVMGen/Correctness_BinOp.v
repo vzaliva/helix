@@ -1468,7 +1468,15 @@ Proof.
 
     assert (UNIQ3 : loopvar ≢ loopvar2).
     {
-      admit.
+      intros C; subst.
+
+      eapply lid_bound_between_newLocalVar in Heqs4.
+      eapply lid_bound_between_incLocal in Heqs9.
+      eapply state_bound_between_id_separate.
+      2 : eapply Heqs4.
+      2 : eapply Heqs9.
+      eapply incLocalNamed_count_gen_injective.
+      solve_local_count. reflexivity.
     }
 
     pose proof INV_p as MINV_YOFF.
@@ -1566,12 +1574,45 @@ Proof.
       Unshelve.
       2: exact (k+n).
       2: exact (UVALUE_Double b0).
+
       admit.
     }
     
     { subst. rewrite denote_exp_LR. cbn. reflexivity.
-      cbn; rewrite !alist_find_neq; eauto.
-      all: admit.
+      cbn.
+      rewrite !alist_find_neq.
+      -
+        eauto.
+      -
+        eapply lid_bound_fresh.
+        2: {
+          eapply lid_bound_between_shrink_down with (s1:=s0); cycle 1.
+          solve_lid_bound_between.
+          solve_local_count.
+        }
+        eapply PRE.
+        rewrite GENIR_Γ.
+        eassumption.
+      -
+        eapply lid_bound_fresh.
+        2: {
+          eapply lid_bound_between_shrink_down with (s1:=s0); cycle 1.
+          solve_lid_bound_between.
+          solve_local_count.
+        }
+        eapply PRE.
+        rewrite GENIR_Γ.
+        eassumption.
+      -
+        eapply lid_bound_fresh.
+        2: {
+          eapply lid_bound_between_shrink_down with (s1:=s0); cycle 1.
+          solve_lid_bound_between.
+          solve_local_count.
+        }
+        eapply PRE.
+        rewrite GENIR_Γ.
+        eassumption.
     }
     {
       assert (GET := GETARRAYCELL_xoff_l).
@@ -1750,7 +1791,7 @@ Proof.
         eapply state_invariant_enter_scope_DSHCType'2 with (s1 := s5_0).
         4: rewrite E; cbn; reflexivity.
         all: eauto.
-        + admit.
+        + solve_id_neq.
         + eapply lid_bound_before.
           solve_lid_bound.
           eauto.
