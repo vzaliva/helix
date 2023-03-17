@@ -1173,7 +1173,17 @@ Proof.
     unfold MInt64asNT.from_nat in Heqs5.
     unfold MInt64asNT.from_Z in Heqs5.
     simp.
-    apply l0.
+    nia.
+  }
+
+  assert (OVERFLOW_K: (forall k, (k <= n)%nat ->
+                            Z.of_nat (k + n) < Integers.Int64.modulus)%Z).
+  {
+    clear -Heqs5.
+    unfold MInt64asNT.from_nat in Heqs5.
+    unfold MInt64asNT.from_Z in Heqs5.
+    simp.
+    nia.
   }
 
   forward GENC; [clear GENC |]; eauto.
@@ -1575,7 +1585,13 @@ Proof.
       2: exact (k+n).
       2: exact (UVALUE_Double b0).
 
-      admit.
+      clear - BOUNDk OVERFLOW OVERFLOW_K.
+      assert (OVERFLOW' : (Z.of_nat k < Integers.Int64.modulus)%Z) by lia.
+      specialize (OVERFLOW_K k); forward OVERFLOW_K; [lia |]; clear BOUNDk.
+
+      unfold DynamicValues.Int64.add.
+      rewrite !Int64.unsigned_repr_eq, !Z.mod_small by lia.
+      now rewrite <-Znat.Nat2Z.inj_add.
     }
     
     { subst. rewrite denote_exp_LR. cbn. reflexivity.
@@ -1616,17 +1632,22 @@ Proof.
     }
     {
       assert (GET := GETARRAYCELL_xoff_l).
-      
-      specialize (GET (Int64.repr (Z.of_nat (k+n)))).
-      pose proof EQk.
-      apply to_nat_repr_nat in EQk. rewrite <- EQk.
-      replace (Init.Nat.add (MInt64asNT.to_nat (Int64.repr (Z.of_nat k))) n)
-        with (MInt64asNT.to_nat (Int64.repr (Z.of_nat (Init.Nat.add k n))))
-        by admit.
-      erewrite GET.
-      reflexivity.
-      rewrite to_nat_repr_nat. eauto.
-      admit.
+      clear - GET Heqo2 BOUNDk OVERFLOW OVERFLOW_K.
+      replace (k + n)
+        with (MInt64asNT.to_nat (Int64.repr (Z.of_nat (k + n))))
+        in *.
+      now eapply GET.
+      specialize (OVERFLOW_K k); forward OVERFLOW_K; [lia |]; clear BOUNDk.
+      clear - OVERFLOW_K.
+      unfold MInt64asNT.to_nat.
+      replace (k + n) with (Z.to_nat (Z.of_nat (k + n))) at 2 by lia.
+      f_equal.
+      Transparent Int64.repr.
+      unfold Int64.repr.
+      Opaque Int64.repr.
+      cbn.
+      rewrite Integers.Int64.Z_mod_modulus_eq.
+      rewrite Z.mod_small; lia.
     }
     
     rename x0 into src_addr1.
@@ -2488,4 +2509,4 @@ apply eqit_Ret.
   - destruct H; eauto.
   - solve_local_scope_modif.
 }
-Admitted.
+Qed.
