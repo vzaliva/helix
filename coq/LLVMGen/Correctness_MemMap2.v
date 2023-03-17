@@ -1672,7 +1672,130 @@ Proof.
       3: assumption.
 
       (* Establish the relaxed state invariant with changed states and extended local environment *)
-      admit.
+      {
+        repeat intro.
+        destruct (Nat.eq_dec n0 n_y); [subst |].
+        {
+          rewrite nth_σ_y in H0; inv H0.
+          rewrite GENIR_Γ in nth_Γ_y.
+          rewrite nth_Γ_y in H1; inv H1.
+          eexists ptrll_y_off, _; break_and_goal; eauto.
+          1: eapply dtyp_fits_after_write; eauto.
+          intros _.
+          exists bkh_y_off; split; eauto.
+          intros.
+          destruct (Nat.eq_dec (MInt64asNT.to_nat i) k).
+          - rewrite e in *; clear e.
+            change (UVALUE_Double v) with (dvalue_to_uvalue (DVALUE_Double v)).
+            eapply write_array_cell_get_array_cell.
+            2, 3: constructor.
+            erewrite <- write_array_lemma; eauto.
+            admit.
+          - erewrite write_untouched_ptr_block_get_array_cell.
+            3: eapply WRITE_MEM.
+            2: eauto.
+            1: eapply GETARRAYCELL_y_off_l.
+            all: admit.
+        }
+        {
+          apply nth_error_protect_ineq with (n' := n_y) in H0; auto.
+          do 2 erewrite <- nth_error_Sn in H0.
+          do 2 erewrite <- nth_error_Sn in H1.
+          apply state_invariant_memory_invariant in PRE_INV as MEM_INV.
+          replace (Γ s13) with (Γ s12) in H1 by solve_gamma.
+          rewrite -> EE in H1.
+          specialize (MEM_INV _ _ _ _ _ H0 H1).
+          destruct v; eauto.
+          - destruct x; auto.
+            cbn; cbn in MEM_INV.
+            destruct MEM_INV as (? & ? & ? & ? & ?).
+            eexists _, _; break_and_goal; eauto.
+            erewrite write_untouched; eauto.
+            all: constructor.
+            erewrite <- handle_gep_addr_array_same_block; eauto.
+            clear st_no_id_aliasing st_no_dshptr_aliasing st_no_llvm_ptr_aliasing.
+            apply st_no_llvm_ptr_aliasing in PRE_INV as NO_LLVM_ALIASING.
+            eapply NO_LLVM_ALIASING with (n1 := S (S n_y)) (n2 := S (S n0)); eauto.
+            + cbn; eapply nth_error_protect_eq'; eauto.
+            + rewrite <- EE; cbn.
+              replace (Γ s12) with (Γ s0) by solve_gamma.
+              eassumption.
+            + intro C; rewrite C in *.
+              rewrite <- EE in H1; cbn in H1.
+              replace (Γ s12) with (Γ s0) in H1 by solve_gamma.
+              apply st_no_id_aliasing in PRE_INV as NO_ID_ALIASING.
+              eapply n1.
+              do 2 apply Nat.succ_inj.
+              cbn in H0.
+              rewrite nth_error_protect_neq in H0 by auto.
+              eapply NO_ID_ALIASING; cbn.
+              1: eapply nth_error_protect_eq'.
+              2: eapply nth_error_protect_ineq.
+              4, 5: rewrite <- EE; cbn.
+              4, 5: replace (Γ s12) with (Γ s0) by solve_gamma.
+              all: eauto.
+          - destruct x; auto.
+            cbn; cbn in MEM_INV.
+            destruct MEM_INV as (? & ? & ? & ? & ?).
+            eexists _, _; break_and_goal; eauto.
+            erewrite write_untouched; eauto.
+            all: constructor.
+            erewrite <- handle_gep_addr_array_same_block; eauto.
+            clear st_no_id_aliasing st_no_dshptr_aliasing st_no_llvm_ptr_aliasing.
+            apply st_no_llvm_ptr_aliasing in PRE_INV as NO_LLVM_ALIASING.
+            eapply NO_LLVM_ALIASING with (n1 := S (S n_y)) (n2 := S (S n0)); eauto.
+            + cbn; eapply nth_error_protect_eq'; eauto.
+            + rewrite <- EE; cbn.
+              replace (Γ s12) with (Γ s0) by solve_gamma.
+              eassumption.
+            + intro C; rewrite C in *.
+              rewrite <- EE in H1; cbn in H1.
+              replace (Γ s12) with (Γ s0) in H1 by solve_gamma.
+              apply st_no_id_aliasing in PRE_INV as NO_ID_ALIASING.
+              eapply n1.
+              do 2 apply Nat.succ_inj.
+              cbn in H0.
+              rewrite nth_error_protect_neq in H0 by auto.
+              eapply NO_ID_ALIASING; cbn.
+              1: eapply nth_error_protect_eq'.
+              2: eapply nth_error_protect_ineq.
+              4, 5: rewrite <- EE; cbn.
+              4, 5: replace (Γ s12) with (Γ s0) by solve_gamma.
+              all: eauto.
+          - destruct MEM_INV as (? & ? & ? & ? & ? & ?).
+            eexists _, _; break_and_goal; eauto.
+            1: eapply dtyp_fits_after_write; eauto.
+            intro; subst.
+            destruct H5 as (? & ? & ?); auto.
+            eexists; split; eauto.
+            intros.
+            erewrite write_untouched_ptr_block_get_array_cell; eauto.
+            enough (fst dst_addr ≢ fst x2) by
+                   (intro C; symmetry in C; contradiction).
+            erewrite <- handle_gep_addr_array_same_block; eauto.
+            clear st_no_id_aliasing st_no_dshptr_aliasing st_no_llvm_ptr_aliasing.
+            apply st_no_llvm_ptr_aliasing in PRE_INV as NO_LLVM_ALIASING.
+            eapply NO_LLVM_ALIASING with (n1 := S (S n_y)) (n2 := S (S n0)); eauto.
+            + cbn; eapply nth_error_protect_eq'; eauto.
+            + rewrite <- EE; cbn.
+              replace (Γ s12) with (Γ s0) by solve_gamma.
+              eassumption.
+            + intro C; rewrite C in *.
+              rewrite <- EE in H1; cbn in H1.
+              replace (Γ s12) with (Γ s0) in H1 by solve_gamma.
+              apply st_no_id_aliasing in PRE_INV as NO_ID_ALIASING.
+              eapply n1.
+              do 2 apply Nat.succ_inj.
+              cbn in H0.
+              rewrite nth_error_protect_neq in H0 by auto.
+              eapply NO_ID_ALIASING; cbn.
+              1: eapply nth_error_protect_eq'.
+              2: eapply nth_error_protect_ineq.
+              4, 5: rewrite <- EE; cbn.
+              4, 5: replace (Γ s12) with (Γ s0) by solve_gamma.
+              all: eauto.
+        }
+      }
       (* {
         (* TODO: The write state invariant doesn't take account to when pointers are different.
         Need to specify a range that is not being written to and state that the dst_addr is contained in it*)
