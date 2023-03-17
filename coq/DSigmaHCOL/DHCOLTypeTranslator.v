@@ -274,8 +274,10 @@ Module MDHCOLTypeTranslator
                  (translatePExpr y_p)
                  f')
         | L.DSHBinOp n x_p y_p f =>
-          _ <- NT.from_nat n ;;
-          _ <- NT'.from_nat n ;;
+          (* [n+n] here because BinOp performs pointer aritmetic
+             for expressions [n+k, k ∈ [0,n]] (see [evalDSHBinOp]) *)
+          _ <- NT.from_nat (n + n) ;;
+          _ <- NT'.from_nat (n + n) ;;
           f' <- translateAExpr f ;;
           ret (DSHBinOp
                  n

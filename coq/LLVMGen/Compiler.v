@@ -964,7 +964,9 @@ Fixpoint genIR
             (genWhileLoop "IMap" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] nextblock)
         | DSHBinOp n x_p y_p f =>
           (* the following check ensures loop bound fits integer. *)
-          err2errS (MInt64asNT.from_nat n) ;;
+          (* [n+n] here because BinOp performs pointer aritmetic
+             for expressions [n+k, k ∈ [0,n]] (see [genBinOpBody]) *)
+          err2errS (MInt64asNT.from_nat (n + n)) ;;
           '(x,i) <- resolve_PVar x_p ;;
           '(y,o) <- resolve_PVar y_p ;;
           loopcontblock <- incBlockNamed "BinOp_lcont" ;;
