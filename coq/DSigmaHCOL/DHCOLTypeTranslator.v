@@ -274,8 +274,10 @@ Module MDHCOLTypeTranslator
                  (translatePExpr y_p)
                  f')
         | L.DSHBinOp n x_p y_p f =>
-          _ <- NT.from_nat n ;;
-          _ <- NT'.from_nat n ;;
+          (* [n+n] here because BinOp performs pointer aritmetic
+             for expressions [n+k, k ∈ [0,n]] (see [evalDSHBinOp]) *)
+          _ <- NT.from_nat (n + n) ;;
+          _ <- NT'.from_nat (n + n) ;;
           f' <- translateAExpr f ;;
           ret (DSHBinOp
                  n
@@ -1243,6 +1245,38 @@ Module MDHCOLTypeTranslator
         repeat constructor.
     Qed.
 
+    Lemma from_nat_le
+      (x y : nat)
+      (xi : NT.t)
+      :
+      NT.from_nat x ≡ inr xi →
+      (y <= x)%nat →
+      ∃ yi, NT.from_nat y ≡ inr yi.
+    Proof.
+      intros.
+      destruct (PeanoNat.Nat.eq_dec x y).
+      subst; eexists; eassumption.
+      eapply NT.from_nat_lt.
+      eassumption.
+      lia.
+    Qed.
+
+    Lemma from_nat_le'
+      (x y : nat)
+      (xi : NT'.t)
+      :
+      NT'.from_nat x ≡ inr xi →
+      (y <= x)%nat →
+      ∃ yi, NT'.from_nat y ≡ inr yi.
+    Proof.
+      intros.
+      destruct (PeanoNat.Nat.eq_dec x y).
+      subst; eexists; eassumption.
+      eapply NT'.from_nat_lt.
+      eassumption.
+      lia.
+    Qed.
+
   End Necessary_NT_Props.
 
   Section TranslationOp_Correctness.
@@ -1582,9 +1616,12 @@ Module MDHCOLTypeTranslator
           try now apply translatePExpr_syntax.
         +
           constructor.
-          destruct (heq_NType_from_nat n);
-            try inl_inr.
-          invc Heqs; invc Heqs0.
+          pose proof (heq_NType_from_nat n).
+          inv H.
+          eapply from_nat_le with (y:=n) in Heqs; [| lia];
+            destruct Heqs as [yi ?]; congruence.
+          eapply from_nat_le' with (y:=n) in Heqs0; [| lia];
+            destruct Heqs0 as [yi ?]; congruence.
           now constructor.
         +
           apply translateAExpr_syntax.
