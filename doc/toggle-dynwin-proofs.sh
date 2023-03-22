@@ -1,3 +1,6 @@
+#!/usr/bin/env sh
+
+DIFF_CONTENT=$(cat <<'EOF'
 diff --git a/coq/DynWin/DynWinProofs.v b/coq/DynWin/DynWinProofs.v
 index 285b9e98..49345e6e 100644
 --- a/coq/DynWin/DynWinProofs.v
@@ -609,3 +612,20 @@ index 5231794b..e77ee4c6 100644
    now rewrite <-Y_FMEM.
 -Qed.
 +Qed. *)
+EOF
+)
+
+# Ensure a newline at the end of the diff
+DIFF_CONTENT="${DIFF_CONTENT}
+"
+
+# Check if the diff has been applied
+if printf %s "$DIFF_CONTENT" | git apply --check --reverse 2>/dev/null; then
+    # The diff has been applied, so unapply it
+    echo "Uncommenting proofs... (unapplying diff)"
+    printf %s "$DIFF_CONTENT" | git apply --reverse
+else
+    # The diff hasn't been applied, so apply it
+    echo "Commenting out proofs... (applying diff)"
+    printf %s "$DIFF_CONTENT" | git apply
+fi
