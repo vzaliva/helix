@@ -768,7 +768,6 @@ Proof.
 
   hred.
 
-  (* repeat apply no_failure_Ret in NOFAIL. *)
   rewrite BOUNDS.
 
   unfold assert_nat_le, assert_true_to_err in BOUNDS.
@@ -989,9 +988,13 @@ Proof.
                | Some (mH, b) =>
                  let '(mV, (ρ, g')) := stV in
                  (* 1. Relaxed state invariant *)
-                 state_invariant σ s13 mH stV /\
+                 state_invariant (protect σ n_y) s13 mH stV /\
                  (* 2. Preserved state invariant *)
                  memory_invariant_partial_write' stV k n ptrll_y_off b y sz_y /\
+                 (∀ (i : Int64.int) (v : binary64),
+                    MInt64asNT.to_nat i >= k /\ MInt64asNT.to_nat i < n ->
+                    mem_lookup (MInt64asNT.to_nat i) bkh_y_off ≡ Some v ->
+                    get_array_cell mV ptrll_y_off (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v)) /\
                  mH ≡ memH /\ g ≡ g' /\
                  allocated ptrll_y_off mV
                end)).
@@ -1017,7 +1020,8 @@ Proof.
 
   assert (EE : (ID_Local v1, TYPE_Double) ::
                (ID_Local v0, TYPE_Double) :: Γ s12 ≡ Γ s11).
-  { Transparent addVars dropVars.
+  {
+    Transparent addVars dropVars.
     inv Heqs14.
     apply genAExpr_Γ in Heqs15.
     cbn in Heqs15.
@@ -1043,12 +1047,13 @@ Proof.
     unfold I in *.
     destruct a eqn:AEQ; eauto.
     destruct p eqn:AEP.
-    destruct H0 as (? & ? & <- & <- & ?).
+    destruct H0 as (? & ? & ? & <- & <- & ?).
     subst.
     split; [|split;[|split]];eauto.
 
     - eapply state_invariant_same_Γ with (s1 := s13); eauto.
       eapply not_in_Gamma_Gamma_eq; eauto.
+      eapply not_in_gamma_protect.
       eapply GAM.
       eapply lid_bound_between_shrink_down.
       2 : {
@@ -1172,7 +1177,25 @@ Proof.
 
     (* Get mem information from PRE condition here (global and local state has changed). *)
     (* Needed for the following GEP and Load instructions *)
-    destruct INV as (INV_r & INV_p & -> & -> & ?).
+    destruct INV as (INV_r & INV_p & GETARRAYCELL_y_off_r & -> & -> & ?).
+
+    assert (exists b_x0,
+              nth_error (protect σ n_y) n_x0 ≡ Some (DSHPtrVal x0_h_ptr i0, b_x0) /\
+              if b_x0 then n_x0 ≡ n_y else n_x0 ≢ n_y)
+    as (b_x0 & nth_σ_x0' & cmp_x0_y).
+    { destruct (Nat.eq_dec n_x0 n_y); [subst |].
+      - exists true; split; auto; eapply nth_error_protect_eq'; eauto.
+      - exists false; split; auto; apply nth_error_protect_ineq; auto.
+    }
+
+    assert (exists b_x1,
+              nth_error (protect σ n_y) n_x1 ≡ Some (DSHPtrVal x1_h_ptr i1, b_x1) /\
+              if b_x1 then n_x1 ≡ n_y else n_x1 ≢ n_y)
+    as (b_x1 & nth_σ_x1' & cmp_x1_y).
+    { destruct (Nat.eq_dec n_x1 n_y); [subst |].
+      - exists true; split; auto; eapply nth_error_protect_eq'; eauto.
+      - exists false; split; auto; apply nth_error_protect_ineq; auto.
+    }
 
     rewrite -> GENIR_Γ in nth_Γ_x0, nth_Γ_x1.
 
@@ -1180,21 +1203,16 @@ Proof.
     pose proof state_invariant_memory_invariant INV_r as MINV_X0_OFF.
     pose proof state_invariant_memory_invariant INV_r as MINV_X1_OFF.
 
-    specialize (MINV_X0_OFF _ _ _ _ _ nth_σ_x0 nth_Γ_x0).
-    specialize (MINV_X1_OFF _ _ _ _ _ nth_σ_x1 nth_Γ_x1).
+    specialize (MINV_X0_OFF _ _ _ _ _ nth_σ_x0' nth_Γ_x0).
+    specialize (MINV_X1_OFF _ _ _ _ _ nth_σ_x1' nth_Γ_x1).
 
     cbn in MINV_X0_OFF, MINV_X1_OFF.
 
     destruct MINV_X0_OFF as
-      (ptrll_x0_off_l & τ_x0_off & TEQ_x0_off & FITS_x0_off_l & INLG_x0_off_l &
-       bkh_x0_off_l & MLUP_x0_off_l & GETARRAYCELL_x0_off_l); eauto.
+      (ptrll_x0_off_l & τ_x0_off & TEQ_x0_off & FITS_x0_off_l & INLG_x0_off_l & MINV_X0_OFF).
 
     destruct MINV_X1_OFF as
-      (ptrll_x1_off_l & τ_x1_off & TEQ_x1_off & FITS_x1_off_l & INLG_x1_off_l &
-       bkh_x1_off_l & MLUP_x1_off_l & GETARRAYCELL_x1_off_l); eauto.
-
-    rewrite MLUP_x0_off in MLUP_x0_off_l; inv MLUP_x0_off_l.
-    rewrite MLUP_x1_off in MLUP_x1_off_l; inv MLUP_x1_off_l.
+      (ptrll_x1_off_l & τ_x1_off & TEQ_x1_off & FITS_x1_off_l & INLG_x1_off_l & MINV_X1_OFF).
 
     inv TEQ_x0_off; inv TEQ_x1_off.
 
@@ -1230,9 +1248,7 @@ Proof.
     assert (NEQ_v0_v1  : v0 ≢ v1)  by derive_NEQ.
     assert (NEQ_v0_p1x : v0 ≢ p1x) by derive_NEQ.
 
-    (* pose proof INV_p as MINV_YOFF.
-    unfold memory_invariant_partial_write' in MINV_YOFF.
-    destruct MINV_YOFF as (FITS_yoff_l & INLG_YOFF & MINV_YOFF). *)
+    destruct INV_p as (FITS_y_off_l & INLG_y_off_l & GETARRAYCELL_y_off_l).
 
     (* [Vellvm] GEP Instruction for [x0] *)
     match goal with
@@ -1248,9 +1264,26 @@ Proof.
 
     { rewrite denote_exp_LR; [reflexivity | eauto]. }
 
-    { rewrite <- to_nat_repr_nat with (k := k); auto.
-      eapply GETARRAYCELL_x0_off_l.
-      rewrite -> to_nat_repr_nat; eauto. }
+    {
+      rewrite <- to_nat_repr_nat with (k := k); auto.
+      destruct b_x0; [subst |].
+      - replace ptrll_x0_off_l with ptrll_y_off in *; revgoals.
+        { rewrite nth_Γ_y in nth_Γ_x0; inv nth_Γ_x0.
+          destruct x0; cbn in INLG_x0_off_l, INLG_y_off_l.
+          all: rewrite INLG_y_off_l in INLG_x0_off_l; inv INLG_x0_off_l.
+          all: reflexivity. }
+        eapply GETARRAYCELL_y_off_r.
+        all: rewrite -> to_nat_repr_nat; auto.
+        replace bkh_x0_off with bkh_y_off in *; revgoals.
+        { rewrite nth_σ_y in nth_σ_x0; inv nth_σ_x0.
+          rewrite MLUP_y_off in MLUP_x0_off; inv MLUP_x0_off.
+          reflexivity. }
+        eassumption.
+      - destruct MINV_X0_OFF as (bkh_x0_off_l & MLUP_x0_off_l & GETARRAYCELL_x0_off_l); auto.
+        rewrite MLUP_x0_off in MLUP_x0_off_l; inv MLUP_x0_off_l.
+        eapply GETARRAYCELL_x0_off_l.
+        rewrite -> to_nat_repr_nat; eauto.
+    }
 
     rename x into src_x0_addr.
     rename H0 into READ_x0.
@@ -1301,9 +1334,26 @@ Proof.
       unfold li'; cbn.
       rewrite 2 alist_find_neq; eauto. }
 
-    { rewrite <- to_nat_repr_nat with (k := k); auto.
-      eapply GETARRAYCELL_x1_off_l.
-      rewrite -> to_nat_repr_nat; eauto. }
+    {
+      rewrite <- to_nat_repr_nat with (k := k); auto.
+      destruct b_x1; [subst |].
+      - replace ptrll_x1_off_l with ptrll_y_off in *; revgoals.
+        { rewrite nth_Γ_y in nth_Γ_x1; inv nth_Γ_x1.
+          destruct x1; cbn in INLG_x1_off_l, INLG_y_off_l.
+          all: rewrite INLG_y_off_l in INLG_x1_off_l; inv INLG_x1_off_l.
+          all: reflexivity. }
+        eapply GETARRAYCELL_y_off_r.
+        all: rewrite -> to_nat_repr_nat; auto.
+        replace bkh_x1_off with bkh_y_off in *; revgoals.
+        { rewrite nth_σ_y in nth_σ_x1; inv nth_σ_x1.
+          rewrite MLUP_y_off in MLUP_x1_off; inv MLUP_x1_off.
+          reflexivity. }
+        eassumption.
+      - destruct MINV_X1_OFF as (bkh_x1_off_l & MLUP_x1_off_l & GETARRAYCELL_x1_off_l); auto.
+        rewrite MLUP_x1_off in MLUP_x1_off_l; inv MLUP_x1_off_l.
+        eapply GETARRAYCELL_x1_off_l.
+        rewrite -> to_nat_repr_nat; eauto.
+    }
 
     rename x into src_x1_addr.
     rename H0 into READ_x1.
@@ -1325,27 +1375,6 @@ Proof.
     typ_to_dtyp_simplify.
     rewrite denote_code_app.
     vred.
-
-    (*
-      Transparent addVars. unfold addVars in Heqs12. inv Heqs12.
-
-      assert (s2_ext : Γ s5 ≡ (ID_Local loopvarid, IntType) :: Γ s1). {
-        assert (H5 :Γ s2 ≡ Γ s5) by solve_gamma.
-        rewrite <- H5.
-        apply newLocalVar_Γ in Heqs4. eauto.
-      }
-
-      assert (neg0 : ~ in_Gamma σ s0 v) by solve_not_in_gamma.
-      eapply not_in_gamma_protect in neg0.
-
-      assert (neg1 : ¬ in_Gamma ((DSHnatVal (Int64.repr (Z.of_nat k)), false) :: (protect σ n1)) s5 v). {
-          eapply not_in_gamma_cons.
-          assert (Heqs4' := Heqs4).
-          eauto.
-          eapply not_in_Gamma_Gamma_eq. 2 : eauto. solve_gamma.
-          auto.
-      }
-    *)
 
     rewrite interp_helix_bind.
 
@@ -1413,8 +1442,6 @@ Proof.
                | derive_not_in_Gamma s0
                | ]).
 
-        apply state_invariant_protect.
-
         eapply state_invariant_Γ' with (s1 := s13).
         3: apply gamma_bound_mono with (s1 := s0).
         2, 5: solve_gamma.
@@ -1447,7 +1474,6 @@ Proof.
         all: constructor; rewrite interp_helix_Ret; reflexivity.
     }
 
-    (* unfold UU; clear UU. *)
     unfold li'; clear li'.
 
     intros [ [mH' t_Aexpr] | ] [mV' [li' [g0' []]]].
@@ -1483,8 +1509,6 @@ Proof.
     cbn in is_almost_pure.
     destruct is_almost_pure as (H1 & H2 & H3).
     symmetry in H1, H2, H3; subst.
-
-    destruct INV_p as (FITS_y_off_l & INLG_y_off_l & GETARRAYCELL_y_off_l).
 
     assert (INLG_y_off' : in_local_or_global_addr li' g0 y ptrll_y_off).
     {
@@ -1532,9 +1556,7 @@ Proof.
       eassumption. }
 
     { subst y_size.
-      erewrite <- from_N_intval; eauto.
-      typ_to_dtyp_simplify.
-      assumption. }
+      erewrite <- from_N_intval; eauto. }
 
     rename y_GEP_addr into dst_addr.
     rename y_HGEP into HDST_GEP.
@@ -1664,10 +1686,11 @@ Proof.
       Opaque addVars.
 
       repeat red; break_and_goal; eauto.
-      3: solve_allocated.
+      4: solve_allocated.
 
       split; destruct INV_r; auto.
       3: red; break_and_goal.
+      3: typ_to_dtyp_simplify.
       3: eapply dtyp_fits_after_write; eauto.
       3: assumption.
 
@@ -1676,29 +1699,18 @@ Proof.
         repeat intro.
         destruct (Nat.eq_dec n0 n_y); [subst |].
         {
+          apply protect_eq_true in H0 as ?; subst.
+          apply nth_error_protect_eq in H0 as [? H0].
           rewrite nth_σ_y in H0; inv H0.
           rewrite GENIR_Γ in nth_Γ_y.
           rewrite nth_Γ_y in H1; inv H1.
           eexists ptrll_y_off, _; break_and_goal; eauto.
-          1: eapply dtyp_fits_after_write; eauto.
-          intros _.
-          exists bkh_y_off; split; eauto.
-          intros.
-          destruct (Nat.eq_dec (MInt64asNT.to_nat i) k).
-          - rewrite e in *; clear e.
-            change (UVALUE_Double v) with (dvalue_to_uvalue (DVALUE_Double v)).
-            eapply write_array_cell_get_array_cell.
-            2, 3: constructor.
-            erewrite <- write_array_lemma; eauto.
-            admit.
-          - erewrite write_untouched_ptr_block_get_array_cell.
-            3: eapply WRITE_MEM.
-            2: eauto.
-            1: eapply GETARRAYCELL_y_off_l.
-            all: admit.
+          - eapply dtyp_fits_after_write; eauto.
+            typ_to_dtyp_simplify.
+            eapply FITS_y_off_l.
+          - discriminate.
         }
         {
-          apply nth_error_protect_ineq with (n' := n_y) in H0; auto.
           do 2 erewrite <- nth_error_Sn in H0.
           do 2 erewrite <- nth_error_Sn in H1.
           apply state_invariant_memory_invariant in PRE_INV as MEM_INV.
@@ -1796,160 +1808,6 @@ Proof.
               all: eauto.
         }
       }
-      (* {
-        (* TODO: The write state invariant doesn't take account to when pointers are different.
-        Need to specify a range that is not being written to and state that the dst_addr is contained in it*)
-
-        eapply state_invariant_cons2 with (s := s9). solve_local_count.
-        eapply EE.
-        destruct PRE_INV'.
-        split; eauto.
-        (* TRICKY MEMORY INVARIANT RE-STATING -.- *)
-        cbn.
-        cbn in mem_is_inv. clear INV' INV_r.
-        (* partial memory write invariant *)
-        destruct INV_p as (FITS_p & INLG_p & MLU_f).
-        (* "Clean your room" *)
-        clear RET1 RET2 Mono_IRState extends exp_in_scope exp_correct.
-        clear NOFAIL' FITS_xoff_l INLG_xoff_l MLUP_xoff_l GETARRAYCELL_xoff_l UNIQ0 UNIQ1 UNIQ2.
-        clear EQ_y_HG.
-        clean_goal.
-        rename WRITE_MEM into ptrll_INLG.
-        rename H1 into WRITE_dst.
-
-        pose proof LUn0. pose proof Heqo0.
-        intros * CLU CEq.
-        rewrite <- EE in CEq.
-        destruct (Nat.eq_dec n2 (S (S n1))) eqn : IS_IT_THE_WRITTEN_ADDRESS ; subst.
-        (* Yes, it is the address being written to (ptrll_yoff). *)
-        {
-          intros. specialize (mem_is_inv (S (S n1))). cbn in mem_is_inv.
-          rewrite <- EE in mem_is_inv. specialize (mem_is_inv _ _ _ _ H1 H0).
-          cbn in CLU, CEq. rewrite H0 in CEq.
-          rewrite H1 in CLU. inv CEq. inv CLU.
-          edestruct mem_is_inv as (? & ? & ? & ? & ? & ?); clear mem_is_inv.
-          inv H2. clear H5.
-          exists x1. eexists. split; eauto. split.
-          eapply dtyp_fits_after_write; eauto.
-          split; eauto. intros. inv H2.
-        }
-
-        (* No, but perhaps it is still covered by the partial write invariant. *)
-        {
-          intros. rewrite EE in CEq.
-          assert (x0 ≢ y). {
-            intro. subst. apply n3.
-            eapply st_no_id_aliasing; eauto.
-            rewrite <- EE. eauto.
-          }
-
-          specialize (mem_is_inv n2). cbn in mem_is_inv.
-          specialize (mem_is_inv _ _ _ _ CLU CEq).
-          destruct v0; eauto.
-          {
-            (* [Case] v0 is a natVal *)
-            (* WTS: in_local_or_global_scalar li' g0 mV_yoff @id (dvalue_of_int n4) τ *)
-            destruct x0; eauto.
-            red in mem_is_inv.
-            edestruct mem_is_inv as (? & ? & ? & ? & ?); clear mem_is_inv.
-            cbn. inv H3. eexists x0. eexists. split; eauto. split; eauto.
-            (* Is it covered by the partial write on mV? *)
-
-            assert (no_overlap_dtyp dst_addr DTYPE_Double x0 (typ_to_dtyp [] x1)) as NOALIAS'.
-            {
-              unfold no_overlap_dtyp.
-              unfold no_overlap.
-              left.
-
-              rewrite <- (handle_gep_addr_array_same_block _ _ _ _ HDST_GEP).
-
-              intros BLOCKS; symmetry in BLOCKS; revert BLOCKS.
-
-              do 2 red in st_no_llvm_ptr_aliasing.
-              rewrite <- EE in CEq. 
-              specialize (st_no_llvm_ptr_aliasing (ID_Global id) x0 y ptrll_yoff n2 (S (S n1))).
-              cbn in st_no_llvm_ptr_aliasing.
-              eapply st_no_llvm_ptr_aliasing. eauto. eauto. rewrite <- EE. eauto. rewrite <- EE. eauto. eauto. eauto.
-              eauto.
-            }
-            (* No *)
-            cbn in H4.
-            erewrite write_untouched; eauto. constructor.
-          }
-          {
-            (* [Case] v0 is a CTypeVal *)
-            red in mem_is_inv.
-            destruct x0; eauto.
-
-            edestruct mem_is_inv as (? & ? & ? & ? & ?); clear mem_is_inv.
-
-            cbn. inv H3. eexists x0. eexists. split; eauto. split; eauto.
-            (* Is it covered by the partial write on mV? *)
-
-            assert (no_overlap_dtyp dst_addr DTYPE_Double x0 (typ_to_dtyp [] x1)) as NOALIAS'.
-            {
-              unfold no_overlap_dtyp.
-              unfold no_overlap.
-              left.
-
-              rewrite <- (handle_gep_addr_array_same_block _ _ _ _ HDST_GEP).
-
-              intros BLOCKS; symmetry in BLOCKS; revert BLOCKS.
-
-              do 2 red in st_no_llvm_ptr_aliasing.
-              rewrite <- EE in CEq. 
-              specialize (st_no_llvm_ptr_aliasing (ID_Global id) x0 y ptrll_yoff n2 (S (S n1))).
-              cbn in st_no_llvm_ptr_aliasing.
-              eapply st_no_llvm_ptr_aliasing. eauto. eauto. rewrite <- EE. eauto. rewrite <- EE. eauto. eauto. eauto.
-              eauto.
-            }
-            (* No *)
-            cbn in H4.
-            erewrite write_untouched; eauto. constructor.
-          }
-          {
-            (* It's a pointer! Pointer ! *)
-            clean_goal. subst I. clear INV_STABLE. clear WHILE Heqs6 Heqs14 Heqs13.
-            clear E.
-            clean_goal.
-            clear EQ_y_HG'.
-            revert MINV_YOFF; intros.
-
-            edestruct mem_is_inv as (? & ? & ? & ? & ? & ?); clear mem_is_inv.
-
-            eexists. eexists. split; eauto.
-
-            split. eapply dtyp_fits_after_write; eauto.
-
-            split; eauto. intros.
-            specialize (H6 H7).
-            destruct H6 as (? & ? & ? ).
-            eexists. split; eauto.
-            intros.
-            inv H3.
-            erewrite write_untouched_ptr_block_get_array_cell.
-            2 : eauto.
-            2 : eauto.
-            eauto.
-
-            assert (fst x1 ≢ fst ptrll_yoff). {
-              do 2 red in st_no_llvm_ptr_aliasing.
-              rewrite <- EE in CEq. 
-              specialize (st_no_llvm_ptr_aliasing x0 x1 y ptrll_yoff n2 (S (S n1))).
-              cbn in st_no_llvm_ptr_aliasing.
-              eapply st_no_llvm_ptr_aliasing. eauto. eauto. rewrite <- EE. eauto. rewrite <- EE. eauto. eauto. eauto.
-              eauto.
-            }
-
-            assert (fst ptrll_yoff ≡ fst dst_addr). {
-              revert HDST_GEP; intros.
-              unfold handle_gep_addr in HDST_GEP.
-              destruct ptrll_yoff. cbn in HDST_GEP. inv HDST_GEP. cbn. auto.
-            }
-            rewrite <- H7. auto.
-          }
-        }
-      } *)
 
       {
         eapply state_invariant_cons2 with (s' := s12) in PRE_INV.
@@ -1958,17 +1816,13 @@ Proof.
         2: solve_local_count.
         eapply no_llvm_ptr_aliasing_gamma with (s1 := s12).
         2: solve_gamma.
-        eapply no_llvm_ptr_aliasing_protect.
         destruct PRE_INV; cbn in *.
         eassumption.
       }
 
       (* Partial memory up to (S k) *)
       {
-        (* intros. *)
         intros i v Bounds_sz MLU_k.
-        (* rename MINV_Y_OFF into MINV_partial.
-        revert MINV_partial; intros. *)
 
         destruct (@dec_eq_nat (MInt64asNT.to_nat i) k).
         {
@@ -2001,6 +1855,27 @@ Proof.
             reflexivity.
         }
       }
+
+      {
+        intros.
+        erewrite write_array_cell_untouched.
+        eapply GETARRAYCELL_y_off_r.
+        - lia.
+        - assumption.
+        - erewrite <- write_array_lemma; eauto.
+        - constructor.
+        - rewrite repr_of_nat_to_nat.
+          intro.
+          rewrite Integers.Int64.unsigned_repr_eq in H2.
+          rewrite Z.mod_small in H2 by lia.
+          apply f_equal with (f := Z.to_nat) in H2.
+          rewrite Znat.Nat2Z.id in H2.
+          rewrite H2 in H0.
+          unfold MInt64asNT.to_nat in H0.
+          unfold DynamicValues.Int64.unsigned in H0.
+          lia.
+      }
+
     (* local_scope_modif s1 s12 li (li' [py : UVALUE_Addr y_GEP_addr]) *)
     - eapply local_scope_modif_add'.
       eapply lid_bound_between_shrink.
@@ -2042,16 +1917,19 @@ Proof.
   {
     subst I P; red; intros; auto. destruct a; eauto.
     destruct p; eauto. destruct b1; eauto. destruct p; eauto.
-    intuition. subst.
-    destruct H0.
-    cbn.
-    unfold memory_invariant in mem_is_inv.
-    (* erewrite <- nth_error_protect_neq in Heqo. *)
-    rewrite GENIR_Γ in nth_Γ_y.
-    specialize (mem_is_inv _ _ _ _ _ nth_σ_y nth_Γ_y).
-    cbn in mem_is_inv.
-    edestruct mem_is_inv as (?  & ? & ? & ? & ? & ?). inv H.
-    split; eauto. subst. solve_allocated.
+    intuition; subst.
+    - apply state_invariant_protect; assumption.
+    - destruct H0.
+      cbn.
+      unfold memory_invariant in mem_is_inv.
+      rewrite GENIR_Γ in nth_Γ_y.
+      specialize (mem_is_inv _ _ _ _ _ nth_σ_y nth_Γ_y).
+      cbn in mem_is_inv.
+      edestruct mem_is_inv as (?  & ? & ? & ? & ? & ?).
+      inv H.
+      split; eauto.
+    - apply GETARRAYCELL_y_off; assumption.
+    - solve_allocated.
   }
 
   (* I n -> Q *)
@@ -2059,44 +1937,53 @@ Proof.
   {
     subst I P Q; red; intros; auto. destruct a; auto.
     destruct p; eauto. destruct b1; eauto. destruct p; eauto.
-    destruct H as (? & ? & ? & ? & ?). subst.
+    destruct H as (? & ? & ? & ? & ? & ?). subst.
     destruct H.
     break_and_goal; eauto.
     destruct H0 as (? & ? & ?).
+
+    apply id_allocated_protect in st_id_allocated.
+    apply no_dshptr_aliasing_protect in st_no_dshptr_aliasing.
+    apply no_id_aliasing_protect in st_no_id_aliasing.
+    apply no_llvm_ptr_aliasing_protect in st_no_llvm_ptr_aliasing.
+    apply WF_IRState_protect in IRState_is_WF.
+
     split; eauto; revgoals.
 
     (* id's are still well-allocated. *)
     {
       red in st_id_allocated. red. intros.
       destruct (@dec_eq_nat n0 n_y). subst.
-      rewrite nth_σ_y in H2. inv H2.
+      rewrite nth_σ_y in H3. inv H3.
       apply mem_block_exists_memory_set_eq. reflexivity.
       apply mem_block_exists_memory_set. eapply st_id_allocated.
       eauto.
     }
 
     repeat intro.
-    specialize (mem_is_inv _ _ _ _ _ H2 H4).
-    destruct v; auto.
-    destruct mem_is_inv as (? & ? & ? & ? & ? & ?).
     destruct (Nat.eq_dec n0 n_y); [subst |].
-    - rewrite nth_σ_y in H2; inv H2.
+    - rewrite nth_σ_y in H3; inv H3.
       rewrite GENIR_Γ in nth_Γ_y.
-      rewrite nth_Γ_y in H4; inv H4.
+      rewrite nth_Γ_y in H5; inv H5.
       eexists ptrll_y_off, _; break_and_goal; eauto.
       intros _.
       rewrite memory_lookup_memory_set_eq.
       eexists; split; eauto.
       intros.
-      eapply H1; auto; lia.
-    - eexists _, _; break_and_goal; eauto.
-    intro; subst.
-    conclude H8 auto.
-    destruct H8 as (? & ? & ?).
-    eexists; split; eauto.
-    rewrite memory_lookup_memory_set_neq; auto.
-    intro C; symmetry in C; subst.
-    eapply st_no_llvm_ptr_aliasing; eauto.
+      eapply H2; auto; lia.
+    - eapply nth_error_protect_ineq in H3; eauto.
+      specialize (mem_is_inv _ _ _ _ _ H3 H5).
+      destruct v; auto.
+      destruct mem_is_inv as (? & ? & ? & ? & ? & ?).
+      eexists _, _; break_and_goal; eauto.
+      intro; subst.
+      conclude H9 auto.
+      destruct H9 as (? & ? & ?).
+      eexists; split; eauto.
+      rewrite memory_lookup_memory_set_neq; auto.
+      intro C; symmetry in C; subst.
+      erewrite nth_error_protect_neq in H3 by eauto.
+      eapply st_no_llvm_ptr_aliasing; eauto.
   }
 
   setoid_rewrite <- bind_ret_r at 6.
@@ -2130,4 +2017,4 @@ Proof.
     - destruct H; eauto.
     - solve_local_scope_modif.
   }
-Admitted.
+Qed.
