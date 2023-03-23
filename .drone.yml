@@ -17,12 +17,12 @@ steps:
         path: /var/run/docker.sock
     commands:
       - |
-        if [ '${DRONE_BUILD_EVENT}' = cron ] || [ '${DRONE_BUILD_EVENT}' = promote ]                          || \
-           [ -z "$(docker image ls --quiet 'cache--${DRONE_REPO_NAME}:${DRONE_SOURCE_BRANCH}')" ]             || \
-           ! git diff --quiet --exit-code ${DRONE_COMMIT_BEFORE}..${DRONE_COMMIT_AFTER} Dockerfile helix.opam ;  \
-        then                                                                                                     \
-                docker build --no-cache -t 'cache--${DRONE_REPO_NAME}:${DRONE_SOURCE_BRANCH}' . ;                \
-        fi
+          if [ '${DRONE_BUILD_EVENT}' = cron ] || [ '${DRONE_BUILD_EVENT}' = promote ]                          || \
+             [ -z "$(docker image ls --quiet 'cache--${DRONE_REPO_NAME}:${DRONE_SOURCE_BRANCH}')" ]             || \
+             ! git diff --quiet --exit-code ${DRONE_COMMIT_BEFORE}..${DRONE_COMMIT_AFTER} Dockerfile helix.opam ;  \
+          then                                                                                                     \
+                  docker build --no-cache -t 'cache--${DRONE_REPO_NAME}:${DRONE_SOURCE_BRANCH}' . ;                \
+          fi
 
   - name: submodules
     image: alpine/git
