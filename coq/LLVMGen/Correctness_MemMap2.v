@@ -683,15 +683,20 @@ Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li :
 
 Import AlistNotations.
 
-Definition memory_invariant_partial_write' (configV : config_cfg) (index loopsize : nat) (ptr_llvm : addr)
-            (bk_helix : mem_block) (x : ident) sz : Prop :=
+Definition memory_invariant_partial_write'
+  (configV : config_cfg) (index loopsize : nat) (ptr_llvm : addr)
+  (bk_helix bk_helix_init: mem_block) (x : ident) sz : Prop :=
     let '(mem_llvm, (ρ, g)) := configV in
     dtyp_fits mem_llvm ptr_llvm (typ_to_dtyp [] (TYPE_Array sz TYPE_Double)) /\
     in_local_or_global_addr ρ g x ptr_llvm /\
-            (∀ (i : Int64.int) (v0 : binary64),
-                (MInt64asNT.to_nat i) < index \/ (MInt64asNT.to_nat i) >= loopsize ->
-                  (mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v0
-                    → get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0))).
+    (∀ (i : Int64.int) (v0 : binary64),
+       (MInt64asNT.to_nat i) < index \/ (MInt64asNT.to_nat i) >= loopsize ->
+       mem_lookup (MInt64asNT.to_nat i) bk_helix ≡ Some v0 ->
+       get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0)) /\
+    (∀ (i : Int64.int) (v0 : binary64),
+       (MInt64asNT.to_nat i) >= index /\ (MInt64asNT.to_nat i < loopsize) ->
+       mem_lookup (MInt64asNT.to_nat i) bk_helix_init ≡ Some v0 ->
+       get_array_cell mem_llvm ptr_llvm (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v0)).
 
 Lemma DSHMemMap2_correct:
   ∀ (n : nat) (x0_p x1_p y_p : PExpr) (f : AExpr) (s1 s2 : IRState) (σ : evalContext) (memH : memoryH)
@@ -990,11 +995,7 @@ Proof.
                  (* 1. Relaxed state invariant *)
                  state_invariant (protect σ n_y) s13 mH stV /\
                  (* 2. Preserved state invariant *)
-                 memory_invariant_partial_write' stV k n ptrll_y_off b y sz_y /\
-                 (∀ (i : Int64.int) (v : binary64),
-                    MInt64asNT.to_nat i >= k /\ MInt64asNT.to_nat i < n ->
-                    mem_lookup (MInt64asNT.to_nat i) bkh_y_off ≡ Some v ->
-                    get_array_cell mV ptrll_y_off (MInt64asNT.to_nat i) DTYPE_Double ≡ inr (UVALUE_Double v)) /\
+                 memory_invariant_partial_write' stV k n ptrll_y_off b bkh_y_off y sz_y /\
                  mH ≡ memH /\ g ≡ g' /\
                  allocated ptrll_y_off mV
                end)).
@@ -1047,7 +1048,7 @@ Proof.
     unfold I in *.
     destruct a eqn:AEQ; eauto.
     destruct p eqn:AEP.
-    destruct H0 as (? & ? & ? & <- & <- & ?).
+    destruct H0 as (? & ? & <- & <- & ?).
     subst.
     split; [|split;[|split]];eauto.
 
@@ -1177,7 +1178,7 @@ Proof.
 
     (* Get mem information from PRE condition here (global and local state has changed). *)
     (* Needed for the following GEP and Load instructions *)
-    destruct INV as (INV_r & INV_p & GETARRAYCELL_y_off_r & -> & -> & ?).
+    destruct INV as (INV_r & INV_p & -> & -> & ?).
 
     assert (exists b_x0,
               nth_error (protect σ n_y) n_x0 ≡ Some (DSHPtrVal x0_h_ptr i0, b_x0) /\
@@ -1248,7 +1249,7 @@ Proof.
     assert (NEQ_v0_v1  : v0 ≢ v1)  by derive_NEQ.
     assert (NEQ_v0_p1x : v0 ≢ p1x) by derive_NEQ.
 
-    destruct INV_p as (FITS_y_off_l & INLG_y_off_l & GETARRAYCELL_y_off_l).
+    destruct INV_p as (FITS_y_off_l & INLG_y_off_l & GETARRAYCELL_y_off_l & GETARRAYCELL_y_off_r).
 
     (* [Vellvm] GEP Instruction for [x0] *)
     match goal with
@@ -1686,7 +1687,7 @@ Proof.
       Opaque addVars.
 
       repeat red; break_and_goal; eauto.
-      4: solve_allocated.
+      3: solve_allocated.
 
       split; destruct INV_r; auto.
       3: red; break_and_goal.
@@ -1928,7 +1929,6 @@ Proof.
       edestruct mem_is_inv as (?  & ? & ? & ? & ? & ?).
       inv H.
       split; eauto.
-    - apply GETARRAYCELL_y_off; assumption.
     - solve_allocated.
   }
 
@@ -1937,10 +1937,10 @@ Proof.
   {
     subst I P Q; red; intros; auto. destruct a; auto.
     destruct p; eauto. destruct b1; eauto. destruct p; eauto.
-    destruct H as (? & ? & ? & ? & ? & ?). subst.
+    destruct H as (? & ? & ? & ? & ?). subst.
     destruct H.
     break_and_goal; eauto.
-    destruct H0 as (? & ? & ?).
+    destruct H0 as (? & ? & ? & ?).
 
     apply id_allocated_protect in st_id_allocated.
     apply no_dshptr_aliasing_protect in st_no_dshptr_aliasing.
@@ -1954,7 +1954,7 @@ Proof.
     {
       red in st_id_allocated. red. intros.
       destruct (@dec_eq_nat n0 n_y). subst.
-      rewrite nth_σ_y in H3. inv H3.
+      rewrite nth_σ_y in H4. inv H4.
       apply mem_block_exists_memory_set_eq. reflexivity.
       apply mem_block_exists_memory_set. eapply st_id_allocated.
       eauto.
@@ -1962,7 +1962,7 @@ Proof.
 
     repeat intro.
     destruct (Nat.eq_dec n0 n_y); [subst |].
-    - rewrite nth_σ_y in H3; inv H3.
+    - rewrite nth_σ_y in H4; inv H4.
       rewrite GENIR_Γ in nth_Γ_y.
       rewrite nth_Γ_y in H5; inv H5.
       eexists ptrll_y_off, _; break_and_goal; eauto.
@@ -1970,9 +1970,9 @@ Proof.
       rewrite memory_lookup_memory_set_eq.
       eexists; split; eauto.
       intros.
-      eapply H2; auto; lia.
-    - eapply nth_error_protect_ineq in H3; eauto.
-      specialize (mem_is_inv _ _ _ _ _ H3 H5).
+      eapply H1; auto; lia.
+    - eapply nth_error_protect_ineq in H4; eauto.
+      specialize (mem_is_inv _ _ _ _ _ H4 H5).
       destruct v; auto.
       destruct mem_is_inv as (? & ? & ? & ? & ? & ?).
       eexists _, _; break_and_goal; eauto.
@@ -1982,7 +1982,7 @@ Proof.
       eexists; split; eauto.
       rewrite memory_lookup_memory_set_neq; auto.
       intro C; symmetry in C; subst.
-      erewrite nth_error_protect_neq in H3 by eauto.
+      erewrite nth_error_protect_neq in H4 by eauto.
       eapply st_no_llvm_ptr_aliasing; eauto.
   }
 
