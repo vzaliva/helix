@@ -600,7 +600,7 @@ Import Interp.
                   dc_align := None;
                   dc_gc := None
                 |};
-              df_args := [Name "X"; Name "Y"];
+              df_args := [Name "X0"; Name "Y1"];
               df_instrs :=
                 cfg_of_definition typ
                   {|
@@ -622,7 +622,7 @@ Import Interp.
                         dc_align := None;
                         dc_gc := None
                       |};
-                    df_args := [Name "X"; Name "Y"];
+                    df_args := [Name "X0"; Name "Y1"];
                     df_instrs := (b0, l4)
                   |}
             |} ⟧f);
@@ -830,7 +830,7 @@ Qed.
                                                                        dc_align := None;
                                                                        dc_gc := None
                                                                      |};
-                                                                   df_args := [Name "X"; Name "Y"];
+                                                                   df_args := [Name "X0"; Name "Y1"];
                                                                    df_instrs := (b0, l4)
                                                                  |}
                                                                :: genMain "dyn_win"
@@ -919,7 +919,7 @@ Definition DYNWIN b0 l4 :=
                             dc_align := None;
                             dc_gc := None
                           |};
-                        df_args := [Name "X"; Name "Y"];
+                        df_args := [Name "X0"; Name "Y1"];
                         df_instrs :=
                           cfg_of_definition typ
                             {|
@@ -941,7 +941,7 @@ Definition DYNWIN b0 l4 :=
                                   dc_align := None;
                                   dc_gc := None
                                 |};
-                              df_args := [Name "X"; Name "Y"];
+                              df_args := [Name "X0"; Name "Y1"];
                               df_instrs := (b0, l4)
                             |}
 |}.
@@ -1288,11 +1288,267 @@ Proof.
       + reflexivity.
     - apply Γi'_bound. }
 
-  (* We are getting closer to business: instantiating the lemma
-     stating the correctness of the compilation of operators *)
+    onAllHyps move_up_types.
+    do 4 eexists.
+    split.
+    {
+
+      match goal with
+        |- context [semantics_llvm ?x] => change x with (MCFG exps3 exps1 bk bks2)
+      end.
+
+    unfold semantics_llvm, semantics_llvm_mcfg, model_to_L3, denote_vellvm_init, denote_vellvm.
+
+
+    simpl bind.
+    rewrite interp3_bind.
+    (* We know that building the global environment is pure,
+         and satisfy a certain spec.
+     *)
+    rewrite EQLLVMINIT.
+    rewrite bind_ret_l.
+
+    rewrite interp3_bind.
+    focus_single_step_l.
+
+    (* We build the open denotations of the functions, i.e.
+         of "main" and "dyn_win".
+        [memory_invariant_after_init] has guaranteed us that
+        they are allocated in memory (via [EQdyn] and [EQmain])
+     *)
+    (* Hmm, amusing hack, [unfold] respects Opaque but not [unfold at i] *)
+    unfold MCFG at 1 2; cbn.
+    hide.
+
+    rewrite !interp3_bind.
+    rewrite !bind_bind.
+    rewrite interp3_GR; [| apply EQdyn].
+
+    rewrite bind_ret_l.
+    rewrite interp3_ret.
+    rewrite bind_ret_l.
+    rewrite !interp3_bind.
+    rewrite !bind_bind.
+    rewrite interp3_GR; [| apply EQmain].
+    repeat (rewrite bind_ret_l || rewrite interp3_ret).
+    subst.
+    cbn.
+    rewrite interp3_bind.
+    hide.
+
+    (* We now specifically get the pointer to the main as the entry point *)
+    rewrite interp3_GR; [| apply EQmain].
+    repeat (rewrite bind_ret_l || rewrite interp3_ret).
+    cbn/g.
+
+    (* We are done with the initialization of the runtime, we can
+         now begin the evaluation of the program per se. *)
+
+    (* We hence first do a one step unfolding of the mutually
+         recursive fixpoint in order to jump into the body of the main.
+     *)
+    rewrite denote_mcfg_unfold_in; cycle -1.
+    {
+      unfold GFUNC at 1.
+      unfold lookup_defn.
+      rewrite assoc_tl.
+      apply assoc_hd.
+      clear - genv_ptr_uniq_inv EQmain EQdyn.
+      intro H; inv H.
+      enough (Name "main" ≡ Name "dyn_win") by discriminate.
+      eapply genv_ptr_uniq_inv; eassumption || auto.
+    }
+
+    cbn.
+    rewrite bind_ret_l.
+    rewrite interp_mrec_bind.
+    rewrite interp_mrec_trigger.
+    cbn.
+    rewrite interp3_bind.
+
+    (* Function call, we first create a new memory frame *)
+    rewrite interp3_MemPush.
+    rewrite bind_ret_l.
+    rewrite interp_mrec_bind.
+    rewrite interp_mrec_trigger.
+    cbn.
+    rewrite interp3_bind.
+    rewrite interp3_StackPush.
+
+    rewrite bind_ret_l.
+    rewrite interp_mrec_bind.
+    rewrite interp3_bind.
+    rewrite translate_bind.
+    rewrite interp_mrec_bind.
+    rewrite interp3_bind.
+    rewrite bind_bind.
+    cbn.
+
+    hide.
+    onAllHyps move_up_types.
+
+    (* TODO FIX surface syntax *)
+    (* TODO : should really wrap the either monad when jumping from blocks into a named abstraction to lighten goals
+         TODO : can we somehow avoid the continuations being systematically
+         MARK
+         let (m',p) := r in
+         let (l',p0) := p in
+         let (g',_)  := p0 in ...
+     *)
+    (* MARK *)
+    Notation "'lets' a b c d e f 'be' x y z 'in' x " :=
+      (let (a,b) := x in
+       let (c,d) := y in
+       let (e,f) := z in
+       x)
+        (only printing, at level 10,
+          format "'lets' a b c d e f 'be' x y z 'in' '//' x").
+
+
+    (* We are now evaluating the main.
+         We hence first need to need to jump into the right block
+     *)
+    rewrite denote_ocfg_unfold_in; cycle -1.
+    unfold MAINCFG at 1; rewrite find_block_eq; reflexivity.
+
+    rewrite typ_to_dtyp_void.
+    rewrite denote_block_unfold.
+    (* No phi node in this block *)
+    rewrite denote_no_phis.
+    rewrite bind_ret_l.
+    rewrite bind_bind.
+
+    (* We hence evaluate the code: it starts with a function call to "dyn_win"! *)
+
+    rewrite denote_code_cons.
+    rewrite bind_bind,translate_bind.
+    rewrite interp_mrec_bind, interp3_bind.
+    rewrite bind_bind.
+    cbn.
+    focus_single_step_l.
+
+    hide.
+    rewrite interp3_call_void; cycle 1.
+    reflexivity.
+    eauto.
+    {
+      unfold GFUNC at 1.
+      unfold lookup_defn.
+      apply assoc_hd.
+    }
+    hide.
+    cbn.
+    rewrite bind_bind.
+    hide.
+    rewrite translate_bind, interp_mrec_bind,interp3_bind, bind_bind.
+    focus_single_step_l.
+
+    (* This function call has arguments: we need to evaluate those.
+         These arguments are globals that have been allocated during
+         the initialization phase, but I'm afraid we lost this fact
+         at this moment.
+         In particular right now, we need to lookup in the global
+         environment the address to an array stored at [Anon 0].
+
+         Do I need to reinforce [memory_invariant_after_init] or is
+         what I need a consequence of [genIR_post]?
+
+         MARK
+     *)
+
+    Import AlistNotations.
+    rewrite denote_mcfg_ID_Global; cycle 1.
+    eassumption.
+
+    rewrite bind_ret_l.
+    subst.
+    cbn.
+    focus_single_step_l.
+
+    match goal with
+      |- context [interp_mrec ?x] => remember x as ctx
+    end.
+    rewrite !translate_bind, !interp_mrec_bind,!interp3_bind, !bind_bind.
+    rewrite denote_mcfg_ID_Global; cycle 1.
+    eassumption.
+    rewrite !bind_ret_l, translate_ret, interp_mrec_ret, interp3_ret, bind_ret_l.
+    rewrite translate_ret, interp_mrec_ret, interp3_ret, bind_ret_l.
+
+    subst; rewrite !bind_bind; cbn; focus_single_step_l; unfold DYNWIN at 1; cbn; rewrite bind_ret_l.
+    cbn; rewrite interp_mrec_bind, interp_mrec_trigger, interp3_bind.
+
+    onAllHyps move_up_types.
+
+    (* Function call, we first create a new memory frame *)
+    rewrite interp3_MemPush, bind_ret_l, interp_mrec_bind, interp_mrec_trigger.
+    cbn; rewrite interp3_bind, interp3_StackPush, bind_ret_l.
+    rewrite !translate_bind,!interp_mrec_bind,!interp3_bind, !bind_bind.
+    subst; focus_single_step_l.
+
+    Notation "'ℑfunc' t" := (ℑs3 (interp_mrec (mcfg_ctx (GFUNC _ _ _ _)) t)) (at level 0, only printing).
+
+
+    unfold DYNWIN at 2 3; cbn.
+
+    unfold init_of_definition.
+    cbn.
+
+    unfold DYNWIN at 1.
+    cbn[df_instrs blks cfg_of_definition fst snd].
+    match type of Heqs0 with
+    | body_non_empty_cast ?x ?s1 ≡ inr (?s2, (?bk, ?bks)) => assert (EQbks: bk :: bks2 ≡ x /\ s1 ≡ s2)
+    end.
+    {
+      clear - Heqs0.
+      destruct bks1; cbn in *; inv Heqs0; intuition.
+    }
+    clear Heqs0.
+    destruct EQbks as [EQbks _].
+    rewrite EQbks.
+    unfold TFunctor_list'; rewrite map_app.
+    rewrite denote_ocfg_app; [| apply list_disjoint_nil_l].
+    rewrite translate_bind,interp_mrec_bind.
+    rewrite interp3_bind, bind_bind.
+    subst; focus_single_step_l.
+
+
+    clear.
+    match goal with
+      |- context[ (ℑs3 _) _ ?s ?m] => idtac s; idtac m
+    end.
+
+  set (ρI'' := (alist_add (Name "Y1") (UVALUE_Addr a1_addr)
+                  (alist_add (Name "X0") (UVALUE_Addr a0_addr) []))).
+
+  eassert (state_inv'' : state_invariant _ Γi _ (push_fresh_frame (push_fresh_frame memI), (ρI'', gI))).
+  {
+    admit.
+
+    (* eapply state_invariant_Γi with (ρI := ρI); eassumption || auto. *)
+    (* eapply state_invariant_Γ'. *)
+    (* - eassumption. *)
+    (* - cbn. *)
+    (*   replace (Γ s1) with *)
+    (*     [(ID_Global "a", TYPE_Pointer (TYPE_Array (Npos 3) TYPE_Double))]; *)
+    (*     [reflexivity |]. *)
+    (*   erewrite dropLocalVars_Gamma_eq with (s1 := s2) (s2 := Γi); revgoals. *)
+    (*   + symmetry. *)
+    (*     eapply Context.genIR_Γ. *)
+    (*     eassumption. *)
+    (*   + cbn. *)
+    (*     reflexivity. *)
+    (*   + assumption. *)
+    (*   + reflexivity. *)
+    (* - apply Γi'_bound. *)
+
+  }
+
+
+  (* We are getting closer to business: instantiating the lemma *)
+(*      stating the correctness of the compilation of operators *)
   unshelve epose proof
     @compile_FSHCOL_correct _ _ _ dynwin_F_σ dynwin_F_memory _ _
-                            (blk_id bk) _ gI ρI' memI HgenIR _ _ _ _
+                            (blk_id bk) _ gI ρI'' (push_fresh_frame (push_fresh_frame memI)) HgenIR _ _ _ _
     as RES.
   - clear - EQ.
     unfold no_failure, has_post.
@@ -1307,7 +1563,7 @@ Proof.
       {| block_count := 0; local_count := 0; void_count := 0; Γ := Γ Γi |},
       {| block_count := 1; local_count := 0; void_count := 0; Γ := Γ Γi |}.
     cbn; auto.
-  - apply state_inv'.
+  - apply state_inv''.
   - unfold Gamma_safe.
     intros id B NB.
     clear - B NB.
@@ -1369,10 +1625,10 @@ Proof.
         symmetry.
         eassumption. }
       invc H3.
-  - (* Assuming we can discharge all the preconditions,
-       we prove here that it is sufficient for establishing
-       our toplevel correctness statement.
-     *)
+  - (* Assuming we can discharge all the preconditions, *)
+(*        we prove here that it is sufficient for establishing *)
+(*        our toplevel correctness statement. *)
+(*      *)
     eapply interp_mem_interp_helix_ret in EQ.
     eapply eutt_ret_inv_strong' in EQ.
     destruct EQ as ([? |] & EQ & TMP); inv TMP.
@@ -1382,239 +1638,12 @@ Proof.
     inv H3; cbn in H1; clear H2.
     edestruct @eutt_ret_inv_strong as (RESLLVM2 & EQLLVM2 & INV2); [apply RES | clear RES].
     destruct RESLLVM2 as (mem2 & ρ2 & g2 & v2).
+
+    clear - EQLLVM2.
+
+    replace (map (tfmap (typ_to_dtyp nil)) bks1) with (convert_typ nil bks1) by reflexivity.
     onAllHyps move_up_types.
-
-    (* We need to reason about [semantics_llvm].
-       Hopefully we now have all the pieces into our
-       context, we try to go through it via some kind of
-       symbolic execution to figure out what statement
-       we need precisely.
-     *)
-    assert (forall x, semantics_llvm (MCFG exps3 exps1 bk bks2) ≈ x).
-    { intros ?.
-
-      unfold semantics_llvm, semantics_llvm_mcfg, model_to_L3, denote_vellvm_init, denote_vellvm.
-
-
-      simpl bind.
-      rewrite interp3_bind.
-      (* We know that building the global environment is pure,
-         and satisfy a certain spec.
-       *)
-      rewrite EQLLVMINIT.
-      rewrite bind_ret_l.
-
-      rewrite interp3_bind.
-      focus_single_step_l.
-
-      (* We build the open denotations of the functions, i.e.
-         of "main" and "dyn_win".
-        [memory_invariant_after_init] has guaranteed us that
-        they are allocated in memory (via [EQdyn] and [EQmain])
-       *)
-      (* Hmm, amusing hack, [unfold] respects Opaque but not [unfold at i] *)
-      unfold MCFG at 1 2; cbn.
-      hide.
-
-      rewrite !interp3_bind.
-      rewrite !bind_bind.
-      rewrite interp3_GR; [| apply EQdyn].
-
-      rewrite bind_ret_l.
-      rewrite interp3_ret.
-      rewrite bind_ret_l.
-      rewrite !interp3_bind.
-      rewrite !bind_bind.
-      rewrite interp3_GR; [| apply EQmain].
-      repeat (rewrite bind_ret_l || rewrite interp3_ret).
-      subst.
-      cbn.
-      rewrite interp3_bind.
-      hide.
-
-      (* We now specifically get the pointer to the main as the entry point *)
-      rewrite interp3_GR; [| apply EQmain].
-      repeat (rewrite bind_ret_l || rewrite interp3_ret).
-      cbn/g.
-
-      (* We are done with the initialization of the runtime, we can
-         now begin the evaluation of the program per se. *)
-
-      (* We hence first do a one step unfolding of the mutually
-         recursive fixpoint in order to jump into the body of the main.
-       *)
-      rewrite denote_mcfg_unfold_in; cycle -1.
-      {
-        unfold GFUNC at 1.
-        unfold lookup_defn.
-        rewrite assoc_tl.
-        apply assoc_hd.
-        (* Need to keep track of the fact that [main_addr] and [dyn_addr]
-           are distinct. Might be hidden somewhere in the context.
-         *)
-        clear - genv_ptr_uniq_inv EQmain EQdyn.
-        intro H; inv H.
-        enough (Name "main" ≡ Name "dyn_win") by discriminate.
-        eapply genv_ptr_uniq_inv; eassumption || auto.
-      }
-
-      cbn.
-      rewrite bind_ret_l.
-      rewrite interp_mrec_bind.
-      rewrite interp_mrec_trigger.
-      cbn.
-      rewrite interp3_bind.
-
-      (* Function call, we first create a new memory frame *)
-      rewrite interp3_MemPush.
-      rewrite bind_ret_l.
-      rewrite interp_mrec_bind.
-      rewrite interp_mrec_trigger.
-      cbn.
-      rewrite interp3_bind.
-      rewrite interp3_StackPush.
-
-      rewrite bind_ret_l.
-      rewrite interp_mrec_bind.
-      rewrite interp3_bind.
-      rewrite translate_bind.
-      rewrite interp_mrec_bind.
-      rewrite interp3_bind.
-      rewrite bind_bind.
-      cbn.
-
-      hide.
-      onAllHyps move_up_types.
-
-      (* TODO FIX surface syntax *)
-      (* TODO : should really wrap the either monad when jumping from blocks into a named abstraction to lighten goals
-         TODO : can we somehow avoid the continuations being systematically
-         MARK
-         let (m',p) := r in
-         let (l',p0) := p in
-         let (g',_)  := p0 in ...
-       *)
-      (* MARK *)
-      Notation "'lets' a b c d e f 'be' x y z 'in' x " :=
-        (let (a,b) := x in
-         let (c,d) := y in
-         let (e,f) := z in
-         x)
-          (only printing, at level 10,
-            format "'lets' a b c d e f 'be' x y z 'in' '//' x").
-
-
-      (* We are now evaluating the main.
-         We hence first need to need to jump into the right block
-       *)
-      rewrite denote_ocfg_unfold_in; cycle -1.
-      unfold MAINCFG at 1; rewrite find_block_eq; reflexivity.
-
-      rewrite typ_to_dtyp_void.
-      rewrite denote_block_unfold.
-      (* No phi node in this block *)
-      rewrite denote_no_phis.
-      rewrite bind_ret_l.
-      rewrite bind_bind.
-
-      (* We hence evaluate the code: it starts with a function call to "dyn_win"! *)
-
-      rewrite denote_code_cons.
-      rewrite bind_bind,translate_bind.
-      rewrite interp_mrec_bind, interp3_bind.
-      rewrite bind_bind.
-      cbn.
-      focus_single_step_l.
-
-      hide.
-      rewrite interp3_call_void; cycle 1.
-      reflexivity.
-      eauto.
-      {
-        unfold GFUNC at 1.
-        unfold lookup_defn.
-        apply assoc_hd.
-      }
-      hide.
-      cbn.
-      rewrite bind_bind.
-      hide.
-      rewrite translate_bind, interp_mrec_bind,interp3_bind, bind_bind.
-      focus_single_step_l.
-
-      (* This function call has arguments: we need to evaluate those.
-         These arguments are globals that have been allocated during
-         the initialization phase, but I'm afraid we lost this fact
-         at this moment.
-         In particular right now, we need to lookup in the global
-         environment the address to an array stored at [Anon 0].
-
-         Do I need to reinforce [memory_invariant_after_init] or is
-         what I need a consequence of [genIR_post]?
-
-         MARK
-       *)
-
-      Import AlistNotations.
-      rewrite denote_mcfg_ID_Global; cycle 1.
-      eassumption.
-
-      rewrite bind_ret_l.
-      subst.
-      cbn.
-      focus_single_step_l.
-
-      match goal with
-        |- context [interp_mrec ?x] => remember x as ctx
-      end.
-      rewrite !translate_bind, !interp_mrec_bind,!interp3_bind, !bind_bind.
-      rewrite denote_mcfg_ID_Global; cycle 1.
-      eassumption.
-      rewrite !bind_ret_l, translate_ret, interp_mrec_ret, interp3_ret, bind_ret_l.
-      rewrite translate_ret, interp_mrec_ret, interp3_ret, bind_ret_l.
-
-      subst; rewrite !bind_bind; cbn; focus_single_step_l; unfold DYNWIN at 1; cbn; rewrite bind_ret_l.
-      cbn; rewrite interp_mrec_bind, interp_mrec_trigger, interp3_bind.
-
-      onAllHyps move_up_types.
-
-      (* Function call, we first create a new memory frame *)
-      rewrite interp3_MemPush, bind_ret_l, interp_mrec_bind, interp_mrec_trigger.
-      cbn; rewrite interp3_bind, interp3_StackPush, bind_ret_l.
-      rewrite !translate_bind,!interp_mrec_bind,!interp3_bind, !bind_bind.
-      subst; focus_single_step_l.
-
-      Notation "'ℑfunc' t" := (ℑs3 (interp_mrec (mcfg_ctx (GFUNC _ _ _ _)) t)) (at level 0, only printing).
-
-
-      unfold DYNWIN at 2 3; cbn.
-
-      unfold init_of_definition.
-      cbn.
-
-      unfold DYNWIN at 1.
-      cbn[df_instrs blks cfg_of_definition fst snd].
-
-      match type of Heqs0 with
-      | body_non_empty_cast ?x ?s1 ≡ inr (?s2, (?bk, ?bks)) => assert (EQbks: bk :: bks2 ≡ x /\ s1 ≡ s2)
-      end.
-      {
-        clear - Heqs0.
-        destruct bks1; cbn in *; inv Heqs0; intuition.
-      }
-      clear Heqs0.
-      destruct EQbks as [EQbks _].
-      rewrite EQbks.
-      unfold TFunctor_list'; rewrite map_app.
-      rewrite denote_ocfg_app; [| apply list_disjoint_nil_l].
-      rewrite translate_bind,interp_mrec_bind.
-      rewrite interp3_bind, bind_bind.
-      subst; focus_single_step_l.
-      clear - EQLLVM2.
-
-      replace (map (tfmap (typ_to_dtyp nil)) bks1) with (convert_typ nil bks1) by reflexivity.
-      onAllHyps move_up_types.
-      (* Set Printing All. *)
+    (* Set Printing All. *)
 
 
 (* Lemma interp_mrec_comp : Prop. *)
@@ -1757,3 +1786,113 @@ Proof.
  *)
 
 Admitted.
+
+
+
+(* STORE
+
+
+
+
+  (* We are getting closer to business: instantiating the lemma *)
+(*      stating the correctness of the compilation of operators *)
+  unshelve epose proof
+    @compile_FSHCOL_correct _ _ _ dynwin_F_σ dynwin_F_memory _ _
+                            (blk_id bk) _ gI ρI' memI HgenIR _ _ _ _
+    as RES.
+
+(([] ["Y1" : UVALUE_Addr a1_addr]) ["X0" : UVALUE_Addr a0_addr], [] :: ρI :: sI)
+(push_fresh_frame (push_fresh_frame memI))
+
+
+  - clear - EQ.
+    unfold no_failure, has_post.
+    apply eutt_EQ_REL_Reflexive_.
+    intros * [H1 H2] H; subst.
+    apply eutt_ret_inv_strong' in EQ as [[m ()] [EQ _]].
+    rewrite interp_mem_interp_helix_ret_eq in H2.
+    + apply Returns_Ret in H2; inv H2.
+    + rewrite EQ; apply eutt_Ret; auto.
+  - unfold bid_bound, VariableBinding.state_bound.
+    exists "b",
+      {| block_count := 0; local_count := 0; void_count := 0; Γ := Γ Γi |},
+      {| block_count := 1; local_count := 0; void_count := 0; Γ := Γ Γi |}.
+    cbn; auto.
+  - apply state_inv'.
+  - unfold Gamma_safe.
+    intros id B NB.
+    clear - B NB.
+    dep_destruct NB.
+    clear NB w e v.
+    rename e0 into H0.
+    destruct B as [name [s' [s'' [P [C1 [C2 B]]]]]].
+    cbn in *.
+    inv B.
+    clear C1.
+    cbn in *.
+    repeat (destruct n; try discriminate).
+    + cbn in H0.
+      invc H0.
+      replace "Y1" with ("Y" @@ string_of_nat 1) in H1 by auto.
+      destruct name.
+      { unfold append in H1 at 2.
+        pose proof IdLemmas.string_of_nat_not_alpha (local_count s').
+        rewrite <- H1 in H.
+        apply IdLemmas.string_append_forall in H as [H _].
+        cbn in H.
+        discriminate. }
+      destruct name.
+      { invc H1.
+        eapply string_of_nat_inj; [| eassumption].
+        intro H.
+        rewrite <- H in C2.
+        invc C2.
+        invc H1. }
+      invc H1.
+      fold append in H3.
+      destruct name.
+      { unfold append in H3.
+        eapply IdLemmas.string_of_nat_not_empty.
+        symmetry.
+        eassumption. }
+      invc H3.
+    + cbn in H0.
+      invc H0.
+      replace "X0" with ("X" @@ string_of_nat 0) in H1 by auto.
+      destruct name.
+      { unfold append in H1 at 2.
+        pose proof IdLemmas.string_of_nat_not_alpha (local_count s').
+        rewrite <- H1 in H.
+        apply IdLemmas.string_append_forall in H as [H _].
+        cbn in H.
+        discriminate. }
+      destruct name.
+      { invc H1.
+        eapply string_of_nat_inj; [| eassumption].
+        intro H.
+        rewrite <- H in C2.
+        invc C2. }
+      invc H1.
+      fold append in H3.
+      destruct name.
+      { unfold append in H3.
+        eapply IdLemmas.string_of_nat_not_empty.
+        symmetry.
+        eassumption. }
+      invc H3.
+  - (* Assuming we can discharge all the preconditions, *)
+(*        we prove here that it is sufficient for establishing *)
+(*        our toplevel correctness statement. *)
+(*      *)
+    eapply interp_mem_interp_helix_ret in EQ.
+    eapply eutt_ret_inv_strong' in EQ.
+    destruct EQ as ([? |] & EQ & TMP); inv TMP.
+    rewrite EQ in RES.
+    clear EQ.
+    destruct p as [? []].
+    inv H3; cbn in H1; clear H2.
+    edestruct @eutt_ret_inv_strong as (RESLLVM2 & EQLLVM2 & INV2); [apply RES | clear RES].
+    destruct RESLLVM2 as (mem2 & ρ2 & g2 & v2).
+
+
+ *)
