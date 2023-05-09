@@ -1012,7 +1012,7 @@ Qed.
 Notation E := (ExternalCallE +' PickE +' UBE +' DebugE +' FailureE).
 Definition lenv := (local_env * @stack local_env).
 
-Definition handle_all_intrinsics :
+Definition handle_all_intrinsics {E} `{FailureE -< E} :
   IntrinsicE ~> stateT memoryV (itree E) :=
   fun X '(Intrinsic _ fname args) m =>
     match assoc fname defs_assoc with
@@ -1029,7 +1029,7 @@ Definition handle_all_intrinsics :
         else
           raise ("Unknown intrinsic: " ++ fname)
     end.
-Arguments handle_all_intrinsics [_].
+Arguments handle_all_intrinsics {_ _} [_].
 
 Definition handler3 : L0 ~> stateT global_env (stateT lenv (stateT memoryV (itree E))) :=
   fun T e g l m =>
@@ -1050,6 +1050,77 @@ Definition handler3 : L0 ~> stateT global_env (stateT lenv (stateT memoryV (itre
         v <- trigger e;; Ret3 g l m v
     end.
 Arguments handler3 [_].
+
+Definition handler_cfg3 : instr_E ~> stateT global_env (stateT local_env (stateT memoryV (itree (CallE +' PickE +' UBE +' DebugE +' FailureE)))) :=
+  fun T e g l m =>
+    match e with
+    | inl1 e =>
+        v <- trigger e;; Ret3 g l m v
+    | inr1 (inl1 e) =>
+        '(m,v) <- handle_all_intrinsics e m;; Ret3 g l m v
+    | inr1 (inr1 (inl1 e)) =>
+        '(g,v) <- handle_global e g;; Ret3 g l m v
+    | inr1 (inr1 (inr1 (inl1 e))) =>
+        '(l,v) <- handle_local e l;; Ret3 g l m v
+    | inr1 (inr1 (inr1 (inr1 (inl1 e)))) =>
+        '(m,v) <- handle_memory e m;; Ret3 g l m v
+    | inr1 (inr1 (inr1 (inr1 (inr1 e)))) =>
+        v <- trigger e;; Ret3 g l m v
+    end.
+Arguments handler_cfg3 [_].
+
+Fixpoint tick {E R} (n : nat) (t : itree E R) : itree E R :=
+  match n with
+  | O   => t
+  | S n => Tau (tick n t)
+  end.
+
+Fixpoint tickp {E R} (n : nat) (r : R) : itree E R :=
+   tick n (Ret r).
+
+Definition handler3_strong : L0 ~> stateT global_env (stateT lenv (stateT memoryV (itree E))) :=
+  fun T e g l m =>
+    match e with
+    | inl1 e =>
+        v <- trigger e;; tick 4 (Ret3 g l m v)
+    | inr1 (inl1 (Intrinsic t f args as e)) =>
+        match assoc f defs_assoc with
+        | Some s => '(m,v) <- handle_all_intrinsics e m;; tick 1 (Ret3 g l m v)
+        | None => '(m,v) <- handle_all_intrinsics e m;; tick 4 (Ret3 g l m v)
+        end
+    | inr1 (inr1 (inl1 e)) =>
+        '(g,v) <- handle_global e g;; tick 2 (Ret3 g l m v)
+    | inr1 (inr1 (inr1 (inl1 (inl1 e)))) =>
+        '(l',v) <- handle_local e (fst l);; tick 3 (Ret3 g (l', snd l) m v)
+    | inr1 (inr1 (inr1 (inl1 (inr1 e)))) =>
+        '(l,v) <- handle_stack e l;; tick 3 (Ret3 g l m v)
+    | inr1 (inr1 (inr1 (inr1 (inl1 e)))) =>
+        '(m,v) <- handle_memory e m;; tick 4 (Ret3 g l m v)
+    | inr1 (inr1 (inr1 (inr1 (inr1 e)))) =>
+        v <- trigger e;; tick 4 (Ret3 g l m v)
+    end.
+Arguments handler3_strong [_].
+
+Definition handler_cfg3_strong : instr_E ~> stateT global_env (stateT local_env (stateT memoryV (itree (CallE +' PickE +' UBE +' DebugE +' FailureE)))) :=
+  fun T e g l m =>
+    match e with
+    | inl1 e =>
+        v <- trigger e;; tick 4 (Ret3 g l m v)
+    | inr1 (inl1 (Intrinsic t f args as e)) =>
+        match assoc f defs_assoc with
+        | Some s => '(m,v) <- handle_all_intrinsics e m;; tick 1 (Ret3 g l m v)
+        | None => '(m,v) <- handle_all_intrinsics e m;; tick 4 (Ret3 g l m v)
+        end
+    | inr1 (inr1 (inl1 e)) =>
+        '(g,v) <- handle_global e g;; tick 2 (Ret3 g l m v)
+    | inr1 (inr1 (inr1 (inl1 e))) =>
+        '(l,v) <- handle_local e l;; tick 3 (Ret3 g l m v)
+    | inr1 (inr1 (inr1 (inr1 (inl1 e)))) =>
+        '(m,v) <- handle_memory e m;; tick 4 (Ret3 g l m v)
+    | inr1 (inr1 (inr1 (inr1 (inr1 e)))) =>
+        v <- trigger e;; tick 4 (Ret3 g l m v)
+    end.
+Arguments handler_cfg3_strong [_].
 
 From ExtLib Require Import
      Structures.Monads
@@ -1082,6 +1153,41 @@ Section PARAMS.
     intros.
     unfold LLVMEvents.raise.
     rewrite interp_global_bind, interp_global_trigger_eqit, !bind_bind.
+    cbn; rewrite ?bind_bind.
+    eapply eq_itree_clo_bind.
+    reflexivity.
+    intros [].
+  Qed.
+
+End PARAMS.
+
+Section PARAMS.
+  Variable (k v:Type).
+  Context {map : Type}.
+  Context {M: Map k v map}.
+  Context {SK : Serialize k}.
+  Variable (E F G H : Type -> Type).
+  Context `{FailureE -< G}.
+  Notation Effin := (E +' F +' (LocalE k v) +' G).
+  Notation Effout := (E +' F +' G).
+
+  Lemma interp_local_trigger_eqit:
+    forall (l : map) X (e : Effin X),
+      interp_local (ITree.trigger e) l ≅ v <- interp_local_h e l;; Tau (Ret v).
+  Proof.
+    intros.
+    unfold interp_local.
+    rewrite interp_state_trigger_eqit.
+    reflexivity.
+  Qed.
+
+  Lemma interp_local_raise :
+    forall (l : map) T s,
+    @interp_local k v map _ _ E F G _ T (LLVMEvents.raise s) l ≅ LLVMEvents.raise s.
+  Proof.
+    intros.
+    unfold LLVMEvents.raise.
+    rewrite interp_local_bind, interp_local_trigger_eqit, !bind_bind.
     cbn; rewrite ?bind_bind.
     eapply eq_itree_clo_bind.
     reflexivity.
@@ -1160,7 +1266,7 @@ End PARAMS.
 (*   reflexivity. *)
 (* Qed. *)
 
-Ltac go :=
+Ltac go3 :=
   repeat match goal with
     | |- context [interp_intrinsics (ITree.bind _ _)] => rewrite interp_intrinsics_bind
     | |- context [interp_global (ITree.bind _ _)] => rewrite interp_global_bind
@@ -1189,120 +1295,237 @@ Proof.
   apply eutt_eq_bind; intros [].
 Qed.
 
-  Lemma interp_local_stack_raise :
-    forall l T s,
-    @interp_local_stack raw_id uvalue _ _ _ ExternalCallE IntrinsicE (MemoryE +' PickE +' UBE +' DebugE +' FailureE) _ _ T (LLVMEvents.raise s) l ≅ LLVMEvents.raise s.
-  Proof.
-    intros.
-    unfold LLVMEvents.raise.
-    rewrite interp_local_stack_bind, interp_local_stack_trigger_eqit, !bind_bind.
-    cbn.
-    go.
-    eapply eq_itree_clo_bind.
-    reflexivity.
-    intros [].
-  Qed.
+Lemma equ_eq_bind : forall E R1 R2 RR U (t: itree E U) (k1: U -> itree E R1) (k2: U -> itree E R2),
+    (forall u, eq_itree RR (k1 u) (k2 u)) -> eq_itree RR (ITree.bind t k1) (ITree.bind t k2).
+Proof.
+  intros.
+  apply eq_itree_clo_bind with (UU := Logic.eq); [reflexivity |].
+  intros ? ? ->; apply H.
+Qed.
 
+Lemma raise_equ {E X Y Z} `{FailureE -< E} s (k : X -> itree _ Z) (g : Y -> itree _ Z):
+  LLVMEvents.raise s >>= k ≅ LLVMEvents.raise s >>= g.
+Proof.
+  unfold LLVMEvents.raise; rewrite !bind_bind.
+  apply equ_eq_bind; intros [].
+Qed.
+
+Lemma interp_local_stack_raise :
+  forall l T s,
+    @interp_local_stack raw_id uvalue _ _ _ ExternalCallE IntrinsicE (MemoryE +' PickE +' UBE +' DebugE +' FailureE) _ _ T (LLVMEvents.raise s) l ≅ LLVMEvents.raise s.
+Proof.
+  intros.
+  unfold LLVMEvents.raise.
+  rewrite interp_local_stack_bind, interp_local_stack_trigger_eqit, !bind_bind.
+  cbn.
+  go3.
+  eapply eq_itree_clo_bind.
+  reflexivity.
+  intros [].
+Qed.
 
 Lemma string_dec_correct (s s' : string) :
   s <> s' -> exists pf, string_dec s s' = right pf.
 Admitted.
 
-
-Lemma foo : forall X (e : L0 X) g l m,
-    interp_mcfg3 (trigger e) g l m ≈ handler3 e g l m.
+Lemma interp_mcfg3_trigger_is_handler3_strong : forall X (e : L0 X) g l m,
+    interp_mcfg3 (trigger e) g l m ≅ handler3_strong e g l m.
 Proof.
   intros.
   unfold ℑs3.
-  rewrite interp_intrinsics_trigger; cbn.
+  rewrite interp_intrinsics_trigger_eqit; cbn.
   destruct e as [e | e]; cbn.
   - unfold Intrinsics.E_trigger; cbn.
-    go.
-    apply eutt_eq_bind.
+    go3.
+    apply equ_eq_bind.
     intros ?.
-    go.
+    go3.
     reflexivity.
   - destruct e as [e | [e | [e | [e | [e | [e | [e | e]]]]]]]; cbn.
     + destruct e; cbn.
       repeat break_match_goal; subst; cbn.
-      * rewrite interp_global_raise, interp_local_stack_raise, interp_memory_raise.
-        rewrite <- bind_ret_r.
-        apply raise_eutt.
-      * now go.
-      * go.
+      * go3.
+        rewrite interp_global_raise, interp_local_stack_raise, interp_memory_raise.
+        apply raise_equ.
+      * now go3.
+      * go3.
         unfold handle_intrinsic; cbn.
         destruct m; cbn in *; rewrite Heqs; cbn.
-        apply raise_eutt.
-      * go.
+        apply raise_equ.
+      * go3.
         unfold handle_intrinsic; cbn.
         destruct m; cbn in *; rewrite Heqs; cbn.
-        now go.
-      * go.
+        now go3.
+      * go3.
         unfold handle_intrinsic; cbn.
         apply string_dec_correct in n as [? EQ].
         rewrite EQ.
         destruct m.
-        apply raise_eutt.
-    + go.
-      destruct e; cbn; go.
+        apply raise_equ.
+    + go3.
+      destruct e; cbn; go3.
       reflexivity.
       break_match_goal.
-      now go.
+      now go3.
       rewrite ?interp_global_raise, ?interp_local_stack_raise, ?interp_memory_raise.
-      apply raise_eutt.
-    + destruct l; go.
-      destruct e as [e | e]; cbn; go.
+      apply raise_equ.
+    + destruct l; go3.
+      destruct e as [e | e]; cbn; go3.
       * unfold ITree.map;
-          destruct e; cbn; go.
+          destruct e; cbn; go3.
         reflexivity.
-        break_match_goal; cbn; go.
+        break_match_goal; cbn; go3.
         reflexivity.
         rewrite ?interp_global_raise, ?interp_local_stack_raise, ?interp_memory_raise.
-        apply raise_eutt.
-      * destruct e; cbn; go.
+        apply raise_equ.
+      * destruct e; cbn; go3.
         reflexivity.
-        break_match_goal; cbn; go.
+        break_match_goal; cbn; go3.
         rewrite ?interp_global_raise, ?interp_local_stack_raise, ?interp_memory_raise.
-        apply raise_eutt.
+        apply raise_equ.
         reflexivity.
-    + cbn; go.
-      apply eutt_eq_bind; intros [].
-      now go.
-    + cbn; go.
-      apply eutt_eq_bind; intros ?.
-      now go.
-    + cbn; go.
-      apply eutt_eq_bind; intros ?.
-      now go.
-    + cbn; go.
-      apply eutt_eq_bind; intros ?.
-      now go.
-    + cbn; go.
-      apply eutt_eq_bind; intros ?.
-      now go.
+    + cbn; go3.
+      apply equ_eq_bind; intros [].
+now go3.
+    + cbn; go3.
+      apply equ_eq_bind; intros ?.
+      now go3.
+    + cbn; go3.
+      apply equ_eq_bind; intros ?.
+      now go3.
+    + cbn; go3.
+      apply equ_eq_bind; intros ?.
+      now go3.
+    + cbn; go3.
+      apply equ_eq_bind; intros ?.
+      now go3.
+Qed.
+
+Lemma interp_mcfg3_trigger_is_handler3 : forall X (e : L0 X) g l m,
+    interp_mcfg3 (trigger e) g l m ≈ handler3 e g l m.
+Proof.
+  intros.
+  rewrite interp_mcfg3_trigger_is_handler3_strong.
+  destruct e as [e | [e | [e | [e | [e | [e | [e | e]]]]]]]; cbn; repeat setoid_rewrite tau_eutt; try reflexivity.
+  cbn; repeat break_match_goal; apply eutt_eq_bind; intros []; now rewrite ?tau_eutt.
+  cbn; apply eutt_eq_bind; intros []; now rewrite ?tau_eutt.
+  cbn; repeat break_match_goal; apply eutt_eq_bind; intros []; now rewrite ?tau_eutt.
+  cbn; apply eutt_eq_bind; intros []; now rewrite ?tau_eutt.
+Qed.
+
+Ltac go_cfg3 :=
+  repeat match goal with
+    | |- context [interp_intrinsics (ITree.bind _ _)] => rewrite interp_intrinsics_bind
+    | |- context [interp_global (ITree.bind _ _)] => rewrite interp_global_bind
+    | |- context [interp_local (ITree.bind _ _)] => rewrite interp_local_bind
+    | |- context [interp_memory (ITree.bind _ _)] => rewrite interp_memory_bind
+    | |- context [interp_intrinsics (ITree.trigger _)] => rewrite interp_intrinsics_trigger_eqit; cbn; rewrite ?subevent_subevent
+    | |- context [interp_global (ITree.trigger _)] => rewrite interp_global_trigger_eqit; cbn; rewrite ?subevent_subevent
+    | |- context [interp_local (ITree.trigger _)] => rewrite interp_local_trigger_eqit; cbn; rewrite ?subevent_subevent
+    | |- context [interp_memory (ITree.trigger ?e)] =>
+        rewrite (interp_memory_trigger_eqit _ _ _ _ e); cbn; rewrite ?subevent_subevent
+    | |- context [ITree.bind (ITree.bind _ _) _] => rewrite bind_bind
+    | |- context [interp_intrinsics (Ret _)] => rewrite interp_intrinsics_ret
+    | |- context [interp_global (Ret _)] => rewrite interp_global_ret
+    | |- context [interp_local (Ret _)] => rewrite interp_local_ret
+    | |- context [interp_memory (Ret _)] => rewrite interp_memory_ret
+    | |- context [ITree.bind (Ret _) _] => rewrite bind_ret_l
+    | |- context [ITree.bind (Tau _) _] => rewrite bind_tau
+    | |- Tau _ ≈ _ => rewrite tau_euttge
+    | |- _ => rewrite ?interp_memory_Tau, ?interp_global_Tau, ?interp_local_Tau, ?interp_intrinsics_Tau
+    end.
+
+Lemma interp_cfg3_trigger_is_handler_cfg3_strong : forall X (e : _ X) g l m,
+    interp_cfg3 (trigger e) g l m ≅ handler_cfg3_strong e g l m.
+Proof.
+  intros.
+  unfold ℑ3.
+  rewrite interp_intrinsics_trigger_eqit; cbn.
+  destruct e as [e | e]; cbn.
+  - unfold Intrinsics.E_trigger; cbn.
+    go_cfg3.
+    apply equ_eq_bind.
+    intros ?.
+    go_cfg3.
+    reflexivity.
+  - destruct e as [e | [e | [e | [e | [e | [e | [e | e]]]]]]]; cbn.
+    + destruct e; cbn.
+      repeat break_match_goal; subst; cbn.
+      * go_cfg3.
+        rewrite interp_global_raise, interp_local_raise, interp_memory_raise.
+        apply raise_equ.
+      * now go_cfg3.
+      * go_cfg3.
+        unfold handle_intrinsic; cbn.
+        destruct m; cbn in *; rewrite Heqs; cbn.
+        apply raise_equ.
+      * go_cfg3.
+        unfold handle_intrinsic; cbn.
+        destruct m; cbn in *; rewrite Heqs; cbn.
+        now go_cfg3.
+      * go_cfg3.
+        unfold handle_intrinsic; cbn.
+        apply string_dec_correct in n as [? EQ].
+        rewrite EQ.
+        destruct m.
+        apply raise_equ.
+    + go_cfg3.
+      destruct e; cbn; go_cfg3.
+      reflexivity.
+      break_match_goal.
+      now go_cfg3.
+      rewrite ?interp_global_raise, ?interp_local_raise, ?interp_memory_raise.
+      apply raise_equ.
+    + go_cfg3.
+      destruct e; cbn; go_cfg3.
+      reflexivity.
+      break_match_goal.
+      now go_cfg3.
+      rewrite ?interp_global_raise, ?interp_local_raise, ?interp_memory_raise.
+      apply raise_equ.
+    + cbn; go_cfg3.
+      apply equ_eq_bind; intros [].
+      now go_cfg3.
+    + cbn; go_cfg3.
+      apply equ_eq_bind; intros ?.
+      now go_cfg3.
+    + cbn; go_cfg3.
+      apply equ_eq_bind; intros ?.
+      now go_cfg3.
+    + cbn; go_cfg3.
+      apply equ_eq_bind; intros ?.
+      now go_cfg3.
+    + cbn; go_cfg3.
+      apply equ_eq_bind; intros ?.
+      now go_cfg3.
+Qed.
+
+Lemma interp_cfg3_trigger_is_handler_cfg3 : forall X (e : _ X) g l m,
+    interp_cfg3 (trigger e) g l m ≈ handler_cfg3 e g l m.
+Proof.
+  intros; rewrite interp_cfg3_trigger_is_handler_cfg3_strong.
+  destruct e as [e | [e | [e | [e | [e | [e | [e | e]]]]]]]; cbn; repeat setoid_rewrite tau_eutt; try reflexivity.
+  cbn; repeat break_match_goal; apply eutt_eq_bind; intros []; now rewrite ?tau_eutt.
+  cbn; apply eutt_eq_bind; intros []; now rewrite ?tau_eutt.
+  cbn; repeat break_match_goal; apply eutt_eq_bind; intros []; now rewrite ?tau_eutt.
+  cbn; apply eutt_eq_bind; intros []; now rewrite ?tau_eutt.
 Qed.
 
 Notation M := (itree _ _).
 
-Fixpoint tick {E R} (r : R) (n : nat) : itree E R :=
-  match n with
-  | O   => Ret r
-  | S n => Tau (tick r n)
-  end.
-
-Lemma eutt_ret_eq_itree :
-  forall E R (r: R) (t : itree E R),
-    t ≈ Ret r ->
-    exists n, t ≅ tick r n.
-Proof.
-  intros * EQ; punfold EQ; red in EQ; cbn in EQ.
-  dependent induction EQ.
-  - exists O; rewrite itree_eta, <- x; reflexivity.
-  - edestruct IHEQ; try reflexivity.
-    exists (S x0); rewrite itree_eta, <-x, H.
-    apply eqitree_Tau.
-    reflexivity.
-Qed.
+(* Lemma eutt_ret_eq_itree : *)
+(*   forall E R (r: R) (t : itree E R), *)
+(*     t ≈ Ret r -> *)
+(*     exists n, t ≅ tickp n r. *)
+(* Proof. *)
+(*   intros * EQ; punfold EQ; red in EQ; cbn in EQ. *)
+(*   dependent induction EQ. *)
+(*   - exists O; rewrite itree_eta, <- x; reflexivity. *)
+(*   - edestruct IHEQ; try reflexivity. *)
+(*     exists (S x0); rewrite itree_eta, <-x, H. *)
+(*     cbn. apply eqitree_Tau. *)
+(*     reflexivity. *)
+(* Qed. *)
 
 Lemma interp3_vis_eq_itree:
   forall T R (e : L0 T) (k : T -> itree L0 R) g l m,
@@ -1345,42 +1568,163 @@ Proof.
   reflexivity.
 Qed.
 
-(* WARNING: CALVIN ACCURATELY POINTED OUT THIS DOES NOT HOLD FOR MEM_POP! TO FIX *)
-Lemma push_frame_ignore :
-  forall R (t : itree L0 R) (g: global_env) (l: lenv) m,
-      interp_mcfg3 t g l (push_fresh_frame m)
-      ≈
-      ITree.map (fun '(a,(b,(c,d))) => (push_fresh_frame a,(b,(c,d)))) (interp_mcfg3 t g l m).
+
+Notation ρ := global_env.
+Notation σ := local_env.
+Notation μ := memoryV.
+
+Transparent interp_cfg3.
+Lemma interp_cfg3_ret : forall (R : Type) g l m (x : R), ℑ3 (Ret x) g l m ≅ Ret3 g l m x.
 Proof.
-  intro R.
-  ginit.
-  gcofix cih.
-  intros.
-  rewrite (itree_eta t).
-  destruct (observe t) eqn:EQ.
-  - rewrite !interp3_ret.
-    rewrite map_ret.
-    gstep.
-    constructor.
-    reflexivity.
-  - rewrite !interp3_tau.
-    gstep.
-    red; cbn; apply EqTau.
-    gbase; apply cih.
-  - rewrite !interp3_vis_eq_itree.
-    rewrite map_bind.
-    guclo eqit_clo_bind.
-    unshelve econstructor.
-    exact (fun '(a,(b,(c,d))) '(a',(b',(c',d'))) => a = push_fresh_frame a' /\ b = b' /\ c = c' /\ d = d').
-    {
-      clear.
-      rewrite 2 foo.
-      admit.
-    }
-    intros (? & ? & ? & ?) (m' & l' & g' & x') (-> & -> & -> & ->).
-    (* TO FIX: foo has eaten all my guards -> refine it into a eutt_ge equation making explicit that there is at least one tau after the handler? *)
-    gbase.
+  intros; unfold ℑ3.
+  rewrite interp_intrinsics_ret, interp_global_ret, interp_local_ret, interp_memory_ret.
+  reflexivity.
+Qed.
+
+Lemma interp_cfg3_to_mcfg3 :
+  forall R a b c d (ctx : _ ~> itree (_ +' L0)) (t : itree instr_E _) g l s m,
+    interp_cfg3  (R := R) t g l m                                                ≈ Ret3 a b c d ->
+    interp_mcfg3 (R := R) (interp_mrec ctx (translate instr_to_L0' t)) g (l,s) m ≈ Ret3 a (b,s) c d .
+Proof.
+  intros *.
+  revert g l m t.
+  (* We proceed by coinduction *)
+  einit.
+  ecofix IH.
+  intros * EQ.
+  onAllHyps move_up_types.
+  punfold EQ.
+
+  match type of EQ with
+  | eqit_ _ _ _ _ _ ?t ?u => remember t as T
+                            (* ; remember u as U *)
+  end.
+
+  eqi_of_eq HeqT.
+  (* eqi_of_eq HeqU. *)
+  revert t HeqT.
+  red in EQ.
+  (* We proceed by induction on the weak bisimulation step at the cfg level.
+     Only two cases are structurally possible:
+     - either interp_cfg3 is a ret itself
+     - or it's a tau
+   *)
+  dependent induction EQ.
+  - (* if it's a ret *)
+    intros.
+    clear IH IH0.
+    rewrite itree_eta, <- x in HeqT.
+    clear T x.
+    rewrite (itree_eta t) in HeqT.
+    rewrite (itree_eta t).
+    (* We now have to painfully go through the process of deriving information over [t] from our equation *)
+    destruct (observe t).
+    + (* If [t] itself is pure, we can unify its value with the desired arguments and transport this information in the goal *)
+      rewrite interp_cfg3_ret in HeqT.
+      apply eqitree_inv_Ret in HeqT.
+      inv HeqT.
+      rewrite translate_ret, interp_mrec_ret, interp3_ret.
+      reflexivity.
+    + (* If [t] starts with a Tau, we have a contradiction in our hypothesis *)
+      rewrite interp_cfg3_tau in HeqT; punfold HeqT; inv HeqT; inv CHECK.
+    + (* If [t] starts with an effect, things get trickier: we need to go through each case *)
+      rewrite interp_cfg3_vis_eqit in HeqT.
+      rewrite interp_cfg3_trigger_is_handler_cfg3_strong in HeqT.
+      rewrite translate_vis.
+      destruct e as [e | e].
+
+      (* TODO_CASE ANALYSIS ON e *)
+
+
+  (*   intros *. *)
+  (*   revert g l m t. *)
+  (*   einit. *)
+  (*   ecofix CIH. *)
+  (*   intros * EQ. *)
+  (*   onAllHyps move_up_types. *)
+  (*   punfold EQ. *)
+  (*   red in EQ; cbn in EQ. *)
+  (*   dependent induction EQ. *)
+  (* - apply simpobs in x. *)
+  (*   rewrite (itree_eta t) in x. *)
+  (*   clear - x. *)
+  (*   destruct (observe t) eqn:EQ. *)
+  (*   2: rewrite interp_cfg3_tau in x; *)
+  (*   punfold x; *)
+  (*   inversion x; inversion CHECK. *)
+  (*   2:{ rewrite interp_cfg3_vis in x; *)
+  (*       punfold x; *)
+  (*       inversion x; inversion CHECK. *)
+  (*       destruct x. *)
+  (*       cbn in x. inversion x. *)
+  (*       intros. *)
+  (*       rewrite itree_eta, <- x in HeqT. *)
+  (*       clear T x. *)
+  (*       rewrite (itree_eta t) in HeqT. *)
+
+
+  (* destruct (observe t) eqn:EQ. *)
+  (* - rewrite !interp3_ret. *)
+  (*   rewrite map_ret. *)
+  (*   gstep. *)
+  (*   constructor. *)
+  (*   reflexivity. *)
+  (* - rewrite !interp3_tau. *)
+  (*   gstep. *)
+  (*   red; cbn; apply EqTau. *)
+  (*   gbase; apply cih. *)
+  (* - rewrite !interp3_vis_eq_itree. *)
+  (*   rewrite map_bind. *)
+  (*   guclo eqit_clo_bind. *)
+  (*   unshelve econstructor. *)
+  (*   exact (fun '(a,(b,(c,d))) '(a',(b',(c',d'))) => a = push_fresh_frame a' /\ b = b' /\ c = c' /\ d = d'). *)
+  (*   { *)
+  (*     clear. *)
+  (*     rewrite 2 foo. *)
+  (*     admit. *)
+  (*   } *)
+  (*   intros (? & ? & ? & ?) (m' & l' & g' & x') (-> & -> & -> & ->). *)
+  (*   (* TO FIX: foo has eaten all my guards -> refine it into a eutt_ge equation making explicit that there is at least one tau after the handler? *) *)
+  (*   gbase. *)
 Admitted.
+
+
+(* WARNING: CALVIN ACCURATELY POINTED OUT THIS DOES NOT HOLD FOR MEM_POP! TO FIX *)
+(* Lemma push_frame_ignore : *)
+(*   forall R (t : itree L0 R) (g: global_env) (l: lenv) m, *)
+(*       interp_mcfg3 t g l (push_fresh_frame m) *)
+(*       ≈ *)
+(*       ITree.map (fun '(a,(b,(c,d))) => (push_fresh_frame a,(b,(c,d)))) (interp_mcfg3 t g l m). *)
+(* Proof. *)
+(*   intro R. *)
+(*   ginit. *)
+(*   gcofix cih. *)
+(*   intros. *)
+(*   rewrite (itree_eta t). *)
+(*   destruct (observe t) eqn:EQ. *)
+(*   - rewrite !interp3_ret. *)
+(*     rewrite map_ret. *)
+(*     gstep. *)
+(*     constructor. *)
+(*     reflexivity. *)
+(*   - rewrite !interp3_tau. *)
+(*     gstep. *)
+(*     red; cbn; apply EqTau. *)
+(*     gbase; apply cih. *)
+(*   - rewrite !interp3_vis_eq_itree. *)
+(*     rewrite map_bind. *)
+(*     guclo eqit_clo_bind. *)
+(*     unshelve econstructor. *)
+(*     exact (fun '(a,(b,(c,d))) '(a',(b',(c',d'))) => a = push_fresh_frame a' /\ b = b' /\ c = c' /\ d = d'). *)
+(*     { *)
+(*       clear. *)
+(*       rewrite 2 foo. *)
+(*       admit. *)
+(*     } *)
+(*     intros (? & ? & ? & ?) (m' & l' & g' & x') (-> & -> & -> & ->). *)
+(*     (* TO FIX: foo has eaten all my guards -> refine it into a eutt_ge equation making explicit that there is at least one tau after the handler? *) *)
+(*     gbase. *)
+(* Admitted. *)
 
 
 (* Lemma push_frame_ignore : *)
@@ -1450,15 +1794,15 @@ Admitted.
 
 (* Need to spell out what [ctx] is concretely *)
 
-Lemma interp_cfg3_to_mcfg3 :
-  forall R a b c d (ctx : _ ~> itree (_ +' L0)) (t : itree instr_E _) g l s m,
-    interp_cfg3  (R := R) t g l m ≈ Ret3 a b c d ->
-    interp_mcfg3 (R := R) (interp_mrec ctx (translate instr_to_L0' t))
-      g (l,s) m
-      ≈
-      Ret3 a (b,s) c d.
-Proof.
-Admitted.
+(* Lemma interp_cfg3_to_mcfg3 : *)
+(*   forall R a b c d (ctx : _ ~> itree (_ +' L0)) (t : itree instr_E _) g l s m, *)
+(*     interp_cfg3  (R := R) t g l m ≈ Ret3 a b c d -> *)
+(*     interp_mcfg3 (R := R) (interp_mrec ctx (translate instr_to_L0' t)) *)
+(*       g (l,s) m *)
+(*       ≈ *)
+(*       Ret3 a (b,s) c d. *)
+(* Proof. *)
+(* Admitted. *)
 
 
 (* Lemma interp_cfg3_to_mcfg3 : *)

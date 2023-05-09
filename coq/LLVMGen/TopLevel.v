@@ -1665,10 +1665,10 @@ Ltac eqitree_of_eq h :=
   end.
 Tactic Notation "eqi_of_eq" ident(h) := eqitree_of_eq h.
 
-#[global] Instance eq_itree_interp_cfg3:
-  forall {T : Type}, Proper (eq_itree eq ==> eq ==> eq ==> eq ==> eq_itree eq) (@ℑ3 T).
-Proof.
-Admitted.
+(* #[global] Instance eq_itree_interp_cfg3: *)
+(*   forall {T : Type}, Proper (eq_itree eq ==> eq ==> eq ==> eq ==> eq_itree eq) (@ℑ3 T). *)
+(* Proof. *)
+(* Admitted. *)
 
 (* Global Instance eqitree_cong_eq {E R1 R2 RR}: *)
 (*   Proper (eq_itree eq ==> eq_itree eq ==> flip impl) *)
@@ -1676,33 +1676,22 @@ Admitted.
 (* Proof. *)
 (* Admitted. *)
 
-Lemma interp_cfg3_to_mcfg3 :
-  forall R a b c d (ctx : _ ~> itree (_ +' L0)) (t : itree instr_E _) g l s m,
-    interp_cfg3  (R := R) t g l m                                                ≈ Ret3 a b c d ->
-    interp_mcfg3 (R := R) (interp_mrec ctx (translate instr_to_L0' t)) g (l,s) m ≈ Ret3 a (b,s) c d .
-Proof.
-  intros *.
-  revert g l m t.
-  einit.
-  ecofix IH.
-  intros * EQ.
-  onAllHyps move_up_types.
-  punfold EQ.
+(* MARKER *)
 
-  match type of EQ with
-  | eqit_ _ _ _ _ _ ?t ?u => remember t as T
-                            (* ; remember u as U *)
-  end.
+  (* match type of EQ with *)
+  (* | eqit_ _ _ _ _ _ ?t ?u => remember t as T *)
+  (*                           (* ; remember u as U *) *)
+  (* end. *)
 
-  eqi_of_eq HeqT.
-  (* eqi_of_eq HeqU. *)
-  revert t HeqT.
-  red in EQ.
-  dependent induction EQ.
-  - intros.
-    rewrite itree_eta, <- x in HeqT.
-    clear T x.
-    rewrite (itree_eta t) in HeqT.
+  (* eqi_of_eq HeqT. *)
+  (* (* eqi_of_eq HeqU. *) *)
+  (* revert t HeqT. *)
+  (* red in EQ. *)
+  (* dependent induction EQ. *)
+  (* - intros. *)
+  (*   rewrite itree_eta, <- x in HeqT. *)
+  (*   clear T x. *)
+  (*   rewrite (itree_eta t) in HeqT. *)
 
   (* dependent induction EQ. *)
   (* - rewrite translate_ret, interp_mrec_ret, interp3_ret. *)
