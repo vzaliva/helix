@@ -56,12 +56,13 @@ steps:
 
   # notifications are split into success/failure
   # to avoid spamming the channel with cron successes
-  - name: notify-slack-success
-    image: plugins/slack
+  - name: notify-discord-success
+    image: appleboy/drone-discord
     settings:
-      webhook:
-        from_secret: slack_webhook
-      channel: bitbucket-activity
+      webhook_id:
+        from_secret: discord_webhook_id
+      webhook_token:
+        from_secret: discord_webhook_token
     when:
       status:
         - success
@@ -69,12 +70,13 @@ steps:
         exclude:
           - cron
 
-  - name: notify-slack-failure
-    image: plugins/slack
+  - name: notify-discord-failure
+    image: appleboy/drone-discord
     settings:
-      webhook:
-        from_secret: slack_webhook
-      channel: bitbucket-activity
+      webhook_id:
+        from_secret: discord_webhook_id
+      webhook_token:
+        from_secret: discord_webhook_token
     when:
       status:
         - failure
