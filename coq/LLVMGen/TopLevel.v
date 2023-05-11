@@ -1137,6 +1137,26 @@ Proof.
   - apply Γi_bound.
 Qed.
 
+Local Lemma state_invariant_frames :
+  forall σ s mH m f f' ρ g,
+    state_invariant σ s mH (m, f , (ρ, g)) ->
+    state_invariant σ s mH (m, f', (ρ, g)).
+Proof.
+  intros * SINV.
+  split; apply SINV.
+Qed.
+
+Local Lemma state_invariant_frames' :
+  forall σ s mH mV mV' ρ g,
+    fst mV ≡ fst mV' ->
+    state_invariant σ s mH (mV , (ρ, g)) ->
+    state_invariant σ s mH (mV', (ρ, g)).
+Proof.
+  intros * EQmV SINV.
+  destruct mV; destruct mV'.
+  cbn in EQmV; subst.
+  eapply state_invariant_frames, SINV.
+Qed.
 
 Lemma top_to_LLVM :
   forall (a : Vector.t CarrierA 3) (* parameter *)
@@ -1267,26 +1287,32 @@ Proof.
   destruct anon_decl_inv as [(a0_addr & EQa0) (a1_addr & EQa1)].
   destruct genv_mem_wf_inv as [genv_ptr_uniq_inv genv_mem_bounded_inv].
 
+  assert (Γ s1 ≡ [(ID_Global "a", TYPE_Pointer (TYPE_Array (Npos 3) TYPE_Double))])
+  as HΓs1.
+  {
+    erewrite dropLocalVars_Gamma_eq with (s1 := s2) (s2 := Γi); revgoals.
+    - symmetry.
+      eapply Context.genIR_Γ.
+      eassumption.
+    - cbn.
+      reflexivity.
+    - assumption.
+    - reflexivity.
+  }
+
   set (ρI' := (alist_add (Name "Y1") (UVALUE_Addr a1_addr)
               (alist_add (Name "X0") (UVALUE_Addr a0_addr) ρI))).
 
   eassert (state_inv' : state_invariant _ Γi _ (memI, (ρI', gI))).
-  { eapply state_invariant_Γi with (ρI := ρI); eassumption || auto.
+  {
+    eapply state_invariant_Γi with (ρI := ρI); eassumption || auto.
     eapply state_invariant_Γ'.
     - eassumption.
     - cbn.
-      replace (Γ s1) with
-        [(ID_Global "a", TYPE_Pointer (TYPE_Array (Npos 3) TYPE_Double))];
-        [reflexivity |].
-      erewrite dropLocalVars_Gamma_eq with (s1 := s2) (s2 := Γi); revgoals.
-      + symmetry.
-        eapply Context.genIR_Γ.
-        eassumption.
-      + cbn.
-        reflexivity.
-      + assumption.
-      + reflexivity.
-    - apply Γi'_bound. }
+      rewrite HΓs1.
+      reflexivity.
+    - apply Γi'_bound.
+  }
 
     onAllHyps move_up_types.
     do 4 eexists.
@@ -1522,27 +1548,14 @@ Proof.
 
   eassert (state_inv'' : state_invariant _ Γi _ (push_fresh_frame (push_fresh_frame memI), (ρI'', gI))).
   {
-    admit.
-
-    (* eapply state_invariant_Γi with (ρI := ρI); eassumption || auto. *)
-    (* eapply state_invariant_Γ'. *)
-    (* - eassumption. *)
-    (* - cbn. *)
-    (*   replace (Γ s1) with *)
-    (*     [(ID_Global "a", TYPE_Pointer (TYPE_Array (Npos 3) TYPE_Double))]; *)
-    (*     [reflexivity |]. *)
-    (*   erewrite dropLocalVars_Gamma_eq with (s1 := s2) (s2 := Γi); revgoals. *)
-    (*   + symmetry. *)
-    (*     eapply Context.genIR_Γ. *)
-    (*     eassumption. *)
-    (*   + cbn. *)
-    (*     reflexivity. *)
-    (*   + assumption. *)
-    (*   + reflexivity. *)
-    (* - apply Γi'_bound. *)
-
+    apply state_invariant_frames' with (mV := memI).
+    destruct memI; auto.
+    unfold push_fresh_frame. 
+    eapply state_invariant_Γi; eauto.
+    eapply state_invariant_Γ'; [eapply state_inv | | apply Γi'_bound].
+    unfold Γi'; cbn.
+    rewrite HΓs1; auto.
   }
-
 
   (* We are getting closer to business: instantiating the lemma *)
 (*      stating the correctness of the compilation of operators *)
