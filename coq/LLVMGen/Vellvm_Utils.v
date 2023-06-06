@@ -1704,55 +1704,266 @@ Proof.
   apply ret_trigger_abs.
 Qed.
 
-Lemma interp_cfg3_to_mcfg3 :
-  forall R a b c d (ctx : _ ~> itree (_ +' L0)) (t : itree instr_E _) g l s m,
-    interp_cfg3  (R := R) t g l m                                                ≈ Ret3 a b c d ->
+Lemma ret_raiseUB {E A B} `{UBE -< E} (s : string) (x : B) k :
+  Ret x ≅ raiseUB (X :=  A) s >>= k -> False.
+Proof.
+  unfold raiseUB.
+  rewrite bind_bind.
+  apply ret_trigger_abs.
+Qed.
+
+Lemma tau_trigger_abs : forall {E : Type -> Type} (X Y : Type) (e : E X) (k : X -> itree E Y) (t : itree E Y),
+    Tau t ≅ trigger e >>= k -> False.
+Proof.
+  intros * abs; unfold trigger in abs; cbn in abs.
+  now punfold abs; inv abs.
+Qed.
+
+Lemma tau_raise_abs {E A B} `{FailureE -< E} (s : string) (x : itree _ B) k :
+  Tau x ≅ LLVMEvents.raise (A := A) s >>= k -> False.
+Proof.
+  unfold LLVMEvents.raise.
+  rewrite bind_bind.
+  apply tau_trigger_abs.
+Qed.
+
+Lemma tau_raiseUB {E A B} `{UBE -< E} (s : string) (x : itree _ B) k :
+  Tau x ≅ raiseUB (X :=  A) s >>= k -> False.
+Proof.
+  unfold raiseUB.
+  rewrite bind_bind.
+  apply tau_trigger_abs.
+Qed.
+
+(* Lemma interp_cfg3_to_mcfg3 : *)
+(*   forall R a b c d (ctx : _ ~> itree (_ +' L0)) (t : itree instr_E _) g l s m n, *)
+(*     tick n (interp_cfg3  (R := R) t g l m) ≈ Ret3 a b c d -> *)
+(*     interp_mcfg3 (R := R) (interp_mrec ctx (translate instr_to_L0' t)) g (l,s) m ≈ Ret3 a (b,s) c d . *)
+(* Proof. *)
+(*   intros *. *)
+(*   revert n g l m t. *)
+(*   (* We proceed by coinduction *) *)
+(*   einit. *)
+(*   ecofix IH. *)
+(*   clear IH0. *)
+(*   intros * EQ. *)
+(*   onAllHyps move_up_types. *)
+(*   rewrite (itree_eta t) in EQ |- *. *)
+(*   destruct (observe t) eqn:EQt. *)
+(*   - rewrite interp_cfg3_ret in EQ. *)
+(*     apply eutt_inv_Ret in EQ. *)
+(*     inv EQ. *)
+(*     rewrite translate_ret, interp_mrec_ret, interp3_ret. *)
+(*     reflexivity. *)
+(*   - *)
+
+(* Lemma interp_cfg3_to_mcfg3 : *)
+(*   forall R a b c d (ctx : _ ~> itree (_ +' L0)) (t : itree instr_E _) g l s m, *)
+(*     interp_cfg3  (R := R) t g l m                                                ≈ Ret3 a b c d -> *)
+(*     interp_mcfg3 (R := R) (interp_mrec ctx (translate instr_to_L0' t)) g (l,s) m ≈ Ret3 a (b,s) c d . *)
+(* Proof. *)
+(*   intros *. *)
+(*   onAllHyps move_up_types. *)
+(*   intros EQ. *)
+(*   punfold EQ. *)
+
+(*   match type of EQ with *)
+(*   | eqit_ _ _ _ _ _ ?t ?u => remember t as T *)
+(*                             (* ; remember u as U *) *)
+(*   end. *)
+
+(*   eqi_of_eq HeqT. *)
+(*   (* eqi_of_eq HeqU. *) *)
+(*   revert t HeqT. *)
+(*   red in EQ. *)
+(*   (* We proceed by induction on the weak bisimulation step at the cfg level. *)
+(*      Only two cases are structurally possible: *)
+(*      - either interp_cfg3 is a ret itself *)
+(*      - or it's a tau *)
+(*    *) *)
+(*   dependent induction EQ. *)
+(*   2:{ *)
+(*     intros * EQU. *)
+(*     specialize (IHEQ a b c d t1 eq_refl eq_refl eq_refl JMeq_refl eq_refl eq_refl JMeq_refl JMeq_refl JMeq_refl JMeq_refl). *)
+
+
+
+
+(*   - (* if it's a ret *) *)
+(*     intros. *)
+(*     clear IH IH0. *)
+(*     rewrite itree_eta, <- x in HeqT. *)
+(*     clear T x. *)
+(*     rewrite (itree_eta t) in HeqT. *)
+(*     rewrite (itree_eta t). *)
+(*     (* We now have to painfully go through the process of deriving information over [t] from our equation *) *)
+(*     destruct (observe t). *)
+(*     + (* If [t] itself is pure, we can unify its value with the desired arguments and transport this information in the goal *) *)
+(*       rewrite interp_cfg3_ret in HeqT. *)
+(*       apply eqitree_inv_Ret in HeqT. *)
+(*       inv HeqT. *)
+(*       rewrite translate_ret, interp_mrec_ret, interp3_ret. *)
+(*       reflexivity. *)
+(*     + (* If [t] starts with a Tau, we have a contradiction in our hypothesis *) *)
+(*       rewrite interp_cfg3_tau in HeqT; punfold HeqT; inv HeqT; inv CHECK. *)
+(*     + (* If [t] starts with an effect, things get trickier: we need to go through each case *) *)
+(*       rewrite interp_cfg3_vis_eqit in HeqT. *)
+(*       rewrite interp_cfg3_trigger_is_handler_cfg3_strong in HeqT. *)
+(*       rewrite translate_vis. *)
+(*       rewrite <- bind_trigger. *)
+(*       rewrite interp_mrec_bind,interp_mrec_trigger. *)
+(*       rewrite interp3_bind_equ. *)
+(*       (* Case analysis on whether the event is a function call or not *) *)
+(*       destruct e as [e | e]. *)
+(*       * (* The call case is incompatible with our hypothesis *) *)
+(*         cbn in *. *)
+(*         rewrite bind_bind,bind_trigger in HeqT. *)
+(*         punfold HeqT; inv HeqT. *)
+(*       * (* hence the event is spat out intact by [mrec] *) *)
+(*         cbn. *)
+(*         match goal with *)
+(*           |- context[mrecursive _ _ ?x] => *)
+(*             set (f := x) *)
+(*             (* replace f with (inr1 (inr1 e): (CallE +' ExternalCallE +' exp_E) X) *) *)
+(*         end. *)
+(*         destruct f eqn:EQ; [subst f; repeat destruct e as [e | e]; inv EQ |]. *)
+(*         cbn. *)
+(*         rewrite (interp_mcfg3_trigger_is_handler3_strong _ s0). *)
+(*         subst f. *)
+(*         (* Ok, ready to go through each effect *) *)
+(*         destruct e as [e |[e |[e |[e |e]]]]; inv EQ. *)
+(*         -- (* Intrinsics *) *)
+(*           cbn in *. *)
+(*           repeat (break_match_goal; cbn in . *)
+(*           all:rewrite ?bind_bind, ?bind_ret_l, ?bind_tau in HeqT. *)
+(*           all: (now exfalso; eapply ret_raise_abs in HeqT || now exfalso; eapply ret_tau_abs in HeqT). *)
+(*         -- (* genv *) *)
+(*           destruct e; cbn in *. *)
+(*           2:break_match_goal; cbn in *. *)
+(*           all:rewrite ?bind_bind, ?bind_ret_l, ?bind_tau in HeqT. *)
+(*           all: try (now exfalso; eapply ret_raise_abs in HeqT || now exfalso; eapply ret_tau_abs in HeqT). *)
+(*         -- (* lenv *) *)
+(*           destruct e; cbn in *. *)
+(*           2:break_match_goal; cbn in *. *)
+(*           all:rewrite ?bind_bind, ?bind_ret_l, ?bind_tau in HeqT. *)
+(*           all: try (now exfalso; eapply ret_raise_abs in HeqT || now exfalso; eapply ret_tau_abs in HeqT). *)
+(*         -- (* memory *) *)
+(*           exfalso. *)
+(*           rename HeqT into h. *)
+(*           destruct e; cbn in *. *)
+
+(*           Ltac tmp' h := *)
+(*             repeat ( *)
+(*           cbn in h; rewrite ?bind_bind, ?bind_ret_l, ?bind_tau in h; *)
+(*           try break_match_hyp; *)
+(*           try (now exfalso; eapply ret_raise_abs in h || *)
+(*                now exfalso; eapply ret_tau_abs in h  || *)
+(*                now exfalso; eapply ret_raiseUB in h *)
+(*             )). *)
+(*           Ltac tmp h := unfold lift_undef_or_err,lift_pure_err, lift_err in h *)
+(*           ; tmp' h. *)
+
+(*           all: tmp h. *)
+
+(*         -- admit. *)
+(*   - cbn in *. *)
+(*     intros. *)
+
+(*   (* destruct (observe t) eqn:EQ. *) *)
+(*   (* - rewrite !interp3_ret. *) *)
+(*   (*   rewrite map_ret. *) *)
+(*   (*   gstep. *) *)
+(*   (*   constructor. *) *)
+(*   (*   reflexivity. *) *)
+(*   (* - rewrite !interp3_tau. *) *)
+(*   (*   gstep. *) *)
+(*   (*   red; cbn; apply EqTau. *) *)
+(*   (*   gbase; apply cih. *) *)
+(*   (* - rewrite !interp3_vis_eq_itree. *) *)
+(*   (*   rewrite map_bind. *) *)
+(*   (*   guclo eqit_clo_bind. *) *)
+(*   (*   unshelve econstructor. *) *)
+(*   (*   exact (fun '(a,(b,(c,d))) '(a',(b',(c',d'))) => a = push_fresh_frame a' /\ b = b' /\ c = c' /\ d = d'). *) *)
+(*   (*   { *) *)
+(*   (*     clear. *) *)
+(*   (*     rewrite 2 foo. *) *)
+(*   (*     admit. *) *)
+(*   (*   } *) *)
+(*   (*   intros (? & ? & ? & ?) (m' & l' & g' & x') (-> & -> & -> & ->). *) *)
+(*   (*   (* TO FIX: foo has eaten all my guards -> refine it into a eutt_ge equation making explicit that there is at least one tau after the handler? *) *) *)
+(*   (*   gbase. *) *)
+(* Admitted. *)
+
+Lemma eqitree_inv_Tau :
+  forall {E : Type -> Type} {R1 R2 : Type} {RR : R1 -> R2 -> Prop} (t1 t2 : itree E _),
+    eq_itree RR (Tau t1) (Tau t2) -> eq_itree RR t1 t2.
+Proof.
+  intros; eapply eqit_inv_Tau; eauto.
+Qed.
+
+Lemma tick_eutt :
+  forall {E : Type -> Type} {R : Type} n (t1 t2 : itree E R),
+    t1 ≅ tick n t2 ->
+    t1 ≈ t2.
+Proof.
+  intros *; revert t1.
+  induction n as [| n IH]; cbn; intros * EQ.
+  - now rewrite EQ.
+  - rewrite EQ, tau_eutt.
+    apply IH.
+    reflexivity.
+Qed.
+
+Lemma tickp_tick :
+  forall {E : Type -> Type} {R : Type} r n,
+    tickp n r ≅ @tick E R n (Ret r).
+Proof.
+  induction n; [reflexivity |].
+  cbn. apply eqit_Tau.
+  reflexivity.
+Qed.
+
+Lemma tick_eutt' :
+  forall {E : Type -> Type} {R : Type} (t : itree E R) r,
+    t ≈ Ret r ->
+    exists n, t ≅ tickp n r.
+Proof.
+  intros.
+  punfold H; red in H; dependent induction H.
+  - exists 0%nat; rewrite itree_eta, <-x; reflexivity.
+  - specialize (IHeqitF t1 r eq_refl).
+    destruct IHeqitF as [n EQ]; auto.
+    exists (S n); rewrite itree_eta, <-x, EQ, tickp_tick.
+    reflexivity.
+Qed.
+
+Lemma interp_cfg3_to_mcfg3_aux :
+  forall R a b c d (ctx : _ ~> itree (_ +' L0)) (t : itree instr_E _) g l s m n,
+    interp_cfg3  (R := R) t g l m ≅ tick n (Ret3 a b c d) ->
     interp_mcfg3 (R := R) (interp_mrec ctx (translate instr_to_L0' t)) g (l,s) m ≈ Ret3 a (b,s) c d .
 Proof.
   intros *.
   revert g l m t.
-  (* We proceed by coinduction *)
-  einit.
-  ecofix IH.
-  intros * EQ.
-  onAllHyps move_up_types.
-  punfold EQ.
-
-  match type of EQ with
-  | eqit_ _ _ _ _ _ ?t ?u => remember t as T
-                            (* ; remember u as U *)
-  end.
-
-  eqi_of_eq HeqT.
-  (* eqi_of_eq HeqU. *)
-  revert t HeqT.
-  red in EQ.
-  (* We proceed by induction on the weak bisimulation step at the cfg level.
-     Only two cases are structurally possible:
-     - either interp_cfg3 is a ret itself
-     - or it's a tau
-   *)
-  dependent induction EQ.
-  - (* if it's a ret *)
-    intros.
-    clear IH IH0.
-    rewrite itree_eta, <- x in HeqT.
-    clear T x.
-    rewrite (itree_eta t) in HeqT.
+  induction n using lt_wf_ind.
+  destruct n as [| n].
+  - intros * EQ.
+    onAllHyps move_up_types.
+    cbn in EQ.
+    rewrite (itree_eta t) in EQ.
     rewrite (itree_eta t).
     (* We now have to painfully go through the process of deriving information over [t] from our equation *)
     destruct (observe t).
     + (* If [t] itself is pure, we can unify its value with the desired arguments and transport this information in the goal *)
-      rewrite interp_cfg3_ret in HeqT.
-      apply eqitree_inv_Ret in HeqT.
-      inv HeqT.
+      rewrite interp_cfg3_ret in EQ.
+      apply eqitree_inv_Ret in EQ.
+      inv EQ.
       rewrite translate_ret, interp_mrec_ret, interp3_ret.
       reflexivity.
     + (* If [t] starts with a Tau, we have a contradiction in our hypothesis *)
-      rewrite interp_cfg3_tau in HeqT; punfold HeqT; inv HeqT; inv CHECK.
+      rewrite interp_cfg3_tau in EQ; punfold EQ; inv EQ; inv CHECK.
     + (* If [t] starts with an effect, things get trickier: we need to go through each case *)
-      rewrite interp_cfg3_vis_eqit in HeqT.
-      rewrite interp_cfg3_trigger_is_handler_cfg3_strong in HeqT.
+      rewrite interp_cfg3_vis_eqit in EQ.
+      rewrite interp_cfg3_trigger_is_handler_cfg3_strong in EQ.
       rewrite translate_vis.
       rewrite <- bind_trigger.
       rewrite interp_mrec_bind,interp_mrec_trigger.
@@ -1761,8 +1972,8 @@ Proof.
       destruct e as [e | e].
       * (* The call case is incompatible with our hypothesis *)
         cbn in *.
-        rewrite bind_bind,bind_trigger in HeqT.
-        punfold HeqT; inv HeqT.
+        rewrite bind_bind,bind_trigger in EQ.
+        punfold EQ; inv EQ.
       * (* hence the event is spat out intact by [mrec] *)
         cbn.
         match goal with
@@ -1770,215 +1981,162 @@ Proof.
             set (f := x)
             (* replace f with (inr1 (inr1 e): (CallE +' ExternalCallE +' exp_E) X) *)
         end.
-        destruct f eqn:EQ; [subst f; repeat destruct e as [e | e]; inv EQ |].
+        destruct f eqn:EQ'; [subst f; repeat destruct e as [e | e]; inv EQ' |].
         cbn.
         rewrite (interp_mcfg3_trigger_is_handler3_strong _ s0).
         subst f.
         (* Ok, ready to go through each effect *)
-        destruct e as [e |[e |[e |[e |e]]]]; inv EQ.
+        destruct e as [e |[e |[e |[e |e]]]]; inv EQ'.
         -- (* Intrinsics *)
           cbn in *.
           repeat (break_match_goal; cbn in *).
-          all:rewrite ?bind_bind, ?bind_ret_l, ?bind_tau in HeqT.
-          all: (now exfalso; eapply ret_raise_abs in HeqT || now exfalso; eapply ret_tau_abs in HeqT).
+          all:rewrite ?bind_bind, ?bind_ret_l, ?bind_tau in EQ.
+          all:symmetry in EQ.
+          all: (now exfalso; eapply ret_raise_abs in EQ || now exfalso; eapply ret_tau_abs in EQ).
         -- (* genv *)
           destruct e; cbn in *.
           2:break_match_goal; cbn in *.
-          all:rewrite ?bind_bind, ?bind_ret_l, ?bind_tau in HeqT.
-          all: try (now exfalso; eapply ret_raise_abs in HeqT || now exfalso; eapply ret_tau_abs in HeqT).
+          all:rewrite ?bind_bind, ?bind_ret_l, ?bind_tau in EQ.
+          all:symmetry in EQ.
+          all: try (now exfalso; eapply ret_raise_abs in EQ || now exfalso; eapply ret_tau_abs in EQ).
         -- (* lenv *)
           destruct e; cbn in *.
           2:break_match_goal; cbn in *.
-          all:rewrite ?bind_bind, ?bind_ret_l, ?bind_tau in HeqT.
-          all: try (now exfalso; eapply ret_raise_abs in HeqT || now exfalso; eapply ret_tau_abs in HeqT).
+          all:rewrite ?bind_bind, ?bind_ret_l, ?bind_tau in EQ.
+          all:symmetry in EQ.
+          all: try (now exfalso; eapply ret_raise_abs in EQ || now exfalso; eapply ret_tau_abs in EQ).
+        -- (* memory *)
+          exfalso.
+          rename EQ into h.
+          destruct e; cbn in *.
+          Ltac tmp' h :=
+            repeat (
+          cbn in h; rewrite ?bind_bind, ?bind_ret_l, ?bind_tau in h;
+          try break_match_hyp;
+          try (now exfalso; eapply ret_raise_abs in h ||
+               now exfalso; eapply ret_tau_abs in h  ||
+               now exfalso; eapply ret_raiseUB in h
+            )).
+          Ltac tmp h := unfold lift_undef_or_err,lift_pure_err, lift_err in h
+          ; tmp' h.
+          all: symmetry in h.
+          all: tmp h.
+
+        -- exfalso.
+           cbn in *.
+           rewrite ?bind_bind in EQ.
+           punfold EQ; inv EQ.
+
+
+  - cbn in *.
+    intros * EQ.
+    rewrite (itree_eta t) in EQ.
+    rewrite (itree_eta t).
+    (* We now have to painfully go through the process of deriving information over [t] from our equation *)
+    destruct (observe t).
+    + (* Being pure contradicts HeQT *)
+      rewrite interp_cfg3_ret in EQ; punfold EQ; now inversion EQ.
+    + (* If it starts with a Tau, we can conclude by induction *)
+      rewrite interp_cfg3_tau in EQ.
+      apply eqitree_inv_Tau in EQ.
+      rewrite translate_tau, interp_mrec_tau, interp3_tau.
+      rewrite tau_euttge.
+      Import Psatz.
+      apply (H n); [lia | auto].
+    + (* Otherwise, it starts by interpreting an event *)
+      rewrite interp_cfg3_vis_eqit in EQ.
+      rewrite interp_cfg3_trigger_is_handler_cfg3_strong in EQ.
+      rewrite translate_vis.
+      rewrite <- bind_trigger.
+      rewrite interp_mrec_bind,interp_mrec_trigger.
+      rewrite interp3_bind_equ.
+      (* Case analysis on whether the event is a function call or not *)
+      destruct e as [e | e].
+      * (* The call case is incompatible with our hypothesis *)
+        exfalso.
+        cbn in EQ.
+        rewrite ?bind_bind in EQ.
+        now punfold EQ; inv EQ.
+      * (* hence the event is spat out intact by [mrec] *)
+        cbn.
+        match goal with
+          |- context[mrecursive _ _ ?x] =>
+            set (f := x)
+            (* replace f with (inr1 (inr1 e): (CallE +' ExternalCallE +' exp_E) X) *)
+        end.
+        destruct f eqn:EQ'; [subst f; repeat destruct e as [e | e]; inv EQ' |].
+        cbn.
+        rewrite (interp_mcfg3_trigger_is_handler3_strong _ s0).
+        subst f.
+        (* Ok, ready to go through each effect *)
+        destruct e as [e |[e |[e |[e |e]]]]; inv EQ'.
+        -- (* Intrinsics *)
+          cbn in *.
+          repeat (break_match_goal; cbn in *).
+          all:rewrite ?bind_bind, ?bind_ret_l, ?bind_tau in EQ.
+          (* failure cases are ruled out *)
+          all: try (now symmetry in EQ; exfalso; eapply tau_raise_abs in EQ).
+          (* Successful cases progress by induction *)
+          {
+            apply eqitree_inv_Tau in EQ.
+            rewrite bind_ret_l in EQ.
+            rewrite ?bind_bind, ?bind_ret_l, ?bind_tau, tau_euttge, bind_ret_l.
+            apply (H n); [lia | auto].
+          }
+          rewrite ?bind_bind, ?bind_ret_l, ?bind_tau, ?tau_euttge, bind_ret_l.
+          apply eqitree_inv_Tau in EQ.
+          do 3 (destruct n as [| n]; [ now apply eqit_inv in EQ | cbn in EQ; apply eqitree_inv_Tau in EQ]).
+          rewrite bind_ret_l in EQ.
+          apply H in EQ; [auto | lia].
+        -- (* genv *)
+          destruct e; cbn in *.
+          2:break_match_goal; cbn in *.
+          all:rewrite ?bind_bind, ?bind_ret_l, ?bind_tau in EQ.
+          all:repeat rewrite ?bind_bind, ?bind_ret_l, ?bind_tau, ?tau_eutt.
+          all: try (now symmetry in EQ; exfalso; eapply tau_raise_abs in EQ || now exfalso; eapply ret_tau_abs in EQ).
+          all:apply eqitree_inv_Tau in EQ.
+          all:destruct n as [| n]; [ now apply eqit_inv in EQ | cbn in EQ; apply eqitree_inv_Tau in EQ].
+          all:rewrite bind_ret_l in EQ.
+          all:eapply H; [| eassumption]; lia.
+        -- (* lenv *)
+          destruct e; cbn in *.
+          2:break_match_goal; cbn in *.
+          all:rewrite ?bind_bind, ?bind_ret_l, ?bind_tau in EQ.
+          all:repeat rewrite ?bind_bind, ?bind_ret_l, ?bind_tau, ?tau_eutt.
+          all: try (now symmetry in EQ; exfalso; eapply tau_raise_abs in EQ || now exfalso; eapply ret_tau_abs in EQ).
+          all:apply eqitree_inv_Tau in EQ.
+          all:do 2 (destruct n as [| n]; [ now apply eqit_inv in EQ | cbn in EQ; apply eqitree_inv_Tau in EQ]).
+          all:rewrite bind_ret_l in EQ.
+          all:eapply H; [| eassumption]; lia.
         -- (* memory *)
           destruct e; cbn in *.
-          rewrite ?bind_bind, ?bind_ret_l, ?bind_tau in HeqT; now exfalso; eapply ret_tau_abs in HeqT.
-          rewrite ?bind_bind, ?bind_ret_l, ?bind_tau in HeqT.
-          all:admit.
-        -- admit.
-  - cbn in *.
-    intros.
+          Ltac bk_prod := repeat match goal with
+               | h: _ * _ |- _ => destruct h
+               end.
 
-  (* destruct (observe t) eqn:EQ. *)
-  (* - rewrite !interp3_ret. *)
-  (*   rewrite map_ret. *)
-  (*   gstep. *)
-  (*   constructor. *)
-  (*   reflexivity. *)
-  (* - rewrite !interp3_tau. *)
-  (*   gstep. *)
-  (*   red; cbn; apply EqTau. *)
-  (*   gbase; apply cih. *)
-  (* - rewrite !interp3_vis_eq_itree. *)
-  (*   rewrite map_bind. *)
-  (*   guclo eqit_clo_bind. *)
-  (*   unshelve econstructor. *)
-  (*   exact (fun '(a,(b,(c,d))) '(a',(b',(c',d'))) => a = push_fresh_frame a' /\ b = b' /\ c = c' /\ d = d'). *)
-  (*   { *)
-  (*     clear. *)
-  (*     rewrite 2 foo. *)
-  (*     admit. *)
-  (*   } *)
-  (*   intros (? & ? & ? & ?) (m' & l' & g' & x') (-> & -> & -> & ->). *)
-  (*   (* TO FIX: foo has eaten all my guards -> refine it into a eutt_ge equation making explicit that there is at least one tau after the handler? *) *)
-  (*   gbase. *)
-Admitted.
+          all:repeat (unfold lift_undef_or_err,lift_pure_err, lift_err in EQ;
+            cbn in EQ; rewrite ?bind_bind, ?bind_ret_l, ?bind_tau in EQ;
+            try break_match_hyp;
+            try ((now symmetry in EQ; exfalso; eapply tau_raise_abs in EQ)
+                 || (now symmetry in EQ; exfalso; eapply tau_raiseUB in EQ))).
+          all:apply eqitree_inv_Tau in EQ.
+          all: repeat (destruct n as [| n]; [ now apply eqit_inv in EQ | cbn in EQ; apply eqitree_inv_Tau in EQ]).
+          all: apply H in EQ; [|lia].
+          all: cbn; rewrite ?bind_bind, ?bind_ret_l, ?tau_eutt, ?bind_ret_l.
+          all: auto.
+        -- cbn in *.
+           rewrite ?bind_bind in EQ; punfold EQ; now inv EQ.
+Qed.
 
+Lemma interp_cfg3_to_mcfg3 :
+  forall R a b c d (ctx : _ ~> itree (_ +' L0)) (t : itree instr_E _) g l s m,
+    interp_cfg3  (R := R) t g l m                                                ≈ Ret3 a b c d ->
+    interp_mcfg3 (R := R) (interp_mrec ctx (translate instr_to_L0' t)) g (l,s) m ≈ Ret3 a (b,s) c d .
+Proof.
+  intros * EQ.
+  apply tick_eutt' in EQ as [n EQ'].
+  eapply interp_cfg3_to_mcfg3_aux.
+  rewrite EQ', tickp_tick.
+  reflexivity.
+Qed.
 
-(* WARNING: CALVIN ACCURATELY POINTED OUT THIS DOES NOT HOLD FOR MEM_POP! TO FIX *)
-(* Lemma push_frame_ignore : *)
-(*   forall R (t : itree L0 R) (g: global_env) (l: lenv) m, *)
-(*       interp_mcfg3 t g l (push_fresh_frame m) *)
-(*       ≈ *)
-(*       ITree.map (fun '(a,(b,(c,d))) => (push_fresh_frame a,(b,(c,d)))) (interp_mcfg3 t g l m). *)
-(* Proof. *)
-(*   intro R. *)
-(*   ginit. *)
-(*   gcofix cih. *)
-(*   intros. *)
-(*   rewrite (itree_eta t). *)
-(*   destruct (observe t) eqn:EQ. *)
-(*   - rewrite !interp3_ret. *)
-(*     rewrite map_ret. *)
-(*     gstep. *)
-(*     constructor. *)
-(*     reflexivity. *)
-(*   - rewrite !interp3_tau. *)
-(*     gstep. *)
-(*     red; cbn; apply EqTau. *)
-(*     gbase; apply cih. *)
-(*   - rewrite !interp3_vis_eq_itree. *)
-(*     rewrite map_bind. *)
-(*     guclo eqit_clo_bind. *)
-(*     unshelve econstructor. *)
-(*     exact (fun '(a,(b,(c,d))) '(a',(b',(c',d'))) => a = push_fresh_frame a' /\ b = b' /\ c = c' /\ d = d'). *)
-(*     { *)
-(*       clear. *)
-(*       rewrite 2 foo. *)
-(*       admit. *)
-(*     } *)
-(*     intros (? & ? & ? & ?) (m' & l' & g' & x') (-> & -> & -> & ->). *)
-(*     (* TO FIX: foo has eaten all my guards -> refine it into a eutt_ge equation making explicit that there is at least one tau after the handler? *) *)
-(*     gbase. *)
-(* Admitted. *)
-
-
-(* Lemma push_frame_ignore : *)
-(*   forall R (t : itree L0 R) (g: global_env) (l: lenv) m, *)
-(*       interp_mcfg3 t g l (push_fresh_frame m) *)
-(*       ≅ *)
-(*       ITree.map (fun '(a,(b,(c,d))) => (push_fresh_frame a,(b,(c,d)))) (interp_mcfg3 t g l m). *)
-(* Proof. *)
-(*   intro R. *)
-(*   ginit. *)
-(*   gcofix cih. *)
-(*   intros. *)
-(*   rewrite (itree_eta t). *)
-(*   destruct (observe t) eqn:EQ. *)
-(*   - rewrite !interp3_ret. *)
-(*     rewrite map_ret. *)
-(*     gstep. *)
-(*     constructor. *)
-(*     reflexivity. *)
-(*   - rewrite !interp3_tau. *)
-(*     gstep. *)
-(*     red; cbn; apply EqTau. *)
-(*     gbase; apply cih. *)
-(*   - rewrite !interp3_vis_eq_itree. *)
-(*     rewrite map_bind. *)
-(*     guclo eqit_clo_bind. *)
-(*     unshelve econstructor. *)
-(*     exact (fun '(a,(b,(c,d))) '(a',(b',(c',d'))) => a = push_fresh_frame a' /\ b = b' /\ c = c' /\ d = d'). *)
-(*     { *)
-(*       clear. *)
-(*       match goal with |- eqit ?r _ _ ?t ?u => fold (eq_itree r t u) end. *)
-(*       destruct e as [e | e]. *)
-(*       - destruct e. *)
-(* Admitted. *)
-
-
-(* Lemma push_frame_ignore : *)
-(*   forall R (a : global_env) (b : lenv) c d (t : itree L0 R) (g: global_env) (l: lenv) m, *)
-(*     interp_mcfg3 t g l m ≈ Ret3 a b c d -> *)
-(*     interp_mcfg3 t g l (push_fresh_frame m) ≈ Ret3 a b (push_fresh_frame c) d. *)
-(* Proof. *)
-(*   intros R a b c d. *)
-(*   intros * EQ. *)
-(*   apply eutt_ret_eq_itree in EQ as [n EQ]. *)
-(*   revert EQ. *)
-(*   induction n. *)
-(*   - cbn; intros EQ. *)
-(*     cut (ℑs3 t g l (push_fresh_frame m) ≅ Ret3 a b (push_fresh_frame c) d). *)
-(*     admit. *)
-(*   - intros EQ. *)
-(*     cbn in EQ. *)
-
-
-(*   einit. *)
-(*   ecofix CIH. *)
-(*   intros * EQ. *)
-(*   punfold EQ. *)
-(*   red in EQ; cbn in EQ. *)
-(*   dependent induction EQ. *)
-(*   - *)
-
-(*     Unset Printing Notations. *)
-    (*
-         denote_cfg vs denote_mcfg -> requires "noevent call" predicate
-         interp_cfg3 vs interp_mcfg3
-     *)
-
-(* Need to spell out what [ctx] is concretely *)
-
-(* Lemma interp_cfg3_to_mcfg3 : *)
-(*   forall R a b c d (ctx : _ ~> itree (_ +' L0)) (t : itree instr_E _) g l s m, *)
-(*     interp_cfg3  (R := R) t g l m ≈ Ret3 a b c d -> *)
-(*     interp_mcfg3 (R := R) (interp_mrec ctx (translate instr_to_L0' t)) *)
-(*       g (l,s) m *)
-(*       ≈ *)
-(*       Ret3 a (b,s) c d. *)
-(* Proof. *)
-(* Admitted. *)
-
-
-(* Lemma interp_cfg3_to_mcfg3 : *)
-(*   forall R a b c d (ctx : _ ~> itree (_ +' L0)) (t : itree instr_E _) g l s m, *)
-(*     interp_cfg3  (R := R) t g l m                                                ≈ Ret3 a b c d -> *)
-(*     interp_mcfg3 (R := R) (interp_mrec ctx (translate instr_to_L0' t)) g (l,s) m ≈ Ret3 a (b,s) c d . *)
-(* Proof. *)
-(*   intros *. *)
-(*   revert g l m t. *)
-(*   einit. *)
-(*   ecofix IH. *)
-(*   intros * EQ. *)
-(*   onAllHyps move_up_types. *)
-(*   punfold EQ. *)
-(*   red in EQ. *)
-(*   dependent induction EQ. *)
-(*   2:{ *)
-
-(*   - eqi_of_oeq x. *)
-(*     rewrite <- itree_eta in x. *)
-(*     rewrite (itree_eta t) in x. *)
-(*     destruct (observe t) eqn:EQ. *)
-(*     2: rewrite interp_cfg3_tau in x; punfold x; inv x; inv CHECK. *)
-(*     2:{ rewrite interp_cfg3_vis_eqit in x. *)
-(*         unfold trigger in x. *)
-(*         rewrite interp_cfg3_vis_eqit in x. *)
-(*         punfold x. inv x. inv CHECK. *)
-(*     + eqi_of_eq EQ. *)
-(*     { *)
-(*       assert (Ret (c, (b, (a, d))) ≅ interp_cfg3 t g l m). *)
-(*       now rewrite x, <-itree_eta. *)
-(*       rewrite (itree_eta t), EQ, interp_cfg3_tau in H. *)
-(*       punfold H; inv H. *)
-(*       inv CHECK. *)
-(*     } *)
-
-(*   remember (observe (ℑ3 t g  l m)) as ot. *)
-(*   remember (observe (Ret3 a b c d)) as ou. *)
-(*   revert t Heqou Heqot. *)
-(*   induction EQ. *)
-(*   - subst. *)
-(* (* TODO? Relate [init_globals] to [global_ptr_exists] *) *)
