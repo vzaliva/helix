@@ -437,7 +437,7 @@ Proof.
   destruct n; cbn; [rewrite app_nil_r; auto |].
   break_match; [destruct skipn; discriminate |].
   destruct (skipn n xs) eqn:E.
-  + cbn in *. inv Heql. 
+  + cbn in *. inv Heql.
     assert (Datatypes.length (skipn n xs) ≡ 0) by (rewrite E; auto).
     pose proof skipn_length n xs.
     find_rewrite; lia.
@@ -1412,6 +1412,8 @@ Proof.
 
     hide.
     onAllHyps move_up_types.
+    Notation "'ℑfunc' t" := (ℑs3 (interp_mrec (mcfg_ctx (GFUNC _ _ _ _)) t)) (at level 0, only printing).
+
 
     (* TODO FIX surface syntax *)
     (* TODO : should really wrap the either monad when jumping from blocks into a named abstraction to lighten goals
@@ -1511,8 +1513,6 @@ Proof.
     rewrite !translate_bind,!interp_mrec_bind,!interp3_bind, !bind_bind.
     subst; focus_single_step_l.
 
-    Notation "'ℑfunc' t" := (ℑs3 (interp_mrec (mcfg_ctx (GFUNC _ _ _ _)) t)) (at level 0, only printing).
-
 
     unfold DYNWIN at 2 3; cbn.
 
@@ -1543,25 +1543,42 @@ Proof.
       |- context[ (ℑs3 _) _ ?s ?m] => idtac s; idtac m
     end.
 
-  set (ρI'' := (alist_add (Name "Y1") (UVALUE_Addr a1_addr)
-                  (alist_add (Name "X0") (UVALUE_Addr a0_addr) []))).
+  set (ρI'' := (alist_add (Name "X0") (UVALUE_Addr a0_addr)
+                  (alist_add (Name "Y1") (UVALUE_Addr a1_addr) []))).
+
+  (* set (ρI'' := (alist_add (Name "Y1") (UVALUE_Addr a1_addr) *)
+  (*                 (alist_add (Name "X0") (UVALUE_Addr a0_addr) []))). *)
 
   eassert (state_inv'' : state_invariant _ Γi _ (push_fresh_frame (push_fresh_frame memI), (ρI'', gI))).
   {
     apply state_invariant_frames' with (mV := memI).
     destruct memI; auto.
-    unfold push_fresh_frame. 
+    unfold push_fresh_frame.
     eapply state_invariant_Γi; eauto.
     eapply state_invariant_Γ'; [eapply state_inv | | apply Γi'_bound].
     unfold Γi'; cbn.
     rewrite HΓs1; auto.
   }
 
+  assert (blk_id bk ≡ b).
+  {
+    rename b into kerfuffle, bk into trublion.
+    clear -HgenIR INIT_MEM EQLLVMINIT.
+    (* Is this true? *)
+    admit.
+  }
   (* We are getting closer to business: instantiating the lemma *)
 (*      stating the correctness of the compilation of operators *)
+  (* rename b into kerfuffle. *)
+  (* pose (foo := (init (df_instrs (DYNWIN bk bks2)))). *)
+  (* Transparent DYNWIN. *)
+  (* unfold DYNWIN in foo. *)
+  (* cbv in foo. *)
   unshelve epose proof
     @compile_FSHCOL_correct _ _ _ dynwin_F_σ dynwin_F_memory _ _
-                            (blk_id bk) _ gI ρI'' (push_fresh_frame (push_fresh_frame memI)) HgenIR _ _ _ _
+                            (blk_id bk)
+(* (init (df_instrs (DYNWIN bk bks2))) *)
+                            _ gI ρI'' (push_fresh_frame (push_fresh_frame memI)) HgenIR _ _ _ _
     as RES.
   - clear - EQ.
     unfold no_failure, has_post.
@@ -1656,7 +1673,11 @@ Proof.
     |- context[interp_mrec ?X] =>
     eapply interp_cfg3_to_mcfg3 with (ctx := X) (s := [] :: ρI :: sI) in EQLLVM2
     end.
+    match goal with
+      |- context[denote_ocfg ?a] => change a with (convert_typ [] bks1)
+    end.
 
+    rewrite EQLLVM2.
     clear - EQLLVM2.
 
     replace (map (tfmap (typ_to_dtyp nil)) bks1) with (convert_typ nil bks1) by reflexivity.
