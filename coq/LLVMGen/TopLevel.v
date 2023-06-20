@@ -1158,6 +1158,70 @@ Proof.
   eapply state_invariant_frames, SINV.
 Qed.
 
+(* TODO: move the following 2 tactics and 2 lemmas *)
+#[local] Ltac find_b0_id :=
+  match goal with
+  | [H : _ ≡ ?b0 :: ?blocks |- _] => invc H
+  end.
+#[local] Ltac matchify :=
+  cbv [ret raise catch bind
+         ErrorWithState.Monad_errS ErrorWithState.Exception_errS]
+    in *.
+Lemma genIR_nonempty_blocks :
+  forall op nextblock s s' b0_id blocks,
+    genIR op nextblock s ≡ inr (s', (b0_id, blocks)) ->
+    exists b0 blocks', blocks ≡ b0 :: blocks'.
+Proof.
+  induction op;
+    intros * GENIR.
+  (* induction hypothesis only necessary for [DSHSeq], and slows others down *)
+  1-9: try clear IHop.
+  1-9: unfold
+         genIR, genNop, genFSHAssign, genIMapBody,
+      genBinOpBody, genMemMap2Body,
+      genPower, genMemInit, genWhileLoop in *.
+  1-9: matchify; simp; now repeat eexists.
+
+  cbn [genIR] in GENIR.
+  matchify; simp.
+  eapply IHop1 in Heqs3.
+  eapply IHop2 in Heqs1.
+  clear - Heqs1 Heqs3.
+  destruct Heqs3 as [b1 [blocks1 B1]].
+  destruct Heqs1 as [b2 [blocks2 B2]].
+  rewrite B1, B2.
+  repeat eexists.
+Qed.
+
+Lemma genIR_entry_blk_id :
+  forall op nextblock s s' b0_id b0 blocks,
+  genIR op nextblock s ≡ inr (s', (b0_id, b0::blocks)) ->
+  blk_id b0 ≡ b0_id.
+Proof.
+  induction op;
+    intros * GENIR.
+
+  1-9: try clear IHop.
+  all: cbn [genIR] in *.
+  1-9: unfold
+         genNop, genFSHAssign, genIMapBody,
+      genBinOpBody, genMemMap2Body,
+      genPower, genMemInit, genWhileLoop
+      in *.
+  1-9: (matchify; simp; try congruence; try now find_b0_id).
+
+  -
+    cbn in Heqs4; now invc Heqs4.
+  -
+    matchify; simp.
+    congruence.
+    all: find_b0_id; cbn.
+    all: copy_apply genIR_nonempty_blocks Heqs3;
+      destruct H as [b0 [blocks' B]]; subst l0.
+    all: eapply IHop1; rewrite Heqs3; repeat f_equal.
+    all: now rewrite <-app_comm_cons in Heql1.
+Qed.
+
 Lemma top_to_LLVM :
   forall (a : Vector.t CarrierA 3) (* parameter *)
     (x : Vector.t CarrierA dynwin_i) (* input *)
