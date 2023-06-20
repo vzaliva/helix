@@ -1291,9 +1291,13 @@ Proof.
   break_match; [inv_sum |]/g. (* genIR DynWin_FHCOL_hard ("b" @@ "0" @@ "") Γi *)
   break_and; cbn in Heqs1/g.
   destruct s/g.
+  copy_apply genIR_nonempty_blocks Heqs;
+    destruct H1 as (b' & blocks & L0); subst l0.
+  copy_apply genIR_entry_blk_id Heqs;
+    subst b; rename b' into b.
   break_match; [inv_sum |]/g.
-  break_and; cbn in Heqs0 /g.
-  inv_sum/g.
+  break_and; cbn in Heqs0 /g. rename l0 into bks2.
+  inv_sum/g. 
   cbn.
 
   (* Processing the construction of the LLVM global environment:
@@ -1306,20 +1310,19 @@ Proof.
 
   (* The context gets... quite big. We try to prevent it as much as possible early on *)
 
-  rename l0 into bks1, l4 into bks2.
+  remember (b :: blocks) as bks1.
   rename b0 into bk.
   rename l2 into exps1, l3 into exps3.
   rename i into s3, i0 into s2, i1 into s1.
 
-  assert (HgenIR : genIR DynWin_FHCOL_hard "b0" Γi ≡ inr (s3, (b, bks1)))
+  assert (HgenIR : genIR DynWin_FHCOL_hard "b0" Γi ≡ inr (s3, (blk_id b, bks1)))
     by apply Heqs; clear Heqs.
   rename Heqs2 into Hdrop.
 
   replace s3 with s2 in *; revgoals.
   { clear - Heqs0.
-    unfold body_non_empty_cast in Heqs0.
-    break_match; [destruct bks2; discriminate |].
-    invc Heqs0; auto. }
+    now invc Heqs0.
+  }
 
   Tactic Notation "tmp" ident(exps3)
     ident(exps1)
@@ -1586,21 +1589,21 @@ Proof.
     unfold DYNWIN at 1.
     cbn[df_instrs blks cfg_of_definition fst snd].
     match type of Heqs0 with
-    | body_non_empty_cast ?x ?s1 ≡ inr (?s2, (?bk, ?bks)) => assert (EQbks: bk :: bks2 ≡ x /\ s1 ≡ s2)
+    | inr (_, (_, ?x)) ≡ inr _ =>
+        assert (EQbks: bk :: bks2 ≡ b :: x)
+        by now invc Heqs0
     end.
-    {
-      clear - Heqs0.
-      destruct bks1; cbn in *; inv Heqs0; intuition.
-    }
-    clear Heqs0.
-    destruct EQbks as [EQbks _].
     rewrite EQbks.
+    rewrite app_comm_cons.
+    remember (b :: blocks) as bks1.
     unfold TFunctor_list'; rewrite map_app.
     rewrite denote_ocfg_app; [| apply list_disjoint_nil_l].
     rewrite translate_bind,interp_mrec_bind.
     rewrite interp3_bind, bind_bind.
     subst; focus_single_step_l.
 
+    replace bk with b in * by now invc Heqs0.
+    clear Heqs0.
 
     clear.
     match goal with
@@ -1624,13 +1627,6 @@ Proof.
     rewrite HΓs1; auto.
   }
 
-  assert (blk_id bk ≡ b).
-  {
-    rename b into kerfuffle, bk into trublion.
-    clear -HgenIR INIT_MEM EQLLVMINIT.
-    (* Is this true? *)
-    admit.
-  }
   (* We are getting closer to business: instantiating the lemma *)
 (*      stating the correctness of the compilation of operators *)
   (* rename b into kerfuffle. *)
@@ -1640,7 +1636,7 @@ Proof.
   (* cbv in foo. *)
   unshelve epose proof
     @compile_FSHCOL_correct _ _ _ dynwin_F_σ dynwin_F_memory _ _
-                            (blk_id bk)
+                            (blk_id b)
 (* (init (df_instrs (DYNWIN bk bks2))) *)
                             _ gI ρI'' (push_fresh_frame (push_fresh_frame memI)) HgenIR _ _ _ _
     as RES.
@@ -1738,13 +1734,13 @@ Proof.
     eapply interp_cfg3_to_mcfg3 with (ctx := X) (s := [] :: ρI :: sI) in EQLLVM2
     end.
     match goal with
-      |- context[denote_ocfg ?a] => change a with (convert_typ [] bks1)
+      |- context[denote_ocfg ?a] => change a with (convert_typ [] (b :: blocks))
     end.
 
     rewrite EQLLVM2.
     clear - EQLLVM2.
 
-    replace (map (tfmap (typ_to_dtyp nil)) bks1) with (convert_typ nil bks1) by reflexivity.
+    replace (map (tfmap (typ_to_dtyp nil)) (b :: blocks)) with (convert_typ nil (b :: blocks)) by reflexivity.
     onAllHyps move_up_types.
     (* Set Printing All. *)
 
