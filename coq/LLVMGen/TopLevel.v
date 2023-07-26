@@ -1297,7 +1297,7 @@ Proof.
     subst b; rename b' into b.
   break_match; [inv_sum |]/g.
   break_and; cbn in Heqs0 /g. rename l0 into bks2.
-  inv_sum/g. 
+  inv_sum/g.
   cbn.
 
   (* Processing the construction of the LLVM global environment:
@@ -1452,7 +1452,16 @@ Proof.
       eapply genv_ptr_uniq_inv; eassumption || auto.
     }
 
+    Notation trig := (ITree.trigger).
+    Notation Ti := (translate instr_to_L0').
+
     cbn.
+Notation "'with' 'ℑs3' 'and' 'context' ctx 'computing' t 'from' g l m"
+  := (ℑs3 (interp_mrec ctx t) g l m)
+       (only printing, at level 0,
+       format "'with'  'ℑs3'  'and'  'context'  ctx  'computing' '//' t '//' 'from' '//' g '//' l '//' m '//'").
+
+
     rewrite bind_ret_l.
     rewrite interp_mrec_bind.
     rewrite interp_mrec_trigger.
@@ -1479,8 +1488,7 @@ Proof.
 
     hide.
     onAllHyps move_up_types.
-    Notation "'ℑfunc' t" := (ℑs3 (interp_mrec (mcfg_ctx (GFUNC _ _ _ _)) t)) (at level 0, only printing).
-
+    (* Notation "'ℑfunc' t" := (ℑs3 (interp_mrec (mcfg_ctx (GFUNC _ _ _ _)) t)) (at level 0, only printing).*)
 
     (* TODO FIX surface syntax *)
     (* TODO : should really wrap the either monad when jumping from blocks into a named abstraction to lighten goals
@@ -1491,7 +1499,7 @@ Proof.
          let (g',_)  := p0 in ...
      *)
     (* MARK *)
-    Notation "'lets' a b c d e f 'be' x y z 'in' x " :=
+   Notation "'lets' a b c d e f 'be' x y z 'in' x " :=
       (let (a,b) := x in
        let (c,d) := y in
        let (e,f) := z in
@@ -1515,12 +1523,19 @@ Proof.
 
     (* We hence evaluate the code: it starts with a function call to "dyn_win"! *)
 
+
     rewrite denote_code_cons.
     rewrite bind_bind,translate_bind.
     rewrite interp_mrec_bind, interp3_bind.
     rewrite bind_bind.
     cbn.
     focus_single_step_l.
+
+    Notation t2d := (typ_to_dtyp _).
+    Notation double := (TYPE_Double).
+    Notation arr := (TYPE_Array).
+    Notation void := (DTYPE_Void).
+
 
     hide.
     rewrite interp3_call_void; cycle 1.
@@ -1538,19 +1553,7 @@ Proof.
     rewrite translate_bind, interp_mrec_bind,interp3_bind, bind_bind.
     focus_single_step_l.
 
-    (* This function call has arguments: we need to evaluate those.
-         These arguments are globals that have been allocated during
-         the initialization phase, but I'm afraid we lost this fact
-         at this moment.
-         In particular right now, we need to lookup in the global
-         environment the address to an array stored at [Anon 0].
-
-         Do I need to reinforce [memory_invariant_after_init] or is
-         what I need a consequence of [genIR_post]?
-
-         MARK
-     *)
-
+    (* Evaluating the arguments *)
     Import AlistNotations.
     rewrite denote_mcfg_ID_Global; cycle 1.
     eassumption.
@@ -1563,23 +1566,31 @@ Proof.
     match goal with
       |- context [interp_mrec ?x] => remember x as ctx
     end.
+
     rewrite !translate_bind, !interp_mrec_bind,!interp3_bind, !bind_bind.
     rewrite denote_mcfg_ID_Global; cycle 1.
     eassumption.
     rewrite !bind_ret_l, translate_ret, interp_mrec_ret, interp3_ret, bind_ret_l.
     rewrite translate_ret, interp_mrec_ret, interp3_ret, bind_ret_l.
 
-    subst; rewrite !bind_bind; cbn; focus_single_step_l; unfold DYNWIN at 1; cbn; rewrite bind_ret_l.
+    (* Calling convention: pushing fresh frames *)
+    subst.
+    rewrite !bind_bind; cbn; focus_single_step_l; unfold DYNWIN at 1; cbn; rewrite bind_ret_l.
     cbn; rewrite interp_mrec_bind, interp_mrec_trigger, interp3_bind.
 
     onAllHyps move_up_types.
+
+Notation "'with' 'ℑs3' 'and' 'context' ctx 'computing' t 'from' g l m"
+  := (ℑs3 (mrecursive ctx _ t) g l m)
+       (only printing, at level 0,
+       format "'with'  'ℑs3'  'and'  'context'  ctx  'computing' '//' t '//' 'from' '//' g '//' l '//' m '//'").
+
 
     (* Function call, we first create a new memory frame *)
     rewrite interp3_MemPush, bind_ret_l, interp_mrec_bind, interp_mrec_trigger.
     cbn; rewrite interp3_bind, interp3_StackPush, bind_ret_l.
     rewrite !translate_bind,!interp_mrec_bind,!interp3_bind, !bind_bind.
     subst; focus_single_step_l.
-
 
     unfold DYNWIN at 2 3; cbn.
 
@@ -1605,13 +1616,13 @@ Proof.
     replace bk with b in * by now invc Heqs0.
     clear Heqs0.
 
-    clear.
+    (* clear. *)
     match goal with
       |- context[ (ℑs3 _) _ ?s ?m] => idtac s; idtac m
     end.
 
-  set (ρI'' := (alist_add (Name "X0") (UVALUE_Addr a0_addr)
-                  (alist_add (Name "Y1") (UVALUE_Addr a1_addr) []))).
+    set (ρI'' := (alist_add (Name "X0") (UVALUE_Addr a0_addr)
+                    (alist_add (Name "Y1") (UVALUE_Addr a1_addr) []))).
 
   (* set (ρI'' := (alist_add (Name "Y1") (UVALUE_Addr a1_addr) *)
   (*                 (alist_add (Name "X0") (UVALUE_Addr a0_addr) []))). *)
@@ -1715,15 +1726,59 @@ Proof.
         symmetry.
         eassumption. }
       invc H3.
-  - (* Assuming we can discharge all the preconditions, *)
-(*        we prove here that it is sufficient for establishing *)
-(*        our toplevel correctness statement. *)
-(*      *)
+  -
+
+
+
+
     eapply interp_mem_interp_helix_ret in EQ.
     eapply eutt_ret_inv_strong' in EQ.
     destruct EQ as ([? |] & EQ & TMP); inv TMP.
     rewrite EQ in RES.
     clear EQ.
+
+    (* Vellvm invariant:
+       a computation starting from a fresh frame:
+       - always leads to memory where [free_frame] succeeds
+       - the resulting memory still contains all initially allocated addresses
+       - the [free_frame] operation itself only deallocates, it does not change
+       the content of what remains.
+
+       TODO: before proving, generalize over arbitrary trees rather than specifically
+       denotations of ocfgs.
+     *)
+    Lemma memory_scoping : forall ocfg b g ρ m,
+        interp_cfg3 (⟦ ocfg ⟧bs b) g ρ (push_fresh_frame m)
+          ⤳ (fun '(m',_) => exists m'', free_frame m' ≡ inr m'' /\
+                                 (forall a, allocated a m -> allocated a m'') /\
+                                 (forall a τ v, read m'' a τ ≡ inr v -> read m' a τ ≡ inr v)).
+    Admitted.
+
+    Lemma has_post_enrich_eutt {E X Y RR Q1 Q2} :
+      forall (t : itree E X) (u : itree E Y),
+        eutt RR t u ->
+        t ⤳ Q1 ->
+        u ⤳ Q2 ->
+        eutt (fun x y => RR x y /\ Q1 x /\ Q2 y) t u.
+    Admitted.
+
+    (* Auxilliary lemma to enrich an equation with an invariant over the right computation *)
+    Lemma has_post_enrich_eutt_r {E X Y RR Q} :
+      forall (t : itree E X) (u : itree E Y),
+        eutt RR t u ->
+        u ⤳ Q ->
+        eutt (fun x y => RR x y /\ Q y) t u.
+    Admitted.
+
+    match type of RES with
+    | eutt _ _ (interp_cfg3 (denote_ocfg ?ocfg ?b) ?g ?ρ (push_fresh_frame ?m)) =>
+        let H := fresh in
+        let H' := fresh in
+        pose proof memory_scoping ocfg b g ρ m as H;
+        pose proof has_post_enrich_eutt_r _ _ RES H as H';
+        clear H RES; rename H' into RES
+    end.
+
     destruct p as [? []].
     inv H3; cbn in H1; clear H2.
     edestruct @eutt_ret_inv_strong as (RESLLVM2 & EQLLVM2 & INV2); [apply RES | clear RES].
@@ -1737,68 +1792,95 @@ Proof.
       |- context[denote_ocfg ?a] => change a with (convert_typ [] (b :: blocks))
     end.
 
+
+
     rewrite EQLLVM2.
-    clear - EQLLVM2.
-
-    replace (map (tfmap (typ_to_dtyp nil)) (b :: blocks)) with (convert_typ nil (b :: blocks)) by reflexivity.
+    rewrite bind_ret_l.
     onAllHyps move_up_types.
-    (* Set Printing All. *)
+    destruct INV2 as [[INV2 [[from EQ] INV3]] FREE_INV].
+    subst v2.
+    focus_single_step_l.
+    rewrite denote_ocfg_unfold_in; cycle -1.
+    cbn; rewrite find_block_eq; reflexivity.
+    cbn.
+    rewrite denote_block_unfold.
+    rewrite denote_no_phis.
+    rewrite bind_ret_l.
+    rewrite bind_bind.
+    rewrite denote_code_nil.
+    rewrite bind_ret_l.
+    Transparent denote_terminator.
+    unfold denote_terminator.
+    cbn.
+    rewrite translate_ret.
+    rewrite bind_ret_l.
+    rewrite translate_ret, interp_mrec_ret, interp3_ret, bind_ret_l.
+    subst i.
+    rewrite translate_ret, interp_mrec_ret, interp3_ret, bind_ret_l.
+    focus_single_step_l.
+    rewrite interp_mrec_bind,interp_mrec_trigger.
+    rewrite interp3_bind, bind_bind.
+    simpl.
+    (* Unset Printing Notations. *)
+    pose proof interp_mcfg3_trigger_is_handler3 unit (subevent _ (inr1 StackPop)) g2 (ρ2, [] :: ρI :: sI) mem2 as EQ; cbn in EQ.
+    rewrite EQ; clear EQ.
+    rewrite 2 bind_ret_l.
+    rewrite interp_mrec_bind,interp_mrec_trigger.
+    rewrite interp3_bind, bind_bind.
+    simpl.
+    pose proof interp_mcfg3_trigger_is_handler3 unit (subevent _ MemPop) g2 ([], ρI :: sI) mem2 as EQ; cbn in EQ.
+    rewrite EQ; clear EQ.
+    cbn in INV3.
+    cbn in INV2.
+    rewrite bind_bind.
+    destruct FREE_INV as (mem2' & EQ_mem2 & ALLOC_INV & READ_INV).
+    rewrite EQ_mem2.
+    cbn. rewrite ?bind_ret_l.
+    cbn.
+    rewrite interp_mrec_ret, interp3_ret, bind_ret_l.
+    subst.
+    rewrite bind_ret_l.
+    rewrite translate_bind.
+    rewrite denote_code_singleton.
+    rewrite interp_mrec_bind,interp3_bind, bind_bind.
+    focus_single_step_l.
 
+Lemma denote3_instr_load :
+  forall ctx (i : raw_id) volatile τ τp ptr align g l l' m a uv s,
+    ⟦ ptr at τp ⟧e3 g l m ≈ Ret3 g l' m (UVALUE_Addr a) ->
+    read m a τ ≡ inr uv ->
+    interp_mcfg3 (interp_mrec ctx (translate instr_to_L0' ⟦ (IId i, INSTR_Load volatile τ (τp, ptr) align) ⟧i)) g (l,s) m ≈ Ret3 g ((Maps.add i uv l'),s) m tt.
+Proof.
+  intros.
+  eapply interp_cfg3_to_mcfg3.
+  rewrite denote_instr_load; [reflexivity | |]; eauto.
+Qed.
 
-(* Lemma interp_mrec_comp : Prop. *)
-(* refine (forall D1 D2 E *)
-(*                            (ctx1 : D1 ~> itree ((D1 +' D2) +' E)) *)
-(*                            (ctx2 : D2 ~> itree ((D1 +' D2) +' E)) *)
-(*                            R (t : itree ((D1 +' D2) +' E) R), _:Prop). *)
-(* refine (_ ≅ _). *)
-(* refine (interp_mrec ctx *)
-(*     interp_mrec ctx1 (interp_mrec ctx2 t) ≅ interp_mrec ctx1 (interp_mrec ctx2 t). *)
+(*
+  CURRENT POINT OF CONTENTION:
+  the next instruction is a load to the array corresponding to Y on the Helix side (array that happens to be of size 1 in the case of the program we consider):
+   z = load (array 1 double) @1
+   We hence need to:
+   - lookup @1 in our global environment [g2]: we should know by our invariant that it contains a certain address
+   - read the resulting address in memory [mem2']: we should know it contains a vector appropriately related to the content of [Y] on the Helix side
 
-Notation tree := (itree _ _).
+   For the former, we could rely on:
+   assert (g2 ≡ gI) by admit.
+   as this holds in general of the LLVM semantics. However, it should not be necessary I believe, as the memory invariant should already know it.
+   Furthermore, if the invariant does not know it, then getting the address won't help us as the memory invariant will not know of this address.
 
-Ltac eqitree_of_eq h :=
-  match type of h with
-  | ?t ≡ ?u =>
-      let name := fresh in
-      assert (name: t ≅ u) by (subst; reflexivity); clear h; rename name into h
-  end.
-Tactic Notation "eqi_of_eq" ident(h) := eqitree_of_eq h.
+   Question 1: does the current invariant in the context states what we want?
+   Question 2a : if not, where did we lose information and how do we fix it?
+   Question 2b : if it does, then let's process the read as follows:
+ *)
+clear INIT_MEM EQLLVMINIT.
+rewrite denote3_instr_load; cycle 1.
+rewrite denote_exp_GR.
+(* Goal 2 and 3 should find resolution based on the memory invariant.
+   Once it's done, Goal 1 should be valid by reflexivity.
+   We'll be left with Goal 4, i.e. processing the return instruction
+ *)
 
-(* #[global] Instance eq_itree_interp_cfg3: *)
-(*   forall {T : Type}, Proper (eq_itree eq ==> eq ==> eq ==> eq ==> eq_itree eq) (@ℑ3 T). *)
-(* Proof. *)
-(* Admitted. *)
-
-(* Global Instance eqitree_cong_eq {E R1 R2 RR}: *)
-(*   Proper (eq_itree eq ==> eq_itree eq ==> flip impl) *)
-(*          (@eq_itree E R1 R2 RR). *)
-(* Proof. *)
-(* Admitted. *)
-
-(* MARKER *)
-
-  (* match type of EQ with *)
-  (* | eqit_ _ _ _ _ _ ?t ?u => remember t as T *)
-  (*                           (* ; remember u as U *) *)
-  (* end. *)
-
-  (* eqi_of_eq HeqT. *)
-  (* (* eqi_of_eq HeqU. *) *)
-  (* revert t HeqT. *)
-  (* red in EQ. *)
-  (* dependent induction EQ. *)
-  (* - intros. *)
-  (*   rewrite itree_eta, <- x in HeqT. *)
-  (*   clear T x. *)
-  (*   rewrite (itree_eta t) in HeqT. *)
-
-  (* dependent induction EQ. *)
-  (* - rewrite translate_ret, interp_mrec_ret, interp3_ret. *)
-  (*   rewrite interp_cfg3_ret in EQ. *)
-  (*   apply eutt_inv_Ret in EQ. *)
-  (*   inversion EQ; subst. *)
-  (*   reflexivity. *)
-  (* - rewrite translate_tau, interp_mrec_tau, interp3_tau. *)
 
 
 
