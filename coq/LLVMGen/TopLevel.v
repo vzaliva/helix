@@ -1754,6 +1754,21 @@ Notation "'with' 'ℑs3' 'and' 'context' ctx 'computing' t 'from' g l m"
                                  (forall a τ v, read m'' a τ ≡ inr v -> read m' a τ ≡ inr v)).
     Admitted.
 
+    assert (Hg1: interp_cfg3
+            (denote_ocfg (convert_typ nil (cons b blocks))
+              (pair (blk_id b) (blk_id b))) gI ρI''
+            (push_fresh_frame (push_fresh_frame memI))
+          ⤳ (fun '(m, (m', (g, _))) => g @ (Anon 1%Z) ≡ Some (DVALUE_Addr a1_addr))).
+    {
+      unfold has_post.
+      apply eutt_EQ_REL_Reflexive_.
+      intros.
+      destruct PR.
+      subst x0.
+      destruct x1, p0, p0.
+      admit.
+    }
+
     Lemma has_post_enrich_eutt {E X Y RR Q1 Q2} :
       forall (t : itree E X) (u : itree E Y),
         eutt RR t u ->
@@ -1779,6 +1794,13 @@ Notation "'with' 'ℑs3' 'and' 'context' ctx 'computing' t 'from' g l m"
         clear H RES; rename H' into RES
     end.
 
+    match type of RES with
+    | eutt _ _ (interp_cfg3 (denote_ocfg ?ocfg ?b) ?g ?ρ (push_fresh_frame ?m)) =>
+        let H' := fresh in
+        pose proof has_post_enrich_eutt_r _ _ RES Hg1 as H';
+        clear RES; rename H' into RES
+    end.
+
     destruct p as [? []].
     inv H3; cbn in H1; clear H2.
     edestruct @eutt_ret_inv_strong as (RESLLVM2 & EQLLVM2 & INV2); [apply RES | clear RES].
@@ -1797,7 +1819,7 @@ Notation "'with' 'ℑs3' 'and' 'context' ctx 'computing' t 'from' g l m"
     rewrite EQLLVM2.
     rewrite bind_ret_l.
     onAllHyps move_up_types.
-    destruct INV2 as [[INV2 [[from EQ] INV3]] FREE_INV].
+    destruct INV2 as [[[INV2 [[from EQ] INV3]] FREE_INV] INV_g].
     subst v2.
     focus_single_step_l.
     rewrite denote_ocfg_unfold_in; cycle -1.
@@ -1881,7 +1903,10 @@ rewrite denote_exp_GR.
    We'll be left with Goal 4, i.e. processing the return instruction
  *)
 
-
+2: apply INV_g.
+2: admit.
+cbn.
+reflexivity.
 
 
 Admitted.
