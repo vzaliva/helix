@@ -20,18 +20,6 @@ Opaque incBlockNamed.
 Opaque incVoid.
 Opaque incLocal.
 
-(* The result is a branch *)
-Definition branches (to : block_id) (mh : memoryH * ()) (c : config_cfg_T (block_id * block_id + uvalue)) : Prop :=
-  match c with
-  | (m,(l,(g,res))) => exists from, res ≡ inl (from, to)
-  end.
-
-Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li : local_env)
-  : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
-  lift_Rel_cfg (state_invariant σ s2) ⩕
-               branches to ⩕
-               (fun sthf stvf => local_scope_modif s1 s2 li (fst (snd stvf))).
-
 (* ** DSHAssign (x_p, src_e) (y_p, dst_e):
          Helix side:
          1. x_i <- evalPExpr σ x_p ;;

@@ -86,18 +86,6 @@ Section DSHLoop_is_tfor.
 
 End DSHLoop_is_tfor.
 
-(* The result is a branch *)
-Definition branches (to : block_id) (mh : memoryH * ()) (c : config_cfg_T (block_id * block_id + uvalue)) : Prop :=
-  match c with
-  | (m,(l,(g,res))) => exists from, res ≡ inl (from, to)
-  end.
-
-Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li : local_env)
-  : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
-  lift_Rel_cfg (state_invariant σ s2) ⩕
-               branches to ⩕
-               (fun sthf stvf => local_scope_modif s1 s2 li (fst (snd stvf))).
-
 Lemma DSHLoop_correct:
   ∀ (n : nat) (op : DSHOperator),
     (∀ (s1 s2 : IRState) (σ : evalContext) (memH : memoryH) (nextblock bid_in bid_from : block_id) (bks : list (LLVMAst.block typ)) (g : global_env) (ρ : local_env) (memV : memoryV),

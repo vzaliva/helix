@@ -30,18 +30,6 @@ Import MonadNotation.
 Local Open Scope monad_scope.
 Local Open Scope nat_scope.
 
-(* The result is a branch *)
-Definition branches {T : Type} (to : block_id) (mh : memoryH * T) (c : config_cfg_T (block_id * block_id + uvalue)) : Prop :=
-  match c with
-  | (m,(l,(g,res))) => exists from, res ≡ inl (from, to)
-  end.
-
-Definition genIR_post {T} (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li : local_env)
-  : Rel_cfg_T T ((block_id * block_id) + uvalue) :=
-  lift_Rel_cfg (state_invariant σ s2) ⩕
-               branches to ⩕
-               (fun sthf stvf => local_scope_modif s1 s2 li (fst (snd stvf))).
-
 (* One step unrolling of the combinator *)
 Lemma tfor_unroll_right: forall {E A} i j (body : nat -> A -> itree E A) a0,
     i <= j ->
@@ -173,6 +161,18 @@ Proof.
     destruct (Memory.NM.find k a); constructor.
     reflexivity.
 Qed.
+
+(* The result is a branch *)
+#[local] Definition branches {T : Type} (to : block_id) (mh : memoryH * T) (c : config_cfg_T (block_id * block_id + uvalue)) : Prop :=
+  match c with
+  | (m,(l,(g,res))) => exists from, res ≡ inl (from, to)
+  end.
+
+#[local] Definition genIR_post {T} (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li : local_env)
+  : Rel_cfg_T T ((block_id * block_id) + uvalue) :=
+  lift_Rel_cfg (state_invariant σ s2) ⩕
+               branches to ⩕
+               (fun sthf stvf => local_scope_modif s1 s2 li (fst (snd stvf))).
 
 Lemma MemInit_Correct:
   ∀ (y_p : PExpr) (value : binary64) (s1 s2 : IRState) (σ : evalContext) 

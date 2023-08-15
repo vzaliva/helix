@@ -35,12 +35,6 @@ Arguments add_comment /.
 Arguments add_comments /.
 Section GenIR.
 
-  (* The result is a branch *)
-  Definition branches (to : block_id) (mh : memoryH * ()) (c : config_cfg_T (block_id * block_id + uvalue)) : Prop :=
-    match c with
-    | (m,(l,(g,res))) => exists from, res ≡ inl (from, to)
-    end.
-
   Hint Resolve state_invariant_incBlockNamed : state_invariant.
   Hint Resolve state_invariant_incLocal : state_invariant.
   Hint Resolve state_invariant_incVoid : state_invariant.
@@ -66,21 +60,11 @@ Section GenIR.
   Notation "'to_nat'" := (MInt64asNT.to_nat) (only printing).
 
   Import AlistNotations.
-
-  Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li : local_env)
-    : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
-    lift_Rel_cfg (state_invariant σ s2) ⩕
-                 branches to ⩕
-                 (fun sthf stvf => local_scope_modif s1 s2 li (fst (snd stvf))).
-
   Opaque alist_add.
 
   (* Correctness result for the compilation of operators.
      All core features of the language are tackled: assignment and allocation,
      sequence and looping, iterations over vectors with IMap and Power.
-     Two operators remain to be handled: DSHBinop and DSHMemMap2.
-     They have all similar structures to IMap and Power, iterating over vectors:
-     we do not anticipate the need for any extra meta-theory nor invariant.
    *)
   Lemma compile_FSHCOL_correct :
     forall (** Compiler bits *) (s1 s2: IRState)
