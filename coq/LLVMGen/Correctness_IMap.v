@@ -774,7 +774,7 @@ Lemma DSHIMap_correct:
     → Gamma_safe σ s1 s2
     (* We need an explicit predicate stating that the source program will not fail. *)
     → no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ (DSHIMap n x_p y_p f)) memH)
-    → eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ))
+    → eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ g))
            (interp_helix (denoteDSHOperator σ (DSHIMap n x_p y_p f)) memH)
             (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from, bid_in)) g ρ memV).
 Proof.
@@ -932,7 +932,7 @@ Proof.
     cbn. apply eqit_Ret. auto.
     intros.
     destruct X.
-    exact (genIR_post σ s0 s12 nextblock ρ (m, ()) X0).
+    exact (genIR_post σ s0 s12 nextblock ρ g (m, ()) X0).
     exact False.
   }
   2 : {
@@ -2118,6 +2118,10 @@ apply eqit_Ret.
 
     split; eauto.
   - destruct H; eauto.
-  - solve_local_scope_modif.
+  -
+    split.
+    solve_local_scope_modif.
+    tauto.
 }
 Qed.
+

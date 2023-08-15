@@ -168,11 +168,11 @@ Qed.
   | (m,(l,(g,res))) => exists from, res ≡ inl (from, to)
   end.
 
-#[local] Definition genIR_post {T} (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li : local_env)
+#[local] Definition genIR_post {T} (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li : local_env) (gi : global_env)
   : Rel_cfg_T T ((block_id * block_id) + uvalue) :=
   lift_Rel_cfg (state_invariant σ s2) ⩕
                branches to ⩕
-               (fun sthf stvf => local_scope_modif s1 s2 li (fst (snd stvf))).
+               (fun sthf stvf => local_scope_modif s1 s2 li (fst (snd stvf))  /\ gi ≡ (fst (snd (snd stvf)))).
 
 Lemma MemInit_Correct:
   ∀ (y_p : PExpr) (value : binary64) (s1 s2 : IRState) (σ : evalContext) 
@@ -183,7 +183,7 @@ Lemma MemInit_Correct:
     → state_invariant σ s1 memH (memV, (ρ, g))
     → Gamma_safe σ s1 s2
     → no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ (DSHMemInit y_p value)) memH)
-    → eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ))
+    → eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ g))
            (interp_helix (denoteDSHOperator σ (DSHMemInit y_p value)) memH)
            (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from, bid_in)) g ρ memV).
 Proof.
@@ -250,7 +250,7 @@ Proof.
   set (genIR_post' σ s1 s2 nextblock ρ :=
     lift_Rel_cfg (state_invariant (protect σ n) s2) ⩕
     branches nextblock ⩕
-    (fun sthf stvf => local_scope_modif s1 s2 ρ (fst (snd stvf))) ⩕
+    (fun sthf stvf => local_scope_modif s1 s2 ρ (fst (snd stvf)) /\ g ≡ (fst (snd (snd stvf)))) ⩕
     (fun '(_, mB) '(mV, (l, (g, _))) => 
       dtyp_fits mV ptrll_xoff (typ_to_dtyp [] (TYPE_Array sz TYPE_Double)) /\
       in_local_or_global_addr l g i0 ptrll_xoff /\

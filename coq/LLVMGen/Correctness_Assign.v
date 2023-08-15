@@ -50,7 +50,7 @@ Lemma DSHAssign_correct :
     state_invariant σ s1 memH (memV, (ρ, g)) ->
     Gamma_safe σ s1 s2 ->
     no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ (DSHAssign src dst)) memH) -> (* Evaluation succeeds *)
-    eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ))
+    eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ g))
          (interp_helix (denoteDSHOperator σ (DSHAssign src dst)) memH)
          (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from,bid_in))
                      g ρ memV).

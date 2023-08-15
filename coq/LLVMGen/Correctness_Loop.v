@@ -94,14 +94,14 @@ Lemma DSHLoop_correct:
         → state_invariant σ s1 memH (memV, (ρ, g))
         → Gamma_safe σ s1 s2
         → no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ op) memH)
-        → eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ)) (interp_helix (denoteDSHOperator σ op) memH) (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from, bid_in)) g ρ memV))
+        → eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ g)) (interp_helix (denoteDSHOperator σ op) memH) (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from, bid_in)) g ρ memV))
     → ∀ (s1 s2 : IRState) (σ : evalContext) (memH : memoryH) (nextblock bid_in bid_from : block_id) (bks : list (LLVMAst.block typ)) (g : global_env) (ρ : local_env) (memV : memoryV),
       genIR (DSHLoop n op) nextblock s1 ≡ inr (s2, (bid_in, bks))
       → bid_bound s1 nextblock
       → state_invariant σ s1 memH (memV, (ρ, g))
       → Gamma_safe σ s1 s2
       → no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ (DSHLoop n op)) memH)
-      → eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ))
+      → eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ g))
              (interp_helix (denoteDSHOperator σ (DSHLoop n op)) memH)
              (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from, bid_in)) g ρ memV).
 Proof.
@@ -176,13 +176,13 @@ Proof.
   set (I := (fun (k : nat) (mH : option (memoryH * ())) (stV : memoryV * (local_env * global_env)) =>
                match mH with
                | None => False
-               | Some (mH,tt) => state_invariant σ s2 mH stV
+               | Some (mH,tt) => state_invariant σ s2 mH stV /\ (g ≡ snd (snd (stV)))
                end)).
   (* Precondition and postcondition *)
   set (P := (fun (mH : option (memoryH * ())) (stV : memoryV * (local_env * global_env)) =>
                match mH with
                | None => False
-               | Some (mH,tt) => state_invariant σ s2 mH stV
+               | Some (mH,tt) => state_invariant σ s2 mH stV /\ (g ≡ snd (snd (stV)))
                end)).
 
   specialize (GENC I P P (Some (memH, ()))).
@@ -190,6 +190,7 @@ Proof.
   forward GENC; [clear GENC |].
   {
     subst I P; intros ? ? ? [[? []]|] * (INV & LOOPVAR & BOUNDk & RET); [| inv INV]; cbn in *.
+    destruct INV as [INV GENV].
 
     assert (EQk: MInt64asNT.from_nat k ≡ inr (Int64.repr (Z.of_nat k))).
     {clear - BOUNDk Heqs.
@@ -265,7 +266,7 @@ Proof.
 
     - eapply eutt_mon, Heqs3.
       clear Heqs3 NOFAIL INPUTS_BETWEEN WFOCFG.
-      intros [[? []]|] (mVf & lf & gf & ?) POST; [destruct POST as (P1 & P2 & P3) | inv POST].
+      intros [[? []]|] (mVf & lf & gf & ?) POST; [destruct POST as (P1 & P2 & P3 & PG) | inv POST].
       split; [| split; [| split]].
       + rewrite <- LOOPVAR; eapply local_scope_modif_out; eauto.
         2: eapply lid_bound_between_newLocalVar; eauto.
@@ -273,6 +274,7 @@ Proof.
         reflexivity.
       + eauto.
       + cbn in P1.
+        split; [| cbn in PG; congruence].
         eapply state_invariant_escape_scope.
         assert (Γ s4 ≡ Γ s3) by solve_gamma.
         rewrite H in *.
@@ -289,6 +291,8 @@ Proof.
   forward GENC; [clear GENC |].
   { subst I P; cbn.
     intros _ * BOUND INV; simp; auto.
+    destruct INV as [INV GENV].
+    split; [| tauto].
     apply state_invariant_Γ' with s1; eauto using incBlockNamed_Γ; [|get_gamma_bounds; solve_gamma_bound].
     eapply state_invariant_Γ with (s2 := s1) in INV; [| symmetry; eauto using incBlockNamed_Γ | solve_local_count].
     eapply state_invariant_Γ in INV; [| symmetry; eassumption | solve_local_count].
@@ -333,13 +337,13 @@ Proof.
   eapply eutt_mon; [| apply GENC].
   {
     clear GENC NOFAIL INPUTS_BETWEEN IHop WFOCFG;subst P I.
-    intros [[? []] | ] (? & ? & ? & ?) (H1 & H2 & H3); cbn.
+    intros [[? []] | ] (? & ? & ? & ?) (H1 & H2 & H3); cbn; eauto.
+    destruct H2 as [H2 GENV].
     split; [| split]; cbn; eauto.
     - (* Need to enter scope,then escape it to link with s2 *)
       eapply state_invariant_Γ'; eauto.
       solve_gamma. get_gamma_bounds; solve_gamma_bound.
     - destruct H1; eauto.
-    - eauto.
   }
   { subst P; cbn.
     clear -PRE Heqs1.

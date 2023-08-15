@@ -1908,7 +1908,7 @@ apply allocated_can_read
 rewrite denote3_instr_load; cycle 1.
 rewrite denote_exp_GR.
 
-all: replace g2 with gI in * by admit.
+all: replace g2 with gI in * by tauto.
 
 2,3: eassumption.
 reflexivity.

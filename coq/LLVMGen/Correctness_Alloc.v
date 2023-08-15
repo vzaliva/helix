@@ -65,7 +65,7 @@ Lemma DSHAlloc_correct:
         → state_invariant σ s1 memH (memV, (ρ, g))
         → Gamma_safe σ s1 s2
         → @no_failure E_cfg (memoryH * ()) (interp_helix (denoteDSHOperator σ op) memH)
-        → eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ)) (interp_helix (denoteDSHOperator σ op) memH)
+        → eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ g)) (interp_helix (denoteDSHOperator σ op) memH)
                 (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from, bid_in)) g ρ memV))
     → ∀ (s1 s2 : IRState) (σ : evalContext) (memH : memoryH) (nextblock bid_in bid_from : block_id) 
         (bks : list (LLVMAst.block typ)) (g : global_env) (ρ : local_env) (memV : memoryV),
@@ -74,7 +74,7 @@ Lemma DSHAlloc_correct:
       → state_invariant σ s1 memH (memV, (ρ, g))
       → Gamma_safe σ s1 s2
       → @no_failure E_cfg (memoryH * ()) (interp_helix (denoteDSHOperator σ (DSHAlloc size op)) memH)
-      → eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ))
+      → eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ g))
               (interp_helix (denoteDSHOperator σ (DSHAlloc size op)) memH)
               (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from, bid_in)) g ρ memV).
 Proof.
@@ -380,10 +380,13 @@ Proof.
     - split. destruct H3. cbn in H3.
       { apply H3. }
       destruct H3. cbn in *.
+      destruct H4.
 
       pose proof local_scope_modif_refl.
       apply genIR_local_count in genIR_op''.
       cbn in *.
+
+      split.
 
       eapply local_scope_modif_trans. 4 : eapply local_scope_modif_trans.
       6 : eauto.
@@ -392,6 +395,8 @@ Proof.
       apply local_scope_modif_add.
       eapply lid_bound_between_newLocalVar.
       2 : cbn; reflexivity. reflexivity.
+
+      assumption.
   }
 
 Qed.

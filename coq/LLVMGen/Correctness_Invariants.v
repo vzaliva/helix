@@ -1732,11 +1732,13 @@ C2(C1(p1)) == p1
     | (m,(l,(g,res))) => exists from, res ≡ inl (from, to)
     end.
 
-  Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li : local_env)
+  Definition genIR_post (σ : evalContext) (s1 s2 : IRState) (to : block_id) (li : local_env) (gi : global_env)
     : Rel_cfg_T unit ((block_id * block_id) + uvalue) :=
     lift_Rel_cfg (state_invariant σ s2) ⩕
       branches to ⩕
-      (fun sthf stvf => local_scope_modif s1 s2 li (fst (snd stvf))).
+      (fun sthf stvf => local_scope_modif s1 s2 li (fst (snd stvf)) /\
+                       (* global environment remains unchanged (gi - env at start of execution)*)
+                       gi ≡ (fst (snd (snd stvf)))).
 
 End SimulationRelations.
 

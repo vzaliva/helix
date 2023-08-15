@@ -219,7 +219,7 @@ Lemma DSHPower_correct:
     → state_invariant σ s1 memH (memV, (l, g))
     → Gamma_safe σ s1 s2
     → no_failure (E := E_cfg) (interp_helix (denoteDSHOperator σ (DSHPower n src dst f initial)) memH)
-    → eutt (succ_cfg (genIR_post σ s1 s2 nextblock l)) (interp_helix (denoteDSHOperator σ (DSHPower n src dst f initial)) memH) (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from, bid_in)) g l memV).
+    → eutt (succ_cfg (genIR_post σ s1 s2 nextblock l g)) (interp_helix (denoteDSHOperator σ (DSHPower n src dst f initial)) memH) (interp_cfg (denote_ocfg (convert_typ [] bks) (bid_from, bid_in)) g l memV).
 Proof.
   intros n src dst f initial s1 s2 σ memH nextblock bid_in bid_from bks g l memV GEN NEXT PRE GAM NOFAIL.
 
@@ -768,7 +768,7 @@ Proof.
   set (Q := (fun (mH : option (memoryH * mem_block)) (stV : memoryV * (local_env * global_env)) =>
                match mH with
                | None => False
-               | Some (mH,mb) => state_invariant σ s2 (memory_set mH dst_addr_h mb) stV
+               | Some (mH,mb) => state_invariant σ s2 (memory_set mH dst_addr_h mb) stV /\ g_yoff ≡ (snd (snd stV))
                end)).
 
   specialize (LOOPTFOR I P Q (Some (m_yoff, mem_add (MInt64asNT.to_nat yoff_res) initial bkh_yoff))).
@@ -1504,6 +1504,7 @@ Proof.
     split; cbn.
 
     cbn in Q_POST.
+    destruct Q_POST as [Q_POST GENV].
     eauto.
 
     split.
@@ -1526,7 +1527,12 @@ Proof.
       apply local_scope_modif_sub'_l in LSM_POST; [|solve_lid_bound_between].
       apply local_scope_modif_sub'_l in LSM_POST; [|solve_lid_bound_between].
 
+      split.
+
       solve_local_scope_modif_trans.
+
+      cbn in Q_POST.
+      tauto.
     }
   }
 
@@ -1663,6 +1669,8 @@ Proof.
     break_match_hyp.
     destruct H as [SINV [DST [SRC [LSM [G [ALLOCI [RET [MEMH_OLD [v [MEMH_NEW EXT_MEM]]]]]]]]]].
     subst.
+
+    split; [| reflexivity].
 
     eapply state_invariant_write_double_result with (sz:=sz0); eauto.
     rewrite <- Γ_S1S2; eauto.

@@ -75,7 +75,7 @@ Section GenIR.
       bid_bound s1 nextblock ->
       state_invariant σ s1 memH (memV, (ρ, g)) ->
       Gamma_safe σ s1 s2 ->
-      eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ))
+      eutt (succ_cfg (genIR_post σ s1 s2 nextblock ρ g))
            (interp_helix (denoteDSHOperator σ op) memH)
            (interp_cfg (D.denote_ocfg (convert_typ [] bks) (bid_from,bid_in))
                        g ρ memV).
@@ -234,8 +234,10 @@ Section GenIR.
 
       apply genIR_local_count in GEN_OP1. 
       apply genIR_local_count in GEN_OP2.
+      destruct BR as [BR G1], POST as [POST G0].
+      split.
       eapply local_scope_modif_trans'''; eauto.
-
+      congruence.
   Qed.
 
 End GenIR.
