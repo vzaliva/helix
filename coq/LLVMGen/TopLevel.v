@@ -1874,14 +1874,43 @@ Qed.
    Question 2b : if it does, then let's process the read as follows:
  *)
 clear INIT_MEM EQLLVMINIT.
+
+(* instantiatiate read before introducing existential *)
+assert (T: allocated a1_addr mem2').
+{
+  apply ALLOC_INV.
+  apply st_id_allocated in state_inv''.
+  move state_inv' at bottom.
+
+  apply mem_is_inv in state_inv'.
+  cbn in state_inv'.
+  specialize (state_inv' 1).
+  cbn in state_inv'.
+  specialize (state_inv' (FHCOL.DSHPtrVal 1 dynwin_o') (false)).
+  specialize (state_inv' (TYPE_Pointer (TYPE_Array (Npos xH) TYPE_Double)) (ID_Local "Y1")).
+  autospecialize state_inv'; [reflexivity |].
+  autospecialize state_inv'; [reflexivity |].
+  cbn in state_inv'.
+  destruct state_inv' as (a1_addr' & ? & ? & A1_MEMI & ρI'Y1 & ?).
+  subst ρI'.
+  replace a1_addr' with a1_addr in * by now cbv in ρI'Y1.
+  invc H2.
+  clear - A1_MEMI.
+  apply dtyp_fits_allocated in A1_MEMI.
+  destruct memI.
+  cbn in *.
+  assumption.
+}
+apply allocated_can_read
+  with (τ:=(typ_to_dtyp nil (TYPE_Array (Npos xH) TYPE_Double)))
+  in T as [y_ival YIV].
+
 rewrite denote3_instr_load; cycle 1.
 rewrite denote_exp_GR.
-(* Goal 2 and 3 should find resolution based on the memory invariant.
-   Once it's done, Goal 1 should be valid by reflexivity.
-   We'll be left with Goal 4, i.e. processing the return instruction
- *)
 
+all: replace g2 with gI in * by admit.
 
-
+2,3: eassumption.
+reflexivity.
 
 Admitted.
