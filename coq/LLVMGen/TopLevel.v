@@ -76,16 +76,12 @@ Proof.
   eapply HCOL_to_FHCOL_Correctness; eauto.
 Qed.
 
-(* TODO *)
 Section Program.
 
   Local Obligation Tactic := cbv;auto.
   Program Definition dynwin_i' : Int64.int := Int64.mkint (Z.of_nat dynwin_i) _.
   Program Definition dynwin_o' : Int64.int := Int64.mkint (Z.of_nat dynwin_o) _.
   Program Definition three : Int64.int := Int64.mkint 3 _.
-  (* TODO pull and recompile?? *)
-  (* TODO convert R global type signature to F global type signature? *)
-  (* IZ : Construct the globals here *)
   Definition dynwin_globals' : list (string * FHCOL.DSHType)
     := cons ("a",DSHPtr three) nil.
 
@@ -93,42 +89,12 @@ Section Program.
   Definition dynwin_fhcolp : FHCOL.DSHOperator -> FSHCOLProgram :=
     mkFSHCOLProgram dynwin_i' dynwin_o' "dyn_win" dynwin_globals'.
 
-  (* Where do I build my data to pass to compile_w_main? *)
-  (* Lookup in fmem yaddr xaddr and aaddr and flatten *)
-  (* Definition dynwin_data (a_fmem x_fmem : FHCOLEval.mem_block): list binary64. *)
-  (* Admitted. *)
-
 End Program.
-
-(* (* with init step  *) *)
-(* Lemma compiler_correct_aux: *)
-(*   forall (p:FSHCOLProgram) *)
-(*     (data:list binary64) *)
-(*     (pll: toplevel_entities typ (LLVMAst.block typ * list (LLVMAst.block typ))), *)
-(*     forall s, compile_w_main p data newState ≡ inr (s,pll) -> *)
-(*     eutt (succ_mcfg (bisim_full nil s)) (semantics_FSHCOL p data) (semantics_llvm pll). *)
-(* Proof. *)
-(*   intros * COMP. *)
-(*   unshelve epose proof memory_invariant_after_init _ _ (conj _ COMP) as INIT_MEM. *)
-(*   helix_initial_memory *)
-(*   unfold compile_w_main,compile in COMP. *)
-(*   cbn* in COMP. *)
-(*   simp. *)
-(*   unshelve epose proof @compile_FSHCOL_correct _ _ _ (* dynwin_F_σ dynwin_F_memory *) _ _ _ _ _ _ _ _ _ Heqs _ _ _ _. *)
 
 Set Nested Proofs Allowed.
 Import MonadNotation.
 Local Open Scope monad_scope.
 Import ListNotations.
-
-(* Definition helix_initializer (p:FSHCOLProgram) (data:list binary64) *)
-(*   : itree Event (nat*nat) := *)
-(*   '(data, σ) <- denote_initFSHGlobals data p.(Data.globals) ;; *)
-(*   xindex <- trigger (MemAlloc p.(i));; *)
-(*   yindex <- trigger (MemAlloc p.(o));; *)
-(*   let '(data, x) := constMemBlock (MInt64asNT.to_nat p.(i)) data in *)
-(*   trigger (MemSet xindex x);; *)
-(*   Ret (xindex,yindex). *)
 
 Definition helix_finalizer (p:FSHCOLProgram) (yindex : nat)
   : itree Event _ :=
@@ -194,56 +160,6 @@ Definition fhcol_to_llvm_rel : Rel_mcfg_OT (list binary64) uvalue :=
 
 
 Require Import LibHyps.LibHyps.
-
-(* Lemma compiler_correct_aux: *)
-(*   forall (p:FSHCOLProgram) *)
-(*     (data:list binary64) *)
-(*     (pll: toplevel_entities typ (LLVMAst.block typ * list (LLVMAst.block typ))), *)
-(*   forall s hmem hdata σ, *)
-(*     compile_w_main p data newState ≡ inr (s,pll) -> *)
-(*     helix_initial_memory p data ≡ inr (hmem, hdata, σ) -> *)
-(*     eutt fhcol_to_llvm_rel (semantics_FSHCOL' p data σ hmem) (semantics_llvm pll). *)
-(* Proof. *)
-(*   intros * COMP INIT. *)
-(*   generalize COMP; intros COMP'. *)
-(*   unfold compile_w_main,compile in COMP. *)
-(*   cbn* in COMP. *)
-(*   simp/g. *)
-(*   epose proof @compile_FSHCOL_correct _ _ _ (* dynwin_F_σ dynwin_F_memory *) _ _ _ _ _ _ _ _ _ Heqs _ _ _ _. *)
-(*   pose proof memory_invariant_after_init _ _ (conj INIT COMP') as INIT_MEM. *)
-(*   match goal with *)
-(*     |- context [semantics_llvm ?foo] => remember foo *)
-(*   end. *)
-(*   unfold semantics_llvm, semantics_llvm_mcfg, model_to_L3, denote_vellvm_init, denote_vellvm. *)
-(*   simpl bind. *)
-(*   rewrite interp3_bind. *)
-(*   ret_bind_l_left ((hmem, tt)). *)
-(*   eapply eutt_clo_bind. *)
-(*   apply INIT_MEM. *)
-(*   intros [? []] (? & ? & ? & []) INV. *)
-
-(*   clear - Heqs1. *)
-
-(*   unfold initIRGlobals,initIRGlobals_rev, init_with_data in Heqs1. *)
-
-(*   rewrite interp3_bind. *)
-
-(*   (* Need to get all the initialization stuff concrete I think? *) *)
-(*   unfold initIRGlobals,initIRGlobals_rev, init_with_data in Heqs1. *)
-(*   cbn in Heqs1. *)
-
-(* Admitted. *)
-
-(* Lemma compiler_correct_aux': *)
-(*   forall (p:FSHCOLProgram) *)
-(*     (data:list binary64) *)
-(*     (pll: toplevel_entities typ (LLVMAst.block typ * list (LLVMAst.block typ))), *)
-(*   forall s (* hmem hdata σ *), *)
-(*     (* helix_initial_memory p data ≡ inr (hmem, hdata, σ) -> *) *)
-(*     compile_w_main p data newState ≡ inr (s,pll) -> *)
-(*     eutt fhcol_to_llvm_rel (semantics_FSHCOL p data) (semantics_llvm pll). *)
-(* Proof. *)
-(* Admitted. *)
 
 
 (*
@@ -559,18 +475,6 @@ Proof.
     rewrite <- option_rel_opt_r.
     unfold equiv, FHCOLtoSFHCOL.SFHCOLEval.evalNatClosure_Equiv in H.
 Admitted.
-
-
-(* Notation mcfg_ctx fundefs := *)
-(*   (λ (T : Type) (call : CallE T), *)
-(*     match call in (CallE T0) return (itree (CallE +' ExternalCallE +' IntrinsicE +' LLVMGEnvE +' (LLVMEnvE +' LLVMStackE) +' MemoryE +' PickE +' UBE +' DebugE +' FailureE) T0) with *)
-(*     | LLVMEvents.Call dt0 fv args0 => *)
-(*         dfv <- concretize_or_pick fv True;; *)
-(*         match lookup_defn dfv fundefs with *)
-(*         | Some f_den => f_den args0 *)
-(*         | None => dargs <- map_monad (λ uv : uvalue, pickUnique uv) args0;; Functor.fmap dvalue_to_uvalue (trigger (ExternalCall dt0 fv dargs)) *)
-(*         end *)
-(*     end). *)
 
 Import RecursionFacts.
 
@@ -1639,16 +1543,10 @@ Notation "'with' 'ℑs3' 'and' 'context' ctx 'computing' t 'from' g l m"
   }
 
   (* We are getting closer to business: instantiating the lemma *)
-(*      stating the correctness of the compilation of operators *)
-  (* rename b into kerfuffle. *)
-  (* pose (foo := (init (df_instrs (DYNWIN bk bks2)))). *)
-  (* Transparent DYNWIN. *)
-  (* unfold DYNWIN in foo. *)
-  (* cbv in foo. *)
+  (* stating the correctness of the compilation of operators *)
   unshelve epose proof
     @compile_FSHCOL_correct _ _ _ dynwin_F_σ dynwin_F_memory _ _
                             (blk_id b)
-(* (init (df_instrs (DYNWIN bk bks2))) *)
                             _ gI ρI'' (push_fresh_frame (push_fresh_frame memI)) HgenIR _ _ _ _
     as RES.
   - clear - EQ.
@@ -1856,23 +1754,6 @@ Proof.
   rewrite denote_instr_load; [reflexivity | |]; eauto.
 Qed.
 
-(*
-  CURRENT POINT OF CONTENTION:
-  the next instruction is a load to the array corresponding to Y on the Helix side (array that happens to be of size 1 in the case of the program we consider):
-   z = load (array 1 double) @1
-   We hence need to:
-   - lookup @1 in our global environment [g2]: we should know by our invariant that it contains a certain address
-   - read the resulting address in memory [mem2']: we should know it contains a vector appropriately related to the content of [Y] on the Helix side
-
-   For the former, we could rely on:
-   assert (g2 ≡ gI) by admit.
-   as this holds in general of the LLVM semantics. However, it should not be necessary I believe, as the memory invariant should already know it.
-   Furthermore, if the invariant does not know it, then getting the address won't help us as the memory invariant will not know of this address.
-
-   Question 1: does the current invariant in the context states what we want?
-   Question 2a : if not, where did we lose information and how do we fix it?
-   Question 2b : if it does, then let's process the read as follows:
- *)
 clear INIT_MEM EQLLVMINIT.
 
 (* instantiatiate read before introducing existential *)
