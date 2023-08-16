@@ -197,14 +197,6 @@ heq_evalContext () RF_NHE RF_CHE dynwin_R_σ σ ->
 INITIAL MEMORY: what is the link between dynwin_F_memory and dynwin_F_sigma that are inherited from the top, with the result of helix_initial_memory = (hmem,hdata,σ): hmem == dynwin_F_memory and σ == dynwin_F_sigma?
 
  *)
-
-Lemma helix_inital_memory_denote_initFSHGlobals :
-  forall p data        (* FSHCOL static data  *)
-    hmem hdata σ  (* FSHCOL dynamic data *),
-    helix_initial_memory p data ≡ inr (hmem,hdata,σ) -> (* shallow memory initialization *)
-    interp_helix (denote_initFSHGlobals data (globals p)) FHCOLITree.memory_empty ≈ (Ret (Some (hmem,(hdata,σ))) : itree E_mcfg _).
-Admitted.
-
 Definition heq_list : list CarrierA → list binary64 → Prop
   := Forall2 (RHCOLtoFHCOL.heq_CType' RF_CHE ()).
 
@@ -1625,48 +1617,12 @@ Notation "'with' 'ℑs3' 'and' 'context' ctx 'computing' t 'from' g l m"
         eassumption. }
       invc H3.
   -
-
-
-
-
     eapply interp_mem_interp_helix_ret in EQ.
     eapply eutt_ret_inv_strong' in EQ.
     destruct EQ as ([? |] & EQ & TMP); inv TMP.
     rewrite EQ in RES.
     clear EQ.
 
-    (* Vellvm invariant:
-       a computation starting from a fresh frame:
-       - always leads to memory where [free_frame] succeeds
-       - the resulting memory still contains all initially allocated addresses
-       - the [free_frame] operation itself only deallocates, it does not change
-       the content of what remains.
-
-       TODO: before proving, generalize over arbitrary trees rather than specifically
-       denotations of ocfgs.
-     *)
-    Lemma memory_scoping : forall ocfg b g ρ m,
-        interp_cfg3 (⟦ ocfg ⟧bs b) g ρ (push_fresh_frame m)
-          ⤳ (fun '(m',_) => exists m'', free_frame m' ≡ inr m'' /\
-                                 (forall a, allocated a m -> allocated a m'') /\
-                                 (forall a τ v, read m'' a τ ≡ inr v -> read m' a τ ≡ inr v)).
-    Admitted.
-
-    Lemma has_post_enrich_eutt {E X Y RR Q1 Q2} :
-      forall (t : itree E X) (u : itree E Y),
-        eutt RR t u ->
-        t ⤳ Q1 ->
-        u ⤳ Q2 ->
-        eutt (fun x y => RR x y /\ Q1 x /\ Q2 y) t u.
-    Admitted.
-
-    (* Auxilliary lemma to enrich an equation with an invariant over the right computation *)
-    Lemma has_post_enrich_eutt_r {E X Y RR Q} :
-      forall (t : itree E X) (u : itree E Y),
-        eutt RR t u ->
-        u ⤳ Q ->
-        eutt (fun x y => RR x y /\ Q y) t u.
-    Admitted.
 
     match type of RES with
     | eutt _ _ (interp_cfg3 (denote_ocfg ?ocfg ?b) ?g ?ρ (push_fresh_frame ?m)) =>

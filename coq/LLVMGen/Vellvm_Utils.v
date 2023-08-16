@@ -307,15 +307,38 @@ Proof.
   eapply H; eauto.
 Qed.
 
-Lemma exp_eq_dec: forall e1 e2 : exp dtyp, {e1 = e2} + {e1 <> e2}.
+(* Vellvm invariant:
+   a computation starting from a fresh frame:
+   - always leads to memory where [free_frame] succeeds
+   - the resulting memory still contains all initially allocated addresses
+   - the [free_frame] operation itself only deallocates, it does not change
+   the content of what remains.
+   
+   TODO: before proving, generalize over arbitrary trees rather than specifically
+   denotations of ocfgs.
+ *)
+Lemma memory_scoping : forall ocfg b g ρ m,
+    interp_cfg3 (⟦ ocfg ⟧bs b) g ρ (push_fresh_frame m)
+      ⤳ (fun '(m',_) => exists m'', free_frame m' = inr m'' /\
+                              (forall a, allocated a m -> allocated a m'') /\
+                              (forall a τ v, read m'' a τ = inr v -> read m' a τ = inr v)).
 Admitted.
 
-Lemma global_eq_dec: forall g1 g2 : global dtyp, {g1 = g2} + {g1 <> g2}.
-Proof.
-  repeat decide equality.
-  apply exp_eq_dec.
-  apply dtyp_eq_dec.
-Qed.
+Lemma has_post_enrich_eutt {E X Y RR Q1 Q2} :
+  forall (t : itree E X) (u : itree E Y),
+    eutt RR t u ->
+    t ⤳ Q1 ->
+    u ⤳ Q2 ->
+    eutt (fun x y => RR x y /\ Q1 x /\ Q2 y) t u.
+Admitted.
+
+(* Auxilliary lemma to enrich an equation with an invariant over the right computation *)
+Lemma has_post_enrich_eutt_r {E X Y RR Q} :
+  forall (t : itree E X) (u : itree E Y),
+    eutt RR t u ->
+    u ⤳ Q ->
+    eutt (fun x y => RR x y /\ Q y) t u.
+Admitted.
 
 (** * [interp_local_stack] theory *)
 Lemma interp_local_stack_tau:
@@ -1389,7 +1412,12 @@ Qed.
 
 Lemma string_dec_correct (s s' : string) :
   s <> s' -> exists pf, string_dec s s' = right pf.
-Admitted.
+Proof.
+  intros.
+  destruct string_dec.
+  congruence.
+  eauto.
+Qed.
 
 Lemma interp_mcfg3_trigger_is_handler3_strong : forall X (e : L0 X) g l m,
     interp_mcfg3 (trigger e) g l m ≅ handler3_strong e g l m.
