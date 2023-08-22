@@ -1749,5 +1749,90 @@ all: replace g2 with gI in * by tauto.
 
 2,3: eassumption.
 reflexivity.
+rewrite bind_ret_l.
+subst.
+rewrite translate_bind.
+rewrite interp_mrec_bind, interp3_bind, bind_bind.
+focus_single_step_l.
+
+Lemma denote3_term_ret :
+  ∀ (g : ρ) l (m : memoryV) d e ctx x,
+interp_mcfg3 (interp_mrec ctx (translate instr_to_L0' (translate exp_to_instr (denote_exp (Some d) e)))) g l m ≈ Ret3 g l m x ->
+interp_mcfg3 (interp_mrec ctx (translate instr_to_L0' (translate exp_to_instr
+    ⟦ TERM_Ret (d,e)⟧t))) g l m ≈ Ret3 g l m (inr x).
+Proof.
+  unfold denote_terminator.
+  intros * EQ; cbn.
+  rewrite 2 translate_bind, interp_mrec_bind, interp3_bind.
+  rewrite EQ, bind_ret_l.
+  rewrite 2 translate_ret, interp_mrec_ret, interp3_ret.
+  reflexivity.
+Qed.
+
+
+(* denote_exp_LR *)
+Lemma denote3_exp_LR :
+  forall ctx (id : raw_id) τ g l m v s,
+    Maps.lookup id l ≡ Some v ->
+    interp_mcfg3 (interp_mrec ctx (translate instr_to_L0'
+                                     (translate exp_to_instr (denote_exp (Some τ) (EXP_Ident (ID_Local id)))))) g (l,s) m ≈ Ret3 g (l,s) m v.
+Proof.
+  intros.
+  eapply interp_cfg3_to_mcfg3.
+  rewrite denote_exp_LR; [reflexivity |]; eauto.
+Qed.
+
+  rewrite denote3_term_ret; cycle -1.
+  apply denote3_exp_LR.
+  rewrite Maps.mapsto_lookup. apply Maps.mapsto_add_eq.
+  rewrite bind_ret_l; subst i.
+
+  focus_single_step_l.
+  rewrite translate_ret, interp_mrec_ret, interp3_ret.
+  rewrite bind_ret_l; subst i.
+  focus_single_step_l.
+  rewrite translate_ret, interp_mrec_ret, interp3_ret.
+  rewrite bind_ret_l; subst i.
+  rewrite interp_mrec_bind, interp3_bind.
+  focus_single_step_l.
+
+
+Lemma interp_cfg3_StackPop: forall g a f s m,
+    ℑs3 (trigger StackPop) g (a,f :: s) m ≈
+      Ret3 g (f,s) m tt.
+Proof.
+  intros.
+  unfold ℑs3.
+  MCFGTactics.go.
+  reflexivity.
+Qed.
+
+Lemma interp3_StackPop: forall foo g a f s m,
+    interp_mcfg3 (interp_mrec (mcfg_ctx foo) (trigger (@StackPop raw_id uvalue))) g (a,f :: s) m ≈
+      Ret3 g (f,s) m tt.
+Proof.
+  intros.
+  rewrite interp_mrec_trigger.
+  cbn.
+  match goal with
+  |- context[ITree.trigger ?e] => assert (EQ: e ≡ (subevent _ (inr1 (inr1 (inr1 (inl1 (inr1 (@StackPop raw_id uvalue)))))))) by reflexivity; rewrite EQ; clear EQ
+  end.
+  rewrite (interp_mcfg3_trigger_is_handler3_strong).
+  cbn.
+  rewrite bind_ret_l.
+  rewrite 3 tau_eutt; reflexivity.
+Qed.
+rewrite interp3_StackPop.
+
+rewrite bind_ret_l; subst i.
+
+
+
+
+
+
+
+  Unset Printing Notations.
+
 
 Admitted.
