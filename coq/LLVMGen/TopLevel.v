@@ -1824,6 +1824,27 @@ Proof.
 Qed.
 rewrite interp3_StackPop.
 
+(*
+  Singleton []
+  INITIALIZATION PHASE
+  Singleton f
+  PUSH FRAMES
+  Snoc (Singleton f) nil
+  [[[
+  ENTER MAIN
+     PUSH FRAMES
+(((
+     CALL OPERATOR
+     RETURN OPERATOR
+)))
+     POP FRAMES
+  RETURN MAIN
+  ]]]
+  Snoc (Singleton f) nil
+  POP FRAMES
+  value
+ *)
+
 rewrite bind_ret_l; subst i.
 
 clear g2.
@@ -1834,6 +1855,19 @@ pose proof interp_mcfg3_trigger_is_handler3 unit (subevent _ MemPop) gI (ρI , s
 rewrite EQ; clear EQ.
 rewrite bind_bind.
 
+destruct mem2' as [mem2' fs].
+
+assert (exists f, fs ≡ Mem.Snoc (Mem.Singleton f) nil) by admit.
+destruct H2 as [f ?]; subst.
+cbn.
+rewrite ? bind_ret_l.
+rewrite interp_mrec_ret, interp3_ret.
+cbn.
+
+assert (final_rel_val y y_ival).
+{
+  admit. (* Ilia *)
+}
 (* destruct FREE_INV as (mem2' & EQ_mem2 & ALLOC_INV & READ_INV). *)
 (* rewrite EQ_mem2. *)
 (* cbn. rewrite ?bind_ret_l. *)
@@ -1851,8 +1885,6 @@ rewrite bind_bind.
 
 
 
-
-  Unset Printing Notations.
 
 
 Admitted.
