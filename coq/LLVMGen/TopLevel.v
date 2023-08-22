@@ -1826,6 +1826,26 @@ rewrite interp3_StackPop.
 
 rewrite bind_ret_l; subst i.
 
+clear g2.
+rewrite interp_mrec_bind,interp_mrec_trigger.
+rewrite interp3_bind.
+simpl.
+pose proof interp_mcfg3_trigger_is_handler3 unit (subevent _ MemPop) gI (ρI , sI) mem2' as EQ; cbn in EQ.
+rewrite EQ; clear EQ.
+rewrite bind_bind.
+
+(* destruct FREE_INV as (mem2' & EQ_mem2 & ALLOC_INV & READ_INV). *)
+(* rewrite EQ_mem2. *)
+(* cbn. rewrite ?bind_ret_l. *)
+(* cbn. *)
+(* rewrite interp_mrec_ret, interp3_ret, bind_ret_l. *)
+(* subst. *)
+(* rewrite bind_ret_l. *)
+(* rewrite translate_bind. *)
+(* rewrite denote_code_singleton. *)
+(* rewrite interp_mrec_bind,interp3_bind, bind_bind. *)
+(* focus_single_step_l. *)
+
 
 
 
