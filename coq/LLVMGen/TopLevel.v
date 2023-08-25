@@ -1188,7 +1188,46 @@ Qed.
 (*   := (ℑs3 (mrecursive ctx _ t) g l m) *)
 (*        (only printing, at level 0, *)
 (*        format "'with'  'ℑs3'  'and'  'context'  ctx  'computing' '//' t '//' 'from' '//' g '//' l '//' m '//'"). *)
-
+  
+Lemma get_array_cell_signleton 
+  (mem : μ) (addr : Addr.addr) (i : nat) (y : uvalue) (b64 : DynamicValues.ll_double) :
+  get_array_cell mem addr i DTYPE_Double ≡ inr (UVALUE_Double b64) →
+  get_array_cell mem addr i (DTYPE_Array (Npos 1) DTYPE_Double) ≡ inr y ->
+  y ≡ UVALUE_Array [UVALUE_Double b64].
+Proof.
+  intros * Y Y'.
+  destruct addr as (addr, off).
+  cbn in *.
+  repeat break_match; try inl_inr.
+  invc Y; invc Y'.
+  unfold read_in_mem_block.
+  generalize dependent (off +
+                          DynamicValues.Int64.unsigned
+                            (DynamicValues.Int64.repr (Z.of_nat i)) * 8)%Z;
+    intros z READ.
+  unfold read_in_mem_block in READ.
+  cbv [sizeof_dtyp BinNat.N.mul] in *.
+  replace (1 * 8)%positive with 8%positive by reflexivity.
+  remember (lookup_all_index z (Npos 8) bytes SUndef) as bt.
+  rewrite <-app_nil_r with (l:=bt).
+  replace (Npos 1) with (BinNat.N.succ N0) by reflexivity.
+  erewrite deserialize_array_element.
+  6: reflexivity.
+  instantiate (1:=[]).
+  now rewrite app_nil_r.
+  constructor.
+  constructor.
+  subst.
+  {
+    eapply deserialize_sbytes_dvalue_all_not_sundef.
+    rewrite READ.
+    instantiate (1:=DVALUE_Double b64).
+    reflexivity.
+  }
+  reflexivity.
+  subst; now rewrite lookup_all_index_length.
+  reflexivity.
+Qed.
 
 Lemma top_to_LLVM :
   forall (a : Vector.t CarrierA 3) (* parameter *)
@@ -2162,49 +2201,9 @@ Proof.
     repeat f_equal.
     lia.
   }
-  
-  Lemma get_array_cell_signleton 
-    (mem : μ) (addr : Addr.addr) (i : nat) (y y' : uvalue) :
-    get_array_cell mem addr i DTYPE_Double ≡ inr y →
-    get_array_cell mem addr i (DTYPE_Array (Npos 1) DTYPE_Double) ≡ inr y' ->
-    y' ≡ UVALUE_Array [y].
-  Proof.
-    intros * Y Y'.
-    destruct addr as (addr, off).
-    cbn in *.
-    repeat break_match; try inl_inr.
-    invc Y; invc Y'.
-    unfold read_in_mem_block.
-    generalize dependent (off +
-                            DynamicValues.Int64.unsigned
-                              (DynamicValues.Int64.repr (Z.of_nat i)) * 8)%Z;
-      intros z.
-    cbv [sizeof_dtyp BinNat.N.mul].
-    replace (1 * 8)%positive with 8%positive by reflexivity.
-    remember (lookup_all_index z (Npos 8) bytes SUndef) as bt.
-    rewrite <-app_nil_r with (l:=bt).
-    replace (Npos 1) with (BinNat.N.succ N0) by reflexivity.
-    erewrite deserialize_array_element.
-    6: reflexivity.
-    instantiate (1:=[]).
-    now rewrite app_nil_r.
-    constructor.
-    constructor.
-    subst.
-    {
-      unfold lookup_all_index.
-      admit.
-    }
-    reflexivity.
-    subst; now rewrite lookup_all_index_length.
-    reflexivity.
-  Abort.
 
-  assert (y_ival ≡ UVALUE_Array [UVALUE_Double yf]).
-  {
-    clear - YIV IMY.
-    admit.
-  }
+  assert (y_ival ≡ UVALUE_Array [UVALUE_Double yf])
+    by (eapply get_array_cell_signleton; eassumption).
 
   subst.
   now exists yf.
