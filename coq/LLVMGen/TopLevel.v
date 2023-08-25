@@ -1925,6 +1925,7 @@ Proof.
     assumption.
   }
 
+  pose proof allocated_can_read _ _ DTYPE_Double T as [y_ival' YIV'].
   pose proof allocated_can_read _ _ (typ_to_dtyp nil (TYPE_Array (Npos xH) TYPE_Double)) T as [y_ival YIV].
 
   clear INIT_MEM EQLLVMINIT.
@@ -2039,11 +2040,135 @@ Proof.
   exists gI, (ρI, sI), (free_frame_memory [] mem2', Mem.Singleton f), y_ival.
   split; [reflexivity |].
 
-  admit. (* Ilia *)
+  (** * zoickx checkpoint *)
 
+  apply READ_INV in YIV.
+  destruct INV3 as [RHO2 _]; cbn in RHO2.
+  clear - INV2 H1 LUF TRF HgenIR H TRR YIV RHO2.
+  destruct INV2 as [MINV _ _ _ _ _ _].
+  specialize (MINV 1).
+  specialize (MINV (FHCOL.DSHPtrVal 1 dynwin_o') false).
+  specialize (MINV (TYPE_Pointer (TYPE_Array (Npos xH) TYPE_Double)) (ID_Local "Y1")).
 
+  
+  apply Context.genIR_Γ in HgenIR; rewrite <-HgenIR in *.
+  cbn in MINV.
+  do 2 (autospecialize MINV; [reflexivity |]).
+  
+  destruct MINV as (ptry & t & TE & TF & PTRY & MY).
+  invc TE.
+  replace ptry with a1_addr in *.
+  2: {
+    clear - RHO2 PTRY.
+    eapply local_scope_preserve_modif in RHO2.
+    unfold local_scope_preserved in RHO2.
+    specialize (RHO2 "Y1").
+    autospecialize RHO2.
+    {
+      Require Import LidBound.
+      eapply lid_bound_between_shrink_up.
+      instantiate (1:= {|
+                        block_count := 1;
+                        local_count := 2;
+                        void_count := 0;
+                        Γ :=
+                          [(ID_Global "a", TYPE_Pointer (TYPE_Array (Npos 3) double));
+                           (ID_Local "Y1", TYPE_Pointer (TYPE_Array (Npos 1) double))]
+                      |}).
+      cbv; lia.
+      
+      eapply lid_bound_between_incLocalNamed.
+      instantiate (1:="Y"); reflexivity.
+      instantiate (1:= {|
+                        block_count := 1;
+                        local_count := 1;
+                        void_count := 0;
+                        Γ :=
+                          [(ID_Global "a", TYPE_Pointer (TYPE_Array (Npos 3) double));
+                           (ID_Local "Y1", TYPE_Pointer (TYPE_Array (Npos 1) double))]
+                      |}).
+      cbv.
+      reflexivity.
+    }
+    subst ρI''.
+    rewrite alist_find_neq in RHO2 by discriminate.
+    rewrite alist_find_add_eq in RHO2 by reflexivity.
+    cbv [local_id] in *.
+    rewrite PTRY in RHO2.
+    now invc RHO2.
+  }
+  
+  autospecialize MY; [reflexivity |].
+  destruct MY as (y_rmem'' & FMY & IMY).
+  replace dynwin_y_addr with 1 in * by reflexivity.
+  
+  (* rewrite <-H1 in LUF. *)
+  replace f_omemory with m in LUF by admit.
+  rewrite FMY in LUF.
+  some_inv.
+  
+  specialize (TRR dynwin_y_offset).
+  unshelve erewrite MSigmaHCOL.MHCOL.mem_lookup_ctvector_to_mem_block in TRR.
+  constructor.
+  unfold final_rel_val, HCOLImpl.Scalarize.
+  rewrite VecUtil.Vhead_nth.
+  
+  (* poor man's generalize dependent *)
+  remember (@VecUtil.Vnth (@CarrierA RasCarrierA.CarrierDefs_R) 
+              (S O) y O (Nat.lt_0_succ O)) as yr.
+  replace (@VecUtil.Vnth (@CarrierA RasCarrierA.CarrierDefs_R) dynwin_o y
+             dynwin_y_offset (le_n dynwin_o))
+    with yr
+    in *
+      by (subst yr; f_equal; apply proof_irrelevance).
+  clear Heqyr.
+  
+  inv TRF.
+  {
+    exfalso.
+    clear - H2 TRR.
+    unfold RHCOLEval.mem_lookup in *.
+    rewrite <-H2 in TRR.
+    some_none.
+  }
+  
+  unfold RHCOLEval.mem_lookup in *.
+  rewrite <-H0 in TRR.
+  some_inv.
+  symmetry in TRR; invc TRR.
+  
+  rename b0 into yf.
+  
+  specialize (IMY Int64.zero yf).
+  (* rewrite LUF in IMY. *) replace y_rmem'' with y_fmem in IMY by admit.
+  setoid_rewrite H2 in IMY.
+  autospecialize IMY; [reflexivity |].
+  rewrite typ_to_dtyp_D_array in *.
 
+  erewrite read_array in YIV.
+  2: eapply can_read_allocated; eassumption.
+  2: {
+    instantiate (1:=(MInt64asNT.to_nat Int64.zero)).
+    instantiate (1:=Npos 1).
+    cbn.
+    replace (Z.of_nat (MInt64asNT.to_nat Int64.zero)) with 0%Z by reflexivity.
+    clear.
+    destruct a1_addr as [a off].
+    unfold handle_gep_addr.
+    cbn.
+    replace (DynamicValues.Int64.unsigned (DynamicValues.Int64.repr 0))
+      with 0%Z
+      by reflexivity.
+    repeat f_equal.
+    lia.
+  }
 
+  assert (y_ival ≡ UVALUE_Array [UVALUE_Double yf]).
+  {
+    clear - YIV IMY.
+    admit.
+  }
 
-
+  subst.
+  now exists yf.
 Admitted.
