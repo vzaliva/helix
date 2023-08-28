@@ -2141,8 +2141,12 @@ Proof.
   destruct MY as (y_rmem'' & FMY & IMY).
   replace dynwin_y_addr with 1 in * by reflexivity.
   
-  (* rewrite <-H1 in LUF. *)
-  replace f_omemory with m in LUF by admit.
+  (* lost instance *)
+  (* could not find where this is supposed to be imported from *)
+  assert (equiv_Equivalence : forall {A : Type} {EA : Equiv A},
+             Equivalence EA -> Equivalence (@equiv A EA))
+    by now cbv.
+  rewrite <-H1 in LUF.
   rewrite FMY in LUF.
   some_inv.
   
@@ -2179,8 +2183,16 @@ Proof.
   rename b0 into yf.
   
   specialize (IMY Int64.zero yf).
-  (* rewrite LUF in IMY. *) replace y_rmem'' with y_fmem in IMY by admit.
-  setoid_rewrite H2 in IMY.
+  replace (MInt64asNT.to_nat Int64.zero) with 0%nat in * by reflexivity.
+  cbv [dynwin_y_offset] in *.
+  specialize (LUF 0).
+  unfold FHCOLITree.mem_lookup, mem_lookup in IMY, H2.
+  inv LUF; [congruence |].
+  cbv in H6.
+  assert (b0 ≡ yf) by congruence.
+  subst a0 b0.
+  rewrite <-H4 in IMY.
+
   autospecialize IMY; [reflexivity |].
   rewrite typ_to_dtyp_D_array in *.
 
