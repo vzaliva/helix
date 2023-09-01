@@ -431,7 +431,6 @@ Section Eval_Denote_Equiv.
    Global Instance interp_Mem_equiv_proper {A} {e : Equiv A} {EQ : @Equivalence A e} :
     Proper ((eutt e) ==> equiv ==> (eutt equiv)) (@interp_Mem A).
    Proof.
-     (*
     unfold interp_Mem.
     einit. ecofix CIH. intros * EUTT m1 m2 EQM.
     rewrite !unfold_interp_state. punfold EUTT. red in EUTT.
@@ -463,9 +462,13 @@ Section Eval_Denote_Equiv.
              ebase; right.
              apply CIH.
              2:eauto.
-             apply REl.
+             (* apply REl.
                in Heqs. rewrite EQM in Heqs. unfold memory_lookup_err, trywith in *.
-             repeat break_match; try inl_inr.
+             repeat break_match; try inl_inr. *)
+             admit.
+        * admit.
+        * admit.
+        * admit.
       + destruct s. cbn. unfold pure_state.
         rewrite !bind_vis.
         evis; intros [].
@@ -473,25 +476,16 @@ Section Eval_Denote_Equiv.
         rewrite !bind_vis.
         evis; intros [].
 (* MARK *)
-         intors ?.
+      (* intors ?.
         ebind.
         econstructor.
         cbn.
       unshelve econstructor.
       exact (prod_rel equiv eq). [reflexivity|].
       intros; subst.
-      etau. ebase.
+      etau. ebase. *)
     - rewrite tau_euttge, unfold_interp_state; eauto.
     - rewrite tau_euttge, unfold_interp_state; eauto.
-  Qed.
-
-
-    intros x1 x2 X m1 m2 M.
-    revert_until id
-    subst.
-    unfold interp_Mem.
-    eapply eutt_interp_state.
-*)
   Admitted.
 
   Lemma Denote_Eval_Equiv_NExpr: forall mem σ e v,
