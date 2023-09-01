@@ -466,7 +466,20 @@ Proof.
   - unfold equiv, option_Equiv.
     rewrite <- option_rel_opt_r.
     unfold equiv, FHCOLtoSFHCOL.SFHCOLEval.evalNatClosure_Equiv in H.
-Admitted.
+    generalize dependent (interp_Mem (denoteDSHOperator σ op) hmem).
+    intros r R.
+    assert (equiv_Equivalence : forall {A : Type} {EA : Equiv A},
+               Equivalence EA -> Equivalence (@equiv A EA))
+      by now cbv.
+    symmetry in R.
+    eapply @eutt_ret_inv_strong in R.
+    destruct R as ((m, []) & R & M).
+    rewrite R.
+    rewrite interp_fail_Ret.
+    autorewrite with itree.
+    apply eutt_Ret.
+    constructor; now invc M.
+Qed.
 
 Import RecursionFacts.
 
