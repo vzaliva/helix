@@ -461,14 +461,58 @@ Section Eval_Denote_Equiv.
              cbn.
              ebase; right.
              apply CIH.
-             2:eauto.
+             2: assumption.
+
+             enough (∀ m1 m2 : mem_block,
+                       m1 = m2 →
+                     ∀ k1 k2 : mem_block → itree Event A,
+                       (forall m, eutt e (k1 m) (k2 m)) →
+                     eutt e (k1 m1) (k2 m2))
+               as H by (apply H; assumption).
+             
+             clear.
+             intros.
+
              (* apply REl.
                in Heqs. rewrite EQM in Heqs. unfold memory_lookup_err, trywith in *.
              repeat break_match; try inl_inr. *)
              admit.
-        * admit.
-        * admit.
-        * admit.
+        * cbn.
+          rewrite !bind_ret_l.
+          etau.
+          cbn.
+          ebase; right.
+          apply CIH; [apply REL |].
+          rewrite EQM; auto.
+        * cbn.
+          rewrite !bind_ret_l.
+          etau.
+          cbn.
+          ebase; right.
+          apply CIH.
+          2: assumption.
+          assert (Proper ((=) ==> (≡)) memory_next_key).
+          { clear.
+            intros m1 m2 EQM.
+            unfold equiv, NM_Equiv in EQM.
+            apply memory_next_key_struct.
+            intro k; split; intro H.
+            all: specialize (EQM k).
+            all: apply memory_is_set_is_Some in H.
+            all: apply memory_is_set_is_Some.
+            all: unfold util.is_Some in *.
+            all: unfold memory_lookup in *.
+            all: do 2 break_match; auto || inv EQM.
+          }
+          rewrite EQM.
+          apply REL.
+        * cbn.
+          rewrite !bind_ret_l.
+          etau.
+          cbn.
+          ebase; right.
+          apply CIH; [apply REL |].
+          rewrite EQM; auto.
       + destruct s. cbn. unfold pure_state.
         rewrite !bind_vis.
         evis; intros [].
