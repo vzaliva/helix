@@ -1546,3 +1546,202 @@ Section Eval_Denote_Equiv.
   Qed.
 
 End Eval_Denote_Equiv.
+
+Module interp_Mem_equiv_proper_False.
+
+  Definition bin0 : binary64 := B754_zero 53 1024 true.
+
+  (*        x                 y       
+                                      
+            3                 2       
+           / \               / \      
+          2   *            1     3    
+         / \              / \   / \   
+        1   *            *   * *   *  
+       / \                            
+      *   *                           
+  *)
+
+  Definition x_tree : Memory.NM.Raw.tree binary64 :=
+    Memory.NM.Raw.Node
+      (Memory.NM.Raw.Node
+        (Memory.NM.Raw.Node
+          (Memory.NM.Raw.Leaf binary64)
+          1
+          bin0
+          (Memory.NM.Raw.Leaf binary64)
+          0%Z)
+        2
+        bin0
+        (Memory.NM.Raw.Leaf binary64)
+        0%Z)
+      3
+      bin0
+      (Memory.NM.Raw.Leaf binary64)
+      0%Z.
+
+  Definition y_tree : Memory.NM.Raw.tree binary64 :=
+    Memory.NM.Raw.Node
+      (Memory.NM.Raw.Node
+        (Memory.NM.Raw.Leaf binary64)
+        1
+        bin0
+        (Memory.NM.Raw.Leaf binary64)
+        0%Z)
+      2
+      bin0
+      (Memory.NM.Raw.Node
+        (Memory.NM.Raw.Leaf binary64)
+        3
+        bin0
+        (Memory.NM.Raw.Leaf binary64)
+        0%Z)
+      0%Z.
+
+  Ltac derive_bst :=
+    repeat intro;
+    repeat (inv_prop Memory.NM.Raw.In; auto).
+
+  Lemma x_tree_is_bst: Memory.NM.Raw.bst x_tree.
+  Proof.
+    apply Memory.NM.Raw.BSNode.
+    - apply Memory.NM.Raw.BSNode.
+      + apply Memory.NM.Raw.BSNode.
+        * apply Memory.NM.Raw.BSLeaf.
+        * apply Memory.NM.Raw.BSLeaf.
+        * derive_bst.
+        * derive_bst.
+      + apply Memory.NM.Raw.BSLeaf.
+      + derive_bst.
+      + derive_bst.
+    - apply Memory.NM.Raw.BSLeaf.
+    - derive_bst.
+    - derive_bst.
+  Qed.
+
+  Lemma y_tree_is_bst: Memory.NM.Raw.bst y_tree.
+  Proof.
+    apply Memory.NM.Raw.BSNode.
+    - apply Memory.NM.Raw.BSNode.
+      + apply Memory.NM.Raw.BSLeaf.
+      + apply Memory.NM.Raw.BSLeaf.
+      + derive_bst.
+      + derive_bst.
+    - apply Memory.NM.Raw.BSNode.
+      + apply Memory.NM.Raw.BSLeaf.
+      + apply Memory.NM.Raw.BSLeaf.
+      + derive_bst.
+      + derive_bst.
+    - derive_bst.
+    - derive_bst.
+  Qed.
+
+  Definition x_mb : mem_block := Memory.NM.Bst x_tree_is_bst.
+  Definition y_mb : mem_block := Memory.NM.Bst y_tree_is_bst.
+
+  Lemma x_y_mb_neq: ~ (x_mb ≡ y_mb).
+  Proof.
+    intro H; inv H.
+  Qed.
+
+  Lemma x_y_mb_equiv: x_mb = y_mb.
+  Proof.
+    intro k.
+    do 4 (destruct k; [reflexivity |]).
+    reflexivity.
+  Qed.
+
+  Definition x_mem_tree : Memory.NM.Raw.tree mem_block :=
+    Memory.NM.Raw.Node
+      (Memory.NM.Raw.Leaf mem_block)
+      0
+      x_mb
+      (Memory.NM.Raw.Leaf mem_block)
+      0%Z.
+
+  Definition y_mem_tree : Memory.NM.Raw.tree mem_block :=
+    Memory.NM.Raw.Node
+      (Memory.NM.Raw.Leaf mem_block)
+      0
+      y_mb
+      (Memory.NM.Raw.Leaf mem_block)
+      0%Z.
+
+  Lemma x_mem_tree_is_bst: Memory.NM.Raw.bst x_mem_tree.
+  Proof.
+    apply Memory.NM.Raw.BSNode.
+    - apply Memory.NM.Raw.BSLeaf.
+    - apply Memory.NM.Raw.BSLeaf.
+    - derive_bst.
+    - derive_bst.
+  Qed.
+
+  Lemma y_mem_tree_is_bst: Memory.NM.Raw.bst y_mem_tree.
+  Proof.
+    apply Memory.NM.Raw.BSNode.
+    - apply Memory.NM.Raw.BSLeaf.
+    - apply Memory.NM.Raw.BSLeaf.
+    - derive_bst.
+    - derive_bst.
+  Qed.
+
+  Definition x_mem : memoryH := Memory.NM.Bst x_mem_tree_is_bst.
+  Definition y_mem : memoryH := Memory.NM.Bst y_mem_tree_is_bst.
+
+  Lemma x_y_mem_equiv: x_mem = y_mem.
+  Proof.
+    intro k.
+    destruct k.
+    - cbn.
+      constructor.
+      apply x_y_mb_equiv.
+    - reflexivity.
+  Qed.
+
+  Definition t_itree : itree Event bool.
+    constructor.
+    eapply VisF.
+    - left.
+      apply (MemLU "" 0).
+    - intro m.
+      constructor.
+      apply RetF.
+      destruct m as [m _].    
+      destruct m eqn:E.
+      + apply false.
+      + destruct (Nat.eq_dec k 2).
+        * apply true.
+        * apply false.
+  Defined.
+
+  Lemma interp_Mem_equiv_proper_False:
+    ~ (∀ (A : Type) (e : Equiv A), Equivalence e →
+      Proper (eutt e ==> equiv ==> eutt equiv) interp_Mem).
+  Proof.
+    intro H.
+    unfold Proper, respectful in H.
+    specialize (H bool eq eq_equivalence).
+    specialize (H t_itree t_itree (reflexivity t_itree)).
+    specialize (H x_mem y_mem x_y_mem_equiv).
+    unfold t_itree in H.
+    pose proof interp_Mem_MemLU_vis as Hmlu.
+    unfold subevent, resum, ReSum_inl, cat,
+           Cat_IFun, resum, ReSum_id, inl_,
+           Inl_sum1, id_, Id_IFun in Hmlu.
+    rewrite 2 Hmlu in H.
+    2, 3: reflexivity.
+    rewrite 2 interp_Mem_ret in H.
+    apply eutt_Ret in H.
+    destruct H as [H1 H2].
+    cbn in H1, H2.
+    discriminate H2.
+  Qed.
+
+  Fact falseness: False.
+  Proof.
+    apply interp_Mem_equiv_proper_False.
+    intros.
+    apply interp_Mem_equiv_proper.
+  Qed.
+
+End interp_Mem_equiv_proper_False.
